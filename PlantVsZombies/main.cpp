@@ -1,7 +1,10 @@
 #include "GameAPP.h"
 #include "Button.h"
-#include "ButtonManager.h"
+#include "Slider.h"
+#include "UIManager.h"
 #include "InputHandler.h"
+#include "ResourceManager.h"
+#include "AudioSystem.h"
 #include <iostream>
 #include <sstream>
 
@@ -9,6 +12,12 @@
 void ButtonClick()
 {
     std::cout << "点击" << std::endl;
+    AudioSystem::PlaySound(AudioConstants::SOUND_BUTTONCLICK);
+}
+
+void SliderChanged(float value)
+{
+    std::cout << "滑动条值改变: " << value << std::endl;
 }
 
 int SDL_main(int argc, char* argv[])
@@ -37,8 +46,15 @@ int SDL_main(int argc, char* argv[])
         return -1;
     }
 
+    Mix_AllocateChannels(16); // 分配16个音频频道
+
+    if (!AudioSystem::Initialize())
+    {
+        std::cerr << "警告: 音频初始化失败，游戏将继续运行但没有声音" << std::endl;
+    }
+
     InputHandler* input = InputHandler::GetInstance();
-    ButtonManager buttonManager;
+    UIManager uiManager;
     GameAPP gameApp;
 
     // 设置默认字体路径
@@ -53,6 +69,8 @@ int SDL_main(int argc, char* argv[])
 
     if (!window) {
         std::cerr << "窗口创建失败: " << SDL_GetError() << std::endl;
+        AudioSystem::Shutdown();
+        gameApp.CloseGame();
         TTF_Quit();
         IMG_Quit();
         SDL_Quit();
@@ -67,9 +85,12 @@ int SDL_main(int argc, char* argv[])
     {
         std::cerr << "渲染器创建失败: " << SDL_GetError() << std::endl;
         SDL_DestroyWindow(window);
+        AudioSystem::Shutdown();
+        gameApp.CloseGame();
         TTF_Quit();
         IMG_Quit();
         SDL_Quit();
+        Mix_Quit();
         return -1;
     }
 
@@ -78,9 +99,23 @@ int SDL_main(int argc, char* argv[])
     SDL_RenderClear(renderer);
     SDL_RenderPresent(renderer);
 
-    if (!gameApp.LoadGameResources(renderer)) 
+    ResourceManager& resourceManager = ResourceManager::GetInstance();
+    resourceManager.Initialize(renderer);
+
+    // 统一加载所有资源
+    bool resourcesLoaded = true;
+    resourcesLoaded &= resourceManager.LoadAllGameImages();
+    resourcesLoaded &= resourceManager.LoadAllParticleTextures();
+    resourcesLoaded &= resourceManager.LoadAllFonts();
+    resourcesLoaded &= resourceManager.LoadAllSounds();
+    resourcesLoaded &= resourceManager.LoadAllMusic();
+
+    if (!resourcesLoaded)
     {
-        gameApp.CloseGame(renderer, window);
+        AudioSystem::Shutdown();
+        GameAPP::CleanupResources();
+        ResourceManager::ReleaseInstance();
+        gameApp.CloseGame();
         TTF_Quit();
         IMG_Quit();
         SDL_Quit();
@@ -88,19 +123,21 @@ int SDL_main(int argc, char* argv[])
     }
 
     // 创建按钮
-    auto button1 = buttonManager.CreateButton(Vector(100, 150));
+    auto button1 = uiManager.CreateButton(Vector(100, 150));
     button1->SetAsCheckbox(true);
     button1->SetImageIndexes(1, 1, 1, 2);
-    button1->SetOnClick(ButtonClick);
+    button1->SetClickCallBack(ButtonClick);
 
-    auto button2 = buttonManager.CreateButton(Vector(300, 150), Vector(110, 25));
+    auto button2 = uiManager.CreateButton(Vector(300, 150), Vector(110, 25));
     button2->SetAsCheckbox(false);
     button2->SetImageIndexes(3, 4, 4, -1);
     button2->SetTextColor({ 255, 255, 255, 255 }); // 白色
     button2->SetHoverTextColor({ 0, 0, 0, 255 });  // 黑色
     button2->SetText(u8"一e");
-    button2->SetOnClick(ButtonClick);
+    button2->SetClickCallBack(ButtonClick);
 
+    auto slider = uiManager.CreateSlider(Vector(500, 150), Vector(135, 10), 0.0f, 100.0f, 0.0f);
+    slider->SetChangeCallBack(SliderChanged);
     bool running = true;
     SDL_Event event;
 
@@ -113,7 +150,7 @@ int SDL_main(int argc, char* argv[])
             {
                 running = false;
             }
-            buttonManager.ProcessMouseEvent(&event);
+            uiManager.ProcessMouseEvent(&event, input);
             input->ProcessEvent(&event);
         }
 
@@ -125,26 +162,28 @@ int SDL_main(int argc, char* argv[])
             break;
         }
 
-        buttonManager.UpdateAll(input);
+        uiManager.UpdateAll(input);
 
         // 清屏
         SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
         SDL_RenderClear(renderer);
 
-        // 绘制按钮
-        buttonManager.DrawAll(renderer, gameApp.GetGameTextures());
+        // 绘制全部UI
+        uiManager.DrawAll(renderer);
 
         // 更新屏幕
         SDL_RenderPresent(renderer);
 
-        buttonManager.ResetAllFrameStates();
+        uiManager.ResetAllFrameStates();
         SDL_Delay(16);  // 约60FPS
     }
-
-    gameApp.CloseGame(renderer, window);
+    AudioSystem::Shutdown();
+    GameAPP::CleanupResources();
+    ResourceManager::ReleaseInstance();
+    gameApp.CloseGame();
+    SDL_DestroyWindow(window);
     TTF_Quit();
     IMG_Quit();
     SDL_Quit();
-
     return 0;
 }

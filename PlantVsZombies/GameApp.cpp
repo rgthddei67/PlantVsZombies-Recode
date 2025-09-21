@@ -1,96 +1,61 @@
 #include "GameApp.h"
 #include "InputHandler.h"
+#include "ResourceManager.h"
 #include <iostream>
 #include <sstream>
 
 InputHandler* InputHandler::s_pInstance = nullptr;
 InputHandler* g_pInputHandler = nullptr;
 
-bool GameAPP::LoadGameResources(SDL_Renderer* renderer)
+void GameAPP::CloseGame()
 {
-    if (!renderer)
-    {
-        std::cerr << "渲染器无效，无法加载资源" << std::endl;
-        return false;
-    }
-
-    // 先清理现有纹理
-    ClearTextures();
-
-    for (const auto& path : imagePaths)
-    {
-        // 使用SDL_image加载纹理
-        SDL_Texture* texture = IMG_LoadTexture(renderer, path.c_str());
-        if (!texture)
-        {
-            std::string errorMsg = "加载纹理失败: " + path + " - " + IMG_GetError();
-            std::cerr << errorMsg << std::endl;
-
-            // 清理已加载的纹理
-            ClearTextures();
-            return false;
-        }
-
-        gameTextures.push_back(texture);
-        std::cout << "成功加载纹理: " << path << std::endl;
-    }
-
-    std::cout << "资源加载完成! 共加载 " << gameTextures.size()
-        << "/" << imagePaths.size() << " 个纹理" << std::endl;
-    return true;
-}
-
-void GameAPP::CloseGame(SDL_Renderer* renderer, SDL_Window* window)
-{
-    // 清理纹理资源
-    ClearTextures();
-
-    // 清理输入处理器
     if (g_pInputHandler != nullptr)
     {
         InputHandler::ReleaseInstance();
     }
-
-    // 只清理应用相关的资源
 }
 
-const std::vector<SDL_Texture*>& GameAPP::GetGameTextures() const
-{
-    return gameTextures;
-}
+static std::vector<TextCache> textCache;
 
-void GameAPP::ClearTextures()
+void GameAPP::ClearTextCache()
 {
-    for (auto texture : gameTextures)
+    for (auto& cache : textCache)
     {
-        if (texture)
+        if (cache.texture)
         {
-            SDL_DestroyTexture(texture);
+            SDL_DestroyTexture(cache.texture);
         }
     }
-    gameTextures.clear();
+    textCache.clear();
+    std::cout << "清理文本缓存" << std::endl;
+}
+
+void GameAPP::CleanupResources()
+{
+    ClearTextCache();
+    ResourceManager::GetInstance().CleanupUnusedFontSizes();
 }
 
 void GameAPP::DrawText(SDL_Renderer* renderer,
     const std::string& text,
     int x, int y,
     const SDL_Color& color,
-    const std::string& fontName,
+    const std::string& fontKey,
     int fontSize)
 {
-    // 加载字体
-    TTF_Font* font = TTF_OpenFont(fontName.c_str(), fontSize);
+    if (text.empty()) return;
+
+    // 使用资源管理器获取字体
+    TTF_Font* font = ResourceManager::GetInstance().GetFont(fontKey, fontSize);
     if (!font)
     {
-        std::cerr << "无法加载字体: " << TTF_GetError() << std::endl;
-        return;
+        std::cerr << "无法获取字体: " << fontKey << " size: " << fontSize << std::endl;
     }
 
     // 创建文本表面
     SDL_Surface* surface = TTF_RenderUTF8_Blended(font, text.c_str(), color);
     if (!surface)
     {
-        TTF_CloseFont(font);
         std::cerr << "无法创建文本表面: " << TTF_GetError() << std::endl;
         return;
     }
@@ -100,7 +65,6 @@ void GameAPP::DrawText(SDL_Renderer* renderer,
     if (!texture)
     {
         SDL_FreeSurface(surface);
-        TTF_CloseFont(font);
         std::cerr << "无法创建纹理: " << SDL_GetError() << std::endl;
         return;
     }
@@ -112,16 +76,48 @@ void GameAPP::DrawText(SDL_Renderer* renderer,
     // 清理资源
     SDL_DestroyTexture(texture);
     SDL_FreeSurface(surface);
-    TTF_CloseFont(font);
 }
 
 void GameAPP::DrawText(SDL_Renderer* renderer,
     const std::string& text,
     const Vector& position,
     const SDL_Color& color,
-    const std::string& fontName,
+    const std::string& fontKey,
     int fontSize)
 {
     DrawText(renderer, text, static_cast<int>(position.x), static_cast<int>(position.y),
-        color, fontName, fontSize);
+        color, fontKey, fontSize);
+}
+
+Vector GameAPP::GetTextSize(const std::string& text,
+    const std::string& fontKey,
+    int fontSize)
+{
+    TTF_Font* font = ResourceManager::GetInstance().GetFont(fontKey, fontSize);
+    if (!font)
+    {
+        return Vector::zero();
+    }
+
+    int width = 0, height = 0;
+    TTF_SizeUTF8(font, text.c_str(), &width, &height);
+    return Vector(static_cast<float>(width), static_cast<float>(height));
+}
+
+SDL_Texture* GameAPP::CreateTextTexture(SDL_Renderer* renderer,
+    const std::string& text,
+    const SDL_Color& color,
+    const std::string& fontKey,
+    int fontSize)
+{
+    TTF_Font* font = ResourceManager::GetInstance().GetFont(fontKey, fontSize);
+    if (!font) return nullptr;
+
+    SDL_Surface* surface = TTF_RenderUTF8_Blended(font, text.c_str(), color);
+    if (!surface) return nullptr;
+
+    SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
+    SDL_FreeSurface(surface);
+
+    return texture;
 }

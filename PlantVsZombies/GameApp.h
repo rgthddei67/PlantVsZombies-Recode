@@ -12,6 +12,17 @@
 #include <functional>
 #include "Definit.h"
 
+struct TextCache
+{
+    std::string text;
+    SDL_Color color;
+    std::string fontKey;
+    int fontSize;
+    SDL_Texture* texture;
+    int width;
+    int height;
+};
+
 // 前向声明
 class InputHandler;
 
@@ -22,43 +33,40 @@ class InputHandler; // 前向声明
 
 class GameAPP
 {
-private:
-    std::vector<SDL_Texture*> gameTextures;    // SDL纹理集合
-    std::vector<std::string> imagePaths =
-    {
-        "./resources/image/kid.jpg",
-        "./resources/image/UI/options_checkbox0.png",
-        "./resources/image/UI/options_checkbox1.png",
-        "./resources/image/UI/SeedChooser_Button2.png",
-        "./resources/image/UI/SeedChooser_Button2_Glow.png",
-    };
-
 public:
-    // 加载游戏资源
-    bool LoadGameResources(SDL_Renderer* renderer);
-
     // 关闭游戏
-    void CloseGame(SDL_Renderer* renderer, SDL_Window* window);
+    void CloseGame();
+    // 文本缓存清理
+    static void ClearTextCache();
+    // 资源清理方法
+    static void CleanupResources();
 
-    // 获取纹理资源
-    const std::vector<SDL_Texture*>& GetGameTextures() const;
-
-    // 清理纹理资源
-    void ClearTextures();
-    
-    // 绘制文字
+    // 绘制文本 中文字符前面加u8
     static void DrawText(SDL_Renderer* renderer,
         const std::string& text,
         int x, int y,
         const SDL_Color& color,
-        const std::string& fontName = "./font/fzcq.ttf",
+        const std::string& fontKey = "./font/fzcq.ttf", 
         int fontSize = 17);
-    // 绘制文字
+
+    // 绘制文本 中文字符前面加u8
     static void DrawText(SDL_Renderer* renderer,
         const std::string& text,
         const Vector& position,
         const SDL_Color& color,
-        const std::string& fontName = "./font/fzcq.ttf",
+        const std::string& fontKey = "./font/fzcq.ttf",
+        int fontSize = 17);
+
+    // 文本测量
+    static Vector GetTextSize(const std::string& text,
+        const std::string& fontKey = "./font/fzcq.ttf",
+        int fontSize = 17);
+
+    // 添加文本缓存优化
+    static SDL_Texture* CreateTextTexture(SDL_Renderer* renderer,
+        const std::string& text,
+        const SDL_Color& color,
+        const std::string& fontKey = "./font/fzcq.ttf",
         int fontSize = 17);
 };
 

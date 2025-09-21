@@ -54,7 +54,7 @@ public:
     void SetImageIndexes(int normal, int hover = -1, int pressed = -1, int checked = -1);
 
     // 设置点击回调
-    void SetOnClick(std::function<void()> callback);
+    void SetClickCallBack(std::function<void()> callback);
 
     // 更新和渲染
     void Update(InputHandler* input);

@@ -64,7 +64,7 @@ void Button::SetImageIndexes(int normal, int hover, int pressed, int checked)
 	this->checkedImageIndex = checked;
 }
 
-void Button::SetOnClick(std::function<void()> callback)
+void Button::SetClickCallBack(std::function<void()> callback)
 {
 	this->onClickCallback = callback;
 }

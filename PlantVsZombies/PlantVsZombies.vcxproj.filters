@@ -30,6 +30,18 @@
     <ClCompile Include="GameApp.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="Slider.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="SliderManager.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="ResourceManager.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="AudioSystem.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="InputHandler.h">
@@ -45,6 +57,21 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="GameApp.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Slider.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="SliderManager.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="UIManager.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="ResourceManager.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="AudioSystem.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
