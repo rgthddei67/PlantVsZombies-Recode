@@ -12,7 +12,7 @@
 void ButtonClick()
 {
     std::cout << "点击" << std::endl;
-    AudioSystem::PlaySound(AudioConstants::SOUND_BUTTONCLICK);
+    AudioSystem::PlaySound(AudioConstants::SOUND_BUTTONCLICK, 0.4f);
 }
 
 void SliderChanged(float value)
@@ -46,8 +46,6 @@ int SDL_main(int argc, char* argv[])
         return -1;
     }
 
-    Mix_AllocateChannels(16); // 分配16个音频频道
-
     if (!AudioSystem::Initialize())
     {
         std::cerr << "警告: 音频初始化失败，游戏将继续运行但没有声音" << std::endl;
@@ -70,6 +68,7 @@ int SDL_main(int argc, char* argv[])
     if (!window) {
         std::cerr << "窗口创建失败: " << SDL_GetError() << std::endl;
         AudioSystem::Shutdown();
+        Mix_Quit();
         gameApp.CloseGame();
         TTF_Quit();
         IMG_Quit();
@@ -84,13 +83,13 @@ int SDL_main(int argc, char* argv[])
     if (!renderer) 
     {
         std::cerr << "渲染器创建失败: " << SDL_GetError() << std::endl;
-        SDL_DestroyWindow(window);
         AudioSystem::Shutdown();
+        Mix_Quit();
         gameApp.CloseGame();
+        SDL_DestroyWindow(window);
         TTF_Quit();
         IMG_Quit();
         SDL_Quit();
-        Mix_Quit();
         return -1;
     }
 
@@ -112,10 +111,12 @@ int SDL_main(int argc, char* argv[])
 
     if (!resourcesLoaded)
     {
-        AudioSystem::Shutdown();
+        AudioSystem::Shutdown();    
+        Mix_Quit();                
         GameAPP::CleanupResources();
         ResourceManager::ReleaseInstance();
         gameApp.CloseGame();
+        SDL_DestroyWindow(window);
         TTF_Quit();
         IMG_Quit();
         SDL_Quit();
@@ -133,7 +134,7 @@ int SDL_main(int argc, char* argv[])
     button2->SetImageIndexes(3, 4, 4, -1);
     button2->SetTextColor({ 255, 255, 255, 255 }); // 白色
     button2->SetHoverTextColor({ 0, 0, 0, 255 });  // 黑色
-    button2->SetText(u8"一e");
+    button2->SetText(u8"W就W是W");
     button2->SetClickCallBack(ButtonClick);
 
     auto slider = uiManager.CreateSlider(Vector(500, 150), Vector(135, 10), 0.0f, 100.0f, 0.0f);
@@ -175,9 +176,9 @@ int SDL_main(int argc, char* argv[])
         SDL_RenderPresent(renderer);
 
         uiManager.ResetAllFrameStates();
-        SDL_Delay(16);  // 约60FPS
     }
     AudioSystem::Shutdown();
+    Mix_Quit();
     GameAPP::CleanupResources();
     ResourceManager::ReleaseInstance();
     gameApp.CloseGame();
