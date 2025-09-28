@@ -69,6 +69,17 @@ private:
     float mLastFrameTime;                  // 上一帧时间
     SDL_Renderer* mRenderer;               // SDL渲染器
     ReanimationType mReanimationType;      // 动画类型
+    Uint32 mLastUpdateTime;
+    bool mFirstUpdate;
+
+    struct ReanimatorFrameTime {
+        float mFraction;
+        int mAnimFrameBeforeInt;
+        int mAnimFrameAfterInt;
+    };
+
+    void GetFrameTime(ReanimatorFrameTime* theFrameTime);
+    void GetTransformAtTime(int theTrackIndex, ReanimatorTransform* theTransform, ReanimatorFrameTime* theFrameTime);
 
 public:
     Reanimation(SDL_Renderer* renderer = nullptr);
@@ -97,9 +108,7 @@ public:
     void SetFramesForLayer(const char* trackName);
 
 private:
-    //void GetCurrentTransform(int trackIndex, int frameIndex, ReanimatorTransform& result);
     void DrawTrack(int trackIndex, int frameIndex);
-    int CalculateFrameIndex();
 };
 
 // 动画管理器

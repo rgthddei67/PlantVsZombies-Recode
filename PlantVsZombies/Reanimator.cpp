@@ -116,7 +116,9 @@ Reanimation::Reanimation(SDL_Renderer* renderer) :
     mRenderOrder(0),
     mLastFrameTime(-1.0f),
     mRenderer(renderer),
-    mReanimationType(ReanimationType::REANIM_NONE) {
+    mReanimationType(ReanimationType::REANIM_NONE),
+    mLastUpdateTime(0),
+    mFirstUpdate(true) { 
 
     mOverlayMatrix.LoadIdentity();
 }
@@ -188,11 +190,34 @@ void Reanimation::Update() {
         return;
     }
 
-    mLastFrameTime = mAnimTime;
-    float deltaTime = 0.016f; // 假设60FPS
+    // 使用高精度时间计算
+    static Uint32 lastTime = SDL_GetTicks();
+    Uint32 currentTime = SDL_GetTicks();
 
-    // 计算时间增量
-    float timeDelta = deltaTime * mAnimRate / mFrameCount;
+    // 处理时间回绕（32位整数溢出）
+    if (currentTime < lastTime) {
+        lastTime = currentTime;
+        return;
+    }
+
+    float deltaTime;
+
+    if (mFirstUpdate) {
+        deltaTime = 0.0f;
+        mFirstUpdate = false;
+    }
+    else {
+        deltaTime = (currentTime - lastTime) / 1000.0f;
+        if (deltaTime > 0.033f) { // 最大33ms，约30FPS的最低保证
+            deltaTime = 0.033f;
+        }
+    }
+
+    lastTime = currentTime;
+    mLastFrameTime = mAnimTime;
+
+    // 基于FPS的正确时间增量计算
+    float timeDelta = deltaTime * (mAnimRate / mDefinition->mFPS);
     mAnimTime += timeDelta;
 
     // 根据循环类型处理时间
@@ -220,7 +245,6 @@ void Reanimation::Update() {
         break;
 
     case ReanimLoopType::REANIM_LOOP_FULL_LAST_FRAME:
-        // 保持最后一帧的完整显示
         if (mAnimTime >= 1.0f) {
             mLoopCount++;
             mAnimTime -= 1.0f;
@@ -238,6 +262,17 @@ void Reanimation::Update() {
     default:
         break;
     }
+
+    // 调试输出
+    static int updateCount = 0;
+    updateCount++;
+    if (updateCount % 60 == 0) { // 每秒输出一次，避免日志过多
+        ReanimatorFrameTime frameTime;
+        GetFrameTime(&frameTime);
+        TOD_TRACE("Update - DeltaTime: " + std::to_string(deltaTime) +
+            " AnimTime: " + std::to_string(mAnimTime) +
+            " Frames: " + std::to_string(frameTime.mAnimFrameBeforeInt) + "->" + std::to_string(frameTime.mAnimFrameAfterInt));
+    }
 }
 
 void Reanimation::Draw() {
@@ -245,14 +280,8 @@ void Reanimation::Draw() {
         return;
     }
 
-    int frameIndex = CalculateFrameIndex();
-    if (frameIndex < 0 || frameIndex >= mFrameCount) {
-        return;
-    }
-
-    // 绘制所有轨道
     for (size_t trackIndex = 0; trackIndex < mDefinition->mTracks.size(); trackIndex++) {
-        DrawTrack(static_cast<int>(trackIndex), frameIndex);
+        DrawTrack(static_cast<int>(trackIndex), 0);
     }
 }
 
@@ -261,21 +290,25 @@ void Reanimation::DrawTrack(int trackIndex, int frameIndex) {
         return;
     }
 
-    ReanimatorTrack& track = mDefinition->mTracks[trackIndex];
-    if (frameIndex < 0 || frameIndex >= static_cast<int>(track.mTransforms.size())) {
-        return;
-    }
+    // 使用插值变换
+    ReanimatorFrameTime frameTime;
+    GetFrameTime(&frameTime);
 
-    ReanimatorTransform& transform = track.mTransforms[frameIndex];
+    ReanimatorTransform transform;
+    GetTransformAtTime(trackIndex, &transform, &frameTime);
+
+    ReanimatorTrack& track = mDefinition->mTracks[trackIndex];
 
     // 检查是否有有效的图像
-    if (!transform.mImage || transform.mFrame < 0) {
+    if (!transform.mImage || transform.mFrame < 0 || transform.mAlpha <= 0.01f) {
         return;
     }
 
     // 获取纹理尺寸
     int texWidth, texHeight;
-    SDL_QueryTexture(transform.mImage, NULL, NULL, &texWidth, &texHeight);
+    if (SDL_QueryTexture(transform.mImage, NULL, NULL, &texWidth, &texHeight) != 0) {
+        return; // 纹理无效
+    }
 
     if (texWidth <= 0 || texHeight <= 0) {
         return;
@@ -283,24 +316,43 @@ void Reanimation::DrawTrack(int trackIndex, int frameIndex) {
 
     // 计算目标矩形
     SDL_Rect destRect;
-    destRect.w = static_cast<int>(texWidth * transform.mScaleX);
-    destRect.h = static_cast<int>(texHeight * transform.mScaleY);
-    destRect.x = static_cast<int>(mOverlayMatrix.m02 + transform.mTransX - destRect.w * 0.5f);
-    destRect.y = static_cast<int>(mOverlayMatrix.m12 + transform.mTransY - destRect.h * 0.5f);
+    destRect.w = static_cast<int>(texWidth * fabsf(transform.mScaleX)); // 使用绝对值避免负缩放
+    destRect.h = static_cast<int>(texHeight * fabsf(transform.mScaleY));
+
+    // 如果缩放为0，不绘制
+    if (destRect.w <= 0 || destRect.h <= 0) {
+        return;
+    }
+
+    // 计算位置
+    float worldX = mOverlayMatrix.m02 + transform.mTransX;
+    float worldY = mOverlayMatrix.m12 + transform.mTransY;
+
+    destRect.x = static_cast<int>(worldX - destRect.w * 0.5f);
+    destRect.y = static_cast<int>(worldY - destRect.h * 0.5f);
 
     // 设置透明度
     Uint8 alpha = static_cast<Uint8>(transform.mAlpha * 255);
-    SDL_SetTextureAlphaMod(transform.mImage, alpha);
+    if (SDL_SetTextureAlphaMod(transform.mImage, alpha) != 0) {
+        return; // 设置透明度失败
+    }
 
     // 设置混合模式
-    SDL_SetTextureBlendMode(transform.mImage, SDL_BLENDMODE_BLEND);
+    if (SDL_SetTextureBlendMode(transform.mImage, SDL_BLENDMODE_BLEND) != 0) {
+        return; // 设置混合模式失败
+    }
 
-    // 计算旋转中心
+    // 计算旋转中心并绘制
     SDL_Point center = { destRect.w / 2, destRect.h / 2 };
 
-    // 绘制纹理（支持旋转）
+    // 处理负缩放（翻转）
+    SDL_RendererFlip flip = SDL_FLIP_NONE;
+    if (transform.mScaleX < 0 || transform.mScaleY < 0) {
+        // TODO 需要处理翻转，可以在这里添加逻辑
+    }
+
     SDL_RenderCopyEx(mRenderer, transform.mImage, NULL, &destRect,
-        transform.mSkewX, &center, SDL_FLIP_NONE);
+        transform.mSkewX, &center, flip);
 }
 
 void Reanimation::SetPosition(float x, float y) {
@@ -339,21 +391,80 @@ void Reanimation::SetFramesForLayer(const char* trackName) {
     }
 }
 
-int Reanimation::CalculateFrameIndex() {
-    if (mFrameCount == 0) return 0;
+void Reanimation::GetFrameTime(ReanimatorFrameTime* theFrameTime) {
+    if (mFrameCount == 0) {
+        theFrameTime->mFraction = 0.0f;
+        theFrameTime->mAnimFrameBeforeInt = 0;
+        theFrameTime->mAnimFrameAfterInt = 0;
+        return;
+    }
 
-    int frameIndex;
+    // 正确的帧时间计算
+    int aFrameCount;
     if (mLoopType == ReanimLoopType::REANIM_PLAY_ONCE_FULL_LAST_FRAME ||
         mLoopType == ReanimLoopType::REANIM_LOOP_FULL_LAST_FRAME) {
-        frameIndex = static_cast<int>(mAnimTime * mFrameCount);
+        aFrameCount = mFrameCount;
     }
     else {
-        frameIndex = static_cast<int>(mAnimTime * (mFrameCount - 1));
+        aFrameCount = mFrameCount - 1;
+    }
+
+    float aAnimPosition = mFrameStart + mAnimTime * aFrameCount;
+    float aAnimFrameBefore = floor(aAnimPosition);
+    theFrameTime->mFraction = aAnimPosition - aAnimFrameBefore;
+    theFrameTime->mAnimFrameBeforeInt = static_cast<int>(aAnimFrameBefore);
+
+    if (theFrameTime->mAnimFrameBeforeInt >= mFrameStart + mFrameCount - 1) {
+        theFrameTime->mAnimFrameBeforeInt = mFrameStart + mFrameCount - 1;
+        theFrameTime->mAnimFrameAfterInt = theFrameTime->mAnimFrameBeforeInt;
+    }
+    else {
+        theFrameTime->mAnimFrameAfterInt = theFrameTime->mAnimFrameBeforeInt + 1;
     }
 
     // 确保帧索引在有效范围内
-    frameIndex = std::max(0, std::min(frameIndex, mFrameCount - 1));
-    return frameIndex;
+    theFrameTime->mAnimFrameBeforeInt = std::max(mFrameStart, std::min(theFrameTime->mAnimFrameBeforeInt, mFrameStart + mFrameCount - 1));
+    theFrameTime->mAnimFrameAfterInt = std::max(mFrameStart, std::min(theFrameTime->mAnimFrameAfterInt, mFrameStart + mFrameCount - 1));
+}
+
+void Reanimation::GetTransformAtTime(int theTrackIndex, ReanimatorTransform* theTransform, ReanimatorFrameTime* theFrameTime) {
+    if (theTrackIndex < 0 || theTrackIndex >= static_cast<int>(mDefinition->mTracks.size())) {
+        return;
+    }
+
+    ReanimatorTrack& track = mDefinition->mTracks[theTrackIndex];
+
+    // 确保有变换数据
+    if (track.mTransforms.empty()) {
+        return;
+    }
+
+    // 确保帧索引在有效范围内
+    int frameBefore = std::max(0, std::min(theFrameTime->mAnimFrameBeforeInt, static_cast<int>(track.mTransforms.size()) - 1));
+    int frameAfter = std::max(0, std::min(theFrameTime->mAnimFrameAfterInt, static_cast<int>(track.mTransforms.size()) - 1));
+
+    ReanimatorTransform& transformBefore = track.mTransforms[frameBefore];
+    ReanimatorTransform& transformAfter = track.mTransforms[frameAfter];
+
+    // 如果前后帧相同，直接复制
+    if (frameBefore == frameAfter || theFrameTime->mFraction < 0.001f) {
+        *theTransform = transformBefore;
+        return;
+    }
+
+    // 帧间插值计算
+    theTransform->mTransX = FloatLerp(transformBefore.mTransX, transformAfter.mTransX, theFrameTime->mFraction);
+    theTransform->mTransY = FloatLerp(transformBefore.mTransY, transformAfter.mTransY, theFrameTime->mFraction);
+    theTransform->mSkewX = FloatLerp(transformBefore.mSkewX, transformAfter.mSkewX, theFrameTime->mFraction);
+    theTransform->mSkewY = FloatLerp(transformBefore.mSkewY, transformAfter.mSkewY, theFrameTime->mFraction);
+    theTransform->mScaleX = FloatLerp(transformBefore.mScaleX, transformAfter.mScaleX, theFrameTime->mFraction);
+    theTransform->mScaleY = FloatLerp(transformBefore.mScaleY, transformAfter.mScaleY, theFrameTime->mFraction);
+    theTransform->mAlpha = FloatLerp(transformBefore.mAlpha, transformAfter.mAlpha, theFrameTime->mFraction);
+
+    // 图像和文本使用前一帧的（不插值）
+    theTransform->mImage = transformBefore.mImage;
+    theTransform->mImageName = transformBefore.mImageName;
+    theTransform->mFrame = transformBefore.mFrame;
 }
 
 // ====================================================================================================
@@ -390,7 +501,9 @@ Reanimation* ReanimationHolder::AllocReanimation(float x, float y, ReanimatorDef
 }
 
 void ReanimationHolder::UpdateAll() {
-    for (auto it = mReanimations.begin(); it != mReanimations.end(); ) {
+    Uint32 currentTime = SDL_GetTicks();
+    for (auto it = mReanimations.begin(); it != mReanimations.end(); ) 
+    {
         (*it)->Update();
         if ((*it)->IsDead()) {
             it = mReanimations.erase(it);
