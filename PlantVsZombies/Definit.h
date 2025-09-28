@@ -104,4 +104,50 @@ struct Vector
     static Vector right() { return Vector(1, 0); }
 };
 
+// 矩阵类
+struct SexyTransform2D 
+{
+    float m00, m01, m02;
+    float m10, m11, m12;
+    float m20, m21, m22;
+
+    SexyTransform2D() {
+        LoadIdentity();
+    }
+
+    void LoadIdentity() {
+        m00 = 1.0f; m01 = 0.0f; m02 = 0.0f;
+        m10 = 0.0f; m11 = 1.0f; m12 = 0.0f;
+        m20 = 0.0f; m21 = 0.0f; m22 = 1.0f;
+    }
+};
+
+// SexyVector2 类似于 Vector，但用于矩阵运算
+struct SexyVector2 
+{
+    float x, y;
+    SexyVector2() : x(0), y(0) {}
+    SexyVector2(float x, float y) : x(x), y(y) {}
+};
+
+// 矩阵乘法函数
+inline void SexyMatrix3Multiply(SexyTransform2D& result, const SexyTransform2D& mat1, const SexyTransform2D& mat2) {
+    result.m00 = mat1.m00 * mat2.m00 + mat1.m01 * mat2.m10 + mat1.m02 * mat2.m20;
+    result.m01 = mat1.m00 * mat2.m01 + mat1.m01 * mat2.m11 + mat1.m02 * mat2.m21;
+    result.m02 = mat1.m00 * mat2.m02 + mat1.m01 * mat2.m12 + mat1.m02 * mat2.m22;
+
+    result.m10 = mat1.m10 * mat2.m00 + mat1.m11 * mat2.m10 + mat1.m12 * mat2.m20;
+    result.m11 = mat1.m10 * mat2.m01 + mat1.m11 * mat2.m11 + mat1.m12 * mat2.m21;
+    result.m12 = mat1.m10 * mat2.m02 + mat1.m11 * mat2.m12 + mat1.m12 * mat2.m22;
+
+    result.m20 = mat1.m20 * mat2.m00 + mat1.m21 * mat2.m10 + mat1.m22 * mat2.m20;
+    result.m21 = mat1.m20 * mat2.m01 + mat1.m21 * mat2.m11 + mat1.m22 * mat2.m21;
+    result.m22 = mat1.m20 * mat2.m02 + mat1.m21 * mat2.m12 + mat1.m22 * mat2.m22;
+}
+
+inline void SexyMatrix3Translation(SexyTransform2D& mat, float x, float y) {
+    mat.m02 += x;
+    mat.m12 += y;
+}
+
 #endif

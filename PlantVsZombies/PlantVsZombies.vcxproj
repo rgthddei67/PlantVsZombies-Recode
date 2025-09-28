@@ -145,7 +145,10 @@
     <ClCompile Include="GameApp.cpp" />
     <ClCompile Include="InputHandler.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Reanimator.cpp" />
+    <ClCompile Include="ReanimParser.cpp" />
     <ClCompile Include="ResourceManager.cpp" />
+    <ClCompile Include="SimpleXmlParser.cpp" />
     <ClCompile Include="Slider.cpp" />
     <ClCompile Include="SliderManager.cpp" />
   </ItemGroup>
@@ -153,12 +156,18 @@
     <ClInclude Include="AudioSystem.h" />
     <ClInclude Include="Button.h" />
     <ClInclude Include="ButtonManager.h" />
+    <ClInclude Include="ConstEnums.h" />
     <ClInclude Include="Definit.h" />
     <ClInclude Include="GameApp.h" />
     <ClInclude Include="InputHandler.h" />
+    <ClInclude Include="Reanimator.h" />
+    <ClInclude Include="ReanimParser.h" />
     <ClInclude Include="ResourceManager.h" />
+    <ClInclude Include="SimpleXmlParser.h" />
     <ClInclude Include="Slider.h" />
     <ClInclude Include="SliderManager.h" />
+    <ClInclude Include="TodCommon.h" />
+    <ClInclude Include="TodDebug.h" />
     <ClInclude Include="UIManager.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

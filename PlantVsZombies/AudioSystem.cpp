@@ -2,13 +2,13 @@
 #include "ResourceManager.h"
 
 #include <fstream>
-#include <algorithm>  // 添加这个包含用于 std::clamp
+#include <algorithm>
 
 // 静态成员变量定义
 float AudioSystem::masterVolume = 1.0f;
 float AudioSystem::soundVolume = 1.0f;
 float AudioSystem::musicVolume = 1.0f;
-std::unordered_map<std::string, float> AudioSystem::soundVolumes;  // 添加这个定义
+std::unordered_map<std::string, float> AudioSystem::soundVolumes;
 
 bool AudioSystem::Initialize()
 {

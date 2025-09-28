@@ -42,6 +42,15 @@
     <ClCompile Include="AudioSystem.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="SimpleXmlParser.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="Reanimator.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="ReanimParser.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="InputHandler.h">
@@ -72,6 +81,24 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="AudioSystem.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="SimpleXmlParser.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="TodDebug.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="TodCommon.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="ReanimParser.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="ConstEnums.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Reanimator.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

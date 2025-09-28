@@ -5,9 +5,9 @@
 #include "InputHandler.h"
 #include "ResourceManager.h"
 #include "AudioSystem.h"
+#include "Reanimator.h"
 #include <iostream>
 #include <sstream>
-
 
 void ButtonClick()
 {
@@ -123,6 +123,16 @@ int SDL_main(int argc, char* argv[])
         return -1;
     }
 
+	ReanimationHolder animHolder(renderer); // 创建动画管理器
+
+	Reanimation* anim = 
+        animHolder.AllocReanimation(250, 250, ReanimationType::REANIM_SUN
+            , "./resources/reanim/Sun.reanim");
+    if (anim) 
+    {
+        anim->SetLoopType(ReanimLoopType::REANIM_LOOP);
+        anim->SetRate(12.0f);
+    }
     // 创建按钮
     auto button1 = uiManager.CreateButton(Vector(100, 150));
     button1->SetAsCheckbox(true);
@@ -162,15 +172,18 @@ int SDL_main(int argc, char* argv[])
             running = false;
             break;
         }
-
+        
+		// 更新板块
         uiManager.UpdateAll(input);
-
+		animHolder.UpdateAll();
+		
         // 清屏
         SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
         SDL_RenderClear(renderer);
 
-        // 绘制全部UI
+        // 绘制板块
         uiManager.DrawAll(renderer);
+        animHolder.DrawAll();
 
         // 更新屏幕
         SDL_RenderPresent(renderer);
