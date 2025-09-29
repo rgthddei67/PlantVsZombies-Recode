@@ -9,15 +9,17 @@
 #include <iostream>
 #include <sstream>
 
-void ButtonClick()
+namespace UIFunctions
 {
-    std::cout << "点击" << std::endl;
-    AudioSystem::PlaySound(AudioConstants::SOUND_BUTTONCLICK, 0.4f);
-}
-
-void SliderChanged(float value)
-{
-    std::cout << "滑动条值改变: " << value << std::endl;
+    void ButtonClick()
+    {
+        std::cout << "点击" << std::endl;
+        AudioSystem::PlaySound(AudioConstants::SOUND_BUTTONCLICK, 0.4f);
+    }
+    void SliderChanged(float value)
+    {
+        std::cout << "滑动条值改变: " << value << std::endl;
+    }
 }
 
 int SDL_main(int argc, char* argv[])
@@ -137,7 +139,7 @@ int SDL_main(int argc, char* argv[])
     auto button1 = uiManager.CreateButton(Vector(100, 150));
     button1->SetAsCheckbox(true);
     button1->SetImageIndexes(1, 1, 1, 2);
-    button1->SetClickCallBack(ButtonClick);
+    button1->SetClickCallBack(UIFunctions::ButtonClick);
 
     auto button2 = uiManager.CreateButton(Vector(300, 150), Vector(110, 25));
     button2->SetAsCheckbox(false);
@@ -145,10 +147,10 @@ int SDL_main(int argc, char* argv[])
     button2->SetTextColor({ 255, 255, 255, 255 }); // 白色
     button2->SetHoverTextColor({ 0, 0, 0, 255 });  // 黑色
     button2->SetText(u8"W就W是W");
-    button2->SetClickCallBack(ButtonClick);
+    button2->SetClickCallBack(UIFunctions::ButtonClick);
 
     auto slider = uiManager.CreateSlider(Vector(500, 150), Vector(135, 10), 0.0f, 100.0f, 0.0f);
-    slider->SetChangeCallBack(SliderChanged);
+    slider->SetChangeCallBack(UIFunctions::SliderChanged);
     bool running = true;
     SDL_Event event;
 

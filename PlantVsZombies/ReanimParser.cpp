@@ -133,13 +133,27 @@ bool ReanimParser::LoadReanimFile(const std::string& filename, ReanimatorDefinit
             }
         }
 
-        // 解析关键帧
+        // 解析关键帧，并处理图像继承
         int transformCount = 0;
+        std::string lastImageName;  // 保存上一帧的图像名称
+
         for (auto& tNode : trackNode.children) {
             if (tNode.name != "t") continue;
 
             ReanimatorTransform transform;
             if (ParseTransform(&tNode, transform)) {
+                // 如果这一帧没有图像名称，但上一帧有，则继承上一帧的图像
+                if (transform.mImageName.empty() && !lastImageName.empty()) {
+                    transform.mImageName = lastImageName;
+                    transform.mFrame = 0;  // 设置为有图像
+                    TOD_TRACE("Inherited image: " + lastImageName + " for transform " + std::to_string(transformCount));
+                }
+
+                // 更新上一帧的图像名称
+                if (!transform.mImageName.empty()) {
+                    lastImageName = transform.mImageName;
+                }
+
                 track.mTransforms.push_back(transform);
                 transformCount++;
 
@@ -178,15 +192,14 @@ bool ReanimParser::ParseTransform(const SimpleXmlNode* tNode, ReanimatorTransfor
     transform.mImageName = "";
 
     bool hasImage = false;
+
     // 解析子元素
     for (auto& child : tNode->children) {
         if (child.name == "x") {
             transform.mTransX = ParseFloatValue(child.text, 0);
-            //TOD_TRACE("  x = " + std::to_string(transform.mTransX));
         }
         else if (child.name == "y") {
             transform.mTransY = ParseFloatValue(child.text, 0);
-            //TOD_TRACE("  y = " + std::to_string(transform.mTransY));
         }
         else if (child.name == "kx") {
             transform.mSkewX = ParseFloatValue(child.text, 0);
