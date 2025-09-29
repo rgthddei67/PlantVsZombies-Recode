@@ -135,6 +135,14 @@ int SDL_main(int argc, char* argv[])
         anim->SetLoopType(ReanimLoopType::REANIM_LOOP);
         anim->SetRate(12.0f);
     }
+    Reanimation* anim2 =
+        animHolder.AllocReanimation(250, 250, ReanimationType::REANIM_SUNFLOWER
+            , "./resources/reanim/SunFlower.reanim");
+    if (anim2)
+    {
+        anim2->SetLoopType(ReanimLoopType::REANIM_LOOP);
+        anim2->SetRate(12.0f);
+    }
     // ´´½¨°´Å¥
     auto button1 = uiManager.CreateButton(Vector(100, 150));
     button1->SetAsCheckbox(true);
