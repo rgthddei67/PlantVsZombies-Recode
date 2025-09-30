@@ -1,59 +1,237 @@
-#include "ReanimParser.h"
+ï»¿#include "ReanimParser.h"
 #include "ResourceManager.h"
 #include "TodDebug.h"
 #include <SDL_image.h>
+#include <filesystem>
+#include <cmath>
 
-// ´ÓÍ¼Æ¬Ãû³ÆÌáÈ¡ÎÄ¼şÃû
-std::string ReanimParser::ExtractFileNameFromImageName(const std::string& imageName) {
-    // ÒÆ³ı "IMAGE_REANIM_" Ç°×º
-    std::string prefix = "IMAGE_REANIM_";
-    if (imageName.find(prefix) == 0) {
-        return imageName.substr(prefix.length());
+namespace fs = std::filesystem;
+std::string ReanimParser::sCurrentBasePath;
+std::unique_ptr<XflParser> ReanimParser::sCurrentXflParser = nullptr;
+
+bool ReanimParser::LoadReanimFile(const std::string& filename, ReanimatorDefinition* definition) {
+    sCurrentXflParser = std::make_unique<XflParser>();
+
+    if (!sCurrentXflParser->LoadXflFile(filename)) {
+        TOD_TRACE("Failed to load XFL file: " + filename);
+        sCurrentXflParser.reset();  // é‡ç½®æŒ‡é’ˆ
+        return false;
     }
-    // Èç¹ûÃ»ÓĞÇ°×º£¬Ö±½Ó·µ»ØÔ­Ãû³Æ
-    return imageName;
+
+    // ä¿å­˜åŸºç¡€è·¯å¾„
+    std::string pathToUse;
+
+    // æ£€æŸ¥æ˜¯å¦æ˜¯æ–‡ä»¶è·¯å¾„ï¼ˆåŒ…å«.xmlæˆ–.xflï¼‰
+    if (filename.find(".xml") != std::string::npos || filename.find(".xfl") != std::string::npos) {
+        // æ˜¯æ–‡ä»¶è·¯å¾„ï¼Œæå–ç›®å½•éƒ¨åˆ†
+        size_t lastSlash = filename.find_last_of("/\\");
+        if (lastSlash != std::string::npos) {
+            pathToUse = filename.substr(0, lastSlash + 1); // åŒ…å«æœ€åçš„æ–œæ 
+            TOD_TRACE("File path detected, extracted directory: " + pathToUse);
+        }
+        else {
+            pathToUse = "./"; // å½“å‰ç›®å½•
+        }
+    }
+    else {
+        // æ˜¯ç›®å½•è·¯å¾„ï¼Œç›´æ¥ä½¿ç”¨
+        pathToUse = filename;
+        TOD_TRACE("Directory path detected: " + pathToUse);
+    }
+
+    // ç¡®ä¿è·¯å¾„ä»¥åˆ†éš”ç¬¦ç»“å°¾
+    if (!pathToUse.empty() && pathToUse.back() != '/' && pathToUse.back() != '\\') {
+        pathToUse += "/";
+    }
+
+    sCurrentBasePath = pathToUse;
+    TOD_TRACE("Final base path set to: " + sCurrentBasePath);
+
+    const XflDOMDocument& document = sCurrentXflParser->GetDocument();
+    const XflDOMTimeline& timeline = document.timeline;
+
+    // è®¾ç½®FPS
+    definition->mFPS = document.frameRate;
+    TOD_TRACE("Parsed XFL FPS: " + std::to_string(definition->mFPS));
+    TOD_TRACE("Document size: " + std::to_string(document.width) + "x" + std::to_string(document.height));
+    TOD_TRACE("Timeline layers: " + std::to_string(timeline.layers.size()));
+
+    // ä¸ºæ¯ä¸ªå›¾å±‚åˆ›å»ºè½¨é“
+    int trackCount = 0;
+    for (size_t layerIndex = 0; layerIndex < timeline.layers.size(); layerIndex++) {
+        const XflDOMLayer& layer = timeline.layers[layerIndex];
+
+        if (!layer.visible) {
+            TOD_TRACE("Skipping invisible layer: " + layer.name);
+            continue;
+        }
+
+        CreateTrackFromXflLayer(layer, definition, static_cast<int>(layerIndex), *sCurrentXflParser);
+        trackCount++;
+    }
+
+    TOD_TRACE("Successfully loaded XFL: " + filename + " with " +
+        std::to_string(trackCount) + " tracks (total tracks: " +
+        std::to_string(definition->mTracks.size()) + ")");
+    return true;
 }
 
-// ÔÚÄ¿Â¼ÖĞ²éÕÒÍ¼Æ¬ÎÄ¼ş£¨²»Çø·Ö´óĞ¡Ğ´£©
-std::string ReanimParser::FindImageFile(const std::string& baseName) {
-    // Ö§³ÖµÄÍ¼Æ¬¸ñÊ½
-    const std::vector<std::string> extensions = { ".png", ".jpg", ".jpeg", ".bmp", ".tga" };
+void ReanimParser::Cleanup() 
+{
+    sCurrentXflParser.reset();
+    sCurrentBasePath.clear();
+}
 
-    // ËÑË÷Ä¿Â¼
-    const std::vector<std::string> searchPaths = {
-        "./resources/reanim/images",
-    };
+void ReanimParser::CreateTrackFromXflLayer(const XflDOMLayer& layer, ReanimatorDefinition* definition, int trackIndex, const XflParser& parser) {
+    ReanimatorTrack track;
+    track.mName = layer.name;
 
-    // ½«»ù´¡Ãû³Æ×ª»»ÎªĞ¡Ğ´ÓÃÓÚ±È½Ï
-    std::string baseNameLower = baseName;
-    std::transform(baseNameLower.begin(), baseNameLower.end(), baseNameLower.begin(), ::tolower);
+    // è®¡ç®—æ€»å¸§æ•°
+    int totalFrames = 0;
+    for (const auto& frame : layer.frames) {
+        int endFrame = frame.index + frame.duration;
+        if (endFrame > totalFrames) {
+            totalFrames = endFrame;
+        }
+    }
 
-    for (const auto& path : searchPaths) 
-    {
-        for (const auto& ext : extensions) {
-            std::string fullPath = path + "/" + baseName + ext;
+    // å¦‚æœæ²¡æœ‰å¸§ï¼Œåˆ›å»ºé»˜è®¤å¸§
+    if (totalFrames == 0) {
+        totalFrames = 1;
+        TOD_TRACE("No frames found in layer " + layer.name + ", creating default frame");
+    }
 
-            // ¼ì²éÎÄ¼şÊÇ·ñ´æÔÚ
-            std::ifstream file(fullPath);
-            if (file.good()) {
-                file.close();
-                TOD_TRACE("Found image file: " + fullPath);
-                return fullPath;
-            }
+    // åˆå§‹åŒ–æ‰€æœ‰å¸§çš„å˜æ¢
+    track.mTransforms.resize(totalFrames);
 
-            // ³¢ÊÔĞ¡Ğ´°æ±¾
-            std::string fullPathLower = path + baseNameLower + ext;
-            file.open(fullPathLower);
-            if (file.good()) {
-                file.close();
-                TOD_TRACE("Found image file (lowercase): " + fullPathLower);
-                return fullPathLower;
+    // è§£ææ¯ä¸ªå…³é”®å¸§
+    for (const auto& frame : layer.frames) {
+        for (int i = 0; i < frame.duration; i++) {
+            int currentFrame = frame.index + i;
+            if (currentFrame < static_cast<int>(track.mTransforms.size())) {
+                ParseXflFrame(frame, track.mTransforms[currentFrame], currentFrame, parser);
             }
         }
     }
 
-    TOD_TRACE("Image file not found for: " + baseName);
-    return "";
+    // XFLä¸­å›¾å±‚æ˜¯ä»ä¸Šåˆ°ä¸‹çš„é¡ºåºï¼Œä½†æ¸²æŸ“æ—¶åº”è¯¥ä»ä¸‹åˆ°ä¸Š
+    // æ‰€ä»¥æˆ‘ä»¬å°†å›¾å±‚é€†åºæ’å…¥ï¼Œç¡®ä¿æ­£ç¡®çš„æ¸²æŸ“é¡ºåº
+    definition->mTracks.insert(definition->mTracks.begin(), track);
+
+    TOD_TRACE("Created track from layer: " + layer.name + " at position " +
+        std::to_string(definition->mTracks.size() - 1) + " with " +
+        std::to_string(track.mTransforms.size()) + " frames");
+}
+
+bool ReanimParser::ParseXflFrame(const XflDOMFrame& frame, ReanimatorTransform& transform, int frameIndex, const XflParser& parser) {
+    // åˆå§‹åŒ–é»˜è®¤å€¼
+    transform.mTransX = 0.0f;
+    transform.mTransY = 0.0f;
+    transform.mSkewX = 0.0f;
+    transform.mSkewY = 0.0f;
+    transform.mScaleX = 1.0f;
+    transform.mScaleY = 1.0f;
+    transform.mAlpha = 1.0f;
+    transform.mFrame = -1.0f;
+    transform.mImage = nullptr;
+    transform.mImageName = "";
+
+    // å¤„ç†å¸§ä¸­çš„å…ƒç´ 
+    for (const auto& elementName : frame.elements) {
+        ProcessXflSymbol(elementName, parser, transform);
+
+        // å¯¹äºè¿™ä¸ªå¸§ï¼Œå°è¯•è·å–ç‰¹å®šå¸§çš„å˜æ¢
+        XflElement frameSpecificTransform;
+        if (parser.GetElementTransform(elementName, frameIndex, frameSpecificTransform)) {
+            transform.mTransX = frameSpecificTransform.x;
+            transform.mTransY = frameSpecificTransform.y;
+            transform.mScaleX = frameSpecificTransform.scaleX;
+            transform.mScaleY = frameSpecificTransform.scaleY;
+            transform.mSkewX = frameSpecificTransform.rotation;
+            transform.mAlpha = frameSpecificTransform.alpha;
+
+            TOD_TRACE("Frame " + std::to_string(frameIndex) + " transform for " + elementName +
+                ": Pos(" + std::to_string(transform.mTransX) + ", " +
+                std::to_string(transform.mTransY) + ")");
+        }
+    }
+
+    TOD_TRACE("Parsed XFL frame " + std::to_string(frameIndex) +
+        " with " + std::to_string(frame.elements.size()) + " elements" +
+        " Final Position: (" + std::to_string(transform.mTransX) + ", " +
+        std::to_string(transform.mTransY) + ")");
+
+    return true;
+}
+
+void ReanimParser::ProcessXflSymbol(const std::string& symbolName, const XflParser& parser, ReanimatorTransform& transform) {
+    // æ£€æŸ¥æ˜¯å¦æ˜¯ä½å›¾
+    std::string bitmapPath = parser.GetBitmapPath(symbolName);
+
+    transform.mImageName = symbolName;
+    transform.mFrame = 0;
+
+    // å°è¯•ä»XFLè·å–å˜æ¢ä¿¡æ¯
+    XflElement elementTransform;
+    if (parser.GetElementTransform(symbolName, 0, elementTransform)) {
+        // ä½¿ç”¨XFLä¸­çš„å®é™…å˜æ¢æ•°æ®
+        transform.mTransX = elementTransform.x;
+        transform.mTransY = elementTransform.y;
+        transform.mScaleX = elementTransform.scaleX;
+        transform.mScaleY = elementTransform.scaleY;
+        transform.mSkewX = elementTransform.rotation;  // å°†æ—‹è½¬è§’åº¦ä¼ é€’ç»™skewX
+        transform.mAlpha = elementTransform.alpha;
+
+        TOD_TRACE(" Applied XFL transform for " + symbolName +
+            ": Pos(" + std::to_string(transform.mTransX) + ", " +
+            std::to_string(transform.mTransY) + ")" +
+            " Scale(" + std::to_string(transform.mScaleX) + ", " +
+            std::to_string(transform.mScaleY) + ")" +
+            " Rotation: " + std::to_string(transform.mSkewX) + "Â°" +
+            " Alpha: " + std::to_string(transform.mAlpha));
+    }
+    else {
+        // å¦‚æœæ²¡æœ‰æ‰¾åˆ°å˜æ¢æ•°æ®ï¼Œä½¿ç”¨é»˜è®¤å€¼
+        transform.mTransX = 0.0f;
+        transform.mTransY = 0.0f;
+        transform.mScaleX = 1.0f;
+        transform.mScaleY = 1.0f;
+        transform.mSkewX = 0.0f;
+        transform.mAlpha = 1.0f;
+        TOD_TRACE(" Using default transform for " + symbolName);
+    }
+
+    if (!bitmapPath.empty()) {
+        TOD_TRACE(" Found bitmap: " + symbolName + " at " + bitmapPath);
+    }
+    else {
+        TOD_TRACE(" Bitmap not found: " + symbolName);
+    }
+}
+
+SDL_Texture* ReanimParser::LoadXflBitmap(const std::string& bitmapPath, SDL_Renderer* renderer) {
+    if (!renderer || bitmapPath.empty()) {
+        TOD_TRACE("Invalid parameters for loading XFL bitmap");
+        return nullptr;
+    }
+
+    // ç›´æ¥åŠ è½½ä½å›¾æ–‡ä»¶
+    SDL_Surface* surface = IMG_Load(bitmapPath.c_str());
+    if (!surface) {
+        TOD_TRACE("Failed to load XFL bitmap: " + bitmapPath + " - " + IMG_GetError());
+        return nullptr;
+    }
+
+    SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
+    SDL_FreeSurface(surface);
+
+    if (!texture) {
+        TOD_TRACE("Failed to create texture from XFL bitmap: " + std::string(SDL_GetError()));
+        return nullptr;
+    }
+
+    TOD_TRACE("Successfully loaded XFL bitmap: " + bitmapPath);
+    return texture;
 }
 
 SDL_Texture* ReanimParser::LoadReanimImage(const std::string& imageName, SDL_Renderer* renderer) {
@@ -67,27 +245,31 @@ SDL_Texture* ReanimParser::LoadReanimImage(const std::string& imageName, SDL_Ren
         return nullptr;
     }
 
-    // ´ÓÍ¼Æ¬Ãû³ÆÌáÈ¡ÎÄ¼şÃû
+    // æå–æ–‡ä»¶å
     std::string fileName = ExtractFileNameFromImageName(imageName);
     if (fileName.empty()) {
         TOD_TRACE("Failed to extract file name from: " + imageName);
         return nullptr;
     }
 
-    // ²éÕÒÍ¼Æ¬ÎÄ¼ş
-    std::string filePath = FindImageFile(fileName);
+    TOD_TRACE("Loading image - Original: " + imageName + ", Extracted: " + fileName + ", BasePath: " + sCurrentBasePath);
+
+    // ä½¿ç”¨ä¿å­˜çš„åŸºç¡€è·¯å¾„æŸ¥æ‰¾æ–‡ä»¶
+    std::string filePath = FindImageFile(fileName, sCurrentBasePath);
+
     if (filePath.empty()) {
         TOD_TRACE("Could not find image file for: " + fileName + " (derived from: " + imageName + ")");
         return nullptr;
     }
 
-    // ¼ÓÔØÍ¼Æ¬
+    // åŠ è½½å›¾åƒ
     SDL_Surface* surface = IMG_Load(filePath.c_str());
     if (!surface) {
         TOD_TRACE("Failed to load image: " + filePath + " - " + IMG_GetError());
         return nullptr;
     }
 
+    // åˆ›å»ºçº¹ç†
     SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
     SDL_FreeSurface(surface);
 
@@ -100,141 +282,90 @@ SDL_Texture* ReanimParser::LoadReanimImage(const std::string& imageName, SDL_Ren
     return texture;
 }
 
-bool ReanimParser::LoadReanimFile(const std::string& filename, ReanimatorDefinition* definition) {
-    SimpleXmlNode root;
-    if (!SimpleXmlParser::ParseFile(filename, root)) {
-        TOD_TRACE("Failed to load reanim file: " + filename);
-        return false;
+std::string ReanimParser::ExtractFileNameFromImageName(const std::string& imageName) {
+    // å¤„ç†ä¸åŒçš„å‘½åæ ¼å¼
+
+    // æ ¼å¼1: "IMAGE_REANIM_Sun1" -> "Sun1"
+    std::string prefix = "IMAGE_REANIM_";
+    if (imageName.find(prefix) == 0) {
+        return imageName.substr(prefix.length());
     }
 
-    // ½âÎöFPS
-    for (auto& child : root.children) {
-        if (child.name == "fps") {
-            definition->mFPS = ParseFloatValue(child.text, 12.0f);
-            TOD_TRACE("Parsed FPS: " + std::to_string(definition->mFPS));
-            break;
-        }
+    // æ ¼å¼2: ç›´æ¥å°±æ˜¯æ–‡ä»¶å "Sun1"
+    // æ£€æŸ¥æ˜¯å¦åŒ…å«è·¯å¾„åˆ†éš”ç¬¦
+    if (imageName.find('/') == std::string::npos && imageName.find('\\') == std::string::npos) {
+        return imageName;
     }
 
-    // ½âÎö¹ìµÀ
-    int trackCount = 0;
-    for (auto& trackNode : root.children) {
-        if (trackNode.name != "track") continue;
+    // æ ¼å¼3: åŒ…å«è·¯å¾„ï¼Œæå–æ–‡ä»¶å
+    size_t lastSlash = imageName.find_last_of("/\\");
+    if (lastSlash != std::string::npos) {
+        std::string fileName = imageName.substr(lastSlash + 1);
 
-        ReanimatorTrack track;
-        trackCount++;
-
-        // »ñÈ¡¹ìµÀÃû³Æ
-        for (auto& nameChild : trackNode.children) {
-            if (nameChild.name == "name") {
-                track.mName = nameChild.text;
-                TOD_TRACE("Processing track: " + track.mName);
-                break;
-            }
+        // ç§»é™¤æ‰©å±•å
+        size_t dotPos = fileName.find_last_of('.');
+        if (dotPos != std::string::npos) {
+            return fileName.substr(0, dotPos);
         }
-
-        // ½âÎö¹Ø¼üÖ¡£¬²¢´¦ÀíÍ¼Ïñ¼Ì³Ğ
-        int transformCount = 0;
-        std::string lastImageName;  // ±£´æÉÏÒ»Ö¡µÄÍ¼ÏñÃû³Æ
-
-        for (auto& tNode : trackNode.children) {
-            if (tNode.name != "t") continue;
-
-            ReanimatorTransform transform;
-            if (ParseTransform(&tNode, transform)) {
-                // Èç¹ûÕâÒ»Ö¡Ã»ÓĞÍ¼ÏñÃû³Æ£¬µ«ÉÏÒ»Ö¡ÓĞ£¬Ôò¼Ì³ĞÉÏÒ»Ö¡µÄÍ¼Ïñ
-                if (transform.mImageName.empty() && !lastImageName.empty()) {
-                    transform.mImageName = lastImageName;
-                    transform.mFrame = 0;  // ÉèÖÃÎªÓĞÍ¼Ïñ
-                    TOD_TRACE("Inherited image: " + lastImageName + " for transform " + std::to_string(transformCount));
-                }
-
-                // ¸üĞÂÉÏÒ»Ö¡µÄÍ¼ÏñÃû³Æ
-                if (!transform.mImageName.empty()) {
-                    lastImageName = transform.mImageName;
-                }
-
-                track.mTransforms.push_back(transform);
-                transformCount++;
-
-                // µ÷ÊÔĞÅÏ¢
-                if (!transform.mImageName.empty()) {
-                    TOD_TRACE("Transform " + std::to_string(transformCount) +
-                        " has image: " + transform.mImageName);
-                }
-            }
-        }
-
-        TOD_TRACE("Parsed " + std::to_string(transformCount) + " transforms for track: " + track.mName);
-
-        if (!track.mTransforms.empty()) {
-            definition->mTracks.push_back(track);
-        }
+        return fileName;
     }
 
-    TOD_TRACE("Successfully loaded reanim: " + filename + " with " +
-        std::to_string(definition->mTracks.size()) + " tracks and " +
-        std::to_string(trackCount) + " track nodes found");
-    return true;
+    return imageName;
 }
 
-bool ReanimParser::ParseTransform(const SimpleXmlNode* tNode, ReanimatorTransform& transform) {
-    // ³õÊ¼»¯Ä¬ÈÏÖµ
-    transform.mTransX = 0.0f;
-    transform.mTransY = 0.0f;
-    transform.mSkewX = 0.0f;
-    transform.mSkewY = 0.0f;
-    transform.mScaleX = 1.0f;
-    transform.mScaleY = 1.0f;
-    transform.mAlpha = 1.0f;
-    transform.mFrame = -1.0f;   // -1.0f±íÊ¾Ã»ÓĞÍ¼Ïñ
-    transform.mImage = nullptr;
-    transform.mImageName = "";
+std::string ReanimParser::FindImageFile(const std::string& baseName, const std::string& basePath) {
+    const std::vector<std::string> extensions = { ".png", ".jpg", ".jpeg", ".bmp", ".tga" };
 
-    bool hasImage = false;
+    // æ„å»ºæœç´¢è·¯å¾„ - å®Œå…¨åŸºäºä¼ å…¥çš„basePath
+    std::vector<std::string> searchPaths;
 
-    // ½âÎö×ÓÔªËØ
-    for (auto& child : tNode->children) {
-        if (child.name == "x") {
-            transform.mTransX = ParseFloatValue(child.text, 0);
-        }
-        else if (child.name == "y") {
-            transform.mTransY = ParseFloatValue(child.text, 0);
-        }
-        else if (child.name == "kx") {
-            transform.mSkewX = ParseFloatValue(child.text, 0);
-        }
-        else if (child.name == "ky") {
-            transform.mSkewY = ParseFloatValue(child.text, 0);
-        }
-        else if (child.name == "sx") {
-            transform.mScaleX = ParseFloatValue(child.text, 1.0f);
-        }
-        else if (child.name == "sy") {
-            transform.mScaleY = ParseFloatValue(child.text, 1.0f);
-        }
-        else if (child.name == "i") {
-            if (!child.text.empty()) {
-                transform.mImageName = child.text;
-                transform.mFrame = 0;  // ÓĞÍ¼ÏñÊ±ÉèÖÃÎª0
-                hasImage = true;
-                TOD_TRACE("Found image: " + transform.mImageName);
+    if (!basePath.empty()) {
+        // ä½¿ç”¨æä¾›çš„åŸºç¡€è·¯å¾„ï¼ˆä¸GetBitmapPathå®Œå…¨ä¸€è‡´ï¼‰
+        searchPaths = {
+            basePath + "LIBRARY/",
+            basePath + "library/",
+            basePath + "Library/",
+            basePath  // ç›´æ¥åœ¨å½“å‰ç›®å½•æœç´¢
+        };
+    }
+
+    // æ·»åŠ é€šç”¨çš„å›é€€è·¯å¾„ï¼ˆä¸åŒ…å«å…·ä½“åŠ¨ç”»åç§°ï¼‰
+    searchPaths.insert(searchPaths.end(), {
+        "./resources/reanim/LIBRARY/",
+        "./resources/reanim/library/",
+        "./LIBRARY/",
+        "./library/",
+        "./resources/reanim/",
+        "./"
+        });
+
+    std::string baseNameLower = baseName;
+    std::transform(baseNameLower.begin(), baseNameLower.end(), baseNameLower.begin(), ::tolower);
+
+    TOD_TRACE("Searching for image: " + baseName + " with base path: " + basePath);
+
+    for (const auto& path : searchPaths) {
+        for (const auto& ext : extensions) {
+            // å°è¯•åŸå§‹æ–‡ä»¶å
+            std::string fullPath = path + baseName + ext;
+            std::ifstream file(fullPath);
+            if (file.good()) {
+                file.close();
+                TOD_TRACE("Found image file: " + fullPath);
+                return fullPath;
+            }
+
+            // å°è¯•å°å†™ç‰ˆæœ¬
+            std::string fullPathLower = path + baseNameLower + ext;
+            file.open(fullPathLower);
+            if (file.good()) {
+                file.close();
+                TOD_TRACE("Found image file (lowercase): " + fullPathLower);
+                return fullPathLower;
             }
         }
-        else if (child.name == "a") {
-            transform.mAlpha = ParseFloatValue(child.text, 1.0f);
-        }
     }
 
-    return true;
-}
-
-float ReanimParser::ParseFloatValue(const std::string& value, float defaultValue) {
-    if (value.empty()) return defaultValue;
-    try {
-        return std::stof(value);
-    }
-    catch (...) {
-        return defaultValue;
-    }
+    TOD_TRACE("Image file not found for: " + baseName + " in base path: " + basePath);
+    return "";
 }

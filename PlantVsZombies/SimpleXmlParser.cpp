@@ -40,7 +40,7 @@ bool SimpleXmlParser::ParseFile(const std::string& filename, SimpleXmlNode& root
 }
 
 bool SimpleXmlParser::ParseReanimContent(const std::string& content, SimpleXmlNode& root) {
-    root.name = "reanim";
+    root.name = "root";
 
     size_t pos = 0;
     std::vector<SimpleXmlNode*> nodeStack;
@@ -76,15 +76,30 @@ bool SimpleXmlParser::ParseReanimContent(const std::string& content, SimpleXmlNo
                 }
                 nodeStack.pop_back();
             }
-            // 检查是否是自闭合标签（这里reanim文件没有自闭合标签）
+            // 检查是否是自闭合标签
             else if (tag.back() == '/') {
-                // 自闭合标签，暂时不处理
+                // 自闭合标签，创建节点但不入栈
+                std::string tagName = tag.substr(0, tag.length() - 1);
+                TrimString(tagName);
+
+                SimpleXmlNode* currentNode = nodeStack.back();
+                SimpleXmlNode newNode;
+                newNode.name = tagName;
+
+                // 解析属性
+                ParseAttributes(tagName, newNode);
+
+                currentNode->children.push_back(newNode);
+                //TOD_TRACE("Self-closing tag: " + tagName);
             }
             // 开始标签
             else {
                 SimpleXmlNode* currentNode = nodeStack.back();
                 SimpleXmlNode newNode;
                 newNode.name = tag;
+
+                // 解析属性
+                ParseAttributes(tag, newNode);
 
                 currentNode->children.push_back(newNode);
                 nodeStack.push_back(&currentNode->children.back());
@@ -115,6 +130,42 @@ bool SimpleXmlParser::ParseReanimContent(const std::string& content, SimpleXmlNo
     }
 
     return true;
+}
+
+// 新增：解析属性
+void SimpleXmlParser::ParseAttributes(const std::string& tag, SimpleXmlNode& node) {
+    size_t spacePos = tag.find(' ');
+    if (spacePos == std::string::npos) {
+        return; // 没有属性
+    }
+
+    std::string tagName = tag.substr(0, spacePos);
+    node.name = tagName;
+
+    std::string attributesStr = tag.substr(spacePos + 1);
+    size_t attrStart = 0;
+
+    while (attrStart < attributesStr.length()) {
+        // 查找属性名
+        size_t equalsPos = attributesStr.find('=', attrStart);
+        if (equalsPos == std::string::npos) break;
+
+        std::string attrName = attributesStr.substr(attrStart, equalsPos - attrStart);
+        TrimString(attrName);
+
+        // 查找属性值开始（引号）
+        size_t quoteStart = attributesStr.find('"', equalsPos);
+        if (quoteStart == std::string::npos) break;
+
+        // 查找属性值结束
+        size_t quoteEnd = attributesStr.find('"', quoteStart + 1);
+        if (quoteEnd == std::string::npos) break;
+
+        std::string attrValue = attributesStr.substr(quoteStart + 1, quoteEnd - quoteStart - 1);
+        node.attributes[attrName] = attrValue;
+
+        attrStart = quoteEnd + 1;
+    }
 }
 
 void SimpleXmlParser::TrimString(std::string& str) {

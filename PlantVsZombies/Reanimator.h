@@ -68,9 +68,11 @@ private:
     int mRenderOrder;                      // 渲染顺序
     float mLastFrameTime;                  // 上一帧时间
     SDL_Renderer* mRenderer;               // SDL渲染器
-    ReanimationType mReanimationType;      // 动画类型
+    float mTotalDuration;  // 动画总时长（秒）
+    float mCurrentTime;    // 当前播放时间（秒)
     Uint32 mLastUpdateTime;
     bool mFirstUpdate;
+    float mScale = 1.0f;                           // 大小
 
     struct ReanimatorFrameTime {
         float mFraction;
@@ -86,7 +88,7 @@ public:
     ~Reanimation();
 
     // 初始化方法
-    bool LoadReanimation(ReanimationType type, const std::string& reanimFile);
+    bool LoadReanimation(const std::string& reanimFile);
     void ReanimationInitialize(float x, float y, ReanimatorDefinition* definition);
 
     // 控制方法
@@ -100,12 +102,13 @@ public:
     // 属性访问
     bool IsDead() const { return mDead; }
     float GetAnimTime() const { return mAnimTime; }
-    ReanimationType GetReanimationType() const { return mReanimationType; }
-    void SetReanimationType(ReanimationType type) { mReanimationType = type; }
 
     // 轨道操作
     int FindTrackIndex(const char* trackName);
     void SetFramesForLayer(const char* trackName);
+
+    void SetScale(float scale) { mScale = scale; }
+    float GetScale() const { return mScale; }
 
 private:
     void DrawTrack(int trackIndex, int frameIndex);
@@ -122,21 +125,12 @@ public:
     ReanimationHolder(SDL_Renderer* renderer = nullptr);
     ~ReanimationHolder();
 
-    Reanimation* AllocReanimation(float x, float y, ReanimationType type, const std::string& reanimFile);
-    Reanimation* AllocReanimation(float x, float y, ReanimatorDefinition* definition);
+    Reanimation* AllocReanimation(float x, float y, const std::string& reanimFile, float scale);
+    Reanimation* AllocReanimation(float x, float y, ReanimatorDefinition* definition, float scale);
     void UpdateAll();
     void DrawAll();
     void Clear();
     size_t GetCount() const { return mReanimations.size(); }
-
-    // 查找
-    Reanimation* FindReanimationByType(ReanimationType type);
-    std::vector<Reanimation*> FindReanimationsByType(ReanimationType type);
 };
-
-// 全局函数
-void ReanimatorLoadDefinitions();
-void ReanimatorFreeDefinitions();
-void ReanimationPreload(ReanimationType theReanimationType);
 
 #endif

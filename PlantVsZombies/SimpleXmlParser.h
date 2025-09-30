@@ -8,7 +8,8 @@
 #include <fstream>
 #include <sstream>
 
-class SimpleXmlNode {
+class SimpleXmlNode 
+{
 public:
     std::string name;
     std::string text;
@@ -17,6 +18,24 @@ public:
 
     bool GetAttribute(const std::string& attrName, std::string& value) const;
     SimpleXmlNode* GetFirstChild(const std::string& childName);
+
+    std::vector<SimpleXmlNode*> GetChildren(const std::string& childName) {
+        std::vector<SimpleXmlNode*> result;
+        for (auto& child : children) {
+            if (child.name == childName) {
+                result.push_back(&child);
+            }
+        }
+        return result;
+    }
+
+    std::string GetAttributeValue(const std::string& attrName, const std::string& defaultValue = "") const {
+        auto it = attributes.find(attrName);
+        if (it != attributes.end()) {
+            return it->second;
+        }
+        return defaultValue;
+    }
 };
 
 class SimpleXmlParser {
@@ -25,6 +44,7 @@ public:
 
 private:
     static bool ParseReanimContent(const std::string& content, SimpleXmlNode& root);
+    static void ParseAttributes(const std::string& tag, SimpleXmlNode& node);
     static void TrimString(std::string& str);
 };
 

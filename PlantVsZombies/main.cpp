@@ -128,21 +128,13 @@ int SDL_main(int argc, char* argv[])
 	ReanimationHolder animHolder(renderer); // 创建动画管理器
 
 	Reanimation* anim = 
-        animHolder.AllocReanimation(250, 250, ReanimationType::REANIM_SUN
-            , "./resources/reanim/Sun.reanim");
+        animHolder.AllocReanimation(250, 250, "./resources/reanim/Sun", 0.8f);
     if (anim) 
     {
         anim->SetLoopType(ReanimLoopType::REANIM_LOOP);
-        anim->SetRate(12.0f);
+        anim->SetRate(8.0f);
     }
-    Reanimation* anim2 =
-        animHolder.AllocReanimation(250, 250, ReanimationType::REANIM_SUNFLOWER
-            , "./resources/reanim/SunFlower.reanim");
-    if (anim2)
-    {
-        anim2->SetLoopType(ReanimLoopType::REANIM_LOOP);
-        anim2->SetRate(12.0f);
-    }
+
     // 创建按钮
     auto button1 = uiManager.CreateButton(Vector(100, 150));
     button1->SetAsCheckbox(true);

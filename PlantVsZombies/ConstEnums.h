@@ -2,20 +2,7 @@
 
 #ifndef _CONSTENUMS_H
 #define _CONSTENUMS_H
-
 #include <string>
-
-// 动画类型
-enum class ReanimationType 
-{
-    REANIM_NONE,
-    REANIM_LOADBAR_SPROUT,
-    REANIM_SUNFLOWER,
-    REANIM_PEASHOOTER,
-    REANIM_ZOMBIE,
-    REANIM_SUN,
-    NUM_REANIMS
-};
 
 // 动画循环类型
 enum class ReanimLoopType {

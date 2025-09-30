@@ -4,7 +4,7 @@
 
 #include "Reanimator.h"
 #include "TodCommon.h"
-#include "SimpleXmlParser.h" 
+#include "XflParser.h" 
 #include <string>
 #include <vector>
 #include <map>
@@ -12,16 +12,21 @@
 class ReanimParser {
 public:
     static bool LoadReanimFile(const std::string& filename, ReanimatorDefinition* definition);
-    static bool ParseTransform(const SimpleXmlNode* tNode, ReanimatorTransform& transform);
+    static void Cleanup();
+    static bool ParseXflFrame(const XflDOMFrame& frame, ReanimatorTransform& transform, int frameIndex, const XflParser& parser);
     static SDL_Texture* LoadReanimImage(const std::string& imageName, SDL_Renderer* renderer);
+    static SDL_Texture* LoadXflBitmap(const std::string& bitmapPath, SDL_Renderer* renderer);
 
 private:
-    static float ParseFloatValue(const std::string& value, float defaultValue);
+    static std::string sCurrentBasePath;
+    static std::unique_ptr<XflParser> sCurrentXflParser;
 
-    // 从图片名称提取文件名
+    static void CreateTrackFromXflLayer(const XflDOMLayer& layer, ReanimatorDefinition* definition, int trackIndex, const XflParser& parser);
+    static void ProcessXflSymbol(const std::string& symbolName, const XflParser& parser, ReanimatorTransform& transform);
+
+    // 图片查找功能
     static std::string ExtractFileNameFromImageName(const std::string& imageName);
-    // 在目录中查找图片文件
-    static std::string FindImageFile(const std::string& baseName);
+    static std::string FindImageFile(const std::string& baseName, const std::string& basePath = "");
 };
 
 #endif

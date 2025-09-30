@@ -151,6 +151,7 @@
     <ClCompile Include="SimpleXmlParser.cpp" />
     <ClCompile Include="Slider.cpp" />
     <ClCompile Include="SliderManager.cpp" />
+    <ClCompile Include="XFLParser.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AudioSystem.h" />
@@ -169,6 +170,7 @@
     <ClInclude Include="TodCommon.h" />
     <ClInclude Include="TodDebug.h" />
     <ClInclude Include="UIManager.h" />
+    <ClInclude Include="XFLParser.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
