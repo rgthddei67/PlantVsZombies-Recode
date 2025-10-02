@@ -2,7 +2,7 @@
 #ifndef _DEFINIT_H
 #define _DEFINIT_H
 #include <SDL.h>
-
+#include "AllCppInclude.h"
 struct Vector
 {
     float x;

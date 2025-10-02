@@ -1,7 +1,7 @@
 #pragma once
 #ifndef _SLIDERMANAGER_H
 #define _SLIDERMANAGER_H
-
+#include "AllCppInclude.h"
 #include "Slider.h"
 #include <vector>
 #include <memory>

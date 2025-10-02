@@ -1,7 +1,7 @@
 #pragma once
 #ifndef _XFL_PARSER_H
 #define _XFL_PARSER_H
-
+#include "AllCppInclude.h"
 #include <string>
 #include <vector>
 #include <map>
@@ -109,7 +109,7 @@ public:
     std::string GetBitmapPath(const std::string& bitmapName) const;
     bool GetElementTransform
         (const std::string& elementName, int frameIndex, XflElement& transform) const;
-
+    ~XflParser();
 private:
     bool ParseDOMDocument(const std::string& filepath);
     bool ParseSymbols(const std::string& libraryFolder);

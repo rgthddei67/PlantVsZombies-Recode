@@ -1,7 +1,8 @@
 #pragma once
 #ifndef _REANIMATOR_H
 #define _REANIMATOR_H
-
+#include "AllCppInclude.h"
+#include "ResourceManager.h"
 #include <SDL.h>
 #include <string>
 #include <vector>
@@ -12,6 +13,7 @@
 // 前向声明
 class ReanimatorDefinition;
 class ReanimParser;
+enum class AnimationType;
 
 // 动画变换结构
 struct ReanimatorTransform 
@@ -55,7 +57,7 @@ public:
 class Reanimation 
 {
 private:
-    ReanimatorDefinition* mDefinition;     // 动画定义
+    std::shared_ptr<ReanimatorDefinition> mDefinition;     // 动画定义
     float mAnimTime;                       // 动画时间（0-1）
     float mAnimRate;                       // 播放速度
     ReanimLoopType mLoopType;              // 循环类型
@@ -89,7 +91,7 @@ public:
 
     // 初始化方法
     bool LoadReanimation(const std::string& reanimFile);
-    void ReanimationInitialize(float x, float y, ReanimatorDefinition* definition);
+    void ReanimationInitialize(float x, float y, std::shared_ptr<ReanimatorDefinition> definition);
 
     // 控制方法
     void Update();
@@ -127,9 +129,10 @@ public:
 
     Reanimation* AllocReanimation(float x, float y, const std::string& reanimFile, float scale);
     Reanimation* AllocReanimation(float x, float y, ReanimatorDefinition* definition, float scale);
+    Reanimation* AllocReanimation(float x, float y, AnimationType animType, float scale);
     void UpdateAll();
     void DrawAll();
-    void Clear();
+    void ClearAll();
     size_t GetCount() const { return mReanimations.size(); }
 };
 

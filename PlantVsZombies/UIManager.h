@@ -1,7 +1,7 @@
 #pragma once
 #ifndef _UIMANAGER_H
 #define _UIMANAGER_H
-
+#include "AllCppInclude.h"
 #include "ResourceManager.h"
 #include "ButtonManager.h"
 #include "SliderManager.h"
@@ -13,6 +13,11 @@ private:
     SliderManager sliderManager;
 
 public:
+    ~UIManager() 
+    {
+        ClearAll();
+    }
+
     // ButtonManager 代理方法
     std::shared_ptr<Button> CreateButton(Vector pos = Vector::zero(), Vector size = Vector(40, 40))
     {
@@ -117,6 +122,14 @@ public:
     void ResetAllFrameStates()
     {
         buttonManager.ResetAllFrameStates();
+    }
+
+    void ClearAll()
+    {
+        std::cout << "清理UIManager资源..." << std::endl;
+        buttonManager.ClearAllButtons();
+        sliderManager.ClearAllSliders();
+        std::cout << "UIManager资源清理完成" << std::endl;
     }
 
     // 获取底层管理器（也可以直接访问）

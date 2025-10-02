@@ -45,20 +45,35 @@ bool ReanimatorDefinition::LoadFromFile(const std::string& filename) {
     return ReanimParser::LoadReanimFile(filename, this);
 }
 
-void ReanimatorDefinition::Clear() 
-{
-    // 纹理释放逻辑
+void ReanimatorDefinition::Clear() {
+    TOD_TRACE("ReanimatorDefinition::Clear() - Starting cleanup");
+
+    int textureCount = 0;
+    int trackCount = mTracks.size();
+
     for (auto& track : mTracks) {
         for (auto& transform : track.mTransforms) {
             if (transform.mImage) {
+                textureCount++;
                 SDL_DestroyTexture(transform.mImage);
                 transform.mImage = nullptr;
             }
+            // 清理字符串
+            transform.mImageName.clear();
         }
+        // 清理轨道数据
+        track.mName.clear();
+        track.mTransforms.clear();
+        track.mTransformCount = 0;
     }
+
     mTracks.clear();
     mFPS = 12.0f;
     mReanimFileName.clear();
+
+    TOD_TRACE("ReanimatorDefinition::Clear() - Cleared " +
+        std::to_string(textureCount) + " textures from " +
+        std::to_string(trackCount) + " tracks");
 }
 
 bool ReanimatorDefinition::LoadImages(SDL_Renderer* renderer) {
@@ -126,16 +141,15 @@ Reanimation::Reanimation(SDL_Renderer* renderer) :
 }
 
 Reanimation::~Reanimation() {
-    // 不删除mDefinition，因为它可能被多个Reanimation共享
+
 }
 
 bool Reanimation::LoadReanimation(const std::string& reanimFile) 
 {
-    mDefinition = new ReanimatorDefinition();
-
+	mDefinition = std::make_shared<ReanimatorDefinition>();
     if (!mDefinition->LoadFromFile(reanimFile)) {
-        delete mDefinition;
-        mDefinition = nullptr;
+        mDefinition.reset();
+		TOD_TRACE("Failed to load reanimation definition: " + reanimFile);
         return false;
     }
 
@@ -166,7 +180,7 @@ bool Reanimation::LoadReanimation(const std::string& reanimFile)
     return true;
 }
 
-void Reanimation::ReanimationInitialize(float x, float y, ReanimatorDefinition* definition) {
+void Reanimation::ReanimationInitialize(float x, float y, std::shared_ptr<ReanimatorDefinition> definition) {
     mDefinition = definition;
     mAnimRate = definition->mFPS;
     SetPosition(x, y);
@@ -462,10 +476,11 @@ ReanimationHolder::ReanimationHolder(SDL_Renderer* renderer) :
 }
 
 ReanimationHolder::~ReanimationHolder() {
-    Clear();
+    ClearAll();
 }
 
-Reanimation* ReanimationHolder::AllocReanimation(float x, float y, const std::string& reanimFile, float scale = 1.0f) {
+Reanimation* ReanimationHolder::AllocReanimation(float x, float y, const std::string& reanimFile, float scale = 1.0f) 
+{
     auto reanim = std::make_unique<Reanimation>(mRenderer);
     if (!reanim->LoadReanimation(reanimFile)) {
         TOD_TRACE("Failed to create reanimation: " + reanimFile);
@@ -479,25 +494,56 @@ Reanimation* ReanimationHolder::AllocReanimation(float x, float y, const std::st
 }
 
 Reanimation* ReanimationHolder::AllocReanimation(float x, float y, ReanimatorDefinition* definition, float scale = 1.0f) {
+    auto sharedDef = std::shared_ptr<ReanimatorDefinition>(
+        definition, [](ReanimatorDefinition*) {} // 空删除器 不实际管理生命周期
+    );
     auto reanim = std::make_unique<Reanimation>(mRenderer);
-    reanim->ReanimationInitialize(x, y, definition);
+    reanim->ReanimationInitialize(x, y, sharedDef);
 	reanim->SetScale(scale);
     Reanimation* ptr = reanim.get();
     mReanimations.push_back(std::move(reanim));
     return ptr;
 }
 
+Reanimation* ReanimationHolder::AllocReanimation(float x, float y, AnimationType animType, float scale)
+{
+    // 通过ResourceManager获取动画定义
+    ResourceManager& resMgr = ResourceManager::GetInstance();
+    auto animDef = resMgr.GetAnimation(animType);
+
+    if (!animDef) {
+        TOD_TRACE("Failed to get animation definition for type: " + std::to_string(static_cast<int>(animType)));
+        return nullptr;
+    }
+
+    auto reanim = std::make_unique<Reanimation>(mRenderer);
+    reanim->ReanimationInitialize(x, y, animDef);
+    reanim->SetScale(scale);
+    reanim->SetPosition(x, y);
+
+    // 设置默认参数
+    reanim->SetLoopType(ReanimLoopType::REANIM_LOOP);
+    reanim->SetRate(animDef->mFPS); // 使用动画定义中的FPS
+
+    Reanimation* ptr = reanim.get();
+    mReanimations.push_back(std::move(reanim));
+    return ptr;
+}
+
+// 这里只能是数字引用！  不能是begin - end
 void ReanimationHolder::UpdateAll()
 {
-    for (auto it = mReanimations.begin(); it != mReanimations.end(); )
+    for (size_t i = 0; i < mReanimations.size(); )
     {
-        (*it)->Update();
-        // 若mDead == true,则直接销毁动画
-        if ((*it)->IsDead()) {
-            it = mReanimations.erase(it);
+        mReanimations[i]->Update();
+
+        if (mReanimations[i]->IsDead()) 
+        {
+            mReanimations.erase(mReanimations.begin() + i);
         }
-        else {
-            ++it;
+        else 
+        {
+            ++i;
         }
     }
 }
@@ -509,6 +555,18 @@ void ReanimationHolder::DrawAll() {
     }
 }
 
-void ReanimationHolder::Clear() {
+void ReanimationHolder::ClearAll() {
+    TOD_TRACE("ReanimationHolder::Clear() - Starting");
+
+    // 停止所有动画
+    for (auto& reanim : mReanimations) {
+        if (reanim) {
+            reanim->ReanimationDie();
+        }
+    }
+
+    size_t count = mReanimations.size();
     mReanimations.clear();
+
+    TOD_TRACE("ReanimationHolder::Clear() - Removed " + std::to_string(count) + " reanimations");
 }

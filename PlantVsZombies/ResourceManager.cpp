@@ -311,6 +311,45 @@ bool ResourceManager::LoadAllMusic()
     return success;
 }
 
+bool ResourceManager::LoadAllAnimations()
+{
+    if (!renderer) {
+        std::cerr << "错误: ResourceManager 未初始化，无法加载动画！" << std::endl;
+        return false;
+    }
+
+    bool success = true;
+    int loadedCount = 0;
+    std::cout << "开始加载所有动画资源..." << std::endl;
+
+    for (const auto& animPair : animationPaths) {
+        AnimationType animType = animPair.first;
+        const std::string& path = animPair.second;
+
+        if (LoadAnimation(animType)) {
+            loadedCount++;
+            std::cout << "成功加载动画: " << path << " (类型: " << static_cast<int>(animType) << ")" << std::endl;
+        }
+        else {
+            success = false;
+            std::cerr << "加载动画失败: " << path << " (类型: " << static_cast<int>(animType) << ")" << std::endl;
+        }
+    }
+
+    std::cout << "动画资源加载完成，成功: " << loadedCount << "/" << animationPaths.size() << std::endl;
+    return success;
+}
+
+void ResourceManager::UnloadAnimation(AnimationType animType)
+{
+    auto it = animations.find(animType);
+    if (it != animations.end()) {
+        it->second->Clear();
+        animations.erase(it);
+        std::cout << "卸载动画: " << static_cast<int>(animType) << std::endl;
+    }
+}
+
 // 获取资源路径列表
 const std::vector<std::string>& ResourceManager::GetGameImagePaths() const
 {
@@ -330,6 +369,23 @@ const std::vector<std::string>& ResourceManager::GetSoundPaths() const
 const std::vector<std::string>& ResourceManager::GetMusicPaths() const
 {
     return musicPaths;
+}
+
+std::shared_ptr<ReanimatorDefinition> ResourceManager::GetAnimation(AnimationType animType)
+{
+    auto it = animations.find(animType);
+    if (it != animations.end()) {
+        return it->second;
+    }
+
+    // 如果动画未加载，尝试立即加载
+    std::cout << "动画类型 " << static_cast<int>(animType) << " 未加载，尝试立即加载..." << std::endl;
+    if (LoadAnimation(animType)) {
+        return animations[animType];
+    }
+
+    std::cerr << "错误: 无法获取动画类型 " << static_cast<int>(animType) << std::endl;
+    return nullptr;
 }
 
 void ResourceManager::Initialize(SDL_Renderer* renderer)
@@ -482,6 +538,39 @@ void ResourceManager::LoadTexturePack(const std::vector<std::pair<std::string, s
     }
 }
 
+bool ResourceManager::LoadAnimation(AnimationType animType)
+{
+    if (!renderer) {
+        std::cerr << "错误: ResourceManager 未初始化！" << std::endl;
+        return false;
+    }
+
+    if (animations.find(animType) != animations.end()) {
+        return true;
+    }
+
+    auto pathIt = animationPaths.find(animType);
+    if (pathIt == animationPaths.end()) {
+        std::cerr << "错误: 未找到动画类型 " << static_cast<int>(animType) << " 的路径配置" << std::endl;
+        return false;
+    }
+
+    const std::string& path = pathIt->second;
+
+    auto definition = std::make_shared<ReanimatorDefinition>();
+    if (!definition->LoadFromFile(path)) {
+        std::cerr << "加载动画文件失败: " << path << std::endl;
+        return false;
+    }
+
+    if (!definition->LoadImages(renderer)) {
+        std::cerr << "警告: 动画图片加载失败或部分失败: " << path << std::endl;
+    }
+
+    animations[animType] = definition;
+    return true;
+}
+
 void ResourceManager::UnloadAll()
 {
     // 卸载所有纹理
@@ -515,6 +604,13 @@ void ResourceManager::UnloadAll()
     }
     music.clear();
 
+    // 卸载所有动画
+    for (auto& pair : animations) 
+    {
+        pair.second->Clear();
+    }
+    animations.clear();
+
     std::cout << "已卸载所有资源" << std::endl;
 }
 
@@ -536,4 +632,9 @@ bool ResourceManager::HasSound(const std::string& key) const
 bool ResourceManager::HasMusic(const std::string& key) const
 {
     return music.find(key) != music.end();
+}
+
+bool ResourceManager::HasAnimation(AnimationType animType) const
+{
+    return animations.find(animType) != animations.end();
 }

@@ -1,7 +1,7 @@
 #pragma once
 #ifndef _INPUTHANDLER_H
 #define _INPUTHANDLER_H
-
+#include "AllCppInclude.h"
 #include <SDL.h>
 #include <map>
 #include <vector>

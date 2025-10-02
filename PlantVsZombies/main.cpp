@@ -11,19 +11,21 @@
 
 namespace UIFunctions
 {
-    void ButtonClick()
+    static void ButtonClick()
     {
         std::cout << "点击" << std::endl;
         AudioSystem::PlaySound(AudioConstants::SOUND_BUTTONCLICK, 0.4f);
     }
-    void SliderChanged(float value)
+    static void SliderChanged(float value)
     {
         std::cout << "滑动条值改变: " << value << std::endl;
     }
+
 }
 
 int SDL_main(int argc, char* argv[])
 {
+    _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
     // 初始化SDL
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0) 
     {
@@ -110,6 +112,7 @@ int SDL_main(int argc, char* argv[])
     resourcesLoaded &= resourceManager.LoadAllFonts();
     resourcesLoaded &= resourceManager.LoadAllSounds();
     resourcesLoaded &= resourceManager.LoadAllMusic();
+	resourcesLoaded &= resourceManager.LoadAllAnimations();
 
     if (!resourcesLoaded)
     {
@@ -118,15 +121,15 @@ int SDL_main(int argc, char* argv[])
         GameAPP::CleanupResources();
         ResourceManager::ReleaseInstance();
         gameApp.CloseGame();
+		SDL_DestroyRenderer(renderer);
         SDL_DestroyWindow(window);
         TTF_Quit();
         IMG_Quit();
         SDL_Quit();
         return -1;
     }
-
 	ReanimationHolder animHolder(renderer); // 创建动画管理器
-
+    /*
 	Reanimation* anim = 
         animHolder.AllocReanimation(250, 250, "./resources/reanim/Sun", 0.8f);
     if (anim) 
@@ -134,7 +137,9 @@ int SDL_main(int argc, char* argv[])
         anim->SetLoopType(ReanimLoopType::REANIM_LOOP);
         anim->SetRate(8.0f);
     }
-
+    */
+    Reanimation* anim = 
+		animHolder.AllocReanimation(400, 300, AnimationType::ANIM_SUN, 0.8f);
     // 创建按钮
     auto button1 = uiManager.CreateButton(Vector(100, 150));
     button1->SetAsCheckbox(true);
@@ -197,9 +202,19 @@ int SDL_main(int argc, char* argv[])
     GameAPP::CleanupResources();
     ResourceManager::ReleaseInstance();
     gameApp.CloseGame();
-    SDL_DestroyWindow(window);
+    if (renderer != nullptr) 
+    {
+        SDL_DestroyRenderer(renderer);
+        renderer = nullptr;
+    }
+    if (window != nullptr)
+    {
+        SDL_DestroyWindow(window);
+        window = nullptr;
+    }
     TTF_Quit();
     IMG_Quit();
     SDL_Quit();
+    //_CrtDumpMemoryLeaks();
     return 0;
 }

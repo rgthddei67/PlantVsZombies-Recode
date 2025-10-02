@@ -1,6 +1,7 @@
 #pragma once
 #ifndef _SLIDER_H
 #define _SLIDER_H
+#include "AllCppInclude.h"
 #include "Definit.h"
 #include "InputHandler.h"
 #include <functional>

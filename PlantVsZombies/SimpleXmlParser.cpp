@@ -35,7 +35,7 @@ bool SimpleXmlParser::ParseFile(const std::string& filename, SimpleXmlNode& root
     buffer << file.rdbuf();
     std::string content = buffer.str();
     file.close();
-
+    root = SimpleXmlNode();
     return ParseReanimContent(content, root);
 }
 
@@ -132,7 +132,7 @@ bool SimpleXmlParser::ParseReanimContent(const std::string& content, SimpleXmlNo
     return true;
 }
 
-// 新增：解析属性
+// 解析属性
 void SimpleXmlParser::ParseAttributes(const std::string& tag, SimpleXmlNode& node) {
     size_t spacePos = tag.find(' ');
     if (spacePos == std::string::npos) {

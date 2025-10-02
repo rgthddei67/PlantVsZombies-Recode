@@ -107,5 +107,8 @@
     <ClInclude Include="XFLParser.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="AllCppInclude.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

@@ -6,7 +6,24 @@
 
 namespace fs = std::filesystem;
 
+XflParser::~XflParser() 
+{
+    // 彻底清理所有资源
+    mDocument.symbols.clear();
+    mDocument.bitmaps.clear();
+
+    // 清理时间轴数据
+    for (auto& layer : mDocument.timeline.layers) {
+        layer.frames.clear();
+    }
+    mDocument.timeline.layers.clear();
+
+    mBasePath.clear();
+}
+
 bool XflParser::LoadXflFile(const std::string& filename) {
+    mDocument = XflDOMDocument(); // 重置文档
+    mBasePath.clear();
     // 处理不同的输入情况
     if (filename.find(".xfl") != std::string::npos) {
         // 如果直接指定了.xfl文件
@@ -171,15 +188,44 @@ bool XflParser::ParseLayer(const SimpleXmlNode& layerNode, XflDOMLayer& layer) {
 }
 
 bool XflParser::ParseFrame(const SimpleXmlNode& frameNode, XflDOMFrame& frame) {
-    // 解析帧属性
     std::string indexStr, durationStr;
+
+    // 安全解析 index
     if (frameNode.GetAttribute("index", indexStr)) {
-        frame.index = std::stoi(indexStr);
+        try {
+            frame.index = std::stoi(indexStr);
+        }
+        catch (const std::exception& e) {
+            TOD_TRACE("无效的帧索引: '" + indexStr + "', 使用默认值 0");
+            frame.index = 0;
+        }
     }
+    else {
+        frame.index = 0; // 默认值
+    }
+
+    // 安全解析 duration
     if (frameNode.GetAttribute("duration", durationStr)) {
-        frame.duration = std::stoi(durationStr);
+        try {
+            frame.duration = std::stoi(durationStr);
+            if (frame.duration <= 0) {
+                TOD_TRACE("无效的帧持续时间: " + std::to_string(frame.duration) + ", 使用默认值 1");
+                frame.duration = 1;
+            }
+        }
+        catch (const std::exception& e) {
+            TOD_TRACE("无效的帧持续时间: '" + durationStr + "', 使用默认值 1");
+            frame.duration = 1;
+        }
     }
+    else {
+        frame.duration = 1; // 默认值
+    }
+
     frameNode.GetAttribute("keyMode", frame.keyMode);
+
+    TOD_TRACE("解析帧 - 索引: " + std::to_string(frame.index) +
+        ", 持续时间: " + std::to_string(frame.duration));
 
     // 解析元素
     for (auto& childNode : frameNode.children) {
@@ -192,73 +238,89 @@ bool XflParser::ParseFrame(const SimpleXmlNode& frameNode, XflDOMFrame& frame) {
                     element.libraryItemName = elementNode.GetAttributeValue("libraryItemName");
 
                     if (!element.libraryItemName.empty()) {
-                        // 查找矩阵子节点
-                        for (auto& matrixNode : elementNode.children) {
-                            if (matrixNode.name == "matrix") {
-                                // 获取矩阵文本内容
-                                std::string matrixText;
-                                for (auto& matrixChild : matrixNode.children) {
-                                    if (matrixChild.name == "Matrix") {
-                                        // 从Matrix标签的属性中构建矩阵字符串
-                                        std::stringstream matrixStream;
-                                        matrixStream << "Matrix ";
-                                        for (const auto& attr : matrixChild.attributes) {
-                                            matrixStream << attr.first << "=\"" << attr.second << "\" ";
+                        // 安全处理矩阵解析
+                        try {
+                            // 查找矩阵节点
+                            for (auto& matrixNode : elementNode.children) {
+                                if (matrixNode.name == "matrix") {
+                                    // 提取矩阵文本内容
+                                    std::string matrixText;
+                                    for (auto& matrixChild : matrixNode.children) {
+                                        if (matrixChild.name == "Matrix") {
+                                            // 从Matrix节点的属性中构建矩阵字符串
+                                            std::stringstream matrixStream;
+                                            matrixStream << "Matrix ";
+                                            for (const auto& attr : matrixChild.attributes) {
+                                                matrixStream << attr.first << "=\"" << attr.second << "\" ";
+                                            }
+                                            matrixText = matrixStream.str();
+                                            break;
                                         }
-                                        matrixText = matrixStream.str();
-                                        break;
                                     }
-                                }
 
-                                if (!matrixText.empty()) {
-                                    element.matrix = ParseMatrix(matrixText);
-                                    element.x = element.matrix.tx;
-                                    element.y = element.matrix.ty;
+                                    if (!matrixText.empty()) {
+                                        element.matrix = ParseMatrix(matrixText);
+                                        element.x = element.matrix.tx;
+                                        element.y = element.matrix.ty;
 
-                                    // 改进的矩阵分解算法
-                                    element.scaleX = sqrtf(element.matrix.a * element.matrix.a + element.matrix.b * element.matrix.b);
-                                    element.scaleY = sqrtf(element.matrix.c * element.matrix.c + element.matrix.d * element.matrix.d);
+                                        // 计算缩放比例
+                                        element.scaleX = sqrtf(element.matrix.a * element.matrix.a + element.matrix.b * element.matrix.b);
+                                        element.scaleY = sqrtf(element.matrix.c * element.matrix.c + element.matrix.d * element.matrix.d);
 
-                                    // 提取旋转角度（弧度）
-                                    float rotationRad = atan2f(-element.matrix.c, element.matrix.d); // 使用更适合的公式
-                                    element.rotation = rotationRad * 180.0f / 3.14159265f; // 转换为度
+                                        // 计算旋转角度（弧度转角度）
+                                        float rotationRad = atan2f(-element.matrix.c, element.matrix.d);
+                                        element.rotation = rotationRad * 180.0f / 3.14159265f;
 
-                                    TOD_TRACE("Element " + element.libraryItemName +
-                                        " - Position: (" + std::to_string(element.x) + ", " + std::to_string(element.y) +
-                                        ") Rotation: " + std::to_string(element.rotation) + "°" +
-                                        " Scale: (" + std::to_string(element.scaleX) + ", " + std::to_string(element.scaleY) + ")");
-                                }
-                                break;
-                            }
-                        }
-
-                        // 解析颜色变换
-                        for (auto& colorNode : elementNode.children) {
-                            if (colorNode.name == "color") {
-                                for (auto& colorChild : colorNode.children) {
-                                    if (colorChild.name == "Color") {
-                                        std::string alphaStr = colorChild.GetAttributeValue("alphaMultiplier", "1.0");
-                                        try {
-                                            element.alpha = std::stof(alphaStr);
-                                        }
-                                        catch (...) {
-                                            element.alpha = 1.0f;
-                                        }
-                                        break;
+                                        TOD_TRACE("元素 " + element.libraryItemName +
+                                            " - 位置: (" + std::to_string(element.x) + ", " + std::to_string(element.y) +
+                                            ") 旋转: " + std::to_string(element.rotation) + "度" +
+                                            " 缩放: (" + std::to_string(element.scaleX) + ", " + std::to_string(element.scaleY) + ")");
                                     }
+                                    break;
                                 }
-                                break;
                             }
-                        }
 
-                        // 添加到帧
-                        frame.elements.push_back(element.libraryItemName);
-                        frame.elementDetails.push_back(element);
+                            // 安全解析颜色
+                            for (auto& colorNode : elementNode.children) {
+                                if (colorNode.name == "color") {
+                                    for (auto& colorChild : colorNode.children) {
+                                        if (colorChild.name == "Color") {
+                                            std::string alphaStr = colorChild.GetAttributeValue("alphaMultiplier", "1.0");
+                                            try {
+                                                element.alpha = std::stof(alphaStr);
+                                                // 确保alpha值在有效范围内
+                                                if (element.alpha < 0.0f) element.alpha = 0.0f;
+                                                if (element.alpha > 1.0f) element.alpha = 1.0f;
+                                            }
+                                            catch (const std::exception& e) {
+                                                TOD_TRACE("无效的alpha值: '" + alphaStr + "', 使用默认值 1.0");
+                                                element.alpha = 1.0f;
+                                            }
+                                            break;
+                                        }
+                                    }
+                                    break;
+                                }
+                            }
+
+                            // 添加到帧
+                            frame.elements.push_back(element.libraryItemName);
+                            frame.elementDetails.push_back(element);
+
+                        }
+                        catch (const std::exception& e) {
+                            TOD_TRACE("处理元素 '" + element.libraryItemName +
+                                "' 时出错: " + e.what());
+                            // 继续处理其他元素而不是中止
+                        }
                     }
                 }
             }
         }
     }
+
+    TOD_TRACE("帧 " + std::to_string(frame.index) + " 解析完成，包含 " +
+        std::to_string(frame.elements.size()) + " 个元素");
 
     return true;
 }
@@ -266,11 +328,11 @@ bool XflParser::ParseFrame(const SimpleXmlNode& frameNode, XflDOMFrame& frame) {
 XflMatrix XflParser::ParseMatrix(const std::string& matrixText) {
     XflMatrix matrix;
 
-    TOD_TRACE("Parsing matrix text: " + matrixText);
+    TOD_TRACE("解析矩阵文本: " + matrixText);
 
-    // 处理XFL矩阵格式: "<Matrix a=\"0.8\" d=\"0.8\" tx=\"7.7\" ty=\"7.9\"/>"
+    // 检测XFL矩阵格式: "<Matrix a=\"0.8\" d=\"0.8\" tx=\"7.7\" ty=\"7.9\"/>" 
     if (matrixText.find("Matrix") != std::string::npos) {
-        // XML格式的矩阵 - 从<Matrix>标签中提取属性
+        // XML格式的矩阵 - 从<Matrix>节点中提取属性
         size_t a_pos = matrixText.find("a=\"");
         size_t b_pos = matrixText.find("b=\"");
         size_t c_pos = matrixText.find("c=\"");
@@ -278,42 +340,77 @@ XflMatrix XflParser::ParseMatrix(const std::string& matrixText) {
         size_t tx_pos = matrixText.find("tx=\"");
         size_t ty_pos = matrixText.find("ty=\"");
 
-        auto extractValue = [&](size_t pos) -> float {
-            if (pos == std::string::npos) return 0.0f;
+        auto extractValue = [&](size_t pos, float defaultValue = 0.0f) -> float {
+            if (pos == std::string::npos) {
+                return defaultValue;
+            }
+
             size_t value_start = pos + 3;
             size_t value_end = matrixText.find("\"", value_start);
-            if (value_end == std::string::npos) return 0.0f;
+            if (value_end == std::string::npos) {
+                return defaultValue;
+            }
+
+            std::string valueStr = matrixText.substr(value_start, value_end - value_start);
+
+            // 检查字符串是否为空或只包含空白字符
+            if (valueStr.empty()) {
+                TOD_TRACE("空字符串，使用默认值: " + std::to_string(defaultValue));
+                return defaultValue;
+            }
+
+            // 去除前后空白
+            valueStr.erase(0, valueStr.find_first_not_of(" \t\n\r"));
+            valueStr.erase(valueStr.find_last_not_of(" \t\n\r") + 1);
+
+            if (valueStr.empty()) {
+                TOD_TRACE("只有空白字符，使用默认值: " + std::to_string(defaultValue));
+                return defaultValue;
+            }
 
             try {
-                return std::stof(matrixText.substr(value_start, value_end - value_start));
+                return std::stof(valueStr);
             }
-            catch (...) {
-                return 0.0f;
+            catch (const std::exception& e) {
+                TOD_TRACE("无效的矩阵值: '" + valueStr + "', 使用默认值 " + std::to_string(defaultValue));
+                return defaultValue;
             }
             };
 
-        matrix.a = (a_pos != std::string::npos) ? extractValue(a_pos) : 1.0f;
-        matrix.b = (b_pos != std::string::npos) ? extractValue(b_pos) : 0.0f;
-        matrix.c = (c_pos != std::string::npos) ? extractValue(c_pos) : 0.0f;
-        matrix.d = (d_pos != std::string::npos) ? extractValue(d_pos) : 1.0f;
-        matrix.tx = (tx_pos != std::string::npos) ? extractValue(tx_pos) : 0.0f;
-        matrix.ty = (ty_pos != std::string::npos) ? extractValue(ty_pos) : 0.0f;
+        // 设置默认值：a和d默认为1.0，其他默认为0.0
+        matrix.a = extractValue(a_pos, 1.0f);
+        matrix.b = extractValue(b_pos, 0.0f);
+        matrix.c = extractValue(c_pos, 0.0f);
+        matrix.d = extractValue(d_pos, 1.0f);
+        matrix.tx = extractValue(tx_pos, 0.0f);
+        matrix.ty = extractValue(ty_pos, 0.0f);
     }
     else {
-        // 逗号分隔的数值格式
+        // 可能是逗号分隔的数值格式
         std::vector<float> values;
         std::stringstream ss(matrixText);
         std::string token;
 
         while (std::getline(ss, token, ',')) {
+            // 去除空白字符
+            token.erase(0, token.find_first_not_of(" \t\n\r"));
+            token.erase(token.find_last_not_of(" \t\n\r") + 1);
+
+            if (token.empty()) {
+                values.push_back(0.0f);
+                continue;
+            }
+
             try {
                 values.push_back(std::stof(token));
             }
-            catch (...) {
+            catch (const std::exception& e) {
+                TOD_TRACE("无效的矩阵令牌: '" + token + "', 使用 0.0");
                 values.push_back(0.0f);
             }
         }
 
+        // 根据值的数量设置矩阵
         if (values.size() >= 6) {
             matrix.a = values[0];
             matrix.b = values[1];
@@ -322,9 +419,15 @@ XflMatrix XflParser::ParseMatrix(const std::string& matrixText) {
             matrix.tx = values[4];
             matrix.ty = values[5];
         }
+        else {
+            // 如果值不足，使用单位矩阵
+            matrix.a = 1.0f;
+            matrix.d = 1.0f;
+            TOD_TRACE("矩阵值不足，使用单位矩阵");
+        }
     }
 
-    TOD_TRACE("Parsed matrix: a=" + std::to_string(matrix.a) +
+    TOD_TRACE("解析后的矩阵: a=" + std::to_string(matrix.a) +
         " b=" + std::to_string(matrix.b) +
         " c=" + std::to_string(matrix.c) +
         " d=" + std::to_string(matrix.d) +

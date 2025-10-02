@@ -31,10 +31,24 @@ bool AudioSystem::Initialize()
     return true;
 }
 
-void AudioSystem::Shutdown()
-{
-    //SaveVolumeSettings();
+void AudioSystem::Shutdown() {
+    std::cout << "=== AudioSystem Shutdown ===" << std::endl;
+    std::cout << "清理前 soundVolumes 大小: " << soundVolumes.size() << std::endl;
+
+    // 详细输出内容
+    for (const auto& pair : soundVolumes) {
+        std::cout << "  即将清理: " << pair.first << " -> " << pair.second << std::endl;
+    }
+
+    soundVolumes.clear();
+
+    std::cout << "清理后 soundVolumes 大小: " << soundVolumes.size() << std::endl;
+
+    Mix_HaltChannel(-1);
+    Mix_HaltMusic();
     Mix_CloseAudio();
+
+    std::cout << "=== AudioSystem 关闭完成 ===" << std::endl;
 }
 
 // 总音量控制

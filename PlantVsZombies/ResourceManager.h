@@ -1,7 +1,9 @@
 #pragma once
 #ifndef _RESOURCEMANAGER_H
 #define _RESOURCEMANAGER_H
-
+#include "AllCppInclude.h"
+#include "Reanimator.h"
+#include "ReanimParser.h"
 #include <SDL.h>
 #include <SDL_image.h>
 #include <SDL_ttf.h>
@@ -11,6 +13,16 @@
 #include <memory>
 #include <iostream>
 
+class ReanimatorDefinition;
+
+// TODO :新增资源改这里
+enum class AnimationType
+{
+    ANIM_NONE,
+    ANIM_SUN,
+};
+
+
 class ResourceManager
 {
 private:
@@ -19,11 +31,22 @@ private:
     std::unordered_map<std::string, std::unordered_map<int, TTF_Font*>> fonts;
     std::unordered_map<std::string, Mix_Chunk*> sounds;
     std::unordered_map<std::string, Mix_Music*> music;
+    std::unordered_map<AnimationType, std::shared_ptr<ReanimatorDefinition>> animations;
+    std::unordered_map<AnimationType, std::string> animationPaths;
 
     SDL_Renderer* renderer;
 
     static ResourceManager* instance;
-    ResourceManager() : renderer(nullptr) {}
+    ResourceManager() : renderer(nullptr) 
+    {
+        InitializeAnimationPaths();
+    }
+
+    void InitializeAnimationPaths() {
+        animationPaths = {
+            {AnimationType::ANIM_SUN, "./resources/reanim/Sun"},
+        };
+    }
 
     // 资源路径配置
     std::vector<std::string> gameImagePaths = {
@@ -73,12 +96,14 @@ public:
     bool LoadAllFonts();
     bool LoadAllSounds();
     bool LoadAllMusic();
+    bool LoadAllAnimations();
 
     // 获取资源组
     const std::vector<std::string>& GetGameImagePaths() const;
     const std::vector<std::string>& GetParticleTexturePaths() const;
     const std::vector<std::string>& GetSoundPaths() const;
     const std::vector<std::string>& GetMusicPaths() const;
+    const std::unordered_map<AnimationType, std::string>& GetAnimationPaths() const { return animationPaths; }
 
     // 初始化
     void Initialize(SDL_Renderer* renderer);
@@ -108,6 +133,11 @@ public:
     Mix_Music* GetMusic(const std::string& key);
     void UnloadMusic(const std::string& key);
 
+    // 动画管理
+    bool LoadAnimation(AnimationType animType);
+    std::shared_ptr<ReanimatorDefinition> GetAnimation(AnimationType animType);
+    void UnloadAnimation(AnimationType animType);
+
     // 批量操作
     void LoadTexturePack(const std::vector<std::pair<std::string, std::string>>& texturePaths);
     void UnloadAll();
@@ -117,6 +147,7 @@ public:
     bool HasFont(const std::string& key) const;
     bool HasSound(const std::string& key) const;
     bool HasMusic(const std::string& key) const;
+    bool HasAnimation(AnimationType animType) const;
 
     ResourceManager(const ResourceManager&) = delete;
     ResourceManager& operator=(const ResourceManager&) = delete;

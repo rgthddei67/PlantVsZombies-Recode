@@ -78,8 +78,7 @@ bool ReanimParser::LoadReanimFile(const std::string& filename, ReanimatorDefinit
 
 void ReanimParser::Cleanup() 
 {
-    sCurrentXflParser.reset();
-    sCurrentBasePath.clear();
+
 }
 
 void ReanimParser::CreateTrackFromXflLayer(const XflDOMLayer& layer, ReanimatorDefinition* definition, int trackIndex, const XflParser& parser) {
