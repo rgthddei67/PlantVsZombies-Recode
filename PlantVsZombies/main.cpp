@@ -198,7 +198,10 @@ int SDL_main(int argc, char* argv[])
         uiManager.ResetAllFrameStates();
     }
     AudioSystem::Shutdown();
-    Mix_Quit();
+    if (window != nullptr)
+    {
+        SDL_StopTextInput();
+    }
     GameAPP::CleanupResources();
     ResourceManager::ReleaseInstance();
     gameApp.CloseGame();
@@ -212,6 +215,7 @@ int SDL_main(int argc, char* argv[])
         SDL_DestroyWindow(window);
         window = nullptr;
     }
+    Mix_Quit();
     TTF_Quit();
     IMG_Quit();
     SDL_Quit();
