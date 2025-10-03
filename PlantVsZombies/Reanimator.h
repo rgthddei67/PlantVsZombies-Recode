@@ -2,7 +2,7 @@
 #ifndef _REANIMATOR_H
 #define _REANIMATOR_H
 #include "AllCppInclude.h"
-#include "ResourceManager.h"
+#include "AnimationTypes.h"
 #include <SDL.h>
 #include <string>
 #include <vector>
@@ -13,7 +13,6 @@
 // 前向声明
 class ReanimatorDefinition;
 class ReanimParser;
-enum class AnimationType;
 
 // 动画变换结构
 struct ReanimatorTransform 

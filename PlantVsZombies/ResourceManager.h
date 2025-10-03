@@ -1,9 +1,9 @@
 #pragma once
 #ifndef _RESOURCEMANAGER_H
 #define _RESOURCEMANAGER_H
-#include "AllCppInclude.h"
 #include "Reanimator.h"
-#include "ReanimParser.h"
+#include "AnimationTypes.h"
+#include "AllCppInclude.h"
 #include <SDL.h>
 #include <SDL_image.h>
 #include <SDL_ttf.h>
@@ -14,14 +14,6 @@
 #include <iostream>
 
 class ReanimatorDefinition;
-
-// TODO :新增资源改这里
-enum class AnimationType
-{
-    ANIM_NONE,
-    ANIM_SUN,
-};
-
 
 class ResourceManager
 {

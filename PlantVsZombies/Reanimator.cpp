@@ -1,4 +1,5 @@
 #include "Reanimator.h"
+#include "ResourceManager.h"
 #include "ReanimParser.h"
 #include "TodCommon.h"
 #include "TodDebug.h"
