@@ -326,7 +326,7 @@ bool XflParser::ParseFrame(const SimpleXmlNode& frameNode, XflDOMFrame& frame) {
 }
 
 XflMatrix XflParser::ParseMatrix(const std::string& matrixText) {
-    XflMatrix matrix;
+    XflMatrix matrix = {};
 
     TOD_TRACE("½âÎö¾ØÕóÎÄ±¾: " + matrixText);
 
