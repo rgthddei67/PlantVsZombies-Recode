@@ -34,12 +34,12 @@ int SDL_main(int argc, char* argv[])
     }
 
     // 初始化SDL_image
-    if (!(IMG_Init(IMG_INIT_PNG) & IMG_INIT_PNG)) 
+    if (IMG_Init(IMG_INIT_JPG) != IMG_INIT_JPG) 
     {
         std::cerr << "SDL_image初始化失败: " << IMG_GetError() << std::endl;
         SDL_Quit();
         return -1;
-    }
+	}
 
     // 初始化SDL_ttf
     if (TTF_Init() == -1) 
