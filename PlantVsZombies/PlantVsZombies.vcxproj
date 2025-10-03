@@ -146,6 +146,10 @@
     <ClCompile Include="GameApp.cpp" />
     <ClCompile Include="InputHandler.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Particle.cpp" />
+    <ClCompile Include="ParticleConfig.cpp" />
+    <ClCompile Include="ParticleEmitter.cpp" />
+    <ClCompile Include="ParticleSystem.cpp" />
     <ClCompile Include="Reanimator.cpp" />
     <ClCompile Include="ReanimParser.cpp" />
     <ClCompile Include="ResourceManager.cpp" />
@@ -164,6 +168,10 @@
     <ClInclude Include="Definit.h" />
     <ClInclude Include="GameApp.h" />
     <ClInclude Include="InputHandler.h" />
+    <ClInclude Include="Particle.h" />
+    <ClInclude Include="ParticleConfig.h" />
+    <ClInclude Include="ParticleEmitter.h" />
+    <ClInclude Include="ParticleSystem.h" />
     <ClInclude Include="Reanimator.h" />
     <ClInclude Include="ReanimParser.h" />
     <ClInclude Include="ResourceManager.h" />

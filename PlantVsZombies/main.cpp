@@ -6,6 +6,7 @@
 #include "ResourceManager.h"
 #include "AudioSystem.h"
 #include "Reanimator.h"
+#include "ParticleSystem.h"
 #include <iostream>
 #include <sstream>
 
@@ -132,6 +133,7 @@ int SDL_main(int argc, char* argv[])
         return -1;
     }
 	ReanimationHolder animHolder(renderer); // 创建动画管理器
+    ParticleSystem particleSystem(renderer); // 创建粒子特效系统管理器
     /*
 	Reanimation* anim = 
         animHolder.AllocReanimation(250, 250, "./resources/reanim/Sun", 0.8f);
@@ -162,6 +164,15 @@ int SDL_main(int argc, char* argv[])
     bool running = true;
     SDL_Event event;
 
+    SDL_Texture* particleTex = resourceManager.GetTexture("particle_1");
+    if (!particleTex) {
+        std::cerr << "错误: 粒子纹理加载失败！" << std::endl;
+        resourcesLoaded = false;
+    }
+    else {
+        std::cout << "粒子纹理加载成功" << std::endl;
+    }
+
     while (running) 
     {
         // 处理事件
@@ -182,10 +193,16 @@ int SDL_main(int argc, char* argv[])
             running = false;
             break;
         }
+        if (input->IsKeyDown(SDLK_SPACE))
+        {
+            particleSystem.EmitEffect
+                (ParticleEffect::PEA_BULLET_HIT, 150, 500, 1);
+        }
         
 		// 更新板块
         uiManager.UpdateAll(input);
 		animHolder.UpdateAll();
+        particleSystem.UpdateAll();
 		
         // 清屏
         SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
@@ -194,6 +211,7 @@ int SDL_main(int argc, char* argv[])
         // 绘制板块
         uiManager.DrawAll(renderer);
         animHolder.DrawAll();
+        particleSystem.DrawAll();
 
         // 更新屏幕
         SDL_RenderPresent(renderer);

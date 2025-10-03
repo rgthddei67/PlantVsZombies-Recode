@@ -53,6 +53,7 @@ private:
 
     std::vector<std::string> particleTexturePaths = {
         "./resources/particles/ZombieHead.png",
+
     };
 
     std::vector<std::string> fontPaths = {

@@ -97,7 +97,7 @@ TTF_Font* ResourceManager::GetFont(const std::string& key, int size)
         {
             if (pair.first.find(key) != std::string::npos ||
                 key.find(pair.first) != std::string::npos) {
-                std::cout << "发现相似键: '" << pair.first << "'" << std::endl;
+                //std::cout << "发现相似键: '" << pair.first << "'" << std::endl;
             }
         }
         return nullptr;
