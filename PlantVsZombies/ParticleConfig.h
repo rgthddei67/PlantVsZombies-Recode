@@ -17,9 +17,20 @@ struct ParticleConfig {
     float spreadAngle = 360.0f;
     float gravity = 0.5f;
     bool fadeOut = true;
-    std::string textureKey;  // 纹理在ResourceManager中的key
+    std::vector<std::string> textureKeys;   // 纹理列表
     bool useTexture = false; // 是否使用纹理
     int textureFrame = 0;    // 纹理帧（如果有多帧）
+
+    // 获取随机纹理key
+    std::string GetRandomTextureKey() const 
+    {
+        if (textureKeys.size() == 1) {
+            return textureKeys[0];  // 只有一个纹理，直接返回
+        }
+        // 多个纹理，随机选择一个
+        int index = rand() % textureKeys.size();
+        return textureKeys[index];
+    }
 };
 
 class ParticleConfigManager {
@@ -29,9 +40,10 @@ private:
 
 public:
     ParticleConfigManager(SDL_Renderer* sdlRenderer);
+    ~ParticleConfigManager();
     void SetRenderer(SDL_Renderer* sdlRenderer) { renderer = sdlRenderer; }
     const ParticleConfig& GetConfig(ParticleEffect effect) const;
-    SDL_Texture* GetTextureForEffect(ParticleEffect effect) const;
+	SDL_Texture* GetRandomTextureForEffect(ParticleEffect effect) const;    //获得随机纹理
 
 private:
     void InitializeConfigs();

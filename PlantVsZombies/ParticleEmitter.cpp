@@ -106,10 +106,11 @@ void ParticleEmitter::EmitSingleParticle() {
     particle->gravity = config.gravity;
 
     particle->useTexture = config.useTexture;
-    if (config.useTexture) {
-        particle->texture = configManager.GetTextureForEffect(effectType);
-        if (particle->texture) {
-            // »ñÈ¡ÎÆÀí³ß´ç
+    if (config.useTexture) 
+    {
+        particle->texture = configManager.GetRandomTextureForEffect(effectType);
+        if (particle->texture) 
+        {
             int w, h;
             SDL_QueryTexture(particle->texture, NULL, NULL, &w, &h);
             particle->textureRect = { 0, 0, w, h };

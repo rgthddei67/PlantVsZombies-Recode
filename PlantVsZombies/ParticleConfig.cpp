@@ -7,6 +7,11 @@ ParticleConfigManager::ParticleConfigManager(SDL_Renderer* sdlRenderer)
     InitializeConfigs();
 }
 
+ParticleConfigManager::~ParticleConfigManager()
+{
+    renderer = nullptr;
+}
+
 void ParticleConfigManager::InitializeConfigs() 
 {
     ResourceManager& resourceManager = ResourceManager::GetInstance();
@@ -21,7 +26,8 @@ void ParticleConfigManager::InitializeConfigs()
     config.maxVelocity = 3.0f;
     config.spreadAngle = 90.0f;
     config.gravity = 0.2f;
-    config.textureKey = "particle_1";  // 子弹击中纹理
+    config.textureKeys = 
+    { "particle_zombiehead", "particle_zombiehead", "particle_zombiehead" };  // 子弹击中纹理
     config.useTexture = true;
     configs[ParticleEffect::PEA_BULLET_HIT] = config;
 
@@ -34,7 +40,8 @@ void ParticleConfigManager::InitializeConfigs()
     config.maxVelocity = 2.0f;
     config.spreadAngle = 70.0f;
     config.gravity = 0.25f;
-    config.textureKey = "particle_zombiehead";
+    config.textureKeys =
+    { "particle_zombiehead" };
     config.useTexture = true;
     configs[ParticleEffect::ZOMBIE_HEAD_OFF] = config;
 
@@ -50,13 +57,16 @@ const ParticleConfig& ParticleConfigManager::GetConfig(ParticleEffect effect) co
     return defaultConfig;
 }
 
-SDL_Texture* ParticleConfigManager::GetTextureForEffect(ParticleEffect effect) const {
+SDL_Texture* ParticleConfigManager::GetRandomTextureForEffect(ParticleEffect effect) const {
     if (!renderer) return nullptr;
-
     const ParticleConfig& config = GetConfig(effect);
-    if (config.useTexture && !config.textureKey.empty()) {
+    if (config.useTexture) {
         ResourceManager& resourceManager = ResourceManager::GetInstance();
-        return resourceManager.GetTexture(config.textureKey);
+        std::string textureKey = config.GetRandomTextureKey();
+
+        if (!textureKey.empty()) {
+            return resourceManager.GetTexture(textureKey);
+        }
     }
 
     return nullptr;

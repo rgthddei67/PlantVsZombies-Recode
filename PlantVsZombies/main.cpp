@@ -16,12 +16,21 @@ std::unique_ptr<ParticleSystem> g_particleSystem = nullptr;
 
 namespace UIFunctions
 {
-    static void ButtonClick()
+    static void ImageButtonClick()
     {
         if (g_particleSystem != nullptr)
         {
             g_particleSystem->EmitEffect(
 				ParticleEffect::ZOMBIE_HEAD_OFF, 100, 150, 1); 
+        }
+        AudioSystem::PlaySound(AudioConstants::SOUND_BUTTONCLICK, 0.4f);
+    }
+    static void ClickedButtonClick()
+    {
+        if (g_particleSystem != nullptr)
+        {
+            g_particleSystem->EmitEffect(
+                ParticleEffect::PEA_BULLET_HIT, 100, 150, 5);
         }
         AudioSystem::PlaySound(AudioConstants::SOUND_BUTTONCLICK, 0.4f);
     }
@@ -148,14 +157,14 @@ int SDL_main(int argc, char* argv[])
     auto button1 = uiManager.CreateButton(Vector(100, 150));
     button1->SetAsCheckbox(true);
     button1->SetImageIndexes(1, 1, 1, 2);
-
+    button1->SetClickCallBack(UIFunctions::ClickedButtonClick);
     auto button2 = uiManager.CreateButton(Vector(300, 150), Vector(110, 25));
     button2->SetAsCheckbox(false);
     button2->SetImageIndexes(3, 4, 4, -1);
     button2->SetTextColor({ 255, 255, 255, 255 }); // °×É«
     button2->SetHoverTextColor({ 0, 0, 0, 255 });  // ºÚÉ«
     button2->SetText(u8"ÎÒÏ²»¶Kid");
-    button2->SetClickCallBack(UIFunctions::ButtonClick);
+    button2->SetClickCallBack(UIFunctions::ImageButtonClick);
     auto slider = uiManager.CreateSlider(Vector(500, 150), Vector(135, 10), 0.0f, 100.0f, 0.0f);
     slider->SetChangeCallBack(UIFunctions::SliderChanged);
     bool running = true;
