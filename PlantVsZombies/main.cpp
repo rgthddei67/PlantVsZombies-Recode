@@ -10,11 +10,19 @@
 #include <iostream>
 #include <sstream>
 
+// 全局粒子系统
+extern std::unique_ptr<ParticleSystem> g_particleSystem;  
+std::unique_ptr<ParticleSystem> g_particleSystem = nullptr;
+
 namespace UIFunctions
 {
     static void ButtonClick()
     {
-        std::cout << "点击" << std::endl;
+        if (g_particleSystem != nullptr)
+        {
+            g_particleSystem->EmitEffect(
+				ParticleEffect::ZOMBIE_HEAD_OFF, 100, 150, 1); 
+        }
         AudioSystem::PlaySound(AudioConstants::SOUND_BUTTONCLICK, 0.4f);
     }
     static void SliderChanged(float value)
@@ -133,46 +141,25 @@ int SDL_main(int argc, char* argv[])
         return -1;
     }
 	ReanimationHolder animHolder(renderer); // 创建动画管理器
-    ParticleSystem particleSystem(renderer); // 创建粒子特效系统管理器
-    /*
-	Reanimation* anim = 
-        animHolder.AllocReanimation(250, 250, "./resources/reanim/Sun", 0.8f);
-    if (anim) 
-    {
-        anim->SetLoopType(ReanimLoopType::REANIM_LOOP);
-        anim->SetRate(8.0f);
-    }
-    */
+	g_particleSystem = std::make_unique<ParticleSystem>(renderer); // 初始化全局粒子系统
     Reanimation* anim = 
 		animHolder.AllocReanimation(400, 300, AnimationType::ANIM_SUN, 0.8f);
     // 创建按钮
     auto button1 = uiManager.CreateButton(Vector(100, 150));
     button1->SetAsCheckbox(true);
     button1->SetImageIndexes(1, 1, 1, 2);
-    button1->SetClickCallBack(UIFunctions::ButtonClick);
 
     auto button2 = uiManager.CreateButton(Vector(300, 150), Vector(110, 25));
     button2->SetAsCheckbox(false);
     button2->SetImageIndexes(3, 4, 4, -1);
     button2->SetTextColor({ 255, 255, 255, 255 }); // 白色
     button2->SetHoverTextColor({ 0, 0, 0, 255 });  // 黑色
-    button2->SetText(u8"W就W是W");
+    button2->SetText(u8"我喜欢Kid");
     button2->SetClickCallBack(UIFunctions::ButtonClick);
-
     auto slider = uiManager.CreateSlider(Vector(500, 150), Vector(135, 10), 0.0f, 100.0f, 0.0f);
     slider->SetChangeCallBack(UIFunctions::SliderChanged);
     bool running = true;
     SDL_Event event;
-
-    SDL_Texture* particleTex = resourceManager.GetTexture("particle_1");
-    if (!particleTex) {
-        std::cerr << "错误: 粒子纹理加载失败！" << std::endl;
-        resourcesLoaded = false;
-    }
-    else {
-        std::cout << "粒子纹理加载成功" << std::endl;
-    }
-
     while (running) 
     {
         // 处理事件
@@ -193,16 +180,11 @@ int SDL_main(int argc, char* argv[])
             running = false;
             break;
         }
-        if (input->IsKeyDown(SDLK_SPACE))
-        {
-            particleSystem.EmitEffect
-                (ParticleEffect::ZOMBIE_HEAD_OFF, 150, 100, 1);
-        }
-        
+
 		// 更新板块
         uiManager.UpdateAll(input);
 		animHolder.UpdateAll();
-        particleSystem.UpdateAll();
+		g_particleSystem->UpdateAll();
 		
         // 清屏
         SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
@@ -211,7 +193,7 @@ int SDL_main(int argc, char* argv[])
         // 绘制板块
         uiManager.DrawAll(renderer);
         animHolder.DrawAll();
-        particleSystem.DrawAll();
+        g_particleSystem->DrawAll();
 
         // 更新屏幕
         SDL_RenderPresent(renderer);

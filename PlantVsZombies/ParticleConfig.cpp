@@ -7,36 +7,36 @@ ParticleConfigManager::ParticleConfigManager(SDL_Renderer* sdlRenderer)
     InitializeConfigs();
 }
 
-void ParticleConfigManager::InitializeConfigs() {
+void ParticleConfigManager::InitializeConfigs() 
+{
     ResourceManager& resourceManager = ResourceManager::GetInstance();
     // 子弹击中
-    ParticleConfig bullet;
-    bullet.startColor = { 255, 255, 255, 255 };  // 使用纹理颜色，所以设为白色
-    bullet.endColor = { 255, 255, 255, 0 };
-    bullet.lifetime = 30;  
-    bullet.startSize = 52.0f;
-    bullet.endSize = 10.0f;
-    bullet.minVelocity = 1.0f;
-    bullet.maxVelocity = 3.0f;
-    bullet.spreadAngle = 90.0f;  
-    bullet.gravity = 0.2f;
-    bullet.textureKey = "particle_1";  // 子弹击中纹理
-    bullet.useTexture = true;
-    configs[ParticleEffect::PEA_BULLET_HIT] = bullet;
+    ParticleConfig config;
+    config.startColor = { 255, 255, 255, 255 };  // 使用纹理颜色，所以设为白色
+    config.endColor = { 255, 255, 255, 0 };
+    config.lifetime = 30;
+    config.startSize = 52.0f;
+    config.endSize = 10.0f;
+    config.minVelocity = 1.0f;
+    config.maxVelocity = 3.0f;
+    config.spreadAngle = 90.0f;
+    config.gravity = 0.2f;
+    config.textureKey = "particle_1";  // 子弹击中纹理
+    config.useTexture = true;
+    configs[ParticleEffect::PEA_BULLET_HIT] = config;
 
-    ParticleConfig zombieheadoff;
-    zombieheadoff.startColor = { 255, 255, 255, 255 };  // 使用纹理颜色，所以设为白色
-    zombieheadoff.endColor = { 255, 255, 255, 255 };
-    zombieheadoff.lifetime = 120;
-    zombieheadoff.startSize = 65.0f;
-    zombieheadoff.endSize = 65.0f;
-    zombieheadoff.minVelocity = 1.0f;
-    zombieheadoff.maxVelocity = 2.0f;
-    zombieheadoff.spreadAngle = 70.0f;
-    zombieheadoff.gravity = 0.3f;
-    zombieheadoff.textureKey = "particle_1"; 
-    zombieheadoff.useTexture = true;
-    configs[ParticleEffect::ZOMBIE_HEAD_OFF] = zombieheadoff;
+    config.startColor = { 255, 255, 255, 255 }; 
+    config.endColor = { 255, 255, 255, 255 };
+    config.lifetime = 120;
+    config.startSize = 65.0f;
+    config.endSize = 65.0f;
+    config.minVelocity = 1.0f;
+    config.maxVelocity = 2.0f;
+    config.spreadAngle = 70.0f;
+    config.gravity = 0.25f;
+    config.textureKey = "particle_zombiehead";
+    config.useTexture = true;
+    configs[ParticleEffect::ZOMBIE_HEAD_OFF] = config;
 
 }
 

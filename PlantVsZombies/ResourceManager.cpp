@@ -1,4 +1,5 @@
 #include "ResourceManager.h"
+#include <algorithm>
 
 ResourceManager* ResourceManager::instance = nullptr;
 
@@ -47,7 +48,14 @@ bool ResourceManager::LoadAllParticleTextures()
 
     for (const auto& path : particleTexturePaths)
     {
-        std::string key = "particle_" + std::to_string(particleTexturePaths.size());
+        std::string filename = path.substr(path.find_last_of("/\\") + 1);
+        std::string nameWithoutExt = filename.substr(0, filename.find_last_of('.'));
+
+        // 转换为小写
+        std::transform(nameWithoutExt.begin(), nameWithoutExt.end(), nameWithoutExt.begin(), ::tolower);
+
+        // 生成key：particle_ + 文件名（小写）
+        std::string key = "particle_" + nameWithoutExt;
         if (!LoadTexture(path, key))
         {
             std::cerr << "加载粒子纹理失败: " << path << std::endl;

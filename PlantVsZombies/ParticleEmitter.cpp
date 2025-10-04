@@ -42,6 +42,7 @@ void ParticleEmitter::Update() {
         autoDestroyTimer++;
         if (autoDestroyTimer >= autoDestroyTime) {
             active = false;
+            std::cout << "发射器自动销毁时间到，标记为不活跃" << std::endl;
             return;
         }
     }
