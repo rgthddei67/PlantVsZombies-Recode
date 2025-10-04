@@ -196,7 +196,7 @@ int SDL_main(int argc, char* argv[])
         if (input->IsKeyDown(SDLK_SPACE))
         {
             particleSystem.EmitEffect
-                (ParticleEffect::PEA_BULLET_HIT, 150, 500, 1);
+                (ParticleEffect::ZOMBIE_HEAD_OFF, 150, 100, 1);
         }
         
 		// ¸üÐÂ°å¿é

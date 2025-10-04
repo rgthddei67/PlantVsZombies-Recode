@@ -45,7 +45,8 @@ public:
     void SetSpawnRate(int rate) { spawnRate = rate; } 
     void SetMaxParticles(int max) { maxParticles = max; }
     void SetOneShot(bool oneShot) { isOneShot = oneShot; }
-    void SetAutoDestroyTime(int frames);  
+	// 如果frames为-1则永不自动销毁 若-2则在粒子全部消失后自动销毁
+    void SetAutoDestroyTime(int frames);
 
     // 控制
     void EmitParticles(int count);

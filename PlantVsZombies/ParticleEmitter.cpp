@@ -1,5 +1,6 @@
 #include "ParticleEmitter.h"
 #include <iostream>
+#include "GameAPP.h"
 #include <cmath>
 #include <cstdlib>
 
@@ -7,7 +8,7 @@ ParticleEmitter::ParticleEmitter(SDL_Renderer* sdlRenderer)
     : active(false), spawnTimer(0), spawnRate(0), maxParticles(100),
     configManager(sdlRenderer),
     isOneShot(false), particlesToEmit(0), particlesEmitted(0),
-    autoDestroyTimer(0), autoDestroyTime(60),
+    autoDestroyTimer(0), autoDestroyTime(-2),
     effectType(ParticleEffect::PEA_BULLET_HIT)
 {
     particles.resize(maxParticles);
@@ -23,7 +24,13 @@ void ParticleEmitter::Initialize(ParticleEffect type, const SDL_FPoint& pos)
 }
 
 void ParticleEmitter::SetAutoDestroyTime(int frames) {
-    autoDestroyTime = frames;
+    if (frames == -2) {
+        const ParticleConfig& config = configManager.GetConfig(effectType);
+        autoDestroyTime = config.lifetime + 15;
+    }
+    else {
+        autoDestroyTime = frames;
+    }
     autoDestroyTimer = 0;
 }
 
@@ -42,15 +49,20 @@ void ParticleEmitter::Update() {
     // 一次性发射控制
     if (isOneShot && particlesEmitted >= particlesToEmit) {
         spawnRate = 0;
+        if (GetActiveParticleCount() == 0) {
+            active = false;
+        }
     }
 
     // 自动发射
     if (spawnRate > 0 && (!isOneShot || particlesEmitted < particlesToEmit)) {
         spawnTimer++;
         if (spawnTimer >= spawnRate) {
-            EmitSingleParticle();
-            spawnTimer = 0;
-            particlesEmitted++;
+            if (!isOneShot || particlesEmitted < particlesToEmit) {
+                EmitSingleParticle();
+                spawnTimer = 0;
+                particlesEmitted++;
+            }
         }
     }
 
@@ -59,11 +71,6 @@ void ParticleEmitter::Update() {
         if (particle.active) {
             particle.Update();
         }
-    }
-
-    // 检查是否应该销毁
-    if (spawnRate == 0 && GetActiveParticleCount() == 0) {
-        active = false;
     }
 }
 
@@ -84,7 +91,6 @@ void ParticleEmitter::EmitParticles(int count) {
 void ParticleEmitter::EmitSingleParticle() {
     Particle* particle = GetFreeParticle();
     if (!particle) return;
-
     const ParticleConfig& config = configManager.GetConfig(effectType);
 
     particle->Reset();

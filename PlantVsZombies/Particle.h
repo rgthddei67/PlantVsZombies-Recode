@@ -8,6 +8,7 @@
 
 enum class ParticleEffect {
     PEA_BULLET_HIT,
+    ZOMBIE_HEAD_OFF,
     NUM_EFFECTS
 };
 

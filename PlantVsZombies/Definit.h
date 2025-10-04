@@ -2,7 +2,8 @@
 #ifndef _DEFINIT_H
 #define _DEFINIT_H
 #include <SDL.h>
-#include "AllCppInclude.h"
+#include <math.h>
+
 struct Vector
 {
     float x;
@@ -15,6 +16,13 @@ struct Vector
     {
         this->x = x;
         this->y = y;
+    }
+    operator SDL_FPoint() const 
+    { 
+        return { x, y }; 
+    }
+    SDL_FPoint ToSDL_FPoint() const {
+        return { x, y };
     }
     bool operator==(const Vector& other) const {
         return x == other.x && y == other.y;

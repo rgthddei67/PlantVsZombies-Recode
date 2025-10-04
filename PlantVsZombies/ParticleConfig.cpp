@@ -24,6 +24,20 @@ void ParticleConfigManager::InitializeConfigs() {
     bullet.useTexture = true;
     configs[ParticleEffect::PEA_BULLET_HIT] = bullet;
 
+    ParticleConfig zombieheadoff;
+    zombieheadoff.startColor = { 255, 255, 255, 255 };  // 使用纹理颜色，所以设为白色
+    zombieheadoff.endColor = { 255, 255, 255, 255 };
+    zombieheadoff.lifetime = 120;
+    zombieheadoff.startSize = 65.0f;
+    zombieheadoff.endSize = 65.0f;
+    zombieheadoff.minVelocity = 1.0f;
+    zombieheadoff.maxVelocity = 2.0f;
+    zombieheadoff.spreadAngle = 70.0f;
+    zombieheadoff.gravity = 0.3f;
+    zombieheadoff.textureKey = "particle_1"; 
+    zombieheadoff.useTexture = true;
+    configs[ParticleEffect::ZOMBIE_HEAD_OFF] = zombieheadoff;
+
 }
 
 const ParticleConfig& ParticleConfigManager::GetConfig(ParticleEffect effect) const {
