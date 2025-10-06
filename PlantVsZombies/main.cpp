@@ -62,7 +62,6 @@ namespace UIFunctions
 
 int SDL_main(int argc, char* argv[])
 {
-    _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
     // 初始化SDL
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0) 
     {
@@ -168,10 +167,7 @@ int SDL_main(int argc, char* argv[])
         SDL_Quit();
         return -1;
     }
-	//ReanimationHolder animHolder(renderer); // 创建动画管理器
 	g_particleSystem = std::make_unique<ParticleSystem>(renderer); // 初始化全局粒子系统
-    //Reanimation* anim = 
-	//	animHolder.AllocReanimation(400, 300, AnimationType::ANIM_SUN, 0.8f);
 	CreateAnimationTest(); 
     // 创建按钮
     auto button1 = uiManager.CreateButton(Vector(100, 150));
@@ -187,6 +183,7 @@ int SDL_main(int argc, char* argv[])
     button2->SetClickCallBack(UIFunctions::ImageButtonClick);
     auto slider = uiManager.CreateSlider(Vector(500, 150), Vector(135, 10), 0.0f, 100.0f, 0.0f);
     slider->SetChangeCallBack(UIFunctions::SliderChanged);
+    
     bool running = true;
     SDL_Event event;
     while (running) 
@@ -211,7 +208,6 @@ int SDL_main(int argc, char* argv[])
 
 		// 更新板块
         uiManager.UpdateAll(input);
-		//animHolder.UpdateAll();
 		g_particleSystem->UpdateAll();
         GameObjectManager::GetInstance().Update();
         CollisionSystem::GetInstance().Update();
@@ -222,7 +218,6 @@ int SDL_main(int argc, char* argv[])
 
         // 绘制板块
         uiManager.DrawAll(renderer);
-        //animHolder.DrawAll();
         g_particleSystem->DrawAll();
         GameObjectManager::GetInstance().DrawAll(renderer);
 		DebugRenderer::RenderColliders(renderer);
@@ -239,7 +234,6 @@ int SDL_main(int argc, char* argv[])
     GameObjectManager::GetInstance().ClearAll();
     CollisionSystem::GetInstance().ClearAll();
     g_particleSystem.reset();
-    GameAPP::CleanupResources();
     ResourceManager::ReleaseInstance();
     gameApp.CloseGame();
     if (renderer != nullptr) 
@@ -256,6 +250,5 @@ int SDL_main(int argc, char* argv[])
     TTF_Quit();
     IMG_Quit();
     SDL_Quit();
-    //_CrtDumpMemoryLeaks();
     return 0;
 }
