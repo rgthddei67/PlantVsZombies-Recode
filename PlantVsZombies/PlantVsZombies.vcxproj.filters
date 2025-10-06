@@ -66,6 +66,9 @@
     <ClCompile Include="ParticleEmitter.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="Component.cpp">
+      <Filter>头文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="InputHandler.h">
@@ -135,6 +138,21 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="ParticleConfig.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Component.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="TransformComponent.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="ColliderComponent.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CollisionSystem.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="TestObject.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

@@ -34,6 +34,7 @@ private:
         InitializeAnimationPaths();
     }
 
+    // TODO:新增资源改这里
     void InitializeAnimationPaths() {
         animationPaths = {
             {AnimationType::ANIM_SUN, "./resources/reanim/Sun"},

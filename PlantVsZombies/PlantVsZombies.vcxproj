@@ -143,6 +143,7 @@
     <ClCompile Include="AudioSystem.cpp" />
     <ClCompile Include="Button.cpp" />
     <ClCompile Include="ButtonManager.cpp" />
+    <ClCompile Include="Component.cpp" />
     <ClCompile Include="GameApp.cpp" />
     <ClCompile Include="InputHandler.cpp" />
     <ClCompile Include="main.cpp" />
@@ -164,6 +165,9 @@
     <ClInclude Include="AudioSystem.h" />
     <ClInclude Include="Button.h" />
     <ClInclude Include="ButtonManager.h" />
+    <ClInclude Include="ColliderComponent.h" />
+    <ClInclude Include="CollisionSystem.h" />
+    <ClInclude Include="Component.h" />
     <ClInclude Include="ConstEnums.h" />
     <ClInclude Include="Definit.h" />
     <ClInclude Include="GameApp.h" />
@@ -178,8 +182,10 @@
     <ClInclude Include="SimpleXmlParser.h" />
     <ClInclude Include="Slider.h" />
     <ClInclude Include="SliderManager.h" />
+    <ClInclude Include="TestObject.h" />
     <ClInclude Include="TodCommon.h" />
     <ClInclude Include="TodDebug.h" />
+    <ClInclude Include="TransformComponent.h" />
     <ClInclude Include="UIManager.h" />
     <ClInclude Include="XFLParser.h" />
   </ItemGroup>
