@@ -26,7 +26,6 @@ void ParticleSystem::ClearAll() {
     emitters.clear();
 }
 
-// 只循环一次的特效
 void ParticleSystem::EmitEffect(ParticleEffect type, const SDL_FPoint& position, int count) {
     auto emitter = std::make_unique<ParticleEmitter>(renderer);
     emitter->Initialize(type, position);
@@ -36,12 +35,10 @@ void ParticleSystem::EmitEffect(ParticleEffect type, const SDL_FPoint& position,
     emitters.push_back(std::move(emitter));
 }
 
-// 只循环一次的特效
 void ParticleSystem::EmitEffect(ParticleEffect type, float x, float y, int count) {
     EmitEffect(type, SDL_FPoint{ x, y }, count);
 }
 
-// 只循环一次的特效 Vector版本
 void ParticleSystem::EmitEffect(ParticleEffect type, const Vector& position, int count) {
     EmitEffect(type, static_cast<SDL_FPoint>(position), count);
 }

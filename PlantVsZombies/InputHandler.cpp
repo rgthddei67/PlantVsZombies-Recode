@@ -40,14 +40,26 @@ void InputHandler::ProcessEvent(SDL_Event* event)
     {
         // 键盘事件
     case SDL_KEYDOWN:
-        m_keyStates[event->key.keysym.sym] = KeyState::DOWN;
-        break;
+    {
+        SDL_Keycode key = event->key.keysym.sym;
+        // 只在按键当前是UP状态时才设置为PRESSED
+        if (m_keyStates[key] == KeyState::UP) {
+            m_keyStates[key] = KeyState::PRESSED;
+        }
+    }
+    break;
 
     case SDL_KEYUP:
-        m_keyStates[event->key.keysym.sym] = KeyState::UP;
-        break;
+    {
+        SDL_Keycode key = event->key.keysym.sym;
+        // 只在按键当前是DOWN或PRESSED状态时才设置为RELEASED
+        if (m_keyStates[key] == KeyState::DOWN || m_keyStates[key] == KeyState::PRESSED) {
+            m_keyStates[key] = KeyState::RELEASED;
+        }
+    }
+    break;
 
-        // 鼠标移动事件
+    // 鼠标移动事件
     case SDL_MOUSEMOTION:
         m_mousePosition = Vector(static_cast<float>(event->motion.x),
             static_cast<float>(event->motion.y));
@@ -56,15 +68,21 @@ void InputHandler::ProcessEvent(SDL_Event* event)
         // 鼠标按钮事件
     case SDL_MOUSEBUTTONDOWN:
         if (event->button.button >= SDL_BUTTON_LEFT && event->button.button <= SDL_BUTTON_X2) {
-            int index = event->button.button - 1; // SDL_BUTTON_LEFT=1 -> index=0
-            m_mouseButtons[index] = KeyState::DOWN;
+            int index = event->button.button - 1;
+            // 只在按钮当前是UP状态时才设置为PRESSED
+            if (m_mouseButtons[index] == KeyState::UP) {
+                m_mouseButtons[index] = KeyState::PRESSED;
+            }
         }
         break;
 
     case SDL_MOUSEBUTTONUP:
         if (event->button.button >= SDL_BUTTON_LEFT && event->button.button <= SDL_BUTTON_X2) {
-            int index = event->button.button - 1; // SDL_BUTTON_LEFT=1 -> index=0
-            m_mouseButtons[index] = KeyState::UP;
+            int index = event->button.button - 1;
+            // 只在按钮当前是DOWN或PRESSED状态时才设置为RELEASED
+            if (m_mouseButtons[index] == KeyState::DOWN || m_mouseButtons[index] == KeyState::PRESSED) {
+                m_mouseButtons[index] = KeyState::RELEASED;
+            }
         }
         break;
 
@@ -79,7 +97,7 @@ void InputHandler::Update()
     // 保存上一帧的鼠标位置
     Vector prevMousePos = m_mousePosition;
 
-    // 更新上一帧的状态
+    // 保存当前状态到上一帧状态
     for (int i = 0; i < 5; i++)
     {
         m_prevMouseButtons[i] = m_mouseButtons[i];
@@ -89,61 +107,23 @@ void InputHandler::Update()
     // 计算鼠标移动增量
     m_mouseDelta = m_mousePosition - prevMousePos;
 
-    // 更新PRESSED和RELEASED状态
+    // 更新状态：PRESSED -> DOWN, RELEASED -> UP
     for (auto& pair : m_keyStates)
     {
-        SDL_Keycode key = pair.first;
-        KeyState currentState = pair.second;
-
-        // 查找上一帧状态
-        KeyState prevState = KeyState::UP;
-        auto it = m_prevKeyStates.find(key);
-        if (it != m_prevKeyStates.end())
-        {
-            prevState = it->second;
+        if (pair.second == KeyState::PRESSED) {
+            pair.second = KeyState::DOWN;
         }
-
-        if (currentState == KeyState::DOWN && prevState == KeyState::UP)
-        {
-            m_keyStates[key] = KeyState::PRESSED;
-        }
-        else if (currentState == KeyState::PRESSED)
-        {
-            // PRESSED状态只持续一帧，下一帧变为DOWN
-            m_keyStates[key] = KeyState::DOWN;
-        }
-        else if (currentState == KeyState::UP && prevState == KeyState::DOWN)
-        {
-            m_keyStates[key] = KeyState::RELEASED;
-        }
-        else if (currentState == KeyState::RELEASED)
-        {
-            // RELEASED状态只持续一帧，下一帧变为UP
-            m_keyStates[key] = KeyState::UP;
+        else if (pair.second == KeyState::RELEASED) {
+            pair.second = KeyState::UP;
         }
     }
 
-    // 更新鼠标按钮的PRESSED和RELEASED状态
     for (int i = 0; i < 5; i++)
     {
-        // 从UP变为DOWN -> PRESSED
-        if (m_mouseButtons[i] == KeyState::DOWN && m_prevMouseButtons[i] == KeyState::UP)
-        {
-            m_mouseButtons[i] = KeyState::PRESSED;
-        }
-        // 从DOWN变为UP -> RELEASED  
-        else if (m_mouseButtons[i] == KeyState::UP && m_prevMouseButtons[i] == KeyState::DOWN)
-        {
-            m_mouseButtons[i] = KeyState::RELEASED;
-        }
-        // PRESSED状态持续一帧后变回DOWN
-        else if (m_mouseButtons[i] == KeyState::PRESSED)
-        {
+        if (m_mouseButtons[i] == KeyState::PRESSED) {
             m_mouseButtons[i] = KeyState::DOWN;
         }
-        // RELEASED状态持续一帧后变回UP
-        else if (m_mouseButtons[i] == KeyState::RELEASED)
-        {
+        else if (m_mouseButtons[i] == KeyState::RELEASED) {
             m_mouseButtons[i] = KeyState::UP;
         }
     }
@@ -170,11 +150,13 @@ bool InputHandler::IsKeyDown(SDL_Keycode keyCode) const
 
 bool InputHandler::IsKeyPressed(SDL_Keycode keyCode) const
 {
+    // 只检测PRESSED状态
     return GetKeyState(keyCode) == KeyState::PRESSED;
 }
 
 bool InputHandler::IsKeyReleased(SDL_Keycode keyCode) const
 {
+    // 只检测RELEASED状态
     return GetKeyState(keyCode) == KeyState::RELEASED;
 }
 
@@ -191,7 +173,7 @@ Vector InputHandler::GetMouseDelta() const
 KeyState InputHandler::GetMouseButtonState(Uint8 button) const
 {
     // button是SDL按钮值（SDL_BUTTON_LEFT=1, SDL_BUTTON_RIGHT=2, ...）
-    if (button >= SDL_BUTTON_LEFT && button <= SDL_BUTTON_X2) 
+    if (button >= SDL_BUTTON_LEFT && button <= SDL_BUTTON_X2)
     {
         int index = button - 1; // 转换为内部索引（0-4）
         return m_mouseButtons[index];
@@ -207,11 +189,13 @@ bool InputHandler::IsMouseButtonDown(Uint8 button) const
 
 bool InputHandler::IsMouseButtonPressed(Uint8 button) const
 {
+    // 只检测PRESSED状态
     return GetMouseButtonState(button) == KeyState::PRESSED;
 }
 
 bool InputHandler::IsMouseButtonReleased(Uint8 button) const
 {
+    // 只检测RELEASED状态
     return GetMouseButtonState(button) == KeyState::RELEASED;
 }
 
@@ -259,11 +243,10 @@ bool InputHandler::IsMouseButtonPressedEasyX(Uint8 button) const
 {
     if (button >= SDL_BUTTON_LEFT && button <= SDL_BUTTON_X2) {
         int index = button - 1;
-        // EasyX风格：当前帧是DOWN或PRESSED，且上一帧是UP或RELEASED
-        return (m_mouseButtons[index] == KeyState::DOWN ||
-            m_mouseButtons[index] == KeyState::PRESSED) &&
-            (m_prevMouseButtons[index] == KeyState::UP ||
-                m_prevMouseButtons[index] == KeyState::RELEASED);
+        // EasyX风格：通过比较当前帧和上一帧的状态来检测按下
+        return m_mouseButtons[index] == KeyState::PRESSED ||
+            (m_mouseButtons[index] == KeyState::DOWN &&
+                m_prevMouseButtons[index] == KeyState::UP);
     }
     return false;
 }
@@ -272,11 +255,10 @@ bool InputHandler::IsMouseButtonReleasedEasyX(Uint8 button) const
 {
     if (button >= SDL_BUTTON_LEFT && button <= SDL_BUTTON_X2) {
         int index = button - 1;
-        // EasyX风格：当前帧是UP或RELEASED，且上一帧是DOWN或PRESSED
-        return (m_mouseButtons[index] == KeyState::UP ||
-            m_mouseButtons[index] == KeyState::RELEASED) &&
-            (m_prevMouseButtons[index] == KeyState::DOWN ||
-                m_prevMouseButtons[index] == KeyState::PRESSED);
+        // EasyX风格：通过比较当前帧和上一帧的状态来检测释放
+        return m_mouseButtons[index] == KeyState::RELEASED ||
+            (m_mouseButtons[index] == KeyState::UP &&
+                m_prevMouseButtons[index] == KeyState::DOWN);
     }
     return false;
 }

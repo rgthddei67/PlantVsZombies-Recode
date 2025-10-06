@@ -10,6 +10,7 @@
 #include "ParticleSystem.h"
 #include "Component.h"
 #include "CollisionSystem.h"
+#include "ClickableComponent.h"
 #include "TestObject.h"
 #include "AnimatedObject.h"
 #include <iostream>
@@ -19,22 +20,15 @@
 extern std::unique_ptr<ParticleSystem> g_particleSystem;  
 std::unique_ptr<ParticleSystem> g_particleSystem = nullptr;
 
-void CreateAnimationTest() {
-    // 创建太阳动画
-    auto sun = GameObjectManager::GetInstance().CreateGameObject<AnimatedObject>(
-        Vector(400, 300),           // 位置
-        AnimationType::ANIM_SUN,    // 动画类型
-        Vector(60, 60),             // 碰撞体大小
-        0.8f,    // 缩放
-        true,
-        "Sun"                       // 标签
-    );
-    sun->PlayAnimation(); // 开始播放
-	sun->GetAnimationComponent()->SetLoopType(ReanimLoopType::REANIM_PLAY_ONCE); 
-}
-
 namespace UIFunctions
 {
+    static void TestSunClick(std::shared_ptr<GameObject> gameObject)
+    {
+        std::cout << "点击阳光" << std::endl;
+        AudioSystem::PlaySound(AudioConstants::SOUND_COLLECT_SUN, 0.5f);
+        SDL_Delay(250);
+		GameObjectManager::GetInstance().DestroyGameObject(gameObject);
+    }
     static void ImageButtonClick()
     {
         if (g_particleSystem != nullptr)
@@ -58,6 +52,24 @@ namespace UIFunctions
         std::cout << "滑动条值改变: " << value << std::endl;
     }
 
+}
+
+void CreateAnimationTest() {
+    // 创建太阳动画
+    auto sun = GameObjectManager::GetInstance().CreateGameObject<AnimatedObject>(
+        Vector(400, 300),           // 位置
+        AnimationType::ANIM_SUN,    // 动画类型
+        Vector(60, 60),             // 碰撞体大小
+        0.8f,    // 缩放
+        true,
+        "Sun",
+        true
+    );
+    sun->PlayAnimation(); // 开始播放
+    auto clickComponent = sun->AddComponent<ClickableComponent>();
+    clickComponent->onClick = [sun]() {
+        UIFunctions::TestSunClick(sun);
+        };
 }
 
 int SDL_main(int argc, char* argv[])
@@ -198,14 +210,11 @@ int SDL_main(int argc, char* argv[])
             uiManager.ProcessMouseEvent(&event, input);
             input->ProcessEvent(&event);
         }
-
-        input->Update();
-        if (input->IsKeyDown(SDLK_ESCAPE)) 
+        if (input->IsKeyReleased(SDLK_ESCAPE))
         {
             running = false;
             break;
         }
-
 		// 更新板块
         uiManager.UpdateAll(input);
 		g_particleSystem->UpdateAll();
@@ -220,11 +229,12 @@ int SDL_main(int argc, char* argv[])
         uiManager.DrawAll(renderer);
         g_particleSystem->DrawAll();
         GameObjectManager::GetInstance().DrawAll(renderer);
-		DebugRenderer::RenderColliders(renderer);
         // 更新屏幕
         SDL_RenderPresent(renderer);
 
         uiManager.ResetAllFrameStates();
+
+        input->Update();
     }
     AudioSystem::Shutdown();
     if (window != nullptr)

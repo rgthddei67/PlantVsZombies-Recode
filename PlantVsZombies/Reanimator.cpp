@@ -3,6 +3,7 @@
 #include "ReanimParser.h"
 #include "TodCommon.h"
 #include "TodDebug.h"
+#include "Component.h"
 #include <SDL_image.h>
 #include <algorithm>
 #include <cmath>
@@ -248,6 +249,8 @@ void Reanimation::Update() {
     // 使用实际时间而不是归一化时间
     mCurrentTime += deltaTime * (mAnimRate / mDefinition->mFPS);
 
+    bool wasNotDead = !mDead;
+
     // 根据循环类型处理时间
     switch (mLoopType) {
     case ReanimLoopType::REANIM_LOOP:
@@ -295,6 +298,28 @@ void Reanimation::Update() {
         break;
     }
     mAnimTime = mCurrentTime / mTotalDuration;
+    if (mAutoDestroy) {
+        bool shouldDestroy = false;
+
+        // 检查不同循环类型的完成条件
+        switch (mLoopType) {
+        case ReanimLoopType::REANIM_PLAY_ONCE:
+        case ReanimLoopType::REANIM_PLAY_ONCE_FULL_LAST_FRAME:
+            if (wasNotDead && mDead) {
+                shouldDestroy = true;
+            }
+            break;
+        default:
+            break;
+        }
+
+        if (shouldDestroy) {
+            // 获取关联的GameObject并销毁
+            if (auto gameObj = mGameObjectWeak.lock()) {
+                gameObj->SetActive(false);
+            }
+        }
+    }
 }
 
 void Reanimation::Draw() {

@@ -100,23 +100,20 @@ void Button::Update(InputHandler* input)
 	// 使用实例变量检测按下
 	if (this->isHovered && m_mousePressedThisFrame)
 	{
-		//std::cout << "BUTTON PRESSED! Button at (" << position.x << "," << position.y << ")" << std::endl;
+		
 		this->isPressed = true;
 	}
 
 	// 检测释放
 	if (this->isPressed && m_mouseReleasedThisFrame)
 	{
-		//std::cout << "BUTTON RELEASED at (" << position.x << "," << position.y << ")" << std::endl;
 		this->isPressed = false;
 
 		if (this->isHovered)
 		{
-			//std::cout << "CLICK DETECTED on button at (" << position.x << "," << position.y << ")" << std::endl;
 			if (this->isCheckbox)
 			{
 				this->isChecked = !this->isChecked;
-				//std::cout << "Checkbox state: " << this->isChecked << std::endl;
 			}
 			if (this->onClickCallback)
 			{

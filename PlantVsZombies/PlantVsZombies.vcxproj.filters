@@ -164,5 +164,8 @@
     <ClInclude Include="RendererManager.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="ClickableComponent.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

@@ -21,6 +21,7 @@ namespace AudioConstants
     const std::string SOUND_MAINMENU = "sound_mainmenu";
     const std::string SOUND_PAUSE = "sound_pause";
     const std::string SOUND_SHOVEL = "sound_shovel";
+    const std::string SOUND_COLLECT_SUN = "sound_collectsun";
 
     // “Ù¿÷≥£¡ø
     const std::string MUSIC_MENU = "music_MainMenu";

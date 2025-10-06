@@ -17,7 +17,8 @@ public:
     AnimatedObject(const Vector& position, AnimationType animType,
         const Vector& colliderSize = Vector(50, 50),
 		float scale = 1.0f, bool needCollider = true,
-        const std::string& tag = "AnimatedObject") {
+        const std::string& tag = "AnimatedObject",
+        bool autoDestroy = false) {
 
         SetTag(tag);
 
@@ -25,7 +26,9 @@ public:
         transform->position = position;
 
         animation = AddComponent<ReanimationComponent>(animType, position, scale);
-
+        if (animation) {
+            animation->SetAutoDestroy(autoDestroy);
+        }
         if (needCollider)
         {
             if (colliderSize.x > 0 && colliderSize.y > 0)
@@ -60,6 +63,20 @@ public:
     // 检查动画是否完成
     bool IsAnimationFinished() const {
         return animation ? animation->IsFinished() : true;
+    }
+
+    // 设置自动销毁
+    void SetAutoDestroy(bool autoDestroy) {
+        if (animation) {
+            animation->SetAutoDestroy(autoDestroy);
+        }
+    }
+
+    // 设置循环类型
+    void SetLoopType(ReanimLoopType loopType) {
+        if (animation) {
+            animation->SetLoopType(loopType);
+        }
     }
 
     // 获取动画组件

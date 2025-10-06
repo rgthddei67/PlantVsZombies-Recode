@@ -282,6 +282,10 @@ public:
         auto objects = FindGameObjectsWithTag(tag);
         return objects.empty() ? nullptr : objects[0];
             }
+    // 获取gameObjects
+    std::vector<std::shared_ptr<GameObject>> GetAllGameObjects() {
+        return gameObjects;
+	}
 
     // 清空所有对象
     void ClearAll() {
@@ -307,6 +311,7 @@ public:
         }
         objectsToRemove.clear();
     }
+
 };
 
 #endif

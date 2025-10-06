@@ -52,6 +52,8 @@ public:
     void Clear();
 };
 
+class GameObject;
+
 // 动画实例
 class Reanimation 
 {
@@ -74,6 +76,8 @@ private:
     Uint32 mLastUpdateTime;
     bool mFirstUpdate;
     float mScale = 1.0f;                           // 大小
+    bool mAutoDestroy = false;
+    std::weak_ptr<GameObject> mGameObjectWeak;
 
     struct ReanimatorFrameTime {
         float mFraction;
@@ -117,7 +121,16 @@ public:
 
     void SetScale(float scale) { mScale = scale; }
     float GetScale() const { return mScale; }
-
+    void SetAutoDestroy(bool autoDestroy) { mAutoDestroy = autoDestroy; }
+    bool GetAutoDestroy() const { return mAutoDestroy; }
+    // 设置关联的GameObject
+    void SetGameObject(std::shared_ptr<GameObject> gameObj) {
+        mGameObjectWeak = gameObj;
+    }
+    // 获取关联的GameObject
+    std::shared_ptr<GameObject> GetGameObject() const {
+        return mGameObjectWeak.lock();
+    }
 private:
     void DrawTrack(int trackIndex, int frameIndex);
 };

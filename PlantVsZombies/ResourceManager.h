@@ -73,6 +73,7 @@ private:
         "./resources/sounds/UI/mainmenu.ogg",
         "./resources/sounds/UI/pause.ogg",
         "./resources/sounds/UI/shovel.ogg",
+        "./resources/sounds/collectsun.ogg",
     };
 
     std::vector<std::string> musicPaths = {

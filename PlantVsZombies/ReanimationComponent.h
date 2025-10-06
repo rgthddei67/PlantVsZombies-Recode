@@ -8,6 +8,8 @@
 #include "AnimationTypes.h"
 #include <memory>
 
+class GameObjectManager;
+
 class ReanimationComponent : public Component {
 private:
     std::unique_ptr<Reanimation> mReanimation;
@@ -16,11 +18,12 @@ private:
     float mScale;
     bool mIsPlaying;
     ReanimLoopType mLoopType;
+    bool mAutoDestroy;
 
 public:
     ReanimationComponent(AnimationType animType, const Vector& position = Vector::zero(), float scale = 1.0f)
         : mAnimType(animType), mPosition(position), mScale(scale), mIsPlaying(false),
-        mLoopType(ReanimLoopType::REANIM_LOOP) {
+        mLoopType(ReanimLoopType::REANIM_LOOP), mAutoDestroy(true) {
     }
 
     ~ReanimationComponent() override {
@@ -48,7 +51,8 @@ public:
             mReanimation->ReanimationInitialize(mPosition.x, mPosition.y, animDef);
             mReanimation->SetScale(mScale);
             mReanimation->SetLoopType(mLoopType);
-
+            mReanimation->SetGameObject(gameObj);
+            mReanimation->SetAutoDestroy(mAutoDestroy);
             if (mIsPlaying) {
                 Play();
             }
@@ -58,6 +62,12 @@ public:
     void Update() override {
         if (mReanimation && mIsPlaying) {
             mReanimation->Update();
+			// 备选: 自动销毁逻辑
+            if (mAutoDestroy && mReanimation->IsDead()) {
+                if (auto gameObj = GetGameObject()) {
+                    GameObjectManager::GetInstance().DestroyGameObject(gameObj);
+                }
+            }
         }
     }
 
@@ -102,6 +112,19 @@ public:
 
     bool IsPlaying() const { return mIsPlaying; }
     bool IsFinished() const { return mReanimation ? mReanimation->IsDead() : false; }
+
+    // 设置自动销毁
+    void SetAutoDestroy(bool autoDestroy) {
+        mAutoDestroy = autoDestroy;
+        if (mReanimation) {
+            mReanimation->SetAutoDestroy(autoDestroy);
+        }
+    }
+
+    // 获取自动销毁状态
+    bool GetAutoDestroy() const {
+        return mAutoDestroy;
+    }
 
     // 设置特定轨道的帧
     void SetFramesForLayer(const std::string& trackName) {
