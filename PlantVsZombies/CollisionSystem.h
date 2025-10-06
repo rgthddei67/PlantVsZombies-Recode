@@ -68,50 +68,54 @@ public:
     }
 
     void Update() {
+        // 分离静态和动态碰撞器以提高性能
+        std::vector<std::shared_ptr<ColliderComponent>> dynamicColliders;
+        std::vector<std::shared_ptr<ColliderComponent>> staticColliders;
+
+		// 区分静态和动态碰撞体
+        for (auto collider : colliders) {
+            auto gameObj = collider->GetGameObject();
+            if (!collider->enabled || !gameObj || !gameObj->IsActive()) continue;
+
+            if (collider->isStatic) {
+                staticColliders.push_back(collider);
+            }
+            else {
+                dynamicColliders.push_back(collider);
+            }
+        }
+
         std::vector<std::pair<std::shared_ptr<ColliderComponent>, std::shared_ptr<ColliderComponent>>> newCollisions;
 
-        // 检测所有碰撞对
-        for (size_t i = 0; i < colliders.size(); ++i) {
-            auto colliderA = colliders[i];
-            if (!colliderA->enabled || !colliderA->GetGameObject()->IsActive()) continue;
-
-            for (size_t j = i + 1; j < colliders.size(); ++j) {
-                auto colliderB = colliders[j];
-                if (!colliderB->enabled || !colliderB->GetGameObject()->IsActive()) continue;
-
+        // 动态和动态碰撞检测
+        for (size_t i = 0; i < dynamicColliders.size(); ++i) {
+            auto colliderA = dynamicColliders[i];
+            for (size_t j = i + 1; j < dynamicColliders.size(); ++j) {
+                auto colliderB = dynamicColliders[j];
                 if (CheckCollision(colliderA, colliderB)) {
                     auto collisionPair = (colliderA < colliderB) ?
                         std::make_pair(colliderA, colliderB) :
                         std::make_pair(colliderB, colliderA);
-
                     newCollisions.push_back(collisionPair);
-
-                    // 如果是新碰撞
-                    if (currentCollisions.find(collisionPair) == currentCollisions.end()) {
-                        HandleCollisionEnter(colliderA, colliderB);
-                        currentCollisions.insert(collisionPair);
-                    }
-                    else {
-                        // 持续碰撞
-                        if (colliderA->onTriggerStay) colliderA->onTriggerStay(colliderB);
-                        if (colliderB->onTriggerStay) colliderB->onTriggerStay(colliderA);
-                    }
+                    HandleNewCollision(colliderA, colliderB, collisionPair);
                 }
             }
         }
 
-        // 检测碰撞结束
-        std::vector<std::pair<std::shared_ptr<ColliderComponent>, std::shared_ptr<ColliderComponent>>> endedCollisions;
-        for (const auto& collisionPair : currentCollisions) {
-            if (std::find(newCollisions.begin(), newCollisions.end(), collisionPair) == newCollisions.end()) {
-                endedCollisions.push_back(collisionPair);
+        // 动态和静态碰撞检测
+        for (auto dynamicCol : dynamicColliders) {
+            for (auto staticCol : staticColliders) {
+                if (CheckCollision(dynamicCol, staticCol)) {
+                    auto collisionPair = (dynamicCol < staticCol) ?
+                        std::make_pair(dynamicCol, staticCol) :
+                        std::make_pair(staticCol, dynamicCol);
+                    newCollisions.push_back(collisionPair);
+                    HandleNewCollision(dynamicCol, staticCol, collisionPair);
+                }
             }
         }
-
-        for (const auto& collisionPair : endedCollisions) {
-            HandleCollisionExit(collisionPair.first, collisionPair.second);
-            currentCollisions.erase(collisionPair);
-        }
+        // 检测碰撞结束
+        DetectEndedCollisions(newCollisions);
     }
 
     // 射线检测
@@ -252,6 +256,41 @@ private:
         }
         else if (b->onCollisionExit) {
             b->onCollisionExit(a);
+        }
+    }
+
+    // 处理新碰撞
+    void HandleNewCollision(std::shared_ptr<ColliderComponent> a,
+        std::shared_ptr<ColliderComponent> b,
+        const std::pair<std::shared_ptr<ColliderComponent>,
+        std::shared_ptr<ColliderComponent>>&collisionPair) {
+        // 如果是新碰撞
+        if (currentCollisions.find(collisionPair) == currentCollisions.end()) {
+            HandleCollisionEnter(a, b);
+            currentCollisions.insert(collisionPair);
+        }
+        else {
+            // 持续碰撞
+            if (a->onTriggerStay) a->onTriggerStay(b);
+            if (b->onTriggerStay) b->onTriggerStay(a);
+        }
+    }
+
+    // 检测结束的碰撞
+    void DetectEndedCollisions(const std::vector<std::pair<std::shared_ptr<ColliderComponent>,
+        std::shared_ptr<ColliderComponent>>>& newCollisions) {
+        std::vector<std::pair<std::shared_ptr<ColliderComponent>,
+            std::shared_ptr<ColliderComponent>>> endedCollisions;
+
+        for (const auto& collisionPair : currentCollisions) {
+            if (std::find(newCollisions.begin(), newCollisions.end(), collisionPair) == newCollisions.end()) {
+                endedCollisions.push_back(collisionPair);
+            }
+        }
+
+        for (const auto& collisionPair : endedCollisions) {
+            HandleCollisionExit(collisionPair.first, collisionPair.second);
+            currentCollisions.erase(collisionPair);
         }
     }
 };

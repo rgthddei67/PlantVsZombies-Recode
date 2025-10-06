@@ -99,6 +99,13 @@ public:
     void SetRate(float rate);
     void SetLoopType(ReanimLoopType loopType);
     void ReanimationDie() { mDead = true; }
+    void ReanimationReset() {
+        mDead = false;
+        mCurrentTime = 0.0f;
+        mAnimTime = 0.0f;
+        mLoopCount = 0;
+        mFirstUpdate = true;
+    }
 
     // 属性访问
     bool IsDead() const { return mDead; }
@@ -113,26 +120,6 @@ public:
 
 private:
     void DrawTrack(int trackIndex, int frameIndex);
-};
-
-// 动画管理器
-class ReanimationHolder 
-{
-private:
-    std::vector<std::unique_ptr<Reanimation>> mReanimations;
-    SDL_Renderer* mRenderer;
-
-public:
-    ReanimationHolder(SDL_Renderer* renderer = nullptr);
-    ~ReanimationHolder();
-
-    Reanimation* AllocReanimation(float x, float y, const std::string& reanimFile, float scale);
-    Reanimation* AllocReanimation(float x, float y, ReanimatorDefinition* definition, float scale);
-    Reanimation* AllocReanimation(float x, float y, AnimationType animType, float scale);
-    void UpdateAll();
-    void DrawAll();
-    void ClearAll();
-    size_t GetCount() const { return mReanimations.size(); }
 };
 
 #endif

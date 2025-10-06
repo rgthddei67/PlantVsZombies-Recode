@@ -25,8 +25,9 @@ void ResourceManager::ReleaseInstance()
 bool ResourceManager::LoadAllGameImages()
 {
     bool success = true;
+#ifdef _DEBUG
     std::cout << "开始加载游戏图片资源..." << std::endl;
-
+#endif
     for (const auto& path : gameImagePaths)
     {
         if (!LoadTexture(path))
@@ -35,17 +36,19 @@ bool ResourceManager::LoadAllGameImages()
             success = false;
         }
     }
-
+#ifdef _DEBUG
     std::cout << "游戏图片资源加载完成，成功: "
         << textures.size() << "/" << gameImagePaths.size() << std::endl;
+#endif
     return success;
 }
 
 bool ResourceManager::LoadAllParticleTextures()
 {
     bool success = true;
+#ifdef _DEBUG
     std::cout << "开始加载粒子纹理..." << std::endl;
-
+#endif
     for (const auto& path : particleTexturePaths)
     {
         std::string filename = path.substr(path.find_last_of("/\\") + 1);
@@ -62,8 +65,9 @@ bool ResourceManager::LoadAllParticleTextures()
             success = false;
         }
     }
-
+#ifdef _DEBUG
     std::cout << "粒子纹理加载完成" << std::endl;
+#endif
     return success;
 }
 
@@ -79,8 +83,9 @@ bool ResourceManager::LoadFont(const std::string& path, const std::string& key)
 
     // 初始化空的字体大小映射
     fonts[actualKey] = std::unordered_map<int, TTF_Font*>();
-
+#ifdef _DEBUG
     std::cout << "注册字体: " << path << " (key: " << actualKey << ")" << std::endl;
+#endif
     return true;
 }
 
@@ -121,9 +126,9 @@ TTF_Font* ResourceManager::GetFont(const std::string& key, int size)
         //std::cout << "字体大小 " << size << " 已加载" << std::endl;
         return sizeIt->second;
     }
-
+#ifdef _DEBUG
     std::cout << "需要按需加载大小 " << size << std::endl;
-
+#endif
     // 找到字体文件路径 - 修复查找逻辑
     std::string fontPath;
     for (const auto& path : fontPaths)
@@ -131,9 +136,9 @@ TTF_Font* ResourceManager::GetFont(const std::string& key, int size)
         // 从路径中提取文件名（不含扩展名）进行比较
         std::string filename = path.substr(path.find_last_of("/\\") + 1);
         std::string fileKey = filename.substr(0, filename.find_last_of('.'));
-
+#ifdef _DEBUG
         std::cout << "比较: path='" << path << "', fileKey='" << fileKey << "' with key='" << key << "'" << std::endl;
-
+#endif
         if (fileKey == key)
         {
             fontPath = path;
@@ -146,7 +151,9 @@ TTF_Font* ResourceManager::GetFont(const std::string& key, int size)
         // 如果没找到，尝试使用完整路径作为键名
         for (const auto& path : fontPaths)
         {
+#ifdef _DEBUG
             std::cout << "尝试完整路径匹配: path='" << path << "' with key='" << key << "'" << std::endl;
+#endif
             if (path == key) // 直接比较完整路径
             {
                 fontPath = path;
@@ -165,9 +172,9 @@ TTF_Font* ResourceManager::GetFont(const std::string& key, int size)
         std::cout << std::endl;
         return nullptr;
     }
-
+#ifdef _DEBUG
     std::cout << "使用字体路径: " << fontPath << std::endl;
-
+#endif
     // 按需加载特定大小的字体
     TTF_Font* font = TTF_OpenFont(fontPath.c_str(), size);
     if (!font)
@@ -184,8 +191,9 @@ TTF_Font* ResourceManager::GetFont(const std::string& key, int size)
 bool ResourceManager::LoadAllFonts()
 {
     bool success = true;
+#ifdef _DEBUG
     std::cout << "开始注册字体..." << std::endl;
-
+#endif
     for (const auto& path : fontPaths)
     {
         if (!LoadFont(path))
@@ -194,8 +202,9 @@ bool ResourceManager::LoadAllFonts()
             success = false;
         }
     }
-
+#ifdef _DEBUG
     std::cout << "字体注册完成" << std::endl;
+#endif
     return success;
 }
 
@@ -209,7 +218,9 @@ void ResourceManager::UnloadFont(const std::string& key)
             TTF_CloseFont(sizePair.second);
         }
         fonts.erase(it);
+#ifdef _DEBUG
         std::cout << "卸载字体: " << key << std::endl;
+#endif
     }
 }
 
@@ -249,8 +260,9 @@ void ResourceManager::UnloadFontSize(const std::string& key, int size)
         {
             TTF_CloseFont(sizeIt->second);
             sizeMap.erase(sizeIt);
+#ifdef _DEBUG
             std::cout << "卸载字体: " << key << " size: " << size << std::endl;
-
+#endif
             // 如果这个字体没有其他大小了，完全移除
             if (sizeMap.empty())
             {
@@ -276,14 +288,17 @@ void ResourceManager::CleanupUnusedFontSizes()
             ++it;
         }
     }
+#ifdef _DEBUG
     std::cout << "清理了 " << removedCount << " 个空字体条目" << std::endl;
+#endif
 }
 
 bool ResourceManager::LoadAllSounds()
 {
     bool success = true;
+#ifdef _DEBUG
     std::cout << "开始加载音效..." << std::endl;
-
+#endif
     for (const auto& path : soundPaths)
     {
         std::string key = "sound_" + path.substr(path.find_last_of("/\\") + 1);
@@ -294,16 +309,18 @@ bool ResourceManager::LoadAllSounds()
             success = false;
         }
     }
-
+#ifdef _DEBUG
     std::cout << "音效加载完成" << std::endl;
+#endif
     return success;
 }
 
 bool ResourceManager::LoadAllMusic()
 {
     bool success = true;
+#ifdef _DEBUG
     std::cout << "开始加载音乐..." << std::endl;
-
+#endif
     for (const auto& path : musicPaths)
     {
         std::string key = "music_" + path.substr(path.find_last_of("/\\") + 1);
@@ -314,8 +331,9 @@ bool ResourceManager::LoadAllMusic()
             success = false;
         }
     }
-
+#ifdef _DEBUG
     std::cout << "音乐加载完成" << std::endl;
+#endif
     return success;
 }
 
@@ -328,8 +346,9 @@ bool ResourceManager::LoadAllAnimations()
 
     bool success = true;
     int loadedCount = 0;
+#ifdef _DEBUG
     std::cout << "开始加载所有动画资源..." << std::endl;
-
+#endif
     for (const auto& animPair : animationPaths) {
         AnimationType animType = animPair.first;
         const std::string& path = animPair.second;
@@ -343,8 +362,9 @@ bool ResourceManager::LoadAllAnimations()
             std::cerr << "加载动画失败: " << path << " (类型: " << static_cast<int>(animType) << ")" << std::endl;
         }
     }
-
+#ifdef _DEBUG
     std::cout << "动画资源加载完成，成功: " << loadedCount << "/" << animationPaths.size() << std::endl;
+#endif
     return success;
 }
 
@@ -354,7 +374,9 @@ void ResourceManager::UnloadAnimation(AnimationType animType)
     if (it != animations.end()) {
         it->second->Clear();
         animations.erase(it);
+#ifdef _DEBUG
         std::cout << "卸载动画: " << static_cast<int>(animType) << std::endl;
+#endif
     }
 }
 
@@ -426,7 +448,9 @@ SDL_Texture* ResourceManager::LoadTexture(const std::string& path, const std::st
     }
 
     textures[actualKey] = texture;
+#ifdef _DEBUG
     std::cout << "成功加载纹理: " << path << " (key: " << actualKey << ")" << std::endl;
+#endif
     return texture;
 }
 
@@ -448,7 +472,9 @@ void ResourceManager::UnloadTexture(const std::string& key)
     {
         SDL_DestroyTexture(it->second);
         textures.erase(it);
+#ifdef _DEBUG
         std::cout << "卸载纹理: " << key << std::endl;
+#endif
     }
 }
 
@@ -469,7 +495,9 @@ Mix_Chunk* ResourceManager::LoadSound(const std::string& path, const std::string
     }
 
     sounds[actualKey] = sound;
+#ifdef _DEBUG
     std::cout << "成功加载音效: " << path << std::endl;
+#endif
     return sound;
 }
 
@@ -491,7 +519,9 @@ void ResourceManager::UnloadSound(const std::string& key)
     {
         Mix_FreeChunk(it->second);
         sounds.erase(it);
+#ifdef _DEBUG
         std::cout << "卸载音效: " << key << std::endl;
+#endif
     }
 }
 
@@ -512,7 +542,9 @@ Mix_Music* ResourceManager::LoadMusic(const std::string& path, const std::string
     }
 
     this->music[actualKey] = music;
+#ifdef _DEBUG
     std::cout << "成功加载音乐: " << path << std::endl;
+#endif
     return music;
 }
 
@@ -534,7 +566,9 @@ void ResourceManager::UnloadMusic(const std::string& key)
     {
         Mix_FreeMusic(it->second);
         music.erase(it);
+#ifdef _DEBUG
         std::cout << "卸载音乐: " << key << std::endl;
+#endif
     }
 }
 
@@ -618,8 +652,9 @@ void ResourceManager::UnloadAll()
         pair.second->Clear();
     }
     animations.clear();
-
+#ifdef _DEBUG
     std::cout << "已卸载所有资源" << std::endl;
+#endif
 }
 
 bool ResourceManager::HasTexture(const std::string& key) const

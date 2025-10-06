@@ -67,7 +67,7 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="Component.cpp">
-      <Filter>头文件</Filter>
+      <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -153,6 +153,15 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="TestObject.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="ReanimationComponent.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="AnimatedObject.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="RendererManager.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

@@ -27,7 +27,9 @@ bool ReanimParser::LoadReanimFile(const std::string& filename, ReanimatorDefinit
         size_t lastSlash = filename.find_last_of("/\\");
         if (lastSlash != std::string::npos) {
             pathToUse = filename.substr(0, lastSlash + 1); // 包含最后的斜杠
+#ifdef _DEBUG
             TOD_TRACE("File path detected, extracted directory: " + pathToUse);
+#endif
         }
         else {
             pathToUse = "./"; // 当前目录
@@ -36,7 +38,9 @@ bool ReanimParser::LoadReanimFile(const std::string& filename, ReanimatorDefinit
     else {
         // 是目录路径，直接使用
         pathToUse = filename;
+#ifdef _DEBUG
         TOD_TRACE("Directory path detected: " + pathToUse);
+#endif
     }
 
     // 确保路径以分隔符结尾
@@ -45,34 +49,40 @@ bool ReanimParser::LoadReanimFile(const std::string& filename, ReanimatorDefinit
     }
 
     sCurrentBasePath = pathToUse;
+#ifdef _DEBUG
     TOD_TRACE("Final base path set to: " + sCurrentBasePath);
+#endif
 
     const XflDOMDocument& document = sCurrentXflParser->GetDocument();
     const XflDOMTimeline& timeline = document.timeline;
 
     // 设置FPS
     definition->mFPS = document.frameRate;
+#ifdef _DEBUG
     TOD_TRACE("Parsed XFL FPS: " + std::to_string(definition->mFPS));
     TOD_TRACE("Document size: " + std::to_string(document.width) + "x" + std::to_string(document.height));
     TOD_TRACE("Timeline layers: " + std::to_string(timeline.layers.size()));
-
+#endif
     // 为每个图层创建轨道
     int trackCount = 0;
     for (size_t layerIndex = 0; layerIndex < timeline.layers.size(); layerIndex++) {
         const XflDOMLayer& layer = timeline.layers[layerIndex];
 
         if (!layer.visible) {
+#ifdef _DEBUG
             TOD_TRACE("Skipping invisible layer: " + layer.name);
+#endif
             continue;
         }
 
         CreateTrackFromXflLayer(layer, definition, static_cast<int>(layerIndex), *sCurrentXflParser);
         trackCount++;
     }
-
+#ifdef _DEBUG
     TOD_TRACE("Successfully loaded XFL: " + filename + " with " +
         std::to_string(trackCount) + " tracks (total tracks: " +
         std::to_string(definition->mTracks.size()) + ")");
+#endif
     return true;
 }
 
@@ -116,10 +126,11 @@ void ReanimParser::CreateTrackFromXflLayer(const XflDOMLayer& layer, ReanimatorD
     // XFL中图层是从上到下的顺序，但渲染时应该从下到上
     // 所以我们将图层逆序插入，确保正确的渲染顺序
     definition->mTracks.insert(definition->mTracks.begin(), track);
-
+#ifdef _DEBUG
     TOD_TRACE("Created track from layer: " + layer.name + " at position " +
         std::to_string(definition->mTracks.size() - 1) + " with " +
         std::to_string(track.mTransforms.size()) + " frames");
+#endif
 }
 
 bool ReanimParser::ParseXflFrame(const XflDOMFrame& frame, ReanimatorTransform& transform, int frameIndex, const XflParser& parser) {
@@ -148,18 +159,19 @@ bool ReanimParser::ParseXflFrame(const XflDOMFrame& frame, ReanimatorTransform& 
             transform.mScaleY = frameSpecificTransform.scaleY;
             transform.mSkewX = frameSpecificTransform.rotation;
             transform.mAlpha = frameSpecificTransform.alpha;
-
+#ifdef _DEBUG
             TOD_TRACE("Frame " + std::to_string(frameIndex) + " transform for " + elementName +
                 ": Pos(" + std::to_string(transform.mTransX) + ", " +
                 std::to_string(transform.mTransY) + ")");
+#endif
         }
     }
-
+#ifdef _DEBUG
     TOD_TRACE("Parsed XFL frame " + std::to_string(frameIndex) +
         " with " + std::to_string(frame.elements.size()) + " elements" +
         " Final Position: (" + std::to_string(transform.mTransX) + ", " +
         std::to_string(transform.mTransY) + ")");
-
+#endif 
     return true;
 }
 
@@ -180,7 +192,7 @@ void ReanimParser::ProcessXflSymbol(const std::string& symbolName, const XflPars
         transform.mScaleY = elementTransform.scaleY;
         transform.mSkewX = elementTransform.rotation;  // 将旋转角度传递给skewX
         transform.mAlpha = elementTransform.alpha;
-
+#ifdef _DEBUG
         TOD_TRACE(" Applied XFL transform for " + symbolName +
             ": Pos(" + std::to_string(transform.mTransX) + ", " +
             std::to_string(transform.mTransY) + ")" +
@@ -188,6 +200,7 @@ void ReanimParser::ProcessXflSymbol(const std::string& symbolName, const XflPars
             std::to_string(transform.mScaleY) + ")" +
             " Rotation: " + std::to_string(transform.mSkewX) + "°" +
             " Alpha: " + std::to_string(transform.mAlpha));
+#endif
     }
     else {
         // 如果没有找到变换数据，使用默认值
@@ -197,15 +210,18 @@ void ReanimParser::ProcessXflSymbol(const std::string& symbolName, const XflPars
         transform.mScaleY = 1.0f;
         transform.mSkewX = 0.0f;
         transform.mAlpha = 1.0f;
+#ifdef _DEBUG
         TOD_TRACE(" Using default transform for " + symbolName);
+#endif
     }
-
+#ifdef _DEBUG
     if (!bitmapPath.empty()) {
         TOD_TRACE(" Found bitmap: " + symbolName + " at " + bitmapPath);
     }
     else {
         TOD_TRACE(" Bitmap not found: " + symbolName);
     }
+#endif 
 }
 
 SDL_Texture* ReanimParser::LoadXflBitmap(const std::string& bitmapPath, SDL_Renderer* renderer) {
@@ -228,8 +244,9 @@ SDL_Texture* ReanimParser::LoadXflBitmap(const std::string& bitmapPath, SDL_Rend
         TOD_TRACE("Failed to create texture from XFL bitmap: " + std::string(SDL_GetError()));
         return nullptr;
     }
-
+#ifdef _DEBUG
     TOD_TRACE("Successfully loaded XFL bitmap: " + bitmapPath);
+#endif
     return texture;
 }
 
@@ -250,9 +267,9 @@ SDL_Texture* ReanimParser::LoadReanimImage(const std::string& imageName, SDL_Ren
         TOD_TRACE("Failed to extract file name from: " + imageName);
         return nullptr;
     }
-
+#ifdef _DEBUG
     TOD_TRACE("Loading image - Original: " + imageName + ", Extracted: " + fileName + ", BasePath: " + sCurrentBasePath);
-
+#endif
     // 使用保存的基础路径查找文件
     std::string filePath = FindImageFile(fileName, sCurrentBasePath);
 
@@ -276,8 +293,9 @@ SDL_Texture* ReanimParser::LoadReanimImage(const std::string& imageName, SDL_Ren
         TOD_TRACE("Failed to create texture from surface: " + std::string(SDL_GetError()));
         return nullptr;
     }
-
+#ifdef _DEBUG
     TOD_TRACE("Successfully loaded image: " + imageName + " -> " + filePath);
+#endif
     return texture;
 }
 
@@ -340,9 +358,9 @@ std::string ReanimParser::FindImageFile(const std::string& baseName, const std::
 
     std::string baseNameLower = baseName;
     std::transform(baseNameLower.begin(), baseNameLower.end(), baseNameLower.begin(), ::tolower);
-
+#ifdef _DEBUG
     TOD_TRACE("Searching for image: " + baseName + " with base path: " + basePath);
-
+#endif
     for (const auto& path : searchPaths) {
         for (const auto& ext : extensions) {
             // 尝试原始文件名
@@ -350,7 +368,9 @@ std::string ReanimParser::FindImageFile(const std::string& baseName, const std::
             std::ifstream file(fullPath);
             if (file.good()) {
                 file.close();
+#ifdef _DEBUG
                 TOD_TRACE("Found image file: " + fullPath);
+#endif
                 return fullPath;
             }
 
@@ -359,7 +379,9 @@ std::string ReanimParser::FindImageFile(const std::string& baseName, const std::
             file.open(fullPathLower);
             if (file.good()) {
                 file.close();
+#ifdef _DEBUG
                 TOD_TRACE("Found image file (lowercase): " + fullPathLower);
+#endif
                 return fullPathLower;
             }
         }

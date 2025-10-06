@@ -126,10 +126,8 @@ public:
 
     void ClearAll()
     {
-        std::cout << "清理UIManager资源..." << std::endl;
         buttonManager.ClearAllButtons();
         sliderManager.ClearAllSliders();
-        std::cout << "UIManager资源清理完成" << std::endl;
     }
 
     // 获取底层管理器（也可以直接访问）

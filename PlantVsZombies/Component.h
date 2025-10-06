@@ -3,6 +3,7 @@
 #define _COMPONENT_H
 
 #include "Definit.h"
+#include "RendererManager.h"
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -33,6 +34,8 @@ public:
     void SetGameObject(std::shared_ptr<GameObject> obj) {
         gameObjectWeak = obj;
     }
+	// 绘制方法（可选）
+    virtual void Draw(SDL_Renderer* renderer) {}
 };
 
 class GameObject : public std::enable_shared_from_this<GameObject> {
@@ -56,7 +59,7 @@ public:
         components.clear();
     }
 
-    // 添加组件
+    // 添加组件 若是刚刚创建的对象，则不能使用，因为还没有
     template<typename T, typename... Args>
     std::shared_ptr<T> AddComponent(Args&&... args) {
         static_assert(std::is_base_of<Component, T>::value, "T must be a Component");
@@ -124,7 +127,7 @@ public:
             }
             componentsToInitialize.clear();
             // 注册所有碰撞器组件到碰撞系统
-            // TOOD: 以后若还有别的大系统，也要这么做
+            // TODO 以后若还有别的大系统，也要这么做
             RegisterAllColliders();
             for (auto& [type, component] : components) {
                 if (component->enabled) {
@@ -144,7 +147,16 @@ public:
             }
         }
     }
+	// 绘制所有组件（如果组件要绘制的话)
+    virtual void Draw(SDL_Renderer* renderer) {
+        if (!active || !started) return;
 
+        for (auto& [type, component] : components) {
+            if (component->enabled) {
+                component->Draw(renderer);
+            }
+        }
+    }
     // 获取物体的标签
     const std::string& GetTag() const { return tag; }
     // 设置物体的标签
@@ -171,6 +183,10 @@ public:
         }
         components.clear();
         componentsToInitialize.clear();
+    }
+    // 获取渲染器
+    SDL_Renderer* GetRenderer() const {
+        return RendererManager::GetInstance().GetRenderer();
     }
 };
 
@@ -241,6 +257,15 @@ public:
         }
     }
 
+	// 绘制所有GameObject对象
+    void DrawAll(SDL_Renderer* renderer) {
+        for (auto& obj : gameObjects) {
+            if (obj->IsActive()) {
+                obj->Draw(renderer);
+            }
+        }
+    }
+
     // 查找在gameObjects中的符合条件游戏对象 (根据tag标签)
     std::vector<std::shared_ptr<GameObject>> FindGameObjectsWithTag(const std::string& tag) {
         std::vector<std::shared_ptr<GameObject>> result;
@@ -256,7 +281,7 @@ public:
     std::shared_ptr<GameObject> FindGameObjectWithTag(const std::string& tag) {
         auto objects = FindGameObjectsWithTag(tag);
         return objects.empty() ? nullptr : objects[0];
-    }
+            }
 
     // 清空所有对象
     void ClearAll() {

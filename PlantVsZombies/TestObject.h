@@ -83,7 +83,7 @@ private:
 class DebugRenderer {
 public:
     static void RenderColliders(SDL_Renderer* renderer) {
-        const auto& gameObjects = GameObjectManager::GetInstance().FindGameObjectsWithTag("TestObject");
+        const auto& gameObjects = GameObjectManager::GetInstance().FindGameObjectsWithTag("¶¯Ì¬·½¿é");
         for (auto& obj : gameObjects) {
             auto transform = obj->GetComponent<TransformComponent>();
             auto collider = obj->GetComponent<ColliderComponent>();

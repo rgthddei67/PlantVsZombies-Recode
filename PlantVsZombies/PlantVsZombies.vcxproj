@@ -79,6 +79,9 @@
     <IncludePath>D:\C++\Library\SDL2\SDL2_image-2.8.8\include;D:\C++\Library\SDL2\SDL2_mixer-2.8.1\include;D:\C++\Library\SDL2\SDL2_ttf-2.24.0\include;D:\C++\Library\SDL2\SDL2-2.32.10\include;$(IncludePath)</IncludePath>
     <LibraryPath>D:\C++\Library\SDL2\SDL2_image-2.8.8\lib\x64;D:\C++\Library\SDL2\SDL2_mixer-2.8.1\lib\x64;D:\C++\Library\SDL2\SDL2_ttf-2.24.0\lib\x64;D:\C++\Library\SDL2\SDL2-2.32.10\lib\x64;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
+  <PropertyGroup Label="Vcpkg">
+    <VcpkgEnabled>false</VcpkgEnabled>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
@@ -161,6 +164,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AllCppInclude.h" />
+    <ClInclude Include="AnimatedObject.h" />
     <ClInclude Include="AnimationTypes.h" />
     <ClInclude Include="AudioSystem.h" />
     <ClInclude Include="Button.h" />
@@ -176,8 +180,10 @@
     <ClInclude Include="ParticleConfig.h" />
     <ClInclude Include="ParticleEmitter.h" />
     <ClInclude Include="ParticleSystem.h" />
+    <ClInclude Include="ReanimationComponent.h" />
     <ClInclude Include="Reanimator.h" />
     <ClInclude Include="ReanimParser.h" />
+    <ClInclude Include="RendererManager.h" />
     <ClInclude Include="ResourceManager.h" />
     <ClInclude Include="SimpleXmlParser.h" />
     <ClInclude Include="Slider.h" />

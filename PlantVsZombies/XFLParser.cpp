@@ -38,10 +38,10 @@ bool XflParser::LoadXflFile(const std::string& filename) {
     }
 
     std::string domDocumentPath = mBasePath + "DOMDocument.xml";
-
+#ifdef _DEBUG
     TOD_TRACE("Loading XFL from base path: " + mBasePath);
     TOD_TRACE("DOM Document path: " + domDocumentPath);
-
+#endif
     // 检查文件是否存在
     if (!fs::exists(domDocumentPath)) {
         TOD_TRACE("DOMDocument.xml not found at: " + domDocumentPath);
@@ -62,7 +62,9 @@ bool XflParser::LoadXflFile(const std::string& filename) {
 
     for (const auto& libraryPath : possibleLibraryPaths) {
         if (fs::exists(libraryPath) && fs::is_directory(libraryPath)) {
+#ifdef _DEBUG
             TOD_TRACE("Found library at: " + libraryPath);
+#endif
             ParseSymbols(libraryPath);
             ParseBitmaps(libraryPath);
             break;
@@ -105,11 +107,11 @@ bool XflParser::ParseDOMDocument(const std::string& filepath) {
     mDocument.creatorInfo = domDocument->GetAttributeValue("creatorInfo", "Unknown");
     mDocument.platform = domDocument->GetAttributeValue("platform", "Unknown");
     mDocument.versionInfo = domDocument->GetAttributeValue("versionInfo", "Unknown");
-
+#ifdef _DEBUG
     TOD_TRACE("Document properties - Width: " + std::to_string(mDocument.width) +
         ", Height: " + std::to_string(mDocument.height) +
         ", FPS: " + std::to_string(mDocument.frameRate));
-
+#endif
     // 解析时间轴
     for (auto& child : domDocument->children) {
         if (child.name == "timelines") {
@@ -124,8 +126,9 @@ bool XflParser::ParseDOMDocument(const std::string& filepath) {
             }
         }
     }
-
+#ifdef _DEBUG
     TOD_TRACE("Successfully parsed DOMDocument");
+#endif
     return true;
 }
 
@@ -147,10 +150,10 @@ bool XflParser::ParseTimeline(const SimpleXmlNode& timelineNode, XflDOMTimeline&
             break; // 只处理第一个layers节点
         }
     }
-
+#ifdef _DEBUG
     TOD_TRACE("Parsed timeline: " + timeline.name + " with " +
         std::to_string(timeline.layers.size()) + " layers");
-
+#endif
     return true;
 }
 
@@ -164,9 +167,9 @@ bool XflParser::ParseLayer(const SimpleXmlNode& layerNode, XflDOMLayer& layer) {
 
     layer.locked = (lockedStr == "true");
     layer.visible = (visibleStr == "true");
-
+#ifdef _DEBUG
     TOD_TRACE("Parsing layer: " + layer.name + " (visible: " + std::string(layer.visible ? "true" : "false") + ")");
-
+#endif
     // 解析帧
     for (auto& childNode : layerNode.children) {
         if (childNode.name == "frames") {
@@ -181,9 +184,9 @@ bool XflParser::ParseLayer(const SimpleXmlNode& layerNode, XflDOMLayer& layer) {
             break; // 只处理第一个frames节点
         }
     }
-
+#ifdef _DEBUG
     TOD_TRACE("Layer " + layer.name + " has " + std::to_string(layer.frames.size()) + " frames");
-
+#endif
     return true;
 }
 
@@ -223,10 +226,10 @@ bool XflParser::ParseFrame(const SimpleXmlNode& frameNode, XflDOMFrame& frame) {
     }
 
     frameNode.GetAttribute("keyMode", frame.keyMode);
-
+#ifdef _DEBUG
     TOD_TRACE("解析帧 - 索引: " + std::to_string(frame.index) +
         ", 持续时间: " + std::to_string(frame.duration));
-
+#endif
     // 解析元素
     for (auto& childNode : frameNode.children) {
         if (childNode.name == "elements") {
@@ -270,11 +273,12 @@ bool XflParser::ParseFrame(const SimpleXmlNode& frameNode, XflDOMFrame& frame) {
                                         // 计算旋转角度（弧度转角度）
                                         float rotationRad = atan2f(-element.matrix.c, element.matrix.d);
                                         element.rotation = rotationRad * 180.0f / 3.14159265f;
-
+#ifdef _DEBUG
                                         TOD_TRACE("元素 " + element.libraryItemName +
                                             " - 位置: (" + std::to_string(element.x) + ", " + std::to_string(element.y) +
                                             ") 旋转: " + std::to_string(element.rotation) + "度" +
                                             " 缩放: (" + std::to_string(element.scaleX) + ", " + std::to_string(element.scaleY) + ")");
+#endif
                                     }
                                     break;
                                 }
@@ -318,18 +322,18 @@ bool XflParser::ParseFrame(const SimpleXmlNode& frameNode, XflDOMFrame& frame) {
             }
         }
     }
-
+#ifdef _DEBUG
     TOD_TRACE("帧 " + std::to_string(frame.index) + " 解析完成，包含 " +
         std::to_string(frame.elements.size()) + " 个元素");
-
+#endif
     return true;
 }
 
 XflMatrix XflParser::ParseMatrix(const std::string& matrixText) {
     XflMatrix matrix = {};
-
+#ifdef _DEBUG
     TOD_TRACE("解析矩阵文本: " + matrixText);
-
+#endif
     // 检测XFL矩阵格式: "<Matrix a=\"0.8\" d=\"0.8\" tx=\"7.7\" ty=\"7.9\"/>" 
     if (matrixText.find("Matrix") != std::string::npos) {
         // XML格式的矩阵 - 从<Matrix>节点中提取属性
@@ -355,7 +359,9 @@ XflMatrix XflParser::ParseMatrix(const std::string& matrixText) {
 
             // 检查字符串是否为空或只包含空白字符
             if (valueStr.empty()) {
+#ifdef _DEBUG
                 TOD_TRACE("空字符串，使用默认值: " + std::to_string(defaultValue));
+#endif
                 return defaultValue;
             }
 
@@ -364,7 +370,9 @@ XflMatrix XflParser::ParseMatrix(const std::string& matrixText) {
             valueStr.erase(valueStr.find_last_not_of(" \t\n\r") + 1);
 
             if (valueStr.empty()) {
+#ifdef _DEBUG
                 TOD_TRACE("只有空白字符，使用默认值: " + std::to_string(defaultValue));
+#endif
                 return defaultValue;
             }
 
@@ -426,14 +434,14 @@ XflMatrix XflParser::ParseMatrix(const std::string& matrixText) {
             TOD_TRACE("矩阵值不足，使用单位矩阵");
         }
     }
-
+#ifdef _DEBUG
     TOD_TRACE("解析后的矩阵: a=" + std::to_string(matrix.a) +
         " b=" + std::to_string(matrix.b) +
         " c=" + std::to_string(matrix.c) +
         " d=" + std::to_string(matrix.d) +
         " tx=" + std::to_string(matrix.tx) +
         " ty=" + std::to_string(matrix.ty));
-
+#endif
     return matrix;
 }
 
@@ -461,13 +469,16 @@ XflColor XflParser::ParseColor(const std::string& colorText) {
 
 bool XflParser::ParseSymbols(const std::string& libraryFolder) {
     // 目前主要关注位图
+#ifdef _DEBUG
     TOD_TRACE("Parsing symbols from: " + libraryFolder);
+#endif
     return true;
 }
 
 bool XflParser::ParseBitmaps(const std::string& libraryFolder) {
+#ifdef _DEBUG
     TOD_TRACE("Scanning for bitmaps in: " + libraryFolder);
-
+#endif
     int foundCount = 0;
     for (const auto& entry : fs::directory_iterator(libraryFolder)) {
         if (entry.is_regular_file()) {
@@ -481,7 +492,9 @@ bool XflParser::ParseBitmaps(const std::string& libraryFolder) {
                 bitmap.href = entry.path().string();
                 mDocument.bitmaps[bitmap.name] = bitmap;
                 foundCount++;
+#ifdef _DEBUG
                 TOD_TRACE("Found bitmap: " + bitmap.name + " at " + bitmap.href);
+#endif
             }
         }
     }
@@ -505,7 +518,9 @@ bool XflParser::ParseBitmaps(const std::string& libraryFolder) {
                                     bitmap.href = libraryFolder + "/" + bitmap.href;
                                 }
                                 mDocument.bitmaps[bitmap.name] = bitmap;
+#ifdef _DEBUG
                                 TOD_TRACE("Parsed bitmap item: " + bitmap.name + " -> " + bitmap.href);
+#endif        
                             }
                         }
                     }
@@ -513,8 +528,9 @@ bool XflParser::ParseBitmaps(const std::string& libraryFolder) {
             }
         }
     }
-
+#ifdef _DEBUG
     TOD_TRACE("Total bitmaps found: " + std::to_string(foundCount));
+#endif
     return true;
 }
 

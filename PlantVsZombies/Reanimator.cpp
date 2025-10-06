@@ -47,8 +47,9 @@ bool ReanimatorDefinition::LoadFromFile(const std::string& filename) {
 }
 
 void ReanimatorDefinition::Clear() {
+#ifdef _DEBUG
     TOD_TRACE("ReanimatorDefinition::Clear() - Starting cleanup");
-
+#endif
     int textureCount = 0;
     int trackCount = mTracks.size();
 
@@ -71,10 +72,11 @@ void ReanimatorDefinition::Clear() {
     mTracks.clear();
     mFPS = 12.0f;
     mReanimFileName.clear();
-
+#ifdef _DEBUG
     TOD_TRACE("ReanimatorDefinition::Clear() - Cleared " +
         std::to_string(textureCount) + " textures from " +
         std::to_string(trackCount) + " tracks");
+#endif
 }
 
 bool ReanimatorDefinition::LoadImages(SDL_Renderer* renderer) {
@@ -82,17 +84,18 @@ bool ReanimatorDefinition::LoadImages(SDL_Renderer* renderer) {
         TOD_TRACE("No renderer provided for loading images");
         return false;
     }
-
+#ifdef _DEBUG
     TOD_TRACE("=== Loading images for: " + mReanimFileName + " ===");
-
+#endif
     int loadedCount = 0;
     int failedCount = 0;
 
     for (auto& track : mTracks) {
         for (auto& transform : track.mTransforms) {
             if (!transform.mImageName.empty() && !transform.mImage) {
+#ifdef _DEBUG
                 TOD_TRACE("Loading: " + transform.mImageName + " for track: " + track.mName);
-
+#endif
                 // 直接使用ReanimParser加载图像
                 transform.mImage = ReanimParser::LoadReanimImage(transform.mImageName, renderer);
                 if (transform.mImage) {
@@ -466,108 +469,4 @@ void Reanimation::GetTransformAtTime(int theTrackIndex, ReanimatorTransform* the
         theTransform->mImageName = transformAfter.mImageName;
         theTransform->mFrame = transformAfter.mFrame;
     }
-}
-
-// ====================================================================================================
-// ReanimationHolder 实现
-// ====================================================================================================
-
-ReanimationHolder::ReanimationHolder(SDL_Renderer* renderer) :
-    mRenderer(renderer) {
-}
-
-ReanimationHolder::~ReanimationHolder() {
-    ClearAll();
-}
-
-Reanimation* ReanimationHolder::AllocReanimation(float x, float y, const std::string& reanimFile, float scale = 1.0f) 
-{
-    auto reanim = std::make_unique<Reanimation>(mRenderer);
-    if (!reanim->LoadReanimation(reanimFile)) {
-        TOD_TRACE("Failed to create reanimation: " + reanimFile);
-        return nullptr;
-    }
-    reanim->SetScale(scale);
-    reanim->SetPosition(x, y);
-    Reanimation* ptr = reanim.get();
-    mReanimations.push_back(std::move(reanim));
-    return ptr;
-}
-
-Reanimation* ReanimationHolder::AllocReanimation(float x, float y, ReanimatorDefinition* definition, float scale = 1.0f) {
-    auto sharedDef = std::shared_ptr<ReanimatorDefinition>(
-        definition, [](ReanimatorDefinition*) {} // 空删除器 不实际管理生命周期
-    );
-    auto reanim = std::make_unique<Reanimation>(mRenderer);
-    reanim->ReanimationInitialize(x, y, sharedDef);
-	reanim->SetScale(scale);
-    Reanimation* ptr = reanim.get();
-    mReanimations.push_back(std::move(reanim));
-    return ptr;
-}
-
-Reanimation* ReanimationHolder::AllocReanimation(float x, float y, AnimationType animType, float scale)
-{
-    // 通过ResourceManager获取动画定义
-    ResourceManager& resMgr = ResourceManager::GetInstance();
-    auto animDef = resMgr.GetAnimation(animType);
-
-    if (!animDef) {
-        TOD_TRACE("Failed to get animation definition for type: " + std::to_string(static_cast<int>(animType)));
-        return nullptr;
-    }
-
-    auto reanim = std::make_unique<Reanimation>(mRenderer);
-    reanim->ReanimationInitialize(x, y, animDef);
-    reanim->SetScale(scale);
-    reanim->SetPosition(x, y);
-
-    // 设置默认参数
-    reanim->SetLoopType(ReanimLoopType::REANIM_LOOP);
-    reanim->SetRate(animDef->mFPS); // 使用动画定义中的FPS
-
-    Reanimation* ptr = reanim.get();
-    mReanimations.push_back(std::move(reanim));
-    return ptr;
-}
-
-// 这里只能是数字引用！  不能是begin - end
-void ReanimationHolder::UpdateAll()
-{
-    for (size_t i = 0; i < mReanimations.size(); )
-    {
-        mReanimations[i]->Update();
-
-        if (mReanimations[i]->IsDead()) 
-        {
-            mReanimations.erase(mReanimations.begin() + i);
-        }
-        else 
-        {
-            ++i;
-        }
-    }
-}
-
-void ReanimationHolder::DrawAll() {
-    // 按渲染顺序排序（如果需要）
-    for (auto& reanim : mReanimations) {
-        reanim->Draw();
-    }
-}
-
-void ReanimationHolder::ClearAll() {
-    TOD_TRACE("ReanimationHolder::Clear() - Starting");
-
-    // 停止所有动画
-    for (auto& reanim : mReanimations) {
-        if (reanim) {
-            reanim->ReanimationDie();
-        }
-    }
-
-    size_t count = mReanimations.size();
-    mReanimations.clear();
-
-    TOD_TRACE("ReanimationHolder::Clear() - Removed " + std::to_string(count) + " reanimations");
 }

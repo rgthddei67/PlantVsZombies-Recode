@@ -4,12 +4,14 @@
 #include "UIManager.h"
 #include "InputHandler.h"
 #include "ResourceManager.h"
+#include "RendererManager.h"
 #include "AudioSystem.h"
 #include "Reanimator.h"
 #include "ParticleSystem.h"
 #include "Component.h"
 #include "CollisionSystem.h"
 #include "TestObject.h"
+#include "AnimatedObject.h"
 #include <iostream>
 #include <sstream>
 
@@ -17,68 +19,18 @@
 extern std::unique_ptr<ParticleSystem> g_particleSystem;  
 std::unique_ptr<ParticleSystem> g_particleSystem = nullptr;
 
-// 在Game类或main函数中创建测试对象
-void CreateCollisionTestObjects() {
-    std::cout << "=== 创建碰撞测试对象 ===" << std::endl;
-
-    // 创建长方形对象
-    auto rectangle = GameObjectManager::GetInstance().CreateGameObject<TestObject>(
-        Vector(200, 300),           // 位置
-        Vector(100, 50),            // 尺寸 (宽100, 高50)
-        ColliderType::BOX,          // 碰撞形状
-        "长方形测试对象",           // 名称
-        SDL_Color{ 0, 255, 0, 255 }  // 绿色
-    );
-
-    // 创建圆形对象  
-    auto circle = GameObjectManager::GetInstance().CreateGameObject<TestObject>(
+void CreateAnimationTest() {
+    // 创建太阳动画
+    auto sun = GameObjectManager::GetInstance().CreateGameObject<AnimatedObject>(
         Vector(400, 300),           // 位置
-        Vector(60, 60),             // 尺寸 (直径60)
-        ColliderType::CIRCLE,       // 碰撞形状
-        "移动测试对象",             // 名称
-        SDL_Color{ 0, 255, 255, 0 } 
+        AnimationType::ANIM_SUN,    // 动画类型
+        Vector(60, 60),             // 碰撞体大小
+        0.8f,    // 缩放
+        true,
+        "Sun"                       // 标签
     );
-
-    // 创建移动的测试对象（用于触发碰撞）
-    auto movingObject = GameObjectManager::GetInstance().CreateGameObject<TestObject>(
-        Vector(100, 300),           // 位置
-        Vector(30, 30),             // 尺寸
-        ColliderType::BOX,          // 碰撞形状  
-        "正方形测试对象",             // 名称
-        SDL_Color{ 255, 255, 0, 255 } // 黄色
-    );
-
-    std::cout << "测试对象创建完成!" << std::endl;
-    std::cout << "- 长方形: 位置(200,300), 大小(100x50)" << std::endl;
-    std::cout << "- 圆形: 位置(400,300), 直径60" << std::endl;
-    std::cout << "- 移动对象: 位置(100,300), 大小(30x30)" << std::endl;
-}
-
-void TestManualMovement() {
-    static Uint32 lastMoveTime = 0;
-    Uint32 currentTime = SDL_GetTicks();
-
-    if (currentTime - lastMoveTime > 50) {
-        lastMoveTime = currentTime;
-
-        // 找到移动测试对象
-        auto movingObjects = GameObjectManager::GetInstance().FindGameObjectsWithTag("TestObject");
-        for (auto& obj : movingObjects) {
-            if (obj->GetName() == "移动测试对象") {
-                auto transform = obj->GetComponent<TransformComponent>();
-                if (transform) {
-                    // 向右移动
-                    float moveSpeed = 4 + rand() % 30;
-                    transform->position.x += moveSpeed * 0.2f;
-
-                    // 如果超出屏幕右边，回到左边
-                    if (transform->position.x > 800) {
-                        transform->position.x = 0;
-                    }
-                }
-            }
-        }
-    }
+    sun->PlayAnimation(); // 开始播放
+	sun->GetAnimationComponent()->SetLoopType(ReanimLoopType::REANIM_PLAY_ONCE); 
 }
 
 namespace UIFunctions
@@ -184,12 +136,12 @@ int SDL_main(int argc, char* argv[])
         SDL_Quit();
         return -1;
     }
-
     // 设置渲染器颜色（蓝色背景）
     SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
     SDL_RenderClear(renderer);
     SDL_RenderPresent(renderer);
-
+    RendererManager& rendererManager = RendererManager::GetInstance();
+	rendererManager.SetRenderer(renderer);
     ResourceManager& resourceManager = ResourceManager::GetInstance();
     resourceManager.Initialize(renderer);
 
@@ -216,11 +168,11 @@ int SDL_main(int argc, char* argv[])
         SDL_Quit();
         return -1;
     }
-	ReanimationHolder animHolder(renderer); // 创建动画管理器
+	//ReanimationHolder animHolder(renderer); // 创建动画管理器
 	g_particleSystem = std::make_unique<ParticleSystem>(renderer); // 初始化全局粒子系统
-    Reanimation* anim = 
-		animHolder.AllocReanimation(400, 300, AnimationType::ANIM_SUN, 0.8f);
-    CreateCollisionTestObjects();
+    //Reanimation* anim = 
+	//	animHolder.AllocReanimation(400, 300, AnimationType::ANIM_SUN, 0.8f);
+	CreateAnimationTest(); 
     // 创建按钮
     auto button1 = uiManager.CreateButton(Vector(100, 150));
     button1->SetAsCheckbox(true);
@@ -231,7 +183,7 @@ int SDL_main(int argc, char* argv[])
     button2->SetImageIndexes(3, 4, 4, -1);
     button2->SetTextColor({ 255, 255, 255, 255 }); // 白色
     button2->SetHoverTextColor({ 0, 0, 0, 255 });  // 黑色
-    button2->SetText(u8"我喜欢Kid");
+    button2->SetText(u8"召唤掉头特效");
     button2->SetClickCallBack(UIFunctions::ImageButtonClick);
     auto slider = uiManager.CreateSlider(Vector(500, 150), Vector(135, 10), 0.0f, 100.0f, 0.0f);
     slider->SetChangeCallBack(UIFunctions::SliderChanged);
@@ -251,7 +203,6 @@ int SDL_main(int argc, char* argv[])
         }
 
         input->Update();
-        TestManualMovement();
         if (input->IsKeyDown(SDLK_ESCAPE)) 
         {
             running = false;
@@ -260,7 +211,7 @@ int SDL_main(int argc, char* argv[])
 
 		// 更新板块
         uiManager.UpdateAll(input);
-		animHolder.UpdateAll();
+		//animHolder.UpdateAll();
 		g_particleSystem->UpdateAll();
         GameObjectManager::GetInstance().Update();
         CollisionSystem::GetInstance().Update();
@@ -271,10 +222,10 @@ int SDL_main(int argc, char* argv[])
 
         // 绘制板块
         uiManager.DrawAll(renderer);
-        animHolder.DrawAll();
+        //animHolder.DrawAll();
         g_particleSystem->DrawAll();
-        DebugRenderer::RenderColliders(renderer);
-
+        GameObjectManager::GetInstance().DrawAll(renderer);
+		DebugRenderer::RenderColliders(renderer);
         // 更新屏幕
         SDL_RenderPresent(renderer);
 
@@ -287,6 +238,7 @@ int SDL_main(int argc, char* argv[])
     }
     GameObjectManager::GetInstance().ClearAll();
     CollisionSystem::GetInstance().ClearAll();
+    g_particleSystem.reset();
     GameAPP::CleanupResources();
     ResourceManager::ReleaseInstance();
     gameApp.CloseGame();

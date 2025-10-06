@@ -32,23 +32,26 @@ bool AudioSystem::Initialize()
 }
 
 void AudioSystem::Shutdown() {
+#ifdef _DEBUG
     std::cout << "=== AudioSystem Shutdown ===" << std::endl;
     std::cout << "清理前 soundVolumes 大小: " << soundVolumes.size() << std::endl;
-
+#endif
     // 详细输出内容
+#ifdef _DEBUG
     for (const auto& pair : soundVolumes) {
         std::cout << "  即将清理: " << pair.first << " -> " << pair.second << std::endl;
     }
-
+#endif
     soundVolumes.clear();
-
+#ifdef _DEBUG
     std::cout << "清理后 soundVolumes 大小: " << soundVolumes.size() << std::endl;
-
+#endif
     Mix_HaltChannel(-1);
     Mix_HaltMusic();
     Mix_CloseAudio();
-
+#ifdef _DEBUG
     std::cout << "=== AudioSystem 关闭完成 ===" << std::endl;
+#endif
 }
 
 // 总音量控制
@@ -217,10 +220,12 @@ void AudioSystem::UpdateVolume()
     Mix_VolumeMusic(musicVol);
 
     // 更新所有音效音量（新播放的音效会自动应用新音量）
+#ifdef _DEBUG
     std::cout << "音量更新 - 主音量: " << masterVolume
         << ", 音效: " << soundVolume
         << ", 音乐: " << musicVolume
         << ", 最终音乐音量: " << musicVol << std::endl;
+#endif
 }
 
 bool AudioSystem::IsAudioAvailable()
@@ -238,7 +243,9 @@ void AudioSystem::SaveVolumeSettings()
         file << soundVolume << std::endl;
         file << musicVolume << std::endl;
         file.close();
+#ifdef _DEBUG
         std::cout << "音量设置已保存" << std::endl;
+#endif
     }
 }
 
@@ -252,6 +259,8 @@ void AudioSystem::LoadVolumeSettings()
         file >> soundVolume;
         file >> musicVolume;
         file.close();
+#ifdef _DEBUG
         std::cout << "音量设置已加载" << std::endl;
+#endif
     }
 }
