@@ -8,6 +8,8 @@
 #include "AudioSystem.h"
 #include "Reanimator.h"
 #include "ParticleSystem.h"
+#include "GameObject.h"
+#include "GameObjectManager.h"
 #include "Component.h"
 #include "CollisionSystem.h"
 #include "ClickableComponent.h"
@@ -63,9 +65,10 @@ void CreateAnimationTest() {
         0.8f,    // 缩放
         true,
         "Sun",
-        true
+        false    // 这个是设置是否播放完自动删除的
     );
     sun->PlayAnimation(); // 开始播放
+	sun->SetLoopType(ReanimLoopType::REANIM_PLAY_ONCE);
     auto clickComponent = sun->AddComponent<ClickableComponent>();
     clickComponent->onClick = [sun]() {
         UIFunctions::TestSunClick(sun);

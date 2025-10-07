@@ -66,6 +66,9 @@
     <ClCompile Include="ParticleEmitter.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="GameObject.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
     <ClCompile Include="Component.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
@@ -165,6 +168,12 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="ClickableComponent.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="GameObject.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="GameObjectManager.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

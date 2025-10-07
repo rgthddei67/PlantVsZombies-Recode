@@ -3,6 +3,7 @@
 #define _ANIMATED_OBJECT_H
 
 #include "Component.h"
+#include "GameObject.h"
 #include "TransformComponent.h"
 #include "ReanimationComponent.h"
 #include "ColliderComponent.h"

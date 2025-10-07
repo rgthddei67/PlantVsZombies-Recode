@@ -1,21 +1,10 @@
 #include "Component.h"
-#include "CollisionSystem.h"
-#include "ColliderComponent.h"
+#include "GameObject.h"
 
-void GameObject::RegisterAllColliders() {
-    for (auto& [type, component] : components) {
-        RegisterColliderIfNeeded(component);
-    }
+std::shared_ptr<GameObject> Component::GetGameObject() const {
+    return gameObjectWeak.lock();
 }
 
-void GameObject::RegisterColliderIfNeeded(std::shared_ptr<Component> component) {
-    if (auto collider = std::dynamic_pointer_cast<ColliderComponent>(component)) {
-        CollisionSystem::GetInstance().RegisterCollider(collider);
-    }
-}
-
-void GameObject::UnregisterColliderIfNeeded(std::shared_ptr<Component> component) {
-    if (auto collider = std::dynamic_pointer_cast<ColliderComponent>(component)) {
-        CollisionSystem::GetInstance().UnregisterCollider(collider);
-    }
+void Component::SetGameObject(std::shared_ptr<GameObject> obj) {
+    gameObjectWeak = obj;
 }

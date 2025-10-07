@@ -148,6 +148,7 @@
     <ClCompile Include="ButtonManager.cpp" />
     <ClCompile Include="Component.cpp" />
     <ClCompile Include="GameApp.cpp" />
+    <ClCompile Include="GameObject.cpp" />
     <ClCompile Include="InputHandler.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Particle.cpp" />
@@ -176,6 +177,8 @@
     <ClInclude Include="ConstEnums.h" />
     <ClInclude Include="Definit.h" />
     <ClInclude Include="GameApp.h" />
+    <ClInclude Include="GameObject.h" />
+    <ClInclude Include="GameObjectManager.h" />
     <ClInclude Include="InputHandler.h" />
     <ClInclude Include="Particle.h" />
     <ClInclude Include="ParticleConfig.h" />
