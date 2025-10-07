@@ -3,10 +3,10 @@
 #define _RESOURCEMANAGER_H
 #include "./Reanimation/Reanimator.h"
 #include "./Reanimation/AnimationTypes.h"
-#include <SDL.h>
-#include <SDL_image.h>
-#include <SDL_ttf.h>
-#include <SDL_mixer.h>
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_image.h>
+#include <SDL2/SDL_ttf.h>
+#include <SDL2/SDL_mixer.h>
 #include <string>
 #include <unordered_map>
 #include <memory>

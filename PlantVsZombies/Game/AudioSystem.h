@@ -1,7 +1,7 @@
 #pragma once
 #ifndef _AUDIOSYSTEM_H
 #define _AUDIOSYSTEM_H
-#include <SDL_mixer.h>
+#include <SDL2/SDL_mixer.h>
 #include <string>
 #include <algorithm>
 #include <iostream>

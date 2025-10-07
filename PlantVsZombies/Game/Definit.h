@@ -1,7 +1,7 @@
 #pragma once
 #ifndef _DEFINIT_H
 #define _DEFINIT_H
-#include <SDL.h>
+#include <SDL2/SDL.h>
 #include <math.h>
 
 struct Vector

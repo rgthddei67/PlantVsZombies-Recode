@@ -2,7 +2,7 @@
 #ifndef _REANIMATOR_H
 #define _REANIMATOR_H
 #include "AnimationTypes.h"
-#include <SDL.h>
+#include <SDL2/SDL.h>
 #include <string>
 #include <vector>
 #include <memory>

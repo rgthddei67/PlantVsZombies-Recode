@@ -1,7 +1,7 @@
 #include "Button.h"
 #include "InputHandler.h"
 #include <iostream>
-#include <SDL_image.h>
+#include <SDL2/SDL_image.h>
 #include "../ResourceManager.h"
 
 std::string Button::s_defaultFontPath = "./font/fzcq.ttf";

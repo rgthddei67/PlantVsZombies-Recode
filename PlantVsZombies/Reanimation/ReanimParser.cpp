@@ -1,7 +1,7 @@
 ﻿#include "ReanimParser.h"
 #include "../ResourceManager.h"
 #include "TodDebug.h"
-#include <SDL_image.h>
+#include <SDL2/SDL_image.h>
 #include <filesystem>
 #include <cmath>
 

@@ -1,3 +1,4 @@
+#define SDL_MAIN_HANDLED
 #include "./GameAPP.h"
 #include "./UI/Button.h"
 #include "./UI/Slider.h"
@@ -58,7 +59,7 @@ void CreateAnimationTest() {
     );
 }
 
-int SDL_main(int argc, char* argv[])
+int main(int argc, char* argv[])
 {
     // ≥ı ºªØSDL
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0) 

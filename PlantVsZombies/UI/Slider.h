@@ -5,7 +5,7 @@
 #include "../UI/InputHandler.h"
 #include <functional>
 #include <string>
-#include <SDL.h>
+#include <SDL2/SDL.h>
 
 class Slider
 {

@@ -5,7 +5,7 @@
 #include "Component.h"
 #include "TransformComponent.h"
 #include "Definit.h"
-#include <SDL.h>
+#include <SDL2/SDL.h>
 #include <functional>
 #include <memory>
 

@@ -1,6 +1,6 @@
 #pragma once
 #include <iostream>
-#include "SDL.h"
+#include "SDL2/SDL.h"
 #include "./Game/Component.h"
 #include "./Game/TransformComponent.h"
 #include "./Game/ColliderComponent.h"

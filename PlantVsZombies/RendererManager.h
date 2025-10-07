@@ -2,7 +2,7 @@
 #ifndef _RENDERER_MANAGER_H
 #define _RENDERER_MANAGER_H
 
-#include <SDL.h>
+#include <SDL2/SDL.h>
 #include <memory>
 #include <iostream>
 

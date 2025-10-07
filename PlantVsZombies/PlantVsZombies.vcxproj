@@ -135,15 +135,15 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>D:\C++\Library\SDL2\SDL2_image-2.8.8\include;D:\C++\Library\SDL2\SDL2_mixer-2.8.1\include;D:\C++\Library\SDL2\SDL2_ttf-2.24.0\include;D:\C++\Library\SDL2\SDL2-2.32.10\include;$(IncludePath)</IncludePath>
-    <LibraryPath>D:\C++\Library\SDL2\SDL2_image-2.8.8\lib\x64;D:\C++\Library\SDL2\SDL2_mixer-2.8.1\lib\x64;D:\C++\Library\SDL2\SDL2_ttf-2.24.0\lib\x64;D:\C++\Library\SDL2\SDL2-2.32.10\lib\x64;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(IncludePath)</IncludePath>
+    <LibraryPath>$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>D:\C++\Library\SDL2\SDL2_image-2.8.8\include;D:\C++\Library\SDL2\SDL2_mixer-2.8.1\include;D:\C++\Library\SDL2\SDL2_ttf-2.24.0\include;D:\C++\Library\SDL2\SDL2-2.32.10\include;$(IncludePath)</IncludePath>
-    <LibraryPath>D:\C++\Library\SDL2\SDL2_image-2.8.8\lib\x64;D:\C++\Library\SDL2\SDL2_mixer-2.8.1\lib\x64;D:\C++\Library\SDL2\SDL2_ttf-2.24.0\lib\x64;D:\C++\Library\SDL2\SDL2-2.32.10\lib\x64;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(IncludePath)</IncludePath>
+    <LibraryPath>$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Label="Vcpkg">
-    <VcpkgEnabled>false</VcpkgEnabled>
+    <VcpkgEnabled>true</VcpkgEnabled>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -183,7 +183,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>SDL2.lib;SDL2main.lib;SDL2_ttf.lib;SDL2_mixer.lib;SDL2_image.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -202,7 +202,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>SDL2.lib;SDL2main.lib;SDL2_ttf.lib;SDL2_mixer.lib;SDL2_image.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

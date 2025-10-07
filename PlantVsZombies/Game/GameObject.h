@@ -9,7 +9,7 @@
 #include <typeindex>
 #include <string>
 #include <algorithm>
-#include <SDL.h>
+#include <SDL2/SDL.h>
 
 class Component;
 

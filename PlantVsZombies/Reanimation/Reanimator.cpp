@@ -1,4 +1,4 @@
-#include <SDL_image.h>
+#include <SDL2/SDL_image.h>
 #include <algorithm>
 #include <cmath>
 #include "../Reanimation/Reanimator.h"
