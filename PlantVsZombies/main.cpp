@@ -15,6 +15,7 @@
 #include "ClickableComponent.h"
 #include "TestObject.h"
 #include "AnimatedObject.h"
+#include "Sun.h"
 #include <iostream>
 #include <sstream>
 
@@ -24,13 +25,6 @@ std::unique_ptr<ParticleSystem> g_particleSystem = nullptr;
 
 namespace UIFunctions
 {
-    static void TestSunClick(std::shared_ptr<GameObject> gameObject)
-    {
-        std::cout << "点击阳光" << std::endl;
-        AudioSystem::PlaySound(AudioConstants::SOUND_COLLECT_SUN, 0.5f);
-        SDL_Delay(250);
-		GameObjectManager::GetInstance().DestroyGameObject(gameObject);
-    }
     static void ImageButtonClick()
     {
         if (g_particleSystem != nullptr)
@@ -58,21 +52,9 @@ namespace UIFunctions
 
 void CreateAnimationTest() {
     // 创建太阳动画
-    auto sun = GameObjectManager::GetInstance().CreateGameObject<AnimatedObject>(
-        Vector(400, 300),           // 位置
-        AnimationType::ANIM_SUN,    // 动画类型
-        ColliderType::CIRCLE,
-        Vector(60, 60),             // 碰撞体大小
-        0.8f,    // 缩放
-        "Sun",
-        true   
+    auto sun = GameObjectManager::GetInstance().CreateGameObject<Sun>(
+        Vector(400, 300)           // 位置
     );
-    sun->PlayAnimation(); // 开始播放
-	sun->SetLoopType(ReanimLoopType::REANIM_PLAY_ONCE);
-    auto clickComponent = sun->AddComponent<ClickableComponent>();
-    clickComponent->onClick = [sun]() {
-        UIFunctions::TestSunClick(sun);
-        };
 }
 
 int SDL_main(int argc, char* argv[])

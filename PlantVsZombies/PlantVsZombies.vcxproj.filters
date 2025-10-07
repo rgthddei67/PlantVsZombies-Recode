@@ -176,5 +176,11 @@
     <ClInclude Include="GameObjectManager.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="Coin.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Sun.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

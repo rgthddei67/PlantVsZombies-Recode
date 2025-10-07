@@ -63,6 +63,7 @@ private:
     float mAnimRate;                       // 播放速度
     ReanimLoopType mLoopType;              // 循环类型
     bool mDead;                            // 是否已结束
+	bool mIsPlaying;    	               // 是否在播放
     int mFrameStart;                       // 起始帧
     int mFrameCount;                       // 总帧数
     SexyTransform2D mOverlayMatrix;        // 变换矩阵
@@ -71,11 +72,11 @@ private:
     int mRenderOrder;                      // 渲染顺序
     float mLastFrameTime;                  // 上一帧时间
     SDL_Renderer* mRenderer;               // SDL渲染器
-    float mTotalDuration;  // 动画总时长（秒）
-    float mCurrentTime;    // 当前播放时间（秒)
+    float mTotalDuration;                  // 动画总时长（秒）
+    float mCurrentTime;                    // 当前播放时间（秒)
     Uint32 mLastUpdateTime;
     bool mFirstUpdate;
-    float mScale = 1.0f;                           // 大小
+    float mScale = 1.0f;                   // 大小
     bool mAutoDestroy = false;
     std::weak_ptr<GameObject> mGameObjectWeak;
 
@@ -113,6 +114,7 @@ public:
 
     // 属性访问
     bool IsDead() const { return mDead; }
+	bool IsPlaying() const { return mIsPlaying; }
     float GetAnimTime() const { return mAnimTime; }
 
     // 轨道操作
@@ -121,6 +123,7 @@ public:
 
     void SetScale(float scale) { mScale = scale; }
     float GetScale() const { return mScale; }
+	void SetPlaying(bool isPlaying) { mIsPlaying = isPlaying; }
     void SetAutoDestroy(bool autoDestroy) { mAutoDestroy = autoDestroy; }
     bool GetAutoDestroy() const { return mAutoDestroy; }
     // 设置关联的GameObject

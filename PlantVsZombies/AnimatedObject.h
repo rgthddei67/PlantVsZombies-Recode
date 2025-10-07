@@ -37,6 +37,11 @@ public:
 		}
 	}
 
+	void Start() override {
+		GameObject::Start();
+		this->PlayAnimation(); 
+	}
+
 	// 开始播放动画
 	void PlayAnimation() {
 		if (animation) {

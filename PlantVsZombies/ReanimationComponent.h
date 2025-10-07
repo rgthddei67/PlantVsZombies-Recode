@@ -14,7 +14,6 @@ class ReanimationComponent : public Component {
 private:
     std::unique_ptr<Reanimation> mReanimation;
     AnimationType mAnimType;
-    Vector mPosition;
     float mScale;
     bool mIsPlaying;
     ReanimLoopType mLoopType;
@@ -22,7 +21,7 @@ private:
 
 public:
     ReanimationComponent(AnimationType animType, const Vector& position = Vector::zero(), float scale = 1.0f)
-        : mAnimType(animType), mPosition(position), mScale(scale), mIsPlaying(false),
+        : mAnimType(animType), mScale(scale), mIsPlaying(false),
         mLoopType(ReanimLoopType::REANIM_LOOP), mAutoDestroy(true) {
     }
 
@@ -42,13 +41,23 @@ public:
                 "ReanimationComponent::Start failed: Renderer is null" << std::endl;
             return;
         }
+        Vector startPos = Vector::zero();
+        if (auto transformComp = gameObj->GetComponent<TransformComponent>()) 
+        {
+            startPos = transformComp->position;
+        }
+        else
+        {
+            std::cout<< 
+				"ReanimationComponent::Start warning: TransformComponent not found, using (0,0) as start position" << std::endl;
+        }
         mReanimation = std::make_unique<Reanimation>(renderer);
 
         ResourceManager& resMgr = ResourceManager::GetInstance();
         auto animDef = resMgr.GetAnimation(mAnimType);
 
         if (animDef) {
-            mReanimation->ReanimationInitialize(mPosition.x, mPosition.y, animDef);
+            mReanimation->ReanimationInitialize(startPos.x, startPos.y, animDef);
             mReanimation->SetScale(mScale);
             mReanimation->SetLoopType(mLoopType);
             mReanimation->SetGameObject(gameObj);
@@ -60,7 +69,12 @@ public:
     }
 
     void Update() override {
-        if (mReanimation && mIsPlaying) {
+        if (mReanimation) {
+            if (auto gameObj = GetGameObject()) {
+                if (auto transformComp = gameObj->GetComponent<TransformComponent>()) {
+                    SetPosition(transformComp->position);
+                }
+            }
             mReanimation->Update();
 			// 备选: 自动销毁逻辑
             if (mAutoDestroy && mReanimation->IsDead()) {
@@ -72,7 +86,7 @@ public:
     }
 
     void Draw(SDL_Renderer* renderer) override {
-        if (mReanimation && mIsPlaying) {
+        if (mReanimation) {
             mReanimation->Draw();
         }
     }
@@ -81,12 +95,14 @@ public:
         mIsPlaying = true;
         if (mReanimation != nullptr && mReanimation->IsDead())
         {
+            mReanimation->SetPlaying(true);
             mReanimation->ReanimationReset(); // 只对已结束的动画重置
         }
     }
 
     void Stop() {
         mIsPlaying = false;
+        mReanimation->SetPlaying(false);
     }
 
     void SetLoopType(ReanimLoopType loopType) {
@@ -97,7 +113,6 @@ public:
     }
 
     void SetPosition(const Vector& position) {
-        mPosition = position;
         if (mReanimation) {
             mReanimation->SetPosition(position.x, position.y);
         }
@@ -111,6 +126,7 @@ public:
     }
 
     bool IsPlaying() const { return mIsPlaying; }
+
     bool IsFinished() const { return mReanimation ? mReanimation->IsDead() : false; }
 
     // 设置自动销毁

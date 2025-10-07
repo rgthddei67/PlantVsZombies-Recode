@@ -190,7 +190,7 @@ void ReanimParser::ProcessXflSymbol(const std::string& symbolName, const XflPars
         transform.mTransY = elementTransform.y;
         transform.mScaleX = elementTransform.scaleX;
         transform.mScaleY = elementTransform.scaleY;
-        transform.mSkewX = elementTransform.rotation;  // 将旋转角度传递给skewX
+        transform.mSkewX = elementTransform.rotation;
         transform.mAlpha = elementTransform.alpha;
 #ifdef _DEBUG
         TOD_TRACE(" Applied XFL transform for " + symbolName +

@@ -171,6 +171,7 @@
     <ClInclude Include="Button.h" />
     <ClInclude Include="ButtonManager.h" />
     <ClInclude Include="ClickableComponent.h" />
+    <ClInclude Include="Coin.h" />
     <ClInclude Include="ColliderComponent.h" />
     <ClInclude Include="CollisionSystem.h" />
     <ClInclude Include="Component.h" />
@@ -192,6 +193,7 @@
     <ClInclude Include="SimpleXmlParser.h" />
     <ClInclude Include="Slider.h" />
     <ClInclude Include="SliderManager.h" />
+    <ClInclude Include="Sun.h" />
     <ClInclude Include="TestObject.h" />
     <ClInclude Include="TodCommon.h" />
     <ClInclude Include="TodDebug.h" />

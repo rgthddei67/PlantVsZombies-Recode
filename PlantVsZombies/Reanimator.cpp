@@ -126,9 +126,10 @@ bool ReanimatorDefinition::LoadImages(SDL_Renderer* renderer) {
 Reanimation::Reanimation(SDL_Renderer* renderer) :
     mDefinition(nullptr),
     mAnimTime(0),
-    mAnimRate(12.0f),
+    mAnimRate(1.0f),
     mLoopType(ReanimLoopType::REANIM_LOOP),
     mDead(false),
+	mIsPlaying(true),
     mFrameStart(0),
     mFrameCount(0),
     mLoopCount(0),
@@ -139,7 +140,7 @@ Reanimation::Reanimation(SDL_Renderer* renderer) :
     mLastUpdateTime(0),
     mFirstUpdate(true),
     mScale(1.0f),
-	mCurrentTime(1.0f),
+	mCurrentTime(0.0f),
 	mTotalDuration(1.0f)
 { 
     mOverlayMatrix.LoadIdentity();
@@ -169,10 +170,11 @@ bool Reanimation::LoadReanimation(const std::string& reanimFile)
     }
 
     if (mDefinition) {
-        mAnimRate = mDefinition->mFPS;
+        //mAnimRate = mDefinition->mFPS;
+        mAnimRate = 1.0f;
         if (!mDefinition->mTracks.empty()) {
             mFrameCount = static_cast<int>(mDefinition->mTracks[0].mTransforms.size());
-            mTotalDuration = mFrameCount / mDefinition->mFPS;
+            mTotalDuration = mFrameCount / mDefinition->mFPS;  
         }
     }
 
@@ -187,7 +189,8 @@ bool Reanimation::LoadReanimation(const std::string& reanimFile)
 
 void Reanimation::ReanimationInitialize(float x, float y, std::shared_ptr<ReanimatorDefinition> definition) {
     mDefinition = definition;
-    mAnimRate = definition->mFPS;
+    mAnimRate = 0.6f;
+    //mAnimRate = definition->mFPS;
     SetPosition(x, y);
 
     // 如果还没有加载图片，现在加载
@@ -214,42 +217,35 @@ void Reanimation::ReanimationInitialize(float x, float y, std::shared_ptr<Reanim
 }
 
 void Reanimation::Update() {
-    if (mDead || !mDefinition || mDefinition->mTracks.empty() || mFrameCount == 0) {
+    if (mDead || !mDefinition || mDefinition->mTracks.empty() || mFrameCount == 0 || !mIsPlaying) {
         return;
     }
-
-    static Uint32 lastTime = SDL_GetTicks();
     Uint32 currentTime = SDL_GetTicks();
 
-    if (currentTime < lastTime) {
-        lastTime = currentTime;
+    if (mFirstUpdate) {
+        mLastUpdateTime = currentTime;
+        mFirstUpdate = false;
         return;
     }
 
-    float deltaTime;
-    if (mFirstUpdate) 
-    {
-        deltaTime = 0.0f;
-        mFirstUpdate = false;
+    // 计算真实的时间增量（秒）
+    float deltaTime = (currentTime - mLastUpdateTime) / 1000.0f;
+    mLastUpdateTime = currentTime;
 
-        // 初始化总时长
-        mTotalDuration = mFrameCount / mDefinition->mFPS;
-        mCurrentTime = 0.0f;
+    // 限制最大增量时间，避免卡顿导致的跳帧
+    if (deltaTime > 0.1f) {
+        deltaTime = 0.1f;
     }
-    else {
-        deltaTime = (currentTime - lastTime) / 1000.0f;
-        if (deltaTime > 0.033f) {
-            deltaTime = 0.033f;
-        }
-    }
-    lastTime = currentTime;
 
-    mLastFrameTime = mAnimTime;
-
-    // 使用实际时间而不是归一化时间
-    mCurrentTime += deltaTime * (mAnimRate / mDefinition->mFPS);
-
+    // 保存之前的状态用于检测变化
     bool wasNotDead = !mDead;
+    float oldTime = mCurrentTime;
+
+    // 基于FPS计算每帧应该推进的时间
+    float timePerFrame = 1.0f / mDefinition->mFPS;
+    float advanceAmount = deltaTime * mAnimRate;
+
+    mCurrentTime += advanceAmount;
 
     // 根据循环类型处理时间
     switch (mLoopType) {
@@ -264,6 +260,7 @@ void Reanimation::Update() {
         if (mCurrentTime >= mTotalDuration) {
             mLoopCount = 1;
             mCurrentTime = mTotalDuration;
+            mIsPlaying = false;
             mDead = true;
         }
         break;
@@ -271,25 +268,23 @@ void Reanimation::Update() {
     case ReanimLoopType::REANIM_PLAY_ONCE_AND_HOLD:
         if (mCurrentTime >= mTotalDuration) {
             mLoopCount = 1;
+            mIsPlaying = false;
             mCurrentTime = mTotalDuration;
         }
         break;
 
     case ReanimLoopType::REANIM_LOOP_FULL_LAST_FRAME:
-        // 循环播放（包含最后一帧）
         if (mCurrentTime >= mTotalDuration) {
             mLoopCount++;
-            mCurrentTime = mTotalDuration;
-            //TOD_TRACE("Full frame animation looped, reset to start");
+            mCurrentTime = fmod(mCurrentTime, mTotalDuration);
         }
         break;
 
     case ReanimLoopType::REANIM_PLAY_ONCE_FULL_LAST_FRAME:
-        // 播放一次（包含最后一帧）并标记为dead
-        if (mCurrentTime >= mTotalDuration) 
-        {
+        if (mCurrentTime >= mTotalDuration) {
             mLoopCount = 1;
             mCurrentTime = mTotalDuration;
+            mIsPlaying = false;
             mDead = true;
         }
         break;
@@ -297,7 +292,15 @@ void Reanimation::Update() {
     default:
         break;
     }
-    mAnimTime = mCurrentTime / mTotalDuration;
+
+    // 更新动画时间（0-1范围）
+    if (mTotalDuration > 0) {
+        mAnimTime = mCurrentTime / mTotalDuration;
+    }
+    else {
+        mAnimTime = 0.0f;
+    }
+
     if (mAutoDestroy) {
         bool shouldDestroy = false;
 
@@ -314,7 +317,6 @@ void Reanimation::Update() {
         }
 
         if (shouldDestroy) {
-            // 获取关联的GameObject并销毁
             if (auto gameObj = mGameObjectWeak.lock()) {
                 gameObj->SetActive(false);
             }
@@ -435,7 +437,7 @@ void Reanimation::SetFramesForLayer(const char* trackName) {
 
 void Reanimation::GetFrameTime(ReanimatorFrameTime* theFrameTime)
 {
-    if (mFrameCount == 0) {
+    if (mFrameCount == 0 || mTotalDuration <= 0) {
         theFrameTime->mFraction = 0.0f;
         theFrameTime->mAnimFrameBeforeInt = 0;
         theFrameTime->mAnimFrameAfterInt = 0;
@@ -477,8 +479,31 @@ void Reanimation::GetTransformAtTime(int theTrackIndex, ReanimatorTransform* the
     // 帧间插值计算
     theTransform->mTransX = FloatLerp(transformBefore.mTransX, transformAfter.mTransX, theFrameTime->mFraction);
     theTransform->mTransY = FloatLerp(transformBefore.mTransY, transformAfter.mTransY, theFrameTime->mFraction);
-    theTransform->mSkewX = FloatLerp(transformBefore.mSkewX, transformAfter.mSkewX, theFrameTime->mFraction);
-    theTransform->mSkewY = FloatLerp(transformBefore.mSkewY, transformAfter.mSkewY, theFrameTime->mFraction);
+    // 旋转角度需要特殊插值（避免从350°到10°的错误插值）
+    float rotationBefore = transformBefore.mSkewX;
+    float rotationAfter = transformAfter.mSkewX;
+
+    // 处理角度环绕
+    if (fabsf(rotationAfter - rotationBefore) > 180.0f) {
+        if (rotationAfter > rotationBefore) {
+            rotationBefore += 360.0f;
+        }
+        else {
+            rotationAfter += 360.0f;
+        }
+    }
+
+    theTransform->mSkewX = FloatLerp(rotationBefore, rotationAfter, theFrameTime->mFraction);
+
+    if (theTransform->mSkewX > 180.0f) {
+        theTransform->mSkewX -= 360.0f;
+    }
+    else if (theTransform->mSkewX < -180.0f) {
+        theTransform->mSkewX += 360.0f;
+    }
+
+    theTransform->mSkewY = 0.0f; // 2D旋转不需要skewY
+
     theTransform->mScaleX = FloatLerp(transformBefore.mScaleX, transformAfter.mScaleX, theFrameTime->mFraction);
     theTransform->mScaleY = FloatLerp(transformBefore.mScaleY, transformAfter.mScaleY, theFrameTime->mFraction);
     theTransform->mAlpha = FloatLerp(transformBefore.mAlpha, transformAfter.mAlpha, theFrameTime->mFraction);
