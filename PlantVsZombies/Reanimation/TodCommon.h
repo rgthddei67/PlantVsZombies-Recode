@@ -2,10 +2,10 @@
 
 #ifndef _TODCOMMON_H
 #define _TODCOMMON_H
-#include "AllCppInclude.h"
+#include "../AllCppInclude.h"
 #include <cmath>
 #include <algorithm>
-#include "Definit.h"
+#include "../Board&Game/Definit.h"
 
 // 数学常量
 constexpr float PI = 3.14159265358979323846f;

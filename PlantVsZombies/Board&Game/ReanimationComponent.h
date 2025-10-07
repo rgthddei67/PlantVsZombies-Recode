@@ -3,9 +3,9 @@
 #define _REANIMATION_COMPONENT_H
 
 #include "ResourceManager.h"
-#include "Component.h"
-#include "Reanimator.h"
-#include "AnimationTypes.h"
+#include "./Board&Game/Component.h"
+#include "./Reanimation/Reanimator.h"
+#include "./Reanimation/AnimationTypes.h"
 #include <memory>
 
 class GameObjectManager;

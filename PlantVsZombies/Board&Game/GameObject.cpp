@@ -1,6 +1,6 @@
 #include "GameObject.h"
 #include "Component.h"
-#include "RendererManager.h"
+#include "../RendererManager.h"
 #include "CollisionSystem.h"
 #include "ColliderComponent.h"
 

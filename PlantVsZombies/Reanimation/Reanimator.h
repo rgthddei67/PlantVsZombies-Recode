@@ -1,14 +1,14 @@
 #pragma once
 #ifndef _REANIMATOR_H
 #define _REANIMATOR_H
-#include "AllCppInclude.h"
+#include "../AllCppInclude.h"
 #include "AnimationTypes.h"
 #include <SDL.h>
 #include <string>
 #include <vector>
 #include <memory>
-#include "ConstEnums.h"
-#include "Definit.h"
+#include "../ConstEnums.h"
+#include "../Board&Game/Definit.h"
 
 // Ç°ÏòÉùÃ÷
 class ReanimatorDefinition;

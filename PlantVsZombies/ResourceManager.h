@@ -1,8 +1,8 @@
 #pragma once
 #ifndef _RESOURCEMANAGER_H
 #define _RESOURCEMANAGER_H
-#include "Reanimator.h"
-#include "AnimationTypes.h"
+#include "./Reanimation/Reanimator.h"
+#include "./Reanimation/AnimationTypes.h"
 #include "AllCppInclude.h"
 #include <SDL.h>
 #include <SDL_image.h>

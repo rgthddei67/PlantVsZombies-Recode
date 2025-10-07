@@ -10,7 +10,7 @@
 #include <string>
 #include <map>
 #include <functional>
-#include "Definit.h"
+#include "./Board&Game/Definit.h"
 
 struct TextCache
 {

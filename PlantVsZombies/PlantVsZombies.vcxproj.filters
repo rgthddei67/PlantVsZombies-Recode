@@ -1,186 +1,193 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="源文件">
-      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
-      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
-    </Filter>
-    <Filter Include="头文件">
-      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
-      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
-    </Filter>
     <Filter Include="资源文件">
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Code">
+      <UniqueIdentifier>{5cd8265d-add1-40fe-b4ed-62997412c49b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Code\Board&amp;Game">
+      <UniqueIdentifier>{566510ac-13b9-4281-a79b-2b61a4e5eb30}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Code\ParticleSystem">
+      <UniqueIdentifier>{772fd8a0-7dbe-44b3-9a04-866b9b209266}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Code\Reanimation">
+      <UniqueIdentifier>{2a4af1d9-45d0-456e-b21f-ffe55a566936}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Code\UI">
+      <UniqueIdentifier>{0731f7f2-6c95-4404-ad83-44a2d0fe88a6}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="main.cpp">
-      <Filter>源文件</Filter>
+    <ClCompile Include="Board&amp;Game\AudioSystem.cpp">
+      <Filter>Code\Board&amp;Game</Filter>
     </ClCompile>
-    <ClCompile Include="InputHandler.cpp">
-      <Filter>源文件</Filter>
+    <ClCompile Include="Board&amp;Game\Component.cpp">
+      <Filter>Code\Board&amp;Game</Filter>
     </ClCompile>
-    <ClCompile Include="Button.cpp">
-      <Filter>源文件</Filter>
+    <ClCompile Include="Board&amp;Game\GameObject.cpp">
+      <Filter>Code\Board&amp;Game</Filter>
     </ClCompile>
-    <ClCompile Include="ButtonManager.cpp">
-      <Filter>源文件</Filter>
+    <ClCompile Include="UI\Button.cpp">
+      <Filter>Code\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\ButtonManager.cpp">
+      <Filter>Code\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\InputHandler.cpp">
+      <Filter>Code\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Slider.cpp">
+      <Filter>Code\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\SliderManager.cpp">
+      <Filter>Code\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="Reanimation\Reanimator.cpp">
+      <Filter>Code\Reanimation</Filter>
+    </ClCompile>
+    <ClCompile Include="Reanimation\ReanimParser.cpp">
+      <Filter>Code\Reanimation</Filter>
+    </ClCompile>
+    <ClCompile Include="Reanimation\SimpleXmlParser.cpp">
+      <Filter>Code\Reanimation</Filter>
+    </ClCompile>
+    <ClCompile Include="Reanimation\XFLParser.cpp">
+      <Filter>Code\Reanimation</Filter>
+    </ClCompile>
+    <ClCompile Include="ParticleSystem\Particle.cpp">
+      <Filter>Code\ParticleSystem</Filter>
+    </ClCompile>
+    <ClCompile Include="ParticleSystem\ParticleConfig.cpp">
+      <Filter>Code\ParticleSystem</Filter>
+    </ClCompile>
+    <ClCompile Include="ParticleSystem\ParticleEmitter.cpp">
+      <Filter>Code\ParticleSystem</Filter>
+    </ClCompile>
+    <ClCompile Include="ParticleSystem\ParticleSystem.cpp">
+      <Filter>Code\ParticleSystem</Filter>
     </ClCompile>
     <ClCompile Include="GameApp.cpp">
-      <Filter>源文件</Filter>
+      <Filter>Code</Filter>
     </ClCompile>
-    <ClCompile Include="Slider.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="SliderManager.cpp">
-      <Filter>源文件</Filter>
+    <ClCompile Include="main.cpp">
+      <Filter>Code</Filter>
     </ClCompile>
     <ClCompile Include="ResourceManager.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="AudioSystem.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="SimpleXmlParser.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="Reanimator.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="ReanimParser.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="XFLParser.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="ParticleSystem.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="Particle.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="ParticleConfig.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="ParticleEmitter.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="GameObject.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="Component.cpp">
-      <Filter>源文件</Filter>
+      <Filter>Code</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="InputHandler.h">
-      <Filter>头文件</Filter>
+    <ClInclude Include="Board&amp;Game\AudioSystem.h">
+      <Filter>Code\Board&amp;Game</Filter>
     </ClInclude>
-    <ClInclude Include="Definit.h">
-      <Filter>头文件</Filter>
+    <ClInclude Include="Board&amp;Game\ClickableComponent.h">
+      <Filter>Code\Board&amp;Game</Filter>
     </ClInclude>
-    <ClInclude Include="ButtonManager.h">
-      <Filter>头文件</Filter>
+    <ClInclude Include="Board&amp;Game\Coin.h">
+      <Filter>Code\Board&amp;Game</Filter>
     </ClInclude>
-    <ClInclude Include="Button.h">
-      <Filter>头文件</Filter>
+    <ClInclude Include="Board&amp;Game\ColliderComponent.h">
+      <Filter>Code\Board&amp;Game</Filter>
     </ClInclude>
-    <ClInclude Include="GameApp.h">
-      <Filter>头文件</Filter>
+    <ClInclude Include="Board&amp;Game\CollisionSystem.h">
+      <Filter>Code\Board&amp;Game</Filter>
     </ClInclude>
-    <ClInclude Include="Slider.h">
-      <Filter>头文件</Filter>
+    <ClInclude Include="Board&amp;Game\Component.h">
+      <Filter>Code\Board&amp;Game</Filter>
     </ClInclude>
-    <ClInclude Include="SliderManager.h">
-      <Filter>头文件</Filter>
+    <ClInclude Include="Board&amp;Game\Definit.h">
+      <Filter>Code\Board&amp;Game</Filter>
     </ClInclude>
-    <ClInclude Include="UIManager.h">
-      <Filter>头文件</Filter>
+    <ClInclude Include="Board&amp;Game\GameObject.h">
+      <Filter>Code\Board&amp;Game</Filter>
     </ClInclude>
-    <ClInclude Include="ResourceManager.h">
-      <Filter>头文件</Filter>
+    <ClInclude Include="Board&amp;Game\GameObjectManager.h">
+      <Filter>Code\Board&amp;Game</Filter>
     </ClInclude>
-    <ClInclude Include="AudioSystem.h">
-      <Filter>头文件</Filter>
+    <ClInclude Include="Board&amp;Game\Sun.h">
+      <Filter>Code\Board&amp;Game</Filter>
     </ClInclude>
-    <ClInclude Include="SimpleXmlParser.h">
-      <Filter>头文件</Filter>
+    <ClInclude Include="Board&amp;Game\TransformComponent.h">
+      <Filter>Code\Board&amp;Game</Filter>
     </ClInclude>
-    <ClInclude Include="TodDebug.h">
-      <Filter>头文件</Filter>
+    <ClInclude Include="UI\Button.h">
+      <Filter>Code\UI</Filter>
     </ClInclude>
-    <ClInclude Include="TodCommon.h">
-      <Filter>头文件</Filter>
+    <ClInclude Include="UI\ButtonManager.h">
+      <Filter>Code\UI</Filter>
     </ClInclude>
-    <ClInclude Include="ReanimParser.h">
-      <Filter>头文件</Filter>
+    <ClInclude Include="UI\InputHandler.h">
+      <Filter>Code\UI</Filter>
     </ClInclude>
-    <ClInclude Include="ConstEnums.h">
-      <Filter>头文件</Filter>
+    <ClInclude Include="UI\Slider.h">
+      <Filter>Code\UI</Filter>
     </ClInclude>
-    <ClInclude Include="Reanimator.h">
-      <Filter>头文件</Filter>
+    <ClInclude Include="UI\SliderManager.h">
+      <Filter>Code\UI</Filter>
     </ClInclude>
-    <ClInclude Include="XFLParser.h">
-      <Filter>头文件</Filter>
+    <ClInclude Include="UI\UIManager.h">
+      <Filter>Code\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="Reanimation\AnimationTypes.h">
+      <Filter>Code\Reanimation</Filter>
+    </ClInclude>
+    <ClInclude Include="Reanimation\Reanimator.h">
+      <Filter>Code\Reanimation</Filter>
+    </ClInclude>
+    <ClInclude Include="Reanimation\ReanimParser.h">
+      <Filter>Code\Reanimation</Filter>
+    </ClInclude>
+    <ClInclude Include="Reanimation\SimpleXmlParser.h">
+      <Filter>Code\Reanimation</Filter>
+    </ClInclude>
+    <ClInclude Include="Reanimation\TodCommon.h">
+      <Filter>Code\Reanimation</Filter>
+    </ClInclude>
+    <ClInclude Include="Reanimation\TodDebug.h">
+      <Filter>Code\Reanimation</Filter>
+    </ClInclude>
+    <ClInclude Include="Reanimation\XFLParser.h">
+      <Filter>Code\Reanimation</Filter>
+    </ClInclude>
+    <ClInclude Include="ParticleSystem\Particle.h">
+      <Filter>Code\ParticleSystem</Filter>
+    </ClInclude>
+    <ClInclude Include="ParticleSystem\ParticleConfig.h">
+      <Filter>Code\ParticleSystem</Filter>
+    </ClInclude>
+    <ClInclude Include="ParticleSystem\ParticleEmitter.h">
+      <Filter>Code\ParticleSystem</Filter>
+    </ClInclude>
+    <ClInclude Include="ParticleSystem\ParticleSystem.h">
+      <Filter>Code\ParticleSystem</Filter>
     </ClInclude>
     <ClInclude Include="AllCppInclude.h">
-      <Filter>头文件</Filter>
+      <Filter>Code</Filter>
     </ClInclude>
-    <ClInclude Include="AnimationTypes.h">
-      <Filter>头文件</Filter>
+    <ClInclude Include="ConstEnums.h">
+      <Filter>Code</Filter>
     </ClInclude>
-    <ClInclude Include="Particle.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="ParticleEmitter.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="ParticleSystem.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="ParticleConfig.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="Component.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="TransformComponent.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="ColliderComponent.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="CollisionSystem.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="TestObject.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="ReanimationComponent.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="AnimatedObject.h">
-      <Filter>头文件</Filter>
+    <ClInclude Include="GameApp.h">
+      <Filter>Code</Filter>
     </ClInclude>
     <ClInclude Include="RendererManager.h">
-      <Filter>头文件</Filter>
+      <Filter>Code</Filter>
     </ClInclude>
-    <ClInclude Include="ClickableComponent.h">
-      <Filter>头文件</Filter>
+    <ClInclude Include="ResourceManager.h">
+      <Filter>Code</Filter>
     </ClInclude>
-    <ClInclude Include="GameObject.h">
-      <Filter>头文件</Filter>
+    <ClInclude Include="TestObject.h">
+      <Filter>Code</Filter>
     </ClInclude>
-    <ClInclude Include="GameObjectManager.h">
-      <Filter>头文件</Filter>
+    <ClInclude Include="Board&amp;Game\AnimatedObject.h">
+      <Filter>Code\Board&amp;Game</Filter>
     </ClInclude>
-    <ClInclude Include="Coin.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="Sun.h">
-      <Filter>头文件</Filter>
+    <ClInclude Include="Board&amp;Game\ReanimationComponent.h">
+      <Filter>Code\Board&amp;Game</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

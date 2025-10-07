@@ -1,5 +1,5 @@
 #include "GameApp.h"
-#include "InputHandler.h"
+#include "./UI/InputHandler.h"
 #include "ResourceManager.h"
 #include <iostream>
 #include <sstream>

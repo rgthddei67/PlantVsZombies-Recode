@@ -3,7 +3,7 @@
 #define __PARTICLE_SYSTEM_H__
 
 #include "ParticleEmitter.h"
-#include "Definit.h"
+#include "../Board&Game/Definit.h"
 #include <vector>
 #include <memory>
 

@@ -1,9 +1,9 @@
 #pragma once
 #include <iostream>
 #include "SDL.h"
-#include "Component.h"
-#include "TransformComponent.h"
-#include "ColliderComponent.h"
+#include "./Board&Game/Component.h"
+#include "./Board&Game/TransformComponent.h"
+#include "./Board&Game/ColliderComponent.h"
 
 class TestObject : public GameObject {
 private:

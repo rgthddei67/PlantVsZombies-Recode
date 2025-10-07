@@ -1,5 +1,5 @@
 ﻿#include "ReanimParser.h"
-#include "ResourceManager.h"
+#include "../ResourceManager.h"
 #include "TodDebug.h"
 #include <SDL_image.h>
 #include <filesystem>

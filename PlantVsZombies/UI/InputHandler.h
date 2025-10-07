@@ -1,12 +1,12 @@
 #pragma once
 #ifndef _INPUTHANDLER_H
 #define _INPUTHANDLER_H
-#include "AllCppInclude.h"
+#include "../AllCppInclude.h"
 #include <SDL.h>
 #include <map>
 #include <vector>
 #include <functional>
-#include "Definit.h"
+#include "../Board&Game/Definit.h"
 
 // Ç°ÏòÉùÃ÷
 class InputHandler;

@@ -1,9 +1,9 @@
 #pragma once
 #ifndef _SLIDER_H
 #define _SLIDER_H
-#include "AllCppInclude.h"
-#include "Definit.h"
-#include "InputHandler.h"
+#include "../AllCppInclude.h"
+#include "../Board&Game/Definit.h"
+#include "../UI/InputHandler.h"
 #include <functional>
 #include <string>
 #include <SDL.h>

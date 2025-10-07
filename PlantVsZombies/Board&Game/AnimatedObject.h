@@ -2,11 +2,11 @@
 #ifndef _ANIMATED_OBJECT_H
 #define _ANIMATED_OBJECT_H
 
-#include "Component.h"
-#include "GameObject.h"
-#include "TransformComponent.h"
-#include "ReanimationComponent.h"
-#include "ColliderComponent.h"
+#include "./Board&Game/Component.h"
+#include "./Board&Game/GameObject.h"
+#include "./Board&Game/TransformComponent.h"
+#include "./Board&Game/ReanimationComponent.h"
+#include "./Board&Game/ColliderComponent.h"
 
 class AnimatedObject : public GameObject {
 protected:

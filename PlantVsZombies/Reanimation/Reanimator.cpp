@@ -1,10 +1,10 @@
 #include <SDL_image.h>
 #include <algorithm>
 #include <cmath>
-#include "Reanimator.h"
-#include "ResourceManager.h"
+#include "../Reanimation/Reanimator.h"
+#include "../ResourceManager.h"
 #include "ReanimParser.h"
-#include "GameObject.h"
+#include "../Board&Game/GameObject.h"
 #include "TodCommon.h"
 #include "TodDebug.h"
 

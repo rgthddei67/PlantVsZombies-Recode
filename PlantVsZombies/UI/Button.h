@@ -1,8 +1,8 @@
 #pragma once
 #ifndef _BUTTON_H
 #define _BUTTON_H
-#include "AllCppInclude.h"
-#include "GameApp.h"
+#include "../AllCppInclude.h"
+#include "../GameApp.h"
 #include <functional>
 #include <string>
 #include <SDL.h>

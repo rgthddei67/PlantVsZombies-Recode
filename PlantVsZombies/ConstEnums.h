@@ -2,7 +2,7 @@
 
 #ifndef _CONSTENUMS_H
 #define _CONSTENUMS_H
-#include "AllCppInclude.h"
+#include "../AllCppInclude.h"
 #include <string>
 
 // 动画循环类型

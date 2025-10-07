@@ -1,6 +1,6 @@
-#include "ParticleEmitter.h"
+#include "../ParticleSystem/ParticleEmitter.h"
 #include <iostream>
-#include "GameAPP.h"
+#include "../GameApp.h"
 #include <cmath>
 #include <cstdlib>
 

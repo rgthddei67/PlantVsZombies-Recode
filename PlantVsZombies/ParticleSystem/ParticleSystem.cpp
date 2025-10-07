@@ -1,4 +1,4 @@
-#include "ParticleSystem.h"
+#include "../ParticleSystem/ParticleSystem.h"
 
 ParticleSystem::ParticleSystem(SDL_Renderer* Renderer)
     : renderer(Renderer) {

@@ -1,9 +1,9 @@
 #pragma once
 #ifndef _CLICKABLE_COMPONENT_H
 #define _CLICKABLE_COMPONENT_H
-#include "Component.h"
-#include "ColliderComponent.h"
-#include "InputHandler.h"
+#include "./Board&Game/Component.h"
+#include "./Board&Game/ColliderComponent.h"
+#include "./UI/InputHandler.h"
 #include <iostream>
 #include <functional>
 #include <memory>

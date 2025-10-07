@@ -18,6 +18,65 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Board&amp;Game\AudioSystem.cpp" />
+    <ClCompile Include="Board&amp;Game\Component.cpp" />
+    <ClCompile Include="Board&amp;Game\GameObject.cpp" />
+    <ClCompile Include="GameApp.cpp" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="ParticleSystem\Particle.cpp" />
+    <ClCompile Include="ParticleSystem\ParticleConfig.cpp" />
+    <ClCompile Include="ParticleSystem\ParticleEmitter.cpp" />
+    <ClCompile Include="ParticleSystem\ParticleSystem.cpp" />
+    <ClCompile Include="Reanimation\Reanimator.cpp" />
+    <ClCompile Include="Reanimation\ReanimParser.cpp" />
+    <ClCompile Include="Reanimation\SimpleXmlParser.cpp" />
+    <ClCompile Include="Reanimation\XFLParser.cpp" />
+    <ClCompile Include="ResourceManager.cpp" />
+    <ClCompile Include="UI\Button.cpp" />
+    <ClCompile Include="UI\ButtonManager.cpp" />
+    <ClCompile Include="UI\InputHandler.cpp" />
+    <ClCompile Include="UI\Slider.cpp" />
+    <ClCompile Include="UI\SliderManager.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="AllCppInclude.h" />
+    <ClInclude Include="Board&amp;Game\AnimatedObject.h" />
+    <ClInclude Include="Board&amp;Game\AudioSystem.h" />
+    <ClInclude Include="Board&amp;Game\ClickableComponent.h" />
+    <ClInclude Include="Board&amp;Game\Coin.h" />
+    <ClInclude Include="Board&amp;Game\ColliderComponent.h" />
+    <ClInclude Include="Board&amp;Game\CollisionSystem.h" />
+    <ClInclude Include="Board&amp;Game\Component.h" />
+    <ClInclude Include="Board&amp;Game\Definit.h" />
+    <ClInclude Include="Board&amp;Game\GameObject.h" />
+    <ClInclude Include="Board&amp;Game\GameObjectManager.h" />
+    <ClInclude Include="Board&amp;Game\ReanimationComponent.h" />
+    <ClInclude Include="Board&amp;Game\Sun.h" />
+    <ClInclude Include="Board&amp;Game\TransformComponent.h" />
+    <ClInclude Include="ConstEnums.h" />
+    <ClInclude Include="GameApp.h" />
+    <ClInclude Include="ParticleSystem\Particle.h" />
+    <ClInclude Include="ParticleSystem\ParticleConfig.h" />
+    <ClInclude Include="ParticleSystem\ParticleEmitter.h" />
+    <ClInclude Include="ParticleSystem\ParticleSystem.h" />
+    <ClInclude Include="Reanimation\AnimationTypes.h" />
+    <ClInclude Include="Reanimation\Reanimator.h" />
+    <ClInclude Include="Reanimation\ReanimParser.h" />
+    <ClInclude Include="Reanimation\SimpleXmlParser.h" />
+    <ClInclude Include="Reanimation\TodCommon.h" />
+    <ClInclude Include="Reanimation\TodDebug.h" />
+    <ClInclude Include="Reanimation\XFLParser.h" />
+    <ClInclude Include="RendererManager.h" />
+    <ClInclude Include="ResourceManager.h" />
+    <ClInclude Include="TestObject.h" />
+    <ClInclude Include="UI\Button.h" />
+    <ClInclude Include="UI\ButtonManager.h" />
+    <ClInclude Include="UI\InputHandler.h" />
+    <ClInclude Include="UI\Slider.h" />
+    <ClInclude Include="UI\SliderManager.h" />
+    <ClInclude Include="UI\UIManager.h" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
@@ -142,65 +201,6 @@
       <AdditionalDependencies>SDL2.lib;SDL2main.lib;SDL2_ttf.lib;SDL2_mixer.lib;SDL2_image.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <ClCompile Include="AudioSystem.cpp" />
-    <ClCompile Include="Button.cpp" />
-    <ClCompile Include="ButtonManager.cpp" />
-    <ClCompile Include="Component.cpp" />
-    <ClCompile Include="GameApp.cpp" />
-    <ClCompile Include="GameObject.cpp" />
-    <ClCompile Include="InputHandler.cpp" />
-    <ClCompile Include="main.cpp" />
-    <ClCompile Include="Particle.cpp" />
-    <ClCompile Include="ParticleConfig.cpp" />
-    <ClCompile Include="ParticleEmitter.cpp" />
-    <ClCompile Include="ParticleSystem.cpp" />
-    <ClCompile Include="Reanimator.cpp" />
-    <ClCompile Include="ReanimParser.cpp" />
-    <ClCompile Include="ResourceManager.cpp" />
-    <ClCompile Include="SimpleXmlParser.cpp" />
-    <ClCompile Include="Slider.cpp" />
-    <ClCompile Include="SliderManager.cpp" />
-    <ClCompile Include="XFLParser.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="AllCppInclude.h" />
-    <ClInclude Include="AnimatedObject.h" />
-    <ClInclude Include="AnimationTypes.h" />
-    <ClInclude Include="AudioSystem.h" />
-    <ClInclude Include="Button.h" />
-    <ClInclude Include="ButtonManager.h" />
-    <ClInclude Include="ClickableComponent.h" />
-    <ClInclude Include="Coin.h" />
-    <ClInclude Include="ColliderComponent.h" />
-    <ClInclude Include="CollisionSystem.h" />
-    <ClInclude Include="Component.h" />
-    <ClInclude Include="ConstEnums.h" />
-    <ClInclude Include="Definit.h" />
-    <ClInclude Include="GameApp.h" />
-    <ClInclude Include="GameObject.h" />
-    <ClInclude Include="GameObjectManager.h" />
-    <ClInclude Include="InputHandler.h" />
-    <ClInclude Include="Particle.h" />
-    <ClInclude Include="ParticleConfig.h" />
-    <ClInclude Include="ParticleEmitter.h" />
-    <ClInclude Include="ParticleSystem.h" />
-    <ClInclude Include="ReanimationComponent.h" />
-    <ClInclude Include="Reanimator.h" />
-    <ClInclude Include="ReanimParser.h" />
-    <ClInclude Include="RendererManager.h" />
-    <ClInclude Include="ResourceManager.h" />
-    <ClInclude Include="SimpleXmlParser.h" />
-    <ClInclude Include="Slider.h" />
-    <ClInclude Include="SliderManager.h" />
-    <ClInclude Include="Sun.h" />
-    <ClInclude Include="TestObject.h" />
-    <ClInclude Include="TodCommon.h" />
-    <ClInclude Include="TodDebug.h" />
-    <ClInclude Include="TransformComponent.h" />
-    <ClInclude Include="UIManager.h" />
-    <ClInclude Include="XFLParser.h" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

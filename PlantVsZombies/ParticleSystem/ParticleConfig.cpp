@@ -1,5 +1,5 @@
-#include "ParticleConfig.h"
-#include "ResourceManager.h"
+#include "../ParticleSystem/ParticleConfig.h"
+#include "../ResourceManager.h"
 #include <cmath>
 
 ParticleConfigManager::ParticleConfigManager(SDL_Renderer* sdlRenderer)

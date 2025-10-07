@@ -1,6 +1,5 @@
-#include "AudioSystem.h"
-#include "ResourceManager.h"
-
+#include "../Board&Game/AudioSystem.h"
+#include "../ResourceManager.h"
 #include <fstream>
 #include <algorithm>
 

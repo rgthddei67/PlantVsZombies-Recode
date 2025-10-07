@@ -2,7 +2,7 @@
 #ifndef _GAMEOBJECT_H
 #define _GAMEOBJECT_H
 
-#include "RendererManager.h"
+#include "../RendererManager.h"
 #include <memory>
 #include <vector>
 #include <unordered_map>
