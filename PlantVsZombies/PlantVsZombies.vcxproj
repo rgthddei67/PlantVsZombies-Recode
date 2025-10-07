@@ -19,10 +19,13 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Board&amp;Game\AudioSystem.cpp" />
-    <ClCompile Include="Board&amp;Game\Component.cpp" />
-    <ClCompile Include="Board&amp;Game\GameObject.cpp" />
     <ClCompile Include="GameApp.cpp" />
+    <ClCompile Include="Game\AudioSystem.cpp" />
+    <ClCompile Include="Game\Board.cpp" />
+    <ClCompile Include="Game\ClickableComponent.cpp" />
+    <ClCompile Include="Game\ColliderComponent.cpp" />
+    <ClCompile Include="Game\Component.cpp" />
+    <ClCompile Include="Game\GameObject.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="ParticleSystem\Particle.cpp" />
     <ClCompile Include="ParticleSystem\ParticleConfig.cpp" />
@@ -40,21 +43,23 @@
     <ClCompile Include="UI\SliderManager.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Board&amp;Game\AnimatedObject.h" />
-    <ClInclude Include="Board&amp;Game\AudioSystem.h" />
-    <ClInclude Include="Board&amp;Game\ClickableComponent.h" />
-    <ClInclude Include="Board&amp;Game\Coin.h" />
-    <ClInclude Include="Board&amp;Game\ColliderComponent.h" />
-    <ClInclude Include="Board&amp;Game\CollisionSystem.h" />
-    <ClInclude Include="Board&amp;Game\Component.h" />
-    <ClInclude Include="Board&amp;Game\Definit.h" />
-    <ClInclude Include="Board&amp;Game\GameObject.h" />
-    <ClInclude Include="Board&amp;Game\GameObjectManager.h" />
-    <ClInclude Include="Board&amp;Game\ReanimationComponent.h" />
-    <ClInclude Include="Board&amp;Game\Sun.h" />
-    <ClInclude Include="Board&amp;Game\TransformComponent.h" />
     <ClInclude Include="ConstEnums.h" />
     <ClInclude Include="GameApp.h" />
+    <ClInclude Include="Game\AnimatedObject.h" />
+    <ClInclude Include="Game\AudioSystem.h" />
+    <ClInclude Include="Game\Board.h" />
+    <ClInclude Include="Game\Cell.h" />
+    <ClInclude Include="Game\ClickableComponent.h" />
+    <ClInclude Include="Game\Coin.h" />
+    <ClInclude Include="Game\ColliderComponent.h" />
+    <ClInclude Include="Game\CollisionSystem.h" />
+    <ClInclude Include="Game\Component.h" />
+    <ClInclude Include="Game\Definit.h" />
+    <ClInclude Include="Game\GameObject.h" />
+    <ClInclude Include="Game\GameObjectManager.h" />
+    <ClInclude Include="Game\ReanimationComponent.h" />
+    <ClInclude Include="Game\Sun.h" />
+    <ClInclude Include="Game\TransformComponent.h" />
     <ClInclude Include="ParticleSystem\Particle.h" />
     <ClInclude Include="ParticleSystem\ParticleConfig.h" />
     <ClInclude Include="ParticleSystem\ParticleEmitter.h" />

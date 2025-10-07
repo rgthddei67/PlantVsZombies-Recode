@@ -2,10 +2,10 @@
 #ifndef _COIN_H
 #define _COIN_H
 
-#include "./Board&Game/AnimatedObject.h"
-#include "./Board&Game/ClickableComponent.h"
-#include "./Board&Game/AudioSystem.h"
-#include "./Board&Game/GameObjectManager.h"
+#include "AnimatedObject.h"
+#include "ClickableComponent.h"
+#include "AudioSystem.h"
+#include "GameObjectManager.h"
 
 class Coin : public AnimatedObject {
 protected:

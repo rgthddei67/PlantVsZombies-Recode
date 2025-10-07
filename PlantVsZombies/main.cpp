@@ -5,17 +5,18 @@
 #include "./UI/InputHandler.h"
 #include "./ResourceManager.h"
 #include "./RendererManager.h"
-#include "./Board&Game/AudioSystem.h"
+#include "./Game/AudioSystem.h"
 #include "./Reanimation/Reanimator.h"
 #include "./ParticleSystem/ParticleSystem.h"
-#include "./Board&Game/GameObject.h"
-#include "./Board&Game/GameObjectManager.h"
-#include "./Board&Game/Component.h"
-#include "./Board&Game/CollisionSystem.h"
-#include "./Board&Game/ClickableComponent.h"
+#include "./Game/GameObject.h"
+#include "./Game/GameObjectManager.h"
+#include "./Game/Component.h"
+#include "./Game/CollisionSystem.h"
+#include "./Game/ClickableComponent.h"
 #include "./TestObject.h"
-#include "./Board&Game/AnimatedObject.h"
-#include "./Board&Game/Sun.h"
+#include "./Game/AnimatedObject.h"
+#include "./Game/Sun.h"
+#include "./Game/Board.h"
 #include <iostream>
 #include <sstream>
 
@@ -91,9 +92,8 @@ int SDL_main(int argc, char* argv[])
         std::cerr << "警告: 音频初始化失败，游戏将继续运行但没有声音" << std::endl;
     }
 
-    InputHandler* input = InputHandler::GetInstance();
+    GameAPP::GetInstance().Initialize();
     UIManager uiManager;
-    GameAPP gameApp;
 
     // 设置默认字体路径
     Button::SetDefaultFontPath("./font/fzcq.ttf");
@@ -109,7 +109,7 @@ int SDL_main(int argc, char* argv[])
         std::cerr << "窗口创建失败: " << SDL_GetError() << std::endl;
         AudioSystem::Shutdown();
         Mix_Quit();
-        gameApp.CloseGame();
+        GameAPP::GetInstance().CloseGame();
         TTF_Quit();
         IMG_Quit();
         SDL_Quit();
@@ -125,7 +125,7 @@ int SDL_main(int argc, char* argv[])
         std::cerr << "渲染器创建失败: " << SDL_GetError() << std::endl;
         AudioSystem::Shutdown();
         Mix_Quit();
-        gameApp.CloseGame();
+        GameAPP::GetInstance().CloseGame();
         SDL_DestroyWindow(window);
         TTF_Quit();
         IMG_Quit();
@@ -154,9 +154,9 @@ int SDL_main(int argc, char* argv[])
     {
         AudioSystem::Shutdown();    
         Mix_Quit();                
-        GameAPP::CleanupResources();
+        GameAPP::GetInstance().CleanupResources();
         ResourceManager::ReleaseInstance();
-        gameApp.CloseGame();
+        GameAPP::GetInstance().CloseGame();
 		SDL_DestroyRenderer(renderer);
         SDL_DestroyWindow(window);
         TTF_Quit();
@@ -180,11 +180,11 @@ int SDL_main(int argc, char* argv[])
     button2->SetClickCallBack(UIFunctions::ImageButtonClick);
     auto slider = uiManager.CreateSlider(Vector(500, 150), Vector(135, 10), 0.0f, 100.0f, 0.0f);
     slider->SetChangeCallBack(UIFunctions::SliderChanged);
-    
     bool running = true;
     SDL_Event event;
     while (running) 
     {
+        auto& input = GameAPP::GetInstance().GetInputHandler();
         // 处理事件
         while (SDL_PollEvent(&event)) 
         {
@@ -192,16 +192,16 @@ int SDL_main(int argc, char* argv[])
             {
                 running = false;
             }
-            uiManager.ProcessMouseEvent(&event, input);
-            input->ProcessEvent(&event);
+            uiManager.ProcessMouseEvent(&event, &input);
+            input.ProcessEvent(&event);
         }
-        if (input->IsKeyReleased(SDLK_ESCAPE))
+        if (input.IsKeyReleased(SDLK_ESCAPE))
         {
             running = false;
             break;
         }
 		// 更新板块
-        uiManager.UpdateAll(input);
+        uiManager.UpdateAll(&input);
 		g_particleSystem->UpdateAll();
         GameObjectManager::GetInstance().Update();
         CollisionSystem::GetInstance().Update();
@@ -219,18 +219,18 @@ int SDL_main(int argc, char* argv[])
 
         uiManager.ResetAllFrameStates();
 
-        input->Update();
+        input.Update();
     }
-    AudioSystem::Shutdown();
-    if (window != nullptr)
-    {
-        SDL_StopTextInput();
-    }
+    g_particleSystem->UpdateAll(); 
+    g_particleSystem->DrawAll();    
+
     GameObjectManager::GetInstance().ClearAll();
     CollisionSystem::GetInstance().ClearAll();
     g_particleSystem.reset();
-    ResourceManager::ReleaseInstance();
-    gameApp.CloseGame();
+    GameAPP::GetInstance().CloseGame();   
+    GameAPP::GetInstance().CleanupResources(); 
+    AudioSystem::Shutdown();
+    ResourceManager::ReleaseInstance();    
     if (renderer != nullptr) 
     {
         SDL_DestroyRenderer(renderer);

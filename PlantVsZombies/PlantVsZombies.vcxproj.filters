@@ -8,9 +8,6 @@
     <Filter Include="Code">
       <UniqueIdentifier>{5cd8265d-add1-40fe-b4ed-62997412c49b}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Code\Board&amp;Game">
-      <UniqueIdentifier>{566510ac-13b9-4281-a79b-2b61a4e5eb30}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Code\ParticleSystem">
       <UniqueIdentifier>{772fd8a0-7dbe-44b3-9a04-866b9b209266}</UniqueIdentifier>
     </Filter>
@@ -20,17 +17,11 @@
     <Filter Include="Code\UI">
       <UniqueIdentifier>{0731f7f2-6c95-4404-ad83-44a2d0fe88a6}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Code\Game">
+      <UniqueIdentifier>{566510ac-13b9-4281-a79b-2b61a4e5eb30}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Board&amp;Game\AudioSystem.cpp">
-      <Filter>Code\Board&amp;Game</Filter>
-    </ClCompile>
-    <ClCompile Include="Board&amp;Game\Component.cpp">
-      <Filter>Code\Board&amp;Game</Filter>
-    </ClCompile>
-    <ClCompile Include="Board&amp;Game\GameObject.cpp">
-      <Filter>Code\Board&amp;Game</Filter>
-    </ClCompile>
     <ClCompile Include="UI\Button.cpp">
       <Filter>Code\UI</Filter>
     </ClCompile>
@@ -79,41 +70,26 @@
     <ClCompile Include="ResourceManager.cpp">
       <Filter>Code</Filter>
     </ClCompile>
+    <ClCompile Include="Game\AudioSystem.cpp">
+      <Filter>Code\Game</Filter>
+    </ClCompile>
+    <ClCompile Include="Game\Component.cpp">
+      <Filter>Code\Game</Filter>
+    </ClCompile>
+    <ClCompile Include="Game\GameObject.cpp">
+      <Filter>Code\Game</Filter>
+    </ClCompile>
+    <ClCompile Include="Game\Board.cpp">
+      <Filter>Code\Game</Filter>
+    </ClCompile>
+    <ClCompile Include="Game\ClickableComponent.cpp">
+      <Filter>Code\Game</Filter>
+    </ClCompile>
+    <ClCompile Include="Game\ColliderComponent.cpp">
+      <Filter>Code\Game</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Board&amp;Game\AudioSystem.h">
-      <Filter>Code\Board&amp;Game</Filter>
-    </ClInclude>
-    <ClInclude Include="Board&amp;Game\ClickableComponent.h">
-      <Filter>Code\Board&amp;Game</Filter>
-    </ClInclude>
-    <ClInclude Include="Board&amp;Game\Coin.h">
-      <Filter>Code\Board&amp;Game</Filter>
-    </ClInclude>
-    <ClInclude Include="Board&amp;Game\ColliderComponent.h">
-      <Filter>Code\Board&amp;Game</Filter>
-    </ClInclude>
-    <ClInclude Include="Board&amp;Game\CollisionSystem.h">
-      <Filter>Code\Board&amp;Game</Filter>
-    </ClInclude>
-    <ClInclude Include="Board&amp;Game\Component.h">
-      <Filter>Code\Board&amp;Game</Filter>
-    </ClInclude>
-    <ClInclude Include="Board&amp;Game\Definit.h">
-      <Filter>Code\Board&amp;Game</Filter>
-    </ClInclude>
-    <ClInclude Include="Board&amp;Game\GameObject.h">
-      <Filter>Code\Board&amp;Game</Filter>
-    </ClInclude>
-    <ClInclude Include="Board&amp;Game\GameObjectManager.h">
-      <Filter>Code\Board&amp;Game</Filter>
-    </ClInclude>
-    <ClInclude Include="Board&amp;Game\Sun.h">
-      <Filter>Code\Board&amp;Game</Filter>
-    </ClInclude>
-    <ClInclude Include="Board&amp;Game\TransformComponent.h">
-      <Filter>Code\Board&amp;Game</Filter>
-    </ClInclude>
     <ClInclude Include="UI\Button.h">
       <Filter>Code\UI</Filter>
     </ClInclude>
@@ -180,11 +156,50 @@
     <ClInclude Include="TestObject.h">
       <Filter>Code</Filter>
     </ClInclude>
-    <ClInclude Include="Board&amp;Game\AnimatedObject.h">
-      <Filter>Code\Board&amp;Game</Filter>
+    <ClInclude Include="Game\AnimatedObject.h">
+      <Filter>Code\Game</Filter>
     </ClInclude>
-    <ClInclude Include="Board&amp;Game\ReanimationComponent.h">
-      <Filter>Code\Board&amp;Game</Filter>
+    <ClInclude Include="Game\AudioSystem.h">
+      <Filter>Code\Game</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\Board.h">
+      <Filter>Code\Game</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\ClickableComponent.h">
+      <Filter>Code\Game</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\Coin.h">
+      <Filter>Code\Game</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\ColliderComponent.h">
+      <Filter>Code\Game</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\CollisionSystem.h">
+      <Filter>Code\Game</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\Component.h">
+      <Filter>Code\Game</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\Definit.h">
+      <Filter>Code\Game</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\GameObject.h">
+      <Filter>Code\Game</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\GameObjectManager.h">
+      <Filter>Code\Game</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\ReanimationComponent.h">
+      <Filter>Code\Game</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\Sun.h">
+      <Filter>Code\Game</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\TransformComponent.h">
+      <Filter>Code\Game</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\Cell.h">
+      <Filter>Code\Game</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

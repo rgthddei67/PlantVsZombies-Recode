@@ -14,26 +14,6 @@ InputHandler::InputHandler()
     m_mouseDelta = Vector::zero();
 }
 
-InputHandler* InputHandler::GetInstance()
-{
-    if (!s_pInstance)
-    {
-        s_pInstance = new InputHandler();
-        g_pInputHandler = s_pInstance;
-    }
-    return s_pInstance;
-}
-
-void InputHandler::ReleaseInstance()
-{
-    if (s_pInstance)
-    {
-        delete s_pInstance;
-        s_pInstance = nullptr;
-        g_pInputHandler = nullptr;
-    }
-}
-
 void InputHandler::ProcessEvent(SDL_Event* event)
 {
     switch (event->type)
@@ -237,28 +217,4 @@ void InputHandler::ProcessCallbacks()
             }
         }
     }
-}
-
-bool InputHandler::IsMouseButtonPressedEasyX(Uint8 button) const
-{
-    if (button >= SDL_BUTTON_LEFT && button <= SDL_BUTTON_X2) {
-        int index = button - 1;
-        // EasyX风格：通过比较当前帧和上一帧的状态来检测按下
-        return m_mouseButtons[index] == KeyState::PRESSED ||
-            (m_mouseButtons[index] == KeyState::DOWN &&
-                m_prevMouseButtons[index] == KeyState::UP);
-    }
-    return false;
-}
-
-bool InputHandler::IsMouseButtonReleasedEasyX(Uint8 button) const
-{
-    if (button >= SDL_BUTTON_LEFT && button <= SDL_BUTTON_X2) {
-        int index = button - 1;
-        // EasyX风格：通过比较当前帧和上一帧的状态来检测释放
-        return m_mouseButtons[index] == KeyState::RELEASED ||
-            (m_mouseButtons[index] == KeyState::UP &&
-                m_prevMouseButtons[index] == KeyState::DOWN);
-    }
-    return false;
 }

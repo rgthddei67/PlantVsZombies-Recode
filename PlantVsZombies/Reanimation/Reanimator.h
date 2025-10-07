@@ -7,7 +7,7 @@
 #include <vector>
 #include <memory>
 #include "../ConstEnums.h"
-#include "../Board&Game/Definit.h"
+#include "../Game/Definit.h"
 
 // Ç°ÏòÉùÃ÷
 class ReanimatorDefinition;

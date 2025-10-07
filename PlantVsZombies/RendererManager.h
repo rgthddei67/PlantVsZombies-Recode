@@ -20,7 +20,14 @@ class RendererManager {
 private:
     std::unique_ptr<SDL_Renderer, SDLRendererDeleter> m_renderer;
 	RendererManager() = default; // 私有构造函数
-    ~RendererManager() = default;
+    ~RendererManager() {
+        Cleanup();
+    }
+    void Cleanup() {
+        if (m_renderer) {
+            m_renderer.reset();
+        }
+    }
 public:
     RendererManager(const RendererManager&) = delete;
     RendererManager& operator=(const RendererManager&) = delete;

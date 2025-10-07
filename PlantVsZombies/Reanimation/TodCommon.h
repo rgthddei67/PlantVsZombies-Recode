@@ -4,7 +4,7 @@
 #define _TODCOMMON_H
 #include <cmath>
 #include <algorithm>
-#include "../Board&Game/Definit.h"
+#include "../Game/Definit.h"
 
 // 数学常量
 constexpr float PI = 3.14159265358979323846f;

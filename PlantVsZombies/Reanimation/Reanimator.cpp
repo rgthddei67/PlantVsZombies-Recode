@@ -4,7 +4,7 @@
 #include "../Reanimation/Reanimator.h"
 #include "../ResourceManager.h"
 #include "ReanimParser.h"
-#include "../Board&Game/GameObject.h"
+#include "../Game/GameObject.h"
 #include "TodCommon.h"
 #include "TodDebug.h"
 

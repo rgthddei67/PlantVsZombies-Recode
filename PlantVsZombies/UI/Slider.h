@@ -1,7 +1,7 @@
 #pragma once
 #ifndef _SLIDER_H
 #define _SLIDER_H
-#include "../Board&Game/Definit.h"
+#include "../Game/Definit.h"
 #include "../UI/InputHandler.h"
 #include <functional>
 #include <string>

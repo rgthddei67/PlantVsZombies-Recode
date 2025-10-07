@@ -1,17 +1,12 @@
 #pragma once
 #ifndef _INPUTHANDLER_H
 #define _INPUTHANDLER_H
+
 #include <SDL.h>
 #include <map>
 #include <vector>
 #include <functional>
-#include "../Board&Game/Definit.h"
-
-// 前向声明
-class InputHandler;
-
-// 单例模式访问点
-extern InputHandler* g_pInputHandler;
+#include "../Game/Definit.h"
 
 // 按键状态枚举
 enum class KeyState
@@ -25,9 +20,6 @@ enum class KeyState
 class InputHandler
 {
 private:
-    // 单例实例
-    static InputHandler* s_pInstance;
-
     // 当前帧按键状态
     std::map<SDL_Keycode, KeyState> m_keyStates;
 
@@ -52,15 +44,13 @@ private:
     // 按键回调映射
     std::map<SDL_Keycode, std::vector<KeyCallback>> m_keyCallbacks;
 
-    // 构造函数（单例模式）
-    InputHandler();
+    // 删除拷贝构造和赋值
+    InputHandler(const InputHandler&) = delete;
+    InputHandler& operator=(const InputHandler&) = delete;
 
 public:
-    // 获取单例实例
-    static InputHandler* GetInstance();
-
-    // 释放单例实例
-    static void ReleaseInstance();
+    InputHandler();
+    ~InputHandler() = default;
 
     // 处理SDL事件
     void ProcessEvent(SDL_Event* event);
@@ -106,12 +96,6 @@ public:
 
     // 处理所有注册的回调
     void ProcessCallbacks();
-
-    // EasyX 检查鼠标按钮是否刚刚按下
-    bool IsMouseButtonPressedEasyX(Uint8 button) const;
-
-    // EasyX 检查鼠标按钮是否刚刚释放
-    bool IsMouseButtonReleasedEasyX(Uint8 button) const;
 };
 
 #endif

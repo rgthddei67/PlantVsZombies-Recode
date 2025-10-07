@@ -1,4 +1,4 @@
-#include "../Board&Game/AudioSystem.h"
+#include "../Game/AudioSystem.h"
 #include "../ResourceManager.h"
 #include <fstream>
 #include <algorithm>
@@ -34,9 +34,7 @@ void AudioSystem::Shutdown() {
 #ifdef _DEBUG
     std::cout << "=== AudioSystem Shutdown ===" << std::endl;
     std::cout << "清理前 soundVolumes 大小: " << soundVolumes.size() << std::endl;
-#endif
     // 详细输出内容
-#ifdef _DEBUG
     for (const auto& pair : soundVolumes) {
         std::cout << "  即将清理: " << pair.first << " -> " << pair.second << std::endl;
     }
@@ -47,6 +45,9 @@ void AudioSystem::Shutdown() {
 #endif
     Mix_HaltChannel(-1);
     Mix_HaltMusic();
+    while (Mix_Playing(-1)) {
+        SDL_Delay(10);
+    }
     Mix_CloseAudio();
 #ifdef _DEBUG
     std::cout << "=== AudioSystem 关闭完成 ===" << std::endl;

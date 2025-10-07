@@ -5,7 +5,7 @@
 #include <memory>
 #include <algorithm>
 #include <SDL.h>
-#include "./Board&Game/GameObject.h"
+#include "GameObject.h"
 
 class GameObjectManager {
 private:

@@ -1,33 +1,58 @@
 #include "GameApp.h"
 #include "./UI/InputHandler.h"
 #include "ResourceManager.h"
+#include "./Game/Board.h"
 #include <iostream>
 #include <sstream>
 
-InputHandler* InputHandler::s_pInstance = nullptr;
-InputHandler* g_pInputHandler = nullptr;
+GameAPP::GameAPP()
+    : mBoard(nullptr)
+    , mInputHandler(nullptr)
+{
+}
+
+GameAPP::~GameAPP()
+{
+    
+}
+
+GameAPP& GameAPP::GetInstance()
+{
+    static GameAPP instance;
+    return instance;
+}
+
+bool GameAPP::Initialize()
+{
+    mInputHandler = std::make_unique<InputHandler>();
+    return true;
+}
+
+void GameAPP::CreateNewBoard()
+{
+    mBoard = std::make_unique<Board>();
+}
 
 void GameAPP::CloseGame()
 {
-    if (g_pInputHandler != nullptr)
+    if (mInputHandler)
     {
-        InputHandler::ReleaseInstance();
+        mInputHandler.reset();
     }
+    CleanupResources();
 }
-
-static std::vector<TextCache> textCache;
 
 void GameAPP::ClearTextCache()
 {
-    for (auto& cache : textCache)
+    for (auto& cache : mTextCache)
     {
         if (cache.texture)
         {
             SDL_DestroyTexture(cache.texture);
         }
     }
-    textCache.clear();
-    std::cout << "清理文本缓存" << std::endl;
+    mTextCache.clear();
+    std::cout << "清除文本缓存" << std::endl;
 }
 
 void GameAPP::CleanupResources()
