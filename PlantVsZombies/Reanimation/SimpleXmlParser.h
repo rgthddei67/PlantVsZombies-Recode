@@ -1,7 +1,6 @@
 #pragma once
 #ifndef _SIMPLE_XML_PARSER_H
 #define _SIMPLE_XML_PARSER_H
-#include "../AllCppInclude.h"
 #include <string>
 #include <vector>
 #include <map>

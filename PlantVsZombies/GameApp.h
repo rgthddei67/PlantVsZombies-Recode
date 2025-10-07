@@ -1,7 +1,6 @@
 #pragma once
 #ifndef _GAMEAPP_H
 #define _GAMEAPP_H
-#include "AllCppInclude.h"
 #include <SDL.h>
 #include <SDL_image.h>
 #include <SDL_ttf.h>

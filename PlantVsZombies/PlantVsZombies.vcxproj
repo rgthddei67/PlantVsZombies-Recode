@@ -40,7 +40,6 @@
     <ClCompile Include="UI\SliderManager.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="AllCppInclude.h" />
     <ClInclude Include="Board&amp;Game\AnimatedObject.h" />
     <ClInclude Include="Board&amp;Game\AudioSystem.h" />
     <ClInclude Include="Board&amp;Game\ClickableComponent.h" />

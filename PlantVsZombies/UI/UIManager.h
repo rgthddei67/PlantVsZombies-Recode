@@ -1,7 +1,6 @@
 #pragma once
 #ifndef _UIMANAGER_H
 #define _UIMANAGER_H
-#include "../AllCppInclude.h"
 #include "ResourceManager.h"
 #include "ButtonManager.h"
 #include "SliderManager.h"

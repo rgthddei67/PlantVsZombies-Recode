@@ -22,6 +22,7 @@ public:
         : AnimatedObject(position, animType, ColliderType::CIRCLE, colliderSize, scale, tag, autoDestroy)
     {
     }
+
     void Start() override
     {
 		AnimatedObject::Start();
@@ -69,6 +70,8 @@ public:
     void StartMoveToTarget(const Vector& target = Vector(10, 10), float fastSpeed = 500.0f, float slowSpeed = 100.0f, float slowdownDist = 80.0f)
     {
 		StopAnimation();
+		this->GetComponent<ClickableComponent>()->IsClickable = false;
+		//this->RemoveComponent<ColliderComponent>();
         targetPos = target;
         speedFast = fastSpeed;
         speedSlow = slowSpeed;

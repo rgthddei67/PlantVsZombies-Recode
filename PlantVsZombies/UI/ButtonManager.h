@@ -1,7 +1,6 @@
 #pragma once
 #ifndef _BUTTONMANAGER_H
 #define _BUTTONMANAGER_H
-#include "../AllCppInclude.h"
 #include "../UI/Button.h"
 #include <vector>
 #include <memory>

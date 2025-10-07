@@ -1,7 +1,6 @@
 #pragma once
 #ifndef _REANIMATOR_H
 #define _REANIMATOR_H
-#include "../AllCppInclude.h"
 #include "AnimationTypes.h"
 #include <SDL.h>
 #include <string>
