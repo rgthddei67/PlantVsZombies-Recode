@@ -61,11 +61,11 @@ void CreateAnimationTest() {
     auto sun = GameObjectManager::GetInstance().CreateGameObject<AnimatedObject>(
         Vector(400, 300),           // 位置
         AnimationType::ANIM_SUN,    // 动画类型
+        ColliderType::CIRCLE,
         Vector(60, 60),             // 碰撞体大小
         0.8f,    // 缩放
-        true,
         "Sun",
-        false    // 这个是设置是否播放完自动删除的
+        true   
     );
     sun->PlayAnimation(); // 开始播放
 	sun->SetLoopType(ReanimLoopType::REANIM_PLAY_ONCE);

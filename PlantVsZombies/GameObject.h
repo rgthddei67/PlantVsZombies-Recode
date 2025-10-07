@@ -88,7 +88,7 @@ public:
         return GetComponent<T>() != nullptr;
     }
 
-    void Start();
+    virtual void Start();
 
     virtual void Update();
 

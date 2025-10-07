@@ -4,6 +4,7 @@
 #include "Component.h"
 #include "ColliderComponent.h"
 #include "InputHandler.h"
+#include <iostream>
 #include <functional>
 #include <memory>
 
@@ -18,6 +19,7 @@ public:
     std::function<void()> onMouseDown;
     std::function<void()> onMouseUp;
 
+    //TODO: 警告 构造函数中不要使用GetComponent 因为对象还没完全构造好 可以在Start中使用
     ClickableComponent() = default;
 
     void Start() override {
@@ -26,6 +28,10 @@ public:
             collider = gameObject->GetComponent<ColliderComponent>();
             if (collider == nullptr)
             {
+#ifdef _DEBUG
+				std::cout << "ClickableComponent::Start:" 
+                    << gameObject << "没有ColliderComponent组件！自动添加" << std::endl;
+#endif
                 collider = gameObject->AddComponent<ColliderComponent>(Vector(50, 50));
                 collider->isTrigger = true;
             }
