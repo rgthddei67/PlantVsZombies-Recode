@@ -100,8 +100,8 @@ public:
         return objects.empty() ? nullptr : objects[0];
     }
     
-    // 获取gameObjects
-    std::vector<std::shared_ptr<GameObject>> GetAllGameObjects() {
+    // 获取gameObjects引用
+    const std::vector<std::shared_ptr<GameObject>>& GetAllGameObjects() const {
         return gameObjects;
     }
 

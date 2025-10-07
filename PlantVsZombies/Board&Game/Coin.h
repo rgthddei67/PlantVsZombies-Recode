@@ -11,8 +11,8 @@ class Coin : public AnimatedObject {
 protected:
     Vector targetPos = Vector(10, 10);  // 目标位置
     float speedFast = 500.0f;           // 快速阶段速度
-    float speedSlow = 320.0f;           // 慢速阶段速度
-    float slowDownDistance = 0.5f;     // 开始减速的距离阈值
+    float speedSlow = 180.0f;           // 慢速阶段速度
+    float slowDownDistance = 20.0f;     // 开始减速的距离阈值
     bool isMovingToTarget = false;      // 是否正在移动到目标位置
 
 public:
@@ -41,7 +41,7 @@ public:
         float distance = direction.magnitude();
 
         // 如果已经到达目标位置
-        if (distance < 75.0f)
+        if (distance < 65.0f)
         {
             OnReachTargetBack();
             return;
@@ -53,7 +53,7 @@ public:
         // 正确的归一化操作
         if (distance > 0) {
             Vector normalizedDir = direction / distance;
-            Vector newPos = currentPos + normalizedDir * currentSpeed * 0.016f;
+            Vector newPos = currentPos + normalizedDir * currentSpeed * 0.018f;
             SetPosition(newPos);
         }
     }

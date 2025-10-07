@@ -5,7 +5,7 @@
 
 class Sun : public Coin {
 private:
-	int SunPoint = 25;	// 手机后增加的阳光点数
+	int SunPoint = 25;	// 收集后增加的阳光点数
 
 public:
 	Sun(const Vector& position, float scale = 0.75f,
@@ -13,6 +13,9 @@ public:
 		: Coin(AnimationType::ANIM_SUN, position,
 			Vector(65, 65), scale, tag, autoDestroy)
 	{
+		speedFast = 700.0f;
+		speedSlow = 500.0f;
+		slowDownDistance = 130.0f;
 	}
 
 	void OnReachTargetBack() override
@@ -25,7 +28,7 @@ public:
         if (clickComponent == nullptr) return;
         clickComponent->onClick = [this]() {
 			AudioSystem::PlaySound(AudioConstants::SOUND_COLLECT_SUN, 0.5f);
-            StartMoveToTarget();
+			StartMoveToTarget(Vector(10, 10), speedFast, speedSlow, slowDownDistance);
         };
     }
 
