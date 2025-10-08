@@ -29,3 +29,13 @@ void Board::DrawCell(SDL_Renderer* renderer)
         }
     }
 }
+
+void Board::Draw(SDL_Renderer* renderer)
+{
+    DrawCell(renderer);
+}
+
+void Board::Update()
+{
+
+}

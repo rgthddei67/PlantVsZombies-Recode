@@ -34,7 +34,6 @@ class Board;
 class GameAPP
 {
 private:
-    std::unique_ptr<Board> mBoard;
     std::unique_ptr<InputHandler> mInputHandler;
     std::vector<TextCache> mTextCache;
 
@@ -48,18 +47,12 @@ private:
 public:
     // 获取单例实例
     static GameAPP& GetInstance();
+    
+	// 关闭游戏
+    void CloseGame();
 
     // 初始化游戏应用
     bool Initialize();
-
-    // 关闭游戏
-    void CloseGame();
-
-    // 创建新Board
-    void CreateNewBoard();
-
-	// 获取当前Board
-    Board* GetCurrentBoard() const;
 
     // 清除文本缓存
     void ClearTextCache();

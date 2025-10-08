@@ -91,6 +91,12 @@
     <ClCompile Include="CrashHandler.cpp">
       <Filter>Code</Filter>
     </ClCompile>
+    <ClCompile Include="Game\SceneManager.cpp">
+      <Filter>Code\Game</Filter>
+    </ClCompile>
+    <ClCompile Include="Game\GameScene.cpp">
+      <Filter>Code\Game</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="UI\Button.h">
@@ -206,6 +212,15 @@
     </ClInclude>
     <ClInclude Include="CrashHandler.h">
       <Filter>Code</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\Scene.h">
+      <Filter>Code\Game</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\GameScene.h">
+      <Filter>Code\Game</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\SceneManager.h">
+      <Filter>Code\Game</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

@@ -1,7 +1,7 @@
 #pragma once
 #ifndef _UIMANAGER_H
 #define _UIMANAGER_H
-#include "ResourceManager.h"
+#include "../ResourceManager.h"
 #include "ButtonManager.h"
 #include "SliderManager.h"
 

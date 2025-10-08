@@ -27,6 +27,8 @@
     <ClCompile Include="Game\ColliderComponent.cpp" />
     <ClCompile Include="Game\Component.cpp" />
     <ClCompile Include="Game\GameObject.cpp" />
+    <ClCompile Include="Game\GameScene.cpp" />
+    <ClCompile Include="Game\SceneManager.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="ParticleSystem\Particle.cpp" />
     <ClCompile Include="ParticleSystem\ParticleConfig.cpp" />
@@ -59,7 +61,10 @@
     <ClInclude Include="Game\Definit.h" />
     <ClInclude Include="Game\GameObject.h" />
     <ClInclude Include="Game\GameObjectManager.h" />
+    <ClInclude Include="Game\GameScene.h" />
     <ClInclude Include="Game\ReanimationComponent.h" />
+    <ClInclude Include="Game\Scene.h" />
+    <ClInclude Include="Game\SceneManager.h" />
     <ClInclude Include="Game\Sun.h" />
     <ClInclude Include="Game\TransformComponent.h" />
     <ClInclude Include="ParticleSystem\Particle.h" />

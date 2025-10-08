@@ -19,6 +19,8 @@
 #include "./Game/AnimatedObject.h"
 #include "./Game/Sun.h"
 #include "./Game/Board.h"
+#include "./Game/SceneManager.h"
+#include "./Game/GameScene.h"
 #include <iostream>
 #include <sstream>
 
@@ -98,7 +100,8 @@ int main(int argc, char* argv[])
         }
 
         GameAPP::GetInstance().Initialize();
-        UIManager uiManager;
+        auto& sceneManager = SceneManager::GetInstance();
+		sceneManager.RegisterScene<GameScene>("GameScene");
 
         // 设置默认字体路径
         Button::SetDefaultFontPath("./font/fzcq.ttf");
@@ -171,6 +174,7 @@ int main(int argc, char* argv[])
         g_particleSystem = std::make_unique<ParticleSystem>(renderer); // 初始化全局粒子系统
         CreateAnimationTest();
         // 创建按钮
+        /*
         auto button1 = uiManager.CreateButton(Vector(100, 150));
         button1->SetAsCheckbox(true);
         button1->SetImageKeys("IMAGE_options_checkbox0", "IMAGE_options_checkbox0", 
@@ -186,11 +190,11 @@ int main(int argc, char* argv[])
         button2->SetClickCallBack(UIFunctions::ImageButtonClick);
         auto slider = uiManager.CreateSlider(Vector(500, 150), Vector(135, 10), 0.0f, 100.0f, 0.0f);
         slider->SetChangeCallBack(UIFunctions::SliderChanged);
+        */
+        sceneManager.SwitchTo("GameScene");
         bool running = true;
-        GameAPP::GetInstance().CreateNewBoard();
-		Board* board = GameAPP::GetInstance().GetCurrentBoard();
         SDL_Event event;
-        while (running)
+        while (running && !sceneManager.IsEmpty())
         {
             auto& input = GameAPP::GetInstance().GetInputHandler();
             // 处理事件
@@ -200,8 +204,8 @@ int main(int argc, char* argv[])
                 {
                     running = false;
                 }
-                uiManager.ProcessMouseEvent(&event, &input);
                 input.ProcessEvent(&event);
+                sceneManager.HandleEvent(event);
             }
             if (input.IsKeyReleased(SDLK_ESCAPE))
             {
@@ -209,7 +213,7 @@ int main(int argc, char* argv[])
                 break;
             }
             // 更新板块
-            uiManager.UpdateAll(&input);
+            sceneManager.Update();
             g_particleSystem->UpdateAll();
             GameObjectManager::GetInstance().Update();
             CollisionSystem::GetInstance().Update();
@@ -219,15 +223,14 @@ int main(int argc, char* argv[])
             SDL_RenderClear(renderer);
 
             // 绘制板块
-            uiManager.DrawAll(renderer);
+            sceneManager.Draw(renderer);
             g_particleSystem->DrawAll();
             GameObjectManager::GetInstance().DrawAll(renderer);
-			board->DrawCell(renderer);
             // 更新屏幕
             SDL_RenderPresent(renderer);
-
-            uiManager.ResetAllFrameStates();
-
+            std::cout << "Mouse Position: " 
+                << input.GetMousePosition().x << ", " 
+				<< input.GetMousePosition().y << std::endl;
             input.Update();
         }
     }

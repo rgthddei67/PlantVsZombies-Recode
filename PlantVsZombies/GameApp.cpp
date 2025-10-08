@@ -6,8 +6,7 @@
 #include <sstream>
 
 GameAPP::GameAPP()
-    : mBoard(nullptr)
-    , mInputHandler(nullptr)
+    : mInputHandler(nullptr)
 {
 }
 
@@ -26,16 +25,6 @@ bool GameAPP::Initialize()
 {
     mInputHandler = std::make_unique<InputHandler>();
     return true;
-}
-
-void GameAPP::CreateNewBoard()
-{
-    mBoard = std::make_unique<Board>();
-}
-
-Board* GameAPP::GetCurrentBoard() const
-{
-	return mBoard.get();
 }
 
 void GameAPP::CloseGame()

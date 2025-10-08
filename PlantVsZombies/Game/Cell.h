@@ -8,9 +8,9 @@
 #include "GameObjectManager.h"
 
 constexpr float CELL_COLLIDER_SIZE_X = 80.0f;
-constexpr float CELL_COLLIDER_SIZE_Y = 80.0f;
-constexpr float CELL_INITALIZE_POS_X = 20.0f;
-constexpr float CELL_INITALIZE_POS_Y = 20.0f;
+constexpr float CELL_COLLIDER_SIZE_Y = 100.0f;
+constexpr float CELL_INITALIZE_POS_X = 40.0f;
+constexpr float CELL_INITALIZE_POS_Y = 80.0f;
 
 class Cell : public GameObject {
 public:

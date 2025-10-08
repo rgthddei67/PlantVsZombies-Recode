@@ -42,5 +42,9 @@ public:
 
 	// äÖÈ¾Íø¸ñ£¨µ÷ÊÔÓÃ£©
 	void DrawCell(SDL_Renderer* renderer);
+
+	void Draw(SDL_Renderer* renderer);
+
+	void Update();
 };
 #endif
