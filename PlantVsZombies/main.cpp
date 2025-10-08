@@ -141,7 +141,6 @@ int main(int argc, char* argv[])
 	RendererManager::GetInstance().SetRenderer(renderer);
     ResourceManager& resourceManager = ResourceManager::GetInstance();
     resourceManager.Initialize(renderer);
-
     // 统一加载所有资源
     bool resourcesLoaded = true;
     resourcesLoaded &= resourceManager.LoadAllGameImages();
@@ -225,7 +224,6 @@ int main(int argc, char* argv[])
     g_particleSystem.reset();
     GameObjectManager::GetInstance().ClearAll();
     CollisionSystem::GetInstance().ClearAll();
-    GameAPP::GetInstance().CleanupResources();
     ResourceManager::ReleaseInstance();
     AudioSystem::Shutdown();
 
