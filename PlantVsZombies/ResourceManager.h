@@ -48,7 +48,42 @@ private:
         "./resources/image/UI/SeedChooser_Button2.png",
         "./resources/image/UI/SeedChooser_Button2_Glow.png",
         "./resources/image/UI/options_sliderknob2.png",
-        "./resources/image/UI/options_sliderslot.png"
+        "./resources/image/UI/options_sliderslot.png",
+        "./resources/image/UI/SelectorScreen_Adventure_button.png",
+        "./resources/image/UI/SelectorScreen_Adventure_highlight.png",
+        "./resources/image/UI/SelectorScreen_Almanac.png",
+        "./resources/image/UI/SelectorScreen_AlmanacHighlight.png",
+        "./resources/image/UI/SelectorScreen_BG.png",
+        "./resources/image/UI/SelectorScreen_BG_Center.png",
+        "./resources/image/UI/SelectorScreen_BG_Left.png",
+        "./resources/image/UI/SelectorScreen_BG_Right.png",
+        "./resources/image/UI/SelectorScreen_Challenges_button.png",
+        "./resources/image/UI/SelectorScreen_Challenges_highlight.png",
+        "./resources/image/UI/SelectorScreen_Flower1.png",
+        "./resources/image/UI/SelectorScreen_Flower2.png",
+        "./resources/image/UI/SelectorScreen_Flower3.png",
+        "./resources/image/UI/SelectorScreen_Game.png",
+        "./resources/image/UI/SelectorScreen_Game_Shadow.png",
+        "./resources/image/UI/SelectorScreen_Help1.png",
+        "./resources/image/UI/SelectorScreen_Help2.png",
+        "./resources/image/UI/SelectorScreen_Options1.png",
+        "./resources/image/UI/SelectorScreen_Options2.png",
+        "./resources/image/UI/SelectorScreen_Quit1.png",
+        "./resources/image/UI/SelectorScreen_Quit2.png",
+        "./resources/image/UI/SelectorScreen_StartAdventure_Button1.png",
+        "./resources/image/UI/SelectorScreen_StartAdventure_Highlight.png",
+        "./resources/image/UI/SelectorScreen_Store.png",
+        "./resources/image/UI/SelectorScreen_StoreHighlight.png",
+        "./resources/image/UI/SelectorScreen_Surival.png",
+        "./resources/image/UI/SelectorScreen_Surival_Shadow.png",
+        "./resources/image/UI/card_bk.jpg",
+        "./resources/image/UI/SeedBank_Long.png",
+        "./resources/image/UI/SeedChooser_Background.png",
+        "./resources/image/UI/SeedChooser_Button.png",
+        "./resources/image/UI/SeedChooser_Button_Disabled.png",
+        "./resources/image/UI/SeedPacketNormal.png",
+        "./resources/image/background_day.jpg",
+        "./resources/image/background_night.jpg"
     };
 
     std::vector<std::string> particleTexturePaths = {
@@ -142,6 +177,9 @@ public:
     bool HasSound(const std::string& key) const;
     bool HasMusic(const std::string& key) const;
     bool HasAnimation(AnimationType animType) const;
+
+    // 根据路径生成标准化的key
+    std::string GenerateTextureKey(const std::string& path);
 
     ResourceManager(const ResourceManager&) = delete;
     ResourceManager& operator=(const ResourceManager&) = delete;

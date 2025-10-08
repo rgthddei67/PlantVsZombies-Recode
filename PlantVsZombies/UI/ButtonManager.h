@@ -34,7 +34,7 @@ public:
     void UpdateAll(InputHandler* input);
 
     // 统一渲染所有按钮
-    void DrawAll(SDL_Renderer* renderer, const std::vector<SDL_Texture*>& textures) const;
+    void DrawAll(SDL_Renderer* renderer) const;
 
     // 获取按钮数量
     size_t GetButtonCount() const;

@@ -1,7 +1,9 @@
 #pragma once
 #ifndef _GAMEAPP_H
 #define _GAMEAPP_H
-
+#ifdef DrawText
+#undef DrawText
+#endif
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_ttf.h>
@@ -55,6 +57,9 @@ public:
 
     // 创建新Board
     void CreateNewBoard();
+
+	// 获取当前Board
+    Board* GetCurrentBoard() const;
 
     // 清除文本缓存
     void ClearTextCache();

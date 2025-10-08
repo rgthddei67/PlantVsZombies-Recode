@@ -7,6 +7,8 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 
+class ResourceManager;
+
 class Button
 {
 private:
@@ -17,10 +19,10 @@ private:
     bool isChecked = false;                    // 是否勾选
     bool isCheckbox = false;                   // 是否是复选框类型
 
-    int normalImageIndex = -1;                 // 正常状态图片索引
-    int hoverImageIndex = -1;                  // 悬停状态图片索引  
-    int pressedImageIndex = -1;                // 按下状态图片索引
-    int checkedImageIndex = -1;                // 选中状态图片索引
+    std::string normalImageKey;                // 正常状态图片key
+    std::string hoverImageKey;                 // 悬停状态图片key  
+    std::string pressedImageKey;               // 按下状态图片key
+    std::string checkedImageKey;               // 选中状态图片key
 
     std::string text = "";                     // 按钮文字
     std::string fontName = "./font/fzcq.ttf";        // 字体文件名
@@ -48,15 +50,15 @@ public:
     void SetHoverTextColor(const SDL_Color& color);
     void SetAsCheckbox(bool checkbox);
 
-    // 设置图片资源索引
-    void SetImageIndexes(int normal, int hover = -1, int pressed = -1, int checked = -1);
+    // 设置图片资源key
+    void SetImageKeys(const std::string& normal, const std::string& hover = "", const std::string& pressed = "", const std::string& checked = "");
 
     // 设置点击回调
     void SetClickCallBack(std::function<void()> callback);
 
     // 更新和渲染
     void Update(InputHandler* input);
-    void Draw(SDL_Renderer* renderer, const std::vector<SDL_Texture*>& textures) const;
+    void Draw(SDL_Renderer* renderer) const;
 
     // 状态获取
     bool IsHovered() const;

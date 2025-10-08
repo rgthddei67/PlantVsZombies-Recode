@@ -99,23 +99,8 @@ public:
     void DrawAll(SDL_Renderer* renderer) const
     {
         ResourceManager& resourceManager = ResourceManager::GetInstance();
-
-        // 获取游戏图片纹理
-        const auto& imagePaths = resourceManager.GetGameImagePaths();
-        std::vector<SDL_Texture*> textures;
-
-        for (const auto& path : imagePaths)
-        {
-            SDL_Texture* texture = resourceManager.GetTexture(path);
-            if (texture)
-            {
-                textures.push_back(texture);
-            }
-        }
-
-        // 绘制按钮和滑动条
-        buttonManager.DrawAll(renderer, textures);
-        sliderManager.DrawAll(renderer, textures);
+        buttonManager.DrawAll(renderer);
+        sliderManager.DrawAll(renderer);
     }
 
     void ResetAllFrameStates()

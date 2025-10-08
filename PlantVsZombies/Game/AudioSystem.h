@@ -1,6 +1,9 @@
 #pragma once
 #ifndef _AUDIOSYSTEM_H
 #define _AUDIOSYSTEM_H
+#ifdef PlaySound
+#undef PlaySound
+#endif
 #include <SDL2/SDL_mixer.h>
 #include <string>
 #include <algorithm>

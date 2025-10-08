@@ -1,4 +1,5 @@
 #include "Slider.h"
+#include "../ResourceManager.h"
 #include <iostream>
 #include <algorithm>
 
@@ -42,10 +43,10 @@ void Slider::SetValue(float value)
     }
 }
 
-void Slider::SetImageIndexes(int background = 6, int knob = 5)
+void Slider::SetImageKeys(const std::string& background, const std::string& knob)
 {
-    this->backgroundImageIndex = background;
-    this->knobImageIndex = knob;
+    this->backgroundImageKey = background;
+    this->knobImageKey = knob;
 }
 
 void Slider::SetChangeCallBack(std::function<void(float)> callback)
@@ -106,25 +107,29 @@ void Slider::Update(InputHandler* input)
     }
 }
 
-void Slider::Draw(SDL_Renderer* renderer, const std::vector<SDL_Texture*>& textures) const
+void Slider::Draw(SDL_Renderer* renderer) const
 {
+	ResourceManager& resourceManager = ResourceManager::GetInstance();
     // 绘制背景
-    if (backgroundImageIndex >= 0 && backgroundImageIndex < textures.size() &&
-        textures[backgroundImageIndex] != nullptr)
+    if (!backgroundImageKey.empty() && resourceManager.HasTexture(backgroundImageKey))
     {
-        SDL_Rect destRect =
+        SDL_Texture* texture = resourceManager.GetTexture(backgroundImageKey);
+        if (texture != nullptr)
         {
-            static_cast<int>(position.x),
-            static_cast<int>(position.y),
-            static_cast<int>(size.x),
-            static_cast<int>(size.y)
-        };
-        SDL_RenderCopy(renderer, textures[backgroundImageIndex], nullptr, &destRect);
+            SDL_Rect destRect =
+            {
+                static_cast<int>(position.x),
+                static_cast<int>(position.y),
+                static_cast<int>(size.x),
+                static_cast<int>(size.y)
+            };
+            SDL_RenderCopy(renderer, texture, nullptr, &destRect);
+        }
     }
     else
     {
         // 如果没有背景图片，绘制一个灰色矩形作为背景
-        SDL_Rect bgRect = 
+        SDL_Rect bgRect =
         {
             static_cast<int>(position.x),
             static_cast<int>(position.y),
@@ -148,21 +153,24 @@ void Slider::Draw(SDL_Renderer* renderer, const std::vector<SDL_Texture*>& textu
     Vector knobPosition(knobX - knobSize.x / 2, knobY - knobSize.y / 2);
 
     // 绘制滑块
-    if (knobImageIndex >= 0 && knobImageIndex < textures.size() &&
-        textures[knobImageIndex] != nullptr)
+    if (!knobImageKey.empty() && resourceManager.HasTexture(knobImageKey))
     {
-        SDL_Rect knobRect =
+        SDL_Texture* texture = resourceManager.GetTexture(knobImageKey);
+        if (texture != nullptr)
         {
-            static_cast<int>(knobPosition.x),
-            static_cast<int>(knobPosition.y),
-            static_cast<int>(knobSize.x),
-            static_cast<int>(knobSize.y)
-        };
-        SDL_RenderCopy(renderer, textures[knobImageIndex], nullptr, &knobRect);
+            SDL_Rect knobRect =
+            {
+                static_cast<int>(knobPosition.x),
+                static_cast<int>(knobPosition.y),
+                static_cast<int>(knobSize.x),
+                static_cast<int>(knobSize.y)
+            };
+            SDL_RenderCopy(renderer, texture, nullptr, &knobRect);
+        }
     }
     else
     {
-        // 如果没有滑块图片，绘制一个圆形作为滑块
+        // 如果没有滑块图片，绘制一个矩形作为滑块
         SDL_Rect knobRect = {
             static_cast<int>(knobPosition.x),
             static_cast<int>(knobPosition.y),
@@ -171,7 +179,7 @@ void Slider::Draw(SDL_Renderer* renderer, const std::vector<SDL_Texture*>& textu
         };
 
         // 根据是否拖动改变颜色
-        if (isDragging) 
+        if (isDragging)
         {
             SDL_SetRenderDrawColor(renderer, 255, 200, 0, 255); // 拖动时黄色
         }

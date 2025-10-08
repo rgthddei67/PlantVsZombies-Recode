@@ -8,31 +8,27 @@
 #include <unordered_set>
 #include <algorithm>
 
-namespace std {
-    template<>
-    struct hash<std::pair<std::shared_ptr<ColliderComponent>, std::shared_ptr<ColliderComponent>>> {
-        size_t operator()(const std::pair<std::shared_ptr<ColliderComponent>, std::shared_ptr<ColliderComponent>>& p) const {
-            // 使用两个指针的地址组合来生成哈希
-            auto hash1 = std::hash<std::shared_ptr<ColliderComponent>>{}(p.first);
-            auto hash2 = std::hash<std::shared_ptr<ColliderComponent>>{}(p.second);
+struct ColliderPairHash {
+    size_t operator()(const std::pair<std::shared_ptr<ColliderComponent>, std::shared_ptr<ColliderComponent>>& p) const {
+        auto hash1 = std::hash<std::shared_ptr<ColliderComponent>>{}(p.first);
+        auto hash2 = std::hash<std::shared_ptr<ColliderComponent>>{}(p.second);
 
-            // 组合哈希值，确保顺序不影响结果
-            if (p.first < p.second) {
-                return hash1 ^ (hash2 << 1);
-            }
-            else {
-                return hash2 ^ (hash1 << 1);
-            }
+        if (p.first < p.second) {
+            return hash1 ^ (hash2 << 1);
         }
-    };
-}
+        else {
+            return hash2 ^ (hash1 << 1);
+        }
+    }
+};
 
 class CollisionSystem {
 private:
     std::vector<std::shared_ptr<ColliderComponent>> colliders;  // 所有的collider组件
-	std::unordered_set
-        <std::pair<std::shared_ptr<ColliderComponent>, 
-        std::shared_ptr<ColliderComponent>>> currentCollisions; // 所有碰撞记录
+    std::unordered_set<
+        std::pair<std::shared_ptr<ColliderComponent>, 
+        std::shared_ptr<ColliderComponent>>, 
+        ColliderPairHash> currentCollisions;  
 
 public:
     static CollisionSystem& GetInstance() {

@@ -37,11 +37,11 @@ void ButtonManager::UpdateAll(InputHandler* input)
     }
 }
 
-void ButtonManager::DrawAll(SDL_Renderer* renderer, const std::vector<SDL_Texture*>& textures) const
+void ButtonManager::DrawAll(SDL_Renderer* renderer) const
 {
     for (const auto& button : buttons)
     {
-        button->Draw(renderer, textures);
+        button->Draw(renderer);
     }
 }
 

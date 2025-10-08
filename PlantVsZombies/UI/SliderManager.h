@@ -25,7 +25,7 @@ public:
     void UpdateAll(InputHandler* input);
 
     // 渲染所有滑动条
-    void DrawAll(SDL_Renderer* renderer, const std::vector<SDL_Texture*>& textures) const;
+    void DrawAll(SDL_Renderer* renderer) const;
 
     // 添加现有滑动条
     void AddSlider(std::shared_ptr<Slider> slider);

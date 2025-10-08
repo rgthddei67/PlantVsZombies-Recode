@@ -33,6 +33,11 @@ void GameAPP::CreateNewBoard()
     mBoard = std::make_unique<Board>();
 }
 
+Board* GameAPP::GetCurrentBoard() const
+{
+	return mBoard.get();
+}
+
 void GameAPP::CloseGame()
 {
     if (mInputHandler)

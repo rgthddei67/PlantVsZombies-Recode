@@ -30,7 +30,8 @@ bool ResourceManager::LoadAllGameImages()
 #endif
     for (const auto& path : gameImagePaths)
     {
-        if (!LoadTexture(path))
+        std::string key = GenerateTextureKey(path);
+        if (!LoadTexture(path, key))
         {
             std::cerr << "¼ÓÔØÓÎÏ·Í¼Æ¬Ê§°Ü: " << path << std::endl;
             success = false;
@@ -463,6 +464,13 @@ SDL_Texture* ResourceManager::GetTexture(const std::string& key)
     }
     std::cerr << "¾¯¸æ: ÎÆÀíÎ´ÕÒµ½: " << key << std::endl;
     return nullptr;
+}
+
+std::string ResourceManager::GenerateTextureKey(const std::string& path)
+{
+    std::string filename = path.substr(path.find_last_of("/\\") + 1);
+    std::string nameWithoutExt = filename.substr(0, filename.find_last_of('.'));
+    return "IMAGE_" + nameWithoutExt;
 }
 
 void ResourceManager::UnloadTexture(const std::string& key)

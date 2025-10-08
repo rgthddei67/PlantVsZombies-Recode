@@ -88,6 +88,9 @@
     <ClCompile Include="Game\ColliderComponent.cpp">
       <Filter>Code\Game</Filter>
     </ClCompile>
+    <ClCompile Include="CrashHandler.cpp">
+      <Filter>Code</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="UI\Button.h">
@@ -200,6 +203,9 @@
     </ClInclude>
     <ClInclude Include="Game\Cell.h">
       <Filter>Code\Game</Filter>
+    </ClInclude>
+    <ClInclude Include="CrashHandler.h">
+      <Filter>Code</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

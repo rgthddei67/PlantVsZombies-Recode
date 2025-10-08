@@ -7,6 +7,8 @@
 #include <string>
 #include <SDL2/SDL.h>
 
+class ResourceManager;
+
 class Slider
 {
 private:
@@ -16,8 +18,8 @@ private:
     float maxValue = 1.0f;                     // 最大值
     float currentValue = 0.5f;                 // 当前值
 
-    int backgroundImageIndex = 6;             // 背景图片索引
-    int knobImageIndex = 5;                   // 滑块图片索引
+    std::string backgroundImageKey = "IMAGE_options_sliderslot";            // 背景图片key
+    std::string knobImageKey = "IMAGE_options_sliderknob2";                  // 滑块图片key
 
     bool isDragging = false;                   // 是否正在拖动
     Vector dragStartPosition;                  // 拖动开始位置
@@ -41,8 +43,8 @@ public:
     void SetValueRange(float min, float max);
     void SetValue(float value);
 
-    // 设置图片资源索引
-    void SetImageIndexes(int background, int knob);
+    // 设置图片资源key
+    void SetImageKeys(const std::string& background, const std::string& knob);
 
     // 设置值改变回调
     void SetChangeCallBack(std::function<void(float)> callback);
@@ -52,7 +54,7 @@ public:
     void Update(InputHandler* input);
 
     // 渲染
-    void Draw(SDL_Renderer* renderer, const std::vector<SDL_Texture*>& textures) const;
+    void Draw(SDL_Renderer* renderer) const;
 
     // 获取状态和值
     bool IsDragging() const;

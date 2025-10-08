@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="CrashHandler.cpp" />
     <ClCompile Include="GameApp.cpp" />
     <ClCompile Include="Game\AudioSystem.cpp" />
     <ClCompile Include="Game\Board.cpp" />
@@ -44,6 +45,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ConstEnums.h" />
+    <ClInclude Include="CrashHandler.h" />
     <ClInclude Include="GameApp.h" />
     <ClInclude Include="Game\AnimatedObject.h" />
     <ClInclude Include="Game\AudioSystem.h" />

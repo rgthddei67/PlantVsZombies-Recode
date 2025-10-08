@@ -25,11 +25,11 @@ void SliderManager::UpdateAll(InputHandler* input)
     }
 }
 
-void SliderManager::DrawAll(SDL_Renderer* renderer, const std::vector<SDL_Texture*>& textures) const
+void SliderManager::DrawAll(SDL_Renderer* renderer) const
 {
     for (const auto& slider : sliders)
     {
-        slider->Draw(renderer, textures);
+        slider->Draw(renderer);
     }
 }
 
