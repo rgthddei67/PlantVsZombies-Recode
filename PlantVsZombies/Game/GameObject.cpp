@@ -6,6 +6,7 @@
 
 GameObject::~GameObject() {
     for (auto& [type, component] : components) {
+        UnregisterColliderIfNeeded(component);
         component->OnDestroy();
     }
     components.clear();

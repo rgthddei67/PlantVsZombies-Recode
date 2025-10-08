@@ -31,27 +31,16 @@ bool AudioSystem::Initialize()
 }
 
 void AudioSystem::Shutdown() {
-#ifdef _DEBUG
-    std::cout << "=== AudioSystem Shutdown ===" << std::endl;
-    std::cout << "清理前 soundVolumes 大小: " << soundVolumes.size() << std::endl;
-    // 详细输出内容
-    for (const auto& pair : soundVolumes) {
-        std::cout << "  即将清理: " << pair.first << " -> " << pair.second << std::endl;
-    }
-#endif
-    soundVolumes.clear();
-#ifdef _DEBUG
-    std::cout << "清理后 soundVolumes 大小: " << soundVolumes.size() << std::endl;
-#endif
     Mix_HaltChannel(-1);
     Mix_HaltMusic();
-    while (Mix_Playing(-1)) {
-        SDL_Delay(10);
+
+    int maxWait = 100;
+    while (Mix_Playing(-1) && maxWait-- > 0) {
+        SDL_Delay(1);
     }
+
+    soundVolumes.clear();
     Mix_CloseAudio();
-#ifdef _DEBUG
-    std::cout << "=== AudioSystem 关闭完成 ===" << std::endl;
-#endif
 }
 
 // 总音量控制

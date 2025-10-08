@@ -137,8 +137,8 @@ int main(int argc, char* argv[])
     SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
     SDL_RenderClear(renderer);
     SDL_RenderPresent(renderer);
-    RendererManager& rendererManager = RendererManager::GetInstance();
-	rendererManager.SetRenderer(renderer);
+	
+	RendererManager::GetInstance().SetRenderer(renderer);
     ResourceManager& resourceManager = ResourceManager::GetInstance();
     resourceManager.Initialize(renderer);
 
@@ -222,26 +222,24 @@ int main(int argc, char* argv[])
 
         input.Update();
     }
-    g_particleSystem->UpdateAll(); 
-    g_particleSystem->DrawAll();    
-
+    g_particleSystem.reset();
     GameObjectManager::GetInstance().ClearAll();
     CollisionSystem::GetInstance().ClearAll();
-    g_particleSystem.reset();
-    GameAPP::GetInstance().CloseGame();   
-    GameAPP::GetInstance().CleanupResources(); 
+    GameAPP::GetInstance().CleanupResources();
+    ResourceManager::ReleaseInstance();
     AudioSystem::Shutdown();
-    ResourceManager::ReleaseInstance();    
-    if (renderer != nullptr) 
-    {
+
+    if (renderer) {
         SDL_DestroyRenderer(renderer);
         renderer = nullptr;
+        RendererManager::GetInstance().SetRenderer(nullptr);
     }
-    if (window != nullptr)
-    {
+    if (window) {
         SDL_DestroyWindow(window);
         window = nullptr;
     }
+
+    GameAPP::GetInstance().CloseGame();
     Mix_Quit();
     TTF_Quit();
     IMG_Quit();
