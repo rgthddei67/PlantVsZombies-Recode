@@ -24,10 +24,12 @@
     <ClCompile Include="Game\AudioSystem.cpp" />
     <ClCompile Include="Game\Board.cpp" />
     <ClCompile Include="Game\ClickableComponent.cpp" />
+    <ClCompile Include="Game\Coin.cpp" />
     <ClCompile Include="Game\ColliderComponent.cpp" />
     <ClCompile Include="Game\Component.cpp" />
     <ClCompile Include="Game\GameObject.cpp" />
     <ClCompile Include="Game\GameScene.cpp" />
+    <ClCompile Include="Game\Scene.cpp" />
     <ClCompile Include="Game\SceneManager.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="ParticleSystem\Particle.cpp" />

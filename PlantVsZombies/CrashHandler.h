@@ -13,7 +13,7 @@ private:
     static LONG64 lastUACTime;
 
 public:
-    // 初始化崩溃处理器
+    // 初始化崩溃处理器(VEH)
     static void Initialize();
 
     // 清理崩溃处理器

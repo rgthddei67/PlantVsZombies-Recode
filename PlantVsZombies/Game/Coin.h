@@ -16,108 +16,28 @@ protected:
     bool isMovingToTarget = false;      // 是否正在移动到目标位置
 
 public:
-    Coin(AnimationType animType, const Vector& position,
+public:
+    Coin(Board* board, AnimationType animType, const Vector& position,
         const Vector& colliderSize, float scale = 1.0f,
-        const std::string& tag = "Coin", bool autoDestroy = true)
-        : AnimatedObject(position, animType, ColliderType::CIRCLE, colliderSize, scale, tag, autoDestroy)
-    {
-    }
+        const std::string& tag = "Coin", bool autoDestroy = true);
 
-    void Start() override
-    {
-		AnimatedObject::Start();
-        auto clickableComponent = AddComponent<ClickableComponent>();
-        SetOnClickBack(clickableComponent);
-    }
+    void Start() override;
+    void Update() override;
 
-    void Update() override
-    {
-        AnimatedObject::Update();
+    virtual void SetOnClickBack(std::shared_ptr<ClickableComponent> clickComponent);
 
-        if (!isMovingToTarget) return;
+    void StartMoveToTarget(const Vector& target = Vector(10, 10),
+        float fastSpeed = 500.0f,
+        float slowSpeed = 100.0f,
+        float slowdownDist = 80.0f);
 
-        Vector currentPos = GetPosition();
-        Vector direction = targetPos - currentPos;
-        float distance = direction.magnitude();
-
-        // 如果已经到达目标位置
-        if (distance < 65.0f)
-        {
-            OnReachTargetBack();
-            return;
-        }
-
-        // 计算当前速度（先快后慢）
-        float currentSpeed = (distance > slowDownDistance) ? speedFast : speedSlow;
-
-        // 正确的归一化操作
-        if (distance > 0) {
-            Vector normalizedDir = direction / distance;
-            Vector newPos = currentPos + normalizedDir * currentSpeed * 0.018f;
-            SetPosition(newPos);
-        }
-    }
-
-    virtual void SetOnClickBack(std::shared_ptr<ClickableComponent> clickComponent)
-    {
-        if (clickComponent == nullptr) return;
-        clickComponent->onClick = [this]() {
-            StartMoveToTarget();
-        };
-    }
-
-    // 开始移动到目标位置
-    void StartMoveToTarget(const Vector& target = Vector(10, 10), float fastSpeed = 500.0f, float slowSpeed = 100.0f, float slowdownDist = 80.0f)
-    {
-		StopAnimation();
-		this->GetComponent<ClickableComponent>()->IsClickable = false;
-		//this->RemoveComponent<ColliderComponent>();
-        targetPos = target;
-        speedFast = fastSpeed;
-        speedSlow = slowSpeed;
-        slowDownDistance = slowdownDist;
-        isMovingToTarget = true;
-    }
-
-    // 停止移动
-    void StopMove()
-    {
-        isMovingToTarget = false;
-    }
-
-    // 是否正在移动
-    bool IsMoving() const
-    {
-        return isMovingToTarget;
-    }
-
-    // 设置目标位置
-    void SetTargetPosition(const Vector& target)
-    {
-        targetPos = target;
-    }
-
-    // 到达目标时的回调
-    virtual void OnReachTargetBack()
-    {
-        isMovingToTarget = false;
-        GameObjectManager::GetInstance().DestroyGameObject(shared_from_this());
-    }
+    void StopMove();
+    bool IsMoving() const;
+    void SetTargetPosition(const Vector& target);
+    virtual void OnReachTargetBack();
 
 protected:
-    Vector GetPosition() const
-    {
-        if (transform) {
-            return transform->position;
-        }
-        return Vector::zero();
-    }
-
-    void SetPosition(const Vector& newPos)
-    {
-        if (transform) {
-            transform->SetPosition(newPos);
-        }
-    }
+    Vector GetPosition() const;
+    void SetPosition(const Vector& newPos);
 };
 #endif

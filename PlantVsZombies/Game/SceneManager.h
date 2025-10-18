@@ -37,7 +37,7 @@ public:
 
     void Update();
     void Draw(SDL_Renderer* renderer);
-    void HandleEvent(SDL_Event& event);
+    void HandleEvent(SDL_Event& event, InputHandler& input);
 
     // 获取当前场景的指针
     Scene* GetCurrentScene() const;

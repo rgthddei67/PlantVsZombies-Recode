@@ -3,7 +3,6 @@
 #define _GAMESCENE_H
 #include "Scene.h"
 #include "../Game/Board.h"
-#include "../UI/UIManager.h"
 
 class GameScene : public Scene {
 public:
@@ -14,14 +13,11 @@ public:
     void OnExit() override;
     void Update() override;
     void Draw(SDL_Renderer* renderer) override;
-    void HandleEvent(SDL_Event& event) override;
+    void HandleEvent(SDL_Event& event, InputHandler& input) override;
 
 private:
 	std::unique_ptr<Board> mBoard;
-    UIManager uiManager_;
-    SDL_Texture* background_ = nullptr;
 
-    void SetupUI();
     void OnBackToMenuClicked();
     void OnRestartClicked();
 };

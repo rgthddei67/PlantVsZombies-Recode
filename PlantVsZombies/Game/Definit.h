@@ -4,6 +4,8 @@
 #include <SDL2/SDL.h>
 #include <math.h>
 
+constexpr float DELTA_TIME = 0.01f;
+
 struct Vector
 {
     float x;

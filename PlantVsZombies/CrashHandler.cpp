@@ -42,32 +42,32 @@ LONG WINAPI CrashHandler::VectoredExceptionHandler(PEXCEPTION_POINTERS exception
     if (!exceptionInfo) return EXCEPTION_CONTINUE_SEARCH;
     DWORD exceptionCode = exceptionInfo->ExceptionRecord->ExceptionCode;
 
-    if (IsUACByTimeWindow(exceptionInfo)) 
+    if (IsUACByTimeWindow(exceptionInfo))
     {
         return EXCEPTION_CONTINUE_SEARCH;
-	}
+    }
     // 排除调试相关的异常
-    switch (exceptionCode) 
+    switch (exceptionCode)
     {
-        case EXCEPTION_BREAKPOINT:                    // 断点
-        case EXCEPTION_SINGLE_STEP:                   // 单步
-        case 0x4001000a:                              // DBG_PRINTEXCEPTION_C (调试输出)
-        case 0x40010006:                              // DBG_PRINTEXCEPTION_WIDE_C (宽字符调试输出)
-        case 0x406D1388:                              // 设置线程名称异常
-            return EXCEPTION_CONTINUE_SEARCH;
-        case 0xE06D7363:                            
-            return EXCEPTION_CONTINUE_SEARCH;         // C++ 异常
+    case EXCEPTION_BREAKPOINT:                    // 断点
+    case EXCEPTION_SINGLE_STEP:                   // 单步
+    case 0x4001000a:                              // DBG_PRINTEXCEPTION_C (调试输出)
+    case 0x40010006:                              // DBG_PRINTEXCEPTION_WIDE_C (宽字符调试输出)
+    case 0x406D1388:                              // 设置线程名称异常
+        return EXCEPTION_CONTINUE_SEARCH;
+    case 0xE06D7363:
+        return EXCEPTION_CONTINUE_SEARCH;         // C++ 异常
 
-        default:
-            if (IsCrashException(exceptionCode)) 
-            {
-                HandleCrash(exceptionInfo);
-                return EXCEPTION_EXECUTE_HANDLER;
-            }
-            else 
-            {
-                return EXCEPTION_CONTINUE_SEARCH;
-            }
+    default:
+        if (IsCrashException(exceptionCode))
+        {
+            HandleCrash(exceptionInfo);
+            return EXCEPTION_EXECUTE_HANDLER;
+        }
+        else
+        {
+            return EXCEPTION_CONTINUE_SEARCH;
+        }
     }
 }
 
@@ -224,7 +224,7 @@ void CrashHandler::ShowCrashDialog(PEXCEPTION_POINTERS exceptionInfo, const std:
 
     // 添加寄存器信息
     if (exceptionInfo->ContextRecord) {
-		errorMsg << "以下是部分关键寄存器信息，完整请看崩溃报告。\n";
+        errorMsg << "以下是部分关键寄存器信息，完整请看崩溃报告。\n";
         errorMsg << "=== 寄存器信息 ===\n";
         PCONTEXT ctx = exceptionInfo->ContextRecord;
 

@@ -8,20 +8,24 @@
 #include "ReanimationComponent.h"
 #include "ColliderComponent.h"
 
+class Board;
+
 class AnimatedObject : public GameObject {
 protected:
+	Board* mBoard = nullptr;
 	std::shared_ptr<TransformComponent> transform;
 	std::shared_ptr<ReanimationComponent> animation;
 	std::shared_ptr<ColliderComponent> collider;
 
 public:
-	AnimatedObject(const Vector& position, AnimationType animType,
+	AnimatedObject(Board* board, const Vector& position, AnimationType animType,
 		const ColliderType& colliderType,
 		const Vector& colliderSize,
 		float scale,
 		const std::string& tag = "AnimatedObject",
-		bool autoDestroy = true) {
-
+		bool autoDestroy = true) 
+	{
+		mBoard = board;
 		SetTag(tag);
 
 		transform = AddComponent<TransformComponent>();

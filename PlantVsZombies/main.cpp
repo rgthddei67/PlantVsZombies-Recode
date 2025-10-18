@@ -55,13 +55,6 @@ namespace UIFunctions
 
 }
 
-void CreateAnimationTest() {
-    // 创建太阳动画
-    auto sun = GameObjectManager::GetInstance().CreateGameObject<Sun>(
-        Vector(400, 300)           // 位置
-    );
-}
-
 int main(int argc, char* argv[])
 {
     CrashHandler::Initialize();
@@ -172,7 +165,6 @@ int main(int argc, char* argv[])
             return -1;
         }
         g_particleSystem = std::make_unique<ParticleSystem>(renderer); // 初始化全局粒子系统
-        CreateAnimationTest();
         // 创建按钮
         /*
         auto button1 = uiManager.CreateButton(Vector(100, 150));
@@ -205,7 +197,7 @@ int main(int argc, char* argv[])
                     running = false;
                 }
                 input.ProcessEvent(&event);
-                sceneManager.HandleEvent(event);
+                sceneManager.HandleEvent(event, input);
             }
             if (input.IsKeyReleased(SDLK_ESCAPE))
             {

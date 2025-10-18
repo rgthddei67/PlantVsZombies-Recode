@@ -1,4 +1,5 @@
 #include "Board.h"
+#include "Sun.h"
 
 void Board::InitializeCell(int rows, int cols)
 {
@@ -35,7 +36,56 @@ void Board::Draw(SDL_Renderer* renderer)
     DrawCell(renderer);
 }
 
+std::shared_ptr<Sun> Board::CreateSun(const Vector& position)
+{
+    auto sun = GameObjectManager::GetInstance().CreateGameObject<Sun>(this, position);
+
+    mCoinObservers.push_back(sun);
+
+    std::cout << "创建阳光，当前活跃Coin数量: " << GetActiveCoinCount()
+        << "/" << GetTotalCreatedCoinCount() << std::endl;
+
+    return sun;
+}
+
+void Board::CleanupExpiredObjects()
+{
+    // 清理所有已过期的引用
+    mCoinObservers.erase(
+        std::remove_if(mCoinObservers.begin(), mCoinObservers.end(),
+            [](const std::weak_ptr<Coin>& weakCoin) {
+                return weakCoin.expired();
+            }),
+        mCoinObservers.end()
+    );
+}
+
+void Board::UpdateSunFalling()
+{
+    mSunCountDown -= DELTA_TIME;
+    if (mSunCountDown <= 0.0f)
+    {
+        mSunCountDown = 5.0f;
+        CreateSun(Vector(
+            static_cast<float>(rand() % 700),
+            static_cast<float>(rand() % 300)
+		));
+    }
+}
+
 void Board::Update()
 {
+    CleanupExpiredObjects();
+}
 
+int Board::GetActiveCoinCount() const
+{
+    // 统计当前活跃的 Coin 数量
+    int count = 0;
+    for (const auto& weakCoin : mCoinObservers) {
+        if (!weakCoin.expired()) {
+            count++;
+        }
+    }
+    return count;
 }

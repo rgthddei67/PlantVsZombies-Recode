@@ -8,9 +8,9 @@ private:
 	int SunPoint = 25;	// 收集后增加的阳光点数
 
 public:
-	Sun(const Vector& position, float scale = 0.75f,
+	Sun(Board* board, const Vector& position, float scale = 0.75f,
 		const std::string& tag = "Sun", bool autoDestroy = true)
-		: Coin(AnimationType::ANIM_SUN, position,
+		: Coin(board, AnimationType::ANIM_SUN, position,
 			Vector(65, 65), scale, tag, autoDestroy)
 	{
 		speedFast = 700.0f;
@@ -21,6 +21,7 @@ public:
 	void OnReachTargetBack() override
 	{
 		Coin::OnReachTargetBack();
+		mBoard->AddSun(SunPoint);
 	}
 
     void SetOnClickBack(std::shared_ptr<ClickableComponent> clickComponent) override
