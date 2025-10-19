@@ -50,6 +50,7 @@
   <ItemGroup>
     <ClInclude Include="ConstEnums.h" />
     <ClInclude Include="CrashHandler.h" />
+    <ClInclude Include="DeltaTime.h" />
     <ClInclude Include="GameApp.h" />
     <ClInclude Include="Game\AnimatedObject.h" />
     <ClInclude Include="Game\AudioSystem.h" />

@@ -14,13 +14,15 @@
 class Component;
 
 class GameObject : public std::enable_shared_from_this<GameObject> {
+protected:
+    bool active = true; // 是否在活动
+    bool started = false;   // 标记
+
 private:
     std::vector<std::shared_ptr<Component>> componentsToInitialize; // 待初始化的组件
     std::unordered_map<std::type_index, std::shared_ptr<Component>> components; // 包含的组件
     std::string tag = "Untagged";
     std::string name = "GameObject";
-    bool active = true; // 是否在活动
-    bool started = false;   // 标记
     void RegisterAllColliders();
     void RegisterColliderIfNeeded(std::shared_ptr<Component> component);
     void UnregisterColliderIfNeeded(std::shared_ptr<Component> component);

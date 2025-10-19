@@ -66,16 +66,19 @@ void Board::UpdateSunFalling()
     if (mSunCountDown <= 0.0f)
     {
         mSunCountDown = 5.0f;
-        CreateSun(Vector(
-            static_cast<float>(rand() % 700),
-            static_cast<float>(rand() % 300)
-		));
+        Vector sunPos(
+            static_cast<float>(50 + rand() % 721),  // 50~770
+            static_cast<float>(-110 + rand() % 91)  // -110~-20
+        );
+        auto sun = CreateSun(sunPos);
+        sun->StartLinearFall();
     }
 }
 
 void Board::Update()
 {
     CleanupExpiredObjects();
+    UpdateSunFalling();
 }
 
 int Board::GetActiveCoinCount() const

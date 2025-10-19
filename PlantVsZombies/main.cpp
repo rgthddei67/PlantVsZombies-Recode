@@ -1,5 +1,6 @@
 #define SDL_MAIN_HANDLED
 #include "./CrashHandler.h"
+#include "./DeltaTime.h"
 #include "./GameAPP.h"
 #include "./UI/Button.h"
 #include "./UI/Slider.h"
@@ -183,11 +184,13 @@ int main(int argc, char* argv[])
         auto slider = uiManager.CreateSlider(Vector(500, 150), Vector(135, 10), 0.0f, 100.0f, 0.0f);
         slider->SetChangeCallBack(UIFunctions::SliderChanged);
         */
+        DeltaTime::GetInstance().Reset();
         sceneManager.SwitchTo("GameScene");
         bool running = true;
         SDL_Event event;
         while (running && !sceneManager.IsEmpty())
         {
+            DeltaTime::GetInstance().BeginFrame();
             auto& input = GameAPP::GetInstance().GetInputHandler();
             // 处理事件
             while (SDL_PollEvent(&event))

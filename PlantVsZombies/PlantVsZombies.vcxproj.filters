@@ -97,6 +97,8 @@
     <ClCompile Include="Game\GameScene.cpp">
       <Filter>Code\Game</Filter>
     </ClCompile>
+    <ClCompile Include="Game\Coin.cpp" />
+    <ClCompile Include="Game\Scene.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="UI\Button.h">
@@ -221,6 +223,9 @@
     </ClInclude>
     <ClInclude Include="Game\SceneManager.h">
       <Filter>Code\Game</Filter>
+    </ClInclude>
+    <ClInclude Include="DeltaTime.h">
+      <Filter>Code</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
