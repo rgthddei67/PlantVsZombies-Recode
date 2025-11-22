@@ -4,8 +4,6 @@
 #include <SDL2/SDL.h>
 #include <math.h>
 
-constexpr float DELTA_TIME = 0.01f;
-
 struct Vector
 {
     float x;
@@ -114,8 +112,24 @@ struct Vector
     static Vector right() { return Vector(1, 0); }
 };
 
+struct Color {
+    float r, g, b, a;
+
+    Color() : r(1.0f), g(1.0f), b(1.0f), a(1.0f) {}
+    Color(float r, float g, float b, float a = 1.0f) : r(r), g(g), b(b), a(a) {}
+
+    Color operator*(const Color& other) const {
+        return Color(r * other.r, g * other.g, b * other.b, a * other.a);
+    }
+
+    Color& operator*=(const Color& other) {
+        r *= other.r; g *= other.g; b *= other.b; a *= other.a;
+        return *this;
+    }
+};
+
 // 矩阵类
-struct SexyTransform2D 
+struct SexyTransform2D
 {
     float m00, m01, m02;
     float m10, m11, m12;
@@ -130,6 +144,68 @@ struct SexyTransform2D
         m10 = 0.0f; m11 = 1.0f; m12 = 0.0f;
         m20 = 0.0f; m21 = 0.0f; m22 = 1.0f;
     }
+
+    // 平移
+    void Translate(float x, float y) {
+        m02 += x;
+        m12 += y;
+    }
+
+    // 缩放
+    void Scale(float sx, float sy) {
+        m00 *= sx; m01 *= sx; m02 *= sx;
+        m10 *= sy; m11 *= sy; m12 *= sy;
+    }
+
+    // 旋转（角度制）
+    void Rotate(float angle) {
+        float rad = angle * 3.14159265f / 180.0f;
+        float cosA = cosf(rad);
+        float sinA = sinf(rad);
+
+        SexyTransform2D rot;
+        rot.m00 = cosA;  rot.m01 = -sinA; rot.m02 = 0;
+        rot.m10 = sinA;  rot.m11 = cosA;  rot.m12 = 0;
+        rot.m20 = 0;     rot.m21 = 0;     rot.m22 = 1;
+
+        *this = Multiply(*this, rot);
+    }
+
+    // 斜切
+    void Shear(float kx, float ky) {
+        SexyTransform2D shear;
+        shear.m00 = 1;   shear.m01 = kx;  shear.m02 = 0;
+        shear.m10 = ky;  shear.m11 = 1;   shear.m12 = 0;
+        shear.m20 = 0;   shear.m21 = 0;   shear.m22 = 1;
+
+        *this = Multiply(*this, shear);
+    }
+
+    // 矩阵乘法
+    static SexyTransform2D Multiply(const SexyTransform2D& a, const SexyTransform2D& b) {
+        SexyTransform2D result;
+
+        result.m00 = a.m00 * b.m00 + a.m01 * b.m10 + a.m02 * b.m20;
+        result.m01 = a.m00 * b.m01 + a.m01 * b.m11 + a.m02 * b.m21;
+        result.m02 = a.m00 * b.m02 + a.m01 * b.m12 + a.m02 * b.m22;
+
+        result.m10 = a.m10 * b.m00 + a.m11 * b.m10 + a.m12 * b.m20;
+        result.m11 = a.m10 * b.m01 + a.m11 * b.m11 + a.m12 * b.m21;
+        result.m12 = a.m10 * b.m02 + a.m11 * b.m12 + a.m12 * b.m22;
+
+        result.m20 = a.m20 * b.m00 + a.m21 * b.m10 + a.m22 * b.m20;
+        result.m21 = a.m20 * b.m01 + a.m21 * b.m11 + a.m22 * b.m21;
+        result.m22 = a.m20 * b.m02 + a.m21 * b.m12 + a.m22 * b.m22;
+
+        return result;
+    }
+
+    // 变换点
+    Vector TransformPoint(const Vector& point) const {
+        float x = m00 * point.x + m01 * point.y + m02;
+        float y = m10 * point.x + m11 * point.y + m12;
+        return Vector(x, y);
+    }
 };
 
 // SexyVector2 类似于 Vector，但用于矩阵运算
@@ -139,25 +215,5 @@ struct SexyVector2
     SexyVector2() : x(0), y(0) {}
     SexyVector2(float x, float y) : x(x), y(y) {}
 };
-
-// 矩阵乘法函数
-inline void SexyMatrix3Multiply(SexyTransform2D& result, const SexyTransform2D& mat1, const SexyTransform2D& mat2) {
-    result.m00 = mat1.m00 * mat2.m00 + mat1.m01 * mat2.m10 + mat1.m02 * mat2.m20;
-    result.m01 = mat1.m00 * mat2.m01 + mat1.m01 * mat2.m11 + mat1.m02 * mat2.m21;
-    result.m02 = mat1.m00 * mat2.m02 + mat1.m01 * mat2.m12 + mat1.m02 * mat2.m22;
-
-    result.m10 = mat1.m10 * mat2.m00 + mat1.m11 * mat2.m10 + mat1.m12 * mat2.m20;
-    result.m11 = mat1.m10 * mat2.m01 + mat1.m11 * mat2.m11 + mat1.m12 * mat2.m21;
-    result.m12 = mat1.m10 * mat2.m02 + mat1.m11 * mat2.m12 + mat1.m12 * mat2.m22;
-
-    result.m20 = mat1.m20 * mat2.m00 + mat1.m21 * mat2.m10 + mat1.m22 * mat2.m20;
-    result.m21 = mat1.m20 * mat2.m01 + mat1.m21 * mat2.m11 + mat1.m22 * mat2.m21;
-    result.m22 = mat1.m20 * mat2.m02 + mat1.m21 * mat2.m12 + mat1.m22 * mat2.m22;
-}
-
-inline void SexyMatrix3Translation(SexyTransform2D& mat, float x, float y) {
-    mat.m02 += x;
-    mat.m12 += y;
-}
 
 #endif

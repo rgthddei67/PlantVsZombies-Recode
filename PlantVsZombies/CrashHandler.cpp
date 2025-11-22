@@ -18,7 +18,8 @@ LONG64 CrashHandler::lastUACTime = 0;
 
 void CrashHandler::Initialize() {
     std::cout << "安装向量化异常处理器..." << std::endl;
-
+    ULONG stackGuarantee = 4 * 1024; // 保留4KB栈空间
+    SetThreadStackGuarantee(&stackGuarantee);
     // 安装 VEH 作为第一个异常处理器
     vehHandle = AddVectoredExceptionHandler(1, VectoredExceptionHandler);
 
@@ -46,6 +47,11 @@ LONG WINAPI CrashHandler::VectoredExceptionHandler(PEXCEPTION_POINTERS exception
     {
         return EXCEPTION_CONTINUE_SEARCH;
     }
+    if (exceptionCode == EXCEPTION_STACK_OVERFLOW) {
+        HandleStackOverflowMinimal(exceptionInfo);
+        return EXCEPTION_EXECUTE_HANDLER;
+    }
+
     // 排除调试相关的异常
     switch (exceptionCode)
     {
@@ -69,6 +75,45 @@ LONG WINAPI CrashHandler::VectoredExceptionHandler(PEXCEPTION_POINTERS exception
             return EXCEPTION_CONTINUE_SEARCH;
         }
     }
+}
+
+void CrashHandler::HandleStackOverflowMinimal(PEXCEPTION_POINTERS exceptionInfo) {
+    // 使用静态缓冲区，避免栈分配
+    static char buffer[512];
+
+    // 简单的错误信息
+    const char* errorMsg =
+        "Stack overflow occurred.\n"
+        "The program will terminate immediately.";
+
+    // 直接写入文件，避免复杂操作
+    HANDLE hFile = CreateFileA(
+        "stack_overflow_minimal.txt",
+        GENERIC_WRITE,
+        0,
+        nullptr,
+        CREATE_ALWAYS,
+        FILE_ATTRIBUTE_NORMAL,
+        nullptr
+    );
+    printf("\a");
+    if (hFile != INVALID_HANDLE_VALUE) {
+        DWORD written;
+        WriteFile(hFile, errorMsg, strlen(errorMsg), &written, nullptr);
+
+        // 记录异常地址
+        if (exceptionInfo && exceptionInfo->ExceptionRecord) {
+            std::snprintf(buffer, sizeof(buffer),
+                "\n\nException Address: 0x%p\nRSP: 0x%p",
+                exceptionInfo->ExceptionRecord->ExceptionAddress, 
+                exceptionInfo->ContextRecord->Rsp);
+            WriteFile(hFile, buffer, strlen(buffer), &written, nullptr);
+        }
+
+        CloseHandle(hFile);
+    }
+
+	TerminateProcess(GetCurrentProcess(), -114514);
 }
 
 bool CrashHandler::IsCrashException(DWORD exceptionCode) {

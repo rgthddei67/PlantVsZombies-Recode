@@ -4,47 +4,49 @@
 #include "CollisionSystem.h"
 #include "ColliderComponent.h"
 
-GameObject::~GameObject() {
-    for (auto& [type, component] : components) {
+GameObject::~GameObject() 
+{
+    OnDestroy();
+    for (auto& [type, component] : mComponents) {
         UnregisterColliderIfNeeded(component);
         component->OnDestroy();
     }
-    components.clear();
+    mComponents.clear();
 }
 
 void GameObject::Start() {
-    if (!started) {
-        for (auto& component : componentsToInitialize) {
+    if (!mStarted) {
+        for (auto& component : mComponentsToInitialize) {
             InitializeComponent(component);
         }
-        componentsToInitialize.clear();
+        mComponentsToInitialize.clear();
 
         RegisterAllColliders();
 
-        for (auto& [type, component] : components) {
-            if (component->enabled) {
+        for (auto& [type, component] : mComponents) {
+            if (component->mEnabled) {
                 component->Start();
             }
         }
-        started = true;
+        mStarted = true;
     }
 }
 
 void GameObject::Update() {
-    if (!active || !started) return;
+    if (!mActive || !mStarted) return;
 
-    for (auto& [type, component] : components) {
-        if (component->enabled) {
+    for (auto& [type, component] : mComponents) {
+        if (component->mEnabled) {
             component->Update();
         }
     }
 }
 
 void GameObject::Draw(SDL_Renderer* renderer) {
-    if (!active || !started) return;
+    if (!mActive || !mStarted) return;
 
-    for (auto& [type, component] : components) {
-        if (component->enabled) {
+    for (auto& [type, component] : mComponents) {
+        if (component->mEnabled) {
             component->Draw(renderer);
         }
     }
@@ -52,17 +54,17 @@ void GameObject::Draw(SDL_Renderer* renderer) {
 
 void GameObject::InitializeComponent(std::shared_ptr<Component> component) {
     component->SetGameObject(shared_from_this());
-    if (started && component->enabled) {
+    if (mStarted && component->mEnabled) {
         component->Start();
     }
 }
 
 void GameObject::DestroyAllComponents() {
-    for (auto& [type, component] : components) {
+    for (auto& [type, component] : mComponents) {
         component->OnDestroy();
     }
-    components.clear();
-    componentsToInitialize.clear();
+    mComponents.clear();
+    mComponentsToInitialize.clear();
 }
 
 SDL_Renderer* GameObject::GetRenderer() const {
@@ -70,7 +72,7 @@ SDL_Renderer* GameObject::GetRenderer() const {
 }
 
 void GameObject::RegisterAllColliders() {
-    for (auto& [type, component] : components) {
+    for (auto& [type, component] : mComponents) {
         RegisterColliderIfNeeded(component);
     }
 }

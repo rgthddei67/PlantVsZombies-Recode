@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -21,6 +21,7 @@
   <ItemGroup>
     <ClCompile Include="CrashHandler.cpp" />
     <ClCompile Include="GameApp.cpp" />
+    <ClCompile Include="GameMonitor.cpp" />
     <ClCompile Include="Game\AudioSystem.cpp" />
     <ClCompile Include="Game\Board.cpp" />
     <ClCompile Include="Game\ClickableComponent.cpp" />
@@ -36,10 +37,8 @@
     <ClCompile Include="ParticleSystem\ParticleConfig.cpp" />
     <ClCompile Include="ParticleSystem\ParticleEmitter.cpp" />
     <ClCompile Include="ParticleSystem\ParticleSystem.cpp" />
-    <ClCompile Include="Reanimation\Reanimator.cpp" />
-    <ClCompile Include="Reanimation\ReanimParser.cpp" />
-    <ClCompile Include="Reanimation\SimpleXmlParser.cpp" />
-    <ClCompile Include="Reanimation\XFLParser.cpp" />
+    <ClCompile Include="Reanimation\Animator.cpp" />
+    <ClCompile Include="Reanimation\Reanimation.cpp" />
     <ClCompile Include="ResourceManager.cpp" />
     <ClCompile Include="UI\Button.cpp" />
     <ClCompile Include="UI\ButtonManager.cpp" />
@@ -52,6 +51,7 @@
     <ClInclude Include="CrashHandler.h" />
     <ClInclude Include="DeltaTime.h" />
     <ClInclude Include="GameApp.h" />
+    <ClInclude Include="GameMonitor.h" />
     <ClInclude Include="Game\AnimatedObject.h" />
     <ClInclude Include="Game\AudioSystem.h" />
     <ClInclude Include="Game\Board.h" />
@@ -75,12 +75,11 @@
     <ClInclude Include="ParticleSystem\ParticleEmitter.h" />
     <ClInclude Include="ParticleSystem\ParticleSystem.h" />
     <ClInclude Include="Reanimation\AnimationTypes.h" />
-    <ClInclude Include="Reanimation\Reanimator.h" />
-    <ClInclude Include="Reanimation\ReanimParser.h" />
-    <ClInclude Include="Reanimation\SimpleXmlParser.h" />
+    <ClInclude Include="Reanimation\Animator.h" />
+    <ClInclude Include="Reanimation\Reanimation.h" />
+    <ClInclude Include="Reanimation\ReanimTypes.h" />
     <ClInclude Include="Reanimation\TodCommon.h" />
     <ClInclude Include="Reanimation\TodDebug.h" />
-    <ClInclude Include="Reanimation\XFLParser.h" />
     <ClInclude Include="RendererManager.h" />
     <ClInclude Include="ResourceManager.h" />
     <ClInclude Include="TestObject.h" />
@@ -194,6 +193,8 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
+      <StackReserveSize>4194304</StackReserveSize>
+      <StackCommitSize>65536</StackCommitSize>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -213,6 +214,8 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
+      <StackReserveSize>4194304</StackReserveSize>
+      <StackCommitSize>65536</StackCommitSize>
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

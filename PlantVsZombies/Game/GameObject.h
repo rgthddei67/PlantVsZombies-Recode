@@ -15,14 +15,14 @@ class Component;
 
 class GameObject : public std::enable_shared_from_this<GameObject> {
 protected:
-    bool active = true; // 是否在活动
-    bool started = false;   // 标记
+    bool mActive = true; // 是否在活动
+    bool mStarted = false;   // 标记
+    std::vector<std::shared_ptr<Component>> mComponentsToInitialize; // 待初始化的组件
+    std::unordered_map<std::type_index, std::shared_ptr<Component>> mComponents; // 包含的组件
+    std::string mTag = "Untagged";
+    std::string mName = "GameObject";
 
 private:
-    std::vector<std::shared_ptr<Component>> componentsToInitialize; // 待初始化的组件
-    std::unordered_map<std::type_index, std::shared_ptr<Component>> components; // 包含的组件
-    std::string tag = "Untagged";
-    std::string name = "GameObject";
     void RegisterAllColliders();
     void RegisterColliderIfNeeded(std::shared_ptr<Component> component);
     void UnregisterColliderIfNeeded(std::shared_ptr<Component> component);
@@ -38,14 +38,14 @@ public:
         auto component = std::make_shared<T>(std::forward<Args>(args)...);
 
         auto typeIndex = std::type_index(typeid(T));
-        components[typeIndex] = component;
+        mComponents[typeIndex] = component;
 
         // 延迟设置GameObject，避免在构造函数中调用shared_from_this() 造成bad_weak_ptr错误
         // TODO: 警告: 在构造函数中不要调用 shared_from_this()
-        componentsToInitialize.push_back(component);
+        mComponentsToInitialize.push_back(component);
 
         // 如果对象已启动，立即初始化组件
-        if (started) {
+        if (mStarted) {
             InitializeComponent(component);
             RegisterColliderIfNeeded(component);
         }
@@ -57,8 +57,8 @@ public:
     template<typename T>
     std::shared_ptr<T> GetComponent() {
         auto typeIndex = std::type_index(typeid(T));
-        auto it = components.find(typeIndex);
-        if (it != components.end()) {
+        auto it = mComponents.find(typeIndex);
+        if (it != mComponents.end()) {
             auto component = std::static_pointer_cast<T>(it->second);
             // 检查组件是否还有效
             if (component->GetGameObject()) {
@@ -72,13 +72,13 @@ public:
     template<typename T>
     bool RemoveComponent() {
         auto typeIndex = std::type_index(typeid(T));
-        auto it = components.find(typeIndex);
-        if (it != components.end()) {
+        auto it = mComponents.find(typeIndex);
+        if (it != mComponents.end()) {
             // 如果是碰撞器组件，从碰撞系统中注销
             // TOOD: 以后若还有别的大系统，也要这么做
             UnregisterColliderIfNeeded(it->second);
             it->second->OnDestroy();
-            components.erase(it);
+            mComponents.erase(it);
             return true;
         }
         return false;
@@ -94,26 +94,28 @@ public:
 
     virtual void Update();
 
+    virtual void OnDestroy() { }
+
     // 绘制所有组件（如果组件要绘制的话)
     virtual void Draw(SDL_Renderer* renderer);
 
     // 获取物体的标签
-    const std::string& GetTag() const { return tag; }
+    const std::string& GetTag() const { return mTag; }
 
     // 设置物体的标签
-    void SetTag(const std::string& newTag) { tag = newTag; }
+    void SetTag(const std::string& newTag) { mTag = newTag; }
 
     // 获取物体的名字
-    const std::string& GetName() const { return name; }
+    const std::string& GetName() const { return mName; }
 
     // 设置物体的名字
-    void SetName(const std::string& newName) { name = newName; }
+    void SetName(const std::string& newName) { mName = newName; }
 
     // 获取物体的激活状态
-    bool IsActive() const { return active; }
+    bool IsActive() const { return mActive; }
 
     // 设置物体的激活状态
-    void SetActive(bool state) { active = state; }
+    void SetActive(bool state) { mActive = state; }
 
     // 初始化单个组件
     void InitializeComponent(std::shared_ptr<Component> component);

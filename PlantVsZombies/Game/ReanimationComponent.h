@@ -5,7 +5,7 @@
 #include "../Game/GameObjectManager.h"
 #include "../ResourceManager.h"
 #include "../Game/Component.h"
-#include "../Reanimation/Reanimator.h"
+#include "../Reanimation/Animator.h"
 #include "../Reanimation/AnimationTypes.h"
 #include <memory>
 
@@ -13,149 +13,196 @@ class GameObjectManager;
 
 class ReanimationComponent : public Component {
 private:
-    std::unique_ptr<Reanimation> mReanimation;
+    std::shared_ptr<Animator> mAnimator;
     AnimationType mAnimType;
+    Vector mPosition;
     float mScale;
     bool mIsPlaying;
-    ReanimLoopType mLoopType;
+    PlayState mLoopType;
     bool mAutoDestroy;
 
 public:
     ReanimationComponent(AnimationType animType, const Vector& position = Vector::zero(), float scale = 1.0f)
-        : mAnimType(animType), mScale(scale), mIsPlaying(false),
-        mLoopType(ReanimLoopType::REANIM_LOOP), mAutoDestroy(true) {
+        : mAnimType(animType), mPosition(position), mScale(scale), mIsPlaying(false),
+        mLoopType(PlayState::PLAY_REPEAT), mAutoDestroy(true) {
     }
 
     ~ReanimationComponent() override {
-        if (mReanimation) {
-            mReanimation->ReanimationDie();
-        }
+
     }
 
     void Start() override {
         auto gameObj = GetGameObject();
         if (!gameObj) return;
 
-        SDL_Renderer* renderer = gameObj->GetRenderer();
-        if (!renderer) {
-			std::cout << 
-                "ReanimationComponent::Start failed: Renderer is null" << std::endl;
+        // 获取动画资源
+        ResourceManager& resMgr = ResourceManager::GetInstance();
+        auto reanimResource =
+            resMgr.GetReanimation(resMgr.AnimationTypeToString(mAnimType));
+
+        if (!reanimResource) {
+            std::cout << "ReanimationComponent::Start failed: Could not load animation resource for type "
+                << static_cast<int>(mAnimType) << std::endl;
             return;
         }
-        Vector startPos = Vector::zero();
-        if (auto transformComp = gameObj->GetComponent<TransformComponent>()) 
-        {
-            startPos = transformComp->position;
-        }
-        else
-        {
-            std::cout<< 
-				"ReanimationComponent::Start warning: TransformComponent not found, using (0,0) as start position" << std::endl;
-        }
-        mReanimation = std::make_unique<Reanimation>(renderer);
 
-        ResourceManager& resMgr = ResourceManager::GetInstance();
-        auto animDef = resMgr.GetAnimation(mAnimType);
+        // 创建动画控制器
+        mAnimator = std::make_shared<Animator>(reanimResource);
 
-        if (animDef) {
-            mReanimation->ReanimationInitialize(startPos.x, startPos.y, animDef);
-            mReanimation->SetScale(mScale);
-            mReanimation->SetLoopType(mLoopType);
-            mReanimation->SetGameObject(gameObj);
-            mReanimation->SetAutoDestroy(mAutoDestroy);
-            if (mIsPlaying) {
-                Play();
-            }
+        // 设置初始位置
+        if (auto transformComp = gameObj->GetComponent<TransformComponent>()) {
+            mPosition = transformComp->position;
         }
+
+        // 设置动画参数
+        mAnimator->SetSpeed(1.0f);
+
+        // 根据循环类型设置播放状态
+        mAnimator->Play(mLoopType);
+
+        mIsPlaying = true;
     }
 
     void Update() override {
-        if (mReanimation) {
-            if (auto gameObj = GetGameObject()) {
-                if (auto transformComp = gameObj->GetComponent<TransformComponent>()) {
-                    SetPosition(transformComp->position);
-                }
+        if (!mAnimator) return;
+
+        // 更新位置
+        if (auto gameObj = GetGameObject()) {
+            if (auto transformComp = gameObj->GetComponent<TransformComponent>()) {
+                mPosition = transformComp->position;
             }
-            mReanimation->Update();
-			// 备选: 自动销毁逻辑
-            if (mAutoDestroy && mReanimation->IsDead()) {
+        }
+
+        // 更新动画
+        mAnimator->Update();
+
+        if (!mIsPlaying) return;
+
+        // 检查动画是否完成
+        if (mLoopType != PlayState::PLAY_REPEAT && IsFinished()) {
+            if (mAutoDestroy) {
                 if (auto gameObj = GetGameObject()) {
                     GameObjectManager::GetInstance().DestroyGameObject(gameObj);
                 }
+            }
+            else {
+                mIsPlaying = false;
             }
         }
     }
 
     void Draw(SDL_Renderer* renderer) override {
-        if (mReanimation) {
-            mReanimation->Draw();
-        }
+        if (!mAnimator) return;
+
+        mAnimator->Draw(renderer, mPosition.x, mPosition.y, mScale);
     }
 
+    // 开始播放
     void Play() {
         mIsPlaying = true;
-        if (mReanimation != nullptr && mReanimation->IsDead())
-        {
-            mReanimation->SetPlaying(true);
-            mReanimation->ReanimationReset(); // 只对已结束的动画重置
+        if (mAnimator) {
+            mAnimator->Play(mLoopType);
         }
     }
 
+    // 完全停止播放并切换到第一帧
     void Stop() {
         mIsPlaying = false;
-        mReanimation->SetPlaying(false);
+        if (mAnimator) {
+            mAnimator->Stop();
+        }
     }
 
-    void SetLoopType(ReanimLoopType loopType) {
+    // 在当前播放位置暂停播放
+    void Pause()
+    {
+        mIsPlaying = false;
+        if (mAnimator) {
+            mAnimator->Pause();
+        }
+    }
+
+    void SetLoopType(PlayState loopType) {
         mLoopType = loopType;
-        if (mReanimation) {
-            mReanimation->SetLoopType(loopType);
+        // 如果正在播放，重新设置播放状态
+        if (mIsPlaying && mAnimator) {
+            mAnimator->Play(mLoopType);
         }
     }
 
     void SetPosition(const Vector& position) {
-        if (mReanimation) {
-            mReanimation->SetPosition(position.x, position.y);
-        }
+        mPosition = position;
+    }
+
+    Vector GetPosition() const {
+        return mPosition;
     }
 
     void SetScale(float scale) {
         mScale = scale;
-        if (mReanimation) {
-            mReanimation->SetScale(scale);
-        }
     }
 
-    bool IsPlaying() const { return mIsPlaying; }
+    float GetScale() const {
+        return mScale;
+    }
 
-    bool IsFinished() const { return mReanimation ? mReanimation->IsDead() : false; }
+    bool IsPlaying() const {
+        return mIsPlaying && mAnimator && mAnimator->IsPlaying();
+    }
 
-    // 设置自动销毁
+    bool IsFinished() const {
+        if (!mAnimator) return true;
+
+        if (mLoopType == PlayState::PLAY_REPEAT) return false;
+
+        return !mAnimator->IsPlaying();
+    }
+
     void SetAutoDestroy(bool autoDestroy) {
         mAutoDestroy = autoDestroy;
-        if (mReanimation) {
-            mReanimation->SetAutoDestroy(autoDestroy);
-        }
     }
 
-    // 获取自动销毁状态
     bool GetAutoDestroy() const {
         return mAutoDestroy;
     }
 
-    // 设置特定轨道的帧
+    // 设置特定轨道的帧范围
     void SetFramesForLayer(const std::string& trackName) {
-        if (mReanimation) {
-            mReanimation->SetFramesForLayer(trackName.c_str());
+        if (mAnimator) {
+            mAnimator->SetFrameRangeByTrackName(trackName);
         }
     }
+
     // 查找轨道索引
     int FindTrackIndex(const std::string& trackName) {
-        return mReanimation ? mReanimation->FindTrackIndex(trackName.c_str()) : -1;
+        if (!mAnimator) return -1;
+
+        auto reanim = mAnimator->GetReanimation();
+        if (reanim) {
+            return reanim->FindTrackIndex(trackName);
+        }
+        return -1;
     }
-	// 获取底层Reanimation*对象
-    Reanimation* GetReanimation() const {
-        return mReanimation.get();
+
+    // 获取底层 Animator 对象
+    std::shared_ptr<Animator> GetAnimator() const {
+        return mAnimator;
+    }
+
+    // 获取动画类型
+    AnimationType GetAnimationType() const {
+        return mAnimType;
+    }
+
+    // 设置动画速度
+    void SetSpeed(float speed) {
+        if (mAnimator) {
+            mAnimator->SetSpeed(speed);
+        }
+    }
+
+    float GetSpeed() const {
+        return mAnimator ? mAnimator->GetSpeed() : 0.0f;
     }
 };
 

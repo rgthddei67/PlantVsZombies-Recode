@@ -338,7 +338,70 @@ bool ResourceManager::LoadAllMusic()
     return success;
 }
 
-bool ResourceManager::LoadAllAnimations()
+std::shared_ptr<Reanimation> ResourceManager::LoadReanimation(const std::string& key, const std::string& path) {
+    // 检查是否已加载
+    auto it = mReanimations.find(key);
+    if (it != mReanimations.end()) {
+        return it->second;
+    }
+
+    // 创建新的Reanimation
+    auto reanim = std::make_shared<Reanimation>();
+    reanim->mResourceManager = this;
+    if (!reanim->LoadFromFile(path)) {
+        std::cerr << "Failed to load reanimation: " << path << std::endl;
+        return nullptr;
+    }
+
+    mReanimations[key] = reanim;
+#ifdef _DEBUG
+    std::cout << "Successfully loaded reanimation: " << key << " from " << path << std::endl;
+#endif
+    return reanim;
+}
+
+std::shared_ptr<Reanimation> ResourceManager::GetReanimation(const std::string& key) {
+    auto it = mReanimations.find(key);
+    if (it != mReanimations.end()) {
+        // 从缓存获取数据，并创建新的独立实例
+        auto cachedReanim = it->second;
+        auto newReanim = std::make_shared<Reanimation>();
+
+        // 复制基础属性
+        newReanim->mFPS = cachedReanim->mFPS;
+        newReanim->mIsLoaded = cachedReanim->mIsLoaded;
+        newReanim->mResourceManager = cachedReanim->mResourceManager;
+
+        // 深拷贝轨道数据
+        if (cachedReanim->mTracks) {
+            newReanim->mTracks = std::make_shared<std::vector<TrackInfo>>(*cachedReanim->mTracks);
+        }
+        if (cachedReanim->mImagesSet) {
+            newReanim->mImagesSet = std::make_shared<std::set<std::string>>(*cachedReanim->mImagesSet);
+        }
+
+        return newReanim;
+    }
+
+    std::cerr << "Reanimation not found: " << key << std::endl;
+    return nullptr;
+}
+
+void ResourceManager::UnloadReanimation(const std::string& key) {
+    auto it = mReanimations.find(key);
+    if (it != mReanimations.end()) {
+        mReanimations.erase(it);
+#ifdef _DEBUG
+        std::cout << "Unloaded reanimation: " << key << std::endl;
+#endif
+    }
+}
+
+bool ResourceManager::HasReanimation(const std::string& key) const {
+    return mReanimations.find(key) != mReanimations.end();
+}
+
+bool ResourceManager::LoadAllReanimations()
 {
     if (!renderer) {
         std::cerr << "错误: ResourceManager 未初始化，无法加载动画！" << std::endl;
@@ -350,35 +413,23 @@ bool ResourceManager::LoadAllAnimations()
 #ifdef _DEBUG
     std::cout << "开始加载所有动画资源..." << std::endl;
 #endif
-    for (const auto& animPair : animationPaths) {
-        AnimationType animType = animPair.first;
-        const std::string& path = animPair.second;
+    for (const auto& reanimPair : mReanimationPaths) {
+        const std::string& key = reanimPair.first;
+        const std::string& path = reanimPair.second;
 
-        if (LoadAnimation(animType)) {
+        if (LoadReanimation(key, path)) {
             loadedCount++;
-            std::cout << "成功加载动画: " << path << " (类型: " << static_cast<int>(animType) << ")" << std::endl;
+            std::cout << "成功加载动画: " << key << " from " << path << std::endl;
         }
         else {
             success = false;
-            std::cerr << "加载动画失败: " << path << " (类型: " << static_cast<int>(animType) << ")" << std::endl;
+            std::cerr << "加载动画失败: " << key << " from " << path << std::endl;
         }
     }
 #ifdef _DEBUG
-    std::cout << "动画资源加载完成，成功: " << loadedCount << "/" << animationPaths.size() << std::endl;
+    std::cout << "动画资源加载完成，成功: " << loadedCount << "/" << mReanimationPaths.size() << std::endl;
 #endif
     return success;
-}
-
-void ResourceManager::UnloadAnimation(AnimationType animType)
-{
-    auto it = animations.find(animType);
-    if (it != animations.end()) {
-        it->second->Clear();
-        animations.erase(it);
-#ifdef _DEBUG
-        std::cout << "卸载动画: " << static_cast<int>(animType) << std::endl;
-#endif
-    }
 }
 
 // 获取资源路径列表
@@ -400,23 +451,6 @@ const std::vector<std::string>& ResourceManager::GetSoundPaths() const
 const std::vector<std::string>& ResourceManager::GetMusicPaths() const
 {
     return musicPaths;
-}
-
-std::shared_ptr<ReanimatorDefinition> ResourceManager::GetAnimation(AnimationType animType)
-{
-    auto it = animations.find(animType);
-    if (it != animations.end()) {
-        return it->second;
-    }
-
-    // 如果动画未加载，尝试立即加载
-    std::cout << "动画类型 " << static_cast<int>(animType) << " 未加载，尝试立即加载..." << std::endl;
-    if (LoadAnimation(animType)) {
-        return animations[animType];
-    }
-
-    std::cerr << "错误: 无法获取动画类型 " << static_cast<int>(animType) << std::endl;
-    return nullptr;
 }
 
 void ResourceManager::Initialize(SDL_Renderer* renderer)
@@ -588,39 +622,6 @@ void ResourceManager::LoadTexturePack(const std::vector<std::pair<std::string, s
     }
 }
 
-bool ResourceManager::LoadAnimation(AnimationType animType)
-{
-    if (!renderer) {
-        std::cerr << "错误: ResourceManager 未初始化！" << std::endl;
-        return false;
-    }
-
-    if (animations.find(animType) != animations.end()) {
-        return true;
-    }
-
-    auto pathIt = animationPaths.find(animType);
-    if (pathIt == animationPaths.end()) {
-        std::cerr << "错误: 未找到动画类型 " << static_cast<int>(animType) << " 的路径配置" << std::endl;
-        return false;
-    }
-
-    const std::string& path = pathIt->second;
-
-    auto definition = std::make_shared<ReanimatorDefinition>();
-    if (!definition->LoadFromFile(path)) {
-        std::cerr << "加载动画文件失败: " << path << std::endl;
-        return false;
-    }
-
-    if (!definition->LoadImages(renderer)) {
-        std::cerr << "警告: 动画图片加载失败或部分失败: " << path << std::endl;
-    }
-
-    animations[animType] = definition;
-    return true;
-}
-
 void ResourceManager::UnloadAll()
 {
     // 卸载所有纹理
@@ -655,11 +656,7 @@ void ResourceManager::UnloadAll()
     music.clear();
 
     // 卸载所有动画
-    for (auto& pair : animations) 
-    {
-        pair.second->Clear();
-    }
-    animations.clear();
+    mReanimations.clear();
 #ifdef _DEBUG
     std::cout << "已卸载所有资源" << std::endl;
 #endif
@@ -683,9 +680,4 @@ bool ResourceManager::HasSound(const std::string& key) const
 bool ResourceManager::HasMusic(const std::string& key) const
 {
     return music.find(key) != music.end();
-}
-
-bool ResourceManager::HasAnimation(AnimationType animType) const
-{
-    return animations.find(animType) != animations.end();
 }

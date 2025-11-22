@@ -1,4 +1,5 @@
-#include "../ParticleSystem/ParticleEmitter.h"
+#include "ParticleEmitter.h"
+#include "../DeltaTime.h"
 #include <iostream>
 #include "../GameApp.h"
 #include <cmath>
@@ -37,12 +38,13 @@ void ParticleEmitter::SetAutoDestroyTime(int frames) {
 void ParticleEmitter::Update() {
     if (!active) return;
 
+    float deltaTime = DeltaTime::GetDeltaTime();
+
     // 自动销毁计时
     if (autoDestroyTime > 0) {
-        autoDestroyTimer++;
+        autoDestroyTimer += deltaTime;
         if (autoDestroyTimer >= autoDestroyTime) {
             active = false;
-            std::cout << "发射器自动销毁时间到，标记为不活跃" << std::endl;
             return;
         }
     }
@@ -57,8 +59,9 @@ void ParticleEmitter::Update() {
 
     // 自动发射
     if (spawnRate > 0 && (!isOneShot || particlesEmitted < particlesToEmit)) {
-        spawnTimer++;
-        if (spawnTimer >= spawnRate) {
+        spawnTimer += deltaTime;
+        float spawnInterval = 1.0f / spawnRate;
+        if (spawnTimer >= spawnInterval) {
             if (!isOneShot || particlesEmitted < particlesToEmit) {
                 EmitSingleParticle();
                 spawnTimer = 0;

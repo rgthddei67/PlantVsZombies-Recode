@@ -1,6 +1,7 @@
 #pragma once
 #ifndef _SUN_H
 #define _SUN_H
+#include "../DeltaTime.h"
 #include "Coin.h"
 
 class Sun : public Coin {
@@ -8,19 +9,20 @@ private:
 	int SunPoint = 25;	// 收集后增加的阳光点数
     Vector mParabolaTarget; // 抛物线运动的目标位置
     Vector mParabolaStart;  // 抛物线起始位置
-    float mParabolaHeight;  // 抛物线高度
+    float mParabolaHeight = 0.0f;  // 抛物线高度
     float mParabolaTime = 0.0f; // 抛物线运动时间
     bool mIsParabola = false; // 是否正在进行抛物线运动
-    bool mShouldStartLinearFall = false; // 标记是否需要开始匀速下落
-    bool mShouldStartParabolaFall = false; // 标记是否需要开始抛物线运动
-    bool mIsLinearFalling = false; // 标记是否正在进行匀速下落
+    bool mShouldStartLinearFall = false; // 是否需要开始匀速下落
+    bool mShouldStartParabolaFall = false; // 是否需要开始抛物线运动
+    bool mIsLinearFalling = false; // 是否正在进行匀速下落
     Vector mLinearTarget; // 匀速下落的目标位置
+    bool mIsInitialized = false; // 是否已初始化
 
 public:
 	Sun(Board* board, const Vector& position, float scale = 0.75f,
 		const std::string& tag = "Sun", bool autoDestroy = true)
 		: Coin(board, AnimationType::ANIM_SUN, position,
-			Vector(65, 65), scale, tag, autoDestroy)
+			Vector(65, 65), 10.0f, scale, tag, autoDestroy)
 	{
 		speedFast = 700.0f;
 		speedSlow = 500.0f;
@@ -28,7 +30,12 @@ public:
 	}
 
     void Start() override {
-        Coin::Start(); 
+        Coin::Start();
+        mIsInitialized = true;
+
+        if (auto anim = GetComponent<ReanimationComponent>()) {
+            anim->Play();
+        }
 
         if (mShouldStartLinearFall) {
             mShouldStartLinearFall = false;
@@ -58,7 +65,7 @@ public:
     // 匀速下落
     void StartLinearFall() {
         // 检查组件是否已初始化
-        if (!started) {
+        if (!mIsInitialized) {
             mShouldStartLinearFall = true;
             return;
         }
@@ -68,15 +75,12 @@ public:
         float targetY = 80.0f + static_cast<float>(rand() % 341); // 80~420
         mLinearTarget = Vector(currentPos.x, targetY);
         mIsLinearFalling = true;
-
-        // 确保动画在播放
-        PlayAnimation();
     }
 
     // 抛物线运动
     void StartParabolaFall() {
         // 检查组件是否已初始化
-        if (!started) {
+        if (!mIsInitialized) {
             mShouldStartParabolaFall = true;
             return;
         }
@@ -108,16 +112,16 @@ public:
         // 如果到达目标位置，停止下落
         if (distance < 1.0f) {
             mIsLinearFalling = false;
-            // 到达位置后不要销毁对象，保持可点击状态
+            // 到达位置后保持可点击状态
             return;
         }
 
-        // 匀速下落速度
-        float speed = 50.0f; // 可以根据需要调整
+        // 匀速下落速度 - 适当增加速度
+        float speed = 80.0f; // 增加下落速度
 
         if (distance > 0) {
             Vector normalizedDir = direction / distance;
-            Vector newPos = currentPos + normalizedDir * speed * DELTA_TIME;
+            Vector newPos = currentPos + normalizedDir * speed * DeltaTime::GetDeltaTime();
             SetPosition(newPos);
         }
     }
@@ -126,10 +130,10 @@ public:
     void UpdateParabola() {
         if (!mIsParabola) return;
 
-        mParabolaTime += DELTA_TIME;
+        mParabolaTime += DeltaTime::GetDeltaTime();
 
         // 抛物线运动时间（根据距离调整）
-        float totalTime = 1.5f;
+        float totalTime = 2.0f; // 增加运动时间
 
         if (mParabolaTime >= totalTime) {
             // 运动结束
@@ -152,16 +156,21 @@ public:
     }
 
     void Update() override {
+        Coin::Update();
+        if (isMovingToTarget) return;
         if (mIsParabola) {
             UpdateParabola();
         }
         else if (mIsLinearFalling) {
             UpdateLinearFall();
         }
-        else {
-            Coin::Update();
-        }
     }
 
+    // 确保在销毁前停止所有运动
+    void OnDestroy() override {
+        mIsParabola = false;
+        mIsLinearFalling = false;
+        GameObject::OnDestroy();
+    }
 };
 #endif

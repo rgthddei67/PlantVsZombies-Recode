@@ -1,7 +1,7 @@
 #pragma once
 #ifndef _RESOURCEMANAGER_H
 #define _RESOURCEMANAGER_H
-#include "./Reanimation/Reanimator.h"
+#include "./Reanimation/Reanimation.h"
 #include "./Reanimation/AnimationTypes.h"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
@@ -12,18 +12,17 @@
 #include <memory>
 #include <iostream>
 
-class ReanimatorDefinition;
+class Animator;
 
 class ResourceManager
 {
 private:
-
+    std::unordered_map<std::string, std::string> mReanimationPaths;  // 动画路径
+    std::unordered_map<std::string, std::shared_ptr<Reanimation>> mReanimations;  // 已加载的动画
     std::unordered_map<std::string, SDL_Texture*> textures;
     std::unordered_map<std::string, std::unordered_map<int, TTF_Font*>> fonts;
     std::unordered_map<std::string, Mix_Chunk*> sounds;
     std::unordered_map<std::string, Mix_Music*> music;
-    std::unordered_map<AnimationType, std::shared_ptr<ReanimatorDefinition>> animations;
-    std::unordered_map<AnimationType, std::string> animationPaths;
 
     SDL_Renderer* renderer;
 
@@ -35,10 +34,21 @@ private:
 
     // TODO:新增资源改这里
     void InitializeAnimationPaths() {
-        animationPaths = {
-            {AnimationType::ANIM_SUN, "./resources/reanim/Sun"},
+        mReanimationPaths = {
+            {"Sun", "./resources/reanim/Sun.reanim"},
         };
     }
+public:
+    std::string AnimationTypeToString(AnimationType type) {
+        switch (type) {
+        case AnimationType::ANIM_SUN:
+            return "Sun";
+        case AnimationType::ANIM_NONE:
+        default:
+            return "Unknown";
+        }
+    }
+private:
 
     // 资源路径配置
     std::vector<std::string> gameImagePaths = {
@@ -125,14 +135,14 @@ public:
     bool LoadAllFonts();
     bool LoadAllSounds();
     bool LoadAllMusic();
-    bool LoadAllAnimations();
+    bool LoadAllReanimations();
 
     // 获取资源组
     const std::vector<std::string>& GetGameImagePaths() const;
     const std::vector<std::string>& GetParticleTexturePaths() const;
     const std::vector<std::string>& GetSoundPaths() const;
     const std::vector<std::string>& GetMusicPaths() const;
-    const std::unordered_map<AnimationType, std::string>& GetAnimationPaths() const { return animationPaths; }
+    const std::unordered_map<std::string, std::string>& GetAnimationPaths() const { return mReanimationPaths; }
 
     // 初始化
     void Initialize(SDL_Renderer* renderer);
@@ -141,6 +151,10 @@ public:
     SDL_Texture* LoadTexture(const std::string& path, const std::string& key = "");
     SDL_Texture* GetTexture(const std::string& key);
     void UnloadTexture(const std::string& key);
+
+    std::shared_ptr<Reanimation> LoadReanimation(const std::string& key, const std::string& path);
+    std::shared_ptr<Reanimation> GetReanimation(const std::string& key);
+    void UnloadReanimation(const std::string& key);
 
     // 字体管理
     bool LoadFont(const std::string& path, const std::string& key = "");
@@ -162,21 +176,15 @@ public:
     Mix_Music* GetMusic(const std::string& key);
     void UnloadMusic(const std::string& key);
 
-    // 动画管理
-    bool LoadAnimation(AnimationType animType);
-    std::shared_ptr<ReanimatorDefinition> GetAnimation(AnimationType animType);
-    void UnloadAnimation(AnimationType animType);
-
     // 批量操作
     void LoadTexturePack(const std::vector<std::pair<std::string, std::string>>& texturePaths);
     void UnloadAll();
 
-    // 工具方法
     bool HasTexture(const std::string& key) const;
     bool HasFont(const std::string& key) const;
     bool HasSound(const std::string& key) const;
     bool HasMusic(const std::string& key) const;
-    bool HasAnimation(AnimationType animType) const;
+    bool HasReanimation(const std::string& key) const;
 
     // 根据路径生成标准化的key
     std::string GenerateTextureKey(const std::string& path);

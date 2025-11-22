@@ -9,6 +9,8 @@
 
 class Coin : public AnimatedObject {
 protected:
+	float mVanlishTime = 15.0f;           // 消失时间
+	float mVanlishTimer = 0.0f;         // 消失计时器
     Vector targetPos = Vector(10, 10);  // 目标位置
     float speedFast = 500.0f;           // 快速阶段速度
     float speedSlow = 180.0f;           // 慢速阶段速度
@@ -16,9 +18,8 @@ protected:
     bool isMovingToTarget = false;      // 是否正在移动到目标位置
 
 public:
-public:
     Coin(Board* board, AnimationType animType, const Vector& position,
-        const Vector& colliderSize, float scale = 1.0f,
+        const Vector& colliderSize, float VanlishTime, float scale = 1.0f,
         const std::string& tag = "Coin", bool autoDestroy = true);
 
     void Start() override;
@@ -40,4 +41,5 @@ protected:
     Vector GetPosition() const;
     void SetPosition(const Vector& newPos);
 };
+
 #endif

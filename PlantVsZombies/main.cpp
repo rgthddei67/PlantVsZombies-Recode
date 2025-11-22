@@ -1,6 +1,7 @@
 #define SDL_MAIN_HANDLED
 #include "./CrashHandler.h"
 #include "./DeltaTime.h"
+#include "./GameMonitor.h"
 #include "./GameAPP.h"
 #include "./UI/Button.h"
 #include "./UI/Slider.h"
@@ -9,7 +10,7 @@
 #include "./ResourceManager.h"
 #include "./RendererManager.h"
 #include "./Game/AudioSystem.h"
-#include "./Reanimation/Reanimator.h"
+#include "./Reanimation/Reanimation.h"
 #include "./ParticleSystem/ParticleSystem.h"
 #include "./Game/GameObject.h"
 #include "./Game/GameObjectManager.h"
@@ -142,6 +143,7 @@ int main(int argc, char* argv[])
         RendererManager::GetInstance().SetRenderer(renderer);
         ResourceManager& resourceManager = ResourceManager::GetInstance();
         resourceManager.Initialize(renderer);
+
         // 统一加载所有资源
         bool resourcesLoaded = true;
         resourcesLoaded &= resourceManager.LoadAllGameImages();
@@ -149,7 +151,7 @@ int main(int argc, char* argv[])
         resourcesLoaded &= resourceManager.LoadAllFonts();
         resourcesLoaded &= resourceManager.LoadAllSounds();
         resourcesLoaded &= resourceManager.LoadAllMusic();
-        resourcesLoaded &= resourceManager.LoadAllAnimations();
+        resourcesLoaded &= resourceManager.LoadAllReanimations();
 
         if (!resourcesLoaded)
         {
@@ -214,7 +216,7 @@ int main(int argc, char* argv[])
             CollisionSystem::GetInstance().Update();
 
             // 清屏
-            SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
+            SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // 黑色背景
             SDL_RenderClear(renderer);
 
             // 绘制板块
@@ -223,9 +225,9 @@ int main(int argc, char* argv[])
             GameObjectManager::GetInstance().DrawAll(renderer);
             // 更新屏幕
             SDL_RenderPresent(renderer);
-            std::cout << "Mouse Position: " 
-                << input.GetMousePosition().x << ", " 
-				<< input.GetMousePosition().y << std::endl;
+            //std::cout << "Mouse Position: " 
+            //    << input.GetMousePosition().x << ", " 
+			//	<< input.GetMousePosition().y << std::endl;
             input.Update();
         }
     }
@@ -238,7 +240,7 @@ int main(int argc, char* argv[])
         // 处理其他所有异常
         MessageBoxA(nullptr, "未知异常发生", "异常错误", MB_ICONERROR);
     }
-
+    GameMonitor::PrintComprehensiveReport();
     g_particleSystem.reset();
     GameObjectManager::GetInstance().ClearAll();
     CollisionSystem::GetInstance().ClearAll();

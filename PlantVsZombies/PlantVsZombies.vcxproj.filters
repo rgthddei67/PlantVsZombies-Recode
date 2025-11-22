@@ -37,18 +37,6 @@
     <ClCompile Include="UI\SliderManager.cpp">
       <Filter>Code\UI</Filter>
     </ClCompile>
-    <ClCompile Include="Reanimation\Reanimator.cpp">
-      <Filter>Code\Reanimation</Filter>
-    </ClCompile>
-    <ClCompile Include="Reanimation\ReanimParser.cpp">
-      <Filter>Code\Reanimation</Filter>
-    </ClCompile>
-    <ClCompile Include="Reanimation\SimpleXmlParser.cpp">
-      <Filter>Code\Reanimation</Filter>
-    </ClCompile>
-    <ClCompile Include="Reanimation\XFLParser.cpp">
-      <Filter>Code\Reanimation</Filter>
-    </ClCompile>
     <ClCompile Include="ParticleSystem\Particle.cpp">
       <Filter>Code\ParticleSystem</Filter>
     </ClCompile>
@@ -97,8 +85,21 @@
     <ClCompile Include="Game\GameScene.cpp">
       <Filter>Code\Game</Filter>
     </ClCompile>
-    <ClCompile Include="Game\Coin.cpp" />
-    <ClCompile Include="Game\Scene.cpp" />
+    <ClCompile Include="Game\Coin.cpp">
+      <Filter>Code\Game</Filter>
+    </ClCompile>
+    <ClCompile Include="Game\Scene.cpp">
+      <Filter>Code\Game</Filter>
+    </ClCompile>
+    <ClCompile Include="Reanimation\Animator.cpp">
+      <Filter>Code\Reanimation</Filter>
+    </ClCompile>
+    <ClCompile Include="Reanimation\Reanimation.cpp">
+      <Filter>Code\Reanimation</Filter>
+    </ClCompile>
+    <ClCompile Include="GameMonitor.cpp">
+      <Filter>Code</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="UI\Button.h">
@@ -122,22 +123,10 @@
     <ClInclude Include="Reanimation\AnimationTypes.h">
       <Filter>Code\Reanimation</Filter>
     </ClInclude>
-    <ClInclude Include="Reanimation\Reanimator.h">
-      <Filter>Code\Reanimation</Filter>
-    </ClInclude>
-    <ClInclude Include="Reanimation\ReanimParser.h">
-      <Filter>Code\Reanimation</Filter>
-    </ClInclude>
-    <ClInclude Include="Reanimation\SimpleXmlParser.h">
-      <Filter>Code\Reanimation</Filter>
-    </ClInclude>
     <ClInclude Include="Reanimation\TodCommon.h">
       <Filter>Code\Reanimation</Filter>
     </ClInclude>
     <ClInclude Include="Reanimation\TodDebug.h">
-      <Filter>Code\Reanimation</Filter>
-    </ClInclude>
-    <ClInclude Include="Reanimation\XFLParser.h">
       <Filter>Code\Reanimation</Filter>
     </ClInclude>
     <ClInclude Include="ParticleSystem\Particle.h">
@@ -159,9 +148,6 @@
       <Filter>Code</Filter>
     </ClInclude>
     <ClInclude Include="RendererManager.h">
-      <Filter>Code</Filter>
-    </ClInclude>
-    <ClInclude Include="ResourceManager.h">
       <Filter>Code</Filter>
     </ClInclude>
     <ClInclude Include="TestObject.h">
@@ -225,6 +211,21 @@
       <Filter>Code\Game</Filter>
     </ClInclude>
     <ClInclude Include="DeltaTime.h">
+      <Filter>Code</Filter>
+    </ClInclude>
+    <ClInclude Include="Reanimation\Animator.h">
+      <Filter>Code\Reanimation</Filter>
+    </ClInclude>
+    <ClInclude Include="Reanimation\Reanimation.h">
+      <Filter>Code\Reanimation</Filter>
+    </ClInclude>
+    <ClInclude Include="Reanimation\ReanimTypes.h">
+      <Filter>Code\Reanimation</Filter>
+    </ClInclude>
+    <ClInclude Include="ResourceManager.h">
+      <Filter>Code</Filter>
+    </ClInclude>
+    <ClInclude Include="GameMonitor.h">
       <Filter>Code</Filter>
     </ClInclude>
   </ItemGroup>

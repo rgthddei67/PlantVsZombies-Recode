@@ -7,15 +7,16 @@
 #include "TransformComponent.h"
 #include "ReanimationComponent.h"
 #include "ColliderComponent.h"
+#include "../Reanimation/ReanimTypes.h"
 
 class Board;
 
 class AnimatedObject : public GameObject {
 protected:
 	Board* mBoard = nullptr;
-	std::shared_ptr<TransformComponent> transform;
-	std::shared_ptr<ReanimationComponent> animation;
-	std::shared_ptr<ColliderComponent> collider;
+	std::shared_ptr<TransformComponent> mTransform;
+	std::shared_ptr<ReanimationComponent> mAnimation;
+	std::shared_ptr<ColliderComponent> mCollider;
 
 public:
 	AnimatedObject(Board* board, const Vector& position, AnimationType animType,
@@ -23,73 +24,91 @@ public:
 		const Vector& colliderSize,
 		float scale,
 		const std::string& tag = "AnimatedObject",
-		bool autoDestroy = true) 
+		bool autoDestroy = true)
 	{
 		mBoard = board;
 		SetTag(tag);
 
-		transform = AddComponent<TransformComponent>();
-		transform->position = position;
+		mTransform = AddComponent<TransformComponent>();
+		mTransform->position = position;
 
-		animation = AddComponent<ReanimationComponent>(animType, position, scale);
-		if (animation) {
-			animation->SetAutoDestroy(autoDestroy);
+		mAnimation = AddComponent<ReanimationComponent>(animType, position, scale);
+		if (mAnimation) {
+			mAnimation->SetAutoDestroy(autoDestroy);
 		}
 		if (colliderSize.x > 0 && colliderSize.y > 0)
 		{
-			collider = AddComponent<ColliderComponent>(colliderSize, colliderType);
+			mCollider = AddComponent<ColliderComponent>(colliderSize, colliderType);
 		}
 	}
 
 	void Start() override {
 		GameObject::Start();
-		this->PlayAnimation(); 
+		this->PlayAnimation();
 	}
 
 	// 开始播放动画
 	void PlayAnimation() {
-		if (animation) {
-			animation->Play();
+		if (mAnimation) {
+			mAnimation->Play();
 		}
 	}
 
-	// 停止动画
+	// 暂停动画播放 维持在暂停的这一帧
+	void PauseAnimation()
+	{
+		if (mAnimation) {
+			mAnimation->Pause();
+		}
+	}
+
+	// 完全停止动画 并切换到第一帧
 	void StopAnimation() {
-		if (animation) {
-			animation->Stop();
+		if (mAnimation) {
+			mAnimation->Stop();
 		}
 	}
 
 	// 设置动画位置
 	void SetAnimationPosition(const Vector& position) {
-		if (transform && animation) {
-			transform->position = position;
-			animation->SetPosition(position);
+		if (mTransform && mAnimation) {
+			mTransform->position = position;
+			mAnimation->SetPosition(position);
 		}
 	}
 
 	// 检查动画是否完成
 	bool IsAnimationFinished() const {
-		return animation ? animation->IsFinished() : true;
+		return mAnimation ? mAnimation->IsFinished() : true;
 	}
 
 	// 设置自动销毁
 	void SetAutoDestroy(bool autoDestroy) {
-		if (animation) {
-			animation->SetAutoDestroy(autoDestroy);
+		if (mAnimation) {
+			mAnimation->SetAutoDestroy(autoDestroy);
 		}
 	}
 
 	// 设置循环类型
-	void SetLoopType(ReanimLoopType loopType) {
-		if (animation) {
-			animation->SetLoopType(loopType);
+	void SetLoopType(PlayState loopType) {
+		if (mAnimation) {
+			mAnimation->SetLoopType(loopType);
 		}
 	}
 
 	// 获取动画组件
 	std::shared_ptr<ReanimationComponent> GetAnimationComponent() const {
-		return animation;
+		return mAnimation;
+	}
+
+	// 获取变换组件
+	std::shared_ptr<TransformComponent> GetTransformComponent() const {
+		return mTransform;
+	}
+
+	// 获取碰撞组件
+	std::shared_ptr<ColliderComponent> GetColliderComponent() const {
+		return mCollider;
 	}
 };
 

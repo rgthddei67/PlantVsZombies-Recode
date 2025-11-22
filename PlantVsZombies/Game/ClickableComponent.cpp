@@ -25,7 +25,7 @@ void ClickableComponent::Start() {
 void ClickableComponent::Update() {
     eventConsumed = false;
 
-    if (!IsClickable || !collider || !collider->enabled || eventConsumed) {
+    if (!IsClickable || !collider || !collider->mEnabled || eventConsumed) {
         return;
     }
 

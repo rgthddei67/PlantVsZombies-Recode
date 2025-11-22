@@ -15,8 +15,8 @@ class GameObject;
 
 class Component : public std::enable_shared_from_this<Component> {
 public:
-	std::weak_ptr<GameObject> gameObjectWeak;   // 不能shared_ptr 防止循环引用(GameObject)
-    bool enabled = true;
+	std::weak_ptr<GameObject> mGameObjectWeak;   // 不能shared_ptr 防止循环引用(GameObject) 因为GameObject也会引用他(一些东西啥的)
+    bool mEnabled = true;
 
     virtual ~Component() = default;
 

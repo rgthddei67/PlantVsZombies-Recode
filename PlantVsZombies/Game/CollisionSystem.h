@@ -71,7 +71,7 @@ public:
 		// 区分静态和动态碰撞体
         for (auto collider : colliders) {
             auto gameObj = collider->GetGameObject();
-            if (!collider->enabled || !gameObj || !gameObj->IsActive()) continue;
+            if (!collider->mEnabled || !gameObj || !gameObj->IsActive()) continue;
 
             if (collider->isStatic) {
                 staticColliders.push_back(collider);
@@ -123,7 +123,7 @@ public:
         float closestDistance = maxDistance;
 
         for (auto collider : colliders) {
-            if (!collider->enabled || !collider->GetGameObject()->IsActive()) continue;
+            if (!collider->mEnabled || !collider->GetGameObject()->IsActive()) continue;
             if (!tag.empty() && collider->GetGameObject()->GetTag() != tag) continue;
 
             SDL_FRect bounds = collider->GetBoundingBox();
@@ -153,7 +153,7 @@ public:
         std::vector<std::shared_ptr<ColliderComponent>> results;
 
         for (auto collider : colliders) {
-            if (!collider->enabled || !collider->GetGameObject()->IsActive()) continue;
+            if (!collider->mEnabled || !collider->GetGameObject()->IsActive()) continue;
             if (!tag.empty() && collider->GetGameObject()->GetTag() != tag) continue;
 
             SDL_FRect bounds = collider->GetBoundingBox();

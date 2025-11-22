@@ -1,4 +1,5 @@
 #include "Particle.h"
+#include "../DeltaTime.h"
 #include <cmath>
 
 Particle::Particle() : active(false) {
@@ -29,7 +30,8 @@ void Particle::Reset() {
 void Particle::Update() {
     if (!active) return;
 
-    lifetime++;
+    float deltaTime = DeltaTime::GetDeltaTime();
+    lifetime += deltaTime;
 
     // 生命周期结束
     if (lifetime >= maxLifetime) {
@@ -38,15 +40,12 @@ void Particle::Update() {
     }
 
     // 应用物理
-    velocity.y += gravity;
-    position.x += velocity.x;
-    position.y += velocity.y;
-    rotation += rotationSpeed;
+    velocity.y += gravity * deltaTime;
+    position.x += velocity.x * deltaTime;
+    position.y += velocity.y * deltaTime;
+    rotation += rotationSpeed * deltaTime;
 
-    // 计算插值
-    float t = static_cast<float>(lifetime) / maxLifetime;
-
-    // 大小插值
+    float t = lifetime / maxLifetime;
     size = startSize + (endSize - startSize) * t;
 
     // 颜色插值

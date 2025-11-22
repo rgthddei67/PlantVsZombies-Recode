@@ -41,10 +41,10 @@ std::shared_ptr<Sun> Board::CreateSun(const Vector& position)
     auto sun = GameObjectManager::GetInstance().CreateGameObject<Sun>(this, position);
 
     mCoinObservers.push_back(sun);
-
+#ifdef _DEBUG
     std::cout << "创建阳光，当前活跃Coin数量: " << GetActiveCoinCount()
         << "/" << GetTotalCreatedCoinCount() << std::endl;
-
+#endif
     return sun;
 }
 
@@ -62,7 +62,7 @@ void Board::CleanupExpiredObjects()
 
 void Board::UpdateSunFalling()
 {
-    mSunCountDown -= DELTA_TIME;
+    mSunCountDown -= DeltaTime::GetDeltaTime();
     if (mSunCountDown <= 0.0f)
     {
         mSunCountDown = 5.0f;

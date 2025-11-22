@@ -26,6 +26,9 @@ private:
     // 处理崩溃的主函数
     static void HandleCrash(PEXCEPTION_POINTERS exceptionInfo);
 
+    // 处理栈溢出崩溃
+	static void HandleStackOverflowMinimal(PEXCEPTION_POINTERS exceptionInfo);
+
     // 是不是崩溃异常
     static bool IsCrashException(DWORD exceptionCode);
 
