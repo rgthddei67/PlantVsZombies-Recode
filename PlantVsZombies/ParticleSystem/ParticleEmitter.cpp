@@ -1,7 +1,6 @@
 #include "ParticleEmitter.h"
 #include "../DeltaTime.h"
 #include <iostream>
-#include "../GameApp.h"
 #include <cmath>
 #include <cstdlib>
 

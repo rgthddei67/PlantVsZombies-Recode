@@ -25,7 +25,7 @@ void GameScene::OnEnter() {
 void GameScene::OnExit() {
     std::cout << "退出游戏场景" << std::endl;
 	mBoard.reset();
-    uiManager_.ClearAll();
+    mUIManager.ClearAll();
 }
 
 void GameScene::Update() {
@@ -33,7 +33,7 @@ void GameScene::Update() {
     {
         mBoard->Update();
     }
-    uiManager_.UpdateAll(nullptr);
+    mUIManager.UpdateAll(nullptr);
 }
 
 void GameScene::Draw(SDL_Renderer* renderer) {
@@ -45,7 +45,9 @@ void GameScene::Draw(SDL_Renderer* renderer) {
     }
 
     // 绘制UI
-    uiManager_.DrawAll(renderer);
+    mUIManager.DrawAll(renderer);
+    GameAPP::GetInstance().DrawText(renderer, std::to_string(mBoard->GetSun()),
+        Vector(20, 43), SDL_Color{ 0, 0, 0, 255 }, "./font/fzcq.ttf", 17);
 }
 
 void GameScene::HandleEvent(SDL_Event& event, InputHandler& input) 

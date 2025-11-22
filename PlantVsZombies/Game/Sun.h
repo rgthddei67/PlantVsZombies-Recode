@@ -19,7 +19,7 @@ private:
     bool mIsInitialized = false; // 是否已初始化
 
 public:
-	Sun(Board* board, const Vector& position, float scale = 0.75f,
+	Sun(Board* board, const Vector& position, float scale = 0.9f,
 		const std::string& tag = "Sun", bool autoDestroy = true)
 		: Coin(board, AnimationType::ANIM_SUN, position,
 			Vector(65, 65), 10.0f, scale, tag, autoDestroy)

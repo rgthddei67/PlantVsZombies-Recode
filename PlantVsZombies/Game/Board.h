@@ -10,6 +10,8 @@
 class Sun;
 class Coin;
 
+constexpr int MAX_SUN = 9990;
+
 class Board {
 private:
 	int mBackGround = 0; // ±³¾°Í¼
@@ -27,9 +29,21 @@ public:
 		InitializeCell();
 	}
 
-	void AddSun(int amount) { mSun += amount; }
+	void AddSun(int amount) 
+	{ 
+		int temp = mSun + amount;
+		if (temp > MAX_SUN)
+		{
+			mSun = MAX_SUN;
+			return;
+		}
+		mSun += amount; 
+	}
 
-	void SubSun(int amount) { mSun -= amount; }
+	void SubSun(int amount) 
+	{ 
+		mSun -= amount;
+	}
 
 	int GetSun() { return mSun; }
 

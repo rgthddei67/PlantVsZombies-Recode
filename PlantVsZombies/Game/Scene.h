@@ -34,15 +34,18 @@ public:
     virtual void OnEnter()  // 进入场景时调用
     {
 
-    }          
+    }   
+
     virtual void OnExit()    // 退出场景时调用  
     {
-        uiManager_.ClearAll();
-    }          
+        mUIManager.ClearAll();
+    }    
+
     virtual void Update() 
     {
 
     }
+
     virtual void Draw(SDL_Renderer* renderer)
     {
 		DrawAllTextures(renderer);
@@ -50,11 +53,11 @@ public:
 
     virtual void HandleEvent(SDL_Event& event, InputHandler& input)
     {
-        uiManager_.ProcessMouseEvent(&event, &input);
+        mUIManager.ProcessMouseEvent(&event, &input);
     }
 
 protected:
-    UIManager uiManager_;
+    UIManager mUIManager;
 
     // 添加纹理到绘制列表
     void AddTexture(const std::string& textureName, int posX, int posY, float scaleX = 1.0f, float scaleY = 1.0f, int drawOrder = 0);

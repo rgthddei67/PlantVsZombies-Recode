@@ -195,13 +195,13 @@ void Animator::Draw(SDL_Renderer* renderer, float baseX, float baseY, float Scal
         int imgWidth, imgHeight;
         SDL_QueryTexture(image, NULL, NULL, &imgWidth, &imgHeight);
 
-        // 计算缩放后的尺寸 - 与参考代码一致
-        int scaledWidth = static_cast<int>(imgWidth * transform.sx);
-        int scaledHeight = static_cast<int>(imgHeight * transform.sy);
+        // 计算缩放后的尺寸
+        int scaledWidth = static_cast<int>(imgWidth * transform.sx * Scale);
+        int scaledHeight = static_cast<int>(imgHeight * transform.sy * Scale);
 
-        // 使用左上角对齐，与参考代码一致
-        float posX = baseX + transform.x + mExtraInfos[i].mOffsetX;
-        float posY = baseY + transform.y + mExtraInfos[i].mOffsetY;
+        // 计算位置
+        float posX = baseX + (transform.x + mExtraInfos[i].mOffsetX) * Scale;
+        float posY = baseY + (transform.y + mExtraInfos[i].mOffsetY) * Scale;
 
         // 目标矩形 - 左上角对齐
         SDL_Rect dstRect = {
@@ -217,9 +217,10 @@ void Animator::Draw(SDL_Renderer* renderer, float baseX, float baseY, float Scal
         // 使用左上角作为旋转中心
         SDL_Point center = { 0, 0 };
 
+        // 使用旋转角度
         double rotation = transform.kx;
 
-        // 旋转，指定左上角为旋转中心
+        // 进行旋转
         SDL_RenderCopyEx(renderer, image, NULL, &dstRect,
             rotation, &center, SDL_FLIP_NONE);
 

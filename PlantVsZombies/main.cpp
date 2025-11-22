@@ -225,9 +225,13 @@ int main(int argc, char* argv[])
             GameObjectManager::GetInstance().DrawAll(renderer);
             // ¸üĞÂÆÁÄ»
             SDL_RenderPresent(renderer);
-            //std::cout << "Mouse Position: " 
-            //    << input.GetMousePosition().x << ", " 
-			//	<< input.GetMousePosition().y << std::endl;
+            static int MousePoint = 0;
+            if (MousePoint++ % 30 == 0)
+            {
+                std::cout << "Mouse Position: "
+                    << input.GetMousePosition().x << ", "
+                    << input.GetMousePosition().y << std::endl;
+            }
             input.Update();
         }
     }
