@@ -244,7 +244,7 @@ int main(int argc, char* argv[])
         // 处理其他所有异常
         MessageBoxA(nullptr, "未知异常发生", "异常错误", MB_ICONERROR);
     }
-    GameMonitor::PrintComprehensiveReport();
+    //GameMonitor::PrintComprehensiveReport();
     g_particleSystem.reset();
     GameObjectManager::GetInstance().ClearAll();
     CollisionSystem::GetInstance().ClearAll();

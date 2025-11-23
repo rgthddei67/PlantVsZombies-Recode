@@ -1,6 +1,8 @@
 #include "GameScene.h"
 #include "SceneManager.h"
 #include "../ResourceManager.h"
+#include "./Plant/PlantType.h"
+#include "./CardSlotManager.h"
 #include <iostream>
 
 GameScene::GameScene() {
@@ -20,6 +22,14 @@ void GameScene::OnEnter() {
     AddTexture("IMAGE_SeedBank_Long", 5.0f, -10.0f, 0.85f, 0.9f, 10000);
 
     mBoard = std::make_unique<Board>();
+
+    auto CardUI = GameObjectManager::GetInstance().CreateGameObject<GameObject>();
+    CardUI->SetName("CardUI");
+    auto cardSlotManager = CardUI->AddComponent<CardSlotManager>(mBoard.get());
+
+    cardSlotManager->AddCard(PlantType::PLANT_SUNFLOWER, 50, 7.5f);
+
+    std::cout << "Card system initialized with " << cardSlotManager->GetCards().size() << " cards" << std::endl;
 }
 
 void GameScene::OnExit() {

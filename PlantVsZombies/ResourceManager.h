@@ -50,7 +50,7 @@ public:
     }
 private:
 
-    // 资源路径配置
+    // 资源路径配置 直接在后面加 不要改顺序吧
     std::vector<std::string> gameImagePaths = {
         "./resources/image/kid.jpg",
         "./resources/image/UI/options_checkbox0.png",
@@ -93,7 +93,36 @@ private:
         "./resources/image/UI/SeedChooser_Button_Disabled.png",
         "./resources/image/UI/SeedPacketNormal.png",
         "./resources/image/background_day.jpg",
-        "./resources/image/background_night.jpg"
+        "./resources/image/background_night.jpg",
+        "./resources/image/UI/ShovelBank.png",
+        "./resources/image/UI/options_menuback.png",
+        "./resources/image/UI/buttonbig.png",
+        "./resources/image/UI/buttonsmall.png",
+        "./resources/image/UI/MessageBox.png",
+        "./resources/image/UI/options_backtogamebutton0.png",
+        "./resources/image/UI/options_backtogamebutton_light.png",
+        "./resources/image/Shovel.png",
+		"./resources/image/PlantImage/PeaShooter.png",
+		"./resources/image/PlantImage/SunFlower.png",
+        "./resources/image/PlantImage/CherryBomb.png",
+		"./resources/image/PlantImage/WallNut.png",
+        "./resources/image/PlantImage/PotatoMine.png",
+		"./resources/image/PlantImage/SnowPeaShooter.png",
+        "./resources/image/PlantImage/Chomper.png",
+        "./resources/image/PlantImage/Repeater.png",
+        "./resources/image/PlantImage/PuffShroom.png",
+        "./resources/image/PlantImage/SunShroom.png",
+        "./resources/image/PlantImage/FumeShroom.png",
+        "./resources/image/PlantImage/GraveBuster.png",
+        "./resources/image/PlantImage/HypnoShroom.png",
+        "./resources/image/PlantImage/ScaredyShroom.png",
+        "./resources/image/PlantImage/IceShroom.png",
+		"./resources/image/PlantImage/DoomShroom.png",
+        "./resources/image/PlantImage/Squash.png",
+        "./resources/image/PlantImage/Threepeater.png",
+        "./resources/image/PlantImage/TangleKelp.png",
+        "./resources/image/PlantImage/Jalapeno.png",
+        "./resources/image/PlantImage/TorchWood.png",
     };
 
     std::vector<std::string> particleTexturePaths = {

@@ -20,6 +20,9 @@
     <Filter Include="Code\Game">
       <UniqueIdentifier>{566510ac-13b9-4281-a79b-2b61a4e5eb30}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Code\Game\Plant">
+      <UniqueIdentifier>{49f31bad-c701-406a-b837-2513b7bece74}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="UI\Button.cpp">
@@ -99,6 +102,18 @@
     </ClCompile>
     <ClCompile Include="GameMonitor.cpp">
       <Filter>Code</Filter>
+    </ClCompile>
+    <ClCompile Include="Game\CardComponent.cpp">
+      <Filter>Code\Game</Filter>
+    </ClCompile>
+    <ClCompile Include="Game\CardDisplayComponent.cpp">
+      <Filter>Code\Game</Filter>
+    </ClCompile>
+    <ClCompile Include="Game\Card.cpp">
+      <Filter>Code\Game</Filter>
+    </ClCompile>
+    <ClCompile Include="Game\CardSlotManager.cpp">
+      <Filter>Code\Game</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -227,6 +242,21 @@
     </ClInclude>
     <ClInclude Include="GameMonitor.h">
       <Filter>Code</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\Card.h">
+      <Filter>Code\Game</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\Plant\PlantType.h">
+      <Filter>Code\Game\Plant</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\CardComponent.h">
+      <Filter>Code\Game</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\CardDisplayComponent.h">
+      <Filter>Code\Game</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\CardSlotManager.h">
+      <Filter>Code\Game</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

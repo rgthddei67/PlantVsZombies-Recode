@@ -13,7 +13,7 @@ class Coin;
 constexpr int MAX_SUN = 9990;
 
 class Board {
-private:
+public:
 	int mBackGround = 0; // 背景图
 	int mRows = 5;	// 行数
 	int mColumns = 8; // 列数

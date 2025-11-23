@@ -24,6 +24,10 @@
     <ClCompile Include="GameMonitor.cpp" />
     <ClCompile Include="Game\AudioSystem.cpp" />
     <ClCompile Include="Game\Board.cpp" />
+    <ClCompile Include="Game\Card.cpp" />
+    <ClCompile Include="Game\CardComponent.cpp" />
+    <ClCompile Include="Game\CardDisplayComponent.cpp" />
+    <ClCompile Include="Game\CardSlotManager.cpp" />
     <ClCompile Include="Game\ClickableComponent.cpp" />
     <ClCompile Include="Game\Coin.cpp" />
     <ClCompile Include="Game\ColliderComponent.cpp" />
@@ -55,6 +59,10 @@
     <ClInclude Include="Game\AnimatedObject.h" />
     <ClInclude Include="Game\AudioSystem.h" />
     <ClInclude Include="Game\Board.h" />
+    <ClInclude Include="Game\Card.h" />
+    <ClInclude Include="Game\CardComponent.h" />
+    <ClInclude Include="Game\CardDisplayComponent.h" />
+    <ClInclude Include="Game\CardSlotManager.h" />
     <ClInclude Include="Game\Cell.h" />
     <ClInclude Include="Game\ClickableComponent.h" />
     <ClInclude Include="Game\Coin.h" />
@@ -65,6 +73,7 @@
     <ClInclude Include="Game\GameObject.h" />
     <ClInclude Include="Game\GameObjectManager.h" />
     <ClInclude Include="Game\GameScene.h" />
+    <ClInclude Include="Game\Plant\PlantType.h" />
     <ClInclude Include="Game\ReanimationComponent.h" />
     <ClInclude Include="Game\Scene.h" />
     <ClInclude Include="Game\SceneManager.h" />
