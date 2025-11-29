@@ -3,7 +3,6 @@
 #define _COLLIDER_COMPONENT_H
 
 #include "Component.h"
-#include "TransformComponent.h"
 #include "Definit.h"
 #include <SDL2/SDL.h>
 #include <functional>
@@ -32,6 +31,8 @@ public:
     std::function<void(std::shared_ptr<ColliderComponent>)> onCollisionEnter;
     std::function<void(std::shared_ptr<ColliderComponent>)> onCollisionExit;
 
+    SDL_Color debugColor = { 255, 0, 0, 255 }; // 调试颜色（红色）
+
     ColliderComponent() = default;
 
     ColliderComponent(const Vector& size, ColliderType type = ColliderType::BOX)
@@ -55,6 +56,14 @@ public:
     bool ContainsPoint(float x, float y) const {
         return ContainsPoint(Vector(x, y));
     }
+
+    void Draw(SDL_Renderer* renderer) override;
+
+    // 绘制矩形碰撞框
+    void DrawBoxCollider(SDL_Renderer* renderer, const SDL_FRect& rect);
+
+    // 绘制圆形碰撞框
+    void DrawCircleCollider(SDL_Renderer* renderer, const Vector& center, float radius);
 
 private:
     std::shared_ptr<TransformComponent> GetTransform() const;

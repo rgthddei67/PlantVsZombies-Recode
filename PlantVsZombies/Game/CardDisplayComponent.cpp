@@ -109,8 +109,8 @@ void CardDisplayComponent::DrawPlantImage(SDL_Renderer* renderer) {
 
     // 植物图片位置（在卡牌中央）
     SDL_Rect plantRect = {
-        static_cast<int>(position.x + 10),
-        static_cast<int>(position.y + 10),
+        static_cast<int>(position.x + 8),
+        static_cast<int>(position.y + 13),
         40,  // 植物图片大小
         40
     };

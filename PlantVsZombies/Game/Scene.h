@@ -3,6 +3,7 @@
 #define _SCENE_H
 
 #include "../UI/UIManager.h"
+#include "./GameObjectManager.h"
 #include <SDL2/SDL.h>
 #include <string>
 #include <vector>
@@ -39,6 +40,7 @@ public:
     virtual void OnExit()    // 退出场景时调用  
     {
         mUIManager.ClearAll();
+        GameObjectManager::GetInstance().DestroyAllGameObjects();
     }    
 
     virtual void Update() 

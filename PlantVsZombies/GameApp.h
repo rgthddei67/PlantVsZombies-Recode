@@ -13,8 +13,8 @@
 #include <map>
 #include <memory>
 #include <functional>
+#include <stdexcept>
 #include "./Game/Definit.h"
-#include "./Game/Board.h"
 
 struct TextCache
 {
@@ -28,8 +28,6 @@ struct TextCache
 };
 
 class InputHandler;
-
-class Board;
 
 class GameAPP
 {
@@ -45,6 +43,9 @@ private:
     GameAPP& operator=(const GameAPP&) = delete;
 
 public:
+    inline static bool mDebugMode = false;        // 是否是调试模式
+    inline static bool mShowColliders = false;    // 显示碰撞框开关
+
     // 获取单例实例
     static GameAPP& GetInstance();
     

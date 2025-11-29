@@ -1,6 +1,7 @@
 #pragma once
 #ifndef _GAMEOBJECTMANAGER_H
 #define _GAMEOBJECTMANAGER_H
+
 #include <vector>
 #include <memory>
 #include <algorithm>
@@ -44,6 +45,37 @@ public:
         if (obj) {
             objectsToRemove.push_back(obj);
         }
+    }
+
+    // 销毁全部游戏对象
+    void DestroyAllGameObjects() {
+        // 销毁所有现有对象
+        for (auto& obj : gameObjects) {
+            if (obj) {
+                obj->DestroyAllComponents();
+            }
+        }
+        gameObjects.clear();
+
+        // 销毁待添加对象
+        for (auto& obj : objectsToAdd) {
+            if (obj) {
+                obj->DestroyAllComponents();
+            }
+        }
+        objectsToAdd.clear();
+
+        // 销毁待删除对象
+        for (auto& obj : objectsToRemove) {
+            if (obj) {
+                obj->DestroyAllComponents();
+            }
+        }
+        objectsToRemove.clear();
+
+#ifdef _DEBUG
+        std::cout << "GameObjectManager::DestroyAllGameObjects 已销毁所有游戏对象" << std::endl;
+#endif
     }
 
     void Update() {

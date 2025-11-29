@@ -1,5 +1,6 @@
 #include "Card.h"
 #include "CardComponent.h"
+#include "ColliderComponent.h"
 
 Card::Card(PlantType plantType, int sunCost, float cooldown) {
     SetupComponents(plantType, sunCost, cooldown);
@@ -11,7 +12,9 @@ void Card::SetupComponents(PlantType plantType, int sunCost, float cooldown) {
     AddComponent<CardDisplayComponent>(plantType, sunCost, cooldown);
 
     // µã»÷×é¼þ
-    AddComponent<ColliderComponent>(Vector(CARD_WIDTH, CARD_HEIGHT), ColliderType::BOX);
+    auto collision = AddComponent<ColliderComponent>(Vector(CARD_WIDTH, CARD_HEIGHT), ColliderType::BOX);
+    collision->isStatic = true;
+	collision->isTrigger = true;
     auto clickable = AddComponent<ClickableComponent>();
     clickable->ConsumeEvent = true;
 

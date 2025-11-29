@@ -33,9 +33,9 @@ void GameScene::OnEnter() {
 }
 
 void GameScene::OnExit() {
-    std::cout << "退出游戏场景" << std::endl;
+    Scene::OnExit();
+    std::cout << "退出GameScene" << std::endl;
 	mBoard.reset();
-    mUIManager.ClearAll();
 }
 
 void GameScene::Update() {

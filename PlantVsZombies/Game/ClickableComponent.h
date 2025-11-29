@@ -3,10 +3,11 @@
 #define _CLICKABLE_COMPONENT_H
 
 #include "Component.h"
-#include "ColliderComponent.h"
 #include <iostream>
 #include <functional>
 #include <memory>
+
+class ColliderComponent;
 
 class ClickableComponent : public Component {
 public:

@@ -3,6 +3,7 @@
 #define _SUN_H
 #include "../DeltaTime.h"
 #include "Coin.h"
+#include "Board.h"
 
 class Sun : public Coin {
 private:

@@ -32,12 +32,16 @@ public:
     }
 	
 	// 获取格子世界位置
-	Vector GetWorldPosition() const
-	{
-		float x = CELL_INITALIZE_POS_X + mColumn * CELL_COLLIDER_SIZE_X;  
-		float y = CELL_INITALIZE_POS_Y + mRow * CELL_COLLIDER_SIZE_Y;
-		return Vector(x, y);
-	}
+    Vector GetWorldPosition()
+    {
+        if (auto transform = GetComponent<TransformComponent>()) {
+            return transform->position;
+        }
+
+        float x = CELL_INITALIZE_POS_X + mColumn * CELL_COLLIDER_SIZE_X;
+        float y = CELL_INITALIZE_POS_Y + mRow * CELL_COLLIDER_SIZE_Y;
+        return Vector(x, y);
+    }
 
 };
 #endif

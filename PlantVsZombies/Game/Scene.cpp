@@ -81,7 +81,6 @@ void Scene::SetTextureScaleY(const std::string& textureName, float scaleY) {
     }
 }
 
-
 void Scene::SetTextureVisible(const std::string& textureName, bool visible) {
     auto it = std::find_if(mTextures.begin(), mTextures.end(),
         [&textureName](const TextureInfo& info) {

@@ -1,6 +1,8 @@
 #include "ClickableComponent.h"
+#include "ColliderComponent.h"
 #include "../UI/InputHandler.h"
 #include "../GameApp.h"
+#include "GameObject.h"
 
 void ClickableComponent::Start() {
     if (auto gameObject = this->GetGameObject())
