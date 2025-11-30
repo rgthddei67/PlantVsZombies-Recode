@@ -22,13 +22,26 @@ void ResourceManager::ReleaseInstance()
     }
 }
 
+bool ResourceManager::Initialize(SDL_Renderer* renderer, const std::string& configPath)
+{
+    this->renderer = renderer;
+
+    if (!configReader.LoadConfig(configPath)) {
+        std::cerr << "Failed to load resource configuration from: " << configPath << std::endl;
+        return false;
+    }
+
+    return true;
+}
+
 bool ResourceManager::LoadAllGameImages()
 {
     bool success = true;
 #ifdef _DEBUG
     std::cout << "开始加载游戏图片资源..." << std::endl;
 #endif
-    for (const auto& path : gameImagePaths)
+    const auto& paths = configReader.GetGameImagePaths();
+    for (const auto& path : paths)
     {
         std::string key = GenerateTextureKey(path);
         if (!LoadTexture(path, key))
@@ -39,7 +52,7 @@ bool ResourceManager::LoadAllGameImages()
     }
 #ifdef _DEBUG
     std::cout << "游戏图片资源加载完成，成功: "
-        << textures.size() << "/" << gameImagePaths.size() << std::endl;
+        << textures.size() << "/" << paths.size() << std::endl;
 #endif
     return success;
 }
@@ -50,7 +63,8 @@ bool ResourceManager::LoadAllParticleTextures()
 #ifdef _DEBUG
     std::cout << "开始加载粒子纹理..." << std::endl;
 #endif
-    for (const auto& path : particleTexturePaths)
+    const auto& paths = configReader.GetParticleTexturePaths();
+    for (const auto& path : paths)
     {
         std::string filename = path.substr(path.find_last_of("/\\") + 1);
         std::string nameWithoutExt = filename.substr(0, filename.find_last_of('.'));
@@ -99,47 +113,28 @@ TTF_Font* ResourceManager::GetFont(const std::string& key, int size)
         return nullptr;
     }
 
-    //std::cout << "调试: 查找字体 key='" << key << "', size=" << size << std::endl;
-
     auto fontIt = fonts.find(key);
     if (fontIt == fonts.end())
     {
         std::cerr << "字体未注册: '" << key << "'" << std::endl;
-
-        // 尝试查找可能的大小写或空格问题
-        for (const auto& pair : fonts) 
-        {
-            if (pair.first.find(key) != std::string::npos ||
-                key.find(pair.first) != std::string::npos) {
-                //std::cout << "发现相似键: '" << pair.first << "'" << std::endl;
-            }
-        }
         return nullptr;
     }
-
-    //std::cout << "找到字体键: '" << key << "'" << std::endl;
 
     // 检查该大小是否已加载
     auto& sizeMap = fontIt->second;
     auto sizeIt = sizeMap.find(size);
     if (sizeIt != sizeMap.end())
     {
-        //std::cout << "字体大小 " << size << " 已加载" << std::endl;
         return sizeIt->second;
     }
-#ifdef _DEBUG
-    std::cout << "需要按需加载大小 " << size << std::endl;
-#endif
-    // 找到字体文件路径 - 修复查找逻辑
+    // 找到字体文件路径
     std::string fontPath;
+    const auto& fontPaths = configReader.GetFontPaths();
     for (const auto& path : fontPaths)
     {
         // 从路径中提取文件名（不含扩展名）进行比较
         std::string filename = path.substr(path.find_last_of("/\\") + 1);
         std::string fileKey = filename.substr(0, filename.find_last_of('.'));
-#ifdef _DEBUG
-        std::cout << "比较: path='" << path << "', fileKey='" << fileKey << "' with key='" << key << "'" << std::endl;
-#endif
         if (fileKey == key)
         {
             fontPath = path;
@@ -173,9 +168,6 @@ TTF_Font* ResourceManager::GetFont(const std::string& key, int size)
         std::cout << std::endl;
         return nullptr;
     }
-#ifdef _DEBUG
-    std::cout << "使用字体路径: " << fontPath << std::endl;
-#endif
     // 按需加载特定大小的字体
     TTF_Font* font = TTF_OpenFont(fontPath.c_str(), size);
     if (!font)
@@ -195,7 +187,8 @@ bool ResourceManager::LoadAllFonts()
 #ifdef _DEBUG
     std::cout << "开始注册字体..." << std::endl;
 #endif
-    for (const auto& path : fontPaths)
+    const auto& paths = configReader.GetFontPaths();
+    for (const auto& path : paths)
     {
         if (!LoadFont(path))
         {
@@ -241,15 +234,15 @@ std::vector<int> ResourceManager::GetLoadedFontSizes(const std::string& key) con
 
 int ResourceManager::GetLoadedFontCount() const
 {
-    size_t total = 0;
+    int total = 0;
     for (const auto& fontPair : fonts)
     {
-        total += fontPair.second.size();
+        total += static_cast<int>(fontPair.second.size());
     }
-    return static_cast<int>(total);
+    return total;
 }
 
-// 卸载特定字体大小的方法
+// 卸载特定字体大小
 void ResourceManager::UnloadFontSize(const std::string& key, int size)
 {
     auto fontIt = fonts.find(key);
@@ -300,10 +293,10 @@ bool ResourceManager::LoadAllSounds()
 #ifdef _DEBUG
     std::cout << "开始加载音效..." << std::endl;
 #endif
-    for (const auto& path : soundPaths)
+    const auto& paths = configReader.GetSoundPaths();
+    for (const auto& path : paths)
     {
-        std::string key = "sound_" + path.substr(path.find_last_of("/\\") + 1);
-        key = key.substr(0, key.find_last_of('.'));
+        std::string key = GenerateStandardKey(path, "SOUND_");
         if (!LoadSound(path, key))
         {
             std::cerr << "加载音效失败: " << path << std::endl;
@@ -322,10 +315,10 @@ bool ResourceManager::LoadAllMusic()
 #ifdef _DEBUG
     std::cout << "开始加载音乐..." << std::endl;
 #endif
-    for (const auto& path : musicPaths)
+    const auto& paths = configReader.GetMusicPaths();
+    for (const auto& path : paths)
     {
-        std::string key = "music_" + path.substr(path.find_last_of("/\\") + 1);
-        key = key.substr(0, key.find_last_of('.'));
+        std::string key = GenerateStandardKey(path, "MUSIC_");
         if (!LoadMusic(path, key))
         {
             std::cerr << "加载音乐失败: " << path << std::endl;
@@ -413,7 +406,8 @@ bool ResourceManager::LoadAllReanimations()
 #ifdef _DEBUG
     std::cout << "开始加载所有动画资源..." << std::endl;
 #endif
-    for (const auto& reanimPair : mReanimationPaths) {
+    const auto& reanimPaths = configReader.GetReanimationPaths();
+    for (const auto& reanimPair : reanimPaths) {
         const std::string& key = reanimPair.first;
         const std::string& path = reanimPair.second;
 
@@ -427,35 +421,9 @@ bool ResourceManager::LoadAllReanimations()
         }
     }
 #ifdef _DEBUG
-    std::cout << "动画资源加载完成，成功: " << loadedCount << "/" << mReanimationPaths.size() << std::endl;
+    std::cout << "动画资源加载完成，成功: " << loadedCount << "/" << reanimPaths.size() << std::endl;
 #endif
     return success;
-}
-
-// 获取资源路径列表
-const std::vector<std::string>& ResourceManager::GetGameImagePaths() const
-{
-    return gameImagePaths;
-}
-
-const std::vector<std::string>& ResourceManager::GetParticleTexturePaths() const
-{
-    return particleTexturePaths;
-}
-
-const std::vector<std::string>& ResourceManager::GetSoundPaths() const
-{
-    return soundPaths;
-}
-
-const std::vector<std::string>& ResourceManager::GetMusicPaths() const
-{
-    return musicPaths;
-}
-
-void ResourceManager::Initialize(SDL_Renderer* renderer)
-{
-    this->renderer = renderer;
 }
 
 SDL_Texture* ResourceManager::LoadTexture(const std::string& path, const std::string& key)
@@ -505,6 +473,24 @@ std::string ResourceManager::GenerateTextureKey(const std::string& path)
     std::string filename = path.substr(path.find_last_of("/\\") + 1);
     std::string nameWithoutExt = filename.substr(0, filename.find_last_of('.'));
     return "IMAGE_" + nameWithoutExt;
+}
+
+std::string ResourceManager::GenerateStandardKey(const std::string& path, const std::string& prefix)
+{
+    std::string filename = path.substr(path.find_last_of("/\\") + 1);
+    std::string nameWithoutExt = filename.substr(0, filename.find_last_of('.'));
+
+    // 转换为大写
+    std::transform(nameWithoutExt.begin(), nameWithoutExt.end(), nameWithoutExt.begin(), ::toupper);
+
+    // 将非字母数字字符替换为下划线
+    for (char& c : nameWithoutExt) {
+        if (!std::isalnum(c)) {
+            c = '_';
+        }
+    }
+
+    return prefix + nameWithoutExt;
 }
 
 void ResourceManager::UnloadTexture(const std::string& key)

@@ -5,6 +5,7 @@
 #include "GameObjectManager.h"
 #include "./CardSlotManager.h"
 #include "../DeltaTime.h"
+#include "AudioSystem.h"
 
 CardComponent::CardComponent(PlantType type, int cost, float cooldown)
     : mPlantType(type), mSunCost(cost), mCooldownTime(cooldown) {
@@ -16,16 +17,15 @@ void CardComponent::Start() {
     if (auto gameObject = GetGameObject()) {
         if (auto clickable = gameObject->GetComponent<ClickableComponent>()) {
             clickable->onClick = [this]() {
-                // 只有在就绪状态才能被点击
-                if (!IsReady()) {
-                    std::cout << "Card is not ready, cannot be selected" << std::endl;
-                    return;
-                }
-
                 // 通知卡槽管理器这个卡牌被点击了
                 if (auto manager = FindCardSlotManager()) {
+                    if (!IsReady() || !manager->CanAfford(mSunCost)) {
+                        AudioSystem::PlaySound(AudioConstants::SOUND_CLICK_FAILED, 0.5f);
+                        return;
+					}
                     auto card = std::static_pointer_cast<GameObject>(GetGameObject()->shared_from_this());
                     manager->SelectCard(card);
+					AudioSystem::PlaySound(AudioConstants::SOUND_CLICK_SEED, 0.5f);
                 }
                 };
         }

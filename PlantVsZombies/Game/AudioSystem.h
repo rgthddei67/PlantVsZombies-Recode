@@ -14,28 +14,32 @@
 namespace AudioConstants
 {
     // 音效常量
-    const std::string SOUND_BLEEP = "sound_bleep";
-    const std::string SOUND_BUTTONCLICK = "sound_buttonclick";
-    const std::string SOUND_CERAMIC = "sound_ceramic";
-    const std::string SOUND_CHOOSEPLANT1 = "sound_chooseplant1";
-    const std::string SOUND_CHOOSEPLANT2 = "sound_chooseplant2";
-    const std::string SOUND_GRAVEBUTTON = "sound_gravebutton";
-    const std::string SOUND_MAINMENU = "sound_mainmenu";
-    const std::string SOUND_PAUSE = "sound_pause";
-    const std::string SOUND_SHOVEL = "sound_shovel";
-    const std::string SOUND_COLLECT_SUN = "sound_collectsun";
-	const std::string SOUND_CLICK_FAILED = "sound_clickfailed";
-	const std::string SOUND_AFTER_HUGE_WAVE = "sound_Afterhugewave";
-	const std::string SOUND_FINAL_WAVE = "sound_finalwave";
-	const std::string SOUND_FIRST_WAVE = "sound_firstwave";
-	const std::string SOUND_LAWN_MOWER = "sound_lawnmower";
-	const std::string SOUND_LOST_GAME = "sound_lostgame";
-	const std::string SOUND_POOL_CLEANER = "sound_pool_cleaner";
-	const std::string SOUND_READY_SET_PLANT = "sound_readysetplant";
-	const std::string SOUND_WIN_MUSIC = "sound_winmusic";
+    const std::string SOUND_BLEEP = "SOUND_BLEEP";              // 碰到主菜单按钮
+    const std::string SOUND_BUTTONCLICK = "SOUND_BUTTONCLICK";
+    const std::string SOUND_CERAMIC = "SOUND_CERAMIC";
+    const std::string SOUND_CHOOSEPLANT1 = "SOUND_CHOOSEPLANT1";
+    const std::string SOUND_CHOOSEPLANT2 = "SOUND_CHOOSEPLANT2";
+    const std::string SOUND_GRAVEBUTTON = "SOUND_GRAVEBUTTON";
+    const std::string SOUND_MAINMENU = "SOUND_MAINMENU";
+    const std::string SOUND_PAUSE = "SOUND_PAUSE";
+    const std::string SOUND_SHOVEL = "SOUND_SHOVEL";
+    const std::string SOUND_COLLECT_SUN = "SOUND_COLLECTSUN";
+    const std::string SOUND_CLICK_FAILED = "SOUND_CLICKFAILED";
+    const std::string SOUND_AFTER_HUGE_WAVE = "SOUND_AFTERHUGEWAVE";
+    const std::string SOUND_FINAL_WAVE = "SOUND_FINALWAVE";
+    const std::string SOUND_FIRST_WAVE = "SOUND_FIRSTWAVE";
+    const std::string SOUND_LAWN_MOWER = "SOUND_LAWNMOWER";
+    const std::string SOUND_LOST_GAME = "SOUND_LOSTGAME";
+    const std::string SOUND_POOL_CLEANER = "SOUND_POOL_CLEANER";
+    const std::string SOUND_READY_SET_PLANT = "SOUND_READYSETPLANT";
+    const std::string SOUND_WIN_MUSIC = "SOUND_WINMUSIC";
+    const std::string SOUND_CLICK_SEED = "SOUND_CLICKSEED";
+    const std::string SOUND_DELETEPLANT = "SOUND_DELETEPLANT";
+    const std::string SOUND_PLANT = "SOUND_PLANT";
+    const std::string SOUND_PLANT_ONWATER = "SOUND_PLANT_ONWATER";
 
     // 音乐常量
-    const std::string MUSIC_MENU = "music_MainMenu";
+    const std::string MUSIC_MENU = "MUSIC_MAINMENU";
 }
 
 class AudioSystem

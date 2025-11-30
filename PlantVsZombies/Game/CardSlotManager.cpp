@@ -5,6 +5,7 @@
 #include "CardComponent.h"
 #include "../UI/InputHandler.h"
 #include "../GameApp.h"
+#include "AudioSystem.h"
 #include <iostream>
 
 CardSlotManager::CardSlotManager(Board* board)
@@ -318,7 +319,7 @@ void CardSlotManager::PlacePlant(const Vector& worldPos) {
     if (!SpendSun(cardComp->GetSunCost())) {
         return;
     }
-
+    AudioSystem::PlaySound(AudioConstants::SOUND_PLANT, 0.5f);
     // ´´½¨Ö²Îï
     auto plant = CreatePlantAtPosition(cardComp->GetPlantType(), placePos);
     cardComp->StartCooldown();

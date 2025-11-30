@@ -141,7 +141,21 @@ int main(int argc, char* argv[])
 
         RendererManager::GetInstance().SetRenderer(renderer);
         ResourceManager& resourceManager = ResourceManager::GetInstance();
-        resourceManager.Initialize(renderer);
+
+        if (!resourceManager.Initialize(renderer, "./resources/resources.xml")) {
+            std::cerr << "ResourceManager 初始化失败！" << std::endl;
+            AudioSystem::Shutdown();
+            Mix_Quit();
+            GameAPP::GetInstance().CloseGame();
+            SDL_DestroyRenderer(renderer);
+            SDL_DestroyWindow(window);
+            TTF_Quit();
+            IMG_Quit();
+            SDL_Quit();
+            return -1;
+        }
+
+        Button::SetDefaultFontPath("./font/fzcq.ttf");
 
         // 统一加载所有资源
         bool resourcesLoaded = true;
