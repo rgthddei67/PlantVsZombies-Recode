@@ -36,7 +36,7 @@ public:
 
     // 统计信息
     int GetTotalParticles() const;
-    int GetActiveEmitters() const;
+    size_t GetActiveEmitters() const;
 
 private:
     void CleanupInactiveEmitters();

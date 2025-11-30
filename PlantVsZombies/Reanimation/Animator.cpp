@@ -31,7 +31,7 @@ void Animator::Init(std::shared_ptr<Reanimation> reanim) {
 
         // ÉèÖÃÄ¬ÈÏÖ¡·¶Î§
         if (reanim->GetTrackCount() > 0) {
-            mFrameIndexEnd = reanim->GetTotalFrames() - 1;
+            mFrameIndexEnd = static_cast<float>(reanim->GetTotalFrames() - 1);
         }
     }
 }
@@ -94,9 +94,9 @@ std::pair<int, int> Animator::GetTrackRange(const std::string& trackName) {
 }
 
 void Animator::SetFrameRange(int frameBegin, int frameEnd) {
-    mFrameIndexBegin = frameBegin;
-    mFrameIndexEnd = frameEnd;
-    mFrameIndexNow = frameBegin;
+    mFrameIndexBegin = static_cast<float>(frameBegin);
+    mFrameIndexEnd = static_cast<float>(frameEnd);
+    mFrameIndexNow = static_cast<float>(frameBegin);
 }
 
 void Animator::SetFrameRangeByTrackName(const std::string& trackName) {
@@ -107,7 +107,7 @@ void Animator::SetFrameRangeByTrackName(const std::string& trackName) {
 void Animator::SetFrameRangeToDefault() {
     if (mReanim) {
         mFrameIndexBegin = 0;
-        mFrameIndexEnd = mReanim->GetTotalFrames() - 1;
+        mFrameIndexEnd = static_cast<float>(mReanim->GetTotalFrames() - 1);
     }
 }
 

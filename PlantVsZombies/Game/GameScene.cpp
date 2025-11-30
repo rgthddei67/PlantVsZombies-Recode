@@ -19,7 +19,7 @@ void GameScene::OnEnter() {
     // 加载背景
 	// TODO: 根据传入的Background参数选择不同背景
     AddTexture("IMAGE_background_day", -215, 0, 1.0f, 1.0f, -10000);    
-    AddTexture("IMAGE_SeedBank_Long", 5.0f, -10.0f, 0.85f, 0.9f, 10000);
+    AddTexture("IMAGE_SeedBank_Long", 5, -10, 0.85f, 0.9f, 10000);
 
     mBoard = std::make_unique<Board>();
 

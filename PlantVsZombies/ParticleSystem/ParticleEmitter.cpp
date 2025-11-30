@@ -41,7 +41,7 @@ void ParticleEmitter::Update() {
 
     // 自动销毁计时
     if (autoDestroyTime > 0) {
-        autoDestroyTimer += deltaTime;
+        autoDestroyTimer += static_cast<int>(deltaTime);
         if (autoDestroyTimer >= autoDestroyTime) {
             active = false;
             return;
@@ -58,7 +58,7 @@ void ParticleEmitter::Update() {
 
     // 自动发射
     if (spawnRate > 0 && (!isOneShot || particlesEmitted < particlesToEmit)) {
-        spawnTimer += deltaTime;
+        spawnTimer += static_cast<int>(deltaTime);
         float spawnInterval = 1.0f / spawnRate;
         if (spawnTimer >= spawnInterval) {
             if (!isOneShot || particlesEmitted < particlesToEmit) {

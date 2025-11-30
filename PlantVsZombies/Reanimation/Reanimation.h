@@ -23,7 +23,7 @@ public:
     bool LoadFromFile(const std::string& filePath);
 
     // 获取轨道数量
-    int GetTrackCount() const { return mTracks ? mTracks->size() : 0; }
+    size_t GetTrackCount() const { return mTracks ? mTracks->size() : 0; }
 
     // 查找轨道索引
     int FindTrackIndex(const std::string& trackName) const;

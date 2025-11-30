@@ -91,7 +91,7 @@
     <ClInclude Include="Reanimation\TodDebug.h" />
     <ClInclude Include="RendererManager.h" />
     <ClInclude Include="ResourceManager.h" />
-    <ClInclude Include="TestObject.h" />
+    <ClInclude Include="ResourcesXMLConfigReader.h" />
     <ClInclude Include="UI\Button.h" />
     <ClInclude Include="UI\ButtonManager.h" />
     <ClInclude Include="UI\InputHandler.h" />
@@ -102,9 +102,10 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{b7b9d986-6830-4516-8bab-e77713050d06}</ProjectGuid>
+    <ProjectGuid>{9AEA8CB8-C1D7-4232-94A2-D1B9B7C5C9BB}</ProjectGuid>
     <RootNamespace>PlantVsZombies</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectName>PlantsVsZombies</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">

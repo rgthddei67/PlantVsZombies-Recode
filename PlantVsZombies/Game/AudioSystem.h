@@ -24,6 +24,15 @@ namespace AudioConstants
     const std::string SOUND_PAUSE = "sound_pause";
     const std::string SOUND_SHOVEL = "sound_shovel";
     const std::string SOUND_COLLECT_SUN = "sound_collectsun";
+	const std::string SOUND_CLICK_FAILED = "sound_clickfailed";
+	const std::string SOUND_AFTER_HUGE_WAVE = "sound_Afterhugewave";
+	const std::string SOUND_FINAL_WAVE = "sound_finalwave";
+	const std::string SOUND_FIRST_WAVE = "sound_firstwave";
+	const std::string SOUND_LAWN_MOWER = "sound_lawnmower";
+	const std::string SOUND_LOST_GAME = "sound_lostgame";
+	const std::string SOUND_POOL_CLEANER = "sound_pool_cleaner";
+	const std::string SOUND_READY_SET_PLANT = "sound_readysetplant";
+	const std::string SOUND_WIN_MUSIC = "sound_winmusic";
 
     // “Ù¿÷≥£¡ø
     const std::string MUSIC_MENU = "music_MainMenu";

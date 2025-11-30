@@ -77,6 +77,6 @@ int ParticleSystem::GetTotalParticles() const {
     return total;
 }
 
-int ParticleSystem::GetActiveEmitters() const {
+size_t ParticleSystem::GetActiveEmitters() const {
     return emitters.size();
 }

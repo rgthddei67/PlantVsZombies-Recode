@@ -143,7 +143,7 @@ void ColliderComponent::DrawCircleCollider(SDL_Renderer* renderer, const Vector&
     SDL_SetRenderDrawColor(renderer, debugColor.r, debugColor.g, debugColor.b, debugColor.a);
 
     const int segments = 32; // 圆的细分段数
-    const float angleStep = 2.0f * M_PI / segments;
+    const float angleStep = static_cast<const float>(2.0f * M_PI / segments);
 
     // 绘制圆形
     for (int i = 0; i < segments; i++) {

@@ -31,7 +31,7 @@ void Particle::Update() {
     if (!active) return;
 
     float deltaTime = DeltaTime::GetDeltaTime();
-    lifetime += deltaTime;
+    lifetime += static_cast<int>(deltaTime);
 
     // 生命周期结束
     if (lifetime >= maxLifetime) {
@@ -45,7 +45,7 @@ void Particle::Update() {
     position.y += velocity.y * deltaTime;
     rotation += rotationSpeed * deltaTime;
 
-    float t = lifetime / maxLifetime;
+    float t = static_cast<float>(lifetime / maxLifetime);
     size = startSize + (endSize - startSize) * t;
 
     // 颜色插值

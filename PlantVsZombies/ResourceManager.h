@@ -3,6 +3,7 @@
 #define _RESOURCEMANAGER_H
 #include "./Reanimation/Reanimation.h"
 #include "./Reanimation/AnimationTypes.h"
+#include "ResourcesXMLConfigReader.h"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_ttf.h>
@@ -137,16 +138,25 @@ private:
     };
 
     std::vector<std::string> soundPaths = {
-        "./resources/sounds/UI/bleep.ogg",
-        "./resources/sounds/UI/buttonclick.ogg",
-        "./resources/sounds/UI/ceramic.ogg",
-        "./resources/sounds/UI/chooseplant1.ogg",
-        "./resources/sounds/UI/chooseplant2.ogg",
-        "./resources/sounds/UI/gravebutton.ogg",
-        "./resources/sounds/UI/mainmenu.ogg",
-        "./resources/sounds/UI/pause.ogg",
-        "./resources/sounds/UI/shovel.ogg",
-        "./resources/sounds/collectsun.ogg",
+        "./resources/sounds/UI/bleep.ogg",          // 划到主菜单按钮
+        "./resources/sounds/UI/buttonclick.ogg",    // 按钮点击
+        "./resources/sounds/UI/ceramic.ogg",       
+        "./resources/sounds/UI/chooseplant1.ogg",   // 选卡见面点击植物
+		"./resources/sounds/UI/chooseplant2.ogg",   // 选卡见面点击植物2
+        "./resources/sounds/UI/gravebutton.ogg",    // 点击主菜单按钮
+        "./resources/sounds/UI/mainmenu.ogg",       // 进主菜单的音乐
+		"./resources/sounds/UI/pause.ogg",          // 暂停菜单
+        "./resources/sounds/UI/shovel.ogg",         // 拿起铲子
+		"./resources/sounds/collectsun.ogg",        // 收集阳光
+        "./resources/sounds/UI/clickfailed.ogg",    // 没阳光点击卡槽   
+        "./resources/sounds/Afterhugewave.ogg",
+        "./resources/sounds/finalwave.ogg",
+        "./resources/sounds/firstwave.ogg",
+        "./resources/sounds/lawnmower.ogg",         // 小推车启动
+        "./resources/sounds/lostgame.ogg",          // 游戏失败
+        "./resources/sounds/pool_cleaner.ogg",      // 水上小推车启动
+        "./resources/sounds/readysetplant.ogg",     // 开始前的声音
+        "./resources/sounds/winmusic.ogg",          // 游戏胜利
     };
 
     std::vector<std::string> musicPaths = {

@@ -241,12 +241,12 @@ std::vector<int> ResourceManager::GetLoadedFontSizes(const std::string& key) con
 
 int ResourceManager::GetLoadedFontCount() const
 {
-    int total = 0;
+    size_t total = 0;
     for (const auto& fontPair : fonts)
     {
         total += fontPair.second.size();
     }
-    return total;
+    return static_cast<int>(total);
 }
 
 // 卸载特定字体大小的方法

@@ -24,11 +24,6 @@ public:
         SetName("Cell_" + std::to_string(row) + "_" + std::to_string(column));
 
         auto transform = this->AddComponent<TransformComponent>(position);
-
-        auto collider = this->AddComponent<ColliderComponent>(
-            Vector(CELL_COLLIDER_SIZE_X, CELL_COLLIDER_SIZE_Y), ColliderType::BOX);
-        collider->isStatic = true;
-        collider->isTrigger = true;
     }
 	
 	// 获取格子世界位置

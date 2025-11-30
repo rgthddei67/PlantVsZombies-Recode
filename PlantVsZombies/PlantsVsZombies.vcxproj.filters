@@ -165,9 +165,6 @@
     <ClInclude Include="RendererManager.h">
       <Filter>Code</Filter>
     </ClInclude>
-    <ClInclude Include="TestObject.h">
-      <Filter>Code</Filter>
-    </ClInclude>
     <ClInclude Include="Game\AnimatedObject.h">
       <Filter>Code\Game</Filter>
     </ClInclude>
@@ -257,6 +254,9 @@
     </ClInclude>
     <ClInclude Include="Game\CardSlotManager.h">
       <Filter>Code\Game</Filter>
+    </ClInclude>
+    <ClInclude Include="ResourcesXMLConfigReader.h">
+      <Filter>Code</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

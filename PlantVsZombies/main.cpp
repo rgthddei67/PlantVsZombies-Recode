@@ -17,7 +17,6 @@
 #include "./Game/Component.h"
 #include "./Game/CollisionSystem.h"
 #include "./Game/ClickableComponent.h"
-#include "./TestObject.h"
 #include "./Game/AnimatedObject.h"
 #include "./Game/Sun.h"
 #include "./Game/Board.h"
@@ -102,7 +101,7 @@ int main(int argc, char* argv[])
         Button::SetDefaultFontPath("./font/fzcq.ttf");
 
         // 创建窗口和渲染器
-        SDL_Window* window = SDL_CreateWindow("Plant vs Zombies",
+        SDL_Window* window = SDL_CreateWindow("Plants Vs Zombies",
             SDL_WINDOWPOS_CENTERED,
             SDL_WINDOWPOS_CENTERED,
             800, 600,
