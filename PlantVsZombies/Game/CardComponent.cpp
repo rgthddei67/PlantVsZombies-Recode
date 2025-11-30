@@ -50,16 +50,6 @@ void CardComponent::Update() {
             }
         }
     }
-
-    // 根据状态更新可点击性
-    if (auto gameObject = GetGameObject()) {
-        if (auto clickable = gameObject->GetComponent<ClickableComponent>()) {
-            bool shouldBeClickable = IsReady();
-            if (clickable->IsClickable != shouldBeClickable) {
-                clickable->IsClickable = shouldBeClickable;
-            }
-        }
-    }
 }
 
 void CardComponent::ForceStateUpdate() {
