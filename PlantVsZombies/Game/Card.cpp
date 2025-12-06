@@ -8,9 +8,8 @@ Card::Card(PlantType plantType, int sunCost, float cooldown) {
 
 void Card::SetupComponents(PlantType plantType, int sunCost, float cooldown) {
     AddComponent<TransformComponent>();
-    AddComponent<CardComponent>(plantType, sunCost, cooldown);
     AddComponent<CardDisplayComponent>(plantType, sunCost, cooldown);
-
+    AddComponent<CardComponent>(plantType, sunCost, cooldown);
     // µã»÷×é¼þ
     auto collision = AddComponent<ColliderComponent>(Vector(CARD_WIDTH, CARD_HEIGHT), ColliderType::BOX);
     collision->isStatic = true;

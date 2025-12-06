@@ -23,7 +23,7 @@ void GameScene::OnEnter() {
 
     mBoard = std::make_unique<Board>();
 
-    auto CardUI = GameObjectManager::GetInstance().CreateGameObject<GameObject>();
+    auto CardUI = GameObjectManager::GetInstance().CreateGameObjectImmediate<GameObject>();
     CardUI->SetName("CardUI");
     auto cardSlotManager = CardUI->AddComponent<CardSlotManager>(mBoard.get());
 

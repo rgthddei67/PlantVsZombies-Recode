@@ -6,7 +6,7 @@
 #include <memory>
 #include <vector>
 
-enum class ParticleEffect {
+enum class ParticleType {
     PEA_BULLET_HIT,
     ZOMBIE_HEAD_OFF,
     NUM_EFFECTS
@@ -19,8 +19,8 @@ struct Particle {
     SDL_Color color;
     SDL_Color startColor;
     SDL_Color endColor;
-    int lifetime;
-    int maxLifetime;
+    float lifetime;
+    float maxLifetime;
     float size;
     float startSize;
     float endSize;

@@ -115,6 +115,9 @@
     <ClCompile Include="Game\CardSlotManager.cpp">
       <Filter>Code\Game</Filter>
     </ClCompile>
+    <ClCompile Include="Game\Plant\Plant.cpp">
+      <Filter>Code\Game\Plant</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="UI\Button.h">
@@ -256,6 +259,15 @@
       <Filter>Code\Game</Filter>
     </ClInclude>
     <ClInclude Include="ResourcesXMLConfigReader.h">
+      <Filter>Code</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\Plant\Plant.h">
+      <Filter>Code\Game\Plant</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\Plant\SunFlower.h">
+      <Filter>Code\Game\Plant</Filter>
+    </ClInclude>
+    <ClInclude Include="GameRandom.h">
       <Filter>Code</Filter>
     </ClInclude>
   </ItemGroup>

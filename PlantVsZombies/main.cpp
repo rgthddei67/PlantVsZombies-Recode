@@ -1,5 +1,6 @@
 #define SDL_MAIN_HANDLED
 #include "./CrashHandler.h"
+#include "./GameRandom.h"
 #include "./DeltaTime.h"
 #include "./GameMonitor.h"
 #include "./GameAPP.h"
@@ -29,38 +30,12 @@
 extern std::unique_ptr<ParticleSystem> g_particleSystem;  
 std::unique_ptr<ParticleSystem> g_particleSystem = nullptr;
 
-namespace UIFunctions
-{
-    static void ImageButtonClick()
-    {
-        if (g_particleSystem != nullptr)
-        {
-            g_particleSystem->EmitEffect(
-				ParticleEffect::ZOMBIE_HEAD_OFF, 100, 150, 1); 
-        }
-        AudioSystem::PlaySound(AudioConstants::SOUND_BUTTONCLICK, 0.4f);
-    }
-    static void ClickedButtonClick()
-    {
-        if (g_particleSystem != nullptr)
-        {
-            g_particleSystem->EmitEffect(
-                ParticleEffect::PEA_BULLET_HIT, 100, 150, 5);
-        }
-        AudioSystem::PlaySound(AudioConstants::SOUND_BUTTONCLICK, 0.4f);
-    }
-    static void SliderChanged(float value)
-    {
-        std::cout << "滑动条值改变: " << value << std::endl;
-    }
-
-}
-
 int main(int argc, char* argv[])
 {
     CrashHandler::Initialize();
     try
     {
+		GameRandom::RandomizeSeed();
         // 初始化SDL
         if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0)
         {
@@ -199,13 +174,13 @@ int main(int argc, char* argv[])
         auto slider = uiManager.CreateSlider(Vector(500, 150), Vector(135, 10), 0.0f, 100.0f, 0.0f);
         slider->SetChangeCallBack(UIFunctions::SliderChanged);
         */
-        DeltaTime::GetInstance().Reset();
+        DeltaTime::Reset();
         sceneManager.SwitchTo("GameScene");
         bool running = true;
         SDL_Event event;
         while (running && !sceneManager.IsEmpty())
         {
-            DeltaTime::GetInstance().BeginFrame();
+            DeltaTime::BeginFrame();
             auto& input = GameAPP::GetInstance().GetInputHandler();
             // 处理事件
             while (SDL_PollEvent(&event))
@@ -217,6 +192,10 @@ int main(int argc, char* argv[])
                 input.ProcessEvent(&event);
                 sceneManager.HandleEvent(event, input);
             }
+            if (input.IsKeyReleased(SDLK_SPACE))
+            {
+				g_particleSystem->EmitEffect(ParticleType::ZOMBIE_HEAD_OFF, input.GetMousePosition());
+			}
             if (input.IsKeyReleased(SDLK_ESCAPE))
             {
                 running = false;

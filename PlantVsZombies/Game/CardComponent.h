@@ -7,8 +7,12 @@
 #include "./Plant/PlantType.h"
 #include <memory>
 
+class CardSlotManager;
+
 class CardComponent : public Component {
 private:
+    mutable std::weak_ptr<CardSlotManager> mCardSlotManager;    // 可直接被const函数修改
+    mutable std::weak_ptr<CardDisplayComponent> mCardDisplayComponent;
     PlantType mPlantType = PlantType::PLANT_PEASHOOTER;
     int mSunCost = 0;
     float mCooldownTimer = 0;
@@ -35,7 +39,10 @@ public:
     float GetCooldownProgress() const;
     CardState GetCardState() const;
 
-    std::shared_ptr<class CardSlotManager> FindCardSlotManager() const;
+    std::shared_ptr<CardSlotManager> FindCardSlotManager() const;
+
+    std::shared_ptr<CardSlotManager> GetCardSlotManager() const;
+    std::shared_ptr<CardDisplayComponent> GetCardDisplayComponent() const;
 };
 
 #endif

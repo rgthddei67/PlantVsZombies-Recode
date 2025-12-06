@@ -45,6 +45,7 @@ public:
 	void Start() override {
 		GameObject::Start();
 		this->PlayAnimation();
+		this->SetAnimationSpeed(0.8f);
 	}
 
 	// 开始播放动画
@@ -93,6 +94,20 @@ public:
 	void SetLoopType(PlayState loopType) {
 		if (mAnimation) {
 			mAnimation->SetLoopType(loopType);
+		}
+	}
+
+	// 设置动画播放速度
+	void SetAnimationSpeed(float speed) {
+		if (mAnimation) {
+			mAnimation->SetSpeed(speed);
+		}
+	}
+
+	// 获取动画速度
+	float GetAnimationSpeed() const {
+		if (mAnimation) {
+			return mAnimation->GetSpeed();
 		}
 	}
 

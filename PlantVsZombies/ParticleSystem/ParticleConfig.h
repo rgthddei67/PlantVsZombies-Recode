@@ -3,13 +3,14 @@
 #define __PARTICLE_CONFIG_H__
 
 #include "Particle.h"
+#include "../GameRandom.h"
 #include <string>
 #include <unordered_map>
 
 struct ParticleConfig {
     SDL_Color startColor = { 255, 255, 255, 255 };
     SDL_Color endColor = { 255, 255, 255, 0 };
-    int lifetime = 60;
+    float lifetime = 60;
     float startSize = 10.0f;
     float endSize = 5.0f;
     float minVelocity = 50.0f;
@@ -28,22 +29,22 @@ struct ParticleConfig {
             return textureKeys[0];  // 只有一个纹理，直接返回
         }
         // 多个纹理，随机选择一个
-        int index = rand() % textureKeys.size();
+        int index = GameRandom::Range(0, static_cast<int>(textureKeys.size()) - 1);
         return textureKeys[index];
     }
 };
 
 class ParticleConfigManager {
 private:
-    std::unordered_map<ParticleEffect, ParticleConfig> configs;
+    std::unordered_map<ParticleType, ParticleConfig> configs;
     SDL_Renderer* renderer;
 
 public:
     ParticleConfigManager(SDL_Renderer* sdlRenderer);
     ~ParticleConfigManager();
     void SetRenderer(SDL_Renderer* sdlRenderer) { renderer = sdlRenderer; }
-    const ParticleConfig& GetConfig(ParticleEffect effect) const;
-	SDL_Texture* GetRandomTextureForEffect(ParticleEffect effect) const;    //获得随机纹理
+    const ParticleConfig& GetConfig(ParticleType effect) const;
+	SDL_Texture* GetRandomTextureForEffect(ParticleType effect) const;    //获得随机纹理
 
 private:
     void InitializeConfigs();

@@ -37,18 +37,20 @@ void CardDisplayComponent::Update() {
 
 void CardDisplayComponent::Draw(SDL_Renderer* renderer) {
     if (!GetGameObject() || !GetGameObject()->IsActive()) return;
+    auto transfrom = GetTransformComponent();
+	if (!transfrom) return;
 
-    DrawCardBackground(renderer);
-    DrawPlantImage(renderer);
+    DrawCardBackground(renderer, transfrom);
+    DrawPlantImage(renderer, transfrom);
 
     if (showMask && maskFillAmount > 0) {
-        DrawCooldownMask(renderer);
+        DrawCooldownMask(renderer, transfrom);
     }
 
-    DrawSunCost(renderer);
+    DrawSunCost(renderer, transfrom);
 
     if (isSelected) {
-        DrawSelectionHighlight(renderer);
+        DrawSelectionHighlight(renderer, transfrom);
     }
 }
 
@@ -74,13 +76,10 @@ void CardDisplayComponent::LoadTextures() {
     }
 }
 
-void CardDisplayComponent::DrawCardBackground(SDL_Renderer* renderer) {
+void CardDisplayComponent::DrawCardBackground(SDL_Renderer* renderer, std::shared_ptr<TransformComponent> transform) {
     if (!GetGameObject()) return;
 
-    auto transform = GetGameObject()->GetComponent<TransformComponent>();
-    if (!transform) return;
-
-    Vector position = transform->position;
+	Vector position = transform->position;
     SDL_Rect cardRect = {
         static_cast<int>(position.x),
         static_cast<int>(position.y),
@@ -99,11 +98,8 @@ void CardDisplayComponent::DrawCardBackground(SDL_Renderer* renderer) {
     }
 }
 
-void CardDisplayComponent::DrawPlantImage(SDL_Renderer* renderer) {
+void CardDisplayComponent::DrawPlantImage(SDL_Renderer* renderer, std::shared_ptr<TransformComponent> transform) {
     if (!GetGameObject() || !plantTexture) return;
-
-    auto transform = GetGameObject()->GetComponent<TransformComponent>();
-    if (!transform) return;
 
     Vector position = transform->position;
 
@@ -127,11 +123,8 @@ void CardDisplayComponent::DrawPlantImage(SDL_Renderer* renderer) {
     SDL_SetTextureAlphaMod(plantTexture, 255);
 }
 
-void CardDisplayComponent::DrawCooldownMask(SDL_Renderer* renderer) {
+void CardDisplayComponent::DrawCooldownMask(SDL_Renderer* renderer, std::shared_ptr<TransformComponent> transform) {
     if (!GetGameObject() || !cardBackground) return;
-
-    auto transform = GetGameObject()->GetComponent<TransformComponent>();
-    if (!transform) return;
 
     Vector position = transform->position;
     SDL_Rect cardRect = {
@@ -167,14 +160,10 @@ void CardDisplayComponent::DrawCooldownMask(SDL_Renderer* renderer) {
 
 }
 
-void CardDisplayComponent::DrawSunCost(SDL_Renderer* renderer) {
+void CardDisplayComponent::DrawSunCost(SDL_Renderer* renderer, std::shared_ptr<TransformComponent> transform) {
     if (!GetGameObject()) return;
 
-    auto transform = GetGameObject()->GetComponent<TransformComponent>();
-    if (!transform) return;
-
     Vector position = transform->position;
-
 
     GameAPP::GetInstance().DrawText(renderer, std::to_string(needSun),
         Vector(position.x + 6, position.y + 58),
@@ -183,11 +172,8 @@ void CardDisplayComponent::DrawSunCost(SDL_Renderer* renderer) {
         14);
 }
 
-void CardDisplayComponent::DrawSelectionHighlight(SDL_Renderer* renderer) {
+void CardDisplayComponent::DrawSelectionHighlight(SDL_Renderer* renderer, std::shared_ptr<TransformComponent> transform) {
     if (!GetGameObject()) return;
-
-    auto transform = GetGameObject()->GetComponent<TransformComponent>();
-    if (!transform) return;
 
     Vector position = transform->position;
 
@@ -215,8 +201,11 @@ void CardDisplayComponent::DrawSelectionHighlight(SDL_Renderer* renderer) {
 
 void CardDisplayComponent::UpdateCardState() {
     // 获取卡牌逻辑组件
-    auto cardComp = GetGameObject()->GetComponent<CardComponent>();
+    auto cardComp = GetCardComponent();
     if (!cardComp) return;
+    // 获取卡槽管理器
+    auto cardSlotManager = cardComp->GetCardSlotManager();
+    if (!cardSlotManager) return;
 
     // 如果正在冷却，只更新冷却进度，不进行状态转换
     if (cardState == CardState::Cooling) {
@@ -227,8 +216,7 @@ void CardDisplayComponent::UpdateCardState() {
         }
         else {
             // 冷却结束，根据阳光条件转换状态
-            auto cardSlotManager = cardComp->FindCardSlotManager();
-            if (cardSlotManager && cardSlotManager->CanAfford(needSun)) {
+            if (cardSlotManager->CanAfford(needSun)) {
                 TranToReady();
             }
             else {
@@ -237,10 +225,6 @@ void CardDisplayComponent::UpdateCardState() {
         }
         return;
     }
-
-    // 获取卡槽管理器
-    auto cardSlotManager = cardComp->FindCardSlotManager();
-    if (!cardSlotManager) return;
 
     // 获取当前阳光数量
     int currentSun = cardSlotManager->GetCurrentSun();
@@ -262,7 +246,6 @@ void CardDisplayComponent::UpdateCardState() {
         break;
 
     case CardState::Click:
-        // 点击状态通常由外部控制
         break;
     }
 }
@@ -319,10 +302,38 @@ SDL_Color CardDisplayComponent::GetCurrentColor() const {
     }
 }
 
-// 这里要修改哦
+std::shared_ptr<CardComponent> CardDisplayComponent::GetCardComponent() const {
+    if (auto cardComp = mCardComponent.lock()) {
+        return cardComp;
+    }
+    // 如果 weak_ptr 已失效，重新查找
+    if (auto gameObject = GetGameObject()) {
+        auto cardComp = gameObject->GetComponent<CardComponent>();
+        if (cardComp) {
+            this->mCardComponent = cardComp;
+        }
+        return cardComp;
+    }
+    return nullptr;
+}
+
+std::shared_ptr<TransformComponent> CardDisplayComponent::GetTransformComponent() const {
+    if (auto transformComp = mTransformComponent.lock()) {
+        return transformComp;
+    }
+
+    if (auto gameObject = GetGameObject()) {
+        auto transformComp = gameObject->GetComponent<TransformComponent>();
+        if (transformComp) {
+            this->mTransformComponent = transformComp;
+        }
+        return transformComp;
+    }
+    return nullptr;
+}
+
+// TODO 新增植物这里要改
 std::string CardDisplayComponent::GetPlantTextureKey() const {
-    // 根据植物类型生成纹理key
-    // 这里需要与ResourceManager中的命名约定一致
     switch (plantType) {
     case PlantType::PLANT_PEASHOOTER:
         return "IMAGE_PeaShooter";

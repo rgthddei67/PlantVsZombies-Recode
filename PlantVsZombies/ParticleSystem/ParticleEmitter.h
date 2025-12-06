@@ -14,19 +14,19 @@ private:
 
     SDL_FPoint position;
     bool active;
-    int spawnTimer;
+    float spawnTimer;
     int spawnRate;
     int maxParticles;
 
     // 发射控制
-    ParticleEffect effectType;
+    ParticleType effectType;
     bool isOneShot;
     int particlesToEmit;
     int particlesEmitted;
 
     // 自动销毁
-    int autoDestroyTimer;
-    int autoDestroyTime;
+    float autoDestroyTimer;
+    float autoDestroyTime;
 
 public:
     ParticleEmitter(SDL_Renderer* sdlRenderer = nullptr);
@@ -39,7 +39,7 @@ public:
     }
 
     // 初始化
-    void Initialize(ParticleEffect type, const SDL_FPoint& pos);
+    void Initialize(ParticleType type, const SDL_FPoint& pos);
 
     // 配置
     void SetSpawnRate(int rate) { spawnRate = rate; } 

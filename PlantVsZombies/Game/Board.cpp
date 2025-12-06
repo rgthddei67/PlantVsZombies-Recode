@@ -1,5 +1,6 @@
 #include "Board.h"
 #include "Sun.h"
+#include "../GameRandom.h"
 
 void Board::InitializeCell(int rows, int cols)
 {
@@ -41,10 +42,7 @@ std::shared_ptr<Sun> Board::CreateSun(const Vector& position)
     auto sun = GameObjectManager::GetInstance().CreateGameObject<Sun>(this, position);
 
     mCoinObservers.push_back(sun);
-#ifdef _DEBUG
-    std::cout << "创建阳光，当前活跃Coin数量: " << GetActiveCoinCount()
-        << "/" << GetTotalCreatedCoinCount() << std::endl;
-#endif
+
     return sun;
 }
 
@@ -67,8 +65,8 @@ void Board::UpdateSunFalling()
     {
         mSunCountDown = 5.0f;
         Vector sunPos(
-            static_cast<float>(50 + rand() % 721),  // 50~770
-            static_cast<float>(-110 + rand() % 91)  // -110~-20
+            GameRandom::Range(50.0f, 770.0f),      // 50~770
+            GameRandom::Range(-110.0f, -20.0f)    // -110~-20
         );
         auto sun = CreateSun(sunPos);
         sun->StartLinearFall();

@@ -12,8 +12,8 @@ void Particle::Reset() {
     color = { 255, 255, 255, 255 };
     startColor = { 255, 255, 255, 255 };
     endColor = { 255, 255, 255, 0 };
-    lifetime = 0;
-    maxLifetime = 60;
+    lifetime = 0.0f;
+    maxLifetime = 60.0f;
     size = 1.0f;
     startSize = 1.0f;
     endSize = 0.5f;
@@ -31,7 +31,7 @@ void Particle::Update() {
     if (!active) return;
 
     float deltaTime = DeltaTime::GetDeltaTime();
-    lifetime += static_cast<int>(deltaTime);
+    lifetime += deltaTime;
 
     // 生命周期结束
     if (lifetime >= maxLifetime) {
@@ -45,7 +45,7 @@ void Particle::Update() {
     position.y += velocity.y * deltaTime;
     rotation += rotationSpeed * deltaTime;
 
-    float t = static_cast<float>(lifetime / maxLifetime);
+    float t = lifetime / maxLifetime;
     size = startSize + (endSize - startSize) * t;
 
     // 颜色插值

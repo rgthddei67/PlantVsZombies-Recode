@@ -25,13 +25,17 @@ public:
     void DrawAll();
     void ClearAll();
 
-    // 发射效果
-    void EmitEffect(ParticleEffect type, const SDL_FPoint& position, int count = 1);
-    void EmitEffect(ParticleEffect type, float x, float y, int count = 1);
-    void EmitEffect(ParticleEffect type, const Vector& position, int count = 1);
+    // 发射粒子
+    void EmitEffect(ParticleType type, const SDL_FPoint& position, int count = 1);
+
+    // 发射粒子
+    void EmitEffect(ParticleType type, float x, float y, int count = 1);
+
+    // 发射粒子
+    void EmitEffect(ParticleType type, const Vector& position, int count = 1);
 
     // 持续发射器
-    ParticleEmitter* CreatePersistentEmitter(ParticleEffect type, const SDL_FPoint& position);
+    ParticleEmitter* CreatePersistentEmitter(ParticleType type, const SDL_FPoint& position);
     void RemoveEmitter(ParticleEmitter* emitter);
 
     // 统计信息

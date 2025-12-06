@@ -64,7 +64,7 @@ void CardSlotManager::UpdateAllCardsState() {
             // 如果卡牌正在冷却，不强制更新状态，只更新冷却进度
             if (cardComp->IsCooldown()) {
                 // 只更新冷却进度显示
-                if (auto display = card->GetComponent<CardDisplayComponent>()) {
+                if (auto display = cardComp->GetCardDisplayComponent()) {
                     float progress = 1.0f - (cardComp->GetCooldownProgress());
                     display->SetCooldownProgress(progress);
                 }
@@ -204,9 +204,6 @@ void CardSlotManager::ArrangeCards() {
             transform->SetPosition(position);
         }
     }
-
-    std::cout << "Arranged " << cards.size() << " cards starting from ("
-        << firstSlotPosition.x << ", " << firstSlotPosition.y << ")" << std::endl;
 }
 
 bool CardSlotManager::SpendSun(int cost) {
@@ -218,10 +215,8 @@ bool CardSlotManager::SpendSun(int cost) {
     if (CanAfford(cost)) {
         mBoard->SubSun(cost);
         UpdateAllCardsState();
-        std::cout << "Spent " << cost << " sun. Remaining: " << mBoard->GetSun() << std::endl;
         return true;
     }
-    std::cout << "Not enough sun! Need: " << cost << " Have: " << mBoard->GetSun() << std::endl;
     return false;
 }
 
@@ -365,7 +360,7 @@ std::shared_ptr<Cell> CardSlotManager::GetCellAtGridPosition(const Vector& gridP
 
     int row = static_cast<int>(gridPos.y);
     int col = static_cast<int>(gridPos.x);
-
+    // TODO : fix it
     return mBoard->GetCell(row, col);
 }
 

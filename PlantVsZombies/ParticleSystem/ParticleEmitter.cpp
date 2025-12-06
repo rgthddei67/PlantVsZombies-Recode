@@ -1,37 +1,38 @@
 #include "ParticleEmitter.h"
 #include "../DeltaTime.h"
+#include "../Game/Definit.h"
 #include <iostream>
 #include <cmath>
 #include <cstdlib>
 
 ParticleEmitter::ParticleEmitter(SDL_Renderer* sdlRenderer)
-    : active(false), spawnTimer(0), spawnRate(0), maxParticles(100),
+    : active(false), spawnTimer(0.0f), spawnRate(0), maxParticles(100),
     configManager(sdlRenderer),
     isOneShot(false), particlesToEmit(0), particlesEmitted(0),
-    autoDestroyTimer(0), autoDestroyTime(-2),
-    effectType(ParticleEffect::PEA_BULLET_HIT)
+    autoDestroyTimer(0.0f), autoDestroyTime(-2.0f),
+    effectType(ParticleType::PEA_BULLET_HIT)
 {
     particles.resize(maxParticles);
 }
 
-void ParticleEmitter::Initialize(ParticleEffect type, const SDL_FPoint& pos) 
+void ParticleEmitter::Initialize(ParticleType type, const SDL_FPoint& pos) 
 {
     effectType = type;
     position = pos;
     active = true;
-    spawnTimer = 0;
+    spawnTimer = 0.0f;
     particlesEmitted = 0;
 }
 
 void ParticleEmitter::SetAutoDestroyTime(int frames) {
     if (frames == -2) {
         const ParticleConfig& config = configManager.GetConfig(effectType);
-        autoDestroyTime = config.lifetime + 15;
+        autoDestroyTime = config.lifetime + 15.0f;
     }
     else {
-        autoDestroyTime = frames;
+        autoDestroyTime = static_cast<int>(frames);
     }
-    autoDestroyTimer = 0;
+    autoDestroyTimer = 0.0f;
 }
 
 void ParticleEmitter::Update() {
@@ -41,7 +42,7 @@ void ParticleEmitter::Update() {
 
     // 自动销毁计时
     if (autoDestroyTime > 0) {
-        autoDestroyTimer += static_cast<int>(deltaTime);
+        autoDestroyTimer += deltaTime;
         if (autoDestroyTimer >= autoDestroyTime) {
             active = false;
             return;
@@ -58,7 +59,7 @@ void ParticleEmitter::Update() {
 
     // 自动发射
     if (spawnRate > 0 && (!isOneShot || particlesEmitted < particlesToEmit)) {
-        spawnTimer += static_cast<int>(deltaTime);
+        spawnTimer += deltaTime;
         float spawnInterval = 1.0f / spawnRate;
         if (spawnTimer >= spawnInterval) {
             if (!isOneShot || particlesEmitted < particlesToEmit) {
@@ -119,20 +120,20 @@ void ParticleEmitter::EmitSingleParticle() {
         }
     }
 
+    // 随机角度（度），然后转换为弧度
+    float randomAngleDeg = GameRandom::Range(0.0f, config.spreadAngle);
+    float randomAngleRad = randomAngleDeg * (3.14159f / 180.0f);
+
     // 随机速度
-    float baseAngle = 270.0f; // 默认向下
-    float angleVariation = config.spreadAngle / 2.0f;
-    float angle = (baseAngle - angleVariation) +
-        (static_cast<float>(rand()) / RAND_MAX * config.spreadAngle);
-    angle = angle * 3.14159f / 180.0f;
+    float randomSpeed = GameRandom::Range(config.minVelocity, config.maxVelocity);
 
-    float speed = config.minVelocity +
-        static_cast<float>(rand()) / RAND_MAX * (config.maxVelocity - config.minVelocity);
+    // 计算速度向量
+    float cosAngle = cosf(randomAngleRad);
+    float sinAngle = sinf(randomAngleRad);
+    particle->velocity = Vector(cosAngle * randomSpeed, sinAngle * randomSpeed);
 
-    particle->velocity.x = cosf(angle) * speed;
-    particle->velocity.y = sinf(angle) * speed;
-
-    particle->rotationSpeed = (rand() % 100 - 50) * 0.1f;
+    // 随机旋转速度（-5 到 5 度/秒）
+    particle->rotationSpeed = GameRandom::Range(-5.0f, 5.0f);
 }
 
 Particle* ParticleEmitter::GetFreeParticle() 

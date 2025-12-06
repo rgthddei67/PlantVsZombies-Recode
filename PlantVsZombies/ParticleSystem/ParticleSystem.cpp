@@ -26,7 +26,7 @@ void ParticleSystem::ClearAll() {
     emitters.clear();
 }
 
-void ParticleSystem::EmitEffect(ParticleEffect type, const SDL_FPoint& position, int count) {
+void ParticleSystem::EmitEffect(ParticleType type, const SDL_FPoint& position, int count) {
     auto emitter = std::make_unique<ParticleEmitter>(renderer);
     emitter->Initialize(type, position);
     emitter->SetOneShot(true);
@@ -35,16 +35,16 @@ void ParticleSystem::EmitEffect(ParticleEffect type, const SDL_FPoint& position,
     emitters.push_back(std::move(emitter));
 }
 
-void ParticleSystem::EmitEffect(ParticleEffect type, float x, float y, int count) {
+void ParticleSystem::EmitEffect(ParticleType type, float x, float y, int count) {
     EmitEffect(type, SDL_FPoint{ x, y }, count);
 }
 
-void ParticleSystem::EmitEffect(ParticleEffect type, const Vector& position, int count) {
+void ParticleSystem::EmitEffect(ParticleType type, const Vector& position, int count) {
     EmitEffect(type, static_cast<SDL_FPoint>(position), count);
 }
 
 // 循环的特效
-ParticleEmitter* ParticleSystem::CreatePersistentEmitter(ParticleEffect type, const SDL_FPoint& position) {
+ParticleEmitter* ParticleSystem::CreatePersistentEmitter(ParticleType type, const SDL_FPoint& position) {
     auto emitter = std::make_unique<ParticleEmitter>(renderer);
     emitter->Initialize(type, position);
     emitter->SetSpawnRate(10);  // 10帧发射一次

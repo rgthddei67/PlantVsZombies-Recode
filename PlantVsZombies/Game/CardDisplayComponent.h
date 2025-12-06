@@ -16,12 +16,18 @@ enum class CardState
     Click = 3,
 };
 
+class CardComponent;
+class TransformComponent;
+
 class CardDisplayComponent : public Component {
 private:
     // 纹理资源
     SDL_Texture* cardBackground = nullptr;    // IMAGE_card_bk
     SDL_Texture* cardNormal = nullptr;        // IMAGE_SeedPacketNormal
     SDL_Texture* plantTexture = nullptr;      // 植物图片
+
+	mutable std::weak_ptr<CardComponent> mCardComponent;
+	mutable std::weak_ptr<TransformComponent> mTransformComponent;
 
     // 状态相关
     CardState cardState = CardState::Cooling;
@@ -70,13 +76,16 @@ public:
     bool IsReady() const { return cardState == CardState::Ready; }
     bool IsCooling() const { return cardState == CardState::Cooling; }
 
+	std::shared_ptr<CardComponent> GetCardComponent() const;
+	std::shared_ptr<TransformComponent> GetTransformComponent() const;
+
 private:
     void LoadTextures();
-    void DrawCardBackground(SDL_Renderer* renderer);
-    void DrawPlantImage(SDL_Renderer* renderer);
-    void DrawCooldownMask(SDL_Renderer* renderer);
-    void DrawSunCost(SDL_Renderer* renderer);
-    void DrawSelectionHighlight(SDL_Renderer* renderer);
+    void DrawCardBackground(SDL_Renderer* renderer, std::shared_ptr<TransformComponent> transform);
+    void DrawPlantImage(SDL_Renderer* renderer, std::shared_ptr<TransformComponent> transform);
+    void DrawCooldownMask(SDL_Renderer* renderer, std::shared_ptr<TransformComponent> transform);
+    void DrawSunCost(SDL_Renderer* renderer, std::shared_ptr<TransformComponent> transform);
+    void DrawSelectionHighlight(SDL_Renderer* renderer, std::shared_ptr<TransformComponent> transform);
 
     SDL_Color GetCurrentColor() const;
     std::string GetPlantTextureKey() const;

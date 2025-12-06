@@ -8,133 +8,158 @@
 #include "AudioSystem.h"
 
 CardComponent::CardComponent(PlantType type, int cost, float cooldown)
-    : mPlantType(type), mSunCost(cost), mCooldownTime(cooldown) {
+	: mPlantType(type), mSunCost(cost), mCooldownTime(cooldown)
+{
 	mCooldownTimer = 0.0f;
 }
 
 void CardComponent::Start() {
-    // 获取点击组件并设置回调
-    if (auto gameObject = GetGameObject()) {
-        if (auto clickable = gameObject->GetComponent<ClickableComponent>()) {
-            clickable->onClick = [this]() {
-                // 通知卡槽管理器这个卡牌被点击了
-                if (auto manager = FindCardSlotManager()) {
-                    if (!IsReady() || !manager->CanAfford(mSunCost)) {
-                        AudioSystem::PlaySound(AudioConstants::SOUND_CLICK_FAILED, 0.5f);
-                        return;
-					}
-                    auto card = std::static_pointer_cast<GameObject>(GetGameObject()->shared_from_this());
-                    manager->SelectCard(card);
-					AudioSystem::PlaySound(AudioConstants::SOUND_CLICK_SEED, 0.5f);
-                }
-                };
-        }
-    }
+	if (auto manager = FindCardSlotManager()) {
+		mCardSlotManager = manager; // 隐式转换为 weak_ptr
+	}
+	// 这里CardDisplayComponent还没有创建好，所以不能缓存 放到GetCardDisplayComponent里加载
+	// 获取点击组件并设置回调
+	if (auto gameObject = GetGameObject()) {
+		if (auto clickable = gameObject->GetComponent<ClickableComponent>()) {
+			clickable->onClick = [this]() {
+				// 通知卡槽管理器这个卡牌被点击了
+				auto manager = GetCardSlotManager();
+				if (!IsReady() || !manager->CanAfford(mSunCost)) {
+					AudioSystem::PlaySound(AudioConstants::SOUND_CLICK_FAILED, 0.5f);
+					return;
+				}
+				manager->SelectCard(this->GetGameObject());
+				AudioSystem::PlaySound(AudioConstants::SOUND_CLICK_SEED, 0.5f);
+				};
+		}
+	}
 }
 
 void CardComponent::Update() {
-    // 更新冷却
-    if (mIsCooldown) {
-        mCooldownTimer -= DeltaTime::GetDeltaTime();
-        if (mCooldownTimer <= 0) {
-            mIsCooldown = false;
-            mCooldownTimer = 0;
-            // 冷却结束，强制更新状态
-            ForceStateUpdate();
-        }
-        else {
-            // 更新冷却进度显示
-            if (auto display = GetGameObject()->GetComponent<CardDisplayComponent>()) {
-                float progress = 1.0f - (mCooldownTimer / mCooldownTime);
-                display->SetCooldownProgress(progress);
-            }
-        }
-    }
+	// 更新冷却
+	if (mIsCooldown) {
+		mCooldownTimer -= DeltaTime::GetDeltaTime();
+		if (mCooldownTimer <= 0) {
+			mIsCooldown = false;
+			mCooldownTimer = 0;
+			// 冷却结束，强制更新状态
+			ForceStateUpdate();
+		}
+		else {
+			// 更新冷却进度显示
+			if (auto display = GetCardDisplayComponent()) {
+				float progress = 1.0f - (mCooldownTimer / mCooldownTime);
+				display->SetCooldownProgress(progress);
+			}
+		}
+	}
 }
 
 void CardComponent::ForceStateUpdate() {
-    if (auto display = GetGameObject()->GetComponent<CardDisplayComponent>()) {
-        // 如果正在冷却，只更新冷却进度，不改变状态
-        if (mIsCooldown) {
-            float progress = 1.0f - (mCooldownTimer / mCooldownTime);
-            display->SetCooldownProgress(progress);
-        }
-        else {
-            // 不在冷却状态时，才根据阳光条件更新状态
-            if (auto manager = FindCardSlotManager()) {
-                if (manager->CanAfford(mSunCost)) {
-                    display->TranToReady();
-                }
-                else {
-                    display->TranToWaitingSun();
-                }
-            }
-            else {
-                display->TranToReady(); // 默认就绪状态
-            }
-        }
-    }
+	if (auto display = GetCardDisplayComponent()) {
+		// 如果正在冷却，只更新冷却进度，不改变状态
+		if (mIsCooldown) {
+			float progress = 1.0f - (mCooldownTimer / mCooldownTime);
+			display->SetCooldownProgress(progress);
+		}
+		else {
+			// 不在冷却状态时，才根据阳光条件更新状态
+			if (GetCardSlotManager()->CanAfford(mSunCost)) {
+				display->TranToReady();
+			}
+			else {
+				display->TranToWaitingSun();
+			}
+		}
+	}
 }
 
 void CardComponent::StartCooldown() {
-    if (IsReady() && !mIsCooldown) {
-        mIsCooldown = true;
-        mCooldownTimer = mCooldownTime;
+	if (IsReady() && !mIsCooldown) {
+		mIsCooldown = true;
+		mCooldownTimer = mCooldownTime;
 
-        // 通知显示组件开始冷却
-        if (auto display = GetGameObject()->GetComponent<CardDisplayComponent>()) {
-            display->TranToCooling();
-        }
-    }
+		// 通知显示组件开始冷却
+		if (auto display = GetCardDisplayComponent()) {
+			display->TranToCooling();
+		}
+	}
 }
 
 void CardComponent::SetSelected(bool selected) {
-    mIsSelected = selected;
+	mIsSelected = selected;
 
-    // 通知显示组件选中状态变化
-    if (auto display = GetGameObject()->GetComponent<CardDisplayComponent>()) {
-        display->SetSelected(selected);
-        if (selected) {
-            display->TranToClick();
-        }
-        else {
-            // 根据实际状态恢复
-            if (IsReady()) {
-                display->TranToReady();
-            }
-            else if (mIsCooldown) {
-                display->TranToCooling();
-            }
-            else {
-                display->TranToWaitingSun();
-            }
-        }
-    }
+	// 通知显示组件选中状态变化
+	if (auto display = GetCardDisplayComponent()) {
+		display->SetSelected(selected);
+		if (selected) {
+			display->TranToClick();
+		}
+		else {
+			// 根据实际状态恢复
+			if (IsReady()) {
+				display->TranToReady();
+			}
+			else if (mIsCooldown) {
+				display->TranToCooling();
+			}
+			else {
+				display->TranToWaitingSun();
+			}
+		}
+	}
 }
 
 float CardComponent::GetCooldownProgress() const {
-    if (!mIsCooldown) return 1.0f;
-    return 1.0f - (mCooldownTimer / mCooldownTime);
+	if (!mIsCooldown) return 1.0f;
+	return 1.0f - (mCooldownTimer / mCooldownTime);
 }
 
 CardState CardComponent::GetCardState() const {
-    if (auto display = GetGameObject()->GetComponent<CardDisplayComponent>()) {
-        return display->GetCardState();
-    }
-    return CardState::Cooling; // 默认返回冷却状态
+	if (auto display = GetCardDisplayComponent()) {
+		return display->GetCardState();
+	}
+	return CardState::Cooling; // 默认返回冷却状态
 }
 
 std::shared_ptr<CardSlotManager> CardComponent::FindCardSlotManager() const {
-    // 在场景中查找CardSlotManager
-    auto& manager = GameObjectManager::GetInstance();
-    auto allObjects = manager.GetAllGameObjects();
+	// 在场景中查找CardSlotManager
+	auto& manager = GameObjectManager::GetInstance();
+	auto allObjects = manager.GetAllGameObjects();
 
-    for (auto& obj : allObjects) {
-        if (auto cardManager = obj->GetComponent<CardSlotManager>()) {
-            return cardManager;
-        }
-    }
+	for (auto& obj : allObjects) {
+		if (auto cardManager = obj->GetComponent<CardSlotManager>()) {
+			return cardManager;
+		}
+	}
 
-    std::cerr << "Warning: No CardSlotManager found in scene!" << std::endl;
-    return nullptr;
+	std::cerr << "Warning: No CardSlotManager found in scene!" << std::endl;
+	return nullptr;
+}
+
+std::shared_ptr<CardSlotManager> CardComponent::GetCardSlotManager() const {
+	if (auto manager = mCardSlotManager.lock()) {
+		return manager;
+	}
+	// 如果 weak_ptr 已失效，重新查找
+	std::cerr << "Warning: CardSlotManager weak_ptr expired, re-finding..." << std::endl;
+	auto manager = FindCardSlotManager();
+	if (manager) {
+		this->mCardSlotManager = manager;
+	}
+	return manager;
+}
+
+std::shared_ptr<CardDisplayComponent> CardComponent::GetCardDisplayComponent() const {
+	if (auto display = mCardDisplayComponent.lock()) {
+		return display;
+	}
+	// 如果 weak_ptr 已失效，重新获取
+	if (auto gameObject = GetGameObject()) {
+		if (auto display = gameObject->GetComponent<CardDisplayComponent>()) {
+			this->mCardDisplayComponent = display;
+			return display;
+		}
+	}
+	return nullptr;
 }

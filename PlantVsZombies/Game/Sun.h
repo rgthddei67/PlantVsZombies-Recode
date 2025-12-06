@@ -2,6 +2,7 @@
 #ifndef _SUN_H
 #define _SUN_H
 #include "../DeltaTime.h"
+#include "../GameRandom.h"
 #include "Coin.h"
 #include "Board.h"
 
@@ -73,7 +74,7 @@ public:
 
         Vector currentPos = GetPosition();
         // 目标位置：x不变，y在80~420之间随机
-        float targetY = 80.0f + static_cast<float>(rand() % 341); // 80~420
+		float targetY = GameRandom::Range(80.0f, 420.0f);
         mLinearTarget = Vector(currentPos.x, targetY);
         mIsLinearFalling = true;
     }
@@ -89,10 +90,10 @@ public:
         mParabolaStart = GetPosition();
 
         // 水平方向随机偏移 -50~50
-        float offsetX = static_cast<float>(-50 + rand() % 101);
+		float offsetX = GameRandom::Range(-50.0f, 50.0f);
 
         // 下落距离 20~50
-        float fallDistance = 20.0f + static_cast<float>(rand() % 31);
+        float fallDistance = GameRandom::Range(20.0f, 50.0f);
 
         mParabolaTarget = Vector(mParabolaStart.x + offsetX, mParabolaStart.y + fallDistance);
 
@@ -118,7 +119,7 @@ public:
         }
 
         // 匀速下落速度 - 适当增加速度
-        float speed = 80.0f; // 增加下落速度
+        float speed = 50.0f; // 增加下落速度
 
         if (distance > 0) {
             Vector normalizedDir = direction / distance;
