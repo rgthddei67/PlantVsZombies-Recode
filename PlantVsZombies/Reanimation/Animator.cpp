@@ -179,6 +179,15 @@ void Animator::Draw(SDL_Renderer* renderer, float baseX, float baseY, float Scal
     for (int i = 0; i < mReanim->GetTrackCount(); i++) {
         auto track = mReanim->GetTrack(i);
         if (!track || !track->mAvailable || track->mFrames.empty()) continue;
+
+        int frameIndex = static_cast<int>(mFrameIndexNow);
+        if (frameIndex >= 0 && frameIndex < static_cast<int>(track->mFrames.size())) {
+            // 如果f=-1，表示这一帧隐藏
+            if (track->mFrames[frameIndex].f == -1) {
+                continue; // 跳过这一帧
+            }
+        }
+
         if (i >= static_cast<int>(mExtraInfos.size()) || !mExtraInfos[i].mVisible) continue;
 
         TrackFrameTransform transform = GetInterpolatedTransform(i);

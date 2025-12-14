@@ -18,6 +18,9 @@ protected:
     bool isMovingToTarget = false;      // 是否正在移动到目标位置
 
 public:
+    int mCoinID = 0;
+
+public:
     Coin(Board* board, AnimationType animType, const Vector& position,
         const Vector& colliderSize, float VanlishTime, float scale = 1.0f,
         const std::string& tag = "Coin", bool autoDestroy = true);

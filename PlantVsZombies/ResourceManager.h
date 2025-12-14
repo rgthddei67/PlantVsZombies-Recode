@@ -33,17 +33,6 @@ private:
     }
 
 public:
-    std::string AnimationTypeToString(AnimationType type) {
-        switch (type) {
-        case AnimationType::ANIM_SUN:
-            return "Sun";
-        case AnimationType::ANIM_NONE:
-        default:
-            return "Unknown";
-        }
-    }
-
-public:
     // 单例访问
     static ResourceManager& GetInstance();
     static void ReleaseInstance();
@@ -72,6 +61,7 @@ public:
 
     std::shared_ptr<Reanimation> LoadReanimation(const std::string& key, const std::string& path);
     std::shared_ptr<Reanimation> GetReanimation(const std::string& key);
+    std::string AnimationTypeToString(AnimationType type);
     void UnloadReanimation(const std::string& key);
 
     // 字体管理

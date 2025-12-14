@@ -21,16 +21,18 @@ public:
 	int mRow = 0;
 	int mColumn = 0;
 	bool mIsSleeping = false;
+	bool mIsPreview = false;
+	int mPlantID = 0;
 
 	Plant(Board* board, PlantType plantType, int row, int column,
-		AnimationType animType, const Vector& colliderSize, float scale = 1.0f);
+		AnimationType animType, const Vector& colliderSize, float scale = 1.0f, bool isPreview = false);
 
 	virtual ~Plant() = default;
 	void Update() override;
+	virtual void PlantUpdate();		// 子类重写Update用这个
 	void TakeDamage(int damage);
 	void Die();
 	
-
 protected:
 	virtual void SetupPlant();
 };

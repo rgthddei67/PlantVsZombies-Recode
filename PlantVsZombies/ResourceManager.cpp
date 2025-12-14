@@ -380,6 +380,19 @@ std::shared_ptr<Reanimation> ResourceManager::GetReanimation(const std::string& 
     return nullptr;
 }
 
+// 新增植物改这里
+std::string ResourceManager::AnimationTypeToString(AnimationType type) {
+    switch (type) {
+    case AnimationType::ANIM_SUN:
+        return "Sun";
+    case AnimationType::ANIM_SUNFLOWER:
+		return "SunFlower";
+    case AnimationType::ANIM_NONE:
+    default:
+        return "Unknown";
+    }
+}
+
 void ResourceManager::UnloadReanimation(const std::string& key) {
     auto it = mReanimations.find(key);
     if (it != mReanimations.end()) {

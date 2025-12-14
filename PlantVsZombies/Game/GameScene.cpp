@@ -43,7 +43,6 @@ void GameScene::Update() {
     {
         mBoard->Update();
     }
-    mUIManager.UpdateAll(nullptr);
 }
 
 void GameScene::Draw(SDL_Renderer* renderer) {
@@ -63,6 +62,7 @@ void GameScene::Draw(SDL_Renderer* renderer) {
 void GameScene::HandleEvent(SDL_Event& event, InputHandler& input) 
 {
     Scene::HandleEvent(event, input);
+    mUIManager.UpdateAll(&input);
 	// TODO: 游戏内键盘事件处理
 }
 

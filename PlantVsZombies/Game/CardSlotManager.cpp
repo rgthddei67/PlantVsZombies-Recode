@@ -6,45 +6,45 @@
 #include "../UI/InputHandler.h"
 #include "../GameApp.h"
 #include "AudioSystem.h"
+#include "./Plant/Plant.h"
 #include <iostream>
 
 CardSlotManager::CardSlotManager(Board* board)
     : mBoard(board)
 {
     if (!mBoard) {
-        gridRows = 5;
-        gridCols = 8;
         std::cerr << "Warning: CardSlotManager created without Board reference!" << std::endl;
-    }
-    else
-    {
-        gridRows = mBoard->mRows;
-        gridCols = mBoard->mColumns;
     }
 }
 
 void CardSlotManager::Start() {
     std::cout << "CardSlotManager started with " << cards.size() << " cards" << std::endl;
     std::cout << "Initial sun: " << (mBoard ? mBoard->GetSun() : 0) << std::endl;
+
+    // 为所有Cell设置点击回调
+    if (mBoard) {
+        for (int row = 0; row < mBoard->mRows; ++row) {
+            for (int col = 0; col < mBoard->mColumns; ++col) {
+                auto cell = mBoard->GetCell(row, col);
+                if (cell) {
+                    cell->SetClickCallback([this](int r, int c) {
+                        HandleCellClick(r, c);
+                        });
+                }
+            }
+        }
+    }
 }
 
 void CardSlotManager::Update() {
     static int lastSun = 0;
-    // 处理选中的卡牌
+
+    // 如果有选中的卡牌，更新鼠标悬停的Cell
     if (selectedCard) {
         auto& input = GameAPP::GetInstance().GetInputHandler();
         Vector mousePos = input.GetMousePosition();
 
-        // 更新植物预览位置
-        UpdatePlantPreviewPosition(mousePos);
-
-        // 左键放置植物
-        if (input.IsMouseButtonPressed(SDL_BUTTON_LEFT)) {
-            if (CanPlacePlant(mousePos)) {
-                PlacePlant(mousePos);
-            }
-        }
-
+		UpdatePreviewToMouse(mousePos);
         // 右键取消选择
         if (input.IsMouseButtonPressed(SDL_BUTTON_RIGHT)) {
             DeselectCard();
@@ -78,24 +78,24 @@ void CardSlotManager::UpdateAllCardsState() {
 }
 
 void CardSlotManager::Draw(SDL_Renderer* renderer) {
-    // 如果有选中的卡牌且可以放置，绘制网格高亮
-    if (selectedCard && plantPreview) {
+    // 如果有选中的卡牌，绘制当前悬停Cell的高亮
+    if (selectedCard) {
         auto& input = GameAPP::GetInstance().GetInputHandler();
         Vector mousePos = input.GetMousePosition();
 
-        if (CanPlacePlant(mousePos)) {
-            Vector gridPos = GetGridPosition(mousePos);
-            Vector worldPos = Vector(
-                gridStart.x + gridPos.x * cellSize.x,
-                gridStart.y + gridPos.y * cellSize.y
-            );
+        // 更新预览位置
+        UpdatePlantPreviewPosition(mousePos);
+        /*
+        // 如果鼠标在某个Cell上，绘制高亮
+        if (mHoveredCell && CanPlaceInCell(mHoveredCell)) {
+            Vector worldPos = mHoveredCell->GetWorldPosition();
 
             // 绘制可放置的高亮
             SDL_Rect highlightRect = {
                 static_cast<int>(worldPos.x),
                 static_cast<int>(worldPos.y),
-                static_cast<int>(cellSize.x),
-                static_cast<int>(cellSize.y)
+                static_cast<int>(CELL_COLLIDER_SIZE_X),
+                static_cast<int>(CELL_COLLIDER_SIZE_Y)
             };
 
             SDL_SetRenderDrawColor(renderer, 0, 255, 0, 100); // 半透明绿色
@@ -103,26 +103,7 @@ void CardSlotManager::Draw(SDL_Renderer* renderer) {
             SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255); // 绿色边框
             SDL_RenderDrawRect(renderer, &highlightRect);
         }
-        else {
-            // 不可放置时显示红色高亮
-            Vector gridPos = GetGridPosition(mousePos);
-            Vector worldPos = Vector(
-                gridStart.x + gridPos.x * cellSize.x,
-                gridStart.y + gridPos.y * cellSize.y
-            );
-
-            SDL_Rect highlightRect = {
-                static_cast<int>(worldPos.x),
-                static_cast<int>(worldPos.y),
-                static_cast<int>(cellSize.x),
-                static_cast<int>(cellSize.y)
-            };
-
-            SDL_SetRenderDrawColor(renderer, 255, 0, 0, 100); // 半透明红色
-            SDL_RenderFillRect(renderer, &highlightRect);
-            SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255); // 红色边框
-            SDL_RenderDrawRect(renderer, &highlightRect);
-        }
+        */
     }
 }
 
@@ -147,7 +128,6 @@ void CardSlotManager::SelectCard(std::shared_ptr<GameObject> card) {
         return;
     }
 
-    // 严格的就绪状态检查
     if (!cardComp->IsReady()) {
         std::cout << "Card is not ready for selection. State: "
             << static_cast<int>(cardComp->GetCardState()) << std::endl;
@@ -189,10 +169,9 @@ void CardSlotManager::DeselectCard() {
             cardComp->SetSelected(false);
         }
         selectedCard = nullptr;
-        HidePlantPreview();
+        mHoveredCell.reset();
     }
-
-    std::cout << "Deselected card" << std::endl;
+	DestroyPlantPreview();
 }
 
 void CardSlotManager::ArrangeCards() {
@@ -220,68 +199,113 @@ bool CardSlotManager::SpendSun(int cost) {
     return false;
 }
 
-void CardSlotManager::ShowPlantPreview() {
+void CardSlotManager::DestroyPlantPreview() {
     if (plantPreview) {
-        plantPreview->SetActive(true);
-    }
-}
-
-void CardSlotManager::HidePlantPreview() {
-    if (plantPreview) {
-        plantPreview->SetActive(false);
+        plantPreview->Die();
+        plantPreview = nullptr;
     }
 }
 
 void CardSlotManager::CreatePlantPreview(PlantType plantType) {
-    // 如果已有预览，先销毁
-    if (plantPreview) {
-        GameObjectManager::GetInstance().DestroyGameObject(plantPreview);
-        plantPreview = nullptr;
+    DestroyPlantPreview();
+
+    if (mBoard) {
+        plantPreview = mBoard->CreatePlant(plantType, 0, 0, true);
+        plantPreview->PauseAnimation();
     }
-
-    // 创建新的预览对象
-    plantPreview = GameObjectManager::GetInstance().CreateGameObject<GameObject>();
-    plantPreview->SetName("PlantPreview");
-
-    // 添加变换组件
-    auto transform = plantPreview->AddComponent<TransformComponent>();
-
-    // 添加显示组件（简化版，只显示一个半透明矩形）
-    // 实际游戏中应该显示实际的植物精灵图
-
-    std::cout << "Created plant preview for type: " << static_cast<int>(plantType) << std::endl;
 }
 
 void CardSlotManager::UpdatePlantPreviewPosition(const Vector& position) {
     if (plantPreview && selectedCard) {
-        Vector gridPos = GetGridPosition(position);
-        Vector worldPos = Vector(
-            gridStart.x + gridPos.x * cellSize.x,
-            gridStart.y + gridPos.y * cellSize.y
-        );
+        // 查找鼠标所在的Cell
+        std::shared_ptr<Cell> hoveredCell = nullptr;
 
-        if (auto transform = plantPreview->GetComponent<TransformComponent>()) {
-            transform->SetPosition(worldPos);
+        if (mBoard) {
+            // 遍历查找鼠标所在的Cell
+            for (int row = 0; row < mBoard->mRows; ++row) {
+                for (int col = 0; col < mBoard->mColumns; ++col) {
+                    auto cell = mBoard->GetCell(row, col);
+                    if (cell) 
+                    {
+                        if (auto clickable = cell->GetComponent<ClickableComponent>()) {
+                            if (clickable->IsMouseOver()) {
+                                hoveredCell = cell;
+                                break;
+                            }
+                        }
+                    }
+                }
+                if (hoveredCell) break;
+            }
         }
 
-        // 根据是否可以放置更新预览颜色
-        // 实际游戏中应该改变精灵图的颜色或透明度
+        mHoveredCell = hoveredCell;
+
+        // 更新预览位置
+        if (hoveredCell) {
+            UpdatePreviewToCell(hoveredCell);
+        }
     }
 }
 
-bool CardSlotManager::CanPlacePlant(const Vector& worldPos) {
-    if (!selectedCard) return false;
+void CardSlotManager::UpdatePreviewToMouse(const Vector& mousePos) {
+    if (plantPreview) {
+        if (auto transform = plantPreview->GetComponent<TransformComponent>()) {
+            transform->SetPosition(mousePos);
+        }
 
-    Vector gridPos = GetGridPosition(worldPos);
-
-    // 检查网格边界
-    if (gridPos.x < 0 || gridPos.x >= gridCols ||
-        gridPos.y < 0 || gridPos.y >= gridRows) {
-        return false;
+        // 查找鼠标所在的Cell，更新预览植物的行列信息
+        /*
+        if (mBoard) {
+            for (int row = 0; row < mBoard->mRows; ++row) {
+                for (int col = 0; col < mBoard->mColumns; ++col) {
+                    auto cell = mBoard->GetCell(row, col);
+                    if (cell && cell->GetComponent<ClickableComponent>()) {
+                        auto clickable = cell->GetComponent<ClickableComponent>();
+                        if (clickable->IsMouseOver()) {
+                            if (auto plantComp = plantPreview->GetComponent<Plant>()) {
+                                plantComp->mRow = row;
+                                plantComp->mColumn = col;
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        */
     }
+}
 
-    // 检查是否已有植物
-    if (IsGridCellOccupied(gridPos)) {
+void CardSlotManager::UpdatePreviewToCell(std::weak_ptr<Cell> cell) {
+    if (plantPreview) 
+    {
+        if (auto Cell = cell.lock())
+        {
+            Vector centerPos = Cell->GetCenterPosition();
+            if (auto transform = plantPreview->GetComponent<TransformComponent>()) {
+                transform->SetPosition(centerPos);
+            }
+        }
+    }
+}
+
+void CardSlotManager::HandleCellClick(int row, int col) {
+    if (!selectedCard) return;
+
+    auto cell = mBoard ? mBoard->GetCell(row, col) : nullptr;
+    if (!cell) return;
+
+    if (CanPlaceInCell(cell)) {
+        PlacePlantInCell(row, col);
+    }
+}
+
+bool CardSlotManager::CanPlaceInCell(const std::shared_ptr<Cell>& cell) const {
+    if (!selectedCard || !cell) return false;
+
+    // 检查格子是否已有植物
+    if (!cell->IsEmpty()) {
         return false;
     }
 
@@ -295,45 +319,34 @@ bool CardSlotManager::CanPlacePlant(const Vector& worldPos) {
     return true;
 }
 
-void CardSlotManager::PlacePlant(const Vector& worldPos) {
-    if (!selectedCard || !CanPlacePlant(worldPos)) {
-        std::cout << "Cannot place plant here" << std::endl;
-        return;
-    }
+void CardSlotManager::PlacePlantInCell(int row, int col) {
+    if (!selectedCard || !mBoard) return;
 
     auto cardComp = selectedCard->GetComponent<CardComponent>();
     if (!cardComp) return;
 
-    Vector gridPos = GetGridPosition(worldPos);
-    Vector placePos = Vector(
-        gridStart.x + gridPos.x * cellSize.x,
-        gridStart.y + gridPos.y * cellSize.y
-    );
+    auto cell = mBoard->GetCell(row, col);
+    if (!cell) return;
 
-    // 消耗阳光
     if (!SpendSun(cardComp->GetSunCost())) {
         return;
     }
-    AudioSystem::PlaySound(AudioConstants::SOUND_PLANT, 0.5f);
-    // 创建植物
-    auto plant = CreatePlantAtPosition(cardComp->GetPlantType(), placePos);
-    cardComp->StartCooldown();
-    if (plant) {
-        // 开始冷却
 
+    DestroyPlantPreview();
+    AudioSystem::PlaySound(AudioConstants::SOUND_PLANT, 0.5f);
+
+    // 创建植物
+    auto plant = mBoard->CreatePlant(cardComp->GetPlantType(), row, col);
+
+    if (plant) {
+        cardComp->StartCooldown();
 
         std::cout << "Planted " << static_cast<int>(cardComp->GetPlantType())
-            << " at grid (" << gridPos.x << ", " << gridPos.y << ")" << std::endl;
+            << " at cell (" << row << ", " << col << ")" << std::endl;
     }
 
     // 取消选择
     DeselectCard();
-}
-
-Vector CardSlotManager::GetGridPosition(const Vector& worldPos) {
-    int gridX = static_cast<int>((worldPos.x - gridStart.x) / cellSize.x);
-    int gridY = static_cast<int>((worldPos.y - gridStart.y) / cellSize.y);
-    return Vector(static_cast<float>(gridX), static_cast<float>(gridY));
 }
 
 PlantType CardSlotManager::GetSelectedPlantType() const {
@@ -343,41 +356,4 @@ PlantType CardSlotManager::GetSelectedPlantType() const {
         }
     }
     return PlantType::PLANT_NONE;
-}
-
-bool CardSlotManager::IsGridCellOccupied(const Vector& gridPos) {
-    // 获取对应位置的Cell
-    auto cell = GetCellAtGridPosition(gridPos);
-    if (!cell) return true; // 如果没有找到Cell，认为已被占用
-
-    // TODO: 检查该Cell上是否已有植物
-    // 需要实现Plant类后，通过Cell上的植物组件来判断
-    return false; // 暂时返回false
-}
-
-std::shared_ptr<Cell> CardSlotManager::GetCellAtGridPosition(const Vector& gridPos) {
-    if (!mBoard) return nullptr;
-
-    int row = static_cast<int>(gridPos.y);
-    int col = static_cast<int>(gridPos.x);
-    // TODO : fix it
-    return mBoard->GetCell(row, col);
-}
-
-std::shared_ptr<Plant> CardSlotManager::CreatePlantAtPosition(PlantType plantType, const Vector& position) {
-    // 创建植物GameObject
-    auto plantObj = GameObjectManager::GetInstance().CreateGameObject<GameObject>();
-    plantObj->SetName("Plant");
-
-    // 添加变换组件
-    auto transform = plantObj->AddComponent<TransformComponent>();
-    transform->SetPosition(position);
-
-    // 添加植物组件（需要实现Plant类）
-    // auto plant = plantObj->AddComponent<Plant>(plantType);
-
-    std::cout << "Created plant at position (" << position.x << ", " << position.y << ")" << std::endl;
-
-    // 返回植物组件
-    return nullptr; // 暂时返回nullptr，实际应该返回plant组件
 }

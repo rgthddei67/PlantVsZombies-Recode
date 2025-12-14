@@ -4,11 +4,15 @@
 #include "Cell.h"
 #include "GameObject.h"
 #include "GameObjectManager.h"
+#include "./Plant/PlantType.h"
 #include <vector>
 #include <memory>
 
 class Sun;
 class Coin;
+class Plant;
+class Zombie;
+class Bullet;
 
 constexpr int MAX_SUN = 9990;
 
@@ -19,9 +23,12 @@ public:
 	int mColumns = 8; // 列数
 	int mSun = 50;
 	float mSunCountDown = 5.0f;
+	int mNextPlantID = 1;	// 下一个植物的ID
+	int mNextCoinID = 1;	// 下一个Coin的ID
 	// 外层表示行（rows） 内层columns
 	std::vector<std::vector<std::shared_ptr<Cell>>> mCells;
-	std::vector<std::weak_ptr<Coin>> mCoinObservers;
+	std::unordered_map<int, std::weak_ptr<Plant>> mPlantIDMap;
+	std::unordered_map<int, std::weak_ptr<Coin>> mCoinIDMap;
 
 public:
 	Board()
@@ -61,20 +68,34 @@ public:
 	// 创建太阳
 	std::shared_ptr<Sun> CreateSun(const Vector& position);
 
+	// 创建植物
+	std::shared_ptr<Plant> CreatePlant(PlantType plantType, int row, int column, bool isPreview = false);
+
 	// 渲染网格（调试用）
 	void DrawCell(SDL_Renderer* renderer);
 
 	void Draw(SDL_Renderer* renderer);
 
 	// 清理删除的对象
-	void CleanupExpiredObjects();
+	void CleanupExpiredObjects(); 
 
-	int GetActiveCoinCount() const;
-
-	int GetTotalCreatedCoinCount() const { return static_cast<int>(mCoinObservers.size()); }
+	// 从所有Cell中清除指定植物ID
+	void CleanPlantFromCells(int plantID);
 
 	void UpdateSunFalling();
 
 	void Update();
+
+	// 根据ID获取植物
+	std::shared_ptr<Plant> GetPlantByID(int plantID);
+
+	// 根据ID获取Coin
+	std::shared_ptr<Coin> GetCoinByID(int coinID);
+
+	// 获取所有植物的ID
+	std::vector<int> GetAllPlantIDs() const;
+
+	// 获取所有Coin的ID
+	std::vector<int> GetAllCoinIDs() const;
 };
 #endif

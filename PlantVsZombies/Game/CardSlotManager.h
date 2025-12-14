@@ -17,21 +17,16 @@ class Plant;
 
 class CardSlotManager : public Component {
 private:
-    std::vector<std::shared_ptr<GameObject>> cards;           // 管理的卡牌
+    std::vector<std::shared_ptr<GameObject>> cards;           // 所有的卡牌
     std::shared_ptr<GameObject> selectedCard = nullptr;       // 当前选中的卡牌
-    std::shared_ptr<GameObject> plantPreview = nullptr;       // 植物预览
+    std::shared_ptr<Plant> plantPreview = nullptr;       // 植物预览
 
     // 布局参数
     Vector firstSlotPosition = Vector(64, -2); // 第一个卡牌的位置
-    float slotSpacing = CARD_WIDTH + 5; // 卡牌间距 = 卡牌宽度 + 5像素间隔
+    float slotSpacing = CARD_WIDTH + 5; // 卡牌间距 = 卡牌宽度 + 5像素空隙
 
-    Board* mBoard;
-
-    // 网格参数（与Board保持一致）
-    Vector gridStart = Vector(CELL_INITALIZE_POS_X, CELL_INITALIZE_POS_Y);
-    Vector cellSize = Vector(CELL_COLLIDER_SIZE_X, CELL_COLLIDER_SIZE_Y);
-    int gridRows;
-    int gridCols;
+    Board* mBoard = nullptr;
+    std::weak_ptr<Cell> mHoveredCell;     // 当前鼠标悬停的Cell
 
 public:
     CardSlotManager(Board* board);
@@ -39,6 +34,7 @@ public:
     void Start() override;
     void Update() override;
     void UpdateAllCardsState();
+	void UpdatePreviewToMouse(const Vector& mousePos);
     void Draw(SDL_Renderer* renderer) override;
 
     // 卡牌管理
@@ -47,21 +43,23 @@ public:
     void DeselectCard();
     void ArrangeCards();
 
-    // 阳光管理（委托给Board）
+    // 资源管理（消耗Board）
     bool CanAfford(int cost) const { return mBoard ? mBoard->GetSun() >= cost : false; }
     bool SpendSun(int cost);
 
-    // 植物放置
-    void ShowPlantPreview();
-    void HidePlantPreview();
-    bool CanPlacePlant(const Vector& worldPos);
-    void PlacePlant(const Vector& worldPos);
-    Vector GetGridPosition(const Vector& worldPos);
+    // 销毁植物预览
+    void DestroyPlantPreview();
 
-    // 获取选中的植物类型
+    // 处理Cell点击
+    void HandleCellClick(int row, int col);
+
+    // 更新预览位置到指定Cell
+    void UpdatePreviewToCell(std::weak_ptr<Cell> cell);
+
+    // 获取当前选中的植物类型
     PlantType GetSelectedPlantType() const;
 
-    // 获取管理器状态
+    // 获取卡牌信息
     std::shared_ptr<GameObject> GetSelectedCard() const { return selectedCard; }
     int GetCurrentSun() const { return mBoard ? mBoard->GetSun() : 0; }
     const std::vector<std::shared_ptr<GameObject>>& GetCards() const { return cards; }
@@ -69,9 +67,12 @@ public:
 private:
     void CreatePlantPreview(PlantType plantType);
     void UpdatePlantPreviewPosition(const Vector& position);
-    std::shared_ptr<class Plant> CreatePlantAtPosition(PlantType plantType, const Vector& gridPos);
-    bool IsGridCellOccupied(const Vector& gridPos);
-    std::shared_ptr<Cell> GetCellAtGridPosition(const Vector& gridPos);
+
+    // 检查是否可以在指定Cell放置植物
+    bool CanPlaceInCell(const std::shared_ptr<Cell>& cell) const;
+
+    // 在指定Cell放置植物
+    void PlacePlantInCell(int row, int col);
 };
 
 #endif

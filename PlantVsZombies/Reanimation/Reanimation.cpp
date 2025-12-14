@@ -1,7 +1,7 @@
 #include "Reanimation.h"
 #include "../ResourceManager.h"
 #include <iostream>
-#include <pugixml.hpp>
+#include "../FileManager.h"
 
 Reanimation::Reanimation() {
     mTracks = std::make_shared<std::vector<TrackInfo>>();
@@ -20,11 +20,8 @@ bool Reanimation::LoadFromFile(const std::string& filePath) {
 
     // 解析.reanim文件
     pugi::xml_document doc;
-    pugi::xml_parse_result result = doc.load_file(filePath.c_str());
-
-    if (!result) {
-        std::cerr << "Failed to load reanim file: " << filePath
-            << " - " << result.description() << std::endl;
+    if (!FileManager::LoadXMLFile(filePath, doc)) {
+        std::cerr << "Failed to load reanim file: " << filePath << std::endl;
         return false;
     }
 
@@ -37,6 +34,18 @@ bool Reanimation::LoadFromFile(const std::string& filePath) {
         else if (tagName == "track") {
             TrackInfo track;
             int frameCount = 0;
+            TrackFrameTransform currentTransform; // 当前transform状态
+
+            // 初始化默认值
+            currentTransform.x = 0.0f;
+            currentTransform.y = 0.0f;
+            currentTransform.kx = 0.0f;
+            currentTransform.ky = 0.0f;
+            currentTransform.sx = 1.0f;
+            currentTransform.sy = 1.0f;
+            currentTransform.a = 1.0f;
+            currentTransform.f = 0; // 默认可见
+            currentTransform.i = "";
 
             for (pugi::xml_node child : node.children()) {
                 std::string childName = child.name();
@@ -44,85 +53,90 @@ bool Reanimation::LoadFromFile(const std::string& filePath) {
                     track.mTrackName = child.text().as_string();
                 }
                 else if (childName == "t") {
-                    TrackFrameTransform transform;
+                    TrackFrameTransform frameTransform = currentTransform; // 继承当前状态
 
-                    // 初始化transform，使用前一帧的值（如果存在）作为默认值
-                    if (frameCount > 0 && !track.mFrames.empty()) {
-                        transform = track.mFrames[frameCount - 1];
-                    }
-                    else {
-                        transform = TrackFrameTransform(); // 使用默认构造函数
-                    }
-
-                    // 解析变换属性
+                    // 解析变换属性 - 只更新有值的属性
                     for (pugi::xml_node prop : child.children()) {
                         std::string propName = prop.name();
+                        std::string propValue = prop.text().as_string();
+
+                        // 跳过空值
+                        if (propValue.empty()) continue;
+
                         if (propName == "x") {
-                            transform.x = prop.text().as_float();
+                            frameTransform.x = prop.text().as_float();
                         }
                         else if (propName == "y") {
-                            transform.y = prop.text().as_float();
+                            frameTransform.y = prop.text().as_float();
                         }
                         else if (propName == "kx") {
-                            transform.kx = prop.text().as_float();
+                            frameTransform.kx = prop.text().as_float();
                         }
                         else if (propName == "ky") {
-                            transform.ky = prop.text().as_float();
+                            frameTransform.ky = prop.text().as_float();
                         }
                         else if (propName == "sx") {
-                            transform.sx = prop.text().as_float();
+                            frameTransform.sx = prop.text().as_float();
                         }
                         else if (propName == "sy") {
-                            transform.sy = prop.text().as_float();
+                            frameTransform.sy = prop.text().as_float();
                         }
                         else if (propName == "a") {
-                            transform.a = prop.text().as_float();
+                            frameTransform.a = prop.text().as_float();
                         }
                         else if (propName == "f") {
-                            transform.f = prop.text().as_int();
+                            frameTransform.f = prop.text().as_int();
                         }
-                        // TODO 动画图片处理
                         else if (propName == "i") {
-                            transform.i = prop.text().as_string();
-                            mImagesSet->insert(transform.i);
-                            if (mResourceManager && !transform.i.empty()) {
-                                // 检查是否是 REANIM 图片格式
-                                if (transform.i.find("IMAGE_REANIM_") == 0) {
-                                    // 提取实际文件名：去掉 "IMAGE_REANIM_" 前缀
-                                    std::string fileName = transform.i.substr(13);
+                            frameTransform.i = prop.text().as_string();
+                            if (!frameTransform.i.empty() && mImagesSet) {
+                                mImagesSet->insert(frameTransform.i);
+                                if (mResourceManager) {
+                                    // 检查是否是 REANIM 图片格式
+                                    if (frameTransform.i.find("IMAGE_REANIM_") == 0) {
+                                        // 提取实际文件名：去掉 "IMAGE_REANIM_" 前缀
+                                        std::string fileName = frameTransform.i.substr(13);
+                                        std::string filePath = "./resources/image/reanim/" + fileName;
 
-                                    std::string filePath = "./resources/image/reanim/" + fileName;
-
-                                    SDL_Texture* texture = mResourceManager->LoadTexture(filePath + ".png", transform.i);
-                                    if (!texture) {
-                                        texture = mResourceManager->LoadTexture(filePath + ".jpg", transform.i);
-                                    }
+                                        SDL_Texture* texture = mResourceManager->LoadTexture(filePath + ".png", frameTransform.i);
+                                        if (!texture) {
+                                            texture = mResourceManager->LoadTexture(filePath + ".jpg", frameTransform.i);
+                                        }
 #ifdef _DEBUG
-                                    if (texture) {
-                                        std::cout << "成功加载动画图片: " << transform.i << " -> " << filePath << std::endl;
-                                    }
-                                    else {
-                                        std::cout << "警告: 无法加载动画图片: " << transform.i << std::endl;
-                                    }
+                                        if (texture) {
+                                            std::cout << "成功加载动画图片: " << frameTransform.i << " -> " << filePath << std::endl;
+                                        }
+                                        else {
+                                            std::cout << "警告: 无法加载动画图片: " << frameTransform.i << std::endl;
+                                        }
 #endif
+                                    }
                                 }
                             }
                         }
                     }
 
-                    track.mFrames.push_back(transform);
+                    // 添加帧到轨道
+                    track.mFrames.push_back(frameTransform);
+
+                    // 更新当前transform状态，用于下一帧
+                    currentTransform = frameTransform;
+
                     frameCount++;
                 }
             }
+
+            // 设置轨道可用性（如果有有效帧）
+            track.mAvailable = !track.mFrames.empty();
 
             mTracks->push_back(track);
         }
     }
 
     mIsLoaded = true;
-    std::cout << "Successfully loaded reanim: " << filePath
-        << " with " << mTracks->size() << " tracks and "
-        << GetTotalFrames() << " frames" << std::endl;
+    std::cout << "成功加载reanim文件: " << filePath
+        << "，轨道数: " << mTracks->size()
+        << "，总帧数: " << GetTotalFrames() << std::endl;
     return true;
 }
 

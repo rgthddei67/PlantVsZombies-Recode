@@ -1,6 +1,8 @@
 #include "Board.h"
 #include "Sun.h"
 #include "../GameRandom.h"
+#include "./Plant/Plant.h"
+#include "./Plant/SunFlower.h"
 
 void Board::InitializeCell(int rows, int cols)
 {
@@ -40,22 +42,118 @@ void Board::Draw(SDL_Renderer* renderer)
 std::shared_ptr<Sun> Board::CreateSun(const Vector& position)
 {
     auto sun = GameObjectManager::GetInstance().CreateGameObject<Sun>(this, position);
-
-    mCoinObservers.push_back(sun);
+    if (sun) {
+        sun->mCoinID = mNextCoinID;
+        mCoinIDMap[mNextCoinID] = sun;
+        mNextCoinID++;
+    }
 
     return sun;
 }
 
+std::shared_ptr<Plant> Board::CreatePlant(PlantType plantType, int row, int column, bool isPreview)
+{
+    // 检查行列是否有效
+    if (row < 0 || row >= mRows || column < 0 || column >= mColumns) {
+        std::cout << "无效的行列位置: (" << row << ", " << column << ")" << std::endl;
+        return nullptr;
+    }
+
+    // 根据植物类型创建对应的植物
+    std::shared_ptr<Plant> plant = nullptr;
+
+    switch (plantType) {
+    case PlantType::PLANT_PEASHOOTER:
+        break;
+
+    case PlantType::PLANT_SUNFLOWER:
+        plant = GameObjectManager::GetInstance().CreateGameObjectImmediate<SunFlower>(
+            this,                    // Board* board
+            PlantType::PLANT_SUNFLOWER,  // PlantType plantType
+            row,                    // int row
+            column,                 // int column
+            AnimationType::ANIM_SUNFLOWER,  // AnimationType animType
+            Vector(60, 60),         // const Vector& colliderSize
+            1.0f,                   // scale
+			isPreview               // mIsPreview
+        );
+        break;
+
+    case PlantType::PLANT_WALLNUT:
+        break;
+
+    case PlantType::PLANT_CHERRYBOMB:
+        break;
+
+    case PlantType::PLANT_SNOWPEA:
+        break;
+
+    case PlantType::PLANT_CHOMPER:
+        break;
+
+    case PlantType::PLANT_REPEATER:
+        break;
+
+    case PlantType::PLANT_POTATOMINE:
+        break;
+
+    default:
+        std::cout << "未知的植物类型: " << static_cast<int>(plantType) << std::endl;
+        break;
+    }
+
+    if (plant && !isPreview) {
+        plant->mPlantID = mNextPlantID;
+        mPlantIDMap[mNextPlantID] = plant;
+        mNextPlantID++;
+
+        // 将植物与格子关联
+        auto cell = GetCell(row, column);
+        if (cell)
+        {
+			cell->SetPlantID(plant->mPlantID);
+        }
+    }
+
+    return plant;
+}
+
 void Board::CleanupExpiredObjects()
 {
-    // 清理所有已过期的引用
-    mCoinObservers.erase(
-        std::remove_if(mCoinObservers.begin(), mCoinObservers.end(),
-            [](const std::weak_ptr<Coin>& weakCoin) {
-                return weakCoin.expired();
-            }),
-        mCoinObservers.end()
-    );
+    // 清理已过期的植物ID映射
+    // TODO 如果其他地方也有存储植物ID,也要删除
+    for (auto it = mPlantIDMap.begin(); it != mPlantIDMap.end(); ) {
+        if (it->second.expired()) {
+            // 清理对应Cell中的植物ID
+            int plantID = it->first;
+            CleanPlantFromCells(plantID);
+            it = mPlantIDMap.erase(it);
+        }
+        else {
+            ++it;
+        }
+    }
+
+    // 清理已过期的CoinID映射
+    for (auto it = mCoinIDMap.begin(); it != mCoinIDMap.end(); ) {
+        if (it->second.expired()) {
+            it = mCoinIDMap.erase(it);
+        }
+        else {
+            ++it;
+        }
+    }
+}
+
+void Board::CleanPlantFromCells(int plantID)
+{
+    for (auto& row : mCells) {
+        for (auto& cell : row) {
+            if (cell->GetPlantID() == plantID) {
+                cell->ClearPlantID();
+            }
+        }
+    }
 }
 
 void Board::UpdateSunFalling()
@@ -79,14 +177,46 @@ void Board::Update()
     UpdateSunFalling();
 }
 
-int Board::GetActiveCoinCount() const
+// 通过ID获取植物
+std::shared_ptr<Plant> Board::GetPlantByID(int plantID)
 {
-    // 统计当前活跃的 Coin 数量
-    int count = 0;
-    for (const auto& weakCoin : mCoinObservers) {
-        if (!weakCoin.expired()) {
-            count++;
+    auto it = mPlantIDMap.find(plantID);
+    if (it != mPlantIDMap.end()) {
+        return it->second.lock();
+    }
+    return nullptr;
+}
+
+// 通过ID获取Coin
+std::shared_ptr<Coin> Board::GetCoinByID(int coinID)
+{
+    auto it = mCoinIDMap.find(coinID);
+    if (it != mCoinIDMap.end()) {
+        return it->second.lock(); 
+    }
+    return nullptr;
+}
+
+// 获取所有植物的ID
+std::vector<int> Board::GetAllPlantIDs() const
+{
+    std::vector<int> ids;
+    for (const auto& pair : mPlantIDMap) {
+        if (!pair.second.expired()) {
+            ids.push_back(pair.first);
         }
     }
-    return count;
+    return ids;
+}
+
+// 获取所有Coin的ID
+std::vector<int> Board::GetAllCoinIDs() const
+{
+    std::vector<int> ids;
+    for (const auto& pair : mCoinIDMap) {
+        if (!pair.second.expired()) {
+            ids.push_back(pair.first);
+        }
+    }
+    return ids;
 }

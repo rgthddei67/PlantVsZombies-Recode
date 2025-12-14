@@ -118,6 +118,9 @@
     <ClCompile Include="Game\Plant\Plant.cpp">
       <Filter>Code\Game\Plant</Filter>
     </ClCompile>
+    <ClCompile Include="FileManager.cpp">
+      <Filter>Code</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="UI\Button.h">
@@ -268,6 +271,9 @@
       <Filter>Code\Game\Plant</Filter>
     </ClInclude>
     <ClInclude Include="GameRandom.h">
+      <Filter>Code</Filter>
+    </ClInclude>
+    <ClInclude Include="FileManager.h">
       <Filter>Code</Filter>
     </ClInclude>
   </ItemGroup>

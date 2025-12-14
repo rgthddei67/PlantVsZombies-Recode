@@ -100,15 +100,15 @@ void Coin::OnReachTargetBack()
 
 Vector Coin::GetPosition() const
 {
-    if (mTransform) {
-        return mTransform->position;
+    if (auto transform = mTransform.lock()) {
+        return transform->position;
     }
     return Vector::zero();
 }
 
 void Coin::SetPosition(const Vector& newPos)
 {
-    if (mTransform) {
-        mTransform->SetPosition(newPos);
+    if (auto transform = mTransform.lock()) {
+        transform->SetPosition(newPos);
     }
 }
