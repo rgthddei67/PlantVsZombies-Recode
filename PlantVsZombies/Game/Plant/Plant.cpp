@@ -47,6 +47,17 @@ void Plant::SetupPlant()
     
 }
 
+void Plant::Start()
+{
+    if (this->mIsPreview) {
+		GameObject::Start();
+		RemoveComponent<ColliderComponent>();
+    }
+    else {
+        AnimatedObject::Start();
+    }
+}
+
 void Plant::TakeDamage(int damage) {
     if (mIsPreview) return;
     mPlantHealth -= damage;

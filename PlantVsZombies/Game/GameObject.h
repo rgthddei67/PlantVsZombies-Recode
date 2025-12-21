@@ -75,7 +75,7 @@ public:
         auto it = mComponents.find(typeIndex);
         if (it != mComponents.end()) {
             // 如果是碰撞器组件，从碰撞系统中注销
-            // TOOD: 以后若还有别的大系统，也要这么做
+            // TODO: 以后若还有别的大系统，也要这么做
             UnregisterColliderIfNeeded(it->second);
             it->second->OnDestroy();
             mComponents.erase(it);

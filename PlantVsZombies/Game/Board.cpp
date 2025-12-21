@@ -73,7 +73,7 @@ std::shared_ptr<Plant> Board::CreatePlant(PlantType plantType, int row, int colu
             row,                    // int row
             column,                 // int column
             AnimationType::ANIM_SUNFLOWER,  // AnimationType animType
-            Vector(60, 60),         // const Vector& colliderSize
+            Vector(75, 75),         // const Vector& colliderSize
             1.0f,                   // scale
 			isPreview               // mIsPreview
         );

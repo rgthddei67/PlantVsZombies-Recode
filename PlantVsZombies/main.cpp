@@ -198,9 +198,13 @@ int main(int argc, char* argv[])
                 input.ProcessEvent(&event);
                 sceneManager.HandleEvent(event, input);
             }
-            if (input.IsKeyReleased(SDLK_SPACE))
+            if (input.IsKeyReleased(SDLK_F3))
             {
-				g_particleSystem->EmitEffect(ParticleType::ZOMBIE_HEAD_OFF, input.GetMousePosition());
+                AudioSystem::PlaySound(AudioConstants::SOUND_BUTTONCLICK, 0.5f);
+                GameAPP& app = GameAPP::GetInstance();
+                app.mDebugMode = !app.mDebugMode;
+                app.mShowColliders = !app.mShowColliders;
+				//g_particleSystem->EmitEffect(ParticleType::ZOMBIE_HEAD_OFF, input.GetMousePosition());
 			}
             if (input.IsKeyReleased(SDLK_ESCAPE))
             {

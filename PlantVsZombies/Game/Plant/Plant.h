@@ -29,6 +29,7 @@ public:
 		AnimationType animType, const Vector& colliderSize, float scale = 1.0f, bool isPreview = false);
 
 	virtual ~Plant() = default;
+	void Start() override;
 	void Update() override;
 	virtual void PlantUpdate();		// 子类重写Update用这个
 	void TakeDamage(int damage);
