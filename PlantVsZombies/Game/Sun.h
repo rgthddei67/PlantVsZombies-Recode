@@ -35,10 +35,6 @@ public:
         Coin::Start();
         mIsInitialized = true;
 
-        if (auto anim = GetComponent<ReanimationComponent>()) {
-            anim->Play();
-        }
-
         if (mShouldStartLinearFall) {
             mShouldStartLinearFall = false;
             StartLinearFall();

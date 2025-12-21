@@ -27,17 +27,22 @@ Plant::Plant(Board* board, PlantType plantType, int row, int column,
     Vector plantOffset = plantMgr.GetPlantOffset(plantType);
     // 设置植物在格子中的位置
     if (auto transform = mTransform.lock()) {
-        // 计算格子中心位置
-        Vector cellCenterPosition(
-            CELL_INITALIZE_POS_X + column * CELL_COLLIDER_SIZE_X + CELL_COLLIDER_SIZE_X / 2,
-            CELL_INITALIZE_POS_Y + row * CELL_COLLIDER_SIZE_Y + CELL_COLLIDER_SIZE_Y / 2
-        );
+        if (!mIsPreview) {
+            // 计算格子中心位置
+            Vector cellCenterPosition(
+                CELL_INITALIZE_POS_X + column * CELL_COLLIDER_SIZE_X + CELL_COLLIDER_SIZE_X / 2,
+                CELL_INITALIZE_POS_Y + row * CELL_COLLIDER_SIZE_Y + CELL_COLLIDER_SIZE_Y / 2
+            );
 
-        Vector plantPosition = cellCenterPosition + plantOffset;
+            Vector plantPosition = cellCenterPosition + plantOffset;
 
-        transform->position = plantPosition;
+            transform->position = plantPosition;
 
-        mCurrectPosition = cellCenterPosition;
+            mCurrectPosition = cellCenterPosition;
+        }
+        else {
+            transform->position = Vector(-512, -512);
+        }
     }
     SetupPlant();
 }
