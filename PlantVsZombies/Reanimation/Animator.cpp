@@ -55,20 +55,23 @@ void Animator::Update() {
 
     float deltaTime = DeltaTime::GetDeltaTime();
 
-    // 过渡动画处理
+    // 平滑的帧前进计算
     if (mReanimBlendCounter > 0) {
         mReanimBlendCounter -= deltaTime;
     }
     else {
-        // 正常更新
         float frameAdvance = (deltaTime * mFPS * mSpeed);
+
+        // 插值平滑
         mFrameIndexNow += frameAdvance;
 
-        // 检查播放结束
+        // 处理循环和结束
         if (mFrameIndexNow >= mFrameIndexEnd) {
             switch (mPlayingState) {
             case PlayState::PLAY_REPEAT:
-                mFrameIndexNow = mFrameIndexBegin;
+                mFrameIndexNow = mFrameIndexBegin +
+                    std::fmod(mFrameIndexNow - mFrameIndexBegin,
+                        mFrameIndexEnd - mFrameIndexBegin);
                 break;
             case PlayState::PLAY_ONCE_TO:
                 SetFrameRangeByTrackName(mTargetTrack);
@@ -77,14 +80,17 @@ void Animator::Update() {
             case PlayState::PLAY_ONCE:
                 mFrameIndexNow = mFrameIndexEnd;
                 mIsPlaying = false;
+                // 触发完成事件
                 break;
             case PlayState::PLAY_NONE:
                 break;
             }
         }
 
-        // 确保帧索引在范围内
-        mFrameIndexNow = std::max(mFrameIndexBegin, std::min(mFrameIndexNow, mFrameIndexEnd));
+        // 确保在范围内
+        mFrameIndexNow = std::clamp(mFrameIndexNow,
+            mFrameIndexBegin,
+            mFrameIndexEnd);
     }
 }
 
@@ -176,15 +182,26 @@ void Animator::TrackAttachFlashSpot(int index, float spot) {
 void Animator::Draw(SDL_Renderer* renderer, float baseX, float baseY, float Scale) {
     if (!mReanim || !renderer) return;
 
+    // 使用整数位置以避免模糊
+    int baseXi = static_cast<int>(baseX);
+    int baseYi = static_cast<int>(baseY);
+
+    // 保存当前渲染器状态
+    SDL_RendererFlip oldFlip = SDL_FLIP_NONE;
+    SDL_BlendMode oldBlendMode;
+    SDL_GetRenderDrawBlendMode(renderer, &oldBlendMode);
+
+    // 设置渲染器为像素完美模式
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+
     for (int i = 0; i < mReanim->GetTrackCount(); i++) {
         auto track = mReanim->GetTrack(i);
         if (!track || !track->mAvailable || track->mFrames.empty()) continue;
 
         int frameIndex = static_cast<int>(mFrameIndexNow);
         if (frameIndex >= 0 && frameIndex < static_cast<int>(track->mFrames.size())) {
-            // 如果f=-1，表示这一帧隐藏
             if (track->mFrames[frameIndex].f == -1) {
-                continue; // 跳过这一帧
+                continue;
             }
         }
 
@@ -200,42 +217,45 @@ void Animator::Draw(SDL_Renderer* renderer, float baseX, float baseY, float Scal
         }
         if (!image) continue;
 
-        // 获取图像原始尺寸
+        // 获取纹理原始尺寸
         int imgWidth, imgHeight;
         SDL_QueryTexture(image, NULL, NULL, &imgWidth, &imgHeight);
 
-        // 计算缩放后的尺寸
-        int scaledWidth = static_cast<int>(imgWidth * transform.sx * Scale);
-        int scaledHeight = static_cast<int>(imgHeight * transform.sy * Scale);
+        // 使用ceil而不是round，确保没有缝隙
+        int scaledWidth = static_cast<int>(std::ceil(imgWidth * transform.sx * Scale));
+        int scaledHeight = static_cast<int>(std::ceil(imgHeight * transform.sy * Scale));
 
-        // 计算位置
-        float posX = baseX + (transform.x + mExtraInfos[i].mOffsetX) * Scale;
-        float posY = baseY + (transform.y + mExtraInfos[i].mOffsetY) * Scale;
+        // 确保最小尺寸为1
+        if (scaledWidth < 1) scaledWidth = 1;
+        if (scaledHeight < 1) scaledHeight = 1;
 
-        // 目标矩形 - 左上角对齐
-        SDL_Rect dstRect = {
-            static_cast<int>(posX),
-            static_cast<int>(posY),
-            scaledWidth,
-            scaledHeight
-        };
+        // 整数位置计算
+        int posX = baseXi + static_cast<int>(std::floor((transform.x + mExtraInfos[i].mOffsetX) * Scale + 0.5f));
+        int posY = baseYi + static_cast<int>(std::floor((transform.y + mExtraInfos[i].mOffsetY) * Scale + 0.5f));
 
-        // 设置透明度
-        SDL_SetTextureAlphaMod(image, static_cast<Uint8>(transform.a * 255));
+        // 创建目标矩形
+        SDL_Rect dstRect = { posX, posY, scaledWidth, scaledHeight };
 
-        // 使用左上角作为旋转中心
+        // 设置纹理透明度
+        Uint8 alpha = static_cast<Uint8>(std::clamp(transform.a * 255.0f, 0.0f, 255.0f));
+        SDL_SetTextureAlphaMod(image, alpha);
+
+        // 设置颜色调制为白色（避免颜色混合）
+        SDL_SetTextureColorMod(image, 255, 255, 255);
+
+        // 旋转中心点
         SDL_Point center = { 0, 0 };
 
-        // 使用旋转角度
-        double rotation = transform.kx;
-
-        // 进行旋转
+        // 使用 RenderCopyEx 渲染
         SDL_RenderCopyEx(renderer, image, NULL, &dstRect,
-            rotation, &center, SDL_FLIP_NONE);
+            transform.kx, &center, SDL_FLIP_NONE);
 
-        // 恢复透明度
+        // 恢复纹理设置
         SDL_SetTextureAlphaMod(image, 255);
     }
+
+    // 恢复渲染器状态
+    SDL_SetRenderDrawBlendMode(renderer, oldBlendMode);
 }
 
 void Animator::TrackAttachFlashSpotByTrackName(const std::string& trackName, float spot) {

@@ -21,7 +21,7 @@ public:
 		mProduceTimer += DeltaTime::GetDeltaTime();
 		if (mProduceTimer >= mProduceTime) {
 			mProduceTimer = 0.0f;
-			mBoard->CreateSun(this->mTransform.lock()->position);
+			mBoard->CreateSun(this->mCurrectPosition);
 		}
 	}
 

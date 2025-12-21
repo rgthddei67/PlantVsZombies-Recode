@@ -9,6 +9,7 @@
 #include "./UI/UIManager.h"
 #include "./UI/InputHandler.h"
 #include "./ResourceManager.h"
+#include "./Game/Plant/PlantDataManager.h"
 #include "./RendererManager.h"
 #include "./Game/AudioSystem.h"
 #include "./Reanimation/Reanimation.h"
@@ -95,7 +96,8 @@ int main(int argc, char* argv[])
 
         SDL_Renderer* renderer = SDL_CreateRenderer(window, -1,
             SDL_RENDERER_ACCELERATED |
-            SDL_RENDERER_PRESENTVSYNC);
+            SDL_RENDERER_PRESENTVSYNC |
+            SDL_RENDERER_TARGETTEXTURE);
 
         if (!renderer)
         {
@@ -109,12 +111,16 @@ int main(int argc, char* argv[])
             SDL_Quit();
             return -1;
         }
+        SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "0"); // 像素完美渲染
+        SDL_SetHint(SDL_HINT_RENDER_VSYNC, "1"); // 启用垂直同步
         // 设置渲染器颜色（蓝色背景）
         SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
         SDL_RenderClear(renderer);
         SDL_RenderPresent(renderer);
 
         RendererManager::GetInstance().SetRenderer(renderer);
+        PlantDataManager& plantMgr = PlantDataManager::GetInstance();
+        plantMgr.Initialize();
         ResourceManager& resourceManager = ResourceManager::GetInstance();
 
         if (!resourceManager.Initialize(renderer, "./resources/resources.xml")) {
@@ -217,13 +223,15 @@ int main(int argc, char* argv[])
             GameObjectManager::GetInstance().DrawAll(renderer);
             // 更新屏幕
             SDL_RenderPresent(renderer);
+#ifdef _DEBUG
             static int MousePoint = 0;
-            if (MousePoint++ % 30 == 0)
+            if (MousePoint++ % 40 == 0)
             {
                 std::cout << "Mouse Position: "
                     << input.GetMousePosition().x << ", "
                     << input.GetMousePosition().y << std::endl;
             }
+#endif
             input.Update();
         }
     }

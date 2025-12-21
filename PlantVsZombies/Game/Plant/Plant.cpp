@@ -1,6 +1,7 @@
 #include "Plant.h"
 #include "../Board.h"
 #include "../GameObjectManager.h"
+#include "PlantDataManager.h"
 
 Plant::Plant(Board* board, PlantType plantType, int row, int column,
     AnimationType animType, const Vector& colliderSize, float scale, bool isPreview)
@@ -21,13 +22,22 @@ Plant::Plant(Board* board, PlantType plantType, int row, int column,
     mPlantHealth = 300;
     mPlantMaxHealth = 300;
 	mIsPreview = isPreview;
+
+    PlantDataManager& plantMgr = PlantDataManager::GetInstance();
+    Vector plantOffset = plantMgr.GetPlantOffset(plantType);
     // 设置植物在格子中的位置
     if (auto transform = mTransform.lock()) {
-        Vector plantPosition(
+        // 计算格子中心位置
+        Vector cellCenterPosition(
             CELL_INITALIZE_POS_X + column * CELL_COLLIDER_SIZE_X + CELL_COLLIDER_SIZE_X / 2,
             CELL_INITALIZE_POS_Y + row * CELL_COLLIDER_SIZE_Y + CELL_COLLIDER_SIZE_Y / 2
         );
+
+        Vector plantPosition = cellCenterPosition + plantOffset;
+
         transform->position = plantPosition;
+
+        mCurrectPosition = cellCenterPosition;
     }
     SetupPlant();
 }

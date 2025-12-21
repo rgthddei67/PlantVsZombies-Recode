@@ -4,6 +4,7 @@
 #include "Card.h"
 #include "CardComponent.h"
 #include "../UI/InputHandler.h"
+#include "./Plant/PlantDataManager.h"
 #include "../GameApp.h"
 #include "AudioSystem.h"
 #include "./Plant/Plant.h"
@@ -250,30 +251,18 @@ void CardSlotManager::UpdatePlantPreviewPosition(const Vector& position) {
 
 void CardSlotManager::UpdatePreviewToMouse(const Vector& mousePos) {
     if (plantPreview) {
+        PlantDataManager& plantMgr = PlantDataManager::GetInstance();
+        Vector plantOffset = plantMgr.GetPlantOffset(plantPreview->mPlantType);
+
+        // 应用偏移量：鼠标位置 + 偏移
+        Vector plantPosition = mousePos + plantOffset;
+
         if (auto transform = plantPreview->GetComponent<TransformComponent>()) {
-            transform->SetPosition(mousePos);
+            transform->SetPosition(plantPosition);
         }
 
-        // 查找鼠标所在的Cell，更新预览植物的行列信息
-        /*
-        if (mBoard) {
-            for (int row = 0; row < mBoard->mRows; ++row) {
-                for (int col = 0; col < mBoard->mColumns; ++col) {
-                    auto cell = mBoard->GetCell(row, col);
-                    if (cell && cell->GetComponent<ClickableComponent>()) {
-                        auto clickable = cell->GetComponent<ClickableComponent>();
-                        if (clickable->IsMouseOver()) {
-                            if (auto plantComp = plantPreview->GetComponent<Plant>()) {
-                                plantComp->mRow = row;
-                                plantComp->mColumn = col;
-                            }
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-        */
+        plantPreview->mRow = -1;
+        plantPreview->mColumn = -1;
     }
 }
 

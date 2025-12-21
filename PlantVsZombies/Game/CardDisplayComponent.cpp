@@ -8,6 +8,7 @@
 #include "../ResourceManager.h"
 #include "../GameApp.h"
 #include "./CardSlotManager.h"
+#include "./Plant/PlantDataManager.h"
 #include <iostream>
 
 CardDisplayComponent::CardDisplayComponent(PlantType type, int sunCost, float cooldown)
@@ -332,26 +333,6 @@ std::shared_ptr<TransformComponent> CardDisplayComponent::GetTransformComponent(
     return nullptr;
 }
 
-// TODO 新增植物这里要改
 std::string CardDisplayComponent::GetPlantTextureKey() const {
-    switch (plantType) {
-    case PlantType::PLANT_PEASHOOTER:
-        return "IMAGE_PeaShooter";
-    case PlantType::PLANT_SUNFLOWER:
-        return "IMAGE_SunFlower";
-    case PlantType::PLANT_WALLNUT:
-        return "IMAGE_WallNut";
-    case PlantType::PLANT_CHERRYBOMB:
-        return "IMAGE_CherryBomb";
-    case PlantType::PLANT_POTATOMINE:
-        return "IMAGE_PotatoMine";
-	case PlantType::PLANT_SNOWPEA:
-		return "IMAGE_SnowPeaShooter";
-    case PlantType::PLANT_CHOMPER:
-		return "IMAGE_Chomper";
-	case PlantType::PLANT_REPEATER:
-		return "IMAGE_Repeater";
-    default:
-        return "IMAGE_PLANT_DEFAULT";
-    }
+    return PlantDataManager::GetInstance().GetPlantTextureKey(plantType);
 }

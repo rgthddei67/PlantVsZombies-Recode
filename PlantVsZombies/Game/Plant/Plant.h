@@ -16,6 +16,7 @@ class Plant : public AnimatedObject {
 public:
 	Board* mBoard;
 	PlantType mPlantType = PlantType::PLANT_PEASHOOTER;
+	Vector mCurrectPosition = Vector(0, 0);
 	int mPlantHealth = 300;
 	int mPlantMaxHealth = 300;
 	int mRow = 0;

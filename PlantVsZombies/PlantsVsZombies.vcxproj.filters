@@ -121,6 +121,9 @@
     <ClCompile Include="FileManager.cpp">
       <Filter>Code</Filter>
     </ClCompile>
+    <ClCompile Include="Game\Plant\PlantDataManager.cpp">
+      <Filter>Code\Game\Plant</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="UI\Button.h">
@@ -275,6 +278,9 @@
     </ClInclude>
     <ClInclude Include="FileManager.h">
       <Filter>Code</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\Plant\PlantDataManager.h">
+      <Filter>Code\Game\Plant</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

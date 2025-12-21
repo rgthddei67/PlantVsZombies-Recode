@@ -214,33 +214,59 @@ void TransformToMatrix(const TrackFrameTransform& src, SexyTransform2D& dest,
     dest.m11 *= src.sy * scaleY;
 }
 
+// Made by AI
 void GetDeltaTransform(const TrackFrameTransform& tSrc, const TrackFrameTransform& tDst,
     float tDelta, TrackFrameTransform& tOutput, bool useDestFrame) {
 
+    // 平滑插值函数
+    float smoothDelta = tDelta * tDelta * (3.0f - 2.0f * tDelta); // 三次缓动曲线
+
     // 基本属性插值
-    tOutput.a = (tDst.a - tSrc.a) * tDelta + tSrc.a;
-    tOutput.x = (tDst.x - tSrc.x) * tDelta + tSrc.x;
-    tOutput.y = (tDst.y - tSrc.y) * tDelta + tSrc.y;
-    tOutput.sx = (tDst.sx - tSrc.sx) * tDelta + tSrc.sx;
-    tOutput.sy = (tDst.sy - tSrc.sy) * tDelta + tSrc.sy;
+    tOutput.a = (tDst.a - tSrc.a) * smoothDelta + tSrc.a;
+
+    // 位置插值
+    float rawX = (tDst.x - tSrc.x) * smoothDelta + tSrc.x;
+    float rawY = (tDst.y - tSrc.y) * smoothDelta + tSrc.y;
+
+    // 像素对齐 四舍五入到最近的整数，避免子像素渲染导致的模糊
+    tOutput.x = std::round(rawX);
+    tOutput.y = std::round(rawY);
+
+    // 缩放插值
+    const float ANTI_GAP = 0.001f;
+    tOutput.sx = std::max(0.001f, (tDst.sx - tSrc.sx) * smoothDelta + tSrc.sx + ANTI_GAP);
+    tOutput.sy = std::max(0.001f, (tDst.sy - tSrc.sy) * smoothDelta + tSrc.sy + ANTI_GAP);
 
     // 角度插值（处理360度环绕）
     float angleDiffX = tDst.kx - tSrc.kx;
     float angleDiffY = tDst.ky - tSrc.ky;
 
-    // 确保角度差在[-180, 180]范围内
+    // 确保角度差在[-180, 180]范围内，避免不必要的旋转
     if (angleDiffX > 180.0f) angleDiffX -= 360.0f;
     if (angleDiffX < -180.0f) angleDiffX += 360.0f;
     if (angleDiffY > 180.0f) angleDiffY -= 360.0f;
     if (angleDiffY < -180.0f) angleDiffY += 360.0f;
 
-    tOutput.kx = tSrc.kx + angleDiffX * tDelta;
-    tOutput.ky = tSrc.ky + angleDiffY * tDelta;
+    // 使用线性插值，但可以改用球面线性插值以获得更平滑的旋转
+    tOutput.kx = tSrc.kx + angleDiffX * smoothDelta;
+    tOutput.ky = tSrc.ky + angleDiffY * smoothDelta;
 
-    if (useDestFrame)
+    // 处理图像资源
+    // 如果需要使用目标帧的图像资源，则使用目标帧的i；否则使用源帧的i
+    // 但这里有一个逻辑：通常我们在过渡期间保持源帧的图像，除非特别指定
+    if (useDestFrame) {
         tOutput.f = tDst.f;
-    else
+        tOutput.i = tDst.i;
+    }
+    else {
         tOutput.f = tSrc.f;
+        tOutput.i = tSrc.i;
+    }
 
-    tOutput.i = tSrc.i;
+    // 确保透明度在有效范围内
+    tOutput.a = std::clamp(tOutput.a, 0.0f, 1.0f);
+
+    // 确保缩放值合理，避免为零或负值
+    tOutput.sx = std::max(0.001f, tOutput.sx);
+    tOutput.sy = std::max(0.001f, tOutput.sy);
 }

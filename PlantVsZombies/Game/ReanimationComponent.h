@@ -204,6 +204,7 @@ public:
     float GetSpeed() const {
         return mAnimator ? mAnimator->GetSpeed() : 0.0f;
     }
+
 };
 
 #endif

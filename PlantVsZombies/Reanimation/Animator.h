@@ -82,6 +82,7 @@ public:
     void SetSpeed(float speed) { mSpeed = speed; }
     float GetSpeed() const { return mSpeed; }
 
+
 private:
     TrackFrameTransform GetInterpolatedTransform(int trackIndex) const;
 };

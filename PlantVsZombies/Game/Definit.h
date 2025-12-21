@@ -112,22 +112,6 @@ struct Vector
     static Vector right() { return Vector(1, 0); }
 };
 
-struct Color {
-    float r, g, b, a;
-
-    Color() : r(1.0f), g(1.0f), b(1.0f), a(1.0f) {}
-    Color(float r, float g, float b, float a = 1.0f) : r(r), g(g), b(b), a(a) {}
-
-    Color operator*(const Color& other) const {
-        return Color(r * other.r, g * other.g, b * other.b, a * other.a);
-    }
-
-    Color& operator*=(const Color& other) {
-        r *= other.r; g *= other.g; b *= other.b; a *= other.a;
-        return *this;
-    }
-};
-
 // 矩阵类
 struct SexyTransform2D
 {
@@ -206,14 +190,6 @@ struct SexyTransform2D
         float y = m10 * point.x + m11 * point.y + m12;
         return Vector(x, y);
     }
-};
-
-// SexyVector2 类似于 Vector，但用于矩阵运算
-struct SexyVector2 
-{
-    float x, y;
-    SexyVector2() : x(0), y(0) {}
-    SexyVector2(float x, float y) : x(x), y(y) {}
 };
 
 #endif

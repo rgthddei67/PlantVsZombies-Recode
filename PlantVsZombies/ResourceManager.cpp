@@ -1,4 +1,5 @@
 #include "ResourceManager.h"
+#include "./Game/Plant/PlantDataManager.h"
 #include <algorithm>
 
 ResourceManager* ResourceManager::instance = nullptr;
@@ -380,17 +381,8 @@ std::shared_ptr<Reanimation> ResourceManager::GetReanimation(const std::string& 
     return nullptr;
 }
 
-// 新增植物改这里
 std::string ResourceManager::AnimationTypeToString(AnimationType type) {
-    switch (type) {
-    case AnimationType::ANIM_SUN:
-        return "Sun";
-    case AnimationType::ANIM_SUNFLOWER:
-		return "SunFlower";
-    case AnimationType::ANIM_NONE:
-    default:
-        return "Unknown";
-    }
+    return PlantDataManager::GetInstance().GetAnimationName(type);
 }
 
 void ResourceManager::UnloadReanimation(const std::string& key) {
@@ -462,6 +454,18 @@ SDL_Texture* ResourceManager::LoadTexture(const std::string& path, const std::st
         std::cerr << "加载纹理失败: " << path << " - " << IMG_GetError() << std::endl;
         return nullptr;
     }
+
+    // 禁用纹理过滤，保持像素清晰
+    SDL_SetTextureScaleMode(texture, SDL_ScaleModeNearest);
+
+    // 禁用线性过滤
+    if (SDL_SetTextureScaleMode(texture, SDL_ScaleModeNearest) != 0) {
+        std::cerr << "警告: 无法设置纹理缩放模式: " << SDL_GetError() << std::endl;
+    }
+
+    SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "0"); // 0 = nearest (像素完美), 1 = linear (模糊)
+
+    SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_BLEND);
 
     textures[actualKey] = texture;
 #ifdef _DEBUG
