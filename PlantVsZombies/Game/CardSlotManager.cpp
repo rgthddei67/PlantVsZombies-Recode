@@ -19,9 +19,6 @@ CardSlotManager::CardSlotManager(Board* board)
 }
 
 void CardSlotManager::Start() {
-    std::cout << "CardSlotManager started with " << cards.size() << " cards" << std::endl;
-    std::cout << "Initial sun: " << (mBoard ? mBoard->GetSun() : 0) << std::endl;
-
     // 为所有Cell设置点击回调
     if (mBoard) {
         for (int row = 0; row < mBoard->mRows; ++row) {
@@ -130,14 +127,11 @@ void CardSlotManager::SelectCard(std::shared_ptr<GameObject> card) {
     }
 
     if (!cardComp->IsReady()) {
-        std::cout << "Card is not ready for selection. State: "
-            << static_cast<int>(cardComp->GetCardState()) << std::endl;
         return;
     }
 
     // 检查阳光是否足够
     if (!CanAfford(cardComp->GetSunCost())) {
-        std::cout << "Not enough sun to select this card" << std::endl;
         return;
     }
 
@@ -160,8 +154,6 @@ void CardSlotManager::SelectCard(std::shared_ptr<GameObject> card) {
         cardComp->SetSelected(true);
         CreatePlantPreview(cardComp->GetPlantType());
     }
-
-    std::cout << "Selected card: " << static_cast<int>(GetSelectedPlantType()) << std::endl;
 }
 
 void CardSlotManager::DeselectCard() {
@@ -329,9 +321,6 @@ void CardSlotManager::PlacePlantInCell(int row, int col) {
 
     if (plant) {
         cardComp->StartCooldown();
-
-        std::cout << "Planted " << static_cast<int>(cardComp->GetPlantType())
-            << " at cell (" << row << ", " << col << ")" << std::endl;
     }
 
     // 取消选择

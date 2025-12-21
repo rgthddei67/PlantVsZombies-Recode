@@ -70,6 +70,7 @@ public:
         if (auto gameObj = GetGameObject()) {
             if (auto transformComp = gameObj->GetComponent<TransformComponent>()) {
                 mPosition = transformComp->position;
+                mScale = transformComp->GetScale();
             }
         }
 

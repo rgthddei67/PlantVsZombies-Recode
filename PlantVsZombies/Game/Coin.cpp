@@ -4,25 +4,36 @@
 
 Coin::Coin(Board* board, AnimationType animType, const Vector& position,
     const Vector& colliderSize, float VanlishTime, float scale,
-    const std::string& tag, bool autoDestroy)
+    const std::string& tag, bool needScaleAnimation, bool autoDestroy)
     : AnimatedObject(board, position, animType, ColliderType::CIRCLE,
         colliderSize, scale, tag, autoDestroy)
 {
-	this->mVanlishTime = VanlishTime;
+    this->mVanlishTime = VanlishTime;
+    this->mTargetScale = scale;
+    this->mStartScale = scale * 0.1f;
+	this->mIsScaling = needScaleAnimation;
+	this->mScaleAnimationFinished = !needScaleAnimation;
 }
 
 void Coin::Start()
 {
     AnimatedObject::Start();
+    if (mIsScaling) {
+        SetScale(mStartScale);
+    }
+    else {
+        SetScale(mTargetScale);
+    }
     auto clickableComponent = AddComponent<ClickableComponent>();
     SetOnClickBack(clickableComponent);
 }
 
 void Coin::Update()
 {
+    UpdateScale();
+
     AnimatedObject::Update();
 
-    // 在移动的时候，不销毁
     if (isMovingToTarget)
     {
         Vector currentPos = GetPosition();
@@ -39,20 +50,22 @@ void Coin::Update()
 
         if (distance > 0) {
             Vector normalizedDir = direction / distance;
-            Vector newPos = currentPos + normalizedDir * currentSpeed * 0.018f;
+            Vector newPos = currentPos + normalizedDir * currentSpeed * DeltaTime::GetDeltaTime();
             SetPosition(newPos);
         }
     }
     else
     {
-		mVanlishTimer += DeltaTime::GetDeltaTime();
+        // 缩放动画完成前不开始消失计时
+        if (!mScaleAnimationFinished) return;
+
+        mVanlishTimer += DeltaTime::GetDeltaTime();
         if (mVanlishTimer >= mVanlishTime)
         {
             mVanlishTimer = 0.0f;
-			GameObjectManager::GetInstance().DestroyGameObject(shared_from_this());
+            GameObjectManager::GetInstance().DestroyGameObject(shared_from_this());
         }
     }
-
 }
 
 void Coin::SetOnClickBack(std::shared_ptr<ClickableComponent> clickComponent)
@@ -75,6 +88,7 @@ void Coin::StartMoveToTarget(const Vector& target, float fastSpeed,
     speedSlow = slowSpeed;
     slowDownDistance = slowdownDist;
     isMovingToTarget = true;
+    StopScaleAnimation();
 }
 
 void Coin::StopMove()
@@ -94,7 +108,9 @@ void Coin::SetTargetPosition(const Vector& target)
 
 void Coin::OnReachTargetBack()
 {
+	if (mIsDestroyed) return;
     isMovingToTarget = false;
+    mIsDestroyed = true;
     GameObjectManager::GetInstance().DestroyGameObject(shared_from_this());
 }
 
@@ -111,4 +127,41 @@ void Coin::SetPosition(const Vector& newPos)
     if (auto transform = mTransform.lock()) {
         transform->SetPosition(newPos);
     }
+}
+
+void Coin::SetScale(float scale)
+{
+    if (auto transfrom = mTransform.lock()) {
+        transfrom->SetScale(scale);
+    }
+}
+
+void Coin::UpdateScale()
+{
+    if (!mIsScaling) return;
+
+    mScaleTimer += DeltaTime::GetDeltaTime();
+    float t = mScaleTimer / mScaleDuration;
+
+    t = t * t * t; // 立方缓入，开始慢，结束快
+
+    if (t >= 1.0f) {
+        t = 1.0f;
+        FinishScaleAnimation();
+    }
+
+    float currentScale = mStartScale + (mTargetScale - mStartScale) * t;
+    SetScale(currentScale);
+}
+
+void Coin::StopScaleAnimation()
+{
+    mIsScaling = false;
+    mScaleAnimationFinished = true;
+}
+
+void Coin::FinishScaleAnimation()
+{
+    StopScaleAnimation();
+    SetScale(mTargetScale);
 }

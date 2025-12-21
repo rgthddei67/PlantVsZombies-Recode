@@ -21,7 +21,9 @@ public:
 		mProduceTimer += DeltaTime::GetDeltaTime();
 		if (mProduceTimer >= mProduceTime) {
 			mProduceTimer = 0.0f;
-			mBoard->CreateSun(this->mCurrectPosition);
+			float offsetX = GameRandom::Range(-30.0f, 35.0f);
+			mBoard->CreateSun(
+				this->mCurrectPosition.x + offsetX, this->mCurrectPosition.y, true);
 		}
 	}
 

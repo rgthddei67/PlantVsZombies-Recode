@@ -39,9 +39,9 @@ void Board::Draw(SDL_Renderer* renderer)
     DrawCell(renderer);
 }
 
-std::shared_ptr<Sun> Board::CreateSun(const Vector& position)
+std::shared_ptr<Sun> Board::CreateSun(const Vector& position, bool needAnimation)
 {
-    auto sun = GameObjectManager::GetInstance().CreateGameObject<Sun>(this, position);
+    auto sun = GameObjectManager::GetInstance().CreateGameObject<Sun>(this, position, 0.85f, "Sun", needAnimation, true);
     if (sun) {
         sun->mCoinID = mNextCoinID;
         mCoinIDMap[mNextCoinID] = sun;
@@ -49,6 +49,10 @@ std::shared_ptr<Sun> Board::CreateSun(const Vector& position)
     }
 
     return sun;
+}
+
+std::shared_ptr<Sun> Board::CreateSun(const float& x, const float& y, bool needAnimation) {
+    return CreateSun(Vector(x, y), needAnimation);
 }
 
 std::shared_ptr<Plant> Board::CreatePlant(PlantType plantType, int row, int column, bool isPreview)
@@ -166,7 +170,7 @@ void Board::UpdateSunFalling()
             GameRandom::Range(50.0f, 770.0f),      // 50~770
             GameRandom::Range(-110.0f, -20.0f)    // -110~-20
         );
-        auto sun = CreateSun(sunPos);
+        auto sun = CreateSun(sunPos, false);
         sun->StartLinearFall();
     }
 }

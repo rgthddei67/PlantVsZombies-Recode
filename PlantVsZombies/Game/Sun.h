@@ -22,9 +22,9 @@ private:
 
 public:
 	Sun(Board* board, const Vector& position, float scale = 0.9f,
-		const std::string& tag = "Sun", bool autoDestroy = true)
+		const std::string& tag = "Sun", bool needScaleAnimation = false, bool autoDestroy = true)
 		: Coin(board, AnimationType::ANIM_SUN, position,
-			Vector(65, 65), 10.0f, scale, tag, autoDestroy)
+			Vector(65, 65), 10.0f, scale, tag, needScaleAnimation, autoDestroy)
 	{
 		speedFast = 700.0f;
 		speedSlow = 500.0f;

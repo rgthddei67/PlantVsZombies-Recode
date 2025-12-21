@@ -66,7 +66,10 @@ public:
 	}
 
 	// 创建太阳
-	std::shared_ptr<Sun> CreateSun(const Vector& position);
+	std::shared_ptr<Sun> CreateSun(const Vector& position, bool needAnimation = false);
+
+	// 创建太阳
+	std::shared_ptr<Sun> CreateSun(const float& x, const float& y, bool needAnimation = false);
 
 	// 创建植物
 	std::shared_ptr<Plant> CreatePlant(PlantType plantType, int row, int column, bool isPreview = false);

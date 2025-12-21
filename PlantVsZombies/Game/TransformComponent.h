@@ -7,8 +7,6 @@
 class TransformComponent : public Component {
 public:
     Vector position = Vector::zero();
-    Vector scale = Vector::one();
-    float rotation = 0.0f;  // 旋转的弧度
 
     TransformComponent() = default;
     TransformComponent(const Vector& pos) : position(pos) {}
@@ -36,13 +34,12 @@ public:
     }
 
     // 缩放
-    void Scale(const Vector& scaling) {
-        scale.x *= scaling.x;
-        scale.y *= scaling.y;
+    void Scale(float& scaling) {
+		scale *= scaling;
     }
 
     // 设置缩放
-    void SetScale(const Vector& scaling) {
+    void SetScale(float& scaling) {
         scale = scaling;
     }
 
@@ -71,6 +68,18 @@ public:
     Vector GetWorldPosition() const {
         return position;
     }
+
+    float GetScale() const {
+        return scale;
+	}
+
+    float GetRotation() const {
+        return rotation;
+	}
+
+private:
+    float scale = 1.0f;
+    float rotation = 0.0f;  // 旋转的弧度
 };
 
 #endif
