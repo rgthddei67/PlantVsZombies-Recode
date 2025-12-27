@@ -3,6 +3,7 @@
 #define _GAMEOBJECT_H
 
 #include "../RendererManager.h"
+#include "RenderOrder.h"
 #include <memory>
 #include <vector>
 #include <unordered_map>
@@ -15,6 +16,7 @@ class Component;
 
 class GameObject : public std::enable_shared_from_this<GameObject> {
 protected:
+    int mRenderOrder = LAYER_GAME_OBJECT;
     bool mActive = true; // 是否在活动
     bool mStarted = false;   // 标记
     std::vector<std::shared_ptr<Component>> mComponentsToInitialize; // 待初始化的组件
@@ -95,6 +97,9 @@ public:
     virtual void Update();
 
     virtual void OnDestroy() { }
+
+    int GetRenderOrder() const { return mRenderOrder; }
+    void SetRenderOrder(int order) { mRenderOrder = order; }
 
     // 绘制所有组件（如果组件要绘制的话)
     virtual void Draw(SDL_Renderer* renderer);

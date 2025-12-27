@@ -1,5 +1,7 @@
 #include "../ParticleSystem/ParticleSystem.h"
 
+std::unique_ptr<ParticleSystem> g_particleSystem = nullptr;
+
 ParticleSystem::ParticleSystem(SDL_Renderer* Renderer)
     : renderer(Renderer) {
 }

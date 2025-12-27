@@ -1,6 +1,77 @@
 #include "Scene.h"
 #include "../ResourceManager.h"
+#include "../ParticleSystem/ParticleSystem.h"
 #include <iostream>
+
+void Scene::BuildDrawCommands() {
+    mDrawCommands.clear();
+
+    // 添加背景纹理绘制命令
+    RegisterDrawCommand("BackgroundTextures",
+        [this](SDL_Renderer* renderer) { DrawAllTextures(renderer); },
+        LAYER_BACKGROUND);
+
+    // 添加游戏对象绘制命令
+    RegisterDrawCommand("GameObjects",
+        [this](SDL_Renderer* renderer) { DrawGameObjects(renderer); },
+        LAYER_GAME_OBJECT);
+
+    // 注册粒子系统绘制
+    RegisterDrawCommand("ParticleSystem",
+        [this](SDL_Renderer* renderer) {
+            if (g_particleSystem) {
+                g_particleSystem->DrawAll();
+            }
+        },
+        LAYER_EFFECTS);
+
+    // 添加UI绘制命令
+    RegisterDrawCommand("UI",
+        [this](SDL_Renderer* renderer) { mUIManager.DrawAll(renderer); },
+        LAYER_UI);
+}
+
+void Scene::RegisterDrawCommand(const std::string& name,
+    std::function<void(SDL_Renderer*)> drawFunc,
+    int renderOrder) 
+{
+    auto it = std::find_if(mDrawCommands.begin(), mDrawCommands.end(),
+        [&name](const DrawCommand& cmd) { return cmd.name == name; });
+
+    if (it != mDrawCommands.end()) {
+        it->drawFunc = drawFunc;
+        it->renderOrder = renderOrder;
+    }
+    else {
+        mDrawCommands.emplace_back(drawFunc, renderOrder, name);
+    }
+}
+
+void Scene::Draw(SDL_Renderer* renderer) {
+    if (!mDrawCommandsBuilt) {
+        BuildDrawCommands();
+        mDrawCommandsBuilt = true;
+    }
+    for (auto& cmd : mDrawCommands) {
+        if (cmd.drawFunc) {
+            cmd.drawFunc(renderer);
+        }
+    }
+}
+
+void Scene::Update()
+{
+    if (g_particleSystem) 
+    {
+        g_particleSystem->UpdateAll();
+    }
+}
+
+void Scene::UnregisterDrawCommand(const std::string& name) {
+    auto it = std::remove_if(mDrawCommands.begin(), mDrawCommands.end(),
+        [&name](const DrawCommand& cmd) { return cmd.name == name; });
+    mDrawCommands.erase(it, mDrawCommands.end());
+}
 
 void Scene::AddTexture(const std::string& textureName, int posX, int posY, float scaleX, float scaleY, int drawOrder) {
     SDL_Texture* texture = ResourceManager::GetInstance().GetTexture(textureName);

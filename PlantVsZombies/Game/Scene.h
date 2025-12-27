@@ -10,6 +10,23 @@
 #include <algorithm>
 #include <memory>
 
+// 绘制命令结构
+struct DrawCommand {
+    std::function<void(SDL_Renderer*)> drawFunc;
+    int renderOrder;
+    std::string name;
+
+    DrawCommand(std::function<void(SDL_Renderer*)> func = nullptr,
+        int order = 0,
+        const std::string& n = "")
+        : drawFunc(func), renderOrder(order), name(n) {
+    }
+
+    bool operator<(const DrawCommand& other) const {
+        return renderOrder < other.renderOrder;
+    }
+};
+
 // 图片信息结构
 struct TextureInfo {
     SDL_Texture* texture;
@@ -30,17 +47,19 @@ class Scene
 {
 public:
     std::string name;
+
     virtual ~Scene() = default;
 
     virtual void OnEnter()  // 进入场景时调用
     {
-
+        RebuildDrawCommands();
     }   
 
     virtual void OnExit()    // 退出场景时调用  
     {
         mUIManager.ClearAll();
         GameObjectManager::GetInstance().DestroyAllGameObjects();
+        mDrawCommands.clear();
     }    
 
     virtual void Update() 
@@ -48,18 +67,42 @@ public:
 
     }
 
-    virtual void Draw(SDL_Renderer* renderer)
-    {
-		DrawAllTextures(renderer);
-    }
+    virtual void Draw(SDL_Renderer* renderer);
 
     virtual void HandleEvent(SDL_Event& event, InputHandler& input)
     {
         mUIManager.ProcessMouseEvent(&event, &input);
     }
 
+    // 注册自定义绘制命令
+    void RegisterDrawCommand(const std::string& name,
+        std::function<void(SDL_Renderer*)> drawFunc,
+        int renderOrder = LAYER_GAME_OBJECT);
+
+    // 移除绘制命令
+    void UnregisterDrawCommand(const std::string& name);
+
+    // 重构绘制命令
+    void RebuildDrawCommands() {
+        mDrawCommandsBuilt = false;
+    }
+
 protected:
     UIManager mUIManager;
+    bool mDrawCommandsBuilt = false;
+
+    // 构建绘制命令
+    virtual void BuildDrawCommands();
+
+    // 绘制所有游戏对象
+    virtual void DrawGameObjects(SDL_Renderer* renderer) {
+        GameObjectManager::GetInstance().DrawAll(renderer);
+    }
+
+    // 按渲染顺序排序绘制命令（构建完成后调用）
+    void SortDrawCommands() {
+        std::sort(mDrawCommands.begin(), mDrawCommands.end());
+    }
 
     // 添加纹理到绘制列表
     void AddTexture(const std::string& textureName, int posX, int posY, float scaleX = 1.0f, float scaleY = 1.0f, int drawOrder = 0);
@@ -96,6 +139,7 @@ protected:
 
 private:
     std::vector<TextureInfo> mTextures;
+    std::vector<DrawCommand> mDrawCommands;
 };
 
 #endif

@@ -15,11 +15,11 @@ void ClickableComponent::Start() {
                 << "没有ColliderComponent组件！自动添加" << std::endl;
 #endif
             collider = gameObject->AddComponent<ColliderComponent>(Vector(50, 50));
-            collider->isTrigger = true;
+            collider->isTrigger = false;
         }
         else
         {
-            collider->isTrigger = true;
+            collider->isTrigger = false;
         }
     }
 }

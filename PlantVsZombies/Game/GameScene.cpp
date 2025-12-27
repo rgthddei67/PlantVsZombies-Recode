@@ -13,14 +13,32 @@ GameScene::~GameScene() {
     std::cout << "游戏场景销毁" << std::endl;
 }
 
+void GameScene::BuildDrawCommands() 
+{
+	Scene::BuildDrawCommands();
+    // TODO: 根据传入的Background参数选择不同背景
+    AddTexture("IMAGE_background_day", -215, 0, 1.0f, 1.0f, LAYER_BACKGROUND);    
+    AddTexture("IMAGE_SeedBank_Long", 5, -10, 0.85f, 0.9f, LAYER_UI);
+
+    if (mBoard) {
+        RegisterDrawCommand("Board",
+            [this](SDL_Renderer* renderer) { mBoard->Draw(renderer); },
+            LAYER_GAME_OBJECT);
+        RegisterDrawCommand("SunCounter",
+            [this](SDL_Renderer* renderer) {
+                GameAPP::GetInstance().DrawText(renderer, std::to_string(mBoard->GetSun()),
+                    Vector(20, 43), SDL_Color{ 0, 0, 0, 255 }, "./font/fzcq.ttf", 17);
+            },
+            LAYER_UI + 100);
+    }
+    SortDrawCommands();
+}
+
 void GameScene::OnEnter() {
+    Scene::OnEnter();
     std::cout << "进入游戏场景" << std::endl;
 
     // 加载背景
-	// TODO: 根据传入的Background参数选择不同背景
-    AddTexture("IMAGE_background_day", -215, 0, 1.0f, 1.0f, -10000);    
-    AddTexture("IMAGE_SeedBank_Long", 5, -10, 0.85f, 0.9f, 10000);
-
     mBoard = std::make_unique<Board>();
 
     auto CardUI = GameObjectManager::GetInstance().CreateGameObjectImmediate<GameObject>();
@@ -39,24 +57,11 @@ void GameScene::OnExit() {
 }
 
 void GameScene::Update() {
+	Scene::Update();
     if (mBoard)
     {
         mBoard->Update();
     }
-}
-
-void GameScene::Draw(SDL_Renderer* renderer) {
-    Scene::Draw(renderer);
-
-    // 绘制游戏内容
-    if (mBoard) {
-        mBoard->Draw(renderer);
-    }
-
-    // 绘制UI
-    mUIManager.DrawAll(renderer);
-    GameAPP::GetInstance().DrawText(renderer, std::to_string(mBoard->GetSun()),
-        Vector(20, 43), SDL_Color{ 0, 0, 0, 255 }, "./font/fzcq.ttf", 17);
 }
 
 void GameScene::HandleEvent(SDL_Event& event, InputHandler& input) 

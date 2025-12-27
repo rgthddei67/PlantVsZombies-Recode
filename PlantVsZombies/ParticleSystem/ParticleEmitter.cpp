@@ -30,7 +30,7 @@ void ParticleEmitter::SetAutoDestroyTime(int frames) {
         autoDestroyTime = config.lifetime + 15.0f;
     }
     else {
-        autoDestroyTime = static_cast<int>(frames);
+        autoDestroyTime = static_cast<float>(frames);
     }
     autoDestroyTimer = 0.0f;
 }

@@ -282,5 +282,8 @@
     <ClInclude Include="Game\Plant\PlantDataManager.h">
       <Filter>Code\Game\Plant</Filter>
     </ClInclude>
+    <ClInclude Include="Game\RenderOrder.h">
+      <Filter>Code\Game</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

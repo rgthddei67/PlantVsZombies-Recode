@@ -12,8 +12,8 @@ public:
     void OnEnter() override;
     void OnExit() override;
     void Update() override;
-    void Draw(SDL_Renderer* renderer) override;
     void HandleEvent(SDL_Event& event, InputHandler& input) override;
+	void BuildDrawCommands() override;
 
 private:
 	std::unique_ptr<Board> mBoard;

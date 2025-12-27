@@ -25,6 +25,7 @@ void Coin::Start()
         SetScale(mTargetScale);
     }
     auto clickableComponent = AddComponent<ClickableComponent>();
+    clickableComponent->ConsumeEvent = true;
     SetOnClickBack(clickableComponent);
 }
 

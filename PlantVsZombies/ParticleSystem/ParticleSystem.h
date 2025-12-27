@@ -46,4 +46,6 @@ private:
     void CleanupInactiveEmitters();
 };
 
+extern std::unique_ptr<ParticleSystem> g_particleSystem;
+
 #endif
