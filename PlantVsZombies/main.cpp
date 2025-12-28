@@ -202,7 +202,7 @@ int main(int argc, char* argv[])
 			GameAPP& app = GameAPP::GetInstance();
 			app.mDebugMode = !app.mDebugMode;
 			app.mShowColliders = !app.mShowColliders;
-			g_particleSystem->EmitEffect(ParticleType::ZOMBIE_HEAD_OFF, input.GetMousePosition());
+			g_particleSystem->EmitEffect(ParticleType::ZOMBIE_HEAD_OFF, input.GetMousePosition(), 5);
 		}
 		if (input.IsKeyReleased(SDLK_ESCAPE))
 		{
@@ -211,9 +211,7 @@ int main(int argc, char* argv[])
 		}
 		// 更新板块
 		sceneManager.Update();
-		GameObjectManager::GetInstance().Update();
-		CollisionSystem::GetInstance().Update();
-
+		
 		// 清屏
 		SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // 黑色背景
 		SDL_RenderClear(renderer);

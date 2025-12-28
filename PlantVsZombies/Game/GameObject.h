@@ -26,8 +26,8 @@ protected:
 
 private:
     void RegisterAllColliders();
-    void RegisterColliderIfNeeded(std::shared_ptr<Component> component);
-    void UnregisterColliderIfNeeded(std::shared_ptr<Component> component);
+    void RegisterComponentIfNeeded(std::shared_ptr<Component> component);
+    void UnregisterComponentIfNeeded(std::shared_ptr<Component> component);
 
 public:
     virtual ~GameObject();
@@ -49,7 +49,7 @@ public:
         // 如果对象已启动，立即初始化组件
         if (mStarted) {
             InitializeComponent(component);
-            RegisterColliderIfNeeded(component);
+            RegisterComponentIfNeeded(component);
         }
 
         return component;
@@ -78,7 +78,7 @@ public:
         if (it != mComponents.end()) {
             // 如果是碰撞器组件，从碰撞系统中注销
             // TODO: 以后若还有别的大系统，也要这么做
-            UnregisterColliderIfNeeded(it->second);
+            UnregisterComponentIfNeeded(it->second);
             it->second->OnDestroy();
             mComponents.erase(it);
             return true;
@@ -95,8 +95,6 @@ public:
     virtual void Start();
 
     virtual void Update();
-
-    virtual void OnDestroy() { }
 
     int GetRenderOrder() const { return mRenderOrder; }
     void SetRenderOrder(int order) { mRenderOrder = order; }

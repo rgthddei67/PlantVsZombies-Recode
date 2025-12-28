@@ -27,7 +27,7 @@ void ParticleEmitter::Initialize(ParticleType type, const SDL_FPoint& pos)
 void ParticleEmitter::SetAutoDestroyTime(int frames) {
     if (frames == -2) {
         const ParticleConfig& config = configManager.GetConfig(effectType);
-        autoDestroyTime = config.lifetime + 15.0f;
+        autoDestroyTime = config.lifetime;
     }
     else {
         autoDestroyTime = static_cast<float>(frames);
@@ -192,7 +192,7 @@ void ParticleEmitter::Clear() {
 }
 
 bool ParticleEmitter::ShouldDestroy() const {
-    return !active && GetActiveParticleCount() == 0;
+    return !active || GetActiveParticleCount() == 0;
 }
 
 int ParticleEmitter::GetActiveParticleCount() const {

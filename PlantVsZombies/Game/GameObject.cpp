@@ -6,9 +6,8 @@
 
 GameObject::~GameObject() 
 {
-    OnDestroy();
     for (auto& [type, component] : mComponents) {
-        UnregisterColliderIfNeeded(component);
+        UnregisterComponentIfNeeded(component);
         component->OnDestroy();
     }
     mComponents.clear();
@@ -61,6 +60,7 @@ void GameObject::InitializeComponent(std::shared_ptr<Component> component) {
 
 void GameObject::DestroyAllComponents() {
     for (auto& [type, component] : mComponents) {
+		UnregisterComponentIfNeeded(component);
         component->OnDestroy();
     }
     mComponents.clear();
@@ -73,17 +73,17 @@ SDL_Renderer* GameObject::GetRenderer() const {
 
 void GameObject::RegisterAllColliders() {
     for (auto& [type, component] : mComponents) {
-        RegisterColliderIfNeeded(component);
+        RegisterComponentIfNeeded(component);
     }
 }
 
-void GameObject::RegisterColliderIfNeeded(std::shared_ptr<Component> component) {
+void GameObject::RegisterComponentIfNeeded(std::shared_ptr<Component> component) {
     if (auto collider = std::dynamic_pointer_cast<ColliderComponent>(component)) {
         CollisionSystem::GetInstance().RegisterCollider(collider);
     }
 }
 
-void GameObject::UnregisterColliderIfNeeded(std::shared_ptr<Component> component) {
+void GameObject::UnregisterComponentIfNeeded(std::shared_ptr<Component> component) {
     if (auto collider = std::dynamic_pointer_cast<ColliderComponent>(component)) {
         CollisionSystem::GetInstance().UnregisterCollider(collider);
     }

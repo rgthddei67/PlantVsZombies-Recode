@@ -38,11 +38,12 @@ void CardSlotManager::Update() {
     static int lastSun = 0;
 
     // 如果有选中的卡牌，更新鼠标悬停的Cell
-    if (selectedCard) {
+    auto selected = selectedCard.lock();
+    if (selected) {
         auto& input = GameAPP::GetInstance().GetInputHandler();
         Vector mousePos = input.GetMousePosition();
 
-		UpdatePreviewToMouse(mousePos);
+        UpdatePreviewToMouse(mousePos);
         // 右键取消选择
         if (input.IsMouseButtonPressed(SDL_BUTTON_RIGHT)) {
             DeselectCard();
@@ -57,19 +58,21 @@ void CardSlotManager::Update() {
 }
 
 void CardSlotManager::UpdateAllCardsState() {
-    for (auto& card : cards) {
-        if (auto cardComp = card->GetComponent<CardComponent>()) {
-            // 如果卡牌正在冷却，不强制更新状态，只更新冷却进度
-            if (cardComp->IsCooldown()) {
-                // 只更新冷却进度显示
-                if (auto display = cardComp->GetCardDisplayComponent()) {
-                    float progress = 1.0f - (cardComp->GetCooldownProgress());
-                    display->SetCooldownProgress(progress);
+    for (auto& cardWeak : cards) {
+        if (auto card = cardWeak.lock()) {
+            if (auto cardComp = card->GetComponent<CardComponent>()) {
+                // 如果卡牌正在冷却，不强制更新状态，只更新冷却进度
+                if (cardComp->IsCooldown()) {
+                    // 只更新冷却进度显示
+                    if (auto display = cardComp->GetCardDisplayComponent()) {
+                        float progress = 1.0f - (cardComp->GetCooldownProgress());
+                        display->SetCooldownProgress(progress);
+                    }
                 }
-            }
-            else {
-                // 不在冷却状态，才更新状态
-                cardComp->ForceStateUpdate();
+                else {
+                    // 不在冷却状态，才更新状态
+                    cardComp->ForceStateUpdate();
+                }
             }
         }
     }
@@ -77,31 +80,12 @@ void CardSlotManager::UpdateAllCardsState() {
 
 void CardSlotManager::Draw(SDL_Renderer* renderer) {
     // 如果有选中的卡牌，绘制当前悬停Cell的高亮
-    if (selectedCard) {
+    if (auto selected = selectedCard.lock()) {
         auto& input = GameAPP::GetInstance().GetInputHandler();
         Vector mousePos = input.GetMousePosition();
 
         // 更新预览位置
         UpdatePlantPreviewPosition(mousePos);
-        /*
-        // 如果鼠标在某个Cell上，绘制高亮
-        if (mHoveredCell && CanPlaceInCell(mHoveredCell)) {
-            Vector worldPos = mHoveredCell->GetWorldPosition();
-
-            // 绘制可放置的高亮
-            SDL_Rect highlightRect = {
-                static_cast<int>(worldPos.x),
-                static_cast<int>(worldPos.y),
-                static_cast<int>(CELL_COLLIDER_SIZE_X),
-                static_cast<int>(CELL_COLLIDER_SIZE_Y)
-            };
-
-            SDL_SetRenderDrawColor(renderer, 0, 255, 0, 100); // 半透明绿色
-            SDL_RenderFillRect(renderer, &highlightRect);
-            SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255); // 绿色边框
-            SDL_RenderDrawRect(renderer, &highlightRect);
-        }
-        */
     }
 }
 
@@ -117,7 +101,8 @@ void CardSlotManager::AddCard(PlantType plantType, int sunCost, float cooldown) 
 #endif
 }
 
-void CardSlotManager::SelectCard(std::shared_ptr<GameObject> card) {
+void CardSlotManager::SelectCard(std::weak_ptr<GameObject> cardWeak) {
+    auto card = cardWeak.lock();
     if (!card) return;
 
     auto cardComp = card->GetComponent<CardComponent>();
@@ -136,14 +121,15 @@ void CardSlotManager::SelectCard(std::shared_ptr<GameObject> card) {
     }
 
     // 如果点击的是已选中的卡牌，取消选择
-    if (selectedCard == card) {
+    auto currentSelected = selectedCard.lock();
+    if (currentSelected == card) {
         DeselectCard();
         return;
     }
 
     // 取消之前的选择
-    if (selectedCard) {
-        if (auto prevCardComp = selectedCard->GetComponent<CardComponent>()) {
+    if (currentSelected) {
+        if (auto prevCardComp = currentSelected->GetComponent<CardComponent>()) {
             prevCardComp->SetSelected(false);
         }
     }
@@ -157,23 +143,26 @@ void CardSlotManager::SelectCard(std::shared_ptr<GameObject> card) {
 }
 
 void CardSlotManager::DeselectCard() {
-    if (selectedCard) {
-        if (auto cardComp = selectedCard->GetComponent<CardComponent>()) {
+    auto selected = selectedCard.lock();
+    if (selected) {
+        if (auto cardComp = selected->GetComponent<CardComponent>()) {
             cardComp->SetSelected(false);
         }
-        selectedCard = nullptr;
+        selectedCard.reset();
         mHoveredCell.reset();
     }
-	DestroyPlantPreview();
+    DestroyPlantPreview();
 }
 
 void CardSlotManager::ArrangeCards() {
     for (size_t i = 0; i < cards.size(); i++) {
-        // 计算卡牌位置：起始位置 + 索引 * 间距
-        Vector position = firstSlotPosition + Vector(slotSpacing * i, 0);
+        if (auto card = cards[i].lock()) {
+            // 计算卡牌位置：起始位置 + 索引 * 间距
+            Vector position = firstSlotPosition + Vector(slotSpacing * i, 0);
 
-        if (auto transform = cards[i]->GetComponent<TransformComponent>()) {
-            transform->SetPosition(position);
+            if (auto transform = card->GetComponent<TransformComponent>()) {
+                transform->SetPosition(position);
+            }
         }
     }
 }
@@ -209,7 +198,10 @@ void CardSlotManager::CreatePlantPreview(PlantType plantType) {
 }
 
 void CardSlotManager::UpdatePlantPreviewPosition(const Vector& position) {
-    if (plantPreview && selectedCard) {
+    if (plantPreview) {
+        auto selected = selectedCard.lock();
+        if (!selected) return;
+
         // 查找鼠标所在的Cell
         std::shared_ptr<Cell> hoveredCell = nullptr;
 
@@ -218,7 +210,7 @@ void CardSlotManager::UpdatePlantPreviewPosition(const Vector& position) {
             for (int row = 0; row < mBoard->mRows; ++row) {
                 for (int col = 0; col < mBoard->mColumns; ++col) {
                     auto cell = mBoard->GetCell(row, col);
-                    if (cell) 
+                    if (cell)
                     {
                         if (auto clickable = cell->GetComponent<ClickableComponent>()) {
                             if (clickable->IsMouseOver()) {
@@ -259,11 +251,11 @@ void CardSlotManager::UpdatePreviewToMouse(const Vector& mousePos) {
 }
 
 void CardSlotManager::UpdatePreviewToCell(std::weak_ptr<Cell> cell) {
-    if (plantPreview) 
+    if (plantPreview)
     {
-        if (auto Cell = cell.lock())
+        if (auto lockedCell = cell.lock())
         {
-            Vector centerPos = Cell->GetCenterPosition();
+            Vector centerPos = lockedCell->GetCenterPosition();
             if (auto transform = plantPreview->GetComponent<TransformComponent>()) {
                 transform->SetPosition(centerPos);
             }
@@ -272,7 +264,8 @@ void CardSlotManager::UpdatePreviewToCell(std::weak_ptr<Cell> cell) {
 }
 
 void CardSlotManager::HandleCellClick(int row, int col) {
-    if (!selectedCard) return;
+    auto selected = selectedCard.lock();
+    if (!selected) return;
 
     auto cell = mBoard ? mBoard->GetCell(row, col) : nullptr;
     if (!cell) return;
@@ -283,7 +276,8 @@ void CardSlotManager::HandleCellClick(int row, int col) {
 }
 
 bool CardSlotManager::CanPlaceInCell(const std::shared_ptr<Cell>& cell) const {
-    if (!selectedCard || !cell) return false;
+    auto selected = selectedCard.lock();
+    if (!selected || !cell) return false;
 
     // 检查格子是否已有植物
     if (!cell->IsEmpty()) {
@@ -291,7 +285,7 @@ bool CardSlotManager::CanPlaceInCell(const std::shared_ptr<Cell>& cell) const {
     }
 
     // 检查阳光是否足够
-    if (auto cardComp = selectedCard->GetComponent<CardComponent>()) {
+    if (auto cardComp = selected->GetComponent<CardComponent>()) {
         if (!CanAfford(cardComp->GetSunCost())) {
             return false;
         }
@@ -301,9 +295,10 @@ bool CardSlotManager::CanPlaceInCell(const std::shared_ptr<Cell>& cell) const {
 }
 
 void CardSlotManager::PlacePlantInCell(int row, int col) {
-    if (!selectedCard || !mBoard) return;
+    auto selected = selectedCard.lock();
+    if (!selected || !mBoard) return;
 
-    auto cardComp = selectedCard->GetComponent<CardComponent>();
+    auto cardComp = selected->GetComponent<CardComponent>();
     if (!cardComp) return;
 
     auto cell = mBoard->GetCell(row, col);
@@ -328,8 +323,8 @@ void CardSlotManager::PlacePlantInCell(int row, int col) {
 }
 
 PlantType CardSlotManager::GetSelectedPlantType() const {
-    if (selectedCard) {
-        if (auto cardComp = selectedCard->GetComponent<CardComponent>()) {
+    if (auto selected = selectedCard.lock()) {
+        if (auto cardComp = selected->GetComponent<CardComponent>()) {
             return cardComp->GetPlantType();
         }
     }

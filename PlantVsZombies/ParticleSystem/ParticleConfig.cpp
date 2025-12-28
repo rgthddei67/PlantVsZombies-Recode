@@ -33,7 +33,7 @@ void ParticleConfigManager::InitializeConfigs()
 
     config.startColor = { 255, 255, 255, 255 }; 
     config.endColor = { 255, 255, 255, 255 };
-    config.lifetime = 2.0f;
+    config.lifetime = 2.5f;
     config.startSize = 65.0f;
     config.endSize = 65.0f;
     config.minVelocity = 60.0f;

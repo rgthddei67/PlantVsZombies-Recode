@@ -1,4 +1,6 @@
 #include "Scene.h"
+#include "GameObjectManager.h"
+#include "CollisionSystem.h"
 #include "../ResourceManager.h"
 #include "../ParticleSystem/ParticleSystem.h"
 #include <iostream>
@@ -65,6 +67,8 @@ void Scene::Update()
     {
         g_particleSystem->UpdateAll();
     }
+    GameObjectManager::GetInstance().Update();
+    CollisionSystem::GetInstance().Update();
 }
 
 void Scene::UnregisterDrawCommand(const std::string& name) {

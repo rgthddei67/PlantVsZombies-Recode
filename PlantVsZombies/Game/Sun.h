@@ -31,6 +31,12 @@ public:
 		slowDownDistance = 130.0f;
 	}
 
+	// TODO 析构函数会自动调用基类的析构函数 不能自己写
+    ~Sun() override {
+        this->mIsParabola = false;
+        this->mIsLinearFalling = false;
+    }
+
     void Start() override {
         Coin::Start();
         mIsInitialized = true;
@@ -164,11 +170,5 @@ public:
         }
     }
 
-    // 确保在销毁前停止所有运动
-    void OnDestroy() override {
-        mIsParabola = false;
-        mIsLinearFalling = false;
-        GameObject::OnDestroy();
-    }
 };
 #endif

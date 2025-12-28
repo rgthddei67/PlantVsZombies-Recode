@@ -62,10 +62,7 @@ public:
         mDrawCommands.clear();
     }    
 
-    virtual void Update() 
-    {
-
-    }
+    virtual void Update();
 
     virtual void Draw(SDL_Renderer* renderer);
 
