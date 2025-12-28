@@ -19,6 +19,7 @@ private:
     std::vector<std::weak_ptr<GameObject>> cards;           // 存储卡牌的弱引用
     std::weak_ptr<GameObject> selectedCard;                 // 当前选中的卡牌（弱引用）
     std::shared_ptr<Plant> plantPreview = nullptr;          // 植物预览
+    std::shared_ptr<Plant> cellPlantPreview = nullptr;      
 
     // 常量参数
     Vector firstSlotPosition = Vector(64, -2); // 第一个卡牌槽的位置
@@ -65,6 +66,11 @@ public:
 private:
     void CreatePlantPreview(PlantType plantType);
     void UpdatePlantPreviewPosition(const Vector& position);
+
+    // 创建Cell悬停预览（透明）
+    void CreateCellPlantPreview(PlantType plantType, std::shared_ptr<Cell> cell);
+    // 销毁Cell悬停预览
+    void DestroyCellPlantPreview();
 
     // 检查是否可以在指定Cell放置植物
     bool CanPlaceInCell(const std::shared_ptr<Cell>& cell) const;

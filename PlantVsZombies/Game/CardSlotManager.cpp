@@ -91,7 +91,7 @@ void CardSlotManager::Draw(SDL_Renderer* renderer) {
 
 void CardSlotManager::AddCard(PlantType plantType, int sunCost, float cooldown) {
     auto card = GameObjectManager::GetInstance().CreateGameObjectImmediate<Card>(
-        plantType, sunCost, cooldown);
+        LAYER_BACKGROUND, plantType, sunCost, cooldown);
 
     cards.push_back(card);
     ArrangeCards();
@@ -152,6 +152,7 @@ void CardSlotManager::DeselectCard() {
         mHoveredCell.reset();
     }
     DestroyPlantPreview();
+    DestroyCellPlantPreview();
 }
 
 void CardSlotManager::ArrangeCards() {
@@ -188,12 +189,51 @@ void CardSlotManager::DestroyPlantPreview() {
     }
 }
 
+void CardSlotManager::DestroyCellPlantPreview() {
+    if (cellPlantPreview) {
+        cellPlantPreview->Die();
+        cellPlantPreview = nullptr;
+    }
+}
+
 void CardSlotManager::CreatePlantPreview(PlantType plantType) {
     DestroyPlantPreview();
 
     if (mBoard) {
         plantPreview = mBoard->CreatePlant(plantType, 0, 0, true);
         plantPreview->PauseAnimation();
+    }
+}
+
+void CardSlotManager::CreateCellPlantPreview(PlantType plantType, std::shared_ptr<Cell> cell) {
+    DestroyCellPlantPreview();
+
+    if (mBoard && cell) {
+        cellPlantPreview = mBoard->CreatePlant(plantType, 0, 0, true);
+        if (cellPlantPreview) {
+            // 暂停动画
+            cellPlantPreview->PauseAnimation();
+
+            // 获取植物偏移量
+            PlantDataManager& plantMgr = PlantDataManager::GetInstance();
+            Vector plantOffset = plantMgr.GetPlantOffset(plantType);
+
+            // 设置位置到Cell中心，并应用偏移量
+            Vector centerPos = cell->GetCenterPosition();
+            Vector plantPosition = centerPos + plantOffset;
+
+            if (auto transform = cellPlantPreview->GetComponent<TransformComponent>()) {
+                transform->SetPosition(plantPosition);
+            }
+
+            // 设置半透明效果
+            // 如果Plant类有SetAlpha方法，可以这样调用：
+            // cellPlantPreview->SetAlpha(0.5f);
+
+            // 或者通过动画组件设置半透明
+            // 这里假设可以通过设置动画速度或其他方式模拟半透明效果
+            cellPlantPreview->SetAnimationSpeed(0.7f); // 减慢速度模拟半透明效果
+        }
     }
 }
 
@@ -224,12 +264,43 @@ void CardSlotManager::UpdatePlantPreviewPosition(const Vector& position) {
             }
         }
 
-        mHoveredCell = hoveredCell;
+        if (hoveredCell != nullptr && hoveredCell->GetPlantID() != -1) return;
 
-        // 更新预览位置
-        if (hoveredCell) {
-            UpdatePreviewToCell(hoveredCell);
+        // 检查是否需要更新Cell预览
+        auto oldHoveredCell = mHoveredCell.lock();
+        if (hoveredCell != oldHoveredCell) {
+            // Cell发生变化，销毁旧的Cell预览
+            DestroyCellPlantPreview();
+
+            // 如果悬停在新的Cell上，创建透明的Cell预览
+            if (hoveredCell) {
+                if (auto cardComp = selected->GetComponent<CardComponent>()) {
+                    CreateCellPlantPreview(cardComp->GetPlantType(), hoveredCell);
+                }
+            }
+
+            mHoveredCell = hoveredCell;
         }
+
+        // 更新Cell预览位置（如果存在）
+        if (cellPlantPreview && hoveredCell) {
+            // 获取植物偏移量
+            if (auto cardComp = selected->GetComponent<CardComponent>()) {
+                PlantDataManager& plantMgr = PlantDataManager::GetInstance();
+                Vector plantOffset = plantMgr.GetPlantOffset(cardComp->GetPlantType());
+
+                // 计算位置：Cell中心 + 偏移量
+                Vector centerPos = hoveredCell->GetCenterPosition();
+                Vector plantPosition = centerPos + plantOffset;
+
+                if (auto transform = cellPlantPreview->GetComponent<TransformComponent>()) {
+                    transform->SetPosition(plantPosition);
+                }
+            }
+        }
+
+        // 更新鼠标预览位置
+        UpdatePreviewToMouse(position);
     }
 }
 
@@ -309,6 +380,7 @@ void CardSlotManager::PlacePlantInCell(int row, int col) {
     }
 
     DestroyPlantPreview();
+    DestroyCellPlantPreview();
     AudioSystem::PlaySound(AudioConstants::SOUND_PLANT, 0.5f);
 
     // 创建植物

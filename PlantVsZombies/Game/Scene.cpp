@@ -3,6 +3,7 @@
 #include "CollisionSystem.h"
 #include "../ResourceManager.h"
 #include "../ParticleSystem/ParticleSystem.h"
+#include "ClickableComponent.h"
 #include <iostream>
 
 void Scene::BuildDrawCommands() {
@@ -67,6 +68,7 @@ void Scene::Update()
     {
         g_particleSystem->UpdateAll();
     }
+    ClickableComponent::ClearConsumedEvents();
     GameObjectManager::GetInstance().Update();
     CollisionSystem::GetInstance().Update();
 }

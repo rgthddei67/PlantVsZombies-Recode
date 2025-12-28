@@ -3,6 +3,7 @@
 #include "../GameRandom.h"
 #include "./Plant/Plant.h"
 #include "./Plant/SunFlower.h"
+#include "RenderOrder.h"
 
 void Board::InitializeCell(int rows, int cols)
 {
@@ -16,7 +17,8 @@ void Board::InitializeCell(int rows, int cols)
         {
             Vector position(CELL_INITALIZE_POS_X + j * CELL_COLLIDER_SIZE_X,
                 CELL_INITALIZE_POS_Y + i * CELL_COLLIDER_SIZE_Y);
-            auto cell = GameObjectManager::GetInstance().CreateGameObject<Cell>(i, j, position);
+            auto cell = GameObjectManager::GetInstance().CreateGameObject<Cell>(
+                LAYER_BACKGROUND ,i, j, position);
             mCells[i][j] = cell;
         }
     }
@@ -41,7 +43,9 @@ void Board::Draw(SDL_Renderer* renderer)
 
 std::shared_ptr<Sun> Board::CreateSun(const Vector& position, bool needAnimation)
 {
-    auto sun = GameObjectManager::GetInstance().CreateGameObject<Sun>(this, position, 0.85f, "Sun", needAnimation, true);
+    auto sun = GameObjectManager::GetInstance().CreateGameObject<Sun>
+        (LAYER_GAME_COIN, this, position, 0.85f, "Sun",
+            needAnimation, true);
     if (sun) {
         sun->mCoinID = mNextCoinID;
         mCoinIDMap[mNextCoinID] = sun;
@@ -72,6 +76,7 @@ std::shared_ptr<Plant> Board::CreatePlant(PlantType plantType, int row, int colu
 
     case PlantType::PLANT_SUNFLOWER:
         plant = GameObjectManager::GetInstance().CreateGameObjectImmediate<SunFlower>(
+			LAYER_GAME_PLANT,        // int renderOrder
             this,                    // Board* board
             PlantType::PLANT_SUNFLOWER,  // PlantType plantType
             row,                    // int row

@@ -29,7 +29,7 @@ void GameScene::BuildDrawCommands()
 				GameAPP::GetInstance().DrawText(renderer, std::to_string(mBoard->GetSun()),
 					Vector(20, 43), SDL_Color{ 0, 0, 0, 255 }, "./font/fzcq.ttf", 17);
 			},
-			LAYER_UI + 100);
+			LAYER_UI + 10000);
 	}
 	SortDrawCommands();
 }
@@ -41,7 +41,8 @@ void GameScene::OnEnter() {
 	// º”‘ÿ±≥æ∞
 	mBoard = std::make_unique<Board>();
 
-	auto CardUI = GameObjectManager::GetInstance().CreateGameObjectImmediate<GameObject>();
+	auto CardUI = GameObjectManager::GetInstance().CreateGameObjectImmediate<GameObject>(
+		LAYER_UI);
 	CardUI->SetName("CardUI");
 	auto cardSlotManager = CardUI->AddComponent<CardSlotManager>(mBoard.get());
 

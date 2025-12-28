@@ -5,11 +5,18 @@
 #include <vector>
 #include <memory>
 #include <algorithm>
+#include <map>
+#include <set>
 #include <SDL2/SDL.h>
 #include "GameObject.h"
 
 class GameObjectManager {
 private:
+    // 每个图层有自己的回收池
+    std::map<RenderLayer, std::set<int>> mLayerRecycledOrders;
+    // 每个图层当前的最大子顺序
+    std::map<RenderLayer, int> mLayerMaxSubOrder;
+
     std::vector<std::shared_ptr<GameObject>> mGameObjects;       // 已经有的游戏对象
     std::vector<std::shared_ptr<GameObject>> mObjectsToAdd;      // 待添加的游戏对象
     std::vector<std::shared_ptr<GameObject>> mObjectsToRemove;   // 待删除的游戏对象
@@ -20,29 +27,39 @@ public:
         return instance;
     }
 
+    GameObjectManager()
+    {
+		ResetAllLayers();
+    }
+
     // 创建游戏对象 (塞入mObjectsToAdd，在Update时执行Start)
     template<typename T, typename... Args>
-    std::shared_ptr<T> CreateGameObject(Args&&... args) {
+    std::shared_ptr<T> CreateGameObject(RenderLayer layer, Args&&... args) {
         static_assert(std::is_base_of<GameObject, T>::value, "T must be a GameObject");
         auto obj = std::make_shared<T>(std::forward<Args>(args)...);
+        obj->SetLayer(layer);
+        AssignRenderOrder(obj, layer);
         mObjectsToAdd.push_back(obj);
         return obj;
     }
 
     // 立即创建游戏对象并启动（立刻调用Start 并且塞入mGameObjects 而不是mObjectsToAdd)
     template<typename T, typename... Args>
-    std::shared_ptr<T> CreateGameObjectImmediate(Args&&... args) {
+    std::shared_ptr<T> CreateGameObjectImmediate(RenderLayer layer, Args&&... args) {
         static_assert(std::is_base_of<GameObject, T>::value, "T must be a GameObject");
         auto obj = std::make_shared<T>(std::forward<Args>(args)...);
+        obj->SetLayer(layer);
+        AssignRenderOrder(obj, layer);
         mGameObjects.push_back(obj);
         obj->Start();
         return obj;
     }
 
     // 销毁游戏对象
-    void DestroyGameObject(std::shared_ptr<GameObject> obj)
-    {
+    void DestroyGameObject(std::shared_ptr<GameObject> obj) {
         if (obj) {
+            // 回收渲染顺序
+            RecycleRenderOrder(obj->GetRenderOrder(), obj->GetLayer());
             mObjectsToRemove.push_back(obj);
         }
     }
@@ -73,11 +90,14 @@ public:
         }
         mObjectsToRemove.clear();
 
+        ResetAllLayers();
+
 #ifdef _DEBUG
         std::cout << "GameObjectManager::DestroyAllGameObjects 已销毁所有游戏对象" << std::endl;
 #endif
     }
 
+    // 更新
     void Update() {
         // 移除在mObjectsToRemove中的对象
         for (auto& objToRemove : mObjectsToRemove) {
@@ -167,6 +187,87 @@ public:
             }
         }
         mObjectsToRemove.clear();
+        
+        ResetAllLayers();
     }
+
+    // 初始化所有图层
+    void ResetAllLayers() {
+        mLayerRecycledOrders.clear();
+        mLayerMaxSubOrder.clear();
+
+        // 初始化所有枚举值
+        RenderLayer layers[] = {
+            LAYER_BACKGROUND,
+            LAYER_GAME_OBJECT,
+            LAYER_GAME_PLANT,
+            LAYER_GAME_ZOMBIE,
+            LAYER_GAME_BULLET,
+            LAYER_GAME_COIN,
+            LAYER_EFFECTS,
+            LAYER_UI,
+            LAYER_DEBUG
+        };
+
+        for (RenderLayer layer : layers) {
+            ResetLayer(layer);
+        }
+    }
+
+    void AssignRenderOrder(std::shared_ptr<GameObject> gameObject, RenderLayer layer) {
+        // 如果对象已经有渲染顺序，先回收旧的
+        RecycleRenderOrder(gameObject->GetRenderOrder(), gameObject->GetLayer());
+
+        // 分配新的渲染顺序
+        int subOrder = GetNextSubOrder(layer);
+        int renderOrder = static_cast<int>(layer) + subOrder;
+
+        gameObject->SetRenderOrder(renderOrder);
+    }
+
+    // 回收渲染顺序
+    void RecycleRenderOrder(int renderOrder, RenderLayer layer) {
+        int subOrder = renderOrder - static_cast<int>(layer);
+        if (subOrder >= 0 && subOrder < 10000) {
+            mLayerRecycledOrders[layer].insert(subOrder);
+        }
+    }
+
+private:
+    // 获取图层内的下一个可用子顺序
+    int GetNextSubOrder(RenderLayer layer) {
+        // 1. 优先从回收池获取
+        if (!mLayerRecycledOrders[layer].empty()) {
+            int recycled = *mLayerRecycledOrders[layer].begin();
+            mLayerRecycledOrders[layer].erase(mLayerRecycledOrders[layer].begin());
+            return recycled;
+        }
+
+        // 2. 分配新的子顺序
+        int newOrder = mLayerMaxSubOrder[layer]++;
+
+        // 3. 检查是否超过图层容量
+        if (newOrder >= 10000) { // 每个图层最多10000个子顺序
+            // 尝试从回收池获取
+            if (!mLayerRecycledOrders[layer].empty()) {
+                newOrder = *mLayerRecycledOrders[layer].begin();
+                mLayerRecycledOrders[layer].erase(mLayerRecycledOrders[layer].begin());
+            }
+            else {
+                // 重置该图层
+                ResetLayer(layer);
+                newOrder = mLayerMaxSubOrder[layer]++; // 从0开始
+            }
+        }
+
+        return newOrder;
+    }
+
+    // 重置指定图层
+    void ResetLayer(RenderLayer layer) {
+        mLayerMaxSubOrder[layer] = 0;
+        mLayerRecycledOrders[layer].clear();
+    }
+
 };
 #endif

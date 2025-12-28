@@ -3,6 +3,7 @@
 #define _CLICKABLE_COMPONENT_H
 
 #include "Component.h"
+#include <unordered_set>
 #include <iostream>
 #include <functional>
 #include <memory>
@@ -30,8 +31,13 @@ public:
     bool IsMouseOver() const { return mouseOver; }
     bool IsMouseDown() const { return mouseDown; }
 
+    static void ClearConsumedEvents();
+    static bool IsEventConsumedByHigherObject(const std::shared_ptr<GameObject>& currentObj,
+        const std::vector<std::shared_ptr<GameObject>>& sortedObjects);
+
 private:
     std::shared_ptr<ColliderComponent> collider;
+    inline static std::unordered_set<ClickableComponent*> s_processedThisFrame;
     bool mouseOver = false;
     bool mouseDown = false;
     bool eventConsumed = false;
