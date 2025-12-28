@@ -165,9 +165,6 @@
     <ClInclude Include="ParticleSystem\ParticleSystem.h">
       <Filter>Code\ParticleSystem</Filter>
     </ClInclude>
-    <ClInclude Include="ConstEnums.h">
-      <Filter>Code</Filter>
-    </ClInclude>
     <ClInclude Include="GameApp.h">
       <Filter>Code</Filter>
     </ClInclude>

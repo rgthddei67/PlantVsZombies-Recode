@@ -54,7 +54,6 @@
     <ClCompile Include="UI\SliderManager.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="ConstEnums.h" />
     <ClInclude Include="CrashHandler.h" />
     <ClInclude Include="DeltaTime.h" />
     <ClInclude Include="FileManager.h" />
