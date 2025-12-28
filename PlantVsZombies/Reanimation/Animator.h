@@ -4,6 +4,7 @@
 
 #include "ReanimTypes.h"
 #include "Reanimation.h"
+#include <algorithm>
 #include <unordered_map>
 #include <memory>
 
@@ -16,6 +17,7 @@ private:
     float mFrameIndexEnd = 0.0f;
     float mSpeed = 1.0f;
     float mDeltaRate = 0.0f;
+    float mAlpha = 1.0f;
 
     // 过渡动画
     float mReanimBlendCounter = -1.0f;
@@ -47,6 +49,9 @@ public:
 
     // 获取底层shared_ptr Reanimation
     std::shared_ptr<Reanimation> GetReanimation() const { return mReanim; }
+
+    void SetAlpha(float alpha) { mAlpha = std::clamp(alpha, 0.0f, 1.0f); }
+    float GetAlpha() const { return mAlpha; }
 
     // 帧范围控制
     std::pair<int, int> GetTrackRange(const std::string& trackName);

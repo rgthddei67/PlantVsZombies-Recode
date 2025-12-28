@@ -147,6 +147,18 @@ public:
         return mScale;
     }
 
+    // 设置透明度
+    void SetAlpha(float alpha) {
+        if (mAnimator) {
+            mAnimator->SetAlpha(alpha);
+        }
+    }
+
+    // 获取透明度
+    float GetAlpha() const {
+        return mAnimator ? mAnimator->GetAlpha() : 1.0f;
+    }
+
     bool IsPlaying() const {
         return mIsPlaying && mAnimator && mAnimator->IsPlaying();
     }

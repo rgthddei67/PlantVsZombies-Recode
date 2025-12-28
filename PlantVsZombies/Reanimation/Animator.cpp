@@ -187,11 +187,10 @@ void Animator::Draw(SDL_Renderer* renderer, float baseX, float baseY, float Scal
     int baseYi = static_cast<int>(baseY);
 
     // 保存当前渲染器状态
-    SDL_RendererFlip oldFlip = SDL_FLIP_NONE;
     SDL_BlendMode oldBlendMode;
     SDL_GetRenderDrawBlendMode(renderer, &oldBlendMode);
 
-    // 设置渲染器为像素完美模式
+    // 设置渲染器为混合模式
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 
     for (int i = 0; i < mReanim->GetTrackCount(); i++) {
@@ -236,9 +235,10 @@ void Animator::Draw(SDL_Renderer* renderer, float baseX, float baseY, float Scal
         // 创建目标矩形
         SDL_Rect dstRect = { posX, posY, scaledWidth, scaledHeight };
 
-        // 设置纹理透明度
-        Uint8 alpha = static_cast<Uint8>(std::clamp(transform.a * 255.0f, 0.0f, 255.0f));
-        SDL_SetTextureAlphaMod(image, alpha);
+        // 设置纹理透明度：帧透明度 × Animator的mAlpha
+        float combinedAlpha = transform.a * mAlpha;
+        Uint8 finalAlpha = static_cast<Uint8>(std::clamp(combinedAlpha * 255.0f, 0.0f, 255.0f));
+        SDL_SetTextureAlphaMod(image, finalAlpha);
 
         // 设置颜色调制为白色（避免颜色混合）
         SDL_SetTextureColorMod(image, 255, 255, 255);

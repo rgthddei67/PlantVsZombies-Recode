@@ -211,9 +211,6 @@ void CardSlotManager::CreateCellPlantPreview(PlantType plantType, std::shared_pt
     if (mBoard && cell) {
         cellPlantPreview = mBoard->CreatePlant(plantType, 0, 0, true);
         if (cellPlantPreview) {
-            // 暂停动画
-            cellPlantPreview->PauseAnimation();
-
             // 获取植物偏移量
             PlantDataManager& plantMgr = PlantDataManager::GetInstance();
             Vector plantOffset = plantMgr.GetPlantOffset(plantType);
@@ -222,17 +219,16 @@ void CardSlotManager::CreateCellPlantPreview(PlantType plantType, std::shared_pt
             Vector centerPos = cell->GetCenterPosition();
             Vector plantPosition = centerPos + plantOffset;
 
+			cellPlantPreview->SetRenderOrder(LAYER_GAME_OBJECT - 5000);
+
             if (auto transform = cellPlantPreview->GetComponent<TransformComponent>()) {
                 transform->SetPosition(plantPosition);
             }
 
-            // 设置半透明效果
-            // 如果Plant类有SetAlpha方法，可以这样调用：
-            // cellPlantPreview->SetAlpha(0.5f);
-
-            // 或者通过动画组件设置半透明
-            // 这里假设可以通过设置动画速度或其他方式模拟半透明效果
-            cellPlantPreview->SetAnimationSpeed(0.7f); // 减慢速度模拟半透明效果
+            if (auto reanimation = cellPlantPreview->GetAnimationComponent()) {
+                reanimation->SetAlpha(0.35f);
+				reanimation->Pause();
+			}
         }
     }
 }
