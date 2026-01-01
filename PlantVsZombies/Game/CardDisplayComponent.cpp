@@ -270,6 +270,10 @@ void CardDisplayComponent::TranToWaitingSun() {
 }
 
 void CardDisplayComponent::TranToReady() {
+    if (isSelected)
+    {
+		return; 
+    }
     cardState = CardState::Ready;
     showMask = false;
     maskFillAmount = 0.0f;

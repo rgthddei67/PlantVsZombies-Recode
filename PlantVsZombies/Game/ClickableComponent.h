@@ -4,16 +4,14 @@
 
 #include "Component.h"
 #include <unordered_set>
-#include <iostream>
 #include <functional>
-#include <memory>
 
 class ColliderComponent;
 
 class ClickableComponent : public Component {
 public:
-    bool IsClickable = true;    // 能否点击
-    bool ConsumeEvent = true;   // 是否消耗点击事件
+	bool IsClickable = true;    // 是否可点击
+	bool ConsumeEvent = true;   // 是否消耗点击事件，阻止更低层对象响应
 
     std::function<void()> onClick;
     std::function<void()> onMouseEnter;
@@ -28,19 +26,20 @@ public:
 
     void SetClickArea(const Vector& size);
     void SetClickOffset(const Vector& offset);
-    bool IsMouseOver() const { return mouseOver; }
-    bool IsMouseDown() const { return mouseDown; }
 
-    static void ClearConsumedEvents();
-    static bool IsEventConsumedByHigherObject(const std::shared_ptr<GameObject>& currentObj,
-        const std::vector<std::shared_ptr<GameObject>>& sortedObjects);
+    static void ProcessMouseEvents();
+    static void ClearProcessedEvents();
 
 private:
-    std::shared_ptr<ColliderComponent> collider;
-    inline static std::unordered_set<ClickableComponent*> s_processedThisFrame;
+    std::shared_ptr<ColliderComponent> mCollider;
+
+    // 存储当前帧处理过的点击事件
+    inline static std::unordered_set<ClickableComponent*> s_processedEvents;
+
+    // 鼠标状态
     bool mouseOver = false;
     bool mouseDown = false;
-    bool eventConsumed = false;
+    bool prevMouseOver = false;
 };
 
 #endif

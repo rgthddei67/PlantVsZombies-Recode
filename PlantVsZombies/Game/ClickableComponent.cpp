@@ -4,162 +4,126 @@
 #include "../UI/InputHandler.h"
 #include "../GameApp.h"
 #include "GameObject.h"
+#include <algorithm>
 
-void ClickableComponent::ClearConsumedEvents() {
-    s_processedThisFrame.clear();
+void ClickableComponent::ClearProcessedEvents() {
+    s_processedEvents.clear();
 }
 
-bool ClickableComponent::IsEventConsumedByHigherObject(
-    const std::shared_ptr<GameObject>& currentObj,
-    const std::vector<std::shared_ptr<GameObject>>& sortedObjects) {
-
-    for (const auto& obj : sortedObjects) {
-        if (obj == currentObj) {
-            break; // 已经检查到当前对象，之前没有更高层级的对象处理事件
-        }
-
-        auto clickable = obj->GetComponent<ClickableComponent>();
-        if (clickable && s_processedThisFrame.find(clickable.get()) != s_processedThisFrame.end()) {
-            // 这个更高层级的对象已经处理了事件
-            return true;
-        }
-    }
-    return false;
-}
-
-void ClickableComponent::Start() {
-    if (auto gameObject = this->GetGameObject())
-    {
-        collider = gameObject->GetComponent<ColliderComponent>();
-        if (collider == nullptr)
-        {
-#ifdef _DEBUG
-            std::cout << "ClickableComponent::Start:"
-                << "没有ColliderComponent组件！自动添加" << std::endl;
-#endif
-            collider = gameObject->AddComponent<ColliderComponent>(Vector(50, 50));
-            collider->isTrigger = true;
-        }
-        else
-        {
-            collider->isTrigger = true;
-        }
-    }
-}
-
-void ClickableComponent::Update() {
-    eventConsumed = false;
-    mouseOver = false; // 每次重新计算
-
-    if (!IsClickable || !collider || !collider->mEnabled) {
-        return;
-    }
-
+void ClickableComponent::ProcessMouseEvents() {
     auto& input = GameAPP::GetInstance().GetInputHandler();
     Vector mousePos = input.GetMousePosition();
 
-    // 先收集鼠标位置下所有可点击对象
-    auto currentGameObject = GetGameObject();
-    if (!currentGameObject) return;
+    // 清空上一帧的处理记录
+    ClearProcessedEvents();
 
+    // 收集所有鼠标位置下的可点击对象
     auto& manager = GameObjectManager::GetInstance();
     auto allObjects = manager.GetAllGameObjects();
 
-    std::vector<std::shared_ptr<GameObject>> clickableObjectsAtMouse;
+    std::vector<std::pair<std::shared_ptr<GameObject>, ClickableComponent*>> clickableObjects;
 
     for (auto& obj : allObjects) {
         if (!obj->IsActive()) continue;
 
         auto clickable = obj->GetComponent<ClickableComponent>();
         if (!clickable || !clickable->IsClickable) continue;
+        
+		auto collider = clickable->mCollider;
+		if (!collider || !collider->mEnabled) continue;
 
-        auto objCollider = obj->GetComponent<ColliderComponent>();
-        if (!objCollider || !objCollider->mEnabled) continue;
-
-        if (objCollider->ContainsPoint(mousePos)) {
-            clickableObjectsAtMouse.push_back(obj);
-
-            // 同时检查悬停状态
-            if (obj == currentGameObject) {
-                mouseOver = true;
-            }
+        if (collider->ContainsPoint(mousePos)) {
+            clickableObjects.emplace_back(obj, clickable.get());
         }
     }
 
-    // 处理鼠标进入/离开事件
-    static bool prevMouseOver = false;
-    if (mouseOver && !prevMouseOver) {
-        if (onMouseEnter) onMouseEnter();
-    }
-    else if (!mouseOver && prevMouseOver) {
-        if (onMouseExit) onMouseExit();
-        mouseDown = false;
-    }
-    prevMouseOver = mouseOver;
+    // 按渲染顺序降序排序（order大的在前）
+    std::sort(clickableObjects.begin(), clickableObjects.end(),
+        [](const auto& a, const auto& b) {
+            return a.first->GetRenderOrder() > b.first->GetRenderOrder();
+        });
 
-    // 只有当鼠标悬停时才处理点击
-    if (mouseOver && !clickableObjectsAtMouse.empty()) {
-        // 按渲染顺序降序排序（高的在前）
-        std::sort(clickableObjectsAtMouse.begin(), clickableObjectsAtMouse.end(),
-            [](const std::shared_ptr<GameObject>& a, const std::shared_ptr<GameObject>& b) {
-                return a->GetRenderOrder() > b->GetRenderOrder();
-            });
+    // 更新所有对象的鼠标悬停状态 后标记处理过的对象
+    for (auto& pair : clickableObjects) {
+        pair.second->mouseOver = true;
 
-        // 检查是否有更高层级的对象已经处理了事件
-        bool eventBlocked = false;
-        for (const auto& obj : clickableObjectsAtMouse) {
-            if (obj == currentGameObject) {
-                break; // 已经检查到当前对象
-            }
+        auto clickable = pair.second;
 
-            auto clickable = obj->GetComponent<ClickableComponent>();
-            if (clickable && s_processedThisFrame.find(clickable.get()) != s_processedThisFrame.end()) {
-                eventBlocked = true;
-                break;
-            }
+        // 如果这个对象的事件已经被处理（由更高层对象消耗），跳过
+        if (s_processedEvents.find(clickable) != s_processedEvents.end()) {
+            continue;
         }
 
-        if (!eventBlocked) {
-            // 处理点击事件
-            if (input.IsMouseButtonPressed(SDL_BUTTON_LEFT)) {
-                mouseDown = true;
-                if (onMouseDown) onMouseDown();
-            }
+        // 处理点击事件
+        bool processed = false;
 
-            if (input.IsMouseButtonReleased(SDL_BUTTON_LEFT) && mouseDown) {
-                mouseDown = false;
-                if (onClick) onClick();
-                if (onMouseUp) onMouseUp();
+        if (input.IsMouseButtonPressed(SDL_BUTTON_LEFT)) {
+            clickable->mouseDown = true;
+            if (clickable->onMouseDown) clickable->onMouseDown();
+            processed = true;
+        }
 
-                // 如果设置了ConsumeEvent，则标记为已处理
-                if (ConsumeEvent) {
-                    s_processedThisFrame.insert(this);
-                    eventConsumed = true;
+        if (input.IsMouseButtonReleased(SDL_BUTTON_LEFT) && clickable->mouseDown) {
+            clickable->mouseDown = false;
+            if (clickable->onMouseUp) clickable->onMouseUp();
+            if (clickable->onClick) clickable->onClick();
+            processed = true;
+        }
+
+        // 如果对象消耗事件，标记并停止处理后续对象
+        if (processed && clickable->ConsumeEvent) {
+            s_processedEvents.insert(clickable);
+            // 标记所有未处理的对象的事件已被消耗
+            for (auto& remainingPair : clickableObjects) {
+                if (remainingPair.second != clickable) {
+                    s_processedEvents.insert(remainingPair.second);
                 }
             }
+            break;
+        }
+
+        // 如果对象不消耗事件，标记为已处理但继续处理下一个
+        if (processed) {
+            s_processedEvents.insert(clickable);
+        }
+    }
+
+    // 调用所有对象的Update来处理鼠标进入/离开事件
+    for (auto& pair : clickableObjects) {
+        pair.second->Update();
+    }
+}
+
+void ClickableComponent::Start() {
+    if (auto gameObject = this->GetGameObject()) {
+        mCollider = gameObject->GetComponent<ColliderComponent>();
+        if (!mCollider) {
+            mCollider = gameObject->AddComponent<ColliderComponent>(Vector(50, 50));
+            mCollider->isTrigger = true;
         }
         else {
-            // 事件被阻塞，重置鼠标状态
-            if (input.IsMouseButtonReleased(SDL_BUTTON_LEFT)) {
-                mouseDown = false;
-            }
+            mCollider->isTrigger = true;
         }
     }
-    else {
-        if (input.IsMouseButtonReleased(SDL_BUTTON_LEFT)) {
-            mouseDown = false;
-        }
+}
+
+void ClickableComponent::Update() {
+    // 先重置mouseOver状态（会在ProcessMouseEvents中重新设置）
+    bool wasMouseOver = mouseOver;
+    mouseOver = false;
+
+    // 处理鼠标进入/离开事件
+    if (prevMouseOver && !wasMouseOver && onMouseExit) {
+        onMouseExit();
+        mouseDown = false;
     }
+    prevMouseOver = wasMouseOver;
 }
 
 void ClickableComponent::SetClickArea(const Vector& size) {
-    if (collider) {
-        collider->size = size;
-    }
+    if (mCollider) mCollider->size = size;
 }
 
 void ClickableComponent::SetClickOffset(const Vector& offset) {
-    if (collider) {
-        collider->offset = offset;
-    }
+    if (mCollider) mCollider->offset = offset;
 }

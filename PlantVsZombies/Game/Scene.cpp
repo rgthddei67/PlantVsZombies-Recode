@@ -68,8 +68,9 @@ void Scene::Update()
     {
         g_particleSystem->UpdateAll();
     }
-    ClickableComponent::ClearConsumedEvents();
+
     GameObjectManager::GetInstance().Update();
+    ClickableComponent::ProcessMouseEvents();
     CollisionSystem::GetInstance().Update();
 }
 
