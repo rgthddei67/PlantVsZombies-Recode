@@ -1,6 +1,7 @@
 #pragma once
 #ifndef _SUN_H
 #define _SUN_H
+#include "../ResourceKeys.h"
 #include "../DeltaTime.h"
 #include "../GameRandom.h"
 #include "Coin.h"
@@ -61,7 +62,7 @@ public:
     {
         if (clickComponent == nullptr) return;
         clickComponent->onClick = [this]() {
-			AudioSystem::PlaySound(AudioConstants::SOUND_COLLECT_SUN, 0.5f);
+			AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_COLLECTSUN, 0.5f);
 			StartMoveToTarget(Vector(10, 10), speedFast, speedSlow, slowDownDistance);
         };
     }

@@ -1,4 +1,5 @@
 #include "CardSlotManager.h"
+#include "../ResourceKeys.h"
 #include "GameObject.h"
 #include "GameObjectManager.h"
 #include "Card.h"
@@ -387,7 +388,7 @@ void CardSlotManager::PlacePlantInCell(int row, int col) {
 
 	DestroyPlantPreview();
 	DestroyCellPlantPreview();
-	AudioSystem::PlaySound(AudioConstants::SOUND_PLANT, 0.5f);
+	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_PLANT, 0.5f);
 
 	// ´´½¨Ö²Îï
 	auto plant = mBoard->CreatePlant(cardComp->GetPlantType(), row, col);

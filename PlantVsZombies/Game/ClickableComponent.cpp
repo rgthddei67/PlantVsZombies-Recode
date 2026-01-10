@@ -4,6 +4,7 @@
 #include "../UI/InputHandler.h"
 #include "../GameApp.h"
 #include "GameObject.h"
+#include "../CursorManager.h"
 #include <algorithm>
 
 void ClickableComponent::ClearProcessedEvents() {
@@ -16,6 +17,8 @@ void ClickableComponent::ProcessMouseEvents() {
 
     // 清空上一帧的处理记录
     ClearProcessedEvents();
+
+    s_hoveringClickable = false;
 
     // 收集所有鼠标位置下的可点击对象
     auto& manager = GameObjectManager::GetInstance();
@@ -34,6 +37,10 @@ void ClickableComponent::ProcessMouseEvents() {
 
         if (collider->ContainsPoint(mousePos)) {
             clickableObjects.emplace_back(obj, clickable.get());
+
+            if (clickable->ChangeCursorOnHover) {
+                s_hoveringClickable = true;
+            }
         }
     }
 
@@ -45,9 +52,14 @@ void ClickableComponent::ProcessMouseEvents() {
 
     // 更新所有对象的鼠标悬停状态 后标记处理过的对象
     for (auto& pair : clickableObjects) {
+        auto clickable = pair.second;
+        bool wasHovered = clickable->mouseOver;
         pair.second->mouseOver = true;
 
-        auto clickable = pair.second;
+        // 如果之前没有悬停，现在悬停，增加计数
+        if (!wasHovered && clickable->ChangeCursorOnHover) {
+            CursorManager::GetInstance().IncrementHoverCount();
+        }
 
         // 如果这个对象的事件已经被处理（由更高层对象消耗），跳过
         if (s_processedEvents.find(clickable) != s_processedEvents.end()) {

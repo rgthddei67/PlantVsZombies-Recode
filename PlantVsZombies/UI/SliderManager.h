@@ -19,7 +19,7 @@ public:
         float initialValue = 0.5f);
 
     // 处理所有滑动条鼠标事件
-    void ProcessMouseEvent(SDL_Event* event, InputHandler* input);
+    void ProcessMouseEvent(InputHandler* input);
 
     // 更新所有滑动条
     void UpdateAll(InputHandler* input);

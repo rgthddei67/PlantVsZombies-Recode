@@ -31,6 +31,8 @@ void ButtonManager::ClearAllButtons()
 
 void ButtonManager::UpdateAll(InputHandler* input)
 {
+    if (!input) return;
+
     for (auto& button : buttons)
     {
         button->Update(input);
@@ -59,11 +61,11 @@ std::shared_ptr<Button> ButtonManager::GetButton(size_t index) const
     return nullptr;
 }
 
-void ButtonManager::ProcessMouseEvent(SDL_Event* event)
+void ButtonManager::ProcessMouseEvent(InputHandler* input)
 {
     for (auto& button : buttons) 
     {
-        button->ProcessMouseEvent(event);
+        button->ProcessMouseEvent(input);
     }
 }
 

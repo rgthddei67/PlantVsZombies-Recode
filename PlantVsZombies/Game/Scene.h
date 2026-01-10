@@ -3,6 +3,7 @@
 #define _SCENE_H
 
 #include "../UI/UIManager.h"
+#include "../ResourceKeys.h"
 #include "./GameObjectManager.h"
 #include <SDL2/SDL.h>
 #include <string>
@@ -65,11 +66,6 @@ public:
     virtual void Update();
 
     virtual void Draw(SDL_Renderer* renderer);
-
-    virtual void HandleEvent(SDL_Event& event, InputHandler& input)
-    {
-        mUIManager.ProcessMouseEvent(&event, &input);
-    }
 
     // 注册自定义绘制命令
     void RegisterDrawCommand(const std::string& name,

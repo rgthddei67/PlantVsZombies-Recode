@@ -12,6 +12,7 @@ class ClickableComponent : public Component {
 public:
 	bool IsClickable = true;    // 是否可点击
 	bool ConsumeEvent = true;   // 是否消耗点击事件，阻止更低层对象响应
+    bool ChangeCursorOnHover = true;   // 悬停时改变光标
 
     std::function<void()> onClick;
     std::function<void()> onMouseEnter;
@@ -40,6 +41,9 @@ private:
     bool mouseOver = false;
     bool mouseDown = false;
     bool prevMouseOver = false;
+
+    // 当前帧是否有鼠标悬停在可点击对象上
+    inline static bool s_hoveringClickable = false;
 };
 
 #endif

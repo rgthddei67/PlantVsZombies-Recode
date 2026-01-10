@@ -4,6 +4,7 @@
 #ifdef DrawText
 #undef DrawText
 #endif
+#include "ResourceKeys.h"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_ttf.h>
@@ -15,6 +16,7 @@
 #include <functional>
 #include <stdexcept>
 #include "./Game/Definit.h"
+#include "./ParticleSystem/ParticleSystem.h"
 
 struct TextCache
 {
@@ -35,12 +37,31 @@ private:
     std::unique_ptr<InputHandler> mInputHandler;
     std::vector<TextCache> mTextCache;
 
+    SDL_Window* mWindow;
+    SDL_Renderer* mRenderer;
+    std::unique_ptr<ParticleSystem> mParticleSystem;
+
+    // 游戏运行状态
+    bool mRunning;
+    bool mInitialized;
+
     GameAPP();
     ~GameAPP();
 
-    // 删除拷贝构造和赋值
     GameAPP(const GameAPP&) = delete;
     GameAPP& operator=(const GameAPP&) = delete;
+
+    bool InitializeSDL();
+    bool InitializeSDL_Image();
+    bool InitializeSDL_TTF();
+    bool InitializeAudioSystem();
+    bool CreateWindowAndRenderer();
+    bool InitializeResourceManager();
+    bool LoadAllResources();
+    void CleanupResources();
+    void Update();
+    void Draw();
+    void Shutdown();
 
 public:
     inline static bool mDebugMode = false;        // 是否是调试模式
@@ -48,45 +69,40 @@ public:
 
     // 获取单例实例
     static GameAPP& GetInstance();
-    
-	// 关闭游戏
-    void CloseGame();
 
-    // 初始化游戏应用
+    int Run();
+
     bool Initialize();
 
     // 清除文本缓存
     void ClearTextCache();
 
-    // 清理资源
-    void CleanupResources();
-
-    // 绘制文本 使用UTF8编码字符串
+    // 绘制文本 UTF8编码
     void DrawText(SDL_Renderer* renderer,
         const std::string& text,
         int x, int y,
         const SDL_Color& color,
-        const std::string& fontKey = "./font/fzcq.ttf",
+        const std::string& fontKey = ResourceKeys::Fonts::FONT_FZCQ,
         int fontSize = 17);
 
-    // 绘制文本 使用UTF8编码字符串
+    // 绘制文本 UTF8编码
     void DrawText(SDL_Renderer* renderer,
         const std::string& text,
         const Vector& position,
         const SDL_Color& color,
-        const std::string& fontKey = "./font/fzcq.ttf",
+        const std::string& fontKey = ResourceKeys::Fonts::FONT_FZCQ,
         int fontSize = 17);
 
     // 文本尺寸
     Vector GetTextSize(const std::string& text,
-        const std::string& fontKey = "./font/fzcq.ttf",
+        const std::string& fontKey = ResourceKeys::Fonts::FONT_FZCQ,
         int fontSize = 17);
 
     // 创建文本纹理对象
     SDL_Texture* CreateTextTexture(SDL_Renderer* renderer,
         const std::string& text,
         const SDL_Color& color,
-        const std::string& fontKey = "./font/fzcq.ttf",
+        const std::string& fontKey = ResourceKeys::Fonts::FONT_FZCQ,
         int fontSize = 17);
 
     // 获取输入处理器
@@ -97,8 +113,14 @@ public:
         return *mInputHandler;
     }
 
-	// 检查输入处理器是否有效
+    // 检查输入处理器是否有效
     bool IsInputHandlerValid() const { return mInputHandler != nullptr; }
+
+    // 获取渲染器
+    SDL_Renderer* GetRenderer() const { return mRenderer; }
+
+    // 获取窗口
+    SDL_Window* GetWindow() const { return mWindow; }
 };
 
 #endif

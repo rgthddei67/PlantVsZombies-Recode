@@ -124,6 +124,9 @@
     <ClCompile Include="Game\Plant\PlantDataManager.cpp">
       <Filter>Code\Game\Plant</Filter>
     </ClCompile>
+    <ClCompile Include="CursorManager.cpp">
+      <Filter>Code</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="UI\Button.h">
@@ -281,6 +284,12 @@
     </ClInclude>
     <ClInclude Include="Game\RenderOrder.h">
       <Filter>Code\Game</Filter>
+    </ClInclude>
+    <ClInclude Include="CursorManager.h">
+      <Filter>Code</Filter>
+    </ClInclude>
+    <ClInclude Include="ResourceKeys.h">
+      <Filter>Code</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

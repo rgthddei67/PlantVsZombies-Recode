@@ -1,5 +1,6 @@
 #include "../ParticleSystem/ParticleConfig.h"
 #include "../ResourceManager.h"
+#include "../ResourceKeys.h"
 #include <cmath>
 
 ParticleConfigManager::ParticleConfigManager(SDL_Renderer* sdlRenderer)
@@ -27,7 +28,8 @@ void ParticleConfigManager::InitializeConfigs()
     config.spreadAngle = 90.0f;
     config.gravity = 0.2f;
     config.textureKeys = 
-    { "particle_zombiehead", "particle_zombiehead", "particle_zombiehead" };  // 子弹击中纹理
+    { ResourceKeys::Particles::PARTICLE_ZOMBIEHEAD, ResourceKeys::Particles
+        ::PARTICLE_ZOMBIEHEAD };  // 子弹击中纹理
     config.useTexture = true;
     configs[ParticleType::PEA_BULLET_HIT] = config;
 
@@ -41,7 +43,7 @@ void ParticleConfigManager::InitializeConfigs()
     config.spreadAngle = 80.0f;
     config.gravity = 330.0f; 
     config.textureKeys =
-    { "particle_zombiehead" };
+    { ResourceKeys::Particles::PARTICLE_ZOMBIEHEAD };
     config.useTexture = true;
     configs[ParticleType::ZOMBIE_HEAD_OFF] = config;
 

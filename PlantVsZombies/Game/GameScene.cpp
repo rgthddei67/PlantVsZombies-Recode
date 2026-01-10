@@ -3,6 +3,7 @@
 #include "../ResourceManager.h"
 #include "./Plant/PlantType.h"
 #include "./CardSlotManager.h"
+#include "../ResourceKeys.h"
 #include <iostream>
 
 GameScene::GameScene() {
@@ -17,8 +18,8 @@ void GameScene::BuildDrawCommands()
 {
 	Scene::BuildDrawCommands();
 	// TODO: 根据传入的Background参数选择不同背景
-	AddTexture("IMAGE_background_day", -215, 0, 1.0f, 1.0f, LAYER_BACKGROUND);
-	AddTexture("IMAGE_SeedBank_Long", 5, -10, 0.85f, 0.9f, LAYER_UI);
+	AddTexture(ResourceKeys::Textures::IMAGE_BACKGROUND_DAY, -215, 0, 1.0f, 1.0f, LAYER_BACKGROUND);
+	AddTexture(ResourceKeys::Textures::IMAGE_SEEDBANK_LONG, 5, -10, 0.85f, 0.9f, LAYER_UI);
 
 	if (mBoard) {
 		RegisterDrawCommand("Board",
@@ -27,17 +28,19 @@ void GameScene::BuildDrawCommands()
 		RegisterDrawCommand("SunCounter",
 			[this](SDL_Renderer* renderer) {
 				GameAPP::GetInstance().DrawText(renderer, std::to_string(mBoard->GetSun()),
-					Vector(20, 43), SDL_Color{ 0, 0, 0, 255 }, "./font/fzcq.ttf", 17);
+					Vector(20, 43), SDL_Color{ 0, 0, 0, 255 }, 
+					ResourceKeys::Fonts::FONT_FZCQ, 17);
 			},
-			LAYER_UI + 10000);
+			LAYER_UI + 100000);
 	}
 	SortDrawCommands();
 }
 
 void GameScene::OnEnter() {
 	Scene::OnEnter();
+#ifdef _DEBUG
 	std::cout << "进入游戏场景" << std::endl;
-
+#endif
 	// 加载背景
 	mBoard = std::make_unique<Board>();
 
@@ -48,7 +51,20 @@ void GameScene::OnEnter() {
 
 	cardSlotManager->AddCard(PlantType::PLANT_SUNFLOWER, 50, 7.5f);
 
-	std::cout << "Card system initialized with " << cardSlotManager->GetCards().size() << " cards" << std::endl;
+	// TODO: 不要捕获局部变量的引用！ 这里会造成循环引用！
+	/*
+	auto button1 = mUIManager.CreateButton(Vector(100, 150));
+	button1->SetAsCheckbox(true);
+	button1->SetClickCallBack([](bool isChecked) {
+		std::cout << "按钮1 被点击，当前状态: " << (isChecked ? "选中" : "未选中") << std::endl;
+		}
+	);
+
+	auto slider = mUIManager.CreateSlider(Vector(300, 150), Vector(135, 10), 0.0f, 100.0f, 0.0f);
+	slider->SetChangeCallBack([slider](float value) {
+		}
+	);
+	*/
 }
 
 void GameScene::OnExit() {
@@ -63,13 +79,6 @@ void GameScene::Update() {
 	{
 		mBoard->Update();
 	}
-}
-
-void GameScene::HandleEvent(SDL_Event& event, InputHandler& input)
-{
-	Scene::HandleEvent(event, input);
-	mUIManager.UpdateAll(&input);
-	// TODO: 游戏内键盘事件处理
 }
 
 /*

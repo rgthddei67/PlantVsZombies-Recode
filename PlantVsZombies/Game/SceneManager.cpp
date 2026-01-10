@@ -66,12 +66,6 @@ void SceneManager::Draw(SDL_Renderer* renderer) {
     }
 }
 
-void SceneManager::HandleEvent(SDL_Event& event, InputHandler& input) {
-    if (!sceneStack_.empty()) {
-        sceneStack_.top()->HandleEvent(event, input);
-    }
-}
-
 Scene* SceneManager::GetCurrentScene() const {
     return sceneStack_.empty() ? nullptr : sceneStack_.top().get();
 }

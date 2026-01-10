@@ -1,4 +1,5 @@
 #include "CardDisplayComponent.h"
+#include "../ResourceKeys.h"
 #include "./Card.h"
 #include "./CardComponent.h"
 #include "GameObject.h"
@@ -59,8 +60,8 @@ void CardDisplayComponent::LoadTextures() {
     auto& resourceManager = ResourceManager::GetInstance();
 
     // º”‘ÿø®≈∆±≥æ∞Œ∆¿Ì
-    cardBackground = resourceManager.GetTexture("IMAGE_card_bk");
-    cardNormal = resourceManager.GetTexture("IMAGE_SeedPacketNormal");
+    cardBackground = resourceManager.GetTexture(ResourceKeys::Textures::IMAGE_CARD_BK);
+    cardNormal = resourceManager.GetTexture(ResourceKeys::Textures::IMAGE_SEEDPACKETNORMAL);
 
     // º”‘ÿ÷≤ŒÔŒ∆¿Ì
     std::string plantKey = GetPlantTextureKey();
@@ -169,7 +170,7 @@ void CardDisplayComponent::DrawSunCost(SDL_Renderer* renderer, std::shared_ptr<T
     GameAPP::GetInstance().DrawText(renderer, std::to_string(needSun),
         Vector(position.x + 6, position.y + 58),
         { 0, 0, 0, 255 },
-        "./font/fzcq.ttf",
+        ResourceKeys::Fonts::FONT_FZCQ,
         14);
 }
 

@@ -2,6 +2,7 @@
 #ifndef _BUTTONMANAGER_H
 #define _BUTTONMANAGER_H
 #include "../UI/Button.h"
+#include "../UI/InputHandler.h"
 #include <vector>
 #include <memory>
 
@@ -16,7 +17,7 @@ public:
         Vector size = Vector(40, 40));
 
     // 管理所有按钮鼠标移动事件
-    void ProcessMouseEvent(SDL_Event* event);
+    void ProcessMouseEvent(InputHandler* input);
 
     // 清空所有按钮鼠标记录
     void ResetAllFrameStates();

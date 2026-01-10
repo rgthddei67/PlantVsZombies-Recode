@@ -18,19 +18,20 @@ private:
     bool isPressed = false;                    // 是否按下
     bool isChecked = false;                    // 是否勾选
     bool isCheckbox = false;                   // 是否是复选框类型
+	bool canClick = true;                      // 是否可点击
 
-    std::string normalImageKey;                // 正常状态图片key
-    std::string hoverImageKey;                 // 悬停状态图片key  
-    std::string pressedImageKey;               // 按下状态图片key
-    std::string checkedImageKey;               // 选中状态图片key
+    std::string normalImageKey = "IMAGE_options_checkbox0";                // 正常状态图片key
+    std::string hoverImageKey = "IMAGE_options_checkbox0";                 // 悬停状态图片key  
+    std::string pressedImageKey = "IMAGE_options_checkbox0";               // 按下状态图片key
+    std::string checkedImageKey = "IMAGE_options_checkbox1";               // 选中状态图片key
 
     std::string text = "";                     // 按钮文字
-    std::string fontName = "./font/fzcq.ttf";        // 字体文件名
+    std::string fontName = ResourceKeys::Fonts::FONT_FZCQ;        // 字体文件名
     int fontSize = 17;                         // 字体大小
     SDL_Color textColor = { 0, 0, 0, 255 };      // 文字颜色（黑色）
     SDL_Color hoverTextColor = { 255, 255, 255, 255 }; // 悬停时文字颜色（白色）
 
-    std::function<void()> onClickCallback = nullptr; // 点击回调函数
+    std::function<void(bool isChecked)> onClickCallback = nullptr; // 点击回调函数
     static std::string s_defaultFontPath;
     bool m_mousePressedThisFrame;
     bool m_mouseReleasedThisFrame;
@@ -40,21 +41,23 @@ public:
     Button(Vector createPosition = Vector::zero(), Vector btnSize = Vector(40, 40));
     static void SetDefaultFontPath(const std::string& path);
     static std::string GetDefaultFontPath();
-    void ProcessMouseEvent(SDL_Event* event);
+
+    void ProcessMouseEvent(InputHandler* input);
     void ResetFrameState(); // 重置
-    // 设置按钮属性
+
     void SetPosition(Vector pos);
     void SetSize(Vector size);
-    void SetText(const std::string& btnText, const std::string& font = "./font/fzcq.ttf", int size = 17);
+    void SetText(const std::string& btnText, const std::string& font = ResourceKeys::Fonts::FONT_FZCQ, int size = 17);
     void SetTextColor(const SDL_Color& color);
     void SetHoverTextColor(const SDL_Color& color);
     void SetAsCheckbox(bool checkbox);
+	void SetCanClick(bool canClick);
 
     // 设置图片资源key
     void SetImageKeys(const std::string& normal, const std::string& hover = "", const std::string& pressed = "", const std::string& checked = "");
 
     // 设置点击回调
-    void SetClickCallBack(std::function<void()> callback);
+    void SetClickCallBack(std::function<void(bool)> callback);
 
     // 更新和渲染
     void Update(InputHandler* input);

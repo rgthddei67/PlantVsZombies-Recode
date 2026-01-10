@@ -84,10 +84,10 @@ public:
     }
 
     // 统一处理方法
-    void ProcessMouseEvent(SDL_Event* event, InputHandler* input)
+    void ProcessMouseEvent(InputHandler* input)
     {
-        buttonManager.ProcessMouseEvent(event);
-        sliderManager.ProcessMouseEvent(event, input);
+        buttonManager.ProcessMouseEvent(input);
+        sliderManager.ProcessMouseEvent(input);
     }
 
     void UpdateAll(InputHandler* input)

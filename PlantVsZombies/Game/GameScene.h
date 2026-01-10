@@ -12,7 +12,6 @@ public:
     void OnEnter() override;
     void OnExit() override;
     void Update() override;
-    void HandleEvent(SDL_Event& event, InputHandler& input) override;
 	void BuildDrawCommands() override;
 
 private:

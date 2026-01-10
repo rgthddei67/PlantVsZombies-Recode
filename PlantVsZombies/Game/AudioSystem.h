@@ -4,43 +4,12 @@
 #ifdef PlaySound
 #undef PlaySound
 #endif
+#include "../ResourceKeys.h"
 #include <SDL2/SDL_mixer.h>
 #include <string>
 #include <algorithm>
 #include <iostream>
 #include <unordered_map>
-
-//TODO:新增音效还要改这里
-namespace AudioConstants
-{
-    // 音效常量
-    const std::string SOUND_BLEEP = "SOUND_BLEEP";              // 碰到主菜单按钮
-    const std::string SOUND_BUTTONCLICK = "SOUND_BUTTONCLICK";
-    const std::string SOUND_CERAMIC = "SOUND_CERAMIC";
-    const std::string SOUND_CHOOSEPLANT1 = "SOUND_CHOOSEPLANT1";
-    const std::string SOUND_CHOOSEPLANT2 = "SOUND_CHOOSEPLANT2";
-    const std::string SOUND_GRAVEBUTTON = "SOUND_GRAVEBUTTON";
-    const std::string SOUND_MAINMENU = "SOUND_MAINMENU";
-    const std::string SOUND_PAUSE = "SOUND_PAUSE";
-    const std::string SOUND_SHOVEL = "SOUND_SHOVEL";
-    const std::string SOUND_COLLECT_SUN = "SOUND_COLLECTSUN";
-    const std::string SOUND_CLICK_FAILED = "SOUND_CLICKFAILED";
-    const std::string SOUND_AFTER_HUGE_WAVE = "SOUND_AFTERHUGEWAVE";
-    const std::string SOUND_FINAL_WAVE = "SOUND_FINALWAVE";
-    const std::string SOUND_FIRST_WAVE = "SOUND_FIRSTWAVE";
-    const std::string SOUND_LAWN_MOWER = "SOUND_LAWNMOWER";
-    const std::string SOUND_LOST_GAME = "SOUND_LOSTGAME";
-    const std::string SOUND_POOL_CLEANER = "SOUND_POOL_CLEANER";
-    const std::string SOUND_READY_SET_PLANT = "SOUND_READYSETPLANT";
-    const std::string SOUND_WIN_MUSIC = "SOUND_WINMUSIC";
-    const std::string SOUND_CLICK_SEED = "SOUND_CLICKSEED";
-    const std::string SOUND_DELETEPLANT = "SOUND_DELETEPLANT";
-    const std::string SOUND_PLANT = "SOUND_PLANT";
-    const std::string SOUND_PLANT_ONWATER = "SOUND_PLANT_ONWATER";
-
-    // 音乐常量
-    const std::string MUSIC_MENU = "MUSIC_MAINMENU";
-}
 
 class AudioSystem
 {

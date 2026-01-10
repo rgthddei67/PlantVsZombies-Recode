@@ -1,5 +1,6 @@
 #include "Slider.h"
 #include "../ResourceManager.h"
+#include "../CursorManager.h"
 #include <iostream>
 #include <algorithm>
 
@@ -43,6 +44,11 @@ void Slider::SetValue(float value)
     }
 }
 
+void Slider::SetDrag(bool canDrag)
+{
+    this->canDrag = canDrag;
+}
+
 void Slider::SetImageKeys(const std::string& background, const std::string& knob)
 {
     this->backgroundImageKey = background;
@@ -54,49 +60,47 @@ void Slider::SetChangeCallBack(std::function<void(float)> callback)
     this->onChangeCallback = callback;
 }
 
-void Slider::ProcessMouseEvent(SDL_Event* event, InputHandler* input)
+void Slider::ProcessMouseEvent(InputHandler* input)
 {
-    if (!input) return;
+    if (!input || !canDrag) return;
 
     Vector mousePos = input->GetMousePosition();
 
-    switch (event->type)
+    if (input->IsMouseButtonDown(SDL_BUTTON_LEFT))
     {
-    case SDL_MOUSEBUTTONDOWN:
-        if (event->button.button == SDL_BUTTON_LEFT)
+        // 检查是否点击了滑块
+        if (KnobContainsPoint(mousePos))
         {
-            // 检查是否点击了滑块
-            if (KnobContainsPoint(mousePos))
-            {
-                isDragging = true;
-                dragStartPosition = mousePos;
-                dragStartValue = currentValue;
-            }
-            // 检查是否点击了背景（但不是滑块）
-            else if (BackgroundContainsPoint(mousePos) && !KnobContainsPoint(mousePos))
-            {
-                float newValue = CalculateValueFromX(mousePos.x);
-                SetValue(newValue);
-            }
+            isDragging = true;
+            dragStartPosition = mousePos;
+            dragStartValue = currentValue;
         }
-        break;
-
-    case SDL_MOUSEBUTTONUP:
-        if (event->button.button == SDL_BUTTON_LEFT && isDragging)
+        // 检查是否点击了背景（但不是滑块）
+        else if (this->BackgroundContainsPoint(mousePos) && !this->KnobContainsPoint(mousePos))
         {
-            isDragging = false;
+            float newValue = this->CalculateValueFromX(mousePos.x);
+            this->SetValue(newValue);
         }
-        break;
-    }
+	}
+    else if (input->IsMouseButtonReleased(SDL_BUTTON_LEFT) && isDragging)
+    {
+        isDragging = false;
+	}
 }
 
 void Slider::Update(InputHandler* input)
 {
     if (!input) return;
 
+    Vector mousePos = input->GetMousePosition();
+
+    if (BackgroundContainsPoint(mousePos))
+    {
+		CursorManager::GetInstance().IncrementHoverCount();
+    }
+
     if (isDragging)
     {
-        Vector mousePos = input->GetMousePosition();
         float deltaX = mousePos.x - dragStartPosition.x;
 
         // 计算像素到值的转换比例
@@ -201,7 +205,7 @@ bool Slider::IsDragging() const
 
 float Slider::GetValue() const
 {
-    return currentValue;
+    return this->currentValue;
 }
 
 float Slider::GetNormalizedValue() const

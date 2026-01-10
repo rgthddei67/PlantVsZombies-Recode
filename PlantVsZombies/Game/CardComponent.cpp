@@ -1,4 +1,5 @@
 #include "CardComponent.h"
+#include "../ResourceKeys.h"
 #include "CardDisplayComponent.h"
 #include "ClickableComponent.h"
 #include "GameObject.h"
@@ -25,11 +26,11 @@ void CardComponent::Start() {
 				// 通知卡槽管理器这个卡牌被点击了
 				auto manager = GetCardSlotManager();
 				if (!IsReady() || !manager->CanAfford(mSunCost)) {
-					AudioSystem::PlaySound(AudioConstants::SOUND_CLICK_FAILED, 0.5f);
+					AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_CLICKFAILED, 0.5f);
 					return;
 				}
 				manager->SelectCard(this->GetGameObject());
-				AudioSystem::PlaySound(AudioConstants::SOUND_CLICK_SEED, 0.5f);
+				AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_CLICKSEED , 0.5f);
 				};
 		}
 	}

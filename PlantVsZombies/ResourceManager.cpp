@@ -70,11 +70,18 @@ bool ResourceManager::LoadAllParticleTextures()
         std::string filename = path.substr(path.find_last_of("/\\") + 1);
         std::string nameWithoutExt = filename.substr(0, filename.find_last_of('.'));
 
-        // 转换为小写
-        std::transform(nameWithoutExt.begin(), nameWithoutExt.end(), nameWithoutExt.begin(), ::tolower);
+        // 转换为大写
+        std::transform(nameWithoutExt.begin(), nameWithoutExt.end(), nameWithoutExt.begin(), ::toupper);
 
-        // 生成key：particle_ + 文件名（小写）
-        std::string key = "particle_" + nameWithoutExt;
+        // 将非字母数字字符替换为下划线
+        for (char& c : nameWithoutExt) {
+            if (!std::isalnum(c)) {
+                c = '_';
+            }
+        }
+
+        // 生成key：PARTICLE_ + 文件名（大写）
+        std::string key = "PARTICLE_" + nameWithoutExt;
         if (!LoadTexture(path, key))
         {
             std::cerr << "加载粒子纹理失败: " << path << std::endl;
@@ -447,29 +454,48 @@ SDL_Texture* ResourceManager::LoadTexture(const std::string& path, const std::st
         return textures[actualKey];
     }
 
-    // 加载纹理
+    // 加载纹理 - 使用简单直接的方法
     SDL_Texture* texture = IMG_LoadTexture(renderer, path.c_str());
     if (!texture)
     {
+        // 尝试不同的路径格式
         std::cerr << "加载纹理失败: " << path << " - " << IMG_GetError() << std::endl;
+
+        // 检查文件是否存在
+        SDL_RWops* file = SDL_RWFromFile(path.c_str(), "rb");
+        if (!file) {
+            std::cerr << "文件不存在或无法打开: " << path << std::endl;
+        }
+        else {
+            SDL_RWclose(file);
+        }
+
         return nullptr;
     }
 
-    // 禁用纹理过滤，保持像素清晰
-    SDL_SetTextureScaleMode(texture, SDL_ScaleModeNearest);
-
-    // 禁用线性过滤
-    if (SDL_SetTextureScaleMode(texture, SDL_ScaleModeNearest) != 0) {
-        std::cerr << "警告: 无法设置纹理缩放模式: " << SDL_GetError() << std::endl;
+    // 获取纹理尺寸并验证
+    int width, height;
+    if (SDL_QueryTexture(texture, NULL, NULL, &width, &height) != 0) {
+        std::cerr << "获取纹理尺寸失败: " << path << " - " << SDL_GetError() << std::endl;
+        SDL_DestroyTexture(texture);
+        return nullptr;
     }
 
-    SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "0"); // 0 = nearest (像素完美), 1 = linear (模糊)
+    if (width <= 0 || height <= 0) {
+        std::cerr << "无效的纹理尺寸: " << width << "x" << height << " for " << path << std::endl;
+        SDL_DestroyTexture(texture);
+        return nullptr;
+    }
 
+    // 设置纹理属性
+    SDL_SetTextureScaleMode(texture, SDL_ScaleModeNearest);
     SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_BLEND);
 
     textures[actualKey] = texture;
+
 #ifdef _DEBUG
-    std::cout << "成功加载纹理: " << path << " (key: " << actualKey << ")" << std::endl;
+    std::cout << "成功加载纹理: " << path << " (key: " << actualKey << ") 尺寸: "
+        << width << "x" << height << std::endl;
 #endif
     return texture;
 }
@@ -489,6 +515,17 @@ std::string ResourceManager::GenerateTextureKey(const std::string& path)
 {
     std::string filename = path.substr(path.find_last_of("/\\") + 1);
     std::string nameWithoutExt = filename.substr(0, filename.find_last_of('.'));
+
+    // 转换为大写
+    std::transform(nameWithoutExt.begin(), nameWithoutExt.end(), nameWithoutExt.begin(), ::toupper);
+
+    // 将非字母数字字符替换为下划线
+    for (char& c : nameWithoutExt) {
+        if (!std::isalnum(c)) {
+            c = '_';
+        }
+    }
+
     return "IMAGE_" + nameWithoutExt;
 }
 

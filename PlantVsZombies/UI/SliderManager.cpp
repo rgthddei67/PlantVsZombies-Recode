@@ -9,11 +9,11 @@ std::shared_ptr<Slider> SliderManager::CreateSlider(Vector pos, Vector size,
     return slider;
 }
 
-void SliderManager::ProcessMouseEvent(SDL_Event* event, InputHandler* input)
+void SliderManager::ProcessMouseEvent(InputHandler* input)
 {
     for (auto& slider : sliders)
     {
-        slider->ProcessMouseEvent(event, input);
+        slider->ProcessMouseEvent(input);
     }
 }
 

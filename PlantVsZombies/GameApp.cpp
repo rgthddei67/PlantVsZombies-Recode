@@ -1,18 +1,34 @@
-#include "GameApp.h"
+#include "./GameAPP.h"
 #include "./UI/InputHandler.h"
-#include "ResourceManager.h"
+#include "./ResourceManager.h"
 #include "./Game/Board.h"
+#include "./Game/SceneManager.h"
+#include "./Game/GameScene.h"
+#include "./RendererManager.h"
+#include "./CursorManager.h"
+#include "./Game/AudioSystem.h"
+#include "./GameRandom.h"
+#include "./DeltaTime.h"
+#include "./ParticleSystem/ParticleSystem.h"
+#include "./Game/GameObjectManager.h"
+#include "./Game/CollisionSystem.h"
+#include "./Game/Plant/PlantDataManager.h"
 #include <iostream>
 #include <sstream>
 
 GameAPP::GameAPP()
     : mInputHandler(nullptr)
+    , mWindow(nullptr)
+    , mRenderer(nullptr)
+    , mRunning(false)
+    , mInitialized(false)
 {
+	mTextCache.reserve(16);
 }
 
 GameAPP::~GameAPP()
 {
-    
+
 }
 
 GameAPP& GameAPP::GetInstance()
@@ -21,19 +37,337 @@ GameAPP& GameAPP::GetInstance()
     return instance;
 }
 
-bool GameAPP::Initialize()
+bool GameAPP::InitializeSDL()
 {
-    mInputHandler = std::make_unique<InputHandler>();
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0)
+    {
+        std::cerr << "SDL初始化失败: " << SDL_GetError() << std::endl;
+        return false;
+    }
     return true;
 }
 
-void GameAPP::CloseGame()
+bool GameAPP::InitializeSDL_Image()
 {
-    if (mInputHandler)
+    int imgFlags = IMG_INIT_PNG | IMG_INIT_JPG;
+    int initializedFlags = IMG_Init(imgFlags);
+
+    if ((initializedFlags & imgFlags) != imgFlags) {
+        std::cerr << "SDL_image初始化失败，请求: " << imgFlags
+            << "，实际: " << initializedFlags << " - " << IMG_GetError() << std::endl;
+        return false;
+    }
+    return true;
+}
+
+bool GameAPP::InitializeSDL_TTF()
+{
+    if (TTF_Init() == -1)
     {
+        std::cerr << "SDL_ttf初始化失败: " << TTF_GetError() << std::endl;
+        return false;
+    }
+    return true;
+}
+
+bool GameAPP::InitializeAudioSystem()
+{
+    if (!AudioSystem::Initialize())
+    {
+        std::cerr << "警告: 音频初始化失败，游戏将继续运行但没有声音" << std::endl;
+    }
+    return true;
+}
+
+bool GameAPP::CreateWindowAndRenderer()
+{
+    // 设置SDL提示
+    SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "0");  // 0 = nearest (像素完美)
+    SDL_SetHint(SDL_HINT_RENDER_VSYNC, "1");          // 启用垂直同步减少撕裂
+
+    // 创建窗口
+    mWindow = SDL_CreateWindow(u8"植物大战僵尸中文版",
+        SDL_WINDOWPOS_CENTERED,
+        SDL_WINDOWPOS_CENTERED,
+        800, 600,
+        SDL_WINDOW_SHOWN);
+
+    if (!mWindow) {
+        std::cerr << "窗口创建失败: " << SDL_GetError() << std::endl;
+        return false;
+    }
+
+    // 创建渲染器
+    mRenderer = SDL_CreateRenderer(mWindow, -1,
+        SDL_RENDERER_ACCELERATED |
+        SDL_RENDERER_PRESENTVSYNC |
+        SDL_RENDERER_TARGETTEXTURE);
+
+    if (!mRenderer)
+    {
+        std::cerr << "渲染器创建失败: " << SDL_GetError() << std::endl;
+        return false;
+    }
+
+    // 设置初始背景色
+    SDL_SetRenderDrawColor(mRenderer, 0, 0, 255, 255);
+    SDL_RenderClear(mRenderer);
+    SDL_RenderPresent(mRenderer);
+
+    return true;
+}
+
+bool GameAPP::InitializeResourceManager()
+{
+    RendererManager::GetInstance().SetRenderer(mRenderer);
+
+    if (!CursorManager::GetInstance().Initialize()) {
+        std::cerr << "光标管理器创建失败！" << std::endl;
+        return false;
+    }
+
+    CursorManager::GetInstance().SetDefaultCursor();
+
+    PlantDataManager& plantMgr = PlantDataManager::GetInstance();
+    plantMgr.Initialize();
+
+    ResourceManager& resourceManager = ResourceManager::GetInstance();
+
+    if (!resourceManager.Initialize(mRenderer, "./resources/resources.xml")) {
+        std::cerr << "ResourceManager 初始化失败！" << std::endl;
+        return false;
+    }
+
+    return true;
+}
+
+bool GameAPP::LoadAllResources()
+{
+    ResourceManager& resourceManager = ResourceManager::GetInstance();
+    bool resourcesLoaded = true;
+
+    resourcesLoaded &= resourceManager.LoadAllGameImages();
+    resourcesLoaded &= resourceManager.LoadAllParticleTextures();
+    resourcesLoaded &= resourceManager.LoadAllFonts();
+    resourcesLoaded &= resourceManager.LoadAllSounds();
+    resourcesLoaded &= resourceManager.LoadAllMusic();
+    resourcesLoaded &= resourceManager.LoadAllReanimations();
+
+    if (!resourcesLoaded)
+    {
+        std::cerr << "资源加载失败！" << std::endl;
+        return false;
+    }
+
+    return true;
+}
+
+bool GameAPP::Initialize()
+{
+    if (mInitialized) return true;
+
+    // 初始化输入处理器
+    mInputHandler = std::make_unique<InputHandler>();
+
+    // 设置默认字体路径
+    Button::SetDefaultFontPath(ResourceKeys::Fonts::FONT_FZCQ);
+
+    mInitialized = true;
+    return true;
+}
+
+int GameAPP::Run()
+{
+    // 初始化各个系统
+    if (!InitializeSDL()) return -1;
+    if (!InitializeSDL_Image()) {
+        SDL_Quit();
+        return -1;
+    }
+    if (!InitializeSDL_TTF()) {
+        IMG_Quit();
+        SDL_Quit();
+        return -1;
+    }
+    if (!InitializeAudioSystem()) {
+        
+    }
+
+    // 初始化GameAPP自身
+    if (!Initialize()) {
+        CleanupResources();
+        TTF_Quit();
+        IMG_Quit();
+        SDL_Quit();
+        return -1;
+    }
+
+    // 创建窗口和渲染器
+    if (!CreateWindowAndRenderer()) {
+        CleanupResources();
+        AudioSystem::Shutdown();
+        TTF_Quit();
+        IMG_Quit();
+        SDL_Quit();
+        return -1;
+    }
+
+    // 初始化资源管理器
+    if (!InitializeResourceManager()) {
+        CleanupResources();
+        AudioSystem::Shutdown();
+        SDL_DestroyRenderer(mRenderer);
+        SDL_DestroyWindow(mWindow);
+        TTF_Quit();
+        IMG_Quit();
+        SDL_Quit();
+        return -1;
+    }
+
+    // 加载所有资源
+    if (!LoadAllResources()) {
+        CleanupResources();
+        AudioSystem::Shutdown();
+        CursorManager::GetInstance().Cleanup();
+        SDL_DestroyRenderer(mRenderer);
+        SDL_DestroyWindow(mWindow);
+        TTF_Quit();
+        IMG_Quit();
+        SDL_Quit();
+        return -1;
+    }
+
+    mParticleSystem = std::make_unique<ParticleSystem>(mRenderer);
+
+    auto& sceneManager = SceneManager::GetInstance();
+    sceneManager.RegisterScene<GameScene>("GameScene");
+    sceneManager.SwitchTo("GameScene");
+
+    DeltaTime::Reset();
+
+    mRunning = true;
+    SDL_Event event;
+
+    while (mRunning && !sceneManager.IsEmpty())
+    {
+        DeltaTime::BeginFrame();
+
+        // 处理事件
+        while (SDL_PollEvent(&event))
+        {
+            if (event.type == SDL_QUIT)
+            {
+                mRunning = false;
+            }
+            mInputHandler->ProcessEvent(&event);
+        }
+
+        // 特殊按键处理
+        if (mInputHandler->IsKeyReleased(SDLK_F3))
+        {
+            AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_BUTTONCLICK, 0.5f);
+            mDebugMode = !mDebugMode;
+            mShowColliders = !mShowColliders;
+            if (mParticleSystem) {
+                mParticleSystem->EmitEffect(ParticleType::ZOMBIE_HEAD_OFF,
+                    mInputHandler->GetMousePosition(), 5);
+            }
+        }
+
+        if (mInputHandler->IsKeyReleased(SDLK_ESCAPE))
+        {
+            mRunning = false;
+            break;
+        }
+
+        // 更新
+        CursorManager::GetInstance().ResetHoverCount();
+        sceneManager.Update();
+        CursorManager::GetInstance().Update();
+
+        // 渲染
+        Draw();
+
+#ifdef _DEBUG
+        static int MousePoint = 0;
+        if (MousePoint++ % 40 == 0)
+        {
+            std::cout << "Mouse Position: "
+                << mInputHandler->GetMousePosition().x << ", "
+                << mInputHandler->GetMousePosition().y << std::endl;
+        }
+#endif
+
+        mInputHandler->Update();
+    }
+
+    // 清理
+    Shutdown();
+
+    return 0;
+}
+
+void GameAPP::Draw()
+{
+    // 清屏
+    SDL_SetRenderDrawColor(mRenderer, 0, 0, 0, 255);
+    SDL_RenderClear(mRenderer);
+
+    // 绘制场景
+    auto& sceneManager = SceneManager::GetInstance();
+    sceneManager.Draw(mRenderer);
+
+    // 更新屏幕
+    SDL_RenderPresent(mRenderer);
+}
+
+void GameAPP::Shutdown()
+{
+    if (mRunning) return;
+
+    // 清理粒子系统
+    mParticleSystem.reset();
+
+    // 清理游戏对象和碰撞系统
+    GameObjectManager::GetInstance().ClearAll();
+    CollisionSystem::GetInstance().ClearAll();
+
+    // 清理资源管理器
+    ResourceManager::ReleaseInstance();
+
+    // 清理音频系统
+    AudioSystem::Shutdown();
+
+    // 清理渲染器
+    if (RendererManager::GetInstance().GetRenderer()) {
+        SDL_DestroyRenderer(RendererManager::GetInstance().GetRenderer());
+        RendererManager::GetInstance().SetRenderer(nullptr);
+    }
+
+    // 清理输入处理器
+    if (mInputHandler) {
         mInputHandler.reset();
     }
+
+    // 清理窗口
+    if (mWindow) {
+        SDL_DestroyWindow(mWindow);
+        mWindow = nullptr;
+    }
+
+    // 清理光标管理器
+    CursorManager::GetInstance().Cleanup();
+
+    // 清理SDL子系统
+    TTF_Quit();
+    IMG_Quit();
+    SDL_Quit();
+
+    // 清理文本缓存
     CleanupResources();
+
+    mRunning = false;
+    mInitialized = false;
 }
 
 void GameAPP::ClearTextCache()
@@ -69,6 +403,7 @@ void GameAPP::DrawText(SDL_Renderer* renderer,
     if (!font)
     {
         std::cerr << "无法获取字体: " << fontKey << " size: " << fontSize << std::endl;
+        return;
     }
 
     // 创建文本表面

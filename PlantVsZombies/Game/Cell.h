@@ -37,6 +37,8 @@ public:
         Collider->isTrigger = true;
         Collider->isStatic = true;
         auto clickable = this->AddComponent<ClickableComponent>();
+        if (!clickable) return;
+        clickable->ChangeCursorOnHover = false;
         clickable->onClick = [this]() {
             if (OnCellClicked) {
                 OnCellClicked(mRow, mColumn);

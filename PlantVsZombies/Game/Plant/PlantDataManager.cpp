@@ -1,4 +1,5 @@
 #include "PlantDataManager.h"
+#include "../../ResourceKeys.h"
 #include <iostream>
 #include <algorithm>
 #include <vector>
@@ -28,9 +29,9 @@ void PlantDataManager::InitializeHardcodedData() {
     RegisterPlant(
         PlantType::PLANT_SUNFLOWER,
         "PLANT_SUNFLOWER",
-        "IMAGE_SunFlower",
+        ResourceKeys::Textures::IMAGE_SUNFLOWER,
         AnimationType::ANIM_SUNFLOWER,
-        "SunFlower",
+        ResourceKeys::Reanimations::REANIM_SUNFLOWER,
         Vector(-40, -45)  // ∆´“∆¡ø
     );
 
@@ -38,24 +39,14 @@ void PlantDataManager::InitializeHardcodedData() {
     RegisterPlant(
         PlantType::PLANT_PEASHOOTER,
         "PLANT_PEASHOOTER",
-        "IMAGE_PeaShooter",
+        ResourceKeys::Textures::IMAGE_PEASHOOTER,
         AnimationType::ANIM_PEASHOOTER,
-        "PeaShooter",
-        Vector(-40, -45)
-    );
-
-    // ”£Ã“’®µØ
-    RegisterPlant(
-        PlantType::PLANT_CHERRYBOMB,
-        "PLANT_CHERRYBOMB",
-        "IMAGE_CherryBomb",
-        AnimationType::ANIM_CHERRYBOMB,
-        "CherryBomb",
+        ResourceKeys::Reanimations::REANIM_PEASHOOTER,
         Vector(-40, -45)
     );
 
     // ==================== ≥ı ºªØ∑«÷≤ŒÔ∂Øª≠”≥…‰ ====================
-    mAnimToString[AnimationType::ANIM_SUN] = "Sun";
+	mAnimToString[AnimationType::ANIM_SUN] = ResourceKeys::Reanimations::REANIM_SUN;
     mAnimToString[AnimationType::ANIM_NONE] = "Unknown";
 }
 

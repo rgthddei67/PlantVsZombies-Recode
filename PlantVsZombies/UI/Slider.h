@@ -22,6 +22,7 @@ private:
     std::string knobImageKey = "IMAGE_options_sliderknob2";                  // 滑块图片key
 
     bool isDragging = false;                   // 是否正在拖动
+	bool canDrag = true;                       // 是否允许拖动
     Vector dragStartPosition;                  // 拖动开始位置
     float dragStartValue;                      // 拖动开始时的值
 
@@ -37,11 +38,11 @@ public:
         float maxVal = 1.0f,
         float initialValue = 0.5f);
 
-    // 设置属性
     void SetPosition(Vector pos);
     void SetSize(Vector size);
     void SetValueRange(float min, float max);
     void SetValue(float value);
+	void SetDrag(bool canDrag);
 
     // 设置图片资源key
     void SetImageKeys(const std::string& background, const std::string& knob);
@@ -50,7 +51,7 @@ public:
     void SetChangeCallBack(std::function<void(float)> callback);
 
     // 处理输入事件
-    void ProcessMouseEvent(SDL_Event* event, InputHandler* input);
+    void ProcessMouseEvent(InputHandler* input);
     void Update(InputHandler* input);
 
     // 渲染

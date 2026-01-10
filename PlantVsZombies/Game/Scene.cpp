@@ -4,24 +4,25 @@
 #include "../ResourceManager.h"
 #include "../ParticleSystem/ParticleSystem.h"
 #include "ClickableComponent.h"
+#include "../GameApp.h"
 #include <iostream>
 
 void Scene::BuildDrawCommands() {
     mDrawCommands.clear();
 
-    // 添加背景纹理绘制命令
-    RegisterDrawCommand("BackgroundTextures",
-        [this](SDL_Renderer* renderer) { DrawAllTextures(renderer); },
+	// 添加纹理绘制命令
+    RegisterDrawCommand("GameTextures",
+        [this](SDL_Renderer* renderer) { this->DrawAllTextures(renderer); },
         LAYER_BACKGROUND);
 
     // 添加游戏对象绘制命令
     RegisterDrawCommand("GameObjects",
-        [this](SDL_Renderer* renderer) { DrawGameObjects(renderer); },
+        [this](SDL_Renderer* renderer) { this->DrawGameObjects(renderer); },
         LAYER_GAME_OBJECT);
 
     // 注册粒子系统绘制
     RegisterDrawCommand("ParticleSystem",
-        [this](SDL_Renderer* renderer) {
+        [](SDL_Renderer* renderer) {
             if (g_particleSystem) {
                 g_particleSystem->DrawAll();
             }
@@ -30,7 +31,7 @@ void Scene::BuildDrawCommands() {
 
     // 添加UI绘制命令
     RegisterDrawCommand("UI",
-        [this](SDL_Renderer* renderer) { mUIManager.DrawAll(renderer); },
+        [this](SDL_Renderer* renderer) { this->mUIManager.DrawAll(renderer); },
         LAYER_UI);
 }
 
@@ -68,7 +69,9 @@ void Scene::Update()
     {
         g_particleSystem->UpdateAll();
     }
-
+    auto input = &GameAPP::GetInstance().GetInputHandler();
+	mUIManager.ProcessMouseEvent(input);
+	mUIManager.UpdateAll(input);
     GameObjectManager::GetInstance().Update();
     ClickableComponent::ProcessMouseEvents();
     CollisionSystem::GetInstance().Update();

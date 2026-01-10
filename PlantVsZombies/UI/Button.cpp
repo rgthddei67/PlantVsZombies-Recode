@@ -2,9 +2,12 @@
 #include "InputHandler.h"
 #include <iostream>
 #include <SDL2/SDL_image.h>
+#include "../Game/AudioSystem.h"
+#include "../CursorManager.h"
 #include "../ResourceManager.h"
+#include "../ResourceKeys.h"
 
-std::string Button::s_defaultFontPath = "./font/fzcq.ttf";
+std::string Button::s_defaultFontPath = ResourceKeys::Fonts::FONT_FZCQ;
 
 void Button::SetDefaultFontPath(const std::string& path)
 {
@@ -18,9 +21,8 @@ std::string Button::GetDefaultFontPath()
 
 Button::Button(Vector createPosition, Vector btnSize)
     : position(createPosition), size(btnSize), isHovered(false), isPressed(false),
-    isChecked(false), isCheckbox(false), normalImageKey(""),
-    hoverImageKey(""), pressedImageKey(""), checkedImageKey(""),
-    fontName(s_defaultFontPath), fontSize(17), m_mousePressedThisFrame(false),
+    isChecked(false), isCheckbox(false), fontName(s_defaultFontPath), fontSize(17), 
+    m_mousePressedThisFrame(false),
     m_mouseReleasedThisFrame(false), m_wasMouseDown(false)
 {
 }
@@ -57,6 +59,11 @@ void Button::SetAsCheckbox(bool checkbox)
     this->isCheckbox = checkbox;
 }
 
+void Button::SetCanClick(bool canClick)
+{
+    this->canClick = canClick;
+}
+
 void Button::SetImageKeys(const std::string& normal, const std::string& hover, const std::string& pressed, const std::string& checked)
 {
     this->normalImageKey = normal;
@@ -65,25 +72,24 @@ void Button::SetImageKeys(const std::string& normal, const std::string& hover, c
     this->checkedImageKey = checked;
 }
 
-void Button::SetClickCallBack(std::function<void()> callback)
+void Button::SetClickCallBack(std::function<void(bool)> callback)
 {
     this->onClickCallback = callback;
 }
 
-void Button::ProcessMouseEvent(SDL_Event* event)
+void Button::ProcessMouseEvent(InputHandler* input)
 {
-    switch (event->type) {
-    case SDL_MOUSEBUTTONDOWN:
-        if (event->button.button == SDL_BUTTON_LEFT) {
-            m_mousePressedThisFrame = true;
-        }
-        break;
-    case SDL_MOUSEBUTTONUP:
-        if (event->button.button == SDL_BUTTON_LEFT) {
-            m_mouseReleasedThisFrame = true;
-        }
-        break;
+	if (input == nullptr || !canClick) return;
+
+    if (input->IsMouseButtonPressed(SDL_BUTTON_LEFT))
+    {
+        m_mousePressedThisFrame = true;
     }
+
+	if (input->IsMouseButtonReleased(SDL_BUTTON_LEFT))
+    {
+        m_mouseReleasedThisFrame = true;
+	}
 }
 
 void Button::ResetFrameState()
@@ -94,33 +100,42 @@ void Button::ResetFrameState()
 
 void Button::Update(InputHandler* input)
 {
+    if (!input) return;
+
     Vector mousePos = input->GetMousePosition();
     this->isHovered = this->ContainsPoint(mousePos);
 
-    // 使用实例变量检测按下
+    // 处理悬停状态变化
+    if (this->isHovered) {
+        CursorManager::GetInstance().IncrementHoverCount();
+    }
+
+    // 处理鼠标按下
     if (this->isHovered && m_mousePressedThisFrame)
     {
-
         this->isPressed = true;
-    }
-
-    // 检测释放
-    if (this->isPressed && m_mouseReleasedThisFrame)
-    {
-        this->isPressed = false;
-
-        if (this->isHovered)
+        // 按下时立即触发复选框状态切换
+        if (isCheckbox && !m_wasMouseDown)
         {
-            if (this->isCheckbox)
-            {
-                this->isChecked = !this->isChecked;
-            }
-            if (this->onClickCallback)
-            {
-                this->onClickCallback();
-            }
+            // 复选框可以在按下时就切换状态
+            this->isChecked = !this->isChecked;
         }
     }
+
+    // 处理鼠标释放
+    if (m_mouseReleasedThisFrame)
+    {
+        if (this->isPressed && this->isHovered && this->onClickCallback)
+        {
+			AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_BUTTONCLICK, 0.5f);
+            this->onClickCallback(this->isChecked);
+        }
+        this->isPressed = false;
+    }
+
+    // 更新鼠标状态记录
+    m_wasMouseDown = input->IsMouseButtonDown(SDL_BUTTON_LEFT);
+    ResetFrameState();
 }
 
 void Button::Draw(SDL_Renderer* renderer) const
