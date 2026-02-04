@@ -2,6 +2,8 @@
 #include "../ResourceManager.h"
 #include <iostream>
 #include "../FileManager.h"
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 Reanimation::Reanimation() {
     mTracks = std::make_shared<std::vector<TrackInfo>>();
@@ -33,19 +35,17 @@ bool Reanimation::LoadFromFile(const std::string& filePath) {
         }
         else if (tagName == "track") {
             TrackInfo track;
-            int frameCount = 0;
-            TrackFrameTransform currentTransform; // 当前transform状态
 
-            // 初始化默认值
-            currentTransform.x = 0.0f;
-            currentTransform.y = 0.0f;
-            currentTransform.kx = 0.0f;
-            currentTransform.ky = 0.0f;
-            currentTransform.sx = 1.0f;
-            currentTransform.sy = 1.0f;
-            currentTransform.a = 1.0f;
-            currentTransform.f = 0; // 默认可见
-            currentTransform.i = "";
+            // 初始化前一帧的数据（原版中的aPrevXXX变量）
+            float prevX = 0.0f;
+            float prevY = 0.0f;
+            float prevKx = 0.0f;
+            float prevKy = 0.0f;
+            float prevSx = 1.0f;
+            float prevSy = 1.0f;
+            float prevA = 1.0f;
+            int prevF = 0;
+            std::string prevI = "";
 
             for (pugi::xml_node child : node.children()) {
                 std::string childName = child.name();
@@ -53,9 +53,20 @@ bool Reanimation::LoadFromFile(const std::string& filePath) {
                     track.mTrackName = child.text().as_string();
                 }
                 else if (childName == "t") {
-                    TrackFrameTransform frameTransform = currentTransform; // 继承当前状态
+                    TrackFrameTransform frameTransform;
 
-                    // 解析变换属性 - 只更新有值的属性
+                    // 初始化所有字段为占位符值
+                    frameTransform.x = REANIM_MISSING_FIELD;
+                    frameTransform.y = REANIM_MISSING_FIELD;
+                    frameTransform.kx = REANIM_MISSING_FIELD;
+                    frameTransform.ky = REANIM_MISSING_FIELD;
+                    frameTransform.sx = REANIM_MISSING_FIELD;
+                    frameTransform.sy = REANIM_MISSING_FIELD;
+                    frameTransform.a = REANIM_MISSING_FIELD;
+                    frameTransform.f = -1;  // 使用-1作为f字段的占位符
+                    frameTransform.i = "";  // 空字符串作为i字段的占位符
+
+                    // 解析变换属性
                     for (pugi::xml_node prop : child.children()) {
                         std::string propName = prop.name();
                         std::string propValue = prop.text().as_string();
@@ -89,27 +100,74 @@ bool Reanimation::LoadFromFile(const std::string& filePath) {
                         }
                         else if (propName == "i") {
                             frameTransform.i = prop.text().as_string();
-                            if (!frameTransform.i.empty() && mImagesSet) {
-                                mImagesSet->insert(frameTransform.i);
-                                if (mResourceManager) {
-                                    // 检查是否是 REANIM 图片格式
-                                    if (frameTransform.i.find("IMAGE_REANIM_") == 0) {
-                                        // 提取实际文件名：去掉 "IMAGE_REANIM_" 前缀
-                                        std::string fileName = frameTransform.i.substr(13);
-                                        std::string filePath = "./resources/image/reanim/" + fileName;
+                        }
+                    }
 
-                                        SDL_Texture* texture = mResourceManager->LoadTexture(filePath + ".png", frameTransform.i);
-                                        if (!texture) {
-                                            texture = mResourceManager->LoadTexture(filePath + ".jpg", frameTransform.i);
-                                        }
-#ifdef _DEBUG
-                                        if (texture) {
-                                            std::cout << "成功加载动画图片: " << frameTransform.i << " -> " << filePath << std::endl;
-                                        }
-                                        else {
-                                            std::cout << "警告: 无法加载动画图片: " << frameTransform.i << std::endl;
-                                        }
-#endif
+                    // 如果当前帧的值是占位符，使用前一帧的值
+                    // 否则，更新前一帧的值为当前帧的值
+                    if (frameTransform.x == REANIM_MISSING_FIELD)
+                        frameTransform.x = prevX;
+                    else
+                        prevX = frameTransform.x;
+
+                    if (frameTransform.y == REANIM_MISSING_FIELD)
+                        frameTransform.y = prevY;
+                    else
+                        prevY = frameTransform.y;
+
+                    if (frameTransform.kx == REANIM_MISSING_FIELD)
+                        frameTransform.kx = prevKx;
+                    else
+                        prevKx = frameTransform.kx;
+
+                    if (frameTransform.ky == REANIM_MISSING_FIELD)
+                        frameTransform.ky = prevKy;
+                    else
+                        prevKy = frameTransform.ky;
+
+                    if (frameTransform.sx == REANIM_MISSING_FIELD)
+                        frameTransform.sx = prevSx;
+                    else
+                        prevSx = frameTransform.sx;
+
+                    if (frameTransform.sy == REANIM_MISSING_FIELD)
+                        frameTransform.sy = prevSy;
+                    else
+                        prevSy = frameTransform.sy;
+
+                    if (frameTransform.a == REANIM_MISSING_FIELD)
+                        frameTransform.a = prevA;
+                    else
+                        prevA = frameTransform.a;
+
+                    if (frameTransform.f == -1)
+                        frameTransform.f = prevF;
+                    else
+                        prevF = frameTransform.f;
+
+                    if (frameTransform.i.empty())
+                        frameTransform.i = prevI;
+                    else
+                        prevI = frameTransform.i;
+
+                    // 加载图片资源
+                    if (!frameTransform.i.empty()) {
+                        if (mImagesSet) {
+                            mImagesSet->insert(frameTransform.i);
+                            if (mResourceManager) {
+                                // 检查是否是 REANIM 图片格式
+                                if (frameTransform.i.find("IMAGE_REANIM_") == 0) {
+                                    // 提取实际文件名：去掉 "IMAGE_REANIM_" 前缀
+                                    std::string fileName = frameTransform.i.substr(13);
+                                    std::string filePath = "./resources/image/reanim/" + fileName;
+
+                                    SDL_Texture* texture = mResourceManager->LoadTexture(filePath + ".png", frameTransform.i);
+                                    if (!texture) {
+                                        texture = mResourceManager->LoadTexture(filePath + ".jpg", frameTransform.i);
+                                    }
+
+                                    if (!texture) {
+                                        std::cout << "警告: 无法加载动画图片: " << frameTransform.i << std::endl;
                                     }
                                 }
                             }
@@ -118,11 +176,6 @@ bool Reanimation::LoadFromFile(const std::string& filePath) {
 
                     // 添加帧到轨道
                     track.mFrames.push_back(frameTransform);
-
-                    // 更新当前transform状态，用于下一帧
-                    currentTransform = frameTransform;
-
-                    frameCount++;
                 }
             }
 
@@ -134,9 +187,11 @@ bool Reanimation::LoadFromFile(const std::string& filePath) {
     }
 
     mIsLoaded = true;
+#ifdef _DEBUG
     std::cout << "成功加载reanim文件: " << filePath
         << "，轨道数: " << mTracks->size()
         << "，总帧数: " << GetTotalFrames() << std::endl;
+#endif
     return true;
 }
 
@@ -177,96 +232,48 @@ int Reanimation::GetTotalFrames() const {
     return static_cast<int>((*mTracks)[0].mFrames.size());
 }
 
-void TransformToMatrix(const TrackFrameTransform& src, SexyTransform2D& dest,
+void TransformToMatrix(const TrackFrameTransform& src, glm::mat4& dest,
     float scaleX, float scaleY, float offsetX, float offsetY) {
 
-    // 先设置旋转和平移，然后缩放
-    float radX = src.kx * -0.017453292f; // -π/180
-    float radY = src.ky * -0.017453292f;
+    dest = glm::mat4(1.0f);
 
-    // 直接设置矩阵元素（参考 GameMat44 的布局）
-    // 假设 SexyTransform2D 的布局是：
-    // [m00 m01 m02]
-    // [m10 m11 m12]  
-    // [m20 m21 m22]
+    // 应用位移（包括偏移和全局缩放）
+    dest = glm::translate(dest,
+        glm::vec3((src.x + offsetX) * scaleX, (src.y + offsetY) * scaleY, 0.0f));
 
-    // 先设置旋转部分
-    dest.m00 = cos(radX);
-    dest.m01 = -sin(radX);
-    dest.m02 = 0.0f;
+    // 应用旋转（转换为弧度，注意原版可能是负角度）
+    dest = glm::rotate(dest, glm::radians(src.kx), glm::vec3(0, 0, 1));
 
-    dest.m10 = sin(radY);
-    dest.m11 = cos(radY);
-    dest.m12 = 0.0f;
-
-    dest.m20 = 0.0f;
-    dest.m21 = 0.0f;
-    dest.m22 = 1.0f;
-
-    // 设置平移
-    dest.m02 = src.x * scaleX + offsetX;
-    dest.m12 = src.y * scaleY + offsetY;
-
-    // 应用缩放（参考代码在最后应用缩放）
-    dest.m00 *= src.sx * scaleX;
-    dest.m01 *= src.sx * scaleX;
-    dest.m10 *= src.sy * scaleY;
-    dest.m11 *= src.sy * scaleY;
+    // 应用缩放（包括轨道缩放和全局缩放）
+    dest = glm::scale(dest,
+        glm::vec3(src.sx * scaleX, src.sy * scaleY, 1.0f));
 }
 
-// Made by AI
 void GetDeltaTransform(const TrackFrameTransform& tSrc, const TrackFrameTransform& tDst,
     float tDelta, TrackFrameTransform& tOutput, bool useDestFrame) {
 
-    // 平滑插值函数
-    float smoothDelta = tDelta * tDelta * (3.0f - 2.0f * tDelta); // 三次缓动曲线
+    tOutput.a = (tDst.a - tSrc.a) * tDelta + tSrc.a;
+    tOutput.x = (tDst.x - tSrc.x) * tDelta + tSrc.x;
+    tOutput.y = (tDst.y - tSrc.y) * tDelta + tSrc.y;
+    tOutput.sx = (tDst.sx - tSrc.sx) * tDelta + tSrc.sx;
+    tOutput.sy = (tDst.sy - tSrc.sy) * tDelta + tSrc.sy;
+    tOutput.kx = (tDst.kx - tSrc.kx) * tDelta + tSrc.kx;
+    tOutput.ky = (tDst.ky - tSrc.ky) * tDelta + tSrc.ky;
 
-    // 基本属性插值
-    tOutput.a = (tDst.a - tSrc.a) * smoothDelta + tSrc.a;
-
-    // 位置插值
-    float rawX = (tDst.x - tSrc.x) * smoothDelta + tSrc.x;
-    float rawY = (tDst.y - tSrc.y) * smoothDelta + tSrc.y;
-
-    // 像素对齐 四舍五入到最近的整数，避免子像素渲染导致的模糊
-    tOutput.x = std::round(rawX);
-    tOutput.y = std::round(rawY);
-
-    // 缩放插值
-    const float ANTI_GAP = 0.001f;
-    tOutput.sx = std::max(0.001f, (tDst.sx - tSrc.sx) * smoothDelta + tSrc.sx + ANTI_GAP);
-    tOutput.sy = std::max(0.001f, (tDst.sy - tSrc.sy) * smoothDelta + tSrc.sy + ANTI_GAP);
-
-    // 角度插值（处理360度环绕）
-    float angleDiffX = tDst.kx - tSrc.kx;
-    float angleDiffY = tDst.ky - tSrc.ky;
-
-    // 确保角度差在[-180, 180]范围内，避免不必要的旋转
-    if (angleDiffX > 180.0f) angleDiffX -= 360.0f;
-    if (angleDiffX < -180.0f) angleDiffX += 360.0f;
-    if (angleDiffY > 180.0f) angleDiffY -= 360.0f;
-    if (angleDiffY < -180.0f) angleDiffY += 360.0f;
-
-    // 使用线性插值，但可以改用球面线性插值以获得更平滑的旋转
-    tOutput.kx = tSrc.kx + angleDiffX * smoothDelta;
-    tOutput.ky = tSrc.ky + angleDiffY * smoothDelta;
-
-    // 处理图像资源
-    // 如果需要使用目标帧的图像资源，则使用目标帧的i；否则使用源帧的i
-    // 但这里有一个逻辑：通常我们在过渡期间保持源帧的图像，除非特别指定
-    if (useDestFrame) {
+    if (useDestFrame)
         tOutput.f = tDst.f;
-        tOutput.i = tDst.i;
-    }
-    else {
+    else
         tOutput.f = tSrc.f;
-        tOutput.i = tSrc.i;
-    }
 
-    // 确保透明度在有效范围内
-    tOutput.a = std::clamp(tOutput.a, 0.0f, 1.0f);
+    tOutput.i = tSrc.i;
 
-    // 确保缩放值合理，避免为零或负值
-    tOutput.sx = std::max(0.001f, tOutput.sx);
-    tOutput.sy = std::max(0.001f, tOutput.sy);
+    // 处理旋转插值时的角度环绕问题
+    if (tDst.kx > tSrc.kx + 180.0f)
+        tOutput.kx = tSrc.kx;
+    if (tDst.kx < tSrc.kx - 180.0f)
+        tOutput.kx = tSrc.kx;
+    if (tDst.ky > tSrc.ky + 180.0f)
+        tOutput.ky = tSrc.ky;
+    if (tDst.ky < tSrc.ky - 180.0f)
+        tOutput.ky = tSrc.ky;
 }

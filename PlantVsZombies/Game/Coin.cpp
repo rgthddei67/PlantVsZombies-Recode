@@ -3,10 +3,11 @@
 #include "../DeltaTime.h"
 
 Coin::Coin(Board* board, AnimationType animType, const Vector& position,
-	const Vector& colliderSize, float VanlishTime, float scale,
+	const Vector& colliderSize, const Vector& colliderOffset, float VanlishTime, 
+	float scale,
 	const std::string& tag, bool needScaleAnimation, bool autoDestroy)
-	: AnimatedObject(board, position, animType, ColliderType::CIRCLE,
-		colliderSize, scale, tag, autoDestroy)
+	: AnimatedObject(ObjectType::OBJECT_COIN, board, position, animType, ColliderType::CIRCLE,
+		colliderSize, colliderOffset, scale, tag, autoDestroy)
 {
 	this->mVanlishTime = VanlishTime;
 	this->mTargetScale = scale;
@@ -26,7 +27,6 @@ void Coin::Start()
 	}
 	auto clickableComponent = AddComponent<ClickableComponent>();
 
-	clickableComponent->SetClickOffset(Vector(0, -10));
 	clickableComponent->ConsumeEvent = true;
 
 	SetOnClickBack(clickableComponent);

@@ -1,8 +1,12 @@
 #include "GameObject.h"
 #include "Component.h"
-#include "../RendererManager.h"
 #include "CollisionSystem.h"
 #include "ColliderComponent.h"
+
+GameObject::GameObject(ObjectType type)
+    : mObjectType(type)
+{
+}
 
 GameObject::~GameObject() 
 {
@@ -44,10 +48,26 @@ void GameObject::Update() {
 void GameObject::Draw(SDL_Renderer* renderer) {
     if (!mActive || !mStarted) return;
 
+    // 收集所有启用的组件
+    std::vector<std::shared_ptr<Component>> componentsToDraw;
+    componentsToDraw.reserve(mComponents.size());
+
     for (auto& [type, component] : mComponents) {
         if (component->mEnabled) {
-            component->Draw(renderer);
+            componentsToDraw.push_back(component);
         }
+    }
+
+    // 按绘制顺序排序：mDrawOrder 越大越先绘制（在底层）
+    // 使用稳定排序，当 mDrawOrder 相等时保持原顺序（稳定排序）
+    std::stable_sort(componentsToDraw.begin(), componentsToDraw.end(),
+        [](const std::shared_ptr<Component>& a, const std::shared_ptr<Component>& b) {
+            return a->GetDrawOrder() < b->GetDrawOrder();  // 降序排序
+        });
+
+    // 绘制组件
+    for (auto& component : componentsToDraw) {
+        component->Draw(renderer);
     }
 }
 
@@ -65,10 +85,6 @@ void GameObject::DestroyAllComponents() {
     }
     mComponents.clear();
     mComponentsToInitialize.clear();
-}
-
-SDL_Renderer* GameObject::GetRenderer() const {
-    return RendererManager::GetInstance().GetRenderer();
 }
 
 void GameObject::RegisterAllColliders() {

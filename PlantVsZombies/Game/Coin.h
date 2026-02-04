@@ -30,8 +30,8 @@ public:
     int mCoinID = 0;
 
 public:
-    Coin(Board* board, AnimationType animType, const Vector& position,
-        const Vector& colliderSize, float VanlishTime, float scale = 1.0f,
+    Coin(Board* board, AnimationType animType, const Vector& position, 
+        const Vector& colliderSize, const Vector& colliderOffset, float VanlishTime, float scale = 1.0f,
         const std::string& tag = "Coin", bool needScaleAnimation = false, bool autoDestroy = true);
 
     void Start() override;

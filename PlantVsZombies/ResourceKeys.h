@@ -60,6 +60,9 @@ namespace ResourceKeys
         const std::string IMAGE_OPTIONS_BACKTOGAMEBUTTON_LIGHT = "IMAGE_OPTIONS_BACKTOGAMEBUTTON_LIGHT";
         const std::string IMAGE_SHOVEL = "IMAGE_SHOVEL";
 
+		const std::string IMAGE_PLANTSHADOW = "IMAGE_PLANTSHADOW";
+        const std::string IMAGE_PLANTSHADOW2 = "IMAGE_PLANTSHADOW2";
+
         // 植物图片（IMAGE_ + 大写文件名）
         const std::string IMAGE_PEASHOOTER = "IMAGE_PEASHOOTER";
         const std::string IMAGE_SUNFLOWER = "IMAGE_SUNFLOWER";

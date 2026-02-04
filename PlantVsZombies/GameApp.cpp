@@ -4,7 +4,6 @@
 #include "./Game/Board.h"
 #include "./Game/SceneManager.h"
 #include "./Game/GameScene.h"
-#include "./RendererManager.h"
 #include "./CursorManager.h"
 #include "./Game/AudioSystem.h"
 #include "./GameRandom.h"
@@ -119,8 +118,6 @@ bool GameAPP::CreateWindowAndRenderer()
 
 bool GameAPP::InitializeResourceManager()
 {
-    RendererManager::GetInstance().SetRenderer(mRenderer);
-
     if (!CursorManager::GetInstance().Initialize()) {
         std::cerr << "光标管理器创建失败！" << std::endl;
         return false;
@@ -182,12 +179,12 @@ int GameAPP::Run()
     if (!InitializeSDL()) return -1;
     if (!InitializeSDL_Image()) {
         SDL_Quit();
-        return -1;
+        return -2;
     }
     if (!InitializeSDL_TTF()) {
         IMG_Quit();
         SDL_Quit();
-        return -1;
+        return -3;
     }
     if (!InitializeAudioSystem()) {
         
@@ -199,7 +196,7 @@ int GameAPP::Run()
         TTF_Quit();
         IMG_Quit();
         SDL_Quit();
-        return -1;
+        return -4;
     }
 
     // 创建窗口和渲染器
@@ -209,7 +206,7 @@ int GameAPP::Run()
         TTF_Quit();
         IMG_Quit();
         SDL_Quit();
-        return -1;
+        return -5;
     }
 
     // 初始化资源管理器
@@ -221,7 +218,7 @@ int GameAPP::Run()
         TTF_Quit();
         IMG_Quit();
         SDL_Quit();
-        return -1;
+        return -6;
     }
 
     // 加载所有资源
@@ -234,7 +231,7 @@ int GameAPP::Run()
         TTF_Quit();
         IMG_Quit();
         SDL_Quit();
-        return -1;
+        return -7;
     }
 
     mParticleSystem = std::make_unique<ParticleSystem>(mRenderer);
@@ -266,6 +263,10 @@ int GameAPP::Run()
         if (mInputHandler->IsKeyReleased(SDLK_F3))
         {
             AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_BUTTONCLICK, 0.5f);
+			if (!mDebugMode)
+			    DeltaTime::SetTimeScale(2.0f);
+            else
+                DeltaTime::SetTimeScale(1.0f);
             mDebugMode = !mDebugMode;
             mShowColliders = !mShowColliders;
             if (mParticleSystem) {
@@ -339,10 +340,8 @@ void GameAPP::Shutdown()
     AudioSystem::Shutdown();
 
     // 清理渲染器
-    if (RendererManager::GetInstance().GetRenderer()) {
-        SDL_DestroyRenderer(RendererManager::GetInstance().GetRenderer());
-        RendererManager::GetInstance().SetRenderer(nullptr);
-    }
+    SDL_DestroyRenderer(this->mRenderer);
+    this->mRenderer = nullptr;
 
     // 清理输入处理器
     if (mInputHandler) {

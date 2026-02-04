@@ -37,7 +37,7 @@ struct TrackExtraInfo {
     bool mVisible = true;
     class Animator* mAttachedReanim = nullptr;
     SDL_Texture* mAttachedImage = nullptr;
-    SexyTransform2D* mAttachedReanimMatrix = nullptr;
+    Matrix4* mAttachedReanimMatrix = nullptr;
     float mOffsetX = 0.0f;
     float mOffsetY = 0.0f;
     float mFlashSpotSingle = 0.0f;

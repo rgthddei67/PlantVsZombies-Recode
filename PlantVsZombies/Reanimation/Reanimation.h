@@ -6,6 +6,9 @@
 #include <memory>
 #include <vector>
 #include <set>
+#include <glm/glm.hpp>
+
+constexpr float REANIM_MISSING_FIELD = -999999.0f;
 
 class Reanimation {
 public:
@@ -39,13 +42,12 @@ public:
     int GetTotalFrames() const;
 };
 
-// 矩阵变换工具函数
-void TransformToMatrix(const TrackFrameTransform& src, SexyTransform2D& dest,
+// 矩阵变换工具函数 
+void TransformToMatrix(const TrackFrameTransform& src, glm::mat4& dest,
     float scaleX = 1.0f, float scaleY = 1.0f,
     float offsetX = 0.0f, float offsetY = 0.0f);
 
 // 帧插值计算
 void GetDeltaTransform(const TrackFrameTransform& tSrc, const TrackFrameTransform& tDst,
     float tDelta, TrackFrameTransform& tOutput, bool useDestFrame = false);
-
 #endif

@@ -454,7 +454,6 @@ SDL_Texture* ResourceManager::LoadTexture(const std::string& path, const std::st
         return textures[actualKey];
     }
 
-    // 加载纹理 - 使用简单直接的方法
     SDL_Texture* texture = IMG_LoadTexture(renderer, path.c_str());
     if (!texture)
     {
@@ -488,8 +487,9 @@ SDL_Texture* ResourceManager::LoadTexture(const std::string& path, const std::st
     }
 
     // 设置纹理属性
-    SDL_SetTextureScaleMode(texture, SDL_ScaleModeNearest);
+    SDL_SetTextureScaleMode(texture, SDL_ScaleModeLinear);
     SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_BLEND);
+    SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1");
 
     textures[actualKey] = texture;
 

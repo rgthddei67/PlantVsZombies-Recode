@@ -8,6 +8,7 @@
 #include "ReanimationComponent.h"
 #include "ColliderComponent.h"
 #include "../Reanimation/ReanimTypes.h"
+#include "../DeltaTime.h"
 #include "../GameRandom.h"
 
 class Board;
@@ -15,17 +16,21 @@ class Board;
 class AnimatedObject : public GameObject {
 protected:
 	Board* mBoard = nullptr;
+	float mGlowingTimer = 0.0f;
+	std::shared_ptr<Animator> mCachedAnimator = nullptr;
 	std::weak_ptr<TransformComponent> mTransform;
 	std::weak_ptr<ReanimationComponent> mAnimation;
 	std::weak_ptr<ColliderComponent> mCollider;
 
 public:
-	AnimatedObject(Board* board, const Vector& position, AnimationType animType,
+	AnimatedObject(ObjectType type, Board* board, const Vector& position, AnimationType animType,
 		const ColliderType& colliderType,
 		const Vector& colliderSize,
-		float scale,
+		const Vector& colliderOffset,
+		float scale = 1.0f,
 		const std::string& tag = "AnimatedObject",
 		bool autoDestroy = true)
+		: GameObject(type)
 	{
 		mBoard = board;
 		SetTag(tag);
@@ -35,11 +40,13 @@ public:
 
 		mAnimation = AddComponent<ReanimationComponent>(animType, position, scale);
 		if (auto animation = mAnimation.lock()) {
+			animation->SetDrawOrder(80); // 确保动画在大多数组件之上绘制
 			animation->SetAutoDestroy(autoDestroy);
 		}
 		if (colliderSize.x > 0 && colliderSize.y > 0)
 		{
-			mCollider = AddComponent<ColliderComponent>(colliderSize, colliderType);
+			mCollider = AddComponent<ColliderComponent>(colliderSize,
+				colliderOffset, colliderType);
 		}
 	}
 
@@ -47,6 +54,22 @@ public:
 		GameObject::Start();
 		this->PlayAnimation();
 		this->SetAnimationSpeed(GameRandom::Range(0.65f, 0.85f));
+		mCachedAnimator = mAnimation.lock()->GetAnimator();
+	}
+
+	void Update() override {
+		GameObject::Update();
+
+		if (mGlowingTimer > 0.0f) {
+			mGlowingTimer -= DeltaTime::GetDeltaTime();
+
+			if (mGlowingTimer > 0.0f) {
+				mCachedAnimator->EnableGlowEffect(true);
+			}
+			else {
+				mCachedAnimator->EnableGlowEffect(false);
+			}
+		}
 	}
 
 	// 开始播放动画
@@ -73,7 +96,7 @@ public:
 
 	// 设置动画位置
 	void SetAnimationPosition(const Vector& position) {
-		if (auto transform = mTransform.lock()) 
+		if (auto transform = mTransform.lock())
 		{
 			if (auto animation = mAnimation.lock())
 			{

@@ -27,6 +27,7 @@ public:
     Cell(int row, int column, const Vector& position, const std::string& tag = "Cell")
         : mRow(row), mColumn(column)
     {
+		this->mObjectType = ObjectType::OBJECT_NONE;
         SetTag(tag);
         SetName("Cell_" + std::to_string(row) + "_" + std::to_string(column));
 

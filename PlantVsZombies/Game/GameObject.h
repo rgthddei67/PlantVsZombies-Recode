@@ -2,7 +2,6 @@
 #ifndef _GAMEOBJECT_H
 #define _GAMEOBJECT_H
 
-#include "../RendererManager.h"
 #include "RenderOrder.h"
 #include <memory>
 #include <vector>
@@ -12,10 +11,22 @@
 #include <algorithm>
 #include <SDL2/SDL.h>
 
+enum class ObjectType {
+    OBJECT_NONE,
+    OBJECT_UI,
+    OBJECT_PLANT,
+    OBJECT_ZOMBIE,
+    OBJECT_BULLET,
+    OBJECT_COIN,
+    OBJECT_LAWNMOWER,
+    OBJECT_PARTICLE,    // 可能废弃
+};
+
 class Component;
 
 class GameObject : public std::enable_shared_from_this<GameObject> {
 protected:
+    ObjectType mObjectType = ObjectType::OBJECT_NONE;
     int mRenderOrder = LAYER_GAME_OBJECT;
     RenderLayer mLayer = LAYER_GAME_OBJECT;
     bool mActive = true; // 是否在活动
@@ -31,6 +42,8 @@ private:
     void UnregisterComponentIfNeeded(std::shared_ptr<Component> component);
 
 public:
+    GameObject(ObjectType type = ObjectType::OBJECT_NONE);
+
     virtual ~GameObject();
 
     // 添加组件 若是刚刚创建的对象，则不能使用，因为还没有
@@ -97,6 +110,7 @@ public:
 
     virtual void Update();
 
+	ObjectType GetObjectType() const { return mObjectType; }
     int GetRenderOrder() const { return mRenderOrder; }
     void SetRenderOrder(int order) { mRenderOrder = order; }
     RenderLayer GetLayer() const { return mLayer; }
@@ -114,7 +128,7 @@ public:
         else return LAYER_DEBUG;
     }
 
-    // 绘制所有组件（如果组件要绘制的话)
+    // 绘制所有组件
     virtual void Draw(SDL_Renderer* renderer);
 
     // 获取物体的标签
@@ -141,7 +155,5 @@ public:
     // 销毁所有组件
     void DestroyAllComponents();
 
-    // 获取渲染器
-    SDL_Renderer* GetRenderer() const;
 };
 #endif

@@ -3,15 +3,18 @@
 #include "ColliderComponent.h"
 
 Card::Card(PlantType plantType, int sunCost, float cooldown) {
+	mObjectType = ObjectType::OBJECT_UI;
     SetupComponents(plantType, sunCost, cooldown);
 }
 
 void Card::SetupComponents(PlantType plantType, int sunCost, float cooldown) {
     AddComponent<TransformComponent>();
-    AddComponent<CardDisplayComponent>(plantType, sunCost, cooldown);
+    auto displayComponent = AddComponent<CardDisplayComponent>
+        (plantType, sunCost, cooldown);
+    displayComponent->SetDrawOrder(50);
     AddComponent<CardComponent>(plantType, sunCost, cooldown);
     // µã»÷×é¼þ
-    auto collision = AddComponent<ColliderComponent>(Vector(CARD_WIDTH, CARD_HEIGHT), ColliderType::BOX);
+    auto collision = AddComponent<ColliderComponent>(Vector(CARD_WIDTH, CARD_HEIGHT));
     collision->isStatic = true;
 	collision->isTrigger = true;
     auto clickable = AddComponent<ClickableComponent>();

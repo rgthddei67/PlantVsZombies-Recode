@@ -40,6 +40,7 @@
     <ClCompile Include="Game\Plant\PlantDataManager.cpp" />
     <ClCompile Include="Game\Scene.cpp" />
     <ClCompile Include="Game\SceneManager.cpp" />
+    <ClCompile Include="Game\ShaderComponent.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="ParticleSystem\Particle.cpp" />
     <ClCompile Include="ParticleSystem\ParticleConfig.cpp" />
@@ -87,6 +88,7 @@
     <ClInclude Include="Game\RenderOrder.h" />
     <ClInclude Include="Game\Scene.h" />
     <ClInclude Include="Game\SceneManager.h" />
+    <ClInclude Include="Game\ShadowComponent.h" />
     <ClInclude Include="Game\Sun.h" />
     <ClInclude Include="Game\TransformComponent.h" />
     <ClInclude Include="ParticleSystem\Particle.h" />
@@ -99,7 +101,6 @@
     <ClInclude Include="Reanimation\ReanimTypes.h" />
     <ClInclude Include="Reanimation\TodCommon.h" />
     <ClInclude Include="Reanimation\TodDebug.h" />
-    <ClInclude Include="RendererManager.h" />
     <ClInclude Include="ResourceKeys.h" />
     <ClInclude Include="ResourceManager.h" />
     <ClInclude Include="ResourcesXMLConfigReader.h" />
@@ -209,6 +210,7 @@
       <ConformanceMode>true</ConformanceMode>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -228,8 +230,13 @@
       <ConformanceMode>true</ConformanceMode>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <OmitFramePointers>true</OmitFramePointers>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <StructMemberAlignment>16Bytes</StructMemberAlignment>
+      <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
+      <FloatingPointModel>Fast</FloatingPointModel>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

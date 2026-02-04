@@ -127,6 +127,9 @@
     <ClCompile Include="CursorManager.cpp">
       <Filter>Code</Filter>
     </ClCompile>
+    <ClCompile Include="Game\ShaderComponent.cpp">
+      <Filter>Code\Game</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="UI\Button.h">
@@ -169,9 +172,6 @@
       <Filter>Code\ParticleSystem</Filter>
     </ClInclude>
     <ClInclude Include="GameApp.h">
-      <Filter>Code</Filter>
-    </ClInclude>
-    <ClInclude Include="RendererManager.h">
       <Filter>Code</Filter>
     </ClInclude>
     <ClInclude Include="Game\AnimatedObject.h">
@@ -290,6 +290,9 @@
     </ClInclude>
     <ClInclude Include="ResourceKeys.h">
       <Filter>Code</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\ShadowComponent.h">
+      <Filter>Code\Game</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
