@@ -16,10 +16,29 @@ struct TrackFrameTransform {
     float sx = 1.0f;  // 缩放X
     float sy = 1.0f;  // 缩放Y
     float a = 1.0f;   // 透明度
-    int f = 0;        // 是否隐藏 (0=显示, 1=隐藏)
-    std::string i;    // 图像ID
+    int f = 0;        // 显示标志（0=显示，-1=空白/分隔）
+    std::string image; // 图像ID
 
     TrackFrameTransform() = default;
+};
+
+struct AnimationClip {
+    std::string trackName;  // 轨道名称
+    std::string clipName;   // 片段名称
+    int startFrame;         // 起始帧
+    int endFrame;           // 结束帧
+    int totalFrames;        // 总帧数
+
+    AnimationClip() : startFrame(0), endFrame(0), totalFrames(0) {}
+    AnimationClip(const std::string& track, int start, int end)
+        : trackName(track), startFrame(start), endFrame(end),
+        totalFrames(end - start + 1) {
+    }
+
+    bool IsValid() const { return totalFrames > 0; }
+    bool ContainsFrame(int frame) const {
+        return frame >= startFrame && frame <= endFrame;
+    }
 };
 
 // 动画轨道信息
@@ -28,8 +47,26 @@ struct TrackInfo {
     bool mAvailable = true;
     std::vector<TrackFrameTransform> mFrames;
 
+    // 动画片段信息
+    std::vector<AnimationClip> mClips;
+    AnimationClip mDefaultClip;
+
     TrackInfo() = default;
     explicit TrackInfo(const std::string& name) : mTrackName(name) {}
+
+    AnimationClip* GetClip(const std::string& clipName = "") {
+        if (clipName.empty()) {
+            return mDefaultClip.IsValid() ? &mDefaultClip :
+                (mClips.empty() ? nullptr : &mClips[0]);
+        }
+
+        for (auto& clip : mClips) {
+            if (clip.clipName == clipName) {
+                return &clip;
+            }
+        }
+        return nullptr;
+    }
 };
 
 // 轨道额外控制信息
@@ -37,10 +74,8 @@ struct TrackExtraInfo {
     bool mVisible = true;
     class Animator* mAttachedReanim = nullptr;
     SDL_Texture* mAttachedImage = nullptr;
-    Matrix4* mAttachedReanimMatrix = nullptr;
     float mOffsetX = 0.0f;
     float mOffsetY = 0.0f;
-    float mFlashSpotSingle = 0.0f;
 
     TrackExtraInfo() = default;
 };

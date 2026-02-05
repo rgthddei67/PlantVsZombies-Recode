@@ -3,7 +3,6 @@
 #include <iostream>
 #include "../FileManager.h"
 #include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
 
 Reanimation::Reanimation() {
     mTracks = std::make_shared<std::vector<TrackInfo>>();
@@ -36,7 +35,7 @@ bool Reanimation::LoadFromFile(const std::string& filePath) {
         else if (tagName == "track") {
             TrackInfo track;
 
-            // 初始化前一帧的数据（原版中的aPrevXXX变量）
+            // 初始化前一帧的数据
             float prevX = 0.0f;
             float prevY = 0.0f;
             float prevKx = 0.0f;
@@ -45,7 +44,7 @@ bool Reanimation::LoadFromFile(const std::string& filePath) {
             float prevSy = 1.0f;
             float prevA = 1.0f;
             int prevF = 0;
-            std::string prevI = "";
+            std::string prevImage = "";
 
             for (pugi::xml_node child : node.children()) {
                 std::string childName = child.name();
@@ -63,8 +62,8 @@ bool Reanimation::LoadFromFile(const std::string& filePath) {
                     frameTransform.sx = REANIM_MISSING_FIELD;
                     frameTransform.sy = REANIM_MISSING_FIELD;
                     frameTransform.a = REANIM_MISSING_FIELD;
-                    frameTransform.f = -1;  // 使用-1作为f字段的占位符
-                    frameTransform.i = "";  // 空字符串作为i字段的占位符
+                    frameTransform.f = 0;
+                    frameTransform.image = "";
 
                     // 解析变换属性
                     for (pugi::xml_node prop : child.children()) {
@@ -99,12 +98,11 @@ bool Reanimation::LoadFromFile(const std::string& filePath) {
                             frameTransform.f = prop.text().as_int();
                         }
                         else if (propName == "i") {
-                            frameTransform.i = prop.text().as_string();
+                            frameTransform.image = prop.text().as_string();
                         }
                     }
 
                     // 如果当前帧的值是占位符，使用前一帧的值
-                    // 否则，更新前一帧的值为当前帧的值
                     if (frameTransform.x == REANIM_MISSING_FIELD)
                         frameTransform.x = prevX;
                     else
@@ -140,34 +138,28 @@ bool Reanimation::LoadFromFile(const std::string& filePath) {
                     else
                         prevA = frameTransform.a;
 
-                    if (frameTransform.f == -1)
-                        frameTransform.f = prevF;
+                    if (frameTransform.image.empty())
+                        frameTransform.image = prevImage;
                     else
-                        prevF = frameTransform.f;
-
-                    if (frameTransform.i.empty())
-                        frameTransform.i = prevI;
-                    else
-                        prevI = frameTransform.i;
+                        prevImage = frameTransform.image;
 
                     // 加载图片资源
-                    if (!frameTransform.i.empty()) {
+                    if (!frameTransform.image.empty() && frameTransform.f == 0) {
                         if (mImagesSet) {
-                            mImagesSet->insert(frameTransform.i);
+                            mImagesSet->insert(frameTransform.image);
                             if (mResourceManager) {
                                 // 检查是否是 REANIM 图片格式
-                                if (frameTransform.i.find("IMAGE_REANIM_") == 0) {
-                                    // 提取实际文件名：去掉 "IMAGE_REANIM_" 前缀
-                                    std::string fileName = frameTransform.i.substr(13);
+                                if (frameTransform.image.find("IMAGE_REANIM_") == 0) {
+                                    std::string fileName = frameTransform.image.substr(13);
                                     std::string filePath = "./resources/image/reanim/" + fileName;
 
-                                    SDL_Texture* texture = mResourceManager->LoadTexture(filePath + ".png", frameTransform.i);
+                                    SDL_Texture* texture = mResourceManager->LoadTexture(filePath + ".png", frameTransform.image);
                                     if (!texture) {
-                                        texture = mResourceManager->LoadTexture(filePath + ".jpg", frameTransform.i);
+                                        texture = mResourceManager->LoadTexture(filePath + ".jpg", frameTransform.image);
                                     }
 
                                     if (!texture) {
-                                        std::cout << "警告: 无法加载动画图片: " << frameTransform.i << std::endl;
+                                        std::cout << "警告: 无法加载动画图片: " << frameTransform.image << std::endl;
                                     }
                                 }
                             }
@@ -179,31 +171,92 @@ bool Reanimation::LoadFromFile(const std::string& filePath) {
                 }
             }
 
-            // 设置轨道可用性（如果有有效帧）
+            // 轨道可用性
             track.mAvailable = !track.mFrames.empty();
+
+            // 计算动画片段（根据f字段）
+            std::vector<AnimationClip> clips;
+            AnimationClip defaultClip;
+
+            int clipIndex = 0;
+            int currentStart = -1;
+
+            for (size_t i = 0; i < track.mFrames.size(); i++) {
+                if (track.mFrames[i].f == 0) {  // 显示帧
+                    if (currentStart == -1) {
+                        currentStart = static_cast<int>(i);
+                    }
+                }
+                else {  // f == -1 或其它值，表示空白/分隔
+                    if (currentStart != -1) {
+                        // 结束当前片段
+                        AnimationClip clip;
+                        clip.trackName = track.mTrackName;
+                        clip.clipName = "clip_" + std::to_string(clipIndex);
+                        clip.startFrame = currentStart;
+                        clip.endFrame = static_cast<int>(i) - 1;
+                        clip.totalFrames = clip.endFrame - clip.startFrame + 1;
+
+                        clips.push_back(clip);
+
+                        // 如果是第一个片段，设为默认片段
+                        if (clips.size() == 1) {
+                            defaultClip = clip;
+                            defaultClip.clipName = "default";
+                        }
+
+                        clipIndex++;
+                        currentStart = -1;
+                    }
+                }
+            }
+
+            // 处理轨道末尾的片段
+            if (currentStart != -1) {
+                AnimationClip clip;
+                clip.trackName = track.mTrackName;
+                clip.clipName = "clip_" + std::to_string(clipIndex);
+                clip.startFrame = currentStart;
+                clip.endFrame = static_cast<int>(track.mFrames.size()) - 1;
+                clip.totalFrames = clip.endFrame - clip.startFrame + 1;
+
+                clips.push_back(clip);
+
+                if (clips.size() == 1) {
+                    defaultClip = clip;
+                    defaultClip.clipName = "default";
+                }
+            }
+
+            // 如果没有找到任何显示片段，创建一个空片段
+            if (clips.empty()) {
+                AnimationClip clip;
+                clip.trackName = track.mTrackName;
+                clip.clipName = "empty";
+                clip.startFrame = 0;
+                clip.endFrame = 0;
+                clip.totalFrames = 0;
+                clips.push_back(clip);
+                defaultClip = clip;
+            }
+
+            // 存储片段信息
+            track.mClips = clips;
+            track.mDefaultClip = defaultClip;
 
             mTracks->push_back(track);
         }
     }
 
     mIsLoaded = true;
+
 #ifdef _DEBUG
     std::cout << "成功加载reanim文件: " << filePath
         << "，轨道数: " << mTracks->size()
         << "，总帧数: " << GetTotalFrames() << std::endl;
 #endif
+
     return true;
-}
-
-int Reanimation::FindTrackIndex(const std::string& trackName) const {
-    if (!mTracks) return -1;
-
-    for (size_t i = 0; i < mTracks->size(); i++) {
-        if ((*mTracks)[i].mTrackName == trackName) {
-            return static_cast<int>(i);
-        }
-    }
-    return -1;
 }
 
 TrackInfo* Reanimation::GetTrack(int index) {
@@ -214,17 +267,12 @@ TrackInfo* Reanimation::GetTrack(int index) {
 }
 
 TrackInfo* Reanimation::GetTrack(const std::string& trackName) {
-    int index = FindTrackIndex(trackName);
-    return index >= 0 ? GetTrack(index) : nullptr;
-}
-
-std::pair<int, int> Reanimation::GetTrackFrameRange(const std::string& trackName) const {
-    auto track = const_cast<Reanimation*>(this)->GetTrack(trackName);
-    if (!track || track->mFrames.empty()) {
-        return { 0, 0 };
+    for (size_t i = 0; i < mTracks->size(); i++) {
+        if ((*mTracks)[i].mTrackName == trackName) {
+            return &(*mTracks)[i];
+        }
     }
-
-    return { 0, static_cast<int>(track->mFrames.size() - 1) };
+    return nullptr;
 }
 
 int Reanimation::GetTotalFrames() const {
@@ -232,21 +280,8 @@ int Reanimation::GetTotalFrames() const {
     return static_cast<int>((*mTracks)[0].mFrames.size());
 }
 
-void TransformToMatrix(const TrackFrameTransform& src, glm::mat4& dest,
-    float scaleX, float scaleY, float offsetX, float offsetY) {
-
-    dest = glm::mat4(1.0f);
-
-    // 应用位移（包括偏移和全局缩放）
-    dest = glm::translate(dest,
-        glm::vec3((src.x + offsetX) * scaleX, (src.y + offsetY) * scaleY, 0.0f));
-
-    // 应用旋转（转换为弧度，注意原版可能是负角度）
-    dest = glm::rotate(dest, glm::radians(src.kx), glm::vec3(0, 0, 1));
-
-    // 应用缩放（包括轨道缩放和全局缩放）
-    dest = glm::scale(dest,
-        glm::vec3(src.sx * scaleX, src.sy * scaleY, 1.0f));
+size_t Reanimation::GetTrackCount() const {
+    return mTracks ? mTracks->size() : 0;
 }
 
 void GetDeltaTransform(const TrackFrameTransform& tSrc, const TrackFrameTransform& tDst,
@@ -265,7 +300,7 @@ void GetDeltaTransform(const TrackFrameTransform& tSrc, const TrackFrameTransfor
     else
         tOutput.f = tSrc.f;
 
-    tOutput.i = tSrc.i;
+    tOutput.image = tSrc.image;
 
     // 处理旋转插值时的角度环绕问题
     if (tDst.kx > tSrc.kx + 180.0f)

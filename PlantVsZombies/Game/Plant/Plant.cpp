@@ -46,7 +46,6 @@ Plant::Plant(Board* board, PlantType plantType, int row, int column,
 			transform->position = Vector(-512, -512);
 		}
 	}
-	SetupPlant();
 }
 
 void Plant::SetupPlant()
@@ -66,6 +65,7 @@ void Plant::Start()
 			(ResourceManager::GetInstance().GetTexture
 			(ResourceKeys::Textures::IMAGE_PLANTSHADOW));
 		shadowcomponent->SetDrawOrder(-80);
+		SetupPlant();
 	}
 }
 

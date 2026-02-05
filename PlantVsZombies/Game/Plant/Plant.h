@@ -32,7 +32,7 @@ public:
 	void Start() override;
 	void Update() override;
 	virtual void PlantUpdate();		// 子类重写Update用这个
-	void TakeDamage(int damage);
+	virtual void TakeDamage(int damage);
 	void Die();
 	
 protected:

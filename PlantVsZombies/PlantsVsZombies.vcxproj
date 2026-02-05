@@ -38,6 +38,7 @@
     <ClCompile Include="Game\GameScene.cpp" />
     <ClCompile Include="Game\Plant\Plant.cpp" />
     <ClCompile Include="Game\Plant\PlantDataManager.cpp" />
+    <ClCompile Include="Game\Plant\Shooter.cpp" />
     <ClCompile Include="Game\Scene.cpp" />
     <ClCompile Include="Game\SceneManager.cpp" />
     <ClCompile Include="Game\ShaderComponent.cpp" />
@@ -83,6 +84,7 @@
     <ClInclude Include="Game\Plant\Plant.h" />
     <ClInclude Include="Game\Plant\PlantDataManager.h" />
     <ClInclude Include="Game\Plant\PlantType.h" />
+    <ClInclude Include="Game\Plant\Shooter.h" />
     <ClInclude Include="Game\Plant\SunFlower.h" />
     <ClInclude Include="Game\ReanimationComponent.h" />
     <ClInclude Include="Game\RenderOrder.h" />

@@ -3,6 +3,7 @@
 #include "../GameRandom.h"
 #include "./Plant/Plant.h"
 #include "./Plant/SunFlower.h"
+#include "./Plant/Shooter.h"
 #include "RenderOrder.h"
 
 void Board::InitializeCell(int rows, int cols)
@@ -68,12 +69,10 @@ std::shared_ptr<Plant> Board::CreatePlant(PlantType plantType, int row, int colu
 	}
 
 	// 根据植物类型创建对应的植物
+	// TODO: 新增植物也要改这里
 	std::shared_ptr<Plant> plant = nullptr;
 
 	switch (plantType) {
-	case PlantType::PLANT_PEASHOOTER:
-		break;
-
 	case PlantType::PLANT_SUNFLOWER:
 		plant = GameObjectManager::GetInstance().CreateGameObjectImmediate<SunFlower>(
 			LAYER_GAME_PLANT,        // int renderOrder
@@ -85,6 +84,20 @@ std::shared_ptr<Plant> Board::CreatePlant(PlantType plantType, int row, int colu
 			Vector(75, 75),         // const Vector& colliderSize
 			1.0f,                   // scale
 			isPreview               // mIsPreview
+		);
+		break;
+
+	case PlantType::PLANT_PEASHOOTER:
+		plant = GameObjectManager::GetInstance().CreateGameObjectImmediate<Shooter>(
+			LAYER_GAME_PLANT,
+			this,
+			PlantType::PLANT_PEASHOOTER,
+			row,
+			column,
+			AnimationType::ANIM_PEASHOOTER,
+			Vector(75, 75),
+			1.0f,
+			isPreview
 		);
 		break;
 

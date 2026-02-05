@@ -186,17 +186,6 @@ public:
         }
     }
 
-    // 查找轨道索引
-    int FindTrackIndex(const std::string& trackName) {
-        if (!mAnimator) return -1;
-
-        auto reanim = mAnimator->GetReanimation();
-        if (reanim) {
-            return reanim->FindTrackIndex(trackName);
-        }
-        return -1;
-    }
-
     // 获取底层 Animator 对象
     std::shared_ptr<Animator> GetAnimator() const {
         return mAnimator;

@@ -130,6 +130,9 @@
     <ClCompile Include="Game\ShaderComponent.cpp">
       <Filter>Code\Game</Filter>
     </ClCompile>
+    <ClCompile Include="Game\Plant\Shooter.cpp">
+      <Filter>Code\Game\Plant</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="UI\Button.h">
@@ -293,6 +296,9 @@
     </ClInclude>
     <ClInclude Include="Game\ShadowComponent.h">
       <Filter>Code\Game</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\Plant\Shooter.h">
+      <Filter>Code\Game\Plant</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

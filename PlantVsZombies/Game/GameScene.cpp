@@ -50,6 +50,7 @@ void GameScene::OnEnter() {
 	auto cardSlotManager = CardUI->AddComponent<CardSlotManager>(mBoard.get());
 
 	cardSlotManager->AddCard(PlantType::PLANT_SUNFLOWER, 50, 7.5f);
+	cardSlotManager->AddCard(PlantType::PLANT_PEASHOOTER, 0, 1);
 
 	// TODO: 不要捕获局部变量的引用！ 这里会造成循环引用！
 	/*
