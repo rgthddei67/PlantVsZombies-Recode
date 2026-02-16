@@ -36,8 +36,6 @@ void Animator::Init(std::shared_ptr<Reanimation> reanim) {
     mReanim = reanim;
     if (reanim) {
         mFPS = reanim->mFPS;
-
-        // 初始化轨道映射和额外信息
         mTrackIndicesMap.clear();
         mExtraInfos.clear();
 
@@ -45,7 +43,20 @@ void Animator::Init(std::shared_ptr<Reanimation> reanim) {
             auto track = reanim->GetTrack(i);
             if (track) {
                 mTrackIndicesMap[track->mTrackName] = i;
-                mExtraInfos.push_back(TrackExtraInfo());
+                TrackExtraInfo extra;
+
+                // 预加载该轨道用到的所有图片
+                for (const auto& frame : track->mFrames) {
+                    if (!frame.image.empty() && reanim->mResourceManager) {
+                        // 如果缓存中还没有该图片，则加载
+                        if (extra.mTextureCache.find(frame.image) == extra.mTextureCache.end()) {
+                            SDL_Texture* tex = reanim->mResourceManager->GetTexture(frame.image);
+                            extra.mTextureCache[frame.image] = tex;
+                        }
+                    }
+                }
+
+                mExtraInfos.push_back(extra);
             }
         }
 
@@ -55,7 +66,7 @@ void Animator::Init(std::shared_ptr<Reanimation> reanim) {
     }
 }
 
-bool Animator::PlayTrack(const std::string& trackName, float blendTime) {
+bool Animator::PlayTrack(const std::string& trackName, float blendTime, float speed) {
     auto range = GetTrackRange(trackName);
     if (range.first == -1 || range.second == -1) {
         std::cerr << "动画轨道不存在或为空: " << trackName << std::endl;
@@ -78,6 +89,11 @@ bool Animator::PlayTrack(const std::string& trackName, float blendTime) {
         mReanimBlendCounter = -1.0f;
     }
 
+    if (speed > 0.0f) {
+        mOriginalSpeed = mSpeed;
+        SetSpeed(speed);
+    }
+
     mIsPlaying = true;
     mPlayingState = PlayState::PLAY_REPEAT;
 
@@ -86,14 +102,7 @@ bool Animator::PlayTrack(const std::string& trackName, float blendTime) {
 
 bool Animator::PlayTrackOnce(const std::string& trackName, const std::string& returnTrack, float speed, float blendTime) 
 {
-    mOriginalSpeed = mSpeed;
-
-    if (speed > 0.0f) {
-        mSpeed = speed;
-    }
-
-    if (!PlayTrack(trackName, blendTime)) {
-        mSpeed = mOriginalSpeed;    // 播放失败原速度
+    if (!PlayTrack(trackName, blendTime, speed)) {
         return false;
     }
 
@@ -151,7 +160,7 @@ void Animator::Update() {
         case PlayState::PLAY_ONCE_TO:
             // 播放到指定动画
             mFrameIndexNow = mFrameIndexEnd;
-            mSpeed = mOriginalSpeed;
+            SetSpeed(mOriginalSpeed);
             mIsPlaying = false;
 
             // 切换到目标动画
@@ -439,11 +448,18 @@ void Animator::Draw(SDL_Renderer* renderer, float baseX, float baseY, float Scal
 
         if (shouldDrawSelf) {
             if (mExtraInfos[i].mImage) {
-                image = mExtraInfos[i].mImage;
+                image = mExtraInfos[i].mImage; // 手动设置的纹理优先级最高
             }
-            else if (!transform.image.empty() && mReanim->mResourceManager) {
-                image = mReanim->mResourceManager->GetTexture(transform.image);
-                mExtraInfos[i].mImage = image; // 缓存
+            else if (!transform.image.empty()) {
+                auto it = mExtraInfos[i].mTextureCache.find(transform.image);
+                if (it != mExtraInfos[i].mTextureCache.end()) {
+                    image = it->second;
+                }
+                // 若没有，再加载
+                else if (mReanim->mResourceManager) {
+                    image = mReanim->mResourceManager->GetTexture(transform.image);
+                    if (image) mExtraInfos[i].mTextureCache[transform.image] = image;
+                }
             }
             shouldDrawSelf = (image != nullptr);
         }

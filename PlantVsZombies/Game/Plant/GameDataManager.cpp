@@ -44,13 +44,13 @@ void GameDataManager::InitializeHardcodedData() {
 
 
     // ==================== ½©Ê¬×¢²á ====================
-    // Ê¾Àý£ºÆÕÍ¨½©Ê¬
+    // ÆÕÍ¨½©Ê¬
     RegisterZombie(
         ZombieType::ZOMBIE_NORMAL,
         "ZOMBIE_NORMAL",
         AnimationType::ANIM_NORMAL_ZOMBIE,            
         ResourceKeys::Reanimations::REANIM_NORMAL_ZOMBIE,
-        Vector(0, 0)
+        Vector(-50, -85)
     );
 
     // ==================== ·ÇÖ²Îï/½©Ê¬¶¯»­Ó³Éä ====================

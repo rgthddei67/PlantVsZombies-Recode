@@ -6,6 +6,7 @@
 #include <vector>
 #include <SDL2/SDL.h>
 #include <memory>
+#include <unordered_map>
 #include "../Game/Definit.h"
 
 // 动画帧变换数据
@@ -38,7 +39,8 @@ struct TrackExtraInfo {
     bool mVisible = true;
     float mOffsetX = 0.0f;          // 轨道自身绘制偏移 X
     float mOffsetY = 0.0f;          // 轨道自身绘制偏移 Y
-    SDL_Texture* mImage = nullptr;
+    SDL_Texture* mImage = nullptr;  // 手动覆盖图片设置
+    std::unordered_map<std::string, SDL_Texture*> mTextureCache; // 图片名 -> 纹理
     std::vector<std::weak_ptr<class Animator>> mAttachedReanims;  // 附加的子动画
 };
 

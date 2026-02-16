@@ -222,14 +222,12 @@ void CardSlotManager::CreateCellPlantPreview(PlantType plantType, std::shared_pt
 
 			cellPlantPreview->SetRenderOrder(LAYER_GAME_OBJECT - 5000);
 
-			if (auto transform = cellPlantPreview->GetComponent<TransformComponent>()) {
+			if (auto transform = cellPlantPreview->GetTransformComponent()) {
 				transform->SetPosition(plantPosition);
 			}
 
-			if (auto reanimation = cellPlantPreview->GetAnimationComponent()) {
-				reanimation->SetAlpha(0.35f);
-				reanimation->Pause();
-			}
+			cellPlantPreview->SetAlpha(0.35f);
+			cellPlantPreview->PauseAnimation();
 		}
 	}
 }
@@ -263,7 +261,7 @@ void CardSlotManager::UpdatePlantPreviewPosition(const Vector& position) {
 		}
 
 		bool isOverCellWithPlant = false;
-		if (hoveredCell && hoveredCell->GetPlantID() != -1)
+		if (hoveredCell && hoveredCell->GetPlantID() != NULL_PLANT_ID)
 		{
 			isOverCellWithPlant = true;
 		}

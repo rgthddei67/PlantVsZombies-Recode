@@ -124,6 +124,9 @@ namespace ResourceKeys
         const std::string SOUND_DELETEPLANT = "SOUND_DELETEPLANT";
         const std::string SOUND_PLANT = "SOUND_PLANT";
         const std::string SOUND_PLANT_ONWATER = "SOUND_PLANT_ONWATER";
+        const std::string SOUND_ZOMBIE_EAT = "SOUND_CHOMP";
+        const std::string SOUND_ZOMBIE_EAT2 = "SOUND_CHOMP2";
+        const std::string SOUND_ZOMBIE_FINISHEAT = "SOUND_FINISHEATING";
     }
 
     namespace Music

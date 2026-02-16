@@ -6,16 +6,16 @@
 #include "GameDataManager.h"
 
 Plant::Plant(Board* board, PlantType plantType, int row, int column,
-	AnimationType animType, const Vector& colliderSize, float scale, bool isPreview)
+	AnimationType animType, float scale, bool isPreview)
 	: AnimatedObject(ObjectType::OBJECT_PLANT, board,
 		Vector(0, 0), // 位置会在后面计算
 		animType,
 		ColliderType::BOX,
-		colliderSize,
-		Vector(0, 0),
+		Vector(65, 65),
+		Vector(-30, -30),
 		scale,
 		"Plant",
-		false) // 植物不自动销毁
+		false)
 {
 	mBoard = board;
 	mPlantType = plantType;
@@ -29,23 +29,16 @@ Plant::Plant(Board* board, PlantType plantType, int row, int column,
 	GameDataManager& plantMgr = GameDataManager::GetInstance();
 	Vector plantOffset = plantMgr.GetPlantOffset(plantType);
 	// 设置植物在格子中的位置
-	if (auto transform = mTransform.lock()) {
-		if (!mIsPreview) {
-			// 计算格子中心位置
-			Vector cellCenterPosition(
-				CELL_INITALIZE_POS_X + column * CELL_COLLIDER_SIZE_X + CELL_COLLIDER_SIZE_X / 2,
-				CELL_INITALIZE_POS_Y + row * CELL_COLLIDER_SIZE_Y + CELL_COLLIDER_SIZE_Y / 2
-			);
-
-			Vector plantPosition = cellCenterPosition + plantOffset;
-
-			transform->position = plantPosition;
-
-			mCurrectPosition = cellCenterPosition;
-		}
-		else {
-			transform->position = Vector(-512, -512);
-		}
+	if (!mIsPreview) {
+		Vector cellCenterPosition(
+			CELL_INITALIZE_POS_X + column * CELL_COLLIDER_SIZE_X + CELL_COLLIDER_SIZE_X / 2,
+			CELL_INITALIZE_POS_Y + row * CELL_COLLIDER_SIZE_Y + CELL_COLLIDER_SIZE_Y / 2
+		);
+		SetPosition(cellCenterPosition);  // 逻辑位置
+		mVisualOffset = GameDataManager::GetInstance().GetPlantOffset(plantType);
+	}
+	else {
+		SetPosition(Vector(-512, -512));
 	}
 }
 
@@ -56,12 +49,11 @@ void Plant::SetupPlant()
 
 void Plant::Start()
 {
+	GameObject::Start();
 	if (this->mIsPreview) {
-		GameObject::Start();
 		RemoveComponent<ColliderComponent>();
 	}
 	else {
-		AnimatedObject::Start();
 		auto shadowcomponent = AddComponent<ShadowComponent>
 			(ResourceManager::GetInstance().GetTexture
 			(ResourceKeys::Textures::IMAGE_PLANTSHADOW));
@@ -74,6 +66,7 @@ void Plant::Start()
 void Plant::TakeDamage(int damage) {
 	if (mIsPreview) return;
 	mPlantHealth -= damage;
+	SetGlowingTimer(0.1f);
 	if (mPlantHealth <= 0) {
 		Die();
 	}
@@ -105,7 +98,21 @@ void Plant::Update()
 	}
 }
 
+Vector Plant::GetVisualPosition() const {
+	return GetTransformComponent()->GetWorldPosition() + mVisualOffset;
+}
+
 void Plant::PlantUpdate()
 {
 
+}
+
+Vector Plant::GetPosition() const
+{
+	return GetTransformComponent()->GetWorldPosition();
+}
+
+void Plant::SetPosition(const Vector& position)
+{
+	this->GetTransformComponent()->SetPosition(position);
 }

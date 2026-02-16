@@ -236,7 +236,6 @@ void GetDeltaTransform(const TrackFrameTransform& tSrc, const TrackFrameTransfor
 
     tOutput.image = tSrc.image;
 
-    // 处理旋转插值时的角度环绕问题
     if (tDst.kx > tSrc.kx + 180.0f)
         tOutput.kx = tSrc.kx;
     if (tDst.kx < tSrc.kx - 180.0f)

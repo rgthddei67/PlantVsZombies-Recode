@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <iostream>
 #include "Plant/Plant.h"
+#include "Zombie/Zombie.h"
 
 ShadowComponent::ShadowComponent(SDL_Texture* shadowTexture,
     const Vector& offset,
@@ -38,16 +39,21 @@ void ShadowComponent::Draw(SDL_Renderer* renderer) {
     // 计算阴影位置（在物体下方，加上偏移）
 	ObjectType type = gameObject->GetObjectType();
     Vector shadowPos = Vector(0, 0);
+    Vector transform = gameObject->GetComponent<TransformComponent>()->GetWorldPosition();
+    
     if (type == ObjectType::OBJECT_PLANT)
     {
         if (auto plant = std::dynamic_pointer_cast<Plant>(gameObject))
         {
-            shadowPos = plant->mCurrectPosition + mOffset;
+            shadowPos = transform + mOffset;
         }
     }
-    else if (auto transform = gameObject->GetComponent<TransformComponent>())
+    else if (type == ObjectType::OBJECT_ZOMBIE)
     {
-        shadowPos = transform->position + mOffset;
+        if (auto zombie = std::dynamic_pointer_cast<Zombie>(gameObject))
+        {
+            shadowPos = transform + mOffset;
+        }
     }
     else
     {

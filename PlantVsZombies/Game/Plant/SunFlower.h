@@ -34,9 +34,10 @@ public:
             if (mProduceTimer >= mProductionGlowStartTimer + 0.55f) {
                 // 2.5秒发光结束，生产阳光
                 float offsetX = GameRandom::Range(-30.0f, 35.0f);
+                Vector position = GetTransformComponent()->GetWorldPosition();
                 mBoard->CreateSun(
-                    this->mCurrectPosition.x + offsetX,
-                    this->mCurrectPosition.y,
+                    position.x + offsetX,
+                    position.y,
                     true);
 
                 // 重置状态
@@ -51,11 +52,6 @@ public:
         }
     }
 
-protected:
-	void SetupPlant() override
-	{
-		Plant::SetupPlant();
-	}
 };
 
 #endif

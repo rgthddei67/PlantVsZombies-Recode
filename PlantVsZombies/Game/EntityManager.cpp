@@ -1,9 +1,7 @@
 #include "EntityManager.h"
-
-EntityManager& EntityManager::GetInstance() {
-    static EntityManager instance;
-    return instance;
-}
+#include "Plant/Plant.h"
+#include "Zombie/Zombie.h"
+#include "Coin.h"
 
 int EntityManager::AddPlant(std::shared_ptr<Plant> plant) {
     int id = mNextPlantID++;

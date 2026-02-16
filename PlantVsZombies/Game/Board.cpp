@@ -50,7 +50,7 @@ std::shared_ptr<Sun> Board::CreateSun(const Vector& position, bool needAnimation
 		(LAYER_GAME_COIN, this, position, 0.85f, "Sun",
 			needAnimation, true);
 	if (sun) {
-		EntityManager::GetInstance().AddCoin(sun);
+		mEntityManager.AddCoin(sun);
 	}
 
 	return sun;
@@ -81,7 +81,6 @@ std::shared_ptr<Plant> Board::CreatePlant(PlantType plantType, int row, int colu
 			row,                    // int row
 			column,                 // int column
 			AnimationType::ANIM_SUNFLOWER,  // AnimationType animType
-			Vector(75, 75),         // const Vector& colliderSize
 			1.0f,                   // scale
 			isPreview               // mIsPreview
 		);
@@ -95,7 +94,6 @@ std::shared_ptr<Plant> Board::CreatePlant(PlantType plantType, int row, int colu
 			row,
 			column,
 			AnimationType::ANIM_PEASHOOTER,
-			Vector(75, 75),
 			1.0f,
 			isPreview
 		);
@@ -125,7 +123,7 @@ std::shared_ptr<Plant> Board::CreatePlant(PlantType plantType, int row, int colu
 	}
 
 	if (plant && !isPreview) {
-		EntityManager::GetInstance().AddPlant(plant);
+		mEntityManager.AddPlant(plant);
 
 		// 将植物与格子关联
 		auto cell = GetCell(row, column);
@@ -151,7 +149,6 @@ std::shared_ptr<Zombie> Board::CreateZombie(ZombieType zombieType, const float& 
 			x,
 			row,
 			AnimationType::ANIM_NORMAL_ZOMBIE,
-			Vector(40, 100),
 			1.0f,
 			isPreview);
 		break;
@@ -161,16 +158,21 @@ std::shared_ptr<Zombie> Board::CreateZombie(ZombieType zombieType, const float& 
 	}
 
 	if (zombie && !isPreview) {
-		EntityManager::GetInstance().AddZombie(zombie);
+		mEntityManager.AddZombie(zombie);
 	}
 	return zombie;
+}
+
+float Board::RowToY(int row)
+{
+	return static_cast<float>(CELL_INITALIZE_POS_Y + CELL_COLLIDER_SIZE_Y * 3 / 2 * row);
 }
 
 void Board::CleanupExpiredObjects()
 {
 	// 清理已过期的植物ID映射
 	// TODO 如果其他地方也有存储植物ID,也要删除
-	std::vector<int> removedPlants = EntityManager::GetInstance().CleanupExpired();
+	std::vector<int> removedPlants = mEntityManager.CleanupExpired();
 
 	// 遍历被清理的植物ID，清除对应Cell中的植物ID
 	for (int plantID : removedPlants) {

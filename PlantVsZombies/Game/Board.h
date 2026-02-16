@@ -6,6 +6,7 @@
 #include "GameObjectManager.h"
 #include "./Plant/PlantType.h"
 #include "./Zombie/ZombieType.h"
+#include "EntityManager.h"
 #include <vector>
 #include <memory>
 
@@ -26,6 +27,7 @@ public:
 	float mSunCountDown = 5.0f;
 	int mNextPlantID = 1;	// 下一个植物的ID
 	int mNextCoinID = 1;	// 下一个Coin的ID
+	EntityManager mEntityManager;
 	// 外层表示行（rows） 内层columns
 	std::vector<std::vector<std::shared_ptr<Cell>>> mCells;
 
@@ -75,6 +77,9 @@ public:
 
 	// 创建植物
 	std::shared_ptr<Plant> CreatePlant(PlantType plantType, int row, int column, bool isPreview = false);
+
+	// 行数转换为y坐标
+	float RowToY(int row);
 
 	// 渲染网格（调试用）
 	void DrawCell(SDL_Renderer* renderer);

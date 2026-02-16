@@ -222,9 +222,6 @@
     <ClInclude Include="Game\GameObjectManager.h">
       <Filter>Code\Game</Filter>
     </ClInclude>
-    <ClInclude Include="Game\ReanimationComponent.h">
-      <Filter>Code\Game</Filter>
-    </ClInclude>
     <ClInclude Include="Game\Sun.h">
       <Filter>Code\Game</Filter>
     </ClInclude>

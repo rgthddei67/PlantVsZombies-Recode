@@ -91,7 +91,6 @@
     <ClInclude Include="Game\Plant\PlantType.h" />
     <ClInclude Include="Game\Plant\Shooter.h" />
     <ClInclude Include="Game\Plant\SunFlower.h" />
-    <ClInclude Include="Game\ReanimationComponent.h" />
     <ClInclude Include="Game\RenderOrder.h" />
     <ClInclude Include="Game\Scene.h" />
     <ClInclude Include="Game\SceneManager.h" />

@@ -1,6 +1,7 @@
 #include "Shooter.h"
 #include "GameDataManager.h"
 #include "../Board.h"
+#include "../Zombie/Zombie.h"
 
 void Shooter::SetupPlant() {
     Plant::SetupPlant();  // 基类初始化
@@ -48,7 +49,19 @@ bool Shooter::HasZombieInRow()
 {
 	if (mBoard)
 	{
-		// TODO: 实现检测本行是否有僵尸的逻辑
+        EntityManager manager = mBoard->mEntityManager;
+        std::vector<int> zombieIDs = manager.GetAllZombieIDs();
+        for (auto& zombieID : zombieIDs)
+        {
+            if (auto zombie = manager.GetZombie(zombieID))
+            {
+                if (zombie->mRow == this->mRow &&
+                    zombie->GetPosition().x >= this->GetPosition().x)
+                {
+                    return true;
+                }
+            }
+        }
 	}
-	return true;
+	return false;
 }

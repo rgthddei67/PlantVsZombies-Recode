@@ -5,9 +5,10 @@
 #include "Component.h"
 #include "GameObject.h"
 #include "TransformComponent.h"
-#include "ReanimationComponent.h"
 #include "ColliderComponent.h"
+#include "../Reanimation/Animator.h"
 #include "../Reanimation/ReanimTypes.h"
+#include "../ResourceManager.h"
 #include <memory>
 
 class Board;
@@ -16,9 +17,15 @@ class AnimatedObject : public GameObject {
 protected:
     Board* mBoard = nullptr;
     float mGlowingTimer = 0.0f;
+
     std::weak_ptr<TransformComponent> mTransform;
-    std::weak_ptr<ReanimationComponent> mAnimation;
     std::weak_ptr<ColliderComponent> mCollider;
+
+    std::shared_ptr<Animator> mAnimator;
+    AnimationType mAnimType;
+    bool mIsPlaying;
+    PlayState mLoopType;
+    bool mAutoDestroy;
 
 public:
     AnimatedObject(ObjectType type,
@@ -32,6 +39,7 @@ public:
         const std::string& tag = "AnimatedObject",
         bool autoDestroy = true);
 
+    // 动画控制
     void PlayAnimation();
     void PauseAnimation();
     void StopAnimation();
@@ -49,42 +57,36 @@ public:
     float GetAnimationSpeed() const;
     void SetAlpha(float alpha);
     float GetAlpha() const;
+    void SetOriginalSpeed(float speed);
+    float GetOriginalSpeed();
 
-    /**
-     * @brief 将另一个动画器附加到本对象的指定轨道上
-     * @param trackName 轨道名称（如 "anim_stem"）
-     * @param childAnimator 子动画器
-     * @return 是否成功
-     */
+    // 轨道附加
     bool AttachAnimatorToTrack(const std::string& trackName, std::shared_ptr<Animator> childAnimator);
-
-    /**
-     * @brief 从轨道分离子动画器
-     */
     void DetachAnimatorFromTrack(const std::string& trackName, std::shared_ptr<Animator> childAnimator);
-
-    /**
-     * @brief 分离所有附加的子动画器
-     */
     void DetachAllAnimators();
 
+    // 视觉效果
     void SetGlowingTimer(float duration);
     void SetGlowColor(Uint8 r, Uint8 g, Uint8 b, Uint8 a = 128);
     void EnableGlowEffect(bool enable);
     void EnableOverlayEffect(bool enable);
     void OverrideColor(const SDL_Color& color);
 
-    bool PlayTrack(const std::string& trackName, float blendTime = 0);
+    // 轨道播放
+    bool PlayTrack(const std::string& trackName, float blendTime = 0, float speed = 1.0f);
     bool PlayTrackOnce(const std::string& trackName, const std::string& returnTrack = "", float speed = 1.0f, float blendTime = 0);
     void SetFramesForLayer(const std::string& trackName);
 
-    std::shared_ptr<ReanimationComponent> GetAnimationComponent() const;
+    // 组件获取
     std::shared_ptr<TransformComponent> GetTransformComponent() const;
     std::shared_ptr<ColliderComponent> GetColliderComponent() const;
     std::shared_ptr<Animator> GetAnimator() const;
 
-    void Start() override;
+    // 获取视觉绘制位置
+    virtual Vector GetVisualPosition() const;
+
     void Update() override;
+    void Draw(SDL_Renderer* renderer) override;
 
 private:
     void UpdateGlowingEffect();

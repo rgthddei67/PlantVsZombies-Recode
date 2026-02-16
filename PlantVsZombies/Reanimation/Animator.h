@@ -59,10 +59,19 @@ public:
     void Stop();
 
     // 播放指定轨道动画，支持过渡效果
-    bool PlayTrack(const std::string& trackName, float blendTime = 0);
+    bool PlayTrack(const std::string& trackName, float blendTime = 0, float speed = 1.0f);
 
     // 播放指定轨道动画一次，播放完后可切换回指定轨道
     bool PlayTrackOnce(const std::string& trackName, const std::string& returnTrack = "", float speed = 1.0f, float blendTime = 0);
+
+    void SetOriginalSpeed(float speed) {
+        this->mOriginalSpeed = speed;
+    }
+
+    float GetOriginalSpeed()
+    {
+        return this->mOriginalSpeed;
+    }
 
     // 轨道范围控制
     std::pair<int, int> GetTrackRange(const std::string& trackName);
