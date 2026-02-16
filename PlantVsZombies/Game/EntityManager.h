@@ -1,0 +1,42 @@
+#pragma once
+#include <memory>
+#include <unordered_map>
+#include <vector>
+#include "Plant/Plant.h"
+#include "Zombie/Zombie.h"
+#include "Coin.h"
+
+class EntityManager {
+public:
+    static EntityManager& GetInstance();
+
+    EntityManager(const EntityManager&) = delete;
+    EntityManager& operator=(const EntityManager&) = delete;
+
+    int AddPlant(std::shared_ptr<Plant> plant);
+    std::shared_ptr<Plant> GetPlant(int id) const;
+    std::vector<int> GetAllPlantIDs() const;
+
+    int AddZombie(std::shared_ptr<Zombie> zombie);
+    std::shared_ptr<Zombie> GetZombie(int id) const;
+    std::vector<int> GetAllZombieIDs() const;
+
+    int AddCoin(std::shared_ptr<Coin> coin);
+    std::shared_ptr<Coin> GetCoin(int id) const;
+    std::vector<int> GetAllCoinIDs() const;
+
+    // 清理过期对象 返回清理的植物ID
+    std::vector<int> CleanupExpired();
+
+private:
+    int mNextPlantID = 1;
+    int mNextZombieID = 1;
+    int mNextCoinID = 1;
+
+    std::unordered_map<int, std::weak_ptr<Plant>> mPlants;
+    std::unordered_map<int, std::weak_ptr<Zombie>> mZombies;
+    std::unordered_map<int, std::weak_ptr<Coin>> mCoins;
+
+    EntityManager() = default;
+    ~EntityManager() = default;
+};

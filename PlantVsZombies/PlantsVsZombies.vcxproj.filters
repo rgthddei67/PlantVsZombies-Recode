@@ -23,6 +23,9 @@
     <Filter Include="Code\Game\Plant">
       <UniqueIdentifier>{49f31bad-c701-406a-b837-2513b7bece74}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Code\Game\Zombie">
+      <UniqueIdentifier>{49782c1a-24a0-44f1-a1ae-06d2f07c2db3}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="UI\Button.cpp">
@@ -121,7 +124,7 @@
     <ClCompile Include="FileManager.cpp">
       <Filter>Code</Filter>
     </ClCompile>
-    <ClCompile Include="Game\Plant\PlantDataManager.cpp">
+    <ClCompile Include="Game\Plant\GameDataManager.cpp">
       <Filter>Code\Game\Plant</Filter>
     </ClCompile>
     <ClCompile Include="CursorManager.cpp">
@@ -132,6 +135,15 @@
     </ClCompile>
     <ClCompile Include="Game\Plant\Shooter.cpp">
       <Filter>Code\Game\Plant</Filter>
+    </ClCompile>
+    <ClCompile Include="Game\AnimatedObject.cpp">
+      <Filter>Code\Game</Filter>
+    </ClCompile>
+    <ClCompile Include="Game\EntityManager.cpp">
+      <Filter>Code\Game</Filter>
+    </ClCompile>
+    <ClCompile Include="Game\Zombie\Zombie.cpp">
+      <Filter>Code\Game\Zombie</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -282,7 +294,7 @@
     <ClInclude Include="FileManager.h">
       <Filter>Code</Filter>
     </ClInclude>
-    <ClInclude Include="Game\Plant\PlantDataManager.h">
+    <ClInclude Include="Game\Plant\GameDataManager.h">
       <Filter>Code\Game\Plant</Filter>
     </ClInclude>
     <ClInclude Include="Game\RenderOrder.h">
@@ -299,6 +311,18 @@
     </ClInclude>
     <ClInclude Include="Game\Plant\Shooter.h">
       <Filter>Code\Game\Plant</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\Zombie\Zombie.h">
+      <Filter>Code\Game\Zombie</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\Zombie\ZombieType.h">
+      <Filter>Code\Game\Zombie</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\EntityManager.h">
+      <Filter>Code\Game</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\CoinType.h">
+      <Filter>Code\Game</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

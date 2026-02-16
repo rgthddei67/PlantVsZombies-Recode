@@ -7,6 +7,7 @@
 
 class Shooter : public Plant {
 protected:
+	std::shared_ptr<Animator> mHeadAnim = nullptr;
 	float mShootTime = 1.5f;     // 射击间隔时间
 	float mShootTimer = 0.0f;    // 射击计时器
 

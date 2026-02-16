@@ -1,5 +1,5 @@
 #include "ResourceManager.h"
-#include "./Game/Plant/PlantDataManager.h"
+#include "./Game/Plant/GameDataManager.h"
 #include <algorithm>
 
 ResourceManager* ResourceManager::instance = nullptr;
@@ -389,7 +389,7 @@ std::shared_ptr<Reanimation> ResourceManager::GetReanimation(const std::string& 
 }
 
 std::string ResourceManager::AnimationTypeToString(AnimationType type) {
-    return PlantDataManager::GetInstance().GetAnimationName(type);
+    return GameDataManager::GetInstance().GetAnimationName(type);
 }
 
 void ResourceManager::UnloadReanimation(const std::string& key) {

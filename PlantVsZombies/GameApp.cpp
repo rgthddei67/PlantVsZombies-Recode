@@ -11,7 +11,7 @@
 #include "./ParticleSystem/ParticleSystem.h"
 #include "./Game/GameObjectManager.h"
 #include "./Game/CollisionSystem.h"
-#include "./Game/Plant/PlantDataManager.h"
+#include "./Game/Plant/GameDataManager.h"
 #include <iostream>
 #include <sstream>
 
@@ -81,7 +81,7 @@ bool GameAPP::InitializeAudioSystem()
 bool GameAPP::CreateWindowAndRenderer()
 {
     // 设置SDL提示
-    SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "0");  // 0 = nearest (像素完美)
+    SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1");
     SDL_SetHint(SDL_HINT_RENDER_VSYNC, "1");          // 启用垂直同步减少撕裂
 
     // 创建窗口
@@ -125,7 +125,7 @@ bool GameAPP::InitializeResourceManager()
 
     CursorManager::GetInstance().SetDefaultCursor();
 
-    PlantDataManager& plantMgr = PlantDataManager::GetInstance();
+    GameDataManager& plantMgr = GameDataManager::GetInstance();
     plantMgr.Initialize();
 
     ResourceManager& resourceManager = ResourceManager::GetInstance();
@@ -336,6 +336,9 @@ void GameAPP::Shutdown()
     // 清理资源管理器
     ResourceManager::ReleaseInstance();
 
+    // 清理文本缓存
+    CleanupResources();
+
     // 清理音频系统
     AudioSystem::Shutdown();
 
@@ -362,9 +365,6 @@ void GameAPP::Shutdown()
     IMG_Quit();
     SDL_Quit();
 
-    // 清理文本缓存
-    CleanupResources();
-
     mRunning = false;
     mInitialized = false;
 }
@@ -388,8 +388,57 @@ void GameAPP::CleanupResources()
     ResourceManager::GetInstance().CleanupUnusedFontSizes();
 }
 
-void GameAPP::DrawText(SDL_Renderer* renderer,
-    const std::string& text,
+SDL_Texture* GameAPP::GetCachedTextTexture(const std::string& text,
+    const SDL_Color& color,
+    const std::string& fontKey,
+    int fontSize,
+    int& outWidth,
+    int& outHeight)
+{
+    // 1. 生成唯一缓存键
+    std::stringstream ss;
+    ss << text << "|" << fontKey << "|" << fontSize << "|"
+        << (int)color.r << "," << (int)color.g << "," << (int)color.b << "," << (int)color.a;
+    std::string key = ss.str();
+
+    // 2. 查找缓存
+    for (auto& cached : mTextCache) {
+        if (cached.key == key) {
+            outWidth = cached.width;
+            outHeight = cached.height;
+            return cached.texture;
+        }
+    }
+
+    // 3. 缓存未命中，创建新纹理
+    TTF_Font* font = ResourceManager::GetInstance().GetFont(fontKey, fontSize);
+    if (!font) {
+        outWidth = outHeight = 0;
+        return nullptr;
+    }
+
+    SDL_Surface* surface = TTF_RenderUTF8_Blended(font, text.c_str(), color);
+    if (!surface) {
+        outWidth = outHeight = 0;
+        return nullptr;
+    }
+
+    SDL_Texture* texture = SDL_CreateTextureFromSurface(mRenderer, surface);
+    outWidth = surface->w;
+    outHeight = surface->h;
+    SDL_FreeSurface(surface);
+
+    if (!texture) {
+        return nullptr;
+    }
+
+    // 4. 存入缓存
+    mTextCache.push_back({ key, texture, outWidth, outHeight });
+
+    return texture;
+}
+
+void GameAPP::DrawText(const std::string& text,
     int x, int y,
     const SDL_Color& color,
     const std::string& fontKey,
@@ -397,48 +446,21 @@ void GameAPP::DrawText(SDL_Renderer* renderer,
 {
     if (text.empty()) return;
 
-    // 使用资源管理器获取字体
-    TTF_Font* font = ResourceManager::GetInstance().GetFont(fontKey, fontSize);
-    if (!font)
-    {
-        std::cerr << "无法获取字体: " << fontKey << " size: " << fontSize << std::endl;
-        return;
-    }
+    int w, h;
+    SDL_Texture* texture = GetCachedTextTexture(text, color, fontKey, fontSize, w, h);
+    if (!texture) return;
 
-    // 创建文本表面
-    SDL_Surface* surface = TTF_RenderUTF8_Blended(font, text.c_str(), color);
-    if (!surface)
-    {
-        std::cerr << "无法创建文本表面: " << TTF_GetError() << std::endl;
-        return;
-    }
-
-    // 创建纹理
-    SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
-    if (!texture)
-    {
-        SDL_FreeSurface(surface);
-        std::cerr << "无法创建纹理: " << SDL_GetError() << std::endl;
-        return;
-    }
-
-    // 渲染文本
-    SDL_Rect destRect = { x, y, surface->w, surface->h };
-    SDL_RenderCopy(renderer, texture, nullptr, &destRect);
-
-    // 清理资源
-    SDL_DestroyTexture(texture);
-    SDL_FreeSurface(surface);
+    SDL_Rect dest = { x, y, w, h };
+    SDL_RenderCopy(mRenderer, texture, nullptr, &dest);
 }
 
-void GameAPP::DrawText(SDL_Renderer* renderer,
-    const std::string& text,
+void GameAPP::DrawText(const std::string& text,
     const Vector& position,
     const SDL_Color& color,
     const std::string& fontKey,
     int fontSize)
 {
-    DrawText(renderer, text, static_cast<int>(position.x), static_cast<int>(position.y),
+    DrawText(text, static_cast<int>(position.x), static_cast<int>(position.y),
         color, fontKey, fontSize);
 }
 
@@ -471,6 +493,5 @@ SDL_Texture* GameAPP::CreateTextTexture(SDL_Renderer* renderer,
 
     SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
     SDL_FreeSurface(surface);
-
-    return texture;
+    return texture;  // 调用者负责销毁
 }

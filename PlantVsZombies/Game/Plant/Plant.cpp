@@ -1,8 +1,9 @@
 #include "Plant.h"
 #include "../Board.h"
+#include "../Zombie/Zombie.h"
 #include "../GameObjectManager.h"
 #include "../ShadowComponent.h"
-#include "PlantDataManager.h"
+#include "GameDataManager.h"
 
 Plant::Plant(Board* board, PlantType plantType, int row, int column,
 	AnimationType animType, const Vector& colliderSize, float scale, bool isPreview)
@@ -25,7 +26,7 @@ Plant::Plant(Board* board, PlantType plantType, int row, int column,
 	mPlantMaxHealth = 300;
 	mIsPreview = isPreview;
 
-	PlantDataManager& plantMgr = PlantDataManager::GetInstance();
+	GameDataManager& plantMgr = GameDataManager::GetInstance();
 	Vector plantOffset = plantMgr.GetPlantOffset(plantType);
 	// 设置植物在格子中的位置
 	if (auto transform = mTransform.lock()) {
@@ -65,8 +66,9 @@ void Plant::Start()
 			(ResourceManager::GetInstance().GetTexture
 			(ResourceKeys::Textures::IMAGE_PLANTSHADOW));
 		shadowcomponent->SetDrawOrder(-80);
-		SetupPlant();
 	}
+	this->PlayTrack("anim_idle");
+	SetupPlant();
 }
 
 void Plant::TakeDamage(int damage) {

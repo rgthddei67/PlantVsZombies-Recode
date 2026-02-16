@@ -7,6 +7,7 @@
 #include "TransformComponent.h"
 #include "GameObject.h"
 #include "GameObjectManager.h"
+#include "./Plant/PlantType.h"
 
 constexpr float CELL_COLLIDER_SIZE_X = 80.0f;
 constexpr float CELL_COLLIDER_SIZE_Y = 100.0f;
@@ -18,7 +19,7 @@ private:
     std::function<void(int, int)> OnCellClicked;
     std::weak_ptr<ColliderComponent> mCollider;
     std::weak_ptr<TransformComponent> mTransform;
-    int mPlantID = -1;
+    int mPlantID = NULL_PLANT_ID;
 
 public:
 	int mRow = 0;		// 行
@@ -85,13 +86,13 @@ public:
     // 清除植物ID
     void ClearPlantID()
     {
-        mPlantID = -1;
+        mPlantID = NULL_PLANT_ID;
     }
 
     // 检查格子是否为空
     bool IsEmpty() const
     {
-        return mPlantID == -1;
+        return mPlantID == NULL_PLANT_ID;
     }
 
     // 检查点是否在格子内

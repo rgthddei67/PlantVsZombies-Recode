@@ -131,11 +131,13 @@ namespace ResourceKeys
         const std::string MUSIC_MAINMENU = "MUSIC_MAINMENU";
     }
 
+    // TODO: 新增东西也要改这里
     namespace Reanimations
     {
         const std::string REANIM_SUN = "Sun";
         const std::string REANIM_SUNFLOWER = "SunFlower";
 		const std::string REANIM_PEASHOOTER = "PeaShooter";
+        const std::string REANIM_NORMAL_ZOMBIE = "NormalZombie";
     }
 
     class ResourceKeyGenerator

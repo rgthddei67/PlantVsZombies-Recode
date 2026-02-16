@@ -30,6 +30,8 @@ void Coin::Start()
 	clickableComponent->ConsumeEvent = true;
 
 	SetOnClickBack(clickableComponent);
+
+	this->PlayTrack("Sun1");
 }
 
 void Coin::Update()

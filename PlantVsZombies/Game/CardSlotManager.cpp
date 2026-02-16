@@ -5,7 +5,7 @@
 #include "Card.h"
 #include "CardComponent.h"
 #include "../UI/InputHandler.h"
-#include "./Plant/PlantDataManager.h"
+#include "./Plant/GameDataManager.h"
 #include "../GameApp.h"
 #include "AudioSystem.h"
 #include "./Plant/Plant.h"
@@ -213,7 +213,7 @@ void CardSlotManager::CreateCellPlantPreview(PlantType plantType, std::shared_pt
 		cellPlantPreview = mBoard->CreatePlant(plantType, 0, 0, true);
 		if (cellPlantPreview) {
 			// 获取植物偏移量
-			PlantDataManager& plantMgr = PlantDataManager::GetInstance();
+			GameDataManager& plantMgr = GameDataManager::GetInstance();
 			Vector plantOffset = plantMgr.GetPlantOffset(plantType);
 
 			// 设置位置到Cell中心，并应用偏移量
@@ -293,7 +293,7 @@ void CardSlotManager::UpdatePlantPreviewPosition(const Vector& position) {
 		if (cellPlantPreview && hoveredCell) {
 			// 获取植物偏移量
 			if (auto cardComp = selected->GetComponent<CardComponent>()) {
-				PlantDataManager& plantMgr = PlantDataManager::GetInstance();
+				GameDataManager& plantMgr = GameDataManager::GetInstance();
 				Vector plantOffset = plantMgr.GetPlantOffset(cardComp->GetPlantType());
 
 				// 计算位置：Cell中心 + 偏移量
@@ -313,7 +313,7 @@ void CardSlotManager::UpdatePlantPreviewPosition(const Vector& position) {
 
 void CardSlotManager::UpdatePreviewToMouse(const Vector& mousePos) {
 	if (plantPreview) {
-		PlantDataManager& plantMgr = PlantDataManager::GetInstance();
+		GameDataManager& plantMgr = GameDataManager::GetInstance();
 		Vector plantOffset = plantMgr.GetPlantOffset(plantPreview->mPlantType);
 
 		// 应用偏移量：鼠标位置 + 偏移
@@ -407,5 +407,5 @@ PlantType CardSlotManager::GetSelectedPlantType() const {
 			return cardComp->GetPlantType();
 		}
 	}
-	return PlantType::PLANT_NONE;
+	return PlantType::NUM_PLANT_TYPES;
 }

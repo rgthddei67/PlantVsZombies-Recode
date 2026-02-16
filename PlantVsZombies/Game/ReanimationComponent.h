@@ -7,7 +7,9 @@
 #include "../Game/Component.h"
 #include "../Reanimation/Animator.h"
 #include "../Reanimation/AnimationTypes.h"
+#include "../DeltaTime.h"
 #include <memory>
+#include <vector>
 
 class GameObjectManager;
 
@@ -27,9 +29,7 @@ public:
         mLoopType(PlayState::PLAY_REPEAT), mAutoDestroy(true) {
     }
 
-    ~ReanimationComponent() override {
-
-    }
+    ~ReanimationComponent() override = default;
 
     void Start() override {
         auto gameObj = GetGameObject();
@@ -46,18 +46,17 @@ public:
             return;
         }
 
-        // 创建动画控制器
         mAnimator = std::make_shared<Animator>(reanimResource);
 
         // 设置初始位置
         if (auto transformComp = gameObj->GetComponent<TransformComponent>()) {
             mPosition = transformComp->position;
+            mScale = transformComp->GetScale();
         }
 
         // 设置动画参数
         mAnimator->SetSpeed(1.0f);
-
-        // 根据循环类型设置播放状态
+        mAnimator->SetAlpha(1.0f);
         mAnimator->Play(mLoopType);
 
         mIsPlaying = true;
@@ -66,7 +65,7 @@ public:
     void Update() override {
         if (!mAnimator) return;
 
-        // 更新位置
+        // 更新位置和缩放
         if (auto gameObj = GetGameObject()) {
             if (auto transformComp = gameObj->GetComponent<TransformComponent>()) {
                 mPosition = transformComp->position;
@@ -94,11 +93,38 @@ public:
 
     void Draw(SDL_Renderer* renderer) override {
         if (!mAnimator) return;
-
         mAnimator->Draw(renderer, mPosition.x, mPosition.y, mScale);
     }
 
-    // 开始播放
+    /**
+     * @brief 将另一个动画附加到本动画的指定轨道上（跟随轨道变换）
+     * @param trackName 轨道名称（如 "anim_stem"）
+     * @param childAnimator 要附加的子动画器
+     * @return 是否成功
+     */
+    bool AttachAnimatorToTrack(const std::string& trackName, std::shared_ptr<Animator> childAnimator) {
+        if (!mAnimator || !childAnimator) return false;
+        return mAnimator->AttachAnimator(trackName, childAnimator);
+    }
+
+    /**
+     * @brief 从轨道分离子动画
+     */
+    void DetachAnimatorFromTrack(const std::string& trackName, std::shared_ptr<Animator> childAnimator) {
+        if (mAnimator) {
+            mAnimator->DetachAnimator(trackName, childAnimator);
+        }
+    }
+
+    /**
+     * @brief 分离所有附加的子动画
+     */
+    void DetachAllAnimators() {
+        if (mAnimator) {
+            mAnimator->DetachAllAnimators();
+        }
+    }
+
     void Play() {
         mIsPlaying = true;
         if (mAnimator) {
@@ -106,7 +132,6 @@ public:
         }
     }
 
-    // 完全停止播放并切换到第一帧
     void Stop() {
         mIsPlaying = false;
         if (mAnimator) {
@@ -114,9 +139,7 @@ public:
         }
     }
 
-    // 在当前播放位置暂停播放
-    void Pause()
-    {
+    void Pause() {
         mIsPlaying = false;
         if (mAnimator) {
             mAnimator->Pause();
@@ -125,7 +148,6 @@ public:
 
     void SetLoopType(PlayState loopType) {
         mLoopType = loopType;
-        // 如果正在播放，重新设置播放状态
         if (mIsPlaying && mAnimator) {
             mAnimator->Play(mLoopType);
         }
@@ -147,14 +169,12 @@ public:
         return mScale;
     }
 
-    // 设置透明度
     void SetAlpha(float alpha) {
         if (mAnimator) {
             mAnimator->SetAlpha(alpha);
         }
     }
 
-    // 获取透明度
     float GetAlpha() const {
         return mAnimator ? mAnimator->GetAlpha() : 1.0f;
     }
@@ -165,9 +185,7 @@ public:
 
     bool IsFinished() const {
         if (!mAnimator) return true;
-
         if (mLoopType == PlayState::PLAY_REPEAT) return false;
-
         return !mAnimator->IsPlaying();
     }
 
@@ -179,24 +197,20 @@ public:
         return mAutoDestroy;
     }
 
-    // 设置特定轨道的帧范围
     void SetFramesForLayer(const std::string& trackName) {
         if (mAnimator) {
             mAnimator->SetFrameRangeByTrackName(trackName);
         }
     }
 
-    // 获取底层 Animator 对象
     std::shared_ptr<Animator> GetAnimator() const {
         return mAnimator;
     }
 
-    // 获取动画类型
     AnimationType GetAnimationType() const {
         return mAnimType;
     }
 
-    // 设置动画速度
     void SetSpeed(float speed) {
         if (mAnimator) {
             mAnimator->SetSpeed(speed);
@@ -205,6 +219,38 @@ public:
 
     float GetSpeed() const {
         return mAnimator ? mAnimator->GetSpeed() : 0.0f;
+    }
+
+    void EnableGlowEffect(bool enable) {
+        if (mAnimator) {
+            mAnimator->EnableGlowEffect(enable);
+        }
+    }
+
+    void SetGlowColor(Uint8 r, Uint8 g, Uint8 b, Uint8 a = 128) {
+        if (mAnimator) {
+            mAnimator->SetGlowColor(r, g, b, a);
+        }
+    }
+
+    void EnableOverlayEffect(bool enable) {
+        if (mAnimator) {
+            mAnimator->EnableOverlayEffect(enable);
+        }
+    }
+
+    void SetOverlayColor(Uint8 r, Uint8 g, Uint8 b, Uint8 a = 64) {
+        if (mAnimator) {
+            mAnimator->SetOverlayColor(r, g, b, a);
+        }
+    }
+
+    bool PlayTrack(const std::string& trackName, float blendTime = 0) {
+        return mAnimator ? mAnimator->PlayTrack(trackName, blendTime) : false;
+    }
+
+    bool PlayTrackOnce(const std::string& trackName, const std::string& returnTrack = "", float speed = 1.0f, float blendTime = 0) {
+        return mAnimator ? mAnimator->PlayTrackOnce(trackName, returnTrack, speed, blendTime) : false;
     }
 
 };

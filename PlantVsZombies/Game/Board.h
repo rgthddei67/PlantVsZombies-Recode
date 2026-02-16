@@ -5,6 +5,7 @@
 #include "GameObject.h"
 #include "GameObjectManager.h"
 #include "./Plant/PlantType.h"
+#include "./Zombie/ZombieType.h"
 #include <vector>
 #include <memory>
 
@@ -27,8 +28,6 @@ public:
 	int mNextCoinID = 1;	// 下一个Coin的ID
 	// 外层表示行（rows） 内层columns
 	std::vector<std::vector<std::shared_ptr<Cell>>> mCells;
-	std::unordered_map<int, std::weak_ptr<Plant>> mPlantIDMap;
-	std::unordered_map<int, std::weak_ptr<Coin>> mCoinIDMap;
 
 public:
 	Board()
@@ -65,6 +64,9 @@ public:
 		return nullptr;
 	}
 
+	// 创建僵尸
+	std::shared_ptr<Zombie> CreateZombie(ZombieType zombieType, const float& x, int row, bool isPreview = false);
+
 	// 创建太阳
 	std::shared_ptr<Sun> CreateSun(const Vector& position, bool needAnimation = false);
 
@@ -88,17 +90,5 @@ public:
 	void UpdateSunFalling();
 
 	void Update();
-
-	// 根据ID获取植物
-	std::shared_ptr<Plant> GetPlantByID(int plantID);
-
-	// 根据ID获取Coin
-	std::shared_ptr<Coin> GetCoinByID(int coinID);
-
-	// 获取所有植物的ID
-	std::vector<int> GetAllPlantIDs() const;
-
-	// 获取所有Coin的ID
-	std::vector<int> GetAllCoinIDs() const;
 };
 #endif

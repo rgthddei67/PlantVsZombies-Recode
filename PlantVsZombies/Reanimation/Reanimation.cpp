@@ -55,14 +55,14 @@ bool Reanimation::LoadFromFile(const std::string& filePath) {
                     TrackFrameTransform frameTransform;
 
                     // 初始化所有字段为占位符值
-                    frameTransform.x = REANIM_MISSING_FIELD;
-                    frameTransform.y = REANIM_MISSING_FIELD;
-                    frameTransform.kx = REANIM_MISSING_FIELD;
-                    frameTransform.ky = REANIM_MISSING_FIELD;
-                    frameTransform.sx = REANIM_MISSING_FIELD;
-                    frameTransform.sy = REANIM_MISSING_FIELD;
-                    frameTransform.a = REANIM_MISSING_FIELD;
-                    frameTransform.f = 0;
+                    frameTransform.x = REANIM_MISSING_FIELD_FLOAT;
+                    frameTransform.y = REANIM_MISSING_FIELD_FLOAT;
+                    frameTransform.kx = REANIM_MISSING_FIELD_FLOAT;
+                    frameTransform.ky = REANIM_MISSING_FIELD_FLOAT;
+                    frameTransform.sx = REANIM_MISSING_FIELD_FLOAT;
+                    frameTransform.sy = REANIM_MISSING_FIELD_FLOAT;
+                    frameTransform.a = REANIM_MISSING_FIELD_FLOAT;
+                    frameTransform.f = REANIM_MISSING_FIELD_INT;
                     frameTransform.image = "";
 
                     // 解析变换属性
@@ -103,40 +103,43 @@ bool Reanimation::LoadFromFile(const std::string& filePath) {
                     }
 
                     // 如果当前帧的值是占位符，使用前一帧的值
-                    if (frameTransform.x == REANIM_MISSING_FIELD)
+                    if (frameTransform.x == REANIM_MISSING_FIELD_FLOAT)
                         frameTransform.x = prevX;
                     else
                         prevX = frameTransform.x;
 
-                    if (frameTransform.y == REANIM_MISSING_FIELD)
+                    if (frameTransform.y == REANIM_MISSING_FIELD_FLOAT)
                         frameTransform.y = prevY;
                     else
                         prevY = frameTransform.y;
 
-                    if (frameTransform.kx == REANIM_MISSING_FIELD)
+                    if (frameTransform.kx == REANIM_MISSING_FIELD_FLOAT)
                         frameTransform.kx = prevKx;
                     else
                         prevKx = frameTransform.kx;
 
-                    if (frameTransform.ky == REANIM_MISSING_FIELD)
+                    if (frameTransform.ky == REANIM_MISSING_FIELD_FLOAT)
                         frameTransform.ky = prevKy;
                     else
                         prevKy = frameTransform.ky;
 
-                    if (frameTransform.sx == REANIM_MISSING_FIELD)
+                    if (frameTransform.sx == REANIM_MISSING_FIELD_FLOAT)
                         frameTransform.sx = prevSx;
                     else
                         prevSx = frameTransform.sx;
 
-                    if (frameTransform.sy == REANIM_MISSING_FIELD)
+                    if (frameTransform.sy == REANIM_MISSING_FIELD_FLOAT)
                         frameTransform.sy = prevSy;
                     else
                         prevSy = frameTransform.sy;
 
-                    if (frameTransform.a == REANIM_MISSING_FIELD)
+                    if (frameTransform.a == REANIM_MISSING_FIELD_FLOAT)
                         frameTransform.a = prevA;
                     else
                         prevA = frameTransform.a;
+
+                    if (frameTransform.f == REANIM_MISSING_FIELD_INT) frameTransform.f = prevF;
+                    else prevF = frameTransform.f;
 
                     if (frameTransform.image.empty())
                         frameTransform.image = prevImage;
@@ -168,81 +171,12 @@ bool Reanimation::LoadFromFile(const std::string& filePath) {
 
                     // 添加帧到轨道
                     track.mFrames.push_back(frameTransform);
+
                 }
             }
 
             // 轨道可用性
             track.mAvailable = !track.mFrames.empty();
-
-            // 计算动画片段（根据f字段）
-            std::vector<AnimationClip> clips;
-            AnimationClip defaultClip;
-
-            int clipIndex = 0;
-            int currentStart = -1;
-
-            for (size_t i = 0; i < track.mFrames.size(); i++) {
-                if (track.mFrames[i].f == 0) {  // 显示帧
-                    if (currentStart == -1) {
-                        currentStart = static_cast<int>(i);
-                    }
-                }
-                else {  // f == -1 或其它值，表示空白/分隔
-                    if (currentStart != -1) {
-                        // 结束当前片段
-                        AnimationClip clip;
-                        clip.trackName = track.mTrackName;
-                        clip.clipName = "clip_" + std::to_string(clipIndex);
-                        clip.startFrame = currentStart;
-                        clip.endFrame = static_cast<int>(i) - 1;
-                        clip.totalFrames = clip.endFrame - clip.startFrame + 1;
-
-                        clips.push_back(clip);
-
-                        // 如果是第一个片段，设为默认片段
-                        if (clips.size() == 1) {
-                            defaultClip = clip;
-                            defaultClip.clipName = "default";
-                        }
-
-                        clipIndex++;
-                        currentStart = -1;
-                    }
-                }
-            }
-
-            // 处理轨道末尾的片段
-            if (currentStart != -1) {
-                AnimationClip clip;
-                clip.trackName = track.mTrackName;
-                clip.clipName = "clip_" + std::to_string(clipIndex);
-                clip.startFrame = currentStart;
-                clip.endFrame = static_cast<int>(track.mFrames.size()) - 1;
-                clip.totalFrames = clip.endFrame - clip.startFrame + 1;
-
-                clips.push_back(clip);
-
-                if (clips.size() == 1) {
-                    defaultClip = clip;
-                    defaultClip.clipName = "default";
-                }
-            }
-
-            // 如果没有找到任何显示片段，创建一个空片段
-            if (clips.empty()) {
-                AnimationClip clip;
-                clip.trackName = track.mTrackName;
-                clip.clipName = "empty";
-                clip.startFrame = 0;
-                clip.endFrame = 0;
-                clip.totalFrames = 0;
-                clips.push_back(clip);
-                defaultClip = clip;
-            }
-
-            // 存储片段信息
-            track.mClips = clips;
-            track.mDefaultClip = defaultClip;
 
             mTracks->push_back(track);
         }

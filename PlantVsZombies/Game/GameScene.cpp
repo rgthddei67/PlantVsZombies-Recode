@@ -27,7 +27,7 @@ void GameScene::BuildDrawCommands()
 			LAYER_GAME_OBJECT);
 		RegisterDrawCommand("SunCounter",
 			[this](SDL_Renderer* renderer) {
-				GameAPP::GetInstance().DrawText(renderer, std::to_string(mBoard->GetSun()),
+				GameAPP::GetInstance().DrawText(std::to_string(mBoard->GetSun()),
 					Vector(20, 43), SDL_Color{ 0, 0, 0, 255 }, 
 					ResourceKeys::Fonts::FONT_FZCQ, 17);
 			},

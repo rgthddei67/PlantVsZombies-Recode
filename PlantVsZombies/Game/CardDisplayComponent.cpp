@@ -9,7 +9,7 @@
 #include "../ResourceManager.h"
 #include "../GameApp.h"
 #include "./CardSlotManager.h"
-#include "./Plant/PlantDataManager.h"
+#include "./Plant/GameDataManager.h"
 #include <iostream>
 
 CardDisplayComponent::CardDisplayComponent(PlantType type, int sunCost, float cooldown)
@@ -167,7 +167,7 @@ void CardDisplayComponent::DrawSunCost(SDL_Renderer* renderer, std::shared_ptr<T
 
     Vector position = transform->position;
 
-    GameAPP::GetInstance().DrawText(renderer, std::to_string(needSun),
+    GameAPP::GetInstance().DrawText(std::to_string(needSun),
         Vector(position.x + 6, position.y + 58),
         { 0, 0, 0, 255 },
         ResourceKeys::Fonts::FONT_FZCQ,
@@ -339,5 +339,5 @@ std::shared_ptr<TransformComponent> CardDisplayComponent::GetTransformComponent(
 }
 
 std::string CardDisplayComponent::GetPlantTextureKey() const {
-    return PlantDataManager::GetInstance().GetPlantTextureKey(plantType);
+    return GameDataManager::GetInstance().GetPlantTextureKey(plantType);
 }

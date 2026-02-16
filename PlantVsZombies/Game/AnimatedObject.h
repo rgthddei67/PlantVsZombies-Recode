@@ -8,153 +8,87 @@
 #include "ReanimationComponent.h"
 #include "ColliderComponent.h"
 #include "../Reanimation/ReanimTypes.h"
-#include "../DeltaTime.h"
-#include "../GameRandom.h"
+#include <memory>
 
 class Board;
 
 class AnimatedObject : public GameObject {
 protected:
-	Board* mBoard = nullptr;
-	float mGlowingTimer = 0.0f;
-	std::shared_ptr<Animator> mCachedAnimator = nullptr;
-	std::weak_ptr<TransformComponent> mTransform;
-	std::weak_ptr<ReanimationComponent> mAnimation;
-	std::weak_ptr<ColliderComponent> mCollider;
+    Board* mBoard = nullptr;
+    float mGlowingTimer = 0.0f;
+    std::weak_ptr<TransformComponent> mTransform;
+    std::weak_ptr<ReanimationComponent> mAnimation;
+    std::weak_ptr<ColliderComponent> mCollider;
 
 public:
-	AnimatedObject(ObjectType type, Board* board, const Vector& position, AnimationType animType,
-		const ColliderType& colliderType,
-		const Vector& colliderSize,
-		const Vector& colliderOffset,
-		float scale = 1.0f,
-		const std::string& tag = "AnimatedObject",
-		bool autoDestroy = true)
-		: GameObject(type)
-	{
-		mBoard = board;
-		SetTag(tag);
+    AnimatedObject(ObjectType type,
+        Board* board,
+        const Vector& position,
+        AnimationType animType,
+        const ColliderType& colliderType = ColliderType::BOX,
+        const Vector& colliderSize = Vector::zero(),
+        const Vector& colliderOffset = Vector::zero(),
+        float scale = 1.0f,
+        const std::string& tag = "AnimatedObject",
+        bool autoDestroy = true);
 
-		mTransform = AddComponent<TransformComponent>();
-		mTransform.lock()->position = position;
+    void PlayAnimation();
+    void PauseAnimation();
+    void StopAnimation();
 
-		mAnimation = AddComponent<ReanimationComponent>(animType, position, scale);
-		if (auto animation = mAnimation.lock()) {
-			animation->SetDrawOrder(80); // 确保动画在大多数组件之上绘制
-			animation->SetAutoDestroy(autoDestroy);
-		}
-		if (colliderSize.x > 0 && colliderSize.y > 0)
-		{
-			mCollider = AddComponent<ColliderComponent>(colliderSize,
-				colliderOffset, colliderType);
-		}
-	}
+    void SetAnimationPosition(const Vector& position);
+    Vector GetAnimationPosition() const;
+    void SetAnimationScale(float scale);
+    float GetAnimationScale() const;
+    bool IsAnimationFinished() const;
+    bool IsAnimationPlaying() const;
 
-	void Start() override {
-		GameObject::Start();
-		this->PlayAnimation();
-		this->SetAnimationSpeed(GameRandom::Range(0.65f, 0.85f));
-		mCachedAnimator = mAnimation.lock()->GetAnimator();
-	}
+    void SetAutoDestroy(bool autoDestroy);
+    void SetLoopType(PlayState loopType);
+    void SetAnimationSpeed(float speed);
+    float GetAnimationSpeed() const;
+    void SetAlpha(float alpha);
+    float GetAlpha() const;
 
-	void Update() override {
-		GameObject::Update();
+    /**
+     * @brief 将另一个动画器附加到本对象的指定轨道上
+     * @param trackName 轨道名称（如 "anim_stem"）
+     * @param childAnimator 子动画器
+     * @return 是否成功
+     */
+    bool AttachAnimatorToTrack(const std::string& trackName, std::shared_ptr<Animator> childAnimator);
 
-		if (mGlowingTimer > 0.0f) {
-			mGlowingTimer -= DeltaTime::GetDeltaTime();
+    /**
+     * @brief 从轨道分离子动画器
+     */
+    void DetachAnimatorFromTrack(const std::string& trackName, std::shared_ptr<Animator> childAnimator);
 
-			if (mGlowingTimer > 0.0f) {
-				mCachedAnimator->EnableGlowEffect(true);
-			}
-			else {
-				mCachedAnimator->EnableGlowEffect(false);
-			}
-		}
-	}
+    /**
+     * @brief 分离所有附加的子动画器
+     */
+    void DetachAllAnimators();
 
-	// 开始播放动画
-	void PlayAnimation() {
-		if (auto animation = mAnimation.lock()) {
-			animation->Play();
-		}
-	}
+    void SetGlowingTimer(float duration);
+    void SetGlowColor(Uint8 r, Uint8 g, Uint8 b, Uint8 a = 128);
+    void EnableGlowEffect(bool enable);
+    void EnableOverlayEffect(bool enable);
+    void OverrideColor(const SDL_Color& color);
 
-	// 暂停动画播放 维持在暂停的这一帧
-	void PauseAnimation()
-	{
-		if (auto animation = mAnimation.lock()) {
-			animation->Pause();
-		}
-	}
+    bool PlayTrack(const std::string& trackName, float blendTime = 0);
+    bool PlayTrackOnce(const std::string& trackName, const std::string& returnTrack = "", float speed = 1.0f, float blendTime = 0);
+    void SetFramesForLayer(const std::string& trackName);
 
-	// 完全停止动画 并切换到第一帧
-	void StopAnimation() {
-		if (auto animation = mAnimation.lock()) {
-			animation->Stop();
-		}
-	}
+    std::shared_ptr<ReanimationComponent> GetAnimationComponent() const;
+    std::shared_ptr<TransformComponent> GetTransformComponent() const;
+    std::shared_ptr<ColliderComponent> GetColliderComponent() const;
+    std::shared_ptr<Animator> GetAnimator() const;
 
-	// 设置动画位置
-	void SetAnimationPosition(const Vector& position) {
-		if (auto transform = mTransform.lock())
-		{
-			if (auto animation = mAnimation.lock())
-			{
-				transform->position = position;
-				animation->SetPosition(position);
-			}
-		}
-	}
+    void Start() override;
+    void Update() override;
 
-	// 检查动画是否完成
-	bool IsAnimationFinished() const {
-		if (auto animation = mAnimation.lock()) {
-			return animation->IsFinished();
-		}
-	}
-
-	// 设置自动销毁
-	void SetAutoDestroy(bool autoDestroy) {
-		if (auto animation = mAnimation.lock()) {
-			animation->SetAutoDestroy(autoDestroy);
-		}
-	}
-
-	// 设置循环类型
-	void SetLoopType(PlayState loopType) {
-		if (auto animation = mAnimation.lock()) {
-			animation->SetLoopType(loopType);
-		}
-	}
-
-	// 设置动画播放速度
-	void SetAnimationSpeed(float speed) {
-		if (auto animation = mAnimation.lock()) {
-			animation->SetSpeed(speed);
-		}
-	}
-
-	// 获取动画速度
-	float GetAnimationSpeed() const {
-		if (auto animation = mAnimation.lock()) {
-			return animation->GetSpeed();
-		}
-	}
-
-	// 获取动画组件
-	std::shared_ptr<ReanimationComponent> GetAnimationComponent() const {
-		return mAnimation.lock();
-	}
-
-	// 获取变换组件
-	std::shared_ptr<TransformComponent> GetTransformComponent() const {
-		return mTransform.lock();
-	}
-
-	// 获取碰撞组件
-	std::shared_ptr<ColliderComponent> GetColliderComponent() const {
-		return mCollider.lock();
-	}
+private:
+    void UpdateGlowingEffect();
+    std::shared_ptr<Animator> GetAnimatorInternal() const;
 };
 
 #endif

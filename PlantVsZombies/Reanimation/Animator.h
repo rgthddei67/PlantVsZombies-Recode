@@ -17,7 +17,6 @@ SDL_Color ColorsMultiply(const SDL_Color& theColor1, const SDL_Color& theColor2)
 class Animator {
 private:
     std::shared_ptr<Reanimation> mReanim;
-    AnimationClip mCurrentClip;
     float mFPS = 12.0f;
     float mFrameIndexNow = 0.0f;
     float mFrameIndexBegin = 0.0f;
@@ -35,25 +34,24 @@ private:
     std::vector<TrackExtraInfo> mExtraInfos;
     std::unordered_map<std::string, int> mTrackIndicesMap;
 
-    std::string mCurrentAnimationName;
-    bool mAutoSwitchAnimation = true;
-    std::map<std::string, AnimationClip> mAnimationClips;
-        
     bool mEnableExtraAdditiveDraw = false;  // 高亮效果 
-	bool mEnableExtraOverlayDraw = false;   // 附加覆盖效果
+    bool mEnableExtraOverlayDraw = false;   // 附加覆盖效果
     SDL_Color mExtraAdditiveColor = { 255, 255, 255, 128 };
     SDL_Color mExtraOverlayColor = { 255, 255, 255, 64 };
 
     // 过渡目标
-    std::string mTargetTrack;
+    std::string mTargetTrack = "";
+    float mOriginalSpeed = 1.0f;    // 原来的速度
 
 public:
     Animator();
     Animator(std::shared_ptr<Reanimation> reanim);
-    ~Animator() = default;
+    ~Animator();
 
     // 初始化
     void Init(std::shared_ptr<Reanimation> reanim);
+
+    void Die();
 
     // 播放控制
     void Play(PlayState state = PlayState::PLAY_REPEAT);
@@ -61,17 +59,10 @@ public:
     void Stop();
 
     // 播放指定轨道动画，支持过渡效果
-    bool PlayTrack(const std::string& trackName, int blendTime = 0);
+    bool PlayTrack(const std::string& trackName, float blendTime = 0);
 
-	// 播放指定轨道动画一次，播放完后可切换回指定轨道
-    bool PlayTrackOnce(const std::string& trackName, const std::string& returnTrack = "", int blendTime = 0);
-
-    bool SetAnimation(const std::string& animationName);
-    bool SetAnimation(const std::string& trackName, const std::string& clipName);
-
-    // 获取动画信息
-    std::string GetCurrentAnimationName() const { return mCurrentAnimationName; }
-    std::vector<std::string> GetAvailableAnimations() const;
+    // 播放指定轨道动画一次，播放完后可切换回指定轨道
+    bool PlayTrackOnce(const std::string& trackName, const std::string& returnTrack = "", float speed = 1.0f, float blendTime = 0);
 
     // 轨道范围控制
     std::pair<int, int> GetTrackRange(const std::string& trackName);
@@ -79,31 +70,30 @@ public:
     void SetFrameRangeByTrackName(const std::string& trackName);
     void SetFrameRangeToDefault();
 
-    // 轨道显示控制
-    void SetTrackVisible(const std::string& trackName, bool visible);
-    void SetTrackImage(const std::string& trackName, SDL_Texture* image);
-    void SetTrackOffset(const std::string& trackName, float offsetX, float offsetY);
-    void AttachAnimator(const std::string& trackName, Animator* animator);
+    // 设置轨道自定义纹理（会覆盖动画原本的纹理）
+    void SetTrackImage(const std::string& trackName, SDL_Texture* image);   
+    void SetTrackVisible(const std::string& trackName, bool visible); // 轨道显示控制
+ 
+    // 将子动画附加到指定轨道（跟随轨道变换）
+    bool AttachAnimator(const std::string& trackName, std::shared_ptr<Animator> child);
+    void DetachAnimator(const std::string& trackName, std::shared_ptr<Animator> child);
+    void DetachAllAnimators();
 
     // 状态查询
     bool IsPlaying() const { return mIsPlaying; }
     float GetCurrentFrame() const { return mFrameIndexNow; }
-    void SetSpeed(float speed) { mSpeed = speed; }
+    void SetSpeed(float speed);
     float GetSpeed() const { return mSpeed; }
 
     // 透明度和颜色控制
-    void SetAlpha(float alpha) { mAlpha = std::clamp(alpha, 0.0f, 1.0f); }
+    void SetAlpha(float alpha);
     float GetAlpha() const { return mAlpha; }
 
-    void EnableGlowEffect(bool enable) { mEnableExtraAdditiveDraw = enable; }
-    void SetGlowColor(Uint8 r, Uint8 g, Uint8 b, Uint8 a = 128) {
-        mExtraAdditiveColor = { r, g, b, a };
-    }
+    void EnableGlowEffect(bool enable);
+    void SetGlowColor(Uint8 r, Uint8 g, Uint8 b, Uint8 a = 128);
 
-    void EnableOverlayEffect(bool enable) { mEnableExtraOverlayDraw = enable; }
-    void SetOverlayColor(Uint8 r, Uint8 g, Uint8 b, Uint8 a = 64) {
-        mExtraOverlayColor = { r, g, b, a };
-    }
+    void EnableOverlayEffect(bool enable);
+    void SetOverlayColor(Uint8 r, Uint8 g, Uint8 b, Uint8 a = 64);
 
     // 更新和渲染
     void Update();
@@ -118,8 +108,18 @@ public:
     float GetTrackRotation(const std::string& trackName);
     bool GetTrackVisible(const std::string& trackName);
 
-    // 设置自动切换
-    void SetAutoSwitch(bool autoSwitch) { mAutoSwitchAnimation = autoSwitch; }
+    void SetLocalPosition(float x, float y);
+    void SetLocalPosition(const Vector& position);
+    void SetLocalScale(float sx, float sy);
+    void SetLocalRotation(float rotation);
+
+private:
+    // 子动画相对于父轨道的本地变换（单位：像素、缩放因子、角度）
+    float mLocalPosX = 0.0f;
+    float mLocalPosY = 0.0f;
+    float mLocalScaleX = 1.0f;
+    float mLocalScaleY = 1.0f;
+    float mLocalRotation = 0.0f;   // 角度制
 
 private:
     TrackFrameTransform GetInterpolatedTransform(int trackIndex) const;

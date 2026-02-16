@@ -15,20 +15,23 @@ class Board;
 class Plant : public AnimatedObject {
 public:
 	Board* mBoard;
-	PlantType mPlantType = PlantType::PLANT_PEASHOOTER;
+	PlantType mPlantType = PlantType::NUM_PLANT_TYPES;
 	Vector mCurrectPosition = Vector(0, 0);
-	int mPlantHealth = 300;
-	int mPlantMaxHealth = 300;
 	int mRow = 0;
 	int mColumn = 0;
-	bool mIsSleeping = false;
 	bool mIsPreview = false;
-	int mPlantID = 0;
+	int mPlantID = NULL_PLANT_ID;
 
+private:
+	int mPlantHealth = 300;
+	int mPlantMaxHealth = 300;
+	bool mIsSleeping = false;
+
+public:
 	Plant(Board* board, PlantType plantType, int row, int column,
 		AnimationType animType, const Vector& colliderSize, float scale = 1.0f, bool isPreview = false);
 
-	virtual ~Plant() = default;
+	~Plant() = default;
 	void Start() override;
 	void Update() override;
 	virtual void PlantUpdate();		// 子类重写Update用这个

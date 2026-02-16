@@ -4,6 +4,8 @@
 #include "./Plant/Plant.h"
 #include "./Plant/SunFlower.h"
 #include "./Plant/Shooter.h"
+#include "./Zombie/Zombie.h"
+#include "EntityManager.h"
 #include "RenderOrder.h"
 
 void Board::InitializeCell(int rows, int cols)
@@ -48,9 +50,7 @@ std::shared_ptr<Sun> Board::CreateSun(const Vector& position, bool needAnimation
 		(LAYER_GAME_COIN, this, position, 0.85f, "Sun",
 			needAnimation, true);
 	if (sun) {
-		sun->mCoinID = mNextCoinID;
-		mCoinIDMap[mNextCoinID] = sun;
-		mNextCoinID++;
+		EntityManager::GetInstance().AddCoin(sun);
 	}
 
 	return sun;
@@ -125,9 +125,7 @@ std::shared_ptr<Plant> Board::CreatePlant(PlantType plantType, int row, int colu
 	}
 
 	if (plant && !isPreview) {
-		plant->mPlantID = mNextPlantID;
-		mPlantIDMap[mNextPlantID] = plant;
-		mNextPlantID++;
+		EntityManager::GetInstance().AddPlant(plant);
 
 		// 将植物与格子关联
 		auto cell = GetCell(row, column);
@@ -140,30 +138,43 @@ std::shared_ptr<Plant> Board::CreatePlant(PlantType plantType, int row, int colu
 	return plant;
 }
 
+std::shared_ptr<Zombie> Board::CreateZombie(ZombieType zombieType, const float& x, int row, bool isPreview) {
+	std::shared_ptr<Zombie> zombie = nullptr;
+
+	// 新增僵尸也要改这里
+	switch (zombieType) {
+	case ZombieType::ZOMBIE_NORMAL:
+		zombie = GameObjectManager::GetInstance().CreateGameObjectImmediate<Zombie>(
+			LAYER_GAME_ZOMBIE,
+			this,
+			ZombieType::ZOMBIE_NORMAL,
+			x,
+			row,
+			AnimationType::ANIM_NORMAL_ZOMBIE,
+			Vector(40, 100),
+			1.0f,
+			isPreview);
+		break;
+	default:
+		std::cout << "未知的僵尸类型" << std::endl;
+		return nullptr;
+	}
+
+	if (zombie && !isPreview) {
+		EntityManager::GetInstance().AddZombie(zombie);
+	}
+	return zombie;
+}
+
 void Board::CleanupExpiredObjects()
 {
 	// 清理已过期的植物ID映射
 	// TODO 如果其他地方也有存储植物ID,也要删除
-	for (auto it = mPlantIDMap.begin(); it != mPlantIDMap.end(); ) {
-		if (it->second.expired()) {
-			// 清理对应Cell中的植物ID
-			int plantID = it->first;
-			CleanPlantFromCells(plantID);
-			it = mPlantIDMap.erase(it);
-		}
-		else {
-			++it;
-		}
-	}
+	std::vector<int> removedPlants = EntityManager::GetInstance().CleanupExpired();
 
-	// 清理已过期的CoinID映射
-	for (auto it = mCoinIDMap.begin(); it != mCoinIDMap.end(); ) {
-		if (it->second.expired()) {
-			it = mCoinIDMap.erase(it);
-		}
-		else {
-			++it;
-		}
+	// 遍历被清理的植物ID，清除对应Cell中的植物ID
+	for (int plantID : removedPlants) {
+		CleanPlantFromCells(plantID);
 	}
 }
 
@@ -190,6 +201,8 @@ void Board::UpdateSunFalling()
 		);
 		auto sun = CreateSun(sunPos, false);
 		sun->StartLinearFall();
+
+		CreateZombie(ZombieType::ZOMBIE_NORMAL, 700, 1, false);
 	}
 }
 
@@ -197,48 +210,4 @@ void Board::Update()
 {
 	CleanupExpiredObjects();
 	UpdateSunFalling();
-}
-
-// 通过ID获取植物
-std::shared_ptr<Plant> Board::GetPlantByID(int plantID)
-{
-	auto it = mPlantIDMap.find(plantID);
-	if (it != mPlantIDMap.end()) {
-		return it->second.lock();
-	}
-	return nullptr;
-}
-
-// 通过ID获取Coin
-std::shared_ptr<Coin> Board::GetCoinByID(int coinID)
-{
-	auto it = mCoinIDMap.find(coinID);
-	if (it != mCoinIDMap.end()) {
-		return it->second.lock();
-	}
-	return nullptr;
-}
-
-// 获取所有植物的ID
-std::vector<int> Board::GetAllPlantIDs() const
-{
-	std::vector<int> ids;
-	for (const auto& pair : mPlantIDMap) {
-		if (!pair.second.expired()) {
-			ids.push_back(pair.first);
-		}
-	}
-	return ids;
-}
-
-// 获取所有Coin的ID
-std::vector<int> Board::GetAllCoinIDs() const
-{
-	std::vector<int> ids;
-	for (const auto& pair : mCoinIDMap) {
-		if (!pair.second.expired()) {
-			ids.push_back(pair.first);
-		}
-	}
-	return ids;
 }

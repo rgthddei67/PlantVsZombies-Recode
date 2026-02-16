@@ -24,8 +24,7 @@ public:
             // 正常计时生产
             mProduceTimer += DeltaTime::GetDeltaTime();
             if (mProduceTimer >= mProduceTime) {
-                // 开始发光
-                mGlowingTimer = 0.75f;
+                SetGlowingTimer(0.75f);
                 mIsGlowingForProduction = true;
                 mProductionGlowStartTimer = mProduceTimer;  // 记录开始发光的时间点
             }

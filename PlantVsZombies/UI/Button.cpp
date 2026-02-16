@@ -249,7 +249,7 @@ void Button::Draw(SDL_Renderer* renderer) const
         int textX = static_cast<int>(position.x + (size.x - textWidth) / 2);
         int textY = static_cast<int>(position.y + (size.y - textHeight) / 2);
 
-        GameAPP::GetInstance().DrawText(renderer, text, textX, textY, color);
+        GameAPP::GetInstance().DrawText(text, textX, textY, color);
     }
 }
 

@@ -7,7 +7,8 @@
 #include <vector>
 #include <set>
 
-constexpr float REANIM_MISSING_FIELD = -999999.0f;
+constexpr float REANIM_MISSING_FIELD_FLOAT = -1024;
+constexpr int REANIM_MISSING_FIELD_INT = -1024;
 
 class Reanimation {
 public:

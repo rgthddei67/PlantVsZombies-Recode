@@ -13,6 +13,25 @@ Animator::Animator(std::shared_ptr<Reanimation> reanim) {
     Init(reanim);
 }
 
+Animator::~Animator()
+{
+    Die();
+}
+
+void Animator::Die() {
+    // 先让所有附加的子动画死亡
+    for (auto& extra : mExtraInfos) {
+        for (auto& weakChild : extra.mAttachedReanims) {
+            if (auto child = weakChild.lock()) {
+                child->Die();
+            }
+        }
+        extra.mAttachedReanims.clear();
+    }
+
+    mIsPlaying = false;
+}
+
 void Animator::Init(std::shared_ptr<Reanimation> reanim) {
     mReanim = reanim;
     if (reanim) {
@@ -21,31 +40,13 @@ void Animator::Init(std::shared_ptr<Reanimation> reanim) {
         // 初始化轨道映射和额外信息
         mTrackIndicesMap.clear();
         mExtraInfos.clear();
-        mAnimationClips.clear();
 
         for (int i = 0; i < reanim->GetTrackCount(); i++) {
             auto track = reanim->GetTrack(i);
             if (track) {
                 mTrackIndicesMap[track->mTrackName] = i;
                 mExtraInfos.push_back(TrackExtraInfo());
-
-                // 收集所有动画片段
-                for (const auto& clip : track->mClips) {
-                    if (clip.IsValid()) {
-                        std::string animationKey = clip.trackName;
-                        if (!clip.clipName.empty() && clip.clipName != "default") {
-                            animationKey += "_" + clip.clipName;
-                        }
-                        mAnimationClips[animationKey] = clip;
-                    }
-                }
             }
-        }
-
-        // 默认设置为第一个有效的动画
-        if (!mAnimationClips.empty()) {
-            auto it = mAnimationClips.begin();
-            SetAnimation(it->first);
         }
 
         mPlayingState = PlayState::PLAY_REPEAT;
@@ -54,35 +55,7 @@ void Animator::Init(std::shared_ptr<Reanimation> reanim) {
     }
 }
 
-bool Animator::SetAnimation(const std::string& animationName) {
-    auto it = mAnimationClips.find(animationName);
-    if (it != mAnimationClips.end()) {
-        mCurrentClip = it->second;
-        mCurrentAnimationName = animationName;
-        SetFrameRange(mCurrentClip.startFrame, mCurrentClip.endFrame);
-        return true;
-    }
-
-    // 如果没有找到完全匹配的，尝试按轨道名查找
-    for (const auto& pair : mAnimationClips) {
-        if (pair.second.trackName == animationName) {
-            mCurrentClip = pair.second;
-            mCurrentAnimationName = pair.first;
-            SetFrameRange(mCurrentClip.startFrame, mCurrentClip.endFrame);
-            return true;
-        }
-    }
-
-    std::cerr << "动画未找到: " << animationName << std::endl;
-    return false;
-}
-
-bool Animator::SetAnimation(const std::string& trackName, const std::string& clipName) {
-    std::string key = clipName.empty() ? trackName : trackName + "_" + clipName;
-    return SetAnimation(key);
-}
-
-bool Animator::PlayTrack(const std::string& trackName, int blendTime) {
+bool Animator::PlayTrack(const std::string& trackName, float blendTime) {
     auto range = GetTrackRange(trackName);
     if (range.first == -1 || range.second == -1) {
         std::cerr << "动画轨道不存在或为空: " << trackName << std::endl;
@@ -98,28 +71,29 @@ bool Animator::PlayTrack(const std::string& trackName, int blendTime) {
 
     // 设置过渡效果
     if (blendTime > 0) {
-        mReanimBlendCounterMax = static_cast<float>(blendTime);
-        mReanimBlendCounter = static_cast<float>(blendTime);
+        mReanimBlendCounterMax = blendTime;
+        mReanimBlendCounter = blendTime;
     }
     else {
         mReanimBlendCounter = -1.0f;
     }
 
-    mCurrentAnimationName = trackName;
     mIsPlaying = true;
     mPlayingState = PlayState::PLAY_REPEAT;
-
-#ifdef _DEBUG
-    std::cout << "播放动画轨道: " << trackName
-        << " (帧: " << range.first << "-" << range.second
-        << ", 过渡: " << blendTime << "ms)" << std::endl;
-#endif
 
     return true;
 }
 
-bool Animator::PlayTrackOnce(const std::string& trackName, const std::string& returnTrack, int blendTime) {
+bool Animator::PlayTrackOnce(const std::string& trackName, const std::string& returnTrack, float speed, float blendTime) 
+{
+    mOriginalSpeed = mSpeed;
+
+    if (speed > 0.0f) {
+        mSpeed = speed;
+    }
+
     if (!PlayTrack(trackName, blendTime)) {
+        mSpeed = mOriginalSpeed;    // 播放失败原速度
         return false;
     }
 
@@ -172,16 +146,12 @@ void Animator::Update() {
             mFrameIndexNow = mFrameIndexEnd;
             mIsPlaying = false;
 
-            // 自动切换回默认动画
-            if (mAutoSwitchAnimation && !mTargetTrack.empty()) {
-                PlayTrack(mTargetTrack, 200);
-                mTargetTrack = "";
-            }
             break;
 
         case PlayState::PLAY_ONCE_TO:
             // 播放到指定动画
             mFrameIndexNow = mFrameIndexEnd;
+            mSpeed = mOriginalSpeed;
             mIsPlaying = false;
 
             // 切换到目标动画
@@ -201,6 +171,104 @@ void Animator::Update() {
 
     // 确保帧在当前片段范围内
     mFrameIndexNow = std::clamp(mFrameIndexNow, mFrameIndexBegin, mFrameIndexEnd);
+
+    for (auto& extra : mExtraInfos) {
+        for (auto& weakChild : extra.mAttachedReanims) {
+            if (auto child = weakChild.lock()) {
+                child->Update();
+            }
+        }
+    }
+}
+
+void Animator::SetSpeed(float speed)
+{
+    this->mSpeed = speed;
+    for (auto& tracks : mExtraInfos)
+    {
+        for (auto& animatorWeak : tracks.mAttachedReanims)
+        {
+            if (auto animator = animatorWeak.lock())
+            {
+                animator->SetSpeed(speed);
+            }
+        }
+    }
+}
+
+void Animator::SetAlpha(float alpha)
+{
+    this->mAlpha = alpha;
+    for (auto& tracks : mExtraInfos)
+    {
+        for (auto& animatorWeak : tracks.mAttachedReanims)
+        {
+            if (auto animator = animatorWeak.lock())
+            {
+                animator->SetAlpha(alpha);
+            }
+        }
+    }
+}
+
+void Animator::SetGlowColor(Uint8 r, Uint8 g, Uint8 b, Uint8 a)
+{
+    this->mExtraAdditiveColor = { r, g, b, a };
+    for (auto& tracks : mExtraInfos)
+    {
+        for (auto& animatorWeak : tracks.mAttachedReanims)
+        {
+            if (auto animator = animatorWeak.lock())
+            {
+                animator->SetGlowColor(r, g, b, a);
+            }
+        }
+    }
+}
+
+void Animator::SetOverlayColor(Uint8 r, Uint8 g, Uint8 b, Uint8 a)
+{
+    this->mExtraOverlayColor = { r, g, b, a };
+    for (auto& tracks : mExtraInfos)
+    {
+        for (auto& animatorWeak : tracks.mAttachedReanims)
+        {
+            if (auto animator = animatorWeak.lock())
+            {
+                animator->SetOverlayColor(r, g, b, a);
+            }
+        }
+    }
+}
+
+void Animator::EnableGlowEffect(bool enable)
+{
+    this->mEnableExtraAdditiveDraw = enable;
+    for (auto& tracks : mExtraInfos)
+    {
+        for (auto& animatorWeak : tracks.mAttachedReanims)
+        {
+            if (auto animator = animatorWeak.lock())
+            {
+                animator->EnableGlowEffect(enable);
+            }
+        }
+    }
+}
+
+void Animator::EnableOverlayEffect(bool enable)
+{
+    this->mEnableExtraOverlayDraw = enable;
+    for (auto& tracks : mExtraInfos)
+    {
+        for (auto& animatorWeak : tracks.mAttachedReanims)
+        {
+            if (auto animator = animatorWeak.lock())
+            {
+                animator->EnableOverlayEffect(enable);
+            }
+        }
+    }
 }
 
 void Animator::SetTrackVisible(const std::string& trackName, bool visible) {
@@ -211,67 +279,123 @@ void Animator::SetTrackVisible(const std::string& trackName, bool visible) {
 
 void Animator::SetTrackImage(const std::string& trackName, SDL_Texture* image) {
     for (auto& extra : GetTrackExtrasByName(trackName)) {
-        extra->mAttachedImage = image;
+        extra->mImage = image;
     }
 }
 
-void Animator::SetTrackOffset(const std::string& trackName, float offsetX, float offsetY) {
-    for (auto& extra : GetTrackExtrasByName(trackName)) {
-        extra->mOffsetX = offsetX;
-        extra->mOffsetY = offsetY;
+void Animator::SetLocalPosition(float x, float y) {
+    mLocalPosX = x;
+    mLocalPosY = y;
+}
+
+void Animator::SetLocalPosition(const Vector& position)
+{
+    this->SetLocalPosition(position.x, position.y);
+}
+
+void Animator::SetLocalScale(float sx, float sy) {
+    mLocalScaleX = sx;
+    mLocalScaleY = sy;
+}
+
+void Animator::SetLocalRotation(float rotation) {
+    mLocalRotation = rotation;
+}
+
+bool Animator::AttachAnimator(const std::string& trackName, std::shared_ptr<Animator> child) {
+    if (!mReanim || !child || child.get() == this) {
+        return false;
+    }
+
+    auto extras = GetTrackExtrasByName(trackName);
+    if (extras.empty()) {
+        return false;
+    }
+
+    for (auto* extra : extras) {
+        // 避免重复添加
+        bool alreadyExists = false;
+        for (const auto& weak : extra->mAttachedReanims) {
+            if (auto existing = weak.lock()) {
+                if (existing == child) {
+                    alreadyExists = true;
+                    break;
+                }
+            }
+        }
+        if (!alreadyExists) {
+            extra->mAttachedReanims.push_back(child);
+        }
+    }
+    return true;
+}
+
+void Animator::DetachAnimator(const std::string& trackName, std::shared_ptr<Animator> child) {
+    auto extras = GetTrackExtrasByName(trackName);
+    for (auto* extra : extras) {
+        auto& vec = extra->mAttachedReanims;
+        vec.erase(std::remove_if(vec.begin(), vec.end(),
+            [&child](const std::weak_ptr<Animator>& weak) {
+                auto sp = weak.lock();
+                return sp == child || !sp; // 移除指定对象或已失效的
+            }),
+            vec.end());
     }
 }
 
-void Animator::AttachAnimator(const std::string& trackName, Animator* animator) {
-    for (auto& extra : GetTrackExtrasByName(trackName)) {
-        extra->mAttachedReanim = animator;
+void Animator::DetachAllAnimators() {
+    for (auto& extra : mExtraInfos) {
+        extra.mAttachedReanims.clear();
     }
 }
 
 std::pair<int, int> Animator::GetTrackRange(const std::string& trackName) {
-    if (!mReanim) return { -1, -1 };
-
-    TrackInfo* track = mReanim->GetTrack(trackName);
-    if (!track || track->mFrames.empty()) {
+    if (!mReanim) {
+        std::cout << "GetTrackRange: mReanim is null" << std::endl;
         return { -1, -1 };
     }
 
-    // 找到第一个f=0的帧作为动画开始
-    int frameStart = -1;
-    for (size_t i = 0; i < track->mFrames.size(); i++) {
+    TrackInfo* track = mReanim->GetTrack(trackName);
+    if (!track || track->mFrames.empty()) {
+        std::cout << "GetTrackRange: track '" << trackName << "' not found or empty" << std::endl;
+        return { -1, -1 };
+    }
+
+    int totalFrames = static_cast<int>(track->mFrames.size());
+    // std::cout << "GetTrackRange: track '" << trackName << "' has " << totalFrames << " frames." << std::endl;
+
+    int start = -1;
+    for (int i = 0; i < totalFrames; ++i) {
         if (track->mFrames[i].f == 0) {
-            frameStart = static_cast<int>(i);
+            start = i;
+            // std::cout << "GetTrackRange: first f=0 at index " << i << std::endl;
             break;
         }
     }
 
-    if (frameStart == -1) {
-        return { -1, -1 };  // 没有显示帧
+    if (start == -1) {
+        std::cout << "GetTrackRange: no f=0 frames, returning invalid." << std::endl;
+        return { -1, -1 };   // 改为返回无效范围
     }
 
-    // 找到连续的显示帧（f=0）直到遇到f=-1
-    int frameEnd = frameStart;
-    for (size_t i = frameStart + 1; i < track->mFrames.size(); i++) {
-        if (track->mFrames[i].f == -1) {  // 遇到空白帧/分隔帧
-            frameEnd = static_cast<int>(i) - 1;
+    int end = start;
+    for (int i = start + 1; i < totalFrames; ++i) {
+        if (track->mFrames[i].f == 0) {
+            end = i;
+            // std::cout << "GetTrackRange: continue f=0 at " << i << ", end now " << end << std::endl;
+        }
+        else if (track->mFrames[i].f == -1) {
+            // std::cout << "GetTrackRange: f=-1 at " << i << ", stopping. end = " << end << std::endl;
             break;
         }
-        if (track->mFrames[i].f == 0) {  // 仍然是显示帧
-            frameEnd = static_cast<int>(i);
-        }
-        // 如果f既不是0也不是-1，也认为片段结束（安全处理）
-        if (track->mFrames[i].f != 0) {
-            frameEnd = static_cast<int>(i) - 1;
+        else {
+            std::cout << "GetTrackRange: unexpected f=" << track->mFrames[i].f << " at " << i << ", stopping." << std::endl;
             break;
         }
     }
 
-    // 确保不会超过轨道范围
-    if (frameEnd >= static_cast<int>(track->mFrames.size())) {
-        frameEnd = static_cast<int>(track->mFrames.size()) - 1;
-    }
-
-    return { frameStart, frameEnd };
+    // std::cout << "GetTrackRange: returning start=" << start << " end=" << end << std::endl;
+    return { start, end };
 }
 
 void Animator::SetFrameRange(int frameBegin, int frameEnd) {
@@ -292,18 +416,9 @@ void Animator::SetFrameRangeToDefault() {
     }
 }
 
-std::vector<std::string> Animator::GetAvailableAnimations() const {
-    std::vector<std::string> animations;
-    for (const auto& pair : mAnimationClips) {
-        animations.push_back(pair.first);
-    }
-    return animations;
-}
-
 void Animator::Draw(SDL_Renderer* renderer, float baseX, float baseY, float Scale) {
     if (!mReanim || !renderer) return;
 
-    // 保存当前渲染器状态
     SDL_BlendMode oldBlendMode;
     SDL_GetRenderDrawBlendMode(renderer, &oldBlendMode);
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
@@ -312,97 +427,97 @@ void Animator::Draw(SDL_Renderer* renderer, float baseX, float baseY, float Scal
         auto track = mReanim->GetTrack(i);
         if (!track || !track->mAvailable || track->mFrames.empty()) continue;
 
-        int frameIndex = static_cast<int>(mFrameIndexNow);
-        if (frameIndex >= 0 && frameIndex < static_cast<int>(track->mFrames.size())) {
-            // f=-1表示隐藏/空白帧
-            if (track->mFrames[frameIndex].f == -1) {
-                continue;
-            }
-        }
-
-        if (i >= static_cast<int>(mExtraInfos.size()) || !mExtraInfos[i].mVisible) continue;
-
+        // 1. 先获取插值变换（即使当前帧是隐藏帧，也能得到变换数据，用于子动画定位）
         TrackFrameTransform transform = GetInterpolatedTransform(i);
-        if (transform.f == -1) continue;  // 插值后仍然可能是空白帧
+        // transform.f 可能为 -1，但其他属性（位置、缩放、旋转）有效
 
-        SDL_Texture* image = mExtraInfos[i].mAttachedImage;
-        if (!image && !transform.image.empty()) {
-            if (mReanim->mResourceManager) {
+        // 2. 轨道自身绘制条件：轨道可见、非隐藏帧、且有纹理
+        bool shouldDrawSelf = (i < static_cast<int>(mExtraInfos.size()) &&
+            mExtraInfos[i].mVisible &&
+            transform.f != -1);
+        SDL_Texture* image = nullptr;
+
+        if (shouldDrawSelf) {
+            if (mExtraInfos[i].mImage) {
+                image = mExtraInfos[i].mImage;
+            }
+            else if (!transform.image.empty() && mReanim->mResourceManager) {
                 image = mReanim->mResourceManager->GetTexture(transform.image);
+                mExtraInfos[i].mImage = image; // 缓存
+            }
+            shouldDrawSelf = (image != nullptr);
+        }
+
+        // 3. 绘制轨道自身
+        if (shouldDrawSelf) {
+            int imgWidth, imgHeight;
+            SDL_QueryTexture(image, NULL, NULL, &imgWidth, &imgHeight);
+
+            float worldX = baseX + (transform.x + mExtraInfos[i].mOffsetX) * Scale;
+            float worldY = baseY + (transform.y + mExtraInfos[i].mOffsetY) * Scale;
+            float worldScaleX = transform.sx * Scale;
+            float worldScaleY = transform.sy * Scale;
+
+            float scaledWidth = imgWidth * worldScaleX;
+            float scaledHeight = imgHeight * worldScaleY;
+            if (scaledWidth < 1.0f) scaledWidth = 1.0f;
+            if (scaledHeight < 1.0f) scaledHeight = 1.0f;
+
+            SDL_FRect dstRect = { worldX, worldY, scaledWidth, scaledHeight };
+            SDL_FPoint center = { 0.0f, 0.0f };
+
+            float combinedAlpha = transform.a * mAlpha;
+            Uint8 baseAlpha = static_cast<Uint8>(std::clamp(combinedAlpha * 255.0f, 0.0f, 255.0f));
+
+            // 正常绘制
+            SDL_SetTextureAlphaMod(image, baseAlpha);
+            SDL_SetTextureColorMod(image, 255, 255, 255);
+            SDL_RenderCopyExF(renderer, image, NULL, &dstRect, transform.kx, &center, SDL_FLIP_NONE);
+
+            // 发光效果
+            if (mEnableExtraAdditiveDraw) {
+                SDL_BlendMode textureBlendMode;
+                SDL_GetTextureBlendMode(image, &textureBlendMode);
+                SDL_SetTextureBlendMode(image, SDL_BLENDMODE_ADD);
+                SDL_SetTextureColorMod(image, mExtraAdditiveColor.r, mExtraAdditiveColor.g, mExtraAdditiveColor.b);
+                SDL_SetTextureAlphaMod(image, mExtraAdditiveColor.a);
+                SDL_RenderCopyExF(renderer, image, NULL, &dstRect, transform.kx, &center, SDL_FLIP_NONE);
+                SDL_SetTextureBlendMode(image, textureBlendMode);
+                SDL_SetTextureColorMod(image, 255, 255, 255);
+                SDL_SetTextureAlphaMod(image, 255);
+            }
+
+            // 覆盖层效果
+            if (mEnableExtraOverlayDraw) {
+                SDL_Color overlayColor = mExtraOverlayColor;
+                overlayColor.a = ColorComponentMultiply(mExtraOverlayColor.a, baseAlpha);
+                SDL_SetTextureColorMod(image, overlayColor.r, overlayColor.g, overlayColor.b);
+                SDL_SetTextureAlphaMod(image, overlayColor.a);
+                SDL_RenderCopyExF(renderer, image, NULL, &dstRect, transform.kx, &center, SDL_FLIP_NONE);
+                SDL_SetTextureColorMod(image, 255, 255, 255);
+                SDL_SetTextureAlphaMod(image, 255);
             }
         }
-        if (!image) continue;
 
-        // 获取纹理原始尺寸
-        int imgWidth, imgHeight;
-        SDL_QueryTexture(image, NULL, NULL, &imgWidth, &imgHeight);
+        // 4. 绘制附加到该轨道的子 Animator
+        if (i < static_cast<int>(mExtraInfos.size())) {
+            for (const auto& weakChild : mExtraInfos[i].mAttachedReanims) {
+                if (auto child = weakChild.lock()) {
+                    if (!child->mReanim) continue;
 
-        // 计算位置和缩放
-        float exactPosX = baseX + (transform.x + mExtraInfos[i].mOffsetX) * Scale;
-        float exactPosY = baseY + (transform.y + mExtraInfos[i].mOffsetY) * Scale;
+                    // 计算子动画的世界位置：父轨道位置 + 父轨道偏移 + 子本地偏移（考虑父缩放）
+                    float childWorldX = baseX + (transform.x + mExtraInfos[i].mOffsetX) * Scale
+                        + child->mLocalPosX * (transform.sx * Scale);
+                    float childWorldY = baseY + (transform.y + mExtraInfos[i].mOffsetY) * Scale
+                        + child->mLocalPosY * (transform.sy * Scale);
 
-        float exactScaleX = transform.sx * Scale;
-        float exactScaleY = transform.sy * Scale;
-
-        // 计算浮点数尺寸
-        float scaledWidth = imgWidth * exactScaleX;
-        float scaledHeight = imgHeight * exactScaleY;
-
-        // 确保最小尺寸
-        if (scaledWidth < 1.0f) scaledWidth = 1.0f;
-        if (scaledHeight < 1.0f) scaledHeight = 1.0f;
-
-        // 创建目标矩形
-        SDL_FRect dstRect = { exactPosX, exactPosY, scaledWidth, scaledHeight };
-
-        // 计算透明度
-        float combinedAlpha = transform.a * mAlpha;
-        Uint8 baseAlpha = static_cast<Uint8>(std::clamp(combinedAlpha * 255.0f, 0.0f, 255.0f));
-
-        // 旋转中心点为(0,0)（左上角）
-        SDL_FPoint center = { 0.0f, 0.0f };
-
-        // 第一步：正常绘制
-        SDL_SetTextureAlphaMod(image, baseAlpha);
-        SDL_SetTextureColorMod(image, 255, 255, 255);
-        SDL_RenderCopyExF(renderer, image, NULL, &dstRect,
-            transform.kx, &center, SDL_FLIP_NONE);
-
-        // 第二步：发光效果
-        if (mEnableExtraAdditiveDraw) {
-            SDL_BlendMode textureBlendMode;
-            SDL_GetTextureBlendMode(image, &textureBlendMode);
-
-            SDL_SetTextureBlendMode(image, SDL_BLENDMODE_ADD);
-            SDL_SetTextureColorMod(image, mExtraAdditiveColor.r,
-                mExtraAdditiveColor.g, mExtraAdditiveColor.b);
-            SDL_SetTextureAlphaMod(image, mExtraAdditiveColor.a);
-
-            SDL_RenderCopyExF(renderer, image, NULL, &dstRect,
-                transform.kx, &center, SDL_FLIP_NONE);
-
-            SDL_SetTextureBlendMode(image, textureBlendMode);
-            SDL_SetTextureColorMod(image, 255, 255, 255);
-            SDL_SetTextureAlphaMod(image, 255);
-        }
-
-        // 第三步：覆盖层
-        if (mEnableExtraOverlayDraw) {
-            SDL_Color overlayColor = mExtraOverlayColor;
-            overlayColor.a = ColorComponentMultiply(mExtraOverlayColor.a, baseAlpha);
-
-            SDL_SetTextureColorMod(image, overlayColor.r, overlayColor.g, overlayColor.b);
-            SDL_SetTextureAlphaMod(image, overlayColor.a);
-
-            SDL_RenderCopyExF(renderer, image, NULL, &dstRect,
-                transform.kx, &center, SDL_FLIP_NONE);
-
-            SDL_SetTextureColorMod(image, 255, 255, 255);
-            SDL_SetTextureAlphaMod(image, 255);
+                    // 调用子动画的绘制，Scale 参数传 1.0f，因为子动画内部会使用自己的 mLocalScale       
+                    child->Draw(renderer, childWorldX, childWorldY, 1.0f);
+                }
+            }
         }
     }
 
-    // 恢复渲染器状态
     SDL_SetRenderDrawBlendMode(renderer, oldBlendMode);
 }
 

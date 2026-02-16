@@ -30,13 +30,10 @@ public:
 		speedFast = 700.0f;
 		speedSlow = 500.0f;
 		slowDownDistance = 130.0f;
+        this->mCoinType = CoinType::COIN_SUN;
 	}
 
 	// TODO 析构函数会自动调用基类的析构函数 不能自己写
-    ~Sun() override {
-        this->mIsParabola = false;
-        this->mIsLinearFalling = false;
-    }
 
     void Start() override {
         Coin::Start();

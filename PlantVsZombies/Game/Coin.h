@@ -6,9 +6,11 @@
 #include "ClickableComponent.h"
 #include "AudioSystem.h"
 #include "GameObjectManager.h"
+#include "CoinType.h"
 
 class Coin : public AnimatedObject {
 protected:
+    CoinType mCoinType = CoinType::COIN_NONE;
     float mVanlishTime = 15.0f;           // 消失时间
     float mVanlishTimer = 0.0f;           // 消失计时器
     Vector targetPos = Vector(10, 10);    // 目标位置
@@ -27,7 +29,7 @@ protected:
 	bool mIsDestroyed = false;            // 是否已销毁
 
 public:
-    int mCoinID = 0;
+    int mCoinID = NUM_COIN_ID;
 
 public:
     Coin(Board* board, AnimationType animType, const Vector& position, 

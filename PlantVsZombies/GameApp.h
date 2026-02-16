@@ -18,15 +18,11 @@
 #include "./Game/Definit.h"
 #include "./ParticleSystem/ParticleSystem.h"
 
-struct TextCache
-{
-    std::string text;
-    SDL_Color color;
-    std::string fontKey;
-    int fontSize;
-    SDL_Texture* texture;
-    int width;
-    int height;
+struct TextCache {
+    std::string key;        // 缓存键（字体+颜色等）
+    SDL_Texture* texture;   // 缓存的纹理
+    int width;              // 纹理宽度
+    int height;             // 纹理高度
 };
 
 class InputHandler;
@@ -63,6 +59,13 @@ private:
     void Draw();
     void Shutdown();
 
+    SDL_Texture* GetCachedTextTexture(const std::string& text,
+        const SDL_Color& color,
+        const std::string& fontKey,
+        int fontSize,
+        int& outWidth,
+        int& outHeight);    // 获取保存的Texture
+
 public:
     inline static bool mDebugMode = false;        // 是否是调试模式
     inline static bool mShowColliders = false;    // 显示碰撞框开关
@@ -78,16 +81,14 @@ public:
     void ClearTextCache();
 
     // 绘制文本 UTF8编码
-    void DrawText(SDL_Renderer* renderer,
-        const std::string& text,
+    void DrawText(const std::string& text,
         int x, int y,
         const SDL_Color& color,
         const std::string& fontKey = ResourceKeys::Fonts::FONT_FZCQ,
         int fontSize = 17);
 
     // 绘制文本 UTF8编码
-    void DrawText(SDL_Renderer* renderer,
-        const std::string& text,
+    void DrawText(const std::string& text,
         const Vector& position,
         const SDL_Color& color,
         const std::string& fontKey = ResourceKeys::Fonts::FONT_FZCQ,
@@ -121,6 +122,7 @@ public:
 
     // 获取窗口
     SDL_Window* GetWindow() const { return mWindow; }
+
 };
 
 #endif
