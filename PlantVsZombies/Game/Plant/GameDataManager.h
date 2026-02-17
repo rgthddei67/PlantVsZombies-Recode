@@ -39,15 +39,18 @@ struct ZombieInfo {
     AnimationType animType;      // 动画类型
     std::string animName;        // 动画资源名称
     Vector offset;               // 绘制偏移量
+    int weight;                  // 权重
+    int appearWave;              // 能出现的波数
 
     ZombieInfo() : type(ZombieType::NUM_ZOMBIE_TYPES),
         animType(AnimationType::ANIM_NONE),
-        offset(0, 0) {
+        offset(0, 0), weight(0), appearWave(0) {
     }
 
     ZombieInfo(ZombieType t, const std::string& enumN,
-        AnimationType animT, const std::string& animN, const Vector& off)
-        : type(t), enumName(enumN), animType(animT), animName(animN), offset(off) {
+        AnimationType animT, const std::string& animN, const Vector& off, int w, int appear)
+        : type(t), enumName(enumN), animType(animT), animName(animN),
+        offset(off), weight(w), appearWave(appear) {
     }
 };
 
@@ -171,6 +174,18 @@ public:
     void SetZombieOffset(ZombieType zombieType, const Vector& offset);
 
     /**
+     * @brief 获取僵尸的权重
+     * @param zombieType 僵尸类型
+     */
+    int GetZombieWeight(ZombieType zombieType) const;
+
+    /**
+     * @brief 获取僵尸的出现波数
+     * @param zombieType 僵尸类型
+     */
+    int GetZombieAppearWave(ZombieType zombieType) const;
+
+    /**
      * @brief 获取所有已注册的僵尸类型列表
      * @return std::vector<ZombieType> 僵尸类型数组
      */
@@ -219,12 +234,14 @@ private:
      * @param animType 动画类型
      * @param animName 动画资源名
      * @param offset 偏移量
+     * @param weight 僵尸权重
+     * @param appearWave 能刷新的波数
      */
     void RegisterZombie(ZombieType type,
         const std::string& enumName,
         AnimationType animType,
         const std::string& animName,
-        const Vector& offset);
+        const Vector& offset, int weight, int appearWave);
 
     // ==================== 数据成员 ====================
     // 植物数据

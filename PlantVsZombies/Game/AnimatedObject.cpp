@@ -231,11 +231,12 @@ void AnimatedObject::OverrideColor(const SDL_Color& color) {
     }
 }
 
-bool AnimatedObject::PlayTrack(const std::string& trackName, float blendTime, float speed) {
-    return mAnimator ? mAnimator->PlayTrack(trackName, blendTime, speed) : false;
+bool AnimatedObject::PlayTrack(const std::string& trackName, float speed, float blendTime) {
+    return mAnimator ? mAnimator->PlayTrack(trackName, speed, blendTime) : false;
 }
 
-bool AnimatedObject::PlayTrackOnce(const std::string& trackName, const std::string& returnTrack, float speed, float blendTime) {
+bool AnimatedObject::PlayTrackOnce(const std::string& trackName, 
+    const std::string& returnTrack, float speed, float blendTime) {
     return mAnimator ? mAnimator->PlayTrackOnce(trackName, returnTrack, speed, blendTime) : false;
 }
 
@@ -268,10 +269,6 @@ std::shared_ptr<TransformComponent> AnimatedObject::GetTransformComponent() cons
 
 std::shared_ptr<ColliderComponent> AnimatedObject::GetColliderComponent() const {
     return mCollider.lock();
-}
-
-std::shared_ptr<Animator> AnimatedObject::GetAnimator() const {
-    return mAnimator;
 }
 
 std::shared_ptr<Animator> AnimatedObject::GetAnimatorInternal() const {

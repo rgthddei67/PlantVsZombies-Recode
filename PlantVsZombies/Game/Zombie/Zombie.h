@@ -20,18 +20,12 @@ public:
 	
 	int mRow = -1;
 
+	int mAttackDamage = 50;
+
 	bool mIsPreview = false;
 	int mZombieID = NULL_ZOMBIE_ID;
 
-protected:
-	float mEatSoundTimer = 0.0f;
-	bool mIsEating = false;
-	int mEatPlantID = NULL_PLANT_ID;
-
-	bool mHasHead = true;
-	bool mHasArm = true;
-
-	float mSpeed = 10.0f;
+	int mSpawnWave = -1;	// 多少波刷新的
 
 	int mBodyHealth = 270;
 	int mBodyMaxHealth = 270;
@@ -42,6 +36,19 @@ protected:
 	int mShieldHealth = 0;
 	int mShieldMaxHealth = 0;
 
+protected:
+	bool mIsMindControlled = false;	//有没有被魅惑
+		
+	float mEatSoundTimer = 0.0f;
+	bool mIsEating = false;
+	int mEatPlantID = NULL_PLANT_ID;
+
+	bool mHasHead = true;
+	bool mHasArm = true;
+	bool mIsDying = false;	// 是否播放死亡动画 大概可以这么理解 这个时候不能走路
+
+	float mSpeed = 10.0f;
+
 public:
 	Zombie(Board* board, ZombieType zombieType, float x, int row,
 		AnimationType animType, float scale = 1.0f, bool isPreview = false);
@@ -51,12 +58,23 @@ public:
 	void Update() override;
 	virtual void ZombieUpdate() { }		// 子类重写Update用这个
 	virtual void TakeDamage(int damage);
+	int TakeShieldDamage(int damage);
+	int TakeHelmDamage(int damage);
+	void TakeBodyDamage(int damage);
+
+	virtual void ShieldDrop();		// 二类防具掉落
+	virtual void HelmDrop();	// 一类防具掉落
+	virtual void HeadDrop();	// 头掉落
+	virtual void ArmDrop();		// 手掉落
+
 	void Die();
 	void EatTarget(std::shared_ptr<ColliderComponent> other);
 	void StopEat(std::shared_ptr<ColliderComponent> other);
 	Vector GetVisualPosition() const override;
 	Vector GetPosition() const;
 	void SetPosition(const Vector& position);
+
+	bool IsMindControlled() { return this->mIsMindControlled;  }
 
 protected:
 	virtual void SetupZombie();

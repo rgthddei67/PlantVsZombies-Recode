@@ -9,13 +9,13 @@
 class SunFlower : public Plant
 {
 private:
-	float mProduceTimer = 0.0f;
-	float mProduceTime = 5.0f;
-	bool mIsGlowingForProduction = false;  // 标记是否正在为生产发光
-	float mProductionGlowStartTimer = 0.0f;  // 发光开始时间
+    float mProduceTimer = 15.0f;
+    float mProduceTime = 20.0f;
+    bool mIsGlowingForProduction = false;  // 标记是否正在为生产发光
+    float mProductionGlowStartTimer = 0.0f;  // 发光开始时间
 
 public:
-	using Plant::Plant;		// 继承构造函数
+    using Plant::Plant;		// 继承构造函数
 
     void PlantUpdate() override
     {

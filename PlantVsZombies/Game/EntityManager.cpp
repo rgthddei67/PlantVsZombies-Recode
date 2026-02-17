@@ -1,6 +1,7 @@
 #include "EntityManager.h"
 #include "Plant/Plant.h"
 #include "Zombie/Zombie.h"
+#include "Bullet/Bullet.h"
 #include "Coin.h"
 
 int EntityManager::AddPlant(std::shared_ptr<Plant> plant) {
@@ -43,6 +44,29 @@ std::shared_ptr<Zombie> EntityManager::GetZombie(int id) const {
 std::vector<int> EntityManager::GetAllZombieIDs() const {
     std::vector<int> ids;
     for (const auto& pair : mZombies) {
+        if (!pair.second.expired())
+            ids.push_back(pair.first);
+    }
+    return ids;
+}
+
+int EntityManager::AddBullet(std::shared_ptr<Bullet> bullet) {
+    int id = mNextBulletID++;
+    mBullets[id] = bullet;
+    bullet->mBulletID = id;
+    return id;
+}
+
+std::shared_ptr<Bullet> EntityManager::GetBullet(int id) const {
+    auto it = mBullets.find(id);
+    if (it != mBullets.end())
+        return it->second.lock();
+    return nullptr;
+}
+
+std::vector<int> EntityManager::GetAllBulletIDs() const {
+    std::vector<int> ids;
+    for (const auto& pair : mBullets) {
         if (!pair.second.expired())
             ids.push_back(pair.first);
     }

@@ -32,6 +32,11 @@ private:
     {
     }
 
+    // 从Surface创建纹理并设置通用属性
+    SDL_Texture* CreateTextureFromSurface(SDL_Surface* surface);
+    // 加载分割贴图
+    bool LoadTiledTexture(const TiledImageInfo& info, const std::string& prefix);
+
 public:
     // 单例访问
     static ResourceManager& GetInstance();
@@ -48,8 +53,8 @@ public:
     bool LoadAllReanimations();
 
     // 获取资源组
-    const std::vector<std::string>& GetGameImagePaths() const { return configReader.GetGameImagePaths(); }
-    const std::vector<std::string>& GetParticleTexturePaths() const { return configReader.GetParticleTexturePaths(); }
+    const std::vector<TiledImageInfo>& GetGameImageInfos() const { return configReader.GetGameImageInfos(); }
+    const std::vector<TiledImageInfo>& GetParticleTextureInfos() const { return configReader.GetParticleTextureInfos(); }
     const std::vector<std::string>& GetSoundPaths() const { return configReader.GetSoundPaths(); }
     const std::vector<std::string>& GetMusicPaths() const { return configReader.GetMusicPaths(); }
     const std::unordered_map<std::string, std::string>& GetAnimationPaths() const { return configReader.GetReanimationPaths(); }

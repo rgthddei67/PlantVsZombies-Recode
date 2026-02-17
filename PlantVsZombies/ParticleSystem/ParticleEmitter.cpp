@@ -151,12 +151,20 @@ void ParticleEmitter::Draw(SDL_Renderer* renderer)
     for (const auto& particle : particles) {
         if (particle.active) {
             if (particle.useTexture && particle.texture) {
-                // 使用纹理渲染
+                // 获取源纹理区域的尺寸（假设 particle.textureRect 是 SDL_Rect）
+                float srcW = static_cast<float>(particle.textureRect.w);
+                float srcH = static_cast<float>(particle.textureRect.h);
+
+                // 目标尺寸 = 原始尺寸 × size（缩放倍数）
+                float destW = srcW * particle.size;
+                float destH = srcH * particle.size;
+
+                // 计算目标矩形（以粒子位置为中心）
                 SDL_FRect destRect = {
-                    particle.position.x - particle.size * 0.5f,
-                    particle.position.y - particle.size * 0.5f,
-                    particle.size,
-                    particle.size
+                    particle.position.x - destW * 0.5f,
+                    particle.position.y - destH * 0.5f,
+                    destW,
+                    destH
                 };
 
                 // 设置颜色调制（让纹理受粒子颜色影响）
@@ -164,19 +172,19 @@ void ParticleEmitter::Draw(SDL_Renderer* renderer)
                     particle.color.r, particle.color.g, particle.color.b);
                 SDL_SetTextureAlphaMod(particle.texture, particle.color.a);
 
-                // 渲染纹理（带旋转）
+                // 渲染纹理
                 SDL_RenderCopyExF(renderer, particle.texture,
                     &particle.textureRect, &destRect,
                     particle.rotation, NULL, SDL_FLIP_NONE);
             }
             else {
+                // 无纹理粒子：保持正方形，size 作为边长
                 SDL_FRect rect = {
                     particle.position.x - particle.size * 0.5f,
                     particle.position.y - particle.size * 0.5f,
                     particle.size,
                     particle.size
                 };
-
                 SDL_SetRenderDrawColor(renderer,
                     particle.color.r, particle.color.g, particle.color.b, particle.color.a);
                 SDL_RenderFillRectF(renderer, &rect);

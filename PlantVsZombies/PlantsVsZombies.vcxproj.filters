@@ -26,6 +26,9 @@
     <Filter Include="Code\Game\Zombie">
       <UniqueIdentifier>{49782c1a-24a0-44f1-a1ae-06d2f07c2db3}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Code\Game\Bullet">
+      <UniqueIdentifier>{3d793b5e-15bd-4605-8ef3-948094f47337}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="UI\Button.cpp">
@@ -144,6 +147,9 @@
     </ClCompile>
     <ClCompile Include="Game\Zombie\Zombie.cpp">
       <Filter>Code\Game\Zombie</Filter>
+    </ClCompile>
+    <ClCompile Include="Game\Bullet\Bullet.cpp">
+      <Filter>Code\Game\Bullet</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -320,6 +326,18 @@
     </ClInclude>
     <ClInclude Include="Game\CoinType.h">
       <Filter>Code\Game</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\Bullet\Bullet.h">
+      <Filter>Code\Game\Bullet</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\Bullet\BulletType.h">
+      <Filter>Code\Game\Bullet</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\Bullet\PeaBullet.h">
+      <Filter>Code\Game\Bullet</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\Plant\PeaShooter.h">
+      <Filter>Code\Game\Plant</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

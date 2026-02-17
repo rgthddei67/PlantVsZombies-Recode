@@ -35,56 +35,34 @@ bool ResourceManager::Initialize(SDL_Renderer* renderer, const std::string& conf
     return true;
 }
 
-bool ResourceManager::LoadAllGameImages()
-{
+bool ResourceManager::LoadAllGameImages() {
     bool success = true;
 #ifdef _DEBUG
     std::cout << "开始加载游戏图片资源..." << std::endl;
 #endif
-    const auto& paths = configReader.GetGameImagePaths();
-    for (const auto& path : paths)
-    {
-        std::string key = GenerateTextureKey(path);
-        if (!LoadTexture(path, key))
-        {
-            std::cerr << "加载游戏图片失败: " << path << std::endl;
+    const auto& infos = GetGameImageInfos();
+    for (const auto& info : infos) {
+        if (!LoadTiledTexture(info, "IMAGE_")) {
+            std::cerr << "加载游戏图片失败: " << info.path << std::endl;
             success = false;
         }
     }
 #ifdef _DEBUG
     std::cout << "游戏图片资源加载完成，成功: "
-        << textures.size() << "/" << paths.size() << std::endl;
+        << textures.size() << "/" << infos.size() << std::endl;
 #endif
     return success;
 }
 
-bool ResourceManager::LoadAllParticleTextures()
-{
+bool ResourceManager::LoadAllParticleTextures() {
     bool success = true;
 #ifdef _DEBUG
     std::cout << "开始加载粒子纹理..." << std::endl;
 #endif
-    const auto& paths = configReader.GetParticleTexturePaths();
-    for (const auto& path : paths)
-    {
-        std::string filename = path.substr(path.find_last_of("/\\") + 1);
-        std::string nameWithoutExt = filename.substr(0, filename.find_last_of('.'));
-
-        // 转换为大写
-        std::transform(nameWithoutExt.begin(), nameWithoutExt.end(), nameWithoutExt.begin(), ::toupper);
-
-        // 将非字母数字字符替换为下划线
-        for (char& c : nameWithoutExt) {
-            if (!std::isalnum(c)) {
-                c = '_';
-            }
-        }
-
-        // 生成key：PARTICLE_ + 文件名（大写）
-        std::string key = "PARTICLE_" + nameWithoutExt;
-        if (!LoadTexture(path, key))
-        {
-            std::cerr << "加载粒子纹理失败: " << path << std::endl;
+    const auto& infos = GetParticleTextureInfos();
+    for (const auto& info : infos) {
+        if (!LoadTiledTexture(info, "PARTICLE_")) {
+            std::cerr << "加载粒子纹理失败: " << info.path << std::endl;
             success = false;
         }
     }
@@ -662,6 +640,98 @@ void ResourceManager::LoadTexturePack(const std::vector<std::pair<std::string, s
     }
 }
 
+SDL_Texture* ResourceManager::CreateTextureFromSurface(SDL_Surface* surface) {
+    if (!surface || !renderer) return nullptr;
+    SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
+    if (texture) {
+        SDL_SetTextureScaleMode(texture, SDL_ScaleModeLinear);
+        SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_BLEND);
+    }
+    return texture;
+}
+
+// 加载分割贴图
+bool ResourceManager::LoadTiledTexture(const TiledImageInfo& info, const std::string& prefix) {
+    // 如果不需要分割，直接调用 LoadTexture
+    if (info.columns <= 1 && info.rows <= 1) {
+        std::string key = GenerateStandardKey(info.path, prefix);
+        return LoadTexture(info.path, key) != nullptr;
+    }
+
+    // 加载原图到Surface
+    SDL_Surface* originalSurface = IMG_Load(info.path.c_str());
+    if (!originalSurface) {
+        std::cerr << "无法加载图片: " << info.path << " - " << IMG_GetError() << std::endl;
+        return false;
+    }
+
+    int imgW = originalSurface->w;
+    int imgH = originalSurface->h;
+    int tileW = imgW / info.columns;
+    int tileH = imgH / info.rows;
+
+    // 检查是否整除
+    if (imgW % info.columns != 0 || imgH % info.rows != 0) {
+        std::cerr << "警告: 图片尺寸 " << imgW << "x" << imgH
+            << " 不能被 " << info.columns << "x" << info.rows
+            << " 整除，可能产生边缘裁剪" << std::endl;
+    }
+
+    std::string baseKey = GenerateStandardKey(info.path, prefix);
+    bool success = true;
+
+    // 遍历每个子图
+    for (int row = 0; row < info.rows; ++row) {
+        for (int col = 0; col < info.columns; ++col) {
+            // 创建子Surface
+            SDL_Surface* tileSurface = SDL_CreateRGBSurface(
+                0, tileW, tileH,
+                originalSurface->format->BitsPerPixel,
+                originalSurface->format->Rmask,
+                originalSurface->format->Gmask,
+                originalSurface->format->Bmask,
+                originalSurface->format->Amask
+            );
+            if (!tileSurface) {
+                std::cerr << "无法创建子Surface: " << SDL_GetError() << std::endl;
+                success = false;
+                continue;
+            }
+
+            // 设置源矩形
+            SDL_Rect srcRect = { col * tileW, row * tileH, tileW, tileH };
+            // 将原图指定区域复制到子Surface
+            if (SDL_BlitSurface(originalSurface, &srcRect, tileSurface, nullptr) != 0) {
+                std::cerr << "Blit失败: " << SDL_GetError() << std::endl;
+                SDL_FreeSurface(tileSurface);
+                success = false;
+                continue;
+            }
+
+            // 创建纹理
+            SDL_Texture* texture = CreateTextureFromSurface(tileSurface);
+            SDL_FreeSurface(tileSurface);
+
+            if (!texture) {
+                std::cerr << "无法从子Surface创建纹理" << std::endl;
+                success = false;
+                continue;
+            }
+
+            // 生成带索引的key
+            int index = row * info.columns + col;
+            std::string key = baseKey + "_PART_" + std::to_string(index);
+            textures[key] = texture;
+#ifdef _DEBUG
+            std::cout << "加载子纹理: " << key << " 尺寸 " << tileW << "x" << tileH << std::endl;
+#endif
+        }
+    }
+
+    SDL_FreeSurface(originalSurface);
+    return success;
+}
+
 void ResourceManager::UnloadAll()
 {
     // 卸载所有纹理
@@ -701,6 +771,8 @@ void ResourceManager::UnloadAll()
     std::cout << "已卸载所有资源" << std::endl;
 #endif
 }
+
+
 
 bool ResourceManager::HasTexture(const std::string& key) const
 {

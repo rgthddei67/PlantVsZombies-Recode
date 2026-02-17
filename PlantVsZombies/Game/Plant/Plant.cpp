@@ -59,7 +59,7 @@ void Plant::Start()
 			(ResourceKeys::Textures::IMAGE_PLANTSHADOW));
 		shadowcomponent->SetDrawOrder(-80);
 	}
-	this->PlayTrack("anim_idle");
+	this->PlayTrack("anim_idle", 1.0f, 0);
 	SetupPlant();
 }
 

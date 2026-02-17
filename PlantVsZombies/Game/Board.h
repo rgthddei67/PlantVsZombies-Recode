@@ -6,6 +6,7 @@
 #include "GameObjectManager.h"
 #include "./Plant/PlantType.h"
 #include "./Zombie/ZombieType.h"
+#include "./Bullet/BulletType.h"
 #include "EntityManager.h"
 #include <vector>
 #include <memory>
@@ -17,9 +18,21 @@ class Zombie;
 class Bullet;
 
 constexpr int MAX_SUN = 9990;
+constexpr float NEXTWAVE_COUNT_MAX = 25.0f;
+constexpr float SPAWN_SUN_TIME = 15.0f;
+constexpr int NORMALMODE_MAX_WAVE_ZOMBIE = 60;	// 普通模式一波最大僵尸数量
+
+enum class BoardState {
+	CHOOSE_CARD,
+	GAME,
+	LOSE_GAME,
+	NONE,
+};
 
 class Board {
 public:
+	BoardState mBoardState = BoardState::CHOOSE_CARD;
+	std::vector<ZombieType> mSpawnZombieList;	// 本关出怪表
 	int mBackGround = 0; // 背景图
 	int mRows = 5;	// 行数
 	int mColumns = 8; // 列数
@@ -28,12 +41,26 @@ public:
 	int mNextPlantID = 1;	// 下一个植物的ID
 	int mNextCoinID = 1;	// 下一个Coin的ID
 	EntityManager mEntityManager;
+	int mCurrentWave = 0;			// 当前波
+	int mMaxWave = 10;		// 关卡总波数
+	float mZombieCountDown = 18.0f;		// 下一波僵尸倒计时
+	double mTotalZombieHP = 0;		// 在场全部僵尸血量
+	double mCurrectWaveZombieHP = 0;	// 本波僵尸血量
+	double mNextWaveSpawnZombieHP = 0;		// 下一波僵尸刷新血量
+
+	int mZombieNumber = 0;
+
 	// 外层表示行（rows） 内层columns
 	std::vector<std::vector<std::shared_ptr<Cell>>> mCells;
+
+private:
+	float mHugeWaveCountDown = 0.0f;	// 一大波倒计时
+	bool mHasHugeWaveSound = false;		// 有无放过一大波音乐
 
 public:
 	Board()
 	{
+		mSpawnZombieList.reserve(16);
 		InitializeCell();
 	}
 
@@ -67,7 +94,7 @@ public:
 	}
 
 	// 创建僵尸
-	std::shared_ptr<Zombie> CreateZombie(ZombieType zombieType, const float& x, int row, bool isPreview = false);
+	std::shared_ptr<Zombie> CreateZombie(ZombieType zombieType, int row, const float& x, bool isPreview = false);
 
 	// 创建太阳
 	std::shared_ptr<Sun> CreateSun(const Vector& position, bool needAnimation = false);
@@ -78,7 +105,13 @@ public:
 	// 创建植物
 	std::shared_ptr<Plant> CreatePlant(PlantType plantType, int row, int column, bool isPreview = false);
 
-	// 行数转换为y坐标
+	// 创建子弹
+	std::shared_ptr<Bullet> CreateBullet(BulletType plantType, int row, const Vector& position);
+
+	// 更新关卡
+	void UpdateLevel();
+
+	// 行数转换为y坐标（废弃）
 	float RowToY(int row);
 
 	// 渲染网格（调试用）
@@ -92,7 +125,17 @@ public:
 	// 从所有Cell中清除指定植物ID
 	void CleanPlantFromCells(int plantID);
 
-	void UpdateSunFalling();
+	void UpdateSunFalling(float deltaTime);
+
+	void UpdateZombieHP();
+
+	void TrySummonZombie();
+
+	// 计算当前波的总点数
+	int CalculateWaveZombiePoints() const;
+
+	// 选好卡，开始游戏
+	void StartGame();
 
 	void Update();
 };

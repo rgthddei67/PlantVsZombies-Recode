@@ -33,17 +33,27 @@ void ButtonManager::UpdateAll(InputHandler* input)
 {
     if (!input) return;
 
-    for (auto& button : buttons)
+    for (size_t i = 0; i < buttons.size(); i++)
     {
-        button->Update(input);
+        auto button = buttons[i];
+        if (button)
+        {
+            button->Update(input);
+        }
     }
 }
 
 void ButtonManager::DrawAll(SDL_Renderer* renderer) const
 {
-    for (const auto& button : buttons)
+    if (!renderer) return;
+
+    for (size_t i = 0; i < buttons.size(); i++)
     {
-        button->Draw(renderer);
+        auto button = buttons[i];
+        if (button)
+        {
+            button->Draw(renderer);
+        }
     }
 }
 
@@ -63,16 +73,24 @@ std::shared_ptr<Button> ButtonManager::GetButton(size_t index) const
 
 void ButtonManager::ProcessMouseEvent(InputHandler* input)
 {
-    for (auto& button : buttons) 
+    for (size_t i = 0; i < buttons.size(); i++)
     {
-        button->ProcessMouseEvent(input);
+        auto button = buttons[i];
+        if (button)
+        {
+            button->ProcessMouseEvent(input);
+        }
     }
 }
 
 void ButtonManager::ResetAllFrameStates()
 {
-    for (auto& button : buttons) 
+    for (size_t i = 0; i < buttons.size(); i++)
     {
-        button->ResetFrameState();
+        auto button = buttons[i];
+        if (button)
+        {
+            button->ResetFrameState();
+        }
     }
 }

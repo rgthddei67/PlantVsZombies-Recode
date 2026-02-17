@@ -20,8 +20,8 @@ protected:
 
     std::weak_ptr<TransformComponent> mTransform;
     std::weak_ptr<ColliderComponent> mCollider;
-
     std::shared_ptr<Animator> mAnimator;
+
     AnimationType mAnimType;
     bool mIsPlaying;
     PlayState mLoopType;
@@ -73,14 +73,17 @@ public:
     void OverrideColor(const SDL_Color& color);
 
     // 轨道播放
-    bool PlayTrack(const std::string& trackName, float blendTime = 0, float speed = 1.0f);
-    bool PlayTrackOnce(const std::string& trackName, const std::string& returnTrack = "", float speed = 1.0f, float blendTime = 0);
+    bool PlayTrack(const std::string& trackName, float speed = 1.0f, float blendTime = 0.0f);
+    bool PlayTrackOnce(const std::string& trackName,
+        const std::string& returnTrack = "",
+        float speed = 1.0f,
+        float blendTime = 0.0f);
+
     void SetFramesForLayer(const std::string& trackName);
 
     // 组件获取
     std::shared_ptr<TransformComponent> GetTransformComponent() const;
     std::shared_ptr<ColliderComponent> GetColliderComponent() const;
-    std::shared_ptr<Animator> GetAnimator() const;
 
     // 获取视觉绘制位置
     virtual Vector GetVisualPosition() const;

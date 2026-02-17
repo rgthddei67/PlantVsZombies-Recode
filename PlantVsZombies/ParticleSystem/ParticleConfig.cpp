@@ -18,34 +18,50 @@ void ParticleConfigManager::InitializeConfigs()
     ResourceManager& resourceManager = ResourceManager::GetInstance();
     // 子弹击中
     ParticleConfig config;
-    config.startColor = { 255, 255, 255, 255 };  // 使用纹理颜色，所以设为白色
-    config.endColor = { 255, 255, 255, 0 };
-    config.lifetime = 30.0f;
-    config.startSize = 52.0f;
-    config.endSize = 10.0f;
-    config.minVelocity = 1.0f;
-    config.maxVelocity = 3.0f;
+    config.startColor = { 255, 255, 255, 255 }; 
+    config.endColor = { 255, 255, 255, 255 };
+    config.lifetime = 0.8f;
+    config.startSize = 1.3f;
+    config.endSize = 0.4f;
+    config.minVelocity = 10.0f;
+    config.maxVelocity = 15.0f;
     config.spreadAngle = 90.0f;
-    config.gravity = 0.2f;
+    config.gravity = 100.0f;
     config.textureKeys = 
-    { ResourceKeys::Particles::PARTICLE_ZOMBIEHEAD, ResourceKeys::Particles
-        ::PARTICLE_ZOMBIEHEAD };  // 子弹击中纹理
+    { ResourceKeys::Particles::PARTICLE_PEA_HIT_0, ResourceKeys::Particles
+        ::PARTICLE_PEA_HIT_1, ResourceKeys::Particles::PARTICLE_PEA_HIT_2, 
+    ResourceKeys::Particles::PARTICLE_PEA_HIT_3};  // 子弹击中纹理
+
     config.useTexture = true;
     configs[ParticleType::PEA_BULLET_HIT] = config;
 
     config.startColor = { 255, 255, 255, 255 }; 
     config.endColor = { 255, 255, 255, 255 };
-    config.lifetime = 2.5f;
-    config.startSize = 65.0f;
-    config.endSize = 65.0f;
+    config.lifetime = 0.8f;
+    config.startSize = 0.75f;
+    config.endSize = 0.75f;
     config.minVelocity = 60.0f;
     config.maxVelocity = 110.0f;
-    config.spreadAngle = 80.0f;
-    config.gravity = 330.0f; 
+    config.spreadAngle = 100.0f;
+    config.gravity = 120.0f;
     config.textureKeys =
-    { ResourceKeys::Particles::PARTICLE_ZOMBIEHEAD };
+    { ResourceKeys::Particles::PARTICLE_ZOMBIE_HEAD };
     config.useTexture = true;
     configs[ParticleType::ZOMBIE_HEAD_OFF] = config;
+
+    config.startColor = { 255, 255, 255, 255 };
+    config.endColor = { 255, 255, 255, 255 };
+    config.lifetime = 0.8f;
+    config.startSize = 0.7f;
+    config.endSize = 0.7f;
+    config.minVelocity = 0.0f;
+    config.maxVelocity = 0.0f;
+    config.spreadAngle = 100.0f;
+    config.gravity = 110.0f;
+    config.textureKeys =
+    { ResourceKeys::Particles::PARTICLE_ZOMBIEARM };
+    config.useTexture = true;
+    configs[ParticleType::ZOMBIE_ARM_OFF] = config;
 
 }
 

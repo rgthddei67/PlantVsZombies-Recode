@@ -101,26 +101,31 @@ public:
     // 更新
     void Update() {
         // 移除在mObjectsToRemove中的对象
-        for (auto& objToRemove : mObjectsToRemove) {
-            if (objToRemove) {
-                objToRemove->DestroyAllComponents();
+        for (size_t i = 0; i < mObjectsToRemove.size(); i++) {
+            auto obj = mObjectsToRemove[i];
+            if (obj) {
+                obj->DestroyAllComponents();
             }
             mGameObjects.erase(
-                std::remove(mGameObjects.begin(), mGameObjects.end(), objToRemove),
+                std::remove(mGameObjects.begin(), mGameObjects.end(), obj),
                 mGameObjects.end()
             );
-        }
+		}
         mObjectsToRemove.clear();
 
         // 新对象的操作
-        for (auto& obj : mObjectsToAdd) {
+        for (size_t i = 0; i < mObjectsToAdd.size(); i++) {
+            auto obj = mObjectsToAdd[i];
             mGameObjects.push_back(obj);
             obj->Start();
-        }
+		}
+
         mObjectsToAdd.clear();
 
+        //TODO: 一定不要存vector元素的&!!!!!!一定不要存vector元素的&!!!!!!一定不要存vector元素的&!!!！
         // 更新现有（mGameObjects）对象
-        for (auto& obj : mGameObjects) {
+        for (size_t i = 0; i < mGameObjects.size(); i++) {
+            auto obj = mGameObjects[i];
             if (obj->IsActive()) {
                 obj->Update();
             }
@@ -271,4 +276,5 @@ private:
     }
 
 };
+
 #endif

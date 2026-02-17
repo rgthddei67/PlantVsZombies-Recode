@@ -29,13 +29,15 @@ class InputHandler;
 
 class GameAPP
 {
+public:
+    int Difficulty = 1; // 难度系数
+
 private:
     std::unique_ptr<InputHandler> mInputHandler;
     std::vector<TextCache> mTextCache;
 
     SDL_Window* mWindow;
     SDL_Renderer* mRenderer;
-    std::unique_ptr<ParticleSystem> mParticleSystem;
 
     // 游戏运行状态
     bool mRunning;

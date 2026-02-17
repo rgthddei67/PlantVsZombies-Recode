@@ -6,13 +6,10 @@
 void Shooter::SetupPlant() {
     Plant::SetupPlant();  // 基类初始化
 
-    auto animator = GetAnimator();
-    if (!animator) return;
-
-    auto reanim = animator->GetReanimation();
+    auto reanim = mAnimator->GetReanimation();
     if (!reanim) return;
 
-    animator->PlayTrack("anim_idle");
+    mAnimator->PlayTrack("anim_idle");
 
     // 1. 创建头部动画器（与身体使用同一 Reanimation 资源）
     mHeadAnim = std::make_shared<Animator>(reanim);
@@ -22,9 +19,11 @@ void Shooter::SetupPlant() {
         GetPlantOffset(this->mPlantType));
 
     // 2. 将头部附加到身体轨道（优先使用 anim_stem，其次 anim_idle）
-    if (!animator->GetTracksByName("anim_stem").empty()) {
-        animator->AttachAnimator("anim_stem", mHeadAnim);
+    if (!mAnimator->GetTracksByName("anim_stem").empty()) {
+        mAnimator->AttachAnimator("anim_stem", mHeadAnim);
     }
+
+    mAnimator->SetSpeed(GameRandom::Range(1.1f, 1.3f));
 
     // 3. 可选：设置头部绘制顺序（如果 Animator 支持）
     // mHeadAnim->SetDrawOrder(mRenderOrder + 2);
@@ -38,9 +37,11 @@ void Shooter::PlantUpdate()
 	{
 		if (HasZombieInRow())
 		{
-            mHeadAnim->PlayTrackOnce("anim_shooting", "anim_head_idle", 1.5f, 0.5f);
-			mShootTimer = 0;
-			ShootBullet();
+            mShootTimer = 0;
+            mHeadAnim->PlayTrackOnce("anim_shooting", "anim_head_idle", 1.5f, 0.2f);
+            mHeadAnim->AddFrameEvent(63, [this]() {
+                this->ShootBullet();
+				});
 		}
 	}
 }
@@ -51,7 +52,7 @@ bool Shooter::HasZombieInRow()
 	{
         EntityManager manager = mBoard->mEntityManager;
         std::vector<int> zombieIDs = manager.GetAllZombieIDs();
-        for (auto& zombieID : zombieIDs)
+        for (auto zombieID : zombieIDs)
         {
             if (auto zombie = manager.GetZombie(zombieID))
             {

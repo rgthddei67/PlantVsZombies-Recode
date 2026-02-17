@@ -12,7 +12,7 @@ protected:
 	float mShootTimer = 0.0f;    // 射击计时器
 
 	bool HasZombieInRow();		// 检测本行是否有僵尸
-	virtual void ShootBullet() { }
+	virtual void ShootBullet() = 0;	// 射击子弹 必须写
 	void SetupPlant() override;
 
 public:

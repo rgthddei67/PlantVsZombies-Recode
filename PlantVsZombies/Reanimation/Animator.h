@@ -5,6 +5,7 @@
 #include "ReanimTypes.h"
 #include "Reanimation.h"
 #include <algorithm>
+#include <functional>
 #include <unordered_map>
 #include <map>
 #include <memory>
@@ -43,6 +44,8 @@ private:
     std::string mTargetTrack = "";
     float mOriginalSpeed = 1.0f;    // 原来的速度
 
+    std::unordered_multimap<int, std::function<void()>> mFrameEvents;  // 帧事件表
+
 public:
     Animator();
     Animator(std::shared_ptr<Reanimation> reanim);
@@ -58,11 +61,17 @@ public:
     void Pause();
     void Stop();
 
+    // 增加帧事件
+    void AddFrameEvent(int frameIndex, std::function<void()> callback);
+
     // 播放指定轨道动画，支持过渡效果
-    bool PlayTrack(const std::string& trackName, float blendTime = 0, float speed = 1.0f);
+    bool PlayTrack(const std::string& trackName, float speed = 1.0f, float blendTime = 0);
 
     // 播放指定轨道动画一次，播放完后可切换回指定轨道
-    bool PlayTrackOnce(const std::string& trackName, const std::string& returnTrack = "", float speed = 1.0f, float blendTime = 0);
+    bool PlayTrackOnce(const std::string& trackName,
+        const std::string& returnTrack = "",
+        float speed = 1.0f,
+        float blendTime = 0);
 
     void SetOriginalSpeed(float speed) {
         this->mOriginalSpeed = speed;

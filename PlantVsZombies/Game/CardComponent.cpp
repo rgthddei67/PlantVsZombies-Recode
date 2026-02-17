@@ -128,9 +128,14 @@ std::shared_ptr<CardSlotManager> CardComponent::FindCardSlotManager() const {
 	auto& manager = GameObjectManager::GetInstance();
 	auto allObjects = manager.GetAllGameObjects();
 
-	for (auto& obj : allObjects) {
-		if (auto cardManager = obj->GetComponent<CardSlotManager>()) {
-			return cardManager;
+	for (size_t i = 0; i < allObjects.size(); i++)
+	{
+		if (auto gameObj = allObjects[i])
+		{
+			if (auto cardManager = gameObj->GetComponent<CardSlotManager>())
+			{
+				return cardManager;
+			}
 		}
 	}
 

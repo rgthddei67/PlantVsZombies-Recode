@@ -50,7 +50,9 @@ void GameDataManager::InitializeHardcodedData() {
         "ZOMBIE_NORMAL",
         AnimationType::ANIM_NORMAL_ZOMBIE,            
         ResourceKeys::Reanimations::REANIM_NORMAL_ZOMBIE,
-        Vector(-50, -85)
+        Vector(-50, -85),
+        1,
+        1
     );
 
     // ==================== 非植物/僵尸动画映射 ====================
@@ -83,11 +85,11 @@ void GameDataManager::RegisterZombie(ZombieType type,
     const std::string& enumName,
     AnimationType animType,
     const std::string& animName,
-    const Vector& offset) {
-    ZombieInfo info(type, enumName, animType, animName, offset);
+    const Vector& offset, int weight, int appearWave) {
+    ZombieInfo info(type, enumName, animType, animName, offset, weight, appearWave);
     mZombieInfo[type] = info;
 
-    // 同样记录动画类型->资源名，以便通过 AnimationType 统一查询
+    // 记录动画类型->资源名，以便通过 AnimationType 统一查询
     mAnimToString[animType] = animName;
 
 #ifdef _DEBUG
@@ -221,6 +223,22 @@ void GameDataManager::SetZombieOffset(ZombieType zombieType, const Vector& offse
             << " -> (" << offset.x << ", " << offset.y << ")" << std::endl;
 #endif
     }
+}
+
+int GameDataManager::GetZombieWeight(ZombieType zombieType) const
+{
+    auto it = mZombieInfo.find(zombieType);
+    if (it != mZombieInfo.end())
+        return it->second.weight;
+    return 0;
+}
+
+int GameDataManager::GetZombieAppearWave(ZombieType zombieType) const
+{
+    auto it = mZombieInfo.find(zombieType);
+    if (it != mZombieInfo.end())
+        return it->second.appearWave;
+    return 0;
 }
 
 std::vector<ZombieType> GameDataManager::GetAllZombieTypes() const {

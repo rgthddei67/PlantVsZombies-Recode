@@ -20,15 +20,18 @@ Animator::~Animator()
 
 void Animator::Die() {
     // 先让所有附加的子动画死亡
-    for (auto& extra : mExtraInfos) {
-        for (auto& weakChild : extra.mAttachedReanims) {
-            if (auto child = weakChild.lock()) {
+    for (size_t i = 0; i < mExtraInfos.size(); i++)
+    {
+        for (size_t j = 0; j < mExtraInfos[i].mAttachedReanims.size(); j++)
+        {
+			auto child = mExtraInfos[i].mAttachedReanims[j].lock();
+            if (child) {
                 child->Die();
             }
         }
-        extra.mAttachedReanims.clear();
+		mExtraInfos[i].mAttachedReanims.clear();
     }
-
+    mFrameEvents.clear();
     mIsPlaying = false;
 }
 
@@ -38,7 +41,7 @@ void Animator::Init(std::shared_ptr<Reanimation> reanim) {
         mFPS = reanim->mFPS;
         mTrackIndicesMap.clear();
         mExtraInfos.clear();
-
+        mFrameEvents.clear();
         for (int i = 0; i < reanim->GetTrackCount(); i++) {
             auto track = reanim->GetTrack(i);
             if (track) {
@@ -46,15 +49,16 @@ void Animator::Init(std::shared_ptr<Reanimation> reanim) {
                 TrackExtraInfo extra;
 
                 // 预加载该轨道用到的所有图片
-                for (const auto& frame : track->mFrames) {
-                    if (!frame.image.empty() && reanim->mResourceManager) {
+                for (size_t i = 0; i < track->mFrames.size(); i++) {
+                    const auto frame = track->mFrames[i];
+                    if (!frame.image.empty()) {
                         // 如果缓存中还没有该图片，则加载
                         if (extra.mTextureCache.find(frame.image) == extra.mTextureCache.end()) {
                             SDL_Texture* tex = reanim->mResourceManager->GetTexture(frame.image);
                             extra.mTextureCache[frame.image] = tex;
                         }
                     }
-                }
+				}
 
                 mExtraInfos.push_back(extra);
             }
@@ -66,7 +70,13 @@ void Animator::Init(std::shared_ptr<Reanimation> reanim) {
     }
 }
 
-bool Animator::PlayTrack(const std::string& trackName, float blendTime, float speed) {
+void Animator::AddFrameEvent(int frameIndex, std::function<void()> callback) {
+    if (callback) {
+        mFrameEvents.insert({ frameIndex, callback });
+    }
+}
+
+bool Animator::PlayTrack(const std::string& trackName, float speed, float blendTime) {
     auto range = GetTrackRange(trackName);
     if (range.first == -1 || range.second == -1) {
         std::cerr << "动画轨道不存在或为空: " << trackName << std::endl;
@@ -90,7 +100,6 @@ bool Animator::PlayTrack(const std::string& trackName, float blendTime, float sp
     }
 
     if (speed > 0.0f) {
-        mOriginalSpeed = mSpeed;
         SetSpeed(speed);
     }
 
@@ -100,9 +109,10 @@ bool Animator::PlayTrack(const std::string& trackName, float blendTime, float sp
     return true;
 }
 
-bool Animator::PlayTrackOnce(const std::string& trackName, const std::string& returnTrack, float speed, float blendTime) 
+bool Animator::PlayTrackOnce(const std::string& trackName, const std::string& returnTrack,
+    float speed, float blendTime)
 {
-    if (!PlayTrack(trackName, blendTime, speed)) {
+    if (!PlayTrack(trackName, speed, blendTime)) {
         return false;
     }
 
@@ -130,121 +140,152 @@ void Animator::Update() {
     if (!mIsPlaying || !mReanim) return;
 
     float deltaTime = DeltaTime::GetDeltaTime();
+    float oldFrame = mFrameIndexNow;   // 记录更新前的帧索引
 
-    // 如果有混合过渡，更新混合计时器
-    if (mReanimBlendCounter > 0) {
-        mReanimBlendCounter -= deltaTime;
-        return;
-    }
-
+    // 帧索引前进
     float frameAdvance = deltaTime * mFPS * mSpeed;
     mFrameIndexNow += frameAdvance;
 
-    // 检查是否到达当前动画的结束
+    // 处理动画结束/循环逻辑
     bool reachedEnd = mFrameIndexNow >= mFrameIndexEnd;
-
     if (reachedEnd) {
         switch (mPlayingState) {
         case PlayState::PLAY_REPEAT:
-            // 循环播放：回到起始帧
             mFrameIndexNow = mFrameIndexBegin;
             break;
-
         case PlayState::PLAY_ONCE:
-            // 播放一次：停在最后一帧
             mFrameIndexNow = mFrameIndexEnd;
             mIsPlaying = false;
-
             break;
-
         case PlayState::PLAY_ONCE_TO:
-            // 播放到指定动画
             mFrameIndexNow = mFrameIndexEnd;
-            SetSpeed(mOriginalSpeed);
             mIsPlaying = false;
-
-            // 切换到目标动画
             if (!mTargetTrack.empty()) {
-                PlayTrack(mTargetTrack, 200);
+                PlayTrack(mTargetTrack, mOriginalSpeed, 0.5f);
                 mTargetTrack = "";
             }
             break;
-
         case PlayState::PLAY_NONE:
-            // 不播放：停在当前帧
             mFrameIndexNow = mFrameIndexEnd;
             mIsPlaying = false;
             break;
         }
     }
 
-    // 确保帧在当前片段范围内
+    // 限制帧范围
     mFrameIndexNow = std::clamp(mFrameIndexNow, mFrameIndexBegin, mFrameIndexEnd);
 
-    for (auto& extra : mExtraInfos) {
-        for (auto& weakChild : extra.mAttachedReanims) {
-            if (auto child = weakChild.lock()) {
-                child->Update();
+    // ----- 触发帧事件（一次性，触发后自动移除）-----
+    int oldInt = static_cast<int>(oldFrame);
+    int newInt = static_cast<int>(mFrameIndexNow);
+
+    if (newInt >= oldInt) {
+        // 正常前进或不变
+        for (int f = oldInt + 1; f <= newInt; ++f) {
+            auto range = mFrameEvents.equal_range(f);
+            for (auto it = range.first; it != range.second;) {
+                it->second();               // 执行回调
+                it = mFrameEvents.erase(it); // 移除（一次性）
             }
         }
+    }
+    else {
+        // 发生了回绕（循环播放）
+        int endInt = static_cast<int>(mFrameIndexEnd);
+        for (int f = oldInt + 1; f <= endInt; ++f) {
+            auto range = mFrameEvents.equal_range(f);
+            for (auto it = range.first; it != range.second;) {
+                it->second();
+                it = mFrameEvents.erase(it);
+            }
+        }
+        int beginInt = static_cast<int>(mFrameIndexBegin);
+        for (int f = beginInt; f <= newInt; ++f) {
+            auto range = mFrameEvents.equal_range(f);
+            for (auto it = range.first; it != range.second;) {
+                it->second();
+                it = mFrameEvents.erase(it);
+            }
+        }
+    }
+
+    // 更新混合计时器
+    if (mReanimBlendCounter > 0) {
+        mReanimBlendCounter -= deltaTime;
+        if (mReanimBlendCounter < 0) mReanimBlendCounter = 0;
+    }
+
+    for (size_t i = 0; i < mExtraInfos.size(); i++)
+    {
+        for (size_t j = 0; j < mExtraInfos[i].mAttachedReanims.size(); j++)
+        {
+            auto child = mExtraInfos[i].mAttachedReanims[j].lock();
+            if (child) {
+                child->Update();
+            }
+		}
     }
 }
 
 void Animator::SetSpeed(float speed)
 {
     this->mSpeed = speed;
-    for (auto& tracks : mExtraInfos)
+
+    for (size_t i = 0; i < mExtraInfos.size(); i++)
     {
-        for (auto& animatorWeak : tracks.mAttachedReanims)
+        for (size_t j = 0; j < mExtraInfos[i].mAttachedReanims.size(); j++)
         {
-            if (auto animator = animatorWeak.lock())
-            {
-                animator->SetSpeed(speed);
+            auto child = mExtraInfos[i].mAttachedReanims[j].lock();
+            if (child) {
+                child->SetSpeed(speed);
             }
         }
-    }
+	}
 }
 
 void Animator::SetAlpha(float alpha)
 {
     this->mAlpha = alpha;
-    for (auto& tracks : mExtraInfos)
+
+    for (size_t i = 0; i < mExtraInfos.size(); i++)
     {
-        for (auto& animatorWeak : tracks.mAttachedReanims)
+        for (size_t j = 0; j < mExtraInfos[i].mAttachedReanims.size(); j++)
         {
-            if (auto animator = animatorWeak.lock())
-            {
-                animator->SetAlpha(alpha);
+            auto child = mExtraInfos[i].mAttachedReanims[j].lock();
+            if (child) {
+                child->SetAlpha(alpha);
             }
         }
-    }
+	}
 }
 
 void Animator::SetGlowColor(Uint8 r, Uint8 g, Uint8 b, Uint8 a)
 {
     this->mExtraAdditiveColor = { r, g, b, a };
-    for (auto& tracks : mExtraInfos)
+
+    for (size_t i = 0; i < mExtraInfos.size(); i++)
     {
-        for (auto& animatorWeak : tracks.mAttachedReanims)
+        for (size_t j = 0; j < mExtraInfos[i].mAttachedReanims.size(); j++)
         {
-            if (auto animator = animatorWeak.lock())
-            {
-                animator->SetGlowColor(r, g, b, a);
+            auto child = mExtraInfos[i].mAttachedReanims[j].lock();
+            if (child) {
+                child->SetGlowColor(r, g, b, a);
             }
         }
-    }
+	}
 }
 
 void Animator::SetOverlayColor(Uint8 r, Uint8 g, Uint8 b, Uint8 a)
 {
     this->mExtraOverlayColor = { r, g, b, a };
-    for (auto& tracks : mExtraInfos)
+
+    for (size_t i = 0; i < mExtraInfos.size(); i++)
     {
-        for (auto& animatorWeak : tracks.mAttachedReanims)
+        for (size_t j = 0; j < mExtraInfos[i].mAttachedReanims.size(); j++)
         {
-            if (auto animator = animatorWeak.lock())
-            {
-                animator->SetOverlayColor(r, g, b, a);
+            auto child = mExtraInfos[i].mAttachedReanims[j].lock();
+            if (child) {
+                child->SetOverlayColor(r, g, b, a);
             }
         }
     }
@@ -253,28 +294,30 @@ void Animator::SetOverlayColor(Uint8 r, Uint8 g, Uint8 b, Uint8 a)
 void Animator::EnableGlowEffect(bool enable)
 {
     this->mEnableExtraAdditiveDraw = enable;
-    for (auto& tracks : mExtraInfos)
+
+    for (size_t i = 0; i < mExtraInfos.size(); i++)
     {
-        for (auto& animatorWeak : tracks.mAttachedReanims)
+        for (size_t j = 0; j < mExtraInfos[i].mAttachedReanims.size(); j++)
         {
-            if (auto animator = animatorWeak.lock())
-            {
-                animator->EnableGlowEffect(enable);
+            auto child = mExtraInfos[i].mAttachedReanims[j].lock();
+            if (child) {
+                child->EnableGlowEffect(enable);
             }
         }
-    }
+	}
 }
 
 void Animator::EnableOverlayEffect(bool enable)
 {
     this->mEnableExtraOverlayDraw = enable;
-    for (auto& tracks : mExtraInfos)
+
+    for (size_t i = 0; i < mExtraInfos.size(); i++)
     {
-        for (auto& animatorWeak : tracks.mAttachedReanims)
+        for (size_t j = 0; j < mExtraInfos[i].mAttachedReanims.size(); j++)
         {
-            if (auto animator = animatorWeak.lock())
-            {
-                animator->EnableOverlayEffect(enable);
+            auto child = mExtraInfos[i].mAttachedReanims[j].lock();
+            if (child) {
+                child->EnableOverlayEffect(enable);
             }
         }
     }

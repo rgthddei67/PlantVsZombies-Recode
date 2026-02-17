@@ -8,10 +8,17 @@
 #include <unordered_map>
 #include <iostream>
 
+// 分份贴图信息
+struct TiledImageInfo {
+    std::string path;
+    int columns = 1;  // 水平分割数，默认1
+    int rows = 1;     // 垂直分割数，默认1
+};
+
 class ResourcesXMLConfigReader {
 private:
-    std::vector<std::string> gameImagePaths;
-    std::vector<std::string> particleTexturePaths;
+    std::vector<TiledImageInfo> gameImageInfos;
+    std::vector<TiledImageInfo> particleTextureInfos;
     std::vector<std::string> fontPaths;
     std::vector<std::string> soundPaths;
     std::vector<std::string> musicPaths;
@@ -38,27 +45,35 @@ public:
             return false;
         }
 
-        // 清空现有数据
-        gameImagePaths.clear();
-        particleTexturePaths.clear();
+        // 清空旧数据
+        gameImageInfos.clear();
+        particleTextureInfos.clear();
         fontPaths.clear();
         soundPaths.clear();
         musicPaths.clear();
         reanimationPaths.clear();
 
-        // 读取游戏图片
+        // 解析 GameImages
         pugi::xml_node gameImagesNode = root.child("GameImages");
         if (gameImagesNode) {
             for (pugi::xml_node imageNode : gameImagesNode.children("Image")) {
-                gameImagePaths.push_back(imageNode.text().get());
+                TiledImageInfo info;
+                info.path = imageNode.text().get();
+                info.columns = imageNode.attribute("Column").as_int(1);  // 默认1
+                info.rows = imageNode.attribute("Row").as_int(1);        // 默认1
+                gameImageInfos.push_back(info);
             }
         }
 
-        // 读取粒子纹理
+        // 解析 ParticleTextures
         pugi::xml_node particlesNode = root.child("ParticleTextures");
         if (particlesNode) {
             for (pugi::xml_node textureNode : particlesNode.children("Texture")) {
-                particleTexturePaths.push_back(textureNode.text().get());
+                TiledImageInfo info;
+                info.path = textureNode.text().get();
+                info.columns = textureNode.attribute("Column").as_int(1);
+                info.rows = textureNode.attribute("Row").as_int(1);
+                particleTextureInfos.push_back(info);
             }
         }
 
@@ -102,8 +117,8 @@ public:
 
 #ifdef _DEBUG
         std::cout << "XML配置加载成功:" << std::endl;
-        std::cout << "  游戏图片: " << gameImagePaths.size() << " 个" << std::endl;
-        std::cout << "  粒子纹理: " << particleTexturePaths.size() << " 个" << std::endl;
+        std::cout << "  游戏图片: " << gameImageInfos.size() << " 个" << std::endl;
+        std::cout << "  粒子纹理: " << particleTextureInfos.size() << " 个" << std::endl;
         std::cout << "  字体: " << fontPaths.size() << " 个" << std::endl;
         std::cout << "  音效: " << soundPaths.size() << " 个" << std::endl;
         std::cout << "  音乐: " << musicPaths.size() << " 个" << std::endl;
@@ -114,8 +129,8 @@ public:
     }
 
     // 获取方法
-    const std::vector<std::string>& GetGameImagePaths() const { return gameImagePaths; }
-    const std::vector<std::string>& GetParticleTexturePaths() const { return particleTexturePaths; }
+    const std::vector<TiledImageInfo>& GetGameImageInfos() const { return gameImageInfos; }
+    const std::vector<TiledImageInfo>& GetParticleTextureInfos() const { return particleTextureInfos; }
     const std::vector<std::string>& GetFontPaths() const { return fontPaths; }
     const std::vector<std::string>& GetSoundPaths() const { return soundPaths; }
     const std::vector<std::string>& GetMusicPaths() const { return musicPaths; }

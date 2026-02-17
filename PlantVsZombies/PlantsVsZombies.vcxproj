@@ -27,6 +27,7 @@
     <ClCompile Include="Game\AnimatedObject.cpp" />
     <ClCompile Include="Game\AudioSystem.cpp" />
     <ClCompile Include="Game\Board.cpp" />
+    <ClCompile Include="Game\Bullet\Bullet.cpp" />
     <ClCompile Include="Game\Card.cpp" />
     <ClCompile Include="Game\CardComponent.cpp" />
     <ClCompile Include="Game\CardDisplayComponent.cpp" />
@@ -70,6 +71,9 @@
     <ClInclude Include="Game\AnimatedObject.h" />
     <ClInclude Include="Game\AudioSystem.h" />
     <ClInclude Include="Game\Board.h" />
+    <ClInclude Include="Game\Bullet\Bullet.h" />
+    <ClInclude Include="Game\Bullet\BulletType.h" />
+    <ClInclude Include="Game\Bullet\PeaBullet.h" />
     <ClInclude Include="Game\Card.h" />
     <ClInclude Include="Game\CardComponent.h" />
     <ClInclude Include="Game\CardDisplayComponent.h" />
@@ -86,6 +90,7 @@
     <ClInclude Include="Game\GameObject.h" />
     <ClInclude Include="Game\GameObjectManager.h" />
     <ClInclude Include="Game\GameScene.h" />
+    <ClInclude Include="Game\Plant\PeaShooter.h" />
     <ClInclude Include="Game\Plant\Plant.h" />
     <ClInclude Include="Game\Plant\GameDataManager.h" />
     <ClInclude Include="Game\Plant\PlantType.h" />

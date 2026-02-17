@@ -234,7 +234,7 @@ int GameAPP::Run()
         return -7;
     }
 
-    mParticleSystem = std::make_unique<ParticleSystem>(mRenderer);
+    g_particleSystem = std::make_unique<ParticleSystem>(mRenderer);
 
     auto& sceneManager = SceneManager::GetInstance();
     sceneManager.RegisterScene<GameScene>("GameScene");
@@ -264,13 +264,13 @@ int GameAPP::Run()
         {
             AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_BUTTONCLICK, 0.5f);
 			if (!mDebugMode)
-			    DeltaTime::SetTimeScale(2.0f);
+			    DeltaTime::SetTimeScale(5.0f);
             else
                 DeltaTime::SetTimeScale(1.0f);
             mDebugMode = !mDebugMode;
             mShowColliders = !mShowColliders;
-            if (mParticleSystem) {
-                mParticleSystem->EmitEffect(ParticleType::ZOMBIE_HEAD_OFF,
+            if (g_particleSystem) {
+                g_particleSystem->EmitEffect(ParticleType::ZOMBIE_HEAD_OFF,
                     mInputHandler->GetMousePosition(), 5);
             }
         }
@@ -327,7 +327,7 @@ void GameAPP::Shutdown()
     if (mRunning) return;
 
     // 清理粒子系统
-    mParticleSystem.reset();
+    g_particleSystem.reset();
 
     // 清理游戏对象和碰撞系统
     GameObjectManager::GetInstance().ClearAll();
@@ -371,13 +371,12 @@ void GameAPP::Shutdown()
 
 void GameAPP::ClearTextCache()
 {
-    for (auto& cache : mTextCache)
+    for (size_t i = 0; i < mTextCache.size(); i++)
     {
-        if (cache.texture)
-        {
-            SDL_DestroyTexture(cache.texture);
-        }
-    }
+        if (!mTextCache[i].texture) continue;
+        SDL_DestroyTexture(mTextCache[i].texture);
+	}
+
     mTextCache.clear();
     std::cout << "清除文本缓存" << std::endl;
 }
@@ -402,12 +401,13 @@ SDL_Texture* GameAPP::GetCachedTextTexture(const std::string& text,
     std::string key = ss.str();
 
     // 2. 查找缓存
-    for (auto& cached : mTextCache) {
-        if (cached.key == key) {
-            outWidth = cached.width;
-            outHeight = cached.height;
-            return cached.texture;
-        }
+    for (size_t i = 0; i < mTextCache.size(); i++)
+    {
+        if (mTextCache[i].key == key) {
+            outWidth = mTextCache[i].width;
+            outHeight = mTextCache[i].height;
+            return mTextCache[i].texture;
+		}
     }
 
     // 3. 缓存未命中，创建新纹理
