@@ -49,16 +49,14 @@ void Animator::Init(std::shared_ptr<Reanimation> reanim) {
                 TrackExtraInfo extra;
 
                 // 预加载该轨道用到的所有图片
-                for (size_t i = 0; i < track->mFrames.size(); i++) {
-                    const auto frame = track->mFrames[i];
-                    if (!frame.image.empty()) {
-                        // 如果缓存中还没有该图片，则加载
-                        if (extra.mTextureCache.find(frame.image) == extra.mTextureCache.end()) {
-                            SDL_Texture* tex = reanim->mResourceManager->GetTexture(frame.image);
-                            extra.mTextureCache[frame.image] = tex;
-                        }
+                for (int i = 0; i < static_cast<int>(reanim->GetTrackCount()); i++) {
+                    auto track = reanim->GetTrack(i);
+                    if (track) {
+                        mTrackIndicesMap[track->mTrackName] = i;
+                        TrackExtraInfo extra; 
+                        mExtraInfos.push_back(extra);
                     }
-				}
+                }
 
                 mExtraInfos.push_back(extra);
             }
@@ -491,21 +489,14 @@ void Animator::Draw(SDL_Renderer* renderer, float baseX, float baseY, float Scal
 
         if (shouldDrawSelf) {
             if (mExtraInfos[i].mImage) {
-                image = mExtraInfos[i].mImage; // 手动设置的纹理优先级最高
+                image = mExtraInfos[i].mImage; // 手动设置优先
             }
-            else if (!transform.image.empty()) {
-                auto it = mExtraInfos[i].mTextureCache.find(transform.image);
-                if (it != mExtraInfos[i].mTextureCache.end()) {
-                    image = it->second;
-                }
-                // 若没有，再加载
-                else if (mReanim->mResourceManager) {
-                    image = mReanim->mResourceManager->GetTexture(transform.image);
-                    if (image) mExtraInfos[i].mTextureCache[transform.image] = image;
-                }
+            else {
+                image = transform.image;    // 直接使用
             }
             shouldDrawSelf = (image != nullptr);
         }
+
 
         // 3. 绘制轨道自身
         if (shouldDrawSelf) {
@@ -581,7 +572,32 @@ void Animator::Draw(SDL_Renderer* renderer, float baseX, float baseY, float Scal
 }
 
 // 获取轨道信息
-std::vector<TrackInfo*> Animator::GetTracksByName(const std::string& trackName) {
+float Animator::GetTrackVelocity(const std::string& trackName) const {
+    if (!mReanim) return 0.0f;
+
+    // 获取轨道
+    auto tracks = GetTracksByName(trackName);
+    if (tracks.empty()) return 0.0f;
+    TrackInfo* track = tracks[0];
+    if (!track || track->mFrames.empty()) return 0.0f;
+
+    // 获取当前帧整数索引，并限制在有效范围内
+    int frameBefore = static_cast<int>(mFrameIndexNow);
+    int maxIndex = static_cast<int>(track->mFrames.size()) - 1;
+    frameBefore = std::clamp(frameBefore, 0, maxIndex);
+    int frameAfter = std::min(frameBefore + 1, maxIndex);
+
+    // 获取前后帧的 X 坐标
+    float xBefore = track->mFrames[frameBefore].x;
+    float xAfter = track->mFrames[frameAfter].x;
+    float dx = xAfter - xBefore;
+
+    // 计算速度
+    float velocity = dx * mSpeed;
+    return std::abs(velocity);
+}
+
+std::vector<TrackInfo*> Animator::GetTracksByName(const std::string& trackName) const {
     std::vector<TrackInfo*> result;
     if (!mReanim) return result;
 
@@ -594,7 +610,7 @@ std::vector<TrackInfo*> Animator::GetTracksByName(const std::string& trackName) 
     return result;
 }
 
-Vector Animator::GetTrackPosition(const std::string& trackName) {
+Vector Animator::GetTrackPosition(const std::string& trackName) const {
     auto tracks = GetTracksByName(trackName);
     for (auto track : tracks) {
         if (!track->mFrames.empty()) {
@@ -607,7 +623,7 @@ Vector Animator::GetTrackPosition(const std::string& trackName) {
     return Vector::zero();
 }
 
-float Animator::GetTrackRotation(const std::string& trackName) {
+float Animator::GetTrackRotation(const std::string& trackName) const {
     auto tracks = GetTracksByName(trackName);
     for (auto track : tracks) {
         if (!track->mFrames.empty()) {
@@ -620,7 +636,7 @@ float Animator::GetTrackRotation(const std::string& trackName) {
     return 0.0f;
 }
 
-bool Animator::GetTrackVisible(const std::string& trackName) {
+bool Animator::GetTrackVisible(const std::string& trackName) const {
     int index = GetFirstTrackIndexByName(trackName);
     if (index >= 0 && index < static_cast<int>(mExtraInfos.size())) {
         return mExtraInfos[index].mVisible;
@@ -637,7 +653,6 @@ TrackFrameTransform Animator::GetInterpolatedTransform(int trackIndex) const {
 
     int frameBefore = static_cast<int>(mFrameIndexNow);
     float fraction = mFrameIndexNow - frameBefore;
-
     int frameAfter = std::min(frameBefore + 1, static_cast<int>(track->mFrames.size() - 1));
 
     if (mReanimBlendCounter > 0) {
@@ -659,6 +674,11 @@ TrackFrameTransform Animator::GetInterpolatedTransform(int trackIndex) const {
         }
     }
 
+    // 设置纹理指针：取前一帧的纹理
+    if (frameBefore >= 0 && frameBefore < static_cast<int>(track->mFrames.size())) {
+        result.image = track->mFrames[frameBefore].image;
+    }
+
     return result;
 }
 
@@ -673,7 +693,7 @@ std::vector<TrackExtraInfo*> Animator::GetTrackExtrasByName(const std::string& t
     return result;
 }
 
-int Animator::GetFirstTrackIndexByName(const std::string& trackName) {
+int Animator::GetFirstTrackIndexByName(const std::string& trackName) const {
     for (int i = 0; i < static_cast<int>(mExtraInfos.size()); i++) {
         auto track = mReanim->GetTrack(i);
         if (track && track->mTrackName == trackName) {

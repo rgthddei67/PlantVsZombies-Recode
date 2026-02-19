@@ -23,11 +23,6 @@ public:
         return buttonManager.CreateButton(pos, size);
     }
 
-    void AddButton(std::shared_ptr<Button> button)
-    {
-        buttonManager.AddButton(button);
-    }
-
     void RemoveButton(std::shared_ptr<Button> button)
     {
         buttonManager.RemoveButton(button);
@@ -56,11 +51,6 @@ public:
         float initialValue = 0.5f)
     {
         return sliderManager.CreateSlider(pos, size, minVal, maxVal, initialValue);
-    }
-
-    void AddSlider(std::shared_ptr<Slider> slider)
-    {
-        sliderManager.AddSlider(slider);
     }
 
     void RemoveSlider(std::shared_ptr<Slider> slider)

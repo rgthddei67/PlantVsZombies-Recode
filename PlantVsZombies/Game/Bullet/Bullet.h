@@ -27,6 +27,7 @@ public:
 protected:
 	Board* mBoard = nullptr;
 	SDL_Texture* mTexture = nullptr;
+	float mCheckPositionTimer = 0.0f;
 	bool mHasHit = false;	// 是否已经击中过僵尸
 	int mDamage = 20;			// 子弹伤害
 	float mVelocityX = 180.0f;	// 子弹X轴动量

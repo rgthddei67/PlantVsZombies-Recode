@@ -37,6 +37,7 @@ public:
 	int mShieldMaxHealth = 0;
 
 protected:
+	float mCheckPositionTimer = 0.0f;
 	bool mIsMindControlled = false;	//有没有被魅惑
 		
 	float mEatSoundTimer = 0.0f;
@@ -50,7 +51,7 @@ protected:
 	float mSpeed = 10.0f;
 
 public:
-	Zombie(Board* board, ZombieType zombieType, float x, int row,
+	Zombie(Board* board, ZombieType zombieType, float x, float y, int row,
 		AnimationType animType, float scale = 1.0f, bool isPreview = false);
 	~Zombie() = default;
 

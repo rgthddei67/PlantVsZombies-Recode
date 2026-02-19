@@ -37,6 +37,8 @@ private:
     bool m_mouseReleasedThisFrame;
     bool m_wasMouseDown;
 
+	bool mEnabled = true; // 是否启用按钮
+
 public:
     Button(Vector createPosition = Vector::zero(), Vector btnSize = Vector(40, 40));
     static void SetDefaultFontPath(const std::string& path);
@@ -52,6 +54,7 @@ public:
     void SetHoverTextColor(const SDL_Color& color);
     void SetAsCheckbox(bool checkbox);
 	void SetCanClick(bool canClick);
+    void SetEnabled(bool enabled) { this->mEnabled = enabled; }
 
     // 设置图片资源key
     void SetImageKeys(const std::string& normal, const std::string& hover = "", const std::string& pressed = "", const std::string& checked = "");

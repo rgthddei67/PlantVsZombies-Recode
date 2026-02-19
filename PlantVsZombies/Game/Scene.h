@@ -31,37 +31,43 @@ struct DrawCommand {
 // 图片信息结构
 struct TextureInfo {
     SDL_Texture* texture;
-    int posX;
-    int posY;
+    float posX;
+    float posY;
     float scaleX;       // X轴缩放比例（默认为1.0）
     float scaleY;       // Y轴缩放比例（默认为1.0）
     bool visible;       // 是否可见
     int drawOrder;      // 绘制顺序（数值小的先绘制）
     std::string name;   // 纹理名称
 
-    TextureInfo(SDL_Texture* tex = nullptr, int x = 0, int y = 0, const std::string& n = "")
+    TextureInfo(SDL_Texture* tex = nullptr, float x = 0.0f, float y = 0.0f, const std::string& n = "")
         : texture(tex), posX(x), posY(y), scaleX(1.0f), scaleY(1.0f), visible(true), drawOrder(0), name(n) {
     }
 };
 
-class Scene 
+class Scene
 {
 public:
     std::string name;
+
+    Scene()
+    {
+        mDrawCommands.resize(48);
+        mTextures.resize(64);
+    }
 
     virtual ~Scene() = default;
 
     virtual void OnEnter()  // 进入场景时调用
     {
         RebuildDrawCommands();
-    }   
+    }
 
     virtual void OnExit()    // 退出场景时调用  
     {
         mUIManager.ClearAll();
         GameObjectManager::GetInstance().DestroyAllGameObjects();
         mDrawCommands.clear();
-    }    
+    }
 
     virtual void Update();
 
@@ -79,6 +85,8 @@ public:
     void RebuildDrawCommands() {
         mDrawCommandsBuilt = false;
     }
+
+    UIManager& GetUIManager() { return mUIManager; }
 
 protected:
     UIManager mUIManager;
@@ -98,17 +106,17 @@ protected:
     }
 
     // 添加纹理到绘制列表
-    void AddTexture(const std::string& textureName, int posX, int posY, float scaleX = 1.0f, float scaleY = 1.0f, int drawOrder = 0);
+    void AddTexture(const std::string& textureName, float posX, float posY, float scaleX = 1.0f, float scaleY = 1.0f, int drawOrder = 0);
 
     // 从绘制列表移除纹理
     void RemoveTexture(const std::string& textureName);
 
     // 更新纹理位置
-    void SetTexturePosition(const std::string& textureName, int posX, int posY);
+    void SetTexturePosition(const std::string& textureName, float posX, float posY);
 
     // 设置纹理缩放
     void SetTextureScale(const std::string& textureName, float scaleX, float scaleY);
-    
+
     // 设置纹理缩放X
     void SetTextureScaleX(const std::string& textureName, float scaleX);
 
@@ -133,6 +141,7 @@ protected:
 private:
     std::vector<TextureInfo> mTextures;
     std::vector<DrawCommand> mDrawCommands;
+
 };
 
 #endif

@@ -14,8 +14,6 @@
 
 void Board::InitializeCell(int rows, int cols)
 {
-	StartGame();	// TODO 记得删
-
 	mRows = rows + 1;
 	mColumns = cols + 1;
 	mCells.resize(mRows);
@@ -62,7 +60,7 @@ std::shared_ptr<Sun> Board::CreateSun(const Vector& position, bool needAnimation
 	return sun;
 }
 
-std::shared_ptr<Sun> Board::CreateSun(const float& x, const float& y, bool needAnimation) {
+std::shared_ptr<Sun> Board::CreateSun(float x, float y, bool needAnimation) {
 	return CreateSun(Vector(x, y), needAnimation);
 }
 
@@ -142,8 +140,16 @@ std::shared_ptr<Plant> Board::CreatePlant(PlantType plantType, int row, int colu
 	return plant;
 }
 
-std::shared_ptr<Zombie> Board::CreateZombie(ZombieType zombieType, int row, const float& x, bool isPreview) {
+std::shared_ptr<Zombie> Board::CreateZombie(ZombieType zombieType, int row, float x, float y, bool isPreview) {
 	std::shared_ptr<Zombie> zombie = nullptr;
+
+	if (row >= 0)
+	{
+		if (this->mBackGround == 0)
+		{
+			y = static_cast<float>(140 + row * 100);
+		}
+	}
 
 	// TODO: 新增僵尸也要改这里
 	switch (zombieType) {
@@ -153,6 +159,7 @@ std::shared_ptr<Zombie> Board::CreateZombie(ZombieType zombieType, int row, cons
 			this,
 			ZombieType::ZOMBIE_NORMAL,
 			x,
+			y,
 			row,
 			AnimationType::ANIM_NORMAL_ZOMBIE,
 			1.0f,
@@ -198,11 +205,6 @@ std::shared_ptr<Bullet> Board::CreateBullet(BulletType bulletType, int row, cons
 	return bullet;
 }
 
-float Board::RowToY(int row)
-{
-	return 0;
-}
-
 void Board::CleanupExpiredObjects()
 {
 	// 清理已过期的植物ID映射
@@ -243,7 +245,7 @@ void Board::UpdateSunFalling(float deltaTime)
 
 void Board::UpdateLevel()
 {
-	// if (mBoardState != BoardState::GAME) return;
+	if (mBoardState != BoardState::GAME) return;
 	float deltaTime = DeltaTime::GetDeltaTime();
 	UpdateSunFalling(deltaTime);
 	UpdateZombieHP();
@@ -304,53 +306,109 @@ void Board::UpdateLevel()
 	}
 }
 
+void Board::CreatePreviewZombies()
+{
+	if (mBoardState != BoardState::CHOOSE_CARD || !mPreviewZombieList.empty()
+		|| mSpawnZombieList.empty()) return;
+
+	mPreviewZombieList.clear();
+	for (ZombieType zombieType : mSpawnZombieList)
+	{
+		Vector spawnPosition = Vector(GameRandom::Range
+		(mSpawnZombiePos1.x, mSpawnZombiePos2.x), GameRandom::Range
+		(mSpawnZombiePos1.y, mSpawnZombiePos2.y));
+		auto preview = this->
+			CreateZombie(zombieType, -1, spawnPosition.x, spawnPosition.y, true);
+		preview->SetActive(false);
+		mPreviewZombieList.push_back(preview);
+	}
+}
+
+void Board::ShowPreviewZombies()
+{
+	if (mPreviewZombieList.empty()) return;
+
+	for (auto& zombieWeak : mPreviewZombieList)
+	{
+		if (auto zombie = zombieWeak.lock())
+		{
+			zombie->SetActive(true);
+		}
+	}
+}
+
+void Board::DestroyPreviewZombies()
+{
+	if (mPreviewZombieList.empty()) return;
+
+	for (auto& zombieWeak : mPreviewZombieList)
+	{
+		if (auto zombie = zombieWeak.lock())
+		{
+			zombie->Die();
+		}
+	}
+	mPreviewZombieList.clear();
+}
+
 void Board::TrySummonZombie()
 {
-	if (mCurrentWave > mMaxWave) return;
+	if (mCurrentWave > mMaxWave) return;  // 超出最大波次，不再生成
 
 	// 计算本波总点数
 	int totalPoints = CalculateWaveZombiePoints();
 	int remainingPoints = totalPoints;
 	int zombiesSpawned = 0;
 
-	// 过滤出当前波可用的僵尸类型
+	// 获取可用僵尸类型（根据 appearWave 过滤）
 	std::vector<ZombieType> availableTypes;
 	for (ZombieType type : mSpawnZombieList)
 	{
-		if (mCurrentWave >= GameDataManager::GetInstance().GetZombieAppearWave(type))
+		if (GameDataManager::GetInstance().GetZombieAppearWave(type) <= mCurrentWave)
 		{
 			availableTypes.push_back(type);
 		}
 	}
 
-	// 如果没有可用类型，至少保证普通僵尸可用（防止空列表）
+	// 如果没有可用类型，保底使用普通僵尸
 	if (availableTypes.empty())
 	{
 		availableTypes.push_back(ZombieType::ZOMBIE_NORMAL);
 	}
 
-	// 循环生成僵尸，直到点数不足或达到波次上限
-	while (remainingPoints > 0 && zombiesSpawned < NORMALMODE_MAX_WAVE_ZOMBIE)
+	// 计算权重指数因子 alpha，范围 [-1, 1]
+	float alpha = -1.0f;
+	if (mMaxWave > 1)
 	{
-		// 从可用类型中随机选择一种
-		int index = GameRandom::Range(0, static_cast<int>(availableTypes.size()) - 1);
-		ZombieType type = availableTypes[index];
-		int weight = GameDataManager::GetInstance().GetZombieWeight(type);
-		if (weight <= 0) continue;
+		alpha = 2.0f * (mCurrentWave - 1) / (mMaxWave - 1) - 1.0f;
+	}
 
-		// 允许最后一只略微超点 仍然生成这只僵尸（超一点也无妨）
-		/*
-		if (remainingPoints < weight && remainingPoints > 0)
+	// 循环生成僵尸，直到点数不足或达到波次上限
+	while (remainingPoints > 0 && zombiesSpawned < MAX_ZOMBIES_PER_WAVE)
+	{
+		// 计算每个可用类型的得分（权重^alpha）
+		std::vector<float> scores;
+		scores.reserve(availableTypes.size());
+		for (ZombieType type : availableTypes)
 		{
-
+			int weight = GameDataManager::GetInstance().GetZombieWeight(type);
+			// 避免权重为0导致的数学异常（正常情况下权重>0）
+			float score = (weight > 0) ? std::pow(static_cast<float>(weight), alpha) : 0.0f;
+			scores.push_back(score);
 		}
-		*/
 
+		// 加权随机选择一个类型
+		const ZombieType& selected = GameRandom::WeightedChoice(availableTypes, scores);
+
+		int weight = GameDataManager::GetInstance().GetZombieWeight(selected);
+		if (weight <= 0) continue; // 安全保护
+
+		// 随机选择行（0 到 mRows-1）
 		int row = GameRandom::Range(0, mRows - 1);
 
-		float x = 840.0f;
+		float x = static_cast<float>(SCENE_WIDTH) + 30;
 
-		auto zombie = CreateZombie(type, row, x, false);
+		auto zombie = CreateZombie(selected, row, x, 0, false);
 		if (zombie)
 		{
 			zombiesSpawned++;

@@ -32,6 +32,7 @@
     <ClCompile Include="Game\CardComponent.cpp" />
     <ClCompile Include="Game\CardDisplayComponent.cpp" />
     <ClCompile Include="Game\CardSlotManager.cpp" />
+    <ClCompile Include="Game\ChooseCardUI.cpp" />
     <ClCompile Include="Game\ClickableComponent.cpp" />
     <ClCompile Include="Game\Coin.cpp" />
     <ClCompile Include="Game\ColliderComponent.cpp" />
@@ -79,6 +80,7 @@
     <ClInclude Include="Game\CardDisplayComponent.h" />
     <ClInclude Include="Game\CardSlotManager.h" />
     <ClInclude Include="Game\Cell.h" />
+    <ClInclude Include="Game\ChooseCardUI.h" />
     <ClInclude Include="Game\ClickableComponent.h" />
     <ClInclude Include="Game\Coin.h" />
     <ClInclude Include="Game\CoinType.h" />

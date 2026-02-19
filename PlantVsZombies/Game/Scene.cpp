@@ -83,7 +83,7 @@ void Scene::UnregisterDrawCommand(const std::string& name) {
     mDrawCommands.erase(it, mDrawCommands.end());
 }
 
-void Scene::AddTexture(const std::string& textureName, int posX, int posY, float scaleX, float scaleY, int drawOrder) {
+void Scene::AddTexture(const std::string& textureName, float posX, float posY, float scaleX, float scaleY, int drawOrder) {
     SDL_Texture* texture = ResourceManager::GetInstance().GetTexture(textureName);
     if (texture) {
         TextureInfo info(texture, posX, posY, textureName);
@@ -116,7 +116,7 @@ void Scene::RemoveTexture(const std::string& textureName) {
     }
 }
 
-void Scene::SetTexturePosition(const std::string& textureName, int posX, int posY) {
+void Scene::SetTexturePosition(const std::string& textureName, float posX, float posY) {
     auto it = std::find_if(mTextures.begin(), mTextures.end(),
         [&textureName](const TextureInfo& info) {
             return info.name == textureName;
@@ -199,22 +199,24 @@ void Scene::DrawAllTextures(SDL_Renderer* renderer) {
         });
 
     // 绘制所有可见纹理
-    for (const auto& texInfo : mTextures) {
+    for (size_t i = 0; i < mTextures.size(); i++)
+    {
+		auto texInfo = mTextures[i];
         if (texInfo.texture && texInfo.visible) {
             int texWidth, texHeight;
             SDL_QueryTexture(texInfo.texture, nullptr, nullptr, &texWidth, &texHeight);
 
-            int displayWidth = static_cast<int>(texWidth * texInfo.scaleX);
-            int displayHeight = static_cast<int>(texHeight * texInfo.scaleY);
+            float displayWidth = texWidth * texInfo.scaleX;
+            float displayHeight = texHeight * texInfo.scaleY;
 
-            SDL_Rect destRect = {
+            SDL_FRect destRect = {
                 texInfo.posX,
                 texInfo.posY,
                 displayWidth,
                 displayHeight
             };
 
-            SDL_RenderCopy(renderer, texInfo.texture, nullptr, &destRect);
+            SDL_RenderCopyF(renderer, texInfo.texture, nullptr, &destRect);
         }
     }
 }

@@ -352,12 +352,7 @@ std::shared_ptr<Reanimation> ResourceManager::GetReanimation(const std::string& 
         newReanim->mResourceManager = cachedReanim->mResourceManager;
 
         // 深拷贝轨道数据
-        if (cachedReanim->mTracks) {
-            newReanim->mTracks = std::make_shared<std::vector<TrackInfo>>(*cachedReanim->mTracks);
-        }
-        if (cachedReanim->mImagesSet) {
-            newReanim->mImagesSet = std::make_shared<std::set<std::string>>(*cachedReanim->mImagesSet);
-        }
+        newReanim->mTracks = cachedReanim->mTracks;
 
         return newReanim;
     }

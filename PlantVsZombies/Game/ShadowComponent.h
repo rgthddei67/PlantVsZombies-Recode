@@ -12,7 +12,7 @@
 class ShadowComponent : public Component {
 private:
     SDL_Texture* mShadowTexture = nullptr;
-    Vector mOffset = Vector(0, 28);  // 阴影相对于物体位置的偏移
+    Vector mOffset = Vector(15, 28);  // 阴影相对于物体位置的偏移
     Vector mScale = Vector(1.0f, 0.75f);  // 阴影的缩放（通常水平拉伸，垂直压缩）
     float mAlpha = 0.9f;            // 阴影透明度
 

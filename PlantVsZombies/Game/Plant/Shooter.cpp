@@ -50,16 +50,21 @@ bool Shooter::HasZombieInRow()
 {
 	if (mBoard)
 	{
-        EntityManager manager = mBoard->mEntityManager;
-        std::vector<int> zombieIDs = manager.GetAllZombieIDs();
-        for (auto zombieID : zombieIDs)
+        mCheckZombieTimer += DeltaTime::GetDeltaTime();
+        if (mCheckZombieTimer >= 0.5f)
         {
-            if (auto zombie = manager.GetZombie(zombieID))
+            mCheckZombieTimer = 0.0f;
+            EntityManager& manager = mBoard->mEntityManager;
+            std::vector<int> zombieIDs = manager.GetAllZombieIDs();
+            for (auto zombieID : zombieIDs)
             {
-                if (zombie->mRow == this->mRow &&
-                    zombie->GetPosition().x >= this->GetPosition().x)
+                if (auto zombie = manager.GetZombie(zombieID))
                 {
-                    return true;
+                    if (zombie->mRow == this->mRow &&
+                        zombie->GetPosition().x >= this->GetPosition().x)
+                    {
+                        return true;
+                    }
                 }
             }
         }

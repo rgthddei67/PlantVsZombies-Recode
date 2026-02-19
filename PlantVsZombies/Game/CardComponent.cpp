@@ -6,6 +6,7 @@
 #include "GameObjectManager.h"
 #include "./CardSlotManager.h"
 #include "../DeltaTime.h"
+#include "./ChooseCardUI.h"
 #include "AudioSystem.h"
 
 CardComponent::CardComponent(PlantType type, int cost, float cooldown)
@@ -16,27 +17,74 @@ CardComponent::CardComponent(PlantType type, int cost, float cooldown)
 
 void CardComponent::Start() {
 	if (auto manager = FindCardSlotManager()) {
-		mCardSlotManager = manager; // 隐式转换为 weak_ptr
+		mCardSlotManager = manager;
 	}
+
+	auto gameObject = GetGameObject();
+
+	auto card = std::dynamic_pointer_cast<Card>(gameObject);
+	if (!card) return;
+
+	mIsInChooseCardUI = card->GetIsInChooseCardUI();
+	if (mIsInChooseCardUI) {
+		SetCardChooseClick(gameObject, card);
+	}
+	else
+	{
+		SetCardGameClick(gameObject);
+	}
+}
+
+void CardComponent::SetCardChooseClick(std::shared_ptr<GameObject> gameObject, 
+	std::shared_ptr<Card> card)
+{
+	if (auto clickable = gameObject->GetComponent<ClickableComponent>()) {
+		// ---------- 选卡界面点击逻辑 ----------
+		clickable->onClick = [this, card]() {
+			if (card->IsMoving()) return;
+
+			// 查找 ChooseCardUI
+			auto& manager = GameObjectManager::GetInstance();
+			std::shared_ptr<ChooseCardUI> chooseUI;
+			for (auto obj : manager.GetAllGameObjects()) {
+				if (obj && obj->GetName() == "ChooseCardUI") {
+					chooseUI = std::dynamic_pointer_cast<ChooseCardUI>(obj);
+					break;
+				}
+			}
+
+			if (!chooseUI) {
+				std::cerr << "ChooseCardUI not found!" << std::endl;
+				return;
+			}
+
+			// 切换选中状态
+			bool isPickedUp = chooseUI->ToggleCardSelection(card);
+
+			};
+	}
+}
+
+void CardComponent::SetCardGameClick(std::shared_ptr<GameObject> gameObject)
+{
 	// 这里CardDisplayComponent还没有创建好，所以不能缓存 放到GetCardDisplayComponent里加载
 	// 获取点击组件并设置回调
-	if (auto gameObject = GetGameObject()) {
-		if (auto clickable = gameObject->GetComponent<ClickableComponent>()) {
-			clickable->onClick = [this]() {
-				// 通知卡槽管理器这个卡牌被点击了
-				auto manager = GetCardSlotManager();
-				if (!IsReady() || !manager->CanAfford(mSunCost)) {
-					AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_CLICKFAILED, 0.5f);
-					return;
-				}
-				manager->SelectCard(this->GetGameObject());
-				AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_CLICKSEED , 0.5f);
-				};
-		}
+	if (auto clickable = gameObject->GetComponent<ClickableComponent>()) {
+		clickable->onClick = [this]() {
+			// 通知卡槽管理器这个卡牌被点击了
+			auto manager = GetCardSlotManager();
+			if (!IsReady() || !manager->CanAfford(mSunCost)) {
+				AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_CLICKFAILED, 0.5f);
+				return;
+			}
+			manager->SelectCard(this->GetGameObject());
+			AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_CLICKSEED, 0.5f);
+			};
 	}
 }
 
 void CardComponent::Update() {
+	if (mIsInChooseCardUI) return;
 	// 更新冷却
 	if (mIsCooldown) {
 		mCooldownTimer -= DeltaTime::GetDeltaTime();

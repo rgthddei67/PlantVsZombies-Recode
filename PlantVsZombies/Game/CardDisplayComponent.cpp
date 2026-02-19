@@ -25,6 +25,8 @@ void CardDisplayComponent::Start() {
 }
 
 void CardDisplayComponent::Update() {
+    if (GetCardComponent()->GetIsInChooseCardUI()) return;
+
     // 更新冷却计时
     if (cardState == CardState::Cooling) {
         currentCooldown += DeltaTime::GetDeltaTime();
@@ -45,7 +47,8 @@ void CardDisplayComponent::Draw(SDL_Renderer* renderer) {
     DrawCardBackground(renderer, transfrom);
     DrawPlantImage(renderer, transfrom);
 
-    if (showMask && maskFillAmount > 0) {
+    if (showMask && maskFillAmount > 0 || 
+        !GetCardComponent()->GetIsInChooseCardUI()) {
         DrawCooldownMask(renderer, transfrom);
     }
 

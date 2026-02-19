@@ -79,7 +79,7 @@ void Button::SetClickCallBack(std::function<void(bool)> callback)
 
 void Button::ProcessMouseEvent(InputHandler* input)
 {
-	if (input == nullptr || !canClick) return;
+	if (input == nullptr || !canClick || !mEnabled) return;
 
     if (input->IsMouseButtonPressed(SDL_BUTTON_LEFT))
     {
@@ -100,7 +100,7 @@ void Button::ResetFrameState()
 
 void Button::Update(InputHandler* input)
 {
-    if (!input) return;
+    if (!input || !mEnabled) return;
 
     Vector mousePos = input->GetMousePosition();
     this->isHovered = this->ContainsPoint(mousePos);
@@ -140,6 +140,8 @@ void Button::Update(InputHandler* input)
 
 void Button::Draw(SDL_Renderer* renderer) const
 {
+    if (!mEnabled) return;
+
 	ResourceManager& resourceManager = ResourceManager::GetInstance();
     // 确定要显示的图片key
     std::string imageKey = normalImageKey;

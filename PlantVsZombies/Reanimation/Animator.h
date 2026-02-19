@@ -103,6 +103,9 @@ public:
     void SetSpeed(float speed);
     float GetSpeed() const { return mSpeed; }
 
+    // 获取Track的动量
+    float GetTrackVelocity(const std::string& trackName) const;
+
     // 透明度和颜色控制
     void SetAlpha(float alpha);
     float GetAlpha() const { return mAlpha; }
@@ -121,10 +124,10 @@ public:
     std::shared_ptr<Reanimation> GetReanimation() const { return mReanim; }
 
     // 获取轨道信息
-    std::vector<TrackInfo*> GetTracksByName(const std::string& trackName);
-    Vector GetTrackPosition(const std::string& trackName);
-    float GetTrackRotation(const std::string& trackName);
-    bool GetTrackVisible(const std::string& trackName);
+    std::vector<TrackInfo*> GetTracksByName(const std::string& trackName) const;
+    Vector GetTrackPosition(const std::string& trackName) const;
+    float GetTrackRotation(const std::string& trackName) const;
+    bool GetTrackVisible(const std::string& trackName) const;
 
     void SetLocalPosition(float x, float y);
     void SetLocalPosition(const Vector& position);
@@ -142,7 +145,7 @@ private:
 private:
     TrackFrameTransform GetInterpolatedTransform(int trackIndex) const;
     std::vector<TrackExtraInfo*> GetTrackExtrasByName(const std::string& trackName);
-    int GetFirstTrackIndexByName(const std::string& trackName);
+    int GetFirstTrackIndexByName(const std::string& trackName) const;
 };
 
 #endif

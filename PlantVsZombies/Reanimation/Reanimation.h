@@ -14,7 +14,6 @@ class Reanimation {
 public:
     float mFPS = 12.0f;
     std::shared_ptr<std::vector<TrackInfo>> mTracks = nullptr;
-    std::shared_ptr<std::set<std::string>> mImagesSet = nullptr;
     bool mIsLoaded = false;
     class ResourceManager* mResourceManager = nullptr;
 

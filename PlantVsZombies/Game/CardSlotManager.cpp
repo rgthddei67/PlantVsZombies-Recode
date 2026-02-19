@@ -90,16 +90,8 @@ void CardSlotManager::Draw(SDL_Renderer* renderer) {
 	}
 }
 
-void CardSlotManager::AddCard(PlantType plantType, int sunCost, float cooldown) {
-	auto card = GameObjectManager::GetInstance().CreateGameObjectImmediate<Card>(
-		LAYER_BACKGROUND, plantType, sunCost, cooldown);
-
+void CardSlotManager::AddCard(std::shared_ptr<Card> card) {
 	cards.push_back(card);
-	ArrangeCards();
-#ifdef _DEBUG
-	std::cout << "Added card: " << static_cast<int>(plantType)
-		<< " Cost: " << sunCost << " Cooldown: " << cooldown << std::endl;
-#endif
 }
 
 void CardSlotManager::SelectCard(std::weak_ptr<GameObject> cardWeak) {
@@ -154,19 +146,6 @@ void CardSlotManager::DeselectCard() {
 	}
 	DestroyPlantPreview();
 	DestroyCellPlantPreview();
-}
-
-void CardSlotManager::ArrangeCards() {
-	for (size_t i = 0; i < cards.size(); i++) {
-		if (auto card = cards[i].lock()) {
-			// 计算卡牌位置：起始位置 + 索引 * 间距
-			Vector position = firstSlotPosition + Vector(slotSpacing * i, 0);
-
-			if (auto transform = card->GetComponent<TransformComponent>()) {
-				transform->SetPosition(position);
-			}
-		}
-	}
 }
 
 bool CardSlotManager::SpendSun(int cost) {

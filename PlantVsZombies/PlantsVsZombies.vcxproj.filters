@@ -151,6 +151,9 @@
     <ClCompile Include="Game\Bullet\Bullet.cpp">
       <Filter>Code\Game\Bullet</Filter>
     </ClCompile>
+    <ClCompile Include="Game\ChooseCardUI.cpp">
+      <Filter>Code\Game</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="UI\Button.h">
@@ -338,6 +341,9 @@
     </ClInclude>
     <ClInclude Include="Game\Plant\PeaShooter.h">
       <Filter>Code\Game\Plant</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\ChooseCardUI.h">
+      <Filter>Code\Game</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

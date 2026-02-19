@@ -18,6 +18,9 @@
 #include "./Game/Definit.h"
 #include "./ParticleSystem/ParticleSystem.h"
 
+constexpr int SCENE_WIDTH = 1100;
+constexpr int SCENE_HEIGHT = 600;
+
 struct TextCache {
     std::string key;        // 缓存键（字体+颜色等）
     SDL_Texture* texture;   // 缓存的纹理
@@ -35,6 +38,7 @@ public:
 private:
     std::unique_ptr<InputHandler> mInputHandler;
     std::vector<TextCache> mTextCache;
+    Vector mCameraOffset = Vector(0, 0);
 
     SDL_Window* mWindow;
     SDL_Renderer* mRenderer;
@@ -115,6 +119,9 @@ public:
         }
         return *mInputHandler;
     }
+
+    void SetCameraOffset(const Vector& offset) { mCameraOffset = offset; }
+    Vector GetCameraOffset() { return mCameraOffset; }
 
     // 检查输入处理器是否有效
     bool IsInputHandlerValid() const { return mInputHandler != nullptr; }

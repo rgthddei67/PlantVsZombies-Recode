@@ -20,7 +20,7 @@ class Bullet;
 constexpr int MAX_SUN = 9990;
 constexpr float NEXTWAVE_COUNT_MAX = 25.0f;
 constexpr float SPAWN_SUN_TIME = 15.0f;
-constexpr int NORMALMODE_MAX_WAVE_ZOMBIE = 60;	// 普通模式一波最大僵尸数量
+constexpr int MAX_ZOMBIES_PER_WAVE = 70;	// 普通模式一波最大僵尸数量
 
 enum class BoardState {
 	CHOOSE_CARD,
@@ -32,7 +32,6 @@ enum class BoardState {
 class Board {
 public:
 	BoardState mBoardState = BoardState::CHOOSE_CARD;
-	std::vector<ZombieType> mSpawnZombieList;	// 本关出怪表
 	int mBackGround = 0; // 背景图
 	int mRows = 5;	// 行数
 	int mColumns = 8; // 列数
@@ -50,10 +49,16 @@ public:
 
 	int mZombieNumber = 0;
 
+	Vector mSpawnZombiePos1 = Vector(795, 85);			// 左上角坐标
+	Vector mSpawnZombiePos2 = Vector(1079, 581);		// 右上角坐标
+
+	std::vector<std::weak_ptr<Zombie>> mPreviewZombieList;
+
 	// 外层表示行（rows） 内层columns
 	std::vector<std::vector<std::shared_ptr<Cell>>> mCells;
 
 private:
+	std::vector<ZombieType> mSpawnZombieList;	// 本关出怪表
 	float mHugeWaveCountDown = 0.0f;	// 一大波倒计时
 	bool mHasHugeWaveSound = false;		// 有无放过一大波音乐
 
@@ -61,6 +66,10 @@ public:
 	Board()
 	{
 		mSpawnZombieList.reserve(16);
+		mSpawnZombieList.push_back(ZombieType::ZOMBIE_NORMAL);
+		mPreviewZombieList.reserve(16);
+		// TODO: 写根据配置读取出怪
+		CreatePreviewZombies();
 		InitializeCell();
 	}
 
@@ -82,6 +91,10 @@ public:
 
 	int GetSun() { return mSun; }
 
+	void SetZombieSpawnList(std::vector<ZombieType>& zombieTypeList) {
+		this->mSpawnZombieList = zombieTypeList;
+	}
+
 	// 初始化格子 默认5行9列
 	void InitializeCell(int rows = 4, int cols = 8);
 
@@ -93,14 +106,14 @@ public:
 		return nullptr;
 	}
 
-	// 创建僵尸
-	std::shared_ptr<Zombie> CreateZombie(ZombieType zombieType, int row, const float& x, bool isPreview = false);
+	// 创建僵尸 有row就用row，如果row<0，则使用y
+	std::shared_ptr<Zombie> CreateZombie(ZombieType zombieType, int row, float x, float y, bool isPreview = false);
 
 	// 创建太阳
 	std::shared_ptr<Sun> CreateSun(const Vector& position, bool needAnimation = false);
 
 	// 创建太阳
-	std::shared_ptr<Sun> CreateSun(const float& x, const float& y, bool needAnimation = false);
+	std::shared_ptr<Sun> CreateSun(float x, float y, bool needAnimation = false);
 
 	// 创建植物
 	std::shared_ptr<Plant> CreatePlant(PlantType plantType, int row, int column, bool isPreview = false);
@@ -110,9 +123,6 @@ public:
 
 	// 更新关卡
 	void UpdateLevel();
-
-	// 行数转换为y坐标（废弃）
-	float RowToY(int row);
 
 	// 渲染网格（调试用）
 	void DrawCell(SDL_Renderer* renderer);
@@ -129,6 +139,7 @@ public:
 
 	void UpdateZombieHP();
 
+	// 尝试生成本波僵尸
 	void TrySummonZombie();
 
 	// 计算当前波的总点数
@@ -138,5 +149,15 @@ public:
 	void StartGame();
 
 	void Update();
+
+	// 创建预览僵尸
+	void CreatePreviewZombies();
+
+	// 显示预览僵尸
+	void ShowPreviewZombies();
+
+	// 销毁所有预览僵尸
+	void DestroyPreviewZombies();
+
 };
 #endif

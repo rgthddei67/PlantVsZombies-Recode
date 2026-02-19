@@ -13,13 +13,17 @@ ParticleSystem::~ParticleSystem() {
 void ParticleSystem::UpdateAll()
 {
     CleanupInactiveEmitters();
-    for (auto& emitter : emitters) {
+    for (size_t i = 0; i < emitters.size(); i++)
+    {
+        auto emitter = emitters[i].get();
         emitter->Update();
     }
 }
 
 void ParticleSystem::DrawAll() {
-    for (auto& emitter : emitters) {
+    for (size_t i = 0; i < emitters.size(); i++)
+    {
+        auto emitter = emitters[i].get();
         emitter->Draw(renderer);
     }
 }

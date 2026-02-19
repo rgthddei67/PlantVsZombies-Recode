@@ -19,7 +19,7 @@ struct TrackFrameTransform {
     float sy = 1.0f;  // 缩放Y
     float a = 1.0f;   // 透明度
     int f = 0;        // 显示标志（0=显示，-1=空白/分隔）
-    std::string image; // 图像ID
+    SDL_Texture* image = nullptr; // 图像
 
     TrackFrameTransform() = default;
 };

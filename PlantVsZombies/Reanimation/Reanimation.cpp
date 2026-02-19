@@ -6,7 +6,6 @@
 
 Reanimation::Reanimation() {
     mTracks = std::make_shared<std::vector<TrackInfo>>();
-    mImagesSet = std::make_shared<std::set<std::string>>();
 }
 
 Reanimation::~Reanimation() {
@@ -16,7 +15,6 @@ Reanimation::~Reanimation() {
 bool Reanimation::LoadFromFile(const std::string& filePath) {
     // 清空现有数据
     mTracks->clear();
-    mImagesSet->clear();
     mIsLoaded = false;
 
     // 解析.reanim文件
@@ -44,7 +42,7 @@ bool Reanimation::LoadFromFile(const std::string& filePath) {
             float prevSy = 1.0f;
             float prevA = 1.0f;
             int prevF = 0;
-            std::string prevImage = "";
+            SDL_Texture* prevImage = nullptr;
 
             for (pugi::xml_node child : node.children()) {
                 std::string childName = child.name();
@@ -63,7 +61,7 @@ bool Reanimation::LoadFromFile(const std::string& filePath) {
                     frameTransform.sy = REANIM_MISSING_FIELD_FLOAT;
                     frameTransform.a = REANIM_MISSING_FIELD_FLOAT;
                     frameTransform.f = REANIM_MISSING_FIELD_INT;
-                    frameTransform.image = "";
+                    frameTransform.image = nullptr;
 
                     // 解析变换属性
                     for (pugi::xml_node prop : child.children()) {
@@ -98,7 +96,25 @@ bool Reanimation::LoadFromFile(const std::string& filePath) {
                             frameTransform.f = prop.text().as_int();
                         }
                         else if (propName == "i") {
-                            frameTransform.image = prop.text().as_string();
+                            std::string imageName = prop.text().as_string();
+                            if (!imageName.empty() && mResourceManager) {
+                                // 检查是否是 REANIM 图片格式
+                                if (imageName.find("IMAGE_REANIM_") == 0) {
+                                    std::string fileName = imageName.substr(13);
+                                    std::string filePath = "./resources/image/reanim/" + fileName;
+
+                                    prevImage = mResourceManager->LoadTexture(filePath + ".png", imageName);
+                                    if (!prevImage) {
+                                        prevImage = mResourceManager->LoadTexture(filePath + ".jpg", imageName);
+                                    }
+
+                                    if (!prevImage) {
+                                        std::cout << "警告: 无法加载动画图片: " << imageName << std::endl;
+                                    }
+                                    frameTransform.image = prevImage;
+                                }
+                            }
+                         
                         }
                     }
 
@@ -141,37 +157,13 @@ bool Reanimation::LoadFromFile(const std::string& filePath) {
                     if (frameTransform.f == REANIM_MISSING_FIELD_INT) frameTransform.f = prevF;
                     else prevF = frameTransform.f;
 
-                    if (frameTransform.image.empty())
-                        frameTransform.image = prevImage;
-                    else
+                    if (frameTransform.image == nullptr) 
+                        frameTransform.image = prevImage; 
+                    else 
                         prevImage = frameTransform.image;
 
-                    // 加载图片资源
-                    if (!frameTransform.image.empty() && frameTransform.f == 0) {
-                        if (mImagesSet) {
-                            mImagesSet->insert(frameTransform.image);
-                            if (mResourceManager) {
-                                // 检查是否是 REANIM 图片格式
-                                if (frameTransform.image.find("IMAGE_REANIM_") == 0) {
-                                    std::string fileName = frameTransform.image.substr(13);
-                                    std::string filePath = "./resources/image/reanim/" + fileName;
-
-                                    SDL_Texture* texture = mResourceManager->LoadTexture(filePath + ".png", frameTransform.image);
-                                    if (!texture) {
-                                        texture = mResourceManager->LoadTexture(filePath + ".jpg", frameTransform.image);
-                                    }
-
-                                    if (!texture) {
-                                        std::cout << "警告: 无法加载动画图片: " << frameTransform.image << std::endl;
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    // 添加帧到轨道
+                   // 添加帧到轨道
                     track.mFrames.push_back(frameTransform);
-
                 }
             }
 
@@ -226,8 +218,30 @@ void GetDeltaTransform(const TrackFrameTransform& tSrc, const TrackFrameTransfor
     tOutput.y = (tDst.y - tSrc.y) * tDelta + tSrc.y;
     tOutput.sx = (tDst.sx - tSrc.sx) * tDelta + tSrc.sx;
     tOutput.sy = (tDst.sy - tSrc.sy) * tDelta + tSrc.sy;
-    tOutput.kx = (tDst.kx - tSrc.kx) * tDelta + tSrc.kx;
-    tOutput.ky = (tDst.ky - tSrc.ky) * tDelta + tSrc.ky;
+
+    if (useDestFrame) {
+        // 混合模式：角度差超过180°时，目标角度视为源角度
+        float kxDst = tDst.kx;
+        float kyDst = tDst.ky;
+        if (kxDst > tSrc.kx + 180.0f || kxDst < tSrc.kx - 180.0f)
+            kxDst = tSrc.kx;
+        if (kyDst > tSrc.ky + 180.0f || kyDst < tSrc.ky - 180.0f)
+            kyDst = tSrc.ky;
+        tOutput.kx = (kxDst - tSrc.kx) * tDelta + tSrc.kx;
+        tOutput.ky = (kyDst - tSrc.ky) * tDelta + tSrc.ky;
+    }
+    else {
+        // 正常帧间插值：取最短旋转路径
+        float kxDiff = tDst.kx - tSrc.kx;
+        while (kxDiff > 180.0f) kxDiff -= 360.0f;
+        while (kxDiff < -180.0f) kxDiff += 360.0f;
+        tOutput.kx = tSrc.kx + kxDiff * tDelta;
+
+        float kyDiff = tDst.ky - tSrc.ky;
+        while (kyDiff > 180.0f) kyDiff -= 360.0f;
+        while (kyDiff < -180.0f) kyDiff += 360.0f;
+        tOutput.ky = tSrc.ky + kyDiff * tDelta;
+    }
 
     if (useDestFrame)
         tOutput.f = tDst.f;
@@ -235,13 +249,4 @@ void GetDeltaTransform(const TrackFrameTransform& tSrc, const TrackFrameTransfor
         tOutput.f = tSrc.f;
 
     tOutput.image = tSrc.image;
-
-    if (tDst.kx > tSrc.kx + 180.0f)
-        tOutput.kx = tSrc.kx;
-    if (tDst.kx < tSrc.kx - 180.0f)
-        tOutput.kx = tSrc.kx;
-    if (tDst.ky > tSrc.ky + 180.0f)
-        tOutput.ky = tSrc.ky;
-    if (tDst.ky < tSrc.ky - 180.0f)
-        tOutput.ky = tSrc.ky;
 }

@@ -6,6 +6,13 @@ SceneManager& SceneManager::GetInstance() {
     return instance;
 }
 
+void SceneManager::ClearCurrentScene() {
+    if (!sceneStack_.empty()) {
+        sceneStack_.top()->OnExit();  
+        sceneStack_.pop();            
+    }
+}
+
 bool SceneManager::SwitchTo(const std::string& name) {
     auto it = scenes_.find(name);
     if (it == scenes_.end()) {

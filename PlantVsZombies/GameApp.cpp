@@ -88,7 +88,7 @@ bool GameAPP::CreateWindowAndRenderer()
     mWindow = SDL_CreateWindow(u8"植物大战僵尸中文版",
         SDL_WINDOWPOS_CENTERED,
         SDL_WINDOWPOS_CENTERED,
-        800, 600,
+        SCENE_WIDTH, SCENE_HEIGHT,
         SDL_WINDOW_SHOWN);
 
     if (!mWindow) {
@@ -269,10 +269,6 @@ int GameAPP::Run()
                 DeltaTime::SetTimeScale(1.0f);
             mDebugMode = !mDebugMode;
             mShowColliders = !mShowColliders;
-            if (g_particleSystem) {
-                g_particleSystem->EmitEffect(ParticleType::ZOMBIE_HEAD_OFF,
-                    mInputHandler->GetMousePosition(), 5);
-            }
         }
 
         if (mInputHandler->IsKeyReleased(SDLK_ESCAPE))
@@ -328,6 +324,8 @@ void GameAPP::Shutdown()
 
     // 清理粒子系统
     g_particleSystem.reset();
+
+    SceneManager::GetInstance().ClearCurrentScene();
 
     // 清理游戏对象和碰撞系统
     GameObjectManager::GetInstance().ClearAll();

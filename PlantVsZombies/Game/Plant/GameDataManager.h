@@ -13,21 +13,23 @@
 // 植物信息
 struct PlantInfo {
     PlantType type;             // 植物类型
+	int SunCost = 0;                 // 阳光
+	float Cooldown = 7.5f;                // 冷却时间（单位：秒）
     std::string enumName;       // 枚举名（字符串形式）
     std::string textureKey;      // 纹理资源键（用于静态图片）
     AnimationType animType;      // 动画类型
     std::string animName;        // 动画资源名称（如 Reanim 名称）
     Vector offset;               // 绘制偏移量
 
-    PlantInfo() : type(PlantType::NUM_PLANT_TYPES),
+	PlantInfo() : type(PlantType::NUM_PLANT_TYPES),
         animType(AnimationType::ANIM_NONE),
         offset(0, 0) {
     }
 
-    PlantInfo(PlantType t, const std::string& enumN,
+    PlantInfo(PlantType t, int sunCost, float cooldown, const std::string& enumN,
         const std::string& tex, AnimationType animT,
         const std::string& animN, const Vector& off)
-        : type(t), enumName(enumN), textureKey(tex),
+        : type(t), SunCost(sunCost), Cooldown(cooldown), enumName(enumN), textureKey(tex),
         animType(animT), animName(animN), offset(off) {
     }
 };
@@ -146,6 +148,21 @@ public:
     bool HasPlant(PlantType type) const;
 
     /**
+	 * @brief 获取植物的阳光消耗
+	 * @param plantType 植物类型
+	 * @return int 阳光消耗，若未找到返回 0
+     */
+	int GetPlantSunCost(PlantType plantType) const;
+
+
+    /**
+     * @brief 获取植物的冷却时间
+     * @param plantType 植物类型
+     * @return float 冷却时间（单位：秒），若未找到返回 0.0f
+	 */
+	float GetPlantCooldown(PlantType plantType) const;
+
+    /**
      * @brief 获取僵尸对应的动画类型
      * @param zombieType 僵尸类型
      * @return AnimationType 动画类型，若未找到返回 ANIM_NONE
@@ -214,6 +231,8 @@ private:
     /**
      * @brief 注册一种植物（内部使用）
      * @param type 植物类型
+	 * @param sunCost 阳光消耗
+	 * @param cooldown 冷却时间（单位：秒）
      * @param enumName 枚举名字符串
      * @param textureKey 纹理键
      * @param animType 动画类型
@@ -221,6 +240,7 @@ private:
      * @param offset 偏移量
      */
     void RegisterPlant(PlantType type,
+		int sunCost, float cooldown,
         const std::string& enumName,
         const std::string& textureKey,
         AnimationType animType,

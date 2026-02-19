@@ -24,7 +24,6 @@ void ShadowComponent::Start() {
 		std::cout << 
             "ShadowComponent: No shadow texture set, using default texture." << std::endl;
 #endif
-        // TODO: 根据mObjectType不同决定不同
         mShadowTexture = ResourceManager::GetInstance().GetTexture(
             ResourceKeys::Textures::IMAGE_PLANTSHADOW);
     }

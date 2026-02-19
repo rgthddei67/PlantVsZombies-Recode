@@ -60,7 +60,7 @@ public:
         if (clickComponent == nullptr) return;
         clickComponent->onClick = [this]() {
 			AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_COLLECTSUN, 0.5f);
-			StartMoveToTarget(Vector(10, 10), speedFast, speedSlow, slowDownDistance);
+			StartMoveToTarget(Vector(160, 10), speedFast, speedSlow, slowDownDistance);
         };
     }
 

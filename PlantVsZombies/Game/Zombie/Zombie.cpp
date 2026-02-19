@@ -5,11 +5,12 @@
 #include "../GameObjectManager.h"
 #include "../Plant/GameDataManager.h"
 #include "../../ParticleSystem/ParticleSystem.h"
+#include "../../GameApp.h"
 
-Zombie::Zombie(Board* board, ZombieType zombieType, float x, int row,
+Zombie::Zombie(Board* board, ZombieType zombieType, float x, float y, int row,
 	AnimationType animType, float scale, bool isPreview)
 	: AnimatedObject(ObjectType::OBJECT_ZOMBIE, board,
-		Vector(x, 0),
+		Vector(x, y),
 		animType,
 		ColliderType::BOX,
 		Vector(50, 100),
@@ -24,13 +25,6 @@ Zombie::Zombie(Board* board, ZombieType zombieType, float x, int row,
 	mIsPreview = isPreview;
 	if (!mBoard) return;
 
-	float y = 0;
-	if (mBoard->mBackGround == 0)
-	{
-		y = static_cast<float>(140 + row * 100);
-	}
-
-	SetPosition(Vector(x, y));
 	mVisualOffset = GameDataManager::GetInstance().GetZombieOffset(zombieType);
 
 	int random = GameRandom::Range(0, 1);
@@ -71,14 +65,12 @@ void Zombie::SetupZombie()
 void Zombie::Start()
 {
 	AnimatedObject::Start();
+	auto shadowcomponent = AddComponent<ShadowComponent>
+		(ResourceManager::GetInstance().GetTexture
+		(ResourceKeys::Textures::IMAGE_PLANTSHADOW));
+	shadowcomponent->SetDrawOrder(-80);
 	if (this->mIsPreview) {
 		RemoveComponent<ColliderComponent>();
-	}
-	else {
-		auto shadowcomponent = AddComponent<ShadowComponent>
-			(ResourceManager::GetInstance().GetTexture
-			(ResourceKeys::Textures::IMAGE_PLANTSHADOW));
-		shadowcomponent->SetDrawOrder(-80);
 	}
 	SetAnimationSpeed(GameRandom::Range(1.1f, 1.4f));
 	SetupZombie();
@@ -88,6 +80,22 @@ void Zombie::Update()
 {
 	AnimatedObject::Update();
 	if (!mIsPreview) {
+		float deltaTime = DeltaTime::GetDeltaTime();
+		auto transform = this->GetTransformComponent();
+
+		if (!transform) return;
+
+		mCheckPositionTimer += deltaTime;
+		if (mCheckPositionTimer >= 1.0f)
+		{
+			mCheckPositionTimer = 0.0f;
+			Vector position = transform->GetWorldPosition();
+			if (position.x > static_cast<float>(SCENE_WIDTH + 50) || position.x < -40.0f)
+			{
+				this->Die();
+			}
+		}
+
 		if (!mHasHead)
 		{
 			mBodyHealth--;
@@ -103,7 +111,6 @@ void Zombie::Update()
 			}
 		}
 
-		float deltaTime = DeltaTime::GetDeltaTime();
 		if (mEatPlantID != NULL_PLANT_ID && mHasHead)
 		{
 			mEatSoundTimer += deltaTime;
@@ -131,7 +138,20 @@ void Zombie::Update()
 		}
 
 		if (mIsEating) return;
-		this->GetTransformComponent()->Translate(-mSpeed * deltaTime, 0);
+		
+		float speed = 0.0f;
+		// 尝试从 _ground 轨道获取速度
+		if (mAnimator) {
+			speed = mAnimator->GetTrackVelocity("_ground") + mSpeed;
+			if (mIsMindControlled)
+			{
+				transform->Translate(speed * deltaTime, 0);
+			}
+			else
+			{
+				transform->Translate(-speed * deltaTime, 0);
+			}
+		}
 		ZombieUpdate();
 	}
 }

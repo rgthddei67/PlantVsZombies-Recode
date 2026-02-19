@@ -16,8 +16,8 @@ class Plant;
 
 class CardSlotManager : public Component {
 private:
-    std::vector<std::weak_ptr<GameObject>> cards;           // 存储卡牌的弱引用
-    std::weak_ptr<GameObject> selectedCard;                 // 当前选中的卡牌（弱引用）
+	std::vector<std::weak_ptr<Card>> cards;  // 卡牌列表
+    std::weak_ptr<GameObject> selectedCard;                 // 当前选中的卡牌
     std::shared_ptr<Plant> plantPreview = nullptr;          // 植物预览
     std::shared_ptr<Plant> cellPlantPreview = nullptr;      
 
@@ -38,10 +38,9 @@ public:
     void Draw(SDL_Renderer* renderer) override;
 
     // 卡牌操作
-    void AddCard(PlantType plantType, int sunCost, float cooldown);
+    void AddCard(std::shared_ptr<Card> card);
     void SelectCard(std::weak_ptr<GameObject> card);
     void DeselectCard();
-    void ArrangeCards();
 
     bool CanAfford(int cost) const { return mBoard ? mBoard->GetSun() >= cost : false; }
     bool SpendSun(int cost);
@@ -61,7 +60,6 @@ public:
     // 获取卡牌信息
     std::shared_ptr<GameObject> GetSelectedCard() const { return selectedCard.lock(); }
     int GetCurrentSun() const { return mBoard ? mBoard->GetSun() : 0; }
-    const std::vector<std::weak_ptr<GameObject>>& GetCards() const { return cards; }
 
 private:
     void CreatePlantPreview(PlantType plantType);

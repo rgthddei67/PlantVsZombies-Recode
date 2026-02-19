@@ -2,7 +2,7 @@
 #include "../Zombie/Zombie.h"
 #include "Bullet.h"
 #include "../GameObjectManager.h"
-#include <SDL2/SDL_image.h>
+#include "../../GameApp.h"
 
 Bullet::Bullet(Board* board, BulletType bulletType, int row, SDL_Texture* texture, const Vector& colliderRadius,
 	const Vector& position) : GameObject(ObjectType::OBJECT_BULLET)
@@ -43,6 +43,17 @@ void Bullet::Update()
 	float deltaTime = DeltaTime::GetDeltaTime();
 	if (transform)
 	{
+		mCheckPositionTimer += deltaTime;
+		if (mCheckPositionTimer >= 1.0f)
+		{
+			mCheckPositionTimer = 0.0f;
+			Vector position = transform->GetWorldPosition();
+			if (position.x > static_cast<float>(SCENE_WIDTH + 20) ||
+				position.x < -10.0f)
+			{
+				this->Die();
+			}
+		}
 		transform->Translate(mVelocityX * deltaTime, mVelocityY * deltaTime);
 	}
 }

@@ -141,7 +141,8 @@ public:
             });
 
         // 绘制所有游戏对象
-        for (auto& obj : mGameObjects) {
+        for (size_t i = 0; i < mGameObjects.size(); ++i) {
+            auto obj = mGameObjects[i]; 
             if (obj->IsActive()) {
                 obj->Draw(renderer);
             }

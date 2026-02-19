@@ -16,6 +16,13 @@ public:
     SceneManager(const SceneManager&) = delete;
     SceneManager& operator=(const SceneManager&) = delete;
 
+    // 获取当前Scene的UIManager
+    UIManager& GetCurrectSceneUIManager() {
+		return GetCurrentScene()->GetUIManager();
+	}
+
+    void ClearCurrentScene();
+
     // 场景注册
     template<typename T, typename... Args>
     void RegisterScene(const std::string& name, Args&&... args) {
