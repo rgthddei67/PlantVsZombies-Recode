@@ -90,6 +90,10 @@ void Zombie::Update()
 		{
 			mCheckPositionTimer = 0.0f;
 			Vector position = transform->GetPosition();
+			if (position.x < 110.0f && mBoard)
+			{
+				mBoard->GameOver();
+			}
 			if (position.x > static_cast<float>(SCENE_WIDTH + 50) || position.x < -40.0f)
 			{
 				this->Die();

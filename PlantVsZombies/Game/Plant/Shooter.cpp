@@ -60,8 +60,9 @@ bool Shooter::HasZombieInRow()
             {
                 if (auto zombie = manager.GetZombie(zombieID))
                 {
-                    if (zombie->mRow == this->mRow &&
-                        zombie->GetPosition().x >= this->GetPosition().x)
+                    Vector zombiePositon = zombie->GetPosition();
+                    if (zombie->mRow == this->mRow && zombiePositon.x <= SCENE_WIDTH &&
+                        zombiePositon.x >= this->GetPosition().x)
                     {
                         return true;
                     }

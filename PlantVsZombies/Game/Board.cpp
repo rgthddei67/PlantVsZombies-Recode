@@ -488,3 +488,13 @@ void Board::StartGame()
 	mBoardState = BoardState::GAME;
 	AudioSystem::PlayMusic(ResourceKeys::Music::MUSIC_DAY, -1);
 }
+
+void Board::GameOver()
+{
+	mBoardState = BoardState::LOSE_GAME;
+	DeltaTime::SetPaused(true);
+	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_LOSTGAME, 0.6f);
+	AudioSystem::StopMusic();
+	if (mGameScene)
+		mGameScene->GameOver();
+}

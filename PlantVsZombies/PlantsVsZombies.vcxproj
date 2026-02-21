@@ -59,6 +59,7 @@
     <ClCompile Include="ResourceManager.cpp" />
     <ClCompile Include="UI\Button.cpp" />
     <ClCompile Include="UI\ButtonManager.cpp" />
+    <ClCompile Include="UI\GameMessageBox.cpp" />
     <ClCompile Include="UI\InputHandler.cpp" />
     <ClCompile Include="UI\Slider.cpp" />
     <ClCompile Include="UI\SliderManager.cpp" />
@@ -127,6 +128,7 @@
     <ClInclude Include="UI\Button.h" />
     <ClInclude Include="UI\ButtonManager.h" />
     <ClInclude Include="UI\InputHandler.h" />
+    <ClInclude Include="UI\GameMessageBox.h" />
     <ClInclude Include="UI\Slider.h" />
     <ClInclude Include="UI\SliderManager.h" />
     <ClInclude Include="UI\UIManager.h" />

@@ -54,6 +54,8 @@ public:
 
     std::shared_ptr<GameProgress> GetGameProgress() const;
 
+    void GameOver();
+
     // 显示红色大字指示
     void ShowPrompt(const std::string& textureKey,
         float appearDur = 1.0f,
@@ -65,6 +67,8 @@ private:
 	std::shared_ptr<CardSlotManager> mCardSlotManager = nullptr;
     std::shared_ptr<ChooseCardUI> mChooseCardUI = nullptr;
     std::shared_ptr<GameProgress> mGameProgress = nullptr;
+
+    bool mReadyToRestart = false;
 
     IntroStage mCurrentStage = IntroStage::BACKGROUND_MOVE;
 
@@ -96,8 +100,6 @@ private:
 
     PromptAnimation mPrompt;
 
-    void OnBackToMenuClicked();
-    void OnRestartClicked();
 };
 
 #endif

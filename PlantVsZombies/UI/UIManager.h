@@ -4,6 +4,8 @@
 #include "../ResourceManager.h"
 #include "ButtonManager.h"
 #include "SliderManager.h"
+#include "GameMessageBox.h"         
+#include "../Game/GameObjectManager.h" 
 
 class UIManager
 {
@@ -51,6 +53,18 @@ public:
         float initialValue = 0.5f)
     {
         return sliderManager.CreateSlider(pos, size, minVal, maxVal, initialValue);
+    }
+
+    // 创建消息框
+    std::shared_ptr<GameMessageBox> CreateMessageBox(const Vector& pos,
+        const std::string& message,
+        const std::vector<GameMessageBox::ButtonConfig>& buttons,
+        const std::string& title = "",
+        float scale = 1.0f,
+        const std::string& backgroundImageKey = ResourceKeys::Textures::IMAGE_MESSAGEBOX)
+    {
+        return GameObjectManager::GetInstance().CreateGameObjectImmediate<GameMessageBox>(
+            LAYER_UI, pos, message, buttons, title, backgroundImageKey, scale);
     }
 
     void RemoveSlider(std::shared_ptr<Slider> slider)

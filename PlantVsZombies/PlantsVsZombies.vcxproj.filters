@@ -160,6 +160,9 @@
     <ClCompile Include="Game\FlagMeter.cpp">
       <Filter>Code\Game</Filter>
     </ClCompile>
+    <ClCompile Include="UI\GameMessageBox.cpp">
+      <Filter>Code\UI</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="UI\Button.h">
@@ -359,6 +362,9 @@
     </ClInclude>
     <ClInclude Include="Game\FlagMeter.h">
       <Filter>Code\Game</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\GameMessageBox.h">
+      <Filter>Code\UI</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

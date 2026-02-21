@@ -19,17 +19,17 @@ void SliderManager::ProcessMouseEvent(InputHandler* input)
 
 void SliderManager::UpdateAll(InputHandler* input)
 {
-    for (auto& slider : sliders)
+    for (size_t i = 0; i < sliders.size(); i++)
     {
-        slider->Update(input);
+        sliders[i]->Update(input);
     }
 }
 
 void SliderManager::DrawAll(SDL_Renderer* renderer) const
 {
-    for (const auto& slider : sliders)
+    for (size_t i = 0; i < sliders.size(); i++)
     {
-        slider->Draw(renderer);
+        sliders[i]->Draw(renderer);
     }
 }
 

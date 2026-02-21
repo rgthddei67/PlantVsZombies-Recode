@@ -161,6 +161,9 @@ public:
 	// 选好卡，开始游戏
 	void StartGame();
 
+	// 游戏结束
+	void GameOver();
+
 	void Update();
 
 	// 创建预览僵尸

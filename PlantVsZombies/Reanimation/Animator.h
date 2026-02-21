@@ -15,6 +15,13 @@
 int ColorComponentMultiply(int theColor1, int theColor2);
 SDL_Color ColorsMultiply(const SDL_Color& theColor1, const SDL_Color& theColor2);
 
+struct AnimDrawCommand {
+    SDL_Texture* texture;
+    SDL_BlendMode blendMode;
+    SDL_Color color;
+    float points[8];  // 4个顶点的世界坐标 (x1,y1, x2,y2, x3,y3, x4,y4)
+};
+
 class Animator {
 private:
     std::shared_ptr<Reanimation> mReanim;
@@ -149,6 +156,7 @@ private:
     TrackFrameTransform GetInterpolatedTransform(int trackIndex) const;
     std::vector<TrackExtraInfo*> GetTrackExtrasByName(const std::string& trackName);
     int GetFirstTrackIndexByName(const std::string& trackName) const;
+    void CollectDrawCommands(std::vector<AnimDrawCommand>& outCommands, float baseX, float baseY, float Scale) const;
 };
 
 #endif

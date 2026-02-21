@@ -204,11 +204,9 @@ void Button::Draw(SDL_Renderer* renderer) const
     {
         SDL_Color color = this->isHovered ? this->hoverTextColor : this->textColor;
 
-        // 使用TTF测量文本实际宽度（修复UTF-8中文问题）
+        // 获取文本的实际尺寸
         int textWidth = 0;
-        int textHeight = fontSize;
-
-        // 临时加载字体来测量文本尺寸
+        int textHeight = 0;
         TTF_Font* tempFont = resourceManager.GetFont(fontName, fontSize);
         if (tempFont)
         {
@@ -216,42 +214,39 @@ void Button::Draw(SDL_Renderer* renderer) const
         }
         else
         {
-            // 如果字体加载失败，使用估算值（每个中文字符约等于fontSize宽度）
             textWidth = 0;
             for (size_t i = 0; i < text.length(); )
             {
                 unsigned char c = text[i];
                 if ((c & 0x80) == 0)
                 {
-                    // ASCII字符，宽度约为fontSize/2
-                    textWidth += fontSize / 2;
+                    textWidth += fontSize / 2; // ASCII字符
                     i += 1;
                 }
                 else if ((c & 0xE0) == 0xC0)
                 {
-                    // 2字节UTF-8字符（如中文）
-                    textWidth += fontSize;
+                    textWidth += fontSize;     // 2字节UTF-8（如中文）
                     i += 2;
                 }
                 else if ((c & 0xF0) == 0xE0)
                 {
-                    // 3字节UTF-8字符
-                    textWidth += fontSize;
+                    textWidth += fontSize;     // 3字节UTF-8
                     i += 3;
                 }
                 else
                 {
-                    // 其他情况
-                    textWidth += fontSize;
+                    textWidth += fontSize;     // 其他
                     i += 1;
                 }
             }
+            textHeight = fontSize; // 估计高度
         }
 
+        // 计算居中位置（相对于按钮区域）
         int textX = static_cast<int>(position.x + (size.x - textWidth) / 2);
         int textY = static_cast<int>(position.y + (size.y - textHeight) / 2);
 
-        GameAPP::GetInstance().DrawText(text, textX, textY, color);
+        GameAPP::GetInstance().DrawText(text, textX, textY, color, fontName, fontSize);
     }
 }
 

@@ -228,11 +228,104 @@ void Animator::Update() {
 void Animator::Draw(SDL_Renderer* renderer, float baseX, float baseY, float Scale) {
     if (!mReanim || !renderer) return;
 
-    const float DEG_TO_RAD = 3.14159265358979323846f / 180.0f;
-
+    // 保存渲染器混合模式
     SDL_BlendMode oldRenderBlend;
     SDL_GetRenderDrawBlendMode(renderer, &oldRenderBlend);
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+
+    // 收集所有绘制命令
+    std::vector<AnimDrawCommand> commands;
+    CollectDrawCommands(commands, baseX, baseY, Scale);
+
+    // 保存所有用到的纹理的原始状态
+    std::map<SDL_Texture*, std::tuple<SDL_BlendMode, Uint8, Uint8, Uint8, Uint8>> originalStates;
+    for (const auto& cmd : commands) {
+        if (originalStates.find(cmd.texture) == originalStates.end()) {
+            SDL_BlendMode blend;
+            Uint8 r, g, b, a;
+            SDL_GetTextureBlendMode(cmd.texture, &blend);
+            SDL_GetTextureColorMod(cmd.texture, &r, &g, &b);
+            SDL_GetTextureAlphaMod(cmd.texture, &a);
+            originalStates[cmd.texture] = { blend, r, g, b, a };
+        }
+    }
+
+    // 顺序扫描命令，合并连续相同纹理+混合模式的四边形
+    size_t i = 0;
+    while (i < commands.size()) {
+        SDL_Texture* currentTexture = commands[i].texture;
+        SDL_BlendMode currentBlend = commands[i].blendMode;
+
+        // 设置当前批次的纹理状态（颜色调制由顶点控制）
+        SDL_SetTextureBlendMode(currentTexture, currentBlend);
+        SDL_SetTextureColorMod(currentTexture, 255, 255, 255);
+        SDL_SetTextureAlphaMod(currentTexture, 255);
+
+        std::vector<SDL_Vertex> vertices;
+        std::vector<int> indices;
+        int baseVertex = 0;
+
+        // 收集所有连续的相同纹理+混合模式的命令
+        while (i < commands.size() &&
+            commands[i].texture == currentTexture &&
+            commands[i].blendMode == currentBlend) {
+            const auto& cmd = commands[i];
+            for (int v = 0; v < 4; ++v) {
+                SDL_Vertex vertex;
+                vertex.position.x = cmd.points[v * 2];
+                vertex.position.y = cmd.points[v * 2 + 1];
+                vertex.color = cmd.color;
+                vertex.tex_coord.x = (v == 0 || v == 3) ? 0.0f : 1.0f;
+                vertex.tex_coord.y = (v == 0 || v == 1) ? 0.0f : 1.0f;
+                vertices.push_back(vertex);
+            }
+            indices.push_back(baseVertex + 0);
+            indices.push_back(baseVertex + 1);
+            indices.push_back(baseVertex + 2);
+            indices.push_back(baseVertex + 0);
+            indices.push_back(baseVertex + 2);
+            indices.push_back(baseVertex + 3);
+            baseVertex += 4;
+            ++i;
+        }
+
+        // 绘制当前批次
+        if (!vertices.empty()) {
+            SDL_RenderGeometry(renderer, currentTexture, vertices.data(), static_cast<int>(vertices.size()),
+                indices.data(), static_cast<int>(indices.size()));
+        }
+    }
+
+    // 恢复所有纹理的原始状态
+    for (const auto& [texture, state] : originalStates) {
+        auto [blend, r, g, b, a] = state;
+        SDL_SetTextureBlendMode(texture, blend);
+        SDL_SetTextureColorMod(texture, r, g, b);
+        SDL_SetTextureAlphaMod(texture, a);
+    }
+
+    SDL_SetRenderDrawBlendMode(renderer, oldRenderBlend);
+}
+
+void Animator::DrawTexturedQuad(SDL_Renderer* renderer, SDL_Texture* texture,
+    const float points[8], SDL_Color color)
+{
+    SDL_Vertex vertices[4];
+    for (int i = 0; i < 4; ++i) {
+        vertices[i].position.x = points[i * 2];
+        vertices[i].position.y = points[i * 2 + 1];
+        vertices[i].color = color;
+        vertices[i].tex_coord.x = (i == 0 || i == 3) ? 0.0f : 1.0f;
+        vertices[i].tex_coord.y = (i == 0 || i == 1) ? 0.0f : 1.0f;
+    }
+    int indices[6] = { 0, 1, 2, 0, 2, 3 };
+    SDL_RenderGeometry(renderer, texture, vertices, 4, indices, 6);
+}
+
+void Animator::CollectDrawCommands(std::vector<AnimDrawCommand>& outCommands, float baseX, float baseY, float Scale) const {
+    if (!mReanim) return;
+
+    const float DEG_TO_RAD = 3.14159265358979323846f / 180.0f;
 
     for (int i = 0; i < static_cast<int>(mReanim->GetTrackCount()); ++i) {
         auto track = mReanim->GetTrack(i);
@@ -250,14 +343,12 @@ void Animator::Draw(SDL_Renderer* renderer, float baseX, float baseY, float Scal
             shouldDrawSelf = (image != nullptr);
         }
 
-        // 轨道自身绘制
         if (shouldDrawSelf) {
             int imgWidth, imgHeight;
             SDL_QueryTexture(image, NULL, NULL, &imgWidth, &imgHeight);
             float w = static_cast<float>(imgWidth);
             float h = static_cast<float>(imgHeight);
 
-            // 角度取反
             float angleX = -transform.kx * DEG_TO_RAD;
             float angleY = -transform.ky * DEG_TO_RAD;
             float cosX = cosf(angleX);
@@ -265,17 +356,14 @@ void Animator::Draw(SDL_Renderer* renderer, float baseX, float baseY, float Scal
             float cosY = cosf(angleY);
             float sinY = sinf(angleY);
 
-            // 矩阵元素
             float a = cosX * transform.sx;
             float b = -sinX * transform.sx;
             float c = sinY * transform.sy;
             float d = cosY * transform.sy;
 
-            // 图像左上角世界坐标（加轨道偏移）
             float tx = transform.x + mExtraInfos[i].mOffsetX;
             float ty = transform.y + mExtraInfos[i].mOffsetY;
 
-            // 计算四个顶点世界坐标（左上角为原点）
             float worldPoints[8];
             for (int j = 0; j < 4; ++j) {
                 float u = (j == 0 || j == 3) ? 0.0f : w;
@@ -288,47 +376,34 @@ void Animator::Draw(SDL_Renderer* renderer, float baseX, float baseY, float Scal
                 worldPoints[j * 2 + 1] = baseY + y * Scale;
             }
 
-            // 保存纹理原始状态（混合模式、颜色调制）
-            SDL_BlendMode oldTexBlend;
-            Uint8 oldR, oldG, oldB, oldA;
-            SDL_GetTextureBlendMode(image, &oldTexBlend);
-            SDL_GetTextureColorMod(image, &oldR, &oldG, &oldB);
-            SDL_GetTextureAlphaMod(image, &oldA);
-
-            // 重置纹理颜色调制为白色
-            SDL_SetTextureColorMod(image, 255, 255, 255);
-            SDL_SetTextureAlphaMod(image, 255);
-
-            // 计算最终透明度（帧透明度 * 全局透明度）
             float combinedAlpha = transform.a * mAlpha;
             Uint8 baseAlpha = static_cast<Uint8>(std::clamp(combinedAlpha * 255.0f, 0.0f, 255.0f));
 
-            // ---------- 正常绘制 ----------
-            SDL_SetTextureBlendMode(image, SDL_BLENDMODE_BLEND);
-            DrawTexturedQuad(renderer, image, worldPoints, { 255, 255, 255, baseAlpha });
+            // 正常绘制
+            AnimDrawCommand cmd;
+            cmd.texture = image;
+            cmd.blendMode = SDL_BLENDMODE_BLEND;
+            cmd.color = { 255, 255, 255, baseAlpha };
+            memcpy(cmd.points, worldPoints, sizeof(worldPoints));
+            outCommands.push_back(cmd);
 
-            // ---------- 发光效果 ----------
+            // 发光效果
             if (mEnableExtraAdditiveDraw) {
-                SDL_SetTextureBlendMode(image, SDL_BLENDMODE_ADD);
-                DrawTexturedQuad(renderer, image, worldPoints,
-                    { mExtraAdditiveColor.r, mExtraAdditiveColor.g, mExtraAdditiveColor.b, mExtraAdditiveColor.a });
+                cmd.blendMode = SDL_BLENDMODE_ADD;
+                cmd.color = mExtraAdditiveColor;
+                outCommands.push_back(cmd);
             }
 
-            // ---------- 覆盖层效果 ----------
+            // 覆盖层效果
             if (mEnableExtraOverlayDraw) {
-                SDL_Color overlayColor = mExtraOverlayColor;
-                overlayColor.a = ColorComponentMultiply(mExtraOverlayColor.a, baseAlpha);
-                SDL_SetTextureBlendMode(image, SDL_BLENDMODE_BLEND);
-                DrawTexturedQuad(renderer, image, worldPoints, overlayColor);
+                cmd.blendMode = SDL_BLENDMODE_BLEND;
+                cmd.color = mExtraOverlayColor;
+                cmd.color.a = ColorComponentMultiply(mExtraOverlayColor.a, baseAlpha);
+                outCommands.push_back(cmd);
             }
-
-            // 恢复纹理原始状态
-            SDL_SetTextureBlendMode(image, oldTexBlend);
-            SDL_SetTextureColorMod(image, oldR, oldG, oldB);
-            SDL_SetTextureAlphaMod(image, oldA);
         }
 
-        // 绘制附加子动画
+        // 子动画
         if (i < static_cast<int>(mExtraInfos.size())) {
             for (const auto& weakChild : mExtraInfos[i].mAttachedReanims) {
                 auto child = weakChild.lock();
@@ -355,27 +430,10 @@ void Animator::Draw(SDL_Renderer* renderer, float baseX, float baseY, float Scal
                 worldX = baseX + worldX * Scale;
                 worldY = baseY + worldY * Scale;
 
-                child->Draw(renderer, worldX, worldY, 1.0f);
+                child->CollectDrawCommands(outCommands, worldX, worldY, 1.0f);
             }
         }
     }
-
-    SDL_SetRenderDrawBlendMode(renderer, oldRenderBlend);
-}
-
-void Animator::DrawTexturedQuad(SDL_Renderer* renderer, SDL_Texture* texture,
-    const float points[8], SDL_Color color)
-{
-    SDL_Vertex vertices[4];
-    for (int i = 0; i < 4; ++i) {
-        vertices[i].position.x = points[i * 2];
-        vertices[i].position.y = points[i * 2 + 1];
-        vertices[i].color = color;
-        vertices[i].tex_coord.x = (i == 0 || i == 3) ? 0.0f : 1.0f;
-        vertices[i].tex_coord.y = (i == 0 || i == 1) ? 0.0f : 1.0f;
-    }
-    int indices[6] = { 0, 1, 2, 0, 2, 3 };
-    SDL_RenderGeometry(renderer, texture, vertices, 4, indices, 6);
 }
 
 void Animator::SetSpeed(float speed)

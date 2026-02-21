@@ -8,6 +8,7 @@
 #include "./AudioSystem.h"
 #include "GameProgress.h"
 #include "ChooseCardUI.h"
+#include "../UI/GameMessageBox.h"
 #include <iostream>
 
 #include "./Zombie/Zombie.h"
@@ -55,7 +56,7 @@ void GameScene::BuildDrawCommands()
 				SDL_RenderCopyF(renderer, texture, nullptr, &dest);
 				SDL_SetTextureAlphaMod(texture, 255);
 			},
-			LAYER_UI + 1000);  
+			LAYER_UI + 1000);
 	}
 	SortDrawCommands();
 }
@@ -107,7 +108,7 @@ void GameScene::OnExit() {
 
 void GameScene::Update() {
 	Scene::Update();
-	if (mBoard)
+	if (mBoard && !mReadyToRestart)
 	{
 		mBoard->Update();
 
@@ -301,6 +302,13 @@ void GameScene::Update() {
 			}
 			}
 		}
+
+	}
+
+	if (mReadyToRestart) {
+		mReadyToRestart = false;
+		SceneManager::GetInstance().ClearCurrentScene();
+		SceneManager::GetInstance().SwitchTo("GameScene");
 	}
 }
 
@@ -350,6 +358,21 @@ std::shared_ptr<GameProgress> GameScene::GetGameProgress() const
 	return this->mGameProgress;
 }
 
+void GameScene::GameOver()
+{
+	std::vector<GameMessageBox::ButtonConfig> buttons;
+	buttons.push_back({ u8"返回菜单", Vector(380, 380),[]() {
+
+}, true });
+	buttons.push_back({ u8"重新开始", Vector(560, 380), [this]() {
+		this->mReadyToRestart = true;
+		DeltaTime::SetPaused(false);
+	}, true });
+
+	mUIManager.CreateMessageBox(Vector(SCENE_WIDTH / 2, SCENE_HEIGHT / 2),
+		u8"僵尸吃掉了你的脑子！", buttons, u8"游戏结束", 1.5f);
+}
+
 void GameScene::ShowPrompt(const std::string& textureKey,
 	float appearDur,
 	float holdDur,
@@ -367,21 +390,6 @@ void GameScene::ShowPrompt(const std::string& textureKey,
 	mPrompt.fadeDuration = fadeDur;
 }
 
-/*
-void GameScene::SetupUI() {
-	// 返回主菜单按钮
-	auto backButton = uiManager_.CreateButton(Vector(700, 30), Vector(80, 30));
-	backButton->SetText(u8"返回");
-	backButton->SetClickCallBack([this]() { OnBackToMenuClicked(); });
-
-	// 重新开始按钮
-	auto restartButton = uiManager_.CreateButton(Vector(700, 80), Vector(80, 30));
-	restartButton->SetText(u8"重玩");
-	restartButton->SetClickCallBack([this]() { OnRestartClicked(); });
-}
-*/
-void GameScene::OnBackToMenuClicked() {
-	std::cout << "返回主菜单" << std::endl;
 	/*
 	// 保存游戏数据（如果需要）
 	int score = 100;
@@ -389,9 +397,3 @@ void GameScene::OnBackToMenuClicked() {
 
 	SceneManager::GetInstance().SwitchTo("MainMenuScene");
 	*/
-}
-
-void GameScene::OnRestartClicked() {
-	std::cout << "重新开始游戏" << std::endl;
-	// 重新初始化游戏状态
-}

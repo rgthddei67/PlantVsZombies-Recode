@@ -32,7 +32,6 @@ void ButtonManager::ClearAllButtons()
 void ButtonManager::UpdateAll(InputHandler* input)
 {
     if (!input) return;
-
     for (size_t i = 0; i < buttons.size(); i++)
     {
         auto button = buttons[i];
