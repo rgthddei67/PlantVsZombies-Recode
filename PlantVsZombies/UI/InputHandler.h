@@ -70,8 +70,11 @@ public:
     // 检查按键是否刚刚释放
     bool IsKeyReleased(SDL_Keycode keyCode) const;
 
-    // 获取鼠标位置
+    // 获取鼠标屏幕坐标
     Vector GetMousePosition() const;
+
+    // 获取鼠标世界坐标
+    Vector GetMouseWorldPosition() const;
 
     // 获取鼠标移动增量
     Vector GetMouseDelta() const;

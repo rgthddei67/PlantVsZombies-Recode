@@ -84,7 +84,7 @@ void CardDisplayComponent::LoadTextures() {
 void CardDisplayComponent::DrawCardBackground(SDL_Renderer* renderer, std::shared_ptr<TransformComponent> transform) {
     if (!GetGameObject()) return;
 
-	Vector position = transform->position;
+    Vector position = transform->GetPosition();
     SDL_Rect cardRect = {
         static_cast<int>(position.x),
         static_cast<int>(position.y),
@@ -106,14 +106,17 @@ void CardDisplayComponent::DrawCardBackground(SDL_Renderer* renderer, std::share
 void CardDisplayComponent::DrawPlantImage(SDL_Renderer* renderer, std::shared_ptr<TransformComponent> transform) {
     if (!GetGameObject() || !plantTexture) return;
 
-    Vector position = transform->position;
+    Vector position = transform->GetPosition();
+
+    int imgWidth, imgHeight;
+    SDL_QueryTexture(plantTexture, nullptr , nullptr, &imgWidth, &imgHeight);
 
     // 植物图片位置（在卡牌中央）
-    SDL_Rect plantRect = {
-        static_cast<int>(position.x + 8),
-        static_cast<int>(position.y + 13),
-        40,  // 植物图片大小
-        40
+    SDL_FRect plantRect = {
+        position.x - 14,
+        position.y - 10,
+        imgWidth * 0.7f, 
+        imgHeight * 0.7f
     };
 
     // 设置颜色调制（根据状态改变颜色）
@@ -121,7 +124,7 @@ void CardDisplayComponent::DrawPlantImage(SDL_Renderer* renderer, std::shared_pt
     SDL_SetTextureColorMod(plantTexture, color.r, color.g, color.b);
     SDL_SetTextureAlphaMod(plantTexture, 255);
 
-    SDL_RenderCopy(renderer, plantTexture, nullptr, &plantRect);
+    SDL_RenderCopyF(renderer, plantTexture, nullptr, &plantRect);
 
     // 重置颜色调制
     SDL_SetTextureColorMod(plantTexture, 255, 255, 255);
@@ -131,7 +134,9 @@ void CardDisplayComponent::DrawPlantImage(SDL_Renderer* renderer, std::shared_pt
 void CardDisplayComponent::DrawCooldownMask(SDL_Renderer* renderer, std::shared_ptr<TransformComponent> transform) {
     if (!GetGameObject() || !cardBackground) return;
 
-    Vector position = transform->position;
+
+    Vector position = transform->GetPosition();
+
     SDL_Rect cardRect = {
         static_cast<int>(position.x),
         static_cast<int>(position.y),
@@ -168,7 +173,7 @@ void CardDisplayComponent::DrawCooldownMask(SDL_Renderer* renderer, std::shared_
 void CardDisplayComponent::DrawSunCost(SDL_Renderer* renderer, std::shared_ptr<TransformComponent> transform) {
     if (!GetGameObject()) return;
 
-    Vector position = transform->position;
+    Vector position = transform->GetPosition();
 
     GameAPP::GetInstance().DrawText(std::to_string(needSun),
         Vector(position.x + 6, position.y + 58),
@@ -180,7 +185,7 @@ void CardDisplayComponent::DrawSunCost(SDL_Renderer* renderer, std::shared_ptr<T
 void CardDisplayComponent::DrawSelectionHighlight(SDL_Renderer* renderer, std::shared_ptr<TransformComponent> transform) {
     if (!GetGameObject()) return;
 
-    Vector position = transform->position;
+    Vector position = transform->GetPosition();
 
     // 绘制选中高亮边框
     SDL_Rect highlightRect = {

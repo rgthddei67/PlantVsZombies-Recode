@@ -7,7 +7,7 @@
 
 Vector ColliderComponent::GetWorldPosition() const {
     if (auto transform = GetTransform()) {
-        return transform->position + offset;
+        return transform->GetPosition() + offset;
     }
     return offset;
 } 

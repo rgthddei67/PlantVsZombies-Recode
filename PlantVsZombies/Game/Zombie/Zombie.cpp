@@ -89,7 +89,7 @@ void Zombie::Update()
 		if (mCheckPositionTimer >= 1.0f)
 		{
 			mCheckPositionTimer = 0.0f;
-			Vector position = transform->GetWorldPosition();
+			Vector position = transform->GetPosition();
 			if (position.x > static_cast<float>(SCENE_WIDTH + 50) || position.x < -40.0f)
 			{
 				this->Die();
@@ -284,7 +284,7 @@ void Zombie::Die()
 }
 
 Vector Zombie::GetVisualPosition() const {
-	return GetTransformComponent()->GetWorldPosition() + mVisualOffset;
+	return GetTransformComponent()->GetPosition() + mVisualOffset;
 }
 
 void Zombie::EatTarget(std::shared_ptr<ColliderComponent> other)
@@ -328,7 +328,7 @@ void Zombie::StopEat(std::shared_ptr<ColliderComponent> other)
 
 Vector Zombie::GetPosition() const
 {
-	return GetTransformComponent()->GetWorldPosition();
+	return GetTransformComponent()->GetPosition();
 }
 
 void Zombie::SetPosition(const Vector& position)

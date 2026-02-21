@@ -30,18 +30,15 @@ struct DrawCommand {
 
 // 图片信息结构
 struct TextureInfo {
-    SDL_Texture* texture;
-    float posX;
-    float posY;
-    float scaleX;       // X轴缩放比例（默认为1.0）
-    float scaleY;       // Y轴缩放比例（默认为1.0）
-    bool visible;       // 是否可见
-    int drawOrder;      // 绘制顺序（数值小的先绘制）
-    std::string name;   // 纹理名称
-
-    TextureInfo(SDL_Texture* tex = nullptr, float x = 0.0f, float y = 0.0f, const std::string& n = "")
-        : texture(tex), posX(x), posY(y), scaleX(1.0f), scaleY(1.0f), visible(true), drawOrder(0), name(n) {
-    }
+    SDL_Texture* texture = nullptr;
+    float posX = 0.0f;
+    float posY = 0.0f;
+    float scaleX = 1.0f;
+    float scaleY = 1.0f;
+    int drawOrder = 0;
+    bool visible = true;
+    std::string name;
+    bool isUI = false;  // true = 屏幕坐标（UI），false = 世界坐标
 };
 
 class Scene
@@ -106,7 +103,7 @@ protected:
     }
 
     // 添加纹理到绘制列表
-    void AddTexture(const std::string& textureName, float posX, float posY, float scaleX = 1.0f, float scaleY = 1.0f, int drawOrder = 0);
+    void AddTexture(const std::string& textureName, float posX, float posY, float scaleX = 1.0f, float scaleY = 1.0f, int drawOrder = 0, bool isUI = false);
 
     // 从绘制列表移除纹理
     void RemoveTexture(const std::string& textureName);

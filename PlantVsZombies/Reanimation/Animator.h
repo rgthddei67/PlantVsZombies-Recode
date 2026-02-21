@@ -119,6 +119,9 @@ public:
     // 更新和渲染
     void Update();
     void Draw(SDL_Renderer* renderer, float baseX, float baseY, float Scale = 1.0f);
+    // 绘制任意四边形纹理
+    void DrawTexturedQuad(SDL_Renderer* renderer, SDL_Texture* texture,
+        const float points[8], SDL_Color color);
 
     // 获取底层Reanimation
     std::shared_ptr<Reanimation> GetReanimation() const { return mReanim; }

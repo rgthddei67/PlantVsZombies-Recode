@@ -6,6 +6,17 @@
 
 class ChooseCardUI;
 class CardSlotManager;
+class GameProgress;
+
+constexpr float mBackgroundY = -50;
+
+// 一大波、最后一波
+enum class PromptStage {
+    NONE,
+    APPEAR,
+    HOLD,
+    FADE_OUT
+};
 
 // 开场动画阶段
 enum class IntroStage {
@@ -14,6 +25,19 @@ enum class IntroStage {
     COMPLETE,           // 完成，显示阳光
 	READY_SET_PLANT,    // 准备种植植物，选好卡了
 	FINISH			  // 最终完成
+};
+
+// 提示动画数据
+struct PromptAnimation {
+    bool active = false;
+    PromptStage stage = PromptStage::NONE;
+    float timer = 0.0f;
+    float scale = 1.0f;
+    Uint8 alpha = 255;
+    std::string textureKey;      // 纹理的资源键
+    float appearDuration = 1.0f; // 出现阶段时长
+    float holdDuration = 3.0f;    // 停留阶段时长
+    float fadeDuration = 1.0f;    // 消失阶段时长
 };
 
 class GameScene : public Scene {
@@ -28,17 +52,26 @@ public:
 
 	void ChooseCardComplete();  // 选卡完成
 
+    std::shared_ptr<GameProgress> GetGameProgress() const;
+
+    // 显示红色大字指示
+    void ShowPrompt(const std::string& textureKey,
+        float appearDur = 1.0f,
+        float holdDur = 3.0f,
+        float fadeDur = 1.0f);
+
 private:
-	std::unique_ptr<Board> mBoard;
-	std::shared_ptr<CardSlotManager> mCardSlotManager;
-    std::shared_ptr<ChooseCardUI> mChooseCardUI;
+	std::unique_ptr<Board> mBoard = nullptr;
+	std::shared_ptr<CardSlotManager> mCardSlotManager = nullptr;
+    std::shared_ptr<ChooseCardUI> mChooseCardUI = nullptr;
+    std::shared_ptr<GameProgress> mGameProgress = nullptr;
 
     IntroStage mCurrentStage = IntroStage::BACKGROUND_MOVE;
 
-	float mStartX = 0.0f;          // BackGround初始X坐标
-	float mGameStartX = -50.0f;          // BackGround动画在选完卡后的坐标
-	float mCurrectSceneX = 0.0f;     // BackGround当前X坐标
-    float mTargetSceneX = -300.0f;         // BackGround要到达的X坐标
+	float mStartX = -250.0f;          // BackGround初始X坐标
+	float mGameStartX = -250.0f;          // BackGround动画在选完卡后的坐标
+	float mCurrectSceneX = -250.0f;     // BackGround当前X坐标
+    float mTargetSceneX = -700.0f;         // BackGround要到达的X坐标
 	bool mHasEnter = false;             // 是否已经进入场景（用于控制进入动画只播放一次）
     float mAnimDuration = 3.0f;          // 动画总时长（秒）
     float mAnimElapsed = 0.0f;           // 动画已进行时间
@@ -60,6 +93,8 @@ private:
     float mReadyAnimDuration = 3.0f;
     float mReadyAnimElapsed = 0.0f;
     Vector mReadyStartPos;
+
+    PromptAnimation mPrompt;
 
     void OnBackToMenuClicked();
     void OnRestartClicked();

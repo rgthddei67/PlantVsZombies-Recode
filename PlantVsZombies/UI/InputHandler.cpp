@@ -1,5 +1,6 @@
 #include "InputHandler.h"
 #include <iostream>
+#include "../GameApp.h"
 
 InputHandler::InputHandler()
 {
@@ -143,6 +144,12 @@ bool InputHandler::IsKeyReleased(SDL_Keycode keyCode) const
 Vector InputHandler::GetMousePosition() const
 {
     return m_mousePosition;
+}
+
+Vector InputHandler::GetMouseWorldPosition() const {
+    Vector mousePositon = GetMousePosition();
+    return GameAPP::GetInstance().GetCamera().ScreenToWorld
+    ({ mousePositon.x, mousePositon.y });
 }
 
 Vector InputHandler::GetMouseDelta() const

@@ -11,12 +11,18 @@
 #include <SDL2/SDL.h>
 #include "GameObject.h"
 
+const int SUBORDER_PER_KEY = 1000;  // 每个key最多同时存在的顺序数量
+
 class GameObjectManager {
 private:
-    // 每个图层有自己的回收池
+    // 每个图层有自己的回收池（全局）
     std::map<RenderLayer, std::set<int>> mLayerRecycledOrders;
     // 每个图层当前的最大子顺序
     std::map<RenderLayer, int> mLayerMaxSubOrder;
+
+    // 按排序键（如行号）管理的池
+    std::map<RenderLayer, std::map<int, std::set<int>>> mLayerKeyRecycledOrders;  // 空闲子顺序（全局值）
+    std::map<RenderLayer, std::map<int, int>> mLayerKeyMaxLocalIdx;  // 当前已分配的本地索引（0 ~ SUBORDER_PER_KEY-1）
 
     std::vector<std::shared_ptr<GameObject>> mGameObjects;       // 已经有的游戏对象
     std::vector<std::shared_ptr<GameObject>> mObjectsToAdd;      // 待添加的游戏对象
@@ -59,8 +65,7 @@ public:
     // 销毁游戏对象
     void DestroyGameObject(std::shared_ptr<GameObject> obj) {
         if (obj) {
-            // 回收渲染顺序
-            RecycleRenderOrder(obj->GetRenderOrder(), obj->GetLayer());
+            RecycleRenderOrder(obj->GetRenderOrder(), obj->GetLayer(), obj->GetSortingKey());
             mObjectsToRemove.push_back(obj);
         }
     }
@@ -122,10 +127,21 @@ public:
 
         mObjectsToAdd.clear();
 
-        //TODO: 一定不要存vector元素的&!!!!!!一定不要存vector元素的&!!!!!!一定不要存vector元素的&!!!！
+        /*
+        * TODO: 一定不要存vector元素的&!!!!!!一定不要存vector元素的&!!!!!!一定不要存vector元素的&!!!！
+        * shared_ptr指向堆上的 GameObject 对象
+        e.g.
+        GameObject* rawPtr = mGameObjects[0].get();  // 指向堆上的 GameObject
+        rawPtr 指向的是由 shared_ptr 管理的堆对象。
+
+        vector 扩容只移动 shared_ptr 本身，堆对象一动不动。
+
+        所以 rawPtr 始终有效（只要对象未被销毁）。
+        */
+
         // 更新现有（mGameObjects）对象
         for (size_t i = 0; i < mGameObjects.size(); i++) {
-            auto obj = mGameObjects[i];
+            auto obj = mGameObjects[i].get();
             if (obj->IsActive()) {
                 obj->Update();
             }
@@ -142,7 +158,7 @@ public:
 
         // 绘制所有游戏对象
         for (size_t i = 0; i < mGameObjects.size(); ++i) {
-            auto obj = mGameObjects[i]; 
+            auto* obj = mGameObjects[i].get(); 
             if (obj->IsActive()) {
                 obj->Draw(renderer);
             }
@@ -202,6 +218,8 @@ public:
     void ResetAllLayers() {
         mLayerRecycledOrders.clear();
         mLayerMaxSubOrder.clear();
+        mLayerKeyRecycledOrders.clear();
+        mLayerKeyMaxLocalIdx.clear();
 
         // 初始化所有枚举值
         RenderLayer layers[] = {
@@ -222,21 +240,31 @@ public:
     }
 
     void AssignRenderOrder(std::shared_ptr<GameObject> gameObject, RenderLayer layer) {
-        // 如果对象已经有渲染顺序，先回收旧的
-        RecycleRenderOrder(gameObject->GetRenderOrder(), gameObject->GetLayer());
+        // 先回收旧的渲染顺序（需要知道旧的 key）
+        RecycleRenderOrder(gameObject->GetRenderOrder(), gameObject->GetLayer(), gameObject->GetSortingKey());
 
-        // 分配新的渲染顺序
-        int subOrder = GetNextSubOrder(layer);
+        int subOrder;
+        int key = gameObject->GetSortingKey();
+        if (key >= 0) {
+            subOrder = GetNextSubOrderForKey(layer, key);
+        }
+        else {
+            subOrder = GetNextSubOrder(layer);
+        }
         int renderOrder = static_cast<int>(layer) + subOrder;
-
         gameObject->SetRenderOrder(renderOrder);
     }
 
     // 回收渲染顺序
-    void RecycleRenderOrder(int renderOrder, RenderLayer layer) {
+    void RecycleRenderOrder(int renderOrder, RenderLayer layer, int key = -1) {
         int subOrder = renderOrder - static_cast<int>(layer);
-        if (subOrder >= 0 && subOrder < 10000) {
-            mLayerRecycledOrders[layer].insert(subOrder);
+        if (subOrder >= 0 && subOrder < 10000) {  // 子顺序范围 0~9999
+            if (key >= 0) {
+                mLayerKeyRecycledOrders[layer][key].insert(subOrder);
+            }
+            else {
+                mLayerRecycledOrders[layer].insert(subOrder);
+            }
         }
     }
 
@@ -268,6 +296,44 @@ private:
         }
 
         return newOrder;
+    }
+
+    // 按key分配下一个可用子顺序
+    int GetNextSubOrderForKey(RenderLayer layer, int key) {
+        // 1. 优先从该 key 的空闲池中取
+        auto& recycled = mLayerKeyRecycledOrders[layer][key];
+        if (!recycled.empty()) {
+            int sub = *recycled.begin();
+            recycled.erase(recycled.begin());
+            return sub;
+        }
+
+        // 2. 分配新区间内的本地索引
+        int localIdx = mLayerKeyMaxLocalIdx[layer][key];  // 默认初始为 0
+        if (localIdx < SUBORDER_PER_KEY) {
+            int globalSub = key * SUBORDER_PER_KEY + localIdx;
+            mLayerKeyMaxLocalIdx[layer][key] = localIdx + 1;
+            return globalSub;
+        }
+
+        // 3. 超出区间上限，尝试再次检查回收池
+        if (!recycled.empty()) {
+            int sub = *recycled.begin();
+            recycled.erase(recycled.begin());
+            return sub;
+        }
+
+        // 4. 极端情况：重置该 key 的区间（清空回收池，从 0 重新开始）
+        // 注意：这会导致之前已分配但尚未回收的子顺序被废弃，但概率极低
+        ResetKeyLayer(layer, key);
+        int globalSub = key * SUBORDER_PER_KEY;  // 从 0 开始
+        mLayerKeyMaxLocalIdx[layer][key] = 1;    // 下一个可用本地索引为 1
+        return globalSub;
+    }
+
+    void ResetKeyLayer(RenderLayer layer, int key) {
+        mLayerKeyMaxLocalIdx[layer][key] = 0;
+        mLayerKeyRecycledOrders[layer][key].clear();
     }
 
     // 重置指定图层

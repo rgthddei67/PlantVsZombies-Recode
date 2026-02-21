@@ -154,6 +154,12 @@
     <ClCompile Include="Game\ChooseCardUI.cpp">
       <Filter>Code\Game</Filter>
     </ClCompile>
+    <ClCompile Include="Game\GameProgress.cpp">
+      <Filter>Code\Game</Filter>
+    </ClCompile>
+    <ClCompile Include="Game\FlagMeter.cpp">
+      <Filter>Code\Game</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="UI\Button.h">
@@ -343,6 +349,15 @@
       <Filter>Code\Game\Plant</Filter>
     </ClInclude>
     <ClInclude Include="Game\ChooseCardUI.h">
+      <Filter>Code\Game</Filter>
+    </ClInclude>
+    <ClInclude Include="Camera2D.h">
+      <Filter>Code</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\GameProgress.h">
+      <Filter>Code\Game</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\FlagMeter.h">
       <Filter>Code\Game</Filter>
     </ClInclude>
   </ItemGroup>

@@ -11,8 +11,8 @@
 
 constexpr float CELL_COLLIDER_SIZE_X = 80.0f;
 constexpr float CELL_COLLIDER_SIZE_Y = 100.0f;
-constexpr float CELL_INITALIZE_POS_X = 210.0f;
-constexpr float CELL_INITALIZE_POS_Y = 80.0f;
+constexpr float CELL_INITALIZE_POS_X = 242.0f;
+constexpr float CELL_INITALIZE_POS_Y = 88.0f;
 
 class Cell : public GameObject {
 private:
@@ -53,7 +53,7 @@ public:
     {
         if (auto transform = mTransform.lock()) 
         {
-            return transform->position;
+            return transform->GetPosition();
         }
 
         float x = CELL_INITALIZE_POS_X + mColumn * CELL_COLLIDER_SIZE_X;

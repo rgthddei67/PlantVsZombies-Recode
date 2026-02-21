@@ -47,7 +47,7 @@ void Bullet::Update()
 		if (mCheckPositionTimer >= 1.0f)
 		{
 			mCheckPositionTimer = 0.0f;
-			Vector position = transform->GetWorldPosition();
+			Vector position = transform->GetPosition();
 			if (position.x > static_cast<float>(SCENE_WIDTH + 20) ||
 				position.x < -10.0f)
 			{

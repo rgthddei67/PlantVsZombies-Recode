@@ -41,7 +41,7 @@ void Card::Update() {
         auto transform = GetComponent<TransformComponent>();
         if (!transform) return;
 
-        Vector currentPos = transform->GetWorldPosition();
+        Vector currentPos = transform->GetPosition();
         Vector dir = m_targetPos - currentPos;
         float dist = dir.magnitude();
 

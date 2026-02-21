@@ -63,6 +63,8 @@ public:
 	int TakeHelmDamage(int damage);
 	void TakeBodyDamage(int damage);
 
+	int GetSortingKey() const override { return mRow; }
+
 	virtual void ShieldDrop();		// 二类防具掉落
 	virtual void HelmDrop();	// 一类防具掉落
 	virtual void HeadDrop();	// 头掉落

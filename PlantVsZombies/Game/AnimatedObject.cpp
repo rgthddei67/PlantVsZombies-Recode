@@ -2,6 +2,7 @@
 #include "Board.h"
 #include "../DeltaTime.h"
 #include "../GameRandom.h"
+#include "../GameAPP.h"
 #include <iostream>
 
 AnimatedObject::AnimatedObject(ObjectType type,
@@ -24,7 +25,7 @@ AnimatedObject::AnimatedObject(ObjectType type,
     SetTag(tag);
 
     auto transform = AddComponent<TransformComponent>();
-    transform->position = position;
+    transform->SetPosition(position);
     transform->SetScale(scale);
     mTransform = transform;
 
@@ -52,7 +53,7 @@ AnimatedObject::AnimatedObject(ObjectType type,
 
 Vector AnimatedObject::GetVisualPosition() const {
     if (auto transform = mTransform.lock()) {
-        return transform->position;
+        return transform->GetPosition();;
     }
     return Vector::zero();
 }
@@ -81,12 +82,14 @@ void AnimatedObject::Draw(SDL_Renderer* renderer) {
     GameObject::Draw(renderer);
     if (!mAnimator) return;
 
-    Vector visualPos = GetVisualPosition();
+    Vector screenPos = GameAPP::GetInstance().GetCamera().WorldToScreen
+        (GetVisualPosition());
     float scale = 1.0f;
+
     if (auto transform = mTransform.lock()) {
         scale = transform->GetScale();
     }
-    mAnimator->Draw(renderer, visualPos.x, visualPos.y, scale);
+    mAnimator->Draw(renderer, screenPos.x, screenPos.y, scale);
 }
 
 void AnimatedObject::PlayAnimation() {
@@ -112,13 +115,13 @@ void AnimatedObject::StopAnimation() {
 
 void AnimatedObject::SetAnimationPosition(const Vector& position) {
     if (auto transform = mTransform.lock()) {
-        transform->position = position;
+        transform->SetPosition(position);
     }
 }
 
 Vector AnimatedObject::GetAnimationPosition() const {
     if (auto transform = mTransform.lock()) {
-        return transform->position;
+        return transform->GetPosition();
     }
     return Vector::zero();
 }

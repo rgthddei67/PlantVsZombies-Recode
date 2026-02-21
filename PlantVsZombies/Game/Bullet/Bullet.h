@@ -57,7 +57,7 @@ public:
 	void SetVelocityY(float y) { this->mVelocityY = y; }
 
 	std::shared_ptr<TransformComponent> GetTransformComponent() const { return mTransform.lock(); }
-	Vector GetPosition() const { return GetTransformComponent()->GetWorldPosition(); }
+	Vector GetPosition() const { return GetTransformComponent()->GetPosition(); }
 	std::shared_ptr<ColliderComponent> GetColliderComponent() const { return mCollider.lock(); }
 };
 

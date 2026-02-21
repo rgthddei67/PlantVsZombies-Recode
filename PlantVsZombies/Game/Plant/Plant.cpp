@@ -99,7 +99,7 @@ void Plant::Update()
 }
 
 Vector Plant::GetVisualPosition() const {
-	return GetTransformComponent()->GetWorldPosition() + mVisualOffset;
+	return GetTransformComponent()->GetPosition() + mVisualOffset;
 }
 
 void Plant::PlantUpdate()
@@ -109,7 +109,7 @@ void Plant::PlantUpdate()
 
 Vector Plant::GetPosition() const
 {
-	return GetTransformComponent()->GetWorldPosition();
+	return GetTransformComponent()->GetPosition();
 }
 
 void Plant::SetPosition(const Vector& position)

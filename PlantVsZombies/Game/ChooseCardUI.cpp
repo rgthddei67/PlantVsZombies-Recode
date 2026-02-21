@@ -16,21 +16,23 @@ ChooseCardUI::ChooseCardUI(GameScene* gameScene)
 	mCards.reserve(64);
 	mSelectedCards.reserve(16);
 	mGameScene = gameScene;
+	if (!mGameScene) return;
 	mTransform = AddComponent<TransformComponent>(60.0f, 800.0f);
 	mCardUITexture = ResourceManager::GetInstance().
 		GetTexture(ResourceKeys::Textures::IMAGE_SEEDCHOOSER_BACKGROUND);
-	mButton = SceneManager::GetInstance().GetCurrectSceneUIManager().CreateButton
+	auto button = mGameScene->GetUIManager().CreateButton
 	(Vector(400, 550),
 		Vector(156 * 0.9f, 42 * 0.9f));
-	mButton->SetAsCheckbox(false);
-	mButton->SetImageKeys(ResourceKeys::Textures::IMAGE_SEEDCHOOSER_BUTTON_DISABLED,
+	mButton = button;
+	button->SetAsCheckbox(false);
+	button->SetImageKeys(ResourceKeys::Textures::IMAGE_SEEDCHOOSER_BUTTON_DISABLED,
 		ResourceKeys::Textures::IMAGE_SEEDCHOOSER_BUTTON,
 		ResourceKeys::Textures::IMAGE_SEEDCHOOSER_BUTTON);
-	mButton->SetTextColor(SDL_Color{ 211, 157, 42 ,255 });
-	mButton->SetHoverTextColor(SDL_Color{ 211, 157, 42 ,255 });
-	mButton->SetText(u8"     一起摇滚吧！", ResourceKeys::Fonts::FONT_FZCQ, 20);
-	mButton->SetEnabled(false);
-	mButton->SetClickCallBack([this](bool isChecked) {
+	button->SetTextColor(SDL_Color{ 211, 157, 42 ,255 });
+	button->SetHoverTextColor(SDL_Color{ 211, 157, 42 ,255 });
+	button->SetText(u8"     一起摇滚吧！", ResourceKeys::Fonts::FONT_FZCQ, 20);
+	button->SetEnabled(false);
+	button->SetClickCallBack([this](bool isChecked) {
 		if (mGameScene) {
 			mGameScene->ChooseCardComplete();
 		}
@@ -38,7 +40,7 @@ ChooseCardUI::ChooseCardUI(GameScene* gameScene)
 }
 
 ChooseCardUI::~ChooseCardUI() {
-	SceneManager::GetInstance().GetCurrectSceneUIManager().RemoveButton(mButton);
+	SceneManager::GetInstance().GetCurrectSceneUIManager().RemoveButton(mButton.lock());
 	mGameScene = nullptr;
 	//TODO 物体析构的时候，如果有其他物体没有销毁，不要在这个时候销毁，因为没用
 }
@@ -108,9 +110,8 @@ void ChooseCardUI::AddCard(PlantType type) {
 	if (auto transform = card->GetComponent<TransformComponent>()) {
 		transform->SetPosition(Vector(posX, posY));
 	}
-
 	card->SetOriginalPosition(Vector(posX, posY));
-
+	card->mIsUI = true;
 	mCards.push_back(card);
 }
 

@@ -11,6 +11,7 @@
 #include <vector>
 #include <memory>
 
+class GameScene;
 class Sun;
 class Coin;
 class Plant;
@@ -32,6 +33,9 @@ enum class BoardState {
 class Board {
 public:
 	BoardState mBoardState = BoardState::CHOOSE_CARD;
+	GameScene* mGameScene = nullptr;
+	std::string mLevelName = "关卡 1-1";
+	int mLevel = -1;	// 冒险模式当前关卡序号
 	int mBackGround = 0; // 背景图
 	int mRows = 5;	// 行数
 	int mColumns = 8; // 列数
@@ -49,8 +53,8 @@ public:
 
 	int mZombieNumber = 0;
 
-	Vector mSpawnZombiePos1 = Vector(795, 85);			// 左上角坐标
-	Vector mSpawnZombiePos2 = Vector(1079, 581);		// 右上角坐标
+	Vector mSpawnZombiePos1 = Vector(1180, 85);			// 左上角坐标
+	Vector mSpawnZombiePos2 = Vector(1500, 581);		// 右下角坐标
 
 	std::vector<std::weak_ptr<Zombie>> mPreviewZombieList;
 
@@ -63,8 +67,17 @@ private:
 	bool mHasHugeWaveSound = false;		// 有无放过一大波音乐
 
 public:
-	Board()
+	Board(GameScene* gameScene, int level)
 	{
+		mGameScene = gameScene;
+		mLevel = level;
+		if (mLevel >= 1)
+		{
+			mLevelName.clear();
+			int mBigLevel = mLevel / 10 + 1;
+			int mSmallLevel = mLevel % 10;
+			mLevelName = u8"关卡 " + std::to_string(mBigLevel) + u8"-" + std::to_string(mSmallLevel);
+		}
 		mSpawnZombieList.reserve(16);
 		mSpawnZombieList.push_back(ZombieType::ZOMBIE_NORMAL);
 		mPreviewZombieList.reserve(16);
@@ -152,9 +165,6 @@ public:
 
 	// 创建预览僵尸
 	void CreatePreviewZombies();
-
-	// 显示预览僵尸
-	void ShowPreviewZombies();
 
 	// 销毁所有预览僵尸
 	void DestroyPreviewZombies();

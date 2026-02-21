@@ -3,6 +3,7 @@
 #define _SLIDER_H
 #include "../Game/Definit.h"
 #include "../UI/InputHandler.h"
+#include "../ResourceKeys.h"
 #include <functional>
 #include <string>
 #include <SDL2/SDL.h>
@@ -18,8 +19,8 @@ private:
     float maxValue = 1.0f;                     // 最大值
     float currentValue = 0.5f;                 // 当前值
 
-    std::string backgroundImageKey = "IMAGE_options_sliderslot";            // 背景图片key
-    std::string knobImageKey = "IMAGE_options_sliderknob2";                  // 滑块图片key
+    std::string backgroundImageKey = ResourceKeys::Textures::IMAGE_OPTIONS_SLIDERSLOT;            // 背景图片key
+    std::string knobImageKey = ResourceKeys::Textures::IMAGE_OPTIONS_SLIDERKNOB2;                  // 滑块图片key
 
     bool isDragging = false;                   // 是否正在拖动
 	bool canDrag = true;                       // 是否允许拖动
@@ -42,6 +43,7 @@ public:
     void SetSize(Vector size);
     void SetValueRange(float min, float max);
     void SetValue(float value);
+    // 能否拖动
 	void SetDrag(bool canDrag);
 
     // 设置图片资源key

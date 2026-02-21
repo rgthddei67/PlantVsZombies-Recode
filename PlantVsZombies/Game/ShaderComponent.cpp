@@ -1,6 +1,7 @@
 #include "ShadowComponent.h"
 #include "../ResourceManager.h"
 #include "GameObject.h"
+#include "../GameApp.h"
 #include <algorithm>
 #include <iostream>
 #include "Plant/Plant.h"
@@ -38,7 +39,8 @@ void ShadowComponent::Draw(SDL_Renderer* renderer) {
     // 计算阴影位置（在物体下方，加上偏移）
 	ObjectType type = gameObject->GetObjectType();
     Vector shadowPos = Vector(0, 0);
-    Vector transform = gameObject->GetComponent<TransformComponent>()->GetWorldPosition();
+    Vector transform = GameAPP::GetInstance().GetCamera().WorldToScreen
+    (gameObject->GetComponent<TransformComponent>()->GetPosition());
     
     if (type == ObjectType::OBJECT_PLANT)
     {

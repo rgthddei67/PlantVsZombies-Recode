@@ -42,9 +42,9 @@ void CardSlotManager::Update() {
 	auto selected = selectedCard.lock();
 	if (selected) {
 		auto& input = GameAPP::GetInstance().GetInputHandler();
-		Vector mousePos = input.GetMousePosition();
+		Vector mouseScreen = input.GetMousePosition();  // 屏幕坐标
 
-		UpdatePreviewToMouse(mousePos);
+		UpdatePreviewToMouse(mouseScreen);              // 传入屏幕坐标
 		// 右键取消选择
 		if (input.IsMouseButtonPressed(SDL_BUTTON_RIGHT)) {
 			DeselectCard();
@@ -83,10 +83,10 @@ void CardSlotManager::Draw(SDL_Renderer* renderer) {
 	// 如果有选中的卡牌，绘制当前悬停Cell的高亮
 	if (auto selected = selectedCard.lock()) {
 		auto& input = GameAPP::GetInstance().GetInputHandler();
-		Vector mousePos = input.GetMousePosition();
+		Vector mouseScreen = input.GetMousePosition();
 
-		// 更新预览位置
-		UpdatePlantPreviewPosition(mousePos);
+		// 更新预览位置（
+		UpdatePlantPreviewPosition(mouseScreen);
 	}
 }
 
@@ -182,6 +182,7 @@ void CardSlotManager::CreatePlantPreview(PlantType plantType) {
 	if (mBoard) {
 		plantPreview = mBoard->CreatePlant(plantType, 0, 0, true);
 		plantPreview->PauseAnimation();
+		plantPreview->SetRenderOrder(LAYER_EFFECTS + 10000);
 	}
 }
 
@@ -191,18 +192,16 @@ void CardSlotManager::CreateCellPlantPreview(PlantType plantType, std::shared_pt
 	if (mBoard && cell) {
 		cellPlantPreview = mBoard->CreatePlant(plantType, 0, 0, true);
 		if (cellPlantPreview) {
-			// 获取植物偏移量
 			GameDataManager& plantMgr = GameDataManager::GetInstance();
 			Vector plantOffset = plantMgr.GetPlantOffset(plantType);
 
-			// 设置位置到Cell中心，并应用偏移量
-			Vector centerPos = cell->GetCenterPosition();
-			Vector plantPosition = centerPos + plantOffset;
+			Vector centerPos = cell->GetCenterPosition();          // 世界坐标
+			Vector plantPosition = centerPos + plantOffset;        // 世界坐标
 
 			cellPlantPreview->SetRenderOrder(LAYER_GAME_OBJECT - 5000);
 
 			if (auto transform = cellPlantPreview->GetTransformComponent()) {
-				transform->SetPosition(plantPosition);
+				transform->SetPosition(plantPosition);             // 设置为世界坐标
 			}
 
 			cellPlantPreview->SetAlpha(0.35f);
@@ -211,93 +210,87 @@ void CardSlotManager::CreateCellPlantPreview(PlantType plantType, std::shared_pt
 	}
 }
 
-void CardSlotManager::UpdatePlantPreviewPosition(const Vector& position) {
-	if (plantPreview) {
-		auto selected = selectedCard.lock();
-		if (!selected) return;
+void CardSlotManager::UpdatePlantPreviewPosition(const Vector& mouseScreen) {
+	if (!plantPreview) return;
 
-		// 查找鼠标所在的Cell
-		std::shared_ptr<Cell> hoveredCell = nullptr;
+	auto selected = selectedCard.lock();
+	if (!selected) return;
 
-		if (mBoard) {
-			// 遍历查找鼠标所在的Cell
-			for (int row = 0; row < mBoard->mRows; ++row) {
-				for (int col = 0; col < mBoard->mColumns; ++col) {
-					auto cell = mBoard->GetCell(row, col);
-					if (cell)
-					{
-						auto collider = cell->GetComponent<ColliderComponent>();
-						if (collider && collider->mEnabled) {
-							if (collider->ContainsPoint(position)) {
-								hoveredCell = cell;
-								break;
-							}
+	// 将鼠标屏幕坐标转换为世界坐标
+	Vector mouseWorld = GameAPP::GetInstance().GetCamera().ScreenToWorld(mouseScreen);
+
+	std::shared_ptr<Cell> hoveredCell = nullptr;
+
+	if (mBoard) {
+		// 遍历所有 Cell，使用世界坐标检测鼠标是否在 Cell 的碰撞器内
+		for (int row = 0; row < mBoard->mRows; ++row) {
+			for (int col = 0; col < mBoard->mColumns; ++col) {
+				auto cell = mBoard->GetCell(row, col);
+				if (cell) {
+					auto collider = cell->GetComponent<ColliderComponent>();
+					if (collider && collider->mEnabled) {
+						if (collider->ContainsPoint(mouseWorld)) {   // 使用世界坐标
+							hoveredCell = cell;
+							break;
 						}
 					}
 				}
-				if (hoveredCell) break;
 			}
+			if (hoveredCell) break;
 		}
-
-		bool isOverCellWithPlant = false;
-		if (hoveredCell && hoveredCell->GetPlantID() != NULL_PLANT_ID)
-		{
-			isOverCellWithPlant = true;
-		}
-
-		if (isOverCellWithPlant) {
-			DestroyCellPlantPreview();
-			hoveredCell = nullptr;
-		}
-
-		// 检查是否需要更新Cell预览
-		auto oldHoveredCell = mHoveredCell.lock();
-		if (hoveredCell != oldHoveredCell) {
-			// Cell发生变化，销毁旧的Cell预览
-			DestroyCellPlantPreview();
-
-			// 如果悬停在新的Cell上，创建透明的Cell预览
-			if (hoveredCell) {
-				if (auto cardComp = selected->GetComponent<CardComponent>()) {
-					CreateCellPlantPreview(cardComp->GetPlantType(), hoveredCell);
-				}
-			}
-
-			mHoveredCell = hoveredCell;
-		}
-
-		// 更新Cell预览位置（如果存在）
-		if (cellPlantPreview && hoveredCell) {
-			// 获取植物偏移量
-			if (auto cardComp = selected->GetComponent<CardComponent>()) {
-				GameDataManager& plantMgr = GameDataManager::GetInstance();
-				Vector plantOffset = plantMgr.GetPlantOffset(cardComp->GetPlantType());
-
-				// 计算位置：Cell中心 + 偏移量
-				Vector centerPos = hoveredCell->GetCenterPosition();
-				Vector plantPosition = centerPos + plantOffset;
-
-				if (auto transform = cellPlantPreview->GetComponent<TransformComponent>()) {
-					transform->SetPosition(plantPosition);
-				}
-			}
-		}
-
-		// 更新鼠标预览位置
-		UpdatePreviewToMouse(position);
 	}
+
+	bool isOverCellWithPlant = false;
+	if (hoveredCell && hoveredCell->GetPlantID() != NULL_PLANT_ID) {
+		isOverCellWithPlant = true;
+	}
+
+	if (isOverCellWithPlant) {
+		DestroyCellPlantPreview();
+		hoveredCell = nullptr;
+	}
+
+	auto oldHoveredCell = mHoveredCell.lock();
+	if (hoveredCell != oldHoveredCell) {
+		DestroyCellPlantPreview();
+
+		if (hoveredCell) {
+			if (auto cardComp = selected->GetComponent<CardComponent>()) {
+				CreateCellPlantPreview(cardComp->GetPlantType(), hoveredCell);
+			}
+		}
+
+		mHoveredCell = hoveredCell;
+	}
+
+	if (cellPlantPreview && hoveredCell) {
+		if (auto cardComp = selected->GetComponent<CardComponent>()) {
+			GameDataManager& plantMgr = GameDataManager::GetInstance();
+			Vector plantOffset = plantMgr.GetPlantOffset(cardComp->GetPlantType());
+
+			Vector centerPos = hoveredCell->GetCenterPosition();               // 世界坐标
+			Vector plantPosition = centerPos + plantOffset;                    // 世界坐标
+
+			if (auto transform = cellPlantPreview->GetComponent<TransformComponent>()) {
+				transform->SetPosition(plantPosition);                         // 设置世界坐标
+			}
+		}
+	}
+
+	// 更新鼠标预览植物位置：直接使用世界坐标 + 偏移
+	UpdatePreviewToMouse(mouseWorld);
 }
 
-void CardSlotManager::UpdatePreviewToMouse(const Vector& mousePos) {
+void CardSlotManager::UpdatePreviewToMouse(const Vector& mouseWorld) {
 	if (plantPreview) {
 		GameDataManager& plantMgr = GameDataManager::GetInstance();
 		Vector plantOffset = plantMgr.GetPlantOffset(plantPreview->mPlantType);
 
-		// 应用偏移量：鼠标位置 + 偏移
-		Vector plantPosition = mousePos + plantOffset;
+		// 预览植物位置 = 鼠标世界坐标 + 偏移
+		Vector plantPosition = mouseWorld + plantOffset;
 
 		if (auto transform = plantPreview->GetComponent<TransformComponent>()) {
-			transform->SetPosition(plantPosition);
+			transform->SetPosition(plantPosition);      // 世界坐标
 		}
 
 		plantPreview->mRow = -1;
@@ -306,13 +299,11 @@ void CardSlotManager::UpdatePreviewToMouse(const Vector& mousePos) {
 }
 
 void CardSlotManager::UpdatePreviewToCell(std::weak_ptr<Cell> cell) {
-	if (plantPreview)
-	{
-		if (auto lockedCell = cell.lock())
-		{
-			Vector centerPos = lockedCell->GetCenterPosition();
+	if (plantPreview) {
+		if (auto lockedCell = cell.lock()) {
+			Vector centerPos = lockedCell->GetCenterPosition();      // 世界坐标
 			if (auto transform = plantPreview->GetComponent<TransformComponent>()) {
-				transform->SetPosition(centerPos);
+				transform->SetPosition(centerPos);                  // 世界坐标
 			}
 		}
 	}

@@ -34,7 +34,7 @@ public:
             if (mProduceTimer >= mProductionGlowStartTimer + 0.55f) {
                 // 2.5秒发光结束，生产阳光
                 float offsetX = GameRandom::Range(-30.0f, 35.0f);
-                Vector position = GetTransformComponent()->GetWorldPosition();
+                Vector position = GetPosition();
                 mBoard->CreateSun(
                     position.x + offsetX,
                     position.y,

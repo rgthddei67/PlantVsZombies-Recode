@@ -7,9 +7,12 @@
 #include "./Zombie/Zombie.h"
 #include "./Bullet/PeaBullet.h"
 #include "./Plant/PeaShooter.h"
+#include "./SceneManager.h"
 #include "EntityManager.h"
 #include "RenderOrder.h"
+#include "GameScene.h"
 #include "./Plant/GameDataManager.h"
+#include "./GameProgress.h"
 #include "../GameApp.h"
 
 void Board::InitializeCell(int rows, int cols)
@@ -172,6 +175,7 @@ std::shared_ptr<Zombie> Board::CreateZombie(ZombieType zombieType, int row, floa
 
 	if (zombie && !isPreview) {
 		mEntityManager.AddZombie(zombie);
+
 		zombie->mSpawnWave = this->mCurrentWave;
 	}
 	return zombie;
@@ -272,6 +276,12 @@ void Board::UpdateLevel()
 			{
 				mHasHugeWaveSound = true;
 				AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_HUGEWAVE, 0.7f);
+				if (mGameScene)
+					mGameScene->ShowPrompt(
+						ResourceKeys::Textures::IMAGE_HUGE_WAVE_APPROACHING,
+						0.4f,    
+						4.0f,  
+						0.3f);
 			}
 			if (mHugeWaveCountDown >= 7.5f)
 			{
@@ -288,10 +298,24 @@ void Board::UpdateLevel()
 		if (mCurrentWave == 1)
 		{
 			AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_FIRSTWAVE, 0.7f);
+			if (mGameScene) {
+				auto gameProgress = mGameScene->GetGameProgress();
+				gameProgress->SetActive(true);
+				auto& res = ResourceManager::GetInstance();
+				gameProgress->SetupFlags(res.GetTexture(ResourceKeys::Textures::IMAGE_FLAGMETER_PART_STICK)
+				, res.GetTexture(ResourceKeys::Textures::IMAGE_FLAGMETER_PART_FLAG)
+				);
+			}
 		}
 		if (mCurrentWave == mMaxWave)
 		{
 			AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_FINALWAVE, 0.7f);
+			if (mGameScene)
+				mGameScene->ShowPrompt(
+					ResourceKeys::Textures::IMAGE_FINAL_WAVE,
+					0.3f,
+					2.0f,
+					0.4f);
 		}
 		if (mCurrentWave % 10 == 0)
 		{
@@ -319,21 +343,7 @@ void Board::CreatePreviewZombies()
 		(mSpawnZombiePos1.y, mSpawnZombiePos2.y));
 		auto preview = this->
 			CreateZombie(zombieType, -1, spawnPosition.x, spawnPosition.y, true);
-		preview->SetActive(false);
 		mPreviewZombieList.push_back(preview);
-	}
-}
-
-void Board::ShowPreviewZombies()
-{
-	if (mPreviewZombieList.empty()) return;
-
-	for (auto& zombieWeak : mPreviewZombieList)
-	{
-		if (auto zombie = zombieWeak.lock())
-		{
-			zombie->SetActive(true);
-		}
 	}
 }
 
@@ -474,6 +484,7 @@ void Board::Update()
 
 void Board::StartGame()
 {
+	DestroyPreviewZombies();
 	mBoardState = BoardState::GAME;
 	AudioSystem::PlayMusic(ResourceKeys::Music::MUSIC_DAY, -1);
 }

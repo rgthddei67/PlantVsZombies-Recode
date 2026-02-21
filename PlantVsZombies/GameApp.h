@@ -17,6 +17,7 @@
 #include <stdexcept>
 #include "./Game/Definit.h"
 #include "./ParticleSystem/ParticleSystem.h"
+#include "./Camera2D.h"
 
 constexpr int SCENE_WIDTH = 1100;
 constexpr int SCENE_HEIGHT = 600;
@@ -33,12 +34,12 @@ class InputHandler;
 class GameAPP
 {
 public:
-    int Difficulty = 1; // 难度系数
+    int Difficulty = 2; // 难度系数
 
 private:
     std::unique_ptr<InputHandler> mInputHandler;
     std::vector<TextCache> mTextCache;
-    Vector mCameraOffset = Vector(0, 0);
+    Camera2D mCamera = Camera2D(SCENE_WIDTH, SCENE_HEIGHT);
 
     SDL_Window* mWindow;
     SDL_Renderer* mRenderer;
@@ -86,16 +87,25 @@ public:
     // 清除文本缓存
     void ClearTextCache();
 
-    // 绘制文本 UTF8编码
+    Camera2D& GetCamera() { return mCamera; }
+
+    // 绘制文本 UTF8编码，不随Camera变化移动的
     void DrawText(const std::string& text,
         int x, int y,
         const SDL_Color& color,
         const std::string& fontKey = ResourceKeys::Fonts::FONT_FZCQ,
         int fontSize = 17);
 
-    // 绘制文本 UTF8编码
+    // 绘制文本 UTF8编码，不随Camera变化移动的
     void DrawText(const std::string& text,
         const Vector& position,
+        const SDL_Color& color,
+        const std::string& fontKey = ResourceKeys::Fonts::FONT_FZCQ,
+        int fontSize = 17);
+
+    // 绘制世界坐标文字，随Camera变化移动的
+    void DrawWorldText(const std::string& text,
+        const Vector& worldPosition,
         const SDL_Color& color,
         const std::string& fontKey = ResourceKeys::Fonts::FONT_FZCQ,
         int fontSize = 17);
@@ -119,9 +129,6 @@ public:
         }
         return *mInputHandler;
     }
-
-    void SetCameraOffset(const Vector& offset) { mCameraOffset = offset; }
-    Vector GetCameraOffset() { return mCameraOffset; }
 
     // 检查输入处理器是否有效
     bool IsInputHandlerValid() const { return mInputHandler != nullptr; }

@@ -264,7 +264,7 @@ int GameAPP::Run()
         {
             AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_BUTTONCLICK, 0.5f);
 			if (!mDebugMode)
-			    DeltaTime::SetTimeScale(5.0f);
+			    DeltaTime::SetTimeScale(10.0f);
             else
                 DeltaTime::SetTimeScale(1.0f);
             mDebugMode = !mDebugMode;
@@ -289,7 +289,10 @@ int GameAPP::Run()
         static int MousePoint = 0;
         if (MousePoint++ % 40 == 0)
         {
-            std::cout << "Mouse Position: "
+            std::cout << "Mouse World Position: "
+                << mInputHandler->GetMouseWorldPosition().x << ", "
+                << mInputHandler->GetMouseWorldPosition().y << std::endl;
+            std::cout << "Mouse Screen Position: "
                 << mInputHandler->GetMousePosition().x << ", "
                 << mInputHandler->GetMousePosition().y << std::endl;
         }
@@ -460,6 +463,15 @@ void GameAPP::DrawText(const std::string& text,
 {
     DrawText(text, static_cast<int>(position.x), static_cast<int>(position.y),
         color, fontKey, fontSize);
+}
+
+void GameAPP::DrawWorldText(const std::string& text,
+    const Vector& worldPosition,
+    const SDL_Color& color,
+    const std::string& fontKey,
+    int fontSize) {
+    Vector screenPos = mCamera.WorldToScreen(worldPosition);
+    DrawText(text, (int)screenPos.x, (int)screenPos.y, color, fontKey, fontSize);
 }
 
 Vector GameAPP::GetTextSize(const std::string& text,

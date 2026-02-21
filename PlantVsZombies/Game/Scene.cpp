@@ -83,13 +83,15 @@ void Scene::UnregisterDrawCommand(const std::string& name) {
     mDrawCommands.erase(it, mDrawCommands.end());
 }
 
-void Scene::AddTexture(const std::string& textureName, float posX, float posY, float scaleX, float scaleY, int drawOrder) {
+void Scene::AddTexture(const std::string& textureName, float posX, float posY, float scaleX, float scaleY, int drawOrder, bool isUI) {
     SDL_Texture* texture = ResourceManager::GetInstance().GetTexture(textureName);
     if (texture) {
-        TextureInfo info(texture, posX, posY, textureName);
+        TextureInfo info{ texture, posX, posY };
         info.scaleX = scaleX;
         info.scaleY = scaleY;
         info.drawOrder = drawOrder;
+        info.name = textureName;              
+        info.isUI = isUI;                   
         mTextures.push_back(info);
 #ifdef _DEBUG
         std::cout << "场景 " << name << " 添加纹理: " << textureName
@@ -198,26 +200,31 @@ void Scene::DrawAllTextures(SDL_Renderer* renderer) {
             return a.drawOrder < b.drawOrder;
         });
 
+    auto& camera = GameAPP::GetInstance().GetCamera();
     // 绘制所有可见纹理
     for (size_t i = 0; i < mTextures.size(); i++)
     {
 		auto texInfo = mTextures[i];
-        if (texInfo.texture && texInfo.visible) {
-            int texWidth, texHeight;
-            SDL_QueryTexture(texInfo.texture, nullptr, nullptr, &texWidth, &texHeight);
+        if (!texInfo.visible) continue;
 
-            float displayWidth = texWidth * texInfo.scaleX;
-            float displayHeight = texHeight * texInfo.scaleY;
+        int texWidth, texHeight;
+        SDL_QueryTexture(texInfo.texture, nullptr, nullptr, &texWidth, &texHeight);
 
-            SDL_FRect destRect = {
-                texInfo.posX,
-                texInfo.posY,
-                displayWidth,
-                displayHeight
-            };
+        float displayWidth = texWidth * texInfo.scaleX;
+        float displayHeight = texHeight * texInfo.scaleY;
 
-            SDL_RenderCopyF(renderer, texInfo.texture, nullptr, &destRect);
+        float drawX = texInfo.posX;
+        float drawY = texInfo.posY;
+
+        if (!texInfo.isUI) {
+            Vector worldPos(texInfo.posX, texInfo.posY);
+            Vector screenPos = camera.WorldToScreen(worldPos);
+            drawX = screenPos.x;
+            drawY = screenPos.y;
         }
+
+        SDL_FRect destRect = { drawX, drawY, displayWidth, displayHeight };
+        SDL_RenderCopyF(renderer, texInfo.texture, nullptr, &destRect);
     }
 }
 

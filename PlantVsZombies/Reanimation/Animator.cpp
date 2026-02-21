@@ -225,6 +225,159 @@ void Animator::Update() {
     }
 }
 
+void Animator::Draw(SDL_Renderer* renderer, float baseX, float baseY, float Scale) {
+    if (!mReanim || !renderer) return;
+
+    const float DEG_TO_RAD = 3.14159265358979323846f / 180.0f;
+
+    SDL_BlendMode oldRenderBlend;
+    SDL_GetRenderDrawBlendMode(renderer, &oldRenderBlend);
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+
+    for (int i = 0; i < static_cast<int>(mReanim->GetTrackCount()); ++i) {
+        auto track = mReanim->GetTrack(i);
+        if (!track || !track->mAvailable || track->mFrames.empty()) continue;
+
+        TrackFrameTransform transform = GetInterpolatedTransform(i);
+
+        bool shouldDrawSelf = (i < static_cast<int>(mExtraInfos.size()) &&
+            mExtraInfos[i].mVisible &&
+            transform.f != -1);
+        SDL_Texture* image = nullptr;
+
+        if (shouldDrawSelf) {
+            image = mExtraInfos[i].mImage ? mExtraInfos[i].mImage : transform.image;
+            shouldDrawSelf = (image != nullptr);
+        }
+
+        // 轨道自身绘制
+        if (shouldDrawSelf) {
+            int imgWidth, imgHeight;
+            SDL_QueryTexture(image, NULL, NULL, &imgWidth, &imgHeight);
+            float w = static_cast<float>(imgWidth);
+            float h = static_cast<float>(imgHeight);
+
+            // 角度取反
+            float angleX = -transform.kx * DEG_TO_RAD;
+            float angleY = -transform.ky * DEG_TO_RAD;
+            float cosX = cosf(angleX);
+            float sinX = sinf(angleX);
+            float cosY = cosf(angleY);
+            float sinY = sinf(angleY);
+
+            // 矩阵元素
+            float a = cosX * transform.sx;
+            float b = -sinX * transform.sx;
+            float c = sinY * transform.sy;
+            float d = cosY * transform.sy;
+
+            // 图像左上角世界坐标（加轨道偏移）
+            float tx = transform.x + mExtraInfos[i].mOffsetX;
+            float ty = transform.y + mExtraInfos[i].mOffsetY;
+
+            // 计算四个顶点世界坐标（左上角为原点）
+            float worldPoints[8];
+            for (int j = 0; j < 4; ++j) {
+                float u = (j == 0 || j == 3) ? 0.0f : w;
+                float v = (j == 0 || j == 1) ? 0.0f : h;
+
+                float x = a * u + c * v + tx;
+                float y = b * u + d * v + ty;
+
+                worldPoints[j * 2] = baseX + x * Scale;
+                worldPoints[j * 2 + 1] = baseY + y * Scale;
+            }
+
+            // 保存纹理原始状态（混合模式、颜色调制）
+            SDL_BlendMode oldTexBlend;
+            Uint8 oldR, oldG, oldB, oldA;
+            SDL_GetTextureBlendMode(image, &oldTexBlend);
+            SDL_GetTextureColorMod(image, &oldR, &oldG, &oldB);
+            SDL_GetTextureAlphaMod(image, &oldA);
+
+            // 重置纹理颜色调制为白色
+            SDL_SetTextureColorMod(image, 255, 255, 255);
+            SDL_SetTextureAlphaMod(image, 255);
+
+            // 计算最终透明度（帧透明度 * 全局透明度）
+            float combinedAlpha = transform.a * mAlpha;
+            Uint8 baseAlpha = static_cast<Uint8>(std::clamp(combinedAlpha * 255.0f, 0.0f, 255.0f));
+
+            // ---------- 正常绘制 ----------
+            SDL_SetTextureBlendMode(image, SDL_BLENDMODE_BLEND);
+            DrawTexturedQuad(renderer, image, worldPoints, { 255, 255, 255, baseAlpha });
+
+            // ---------- 发光效果 ----------
+            if (mEnableExtraAdditiveDraw) {
+                SDL_SetTextureBlendMode(image, SDL_BLENDMODE_ADD);
+                DrawTexturedQuad(renderer, image, worldPoints,
+                    { mExtraAdditiveColor.r, mExtraAdditiveColor.g, mExtraAdditiveColor.b, mExtraAdditiveColor.a });
+            }
+
+            // ---------- 覆盖层效果 ----------
+            if (mEnableExtraOverlayDraw) {
+                SDL_Color overlayColor = mExtraOverlayColor;
+                overlayColor.a = ColorComponentMultiply(mExtraOverlayColor.a, baseAlpha);
+                SDL_SetTextureBlendMode(image, SDL_BLENDMODE_BLEND);
+                DrawTexturedQuad(renderer, image, worldPoints, overlayColor);
+            }
+
+            // 恢复纹理原始状态
+            SDL_SetTextureBlendMode(image, oldTexBlend);
+            SDL_SetTextureColorMod(image, oldR, oldG, oldB);
+            SDL_SetTextureAlphaMod(image, oldA);
+        }
+
+        // 绘制附加子动画
+        if (i < static_cast<int>(mExtraInfos.size())) {
+            for (const auto& weakChild : mExtraInfos[i].mAttachedReanims) {
+                auto child = weakChild.lock();
+                if (!child || !child->mReanim) continue;
+
+                float angleX = -transform.kx * DEG_TO_RAD;
+                float angleY = -transform.ky * DEG_TO_RAD;
+                float cosX = cosf(angleX), sinX = sinf(angleX);
+                float cosY = cosf(angleY), sinY = sinf(angleY);
+                float a = cosX * transform.sx;
+                float b = -sinX * transform.sx;
+                float c = sinY * transform.sy;
+                float d = cosY * transform.sy;
+
+                float tx = transform.x + mExtraInfos[i].mOffsetX;
+                float ty = transform.y + mExtraInfos[i].mOffsetY;
+
+                float childX = child->mLocalPosX;
+                float childY = child->mLocalPosY;
+
+                float worldX = tx + a * childX + c * childY;
+                float worldY = ty + b * childX + d * childY;
+
+                worldX = baseX + worldX * Scale;
+                worldY = baseY + worldY * Scale;
+
+                child->Draw(renderer, worldX, worldY, 1.0f);
+            }
+        }
+    }
+
+    SDL_SetRenderDrawBlendMode(renderer, oldRenderBlend);
+}
+
+void Animator::DrawTexturedQuad(SDL_Renderer* renderer, SDL_Texture* texture,
+    const float points[8], SDL_Color color)
+{
+    SDL_Vertex vertices[4];
+    for (int i = 0; i < 4; ++i) {
+        vertices[i].position.x = points[i * 2];
+        vertices[i].position.y = points[i * 2 + 1];
+        vertices[i].color = color;
+        vertices[i].tex_coord.x = (i == 0 || i == 3) ? 0.0f : 1.0f;
+        vertices[i].tex_coord.y = (i == 0 || i == 1) ? 0.0f : 1.0f;
+    }
+    int indices[6] = { 0, 1, 2, 0, 2, 3 };
+    SDL_RenderGeometry(renderer, texture, vertices, 4, indices, 6);
+}
+
 void Animator::SetSpeed(float speed)
 {
     this->mSpeed = speed;
@@ -466,112 +619,6 @@ void Animator::SetFrameRangeToDefault() {
     }
 }
 
-void Animator::Draw(SDL_Renderer* renderer, float baseX, float baseY, float Scale) {
-    if (!mReanim || !renderer) return;
-
-    SDL_BlendMode oldBlendMode;
-    SDL_GetRenderDrawBlendMode(renderer, &oldBlendMode);
-    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-
-    for (int i = 0; i < mReanim->GetTrackCount(); i++) {
-        auto track = mReanim->GetTrack(i);
-        if (!track || !track->mAvailable || track->mFrames.empty()) continue;
-
-        // 1. 先获取插值变换（即使当前帧是隐藏帧，也能得到变换数据，用于子动画定位）
-        TrackFrameTransform transform = GetInterpolatedTransform(i);
-        // transform.f 可能为 -1，但其他属性（位置、缩放、旋转）有效
-
-        // 2. 轨道自身绘制条件：轨道可见、非隐藏帧、且有纹理
-        bool shouldDrawSelf = (i < static_cast<int>(mExtraInfos.size()) &&
-            mExtraInfos[i].mVisible &&
-            transform.f != -1);
-        SDL_Texture* image = nullptr;
-
-        if (shouldDrawSelf) {
-            if (mExtraInfos[i].mImage) {
-                image = mExtraInfos[i].mImage; // 手动设置优先
-            }
-            else {
-                image = transform.image;    // 直接使用
-            }
-            shouldDrawSelf = (image != nullptr);
-        }
-
-
-        // 3. 绘制轨道自身
-        if (shouldDrawSelf) {
-            int imgWidth, imgHeight;
-            SDL_QueryTexture(image, NULL, NULL, &imgWidth, &imgHeight);
-
-            float worldX = baseX + (transform.x + mExtraInfos[i].mOffsetX) * Scale;
-            float worldY = baseY + (transform.y + mExtraInfos[i].mOffsetY) * Scale;
-            float worldScaleX = transform.sx * Scale;
-            float worldScaleY = transform.sy * Scale;
-
-            float scaledWidth = imgWidth * worldScaleX;
-            float scaledHeight = imgHeight * worldScaleY;
-            if (scaledWidth < 1.0f) scaledWidth = 1.0f;
-            if (scaledHeight < 1.0f) scaledHeight = 1.0f;
-
-            SDL_FRect dstRect = { worldX, worldY, scaledWidth, scaledHeight };
-            SDL_FPoint center = { 0.0f, 0.0f };
-
-            float combinedAlpha = transform.a * mAlpha;
-            Uint8 baseAlpha = static_cast<Uint8>(std::clamp(combinedAlpha * 255.0f, 0.0f, 255.0f));
-
-            // 正常绘制
-            SDL_SetTextureAlphaMod(image, baseAlpha);
-            SDL_SetTextureColorMod(image, 255, 255, 255);
-            SDL_RenderCopyExF(renderer, image, NULL, &dstRect, transform.kx, &center, SDL_FLIP_NONE);
-
-            // 发光效果
-            if (mEnableExtraAdditiveDraw) {
-                SDL_BlendMode textureBlendMode;
-                SDL_GetTextureBlendMode(image, &textureBlendMode);
-                SDL_SetTextureBlendMode(image, SDL_BLENDMODE_ADD);
-                SDL_SetTextureColorMod(image, mExtraAdditiveColor.r, mExtraAdditiveColor.g, mExtraAdditiveColor.b);
-                SDL_SetTextureAlphaMod(image, mExtraAdditiveColor.a);
-                SDL_RenderCopyExF(renderer, image, NULL, &dstRect, transform.kx, &center, SDL_FLIP_NONE);
-                SDL_SetTextureBlendMode(image, textureBlendMode);
-                SDL_SetTextureColorMod(image, 255, 255, 255);
-                SDL_SetTextureAlphaMod(image, 255);
-            }
-
-            // 覆盖层效果
-            if (mEnableExtraOverlayDraw) {
-                SDL_Color overlayColor = mExtraOverlayColor;
-                overlayColor.a = ColorComponentMultiply(mExtraOverlayColor.a, baseAlpha);
-                SDL_SetTextureColorMod(image, overlayColor.r, overlayColor.g, overlayColor.b);
-                SDL_SetTextureAlphaMod(image, overlayColor.a);
-                SDL_RenderCopyExF(renderer, image, NULL, &dstRect, transform.kx, &center, SDL_FLIP_NONE);
-                SDL_SetTextureColorMod(image, 255, 255, 255);
-                SDL_SetTextureAlphaMod(image, 255);
-            }
-        }
-
-        // 4. 绘制附加到该轨道的子 Animator
-        if (i < static_cast<int>(mExtraInfos.size())) {
-            for (const auto& weakChild : mExtraInfos[i].mAttachedReanims) {
-                if (auto child = weakChild.lock()) {
-                    if (!child->mReanim) continue;
-
-                    // 计算子动画的世界位置：父轨道位置 + 父轨道偏移 + 子本地偏移（考虑父缩放）
-                    float childWorldX = baseX + (transform.x + mExtraInfos[i].mOffsetX) * Scale
-                        + child->mLocalPosX * (transform.sx * Scale);
-                    float childWorldY = baseY + (transform.y + mExtraInfos[i].mOffsetY) * Scale
-                        + child->mLocalPosY * (transform.sy * Scale);
-
-                    // 调用子动画的绘制，Scale 参数传 1.0f，因为子动画内部会使用自己的 mLocalScale       
-                    child->Draw(renderer, childWorldX, childWorldY, 1.0f);
-                }
-            }
-        }
-    }
-
-    SDL_SetRenderDrawBlendMode(renderer, oldBlendMode);
-}
-
-// 获取轨道信息
 float Animator::GetTrackVelocity(const std::string& trackName) const {
     if (!mReanim) return 0.0f;
 

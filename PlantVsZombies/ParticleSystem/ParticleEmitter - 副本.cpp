@@ -74,7 +74,7 @@ void ParticleEmitter::Update() {
     // 更新所有粒子
     for (size_t i = 0; i < particles.size(); i++)
     {
-        auto& particle = particles[i];
+        auto particle = particles[i];
         if (particle.active) {
             particle.Update();
         }
@@ -153,7 +153,7 @@ void ParticleEmitter::Draw(SDL_Renderer* renderer)
 {
     for (size_t i = 0; i < particles.size(); i++)
     {
-        auto& particle = particles[i];
+        auto particle = particles[i];
         if (particle.active) {
             if (particle.useTexture && particle.texture) {
                 // 获取源纹理区域的尺寸
@@ -220,7 +220,8 @@ int ParticleEmitter::GetActiveParticleCount() const {
     int count = 0;
     for (size_t i = 0; i < particles.size(); i++)
     {
-        if (particles[i].active) count++;
+        auto particle = particles[i];
+        if (particle.active) count++;
     }
     return count;
 }

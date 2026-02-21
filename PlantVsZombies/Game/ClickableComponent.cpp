@@ -13,29 +13,44 @@ void ClickableComponent::ClearProcessedEvents() {
 
 void ClickableComponent::ProcessMouseEvents() {
     auto& input = GameAPP::GetInstance().GetInputHandler();
-    Vector mousePos = input.GetMousePosition();
+
+    // 获取鼠标屏幕坐标和世界坐标
+    Vector mouseScreen = input.GetMousePosition();
+    Vector mouseWorld = input.GetMouseWorldPosition();
 
     // 清空上一帧的处理记录
     ClearProcessedEvents();
 
     s_hoveringClickable = false;
-
-    // 收集所有鼠标位置下的可点击对象
+    // 收集所有鼠标位置下的可点击对象（使用世界坐标）
     auto& manager = GameObjectManager::GetInstance();
     auto allObjects = manager.GetAllGameObjects();
 
     std::vector<std::pair<std::shared_ptr<GameObject>, ClickableComponent*>> clickableObjects;
 
-    for (auto& obj : allObjects) {
+    for (size_t i = 0; i < allObjects.size(); i++)
+    {
+        auto obj = allObjects[i];
         if (!obj->IsActive()) continue;
 
         auto clickable = obj->GetComponent<ClickableComponent>();
         if (!clickable || !clickable->IsClickable) continue;
-        
-		auto collider = clickable->mCollider;
-		if (!collider || !collider->mEnabled) continue;
 
-        if (collider->ContainsPoint(mousePos)) {
+        auto collider = clickable->mCollider;
+        if (!collider || !collider->mEnabled) continue;
+
+        Vector testPoint = obj->mIsUI ? mouseScreen : mouseWorld;
+
+        if (collider->ContainsPoint(testPoint)) {
+            clickableObjects.emplace_back(obj, clickable.get());
+
+            if (clickable->ChangeCursorOnHover) {
+                s_hoveringClickable = true;
+            }
+        }
+
+        // 使用转换后的世界坐标进行点包含测试
+        if (collider->ContainsPoint(testPoint)) {
             clickableObjects.emplace_back(obj, clickable.get());
 
             if (clickable->ChangeCursorOnHover) {
@@ -50,23 +65,22 @@ void ClickableComponent::ProcessMouseEvents() {
             return a.first->GetRenderOrder() > b.first->GetRenderOrder();
         });
 
-    // 更新所有对象的鼠标悬停状态 后标记处理过的对象
-    for (auto& pair : clickableObjects) {
+    // 更新所有对象的鼠标悬停状态 后标记处理过的对象 
+    for (size_t i = 0; i < clickableObjects.size(); i++)
+    {
+        auto pair = clickableObjects[i];
         auto clickable = pair.second;
         bool wasHovered = clickable->mouseOver;
         pair.second->mouseOver = true;
 
-        // 如果之前没有悬停，现在悬停，增加计数
         if (!wasHovered && clickable->ChangeCursorOnHover) {
             CursorManager::GetInstance().IncrementHoverCount();
         }
 
-        // 如果这个对象的事件已经被处理（由更高层对象消耗），跳过
         if (s_processedEvents.find(clickable) != s_processedEvents.end()) {
             continue;
         }
 
-        // 处理点击事件
         bool processed = false;
 
         if (input.IsMouseButtonPressed(SDL_BUTTON_LEFT)) {
@@ -82,11 +96,11 @@ void ClickableComponent::ProcessMouseEvents() {
             processed = true;
         }
 
-        // 如果对象消耗事件，标记并停止处理后续对象
         if (processed && clickable->ConsumeEvent) {
             s_processedEvents.insert(clickable);
-            // 标记所有未处理的对象的事件已被消耗
-            for (auto& remainingPair : clickableObjects) {
+            for (size_t j = 0; j < clickableObjects.size(); j++)
+            {
+                auto remainingPair = clickableObjects[j];
                 if (remainingPair.second != clickable) {
                     s_processedEvents.insert(remainingPair.second);
                 }
@@ -94,15 +108,10 @@ void ClickableComponent::ProcessMouseEvents() {
             break;
         }
 
-        // 如果对象不消耗事件，标记为已处理但继续处理下一个
         if (processed) {
             s_processedEvents.insert(clickable);
         }
-    }
-
-    // 调用所有对象的Update来处理鼠标进入/离开事件
-    for (auto& pair : clickableObjects) {
-        pair.second->Update();
+        clickableObjects[i].second->Update();
     }
 }
 

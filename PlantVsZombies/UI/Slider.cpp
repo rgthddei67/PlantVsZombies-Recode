@@ -94,7 +94,7 @@ void Slider::Update(InputHandler* input)
 
     Vector mousePos = input->GetMousePosition();
 
-    if (BackgroundContainsPoint(mousePos))
+    if (BackgroundContainsPoint(mousePos) && canDrag)
     {
 		CursorManager::GetInstance().IncrementHoverCount();
     }

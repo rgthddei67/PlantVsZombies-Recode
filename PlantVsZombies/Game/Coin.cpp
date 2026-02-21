@@ -123,7 +123,7 @@ void Coin::OnReachTargetBack()
 Vector Coin::GetPosition() const
 {
 	if (auto transform = mTransform.lock()) {
-		return transform->position;
+		return transform->GetPosition();
 	}
 	return Vector::zero();
 }

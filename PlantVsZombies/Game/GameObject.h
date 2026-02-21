@@ -25,6 +25,8 @@ enum class ObjectType {
 class Component;
 
 class GameObject : public std::enable_shared_from_this<GameObject> {
+public:
+    bool mIsUI = false;
 protected:
     ObjectType mObjectType = ObjectType::OBJECT_NONE;
     int mRenderOrder = LAYER_GAME_OBJECT;
@@ -44,7 +46,7 @@ private:
 public:
     GameObject(ObjectType type = ObjectType::OBJECT_NONE);
 
-    virtual ~GameObject();
+    ~GameObject();
 
     // 添加组件 若是刚刚创建的对象，则不能使用，因为还没有
     template<typename T, typename... Args>
@@ -115,6 +117,7 @@ public:
     void SetRenderOrder(int order) { mRenderOrder = order; }
     RenderLayer GetLayer() const { return mLayer; }
     void SetLayer(RenderLayer layer) { mLayer = layer; }
+    virtual int GetSortingKey() const { return -1; }        // 获取排序顺序，实现不同row顺序不一样
 
     static RenderLayer GetLayerFromOrder(int renderOrder) {
         if (renderOrder < LAYER_GAME_OBJECT) return LAYER_BACKGROUND;
