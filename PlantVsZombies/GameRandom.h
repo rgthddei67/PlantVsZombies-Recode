@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #ifndef _GAME_RANDOM_H
 #define _GAME_RANDOM_H
 #include <random>
@@ -11,52 +11,52 @@ class GameRandom {
 private:
     static inline std::mt19937_64 engine{ std::random_device{}() };
 
-    // Ô¤¶¨Òå·Ö²¼
+    // é¢„å®šä¹‰åˆ†å¸ƒ
     static inline std::uniform_real_distribution<float> floatDist{ 0.0f, 1.0f };
     static inline std::uniform_real_distribution<double> doubleDist{ 0.0, 1.0 };
     static inline std::uniform_int_distribution<int> intDist{ 0, 1 };
     static inline std::normal_distribution<float> normalDist{ 0.0f, 1.0f };
 
 public:
-    // [0.0, 1.0) Ëæ»ú¸¡µãÊı  
+    // [0.0, 1.0) éšæœºæµ®ç‚¹æ•°  
     static float Value() {
         return floatDist(engine);
     }
 
-	// [min, max] Ëæ»ú¸¡µãÊı ²»°üº¬max
+	// [min, max] éšæœºæµ®ç‚¹æ•° ä¸åŒ…å«max
     static float Range(float min, float max) {
         std::uniform_real_distribution<float> dist(min, max);
         return dist(engine);
     }
 
-    // [min, max] Ëæ»úÕûÊı °üº¬min max
+    // [min, max] éšæœºæ•´æ•° åŒ…å«min max
     static int Range(int min, int max) {
         std::uniform_int_distribution<int> dist(min, max);
         return dist(engine);
     }
 
-    // Ëæ»ú²¼¶ûÖµ£¨Ö¸¶¨¸ÅÂÊ£©
+    // éšæœºå¸ƒå°”å€¼ï¼ˆæŒ‡å®šæ¦‚ç‡ï¼‰
     static bool Chance(float probability = 0.5f) {
         return Value() < probability;
     }
 
-    // Ëæ»ú·ûºÅ£¨-1 »ò 1£©
+    // éšæœºç¬¦å·ï¼ˆ-1 æˆ– 1ï¼‰
     static int Sign() {
         return Chance() ? 1 : -1;
     }
 
-    // Ëæ»ú½Ç¶È£¨»¡¶È£©
+    // éšæœºè§’åº¦ï¼ˆå¼§åº¦ï¼‰
     static float Angle() {
-        return Range(0.0f, 6.28318530718f); // 2¦Ğ
+        return Range(0.0f, 6.28318530718f); // 2Ï€
     }
 
-    // Ëæ»ú·½Ïò£¨µ¥Î»Ô²ÉÏµÄµã£©
+    // éšæœºæ–¹å‘ï¼ˆå•ä½åœ†ä¸Šçš„ç‚¹ï¼‰
     static std::pair<float, float> Direction() {
         float angle = Angle();
         return { std::cos(angle), std::sin(angle) };
     }
 
-    // Ëæ»úÑÕÉ«£¨RGBA£©
+    // éšæœºé¢œè‰²ï¼ˆRGBAï¼‰
     static std::tuple<float, float, float, float> Color(
         float alpha = 1.0f,
         bool randomAlpha = false
@@ -67,7 +67,7 @@ public:
         };
     }
 
-    // ¸ßË¹·Ö²¼Ëæ»úÊı
+    // é«˜æ–¯åˆ†å¸ƒéšæœºæ•°
     static float Gaussian(float mean = 0.0f, float stddev = 1.0f) {
         if (mean == 0.0f && stddev == 1.0f) {
             return normalDist(engine);
@@ -76,7 +76,7 @@ public:
         return dist(engine);
     }
 
-    // ¼ÓÈ¨Ëæ»úÑ¡Ôñ
+    // åŠ æƒéšæœºé€‰æ‹©
     template<typename T>
     static const T& WeightedChoice(
         const std::vector<T>& items,
@@ -97,10 +97,10 @@ public:
             }
         }
 
-        return items.back(); // ÀíÂÛÉÏ²»»áµ½ÕâÀï
+        return items.back(); // ç†è®ºä¸Šä¸ä¼šåˆ°è¿™é‡Œ
     }
 
-    // Ï´ÅÆ£¨Fisher-YatesËã·¨£©
+    // æ´—ç‰Œï¼ˆFisher-Yatesç®—æ³•ï¼‰
     template<typename T>
     static void Shuffle(std::vector<T>& items) {
         for (int i = items.size() - 1; i > 0; --i) {
@@ -109,17 +109,17 @@ public:
         }
     }
 
-    // ÉèÖÃËæ»úÖÖ×Ó
+    // è®¾ç½®éšæœºç§å­
     static void SetSeed(uint64_t seed) {
         engine.seed(seed);
     }
 
-    // »ñÈ¡µ±Ç°ÖÖ×Ó
+    // è·å–å½“å‰ç§å­
     static uint64_t GetSeed() {
         return engine.default_seed;
     }
 
-    // Ëæ»úÖÖ×Ó£¨»ùÓÚÊ±¼ä£©
+    // éšæœºç§å­ï¼ˆåŸºäºæ—¶é—´ï¼‰
     static void RandomizeSeed() {
         engine.seed(std::chrono::high_resolution_clock::now()
             .time_since_epoch().count());

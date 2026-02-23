@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #ifndef _COMPONENT_H
 #define _COMPONENT_H
 
@@ -15,25 +15,25 @@ class GameObject;
 
 class Component : public std::enable_shared_from_this<Component> {
 protected:
-    std::weak_ptr<GameObject> mGameObjectWeak;   // ²»ÄÜshared_ptr ·ÀÖ¹Ñ­»·ÒıÓÃ(GameObject) ÒòÎªGameObjectÒ²»áÒıÓÃËû(Ò»Ğ©¶«Î÷É¶µÄ)
-    int mDrawOrder = 0;     // »æÖÆË³Ğò Ô½´óµÄ×îÏÈ»æÖÆ ( -100 - 100 ×îºÃ)
+    std::weak_ptr<GameObject> mGameObjectWeak;   // ä¸èƒ½shared_ptr é˜²æ­¢å¾ªç¯å¼•ç”¨(GameObject) å› ä¸ºGameObjectä¹Ÿä¼šå¼•ç”¨ä»–(ä¸€äº›ä¸œè¥¿å•¥çš„)
+    int mDrawOrder = 0;     // ç»˜åˆ¶é¡ºåº è¶Šå¤§çš„æœ€å…ˆç»˜åˆ¶ ( -100 - 100 æœ€å¥½)
 
 public:
     bool mEnabled = true;
 
     virtual ~Component() = default;
 
-    virtual void Start() {}                         // ×é¼ş¿ªÊ¼Ê±µ÷ÓÃ
-    virtual void Update() {}                        // Ã¿Ö¡¸üĞÂ
-    virtual void OnDestroy() {}                     // ×é¼şÏú»ÙÊ±µ÷ÓÃ
-    virtual void Draw(SDL_Renderer* renderer) {}    // »æÖÆ·½·¨
+    virtual void Start() {}                         // ç»„ä»¶å¼€å§‹æ—¶è°ƒç”¨
+    virtual void Update() {}                        // æ¯å¸§æ›´æ–°
+    virtual void OnDestroy() {}                     // ç»„ä»¶é”€æ¯æ—¶è°ƒç”¨
+    virtual void Draw(SDL_Renderer* renderer) {}    // ç»˜åˆ¶æ–¹æ³•
 
-    // »ñÈ¡ GameObject£¨Èç¹û»¹´æÔÚ£©
+    // è·å– GameObjectï¼ˆå¦‚æœè¿˜å­˜åœ¨ï¼‰
     std::shared_ptr<GameObject> GetGameObject() const;
     void SetDrawOrder(int order) { mDrawOrder = order; }
     int GetDrawOrder() const { return mDrawOrder; }
 
-    // ÉèÖÃËùÊôÓÎÏ·¶ÔÏó
+    // è®¾ç½®æ‰€å±æ¸¸æˆå¯¹è±¡
     void SetGameObject(std::shared_ptr<GameObject> obj);
 };
 

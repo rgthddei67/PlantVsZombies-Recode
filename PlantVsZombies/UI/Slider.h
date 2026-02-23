@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #ifndef _SLIDER_H
 #define _SLIDER_H
 #include "../Game/Definit.h"
@@ -13,24 +13,24 @@ class ResourceManager;
 class Slider
 {
 private:
-    Vector position = Vector::zero();          // »¬¶¯ÌõÎ»ÖÃ£¨µ×²¿±³¾°µÄÎ»ÖÃ£©
-    Vector size = Vector(135, 10);             // »¬¶¯Ìõ´óĞ¡
-    float minValue = 0.0f;                     // ×îĞ¡Öµ
-    float maxValue = 1.0f;                     // ×î´óÖµ
-    float currentValue = 0.5f;                 // µ±Ç°Öµ
+    Vector position = Vector::zero();          // æ»‘åŠ¨æ¡ä½ç½®ï¼ˆåº•éƒ¨èƒŒæ™¯çš„ä½ç½®ï¼‰
+    Vector size = Vector(135, 10);             // æ»‘åŠ¨æ¡å¤§å°
+    float minValue = 0.0f;                     // æœ€å°å€¼
+    float maxValue = 1.0f;                     // æœ€å¤§å€¼
+    float currentValue = 0.5f;                 // å½“å‰å€¼
 
-    std::string backgroundImageKey = ResourceKeys::Textures::IMAGE_OPTIONS_SLIDERSLOT;            // ±³¾°Í¼Æ¬key
-    std::string knobImageKey = ResourceKeys::Textures::IMAGE_OPTIONS_SLIDERKNOB2;                  // »¬¿éÍ¼Æ¬key
+    std::string backgroundImageKey = ResourceKeys::Textures::IMAGE_OPTIONS_SLIDERSLOT;            // èƒŒæ™¯å›¾ç‰‡key
+    std::string knobImageKey = ResourceKeys::Textures::IMAGE_OPTIONS_SLIDERKNOB2;                  // æ»‘å—å›¾ç‰‡key
 
-    bool isDragging = false;                   // ÊÇ·ñÕıÔÚÍÏ¶¯
-	bool canDrag = true;                       // ÊÇ·ñÔÊĞíÍÏ¶¯
-    Vector dragStartPosition;                  // ÍÏ¶¯¿ªÊ¼Î»ÖÃ
-    float dragStartValue;                      // ÍÏ¶¯¿ªÊ¼Ê±µÄÖµ
+    bool isDragging = false;                   // æ˜¯å¦æ­£åœ¨æ‹–åŠ¨
+	bool canDrag = true;                       // æ˜¯å¦å…è®¸æ‹–åŠ¨
+    Vector dragStartPosition;                  // æ‹–åŠ¨å¼€å§‹ä½ç½®
+    float dragStartValue;                      // æ‹–åŠ¨å¼€å§‹æ—¶çš„å€¼
 
     int SliderSizeX = 22;
     int SliderSizeY = 29;
 
-    std::function<void(float)> onChangeCallback = nullptr; // Öµ¸Ä±äÊ±ºòµÄ»Øµ÷
+    std::function<void(float)> onChangeCallback = nullptr; // å€¼æ”¹å˜æ—¶å€™çš„å›è°ƒ
 
 public:
     Slider(Vector createPosition = Vector::zero(),
@@ -43,37 +43,37 @@ public:
     void SetSize(Vector size);
     void SetValueRange(float min, float max);
     void SetValue(float value);
-    // ÄÜ·ñÍÏ¶¯
+    // èƒ½å¦æ‹–åŠ¨
 	void SetDrag(bool canDrag);
 
-    // ÉèÖÃÍ¼Æ¬×ÊÔ´key
+    // è®¾ç½®å›¾ç‰‡èµ„æºkey
     void SetImageKeys(const std::string& background, const std::string& knob);
 
-    // ÉèÖÃÖµ¸Ä±ä»Øµ÷
+    // è®¾ç½®å€¼æ”¹å˜å›è°ƒ
     void SetChangeCallBack(std::function<void(float)> callback);
 
-    // ´¦ÀíÊäÈëÊÂ¼ş
+    // å¤„ç†è¾“å…¥äº‹ä»¶
     void ProcessMouseEvent(InputHandler* input);
     void Update(InputHandler* input);
 
-    // äÖÈ¾
+    // æ¸²æŸ“
     void Draw(SDL_Renderer* renderer) const;
 
-    // »ñÈ¡×´Ì¬ºÍÖµ
+    // è·å–çŠ¶æ€å’Œå€¼
     bool IsDragging() const;
     float GetValue() const;
-    float GetNormalizedValue() const; // »ñÈ¡¹éÒ»»¯Öµ (0-1)
+    float GetNormalizedValue() const; // è·å–å½’ä¸€åŒ–å€¼ (0-1)
 
-    // ¼ì²âµãÊÇ·ñÔÚ»¬¿éÄÚ
+    // æ£€æµ‹ç‚¹æ˜¯å¦åœ¨æ»‘å—å†…
     bool KnobContainsPoint(Vector point) const;
 
-    // ¼ì²âµãÊÇ·ñÔÚ»¬¶¯Ìõ±³¾°ÄÚ
+    // æ£€æµ‹ç‚¹æ˜¯å¦åœ¨æ»‘åŠ¨æ¡èƒŒæ™¯å†…
     bool BackgroundContainsPoint(Vector point) const;
 
-    // ¸ù¾İXÎ»ÖÃ¼ÆËãÖµ
+    // æ ¹æ®Xä½ç½®è®¡ç®—å€¼
     float CalculateValueFromX(float x) const;
 
-    // ¸ù¾İÖµ¼ÆËã»¬¿éXÎ»ÖÃ
+    // æ ¹æ®å€¼è®¡ç®—æ»‘å—Xä½ç½®
     float CalculateKnobXFromValue() const;
 };
 #endif

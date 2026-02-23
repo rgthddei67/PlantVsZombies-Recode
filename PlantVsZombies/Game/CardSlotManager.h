@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #ifndef _CARD_SLOT_MANAGER_H
 #define _CARD_SLOT_MANAGER_H
 
@@ -16,17 +16,17 @@ class Plant;
 
 class CardSlotManager : public Component {
 private:
-	std::vector<std::weak_ptr<Card>> cards;  // ¿¨ÅÆÁĞ±í
-    std::weak_ptr<GameObject> selectedCard;                 // µ±Ç°Ñ¡ÖĞµÄ¿¨ÅÆ
-    std::shared_ptr<Plant> plantPreview = nullptr;          // Ö²ÎïÔ¤ÀÀ
+	std::vector<std::weak_ptr<Card>> cards;  // å¡ç‰Œåˆ—è¡¨
+    std::weak_ptr<GameObject> selectedCard;                 // å½“å‰é€‰ä¸­çš„å¡ç‰Œ
+    std::shared_ptr<Plant> plantPreview = nullptr;          // æ¤ç‰©é¢„è§ˆ
     std::shared_ptr<Plant> cellPlantPreview = nullptr;      
 
-    // ³£Á¿²ÎÊı
-    Vector firstSlotPosition = Vector(64, -2); // µÚÒ»¸ö¿¨ÅÆ²ÛµÄÎ»ÖÃ
-    float slotSpacing = CARD_WIDTH + 5; // ¿¨ÅÆ¼ä¾à = ¿¨ÅÆ¿í¶È + 5ÏñËØ¼ä¸ô
+    // å¸¸é‡å‚æ•°
+    Vector firstSlotPosition = Vector(64, -2); // ç¬¬ä¸€ä¸ªå¡ç‰Œæ§½çš„ä½ç½®
+    float slotSpacing = CARD_WIDTH + 5; // å¡ç‰Œé—´è· = å¡ç‰Œå®½åº¦ + 5åƒç´ é—´éš”
 
     Board* mBoard = nullptr;
-    std::weak_ptr<Cell> mHoveredCell;     // µ±Ç°Êó±êĞüÍ£µÄCell
+    std::weak_ptr<Cell> mHoveredCell;     // å½“å‰é¼ æ ‡æ‚¬åœçš„Cell
 
 public:
     CardSlotManager(Board* board);
@@ -37,7 +37,7 @@ public:
     void UpdatePreviewToMouse(const Vector& mousePos);
     void Draw(SDL_Renderer* renderer) override;
 
-    // ¿¨ÅÆ²Ù×÷
+    // å¡ç‰Œæ“ä½œ
     void AddCard(std::shared_ptr<Card> card);
     void SelectCard(std::weak_ptr<GameObject> card);
     void DeselectCard();
@@ -45,19 +45,19 @@ public:
     bool CanAfford(int cost) const { return mBoard ? mBoard->GetSun() >= cost : false; }
     bool SpendSun(int cost);
 
-    // ÇåÀíÖ²ÎïÔ¤ÀÀ
+    // æ¸…ç†æ¤ç‰©é¢„è§ˆ
     void DestroyPlantPreview();
 
-    // ´¦ÀíCellµã»÷
+    // å¤„ç†Cellç‚¹å‡»
     void HandleCellClick(int row, int col);
 
-    // ÒÆ¶¯Ô¤ÀÀµ½Ö¸¶¨Cell
+    // ç§»åŠ¨é¢„è§ˆåˆ°æŒ‡å®šCell
     void UpdatePreviewToCell(std::weak_ptr<Cell> cell);
 
-    // »ñÈ¡µ±Ç°Ñ¡ÖĞµÄÖ²ÎïÀàĞÍ
+    // è·å–å½“å‰é€‰ä¸­çš„æ¤ç‰©ç±»å‹
     PlantType GetSelectedPlantType() const;
 
-    // »ñÈ¡¿¨ÅÆĞÅÏ¢
+    // è·å–å¡ç‰Œä¿¡æ¯
     std::shared_ptr<GameObject> GetSelectedCard() const { return selectedCard.lock(); }
     int GetCurrentSun() const { return mBoard ? mBoard->GetSun() : 0; }
 
@@ -65,15 +65,15 @@ private:
     void CreatePlantPreview(PlantType plantType);
     void UpdatePlantPreviewPosition(const Vector& position);
 
-    // ´´½¨CellĞüÍ£Ô¤ÀÀ£¨Í¸Ã÷£©
+    // åˆ›å»ºCellæ‚¬åœé¢„è§ˆï¼ˆé€æ˜ï¼‰
     void CreateCellPlantPreview(PlantType plantType, std::shared_ptr<Cell> cell);
-    // Ïú»ÙCellĞüÍ£Ô¤ÀÀ
+    // é”€æ¯Cellæ‚¬åœé¢„è§ˆ
     void DestroyCellPlantPreview();
 
-    // ¼ì²éÊÇ·ñ¿ÉÒÔÔÚÖ¸¶¨Cell·ÅÖÃÖ²Îï
+    // æ£€æŸ¥æ˜¯å¦å¯ä»¥åœ¨æŒ‡å®šCellæ”¾ç½®æ¤ç‰©
     bool CanPlaceInCell(const std::shared_ptr<Cell>& cell) const;
 
-    // ÔÚÖ¸¶¨Cell·ÅÖÃÖ²Îï
+    // åœ¨æŒ‡å®šCellæ”¾ç½®æ¤ç‰©
     void PlacePlantInCell(int row, int col);
 };
 

@@ -1,4 +1,4 @@
-#include "Button.h"
+ï»¿#include "Button.h"
 #include "InputHandler.h"
 #include <iostream>
 #include <SDL2/SDL_image.h>
@@ -105,24 +105,24 @@ void Button::Update(InputHandler* input)
     Vector mousePos = input->GetMousePosition();
     this->isHovered = this->ContainsPoint(mousePos);
 
-    // ´¦ÀíĞüÍ£×´Ì¬±ä»¯
+    // å¤„ç†æ‚¬åœçŠ¶æ€å˜åŒ–
     if (this->isHovered) {
         CursorManager::GetInstance().IncrementHoverCount();
     }
 
-    // ´¦ÀíÊó±ê°´ÏÂ
+    // å¤„ç†é¼ æ ‡æŒ‰ä¸‹
     if (this->isHovered && m_mousePressedThisFrame)
     {
         this->isPressed = true;
-        // °´ÏÂÊ±Á¢¼´´¥·¢¸´Ñ¡¿ò×´Ì¬ÇĞ»»
+        // æŒ‰ä¸‹æ—¶ç«‹å³è§¦å‘å¤é€‰æ¡†çŠ¶æ€åˆ‡æ¢
         if (isCheckbox && !m_wasMouseDown)
         {
-            // ¸´Ñ¡¿ò¿ÉÒÔÔÚ°´ÏÂÊ±¾ÍÇĞ»»×´Ì¬
+            // å¤é€‰æ¡†å¯ä»¥åœ¨æŒ‰ä¸‹æ—¶å°±åˆ‡æ¢çŠ¶æ€
             this->isChecked = !this->isChecked;
         }
     }
 
-    // ´¦ÀíÊó±êÊÍ·Å
+    // å¤„ç†é¼ æ ‡é‡Šæ”¾
     if (m_mouseReleasedThisFrame)
     {
         if (this->isPressed && this->isHovered && this->onClickCallback)
@@ -133,7 +133,7 @@ void Button::Update(InputHandler* input)
         this->isPressed = false;
     }
 
-    // ¸üĞÂÊó±ê×´Ì¬¼ÇÂ¼
+    // æ›´æ–°é¼ æ ‡çŠ¶æ€è®°å½•
     m_wasMouseDown = input->IsMouseButtonDown(SDL_BUTTON_LEFT);
     ResetFrameState();
 }
@@ -143,7 +143,7 @@ void Button::Draw(SDL_Renderer* renderer) const
     if (!mEnabled) return;
 
 	ResourceManager& resourceManager = ResourceManager::GetInstance();
-    // È·¶¨ÒªÏÔÊ¾µÄÍ¼Æ¬key
+    // ç¡®å®šè¦æ˜¾ç¤ºçš„å›¾ç‰‡key
     std::string imageKey = normalImageKey;
 
     if (this->isCheckbox && this->isChecked && !this->checkedImageKey.empty())
@@ -159,7 +159,7 @@ void Button::Draw(SDL_Renderer* renderer) const
         imageKey = this->hoverImageKey;
     }
 
-    // »æÖÆ°´Å¥Í¼Æ¬
+    // ç»˜åˆ¶æŒ‰é’®å›¾ç‰‡
     if (!imageKey.empty() && resourceManager.HasTexture(imageKey))
     {
         SDL_Texture* texture = resourceManager.GetTexture(imageKey);
@@ -177,7 +177,7 @@ void Button::Draw(SDL_Renderer* renderer) const
     }
     else
     {
-        // Èç¹ûÃ»ÓĞÍ¼Æ¬£¬»æÖÆÒ»¸ö¾ØĞÎ×÷Îª°´Å¥
+        // å¦‚æœæ²¡æœ‰å›¾ç‰‡ï¼Œç»˜åˆ¶ä¸€ä¸ªçŸ©å½¢ä½œä¸ºæŒ‰é’®
         SDL_Rect rect = {
             static_cast<int>(position.x),
             static_cast<int>(position.y),
@@ -185,26 +185,26 @@ void Button::Draw(SDL_Renderer* renderer) const
             static_cast<int>(size.y)
         };
 
-        // ÉèÖÃÑÕÉ«£¨ĞüÍ£Ê±ÎªÇ³»ÒÉ«£¬·ñÔòÎª°×É«£©
+        // è®¾ç½®é¢œè‰²ï¼ˆæ‚¬åœæ—¶ä¸ºæµ…ç°è‰²ï¼Œå¦åˆ™ä¸ºç™½è‰²ï¼‰
         if (isHovered) {
-            SDL_SetRenderDrawColor(renderer, 200, 200, 200, 255); // Ç³»ÒÉ«
+            SDL_SetRenderDrawColor(renderer, 200, 200, 200, 255); // æµ…ç°è‰²
         }
         else {
-            SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255); // °×É«
+            SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255); // ç™½è‰²
         }
         SDL_RenderFillRect(renderer, &rect);
 
-        // »æÖÆ±ß¿ò
-        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // ºÚÉ«±ß¿ò
+        // ç»˜åˆ¶è¾¹æ¡†
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // é»‘è‰²è¾¹æ¡†
         SDL_RenderDrawRect(renderer, &rect);
     }
 
-    // »æÖÆÎÄ±¾
+    // ç»˜åˆ¶æ–‡æœ¬
     if (!text.empty())
     {
         SDL_Color color = this->isHovered ? this->hoverTextColor : this->textColor;
 
-        // »ñÈ¡ÎÄ±¾µÄÊµ¼Ê³ß´ç
+        // è·å–æ–‡æœ¬çš„å®é™…å°ºå¯¸
         int textWidth = 0;
         int textHeight = 0;
         TTF_Font* tempFont = resourceManager.GetFont(fontName, fontSize);
@@ -220,29 +220,29 @@ void Button::Draw(SDL_Renderer* renderer) const
                 unsigned char c = text[i];
                 if ((c & 0x80) == 0)
                 {
-                    textWidth += fontSize / 2; // ASCII×Ö·û
+                    textWidth += fontSize / 2; // ASCIIå­—ç¬¦
                     i += 1;
                 }
                 else if ((c & 0xE0) == 0xC0)
                 {
-                    textWidth += fontSize;     // 2×Ö½ÚUTF-8£¨ÈçÖĞÎÄ£©
+                    textWidth += fontSize;     // 2å­—èŠ‚UTF-8ï¼ˆå¦‚ä¸­æ–‡ï¼‰
                     i += 2;
                 }
                 else if ((c & 0xF0) == 0xE0)
                 {
-                    textWidth += fontSize;     // 3×Ö½ÚUTF-8
+                    textWidth += fontSize;     // 3å­—èŠ‚UTF-8
                     i += 3;
                 }
                 else
                 {
-                    textWidth += fontSize;     // ÆäËû
+                    textWidth += fontSize;     // å…¶ä»–
                     i += 1;
                 }
             }
-            textHeight = fontSize; // ¹À¼Æ¸ß¶È
+            textHeight = fontSize; // ä¼°è®¡é«˜åº¦
         }
 
-        // ¼ÆËã¾ÓÖĞÎ»ÖÃ£¨Ïà¶ÔÓÚ°´Å¥ÇøÓò£©
+        // è®¡ç®—å±…ä¸­ä½ç½®ï¼ˆç›¸å¯¹äºæŒ‰é’®åŒºåŸŸï¼‰
         int textX = static_cast<int>(position.x + (size.x - textWidth) / 2);
         int textY = static_cast<int>(position.y + (size.y - textHeight) / 2);
 

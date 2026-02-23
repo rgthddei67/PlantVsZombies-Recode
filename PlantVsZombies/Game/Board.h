@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #ifndef _BOARD_H
 #define _BOARD_H
 #include "Cell.h"
@@ -21,7 +21,7 @@ class Bullet;
 constexpr int MAX_SUN = 9990;
 constexpr float NEXTWAVE_COUNT_MAX = 25.0f;
 constexpr float SPAWN_SUN_TIME = 15.0f;
-constexpr int MAX_ZOMBIES_PER_WAVE = 70;	// ÆÕÍ¨Ä£Ê½Ò»²¨×î´ó½©Ê¬ÊıÁ¿
+constexpr int MAX_ZOMBIES_PER_WAVE = 70;	// æ™®é€šæ¨¡å¼ä¸€æ³¢æœ€å¤§åƒµå°¸æ•°é‡
 
 enum class BoardState {
 	CHOOSE_CARD,
@@ -34,37 +34,37 @@ class Board {
 public:
 	BoardState mBoardState = BoardState::CHOOSE_CARD;
 	GameScene* mGameScene = nullptr;
-	std::string mLevelName = "¹Ø¿¨ 1-1";
-	int mLevel = -1;	// Ã°ÏÕÄ£Ê½µ±Ç°¹Ø¿¨ĞòºÅ
-	int mBackGround = 0; // ±³¾°Í¼
-	int mRows = 5;	// ĞĞÊı
-	int mColumns = 8; // ÁĞÊı
+	std::string mLevelName = "å…³å¡ 1-1";
+	int mLevel = -1;	// å†’é™©æ¨¡å¼å½“å‰å…³å¡åºå·
+	int mBackGround = 0; // èƒŒæ™¯å›¾
+	int mRows = 5;	// è¡Œæ•°
+	int mColumns = 8; // åˆ—æ•°
 	int mSun = 50;
 	float mSunCountDown = 5.0f;
-	int mNextPlantID = 1;	// ÏÂÒ»¸öÖ²ÎïµÄID
-	int mNextCoinID = 1;	// ÏÂÒ»¸öCoinµÄID
+	int mNextPlantID = 1;	// ä¸‹ä¸€ä¸ªæ¤ç‰©çš„ID
+	int mNextCoinID = 1;	// ä¸‹ä¸€ä¸ªCoinçš„ID
 	EntityManager mEntityManager;
-	int mCurrentWave = 0;			// µ±Ç°²¨
-	int mMaxWave = 10;		// ¹Ø¿¨×Ü²¨Êı
-	float mZombieCountDown = 18.0f;		// ÏÂÒ»²¨½©Ê¬µ¹¼ÆÊ±
-	double mTotalZombieHP = 0;		// ÔÚ³¡È«²¿½©Ê¬ÑªÁ¿
-	double mCurrectWaveZombieHP = 0;	// ±¾²¨½©Ê¬ÑªÁ¿
-	double mNextWaveSpawnZombieHP = 0;		// ÏÂÒ»²¨½©Ê¬Ë¢ĞÂÑªÁ¿
+	int mCurrentWave = 0;			// å½“å‰æ³¢
+	int mMaxWave = 10;		// å…³å¡æ€»æ³¢æ•°
+	float mZombieCountDown = 18.0f;		// ä¸‹ä¸€æ³¢åƒµå°¸å€’è®¡æ—¶
+	double mTotalZombieHP = 0;		// åœ¨åœºå…¨éƒ¨åƒµå°¸è¡€é‡
+	double mCurrectWaveZombieHP = 0;	// æœ¬æ³¢åƒµå°¸è¡€é‡
+	double mNextWaveSpawnZombieHP = 0;		// ä¸‹ä¸€æ³¢åƒµå°¸åˆ·æ–°è¡€é‡
 
 	int mZombieNumber = 0;
 
-	Vector mSpawnZombiePos1 = Vector(1180, 85);			// ×óÉÏ½Ç×ø±ê
-	Vector mSpawnZombiePos2 = Vector(1500, 581);		// ÓÒÏÂ½Ç×ø±ê
+	Vector mSpawnZombiePos1 = Vector(1180, 85);			// å·¦ä¸Šè§’åæ ‡
+	Vector mSpawnZombiePos2 = Vector(1500, 581);		// å³ä¸‹è§’åæ ‡
 
 	std::vector<std::weak_ptr<Zombie>> mPreviewZombieList;
 
-	// Íâ²ã±íÊ¾ĞĞ£¨rows£© ÄÚ²ãcolumns
+	// å¤–å±‚è¡¨ç¤ºè¡Œï¼ˆrowsï¼‰ å†…å±‚columns
 	std::vector<std::vector<std::shared_ptr<Cell>>> mCells;
 
 private:
-	std::vector<ZombieType> mSpawnZombieList;	// ±¾¹Ø³ö¹Ö±í
-	float mHugeWaveCountDown = 0.0f;	// Ò»´ó²¨µ¹¼ÆÊ±
-	bool mHasHugeWaveSound = false;		// ÓĞÎŞ·Å¹ıÒ»´ó²¨ÒôÀÖ
+	std::vector<ZombieType> mSpawnZombieList;	// æœ¬å…³å‡ºæ€ªè¡¨
+	float mHugeWaveCountDown = 0.0f;	// ä¸€å¤§æ³¢å€’è®¡æ—¶
+	bool mHasHugeWaveSound = false;		// æœ‰æ— æ”¾è¿‡ä¸€å¤§æ³¢éŸ³ä¹
 
 public:
 	Board(GameScene* gameScene, int level)
@@ -76,12 +76,12 @@ public:
 			mLevelName.clear();
 			int mBigLevel = mLevel / 10 + 1;
 			int mSmallLevel = mLevel % 10;
-			mLevelName = u8"¹Ø¿¨ " + std::to_string(mBigLevel) + u8"-" + std::to_string(mSmallLevel);
+			mLevelName = u8"å…³å¡ " + std::to_string(mBigLevel) + u8"-" + std::to_string(mSmallLevel);
 		}
 		mSpawnZombieList.reserve(16);
 		mSpawnZombieList.push_back(ZombieType::ZOMBIE_NORMAL);
 		mPreviewZombieList.reserve(16);
-		// TODO: Ğ´¸ù¾İÅäÖÃ¶ÁÈ¡³ö¹Ö
+		// TODO: å†™æ ¹æ®é…ç½®è¯»å–å‡ºæ€ª
 		CreatePreviewZombies();
 		InitializeCell();
 	}
@@ -108,10 +108,10 @@ public:
 		this->mSpawnZombieList = zombieTypeList;
 	}
 
-	// ³õÊ¼»¯¸ñ×Ó Ä¬ÈÏ5ĞĞ9ÁĞ
+	// åˆå§‹åŒ–æ ¼å­ é»˜è®¤5è¡Œ9åˆ—
 	void InitializeCell(int rows = 4, int cols = 8);
 
-	// »ñÈ¡¸ñ×ÓÖÇÄÜÖ¸Õë
+	// è·å–æ ¼å­æ™ºèƒ½æŒ‡é’ˆ
 	std::shared_ptr<Cell> GetCell(int row, int col) {
 		if (row >= 0 && row < mRows && col >= 0 && col < mColumns) {
 			return mCells[row][col];
@@ -119,57 +119,57 @@ public:
 		return nullptr;
 	}
 
-	// ´´½¨½©Ê¬ ÓĞrow¾ÍÓÃrow£¬Èç¹ûrow<0£¬ÔòÊ¹ÓÃy
+	// åˆ›å»ºåƒµå°¸ æœ‰rowå°±ç”¨rowï¼Œå¦‚æœrow<0ï¼Œåˆ™ä½¿ç”¨y
 	std::shared_ptr<Zombie> CreateZombie(ZombieType zombieType, int row, float x, float y, bool isPreview = false);
 
-	// ´´½¨Ì«Ñô
+	// åˆ›å»ºå¤ªé˜³
 	std::shared_ptr<Sun> CreateSun(const Vector& position, bool needAnimation = false);
 
-	// ´´½¨Ì«Ñô
+	// åˆ›å»ºå¤ªé˜³
 	std::shared_ptr<Sun> CreateSun(float x, float y, bool needAnimation = false);
 
-	// ´´½¨Ö²Îï
+	// åˆ›å»ºæ¤ç‰©
 	std::shared_ptr<Plant> CreatePlant(PlantType plantType, int row, int column, bool isPreview = false);
 
-	// ´´½¨×Óµ¯
+	// åˆ›å»ºå­å¼¹
 	std::shared_ptr<Bullet> CreateBullet(BulletType plantType, int row, const Vector& position);
 
-	// ¸üĞÂ¹Ø¿¨
+	// æ›´æ–°å…³å¡
 	void UpdateLevel();
 
-	// äÖÈ¾Íø¸ñ£¨µ÷ÊÔÓÃ£©
+	// æ¸²æŸ“ç½‘æ ¼ï¼ˆè°ƒè¯•ç”¨ï¼‰
 	void DrawCell(SDL_Renderer* renderer);
 
 	void Draw(SDL_Renderer* renderer);
 
-	// ÇåÀíÉ¾³ıµÄ¶ÔÏó
+	// æ¸…ç†åˆ é™¤çš„å¯¹è±¡
 	void CleanupExpiredObjects(); 
 
-	// ´ÓËùÓĞCellÖĞÇå³ıÖ¸¶¨Ö²ÎïID
+	// ä»æ‰€æœ‰Cellä¸­æ¸…é™¤æŒ‡å®šæ¤ç‰©ID
 	void CleanPlantFromCells(int plantID);
 
 	void UpdateSunFalling(float deltaTime);
 
 	void UpdateZombieHP();
 
-	// ³¢ÊÔÉú³É±¾²¨½©Ê¬
+	// å°è¯•ç”Ÿæˆæœ¬æ³¢åƒµå°¸
 	void TrySummonZombie();
 
-	// ¼ÆËãµ±Ç°²¨µÄ×ÜµãÊı
+	// è®¡ç®—å½“å‰æ³¢çš„æ€»ç‚¹æ•°
 	int CalculateWaveZombiePoints() const;
 
-	// Ñ¡ºÃ¿¨£¬¿ªÊ¼ÓÎÏ·
+	// é€‰å¥½å¡ï¼Œå¼€å§‹æ¸¸æˆ
 	void StartGame();
 
-	// ÓÎÏ·½áÊø
+	// æ¸¸æˆç»“æŸ
 	void GameOver();
 
 	void Update();
 
-	// ´´½¨Ô¤ÀÀ½©Ê¬
+	// åˆ›å»ºé¢„è§ˆåƒµå°¸
 	void CreatePreviewZombies();
 
-	// Ïú»ÙËùÓĞÔ¤ÀÀ½©Ê¬
+	// é”€æ¯æ‰€æœ‰é¢„è§ˆåƒµå°¸
 	void DestroyPreviewZombies();
 
 };

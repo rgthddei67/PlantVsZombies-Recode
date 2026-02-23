@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #ifndef _RESOURCESXMLCONFIG_H
 #define _RESOURCESXMLCONFIG_H
 
@@ -8,11 +8,11 @@
 #include <unordered_map>
 #include <iostream>
 
-// ·Ö·İÌùÍ¼ĞÅÏ¢
+// åˆ†ä»½è´´å›¾ä¿¡æ¯
 struct TiledImageInfo {
     std::string path;
-    int columns = 1;  // Ë®Æ½·Ö¸îÊı£¬Ä¬ÈÏ1
-    int rows = 1;     // ´¹Ö±·Ö¸îÊı£¬Ä¬ÈÏ1
+    int columns = 1;  // æ°´å¹³åˆ†å‰²æ•°ï¼Œé»˜è®¤1
+    int rows = 1;     // å‚ç›´åˆ†å‰²æ•°ï¼Œé»˜è®¤1
 };
 
 class ResourcesXMLConfigReader {
@@ -34,18 +34,18 @@ public:
         pugi::xml_parse_result result = doc.load_file(xmlPath.c_str());
 
         if (!result) {
-            std::cerr << "¼ÓÔØXMLÅäÖÃÎÄ¼şÊ§°Ü: " << xmlPath
-                << "£¬´íÎó: " << result.description() << std::endl;
+            std::cerr << "åŠ è½½XMLé…ç½®æ–‡ä»¶å¤±è´¥: " << xmlPath
+                << "ï¼Œé”™è¯¯: " << result.description() << std::endl;
             return false;
         }
 
         pugi::xml_node root = doc.child("Resources");
         if (!root) {
-            std::cerr << "ÎŞĞ§µÄXMLÅäÖÃÎÄ¼ş½á¹¹" << std::endl;
+            std::cerr << "æ— æ•ˆçš„XMLé…ç½®æ–‡ä»¶ç»“æ„" << std::endl;
             return false;
         }
 
-        // Çå¿Õ¾ÉÊı¾İ
+        // æ¸…ç©ºæ—§æ•°æ®
         gameImageInfos.clear();
         particleTextureInfos.clear();
         fontPaths.clear();
@@ -53,19 +53,19 @@ public:
         musicPaths.clear();
         reanimationPaths.clear();
 
-        // ½âÎö GameImages
+        // è§£æ GameImages
         pugi::xml_node gameImagesNode = root.child("GameImages");
         if (gameImagesNode) {
             for (pugi::xml_node imageNode : gameImagesNode.children("Image")) {
                 TiledImageInfo info;
                 info.path = imageNode.text().get();
-                info.columns = imageNode.attribute("Column").as_int(1);  // Ä¬ÈÏ1
-                info.rows = imageNode.attribute("Row").as_int(1);        // Ä¬ÈÏ1
+                info.columns = imageNode.attribute("Column").as_int(1);  // é»˜è®¤1
+                info.rows = imageNode.attribute("Row").as_int(1);        // é»˜è®¤1
                 gameImageInfos.push_back(info);
             }
         }
 
-        // ½âÎö ParticleTextures
+        // è§£æ ParticleTextures
         pugi::xml_node particlesNode = root.child("ParticleTextures");
         if (particlesNode) {
             for (pugi::xml_node textureNode : particlesNode.children("Texture")) {
@@ -77,7 +77,7 @@ public:
             }
         }
 
-        // ¶ÁÈ¡×ÖÌå
+        // è¯»å–å­—ä½“
         pugi::xml_node fontsNode = root.child("Fonts");
         if (fontsNode) {
             for (pugi::xml_node fontNode : fontsNode.children("Font")) {
@@ -85,7 +85,7 @@ public:
             }
         }
 
-        // ¶ÁÈ¡ÒôĞ§
+        // è¯»å–éŸ³æ•ˆ
         pugi::xml_node soundsNode = root.child("Sounds");
         if (soundsNode) {
             for (pugi::xml_node soundNode : soundsNode.children("Sound")) {
@@ -93,7 +93,7 @@ public:
             }
         }
 
-        // ¶ÁÈ¡ÒôÀÖ
+        // è¯»å–éŸ³ä¹
         pugi::xml_node musicNode = root.child("Music");
         if (musicNode) {
             for (pugi::xml_node trackNode : musicNode.children("Track")) {
@@ -101,7 +101,7 @@ public:
             }
         }
 
-        // ¶ÁÈ¡¶¯»­×ÊÔ´
+        // è¯»å–åŠ¨ç”»èµ„æº
         pugi::xml_node reanimationsNode = root.child("Reanimations");
         if (reanimationsNode) {
             for (pugi::xml_node reanimNode : reanimationsNode.children("Reanimation")) {
@@ -116,19 +116,19 @@ public:
         isLoaded = true;
 
 #ifdef _DEBUG
-        std::cout << "XMLÅäÖÃ¼ÓÔØ³É¹¦:" << std::endl;
-        std::cout << "  ÓÎÏ·Í¼Æ¬: " << gameImageInfos.size() << " ¸ö" << std::endl;
-        std::cout << "  Á£×ÓÎÆÀí: " << particleTextureInfos.size() << " ¸ö" << std::endl;
-        std::cout << "  ×ÖÌå: " << fontPaths.size() << " ¸ö" << std::endl;
-        std::cout << "  ÒôĞ§: " << soundPaths.size() << " ¸ö" << std::endl;
-        std::cout << "  ÒôÀÖ: " << musicPaths.size() << " ¸ö" << std::endl;
-        std::cout << "  ¶¯»­: " << reanimationPaths.size() << " ¸ö" << std::endl;
+        std::cout << "XMLé…ç½®åŠ è½½æˆåŠŸ:" << std::endl;
+        std::cout << "  æ¸¸æˆå›¾ç‰‡: " << gameImageInfos.size() << " ä¸ª" << std::endl;
+        std::cout << "  ç²’å­çº¹ç†: " << particleTextureInfos.size() << " ä¸ª" << std::endl;
+        std::cout << "  å­—ä½“: " << fontPaths.size() << " ä¸ª" << std::endl;
+        std::cout << "  éŸ³æ•ˆ: " << soundPaths.size() << " ä¸ª" << std::endl;
+        std::cout << "  éŸ³ä¹: " << musicPaths.size() << " ä¸ª" << std::endl;
+        std::cout << "  åŠ¨ç”»: " << reanimationPaths.size() << " ä¸ª" << std::endl;
 #endif
 
         return true;
     }
 
-    // »ñÈ¡·½·¨
+    // è·å–æ–¹æ³•
     const std::vector<TiledImageInfo>& GetGameImageInfos() const { return gameImageInfos; }
     const std::vector<TiledImageInfo>& GetParticleTextureInfos() const { return particleTextureInfos; }
     const std::vector<std::string>& GetFontPaths() const { return fontPaths; }

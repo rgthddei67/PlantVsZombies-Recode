@@ -1,8 +1,8 @@
-#include "CursorManager.h"
+ï»¿#include "CursorManager.h"
 #include <iostream>
 
 CursorManager::CursorManager() {
-    // ³õÊ¼»¯ÏµÍ³¹â±êÓ³Éä
+    // åˆå§‹åŒ–ç³»ç»Ÿå…‰æ ‡æ˜ å°„
     mSystemCursors[CursorType::ARROW] = nullptr;
     mSystemCursors[CursorType::HAND] = nullptr;
     mSystemCursors[CursorType::IBEAM] = nullptr;
@@ -24,7 +24,7 @@ CursorManager& CursorManager::GetInstance() {
 bool CursorManager::Initialize() {
     if (mIsInitialized) return true;
 
-    // ³õÊ¼»¯ÏµÍ³¹â±ê
+    // åˆå§‹åŒ–ç³»ç»Ÿå…‰æ ‡
     InitializeSystemCursors();
 
     mIsInitialized = true;
@@ -46,7 +46,7 @@ void CursorManager::InitializeSystemCursors() {
     mSystemCursors[CursorType::SIZE_ALL] = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_SIZEALL);
     mSystemCursors[CursorType::NO] = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_NO);
 
-    // ¼ì²éÊÇ·ñ¶¼´´½¨³É¹¦
+    // æ£€æŸ¥æ˜¯å¦éƒ½åˆ›å»ºæˆåŠŸ
     for (auto& [type, cursor] : mSystemCursors) {
         if (!cursor) {
             std::cerr << "Failed to create system cursor for type: " << static_cast<int>(type) << std::endl;
@@ -63,7 +63,7 @@ void CursorManager::Cleanup() {
 }
 
 void CursorManager::CleanupAllCursors() {
-    // ÇåÀíÏµÍ³¹â±ê
+    // æ¸…ç†ç³»ç»Ÿå…‰æ ‡
     for (auto& [type, cursor] : mSystemCursors) {
         if (cursor) {
             SDL_FreeCursor(cursor);
@@ -71,7 +71,7 @@ void CursorManager::CleanupAllCursors() {
         }
     }
 
-    // ÇåÀí×Ô¶¨Òå¹â±ê
+    // æ¸…ç†è‡ªå®šä¹‰å…‰æ ‡
     for (auto& [name, cursor] : mCustomCursors) {
         if (cursor) {
             SDL_FreeCursor(cursor);
@@ -129,7 +129,7 @@ SDL_Cursor* CursorManager::GetSystemCursor(CursorType type) {
 bool CursorManager::LoadCustomCursor(const std::string& name,
     const std::string& imagePath,
     int hotX, int hotY) {
-    // ¼ÓÔØÍ¼Ïñ
+    // åŠ è½½å›¾åƒ
     SDL_Surface* surface = SDL_LoadBMP(imagePath.c_str());
     if (!surface) {
         std::cerr << "Failed to load cursor image: " << imagePath
@@ -145,18 +145,18 @@ bool CursorManager::LoadCustomCursorFromSurface(const std::string& name,
     int hotX, int hotY) {
     if (!surface) return false;
 
-    // È·±£±íÃæ¸ñÊ½ÕıÈ·£¨ĞèÒªµ¥É«Î»Í¼£©
-    // SDL_CreateCursorĞèÒªÎ»Í¼Êı¾İ£¬ÕâÀï¼ò»¯´¦Àí
-    // Êµ¼ÊÏîÄ¿ÖĞ¿ÉÄÜĞèÒª×ª»»±íÃæ¸ñÊ½
+    // ç¡®ä¿è¡¨é¢æ ¼å¼æ­£ç¡®ï¼ˆéœ€è¦å•è‰²ä½å›¾ï¼‰
+    // SDL_CreateCursoréœ€è¦ä½å›¾æ•°æ®ï¼Œè¿™é‡Œç®€åŒ–å¤„ç†
+    // å®é™…é¡¹ç›®ä¸­å¯èƒ½éœ€è¦è½¬æ¢è¡¨é¢æ ¼å¼
 
-    // ´´½¨Î»Í¼Êı¾İ£¨¼ò»¯Ê¾Àı£©
+    // åˆ›å»ºä½å›¾æ•°æ®ï¼ˆç®€åŒ–ç¤ºä¾‹ï¼‰
     int width = surface->w;
     int height = surface->h;
 
-    // ½«±íÃæ×ª»»Îªµ¥É«Î»Í¼£¨Êµ¼ÊÊµÏÖ»á¸ü¸´ÔÓ£©
-    // ÕâÀïÖ»ÊÇÊ¾Àı£¬Êµ¼ÊĞèÒªÕıÈ·´¦ÀíalphaÍ¨µÀºÍÑÕÉ«¼ü
+    // å°†è¡¨é¢è½¬æ¢ä¸ºå•è‰²ä½å›¾ï¼ˆå®é™…å®ç°ä¼šæ›´å¤æ‚ï¼‰
+    // è¿™é‡Œåªæ˜¯ç¤ºä¾‹ï¼Œå®é™…éœ€è¦æ­£ç¡®å¤„ç†alphaé€šé“å’Œé¢œè‰²é”®
 
-    // ´´½¨¹â±ê£¨Êµ¼ÊÓ¦¸Ã¸ù¾İ±íÃæÊı¾İ´´½¨£©
+    // åˆ›å»ºå…‰æ ‡ï¼ˆå®é™…åº”è¯¥æ ¹æ®è¡¨é¢æ•°æ®åˆ›å»ºï¼‰
     SDL_Cursor* cursor = SDL_CreateColorCursor(surface, hotX, hotY);
 
     if (!cursor) {
@@ -165,8 +165,8 @@ bool CursorManager::LoadCustomCursorFromSurface(const std::string& name,
         return false;
     }
 
-    // ´æ´¢¹â±ê
-    RemoveCustomCursor(name); // Èç¹ûÒÑ´æÔÚ£¬ÏÈÒÆ³ı
+    // å­˜å‚¨å…‰æ ‡
+    RemoveCustomCursor(name); // å¦‚æœå·²å­˜åœ¨ï¼Œå…ˆç§»é™¤
     mCustomCursors[name] = cursor;
 
     return true;
@@ -200,21 +200,21 @@ void CursorManager::HideCursor() {
 }
 
 CursorType CursorManager::GetCurrentCursorType() const {
-    // ²éÕÒµ±Ç°¹â±ê¶ÔÓ¦µÄÀàĞÍ
+    // æŸ¥æ‰¾å½“å‰å…‰æ ‡å¯¹åº”çš„ç±»å‹
     for (const auto& [type, cursor] : mSystemCursors) {
         if (cursor == mCurrentCursor) {
             return type;
         }
     }
 
-    // ¼ì²éÊÇ·ñÎª×Ô¶¨Òå¹â±ê
+    // æ£€æŸ¥æ˜¯å¦ä¸ºè‡ªå®šä¹‰å…‰æ ‡
     for (const auto& [name, cursor] : mCustomCursors) {
         if (cursor == mCurrentCursor) {
             return CursorType::CUSTOM;
         }
     }
 
-    return CursorType::ARROW; // Ä¬ÈÏ
+    return CursorType::ARROW; // é»˜è®¤
 }
 
 void CursorManager::Update() {

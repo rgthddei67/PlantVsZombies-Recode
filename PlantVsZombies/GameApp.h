@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #ifndef _GAMEAPP_H
 #define _GAMEAPP_H
 #ifdef DrawText
@@ -23,10 +23,10 @@ constexpr int SCENE_WIDTH = 1100;
 constexpr int SCENE_HEIGHT = 600;
 
 struct TextCache {
-    std::string key;        // »º´æ¼ü£¨×ÖÌå+ÑÕÉ«µÈ£©
-    SDL_Texture* texture;   // »º´æµÄÎÆÀí
-    int width;              // ÎÆÀí¿í¶È
-    int height;             // ÎÆÀí¸ß¶È
+    std::string key;        // ç¼“å­˜é”®ï¼ˆå­—ä½“+é¢œè‰²ç­‰ï¼‰
+    SDL_Texture* texture;   // ç¼“å­˜çš„çº¹ç†
+    int width;              // çº¹ç†å®½åº¦
+    int height;             // çº¹ç†é«˜åº¦
 };
 
 class InputHandler;
@@ -34,7 +34,7 @@ class InputHandler;
 class GameAPP
 {
 public:
-    int Difficulty = 2; // ÄÑ¶ÈÏµÊı
+    int Difficulty = 2; // éš¾åº¦ç³»æ•°
 
 private:
     std::unique_ptr<InputHandler> mInputHandler;
@@ -44,7 +44,7 @@ private:
     SDL_Window* mWindow;
     SDL_Renderer* mRenderer;
 
-    // ÓÎÏ·ÔËĞĞ×´Ì¬
+    // æ¸¸æˆè¿è¡ŒçŠ¶æ€
     bool mRunning;
     bool mInitialized;
 
@@ -71,58 +71,58 @@ private:
         const std::string& fontKey,
         int fontSize,
         int& outWidth,
-        int& outHeight);    // »ñÈ¡±£´æµÄTexture
+        int& outHeight);    // è·å–ä¿å­˜çš„Texture
 
 public:
-    inline static bool mDebugMode = false;        // ÊÇ·ñÊÇµ÷ÊÔÄ£Ê½
-    inline static bool mShowColliders = false;    // ÏÔÊ¾Åö×²¿ò¿ª¹Ø
+    inline static bool mDebugMode = false;        // æ˜¯å¦æ˜¯è°ƒè¯•æ¨¡å¼
+    inline static bool mShowColliders = false;    // æ˜¾ç¤ºç¢°æ’æ¡†å¼€å…³
 
-    // »ñÈ¡µ¥ÀıÊµÀı
+    // è·å–å•ä¾‹å®ä¾‹
     static GameAPP& GetInstance();
 
     int Run();
 
     bool Initialize();
 
-    // Çå³ıÎÄ±¾»º´æ
+    // æ¸…é™¤æ–‡æœ¬ç¼“å­˜
     void ClearTextCache();
 
     Camera2D& GetCamera() { return mCamera; }
 
-    // »æÖÆÎÄ±¾ UTF8±àÂë£¬²»ËæCamera±ä»¯ÒÆ¶¯µÄ
+    // ç»˜åˆ¶æ–‡æœ¬ UTF8ç¼–ç ï¼Œä¸éšCameraå˜åŒ–ç§»åŠ¨çš„
     void DrawText(const std::string& text,
         int x, int y,
         const SDL_Color& color,
         const std::string& fontKey = ResourceKeys::Fonts::FONT_FZCQ,
         int fontSize = 17);
 
-    // »æÖÆÎÄ±¾ UTF8±àÂë£¬²»ËæCamera±ä»¯ÒÆ¶¯µÄ
+    // ç»˜åˆ¶æ–‡æœ¬ UTF8ç¼–ç ï¼Œä¸éšCameraå˜åŒ–ç§»åŠ¨çš„
     void DrawText(const std::string& text,
         const Vector& position,
         const SDL_Color& color,
         const std::string& fontKey = ResourceKeys::Fonts::FONT_FZCQ,
         int fontSize = 17);
 
-    // »æÖÆÊÀ½ç×ø±êÎÄ×Ö£¬ËæCamera±ä»¯ÒÆ¶¯µÄ
+    // ç»˜åˆ¶ä¸–ç•Œåæ ‡æ–‡å­—ï¼ŒéšCameraå˜åŒ–ç§»åŠ¨çš„
     void DrawWorldText(const std::string& text,
         const Vector& worldPosition,
         const SDL_Color& color,
         const std::string& fontKey = ResourceKeys::Fonts::FONT_FZCQ,
         int fontSize = 17);
 
-    // ÎÄ±¾³ß´ç
+    // æ–‡æœ¬å°ºå¯¸
     Vector GetTextSize(const std::string& text,
         const std::string& fontKey = ResourceKeys::Fonts::FONT_FZCQ,
         int fontSize = 17);
 
-    // ´´½¨ÎÄ±¾ÎÆÀí¶ÔÏó
+    // åˆ›å»ºæ–‡æœ¬çº¹ç†å¯¹è±¡
     SDL_Texture* CreateTextTexture(SDL_Renderer* renderer,
         const std::string& text,
         const SDL_Color& color,
         const std::string& fontKey = ResourceKeys::Fonts::FONT_FZCQ,
         int fontSize = 17);
 
-    // »ñÈ¡ÊäÈë´¦ÀíÆ÷
+    // è·å–è¾“å…¥å¤„ç†å™¨
     InputHandler& GetInputHandler() const {
         if (!mInputHandler) {
             throw std::runtime_error("InputHandler not initialized");
@@ -130,13 +130,13 @@ public:
         return *mInputHandler;
     }
 
-    // ¼ì²éÊäÈë´¦ÀíÆ÷ÊÇ·ñÓĞĞ§
+    // æ£€æŸ¥è¾“å…¥å¤„ç†å™¨æ˜¯å¦æœ‰æ•ˆ
     bool IsInputHandlerValid() const { return mInputHandler != nullptr; }
 
-    // »ñÈ¡äÖÈ¾Æ÷
+    // è·å–æ¸²æŸ“å™¨
     SDL_Renderer* GetRenderer() const { return mRenderer; }
 
-    // »ñÈ¡´°¿Ú
+    // è·å–çª—å£
     SDL_Window* GetWindow() const { return mWindow; }
 
 };

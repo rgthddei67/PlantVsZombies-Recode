@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #ifndef _CARD_COMPONENT_H
 #define _CARD_COMPONENT_H
 
@@ -12,8 +12,8 @@ class Card;
 
 class CardComponent : public Component {
 private:
-    bool mIsInChooseCardUI = false; // ÊÇ·ñÔÚÑ¡¿¨½çÃæ
-    mutable std::weak_ptr<CardSlotManager> mCardSlotManager;    // ¿ÉÖ±½Ó±»constº¯ÊıĞŞ¸Ä
+    bool mIsInChooseCardUI = false; // æ˜¯å¦åœ¨é€‰å¡ç•Œé¢
+    mutable std::weak_ptr<CardSlotManager> mCardSlotManager;    // å¯ç›´æ¥è¢«constå‡½æ•°ä¿®æ”¹
     mutable std::weak_ptr<CardDisplayComponent> mCardDisplayComponent;
     PlantType mPlantType = PlantType::PLANT_PEASHOOTER;
     int mSunCost = 0;
@@ -49,8 +49,8 @@ public:
     std::shared_ptr<CardSlotManager> GetCardSlotManager() const;
     std::shared_ptr<CardDisplayComponent> GetCardDisplayComponent() const;
 
-	void SetCardGameClick(std::shared_ptr<GameObject> gameObject);    // ÉèÖÃÓÎÏ·½çÃæµã»÷»Øµ÷ ¶ø²»ÊÇÑ¡¿¨¼ûÃæµÄ
-	void SetCardChooseClick(std::shared_ptr<GameObject> gameObject, std::shared_ptr<Card> card);  // ÉèÖÃÑ¡¿¨½çÃæµã»÷»Øµ÷
+	void SetCardGameClick(std::shared_ptr<GameObject> gameObject);    // è®¾ç½®æ¸¸æˆç•Œé¢ç‚¹å‡»å›è°ƒ è€Œä¸æ˜¯é€‰å¡è§é¢çš„
+	void SetCardChooseClick(std::shared_ptr<GameObject> gameObject, std::shared_ptr<Card> card);  // è®¾ç½®é€‰å¡ç•Œé¢ç‚¹å‡»å›è°ƒ
 };
 
 #endif

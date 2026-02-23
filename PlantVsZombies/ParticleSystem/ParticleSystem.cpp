@@ -1,4 +1,4 @@
-#include "../ParticleSystem/ParticleSystem.h"
+ï»¿#include "../ParticleSystem/ParticleSystem.h"
 
 std::unique_ptr<ParticleSystem> g_particleSystem = nullptr;
 
@@ -49,11 +49,11 @@ void ParticleSystem::EmitEffect(ParticleType type, const Vector& position, int c
     EmitEffect(type, static_cast<SDL_FPoint>(position), count);
 }
 
-// Ñ­»·µÄÌØĞ§
+// å¾ªç¯çš„ç‰¹æ•ˆ
 ParticleEmitter* ParticleSystem::CreatePersistentEmitter(ParticleType type, const SDL_FPoint& position) {
     auto emitter = std::make_unique<ParticleEmitter>(renderer);
     emitter->Initialize(type, position);
-    emitter->SetSpawnRate(10);  // 10Ö¡·¢ÉäÒ»´Î
+    emitter->SetSpawnRate(10);  // 10å¸§å‘å°„ä¸€æ¬¡
     ParticleEmitter* ptr = emitter.get();
     emitters.push_back(std::move(emitter));
     return ptr;

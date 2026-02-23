@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #ifndef _GAMEOBJECTMANAGER_H
 #define _GAMEOBJECTMANAGER_H
 
@@ -11,22 +11,22 @@
 #include <SDL2/SDL.h>
 #include "GameObject.h"
 
-const int SUBORDER_PER_KEY = 1000;  // Ã¿¸ökey×î¶àÍ¬Ê±´æÔÚµÄË³ĞòÊıÁ¿
+const int SUBORDER_PER_KEY = 1000;  // æ¯ä¸ªkeyæœ€å¤šåŒæ—¶å­˜åœ¨çš„é¡ºåºæ•°é‡
 
 class GameObjectManager {
 private:
-    // Ã¿¸öÍ¼²ãÓĞ×Ô¼ºµÄ»ØÊÕ³Ø£¨È«¾Ö£©
+    // æ¯ä¸ªå›¾å±‚æœ‰è‡ªå·±çš„å›æ”¶æ± ï¼ˆå…¨å±€ï¼‰
     std::map<RenderLayer, std::set<int>> mLayerRecycledOrders;
-    // Ã¿¸öÍ¼²ãµ±Ç°µÄ×î´ó×ÓË³Ğò
+    // æ¯ä¸ªå›¾å±‚å½“å‰çš„æœ€å¤§å­é¡ºåº
     std::map<RenderLayer, int> mLayerMaxSubOrder;
 
-    // °´ÅÅĞò¼ü£¨ÈçĞĞºÅ£©¹ÜÀíµÄ³Ø
-    std::map<RenderLayer, std::map<int, std::set<int>>> mLayerKeyRecycledOrders;  // ¿ÕÏĞ×ÓË³Ğò£¨È«¾ÖÖµ£©
-    std::map<RenderLayer, std::map<int, int>> mLayerKeyMaxLocalIdx;  // µ±Ç°ÒÑ·ÖÅäµÄ±¾µØË÷Òı£¨0 ~ SUBORDER_PER_KEY-1£©
+    // æŒ‰æ’åºé”®ï¼ˆå¦‚è¡Œå·ï¼‰ç®¡ç†çš„æ± 
+    std::map<RenderLayer, std::map<int, std::set<int>>> mLayerKeyRecycledOrders;  // ç©ºé—²å­é¡ºåºï¼ˆå…¨å±€å€¼ï¼‰
+    std::map<RenderLayer, std::map<int, int>> mLayerKeyMaxLocalIdx;  // å½“å‰å·²åˆ†é…çš„æœ¬åœ°ç´¢å¼•ï¼ˆ0 ~ SUBORDER_PER_KEY-1ï¼‰
 
-    std::vector<std::shared_ptr<GameObject>> mGameObjects;       // ÒÑ¾­ÓĞµÄÓÎÏ·¶ÔÏó
-    std::vector<std::shared_ptr<GameObject>> mObjectsToAdd;      // ´ıÌí¼ÓµÄÓÎÏ·¶ÔÏó
-    std::vector<std::shared_ptr<GameObject>> mObjectsToRemove;   // ´ıÉ¾³ıµÄÓÎÏ·¶ÔÏó
+    std::vector<std::shared_ptr<GameObject>> mGameObjects;       // å·²ç»æœ‰çš„æ¸¸æˆå¯¹è±¡
+    std::vector<std::shared_ptr<GameObject>> mObjectsToAdd;      // å¾…æ·»åŠ çš„æ¸¸æˆå¯¹è±¡
+    std::vector<std::shared_ptr<GameObject>> mObjectsToRemove;   // å¾…åˆ é™¤çš„æ¸¸æˆå¯¹è±¡
 
 public:
     static GameObjectManager& GetInstance() {
@@ -39,7 +39,7 @@ public:
 		ResetAllLayers();
     }
 
-    // ´´½¨ÓÎÏ·¶ÔÏó (ÈûÈëmObjectsToAdd£¬ÔÚUpdateÊ±Ö´ĞĞStart)
+    // åˆ›å»ºæ¸¸æˆå¯¹è±¡ (å¡å…¥mObjectsToAddï¼Œåœ¨Updateæ—¶æ‰§è¡ŒStart)
     template<typename T, typename... Args>
     std::shared_ptr<T> CreateGameObject(RenderLayer layer, Args&&... args) {
         static_assert(std::is_base_of<GameObject, T>::value, "T must be a GameObject");
@@ -50,7 +50,7 @@ public:
         return obj;
     }
 
-    // Á¢¼´´´½¨ÓÎÏ·¶ÔÏó²¢Æô¶¯£¨Á¢¿Ìµ÷ÓÃStart ²¢ÇÒÈûÈëmGameObjects ¶ø²»ÊÇmObjectsToAdd)
+    // ç«‹å³åˆ›å»ºæ¸¸æˆå¯¹è±¡å¹¶å¯åŠ¨ï¼ˆç«‹åˆ»è°ƒç”¨Start å¹¶ä¸”å¡å…¥mGameObjects è€Œä¸æ˜¯mObjectsToAdd)
     template<typename T, typename... Args>
     std::shared_ptr<T> CreateGameObjectImmediate(RenderLayer layer, Args&&... args) {
         static_assert(std::is_base_of<GameObject, T>::value, "T must be a GameObject");
@@ -62,7 +62,7 @@ public:
         return obj;
     }
 
-    // Ïú»ÙÓÎÏ·¶ÔÏó
+    // é”€æ¯æ¸¸æˆå¯¹è±¡
     void DestroyGameObject(std::shared_ptr<GameObject> obj) {
         if (obj) {
             RecycleRenderOrder(obj->GetRenderOrder(), obj->GetLayer(), obj->GetSortingKey());
@@ -70,9 +70,9 @@ public:
         }
     }
 
-    // Ïú»ÙÈ«²¿ÓÎÏ·¶ÔÏó
+    // é”€æ¯å…¨éƒ¨æ¸¸æˆå¯¹è±¡
     void DestroyAllGameObjects() {
-        // Ïú»ÙËùÓĞÏÖÓĞ¶ÔÏó
+        // é”€æ¯æ‰€æœ‰ç°æœ‰å¯¹è±¡
         for (auto& obj : mGameObjects) {
             if (obj) {
                 obj->DestroyAllComponents();
@@ -80,7 +80,7 @@ public:
         }
         mGameObjects.clear();
 
-        // Ïú»Ù´ıÌí¼Ó¶ÔÏó
+        // é”€æ¯å¾…æ·»åŠ å¯¹è±¡
         for (auto& obj : mObjectsToAdd) {
             if (obj) {
                 obj->DestroyAllComponents();
@@ -88,7 +88,7 @@ public:
         }
         mObjectsToAdd.clear();
 
-        // Ïú»Ù´ıÉ¾³ı¶ÔÏó
+        // é”€æ¯å¾…åˆ é™¤å¯¹è±¡
         for (auto& obj : mObjectsToRemove) {
             if (obj) {
                 obj->DestroyAllComponents();
@@ -99,13 +99,13 @@ public:
         ResetAllLayers();
 
 #ifdef _DEBUG
-        std::cout << "GameObjectManager::DestroyAllGameObjects ÒÑÏú»ÙËùÓĞÓÎÏ·¶ÔÏó" << std::endl;
+        std::cout << "GameObjectManager::DestroyAllGameObjects å·²é”€æ¯æ‰€æœ‰æ¸¸æˆå¯¹è±¡" << std::endl;
 #endif
     }
 
-    // ¸üĞÂ
+    // æ›´æ–°
     void Update() {
-        // ÒÆ³ıÔÚmObjectsToRemoveÖĞµÄ¶ÔÏó
+        // ç§»é™¤åœ¨mObjectsToRemoveä¸­çš„å¯¹è±¡
         for (size_t i = 0; i < mObjectsToRemove.size(); i++) {
             auto obj = mObjectsToRemove[i];
             if (obj) {
@@ -118,7 +118,7 @@ public:
 		}
         mObjectsToRemove.clear();
 
-        // ĞÂ¶ÔÏóµÄ²Ù×÷
+        // æ–°å¯¹è±¡çš„æ“ä½œ
         for (size_t i = 0; i < mObjectsToAdd.size(); i++) {
             auto obj = mObjectsToAdd[i];
             mGameObjects.push_back(obj);
@@ -128,18 +128,18 @@ public:
         mObjectsToAdd.clear();
 
         /*
-        * TODO: Ò»¶¨²»Òª´ævectorÔªËØµÄ&!!!!!!Ò»¶¨²»Òª´ævectorÔªËØµÄ&!!!!!!Ò»¶¨²»Òª´ævectorÔªËØµÄ&!!!£¡
-        * shared_ptrÖ¸Ïò¶ÑÉÏµÄ GameObject ¶ÔÏó
+        * TODO: ä¸€å®šä¸è¦å­˜vectorå…ƒç´ çš„&!!!!!!ä¸€å®šä¸è¦å­˜vectorå…ƒç´ çš„&!!!!!!ä¸€å®šä¸è¦å­˜vectorå…ƒç´ çš„&!!!ï¼
+        * shared_ptræŒ‡å‘å †ä¸Šçš„ GameObject å¯¹è±¡
         e.g.
-        GameObject* rawPtr = mGameObjects[0].get();  // Ö¸Ïò¶ÑÉÏµÄ GameObject
-        rawPtr Ö¸ÏòµÄÊÇÓÉ shared_ptr ¹ÜÀíµÄ¶Ñ¶ÔÏó¡£
+        GameObject* rawPtr = mGameObjects[0].get();  // æŒ‡å‘å †ä¸Šçš„ GameObject
+        rawPtr æŒ‡å‘çš„æ˜¯ç”± shared_ptr ç®¡ç†çš„å †å¯¹è±¡ã€‚
 
-        vector À©ÈİÖ»ÒÆ¶¯ shared_ptr ±¾Éí£¬¶Ñ¶ÔÏóÒ»¶¯²»¶¯¡£
+        vector æ‰©å®¹åªç§»åŠ¨ shared_ptr æœ¬èº«ï¼Œå †å¯¹è±¡ä¸€åŠ¨ä¸åŠ¨ã€‚
 
-        ËùÒÔ rawPtr Ê¼ÖÕÓĞĞ§£¨Ö»Òª¶ÔÏóÎ´±»Ïú»Ù£©¡£
+        æ‰€ä»¥ rawPtr å§‹ç»ˆæœ‰æ•ˆï¼ˆåªè¦å¯¹è±¡æœªè¢«é”€æ¯ï¼‰ã€‚
         */
 
-        // ¸üĞÂÏÖÓĞ£¨mGameObjects£©¶ÔÏó
+        // æ›´æ–°ç°æœ‰ï¼ˆmGameObjectsï¼‰å¯¹è±¡
         for (size_t i = 0; i < mGameObjects.size(); i++) {
             auto obj = mGameObjects[i].get();
             if (obj->IsActive()) {
@@ -148,15 +148,15 @@ public:
         }
     }
 
-    // »æÖÆËùÓĞGameObject¶ÔÏó
+    // ç»˜åˆ¶æ‰€æœ‰GameObjectå¯¹è±¡
     void DrawAll(SDL_Renderer* renderer) {
-        // °´äÖÈ¾Ë³ĞòÅÅĞò
+        // æŒ‰æ¸²æŸ“é¡ºåºæ’åº
         std::sort(mGameObjects.begin(), mGameObjects.end(),
             [](const std::shared_ptr<GameObject>& a, const std::shared_ptr<GameObject>& b) {
                 return a->GetRenderOrder() < b->GetRenderOrder();
             });
 
-        // »æÖÆËùÓĞÓÎÏ·¶ÔÏó
+        // ç»˜åˆ¶æ‰€æœ‰æ¸¸æˆå¯¹è±¡
         for (size_t i = 0; i < mGameObjects.size(); ++i) {
             auto* obj = mGameObjects[i].get(); 
             if (obj->IsActive()) {
@@ -165,7 +165,7 @@ public:
         }
     }
 
-    // ²éÕÒÔÚgameObjectsÖĞµÄ·ûºÏÌõ¼şÓÎÏ·¶ÔÏó (¸ù¾İtag±êÇ©)
+    // æŸ¥æ‰¾åœ¨gameObjectsä¸­çš„ç¬¦åˆæ¡ä»¶æ¸¸æˆå¯¹è±¡ (æ ¹æ®tagæ ‡ç­¾)
     std::vector<std::shared_ptr<GameObject>> FindGameObjectsWithTag(const std::string& tag) {
         std::vector<std::shared_ptr<GameObject>> result;
         for (auto& obj : mGameObjects) {
@@ -176,20 +176,20 @@ public:
         return result;
     }
 
-    // ²éÕÒÔÚgameObjectsÖĞµÄµÚÒ»¸ö·ûºÏÌõ¼şÓÎÏ·¶ÔÏó (¸ù¾İtag±êÇ©)
+    // æŸ¥æ‰¾åœ¨gameObjectsä¸­çš„ç¬¬ä¸€ä¸ªç¬¦åˆæ¡ä»¶æ¸¸æˆå¯¹è±¡ (æ ¹æ®tagæ ‡ç­¾)
     std::shared_ptr<GameObject> FindGameObjectWithTag(const std::string& tag) {
         auto objects = FindGameObjectsWithTag(tag);
         return objects.empty() ? nullptr : objects[0];
     }
     
-    // »ñÈ¡gameObjectsÒıÓÃ
+    // è·å–gameObjectså¼•ç”¨
     const std::vector<std::shared_ptr<GameObject>>& GetAllGameObjects() const {
         return mGameObjects;
     }
 
-    // Çå¿ÕËùÓĞ¶ÔÏó
+    // æ¸…ç©ºæ‰€æœ‰å¯¹è±¡
     void ClearAll() {
-        // ÏÈÏú»ÙËùÓĞ¶ÔÏó
+        // å…ˆé”€æ¯æ‰€æœ‰å¯¹è±¡
         for (auto& obj : mGameObjects) {
             if (obj) {
                 obj->DestroyAllComponents();
@@ -214,14 +214,14 @@ public:
         ResetAllLayers();
     }
 
-    // ³õÊ¼»¯ËùÓĞÍ¼²ã
+    // åˆå§‹åŒ–æ‰€æœ‰å›¾å±‚
     void ResetAllLayers() {
         mLayerRecycledOrders.clear();
         mLayerMaxSubOrder.clear();
         mLayerKeyRecycledOrders.clear();
         mLayerKeyMaxLocalIdx.clear();
 
-        // ³õÊ¼»¯ËùÓĞÃ¶¾ÙÖµ
+        // åˆå§‹åŒ–æ‰€æœ‰æšä¸¾å€¼
         RenderLayer layers[] = {
             LAYER_BACKGROUND,
             LAYER_GAME_OBJECT,
@@ -240,7 +240,7 @@ public:
     }
 
     void AssignRenderOrder(std::shared_ptr<GameObject> gameObject, RenderLayer layer) {
-        // ÏÈ»ØÊÕ¾ÉµÄäÖÈ¾Ë³Ğò£¨ĞèÒªÖªµÀ¾ÉµÄ key£©
+        // å…ˆå›æ”¶æ—§çš„æ¸²æŸ“é¡ºåºï¼ˆéœ€è¦çŸ¥é“æ—§çš„ keyï¼‰
         RecycleRenderOrder(gameObject->GetRenderOrder(), gameObject->GetLayer(), gameObject->GetSortingKey());
 
         int subOrder;
@@ -255,10 +255,10 @@ public:
         gameObject->SetRenderOrder(renderOrder);
     }
 
-    // »ØÊÕäÖÈ¾Ë³Ğò
+    // å›æ”¶æ¸²æŸ“é¡ºåº
     void RecycleRenderOrder(int renderOrder, RenderLayer layer, int key = -1) {
         int subOrder = renderOrder - static_cast<int>(layer);
-        if (subOrder >= 0 && subOrder < 10000) {  // ×ÓË³Ğò·¶Î§ 0~9999
+        if (subOrder >= 0 && subOrder < 10000) {  // å­é¡ºåºèŒƒå›´ 0~9999
             if (key >= 0) {
                 mLayerKeyRecycledOrders[layer][key].insert(subOrder);
             }
@@ -269,38 +269,38 @@ public:
     }
 
 private:
-    // »ñÈ¡Í¼²ãÄÚµÄÏÂÒ»¸ö¿ÉÓÃ×ÓË³Ğò
+    // è·å–å›¾å±‚å†…çš„ä¸‹ä¸€ä¸ªå¯ç”¨å­é¡ºåº
     int GetNextSubOrder(RenderLayer layer) {
-        // 1. ÓÅÏÈ´Ó»ØÊÕ³Ø»ñÈ¡
+        // 1. ä¼˜å…ˆä»å›æ”¶æ± è·å–
         if (!mLayerRecycledOrders[layer].empty()) {
             int recycled = *mLayerRecycledOrders[layer].begin();
             mLayerRecycledOrders[layer].erase(mLayerRecycledOrders[layer].begin());
             return recycled;
         }
 
-        // 2. ·ÖÅäĞÂµÄ×ÓË³Ğò
+        // 2. åˆ†é…æ–°çš„å­é¡ºåº
         int newOrder = mLayerMaxSubOrder[layer]++;
 
-        // 3. ¼ì²éÊÇ·ñ³¬¹ıÍ¼²ãÈİÁ¿
-        if (newOrder >= 10000) { // Ã¿¸öÍ¼²ã×î¶à10000¸ö×ÓË³Ğò
-            // ³¢ÊÔ´Ó»ØÊÕ³Ø»ñÈ¡
+        // 3. æ£€æŸ¥æ˜¯å¦è¶…è¿‡å›¾å±‚å®¹é‡
+        if (newOrder >= 10000) { // æ¯ä¸ªå›¾å±‚æœ€å¤š10000ä¸ªå­é¡ºåº
+            // å°è¯•ä»å›æ”¶æ± è·å–
             if (!mLayerRecycledOrders[layer].empty()) {
                 newOrder = *mLayerRecycledOrders[layer].begin();
                 mLayerRecycledOrders[layer].erase(mLayerRecycledOrders[layer].begin());
             }
             else {
-                // ÖØÖÃ¸ÃÍ¼²ã
+                // é‡ç½®è¯¥å›¾å±‚
                 ResetLayer(layer);
-                newOrder = mLayerMaxSubOrder[layer]++; // ´Ó0¿ªÊ¼
+                newOrder = mLayerMaxSubOrder[layer]++; // ä»0å¼€å§‹
             }
         }
 
         return newOrder;
     }
 
-    // °´key·ÖÅäÏÂÒ»¸ö¿ÉÓÃ×ÓË³Ğò
+    // æŒ‰keyåˆ†é…ä¸‹ä¸€ä¸ªå¯ç”¨å­é¡ºåº
     int GetNextSubOrderForKey(RenderLayer layer, int key) {
-        // 1. ÓÅÏÈ´Ó¸Ã key µÄ¿ÕÏĞ³ØÖĞÈ¡
+        // 1. ä¼˜å…ˆä»è¯¥ key çš„ç©ºé—²æ± ä¸­å–
         auto& recycled = mLayerKeyRecycledOrders[layer][key];
         if (!recycled.empty()) {
             int sub = *recycled.begin();
@@ -308,26 +308,26 @@ private:
             return sub;
         }
 
-        // 2. ·ÖÅäĞÂÇø¼äÄÚµÄ±¾µØË÷Òı
-        int localIdx = mLayerKeyMaxLocalIdx[layer][key];  // Ä¬ÈÏ³õÊ¼Îª 0
+        // 2. åˆ†é…æ–°åŒºé—´å†…çš„æœ¬åœ°ç´¢å¼•
+        int localIdx = mLayerKeyMaxLocalIdx[layer][key];  // é»˜è®¤åˆå§‹ä¸º 0
         if (localIdx < SUBORDER_PER_KEY) {
             int globalSub = key * SUBORDER_PER_KEY + localIdx;
             mLayerKeyMaxLocalIdx[layer][key] = localIdx + 1;
             return globalSub;
         }
 
-        // 3. ³¬³öÇø¼äÉÏÏŞ£¬³¢ÊÔÔÙ´Î¼ì²é»ØÊÕ³Ø
+        // 3. è¶…å‡ºåŒºé—´ä¸Šé™ï¼Œå°è¯•å†æ¬¡æ£€æŸ¥å›æ”¶æ± 
         if (!recycled.empty()) {
             int sub = *recycled.begin();
             recycled.erase(recycled.begin());
             return sub;
         }
 
-        // 4. ¼«¶ËÇé¿ö£ºÖØÖÃ¸Ã key µÄÇø¼ä£¨Çå¿Õ»ØÊÕ³Ø£¬´Ó 0 ÖØĞÂ¿ªÊ¼£©
-        // ×¢Òâ£ºÕâ»áµ¼ÖÂÖ®Ç°ÒÑ·ÖÅäµ«ÉĞÎ´»ØÊÕµÄ×ÓË³Ğò±»·ÏÆú£¬µ«¸ÅÂÊ¼«µÍ
+        // 4. æç«¯æƒ…å†µï¼šé‡ç½®è¯¥ key çš„åŒºé—´ï¼ˆæ¸…ç©ºå›æ”¶æ± ï¼Œä» 0 é‡æ–°å¼€å§‹ï¼‰
+        // æ³¨æ„ï¼šè¿™ä¼šå¯¼è‡´ä¹‹å‰å·²åˆ†é…ä½†å°šæœªå›æ”¶çš„å­é¡ºåºè¢«åºŸå¼ƒï¼Œä½†æ¦‚ç‡æä½
         ResetKeyLayer(layer, key);
-        int globalSub = key * SUBORDER_PER_KEY;  // ´Ó 0 ¿ªÊ¼
-        mLayerKeyMaxLocalIdx[layer][key] = 1;    // ÏÂÒ»¸ö¿ÉÓÃ±¾µØË÷ÒıÎª 1
+        int globalSub = key * SUBORDER_PER_KEY;  // ä» 0 å¼€å§‹
+        mLayerKeyMaxLocalIdx[layer][key] = 1;    // ä¸‹ä¸€ä¸ªå¯ç”¨æœ¬åœ°ç´¢å¼•ä¸º 1
         return globalSub;
     }
 
@@ -336,7 +336,7 @@ private:
         mLayerKeyRecycledOrders[layer][key].clear();
     }
 
-    // ÖØÖÃÖ¸¶¨Í¼²ã
+    // é‡ç½®æŒ‡å®šå›¾å±‚
     void ResetLayer(RenderLayer layer) {
         mLayerMaxSubOrder[layer] = 0;
         mLayerRecycledOrders[layer].clear();

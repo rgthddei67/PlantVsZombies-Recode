@@ -1,31 +1,31 @@
-#include "Shooter.h"
+ï»¿#include "Shooter.h"
 #include "GameDataManager.h"
 #include "../Board.h"
 #include "../Zombie/Zombie.h"
 
 void Shooter::SetupPlant() {
-    Plant::SetupPlant();  // »ùÀà³õÊ¼»¯
+    Plant::SetupPlant();  // åŸºç±»åˆå§‹åŒ–
 
     auto reanim = mAnimator->GetReanimation();
     if (!reanim) return;
 
     mAnimator->PlayTrack("anim_idle");
 
-    // 1. ´´½¨Í·²¿¶¯»­Æ÷£¨ÓëÉíÌåÊ¹ÓÃÍ¬Ò» Reanimation ×ÊÔ´£©
+    // 1. åˆ›å»ºå¤´éƒ¨åŠ¨ç”»å™¨ï¼ˆä¸èº«ä½“ä½¿ç”¨åŒä¸€ Reanimation èµ„æºï¼‰
     mHeadAnim = std::make_shared<Animator>(reanim);
-    mHeadAnim->SetSpeed(this->GetAnimationSpeed());   // Í¬²½ÉíÌå¶¯»­ËÙ¶È
+    mHeadAnim->SetSpeed(this->GetAnimationSpeed());   // åŒæ­¥èº«ä½“åŠ¨ç”»é€Ÿåº¦
     mHeadAnim->PlayTrack("anim_head_idle");
     mHeadAnim->SetLocalPosition(GameDataManager::GetInstance().
         GetPlantOffset(this->mPlantType));
 
-    // 2. ½«Í·²¿¸½¼Óµ½ÉíÌå¹ìµÀ£¨ÓÅÏÈÊ¹ÓÃ anim_stem£¬Æä´Î anim_idle£©
+    // 2. å°†å¤´éƒ¨é™„åŠ åˆ°èº«ä½“è½¨é“ï¼ˆä¼˜å…ˆä½¿ç”¨ anim_stemï¼Œå…¶æ¬¡ anim_idleï¼‰
     if (!mAnimator->GetTracksByName("anim_stem").empty()) {
         mAnimator->AttachAnimator("anim_stem", mHeadAnim);
     }
 
     mAnimator->SetSpeed(GameRandom::Range(1.1f, 1.3f));
 
-    // 3. ¿ÉÑ¡£ºÉèÖÃÍ·²¿»æÖÆË³Ğò£¨Èç¹û Animator Ö§³Ö£©
+    // 3. å¯é€‰ï¼šè®¾ç½®å¤´éƒ¨ç»˜åˆ¶é¡ºåºï¼ˆå¦‚æœ Animator æ”¯æŒï¼‰
     // mHeadAnim->SetDrawOrder(mRenderOrder + 2);
 }
 

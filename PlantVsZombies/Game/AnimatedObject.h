@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #ifndef _ANIMATED_OBJECT_H
 #define _ANIMATED_OBJECT_H
 
@@ -39,7 +39,7 @@ public:
         const std::string& tag = "AnimatedObject",
         bool autoDestroy = true);
 
-    // ¶¯»­¿ØÖÆ
+    // åŠ¨ç”»æ§åˆ¶
     void PlayAnimation();
     void PauseAnimation();
     void StopAnimation();
@@ -60,19 +60,19 @@ public:
     void SetOriginalSpeed(float speed);
     float GetOriginalSpeed();
 
-    // ¹ìµÀ¸½¼Ó
+    // è½¨é“é™„åŠ 
     bool AttachAnimatorToTrack(const std::string& trackName, std::shared_ptr<Animator> childAnimator);
     void DetachAnimatorFromTrack(const std::string& trackName, std::shared_ptr<Animator> childAnimator);
     void DetachAllAnimators();
 
-    // ÊÓ¾õĞ§¹û
+    // è§†è§‰æ•ˆæœ
     void SetGlowingTimer(float duration);
     void SetGlowColor(Uint8 r, Uint8 g, Uint8 b, Uint8 a = 128);
     void EnableGlowEffect(bool enable);
     void EnableOverlayEffect(bool enable);
     void OverrideColor(const SDL_Color& color);
 
-    // ¹ìµÀ²¥·Å
+    // è½¨é“æ’­æ”¾
     bool PlayTrack(const std::string& trackName, float speed = 1.0f, float blendTime = 0.0f);
     bool PlayTrackOnce(const std::string& trackName,
         const std::string& returnTrack = "",
@@ -81,11 +81,11 @@ public:
 
     void SetFramesForLayer(const std::string& trackName);
 
-    // ×é¼ş»ñÈ¡
+    // ç»„ä»¶è·å–
     std::shared_ptr<TransformComponent> GetTransformComponent() const;
     std::shared_ptr<ColliderComponent> GetColliderComponent() const;
 
-    // »ñÈ¡ÊÓ¾õ»æÖÆÎ»ÖÃ
+    // è·å–è§†è§‰ç»˜åˆ¶ä½ç½®
     virtual Vector GetVisualPosition() const;
 
     void Update() override;

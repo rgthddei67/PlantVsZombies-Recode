@@ -1,4 +1,4 @@
-#include "CardComponent.h"
+ï»¿#include "CardComponent.h"
 #include "../ResourceKeys.h"
 #include "CardDisplayComponent.h"
 #include "ClickableComponent.h"
@@ -39,11 +39,11 @@ void CardComponent::SetCardChooseClick(std::shared_ptr<GameObject> gameObject,
 	std::shared_ptr<Card> card)
 {
 	if (auto clickable = gameObject->GetComponent<ClickableComponent>()) {
-		// ---------- Ñ¡¿¨½çÃæµã»÷Âß¼­ ----------
+		// ---------- é€‰å¡ç•Œé¢ç‚¹å‡»é€»è¾‘ ----------
 		clickable->onClick = [this, card]() {
 			if (card->IsMoving()) return;
 
-			// ²éÕÒ ChooseCardUI
+			// æŸ¥æ‰¾ ChooseCardUI
 			auto& manager = GameObjectManager::GetInstance();
 			std::shared_ptr<ChooseCardUI> chooseUI;
 			for (auto obj : manager.GetAllGameObjects()) {
@@ -58,7 +58,7 @@ void CardComponent::SetCardChooseClick(std::shared_ptr<GameObject> gameObject,
 				return;
 			}
 
-			// ÇĞ»»Ñ¡ÖĞ×´Ì¬
+			// åˆ‡æ¢é€‰ä¸­çŠ¶æ€
 			bool isPickedUp = chooseUI->ToggleCardSelection(card);
 
 			};
@@ -67,11 +67,11 @@ void CardComponent::SetCardChooseClick(std::shared_ptr<GameObject> gameObject,
 
 void CardComponent::SetCardGameClick(std::shared_ptr<GameObject> gameObject)
 {
-	// ÕâÀïCardDisplayComponent»¹Ã»ÓĞ´´½¨ºÃ£¬ËùÒÔ²»ÄÜ»º´æ ·Åµ½GetCardDisplayComponentÀï¼ÓÔØ
-	// »ñÈ¡µã»÷×é¼ş²¢ÉèÖÃ»Øµ÷
+	// è¿™é‡ŒCardDisplayComponentè¿˜æ²¡æœ‰åˆ›å»ºå¥½ï¼Œæ‰€ä»¥ä¸èƒ½ç¼“å­˜ æ”¾åˆ°GetCardDisplayComponenté‡ŒåŠ è½½
+	// è·å–ç‚¹å‡»ç»„ä»¶å¹¶è®¾ç½®å›è°ƒ
 	if (auto clickable = gameObject->GetComponent<ClickableComponent>()) {
 		clickable->onClick = [this]() {
-			// Í¨Öª¿¨²Û¹ÜÀíÆ÷Õâ¸ö¿¨ÅÆ±»µã»÷ÁË
+			// é€šçŸ¥å¡æ§½ç®¡ç†å™¨è¿™ä¸ªå¡ç‰Œè¢«ç‚¹å‡»äº†
 			auto manager = GetCardSlotManager();
 			if (!IsReady() || !manager->CanAfford(mSunCost)) {
 				AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_CLICKFAILED, 0.5f);
@@ -85,17 +85,17 @@ void CardComponent::SetCardGameClick(std::shared_ptr<GameObject> gameObject)
 
 void CardComponent::Update() {
 	if (mIsInChooseCardUI) return;
-	// ¸üĞÂÀäÈ´
+	// æ›´æ–°å†·å´
 	if (mIsCooldown) {
 		mCooldownTimer -= DeltaTime::GetDeltaTime();
 		if (mCooldownTimer <= 0) {
 			mIsCooldown = false;
 			mCooldownTimer = 0;
-			// ÀäÈ´½áÊø£¬Ç¿ÖÆ¸üĞÂ×´Ì¬
+			// å†·å´ç»“æŸï¼Œå¼ºåˆ¶æ›´æ–°çŠ¶æ€
 			ForceStateUpdate();
 		}
 		else {
-			// ¸üĞÂÀäÈ´½ø¶ÈÏÔÊ¾
+			// æ›´æ–°å†·å´è¿›åº¦æ˜¾ç¤º
 			if (auto display = GetCardDisplayComponent()) {
 				float progress = 1.0f - (mCooldownTimer / mCooldownTime);
 				display->SetCooldownProgress(progress);
@@ -106,13 +106,13 @@ void CardComponent::Update() {
 
 void CardComponent::ForceStateUpdate() {
 	if (auto display = GetCardDisplayComponent()) {
-		// Èç¹ûÕıÔÚÀäÈ´£¬Ö»¸üĞÂÀäÈ´½ø¶È£¬²»¸Ä±ä×´Ì¬
+		// å¦‚æœæ­£åœ¨å†·å´ï¼Œåªæ›´æ–°å†·å´è¿›åº¦ï¼Œä¸æ”¹å˜çŠ¶æ€
 		if (mIsCooldown) {
 			float progress = 1.0f - (mCooldownTimer / mCooldownTime);
 			display->SetCooldownProgress(progress);
 		}
 		else {
-			// ²»ÔÚÀäÈ´×´Ì¬Ê±£¬²Å¸ù¾İÑô¹âÌõ¼ş¸üĞÂ×´Ì¬
+			// ä¸åœ¨å†·å´çŠ¶æ€æ—¶ï¼Œæ‰æ ¹æ®é˜³å…‰æ¡ä»¶æ›´æ–°çŠ¶æ€
 			if (GetCardSlotManager()->CanAfford(mSunCost)) {
 				display->TranToReady();
 			}
@@ -128,7 +128,7 @@ void CardComponent::StartCooldown() {
 		mIsCooldown = true;
 		mCooldownTimer = mCooldownTime;
 
-		// Í¨ÖªÏÔÊ¾×é¼ş¿ªÊ¼ÀäÈ´
+		// é€šçŸ¥æ˜¾ç¤ºç»„ä»¶å¼€å§‹å†·å´
 		if (auto display = GetCardDisplayComponent()) {
 			display->TranToCooling();
 		}
@@ -138,14 +138,14 @@ void CardComponent::StartCooldown() {
 void CardComponent::SetSelected(bool selected) {
 	mIsSelected = selected;
 
-	// Í¨ÖªÏÔÊ¾×é¼şÑ¡ÖĞ×´Ì¬±ä»¯
+	// é€šçŸ¥æ˜¾ç¤ºç»„ä»¶é€‰ä¸­çŠ¶æ€å˜åŒ–
 	if (auto display = GetCardDisplayComponent()) {
 		display->SetSelected(selected);
 		if (selected) {
 			display->TranToClick();
 		}
 		else {
-			// ¸ù¾İÊµ¼Ê×´Ì¬»Ö¸´
+			// æ ¹æ®å®é™…çŠ¶æ€æ¢å¤
 			if (IsReady()) {
 				display->TranToReady();
 			}
@@ -168,11 +168,11 @@ CardState CardComponent::GetCardState() const {
 	if (auto display = GetCardDisplayComponent()) {
 		return display->GetCardState();
 	}
-	return CardState::Cooling; // Ä¬ÈÏ·µ»ØÀäÈ´×´Ì¬
+	return CardState::Cooling; // é»˜è®¤è¿”å›å†·å´çŠ¶æ€
 }
 
 std::shared_ptr<CardSlotManager> CardComponent::FindCardSlotManager() const {
-	// ÔÚ³¡¾°ÖĞ²éÕÒCardSlotManager
+	// åœ¨åœºæ™¯ä¸­æŸ¥æ‰¾CardSlotManager
 	auto& manager = GameObjectManager::GetInstance();
 	auto allObjects = manager.GetAllGameObjects();
 
@@ -195,7 +195,7 @@ std::shared_ptr<CardSlotManager> CardComponent::GetCardSlotManager() const {
 	if (auto manager = mCardSlotManager.lock()) {
 		return manager;
 	}
-	// Èç¹û weak_ptr ÒÑÊ§Ğ§£¬ÖØĞÂ²éÕÒ
+	// å¦‚æœ weak_ptr å·²å¤±æ•ˆï¼Œé‡æ–°æŸ¥æ‰¾
 	std::cerr << "Warning: CardSlotManager weak_ptr expired, re-finding..." << std::endl;
 	auto manager = FindCardSlotManager();
 	if (manager) {
@@ -208,7 +208,7 @@ std::shared_ptr<CardDisplayComponent> CardComponent::GetCardDisplayComponent() c
 	if (auto display = mCardDisplayComponent.lock()) {
 		return display;
 	}
-	// Èç¹û weak_ptr ÒÑÊ§Ğ§£¬ÖØĞÂ»ñÈ¡
+	// å¦‚æœ weak_ptr å·²å¤±æ•ˆï¼Œé‡æ–°è·å–
 	if (auto gameObject = GetGameObject()) {
 		if (auto display = gameObject->GetComponent<CardDisplayComponent>()) {
 			this->mCardDisplayComponent = display;

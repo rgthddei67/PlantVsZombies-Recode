@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #ifndef _COLLIDER_COMPONENT_H
 #define _COLLIDER_COMPONENT_H
 
@@ -10,7 +10,7 @@
 
 class TransformComponent;
 
-// Åö×²ĞÎ×´ÀàĞÍ
+// ç¢°æ’å½¢çŠ¶ç±»å‹
 enum class ColliderType {
 	BOX,
 	CIRCLE
@@ -18,45 +18,45 @@ enum class ColliderType {
 
 class ColliderComponent : public Component {
 public:
-	Vector offset = Vector::zero();    // Ïà¶ÔÓÚÓÎÏ·¶ÔÏóµÄÆ«ÒÆ
-	Vector size = Vector(50, 40);        // ³ß´ç£¨¾ØĞÎÎª¿í¸ß£¬Ô²ĞÎÎªÖ±¾¶£©
+	Vector offset = Vector::zero();    // ç›¸å¯¹äºæ¸¸æˆå¯¹è±¡çš„åç§»
+	Vector size = Vector(50, 40);        // å°ºå¯¸ï¼ˆçŸ©å½¢ä¸ºå®½é«˜ï¼Œåœ†å½¢ä¸ºç›´å¾„ï¼‰
 	ColliderType colliderType = ColliderType::BOX;
-	bool isTrigger = false;            // ÊÇ·ñÊÇ´¥·¢Æ÷
-	bool isStatic = false;             // ÊÇ·ñÊÇ¾²Ì¬Åö×²Ìå
+	bool isTrigger = false;            // æ˜¯å¦æ˜¯è§¦å‘å™¨
+	bool isStatic = false;             // æ˜¯å¦æ˜¯é™æ€ç¢°æ’ä½“
 
-	// Åö×²µÄÊÂ¼ş£¨»Øµ÷º¯Êı£©
+	// ç¢°æ’çš„äº‹ä»¶ï¼ˆå›è°ƒå‡½æ•°ï¼‰
 	std::function<void(std::shared_ptr<ColliderComponent>)> onTriggerEnter;
 	std::function<void(std::shared_ptr<ColliderComponent>)> onTriggerStay;
 	std::function<void(std::shared_ptr<ColliderComponent>)> onTriggerExit;
 	std::function<void(std::shared_ptr<ColliderComponent>)> onCollisionEnter;
 	std::function<void(std::shared_ptr<ColliderComponent>)> onCollisionExit;
 
-	SDL_Color debugColor = { 255, 0, 0, 255 }; // µ÷ÊÔÑÕÉ«£¨ºìÉ«£©
+	SDL_Color debugColor = { 255, 0, 0, 255 }; // è°ƒè¯•é¢œè‰²ï¼ˆçº¢è‰²ï¼‰
 
 	ColliderComponent(const Vector& size, const Vector& offset = Vector(0, 0), ColliderType type = ColliderType::BOX)
 		: size(size), offset(offset), colliderType(type) {
 	}
 
-	// »ñÈ¡ÊÀ½ç¿Õ¼äÎ»ÖÃ
+	// è·å–ä¸–ç•Œç©ºé—´ä½ç½®
 	Vector GetWorldPosition() const;
 
-	// »ñÈ¡±ß½ç¿ò
+	// è·å–è¾¹ç•Œæ¡†
 	SDL_FRect GetBoundingBox() const;
 
-	// ¼ì²éµãÊÇ·ñÔÚÅö×²Æ÷ÄÚ(µãÔÚÊÀ½ç¿Õ¼ä×ø±ê) Vector²ÎÊı
+	// æ£€æŸ¥ç‚¹æ˜¯å¦åœ¨ç¢°æ’å™¨å†…(ç‚¹åœ¨ä¸–ç•Œç©ºé—´åæ ‡) Vectorå‚æ•°
 	bool ContainsPoint(const Vector& point) const;
 
-	// ¼ì²éµãÊÇ·ñÔÚÅö×²Æ÷ÄÚ(µãÔÚÊÀ½ç¿Õ¼ä×ø±ê) float²ÎÊı
+	// æ£€æŸ¥ç‚¹æ˜¯å¦åœ¨ç¢°æ’å™¨å†…(ç‚¹åœ¨ä¸–ç•Œç©ºé—´åæ ‡) floatå‚æ•°
 	bool ContainsPoint(float x, float y) const {
 		return ContainsPoint(Vector(x, y));
 	}
 
 	void Draw(SDL_Renderer* renderer) override;
 
-	// »æÖÆ¾ØĞÎÅö×²¿ò
+	// ç»˜åˆ¶çŸ©å½¢ç¢°æ’æ¡†
 	void DrawBoxCollider(SDL_Renderer* renderer, const SDL_FRect& rect);
 
-	// »æÖÆÔ²ĞÎÅö×²¿ò
+	// ç»˜åˆ¶åœ†å½¢ç¢°æ’æ¡†
 	void DrawCircleCollider(SDL_Renderer* renderer, const Vector& center, float radius);
 
 private:

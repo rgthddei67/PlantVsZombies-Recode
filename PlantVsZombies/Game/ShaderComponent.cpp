@@ -1,4 +1,4 @@
-#include "ShadowComponent.h"
+ï»¿#include "ShadowComponent.h"
 #include "../ResourceManager.h"
 #include "GameObject.h"
 #include "../GameApp.h"
@@ -36,7 +36,7 @@ void ShadowComponent::Draw(SDL_Renderer* renderer) {
     auto gameObject = GetGameObject();
     if (!gameObject) return;
 
-    // ¼ÆËãÒõÓ°Î»ÖÃ£¨ÔÚÎïÌåÏÂ·½£¬¼ÓÉÏÆ«ÒÆ£©
+    // è®¡ç®—é˜´å½±ä½ç½®ï¼ˆåœ¨ç‰©ä½“ä¸‹æ–¹ï¼ŒåŠ ä¸Šåç§»ï¼‰
 	ObjectType type = gameObject->GetObjectType();
     Vector shadowPos = Vector(0, 0);
     Vector transform = GameAPP::GetInstance().GetCamera().WorldToScreen
@@ -70,7 +70,7 @@ void ShadowComponent::Draw(SDL_Renderer* renderer) {
     SDL_BlendMode oldBlendMode;
     SDL_GetRenderDrawBlendMode(renderer, &oldBlendMode);
 
-    // ÉèÖÃÍ¸Ã÷¶ÈºÍ»ìºÏÄ£Ê½
+    // è®¾ç½®é€æ˜åº¦å’Œæ··åˆæ¨¡å¼
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
     Uint8 shadowAlpha = static_cast<Uint8>(mAlpha * 255);
 
@@ -91,7 +91,7 @@ void ShadowComponent::Draw(SDL_Renderer* renderer) {
         SDL_SetTextureAlphaMod(mShadowTexture, 255);
     }
 
-    // »Ö¸´äÖÈ¾×´Ì¬
+    // æ¢å¤æ¸²æŸ“çŠ¶æ€
     SDL_SetRenderDrawColor(renderer, oldColor.r, oldColor.g, oldColor.b, oldColor.a);
     SDL_SetRenderDrawBlendMode(renderer, oldBlendMode);
 }

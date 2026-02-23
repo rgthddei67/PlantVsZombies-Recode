@@ -1,4 +1,4 @@
-#include "Scene.h"
+ï»¿#include "Scene.h"
 #include "GameObjectManager.h"
 #include "CollisionSystem.h"
 #include "../ResourceManager.h"
@@ -10,17 +10,17 @@
 void Scene::BuildDrawCommands() {
     mDrawCommands.clear();
 
-	// Ìí¼ÓÎÆÀí»æÖÆÃüÁî
+	// æ·»åŠ çº¹ç†ç»˜åˆ¶å‘½ä»¤
     RegisterDrawCommand("GameTextures",
         [this](SDL_Renderer* renderer) { this->DrawAllTextures(renderer); },
         LAYER_BACKGROUND);
 
-    // Ìí¼ÓÓÎÏ·¶ÔÏó»æÖÆÃüÁî
+    // æ·»åŠ æ¸¸æˆå¯¹è±¡ç»˜åˆ¶å‘½ä»¤
     RegisterDrawCommand("GameObjects",
         [this](SDL_Renderer* renderer) { this->DrawGameObjects(renderer); },
         LAYER_GAME_OBJECT);
 
-    // ×¢²áÁ£×ÓÏµÍ³»æÖÆ
+    // æ³¨å†Œç²’å­ç³»ç»Ÿç»˜åˆ¶
     RegisterDrawCommand("ParticleSystem",
         [](SDL_Renderer* renderer) {
             if (g_particleSystem) {
@@ -29,7 +29,7 @@ void Scene::BuildDrawCommands() {
         },
         LAYER_EFFECTS);
 
-    // Ìí¼ÓUI»æÖÆÃüÁî
+    // æ·»åŠ UIç»˜åˆ¶å‘½ä»¤
     RegisterDrawCommand("UI",
         [this](SDL_Renderer* renderer) { this->mUIManager.DrawAll(renderer); },
         LAYER_UI);
@@ -94,13 +94,13 @@ void Scene::AddTexture(const std::string& textureName, float posX, float posY, f
         info.isUI = isUI;                   
         mTextures.push_back(info);
 #ifdef _DEBUG
-        std::cout << "³¡¾° " << name << " Ìí¼ÓÎÆÀí: " << textureName
-            << " Î»ÖÃ: (" << posX << ", " << posY << ")"
-            << " Ëõ·ÅX:" << scaleX << "Y:" << scaleY << std::endl;
+        std::cout << "åœºæ™¯ " << name << " æ·»åŠ çº¹ç†: " << textureName
+            << " ä½ç½®: (" << posX << ", " << posY << ")"
+            << " ç¼©æ”¾X:" << scaleX << "Y:" << scaleY << std::endl;
 #endif
     }
     else {
-        std::cerr << "³¡¾° " << name << " ÎÞ·¨¼ÓÔØÎÆÀí: " << textureName << std::endl;
+        std::cerr << "åœºæ™¯ " << name << " æ— æ³•åŠ è½½çº¹ç†: " << textureName << std::endl;
     }
 }
 
@@ -112,7 +112,7 @@ void Scene::RemoveTexture(const std::string& textureName) {
 
     if (it != mTextures.end()) {
 #ifdef _DEBUG
-        std::cout << "³¡¾° " << name << " ÒÆ³ýÎÆÀí: " << textureName << std::endl;
+        std::cout << "åœºæ™¯ " << name << " ç§»é™¤çº¹ç†: " << textureName << std::endl;
 #endif
         mTextures.erase(it);
     }
@@ -188,20 +188,20 @@ void Scene::SetTextureDrawOrder(const std::string& textureName, int drawOrder) {
 
 void Scene::ClearAllTextures() {
 #ifdef _DEBUG
-    std::cout << "³¡¾° " << name << " Çå¿ÕËùÓÐÎÆÀí" << std::endl;
+    std::cout << "åœºæ™¯ " << name << " æ¸…ç©ºæ‰€æœ‰çº¹ç†" << std::endl;
 #endif
     mTextures.clear();
 }
 
 void Scene::DrawAllTextures(SDL_Renderer* renderer) {
-    // °´»æÖÆË³ÐòÅÅÐò
+    // æŒ‰ç»˜åˆ¶é¡ºåºæŽ’åº
     std::sort(mTextures.begin(), mTextures.end(),
         [](const TextureInfo& a, const TextureInfo& b) {
             return a.drawOrder < b.drawOrder;
         });
 
     auto& camera = GameAPP::GetInstance().GetCamera();
-    // »æÖÆËùÓÐ¿É¼ûÎÆÀí
+    // ç»˜åˆ¶æ‰€æœ‰å¯è§çº¹ç†
     for (size_t i = 0; i < mTextures.size(); i++)
     {
 		auto texInfo = mTextures[i];

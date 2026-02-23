@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include "GameObject.h"
 #include "FlagMeter.h"  
 #include <memory>
@@ -16,10 +16,10 @@ public:
     void Update() override;
     void Draw(SDL_Renderer* renderer) override; 
 
-    // ¸ù¾İ×î´ó²¨ÊıÉú³ÉÆì×Ó£¬Ê¹ÓÃ´«ÈëµÄÍ¼Æ¬¼ü
+    // æ ¹æ®æœ€å¤§æ³¢æ•°ç”Ÿæˆæ——å­ï¼Œä½¿ç”¨ä¼ å…¥çš„å›¾ç‰‡é”®
     void SetupFlags(SDL_Texture* stickTex, SDL_Texture* flagTex);
 
-    // ³õÊ¼»¯ÉıÆğ×´Ì¬£¨¸ù¾İµ±Ç°²¨ÊıÖ±½ÓÉèÖÃÒÑÉıÆğµÄÆì×Ó£©
+    // åˆå§‹åŒ–å‡èµ·çŠ¶æ€ï¼ˆæ ¹æ®å½“å‰æ³¢æ•°ç›´æ¥è®¾ç½®å·²å‡èµ·çš„æ——å­ï¼‰
     void InitializeRaisedFlags(float raiseY);
 
 private:
@@ -27,12 +27,12 @@ private:
     GameScene* mGameScene;
     float mUpdateTimer = 0.0f;
 
-    float mCurrentSliderValue = 1.0f;   // µ±Ç°ÏÔÊ¾½ø¶È
-    float mTargetSliderValue = 1.0f;    // Ä¿±ê½ø¶È
-    float mLerpSpeed = 0.001f;             // ²åÖµËÙ¶È
+    float mCurrentSliderValue = 1.0f;   // å½“å‰æ˜¾ç¤ºè¿›åº¦
+    float mTargetSliderValue = 1.0f;    // ç›®æ ‡è¿›åº¦
+    float mLerpSpeed = 0.001f;             // æ’å€¼é€Ÿåº¦
 
-    int m_lastWave = 0;               // ÉÏÒ»Ö¡²¨Êı£¬ÓÃÓÚ¼ì²â²¨´Î±ä»¯
-    int m_flagCount = 0;              // Æì×Ó×ÜÊı
+    int m_lastWave = 0;               // ä¸Šä¸€å¸§æ³¢æ•°ï¼Œç”¨äºæ£€æµ‹æ³¢æ¬¡å˜åŒ–
+    int m_flagCount = 0;              // æ——å­æ€»æ•°
 
     Vector createPosition = Vector(890, 575);
 

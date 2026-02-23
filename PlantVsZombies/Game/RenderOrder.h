@@ -1,33 +1,33 @@
-#pragma once
+О╩©#pragma once
 #ifndef _RENDER_ORDER_H
 #define _RENDER_ORDER_H
 
 enum RenderLayer{
-    // ╠Ё╬╟╡Ц
+    // Х┐▄Ф≥╞Е╠┌
     LAYER_BACKGROUND = -10000,
 
-    // сно╥╤тоС╡Ц
+    // Ф╦╦Ф┬▐Е╞╧Х╠║Е╠┌
     LAYER_GAME_OBJECT = 0,
 
-	// сно╥ж╡нО╡Ц
+	// Ф╦╦Ф┬▐Ф╓█Г┴╘Е╠┌
 	LAYER_GAME_PLANT = 10000,
 
-    // сно╥╫╘й╛╡Ц
+    // Ф╦╦Ф┬▐Е┐╣Е╟╦Е╠┌
     LAYER_GAME_ZOMBIE = 20000,
 
-    // сно╥вс╣╞╡Ц
+    // Ф╦╦Ф┬▐Е╜░Е╪╧Е╠┌
 	LAYER_GAME_BULLET = 30000,
 
-    // UI╡Ц
+    // UIЕ╠┌
     LAYER_UI = 40000,
 
-	// сно╥нОф╥╡Ц
+	// Ф╦╦Ф┬▐Г┴╘Е⌠│Е╠┌
     LAYER_GAME_COIN = 50000,
 
-    // п╖╧Ш╡Ц
+    // Ф∙┬Ф·°Е╠┌
     LAYER_EFFECTS = 80000,
 
-    // ╣Вйт╡Ц
+    // Х╟┐Х╞∙Е╠┌
     LAYER_DEBUG = 100000
 };
 

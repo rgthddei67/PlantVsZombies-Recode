@@ -1,18 +1,18 @@
-#pragma once
+ï»¿#pragma once
 #include <string>
 #include <SDL2/SDL.h>
 #include <vector>
 #include "Definit.h"
 
 struct FlagMarker {
-    SDL_Texture* texture1;   // µÚÒ»¸öÍ¼Æ¬ÎÆÀí£¨ÈçÆì¸Ë£©
-    SDL_Texture* texture2;   // µÚ¶ş¸öÍ¼Æ¬ÎÆÀí£¨ÈçÆìÃæ£©
-    float position;          // 0~1 ´Ó×óµ½ÓÒ
+    SDL_Texture* texture1;   // ç¬¬ä¸€ä¸ªå›¾ç‰‡çº¹ç†ï¼ˆå¦‚æ——æ†ï¼‰
+    SDL_Texture* texture2;   // ç¬¬äºŒä¸ªå›¾ç‰‡çº¹ç†ï¼ˆå¦‚æ——é¢ï¼‰
+    float position;          // 0~1 ä»å·¦åˆ°å³
 
-    // ÉıÆğ¶¯»­
-    float currentRaiseY = 0.0f;         // µ±Ç°YÆ«ÒÆ£¨ÏñËØ£¬ÏòÏÂÎªÕı£©
-    float targetRaiseY = 0.0f;          // Ä¿±êYÆ«ÒÆ
-    float raiseSpeed = 1.0f;            // ÒÆ¶¯ËÙ¶È£¨ÏñËØ/Ãë£©
+    // å‡èµ·åŠ¨ç”»
+    float currentRaiseY = 0.0f;         // å½“å‰Yåç§»ï¼ˆåƒç´ ï¼Œå‘ä¸‹ä¸ºæ­£ï¼‰
+    float targetRaiseY = 0.0f;          // ç›®æ ‡Yåç§»
+    float raiseSpeed = 1.0f;            // ç§»åŠ¨é€Ÿåº¦ï¼ˆåƒç´ /ç§’ï¼‰
 };
 
 class FlagMeter
@@ -27,10 +27,10 @@ public:
     void SetPosition(Vector pos) { m_position = pos; }
     Vector GetPosition() const { return m_position; }
 
-    // ÉèÖÃ4ÕÅÍ¼Æ¬µÄÎÆÀí
+    // è®¾ç½®4å¼ å›¾ç‰‡çš„çº¹ç†
     void SetImages(SDL_Texture* bgTex, SDL_Texture* fillTex, SDL_Texture* headTex, SDL_Texture* middleTex);
 
-    // »æÖÆº¯Êı
+    // ç»˜åˆ¶å‡½æ•°
     void Draw(SDL_Renderer* renderer) const;
     void Update(float deltaTime);
 
@@ -39,28 +39,28 @@ public:
     void SetFlags(const std::vector<FlagMarker>& flags);
     size_t GetFlagCount() const { return m_flags.size(); }
 
-    // ÉèÖÃÏÔÊ¾·¶Î§µÄ×óÓÒ±ß½ç±ÈÀı£¨0~1£©
+    // è®¾ç½®æ˜¾ç¤ºèŒƒå›´çš„å·¦å³è¾¹ç•Œæ¯”ä¾‹ï¼ˆ0~1ï¼‰
     void SetBounds(float leftBound, float rightBound);
 
-    // ÉıÆğÖ¸¶¨Ë÷ÒıµÄÆì×Ó£¨Ë÷Òı´Ó0¿ªÊ¼£©
+    // å‡èµ·æŒ‡å®šç´¢å¼•çš„æ——å­ï¼ˆç´¢å¼•ä»0å¼€å§‹ï¼‰
     void RaiseFlag(int index, float targetY, float duration);
-    // Ö±½ÓÉèÖÃÉıÆğ×´Ì¬£¨ÎŞ¶¯»­£©
+    // ç›´æ¥è®¾ç½®å‡èµ·çŠ¶æ€ï¼ˆæ— åŠ¨ç”»ï¼‰
     void SetFlagRaiseImmediate(int index, float targetY);
 
 private:
-    Vector m_position;          // ±³¾°×óÉÏ½Ç×ø±ê
+    Vector m_position;          // èƒŒæ™¯å·¦ä¸Šè§’åæ ‡
     float m_progress;            // 0~1
 
-    SDL_Texture* m_bgTexture = nullptr;      // ±³¾°ÎÆÀí
-    SDL_Texture* m_fillTexture = nullptr;     // Ìî³äÌõÎÆÀí
-    SDL_Texture* m_headTexture = nullptr;     // Í·²¿Ğ¡ÆìÎÆÀí
-    SDL_Texture* m_middleTexture = nullptr;   // ÖĞ¼ä×°ÊÎÎÆÀí
+    SDL_Texture* m_bgTexture = nullptr;      // èƒŒæ™¯çº¹ç†
+    SDL_Texture* m_fillTexture = nullptr;     // å¡«å……æ¡çº¹ç†
+    SDL_Texture* m_headTexture = nullptr;     // å¤´éƒ¨å°æ——çº¹ç†
+    SDL_Texture* m_middleTexture = nullptr;   // ä¸­é—´è£…é¥°çº¹ç†
 
     std::vector<FlagMarker> m_flags;
 
     float m_leftBound = 0.11f;
     float m_rightBound = 1.0f;
 
-    // »ñÈ¡ÎÆÀí³ß´ç
+    // è·å–çº¹ç†å°ºå¯¸
     SDL_Rect GetTextureRect(SDL_Texture* tex) const;
 };

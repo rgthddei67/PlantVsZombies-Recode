@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #ifndef __PARTICLE_CONFIG_H__
 #define __PARTICLE_CONFIG_H__
 
@@ -18,17 +18,17 @@ struct ParticleConfig {
     float spreadAngle = 360.0f;
     float gravity = 0.5f;
     bool fadeOut = true;
-    std::vector<std::string> textureKeys;   // ÎÆÀíÁĞ±í
-    bool useTexture = false; // ÊÇ·ñÊ¹ÓÃÎÆÀí
-    int textureFrame = 0;    // ÎÆÀíÖ¡£¨Èç¹ûÓĞ¶àÖ¡£©
+    std::vector<std::string> textureKeys;   // çº¹ç†åˆ—è¡¨
+    bool useTexture = false; // æ˜¯å¦ä½¿ç”¨çº¹ç†
+    int textureFrame = 0;    // çº¹ç†å¸§ï¼ˆå¦‚æœæœ‰å¤šå¸§ï¼‰
 
-    // »ñÈ¡Ëæ»úÎÆÀíkey
+    // è·å–éšæœºçº¹ç†key
     std::string GetRandomTextureKey() const 
     {
         if (textureKeys.size() == 1) {
-            return textureKeys[0];  // Ö»ÓĞÒ»¸öÎÆÀí£¬Ö±½Ó·µ»Ø
+            return textureKeys[0];  // åªæœ‰ä¸€ä¸ªçº¹ç†ï¼Œç›´æ¥è¿”å›
         }
-        // ¶à¸öÎÆÀí£¬Ëæ»úÑ¡ÔñÒ»¸ö
+        // å¤šä¸ªçº¹ç†ï¼Œéšæœºé€‰æ‹©ä¸€ä¸ª
         int index = GameRandom::Range(0, static_cast<int>(textureKeys.size()) - 1);
         return textureKeys[index];
     }
@@ -44,7 +44,7 @@ public:
     ~ParticleConfigManager();
     void SetRenderer(SDL_Renderer* sdlRenderer) { renderer = sdlRenderer; }
     const ParticleConfig& GetConfig(ParticleType effect) const;
-	SDL_Texture* GetRandomTextureForEffect(ParticleType effect) const;    //»ñµÃËæ»úÎÆÀí
+	SDL_Texture* GetRandomTextureForEffect(ParticleType effect) const;    //è·å¾—éšæœºçº¹ç†
 
 private:
     void InitializeConfigs();

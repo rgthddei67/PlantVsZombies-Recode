@@ -1,4 +1,4 @@
-#include "ClickableComponent.h"
+ï»¿#include "ClickableComponent.h"
 #include "ColliderComponent.h"
 #include "GameObjectManager.h"
 #include "../UI/InputHandler.h"
@@ -14,15 +14,15 @@ void ClickableComponent::ClearProcessedEvents() {
 void ClickableComponent::ProcessMouseEvents() {
     auto& input = GameAPP::GetInstance().GetInputHandler();
 
-    // »ñÈ¡Êó±êÆÁÄ»×ø±êºÍÊÀ½ç×ø±ê
+    // èŽ·å–é¼ æ ‡å±å¹•åæ ‡å’Œä¸–ç•Œåæ ‡
     Vector mouseScreen = input.GetMousePosition();
     Vector mouseWorld = input.GetMouseWorldPosition();
 
-    // Çå¿ÕÉÏÒ»Ö¡µÄ´¦Àí¼ÇÂ¼
+    // æ¸…ç©ºä¸Šä¸€å¸§çš„å¤„ç†è®°å½•
     ClearProcessedEvents();
 
     s_hoveringClickable = false;
-    // ÊÕ¼¯ËùÓÐÊó±êÎ»ÖÃÏÂµÄ¿Éµã»÷¶ÔÏó£¨Ê¹ÓÃÊÀ½ç×ø±ê£©
+    // æ”¶é›†æ‰€æœ‰é¼ æ ‡ä½ç½®ä¸‹çš„å¯ç‚¹å‡»å¯¹è±¡ï¼ˆä½¿ç”¨ä¸–ç•Œåæ ‡ï¼‰
     auto& manager = GameObjectManager::GetInstance();
     auto allObjects = manager.GetAllGameObjects();
 
@@ -49,7 +49,7 @@ void ClickableComponent::ProcessMouseEvents() {
             }
         }
 
-        // Ê¹ÓÃ×ª»»ºóµÄÊÀ½ç×ø±ê½øÐÐµã°üº¬²âÊÔ
+        // ä½¿ç”¨è½¬æ¢åŽçš„ä¸–ç•Œåæ ‡è¿›è¡Œç‚¹åŒ…å«æµ‹è¯•
         if (collider->ContainsPoint(testPoint)) {
             clickableObjects.emplace_back(obj, clickable.get());
 
@@ -59,13 +59,13 @@ void ClickableComponent::ProcessMouseEvents() {
         }
     }
 
-    // °´äÖÈ¾Ë³Ðò½µÐòÅÅÐò£¨order´óµÄÔÚÇ°£©
+    // æŒ‰æ¸²æŸ“é¡ºåºé™åºæŽ’åºï¼ˆorderå¤§çš„åœ¨å‰ï¼‰
     std::sort(clickableObjects.begin(), clickableObjects.end(),
         [](const auto& a, const auto& b) {
             return a.first->GetRenderOrder() > b.first->GetRenderOrder();
         });
 
-    // ¸üÐÂËùÓÐ¶ÔÏóµÄÊó±êÐüÍ£×´Ì¬ ºó±ê¼Ç´¦Àí¹ýµÄ¶ÔÏó 
+    // æ›´æ–°æ‰€æœ‰å¯¹è±¡çš„é¼ æ ‡æ‚¬åœçŠ¶æ€ åŽæ ‡è®°å¤„ç†è¿‡çš„å¯¹è±¡ 
     for (size_t i = 0; i < clickableObjects.size(); i++)
     {
         auto pair = clickableObjects[i];
@@ -129,11 +129,11 @@ void ClickableComponent::Start() {
 }
 
 void ClickableComponent::Update() {
-    // ÏÈÖØÖÃmouseOver×´Ì¬£¨»áÔÚProcessMouseEventsÖÐÖØÐÂÉèÖÃ£©
+    // å…ˆé‡ç½®mouseOverçŠ¶æ€ï¼ˆä¼šåœ¨ProcessMouseEventsä¸­é‡æ–°è®¾ç½®ï¼‰
     bool wasMouseOver = mouseOver;
     mouseOver = false;
 
-    // ´¦ÀíÊó±ê½øÈë/Àë¿ªÊÂ¼þ
+    // å¤„ç†é¼ æ ‡è¿›å…¥/ç¦»å¼€äº‹ä»¶
     if (prevMouseOver && !wasMouseOver && onMouseExit) {
         onMouseExit();
         mouseDown = false;

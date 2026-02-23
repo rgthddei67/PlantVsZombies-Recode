@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #ifndef _GAME_MONITOR_H
 #define _GAME_MONITOR_H
 #include "CrashHandler.h"
@@ -21,7 +21,7 @@ struct MemoryStatus {
     SIZE_T availableVirtual;
     SIZE_T processMemoryUsage;
     SIZE_T peakProcessMemory;
-    DWORD memoryLoad; // ÄÚ´æÊ¹ÓÃ°Ù·Ö±È 0-100
+    DWORD memoryLoad; // å†…å­˜ä½¿ç”¨ç™¾åˆ†æ¯” 0-100
 };
 
 struct ProcessInfo {
@@ -47,42 +47,42 @@ private:
     static ULONGLONG lastFrameTime;
 
 public:
-	// ´òÓ¡¶ÑÕ»Çé¿ö
+	// æ‰“å°å †æ ˆæƒ…å†µ
 	static void PrintStackUsage();
-	// »ñÈ¡¶ÑÕ»Çé¿ö
+	// è·å–å †æ ˆæƒ…å†µ
 	static StackUsageInfo GetStackUsage();
-    // ¶Ñ¼à¿Ø
+    // å †ç›‘æ§
     static void PrintHeapUsage();
     static SIZE_T GetProcessHeapUsage();
     static SIZE_T GetPrivateBytes();
 
-    // ÏµÍ³ÄÚ´æ¼à¿Ø
+    // ç³»ç»Ÿå†…å­˜ç›‘æ§
     static void PrintSystemMemoryStatus();
     static MemoryStatus GetSystemMemoryStatus();
 
-    // ½ø³ÌĞÅÏ¢
+    // è¿›ç¨‹ä¿¡æ¯
     static void PrintProcessInfo();
     static ProcessInfo GetProcessInfo();
 
-    // ĞÔÄÜ¼à¿Ø
+    // æ€§èƒ½ç›‘æ§
     static void UpdateFrame();
     static void PrintPerformanceMetrics();
     static PerformanceMetrics GetPerformanceMetrics();
 
-    // ÍêÕûÏµÍ³±¨¸æ
+    // å®Œæ•´ç³»ç»ŸæŠ¥å‘Š
     static void PrintComprehensiveReport();
 
-    // Ïß³Ì¼à¿Ø
+    // çº¿ç¨‹ç›‘æ§
     static DWORD GetThreadCount();
     static void PrintThreadInfo();
 
-    // Ä£¿é¼à¿Ø
+    // æ¨¡å—ç›‘æ§
     static void PrintLoadedModules();
 
-    // ×ÊÔ´Ğ¹Â©¼ì²â
+    // èµ„æºæ³„æ¼æ£€æµ‹
     static void CheckResourceLeaks();
 
-    // ¼à¿Ø¾¯±¨
+    // ç›‘æ§è­¦æŠ¥
     static void CheckSystemHealth();
 };
 

@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #ifndef _PLANT_H
 #define _PLANT_H
 #include <iostream>
@@ -19,7 +19,7 @@ class Plant : public AnimatedObject {
 public:
 	Board* mBoard;
 	PlantType mPlantType = PlantType::NUM_PLANT_TYPES;
-	Vector mVisualOffset;	// ÊÓ¾õÏÔÊ¾Æ«ÒÆ
+	Vector mVisualOffset;	// è§†è§‰æ˜¾ç¤ºåç§»
 	int mRow = 0;
 	int mColumn = 0;
 	int mPlantHealth = 300;
@@ -36,7 +36,7 @@ public:
 	void Start() override;
 	void Update() override;
 	Vector GetVisualPosition() const override;
-	virtual void PlantUpdate();		// ×ÓÀàÖØĞ´UpdateÓÃÕâ¸ö
+	virtual void PlantUpdate();		// å­ç±»é‡å†™Updateç”¨è¿™ä¸ª
 	virtual void TakeDamage(int damage);
 	void Die();
 	Vector GetPosition() const;

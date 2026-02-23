@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #ifndef _SLIDERMANAGER_H
 #define _SLIDERMANAGER_H
 #include "../UI/Slider.h"
@@ -8,38 +8,38 @@
 class SliderManager
 {
 private:
-    std::vector<std::shared_ptr<Slider>> sliders; // ÖÇÄÜÖ¸Õë¹ÜÀí»¬¶¯Ìõ
+    std::vector<std::shared_ptr<Slider>> sliders; // æ™ºèƒ½æŒ‡é’ˆç®¡ç†æ»‘åŠ¨æ¡
 
 public:
-    // ´´½¨»¬¶¯Ìõ²¢·µ»ØÖ¸Õë
+    // åˆ›å»ºæ»‘åŠ¨æ¡å¹¶è¿”å›æŒ‡é’ˆ
     std::shared_ptr<Slider> CreateSlider(Vector pos = Vector::zero(),
         Vector size = Vector(135, 10),
         float minVal = 0.0f,
         float maxVal = 1.0f,
         float initialValue = 0.5f);
 
-    // ´¦ÀíËùÓĞ»¬¶¯ÌõÊó±êÊÂ¼ş
+    // å¤„ç†æ‰€æœ‰æ»‘åŠ¨æ¡é¼ æ ‡äº‹ä»¶
     void ProcessMouseEvent(InputHandler* input);
 
-    // ¸üĞÂËùÓĞ»¬¶¯Ìõ
+    // æ›´æ–°æ‰€æœ‰æ»‘åŠ¨æ¡
     void UpdateAll(InputHandler* input);
 
-    // äÖÈ¾ËùÓĞ»¬¶¯Ìõ
+    // æ¸²æŸ“æ‰€æœ‰æ»‘åŠ¨æ¡
     void DrawAll(SDL_Renderer* renderer) const;
 
-    // Ìí¼ÓÏÖÓĞ»¬¶¯Ìõ
+    // æ·»åŠ ç°æœ‰æ»‘åŠ¨æ¡
     void AddSlider(std::shared_ptr<Slider> slider);
 
-    // ÒÆ³ı»¬¶¯Ìõ
+    // ç§»é™¤æ»‘åŠ¨æ¡
     void RemoveSlider(std::shared_ptr<Slider> slider);
 
-    // É¾³ıÈ«²¿»¬¶¯Ìõ
+    // åˆ é™¤å…¨éƒ¨æ»‘åŠ¨æ¡
     void ClearAllSliders();
 
-    // »ñÈ¡»¬¶¯ÌõÊıÁ¿
+    // è·å–æ»‘åŠ¨æ¡æ•°é‡
     size_t GetSliderCount() const;
 
-    // Í¨¹ıË÷Òı»ñÈ¡»¬¶¯Ìõ
+    // é€šè¿‡ç´¢å¼•è·å–æ»‘åŠ¨æ¡
     std::shared_ptr<Slider> GetSlider(size_t index) const;
 };
 

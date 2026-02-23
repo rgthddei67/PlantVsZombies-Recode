@@ -1,4 +1,4 @@
-#include "CardDisplayComponent.h"
+ï»¿#include "CardDisplayComponent.h"
 #include "../ResourceKeys.h"
 #include "./Card.h"
 #include "./CardComponent.h"
@@ -17,7 +17,7 @@ CardDisplayComponent::CardDisplayComponent(PlantType type, int sunCost, float co
     cardState = CardState::Ready;
     showMask = false;
     maskFillAmount = 0.0f;
-    currentCooldown = cooldownTime; // ÉèÖÃÎªÂúÀäÈ´£¬±íÊ¾²»ĞèÒªÀäÈ´
+    currentCooldown = cooldownTime; // è®¾ç½®ä¸ºæ»¡å†·å´ï¼Œè¡¨ç¤ºä¸éœ€è¦å†·å´
 }
 
 void CardDisplayComponent::Start() {
@@ -27,7 +27,7 @@ void CardDisplayComponent::Start() {
 void CardDisplayComponent::Update() {
     if (GetCardComponent()->GetIsInChooseCardUI()) return;
 
-    // ¸üĞÂÀäÈ´¼ÆÊ±
+    // æ›´æ–°å†·å´è®¡æ—¶
     if (cardState == CardState::Cooling) {
         currentCooldown += DeltaTime::GetDeltaTime();
         if (currentCooldown > cooldownTime) {
@@ -35,7 +35,7 @@ void CardDisplayComponent::Update() {
         }
     }
 
-    // ¸üĞÂ×´Ì¬
+    // æ›´æ–°çŠ¶æ€
     UpdateCardState();
 }
 
@@ -62,11 +62,11 @@ void CardDisplayComponent::Draw(SDL_Renderer* renderer) {
 void CardDisplayComponent::LoadTextures() {
     auto& resourceManager = ResourceManager::GetInstance();
 
-    // ¼ÓÔØ¿¨ÅÆ±³¾°ÎÆÀí
+    // åŠ è½½å¡ç‰ŒèƒŒæ™¯çº¹ç†
     cardBackground = resourceManager.GetTexture(ResourceKeys::Textures::IMAGE_CARD_BK);
     cardNormal = resourceManager.GetTexture(ResourceKeys::Textures::IMAGE_SEEDPACKETNORMAL);
 
-    // ¼ÓÔØÖ²ÎïÎÆÀí
+    // åŠ è½½æ¤ç‰©çº¹ç†
     std::string plantKey = GetPlantTextureKey();
     plantTexture = resourceManager.GetTexture(plantKey);
 
@@ -88,17 +88,17 @@ void CardDisplayComponent::DrawCardBackground(SDL_Renderer* renderer, std::share
     SDL_Rect cardRect = {
         static_cast<int>(position.x),
         static_cast<int>(position.y),
-        CARD_WIDTH,  // ¿¨ÅÆ¿í¶È
-        CARD_HEIGHT   // ¿¨ÅÆ¸ß¶È
+        CARD_WIDTH,  // å¡ç‰Œå®½åº¦
+        CARD_HEIGHT   // å¡ç‰Œé«˜åº¦
     };
 
-    // »æÖÆ¿¨ÅÆ±³¾°
+    // ç»˜åˆ¶å¡ç‰ŒèƒŒæ™¯
     if (cardNormal) {
-        // ¸ù¾İ×´Ì¬µ÷Õû±³¾°ÎÆÀíµÄÑÕÉ«
+        // æ ¹æ®çŠ¶æ€è°ƒæ•´èƒŒæ™¯çº¹ç†çš„é¢œè‰²
         SDL_Color color = GetCurrentColor();
         SDL_SetTextureColorMod(cardNormal, color.r, color.g, color.b);
         SDL_RenderCopy(renderer, cardNormal, nullptr, &cardRect);
-        // ÖØÖÃÎÆÀíÑÕÉ«
+        // é‡ç½®çº¹ç†é¢œè‰²
         SDL_SetTextureColorMod(cardNormal, 255, 255, 255);
     }
 }
@@ -111,7 +111,7 @@ void CardDisplayComponent::DrawPlantImage(SDL_Renderer* renderer, std::shared_pt
     int imgWidth, imgHeight;
     SDL_QueryTexture(plantTexture, nullptr , nullptr, &imgWidth, &imgHeight);
 
-    // Ö²ÎïÍ¼Æ¬Î»ÖÃ£¨ÔÚ¿¨ÅÆÖĞÑë£©
+    // æ¤ç‰©å›¾ç‰‡ä½ç½®ï¼ˆåœ¨å¡ç‰Œä¸­å¤®ï¼‰
     SDL_FRect plantRect = {
         position.x - 14,
         position.y - 10,
@@ -119,14 +119,14 @@ void CardDisplayComponent::DrawPlantImage(SDL_Renderer* renderer, std::shared_pt
         imgHeight * 0.7f
     };
 
-    // ÉèÖÃÑÕÉ«µ÷ÖÆ£¨¸ù¾İ×´Ì¬¸Ä±äÑÕÉ«£©
+    // è®¾ç½®é¢œè‰²è°ƒåˆ¶ï¼ˆæ ¹æ®çŠ¶æ€æ”¹å˜é¢œè‰²ï¼‰
     SDL_Color color = GetCurrentColor();
     SDL_SetTextureColorMod(plantTexture, color.r, color.g, color.b);
     SDL_SetTextureAlphaMod(plantTexture, 255);
 
     SDL_RenderCopyF(renderer, plantTexture, nullptr, &plantRect);
 
-    // ÖØÖÃÑÕÉ«µ÷ÖÆ
+    // é‡ç½®é¢œè‰²è°ƒåˆ¶
     SDL_SetTextureColorMod(plantTexture, 255, 255, 255);
     SDL_SetTextureAlphaMod(plantTexture, 255);
 }
@@ -140,32 +140,32 @@ void CardDisplayComponent::DrawCooldownMask(SDL_Renderer* renderer, std::shared_
     SDL_Rect cardRect = {
         static_cast<int>(position.x),
         static_cast<int>(position.y),
-        CARD_WIDTH,  // ¿¨ÅÆ¿í¶È
-        CARD_HEIGHT   // ¿¨ÅÆ¸ß¶È
+        CARD_WIDTH,  // å¡ç‰Œå®½åº¦
+        CARD_HEIGHT   // å¡ç‰Œé«˜åº¦
     };
 
-    // ¼ÆËãÕÚÕÖ¸ß¶È  - ´ÓÏÂÍùÉÏÖğ½¥¼õÉÙ
-    // maskFillAmount ±íÊ¾Ê£ÓàÀäÈ´µÄ±ÈÀı (1.0 = ÍêÈ«ÀäÈ´, 0.0 = ÀäÈ´Íê³É)
+    // è®¡ç®—é®ç½©é«˜åº¦  - ä»ä¸‹å¾€ä¸Šé€æ¸å‡å°‘
+    // maskFillAmount è¡¨ç¤ºå‰©ä½™å†·å´çš„æ¯”ä¾‹ (1.0 = å®Œå…¨å†·å´, 0.0 = å†·å´å®Œæˆ)
     int maskHeight = static_cast<int>(cardRect.h * maskFillAmount);
     SDL_Rect maskRect = {
         cardRect.x,
-        cardRect.y, // ´Ó¶¥²¿¿ªÊ¼
+        cardRect.y, // ä»é¡¶éƒ¨å¼€å§‹
         cardRect.w,
-        maskHeight  // ¸ß¶ÈÖğ½¥¼õÉÙ
+        maskHeight  // é«˜åº¦é€æ¸å‡å°‘
     };
 
-    // ±£´æµ±Ç°µÄ»ìºÏÄ£Ê½
+    // ä¿å­˜å½“å‰çš„æ··åˆæ¨¡å¼
     SDL_BlendMode oldBlendMode;
     SDL_GetRenderDrawBlendMode(renderer, &oldBlendMode);
 
-    // ÉèÖÃ»ìºÏÄ£Ê½Îª»ìºÏ£¨SDL_BLENDMODE_BLEND£©
+    // è®¾ç½®æ··åˆæ¨¡å¼ä¸ºæ··åˆï¼ˆSDL_BLENDMODE_BLENDï¼‰
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 
-    // »æÖÆ°ëÍ¸Ã÷ºÚÉ«¾ØĞÎ×÷ÎªÕÚÕÖ
+    // ç»˜åˆ¶åŠé€æ˜é»‘è‰²çŸ©å½¢ä½œä¸ºé®ç½©
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 64);
     SDL_RenderFillRect(renderer, &maskRect);
 
-    // »Ö¸´Ö®Ç°µÄ»ìºÏÄ£Ê½
+    // æ¢å¤ä¹‹å‰çš„æ··åˆæ¨¡å¼
     SDL_SetRenderDrawBlendMode(renderer, oldBlendMode);
 
 }
@@ -187,45 +187,45 @@ void CardDisplayComponent::DrawSelectionHighlight(SDL_Renderer* renderer, std::s
 
     Vector position = transform->GetPosition();
 
-    // »æÖÆÑ¡ÖĞ¸ßÁÁ±ß¿ò
+    // ç»˜åˆ¶é€‰ä¸­é«˜äº®è¾¹æ¡†
     SDL_Rect highlightRect = {
         static_cast<int>(position.x),
         static_cast<int>(position.y),
-        CARD_WIDTH,  // ¿¨ÅÆ¿í¶È
-        CARD_HEIGHT   // ¿¨ÅÆ¸ß¶È
+        CARD_WIDTH,  // å¡ç‰Œå®½åº¦
+        CARD_HEIGHT   // å¡ç‰Œé«˜åº¦
     };
 
     SDL_BlendMode oldBlendMode;
     SDL_GetRenderDrawBlendMode(renderer, &oldBlendMode);
 
-    // ÉèÖÃ»ìºÏÄ£Ê½Îª»ìºÏ£¨SDL_BLENDMODE_BLEND£©
+    // è®¾ç½®æ··åˆæ¨¡å¼ä¸ºæ··åˆï¼ˆSDL_BLENDMODE_BLENDï¼‰
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 
-    // »æÖÆ°ëÍ¸Ã÷ºÚÉ«¾ØĞÎ×÷ÎªÕÚÕÖ
+    // ç»˜åˆ¶åŠé€æ˜é»‘è‰²çŸ©å½¢ä½œä¸ºé®ç½©
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 64);
     SDL_RenderFillRect(renderer, &highlightRect);
 
-    // »Ö¸´Ö®Ç°µÄ»ìºÏÄ£Ê½
+    // æ¢å¤ä¹‹å‰çš„æ··åˆæ¨¡å¼
     SDL_SetRenderDrawBlendMode(renderer, oldBlendMode);
 }
 
 void CardDisplayComponent::UpdateCardState() {
-    // »ñÈ¡¿¨ÅÆÂß¼­×é¼ş
+    // è·å–å¡ç‰Œé€»è¾‘ç»„ä»¶
     auto cardComp = GetCardComponent();
     if (!cardComp) return;
-    // »ñÈ¡¿¨²Û¹ÜÀíÆ÷
+    // è·å–å¡æ§½ç®¡ç†å™¨
     auto cardSlotManager = cardComp->GetCardSlotManager();
     if (!cardSlotManager) return;
 
-    // Èç¹ûÕıÔÚÀäÈ´£¬Ö»¸üĞÂÀäÈ´½ø¶È£¬²»½øĞĞ×´Ì¬×ª»»
+    // å¦‚æœæ­£åœ¨å†·å´ï¼Œåªæ›´æ–°å†·å´è¿›åº¦ï¼Œä¸è¿›è¡ŒçŠ¶æ€è½¬æ¢
     if (cardState == CardState::Cooling) {
-        // ¸üĞÂÀäÈ´½ø¶È
+        // æ›´æ–°å†·å´è¿›åº¦
         if (cardComp->IsCooldown()) {
             float progress = 1.0f - (cardComp->GetCooldownProgress());
             maskFillAmount = progress;
         }
         else {
-            // ÀäÈ´½áÊø£¬¸ù¾İÑô¹âÌõ¼ş×ª»»×´Ì¬
+            // å†·å´ç»“æŸï¼Œæ ¹æ®é˜³å…‰æ¡ä»¶è½¬æ¢çŠ¶æ€
             if (cardSlotManager->CanAfford(needSun)) {
                 TranToReady();
             }
@@ -236,20 +236,20 @@ void CardDisplayComponent::UpdateCardState() {
         return;
     }
 
-    // »ñÈ¡µ±Ç°Ñô¹âÊıÁ¿
+    // è·å–å½“å‰é˜³å…‰æ•°é‡
     int currentSun = cardSlotManager->GetCurrentSun();
 
-    // ¸ù¾İÌõ¼ş¸üĞÂ×´Ì¬£¨Ö»´¦Àí·ÇÀäÈ´×´Ì¬£©
+    // æ ¹æ®æ¡ä»¶æ›´æ–°çŠ¶æ€ï¼ˆåªå¤„ç†éå†·å´çŠ¶æ€ï¼‰
     switch (cardState) {
     case CardState::Ready:
-        // ¾ÍĞ÷×´Ì¬£¬¼ì²éÑô¹âÊÇ·ñ²»×ã
+        // å°±ç»ªçŠ¶æ€ï¼Œæ£€æŸ¥é˜³å…‰æ˜¯å¦ä¸è¶³
         if (currentSun < needSun) {
             TranToWaitingSun();
         }
         break;
 
     case CardState::WaitingSun:
-        // µÈ´ıÑô¹â×´Ì¬£¬¼ì²éÑô¹âÊÇ·ñ×ã¹»
+        // ç­‰å¾…é˜³å…‰çŠ¶æ€ï¼Œæ£€æŸ¥é˜³å…‰æ˜¯å¦è¶³å¤Ÿ
         if (currentSun >= needSun) {
             TranToReady();
         }
@@ -266,7 +266,7 @@ void CardDisplayComponent::UpdateCooldown(float deltaTime) {
         maskFillAmount = 1.0f - (currentCooldown / cooldownTime);
 
         if (currentCooldown >= cooldownTime) {
-            TranToWaitingSun(); // ÀäÈ´½áÊø£¬×ªÎªµÈ´ıÑô¹â×´Ì¬
+            TranToWaitingSun(); // å†·å´ç»“æŸï¼Œè½¬ä¸ºç­‰å¾…é˜³å…‰çŠ¶æ€
         }
     }
 }
@@ -275,7 +275,7 @@ void CardDisplayComponent::TranToWaitingSun() {
     cardState = CardState::WaitingSun;
     showMask = true;
     maskFillAmount = 1.0f;
-    currentCooldown = cooldownTime; // È·±£ÀäÈ´Íê³É
+    currentCooldown = cooldownTime; // ç¡®ä¿å†·å´å®Œæˆ
 }
 
 void CardDisplayComponent::TranToReady() {
@@ -286,7 +286,7 @@ void CardDisplayComponent::TranToReady() {
     cardState = CardState::Ready;
     showMask = false;
     maskFillAmount = 0.0f;
-    currentCooldown = cooldownTime; // ÖØÖÃÀäÈ´
+    currentCooldown = cooldownTime; // é‡ç½®å†·å´
 }
 
 void CardDisplayComponent::TranToCooling() {
@@ -320,7 +320,7 @@ std::shared_ptr<CardComponent> CardDisplayComponent::GetCardComponent() const {
     if (auto cardComp = mCardComponent.lock()) {
         return cardComp;
     }
-    // Èç¹û weak_ptr ÒÑÊ§Ğ§£¬ÖØĞÂ²éÕÒ
+    // å¦‚æœ weak_ptr å·²å¤±æ•ˆï¼Œé‡æ–°æŸ¥æ‰¾
     if (auto gameObject = GetGameObject()) {
         auto cardComp = gameObject->GetComponent<CardComponent>();
         if (cardComp) {

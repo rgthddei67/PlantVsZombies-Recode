@@ -1,4 +1,4 @@
-#include "FileManager.h"
+ï»¿#include "FileManager.h"
 #include <iostream>
 #include <filesystem>
 #include <sstream>
@@ -129,7 +129,7 @@ bool FileManager::LoadJsonFile(const std::string& path, nlohmann::json& json) {
 
 bool FileManager::SaveJsonFile(const std::string& path, const nlohmann::json& json) {
     try {
-        std::string content = json.dump(4); // Ê¹ÓÃ4¿Õ¸ñËõ½ø
+        std::string content = json.dump(4); // ä½¿ç”¨4ç©ºæ ¼ç¼©è¿›
         return SaveFile(path, content);
     }
     catch (const nlohmann::json::exception& e) {
@@ -176,7 +176,7 @@ std::vector<std::string> FileManager::GetFilesInDirectory(const std::string& dir
             if (entry.is_regular_file()) {
                 std::string filename = entry.path().string();
 
-                // Èç¹ûÖ¸¶¨ÁËÀ©Õ¹Ãû£¬ÔòÖ»Ìí¼ÓÆ¥ÅäÀ©Õ¹ÃûµÄÎÄ¼ş
+                // å¦‚æœæŒ‡å®šäº†æ‰©å±•åï¼Œåˆ™åªæ·»åŠ åŒ¹é…æ‰©å±•åçš„æ–‡ä»¶
                 if (extension.empty() || GetFileExtension(filename) == extension) {
                     files.push_back(filename);
                 }

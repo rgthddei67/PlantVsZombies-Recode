@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #ifndef _H_MESSAGEBOX_H
 #define _H_MESSAGEBOX_H
 
@@ -12,12 +12,12 @@
 
 class GameMessageBox : public GameObject {
 public:
-    // °´Å¥ÅäÖÃ½á¹¹
+    // æŒ‰é’®é…ç½®ç»“æ„
     struct ButtonConfig {
-        std::string text;                 // °´Å¥ÎÄ×Ö
+        std::string text;                 // æŒ‰é’®æ–‡å­—
         Vector pos;
-        std::function<void()> callback;   // µã»÷»Øµ÷
-        bool autoClose = true;             // µã»÷ºóÊÇ·ñ×Ô¶¯¹Ø±ÕÏûÏ¢¿ò
+        std::function<void()> callback;   // ç‚¹å‡»å›è°ƒ
+        bool autoClose = true;             // ç‚¹å‡»åæ˜¯å¦è‡ªåŠ¨å…³é—­æ¶ˆæ¯æ¡†
     };
 
     GameMessageBox(const Vector& pos,
@@ -32,13 +32,13 @@ public:
     virtual void Start() override;
     virtual void Draw(SDL_Renderer* renderer) override;
 
-    // ¹Ø±ÕÏûÏ¢¿ò£¨´ÓGameObjectManagerÖĞÏú»Ù×Ô¼º£©
+    // å…³é—­æ¶ˆæ¯æ¡†ï¼ˆä»GameObjectManagerä¸­é”€æ¯è‡ªå·±ï¼‰
     void Close();
 
 private:
     Vector m_position;
     float m_scale;
-    Vector m_size;               // Êµ¼Ê´óĞ¡£¨ÒÑ³ËËõ·Å£©
+    Vector m_size;               // å®é™…å¤§å°ï¼ˆå·²ä¹˜ç¼©æ”¾ï¼‰
     std::string m_title;
     std::string m_message;
     std::string m_backgroundImageKey = ResourceKeys::Textures::IMAGE_MESSAGEBOX;
@@ -48,7 +48,7 @@ private:
     SDL_Color m_textColor = { 245, 214, 127, 255 };
     SDL_Color m_titleColor = { 53, 191, 61, 255 };
 
-    // »ñÈ¡±³¾°Í¼Æ¬Ô­Ê¼³ß´ç£¨ÈôÎŞÍ¼Æ¬Ôò·µ»ØÄ¬ÈÏ³ß´ç£©
+    // è·å–èƒŒæ™¯å›¾ç‰‡åŸå§‹å°ºå¯¸ï¼ˆè‹¥æ— å›¾ç‰‡åˆ™è¿”å›é»˜è®¤å°ºå¯¸ï¼‰
     Vector GetBackgroundOriginalSize() const;
 };
 

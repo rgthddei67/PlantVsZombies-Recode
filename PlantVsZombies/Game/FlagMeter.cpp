@@ -1,4 +1,4 @@
-#include "FlagMeter.h"
+ï»¿#include "FlagMeter.h"
 #include "../ResourceManager.h"
 #include <algorithm>
 
@@ -37,23 +37,23 @@ void FlagMeter::SetBounds(float leftBound, float rightBound)
 
 void FlagMeter::Draw(SDL_Renderer* renderer) const
 {
-    // »ñÈ¡±³¾°ÎÆÀí³ß´ç
+    // è·å–èƒŒæ™¯çº¹ç†å°ºå¯¸
     SDL_Rect bgRect = GetTextureRect(m_bgTexture);
     int bgWidth = bgRect.w > 0 ? bgRect.w : 200;
     int bgHeight = bgRect.h > 0 ? bgRect.h : 30;
 
-    // ¼ÆËã×óÓÒ±ß½çµÄÆÁÄ»ÏñËØ×ø±ê
+    // è®¡ç®—å·¦å³è¾¹ç•Œçš„å±å¹•åƒç´ åæ ‡
     float leftBoundPx = m_position.x + bgWidth * m_leftBound;
     float rightBoundPx = m_position.x + bgWidth * m_rightBound;
     float usableWidth = rightBoundPx - leftBoundPx;
 
-    // ½«½ø¶ÈÓ³Éäµ½±ß½çÄÚ£¨ÓÃÓÚÍ·²¿ºÍÌî³äÌõ£©
+    // å°†è¿›åº¦æ˜ å°„åˆ°è¾¹ç•Œå†…ï¼ˆç”¨äºå¤´éƒ¨å’Œå¡«å……æ¡ï¼‰
     float mappedProgress = m_leftBound + m_progress * (m_rightBound - m_leftBound);
     float headCenterX = m_position.x + bgWidth * mappedProgress;
-    // Ç¯Î»Í·²¿ÖĞĞÄ£¬È·±£²»³¬³ö±ß½ç
+    // é’³ä½å¤´éƒ¨ä¸­å¿ƒï¼Œç¡®ä¿ä¸è¶…å‡ºè¾¹ç•Œ
     headCenterX = std::clamp(headCenterX, leftBoundPx, rightBoundPx);
 
-    // 1. »æÖÆ±³¾°Í¼
+    // 1. ç»˜åˆ¶èƒŒæ™¯å›¾
     if (m_bgTexture)
     {
         SDL_Rect destBg = bgRect;
@@ -62,27 +62,27 @@ void FlagMeter::Draw(SDL_Renderer* renderer) const
         SDL_RenderCopy(renderer, m_bgTexture, nullptr, &destBg);
     }
 
-    // 2. »æÖÆÌî³äÌõ£¨¸ù¾İ½ø¶È²Ã¼ô£¬²¢ÊÜ±ß½çÏŞÖÆ£©
+    // 2. ç»˜åˆ¶å¡«å……æ¡ï¼ˆæ ¹æ®è¿›åº¦è£å‰ªï¼Œå¹¶å—è¾¹ç•Œé™åˆ¶ï¼‰
     if (m_fillTexture && m_progress >= 0.0f)
     {
         int fillWidth, fillHeight;
         SDL_QueryTexture(m_fillTexture, nullptr, nullptr, &fillWidth, &fillHeight);
 
-        float fillRatio = 1.0f - m_progress;   // ÒÑÍê³É±ÈÀı
+        float fillRatio = 1.0f - m_progress;   // å·²å®Œæˆæ¯”ä¾‹
         int drawWidth = static_cast<int>(fillWidth * fillRatio);
-        // Ô´¾ØĞÎ´ÓÓÒ²à²Ã¼ô£¨ÒòÎªÌî³äÌõ±íÊ¾ÒÑÍê³É²¿·Ö£¬´ÓÍ·²¿Ïò×óÑÓÉì£©
+        // æºçŸ©å½¢ä»å³ä¾§è£å‰ªï¼ˆå› ä¸ºå¡«å……æ¡è¡¨ç¤ºå·²å®Œæˆéƒ¨åˆ†ï¼Œä»å¤´éƒ¨å‘å·¦å»¶ä¼¸ï¼‰
         SDL_Rect srcRect = { fillWidth - drawWidth, 0, drawWidth, fillHeight };
 
-        // Ìî³äÌõ×ó±ßÔµÓëÍ·²¿¶ÔÆë£¨µ«Í·²¿¿ÉÄÜ±»Ç¯Î»£©
+        // å¡«å……æ¡å·¦è¾¹ç¼˜ä¸å¤´éƒ¨å¯¹é½ï¼ˆä½†å¤´éƒ¨å¯èƒ½è¢«é’³ä½ï¼‰
         float fillLeftX = headCenterX;
-        // Ìî³äÌõ¿í¶È»ùÓÚ¿ÉÓÃ¿í¶È
+        // å¡«å……æ¡å®½åº¦åŸºäºå¯ç”¨å®½åº¦
         float fillBarWidth = usableWidth * fillRatio;
         float fillRightX = fillLeftX + fillBarWidth;
 
-        // Ç¯Î»ÓÒ±ßÔµ²»³¬³öÓÒ±ß½ç
+        // é’³ä½å³è¾¹ç¼˜ä¸è¶…å‡ºå³è¾¹ç•Œ
         if (fillRightX > rightBoundPx)
             fillRightX = rightBoundPx;
-        // Ç¯Î»×ó±ßÔµ²»³¬³ö×ó±ß½ç£¨ÀíÂÛÉÏ²»»áĞ¡ÓÚ leftBoundPx£¬µ«°²È«Æğ¼û£©
+        // é’³ä½å·¦è¾¹ç¼˜ä¸è¶…å‡ºå·¦è¾¹ç•Œï¼ˆç†è®ºä¸Šä¸ä¼šå°äº leftBoundPxï¼Œä½†å®‰å…¨èµ·è§ï¼‰
         if (fillLeftX < leftBoundPx)
             fillLeftX = leftBoundPx;
 
@@ -99,16 +99,16 @@ void FlagMeter::Draw(SDL_Renderer* renderer) const
         }
     }
 
-    // 3. »æÖÆ½ø¶ÈÌõÉÏµÄÆì×Ó
+    // 3. ç»˜åˆ¶è¿›åº¦æ¡ä¸Šçš„æ——å­
     for (const auto& flag : m_flags)
     {
-        // Æì×Ó»ù×¼µãË®Æ½Î»ÖÃÒÑÓ³Éäµ½±ß½çÄÚ
+        // æ——å­åŸºå‡†ç‚¹æ°´å¹³ä½ç½®å·²æ˜ å°„åˆ°è¾¹ç•Œå†…
         float flagBaseX = m_position.x + bgWidth * (m_leftBound + flag.position * (m_rightBound - m_leftBound));
-        // Ç¯Î»»ù×¼µã£¬±ÜÃâÍ¼Æ¬³¬³ö±ß½ç
+        // é’³ä½åŸºå‡†ç‚¹ï¼Œé¿å…å›¾ç‰‡è¶…å‡ºè¾¹ç•Œ
         flagBaseX = std::clamp(flagBaseX, leftBoundPx, rightBoundPx);
-        float flagBaseY = m_position.y + bgHeight / 2.0f - 4;  // ´¹Ö±ÖĞĞÄ»ù×¼µã
+        float flagBaseY = m_position.y + bgHeight / 2.0f - 4;  // å‚ç›´ä¸­å¿ƒåŸºå‡†ç‚¹
 
-        // »æÖÆµÚÒ»¸öÍ¼Æ¬
+        // ç»˜åˆ¶ç¬¬ä¸€ä¸ªå›¾ç‰‡
         if (flag.texture1)
         {
             int w, h;
@@ -121,7 +121,7 @@ void FlagMeter::Draw(SDL_Renderer* renderer) const
             SDL_RenderCopy(renderer, flag.texture1, nullptr, &destRect);
         }
 
-        // »æÖÆµÚ¶ş¸öÍ¼Æ¬£¨Ó¦ÓÃÉıÆğÆ«ÒÆ£©
+        // ç»˜åˆ¶ç¬¬äºŒä¸ªå›¾ç‰‡ï¼ˆåº”ç”¨å‡èµ·åç§»ï¼‰
         if (flag.texture2)
         {
             int w, h;
@@ -135,7 +135,7 @@ void FlagMeter::Draw(SDL_Renderer* renderer) const
         }
     }
 
-    // 4. »æÖÆÖĞ¼ä×°ÊÎÍ¼Æ¬£¨¹Ì¶¨ÔÚ±³¾°ÖĞÑë£©
+    // 4. ç»˜åˆ¶ä¸­é—´è£…é¥°å›¾ç‰‡ï¼ˆå›ºå®šåœ¨èƒŒæ™¯ä¸­å¤®ï¼‰
     if (m_middleTexture)
     {
         int w, h;
@@ -149,7 +149,7 @@ void FlagMeter::Draw(SDL_Renderer* renderer) const
         SDL_RenderCopy(renderer, m_middleTexture, nullptr, &destRect);
     }
 
-    // 5. »æÖÆÍ·²¿
+    // 5. ç»˜åˆ¶å¤´éƒ¨
     if (m_headTexture)
     {
         int headWidth, headHeight;

@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 
 #ifndef _TODCOMMON_H
 #define _TODCOMMON_H
@@ -6,12 +6,12 @@
 #include <algorithm>
 #include "../Game/Definit.h"
 
-// ÊıÑ§³£Á¿
+// æ•°å­¦å¸¸é‡
 constexpr float PI = 3.14159265358979323846f;
 constexpr float DEG_TO_RAD = PI / 180.0f;
 constexpr float RAD_TO_DEG = 180.0f / PI;
 
-// ÊıÑ§¹¤¾ßº¯Êı
+// æ•°å­¦å·¥å…·å‡½æ•°
 inline bool FloatApproxEqual(float a, float b, float epsilon = 0.001f) {
     return fabs(a - b) < epsilon;
 }
@@ -32,7 +32,7 @@ inline float m_sqrtf(float x) {
     return sqrt(x);
 }
 
-// ÑÕÉ«¹¤¾ß
+// é¢œè‰²å·¥å…·
 struct Color {
     Uint8 r, g, b, a;
 

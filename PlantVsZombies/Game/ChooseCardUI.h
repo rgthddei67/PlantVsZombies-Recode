@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #ifndef _CHOOSECARDUI_H
 #define _CHOOSECARDUI_H
 #include "GameObject.h"
@@ -16,7 +16,7 @@ public:
 
     void Draw(SDL_Renderer* renderer) override;
 
-    // ºóĞøÌí¼Ó¿¨ÅÆµÄ·½·¨
+    // åç»­æ·»åŠ å¡ç‰Œçš„æ–¹æ³•
     void AddCard(PlantType type);
 
 	void RemoveCard(std::shared_ptr<Card> card);
@@ -31,17 +31,17 @@ public:
         return GetTransformComponent()->GetPosition();
     }
 
-    // ÇĞ»»¿¨ÅÆÑ¡ÖĞ×´Ì¬£¬·µ»ØÊÇ·ñÑ¡ÖĞ
+    // åˆ‡æ¢å¡ç‰Œé€‰ä¸­çŠ¶æ€ï¼Œè¿”å›æ˜¯å¦é€‰ä¸­
     bool ToggleCardSelection(std::shared_ptr<Card> card);
-    // ÅĞ¶Ï¿¨ÅÆÊÇ·ñÒÑÑ¡ÖĞ
+    // åˆ¤æ–­å¡ç‰Œæ˜¯å¦å·²é€‰ä¸­
     bool IsCardSelected(std::shared_ptr<Card> card) const;
-    // »ñÈ¡ËùÓĞÑ¡ÖĞµÄ¿¨ÅÆ
+    // è·å–æ‰€æœ‰é€‰ä¸­çš„å¡ç‰Œ
     const std::vector<std::shared_ptr<Card>>& GetSelectedCards() const { return mSelectedCards; }
-    // »ñÈ¡¡°Ò»ÆğÒ¡¹ö°É¡±°´Å¥
+    // è·å–â€œä¸€èµ·æ‘‡æ»šå§â€æŒ‰é’®
     std::shared_ptr<Button> GetButton() const { return mButton.lock(); }
-	// Ìí¼ÓËùÓĞ¿¨ÅÆ
+	// æ·»åŠ æ‰€æœ‰å¡ç‰Œ
     void AddAllCard();
-	// ×ª»»¿¨ÅÆËùÓĞÈ¨¸ø¿¨²Û¹ÜÀíÆ÷
+	// è½¬æ¢å¡ç‰Œæ‰€æœ‰æƒç»™å¡æ§½ç®¡ç†å™¨
     void TransferSelectedCardsTo(CardSlotManager* manager);
 
 private:
@@ -51,21 +51,21 @@ private:
     std::weak_ptr<TransformComponent> mTransform;
     std::weak_ptr<Button> mButton;
 
-    std::vector<std::shared_ptr<Card>> mCards;  // ´æ´¢Ñ¡¿¨½çÃæµÄ¿¨ÅÆ
-    std::vector<std::shared_ptr<Card>> mSelectedCards;   // ´æ´¢Ñ¡ÖĞµÄ¿¨ÅÆ¶ÔÏó
+    std::vector<std::shared_ptr<Card>> mCards;  // å­˜å‚¨é€‰å¡ç•Œé¢çš„å¡ç‰Œ
+    std::vector<std::shared_ptr<Card>> mSelectedCards;   // å­˜å‚¨é€‰ä¸­çš„å¡ç‰Œå¯¹è±¡
 
-    static constexpr int MAX_SELECTED = 10;              // ×î´óÑ¡ÔñÊıÁ¿
-    static constexpr float SLOT_START_X = 190;                  // ²ÛÎ»ÆğÊ¼ X ÆÁÄ»×ø±ê
-    static constexpr float SLOT_START_Y = -1;                    // ²ÛÎ»ÆğÊ¼ Y ÆÁÄ»×ø±ê
-    static constexpr int SLOT_SPACING = CARD_WIDTH + 2;       // ²ÛÎ»¼ä¾à
+    static constexpr int MAX_SELECTED = 10;              // æœ€å¤§é€‰æ‹©æ•°é‡
+    static constexpr float SLOT_START_X = 190;                  // æ§½ä½èµ·å§‹ X å±å¹•åæ ‡
+    static constexpr float SLOT_START_Y = -1;                    // æ§½ä½èµ·å§‹ Y å±å¹•åæ ‡
+    static constexpr int SLOT_SPACING = CARD_WIDTH + 2;       // æ§½ä½é—´è·
 
-    static constexpr int MAX_CARDS_PER_ROW = 8;      // Ã¿ĞĞ×î¶à8ÕÅ
-    static constexpr int CARD_HORIZONTAL_SPACING = 1; // Ë®Æ½¼ä¾à
-    static constexpr int CARD_VERTICAL_SPACING = 4;   // ´¹Ö±¼ä¾à£¨
-    static constexpr float START_X = 250;                 // µÚÒ»ÕÅ¿¨ÅÆµÄÆğÊ¼X×ø±ê ÆÁÄ»×ø±ê
-    static constexpr float START_Y = 115;                // µÚÒ»ĞĞÆğÊ¼Y×ø±ê  ÆÁÄ»×ø±ê
+    static constexpr int MAX_CARDS_PER_ROW = 8;      // æ¯è¡Œæœ€å¤š8å¼ 
+    static constexpr int CARD_HORIZONTAL_SPACING = 1; // æ°´å¹³é—´è·
+    static constexpr int CARD_VERTICAL_SPACING = 4;   // å‚ç›´é—´è·ï¼ˆ
+    static constexpr float START_X = 250;                 // ç¬¬ä¸€å¼ å¡ç‰Œçš„èµ·å§‹Xåæ ‡ å±å¹•åæ ‡
+    static constexpr float START_Y = 115;                // ç¬¬ä¸€è¡Œèµ·å§‹Yåæ ‡  å±å¹•åæ ‡
 
-    // ¸üĞÂËùÓĞ¿¨ÅÆµÄÄ¿±êÎ»ÖÃ£¨¸ù¾İÑ¡ÖĞ×´Ì¬£©
+    // æ›´æ–°æ‰€æœ‰å¡ç‰Œçš„ç›®æ ‡ä½ç½®ï¼ˆæ ¹æ®é€‰ä¸­çŠ¶æ€ï¼‰
     void UpdateTargetPositions();
 };
 

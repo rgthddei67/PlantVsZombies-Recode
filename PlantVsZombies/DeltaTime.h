@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #ifndef _DELTATIME_H
 #define _DELTATIME_H
 
@@ -14,10 +14,10 @@ private:
     inline static bool isPaused = false;
     inline static float timeScale = 1.0f;
 
-    // ×îĞ¡Ê±¼äÏŞÖÆ£¬·ÀÖ¹µ÷ÊÔÊ±ÔİÍ£µ¼ÖÂµÄÊ±¼äÒì³£
+    // æœ€å°æ—¶é—´é™åˆ¶ï¼Œé˜²æ­¢è°ƒè¯•æ—¶æš‚åœå¯¼è‡´çš„æ—¶é—´å¼‚å¸¸
     inline static float minDeltaTime = 0.0001f;
 
-    // ÓÎÏ·×ÜÊ±¼äÍ³¼Æ
+    // æ¸¸æˆæ€»æ—¶é—´ç»Ÿè®¡
     inline static double totalGameTime = 0.0;
     inline static double unscaledTotalTime = 0.0;
 
@@ -26,91 +26,91 @@ private:
     DeltaTime& operator=(const DeltaTime&) = delete;
 
 public:
-    // ¿ªÊ¼ĞÂµÄÒ»Ö¡£¬¼ÆËãÊ±¼äÔöÁ¿
+    // å¼€å§‹æ–°çš„ä¸€å¸§ï¼Œè®¡ç®—æ—¶é—´å¢é‡
     static void BeginFrame() {
         if (isPaused) {
             unscaledDeltaTime = 0.0f;
             deltaTime = 0.0f;
-            // ¸üĞÂ lastTime ±ÜÃâ»Ö¸´Ê±²úÉú¾Ş´óÊ±¼ä²î
+            // æ›´æ–° lastTime é¿å…æ¢å¤æ—¶äº§ç”Ÿå·¨å¤§æ—¶é—´å·®
             lastTime = SDL_GetTicks64();
             return;
         }
 
         Uint64 currentTime = SDL_GetTicks64();
         if (lastTime > 0) {
-            // ¼ÆËãÊ±¼ä²î£¨ºÁÃë×ª»»ÎªÃë£©
+            // è®¡ç®—æ—¶é—´å·®ï¼ˆæ¯«ç§’è½¬æ¢ä¸ºç§’ï¼‰
             unscaledDeltaTime = (currentTime - lastTime) / 1000.0f;
 
-            // ÏŞÖÆÊ±¼ä·¶Î§
+            // é™åˆ¶æ—¶é—´èŒƒå›´
             unscaledDeltaTime = std::clamp(unscaledDeltaTime, minDeltaTime, maxDeltaTime);
 
-            // Ó¦ÓÃÊ±¼äËõ·Å
+            // åº”ç”¨æ—¶é—´ç¼©æ”¾
             deltaTime = unscaledDeltaTime * timeScale;
 
-            // ¸üĞÂÓÎÏ·×ÜÊ±¼ä
+            // æ›´æ–°æ¸¸æˆæ€»æ—¶é—´
             totalGameTime += static_cast<double>(deltaTime);
             unscaledTotalTime += static_cast<double>(unscaledDeltaTime);
         }
         lastTime = currentTime;
     }
 
-    // »ñÈ¡Ëõ·ÅºóµÄDeltaTime
+    // è·å–ç¼©æ”¾åçš„DeltaTime
     static float GetDeltaTime() { return deltaTime; }
 
-    // »ñÈ¡Î´Ëõ·ÅµÄDeltaTime£¨Ô­Ê¼Ö¡Ê±¼ä£©
+    // è·å–æœªç¼©æ”¾çš„DeltaTimeï¼ˆåŸå§‹å¸§æ—¶é—´ï¼‰
     static float GetUnscaledDeltaTime() { return unscaledDeltaTime; }
 
-    // ÉèÖÃÊ±¼äËõ·ÅÏµÊı
+    // è®¾ç½®æ—¶é—´ç¼©æ”¾ç³»æ•°
     static void SetTimeScale(float scale) {
         timeScale = scale;
         isPaused = (scale == 0.0f);
     }
 
-    // »ñÈ¡µ±Ç°Ê±¼äËõ·ÅÏµÊı
+    // è·å–å½“å‰æ—¶é—´ç¼©æ”¾ç³»æ•°
     static float GetTimeScale() { return timeScale; }
 
-    // ÔİÍ£/»Ö¸´ÓÎÏ·
+    // æš‚åœ/æ¢å¤æ¸¸æˆ
     static void SetPaused(bool paused) {
         isPaused = paused;
         if (paused) {
             timeScale = 0.0f;
         }
         else if (timeScale == 0.0f) {
-            timeScale = 1.0f;  // »Ö¸´Ê±ÉèÎªÕı³£ËÙ¶È
+            timeScale = 1.0f;  // æ¢å¤æ—¶è®¾ä¸ºæ­£å¸¸é€Ÿåº¦
         }
     }
 
-    // ¼ì²éÊÇ·ñÔİÍ£
+    // æ£€æŸ¥æ˜¯å¦æš‚åœ
     static bool IsPaused() { return isPaused; }
 
-    // ÉèÖÃ×î´óÊ±¼äÔöÁ¿
+    // è®¾ç½®æœ€å¤§æ—¶é—´å¢é‡
     static void SetMaxDeltaTime(float max) {
-        // È·±£×î´óÖµÓĞĞ§
+        // ç¡®ä¿æœ€å¤§å€¼æœ‰æ•ˆ
         if (max < minDeltaTime) max = minDeltaTime;
         if (max > 1.0f) max = 1.0f;
         maxDeltaTime = max;
     }
 
-    // »ñÈ¡×î´óÊ±¼äÔöÁ¿
+    // è·å–æœ€å¤§æ—¶é—´å¢é‡
     static float GetMaxDeltaTime() { return maxDeltaTime; }
 
-    // ÉèÖÃ×îĞ¡Ê±¼äÔöÁ¿
+    // è®¾ç½®æœ€å°æ—¶é—´å¢é‡
     static void SetMinDeltaTime(float min) {
         if (min < 0.000001f) min = 0.000001f;
         if (min > maxDeltaTime) min = maxDeltaTime;
         minDeltaTime = min;
     }
 
-    // »ñÈ¡×îĞ¡Ê±¼äÔöÁ¿
+    // è·å–æœ€å°æ—¶é—´å¢é‡
     static float GetMinDeltaTime() { return minDeltaTime; }
 
-    // »ñÈ¡ÓÎÏ·×ÜÊ±¼ä£¨Ëõ·Åºó£©
+    // è·å–æ¸¸æˆæ€»æ—¶é—´ï¼ˆç¼©æ”¾åï¼‰
     static double GetTotalTime() { return totalGameTime; }
 
-    // »ñÈ¡Î´Ëõ·ÅµÄÓÎÏ·×ÜÊ±¼ä
+    // è·å–æœªç¼©æ”¾çš„æ¸¸æˆæ€»æ—¶é—´
     static double GetUnscaledTotalTime() { return unscaledTotalTime; }
 
-    // ÖØÖÃ
+    // é‡ç½®
     static void Reset() {
         lastTime = 0;
         unscaledDeltaTime = 0.016f;

@@ -1,4 +1,4 @@
-#include "../Board.h"
+ï»¿#include "../Board.h"
 #include "../Zombie/Zombie.h"
 #include "Bullet.h"
 #include "../GameObjectManager.h"
@@ -17,7 +17,7 @@ Bullet::Bullet(Board* board, BulletType bulletType, int row, SDL_Texture* textur
 	mCollider = AddComponent<ColliderComponent>
 		(colliderRadius, Vector(0, 0), ColliderType::CIRCLE);
 	auto collider = GetColliderComponent();
-	collider->isTrigger = true;	// ÉèÖÃÎª´¥·¢Æ÷
+	collider->isTrigger = true;	// è®¾ç½®ä¸ºè§¦å‘å™¨
 	collider->onTriggerEnter = [this](std::shared_ptr<ColliderComponent> other) {
 		auto otherGameObject = other->GetGameObject();
 		if (otherGameObject && otherGameObject->GetObjectType() == ObjectType::OBJECT_ZOMBIE) {

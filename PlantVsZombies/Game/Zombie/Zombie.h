@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #ifndef _ZOMBIE_H
 #define _ZOMBIE_H
 
@@ -16,7 +16,7 @@ class Zombie : public AnimatedObject {
 public:
 	Board* mBoard;
 	ZombieType mZombieType = ZombieType::NUM_ZOMBIE_TYPES;
-	Vector mVisualOffset;   // ÊÓ¾õÆ«ÒÆÁ¿
+	Vector mVisualOffset;   // è§†è§‰åç§»é‡
 	
 	int mRow = -1;
 
@@ -25,7 +25,7 @@ public:
 	bool mIsPreview = false;
 	int mZombieID = NULL_ZOMBIE_ID;
 
-	int mSpawnWave = -1;	// ¶àÉÙ²¨Ë¢ĞÂµÄ
+	int mSpawnWave = -1;	// å¤šå°‘æ³¢åˆ·æ–°çš„
 
 	int mBodyHealth = 270;
 	int mBodyMaxHealth = 270;
@@ -38,7 +38,7 @@ public:
 
 protected:
 	float mCheckPositionTimer = 0.0f;
-	bool mIsMindControlled = false;	//ÓĞÃ»ÓĞ±»÷È»ó
+	bool mIsMindControlled = false;	//æœ‰æ²¡æœ‰è¢«é­…æƒ‘
 		
 	float mEatSoundTimer = 0.0f;
 	bool mIsEating = false;
@@ -46,7 +46,7 @@ protected:
 
 	bool mHasHead = true;
 	bool mHasArm = true;
-	bool mIsDying = false;	// ÊÇ·ñ²¥·ÅËÀÍö¶¯»­ ´ó¸Å¿ÉÒÔÕâÃ´Àí½â Õâ¸öÊ±ºò²»ÄÜ×ßÂ·
+	bool mIsDying = false;	// æ˜¯å¦æ’­æ”¾æ­»äº¡åŠ¨ç”» å¤§æ¦‚å¯ä»¥è¿™ä¹ˆç†è§£ è¿™ä¸ªæ—¶å€™ä¸èƒ½èµ°è·¯
 
 	float mSpeed = 10.0f;
 
@@ -57,7 +57,7 @@ public:
 
 	void Start() override;
 	void Update() override;
-	virtual void ZombieUpdate() { }		// ×ÓÀàÖØĞ´UpdateÓÃÕâ¸ö
+	virtual void ZombieUpdate() { }		// å­ç±»é‡å†™Updateç”¨è¿™ä¸ª
 	virtual void TakeDamage(int damage);
 	int TakeShieldDamage(int damage);
 	int TakeHelmDamage(int damage);
@@ -65,10 +65,10 @@ public:
 
 	int GetSortingKey() const override { return mRow; }
 
-	virtual void ShieldDrop();		// ¶şÀà·À¾ßµôÂä
-	virtual void HelmDrop();	// Ò»Àà·À¾ßµôÂä
-	virtual void HeadDrop();	// Í·µôÂä
-	virtual void ArmDrop();		// ÊÖµôÂä
+	virtual void ShieldDrop();		// äºŒç±»é˜²å…·æ‰è½
+	virtual void HelmDrop();	// ä¸€ç±»é˜²å…·æ‰è½
+	virtual void HeadDrop();	// å¤´æ‰è½
+	virtual void ArmDrop();		// æ‰‹æ‰è½
 
 	void Die();
 	void EatTarget(std::shared_ptr<ColliderComponent> other);

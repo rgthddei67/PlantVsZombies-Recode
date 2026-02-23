@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #ifndef _RESOURCE_KEYS_H
 #define _RESOURCE_KEYS_H
 
@@ -98,7 +98,7 @@ namespace ResourceKeys
         const std::string IMAGE_PROJECTILESNOWPEA = "IMAGE_PROJECTILESNOWPEA";
         const std::string IMAGE_PROJECTILE_STAR = "IMAGE_PROJECTILE_STAR";
 
-        // Ö²ÎïÍ¼Æ¬£¨IMAGE_ + ´óĞ´ÎÄ¼şÃû£©
+        // æ¤ç‰©å›¾ç‰‡ï¼ˆIMAGE_ + å¤§å†™æ–‡ä»¶åï¼‰
         const std::string IMAGE_PEASHOOTER = "IMAGE_PEASHOOTER";
         const std::string IMAGE_SUNFLOWER = "IMAGE_SUNFLOWER";
         const std::string IMAGE_CHERRYBOMB = "IMAGE_CHERRYBOMB";
@@ -141,7 +141,7 @@ namespace ResourceKeys
         const std::string PARTICLE_ZOMBIE_YETIHEAD = "PARTICLE_ZOMBIEYETIHEAD";
         const std::string PARTICLE_ZOMBIEARM = "PARTICLE_ZOMBIEARM";
 
-        // Ö²Îï×Óµ¯
+        // æ¤ç‰©å­å¼¹
         const std::string PARTICLE_PEA_HIT_0 = "PARTICLE_PEA_SPLATS_PART_0";
         const std::string PARTICLE_PEA_HIT_1 = "PARTICLE_PEA_SPLATS_PART_1";
         const std::string PARTICLE_PEA_HIT_2 = "PARTICLE_PEA_SPLATS_PART_2";
@@ -208,7 +208,7 @@ namespace ResourceKeys
         const std::string MUSIC_ZENGARDEN = "MUSIC_ZENGARDEN";
     }
 
-    // TODO: ĞÂÔö¶«Î÷Ò²Òª¸ÄÕâÀï
+    // TODO: æ–°å¢ä¸œè¥¿ä¹Ÿè¦æ”¹è¿™é‡Œ
     namespace Reanimations
     {
         const std::string REANIM_SUN = "Sun";
@@ -220,26 +220,26 @@ namespace ResourceKeys
     class ResourceKeyGenerator
     {
     public:
-        // ¸ù¾İÂ·¾¶ºÍÇ°×ºÉú³É¼üÃû£¨ÓëResourceManagerÖĞµÄÂß¼­ÍêÈ«Ò»ÖÂ£©
+        // æ ¹æ®è·¯å¾„å’Œå‰ç¼€ç”Ÿæˆé”®åï¼ˆä¸ResourceManagerä¸­çš„é€»è¾‘å®Œå…¨ä¸€è‡´ï¼‰
         static std::string GenerateKeyFromPath(const std::string& path, const std::string& prefix)
         {
-            // ÌáÈ¡ÎÄ¼şÃû
+            // æå–æ–‡ä»¶å
             size_t lastSlash = path.find_last_of("/\\");
             std::string filename = (lastSlash != std::string::npos) ?
                 path.substr(lastSlash + 1) : path;
 
-            // ÒÆ³ıÀ©Õ¹Ãû
+            // ç§»é™¤æ‰©å±•å
             size_t dotPos = filename.find_last_of('.');
             std::string nameWithoutExt = (dotPos != std::string::npos) ?
                 filename.substr(0, dotPos) : filename;
 
-            // ×ª»»Îª´óĞ´
+            // è½¬æ¢ä¸ºå¤§å†™
             std::string upperName = "";
             for (char c : nameWithoutExt) {
                 upperName += static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
             }
 
-            // ½«·Ç×ÖÄ¸Êı×Ö×Ö·ûÌæ»»ÎªÏÂ»®Ïß
+            // å°†éå­—æ¯æ•°å­—å­—ç¬¦æ›¿æ¢ä¸ºä¸‹åˆ’çº¿
             std::string result = "";
             for (char c : upperName) {
                 if (std::isalnum(static_cast<unsigned char>(c))) {
@@ -253,38 +253,38 @@ namespace ResourceKeys
             return prefix + result;
         }
 
-        // Éú³ÉÎÆÀí¼üÃû
+        // ç”Ÿæˆçº¹ç†é”®å
         static std::string GenerateTextureKey(const std::string& path)
         {
             return GenerateKeyFromPath(path, "IMAGE_");
         }
 
-        // Éú³ÉÁ£×ÓÎÆÀí¼üÃû
+        // ç”Ÿæˆç²’å­çº¹ç†é”®å
         static std::string GenerateParticleKey(const std::string& path)
         {
             return GenerateKeyFromPath(path, "PARTICLE_");
         }
 
-        // Éú³ÉÒôĞ§¼üÃû
+        // ç”ŸæˆéŸ³æ•ˆé”®å
         static std::string GenerateSoundKey(const std::string& path)
         {
             return GenerateKeyFromPath(path, "SOUND_");
         }
 
-        // Éú³ÉÒôÀÖ¼üÃû
+        // ç”ŸæˆéŸ³ä¹é”®å
         static std::string GenerateMusicKey(const std::string& path)
         {
             return GenerateKeyFromPath(path, "MUSIC_");
         }
 
-        // ÑéÖ¤¼üÃû¸ñÊ½ÊÇ·ñÕıÈ·
+        // éªŒè¯é”®åæ ¼å¼æ˜¯å¦æ­£ç¡®
         static bool IsValidKeyFormat(const std::string& key, const std::string& expectedPrefix = "")
         {
             if (!expectedPrefix.empty() && key.find(expectedPrefix) != 0) {
                 return false;
             }
 
-            // ¼ì²é¼üÃûÊÇ·ñÖ»°üº¬´óĞ´×ÖÄ¸¡¢Êı×ÖºÍÏÂ»®Ïß
+            // æ£€æŸ¥é”®åæ˜¯å¦åªåŒ…å«å¤§å†™å­—æ¯ã€æ•°å­—å’Œä¸‹åˆ’çº¿
             for (char c : key) {
                 if (!(std::isupper(c) || std::isdigit(c) || c == '_')) {
                     return false;
@@ -294,7 +294,7 @@ namespace ResourceKeys
             return true;
         }
 
-        // »ñÈ¡¼üÃûÇ°×º
+        // è·å–é”®åå‰ç¼€
         static std::string GetKeyPrefix(const std::string& key)
         {
             size_t underscorePos = key.find('_');
@@ -304,7 +304,7 @@ namespace ResourceKeys
             return "";
         }
 
-        // »ñÈ¡¼üÃûÖ÷Ìå£¨È¥µôÇ°×º£©
+        // è·å–é”®åä¸»ä½“ï¼ˆå»æ‰å‰ç¼€ï¼‰
         static std::string GetKeyBody(const std::string& key)
         {
             size_t underscorePos = key.find('_');
@@ -314,7 +314,7 @@ namespace ResourceKeys
             return key;
         }
 
-        // ±È½ÏÁ½¸ö¼üÃûÊÇ·ñÖ¸ÏòÍ¬Ò»×ÊÔ´£¨²»Çø·Ö´óĞ¡Ğ´£©
+        // æ¯”è¾ƒä¸¤ä¸ªé”®åæ˜¯å¦æŒ‡å‘åŒä¸€èµ„æºï¼ˆä¸åŒºåˆ†å¤§å°å†™ï¼‰
         static bool CompareKeys(const std::string& key1, const std::string& key2)
         {
             std::string upperKey1 = "";

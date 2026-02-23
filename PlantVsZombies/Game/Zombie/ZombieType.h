@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #ifndef _H_ZOMBIETYPE_H
 #define _H_ZOMBIETYPE_H
 
@@ -6,20 +6,20 @@ constexpr int NULL_ZOMBIE_ID = -1024;
 
 enum class HelmType {
 	HELMTYPE_NONE,
-	HELMTYPE_TRAFFIC_CONE,	//Â·ÕÏ
-	HELMTYPE_PAIL,			//ÌúÍ°
-	HELMTYPE_FOOTBALL,		//éÏé­Çò
-	HELMTYPE_DIGGER,		//¸ä×Ó
-	HELMTYPE_BOBSLED,		//Ñ©ÇÁ
-	HELMTYPE_WALLNUT,		//¼á¹û
-	HELMTYPE_TALLNUT		//¸ß¼á¹û
+	HELMTYPE_TRAFFIC_CONE,	//è·¯éšœ
+	HELMTYPE_PAIL,			//é“æ¡¶
+	HELMTYPE_FOOTBALL,		//æ©„æ¦„çƒ
+	HELMTYPE_DIGGER,		//é•å­
+	HELMTYPE_BOBSLED,		//é›ªæ©‡
+	HELMTYPE_WALLNUT,		//åšæžœ
+	HELMTYPE_TALLNUT		//é«˜åšæžœ
 };
 
 enum class ShieldType {
 	SHIELDTYPE_NONE,
-	SHIELDTYPE_DOOR,		//ÌúÃÅ
-	SHIELDTYPE_NEWSPAPER,	//±¨Ö½
-	SHIELDTYPE_LADDER		//ÌÝ×Ó
+	SHIELDTYPE_DOOR,		//é“é—¨
+	SHIELDTYPE_NEWSPAPER,	//æŠ¥çº¸
+	SHIELDTYPE_LADDER		//æ¢¯å­
 };
 
 enum class ZombieType {

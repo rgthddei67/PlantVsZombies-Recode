@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #ifndef _GAMESCENE_H
 #define _GAMESCENE_H
 #include "Scene.h"
@@ -10,7 +10,7 @@ class GameProgress;
 
 constexpr float mBackgroundY = -50;
 
-// Ò»´ó²¨¡¢×îºóÒ»²¨
+// ä¸€å¤§æ³¢ã€æœ€åä¸€æ³¢
 enum class PromptStage {
     NONE,
     APPEAR,
@@ -18,26 +18,26 @@ enum class PromptStage {
     FADE_OUT
 };
 
-// ¿ª³¡¶¯»­½×¶Î
+// å¼€åœºåŠ¨ç”»é˜¶æ®µ
 enum class IntroStage {
-    BACKGROUND_MOVE,   // ±³¾°ÒÆ¶¯
-    SEEDBANK_SLIDE,    // ÖÖ×Ó²Û»¬Âä
-    COMPLETE,           // Íê³É£¬ÏÔÊ¾Ñô¹â
-	READY_SET_PLANT,    // ×¼±¸ÖÖÖ²Ö²Îï£¬Ñ¡ºÃ¿¨ÁË
-	FINISH			  // ×îÖÕÍê³É
+    BACKGROUND_MOVE,   // èƒŒæ™¯ç§»åŠ¨
+    SEEDBANK_SLIDE,    // ç§å­æ§½æ»‘è½
+    COMPLETE,           // å®Œæˆï¼Œæ˜¾ç¤ºé˜³å…‰
+	READY_SET_PLANT,    // å‡†å¤‡ç§æ¤æ¤ç‰©ï¼Œé€‰å¥½å¡äº†
+	FINISH			  // æœ€ç»ˆå®Œæˆ
 };
 
-// ÌáÊ¾¶¯»­Êı¾İ
+// æç¤ºåŠ¨ç”»æ•°æ®
 struct PromptAnimation {
     bool active = false;
     PromptStage stage = PromptStage::NONE;
     float timer = 0.0f;
     float scale = 1.0f;
     Uint8 alpha = 255;
-    std::string textureKey;      // ÎÆÀíµÄ×ÊÔ´¼ü
-    float appearDuration = 1.0f; // ³öÏÖ½×¶ÎÊ±³¤
-    float holdDuration = 3.0f;    // Í£Áô½×¶ÎÊ±³¤
-    float fadeDuration = 1.0f;    // ÏûÊ§½×¶ÎÊ±³¤
+    std::string textureKey;      // çº¹ç†çš„èµ„æºé”®
+    float appearDuration = 1.0f; // å‡ºç°é˜¶æ®µæ—¶é•¿
+    float holdDuration = 3.0f;    // åœç•™é˜¶æ®µæ—¶é•¿
+    float fadeDuration = 1.0f;    // æ¶ˆå¤±é˜¶æ®µæ—¶é•¿
 };
 
 class GameScene : public Scene {
@@ -50,13 +50,13 @@ public:
     void Update() override;
 	void BuildDrawCommands() override;
 
-	void ChooseCardComplete();  // Ñ¡¿¨Íê³É
+	void ChooseCardComplete();  // é€‰å¡å®Œæˆ
 
     std::shared_ptr<GameProgress> GetGameProgress() const;
 
     void GameOver();
 
-    // ÏÔÊ¾ºìÉ«´ó×ÖÖ¸Ê¾
+    // æ˜¾ç¤ºçº¢è‰²å¤§å­—æŒ‡ç¤º
     void ShowPrompt(const std::string& textureKey,
         float appearDur = 1.0f,
         float holdDur = 3.0f,
@@ -72,28 +72,28 @@ private:
 
     IntroStage mCurrentStage = IntroStage::BACKGROUND_MOVE;
 
-	float mStartX = -250.0f;          // BackGround³õÊ¼X×ø±ê
-	float mGameStartX = -250.0f;          // BackGround¶¯»­ÔÚÑ¡Íê¿¨ºóµÄ×ø±ê
-	float mCurrectSceneX = -250.0f;     // BackGroundµ±Ç°X×ø±ê
-    float mTargetSceneX = -700.0f;         // BackGroundÒªµ½´ïµÄX×ø±ê
-	bool mHasEnter = false;             // ÊÇ·ñÒÑ¾­½øÈë³¡¾°£¨ÓÃÓÚ¿ØÖÆ½øÈë¶¯»­Ö»²¥·ÅÒ»´Î£©
-    float mAnimDuration = 3.0f;          // ¶¯»­×ÜÊ±³¤£¨Ãë£©
-    float mAnimElapsed = 0.0f;           // ¶¯»­ÒÑ½øĞĞÊ±¼ä
+	float mStartX = -250.0f;          // BackGroundåˆå§‹Xåæ ‡
+	float mGameStartX = -250.0f;          // BackGroundåŠ¨ç”»åœ¨é€‰å®Œå¡åçš„åæ ‡
+	float mCurrectSceneX = -250.0f;     // BackGroundå½“å‰Xåæ ‡
+    float mTargetSceneX = -700.0f;         // BackGroundè¦åˆ°è¾¾çš„Xåæ ‡
+	bool mHasEnter = false;             // æ˜¯å¦å·²ç»è¿›å…¥åœºæ™¯ï¼ˆç”¨äºæ§åˆ¶è¿›å…¥åŠ¨ç”»åªæ’­æ”¾ä¸€æ¬¡ï¼‰
+    float mAnimDuration = 3.0f;          // åŠ¨ç”»æ€»æ—¶é•¿ï¼ˆç§’ï¼‰
+    float mAnimElapsed = 0.0f;           // åŠ¨ç”»å·²è¿›è¡Œæ—¶é—´
 
-    // ÖÖ×Ó²Û¶¯»­²ÎÊı
-    float mSeedbankAnimDuration = 0.8f;   // »¬ÂäÊ±³¤
+    // ç§å­æ§½åŠ¨ç”»å‚æ•°
+    float mSeedbankAnimDuration = 0.8f;   // æ»‘è½æ—¶é•¿
     float mSeedbankAnimElapsed = 0.0f;
-    bool mSeedbankAdded = false;           // ÊÇ·ñÒÑÌí¼ÓÎÆÀí
-    bool mSunCounterRegistered = false;    // ÊÇ·ñÒÑ×¢²áÑô¹â»æÖÆ
+    bool mSeedbankAdded = false;           // æ˜¯å¦å·²æ·»åŠ çº¹ç†
+    bool mSunCounterRegistered = false;    // æ˜¯å¦å·²æ³¨å†Œé˜³å…‰ç»˜åˆ¶
 
-    // Ñ¡¿¨½çÃæ¶¯»­
-    float mChooseCardUIAnimDuration = 1.0f;          // ¶¯»­Ê±³¤1Ãë
+    // é€‰å¡ç•Œé¢åŠ¨ç”»
+    float mChooseCardUIAnimDuration = 1.0f;          // åŠ¨ç”»æ—¶é•¿1ç§’
     float mChooseCardUIAnimElapsed = 0.0f;
-    Vector mChooseCardUIStartPos = Vector(240.0f, 800.0f);   // ÆğÊ¼Î»ÖÃ£¨ÆÁÄ»ÏÂ·½£©
-    Vector mChooseCardUITargetPos = Vector(240.0f, 80.0f);   // Ä¿±êÎ»ÖÃ£¨ÆÁÄ»ÄÚ£©
-    bool mChooseCardUIMoving = false;                // ÊÇ·ñÕıÔÚÒÆ¶¯
+    Vector mChooseCardUIStartPos = Vector(240.0f, 800.0f);   // èµ·å§‹ä½ç½®ï¼ˆå±å¹•ä¸‹æ–¹ï¼‰
+    Vector mChooseCardUITargetPos = Vector(240.0f, 80.0f);   // ç›®æ ‡ä½ç½®ï¼ˆå±å¹•å†…ï¼‰
+    bool mChooseCardUIMoving = false;                // æ˜¯å¦æ­£åœ¨ç§»åŠ¨
 
-    // ±³¾°»ØÒÆ¶¯»­
+    // èƒŒæ™¯å›ç§»åŠ¨ç”»
     float mReadyAnimDuration = 3.0f;
     float mReadyAnimElapsed = 0.0f;
     Vector mReadyStartPos;

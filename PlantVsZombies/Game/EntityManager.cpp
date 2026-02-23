@@ -1,4 +1,4 @@
-#include "EntityManager.h"
+ï»¿#include "EntityManager.h"
 #include "Plant/Plant.h"
 #include "Zombie/Zombie.h"
 #include "Bullet/Bullet.h"
@@ -99,7 +99,7 @@ std::vector<int> EntityManager::GetAllCoinIDs() const {
 std::vector<int> EntityManager::CleanupExpired() {
     std::vector<int> removedPlants;
 
-    // ÇåÀíÖ²Îï
+    // æ¸…ç†æ¤ç‰©
     for (auto it = mPlants.begin(); it != mPlants.end(); ) {
         if (it->second.expired()) {
             removedPlants.push_back(it->first);
@@ -110,7 +110,7 @@ std::vector<int> EntityManager::CleanupExpired() {
         }
     }
 
-    // ÇåÀí½©Ê¬
+    // æ¸…ç†åƒµå°¸
     for (auto it = mZombies.begin(); it != mZombies.end(); ) {
         if (it->second.expired()) {
             it = mZombies.erase(it);
@@ -120,7 +120,7 @@ std::vector<int> EntityManager::CleanupExpired() {
         }
     }
 
-    // ÇåÀíÌ«Ñô
+    // æ¸…ç†å¤ªé˜³
     for (auto it = mCoins.begin(); it != mCoins.end(); ) {
         if (it->second.expired()) {
             it = mCoins.erase(it);

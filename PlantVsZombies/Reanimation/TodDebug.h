@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #ifndef _TODDEBUG_H
 #define _TODDEBUG_H

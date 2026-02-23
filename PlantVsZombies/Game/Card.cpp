@@ -1,4 +1,4 @@
-#include "Card.h"
+ï»¿#include "Card.h"
 #include "CardComponent.h"
 #include "ColliderComponent.h"
 #include "../DeltaTime.h"
@@ -17,14 +17,14 @@ void Card::SetupComponents(PlantType plantType, int sunCost, float cooldown) {
     displayComponent->SetDrawOrder(50);
 
     AddComponent<CardComponent>(plantType, sunCost, cooldown);
-    // µã»÷×é¼ş
+    // ç‚¹å‡»ç»„ä»¶
     auto collision = AddComponent<ColliderComponent>(Vector(CARD_WIDTH, CARD_HEIGHT));
     collision->isStatic = true;
 	collision->isTrigger = true;
     auto clickable = AddComponent<ClickableComponent>();
     clickable->ConsumeEvent = true;
 
-    // ÉèÖÃÃû³ÆºÍ±êÇ©
+    // è®¾ç½®åç§°å’Œæ ‡ç­¾
     SetName("PlantCard");
     SetTag("Card");
 }
@@ -35,7 +35,7 @@ void Card::SetTargetPosition(const Vector& target) {
 }
 
 void Card::Update() {
-    GameObject::Update(); // µ÷ÓÃ»ùÀà¸üĞÂ
+    GameObject::Update(); // è°ƒç”¨åŸºç±»æ›´æ–°
 
     if (m_isMoving) {
         auto transform = GetComponent<TransformComponent>();
@@ -57,7 +57,7 @@ void Card::Update() {
             m_isMoving = false;
         }
         else {
-            // Ê¹ÓÃ normalized() »ñÈ¡µ¥Î»·½ÏòÏòÁ¿
+            // ä½¿ç”¨ normalized() è·å–å•ä½æ–¹å‘å‘é‡
             Vector move = dir.normalized() * step;
             transform->SetPosition(currentPos + move);
         }

@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #ifndef _TRANSFORM_COMPONENT_H
 #define _TRANSFORM_COMPONENT_H
 
@@ -10,66 +10,66 @@ class TransformComponent : public Component {
 private:
 	Vector position = Vector::zero();
 	float scale = 1.0f;
-	float rotation = 0.0f;  // Ğı×ªµÄ»¡¶È
+	float rotation = 0.0f;  // æ—‹è½¬çš„å¼§åº¦
 
 public:
 	TransformComponent() = default;
 	TransformComponent(const Vector& pos) : position(pos) {}
 	TransformComponent(float x, float y) : position(x, y) {}
 
-	// ÒÆ¶¯x,y Vector°æ±¾
+	// ç§»åŠ¨x,y Vectorç‰ˆæœ¬
 	void Translate(const Vector& translation) {
 		position += translation;
 	}
 
-	// ÒÆ¶¯x,y float°æ±¾
+	// ç§»åŠ¨x,y floatç‰ˆæœ¬
 	void Translate(float x, float y) {
 		position.x += x;
 		position.y += y;
 	}
 
-	// Ğı×ªangle¡ã
+	// æ—‹è½¬angleÂ°
 	void Rotate(float angle) {
 		rotation += angle;
 	}
 
-	// ÉèÖÃangle¡ã
+	// è®¾ç½®angleÂ°
 	void SetRotation(float angle) {
 		rotation = angle;
 	}
 
-	// Ëõ·Å
+	// ç¼©æ”¾
 	void Scale(float& scaling) {
 		scale *= scaling;
 	}
 
-	// ÉèÖÃËõ·Å
+	// è®¾ç½®ç¼©æ”¾
 	void SetScale(float& scaling) {
 		scale = scaling;
 	}
 
-	// »ñÈ¡Ç°ÃæÏòÁ¿
+	// è·å–å‰é¢å‘é‡
 	Vector GetForward() const {
 		return Vector(cosf(rotation), sinf(rotation));
 	}
 
-	// »ñÈ¡ÓÒ±ßÏòÁ¿
+	// è·å–å³è¾¹å‘é‡
 	Vector GetRight() const {
 		return Vector(-sinf(rotation), cosf(rotation));
 	}
 
-	// ÉèÖÃÎ»ÖÃ Vector°æ±¾
+	// è®¾ç½®ä½ç½® Vectorç‰ˆæœ¬
 	void SetPosition(const Vector& newPos) {
 		position = newPos;
 	}
 
-	// ÉèÖÃÎ»ÖÃ float°æ±¾
+	// è®¾ç½®ä½ç½® floatç‰ˆæœ¬
 	void SetPosition(float x, float y) {
 		position.x = x;
 		position.y = y;
 	}
 
-	// »ñÈ¡ÊÀ½çÎ»ÖÃ
+	// è·å–ä¸–ç•Œä½ç½®
 	Vector GetPosition() const {
 		return position;
 	}

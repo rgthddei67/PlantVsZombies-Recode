@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #ifndef _CURSOR_MANAGER_H
 #define _CURSOR_MANAGER_H
 
@@ -7,14 +7,14 @@
 #include <unordered_map>
 
 enum class CursorType {
-    ARROW,      // Ä¬ÈÏ¼ıÍ·
-    HAND,       // ÊÖĞÍ£¨¿Éµã»÷£©
-    IBEAM,      // IĞÍ£¨ÎÄ±¾ÊäÈë£©
-    CROSSHAIR,  // Ê®×Ö×¼ĞÇ
-    WAIT,       // µÈ´ı
-    SIZE_ALL,   // ËùÓĞ·½Ïòµ÷Õû
-    NO,         // ½ûÖ¹²Ù×÷
-    CUSTOM      // ×Ô¶¨Òå¹â±ê
+    ARROW,      // é»˜è®¤ç®­å¤´
+    HAND,       // æ‰‹å‹ï¼ˆå¯ç‚¹å‡»ï¼‰
+    IBEAM,      // Iå‹ï¼ˆæ–‡æœ¬è¾“å…¥ï¼‰
+    CROSSHAIR,  // åå­—å‡†æ˜Ÿ
+    WAIT,       // ç­‰å¾…
+    SIZE_ALL,   // æ‰€æœ‰æ–¹å‘è°ƒæ•´
+    NO,         // ç¦æ­¢æ“ä½œ
+    CUSTOM      // è‡ªå®šä¹‰å…‰æ ‡
 };
 
 class CursorManager {
@@ -35,7 +35,7 @@ private:
     CursorManager(const CursorManager&) = delete;
     CursorManager& operator=(const CursorManager&) = delete;
 
-    // ÄÚ²¿¸¨Öú·½·¨
+    // å†…éƒ¨è¾…åŠ©æ–¹æ³•
     void InitializeSystemCursors();
     void CleanupAllCursors();
     SDL_Cursor* GetSystemCursor(CursorType type);
@@ -43,16 +43,16 @@ private:
 public:
     static CursorManager& GetInstance();
 
-    // ³õÊ¼»¯ÓëÇåÀí
+    // åˆå§‹åŒ–ä¸æ¸…ç†
     bool Initialize();
     void Cleanup();
 
-    // ¹â±êÉèÖÃ
+    // å…‰æ ‡è®¾ç½®
     bool SetCursor(CursorType type);
     bool SetCustomCursor(const std::string& cursorName);
     bool SetDefaultCursor();
 
-    // ×Ô¶¨Òå¹â±ê¹ÜÀí
+    // è‡ªå®šä¹‰å…‰æ ‡ç®¡ç†
     bool LoadCustomCursor(const std::string& name, const std::string& imagePath,
         int hotX = 0, int hotY = 0);
     bool LoadCustomCursorFromSurface(const std::string& name, SDL_Surface* surface,
@@ -63,7 +63,7 @@ public:
 
     void IncrementHoverCount() {
         m_hoverCount++;
-        m_forceUpdate = true; // ±ê¼ÇĞèÒª¸üĞÂ¹â±ê
+        m_forceUpdate = true; // æ ‡è®°éœ€è¦æ›´æ–°å…‰æ ‡
     }
 
     void DecrementHoverCount() {
@@ -80,16 +80,16 @@ public:
 
     int GetHoverCount() const { return m_hoverCount; }
 
-    // ¹â±ê¿É¼ûĞÔ¿ØÖÆ
+    // å…‰æ ‡å¯è§æ€§æ§åˆ¶
     void ShowCursor();
     void HideCursor();
     bool IsCursorVisible() const { return !mCursorHidden; }
 
-    // ×´Ì¬²éÑ¯
+    // çŠ¶æ€æŸ¥è¯¢
     CursorType GetCurrentCursorType() const;
     bool IsInitialized() const { return mIsInitialized; }
 
-    // ×Ô¶¯ĞüÍ£¼ì²â
+    // è‡ªåŠ¨æ‚¬åœæ£€æµ‹
     void ForceUpdateCursor();
 };
 

@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #ifndef _REANIM_TYPES_H
 #define _REANIM_TYPES_H
 
@@ -9,22 +9,22 @@
 #include <unordered_map>
 #include "../Game/Definit.h"
 
-// ¶¯»­Ö¡±ä»»Êı¾İ
+// åŠ¨ç”»å¸§å˜æ¢æ•°æ®
 struct TrackFrameTransform {
     float x = 0.0f;
     float y = 0.0f;
-    float kx = 0.0f;  // Ğı×ªX
-    float ky = 0.0f;  // Ğı×ªY  
-    float sx = 1.0f;  // Ëõ·ÅX
-    float sy = 1.0f;  // Ëõ·ÅY
-    float a = 1.0f;   // Í¸Ã÷¶È
-    int f = 0;        // ÏÔÊ¾±êÖ¾£¨0=ÏÔÊ¾£¬-1=¿Õ°×/·Ö¸ô£©
-    SDL_Texture* image = nullptr; // Í¼Ïñ
+    float kx = 0.0f;  // æ—‹è½¬X
+    float ky = 0.0f;  // æ—‹è½¬Y  
+    float sx = 1.0f;  // ç¼©æ”¾X
+    float sy = 1.0f;  // ç¼©æ”¾Y
+    float a = 1.0f;   // é€æ˜åº¦
+    int f = 0;        // æ˜¾ç¤ºæ ‡å¿—ï¼ˆ0=æ˜¾ç¤ºï¼Œ-1=ç©ºç™½/åˆ†éš”ï¼‰
+    SDL_Texture* image = nullptr; // å›¾åƒ
 
     TrackFrameTransform() = default;
 };
 
-// ¶¯»­¹ìµÀĞÅÏ¢
+// åŠ¨ç”»è½¨é“ä¿¡æ¯
 struct TrackInfo {
     std::string mTrackName = "";
     bool mAvailable = true;
@@ -34,17 +34,17 @@ struct TrackInfo {
     explicit TrackInfo(const std::string& name) : mTrackName(name) {}
 };
 
-// ¹ìµÀ¶îÍâ¿ØÖÆĞÅÏ¢
+// è½¨é“é¢å¤–æ§åˆ¶ä¿¡æ¯
 struct TrackExtraInfo {
     bool mVisible = true;
-    float mOffsetX = 0.0f;          // ¹ìµÀ×ÔÉí»æÖÆÆ«ÒÆ X
-    float mOffsetY = 0.0f;          // ¹ìµÀ×ÔÉí»æÖÆÆ«ÒÆ Y
-    SDL_Texture* mImage = nullptr;  // ÊÖ¶¯¸²¸ÇÍ¼Æ¬ÉèÖÃ
-    std::unordered_map<std::string, SDL_Texture*> mTextureCache; // Í¼Æ¬Ãû -> ÎÆÀí
-    std::vector<std::weak_ptr<class Animator>> mAttachedReanims;  // ¸½¼ÓµÄ×Ó¶¯»­
+    float mOffsetX = 0.0f;          // è½¨é“è‡ªèº«ç»˜åˆ¶åç§» X
+    float mOffsetY = 0.0f;          // è½¨é“è‡ªèº«ç»˜åˆ¶åç§» Y
+    SDL_Texture* mImage = nullptr;  // æ‰‹åŠ¨è¦†ç›–å›¾ç‰‡è®¾ç½®
+    std::unordered_map<std::string, SDL_Texture*> mTextureCache; // å›¾ç‰‡å -> çº¹ç†
+    std::vector<std::weak_ptr<class Animator>> mAttachedReanims;  // é™„åŠ çš„å­åŠ¨ç”»
 };
 
-// ¶¯»­²¥·Å×´Ì¬
+// åŠ¨ç”»æ’­æ”¾çŠ¶æ€
 enum class PlayState {
     PLAY_NONE,
     PLAY_REPEAT,

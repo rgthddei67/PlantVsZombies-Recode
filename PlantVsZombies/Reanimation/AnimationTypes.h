@@ -1,8 +1,8 @@
-#pragma once
+ï»¿#pragma once
 #ifndef _ANIMATIONTYPES_H
 #define _ANIMATIONTYPES_H
 
-// TODO: ĞÂÔöÖ²Îï¡¢½©Ê¬Ò²Òª¸ÄÕâÀï
+// TODO: æ–°å¢æ¤ç‰©ã€åƒµå°¸ä¹Ÿè¦æ”¹è¿™é‡Œ
 enum class AnimationType
 {
     ANIM_NONE,

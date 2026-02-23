@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #ifndef _SCENEMANAGER_H
 #define _SCENEMANAGER_H
 #include "Scene.h"
@@ -16,14 +16,14 @@ public:
     SceneManager(const SceneManager&) = delete;
     SceneManager& operator=(const SceneManager&) = delete;
 
-    // »ñÈ¡µ±Ç°SceneµÄUIManager
+    // è·å–å½“å‰Sceneçš„UIManager
     UIManager& GetCurrectSceneUIManager() {
 		return GetCurrentScene()->GetUIManager();
 	}
 
     void ClearCurrentScene();
 
-    // ³¡¾°×¢²á
+    // åœºæ™¯æ³¨å†Œ
     template<typename T, typename... Args>
     void RegisterScene(const std::string& name, Args&&... args) {
         scenes_[name] = [=]() -> std::unique_ptr<Scene> {
@@ -33,31 +33,31 @@ public:
             };
     }
 
-    // ³¡¾°ÇĞ»»
+    // åœºæ™¯åˆ‡æ¢
     bool SwitchTo(const std::string& name);
 
-    // Ñ¹Èë³¡¾°£¨ÔİÍ£µ±Ç°£©
+    // å‹å…¥åœºæ™¯ï¼ˆæš‚åœå½“å‰ï¼‰
     void PushScene(const std::string& name);
 
-    // µ¯³ö³¡¾°£¨»Ö¸´ÉÏÒ»¸ö£©
+    // å¼¹å‡ºåœºæ™¯ï¼ˆæ¢å¤ä¸Šä¸€ä¸ªï¼‰
     void PopScene();
 
     void Update();
     void Draw(SDL_Renderer* renderer);
 
-    // »ñÈ¡µ±Ç°³¡¾°µÄÖ¸Õë
+    // è·å–å½“å‰åœºæ™¯çš„æŒ‡é’ˆ
     Scene* GetCurrentScene() const;
 
-    // ÅĞ¶ÏÓĞÃ»ÓĞ³¡¾°
+    // åˆ¤æ–­æœ‰æ²¡æœ‰åœºæ™¯
     bool IsEmpty() const;
 
-    // ÉèÖÃÈ«¾ÖÊı¾İ
+    // è®¾ç½®å…¨å±€æ•°æ®
     void SetGlobalData(const std::string& key, const std::string& value);
 
-    // »ñÈ¡È«¾ÖÊı¾İ
+    // è·å–å…¨å±€æ•°æ®
     std::string GetGlobalData(const std::string& key, const std::string& defaultValue = "") const;
 
-    // Çå³ıËùÓĞÈ«¾ÖÊı¾İ
+    // æ¸…é™¤æ‰€æœ‰å…¨å±€æ•°æ®
     void ClearGlobalData();
 
 private:

@@ -1,4 +1,4 @@
-#include "Zombie.h"
+ï»¿#include "Zombie.h"
 #include "../Plant/Plant.h"
 #include "../Board.h"
 #include "../ShadowComponent.h"
@@ -144,7 +144,7 @@ void Zombie::Update()
 		if (mIsEating) return;
 		
 		float speed = 0.0f;
-		// ³¢ÊÔ´Ó _ground ¹ìµÀ»ñÈ¡ËÙ¶È
+		// å°è¯•ä»Ž _ground è½¨é“èŽ·å–é€Ÿåº¦
 		if (mAnimator) {
 			speed = mAnimator->GetTrackVelocity("_ground") + mSpeed;
 			if (mIsMindControlled)
@@ -170,7 +170,7 @@ int Zombie::TakeShieldDamage(int damage)
 	mShieldHealth -= damage;
 	if (mShieldHealth <= 0)
 	{
-		int overflow = -mShieldHealth; // Ê£ÓàÉËº¦
+		int overflow = -mShieldHealth; // å‰©ä½™ä¼¤å®³
 		mShieldHealth = 0;
 		ShieldDrop();
 		return overflow;
@@ -220,19 +220,19 @@ void Zombie::TakeDamage(int damage)
 
 	int remainingDamage = damage;
 
-	// 1. ÓÅÏÈ¿Û³ý¶þÀà
+	// 1. ä¼˜å…ˆæ‰£é™¤äºŒç±»
 	if (mShieldType != ShieldType::SHIELDTYPE_NONE)
 	{
 		remainingDamage = TakeShieldDamage(remainingDamage);
 	}
 
-	// 2. È»ºó¿Û³ýÍ·¿ø
+	// 2. ç„¶åŽæ‰£é™¤å¤´ç›”
 	if (remainingDamage > 0 && mHelmType != HelmType::HELMTYPE_NONE)
 	{
 		remainingDamage = TakeHelmDamage(remainingDamage);
 	}
 
-	// 3. ×îºó¿Û³ý±¾Ìå
+	// 3. æœ€åŽæ‰£é™¤æœ¬ä½“
 	if (remainingDamage > 0)
 	{
 		TakeBodyDamage(remainingDamage);
@@ -279,7 +279,7 @@ void Zombie::HelmDrop()
 
 void Zombie::Die()
 {
-	// ½ûÓÃÅö×²Ìå
+	// ç¦ç”¨ç¢°æ’žä½“
 	if (auto collider = mCollider.lock()) {
 		collider->mEnabled = false;
 	}
@@ -299,7 +299,7 @@ void Zombie::EatTarget(std::shared_ptr<ColliderComponent> other)
 	{
 		if (auto plant = std::dynamic_pointer_cast<Plant>(gameObject))
 		{
-			if (mEatPlantID != NULL_PLANT_ID || plant->mRow != this->mRow) return;	// ÕýÔÚ³ÔÒ»¸öÖ²Îï£¬ÄÇÃ´²»³Ô±ðµÄÖ²Îï
+			if (mEatPlantID != NULL_PLANT_ID || plant->mRow != this->mRow) return;	// æ­£åœ¨åƒä¸€ä¸ªæ¤ç‰©ï¼Œé‚£ä¹ˆä¸åƒåˆ«çš„æ¤ç‰©
 
 			if (!mIsEating) {
 				this->PlayTrack("anim_eat", 2.1f, 0.3f);

@@ -1,4 +1,4 @@
-#include "GameScene.h"
+ï»¿#include "GameScene.h"
 #include "SceneManager.h"
 #include "../ResourceManager.h"
 #include "./Plant/PlantType.h"
@@ -14,17 +14,17 @@
 #include "./Zombie/Zombie.h"
 
 GameScene::GameScene() {
-	std::cout << "ÓÎÏ·³¡¾°´´½¨" << std::endl;
+	std::cout << "æ¸¸æˆåœºæ™¯åˆ›å»º" << std::endl;
 }
 
 GameScene::~GameScene() {
-	std::cout << "ÓÎÏ·³¡¾°Ïú»Ù" << std::endl;
+	std::cout << "æ¸¸æˆåœºæ™¯é”€æ¯" << std::endl;
 }
 
 void GameScene::BuildDrawCommands()
 {
 	Scene::BuildDrawCommands();
-	// TODO: ¸ù¾İ´«ÈëµÄBackground²ÎÊıÑ¡Ôñ²»Í¬±³¾°
+	// TODO: æ ¹æ®ä¼ å…¥çš„Backgroundå‚æ•°é€‰æ‹©ä¸åŒèƒŒæ™¯
 
 	AddTexture(ResourceKeys::Textures::IMAGE_BACKGROUND_DAY,
 		mStartX, mBackgroundY, 1.0f, 1.0f, LAYER_BACKGROUND, false);
@@ -64,9 +64,9 @@ void GameScene::BuildDrawCommands()
 void GameScene::OnEnter() {
 	Scene::OnEnter();
 #ifdef _DEBUG
-	std::cout << "½øÈëÓÎÏ·³¡¾°" << std::endl;
+	std::cout << "è¿›å…¥æ¸¸æˆåœºæ™¯" << std::endl;
 #endif
-	// ¼ÓÔØ±³¾°
+	// åŠ è½½èƒŒæ™¯
 	mBoard = std::make_unique<Board>(this, 1);
 	auto CardUI = GameObjectManager::GetInstance().CreateGameObjectImmediate<GameObject>(
 		LAYER_UI);
@@ -78,12 +78,12 @@ void GameScene::OnEnter() {
 	mGameProgress->SetActive(false);
 	AudioSystem::PlayMusic(ResourceKeys::Music::MUSIC_CHOOSEYOURSEEDS, -1);
 
-	// TODO: ²»Òª²¶»ñ¾Ö²¿±äÁ¿µÄÒıÓÃ£¡ ÕâÀï»áÔì³ÉÑ­»·ÒıÓÃ£¡
+	// TODO: ä¸è¦æ•è·å±€éƒ¨å˜é‡çš„å¼•ç”¨ï¼ è¿™é‡Œä¼šé€ æˆå¾ªç¯å¼•ç”¨ï¼
 	/*
 	auto button1 = mUIManager.CreateButton(Vector(100, 150));
 	button1->SetAsCheckbox(true);
 	button1->SetClickCallBack([](bool isChecked) {
-		std::cout << "°´Å¥1 ±»µã»÷£¬µ±Ç°×´Ì¬: " << (isChecked ? "Ñ¡ÖĞ" : "Î´Ñ¡ÖĞ") << std::endl;
+		std::cout << "æŒ‰é’®1 è¢«ç‚¹å‡»ï¼Œå½“å‰çŠ¶æ€: " << (isChecked ? "é€‰ä¸­" : "æœªé€‰ä¸­") << std::endl;
 		}
 	);
 
@@ -96,7 +96,7 @@ void GameScene::OnEnter() {
 
 void GameScene::OnExit() {
 	Scene::OnExit();
-	std::cout << "ÍË³öGameScene" << std::endl;
+	std::cout << "é€€å‡ºGameScene" << std::endl;
 	mBoard.reset();
 	mGameProgress.reset();
 	mCardSlotManager.reset();
@@ -131,36 +131,36 @@ void GameScene::Update() {
 			float t = mAnimElapsed / mAnimDuration;
 			float eased = static_cast<float>((1 - cos(t * M_PI)) / 2);
 
-			// ¼ÆËã±³¾°Ó¦ÓĞµÄÆÁÄ»×ø±ê£¨Ô­Âß¼­£©
+			// è®¡ç®—èƒŒæ™¯åº”æœ‰çš„å±å¹•åæ ‡ï¼ˆåŸé€»è¾‘ï¼‰
 			float screenX = mStartX + (mTargetSceneX - mStartX) * eased;
 
-			// ±³¾°ÊÀ½ç×ø±ê¹Ì¶¨Îª mStartX
+			// èƒŒæ™¯ä¸–ç•Œåæ ‡å›ºå®šä¸º mStartX
 			float worldX = mStartX;
 
-			// ÉãÏñ»úÎ»ÖÃ = ÊÀ½ç×ø±ê - ÆÁÄ»×ø±ê
+			// æ‘„åƒæœºä½ç½® = ä¸–ç•Œåæ ‡ - å±å¹•åæ ‡
 			float camX = worldX - screenX;
 
-			// ÒÆ¶¯ÉãÏñ»ú£¨±£³Ö Y Öá²»±ä£©
+			// ç§»åŠ¨æ‘„åƒæœºï¼ˆä¿æŒ Y è½´ä¸å˜ï¼‰
 			GameAPP::GetInstance().GetCamera().SetPosition(Vector(camX, 0));
 
-			// ¸üĞÂ mCurrectSceneX ¹©ºóĞøÊ¹ÓÃ
+			// æ›´æ–° mCurrectSceneX ä¾›åç»­ä½¿ç”¨
 			mCurrectSceneX = screenX;
 
 			break;
 		}
 		case IntroStage::SEEDBANK_SLIDE:
 		{
-			// Ê×´Î½øÈëÊ±Ìí¼ÓÖÖ×Ó²ÛÎÆÀí£¨³õÊ¼Î»ÖÃÔÚÆÁÄ»ÍâÉÏ·½£©
+			// é¦–æ¬¡è¿›å…¥æ—¶æ·»åŠ ç§å­æ§½çº¹ç†ï¼ˆåˆå§‹ä½ç½®åœ¨å±å¹•å¤–ä¸Šæ–¹ï¼‰
 			if (!mSeedbankAdded) {
 				AddTexture(ResourceKeys::Textures::IMAGE_SEEDBANK_LONG,
-					130.0f, -100.0f,			// ÆğÊ¼Î»ÖÃ£ºx=120, y ÉÏ·½
+					130.0f, -100.0f,			// èµ·å§‹ä½ç½®ï¼šx=120, y ä¸Šæ–¹
 					0.85f, 0.9f, LAYER_UI, true);
 				mChooseCardUI = GameObjectManager::GetInstance().
 					CreateGameObjectImmediate<ChooseCardUI>(LAYER_UI, this);
 				mSeedbankAdded = true;
 			}
 
-			// ÖÖ×Ó²Û»¬Âä¶¯»­
+			// ç§å­æ§½æ»‘è½åŠ¨ç”»
 			if (mSeedbankAnimElapsed < mSeedbankAnimDuration) {
 				mSeedbankAnimElapsed += deltaTime;
 				if (mSeedbankAnimElapsed > mSeedbankAnimDuration) mSeedbankAnimElapsed = mSeedbankAnimDuration;
@@ -174,7 +174,7 @@ void GameScene::Update() {
 			float currentY = startY + (targetY - startY) * eased;
 			SetTexturePosition(ResourceKeys::Textures::IMAGE_SEEDBANK_LONG, 130.0f, currentY);
 
-			// --- Ñ¡¿¨½çÃæ¶¯»­ ---
+			// --- é€‰å¡ç•Œé¢åŠ¨ç”» ---
 			if (!mChooseCardUIMoving) {
 				mChooseCardUIMoving = true;
 				mChooseCardUIAnimElapsed = 0.0f;
@@ -193,16 +193,16 @@ void GameScene::Update() {
 				}
 			}
 
-			// ¼ì²éÁ½¸ö¶¯»­ÊÇ·ñ¶¼Íê³É
+			// æ£€æŸ¥ä¸¤ä¸ªåŠ¨ç”»æ˜¯å¦éƒ½å®Œæˆ
 			bool seedbankDone = (mSeedbankAnimElapsed >= mSeedbankAnimDuration);
 			bool chooseUIDone = (mChooseCardUIAnimElapsed >= mChooseCardUIAnimDuration);
 			if (seedbankDone && chooseUIDone) {
-				// È·±£×îÖÕÎ»ÖÃ×¼È·
+				// ç¡®ä¿æœ€ç»ˆä½ç½®å‡†ç¡®
 				if (auto transform = mChooseCardUI->GetComponent<TransformComponent>()) {
 					transform->SetPosition(mChooseCardUITargetPos);
 				}
 				mChooseCardUI->AddAllCard();
-				// ÆôÓÃ°´Å¥
+				// å¯ç”¨æŒ‰é’®
 				if (mChooseCardUI && mChooseCardUI->GetButton()) {
 					mChooseCardUI->GetButton()->SetEnabled(true);
 				}
@@ -236,9 +236,9 @@ void GameScene::Update() {
 			float t = mReadyAnimElapsed / mReadyAnimDuration;
 			float eased = static_cast<float>((1 - cos(t * M_PI)) / 2);
 
-			// ¼ÆËãÄ¿±êÆÁÄ»×ø±ê£¨´Óµ±Ç°ÆÁÄ»×ø±êÒÆ¶¯µ½ mGameStartX£©
-			float startScreenX = mTargetSceneX;   // µ±Ç°ÆÁÄ»×ø±ê£¨ÓÉÖ®Ç°½×¶Î¸üĞÂ£©
-			float targetScreenX = mGameStartX;     // Ä¿±êÆÁÄ»×ø±ê£¨-250£©
+			// è®¡ç®—ç›®æ ‡å±å¹•åæ ‡ï¼ˆä»å½“å‰å±å¹•åæ ‡ç§»åŠ¨åˆ° mGameStartXï¼‰
+			float startScreenX = mTargetSceneX;   // å½“å‰å±å¹•åæ ‡ï¼ˆç”±ä¹‹å‰é˜¶æ®µæ›´æ–°ï¼‰
+			float targetScreenX = mGameStartX;     // ç›®æ ‡å±å¹•åæ ‡ï¼ˆ-250ï¼‰
 
 			float screenX = startScreenX + (targetScreenX - startScreenX) * eased;
 
@@ -259,7 +259,7 @@ void GameScene::Update() {
 			break;
 		}
 		}
-		// ´¦ÀíÌáÊ¾¶¯»­
+		// å¤„ç†æç¤ºåŠ¨ç”»
 		if (mPrompt.active)
 		{
 			float delta = DeltaTime::GetDeltaTime();
@@ -270,8 +270,8 @@ void GameScene::Update() {
 			case PromptStage::APPEAR:
 			{
 				float t = std::min(mPrompt.timer / mPrompt.appearDuration, 1.0f);
-				mPrompt.scale = 1.5f - 0.5f * t;          // 1.5 ¡ú 1.0
-				mPrompt.alpha = static_cast<Uint8>(255 * t); // 0 ¡ú 255
+				mPrompt.scale = 1.5f - 0.5f * t;          // 1.5 â†’ 1.0
+				mPrompt.alpha = static_cast<Uint8>(255 * t); // 0 â†’ 255
 				if (mPrompt.timer >= mPrompt.appearDuration)
 				{
 					mPrompt.stage = PromptStage::HOLD;
@@ -292,7 +292,7 @@ void GameScene::Update() {
 			{
 				float t = std::min(mPrompt.timer / mPrompt.fadeDuration, 1.0f);
 				mPrompt.alpha = static_cast<Uint8>(255 * (1.0f - t));
-				mPrompt.scale = 1.0f + 0.2f * t;       // ·Å´ó
+				mPrompt.scale = 1.0f + 0.2f * t;       // æ”¾å¤§
 				if (mPrompt.timer >= mPrompt.fadeDuration)
 				{
 					mPrompt.active = false;
@@ -315,7 +315,7 @@ void GameScene::Update() {
 void GameScene::ChooseCardComplete()
 {
 #ifdef _DEBUG
-	std::cout << "Ñ¡¿¨Íê³É£¬×¼±¸¿ªÊ¼ÓÎÏ·" << std::endl;
+	std::cout << "é€‰å¡å®Œæˆï¼Œå‡†å¤‡å¼€å§‹æ¸¸æˆ" << std::endl;
 #endif
 	if (mCurrentStage != IntroStage::COMPLETE) return;
 	mCurrentStage = IntroStage::READY_SET_PLANT;
@@ -331,10 +331,10 @@ void GameScene::ChooseCardComplete()
 	RegisterDrawCommand("ZombieNumber",
 		[this](SDL_Renderer* renderer) {
 			auto& gameApp = GameAPP::GetInstance();
-			gameApp.DrawWorldText(u8"µ±Ç°½©Ê¬ÊıÁ¿: " + std::to_string(mBoard->mZombieNumber),
+			gameApp.DrawWorldText(u8"å½“å‰åƒµå°¸æ•°é‡: " + std::to_string(mBoard->mZombieNumber),
 				Vector(3, 569), SDL_Color{ 0,0,0,255 },
 				ResourceKeys::Fonts::FONT_FZCQ, 24);
-			gameApp.DrawWorldText(u8"µ±Ç°½©Ê¬ÊıÁ¿: " + std::to_string(mBoard->mZombieNumber),
+			gameApp.DrawWorldText(u8"å½“å‰åƒµå°¸æ•°é‡: " + std::to_string(mBoard->mZombieNumber),
 				Vector(5, 570), SDL_Color{ 223,186,98,255 },
 				ResourceKeys::Fonts::FONT_FZCQ, 24);
 		},
@@ -361,16 +361,16 @@ std::shared_ptr<GameProgress> GameScene::GetGameProgress() const
 void GameScene::GameOver()
 {
 	std::vector<GameMessageBox::ButtonConfig> buttons;
-	buttons.push_back({ u8"·µ»Ø²Ëµ¥", Vector(380, 380),[]() {
+	buttons.push_back({ u8"è¿”å›èœå•", Vector(380, 380),[]() {
 
 }, true });
-	buttons.push_back({ u8"ÖØĞÂ¿ªÊ¼", Vector(560, 380), [this]() {
+	buttons.push_back({ u8"é‡æ–°å¼€å§‹", Vector(560, 380), [this]() {
 		this->mReadyToRestart = true;
 		DeltaTime::SetPaused(false);
 	}, true });
 
 	mUIManager.CreateMessageBox(Vector(SCENE_WIDTH / 2, SCENE_HEIGHT / 2),
-		u8"½©Ê¬³ÔµôÁËÄãµÄÄÔ×Ó£¡", buttons, u8"ÓÎÏ·½áÊø", 1.5f);
+		u8"åƒµå°¸åƒæ‰äº†ä½ çš„è„‘å­ï¼", buttons, u8"æ¸¸æˆç»“æŸ", 1.5f);
 }
 
 void GameScene::ShowPrompt(const std::string& textureKey,
@@ -378,12 +378,12 @@ void GameScene::ShowPrompt(const std::string& textureKey,
 	float holdDur,
 	float fadeDur)
 {
-	// Èç¹ûÒÑÓĞ¶¯»­ÕıÔÚ²¥·Å Ö±½Ó¸²¸Ç
+	// å¦‚æœå·²æœ‰åŠ¨ç”»æ­£åœ¨æ’­æ”¾ ç›´æ¥è¦†ç›–
 	mPrompt.active = true;
 	mPrompt.stage = PromptStage::APPEAR;
 	mPrompt.timer = 0.0f;
-	mPrompt.scale = 1.5f;               // ÆğÊ¼·Å´ó
-	mPrompt.alpha = 0;                   // ÆğÊ¼Í¸Ã÷
+	mPrompt.scale = 1.5f;               // èµ·å§‹æ”¾å¤§
+	mPrompt.alpha = 0;                   // èµ·å§‹é€æ˜
 	mPrompt.textureKey = textureKey;
 	mPrompt.appearDuration = appearDur;
 	mPrompt.holdDuration = holdDur;
@@ -391,7 +391,7 @@ void GameScene::ShowPrompt(const std::string& textureKey,
 }
 
 	/*
-	// ±£´æÓÎÏ·Êı¾İ£¨Èç¹ûĞèÒª£©
+	// ä¿å­˜æ¸¸æˆæ•°æ®ï¼ˆå¦‚æœéœ€è¦ï¼‰
 	int score = 100;
 	SceneManager::GetInstance().SetGlobalData("last_score", std::to_string(score));
 

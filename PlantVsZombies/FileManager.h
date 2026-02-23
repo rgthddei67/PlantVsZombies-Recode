@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #ifndef _FILE_MANAGER_H
 #define _FILE_MANAGER_H
 
@@ -10,57 +10,57 @@
 
 class FileManager {
 public:
-    // ¹¹Ôìº¯Êı/Îö¹¹º¯Êı
+    // æ„é€ å‡½æ•°/ææ„å‡½æ•°
     FileManager() = default;
     ~FileManager() = default;
 
-    // ¼ì²éÎÄ¼şÊÇ·ñ´æÔÚ
+    // æ£€æŸ¥æ–‡ä»¶æ˜¯å¦å­˜åœ¨
     static bool FileExists(const std::string& path);
 
-    // ¼ÓÔØÎÄ¼şÎª×Ö·û´®
+    // åŠ è½½æ–‡ä»¶ä¸ºå­—ç¬¦ä¸²
     static std::string LoadFileAsString(const std::string& path);
 
-    // ¼ÓÔØÎÄ¼şÎª¶ş½øÖÆÊı¾İ
+    // åŠ è½½æ–‡ä»¶ä¸ºäºŒè¿›åˆ¶æ•°æ®
     static std::vector<char> LoadFileAsBinary(const std::string& path);
 
-    // ±£´æ×Ö·û´®µ½ÎÄ¼ş
+    // ä¿å­˜å­—ç¬¦ä¸²åˆ°æ–‡ä»¶
     static bool SaveFile(const std::string& path, const std::string& content);
 
-    // ±£´æ¶ş½øÖÆÊı¾İµ½ÎÄ¼ş
+    // ä¿å­˜äºŒè¿›åˆ¶æ•°æ®åˆ°æ–‡ä»¶
     static bool SaveBinaryFile(const std::string& path, const void* data, size_t size);
 
-    // ×·¼ÓÄÚÈİµ½ÎÄ¼ş
+    // è¿½åŠ å†…å®¹åˆ°æ–‡ä»¶
     static bool AppendToFile(const std::string& path, const std::string& content);
 
-    // ¼ÓÔØXMLÎÄ¼ş
+    // åŠ è½½XMLæ–‡ä»¶
     static pugi::xml_document LoadXMLFile(const std::string& path);
     static bool LoadXMLFile(const std::string& path, pugi::xml_document& doc);
 
-    // ±£´æXMLÎÄ¼ş
+    // ä¿å­˜XMLæ–‡ä»¶
     static bool SaveXMLFile(const std::string& path, const pugi::xml_document& doc);
     static bool SaveXMLFile(const std::string& path, const pugi::xml_node& node);
 
-    // ¼ÓÔØJSONÎÄ¼ş
+    // åŠ è½½JSONæ–‡ä»¶
     static nlohmann::json LoadJsonFile(const std::string& path);
     static bool LoadJsonFile(const std::string& path, nlohmann::json& json);
 
-    // ±£´æJSONÎÄ¼ş
+    // ä¿å­˜JSONæ–‡ä»¶
     static bool SaveJsonFile(const std::string& path, const nlohmann::json& json);
 
-    // »ñÈ¡ÎÄ¼ş´óĞ¡
+    // è·å–æ–‡ä»¶å¤§å°
     static size_t GetFileSize(const std::string& path);
 
-    // ´´½¨Ä¿Â¼
+    // åˆ›å»ºç›®å½•
     static bool CreateDirectory(const std::string& path);
 
-    // ¼ì²éÊÇ·ñÎªÄ¿Â¼
+    // æ£€æŸ¥æ˜¯å¦ä¸ºç›®å½•
     static bool IsDirectory(const std::string& path);
 
-    // »ñÈ¡ÎÄ¼şÁĞ±í
+    // è·å–æ–‡ä»¶åˆ—è¡¨
     static std::vector<std::string> GetFilesInDirectory(const std::string& directory,
         const std::string& extension = "");
 
-    // Â·¾¶²Ù×÷¹¤¾ßº¯Êı
+    // è·¯å¾„æ“ä½œå·¥å…·å‡½æ•°
     static std::string GetFileName(const std::string& path);
     static std::string GetFileExtension(const std::string& path);
     static std::string GetDirectory(const std::string& path);

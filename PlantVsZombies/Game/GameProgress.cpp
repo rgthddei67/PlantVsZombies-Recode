@@ -1,9 +1,9 @@
-#include "GameProgress.h"
+ï»¿#include "GameProgress.h"
 #include "GameScene.h"
 #include "Board.h"
 #include "SceneManager.h"
 #include "../DeltaTime.h"
-#include "../ResourceManager.h"   // ÓÃÓÚ»ñÈ¡ÎÆÀí
+#include "../ResourceManager.h"   // ç”¨äºè·å–çº¹ç†
 #include "../ResourceKeys.h"
 #include <memory>
 #include <iostream>
@@ -14,7 +14,7 @@ GameProgress::GameProgress(Board* board, GameScene* gameScene)
     mCurrentSliderValue(1.0f), mTargetSliderValue(1.0f), mLerpSpeed(5.0f)
 {
     if (!board || !gameScene) {
-        std::cerr << "GameProgress::GameProgress³õÊ¼»¯Ê§°Ü£¬board»òÕßgameSceneÎªnullptr£¡" << std::endl;
+        std::cerr << "GameProgress::GameProgressåˆå§‹åŒ–å¤±è´¥ï¼Œboardæˆ–è€…gameSceneä¸ºnullptrï¼" << std::endl;
         return;
     }
 
@@ -22,7 +22,7 @@ GameProgress::GameProgress(Board* board, GameScene* gameScene)
 
     m_flagMeter = std::make_unique<FlagMeter>(createPosition, 1.0f);
 
-    // ´Ó×ÊÔ´¹ÜÀíÆ÷»ñÈ¡ÎÆÀí
+    // ä»èµ„æºç®¡ç†å™¨è·å–çº¹ç†
     auto& rm = ResourceManager::GetInstance();
     using namespace ResourceKeys::Textures;
     SDL_Texture* bgTex = rm.GetTexture(IMAGE_FLAG_METER);
@@ -70,15 +70,15 @@ void GameProgress::Update()
         m_flagMeter->SetProgress(mCurrentSliderValue);
     }
 
-    // ¼ì²â²¨´Î±ä»¯£¬´¥·¢Æì×ÓÉıÆğ
+    // æ£€æµ‹æ³¢æ¬¡å˜åŒ–ï¼Œè§¦å‘æ——å­å‡èµ·
     if (mBoard) {
         int currentWave = mBoard->mCurrentWave;
         if (currentWave != m_lastWave && currentWave % 10 == 0 && currentWave != 0) {
-            int flagIndex = currentWave / 10 - 1;                     // Âß¼­Ë÷Òı£¨0¶ÔÓ¦10²¨£©
-            int reverseIndex = m_flagCount - 1 - flagIndex;          // ´ÓÓÒÏò×ó
+            int flagIndex = currentWave / 10 - 1;                     // é€»è¾‘ç´¢å¼•ï¼ˆ0å¯¹åº”10æ³¢ï¼‰
+            int reverseIndex = m_flagCount - 1 - flagIndex;          // ä»å³å‘å·¦
             if (reverseIndex >= 0 && reverseIndex < m_flagCount) {
-                const float RAISE_HEIGHT = -10.0f;   // ÉıÆğ¸ß¶È£¨ÏñËØ£©
-                const float RAISE_DURATION = 1.5f;  // ¶¯»­Ê±³¤£¨Ãë£©
+                const float RAISE_HEIGHT = -10.0f;   // å‡èµ·é«˜åº¦ï¼ˆåƒç´ ï¼‰
+                const float RAISE_DURATION = 1.5f;  // åŠ¨ç”»æ—¶é•¿ï¼ˆç§’ï¼‰
                 m_flagMeter->RaiseFlag(reverseIndex, RAISE_HEIGHT, RAISE_DURATION);
             }
         }
@@ -114,9 +114,9 @@ void GameProgress::SetupFlags(SDL_Texture* stickTex, SDL_Texture* flagTex)
 void GameProgress::InitializeRaisedFlags(float raiseY)
 {
     if (!m_flagMeter) return;
-    int raisedCount = mBoard->mCurrentWave / 10;  // ÒÑ¾­ÀúµÄ10µÄ±¶Êı²¨´ÎÊı
+    int raisedCount = mBoard->mCurrentWave / 10;  // å·²ç»å†çš„10çš„å€æ•°æ³¢æ¬¡æ•°
     for (int i = 0; i < raisedCount && i < m_flagCount; ++i) {
-        int reverseIndex = m_flagCount - 1 - i;   // ´ÓÓÒÏò×ó
+        int reverseIndex = m_flagCount - 1 - i;   // ä»å³å‘å·¦
         m_flagMeter->SetFlagRaiseImmediate(reverseIndex, raiseY);
     }
 }

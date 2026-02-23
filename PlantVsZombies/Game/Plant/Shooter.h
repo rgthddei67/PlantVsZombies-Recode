@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #ifndef SHOOTER_H
 #define SHOOTER_H
 
@@ -9,11 +9,11 @@ class Shooter : public Plant {
 protected:
 	std::shared_ptr<Animator> mHeadAnim = nullptr;
 	float mCheckZombieTimer = 0.0f;
-	float mShootTime = 1.5f;     // Éä»÷¼ä¸ôÊ±¼ä
-	float mShootTimer = 1.0f;    // Éä»÷¼ÆÊ±Æ÷
+	float mShootTime = 1.5f;     // å°„å‡»é—´éš”æ—¶é—´
+	float mShootTimer = 1.0f;    // å°„å‡»è®¡æ—¶å™¨
 
-	bool HasZombieInRow();		// ¼ì²â±¾ĞĞÊÇ·ñÓĞ½©Ê¬
-	virtual void ShootBullet() = 0;	// Éä»÷×Óµ¯ ±ØĞëĞ´
+	bool HasZombieInRow();		// æ£€æµ‹æœ¬è¡Œæ˜¯å¦æœ‰åƒµå°¸
+	virtual void ShootBullet() = 0;	// å°„å‡»å­å¼¹ å¿…é¡»å†™
 	void SetupPlant() override;
 
 public:

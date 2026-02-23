@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #ifndef _BUTTON_H
 #define _BUTTON_H
 #include "../GameApp.h"
@@ -12,32 +12,32 @@ class ResourceManager;
 class Button
 {
 private:
-    Vector position = Vector::zero();          // °´Å¥Î»ÖÃ
-    Vector size = Vector(40, 40);              // °´Å¥´óĞ¡
-    bool isHovered = false;                    // ÊÇ·ñĞüÍ£
-    bool isPressed = false;                    // ÊÇ·ñ°´ÏÂ
-    bool isChecked = false;                    // ÊÇ·ñ¹´Ñ¡
-    bool isCheckbox = false;                   // ÊÇ·ñÊÇ¸´Ñ¡¿òÀàĞÍ
-	bool canClick = true;                      // ÊÇ·ñ¿Éµã»÷
+    Vector position = Vector::zero();          // æŒ‰é’®ä½ç½®
+    Vector size = Vector(40, 40);              // æŒ‰é’®å¤§å°
+    bool isHovered = false;                    // æ˜¯å¦æ‚¬åœ
+    bool isPressed = false;                    // æ˜¯å¦æŒ‰ä¸‹
+    bool isChecked = false;                    // æ˜¯å¦å‹¾é€‰
+    bool isCheckbox = false;                   // æ˜¯å¦æ˜¯å¤é€‰æ¡†ç±»å‹
+	bool canClick = true;                      // æ˜¯å¦å¯ç‚¹å‡»
 
-    std::string normalImageKey = "IMAGE_options_checkbox0";                // Õı³£×´Ì¬Í¼Æ¬key
-    std::string hoverImageKey = "IMAGE_options_checkbox0";                 // ĞüÍ£×´Ì¬Í¼Æ¬key  
-    std::string pressedImageKey = "IMAGE_options_checkbox0";               // °´ÏÂ×´Ì¬Í¼Æ¬key
-    std::string checkedImageKey = "IMAGE_options_checkbox1";               // Ñ¡ÖĞ×´Ì¬Í¼Æ¬key
+    std::string normalImageKey = "IMAGE_options_checkbox0";                // æ­£å¸¸çŠ¶æ€å›¾ç‰‡key
+    std::string hoverImageKey = "IMAGE_options_checkbox0";                 // æ‚¬åœçŠ¶æ€å›¾ç‰‡key  
+    std::string pressedImageKey = "IMAGE_options_checkbox0";               // æŒ‰ä¸‹çŠ¶æ€å›¾ç‰‡key
+    std::string checkedImageKey = "IMAGE_options_checkbox1";               // é€‰ä¸­çŠ¶æ€å›¾ç‰‡key
 
-    std::string text = "";                     // °´Å¥ÎÄ×Ö
-    std::string fontName = ResourceKeys::Fonts::FONT_FZCQ;        // ×ÖÌåÎÄ¼şÃû
-    int fontSize = 17;                         // ×ÖÌå´óĞ¡
-    SDL_Color textColor = { 0, 0, 0, 255 };      // ÎÄ×ÖÑÕÉ«£¨ºÚÉ«£©
-    SDL_Color hoverTextColor = { 255, 255, 255, 255 }; // ĞüÍ£Ê±ÎÄ×ÖÑÕÉ«£¨°×É«£©
+    std::string text = "";                     // æŒ‰é’®æ–‡å­—
+    std::string fontName = ResourceKeys::Fonts::FONT_FZCQ;        // å­—ä½“æ–‡ä»¶å
+    int fontSize = 17;                         // å­—ä½“å¤§å°
+    SDL_Color textColor = { 0, 0, 0, 255 };      // æ–‡å­—é¢œè‰²ï¼ˆé»‘è‰²ï¼‰
+    SDL_Color hoverTextColor = { 255, 255, 255, 255 }; // æ‚¬åœæ—¶æ–‡å­—é¢œè‰²ï¼ˆç™½è‰²ï¼‰
 
-    std::function<void(bool isChecked)> onClickCallback = nullptr; // µã»÷»Øµ÷º¯Êı
+    std::function<void(bool isChecked)> onClickCallback = nullptr; // ç‚¹å‡»å›è°ƒå‡½æ•°
     static std::string s_defaultFontPath;
     bool m_mousePressedThisFrame;
     bool m_mouseReleasedThisFrame;
     bool m_wasMouseDown;
 
-	bool mEnabled = true; // ÊÇ·ñÆôÓÃ°´Å¥
+	bool mEnabled = true; // æ˜¯å¦å¯ç”¨æŒ‰é’®
 
 public:
     Button(Vector createPosition = Vector::zero(), Vector btnSize = Vector(40, 40));
@@ -45,7 +45,7 @@ public:
     static std::string GetDefaultFontPath();
 
     void ProcessMouseEvent(InputHandler* input);
-    void ResetFrameState(); // ÖØÖÃ
+    void ResetFrameState(); // é‡ç½®
 
     void SetPosition(Vector pos);
     void SetSize(Vector size);
@@ -56,23 +56,23 @@ public:
 	void SetCanClick(bool canClick);
     void SetEnabled(bool enabled) { this->mEnabled = enabled; }
 
-    // ÉèÖÃÍ¼Æ¬×ÊÔ´key
+    // è®¾ç½®å›¾ç‰‡èµ„æºkey
     void SetImageKeys(const std::string& normal, const std::string& hover = "", const std::string& pressed = "", const std::string& checked = "");
 
-    // ÉèÖÃµã»÷»Øµ÷
+    // è®¾ç½®ç‚¹å‡»å›è°ƒ
     void SetClickCallBack(std::function<void(bool)> callback);
 
-    // ¸üĞÂºÍäÖÈ¾
+    // æ›´æ–°å’Œæ¸²æŸ“
     void Update(InputHandler* input);
     void Draw(SDL_Renderer* renderer) const;
 
-    // ×´Ì¬»ñÈ¡
+    // çŠ¶æ€è·å–
     bool IsHovered() const;
     bool IsPressed() const;
     bool IsChecked() const;
     void SetChecked(bool checked);
 
-    // ¼ì²âµãÊÇ·ñÔÚ°´Å¥ÄÚ
+    // æ£€æµ‹ç‚¹æ˜¯å¦åœ¨æŒ‰é’®å†…
     bool ContainsPoint(Vector point) const;
 };
 

@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #ifndef _AUDIOSYSTEM_H
 #define _AUDIOSYSTEM_H
 #ifdef PlaySound
@@ -14,37 +14,37 @@
 class AudioSystem
 {
 private:
-    static float masterVolume;        // ×ÜÒôÁ¿ 0.0 - 1.0
-    static float soundVolume;         // ÒôĞ§ÒôÁ¿ 0.0 - 1.0
-    static float musicVolume;         // ÒôÀÖÒôÁ¿ 0.0 - 1.0
-    static std::unordered_map<std::string, float> soundVolumes; // µ¥¶ÀÒôĞ§ÒôÁ¿
+    static float masterVolume;        // æ€»éŸ³é‡ 0.0 - 1.0
+    static float soundVolume;         // éŸ³æ•ˆéŸ³é‡ 0.0 - 1.0
+    static float musicVolume;         // éŸ³ä¹éŸ³é‡ 0.0 - 1.0
+    static std::unordered_map<std::string, float> soundVolumes; // å•ç‹¬éŸ³æ•ˆéŸ³é‡
 
 public:
-    // ³õÊ¼»¯
+    // åˆå§‹åŒ–
     static bool Initialize();
     static void Shutdown();
 
-    // ÒôÁ¿¿ØÖÆ - ×ÜÒôÁ¿
+    // éŸ³é‡æ§åˆ¶ - æ€»éŸ³é‡
     static void SetMasterVolume(float volume);
     static float GetMasterVolume();
 
-    // ÒôÁ¿¿ØÖÆ - ÒôĞ§
+    // éŸ³é‡æ§åˆ¶ - éŸ³æ•ˆ
     static void SetSoundVolume(float volume);
     static float GetSoundVolume();
 
-    // ÒôÁ¿¿ØÖÆ - ÒôÀÖ
+    // éŸ³é‡æ§åˆ¶ - éŸ³ä¹
     static void SetMusicVolume(float volume);
     static float GetMusicVolume();
 
-    // µ¥¶ÀÒôĞ§ÒôÁ¿¿ØÖÆ
+    // å•ç‹¬éŸ³æ•ˆéŸ³é‡æ§åˆ¶
     static void SetSoundVolume(const std::string& soundKey, float volume);
     static float GetSoundVolume(const std::string& soundKey);
 
-    // ²¥·ÅÒôÁ¿
+    // æ’­æ”¾éŸ³é‡
     static void PlaySound(const std::string& soundKey, int loops = 0);
-    // ¿ÉÒÔÖ¸¶¨²¥·ÅÊ±µÄÒôÁ¿
+    // å¯ä»¥æŒ‡å®šæ’­æ”¾æ—¶çš„éŸ³é‡
     static void PlaySound(const std::string& soundKey, float volume, int loops = 0);
-    // ¿ÉÒÔÖ¸¶¨²¥·ÅÊ±µÄÒôÁ¿ºÍÉùµÀ
+    // å¯ä»¥æŒ‡å®šæ’­æ”¾æ—¶çš„éŸ³é‡å’Œå£°é“
     static void PlaySound(const std::string& soundKey, float volume, int loops, int channel);
 
     static void PlayMusic(const std::string& musicKey, int loops = -1);
@@ -52,11 +52,11 @@ public:
     static void PauseMusic();
     static void ResumeMusic();
 
-    // ¹¤¾ß·½·¨
+    // å·¥å…·æ–¹æ³•
     static bool IsAudioAvailable();
-    static void UpdateVolume(); // ¸üĞÂËùÓĞÒôÁ¿
+    static void UpdateVolume(); // æ›´æ–°æ‰€æœ‰éŸ³é‡
 
-    // ±£´æ/¼ÓÔØÒôÁ¿ÉèÖÃ
+    // ä¿å­˜/åŠ è½½éŸ³é‡è®¾ç½®
     static void SaveVolumeSettings();
     static void LoadVolumeSettings();
 };

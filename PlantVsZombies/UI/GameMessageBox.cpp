@@ -1,4 +1,4 @@
-#include "GameMessageBox.h"
+ï»¿#include "GameMessageBox.h"
 #include "../ResourceManager.h"
 #include "../GameAPP.h"
 #include "../Game/GameObjectManager.h"
@@ -9,15 +9,15 @@
 #include <memory>
 
 namespace {
-    const Vector DEFAULT_SIZE(SCENE_WIDTH / 2, SCENE_HEIGHT / 2);          // ÎŞ±³¾°Í¼Æ¬Ê±µÄÄ¬ÈÏ³ß´ç
-    const Vector BASE_BUTTON_SIZE(125 * 0.8f, 52 * 0.8f);        // °´Å¥»ù×¼³ß´ç
+    const Vector DEFAULT_SIZE(SCENE_WIDTH / 2, SCENE_HEIGHT / 2);          // æ— èƒŒæ™¯å›¾ç‰‡æ—¶çš„é»˜è®¤å°ºå¯¸
+    const Vector BASE_BUTTON_SIZE(125 * 0.8f, 52 * 0.8f);        // æŒ‰é’®åŸºå‡†å°ºå¯¸
     const int BASE_TITLE_FONT_SIZE = 20;
     const int BASE_MESSAGE_FONT_SIZE = 18;
     const int BASE_BUTTON_FONT_SIZE = 14;
-    const int BUTTON_SPACING = 10;                 // °´Å¥¼ä¾à»ù×¼
+    const int BUTTON_SPACING = 10;                 // æŒ‰é’®é—´è·åŸºå‡†
     const Vector TITLE_OFFSET = Vector(-70, -65);                  
     const Vector MESSAGE_OFFSET = Vector(-190, -25);               
-    const int BOTTOM_MARGIN = 10;                    // °´Å¥¾àµ×²¿±ß¾à
+    const int BOTTOM_MARGIN = 10;                    // æŒ‰é’®è·åº•éƒ¨è¾¹è·
 }
 
 GameMessageBox::GameMessageBox(const Vector& pos,
@@ -36,7 +36,7 @@ GameMessageBox::GameMessageBox(const Vector& pos,
 {
     mIsUI = true;
 
-    // ¼ÆËãÊµ¼Ê´óĞ¡ = Ô­Ê¼³ß´ç ¡Á Ëõ·Å
+    // è®¡ç®—å®é™…å¤§å° = åŸå§‹å°ºå¯¸ Ã— ç¼©æ”¾
     Vector originalSize = GetBackgroundOriginalSize();
     m_size = originalSize * scale;
 }
@@ -67,13 +67,13 @@ void GameMessageBox::Start()
 {
     GameObject::Start();
 
-    // ´´½¨°´Å¥
+    // åˆ›å»ºæŒ‰é’®
     for (const auto& config : m_buttonConfigs) {
         Vector btnSize = BASE_BUTTON_SIZE * m_scale;
         auto button = SceneManager::GetInstance().GetCurrectSceneUIManager().
             CreateButton(config.pos, btnSize);
 
-        // ÉèÖÃ°´Å¥ÎÄ×Ö£¨×ÖÌå´óĞ¡°´±ÈÀıËõ·Å£©
+        // è®¾ç½®æŒ‰é’®æ–‡å­—ï¼ˆå­—ä½“å¤§å°æŒ‰æ¯”ä¾‹ç¼©æ”¾ï¼‰
         int fontSize = static_cast<int>(BASE_BUTTON_FONT_SIZE * m_scale);
         if (fontSize < 8) fontSize = 8;
         button->SetTextColor(m_titleColor);
@@ -81,9 +81,9 @@ void GameMessageBox::Start()
         button->SetText(config.text, ResourceKeys::Fonts::FONT_FZCQ, fontSize);
         button->SetImageKeys(ResourceKeys::Textures::IMAGE_BUTTONSMALL, ResourceKeys::Textures::IMAGE_BUTTONSMALL,
             ResourceKeys::Textures::IMAGE_BUTTONSMALL, ResourceKeys::Textures::IMAGE_BUTTONSMALL);
-        // ÉèÖÃ°´Å¥´óĞ¡£¨»ù×¼´óĞ¡ ¡Á Ëõ·Å£©
+        // è®¾ç½®æŒ‰é’®å¤§å°ï¼ˆåŸºå‡†å¤§å° Ã— ç¼©æ”¾ï¼‰
 
-        // ÉèÖÃ»Øµ÷£¨Ê¹ÓÃ weak_ptr ±ÜÃâÑ­»·ÒıÓÃ£©
+        // è®¾ç½®å›è°ƒï¼ˆä½¿ç”¨ weak_ptr é¿å…å¾ªç¯å¼•ç”¨ï¼‰
         auto weakSelf = std::weak_ptr<GameMessageBox>(std::dynamic_pointer_cast<GameMessageBox>(shared_from_this()));
         button->SetClickCallBack([weakSelf, config](bool) {
             if (config.callback) config.callback();
@@ -102,7 +102,7 @@ void GameMessageBox::Draw(SDL_Renderer* renderer)
 {
     if (!mActive) return;
 
-    // »æÖÆ±³¾°£¨À­Éìµ½Ëõ·ÅºóµÄ´óĞ¡£©
+    // ç»˜åˆ¶èƒŒæ™¯ï¼ˆæ‹‰ä¼¸åˆ°ç¼©æ”¾åçš„å¤§å°ï¼‰
     if (!m_backgroundImageKey.empty()) {
         auto& resMgr = ResourceManager::GetInstance();
         if (resMgr.HasTexture(m_backgroundImageKey)) {
@@ -112,7 +112,7 @@ void GameMessageBox::Draw(SDL_Renderer* renderer)
             SDL_RenderCopy(renderer, tex, nullptr, &dest);
         }
         else {
-            // Í¼Æ¬È±Ê§Ê±»æÖÆ°ëÍ¸Ã÷ºÚÉ«¾ØĞÎ
+            // å›¾ç‰‡ç¼ºå¤±æ—¶ç»˜åˆ¶åŠé€æ˜é»‘è‰²çŸ©å½¢
             SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
             SDL_SetRenderDrawColor(renderer, 0, 0, 0, 200);
             SDL_Rect rect = { (int)m_position.x, (int)m_position.y,
@@ -122,7 +122,7 @@ void GameMessageBox::Draw(SDL_Renderer* renderer)
         }
     }
     else {
-        // Ä¬ÈÏ±³¾°£º°ëÍ¸Ã÷ºÚÉ«
+        // é»˜è®¤èƒŒæ™¯ï¼šåŠé€æ˜é»‘è‰²
         SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 200);
         SDL_Rect rect = { (int)m_position.x, (int)m_position.y,
@@ -131,7 +131,7 @@ void GameMessageBox::Draw(SDL_Renderer* renderer)
         SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
     }
 
-    // »æÖÆ±êÌâ
+    // ç»˜åˆ¶æ ‡é¢˜
     if (!m_title.empty()) {
         int fontSize = static_cast<int>(BASE_TITLE_FONT_SIZE * m_scale);
         if (fontSize < 8) fontSize = 8;
@@ -140,7 +140,7 @@ void GameMessageBox::Draw(SDL_Renderer* renderer)
             ResourceKeys::Fonts::FONT_FZCQ, fontSize);
     }
 
-    // »æÖÆÏûÏ¢
+    // ç»˜åˆ¶æ¶ˆæ¯
     if (!m_message.empty()) {
         int fontSize = static_cast<int>(BASE_MESSAGE_FONT_SIZE * m_scale);
         if (fontSize < 8) fontSize = 8;
@@ -149,7 +149,7 @@ void GameMessageBox::Draw(SDL_Renderer* renderer)
             ResourceKeys::Fonts::FONT_FZCQ, fontSize);
     }
 
-    // »æÖÆ°´Å¥
+    // ç»˜åˆ¶æŒ‰é’®
     for (auto& button : m_buttons) {
         button->Draw(renderer);
     }

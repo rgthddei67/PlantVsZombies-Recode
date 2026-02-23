@@ -1,9 +1,9 @@
-#include "../Game/AudioSystem.h"
+ï»¿#include "../Game/AudioSystem.h"
 #include "../ResourceManager.h"
 #include <fstream>
 #include <algorithm>
 
-// ¾²Ì¬³ÉÔ±±äÁ¿¶¨Òå
+// é™æ€æˆå‘˜å˜é‡å®šä¹‰
 float AudioSystem::masterVolume = 1.0f;
 float AudioSystem::soundVolume = 1.0f;
 float AudioSystem::musicVolume = 1.0f;
@@ -13,19 +13,19 @@ bool AudioSystem::Initialize()
 {
     if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0)
     {
-        std::cerr << "ÒôÆµ³õÊ¼»¯Ê§°Ü: " << Mix_GetError() << std::endl;
+        std::cerr << "éŸ³é¢‘åˆå§‹åŒ–å¤±è´¥: " << Mix_GetError() << std::endl;
         return false;
     }
 
     Mix_AllocateChannels(16);
     /*
-    // ¼ÓÔØ±£´æµÄÒôÁ¿ÉèÖÃ
+    // åŠ è½½ä¿å­˜çš„éŸ³é‡è®¾ç½®
     LoadVolumeSettings();
 
-    std::cout << "ÒôÆµÏµÍ³³õÊ¼»¯³É¹¦" << std::endl;
-    std::cout << "Ö÷ÒôÁ¿: " << masterVolume
-        << ", ÒôĞ§ÒôÁ¿: " << soundVolume
-        << ", ÒôÀÖÒôÁ¿: " << musicVolume << std::endl;
+    std::cout << "éŸ³é¢‘ç³»ç»Ÿåˆå§‹åŒ–æˆåŠŸ" << std::endl;
+    std::cout << "ä¸»éŸ³é‡: " << masterVolume
+        << ", éŸ³æ•ˆéŸ³é‡: " << soundVolume
+        << ", éŸ³ä¹éŸ³é‡: " << musicVolume << std::endl;
     */
     return true;
 }
@@ -43,7 +43,7 @@ void AudioSystem::Shutdown() {
     Mix_CloseAudio();
 }
 
-// ×ÜÒôÁ¿¿ØÖÆ
+// æ€»éŸ³é‡æ§åˆ¶
 void AudioSystem::SetMasterVolume(float volume)
 {
     masterVolume = std::clamp(volume, 0.0f, 1.0f);
@@ -55,7 +55,7 @@ float AudioSystem::GetMasterVolume()
     return masterVolume;
 }
 
-// ÒôĞ§ÒôÁ¿¿ØÖÆ
+// éŸ³æ•ˆéŸ³é‡æ§åˆ¶
 void AudioSystem::SetSoundVolume(float volume)
 {
     soundVolume = std::clamp(volume, 0.0f, 1.0f);
@@ -67,7 +67,7 @@ float AudioSystem::GetSoundVolume()
     return soundVolume;
 }
 
-// ÒôÀÖÒôÁ¿¿ØÖÆ
+// éŸ³ä¹éŸ³é‡æ§åˆ¶
 void AudioSystem::SetMusicVolume(float volume)
 {
     musicVolume = std::clamp(volume, 0.0f, 1.0f);
@@ -79,13 +79,13 @@ float AudioSystem::GetMusicVolume()
     return musicVolume;
 }
 
-// µ¥¶ÀÒôĞ§ÒôÁ¿¿ØÖÆ
+// å•ç‹¬éŸ³æ•ˆéŸ³é‡æ§åˆ¶
 void AudioSystem::SetSoundVolume(const std::string& soundKey, float volume)
 {
     soundVolumes[soundKey] = std::clamp(volume, 0.0f, 1.0f);
 
-    // Á¢¼´¸üĞÂ¸ÃÒôĞ§µÄÒôÁ¿£¨Èç¹ûÕıÔÚ²¥·Å£©
-    // ÕâÀï¿ÉÒÔÀ©Õ¹Îª¸üĞÂÕıÔÚ²¥·ÅµÄÒôĞ§
+    // ç«‹å³æ›´æ–°è¯¥éŸ³æ•ˆçš„éŸ³é‡ï¼ˆå¦‚æœæ­£åœ¨æ’­æ”¾ï¼‰
+    // è¿™é‡Œå¯ä»¥æ‰©å±•ä¸ºæ›´æ–°æ­£åœ¨æ’­æ”¾çš„éŸ³æ•ˆ
 }
 
 float AudioSystem::GetSoundVolume(const std::string& soundKey)
@@ -95,10 +95,10 @@ float AudioSystem::GetSoundVolume(const std::string& soundKey)
     {
         return it->second;
     }
-    return 1.0f; // Ä¬ÈÏÒôÁ¿
+    return 1.0f; // é»˜è®¤éŸ³é‡
 }
 
-// ²¥·ÅÒôĞ§
+// æ’­æ”¾éŸ³æ•ˆ
 void AudioSystem::PlaySound(const std::string& soundKey, int loops)
 {
     if (!IsAudioAvailable()) return;
@@ -106,7 +106,7 @@ void AudioSystem::PlaySound(const std::string& soundKey, int loops)
     Mix_Chunk* sound = ResourceManager::GetInstance().GetSound(soundKey);
     if (sound)
     {
-        // Ê¹ÓÃÔ¤ÉèµÄÒôÁ¿ÉèÖÃ
+        // ä½¿ç”¨é¢„è®¾çš„éŸ³é‡è®¾ç½®
         float individualVolume = GetSoundVolume(soundKey);
         int finalVolume = static_cast<int>(MIX_MAX_VOLUME * masterVolume * soundVolume * individualVolume);
 
@@ -115,7 +115,7 @@ void AudioSystem::PlaySound(const std::string& soundKey, int loops)
     }
 }
 
-// Ö¸¶¨²¥·ÅÒôÁ¿
+// æŒ‡å®šæ’­æ”¾éŸ³é‡
 void AudioSystem::PlaySound(const std::string& soundKey, float volume, int loops)
 {
     if (!IsAudioAvailable()) return;
@@ -123,18 +123,18 @@ void AudioSystem::PlaySound(const std::string& soundKey, float volume, int loops
     Mix_Chunk* sound = ResourceManager::GetInstance().GetSound(soundKey);
     if (sound)
     {
-        // Ê¹ÓÃÖ¸¶¨µÄÒôÁ¿£¬¸²¸ÇÔ¤ÉèÉèÖÃ
+        // ä½¿ç”¨æŒ‡å®šçš„éŸ³é‡ï¼Œè¦†ç›–é¢„è®¾è®¾ç½®
         volume = std::clamp(volume, 0.0f, 1.0f);
         int finalVolume = static_cast<int>(MIX_MAX_VOLUME * masterVolume * soundVolume * volume);
 
         Mix_VolumeChunk(sound, finalVolume);
         Mix_PlayChannel(-1, sound, loops);
 
-        //std::cout << "²¥·ÅÒôĞ§: " << soundKey << " Ö¸¶¨ÒôÁ¿: " << volume << " ×îÖÕÒôÁ¿: " << finalVolume << std::endl;
+        //std::cout << "æ’­æ”¾éŸ³æ•ˆ: " << soundKey << " æŒ‡å®šéŸ³é‡: " << volume << " æœ€ç»ˆéŸ³é‡: " << finalVolume << std::endl;
     }
 }
 
-// Ö¸¶¨²¥·ÅÒôÁ¿ºÍÉùµÀ
+// æŒ‡å®šæ’­æ”¾éŸ³é‡å’Œå£°é“
 void AudioSystem::PlaySound(const std::string& soundKey, float volume, int loops, int channel)
 {
     if (!IsAudioAvailable()) return;
@@ -154,11 +154,11 @@ void AudioSystem::PlaySound(const std::string& soundKey, float volume, int loops
             Mix_PlayChannel(-1, sound, loops);
         }
 
-        //std::cout << "²¥·ÅÒôĞ§: " << soundKey << " ÉùµÀ: " << channel << " ÒôÁ¿: " << finalVolume << std::endl;
+        //std::cout << "æ’­æ”¾éŸ³æ•ˆ: " << soundKey << " å£°é“: " << channel << " éŸ³é‡: " << finalVolume << std::endl;
     }
 }
 
-// ²¥·ÅÒôÀÖ£¨´øÒôÁ¿¿ØÖÆ£©
+// æ’­æ”¾éŸ³ä¹ï¼ˆå¸¦éŸ³é‡æ§åˆ¶ï¼‰
 void AudioSystem::PlayMusic(const std::string& musicKey, int loops)
 {
     if (!IsAudioAvailable()) return;
@@ -166,13 +166,13 @@ void AudioSystem::PlayMusic(const std::string& musicKey, int loops)
     Mix_Music* music = ResourceManager::GetInstance().GetMusic(musicKey);
     if (music)
     {
-        // ¼ÆËã×îÖÕÒôÁ¿£ºÖ÷ÒôÁ¿ ¡Á ÒôÀÖÒôÁ¿
+        // è®¡ç®—æœ€ç»ˆéŸ³é‡ï¼šä¸»éŸ³é‡ Ã— éŸ³ä¹éŸ³é‡
         int finalVolume = static_cast<int>(MIX_MAX_VOLUME * masterVolume * musicVolume);
 
         Mix_VolumeMusic(finalVolume);
         Mix_PlayMusic(music, loops);
 
-        //std::cout << "²¥·ÅÒôÀÖ: " << musicKey << " ÒôÁ¿: " << finalVolume << std::endl;
+        //std::cout << "æ’­æ”¾éŸ³ä¹: " << musicKey << " éŸ³é‡: " << finalVolume << std::endl;
     }
 }
 
@@ -204,16 +204,16 @@ void AudioSystem::UpdateVolume()
 {
     if (!IsAudioAvailable()) return;
 
-    // ¸üĞÂÒôÀÖÒôÁ¿
+    // æ›´æ–°éŸ³ä¹éŸ³é‡
     int musicVol = static_cast<int>(MIX_MAX_VOLUME * masterVolume * musicVolume);
     Mix_VolumeMusic(musicVol);
 
-    // ¸üĞÂËùÓĞÒôĞ§ÒôÁ¿£¨ĞÂ²¥·ÅµÄÒôĞ§»á×Ô¶¯Ó¦ÓÃĞÂÒôÁ¿£©
+    // æ›´æ–°æ‰€æœ‰éŸ³æ•ˆéŸ³é‡ï¼ˆæ–°æ’­æ”¾çš„éŸ³æ•ˆä¼šè‡ªåŠ¨åº”ç”¨æ–°éŸ³é‡ï¼‰
 #ifdef _DEBUG
-    std::cout << "ÒôÁ¿¸üĞÂ - Ö÷ÒôÁ¿: " << masterVolume
-        << ", ÒôĞ§: " << soundVolume
-        << ", ÒôÀÖ: " << musicVolume
-        << ", ×îÖÕÒôÀÖÒôÁ¿: " << musicVol << std::endl;
+    std::cout << "éŸ³é‡æ›´æ–° - ä¸»éŸ³é‡: " << masterVolume
+        << ", éŸ³æ•ˆ: " << soundVolume
+        << ", éŸ³ä¹: " << musicVolume
+        << ", æœ€ç»ˆéŸ³ä¹éŸ³é‡: " << musicVol << std::endl;
 #endif
 }
 
@@ -222,7 +222,7 @@ bool AudioSystem::IsAudioAvailable()
     return Mix_QuerySpec(nullptr, nullptr, nullptr) != 0;
 }
 
-// ±£´æÒôÁ¿ÉèÖÃ
+// ä¿å­˜éŸ³é‡è®¾ç½®
 void AudioSystem::SaveVolumeSettings()
 {
     std::ofstream file("volume_settings.cfg");
@@ -233,12 +233,12 @@ void AudioSystem::SaveVolumeSettings()
         file << musicVolume << std::endl;
         file.close();
 #ifdef _DEBUG
-        std::cout << "ÒôÁ¿ÉèÖÃÒÑ±£´æ" << std::endl;
+        std::cout << "éŸ³é‡è®¾ç½®å·²ä¿å­˜" << std::endl;
 #endif
     }
 }
 
-// ¼ÓÔØÒôÁ¿ÉèÖÃ
+// åŠ è½½éŸ³é‡è®¾ç½®
 void AudioSystem::LoadVolumeSettings()
 {
     std::ifstream file("volume_settings.cfg");
@@ -249,7 +249,7 @@ void AudioSystem::LoadVolumeSettings()
         file >> musicVolume;
         file.close();
 #ifdef _DEBUG
-        std::cout << "ÒôÁ¿ÉèÖÃÒÑ¼ÓÔØ" << std::endl;
+        std::cout << "éŸ³é‡è®¾ç½®å·²åŠ è½½" << std::endl;
 #endif
     }
 }

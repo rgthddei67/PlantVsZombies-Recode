@@ -1,4 +1,4 @@
-#include "GameDataManager.h"
+ï»¿#include "GameDataManager.h"
 #include "../../ResourceKeys.h"
 #include <iostream>
 #include <algorithm>
@@ -7,7 +7,7 @@
 GameDataManager::GameDataManager() {}
 
 void GameDataManager::Initialize() {
-	// Çå¿ÕÏÖÓĞÊı¾İ
+	// æ¸…ç©ºç°æœ‰æ•°æ®
 	mPlantInfo.clear();
 	mZombieInfo.clear();
 	mAnimToString.clear();
@@ -17,13 +17,13 @@ void GameDataManager::Initialize() {
 
 	InitializeHardcodedData();
 
-	std::cout << "[GameDataManager] ³õÊ¼»¯Íê³É£¬¹²×¢²á "
-		<< mPlantInfo.size() << " ÖÖÖ²Îï£¬"
-		<< mZombieInfo.size() << " ÖÖ½©Ê¬" << std::endl;
+	std::cout << "[GameDataManager] åˆå§‹åŒ–å®Œæˆï¼Œå…±æ³¨å†Œ "
+		<< mPlantInfo.size() << " ç§æ¤ç‰©ï¼Œ"
+		<< mZombieInfo.size() << " ç§åƒµå°¸" << std::endl;
 }
 
 void GameDataManager::InitializeHardcodedData() {
-	// ==================== Ö²Îï×¢²á ====================
+	// ==================== æ¤ç‰©æ³¨å†Œ ====================
 	RegisterPlant(
 		PlantType::PLANT_SUNFLOWER,
 		50, 7.5f,
@@ -45,8 +45,8 @@ void GameDataManager::InitializeHardcodedData() {
 	);
 
 
-	// ==================== ½©Ê¬×¢²á ====================
-	// ÆÕÍ¨½©Ê¬
+	// ==================== åƒµå°¸æ³¨å†Œ ====================
+	// æ™®é€šåƒµå°¸
 	RegisterZombie(
 		ZombieType::ZOMBIE_NORMAL,
 		"ZOMBIE_NORMAL",
@@ -57,7 +57,7 @@ void GameDataManager::InitializeHardcodedData() {
 		1
 	);
 
-	// ==================== ·ÇÖ²Îï/½©Ê¬¶¯»­Ó³Éä ====================
+	// ==================== éæ¤ç‰©/åƒµå°¸åŠ¨ç”»æ˜ å°„ ====================
 	mAnimToString[AnimationType::ANIM_SUN] = ResourceKeys::Reanimations::REANIM_SUN;
 	mAnimToString[AnimationType::ANIM_NONE] = "Unknown";
 }
@@ -79,8 +79,8 @@ void GameDataManager::RegisterPlant(PlantType type,
 	mAnimToString[animType] = animName;
 
 #ifdef _DEBUG
-	std::cout << "[GameDataManager] ×¢²áÖ²Îï: " << animName
-		<< " (Æ«ÒÆ: " << offset.x << ", " << offset.y << ")" << std::endl;
+	std::cout << "[GameDataManager] æ³¨å†Œæ¤ç‰©: " << animName
+		<< " (åç§»: " << offset.x << ", " << offset.y << ")" << std::endl;
 #endif
 }
 
@@ -92,12 +92,12 @@ void GameDataManager::RegisterZombie(ZombieType type,
 	ZombieInfo info(type, enumName, animType, animName, offset, weight, appearWave);
 	mZombieInfo[type] = info;
 
-	// ¼ÇÂ¼¶¯»­ÀàĞÍ->×ÊÔ´Ãû£¬ÒÔ±ãÍ¨¹ı AnimationType Í³Ò»²éÑ¯
+	// è®°å½•åŠ¨ç”»ç±»å‹->èµ„æºåï¼Œä»¥ä¾¿é€šè¿‡ AnimationType ç»Ÿä¸€æŸ¥è¯¢
 	mAnimToString[animType] = animName;
 
 #ifdef _DEBUG
-	std::cout << "[GameDataManager] ×¢²á½©Ê¬: " << animName
-		<< " (Æ«ÒÆ: " << offset.x << ", " << offset.y << ")" << std::endl;
+	std::cout << "[GameDataManager] æ³¨å†Œåƒµå°¸: " << animName
+		<< " (åç§»: " << offset.x << ", " << offset.y << ")" << std::endl;
 #endif
 }
 
@@ -116,17 +116,17 @@ AnimationType GameDataManager::GetPlantAnimationType(PlantType plantType) const 
 }
 
 std::string GameDataManager::GetAnimationName(AnimationType animType) const {
-	// ÓÅÏÈÔÚÖ²Îï¶¯»­ÖĞ²éÕÒ
+	// ä¼˜å…ˆåœ¨æ¤ç‰©åŠ¨ç”»ä¸­æŸ¥æ‰¾
 	for (const auto& pair : mPlantInfo) {
 		if (pair.second.animType == animType)
 			return pair.second.animName;
 	}
-	// È»ºóÔÚ½©Ê¬¶¯»­ÖĞ²éÕÒ
+	// ç„¶ååœ¨åƒµå°¸åŠ¨ç”»ä¸­æŸ¥æ‰¾
 	for (const auto& pair : mZombieInfo) {
 		if (pair.second.animType == animType)
 			return pair.second.animName;
 	}
-	// ×îºóÔÚÍ¨ÓÃÓ³ÉäÖĞ²éÕÒ
+	// æœ€ååœ¨é€šç”¨æ˜ å°„ä¸­æŸ¥æ‰¾
 	auto it = mAnimToString.find(animType);
 	if (it != mAnimToString.end())
 		return it->second;
@@ -145,7 +145,7 @@ void GameDataManager::SetPlantOffset(PlantType plantType, const Vector& offset) 
 	if (it != mPlantInfo.end()) {
 		it->second.offset = offset;
 #ifdef _DEBUG
-		std::cout << "[GameDataManager] ÉèÖÃÖ²ÎïÆ«ÒÆ: " << it->second.animName
+		std::cout << "[GameDataManager] è®¾ç½®æ¤ç‰©åç§»: " << it->second.animName
 			<< " -> (" << offset.x << ", " << offset.y << ")" << std::endl;
 #endif
 	}
@@ -236,7 +236,7 @@ void GameDataManager::SetZombieOffset(ZombieType zombieType, const Vector& offse
 	if (it != mZombieInfo.end()) {
 		it->second.offset = offset;
 #ifdef _DEBUG
-		std::cout << "[GameDataManager] ÉèÖÃ½©Ê¬Æ«ÒÆ: " << it->second.animName
+		std::cout << "[GameDataManager] è®¾ç½®åƒµå°¸åç§»: " << it->second.animName
 			<< " -> (" << offset.x << ", " << offset.y << ")" << std::endl;
 #endif
 	}
@@ -270,22 +270,22 @@ bool GameDataManager::HasZombie(ZombieType type) const {
 }
 
 void GameDataManager::DebugPrintAll() const {
-	std::cout << "========== GameDataManager Ó²±àÂëÊı¾İ ==========" << std::endl;
-	std::cout << "Ö²Îï×ÜÊı: " << mPlantInfo.size() << std::endl;
+	std::cout << "========== GameDataManager ç¡¬ç¼–ç æ•°æ® ==========" << std::endl;
+	std::cout << "æ¤ç‰©æ€»æ•°: " << mPlantInfo.size() << std::endl;
 	for (const auto& pair : mPlantInfo) {
 		const PlantInfo& info = pair.second;
-		std::cout << "Ö²Îï: " << info.animName << " (" << info.enumName << ")" << std::endl;
-		std::cout << "  ÎÆÀí¼ü: " << info.textureKey << std::endl;
-		std::cout << "  ¶¯»­ÀàĞÍ: " << static_cast<int>(info.animType) << std::endl;
-		std::cout << "  Æ«ÒÆÁ¿: (" << info.offset.x << ", " << info.offset.y << ")" << std::endl;
+		std::cout << "æ¤ç‰©: " << info.animName << " (" << info.enumName << ")" << std::endl;
+		std::cout << "  çº¹ç†é”®: " << info.textureKey << std::endl;
+		std::cout << "  åŠ¨ç”»ç±»å‹: " << static_cast<int>(info.animType) << std::endl;
+		std::cout << "  åç§»é‡: (" << info.offset.x << ", " << info.offset.y << ")" << std::endl;
 	}
 
-	std::cout << "\n½©Ê¬×ÜÊı: " << mZombieInfo.size() << std::endl;
+	std::cout << "\nåƒµå°¸æ€»æ•°: " << mZombieInfo.size() << std::endl;
 	for (const auto& pair : mZombieInfo) {
 		const ZombieInfo& info = pair.second;
-		std::cout << "½©Ê¬: " << info.animName << " (" << info.enumName << ")" << std::endl;
-		std::cout << "  ¶¯»­ÀàĞÍ: " << static_cast<int>(info.animType) << std::endl;
-		std::cout << "  Æ«ÒÆÁ¿: (" << info.offset.x << ", " << info.offset.y << ")" << std::endl;
+		std::cout << "åƒµå°¸: " << info.animName << " (" << info.enumName << ")" << std::endl;
+		std::cout << "  åŠ¨ç”»ç±»å‹: " << static_cast<int>(info.animType) << std::endl;
+		std::cout << "  åç§»é‡: (" << info.offset.x << ", " << info.offset.y << ")" << std::endl;
 	}
 	std::cout << "=============================================" << std::endl;
 }

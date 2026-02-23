@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #ifndef _ATTACHMENT_SYSTEM_H
 #define _ATTACHMENT_SYSTEM_H
 
@@ -13,13 +13,13 @@
 
 class Animator;
 
-// Ğ§¹ûÀàĞÍ
+// æ•ˆæœç±»å‹
 enum class EffectType {
     EFFECT_NONE = 0,
-    EFFECT_ANIMATION     // ¶¯»­Ğ§¹û
+    EFFECT_ANIMATION     // åŠ¨ç”»æ•ˆæœ
 };
 
-// ±ä»»ĞÅÏ¢½á¹¹
+// å˜æ¢ä¿¡æ¯ç»“æ„
 struct TransformData {
     glm::vec2 position = glm::vec2(0.0f, 0.0f);
     glm::vec2 scale = glm::vec2(1.0f, 1.0f);
@@ -40,7 +40,7 @@ struct TransformData {
         UpdateMatrix();
     }
 
-    // ¸üĞÂ±ä»»¾ØÕó
+    // æ›´æ–°å˜æ¢çŸ©é˜µ
     void UpdateMatrix() {
         matrix = glm::mat3(1.0f);
         matrix[0][0] = scale.x;
@@ -55,25 +55,25 @@ struct TransformData {
         matrix[2][1] = position.y;
     }
 
-    // ±ä»»Ò»¸öµã
+    // å˜æ¢ä¸€ä¸ªç‚¹
     glm::vec2 TransformPoint(const glm::vec2& point) const {
         glm::vec3 result = matrix * glm::vec3(point.x, point.y, 1.0f);
         return glm::vec2(result.x, result.y);
     }
 
-    // ×éºÏÁ½¸ö±ä»»
+    // ç»„åˆä¸¤ä¸ªå˜æ¢
     TransformData Combine(const TransformData& other) const {
         TransformData result;
         result.matrix = this->matrix * other.matrix;
 
-        // ´Ó¾ØÕóÖĞÌáÈ¡Î»ÖÃ
+        // ä»çŸ©é˜µä¸­æå–ä½ç½®
         result.position = glm::vec2(result.matrix[2][0], result.matrix[2][1]);
 
-        // ´Ó¾ØÕóÖĞÌáÈ¡Ëõ·Å
+        // ä»çŸ©é˜µä¸­æå–ç¼©æ”¾
         result.scale.x = glm::length(glm::vec2(result.matrix[0][0], result.matrix[0][1]));
         result.scale.y = glm::length(glm::vec2(result.matrix[1][0], result.matrix[1][1]));
 
-        // ´Ó¾ØÕóÖĞÌáÈ¡Ğı×ª
+        // ä»çŸ©é˜µä¸­æå–æ—‹è½¬
         if (result.scale.x > 0 && result.scale.y > 0) {
             float scaleX = result.scale.x;
             float scaleY = result.scale.y;
@@ -84,12 +84,12 @@ struct TransformData {
         return result;
     }
 
-    // »ñÈ¡Î»ÖÃÎªVector
+    // è·å–ä½ç½®ä¸ºVector
     Vector GetPositionVec() const {
         return Vector(position.x, position.y);
     }
 
-    // ÉèÖÃÎ»ÖÃ
+    // è®¾ç½®ä½ç½®
     void SetPosition(const Vector& pos) {
         position = glm::vec2(pos.x, pos.y);
         UpdateMatrix();
@@ -100,7 +100,7 @@ struct TransformData {
         UpdateMatrix();
     }
 
-    // ÉèÖÃËõ·Å
+    // è®¾ç½®ç¼©æ”¾
     void SetScale(const Vector& scl) {
         scale = glm::vec2(scl.x, scl.y);
         UpdateMatrix();
@@ -116,95 +116,95 @@ struct TransformData {
         UpdateMatrix();
     }
 
-    // ÉèÖÃĞı×ª£¨»¡¶È£©
+    // è®¾ç½®æ—‹è½¬ï¼ˆå¼§åº¦ï¼‰
     void SetRotation(float rad) {
         rotation = rad;
         UpdateMatrix();
     }
 
-    // ÉèÖÃĞı×ª£¨½Ç¶È£©
+    // è®¾ç½®æ—‹è½¬ï¼ˆè§’åº¦ï¼‰
     void SetRotationDegrees(float deg) {
         rotation = glm::radians(deg);
         UpdateMatrix();
     }
 
-    // »ñÈ¡Ëõ·ÅÎªVector
+    // è·å–ç¼©æ”¾ä¸ºVector
     Vector GetScaleVec() const {
         return Vector(scale.x, scale.y);
     }
 };
 
-// Ğ§¹û»ùÀà½Ó¿Ú
+// æ•ˆæœåŸºç±»æ¥å£
 class IAttachmentEffect {
 public:
     virtual ~IAttachmentEffect() = default;
 
-    // ¸üĞÂĞ§¹û
+    // æ›´æ–°æ•ˆæœ
     virtual void Update(float deltaTime) = 0;
 
-    // »æÖÆĞ§¹û£¬parentTransformÎª¸¸¼¶±ä»»
+    // ç»˜åˆ¶æ•ˆæœï¼ŒparentTransformä¸ºçˆ¶çº§å˜æ¢
     virtual void Draw(SDL_Renderer* renderer, const TransformData& parentTransform) = 0;
 
-    // ÉèÖÃÎ»ÖÃ£¨Ïà¶ÔÎ»ÖÃ£©
+    // è®¾ç½®ä½ç½®ï¼ˆç›¸å¯¹ä½ç½®ï¼‰
     virtual void SetPosition(const Vector& position) = 0;
     virtual void SetPosition(float x, float y) = 0;
 
-    // ÉèÖÃËõ·Å
+    // è®¾ç½®ç¼©æ”¾
     virtual void SetScale(const Vector& scale) = 0;
     virtual void SetScale(float scale) = 0;
     virtual void SetScale(float sx, float sy) = 0;
 
-    // ÉèÖÃĞı×ª£¨»¡¶È£©
+    // è®¾ç½®æ—‹è½¬ï¼ˆå¼§åº¦ï¼‰
     virtual void SetRotation(float rotation) = 0;
 
-    // ÉèÖÃÑÕÉ«¸²¸Ç
+    // è®¾ç½®é¢œè‰²è¦†ç›–
     virtual void OverrideColor(const SDL_Color& color) = 0;
 
-    // ÉèÖÃÍ¸Ã÷¶È
+    // è®¾ç½®é€æ˜åº¦
     virtual void SetAlpha(float alpha) = 0;
 
-    // ÉèÖÃ¿É¼ûĞÔ
+    // è®¾ç½®å¯è§æ€§
     virtual void SetVisible(bool visible) = 0;
 
-    // ´«²¥ÑÕÉ«µ½ËùÓĞ×ÓĞ§¹û
+    // ä¼ æ’­é¢œè‰²åˆ°æ‰€æœ‰å­æ•ˆæœ
     virtual void PropagateColor(const SDL_Color& color,
         bool enableAdditive, const SDL_Color& additiveColor,
         bool enableOverlay, const SDL_Color& overlayColor) = 0;
 
-    // ÉèÖÃ±ä»»¾ØÕó
+    // è®¾ç½®å˜æ¢çŸ©é˜µ
     virtual void SetTransformMatrix(const glm::mat3& matrix) = 0;
 
-    // »ñÈ¡±ä»»Êı¾İ
+    // è·å–å˜æ¢æ•°æ®
     virtual TransformData GetTransform() const = 0;
 
-    // ¼ì²éÊÇ·ñ´æ»î
+    // æ£€æŸ¥æ˜¯å¦å­˜æ´»
     virtual bool IsAlive() const = 0;
 
-    // Ïú»ÙĞ§¹û
+    // é”€æ¯æ•ˆæœ
     virtual void Die() = 0;
 
-    // ·ÖÀëĞ§¹û£¨´Ó¸½¼şÖĞÒÆ³ıµ«²»Ïú»Ù£©
+    // åˆ†ç¦»æ•ˆæœï¼ˆä»é™„ä»¶ä¸­ç§»é™¤ä½†ä¸é”€æ¯ï¼‰
     virtual void Detach() = 0;
 
-    // ¼ì²éÊÇ·ñ±»¸½¼Ó
+    // æ£€æŸ¥æ˜¯å¦è¢«é™„åŠ 
     virtual bool IsAttached() const = 0;
     virtual void SetAttached(bool attached) = 0;
 
-    // »ñÈ¡Ğ§¹ûÀàĞÍ
+    // è·å–æ•ˆæœç±»å‹
     virtual EffectType GetEffectType() const = 0;
 
-    // »ñÈ¡Ğ§¹ûÃû³Æ£¨ÓÃÓÚµ÷ÊÔ£©
+    // è·å–æ•ˆæœåç§°ï¼ˆç”¨äºè°ƒè¯•ï¼‰
     virtual std::string GetEffectName() const = 0;
 };
 
-// µ¥¸ö¸½¼şĞ§¹û
+// å•ä¸ªé™„ä»¶æ•ˆæœ
 struct AttachmentEffect {
     std::shared_ptr<IAttachmentEffect> effect;
-    TransformData offsetTransform;           // Ïà¶ÔÓÚ¸¸¼¶µÄÆ«ÒÆ±ä»»
-    bool dontDrawIfParentHidden = false;    // ¸¸¼¶Òş²ØÊ±²»»æÖÆ
-    bool dontPropagateColor = false;        // ²»´«²¥ÑÕÉ«
-    bool inheritTransform = true;           // ¼Ì³Ğ¸¸¼¶±ä»»
-    bool inheritVisibility = true;          // ¼Ì³Ğ¸¸¼¶¿É¼ûĞÔ
+    TransformData offsetTransform;           // ç›¸å¯¹äºçˆ¶çº§çš„åç§»å˜æ¢
+    bool dontDrawIfParentHidden = false;    // çˆ¶çº§éšè—æ—¶ä¸ç»˜åˆ¶
+    bool dontPropagateColor = false;        // ä¸ä¼ æ’­é¢œè‰²
+    bool inheritTransform = true;           // ç»§æ‰¿çˆ¶çº§å˜æ¢
+    bool inheritVisibility = true;          // ç»§æ‰¿çˆ¶çº§å¯è§æ€§
 
     AttachmentEffect() = default;
 
@@ -215,7 +215,7 @@ struct AttachmentEffect {
 
     bool IsValid() const { return effect != nullptr && effect->IsAlive(); }
 
-    // »ñÈ¡×îÖÕ±ä»»£¨¸¸¼¶±ä»» + Æ«ÒÆ£©
+    // è·å–æœ€ç»ˆå˜æ¢ï¼ˆçˆ¶çº§å˜æ¢ + åç§»ï¼‰
     TransformData GetFinalTransform(const TransformData& parentTransform) const {
         if (!inheritTransform) {
             return offsetTransform;
@@ -224,7 +224,7 @@ struct AttachmentEffect {
     }
 };
 
-// ¹ÜÀí¶à¸öĞ§¹û
+// ç®¡ç†å¤šä¸ªæ•ˆæœ
 class Attachment {
 private:
     std::vector<AttachmentEffect> mEffects;
@@ -234,7 +234,7 @@ private:
     bool mAttached = false;
     std::string mName;
 
-    // ÑÕÉ«Ïà¹Ø
+    // é¢œè‰²ç›¸å…³
     SDL_Color mColorOverride = { 255, 255, 255, 255 };
     bool mHasColorOverride = false;
     float mAlpha = 1.0f;
@@ -245,7 +245,7 @@ public:
     Attachment(const std::string& name = "");
     ~Attachment();
 
-    // Ìí¼ÓĞ§¹û
+    // æ·»åŠ æ•ˆæœ
     bool AddEffect(std::shared_ptr<IAttachmentEffect> effect,
         const Vector& offset = Vector::zero(),
         const Vector& scale = Vector::one(),
@@ -256,15 +256,15 @@ public:
         float scaleX = 1.0f, float scaleY = 1.0f,
         float rotation = 0.0f);
 
-    // ÒÆ³ıĞ§¹û
+    // ç§»é™¤æ•ˆæœ
     bool RemoveEffect(int index);
     bool RemoveEffect(std::shared_ptr<IAttachmentEffect> effect);
     void RemoveAllEffects();
 
-    // ²éÕÒĞ§¹û
+    // æŸ¥æ‰¾æ•ˆæœ
     std::shared_ptr<IAttachmentEffect> FindEffect(int index) const;
 
-    // ²éÕÒÖ¸¶¨ÀàĞÍµÄµÚÒ»¸öĞ§¹û
+    // æŸ¥æ‰¾æŒ‡å®šç±»å‹çš„ç¬¬ä¸€ä¸ªæ•ˆæœ
     template<typename T>
     std::shared_ptr<T> FindFirstEffectOfType(EffectType type) const {
         for (const auto& effectInfo : mEffects) {
@@ -275,7 +275,7 @@ public:
         return nullptr;
     }
 
-    // ²éÕÒËùÓĞÖ¸¶¨ÀàĞÍµÄÌØĞ§
+    // æŸ¥æ‰¾æ‰€æœ‰æŒ‡å®šç±»å‹çš„ç‰¹æ•ˆ
     template<typename T>
     std::vector<std::shared_ptr<T>> FindAllEffectsOfType(EffectType type) const {
         std::vector<std::shared_ptr<T>> results;
@@ -296,58 +296,58 @@ public:
     void SetPosition(const Vector& position);
     void SetPosition(float x, float y);
 
-    // ÉèÖÃËõ·Å
+    // è®¾ç½®ç¼©æ”¾
     void SetScale(const Vector& scale);
     void SetScale(float scale);
     void SetScale(float sx, float sy);
 
-    // ÉèÖÃĞı×ª
+    // è®¾ç½®æ—‹è½¬
     void SetRotation(float rotation);
 
-    // ÉèÖÃÑÕÉ«¸²¸Ç
+    // è®¾ç½®é¢œè‰²è¦†ç›–
     void OverrideColor(const SDL_Color& color);
 
-    // ÉèÖÃÍ¸Ã÷¶È
+    // è®¾ç½®é€æ˜åº¦
     void SetAlpha(float alpha);
 
-    // ÉèÖÃ¿É¼ûĞÔ
+    // è®¾ç½®å¯è§æ€§
     void SetVisible(bool visible);
 
-    // ´«²¥ÑÕÉ«µ½ËùÓĞĞ§¹û
+    // ä¼ æ’­é¢œè‰²åˆ°æ‰€æœ‰æ•ˆæœ
     void PropagateColor(const SDL_Color& color,
         bool enableAdditive, const SDL_Color& additiveColor,
         bool enableOverlay, const SDL_Color& overlayColor);
 
-    // ÉèÖÃ±ä»»¾ØÕó
+    // è®¾ç½®å˜æ¢çŸ©é˜µ
     void SetTransformMatrix(const glm::mat3& matrix);
 
-    // »ñÈ¡±ä»»Êı¾İ
+    // è·å–å˜æ¢æ•°æ®
     TransformData GetTransform() const { return mTransform; }
 
-    // ¼ì²éÊÇ·ñ´æ»î
+    // æ£€æŸ¥æ˜¯å¦å­˜æ´»
     bool IsAlive() const { return mAlive; }
 
-    // Ïú»Ù¸½¼ş
+    // é”€æ¯é™„ä»¶
     void Die();
 
-    // ·ÖÀëËùÓĞĞ§¹û
+    // åˆ†ç¦»æ‰€æœ‰æ•ˆæœ
     void Detach();
 
-    // »ñÈ¡Ğ§¹ûÊıÁ¿
+    // è·å–æ•ˆæœæ•°é‡
     size_t GetEffectCount() const { return mEffects.size(); }
 
-    // ¼ì²éÊÇ·ñÒÑÂú
+    // æ£€æŸ¥æ˜¯å¦å·²æ»¡
     bool IsFull() const { return mEffects.size() >= MAX_EFFECTS_PER_ATTACHMENT; }
 
-    // »ñÈ¡/ÉèÖÃÃû³Æ
+    // è·å–/è®¾ç½®åç§°
     const std::string& GetName() const { return mName; }
     void SetName(const std::string& name) { mName = name; }
 
-    // »ñÈ¡ËùÓĞĞ§¹û
+    // è·å–æ‰€æœ‰æ•ˆæœ
     const std::vector<AttachmentEffect>& GetEffects() const { return mEffects; }
     std::vector<AttachmentEffect>& GetEffects() { return mEffects; }
 
-    // Ìí¼ÓAnimator
+    // æ·»åŠ Animator
     bool AddAnimator(std::shared_ptr<Animator> animator,
         const Vector& offset = Vector::zero(),
         const Vector& scale = Vector::one(),
@@ -358,7 +358,7 @@ public:
         float scaleX = 1.0f, float scaleY = 1.0f,
         float rotation = 0.0f);
 
-    // ²éÕÒAnimator
+    // æŸ¥æ‰¾Animator
     std::shared_ptr<Animator> FindFirstAnimator() const;
     std::vector<std::shared_ptr<Animator>> FindAllAnimators() const;
 
@@ -367,7 +367,7 @@ private:
     void CleanupDeadEffects();
 };
 
-// ¸½¼şÏµÍ³¹ÜÀíÆ÷
+// é™„ä»¶ç³»ç»Ÿç®¡ç†å™¨
 class AttachmentSystem {
 private:
     std::unordered_map<std::string, std::shared_ptr<Attachment>> mNamedAttachments;
@@ -377,33 +377,33 @@ public:
     AttachmentSystem() = default;
     ~AttachmentSystem();
 
-    // ´´½¨ĞÂ¸½¼ş
+    // åˆ›å»ºæ–°é™„ä»¶
     std::shared_ptr<Attachment> CreateAttachment(const std::string& name = "");
 
-    // »ñÈ¡¸½¼ş
+    // è·å–é™„ä»¶
     std::shared_ptr<Attachment> GetAttachment(const std::string& name);
     bool HasAttachment(const std::string& name) const;
 
-    // ÒÆ³ı¸½¼ş
+    // ç§»é™¤é™„ä»¶
     bool RemoveAttachment(const std::string& name);
     void RemoveAllAttachments();
 
-    // ¸üĞÂËùÓĞ¸½¼ş
+    // æ›´æ–°æ‰€æœ‰é™„ä»¶
     void UpdateAll(float deltaTime);
 
-    // »æÖÆËùÓĞ¸½¼ş
+    // ç»˜åˆ¶æ‰€æœ‰é™„ä»¶
     void DrawAll(SDL_Renderer* renderer);
 
-    // »ñÈ¡¸½¼şÊıÁ¿
+    // è·å–é™„ä»¶æ•°é‡
     size_t GetAttachmentCount() const { return mActiveAttachments.size(); }
 
-    // ÇåÀíÒÑÏú»ÙµÄ¸½¼ş
+    // æ¸…ç†å·²é”€æ¯çš„é™„ä»¶
     void CleanupDeadAttachments();
 
-    // »ñÈ¡ËùÓĞ¸½¼şÃû³Æ
+    // è·å–æ‰€æœ‰é™„ä»¶åç§°
     std::vector<std::string> GetAllAttachmentNames() const;
 
-    // ±éÀúËùÓĞ¸½¼ş
+    // éå†æ‰€æœ‰é™„ä»¶
     template<typename Func>
     void ForEachAttachment(Func func) {
         for (auto& attachment : mActiveAttachments) {

@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #ifndef _UIMANAGER_H
 #define _UIMANAGER_H
 #include "../ResourceManager.h"
@@ -19,7 +19,7 @@ public:
         ClearAll();
     }
 
-    // ButtonManager ´úÀí·½·¨
+    // ButtonManager ä»£ç†æ–¹æ³•
     std::shared_ptr<Button> CreateButton(Vector pos = Vector::zero(), Vector size = Vector(40, 40))
     {
         return buttonManager.CreateButton(pos, size);
@@ -45,7 +45,7 @@ public:
         return buttonManager.GetButton(index);
     }
 
-    // SliderManager ´úÀí·½·¨
+    // SliderManager ä»£ç†æ–¹æ³•
     std::shared_ptr<Slider> CreateSlider(Vector pos = Vector::zero(),
         Vector size = Vector(135, 10),
         float minVal = 0.0f,
@@ -55,7 +55,7 @@ public:
         return sliderManager.CreateSlider(pos, size, minVal, maxVal, initialValue);
     }
 
-    // ´´½¨ÏûÏ¢¿ò
+    // åˆ›å»ºæ¶ˆæ¯æ¡†
     std::shared_ptr<GameMessageBox> CreateMessageBox(const Vector& pos,
         const std::string& message,
         const std::vector<GameMessageBox::ButtonConfig>& buttons,
@@ -87,7 +87,7 @@ public:
         return sliderManager.GetSlider(index);
     }
 
-    // Í³Ò»´¦Àí·½·¨
+    // ç»Ÿä¸€å¤„ç†æ–¹æ³•
     void ProcessMouseEvent(InputHandler* input)
     {
         buttonManager.ProcessMouseEvent(input);
@@ -118,7 +118,7 @@ public:
         sliderManager.ClearAllSliders();
     }
 
-    // »ñÈ¡µ×²ã¹ÜÀíÆ÷£¨Ò²¿ÉÒÔÖ±½Ó·ÃÎÊ£©
+    // è·å–åº•å±‚ç®¡ç†å™¨ï¼ˆä¹Ÿå¯ä»¥ç›´æ¥è®¿é—®ï¼‰
     ButtonManager& GetButtonManager() { return buttonManager; }
     SliderManager& GetSliderManager() { return sliderManager; }
     const ButtonManager& GetButtonManager() const { return buttonManager; }

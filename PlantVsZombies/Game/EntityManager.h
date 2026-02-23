@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include <memory>
 #include <unordered_map>
 #include <vector>
@@ -8,7 +8,7 @@ class Zombie;
 class Coin;
 class Bullet;
 
-// TODO:´æµµ±£´æ¼ÇÂ¼mID! È»ºóÔÙÍ¨¹ıid¶ÔÓ¦µ½unordered_map
+// TODO:å­˜æ¡£ä¿å­˜è®°å½•mID! ç„¶åå†é€šè¿‡idå¯¹åº”åˆ°unordered_map
 class EntityManager {
 public:
     int AddPlant(std::shared_ptr<Plant> plant);
@@ -27,7 +27,7 @@ public:
     std::shared_ptr<Coin> GetCoin(int id) const;
     std::vector<int> GetAllCoinIDs() const;
 
-    // ÇåÀí¹ıÆÚ¶ÔÏó ·µ»ØÇåÀíµÄÖ²ÎïID
+    // æ¸…ç†è¿‡æœŸå¯¹è±¡ è¿”å›æ¸…ç†çš„æ¤ç‰©ID
     std::vector<int> CleanupExpired();
 
 private:

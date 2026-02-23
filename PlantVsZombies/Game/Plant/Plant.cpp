@@ -1,4 +1,4 @@
-#include "Plant.h"
+ï»¿#include "Plant.h"
 #include "../Board.h"
 #include "../Zombie/Zombie.h"
 #include "../GameObjectManager.h"
@@ -8,7 +8,7 @@
 Plant::Plant(Board* board, PlantType plantType, int row, int column,
 	AnimationType animType, float scale, bool isPreview)
 	: AnimatedObject(ObjectType::OBJECT_PLANT, board,
-		Vector(0, 0), // Î»ÖÃ»áÔÚºóÃæ¼ÆËã
+		Vector(0, 0), // ä½ç½®ä¼šåœ¨åŽé¢è®¡ç®—
 		animType,
 		ColliderType::BOX,
 		Vector(65, 65),
@@ -28,13 +28,13 @@ Plant::Plant(Board* board, PlantType plantType, int row, int column,
 
 	GameDataManager& plantMgr = GameDataManager::GetInstance();
 	Vector plantOffset = plantMgr.GetPlantOffset(plantType);
-	// ÉèÖÃÖ²ÎïÔÚ¸ñ×ÓÖÐµÄÎ»ÖÃ
+	// è®¾ç½®æ¤ç‰©åœ¨æ ¼å­ä¸­çš„ä½ç½®
 	if (!mIsPreview) {
 		Vector cellCenterPosition(
 			CELL_INITALIZE_POS_X + column * CELL_COLLIDER_SIZE_X + CELL_COLLIDER_SIZE_X / 2,
 			CELL_INITALIZE_POS_Y + row * CELL_COLLIDER_SIZE_Y + CELL_COLLIDER_SIZE_Y / 2
 		);
-		SetPosition(cellCenterPosition);  // Âß¼­Î»ÖÃ
+		SetPosition(cellCenterPosition);  // é€»è¾‘ä½ç½®
 		mVisualOffset = GameDataManager::GetInstance().GetPlantOffset(plantType);
 	}
 	else {
@@ -75,12 +75,12 @@ void Plant::TakeDamage(int damage) {
 void Plant::Die() {
 	StopAnimation();
 
-	// ½ûÓÃÅö×²Ìå
+	// ç¦ç”¨ç¢°æ’žä½“
 	if (auto collider = mCollider.lock()) {
 		collider->mEnabled = false;
 	}
 
-	// ÇåÀíÖ²ÎïÔÚCellÉÏµÄID
+	// æ¸…ç†æ¤ç‰©åœ¨Cellä¸Šçš„ID
 	if (mBoard) {
 		auto cell = mBoard->GetCell(mRow, mColumn);
 		if (cell && cell->GetPlantID() == mPlantID) {

@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #ifndef _INPUTHANDLER_H
 #define _INPUTHANDLER_H
 
@@ -8,43 +8,43 @@
 #include <functional>
 #include "../Game/Definit.h"
 
-// °´¼ü×´Ì¬Ã¶¾Ù
+// æŒ‰é”®çŠ¶æ€æšä¸¾
 enum class KeyState
 {
-    UP,         // °´¼üÎ´±»°´ÏÂ
-    DOWN,       // °´¼ü±»°´ÏÂ
-    PRESSED,    // °´¼ü¸Õ¸Õ±»°´ÏÂ£¨ÉÏÒ»Ö¡Î´°´ÏÂ£©
-    RELEASED    // °´¼ü¸Õ¸Õ±»ÊÍ·Å£¨ÉÏÒ»Ö¡°´ÏÂ£©
+    UP,         // æŒ‰é”®æœªè¢«æŒ‰ä¸‹
+    DOWN,       // æŒ‰é”®è¢«æŒ‰ä¸‹
+    PRESSED,    // æŒ‰é”®åˆšåˆšè¢«æŒ‰ä¸‹ï¼ˆä¸Šä¸€å¸§æœªæŒ‰ä¸‹ï¼‰
+    RELEASED    // æŒ‰é”®åˆšåˆšè¢«é‡Šæ”¾ï¼ˆä¸Šä¸€å¸§æŒ‰ä¸‹ï¼‰
 };
 
 class InputHandler
 {
 private:
-    // µ±Ç°Ö¡°´¼ü×´Ì¬
+    // å½“å‰å¸§æŒ‰é”®çŠ¶æ€
     std::map<SDL_Keycode, KeyState> m_keyStates;
 
-    // ÉÏÒ»Ö¡°´¼ü×´Ì¬
+    // ä¸Šä¸€å¸§æŒ‰é”®çŠ¶æ€
     std::map<SDL_Keycode, KeyState> m_prevKeyStates;
 
-    // Êó±êÎ»ÖÃ
+    // é¼ æ ‡ä½ç½®
     Vector m_mousePosition;
 
-    // Êó±êÒÆ¶¯ÔöÁ¿
+    // é¼ æ ‡ç§»åŠ¨å¢é‡
     Vector m_mouseDelta;
 
-    // Êó±ê°´Å¥×´Ì¬ (0=×ó¼ü, 1=ÓÒ¼ü, 2=ÖĞ¼ü, 3=ºóÍË, 4=Ç°½ø)
+    // é¼ æ ‡æŒ‰é’®çŠ¶æ€ (0=å·¦é”®, 1=å³é”®, 2=ä¸­é”®, 3=åé€€, 4=å‰è¿›)
     KeyState m_mouseButtons[5];
 
-    // ÉÏÒ»Ö¡Êó±ê°´Å¥×´Ì¬
+    // ä¸Šä¸€å¸§é¼ æ ‡æŒ‰é’®çŠ¶æ€
     KeyState m_prevMouseButtons[5];
 
-    // °´¼ü»Øµ÷º¯ÊıÀàĞÍ
+    // æŒ‰é”®å›è°ƒå‡½æ•°ç±»å‹
     typedef std::function<void()> KeyCallback;
 
-    // °´¼ü»Øµ÷Ó³Éä
+    // æŒ‰é”®å›è°ƒæ˜ å°„
     std::map<SDL_Keycode, std::vector<KeyCallback>> m_keyCallbacks;
 
-    // É¾³ı¿½±´¹¹ÔìºÍ¸³Öµ
+    // åˆ é™¤æ‹·è´æ„é€ å’Œèµ‹å€¼
     InputHandler(const InputHandler&) = delete;
     InputHandler& operator=(const InputHandler&) = delete;
 
@@ -52,52 +52,52 @@ public:
     InputHandler();
     ~InputHandler() = default;
 
-    // ´¦ÀíSDLÊÂ¼ş
+    // å¤„ç†SDLäº‹ä»¶
     void ProcessEvent(SDL_Event* event);
 
-    // ¸üĞÂÊäÈë×´Ì¬£¨Ó¦ÔÚÃ¿Ö¡¿ªÊ¼Ê±µ÷ÓÃ£©
+    // æ›´æ–°è¾“å…¥çŠ¶æ€ï¼ˆåº”åœ¨æ¯å¸§å¼€å§‹æ—¶è°ƒç”¨ï¼‰
     void Update();
 
-    // »ñÈ¡°´¼ü×´Ì¬
+    // è·å–æŒ‰é”®çŠ¶æ€
     KeyState GetKeyState(SDL_Keycode keyCode) const;
 
-    // ¼ì²é°´¼üÊÇ·ñ°´ÏÂ
+    // æ£€æŸ¥æŒ‰é”®æ˜¯å¦æŒ‰ä¸‹
     bool IsKeyDown(SDL_Keycode keyCode) const;
 
-    // ¼ì²é°´¼üÊÇ·ñ¸Õ¸Õ°´ÏÂ
+    // æ£€æŸ¥æŒ‰é”®æ˜¯å¦åˆšåˆšæŒ‰ä¸‹
     bool IsKeyPressed(SDL_Keycode keyCode) const;
 
-    // ¼ì²é°´¼üÊÇ·ñ¸Õ¸ÕÊÍ·Å
+    // æ£€æŸ¥æŒ‰é”®æ˜¯å¦åˆšåˆšé‡Šæ”¾
     bool IsKeyReleased(SDL_Keycode keyCode) const;
 
-    // »ñÈ¡Êó±êÆÁÄ»×ø±ê
+    // è·å–é¼ æ ‡å±å¹•åæ ‡
     Vector GetMousePosition() const;
 
-    // »ñÈ¡Êó±êÊÀ½ç×ø±ê
+    // è·å–é¼ æ ‡ä¸–ç•Œåæ ‡
     Vector GetMouseWorldPosition() const;
 
-    // »ñÈ¡Êó±êÒÆ¶¯ÔöÁ¿
+    // è·å–é¼ æ ‡ç§»åŠ¨å¢é‡
     Vector GetMouseDelta() const;
 
-    // »ñÈ¡Êó±ê°´Å¥×´Ì¬
+    // è·å–é¼ æ ‡æŒ‰é’®çŠ¶æ€
     KeyState GetMouseButtonState(Uint8 button) const;
 
-    // ¼ì²éÊó±ê°´Å¥ÊÇ·ñ°´ÏÂ
+    // æ£€æŸ¥é¼ æ ‡æŒ‰é’®æ˜¯å¦æŒ‰ä¸‹
     bool IsMouseButtonDown(Uint8 button) const;
 
-    // ¼ì²éÊó±ê°´Å¥ÊÇ·ñ¸Õ¸Õ°´ÏÂ
+    // æ£€æŸ¥é¼ æ ‡æŒ‰é’®æ˜¯å¦åˆšåˆšæŒ‰ä¸‹
     bool IsMouseButtonPressed(Uint8 button) const;
 
-    // ¼ì²éÊó±ê°´Å¥ÊÇ·ñ¸Õ¸ÕÊÍ·Å
+    // æ£€æŸ¥é¼ æ ‡æŒ‰é’®æ˜¯å¦åˆšåˆšé‡Šæ”¾
     bool IsMouseButtonReleased(Uint8 button) const;
 
-    // ×¢²á°´¼ü»Øµ÷
+    // æ³¨å†ŒæŒ‰é”®å›è°ƒ
     void RegisterKeyCallback(SDL_Keycode keyCode, KeyCallback callback);
 
-    // ÒÆ³ı°´¼ü»Øµ÷
+    // ç§»é™¤æŒ‰é”®å›è°ƒ
     void RemoveKeyCallback(SDL_Keycode keyCode, KeyCallback callback);
 
-    // ´¦ÀíËùÓĞ×¢²áµÄ»Øµ÷
+    // å¤„ç†æ‰€æœ‰æ³¨å†Œçš„å›è°ƒ
     void ProcessCallbacks();
 };
 

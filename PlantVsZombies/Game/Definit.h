@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #ifndef _DEFINIT_H
 #define _DEFINIT_H
 
@@ -83,15 +83,15 @@ struct Vector
         y /= scalar;
         return *this;
     }
-    // ¼ÆËãÏòÁ¿³¤¶È£¨Ä££©
+    // è®¡ç®—å‘é‡é•¿åº¦ï¼ˆæ¨¡ï¼‰
     float magnitude() const {
         return sqrtf(x * x + y * y);
     }
-    // ¼ÆËãÏòÁ¿³¤¶ÈµÄÆ½·½£¨±ÜÃâ¿ª·½ÔËËã£¬ÓÃÓÚ±È½Ï³¤¶ÈÊ±¸ü¸ßĞ§£©
+    // è®¡ç®—å‘é‡é•¿åº¦çš„å¹³æ–¹ï¼ˆé¿å…å¼€æ–¹è¿ç®—ï¼Œç”¨äºæ¯”è¾ƒé•¿åº¦æ—¶æ›´é«˜æ•ˆï¼‰
     float sqrMagnitude() const {
         return x * x + y * y;
     }
-    // ¹éÒ»»¯ÏòÁ¿£¨Ê¹Æä³¤¶ÈÎª1£©
+    // å½’ä¸€åŒ–å‘é‡ï¼ˆä½¿å…¶é•¿åº¦ä¸º1ï¼‰
     Vector normalized() const {
         float mag = magnitude();
         if (mag > 0) {
@@ -99,27 +99,27 @@ struct Vector
         }
         return Vector(0, 0);
     }
-    // µã»ı£¨ÄÚ»ı£©
+    // ç‚¹ç§¯ï¼ˆå†…ç§¯ï¼‰
     float dot(const Vector& other) const {
         return x * other.x + y * other.y;
     }
-    // ¼ÆËãÁ½µãÖ®¼äµÄ¾àÀë
+    // è®¡ç®—ä¸¤ç‚¹ä¹‹é—´çš„è·ç¦»
     static float distance(const Vector& a, const Vector& b) {
         return (a - b).magnitude();
     }
-    // ¼ÆËãÁ½µãÖ®¼ä¾àÀëµÄÆ½·½
+    // è®¡ç®—ä¸¤ç‚¹ä¹‹é—´è·ç¦»çš„å¹³æ–¹
     static float sqrDistance(const Vector& a, const Vector& b) {
         return (a - b).sqrMagnitude();
     }
-    // ÏßĞÔ²åÖµ
+    // çº¿æ€§æ’å€¼
     static Vector lerp(const Vector& a, const Vector& b, float t) {
-        t = (t < 0) ? 0 : (t > 1) ? 1 : t; // ÏŞÖÆtÔÚ0-1Ö®¼ä
+        t = (t < 0) ? 0 : (t > 1) ? 1 : t; // é™åˆ¶tåœ¨0-1ä¹‹é—´
         return a + (b - a) * t;
     }
 
     static Vector zero() { return Vector(0, 0); }
     static Vector one() { return Vector(1, 1); }
-    static Vector up() { return Vector(0, -1); } // ÆÁÄ»×ø±êÏµÖĞYÖáÏòÏÂÎªÕı
+    static Vector up() { return Vector(0, -1); } // å±å¹•åæ ‡ç³»ä¸­Yè½´å‘ä¸‹ä¸ºæ­£
     static Vector down() { return Vector(0, 1); }
     static Vector left() { return Vector(-1, 0); }
     static Vector right() { return Vector(1, 0); }

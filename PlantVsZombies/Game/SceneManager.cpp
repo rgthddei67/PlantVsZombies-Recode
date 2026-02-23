@@ -1,4 +1,4 @@
-#include "SceneManager.h"
+ï»¿#include "SceneManager.h"
 #include <iostream>
 
 SceneManager& SceneManager::GetInstance() {
@@ -16,34 +16,34 @@ void SceneManager::ClearCurrentScene() {
 bool SceneManager::SwitchTo(const std::string& name) {
     auto it = scenes_.find(name);
     if (it == scenes_.end()) {
-        std::cerr << "³¡¾°Î´×¢²á: " << name << std::endl;
+        std::cerr << "åœºæ™¯æœªæ³¨å†Œ: " << name << std::endl;
         return false;
     }
 
-    // ÍË³öµ±Ç°³¡¾°
+    // é€€å‡ºå½“å‰åœºæ™¯
     if (!sceneStack_.empty()) {
         sceneStack_.top()->OnExit();
         sceneStack_.pop();
     }
 
-    // ´´½¨²¢½øÈëÐÂ³¡¾°
+    // åˆ›å»ºå¹¶è¿›å…¥æ–°åœºæ™¯
     auto newScene = it->second();
     newScene->OnEnter();
     sceneStack_.push(std::move(newScene));
 
-    std::cout << "ÇÐ»»µ½³¡¾°: " << name << std::endl;
+    std::cout << "åˆ‡æ¢åˆ°åœºæ™¯: " << name << std::endl;
     return true;
 }
 
 void SceneManager::PushScene(const std::string& name) {
     auto it = scenes_.find(name);
     if (it == scenes_.end()) {
-        std::cerr << "³¡¾°Î´×¢²á: " << name << std::endl;
+        std::cerr << "åœºæ™¯æœªæ³¨å†Œ: " << name << std::endl;
         return;
     }
 
-    // ÔÝÍ£µ±Ç°³¡¾°£¨²»µ÷ÓÃOnExit£©
-    // ´´½¨²¢½øÈëÐÂ³¡¾°
+    // æš‚åœå½“å‰åœºæ™¯ï¼ˆä¸è°ƒç”¨OnExitï¼‰
+    // åˆ›å»ºå¹¶è¿›å…¥æ–°åœºæ™¯
     auto newScene = it->second();
     newScene->OnEnter();
     sceneStack_.push(std::move(newScene));
@@ -55,7 +55,7 @@ void SceneManager::PopScene() {
     sceneStack_.top()->OnExit();
     sceneStack_.pop();
 
-    // »Ö¸´ÉÏÒ»¸ö³¡¾°
+    // æ¢å¤ä¸Šä¸€ä¸ªåœºæ™¯
     if (!sceneStack_.empty()) {
         sceneStack_.top()->OnEnter();
     }

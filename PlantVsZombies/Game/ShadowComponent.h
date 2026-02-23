@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #ifndef _SHADOW_COMPONENT_H
 #define _SHADOW_COMPONENT_H
 
@@ -12,9 +12,9 @@
 class ShadowComponent : public Component {
 private:
     SDL_Texture* mShadowTexture = nullptr;
-    Vector mOffset = Vector(15, 28);  // ÒõÓ°Ïà¶ÔÓÚÎïÌåÎ»ÖÃµÄÆ«ÒÆ
-    Vector mScale = Vector(1.0f, 0.75f);  // ÒõÓ°µÄËõ·Å£¨Í¨³£Ë®Æ½À­Éì£¬´¹Ö±Ñ¹Ëõ£©
-    float mAlpha = 0.9f;            // ÒõÓ°Í¸Ã÷¶È
+    Vector mOffset = Vector(15, 28);  // é˜´å½±ç›¸å¯¹äºç‰©ä½“ä½ç½®çš„åç§»
+    Vector mScale = Vector(1.0f, 0.75f);  // é˜´å½±çš„ç¼©æ”¾ï¼ˆé€šå¸¸æ°´å¹³æ‹‰ä¼¸ï¼Œå‚ç›´å‹ç¼©ï¼‰
+    float mAlpha = 0.9f;            // é˜´å½±é€æ˜åº¦
 
 public:
     ShadowComponent(SDL_Texture* shadowTexture = nullptr,
@@ -26,16 +26,16 @@ public:
     void Start() override;
     void Draw(SDL_Renderer* renderer) override;
 
-    // ÉèÖÃÒõÓ°ÎÆÀí
+    // è®¾ç½®é˜´å½±çº¹ç†
     void SetShadowTexture(SDL_Texture* texture) { mShadowTexture = texture; }
 
-    // ÉèÖÃÒõÓ°Æ«ÒÆ
+    // è®¾ç½®é˜´å½±åç§»
     void SetOffset(const Vector& offset) { mOffset = offset; }
 
-    // ÉèÖÃÒõÓ°Í¸Ã÷¶È
+    // è®¾ç½®é˜´å½±é€æ˜åº¦
     void SetAlpha(float alpha) { mAlpha = std::clamp(alpha, 0.0f, 1.0f); }
 
-    // ÉèÖÃÒõÓ°Ëõ·Å
+    // è®¾ç½®é˜´å½±ç¼©æ”¾
     void SetScale(const Vector& scale) { mScale = scale; }
 };
 

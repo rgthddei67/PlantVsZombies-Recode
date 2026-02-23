@@ -1,4 +1,4 @@
-#include "Reanimation.h"
+ï»¿#include "Reanimation.h"
 #include "../ResourceManager.h"
 #include <iostream>
 #include "../FileManager.h"
@@ -9,22 +9,22 @@ Reanimation::Reanimation() {
 }
 
 Reanimation::~Reanimation() {
-    // ×Ô¶¯ÇåÀí
+    // è‡ªåŠ¨æ¸…ç†
 }
 
 bool Reanimation::LoadFromFile(const std::string& filePath) {
-    // Çå¿ÕÏÖÓĞÊı¾İ
+    // æ¸…ç©ºç°æœ‰æ•°æ®
     mTracks->clear();
     mIsLoaded = false;
 
-    // ½âÎö.reanimÎÄ¼ş
+    // è§£æ.reanimæ–‡ä»¶
     pugi::xml_document doc;
     if (!FileManager::LoadXMLFile(filePath, doc)) {
         std::cerr << "Failed to load reanim file: " << filePath << std::endl;
         return false;
     }
 
-    // ±éÀúXMLÎÄµµ
+    // éå†XMLæ–‡æ¡£
     for (pugi::xml_node node : doc.children()) {
         std::string tagName = node.name();
         if (tagName == "fps") {
@@ -33,7 +33,7 @@ bool Reanimation::LoadFromFile(const std::string& filePath) {
         else if (tagName == "track") {
             TrackInfo track;
 
-            // ³õÊ¼»¯Ç°Ò»Ö¡µÄÊı¾İ
+            // åˆå§‹åŒ–å‰ä¸€å¸§çš„æ•°æ®
             float prevX = 0.0f;
             float prevY = 0.0f;
             float prevKx = 0.0f;
@@ -52,7 +52,7 @@ bool Reanimation::LoadFromFile(const std::string& filePath) {
                 else if (childName == "t") {
                     TrackFrameTransform frameTransform;
 
-                    // ³õÊ¼»¯ËùÓĞ×Ö¶ÎÎªÕ¼Î»·ûÖµ
+                    // åˆå§‹åŒ–æ‰€æœ‰å­—æ®µä¸ºå ä½ç¬¦å€¼
                     frameTransform.x = REANIM_MISSING_FIELD_FLOAT;
                     frameTransform.y = REANIM_MISSING_FIELD_FLOAT;
                     frameTransform.kx = REANIM_MISSING_FIELD_FLOAT;
@@ -63,12 +63,12 @@ bool Reanimation::LoadFromFile(const std::string& filePath) {
                     frameTransform.f = REANIM_MISSING_FIELD_INT;
                     frameTransform.image = nullptr;
 
-                    // ½âÎö±ä»»ÊôĞÔ
+                    // è§£æå˜æ¢å±æ€§
                     for (pugi::xml_node prop : child.children()) {
                         std::string propName = prop.name();
                         std::string propValue = prop.text().as_string();
 
-                        // Ìø¹ı¿ÕÖµ
+                        // è·³è¿‡ç©ºå€¼
                         if (propValue.empty()) continue;
 
                         if (propName == "x") {
@@ -98,7 +98,7 @@ bool Reanimation::LoadFromFile(const std::string& filePath) {
                         else if (propName == "i") {
                             std::string imageName = prop.text().as_string();
                             if (!imageName.empty() && mResourceManager) {
-                                // ¼ì²éÊÇ·ñÊÇ REANIM Í¼Æ¬¸ñÊ½
+                                // æ£€æŸ¥æ˜¯å¦æ˜¯ REANIM å›¾ç‰‡æ ¼å¼
                                 if (imageName.find("IMAGE_REANIM_") == 0) {
                                     std::string fileName = imageName.substr(13);
                                     std::string filePath = "./resources/image/reanim/" + fileName;
@@ -109,7 +109,7 @@ bool Reanimation::LoadFromFile(const std::string& filePath) {
                                     }
 
                                     if (!prevImage) {
-                                        std::cout << "¾¯¸æ: ÎŞ·¨¼ÓÔØ¶¯»­Í¼Æ¬: " << imageName << std::endl;
+                                        std::cout << "è­¦å‘Š: æ— æ³•åŠ è½½åŠ¨ç”»å›¾ç‰‡: " << imageName << std::endl;
                                     }
                                     frameTransform.image = prevImage;
                                 }
@@ -118,7 +118,7 @@ bool Reanimation::LoadFromFile(const std::string& filePath) {
                         }
                     }
 
-                    // Èç¹ûµ±Ç°Ö¡µÄÖµÊÇÕ¼Î»·û£¬Ê¹ÓÃÇ°Ò»Ö¡µÄÖµ
+                    // å¦‚æœå½“å‰å¸§çš„å€¼æ˜¯å ä½ç¬¦ï¼Œä½¿ç”¨å‰ä¸€å¸§çš„å€¼
                     if (frameTransform.x == REANIM_MISSING_FIELD_FLOAT)
                         frameTransform.x = prevX;
                     else
@@ -162,12 +162,12 @@ bool Reanimation::LoadFromFile(const std::string& filePath) {
                     else 
                         prevImage = frameTransform.image;
 
-                   // Ìí¼ÓÖ¡µ½¹ìµÀ
+                   // æ·»åŠ å¸§åˆ°è½¨é“
                     track.mFrames.push_back(frameTransform);
                 }
             }
 
-            // ¹ìµÀ¿ÉÓÃĞÔ
+            // è½¨é“å¯ç”¨æ€§
             track.mAvailable = !track.mFrames.empty();
 
             mTracks->push_back(track);
@@ -177,9 +177,9 @@ bool Reanimation::LoadFromFile(const std::string& filePath) {
     mIsLoaded = true;
 
 #ifdef _DEBUG
-    std::cout << "³É¹¦¼ÓÔØreanimÎÄ¼ş: " << filePath
-        << "£¬¹ìµÀÊı: " << mTracks->size()
-        << "£¬×ÜÖ¡Êı: " << GetTotalFrames() << std::endl;
+    std::cout << "æˆåŠŸåŠ è½½reanimæ–‡ä»¶: " << filePath
+        << "ï¼Œè½¨é“æ•°: " << mTracks->size()
+        << "ï¼Œæ€»å¸§æ•°: " << GetTotalFrames() << std::endl;
 #endif
 
     return true;
@@ -220,7 +220,7 @@ void GetDeltaTransform(const TrackFrameTransform& tSrc, const TrackFrameTransfor
     tOutput.sy = (tDst.sy - tSrc.sy) * tDelta + tSrc.sy;
 
     if (useDestFrame) {
-        // »ìºÏÄ£Ê½£º½Ç¶È²î³¬¹ı180¡ãÊ±£¬Ä¿±ê½Ç¶ÈÊÓÎªÔ´½Ç¶È
+        // æ··åˆæ¨¡å¼ï¼šè§’åº¦å·®è¶…è¿‡180Â°æ—¶ï¼Œç›®æ ‡è§’åº¦è§†ä¸ºæºè§’åº¦
         float kxDst = tDst.kx;
         float kyDst = tDst.ky;
         if (kxDst > tSrc.kx + 180.0f || kxDst < tSrc.kx - 180.0f)
@@ -231,7 +231,7 @@ void GetDeltaTransform(const TrackFrameTransform& tSrc, const TrackFrameTransfor
         tOutput.ky = (kyDst - tSrc.ky) * tDelta + tSrc.ky;
     }
     else {
-        // Õı³£Ö¡¼ä²åÖµ£ºÈ¡×î¶ÌĞı×ªÂ·¾¶
+        // æ­£å¸¸å¸§é—´æ’å€¼ï¼šå–æœ€çŸ­æ—‹è½¬è·¯å¾„
         float kxDiff = tDst.kx - tSrc.kx;
         while (kxDiff > 180.0f) kxDiff -= 360.0f;
         while (kxDiff < -180.0f) kxDiff += 360.0f;

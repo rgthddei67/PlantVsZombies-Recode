@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #ifndef _BULLET_H
 #define _BULLET_H
 
@@ -28,22 +28,22 @@ protected:
 	Board* mBoard = nullptr;
 	SDL_Texture* mTexture = nullptr;
 	float mCheckPositionTimer = 0.0f;
-	bool mHasHit = false;	// ÊÇ·ñÒÑ¾­»÷ÖĞ¹ı½©Ê¬
-	int mDamage = 20;			// ×Óµ¯ÉËº¦
-	float mVelocityX = 180.0f;	// ×Óµ¯XÖá¶¯Á¿
-	float mVelocityY = 0.0f;	// ×Óµ¯YÖá¶¯Á¿
+	bool mHasHit = false;	// æ˜¯å¦å·²ç»å‡»ä¸­è¿‡åƒµå°¸
+	int mDamage = 20;			// å­å¼¹ä¼¤å®³
+	float mVelocityX = 180.0f;	// å­å¼¹Xè½´åŠ¨é‡
+	float mVelocityY = 0.0f;	// å­å¼¹Yè½´åŠ¨é‡
 
 	std::weak_ptr<TransformComponent> mTransform;
 	std::weak_ptr<ColliderComponent> mCollider;
 
-	// ×Óµ¯»÷ÖĞ½©Ê¬µÄĞ§¹û
+	// å­å¼¹å‡»ä¸­åƒµå°¸çš„æ•ˆæœ
 	virtual void BulletHitZombie(std::shared_ptr<Zombie> zombie) { }
 
 public:
 	Bullet(Board* board, BulletType bulletType, int row, SDL_Texture* texture, const Vector& colliderRadius,
 		const Vector& position);
 
-	// ×Óµ¯ÏûÊ§
+	// å­å¼¹æ¶ˆå¤±
 	void Die();
 
 	void Update() override;

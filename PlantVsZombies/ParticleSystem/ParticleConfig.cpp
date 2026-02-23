@@ -1,4 +1,4 @@
-#include "../ParticleSystem/ParticleConfig.h"
+Ôªø#include "../ParticleSystem/ParticleConfig.h"
 #include "../ResourceManager.h"
 #include "../ResourceKeys.h"
 #include <cmath>
@@ -16,7 +16,7 @@ ParticleConfigManager::~ParticleConfigManager()
 void ParticleConfigManager::InitializeConfigs() 
 {
     ResourceManager& resourceManager = ResourceManager::GetInstance();
-    // ◊”µØª˜÷–
+    // Â≠êÂºπÂáª‰∏≠
     ParticleConfig config;
     config.startColor = { 255, 255, 255, 255 }; 
     config.endColor = { 255, 255, 255, 255 };
@@ -30,7 +30,7 @@ void ParticleConfigManager::InitializeConfigs()
     config.textureKeys = 
     { ResourceKeys::Particles::PARTICLE_PEA_HIT_0, ResourceKeys::Particles
         ::PARTICLE_PEA_HIT_1, ResourceKeys::Particles::PARTICLE_PEA_HIT_2, 
-    ResourceKeys::Particles::PARTICLE_PEA_HIT_3};  // ◊”µØª˜÷–Œ∆¿Ì
+    ResourceKeys::Particles::PARTICLE_PEA_HIT_3};  // Â≠êÂºπÂáª‰∏≠Á∫πÁêÜ
 
     config.useTexture = true;
     configs[ParticleType::PEA_BULLET_HIT] = config;

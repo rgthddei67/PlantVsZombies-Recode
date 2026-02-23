@@ -1,4 +1,4 @@
-#define SDL_MAIN_HANDLED
+﻿#define SDL_MAIN_HANDLED
 #include "./CrashHandler.h"
 #include "./GameRandom.h"
 #include "./GameAPP.h"
@@ -6,6 +6,8 @@
 
 int main(int argc, char* argv[])
 {
+    system("chcp 65001");
+    system("cls");
     CrashHandler::Initialize();
     GameRandom::RandomizeSeed();
 

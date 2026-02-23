@@ -1,4 +1,4 @@
-#include "ColliderComponent.h"
+ï»¿#include "ColliderComponent.h"
 #include "TransformComponent.h"
 #include "GameObject.h"
 #include "Component.h"
@@ -28,8 +28,8 @@ SDL_FRect ColliderComponent::GetBoundingBox() const {
         return {
             worldPos.x,      
             worldPos.y,          
-            size.x,               // ¿í¶È
-            size.y                // ¸ß¶È
+            size.x,               // å®½åº¦
+            size.y                // é«˜åº¦
         };
     }
 }
@@ -79,73 +79,73 @@ void ColliderComponent::Draw(SDL_Renderer* renderer) {
     }
 }
 
-// »æÖÆ¾ØĞÎÅö×²¿ò
+// ç»˜åˆ¶çŸ©å½¢ç¢°æ’æ¡†
 void ColliderComponent::DrawBoxCollider(SDL_Renderer* renderer, const SDL_FRect& rect) {
-    // ±£´æÔ­Ê¼»æÖÆÑÕÉ«
+    // ä¿å­˜åŸå§‹ç»˜åˆ¶é¢œè‰²
     SDL_Color originalColor;
     SDL_GetRenderDrawColor(renderer, &originalColor.r, &originalColor.g, &originalColor.b, &originalColor.a);
 
-    // ÉèÖÃµ÷ÊÔÑÕÉ«
+    // è®¾ç½®è°ƒè¯•é¢œè‰²
     SDL_SetRenderDrawColor(renderer, debugColor.r, debugColor.g, debugColor.b, debugColor.a);
 
-    // »æÖÆ¾ØĞÎ±ß¿ò
+    // ç»˜åˆ¶çŸ©å½¢è¾¹æ¡†
     SDL_FRect outline = {
-        rect.x - 1, rect.y - 1,  // ÉÔÎ¢Æ«ÒÆÒÔ¸üÇåÎúÏÔÊ¾
+        rect.x - 1, rect.y - 1,  // ç¨å¾®åç§»ä»¥æ›´æ¸…æ™°æ˜¾ç¤º
         rect.w + 2, rect.h + 2
     };
 
-    // »æÖÆËÄÌõ±ß
-    SDL_RenderDrawLineF(renderer, outline.x, outline.y, outline.x + outline.w, outline.y); // ÉÏ±ß
-    SDL_RenderDrawLineF(renderer, outline.x, outline.y + outline.h, outline.x + outline.w, outline.y + outline.h); // ÏÂ±ß
-    SDL_RenderDrawLineF(renderer, outline.x, outline.y, outline.x, outline.y + outline.h); // ×ó±ß
-    SDL_RenderDrawLineF(renderer, outline.x + outline.w, outline.y, outline.x + outline.w, outline.y + outline.h); // ÓÒ±ß
+    // ç»˜åˆ¶å››æ¡è¾¹
+    SDL_RenderDrawLineF(renderer, outline.x, outline.y, outline.x + outline.w, outline.y); // ä¸Šè¾¹
+    SDL_RenderDrawLineF(renderer, outline.x, outline.y + outline.h, outline.x + outline.w, outline.y + outline.h); // ä¸‹è¾¹
+    SDL_RenderDrawLineF(renderer, outline.x, outline.y, outline.x, outline.y + outline.h); // å·¦è¾¹
+    SDL_RenderDrawLineF(renderer, outline.x + outline.w, outline.y, outline.x + outline.w, outline.y + outline.h); // å³è¾¹
 
-    // Èç¹ûÊÇ´¥·¢Æ÷£¬»æÖÆĞéÏß±ß¿ò
+    // å¦‚æœæ˜¯è§¦å‘å™¨ï¼Œç»˜åˆ¶è™šçº¿è¾¹æ¡†
     if (isTrigger) {
-        // »æÖÆĞéÏß£¨¼òµ¥µÄ¼ä¸ôÏß£©
+        // ç»˜åˆ¶è™šçº¿ï¼ˆç®€å•çš„é—´éš”çº¿ï¼‰
         float dashLength = 5.0f;
         float gapLength = 3.0f;
 
-        // ÉÏ±ßĞéÏß
+        // ä¸Šè¾¹è™šçº¿
         for (float x = outline.x; x < outline.x + outline.w; x += dashLength + gapLength) {
             SDL_RenderDrawLineF(renderer, x, outline.y, std::min(x + dashLength, outline.x + outline.w), outline.y);
         }
 
-        // ÏÂ±ßĞéÏß
+        // ä¸‹è¾¹è™šçº¿
         for (float x = outline.x; x < outline.x + outline.w; x += dashLength + gapLength) {
             SDL_RenderDrawLineF(renderer, x, outline.y + outline.h,
                 std::min(x + dashLength, outline.x + outline.w), outline.y + outline.h);
         }
 
-        // ×ó±ßĞéÏß
+        // å·¦è¾¹è™šçº¿
         for (float y = outline.y; y < outline.y + outline.h; y += dashLength + gapLength) {
             SDL_RenderDrawLineF(renderer, outline.x, y, outline.x, std::min(y + dashLength, outline.y + outline.h));
         }
 
-        // ÓÒ±ßĞéÏß
+        // å³è¾¹è™šçº¿
         for (float y = outline.y; y < outline.y + outline.h; y += dashLength + gapLength) {
             SDL_RenderDrawLineF(renderer, outline.x + outline.w, y,
                 outline.x + outline.w, std::min(y + dashLength, outline.y + outline.h));
         }
     }
 
-    // »Ö¸´Ô­Ê¼»æÖÆÑÕÉ«
+    // æ¢å¤åŸå§‹ç»˜åˆ¶é¢œè‰²
     SDL_SetRenderDrawColor(renderer, originalColor.r, originalColor.g, originalColor.b, originalColor.a);
 }
 
-// »æÖÆÔ²ĞÎÅö×²¿ò
+// ç»˜åˆ¶åœ†å½¢ç¢°æ’æ¡†
 void ColliderComponent::DrawCircleCollider(SDL_Renderer* renderer, const Vector& center, float radius) {
-    // ±£´æÔ­Ê¼»æÖÆÑÕÉ«
+    // ä¿å­˜åŸå§‹ç»˜åˆ¶é¢œè‰²
     SDL_Color originalColor;
     SDL_GetRenderDrawColor(renderer, &originalColor.r, &originalColor.g, &originalColor.b, &originalColor.a);
 
-    // ÉèÖÃµ÷ÊÔÑÕÉ«
+    // è®¾ç½®è°ƒè¯•é¢œè‰²
     SDL_SetRenderDrawColor(renderer, debugColor.r, debugColor.g, debugColor.b, debugColor.a);
 
-    const int segments = 32; // Ô²µÄÏ¸·Ö¶ÎÊı
+    const int segments = 32; // åœ†çš„ç»†åˆ†æ®µæ•°
     const float angleStep = static_cast<const float>(2.0f * M_PI / segments);
 
-    // »æÖÆÔ²ĞÎ
+    // ç»˜åˆ¶åœ†å½¢
     for (int i = 0; i < segments; i++) {
         float angle1 = i * angleStep;
         float angle2 = (i + 1) * angleStep;
@@ -158,12 +158,12 @@ void ColliderComponent::DrawCircleCollider(SDL_Renderer* renderer, const Vector&
         SDL_RenderDrawLineF(renderer, x1, y1, x2, y2);
     }
 
-    // Èç¹ûÊÇ´¥·¢Æ÷£¬»æÖÆÊ®×ÖÏß±êÊ¶
+    // å¦‚æœæ˜¯è§¦å‘å™¨ï¼Œç»˜åˆ¶åå­—çº¿æ ‡è¯†
     if (isTrigger) {
         SDL_RenderDrawLineF(renderer, center.x - radius, center.y, center.x + radius, center.y);
         SDL_RenderDrawLineF(renderer, center.x, center.y - radius, center.x, center.y + radius);
     }
 
-    // »Ö¸´Ô­Ê¼»æÖÆÑÕÉ«
+    // æ¢å¤åŸå§‹ç»˜åˆ¶é¢œè‰²
     SDL_SetRenderDrawColor(renderer, originalColor.r, originalColor.g, originalColor.b, originalColor.a);
 }

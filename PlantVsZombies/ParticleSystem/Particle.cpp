@@ -1,4 +1,4 @@
-#include "Particle.h"
+ï»¿#include "Particle.h"
 #include "../DeltaTime.h"
 #include <cmath>
 
@@ -33,13 +33,13 @@ void Particle::Update() {
     float deltaTime = DeltaTime::GetDeltaTime();
     lifetime += deltaTime;
 
-    // ÉúÃüÖÜÆÚ½áÊø
+    // ç”Ÿå‘½å‘¨æœŸç»“æŸ
     if (lifetime >= maxLifetime) {
         active = false;
         return;
     }
 
-    // Ó¦ÓÃÎïÀí
+    // åº”ç”¨ç‰©ç†
     velocity.y += gravity * deltaTime;
     position.x += velocity.x * deltaTime;
     position.y += velocity.y * deltaTime;
@@ -48,7 +48,7 @@ void Particle::Update() {
     float t = lifetime / maxLifetime;
     size = startSize + (endSize - startSize) * t;
 
-    // ÑÕÉ«²åÖµ
+    // é¢œè‰²æ’å€¼
     if (fadeOut) {
         color.r = static_cast<Uint8>(startColor.r + (endColor.r - startColor.r) * t);
         color.g = static_cast<Uint8>(startColor.g + (endColor.g - startColor.g) * t);

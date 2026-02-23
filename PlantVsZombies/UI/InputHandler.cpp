@@ -1,10 +1,10 @@
-#include "InputHandler.h"
+ï»¿#include "InputHandler.h"
 #include <iostream>
 #include "../GameApp.h"
 
 InputHandler::InputHandler()
 {
-    // ³õÊ¼»¯ËùÓĞ°´¼ü×´Ì¬ÎªUP
+    // åˆå§‹åŒ–æ‰€æœ‰æŒ‰é”®çŠ¶æ€ä¸ºUP
     for (int i = 0; i < 5; i++)
     {
         m_mouseButtons[i] = KeyState::UP;
@@ -19,11 +19,11 @@ void InputHandler::ProcessEvent(SDL_Event* event)
 {
     switch (event->type)
     {
-        // ¼üÅÌÊÂ¼ş
+        // é”®ç›˜äº‹ä»¶
     case SDL_KEYDOWN:
     {
         SDL_Keycode key = event->key.keysym.sym;
-        // Ö»ÔÚ°´¼üµ±Ç°ÊÇUP×´Ì¬Ê±²ÅÉèÖÃÎªPRESSED
+        // åªåœ¨æŒ‰é”®å½“å‰æ˜¯UPçŠ¶æ€æ—¶æ‰è®¾ç½®ä¸ºPRESSED
         if (m_keyStates[key] == KeyState::UP) {
             m_keyStates[key] = KeyState::PRESSED;
         }
@@ -33,24 +33,24 @@ void InputHandler::ProcessEvent(SDL_Event* event)
     case SDL_KEYUP:
     {
         SDL_Keycode key = event->key.keysym.sym;
-        // Ö»ÔÚ°´¼üµ±Ç°ÊÇDOWN»òPRESSED×´Ì¬Ê±²ÅÉèÖÃÎªRELEASED
+        // åªåœ¨æŒ‰é”®å½“å‰æ˜¯DOWNæˆ–PRESSEDçŠ¶æ€æ—¶æ‰è®¾ç½®ä¸ºRELEASED
         if (m_keyStates[key] == KeyState::DOWN || m_keyStates[key] == KeyState::PRESSED) {
             m_keyStates[key] = KeyState::RELEASED;
         }
     }
     break;
 
-    // Êó±êÒÆ¶¯ÊÂ¼ş
+    // é¼ æ ‡ç§»åŠ¨äº‹ä»¶
     case SDL_MOUSEMOTION:
         m_mousePosition = Vector(static_cast<float>(event->motion.x),
             static_cast<float>(event->motion.y));
         break;
 
-        // Êó±ê°´Å¥ÊÂ¼ş
+        // é¼ æ ‡æŒ‰é’®äº‹ä»¶
     case SDL_MOUSEBUTTONDOWN:
         if (event->button.button >= SDL_BUTTON_LEFT && event->button.button <= SDL_BUTTON_X2) {
             int index = event->button.button - 1;
-            // Ö»ÔÚ°´Å¥µ±Ç°ÊÇUP×´Ì¬Ê±²ÅÉèÖÃÎªPRESSED
+            // åªåœ¨æŒ‰é’®å½“å‰æ˜¯UPçŠ¶æ€æ—¶æ‰è®¾ç½®ä¸ºPRESSED
             if (m_mouseButtons[index] == KeyState::UP) {
                 m_mouseButtons[index] = KeyState::PRESSED;
             }
@@ -60,14 +60,14 @@ void InputHandler::ProcessEvent(SDL_Event* event)
     case SDL_MOUSEBUTTONUP:
         if (event->button.button >= SDL_BUTTON_LEFT && event->button.button <= SDL_BUTTON_X2) {
             int index = event->button.button - 1;
-            // Ö»ÔÚ°´Å¥µ±Ç°ÊÇDOWN»òPRESSED×´Ì¬Ê±²ÅÉèÖÃÎªRELEASED
+            // åªåœ¨æŒ‰é’®å½“å‰æ˜¯DOWNæˆ–PRESSEDçŠ¶æ€æ—¶æ‰è®¾ç½®ä¸ºRELEASED
             if (m_mouseButtons[index] == KeyState::DOWN || m_mouseButtons[index] == KeyState::PRESSED) {
                 m_mouseButtons[index] = KeyState::RELEASED;
             }
         }
         break;
 
-        // Êó±ê¹öÂÖÊÂ¼ş
+        // é¼ æ ‡æ»šè½®äº‹ä»¶
     case SDL_MOUSEWHEEL:
         break;
     }
@@ -75,20 +75,20 @@ void InputHandler::ProcessEvent(SDL_Event* event)
 
 void InputHandler::Update()
 {
-    // ±£´æÉÏÒ»Ö¡µÄÊó±êÎ»ÖÃ
+    // ä¿å­˜ä¸Šä¸€å¸§çš„é¼ æ ‡ä½ç½®
     Vector prevMousePos = m_mousePosition;
 
-    // ±£´æµ±Ç°×´Ì¬µ½ÉÏÒ»Ö¡×´Ì¬
+    // ä¿å­˜å½“å‰çŠ¶æ€åˆ°ä¸Šä¸€å¸§çŠ¶æ€
     for (int i = 0; i < 5; i++)
     {
         m_prevMouseButtons[i] = m_mouseButtons[i];
     }
     m_prevKeyStates = m_keyStates;
 
-    // ¼ÆËãÊó±êÒÆ¶¯ÔöÁ¿
+    // è®¡ç®—é¼ æ ‡ç§»åŠ¨å¢é‡
     m_mouseDelta = m_mousePosition - prevMousePos;
 
-    // ¸üĞÂ×´Ì¬£ºPRESSED -> DOWN, RELEASED -> UP
+    // æ›´æ–°çŠ¶æ€ï¼šPRESSED -> DOWN, RELEASED -> UP
     for (auto& pair : m_keyStates)
     {
         if (pair.second == KeyState::PRESSED) {
@@ -109,7 +109,7 @@ void InputHandler::Update()
         }
     }
 
-    // ´¦ÀíËùÓĞ×¢²áµÄ»Øµ÷
+    // å¤„ç†æ‰€æœ‰æ³¨å†Œçš„å›è°ƒ
     ProcessCallbacks();
 }
 
@@ -131,13 +131,13 @@ bool InputHandler::IsKeyDown(SDL_Keycode keyCode) const
 
 bool InputHandler::IsKeyPressed(SDL_Keycode keyCode) const
 {
-    // Ö»¼ì²âPRESSED×´Ì¬
+    // åªæ£€æµ‹PRESSEDçŠ¶æ€
     return GetKeyState(keyCode) == KeyState::PRESSED;
 }
 
 bool InputHandler::IsKeyReleased(SDL_Keycode keyCode) const
 {
-    // Ö»¼ì²âRELEASED×´Ì¬
+    // åªæ£€æµ‹RELEASEDçŠ¶æ€
     return GetKeyState(keyCode) == KeyState::RELEASED;
 }
 
@@ -159,10 +159,10 @@ Vector InputHandler::GetMouseDelta() const
 
 KeyState InputHandler::GetMouseButtonState(Uint8 button) const
 {
-    // buttonÊÇSDL°´Å¥Öµ£¨SDL_BUTTON_LEFT=1, SDL_BUTTON_RIGHT=2, ...£©
+    // buttonæ˜¯SDLæŒ‰é’®å€¼ï¼ˆSDL_BUTTON_LEFT=1, SDL_BUTTON_RIGHT=2, ...ï¼‰
     if (button >= SDL_BUTTON_LEFT && button <= SDL_BUTTON_X2)
     {
-        int index = button - 1; // ×ª»»ÎªÄÚ²¿Ë÷Òı£¨0-4£©
+        int index = button - 1; // è½¬æ¢ä¸ºå†…éƒ¨ç´¢å¼•ï¼ˆ0-4ï¼‰
         return m_mouseButtons[index];
     }
     return KeyState::UP;
@@ -176,13 +176,13 @@ bool InputHandler::IsMouseButtonDown(Uint8 button) const
 
 bool InputHandler::IsMouseButtonPressed(Uint8 button) const
 {
-    // Ö»¼ì²âPRESSED×´Ì¬
+    // åªæ£€æµ‹PRESSEDçŠ¶æ€
     return GetMouseButtonState(button) == KeyState::PRESSED;
 }
 
 bool InputHandler::IsMouseButtonReleased(Uint8 button) const
 {
-    // Ö»¼ì²âRELEASED×´Ì¬
+    // åªæ£€æµ‹RELEASEDçŠ¶æ€
     return GetMouseButtonState(button) == KeyState::RELEASED;
 }
 

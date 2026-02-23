@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #ifndef _PLANTTYPE_H
 #define _PLANTTYPE_H
 

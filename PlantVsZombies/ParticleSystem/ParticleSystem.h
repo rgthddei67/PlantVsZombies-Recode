@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #ifndef __PARTICLE_SYSTEM_H__
 #define __PARTICLE_SYSTEM_H__
 
@@ -20,25 +20,25 @@ public:
     ParticleSystem(const ParticleSystem&) = delete;
     ParticleSystem& operator=(const ParticleSystem&) = delete;
 
-    // ÏµÍ³¹ÜÀí
+    // ç³»ç»Ÿç®¡ç†
     void UpdateAll();
     void DrawAll();
     void ClearAll();
 
-    // ·¢ÉäÁ£×Ó
+    // å‘å°„ç²’å­
     void EmitEffect(ParticleType type, const SDL_FPoint& position, int count = 1);
 
-    // ·¢ÉäÁ£×Ó
+    // å‘å°„ç²’å­
     void EmitEffect(ParticleType type, float x, float y, int count = 1);
 
-    // ·¢ÉäÁ£×Ó
+    // å‘å°„ç²’å­
     void EmitEffect(ParticleType type, const Vector& position, int count = 1);
 
-    // ³ÖĞø·¢ÉäÆ÷
+    // æŒç»­å‘å°„å™¨
     ParticleEmitter* CreatePersistentEmitter(ParticleType type, const SDL_FPoint& position);
     void RemoveEmitter(ParticleEmitter* emitter);
 
-    // Í³¼ÆĞÅÏ¢
+    // ç»Ÿè®¡ä¿¡æ¯
     int GetTotalParticles() const;
     size_t GetActiveEmitters() const;
 

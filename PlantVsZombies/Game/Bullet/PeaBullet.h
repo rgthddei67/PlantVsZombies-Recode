@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include "Bullet.h"
 
 class PeaBullet : public Bullet
@@ -11,7 +11,7 @@ protected:
 	{
 		Bullet::BulletHitZombie(zombie);
 		g_particleSystem->EmitEffect(ParticleType::PEA_BULLET_HIT, GetPosition());
-		// TODO:¸ù¾İ·À¾ßÀàĞÍ¾ö¶¨´ò»÷ÒôĞ§
+		// TODO:æ ¹æ®é˜²å…·ç±»å‹å†³å®šæ‰“å‡»éŸ³æ•ˆ
 		int random = GameRandom::Range(1, 3);
 		if (random == 1) 
 			AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_PEABULLET_HIT_BODY1, 0.3f);

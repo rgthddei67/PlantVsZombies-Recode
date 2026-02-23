@@ -1,4 +1,4 @@
-#include "Slider.h"
+ï»¿#include "Slider.h"
 #include "../ResourceManager.h"
 #include "../CursorManager.h"
 #include <iostream>
@@ -11,7 +11,7 @@ Slider::Slider(Vector createPosition, Vector sliderSize,
     isDragging(false), dragStartPosition(Vector::zero()), dragStartValue(0.0f), 
     SliderSizeX(22), SliderSizeY(29)
 {
-    // È·±£ÖµÔÚÓĞĞ§·¶Î§ÄÚ
+    // ç¡®ä¿å€¼åœ¨æœ‰æ•ˆèŒƒå›´å†…
     currentValue = std::clamp(currentValue, minValue, maxValue);
 }
 
@@ -37,7 +37,7 @@ void Slider::SetValue(float value)
     float oldValue = this->currentValue;
     this->currentValue = std::clamp(value, minValue, maxValue);
 
-    // Èç¹ûÖµ·¢Éú±ä»¯ÇÒÉèÖÃÁË»Øµ÷£¬µ÷ÓÃ»Øµ÷
+    // å¦‚æœå€¼å‘ç”Ÿå˜åŒ–ä¸”è®¾ç½®äº†å›è°ƒï¼Œè°ƒç”¨å›è°ƒ
     if (oldValue != this->currentValue && this->onChangeCallback)
     {
         this->onChangeCallback(this->currentValue);
@@ -68,14 +68,14 @@ void Slider::ProcessMouseEvent(InputHandler* input)
 
     if (input->IsMouseButtonDown(SDL_BUTTON_LEFT))
     {
-        // ¼ì²éÊÇ·ñµã»÷ÁË»¬¿é
+        // æ£€æŸ¥æ˜¯å¦ç‚¹å‡»äº†æ»‘å—
         if (KnobContainsPoint(mousePos))
         {
             isDragging = true;
             dragStartPosition = mousePos;
             dragStartValue = currentValue;
         }
-        // ¼ì²éÊÇ·ñµã»÷ÁË±³¾°£¨µ«²»ÊÇ»¬¿é£©
+        // æ£€æŸ¥æ˜¯å¦ç‚¹å‡»äº†èƒŒæ™¯ï¼ˆä½†ä¸æ˜¯æ»‘å—ï¼‰
         else if (this->BackgroundContainsPoint(mousePos) && !this->KnobContainsPoint(mousePos))
         {
             float newValue = this->CalculateValueFromX(mousePos.x);
@@ -103,7 +103,7 @@ void Slider::Update(InputHandler* input)
     {
         float deltaX = mousePos.x - dragStartPosition.x;
 
-        // ¼ÆËãÏñËØµ½ÖµµÄ×ª»»±ÈÀı
+        // è®¡ç®—åƒç´ åˆ°å€¼çš„è½¬æ¢æ¯”ä¾‹
         float pixelsPerValue = size.x / (maxValue - minValue);
         float valueDelta = deltaX / pixelsPerValue;
 
@@ -114,7 +114,7 @@ void Slider::Update(InputHandler* input)
 void Slider::Draw(SDL_Renderer* renderer) const
 {
 	ResourceManager& resourceManager = ResourceManager::GetInstance();
-    // »æÖÆ±³¾°
+    // ç»˜åˆ¶èƒŒæ™¯
     if (!backgroundImageKey.empty() && resourceManager.HasTexture(backgroundImageKey))
     {
         SDL_Texture* texture = resourceManager.GetTexture(backgroundImageKey);
@@ -132,7 +132,7 @@ void Slider::Draw(SDL_Renderer* renderer) const
     }
     else
     {
-        // Èç¹ûÃ»ÓĞ±³¾°Í¼Æ¬£¬»æÖÆÒ»¸ö»ÒÉ«¾ØĞÎ×÷Îª±³¾°
+        // å¦‚æœæ²¡æœ‰èƒŒæ™¯å›¾ç‰‡ï¼Œç»˜åˆ¶ä¸€ä¸ªç°è‰²çŸ©å½¢ä½œä¸ºèƒŒæ™¯
         SDL_Rect bgRect =
         {
             static_cast<int>(position.x),
@@ -140,23 +140,23 @@ void Slider::Draw(SDL_Renderer* renderer) const
             static_cast<int>(size.x),
             static_cast<int>(size.y)
         };
-        SDL_SetRenderDrawColor(renderer, 100, 100, 100, 255); // »ÒÉ«±³¾°
+        SDL_SetRenderDrawColor(renderer, 100, 100, 100, 255); // ç°è‰²èƒŒæ™¯
         SDL_RenderFillRect(renderer, &bgRect);
 
-        // »æÖÆ±ß¿ò
-        SDL_SetRenderDrawColor(renderer, 50, 50, 50, 255); // Éî»ÒÉ«±ß¿ò
+        // ç»˜åˆ¶è¾¹æ¡†
+        SDL_SetRenderDrawColor(renderer, 50, 50, 50, 255); // æ·±ç°è‰²è¾¹æ¡†
         SDL_RenderDrawRect(renderer, &bgRect);
     }
 
-    // ¼ÆËã»¬¿éÎ»ÖÃ
+    // è®¡ç®—æ»‘å—ä½ç½®
     float knobX = CalculateKnobXFromValue();
-    float knobY = position.y + size.y / 2; // »¬¿éÔÚ´¹Ö±·½Ïò¾ÓÖĞ
+    float knobY = position.y + size.y / 2; // æ»‘å—åœ¨å‚ç›´æ–¹å‘å±…ä¸­
 
-    // »¬¿é´óĞ¡
+    // æ»‘å—å¤§å°
     Vector knobSize(static_cast<float>(SliderSizeX), static_cast<float>(SliderSizeY));
     Vector knobPosition(knobX - knobSize.x / 2, knobY - knobSize.y / 2);
 
-    // »æÖÆ»¬¿é
+    // ç»˜åˆ¶æ»‘å—
     if (!knobImageKey.empty() && resourceManager.HasTexture(knobImageKey))
     {
         SDL_Texture* texture = resourceManager.GetTexture(knobImageKey);
@@ -174,7 +174,7 @@ void Slider::Draw(SDL_Renderer* renderer) const
     }
     else
     {
-        // Èç¹ûÃ»ÓĞ»¬¿éÍ¼Æ¬£¬»æÖÆÒ»¸ö¾ØĞÎ×÷Îª»¬¿é
+        // å¦‚æœæ²¡æœ‰æ»‘å—å›¾ç‰‡ï¼Œç»˜åˆ¶ä¸€ä¸ªçŸ©å½¢ä½œä¸ºæ»‘å—
         SDL_Rect knobRect = {
             static_cast<int>(knobPosition.x),
             static_cast<int>(knobPosition.y),
@@ -182,17 +182,17 @@ void Slider::Draw(SDL_Renderer* renderer) const
             static_cast<int>(knobSize.y)
         };
 
-        // ¸ù¾İÊÇ·ñÍÏ¶¯¸Ä±äÑÕÉ«
+        // æ ¹æ®æ˜¯å¦æ‹–åŠ¨æ”¹å˜é¢œè‰²
         if (isDragging)
         {
-            SDL_SetRenderDrawColor(renderer, 255, 200, 0, 255); // ÍÏ¶¯Ê±»ÆÉ«
+            SDL_SetRenderDrawColor(renderer, 255, 200, 0, 255); // æ‹–åŠ¨æ—¶é»„è‰²
         }
         else {
-            SDL_SetRenderDrawColor(renderer, 200, 200, 200, 255); // Õı³£Ê±»ÒÉ«
+            SDL_SetRenderDrawColor(renderer, 200, 200, 200, 255); // æ­£å¸¸æ—¶ç°è‰²
         }
         SDL_RenderFillRect(renderer, &knobRect);
 
-        // »æÖÆ±ß¿ò
+        // ç»˜åˆ¶è¾¹æ¡†
         SDL_SetRenderDrawColor(renderer, 100, 100, 100, 255);
         SDL_RenderDrawRect(renderer, &knobRect);
     }

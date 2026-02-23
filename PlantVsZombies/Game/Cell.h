@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #ifndef _CELL_H
 #define _CELL_H
 #include "Definit.h"
@@ -22,8 +22,8 @@ private:
     int mPlantID = NULL_PLANT_ID;
 
 public:
-	int mRow = 0;		// ĞĞ
-	int mColumn = 0;	// ÁĞ
+	int mRow = 0;		// è¡Œ
+	int mColumn = 0;	// åˆ—
 
     Cell(int row, int column, const Vector& position, const std::string& tag = "Cell")
         : mRow(row), mColumn(column)
@@ -48,7 +48,7 @@ public:
             };
     }
 	
-	// »ñÈ¡¸ñ×ÓÊÀ½çÎ»ÖÃ
+	// è·å–æ ¼å­ä¸–ç•Œä½ç½®
     Vector GetWorldPosition() const
     {
         if (auto transform = mTransform.lock()) 
@@ -61,7 +61,7 @@ public:
         return Vector(x, y);
     }
 
-	// »ñÈ¡¸ñ×ÓÖĞĞÄÎ»ÖÃ
+	// è·å–æ ¼å­ä¸­å¿ƒä½ç½®
     Vector GetCenterPosition() const
     {
         Vector worldPos = GetWorldPosition();
@@ -71,31 +71,31 @@ public:
         );
     }
 
-    // ÉèÖÃÖ²ÎïID
+    // è®¾ç½®æ¤ç‰©ID
     void SetPlantID(int plantID)
     {
         mPlantID = plantID;
     }
 
-    // »ñÈ¡Ö²ÎïID
+    // è·å–æ¤ç‰©ID
     int GetPlantID() const
     {
         return mPlantID;
     }
 
-    // Çå³ıÖ²ÎïID
+    // æ¸…é™¤æ¤ç‰©ID
     void ClearPlantID()
     {
         mPlantID = NULL_PLANT_ID;
     }
 
-    // ¼ì²é¸ñ×ÓÊÇ·ñÎª¿Õ
+    // æ£€æŸ¥æ ¼å­æ˜¯å¦ä¸ºç©º
     bool IsEmpty() const
     {
         return mPlantID == NULL_PLANT_ID;
     }
 
-    // ¼ì²éµãÊÇ·ñÔÚ¸ñ×ÓÄÚ
+    // æ£€æŸ¥ç‚¹æ˜¯å¦åœ¨æ ¼å­å†…
     bool ContainsPoint(const Vector& point) const
     {
         if (auto collider = mCollider.lock())
@@ -108,13 +108,13 @@ public:
         }
     }
 
-    // »ñÈ¡Åö×²Ìå
+    // è·å–ç¢°æ’ä½“
     std::shared_ptr<ColliderComponent> GetCollider() const
     {
         return mCollider.lock();
     }
 
-    // ÉèÖÃµã»÷»Øµ÷
+    // è®¾ç½®ç‚¹å‡»å›è°ƒ
     void SetClickCallback(std::function<void(int, int)> callback)
     {
         OnCellClicked = callback;

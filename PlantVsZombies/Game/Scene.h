@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #ifndef _SCENE_H
 #define _SCENE_H
 
@@ -11,7 +11,7 @@
 #include <algorithm>
 #include <memory>
 
-// »æÖÆÃüÁî½á¹¹
+// ç»˜åˆ¶å‘½ä»¤ç»“æ„
 struct DrawCommand {
     std::function<void(SDL_Renderer*)> drawFunc;
     int renderOrder;
@@ -28,7 +28,7 @@ struct DrawCommand {
     }
 };
 
-// Í¼Æ¬ĞÅÏ¢½á¹¹
+// å›¾ç‰‡ä¿¡æ¯ç»“æ„
 struct TextureInfo {
     SDL_Texture* texture = nullptr;
     float posX = 0.0f;
@@ -38,7 +38,7 @@ struct TextureInfo {
     int drawOrder = 0;
     bool visible = true;
     std::string name;
-    bool isUI = false;  // true = ÆÁÄ»×ø±ê£¨UI£©£¬false = ÊÀ½ç×ø±ê
+    bool isUI = false;  // true = å±å¹•åæ ‡ï¼ˆUIï¼‰ï¼Œfalse = ä¸–ç•Œåæ ‡
 };
 
 class Scene
@@ -54,12 +54,12 @@ public:
 
     virtual ~Scene() = default;
 
-    virtual void OnEnter()  // ½øÈë³¡¾°Ê±µ÷ÓÃ
+    virtual void OnEnter()  // è¿›å…¥åœºæ™¯æ—¶è°ƒç”¨
     {
         RebuildDrawCommands();
     }
 
-    virtual void OnExit()    // ÍË³ö³¡¾°Ê±µ÷ÓÃ  
+    virtual void OnExit()    // é€€å‡ºåœºæ™¯æ—¶è°ƒç”¨  
     {
         mUIManager.ClearAll();
         GameObjectManager::GetInstance().DestroyAllGameObjects();
@@ -70,15 +70,15 @@ public:
 
     virtual void Draw(SDL_Renderer* renderer);
 
-    // ×¢²á×Ô¶¨Òå»æÖÆÃüÁî
+    // æ³¨å†Œè‡ªå®šä¹‰ç»˜åˆ¶å‘½ä»¤
     void RegisterDrawCommand(const std::string& name,
         std::function<void(SDL_Renderer*)> drawFunc,
         int renderOrder = LAYER_GAME_OBJECT);
 
-    // ÒÆ³ı»æÖÆÃüÁî
+    // ç§»é™¤ç»˜åˆ¶å‘½ä»¤
     void UnregisterDrawCommand(const std::string& name);
 
-    // ÖØ¹¹»æÖÆÃüÁî
+    // é‡æ„ç»˜åˆ¶å‘½ä»¤
     void RebuildDrawCommands() {
         mDrawCommandsBuilt = false;
     }
@@ -89,50 +89,50 @@ protected:
     UIManager mUIManager;
     bool mDrawCommandsBuilt = false;
 
-    // ¹¹½¨»æÖÆÃüÁî
+    // æ„å»ºç»˜åˆ¶å‘½ä»¤
     virtual void BuildDrawCommands();
 
-    // »æÖÆËùÓĞÓÎÏ·¶ÔÏó
+    // ç»˜åˆ¶æ‰€æœ‰æ¸¸æˆå¯¹è±¡
     virtual void DrawGameObjects(SDL_Renderer* renderer) {
         GameObjectManager::GetInstance().DrawAll(renderer);
     }
 
-    // °´äÖÈ¾Ë³ĞòÅÅĞò»æÖÆÃüÁî£¨¹¹½¨Íê³Éºóµ÷ÓÃ£©
+    // æŒ‰æ¸²æŸ“é¡ºåºæ’åºç»˜åˆ¶å‘½ä»¤ï¼ˆæ„å»ºå®Œæˆåè°ƒç”¨ï¼‰
     void SortDrawCommands() {
         std::sort(mDrawCommands.begin(), mDrawCommands.end());
     }
 
-    // Ìí¼ÓÎÆÀíµ½»æÖÆÁĞ±í
+    // æ·»åŠ çº¹ç†åˆ°ç»˜åˆ¶åˆ—è¡¨
     void AddTexture(const std::string& textureName, float posX, float posY, float scaleX = 1.0f, float scaleY = 1.0f, int drawOrder = 0, bool isUI = false);
 
-    // ´Ó»æÖÆÁĞ±íÒÆ³ıÎÆÀí
+    // ä»ç»˜åˆ¶åˆ—è¡¨ç§»é™¤çº¹ç†
     void RemoveTexture(const std::string& textureName);
 
-    // ¸üĞÂÎÆÀíÎ»ÖÃ
+    // æ›´æ–°çº¹ç†ä½ç½®
     void SetTexturePosition(const std::string& textureName, float posX, float posY);
 
-    // ÉèÖÃÎÆÀíËõ·Å
+    // è®¾ç½®çº¹ç†ç¼©æ”¾
     void SetTextureScale(const std::string& textureName, float scaleX, float scaleY);
 
-    // ÉèÖÃÎÆÀíËõ·ÅX
+    // è®¾ç½®çº¹ç†ç¼©æ”¾X
     void SetTextureScaleX(const std::string& textureName, float scaleX);
 
-    // ÉèÖÃÎÆÀíËõ·ÅY
+    // è®¾ç½®çº¹ç†ç¼©æ”¾Y
     void SetTextureScaleY(const std::string& textureName, float scaleY);
 
-    // ÉèÖÃÎÆÀí¿É¼ûĞÔ
+    // è®¾ç½®çº¹ç†å¯è§æ€§
     void SetTextureVisible(const std::string& textureName, bool visible);
 
-    // ÉèÖÃÎÆÀí»æÖÆË³Ğò
+    // è®¾ç½®çº¹ç†ç»˜åˆ¶é¡ºåº
     void SetTextureDrawOrder(const std::string& textureName, int drawOrder);
 
-    // Çå¿ÕËùÓĞÎÆÀí
+    // æ¸…ç©ºæ‰€æœ‰çº¹ç†
     void ClearAllTextures();
 
-    // »æÖÆËùÓĞÎÆÀí
+    // ç»˜åˆ¶æ‰€æœ‰çº¹ç†
     void DrawAllTextures(SDL_Renderer* renderer);
 
-    // »ñÈ¡ÎÆÀíĞÅÏ¢£¨ÓÃÓÚµ÷ÊÔ»òÌØÊâ´¦Àí£©
+    // è·å–çº¹ç†ä¿¡æ¯ï¼ˆç”¨äºè°ƒè¯•æˆ–ç‰¹æ®Šå¤„ç†ï¼‰
     TextureInfo* GetTextureInfo(const std::string& textureName);
 
 private:

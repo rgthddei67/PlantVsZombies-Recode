@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #ifndef _GAMEOBJECT_H
 #define _GAMEOBJECT_H
 
@@ -19,7 +19,7 @@ enum class ObjectType {
     OBJECT_BULLET,
     OBJECT_COIN,
     OBJECT_LAWNMOWER,
-    OBJECT_PARTICLE,    // ¿ÉÄÜ·ÏÆú
+    OBJECT_PARTICLE,    // å¯èƒ½åºŸå¼ƒ
 };
 
 class Component;
@@ -31,10 +31,10 @@ protected:
     ObjectType mObjectType = ObjectType::OBJECT_NONE;
     int mRenderOrder = LAYER_GAME_OBJECT;
     RenderLayer mLayer = LAYER_GAME_OBJECT;
-    bool mActive = true; // ÊÇ·ñÔÚ»î¶¯
-    bool mStarted = false;   // ±ê¼Ç
-    std::vector<std::shared_ptr<Component>> mComponentsToInitialize; // ´ı³õÊ¼»¯µÄ×é¼ş
-    std::unordered_map<std::type_index, std::shared_ptr<Component>> mComponents; // °üº¬µÄ×é¼ş
+    bool mActive = true; // æ˜¯å¦åœ¨æ´»åŠ¨
+    bool mStarted = false;   // æ ‡è®°
+    std::vector<std::shared_ptr<Component>> mComponentsToInitialize; // å¾…åˆå§‹åŒ–çš„ç»„ä»¶
+    std::unordered_map<std::type_index, std::shared_ptr<Component>> mComponents; // åŒ…å«çš„ç»„ä»¶
     std::string mTag = "Untagged";
     std::string mName = "GameObject";
 
@@ -48,7 +48,7 @@ public:
 
     ~GameObject();
 
-    // Ìí¼Ó×é¼ş ÈôÊÇ¸Õ¸Õ´´½¨µÄ¶ÔÏó£¬Ôò²»ÄÜÊ¹ÓÃ£¬ÒòÎª»¹Ã»ÓĞ
+    // æ·»åŠ ç»„ä»¶ è‹¥æ˜¯åˆšåˆšåˆ›å»ºçš„å¯¹è±¡ï¼Œåˆ™ä¸èƒ½ä½¿ç”¨ï¼Œå› ä¸ºè¿˜æ²¡æœ‰
     template<typename T, typename... Args>
     std::shared_ptr<T> AddComponent(Args&&... args) {
         static_assert(std::is_base_of<Component, T>::value, "T must be a Component");
@@ -58,11 +58,11 @@ public:
         auto typeIndex = std::type_index(typeid(T));
         mComponents[typeIndex] = component;
 
-        // ÑÓ³ÙÉèÖÃGameObject£¬±ÜÃâÔÚ¹¹Ôìº¯ÊıÖĞµ÷ÓÃshared_from_this() Ôì³Ébad_weak_ptr´íÎó
-        // TODO: ¾¯¸æ: ÔÚ¹¹Ôìº¯ÊıÖĞ²»Òªµ÷ÓÃ shared_from_this()
+        // å»¶è¿Ÿè®¾ç½®GameObjectï¼Œé¿å…åœ¨æ„é€ å‡½æ•°ä¸­è°ƒç”¨shared_from_this() é€ æˆbad_weak_ptré”™è¯¯
+        // TODO: è­¦å‘Š: åœ¨æ„é€ å‡½æ•°ä¸­ä¸è¦è°ƒç”¨ shared_from_this()
         mComponentsToInitialize.push_back(component);
 
-        // Èç¹û¶ÔÏóÒÑÆô¶¯£¬Á¢¼´³õÊ¼»¯×é¼ş
+        // å¦‚æœå¯¹è±¡å·²å¯åŠ¨ï¼Œç«‹å³åˆå§‹åŒ–ç»„ä»¶
         if (mStarted) {
             InitializeComponent(component);
             RegisterComponentIfNeeded(component);
@@ -71,14 +71,14 @@ public:
         return component;
     }
 
-    // »ñÈ¡×é¼ş
+    // è·å–ç»„ä»¶
     template<typename T>
     std::shared_ptr<T> GetComponent() {
         auto typeIndex = std::type_index(typeid(T));
         auto it = mComponents.find(typeIndex);
         if (it != mComponents.end()) {
             auto component = std::static_pointer_cast<T>(it->second);
-            // ¼ì²é×é¼şÊÇ·ñ»¹ÓĞĞ§
+            // æ£€æŸ¥ç»„ä»¶æ˜¯å¦è¿˜æœ‰æ•ˆ
             if (component->GetGameObject()) {
                 return component;
             }
@@ -86,14 +86,14 @@ public:
         return nullptr;
     }
 
-    // ÒÆ³ı×é¼ş
+    // ç§»é™¤ç»„ä»¶
     template<typename T>
     bool RemoveComponent() {
         auto typeIndex = std::type_index(typeid(T));
         auto it = mComponents.find(typeIndex);
         if (it != mComponents.end()) {
-            // Èç¹ûÊÇÅö×²Æ÷×é¼ş£¬´ÓÅö×²ÏµÍ³ÖĞ×¢Ïú
-            // TODO: ÒÔºóÈô»¹ÓĞ±ğµÄ´óÏµÍ³£¬Ò²ÒªÕâÃ´×ö
+            // å¦‚æœæ˜¯ç¢°æ’å™¨ç»„ä»¶ï¼Œä»ç¢°æ’ç³»ç»Ÿä¸­æ³¨é”€
+            // TODO: ä»¥åè‹¥è¿˜æœ‰åˆ«çš„å¤§ç³»ç»Ÿï¼Œä¹Ÿè¦è¿™ä¹ˆåš
             UnregisterComponentIfNeeded(it->second);
             it->second->OnDestroy();
             mComponents.erase(it);
@@ -102,7 +102,7 @@ public:
         return false;
     }
 
-    // ¼ì²éÊÇ·ñÓĞÄ³×é¼ş
+    // æ£€æŸ¥æ˜¯å¦æœ‰æŸç»„ä»¶
     template<typename T>
     bool HasComponent() {
         return GetComponent<T>() != nullptr;
@@ -117,7 +117,7 @@ public:
     void SetRenderOrder(int order) { mRenderOrder = order; }
     RenderLayer GetLayer() const { return mLayer; }
     void SetLayer(RenderLayer layer) { mLayer = layer; }
-    virtual int GetSortingKey() const { return -1; }        // »ñÈ¡ÅÅĞòË³Ğò£¬ÊµÏÖ²»Í¬rowË³Ğò²»Ò»Ñù
+    virtual int GetSortingKey() const { return -1; }        // è·å–æ’åºé¡ºåºï¼Œå®ç°ä¸åŒrowé¡ºåºä¸ä¸€æ ·
 
     static RenderLayer GetLayerFromOrder(int renderOrder) {
         if (renderOrder < LAYER_GAME_OBJECT) return LAYER_BACKGROUND;
@@ -131,31 +131,31 @@ public:
         else return LAYER_DEBUG;
     }
 
-    // »æÖÆËùÓĞ×é¼ş
+    // ç»˜åˆ¶æ‰€æœ‰ç»„ä»¶
     virtual void Draw(SDL_Renderer* renderer);
 
-    // »ñÈ¡ÎïÌåµÄ±êÇ©
+    // è·å–ç‰©ä½“çš„æ ‡ç­¾
     const std::string& GetTag() const { return mTag; }
 
-    // ÉèÖÃÎïÌåµÄ±êÇ©
+    // è®¾ç½®ç‰©ä½“çš„æ ‡ç­¾
     void SetTag(const std::string& newTag) { mTag = newTag; }
 
-    // »ñÈ¡ÎïÌåµÄÃû×Ö
+    // è·å–ç‰©ä½“çš„åå­—
     const std::string& GetName() const { return mName; }
 
-    // ÉèÖÃÎïÌåµÄÃû×Ö
+    // è®¾ç½®ç‰©ä½“çš„åå­—
     void SetName(const std::string& newName) { mName = newName; }
 
-    // »ñÈ¡ÎïÌåµÄ¼¤»î×´Ì¬
+    // è·å–ç‰©ä½“çš„æ¿€æ´»çŠ¶æ€
     bool IsActive() const { return mActive; }
 
-    // ÉèÖÃÎïÌåµÄ¼¤»î×´Ì¬
+    // è®¾ç½®ç‰©ä½“çš„æ¿€æ´»çŠ¶æ€
     void SetActive(bool state) { mActive = state; }
 
-    // ³õÊ¼»¯µ¥¸ö×é¼ş
+    // åˆå§‹åŒ–å•ä¸ªç»„ä»¶
     void InitializeComponent(std::shared_ptr<Component> component);
 
-    // Ïú»ÙËùÓĞ×é¼ş
+    // é”€æ¯æ‰€æœ‰ç»„ä»¶
     void DestroyAllComponents();
 
 };

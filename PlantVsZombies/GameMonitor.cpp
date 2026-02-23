@@ -1,4 +1,4 @@
-#include "GameMonitor.h"
+Ôªø#include "GameMonitor.h"
 #include <iostream>
 #include <sstream>
 #include <iomanip>
@@ -7,21 +7,21 @@
 
 #pragma comment(lib, "psapi.lib")
 
-// ≥ı ºªØæ≤Ã¨≥…‘±
+// ÂàùÂßãÂåñÈùôÊÄÅÊàêÂëò
 PerformanceMetrics GameMonitor::performance = { 0 };
 ULONGLONG GameMonitor::frameCount = 0;
 ULONGLONG GameMonitor::lastFrameTime = 0;
 
 void GameMonitor::PrintStackUsage() {
 	StackUsageInfo usage = GetStackUsage();
-	std::cout << "=== ’ª π”√«Èøˆ ===" << std::endl;
-	std::cout << "◊‹±£¡Ù¥Û–°: " << usage.totalReserved / 1024 << " KB" << std::endl;
-	std::cout << "“— π”√: " << usage.used / 1024 << " KB" << std::endl;
-	std::cout << " £”‡: " << usage.remaining / 1024 << " KB" << std::endl;
-	std::cout << " π”√¬ : " << std::fixed << std::setprecision(2) << usage.usagePercent << "%" << std::endl;
+	std::cout << "=== Ê†à‰ΩøÁî®ÊÉÖÂÜµ ===" << std::endl;
+	std::cout << "ÊÄª‰øùÁïôÂ§ßÂ∞è: " << usage.totalReserved / 1024 << " KB" << std::endl;
+	std::cout << "Â∑≤‰ΩøÁî®: " << usage.used / 1024 << " KB" << std::endl;
+	std::cout << "Ââ©‰Ωô: " << usage.remaining / 1024 << " KB" << std::endl;
+	std::cout << "‰ΩøÁî®Áéá: " << std::fixed << std::setprecision(2) << usage.usagePercent << "%" << std::endl;
 
 	if (usage.usagePercent > 80.0) {
-		std::cout << "  æØ∏Ê: ’ª π”√¬ Ωœ∏ﬂ!" << std::endl;
+		std::cout << "  Ë≠¶Âëä: Ê†à‰ΩøÁî®ÁéáËæÉÈ´ò!" << std::endl;
 	}
 }
 
@@ -45,33 +45,33 @@ void GameMonitor::PrintHeapUsage() {
 	SIZE_T heapUsage = GetProcessHeapUsage();
 	SIZE_T privateBytes = GetPrivateBytes();
 
-	std::cout << "=== ∂—ƒ⁄¥Ê π”√«Èøˆ ===" << std::endl;
-	std::cout << "Ω¯≥Ã∂— π”√: " << heapUsage / 1024 << " KB" << std::endl;
-	std::cout << "ÀΩ”–◊÷Ω⁄ ˝: " << privateBytes / 1024 << " KB" << std::endl;
+	std::cout << "=== Â†ÜÂÜÖÂ≠ò‰ΩøÁî®ÊÉÖÂÜµ ===" << std::endl;
+	std::cout << "ËøõÁ®ãÂ†Ü‰ΩøÁî®: " << heapUsage / 1024 << " KB" << std::endl;
+	std::cout << "ÁßÅÊúâÂ≠óËäÇÊï∞: " << privateBytes / 1024 << " KB" << std::endl;
 
-	// ∞≤»´µÿªÒ»°ƒ¨»œ∂—–≈œ¢
+	// ÂÆâÂÖ®Âú∞Ëé∑ÂèñÈªòËÆ§Â†Ü‰ø°ÊÅØ
 	HANDLE defaultHeap = GetProcessHeap();
 	if (defaultHeap) {
-		//  π”√∏¸∞≤»´µƒ∑Ω∑®ªÒ»°∂—–≈œ¢
+		// ‰ΩøÁî®Êõ¥ÂÆâÂÖ®ÁöÑÊñπÊ≥ïËé∑ÂèñÂ†Ü‰ø°ÊÅØ
 		HEAP_SUMMARY heapSummary = { 0 };
 		heapSummary.cb = sizeof(HEAP_SUMMARY);
 
-		// ≥¢ ‘ π”√HeapSummary£®∏¸∞≤»´µƒ∑Ω∑®£©
+		// Â∞ùËØï‰ΩøÁî®HeapSummaryÔºàÊõ¥ÂÆâÂÖ®ÁöÑÊñπÊ≥ïÔºâ
 		if (HeapSummary(defaultHeap, 0, &heapSummary)) {
-			std::cout << "ƒ¨»œ∂— - Ã·Ωª¥Û–°: " << heapSummary.cbCommitted / 1024 << " KB" << std::endl;
-			std::cout << "ƒ¨»œ∂— - ±£¡Ù¥Û–°: " << heapSummary.cbReserved / 1024 << " KB" << std::endl;
-			std::cout << "ƒ¨»œ∂— - “—∑÷≈‰øÈ: " << heapSummary.cbAllocated << std::endl;
+			std::cout << "ÈªòËÆ§Â†Ü - Êèê‰∫§Â§ßÂ∞è: " << heapSummary.cbCommitted / 1024 << " KB" << std::endl;
+			std::cout << "ÈªòËÆ§Â†Ü - ‰øùÁïôÂ§ßÂ∞è: " << heapSummary.cbReserved / 1024 << " KB" << std::endl;
+			std::cout << "ÈªòËÆ§Â†Ü - Â∑≤ÂàÜÈÖçÂùó: " << heapSummary.cbAllocated << std::endl;
 		}
 		else {
-			// ±∏”√∑Ω∑®£∫ π”√HeapLock/HeapWalk£¨µ´∏¸∞≤»´
+			// Â§áÁî®ÊñπÊ≥ïÔºö‰ΩøÁî®HeapLock/HeapWalkÔºå‰ΩÜÊõ¥ÂÆâÂÖ®
 			if (HeapLock(defaultHeap)) {
 				PROCESS_HEAP_ENTRY entry = { 0 };
 				SIZE_T totalHeapSize = 0;
 				SIZE_T usedHeapSize = 0;
 				DWORD entryCount = 0;
-				const DWORD maxEntries = 10000; // ∑¿÷πŒﬁœﬁ—≠ª∑
+				const DWORD maxEntries = 10000; // Èò≤Ê≠¢Êó†ÈôêÂæ™ÁéØ
 
-				// ∞≤»´µÿ±È¿˙∂—
+				// ÂÆâÂÖ®Âú∞ÈÅçÂéÜÂ†Ü
 				while (HeapWalk(defaultHeap, &entry) && entryCount < maxEntries) {
 					entryCount++;
 					totalHeapSize += entry.cbData;
@@ -79,18 +79,18 @@ void GameMonitor::PrintHeapUsage() {
 						usedHeapSize += entry.cbData;
 					}
 
-					// ÷ÿ÷√entry.cbData“‘∑¿÷π«±‘⁄Œ Ã‚
+					// ÈáçÁΩÆentry.cbData‰ª•Èò≤Ê≠¢ÊΩúÂú®ÈóÆÈ¢ò
 					entry.cbData = 0;
 				}
 
 				HeapUnlock(defaultHeap);
 
-				std::cout << "ƒ¨»œ∂— - ◊‹¥Û–°: " << totalHeapSize / 1024 << " KB" << std::endl;
-				std::cout << "ƒ¨»œ∂— - “— π”√: " << usedHeapSize / 1024 << " KB" << std::endl;
-				std::cout << "…®√Ëµƒ∂—øÈ ˝¡ø: " << entryCount << std::endl;
+				std::cout << "ÈªòËÆ§Â†Ü - ÊÄªÂ§ßÂ∞è: " << totalHeapSize / 1024 << " KB" << std::endl;
+				std::cout << "ÈªòËÆ§Â†Ü - Â∑≤‰ΩøÁî®: " << usedHeapSize / 1024 << " KB" << std::endl;
+				std::cout << "Êâ´ÊèèÁöÑÂ†ÜÂùóÊï∞Èáè: " << entryCount << std::endl;
 			}
 			else {
-				std::cout << "Œﬁ∑®À¯∂®∂—Ω¯––ºÏ≤‚" << std::endl;
+				std::cout << "Êó†Ê≥ïÈîÅÂÆöÂ†ÜËøõË°åÊ£ÄÊµã" << std::endl;
 			}
 		}
 	}
@@ -99,7 +99,7 @@ void GameMonitor::PrintHeapUsage() {
 SIZE_T GameMonitor::GetProcessHeapUsage() {
 	SIZE_T totalHeapSize = 0;
 
-	// ∞≤»´µÿªÒ»°∂— ˝¡ø
+	// ÂÆâÂÖ®Âú∞Ëé∑ÂèñÂ†ÜÊï∞Èáè
 	DWORD numberOfHeaps = GetProcessHeaps(0, nullptr);
 	if (numberOfHeaps > 0) {
 		HANDLE* heaps = new (std::nothrow) HANDLE[numberOfHeaps];
@@ -107,7 +107,7 @@ SIZE_T GameMonitor::GetProcessHeapUsage() {
 			DWORD actualHeaps = GetProcessHeaps(numberOfHeaps, heaps);
 
 			for (DWORD i = 0; i < actualHeaps; i++) {
-				//  π”√HeapSummaryÃÊ¥˙HeapWalk£¨∏¸∞≤»´
+				// ‰ΩøÁî®HeapSummaryÊõø‰ª£HeapWalkÔºåÊõ¥ÂÆâÂÖ®
 				HEAP_SUMMARY summary = { 0 };
 				summary.cb = sizeof(HEAP_SUMMARY);
 
@@ -115,7 +115,7 @@ SIZE_T GameMonitor::GetProcessHeapUsage() {
 					totalHeapSize += summary.cbCommitted;
 				}
 				else {
-					// ±∏”√∑Ω∑®£∫∞≤»´µÿ π”√HeapLock/HeapWalk
+					// Â§áÁî®ÊñπÊ≥ïÔºöÂÆâÂÖ®Âú∞‰ΩøÁî®HeapLock/HeapWalk
 					if (HeapLock(heaps[i])) {
 						PROCESS_HEAP_ENTRY entry = { 0 };
 						SIZE_T heapSize = 0;
@@ -127,7 +127,7 @@ SIZE_T GameMonitor::GetProcessHeapUsage() {
 							if (entry.wFlags & PROCESS_HEAP_ENTRY_BUSY) {
 								heapSize += entry.cbData;
 							}
-							entry.cbData = 0; // ÷ÿ÷√
+							entry.cbData = 0; // ÈáçÁΩÆ
 						}
 
 						HeapUnlock(heaps[i]);
@@ -156,24 +156,24 @@ SIZE_T GameMonitor::GetPrivateBytes() {
 void GameMonitor::PrintSystemMemoryStatus() {
 	MemoryStatus status = GetSystemMemoryStatus();
 
-	std::cout << "=== œµÕ≥ƒ⁄¥Ê◊¥Ã¨ ===" << std::endl;
-	std::cout << "ƒ⁄¥Ê∏∫‘ÿ: " << status.memoryLoad << "%" << std::endl;
-	std::cout << "ŒÔ¿Ìƒ⁄¥Ê - ◊‹¡ø: " << status.totalPhysical / (1024 * 1024) << " MB" << std::endl;
-	std::cout << "ŒÔ¿Ìƒ⁄¥Ê - ø…”√: " << status.availablePhysical / (1024 * 1024) << " MB" << std::endl;
-	std::cout << "“≥√ÊŒƒº˛ - ◊‹¡ø: " << status.totalPageFile / (1024 * 1024) << " MB" << std::endl;
-	std::cout << "“≥√ÊŒƒº˛ - ø…”√: " << status.availablePageFile / (1024 * 1024) << " MB" << std::endl;
-	std::cout << "–Èƒ‚ƒ⁄¥Ê - ◊‹¡ø: " << status.totalVirtual / (1024 * 1024) << " MB" << std::endl;
-	std::cout << "–Èƒ‚ƒ⁄¥Ê - ø…”√: " << status.availableVirtual / (1024 * 1024) << " MB" << std::endl;
+	std::cout << "=== Á≥ªÁªüÂÜÖÂ≠òÁä∂ÊÄÅ ===" << std::endl;
+	std::cout << "ÂÜÖÂ≠òË¥üËΩΩ: " << status.memoryLoad << "%" << std::endl;
+	std::cout << "Áâ©ÁêÜÂÜÖÂ≠ò - ÊÄªÈáè: " << status.totalPhysical / (1024 * 1024) << " MB" << std::endl;
+	std::cout << "Áâ©ÁêÜÂÜÖÂ≠ò - ÂèØÁî®: " << status.availablePhysical / (1024 * 1024) << " MB" << std::endl;
+	std::cout << "È°µÈù¢Êñá‰ª∂ - ÊÄªÈáè: " << status.totalPageFile / (1024 * 1024) << " MB" << std::endl;
+	std::cout << "È°µÈù¢Êñá‰ª∂ - ÂèØÁî®: " << status.availablePageFile / (1024 * 1024) << " MB" << std::endl;
+	std::cout << "ËôöÊãüÂÜÖÂ≠ò - ÊÄªÈáè: " << status.totalVirtual / (1024 * 1024) << " MB" << std::endl;
+	std::cout << "ËôöÊãüÂÜÖÂ≠ò - ÂèØÁî®: " << status.availableVirtual / (1024 * 1024) << " MB" << std::endl;
 
 	if (status.memoryLoad > 85) {
-		std::cout << "æØ∏Ê: œµÕ≥ƒ⁄¥Ê π”√¬ π˝∏ﬂ!" << std::endl;
+		std::cout << "Ë≠¶Âëä: Á≥ªÁªüÂÜÖÂ≠ò‰ΩøÁî®ÁéáËøáÈ´ò!" << std::endl;
 	}
 }
 
 MemoryStatus GameMonitor::GetSystemMemoryStatus() {
 	MemoryStatus status = { 0 };
 
-	// œµÕ≥ƒ⁄¥Ê◊¥Ã¨
+	// Á≥ªÁªüÂÜÖÂ≠òÁä∂ÊÄÅ
 	MEMORYSTATUSEX memStatus;
 	memStatus.dwLength = sizeof(memStatus);
 	if (GlobalMemoryStatusEx(&memStatus)) {
@@ -186,7 +186,7 @@ MemoryStatus GameMonitor::GetSystemMemoryStatus() {
 		status.memoryLoad = memStatus.dwMemoryLoad;
 	}
 
-	// Ω¯≥Ãƒ⁄¥Ê π”√
+	// ËøõÁ®ãÂÜÖÂ≠ò‰ΩøÁî®
 	PROCESS_MEMORY_COUNTERS_EX pmc;
 	if (GetProcessMemoryInfo(GetCurrentProcess(),
 		(PROCESS_MEMORY_COUNTERS*)&pmc,
@@ -201,37 +201,37 @@ MemoryStatus GameMonitor::GetSystemMemoryStatus() {
 void GameMonitor::PrintProcessInfo() {
 	ProcessInfo info = GetProcessInfo();
 
-	std::cout << "=== Ω¯≥Ã–≈œ¢ ===" << std::endl;
-	std::cout << "Ω¯≥ÃID: " << info.processId << std::endl;
-	std::cout << "œﬂ≥Ã ˝¡ø: " << info.threadCount << std::endl;
-	std::cout << "æ‰±˙ ˝¡ø: " << info.handleCount << std::endl;
-	std::cout << "π§◊˜ºØ¥Û–°: " << info.workingSetSize / 1024 << " KB" << std::endl;
-	std::cout << "“≥√ÊŒƒº˛ π”√: " << info.pagefileUsage / 1024 << " KB" << std::endl;
-	std::cout << "÷¥––Œƒº˛¬∑æ∂: " << info.executablePath << std::endl;
+	std::cout << "=== ËøõÁ®ã‰ø°ÊÅØ ===" << std::endl;
+	std::cout << "ËøõÁ®ãID: " << info.processId << std::endl;
+	std::cout << "Á∫øÁ®ãÊï∞Èáè: " << info.threadCount << std::endl;
+	std::cout << "Âè•ÊüÑÊï∞Èáè: " << info.handleCount << std::endl;
+	std::cout << "Â∑•‰ΩúÈõÜÂ§ßÂ∞è: " << info.workingSetSize / 1024 << " KB" << std::endl;
+	std::cout << "È°µÈù¢Êñá‰ª∂‰ΩøÁî®: " << info.pagefileUsage / 1024 << " KB" << std::endl;
+	std::cout << "ÊâßË°åÊñá‰ª∂Ë∑ØÂæÑ: " << info.executablePath << std::endl;
 }
 
 ProcessInfo GameMonitor::GetProcessInfo() {
 	ProcessInfo info = { 0 };
 	info.processId = GetCurrentProcessId();
 
-	// ªÒ»°œﬂ≥Ã ˝¡ø
+	// Ëé∑ÂèñÁ∫øÁ®ãÊï∞Èáè
 	info.threadCount = GetThreadCount();
 
-	// ªÒ»°æ‰±˙ ˝¡ø
+	// Ëé∑ÂèñÂè•ÊüÑÊï∞Èáè
 	info.handleCount = 0;
 	HANDLE hProcess = GetCurrentProcess();
 	if (GetProcessHandleCount(hProcess, &info.handleCount) == FALSE) {
 		info.handleCount = 0;
 	}
 
-	// ªÒ»°ƒ⁄¥Ê–≈œ¢
+	// Ëé∑ÂèñÂÜÖÂ≠ò‰ø°ÊÅØ
 	PROCESS_MEMORY_COUNTERS_EX pmc;
 	if (GetProcessMemoryInfo(hProcess, (PROCESS_MEMORY_COUNTERS*)&pmc, sizeof(pmc))) {
 		info.workingSetSize = pmc.WorkingSetSize;
 		info.pagefileUsage = pmc.PagefileUsage;
 	}
 
-	// ªÒ»°÷¥––Œƒº˛¬∑æ∂
+	// Ëé∑ÂèñÊâßË°åÊñá‰ª∂Ë∑ØÂæÑ
 	char exePath[MAX_PATH];
 	if (GetModuleFileNameA(nullptr, exePath, MAX_PATH)) {
 		info.executablePath = exePath;
@@ -244,7 +244,7 @@ void GameMonitor::UpdateFrame() {
 	ULONGLONG currentTime = GetTickCount64();
 	frameCount++;
 
-	// √ø√Î∏¸–¬“ª¥Œ–‘ƒ‹÷∏±Í
+	// ÊØèÁßíÊõ¥Êñ∞‰∏ÄÊ¨°ÊÄßËÉΩÊåáÊ†á
 	if (currentTime - performance.lastUpdateTime >= 1000) {
 		ULONGLONG elapsed = currentTime - performance.lastUpdateTime;
 		performance.frameRate = (frameCount - performance.totalFrames) * 1000.0 / elapsed;
@@ -255,13 +255,13 @@ void GameMonitor::UpdateFrame() {
 }
 
 void GameMonitor::PrintPerformanceMetrics() {
-	std::cout << "=== –‘ƒ‹÷∏±Í ===" << std::endl;
-	std::cout << "÷°¬ : " << std::fixed << std::setprecision(2) << performance.frameRate << " FPS" << std::endl;
-	std::cout << "÷° ±º‰: " << std::fixed << std::setprecision(2) << performance.frameTime << " ms" << std::endl;
-	std::cout << "◊‹÷° ˝: " << performance.totalFrames << std::endl;
+	std::cout << "=== ÊÄßËÉΩÊåáÊ†á ===" << std::endl;
+	std::cout << "Â∏ßÁéá: " << std::fixed << std::setprecision(2) << performance.frameRate << " FPS" << std::endl;
+	std::cout << "Â∏ßÊó∂Èó¥: " << std::fixed << std::setprecision(2) << performance.frameTime << " ms" << std::endl;
+	std::cout << "ÊÄªÂ∏ßÊï∞: " << performance.totalFrames << std::endl;
 
 	if (performance.frameRate < 30.0) {
-		std::cout << "  æØ∏Ê: ÷°¬ π˝µÕ!" << std::endl;
+		std::cout << "  Ë≠¶Âëä: Â∏ßÁéáËøá‰Ωé!" << std::endl;
 	}
 }
 
@@ -295,12 +295,12 @@ DWORD GameMonitor::GetThreadCount() {
 
 void GameMonitor::PrintThreadInfo() {
 	DWORD threadCount = GetThreadCount();
-	std::cout << "=== œﬂ≥Ã–≈œ¢ ===" << std::endl;
-	std::cout << "œﬂ≥Ã◊‹ ˝: " << threadCount << std::endl;
+	std::cout << "=== Á∫øÁ®ã‰ø°ÊÅØ ===" << std::endl;
+	std::cout << "Á∫øÁ®ãÊÄªÊï∞: " << threadCount << std::endl;
 }
 
 void GameMonitor::PrintLoadedModules() {
-	std::cout << "=== “—º”‘ÿƒ£øÈ ===" << std::endl;
+	std::cout << "=== Â∑≤Âä†ËΩΩÊ®°Âùó ===" << std::endl;
 
 	HMODULE hModules[1024];
 	DWORD cbNeeded;
@@ -309,33 +309,33 @@ void GameMonitor::PrintLoadedModules() {
 		for (DWORD i = 0; i < (cbNeeded / sizeof(HMODULE)); i++) {
 			char szModName[MAX_PATH];
 			if (GetModuleFileNameExA(GetCurrentProcess(), hModules[i], szModName, sizeof(szModName))) {
-				std::cout << "ƒ£øÈ " << i << ": " << szModName << std::endl;
+				std::cout << "Ê®°Âùó " << i << ": " << szModName << std::endl;
 			}
 		}
 	}
 }
 
 void GameMonitor::CheckResourceLeaks() {
-	std::cout << "=== ◊ ‘¥–π¬©ºÏ≤È ===" << std::endl;
+	std::cout << "=== ËµÑÊ∫êÊ≥ÑÊºèÊ£ÄÊü• ===" << std::endl;
 
-	// ºÏ≤ÈGDI∂‘œÛ–π¬©
+	// Ê£ÄÊü•GDIÂØπË±°Ê≥ÑÊºè
 	int gdiObjects = GetGuiResources(GetCurrentProcess(), GR_GDIOBJECTS);
 	int userObjects = GetGuiResources(GetCurrentProcess(), GR_USEROBJECTS);
 
-	std::cout << "GDI∂‘œÛ: " << gdiObjects << std::endl;
-	std::cout << "”√ªß∂‘œÛ: " << userObjects << std::endl;
+	std::cout << "GDIÂØπË±°: " << gdiObjects << std::endl;
+	std::cout << "Áî®Êà∑ÂØπË±°: " << userObjects << std::endl;
 
 	if (gdiObjects > 1000) {
-		std::cout << "æØ∏Ê: GDI∂‘œÛ ˝¡øπ˝∂‡£¨ø…ƒ‹¥Ê‘⁄–π¬©!" << std::endl;
+		std::cout << "Ë≠¶Âëä: GDIÂØπË±°Êï∞ÈáèËøáÂ§öÔºåÂèØËÉΩÂ≠òÂú®Ê≥ÑÊºè!" << std::endl;
 	}
 
 	if (userObjects > 1000) {
-		std::cout << "æØ∏Ê: ”√ªß∂‘œÛ ˝¡øπ˝∂‡£¨ø…ƒ‹¥Ê‘⁄–π¬©!" << std::endl;
+		std::cout << "Ë≠¶Âëä: Áî®Êà∑ÂØπË±°Êï∞ÈáèËøáÂ§öÔºåÂèØËÉΩÂ≠òÂú®Ê≥ÑÊºè!" << std::endl;
 	}
 }
 
 void GameMonitor::CheckSystemHealth() {
-	std::cout << "=== œµÕ≥Ω°øµºÏ≤È ===" << std::endl;
+	std::cout << "=== Á≥ªÁªüÂÅ•Â∫∑Ê£ÄÊü• ===" << std::endl;
 
 	StackUsageInfo stackInfo = GetStackUsage();
 	MemoryStatus memStatus = GetSystemMemoryStatus();
@@ -343,37 +343,37 @@ void GameMonitor::CheckSystemHealth() {
 	bool isHealthy = true;
 
 	if (stackInfo.usagePercent > 80.0) {
-		std::cout << "’ª π”√¬ π˝∏ﬂ: " << stackInfo.usagePercent << "%" << std::endl;
+		std::cout << "Ê†à‰ΩøÁî®ÁéáËøáÈ´ò: " << stackInfo.usagePercent << "%" << std::endl;
 		isHealthy = false;
 	}
 
 	if (memStatus.memoryLoad > 85) {
-		std::cout << "œµÕ≥ƒ⁄¥Ê∏∫‘ÿπ˝∏ﬂ: " << memStatus.memoryLoad << "%" << std::endl;
+		std::cout << "Á≥ªÁªüÂÜÖÂ≠òË¥üËΩΩËøáÈ´ò: " << memStatus.memoryLoad << "%" << std::endl;
 		isHealthy = false;
 	}
 
 	if (performance.frameRate < 30.0 && performance.totalFrames > 100) {
-		std::cout << "÷°¬ π˝µÕ: " << performance.frameRate << " FPS" << std::endl;
+		std::cout << "Â∏ßÁéáËøá‰Ωé: " << performance.frameRate << " FPS" << std::endl;
 		isHealthy = false;
 	}
 
 	SIZE_T privateBytes = GetPrivateBytes();
 	if (privateBytes > 500 * 1024 * 1024) { // 500MB
-		std::cout << "Ω¯≥Ãƒ⁄¥Ê π”√π˝∏ﬂ: " << privateBytes / (1024 * 1024) << " MB" << std::endl;
+		std::cout << "ËøõÁ®ãÂÜÖÂ≠ò‰ΩøÁî®ËøáÈ´ò: " << privateBytes / (1024 * 1024) << " MB" << std::endl;
 		isHealthy = false;
 	}
 
 	if (isHealthy) {
-		std::cout << "œµÕ≥◊¥Ã¨Ω°øµ" << std::endl;
+		std::cout << "Á≥ªÁªüÁä∂ÊÄÅÂÅ•Â∫∑" << std::endl;
 	}
 	else {
-		std::cout << "∑¢œ÷œµÕ≥Ω°øµŒ Ã‚£¨«ÎºÏ≤È!" << std::endl;
+		std::cout << "ÂèëÁé∞Á≥ªÁªüÂÅ•Â∫∑ÈóÆÈ¢òÔºåËØ∑Ê£ÄÊü•!" << std::endl;
 	}
 }
 
 void GameMonitor::PrintComprehensiveReport() {
 	std::cout << "\n" << std::string(60, '=') << std::endl;
-	std::cout << "”Œœ∑º‡øÿ◊€∫œ±®∏Ê" << std::endl;
+	std::cout << "Ê∏∏ÊàèÁõëÊéßÁªºÂêàÊä•Âëä" << std::endl;
 	std::cout << std::string(60, '=') << std::endl;
 
 	PrintStackUsage();

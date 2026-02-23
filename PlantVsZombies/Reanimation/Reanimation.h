@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #ifndef _REANIMATION_H
 #define _REANIMATION_H
 
@@ -21,15 +21,15 @@ public:
     Reanimation();
     ~Reanimation();
 
-    // ¼ÓÔØreanimÎÄ¼ş
+    // åŠ è½½reanimæ–‡ä»¶
     bool LoadFromFile(const std::string& filePath);
 
-    // »ñÈ¡¹ìµÀĞÅÏ¢
+    // è·å–è½¨é“ä¿¡æ¯
     size_t GetTrackCount() const;
     TrackInfo* GetTrack(int index);
     TrackInfo* GetTrack(const std::string& trackName);
 
-    // »ñÈ¡×ÜÖ¡Êı
+    // è·å–æ€»å¸§æ•°
     int GetTotalFrames() const;
 };
 

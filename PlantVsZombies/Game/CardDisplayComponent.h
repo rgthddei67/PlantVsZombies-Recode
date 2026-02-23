@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #ifndef _CARD_DISPLAY_COMPONENT_H
 #define _CARD_DISPLAY_COMPONENT_H
 
@@ -7,7 +7,7 @@
 #include <SDL2/SDL.h>
 #include <string>
 
-// ¿¨ÅÆ×´Ì¬Ã¶¾Ù
+// å¡ç‰ŒçŠ¶æ€æšä¸¾
 enum class CardState
 {
     Cooling = 0,
@@ -21,15 +21,15 @@ class TransformComponent;
 
 class CardDisplayComponent : public Component {
 private:
-    // ÎÆÀí×ÊÔ´
+    // çº¹ç†èµ„æº
     SDL_Texture* cardBackground = nullptr;    // IMAGE_card_bk
     SDL_Texture* cardNormal = nullptr;        // IMAGE_SeedPacketNormal
-    SDL_Texture* plantTexture = nullptr;      // Ö²ÎïÍ¼Æ¬
+    SDL_Texture* plantTexture = nullptr;      // æ¤ç‰©å›¾ç‰‡
 
 	mutable std::weak_ptr<CardComponent> mCardComponent;
 	mutable std::weak_ptr<TransformComponent> mTransformComponent;
 
-    // ×´Ì¬Ïà¹Ø
+    // çŠ¶æ€ç›¸å…³
     CardState cardState = CardState::Cooling;
     PlantType plantType;
     int needSun = 0;
@@ -37,15 +37,15 @@ private:
     float currentCooldown = 0;
     bool isSelected = false;
 
-    // ÀäÈ´ÕÚÕÖÏà¹Ø
+    // å†·å´é®ç½©ç›¸å…³
     float maskFillAmount = 1.0f;
     bool showMask = true;
 
-    // ÑÕÉ«×´Ì¬
-    SDL_Color readyColor = { 255, 255, 255, 255 };      // °×É« - ¾ÍĞ÷
-    SDL_Color disabledColor = { 160, 160, 160, 255 };   // »ÒÉ« - ½ûÓÃ/ÀäÈ´
-    SDL_Color waitingSunColor = { 215, 215, 215, 255 }; // Ç³»ÒÉ« - µÈ´ıÑô¹â
-    SDL_Color clickColor = { 160, 160, 160, 255 };         // Éî»ÒÉ« - µã»÷×´Ì¬
+    // é¢œè‰²çŠ¶æ€
+    SDL_Color readyColor = { 255, 255, 255, 255 };      // ç™½è‰² - å°±ç»ª
+    SDL_Color disabledColor = { 160, 160, 160, 255 };   // ç°è‰² - ç¦ç”¨/å†·å´
+    SDL_Color waitingSunColor = { 215, 215, 215, 255 }; // æµ…ç°è‰² - ç­‰å¾…é˜³å…‰
+    SDL_Color clickColor = { 160, 160, 160, 255 };         // æ·±ç°è‰² - ç‚¹å‡»çŠ¶æ€
 
 public:
     CardDisplayComponent(PlantType type, int sunCost, float cooldown);
@@ -54,22 +54,22 @@ public:
     void Update() override;
     void Draw(SDL_Renderer* renderer) override;
 
-    // ×´Ì¬×ª»»
+    // çŠ¶æ€è½¬æ¢
     void TranToWaitingSun();
     void TranToReady();
     void TranToCooling();
     void TranToClick();
 
-    // ×´Ì¬¸üĞÂ
+    // çŠ¶æ€æ›´æ–°
     void UpdateCardState();
     void UpdateCooldown(float deltaTime);
 
-    // ÉèÖÃ×´Ì¬
+    // è®¾ç½®çŠ¶æ€
     void SetSelected(bool selected) { isSelected = selected; }
     void SetCooldownProgress(float progress) { maskFillAmount = progress; }
     void SetNeedSun(int sun) { needSun = sun; }
 
-    // »ñÈ¡×´Ì¬
+    // è·å–çŠ¶æ€
     int GetNeedSun() const { return needSun; }
     PlantType GetPlantType() const { return plantType; }
     CardState GetCardState() const { return cardState; }

@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #ifndef _COIN_H
 #define _COIN_H
 
@@ -11,22 +11,22 @@
 class Coin : public AnimatedObject {
 protected:
     CoinType mCoinType = CoinType::COIN_NONE;
-    float mVanlishTime = 15.0f;           // ÏûÊ§Ê±¼ä
-    float mVanlishTimer = 0.0f;           // ÏûÊ§¼ÆÊ±Æ÷
-    Vector targetPos = Vector(10, 10);    // Ä¿±êÎ»ÖÃ
-    float speedFast = 500.0f;             // ¿ìËÙ½×¶ÎËÙ¶È
-    float speedSlow = 180.0f;             // ÂıËÙ½×¶ÎËÙ¶È
-    float slowDownDistance = 20.0f;       // ¿ªÊ¼¼õËÙµÄ¾àÀëãĞÖµ
-    bool isMovingToTarget = false;        // ÊÇ·ñÕıÔÚÒÆ¶¯µ½Ä¿±êÎ»ÖÃ
+    float mVanlishTime = 15.0f;           // æ¶ˆå¤±æ—¶é—´
+    float mVanlishTimer = 0.0f;           // æ¶ˆå¤±è®¡æ—¶å™¨
+    Vector targetPos = Vector(10, 10);    // ç›®æ ‡ä½ç½®
+    float speedFast = 500.0f;             // å¿«é€Ÿé˜¶æ®µé€Ÿåº¦
+    float speedSlow = 180.0f;             // æ…¢é€Ÿé˜¶æ®µé€Ÿåº¦
+    float slowDownDistance = 20.0f;       // å¼€å§‹å‡é€Ÿçš„è·ç¦»é˜ˆå€¼
+    bool isMovingToTarget = false;        // æ˜¯å¦æ­£åœ¨ç§»åŠ¨åˆ°ç›®æ ‡ä½ç½®
 
-    float mScaleTimer = 0.0f;             // Ëõ·Å¼ÆÊ±Æ÷
-    float mScaleDuration = 0.9f;          // Ëõ·Å³ÖĞøÊ±¼ä
-    float mStartScale = 0.1f;             // ÆğÊ¼Ëõ·Å
-    float mTargetScale = 1.0f;            // Ä¿±êËõ·Å
-    bool mIsScaling = true;               // ÊÇ·ñÕıÔÚËõ·Å
-    bool mScaleAnimationFinished = false; // Ëõ·Å¶¯»­ÊÇ·ñÒÑÍê³É
+    float mScaleTimer = 0.0f;             // ç¼©æ”¾è®¡æ—¶å™¨
+    float mScaleDuration = 0.9f;          // ç¼©æ”¾æŒç»­æ—¶é—´
+    float mStartScale = 0.1f;             // èµ·å§‹ç¼©æ”¾
+    float mTargetScale = 1.0f;            // ç›®æ ‡ç¼©æ”¾
+    bool mIsScaling = true;               // æ˜¯å¦æ­£åœ¨ç¼©æ”¾
+    bool mScaleAnimationFinished = false; // ç¼©æ”¾åŠ¨ç”»æ˜¯å¦å·²å®Œæˆ
 
-	bool mIsDestroyed = false;            // ÊÇ·ñÒÑÏú»Ù
+	bool mIsDestroyed = false;            // æ˜¯å¦å·²é”€æ¯
 
 public:
     int mCoinID = NUM_COIN_ID;

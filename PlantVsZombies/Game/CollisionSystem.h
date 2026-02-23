@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #ifndef _COLLISION_SYSTEM_H
 #define _COLLISION_SYSTEM_H
 
@@ -24,7 +24,7 @@ struct ColliderPairHash {
 
 class CollisionSystem {
 private:
-    std::vector<std::shared_ptr<ColliderComponent>> colliders;  // ËùÓĞµÄcollider×é¼ş
+    std::vector<std::shared_ptr<ColliderComponent>> colliders;  // æ‰€æœ‰çš„colliderç»„ä»¶
     std::unordered_set<
         std::pair<std::shared_ptr<ColliderComponent>, 
         std::shared_ptr<ColliderComponent>>, 
@@ -36,18 +36,18 @@ public:
         return instance;
     }
 
-    // ×¢²áÅö×²Ìå
+    // æ³¨å†Œç¢°æ’ä½“
     void RegisterCollider(std::shared_ptr<ColliderComponent> collider) {
         if (collider && std::find(colliders.begin(), colliders.end(), collider) == colliders.end()) {
             colliders.push_back(collider);
         }
     }
 
-    // ×¢ÏúÅö×²Ìå
+    // æ³¨é”€ç¢°æ’ä½“
     void UnregisterCollider(std::shared_ptr<ColliderComponent> collider) {
         auto it = std::find(colliders.begin(), colliders.end(), collider);
         if (it != colliders.end()) {
-            // ÒÆ³ıÏà¹ØµÄÅö×²¼ÇÂ¼
+            // ç§»é™¤ç›¸å…³çš„ç¢°æ’è®°å½•
             std::vector<std::pair<std::shared_ptr<ColliderComponent>, std::shared_ptr<ColliderComponent>>> toRemove;
             for (const auto& pair : currentCollisions) {
                 if (pair.first == collider || pair.second == collider) {
@@ -64,11 +64,11 @@ public:
     }
 
     void Update() {
-        // ·ÖÀë¾²Ì¬ºÍ¶¯Ì¬Åö×²Æ÷ÒÔÌá¸ßĞÔÄÜ
+        // åˆ†ç¦»é™æ€å’ŒåŠ¨æ€ç¢°æ’å™¨ä»¥æé«˜æ€§èƒ½
         std::vector<std::shared_ptr<ColliderComponent>> dynamicColliders;
         std::vector<std::shared_ptr<ColliderComponent>> staticColliders;
 
-		// Çø·Ö¾²Ì¬ºÍ¶¯Ì¬Åö×²Ìå
+		// åŒºåˆ†é™æ€å’ŒåŠ¨æ€ç¢°æ’ä½“
         for (auto collider : colliders) {
             auto gameObj = collider->GetGameObject();
             if (!collider->mEnabled || !gameObj || !gameObj->IsActive()) continue;
@@ -83,7 +83,7 @@ public:
 
         std::vector<std::pair<std::shared_ptr<ColliderComponent>, std::shared_ptr<ColliderComponent>>> newCollisions;
 
-        // ¶¯Ì¬ºÍ¶¯Ì¬Åö×²¼ì²â
+        // åŠ¨æ€å’ŒåŠ¨æ€ç¢°æ’æ£€æµ‹
         for (size_t i = 0; i < dynamicColliders.size(); ++i) {
             auto colliderA = dynamicColliders[i];
             for (size_t j = i + 1; j < dynamicColliders.size(); ++j) {
@@ -98,7 +98,7 @@ public:
             }
         }
 
-        // ¶¯Ì¬ºÍ¾²Ì¬Åö×²¼ì²â
+        // åŠ¨æ€å’Œé™æ€ç¢°æ’æ£€æµ‹
         for (auto dynamicCol : dynamicColliders) {
             for (auto staticCol : staticColliders) {
                 if (CheckCollision(dynamicCol, staticCol)) {
@@ -110,11 +110,11 @@ public:
                 }
             }
         }
-        // ¼ì²âÅö×²½áÊø
+        // æ£€æµ‹ç¢°æ’ç»“æŸ
         DetectEndedCollisions(newCollisions);
     }
 
-    // ÉäÏß¼ì²â
+    // å°„çº¿æ£€æµ‹
     std::shared_ptr<ColliderComponent> Raycast(const Vector& start, const Vector& end, const std::string& tag = "") {
         Vector direction = (end - start).normalized();
         float maxDistance = Vector::distance(start, end);
@@ -128,7 +128,7 @@ public:
 
             SDL_FRect bounds = collider->GetBoundingBox();
 
-            // ÉäÏßÓëAABBÅö×²¼ì²â
+            // å°„çº¿ä¸AABBç¢°æ’æ£€æµ‹
             float t1 = (bounds.x - start.x) / direction.x;
             float t2 = (bounds.x + bounds.w - start.x) / direction.x;
             float t3 = (bounds.y - start.y) / direction.y;
@@ -148,7 +148,7 @@ public:
         return closestHit;
     }
 
-    // ÔÚÒ»¶¨ÇøÓòÄÚ²éÕÒÅö×²Ìå
+    // åœ¨ä¸€å®šåŒºåŸŸå†…æŸ¥æ‰¾ç¢°æ’ä½“
     std::vector<std::shared_ptr<ColliderComponent>> OverlapArea(const SDL_FRect& area, const std::string& tag = "") {
         std::vector<std::shared_ptr<ColliderComponent>> results;
 
@@ -165,24 +165,24 @@ public:
         return results;
     }
 
-    // Çå¿ÕËùÓĞÅö×²Ìå
+    // æ¸…ç©ºæ‰€æœ‰ç¢°æ’ä½“
     void ClearAll() {
         colliders.clear();
         currentCollisions.clear();
     }
 
 private:
-    // ¼ì²éÁ½¸öÅö×²ÌåÊÇ·ñ·¢ÉúÅö×²
+    // æ£€æŸ¥ä¸¤ä¸ªç¢°æ’ä½“æ˜¯å¦å‘ç”Ÿç¢°æ’
     bool CheckCollision(std::shared_ptr<ColliderComponent> a, std::shared_ptr<ColliderComponent> b) {
         SDL_FRect rectA = a->GetBoundingBox();
         SDL_FRect rectB = b->GetBoundingBox();
 
-        // ´ÖÂÔ¼ì²éÓĞÎŞÅö×²
+        // ç²—ç•¥æ£€æŸ¥æœ‰æ— ç¢°æ’
         if (!CheckRectCollision(rectA, rectB)) {
             return false;
         }
 
-        // ¾«È·ĞÎ×´¼ì²é
+        // ç²¾ç¡®å½¢çŠ¶æ£€æŸ¥
         if (a->colliderType == ColliderType::CIRCLE && b->colliderType == ColliderType::CIRCLE) {
             Vector posA = a->GetWorldPosition();
             Vector posB = b->GetWorldPosition();
@@ -202,7 +202,7 @@ private:
         }
     }
 
-    // ¾ØĞÎÅö×²¼ì²â
+    // çŸ©å½¢ç¢°æ’æ£€æµ‹
     bool CheckRectCollision(const SDL_FRect& a, const SDL_FRect& b) const {
         return (a.x < b.x + b.w &&
             a.x + a.w > b.x &&
@@ -210,7 +210,7 @@ private:
             a.y + a.h > b.y);
     }
 
-    // Ô²ĞÎÓë¾ØĞÎÅö×²¼ì²â
+    // åœ†å½¢ä¸çŸ©å½¢ç¢°æ’æ£€æµ‹
     bool CheckCircleRectCollision(const Vector& circleCenter, float radius, const SDL_FRect& rect) const {
         float closestX = std::max(rect.x, std::min(circleCenter.x, rect.x + rect.w));
         float closestY = std::max(rect.y, std::min(circleCenter.y, rect.y + rect.h));
@@ -221,7 +221,7 @@ private:
         return (distanceX * distanceX + distanceY * distanceY) <= (radius * radius);
     }
 
-    // ´¦ÀíÅö×²¿ªÊ¼
+    // å¤„ç†ç¢°æ’å¼€å§‹
     void HandleCollisionEnter(std::shared_ptr<ColliderComponent> a, std::shared_ptr<ColliderComponent> b) {
         if (a->isTrigger && a->onTriggerEnter) {
             a->onTriggerEnter(b);
@@ -238,7 +238,7 @@ private:
         }
     }
 
-    // ´¦ÀíÅö×²½áÊø
+    // å¤„ç†ç¢°æ’ç»“æŸ
     void HandleCollisionExit(std::shared_ptr<ColliderComponent> a, std::shared_ptr<ColliderComponent> b) {
         if (a->isTrigger && a->onTriggerExit) {
             a->onTriggerExit(b);
@@ -255,24 +255,24 @@ private:
         }
     }
 
-    // ´¦ÀíĞÂÅö×²
+    // å¤„ç†æ–°ç¢°æ’
     void HandleNewCollision(std::shared_ptr<ColliderComponent> a,
         std::shared_ptr<ColliderComponent> b,
         const std::pair<std::shared_ptr<ColliderComponent>,
         std::shared_ptr<ColliderComponent>>&collisionPair) {
-        // Èç¹ûÊÇĞÂÅö×²
+        // å¦‚æœæ˜¯æ–°ç¢°æ’
         if (currentCollisions.find(collisionPair) == currentCollisions.end()) {
             HandleCollisionEnter(a, b);
             currentCollisions.insert(collisionPair);
         }
         else {
-            // ³ÖĞøÅö×²
+            // æŒç»­ç¢°æ’
             if (a->onTriggerStay) a->onTriggerStay(b);
             if (b->onTriggerStay) b->onTriggerStay(a);
         }
     }
 
-    // ¼ì²â½áÊøµÄÅö×²
+    // æ£€æµ‹ç»“æŸçš„ç¢°æ’
     void DetectEndedCollisions(const std::vector<std::pair<std::shared_ptr<ColliderComponent>,
         std::shared_ptr<ColliderComponent>>>& newCollisions) {
         std::vector<std::pair<std::shared_ptr<ColliderComponent>,

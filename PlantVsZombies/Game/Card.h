@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #ifndef _CARD_H
 #define _CARD_H
 
@@ -8,16 +8,16 @@
 #include "ClickableComponent.h"
 #include "TransformComponent.h"
 
-constexpr float CARD_SCALE = 0.55f; // ¿¨ÅÆËõ·Å±ÈÀı
-constexpr int CARD_WIDTH = static_cast<int>(100 * CARD_SCALE); // ¿í¶È
-constexpr int CARD_HEIGHT = static_cast<int>(140 * CARD_SCALE); // ¸ß¶È
+constexpr float CARD_SCALE = 0.55f; // å¡ç‰Œç¼©æ”¾æ¯”ä¾‹
+constexpr int CARD_WIDTH = static_cast<int>(100 * CARD_SCALE); // å®½åº¦
+constexpr int CARD_HEIGHT = static_cast<int>(140 * CARD_SCALE); // é«˜åº¦
 
 
 class Card : public GameObject {
 public:
     Card(PlantType plantType, int sunCost, float cooldown, bool isInChooseCardUI = false);
 
-    // ±ã½İ·½·¨
+    // ä¾¿æ·æ–¹æ³•
     std::shared_ptr<CardComponent> GetCardComponent() { return GetComponent<CardComponent>(); }
     std::shared_ptr<TransformComponent> GetTransform() { return mTransform.lock(); }
     std::shared_ptr<CardDisplayComponent> GetDisplay() { return GetComponent<CardDisplayComponent>(); }
@@ -34,12 +34,12 @@ public:
 
 private:
 	std::weak_ptr<TransformComponent> mTransform;
-    bool mIsInChooseCardUI = false;     // ÊÇ·ñÊÇÔÚÑ¡¿¨½çÃæÖĞµÄ¿¨ÅÆ
+    bool mIsInChooseCardUI = false;     // æ˜¯å¦æ˜¯åœ¨é€‰å¡ç•Œé¢ä¸­çš„å¡ç‰Œ
 
-    Vector m_originalPos;      // Ô­Ê¼Î»ÖÃ£¨ÔÚÑ¡¿¨½çÃæÖĞµÄ¹Ì¶¨Î»ÖÃ£©
-    Vector m_targetPos;        // Ä¿±êÎ»ÖÃ£¨ÓÃÓÚ¶¯»­£©
+    Vector m_originalPos;      // åŸå§‹ä½ç½®ï¼ˆåœ¨é€‰å¡ç•Œé¢ä¸­çš„å›ºå®šä½ç½®ï¼‰
+    Vector m_targetPos;        // ç›®æ ‡ä½ç½®ï¼ˆç”¨äºåŠ¨ç”»ï¼‰
     bool m_isMoving = false;
-    float m_moveSpeed = 600.0f; // ÒÆ¶¯ËÙ¶È
+    float m_moveSpeed = 600.0f; // ç§»åŠ¨é€Ÿåº¦
 
     void SetupComponents(PlantType plantType, int sunCost, float cooldown);
 };

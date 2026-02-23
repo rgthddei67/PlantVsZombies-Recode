@@ -1,4 +1,4 @@
-#include "CardSlotManager.h"
+ï»¿#include "CardSlotManager.h"
 #include "../ResourceKeys.h"
 #include "GameObject.h"
 #include "GameObjectManager.h"
@@ -20,7 +20,7 @@ CardSlotManager::CardSlotManager(Board* board)
 }
 
 void CardSlotManager::Start() {
-	// ÎªËùÓĞCellÉèÖÃµã»÷»Øµ÷
+	// ä¸ºæ‰€æœ‰Cellè®¾ç½®ç‚¹å‡»å›è°ƒ
 	if (mBoard) {
 		for (int row = 0; row < mBoard->mRows; ++row) {
 			for (int col = 0; col < mBoard->mColumns; ++col) {
@@ -38,20 +38,20 @@ void CardSlotManager::Start() {
 void CardSlotManager::Update() {
 	static int lastSun = 0;
 
-	// Èç¹ûÓĞÑ¡ÖĞµÄ¿¨ÅÆ£¬¸üĞÂÊó±êĞüÍ£µÄCell
+	// å¦‚æœæœ‰é€‰ä¸­çš„å¡ç‰Œï¼Œæ›´æ–°é¼ æ ‡æ‚¬åœçš„Cell
 	auto selected = selectedCard.lock();
 	if (selected) {
 		auto& input = GameAPP::GetInstance().GetInputHandler();
-		Vector mouseScreen = input.GetMousePosition();  // ÆÁÄ»×ø±ê
+		Vector mouseScreen = input.GetMousePosition();  // å±å¹•åæ ‡
 
-		UpdatePreviewToMouse(mouseScreen);              // ´«ÈëÆÁÄ»×ø±ê
-		// ÓÒ¼üÈ¡ÏûÑ¡Ôñ
+		UpdatePreviewToMouse(mouseScreen);              // ä¼ å…¥å±å¹•åæ ‡
+		// å³é”®å–æ¶ˆé€‰æ‹©
 		if (input.IsMouseButtonPressed(SDL_BUTTON_RIGHT)) {
 			DeselectCard();
 		}
 	}
 
-	// ¼ì²âÑô¹â±ä»¯£¬¸üĞÂËùÓĞ¿¨ÅÆ×´Ì¬
+	// æ£€æµ‹é˜³å…‰å˜åŒ–ï¼Œæ›´æ–°æ‰€æœ‰å¡ç‰ŒçŠ¶æ€
 	if (mBoard && lastSun != mBoard->GetSun()) {
 		lastSun = mBoard->GetSun();
 		UpdateAllCardsState();
@@ -62,16 +62,16 @@ void CardSlotManager::UpdateAllCardsState() {
 	for (auto& cardWeak : cards) {
 		if (auto card = cardWeak.lock()) {
 			if (auto cardComp = card->GetComponent<CardComponent>()) {
-				// Èç¹û¿¨ÅÆÕıÔÚÀäÈ´£¬²»Ç¿ÖÆ¸üĞÂ×´Ì¬£¬Ö»¸üĞÂÀäÈ´½ø¶È
+				// å¦‚æœå¡ç‰Œæ­£åœ¨å†·å´ï¼Œä¸å¼ºåˆ¶æ›´æ–°çŠ¶æ€ï¼Œåªæ›´æ–°å†·å´è¿›åº¦
 				if (cardComp->IsCooldown()) {
-					// Ö»¸üĞÂÀäÈ´½ø¶ÈÏÔÊ¾
+					// åªæ›´æ–°å†·å´è¿›åº¦æ˜¾ç¤º
 					if (auto display = cardComp->GetCardDisplayComponent()) {
 						float progress = 1.0f - (cardComp->GetCooldownProgress());
 						display->SetCooldownProgress(progress);
 					}
 				}
 				else {
-					// ²»ÔÚÀäÈ´×´Ì¬£¬²Å¸üĞÂ×´Ì¬
+					// ä¸åœ¨å†·å´çŠ¶æ€ï¼Œæ‰æ›´æ–°çŠ¶æ€
 					cardComp->ForceStateUpdate();
 				}
 			}
@@ -80,12 +80,12 @@ void CardSlotManager::UpdateAllCardsState() {
 }
 
 void CardSlotManager::Draw(SDL_Renderer* renderer) {
-	// Èç¹ûÓĞÑ¡ÖĞµÄ¿¨ÅÆ£¬»æÖÆµ±Ç°ĞüÍ£CellµÄ¸ßÁÁ
+	// å¦‚æœæœ‰é€‰ä¸­çš„å¡ç‰Œï¼Œç»˜åˆ¶å½“å‰æ‚¬åœCellçš„é«˜äº®
 	if (auto selected = selectedCard.lock()) {
 		auto& input = GameAPP::GetInstance().GetInputHandler();
 		Vector mouseScreen = input.GetMousePosition();
 
-		// ¸üĞÂÔ¤ÀÀÎ»ÖÃ£¨
+		// æ›´æ–°é¢„è§ˆä½ç½®ï¼ˆ
 		UpdatePlantPreviewPosition(mouseScreen);
 	}
 }
@@ -108,26 +108,26 @@ void CardSlotManager::SelectCard(std::weak_ptr<GameObject> cardWeak) {
 		return;
 	}
 
-	// ¼ì²éÑô¹âÊÇ·ñ×ã¹»
+	// æ£€æŸ¥é˜³å…‰æ˜¯å¦è¶³å¤Ÿ
 	if (!CanAfford(cardComp->GetSunCost())) {
 		return;
 	}
 
-	// Èç¹ûµã»÷µÄÊÇÒÑÑ¡ÖĞµÄ¿¨ÅÆ£¬È¡ÏûÑ¡Ôñ
+	// å¦‚æœç‚¹å‡»çš„æ˜¯å·²é€‰ä¸­çš„å¡ç‰Œï¼Œå–æ¶ˆé€‰æ‹©
 	auto currentSelected = selectedCard.lock();
 	if (currentSelected == card) {
 		DeselectCard();
 		return;
 	}
 
-	// È¡ÏûÖ®Ç°µÄÑ¡Ôñ
+	// å–æ¶ˆä¹‹å‰çš„é€‰æ‹©
 	if (currentSelected) {
 		if (auto prevCardComp = currentSelected->GetComponent<CardComponent>()) {
 			prevCardComp->SetSelected(false);
 		}
 	}
 
-	// Ñ¡ÔñĞÂ¿¨ÅÆ
+	// é€‰æ‹©æ–°å¡ç‰Œ
 	selectedCard = card;
 	if (cardComp) {
 		cardComp->SetSelected(true);
@@ -195,13 +195,13 @@ void CardSlotManager::CreateCellPlantPreview(PlantType plantType, std::shared_pt
 			GameDataManager& plantMgr = GameDataManager::GetInstance();
 			Vector plantOffset = plantMgr.GetPlantOffset(plantType);
 
-			Vector centerPos = cell->GetCenterPosition();          // ÊÀ½ç×ø±ê
-			Vector plantPosition = centerPos + plantOffset;        // ÊÀ½ç×ø±ê
+			Vector centerPos = cell->GetCenterPosition();          // ä¸–ç•Œåæ ‡
+			Vector plantPosition = centerPos + plantOffset;        // ä¸–ç•Œåæ ‡
 
 			cellPlantPreview->SetRenderOrder(LAYER_GAME_OBJECT - 5000);
 
 			if (auto transform = cellPlantPreview->GetTransformComponent()) {
-				transform->SetPosition(plantPosition);             // ÉèÖÃÎªÊÀ½ç×ø±ê
+				transform->SetPosition(plantPosition);             // è®¾ç½®ä¸ºä¸–ç•Œåæ ‡
 			}
 
 			cellPlantPreview->SetAlpha(0.35f);
@@ -216,20 +216,20 @@ void CardSlotManager::UpdatePlantPreviewPosition(const Vector& mouseScreen) {
 	auto selected = selectedCard.lock();
 	if (!selected) return;
 
-	// ½«Êó±êÆÁÄ»×ø±ê×ª»»ÎªÊÀ½ç×ø±ê
+	// å°†é¼ æ ‡å±å¹•åæ ‡è½¬æ¢ä¸ºä¸–ç•Œåæ ‡
 	Vector mouseWorld = GameAPP::GetInstance().GetCamera().ScreenToWorld(mouseScreen);
 
 	std::shared_ptr<Cell> hoveredCell = nullptr;
 
 	if (mBoard) {
-		// ±éÀúËùÓĞ Cell£¬Ê¹ÓÃÊÀ½ç×ø±ê¼ì²âÊó±êÊÇ·ñÔÚ Cell µÄÅö×²Æ÷ÄÚ
+		// éå†æ‰€æœ‰ Cellï¼Œä½¿ç”¨ä¸–ç•Œåæ ‡æ£€æµ‹é¼ æ ‡æ˜¯å¦åœ¨ Cell çš„ç¢°æ’å™¨å†…
 		for (int row = 0; row < mBoard->mRows; ++row) {
 			for (int col = 0; col < mBoard->mColumns; ++col) {
 				auto cell = mBoard->GetCell(row, col);
 				if (cell) {
 					auto collider = cell->GetComponent<ColliderComponent>();
 					if (collider && collider->mEnabled) {
-						if (collider->ContainsPoint(mouseWorld)) {   // Ê¹ÓÃÊÀ½ç×ø±ê
+						if (collider->ContainsPoint(mouseWorld)) {   // ä½¿ç”¨ä¸–ç•Œåæ ‡
 							hoveredCell = cell;
 							break;
 						}
@@ -268,16 +268,16 @@ void CardSlotManager::UpdatePlantPreviewPosition(const Vector& mouseScreen) {
 			GameDataManager& plantMgr = GameDataManager::GetInstance();
 			Vector plantOffset = plantMgr.GetPlantOffset(cardComp->GetPlantType());
 
-			Vector centerPos = hoveredCell->GetCenterPosition();               // ÊÀ½ç×ø±ê
-			Vector plantPosition = centerPos + plantOffset;                    // ÊÀ½ç×ø±ê
+			Vector centerPos = hoveredCell->GetCenterPosition();               // ä¸–ç•Œåæ ‡
+			Vector plantPosition = centerPos + plantOffset;                    // ä¸–ç•Œåæ ‡
 
 			if (auto transform = cellPlantPreview->GetComponent<TransformComponent>()) {
-				transform->SetPosition(plantPosition);                         // ÉèÖÃÊÀ½ç×ø±ê
+				transform->SetPosition(plantPosition);                         // è®¾ç½®ä¸–ç•Œåæ ‡
 			}
 		}
 	}
 
-	// ¸üĞÂÊó±êÔ¤ÀÀÖ²ÎïÎ»ÖÃ£ºÖ±½ÓÊ¹ÓÃÊÀ½ç×ø±ê + Æ«ÒÆ
+	// æ›´æ–°é¼ æ ‡é¢„è§ˆæ¤ç‰©ä½ç½®ï¼šç›´æ¥ä½¿ç”¨ä¸–ç•Œåæ ‡ + åç§»
 	UpdatePreviewToMouse(mouseWorld);
 }
 
@@ -286,11 +286,11 @@ void CardSlotManager::UpdatePreviewToMouse(const Vector& mouseWorld) {
 		GameDataManager& plantMgr = GameDataManager::GetInstance();
 		Vector plantOffset = plantMgr.GetPlantOffset(plantPreview->mPlantType);
 
-		// Ô¤ÀÀÖ²ÎïÎ»ÖÃ = Êó±êÊÀ½ç×ø±ê + Æ«ÒÆ
+		// é¢„è§ˆæ¤ç‰©ä½ç½® = é¼ æ ‡ä¸–ç•Œåæ ‡ + åç§»
 		Vector plantPosition = mouseWorld + plantOffset;
 
 		if (auto transform = plantPreview->GetComponent<TransformComponent>()) {
-			transform->SetPosition(plantPosition);      // ÊÀ½ç×ø±ê
+			transform->SetPosition(plantPosition);      // ä¸–ç•Œåæ ‡
 		}
 
 		plantPreview->mRow = -1;
@@ -301,9 +301,9 @@ void CardSlotManager::UpdatePreviewToMouse(const Vector& mouseWorld) {
 void CardSlotManager::UpdatePreviewToCell(std::weak_ptr<Cell> cell) {
 	if (plantPreview) {
 		if (auto lockedCell = cell.lock()) {
-			Vector centerPos = lockedCell->GetCenterPosition();      // ÊÀ½ç×ø±ê
+			Vector centerPos = lockedCell->GetCenterPosition();      // ä¸–ç•Œåæ ‡
 			if (auto transform = plantPreview->GetComponent<TransformComponent>()) {
-				transform->SetPosition(centerPos);                  // ÊÀ½ç×ø±ê
+				transform->SetPosition(centerPos);                  // ä¸–ç•Œåæ ‡
 			}
 		}
 	}
@@ -325,12 +325,12 @@ bool CardSlotManager::CanPlaceInCell(const std::shared_ptr<Cell>& cell) const {
 	auto selected = selectedCard.lock();
 	if (!selected || !cell) return false;
 
-	// ¼ì²é¸ñ×ÓÊÇ·ñÒÑÓĞÖ²Îï
+	// æ£€æŸ¥æ ¼å­æ˜¯å¦å·²æœ‰æ¤ç‰©
 	if (!cell->IsEmpty()) {
 		return false;
 	}
 
-	// ¼ì²éÑô¹âÊÇ·ñ×ã¹»
+	// æ£€æŸ¥é˜³å…‰æ˜¯å¦è¶³å¤Ÿ
 	if (auto cardComp = selected->GetComponent<CardComponent>()) {
 		if (!CanAfford(cardComp->GetSunCost())) {
 			return false;
@@ -358,14 +358,14 @@ void CardSlotManager::PlacePlantInCell(int row, int col) {
 	DestroyCellPlantPreview();
 	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_PLANT, 0.5f);
 
-	// ´´½¨Ö²Îï
+	// åˆ›å»ºæ¤ç‰©
 	auto plant = mBoard->CreatePlant(cardComp->GetPlantType(), row, col);
 
 	if (plant) {
 		cardComp->StartCooldown();
 	}
 
-	// È¡ÏûÑ¡Ôñ
+	// å–æ¶ˆé€‰æ‹©
 	DeselectCard();
 }
 

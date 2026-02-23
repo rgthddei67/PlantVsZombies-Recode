@@ -1,4 +1,4 @@
-#include "ChooseCardUI.h"
+ï»¿#include "ChooseCardUI.h"
 #include "SceneManager.h"
 #include "../ResourceKeys.h"
 #include "../ResourceManager.h"
@@ -30,7 +30,7 @@ ChooseCardUI::ChooseCardUI(GameScene* gameScene)
 		ResourceKeys::Textures::IMAGE_SEEDCHOOSER_BUTTON);
 	button->SetTextColor(SDL_Color{ 211, 157, 42 ,255 });
 	button->SetHoverTextColor(SDL_Color{ 211, 157, 42 ,255 });
-	button->SetText(u8"     Ò»ÆğÒ¡¹ö°É£¡", ResourceKeys::Fonts::FONT_FZCQ, 20);
+	button->SetText(u8"     ä¸€èµ·æ‘‡æ»šå§ï¼", ResourceKeys::Fonts::FONT_FZCQ, 20);
 	button->SetEnabled(false);
 	button->SetClickCallBack([this](bool isChecked) {
 		if (mGameScene) {
@@ -42,7 +42,7 @@ ChooseCardUI::ChooseCardUI(GameScene* gameScene)
 ChooseCardUI::~ChooseCardUI() {
 	SceneManager::GetInstance().GetCurrectSceneUIManager().RemoveButton(mButton.lock());
 	mGameScene = nullptr;
-	//TODO ÎïÌåÎö¹¹µÄÊ±ºò£¬Èç¹ûÓĞÆäËûÎïÌåÃ»ÓĞÏú»Ù£¬²»ÒªÔÚÕâ¸öÊ±ºòÏú»Ù£¬ÒòÎªÃ»ÓÃ
+	//TODO ç‰©ä½“ææ„çš„æ—¶å€™ï¼Œå¦‚æœæœ‰å…¶ä»–ç‰©ä½“æ²¡æœ‰é”€æ¯ï¼Œä¸è¦åœ¨è¿™ä¸ªæ—¶å€™é”€æ¯ï¼Œå› ä¸ºæ²¡ç”¨
 }
 
 void ChooseCardUI::RemoveAllCards() {
@@ -55,17 +55,17 @@ void ChooseCardUI::RemoveAllCards() {
 
 void ChooseCardUI::TransferSelectedCardsTo(CardSlotManager* manager) {
 	for (auto& card : mSelectedCards) {
-		// ÉèÖÃ¿¨ÅÆ×´Ì¬ÎªÓÎÏ·ÄÚ
+		// è®¾ç½®å¡ç‰ŒçŠ¶æ€ä¸ºæ¸¸æˆå†…
 		card->SetIsInChooseCardUI(false);
 		if (auto comp = card->GetCardComponent()) {
 			comp->SetIsInChooseCardUI(false);
 			comp->SetCardGameClick(card);
 		}
-		// Ìí¼Óµ½¿¨²Û¹ÜÀíÆ÷
+		// æ·»åŠ åˆ°å¡æ§½ç®¡ç†å™¨
 		if (manager) {
 			manager->AddCard(card);
 		}
-		// ´Ó mCards ÖĞÒÆ³ı
+		// ä» mCards ä¸­ç§»é™¤
 		auto it = std::find(mCards.begin(), mCards.end(), card);
 		if (it != mCards.end()) {
 			mCards.erase(it);
@@ -75,7 +75,7 @@ void ChooseCardUI::TransferSelectedCardsTo(CardSlotManager* manager) {
 }
 
 void ChooseCardUI::Draw(SDL_Renderer* renderer) {
-	// »æÖÆ±³¾°
+	// ç»˜åˆ¶èƒŒæ™¯
 	if (mCardUITexture) {
 		Vector pos = this->GetPosition();
 		int w, h;
@@ -92,12 +92,12 @@ void ChooseCardUI::Draw(SDL_Renderer* renderer) {
 
 void ChooseCardUI::AddCard(PlantType type) {
 
-	// ¼ÆËãµ±Ç°¿¨ÅÆÊıÁ¿¶ÔÓ¦µÄĞĞÁĞ
+	// è®¡ç®—å½“å‰å¡ç‰Œæ•°é‡å¯¹åº”çš„è¡Œåˆ—
 	int cardCount = static_cast<int>(mCards.size());
 	int row = cardCount / MAX_CARDS_PER_ROW;
 	int col = cardCount % MAX_CARDS_PER_ROW;
 
-	// ¼ÆËãÎ»ÖÃ
+	// è®¡ç®—ä½ç½®
 	float posX = START_X + col * (CARD_WIDTH + CARD_HORIZONTAL_SPACING);
 	float posY = START_Y + row * (CARD_HEIGHT + CARD_VERTICAL_SPACING);
 
@@ -123,7 +123,7 @@ void ChooseCardUI::RemoveCard(std::shared_ptr<Card> card)
 		
 	}
 
-	// Èç¹ûÒÑÑ¡ÖĞ£¬Ò²´ÓÑ¡ÖĞÁĞ±íÖĞÒÆ³ı
+	// å¦‚æœå·²é€‰ä¸­ï¼Œä¹Ÿä»é€‰ä¸­åˆ—è¡¨ä¸­ç§»é™¤
 	auto selIt = std::find(mSelectedCards.begin(), mSelectedCards.end(), card);
 	if (selIt != mSelectedCards.end()) {
 		mSelectedCards.erase(selIt);
@@ -144,13 +144,13 @@ bool ChooseCardUI::ToggleCardSelection(std::shared_ptr<Card> card) {
 
 	auto it = std::find(mSelectedCards.begin(), mSelectedCards.end(), card);
 	if (it != mSelectedCards.end()) {
-		// ÒÑÑ¡ÖĞ -> ÒÆ³ı
+		// å·²é€‰ä¸­ -> ç§»é™¤
 		mSelectedCards.erase(it);
 		UpdateTargetPositions();
 		return false;
 	}
 	else {
-		// Î´Ñ¡ÖĞ -> Ìí¼Ó£¬¼ì²éÊıÁ¿ÏŞÖÆ
+		// æœªé€‰ä¸­ -> æ·»åŠ ï¼Œæ£€æŸ¥æ•°é‡é™åˆ¶
 		if (mSelectedCards.size() >= MAX_SELECTED) {
 			return false;
 		}
@@ -161,7 +161,7 @@ bool ChooseCardUI::ToggleCardSelection(std::shared_ptr<Card> card) {
 }
 
 void ChooseCardUI::UpdateTargetPositions() {
-	// ÎªËùÓĞ¿¨ÅÆ¼ÆËãÄ¿±êÎ»ÖÃ
+	// ä¸ºæ‰€æœ‰å¡ç‰Œè®¡ç®—ç›®æ ‡ä½ç½®
 	int random = GameRandom::Range(0, 1);
 	if (random == 0)
 	{
@@ -177,19 +177,19 @@ void ChooseCardUI::UpdateTargetPositions() {
 	for (size_t i = 0; i < mCards.size(); ++i) {
 		auto card = mCards[i];
 		Vector targetPos = Vector(0, 0);
-		// ¼ì²éÊÇ·ñÔÚÑ¡ÖĞÁĞ±íÖĞ
+		// æ£€æŸ¥æ˜¯å¦åœ¨é€‰ä¸­åˆ—è¡¨ä¸­
 		auto it = std::find(mSelectedCards.begin(), mSelectedCards.end(), card);
 		if (it != mSelectedCards.end()) {
-			// ¸ù¾İÔÚÁĞ±íÖĞµÄË÷Òı¼ÆËã²ÛÎ»Î»ÖÃ
+			// æ ¹æ®åœ¨åˆ—è¡¨ä¸­çš„ç´¢å¼•è®¡ç®—æ§½ä½ä½ç½®
 			int index = static_cast<int>(it - mSelectedCards.begin());
 			targetPos.x = SLOT_START_X + index * SLOT_SPACING;
 			targetPos.y = SLOT_START_Y;
 		}
 		else {
-			// ·µ»ØÔ­Ê¼Î»ÖÃ
+			// è¿”å›åŸå§‹ä½ç½®
 			targetPos = card->GetOriginalPosition();
 		}
-		// ÉèÖÃÄ¿±êÎ»ÖÃ£¬Æô¶¯¶¯»­
+		// è®¾ç½®ç›®æ ‡ä½ç½®ï¼Œå¯åŠ¨åŠ¨ç”»
 		card->SetTargetPosition(targetPos);
 	}
 }

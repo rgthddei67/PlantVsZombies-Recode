@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #ifndef _CLICKABLE_COMPONENT_H
 #define _CLICKABLE_COMPONENT_H
 
@@ -10,9 +10,9 @@ class ColliderComponent;
 
 class ClickableComponent : public Component {
 public:
-	bool IsClickable = true;    // ÊÇ·ñ¿Éµã»÷
-	bool ConsumeEvent = true;   // ÊÇ·ñÏûºÄµã»÷ÊÂ¼ş£¬×èÖ¹¸üµÍ²ã¶ÔÏóÏìÓ¦
-    bool ChangeCursorOnHover = true;   // ĞüÍ£Ê±¸Ä±ä¹â±ê
+	bool IsClickable = true;    // æ˜¯å¦å¯ç‚¹å‡»
+	bool ConsumeEvent = true;   // æ˜¯å¦æ¶ˆè€—ç‚¹å‡»äº‹ä»¶ï¼Œé˜»æ­¢æ›´ä½å±‚å¯¹è±¡å“åº”
+    bool ChangeCursorOnHover = true;   // æ‚¬åœæ—¶æ”¹å˜å…‰æ ‡
 
     std::function<void()> onClick;
     std::function<void()> onMouseEnter;
@@ -34,15 +34,15 @@ public:
 private:
     std::shared_ptr<ColliderComponent> mCollider;
 
-    // ´æ´¢µ±Ç°Ö¡´¦Àí¹ıµÄµã»÷ÊÂ¼ş
+    // å­˜å‚¨å½“å‰å¸§å¤„ç†è¿‡çš„ç‚¹å‡»äº‹ä»¶
     inline static std::unordered_set<ClickableComponent*> s_processedEvents;
 
-    // Êó±ê×´Ì¬
+    // é¼ æ ‡çŠ¶æ€
     bool mouseOver = false;
     bool mouseDown = false;
     bool prevMouseOver = false;
 
-    // µ±Ç°Ö¡ÊÇ·ñÓĞÊó±êĞüÍ£ÔÚ¿Éµã»÷¶ÔÏóÉÏ
+    // å½“å‰å¸§æ˜¯å¦æœ‰é¼ æ ‡æ‚¬åœåœ¨å¯ç‚¹å‡»å¯¹è±¡ä¸Š
     inline static bool s_hoveringClickable = false;
 };
 

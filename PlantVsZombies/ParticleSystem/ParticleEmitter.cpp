@@ -1,4 +1,4 @@
-#include "ParticleEmitter.h"
+ï»¿#include "ParticleEmitter.h"
 #include "../DeltaTime.h"
 #include "../Game/Definit.h"
 #include "../GameApp.h"
@@ -41,7 +41,7 @@ void ParticleEmitter::Update() {
 
     float deltaTime = DeltaTime::GetDeltaTime();
 
-    // ×Ô¶¯Ïú»Ù¼ÆÊ±
+    // è‡ªåŠ¨é”€æ¯è®¡æ—¶
     if (autoDestroyTime > 0) {
         autoDestroyTimer += deltaTime;
         if (autoDestroyTimer >= autoDestroyTime) {
@@ -50,7 +50,7 @@ void ParticleEmitter::Update() {
         }
     }
 
-    // Ò»´ÎĞÔ·¢Éä¿ØÖÆ
+    // ä¸€æ¬¡æ€§å‘å°„æ§åˆ¶
     if (isOneShot && particlesEmitted >= particlesToEmit) {
         spawnRate = 0;
         if (GetActiveParticleCount() == 0) {
@@ -58,7 +58,7 @@ void ParticleEmitter::Update() {
         }
     }
 
-    // ×Ô¶¯·¢Éä
+    // è‡ªåŠ¨å‘å°„
     if (spawnRate > 0 && (!isOneShot || particlesEmitted < particlesToEmit)) {
         spawnTimer += deltaTime;
         float spawnInterval = 1.0f / spawnRate;
@@ -71,7 +71,7 @@ void ParticleEmitter::Update() {
         }
     }
 
-    // ¸üĞÂËùÓĞÁ£×Ó
+    // æ›´æ–°æ‰€æœ‰ç²’å­
     for (size_t i = 0; i < particles.size(); i++)
     {
         auto& particle = particles[i];
@@ -123,19 +123,19 @@ void ParticleEmitter::EmitSingleParticle() {
         }
     }
 
-    // Ëæ»ú½Ç¶È£¨¶È£©£¬È»ºó×ª»»Îª»¡¶È
+    // éšæœºè§’åº¦ï¼ˆåº¦ï¼‰ï¼Œç„¶åè½¬æ¢ä¸ºå¼§åº¦
     float randomAngleDeg = GameRandom::Range(0.0f, config.spreadAngle);
     float randomAngleRad = randomAngleDeg * (3.14159f / 180.0f);
 
-    // Ëæ»úËÙ¶È
+    // éšæœºé€Ÿåº¦
     float randomSpeed = GameRandom::Range(config.minVelocity, config.maxVelocity);
 
-    // ¼ÆËãËÙ¶ÈÏòÁ¿
+    // è®¡ç®—é€Ÿåº¦å‘é‡
     float cosAngle = cosf(randomAngleRad);
     float sinAngle = sinf(randomAngleRad);
     particle->velocity = Vector(cosAngle * randomSpeed, sinAngle * randomSpeed);
 
-    // Ëæ»úĞı×ªËÙ¶È£¨-5 µ½ 5 ¶È/Ãë£©
+    // éšæœºæ—‹è½¬é€Ÿåº¦ï¼ˆ-5 åˆ° 5 åº¦/ç§’ï¼‰
     particle->rotationSpeed = GameRandom::Range(-5.0f, 5.0f);
 }
 
@@ -156,11 +156,11 @@ void ParticleEmitter::Draw(SDL_Renderer* renderer)
         auto& particle = particles[i];
         if (particle.active) {
             if (particle.useTexture && particle.texture) {
-                // »ñÈ¡Ô´ÎÆÀíÇøÓòµÄ³ß´ç
+                // è·å–æºçº¹ç†åŒºåŸŸçš„å°ºå¯¸
                 float srcW = static_cast<float>(particle.textureRect.w);
                 float srcH = static_cast<float>(particle.textureRect.h);
 
-                // Ä¿±ê³ß´ç = Ô­Ê¼³ß´ç ¡Á size£¨Ëõ·Å±¶Êı£©
+                // ç›®æ ‡å°ºå¯¸ = åŸå§‹å°ºå¯¸ Ã— sizeï¼ˆç¼©æ”¾å€æ•°ï¼‰
                 float destW = srcW * particle.size;
                 float destH = srcH * particle.size;
 
@@ -168,7 +168,7 @@ void ParticleEmitter::Draw(SDL_Renderer* renderer)
                 (Vector(particle.position.x - destW * 0.5f,
                    particle.position.y - destH * 0.5f));
 
-                // ¼ÆËãÄ¿±ê¾ØĞÎ£¨ÒÔÁ£×ÓÎ»ÖÃÎªÖĞĞÄ£©
+                // è®¡ç®—ç›®æ ‡çŸ©å½¢ï¼ˆä»¥ç²’å­ä½ç½®ä¸ºä¸­å¿ƒï¼‰
                 SDL_FRect destRect = {
                     screenPositon.x,
                     screenPositon.y,
@@ -176,12 +176,12 @@ void ParticleEmitter::Draw(SDL_Renderer* renderer)
                     destH
                 };
 
-                // ÉèÖÃÑÕÉ«µ÷ÖÆ£¨ÈÃÎÆÀíÊÜÁ£×ÓÑÕÉ«Ó°Ïì£©
+                // è®¾ç½®é¢œè‰²è°ƒåˆ¶ï¼ˆè®©çº¹ç†å—ç²’å­é¢œè‰²å½±å“ï¼‰
                 SDL_SetTextureColorMod(particle.texture,
                     particle.color.r, particle.color.g, particle.color.b);
                 SDL_SetTextureAlphaMod(particle.texture, particle.color.a);
 
-                // äÖÈ¾ÎÆÀí
+                // æ¸²æŸ“çº¹ç†
                 SDL_RenderCopyExF(renderer, particle.texture,
                     &particle.textureRect, &destRect,
                     particle.rotation, NULL, SDL_FLIP_NONE);
@@ -190,7 +190,7 @@ void ParticleEmitter::Draw(SDL_Renderer* renderer)
                 Vector screenPositon = GameAPP::GetInstance().GetCamera().WorldToScreen
                 (Vector(particle.position.x - particle.size * 0.5f,
                     particle.position.y - particle.size * 0.5f));
-                // ÎŞÎÆÀíÁ£×Ó£º±£³ÖÕı·½ĞÎ£¬size ×÷Îª±ß³¤
+                // æ— çº¹ç†ç²’å­ï¼šä¿æŒæ­£æ–¹å½¢ï¼Œsize ä½œä¸ºè¾¹é•¿
                 SDL_FRect rect = {
                     screenPositon.x,
                     screenPositon.y,

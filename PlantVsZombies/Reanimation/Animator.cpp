@@ -1,4 +1,4 @@
-#include "Animator.h"
+ï»¿#include "Animator.h"
 #include "../DeltaTime.h"
 #include "../ResourceManager.h"
 #include <algorithm>
@@ -19,7 +19,7 @@ Animator::~Animator()
 }
 
 void Animator::Die() {
-    // ÏÈÈÃËùÓĞ¸½¼ÓµÄ×Ó¶¯»­ËÀÍö
+    // å…ˆè®©æ‰€æœ‰é™„åŠ çš„å­åŠ¨ç”»æ­»äº¡
     for (size_t i = 0; i < mExtraInfos.size(); i++)
     {
         for (size_t j = 0; j < mExtraInfos[i].mAttachedReanims.size(); j++)
@@ -48,7 +48,7 @@ void Animator::Init(std::shared_ptr<Reanimation> reanim) {
                 mTrackIndicesMap[track->mTrackName] = i;
                 TrackExtraInfo extra;
 
-                // Ô¤¼ÓÔØ¸Ã¹ìµÀÓÃµ½µÄËùÓĞÍ¼Æ¬
+                // é¢„åŠ è½½è¯¥è½¨é“ç”¨åˆ°çš„æ‰€æœ‰å›¾ç‰‡
                 for (int i = 0; i < static_cast<int>(reanim->GetTrackCount()); i++) {
                     auto track = reanim->GetTrack(i);
                     if (track) {
@@ -77,18 +77,18 @@ void Animator::AddFrameEvent(int frameIndex, std::function<void()> callback) {
 bool Animator::PlayTrack(const std::string& trackName, float speed, float blendTime) {
     auto range = GetTrackRange(trackName);
     if (range.first == -1 || range.second == -1) {
-        std::cerr << "¶¯»­¹ìµÀ²»´æÔÚ»òÎª¿Õ: " << trackName << std::endl;
+        std::cerr << "åŠ¨ç”»è½¨é“ä¸å­˜åœ¨æˆ–ä¸ºç©º: " << trackName << std::endl;
         return false;
     }
 
-    // ±£´æµ±Ç°Ö¡ÓÃÓÚ¹ı¶É
+    // ä¿å­˜å½“å‰å¸§ç”¨äºè¿‡æ¸¡
     mFrameIndexBlendBuffer = static_cast<int>(mFrameIndexNow);
 
-    // ÉèÖÃĞÂµÄÖ¡·¶Î§
+    // è®¾ç½®æ–°çš„å¸§èŒƒå›´
     SetFrameRange(range.first, range.second);
     mFrameIndexNow = static_cast<float>(range.first);
 
-    // ÉèÖÃ¹ı¶ÉĞ§¹û
+    // è®¾ç½®è¿‡æ¸¡æ•ˆæœ
     if (blendTime > 0) {
         mReanimBlendCounterMax = blendTime;
         mReanimBlendCounter = blendTime;
@@ -138,13 +138,13 @@ void Animator::Update() {
     if (!mIsPlaying || !mReanim) return;
 
     float deltaTime = DeltaTime::GetDeltaTime();
-    float oldFrame = mFrameIndexNow;   // ¼ÇÂ¼¸üĞÂÇ°µÄÖ¡Ë÷Òı
+    float oldFrame = mFrameIndexNow;   // è®°å½•æ›´æ–°å‰çš„å¸§ç´¢å¼•
 
-    // Ö¡Ë÷ÒıÇ°½ø
+    // å¸§ç´¢å¼•å‰è¿›
     float frameAdvance = deltaTime * mFPS * mSpeed;
     mFrameIndexNow += frameAdvance;
 
-    // ´¦Àí¶¯»­½áÊø/Ñ­»·Âß¼­
+    // å¤„ç†åŠ¨ç”»ç»“æŸ/å¾ªç¯é€»è¾‘
     bool reachedEnd = mFrameIndexNow >= mFrameIndexEnd;
     if (reachedEnd) {
         switch (mPlayingState) {
@@ -170,25 +170,25 @@ void Animator::Update() {
         }
     }
 
-    // ÏŞÖÆÖ¡·¶Î§
+    // é™åˆ¶å¸§èŒƒå›´
     mFrameIndexNow = std::clamp(mFrameIndexNow, mFrameIndexBegin, mFrameIndexEnd);
 
-    // ----- ´¥·¢Ö¡ÊÂ¼ş£¨Ò»´ÎĞÔ£¬´¥·¢ºó×Ô¶¯ÒÆ³ı£©-----
+    // ----- è§¦å‘å¸§äº‹ä»¶ï¼ˆä¸€æ¬¡æ€§ï¼Œè§¦å‘åè‡ªåŠ¨ç§»é™¤ï¼‰-----
     int oldInt = static_cast<int>(oldFrame);
     int newInt = static_cast<int>(mFrameIndexNow);
 
     if (newInt >= oldInt) {
-        // Õı³£Ç°½ø»ò²»±ä
+        // æ­£å¸¸å‰è¿›æˆ–ä¸å˜
         for (int f = oldInt + 1; f <= newInt; ++f) {
             auto range = mFrameEvents.equal_range(f);
             for (auto it = range.first; it != range.second;) {
-                it->second();               // Ö´ĞĞ»Øµ÷
-                it = mFrameEvents.erase(it); // ÒÆ³ı£¨Ò»´ÎĞÔ£©
+                it->second();               // æ‰§è¡Œå›è°ƒ
+                it = mFrameEvents.erase(it); // ç§»é™¤ï¼ˆä¸€æ¬¡æ€§ï¼‰
             }
         }
     }
     else {
-        // ·¢ÉúÁË»ØÈÆ£¨Ñ­»·²¥·Å£©
+        // å‘ç”Ÿäº†å›ç»•ï¼ˆå¾ªç¯æ’­æ”¾ï¼‰
         int endInt = static_cast<int>(mFrameIndexEnd);
         for (int f = oldInt + 1; f <= endInt; ++f) {
             auto range = mFrameEvents.equal_range(f);
@@ -207,7 +207,7 @@ void Animator::Update() {
         }
     }
 
-    // ¸üĞÂ»ìºÏ¼ÆÊ±Æ÷
+    // æ›´æ–°æ··åˆè®¡æ—¶å™¨
     if (mReanimBlendCounter > 0) {
         mReanimBlendCounter -= deltaTime;
         if (mReanimBlendCounter < 0) mReanimBlendCounter = 0;
@@ -228,16 +228,16 @@ void Animator::Update() {
 void Animator::Draw(SDL_Renderer* renderer, float baseX, float baseY, float Scale) {
     if (!mReanim || !renderer) return;
 
-    // ±£´æäÖÈ¾Æ÷»ìºÏÄ£Ê½
+    // ä¿å­˜æ¸²æŸ“å™¨æ··åˆæ¨¡å¼
     SDL_BlendMode oldRenderBlend;
     SDL_GetRenderDrawBlendMode(renderer, &oldRenderBlend);
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 
-    // ÊÕ¼¯ËùÓĞ»æÖÆÃüÁî
+    // æ”¶é›†æ‰€æœ‰ç»˜åˆ¶å‘½ä»¤
     std::vector<AnimDrawCommand> commands;
     CollectDrawCommands(commands, baseX, baseY, Scale);
 
-    // ±£´æËùÓĞÓÃµ½µÄÎÆÀíµÄÔ­Ê¼×´Ì¬
+    // ä¿å­˜æ‰€æœ‰ç”¨åˆ°çš„çº¹ç†çš„åŸå§‹çŠ¶æ€
     std::map<SDL_Texture*, std::tuple<SDL_BlendMode, Uint8, Uint8, Uint8, Uint8>> originalStates;
     for (const auto& cmd : commands) {
         if (originalStates.find(cmd.texture) == originalStates.end()) {
@@ -250,13 +250,13 @@ void Animator::Draw(SDL_Renderer* renderer, float baseX, float baseY, float Scal
         }
     }
 
-    // Ë³ĞòÉ¨ÃèÃüÁî£¬ºÏ²¢Á¬ĞøÏàÍ¬ÎÆÀí+»ìºÏÄ£Ê½µÄËÄ±ßĞÎ
+    // é¡ºåºæ‰«æå‘½ä»¤ï¼Œåˆå¹¶è¿ç»­ç›¸åŒçº¹ç†+æ··åˆæ¨¡å¼çš„å››è¾¹å½¢
     size_t i = 0;
     while (i < commands.size()) {
         SDL_Texture* currentTexture = commands[i].texture;
         SDL_BlendMode currentBlend = commands[i].blendMode;
 
-        // ÉèÖÃµ±Ç°Åú´ÎµÄÎÆÀí×´Ì¬£¨ÑÕÉ«µ÷ÖÆÓÉ¶¥µã¿ØÖÆ£©
+        // è®¾ç½®å½“å‰æ‰¹æ¬¡çš„çº¹ç†çŠ¶æ€ï¼ˆé¢œè‰²è°ƒåˆ¶ç”±é¡¶ç‚¹æ§åˆ¶ï¼‰
         SDL_SetTextureBlendMode(currentTexture, currentBlend);
         SDL_SetTextureColorMod(currentTexture, 255, 255, 255);
         SDL_SetTextureAlphaMod(currentTexture, 255);
@@ -265,7 +265,7 @@ void Animator::Draw(SDL_Renderer* renderer, float baseX, float baseY, float Scal
         std::vector<int> indices;
         int baseVertex = 0;
 
-        // ÊÕ¼¯ËùÓĞÁ¬ĞøµÄÏàÍ¬ÎÆÀí+»ìºÏÄ£Ê½µÄÃüÁî
+        // æ”¶é›†æ‰€æœ‰è¿ç»­çš„ç›¸åŒçº¹ç†+æ··åˆæ¨¡å¼çš„å‘½ä»¤
         while (i < commands.size() &&
             commands[i].texture == currentTexture &&
             commands[i].blendMode == currentBlend) {
@@ -289,14 +289,14 @@ void Animator::Draw(SDL_Renderer* renderer, float baseX, float baseY, float Scal
             ++i;
         }
 
-        // »æÖÆµ±Ç°Åú´Î
+        // ç»˜åˆ¶å½“å‰æ‰¹æ¬¡
         if (!vertices.empty()) {
             SDL_RenderGeometry(renderer, currentTexture, vertices.data(), static_cast<int>(vertices.size()),
                 indices.data(), static_cast<int>(indices.size()));
         }
     }
 
-    // »Ö¸´ËùÓĞÎÆÀíµÄÔ­Ê¼×´Ì¬
+    // æ¢å¤æ‰€æœ‰çº¹ç†çš„åŸå§‹çŠ¶æ€
     for (const auto& [texture, state] : originalStates) {
         auto [blend, r, g, b, a] = state;
         SDL_SetTextureBlendMode(texture, blend);
@@ -305,21 +305,6 @@ void Animator::Draw(SDL_Renderer* renderer, float baseX, float baseY, float Scal
     }
 
     SDL_SetRenderDrawBlendMode(renderer, oldRenderBlend);
-}
-
-void Animator::DrawTexturedQuad(SDL_Renderer* renderer, SDL_Texture* texture,
-    const float points[8], SDL_Color color)
-{
-    SDL_Vertex vertices[4];
-    for (int i = 0; i < 4; ++i) {
-        vertices[i].position.x = points[i * 2];
-        vertices[i].position.y = points[i * 2 + 1];
-        vertices[i].color = color;
-        vertices[i].tex_coord.x = (i == 0 || i == 3) ? 0.0f : 1.0f;
-        vertices[i].tex_coord.y = (i == 0 || i == 1) ? 0.0f : 1.0f;
-    }
-    int indices[6] = { 0, 1, 2, 0, 2, 3 };
-    SDL_RenderGeometry(renderer, texture, vertices, 4, indices, 6);
 }
 
 void Animator::CollectDrawCommands(std::vector<AnimDrawCommand>& outCommands, float baseX, float baseY, float Scale) const {
@@ -379,7 +364,7 @@ void Animator::CollectDrawCommands(std::vector<AnimDrawCommand>& outCommands, fl
             float combinedAlpha = transform.a * mAlpha;
             Uint8 baseAlpha = static_cast<Uint8>(std::clamp(combinedAlpha * 255.0f, 0.0f, 255.0f));
 
-            // Õı³£»æÖÆ
+            // æ­£å¸¸ç»˜åˆ¶
             AnimDrawCommand cmd;
             cmd.texture = image;
             cmd.blendMode = SDL_BLENDMODE_BLEND;
@@ -387,14 +372,14 @@ void Animator::CollectDrawCommands(std::vector<AnimDrawCommand>& outCommands, fl
             memcpy(cmd.points, worldPoints, sizeof(worldPoints));
             outCommands.push_back(cmd);
 
-            // ·¢¹âĞ§¹û
+            // å‘å…‰æ•ˆæœ
             if (mEnableExtraAdditiveDraw) {
                 cmd.blendMode = SDL_BLENDMODE_ADD;
                 cmd.color = mExtraAdditiveColor;
                 outCommands.push_back(cmd);
             }
 
-            // ¸²¸Ç²ãĞ§¹û
+            // è¦†ç›–å±‚æ•ˆæœ
             if (mEnableExtraOverlayDraw) {
                 cmd.blendMode = SDL_BLENDMODE_BLEND;
                 cmd.color = mExtraOverlayColor;
@@ -403,7 +388,7 @@ void Animator::CollectDrawCommands(std::vector<AnimDrawCommand>& outCommands, fl
             }
         }
 
-        // ×Ó¶¯»­
+        // å­åŠ¨ç”»
         if (i < static_cast<int>(mExtraInfos.size())) {
             for (const auto& weakChild : mExtraInfos[i].mAttachedReanims) {
                 auto child = weakChild.lock();
@@ -574,7 +559,7 @@ bool Animator::AttachAnimator(const std::string& trackName, std::shared_ptr<Anim
     }
 
     for (auto* extra : extras) {
-        // ±ÜÃâÖØ¸´Ìí¼Ó
+        // é¿å…é‡å¤æ·»åŠ 
         bool alreadyExists = false;
         for (const auto& weak : extra->mAttachedReanims) {
             if (auto existing = weak.lock()) {
@@ -598,7 +583,7 @@ void Animator::DetachAnimator(const std::string& trackName, std::shared_ptr<Anim
         vec.erase(std::remove_if(vec.begin(), vec.end(),
             [&child](const std::weak_ptr<Animator>& weak) {
                 auto sp = weak.lock();
-                return sp == child || !sp; // ÒÆ³ıÖ¸¶¨¶ÔÏó»òÒÑÊ§Ğ§µÄ
+                return sp == child || !sp; // ç§»é™¤æŒ‡å®šå¯¹è±¡æˆ–å·²å¤±æ•ˆçš„
             }),
             vec.end());
     }
@@ -636,7 +621,7 @@ std::pair<int, int> Animator::GetTrackRange(const std::string& trackName) {
 
     if (start == -1) {
         std::cout << "GetTrackRange: no f=0 frames, returning invalid." << std::endl;
-        return { -1, -1 };   // ¸ÄÎª·µ»ØÎŞĞ§·¶Î§
+        return { -1, -1 };   // æ”¹ä¸ºè¿”å›æ— æ•ˆèŒƒå›´
     }
 
     int end = start;
@@ -680,24 +665,24 @@ void Animator::SetFrameRangeToDefault() {
 float Animator::GetTrackVelocity(const std::string& trackName) const {
     if (!mReanim) return 0.0f;
 
-    // »ñÈ¡¹ìµÀ
+    // è·å–è½¨é“
     auto tracks = GetTracksByName(trackName);
     if (tracks.empty()) return 0.0f;
     TrackInfo* track = tracks[0];
     if (!track || track->mFrames.empty()) return 0.0f;
 
-    // »ñÈ¡µ±Ç°Ö¡ÕûÊıË÷Òı£¬²¢ÏŞÖÆÔÚÓĞĞ§·¶Î§ÄÚ
+    // è·å–å½“å‰å¸§æ•´æ•°ç´¢å¼•ï¼Œå¹¶é™åˆ¶åœ¨æœ‰æ•ˆèŒƒå›´å†…
     int frameBefore = static_cast<int>(mFrameIndexNow);
     int maxIndex = static_cast<int>(track->mFrames.size()) - 1;
     frameBefore = std::clamp(frameBefore, 0, maxIndex);
     int frameAfter = std::min(frameBefore + 1, maxIndex);
 
-    // »ñÈ¡Ç°ºóÖ¡µÄ X ×ø±ê
+    // è·å–å‰åå¸§çš„ X åæ ‡
     float xBefore = track->mFrames[frameBefore].x;
     float xAfter = track->mFrames[frameAfter].x;
     float dx = xAfter - xBefore;
 
-    // ¼ÆËãËÙ¶È
+    // è®¡ç®—é€Ÿåº¦
     float velocity = dx * mSpeed;
     return std::abs(velocity);
 }
@@ -761,14 +746,14 @@ TrackFrameTransform Animator::GetInterpolatedTransform(int trackIndex) const {
     int frameAfter = std::min(frameBefore + 1, static_cast<int>(track->mFrames.size() - 1));
 
     if (mReanimBlendCounter > 0) {
-        // ¹ı¶É¶¯»­²åÖµ
+        // è¿‡æ¸¡åŠ¨ç”»æ’å€¼
         GetDeltaTransform(track->mFrames[mFrameIndexBlendBuffer],
             track->mFrames[frameBefore],
             1.0f - mReanimBlendCounter / mReanimBlendCounterMax,
             result, true);
     }
     else {
-        // Õı³£Ö¡¼ä²åÖµ
+        // æ­£å¸¸å¸§é—´æ’å€¼
         if (frameBefore >= 0 && frameAfter < static_cast<int>(track->mFrames.size())) {
             GetDeltaTransform(track->mFrames[frameBefore],
                 track->mFrames[frameAfter],
@@ -779,7 +764,7 @@ TrackFrameTransform Animator::GetInterpolatedTransform(int trackIndex) const {
         }
     }
 
-    // ÉèÖÃÎÆÀíÖ¸Õë£ºÈ¡Ç°Ò»Ö¡µÄÎÆÀí
+    // è®¾ç½®çº¹ç†æŒ‡é’ˆï¼šå–å‰ä¸€å¸§çš„çº¹ç†
     if (frameBefore >= 0 && frameBefore < static_cast<int>(track->mFrames.size())) {
         result.image = track->mFrames[frameBefore].image;
     }
@@ -808,7 +793,7 @@ int Animator::GetFirstTrackIndexByName(const std::string& trackName) const {
     return -1;
 }
 
-// ÑÕÉ«»ìºÏº¯Êı
+// é¢œè‰²æ··åˆå‡½æ•°
 int ColorComponentMultiply(int theColor1, int theColor2) {
     return std::clamp(theColor1 * theColor2 / 255, 0, 255);
 }

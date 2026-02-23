@@ -1,4 +1,4 @@
-#include "GameObject.h"
+ï»¿#include "GameObject.h"
 #include "Component.h"
 #include "CollisionSystem.h"
 #include "ColliderComponent.h"
@@ -48,7 +48,7 @@ void GameObject::Update() {
 void GameObject::Draw(SDL_Renderer* renderer) {
     if (!mActive || !mStarted) return;
 
-    // ÊÕ¼¯ËùÓĞÆôÓÃµÄ×é¼ş
+    // æ”¶é›†æ‰€æœ‰å¯ç”¨çš„ç»„ä»¶
     std::vector<std::shared_ptr<Component>> componentsToDraw;
     componentsToDraw.reserve(mComponents.size());
 
@@ -58,14 +58,14 @@ void GameObject::Draw(SDL_Renderer* renderer) {
         }
     }
 
-    // °´»æÖÆË³ĞòÅÅĞò£ºmDrawOrder Ô½´óÔ½ÏÈ»æÖÆ£¨ÔÚµ×²ã£©
-    // Ê¹ÓÃÎÈ¶¨ÅÅĞò£¬µ± mDrawOrder ÏàµÈÊ±±£³ÖÔ­Ë³Ğò£¨ÎÈ¶¨ÅÅĞò£©
+    // æŒ‰ç»˜åˆ¶é¡ºåºæ’åºï¼šmDrawOrder è¶Šå¤§è¶Šå…ˆç»˜åˆ¶ï¼ˆåœ¨åº•å±‚ï¼‰
+    // ä½¿ç”¨ç¨³å®šæ’åºï¼Œå½“ mDrawOrder ç›¸ç­‰æ—¶ä¿æŒåŸé¡ºåºï¼ˆç¨³å®šæ’åºï¼‰
     std::stable_sort(componentsToDraw.begin(), componentsToDraw.end(),
         [](const std::shared_ptr<Component>& a, const std::shared_ptr<Component>& b) {
-            return a->GetDrawOrder() < b->GetDrawOrder();  // ½µĞòÅÅĞò
+            return a->GetDrawOrder() < b->GetDrawOrder();  // é™åºæ’åº
         });
 
-    // »æÖÆ×é¼ş
+    // ç»˜åˆ¶ç»„ä»¶
     for (auto& component : componentsToDraw) {
         component->Draw(renderer);
     }

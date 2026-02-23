@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #ifndef _RESOURCEMANAGER_H
 #define _RESOURCEMANAGER_H
 #include "./Reanimation/Reanimation.h"
@@ -18,7 +18,7 @@ class Animator;
 class ResourceManager
 {
 private:
-    std::unordered_map<std::string, std::shared_ptr<Reanimation>> mReanimations;  // ÒÑ¼ÓÔØµÄ¶¯»­
+    std::unordered_map<std::string, std::shared_ptr<Reanimation>> mReanimations;  // å·²åŠ è½½çš„åŠ¨ç”»
     std::unordered_map<std::string, SDL_Texture*> textures;
     std::unordered_map<std::string, std::unordered_map<int, TTF_Font*>> fonts;
     std::unordered_map<std::string, Mix_Chunk*> sounds;
@@ -32,19 +32,19 @@ private:
     {
     }
 
-    // ´ÓSurface´´½¨ÎÆÀí²¢ÉèÖÃÍ¨ÓÃÊôĞÔ
+    // ä»Surfaceåˆ›å»ºçº¹ç†å¹¶è®¾ç½®é€šç”¨å±æ€§
     SDL_Texture* CreateTextureFromSurface(SDL_Surface* surface);
-    // ¼ÓÔØ·Ö¸îÌùÍ¼
+    // åŠ è½½åˆ†å‰²è´´å›¾
     bool LoadTiledTexture(const TiledImageInfo& info, const std::string& prefix);
 
 public:
-    // µ¥Àı·ÃÎÊ
+    // å•ä¾‹è®¿é—®
     static ResourceManager& GetInstance();
     static void ReleaseInstance();
 
     bool Initialize(SDL_Renderer* renderer, const std::string& configPath = "./resources/resources.xml");
 
-    // Í³Ò»¼ÓÔØ·½·¨
+    // ç»Ÿä¸€åŠ è½½æ–¹æ³•
     bool LoadAllGameImages();
     bool LoadAllParticleTextures();
     bool LoadAllFonts();
@@ -52,14 +52,14 @@ public:
     bool LoadAllMusic();
     bool LoadAllReanimations();
 
-    // »ñÈ¡×ÊÔ´×é
+    // è·å–èµ„æºç»„
     const std::vector<TiledImageInfo>& GetGameImageInfos() const { return configReader.GetGameImageInfos(); }
     const std::vector<TiledImageInfo>& GetParticleTextureInfos() const { return configReader.GetParticleTextureInfos(); }
     const std::vector<std::string>& GetSoundPaths() const { return configReader.GetSoundPaths(); }
     const std::vector<std::string>& GetMusicPaths() const { return configReader.GetMusicPaths(); }
     const std::unordered_map<std::string, std::string>& GetAnimationPaths() const { return configReader.GetReanimationPaths(); }
 
-    // ÎÆÀí¹ÜÀí
+    // çº¹ç†ç®¡ç†
     SDL_Texture* LoadTexture(const std::string& path, const std::string& key = "");
     SDL_Texture* GetTexture(const std::string& key);
     void UnloadTexture(const std::string& key);
@@ -69,28 +69,28 @@ public:
     std::string AnimationTypeToString(AnimationType type);
     void UnloadReanimation(const std::string& key);
 
-    // ×ÖÌå¹ÜÀí
+    // å­—ä½“ç®¡ç†
     bool LoadFont(const std::string& path, const std::string& key = "");
     TTF_Font* GetFont(const std::string& key, int size);
     void UnloadFont(const std::string& key);
     void UnloadFontSize(const std::string& key, int size);
     void CleanupUnusedFontSizes();
 
-    // »ñÈ¡×ÖÌåĞÅÏ¢
+    // è·å–å­—ä½“ä¿¡æ¯
     std::vector<int> GetLoadedFontSizes(const std::string& key) const;
     int GetLoadedFontCount() const;
 
-    // ÒôĞ§¹ÜÀí
+    // éŸ³æ•ˆç®¡ç†
     Mix_Chunk* LoadSound(const std::string& path, const std::string& key = "");
     Mix_Chunk* GetSound(const std::string& key);
     void UnloadSound(const std::string& key);
 
-    // ÒôÀÖ¹ÜÀí
+    // éŸ³ä¹ç®¡ç†
     Mix_Music* LoadMusic(const std::string& path, const std::string& key = "");
     Mix_Music* GetMusic(const std::string& key);
     void UnloadMusic(const std::string& key);
 
-    // ÅúÁ¿²Ù×÷
+    // æ‰¹é‡æ“ä½œ
     void LoadTexturePack(const std::vector<std::pair<std::string, std::string>>& texturePaths);
     void UnloadAll();
 
@@ -100,9 +100,9 @@ public:
     bool HasMusic(const std::string& key) const;
     bool HasReanimation(const std::string& key) const;
 
-    // ¸ù¾İÂ·¾¶Éú³É±ê×¼»¯µÄkey
+    // æ ¹æ®è·¯å¾„ç”Ÿæˆæ ‡å‡†åŒ–çš„key
     std::string GenerateTextureKey(const std::string& path);
-    // ´óĞ´µÄ
+    // å¤§å†™çš„
     std::string GenerateStandardKey(const std::string& path, const std::string& prefix);
 
     ResourceManager(const ResourceManager&) = delete;

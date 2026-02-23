@@ -1,24 +1,24 @@
-#pragma once
+ï»¿#pragma once
 #ifndef _H_BULLETTYPE_H
 #define _H_BULLETTYPE_H
 
 constexpr int NULL_BULLET_ID = -1024;
 
 enum class BulletType {
-	BULLET_PEA,				// Íã¶¹
-	BULLET_SNOWPEA,			// ±ùÍã¶¹
-	BULLET_CABBAGE,			// ¾íÐÄ²Ë
-	BULLET_MELON,			// Î÷¹Ï
-	BULLET_PUFF,			// æß×Ó
-	BULLET_WINTERMELON,		// ±ù¹Ï
-	BULLET_FIREBALL,		// »ðÍã¶¹
-	BULLET_STAR,			// ÐÇÐÇ
-	BULLET_SPIKE,			// ¼â´Ì
-	BULLET_BASKETBALL,		// ÀºÇò
-	BULLET_KERNEL,			// ÓñÃ×Á£
-	BULLET_COBBIG,			// ÓñÃ×¼ÓÅ©ÅÚ
-	BULLET_BUTTER,			// »ÆÓÍ
-	BULLET_ZOMBIE_PEA,		// ½©Ê¬Íã¶¹
+	BULLET_PEA,				// è±Œè±†
+	BULLET_SNOWPEA,			// å†°è±Œè±†
+	BULLET_CABBAGE,			// å·å¿ƒèœ
+	BULLET_MELON,			// è¥¿ç“œ
+	BULLET_PUFF,			// å­¢å­
+	BULLET_WINTERMELON,		// å†°ç“œ
+	BULLET_FIREBALL,		// ç«è±Œè±†
+	BULLET_STAR,			// æ˜Ÿæ˜Ÿ
+	BULLET_SPIKE,			// å°–åˆº
+	BULLET_BASKETBALL,		// ç¯®çƒ
+	BULLET_KERNEL,			// çŽ‰ç±³ç²’
+	BULLET_COBBIG,			// çŽ‰ç±³åŠ å†œç‚®
+	BULLET_BUTTER,			// é»„æ²¹
+	BULLET_ZOMBIE_PEA,		// åƒµå°¸è±Œè±†
 	NUM_BULLETS,
 };
 

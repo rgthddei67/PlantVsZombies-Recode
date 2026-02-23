@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #ifndef _SUNFLOWER_H
 #define _SUNFLOWER_H
 
@@ -11,28 +11,28 @@ class SunFlower : public Plant
 private:
     float mProduceTimer = 15.0f;
     float mProduceTime = 20.0f;
-    bool mIsGlowingForProduction = false;  // ±ê¼ÇÊÇ·ñÕıÔÚÎªÉú²ú·¢¹â
-    float mProductionGlowStartTimer = 0.0f;  // ·¢¹â¿ªÊ¼Ê±¼ä
+    bool mIsGlowingForProduction = false;  // æ ‡è®°æ˜¯å¦æ­£åœ¨ä¸ºç”Ÿäº§å‘å…‰
+    float mProductionGlowStartTimer = 0.0f;  // å‘å…‰å¼€å§‹æ—¶é—´
 
 public:
-    using Plant::Plant;		// ¼Ì³Ğ¹¹Ôìº¯Êı
+    using Plant::Plant;		// ç»§æ‰¿æ„é€ å‡½æ•°
 
     void PlantUpdate() override
     {
         Plant::PlantUpdate();
         if (!mIsGlowingForProduction) {
-            // Õı³£¼ÆÊ±Éú²ú
+            // æ­£å¸¸è®¡æ—¶ç”Ÿäº§
             mProduceTimer += DeltaTime::GetDeltaTime();
             if (mProduceTimer >= mProduceTime) {
                 SetGlowingTimer(0.75f);
                 mIsGlowingForProduction = true;
-                mProductionGlowStartTimer = mProduceTimer;  // ¼ÇÂ¼¿ªÊ¼·¢¹âµÄÊ±¼äµã
+                mProductionGlowStartTimer = mProduceTimer;  // è®°å½•å¼€å§‹å‘å…‰çš„æ—¶é—´ç‚¹
             }
         }
         else {
-            // ÕıÔÚÎªÉú²ú¶ø·¢¹â
+            // æ­£åœ¨ä¸ºç”Ÿäº§è€Œå‘å…‰
             if (mProduceTimer >= mProductionGlowStartTimer + 0.55f) {
-                // 2.5Ãë·¢¹â½áÊø£¬Éú²úÑô¹â
+                // 2.5ç§’å‘å…‰ç»“æŸï¼Œç”Ÿäº§é˜³å…‰
                 float offsetX = GameRandom::Range(-30.0f, 35.0f);
                 Vector position = GetPosition();
                 mBoard->CreateSun(
@@ -40,13 +40,13 @@ public:
                     position.y,
                     true);
 
-                // ÖØÖÃ×´Ì¬
+                // é‡ç½®çŠ¶æ€
                 mProduceTimer = 0.0f;
                 mIsGlowingForProduction = false;
                 mProductionGlowStartTimer = 0.0f;
             }
             else {
-                // ¼ÌĞø¼ÆÊ±
+                // ç»§ç»­è®¡æ—¶
                 mProduceTimer += DeltaTime::GetDeltaTime();
             }
         }

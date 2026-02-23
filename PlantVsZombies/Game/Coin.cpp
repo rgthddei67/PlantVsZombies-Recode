@@ -1,4 +1,4 @@
-#include "Coin.h"
+ï»¿#include "Coin.h"
 #include "Board.h"
 #include "../DeltaTime.h"
 
@@ -62,7 +62,7 @@ void Coin::Update()
 	}
 	else
 	{
-		// Ëõ·Å¶¯»­Íê³ÉÇ°²»¿ªÊ¼ÏûÊ§¼ÆÊ±
+		// ç¼©æ”¾åŠ¨ç”»å®Œæˆå‰ä¸å¼€å§‹æ¶ˆå¤±è®¡æ—¶
 		if (!mScaleAnimationFinished) return;
 
 		mVanlishTimer += DeltaTime::GetDeltaTime();
@@ -149,7 +149,7 @@ void Coin::UpdateScale()
 	mScaleTimer += DeltaTime::GetDeltaTime();
 	float t = mScaleTimer / mScaleDuration;
 
-	t = t * t * t; // Á¢·½»ºÈë£¬¿ªÊ¼Âý£¬½áÊø¿ì
+	t = t * t * t; // ç«‹æ–¹ç¼“å…¥ï¼Œå¼€å§‹æ…¢ï¼Œç»“æŸå¿«
 
 	if (t >= 1.0f) {
 		t = 1.0f;

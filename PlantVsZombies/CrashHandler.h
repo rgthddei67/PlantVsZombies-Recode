@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #ifndef _CRASH_HANDLER_H
 #define _CRASH_HANDLER_H
 
@@ -13,38 +13,38 @@ private:
     static LONG64 lastUACTime;
 
 public:
-    // ³õÊ¼»¯±ÀÀ£´¦ÀíÆ÷(VEH)
+    // åˆå§‹åŒ–å´©æºƒå¤„ç†å™¨(VEH)
     static void Initialize();
 
-    // ÇåÀí±ÀÀ£´¦ÀíÆ÷
+    // æ¸…ç†å´©æºƒå¤„ç†å™¨
     static void Cleanup();
 
 private:
-    // VEH Òì³£´¦Àíº¯Êı
+    // VEH å¼‚å¸¸å¤„ç†å‡½æ•°
     static LONG WINAPI VectoredExceptionHandler(PEXCEPTION_POINTERS exceptionInfo);
 
-    // ´¦Àí±ÀÀ£µÄÖ÷º¯Êı
+    // å¤„ç†å´©æºƒçš„ä¸»å‡½æ•°
     static void HandleCrash(PEXCEPTION_POINTERS exceptionInfo);
 
-    // ´¦ÀíÕ»Òç³ö±ÀÀ£
+    // å¤„ç†æ ˆæº¢å‡ºå´©æºƒ
 	static void HandleStackOverflowMinimal(PEXCEPTION_POINTERS exceptionInfo);
 
-    // ÊÇ²»ÊÇ±ÀÀ£Òì³£
+    // æ˜¯ä¸æ˜¯å´©æºƒå¼‚å¸¸
     static bool IsCrashException(DWORD exceptionCode);
 
-    // Éú³É±ÀÀ£±¨¸æ
+    // ç”Ÿæˆå´©æºƒæŠ¥å‘Š
     static std::string GenerateCrashReport(PEXCEPTION_POINTERS exceptionInfo);
 
-    // ÏÔÊ¾±ÀÀ£¶Ô»°¿ò
+    // æ˜¾ç¤ºå´©æºƒå¯¹è¯æ¡†
     static void ShowCrashDialog(PEXCEPTION_POINTERS exceptionInfo, const std::string& reportPath);
 
-    // »ñÈ¡Òì³£´úÂëµÄÃèÊö
+    // è·å–å¼‚å¸¸ä»£ç çš„æè¿°
     static std::string GetExceptionCodeString(DWORD exceptionCode);
 
-    // »ñÈ¡Õ»¸ú×ÙĞÅÏ¢
+    // è·å–æ ˆè·Ÿè¸ªä¿¡æ¯
     static std::string GetStackTrace(PEXCEPTION_POINTERS exceptionInfo);
 
-    // »ñÈ¡Ä£¿éÃû³Æ
+    // è·å–æ¨¡å—åç§°
     static std::string GetModuleName(HMODULE module);
 
     static bool IsUACByTimeWindow(PEXCEPTION_POINTERS exceptionInfo);

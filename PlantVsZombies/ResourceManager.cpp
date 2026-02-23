@@ -1,4 +1,4 @@
-#include "ResourceManager.h"
+ï»¿#include "ResourceManager.h"
 #include "./Game/Plant/GameDataManager.h"
 #include <algorithm>
 
@@ -38,17 +38,17 @@ bool ResourceManager::Initialize(SDL_Renderer* renderer, const std::string& conf
 bool ResourceManager::LoadAllGameImages() {
     bool success = true;
 #ifdef _DEBUG
-    std::cout << "¿ªÊ¼¼ÓÔØÓÎÏ·Í¼Æ¬×ÊÔ´..." << std::endl;
+    std::cout << "å¼€å§‹åŠ è½½æ¸¸æˆå›¾ç‰‡èµ„æº..." << std::endl;
 #endif
     const auto& infos = GetGameImageInfos();
     for (const auto& info : infos) {
         if (!LoadTiledTexture(info, "IMAGE_")) {
-            std::cerr << "¼ÓÔØÓÎÏ·Í¼Æ¬Ê§°Ü: " << info.path << std::endl;
+            std::cerr << "åŠ è½½æ¸¸æˆå›¾ç‰‡å¤±è´¥: " << info.path << std::endl;
             success = false;
         }
     }
 #ifdef _DEBUG
-    std::cout << "ÓÎÏ·Í¼Æ¬×ÊÔ´¼ÓÔØÍê³É£¬³É¹¦: "
+    std::cout << "æ¸¸æˆå›¾ç‰‡èµ„æºåŠ è½½å®Œæˆï¼ŒæˆåŠŸ: "
         << textures.size() << "/" << infos.size() << std::endl;
 #endif
     return success;
@@ -57,17 +57,17 @@ bool ResourceManager::LoadAllGameImages() {
 bool ResourceManager::LoadAllParticleTextures() {
     bool success = true;
 #ifdef _DEBUG
-    std::cout << "¿ªÊ¼¼ÓÔØÁ£×ÓÎÆÀí..." << std::endl;
+    std::cout << "å¼€å§‹åŠ è½½ç²’å­çº¹ç†..." << std::endl;
 #endif
     const auto& infos = GetParticleTextureInfos();
     for (const auto& info : infos) {
         if (!LoadTiledTexture(info, "PARTICLE_")) {
-            std::cerr << "¼ÓÔØÁ£×ÓÎÆÀíÊ§°Ü: " << info.path << std::endl;
+            std::cerr << "åŠ è½½ç²’å­çº¹ç†å¤±è´¥: " << info.path << std::endl;
             success = false;
         }
     }
 #ifdef _DEBUG
-    std::cout << "Á£×ÓÎÆÀí¼ÓÔØÍê³É" << std::endl;
+    std::cout << "ç²’å­çº¹ç†åŠ è½½å®Œæˆ" << std::endl;
 #endif
     return success;
 }
@@ -76,49 +76,49 @@ bool ResourceManager::LoadFont(const std::string& path, const std::string& key)
 {
     std::string actualKey = key.empty() ? path : key;
 
-    // ¼ì²éÊÇ·ñÒÑ¼ÓÔØ
+    // æ£€æŸ¥æ˜¯å¦å·²åŠ è½½
     if (fonts.find(actualKey) != fonts.end())
     {
-        return true; // ×ÖÌåÒÑ¼ÓÔØ
+        return true; // å­—ä½“å·²åŠ è½½
     }
 
-    // ³õÊ¼»¯¿ÕµÄ×ÖÌå´óĞ¡Ó³Éä
+    // åˆå§‹åŒ–ç©ºçš„å­—ä½“å¤§å°æ˜ å°„
     fonts[actualKey] = std::unordered_map<int, TTF_Font*>();
 #ifdef _DEBUG
-    std::cout << "×¢²á×ÖÌå: " << path << " (key: " << actualKey << ")" << std::endl;
+    std::cout << "æ³¨å†Œå­—ä½“: " << path << " (key: " << actualKey << ")" << std::endl;
 #endif
     return true;
 }
 
-// »ñÈ¡´ø´óĞ¡×ÖÌå
+// è·å–å¸¦å¤§å°å­—ä½“
 TTF_Font* ResourceManager::GetFont(const std::string& key, int size)
 {
     if (key.empty() || size <= 0)
     {
-        std::cerr << "ÎŞĞ§µÄ×ÖÌå²ÎÊı: key=" << key << ", size=" << size << std::endl;
+        std::cerr << "æ— æ•ˆçš„å­—ä½“å‚æ•°: key=" << key << ", size=" << size << std::endl;
         return nullptr;
     }
 
     auto fontIt = fonts.find(key);
     if (fontIt == fonts.end())
     {
-        std::cerr << "×ÖÌåÎ´×¢²á: '" << key << "'" << std::endl;
+        std::cerr << "å­—ä½“æœªæ³¨å†Œ: '" << key << "'" << std::endl;
         return nullptr;
     }
 
-    // ¼ì²é¸Ã´óĞ¡ÊÇ·ñÒÑ¼ÓÔØ
+    // æ£€æŸ¥è¯¥å¤§å°æ˜¯å¦å·²åŠ è½½
     auto& sizeMap = fontIt->second;
     auto sizeIt = sizeMap.find(size);
     if (sizeIt != sizeMap.end())
     {
         return sizeIt->second;
     }
-    // ÕÒµ½×ÖÌåÎÄ¼şÂ·¾¶
+    // æ‰¾åˆ°å­—ä½“æ–‡ä»¶è·¯å¾„
     std::string fontPath;
     const auto& fontPaths = configReader.GetFontPaths();
     for (const auto& path : fontPaths)
     {
-        // ´ÓÂ·¾¶ÖĞÌáÈ¡ÎÄ¼şÃû£¨²»º¬À©Õ¹Ãû£©½øĞĞ±È½Ï
+        // ä»è·¯å¾„ä¸­æå–æ–‡ä»¶åï¼ˆä¸å«æ‰©å±•åï¼‰è¿›è¡Œæ¯”è¾ƒ
         std::string filename = path.substr(path.find_last_of("/\\") + 1);
         std::string fileKey = filename.substr(0, filename.find_last_of('.'));
         if (fileKey == key)
@@ -130,13 +130,13 @@ TTF_Font* ResourceManager::GetFont(const std::string& key, int size)
 
     if (fontPath.empty())
     {
-        // Èç¹ûÃ»ÕÒµ½£¬³¢ÊÔÊ¹ÓÃÍêÕûÂ·¾¶×÷Îª¼üÃû
+        // å¦‚æœæ²¡æ‰¾åˆ°ï¼Œå°è¯•ä½¿ç”¨å®Œæ•´è·¯å¾„ä½œä¸ºé”®å
         for (const auto& path : fontPaths)
         {
 #ifdef _DEBUG
-            std::cout << "³¢ÊÔÍêÕûÂ·¾¶Æ¥Åä: path='" << path << "' with key='" << key << "'" << std::endl;
+            std::cout << "å°è¯•å®Œæ•´è·¯å¾„åŒ¹é…: path='" << path << "' with key='" << key << "'" << std::endl;
 #endif
-            if (path == key) // Ö±½Ó±È½ÏÍêÕûÂ·¾¶
+            if (path == key) // ç›´æ¥æ¯”è¾ƒå®Œæ•´è·¯å¾„
             {
                 fontPath = path;
                 break;
@@ -146,24 +146,24 @@ TTF_Font* ResourceManager::GetFont(const std::string& key, int size)
 
     if (fontPath.empty())
     {
-        std::cerr << "´íÎó: ÕÒ²»µ½×ÖÌåÎÄ¼şÂ·¾¶ for key: '" << key << "'" << std::endl;
-        std::cout << "¿ÉÓÃµÄ×ÖÌåÂ·¾¶: ";
+        std::cerr << "é”™è¯¯: æ‰¾ä¸åˆ°å­—ä½“æ–‡ä»¶è·¯å¾„ for key: '" << key << "'" << std::endl;
+        std::cout << "å¯ç”¨çš„å­—ä½“è·¯å¾„: ";
         for (const auto& path : fontPaths) {
             std::cout << path << " ";
         }
         std::cout << std::endl;
         return nullptr;
     }
-    // °´Ğè¼ÓÔØÌØ¶¨´óĞ¡µÄ×ÖÌå
+    // æŒ‰éœ€åŠ è½½ç‰¹å®šå¤§å°çš„å­—ä½“
     TTF_Font* font = TTF_OpenFont(fontPath.c_str(), size);
     if (!font)
     {
-        std::cerr << "¼ÓÔØ×ÖÌåÊ§°Ü: " << fontPath << " size: " << size << " - " << TTF_GetError() << std::endl;
+        std::cerr << "åŠ è½½å­—ä½“å¤±è´¥: " << fontPath << " size: " << size << " - " << TTF_GetError() << std::endl;
         return nullptr;
     }
 
     sizeMap[size] = font;
-    std::cout << "³É¹¦¼ÓÔØ×ÖÌå: '" << key << "' size: " << size << std::endl;
+    std::cout << "æˆåŠŸåŠ è½½å­—ä½“: '" << key << "' size: " << size << std::endl;
     return font;
 }
 
@@ -171,19 +171,19 @@ bool ResourceManager::LoadAllFonts()
 {
     bool success = true;
 #ifdef _DEBUG
-    std::cout << "¿ªÊ¼×¢²á×ÖÌå..." << std::endl;
+    std::cout << "å¼€å§‹æ³¨å†Œå­—ä½“..." << std::endl;
 #endif
     const auto& paths = configReader.GetFontPaths();
     for (const auto& path : paths)
     {
         if (!LoadFont(path))
         {
-            std::cerr << "×¢²á×ÖÌåÊ§°Ü: " << path << std::endl;
+            std::cerr << "æ³¨å†Œå­—ä½“å¤±è´¥: " << path << std::endl;
             success = false;
         }
     }
 #ifdef _DEBUG
-    std::cout << "×ÖÌå×¢²áÍê³É" << std::endl;
+    std::cout << "å­—ä½“æ³¨å†Œå®Œæˆ" << std::endl;
 #endif
     return success;
 }
@@ -199,7 +199,7 @@ void ResourceManager::UnloadFont(const std::string& key)
         }
         fonts.erase(it);
 #ifdef _DEBUG
-        std::cout << "Ğ¶ÔØ×ÖÌå: " << key << std::endl;
+        std::cout << "å¸è½½å­—ä½“: " << key << std::endl;
 #endif
     }
 }
@@ -228,7 +228,7 @@ int ResourceManager::GetLoadedFontCount() const
     return total;
 }
 
-// Ğ¶ÔØÌØ¶¨×ÖÌå´óĞ¡
+// å¸è½½ç‰¹å®šå­—ä½“å¤§å°
 void ResourceManager::UnloadFontSize(const std::string& key, int size)
 {
     auto fontIt = fonts.find(key);
@@ -241,9 +241,9 @@ void ResourceManager::UnloadFontSize(const std::string& key, int size)
             TTF_CloseFont(sizeIt->second);
             sizeMap.erase(sizeIt);
 #ifdef _DEBUG
-            std::cout << "Ğ¶ÔØ×ÖÌå: " << key << " size: " << size << std::endl;
+            std::cout << "å¸è½½å­—ä½“: " << key << " size: " << size << std::endl;
 #endif
-            // Èç¹ûÕâ¸ö×ÖÌåÃ»ÓĞÆäËû´óĞ¡ÁË£¬ÍêÈ«ÒÆ³ı
+            // å¦‚æœè¿™ä¸ªå­—ä½“æ²¡æœ‰å…¶ä»–å¤§å°äº†ï¼Œå®Œå…¨ç§»é™¤
             if (sizeMap.empty())
             {
                 fonts.erase(fontIt);
@@ -252,7 +252,7 @@ void ResourceManager::UnloadFontSize(const std::string& key, int size)
     }
 }
 
-// ÇåÀíÎ´Ê¹ÓÃ×ÖÌå´óĞ¡
+// æ¸…ç†æœªä½¿ç”¨å­—ä½“å¤§å°
 void ResourceManager::CleanupUnusedFontSizes()
 {
     int removedCount = 0;
@@ -269,7 +269,7 @@ void ResourceManager::CleanupUnusedFontSizes()
         }
     }
 #ifdef _DEBUG
-    std::cout << "ÇåÀíÁË " << removedCount << " ¸ö¿Õ×ÖÌåÌõÄ¿" << std::endl;
+    std::cout << "æ¸…ç†äº† " << removedCount << " ä¸ªç©ºå­—ä½“æ¡ç›®" << std::endl;
 #endif
 }
 
@@ -277,7 +277,7 @@ bool ResourceManager::LoadAllSounds()
 {
     bool success = true;
 #ifdef _DEBUG
-    std::cout << "¿ªÊ¼¼ÓÔØÒôĞ§..." << std::endl;
+    std::cout << "å¼€å§‹åŠ è½½éŸ³æ•ˆ..." << std::endl;
 #endif
     const auto& paths = configReader.GetSoundPaths();
     for (const auto& path : paths)
@@ -285,12 +285,12 @@ bool ResourceManager::LoadAllSounds()
         std::string key = GenerateStandardKey(path, "SOUND_");
         if (!LoadSound(path, key))
         {
-            std::cerr << "¼ÓÔØÒôĞ§Ê§°Ü: " << path << std::endl;
+            std::cerr << "åŠ è½½éŸ³æ•ˆå¤±è´¥: " << path << std::endl;
             success = false;
         }
     }
 #ifdef _DEBUG
-    std::cout << "ÒôĞ§¼ÓÔØÍê³É" << std::endl;
+    std::cout << "éŸ³æ•ˆåŠ è½½å®Œæˆ" << std::endl;
 #endif
     return success;
 }
@@ -299,7 +299,7 @@ bool ResourceManager::LoadAllMusic()
 {
     bool success = true;
 #ifdef _DEBUG
-    std::cout << "¿ªÊ¼¼ÓÔØÒôÀÖ..." << std::endl;
+    std::cout << "å¼€å§‹åŠ è½½éŸ³ä¹..." << std::endl;
 #endif
     const auto& paths = configReader.GetMusicPaths();
     for (const auto& path : paths)
@@ -307,24 +307,24 @@ bool ResourceManager::LoadAllMusic()
         std::string key = GenerateStandardKey(path, "MUSIC_");
         if (!LoadMusic(path, key))
         {
-            std::cerr << "¼ÓÔØÒôÀÖÊ§°Ü: " << path << std::endl;
+            std::cerr << "åŠ è½½éŸ³ä¹å¤±è´¥: " << path << std::endl;
             success = false;
         }
     }
 #ifdef _DEBUG
-    std::cout << "ÒôÀÖ¼ÓÔØÍê³É" << std::endl;
+    std::cout << "éŸ³ä¹åŠ è½½å®Œæˆ" << std::endl;
 #endif
     return success;
 }
 
 std::shared_ptr<Reanimation> ResourceManager::LoadReanimation(const std::string& key, const std::string& path) {
-    // ¼ì²éÊÇ·ñÒÑ¼ÓÔØ
+    // æ£€æŸ¥æ˜¯å¦å·²åŠ è½½
     auto it = mReanimations.find(key);
     if (it != mReanimations.end()) {
         return it->second;
     }
 
-    // ´´½¨ĞÂµÄReanimation
+    // åˆ›å»ºæ–°çš„Reanimation
     auto reanim = std::make_shared<Reanimation>();
     reanim->mResourceManager = this;
     if (!reanim->LoadFromFile(path)) {
@@ -342,16 +342,16 @@ std::shared_ptr<Reanimation> ResourceManager::LoadReanimation(const std::string&
 std::shared_ptr<Reanimation> ResourceManager::GetReanimation(const std::string& key) {
     auto it = mReanimations.find(key);
     if (it != mReanimations.end()) {
-        // ´Ó»º´æ»ñÈ¡Êı¾İ£¬²¢´´½¨ĞÂµÄ¶ÀÁ¢ÊµÀı
+        // ä»ç¼“å­˜è·å–æ•°æ®ï¼Œå¹¶åˆ›å»ºæ–°çš„ç‹¬ç«‹å®ä¾‹
         auto cachedReanim = it->second;
         auto newReanim = std::make_shared<Reanimation>();
 
-        // ¸´ÖÆ»ù´¡ÊôĞÔ
+        // å¤åˆ¶åŸºç¡€å±æ€§
         newReanim->mFPS = cachedReanim->mFPS;
         newReanim->mIsLoaded = cachedReanim->mIsLoaded;
         newReanim->mResourceManager = cachedReanim->mResourceManager;
 
-        // Éî¿½±´¹ìµÀÊı¾İ
+        // æ·±æ‹·è´è½¨é“æ•°æ®
         newReanim->mTracks = cachedReanim->mTracks;
 
         return newReanim;
@@ -382,14 +382,14 @@ bool ResourceManager::HasReanimation(const std::string& key) const {
 bool ResourceManager::LoadAllReanimations()
 {
     if (!renderer) {
-        std::cerr << "´íÎó: ResourceManager Î´³õÊ¼»¯£¬ÎŞ·¨¼ÓÔØ¶¯»­£¡" << std::endl;
+        std::cerr << "é”™è¯¯: ResourceManager æœªåˆå§‹åŒ–ï¼Œæ— æ³•åŠ è½½åŠ¨ç”»ï¼" << std::endl;
         return false;
     }
 
     bool success = true;
     int loadedCount = 0;
 #ifdef _DEBUG
-    std::cout << "¿ªÊ¼¼ÓÔØËùÓĞ¶¯»­×ÊÔ´..." << std::endl;
+    std::cout << "å¼€å§‹åŠ è½½æ‰€æœ‰åŠ¨ç”»èµ„æº..." << std::endl;
 #endif
     const auto& reanimPaths = configReader.GetReanimationPaths();
     for (const auto& reanimPair : reanimPaths) {
@@ -398,15 +398,15 @@ bool ResourceManager::LoadAllReanimations()
 
         if (LoadReanimation(key, path)) {
             loadedCount++;
-            std::cout << "³É¹¦¼ÓÔØ¶¯»­: " << key << " from " << path << std::endl;
+            std::cout << "æˆåŠŸåŠ è½½åŠ¨ç”»: " << key << " from " << path << std::endl;
         }
         else {
             success = false;
-            std::cerr << "¼ÓÔØ¶¯»­Ê§°Ü: " << key << " from " << path << std::endl;
+            std::cerr << "åŠ è½½åŠ¨ç”»å¤±è´¥: " << key << " from " << path << std::endl;
         }
     }
 #ifdef _DEBUG
-    std::cout << "¶¯»­×ÊÔ´¼ÓÔØÍê³É£¬³É¹¦: " << loadedCount << "/" << reanimPaths.size() << std::endl;
+    std::cout << "åŠ¨ç”»èµ„æºåŠ è½½å®Œæˆï¼ŒæˆåŠŸ: " << loadedCount << "/" << reanimPaths.size() << std::endl;
 #endif
     return success;
 }
@@ -415,13 +415,13 @@ SDL_Texture* ResourceManager::LoadTexture(const std::string& path, const std::st
 {
     if (!renderer)
     {
-        std::cerr << "´íÎó: ResourceManager Î´³õÊ¼»¯£¡" << std::endl;
+        std::cerr << "é”™è¯¯: ResourceManager æœªåˆå§‹åŒ–ï¼" << std::endl;
         return nullptr;
     }
 
     std::string actualKey = key.empty() ? path : key;
 
-    // ¼ì²éÊÇ·ñÒÑ¼ÓÔØ
+    // æ£€æŸ¥æ˜¯å¦å·²åŠ è½½
     if (textures.find(actualKey) != textures.end())
     {
         return textures[actualKey];
@@ -430,13 +430,13 @@ SDL_Texture* ResourceManager::LoadTexture(const std::string& path, const std::st
     SDL_Texture* texture = IMG_LoadTexture(renderer, path.c_str());
     if (!texture)
     {
-        // ³¢ÊÔ²»Í¬µÄÂ·¾¶¸ñÊ½
-        std::cerr << "¼ÓÔØÎÆÀíÊ§°Ü: " << path << " - " << IMG_GetError() << std::endl;
+        // å°è¯•ä¸åŒçš„è·¯å¾„æ ¼å¼
+        std::cerr << "åŠ è½½çº¹ç†å¤±è´¥: " << path << " - " << IMG_GetError() << std::endl;
 
-        // ¼ì²éÎÄ¼şÊÇ·ñ´æÔÚ
+        // æ£€æŸ¥æ–‡ä»¶æ˜¯å¦å­˜åœ¨
         SDL_RWops* file = SDL_RWFromFile(path.c_str(), "rb");
         if (!file) {
-            std::cerr << "ÎÄ¼ş²»´æÔÚ»òÎŞ·¨´ò¿ª: " << path << std::endl;
+            std::cerr << "æ–‡ä»¶ä¸å­˜åœ¨æˆ–æ— æ³•æ‰“å¼€: " << path << std::endl;
         }
         else {
             SDL_RWclose(file);
@@ -445,21 +445,21 @@ SDL_Texture* ResourceManager::LoadTexture(const std::string& path, const std::st
         return nullptr;
     }
 
-    // »ñÈ¡ÎÆÀí³ß´ç²¢ÑéÖ¤
+    // è·å–çº¹ç†å°ºå¯¸å¹¶éªŒè¯
     int width, height;
     if (SDL_QueryTexture(texture, NULL, NULL, &width, &height) != 0) {
-        std::cerr << "»ñÈ¡ÎÆÀí³ß´çÊ§°Ü: " << path << " - " << SDL_GetError() << std::endl;
+        std::cerr << "è·å–çº¹ç†å°ºå¯¸å¤±è´¥: " << path << " - " << SDL_GetError() << std::endl;
         SDL_DestroyTexture(texture);
         return nullptr;
     }
 
     if (width <= 0 || height <= 0) {
-        std::cerr << "ÎŞĞ§µÄÎÆÀí³ß´ç: " << width << "x" << height << " for " << path << std::endl;
+        std::cerr << "æ— æ•ˆçš„çº¹ç†å°ºå¯¸: " << width << "x" << height << " for " << path << std::endl;
         SDL_DestroyTexture(texture);
         return nullptr;
     }
 
-    // ÉèÖÃÎÆÀíÊôĞÔ
+    // è®¾ç½®çº¹ç†å±æ€§
     SDL_SetTextureScaleMode(texture, SDL_ScaleModeLinear);
     SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_BLEND);
     SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1");
@@ -467,7 +467,7 @@ SDL_Texture* ResourceManager::LoadTexture(const std::string& path, const std::st
     textures[actualKey] = texture;
 
 #ifdef _DEBUG
-    std::cout << "³É¹¦¼ÓÔØÎÆÀí: " << path << " (key: " << actualKey << ") ³ß´ç: "
+    std::cout << "æˆåŠŸåŠ è½½çº¹ç†: " << path << " (key: " << actualKey << ") å°ºå¯¸: "
         << width << "x" << height << std::endl;
 #endif
     return texture;
@@ -480,7 +480,7 @@ SDL_Texture* ResourceManager::GetTexture(const std::string& key)
     {
         return it->second;
     }
-    std::cerr << "¾¯¸æ: ÎÆÀíÎ´ÕÒµ½: " << key << std::endl;
+    std::cerr << "è­¦å‘Š: çº¹ç†æœªæ‰¾åˆ°: " << key << std::endl;
     return nullptr;
 }
 
@@ -489,10 +489,10 @@ std::string ResourceManager::GenerateTextureKey(const std::string& path)
     std::string filename = path.substr(path.find_last_of("/\\") + 1);
     std::string nameWithoutExt = filename.substr(0, filename.find_last_of('.'));
 
-    // ×ª»»Îª´óĞ´
+    // è½¬æ¢ä¸ºå¤§å†™
     std::transform(nameWithoutExt.begin(), nameWithoutExt.end(), nameWithoutExt.begin(), ::toupper);
 
-    // ½«·Ç×ÖÄ¸Êı×Ö×Ö·ûÌæ»»ÎªÏÂ»®Ïß
+    // å°†éå­—æ¯æ•°å­—å­—ç¬¦æ›¿æ¢ä¸ºä¸‹åˆ’çº¿
     for (char& c : nameWithoutExt) {
         if (!std::isalnum(c)) {
             c = '_';
@@ -507,10 +507,10 @@ std::string ResourceManager::GenerateStandardKey(const std::string& path, const 
     std::string filename = path.substr(path.find_last_of("/\\") + 1);
     std::string nameWithoutExt = filename.substr(0, filename.find_last_of('.'));
 
-    // ×ª»»Îª´óĞ´
+    // è½¬æ¢ä¸ºå¤§å†™
     std::transform(nameWithoutExt.begin(), nameWithoutExt.end(), nameWithoutExt.begin(), ::toupper);
 
-    // ½«·Ç×ÖÄ¸Êı×Ö×Ö·ûÌæ»»ÎªÏÂ»®Ïß
+    // å°†éå­—æ¯æ•°å­—å­—ç¬¦æ›¿æ¢ä¸ºä¸‹åˆ’çº¿
     for (char& c : nameWithoutExt) {
         if (!std::isalnum(c)) {
             c = '_';
@@ -528,7 +528,7 @@ void ResourceManager::UnloadTexture(const std::string& key)
         SDL_DestroyTexture(it->second);
         textures.erase(it);
 #ifdef _DEBUG
-        std::cout << "Ğ¶ÔØÎÆÀí: " << key << std::endl;
+        std::cout << "å¸è½½çº¹ç†: " << key << std::endl;
 #endif
     }
 }
@@ -545,13 +545,13 @@ Mix_Chunk* ResourceManager::LoadSound(const std::string& path, const std::string
     Mix_Chunk* sound = Mix_LoadWAV(path.c_str());
     if (!sound)
     {
-        std::cerr << "¼ÓÔØÒôĞ§Ê§°Ü: " << path << " - " << Mix_GetError() << std::endl;
+        std::cerr << "åŠ è½½éŸ³æ•ˆå¤±è´¥: " << path << " - " << Mix_GetError() << std::endl;
         return nullptr;
     }
 
     sounds[actualKey] = sound;
 #ifdef _DEBUG
-    std::cout << "³É¹¦¼ÓÔØÒôĞ§: " << path << std::endl;
+    std::cout << "æˆåŠŸåŠ è½½éŸ³æ•ˆ: " << path << std::endl;
 #endif
     return sound;
 }
@@ -563,7 +563,7 @@ Mix_Chunk* ResourceManager::GetSound(const std::string& key)
     {
         return it->second;
     }
-    std::cerr << "¾¯¸æ: ÒôĞ§Î´ÕÒµ½: " << key << std::endl;
+    std::cerr << "è­¦å‘Š: éŸ³æ•ˆæœªæ‰¾åˆ°: " << key << std::endl;
     return nullptr;
 }
 
@@ -575,7 +575,7 @@ void ResourceManager::UnloadSound(const std::string& key)
         Mix_FreeChunk(it->second);
         sounds.erase(it);
 #ifdef _DEBUG
-        std::cout << "Ğ¶ÔØÒôĞ§: " << key << std::endl;
+        std::cout << "å¸è½½éŸ³æ•ˆ: " << key << std::endl;
 #endif
     }
 }
@@ -592,13 +592,13 @@ Mix_Music* ResourceManager::LoadMusic(const std::string& path, const std::string
     Mix_Music* music = Mix_LoadMUS(path.c_str());
     if (!music)
     {
-        std::cerr << "¼ÓÔØÒôÀÖÊ§°Ü: " << path << " - " << Mix_GetError() << std::endl;
+        std::cerr << "åŠ è½½éŸ³ä¹å¤±è´¥: " << path << " - " << Mix_GetError() << std::endl;
         return nullptr;
     }
 
     this->music[actualKey] = music;
 #ifdef _DEBUG
-    std::cout << "³É¹¦¼ÓÔØÒôÀÖ: " << path << std::endl;
+    std::cout << "æˆåŠŸåŠ è½½éŸ³ä¹: " << path << std::endl;
 #endif
     return music;
 }
@@ -610,7 +610,7 @@ Mix_Music* ResourceManager::GetMusic(const std::string& key)
     {
         return it->second;
     }
-    std::cerr << "¾¯¸æ: ÒôÀÖÎ´ÕÒµ½: " << key << std::endl;
+    std::cerr << "è­¦å‘Š: éŸ³ä¹æœªæ‰¾åˆ°: " << key << std::endl;
     return nullptr;
 }
 
@@ -622,7 +622,7 @@ void ResourceManager::UnloadMusic(const std::string& key)
         Mix_FreeMusic(it->second);
         music.erase(it);
 #ifdef _DEBUG
-        std::cout << "Ğ¶ÔØÒôÀÖ: " << key << std::endl;
+        std::cout << "å¸è½½éŸ³ä¹: " << key << std::endl;
 #endif
     }
 }
@@ -645,18 +645,18 @@ SDL_Texture* ResourceManager::CreateTextureFromSurface(SDL_Surface* surface) {
     return texture;
 }
 
-// ¼ÓÔØ·Ö¸îÌùÍ¼
+// åŠ è½½åˆ†å‰²è´´å›¾
 bool ResourceManager::LoadTiledTexture(const TiledImageInfo& info, const std::string& prefix) {
-    // Èç¹û²»ĞèÒª·Ö¸î£¬Ö±½Óµ÷ÓÃ LoadTexture
+    // å¦‚æœä¸éœ€è¦åˆ†å‰²ï¼Œç›´æ¥è°ƒç”¨ LoadTexture
     if (info.columns <= 1 && info.rows <= 1) {
         std::string key = GenerateStandardKey(info.path, prefix);
         return LoadTexture(info.path, key) != nullptr;
     }
 
-    // ¼ÓÔØÔ­Í¼µ½Surface
+    // åŠ è½½åŸå›¾åˆ°Surface
     SDL_Surface* originalSurface = IMG_Load(info.path.c_str());
     if (!originalSurface) {
-        std::cerr << "ÎŞ·¨¼ÓÔØÍ¼Æ¬: " << info.path << " - " << IMG_GetError() << std::endl;
+        std::cerr << "æ— æ³•åŠ è½½å›¾ç‰‡: " << info.path << " - " << IMG_GetError() << std::endl;
         return false;
     }
 
@@ -665,20 +665,20 @@ bool ResourceManager::LoadTiledTexture(const TiledImageInfo& info, const std::st
     int tileW = imgW / info.columns;
     int tileH = imgH / info.rows;
 
-    // ¼ì²éÊÇ·ñÕû³ı
+    // æ£€æŸ¥æ˜¯å¦æ•´é™¤
     if (imgW % info.columns != 0 || imgH % info.rows != 0) {
-        std::cerr << "¾¯¸æ: Í¼Æ¬³ß´ç " << imgW << "x" << imgH
-            << " ²»ÄÜ±» " << info.columns << "x" << info.rows
-            << " Õû³ı£¬¿ÉÄÜ²úÉú±ßÔµ²Ã¼ô" << std::endl;
+        std::cerr << "è­¦å‘Š: å›¾ç‰‡å°ºå¯¸ " << imgW << "x" << imgH
+            << " ä¸èƒ½è¢« " << info.columns << "x" << info.rows
+            << " æ•´é™¤ï¼Œå¯èƒ½äº§ç”Ÿè¾¹ç¼˜è£å‰ª" << std::endl;
     }
 
     std::string baseKey = GenerateStandardKey(info.path, prefix);
     bool success = true;
 
-    // ±éÀúÃ¿¸ö×ÓÍ¼
+    // éå†æ¯ä¸ªå­å›¾
     for (int row = 0; row < info.rows; ++row) {
         for (int col = 0; col < info.columns; ++col) {
-            // ´´½¨×ÓSurface
+            // åˆ›å»ºå­Surface
             SDL_Surface* tileSurface = SDL_CreateRGBSurface(
                 0, tileW, tileH,
                 originalSurface->format->BitsPerPixel,
@@ -688,37 +688,37 @@ bool ResourceManager::LoadTiledTexture(const TiledImageInfo& info, const std::st
                 originalSurface->format->Amask
             );
             if (!tileSurface) {
-                std::cerr << "ÎŞ·¨´´½¨×ÓSurface: " << SDL_GetError() << std::endl;
+                std::cerr << "æ— æ³•åˆ›å»ºå­Surface: " << SDL_GetError() << std::endl;
                 success = false;
                 continue;
             }
 
-            // ÉèÖÃÔ´¾ØĞÎ
+            // è®¾ç½®æºçŸ©å½¢
             SDL_Rect srcRect = { col * tileW, row * tileH, tileW, tileH };
-            // ½«Ô­Í¼Ö¸¶¨ÇøÓò¸´ÖÆµ½×ÓSurface
+            // å°†åŸå›¾æŒ‡å®šåŒºåŸŸå¤åˆ¶åˆ°å­Surface
             if (SDL_BlitSurface(originalSurface, &srcRect, tileSurface, nullptr) != 0) {
-                std::cerr << "BlitÊ§°Ü: " << SDL_GetError() << std::endl;
+                std::cerr << "Blitå¤±è´¥: " << SDL_GetError() << std::endl;
                 SDL_FreeSurface(tileSurface);
                 success = false;
                 continue;
             }
 
-            // ´´½¨ÎÆÀí
+            // åˆ›å»ºçº¹ç†
             SDL_Texture* texture = CreateTextureFromSurface(tileSurface);
             SDL_FreeSurface(tileSurface);
 
             if (!texture) {
-                std::cerr << "ÎŞ·¨´Ó×ÓSurface´´½¨ÎÆÀí" << std::endl;
+                std::cerr << "æ— æ³•ä»å­Surfaceåˆ›å»ºçº¹ç†" << std::endl;
                 success = false;
                 continue;
             }
 
-            // Éú³É´øË÷ÒıµÄkey
+            // ç”Ÿæˆå¸¦ç´¢å¼•çš„key
             int index = row * info.columns + col;
             std::string key = baseKey + "_PART_" + std::to_string(index);
             textures[key] = texture;
 #ifdef _DEBUG
-            std::cout << "¼ÓÔØ×ÓÎÆÀí: " << key << " ³ß´ç " << tileW << "x" << tileH << std::endl;
+            std::cout << "åŠ è½½å­çº¹ç†: " << key << " å°ºå¯¸ " << tileW << "x" << tileH << std::endl;
 #endif
         }
     }
@@ -729,14 +729,14 @@ bool ResourceManager::LoadTiledTexture(const TiledImageInfo& info, const std::st
 
 void ResourceManager::UnloadAll()
 {
-    // Ğ¶ÔØËùÓĞÎÆÀí
+    // å¸è½½æ‰€æœ‰çº¹ç†
     for (auto& pair : textures)
     {
         SDL_DestroyTexture(pair.second);
     }
     textures.clear();
 
-    // Ğ¶ÔØËùÓĞ×ÖÌå
+    // å¸è½½æ‰€æœ‰å­—ä½“
     for (auto& fontPair : fonts)
     {
         for (auto& sizePair : fontPair.second)
@@ -746,24 +746,24 @@ void ResourceManager::UnloadAll()
     }
     fonts.clear();
 
-    // Ğ¶ÔØËùÓĞÒôĞ§
+    // å¸è½½æ‰€æœ‰éŸ³æ•ˆ
     for (auto& pair : sounds)
     {
         Mix_FreeChunk(pair.second);
     }
     sounds.clear();
 
-    // Ğ¶ÔØËùÓĞÒôÀÖ
+    // å¸è½½æ‰€æœ‰éŸ³ä¹
     for (auto& pair : music)
     {
         Mix_FreeMusic(pair.second);
     }
     music.clear();
 
-    // Ğ¶ÔØËùÓĞ¶¯»­
+    // å¸è½½æ‰€æœ‰åŠ¨ç”»
     mReanimations.clear();
 #ifdef _DEBUG
-    std::cout << "ÒÑĞ¶ÔØËùÓĞ×ÊÔ´" << std::endl;
+    std::cout << "å·²å¸è½½æ‰€æœ‰èµ„æº" << std::endl;
 #endif
 }
 

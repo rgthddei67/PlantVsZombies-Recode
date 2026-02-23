@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #ifndef _PLANT_DATA_MANAGER_H
 #define _PLANT_DATA_MANAGER_H
 
@@ -10,16 +10,16 @@
 #include <unordered_map>
 #include <vector>
 
-// Ö²ÎïĞÅÏ¢
+// æ¤ç‰©ä¿¡æ¯
 struct PlantInfo {
-    PlantType type;             // Ö²ÎïÀàĞÍ
-	int SunCost = 0;                 // Ñô¹â
-	float Cooldown = 7.5f;                // ÀäÈ´Ê±¼ä£¨µ¥Î»£ºÃë£©
-    std::string enumName;       // Ã¶¾ÙÃû£¨×Ö·û´®ĞÎÊ½£©
-    std::string textureKey;      // ÎÆÀí×ÊÔ´¼ü£¨ÓÃÓÚ¾²Ì¬Í¼Æ¬£©
-    AnimationType animType;      // ¶¯»­ÀàĞÍ
-    std::string animName;        // ¶¯»­×ÊÔ´Ãû³Æ£¨Èç Reanim Ãû³Æ£©
-    Vector offset;               // »æÖÆÆ«ÒÆÁ¿
+    PlantType type;             // æ¤ç‰©ç±»å‹
+	int SunCost = 0;                 // é˜³å…‰
+	float Cooldown = 7.5f;                // å†·å´æ—¶é—´ï¼ˆå•ä½ï¼šç§’ï¼‰
+    std::string enumName;       // æšä¸¾åï¼ˆå­—ç¬¦ä¸²å½¢å¼ï¼‰
+    std::string textureKey;      // çº¹ç†èµ„æºé”®ï¼ˆç”¨äºé™æ€å›¾ç‰‡ï¼‰
+    AnimationType animType;      // åŠ¨ç”»ç±»å‹
+    std::string animName;        // åŠ¨ç”»èµ„æºåç§°ï¼ˆå¦‚ Reanim åç§°ï¼‰
+    Vector offset;               // ç»˜åˆ¶åç§»é‡
 
 	PlantInfo() : type(PlantType::NUM_PLANT_TYPES),
         animType(AnimationType::ANIM_NONE),
@@ -34,15 +34,15 @@ struct PlantInfo {
     }
 };
 
-// ½©Ê¬ĞÅÏ¢
+// åƒµå°¸ä¿¡æ¯
 struct ZombieInfo {
-    ZombieType type;            // ½©Ê¬ÀàĞÍ
-    std::string enumName;       // Ã¶¾ÙÃû£¨×Ö·û´®ĞÎÊ½£©
-    AnimationType animType;      // ¶¯»­ÀàĞÍ
-    std::string animName;        // ¶¯»­×ÊÔ´Ãû³Æ
-    Vector offset;               // »æÖÆÆ«ÒÆÁ¿
-    int weight;                  // È¨ÖØ
-    int appearWave;              // ÄÜ³öÏÖµÄ²¨Êı
+    ZombieType type;            // åƒµå°¸ç±»å‹
+    std::string enumName;       // æšä¸¾åï¼ˆå­—ç¬¦ä¸²å½¢å¼ï¼‰
+    AnimationType animType;      // åŠ¨ç”»ç±»å‹
+    std::string animName;        // åŠ¨ç”»èµ„æºåç§°
+    Vector offset;               // ç»˜åˆ¶åç§»é‡
+    int weight;                  // æƒé‡
+    int appearWave;              // èƒ½å‡ºç°çš„æ³¢æ•°
 
     ZombieInfo() : type(ZombieType::NUM_ZOMBIE_TYPES),
         animType(AnimationType::ANIM_NONE),
@@ -67,156 +67,156 @@ public:
     GameDataManager& operator=(const GameDataManager&) = delete;
 
     /**
-     * @brief ³õÊ¼»¯Êı¾İ¹ÜÀíÆ÷£¬¼ÓÔØÓ²±àÂëÊı¾İ
+     * @brief åˆå§‹åŒ–æ•°æ®ç®¡ç†å™¨ï¼ŒåŠ è½½ç¡¬ç¼–ç æ•°æ®
      */
     void Initialize();
 
     /**
-     * @brief »ñÈ¡Ö²Îï¶ÔÓ¦µÄÎÆÀí×ÊÔ´¼ü
-     * @param plantType Ö²ÎïÀàĞÍ
-     * @return std::string ÎÆÀí¼ü£¬ÈôÎ´ÕÒµ½·µ»ØÄ¬ÈÏÖµ "IMAGE_PLANT_DEFAULT"
+     * @brief è·å–æ¤ç‰©å¯¹åº”çš„çº¹ç†èµ„æºé”®
+     * @param plantType æ¤ç‰©ç±»å‹
+     * @return std::string çº¹ç†é”®ï¼Œè‹¥æœªæ‰¾åˆ°è¿”å›é»˜è®¤å€¼ "IMAGE_PLANT_DEFAULT"
      */
     std::string GetPlantTextureKey(PlantType plantType) const;
 
     /**
-     * @brief »ñÈ¡Ö²Îï¶ÔÓ¦µÄ¶¯»­ÀàĞÍ
-     * @param plantType Ö²ÎïÀàĞÍ
-     * @return AnimationType ¶¯»­ÀàĞÍ£¬ÈôÎ´ÕÒµ½·µ»Ø ANIM_NONE
+     * @brief è·å–æ¤ç‰©å¯¹åº”çš„åŠ¨ç”»ç±»å‹
+     * @param plantType æ¤ç‰©ç±»å‹
+     * @return AnimationType åŠ¨ç”»ç±»å‹ï¼Œè‹¥æœªæ‰¾åˆ°è¿”å› ANIM_NONE
      */
     AnimationType GetPlantAnimationType(PlantType plantType) const;
 
     /**
-     * @brief Í¨¹ı¶¯»­ÀàĞÍ»ñÈ¡¶¯»­×ÊÔ´Ãû³Æ£¨ÊÊÓÃÓÚÖ²Îï¡¢½©Ê¬¡¢Ì«ÑôµÈ£©
-     * @param animType ¶¯»­ÀàĞÍ
-     * @return std::string ¶¯»­×ÊÔ´Ãû£¬ÈôÎ´ÕÒµ½·µ»Ø "Unknown"
+     * @brief é€šè¿‡åŠ¨ç”»ç±»å‹è·å–åŠ¨ç”»èµ„æºåç§°ï¼ˆé€‚ç”¨äºæ¤ç‰©ã€åƒµå°¸ã€å¤ªé˜³ç­‰ï¼‰
+     * @param animType åŠ¨ç”»ç±»å‹
+     * @return std::string åŠ¨ç”»èµ„æºåï¼Œè‹¥æœªæ‰¾åˆ°è¿”å› "Unknown"
      */
     std::string GetAnimationName(AnimationType animType) const;
 
     /**
-     * @brief »ñÈ¡Ö²ÎïµÄ»æÖÆÆ«ÒÆÁ¿
-     * @param plantType Ö²ÎïÀàĞÍ
-     * @return Vector Æ«ÒÆÏòÁ¿£¬ÈôÎ´ÕÒµ½·µ»Ø (0,0)
+     * @brief è·å–æ¤ç‰©çš„ç»˜åˆ¶åç§»é‡
+     * @param plantType æ¤ç‰©ç±»å‹
+     * @return Vector åç§»å‘é‡ï¼Œè‹¥æœªæ‰¾åˆ°è¿”å› (0,0)
      */
     Vector GetPlantOffset(PlantType plantType) const;
 
     /**
-     * @brief ÉèÖÃÖ²ÎïµÄ»æÖÆÆ«ÒÆÁ¿£¨Í¨³£ÓÃÓÚµ÷ÊÔ»ò¶¯Ì¬µ÷Õû£©
-     * @param plantType Ö²ÎïÀàĞÍ
-     * @param offset ĞÂµÄÆ«ÒÆÁ¿
+     * @brief è®¾ç½®æ¤ç‰©çš„ç»˜åˆ¶åç§»é‡ï¼ˆé€šå¸¸ç”¨äºè°ƒè¯•æˆ–åŠ¨æ€è°ƒæ•´ï¼‰
+     * @param plantType æ¤ç‰©ç±»å‹
+     * @param offset æ–°çš„åç§»é‡
      */
     void SetPlantOffset(PlantType plantType, const Vector& offset);
 
     /**
-     * @brief ½«Ö²ÎïÀàĞÍ×ª»»Îª¶ÔÓ¦µÄÃ¶¾ÙÃû×Ö·û´®
-     * @param type Ö²ÎïÀàĞÍ
-     * @return std::string Ã¶¾ÙÃû£¬ÈôÎ´ÕÒµ½·µ»Ø "PLANT_NONE"
+     * @brief å°†æ¤ç‰©ç±»å‹è½¬æ¢ä¸ºå¯¹åº”çš„æšä¸¾åå­—ç¬¦ä¸²
+     * @param type æ¤ç‰©ç±»å‹
+     * @return std::string æšä¸¾åï¼Œè‹¥æœªæ‰¾åˆ°è¿”å› "PLANT_NONE"
      */
     std::string PlantTypeToEnumName(PlantType type) const;
 
     /**
-     * @brief ½«Ö²ÎïÀàĞÍ×ª»»ÎªÎÆÀí¼ü£¨Í¬ GetPlantTextureKey£©
-     * @param type Ö²ÎïÀàĞÍ
-     * @return std::string ÎÆÀí¼ü
+     * @brief å°†æ¤ç‰©ç±»å‹è½¬æ¢ä¸ºçº¹ç†é”®ï¼ˆåŒ GetPlantTextureKeyï¼‰
+     * @param type æ¤ç‰©ç±»å‹
+     * @return std::string çº¹ç†é”®
      */
     std::string PlantTypeToTextureKey(PlantType type) const;
 
     /**
-     * @brief ½«Ö²ÎïÀàĞÍ×ª»»Îª¶¯»­×ÊÔ´Ãû
-     * @param type Ö²ÎïÀàĞÍ
-     * @return std::string ¶¯»­×ÊÔ´Ãû£¬ÈôÎ´ÕÒµ½·µ»Ø "Unknown"
+     * @brief å°†æ¤ç‰©ç±»å‹è½¬æ¢ä¸ºåŠ¨ç”»èµ„æºå
+     * @param type æ¤ç‰©ç±»å‹
+     * @return std::string åŠ¨ç”»èµ„æºåï¼Œè‹¥æœªæ‰¾åˆ°è¿”å› "Unknown"
      */
     std::string PlantTypeToAnimName(PlantType type) const;
 
     /**
-     * @brief ½«×Ö·û´®½âÎöÎªÖ²ÎïÀàĞÍ
-     * @param str ¿ÉÒÔÊÇÃ¶¾ÙÃû¡¢ÎÆÀí¼ü»ò¶¯»­×ÊÔ´Ãû
-     * @return PlantType ¶ÔÓ¦µÄÖ²ÎïÀàĞÍ£¬ÈôÎ´ÕÒµ½·µ»Ø NUM_PLANT_TYPES
+     * @brief å°†å­—ç¬¦ä¸²è§£æä¸ºæ¤ç‰©ç±»å‹
+     * @param str å¯ä»¥æ˜¯æšä¸¾åã€çº¹ç†é”®æˆ–åŠ¨ç”»èµ„æºå
+     * @return PlantType å¯¹åº”çš„æ¤ç‰©ç±»å‹ï¼Œè‹¥æœªæ‰¾åˆ°è¿”å› NUM_PLANT_TYPES
      */
     PlantType StringToPlantType(const std::string& str) const;
 
     /**
-     * @brief »ñÈ¡ËùÓĞÒÑ×¢²áµÄÖ²ÎïÀàĞÍÁĞ±í
-     * @return std::vector<PlantType> Ö²ÎïÀàĞÍÊı×é
+     * @brief è·å–æ‰€æœ‰å·²æ³¨å†Œçš„æ¤ç‰©ç±»å‹åˆ—è¡¨
+     * @return std::vector<PlantType> æ¤ç‰©ç±»å‹æ•°ç»„
      */
     std::vector<PlantType> GetAllPlantTypes() const;
 
     /**
-     * @brief ¼ì²éÖ¸¶¨Ö²ÎïÀàĞÍÊÇ·ñÒÑ×¢²á
-     * @param type Ö²ÎïÀàĞÍ
-     * @return true ÒÑ×¢²á£¬false Î´×¢²á
+     * @brief æ£€æŸ¥æŒ‡å®šæ¤ç‰©ç±»å‹æ˜¯å¦å·²æ³¨å†Œ
+     * @param type æ¤ç‰©ç±»å‹
+     * @return true å·²æ³¨å†Œï¼Œfalse æœªæ³¨å†Œ
      */
     bool HasPlant(PlantType type) const;
 
     /**
-	 * @brief »ñÈ¡Ö²ÎïµÄÑô¹âÏûºÄ
-	 * @param plantType Ö²ÎïÀàĞÍ
-	 * @return int Ñô¹âÏûºÄ£¬ÈôÎ´ÕÒµ½·µ»Ø 0
+	 * @brief è·å–æ¤ç‰©çš„é˜³å…‰æ¶ˆè€—
+	 * @param plantType æ¤ç‰©ç±»å‹
+	 * @return int é˜³å…‰æ¶ˆè€—ï¼Œè‹¥æœªæ‰¾åˆ°è¿”å› 0
      */
 	int GetPlantSunCost(PlantType plantType) const;
 
 
     /**
-     * @brief »ñÈ¡Ö²ÎïµÄÀäÈ´Ê±¼ä
-     * @param plantType Ö²ÎïÀàĞÍ
-     * @return float ÀäÈ´Ê±¼ä£¨µ¥Î»£ºÃë£©£¬ÈôÎ´ÕÒµ½·µ»Ø 0.0f
+     * @brief è·å–æ¤ç‰©çš„å†·å´æ—¶é—´
+     * @param plantType æ¤ç‰©ç±»å‹
+     * @return float å†·å´æ—¶é—´ï¼ˆå•ä½ï¼šç§’ï¼‰ï¼Œè‹¥æœªæ‰¾åˆ°è¿”å› 0.0f
 	 */
 	float GetPlantCooldown(PlantType plantType) const;
 
     /**
-     * @brief »ñÈ¡½©Ê¬¶ÔÓ¦µÄ¶¯»­ÀàĞÍ
-     * @param zombieType ½©Ê¬ÀàĞÍ
-     * @return AnimationType ¶¯»­ÀàĞÍ£¬ÈôÎ´ÕÒµ½·µ»Ø ANIM_NONE
+     * @brief è·å–åƒµå°¸å¯¹åº”çš„åŠ¨ç”»ç±»å‹
+     * @param zombieType åƒµå°¸ç±»å‹
+     * @return AnimationType åŠ¨ç”»ç±»å‹ï¼Œè‹¥æœªæ‰¾åˆ°è¿”å› ANIM_NONE
      */
     AnimationType GetZombieAnimationType(ZombieType zombieType) const;
 
     /**
-     * @brief »ñÈ¡½©Ê¬¶ÔÓ¦µÄ¶¯»­×ÊÔ´Ãû
-     * @param zombieType ½©Ê¬ÀàĞÍ
-     * @return std::string ¶¯»­×ÊÔ´Ãû£¬ÈôÎ´ÕÒµ½·µ»Ø "Unknown"
+     * @brief è·å–åƒµå°¸å¯¹åº”çš„åŠ¨ç”»èµ„æºå
+     * @param zombieType åƒµå°¸ç±»å‹
+     * @return std::string åŠ¨ç”»èµ„æºåï¼Œè‹¥æœªæ‰¾åˆ°è¿”å› "Unknown"
      */
     std::string GetZombieAnimName(ZombieType zombieType) const;
 
     /**
-     * @brief »ñÈ¡½©Ê¬µÄ»æÖÆÆ«ÒÆÁ¿
-     * @param zombieType ½©Ê¬ÀàĞÍ
-     * @return Vector Æ«ÒÆÏòÁ¿£¬ÈôÎ´ÕÒµ½·µ»Ø (0,0)
+     * @brief è·å–åƒµå°¸çš„ç»˜åˆ¶åç§»é‡
+     * @param zombieType åƒµå°¸ç±»å‹
+     * @return Vector åç§»å‘é‡ï¼Œè‹¥æœªæ‰¾åˆ°è¿”å› (0,0)
      */
     Vector GetZombieOffset(ZombieType zombieType) const;
 
     /**
-     * @brief ÉèÖÃ½©Ê¬µÄ»æÖÆÆ«ÒÆÁ¿
-     * @param zombieType ½©Ê¬ÀàĞÍ
-     * @param offset ĞÂµÄÆ«ÒÆÁ¿
+     * @brief è®¾ç½®åƒµå°¸çš„ç»˜åˆ¶åç§»é‡
+     * @param zombieType åƒµå°¸ç±»å‹
+     * @param offset æ–°çš„åç§»é‡
      */
     void SetZombieOffset(ZombieType zombieType, const Vector& offset);
 
     /**
-     * @brief »ñÈ¡½©Ê¬µÄÈ¨ÖØ
-     * @param zombieType ½©Ê¬ÀàĞÍ
+     * @brief è·å–åƒµå°¸çš„æƒé‡
+     * @param zombieType åƒµå°¸ç±»å‹
      */
     int GetZombieWeight(ZombieType zombieType) const;
 
     /**
-     * @brief »ñÈ¡½©Ê¬µÄ³öÏÖ²¨Êı
-     * @param zombieType ½©Ê¬ÀàĞÍ
+     * @brief è·å–åƒµå°¸çš„å‡ºç°æ³¢æ•°
+     * @param zombieType åƒµå°¸ç±»å‹
      */
     int GetZombieAppearWave(ZombieType zombieType) const;
 
     /**
-     * @brief »ñÈ¡ËùÓĞÒÑ×¢²áµÄ½©Ê¬ÀàĞÍÁĞ±í
-     * @return std::vector<ZombieType> ½©Ê¬ÀàĞÍÊı×é
+     * @brief è·å–æ‰€æœ‰å·²æ³¨å†Œçš„åƒµå°¸ç±»å‹åˆ—è¡¨
+     * @return std::vector<ZombieType> åƒµå°¸ç±»å‹æ•°ç»„
      */
     std::vector<ZombieType> GetAllZombieTypes() const;
 
     /**
-     * @brief ¼ì²éÖ¸¶¨½©Ê¬ÀàĞÍÊÇ·ñÒÑ×¢²á
-     * @param type ½©Ê¬ÀàĞÍ
-     * @return true ÒÑ×¢²á£¬false Î´×¢²á
+     * @brief æ£€æŸ¥æŒ‡å®šåƒµå°¸ç±»å‹æ˜¯å¦å·²æ³¨å†Œ
+     * @param type åƒµå°¸ç±»å‹
+     * @return true å·²æ³¨å†Œï¼Œfalse æœªæ³¨å†Œ
      */
     bool HasZombie(ZombieType type) const;
 
     /**
-     * @brief ´òÓ¡ËùÓĞ×¢²áÊı¾İ
+     * @brief æ‰“å°æ‰€æœ‰æ³¨å†Œæ•°æ®
      */
     void DebugPrintAll() const;
 
@@ -224,20 +224,20 @@ private:
     GameDataManager();
 
     /**
-     * @brief Ó²±àÂë³õÊ¼»¯ËùÓĞÖ²ÎïºÍ½©Ê¬Êı¾İ
+     * @brief ç¡¬ç¼–ç åˆå§‹åŒ–æ‰€æœ‰æ¤ç‰©å’Œåƒµå°¸æ•°æ®
      */
     void InitializeHardcodedData();
 
     /**
-     * @brief ×¢²áÒ»ÖÖÖ²Îï£¨ÄÚ²¿Ê¹ÓÃ£©
-     * @param type Ö²ÎïÀàĞÍ
-	 * @param sunCost Ñô¹âÏûºÄ
-	 * @param cooldown ÀäÈ´Ê±¼ä£¨µ¥Î»£ºÃë£©
-     * @param enumName Ã¶¾ÙÃû×Ö·û´®
-     * @param textureKey ÎÆÀí¼ü
-     * @param animType ¶¯»­ÀàĞÍ
-     * @param animName ¶¯»­×ÊÔ´Ãû
-     * @param offset Æ«ÒÆÁ¿
+     * @brief æ³¨å†Œä¸€ç§æ¤ç‰©ï¼ˆå†…éƒ¨ä½¿ç”¨ï¼‰
+     * @param type æ¤ç‰©ç±»å‹
+	 * @param sunCost é˜³å…‰æ¶ˆè€—
+	 * @param cooldown å†·å´æ—¶é—´ï¼ˆå•ä½ï¼šç§’ï¼‰
+     * @param enumName æšä¸¾åå­—ç¬¦ä¸²
+     * @param textureKey çº¹ç†é”®
+     * @param animType åŠ¨ç”»ç±»å‹
+     * @param animName åŠ¨ç”»èµ„æºå
+     * @param offset åç§»é‡
      */
     void RegisterPlant(PlantType type,
 		int sunCost, float cooldown,
@@ -248,14 +248,14 @@ private:
         const Vector& offset);
 
     /**
-     * @brief ×¢²áÒ»ÖÖ½©Ê¬£¨ÄÚ²¿Ê¹ÓÃ£©
-     * @param type ½©Ê¬ÀàĞÍ
-     * @param enumName Ã¶¾ÙÃû×Ö·û´®
-     * @param animType ¶¯»­ÀàĞÍ
-     * @param animName ¶¯»­×ÊÔ´Ãû
-     * @param offset Æ«ÒÆÁ¿
-     * @param weight ½©Ê¬È¨ÖØ
-     * @param appearWave ÄÜË¢ĞÂµÄ²¨Êı
+     * @brief æ³¨å†Œä¸€ç§åƒµå°¸ï¼ˆå†…éƒ¨ä½¿ç”¨ï¼‰
+     * @param type åƒµå°¸ç±»å‹
+     * @param enumName æšä¸¾åå­—ç¬¦ä¸²
+     * @param animType åŠ¨ç”»ç±»å‹
+     * @param animName åŠ¨ç”»èµ„æºå
+     * @param offset åç§»é‡
+     * @param weight åƒµå°¸æƒé‡
+     * @param appearWave èƒ½åˆ·æ–°çš„æ³¢æ•°
      */
     void RegisterZombie(ZombieType type,
         const std::string& enumName,
@@ -263,17 +263,17 @@ private:
         const std::string& animName,
         const Vector& offset, int weight, int appearWave);
 
-    // ==================== Êı¾İ³ÉÔ± ====================
-    // Ö²ÎïÊı¾İ
-    std::unordered_map<PlantType, PlantInfo> mPlantInfo;               // Ö²ÎïÀàĞÍ -> Ö²ÎïĞÅÏ¢
-    std::unordered_map<std::string, PlantType> mEnumNameToType;        // Ã¶¾ÙÃû -> Ö²ÎïÀàĞÍ
-    std::unordered_map<std::string, PlantType> mTextureKeyToType;      // ÎÆÀí¼ü -> Ö²ÎïÀàĞÍ
-    std::unordered_map<std::string, PlantType> mAnimNameToType;        // ¶¯»­×ÊÔ´Ãû -> Ö²ÎïÀàĞÍ
+    // ==================== æ•°æ®æˆå‘˜ ====================
+    // æ¤ç‰©æ•°æ®
+    std::unordered_map<PlantType, PlantInfo> mPlantInfo;               // æ¤ç‰©ç±»å‹ -> æ¤ç‰©ä¿¡æ¯
+    std::unordered_map<std::string, PlantType> mEnumNameToType;        // æšä¸¾å -> æ¤ç‰©ç±»å‹
+    std::unordered_map<std::string, PlantType> mTextureKeyToType;      // çº¹ç†é”® -> æ¤ç‰©ç±»å‹
+    std::unordered_map<std::string, PlantType> mAnimNameToType;        // åŠ¨ç”»èµ„æºå -> æ¤ç‰©ç±»å‹
 
-    // ½©Ê¬Êı¾İ
-    std::unordered_map<ZombieType, ZombieInfo> mZombieInfo;             // ½©Ê¬ÀàĞÍ -> ½©Ê¬ĞÅÏ¢
+    // åƒµå°¸æ•°æ®
+    std::unordered_map<ZombieType, ZombieInfo> mZombieInfo;             // åƒµå°¸ç±»å‹ -> åƒµå°¸ä¿¡æ¯
 
-    // Í¨ÓÃ¶¯»­ÀàĞÍ -> ×ÊÔ´ÃûÓ³Éä£¨¿ÉÓÃÓÚÖ²Îï¡¢½©Ê¬¡¢Ì«ÑôµÈ£©
+    // é€šç”¨åŠ¨ç”»ç±»å‹ -> èµ„æºåæ˜ å°„ï¼ˆå¯ç”¨äºæ¤ç‰©ã€åƒµå°¸ã€å¤ªé˜³ç­‰ï¼‰
     std::unordered_map<AnimationType, std::string> mAnimToString;
 };
 

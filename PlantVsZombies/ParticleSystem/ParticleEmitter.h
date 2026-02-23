@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #ifndef __PARTICLE_EMITTER_H__
 #define __PARTICLE_EMITTER_H__
 
@@ -18,13 +18,13 @@ private:
     int spawnRate;
     int maxParticles;
 
-    // ·¢Éä¿ØÖÆ
+    // å‘å°„æ§åˆ¶
     ParticleType effectType;
     bool isOneShot;
     int particlesToEmit;
     int particlesEmitted;
 
-    // ×Ô¶¯Ïú»Ù
+    // è‡ªåŠ¨é”€æ¯
     float autoDestroyTimer;
     float autoDestroyTime;
 
@@ -38,28 +38,28 @@ public:
         configManager.SetRenderer(sdlRenderer);
     }
 
-    // ³õÊ¼»¯
+    // åˆå§‹åŒ–
     void Initialize(ParticleType type, const SDL_FPoint& pos);
 
-    // ÅäÖÃ
+    // é…ç½®
     void SetSpawnRate(int rate) { spawnRate = rate; } 
     void SetMaxParticles(int max) { maxParticles = max; }
     void SetOneShot(bool oneShot) { isOneShot = oneShot; }
-	// Èç¹ûframesÎª-1ÔòÓÀ²»×Ô¶¯Ïú»Ù Èô-2ÔòÔÚÁ£×ÓÈ«²¿ÏûÊ§ºó×Ô¶¯Ïú»Ù
+	// å¦‚æœframesä¸º-1åˆ™æ°¸ä¸è‡ªåŠ¨é”€æ¯ è‹¥-2åˆ™åœ¨ç²’å­å…¨éƒ¨æ¶ˆå¤±åè‡ªåŠ¨é”€æ¯
     void SetAutoDestroyTime(int frames);
 
-    // ¿ØÖÆ
+    // æ§åˆ¶
     void EmitParticles(int count);
     void Stop() { active = false; }
     void Clear();
 
-    // ×´Ì¬²éÑ¯
+    // çŠ¶æ€æŸ¥è¯¢
     bool IsActive() const { return active; }
     bool ShouldDestroy() const;
     int GetActiveParticleCount() const;
     void SetPosition(const SDL_FPoint& pos) { position = pos; }
 
-    // ¸üĞÂºÍäÖÈ¾
+    // æ›´æ–°å’Œæ¸²æŸ“
     void Update();
     void Draw(SDL_Renderer* renderer);
 

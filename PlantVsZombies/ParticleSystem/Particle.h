@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #ifndef __PARTICLE_H__
 #define __PARTICLE_H__
 
@@ -13,7 +13,7 @@ enum class ParticleType {
     NUM_EFFECTS
 };
 
-// »ù´¡Á£×ÓÊı¾İ
+// åŸºç¡€ç²’å­æ•°æ®
 struct Particle {
     SDL_FPoint position;
     SDL_FPoint velocity;
@@ -30,9 +30,9 @@ struct Particle {
     float gravity;
     bool active;
     bool fadeOut;
-    SDL_Texture* texture;    // Á£×ÓÎÆÀí
-    SDL_Rect textureRect;    // ÎÆÀíÔ´¾ØĞÎ
-    bool useTexture;         // ÊÇ·ñÊ¹ÓÃÎÆÀí
+    SDL_Texture* texture;    // ç²’å­çº¹ç†
+    SDL_Rect textureRect;    // çº¹ç†æºçŸ©å½¢
+    bool useTexture;         // æ˜¯å¦ä½¿ç”¨çº¹ç†
 
     Particle();
     void Reset();

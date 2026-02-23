@@ -1,4 +1,4 @@
-#include "CrashHandler.h"
+ï»¿#include "CrashHandler.h"
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -17,17 +17,17 @@ PVOID CrashHandler::vehHandle = nullptr;
 LONG64 CrashHandler::lastUACTime = 0;
 
 void CrashHandler::Initialize() {
-    std::cout << "°²×°ÏòÁ¿»¯Òì³£´¦ÀíÆ÷..." << std::endl;
-    ULONG stackGuarantee = 4 * 1024; // ±£Áô4KBÕ»¿Õ¼ä
+    std::cout << "å®‰è£…å‘é‡åŒ–å¼‚å¸¸å¤„ç†å™¨..." << std::endl;
+    ULONG stackGuarantee = 4 * 1024; // ä¿ç•™4KBæ ˆç©ºé—´
     SetThreadStackGuarantee(&stackGuarantee);
-    // °²×° VEH ×÷ÎªµÚÒ»¸öÒì³£´¦ÀíÆ÷
+    // å®‰è£… VEH ä½œä¸ºç¬¬ä¸€ä¸ªå¼‚å¸¸å¤„ç†å™¨
     vehHandle = AddVectoredExceptionHandler(1, VectoredExceptionHandler);
 
     if (vehHandle) {
-        std::cout << "ÏòÁ¿»¯Òì³£´¦ÀíÆ÷°²×°³É¹¦" << std::endl;
+        std::cout << "å‘é‡åŒ–å¼‚å¸¸å¤„ç†å™¨å®‰è£…æˆåŠŸ" << std::endl;
     }
     else {
-        std::cerr << "ÏòÁ¿»¯Òì³£´¦ÀíÆ÷°²×°Ê§°Ü" << std::endl;
+        std::cerr << "å‘é‡åŒ–å¼‚å¸¸å¤„ç†å™¨å®‰è£…å¤±è´¥" << std::endl;
     }
 }
 
@@ -35,7 +35,7 @@ void CrashHandler::Cleanup() {
     if (vehHandle) {
         RemoveVectoredExceptionHandler(vehHandle);
         vehHandle = nullptr;
-        std::cout << "ÏòÁ¿»¯Òì³£´¦ÀíÆ÷ÒÑĞ¶ÔØ" << std::endl;
+        std::cout << "å‘é‡åŒ–å¼‚å¸¸å¤„ç†å™¨å·²å¸è½½" << std::endl;
     }
 }
 
@@ -52,17 +52,17 @@ LONG WINAPI CrashHandler::VectoredExceptionHandler(PEXCEPTION_POINTERS exception
         return EXCEPTION_EXECUTE_HANDLER;
     }
 
-    // ÅÅ³ıµ÷ÊÔÏà¹ØµÄÒì³£
+    // æ’é™¤è°ƒè¯•ç›¸å…³çš„å¼‚å¸¸
     switch (exceptionCode)
     {
-    case EXCEPTION_BREAKPOINT:                    // ¶Ïµã
-    case EXCEPTION_SINGLE_STEP:                   // µ¥²½
-    case 0x4001000a:                              // DBG_PRINTEXCEPTION_C (µ÷ÊÔÊä³ö)
-    case 0x40010006:                              // DBG_PRINTEXCEPTION_WIDE_C (¿í×Ö·ûµ÷ÊÔÊä³ö)
-    case 0x406D1388:                              // ÉèÖÃÏß³ÌÃû³ÆÒì³£
+    case EXCEPTION_BREAKPOINT:                    // æ–­ç‚¹
+    case EXCEPTION_SINGLE_STEP:                   // å•æ­¥
+    case 0x4001000a:                              // DBG_PRINTEXCEPTION_C (è°ƒè¯•è¾“å‡º)
+    case 0x40010006:                              // DBG_PRINTEXCEPTION_WIDE_C (å®½å­—ç¬¦è°ƒè¯•è¾“å‡º)
+    case 0x406D1388:                              // è®¾ç½®çº¿ç¨‹åç§°å¼‚å¸¸
         return EXCEPTION_CONTINUE_SEARCH;
     case 0xE06D7363:
-        return EXCEPTION_CONTINUE_SEARCH;         // C++ Òì³£
+        return EXCEPTION_CONTINUE_SEARCH;         // C++ å¼‚å¸¸
 
     default:
         if (IsCrashException(exceptionCode))
@@ -78,15 +78,15 @@ LONG WINAPI CrashHandler::VectoredExceptionHandler(PEXCEPTION_POINTERS exception
 }
 
 void CrashHandler::HandleStackOverflowMinimal(PEXCEPTION_POINTERS exceptionInfo) {
-    // Ê¹ÓÃ¾²Ì¬»º³åÇø£¬±ÜÃâÕ»·ÖÅä
+    // ä½¿ç”¨é™æ€ç¼“å†²åŒºï¼Œé¿å…æ ˆåˆ†é…
     static char buffer[512];
 
-    // ¼òµ¥µÄ´íÎóĞÅÏ¢
+    // ç®€å•çš„é”™è¯¯ä¿¡æ¯
     const char* errorMsg =
         "Stack overflow occurred.\n"
         "The program will terminate immediately.";
 
-    // Ö±½ÓĞ´ÈëÎÄ¼ş£¬±ÜÃâ¸´ÔÓ²Ù×÷
+    // ç›´æ¥å†™å…¥æ–‡ä»¶ï¼Œé¿å…å¤æ‚æ“ä½œ
     HANDLE hFile = CreateFileA(
         "stack_overflow_minimal.txt",
         GENERIC_WRITE,
@@ -101,7 +101,7 @@ void CrashHandler::HandleStackOverflowMinimal(PEXCEPTION_POINTERS exceptionInfo)
         DWORD written;
         WriteFile(hFile, errorMsg, strlen(errorMsg), &written, nullptr);
 
-        // ¼ÇÂ¼Òì³£µØÖ·
+        // è®°å½•å¼‚å¸¸åœ°å€
         if (exceptionInfo && exceptionInfo->ExceptionRecord) {
             std::snprintf(buffer, sizeof(buffer),
                 "\n\nException Address: 0x%p\nRSP: 0x%p",
@@ -118,13 +118,13 @@ void CrashHandler::HandleStackOverflowMinimal(PEXCEPTION_POINTERS exceptionInfo)
 
 bool CrashHandler::IsCrashException(DWORD exceptionCode) {
     switch (exceptionCode) {
-        // ÄÚ´æ·ÃÎÊÏà¹Ø
+        // å†…å­˜è®¿é—®ç›¸å…³
     case EXCEPTION_ACCESS_VIOLATION:
     case EXCEPTION_IN_PAGE_ERROR:
     case EXCEPTION_STACK_OVERFLOW:
     case EXCEPTION_STACK_INVALID:
 
-        // ËãÊõÔËËãÏà¹Ø
+        // ç®—æœ¯è¿ç®—ç›¸å…³
     case EXCEPTION_INT_DIVIDE_BY_ZERO:
     case EXCEPTION_INT_OVERFLOW:
     case EXCEPTION_FLT_DIVIDE_BY_ZERO:
@@ -134,17 +134,17 @@ bool CrashHandler::IsCrashException(DWORD exceptionCode) {
     case EXCEPTION_FLT_INVALID_OPERATION:
     case EXCEPTION_FLT_DENORMAL_OPERAND:
 
-        // Ö¸ÁîÏà¹Ø
+        // æŒ‡ä»¤ç›¸å…³
     case EXCEPTION_ILLEGAL_INSTRUCTION:
     case EXCEPTION_PRIV_INSTRUCTION:
     case EXCEPTION_INVALID_DISPOSITION:
     case EXCEPTION_NONCONTINUABLE_EXCEPTION:
 
-        // Êı×éºÍÊı¾İÀàĞÍ
+        // æ•°ç»„å’Œæ•°æ®ç±»å‹
     case EXCEPTION_ARRAY_BOUNDS_EXCEEDED:
     case EXCEPTION_DATATYPE_MISALIGNMENT:
 
-        // ÆäËûÑÏÖØ´íÎó
+        // å…¶ä»–ä¸¥é‡é”™è¯¯
     case EXCEPTION_INVALID_HANDLE:
         return true;
 
@@ -159,10 +159,10 @@ void CrashHandler::HandleCrash(PEXCEPTION_POINTERS exceptionInfo) {
         ShowCrashDialog(exceptionInfo, reportPath);
     }
     catch (...) {
-        // Èç¹û±ÀÀ£±¨¸æÉú³ÉÊ§°Ü£¬ÏÔÊ¾×î¼òµ¥µÄ´íÎóĞÅÏ¢
+        // å¦‚æœå´©æºƒæŠ¥å‘Šç”Ÿæˆå¤±è´¥ï¼Œæ˜¾ç¤ºæœ€ç®€å•çš„é”™è¯¯ä¿¡æ¯
         MessageBoxA(nullptr,
-            "³ÌĞò·¢ÉúÁËÑÏÖØ´íÎó£¬ÎŞ·¨Éú³ÉÏêÏ¸±¨¸æ¡£",
-            "ÖÂÃü´íÎó",
+            "ç¨‹åºå‘ç”Ÿäº†ä¸¥é‡é”™è¯¯ï¼Œæ— æ³•ç”Ÿæˆè¯¦ç»†æŠ¥å‘Šã€‚",
+            "è‡´å‘½é”™è¯¯",
             MB_ICONERROR | MB_OK);
     }
 
@@ -170,7 +170,7 @@ void CrashHandler::HandleCrash(PEXCEPTION_POINTERS exceptionInfo) {
 }
 
 std::string CrashHandler::GenerateCrashReport(PEXCEPTION_POINTERS exceptionInfo) {
-    // Éú³ÉÊ±¼ä´ÁÎÄ¼şÃû
+    // ç”Ÿæˆæ—¶é—´æˆ³æ–‡ä»¶å
     auto now = std::time(nullptr);
     char timestamp[64];
     std::tm timeInfo;
@@ -184,22 +184,22 @@ std::string CrashHandler::GenerateCrashReport(PEXCEPTION_POINTERS exceptionInfo)
         return reportPath;
     }
 
-    // ¸ñÊ½»¯Ê±¼ä×Ö·û´®
+    // æ ¼å¼åŒ–æ—¶é—´å­—ç¬¦ä¸²
     char timeStr[26];
     ctime_s(timeStr, sizeof(timeStr), &now);
 
-    report << "=== ³ÌĞò±ÀÀ£±¨¸æ ===\n";
-    report << "Éú³ÉÊ±¼ä: " << timeStr;
-    report << "Òì³£ÀàĞÍ: " << GetExceptionCodeString
+    report << "=== ç¨‹åºå´©æºƒæŠ¥å‘Š ===\n";
+    report << "ç”Ÿæˆæ—¶é—´: " << timeStr;
+    report << "å¼‚å¸¸ç±»å‹: " << GetExceptionCodeString
     (exceptionInfo->ExceptionRecord->ExceptionCode)
         << "(0x" << std::hex << exceptionInfo->ExceptionRecord->ExceptionCode << ")\n";
-    report << "Òì³£µØÖ·: 0x" << std::hex << (uintptr_t)exceptionInfo->ExceptionRecord->ExceptionAddress << "\n";
-    report << "Ïß³ÌID: " << std::dec << GetCurrentThreadId() << "\n";
-    report << "½ø³ÌID: " << std::dec << GetCurrentProcessId() << "\n\n";
+    report << "å¼‚å¸¸åœ°å€: 0x" << std::hex << (uintptr_t)exceptionInfo->ExceptionRecord->ExceptionAddress << "\n";
+    report << "çº¿ç¨‹ID: " << std::dec << GetCurrentThreadId() << "\n";
+    report << "è¿›ç¨‹ID: " << std::dec << GetCurrentProcessId() << "\n\n";
 
-    // ¼Ä´æÆ÷ĞÅÏ¢
+    // å¯„å­˜å™¨ä¿¡æ¯
     if (exceptionInfo->ContextRecord) {
-        report << "=== ¼Ä´æÆ÷×´Ì¬ ===\n";
+        report << "=== å¯„å­˜å™¨çŠ¶æ€ ===\n";
         PCONTEXT ctx = exceptionInfo->ContextRecord;
 
 #ifdef _WIN64
@@ -234,12 +234,12 @@ std::string CrashHandler::GenerateCrashReport(PEXCEPTION_POINTERS exceptionInfo)
         report << "\n";
     }
 
-    // Õ»¸ú×Ù
-    report << "=== Õ»¸ú×Ù ===\n";
+    // æ ˆè·Ÿè¸ª
+    report << "=== æ ˆè·Ÿè¸ª ===\n";
     report << GetStackTrace(exceptionInfo) << "\n";
 
-    // ¼ÓÔØµÄÄ£¿éĞÅÏ¢
-    report << "=== ¼ÓÔØµÄÄ£¿é ===\n";
+    // åŠ è½½çš„æ¨¡å—ä¿¡æ¯
+    report << "=== åŠ è½½çš„æ¨¡å— ===\n";
     HMODULE modules[1024];
     DWORD needed;
     if (EnumProcessModules(GetCurrentProcess(), modules, sizeof(modules), &needed)) {
@@ -257,20 +257,20 @@ std::string CrashHandler::GenerateCrashReport(PEXCEPTION_POINTERS exceptionInfo)
 
 void CrashHandler::ShowCrashDialog(PEXCEPTION_POINTERS exceptionInfo, const std::string& reportPath) {
     if (!exceptionInfo) {
-        MessageBoxA(nullptr, "·¢ÉúÎ´Öª´íÎó", "³ÌĞò±ÀÀ£", MB_ICONERROR | MB_OK);
+        MessageBoxA(nullptr, "å‘ç”ŸæœªçŸ¥é”™è¯¯", "ç¨‹åºå´©æºƒ", MB_ICONERROR | MB_OK);
         return;
     }
 
-    // ¹¹½¨ÏêÏ¸µÄ´íÎóĞÅÏ¢
+    // æ„å»ºè¯¦ç»†çš„é”™è¯¯ä¿¡æ¯
     std::stringstream errorMsg;
-    errorMsg << "³ÌĞòÓöµ½ÁËÑÏÖØ´íÎóĞèÒª¹Ø±Õ\n\n";
-    errorMsg << "´íÎóÀàĞÍ: " << GetExceptionCodeString(exceptionInfo->ExceptionRecord->ExceptionCode) << "\n";
-    errorMsg << "´íÎóµØÖ·: 0x" << std::hex << (uintptr_t)exceptionInfo->ExceptionRecord->ExceptionAddress << "\n\n";
+    errorMsg << "ç¨‹åºé‡åˆ°äº†ä¸¥é‡é”™è¯¯éœ€è¦å…³é—­\n\n";
+    errorMsg << "é”™è¯¯ç±»å‹: " << GetExceptionCodeString(exceptionInfo->ExceptionRecord->ExceptionCode) << "\n";
+    errorMsg << "é”™è¯¯åœ°å€: 0x" << std::hex << (uintptr_t)exceptionInfo->ExceptionRecord->ExceptionAddress << "\n\n";
 
-    // Ìí¼Ó¼Ä´æÆ÷ĞÅÏ¢
+    // æ·»åŠ å¯„å­˜å™¨ä¿¡æ¯
     if (exceptionInfo->ContextRecord) {
-        errorMsg << "ÒÔÏÂÊÇ²¿·Ö¹Ø¼ü¼Ä´æÆ÷ĞÅÏ¢£¬ÍêÕûÇë¿´±ÀÀ£±¨¸æ¡£\n";
-        errorMsg << "=== ¼Ä´æÆ÷ĞÅÏ¢ ===\n";
+        errorMsg << "ä»¥ä¸‹æ˜¯éƒ¨åˆ†å…³é”®å¯„å­˜å™¨ä¿¡æ¯ï¼Œå®Œæ•´è¯·çœ‹å´©æºƒæŠ¥å‘Šã€‚\n";
+        errorMsg << "=== å¯„å­˜å™¨ä¿¡æ¯ ===\n";
         PCONTEXT ctx = exceptionInfo->ContextRecord;
 
 #ifdef _WIN64
@@ -297,44 +297,44 @@ void CrashHandler::ShowCrashDialog(PEXCEPTION_POINTERS exceptionInfo, const std:
         errorMsg << "\n";
     }
 
-    errorMsg << "±ÀÀ£±¨¸æÒÑ±£´æµ½:\n" << reportPath << "\n\n";
-    errorMsg << "Çë½«´ËÎÄ¼ş·¢ËÍ¸ø¿ª·¢ÈËÔ±ÒÔ°ïÖú½â¾öÎÊÌâ¡£\n";
-    errorMsg << "µã»÷\"È·¶¨\"¹Ø±Õ³ÌĞò¡£";
+    errorMsg << "å´©æºƒæŠ¥å‘Šå·²ä¿å­˜åˆ°:\n" << reportPath << "\n\n";
+    errorMsg << "è¯·å°†æ­¤æ–‡ä»¶å‘é€ç»™å¼€å‘äººå‘˜ä»¥å¸®åŠ©è§£å†³é—®é¢˜ã€‚\n";
+    errorMsg << "ç‚¹å‡»\"ç¡®å®š\"å…³é—­ç¨‹åºã€‚";
 
-    MessageBoxA(nullptr, errorMsg.str().c_str(), "³ÌĞò±ÀÀ£", MB_ICONERROR | MB_OK);
+    MessageBoxA(nullptr, errorMsg.str().c_str(), "ç¨‹åºå´©æºƒ", MB_ICONERROR | MB_OK);
 }
 
 std::string CrashHandler::GetExceptionCodeString(DWORD exceptionCode) {
     switch (exceptionCode) {
-    case EXCEPTION_ACCESS_VIOLATION:         return "·ÃÎÊÎ¥¹æ";
-    case EXCEPTION_ARRAY_BOUNDS_EXCEEDED:    return "Êı×éÔ½½ç";
-    case EXCEPTION_BREAKPOINT:               return "¶Ïµã";
-    case EXCEPTION_DATATYPE_MISALIGNMENT:    return "Êı¾İÎ´¶ÔÆë";
-    case EXCEPTION_FLT_DENORMAL_OPERAND:     return "¸¡µãÊıÒì³£²Ù×÷Êı";
-    case EXCEPTION_FLT_DIVIDE_BY_ZERO:       return "¸¡µãÊı³ıÁã";
-    case EXCEPTION_FLT_INEXACT_RESULT:       return "¸¡µãÊı²»¾«È·½á¹û";
-    case EXCEPTION_FLT_INVALID_OPERATION:    return "¸¡µãÊıÎŞĞ§²Ù×÷";
-    case EXCEPTION_FLT_OVERFLOW:             return "¸¡µãÊıÉÏÒç";
-    case EXCEPTION_FLT_STACK_CHECK:          return "¸¡µãÊıÕ»¼ì²éÊ§°Ü";
-    case EXCEPTION_FLT_UNDERFLOW:            return "¸¡µãÊıÏÂÒç";
-    case EXCEPTION_GUARD_PAGE:               return "±£»¤Ò³Î¥¹æ";
-    case EXCEPTION_ILLEGAL_INSTRUCTION:      return "·Ç·¨Ö¸Áî";
-    case EXCEPTION_IN_PAGE_ERROR:            return "Ò³Ãæ´íÎó";
-    case EXCEPTION_INT_DIVIDE_BY_ZERO:       return "ÕûÊı³ıÁã";
-    case EXCEPTION_INT_OVERFLOW:             return "ÕûÊıÒç³ö";
-    case EXCEPTION_INVALID_DISPOSITION:      return "ÎŞĞ§´¦ÖÃ";
-    case EXCEPTION_INVALID_HANDLE:           return "ÎŞĞ§¾ä±ú";
-    case EXCEPTION_NONCONTINUABLE_EXCEPTION: return "²»¿É¼ÌĞøÒì³£";
-    case EXCEPTION_PRIV_INSTRUCTION:         return "ÌØÈ¨Ö¸Áî";
-    case EXCEPTION_SINGLE_STEP:              return "µ¥²½Ö´ĞĞ";
-    case EXCEPTION_STACK_OVERFLOW:           return "Õ»Òç³ö";
-    case EXCEPTION_STACK_INVALID:            return "Õ»ÎŞĞ§";
-    case 0x4001000a:                         return "µ÷ÊÔÊä³öÒì³£";
-    case 0x40010006:                         return "¿í×Ö·ûµ÷ÊÔÊä³öÒì³£";
-    case 0x406D1388:                         return "ÉèÖÃÏß³ÌÃû³ÆÒì³£";
-    case 0xE06D7363:                         return "C++Òì³£";
+    case EXCEPTION_ACCESS_VIOLATION:         return "è®¿é—®è¿è§„";
+    case EXCEPTION_ARRAY_BOUNDS_EXCEEDED:    return "æ•°ç»„è¶Šç•Œ";
+    case EXCEPTION_BREAKPOINT:               return "æ–­ç‚¹";
+    case EXCEPTION_DATATYPE_MISALIGNMENT:    return "æ•°æ®æœªå¯¹é½";
+    case EXCEPTION_FLT_DENORMAL_OPERAND:     return "æµ®ç‚¹æ•°å¼‚å¸¸æ“ä½œæ•°";
+    case EXCEPTION_FLT_DIVIDE_BY_ZERO:       return "æµ®ç‚¹æ•°é™¤é›¶";
+    case EXCEPTION_FLT_INEXACT_RESULT:       return "æµ®ç‚¹æ•°ä¸ç²¾ç¡®ç»“æœ";
+    case EXCEPTION_FLT_INVALID_OPERATION:    return "æµ®ç‚¹æ•°æ— æ•ˆæ“ä½œ";
+    case EXCEPTION_FLT_OVERFLOW:             return "æµ®ç‚¹æ•°ä¸Šæº¢";
+    case EXCEPTION_FLT_STACK_CHECK:          return "æµ®ç‚¹æ•°æ ˆæ£€æŸ¥å¤±è´¥";
+    case EXCEPTION_FLT_UNDERFLOW:            return "æµ®ç‚¹æ•°ä¸‹æº¢";
+    case EXCEPTION_GUARD_PAGE:               return "ä¿æŠ¤é¡µè¿è§„";
+    case EXCEPTION_ILLEGAL_INSTRUCTION:      return "éæ³•æŒ‡ä»¤";
+    case EXCEPTION_IN_PAGE_ERROR:            return "é¡µé¢é”™è¯¯";
+    case EXCEPTION_INT_DIVIDE_BY_ZERO:       return "æ•´æ•°é™¤é›¶";
+    case EXCEPTION_INT_OVERFLOW:             return "æ•´æ•°æº¢å‡º";
+    case EXCEPTION_INVALID_DISPOSITION:      return "æ— æ•ˆå¤„ç½®";
+    case EXCEPTION_INVALID_HANDLE:           return "æ— æ•ˆå¥æŸ„";
+    case EXCEPTION_NONCONTINUABLE_EXCEPTION: return "ä¸å¯ç»§ç»­å¼‚å¸¸";
+    case EXCEPTION_PRIV_INSTRUCTION:         return "ç‰¹æƒæŒ‡ä»¤";
+    case EXCEPTION_SINGLE_STEP:              return "å•æ­¥æ‰§è¡Œ";
+    case EXCEPTION_STACK_OVERFLOW:           return "æ ˆæº¢å‡º";
+    case EXCEPTION_STACK_INVALID:            return "æ ˆæ— æ•ˆ";
+    case 0x4001000a:                         return "è°ƒè¯•è¾“å‡ºå¼‚å¸¸";
+    case 0x40010006:                         return "å®½å­—ç¬¦è°ƒè¯•è¾“å‡ºå¼‚å¸¸";
+    case 0x406D1388:                         return "è®¾ç½®çº¿ç¨‹åç§°å¼‚å¸¸";
+    case 0xE06D7363:                         return "C++å¼‚å¸¸";
     default:
-        return "Î´ÖªÒì³£ (0x" + std::to_string(exceptionCode) + ")";
+        return "æœªçŸ¥å¼‚å¸¸ (0x" + std::to_string(exceptionCode) + ")";
     }
 }
 
@@ -344,7 +344,7 @@ std::string CrashHandler::GetStackTrace(PEXCEPTION_POINTERS exceptionInfo) {
     HANDLE process = GetCurrentProcess();
     HANDLE thread = GetCurrentThread();
 
-    // ³õÊ¼»¯·ûºÅ´¦Àí
+    // åˆå§‹åŒ–ç¬¦å·å¤„ç†
     SymInitialize(process, nullptr, TRUE);
     SymSetOptions(SYMOPT_LOAD_LINES | SYMOPT_UNDNAME);
 
@@ -385,7 +385,7 @@ std::string CrashHandler::GetStackTrace(PEXCEPTION_POINTERS exceptionInfo) {
 
         stackTrace << "[" << i << "] ";
 
-        // »ñÈ¡Ä£¿éÃû
+        // è·å–æ¨¡å—å
         HMODULE module = nullptr;
         GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS,
             (LPCTSTR)stackFrame.AddrPC.Offset, &module);
@@ -395,7 +395,7 @@ std::string CrashHandler::GetStackTrace(PEXCEPTION_POINTERS exceptionInfo) {
 
         stackTrace << "0x" << std::hex << stackFrame.AddrPC.Offset;
 
-        // ³¢ÊÔ»ñÈ¡·ûºÅÃû
+        // å°è¯•è·å–ç¬¦å·å
         char symbolBuffer[sizeof(SYMBOL_INFO) + MAX_SYM_NAME * sizeof(TCHAR)];
         PSYMBOL_INFO symbol = (PSYMBOL_INFO)symbolBuffer;
         symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
@@ -416,7 +416,7 @@ std::string CrashHandler::GetStackTrace(PEXCEPTION_POINTERS exceptionInfo) {
 
     std::string result = stackTrace.str();
     if (result.empty()) {
-        return "ÎŞ·¨»ñÈ¡Õ»¸ú×ÙĞÅÏ¢";
+        return "æ— æ³•è·å–æ ˆè·Ÿè¸ªä¿¡æ¯";
     }
 
     return result;
@@ -440,16 +440,16 @@ bool CrashHandler::IsUACByTimeWindow(PEXCEPTION_POINTERS exceptionInfo) {
 
     LONG64 currentTime = GetTickCount64();
 
-    // Èç¹ûÔÚ×î½ü3ÃëÄÚ¼ì²âµ½¹ıUAC£¬ºöÂÔËùÓĞÒì³£
+    // å¦‚æœåœ¨æœ€è¿‘3ç§’å†…æ£€æµ‹åˆ°è¿‡UACï¼Œå¿½ç•¥æ‰€æœ‰å¼‚å¸¸
     if (currentTime - lastUACTime < 3000) {
-        std::cout << "Ê±¼ä´°¿ÚÄÚ£¬ºöÂÔÒì³£ (¾àÀëÉÏ´ÎUAC: "
+        std::cout << "æ—¶é—´çª—å£å†…ï¼Œå¿½ç•¥å¼‚å¸¸ (è·ç¦»ä¸Šæ¬¡UAC: "
             << (currentTime - lastUACTime) << "ms)" << std::endl;
         return true;
     }
 
     DWORD exceptionCode = exceptionInfo->ExceptionRecord->ExceptionCode;
 
-    // ¼ì²éÊÇ·ñÊÇµäĞÍµÄUACÒì³£Ä£Ê½
+    // æ£€æŸ¥æ˜¯å¦æ˜¯å…¸å‹çš„UACå¼‚å¸¸æ¨¡å¼
     if (exceptionCode == EXCEPTION_ACCESS_VIOLATION ||
         exceptionCode == EXCEPTION_GUARD_PAGE ||
         exceptionCode == EXCEPTION_BREAKPOINT) {
@@ -463,14 +463,14 @@ bool CrashHandler::IsUACByTimeWindow(PEXCEPTION_POINTERS exceptionInfo) {
                 std::string modulePath = moduleName;
                 std::transform(modulePath.begin(), modulePath.end(), modulePath.begin(), ::tolower);
 
-                // Èç¹ûÊÇÏµÍ³ºËĞÄÄ£¿é£¬ÈÏÎªÊÇUAC
+                // å¦‚æœæ˜¯ç³»ç»Ÿæ ¸å¿ƒæ¨¡å—ï¼Œè®¤ä¸ºæ˜¯UAC
                 if (modulePath.find("\\system32\\") != std::string::npos ||
                     modulePath.find("\\syswow64\\") != std::string::npos ||
                     modulePath.find("kernel32.dll") != std::string::npos ||
                     modulePath.find("kernelbase.dll") != std::string::npos ||
                     modulePath.find("ntdll.dll") != std::string::npos) {
 
-                    std::cout << "¼ì²âµ½UACÏà¹ØÒì³££¬Ä£¿é: " << modulePath << std::endl;
+                    std::cout << "æ£€æµ‹åˆ°UACç›¸å…³å¼‚å¸¸ï¼Œæ¨¡å—: " << modulePath << std::endl;
                     lastUACTime = currentTime;
                     return true;
                 }

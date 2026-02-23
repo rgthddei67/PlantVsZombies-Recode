@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #ifndef _ANIMATOR_H
 #define _ANIMATOR_H
 
@@ -19,7 +19,7 @@ struct AnimDrawCommand {
     SDL_Texture* texture;
     SDL_BlendMode blendMode;
     SDL_Color color;
-    float points[8];  // 4¸ö¶¥µãµÄÊÀ½ç×ø±ê (x1,y1, x2,y2, x3,y3, x4,y4)
+    float points[8];  // 4ä¸ªé¡¶ç‚¹çš„ä¸–ç•Œåæ ‡ (x1,y1, x2,y2, x3,y3, x4,y4)
 };
 
 class Animator {
@@ -32,7 +32,7 @@ private:
     float mSpeed = 1.0f;
     float mAlpha = 1.0f;
 
-    // ¹ı¶É¶¯»­
+    // è¿‡æ¸¡åŠ¨ç”»
     float mReanimBlendCounter = -1.0f;
     float mReanimBlendCounterMax = 100.0f;
     int mFrameIndexBlendBuffer = 0;
@@ -42,39 +42,39 @@ private:
     std::vector<TrackExtraInfo> mExtraInfos;
     std::unordered_map<std::string, int> mTrackIndicesMap;
 
-    bool mEnableExtraAdditiveDraw = false;  // ¸ßÁÁĞ§¹û 
-    bool mEnableExtraOverlayDraw = false;   // ¸½¼Ó¸²¸ÇĞ§¹û
+    bool mEnableExtraAdditiveDraw = false;  // é«˜äº®æ•ˆæœ 
+    bool mEnableExtraOverlayDraw = false;   // é™„åŠ è¦†ç›–æ•ˆæœ
     SDL_Color mExtraAdditiveColor = { 255, 255, 255, 128 };
     SDL_Color mExtraOverlayColor = { 255, 255, 255, 64 };
 
-    // ¹ı¶ÉÄ¿±ê
+    // è¿‡æ¸¡ç›®æ ‡
     std::string mTargetTrack = "";
-    float mOriginalSpeed = 1.0f;    // Ô­À´µÄËÙ¶È
+    float mOriginalSpeed = 1.0f;    // åŸæ¥çš„é€Ÿåº¦
 
-    std::unordered_multimap<int, std::function<void()>> mFrameEvents;  // Ö¡ÊÂ¼ş±í
+    std::unordered_multimap<int, std::function<void()>> mFrameEvents;  // å¸§äº‹ä»¶è¡¨
 
 public:
     Animator();
     Animator(std::shared_ptr<Reanimation> reanim);
     ~Animator();
 
-    // ³õÊ¼»¯
+    // åˆå§‹åŒ–
     void Init(std::shared_ptr<Reanimation> reanim);
 
     void Die();
 
-    // ²¥·Å¿ØÖÆ
+    // æ’­æ”¾æ§åˆ¶
     void Play(PlayState state = PlayState::PLAY_REPEAT);
     void Pause();
     void Stop();
 
-    // Ôö¼ÓÖ¡ÊÂ¼ş
+    // å¢åŠ å¸§äº‹ä»¶
     void AddFrameEvent(int frameIndex, std::function<void()> callback);
 
-    // ²¥·ÅÖ¸¶¨¹ìµÀ¶¯»­£¬Ö§³Ö¹ı¶ÉĞ§¹û
+    // æ’­æ”¾æŒ‡å®šè½¨é“åŠ¨ç”»ï¼Œæ”¯æŒè¿‡æ¸¡æ•ˆæœ
     bool PlayTrack(const std::string& trackName, float speed = 1.0f, float blendTime = 0);
 
-    // ²¥·ÅÖ¸¶¨¹ìµÀ¶¯»­Ò»´Î£¬²¥·ÅÍêºó¿ÉÇĞ»»»ØÖ¸¶¨¹ìµÀ
+    // æ’­æ”¾æŒ‡å®šè½¨é“åŠ¨ç”»ä¸€æ¬¡ï¼Œæ’­æ”¾å®Œåå¯åˆ‡æ¢å›æŒ‡å®šè½¨é“
     bool PlayTrackOnce(const std::string& trackName,
         const std::string& returnTrack = "",
         float speed = 1.0f,
@@ -89,31 +89,31 @@ public:
         return this->mOriginalSpeed;
     }
 
-    // ¹ìµÀ·¶Î§¿ØÖÆ
+    // è½¨é“èŒƒå›´æ§åˆ¶
     std::pair<int, int> GetTrackRange(const std::string& trackName);
     void SetFrameRange(int frameBegin, int frameEnd);
     void SetFrameRangeByTrackName(const std::string& trackName);
     void SetFrameRangeToDefault();
 
-    // ÉèÖÃ¹ìµÀ×Ô¶¨ÒåÎÆÀí£¨»á¸²¸Ç¶¯»­Ô­±¾µÄÎÆÀí£©
+    // è®¾ç½®è½¨é“è‡ªå®šä¹‰çº¹ç†ï¼ˆä¼šè¦†ç›–åŠ¨ç”»åŸæœ¬çš„çº¹ç†ï¼‰
     void SetTrackImage(const std::string& trackName, SDL_Texture* image);   
-    void SetTrackVisible(const std::string& trackName, bool visible); // ¹ìµÀÏÔÊ¾¿ØÖÆ
+    void SetTrackVisible(const std::string& trackName, bool visible); // è½¨é“æ˜¾ç¤ºæ§åˆ¶
  
-    // ½«×Ó¶¯»­¸½¼Óµ½Ö¸¶¨¹ìµÀ£¨¸úËæ¹ìµÀ±ä»»£©
+    // å°†å­åŠ¨ç”»é™„åŠ åˆ°æŒ‡å®šè½¨é“ï¼ˆè·Ÿéšè½¨é“å˜æ¢ï¼‰
     bool AttachAnimator(const std::string& trackName, std::shared_ptr<Animator> child);
     void DetachAnimator(const std::string& trackName, std::shared_ptr<Animator> child);
     void DetachAllAnimators();
 
-    // ×´Ì¬²éÑ¯
+    // çŠ¶æ€æŸ¥è¯¢
     bool IsPlaying() const { return mIsPlaying; }
     float GetCurrentFrame() const { return mFrameIndexNow; }
     void SetSpeed(float speed);
     float GetSpeed() const { return mSpeed; }
 
-    // »ñÈ¡TrackµÄ¶¯Á¿
+    // è·å–Trackçš„åŠ¨é‡
     float GetTrackVelocity(const std::string& trackName) const;
 
-    // Í¸Ã÷¶ÈºÍÑÕÉ«¿ØÖÆ
+    // é€æ˜åº¦å’Œé¢œè‰²æ§åˆ¶
     void SetAlpha(float alpha);
     float GetAlpha() const { return mAlpha; }
 
@@ -123,17 +123,14 @@ public:
     void EnableOverlayEffect(bool enable);
     void SetOverlayColor(Uint8 r, Uint8 g, Uint8 b, Uint8 a = 64);
 
-    // ¸üĞÂºÍäÖÈ¾
+    // æ›´æ–°å’Œæ¸²æŸ“
     void Update();
     void Draw(SDL_Renderer* renderer, float baseX, float baseY, float Scale = 1.0f);
-    // »æÖÆÈÎÒâËÄ±ßĞÎÎÆÀí
-    void DrawTexturedQuad(SDL_Renderer* renderer, SDL_Texture* texture,
-        const float points[8], SDL_Color color);
 
-    // »ñÈ¡µ×²ãReanimation
+    // è·å–åº•å±‚Reanimation
     std::shared_ptr<Reanimation> GetReanimation() const { return mReanim; }
 
-    // »ñÈ¡¹ìµÀĞÅÏ¢
+    // è·å–è½¨é“ä¿¡æ¯
     std::vector<TrackInfo*> GetTracksByName(const std::string& trackName) const;
     Vector GetTrackPosition(const std::string& trackName) const;
     float GetTrackRotation(const std::string& trackName) const;
@@ -145,12 +142,12 @@ public:
     void SetLocalRotation(float rotation);
 
 private:
-    // ×Ó¶¯»­Ïà¶ÔÓÚ¸¸¹ìµÀµÄ±¾µØ±ä»»£¨µ¥Î»£ºÏñËØ¡¢Ëõ·ÅÒò×Ó¡¢½Ç¶È£©
+    // å­åŠ¨ç”»ç›¸å¯¹äºçˆ¶è½¨é“çš„æœ¬åœ°å˜æ¢ï¼ˆå•ä½ï¼šåƒç´ ã€ç¼©æ”¾å› å­ã€è§’åº¦ï¼‰
     float mLocalPosX = 0.0f;
     float mLocalPosY = 0.0f;
     float mLocalScaleX = 1.0f;
     float mLocalScaleY = 1.0f;
-    float mLocalRotation = 0.0f;   // ½Ç¶ÈÖÆ
+    float mLocalRotation = 0.0f;   // è§’åº¦åˆ¶
 
 private:
     TrackFrameTransform GetInterpolatedTransform(int trackIndex) const;

@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #ifndef _SUN_H
 #define _SUN_H
 #include "../ResourceKeys.h"
@@ -9,17 +9,17 @@
 
 class Sun : public Coin {
 private:
-	int SunPoint = 25;	// ÊÕ¼¯ºóÔö¼ÓµÄÑô¹âµãÊı
-    Vector mParabolaTarget; // Å×ÎïÏßÔË¶¯µÄÄ¿±êÎ»ÖÃ
-    Vector mParabolaStart;  // Å×ÎïÏßÆğÊ¼Î»ÖÃ
-    float mParabolaHeight = 0.0f;  // Å×ÎïÏß¸ß¶È
-    float mParabolaTime = 0.0f; // Å×ÎïÏßÔË¶¯Ê±¼ä
-    bool mIsParabola = false; // ÊÇ·ñÕıÔÚ½øĞĞÅ×ÎïÏßÔË¶¯
-    bool mShouldStartLinearFall = false; // ÊÇ·ñĞèÒª¿ªÊ¼ÔÈËÙÏÂÂä
-    bool mShouldStartParabolaFall = false; // ÊÇ·ñĞèÒª¿ªÊ¼Å×ÎïÏßÔË¶¯
-    bool mIsLinearFalling = false; // ÊÇ·ñÕıÔÚ½øĞĞÔÈËÙÏÂÂä
-    Vector mLinearTarget; // ÔÈËÙÏÂÂäµÄÄ¿±êÎ»ÖÃ
-    bool mIsInitialized = false; // ÊÇ·ñÒÑ³õÊ¼»¯
+	int SunPoint = 25;	// æ”¶é›†åå¢åŠ çš„é˜³å…‰ç‚¹æ•°
+    Vector mParabolaTarget; // æŠ›ç‰©çº¿è¿åŠ¨çš„ç›®æ ‡ä½ç½®
+    Vector mParabolaStart;  // æŠ›ç‰©çº¿èµ·å§‹ä½ç½®
+    float mParabolaHeight = 0.0f;  // æŠ›ç‰©çº¿é«˜åº¦
+    float mParabolaTime = 0.0f; // æŠ›ç‰©çº¿è¿åŠ¨æ—¶é—´
+    bool mIsParabola = false; // æ˜¯å¦æ­£åœ¨è¿›è¡ŒæŠ›ç‰©çº¿è¿åŠ¨
+    bool mShouldStartLinearFall = false; // æ˜¯å¦éœ€è¦å¼€å§‹åŒ€é€Ÿä¸‹è½
+    bool mShouldStartParabolaFall = false; // æ˜¯å¦éœ€è¦å¼€å§‹æŠ›ç‰©çº¿è¿åŠ¨
+    bool mIsLinearFalling = false; // æ˜¯å¦æ­£åœ¨è¿›è¡ŒåŒ€é€Ÿä¸‹è½
+    Vector mLinearTarget; // åŒ€é€Ÿä¸‹è½çš„ç›®æ ‡ä½ç½®
+    bool mIsInitialized = false; // æ˜¯å¦å·²åˆå§‹åŒ–
 
 public:
 	Sun(Board* board, const Vector& position, float scale = 0.9f,
@@ -33,7 +33,7 @@ public:
         this->mCoinType = CoinType::COIN_SUN;
 	}
 
-	// TODO Îö¹¹º¯Êı»á×Ô¶¯µ÷ÓÃ»ùÀàµÄÎö¹¹º¯Êı ²»ÄÜ×Ô¼ºĞ´
+	// TODO ææ„å‡½æ•°ä¼šè‡ªåŠ¨è°ƒç”¨åŸºç±»çš„ææ„å‡½æ•° ä¸èƒ½è‡ªå·±å†™
 
     void Start() override {
         Coin::Start();
@@ -64,24 +64,24 @@ public:
         };
     }
 
-    // ÔÈËÙÏÂÂä
+    // åŒ€é€Ÿä¸‹è½
     void StartLinearFall() {
-        // ¼ì²é×é¼şÊÇ·ñÒÑ³õÊ¼»¯
+        // æ£€æŸ¥ç»„ä»¶æ˜¯å¦å·²åˆå§‹åŒ–
         if (!mIsInitialized) {
             mShouldStartLinearFall = true;
             return;
         }
 
         Vector currentPos = GetPosition();
-        // Ä¿±êÎ»ÖÃ£ºx²»±ä£¬yÔÚ80~420Ö®¼äËæ»ú
+        // ç›®æ ‡ä½ç½®ï¼šxä¸å˜ï¼Œyåœ¨80~420ä¹‹é—´éšæœº
 		float targetY = GameRandom::Range(80.0f, 420.0f);
         mLinearTarget = Vector(currentPos.x, targetY);
         mIsLinearFalling = true;
     }
 
-    // Å×ÎïÏßÔË¶¯
+    // æŠ›ç‰©çº¿è¿åŠ¨
     void StartParabolaFall() {
-        // ¼ì²é×é¼şÊÇ·ñÒÑ³õÊ¼»¯
+        // æ£€æŸ¥ç»„ä»¶æ˜¯å¦å·²åˆå§‹åŒ–
         if (!mIsInitialized) {
             mShouldStartParabolaFall = true;
             return;
@@ -89,15 +89,15 @@ public:
 
         mParabolaStart = GetPosition();
 
-        // Ë®Æ½·½ÏòËæ»úÆ«ÒÆ -50~50
+        // æ°´å¹³æ–¹å‘éšæœºåç§» -50~50
 		float offsetX = GameRandom::Range(-50.0f, 50.0f);
 
-        // ÏÂÂä¾àÀë 20~50
+        // ä¸‹è½è·ç¦» 20~50
         float fallDistance = GameRandom::Range(20.0f, 50.0f);
 
         mParabolaTarget = Vector(mParabolaStart.x + offsetX, mParabolaStart.y + fallDistance);
 
-        // Å×ÎïÏß¸ß¶È£¨»ùÓÚÏÂÂä¾àÀë¼ÆËã£©
+        // æŠ›ç‰©çº¿é«˜åº¦ï¼ˆåŸºäºä¸‹è½è·ç¦»è®¡ç®—ï¼‰
         mParabolaHeight = fallDistance * 0.8f;
 
         mIsParabola = true;
@@ -111,15 +111,15 @@ public:
         Vector direction = mLinearTarget - currentPos;
         float distance = direction.magnitude();
 
-        // Èç¹ûµ½´ïÄ¿±êÎ»ÖÃ£¬Í£Ö¹ÏÂÂä
+        // å¦‚æœåˆ°è¾¾ç›®æ ‡ä½ç½®ï¼Œåœæ­¢ä¸‹è½
         if (distance < 1.0f) {
             mIsLinearFalling = false;
-            // µ½´ïÎ»ÖÃºó±£³Ö¿Éµã»÷×´Ì¬
+            // åˆ°è¾¾ä½ç½®åä¿æŒå¯ç‚¹å‡»çŠ¶æ€
             return;
         }
 
-        // ÔÈËÙÏÂÂäËÙ¶È - ÊÊµ±Ôö¼ÓËÙ¶È
-        float speed = 50.0f; // Ôö¼ÓÏÂÂäËÙ¶È
+        // åŒ€é€Ÿä¸‹è½é€Ÿåº¦ - é€‚å½“å¢åŠ é€Ÿåº¦
+        float speed = 50.0f; // å¢åŠ ä¸‹è½é€Ÿåº¦
 
         if (distance > 0) {
             Vector normalizedDir = direction / distance;
@@ -128,29 +128,29 @@ public:
         }
     }
 
-    // ¸üĞÂÅ×ÎïÏßÔË¶¯
+    // æ›´æ–°æŠ›ç‰©çº¿è¿åŠ¨
     void UpdateParabola() {
         if (!mIsParabola) return;
 
         mParabolaTime += DeltaTime::GetDeltaTime();
 
-        // Å×ÎïÏßÔË¶¯Ê±¼ä£¨¸ù¾İ¾àÀëµ÷Õû£©
-        float totalTime = 2.0f; // Ôö¼ÓÔË¶¯Ê±¼ä
+        // æŠ›ç‰©çº¿è¿åŠ¨æ—¶é—´ï¼ˆæ ¹æ®è·ç¦»è°ƒæ•´ï¼‰
+        float totalTime = 2.0f; // å¢åŠ è¿åŠ¨æ—¶é—´
 
         if (mParabolaTime >= totalTime) {
-            // ÔË¶¯½áÊø
+            // è¿åŠ¨ç»“æŸ
             mIsParabola = false;
             SetPosition(mParabolaTarget);
             return;
         }
 
-        // ¼ÆËã½ø¶È (0~1)
+        // è®¡ç®—è¿›åº¦ (0~1)
         float t = mParabolaTime / totalTime;
 
-        // Ë®Æ½·½ÏòÔÈËÙÔË¶¯
+        // æ°´å¹³æ–¹å‘åŒ€é€Ÿè¿åŠ¨
         float currentX = mParabolaStart.x + (mParabolaTarget.x - mParabolaStart.x) * t;
 
-        // ´¹Ö±·½ÏòÅ×ÎïÏßÔË¶¯
+        // å‚ç›´æ–¹å‘æŠ›ç‰©çº¿è¿åŠ¨
         float currentY = mParabolaStart.y + (mParabolaTarget.y - mParabolaStart.y) * t
             - mParabolaHeight * 4.0f * t * (1.0f - t);
 

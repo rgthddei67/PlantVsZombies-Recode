@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #ifndef _BUTTONMANAGER_H
 #define _BUTTONMANAGER_H
 #include "../UI/Button.h"
@@ -9,38 +9,38 @@
 class ButtonManager
 {
 private:
-    std::vector<std::shared_ptr<Button>> buttons; // ÖÇÄÜÖ¸Õë¹ÜÀí°´Å¥
+    std::vector<std::shared_ptr<Button>> buttons; // æ™ºèƒ½æŒ‡é’ˆç®¡ç†æŒ‰é’®
 
 public:
-    // ´´½¨°´Å¥²¢·µ»ØÖ¸Õë
+    // åˆ›å»ºæŒ‰é’®å¹¶è¿”å›æŒ‡é’ˆ
     std::shared_ptr<Button> CreateButton(Vector pos = Vector::zero(),
         Vector size = Vector(40, 40));
 
-    // ¹ÜÀíËùÓĞ°´Å¥Êó±êÒÆ¶¯ÊÂ¼ş
+    // ç®¡ç†æ‰€æœ‰æŒ‰é’®é¼ æ ‡ç§»åŠ¨äº‹ä»¶
     void ProcessMouseEvent(InputHandler* input);
 
-    // Çå¿ÕËùÓĞ°´Å¥Êó±ê¼ÇÂ¼
+    // æ¸…ç©ºæ‰€æœ‰æŒ‰é’®é¼ æ ‡è®°å½•
     void ResetAllFrameStates();
 
-    // Ìí¼ÓÏÖÓĞ°´Å¥
+    // æ·»åŠ ç°æœ‰æŒ‰é’®
     void AddButton(std::shared_ptr<Button> button);
 
-    // ÒÆ³ı°´Å¥
+    // ç§»é™¤æŒ‰é’®
     void RemoveButton(std::shared_ptr<Button> button);
 
-    // É¾³ıÈ«²¿°´Å¥
+    // åˆ é™¤å…¨éƒ¨æŒ‰é’®
     void ClearAllButtons();
 
-    // Í³Ò»¸üĞÂËùÓĞ°´Å¥
+    // ç»Ÿä¸€æ›´æ–°æ‰€æœ‰æŒ‰é’®
     void UpdateAll(InputHandler* input);
 
-    // Í³Ò»äÖÈ¾ËùÓĞ°´Å¥
+    // ç»Ÿä¸€æ¸²æŸ“æ‰€æœ‰æŒ‰é’®
     void DrawAll(SDL_Renderer* renderer) const;
 
-    // »ñÈ¡°´Å¥ÊıÁ¿
+    // è·å–æŒ‰é’®æ•°é‡
     size_t GetButtonCount() const;
 
-    // Í¨¹ıË÷Òı»ñÈ¡°´Å¥
+    // é€šè¿‡ç´¢å¼•è·å–æŒ‰é’®
     std::shared_ptr<Button> GetButton(size_t index) const;
 };
 

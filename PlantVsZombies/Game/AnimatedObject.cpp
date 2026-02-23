@@ -1,4 +1,4 @@
-#include "AnimatedObject.h"
+ï»¿#include "AnimatedObject.h"
 #include "Board.h"
 #include "../DeltaTime.h"
 #include "../GameRandom.h"
@@ -64,7 +64,7 @@ void AnimatedObject::Update() {
     if (mAnimator) {
         mAnimator->Update();
 
-        // ×Ô¶¯Ïú»ÙÂß¼­£¨·ÇÑ­»·¶¯»­ÇÒ½áÊøºó×Ô¶¯Ïú»Ù£©
+        // è‡ªåŠ¨é”€æ¯é€»è¾‘ï¼ˆéå¾ªç¯åŠ¨ç”»ä¸”ç»“æŸåè‡ªåŠ¨é”€æ¯ï¼‰
         if (mIsPlaying && mLoopType != PlayState::PLAY_REPEAT && IsAnimationFinished()) {
             if (mAutoDestroy) {
                 GameObjectManager::GetInstance().DestroyGameObject(shared_from_this());

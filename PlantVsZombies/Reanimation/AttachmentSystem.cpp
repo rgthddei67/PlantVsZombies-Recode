@@ -1,9 +1,9 @@
-#include "AttachmentSystem.h"
+ï»¿#include "AttachmentSystem.h"
 #include "Animator.h"
 #include <algorithm>
 #include <iostream>
 
-// ½«SDLÑÕÉ«×ª»»Îªglm::vec4
+// å°†SDLé¢œè‰²è½¬æ¢ä¸ºglm::vec4
 static glm::vec4 ColorToVec4(const SDL_Color& color) {
     return glm::vec4(
         color.r / 255.0f,
@@ -13,7 +13,7 @@ static glm::vec4 ColorToVec4(const SDL_Color& color) {
     );
 }
 
-// ½«glm::vec4×ª»»ÎªSDLÑÕÉ«
+// å°†glm::vec4è½¬æ¢ä¸ºSDLé¢œè‰²
 static SDL_Color Vec4ToColor(const glm::vec4& vec) {
     return SDL_Color{
         static_cast<Uint8>(std::clamp(vec.r * 255.0f, 0.0f, 255.0f)),
@@ -29,17 +29,17 @@ Attachment::Attachment(const std::string& name)
 }
 
 Attachment::~Attachment() {
-    // ·ÖÀëËùÓĞĞ§¹û
+    // åˆ†ç¦»æ‰€æœ‰æ•ˆæœ
     Detach();
 }
 
 void Attachment::Update(float deltaTime) {
     if (!mAlive || !mVisible) return;
 
-    // ÇåÀíËÀÍöµÄĞ§¹û
+    // æ¸…ç†æ­»äº¡çš„æ•ˆæœ
     CleanupDeadEffects();
 
-    // ¸üĞÂËùÓĞĞ§¹û
+    // æ›´æ–°æ‰€æœ‰æ•ˆæœ
     for (auto& effectInfo : mEffects) {
         if (effectInfo.IsValid()) {
             effectInfo.effect->Update(deltaTime);
@@ -50,47 +50,47 @@ void Attachment::Update(float deltaTime) {
 void Attachment::Draw(SDL_Renderer* renderer, const TransformData& parentTransform) {
     if (!mAlive || !mVisible || !renderer) return;
 
-    // ¼ÆËã×îÖÕ±ä»»
+    // è®¡ç®—æœ€ç»ˆå˜æ¢
     TransformData finalTransform = parentTransform.Combine(mTransform);
 
-    // »æÖÆËùÓĞĞ§¹û
+    // ç»˜åˆ¶æ‰€æœ‰æ•ˆæœ
     for (auto& effectInfo : mEffects) {
         if (!effectInfo.IsValid() || effectInfo.effect->IsAttached() != mAttached) {
             continue;
         }
 
-        // Èç¹û¸¸½ÚµãÒş²ØÇÒÉèÖÃÁË²»»æÖÆ£¬ÔòÌø¹ı
+        // å¦‚æœçˆ¶èŠ‚ç‚¹éšè—ä¸”è®¾ç½®äº†ä¸ç»˜åˆ¶ï¼Œåˆ™è·³è¿‡
         if (!mVisible && effectInfo.dontDrawIfParentHidden) {
             continue;
         }
 
-        // ¼ÆËãĞ§¹ûµÄ×îÖÕ±ä»»
+        // è®¡ç®—æ•ˆæœçš„æœ€ç»ˆå˜æ¢
         TransformData effectTransform = effectInfo.GetFinalTransform(finalTransform);
 
-        // ¶ÔÓÚAnimatorĞ§¹û£¬»ñÈ¡Æäµ±Ç°µÄAlphaÖµ²¢Ó¦ÓÃ
+        // å¯¹äºAnimatoræ•ˆæœï¼Œè·å–å…¶å½“å‰çš„Alphaå€¼å¹¶åº”ç”¨
         if (effectInfo.effect->GetEffectType() == EffectType::EFFECT_ANIMATION) {
             if (auto animator = std::dynamic_pointer_cast<Animator>(effectInfo.effect)) {
-                // »ñÈ¡AnimatorµÄµ±Ç°AlphaÖµ
+                // è·å–Animatorçš„å½“å‰Alphaå€¼
                 float animatorAlpha = animator->GetAlpha();
 
-                // ±£´æAnimatorµÄÔ­Ê¼Alpha
+                // ä¿å­˜Animatorçš„åŸå§‹Alpha
                 float originalAlpha = animatorAlpha;
 
-                // ½«AttachmentµÄmAlphaÓ¦ÓÃµ½Animator£¨×÷Îª³ËÊı£©
+                // å°†Attachmentçš„mAlphaåº”ç”¨åˆ°Animatorï¼ˆä½œä¸ºä¹˜æ•°ï¼‰
                 float combinedAlpha = originalAlpha * mAlpha;
                 animator->SetAlpha(combinedAlpha);
 
-                // »æÖÆĞ§¹û
+                // ç»˜åˆ¶æ•ˆæœ
                 effectInfo.effect->Draw(renderer, effectTransform);
 
-                // »Ö¸´AnimatorµÄÔ­Ê¼Alpha£¨²»¸Ä±äAnimatorÄÚ²¿×´Ì¬£©
+                // æ¢å¤Animatorçš„åŸå§‹Alphaï¼ˆä¸æ”¹å˜Animatorå†…éƒ¨çŠ¶æ€ï¼‰
                 animator->SetAlpha(originalAlpha);
 
-                continue; // ÒÑ´¦Àí£¬¼ÌĞøÏÂÒ»¸öĞ§¹û
+                continue; // å·²å¤„ç†ï¼Œç»§ç»­ä¸‹ä¸€ä¸ªæ•ˆæœ
             }
         }
 
-        // ¶ÔÓÚ·ÇAnimatorĞ§¹û£¬Õı³£»æÖÆ
+        // å¯¹äºéAnimatoræ•ˆæœï¼Œæ­£å¸¸ç»˜åˆ¶
         effectInfo.effect->Draw(renderer, effectTransform);
     }
 }
@@ -123,7 +123,7 @@ void Attachment::OverrideColor(const SDL_Color& color) {
     mColorOverride = color;
     mHasColorOverride = true;
 
-    // ´«²¥ÑÕÉ«µ½ËùÓĞĞ§¹û£¨³ı·ÇÉèÖÃÁË²»´«²¥£©
+    // ä¼ æ’­é¢œè‰²åˆ°æ‰€æœ‰æ•ˆæœï¼ˆé™¤éè®¾ç½®äº†ä¸ä¼ æ’­ï¼‰
     for (auto& effectInfo : mEffects) {
         if (effectInfo.IsValid() && !effectInfo.dontPropagateColor) {
             effectInfo.effect->OverrideColor(color);
@@ -134,7 +134,7 @@ void Attachment::OverrideColor(const SDL_Color& color) {
 void Attachment::SetAlpha(float alpha) {
     mAlpha = std::clamp(alpha, 0.0f, 1.0f);
 
-    // ´«²¥Í¸Ã÷¶Èµ½ËùÓĞĞ§¹û
+    // ä¼ æ’­é€æ˜åº¦åˆ°æ‰€æœ‰æ•ˆæœ
     for (auto& effectInfo : mEffects) {
         if (effectInfo.IsValid()) {
             effectInfo.effect->SetAlpha(mAlpha);
@@ -145,7 +145,7 @@ void Attachment::SetAlpha(float alpha) {
 void Attachment::SetVisible(bool visible) {
     mVisible = visible;
 
-    // ´«²¥¿É¼ûĞÔµ½ËùÓĞĞ§¹û£¨³ı·ÇÉèÖÃÁË²»¼Ì³Ğ¿É¼ûĞÔ£©
+    // ä¼ æ’­å¯è§æ€§åˆ°æ‰€æœ‰æ•ˆæœï¼ˆé™¤éè®¾ç½®äº†ä¸ç»§æ‰¿å¯è§æ€§ï¼‰
     for (auto& effectInfo : mEffects) {
         if (effectInfo.IsValid() && effectInfo.inheritVisibility) {
             effectInfo.effect->SetVisible(visible);
@@ -159,7 +159,7 @@ void Attachment::PropagateColor(const SDL_Color& color,
     mColorOverride = color;
     mHasColorOverride = true;
 
-    // ´«²¥ÑÕÉ«µ½ËùÓĞĞ§¹û£¨³ı·ÇÉèÖÃÁË²»´«²¥£©
+    // ä¼ æ’­é¢œè‰²åˆ°æ‰€æœ‰æ•ˆæœï¼ˆé™¤éè®¾ç½®äº†ä¸ä¼ æ’­ï¼‰
     for (auto& effectInfo : mEffects) {
         if (effectInfo.IsValid() && !effectInfo.dontPropagateColor) {
             effectInfo.effect->PropagateColor(color, enableAdditive, additiveColor,
@@ -171,7 +171,7 @@ void Attachment::PropagateColor(const SDL_Color& color,
 void Attachment::SetTransformMatrix(const glm::mat3& matrix) {
     mTransform.matrix = matrix;
 
-    // ´Ó¾ØÕóÖĞÌáÈ¡Î»ÖÃ¡¢Ëõ·ÅºÍĞı×ª
+    // ä»çŸ©é˜µä¸­æå–ä½ç½®ã€ç¼©æ”¾å’Œæ—‹è½¬
     mTransform.position = glm::vec2(matrix[2][0], matrix[2][1]);
     mTransform.scale.x = glm::length(glm::vec2(matrix[0][0], matrix[0][1]));
     mTransform.scale.y = glm::length(glm::vec2(matrix[1][0], matrix[1][1]));
@@ -183,32 +183,32 @@ void Attachment::SetTransformMatrix(const glm::mat3& matrix) {
 }
 
 void Attachment::Die() {
-    // ±ê¼ÇÎªËÀÍö
+    // æ ‡è®°ä¸ºæ­»äº¡
     mAlive = false;
 
-    // Ïú»ÙËùÓĞĞ§¹û
+    // é”€æ¯æ‰€æœ‰æ•ˆæœ
     for (auto& effectInfo : mEffects) {
         if (effectInfo.IsValid()) {
             effectInfo.effect->Die();
         }
     }
 
-    // Çå¿ÕĞ§¹ûÁĞ±í
+    // æ¸…ç©ºæ•ˆæœåˆ—è¡¨
     mEffects.clear();
 }
 
 void Attachment::Detach() {
-    // ·ÖÀëËùÓĞĞ§¹û
+    // åˆ†ç¦»æ‰€æœ‰æ•ˆæœ
     for (auto& effectInfo : mEffects) {
         if (effectInfo.IsValid()) {
             effectInfo.effect->Detach();
         }
     }
 
-    // Çå¿ÕĞ§¹ûÁĞ±í
+    // æ¸…ç©ºæ•ˆæœåˆ—è¡¨
     mEffects.clear();
 
-    // ±ê¼ÇÎªÎ´¸½¼Ó
+    // æ ‡è®°ä¸ºæœªé™„åŠ 
     mAttached = false;
 }
 
@@ -220,27 +220,27 @@ bool Attachment::AddEffect(std::shared_ptr<IAttachmentEffect> effect,
         return false;
     }
 
-    // ¼ì²éĞ§¹ûÊÇ·ñÒÑ¾­¸½¼Ó
+    // æ£€æŸ¥æ•ˆæœæ˜¯å¦å·²ç»é™„åŠ 
     if (effect->IsAttached()) {
         std::cerr << "Warning: Effect is already attached to another attachment!" << std::endl;
         return false;
     }
 
-    // ÉèÖÃÆ«ÒÆ±ä»»
+    // è®¾ç½®åç§»å˜æ¢
     TransformData offsetTransform;
     offsetTransform.SetPosition(offset);
     offsetTransform.SetScale(scale);
     offsetTransform.SetRotation(rotation);
 
-    // ÉèÖÃĞ§¹ûÎª¸½¼Ó×´Ì¬
+    // è®¾ç½®æ•ˆæœä¸ºé™„åŠ çŠ¶æ€
     effect->SetAttached(true);
 
-    // ´´½¨Ğ§¹ûĞÅÏ¢
+    // åˆ›å»ºæ•ˆæœä¿¡æ¯
     AttachmentEffect effectInfo;
     effectInfo.effect = std::move(effect);
     effectInfo.offsetTransform = offsetTransform;
 
-    // Ìí¼Óµ½ÁĞ±í
+    // æ·»åŠ åˆ°åˆ—è¡¨
     mEffects.push_back(std::move(effectInfo));
     return true;
 }
@@ -263,7 +263,7 @@ bool Attachment::AddAnimator(std::shared_ptr<Animator> animator,
         return false;
     }
 
-    // AnimatorÓ¦¸ÃÒÑ¾­ÊµÏÖÁËIAttachmentEffect½Ó¿Ú
+    // Animatoråº”è¯¥å·²ç»å®ç°äº†IAttachmentEffectæ¥å£
     return AddEffect(std::static_pointer_cast<IAttachmentEffect>(animator),
         offset, scale, rotation);
 }
@@ -346,7 +346,7 @@ std::vector<std::shared_ptr<Animator>> Attachment::FindAllAnimators() const {
 }
 
 void Attachment::CleanupDeadEffects() {
-    // ÒÆ³ıËÀÍö»òÎŞĞ§µÄĞ§¹û
+    // ç§»é™¤æ­»äº¡æˆ–æ— æ•ˆçš„æ•ˆæœ
     auto newEnd = std::remove_if(mEffects.begin(), mEffects.end(),
         [](const AttachmentEffect& effectInfo) {
             return !effectInfo.IsValid();
@@ -362,7 +362,7 @@ AttachmentSystem::~AttachmentSystem() {
 }
 
 std::shared_ptr<Attachment> AttachmentSystem::CreateAttachment(const std::string& name) {
-    // ¼ì²éÃû³ÆÊÇ·ñÒÑ´æÔÚ
+    // æ£€æŸ¥åç§°æ˜¯å¦å·²å­˜åœ¨
     if (!name.empty() && HasAttachment(name)) {
         std::cerr << "AttachmentSystem: Attachment with name '" << name << "' already exists!" << std::endl;
         return nullptr;
@@ -398,16 +398,16 @@ bool AttachmentSystem::RemoveAttachment(const std::string& name) {
 
     auto attachment = it->second;
 
-    // ´Ó»î¶¯ÁĞ±íÖĞÒÆ³ı
+    // ä»æ´»åŠ¨åˆ—è¡¨ä¸­ç§»é™¤
     mActiveAttachments.erase(
         std::remove(mActiveAttachments.begin(), mActiveAttachments.end(), attachment),
         mActiveAttachments.end()
     );
 
-    // Ïú»Ù¸½¼ş
+    // é”€æ¯é™„ä»¶
     attachment->Die();
 
-    // ´ÓÃüÃûÓ³ÉäÖĞÒÆ³ı
+    // ä»å‘½åæ˜ å°„ä¸­ç§»é™¤
     mNamedAttachments.erase(it);
 
     return true;
@@ -425,10 +425,10 @@ void AttachmentSystem::RemoveAllAttachments() {
 }
 
 void AttachmentSystem::UpdateAll(float deltaTime) {
-    // ÇåÀíËÀÍö¸½¼ş
+    // æ¸…ç†æ­»äº¡é™„ä»¶
     CleanupDeadAttachments();
 
-    // ¸üĞÂËùÓĞ¸½¼ş
+    // æ›´æ–°æ‰€æœ‰é™„ä»¶
     for (auto& attachment : mActiveAttachments) {
         UpdateAttachment(attachment, deltaTime);
     }
@@ -437,7 +437,7 @@ void AttachmentSystem::UpdateAll(float deltaTime) {
 void AttachmentSystem::DrawAll(SDL_Renderer* renderer) {
     if (!renderer) return;
 
-    TransformData identity; // µ¥Î»±ä»»
+    TransformData identity; // å•ä½å˜æ¢
 
     for (auto& attachment : mActiveAttachments) {
         if (attachment && attachment->IsAlive()) {
@@ -447,13 +447,13 @@ void AttachmentSystem::DrawAll(SDL_Renderer* renderer) {
 }
 
 void AttachmentSystem::CleanupDeadAttachments() {
-    // ´Ó»î¶¯ÁĞ±íÖĞÒÆ³ıËÀÍö¸½¼ş
+    // ä»æ´»åŠ¨åˆ—è¡¨ä¸­ç§»é™¤æ­»äº¡é™„ä»¶
     auto newEnd = std::remove_if(mActiveAttachments.begin(), mActiveAttachments.end(),
         [](const std::shared_ptr<Attachment>& attachment) {
             return !attachment || !attachment->IsAlive();
         });
 
-    // ´ÓÃüÃûÓ³ÉäÖĞÒÆ³ıËÀÍö¸½¼ş
+    // ä»å‘½åæ˜ å°„ä¸­ç§»é™¤æ­»äº¡é™„ä»¶
     for (auto it = newEnd; it != mActiveAttachments.end(); ++it) {
         for (auto mapIt = mNamedAttachments.begin(); mapIt != mNamedAttachments.end(); ) {
             if (mapIt->second == *it) {

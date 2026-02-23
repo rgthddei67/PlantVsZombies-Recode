@@ -1,4 +1,4 @@
-#include "Board.h"
+ï»¿#include "Board.h"
 #include "Sun.h"
 #include "../GameRandom.h"
 #include "./Plant/Plant.h"
@@ -36,7 +36,7 @@ void Board::InitializeCell(int rows, int cols)
 
 void Board::DrawCell(SDL_Renderer* renderer)
 {
-	SDL_SetRenderDrawColor(renderer, 0, 255, 0, 100); // °ëÍ¸Ã÷ÂÌÉ«
+	SDL_SetRenderDrawColor(renderer, 0, 255, 0, 100); // åŠé€æ˜ç»¿è‰²
 	for (auto& row : mCells) {
 		for (auto& cell : row) {
 			Vector pos = cell->GetWorldPosition();
@@ -69,14 +69,14 @@ std::shared_ptr<Sun> Board::CreateSun(float x, float y, bool needAnimation) {
 
 std::shared_ptr<Plant> Board::CreatePlant(PlantType plantType, int row, int column, bool isPreview)
 {
-	// ¼ì²éĞĞÁĞÊÇ·ñÓĞĞ§
+	// æ£€æŸ¥è¡Œåˆ—æ˜¯å¦æœ‰æ•ˆ
 	if (row < 0 || row >= mRows || column < 0 || column >= mColumns) {
-		std::cout << "ÎŞĞ§µÄĞĞÁĞÎ»ÖÃ: (" << row << ", " << column << ")" << std::endl;
+		std::cout << "æ— æ•ˆçš„è¡Œåˆ—ä½ç½®: (" << row << ", " << column << ")" << std::endl;
 		return nullptr;
 	}
 
-	// ¸ù¾İÖ²ÎïÀàĞÍ´´½¨¶ÔÓ¦µÄÖ²Îï
-	// TODO: ĞÂÔöÖ²ÎïÒ²Òª¸ÄÕâÀï
+	// æ ¹æ®æ¤ç‰©ç±»å‹åˆ›å»ºå¯¹åº”çš„æ¤ç‰©
+	// TODO: æ–°å¢æ¤ç‰©ä¹Ÿè¦æ”¹è¿™é‡Œ
 	std::shared_ptr<Plant> plant = nullptr;
 
 	switch (plantType) {
@@ -125,14 +125,14 @@ std::shared_ptr<Plant> Board::CreatePlant(PlantType plantType, int row, int colu
 		break;
 
 	default:
-		std::cout << "Î´ÖªµÄÖ²ÎïÀàĞÍ: " << static_cast<int>(plantType) << std::endl;
+		std::cout << "æœªçŸ¥çš„æ¤ç‰©ç±»å‹: " << static_cast<int>(plantType) << std::endl;
 		break;
 	}
 
 	if (plant && !isPreview) {
 		mEntityManager.AddPlant(plant);
 
-		// ½«Ö²ÎïÓë¸ñ×Ó¹ØÁª
+		// å°†æ¤ç‰©ä¸æ ¼å­å…³è”
 		auto cell = GetCell(row, column);
 		if (cell)
 		{
@@ -154,7 +154,7 @@ std::shared_ptr<Zombie> Board::CreateZombie(ZombieType zombieType, int row, floa
 		}
 	}
 
-	// TODO: ĞÂÔö½©Ê¬Ò²Òª¸ÄÕâÀï
+	// TODO: æ–°å¢åƒµå°¸ä¹Ÿè¦æ”¹è¿™é‡Œ
 	switch (zombieType) {
 	case ZombieType::ZOMBIE_NORMAL:
 		zombie = GameObjectManager::GetInstance().CreateGameObjectImmediate<Zombie>(
@@ -169,7 +169,7 @@ std::shared_ptr<Zombie> Board::CreateZombie(ZombieType zombieType, int row, floa
 			isPreview);
 		break;
 	default:
-		std::cout << "Î´ÖªµÄ½©Ê¬ÀàĞÍ" << std::endl;
+		std::cout << "æœªçŸ¥çš„åƒµå°¸ç±»å‹" << std::endl;
 		return nullptr;
 	}
 
@@ -184,7 +184,7 @@ std::shared_ptr<Zombie> Board::CreateZombie(ZombieType zombieType, int row, floa
 std::shared_ptr<Bullet> Board::CreateBullet(BulletType bulletType, int row, const Vector& position)
 {
 	std::shared_ptr<Bullet> bullet = nullptr;
-	// TODO: ĞÂÔö×Óµ¯Ò²Òª¸ÄÕâÀï
+	// TODO: æ–°å¢å­å¼¹ä¹Ÿè¦æ”¹è¿™é‡Œ
 	switch (bulletType) {
 	case BulletType::BULLET_PEA:
 		bullet = GameObjectManager::GetInstance().CreateGameObjectImmediate<PeaBullet>(
@@ -198,7 +198,7 @@ std::shared_ptr<Bullet> Board::CreateBullet(BulletType bulletType, int row, cons
 			position);
 		break;
 	default:
-		std::cout << "Board::CreateBulletÎ´ÖªµÄ×Óµ¯ÀàĞÍ" << std::endl;
+		std::cout << "Board::CreateBulletæœªçŸ¥çš„å­å¼¹ç±»å‹" << std::endl;
 		return nullptr;
 	}
 
@@ -211,11 +211,11 @@ std::shared_ptr<Bullet> Board::CreateBullet(BulletType bulletType, int row, cons
 
 void Board::CleanupExpiredObjects()
 {
-	// ÇåÀíÒÑ¹ıÆÚµÄÖ²ÎïIDÓ³Éä
-	// TODO Èç¹ûÆäËûµØ·½Ò²ÓĞ´æ´¢Ö²ÎïID,Ò²ÒªÉ¾³ı
+	// æ¸…ç†å·²è¿‡æœŸçš„æ¤ç‰©IDæ˜ å°„
+	// TODO å¦‚æœå…¶ä»–åœ°æ–¹ä¹Ÿæœ‰å­˜å‚¨æ¤ç‰©ID,ä¹Ÿè¦åˆ é™¤
 	std::vector<int> removedPlants = mEntityManager.CleanupExpired();
 
-	// ±éÀú±»ÇåÀíµÄÖ²ÎïID£¬Çå³ı¶ÔÓ¦CellÖĞµÄÖ²ÎïID
+	// éå†è¢«æ¸…ç†çš„æ¤ç‰©IDï¼Œæ¸…é™¤å¯¹åº”Cellä¸­çš„æ¤ç‰©ID
 	for (int plantID : removedPlants) {
 		CleanPlantFromCells(plantID);
 	}
@@ -268,7 +268,7 @@ void Board::UpdateLevel()
 
 	if (mZombieCountDown <= 0.0f)
 	{
-		// Ò»´ó²¨½©Ê¬´¦Àí
+		// ä¸€å¤§æ³¢åƒµå°¸å¤„ç†
 		if (mCurrentWave == 9)
 		{
 			mHugeWaveCountDown += deltaTime;
@@ -363,14 +363,14 @@ void Board::DestroyPreviewZombies()
 
 void Board::TrySummonZombie()
 {
-	if (mCurrentWave > mMaxWave) return;  // ³¬³ö×î´ó²¨´Î£¬²»ÔÙÉú³É
+	if (mCurrentWave > mMaxWave) return;  // è¶…å‡ºæœ€å¤§æ³¢æ¬¡ï¼Œä¸å†ç”Ÿæˆ
 
-	// ¼ÆËã±¾²¨×ÜµãÊı
+	// è®¡ç®—æœ¬æ³¢æ€»ç‚¹æ•°
 	int totalPoints = CalculateWaveZombiePoints();
 	int remainingPoints = totalPoints;
 	int zombiesSpawned = 0;
 
-	// »ñÈ¡¿ÉÓÃ½©Ê¬ÀàĞÍ£¨¸ù¾İ appearWave ¹ıÂË£©
+	// è·å–å¯ç”¨åƒµå°¸ç±»å‹ï¼ˆæ ¹æ® appearWave è¿‡æ»¤ï¼‰
 	std::vector<ZombieType> availableTypes;
 	for (ZombieType type : mSpawnZombieList)
 	{
@@ -380,40 +380,40 @@ void Board::TrySummonZombie()
 		}
 	}
 
-	// Èç¹ûÃ»ÓĞ¿ÉÓÃÀàĞÍ£¬±£µ×Ê¹ÓÃÆÕÍ¨½©Ê¬
+	// å¦‚æœæ²¡æœ‰å¯ç”¨ç±»å‹ï¼Œä¿åº•ä½¿ç”¨æ™®é€šåƒµå°¸
 	if (availableTypes.empty())
 	{
 		availableTypes.push_back(ZombieType::ZOMBIE_NORMAL);
 	}
 
-	// ¼ÆËãÈ¨ÖØÖ¸ÊıÒò×Ó alpha£¬·¶Î§ [-1, 1]
+	// è®¡ç®—æƒé‡æŒ‡æ•°å› å­ alphaï¼ŒèŒƒå›´ [-1, 1]
 	float alpha = -1.0f;
 	if (mMaxWave > 1)
 	{
 		alpha = 2.0f * (mCurrentWave - 1) / (mMaxWave - 1) - 1.0f;
 	}
 
-	// Ñ­»·Éú³É½©Ê¬£¬Ö±µ½µãÊı²»×ã»ò´ïµ½²¨´ÎÉÏÏŞ
+	// å¾ªç¯ç”Ÿæˆåƒµå°¸ï¼Œç›´åˆ°ç‚¹æ•°ä¸è¶³æˆ–è¾¾åˆ°æ³¢æ¬¡ä¸Šé™
 	while (remainingPoints > 0 && zombiesSpawned < MAX_ZOMBIES_PER_WAVE)
 	{
-		// ¼ÆËãÃ¿¸ö¿ÉÓÃÀàĞÍµÄµÃ·Ö£¨È¨ÖØ^alpha£©
+		// è®¡ç®—æ¯ä¸ªå¯ç”¨ç±»å‹çš„å¾—åˆ†ï¼ˆæƒé‡^alphaï¼‰
 		std::vector<float> scores;
 		scores.reserve(availableTypes.size());
 		for (ZombieType type : availableTypes)
 		{
 			int weight = GameDataManager::GetInstance().GetZombieWeight(type);
-			// ±ÜÃâÈ¨ÖØÎª0µ¼ÖÂµÄÊıÑ§Òì³££¨Õı³£Çé¿öÏÂÈ¨ÖØ>0£©
+			// é¿å…æƒé‡ä¸º0å¯¼è‡´çš„æ•°å­¦å¼‚å¸¸ï¼ˆæ­£å¸¸æƒ…å†µä¸‹æƒé‡>0ï¼‰
 			float score = (weight > 0) ? std::pow(static_cast<float>(weight), alpha) : 0.0f;
 			scores.push_back(score);
 		}
 
-		// ¼ÓÈ¨Ëæ»úÑ¡ÔñÒ»¸öÀàĞÍ
+		// åŠ æƒéšæœºé€‰æ‹©ä¸€ä¸ªç±»å‹
 		const ZombieType& selected = GameRandom::WeightedChoice(availableTypes, scores);
 
 		int weight = GameDataManager::GetInstance().GetZombieWeight(selected);
-		if (weight <= 0) continue; // °²È«±£»¤
+		if (weight <= 0) continue; // å®‰å…¨ä¿æŠ¤
 
-		// Ëæ»úÑ¡ÔñĞĞ£¨0 µ½ mRows-1£©
+		// éšæœºé€‰æ‹©è¡Œï¼ˆ0 åˆ° mRows-1ï¼‰
 		int row = GameRandom::Range(0, mRows - 1);
 
 		float x = static_cast<float>(SCENE_WIDTH) + 30;
@@ -426,7 +426,7 @@ void Board::TrySummonZombie()
 		}
 		else
 		{
-			// ´´½¨Ê§°Ü
+			// åˆ›å»ºå¤±è´¥
 			continue;
 		}
 	}
@@ -434,12 +434,12 @@ void Board::TrySummonZombie()
 
 int Board::CalculateWaveZombiePoints() const
 {
-	// »ù´¡µãÊı
+	// åŸºç¡€ç‚¹æ•°
 	int points = mCurrentWave / 2 + 1;
 
 	points *= GameAPP::GetInstance().Difficulty;
 
-	// ÅĞ¶ÏÊÇ·ñÎªÆìÖÄ²¨
+	// åˆ¤æ–­æ˜¯å¦ä¸ºæ——å¸œæ³¢
 	bool isFlagWave = (mCurrentWave % 10 == 0);
 	if (isFlagWave)
 	{
@@ -458,7 +458,7 @@ void Board::UpdateZombieHP()
 		if (auto zombie = mEntityManager.GetZombie(zombieID))
 		{
 			zombieNumber++;
-			if (zombie->IsMindControlled()) continue;	// ÅĞ¶ÏÊÇ²»ÊÇ÷È»ó
+			if (zombie->IsMindControlled()) continue;	// åˆ¤æ–­æ˜¯ä¸æ˜¯é­…æƒ‘
 
 			double zombieHp = static_cast<double>(zombie->mBodyHealth +
 				zombie->mHelmHealth + zombie->mShieldHealth);

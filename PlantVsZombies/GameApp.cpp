@@ -1,4 +1,4 @@
-#include "./GameAPP.h"
+ï»¿#include "./GameAPP.h"
 #include "./UI/InputHandler.h"
 #include "./ResourceManager.h"
 #include "./Game/Board.h"
@@ -40,7 +40,7 @@ bool GameAPP::InitializeSDL()
 {
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0)
     {
-        std::cerr << "SDL³õÊ¼»¯Ê§°Ü: " << SDL_GetError() << std::endl;
+        std::cerr << "SDLåˆå§‹åŒ–å¤±è´¥: " << SDL_GetError() << std::endl;
         return false;
     }
     return true;
@@ -52,8 +52,8 @@ bool GameAPP::InitializeSDL_Image()
     int initializedFlags = IMG_Init(imgFlags);
 
     if ((initializedFlags & imgFlags) != imgFlags) {
-        std::cerr << "SDL_image³õÊ¼»¯Ê§°Ü£¬ÇëÇó: " << imgFlags
-            << "£¬Êµ¼Ê: " << initializedFlags << " - " << IMG_GetError() << std::endl;
+        std::cerr << "SDL_imageåˆå§‹åŒ–å¤±è´¥ï¼Œè¯·æ±‚: " << imgFlags
+            << "ï¼Œå®é™…: " << initializedFlags << " - " << IMG_GetError() << std::endl;
         return false;
     }
     return true;
@@ -63,7 +63,7 @@ bool GameAPP::InitializeSDL_TTF()
 {
     if (TTF_Init() == -1)
     {
-        std::cerr << "SDL_ttf³õÊ¼»¯Ê§°Ü: " << TTF_GetError() << std::endl;
+        std::cerr << "SDL_ttfåˆå§‹åŒ–å¤±è´¥: " << TTF_GetError() << std::endl;
         return false;
     }
     return true;
@@ -73,30 +73,30 @@ bool GameAPP::InitializeAudioSystem()
 {
     if (!AudioSystem::Initialize())
     {
-        std::cerr << "¾¯¸æ: ÒôÆµ³õÊ¼»¯Ê§°Ü£¬ÓÎÏ·½«¼ÌĞøÔËĞĞµ«Ã»ÓĞÉùÒô" << std::endl;
+        std::cerr << "è­¦å‘Š: éŸ³é¢‘åˆå§‹åŒ–å¤±è´¥ï¼Œæ¸¸æˆå°†ç»§ç»­è¿è¡Œä½†æ²¡æœ‰å£°éŸ³" << std::endl;
     }
     return true;
 }
 
 bool GameAPP::CreateWindowAndRenderer()
 {
-    // ÉèÖÃSDLÌáÊ¾
+    // è®¾ç½®SDLæç¤º
     SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1");
-    SDL_SetHint(SDL_HINT_RENDER_VSYNC, "1");          // ÆôÓÃ´¹Ö±Í¬²½¼õÉÙËºÁÑ
+    SDL_SetHint(SDL_HINT_RENDER_VSYNC, "1");          // å¯ç”¨å‚ç›´åŒæ­¥å‡å°‘æ’•è£‚
 
-    // ´´½¨´°¿Ú
-    mWindow = SDL_CreateWindow(u8"Ö²Îï´óÕ½½©Ê¬ÖĞÎÄ°æ",
+    // åˆ›å»ºçª—å£
+    mWindow = SDL_CreateWindow(u8"æ¤ç‰©å¤§æˆ˜åƒµå°¸ä¸­æ–‡ç‰ˆ",
         SDL_WINDOWPOS_CENTERED,
         SDL_WINDOWPOS_CENTERED,
         SCENE_WIDTH, SCENE_HEIGHT,
         SDL_WINDOW_SHOWN);
 
     if (!mWindow) {
-        std::cerr << "´°¿Ú´´½¨Ê§°Ü: " << SDL_GetError() << std::endl;
+        std::cerr << "çª—å£åˆ›å»ºå¤±è´¥: " << SDL_GetError() << std::endl;
         return false;
     }
 
-    // ´´½¨äÖÈ¾Æ÷
+    // åˆ›å»ºæ¸²æŸ“å™¨
     mRenderer = SDL_CreateRenderer(mWindow, -1,
         SDL_RENDERER_ACCELERATED |
         SDL_RENDERER_PRESENTVSYNC |
@@ -104,11 +104,11 @@ bool GameAPP::CreateWindowAndRenderer()
 
     if (!mRenderer)
     {
-        std::cerr << "äÖÈ¾Æ÷´´½¨Ê§°Ü: " << SDL_GetError() << std::endl;
+        std::cerr << "æ¸²æŸ“å™¨åˆ›å»ºå¤±è´¥: " << SDL_GetError() << std::endl;
         return false;
     }
 
-    // ÉèÖÃ³õÊ¼±³¾°É«
+    // è®¾ç½®åˆå§‹èƒŒæ™¯è‰²
     SDL_SetRenderDrawColor(mRenderer, 0, 0, 255, 255);
     SDL_RenderClear(mRenderer);
     SDL_RenderPresent(mRenderer);
@@ -119,7 +119,7 @@ bool GameAPP::CreateWindowAndRenderer()
 bool GameAPP::InitializeResourceManager()
 {
     if (!CursorManager::GetInstance().Initialize()) {
-        std::cerr << "¹â±ê¹ÜÀíÆ÷´´½¨Ê§°Ü£¡" << std::endl;
+        std::cerr << "å…‰æ ‡ç®¡ç†å™¨åˆ›å»ºå¤±è´¥ï¼" << std::endl;
         return false;
     }
 
@@ -131,7 +131,7 @@ bool GameAPP::InitializeResourceManager()
     ResourceManager& resourceManager = ResourceManager::GetInstance();
 
     if (!resourceManager.Initialize(mRenderer, "./resources/resources.xml")) {
-        std::cerr << "ResourceManager ³õÊ¼»¯Ê§°Ü£¡" << std::endl;
+        std::cerr << "ResourceManager åˆå§‹åŒ–å¤±è´¥ï¼" << std::endl;
         return false;
     }
 
@@ -152,7 +152,7 @@ bool GameAPP::LoadAllResources()
 
     if (!resourcesLoaded)
     {
-        std::cerr << "×ÊÔ´¼ÓÔØÊ§°Ü£¡" << std::endl;
+        std::cerr << "èµ„æºåŠ è½½å¤±è´¥ï¼" << std::endl;
         return false;
     }
 
@@ -163,10 +163,10 @@ bool GameAPP::Initialize()
 {
     if (mInitialized) return true;
 
-    // ³õÊ¼»¯ÊäÈë´¦ÀíÆ÷
+    // åˆå§‹åŒ–è¾“å…¥å¤„ç†å™¨
     mInputHandler = std::make_unique<InputHandler>();
 
-    // ÉèÖÃÄ¬ÈÏ×ÖÌåÂ·¾¶
+    // è®¾ç½®é»˜è®¤å­—ä½“è·¯å¾„
     Button::SetDefaultFontPath(ResourceKeys::Fonts::FONT_FZCQ);
 
     mInitialized = true;
@@ -175,7 +175,7 @@ bool GameAPP::Initialize()
 
 int GameAPP::Run()
 {
-    // ³õÊ¼»¯¸÷¸öÏµÍ³
+    // åˆå§‹åŒ–å„ä¸ªç³»ç»Ÿ
     if (!InitializeSDL()) return -1;
     if (!InitializeSDL_Image()) {
         SDL_Quit();
@@ -190,7 +190,7 @@ int GameAPP::Run()
         
     }
 
-    // ³õÊ¼»¯GameAPP×ÔÉí
+    // åˆå§‹åŒ–GameAPPè‡ªèº«
     if (!Initialize()) {
         CleanupResources();
         TTF_Quit();
@@ -199,7 +199,7 @@ int GameAPP::Run()
         return -4;
     }
 
-    // ´´½¨´°¿ÚºÍäÖÈ¾Æ÷
+    // åˆ›å»ºçª—å£å’Œæ¸²æŸ“å™¨
     if (!CreateWindowAndRenderer()) {
         CleanupResources();
         AudioSystem::Shutdown();
@@ -209,7 +209,7 @@ int GameAPP::Run()
         return -5;
     }
 
-    // ³õÊ¼»¯×ÊÔ´¹ÜÀíÆ÷
+    // åˆå§‹åŒ–èµ„æºç®¡ç†å™¨
     if (!InitializeResourceManager()) {
         CleanupResources();
         AudioSystem::Shutdown();
@@ -221,7 +221,7 @@ int GameAPP::Run()
         return -6;
     }
 
-    // ¼ÓÔØËùÓĞ×ÊÔ´
+    // åŠ è½½æ‰€æœ‰èµ„æº
     if (!LoadAllResources()) {
         CleanupResources();
         AudioSystem::Shutdown();
@@ -249,7 +249,7 @@ int GameAPP::Run()
     {
         DeltaTime::BeginFrame();
 
-        // ´¦ÀíÊÂ¼ş
+        // å¤„ç†äº‹ä»¶
         while (SDL_PollEvent(&event))
         {
             if (event.type == SDL_QUIT)
@@ -259,7 +259,7 @@ int GameAPP::Run()
             mInputHandler->ProcessEvent(&event);
         }
 
-        // ÌØÊâ°´¼ü´¦Àí
+        // ç‰¹æ®ŠæŒ‰é”®å¤„ç†
         if (mInputHandler->IsKeyReleased(SDLK_F3))
         {
             AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_BUTTONCLICK, 0.5f);
@@ -277,12 +277,12 @@ int GameAPP::Run()
             break;
         }
 
-        // ¸üĞÂ
+        // æ›´æ–°
         CursorManager::GetInstance().ResetHoverCount();
         sceneManager.Update();
         CursorManager::GetInstance().Update();
 
-        // äÖÈ¾
+        // æ¸²æŸ“
         Draw();
 
 #ifdef _DEBUG
@@ -301,7 +301,7 @@ int GameAPP::Run()
         mInputHandler->Update();
     }
 
-    // ÇåÀí
+    // æ¸…ç†
     Shutdown();
 
     return 0;
@@ -309,15 +309,15 @@ int GameAPP::Run()
 
 void GameAPP::Draw()
 {
-    // ÇåÆÁ
+    // æ¸…å±
     SDL_SetRenderDrawColor(mRenderer, 0, 0, 0, 255);
     SDL_RenderClear(mRenderer);
 
-    // »æÖÆ³¡¾°
+    // ç»˜åˆ¶åœºæ™¯
     auto& sceneManager = SceneManager::GetInstance();
     sceneManager.Draw(mRenderer);
 
-    // ¸üĞÂÆÁÄ»
+    // æ›´æ–°å±å¹•
     SDL_RenderPresent(mRenderer);
 }
 
@@ -325,43 +325,43 @@ void GameAPP::Shutdown()
 {
     if (mRunning) return;
 
-    // ÇåÀíÁ£×ÓÏµÍ³
+    // æ¸…ç†ç²’å­ç³»ç»Ÿ
     g_particleSystem.reset();
 
     SceneManager::GetInstance().ClearCurrentScene();
 
-    // ÇåÀíÓÎÏ·¶ÔÏóºÍÅö×²ÏµÍ³
+    // æ¸…ç†æ¸¸æˆå¯¹è±¡å’Œç¢°æ’ç³»ç»Ÿ
     GameObjectManager::GetInstance().ClearAll();
     CollisionSystem::GetInstance().ClearAll();
 
-    // ÇåÀí×ÊÔ´¹ÜÀíÆ÷
+    // æ¸…ç†èµ„æºç®¡ç†å™¨
     ResourceManager::ReleaseInstance();
 
-    // ÇåÀíÎÄ±¾»º´æ
+    // æ¸…ç†æ–‡æœ¬ç¼“å­˜
     CleanupResources();
 
-    // ÇåÀíÒôÆµÏµÍ³
+    // æ¸…ç†éŸ³é¢‘ç³»ç»Ÿ
     AudioSystem::Shutdown();
 
-    // ÇåÀíäÖÈ¾Æ÷
+    // æ¸…ç†æ¸²æŸ“å™¨
     SDL_DestroyRenderer(this->mRenderer);
     this->mRenderer = nullptr;
 
-    // ÇåÀíÊäÈë´¦ÀíÆ÷
+    // æ¸…ç†è¾“å…¥å¤„ç†å™¨
     if (mInputHandler) {
         mInputHandler.reset();
     }
 
-    // ÇåÀí´°¿Ú
+    // æ¸…ç†çª—å£
     if (mWindow) {
         SDL_DestroyWindow(mWindow);
         mWindow = nullptr;
     }
 
-    // ÇåÀí¹â±ê¹ÜÀíÆ÷
+    // æ¸…ç†å…‰æ ‡ç®¡ç†å™¨
     CursorManager::GetInstance().Cleanup();
 
-    // ÇåÀíSDL×ÓÏµÍ³
+    // æ¸…ç†SDLå­ç³»ç»Ÿ
     TTF_Quit();
     IMG_Quit();
     SDL_Quit();
@@ -379,7 +379,7 @@ void GameAPP::ClearTextCache()
 	}
 
     mTextCache.clear();
-    std::cout << "Çå³ıÎÄ±¾»º´æ" << std::endl;
+    std::cout << "æ¸…é™¤æ–‡æœ¬ç¼“å­˜" << std::endl;
 }
 
 void GameAPP::CleanupResources()
@@ -395,13 +395,13 @@ SDL_Texture* GameAPP::GetCachedTextTexture(const std::string& text,
     int& outWidth,
     int& outHeight)
 {
-    // 1. Éú³ÉÎ¨Ò»»º´æ¼ü
+    // 1. ç”Ÿæˆå”¯ä¸€ç¼“å­˜é”®
     std::stringstream ss;
     ss << text << "|" << fontKey << "|" << fontSize << "|"
         << (int)color.r << "," << (int)color.g << "," << (int)color.b << "," << (int)color.a;
     std::string key = ss.str();
 
-    // 2. ²éÕÒ»º´æ
+    // 2. æŸ¥æ‰¾ç¼“å­˜
     for (size_t i = 0; i < mTextCache.size(); i++)
     {
         if (mTextCache[i].key == key) {
@@ -411,7 +411,7 @@ SDL_Texture* GameAPP::GetCachedTextTexture(const std::string& text,
 		}
     }
 
-    // 3. »º´æÎ´ÃüÖĞ£¬´´½¨ĞÂÎÆÀí
+    // 3. ç¼“å­˜æœªå‘½ä¸­ï¼Œåˆ›å»ºæ–°çº¹ç†
     TTF_Font* font = ResourceManager::GetInstance().GetFont(fontKey, fontSize);
     if (!font) {
         outWidth = outHeight = 0;
@@ -433,7 +433,7 @@ SDL_Texture* GameAPP::GetCachedTextTexture(const std::string& text,
         return nullptr;
     }
 
-    // 4. ´æÈë»º´æ
+    // 4. å­˜å…¥ç¼“å­˜
     mTextCache.push_back({ key, texture, outWidth, outHeight });
 
     return texture;
@@ -503,5 +503,5 @@ SDL_Texture* GameAPP::CreateTextTexture(SDL_Renderer* renderer,
 
     SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
     SDL_FreeSurface(surface);
-    return texture;  // µ÷ÓÃÕß¸ºÔğÏú»Ù
+    return texture;  // è°ƒç”¨è€…è´Ÿè´£é”€æ¯
 }
