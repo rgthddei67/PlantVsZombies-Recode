@@ -6,6 +6,7 @@
 #include <memory>
 #include <vector>
 #include <unordered_set>
+#include <unordered_map>
 #include <algorithm>
 
 struct ColliderPairHash {
@@ -81,19 +82,61 @@ public:
             }
         }
 
-        std::vector<std::pair<std::shared_ptr<ColliderComponent>, std::shared_ptr<ColliderComponent>>> newCollisions;
+        std::unordered_set<
+            std::pair<std::shared_ptr<ColliderComponent>, std::shared_ptr<ColliderComponent>>,
+            ColliderPairHash> newCollisions;
 
-        // 动态和动态碰撞检测
-        for (size_t i = 0; i < dynamicColliders.size(); ++i) {
-            auto colliderA = dynamicColliders[i];
-            for (size_t j = i + 1; j < dynamicColliders.size(); ++j) {
-                auto colliderB = dynamicColliders[j];
+        // 动态和动态碰撞检测（行分桶：同行内才检测）
+        std::unordered_map<int, std::vector<std::shared_ptr<ColliderComponent>>> rowBuckets;
+        std::vector<std::shared_ptr<ColliderComponent>> noRowDynamic;
+
+        for (auto& col : dynamicColliders) {
+            int row = col->GetGameObject()->GetSortingKey();
+            if (row >= 0) rowBuckets[row].push_back(col);
+            else          noRowDynamic.push_back(col);
+        }
+
+        // 同行内检测
+        for (auto& kv : rowBuckets) {
+            auto& bucket = kv.second;
+            for (size_t i = 0; i < bucket.size(); ++i) {
+                for (size_t j = i + 1; j < bucket.size(); ++j) {
+                    auto& colliderA = bucket[i];
+                    auto& colliderB = bucket[j];
+                    if (CheckCollision(colliderA, colliderB)) {
+                        auto collisionPair = (colliderA < colliderB) ?
+                            std::make_pair(colliderA, colliderB) :
+                            std::make_pair(colliderB, colliderA);
+                        newCollisions.insert(collisionPair);
+                        HandleNewCollision(colliderA, colliderB, collisionPair);
+                    }
+                }
+            }
+        }
+
+        // 无行号的动态对象与所有动态对象检测（保持原逻辑）
+        for (size_t i = 0; i < noRowDynamic.size(); ++i) {
+            auto& colliderA = noRowDynamic[i];
+            for (size_t j = i + 1; j < noRowDynamic.size(); ++j) {
+                auto& colliderB = noRowDynamic[j];
                 if (CheckCollision(colliderA, colliderB)) {
                     auto collisionPair = (colliderA < colliderB) ?
                         std::make_pair(colliderA, colliderB) :
                         std::make_pair(colliderB, colliderA);
-                    newCollisions.push_back(collisionPair);
+                    newCollisions.insert(collisionPair);
                     HandleNewCollision(colliderA, colliderB, collisionPair);
+                }
+            }
+            // noRowDynamic 与有行号的动态对象也检测
+            for (auto& kv : rowBuckets) {
+                for (auto& colliderB : kv.second) {
+                    if (CheckCollision(colliderA, colliderB)) {
+                        auto collisionPair = (colliderA < colliderB) ?
+                            std::make_pair(colliderA, colliderB) :
+                            std::make_pair(colliderB, colliderA);
+                        newCollisions.insert(collisionPair);
+                        HandleNewCollision(colliderA, colliderB, collisionPair);
+                    }
                 }
             }
         }
@@ -105,7 +148,7 @@ public:
                     auto collisionPair = (dynamicCol < staticCol) ?
                         std::make_pair(dynamicCol, staticCol) :
                         std::make_pair(staticCol, dynamicCol);
-                    newCollisions.push_back(collisionPair);
+                    newCollisions.insert(collisionPair);
                     HandleNewCollision(dynamicCol, staticCol, collisionPair);
                 }
             }
@@ -273,13 +316,14 @@ private:
     }
 
     // 检测结束的碰撞
-    void DetectEndedCollisions(const std::vector<std::pair<std::shared_ptr<ColliderComponent>,
-        std::shared_ptr<ColliderComponent>>>& newCollisions) {
+    void DetectEndedCollisions(const std::unordered_set<
+        std::pair<std::shared_ptr<ColliderComponent>, std::shared_ptr<ColliderComponent>>,
+        ColliderPairHash>& newCollisions) {
         std::vector<std::pair<std::shared_ptr<ColliderComponent>,
             std::shared_ptr<ColliderComponent>>> endedCollisions;
 
         for (const auto& collisionPair : currentCollisions) {
-            if (std::find(newCollisions.begin(), newCollisions.end(), collisionPair) == newCollisions.end()) {
+            if (newCollisions.count(collisionPair) == 0) {
                 endedCollisions.push_back(collisionPair);
             }
         }

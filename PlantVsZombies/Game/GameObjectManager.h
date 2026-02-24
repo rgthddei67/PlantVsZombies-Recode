@@ -10,6 +10,7 @@
 #include <set>
 #include <thread>
 #include "GameObject.h"
+#include "ThreadPool.h"
 
 const int SUBORDER_PER_KEY = 1000;  // 每个key最多同时存在的顺序数量
 
@@ -28,6 +29,9 @@ private:
     std::vector<std::shared_ptr<GameObject>> mObjectsToAdd;      // 待添加的游戏对象
     std::vector<std::shared_ptr<GameObject>> mObjectsToRemove;   // 待删除的游戏对象
 
+    std::unique_ptr<ThreadPool> mThreadPool;
+    bool mSortDirty = true;
+
 public:
     static GameObjectManager& GetInstance() {
         static GameObjectManager instance;
@@ -36,7 +40,10 @@ public:
 
     GameObjectManager()
     {
-		ResetAllLayers();
+        ResetAllLayers();
+        int n = static_cast<int>(std::thread::hardware_concurrency());
+        if (n < 1) n = 1;
+        mThreadPool = std::make_unique<ThreadPool>(n);
     }
 
     // 创建游戏对象 (塞入mObjectsToAdd，在Update时执行Start)
@@ -105,6 +112,10 @@ public:
 
     // 更新
     void Update() {
+        // 有增删时标记排序脏
+        if (!mObjectsToRemove.empty() || !mObjectsToAdd.empty())
+            mSortDirty = true;
+
         // 移除在mObjectsToRemove中的对象
         for (size_t i = 0; i < mObjectsToRemove.size(); i++) {
             auto obj = mObjectsToRemove[i];
@@ -115,7 +126,7 @@ public:
                 std::remove(mGameObjects.begin(), mGameObjects.end(), obj),
                 mGameObjects.end()
             );
-		}
+        }
         mObjectsToRemove.clear();
 
         // 新对象的操作
@@ -123,7 +134,7 @@ public:
             auto obj = mObjectsToAdd[i];
             mGameObjects.push_back(obj);
             obj->Start();
-		}
+        }
 
         mObjectsToAdd.clear();
 
@@ -150,37 +161,27 @@ public:
 
     // 绘制所有GameObject对象
     void DrawAll(Graphics* g) {
-        // 按渲染顺序排序
-        std::sort(mGameObjects.begin(), mGameObjects.end(),
-            [](const std::shared_ptr<GameObject>& a, const std::shared_ptr<GameObject>& b) {
-                return a->GetRenderOrder() < b->GetRenderOrder();
-            });
+        // 按渲染顺序排序（仅在有增删时重新排序）
+        if (mSortDirty) {
+            std::sort(mGameObjects.begin(), mGameObjects.end(),
+                [](const std::shared_ptr<GameObject>& a, const std::shared_ptr<GameObject>& b) {
+                    return a->GetRenderOrder() < b->GetRenderOrder();
+                });
+            mSortDirty = false;
+        }
 
         // ---- 并行预计算阶段（纯CPU变换，不涉及OpenGL）----
         int total = static_cast<int>(mGameObjects.size());
-        int numThreads = static_cast<int>(std::thread::hardware_concurrency());
-        if (numThreads < 1) numThreads = 1;
-        if (numThreads > total) numThreads = total;
 
-        if (numThreads > 1) {
-            std::vector<std::thread> threads;
-            threads.reserve(numThreads);
-            int chunkSize = (total + numThreads - 1) / numThreads;
-
-            for (int t = 0; t < numThreads; t++) {
-                int start = t * chunkSize;
-                int end = std::min(start + chunkSize, total);
-                if (start >= total) break;
-                threads.emplace_back([this, start, end]() {
-                    for (int i = start; i < end; i++) {
-                        if (mGameObjects[i]->IsActive()) {
-                            mGameObjects[i]->PrepareForDraw();
-                        }
-                    }
-                });
-            }
-            for (auto& th : threads) th.join();
-        } else {
+        if (total > 1) {
+            mThreadPool->Dispatch(total, [this](int start, int end) {
+                for (int i = start; i < end; i++) {
+                    if (mGameObjects[i]->IsActive())
+                        mGameObjects[i]->PrepareForDraw();
+                }
+            });
+        }
+        else {
             for (size_t i = 0; i < mGameObjects.size(); i++)
             {
                 auto* obj = mGameObjects[i].get();
@@ -215,7 +216,7 @@ public:
         auto objects = FindGameObjectsWithTag(tag);
         return objects.empty() ? nullptr : objects[0];
     }
-    
+
     // 获取gameObjects引用
     const std::vector<std::shared_ptr<GameObject>>& GetAllGameObjects() const {
         return mGameObjects;
@@ -244,7 +245,7 @@ public:
             }
         }
         mObjectsToRemove.clear();
-        
+
         ResetAllLayers();
     }
 
