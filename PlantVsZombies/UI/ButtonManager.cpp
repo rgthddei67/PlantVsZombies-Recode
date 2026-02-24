@@ -42,16 +42,16 @@ void ButtonManager::UpdateAll(InputHandler* input)
     }
 }
 
-void ButtonManager::DrawAll(SDL_Renderer* renderer) const
+void ButtonManager::DrawAll(Graphics* g) const
 {
-    if (!renderer) return;
+    if (!g) return;
 
     for (size_t i = 0; i < buttons.size(); i++)
     {
         auto button = buttons[i];
         if (button)
         {
-            button->Draw(renderer);
+            button->Draw(g);
         }
     }
 }

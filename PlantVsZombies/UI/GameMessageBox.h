@@ -3,6 +3,7 @@
 #define _H_MESSAGEBOX_H
 
 #include "../Game/GameObject.h"
+#include "../Graphics.h"
 #include "Button.h"
 #include <SDL2/SDL.h>
 #include <string>
@@ -30,7 +31,7 @@ public:
     ~GameMessageBox();
 
     virtual void Start() override;
-    virtual void Draw(SDL_Renderer* renderer) override;
+    virtual void Draw(Graphics* g) override;
 
     // 关闭消息框（从GameObjectManager中销毁自己）
     void Close();
@@ -45,8 +46,8 @@ private:
     std::vector<ButtonConfig> m_buttonConfigs;
     std::vector<std::shared_ptr<Button>> m_buttons;
 
-    SDL_Color m_textColor = { 245, 214, 127, 255 };
-    SDL_Color m_titleColor = { 53, 191, 61, 255 };
+    glm::vec4 m_textColor = { 245, 214, 127, 255 };
+    glm::vec4 m_titleColor = { 53, 191, 61, 255 };
 
     // 获取背景图片原始尺寸（若无图片则返回默认尺寸）
     Vector GetBackgroundOriginalSize() const;

@@ -23,8 +23,8 @@ enum class IntroStage {
     BACKGROUND_MOVE,   // 背景移动
     SEEDBANK_SLIDE,    // 种子槽滑落
     COMPLETE,           // 完成，显示阳光
-	READY_SET_PLANT,    // 准备种植植物，选好卡了
-	FINISH			  // 最终完成
+    READY_SET_PLANT,    // 准备种植植物，选好卡了
+    FINISH              // 最终完成
 };
 
 // 提示动画数据
@@ -48,9 +48,9 @@ public:
     void OnEnter() override;
     void OnExit() override;
     void Update() override;
-	void BuildDrawCommands() override;
+    void BuildDrawCommands() override;
 
-	void ChooseCardComplete();  // 选卡完成
+    void ChooseCardComplete();  // 选卡完成
 
     std::shared_ptr<GameProgress> GetGameProgress() const;
 
@@ -63,8 +63,8 @@ public:
         float fadeDur = 1.0f);
 
 private:
-	std::unique_ptr<Board> mBoard = nullptr;
-	std::shared_ptr<CardSlotManager> mCardSlotManager = nullptr;
+    std::unique_ptr<Board> mBoard = nullptr;
+    std::shared_ptr<CardSlotManager> mCardSlotManager = nullptr;
     std::shared_ptr<ChooseCardUI> mChooseCardUI = nullptr;
     std::shared_ptr<GameProgress> mGameProgress = nullptr;
 
@@ -72,11 +72,11 @@ private:
 
     IntroStage mCurrentStage = IntroStage::BACKGROUND_MOVE;
 
-	float mStartX = -250.0f;          // BackGround初始X坐标
-	float mGameStartX = -250.0f;          // BackGround动画在选完卡后的坐标
-	float mCurrectSceneX = -250.0f;     // BackGround当前X坐标
+    float mStartX = -250.0f;          // BackGround初始X坐标
+    float mGameStartX = -250.0f;          // BackGround动画在选完卡后的坐标
+    float mCurrectSceneX = -250.0f;     // BackGround当前X坐标
     float mTargetSceneX = -700.0f;         // BackGround要到达的X坐标
-	bool mHasEnter = false;             // 是否已经进入场景（用于控制进入动画只播放一次）
+    bool mHasEnter = false;             // 是否已经进入场景（用于控制进入动画只播放一次）
     float mAnimDuration = 3.0f;          // 动画总时长（秒）
     float mAnimElapsed = 0.0f;           // 动画已进行时间
 
@@ -89,8 +89,8 @@ private:
     // 选卡界面动画
     float mChooseCardUIAnimDuration = 1.0f;          // 动画时长1秒
     float mChooseCardUIAnimElapsed = 0.0f;
-    Vector mChooseCardUIStartPos = Vector(240.0f, 800.0f);   // 起始位置（屏幕下方）
-    Vector mChooseCardUITargetPos = Vector(240.0f, 80.0f);   // 目标位置（屏幕内）
+    Vector mChooseCardUIStartPos = Vector(200.0f, 800.0f);   // 起始位置（屏幕下方）
+    Vector mChooseCardUITargetPos = Vector(200.0f, 80.0f);   // 目标位置（屏幕内）
     bool mChooseCardUIMoving = false;                // 是否正在移动
 
     // 背景回移动画
@@ -99,7 +99,6 @@ private:
     Vector mReadyStartPos;
 
     PromptAnimation mPrompt;
-
 };
 
 #endif

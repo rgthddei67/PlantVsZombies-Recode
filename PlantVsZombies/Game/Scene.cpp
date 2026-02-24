@@ -12,17 +12,17 @@ void Scene::BuildDrawCommands() {
 
 	// 添加纹理绘制命令
     RegisterDrawCommand("GameTextures",
-        [this](SDL_Renderer* renderer) { this->DrawAllTextures(renderer); },
+        [this](Graphics* g) { this->DrawAllTextures(g); },
         LAYER_BACKGROUND);
 
     // 添加游戏对象绘制命令
     RegisterDrawCommand("GameObjects",
-        [this](SDL_Renderer* renderer) { this->DrawGameObjects(renderer); },
+        [this](Graphics* g) { this->DrawGameObjects(g); },
         LAYER_GAME_OBJECT);
 
     // 注册粒子系统绘制
     RegisterDrawCommand("ParticleSystem",
-        [](SDL_Renderer* renderer) {
+        [](Graphics* g) {
             if (g_particleSystem) {
                 g_particleSystem->DrawAll();
             }
@@ -31,12 +31,12 @@ void Scene::BuildDrawCommands() {
 
     // 添加UI绘制命令
     RegisterDrawCommand("UI",
-        [this](SDL_Renderer* renderer) { this->mUIManager.DrawAll(renderer); },
+        [this](Graphics* g) { this->mUIManager.DrawAll(g); },
         LAYER_UI);
 }
 
 void Scene::RegisterDrawCommand(const std::string& name,
-    std::function<void(SDL_Renderer*)> drawFunc,
+    std::function<void(Graphics*)> drawFunc,
     int renderOrder) 
 {
     auto it = std::find_if(mDrawCommands.begin(), mDrawCommands.end(),
@@ -51,14 +51,14 @@ void Scene::RegisterDrawCommand(const std::string& name,
     }
 }
 
-void Scene::Draw(SDL_Renderer* renderer) {
+void Scene::Draw(Graphics* g) {
     if (!mDrawCommandsBuilt) {
         BuildDrawCommands();
         mDrawCommandsBuilt = true;
     }
     for (auto& cmd : mDrawCommands) {
         if (cmd.drawFunc) {
-            cmd.drawFunc(renderer);
+            cmd.drawFunc(g);
         }
     }
 }
@@ -84,7 +84,7 @@ void Scene::UnregisterDrawCommand(const std::string& name) {
 }
 
 void Scene::AddTexture(const std::string& textureName, float posX, float posY, float scaleX, float scaleY, int drawOrder, bool isUI) {
-    SDL_Texture* texture = ResourceManager::GetInstance().GetTexture(textureName);
+    const GLTexture* texture = ResourceManager::GetInstance().GetTexture(textureName);
     if (texture) {
         TextureInfo info{ texture, posX, posY };
         info.scaleX = scaleX;
@@ -193,38 +193,28 @@ void Scene::ClearAllTextures() {
     mTextures.clear();
 }
 
-void Scene::DrawAllTextures(SDL_Renderer* renderer) {
+void Scene::DrawAllTextures(Graphics* g) {
     // 按绘制顺序排序
     std::sort(mTextures.begin(), mTextures.end(),
         [](const TextureInfo& a, const TextureInfo& b) {
             return a.drawOrder < b.drawOrder;
         });
 
-    auto& camera = GameAPP::GetInstance().GetCamera();
-    // 绘制所有可见纹理
-    for (size_t i = 0; i < mTextures.size(); i++)
-    {
-		auto texInfo = mTextures[i];
+    for (size_t i = 0; i < mTextures.size(); ++i) {
+        const auto& texInfo = mTextures[i];
         if (!texInfo.visible) continue;
 
-        int texWidth, texHeight;
-        SDL_QueryTexture(texInfo.texture, nullptr, nullptr, &texWidth, &texHeight);
+        // 计算显示尺寸
+        float displayWidth = texInfo.texture->width * texInfo.scaleX;
+        float displayHeight = texInfo.texture->height * texInfo.scaleY;
+        Vector drawPosition = Vector(texInfo.posX, texInfo.posY);
 
-        float displayWidth = texWidth * texInfo.scaleX;
-        float displayHeight = texHeight * texInfo.scaleY;
-
-        float drawX = texInfo.posX;
-        float drawY = texInfo.posY;
-
-        if (!texInfo.isUI) {
-            Vector worldPos(texInfo.posX, texInfo.posY);
-            Vector screenPos = camera.WorldToScreen(worldPos);
-            drawX = screenPos.x;
-            drawY = screenPos.y;
+        if (texInfo.isUI) {
+            drawPosition = g->ScreenToWorldPosition(texInfo.posX, texInfo.posY);
         }
 
-        SDL_FRect destRect = { drawX, drawY, displayWidth, displayHeight };
-        SDL_RenderCopyF(renderer, texInfo.texture, nullptr, &destRect);
+        g->DrawTexture(texInfo.texture, drawPosition.x, drawPosition.y,
+            displayWidth, displayHeight);
     }
 }
 

@@ -7,6 +7,7 @@
 #include <functional>
 #include <string>
 #include <SDL2/SDL.h>
+#include "../Graphics.h"
 
 class ResourceManager;
 
@@ -57,7 +58,7 @@ public:
     void Update(InputHandler* input);
 
     // 渲染
-    void Draw(SDL_Renderer* renderer) const;
+    void Draw(Graphics* g) const;
 
     // 获取状态和值
     bool IsDragging() const;

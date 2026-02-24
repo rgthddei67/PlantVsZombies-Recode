@@ -8,6 +8,8 @@
 #include <functional>
 #include "../Game/Definit.h"
 
+class Graphics;
+
 // 按键状态枚举
 enum class KeyState
 {
@@ -20,6 +22,8 @@ enum class KeyState
 class InputHandler
 {
 private:
+    Graphics* mGraphics = nullptr;
+
     // 当前帧按键状态
     std::map<SDL_Keycode, KeyState> m_keyStates;
 
@@ -49,7 +53,7 @@ private:
     InputHandler& operator=(const InputHandler&) = delete;
 
 public:
-    InputHandler();
+    InputHandler(Graphics* graphics);
     ~InputHandler() = default;
 
     // 处理SDL事件

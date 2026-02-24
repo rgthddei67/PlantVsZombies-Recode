@@ -89,7 +89,7 @@ public:
     virtual Vector GetVisualPosition() const;
 
     void Update() override;
-    void Draw(SDL_Renderer* renderer) override;
+    void Draw(Graphics* g) override;
 
 private:
     void UpdateGlowingEffect();

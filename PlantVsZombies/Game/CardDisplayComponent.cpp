@@ -39,30 +39,30 @@ void CardDisplayComponent::Update() {
     UpdateCardState();
 }
 
-void CardDisplayComponent::Draw(SDL_Renderer* renderer) {
+void CardDisplayComponent::Draw(Graphics* g) {
     if (!GetGameObject() || !GetGameObject()->IsActive()) return;
-    auto transfrom = GetTransformComponent();
-	if (!transfrom) return;
+    auto transform = GetTransformComponent();
+    if (!transform) return;
 
-    DrawCardBackground(renderer, transfrom);
-    DrawPlantImage(renderer, transfrom);
+    DrawCardBackground(g, transform);
+    DrawPlantImage(g, transform);
 
-    if (showMask && maskFillAmount > 0 || 
+    if (showMask && maskFillAmount > 0 ||
         !GetCardComponent()->GetIsInChooseCardUI()) {
-        DrawCooldownMask(renderer, transfrom);
+        DrawCooldownMask(g, transform);
     }
 
-    DrawSunCost(renderer, transfrom);
+    DrawSunCost(g, transform);
 
     if (isSelected) {
-        DrawSelectionHighlight(renderer, transfrom);
+        DrawSelectionHighlight(g, transform);
     }
 }
 
 void CardDisplayComponent::LoadTextures() {
     auto& resourceManager = ResourceManager::GetInstance();
 
-    // 加载卡牌背景纹理
+    // 加载卡牌背景纹理（返回 const GLTexture*）
     cardBackground = resourceManager.GetTexture(ResourceKeys::Textures::IMAGE_CARD_BK);
     cardNormal = resourceManager.GetTexture(ResourceKeys::Textures::IMAGE_SEEDPACKETNORMAL);
 
@@ -81,132 +81,102 @@ void CardDisplayComponent::LoadTextures() {
     }
 }
 
-void CardDisplayComponent::DrawCardBackground(SDL_Renderer* renderer, std::shared_ptr<TransformComponent> transform) {
+void CardDisplayComponent::DrawCardBackground(Graphics* g, std::shared_ptr<TransformComponent> transform) {
     if (!GetGameObject()) return;
 
-    Vector position = transform->GetPosition();
-    SDL_Rect cardRect = {
-        static_cast<int>(position.x),
-        static_cast<int>(position.y),
-        CARD_WIDTH,  // 卡牌宽度
-        CARD_HEIGHT   // 卡牌高度
-    };
+    Vector pos = transform->GetPosition();
+    Vector position = g->ScreenToWorldPosition(pos.x, pos.y);
+    glm::vec4 color = GetCurrentColor();
 
     // 绘制卡牌背景
     if (cardNormal) {
-        // 根据状态调整背景纹理的颜色
-        SDL_Color color = GetCurrentColor();
-        SDL_SetTextureColorMod(cardNormal, color.r, color.g, color.b);
-        SDL_RenderCopy(renderer, cardNormal, nullptr, &cardRect);
-        // 重置纹理颜色
-        SDL_SetTextureColorMod(cardNormal, 255, 255, 255);
+        g->DrawTexture(cardNormal,
+            position.x, position.y,
+            static_cast<float>(CARD_WIDTH),
+            static_cast<float>(CARD_HEIGHT),
+            0.0f, color);
     }
 }
 
-void CardDisplayComponent::DrawPlantImage(SDL_Renderer* renderer, std::shared_ptr<TransformComponent> transform) {
+void CardDisplayComponent::DrawPlantImage(Graphics* g, std::shared_ptr<TransformComponent> transform) {
     if (!GetGameObject() || !plantTexture) return;
 
-    Vector position = transform->GetPosition();
+    Vector pos = transform->GetPosition();
+    Vector position = g->ScreenToWorldPosition(pos.x, pos.y);
 
-    int imgWidth, imgHeight;
-    SDL_QueryTexture(plantTexture, nullptr , nullptr, &imgWidth, &imgHeight);
+    int imgWidth = plantTexture->width;
+    int imgHeight = plantTexture->height;
 
     // 植物图片位置（在卡牌中央）
-    SDL_FRect plantRect = {
-        position.x - 14,
-        position.y - 10,
-        imgWidth * 0.7f, 
-        imgHeight * 0.7f
-    };
+    float drawX = position.x - 14;
+    float drawY = position.y - 10;
+    float drawW = imgWidth * 0.7f;
+    float drawH = imgHeight * 0.7f;
 
-    // 设置颜色调制（根据状态改变颜色）
-    SDL_Color color = GetCurrentColor();
-    SDL_SetTextureColorMod(plantTexture, color.r, color.g, color.b);
-    SDL_SetTextureAlphaMod(plantTexture, 255);
+    glm::vec4 color = GetCurrentColor();
 
-    SDL_RenderCopyF(renderer, plantTexture, nullptr, &plantRect);
-
-    // 重置颜色调制
-    SDL_SetTextureColorMod(plantTexture, 255, 255, 255);
-    SDL_SetTextureAlphaMod(plantTexture, 255);
+    g->DrawTexture(plantTexture, drawX, drawY, drawW, drawH, 0.0f, color);
 }
 
-void CardDisplayComponent::DrawCooldownMask(SDL_Renderer* renderer, std::shared_ptr<TransformComponent> transform) {
+void CardDisplayComponent::DrawCooldownMask(Graphics* g, std::shared_ptr<TransformComponent> transform) {
     if (!GetGameObject() || !cardBackground) return;
 
+    Vector pos = transform->GetPosition();
+    Vector position = g->ScreenToWorldPosition(pos.x, pos.y);
 
-    Vector position = transform->GetPosition();
-
-    SDL_Rect cardRect = {
+    // 计算遮罩高度（从顶部开始）
+    int maskHeight = static_cast<int>(CARD_HEIGHT * maskFillAmount);
+    SDL_Rect maskRect = {
         static_cast<int>(position.x),
         static_cast<int>(position.y),
-        CARD_WIDTH,  // 卡牌宽度
-        CARD_HEIGHT   // 卡牌高度
+        CARD_WIDTH,
+        maskHeight
     };
 
-    // 计算遮罩高度  - 从下往上逐渐减少
-    // maskFillAmount 表示剩余冷却的比例 (1.0 = 完全冷却, 0.0 = 冷却完成)
-    int maskHeight = static_cast<int>(cardRect.h * maskFillAmount);
-    SDL_Rect maskRect = {
-        cardRect.x,
-        cardRect.y, // 从顶部开始
-        cardRect.w,
-        maskHeight  // 高度逐渐减少
-    };
+    // 保存当前混合模式，设置为半透明混合
+    BlendMode oldMode = g->GetBlendMode();
+    g->SetBlendMode(BlendMode::Alpha);
 
-    // 保存当前的混合模式
-    SDL_BlendMode oldBlendMode;
-    SDL_GetRenderDrawBlendMode(renderer, &oldBlendMode);
+    // 绘制半透明黑色矩形
+    g->FillRect(static_cast<float>(maskRect.x),
+        static_cast<float>(maskRect.y),
+        static_cast<float>(maskRect.w),
+        static_cast<float>(maskRect.h),
+        glm::vec4(0.0f, 0.0f, 0.0f, 64.0f / 255.0f));
 
-    // 设置混合模式为混合（SDL_BLENDMODE_BLEND）
-    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-
-    // 绘制半透明黑色矩形作为遮罩
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 64);
-    SDL_RenderFillRect(renderer, &maskRect);
-
-    // 恢复之前的混合模式
-    SDL_SetRenderDrawBlendMode(renderer, oldBlendMode);
-
+    // 恢复混合模式
+    g->SetBlendMode(oldMode);
 }
 
-void CardDisplayComponent::DrawSunCost(SDL_Renderer* renderer, std::shared_ptr<TransformComponent> transform) {
+void CardDisplayComponent::DrawSunCost(Graphics* g, std::shared_ptr<TransformComponent> transform) {
     if (!GetGameObject()) return;
 
-    Vector position = transform->GetPosition();
+    Vector pos = transform->GetPosition();
+    Vector position = g->ScreenToWorldPosition(pos.x, pos.y);
 
     GameAPP::GetInstance().DrawText(std::to_string(needSun),
         Vector(position.x + 6, position.y + 58),
-        { 0, 0, 0, 255 },
+        { 0, 0, 0, 255 }, 
         ResourceKeys::Fonts::FONT_FZCQ,
         14);
 }
 
-void CardDisplayComponent::DrawSelectionHighlight(SDL_Renderer* renderer, std::shared_ptr<TransformComponent> transform) {
+void CardDisplayComponent::DrawSelectionHighlight(Graphics* g, std::shared_ptr<TransformComponent> transform) {
     if (!GetGameObject()) return;
 
-    Vector position = transform->GetPosition();
+    Vector pos = transform->GetPosition();
+    Vector position = g->ScreenToWorldPosition(pos.x, pos.y);
 
-    // 绘制选中高亮边框
-    SDL_Rect highlightRect = {
-        static_cast<int>(position.x),
-        static_cast<int>(position.y),
-        CARD_WIDTH,  // 卡牌宽度
-        CARD_HEIGHT   // 卡牌高度
-    };
+    BlendMode oldMode = g->GetBlendMode();
+    g->SetBlendMode(BlendMode::Alpha);
 
-    SDL_BlendMode oldBlendMode;
-    SDL_GetRenderDrawBlendMode(renderer, &oldBlendMode);
+    // 绘制半透明黑色遮罩表示选中
+    g->FillRect(position.x, position.y,
+        static_cast<float>(CARD_WIDTH),
+        static_cast<float>(CARD_HEIGHT),
+        glm::vec4(0.0f, 0.0f, 0.0f, 64.0f / 255.0f));
 
-    // 设置混合模式为混合（SDL_BLENDMODE_BLEND）
-    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-
-    // 绘制半透明黑色矩形作为遮罩
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 64);
-    SDL_RenderFillRect(renderer, &highlightRect);
-
-    // 恢复之前的混合模式
-    SDL_SetRenderDrawBlendMode(renderer, oldBlendMode);
+    g->SetBlendMode(oldMode);
 }
 
 void CardDisplayComponent::UpdateCardState() {
@@ -281,7 +251,7 @@ void CardDisplayComponent::TranToWaitingSun() {
 void CardDisplayComponent::TranToReady() {
     if (isSelected)
     {
-		return; 
+        return;
     }
     cardState = CardState::Ready;
     showMask = false;
@@ -301,7 +271,7 @@ void CardDisplayComponent::TranToClick() {
     showMask = false;
 }
 
-SDL_Color CardDisplayComponent::GetCurrentColor() const {
+glm::vec4 CardDisplayComponent::GetCurrentColor() const {
     switch (cardState) {
     case CardState::Ready:
         return readyColor;

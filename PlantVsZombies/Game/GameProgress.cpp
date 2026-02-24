@@ -3,7 +3,7 @@
 #include "Board.h"
 #include "SceneManager.h"
 #include "../DeltaTime.h"
-#include "../ResourceManager.h"   // 用于获取纹理
+#include "../ResourceManager.h"
 #include "../ResourceKeys.h"
 #include <memory>
 #include <iostream>
@@ -22,13 +22,13 @@ GameProgress::GameProgress(Board* board, GameScene* gameScene)
 
     m_flagMeter = std::make_unique<FlagMeter>(createPosition, 1.0f);
 
-    // 从资源管理器获取纹理
+    // 从资源管理器获取纹理（返回 const GLTexture*）
     auto& rm = ResourceManager::GetInstance();
     using namespace ResourceKeys::Textures;
-    SDL_Texture* bgTex = rm.GetTexture(IMAGE_FLAG_METER);
-    SDL_Texture* fillTex = rm.GetTexture(IMAGE_FLAG_METERFULL);
-    SDL_Texture* headTex = rm.GetTexture(IMAGE_FLAGMETER_PART_HEAD);
-    SDL_Texture* middleTex = rm.GetTexture(IMAGE_FLAGMETERLEVELPROGRESS);
+    const GLTexture* bgTex = rm.GetTexture(IMAGE_FLAG_METER);
+    const GLTexture* fillTex = rm.GetTexture(IMAGE_FLAG_METERFULL);
+    const GLTexture* headTex = rm.GetTexture(IMAGE_FLAGMETER_PART_HEAD);
+    const GLTexture* middleTex = rm.GetTexture(IMAGE_FLAGMETERLEVELPROGRESS);
 
     m_flagMeter->SetImages(bgTex, fillTex, headTex, middleTex);
 }
@@ -86,14 +86,14 @@ void GameProgress::Update()
     }
 }
 
-void GameProgress::Draw(SDL_Renderer* renderer)
+void GameProgress::Draw(Graphics* g)
 {
-    GameObject::Draw(renderer);
+    GameObject::Draw(g);  
     if (m_flagMeter)
-        m_flagMeter->Draw(renderer);
+        m_flagMeter->Draw(g);
 }
 
-void GameProgress::SetupFlags(SDL_Texture* stickTex, SDL_Texture* flagTex)
+void GameProgress::SetupFlags(const GLTexture* stickTex, const GLTexture* flagTex)
 {
     if (!m_flagMeter) return;
 

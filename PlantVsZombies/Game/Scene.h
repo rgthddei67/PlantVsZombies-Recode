@@ -4,6 +4,7 @@
 
 #include "../UI/UIManager.h"
 #include "../ResourceKeys.h"
+#include "../ResourceManager.h"
 #include "./GameObjectManager.h"
 #include <SDL2/SDL.h>
 #include <string>
@@ -11,13 +12,15 @@
 #include <algorithm>
 #include <memory>
 
+class Graphics;
+
 // 绘制命令结构
 struct DrawCommand {
-    std::function<void(SDL_Renderer*)> drawFunc;
+    std::function<void(Graphics*)> drawFunc;
     int renderOrder;
     std::string name;
 
-    DrawCommand(std::function<void(SDL_Renderer*)> func = nullptr,
+    DrawCommand(std::function<void(Graphics*)> func = nullptr,
         int order = 0,
         const std::string& n = "")
         : drawFunc(func), renderOrder(order), name(n) {
@@ -30,7 +33,7 @@ struct DrawCommand {
 
 // 图片信息结构
 struct TextureInfo {
-    SDL_Texture* texture = nullptr;
+    const GLTexture* texture = nullptr;
     float posX = 0.0f;
     float posY = 0.0f;
     float scaleX = 1.0f;
@@ -48,8 +51,8 @@ public:
 
     Scene()
     {
-        mDrawCommands.resize(48);
-        mTextures.resize(64);
+        mDrawCommands.reserve(48);
+        mTextures.reserve(48);
     }
 
     virtual ~Scene() = default;
@@ -68,11 +71,11 @@ public:
 
     virtual void Update();
 
-    virtual void Draw(SDL_Renderer* renderer);
+    virtual void Draw(Graphics* g);
 
     // 注册自定义绘制命令
     void RegisterDrawCommand(const std::string& name,
-        std::function<void(SDL_Renderer*)> drawFunc,
+        std::function<void(Graphics*)> drawFunc,
         int renderOrder = LAYER_GAME_OBJECT);
 
     // 移除绘制命令
@@ -93,8 +96,8 @@ protected:
     virtual void BuildDrawCommands();
 
     // 绘制所有游戏对象
-    virtual void DrawGameObjects(SDL_Renderer* renderer) {
-        GameObjectManager::GetInstance().DrawAll(renderer);
+    virtual void DrawGameObjects(Graphics* g) {
+        GameObjectManager::GetInstance().DrawAll(g);
     }
 
     // 按渲染顺序排序绘制命令（构建完成后调用）
@@ -130,7 +133,7 @@ protected:
     void ClearAllTextures();
 
     // 绘制所有纹理
-    void DrawAllTextures(SDL_Renderer* renderer);
+    void DrawAllTextures(Graphics* g);
 
     // 获取纹理信息（用于调试或特殊处理）
     TextureInfo* GetTextureInfo(const std::string& textureName);

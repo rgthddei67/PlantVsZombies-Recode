@@ -2,6 +2,7 @@
 #ifndef _BUTTON_H
 #define _BUTTON_H
 #include "../GameApp.h"
+#include "../Graphics.h"
 #include <functional>
 #include <string>
 #include <SDL2/SDL.h>
@@ -28,8 +29,8 @@ private:
     std::string text = "";                     // 按钮文字
     std::string fontName = ResourceKeys::Fonts::FONT_FZCQ;        // 字体文件名
     int fontSize = 17;                         // 字体大小
-    SDL_Color textColor = { 0, 0, 0, 255 };      // 文字颜色（黑色）
-    SDL_Color hoverTextColor = { 255, 255, 255, 255 }; // 悬停时文字颜色（白色）
+    glm::vec4 textColor = { 0, 0, 0, 255 };      // 文字颜色（黑色）
+    glm::vec4 hoverTextColor = { 255, 255, 255, 255 }; // 悬停时文字颜色（白色）
 
     std::function<void(bool isChecked)> onClickCallback = nullptr; // 点击回调函数
     static std::string s_defaultFontPath;
@@ -50,8 +51,8 @@ public:
     void SetPosition(Vector pos);
     void SetSize(Vector size);
     void SetText(const std::string& btnText, const std::string& font = ResourceKeys::Fonts::FONT_FZCQ, int size = 17);
-    void SetTextColor(const SDL_Color& color);
-    void SetHoverTextColor(const SDL_Color& color);
+    void SetTextColor(const glm::vec4& color);
+    void SetHoverTextColor(const glm::vec4& color);
     void SetAsCheckbox(bool checkbox);
 	void SetCanClick(bool canClick);
     void SetEnabled(bool enabled) { this->mEnabled = enabled; }
@@ -64,7 +65,7 @@ public:
 
     // 更新和渲染
     void Update(InputHandler* input);
-    void Draw(SDL_Renderer* renderer) const;
+    void Draw(Graphics* g) const;
 
     // 状态获取
     bool IsHovered() const;

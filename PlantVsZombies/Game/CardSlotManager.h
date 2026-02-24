@@ -16,10 +16,10 @@ class Plant;
 
 class CardSlotManager : public Component {
 private:
-	std::vector<std::weak_ptr<Card>> cards;  // 卡牌列表
+    std::vector<std::weak_ptr<Card>> cards;  // 卡牌列表
     std::weak_ptr<GameObject> selectedCard;                 // 当前选中的卡牌
     std::shared_ptr<Plant> plantPreview = nullptr;          // 植物预览
-    std::shared_ptr<Plant> cellPlantPreview = nullptr;      
+    std::shared_ptr<Plant> cellPlantPreview = nullptr;
 
     // 常量参数
     Vector firstSlotPosition = Vector(64, -2); // 第一个卡牌槽的位置
@@ -33,9 +33,9 @@ public:
 
     void Start() override;
     void Update() override;
+    void Draw(Graphics* g) override;
     void UpdateAllCardsState();
     void UpdatePreviewToMouse(const Vector& mousePos);
-    void Draw(SDL_Renderer* renderer) override;
 
     // 卡牌操作
     void AddCard(std::shared_ptr<Card> card);
@@ -63,7 +63,7 @@ public:
 
 private:
     void CreatePlantPreview(PlantType plantType);
-    void UpdatePlantPreviewPosition(const Vector& position);
+    void UpdatePlantPreviewPosition(Graphics* g, const Vector& position);
 
     // 创建Cell悬停预览（透明）
     void CreateCellPlantPreview(PlantType plantType, std::shared_ptr<Cell> cell);

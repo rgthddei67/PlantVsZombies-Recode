@@ -17,17 +17,16 @@ PVOID CrashHandler::vehHandle = nullptr;
 LONG64 CrashHandler::lastUACTime = 0;
 
 void CrashHandler::Initialize() {
-    std::cout << "安装向量化异常处理器..." << std::endl;
-    ULONG stackGuarantee = 4 * 1024; // 保留4KB栈空间
+    std::cout << "Installing vectored exception handler..." << std::endl;
+    ULONG stackGuarantee = 4 * 1024; // 4KB stack guarantee
     SetThreadStackGuarantee(&stackGuarantee);
-    // 安装 VEH 作为第一个异常处理器
     vehHandle = AddVectoredExceptionHandler(1, VectoredExceptionHandler);
 
     if (vehHandle) {
-        std::cout << "向量化异常处理器安装成功" << std::endl;
+        std::cout << "Vectored exception handler installed successfully" << std::endl;
     }
     else {
-        std::cerr << "向量化异常处理器安装失败" << std::endl;
+        std::cerr << "Failed to install vectored exception handler" << std::endl;
     }
 }
 
@@ -35,7 +34,7 @@ void CrashHandler::Cleanup() {
     if (vehHandle) {
         RemoveVectoredExceptionHandler(vehHandle);
         vehHandle = nullptr;
-        std::cout << "向量化异常处理器已卸载" << std::endl;
+        std::cout << "Vectored exception handler uninstalled" << std::endl;
     }
 }
 
@@ -52,17 +51,17 @@ LONG WINAPI CrashHandler::VectoredExceptionHandler(PEXCEPTION_POINTERS exception
         return EXCEPTION_EXECUTE_HANDLER;
     }
 
-    // 排除调试相关的异常
+    // Skip debug-related exceptions
     switch (exceptionCode)
     {
-    case EXCEPTION_BREAKPOINT:                    // 断点
-    case EXCEPTION_SINGLE_STEP:                   // 单步
-    case 0x4001000a:                              // DBG_PRINTEXCEPTION_C (调试输出)
-    case 0x40010006:                              // DBG_PRINTEXCEPTION_WIDE_C (宽字符调试输出)
-    case 0x406D1388:                              // 设置线程名称异常
+    case EXCEPTION_BREAKPOINT:
+    case EXCEPTION_SINGLE_STEP:
+    case 0x4001000a:                              // DBG_PRINTEXCEPTION_C
+    case 0x40010006:                              // DBG_PRINTEXCEPTION_WIDE_C
+    case 0x406D1388:                              // SetThreadName exception
         return EXCEPTION_CONTINUE_SEARCH;
-    case 0xE06D7363:
-        return EXCEPTION_CONTINUE_SEARCH;         // C++ 异常
+    case 0xE06D7363:                              // C++ exception
+        return EXCEPTION_CONTINUE_SEARCH;
 
     default:
         if (IsCrashException(exceptionCode))
@@ -78,15 +77,12 @@ LONG WINAPI CrashHandler::VectoredExceptionHandler(PEXCEPTION_POINTERS exception
 }
 
 void CrashHandler::HandleStackOverflowMinimal(PEXCEPTION_POINTERS exceptionInfo) {
-    // 使用静态缓冲区，避免栈分配
     static char buffer[512];
 
-    // 简单的错误信息
     const char* errorMsg =
         "Stack overflow occurred.\n"
         "The program will terminate immediately.";
 
-    // 直接写入文件，避免复杂操作
     HANDLE hFile = CreateFileA(
         "stack_overflow_minimal.txt",
         GENERIC_WRITE,
@@ -101,11 +97,10 @@ void CrashHandler::HandleStackOverflowMinimal(PEXCEPTION_POINTERS exceptionInfo)
         DWORD written;
         WriteFile(hFile, errorMsg, strlen(errorMsg), &written, nullptr);
 
-        // 记录异常地址
         if (exceptionInfo && exceptionInfo->ExceptionRecord) {
             std::snprintf(buffer, sizeof(buffer),
                 "\n\nException Address: 0x%p\nRSP: 0x%p",
-                exceptionInfo->ExceptionRecord->ExceptionAddress, 
+                exceptionInfo->ExceptionRecord->ExceptionAddress,
                 exceptionInfo->ContextRecord->Rsp);
             WriteFile(hFile, buffer, strlen(buffer), &written, nullptr);
         }
@@ -113,18 +108,18 @@ void CrashHandler::HandleStackOverflowMinimal(PEXCEPTION_POINTERS exceptionInfo)
         CloseHandle(hFile);
     }
 
-	TerminateProcess(GetCurrentProcess(), -114514);
+    TerminateProcess(GetCurrentProcess(), -114514);
 }
 
 bool CrashHandler::IsCrashException(DWORD exceptionCode) {
     switch (exceptionCode) {
-        // 内存访问相关
+        // Memory access
     case EXCEPTION_ACCESS_VIOLATION:
     case EXCEPTION_IN_PAGE_ERROR:
     case EXCEPTION_STACK_OVERFLOW:
     case EXCEPTION_STACK_INVALID:
 
-        // 算术运算相关
+        // Arithmetic
     case EXCEPTION_INT_DIVIDE_BY_ZERO:
     case EXCEPTION_INT_OVERFLOW:
     case EXCEPTION_FLT_DIVIDE_BY_ZERO:
@@ -134,17 +129,17 @@ bool CrashHandler::IsCrashException(DWORD exceptionCode) {
     case EXCEPTION_FLT_INVALID_OPERATION:
     case EXCEPTION_FLT_DENORMAL_OPERAND:
 
-        // 指令相关
+        // Instruction
     case EXCEPTION_ILLEGAL_INSTRUCTION:
     case EXCEPTION_PRIV_INSTRUCTION:
     case EXCEPTION_INVALID_DISPOSITION:
     case EXCEPTION_NONCONTINUABLE_EXCEPTION:
 
-        // 数组和数据类型
+        // Array and data type
     case EXCEPTION_ARRAY_BOUNDS_EXCEEDED:
     case EXCEPTION_DATATYPE_MISALIGNMENT:
 
-        // 其他严重错误
+        // Other severe errors
     case EXCEPTION_INVALID_HANDLE:
         return true;
 
@@ -159,10 +154,9 @@ void CrashHandler::HandleCrash(PEXCEPTION_POINTERS exceptionInfo) {
         ShowCrashDialog(exceptionInfo, reportPath);
     }
     catch (...) {
-        // 如果崩溃报告生成失败，显示最简单的错误信息
         MessageBoxA(nullptr,
-            "程序发生了严重错误，无法生成详细报告。",
-            "致命错误",
+            "A serious error occurred and a detailed report could not be generated.",
+            "Fatal Error",
             MB_ICONERROR | MB_OK);
     }
 
@@ -170,7 +164,6 @@ void CrashHandler::HandleCrash(PEXCEPTION_POINTERS exceptionInfo) {
 }
 
 std::string CrashHandler::GenerateCrashReport(PEXCEPTION_POINTERS exceptionInfo) {
-    // 生成时间戳文件名
     auto now = std::time(nullptr);
     char timestamp[64];
     std::tm timeInfo;
@@ -184,22 +177,19 @@ std::string CrashHandler::GenerateCrashReport(PEXCEPTION_POINTERS exceptionInfo)
         return reportPath;
     }
 
-    // 格式化时间字符串
     char timeStr[26];
     ctime_s(timeStr, sizeof(timeStr), &now);
 
-    report << "=== 程序崩溃报告 ===\n";
-    report << "生成时间: " << timeStr;
-    report << "异常类型: " << GetExceptionCodeString
-    (exceptionInfo->ExceptionRecord->ExceptionCode)
+    report << "=== Crash Report ===\n";
+    report << "Time: " << timeStr;
+    report << "Exception Code: " << GetExceptionCodeString(exceptionInfo->ExceptionRecord->ExceptionCode)
         << "(0x" << std::hex << exceptionInfo->ExceptionRecord->ExceptionCode << ")\n";
-    report << "异常地址: 0x" << std::hex << (uintptr_t)exceptionInfo->ExceptionRecord->ExceptionAddress << "\n";
-    report << "线程ID: " << std::dec << GetCurrentThreadId() << "\n";
-    report << "进程ID: " << std::dec << GetCurrentProcessId() << "\n\n";
+    report << "Exception Address: 0x" << std::hex << (uintptr_t)exceptionInfo->ExceptionRecord->ExceptionAddress << "\n";
+    report << "Thread ID: " << std::dec << GetCurrentThreadId() << "\n";
+    report << "Process ID: " << std::dec << GetCurrentProcessId() << "\n\n";
 
-    // 寄存器信息
     if (exceptionInfo->ContextRecord) {
-        report << "=== 寄存器状态 ===\n";
+        report << "=== Register State ===\n";
         PCONTEXT ctx = exceptionInfo->ContextRecord;
 
 #ifdef _WIN64
@@ -234,12 +224,10 @@ std::string CrashHandler::GenerateCrashReport(PEXCEPTION_POINTERS exceptionInfo)
         report << "\n";
     }
 
-    // 栈跟踪
-    report << "=== 栈跟踪 ===\n";
+    report << "=== Stack Trace ===\n";
     report << GetStackTrace(exceptionInfo) << "\n";
 
-    // 加载的模块信息
-    report << "=== 加载的模块 ===\n";
+    report << "=== Loaded Modules ===\n";
     HMODULE modules[1024];
     DWORD needed;
     if (EnumProcessModules(GetCurrentProcess(), modules, sizeof(modules), &needed)) {
@@ -257,20 +245,18 @@ std::string CrashHandler::GenerateCrashReport(PEXCEPTION_POINTERS exceptionInfo)
 
 void CrashHandler::ShowCrashDialog(PEXCEPTION_POINTERS exceptionInfo, const std::string& reportPath) {
     if (!exceptionInfo) {
-        MessageBoxA(nullptr, "发生未知错误", "程序崩溃", MB_ICONERROR | MB_OK);
+        MessageBoxA(nullptr, "Unknown error occurred", "Fatal Error", MB_ICONERROR | MB_OK);
         return;
     }
 
-    // 构建详细的错误信息
     std::stringstream errorMsg;
-    errorMsg << "程序遇到了严重错误需要关闭\n\n";
-    errorMsg << "错误类型: " << GetExceptionCodeString(exceptionInfo->ExceptionRecord->ExceptionCode) << "\n";
-    errorMsg << "错误地址: 0x" << std::hex << (uintptr_t)exceptionInfo->ExceptionRecord->ExceptionAddress << "\n\n";
+    errorMsg << "The program encountered a fatal error and needs to close.\n\n";
+    errorMsg << "Exception Code: " << GetExceptionCodeString(exceptionInfo->ExceptionRecord->ExceptionCode) << "\n";
+    errorMsg << "Exception Address: 0x" << std::hex << (uintptr_t)exceptionInfo->ExceptionRecord->ExceptionAddress << "\n\n";
 
-    // 添加寄存器信息
     if (exceptionInfo->ContextRecord) {
-        errorMsg << "以下是部分关键寄存器信息，完整请看崩溃报告。\n";
-        errorMsg << "=== 寄存器信息 ===\n";
+        errorMsg << "Below are some key register values. See the crash report for full details.\n";
+        errorMsg << "=== Register Information ===\n";
         PCONTEXT ctx = exceptionInfo->ContextRecord;
 
 #ifdef _WIN64
@@ -297,44 +283,44 @@ void CrashHandler::ShowCrashDialog(PEXCEPTION_POINTERS exceptionInfo, const std:
         errorMsg << "\n";
     }
 
-    errorMsg << "崩溃报告已保存到:\n" << reportPath << "\n\n";
-    errorMsg << "请将此文件发送给开发人员以帮助解决问题。\n";
-    errorMsg << "点击\"确定\"关闭程序。";
+    errorMsg << "Crash report saved to: " << reportPath << "\n\n";
+    errorMsg << "Please send this file to the developer for troubleshooting.\n";
+    errorMsg << "Click 'OK' to close the program.";
 
-    MessageBoxA(nullptr, errorMsg.str().c_str(), "程序崩溃", MB_ICONERROR | MB_OK);
+    MessageBoxA(nullptr, errorMsg.str().c_str(), "Fatal Error", MB_ICONERROR | MB_OK);
 }
 
 std::string CrashHandler::GetExceptionCodeString(DWORD exceptionCode) {
     switch (exceptionCode) {
-    case EXCEPTION_ACCESS_VIOLATION:         return "访问违规";
-    case EXCEPTION_ARRAY_BOUNDS_EXCEEDED:    return "数组越界";
-    case EXCEPTION_BREAKPOINT:               return "断点";
-    case EXCEPTION_DATATYPE_MISALIGNMENT:    return "数据未对齐";
-    case EXCEPTION_FLT_DENORMAL_OPERAND:     return "浮点数异常操作数";
-    case EXCEPTION_FLT_DIVIDE_BY_ZERO:       return "浮点数除零";
-    case EXCEPTION_FLT_INEXACT_RESULT:       return "浮点数不精确结果";
-    case EXCEPTION_FLT_INVALID_OPERATION:    return "浮点数无效操作";
-    case EXCEPTION_FLT_OVERFLOW:             return "浮点数上溢";
-    case EXCEPTION_FLT_STACK_CHECK:          return "浮点数栈检查失败";
-    case EXCEPTION_FLT_UNDERFLOW:            return "浮点数下溢";
-    case EXCEPTION_GUARD_PAGE:               return "保护页违规";
-    case EXCEPTION_ILLEGAL_INSTRUCTION:      return "非法指令";
-    case EXCEPTION_IN_PAGE_ERROR:            return "页面错误";
-    case EXCEPTION_INT_DIVIDE_BY_ZERO:       return "整数除零";
-    case EXCEPTION_INT_OVERFLOW:             return "整数溢出";
-    case EXCEPTION_INVALID_DISPOSITION:      return "无效处置";
-    case EXCEPTION_INVALID_HANDLE:           return "无效句柄";
-    case EXCEPTION_NONCONTINUABLE_EXCEPTION: return "不可继续异常";
-    case EXCEPTION_PRIV_INSTRUCTION:         return "特权指令";
-    case EXCEPTION_SINGLE_STEP:              return "单步执行";
-    case EXCEPTION_STACK_OVERFLOW:           return "栈溢出";
-    case EXCEPTION_STACK_INVALID:            return "栈无效";
-    case 0x4001000a:                         return "调试输出异常";
-    case 0x40010006:                         return "宽字符调试输出异常";
-    case 0x406D1388:                         return "设置线程名称异常";
-    case 0xE06D7363:                         return "C++异常";
+    case EXCEPTION_ACCESS_VIOLATION:         return u8"Access Violation";
+    case EXCEPTION_ARRAY_BOUNDS_EXCEEDED:    return u8"Array Bounds Exceeded";
+    case EXCEPTION_BREAKPOINT:               return u8"Breakpoint";
+    case EXCEPTION_DATATYPE_MISALIGNMENT:    return u8"Data Misalignment";
+    case EXCEPTION_FLT_DENORMAL_OPERAND:     return u8"Floating-point Denormal Operand";
+    case EXCEPTION_FLT_DIVIDE_BY_ZERO:       return u8"Floating-point Divide by Zero";
+    case EXCEPTION_FLT_INEXACT_RESULT:       return u8"Floating-point Inexact Result";
+    case EXCEPTION_FLT_INVALID_OPERATION:    return u8"Floating-point Invalid Operation";
+    case EXCEPTION_FLT_OVERFLOW:             return u8"Floating-point Overflow";
+    case EXCEPTION_FLT_STACK_CHECK:          return u8"Floating-point Stack Check";
+    case EXCEPTION_FLT_UNDERFLOW:            return u8"Floating-point Underflow";
+    case EXCEPTION_GUARD_PAGE:               return u8"Guard Page Violation";
+    case EXCEPTION_ILLEGAL_INSTRUCTION:      return u8"Illegal Instruction";
+    case EXCEPTION_IN_PAGE_ERROR:            return u8"Page Error";
+    case EXCEPTION_INT_DIVIDE_BY_ZERO:       return u8"Integer Divide by Zero";
+    case EXCEPTION_INT_OVERFLOW:             return u8"Integer Overflow";
+    case EXCEPTION_INVALID_DISPOSITION:      return u8"Invalid Disposition";
+    case EXCEPTION_INVALID_HANDLE:           return u8"Invalid Handle";
+    case EXCEPTION_NONCONTINUABLE_EXCEPTION: return u8"Noncontinuable Exception";
+    case EXCEPTION_PRIV_INSTRUCTION:         return u8"Privileged Instruction";
+    case EXCEPTION_SINGLE_STEP:              return u8"Single Step";
+    case EXCEPTION_STACK_OVERFLOW:           return u8"Stack Overflow";
+    case EXCEPTION_STACK_INVALID:            return u8"Stack Invalid";
+    case 0x4001000a:                         return u8"Debug Output Exception";
+    case 0x40010006:                         return u8"Wide Debug Output Exception";
+    case 0x406D1388:                         return u8"Set Thread Name Exception";
+    case 0xE06D7363:                         return u8"C++ Exception";
     default:
-        return "未知异常 (0x" + std::to_string(exceptionCode) + ")";
+        return u8"Unknown Exception (0x" + std::to_string(exceptionCode) + ")";
     }
 }
 
@@ -344,7 +330,6 @@ std::string CrashHandler::GetStackTrace(PEXCEPTION_POINTERS exceptionInfo) {
     HANDLE process = GetCurrentProcess();
     HANDLE thread = GetCurrentThread();
 
-    // 初始化符号处理
     SymInitialize(process, nullptr, TRUE);
     SymSetOptions(SYMOPT_LOAD_LINES | SYMOPT_UNDNAME);
 
@@ -385,7 +370,6 @@ std::string CrashHandler::GetStackTrace(PEXCEPTION_POINTERS exceptionInfo) {
 
         stackTrace << "[" << i << "] ";
 
-        // 获取模块名
         HMODULE module = nullptr;
         GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS,
             (LPCTSTR)stackFrame.AddrPC.Offset, &module);
@@ -395,7 +379,6 @@ std::string CrashHandler::GetStackTrace(PEXCEPTION_POINTERS exceptionInfo) {
 
         stackTrace << "0x" << std::hex << stackFrame.AddrPC.Offset;
 
-        // 尝试获取符号名
         char symbolBuffer[sizeof(SYMBOL_INFO) + MAX_SYM_NAME * sizeof(TCHAR)];
         PSYMBOL_INFO symbol = (PSYMBOL_INFO)symbolBuffer;
         symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
@@ -416,7 +399,7 @@ std::string CrashHandler::GetStackTrace(PEXCEPTION_POINTERS exceptionInfo) {
 
     std::string result = stackTrace.str();
     if (result.empty()) {
-        return "无法获取栈跟踪信息";
+        return "Unable to retrieve stack trace";
     }
 
     return result;
@@ -440,16 +423,14 @@ bool CrashHandler::IsUACByTimeWindow(PEXCEPTION_POINTERS exceptionInfo) {
 
     LONG64 currentTime = GetTickCount64();
 
-    // 如果在最近3秒内检测到过UAC，忽略所有异常
     if (currentTime - lastUACTime < 3000) {
-        std::cout << "时间窗口内，忽略异常 (距离上次UAC: "
+        std::cout << "Within time window, ignoring exception (time since last UAC: "
             << (currentTime - lastUACTime) << "ms)" << std::endl;
         return true;
     }
 
     DWORD exceptionCode = exceptionInfo->ExceptionRecord->ExceptionCode;
 
-    // 检查是否是典型的UAC异常模式
     if (exceptionCode == EXCEPTION_ACCESS_VIOLATION ||
         exceptionCode == EXCEPTION_GUARD_PAGE ||
         exceptionCode == EXCEPTION_BREAKPOINT) {
@@ -463,14 +444,13 @@ bool CrashHandler::IsUACByTimeWindow(PEXCEPTION_POINTERS exceptionInfo) {
                 std::string modulePath = moduleName;
                 std::transform(modulePath.begin(), modulePath.end(), modulePath.begin(), ::tolower);
 
-                // 如果是系统核心模块，认为是UAC
                 if (modulePath.find("\\system32\\") != std::string::npos ||
                     modulePath.find("\\syswow64\\") != std::string::npos ||
                     modulePath.find("kernel32.dll") != std::string::npos ||
                     modulePath.find("kernelbase.dll") != std::string::npos ||
                     modulePath.find("ntdll.dll") != std::string::npos) {
 
-                    std::cout << "检测到UAC相关异常，模块: " << modulePath << std::endl;
+                    std::cout << "Detected UAC-related exception, module: " << modulePath << std::endl;
                     lastUACTime = currentTime;
                     return true;
                 }

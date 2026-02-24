@@ -34,6 +34,7 @@ void Board::InitializeCell(int rows, int cols)
 	}
 }
 
+/*
 void Board::DrawCell(SDL_Renderer* renderer)
 {
 	SDL_SetRenderDrawColor(renderer, 0, 255, 0, 100); // 半透明绿色
@@ -50,7 +51,7 @@ void Board::Draw(SDL_Renderer* renderer)
 {
 	// DrawCell(renderer);
 }
-
+*/
 std::shared_ptr<Sun> Board::CreateSun(const Vector& position, bool needAnimation)
 {
 	auto sun = GameObjectManager::GetInstance().CreateGameObject<Sun>

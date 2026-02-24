@@ -51,13 +51,13 @@ public:
 		return ContainsPoint(Vector(x, y));
 	}
 
-	void Draw(SDL_Renderer* renderer) override;
+	void Draw(Graphics* g) override;
 
 	// 绘制矩形碰撞框
-	void DrawBoxCollider(SDL_Renderer* renderer, const SDL_FRect& rect);
+	void DrawBoxCollider(Graphics* g, const SDL_FRect& rect);
 
 	// 绘制圆形碰撞框
-	void DrawCircleCollider(SDL_Renderer* renderer, const Vector& center, float radius);
+	void DrawCircleCollider(Graphics* g, const Vector& center, float radius);
 
 private:
 	std::shared_ptr<TransformComponent> GetTransform() const;

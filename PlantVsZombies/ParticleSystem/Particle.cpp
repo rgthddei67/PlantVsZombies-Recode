@@ -9,9 +9,9 @@ Particle::Particle() : active(false) {
 void Particle::Reset() {
     position = { 0, 0 };
     velocity = { 0, 0 };
-    color = { 255, 255, 255, 255 };
-    startColor = { 255, 255, 255, 255 };
-    endColor = { 255, 255, 255, 0 };
+    color = glm::vec4(1.0f);
+    startColor = glm::vec4(1.0f);
+    endColor = glm::vec4(1.0f, 1.0f, 1.0f, 0.0f);
     lifetime = 0.0f;
     maxLifetime = 60.0f;
     size = 1.0f;
@@ -23,8 +23,6 @@ void Particle::Reset() {
     active = false;
     fadeOut = true;
     texture = nullptr;
-    textureRect = { 0, 0, 0, 0 };
-    useTexture = false;
 }
 
 void Particle::Update() {
@@ -33,13 +31,12 @@ void Particle::Update() {
     float deltaTime = DeltaTime::GetDeltaTime();
     lifetime += deltaTime;
 
-    // 生命周期结束
     if (lifetime >= maxLifetime) {
         active = false;
         return;
     }
 
-    // 应用物理
+    // 物理更新
     velocity.y += gravity * deltaTime;
     position.x += velocity.x * deltaTime;
     position.y += velocity.y * deltaTime;
@@ -48,11 +45,11 @@ void Particle::Update() {
     float t = lifetime / maxLifetime;
     size = startSize + (endSize - startSize) * t;
 
-    // 颜色插值
+    // 颜色插值（fadeOut 控制透明度渐变）
     if (fadeOut) {
-        color.r = static_cast<Uint8>(startColor.r + (endColor.r - startColor.r) * t);
-        color.g = static_cast<Uint8>(startColor.g + (endColor.g - startColor.g) * t);
-        color.b = static_cast<Uint8>(startColor.b + (endColor.b - startColor.b) * t);
-        color.a = static_cast<Uint8>(startColor.a + (endColor.a - startColor.a) * t);
+        color.r = startColor.r + (endColor.r - startColor.r) * t;
+        color.g = startColor.g + (endColor.g - startColor.g) * t;
+        color.b = startColor.b + (endColor.b - startColor.b) * t;
+        color.a = startColor.a + (endColor.a - startColor.a) * t;
     }
 }

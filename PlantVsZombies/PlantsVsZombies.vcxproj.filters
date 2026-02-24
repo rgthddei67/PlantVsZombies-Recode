@@ -29,6 +29,9 @@
     <Filter Include="Code\Game\Bullet">
       <UniqueIdentifier>{3d793b5e-15bd-4605-8ef3-948094f47337}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Code\Shader">
+      <UniqueIdentifier>{985eca82-111a-4c23-85a4-ce150e1a61d0}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="UI\Button.cpp">
@@ -162,6 +165,12 @@
     </ClCompile>
     <ClCompile Include="UI\GameMessageBox.cpp">
       <Filter>Code\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="ShaderProgram.cpp">
+      <Filter>Code</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics.cpp">
+      <Filter>Code</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -354,9 +363,6 @@
     <ClInclude Include="Game\ChooseCardUI.h">
       <Filter>Code\Game</Filter>
     </ClInclude>
-    <ClInclude Include="Camera2D.h">
-      <Filter>Code</Filter>
-    </ClInclude>
     <ClInclude Include="Game\GameProgress.h">
       <Filter>Code\Game</Filter>
     </ClInclude>
@@ -366,5 +372,31 @@
     <ClInclude Include="UI\GameMessageBox.h">
       <Filter>Code\UI</Filter>
     </ClInclude>
+    <ClInclude Include="ShaderProgram.h">
+      <Filter>Code</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics.h">
+      <Filter>Code</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Shader\batch_fragment.glsl">
+      <Filter>Code\Shader</Filter>
+    </None>
+    <None Include="Shader\batch_vertex.glsl">
+      <Filter>Code\Shader</Filter>
+    </None>
+    <None Include="Shader\geom_fragment.glsl">
+      <Filter>Code\Shader</Filter>
+    </None>
+    <None Include="Shader\geom_vertex.glsl">
+      <Filter>Code\Shader</Filter>
+    </None>
+    <None Include="Shader\sprite_fragment.glsl">
+      <Filter>Code\Shader</Filter>
+    </None>
+    <None Include="Shader\sprite_vertex.glsl">
+      <Filter>Code\Shader</Filter>
+    </None>
   </ItemGroup>
 </Project>

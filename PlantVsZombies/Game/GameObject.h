@@ -3,13 +3,13 @@
 #define _GAMEOBJECT_H
 
 #include "RenderOrder.h"
+#include "../Graphics.h"
 #include <memory>
 #include <vector>
 #include <unordered_map>
 #include <typeindex>
 #include <string>
 #include <algorithm>
-#include <SDL2/SDL.h>
 
 enum class ObjectType {
     OBJECT_NONE,
@@ -132,7 +132,7 @@ public:
     }
 
     // 绘制所有组件
-    virtual void Draw(SDL_Renderer* renderer);
+    virtual void Draw(Graphics* g);
 
     // 获取物体的标签
     const std::string& GetTag() const { return mTag; }

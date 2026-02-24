@@ -9,7 +9,10 @@
 #include "GameProgress.h"
 #include "ChooseCardUI.h"
 #include "../UI/GameMessageBox.h"
+#include "../GameApp.h" 
+#include "../Graphics.h"
 #include <iostream>
+#include <cmath>
 
 #include "./Zombie/Zombie.h"
 
@@ -24,37 +27,30 @@ GameScene::~GameScene() {
 void GameScene::BuildDrawCommands()
 {
 	Scene::BuildDrawCommands();
-	// TODO: 根据传入的Background参数选择不同背景
 
 	AddTexture(ResourceKeys::Textures::IMAGE_BACKGROUND_DAY,
 		mStartX, mBackgroundY, 1.0f, 1.0f, LAYER_BACKGROUND, false);
 
 	if (mBoard) {
-		RegisterDrawCommand("Board",
-			[this](SDL_Renderer* renderer) { mBoard->Draw(renderer); },
-			LAYER_GAME_OBJECT);
+		//RegisterDrawCommand("Board",
+		//    [this](Graphics* g) { mBoard->Draw(g); },
+		//    LAYER_GAME_OBJECT);
 		RegisterDrawCommand("Prompt",
-			[this](SDL_Renderer* renderer) {
+			[this](Graphics* g) {
 				if (!mPrompt.active) return;
 
 				auto texture = ResourceManager::GetInstance().GetTexture(mPrompt.textureKey);
 				if (!texture) return;
 
-				int w, h;
-				SDL_QueryTexture(texture, nullptr, nullptr, &w, &h);
+				float w = static_cast<float>(texture->width) * mPrompt.scale;
+				float h = static_cast<float>(texture->height) * mPrompt.scale;
+				float centerX = SCENE_WIDTH / 2.0f;
+				float centerY = SCENE_HEIGHT / 2.0f;
+				float drawX = centerX - w / 2;
+				float drawY = centerY - h / 2;
 
-				float screenWidth = SCENE_WIDTH;
-				float screenHeight = SCENE_HEIGHT;
-				float centerX = screenWidth / 2.0f;
-				float centerY = screenHeight / 2.0f;
-
-				float drawW = w * mPrompt.scale;
-				float drawH = h * mPrompt.scale;
-				SDL_FRect dest = { centerX - drawW / 2, centerY - drawH / 2, drawW, drawH };
-
-				SDL_SetTextureAlphaMod(texture, mPrompt.alpha);
-				SDL_RenderCopyF(renderer, texture, nullptr, &dest);
-				SDL_SetTextureAlphaMod(texture, 255);
+				glm::vec4 tint(1.0f, 1.0f, 1.0f, mPrompt.alpha / 255.0f);
+				g->DrawTexture(texture, drawX, drawY, w, h, 0.0f, tint);
 			},
 			LAYER_UI + 1000);
 	}
@@ -66,7 +62,6 @@ void GameScene::OnEnter() {
 #ifdef _DEBUG
 	std::cout << "进入游戏场景" << std::endl;
 #endif
-	// 加载背景
 	mBoard = std::make_unique<Board>(this, 1);
 	auto CardUI = GameObjectManager::GetInstance().CreateGameObjectImmediate<GameObject>(
 		LAYER_UI);
@@ -77,21 +72,6 @@ void GameScene::OnEnter() {
 		LAYER_UI, mBoard.get(), this);
 	mGameProgress->SetActive(false);
 	AudioSystem::PlayMusic(ResourceKeys::Music::MUSIC_CHOOSEYOURSEEDS, -1);
-
-	// TODO: 不要捕获局部变量的引用！ 这里会造成循环引用！
-	/*
-	auto button1 = mUIManager.CreateButton(Vector(100, 150));
-	button1->SetAsCheckbox(true);
-	button1->SetClickCallBack([](bool isChecked) {
-		std::cout << "按钮1 被点击，当前状态: " << (isChecked ? "选中" : "未选中") << std::endl;
-		}
-	);
-
-	auto slider = mUIManager.CreateSlider(Vector(300, 150), Vector(135, 10), 0.0f, 100.0f, 0.0f);
-	slider->SetChangeCallBack([slider](float value) {
-		}
-	);
-	*/
 }
 
 void GameScene::OnExit() {
@@ -131,7 +111,7 @@ void GameScene::Update() {
 			float t = mAnimElapsed / mAnimDuration;
 			float eased = static_cast<float>((1 - cos(t * M_PI)) / 2);
 
-			// 计算背景应有的屏幕坐标（原逻辑）
+			// 计算背景应有的屏幕坐标
 			float screenX = mStartX + (mTargetSceneX - mStartX) * eased;
 
 			// 背景世界坐标固定为 mStartX
@@ -141,7 +121,7 @@ void GameScene::Update() {
 			float camX = worldX - screenX;
 
 			// 移动摄像机（保持 Y 轴不变）
-			GameAPP::GetInstance().GetCamera().SetPosition(Vector(camX, 0));
+			GameAPP::GetInstance().GetGraphics().SetCameraPosition(camX, 0);
 
 			// 更新 mCurrectSceneX 供后续使用
 			mCurrectSceneX = screenX;
@@ -153,7 +133,7 @@ void GameScene::Update() {
 			// 首次进入时添加种子槽纹理（初始位置在屏幕外上方）
 			if (!mSeedbankAdded) {
 				AddTexture(ResourceKeys::Textures::IMAGE_SEEDBANK_LONG,
-					130.0f, -100.0f,			// 起始位置：x=120, y 上方
+					130.0f, -100.0f,            // 起始位置：x=130, y 上方
 					0.85f, 0.9f, LAYER_UI, true);
 				mChooseCardUI = GameObjectManager::GetInstance().
 					CreateGameObjectImmediate<ChooseCardUI>(LAYER_UI, this);
@@ -214,10 +194,9 @@ void GameScene::Update() {
 		{
 			if (!mSunCounterRegistered) {
 				RegisterDrawCommand("SunCounter",
-					[this](SDL_Renderer* renderer) {
+					[this](Graphics* g) {
 						GameAPP::GetInstance().DrawText(std::to_string(mBoard->GetSun()),
-							Vector(142, 42), SDL_Color{ 0,0,0,255 },
-							ResourceKeys::Fonts::FONT_FZCQ, 17);
+							g->ScreenToWorldPosition(142, 42), { 0,0,0,255 }, ResourceKeys::Fonts::FONT_FZCQ, 17);
 					},
 					LAYER_UI + 100000);
 				SortDrawCommands();
@@ -246,7 +225,7 @@ void GameScene::Update() {
 
 			float camX = worldX - screenX;
 
-			GameAPP::GetInstance().GetCamera().SetPosition(Vector(camX, 0));
+			GameAPP::GetInstance().GetGraphics().SetCameraPosition(camX, 0);
 
 			mCurrectSceneX = screenX;
 
@@ -329,24 +308,24 @@ void GameScene::ChooseCardComplete()
 	}
 
 	RegisterDrawCommand("ZombieNumber",
-		[this](SDL_Renderer* renderer) {
+		[this](Graphics* g) {
 			auto& gameApp = GameAPP::GetInstance();
-			gameApp.DrawWorldText(u8"当前僵尸数量: " + std::to_string(mBoard->mZombieNumber),
-				Vector(3, 569), SDL_Color{ 0,0,0,255 },
+			gameApp.DrawText(u8"当前僵尸数量: " + std::to_string(mBoard->mZombieNumber),
+				Vector(3, 569), { 0,0,0,255 },
 				ResourceKeys::Fonts::FONT_FZCQ, 24);
-			gameApp.DrawWorldText(u8"当前僵尸数量: " + std::to_string(mBoard->mZombieNumber),
-				Vector(5, 570), SDL_Color{ 223,186,98,255 },
+			gameApp.DrawText(u8"当前僵尸数量: " + std::to_string(mBoard->mZombieNumber),
+				Vector(5, 570), { 223,186 ,98 ,255 },
 				ResourceKeys::Fonts::FONT_FZCQ, 24);
 		},
 		LAYER_UI);
 	RegisterDrawCommand("LevelName",
-		[this](SDL_Renderer* renderer) {
+		[this](Graphics* g) {
 			auto& gameApp = GameAPP::GetInstance();
-			gameApp.DrawWorldText(mBoard->mLevelName,
-				Vector(766, 569), SDL_Color{ 0,0,0,255 },
+			gameApp.DrawText(mBoard->mLevelName,
+				Vector(766, 569), { 0,0,0,255 },
 				ResourceKeys::Fonts::FONT_CONTINUUMBOLD, 21);
-			gameApp.DrawWorldText(mBoard->mLevelName,
-				Vector(768, 570), SDL_Color{ 223,186,98,255 },
+			gameApp.DrawText(mBoard->mLevelName,
+				Vector(768, 570), { 223,186,98,255 },
 				ResourceKeys::Fonts::FONT_CONTINUUMBOLD, 21);
 		},
 		LAYER_UI);
@@ -363,7 +342,7 @@ void GameScene::GameOver()
 	std::vector<GameMessageBox::ButtonConfig> buttons;
 	buttons.push_back({ u8"返回菜单", Vector(380, 380),[]() {
 
-}, true });
+	}, true });
 	buttons.push_back({ u8"重新开始", Vector(560, 380), [this]() {
 		this->mReadyToRestart = true;
 		DeltaTime::SetPaused(false);
@@ -389,11 +368,3 @@ void GameScene::ShowPrompt(const std::string& textureKey,
 	mPrompt.holdDuration = holdDur;
 	mPrompt.fadeDuration = fadeDur;
 }
-
-	/*
-	// 保存游戏数据（如果需要）
-	int score = 100;
-	SceneManager::GetInstance().SetGlobalData("last_score", std::to_string(score));
-
-	SceneManager::GetInstance().SwitchTo("MainMenuScene");
-	*/

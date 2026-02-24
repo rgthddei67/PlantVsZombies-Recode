@@ -2,7 +2,8 @@
 #ifndef __PARTICLE_H__
 #define __PARTICLE_H__
 
-#include <SDL2/SDL.h>
+#include "../Graphics.h"
+#include "../Game/Definit.h"
 #include <memory>
 #include <vector>
 
@@ -15,11 +16,11 @@ enum class ParticleType {
 
 // 基础粒子数据
 struct Particle {
-    SDL_FPoint position;
-    SDL_FPoint velocity;
-    SDL_Color color;
-    SDL_Color startColor;
-    SDL_Color endColor;
+    Vector position;
+    Vector velocity;
+    glm::vec4 color;          // 当前颜色 (0~1)
+    glm::vec4 startColor;     // 起始颜色 (0~1)
+    glm::vec4 endColor;       // 结束颜色 (0~1)
     float lifetime;
     float maxLifetime;
     float size;
@@ -30,9 +31,7 @@ struct Particle {
     float gravity;
     bool active;
     bool fadeOut;
-    SDL_Texture* texture;    // 粒子纹理
-    SDL_Rect textureRect;    // 纹理源矩形
-    bool useTexture;         // 是否使用纹理
+    const GLTexture* texture; // 粒子纹理
 
     Particle();
     void Reset();

@@ -225,86 +225,49 @@ void Animator::Update() {
     }
 }
 
-void Animator::Draw(SDL_Renderer* renderer, float baseX, float baseY, float Scale) {
-    if (!mReanim || !renderer) return;
+void Animator::Draw(Graphics* g, float baseX, float baseY, float Scale) {
+    if (!mReanim || !g) return;
 
-    // 保存渲染器混合模式
-    SDL_BlendMode oldRenderBlend;
-    SDL_GetRenderDrawBlendMode(renderer, &oldRenderBlend);
-    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-
-    // 收集所有绘制命令
+    // 收集所有绘制命令（CollectDrawCommands 内部已递归收集子动画）
     std::vector<AnimDrawCommand> commands;
     CollectDrawCommands(commands, baseX, baseY, Scale);
 
-    // 保存所有用到的纹理的原始状态
-    std::map<SDL_Texture*, std::tuple<SDL_BlendMode, Uint8, Uint8, Uint8, Uint8>> originalStates;
+    // 保存当前变换栈，确保我们不叠加额外变换
+    g->PushTransform(glm::mat4(1.0f));
+
+    BlendMode originalBlend = g->GetBlendMode();  // 记录进入时的混合模式
+    BlendMode lastBlend = originalBlend;
+
     for (const auto& cmd : commands) {
-        if (originalStates.find(cmd.texture) == originalStates.end()) {
-            SDL_BlendMode blend;
-            Uint8 r, g, b, a;
-            SDL_GetTextureBlendMode(cmd.texture, &blend);
-            SDL_GetTextureColorMod(cmd.texture, &r, &g, &b);
-            SDL_GetTextureAlphaMod(cmd.texture, &a);
-            originalStates[cmd.texture] = { blend, r, g, b, a };
-        }
-    }
-
-    // 顺序扫描命令，合并连续相同纹理+混合模式的四边形
-    size_t i = 0;
-    while (i < commands.size()) {
-        SDL_Texture* currentTexture = commands[i].texture;
-        SDL_BlendMode currentBlend = commands[i].blendMode;
-
-        // 设置当前批次的纹理状态（颜色调制由顶点控制）
-        SDL_SetTextureBlendMode(currentTexture, currentBlend);
-        SDL_SetTextureColorMod(currentTexture, 255, 255, 255);
-        SDL_SetTextureAlphaMod(currentTexture, 255);
-
-        std::vector<SDL_Vertex> vertices;
-        std::vector<int> indices;
-        int baseVertex = 0;
-
-        // 收集所有连续的相同纹理+混合模式的命令
-        while (i < commands.size() &&
-            commands[i].texture == currentTexture &&
-            commands[i].blendMode == currentBlend) {
-            const auto& cmd = commands[i];
-            for (int v = 0; v < 4; ++v) {
-                SDL_Vertex vertex;
-                vertex.position.x = cmd.points[v * 2];
-                vertex.position.y = cmd.points[v * 2 + 1];
-                vertex.color = cmd.color;
-                vertex.tex_coord.x = (v == 0 || v == 3) ? 0.0f : 1.0f;
-                vertex.tex_coord.y = (v == 0 || v == 1) ? 0.0f : 1.0f;
-                vertices.push_back(vertex);
-            }
-            indices.push_back(baseVertex + 0);
-            indices.push_back(baseVertex + 1);
-            indices.push_back(baseVertex + 2);
-            indices.push_back(baseVertex + 0);
-            indices.push_back(baseVertex + 2);
-            indices.push_back(baseVertex + 3);
-            baseVertex += 4;
-            ++i;
+        // 切换混合模式（若不同）
+        if (cmd.blendMode != lastBlend) {
+            g->SetBlendMode(cmd.blendMode);
+            lastBlend = cmd.blendMode;
         }
 
-        // 绘制当前批次
-        if (!vertices.empty()) {
-            SDL_RenderGeometry(renderer, currentTexture, vertices.data(), static_cast<int>(vertices.size()),
-                indices.data(), static_cast<int>(indices.size()));
-        }
+        // 从 points 提取四个顶点坐标（顺序：左上、右上、右下、左下）
+        float x0 = cmd.points[0], y0 = cmd.points[1];
+        float x1 = cmd.points[2], y1 = cmd.points[3];
+        float x2 = cmd.points[4], y2 = cmd.points[5];
+        float x3 = cmd.points[6], y3 = cmd.points[7];
+
+        // 构造仿射变换矩阵（列主序，将单位矩形映射到目标四边形）
+        glm::mat4 transform(
+            x1 - x0, y1 - y0, 0.0f, 0.0f,   // 第一列 (a, d, 0, 0)
+            x3 - x0, y3 - y0, 0.0f, 0.0f,   // 第二列 (b, e, 0, 0)
+            0.0f, 0.0f, 1.0f, 0.0f,         // 第三列 (0,0,1,0)
+            x0, y0, 0.0f, 1.0f              // 第四列 (tx, ty, 0, 1)
+        );
+
+        g->DrawTextureMatrix(cmd.texture, transform, 0.0f, 0.0f, cmd.color);
     }
 
-    // 恢复所有纹理的原始状态
-    for (const auto& [texture, state] : originalStates) {
-        auto [blend, r, g, b, a] = state;
-        SDL_SetTextureBlendMode(texture, blend);
-        SDL_SetTextureColorMod(texture, r, g, b);
-        SDL_SetTextureAlphaMod(texture, a);
+    // 恢复进入时的混合模式
+    if (g->GetBlendMode() != originalBlend) {
+        g->SetBlendMode(originalBlend);
     }
 
-    SDL_SetRenderDrawBlendMode(renderer, oldRenderBlend);
+    g->PopTransform();
 }
 
 void Animator::CollectDrawCommands(std::vector<AnimDrawCommand>& outCommands, float baseX, float baseY, float Scale) const {
@@ -321,7 +284,7 @@ void Animator::CollectDrawCommands(std::vector<AnimDrawCommand>& outCommands, fl
         bool shouldDrawSelf = (i < static_cast<int>(mExtraInfos.size()) &&
             mExtraInfos[i].mVisible &&
             transform.f != -1);
-        SDL_Texture* image = nullptr;
+        const GLTexture* image = nullptr;
 
         if (shouldDrawSelf) {
             image = mExtraInfos[i].mImage ? mExtraInfos[i].mImage : transform.image;
@@ -329,11 +292,13 @@ void Animator::CollectDrawCommands(std::vector<AnimDrawCommand>& outCommands, fl
         }
 
         if (shouldDrawSelf) {
-            int imgWidth, imgHeight;
-            SDL_QueryTexture(image, NULL, NULL, &imgWidth, &imgHeight);
+            // 获取纹理原始尺寸（假设 GLTexture 包含 width/height 成员）
+            int imgWidth = image->width;
+            int imgHeight = image->height;
             float w = static_cast<float>(imgWidth);
             float h = static_cast<float>(imgHeight);
 
+            // 计算扭曲参数（与原逻辑相同）
             float angleX = -transform.kx * DEG_TO_RAD;
             float angleY = -transform.ky * DEG_TO_RAD;
             float cosX = cosf(angleX);
@@ -362,28 +327,34 @@ void Animator::CollectDrawCommands(std::vector<AnimDrawCommand>& outCommands, fl
             }
 
             float combinedAlpha = transform.a * mAlpha;
-            Uint8 baseAlpha = static_cast<Uint8>(std::clamp(combinedAlpha * 255.0f, 0.0f, 255.0f));
+            float baseAlpha = std::clamp(combinedAlpha, 0.0f, 1.0f);
 
-            // 正常绘制
+            // 正常绘制命令
             AnimDrawCommand cmd;
             cmd.texture = image;
-            cmd.blendMode = SDL_BLENDMODE_BLEND;
-            cmd.color = { 255, 255, 255, baseAlpha };
+            cmd.blendMode = BlendMode::Alpha;
+            cmd.color = glm::vec4(1.0f, 1.0f, 1.0f, baseAlpha);
             memcpy(cmd.points, worldPoints, sizeof(worldPoints));
             outCommands.push_back(cmd);
 
-            // 发光效果
+            // 发光效果（叠加混合）
             if (mEnableExtraAdditiveDraw) {
-                cmd.blendMode = SDL_BLENDMODE_ADD;
-                cmd.color = mExtraAdditiveColor;
+                cmd.blendMode = BlendMode::Add;
+                cmd.color = glm::vec4(mExtraAdditiveColor.r / 255.0f,
+                    mExtraAdditiveColor.g / 255.0f,
+                    mExtraAdditiveColor.b / 255.0f,
+                    mExtraAdditiveColor.a / 255.0f);
                 outCommands.push_back(cmd);
             }
 
-            // 覆盖层效果
+            // 覆盖层效果（Alpha 混合，颜色需乘以基础透明度）
             if (mEnableExtraOverlayDraw) {
-                cmd.blendMode = SDL_BLENDMODE_BLEND;
-                cmd.color = mExtraOverlayColor;
-                cmd.color.a = ColorComponentMultiply(mExtraOverlayColor.a, baseAlpha);
+                cmd.blendMode = BlendMode::Alpha;
+                glm::vec4 overlayColor(mExtraOverlayColor.r / 255.0f,
+                    mExtraOverlayColor.g / 255.0f,
+                    mExtraOverlayColor.b / 255.0f,
+                    (mExtraOverlayColor.a / 255.0f) * baseAlpha);
+                cmd.color = overlayColor;
                 outCommands.push_back(cmd);
             }
         }
@@ -523,7 +494,7 @@ void Animator::SetTrackVisible(const std::string& trackName, bool visible) {
     }
 }
 
-void Animator::SetTrackImage(const std::string& trackName, SDL_Texture* image) {
+void Animator::SetTrackImage(const std::string& trackName, const GLTexture* image) {
     for (auto& extra : GetTrackExtrasByName(trackName)) {
         extra->mImage = image;
     }

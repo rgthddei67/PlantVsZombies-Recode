@@ -1,13 +1,12 @@
 ﻿#include "ShadowComponent.h"
 #include "../ResourceManager.h"
 #include "GameObject.h"
-#include "../GameApp.h"
 #include <algorithm>
 #include <iostream>
 #include "Plant/Plant.h"
 #include "Zombie/Zombie.h"
 
-ShadowComponent::ShadowComponent(SDL_Texture* shadowTexture,
+ShadowComponent::ShadowComponent(const GLTexture* shadowTexture,
     const Vector& offset,
     float alpha)
     : mShadowTexture(shadowTexture)
@@ -30,68 +29,41 @@ void ShadowComponent::Start() {
     }
 }
 
-void ShadowComponent::Draw(SDL_Renderer* renderer) {
-    if (!renderer) return;
-
+void ShadowComponent::Draw(Graphics* g) {
     auto gameObject = GetGameObject();
     if (!gameObject) return;
 
     // 计算阴影位置（在物体下方，加上偏移）
-	ObjectType type = gameObject->GetObjectType();
+    ObjectType type = gameObject->GetObjectType();
     Vector shadowPos = Vector(0, 0);
-    Vector transform = GameAPP::GetInstance().GetCamera().WorldToScreen
-    (gameObject->GetComponent<TransformComponent>()->GetPosition());
-    
-    if (type == ObjectType::OBJECT_PLANT)
-    {
-        if (auto plant = std::dynamic_pointer_cast<Plant>(gameObject))
-        {
-            shadowPos = transform + mOffset;
-        }
-    }
-    else if (type == ObjectType::OBJECT_ZOMBIE)
-    {
-        if (auto zombie = std::dynamic_pointer_cast<Zombie>(gameObject))
-        {
-            shadowPos = transform + mOffset;
-        }
-    }
-    else
-    {
-		std::cout << 
-            "ShadowComponent: GameObject has no TransformComponent or"
-            " Plant & Zombie & Bullet class." 
-            << std::endl;
+    auto transform = gameObject->GetComponent<TransformComponent>();
+    if (!transform) {
+        std::cout << "ShadowComponent: GameObject has no TransformComponent." << std::endl;
         return;
     }
-    
-    SDL_Color oldColor;
-    SDL_GetRenderDrawColor(renderer, &oldColor.r, &oldColor.g, &oldColor.b, &oldColor.a);
-    SDL_BlendMode oldBlendMode;
-    SDL_GetRenderDrawBlendMode(renderer, &oldBlendMode);
+    Vector objPos = transform->GetPosition();
 
-    // 设置透明度和混合模式
-    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-    Uint8 shadowAlpha = static_cast<Uint8>(mAlpha * 255);
-
-    if (mShadowTexture) {
-        int texWidth, texHeight;
-        SDL_QueryTexture(mShadowTexture, NULL, NULL, &texWidth, &texHeight);
-
-        SDL_Rect dstRect = {
-            static_cast<int>(shadowPos.x - texWidth * mScale.x / 2),
-            static_cast<int>(shadowPos.y - texHeight * mScale.y / 2),
-            static_cast<int>(texWidth * mScale.x),
-            static_cast<int>(texHeight * mScale.y)
-        };
-
-        SDL_SetTextureAlphaMod(mShadowTexture, shadowAlpha);
-        SDL_SetTextureColorMod(mShadowTexture, 255, 255, 255); 
-        SDL_RenderCopy(renderer, mShadowTexture, NULL, &dstRect);
-        SDL_SetTextureAlphaMod(mShadowTexture, 255);
+    if (type == ObjectType::OBJECT_PLANT || type == ObjectType::OBJECT_ZOMBIE) {
+        shadowPos = objPos + mOffset;
+    }
+    else {
+        std::cout << "ShadowComponent: GameObject is not Plant or Zombie." << std::endl;
+        return;
     }
 
-    // 恢复渲染状态
-    SDL_SetRenderDrawColor(renderer, oldColor.r, oldColor.g, oldColor.b, oldColor.a);
-    SDL_SetRenderDrawBlendMode(renderer, oldBlendMode);
+    if (!mShadowTexture) return;
+
+    // 纹理尺寸
+    float texWidth = static_cast<float>(mShadowTexture->width);
+    float texHeight = static_cast<float>(mShadowTexture->height);
+
+    // 计算绘制位置（以阴影位置为中心）
+    float drawX = shadowPos.x - texWidth * mScale.x * 0.5f;
+    float drawY = shadowPos.y - texHeight * mScale.y * 0.5f;
+    float drawW = texWidth * mScale.x;
+    float drawH = texHeight * mScale.y;
+
+    // 绘制阴影，使用 tint 的 alpha 控制透明度
+    glm::vec4 tint(1.0f, 1.0f, 1.0f, mAlpha);
+    g->DrawTexture(mShadowTexture, drawX, drawY, drawW, drawH, 0.0f, tint);
 }

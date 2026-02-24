@@ -8,7 +8,6 @@
 #include <algorithm>
 #include <map>
 #include <set>
-#include <SDL2/SDL.h>
 #include "GameObject.h"
 
 const int SUBORDER_PER_KEY = 1000;  // 每个key最多同时存在的顺序数量
@@ -149,7 +148,7 @@ public:
     }
 
     // 绘制所有GameObject对象
-    void DrawAll(SDL_Renderer* renderer) {
+    void DrawAll(Graphics* g) {
         // 按渲染顺序排序
         std::sort(mGameObjects.begin(), mGameObjects.end(),
             [](const std::shared_ptr<GameObject>& a, const std::shared_ptr<GameObject>& b) {
@@ -160,7 +159,7 @@ public:
         for (size_t i = 0; i < mGameObjects.size(); ++i) {
             auto* obj = mGameObjects[i].get(); 
             if (obj->IsActive()) {
-                obj->Draw(renderer);
+                obj->Draw(g);
             }
         }
     }

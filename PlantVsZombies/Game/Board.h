@@ -138,9 +138,9 @@ public:
 	void UpdateLevel();
 
 	// 渲染网格（调试用）
-	void DrawCell(SDL_Renderer* renderer);
+	//void DrawCell();
 
-	void Draw(SDL_Renderer* renderer);
+	//void Draw();
 
 	// 清理删除的对象
 	void CleanupExpiredObjects(); 

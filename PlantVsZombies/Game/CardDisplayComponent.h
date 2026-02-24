@@ -4,7 +4,7 @@
 
 #include "Component.h"
 #include "./Plant/PlantType.h"
-#include <SDL2/SDL.h>
+#include "../Graphics.h"          // 引入 Graphics
 #include <string>
 
 // 卡牌状态枚举
@@ -21,13 +21,13 @@ class TransformComponent;
 
 class CardDisplayComponent : public Component {
 private:
-    // 纹理资源
-    SDL_Texture* cardBackground = nullptr;    // IMAGE_card_bk
-    SDL_Texture* cardNormal = nullptr;        // IMAGE_SeedPacketNormal
-    SDL_Texture* plantTexture = nullptr;      // 植物图片
+    // 纹理资源（改为 const GLTexture*）
+    const GLTexture* cardBackground = nullptr;    // IMAGE_card_bk
+    const GLTexture* cardNormal = nullptr;        // IMAGE_SeedPacketNormal
+    const GLTexture* plantTexture = nullptr;      // 植物图片
 
-	mutable std::weak_ptr<CardComponent> mCardComponent;
-	mutable std::weak_ptr<TransformComponent> mTransformComponent;
+    mutable std::weak_ptr<CardComponent> mCardComponent;
+    mutable std::weak_ptr<TransformComponent> mTransformComponent;
 
     // 状态相关
     CardState cardState = CardState::Cooling;
@@ -41,18 +41,18 @@ private:
     float maskFillAmount = 1.0f;
     bool showMask = true;
 
-    // 颜色状态
-    SDL_Color readyColor = { 255, 255, 255, 255 };      // 白色 - 就绪
-    SDL_Color disabledColor = { 160, 160, 160, 255 };   // 灰色 - 禁用/冷却
-    SDL_Color waitingSunColor = { 215, 215, 215, 255 }; // 浅灰色 - 等待阳光
-    SDL_Color clickColor = { 160, 160, 160, 255 };         // 深灰色 - 点击状态
+    // 颜色状态（改为 glm::vec4，0~1范围）
+    glm::vec4 readyColor = glm::vec4(1.0f);               // 白色
+    glm::vec4 disabledColor = glm::vec4(0.627f, 0.627f, 0.627f, 1.0f); // 灰色
+    glm::vec4 waitingSunColor = glm::vec4(0.843f, 0.843f, 0.843f, 1.0f); // 浅灰
+    glm::vec4 clickColor = glm::vec4(0.627f, 0.627f, 0.627f, 1.0f); // 灰色
 
 public:
     CardDisplayComponent(PlantType type, int sunCost, float cooldown);
 
     void Start() override;
     void Update() override;
-    void Draw(SDL_Renderer* renderer) override;
+    void Draw(Graphics* g) override;
 
     // 状态转换
     void TranToWaitingSun();
@@ -76,18 +76,18 @@ public:
     bool IsReady() const { return cardState == CardState::Ready; }
     bool IsCooling() const { return cardState == CardState::Cooling; }
 
-	std::shared_ptr<CardComponent> GetCardComponent() const;
-	std::shared_ptr<TransformComponent> GetTransformComponent() const;
+    std::shared_ptr<CardComponent> GetCardComponent() const;
+    std::shared_ptr<TransformComponent> GetTransformComponent() const;
 
 private:
     void LoadTextures();
-    void DrawCardBackground(SDL_Renderer* renderer, std::shared_ptr<TransformComponent> transform);
-    void DrawPlantImage(SDL_Renderer* renderer, std::shared_ptr<TransformComponent> transform);
-    void DrawCooldownMask(SDL_Renderer* renderer, std::shared_ptr<TransformComponent> transform);
-    void DrawSunCost(SDL_Renderer* renderer, std::shared_ptr<TransformComponent> transform);
-    void DrawSelectionHighlight(SDL_Renderer* renderer, std::shared_ptr<TransformComponent> transform);
+    void DrawCardBackground(Graphics* g, std::shared_ptr<TransformComponent> transform);
+    void DrawPlantImage(Graphics* g, std::shared_ptr<TransformComponent> transform);
+    void DrawCooldownMask(Graphics* g, std::shared_ptr<TransformComponent> transform);
+    void DrawSunCost(Graphics* g, std::shared_ptr<TransformComponent> transform);
+    void DrawSelectionHighlight(Graphics* g, std::shared_ptr<TransformComponent> transform);
 
-    SDL_Color GetCurrentColor() const;
+    glm::vec4 GetCurrentColor() const;
     std::string GetPlantTextureKey() const;
 };
 

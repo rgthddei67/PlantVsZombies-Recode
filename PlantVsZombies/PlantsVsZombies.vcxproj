@@ -49,6 +49,7 @@
     <ClCompile Include="Game\SceneManager.cpp" />
     <ClCompile Include="Game\ShaderComponent.cpp" />
     <ClCompile Include="Game\Zombie\Zombie.cpp" />
+    <ClCompile Include="Graphics.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="ParticleSystem\Particle.cpp" />
     <ClCompile Include="ParticleSystem\ParticleConfig.cpp" />
@@ -57,6 +58,7 @@
     <ClCompile Include="Reanimation\Animator.cpp" />
     <ClCompile Include="Reanimation\Reanimation.cpp" />
     <ClCompile Include="ResourceManager.cpp" />
+    <ClCompile Include="ShaderProgram.cpp" />
     <ClCompile Include="UI\Button.cpp" />
     <ClCompile Include="UI\ButtonManager.cpp" />
     <ClCompile Include="UI\GameMessageBox.cpp" />
@@ -65,7 +67,6 @@
     <ClCompile Include="UI\SliderManager.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Camera2D.h" />
     <ClInclude Include="CrashHandler.h" />
     <ClInclude Include="CursorManager.h" />
     <ClInclude Include="DeltaTime.h" />
@@ -112,6 +113,7 @@
     <ClInclude Include="Game\TransformComponent.h" />
     <ClInclude Include="Game\Zombie\Zombie.h" />
     <ClInclude Include="Game\Zombie\ZombieType.h" />
+    <ClInclude Include="Graphics.h" />
     <ClInclude Include="ParticleSystem\Particle.h" />
     <ClInclude Include="ParticleSystem\ParticleConfig.h" />
     <ClInclude Include="ParticleSystem\ParticleEmitter.h" />
@@ -125,6 +127,7 @@
     <ClInclude Include="ResourceKeys.h" />
     <ClInclude Include="ResourceManager.h" />
     <ClInclude Include="ResourcesXMLConfigReader.h" />
+    <ClInclude Include="ShaderProgram.h" />
     <ClInclude Include="UI\Button.h" />
     <ClInclude Include="UI\ButtonManager.h" />
     <ClInclude Include="UI\InputHandler.h" />
@@ -132,6 +135,14 @@
     <ClInclude Include="UI\Slider.h" />
     <ClInclude Include="UI\SliderManager.h" />
     <ClInclude Include="UI\UIManager.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Shader\batch_fragment.glsl" />
+    <None Include="Shader\batch_vertex.glsl" />
+    <None Include="Shader\geom_fragment.glsl" />
+    <None Include="Shader\geom_vertex.glsl" />
+    <None Include="Shader\sprite_fragment.glsl" />
+    <None Include="Shader\sprite_vertex.glsl" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
@@ -230,7 +241,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
@@ -238,9 +249,10 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>legacy_stdio_definitions.lib;$(CoreLibraryDependencies)</AdditionalDependencies>
       <StackReserveSize>4194304</StackReserveSize>
       <StackCommitSize>65536</StackCommitSize>
+      <AdditionalLibraryDirectories>$(VC_LibraryPath_x64);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -251,7 +263,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <OmitFramePointers>true</OmitFramePointers>
@@ -265,10 +277,11 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>legacy_stdio_definitions.lib;$(CoreLibraryDependencies)</AdditionalDependencies>
       <StackReserveSize>4194304</StackReserveSize>
       <StackCommitSize>65536</StackCommitSize>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
+      <AdditionalLibraryDirectories>$(VC_LibraryPath_x64);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

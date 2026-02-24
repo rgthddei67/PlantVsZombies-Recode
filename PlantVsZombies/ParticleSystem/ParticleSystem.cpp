@@ -1,30 +1,27 @@
-﻿#include "../ParticleSystem/ParticleSystem.h"
+﻿#include "ParticleSystem.h"
 
 std::unique_ptr<ParticleSystem> g_particleSystem = nullptr;
 
-ParticleSystem::ParticleSystem(SDL_Renderer* Renderer)
-    : renderer(Renderer) {
+ParticleSystem::ParticleSystem(Graphics* graphics)
+    : m_graphics(graphics) {
 }
 
 ParticleSystem::~ParticleSystem() {
     ClearAll();
 }
 
-void ParticleSystem::UpdateAll()
-{
+void ParticleSystem::UpdateAll() {
     CleanupInactiveEmitters();
     for (size_t i = 0; i < emitters.size(); i++)
     {
-        auto* emitter = emitters[i].get();
-        emitter->Update();
+        emitters[i].get()->Update();
     }
 }
 
 void ParticleSystem::DrawAll() {
     for (size_t i = 0; i < emitters.size(); i++)
     {
-        auto* emitter = emitters[i].get();
-        emitter->Draw(renderer);
+        emitters[i].get()->Draw();
     }
 }
 
@@ -32,28 +29,19 @@ void ParticleSystem::ClearAll() {
     emitters.clear();
 }
 
-void ParticleSystem::EmitEffect(ParticleType type, const SDL_FPoint& position, int count) {
-    auto emitter = std::make_unique<ParticleEmitter>(renderer);
+void ParticleSystem::EmitEffect(ParticleType type, const Vector& position, int count) {
+    auto emitter = std::make_unique<ParticleEmitter>(m_graphics);
     emitter->Initialize(type, position);
     emitter->SetOneShot(true);
-    emitter->SetAutoDestroyTime(-2);
+    emitter->SetAutoDestroyTime(-2.0f);   // 粒子全部消失后自动销毁
     emitter->EmitParticles(count);
     emitters.push_back(std::move(emitter));
 }
 
-void ParticleSystem::EmitEffect(ParticleType type, float x, float y, int count) {
-    EmitEffect(type, SDL_FPoint{ x, y }, count);
-}
-
-void ParticleSystem::EmitEffect(ParticleType type, const Vector& position, int count) {
-    EmitEffect(type, static_cast<SDL_FPoint>(position), count);
-}
-
-// 循环的特效
-ParticleEmitter* ParticleSystem::CreatePersistentEmitter(ParticleType type, const SDL_FPoint& position) {
-    auto emitter = std::make_unique<ParticleEmitter>(renderer);
+ParticleEmitter* ParticleSystem::CreatePersistentEmitter(ParticleType type, const Vector& position) {
+    auto emitter = std::make_unique<ParticleEmitter>(m_graphics);
     emitter->Initialize(type, position);
-    emitter->SetSpawnRate(10);  // 10帧发射一次
+    emitter->SetSpawnRate(10);   // 10 帧发射一次（即每秒 10 次，假设 60 FPS）
     ParticleEmitter* ptr = emitter.get();
     emitters.push_back(std::move(emitter));
     return ptr;
@@ -77,9 +65,8 @@ void ParticleSystem::CleanupInactiveEmitters() {
 
 int ParticleSystem::GetTotalParticles() const {
     int total = 0;
-    for (size_t i = 0; i < emitters.size(); i++)
-    {
-        total += emitters[i].get()->GetActiveParticleCount();
+    for (const auto& emitter : emitters) {
+        total += emitter->GetActiveParticleCount();
     }
     return total;
 }

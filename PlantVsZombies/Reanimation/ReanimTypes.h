@@ -9,6 +9,8 @@
 #include <unordered_map>
 #include "../Game/Definit.h"
 
+struct GLTexture;
+
 // 动画帧变换数据
 struct TrackFrameTransform {
     float x = 0.0f;
@@ -19,7 +21,7 @@ struct TrackFrameTransform {
     float sy = 1.0f;  // 缩放Y
     float a = 1.0f;   // 透明度
     int f = 0;        // 显示标志（0=显示，-1=空白/分隔）
-    SDL_Texture* image = nullptr; // 图像
+    const GLTexture* image = nullptr; // 图像
 
     TrackFrameTransform() = default;
 };
@@ -39,8 +41,8 @@ struct TrackExtraInfo {
     bool mVisible = true;
     float mOffsetX = 0.0f;          // 轨道自身绘制偏移 X
     float mOffsetY = 0.0f;          // 轨道自身绘制偏移 Y
-    SDL_Texture* mImage = nullptr;  // 手动覆盖图片设置
-    std::unordered_map<std::string, SDL_Texture*> mTextureCache; // 图片名 -> 纹理
+    const GLTexture* mImage = nullptr;  // 手动覆盖图片设置
+    std::unordered_map<std::string, const GLTexture*> mTextureCache; // 图片名 -> 纹理
     std::vector<std::weak_ptr<class Animator>> mAttachedReanims;  // 附加的子动画
 };
 

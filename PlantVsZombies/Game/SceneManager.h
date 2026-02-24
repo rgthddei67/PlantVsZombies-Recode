@@ -9,6 +9,8 @@
 #include <unordered_map>
 #include <stack>
 
+class Graphics;
+
 class SceneManager {
 public:
     static SceneManager& GetInstance();
@@ -43,7 +45,7 @@ public:
     void PopScene();
 
     void Update();
-    void Draw(SDL_Renderer* renderer);
+    void Draw(Graphics* g);
 
     // 获取当前场景的指针
     Scene* GetCurrentScene() const;

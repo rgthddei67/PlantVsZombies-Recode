@@ -44,12 +44,12 @@ void Button::SetText(const std::string& btnText, const std::string& font, int si
     this->fontSize = size;
 }
 
-void Button::SetTextColor(const SDL_Color& color)
+void Button::SetTextColor(const glm::vec4& color)
 {
     this->textColor = color;
 }
 
-void Button::SetHoverTextColor(const SDL_Color& color)
+void Button::SetHoverTextColor(const glm::vec4& color)
 {
     this->hoverTextColor = color;
 }
@@ -138,9 +138,9 @@ void Button::Update(InputHandler* input)
     ResetFrameState();
 }
 
-void Button::Draw(SDL_Renderer* renderer) const
+void Button::Draw(Graphics* g) const
 {
-    if (!mEnabled) return;
+    if (!mEnabled || !g) return;
 
 	ResourceManager& resourceManager = ResourceManager::GetInstance();
     // 确定要显示的图片key
@@ -162,47 +162,23 @@ void Button::Draw(SDL_Renderer* renderer) const
     // 绘制按钮图片
     if (!imageKey.empty() && resourceManager.HasTexture(imageKey))
     {
-        SDL_Texture* texture = resourceManager.GetTexture(imageKey);
+        const GLTexture* texture = resourceManager.GetTexture(imageKey);
         if (texture != nullptr)
         {
-            SDL_Rect destRect =
-            {
-                static_cast<int>(position.x),
-                static_cast<int>(position.y),
-                static_cast<int>(size.x),
-                static_cast<int>(size.y)
-            };
-            SDL_RenderCopy(renderer, texture, nullptr, &destRect);
+            Vector pos = g->ScreenToWorldPosition(position.x, position.y);
+            g->DrawTexture(texture, pos.x, pos.y, size.x, size.y);
         }
     }
     else
     {
-        // 如果没有图片，绘制一个矩形作为按钮
-        SDL_Rect rect = {
-            static_cast<int>(position.x),
-            static_cast<int>(position.y),
-            static_cast<int>(size.x),
-            static_cast<int>(size.y)
-        };
-
-        // 设置颜色（悬停时为浅灰色，否则为白色）
-        if (isHovered) {
-            SDL_SetRenderDrawColor(renderer, 200, 200, 200, 255); // 浅灰色
-        }
-        else {
-            SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255); // 白色
-        }
-        SDL_RenderFillRect(renderer, &rect);
-
-        // 绘制边框
-        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // 黑色边框
-        SDL_RenderDrawRect(renderer, &rect);
+        std::cerr <<
+            "[Button]: 没有按钮图片！直接不绘制了，我草你妈，怎么图片都不搞？知不知道写这玩意麻烦死了!" << std::endl;
     }
 
     // 绘制文本
     if (!text.empty())
     {
-        SDL_Color color = this->isHovered ? this->hoverTextColor : this->textColor;
+        glm::vec4 color = this->isHovered ? this->hoverTextColor : this->textColor;
 
         // 获取文本的实际尺寸
         int textWidth = 0;
@@ -246,7 +222,9 @@ void Button::Draw(SDL_Renderer* renderer) const
         int textX = static_cast<int>(position.x + (size.x - textWidth) / 2);
         int textY = static_cast<int>(position.y + (size.y - textHeight) / 2);
 
-        GameAPP::GetInstance().DrawText(text, textX, textY, color, fontName, fontSize);
+        Vector textPos = g->ScreenToWorldPosition(textX, textY);
+
+        GameAPP::GetInstance().DrawText(text, textPos, color, fontName, fontSize);
     }
 }
 

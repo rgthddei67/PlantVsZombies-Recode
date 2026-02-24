@@ -92,7 +92,7 @@ void Slider::Update(InputHandler* input)
 {
     if (!input) return;
 
-    Vector mousePos = input->GetMousePosition();
+    Vector mousePos = input->GetMouseWorldPosition();
 
     if (BackgroundContainsPoint(mousePos) && canDrag)
     {
@@ -111,41 +111,23 @@ void Slider::Update(InputHandler* input)
     }
 }
 
-void Slider::Draw(SDL_Renderer* renderer) const
+void Slider::Draw(Graphics* g) const
 {
 	ResourceManager& resourceManager = ResourceManager::GetInstance();
     // 绘制背景
     if (!backgroundImageKey.empty() && resourceManager.HasTexture(backgroundImageKey))
     {
-        SDL_Texture* texture = resourceManager.GetTexture(backgroundImageKey);
+        const GLTexture* texture = resourceManager.GetTexture(backgroundImageKey);
         if (texture != nullptr)
         {
-            SDL_Rect destRect =
-            {
-                static_cast<int>(position.x),
-                static_cast<int>(position.y),
-                static_cast<int>(size.x),
-                static_cast<int>(size.y)
-            };
-            SDL_RenderCopy(renderer, texture, nullptr, &destRect);
+            g->DrawTexture(texture, position.x, position.y, size.x, size.y);
         }
     }
     else
     {
         // 如果没有背景图片，绘制一个灰色矩形作为背景
-        SDL_Rect bgRect =
-        {
-            static_cast<int>(position.x),
-            static_cast<int>(position.y),
-            static_cast<int>(size.x),
-            static_cast<int>(size.y)
-        };
-        SDL_SetRenderDrawColor(renderer, 100, 100, 100, 255); // 灰色背景
-        SDL_RenderFillRect(renderer, &bgRect);
-
-        // 绘制边框
-        SDL_SetRenderDrawColor(renderer, 50, 50, 50, 255); // 深灰色边框
-        SDL_RenderDrawRect(renderer, &bgRect);
+        g->FillRect(position.x, position.y, size.x, size.y);
+        g->DrawRect(position.x, position.y, size.x, size.y);
     }
 
     // 计算滑块位置
@@ -159,42 +141,16 @@ void Slider::Draw(SDL_Renderer* renderer) const
     // 绘制滑块
     if (!knobImageKey.empty() && resourceManager.HasTexture(knobImageKey))
     {
-        SDL_Texture* texture = resourceManager.GetTexture(knobImageKey);
-        if (texture != nullptr)
+        const GLTexture* texture2 = resourceManager.GetTexture(knobImageKey);
+        if (texture2 != nullptr)
         {
-            SDL_Rect knobRect =
-            {
-                static_cast<int>(knobPosition.x),
-                static_cast<int>(knobPosition.y),
-                static_cast<int>(knobSize.x),
-                static_cast<int>(knobSize.y)
-            };
-            SDL_RenderCopy(renderer, texture, nullptr, &knobRect);
+            g->DrawTexture(texture2, knobPosition.x, knobPosition.y, knobSize.x, knobSize.y);
         }
     }
     else
     {
-        // 如果没有滑块图片，绘制一个矩形作为滑块
-        SDL_Rect knobRect = {
-            static_cast<int>(knobPosition.x),
-            static_cast<int>(knobPosition.y),
-            static_cast<int>(knobSize.x),
-            static_cast<int>(knobSize.y)
-        };
-
-        // 根据是否拖动改变颜色
-        if (isDragging)
-        {
-            SDL_SetRenderDrawColor(renderer, 255, 200, 0, 255); // 拖动时黄色
-        }
-        else {
-            SDL_SetRenderDrawColor(renderer, 200, 200, 200, 255); // 正常时灰色
-        }
-        SDL_RenderFillRect(renderer, &knobRect);
-
-        // 绘制边框
-        SDL_SetRenderDrawColor(renderer, 100, 100, 100, 255);
-        SDL_RenderDrawRect(renderer, &knobRect);
+        std::cerr << 
+            "没有滑块！直接不绘制了，我草你妈，怎么图片都不搞？知不知道写这玩意麻烦死了!" << std::endl;
     }
 }
 

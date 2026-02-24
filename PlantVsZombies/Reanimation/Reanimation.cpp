@@ -42,7 +42,7 @@ bool Reanimation::LoadFromFile(const std::string& filePath) {
             float prevSy = 1.0f;
             float prevA = 1.0f;
             int prevF = 0;
-            SDL_Texture* prevImage = nullptr;
+            const GLTexture* prevImage = nullptr;
 
             for (pugi::xml_node child : node.children()) {
                 std::string childName = child.name();

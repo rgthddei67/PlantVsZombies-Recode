@@ -18,16 +18,14 @@
 GameAPP::GameAPP()
     : mInputHandler(nullptr)
     , mWindow(nullptr)
-    , mRenderer(nullptr)
+    , m_glContext(nullptr)
     , mRunning(false)
     , mInitialized(false)
 {
-	mTextCache.reserve(16);
 }
 
 GameAPP::~GameAPP()
 {
-
 }
 
 GameAPP& GameAPP::GetInstance()
@@ -80,38 +78,49 @@ bool GameAPP::InitializeAudioSystem()
 
 bool GameAPP::CreateWindowAndRenderer()
 {
-    // 设置SDL提示
-    SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1");
-    SDL_SetHint(SDL_HINT_RENDER_VSYNC, "1");          // 启用垂直同步减少撕裂
+    // 设置 OpenGL 版本 
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 
-    // 创建窗口
+    // 创建带 OpenGL 标志的窗口
     mWindow = SDL_CreateWindow(u8"植物大战僵尸中文版",
         SDL_WINDOWPOS_CENTERED,
         SDL_WINDOWPOS_CENTERED,
         SCENE_WIDTH, SCENE_HEIGHT,
-        SDL_WINDOW_SHOWN);
+        SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN);
 
     if (!mWindow) {
         std::cerr << "窗口创建失败: " << SDL_GetError() << std::endl;
         return false;
     }
 
-    // 创建渲染器
-    mRenderer = SDL_CreateRenderer(mWindow, -1,
-        SDL_RENDERER_ACCELERATED |
-        SDL_RENDERER_PRESENTVSYNC |
-        SDL_RENDERER_TARGETTEXTURE);
-
-    if (!mRenderer)
-    {
-        std::cerr << "渲染器创建失败: " << SDL_GetError() << std::endl;
+    // 创建 OpenGL 上下文
+    m_glContext = SDL_GL_CreateContext(mWindow);
+    if (!m_glContext) {
+        std::cerr << "OpenGL上下文创建失败: " << SDL_GetError() << std::endl;
         return false;
     }
 
-    // 设置初始背景色
-    SDL_SetRenderDrawColor(mRenderer, 0, 0, 255, 255);
-    SDL_RenderClear(mRenderer);
-    SDL_RenderPresent(mRenderer);
+    // 初始化 glad (如果使用 glad)
+    if (!gladLoadGLLoader(SDL_GL_GetProcAddress)) {
+        std::cerr << "glad初始化失败" << std::endl;
+        return false;
+    }
+
+    if (SDL_GL_SetSwapInterval(1) != 0) {
+        std::cerr << "警告：无法启用垂直同步，错误：" << SDL_GetError() << std::endl;
+    }
+
+    // 创建 Graphics 实例并初始化
+    m_graphics = std::make_unique<Graphics>();
+    if (!m_graphics->Initialize(SCENE_WIDTH, SCENE_HEIGHT)) {
+        std::cerr << "Graphics 初始化失败" << std::endl;
+        return false;
+    }
+
+    // 设置默认清屏颜色
+    m_graphics->SetClearColor(0, 0, 0, 1);
 
     return true;
 }
@@ -130,7 +139,7 @@ bool GameAPP::InitializeResourceManager()
 
     ResourceManager& resourceManager = ResourceManager::GetInstance();
 
-    if (!resourceManager.Initialize(mRenderer, "./resources/resources.xml")) {
+    if (!resourceManager.Initialize("./resources/resources.xml")) {
         std::cerr << "ResourceManager 初始化失败！" << std::endl;
         return false;
     }
@@ -143,9 +152,9 @@ bool GameAPP::LoadAllResources()
     ResourceManager& resourceManager = ResourceManager::GetInstance();
     bool resourcesLoaded = true;
 
-    resourcesLoaded &= resourceManager.LoadAllGameImages();
+    resourcesLoaded &= resourceManager.LoadAllGameImages();   
     resourcesLoaded &= resourceManager.LoadAllParticleTextures();
-    resourcesLoaded &= resourceManager.LoadAllFonts();
+    resourcesLoaded &= resourceManager.LoadAllFonts();        
     resourcesLoaded &= resourceManager.LoadAllSounds();
     resourcesLoaded &= resourceManager.LoadAllMusic();
     resourcesLoaded &= resourceManager.LoadAllReanimations();
@@ -163,10 +172,7 @@ bool GameAPP::Initialize()
 {
     if (mInitialized) return true;
 
-    // 初始化输入处理器
-    mInputHandler = std::make_unique<InputHandler>();
-
-    // 设置默认字体路径
+    // 设置默认字体路径 
     Button::SetDefaultFontPath(ResourceKeys::Fonts::FONT_FZCQ);
 
     mInitialized = true;
@@ -187,10 +193,10 @@ int GameAPP::Run()
         return -3;
     }
     if (!InitializeAudioSystem()) {
-        
+        // 音频失败仍继续
     }
 
-    // 初始化GameAPP自身
+    // 初始化 GameAPP 自身
     if (!Initialize()) {
         CleanupResources();
         TTF_Quit();
@@ -199,7 +205,7 @@ int GameAPP::Run()
         return -4;
     }
 
-    // 创建窗口和渲染器
+    // 创建窗口和渲染器 
     if (!CreateWindowAndRenderer()) {
         CleanupResources();
         AudioSystem::Shutdown();
@@ -213,7 +219,8 @@ int GameAPP::Run()
     if (!InitializeResourceManager()) {
         CleanupResources();
         AudioSystem::Shutdown();
-        SDL_DestroyRenderer(mRenderer);
+        m_graphics.reset();
+        if (m_glContext) SDL_GL_DeleteContext(m_glContext);
         SDL_DestroyWindow(mWindow);
         TTF_Quit();
         IMG_Quit();
@@ -226,7 +233,8 @@ int GameAPP::Run()
         CleanupResources();
         AudioSystem::Shutdown();
         CursorManager::GetInstance().Cleanup();
-        SDL_DestroyRenderer(mRenderer);
+        m_graphics.reset();
+        if (m_glContext) SDL_GL_DeleteContext(m_glContext);
         SDL_DestroyWindow(mWindow);
         TTF_Quit();
         IMG_Quit();
@@ -234,7 +242,8 @@ int GameAPP::Run()
         return -7;
     }
 
-    g_particleSystem = std::make_unique<ParticleSystem>(mRenderer);
+    mInputHandler = std::make_unique<InputHandler>(m_graphics.get());
+    g_particleSystem = std::make_unique<ParticleSystem>(m_graphics.get()); 
 
     auto& sceneManager = SceneManager::GetInstance();
     sceneManager.RegisterScene<GameScene>("GameScene");
@@ -247,8 +256,9 @@ int GameAPP::Run()
 
     while (mRunning && !sceneManager.IsEmpty())
     {
-        DeltaTime::BeginFrame();
+        Uint64 start = SDL_GetPerformanceCounter();
 
+        DeltaTime::BeginFrame();
         // 处理事件
         while (SDL_PollEvent(&event))
         {
@@ -263,8 +273,8 @@ int GameAPP::Run()
         if (mInputHandler->IsKeyReleased(SDLK_F3))
         {
             AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_BUTTONCLICK, 0.5f);
-			if (!mDebugMode)
-			    DeltaTime::SetTimeScale(10.0f);
+            if (!mDebugMode)
+                DeltaTime::SetTimeScale(10.0f);
             else
                 DeltaTime::SetTimeScale(1.0f);
             mDebugMode = !mDebugMode;
@@ -283,17 +293,15 @@ int GameAPP::Run()
         CursorManager::GetInstance().Update();
 
         // 渲染
-        Draw();
+        Draw(start);
 
 #ifdef _DEBUG
         static int MousePoint = 0;
         if (MousePoint++ % 40 == 0)
         {
-            std::cout << "Mouse World Position: "
-                << mInputHandler->GetMouseWorldPosition().x << ", "
-                << mInputHandler->GetMouseWorldPosition().y << std::endl;
-            std::cout << "Mouse Screen Position: "
-                << mInputHandler->GetMousePosition().x << ", "
+            Vector mousePos = mInputHandler->GetMouseWorldPosition();
+            std::cout << "Mouse World Position: " << mousePos.x << "，" << mousePos.y << std::endl;
+            std::cout << "Mouse Screen Position: " << mInputHandler->GetMousePosition().x << ", "
                 << mInputHandler->GetMousePosition().y << std::endl;
         }
 #endif
@@ -307,18 +315,30 @@ int GameAPP::Run()
     return 0;
 }
 
-void GameAPP::Draw()
+void GameAPP::Draw(Uint64 start)
 {
-    // 清屏
-    SDL_SetRenderDrawColor(mRenderer, 0, 0, 0, 255);
-    SDL_RenderClear(mRenderer);
+    // 清除颜色缓冲
+    m_graphics->Clear();
 
-    // 绘制场景
-    auto& sceneManager = SceneManager::GetInstance();
-    sceneManager.Draw(mRenderer);
+    // 处理多线程渲染命令 
+    m_graphics->ProcessCommandQueue();
 
-    // 更新屏幕
-    SDL_RenderPresent(mRenderer);
+    // 绘制场景 (传入 Graphics 对象)
+    SceneManager::GetInstance().Draw(m_graphics.get());
+
+    // 提交批处理并执行绘制
+    m_graphics->FlushBatch();
+
+    // 在 SwapWindow 前主动 sleep，避免驱动忙等待吃满 CPU
+    Uint64 now = SDL_GetPerformanceCounter();
+    float elapsedMS = (now - start) * 1000.0f / SDL_GetPerformanceFrequency();
+    const float targetMS = 1000.0f / 60.0f;
+    if (elapsedMS < targetMS - 2.0f) {
+        SDL_Delay((Uint32)(targetMS - elapsedMS - 2.0f));
+    }
+
+    // 交换缓冲区
+    SDL_GL_SwapWindow(mWindow);
 }
 
 void GameAPP::Shutdown()
@@ -334,22 +354,27 @@ void GameAPP::Shutdown()
     GameObjectManager::GetInstance().ClearAll();
     CollisionSystem::GetInstance().ClearAll();
 
-    // 清理资源管理器
+    // 清理资源管理器 (会释放 OpenGL 纹理)
     ResourceManager::ReleaseInstance();
 
-    // 清理文本缓存
-    CleanupResources();
+    // 清理文字缓存 (Graphics 内部有缓存)
+    if (m_graphics) {
+        m_graphics->ClearTextCache();
+    }
 
     // 清理音频系统
     AudioSystem::Shutdown();
 
-    // 清理渲染器
-    SDL_DestroyRenderer(this->mRenderer);
-    this->mRenderer = nullptr;
-
     // 清理输入处理器
-    if (mInputHandler) {
-        mInputHandler.reset();
+    mInputHandler.reset();
+
+    // 清理 Graphics
+    m_graphics.reset();
+
+    // 清理 OpenGL 上下文
+    if (m_glContext) {
+        SDL_GL_DeleteContext(m_glContext);
+        m_glContext = nullptr;
     }
 
     // 清理窗口
@@ -361,7 +386,7 @@ void GameAPP::Shutdown()
     // 清理光标管理器
     CursorManager::GetInstance().Cleanup();
 
-    // 清理SDL子系统
+    // 清理 SDL 子系统
     TTF_Quit();
     IMG_Quit();
     SDL_Quit();
@@ -370,138 +395,15 @@ void GameAPP::Shutdown()
     mInitialized = false;
 }
 
-void GameAPP::ClearTextCache()
-{
-    for (size_t i = 0; i < mTextCache.size(); i++)
-    {
-        if (!mTextCache[i].texture) continue;
-        SDL_DestroyTexture(mTextCache[i].texture);
-	}
-
-    mTextCache.clear();
-    std::cout << "清除文本缓存" << std::endl;
-}
-
 void GameAPP::CleanupResources()
 {
-    ClearTextCache();
     ResourceManager::GetInstance().CleanupUnusedFontSizes();
 }
 
-SDL_Texture* GameAPP::GetCachedTextTexture(const std::string& text,
-    const SDL_Color& color,
-    const std::string& fontKey,
-    int fontSize,
-    int& outWidth,
-    int& outHeight)
+void GameAPP::DrawText(const std::string& text, const Vector& position,
+    const glm::vec4& color,
+    const std::string& fontKey, int fontSize)
 {
-    // 1. 生成唯一缓存键
-    std::stringstream ss;
-    ss << text << "|" << fontKey << "|" << fontSize << "|"
-        << (int)color.r << "," << (int)color.g << "," << (int)color.b << "," << (int)color.a;
-    std::string key = ss.str();
-
-    // 2. 查找缓存
-    for (size_t i = 0; i < mTextCache.size(); i++)
-    {
-        if (mTextCache[i].key == key) {
-            outWidth = mTextCache[i].width;
-            outHeight = mTextCache[i].height;
-            return mTextCache[i].texture;
-		}
-    }
-
-    // 3. 缓存未命中，创建新纹理
-    TTF_Font* font = ResourceManager::GetInstance().GetFont(fontKey, fontSize);
-    if (!font) {
-        outWidth = outHeight = 0;
-        return nullptr;
-    }
-
-    SDL_Surface* surface = TTF_RenderUTF8_Blended(font, text.c_str(), color);
-    if (!surface) {
-        outWidth = outHeight = 0;
-        return nullptr;
-    }
-
-    SDL_Texture* texture = SDL_CreateTextureFromSurface(mRenderer, surface);
-    outWidth = surface->w;
-    outHeight = surface->h;
-    SDL_FreeSurface(surface);
-
-    if (!texture) {
-        return nullptr;
-    }
-
-    // 4. 存入缓存
-    mTextCache.push_back({ key, texture, outWidth, outHeight });
-
-    return texture;
-}
-
-void GameAPP::DrawText(const std::string& text,
-    int x, int y,
-    const SDL_Color& color,
-    const std::string& fontKey,
-    int fontSize)
-{
-    if (text.empty()) return;
-
-    int w, h;
-    SDL_Texture* texture = GetCachedTextTexture(text, color, fontKey, fontSize, w, h);
-    if (!texture) return;
-
-    SDL_Rect dest = { x, y, w, h };
-    SDL_RenderCopy(mRenderer, texture, nullptr, &dest);
-}
-
-void GameAPP::DrawText(const std::string& text,
-    const Vector& position,
-    const SDL_Color& color,
-    const std::string& fontKey,
-    int fontSize)
-{
-    DrawText(text, static_cast<int>(position.x), static_cast<int>(position.y),
-        color, fontKey, fontSize);
-}
-
-void GameAPP::DrawWorldText(const std::string& text,
-    const Vector& worldPosition,
-    const SDL_Color& color,
-    const std::string& fontKey,
-    int fontSize) {
-    Vector screenPos = mCamera.WorldToScreen(worldPosition);
-    DrawText(text, (int)screenPos.x, (int)screenPos.y, color, fontKey, fontSize);
-}
-
-Vector GameAPP::GetTextSize(const std::string& text,
-    const std::string& fontKey,
-    int fontSize)
-{
-    TTF_Font* font = ResourceManager::GetInstance().GetFont(fontKey, fontSize);
-    if (!font)
-    {
-        return Vector::zero();
-    }
-
-    int width = 0, height = 0;
-    TTF_SizeUTF8(font, text.c_str(), &width, &height);
-    return Vector(static_cast<float>(width), static_cast<float>(height));
-}
-
-SDL_Texture* GameAPP::CreateTextTexture(SDL_Renderer* renderer,
-    const std::string& text,
-    const SDL_Color& color,
-    const std::string& fontKey,
-    int fontSize)
-{
-    TTF_Font* font = ResourceManager::GetInstance().GetFont(fontKey, fontSize);
-    if (!font) return nullptr;
-
-    SDL_Surface* surface = TTF_RenderUTF8_Blended(font, text.c_str(), color);
-    if (!surface) return nullptr;
-
-    SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
-    SDL_FreeSurface(surface);
-    return texture;  // 调用者负责销毁
+    if (!m_graphics) return;
+    m_graphics->DrawText(text, fontKey, fontSize, color, position.x, position.y);
 }

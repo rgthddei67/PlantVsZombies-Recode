@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "GameObject.h"
-#include "FlagMeter.h"  
+#include "FlagMeter.h"
 #include <memory>
 #include "TransformComponent.h"
 
@@ -14,10 +14,10 @@ public:
     ~GameProgress();
 
     void Update() override;
-    void Draw(SDL_Renderer* renderer) override; 
+    void Draw(Graphics* g) override;   // 参数改为 Graphics*
 
     // 根据最大波数生成旗子，使用传入的图片键
-    void SetupFlags(SDL_Texture* stickTex, SDL_Texture* flagTex);
+    void SetupFlags(const GLTexture* stickTex, const GLTexture* flagTex);
 
     // 初始化升起状态（根据当前波数直接设置已升起的旗子）
     void InitializeRaisedFlags(float raiseY);

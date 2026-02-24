@@ -4,38 +4,31 @@
 
 #include "ParticleEmitter.h"
 #include "../Game/Definit.h"
+#include "../Graphics.h"
 #include <vector>
 #include <memory>
 
-class ParticleSystem 
-{
+class ParticleSystem {
 private:
     std::vector<std::unique_ptr<ParticleEmitter>> emitters;
-    SDL_Renderer* renderer;
+    Graphics* m_graphics;  
 
 public:
-    ParticleSystem(SDL_Renderer* Renderer);
+    explicit ParticleSystem(Graphics* graphics);
     ~ParticleSystem();
 
     ParticleSystem(const ParticleSystem&) = delete;
     ParticleSystem& operator=(const ParticleSystem&) = delete;
 
-    // 系统管理
     void UpdateAll();
     void DrawAll();
     void ClearAll();
 
-    // 发射粒子
-    void EmitEffect(ParticleType type, const SDL_FPoint& position, int count = 1);
-
-    // 发射粒子
-    void EmitEffect(ParticleType type, float x, float y, int count = 1);
-
-    // 发射粒子
+    // 发射一次性粒子效果
     void EmitEffect(ParticleType type, const Vector& position, int count = 1);
 
-    // 持续发射器
-    ParticleEmitter* CreatePersistentEmitter(ParticleType type, const SDL_FPoint& position);
+    // 创建持续发射器
+    ParticleEmitter* CreatePersistentEmitter(ParticleType type, const Vector& position);
     void RemoveEmitter(ParticleEmitter* emitter);
 
     // 统计信息

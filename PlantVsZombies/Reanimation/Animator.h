@@ -4,6 +4,7 @@
 
 #include "ReanimTypes.h"
 #include "Reanimation.h"
+#include "../Graphics.h"
 #include <algorithm>
 #include <functional>
 #include <unordered_map>
@@ -16,9 +17,9 @@ int ColorComponentMultiply(int theColor1, int theColor2);
 SDL_Color ColorsMultiply(const SDL_Color& theColor1, const SDL_Color& theColor2);
 
 struct AnimDrawCommand {
-    SDL_Texture* texture;
-    SDL_BlendMode blendMode;
-    SDL_Color color;
+    const GLTexture* texture;
+    BlendMode blendMode;
+    glm::vec4 color;
     float points[8];  // 4个顶点的世界坐标 (x1,y1, x2,y2, x3,y3, x4,y4)
 };
 
@@ -96,7 +97,7 @@ public:
     void SetFrameRangeToDefault();
 
     // 设置轨道自定义纹理（会覆盖动画原本的纹理）
-    void SetTrackImage(const std::string& trackName, SDL_Texture* image);   
+    void SetTrackImage(const std::string& trackName, const GLTexture* image);
     void SetTrackVisible(const std::string& trackName, bool visible); // 轨道显示控制
  
     // 将子动画附加到指定轨道（跟随轨道变换）
@@ -125,7 +126,7 @@ public:
 
     // 更新和渲染
     void Update();
-    void Draw(SDL_Renderer* renderer, float baseX, float baseY, float Scale = 1.0f);
+    void Draw(Graphics* g, float baseX, float baseY, float Scale = 1.0f);
 
     // 获取底层Reanimation
     std::shared_ptr<Reanimation> GetReanimation() const { return mReanim; }

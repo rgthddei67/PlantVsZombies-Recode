@@ -25,11 +25,12 @@ void SliderManager::UpdateAll(InputHandler* input)
     }
 }
 
-void SliderManager::DrawAll(SDL_Renderer* renderer) const
+void SliderManager::DrawAll(Graphics* g) const
 {
+    if (!g) return;
     for (size_t i = 0; i < sliders.size(); i++)
     {
-        sliders[i]->Draw(renderer);
+        sliders[i]->Draw(g);
     }
 }
 

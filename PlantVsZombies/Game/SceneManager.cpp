@@ -1,4 +1,5 @@
 ﻿#include "SceneManager.h"
+#include "../Graphics.h"
 #include <iostream>
 
 SceneManager& SceneManager::GetInstance() {
@@ -67,9 +68,9 @@ void SceneManager::Update() {
     }
 }
 
-void SceneManager::Draw(SDL_Renderer* renderer) {
+void SceneManager::Draw(Graphics* g) {
     if (!sceneStack_.empty()) {
-        sceneStack_.top()->Draw(renderer);
+        sceneStack_.top()->Draw(g);
     }
 }
 

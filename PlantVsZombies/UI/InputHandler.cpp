@@ -1,9 +1,10 @@
 ﻿#include "InputHandler.h"
 #include <iostream>
-#include "../GameApp.h"
+#include "../Graphics.h"
 
-InputHandler::InputHandler()
+InputHandler::InputHandler(Graphics* graphics)
 {
+    mGraphics = graphics;
     // 初始化所有按键状态为UP
     for (int i = 0; i < 5; i++)
     {
@@ -148,8 +149,7 @@ Vector InputHandler::GetMousePosition() const
 
 Vector InputHandler::GetMouseWorldPosition() const {
     Vector mousePositon = GetMousePosition();
-    return GameAPP::GetInstance().GetCamera().ScreenToWorld
-    ({ mousePositon.x, mousePositon.y });
+    return mGraphics->ScreenToWorldPosition(mousePositon.x, mousePositon.y);
 }
 
 Vector InputHandler::GetMouseDelta() const

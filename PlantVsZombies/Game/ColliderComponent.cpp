@@ -60,7 +60,7 @@ std::shared_ptr<TransformComponent> ColliderComponent::GetTransform() const {
     return nullptr;
 }
 
-void ColliderComponent::Draw(SDL_Renderer* renderer) {
+void ColliderComponent::Draw(Graphics* g) {
     if (!GameAPP::mDebugMode || !GameAPP::mShowColliders || !mEnabled) return;
 
     Vector worldPos = GetWorldPosition();
@@ -68,102 +68,76 @@ void ColliderComponent::Draw(SDL_Renderer* renderer) {
     switch (colliderType) {
     case ColliderType::BOX: {
         SDL_FRect rect = GetBoundingBox();
-        DrawBoxCollider(renderer, rect);
+        DrawBoxCollider(g, rect);
         break;
     }
     case ColliderType::CIRCLE: {
         float radius = size.x * 0.5f;
-        DrawCircleCollider(renderer, worldPos, radius);
+        DrawCircleCollider(g, worldPos, radius);
         break;
     }
     }
 }
 
 // 绘制矩形碰撞框
-void ColliderComponent::DrawBoxCollider(SDL_Renderer* renderer, const SDL_FRect& rect) {
-    // 保存原始绘制颜色
-    SDL_Color originalColor;
-    SDL_GetRenderDrawColor(renderer, &originalColor.r, &originalColor.g, &originalColor.b, &originalColor.a);
+void ColliderComponent::DrawBoxCollider(Graphics* g, const SDL_FRect& rect) {
+    // 将调试颜色转换为 glm::vec4 (0~1)
+    glm::vec4 color(debugColor.r / 255.0f,
+        debugColor.g / 255.0f,
+        debugColor.b / 255.0f,
+        debugColor.a / 255.0f);
 
-    // 设置调试颜色
-    SDL_SetRenderDrawColor(renderer, debugColor.r, debugColor.g, debugColor.b, debugColor.a);
+    // 为清晰显示，稍微扩大矩形
+    float x = rect.x - 1.0f;
+    float y = rect.y - 1.0f;
+    float w = rect.w + 2.0f;
+    float h = rect.h + 2.0f;
 
-    // 绘制矩形边框
-    SDL_FRect outline = {
-        rect.x - 1, rect.y - 1,  // 稍微偏移以更清晰显示
-        rect.w + 2, rect.h + 2
-    };
-
-    // 绘制四条边
-    SDL_RenderDrawLineF(renderer, outline.x, outline.y, outline.x + outline.w, outline.y); // 上边
-    SDL_RenderDrawLineF(renderer, outline.x, outline.y + outline.h, outline.x + outline.w, outline.y + outline.h); // 下边
-    SDL_RenderDrawLineF(renderer, outline.x, outline.y, outline.x, outline.y + outline.h); // 左边
-    SDL_RenderDrawLineF(renderer, outline.x + outline.w, outline.y, outline.x + outline.w, outline.y + outline.h); // 右边
-
-    // 如果是触发器，绘制虚线边框
     if (isTrigger) {
-        // 绘制虚线（简单的间隔线）
+        // 绘制虚线边框
         float dashLength = 5.0f;
         float gapLength = 3.0f;
 
         // 上边虚线
-        for (float x = outline.x; x < outline.x + outline.w; x += dashLength + gapLength) {
-            SDL_RenderDrawLineF(renderer, x, outline.y, std::min(x + dashLength, outline.x + outline.w), outline.y);
+        for (float cx = x; cx < x + w; cx += dashLength + gapLength) {
+            float endX = std::min(cx + dashLength, x + w);
+            g->DrawLine(cx, y, endX, y, color);
         }
-
         // 下边虚线
-        for (float x = outline.x; x < outline.x + outline.w; x += dashLength + gapLength) {
-            SDL_RenderDrawLineF(renderer, x, outline.y + outline.h,
-                std::min(x + dashLength, outline.x + outline.w), outline.y + outline.h);
+        for (float cx = x; cx < x + w; cx += dashLength + gapLength) {
+            float endX = std::min(cx + dashLength, x + w);
+            g->DrawLine(cx, y + h, endX, y + h, color);
         }
-
         // 左边虚线
-        for (float y = outline.y; y < outline.y + outline.h; y += dashLength + gapLength) {
-            SDL_RenderDrawLineF(renderer, outline.x, y, outline.x, std::min(y + dashLength, outline.y + outline.h));
+        for (float cy = y; cy < y + h; cy += dashLength + gapLength) {
+            float endY = std::min(cy + dashLength, y + h);
+            g->DrawLine(x, cy, x, endY, color);
         }
-
         // 右边虚线
-        for (float y = outline.y; y < outline.y + outline.h; y += dashLength + gapLength) {
-            SDL_RenderDrawLineF(renderer, outline.x + outline.w, y,
-                outline.x + outline.w, std::min(y + dashLength, outline.y + outline.h));
+        for (float cy = y; cy < y + h; cy += dashLength + gapLength) {
+            float endY = std::min(cy + dashLength, y + h);
+            g->DrawLine(x + w, cy, x + w, endY, color);
         }
     }
-
-    // 恢复原始绘制颜色
-    SDL_SetRenderDrawColor(renderer, originalColor.r, originalColor.g, originalColor.b, originalColor.a);
+    else {
+        // 绘制实线边框
+        g->DrawRect(x, y, w, h, color);
+    }
 }
 
 // 绘制圆形碰撞框
-void ColliderComponent::DrawCircleCollider(SDL_Renderer* renderer, const Vector& center, float radius) {
-    // 保存原始绘制颜色
-    SDL_Color originalColor;
-    SDL_GetRenderDrawColor(renderer, &originalColor.r, &originalColor.g, &originalColor.b, &originalColor.a);
+void ColliderComponent::DrawCircleCollider(Graphics* g, const Vector& center, float radius) {
+    glm::vec4 color(debugColor.r / 255.0f,
+        debugColor.g / 255.0f,
+        debugColor.b / 255.0f,
+        debugColor.a / 255.0f);
 
-    // 设置调试颜色
-    SDL_SetRenderDrawColor(renderer, debugColor.r, debugColor.g, debugColor.b, debugColor.a);
+    // 绘制空心圆（使用32个线段）
+    g->DrawCircle(center.x, center.y, radius, color);
 
-    const int segments = 32; // 圆的细分段数
-    const float angleStep = static_cast<const float>(2.0f * M_PI / segments);
-
-    // 绘制圆形
-    for (int i = 0; i < segments; i++) {
-        float angle1 = i * angleStep;
-        float angle2 = (i + 1) * angleStep;
-
-        float x1 = center.x + radius * cos(angle1);
-        float y1 = center.y + radius * sin(angle1);
-        float x2 = center.x + radius * cos(angle2);
-        float y2 = center.y + radius * sin(angle2);
-
-        SDL_RenderDrawLineF(renderer, x1, y1, x2, y2);
-    }
-
-    // 如果是触发器，绘制十字线标识
     if (isTrigger) {
-        SDL_RenderDrawLineF(renderer, center.x - radius, center.y, center.x + radius, center.y);
-        SDL_RenderDrawLineF(renderer, center.x, center.y - radius, center.x, center.y + radius);
+        // 绘制十字线表示触发器
+        g->DrawLine(center.x - radius, center.y, center.x + radius, center.y, color);
+        g->DrawLine(center.x, center.y - radius, center.x, center.y + radius, color);
     }
-
-    // 恢复原始绘制颜色
-    SDL_SetRenderDrawColor(renderer, originalColor.r, originalColor.g, originalColor.b, originalColor.a);
 }

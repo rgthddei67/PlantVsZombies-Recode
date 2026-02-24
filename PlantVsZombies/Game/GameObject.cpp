@@ -45,7 +45,7 @@ void GameObject::Update() {
     }
 }
 
-void GameObject::Draw(SDL_Renderer* renderer) {
+void GameObject::Draw(Graphics* g) {
     if (!mActive || !mStarted) return;
 
     // 收集所有启用的组件
@@ -67,7 +67,7 @@ void GameObject::Draw(SDL_Renderer* renderer) {
 
     // 绘制组件
     for (auto& component : componentsToDraw) {
-        component->Draw(renderer);
+        component->Draw(g);
     }
 }
 

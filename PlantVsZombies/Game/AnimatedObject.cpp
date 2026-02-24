@@ -78,18 +78,17 @@ void AnimatedObject::Update() {
     UpdateGlowingEffect();
 }
 
-void AnimatedObject::Draw(SDL_Renderer* renderer) {
-    GameObject::Draw(renderer);
+void AnimatedObject::Draw(Graphics* g) {
+    GameObject::Draw(g);
     if (!mAnimator) return;
 
-    Vector screenPos = GameAPP::GetInstance().GetCamera().WorldToScreen
-        (GetVisualPosition());
+    Vector pos = GetVisualPosition();
     float scale = 1.0f;
 
     if (auto transform = mTransform.lock()) {
         scale = transform->GetScale();
     }
-    mAnimator->Draw(renderer, screenPos.x, screenPos.y, scale);
+    mAnimator->Draw(g, pos.x, pos.y, scale);
 }
 
 void AnimatedObject::PlayAnimation() {

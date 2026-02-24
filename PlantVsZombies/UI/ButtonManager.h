@@ -5,6 +5,7 @@
 #include "../UI/InputHandler.h"
 #include <vector>
 #include <memory>
+#include "../Graphics.h"
 
 class ButtonManager
 {
@@ -35,7 +36,7 @@ public:
     void UpdateAll(InputHandler* input);
 
     // 统一渲染所有按钮
-    void DrawAll(SDL_Renderer* renderer) const;
+    void DrawAll(Graphics* g) const;
 
     // 获取按钮数量
     size_t GetButtonCount() const;

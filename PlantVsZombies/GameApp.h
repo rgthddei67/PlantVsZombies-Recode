@@ -17,34 +17,25 @@
 #include <stdexcept>
 #include "./Game/Definit.h"
 #include "./ParticleSystem/ParticleSystem.h"
-#include "./Camera2D.h"
+#include "Graphics.h"      
 
 constexpr int SCENE_WIDTH = 1100;
 constexpr int SCENE_HEIGHT = 600;
-
-struct TextCache {
-    std::string key;        // 缓存键（字体+颜色等）
-    SDL_Texture* texture;   // 缓存的纹理
-    int width;              // 纹理宽度
-    int height;             // 纹理高度
-};
 
 class InputHandler;
 
 class GameAPP
 {
 public:
-    int Difficulty = 2; // 难度系数
+    int Difficulty = 1; // 难度系数
 
 private:
     std::unique_ptr<InputHandler> mInputHandler;
-    std::vector<TextCache> mTextCache;
-    Camera2D mCamera = Camera2D(SCENE_WIDTH, SCENE_HEIGHT);
+    std::unique_ptr<Graphics> m_graphics;   // 改用 Graphics
 
     SDL_Window* mWindow;
-    SDL_Renderer* mRenderer;
+    SDL_GLContext m_glContext;               // OpenGL 上下文
 
-    // 游戏运行状态
     bool mRunning;
     bool mInitialized;
 
@@ -58,67 +49,30 @@ private:
     bool InitializeSDL_Image();
     bool InitializeSDL_TTF();
     bool InitializeAudioSystem();
-    bool CreateWindowAndRenderer();
+    bool CreateWindowAndRenderer();         
     bool InitializeResourceManager();
     bool LoadAllResources();
     void CleanupResources();
     void Update();
-    void Draw();
+    void Draw(Uint64 start);
     void Shutdown();
-
-    SDL_Texture* GetCachedTextTexture(const std::string& text,
-        const SDL_Color& color,
-        const std::string& fontKey,
-        int fontSize,
-        int& outWidth,
-        int& outHeight);    // 获取保存的Texture
 
 public:
     inline static bool mDebugMode = false;        // 是否是调试模式
     inline static bool mShowColliders = false;    // 显示碰撞框开关
 
-    // 获取单例实例
     static GameAPP& GetInstance();
 
     int Run();
-
     bool Initialize();
 
-    // 清除文本缓存
-    void ClearTextCache();
+    // 获取 Graphics 对象
+    Graphics& GetGraphics() { return *m_graphics; }
 
-    Camera2D& GetCamera() { return mCamera; }
-
-    // 绘制文本 UTF8编码，不随Camera变化移动的
-    void DrawText(const std::string& text,
-        int x, int y,
-        const SDL_Color& color,
-        const std::string& fontKey = ResourceKeys::Fonts::FONT_FZCQ,
-        int fontSize = 17);
-
-    // 绘制文本 UTF8编码，不随Camera变化移动的
+    // 世界坐标绘制文本 UTF8编码
     void DrawText(const std::string& text,
         const Vector& position,
-        const SDL_Color& color,
-        const std::string& fontKey = ResourceKeys::Fonts::FONT_FZCQ,
-        int fontSize = 17);
-
-    // 绘制世界坐标文字，随Camera变化移动的
-    void DrawWorldText(const std::string& text,
-        const Vector& worldPosition,
-        const SDL_Color& color,
-        const std::string& fontKey = ResourceKeys::Fonts::FONT_FZCQ,
-        int fontSize = 17);
-
-    // 文本尺寸
-    Vector GetTextSize(const std::string& text,
-        const std::string& fontKey = ResourceKeys::Fonts::FONT_FZCQ,
-        int fontSize = 17);
-
-    // 创建文本纹理对象
-    SDL_Texture* CreateTextTexture(SDL_Renderer* renderer,
-        const std::string& text,
-        const SDL_Color& color,
+        const glm::vec4& color,
         const std::string& fontKey = ResourceKeys::Fonts::FONT_FZCQ,
         int fontSize = 17);
 
@@ -130,13 +84,9 @@ public:
         return *mInputHandler;
     }
 
-    // 检查输入处理器是否有效
     bool IsInputHandlerValid() const { return mInputHandler != nullptr; }
 
-    // 获取渲染器
-    SDL_Renderer* GetRenderer() const { return mRenderer; }
-
-    // 获取窗口
+    // 获取窗口 (可能用于其他目的)
     SDL_Window* GetWindow() const { return mWindow; }
 
 };

@@ -4,7 +4,7 @@
 #include "../GameObjectManager.h"
 #include "../../GameApp.h"
 
-Bullet::Bullet(Board* board, BulletType bulletType, int row, SDL_Texture* texture, const Vector& colliderRadius,
+Bullet::Bullet(Board* board, BulletType bulletType, int row, const GLTexture* texture, const Vector& colliderRadius,
 	const Vector& position) : GameObject(ObjectType::OBJECT_BULLET)
 {
 	this->mBoard = board;
@@ -58,20 +58,11 @@ void Bullet::Update()
 	}
 }
 
-void Bullet::Draw(SDL_Renderer* renderer)
+void Bullet::Draw(Graphics* g)
 {
 	if (mTexture) {
 		Vector position = GetPosition();
-		int texWidth, texHeight;
-		SDL_QueryTexture(mTexture, nullptr, nullptr, &texWidth, &texHeight);
-
-		SDL_FRect destRect = {
-			position.x,
-			position.y,
-			static_cast<float>(texWidth * mScale),
-			static_cast<float>(texHeight * mScale)
-		};
-
-		SDL_RenderCopyF(renderer, mTexture, nullptr, &destRect);
+		g->DrawTexture(mTexture, position.x, position.y, 
+			static_cast<float>(mTexture->width * mScale), static_cast<float>(mTexture->height) * mScale);
 	}
 }

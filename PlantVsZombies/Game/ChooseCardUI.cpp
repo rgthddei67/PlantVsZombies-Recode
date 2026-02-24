@@ -12,25 +12,27 @@
 
 ChooseCardUI::ChooseCardUI(GameScene* gameScene)
 {
+	this->mIsUI = true;
 	this->SetName("ChooseCardUI");
 	mCards.reserve(64);
 	mSelectedCards.reserve(16);
 	mGameScene = gameScene;
 	if (!mGameScene) return;
 	mTransform = AddComponent<TransformComponent>(60.0f, 800.0f);
+
 	mCardUITexture = ResourceManager::GetInstance().
 		GetTexture(ResourceKeys::Textures::IMAGE_SEEDCHOOSER_BACKGROUND);
 	auto button = mGameScene->GetUIManager().CreateButton
-	(Vector(400, 550),
+	(Vector(360, 550),
 		Vector(156 * 0.9f, 42 * 0.9f));
 	mButton = button;
 	button->SetAsCheckbox(false);
 	button->SetImageKeys(ResourceKeys::Textures::IMAGE_SEEDCHOOSER_BUTTON_DISABLED,
 		ResourceKeys::Textures::IMAGE_SEEDCHOOSER_BUTTON,
 		ResourceKeys::Textures::IMAGE_SEEDCHOOSER_BUTTON);
-	button->SetTextColor(SDL_Color{ 211, 157, 42 ,255 });
-	button->SetHoverTextColor(SDL_Color{ 211, 157, 42 ,255 });
-	button->SetText(u8"     一起摇滚吧！", ResourceKeys::Fonts::FONT_FZCQ, 20);
+	button->SetTextColor({ 211, 157, 42 ,255 });
+	button->SetHoverTextColor({ 211, 157, 42 ,255 });
+	button->SetText(u8"  一起摇滚吧！", ResourceKeys::Fonts::FONT_FZCQ, 20);
 	button->SetEnabled(false);
 	button->SetClickCallBack([this](bool isChecked) {
 		if (mGameScene) {
@@ -42,7 +44,7 @@ ChooseCardUI::ChooseCardUI(GameScene* gameScene)
 ChooseCardUI::~ChooseCardUI() {
 	SceneManager::GetInstance().GetCurrectSceneUIManager().RemoveButton(mButton.lock());
 	mGameScene = nullptr;
-	//TODO 物体析构的时候，如果有其他物体没有销毁，不要在这个时候销毁，因为没用
+	// TODO: 物体析构的时候，如果有其他物体没有销毁，不要在这个时候销毁，因为没用
 }
 
 void ChooseCardUI::RemoveAllCards() {
@@ -74,19 +76,17 @@ void ChooseCardUI::TransferSelectedCardsTo(CardSlotManager* manager) {
 	mSelectedCards.clear();
 }
 
-void ChooseCardUI::Draw(SDL_Renderer* renderer) {
+void ChooseCardUI::Draw(Graphics* g) {
 	// 绘制背景
 	if (mCardUITexture) {
 		Vector pos = this->GetPosition();
-		int w, h;
-		SDL_QueryTexture(mCardUITexture, nullptr, nullptr, &w, &h);
-		SDL_FRect dest =
-		{
-		pos.x,
-		pos.y,
-		static_cast<float>(w),
-		static_cast<float>(h) };
-		SDL_RenderCopyF(renderer, mCardUITexture, nullptr, &dest);
+		Vector newpos = g->ScreenToWorldPosition(pos.x, pos.y);
+		int w = mCardUITexture->width;
+		int h = mCardUITexture->height;
+		// 使用 Graphics 绘制纹理
+		g->DrawTexture(mCardUITexture,
+			newpos.x, newpos.y,
+			static_cast<float>(w), static_cast<float>(h));
 	}
 }
 
@@ -120,7 +120,6 @@ void ChooseCardUI::RemoveCard(std::shared_ptr<Card> card)
 	auto it = std::find(mCards.begin(), mCards.end(), card);
 	if (it != mCards.end()) {
 		mCards.erase(it);
-		
 	}
 
 	// 如果已选中，也从选中列表中移除

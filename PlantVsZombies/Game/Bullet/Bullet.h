@@ -7,6 +7,7 @@
 #include "../../DeltaTime.h"
 #include "../GameObject.h"
 #include "../../GameRandom.h"
+#include "../../ResourceManager.h"
 #include "../EntityManager.h"
 #include "BulletType.h"
 #include "../../ParticleSystem/ParticleSystem.h"
@@ -26,7 +27,7 @@ public:
 
 protected:
 	Board* mBoard = nullptr;
-	SDL_Texture* mTexture = nullptr;
+	const GLTexture* mTexture = nullptr;
 	float mCheckPositionTimer = 0.0f;
 	bool mHasHit = false;	// 是否已经击中过僵尸
 	int mDamage = 20;			// 子弹伤害
@@ -40,14 +41,14 @@ protected:
 	virtual void BulletHitZombie(std::shared_ptr<Zombie> zombie) { }
 
 public:
-	Bullet(Board* board, BulletType bulletType, int row, SDL_Texture* texture, const Vector& colliderRadius,
+	Bullet(Board* board, BulletType bulletType, int row, const GLTexture*, const Vector& colliderRadius,
 		const Vector& position);
 
 	// 子弹消失
 	void Die();
 
 	void Update() override;
-	void Draw(SDL_Renderer* renderer) override;
+	void Draw(Graphics* g) override;
 
 	int GetBulletDamage() { return mDamage; }
 	void SetBulletDamage(int damage) { this->mDamage = damage; }

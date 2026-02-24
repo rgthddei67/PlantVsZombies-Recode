@@ -5,6 +5,7 @@
 #include "ButtonManager.h"
 #include "SliderManager.h"
 #include "GameMessageBox.h"         
+#include "../Graphics.h"
 #include "../Game/GameObjectManager.h" 
 
 class UIManager
@@ -100,11 +101,10 @@ public:
         sliderManager.UpdateAll(input);
     }
 
-    void DrawAll(SDL_Renderer* renderer) const
+    void DrawAll(Graphics* g) const
     {
-        ResourceManager& resourceManager = ResourceManager::GetInstance();
-        buttonManager.DrawAll(renderer);
-        sliderManager.DrawAll(renderer);
+        buttonManager.DrawAll(g);
+        sliderManager.DrawAll(g);
     }
 
     void ResetAllFrameStates()
