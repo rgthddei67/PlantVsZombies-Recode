@@ -80,6 +80,7 @@ public:
 	bool IsMindControlled() { return this->mIsMindControlled;  }
 
 protected:
+	// 此处仅用于设置僵尸死亡的回调函数! 不要在子类中调用基类！
 	virtual void SetupZombie();
 };
 

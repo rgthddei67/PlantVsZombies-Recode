@@ -112,6 +112,10 @@ public:
 
     virtual void Update();
 
+    // 多线程预计算阶段（在 Draw 之前由工作线程调用，默认空实现）
+    // 子类可重写此方法进行纯CPU计算（不得调用OpenGL）
+    virtual void PrepareForDraw() {}
+
 	ObjectType GetObjectType() const { return mObjectType; }
     int GetRenderOrder() const { return mRenderOrder; }
     void SetRenderOrder(int order) { mRenderOrder = order; }

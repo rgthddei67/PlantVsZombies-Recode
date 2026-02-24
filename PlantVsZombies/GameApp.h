@@ -28,6 +28,7 @@ class GameAPP
 {
 public:
     int Difficulty = 1; // 难度系数
+    bool mAutoCollected = true; // 自动收集
 
 private:
     std::unique_ptr<InputHandler> mInputHandler;

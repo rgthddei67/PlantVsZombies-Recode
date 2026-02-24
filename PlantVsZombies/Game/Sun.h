@@ -4,6 +4,7 @@
 #include "../ResourceKeys.h"
 #include "../DeltaTime.h"
 #include "../GameRandom.h"
+#include "../GameApp.h"
 #include "Coin.h"
 #include "Board.h"
 
@@ -59,6 +60,7 @@ public:
     {
         if (clickComponent == nullptr) return;
         clickComponent->onClick = [this]() {
+            this->mIsCollected = true;
 			AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_COLLECTSUN, 0.5f);
 			StartMoveToTarget(Vector(160, 10), speedFast, speedSlow, slowDownDistance);
         };
@@ -159,6 +161,13 @@ public:
 
     void Update() override {
         Coin::Update();
+        if (!mIsLinearFalling && !mIsParabola && !isMovingToTarget && !mIsScaling && !mIsCollected
+             && GameAPP::GetInstance().mAutoCollected) {
+            this->mIsCollected = true;
+            AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_COLLECTSUN, 0.5f, 0);
+            StartMoveToTarget(Vector(160, 10), speedFast, speedSlow, slowDownDistance);
+        }
+
         if (isMovingToTarget) return;
         if (mIsParabola) {
             UpdateParabola();

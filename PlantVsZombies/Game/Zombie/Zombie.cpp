@@ -59,7 +59,7 @@ Zombie::Zombie(Board* board, ZombieType zombieType, float x, float y, int row,
 
 void Zombie::SetupZombie()
 {
-
+	mAnimator->AddFrameEvent(216, [this]() { this->Die(); });
 }
 
 void Zombie::Start()
@@ -108,7 +108,6 @@ void Zombie::Update()
 				if (!mIsDying)
 				{
 					PlayTrack("anim_death", 1.3f, 0.3f);
-					mAnimator->AddFrameEvent(216, [this]() { this->Die(); });
 					mIsDying = true;
 				}
 				return;
@@ -313,7 +312,7 @@ void Zombie::EatTarget(std::shared_ptr<ColliderComponent> other)
 
 void Zombie::StopEat(std::shared_ptr<ColliderComponent> other)
 {
-	if (mIsPreview)	return;
+	if (mIsPreview || mIsDying)	return;
 	auto gameObject = other->GetGameObject();
 	if (gameObject->GetObjectType() == ObjectType::OBJECT_PLANT)
 	{

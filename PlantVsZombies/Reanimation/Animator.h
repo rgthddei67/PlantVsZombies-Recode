@@ -128,6 +128,11 @@ public:
     void Update();
     void Draw(Graphics* g, float baseX, float baseY, float Scale = 1.0f);
 
+    // 多线程支持：预计算变换，结果缓存在 mCachedCommands 中
+    // 可从任意线程调用（纯CPU计算，不涉及OpenGL）
+    // Draw() 会自动使用缓存，用完后清空
+    void PrepareCommands(float baseX, float baseY, float Scale = 1.0f);
+
     // 获取底层Reanimation
     std::shared_ptr<Reanimation> GetReanimation() const { return mReanim; }
 
@@ -149,6 +154,8 @@ private:
     float mLocalScaleX = 1.0f;
     float mLocalScaleY = 1.0f;
     float mLocalRotation = 0.0f;   // 角度制
+
+    std::vector<AnimDrawCommand> mCachedCommands;  // PrepareCommands() 的缓存结果
 
 private:
     TrackFrameTransform GetInterpolatedTransform(int trackIndex) const;

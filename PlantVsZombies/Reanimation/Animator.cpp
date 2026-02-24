@@ -225,12 +225,26 @@ void Animator::Update() {
     }
 }
 
+void Animator::PrepareCommands(float baseX, float baseY, float Scale) {
+    mCachedCommands.clear();
+    if (!mReanim) return;
+    CollectDrawCommands(mCachedCommands, baseX, baseY, Scale);
+}
+
 void Animator::Draw(Graphics* g, float baseX, float baseY, float Scale) {
     if (!mReanim || !g) return;
 
-    // 收集所有绘制命令（CollectDrawCommands 内部已递归收集子动画）
-    std::vector<AnimDrawCommand> commands;
-    CollectDrawCommands(commands, baseX, baseY, Scale);
+    // 优先使用 PrepareCommands() 预计算的缓存（多线程模式）
+    // 若缓存为空则即时计算（单线程回退）
+    std::vector<AnimDrawCommand> localCommands;
+    const std::vector<AnimDrawCommand>* commands;
+
+    if (!mCachedCommands.empty()) {
+        commands = &mCachedCommands;
+    } else {
+        CollectDrawCommands(localCommands, baseX, baseY, Scale);
+        commands = &localCommands;
+    }
 
     // 保存当前变换栈，确保我们不叠加额外变换
     g->PushTransform(glm::mat4(1.0f));
@@ -238,7 +252,7 @@ void Animator::Draw(Graphics* g, float baseX, float baseY, float Scale) {
     BlendMode originalBlend = g->GetBlendMode();  // 记录进入时的混合模式
     BlendMode lastBlend = originalBlend;
 
-    for (const auto& cmd : commands) {
+    for (const auto& cmd : *commands) {
         // 切换混合模式（若不同）
         if (cmd.blendMode != lastBlend) {
             g->SetBlendMode(cmd.blendMode);
@@ -268,6 +282,9 @@ void Animator::Draw(Graphics* g, float baseX, float baseY, float Scale) {
     }
 
     g->PopTransform();
+
+    // 清空缓存，下帧由 PrepareCommands() 重新填充
+    mCachedCommands.clear();
 }
 
 void Animator::CollectDrawCommands(std::vector<AnimDrawCommand>& outCommands, float baseX, float baseY, float Scale) const {

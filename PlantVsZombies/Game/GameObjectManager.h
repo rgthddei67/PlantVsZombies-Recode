@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <map>
 #include <set>
+#include <thread>
 #include "GameObject.h"
 
 const int SUBORDER_PER_KEY = 1000;  // 每个key最多同时存在的顺序数量
@@ -155,9 +156,43 @@ public:
                 return a->GetRenderOrder() < b->GetRenderOrder();
             });
 
-        // 绘制所有游戏对象
+        // ---- 并行预计算阶段（纯CPU变换，不涉及OpenGL）----
+        int total = static_cast<int>(mGameObjects.size());
+        int numThreads = static_cast<int>(std::thread::hardware_concurrency());
+        if (numThreads < 1) numThreads = 1;
+        if (numThreads > total) numThreads = total;
+
+        if (numThreads > 1) {
+            std::vector<std::thread> threads;
+            threads.reserve(numThreads);
+            int chunkSize = (total + numThreads - 1) / numThreads;
+
+            for (int t = 0; t < numThreads; t++) {
+                int start = t * chunkSize;
+                int end = std::min(start + chunkSize, total);
+                if (start >= total) break;
+                threads.emplace_back([this, start, end]() {
+                    for (int i = start; i < end; i++) {
+                        if (mGameObjects[i]->IsActive()) {
+                            mGameObjects[i]->PrepareForDraw();
+                        }
+                    }
+                });
+            }
+            for (auto& th : threads) th.join();
+        } else {
+            for (size_t i = 0; i < mGameObjects.size(); i++)
+            {
+                auto* obj = mGameObjects[i].get();
+                if (obj->IsActive()) {
+                    obj->PrepareForDraw();
+                }
+            }
+        }
+
+        // ---- 串行绘制阶段（按 mRenderOrder 顺序，保证绘制顺序正确）----
         for (size_t i = 0; i < mGameObjects.size(); ++i) {
-            auto* obj = mGameObjects[i].get(); 
+            auto* obj = mGameObjects[i].get();
             if (obj->IsActive()) {
                 obj->Draw(g);
             }

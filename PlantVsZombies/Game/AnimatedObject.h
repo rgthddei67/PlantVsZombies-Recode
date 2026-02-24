@@ -90,6 +90,7 @@ public:
 
     void Update() override;
     void Draw(Graphics* g) override;
+    void PrepareForDraw() override;
 
 private:
     void UpdateGlowingEffect();

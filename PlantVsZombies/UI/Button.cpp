@@ -219,8 +219,8 @@ void Button::Draw(Graphics* g) const
         }
 
         // 计算居中位置（相对于按钮区域）
-        int textX = static_cast<int>(position.x + (size.x - textWidth) / 2);
-        int textY = static_cast<int>(position.y + (size.y - textHeight) / 2);
+        float textX = position.x + (size.x - static_cast<float>(textWidth)) / 2;
+        float textY = position.y + (size.y - static_cast<float>(textHeight)) / 2;
 
         Vector textPos = g->ScreenToWorldPosition(textX, textY);
 

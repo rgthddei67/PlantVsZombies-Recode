@@ -78,6 +78,17 @@ void AnimatedObject::Update() {
     UpdateGlowingEffect();
 }
 
+void AnimatedObject::PrepareForDraw() {
+    if (!mAnimator) return;
+
+    Vector pos = GetVisualPosition();
+    float scale = 1.0f;
+    if (auto transform = mTransform.lock()) {
+        scale = transform->GetScale();
+    }
+    mAnimator->PrepareCommands(pos.x, pos.y, scale);
+}
+
 void AnimatedObject::Draw(Graphics* g) {
     GameObject::Draw(g);
     if (!mAnimator) return;
