@@ -15,6 +15,7 @@ Graphics::~Graphics() {
 
     if (m_batchVAO) glDeleteVertexArrays(1, &m_batchVAO);
     if (m_batchVBO) glDeleteBuffers(1, &m_batchVBO);
+    if (m_matrixUBO) glDeleteBuffers(1, &m_matrixUBO);
 
     // 释放几何图形渲染资源
     if (m_geomVAO) glDeleteVertexArrays(1, &m_geomVAO);
@@ -61,6 +62,21 @@ bool Graphics::Initialize(int windowWidth, int windowHeight) {
 
     glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    // 创建矩阵 UBO，绑定到 binding point 0
+    glGenBuffers(1, &m_matrixUBO);
+    glBindBuffer(GL_UNIFORM_BUFFER, m_matrixUBO);
+    glBufferData(GL_UNIFORM_BUFFER, sizeof(glm::mat4) * MATRIX_BATCH_LIMIT, nullptr, GL_DYNAMIC_DRAW);
+    glBindBufferBase(GL_UNIFORM_BUFFER, 0, m_matrixUBO);
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+    // 将 batch shader 的 MatrixBlock 绑定到 binding point 0
+    GLuint blockIndex = glGetUniformBlockIndex(m_batchShader.getProgramID(), "MatrixBlock");
+    if (blockIndex == GL_INVALID_INDEX) {
+        std::cerr << "[Graphics] MatrixBlock not found in batch shader (UBO binding failed)" << std::endl;
+        return false;
+    }
+    glUniformBlockBinding(m_batchShader.getProgramID(), blockIndex, 0);
 
     return true;
 }
@@ -186,11 +202,13 @@ void Graphics::FlushBatch() {
         // 上传投影矩阵
         glUniformMatrix4fv(m_batchShader.getUniformLocation("proj"), 1, GL_FALSE, glm::value_ptr(m_projection));
 
-        // 上传所有变换矩阵（矩阵数组）
+        // 上传所有变换矩阵到 UBO
         if (!m_batchMatrices.empty()) {
-            glUniformMatrix4fv(m_batchShader.getUniformLocation("posMatrix"),
-                (GLsizei)m_batchMatrices.size(), GL_FALSE,
+            glBindBuffer(GL_UNIFORM_BUFFER, m_matrixUBO);
+            glBufferSubData(GL_UNIFORM_BUFFER, 0,
+                m_batchMatrices.size() * sizeof(glm::mat4),
                 glm::value_ptr(m_batchMatrices[0]));
+            glBindBuffer(GL_UNIFORM_BUFFER, 0);
         }
 
         // 设置视图矩阵

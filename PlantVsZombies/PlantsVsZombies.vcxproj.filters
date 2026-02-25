@@ -378,6 +378,9 @@
     <ClInclude Include="Graphics.h">
       <Filter>Code</Filter>
     </ClInclude>
+    <ClInclude Include="Game\ThreadPool.h">
+      <Filter>Code\Game</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Shader\batch_fragment.glsl">

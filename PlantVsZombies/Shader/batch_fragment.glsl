@@ -5,10 +5,10 @@ in vec2 TexCoord;
 flat in int TexIndex;
 in vec4 Color;
 
-uniform sampler2D textures[32];  // ×î´óÖ§³Ö32¸öÎÆÀíµ¥Ôª
+uniform sampler2D textures[32];  // æœ€å¤§æ”¯æŒ32ä¸ªçº¹ç†å•å…ƒ
 
 void main() {
-    // ¸ù¾İÎÆÀíË÷Òı´ÓÎÆÀíÊı×éÖĞ²ÉÑù
+    // æ ¹æ®çº¹ç†ç´¢å¼•ä»çº¹ç†æ•°ç»„ä¸­é‡‡æ ·
     vec4 texColor = texture(textures[TexIndex], TexCoord);
-    FragColor = texColor * Color;   // Ó¦ÓÃ¶¥µãÑÕÉ«µ÷ÖÆ
+    FragColor = texColor * Color;   // åº”ç”¨é¡¶ç‚¹é¢œè‰²è°ƒåˆ¶
 }

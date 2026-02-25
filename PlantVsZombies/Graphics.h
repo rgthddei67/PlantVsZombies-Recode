@@ -443,6 +443,7 @@ private:
 
 	GLuint m_batchVAO = 0;                       ///< 批处理 VAO
 	GLuint m_batchVBO = 0;                       ///< 批处理 VBO
+	GLuint m_matrixUBO = 0;                      ///< 矩阵 UBO（替代 uniform 数组，突破 64 上限）
 	size_t m_batchBufferCapacity = 0;             ///< 当前 VBO 容量（顶点个数）
 
 	GLuint m_geomVAO = 0;                         ///< 几何图形 VAO
@@ -455,7 +456,7 @@ private:
 	bool m_batchMode = true;                      ///< 是否启用批处理模式
 
 	static const int VERTEX_BATCH_LIMIT = 1024;   ///< 单批次最大顶点数
-	static const int MATRIX_BATCH_LIMIT = 64;     ///< 单批次最大矩阵数
+	static const int MATRIX_BATCH_LIMIT = 256;    ///< 单批次最大矩阵数（UBO 保证最小 16KB，可存 256 个 mat4）
 	static const int GEOM_BATCH_LIMIT   = 2048;   ///< 单批次最大几何顶点数
 
 	static const int TEXT_CACHE_MAX_SIZE = 256;  ///< 文字缓存最大条目数（LRU 淘汰）
