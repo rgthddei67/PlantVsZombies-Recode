@@ -1,4 +1,4 @@
-#define SDL_MAIN_HANDLED
+﻿#define SDL_MAIN_HANDLED
 #include "./CrashHandler.h"
 #include "./GameRandom.h"
 #include "./GameAPP.h"
@@ -14,7 +14,7 @@ int main(int argc, char** argv)
     // 检查命令行参数是否包含 -Debug 后缀
     for (int i = 1; i < argc; ++i)
     {
-        if (std::string(argv[i]) == "-Debug")
+        if (std::string(argv[i]) == "-Debug" || std::string(argv[i]) == "-debug")
         {
             GameAPP::mDebugMode = true;
             GameAPP::mShowColliders = true;

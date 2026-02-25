@@ -327,11 +327,9 @@ void GameAPP::Draw(Uint64 start)
 	// 绘制场景 (传入 Graphics 对象)
 	SceneManager::GetInstance().Draw(m_graphics.get());
 
-	static int num = 0;
-	static int fps = 60;
-	if (num++ % 10 == 0)
-		fps = (int)(1.0f / DeltaTime::GetUnscaledDeltaTime());
-	DrawText(u8"FPS:" + std::to_string(fps), Vector(5, 150), glm::vec4(0, 255, 100, 255),
+	int fps = 60;
+	fps = (int)(1.0f / DeltaTime::GetUnscaledDeltaTime());
+	DrawText(u8"FPS:" + std::to_string(fps), Vector(5, 10), glm::vec4(0, 255, 100, 255),
 		ResourceKeys::Fonts::FONT_FZCQ, 30);
 
 	// 提交批处理并执行绘制

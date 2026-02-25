@@ -14,6 +14,8 @@
 #include "./Plant/GameDataManager.h"
 #include "./GameProgress.h"
 #include "../GameApp.h"
+#include "../FileManager.h"
+#include <unordered_set>
 
 void Board::InitializeCell(int rows, int cols)
 {
@@ -498,4 +500,30 @@ void Board::GameOver()
 	AudioSystem::StopMusic();
 	if (mGameScene)
 		mGameScene->GameOver();
+}
+
+void Board::LoadSpawnListFromJson()
+{
+	nlohmann::json data;
+	if (!FileManager::LoadJsonFile("./resources/spawnlists.json", data)) return;
+	if (!data.is_array()) return;
+
+	for (auto& entry : data)
+	{
+		if (!entry.contains("level") || !entry.contains("zombies")) continue;
+		if (entry["level"].get<int>() != mLevel) continue;
+
+		mSpawnZombieList.clear();
+		std::unordered_set<int> seen;
+		for (auto& v : entry["zombies"])
+		{
+			int val = v.get<int>();
+			if (val < 0 || val >= static_cast<int>(ZombieType::NUM_ZOMBIE_TYPES)) continue;
+			if (seen.count(val)) continue;
+			seen.insert(val);
+			mSpawnZombieList.push_back(static_cast<ZombieType>(val));
+		}
+		return;
+	}
+	// 没找到对应关卡配置，保持默认 ZOMBIE_NORMAL（不清空）
 }

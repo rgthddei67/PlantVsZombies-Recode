@@ -1,5 +1,0 @@
-Dr. Memory version 2.6.20434 build 0 built on Dec 13 2025 03:23:51
-Windows version: WinVer=105;Rel=2009;Build=19044;Edition=IoTEnterpriseS
-Dr. Memory results for pid 13640: "PlantsVsZombies.exe"
-Application cmdline: "D:\C++\PlantsVsZombies\PlantVsZombies\x64\Debug\PlantsVsZombies.exe"
-Recorded 124 suppression(s) from default D:\C++\DrMemory-Windows-2.6.0\bin64\suppress-default.txt

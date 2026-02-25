@@ -66,6 +66,8 @@ private:
 	float mHugeWaveCountDown = 0.0f;	// 一大波倒计时
 	bool mHasHugeWaveSound = false;		// 有无放过一大波音乐
 
+	void LoadSpawnListFromJson();
+
 public:
 	Board(GameScene* gameScene, int level)
 	{
@@ -81,7 +83,10 @@ public:
 		mSpawnZombieList.reserve(16);
 		mSpawnZombieList.push_back(ZombieType::ZOMBIE_NORMAL);
 		mPreviewZombieList.reserve(16);
-		// TODO: 写根据配置读取出怪
+		if (mLevel > 0)
+		{
+			LoadSpawnListFromJson();
+		}
 		CreatePreviewZombies();
 		InitializeCell();
 	}

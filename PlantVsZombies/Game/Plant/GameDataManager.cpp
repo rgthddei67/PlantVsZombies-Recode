@@ -1,4 +1,4 @@
-#include "GameDataManager.h"
+﻿#include "GameDataManager.h"
 #include "../../ResourceKeys.h"
 #include <iostream>
 #include <algorithm>
@@ -55,6 +55,16 @@ void GameDataManager::InitializeHardcodedData() {
 		Vector(-50, -85),
 		1,
 		1
+	);
+
+	RegisterZombie(
+		ZombieType::ZOMBIE_TRAFFIC_CONE,
+		"ZOMBIE_TRAFFIC_CONE",
+		AnimationType::ANIM_CONE_ZOMBIE,
+		ResourceKeys::Reanimations::REANIM_CONE_ZOMBIE,
+		Vector(-50, -85),
+		2,
+		2
 	);
 
 	// ==================== 非植物/僵尸动画映射 ====================

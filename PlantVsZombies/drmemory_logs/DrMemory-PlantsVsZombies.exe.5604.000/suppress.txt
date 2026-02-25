@@ -1,2 +1,0 @@
-# File for suppressing errors found in pid 5604: "PlantsVsZombies.exe"
-

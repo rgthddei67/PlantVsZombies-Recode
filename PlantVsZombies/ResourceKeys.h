@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #ifndef _RESOURCE_KEYS_H
 #define _RESOURCE_KEYS_H
 
@@ -215,6 +215,9 @@ namespace ResourceKeys
         const std::string REANIM_SUNFLOWER = "SunFlower";
 		const std::string REANIM_PEASHOOTER = "PeaShooter";
         const std::string REANIM_NORMAL_ZOMBIE = "NormalZombie";
+        const std::string REANIM_CONE_ZOMBIE = "ConeZombie";
+        const std::string REANIM_POLEVAULTER_ZOMBIE = "PolevaulterZombie";
+        const std::string REANIM_PAIL_ZOMBIE = "BucketZombie";
     }
 
     class ResourceKeyGenerator
