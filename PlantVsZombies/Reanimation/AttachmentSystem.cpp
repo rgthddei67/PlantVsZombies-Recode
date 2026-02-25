@@ -1,9 +1,9 @@
-﻿#include "AttachmentSystem.h"
+#include "AttachmentSystem.h"
 #include "Animator.h"
 #include <algorithm>
 #include <iostream>
 
-// 将SDL颜色转换为glm::vec4
+// 灏哠DL棰滆壊杞崲涓篻lm::vec4
 static glm::vec4 ColorToVec4(const SDL_Color& color) {
     return glm::vec4(
         color.r / 255.0f,
@@ -13,7 +13,7 @@ static glm::vec4 ColorToVec4(const SDL_Color& color) {
     );
 }
 
-// 将glm::vec4转换为SDL颜色
+// 灏唃lm::vec4杞崲涓篠DL棰滆壊
 static SDL_Color Vec4ToColor(const glm::vec4& vec) {
     return SDL_Color{
         static_cast<Uint8>(std::clamp(vec.r * 255.0f, 0.0f, 255.0f)),
@@ -29,17 +29,17 @@ Attachment::Attachment(const std::string& name)
 }
 
 Attachment::~Attachment() {
-    // 分离所有效果
+    // 鍒嗙鎵€鏈夋晥鏋?
     Detach();
 }
 
 void Attachment::Update(float deltaTime) {
     if (!mAlive || !mVisible) return;
 
-    // 清理死亡的效果
+    // 娓呯悊姝讳骸鐨勬晥鏋?
     CleanupDeadEffects();
 
-    // 更新所有效果
+    // 鏇存柊鎵€鏈夋晥鏋?
     for (auto& effectInfo : mEffects) {
         if (effectInfo.IsValid()) {
             effectInfo.effect->Update(deltaTime);
@@ -50,47 +50,47 @@ void Attachment::Update(float deltaTime) {
 void Attachment::Draw(SDL_Renderer* renderer, const TransformData& parentTransform) {
     if (!mAlive || !mVisible || !renderer) return;
 
-    // 计算最终变换
+    // 璁＄畻鏈€缁堝彉鎹?
     TransformData finalTransform = parentTransform.Combine(mTransform);
 
-    // 绘制所有效果
+    // 缁樺埗鎵€鏈夋晥鏋?
     for (auto& effectInfo : mEffects) {
         if (!effectInfo.IsValid() || effectInfo.effect->IsAttached() != mAttached) {
             continue;
         }
 
-        // 如果父节点隐藏且设置了不绘制，则跳过
+        // 濡傛灉鐖惰妭鐐归殣钘忎笖璁剧疆浜嗕笉缁樺埗锛屽垯璺宠繃
         if (!mVisible && effectInfo.dontDrawIfParentHidden) {
             continue;
         }
 
-        // 计算效果的最终变换
+        // 璁＄畻鏁堟灉鐨勬渶缁堝彉鎹?
         TransformData effectTransform = effectInfo.GetFinalTransform(finalTransform);
 
-        // 对于Animator效果，获取其当前的Alpha值并应用
+        // 瀵逛簬Animator鏁堟灉锛岃幏鍙栧叾褰撳墠鐨凙lpha鍊煎苟搴旂敤
         if (effectInfo.effect->GetEffectType() == EffectType::EFFECT_ANIMATION) {
             if (auto animator = std::dynamic_pointer_cast<Animator>(effectInfo.effect)) {
-                // 获取Animator的当前Alpha值
+                // 鑾峰彇Animator鐨勫綋鍓岮lpha鍊?
                 float animatorAlpha = animator->GetAlpha();
 
-                // 保存Animator的原始Alpha
+                // 淇濆瓨Animator鐨勫師濮婣lpha
                 float originalAlpha = animatorAlpha;
 
-                // 将Attachment的mAlpha应用到Animator（作为乘数）
+                // 灏咥ttachment鐨刴Alpha搴旂敤鍒癆nimator锛堜綔涓轰箻鏁帮級
                 float combinedAlpha = originalAlpha * mAlpha;
                 animator->SetAlpha(combinedAlpha);
 
-                // 绘制效果
+                // 缁樺埗鏁堟灉
                 effectInfo.effect->Draw(renderer, effectTransform);
 
-                // 恢复Animator的原始Alpha（不改变Animator内部状态）
+                // 鎭㈠Animator鐨勫師濮婣lpha锛堜笉鏀瑰彉Animator鍐呴儴鐘舵€侊級
                 animator->SetAlpha(originalAlpha);
 
-                continue; // 已处理，继续下一个效果
+                continue; // 宸插鐞嗭紝缁х画涓嬩竴涓晥鏋?
             }
         }
 
-        // 对于非Animator效果，正常绘制
+        // 瀵逛簬闈濧nimator鏁堟灉锛屾甯哥粯鍒?
         effectInfo.effect->Draw(renderer, effectTransform);
     }
 }
@@ -123,7 +123,7 @@ void Attachment::OverrideColor(const SDL_Color& color) {
     mColorOverride = color;
     mHasColorOverride = true;
 
-    // 传播颜色到所有效果（除非设置了不传播）
+    // 浼犳挱棰滆壊鍒版墍鏈夋晥鏋滐紙闄ら潪璁剧疆浜嗕笉浼犳挱锛?
     for (auto& effectInfo : mEffects) {
         if (effectInfo.IsValid() && !effectInfo.dontPropagateColor) {
             effectInfo.effect->OverrideColor(color);
@@ -134,7 +134,7 @@ void Attachment::OverrideColor(const SDL_Color& color) {
 void Attachment::SetAlpha(float alpha) {
     mAlpha = std::clamp(alpha, 0.0f, 1.0f);
 
-    // 传播透明度到所有效果
+    // 浼犳挱閫忔槑搴﹀埌鎵€鏈夋晥鏋?
     for (auto& effectInfo : mEffects) {
         if (effectInfo.IsValid()) {
             effectInfo.effect->SetAlpha(mAlpha);
@@ -145,7 +145,7 @@ void Attachment::SetAlpha(float alpha) {
 void Attachment::SetVisible(bool visible) {
     mVisible = visible;
 
-    // 传播可见性到所有效果（除非设置了不继承可见性）
+    // 浼犳挱鍙鎬у埌鎵€鏈夋晥鏋滐紙闄ら潪璁剧疆浜嗕笉缁ф壙鍙鎬э級
     for (auto& effectInfo : mEffects) {
         if (effectInfo.IsValid() && effectInfo.inheritVisibility) {
             effectInfo.effect->SetVisible(visible);
@@ -159,7 +159,7 @@ void Attachment::PropagateColor(const SDL_Color& color,
     mColorOverride = color;
     mHasColorOverride = true;
 
-    // 传播颜色到所有效果（除非设置了不传播）
+    // 浼犳挱棰滆壊鍒版墍鏈夋晥鏋滐紙闄ら潪璁剧疆浜嗕笉浼犳挱锛?
     for (auto& effectInfo : mEffects) {
         if (effectInfo.IsValid() && !effectInfo.dontPropagateColor) {
             effectInfo.effect->PropagateColor(color, enableAdditive, additiveColor,
@@ -171,7 +171,7 @@ void Attachment::PropagateColor(const SDL_Color& color,
 void Attachment::SetTransformMatrix(const glm::mat3& matrix) {
     mTransform.matrix = matrix;
 
-    // 从矩阵中提取位置、缩放和旋转
+    // 浠庣煩闃典腑鎻愬彇浣嶇疆銆佺缉鏀惧拰鏃嬭浆
     mTransform.position = glm::vec2(matrix[2][0], matrix[2][1]);
     mTransform.scale.x = glm::length(glm::vec2(matrix[0][0], matrix[0][1]));
     mTransform.scale.y = glm::length(glm::vec2(matrix[1][0], matrix[1][1]));
@@ -183,32 +183,32 @@ void Attachment::SetTransformMatrix(const glm::mat3& matrix) {
 }
 
 void Attachment::Die() {
-    // 标记为死亡
+    // 鏍囪涓烘浜?
     mAlive = false;
 
-    // 销毁所有效果
+    // 閿€姣佹墍鏈夋晥鏋?
     for (auto& effectInfo : mEffects) {
         if (effectInfo.IsValid()) {
             effectInfo.effect->Die();
         }
     }
 
-    // 清空效果列表
+    // 娓呯┖鏁堟灉鍒楄〃
     mEffects.clear();
 }
 
 void Attachment::Detach() {
-    // 分离所有效果
+    // 鍒嗙鎵€鏈夋晥鏋?
     for (auto& effectInfo : mEffects) {
         if (effectInfo.IsValid()) {
             effectInfo.effect->Detach();
         }
     }
 
-    // 清空效果列表
+    // 娓呯┖鏁堟灉鍒楄〃
     mEffects.clear();
 
-    // 标记为未附加
+    // 鏍囪涓烘湭闄勫姞
     mAttached = false;
 }
 
@@ -220,27 +220,27 @@ bool Attachment::AddEffect(std::shared_ptr<IAttachmentEffect> effect,
         return false;
     }
 
-    // 检查效果是否已经附加
+    // 妫€鏌ユ晥鏋滄槸鍚﹀凡缁忛檮鍔?
     if (effect->IsAttached()) {
         std::cerr << "Warning: Effect is already attached to another attachment!" << std::endl;
         return false;
     }
 
-    // 设置偏移变换
+    // 璁剧疆鍋忕Щ鍙樻崲
     TransformData offsetTransform;
     offsetTransform.SetPosition(offset);
     offsetTransform.SetScale(scale);
     offsetTransform.SetRotation(rotation);
 
-    // 设置效果为附加状态
+    // 璁剧疆鏁堟灉涓洪檮鍔犵姸鎬?
     effect->SetAttached(true);
 
-    // 创建效果信息
+    // 鍒涘缓鏁堟灉淇℃伅
     AttachmentEffect effectInfo;
     effectInfo.effect = std::move(effect);
     effectInfo.offsetTransform = offsetTransform;
 
-    // 添加到列表
+    // 娣诲姞鍒板垪琛?
     mEffects.push_back(std::move(effectInfo));
     return true;
 }
@@ -263,7 +263,7 @@ bool Attachment::AddAnimator(std::shared_ptr<Animator> animator,
         return false;
     }
 
-    // Animator应该已经实现了IAttachmentEffect接口
+    // Animator搴旇宸茬粡瀹炵幇浜咺AttachmentEffect鎺ュ彛
     return AddEffect(std::static_pointer_cast<IAttachmentEffect>(animator),
         offset, scale, rotation);
 }
@@ -346,7 +346,7 @@ std::vector<std::shared_ptr<Animator>> Attachment::FindAllAnimators() const {
 }
 
 void Attachment::CleanupDeadEffects() {
-    // 移除死亡或无效的效果
+    // 绉婚櫎姝讳骸鎴栨棤鏁堢殑鏁堟灉
     auto newEnd = std::remove_if(mEffects.begin(), mEffects.end(),
         [](const AttachmentEffect& effectInfo) {
             return !effectInfo.IsValid();
@@ -362,7 +362,7 @@ AttachmentSystem::~AttachmentSystem() {
 }
 
 std::shared_ptr<Attachment> AttachmentSystem::CreateAttachment(const std::string& name) {
-    // 检查名称是否已存在
+    // 妫€鏌ュ悕绉版槸鍚﹀凡瀛樺湪
     if (!name.empty() && HasAttachment(name)) {
         std::cerr << "AttachmentSystem: Attachment with name '" << name << "' already exists!" << std::endl;
         return nullptr;
@@ -398,16 +398,16 @@ bool AttachmentSystem::RemoveAttachment(const std::string& name) {
 
     auto attachment = it->second;
 
-    // 从活动列表中移除
+    // 浠庢椿鍔ㄥ垪琛ㄤ腑绉婚櫎
     mActiveAttachments.erase(
         std::remove(mActiveAttachments.begin(), mActiveAttachments.end(), attachment),
         mActiveAttachments.end()
     );
 
-    // 销毁附件
+    // 閿€姣侀檮浠?
     attachment->Die();
 
-    // 从命名映射中移除
+    // 浠庡懡鍚嶆槧灏勪腑绉婚櫎
     mNamedAttachments.erase(it);
 
     return true;
@@ -425,10 +425,10 @@ void AttachmentSystem::RemoveAllAttachments() {
 }
 
 void AttachmentSystem::UpdateAll(float deltaTime) {
-    // 清理死亡附件
+    // 娓呯悊姝讳骸闄勪欢
     CleanupDeadAttachments();
 
-    // 更新所有附件
+    // 鏇存柊鎵€鏈夐檮浠?
     for (auto& attachment : mActiveAttachments) {
         UpdateAttachment(attachment, deltaTime);
     }
@@ -437,7 +437,7 @@ void AttachmentSystem::UpdateAll(float deltaTime) {
 void AttachmentSystem::DrawAll(SDL_Renderer* renderer) {
     if (!renderer) return;
 
-    TransformData identity; // 单位变换
+    TransformData identity; // 鍗曚綅鍙樻崲
 
     for (auto& attachment : mActiveAttachments) {
         if (attachment && attachment->IsAlive()) {
@@ -447,13 +447,13 @@ void AttachmentSystem::DrawAll(SDL_Renderer* renderer) {
 }
 
 void AttachmentSystem::CleanupDeadAttachments() {
-    // 从活动列表中移除死亡附件
+    // 浠庢椿鍔ㄥ垪琛ㄤ腑绉婚櫎姝讳骸闄勪欢
     auto newEnd = std::remove_if(mActiveAttachments.begin(), mActiveAttachments.end(),
         [](const std::shared_ptr<Attachment>& attachment) {
             return !attachment || !attachment->IsAlive();
         });
 
-    // 从命名映射中移除死亡附件
+    // 浠庡懡鍚嶆槧灏勪腑绉婚櫎姝讳骸闄勪欢
     for (auto it = newEnd; it != mActiveAttachments.end(); ++it) {
         for (auto mapIt = mNamedAttachments.begin(); mapIt != mNamedAttachments.end(); ) {
             if (mapIt->second == *it) {

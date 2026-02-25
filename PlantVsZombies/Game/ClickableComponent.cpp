@@ -1,4 +1,4 @@
-﻿#include "ClickableComponent.h"
+#include "ClickableComponent.h"
 #include "ColliderComponent.h"
 #include "GameObjectManager.h"
 #include "../UI/InputHandler.h"

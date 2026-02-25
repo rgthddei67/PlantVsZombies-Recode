@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #ifndef _CELL_H
 #define _CELL_H
 #include "Definit.h"

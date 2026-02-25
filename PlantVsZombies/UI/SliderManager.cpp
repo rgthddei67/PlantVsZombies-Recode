@@ -1,4 +1,4 @@
-﻿#include "SliderManager.h"
+#include "SliderManager.h"
 
 std::shared_ptr<Slider> SliderManager::CreateSlider(Vector pos, Vector size,
     float minVal, float maxVal,

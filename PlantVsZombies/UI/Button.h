@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #ifndef _BUTTON_H
 #define _BUTTON_H
 #include "../GameApp.h"
@@ -13,32 +13,32 @@ class ResourceManager;
 class Button
 {
 private:
-    Vector position = Vector::zero();          // 按钮位置
-    Vector size = Vector(40, 40);              // 按钮大小
-    bool isHovered = false;                    // 是否悬停
-    bool isPressed = false;                    // 是否按下
-    bool isChecked = false;                    // 是否勾选
-    bool isCheckbox = false;                   // 是否是复选框类型
-	bool canClick = true;                      // 是否可点击
+    Vector position = Vector::zero();          // 鎸夐挳浣嶇疆
+    Vector size = Vector(40, 40);              // 鎸夐挳澶у皬
+    bool isHovered = false;                    // 鏄惁鎮仠
+    bool isPressed = false;                    // 鏄惁鎸変笅
+    bool isChecked = false;                    // 鏄惁鍕鹃€?
+    bool isCheckbox = false;                   // 鏄惁鏄閫夋绫诲瀷
+	bool canClick = true;                      // 鏄惁鍙偣鍑?
 
-    std::string normalImageKey = "IMAGE_options_checkbox0";                // 正常状态图片key
-    std::string hoverImageKey = "IMAGE_options_checkbox0";                 // 悬停状态图片key  
-    std::string pressedImageKey = "IMAGE_options_checkbox0";               // 按下状态图片key
-    std::string checkedImageKey = "IMAGE_options_checkbox1";               // 选中状态图片key
+    std::string normalImageKey = "IMAGE_options_checkbox0";                // 姝ｅ父鐘舵€佸浘鐗噆ey
+    std::string hoverImageKey = "IMAGE_options_checkbox0";                 // 鎮仠鐘舵€佸浘鐗噆ey  
+    std::string pressedImageKey = "IMAGE_options_checkbox0";               // 鎸変笅鐘舵€佸浘鐗噆ey
+    std::string checkedImageKey = "IMAGE_options_checkbox1";               // 閫変腑鐘舵€佸浘鐗噆ey
 
-    std::string text = "";                     // 按钮文字
-    std::string fontName = ResourceKeys::Fonts::FONT_FZCQ;        // 字体文件名
-    int fontSize = 17;                         // 字体大小
-    glm::vec4 textColor = { 0, 0, 0, 255 };      // 文字颜色（黑色）
-    glm::vec4 hoverTextColor = { 255, 255, 255, 255 }; // 悬停时文字颜色（白色）
+    std::string text = "";                     // 鎸夐挳鏂囧瓧
+    std::string fontName = ResourceKeys::Fonts::FONT_FZCQ;        // 瀛椾綋鏂囦欢鍚?
+    int fontSize = 17;                         // 瀛椾綋澶у皬
+    glm::vec4 textColor = { 0, 0, 0, 255 };      // 鏂囧瓧棰滆壊锛堥粦鑹诧級
+    glm::vec4 hoverTextColor = { 255, 255, 255, 255 }; // 鎮仠鏃舵枃瀛楅鑹诧紙鐧借壊锛?
 
-    std::function<void(bool isChecked)> onClickCallback = nullptr; // 点击回调函数
+    std::function<void(bool isChecked)> onClickCallback = nullptr; // 鐐瑰嚮鍥炶皟鍑芥暟
     static std::string s_defaultFontPath;
     bool m_mousePressedThisFrame;
     bool m_mouseReleasedThisFrame;
     bool m_wasMouseDown;
 
-	bool mEnabled = true; // 是否启用按钮
+	bool mEnabled = true; // 鏄惁鍚敤鎸夐挳
 
 public:
     Button(Vector createPosition = Vector::zero(), Vector btnSize = Vector(40, 40));
@@ -46,7 +46,7 @@ public:
     static std::string GetDefaultFontPath();
 
     void ProcessMouseEvent(InputHandler* input);
-    void ResetFrameState(); // 重置
+    void ResetFrameState(); // 閲嶇疆
 
     void SetPosition(Vector pos);
     void SetSize(Vector size);
@@ -57,23 +57,23 @@ public:
 	void SetCanClick(bool canClick);
     void SetEnabled(bool enabled) { this->mEnabled = enabled; }
 
-    // 设置图片资源key
+    // 璁剧疆鍥剧墖璧勬簮key
     void SetImageKeys(const std::string& normal, const std::string& hover = "", const std::string& pressed = "", const std::string& checked = "");
 
-    // 设置点击回调
+    // 璁剧疆鐐瑰嚮鍥炶皟
     void SetClickCallBack(std::function<void(bool)> callback);
 
-    // 更新和渲染
+    // 鏇存柊鍜屾覆鏌?
     void Update(InputHandler* input);
     void Draw(Graphics* g) const;
 
-    // 状态获取
+    // 鐘舵€佽幏鍙?
     bool IsHovered() const;
     bool IsPressed() const;
     bool IsChecked() const;
     void SetChecked(bool checked);
 
-    // 检测点是否在按钮内
+    // 妫€娴嬬偣鏄惁鍦ㄦ寜閽唴
     bool ContainsPoint(Vector point) const;
 };
 

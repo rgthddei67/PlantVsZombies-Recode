@@ -1,4 +1,4 @@
-﻿#include "GameMessageBox.h"
+#include "GameMessageBox.h"
 #include "../ResourceManager.h"
 #include "../GameAPP.h"
 #include "../Game/GameObjectManager.h"
@@ -10,15 +10,15 @@
 #include <memory>
 
 namespace {
-	const Vector DEFAULT_SIZE(SCENE_WIDTH / 2, SCENE_HEIGHT / 2);          // 无背景图片时的默认尺寸
-	const Vector BASE_BUTTON_SIZE(125 * 0.8f, 52 * 0.8f);        // 按钮基准尺寸
+	const Vector DEFAULT_SIZE(SCENE_WIDTH / 2, SCENE_HEIGHT / 2);          // 鏃犺儗鏅浘鐗囨椂鐨勯粯璁ゅ昂瀵?
+	const Vector BASE_BUTTON_SIZE(125 * 0.8f, 52 * 0.8f);        // 鎸夐挳鍩哄噯灏哄
 	const int BASE_TITLE_FONT_SIZE = 20;
 	const int BASE_MESSAGE_FONT_SIZE = 18;
 	const int BASE_BUTTON_FONT_SIZE = 14;
-	const int BUTTON_SPACING = 10;                 // 按钮间距基准
+	const int BUTTON_SPACING = 10;                 // 鎸夐挳闂磋窛鍩哄噯
 	const Vector TITLE_OFFSET = Vector(-70, -65);
 	const Vector MESSAGE_OFFSET = Vector(-190, -25);
-	const int BOTTOM_MARGIN = 10;                    // 按钮距底部边距
+	const int BOTTOM_MARGIN = 10;                    // 鎸夐挳璺濆簳閮ㄨ竟璺?
 }
 
 GameMessageBox::GameMessageBox(const Vector& pos,
@@ -37,7 +37,7 @@ GameMessageBox::GameMessageBox(const Vector& pos,
 {
 	mIsUI = true;
 
-	// 计算实际大小 = 原始尺寸 × 缩放
+	// 璁＄畻瀹為檯澶у皬 = 鍘熷灏哄 脳 缂╂斁
 	Vector originalSize = GetBackgroundOriginalSize();
 	m_size = originalSize * scale;
 }
@@ -69,13 +69,13 @@ void GameMessageBox::Start()
 {
 	GameObject::Start();
 
-	// 创建按钮
+	// 鍒涘缓鎸夐挳
 	for (const auto& config : m_buttonConfigs) {
 		Vector btnSize = BASE_BUTTON_SIZE * m_scale;
 		auto button = SceneManager::GetInstance().GetCurrectSceneUIManager().
 			CreateButton(config.pos, btnSize);
 
-		// 设置按钮文字（字体大小按比例缩放）
+		// 璁剧疆鎸夐挳鏂囧瓧锛堝瓧浣撳ぇ灏忔寜姣斾緥缂╂斁锛?
 		int fontSize = static_cast<int>(BASE_BUTTON_FONT_SIZE * m_scale);
 		if (fontSize < 8) fontSize = 8;
 		button->SetTextColor(m_titleColor);
@@ -84,7 +84,7 @@ void GameMessageBox::Start()
 		button->SetImageKeys(ResourceKeys::Textures::IMAGE_BUTTONSMALL, ResourceKeys::Textures::IMAGE_BUTTONSMALL,
 			ResourceKeys::Textures::IMAGE_BUTTONSMALL, ResourceKeys::Textures::IMAGE_BUTTONSMALL);
 
-		// 设置回调（使用 weak_ptr 避免循环引用）
+		// 璁剧疆鍥炶皟锛堜娇鐢?weak_ptr 閬垮厤寰幆寮曠敤锛?
 		auto weakSelf = std::weak_ptr<GameMessageBox>(std::dynamic_pointer_cast<GameMessageBox>(shared_from_this()));
 		button->SetClickCallBack([weakSelf, config](bool) {
 			if (config.callback) config.callback();
@@ -103,7 +103,7 @@ void GameMessageBox::Draw(Graphics* g)
 {
 	if (!mActive) return;
 
-	// 绘制背景（拉伸到缩放后的大小）
+	// 缁樺埗鑳屾櫙锛堟媺浼稿埌缂╂斁鍚庣殑澶у皬锛?
 	if (!m_backgroundImageKey.empty()) {
 		auto& resMgr = ResourceManager::GetInstance();
 		const GLTexture* tex = resMgr.GetTexture(m_backgroundImageKey);
@@ -111,10 +111,10 @@ void GameMessageBox::Draw(Graphics* g)
 		g->DrawTexture(tex, pos.x, pos.y, m_size.x, m_size.y);
 	}
 	else {
-		std::cerr << "[GameMessageBox::Draw] 你TM还不给我设置图片是吧" << std::endl;
+		std::cerr << "[GameMessageBox::Draw] 浣燭M杩樹笉缁欐垜璁剧疆鍥剧墖鏄惂" << std::endl;
 	}
 
-	// 绘制标题
+	// 缁樺埗鏍囬
 	if (!m_title.empty()) {
 		int fontSize = static_cast<int>(BASE_TITLE_FONT_SIZE * m_scale);
 		if (fontSize < 8) fontSize = 8;
@@ -124,7 +124,7 @@ void GameMessageBox::Draw(Graphics* g)
 			ResourceKeys::Fonts::FONT_FZCQ, fontSize);
 	}
 
-	// 绘制消息
+	// 缁樺埗娑堟伅
 	if (!m_message.empty()) {
 		int fontSize = static_cast<int>(BASE_MESSAGE_FONT_SIZE * m_scale);
 		if (fontSize < 8) fontSize = 8;

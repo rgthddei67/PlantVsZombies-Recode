@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #ifndef __PARTICLE_H__
 #define __PARTICLE_H__
 
@@ -14,13 +14,13 @@ enum class ParticleType {
     NUM_EFFECTS
 };
 
-// 基础粒子数据
+// 鍩虹绮掑瓙鏁版嵁
 struct Particle {
     Vector position;
     Vector velocity;
-    glm::vec4 color;          // 当前颜色 (0~1)
-    glm::vec4 startColor;     // 起始颜色 (0~1)
-    glm::vec4 endColor;       // 结束颜色 (0~1)
+    glm::vec4 color;          // 褰撳墠棰滆壊 (0~1)
+    glm::vec4 startColor;     // 璧峰棰滆壊 (0~1)
+    glm::vec4 endColor;       // 缁撴潫棰滆壊 (0~1)
     float lifetime;
     float maxLifetime;
     float size;
@@ -31,7 +31,7 @@ struct Particle {
     float gravity;
     bool active;
     bool fadeOut;
-    const GLTexture* texture; // 粒子纹理
+    const GLTexture* texture; // 绮掑瓙绾圭悊
 
     Particle();
     void Reset();

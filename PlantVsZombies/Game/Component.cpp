@@ -1,4 +1,4 @@
-﻿#include "Component.h"
+#include "Component.h"
 #include "GameObject.h"
 
 std::shared_ptr<GameObject> Component::GetGameObject() const {

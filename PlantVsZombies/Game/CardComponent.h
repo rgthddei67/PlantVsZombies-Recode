@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #ifndef _CARD_COMPONENT_H
 #define _CARD_COMPONENT_H
 

@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #ifndef __GRAPHICS_H__
 #define __GRAPHICS_H__
 

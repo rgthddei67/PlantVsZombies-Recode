@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #ifndef _RENDER_ORDER_H
 #define _RENDER_ORDER_H
 

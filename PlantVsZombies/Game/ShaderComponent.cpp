@@ -1,4 +1,4 @@
-﻿#include "ShadowComponent.h"
+#include "ShadowComponent.h"
 #include "../ResourceManager.h"
 #include "GameObject.h"
 #include <algorithm>

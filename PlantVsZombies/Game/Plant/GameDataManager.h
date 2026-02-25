@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #ifndef _PLANT_DATA_MANAGER_H
 #define _PLANT_DATA_MANAGER_H
 

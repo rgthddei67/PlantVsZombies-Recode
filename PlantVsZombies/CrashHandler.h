@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #ifndef _CRASH_HANDLER_H
 #define _CRASH_HANDLER_H
 

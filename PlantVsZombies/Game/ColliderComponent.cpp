@@ -1,4 +1,4 @@
-﻿#include "ColliderComponent.h"
+#include "ColliderComponent.h"
 #include "TransformComponent.h"
 #include "GameObject.h"
 #include "Component.h"

@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #ifndef _REANIM_TYPES_H
 #define _REANIM_TYPES_H
 
@@ -11,22 +11,22 @@
 
 struct GLTexture;
 
-// 动画帧变换数据
+// 鍔ㄧ敾甯у彉鎹㈡暟鎹?
 struct TrackFrameTransform {
     float x = 0.0f;
     float y = 0.0f;
-    float kx = 0.0f;  // 旋转X
-    float ky = 0.0f;  // 旋转Y  
-    float sx = 1.0f;  // 缩放X
-    float sy = 1.0f;  // 缩放Y
-    float a = 1.0f;   // 透明度
-    int f = 0;        // 显示标志（0=显示，-1=空白/分隔）
-    const GLTexture* image = nullptr; // 图像
+    float kx = 0.0f;  // 鏃嬭浆X
+    float ky = 0.0f;  // 鏃嬭浆Y  
+    float sx = 1.0f;  // 缂╂斁X
+    float sy = 1.0f;  // 缂╂斁Y
+    float a = 1.0f;   // 閫忔槑搴?
+    int f = 0;        // 鏄剧ず鏍囧織锛?=鏄剧ず锛?1=绌虹櫧/鍒嗛殧锛?
+    const GLTexture* image = nullptr; // 鍥惧儚
 
     TrackFrameTransform() = default;
 };
 
-// 动画轨道信息
+// 鍔ㄧ敾杞ㄩ亾淇℃伅
 struct TrackInfo {
     std::string mTrackName = "";
     bool mAvailable = true;
@@ -36,17 +36,17 @@ struct TrackInfo {
     explicit TrackInfo(const std::string& name) : mTrackName(name) {}
 };
 
-// 轨道额外控制信息
+// 杞ㄩ亾棰濆鎺у埗淇℃伅
 struct TrackExtraInfo {
     bool mVisible = true;
-    float mOffsetX = 0.0f;          // 轨道自身绘制偏移 X
-    float mOffsetY = 0.0f;          // 轨道自身绘制偏移 Y
-    const GLTexture* mImage = nullptr;  // 手动覆盖图片设置
-    std::unordered_map<std::string, const GLTexture*> mTextureCache; // 图片名 -> 纹理
-    std::vector<std::weak_ptr<class Animator>> mAttachedReanims;  // 附加的子动画
+    float mOffsetX = 0.0f;          // 杞ㄩ亾鑷韩缁樺埗鍋忕Щ X
+    float mOffsetY = 0.0f;          // 杞ㄩ亾鑷韩缁樺埗鍋忕Щ Y
+    const GLTexture* mImage = nullptr;  // 鎵嬪姩瑕嗙洊鍥剧墖璁剧疆
+    std::unordered_map<std::string, const GLTexture*> mTextureCache; // 鍥剧墖鍚?-> 绾圭悊
+    std::vector<std::weak_ptr<class Animator>> mAttachedReanims;  // 闄勫姞鐨勫瓙鍔ㄧ敾
 };
 
-// 动画播放状态
+// 鍔ㄧ敾鎾斁鐘舵€?
 enum class PlayState {
     PLAY_NONE,
     PLAY_REPEAT,

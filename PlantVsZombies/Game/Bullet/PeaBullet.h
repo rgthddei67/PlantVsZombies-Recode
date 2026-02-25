@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "Bullet.h"
 
 class PeaBullet : public Bullet

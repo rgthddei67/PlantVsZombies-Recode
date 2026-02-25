@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #ifndef _CURSOR_MANAGER_H
 #define _CURSOR_MANAGER_H
 

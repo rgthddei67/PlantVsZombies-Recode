@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #ifndef _GAME_MONITOR_H
 #define _GAME_MONITOR_H
 #include "CrashHandler.h"

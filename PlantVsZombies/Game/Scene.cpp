@@ -1,4 +1,4 @@
-﻿#include "Scene.h"
+#include "Scene.h"
 #include "GameObjectManager.h"
 #include "CollisionSystem.h"
 #include "../ResourceManager.h"

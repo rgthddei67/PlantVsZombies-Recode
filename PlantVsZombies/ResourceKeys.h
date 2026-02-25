@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #ifndef _RESOURCE_KEYS_H
 #define _RESOURCE_KEYS_H
 

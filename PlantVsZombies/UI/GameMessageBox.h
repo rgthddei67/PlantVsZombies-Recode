@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #ifndef _H_MESSAGEBOX_H
 #define _H_MESSAGEBOX_H
 
@@ -13,12 +13,12 @@
 
 class GameMessageBox : public GameObject {
 public:
-    // 按钮配置结构
+    // 鎸夐挳閰嶇疆缁撴瀯
     struct ButtonConfig {
-        std::string text;                 // 按钮文字
+        std::string text;                 // 鎸夐挳鏂囧瓧
         Vector pos;
-        std::function<void()> callback;   // 点击回调
-        bool autoClose = true;             // 点击后是否自动关闭消息框
+        std::function<void()> callback;   // 鐐瑰嚮鍥炶皟
+        bool autoClose = true;             // 鐐瑰嚮鍚庢槸鍚﹁嚜鍔ㄥ叧闂秷鎭
     };
 
     GameMessageBox(const Vector& pos,
@@ -33,13 +33,13 @@ public:
     virtual void Start() override;
     virtual void Draw(Graphics* g) override;
 
-    // 关闭消息框（从GameObjectManager中销毁自己）
+    // 鍏抽棴娑堟伅妗嗭紙浠嶨ameObjectManager涓攢姣佽嚜宸憋級
     void Close();
 
 private:
     Vector m_position;
     float m_scale;
-    Vector m_size;               // 实际大小（已乘缩放）
+    Vector m_size;               // 瀹為檯澶у皬锛堝凡涔樼缉鏀撅級
     std::string m_title;
     std::string m_message;
     std::string m_backgroundImageKey = ResourceKeys::Textures::IMAGE_MESSAGEBOX;
@@ -49,7 +49,7 @@ private:
     glm::vec4 m_textColor = { 245, 214, 127, 255 };
     glm::vec4 m_titleColor = { 53, 191, 61, 255 };
 
-    // 获取背景图片原始尺寸（若无图片则返回默认尺寸）
+    // 鑾峰彇鑳屾櫙鍥剧墖鍘熷灏哄锛堣嫢鏃犲浘鐗囧垯杩斿洖榛樿灏哄锛?
     Vector GetBackgroundOriginalSize() const;
 };
 

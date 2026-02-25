@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #ifndef _AUDIOSYSTEM_H
 #define _AUDIOSYSTEM_H
 #ifdef PlaySound

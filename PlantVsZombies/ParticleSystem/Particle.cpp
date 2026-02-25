@@ -1,4 +1,4 @@
-﻿#include "Particle.h"
+#include "Particle.h"
 #include "../DeltaTime.h"
 #include <cmath>
 
@@ -36,7 +36,7 @@ void Particle::Update() {
         return;
     }
 
-    // 物理更新
+    // 鐗╃悊鏇存柊
     velocity.y += gravity * deltaTime;
     position.x += velocity.x * deltaTime;
     position.y += velocity.y * deltaTime;
@@ -45,7 +45,7 @@ void Particle::Update() {
     float t = lifetime / maxLifetime;
     size = startSize + (endSize - startSize) * t;
 
-    // 颜色插值（fadeOut 控制透明度渐变）
+    // 棰滆壊鎻掑€硷紙fadeOut 鎺у埗閫忔槑搴︽笎鍙橈級
     if (fadeOut) {
         color.r = startColor.r + (endColor.r - startColor.r) * t;
         color.g = startColor.g + (endColor.g - startColor.g) * t;

@@ -1,4 +1,4 @@
-﻿#include "EntityManager.h"
+#include "EntityManager.h"
 #include "Plant/Plant.h"
 #include "Zombie/Zombie.h"
 #include "Bullet/Bullet.h"

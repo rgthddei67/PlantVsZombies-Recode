@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #ifndef _SLIDERMANAGER_H
 #define _SLIDERMANAGER_H
 #include "../UI/Slider.h"
@@ -8,38 +8,38 @@
 class SliderManager
 {
 private:
-    std::vector<std::shared_ptr<Slider>> sliders; // 智能指针管理滑动条
+    std::vector<std::shared_ptr<Slider>> sliders; // 鏅鸿兘鎸囬拡绠＄悊婊戝姩鏉?
 
 public:
-    // 创建滑动条并返回指针
+    // 鍒涘缓婊戝姩鏉″苟杩斿洖鎸囬拡
     std::shared_ptr<Slider> CreateSlider(Vector pos = Vector::zero(),
         Vector size = Vector(135, 10),
         float minVal = 0.0f,
         float maxVal = 1.0f,
         float initialValue = 0.5f);
 
-    // 处理所有滑动条鼠标事件
+    // 澶勭悊鎵€鏈夋粦鍔ㄦ潯榧犳爣浜嬩欢
     void ProcessMouseEvent(InputHandler* input);
 
-    // 更新所有滑动条
+    // 鏇存柊鎵€鏈夋粦鍔ㄦ潯
     void UpdateAll(InputHandler* input);
 
-    // 渲染所有滑动条
+    // 娓叉煋鎵€鏈夋粦鍔ㄦ潯
     void DrawAll(Graphics* g) const;
 
-    // 添加现有滑动条
+    // 娣诲姞鐜版湁婊戝姩鏉?
     void AddSlider(std::shared_ptr<Slider> slider);
 
-    // 移除滑动条
+    // 绉婚櫎婊戝姩鏉?
     void RemoveSlider(std::shared_ptr<Slider> slider);
 
-    // 删除全部滑动条
+    // 鍒犻櫎鍏ㄩ儴婊戝姩鏉?
     void ClearAllSliders();
 
-    // 获取滑动条数量
+    // 鑾峰彇婊戝姩鏉℃暟閲?
     size_t GetSliderCount() const;
 
-    // 通过索引获取滑动条
+    // 閫氳繃绱㈠紩鑾峰彇婊戝姩鏉?
     std::shared_ptr<Slider> GetSlider(size_t index) const;
 };
 

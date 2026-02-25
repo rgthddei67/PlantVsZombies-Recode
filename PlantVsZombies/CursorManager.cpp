@@ -1,4 +1,4 @@
-﻿#include "CursorManager.h"
+#include "CursorManager.h"
 #include <iostream>
 
 CursorManager::CursorManager() {

@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #ifndef _H_BULLETTYPE_H
 #define _H_BULLETTYPE_H
 

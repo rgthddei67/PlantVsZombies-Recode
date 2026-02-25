@@ -1,4 +1,4 @@
-﻿#include "Graphics.h"
+#include "Graphics.h"
 
 Graphics::Graphics() {
     m_transformStack.push_back(glm::mat4(1.0f));

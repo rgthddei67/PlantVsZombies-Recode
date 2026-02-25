@@ -1,4 +1,4 @@
-﻿#define SDL_MAIN_HANDLED
+#define SDL_MAIN_HANDLED
 #include "./CrashHandler.h"
 #include "./GameRandom.h"
 #include "./GameAPP.h"

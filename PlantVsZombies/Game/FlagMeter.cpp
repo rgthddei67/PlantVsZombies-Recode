@@ -1,4 +1,4 @@
-﻿#include "FlagMeter.h"
+#include "FlagMeter.h"
 #include "../ResourceManager.h"
 #include <algorithm>
 #include <cmath>

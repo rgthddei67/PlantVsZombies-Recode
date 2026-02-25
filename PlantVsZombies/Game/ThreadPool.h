@@ -10,7 +10,7 @@
 #include <functional>
 #include <algorithm>
 
-// 持久线程池，避免每帧创建/销毁线程
+// 鎸佷箙绾跨▼姹狅紝閬垮厤姣忓抚鍒涘缓/閿€姣佺嚎绋?
 class ThreadPool {
 public:
     explicit ThreadPool(int numThreads)
@@ -30,7 +30,7 @@ public:
         for (auto& t : mWorkers) t.join();
     }
 
-    // 将 [0, totalItems) 分段分发给各线程，阻塞直到全部完成
+    // 灏?[0, totalItems) 鍒嗘鍒嗗彂缁欏悇绾跨▼锛岄樆濉炵洿鍒板叏閮ㄥ畬鎴?
     void Dispatch(int totalItems, std::function<void(int, int)> func) {
         if (totalItems <= 0) return;
         int n = static_cast<int>(mWorkers.size());

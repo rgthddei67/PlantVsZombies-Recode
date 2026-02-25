@@ -1,4 +1,4 @@
-﻿#include "../Board.h"
+#include "../Board.h"
 #include "../Zombie/Zombie.h"
 #include "Bullet.h"
 #include "../GameObjectManager.h"

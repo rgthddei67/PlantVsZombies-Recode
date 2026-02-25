@@ -1,4 +1,4 @@
-﻿#include "GameDataManager.h"
+#include "GameDataManager.h"
 #include "../../ResourceKeys.h"
 #include <iostream>
 #include <algorithm>

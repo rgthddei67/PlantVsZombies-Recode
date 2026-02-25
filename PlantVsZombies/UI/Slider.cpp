@@ -1,4 +1,4 @@
-﻿#include "Slider.h"
+#include "Slider.h"
 #include "../ResourceManager.h"
 #include "../CursorManager.h"
 #include <iostream>
@@ -11,7 +11,7 @@ Slider::Slider(Vector createPosition, Vector sliderSize,
     isDragging(false), dragStartPosition(Vector::zero()), dragStartValue(0.0f), 
     SliderSizeX(22), SliderSizeY(29)
 {
-    // 确保值在有效范围内
+    // 纭繚鍊煎湪鏈夋晥鑼冨洿鍐?
     currentValue = std::clamp(currentValue, minValue, maxValue);
 }
 
@@ -37,7 +37,7 @@ void Slider::SetValue(float value)
     float oldValue = this->currentValue;
     this->currentValue = std::clamp(value, minValue, maxValue);
 
-    // 如果值发生变化且设置了回调，调用回调
+    // 濡傛灉鍊煎彂鐢熷彉鍖栦笖璁剧疆浜嗗洖璋冿紝璋冪敤鍥炶皟
     if (oldValue != this->currentValue && this->onChangeCallback)
     {
         this->onChangeCallback(this->currentValue);
@@ -68,14 +68,14 @@ void Slider::ProcessMouseEvent(InputHandler* input)
 
     if (input->IsMouseButtonDown(SDL_BUTTON_LEFT))
     {
-        // 检查是否点击了滑块
+        // 妫€鏌ユ槸鍚︾偣鍑讳簡婊戝潡
         if (KnobContainsPoint(mousePos))
         {
             isDragging = true;
             dragStartPosition = mousePos;
             dragStartValue = currentValue;
         }
-        // 检查是否点击了背景（但不是滑块）
+        // 妫€鏌ユ槸鍚︾偣鍑讳簡鑳屾櫙锛堜絾涓嶆槸婊戝潡锛?
         else if (this->BackgroundContainsPoint(mousePos) && !this->KnobContainsPoint(mousePos))
         {
             float newValue = this->CalculateValueFromX(mousePos.x);
@@ -103,7 +103,7 @@ void Slider::Update(InputHandler* input)
     {
         float deltaX = mousePos.x - dragStartPosition.x;
 
-        // 计算像素到值的转换比例
+        // 璁＄畻鍍忕礌鍒板€肩殑杞崲姣斾緥
         float pixelsPerValue = size.x / (maxValue - minValue);
         float valueDelta = deltaX / pixelsPerValue;
 
@@ -114,7 +114,7 @@ void Slider::Update(InputHandler* input)
 void Slider::Draw(Graphics* g) const
 {
 	ResourceManager& resourceManager = ResourceManager::GetInstance();
-    // 绘制背景
+    // 缁樺埗鑳屾櫙
     if (!backgroundImageKey.empty() && resourceManager.HasTexture(backgroundImageKey))
     {
         const GLTexture* texture = resourceManager.GetTexture(backgroundImageKey);
@@ -125,20 +125,20 @@ void Slider::Draw(Graphics* g) const
     }
     else
     {
-        // 如果没有背景图片，绘制一个灰色矩形作为背景
+        // 濡傛灉娌℃湁鑳屾櫙鍥剧墖锛岀粯鍒朵竴涓伆鑹茬煩褰綔涓鸿儗鏅?
         g->FillRect(position.x, position.y, size.x, size.y);
         g->DrawRect(position.x, position.y, size.x, size.y);
     }
 
-    // 计算滑块位置
+    // 璁＄畻婊戝潡浣嶇疆
     float knobX = CalculateKnobXFromValue();
-    float knobY = position.y + size.y / 2; // 滑块在垂直方向居中
+    float knobY = position.y + size.y / 2; // 婊戝潡鍦ㄥ瀭鐩存柟鍚戝眳涓?
 
-    // 滑块大小
+    // 婊戝潡澶у皬
     Vector knobSize(static_cast<float>(SliderSizeX), static_cast<float>(SliderSizeY));
     Vector knobPosition(knobX - knobSize.x / 2, knobY - knobSize.y / 2);
 
-    // 绘制滑块
+    // 缁樺埗婊戝潡
     if (!knobImageKey.empty() && resourceManager.HasTexture(knobImageKey))
     {
         const GLTexture* texture2 = resourceManager.GetTexture(knobImageKey);
@@ -150,7 +150,7 @@ void Slider::Draw(Graphics* g) const
     else
     {
         std::cerr << 
-            "没有滑块！直接不绘制了，我草你妈，怎么图片都不搞？知不知道写这玩意麻烦死了!" << std::endl;
+            "娌℃湁婊戝潡锛佺洿鎺ヤ笉缁樺埗浜嗭紝鎴戣崏浣犲锛屾€庝箞鍥剧墖閮戒笉鎼烇紵鐭ヤ笉鐭ラ亾鍐欒繖鐜╂剰楹荤儲姝讳簡!" << std::endl;
     }
 }
 

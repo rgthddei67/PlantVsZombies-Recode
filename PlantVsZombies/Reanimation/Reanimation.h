@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #ifndef _REANIMATION_H
 #define _REANIMATION_H
 
@@ -21,15 +21,15 @@ public:
     Reanimation();
     ~Reanimation();
 
-    // 加载reanim文件
+    // 鍔犺浇reanim鏂囦欢
     bool LoadFromFile(const std::string& filePath);
 
-    // 获取轨道信息
+    // 鑾峰彇杞ㄩ亾淇℃伅
     size_t GetTrackCount() const;
     TrackInfo* GetTrack(int index);
     TrackInfo* GetTrack(const std::string& trackName);
 
-    // 获取总帧数
+    // 鑾峰彇鎬诲抚鏁?
     int GetTotalFrames() const;
 };
 

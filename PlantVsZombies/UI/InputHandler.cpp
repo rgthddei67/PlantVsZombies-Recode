@@ -1,11 +1,11 @@
-﻿#include "InputHandler.h"
+#include "InputHandler.h"
 #include <iostream>
 #include "../Graphics.h"
 
 InputHandler::InputHandler(Graphics* graphics)
 {
     mGraphics = graphics;
-    // 初始化所有按键状态为UP
+    // 鍒濆鍖栨墍鏈夋寜閿姸鎬佷负UP
     for (int i = 0; i < 5; i++)
     {
         m_mouseButtons[i] = KeyState::UP;
@@ -20,11 +20,11 @@ void InputHandler::ProcessEvent(SDL_Event* event)
 {
     switch (event->type)
     {
-        // 键盘事件
+        // 閿洏浜嬩欢
     case SDL_KEYDOWN:
     {
         SDL_Keycode key = event->key.keysym.sym;
-        // 只在按键当前是UP状态时才设置为PRESSED
+        // 鍙湪鎸夐敭褰撳墠鏄疷P鐘舵€佹椂鎵嶈缃负PRESSED
         if (m_keyStates[key] == KeyState::UP) {
             m_keyStates[key] = KeyState::PRESSED;
         }
@@ -34,24 +34,24 @@ void InputHandler::ProcessEvent(SDL_Event* event)
     case SDL_KEYUP:
     {
         SDL_Keycode key = event->key.keysym.sym;
-        // 只在按键当前是DOWN或PRESSED状态时才设置为RELEASED
+        // 鍙湪鎸夐敭褰撳墠鏄疍OWN鎴朠RESSED鐘舵€佹椂鎵嶈缃负RELEASED
         if (m_keyStates[key] == KeyState::DOWN || m_keyStates[key] == KeyState::PRESSED) {
             m_keyStates[key] = KeyState::RELEASED;
         }
     }
     break;
 
-    // 鼠标移动事件
+    // 榧犳爣绉诲姩浜嬩欢
     case SDL_MOUSEMOTION:
         m_mousePosition = Vector(static_cast<float>(event->motion.x),
             static_cast<float>(event->motion.y));
         break;
 
-        // 鼠标按钮事件
+        // 榧犳爣鎸夐挳浜嬩欢
     case SDL_MOUSEBUTTONDOWN:
         if (event->button.button >= SDL_BUTTON_LEFT && event->button.button <= SDL_BUTTON_X2) {
             int index = event->button.button - 1;
-            // 只在按钮当前是UP状态时才设置为PRESSED
+            // 鍙湪鎸夐挳褰撳墠鏄疷P鐘舵€佹椂鎵嶈缃负PRESSED
             if (m_mouseButtons[index] == KeyState::UP) {
                 m_mouseButtons[index] = KeyState::PRESSED;
             }
@@ -61,14 +61,14 @@ void InputHandler::ProcessEvent(SDL_Event* event)
     case SDL_MOUSEBUTTONUP:
         if (event->button.button >= SDL_BUTTON_LEFT && event->button.button <= SDL_BUTTON_X2) {
             int index = event->button.button - 1;
-            // 只在按钮当前是DOWN或PRESSED状态时才设置为RELEASED
+            // 鍙湪鎸夐挳褰撳墠鏄疍OWN鎴朠RESSED鐘舵€佹椂鎵嶈缃负RELEASED
             if (m_mouseButtons[index] == KeyState::DOWN || m_mouseButtons[index] == KeyState::PRESSED) {
                 m_mouseButtons[index] = KeyState::RELEASED;
             }
         }
         break;
 
-        // 鼠标滚轮事件
+        // 榧犳爣婊氳疆浜嬩欢
     case SDL_MOUSEWHEEL:
         break;
     }
@@ -76,20 +76,20 @@ void InputHandler::ProcessEvent(SDL_Event* event)
 
 void InputHandler::Update()
 {
-    // 保存上一帧的鼠标位置
+    // 淇濆瓨涓婁竴甯х殑榧犳爣浣嶇疆
     Vector prevMousePos = m_mousePosition;
 
-    // 保存当前状态到上一帧状态
+    // 淇濆瓨褰撳墠鐘舵€佸埌涓婁竴甯х姸鎬?
     for (int i = 0; i < 5; i++)
     {
         m_prevMouseButtons[i] = m_mouseButtons[i];
     }
     m_prevKeyStates = m_keyStates;
 
-    // 计算鼠标移动增量
+    // 璁＄畻榧犳爣绉诲姩澧為噺
     m_mouseDelta = m_mousePosition - prevMousePos;
 
-    // 更新状态：PRESSED -> DOWN, RELEASED -> UP
+    // 鏇存柊鐘舵€侊細PRESSED -> DOWN, RELEASED -> UP
     for (auto& pair : m_keyStates)
     {
         if (pair.second == KeyState::PRESSED) {
@@ -110,7 +110,7 @@ void InputHandler::Update()
         }
     }
 
-    // 处理所有注册的回调
+    // 澶勭悊鎵€鏈夋敞鍐岀殑鍥炶皟
     ProcessCallbacks();
 }
 
@@ -132,13 +132,13 @@ bool InputHandler::IsKeyDown(SDL_Keycode keyCode) const
 
 bool InputHandler::IsKeyPressed(SDL_Keycode keyCode) const
 {
-    // 只检测PRESSED状态
+    // 鍙娴婸RESSED鐘舵€?
     return GetKeyState(keyCode) == KeyState::PRESSED;
 }
 
 bool InputHandler::IsKeyReleased(SDL_Keycode keyCode) const
 {
-    // 只检测RELEASED状态
+    // 鍙娴婻ELEASED鐘舵€?
     return GetKeyState(keyCode) == KeyState::RELEASED;
 }
 
@@ -159,10 +159,10 @@ Vector InputHandler::GetMouseDelta() const
 
 KeyState InputHandler::GetMouseButtonState(Uint8 button) const
 {
-    // button是SDL按钮值（SDL_BUTTON_LEFT=1, SDL_BUTTON_RIGHT=2, ...）
+    // button鏄疭DL鎸夐挳鍊硷紙SDL_BUTTON_LEFT=1, SDL_BUTTON_RIGHT=2, ...锛?
     if (button >= SDL_BUTTON_LEFT && button <= SDL_BUTTON_X2)
     {
-        int index = button - 1; // 转换为内部索引（0-4）
+        int index = button - 1; // 杞崲涓哄唴閮ㄧ储寮曪紙0-4锛?
         return m_mouseButtons[index];
     }
     return KeyState::UP;
@@ -176,13 +176,13 @@ bool InputHandler::IsMouseButtonDown(Uint8 button) const
 
 bool InputHandler::IsMouseButtonPressed(Uint8 button) const
 {
-    // 只检测PRESSED状态
+    // 鍙娴婸RESSED鐘舵€?
     return GetMouseButtonState(button) == KeyState::PRESSED;
 }
 
 bool InputHandler::IsMouseButtonReleased(Uint8 button) const
 {
-    // 只检测RELEASED状态
+    // 鍙娴婻ELEASED鐘舵€?
     return GetMouseButtonState(button) == KeyState::RELEASED;
 }
 

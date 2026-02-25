@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #ifndef _GAMEOBJECT_H
 #define _GAMEOBJECT_H
 

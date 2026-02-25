@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #ifndef _COLLISION_SYSTEM_H
 #define _COLLISION_SYSTEM_H
 

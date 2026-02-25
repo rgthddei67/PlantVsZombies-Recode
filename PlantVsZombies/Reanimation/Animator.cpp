@@ -1,4 +1,4 @@
-﻿#include "Animator.h"
+#include "Animator.h"
 #include "../DeltaTime.h"
 #include "../ResourceManager.h"
 #include <algorithm>
@@ -19,7 +19,7 @@ Animator::~Animator()
 }
 
 void Animator::Die() {
-    // 先让所有附加的子动画死亡
+    // 鍏堣鎵€鏈夐檮鍔犵殑瀛愬姩鐢绘浜?
     for (size_t i = 0; i < mExtraInfos.size(); i++)
     {
         for (size_t j = 0; j < mExtraInfos[i].mAttachedReanims.size(); j++)
@@ -48,7 +48,7 @@ void Animator::Init(std::shared_ptr<Reanimation> reanim) {
                 mTrackIndicesMap[track->mTrackName] = i;
                 TrackExtraInfo extra;
 
-                // 预加载该轨道用到的所有图片
+                // 棰勫姞杞借杞ㄩ亾鐢ㄥ埌鐨勬墍鏈夊浘鐗?
                 for (int i = 0; i < static_cast<int>(reanim->GetTrackCount()); i++) {
                     auto track = reanim->GetTrack(i);
                     if (track) {
@@ -77,18 +77,18 @@ void Animator::AddFrameEvent(int frameIndex, std::function<void()> callback) {
 bool Animator::PlayTrack(const std::string& trackName, float speed, float blendTime) {
     auto range = GetTrackRange(trackName);
     if (range.first == -1 || range.second == -1) {
-        std::cerr << "动画轨道不存在或为空: " << trackName << std::endl;
+        std::cerr << "鍔ㄧ敾杞ㄩ亾涓嶅瓨鍦ㄦ垨涓虹┖: " << trackName << std::endl;
         return false;
     }
 
-    // 保存当前帧用于过渡
+    // 淇濆瓨褰撳墠甯х敤浜庤繃娓?
     mFrameIndexBlendBuffer = static_cast<int>(mFrameIndexNow);
 
-    // 设置新的帧范围
+    // 璁剧疆鏂扮殑甯ц寖鍥?
     SetFrameRange(range.first, range.second);
     mFrameIndexNow = static_cast<float>(range.first);
 
-    // 设置过渡效果
+    // 璁剧疆杩囨浮鏁堟灉
     if (blendTime > 0) {
         mReanimBlendCounterMax = blendTime;
         mReanimBlendCounter = blendTime;
@@ -138,13 +138,13 @@ void Animator::Update() {
     if (!mIsPlaying || !mReanim) return;
 
     float deltaTime = DeltaTime::GetDeltaTime();
-    float oldFrame = mFrameIndexNow;   // 记录更新前的帧索引
+    float oldFrame = mFrameIndexNow;   // 璁板綍鏇存柊鍓嶇殑甯х储寮?
 
-    // 帧索引前进
+    // 甯х储寮曞墠杩?
     float frameAdvance = deltaTime * mFPS * mSpeed;
     mFrameIndexNow += frameAdvance;
 
-    // 处理动画结束/循环逻辑
+    // 澶勭悊鍔ㄧ敾缁撴潫/寰幆閫昏緫
     bool reachedEnd = mFrameIndexNow >= mFrameIndexEnd;
     if (reachedEnd) {
         switch (mPlayingState) {
@@ -170,25 +170,25 @@ void Animator::Update() {
         }
     }
 
-    // 限制帧范围
+    // 闄愬埗甯ц寖鍥?
     mFrameIndexNow = std::clamp(mFrameIndexNow, mFrameIndexBegin, mFrameIndexEnd);
 
-    // ----- 触发帧事件（一次性，触发后自动移除）-----
+    // ----- 瑙﹀彂甯т簨浠讹紙涓€娆℃€э紝瑙﹀彂鍚庤嚜鍔ㄧЩ闄わ級-----
     int oldInt = static_cast<int>(oldFrame);
     int newInt = static_cast<int>(mFrameIndexNow);
 
     if (newInt >= oldInt) {
-        // 正常前进或不变
+        // 姝ｅ父鍓嶈繘鎴栦笉鍙?
         for (int f = oldInt + 1; f <= newInt; ++f) {
             auto range = mFrameEvents.equal_range(f);
             for (auto it = range.first; it != range.second;) {
-                it->second();               // 执行回调
-                it = mFrameEvents.erase(it); // 移除（一次性）
+                it->second();               // 鎵ц鍥炶皟
+                it = mFrameEvents.erase(it); // 绉婚櫎锛堜竴娆℃€э級
             }
         }
     }
     else {
-        // 发生了回绕（循环播放）
+        // 鍙戠敓浜嗗洖缁曪紙寰幆鎾斁锛?
         int endInt = static_cast<int>(mFrameIndexEnd);
         for (int f = oldInt + 1; f <= endInt; ++f) {
             auto range = mFrameEvents.equal_range(f);
@@ -207,7 +207,7 @@ void Animator::Update() {
         }
     }
 
-    // 更新混合计时器
+    // 鏇存柊娣峰悎璁℃椂鍣?
     if (mReanimBlendCounter > 0) {
         mReanimBlendCounter -= deltaTime;
         if (mReanimBlendCounter < 0) mReanimBlendCounter = 0;
@@ -234,8 +234,8 @@ void Animator::PrepareCommands(float baseX, float baseY, float Scale) {
 void Animator::Draw(Graphics* g, float baseX, float baseY, float Scale) {
     if (!mReanim || !g) return;
 
-    // 优先使用 PrepareCommands() 预计算的缓存（多线程模式）
-    // 若缓存为空则即时计算（单线程回退）
+    // 浼樺厛浣跨敤 PrepareCommands() 棰勮绠楃殑缂撳瓨锛堝绾跨▼妯″紡锛?
+    // 鑻ョ紦瀛樹负绌哄垯鍗虫椂璁＄畻锛堝崟绾跨▼鍥為€€锛?
     std::vector<AnimDrawCommand> localCommands;
     const std::vector<AnimDrawCommand>* commands;
 
@@ -246,44 +246,44 @@ void Animator::Draw(Graphics* g, float baseX, float baseY, float Scale) {
         commands = &localCommands;
     }
 
-    // 保存当前变换栈，确保我们不叠加额外变换
+    // 淇濆瓨褰撳墠鍙樻崲鏍堬紝纭繚鎴戜滑涓嶅彔鍔犻澶栧彉鎹?
     g->PushTransform(glm::mat4(1.0f));
 
-    BlendMode originalBlend = g->GetBlendMode();  // 记录进入时的混合模式
+    BlendMode originalBlend = g->GetBlendMode();  // 璁板綍杩涘叆鏃剁殑娣峰悎妯″紡
     BlendMode lastBlend = originalBlend;
 
     for (const auto& cmd : *commands) {
-        // 切换混合模式（若不同）
+        // 鍒囨崲娣峰悎妯″紡锛堣嫢涓嶅悓锛?
         if (cmd.blendMode != lastBlend) {
             g->SetBlendMode(cmd.blendMode);
             lastBlend = cmd.blendMode;
         }
 
-        // 从 points 提取四个顶点坐标（顺序：左上、右上、右下、左下）
+        // 浠?points 鎻愬彇鍥涗釜椤剁偣鍧愭爣锛堥『搴忥細宸︿笂銆佸彸涓娿€佸彸涓嬨€佸乏涓嬶級
         float x0 = cmd.points[0], y0 = cmd.points[1];
         float x1 = cmd.points[2], y1 = cmd.points[3];
         float x2 = cmd.points[4], y2 = cmd.points[5];
         float x3 = cmd.points[6], y3 = cmd.points[7];
 
-        // 构造仿射变换矩阵（列主序，将单位矩形映射到目标四边形）
+        // 鏋勯€犱豢灏勫彉鎹㈢煩闃碉紙鍒椾富搴忥紝灏嗗崟浣嶇煩褰㈡槧灏勫埌鐩爣鍥涜竟褰級
         glm::mat4 transform(
-            x1 - x0, y1 - y0, 0.0f, 0.0f,   // 第一列 (a, d, 0, 0)
-            x3 - x0, y3 - y0, 0.0f, 0.0f,   // 第二列 (b, e, 0, 0)
-            0.0f, 0.0f, 1.0f, 0.0f,         // 第三列 (0,0,1,0)
-            x0, y0, 0.0f, 1.0f              // 第四列 (tx, ty, 0, 1)
+            x1 - x0, y1 - y0, 0.0f, 0.0f,   // 绗竴鍒?(a, d, 0, 0)
+            x3 - x0, y3 - y0, 0.0f, 0.0f,   // 绗簩鍒?(b, e, 0, 0)
+            0.0f, 0.0f, 1.0f, 0.0f,         // 绗笁鍒?(0,0,1,0)
+            x0, y0, 0.0f, 1.0f              // 绗洓鍒?(tx, ty, 0, 1)
         );
 
         g->DrawTextureMatrix(cmd.texture, transform, 0.0f, 0.0f, cmd.color);
     }
 
-    // 恢复进入时的混合模式
+    // 鎭㈠杩涘叆鏃剁殑娣峰悎妯″紡
     if (g->GetBlendMode() != originalBlend) {
         g->SetBlendMode(originalBlend);
     }
 
     g->PopTransform();
 
-    // 清空缓存，下帧由 PrepareCommands() 重新填充
+    // 娓呯┖缂撳瓨锛屼笅甯х敱 PrepareCommands() 閲嶆柊濉厖
     mCachedCommands.clear();
 }
 
@@ -309,13 +309,13 @@ void Animator::CollectDrawCommands(std::vector<AnimDrawCommand>& outCommands, fl
         }
 
         if (shouldDrawSelf) {
-            // 获取纹理原始尺寸（假设 GLTexture 包含 width/height 成员）
+            // 鑾峰彇绾圭悊鍘熷灏哄锛堝亣璁?GLTexture 鍖呭惈 width/height 鎴愬憳锛?
             int imgWidth = image->width;
             int imgHeight = image->height;
             float w = static_cast<float>(imgWidth);
             float h = static_cast<float>(imgHeight);
 
-            // 计算扭曲参数（与原逻辑相同）
+            // 璁＄畻鎵洸鍙傛暟锛堜笌鍘熼€昏緫鐩稿悓锛?
             float angleX = -transform.kx * DEG_TO_RAD;
             float angleY = -transform.ky * DEG_TO_RAD;
             float cosX = cosf(angleX);
@@ -346,7 +346,7 @@ void Animator::CollectDrawCommands(std::vector<AnimDrawCommand>& outCommands, fl
             float combinedAlpha = transform.a * mAlpha;
             float baseAlpha = std::clamp(combinedAlpha, 0.0f, 1.0f);
 
-            // 正常绘制命令
+            // 姝ｅ父缁樺埗鍛戒护
             AnimDrawCommand cmd;
             cmd.texture = image;
             cmd.blendMode = BlendMode::Alpha;
@@ -354,7 +354,7 @@ void Animator::CollectDrawCommands(std::vector<AnimDrawCommand>& outCommands, fl
             memcpy(cmd.points, worldPoints, sizeof(worldPoints));
             outCommands.push_back(cmd);
 
-            // 发光效果（叠加混合）
+            // 鍙戝厜鏁堟灉锛堝彔鍔犳贩鍚堬級
             if (mEnableExtraAdditiveDraw) {
                 cmd.blendMode = BlendMode::Add;
                 cmd.color = glm::vec4(mExtraAdditiveColor.r / 255.0f,
@@ -364,7 +364,7 @@ void Animator::CollectDrawCommands(std::vector<AnimDrawCommand>& outCommands, fl
                 outCommands.push_back(cmd);
             }
 
-            // 覆盖层效果（Alpha 混合，颜色需乘以基础透明度）
+            // 瑕嗙洊灞傛晥鏋滐紙Alpha 娣峰悎锛岄鑹查渶涔樹互鍩虹閫忔槑搴︼級
             if (mEnableExtraOverlayDraw) {
                 cmd.blendMode = BlendMode::Alpha;
                 glm::vec4 overlayColor(mExtraOverlayColor.r / 255.0f,
@@ -376,7 +376,7 @@ void Animator::CollectDrawCommands(std::vector<AnimDrawCommand>& outCommands, fl
             }
         }
 
-        // 子动画
+        // 瀛愬姩鐢?
         if (i < static_cast<int>(mExtraInfos.size())) {
             for (const auto& weakChild : mExtraInfos[i].mAttachedReanims) {
                 auto child = weakChild.lock();
@@ -547,7 +547,7 @@ bool Animator::AttachAnimator(const std::string& trackName, std::shared_ptr<Anim
     }
 
     for (auto* extra : extras) {
-        // 避免重复添加
+        // 閬垮厤閲嶅娣诲姞
         bool alreadyExists = false;
         for (const auto& weak : extra->mAttachedReanims) {
             if (auto existing = weak.lock()) {
@@ -571,7 +571,7 @@ void Animator::DetachAnimator(const std::string& trackName, std::shared_ptr<Anim
         vec.erase(std::remove_if(vec.begin(), vec.end(),
             [&child](const std::weak_ptr<Animator>& weak) {
                 auto sp = weak.lock();
-                return sp == child || !sp; // 移除指定对象或已失效的
+                return sp == child || !sp; // 绉婚櫎鎸囧畾瀵硅薄鎴栧凡澶辨晥鐨?
             }),
             vec.end());
     }
@@ -609,7 +609,7 @@ std::pair<int, int> Animator::GetTrackRange(const std::string& trackName) {
 
     if (start == -1) {
         std::cout << "GetTrackRange: no f=0 frames, returning invalid." << std::endl;
-        return { -1, -1 };   // 改为返回无效范围
+        return { -1, -1 };   // 鏀逛负杩斿洖鏃犳晥鑼冨洿
     }
 
     int end = start;
@@ -653,24 +653,24 @@ void Animator::SetFrameRangeToDefault() {
 float Animator::GetTrackVelocity(const std::string& trackName) const {
     if (!mReanim) return 0.0f;
 
-    // 获取轨道
+    // 鑾峰彇杞ㄩ亾
     auto tracks = GetTracksByName(trackName);
     if (tracks.empty()) return 0.0f;
     TrackInfo* track = tracks[0];
     if (!track || track->mFrames.empty()) return 0.0f;
 
-    // 获取当前帧整数索引，并限制在有效范围内
+    // 鑾峰彇褰撳墠甯ф暣鏁扮储寮曪紝骞堕檺鍒跺湪鏈夋晥鑼冨洿鍐?
     int frameBefore = static_cast<int>(mFrameIndexNow);
     int maxIndex = static_cast<int>(track->mFrames.size()) - 1;
     frameBefore = std::clamp(frameBefore, 0, maxIndex);
     int frameAfter = std::min(frameBefore + 1, maxIndex);
 
-    // 获取前后帧的 X 坐标
+    // 鑾峰彇鍓嶅悗甯х殑 X 鍧愭爣
     float xBefore = track->mFrames[frameBefore].x;
     float xAfter = track->mFrames[frameAfter].x;
     float dx = xAfter - xBefore;
 
-    // 计算速度
+    // 璁＄畻閫熷害
     float velocity = dx * mSpeed;
     return std::abs(velocity);
 }
@@ -734,14 +734,14 @@ TrackFrameTransform Animator::GetInterpolatedTransform(int trackIndex) const {
     int frameAfter = std::min(frameBefore + 1, static_cast<int>(track->mFrames.size() - 1));
 
     if (mReanimBlendCounter > 0) {
-        // 过渡动画插值
+        // 杩囨浮鍔ㄧ敾鎻掑€?
         GetDeltaTransform(track->mFrames[mFrameIndexBlendBuffer],
             track->mFrames[frameBefore],
             1.0f - mReanimBlendCounter / mReanimBlendCounterMax,
             result, true);
     }
     else {
-        // 正常帧间插值
+        // 姝ｅ父甯ч棿鎻掑€?
         if (frameBefore >= 0 && frameAfter < static_cast<int>(track->mFrames.size())) {
             GetDeltaTransform(track->mFrames[frameBefore],
                 track->mFrames[frameAfter],
@@ -752,7 +752,7 @@ TrackFrameTransform Animator::GetInterpolatedTransform(int trackIndex) const {
         }
     }
 
-    // 设置纹理指针：取前一帧的纹理
+    // 璁剧疆绾圭悊鎸囬拡锛氬彇鍓嶄竴甯х殑绾圭悊
     if (frameBefore >= 0 && frameBefore < static_cast<int>(track->mFrames.size())) {
         result.image = track->mFrames[frameBefore].image;
     }
@@ -781,7 +781,7 @@ int Animator::GetFirstTrackIndexByName(const std::string& trackName) const {
     return -1;
 }
 
-// 颜色混合函数
+// 棰滆壊娣峰悎鍑芥暟
 int ColorComponentMultiply(int theColor1, int theColor2) {
     return std::clamp(theColor1 * theColor2 / 255, 0, 255);
 }

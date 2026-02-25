@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #ifndef _GAME_RANDOM_H
 #define _GAME_RANDOM_H
 #include <random>

@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #ifndef _TODCOMMON_H
 #define _TODCOMMON_H
@@ -6,12 +6,12 @@
 #include <algorithm>
 #include "../Game/Definit.h"
 
-// 数学常量
+// 鏁板甯搁噺
 constexpr float PI = 3.14159265358979323846f;
 constexpr float DEG_TO_RAD = PI / 180.0f;
 constexpr float RAD_TO_DEG = 180.0f / PI;
 
-// 数学工具函数
+// 鏁板宸ュ叿鍑芥暟
 inline bool FloatApproxEqual(float a, float b, float epsilon = 0.001f) {
     return fabs(a - b) < epsilon;
 }
@@ -32,7 +32,7 @@ inline float m_sqrtf(float x) {
     return sqrt(x);
 }
 
-// 颜色工具
+// 棰滆壊宸ュ叿
 struct Color {
     Uint8 r, g, b, a;
 

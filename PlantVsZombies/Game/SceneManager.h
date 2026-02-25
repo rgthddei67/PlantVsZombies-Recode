@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #ifndef _SCENEMANAGER_H
 #define _SCENEMANAGER_H
 #include "Scene.h"

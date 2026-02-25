@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #ifndef _COINTYPE_H
 #define _COINTYPE_H
 

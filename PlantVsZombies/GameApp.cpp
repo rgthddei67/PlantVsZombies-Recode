@@ -1,4 +1,4 @@
-﻿#include "./GameAPP.h"
+#include "./GameAPP.h"
 #include "./UI/InputHandler.h"
 #include "./ResourceManager.h"
 #include "./Game/Board.h"

@@ -1,4 +1,4 @@
-﻿#include "GameScene.h"
+#include "GameScene.h"
 #include "SceneManager.h"
 #include "../ResourceManager.h"
 #include "./Plant/PlantType.h"

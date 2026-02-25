@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #ifndef _CARD_SLOT_MANAGER_H
 #define _CARD_SLOT_MANAGER_H
 

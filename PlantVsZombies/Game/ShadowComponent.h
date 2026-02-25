@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #ifndef _SHADOW_COMPONENT_H
 #define _SHADOW_COMPONENT_H
 

@@ -1,4 +1,4 @@
-﻿#include "Card.h"
+#include "Card.h"
 #include "CardComponent.h"
 #include "ColliderComponent.h"
 #include "../DeltaTime.h"

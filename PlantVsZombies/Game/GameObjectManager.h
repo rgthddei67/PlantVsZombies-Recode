@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #ifndef _GAMEOBJECTMANAGER_H
 #define _GAMEOBJECTMANAGER_H
 

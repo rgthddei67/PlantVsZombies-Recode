@@ -1,4 +1,4 @@
-﻿#include "AnimatedObject.h"
+#include "AnimatedObject.h"
 #include "Board.h"
 #include "../DeltaTime.h"
 #include "../GameRandom.h"

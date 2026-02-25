@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #ifndef _COIN_H
 #define _COIN_H
 

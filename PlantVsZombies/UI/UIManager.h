@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #ifndef _UIMANAGER_H
 #define _UIMANAGER_H
 #include "../ResourceManager.h"
@@ -20,7 +20,7 @@ public:
         ClearAll();
     }
 
-    // ButtonManager 代理方法
+    // ButtonManager 浠ｇ悊鏂规硶
     std::shared_ptr<Button> CreateButton(Vector pos = Vector::zero(), Vector size = Vector(40, 40))
     {
         return buttonManager.CreateButton(pos, size);
@@ -46,7 +46,7 @@ public:
         return buttonManager.GetButton(index);
     }
 
-    // SliderManager 代理方法
+    // SliderManager 浠ｇ悊鏂规硶
     std::shared_ptr<Slider> CreateSlider(Vector pos = Vector::zero(),
         Vector size = Vector(135, 10),
         float minVal = 0.0f,
@@ -56,7 +56,7 @@ public:
         return sliderManager.CreateSlider(pos, size, minVal, maxVal, initialValue);
     }
 
-    // 创建消息框
+    // 鍒涘缓娑堟伅妗?
     std::shared_ptr<GameMessageBox> CreateMessageBox(const Vector& pos,
         const std::string& message,
         const std::vector<GameMessageBox::ButtonConfig>& buttons,
@@ -88,7 +88,7 @@ public:
         return sliderManager.GetSlider(index);
     }
 
-    // 统一处理方法
+    // 缁熶竴澶勭悊鏂规硶
     void ProcessMouseEvent(InputHandler* input)
     {
         buttonManager.ProcessMouseEvent(input);
@@ -118,7 +118,7 @@ public:
         sliderManager.ClearAllSliders();
     }
 
-    // 获取底层管理器（也可以直接访问）
+    // 鑾峰彇搴曞眰绠＄悊鍣紙涔熷彲浠ョ洿鎺ヨ闂級
     ButtonManager& GetButtonManager() { return buttonManager; }
     SliderManager& GetSliderManager() { return sliderManager; }
     const ButtonManager& GetButtonManager() const { return buttonManager; }

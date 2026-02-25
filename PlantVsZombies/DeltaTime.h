@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #ifndef _DELTATIME_H
 #define _DELTATIME_H
 

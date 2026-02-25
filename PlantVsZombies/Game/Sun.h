@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #ifndef _SUN_H
 #define _SUN_H
 #include "../ResourceKeys.h"

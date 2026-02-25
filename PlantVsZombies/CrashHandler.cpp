@@ -1,4 +1,4 @@
-﻿#include "CrashHandler.h"
+#include "CrashHandler.h"
 #include <iostream>
 #include <fstream>
 #include <sstream>

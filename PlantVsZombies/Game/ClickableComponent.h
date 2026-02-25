@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #ifndef _CLICKABLE_COMPONENT_H
 #define _CLICKABLE_COMPONENT_H
 

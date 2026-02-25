@@ -1,4 +1,4 @@
-﻿#include "Board.h"
+#include "Board.h"
 #include "Sun.h"
 #include "../GameRandom.h"
 #include "./Plant/Plant.h"

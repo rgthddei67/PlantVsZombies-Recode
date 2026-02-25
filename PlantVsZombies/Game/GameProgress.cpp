@@ -1,4 +1,4 @@
-﻿#include "GameProgress.h"
+#include "GameProgress.h"
 #include "GameScene.h"
 #include "Board.h"
 #include "SceneManager.h"

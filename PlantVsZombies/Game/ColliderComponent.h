@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #ifndef _COLLIDER_COMPONENT_H
 #define _COLLIDER_COMPONENT_H
 

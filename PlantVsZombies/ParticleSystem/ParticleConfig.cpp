@@ -1,4 +1,4 @@
-﻿#include "ParticleConfig.h"
+#include "ParticleConfig.h"
 #include "../ResourceManager.h"
 #include "../ResourceKeys.h"
 #include <cmath>
@@ -11,7 +11,7 @@ ParticleConfigManager::ParticleConfigManager(Graphics* graphics)
 void ParticleConfigManager::InitializeConfigs() {
     ResourceManager& resourceManager = ResourceManager::GetInstance();
 
-    // 子弹击中
+    // 瀛愬脊鍑讳腑
     ParticleConfig config;
     config.startColor = glm::vec4(1.0f);
     config.endColor = glm::vec4(1.0f);
@@ -30,7 +30,7 @@ void ParticleConfigManager::InitializeConfigs() {
     };
     configs[ParticleType::PEA_BULLET_HIT] = config;
 
-    // 僵尸头掉落
+    // 鍍靛案澶存帀钀?
     config.startColor = glm::vec4(1.0f);
     config.endColor = glm::vec4(1.0f);
     config.lifetime = 0.8f;
@@ -43,7 +43,7 @@ void ParticleConfigManager::InitializeConfigs() {
     config.textureKeys = { ResourceKeys::Particles::PARTICLE_ZOMBIE_HEAD };
     configs[ParticleType::ZOMBIE_HEAD_OFF] = config;
 
-    // 僵尸手臂掉落
+    // 鍍靛案鎵嬭噦鎺夎惤
     config.startColor = glm::vec4(1.0f);
     config.endColor = glm::vec4(1.0f);
     config.lifetime = 0.8f;

@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #ifndef _BUTTONMANAGER_H
 #define _BUTTONMANAGER_H
 #include "../UI/Button.h"
@@ -10,38 +10,38 @@
 class ButtonManager
 {
 private:
-    std::vector<std::shared_ptr<Button>> buttons; // 智能指针管理按钮
+    std::vector<std::shared_ptr<Button>> buttons; // 鏅鸿兘鎸囬拡绠＄悊鎸夐挳
 
 public:
-    // 创建按钮并返回指针
+    // 鍒涘缓鎸夐挳骞惰繑鍥炴寚閽?
     std::shared_ptr<Button> CreateButton(Vector pos = Vector::zero(),
         Vector size = Vector(40, 40));
 
-    // 管理所有按钮鼠标移动事件
+    // 绠＄悊鎵€鏈夋寜閽紶鏍囩Щ鍔ㄤ簨浠?
     void ProcessMouseEvent(InputHandler* input);
 
-    // 清空所有按钮鼠标记录
+    // 娓呯┖鎵€鏈夋寜閽紶鏍囪褰?
     void ResetAllFrameStates();
 
-    // 添加现有按钮
+    // 娣诲姞鐜版湁鎸夐挳
     void AddButton(std::shared_ptr<Button> button);
 
-    // 移除按钮
+    // 绉婚櫎鎸夐挳
     void RemoveButton(std::shared_ptr<Button> button);
 
-    // 删除全部按钮
+    // 鍒犻櫎鍏ㄩ儴鎸夐挳
     void ClearAllButtons();
 
-    // 统一更新所有按钮
+    // 缁熶竴鏇存柊鎵€鏈夋寜閽?
     void UpdateAll(InputHandler* input);
 
-    // 统一渲染所有按钮
+    // 缁熶竴娓叉煋鎵€鏈夋寜閽?
     void DrawAll(Graphics* g) const;
 
-    // 获取按钮数量
+    // 鑾峰彇鎸夐挳鏁伴噺
     size_t GetButtonCount() const;
 
-    // 通过索引获取按钮
+    // 閫氳繃绱㈠紩鑾峰彇鎸夐挳
     std::shared_ptr<Button> GetButton(size_t index) const;
 };
 

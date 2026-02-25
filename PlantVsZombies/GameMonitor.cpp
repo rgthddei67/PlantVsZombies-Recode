@@ -1,4 +1,4 @@
-﻿#include "GameMonitor.h"
+#include "GameMonitor.h"
 #include <iostream>
 #include <sstream>
 #include <iomanip>

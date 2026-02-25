@@ -1,8 +1,8 @@
-﻿#pragma once
+#pragma once
 #ifndef _ANIMATIONTYPES_H
 #define _ANIMATIONTYPES_H
 
-// TODO: 新增植物、僵尸也要改这里
+// TODO: 鏂板妞嶇墿銆佸兊灏镐篃瑕佹敼杩欓噷
 enum class AnimationType
 {
     ANIM_NONE,

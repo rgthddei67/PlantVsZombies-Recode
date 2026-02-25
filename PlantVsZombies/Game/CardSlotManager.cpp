@@ -1,4 +1,4 @@
-﻿#include "CardSlotManager.h"
+#include "CardSlotManager.h"
 #include "../ResourceKeys.h"
 #include "GameObject.h"
 #include "GameObjectManager.h"

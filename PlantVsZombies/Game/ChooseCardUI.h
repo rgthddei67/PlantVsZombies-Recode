@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #ifndef _CHOOSECARDUI_H
 #define _CHOOSECARDUI_H
 #include "GameObject.h"
