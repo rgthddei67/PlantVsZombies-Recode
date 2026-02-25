@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #ifndef _THREAD_POOL_H
 #define _THREAD_POOL_H
 
@@ -10,7 +10,6 @@
 #include <functional>
 #include <algorithm>
 
-// 鎸佷箙绾跨▼姹狅紝閬垮厤姣忓抚鍒涘缓/閿€姣佺嚎绋?
 class ThreadPool {
 public:
     explicit ThreadPool(int numThreads)
@@ -30,7 +29,6 @@ public:
         for (auto& t : mWorkers) t.join();
     }
 
-    // 灏?[0, totalItems) 鍒嗘鍒嗗彂缁欏悇绾跨▼锛岄樆濉炵洿鍒板叏閮ㄥ畬鎴?
     void Dispatch(int totalItems, std::function<void(int, int)> func) {
         if (totalItems <= 0) return;
         int n = static_cast<int>(mWorkers.size());
@@ -61,15 +59,21 @@ private:
                 if (mShutdown) return;
                 lastGen = mWorkGen;
             }
-            int chunkSize = (mTotalItems + mNumActive - 1) / mNumActive;
+            int numActive  = mNumActive;
+            int totalItems = mTotalItems;
+
+            int chunkSize = (totalItems + numActive - 1) / numActive;
             int start = idx * chunkSize;
-            int end = std::min(start + chunkSize, mTotalItems);
-            if (start < mTotalItems)
+            int end = std::min(start + chunkSize, totalItems);
+            if (start < totalItems)
                 mWorkFunc(start, end);
 
-            if (mDoneCount.fetch_add(1) + 1 == mNumActive) {
-                std::unique_lock<std::mutex> lock(mMutex);
-                mDoneCV.notify_one();
+            // 只有参与本轮分发的线程才计数
+            if (idx < numActive) {
+                if (mDoneCount.fetch_add(1) + 1 == numActive) {
+                    std::unique_lock<std::mutex> lock(mMutex);
+                    mDoneCV.notify_one();
+                }
             }
         }
     }

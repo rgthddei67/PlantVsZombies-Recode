@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #ifndef _BOARD_H
 #define _BOARD_H
 #include "Cell.h"
@@ -21,7 +21,7 @@ class Bullet;
 constexpr int MAX_SUN = 9990;
 constexpr float NEXTWAVE_COUNT_MAX = 25.0f;
 constexpr float SPAWN_SUN_TIME = 15.0f;
-constexpr int MAX_ZOMBIES_PER_WAVE = 70;	// 普通模式一波最大僵尸数量
+constexpr int MAX_ZOMBIES_PER_WAVE = 120;	// 普通模式一波最大僵尸数量
 
 enum class BoardState {
 	CHOOSE_CARD,

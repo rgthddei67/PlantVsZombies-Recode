@@ -65,6 +65,7 @@ public:
         obj->SetLayer(layer);
         AssignRenderOrder(obj, layer);
         mGameObjects.push_back(obj);
+        mSortDirty = true;   // 直接加入 mGameObjects，需要重新排序
         obj->Start();
         return obj;
     }

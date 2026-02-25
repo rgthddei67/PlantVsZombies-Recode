@@ -1,4 +1,4 @@
-#include "CardSlotManager.h"
+﻿#include "CardSlotManager.h"
 #include "../ResourceKeys.h"
 #include "GameObject.h"
 #include "GameObjectManager.h"
@@ -195,7 +195,7 @@ void CardSlotManager::CreateCellPlantPreview(PlantType plantType, std::shared_pt
             Vector centerPos = cell->GetCenterPosition();          // 世界坐标
             Vector plantPosition = centerPos + plantOffset;        // 世界坐标
 
-            cellPlantPreview->SetRenderOrder(LAYER_GAME_OBJECT - 5000);
+            cellPlantPreview->SetRenderOrder(LAYER_BACKGROUND + 100);
 
             if (auto transform = cellPlantPreview->GetTransformComponent()) {
                 transform->SetPosition(plantPosition);             // 设置为世界坐标
