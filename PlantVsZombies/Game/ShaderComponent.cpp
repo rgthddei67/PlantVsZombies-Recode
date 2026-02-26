@@ -1,4 +1,4 @@
-#include "ShadowComponent.h"
+﻿#include "ShadowComponent.h"
 #include "../ResourceManager.h"
 #include "GameObject.h"
 #include <algorithm>
@@ -64,6 +64,6 @@ void ShadowComponent::Draw(Graphics* g) {
     float drawH = texHeight * mScale.y;
 
     // 绘制阴影，使用 tint 的 alpha 控制透明度
-    glm::vec4 tint(1.0f, 1.0f, 1.0f, mAlpha);
+    glm::vec4 tint(1, 1, 1, mAlpha);
     g->DrawTexture(mShadowTexture, drawX, drawY, drawW, drawH, 0.0f, tint);
 }

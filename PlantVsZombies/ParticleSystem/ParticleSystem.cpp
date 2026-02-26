@@ -1,4 +1,4 @@
-#include "ParticleSystem.h"
+﻿#include "ParticleSystem.h"
 
 std::unique_ptr<ParticleSystem> g_particleSystem = nullptr;
 
@@ -33,7 +33,7 @@ void ParticleSystem::EmitEffect(ParticleType type, const Vector& position, int c
     auto emitter = std::make_unique<ParticleEmitter>(m_graphics);
     emitter->Initialize(type, position);
     emitter->SetOneShot(true);
-    emitter->SetAutoDestroyTime(-2.0f);   // 绮掑瓙鍏ㄩ儴娑堝け鍚庤嚜鍔ㄩ攢姣?
+    emitter->SetAutoDestroyTime(-2.0f);  
     emitter->EmitParticles(count);
     emitters.push_back(std::move(emitter));
 }
@@ -41,7 +41,7 @@ void ParticleSystem::EmitEffect(ParticleType type, const Vector& position, int c
 ParticleEmitter* ParticleSystem::CreatePersistentEmitter(ParticleType type, const Vector& position) {
     auto emitter = std::make_unique<ParticleEmitter>(m_graphics);
     emitter->Initialize(type, position);
-    emitter->SetSpawnRate(10);   // 10 甯у彂灏勪竴娆★紙鍗虫瘡绉?10 娆★紝鍋囪 60 FPS锛?
+    emitter->SetSpawnRate(10);   
     ParticleEmitter* ptr = emitter.get();
     emitters.push_back(std::move(emitter));
     return ptr;

@@ -1,4 +1,4 @@
-#include "InputHandler.h"
+﻿#include "InputHandler.h"
 #include <iostream>
 #include "../Graphics.h"
 
@@ -76,20 +76,17 @@ void InputHandler::ProcessEvent(SDL_Event* event)
 
 void InputHandler::Update()
 {
-    // 淇濆瓨涓婁竴甯х殑榧犳爣浣嶇疆
     Vector prevMousePos = m_mousePosition;
 
-    // 淇濆瓨褰撳墠鐘舵€佸埌涓婁竴甯х姸鎬?
     for (int i = 0; i < 5; i++)
     {
         m_prevMouseButtons[i] = m_mouseButtons[i];
     }
     m_prevKeyStates = m_keyStates;
 
-    // 璁＄畻榧犳爣绉诲姩澧為噺
     m_mouseDelta = m_mousePosition - prevMousePos;
 
-    // 鏇存柊鐘舵€侊細PRESSED -> DOWN, RELEASED -> UP
+    // PRESSED -> DOWN, RELEASED -> UP
     for (auto& pair : m_keyStates)
     {
         if (pair.second == KeyState::PRESSED) {
@@ -110,7 +107,6 @@ void InputHandler::Update()
         }
     }
 
-    // 澶勭悊鎵€鏈夋敞鍐岀殑鍥炶皟
     ProcessCallbacks();
 }
 
@@ -132,13 +128,11 @@ bool InputHandler::IsKeyDown(SDL_Keycode keyCode) const
 
 bool InputHandler::IsKeyPressed(SDL_Keycode keyCode) const
 {
-    // 鍙娴婸RESSED鐘舵€?
     return GetKeyState(keyCode) == KeyState::PRESSED;
 }
 
 bool InputHandler::IsKeyReleased(SDL_Keycode keyCode) const
 {
-    // 鍙娴婻ELEASED鐘舵€?
     return GetKeyState(keyCode) == KeyState::RELEASED;
 }
 
@@ -159,10 +153,9 @@ Vector InputHandler::GetMouseDelta() const
 
 KeyState InputHandler::GetMouseButtonState(Uint8 button) const
 {
-    // button鏄疭DL鎸夐挳鍊硷紙SDL_BUTTON_LEFT=1, SDL_BUTTON_RIGHT=2, ...锛?
     if (button >= SDL_BUTTON_LEFT && button <= SDL_BUTTON_X2)
     {
-        int index = button - 1; // 杞崲涓哄唴閮ㄧ储寮曪紙0-4锛?
+        int index = button - 1; 
         return m_mouseButtons[index];
     }
     return KeyState::UP;
@@ -176,13 +169,11 @@ bool InputHandler::IsMouseButtonDown(Uint8 button) const
 
 bool InputHandler::IsMouseButtonPressed(Uint8 button) const
 {
-    // 鍙娴婸RESSED鐘舵€?
     return GetMouseButtonState(button) == KeyState::PRESSED;
 }
 
 bool InputHandler::IsMouseButtonReleased(Uint8 button) const
 {
-    // 鍙娴婻ELEASED鐘舵€?
     return GetMouseButtonState(button) == KeyState::RELEASED;
 }
 

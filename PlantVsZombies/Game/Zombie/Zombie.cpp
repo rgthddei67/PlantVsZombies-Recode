@@ -1,4 +1,4 @@
-#include "Zombie.h"
+﻿#include "Zombie.h"
 #include "../Plant/Plant.h"
 #include "../Board.h"
 #include "../ShadowComponent.h"
@@ -57,7 +57,7 @@ Zombie::Zombie(Board* board, ZombieType zombieType, float x, float y, int row,
 	mSpeed += GameRandom::Range(-3, 3);
 }
 
-void Zombie::SetupZombie()
+void Zombie::SetupZombieDeathEvent()
 {
 	mAnimator->AddFrameEvent(216, [this]() { this->Die(); });
 }
@@ -73,6 +73,7 @@ void Zombie::Start()
 		RemoveComponent<ColliderComponent>();
 	}
 	SetAnimationSpeed(GameRandom::Range(1.1f, 1.4f));
+	SetupZombieDeathEvent();
 	SetupZombie();
 }
 
@@ -94,7 +95,7 @@ void Zombie::Update()
 			{
 				mBoard->GameOver();
 			}
-			if (position.x > static_cast<float>(SCENE_WIDTH + 50) || position.x < -40.0f)
+			if (position.x > static_cast<float>(SCENE_WIDTH + 50) || position.x < -20.0f)
 			{
 				this->Die();
 			}
@@ -108,6 +109,7 @@ void Zombie::Update()
 				if (!mIsDying)
 				{
 					PlayTrack("anim_death", 1.3f, 0.3f);
+					GetColliderComponent()->mEnabled = false;
 					mIsDying = true;
 				}
 				return;
@@ -167,6 +169,7 @@ int Zombie::TakeShieldDamage(int damage)
 		return damage;
 	}
 	mShieldHealth -= damage;
+	CheckShieldImage();
 	if (mShieldHealth <= 0)
 	{
 		int overflow = -mShieldHealth; // 剩余伤害
@@ -185,6 +188,7 @@ int Zombie::TakeHelmDamage(int damage)
 		return damage;
 	}
 	mHelmHealth -= damage;
+	CheckHelmImage();
 	if (mHelmHealth <= 0)
 	{
 		int overflow = -mHelmHealth;
@@ -201,13 +205,15 @@ void Zombie::TakeBodyDamage(int damage)
 	if (mBodyHealth < 0)
 		mBodyHealth = 0;
 
-	if (mBodyHealth <= mBodyMaxHealth * 2 / 3)
+	if (mNeedDropArm && mHasArm && mBodyHealth <= mBodyMaxHealth * 2 / 3)
 	{
 		ArmDrop();
+		mHasArm = false;
 	}
-	if (mBodyHealth <= mBodyMaxHealth / 3)
+	if (mNeedDropHead && mHasHead && mBodyHealth <= mBodyMaxHealth / 3)
 	{
 		HeadDrop();
+		mHasHead = false;
 	}
 }
 
@@ -241,7 +247,6 @@ void Zombie::TakeDamage(int damage)
 void Zombie::HeadDrop()
 {
 	if (!mHasHead) return;
-	mHasHead = false;
 	mAnimator->SetTrackVisible("anim_head1", false);
 	mAnimator->SetTrackVisible("anim_head2", false);
 	mAnimator->SetTrackVisible("anim_tongue", false);
@@ -254,7 +259,6 @@ void Zombie::HeadDrop()
 void Zombie::ArmDrop()
 {
 	if (!mHasArm) return;
-	mHasArm = false;
 	mAnimator->SetTrackVisible("Zombie_outerarm_hand", false);
 	mAnimator->SetTrackVisible("Zombie_outerarm_lower", false);
 	mAnimator->SetTrackImage("Zombie_outerarm_upper", ResourceManager::GetInstance().

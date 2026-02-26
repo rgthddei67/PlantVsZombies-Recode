@@ -1,32 +1,29 @@
-#include "Shooter.h"
+﻿#include "Shooter.h"
 #include "GameDataManager.h"
 #include "../Board.h"
 #include "../Zombie/Zombie.h"
 
 void Shooter::SetupPlant() {
-    Plant::SetupPlant();  // 基类初始化
+    Plant::SetupPlant(); 
 
     auto reanim = mAnimator->GetReanimation();
     if (!reanim) return;
 
     mAnimator->PlayTrack("anim_idle");
 
-    // 1. 创建头部动画器（与身体使用同一 Reanimation 资源）
+    // 1. 创建头部动画器
     mHeadAnim = std::make_shared<Animator>(reanim);
     mHeadAnim->SetSpeed(this->GetAnimationSpeed());   // 同步身体动画速度
     mHeadAnim->PlayTrack("anim_head_idle");
     mHeadAnim->SetLocalPosition(GameDataManager::GetInstance().
         GetPlantOffset(this->mPlantType));
 
-    // 2. 将头部附加到身体轨道（优先使用 anim_stem，其次 anim_idle）
+    // 2. 将头部附加到身体轨道
     if (!mAnimator->GetTracksByName("anim_stem").empty()) {
         mAnimator->AttachAnimator("anim_stem", mHeadAnim);
     }
 
     mAnimator->SetSpeed(GameRandom::Range(1.1f, 1.3f));
-
-    // 3. 可选：设置头部绘制顺序（如果 Animator 支持）
-    // mHeadAnim->SetDrawOrder(mRenderOrder + 2);
 }
 
 void Shooter::PlantUpdate()
@@ -40,6 +37,13 @@ void Shooter::PlantUpdate()
             mShootTimer = 0;
             mHeadAnim->PlayTrackOnce("anim_shooting", "anim_head_idle", 1.5f, 0.2f);
             mHeadAnim->AddFrameEvent(63, [this]() {
+                if (GameRandom::Chance())
+                {
+                    AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_SHOOTER_SHOOT, 0.3f);
+                }
+                else {
+                    AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_SHOOTER_SHOOT2, 0.3f);
+                }
                 this->ShootBullet();
 				});
 		}
@@ -51,7 +55,7 @@ bool Shooter::HasZombieInRow()
 	if (mBoard)
 	{
         mCheckZombieTimer += DeltaTime::GetDeltaTime();
-        if (mCheckZombieTimer >= 0.5f)
+        if (mCheckZombieTimer >= 0.6f)
         {
             mCheckZombieTimer = 0.0f;
             EntityManager& manager = mBoard->mEntityManager;

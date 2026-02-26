@@ -153,6 +153,7 @@ bool GameAPP::LoadAllResources()
 	bool resourcesLoaded = true;
 
 	resourcesLoaded &= resourceManager.LoadAllGameImages();
+	resourcesLoaded &= resourceManager.LoadAllImagesFromPath();
 	resourcesLoaded &= resourceManager.LoadAllParticleTextures();
 	resourcesLoaded &= resourceManager.LoadAllFonts();
 	resourcesLoaded &= resourceManager.LoadAllSounds();

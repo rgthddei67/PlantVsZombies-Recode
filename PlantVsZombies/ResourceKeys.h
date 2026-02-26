@@ -187,12 +187,20 @@ namespace ResourceKeys
         const std::string SOUND_PLANT = "SOUND_PLANT";
         const std::string SOUND_PLANT_ONWATER = "SOUND_PLANT_ONWATER";
         const std::string SOUND_POTATO_MINE = "SOUND_POTATO_MINE";
+        const std::string SOUND_SQUASH_HMM = "SOUND_SQUASH_HMM";
+        const std::string SOUND_SQUASH_HMM2 = "SOUND_SQUASH_HMM2";
+        const std::string SOUND_SHOOTER_SHOOT = "SOUND_THROW";
+        const std::string SOUND_SHOOTER_SHOOT2 = "SOUND_THROW2";
+
+        // 子弹击中僵尸
         const std::string SOUND_SNOW_PEA_SPARKLES = "SOUND_SNOW_PEA_SPARKLES";
         const std::string SOUND_PEABULLET_HIT_BODY1 = "SOUND_SPLAT";
         const std::string SOUND_PEABULLET_HIT_BODY2 = "SOUND_SPLAT2";
         const std::string SOUND_PEABULLET_HIT_BODY3 = "SOUND_SPLAT3";
-        const std::string SOUND_SQUASH_HMM = "SOUND_SQUASH_HMM";
-        const std::string SOUND_SQUASH_HMM2 = "SOUND_SQUASH_HMM2";
+        const std::string SOUND_HITCONE = "SOUND_HITCONE";
+        const std::string SOUND_HITCONE2 = "SOUND_HITCONE2";
+        const std::string SOUND_IRONHIT = "SOUND_IRONHIT";
+        const std::string SOUND_IRONHIT2 = "SOUND_IRONHIT2";
     }
 
     namespace Music

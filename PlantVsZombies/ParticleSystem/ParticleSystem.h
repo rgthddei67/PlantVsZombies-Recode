@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #ifndef __PARTICLE_SYSTEM_H__
 #define __PARTICLE_SYSTEM_H__
 
@@ -24,14 +24,12 @@ public:
     void DrawAll();
     void ClearAll();
 
-    // 鍙戝皠涓€娆℃€х矑瀛愭晥鏋?
     void EmitEffect(ParticleType type, const Vector& position, int count = 1);
 
-    // 鍒涘缓鎸佺画鍙戝皠鍣?
+    // 创建持续的粒子
     ParticleEmitter* CreatePersistentEmitter(ParticleType type, const Vector& position);
     void RemoveEmitter(ParticleEmitter* emitter);
 
-    // 缁熻淇℃伅
     int GetTotalParticles() const;
     size_t GetActiveEmitters() const;
 

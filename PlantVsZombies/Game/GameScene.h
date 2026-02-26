@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #ifndef _GAMESCENE_H
 #define _GAMESCENE_H
 #include "Scene.h"
@@ -64,10 +64,12 @@ public:
 
 private:
     std::unique_ptr<Board> mBoard = nullptr;
+    std::weak_ptr<Button> mMainMenuButton;
     std::shared_ptr<CardSlotManager> mCardSlotManager = nullptr;
     std::shared_ptr<ChooseCardUI> mChooseCardUI = nullptr;
     std::shared_ptr<GameProgress> mGameProgress = nullptr;
 
+    bool mOpenMenu = false;
     bool mReadyToRestart = false;
 
     IntroStage mCurrentStage = IntroStage::BACKGROUND_MOVE;

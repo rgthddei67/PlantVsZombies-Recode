@@ -1,10 +1,11 @@
-#pragma once
+﻿#pragma once
 #ifndef _H_MESSAGEBOX_H
 #define _H_MESSAGEBOX_H
 
 #include "../Game/GameObject.h"
 #include "../Graphics.h"
 #include "Button.h"
+#include "Slider.h"
 #include <SDL2/SDL.h>
 #include <string>
 #include <functional>
@@ -13,17 +14,38 @@
 
 class GameMessageBox : public GameObject {
 public:
-    // 鎸夐挳閰嶇疆缁撴瀯
     struct ButtonConfig {
-        std::string text;                 // 鎸夐挳鏂囧瓧
+        std::string text;               
         Vector pos;
-        std::function<void()> callback;   // 鐐瑰嚮鍥炶皟
-        bool autoClose = true;             // 鐐瑰嚮鍚庢槸鍚﹁嚜鍔ㄥ叧闂秷鎭
+        Vector size;   // 大小，如果是Vector::zero就是按照NormalButton处理
+        float fontsize;
+        std::function<void()> callback; 
+        std::string texture;
+        bool autoClose = true;             // 是否自动关闭
+    };
+
+    struct SliderConfig {
+        Vector pos;
+        Vector size;   
+        float min;
+        float max;
+        float initValue;    // 初始化的值
+        std::function<void(float)> callback;
+    };
+
+    struct TextConfig {
+        Vector pos;
+        float size;
+        std::string text;
+        glm::vec4 color;
+        std::string font = ResourceKeys::Fonts::FONT_FZCQ;
     };
 
     GameMessageBox(const Vector& pos,
         const std::string& message,
         const std::vector<ButtonConfig>& buttons,
+        const std::vector<SliderConfig>& sliders,
+        const std::vector<TextConfig>& texts,
         const std::string& title = "",
         const std::string& backgroundImageKey = "",
         float scale = 1.0f);
@@ -33,23 +55,25 @@ public:
     virtual void Start() override;
     virtual void Draw(Graphics* g) override;
 
-    // 鍏抽棴娑堟伅妗嗭紙浠嶨ameObjectManager涓攢姣佽嚜宸憋級
     void Close();
 
 private:
     Vector m_position;
     float m_scale;
-    Vector m_size;               // 瀹為檯澶у皬锛堝凡涔樼缉鏀撅級
+    Vector m_size;             
     std::string m_title;
     std::string m_message;
     std::string m_backgroundImageKey = ResourceKeys::Textures::IMAGE_MESSAGEBOX;
     std::vector<ButtonConfig> m_buttonConfigs;
+    std::vector<SliderConfig> m_sliderConfigs;
+    std::vector<TextConfig> m_textConfigs;
+
     std::vector<std::shared_ptr<Button>> m_buttons;
+    std::vector<std::shared_ptr<Slider>> m_sliders;
 
     glm::vec4 m_textColor = { 245, 214, 127, 255 };
     glm::vec4 m_titleColor = { 53, 191, 61, 255 };
 
-    // 鑾峰彇鑳屾櫙鍥剧墖鍘熷灏哄锛堣嫢鏃犲浘鐗囧垯杩斿洖榛樿灏哄锛?
     Vector GetBackgroundOriginalSize() const;
 };
 

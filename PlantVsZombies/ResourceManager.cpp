@@ -1,7 +1,11 @@
-#include "ResourceManager.h"
+﻿#include "ResourceManager.h"
 #include "./Game/Plant/GameDataManager.h"
+#include <filesystem> 
 #include <algorithm>
+#include <cctype>   
 #include <iostream>
+
+namespace fs = std::filesystem;
 
 ResourceManager* ResourceManager::instance = nullptr;
 
@@ -34,7 +38,15 @@ const GLTexture* ResourceManager::LoadTexture(const std::string& filepath, const
     // 使用 SDL_image 加载表面
     SDL_Surface* surface = IMG_Load(filepath.c_str());
     if (!surface) {
-        std::cerr << "无法加载图片: " << filepath << " - " << IMG_GetError() << std::endl;
+        std::cerr << "[ResourceManager::LoadTexture] 无法加载图片: " << filepath << " - " << IMG_GetError() << std::endl;
+        return nullptr;
+    }
+
+    // 统一转换为 RGBA，解决 GL_UNPACK_ALIGNMENT 对齐问题和格式不确定问题
+    SDL_Surface* converted = SDL_ConvertSurfaceFormat(surface, SDL_PIXELFORMAT_ABGR8888, 0);
+    SDL_FreeSurface(surface);
+    if (!converted) {
+        std::cerr << "[ResourceManager::LoadTexture] 无法转换图片格式: " << filepath << std::endl;
         return nullptr;
     }
 
@@ -43,10 +55,8 @@ const GLTexture* ResourceManager::LoadTexture(const std::string& filepath, const
     glGenTextures(1, &textureId);
     glBindTexture(GL_TEXTURE_2D, textureId);
 
-    // 判断像素格式
-    GLenum format = (surface->format->BytesPerPixel == 4) ? GL_RGBA : GL_RGB;
-    glTexImage2D(GL_TEXTURE_2D, 0, format, surface->w, surface->h, 0,
-        format, GL_UNSIGNED_BYTE, surface->pixels);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, converted->w, converted->h, 0,
+        GL_RGBA, GL_UNSIGNED_BYTE, converted->pixels);
 
     // 设置纹理参数
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -55,9 +65,9 @@ const GLTexture* ResourceManager::LoadTexture(const std::string& filepath, const
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
     // 保存纹理尺寸
-    int w = surface->w;
-    int h = surface->h;
-    SDL_FreeSurface(surface);
+    int w = converted->w;
+    int h = converted->h;
+    SDL_FreeSurface(converted);
 
     GLTexture tex;
     tex.id = textureId;
@@ -65,10 +75,8 @@ const GLTexture* ResourceManager::LoadTexture(const std::string& filepath, const
     tex.height = h;
     mGLTextures[actualKey] = tex;
 
-#ifdef _DEBUG
-    std::cout << "成功加载 OpenGL 纹理: " << filepath << " (key: " << actualKey
-        << ") 尺寸 " << tex.width << "x" << tex.height << std::endl;
-#endif
+    //std::cout << "成功加载图片: " << filepath << " (key: " << actualKey
+    //    << ") 尺寸 " << tex.width << "x" << tex.height << std::endl;
     return &mGLTextures[actualKey];
 }
 
@@ -139,20 +147,28 @@ bool ResourceManager::LoadTiledTextureGL(const TiledImageInfo& info, const std::
                 continue;
             }
 
+            // 统一转换为 RGBA，解决对齐和格式问题
+            SDL_Surface* tileConverted = SDL_ConvertSurfaceFormat(tileSurface, SDL_PIXELFORMAT_ABGR8888, 0);
+            SDL_FreeSurface(tileSurface);
+            if (!tileConverted) {
+                std::cerr << "无法转换子图片格式: " << SDL_GetError() << std::endl;
+                success = false;
+                continue;
+            }
+
             // 创建 OpenGL 纹理
             GLuint textureId;
             glGenTextures(1, &textureId);
             glBindTexture(GL_TEXTURE_2D, textureId);
 
-            GLenum format = (tileSurface->format->BytesPerPixel == 4) ? GL_RGBA : GL_RGB;
-            glTexImage2D(GL_TEXTURE_2D, 0, format, tileW, tileH, 0,
-                format, GL_UNSIGNED_BYTE, tileSurface->pixels);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, tileW, tileH, 0,
+                GL_RGBA, GL_UNSIGNED_BYTE, tileConverted->pixels);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-            SDL_FreeSurface(tileSurface);
+            SDL_FreeSurface(tileConverted);
 
             GLTexture tex;
             tex.id = textureId;
@@ -162,9 +178,7 @@ bool ResourceManager::LoadTiledTextureGL(const TiledImageInfo& info, const std::
             std::string key = baseKey + "_PART_" + std::to_string(index);
             mGLTextures[key] = tex;
 
-#ifdef _DEBUG
-            std::cout << "加载子纹理: " << key << " 尺寸 " << tileW << "x" << tileH << std::endl;
-#endif
+            // std::cout << "加载子纹理: " << key << " 尺寸 " << tileW << "x" << tileH << std::endl;
         }
     }
 
@@ -219,9 +233,6 @@ bool ResourceManager::LoadAllParticleTextures() {
 bool ResourceManager::LoadAllFonts()
 {
     bool success = true;
-#ifdef _DEBUG
-    std::cout << "开始注册字体..." << std::endl;
-#endif
     const auto& paths = configReader.GetFontPaths();
     for (const auto& path : paths)
     {
@@ -231,18 +242,12 @@ bool ResourceManager::LoadAllFonts()
             success = false;
         }
     }
-#ifdef _DEBUG
-    std::cout << "字体注册完成" << std::endl;
-#endif
     return success;
 }
 
 bool ResourceManager::LoadAllSounds()
 {
     bool success = true;
-#ifdef _DEBUG
-    std::cout << "开始加载音效..." << std::endl;
-#endif
     const auto& paths = configReader.GetSoundPaths();
     for (const auto& path : paths)
     {
@@ -253,18 +258,12 @@ bool ResourceManager::LoadAllSounds()
             success = false;
         }
     }
-#ifdef _DEBUG
-    std::cout << "音效加载完成" << std::endl;
-#endif
     return success;
 }
 
 bool ResourceManager::LoadAllMusic()
 {
     bool success = true;
-#ifdef _DEBUG
-    std::cout << "开始加载音乐..." << std::endl;
-#endif
     const auto& paths = configReader.GetMusicPaths();
     for (const auto& path : paths)
     {
@@ -275,37 +274,68 @@ bool ResourceManager::LoadAllMusic()
             success = false;
         }
     }
-#ifdef _DEBUG
-    std::cout << "音乐加载完成" << std::endl;
-#endif
     return success;
 }
 
 bool ResourceManager::LoadAllReanimations()
 {
     bool success = true;
-    int loadedCount = 0;
-#ifdef _DEBUG
-    std::cout << "开始加载所有动画资源..." << std::endl;
-#endif
     const auto& reanimPaths = configReader.GetReanimationPaths();
     for (const auto& reanimPair : reanimPaths) {
         const std::string& key = reanimPair.first;
         const std::string& path = reanimPair.second;
 
         if (LoadReanimation(key, path)) {
-            loadedCount++;
-            std::cout << "成功加载动画: " << key << " from " << path << std::endl;
+
         }
         else {
             success = false;
             std::cerr << "加载动画失败: " << key << " from " << path << std::endl;
         }
     }
-#ifdef _DEBUG
-    std::cout << "动画资源加载完成，成功: " << loadedCount << "/" << reanimPaths.size() << std::endl;
-#endif
     return success;
+}
+
+bool ResourceManager::LoadAllImagesFromPath(const std::string& directory) {
+    bool allSuccess = true;
+    int loadedCount = 0;
+
+    if (!fs::exists(directory) || !fs::is_directory(directory)) {
+        std::cerr << "目录不存在: " << directory << std::endl;
+        return false;
+    }
+
+    for (const auto& entry : fs::directory_iterator(directory)) {
+        if (!entry.is_regular_file()) continue;
+
+        fs::path filepath = entry.path();
+        std::string ext = filepath.extension().string();
+        // 转换为小写以统一判断
+        std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+
+        if (ext == ".jpg" || ext == ".jpeg" || ext == ".png") {
+            std::string key = filepath.stem().string();  // 不带扩展名的文件名
+            // 将 key 转换为大写
+            std::transform(key.begin(), key.end(), key.begin(), ::toupper);
+            // 添加前缀 "IMAGE_"
+            key = "IMAGE_" + key;
+            std::string fullPath = filepath.string();
+
+            if (LoadTexture(fullPath, key)) {
+                loadedCount++;
+            }
+            else {
+                allSuccess = false;
+            }
+        }
+    }
+
+    if (loadedCount == 0) {
+        std::cerr << "在目录 " << directory << " 中没有找到任何 JPG/PNG 图片" << std::endl;
+        return false;
+    }
+
+    return allSuccess;
 }
 
 std::shared_ptr<Reanimation> ResourceManager::LoadReanimation(const std::string& key, const std::string& path) {
@@ -322,9 +352,9 @@ std::shared_ptr<Reanimation> ResourceManager::LoadReanimation(const std::string&
     }
 
     mReanimations[key] = reanim;
-#ifdef _DEBUG
-    std::cout << "Successfully loaded reanimation: " << key << " from " << path << std::endl;
-#endif
+//#ifdef _DEBUG
+//    std::cout << "Successfully loaded reanimation: " << key << " from " << path << std::endl;
+//#endif
     return reanim;
 }
 
@@ -362,9 +392,9 @@ bool ResourceManager::LoadFont(const std::string& path, const std::string& key) 
         return true; // 已注册
     }
     fonts[actualKey] = std::unordered_map<int, TTF_Font*>();
-#ifdef _DEBUG
-    std::cout << "注册字体: " << path << " (key: " << actualKey << ")" << std::endl;
-#endif
+//#ifdef _DEBUG
+//    std::cout << "注册字体: " << path << " (key: " << actualKey << ")" << std::endl;
+//#endif
     return true;
 }
 
@@ -409,7 +439,7 @@ TTF_Font* ResourceManager::GetFont(const std::string& key, int size) {
     }
 
     sizeMap[size] = font;
-    std::cout << "成功加载字体: '" << key << "' size: " << size << std::endl;
+    //std::cout << "成功加载字体: '" << key << "' size: " << size << std::endl;
     return font;
 }
 
@@ -491,9 +521,6 @@ Mix_Chunk* ResourceManager::LoadSound(const std::string& path, const std::string
     }
 
     sounds[actualKey] = sound;
-#ifdef _DEBUG
-    std::cout << "成功加载音效: " << path << std::endl;
-#endif
     return sound;
 }
 
@@ -534,9 +561,6 @@ Mix_Music* ResourceManager::LoadMusic(const std::string& path, const std::string
     }
 
     music[actualKey] = mus;
-#ifdef _DEBUG
-    std::cout << "成功加载音乐: " << path << std::endl;
-#endif
     return mus;
 }
 

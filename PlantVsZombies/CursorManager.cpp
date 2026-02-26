@@ -1,4 +1,4 @@
-#include "CursorManager.h"
+﻿#include "CursorManager.h"
 #include <iostream>
 
 CursorManager::CursorManager() {
@@ -29,10 +29,6 @@ bool CursorManager::Initialize() {
 
     mIsInitialized = true;
     SetDefaultCursor();
-
-#ifdef _DEBUG
-    std::cout << "CursorManager initialized successfully." << std::endl;
-#endif
 
     return true;
 }

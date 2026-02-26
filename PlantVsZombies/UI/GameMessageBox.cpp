@@ -1,4 +1,4 @@
-#include "GameMessageBox.h"
+﻿#include "GameMessageBox.h"
 #include "../ResourceManager.h"
 #include "../GameAPP.h"
 #include "../Game/GameObjectManager.h"
@@ -10,20 +10,20 @@
 #include <memory>
 
 namespace {
-	const Vector DEFAULT_SIZE(SCENE_WIDTH / 2, SCENE_HEIGHT / 2);          // 鏃犺儗鏅浘鐗囨椂鐨勯粯璁ゅ昂瀵?
-	const Vector BASE_BUTTON_SIZE(125 * 0.8f, 52 * 0.8f);        // 鎸夐挳鍩哄噯灏哄
-	const int BASE_TITLE_FONT_SIZE = 20;
-	const int BASE_MESSAGE_FONT_SIZE = 18;
-	const int BASE_BUTTON_FONT_SIZE = 14;
-	const int BUTTON_SPACING = 10;                 // 鎸夐挳闂磋窛鍩哄噯
-	const Vector TITLE_OFFSET = Vector(-70, -65);
+	const Vector DEFAULT_SIZE(SCENE_WIDTH / 2, SCENE_HEIGHT / 2);		// 默认位置	     
+	const int BASE_TITLE_FONT_SIZE = 20;	// Title大小
+	const int BASE_MESSAGE_FONT_SIZE = 18;	
+	const int BUTTON_SPACING = 10;			// 按钮距离上面偏移
+	const Vector TITLE_OFFSET = Vector(-70, -65);	// Title偏移
 	const Vector MESSAGE_OFFSET = Vector(-190, -25);
-	const int BOTTOM_MARGIN = 10;                    // 鎸夐挳璺濆簳閮ㄨ竟璺?
+	const int BOTTOM_MARGIN = 10;              
 }
 
 GameMessageBox::GameMessageBox(const Vector& pos,
 	const std::string& message,
 	const std::vector<ButtonConfig>& buttons,
+	const std::vector<SliderConfig>& sliders,
+	const std::vector<TextConfig>& texts,
 	const std::string& title,
 	const std::string& backgroundImageKey,
 	float scale)
@@ -34,10 +34,11 @@ GameMessageBox::GameMessageBox(const Vector& pos,
 	, m_message(message)
 	, m_backgroundImageKey(backgroundImageKey)
 	, m_buttonConfigs(buttons)
+	, m_sliderConfigs(sliders)
+	, m_textConfigs(texts)
 {
 	mIsUI = true;
 
-	// 璁＄畻瀹為檯澶у皬 = 鍘熷灏哄 脳 缂╂斁
 	Vector originalSize = GetBackgroundOriginalSize();
 	m_size = originalSize * scale;
 }
@@ -46,7 +47,16 @@ GameMessageBox::~GameMessageBox() {
 	auto& ui = SceneManager::GetInstance().GetCurrectSceneUIManager();
 	for (size_t i = 0; i < m_buttons.size(); i++)
 	{
-		ui.RemoveButton(m_buttons[i]);
+		auto button = m_buttons[i];
+		if (button)
+			ui.RemoveButton(button);
+	}
+
+	for (size_t i = 0; i < m_sliders.size(); i++)
+	{
+		auto slider = m_sliders[i];
+		if (slider)
+			ui.RemoveSlider(slider);
 	}
 }
 
@@ -69,22 +79,23 @@ void GameMessageBox::Start()
 {
 	GameObject::Start();
 
-	// 鍒涘缓鎸夐挳
 	for (const auto& config : m_buttonConfigs) {
-		Vector btnSize = BASE_BUTTON_SIZE * m_scale;
+		Vector btnSize = config.size * m_scale;
+		
 		auto button = SceneManager::GetInstance().GetCurrectSceneUIManager().
 			CreateButton(config.pos, btnSize);
 
-		// 璁剧疆鎸夐挳鏂囧瓧锛堝瓧浣撳ぇ灏忔寜姣斾緥缂╂斁锛?
-		int fontSize = static_cast<int>(BASE_BUTTON_FONT_SIZE * m_scale);
+		int fontSize = static_cast<int>(config.fontsize * m_scale);
 		if (fontSize < 8) fontSize = 8;
+
+		button->SetAsCheckbox(false);
 		button->SetTextColor(m_titleColor);
 		button->SetHoverTextColor(m_titleColor);
 		button->SetText(config.text, ResourceKeys::Fonts::FONT_FZCQ, fontSize);
-		button->SetImageKeys(ResourceKeys::Textures::IMAGE_BUTTONSMALL, ResourceKeys::Textures::IMAGE_BUTTONSMALL,
-			ResourceKeys::Textures::IMAGE_BUTTONSMALL, ResourceKeys::Textures::IMAGE_BUTTONSMALL);
+		button->SetImageKeys
+			(config.texture, config.texture, config.texture, config.texture);
 
-		// 璁剧疆鍥炶皟锛堜娇鐢?weak_ptr 閬垮厤寰幆寮曠敤锛?
+		// 使用weakptr 避免循环引用
 		auto weakSelf = std::weak_ptr<GameMessageBox>(std::dynamic_pointer_cast<GameMessageBox>(shared_from_this()));
 		button->SetClickCallBack([weakSelf, config](bool) {
 			if (config.callback) config.callback();
@@ -97,13 +108,26 @@ void GameMessageBox::Start()
 
 		m_buttons.push_back(button);
 	}
+
+	for (const auto& config : m_sliderConfigs) {
+		auto slider = SceneManager::GetInstance().GetCurrectSceneUIManager().
+			CreateSlider
+			(config.pos, config.size * m_scale, config.min, config.max, config.initValue);
+
+		auto weakSelf = std::weak_ptr<GameMessageBox>(std::dynamic_pointer_cast<GameMessageBox>(shared_from_this()));
+		slider->SetChangeCallBack([weakSelf, config](float value) {
+			if (config.callback)
+				config.callback(value);
+			});
+
+		m_sliders.push_back(slider);
+	}
 }
 
 void GameMessageBox::Draw(Graphics* g)
 {
 	if (!mActive) return;
 
-	// 缁樺埗鑳屾櫙锛堟媺浼稿埌缂╂斁鍚庣殑澶у皬锛?
 	if (!m_backgroundImageKey.empty()) {
 		auto& resMgr = ResourceManager::GetInstance();
 		const GLTexture* tex = resMgr.GetTexture(m_backgroundImageKey);
@@ -111,10 +135,9 @@ void GameMessageBox::Draw(Graphics* g)
 		g->DrawTexture(tex, pos.x, pos.y, m_size.x, m_size.y);
 	}
 	else {
-		std::cerr << "[GameMessageBox::Draw] 浣燭M杩樹笉缁欐垜璁剧疆鍥剧墖鏄惂" << std::endl;
+		std::cerr << "[GameMessageBox::Draw] 没有合适的绘制图片" << std::endl;
 	}
 
-	// 缁樺埗鏍囬
 	if (!m_title.empty()) {
 		int fontSize = static_cast<int>(BASE_TITLE_FONT_SIZE * m_scale);
 		if (fontSize < 8) fontSize = 8;
@@ -124,7 +147,6 @@ void GameMessageBox::Draw(Graphics* g)
 			ResourceKeys::Fonts::FONT_FZCQ, fontSize);
 	}
 
-	// 缁樺埗娑堟伅
 	if (!m_message.empty()) {
 		int fontSize = static_cast<int>(BASE_MESSAGE_FONT_SIZE * m_scale);
 		if (fontSize < 8) fontSize = 8;
@@ -132,6 +154,15 @@ void GameMessageBox::Draw(Graphics* g)
 		Vector pos3 = g->ScreenToWorldPosition(msgPos.x, msgPos.y);
 		GameAPP::GetInstance().DrawText(m_message, pos3, m_textColor,
 			ResourceKeys::Fonts::FONT_FZCQ, fontSize);
+	}
+
+	for (const auto& config : m_textConfigs) {
+		int fontSize = static_cast<int>(config.size * m_scale);
+		if (fontSize < 8) fontSize = 8;
+
+		Vector pos4 = g->ScreenToWorldPosition(config.pos.x, config.pos.y);
+		GameAPP::GetInstance().DrawText(config.text, pos4, config.color,
+			config.font, fontSize);
 	}
 }
 

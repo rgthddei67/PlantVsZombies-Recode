@@ -1,4 +1,4 @@
-#include "Reanimation.h"
+﻿#include "Reanimation.h"
 #include "../ResourceManager.h"
 #include <iostream>
 #include "../FileManager.h"
@@ -9,22 +9,20 @@ Reanimation::Reanimation() {
 }
 
 Reanimation::~Reanimation() {
-    // 鑷姩娓呯悊
 }
 
 bool Reanimation::LoadFromFile(const std::string& filePath) {
-    // 娓呯┖鐜版湁鏁版嵁
     mTracks->clear();
     mIsLoaded = false;
 
-    // 瑙ｆ瀽.reanim鏂囦欢
+    // 加载xml
     pugi::xml_document doc;
     if (!FileManager::LoadXMLFile(filePath, doc)) {
         std::cerr << "Failed to load reanim file: " << filePath << std::endl;
         return false;
     }
 
-    // 閬嶅巻XML鏂囨。
+    // 解析xml
     for (pugi::xml_node node : doc.children()) {
         std::string tagName = node.name();
         if (tagName == "fps") {
@@ -33,7 +31,7 @@ bool Reanimation::LoadFromFile(const std::string& filePath) {
         else if (tagName == "track") {
             TrackInfo track;
 
-            // 鍒濆鍖栧墠涓€甯х殑鏁版嵁
+            // 初始化各个信息
             float prevX = 0.0f;
             float prevY = 0.0f;
             float prevKx = 0.0f;
@@ -52,7 +50,7 @@ bool Reanimation::LoadFromFile(const std::string& filePath) {
                 else if (childName == "t") {
                     TrackFrameTransform frameTransform;
 
-                    // 鍒濆鍖栨墍鏈夊瓧娈典负鍗犱綅绗﹀€?
+                    // 先默认设置为占位符
                     frameTransform.x = REANIM_MISSING_FIELD_FLOAT;
                     frameTransform.y = REANIM_MISSING_FIELD_FLOAT;
                     frameTransform.kx = REANIM_MISSING_FIELD_FLOAT;
@@ -63,12 +61,11 @@ bool Reanimation::LoadFromFile(const std::string& filePath) {
                     frameTransform.f = REANIM_MISSING_FIELD_INT;
                     frameTransform.image = nullptr;
 
-                    // 瑙ｆ瀽鍙樻崲灞炴€?
+                    // 解析每个项
                     for (pugi::xml_node prop : child.children()) {
                         std::string propName = prop.name();
                         std::string propValue = prop.text().as_string();
 
-                        // 璺宠繃绌哄€?
                         if (propValue.empty()) continue;
 
                         if (propName == "x") {
@@ -98,27 +95,36 @@ bool Reanimation::LoadFromFile(const std::string& filePath) {
                         else if (propName == "i") {
                             std::string imageName = prop.text().as_string();
                             if (!imageName.empty() && mResourceManager) {
-                                // 妫€鏌ユ槸鍚︽槸 REANIM 鍥剧墖鏍煎紡
+                                // 自动加载相关图片
                                 if (imageName.find("IMAGE_REANIM_") == 0) {
                                     std::string fileName = imageName.substr(13);
-                                    std::string filePath = "./resources/image/reanim/" + fileName;
+                                    const GLTexture* tex = mResourceManager->GetTexture(fileName);
+                                    if (!tex) {
+                                        std::string filePath = "./resources/image/reanim/" + fileName;
 
-                                    prevImage = mResourceManager->LoadTexture(filePath + ".png", imageName);
-                                    if (!prevImage) {
-                                        prevImage = mResourceManager->LoadTexture(filePath + ".jpg", imageName);
-                                    }
+                                        tex = mResourceManager->LoadTexture(filePath + ".png", imageName);
+                                        if (!tex) {
+                                            tex = mResourceManager->LoadTexture(filePath + ".jpg", imageName);
+                                        }
 
-                                    if (!prevImage) {
-                                        std::cout << "璀﹀憡: 鏃犳硶鍔犺浇鍔ㄧ敾鍥剧墖: " << imageName << std::endl;
+                                        if (tex) {
+                                            // 新加载成功，更新 prevImage
+                                            prevImage = tex;
+                                        }
+                                        else {
+                                            std::cout << "[Reanimation::LoadFromFile] 没有找到图片" << imageName << std::endl;
+                                        }
                                     }
-                                    frameTransform.image = prevImage;
+                                    else {
+                                        // 已存在，更新 prevImage
+                                        prevImage = tex;
+                                    }
+                                    frameTransform.image = tex;
                                 }
                             }
-                         
                         }
                     }
 
-                    // 濡傛灉褰撳墠甯х殑鍊兼槸鍗犱綅绗︼紝浣跨敤鍓嶄竴甯х殑鍊?
                     if (frameTransform.x == REANIM_MISSING_FIELD_FLOAT)
                         frameTransform.x = prevX;
                     else
@@ -162,12 +168,11 @@ bool Reanimation::LoadFromFile(const std::string& filePath) {
                     else 
                         prevImage = frameTransform.image;
 
-                   // 娣诲姞甯у埌杞ㄩ亾
                     track.mFrames.push_back(frameTransform);
                 }
             }
 
-            // 杞ㄩ亾鍙敤鎬?
+            // 判断是否可用
             track.mAvailable = !track.mFrames.empty();
 
             mTracks->push_back(track);
@@ -177,9 +182,9 @@ bool Reanimation::LoadFromFile(const std::string& filePath) {
     mIsLoaded = true;
 
 #ifdef _DEBUG
-    std::cout << "鎴愬姛鍔犺浇reanim鏂囦欢: " << filePath
-        << "锛岃建閬撴暟: " << mTracks->size()
-        << "锛屾€诲抚鏁? " << GetTotalFrames() << std::endl;
+    std::cout << "成功加载reanim: " << filePath
+        << "   Track数量: " << mTracks->size()
+        << "   总帧数" << GetTotalFrames() << std::endl;
 #endif
 
     return true;
@@ -220,7 +225,6 @@ void GetDeltaTransform(const TrackFrameTransform& tSrc, const TrackFrameTransfor
     tOutput.sy = (tDst.sy - tSrc.sy) * tDelta + tSrc.sy;
 
     if (useDestFrame) {
-        // 娣峰悎妯″紡锛氳搴﹀樊瓒呰繃180掳鏃讹紝鐩爣瑙掑害瑙嗕负婧愯搴?
         float kxDst = tDst.kx;
         float kyDst = tDst.ky;
         if (kxDst > tSrc.kx + 180.0f || kxDst < tSrc.kx - 180.0f)
@@ -231,7 +235,6 @@ void GetDeltaTransform(const TrackFrameTransform& tSrc, const TrackFrameTransfor
         tOutput.ky = (kyDst - tSrc.ky) * tDelta + tSrc.ky;
     }
     else {
-        // 姝ｅ父甯ч棿鎻掑€硷細鍙栨渶鐭棆杞矾寰?
         float kxDiff = tDst.kx - tSrc.kx;
         while (kxDiff > 180.0f) kxDiff -= 360.0f;
         while (kxDiff < -180.0f) kxDiff += 360.0f;

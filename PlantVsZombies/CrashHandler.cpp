@@ -1,4 +1,4 @@
-#include "CrashHandler.h"
+﻿#include "CrashHandler.h"
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -417,12 +417,26 @@ std::string CrashHandler::GetModuleName(HMODULE module) {
     }
     return "Unknown";
 }
+// 辅助函数：从模块句柄获取文件名（不含路径）
+static std::string GetModuleBaseName(HMODULE hModule) {
+    char modulePath[MAX_PATH];
+    if (GetModuleFileNameA(hModule, modulePath, MAX_PATH)) {
+        std::string fullPath(modulePath);
+        size_t lastSlash = fullPath.find_last_of("\\/");
+        if (lastSlash != std::string::npos) {
+            return fullPath.substr(lastSlash + 1);
+        }
+        return fullPath;
+    }
+    return "";
+}
 
 bool CrashHandler::IsUACByTimeWindow(PEXCEPTION_POINTERS exceptionInfo) {
     if (!exceptionInfo) return false;
 
     LONG64 currentTime = GetTickCount64();
 
+    // 3秒时间窗口内的同类异常忽略（防重复弹窗）
     if (currentTime - lastUACTime < 3000) {
         std::cout << "Within time window, ignoring exception (time since last UAC: "
             << (currentTime - lastUACTime) << "ms)" << std::endl;
@@ -431,6 +445,7 @@ bool CrashHandler::IsUACByTimeWindow(PEXCEPTION_POINTERS exceptionInfo) {
 
     DWORD exceptionCode = exceptionInfo->ExceptionRecord->ExceptionCode;
 
+    // 仅处理可能由 UAC 引起的异常类型
     if (exceptionCode == EXCEPTION_ACCESS_VIOLATION ||
         exceptionCode == EXCEPTION_GUARD_PAGE ||
         exceptionCode == EXCEPTION_BREAKPOINT) {
@@ -439,21 +454,17 @@ bool CrashHandler::IsUACByTimeWindow(PEXCEPTION_POINTERS exceptionInfo) {
         if (GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS,
             (LPCTSTR)exceptionInfo->ExceptionRecord->ExceptionAddress, &hModule)) {
 
-            char moduleName[MAX_PATH];
-            if (GetModuleFileNameA(hModule, moduleName, MAX_PATH)) {
-                std::string modulePath = moduleName;
-                std::transform(modulePath.begin(), modulePath.end(), modulePath.begin(), ::tolower);
+            std::string moduleName = GetModuleBaseName(hModule);
+            std::transform(moduleName.begin(), moduleName.end(), moduleName.begin(), ::tolower);
 
-                if (modulePath.find("\\system32\\") != std::string::npos ||
-                    modulePath.find("\\syswow64\\") != std::string::npos ||
-                    modulePath.find("kernel32.dll") != std::string::npos ||
-                    modulePath.find("kernelbase.dll") != std::string::npos ||
-                    modulePath.find("ntdll.dll") != std::string::npos) {
+            // 只检查核心系统模块的文件名（不含路径）
+            if (moduleName == "kernel32.dll" ||
+                moduleName == "kernelbase.dll" ||
+                moduleName == "ntdll.dll") {
 
-                    std::cout << "Detected UAC-related exception, module: " << modulePath << std::endl;
-                    lastUACTime = currentTime;
-                    return true;
-                }
+                std::cout << "Detected UAC-related exception, module: " << moduleName << std::endl;
+                lastUACTime = currentTime;
+                return true;
             }
         }
     }

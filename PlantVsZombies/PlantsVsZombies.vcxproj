@@ -48,6 +48,7 @@
     <ClCompile Include="Game\Scene.cpp" />
     <ClCompile Include="Game\SceneManager.cpp" />
     <ClCompile Include="Game\ShaderComponent.cpp" />
+    <ClCompile Include="Game\Zombie\ConeZombie.cpp" />
     <ClCompile Include="Game\Zombie\Zombie.cpp" />
     <ClCompile Include="Graphics.cpp" />
     <ClCompile Include="main.cpp" />
@@ -112,6 +113,7 @@
     <ClInclude Include="Game\Sun.h" />
     <ClInclude Include="Game\ThreadPool.h" />
     <ClInclude Include="Game\TransformComponent.h" />
+    <ClInclude Include="Game\Zombie\ConeZombie.h" />
     <ClInclude Include="Game\Zombie\Zombie.h" />
     <ClInclude Include="Game\Zombie\ZombieType.h" />
     <ClInclude Include="Graphics.h" />

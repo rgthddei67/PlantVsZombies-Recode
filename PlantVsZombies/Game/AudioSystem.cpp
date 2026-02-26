@@ -1,4 +1,4 @@
-#include "../Game/AudioSystem.h"
+﻿#include "../Game/AudioSystem.h"
 #include "../ResourceManager.h"
 #include <fstream>
 #include <algorithm>
@@ -207,14 +207,6 @@ void AudioSystem::UpdateVolume()
     // 更新音乐音量
     int musicVol = static_cast<int>(MIX_MAX_VOLUME * masterVolume * musicVolume);
     Mix_VolumeMusic(musicVol);
-
-    // 更新所有音效音量（新播放的音效会自动应用新音量）
-#ifdef _DEBUG
-    std::cout << "音量更新 - 主音量: " << masterVolume
-        << ", 音效: " << soundVolume
-        << ", 音乐: " << musicVolume
-        << ", 最终音乐音量: " << musicVol << std::endl;
-#endif
 }
 
 bool AudioSystem::IsAudioAvailable()

@@ -1,4 +1,4 @@
-#include "Button.h"
+﻿#include "Button.h"
 #include "InputHandler.h"
 #include <iostream>
 #include <SDL2/SDL_image.h>
@@ -105,24 +105,20 @@ void Button::Update(InputHandler* input)
     Vector mousePos = input->GetMousePosition();
     this->isHovered = this->ContainsPoint(mousePos);
 
-    // 澶勭悊鎮仠鐘舵€佸彉鍖?
+    // 鼠标变化
     if (this->isHovered) {
         CursorManager::GetInstance().IncrementHoverCount();
     }
 
-    // 澶勭悊榧犳爣鎸変笅
     if (this->isHovered && m_mousePressedThisFrame)
     {
         this->isPressed = true;
-        // 鎸変笅鏃剁珛鍗宠Е鍙戝閫夋鐘舵€佸垏鎹?
         if (isCheckbox && !m_wasMouseDown)
         {
-            // 澶嶉€夋鍙互鍦ㄦ寜涓嬫椂灏卞垏鎹㈢姸鎬?
             this->isChecked = !this->isChecked;
         }
     }
 
-    // 澶勭悊榧犳爣閲婃斁
     if (m_mouseReleasedThisFrame)
     {
         if (this->isPressed && this->isHovered && this->onClickCallback)
@@ -133,7 +129,6 @@ void Button::Update(InputHandler* input)
         this->isPressed = false;
     }
 
-    // 鏇存柊榧犳爣鐘舵€佽褰?
     m_wasMouseDown = input->IsMouseButtonDown(SDL_BUTTON_LEFT);
     ResetFrameState();
 }
@@ -143,7 +138,7 @@ void Button::Draw(Graphics* g) const
     if (!mEnabled || !g) return;
 
 	ResourceManager& resourceManager = ResourceManager::GetInstance();
-    // 纭畾瑕佹樉绀虹殑鍥剧墖key
+
     std::string imageKey = normalImageKey;
 
     if (this->isCheckbox && this->isChecked && !this->checkedImageKey.empty())
@@ -159,7 +154,6 @@ void Button::Draw(Graphics* g) const
         imageKey = this->hoverImageKey;
     }
 
-    // 缁樺埗鎸夐挳鍥剧墖
     if (!imageKey.empty() && resourceManager.HasTexture(imageKey))
     {
         const GLTexture* texture = resourceManager.GetTexture(imageKey);
@@ -172,15 +166,13 @@ void Button::Draw(Graphics* g) const
     else
     {
         std::cerr <<
-            "[Button]: 娌℃湁鎸夐挳鍥剧墖锛佺洿鎺ヤ笉缁樺埗浜嗭紝鎴戣崏浣犲锛屾€庝箞鍥剧墖閮戒笉鎼烇紵鐭ヤ笉鐭ラ亾鍐欒繖鐜╂剰楹荤儲姝讳簡!" << std::endl;
+            "[Button]: 没有绘制图片!" << std::endl;
     }
 
-    // 缁樺埗鏂囨湰
     if (!text.empty())
     {
         glm::vec4 color = this->isHovered ? this->hoverTextColor : this->textColor;
 
-        // 鑾峰彇鏂囨湰鐨勫疄闄呭昂瀵?
         int textWidth = 0;
         int textHeight = 0;
         TTF_Font* tempFont = resourceManager.GetFont(fontName, fontSize);
@@ -196,29 +188,28 @@ void Button::Draw(Graphics* g) const
                 unsigned char c = text[i];
                 if ((c & 0x80) == 0)
                 {
-                    textWidth += fontSize / 2; // ASCII瀛楃
+                    textWidth += fontSize / 2; // ASCII
                     i += 1;
                 }
                 else if ((c & 0xE0) == 0xC0)
                 {
-                    textWidth += fontSize;     // 2瀛楄妭UTF-8锛堝涓枃锛?
+                    textWidth += fontSize;     // 2 UTF8
                     i += 2;
                 }
                 else if ((c & 0xF0) == 0xE0)
                 {
-                    textWidth += fontSize;     // 3瀛楄妭UTF-8
+                    textWidth += fontSize;     // 3 UTF8
                     i += 3;
                 }
                 else
                 {
-                    textWidth += fontSize;     // 鍏朵粬
+                    textWidth += fontSize;     
                     i += 1;
                 }
             }
-            textHeight = fontSize; // 浼拌楂樺害
+            textHeight = fontSize; 
         }
 
-        // 璁＄畻灞呬腑浣嶇疆锛堢浉瀵逛簬鎸夐挳鍖哄煙锛?
         float textX = position.x + (size.x - static_cast<float>(textWidth)) / 2;
         float textY = position.y + (size.y - static_cast<float>(textHeight)) / 2;
 

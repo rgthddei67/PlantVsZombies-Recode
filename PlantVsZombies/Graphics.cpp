@@ -630,7 +630,7 @@ void Graphics::SetClearColor(float r, float g, float b, float a) {
 
 void Graphics::SetBlendMode(BlendMode mode) {
     // 提交当前批次，避免混合状态混乱
-    if (!m_batchVertices.empty()) {
+    if (!m_batchVertices.empty() || !m_geomBatchVertices.empty()) {
         FlushBatch();
     }
 

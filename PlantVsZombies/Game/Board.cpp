@@ -1,10 +1,11 @@
-#include "Board.h"
+﻿#include "Board.h"
 #include "Sun.h"
 #include "../GameRandom.h"
 #include "./Plant/Plant.h"
 #include "./Plant/SunFlower.h"
 #include "./Plant/Shooter.h"
 #include "./Zombie/Zombie.h"
+#include "./Zombie/ConeZombie.h"
 #include "./Bullet/PeaBullet.h"
 #include "./Plant/PeaShooter.h"
 #include "./SceneManager.h"
@@ -171,8 +172,20 @@ std::shared_ptr<Zombie> Board::CreateZombie(ZombieType zombieType, int row, floa
 			1.0f,
 			isPreview);
 		break;
+	case ZombieType::ZOMBIE_TRAFFIC_CONE:
+		zombie = GameObjectManager::GetInstance().CreateGameObjectImmediate<ConeZombie>(
+			LAYER_GAME_ZOMBIE,
+			this,
+			ZombieType::ZOMBIE_TRAFFIC_CONE,
+			x,
+			y,
+			row,
+			AnimationType::ANIM_CONE_ZOMBIE,
+			1.0f,
+			isPreview);
+		break;
 	default:
-		std::cout << "未知的僵尸类型" << std::endl;
+		std::cout << "[Board::CreateZombie] 未知的僵尸类型" << std::endl;
 		return nullptr;
 	}
 
@@ -438,7 +451,7 @@ void Board::TrySummonZombie()
 int Board::CalculateWaveZombiePoints() const
 {
 	// 基础点数
-	int points = mCurrentWave / 2 + 1;
+	int points = (mCurrentWave / 2 + 1) * 1000;
 
 	points *= GameAPP::GetInstance().Difficulty;
 

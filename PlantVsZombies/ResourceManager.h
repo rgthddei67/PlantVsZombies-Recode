@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #ifndef _RESOURCEMANAGER_H
 #define _RESOURCEMANAGER_H
 
@@ -70,7 +70,11 @@ public:
     bool LoadAllSounds();
     bool LoadAllMusic();
     bool LoadAllReanimations();
-
+    /// @brief 加载 ./resources/image/reanim/ 目录下的所有 JPG/PNG 图片，使用文件名（不含扩展名）作为键名
+    /// @param directory 要扫描的目录，默认为 "./resources/image/reanim/"
+    /// @return 是否全部加载成功
+    bool LoadAllImagesFromPath(const std::string& directory = "./resources/image/reanim/");
+       
     // ---------- 动画管理 ----------
     std::shared_ptr<Reanimation> LoadReanimation(const std::string& key, const std::string& path);
     std::shared_ptr<Reanimation> GetReanimation(const std::string& key);

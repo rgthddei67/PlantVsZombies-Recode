@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #ifndef _UIMANAGER_H
 #define _UIMANAGER_H
 #include "../ResourceManager.h"
@@ -20,7 +20,6 @@ public:
         ClearAll();
     }
 
-    // ButtonManager 浠ｇ悊鏂规硶
     std::shared_ptr<Button> CreateButton(Vector pos = Vector::zero(), Vector size = Vector(40, 40))
     {
         return buttonManager.CreateButton(pos, size);
@@ -46,7 +45,6 @@ public:
         return buttonManager.GetButton(index);
     }
 
-    // SliderManager 浠ｇ悊鏂规硶
     std::shared_ptr<Slider> CreateSlider(Vector pos = Vector::zero(),
         Vector size = Vector(135, 10),
         float minVal = 0.0f,
@@ -56,16 +54,17 @@ public:
         return sliderManager.CreateSlider(pos, size, minVal, maxVal, initialValue);
     }
 
-    // 鍒涘缓娑堟伅妗?
     std::shared_ptr<GameMessageBox> CreateMessageBox(const Vector& pos,
         const std::string& message,
         const std::vector<GameMessageBox::ButtonConfig>& buttons,
+        const std::vector<GameMessageBox::SliderConfig>& sliders,
+        const std::vector<GameMessageBox::TextConfig>& texts,
         const std::string& title = "",
         float scale = 1.0f,
         const std::string& backgroundImageKey = ResourceKeys::Textures::IMAGE_MESSAGEBOX)
     {
         return GameObjectManager::GetInstance().CreateGameObjectImmediate<GameMessageBox>(
-            LAYER_UI, pos, message, buttons, title, backgroundImageKey, scale);
+            LAYER_UI, pos, message, buttons, sliders, texts, title, backgroundImageKey, scale);
     }
 
     void RemoveSlider(std::shared_ptr<Slider> slider)
@@ -88,7 +87,6 @@ public:
         return sliderManager.GetSlider(index);
     }
 
-    // 缁熶竴澶勭悊鏂规硶
     void ProcessMouseEvent(InputHandler* input)
     {
         buttonManager.ProcessMouseEvent(input);
@@ -118,7 +116,6 @@ public:
         sliderManager.ClearAllSliders();
     }
 
-    // 鑾峰彇搴曞眰绠＄悊鍣紙涔熷彲浠ョ洿鎺ヨ闂級
     ButtonManager& GetButtonManager() { return buttonManager; }
     SliderManager& GetSliderManager() { return sliderManager; }
     const ButtonManager& GetButtonManager() const { return buttonManager; }

@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #ifndef __PARTICLE_H__
 #define __PARTICLE_H__
 
@@ -11,16 +11,18 @@ enum class ParticleType {
     PEA_BULLET_HIT,
     ZOMBIE_HEAD_OFF,
     ZOMBIE_ARM_OFF,
-    NUM_EFFECTS
+    ZOMBIE_POLEVAULTER_ARM_OFF,
+    ZOMBIE_CONE_OFF,
+    ZOMBIE_BUCKET_OFF,
+    NUM_EFFECTS，
 };
 
-// 鍩虹绮掑瓙鏁版嵁
 struct Particle {
     Vector position;
     Vector velocity;
-    glm::vec4 color;          // 褰撳墠棰滆壊 (0~1)
-    glm::vec4 startColor;     // 璧峰棰滆壊 (0~1)
-    glm::vec4 endColor;       // 缁撴潫棰滆壊 (0~1)
+    glm::vec4 color;          
+    glm::vec4 startColor;  
+    glm::vec4 endColor;      
     float lifetime;
     float maxLifetime;
     float size;
@@ -31,7 +33,7 @@ struct Particle {
     float gravity;
     bool active;
     bool fadeOut;
-    const GLTexture* texture; // 绮掑瓙绾圭悊
+    const GLTexture* texture;
 
     Particle();
     void Reset();

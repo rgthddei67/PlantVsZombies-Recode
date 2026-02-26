@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #ifndef _H_ZOMBIETYPE_H
 #define _H_ZOMBIETYPE_H
 
@@ -22,6 +22,13 @@ enum class ShieldType {
 	SHIELDTYPE_LADDER		//梯子
 };
 
+enum class ArmorBrokenState {
+	NONE,
+	NO_BROKEN,
+	A_LITTLE_BROKEN,
+	REALLY_BROKEN,
+};
+
 enum class ZombieType {
 	ZOMBIE_NORMAL,
 	ZOMBIE_FLAG,
@@ -35,8 +42,8 @@ enum class ZombieType {
 	ZOMBIE_BACKUP_DANCER,
 	ZOMBIE_DUCKY_TUBE,
 	ZOMBIE_SNORKEL,
-	ZOMBIE_ZAMBONI,
-	ZOMBIE_BOBSLED,
+	ZOMBIE_ZAMBONI,		// 冰车
+	ZOMBIE_BOBSLED,		// 小队
 	ZOMBIE_DOLPHIN_RIDER,
 	ZOMBIE_JACK_IN_THE_BOX,
 	ZOMBIE_BALLOON,

@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #ifndef _ZOMBIE_H
 #define _ZOMBIE_H
 
@@ -23,6 +23,8 @@ public:
 	int mAttackDamage = 50;
 
 	bool mIsPreview = false;
+	bool mNeedDropArm = true;
+	bool mNeedDropHead = true;
 	int mZombieID = NULL_ZOMBIE_ID;
 
 	int mSpawnWave = -1;	// 多少波刷新的
@@ -65,10 +67,10 @@ public:
 
 	int GetSortingKey() const override { return mRow; }
 
-	virtual void ShieldDrop();		// 二类防具掉落
-	virtual void HelmDrop();	// 一类防具掉落
-	virtual void HeadDrop();	// 头掉落
-	virtual void ArmDrop();		// 手掉落
+	virtual void ShieldDrop();		// 二类防具掉落 必须调用Zombie::SheildDrop
+	virtual void HelmDrop();	// 一类防具掉落 必须调用Zombie::HelmDrop
+	virtual void HeadDrop();	// 头掉落 不用调用Zombie::HeadDrop
+	virtual void ArmDrop();		// 手掉落 不用调用Zombie::ArmDrop
 
 	void Die();
 	void EatTarget(std::shared_ptr<ColliderComponent> other);
@@ -81,7 +83,13 @@ public:
 
 protected:
 	// 此处仅用于设置僵尸死亡的回调函数! 不要在子类中调用基类！
-	virtual void SetupZombie();
+	virtual void SetupZombieDeathEvent();
+
+	// 这才是设置僵尸
+	virtual void SetupZombie() { }
+
+	virtual void CheckHelmImage() {}	// 检查是否应该更换一类防具图片
+	virtual void CheckShieldImage() {} 	// 检查是否应该更换二类防具图片
 };
 
 #endif

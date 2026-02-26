@@ -1,4 +1,4 @@
-#include "GameScene.h"
+﻿#include "GameScene.h"
 #include "SceneManager.h"
 #include "../ResourceManager.h"
 #include "./Plant/PlantType.h"
@@ -71,6 +71,75 @@ void GameScene::OnEnter() {
 	mGameProgress = GameObjectManager::GetInstance().CreateGameObjectImmediate<GameProgress>(
 		LAYER_UI, mBoard.get(), this);
 	mGameProgress->SetActive(false);
+	
+	auto button = mUIManager.CreateButton(Vector(990, -5), Vector(125 * 0.9f, 52 * 0.9f));
+	mMainMenuButton = button;
+	button->SetText("主菜单");
+	button->SetAsCheckbox(false);
+	button->SetTextColor(glm::vec4{ 53, 191, 61, 255 });
+	button->SetHoverTextColor(glm::vec4{ 53, 240, 61, 255 });
+	button->SetImageKeys(ResourceKeys::Textures::IMAGE_BUTTONSMALL, ResourceKeys::Textures::IMAGE_BUTTONSMALL,
+		ResourceKeys::Textures::IMAGE_BUTTONSMALL, ResourceKeys::Textures::IMAGE_BUTTONSMALL);
+	button->SetClickCallBack([this](bool) {
+		if (mOpenMenu) return;
+
+		mOpenMenu = true;
+		DeltaTime::SetPaused(true);
+		std::vector<GameMessageBox::ButtonConfig> buttons;
+		std::vector<GameMessageBox::SliderConfig> sliders;
+		std::vector<GameMessageBox::TextConfig> texts;
+		buttons.push_back({ u8"返回游戏", Vector(400, 430),Vector(360, 100), 40,[this]() {
+			mOpenMenu = false;
+			DeltaTime::SetPaused(false);
+		}, ResourceKeys::Textures::IMAGE_OPTIONS_BACKTOGAMEBUTTON0 ,true });
+		buttons.push_back({ u8"重新开始", Vector(485, 330),Vector(213 * 0.9f, 50 * 0.9f),
+			21 ,[this]() {
+			std::vector<GameMessageBox::ButtonConfig> buttons;
+			std::vector<GameMessageBox::SliderConfig> sliders;
+			std::vector<GameMessageBox::TextConfig> texts;
+
+			buttons.push_back({ u8"取消", Vector(380, 380), Vector(125 * 0.8f, 52 * 0.8f),14, [this]() {
+				this->mOpenMenu = false;
+				DeltaTime::SetPaused(false);
+			}, ResourceKeys::Textures::IMAGE_BUTTONSMALL, true });
+			buttons.push_back({ u8"确定", Vector(560, 380), Vector(125 * 0.8f, 52 * 0.8f),14, [this]() {
+				this->mReadyToRestart = true;
+				this->mOpenMenu = false;
+				DeltaTime::SetPaused(false);
+			}, ResourceKeys::Textures::IMAGE_BUTTONSMALL, true });
+
+			mUIManager.CreateMessageBox(Vector(SCENE_WIDTH / 2, SCENE_HEIGHT / 2),
+				u8"    确定重新开始游戏吗?", buttons, sliders, texts, "", 1.5f);
+
+		}, ResourceKeys::Textures::IMAGE_BUTTONBIG, true });	// TODO:这里到时候如果有能力，就改为false
+
+		buttons.push_back({ u8"主菜单", Vector(485, 371),Vector(213 * 0.9f, 50 * 0.9f),
+			21 ,[this]() {
+				this->mOpenMenu = false;
+			DeltaTime::SetPaused(false);
+
+		}, ResourceKeys::Textures::IMAGE_BUTTONBIG, true });
+
+		sliders.push_back({ Vector(530, 175), Vector(135, 10),
+			0.0f ,1.0f, AudioSystem::GetMusicVolume(),[](float value) {
+			AudioSystem::SetMusicVolume(value);
+		}});
+
+		sliders.push_back({ Vector(530, 200), Vector(135, 10),
+			0.0f ,1.0f, AudioSystem::GetSoundVolume(),[](float value) {
+			AudioSystem::SetSoundVolume(value);
+		} });
+
+		texts.push_back
+			({ Vector(480, 165), 22, u8"音乐" , glm::vec4{ 107, 109, 144, 255} } );
+		texts.push_back
+			({ Vector(480, 190), 22, u8"音效" , glm::vec4{ 107, 109, 144, 255} });
+
+		mUIManager.CreateMessageBox(Vector(SCENE_WIDTH / 2 + 50, SCENE_HEIGHT / 2 - 80.0f),
+			"", buttons, sliders, texts, "", 1.0f, ResourceKeys::Textures::IMAGE_OPTIONS_MENUBACK);
+
+		});
+
 	AudioSystem::PlayMusic(ResourceKeys::Music::MUSIC_CHOOSEYOURSEEDS, -1);
 }
 
@@ -340,16 +409,19 @@ std::shared_ptr<GameProgress> GameScene::GetGameProgress() const
 void GameScene::GameOver()
 {
 	std::vector<GameMessageBox::ButtonConfig> buttons;
-	buttons.push_back({ u8"返回菜单", Vector(380, 380),[]() {
+	std::vector<GameMessageBox::SliderConfig> sliders;
+	std::vector<GameMessageBox::TextConfig> texts;
 
-	}, true });
-	buttons.push_back({ u8"重新开始", Vector(560, 380), [this]() {
+	buttons.push_back({ u8"返回菜单", Vector(380, 380), Vector(125 * 0.8f, 52 * 0.8f),14, []() {
+
+	}, ResourceKeys::Textures::IMAGE_BUTTONSMALL, true });
+	buttons.push_back({ u8"重新开始", Vector(560, 380), Vector(125 * 0.8f, 52 * 0.8f),14, [this]() {
 		this->mReadyToRestart = true;
 		DeltaTime::SetPaused(false);
-	}, true });
+	}, ResourceKeys::Textures::IMAGE_BUTTONSMALL, true });
 
 	mUIManager.CreateMessageBox(Vector(SCENE_WIDTH / 2, SCENE_HEIGHT / 2),
-		u8"僵尸吃掉了你的脑子！", buttons, u8"游戏结束", 1.5f);
+		u8"僵尸吃掉了你的脑子！", buttons, sliders, texts, u8"游戏结束", 1.5f);
 }
 
 void GameScene::ShowPrompt(const std::string& textureKey,

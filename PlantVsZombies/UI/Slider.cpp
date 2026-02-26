@@ -1,4 +1,4 @@
-#include "Slider.h"
+﻿#include "Slider.h"
 #include "../ResourceManager.h"
 #include "../CursorManager.h"
 #include <iostream>
@@ -11,7 +11,6 @@ Slider::Slider(Vector createPosition, Vector sliderSize,
     isDragging(false), dragStartPosition(Vector::zero()), dragStartValue(0.0f), 
     SliderSizeX(22), SliderSizeY(29)
 {
-    // 纭繚鍊煎湪鏈夋晥鑼冨洿鍐?
     currentValue = std::clamp(currentValue, minValue, maxValue);
 }
 
@@ -37,7 +36,6 @@ void Slider::SetValue(float value)
     float oldValue = this->currentValue;
     this->currentValue = std::clamp(value, minValue, maxValue);
 
-    // 濡傛灉鍊煎彂鐢熷彉鍖栦笖璁剧疆浜嗗洖璋冿紝璋冪敤鍥炶皟
     if (oldValue != this->currentValue && this->onChangeCallback)
     {
         this->onChangeCallback(this->currentValue);
@@ -68,14 +66,14 @@ void Slider::ProcessMouseEvent(InputHandler* input)
 
     if (input->IsMouseButtonDown(SDL_BUTTON_LEFT))
     {
-        // 妫€鏌ユ槸鍚︾偣鍑讳簡婊戝潡
         if (KnobContainsPoint(mousePos))
         {
             isDragging = true;
             dragStartPosition = mousePos;
             dragStartValue = currentValue;
         }
-        // 妫€鏌ユ槸鍚︾偣鍑讳簡鑳屾櫙锛堜絾涓嶆槸婊戝潡锛?
+
+        // 点击背景，直接赋值
         else if (this->BackgroundContainsPoint(mousePos) && !this->KnobContainsPoint(mousePos))
         {
             float newValue = this->CalculateValueFromX(mousePos.x);
@@ -92,7 +90,7 @@ void Slider::Update(InputHandler* input)
 {
     if (!input) return;
 
-    Vector mousePos = input->GetMouseWorldPosition();
+    Vector mousePos = input->GetMousePosition();
 
     if (BackgroundContainsPoint(mousePos) && canDrag)
     {
@@ -103,7 +101,6 @@ void Slider::Update(InputHandler* input)
     {
         float deltaX = mousePos.x - dragStartPosition.x;
 
-        // 璁＄畻鍍忕礌鍒板€肩殑杞崲姣斾緥
         float pixelsPerValue = size.x / (maxValue - minValue);
         float valueDelta = deltaX / pixelsPerValue;
 
@@ -114,43 +111,42 @@ void Slider::Update(InputHandler* input)
 void Slider::Draw(Graphics* g) const
 {
 	ResourceManager& resourceManager = ResourceManager::GetInstance();
-    // 缁樺埗鑳屾櫙
+
     if (!backgroundImageKey.empty() && resourceManager.HasTexture(backgroundImageKey))
     {
         const GLTexture* texture = resourceManager.GetTexture(backgroundImageKey);
         if (texture != nullptr)
         {
-            g->DrawTexture(texture, position.x, position.y, size.x, size.y);
+            Vector newPosition = g->ScreenToWorldPosition(position.x, position.y);
+            g->DrawTexture(texture, newPosition.x, newPosition.y, size.x, size.y);
         }
     }
     else
     {
-        // 濡傛灉娌℃湁鑳屾櫙鍥剧墖锛岀粯鍒朵竴涓伆鑹茬煩褰綔涓鸿儗鏅?
-        g->FillRect(position.x, position.y, size.x, size.y);
-        g->DrawRect(position.x, position.y, size.x, size.y);
+        Vector newPosition = g->ScreenToWorldPosition(position.x, position.y);
+        g->FillRect(newPosition.x, newPosition.y, size.x, size.y);
+        g->DrawRect(newPosition.x, newPosition.y, size.x, size.y);
     }
 
-    // 璁＄畻婊戝潡浣嶇疆
     float knobX = CalculateKnobXFromValue();
-    float knobY = position.y + size.y / 2; // 婊戝潡鍦ㄥ瀭鐩存柟鍚戝眳涓?
+    float knobY = position.y + size.y / 2; 
 
-    // 婊戝潡澶у皬
     Vector knobSize(static_cast<float>(SliderSizeX), static_cast<float>(SliderSizeY));
     Vector knobPosition(knobX - knobSize.x / 2, knobY - knobSize.y / 2);
 
-    // 缁樺埗婊戝潡
     if (!knobImageKey.empty() && resourceManager.HasTexture(knobImageKey))
     {
         const GLTexture* texture2 = resourceManager.GetTexture(knobImageKey);
         if (texture2 != nullptr)
         {
-            g->DrawTexture(texture2, knobPosition.x, knobPosition.y, knobSize.x, knobSize.y);
+            Vector newPosition = g->ScreenToWorldPosition(knobPosition.x, knobPosition.y);
+            g->DrawTexture(texture2, newPosition.x, newPosition.y, knobSize.x, knobSize.y);
         }
     }
     else
     {
         std::cerr << 
-            "娌℃湁婊戝潡锛佺洿鎺ヤ笉缁樺埗浜嗭紝鎴戣崏浣犲锛屾€庝箞鍥剧墖閮戒笉鎼烇紵鐭ヤ笉鐭ラ亾鍐欒繖鐜╂剰楹荤儲姝讳簡!" << std::endl;
+            "Slider: 没有合适的绘制图片" << std::endl;
     }
 }
 

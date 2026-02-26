@@ -1,4 +1,4 @@
-#include "ParticleConfig.h"
+﻿#include "ParticleConfig.h"
 #include "../ResourceManager.h"
 #include "../ResourceKeys.h"
 #include <cmath>
@@ -11,7 +11,6 @@ ParticleConfigManager::ParticleConfigManager(Graphics* graphics)
 void ParticleConfigManager::InitializeConfigs() {
     ResourceManager& resourceManager = ResourceManager::GetInstance();
 
-    // 瀛愬脊鍑讳腑
     ParticleConfig config;
     config.startColor = glm::vec4(1.0f);
     config.endColor = glm::vec4(1.0f);
@@ -30,7 +29,6 @@ void ParticleConfigManager::InitializeConfigs() {
     };
     configs[ParticleType::PEA_BULLET_HIT] = config;
 
-    // 鍍靛案澶存帀钀?
     config.startColor = glm::vec4(1.0f);
     config.endColor = glm::vec4(1.0f);
     config.lifetime = 0.8f;
@@ -43,7 +41,6 @@ void ParticleConfigManager::InitializeConfigs() {
     config.textureKeys = { ResourceKeys::Particles::PARTICLE_ZOMBIE_HEAD };
     configs[ParticleType::ZOMBIE_HEAD_OFF] = config;
 
-    // 鍍靛案鎵嬭噦鎺夎惤
     config.startColor = glm::vec4(1.0f);
     config.endColor = glm::vec4(1.0f);
     config.lifetime = 0.8f;
@@ -55,6 +52,18 @@ void ParticleConfigManager::InitializeConfigs() {
     config.gravity = 110.0f;
     config.textureKeys = { ResourceKeys::Particles::PARTICLE_ZOMBIEARM };
     configs[ParticleType::ZOMBIE_ARM_OFF] = config;
+
+    config.startColor = glm::vec4(1.0f);
+    config.endColor = glm::vec4(1.0f);
+    config.lifetime = 0.8f;
+    config.startSize = 0.8f;
+    config.endSize = 0.8f;
+    config.minVelocity = 70.0f;
+    config.maxVelocity = 110.0f;
+    config.spreadAngle = 140.0f;
+    config.gravity = 130.0f;
+    config.textureKeys = { "IMAGE_ZOMBIE_CONE3" };
+    configs[ParticleType::ZOMBIE_CONE_OFF] = config;
 }
 
 const ParticleConfig& ParticleConfigManager::GetConfig(ParticleType effect) const {

@@ -16,10 +16,11 @@ void GameDataManager::Initialize() {
 	mAnimNameToType.clear();
 
 	InitializeHardcodedData();
-
+#ifdef _DEBUG
 	std::cout << "[GameDataManager] 初始化完成，共注册 "
 		<< mPlantInfo.size() << " 种植物，"
 		<< mZombieInfo.size() << " 种僵尸" << std::endl;
+#endif
 }
 
 void GameDataManager::InitializeHardcodedData() {
@@ -49,11 +50,11 @@ void GameDataManager::InitializeHardcodedData() {
 	// 普通僵尸
 	RegisterZombie(
 		ZombieType::ZOMBIE_NORMAL,
-		"ZOMBIE_NORMAL",
+		"ZOMBIE_NORMAL",			// 这个项目其实没啥意义，随便填
 		AnimationType::ANIM_NORMAL_ZOMBIE,
 		ResourceKeys::Reanimations::REANIM_NORMAL_ZOMBIE,
 		Vector(-50, -85),
-		1,
+		1000,
 		1
 	);
 
@@ -63,8 +64,8 @@ void GameDataManager::InitializeHardcodedData() {
 		AnimationType::ANIM_CONE_ZOMBIE,
 		ResourceKeys::Reanimations::REANIM_CONE_ZOMBIE,
 		Vector(-50, -85),
-		2,
-		2
+		1200,
+		3
 	);
 
 	// ==================== 非植物/僵尸动画映射 ====================

@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #ifndef __PARTICLE_CONFIG_H__
 #define __PARTICLE_CONFIG_H__
 
@@ -17,12 +17,11 @@ struct ParticleConfig {
     float endSize = 5.0f;
     float minVelocity = 50.0f;
     float maxVelocity = 150.0f;
-    float spreadAngle = 360.0f;   // 瑙掑害
+    float spreadAngle = 360.0f; // 旋转角度
     float gravity = 0.5f;
     bool fadeOut = true;
-    std::vector<std::string> textureKeys;   // 绾圭悊閿悕鍒楄〃
+    std::vector<std::string> textureKeys; 
 
-    // 鑾峰彇闅忔満绾圭悊閿悕
     std::string GetRandomTextureKey() const {
         if (textureKeys.empty()) return "";
         if (textureKeys.size() == 1) return textureKeys[0];
@@ -34,7 +33,7 @@ struct ParticleConfig {
 class ParticleConfigManager {
 private:
     std::unordered_map<ParticleType, ParticleConfig> configs;
-    Graphics* m_graphics;   // 鐢ㄤ簬鑾峰彇绾圭悊锛堝疄闄呮湭鐩存帴浣跨敤锛屼絾淇濈暀浠ュ鎵╁睍锛?
+    Graphics* m_graphics; 
 
 public:
     ParticleConfigManager(Graphics* graphics);
@@ -43,7 +42,7 @@ public:
     void SetGraphics(Graphics* graphics) { m_graphics = graphics; }
 
     const ParticleConfig& GetConfig(ParticleType effect) const;
-    const GLTexture* GetRandomTextureForEffect(ParticleType effect) const;   // 杩斿洖 GLTexture 鎸囬拡
+    const GLTexture* GetRandomTextureForEffect(ParticleType effect) const;  
 
 private:
     void InitializeConfigs();
