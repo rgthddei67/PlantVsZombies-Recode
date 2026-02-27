@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #ifndef _AUDIOSYSTEM_H
 #define _AUDIOSYSTEM_H
 #ifdef PlaySound
@@ -55,10 +55,6 @@ public:
     // 工具方法
     static bool IsAudioAvailable();
     static void UpdateVolume(); // 更新所有音量
-
-    // 保存/加载音量设置
-    static void SaveVolumeSettings();
-    static void LoadVolumeSettings();
 };
 
 #endif

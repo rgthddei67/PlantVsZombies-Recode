@@ -23,6 +23,7 @@
     <ClCompile Include="CursorManager.cpp" />
     <ClCompile Include="FileManager.cpp" />
     <ClCompile Include="GameApp.cpp" />
+    <ClCompile Include="GameInfoSaver.cpp" />
     <ClCompile Include="GameMonitor.cpp" />
     <ClCompile Include="Game\AnimatedObject.cpp" />
     <ClCompile Include="Game\AudioSystem.cpp" />
@@ -73,6 +74,7 @@
     <ClInclude Include="DeltaTime.h" />
     <ClInclude Include="FileManager.h" />
     <ClInclude Include="GameApp.h" />
+    <ClInclude Include="GameInfoSaver.h" />
     <ClInclude Include="GameMonitor.h" />
     <ClInclude Include="GameRandom.h" />
     <ClInclude Include="Game\AnimatedObject.h" />

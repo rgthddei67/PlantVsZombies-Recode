@@ -5,7 +5,6 @@
 InputHandler::InputHandler(Graphics* graphics)
 {
     mGraphics = graphics;
-    // 鍒濆鍖栨墍鏈夋寜閿姸鎬佷负UP
     for (int i = 0; i < 5; i++)
     {
         m_mouseButtons[i] = KeyState::UP;
@@ -20,11 +19,10 @@ void InputHandler::ProcessEvent(SDL_Event* event)
 {
     switch (event->type)
     {
-        // 閿洏浜嬩欢
+
     case SDL_KEYDOWN:
     {
         SDL_Keycode key = event->key.keysym.sym;
-        // 鍙湪鎸夐敭褰撳墠鏄疷P鐘舵€佹椂鎵嶈缃负PRESSED
         if (m_keyStates[key] == KeyState::UP) {
             m_keyStates[key] = KeyState::PRESSED;
         }
@@ -34,24 +32,21 @@ void InputHandler::ProcessEvent(SDL_Event* event)
     case SDL_KEYUP:
     {
         SDL_Keycode key = event->key.keysym.sym;
-        // 鍙湪鎸夐敭褰撳墠鏄疍OWN鎴朠RESSED鐘舵€佹椂鎵嶈缃负RELEASED
         if (m_keyStates[key] == KeyState::DOWN || m_keyStates[key] == KeyState::PRESSED) {
             m_keyStates[key] = KeyState::RELEASED;
         }
     }
     break;
 
-    // 榧犳爣绉诲姩浜嬩欢
     case SDL_MOUSEMOTION:
         m_mousePosition = Vector(static_cast<float>(event->motion.x),
             static_cast<float>(event->motion.y));
         break;
 
-        // 榧犳爣鎸夐挳浜嬩欢
     case SDL_MOUSEBUTTONDOWN:
         if (event->button.button >= SDL_BUTTON_LEFT && event->button.button <= SDL_BUTTON_X2) {
             int index = event->button.button - 1;
-            // 鍙湪鎸夐挳褰撳墠鏄疷P鐘舵€佹椂鎵嶈缃负PRESSED
+       
             if (m_mouseButtons[index] == KeyState::UP) {
                 m_mouseButtons[index] = KeyState::PRESSED;
             }
@@ -61,14 +56,13 @@ void InputHandler::ProcessEvent(SDL_Event* event)
     case SDL_MOUSEBUTTONUP:
         if (event->button.button >= SDL_BUTTON_LEFT && event->button.button <= SDL_BUTTON_X2) {
             int index = event->button.button - 1;
-            // 鍙湪鎸夐挳褰撳墠鏄疍OWN鎴朠RESSED鐘舵€佹椂鎵嶈缃负RELEASED
+
             if (m_mouseButtons[index] == KeyState::DOWN || m_mouseButtons[index] == KeyState::PRESSED) {
                 m_mouseButtons[index] = KeyState::RELEASED;
             }
         }
         break;
 
-        // 榧犳爣婊氳疆浜嬩欢
     case SDL_MOUSEWHEEL:
         break;
     }
@@ -106,8 +100,6 @@ void InputHandler::Update()
             m_mouseButtons[i] = KeyState::UP;
         }
     }
-
-    ProcessCallbacks();
 }
 
 KeyState InputHandler::GetKeyState(SDL_Keycode keyCode) const
@@ -175,44 +167,4 @@ bool InputHandler::IsMouseButtonPressed(Uint8 button) const
 bool InputHandler::IsMouseButtonReleased(Uint8 button) const
 {
     return GetMouseButtonState(button) == KeyState::RELEASED;
-}
-
-void InputHandler::RegisterKeyCallback(SDL_Keycode keyCode, KeyCallback callback)
-{
-    m_keyCallbacks[keyCode].push_back(callback);
-}
-
-void InputHandler::RemoveKeyCallback(SDL_Keycode keyCode, KeyCallback callback)
-{
-    auto it = m_keyCallbacks.find(keyCode);
-    if (it != m_keyCallbacks.end())
-    {
-        auto& callbacks = it->second;
-        for (auto cbIt = callbacks.begin(); cbIt != callbacks.end(); )
-        {
-            if (cbIt->target_type() == callback.target_type())
-            {
-                cbIt = callbacks.erase(cbIt);
-            }
-            else
-            {
-                ++cbIt;
-            }
-        }
-    }
-}
-
-void InputHandler::ProcessCallbacks()
-{
-    for (const auto& pair : m_keyCallbacks)
-    {
-        SDL_Keycode keyCode = pair.first;
-        if (IsKeyPressed(keyCode))
-        {
-            for (const auto& callback : pair.second)
-            {
-                callback();
-            }
-        }
-    }
 }

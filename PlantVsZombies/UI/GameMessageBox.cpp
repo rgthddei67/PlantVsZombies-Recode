@@ -38,9 +38,10 @@ GameMessageBox::GameMessageBox(const Vector& pos,
 	, m_textConfigs(texts)
 {
 	mIsUI = true;
-
+	
 	Vector originalSize = GetBackgroundOriginalSize();
 	m_size = originalSize * scale;
+	this->SetRenderOrder(LAYER_UI + 500000);
 }
 
 GameMessageBox::~GameMessageBox() {
@@ -107,6 +108,7 @@ void GameMessageBox::Start()
 			});
 
 		m_buttons.push_back(button);
+		button->SetSkipDraw(true);
 	}
 
 	for (const auto& config : m_sliderConfigs) {
@@ -121,6 +123,7 @@ void GameMessageBox::Start()
 			});
 
 		m_sliders.push_back(slider);
+		slider->SetSkipDraw(true);
 	}
 }
 
@@ -163,6 +166,13 @@ void GameMessageBox::Draw(Graphics* g)
 		Vector pos4 = g->ScreenToWorldPosition(config.pos.x, config.pos.y);
 		GameAPP::GetInstance().DrawText(config.text, pos4, config.color,
 			config.font, fontSize);
+	}
+
+	for (const auto& btn : m_buttons) {
+		if (btn) btn->Draw(g);
+	}
+	for (const auto& slider : m_sliders) {
+		if (slider) slider->Draw(g);
 	}
 }
 

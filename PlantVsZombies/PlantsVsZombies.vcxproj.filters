@@ -175,6 +175,9 @@
     <ClCompile Include="Game\Zombie\ConeZombie.cpp">
       <Filter>Code\Game\Zombie</Filter>
     </ClCompile>
+    <ClCompile Include="GameInfoSaver.cpp">
+      <Filter>Code</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="UI\Button.h">
@@ -386,6 +389,9 @@
     </ClInclude>
     <ClInclude Include="Game\Zombie\ConeZombie.h">
       <Filter>Code\Game\Zombie</Filter>
+    </ClInclude>
+    <ClInclude Include="GameInfoSaver.h">
+      <Filter>Code</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

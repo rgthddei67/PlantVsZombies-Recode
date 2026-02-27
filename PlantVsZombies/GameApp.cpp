@@ -243,6 +243,11 @@ int GameAPP::Run()
 		return -7;
 	}
 
+	if (!mGameInfoSaver.LoadPlayerInfo())
+	{
+		std::cout << "无法加载玩家存档数据！可能是没有存档!" << std::endl;
+	}
+
 	mInputHandler = std::make_unique<InputHandler>(m_graphics.get());
 	g_particleSystem = std::make_unique<ParticleSystem>(m_graphics.get());
 
@@ -280,12 +285,6 @@ int GameAPP::Run()
 			else {
 				DeltaTime::SetTimeScale(5.0f);
 			}
-		}
-
-		if (mInputHandler->IsKeyReleased(SDLK_ESCAPE))
-		{
-			mRunning = false;
-			break;
 		}
 
 		// 更新
@@ -351,6 +350,10 @@ void GameAPP::Draw(Uint64 start)
 void GameAPP::Shutdown()
 {
 	if (mRunning) return;
+
+	if (!mGameInfoSaver.SavePlayerInfo()) {
+		std::cout << "错误: 无法保存玩家数据！ 你的数据将会清空！" << std::endl;
+	}
 
 	// 清理粒子系统
 	g_particleSystem.reset();

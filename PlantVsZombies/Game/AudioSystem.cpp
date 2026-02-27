@@ -3,10 +3,9 @@
 #include <fstream>
 #include <algorithm>
 
-// 静态成员变量定义
 float AudioSystem::masterVolume = 1.0f;
-float AudioSystem::soundVolume = 1.0f;
-float AudioSystem::musicVolume = 1.0f;
+float AudioSystem::soundVolume = 0.5f;
+float AudioSystem::musicVolume = 0.5f;
 std::unordered_map<std::string, float> AudioSystem::soundVolumes;
 
 bool AudioSystem::Initialize()
@@ -212,36 +211,4 @@ void AudioSystem::UpdateVolume()
 bool AudioSystem::IsAudioAvailable()
 {
     return Mix_QuerySpec(nullptr, nullptr, nullptr) != 0;
-}
-
-// 保存音量设置
-void AudioSystem::SaveVolumeSettings()
-{
-    std::ofstream file("volume_settings.cfg");
-    if (file.is_open())
-    {
-        file << masterVolume << std::endl;
-        file << soundVolume << std::endl;
-        file << musicVolume << std::endl;
-        file.close();
-#ifdef _DEBUG
-        std::cout << "音量设置已保存" << std::endl;
-#endif
-    }
-}
-
-// 加载音量设置
-void AudioSystem::LoadVolumeSettings()
-{
-    std::ifstream file("volume_settings.cfg");
-    if (file.is_open())
-    {
-        file >> masterVolume;
-        file >> soundVolume;
-        file >> musicVolume;
-        file.close();
-#ifdef _DEBUG
-        std::cout << "音量设置已加载" << std::endl;
-#endif
-    }
 }

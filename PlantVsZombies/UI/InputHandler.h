@@ -35,10 +35,6 @@ private:
 
     KeyState m_prevMouseButtons[5];
 
-    typedef std::function<void()> KeyCallback;
-
-    std::map<SDL_Keycode, std::vector<KeyCallback>> m_keyCallbacks;
-
     InputHandler(const InputHandler&) = delete;
     InputHandler& operator=(const InputHandler&) = delete;
 
@@ -71,12 +67,6 @@ public:
     bool IsMouseButtonPressed(Uint8 button) const;
 
     bool IsMouseButtonReleased(Uint8 button) const;
-
-    void RegisterKeyCallback(SDL_Keycode keyCode, KeyCallback callback);
-
-    void RemoveKeyCallback(SDL_Keycode keyCode, KeyCallback callback);
-
-    void ProcessCallbacks();
 };
 
 #endif

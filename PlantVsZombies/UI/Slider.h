@@ -31,7 +31,8 @@ private:
     int SliderSizeX = 22;
     int SliderSizeY = 29;
 
-    std::function<void(float)> onChangeCallback = nullptr; 
+    std::function<void(float)> onChangeCallback = nullptr;
+    bool m_skipDraw = false;
 
 public:
     Slider(Vector createPosition = Vector::zero(),
@@ -71,5 +72,11 @@ public:
     float CalculateValueFromX(float x) const;
 
     float CalculateKnobXFromValue() const;
+
+    // 跳过自己按钮的绘制，让别的玩意去绘制
+    void SetSkipDraw(bool skip) { m_skipDraw = skip; }
+    bool IsSkipDraw() const { return m_skipDraw; }
+
+    void ForceResetState();
 };
 #endif

@@ -239,6 +239,14 @@ void Button::SetChecked(bool checked)
     this->isChecked = checked;
 }
 
+void Button::ForceResetHoverState()
+{
+    isHovered = false;
+    isPressed = false;
+    m_wasMouseDown = false;
+    ResetFrameState();
+}
+
 bool Button::ContainsPoint(Vector point) const
 {
     return point.x >= position.x && point.x <= position.x + size.x &&

@@ -296,8 +296,8 @@ void Board::UpdateLevel()
 				if (mGameScene)
 					mGameScene->ShowPrompt(
 						ResourceKeys::Textures::IMAGE_HUGE_WAVE_APPROACHING,
-						0.4f,    
-						4.0f,  
+						0.4f,
+						4.0f,
 						0.3f);
 			}
 			if (mHugeWaveCountDown >= 7.5f)
@@ -320,7 +320,7 @@ void Board::UpdateLevel()
 				gameProgress->SetActive(true);
 				auto& res = ResourceManager::GetInstance();
 				gameProgress->SetupFlags(res.GetTexture(ResourceKeys::Textures::IMAGE_FLAGMETER_PART_STICK)
-				, res.GetTexture(ResourceKeys::Textures::IMAGE_FLAGMETER_PART_FLAG)
+					, res.GetTexture(ResourceKeys::Textures::IMAGE_FLAGMETER_PART_FLAG)
 				);
 			}
 		}
@@ -384,11 +384,11 @@ void Board::InitializeRows()
 	mRowInfos.resize(mRows);
 	for (int i = 0; i < mRows; i++)
 	{
-		mRowInfos[i].rowIndex         = i;
-		mRowInfos[i].weight           = 1.0f;
-		mRowInfos[i].smoothWeight     = 1.0f;
-		mRowInfos[i].loseMower        = -3;
-		mRowInfos[i].lastPicked       = 0;
+		mRowInfos[i].rowIndex = i;
+		mRowInfos[i].weight = 1.0f;
+		mRowInfos[i].smoothWeight = 1.0f;
+		mRowInfos[i].loseMower = -3;
+		mRowInfos[i].lastPicked = 0;
 		mRowInfos[i].secondLastPicked = 0;
 	}
 }
@@ -422,9 +422,9 @@ int Board::SelectSpawnRow()
 		if (wp >= ROW_WEIGHT_THRESHOLD)
 		{
 			float pLast = (6.0f * static_cast<float>(mRowInfos[i].lastPicked) * wp
-			               + 6.0f * wp - 3.0f) / 4.0f;
+				+ 6.0f * wp - 3.0f) / 4.0f;
 			float pSecond = (static_cast<float>(mRowInfos[i].secondLastPicked) * wp
-			                 + wp - 1.0f) / 4.0f;
+				+ wp - 1.0f) / 4.0f;
 			float combined = pLast + pSecond;
 			if (combined < 0.01f) combined = 0.01f;
 			if (combined > 100.0f) combined = 100.0f;
@@ -486,7 +486,7 @@ ZombieType Board::PickZombieType(int remainingPoints)
 	for (int attempt = 0; attempt < 1000; attempt++)
 	{
 		ZombieType type = GetWeightedRandomZombie();
-		int cost    = GameDataManager::GetInstance().GetZombieWeight(type);
+		int cost = GameDataManager::GetInstance().GetZombieWeight(type);
 		int minWave = GameDataManager::GetInstance().GetZombieAppearWave(type);
 		if (remainingPoints >= cost && mCurrentWave >= minWave)
 			return type;
@@ -499,7 +499,7 @@ void Board::TrySummonZombie()
 	if (mCurrentWave > mMaxWave) return;
 
 	int remainingPoints = CalculateWaveZombiePoints();
-	int zombiesSpawned  = 0;
+	int zombiesSpawned = 0;
 	float x = static_cast<float>(SCENE_WIDTH) + 30;
 
 	while (remainingPoints > 0 && zombiesSpawned < MAX_ZOMBIES_PER_WAVE)
@@ -534,18 +534,18 @@ void Board::TrySummonZombie()
 int Board::CalculateWaveZombiePoints() const
 {
 	// 基础点数
-	int points = (mCurrentWave / 2 + 1) * 1000;
+	float points = (static_cast<float>(mCurrentWave) / 3 + 1.0f) * 1000.0f;
 
-	points *= GameAPP::GetInstance().Difficulty;
+	points *= (GameAPP::GetInstance().Difficulty * 0.5f);
 
 	// 判断是否为旗帜波
 	bool isFlagWave = (mCurrentWave % 10 == 0);
 	if (isFlagWave)
 	{
-		points = static_cast<int>(points * 3.5f);
+		points *= 2.5f;
 	}
 
-	return points;
+	return static_cast<int>(points);
 }
 
 void Board::UpdateZombieHP()

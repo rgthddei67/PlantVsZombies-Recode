@@ -189,8 +189,12 @@ float Slider::CalculateValueFromX(float x) const
     return minValue + normalizedX * (maxValue - minValue);
 }
 
-float Slider::CalculateKnobXFromValue() const
+void Slider::ForceResetState()
 {
+    isDragging = false;
+}
+
+float Slider::CalculateKnobXFromValue() const{
     float normalizedValue = (currentValue - minValue) / (maxValue - minValue);
     return position.x + normalizedValue * size.x;
 }

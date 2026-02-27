@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "GameObject.h"
 #include "FlagMeter.h"
 #include <memory>
@@ -34,7 +34,7 @@ private:
     int m_lastWave = 0;               // 上一帧波数，用于检测波次变化
     int m_flagCount = 0;              // 旗子总数
 
-    Vector createPosition = Vector(890, 575);
+    Vector createPosition = Vector(870, 575);
 
     std::unique_ptr<FlagMeter> m_flagMeter;
     std::weak_ptr<TransformComponent> mTransform;

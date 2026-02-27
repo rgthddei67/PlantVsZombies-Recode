@@ -1,4 +1,4 @@
-#include "SliderManager.h"
+﻿#include "SliderManager.h"
 
 std::shared_ptr<Slider> SliderManager::CreateSlider(Vector pos, Vector size,
     float minVal, float maxVal,
@@ -11,9 +11,11 @@ std::shared_ptr<Slider> SliderManager::CreateSlider(Vector pos, Vector size,
 
 void SliderManager::ProcessMouseEvent(InputHandler* input)
 {
-    for (auto& slider : sliders)
+    for (size_t i = 0; i < sliders.size(); i++)
     {
-        slider->ProcessMouseEvent(input);
+        if (sliders[i]) {
+            sliders[i]->ProcessMouseEvent(input);
+        }
     }
 }
 
@@ -21,7 +23,9 @@ void SliderManager::UpdateAll(InputHandler* input)
 {
     for (size_t i = 0; i < sliders.size(); i++)
     {
-        sliders[i]->Update(input);
+        if (sliders[i]) {
+            sliders[i]->Update(input);
+        }
     }
 }
 
@@ -30,7 +34,9 @@ void SliderManager::DrawAll(Graphics* g) const
     if (!g) return;
     for (size_t i = 0; i < sliders.size(); i++)
     {
-        sliders[i]->Draw(g);
+        if (sliders[i] && !sliders[i]->IsSkipDraw()) {
+            sliders[i]->Draw(g);
+        }
     }
 }
 

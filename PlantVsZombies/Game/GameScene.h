@@ -65,11 +65,13 @@ public:
 private:
     std::unique_ptr<Board> mBoard = nullptr;
     std::weak_ptr<Button> mMainMenuButton;
+    std::weak_ptr<GameMessageBox> mMenu;
     std::shared_ptr<CardSlotManager> mCardSlotManager = nullptr;
     std::shared_ptr<ChooseCardUI> mChooseCardUI = nullptr;
     std::shared_ptr<GameProgress> mGameProgress = nullptr;
 
     bool mOpenMenu = false;
+    bool mOpenRestartMenu = false;
     bool mReadyToRestart = false;
 
     IntroStage mCurrentStage = IntroStage::BACKGROUND_MOVE;
@@ -101,6 +103,9 @@ private:
     Vector mReadyStartPos;
 
     PromptAnimation mPrompt;
+
+    void OpenMenu();
+    void OpenRestartMenu();
 };
 
 #endif

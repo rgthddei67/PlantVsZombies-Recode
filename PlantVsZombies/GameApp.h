@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #ifndef _GAMEAPP_H
 #define _GAMEAPP_H
 #ifdef DrawText
@@ -17,6 +17,7 @@
 #include <stdexcept>
 #include "./Game/Definit.h"
 #include "./ParticleSystem/ParticleSystem.h"
+#include "GameInfoSaver.h"
 #include "Graphics.h"      
 
 constexpr int SCENE_WIDTH = 1100;
@@ -28,7 +29,12 @@ class GameAPP
 {
 public:
     int Difficulty = 1; // 难度系数
+    int mAdventureLevel = 1;    // 玩到的冒险模式关卡
+    bool mShowPlantHP = false;  // 植物显示血量
+    bool mShowZombieHP = false; // 僵尸显示血量
     bool mAutoCollected = true; // 自动收集
+
+    GameInfoSaver mGameInfoSaver;
 
 private:
     std::unique_ptr<InputHandler> mInputHandler;

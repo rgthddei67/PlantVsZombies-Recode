@@ -1,4 +1,4 @@
-#include "ButtonManager.h"
+﻿#include "ButtonManager.h"
 
 std::shared_ptr<Button> ButtonManager::CreateButton(Vector pos, Vector size)
 {
@@ -34,10 +34,9 @@ void ButtonManager::UpdateAll(InputHandler* input)
     if (!input) return;
     for (size_t i = 0; i < buttons.size(); i++)
     {
-        auto button = buttons[i];
-        if (button)
+        if (buttons[i])
         {
-            button->Update(input);
+            buttons[i]->Update(input);
         }
     }
 }
@@ -48,10 +47,9 @@ void ButtonManager::DrawAll(Graphics* g) const
 
     for (size_t i = 0; i < buttons.size(); i++)
     {
-        auto button = buttons[i];
-        if (button)
+        if (buttons[i] && !buttons[i]->IsSkipDraw())
         {
-            button->Draw(g);
+            buttons[i]->Draw(g);
         }
     }
 }
@@ -74,10 +72,9 @@ void ButtonManager::ProcessMouseEvent(InputHandler* input)
 {
     for (size_t i = 0; i < buttons.size(); i++)
     {
-        auto button = buttons[i];
-        if (button)
+        if (buttons[i])
         {
-            button->ProcessMouseEvent(input);
+            buttons[i]->ProcessMouseEvent(input);
         }
     }
 }
@@ -86,10 +83,9 @@ void ButtonManager::ResetAllFrameStates()
 {
     for (size_t i = 0; i < buttons.size(); i++)
     {
-        auto button = buttons[i];
-        if (button)
+        if (buttons[i])
         {
-            button->ResetFrameState();
+            buttons[i]->ResetFrameState();
         }
     }
 }

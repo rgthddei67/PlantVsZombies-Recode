@@ -38,7 +38,8 @@ private:
     bool m_mouseReleasedThisFrame;
     bool m_wasMouseDown;
 
-	bool mEnabled = true; 
+	bool mEnabled = true;
+    bool m_skipDraw = false;
 
 public:
     Button(Vector createPosition = Vector::zero(), Vector btnSize = Vector(40, 40));
@@ -56,6 +57,11 @@ public:
     void SetAsCheckbox(bool checkbox);
 	void SetCanClick(bool canClick);
     void SetEnabled(bool enabled) { this->mEnabled = enabled; }
+    // 跳过自己按钮的绘制，让别的玩意去绘制
+    void SetSkipDraw(bool skip) { m_skipDraw = skip; }
+    bool IsSkipDraw() const { return m_skipDraw; }
+
+    void ForceResetHoverState();
 
     void SetImageKeys(const std::string& normal, const std::string& hover = "", const std::string& pressed = "", const std::string& checked = "");
 
