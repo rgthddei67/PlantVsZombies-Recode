@@ -64,7 +64,7 @@ void GameDataManager::InitializeHardcodedData() {
 		AnimationType::ANIM_CONE_ZOMBIE,
 		ResourceKeys::Reanimations::REANIM_CONE_ZOMBIE,
 		Vector(-50, -85),
-		1200,
+		1000,
 		3
 	);
 

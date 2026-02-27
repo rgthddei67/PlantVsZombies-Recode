@@ -18,6 +18,15 @@ class Plant;
 class Zombie;
 class Bullet;
 
+struct RowInfo {
+	int rowIndex         = 0;
+	float weight         = 1.0f;
+	float smoothWeight   = 1.0f;
+	int loseMower        = -3;   // 割草机丢失时的波次（-3 使第1波权重正常为1.0）
+	int lastPicked       = 0;    // 上次被选中后经过的僵尸数
+	int secondLastPicked = 0;
+};
+
 constexpr int MAX_SUN = 9990;
 constexpr float NEXTWAVE_COUNT_MAX = 25.0f;
 constexpr float SPAWN_SUN_TIME = 15.0f;
@@ -66,7 +75,15 @@ private:
 	float mHugeWaveCountDown = 0.0f;	// 一大波倒计时
 	bool mHasHugeWaveSound = false;		// 有无放过一大波音乐
 
+	std::vector<RowInfo> mRowInfos;
+	static constexpr float ROW_WEIGHT_THRESHOLD = 1e-6f;
+
 	void LoadSpawnListFromJson();
+	void InitializeRows();
+	int SelectSpawnRow();
+	ZombieType PickZombieType(int remainingPoints);
+	ZombieType GetWeightedRandomZombie();
+	ZombieType GetCheapestZombie();
 
 public:
 	Board(GameScene* gameScene, int level)
@@ -89,6 +106,7 @@ public:
 		}
 		CreatePreviewZombies();
 		InitializeCell();
+		InitializeRows();
 	}
 
 	void AddSun(int amount) 
@@ -176,6 +194,9 @@ public:
 
 	// 销毁所有预览僵尸
 	void DestroyPreviewZombies();
+
+	// 割草机触发时调用（预留接口）
+	void SetRowLoseMower(int row);
 
 };
 #endif

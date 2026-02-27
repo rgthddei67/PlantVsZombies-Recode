@@ -17,6 +17,7 @@
 #include "../GameApp.h"
 #include "../FileManager.h"
 #include <unordered_set>
+#include <climits>
 
 void Board::InitializeCell(int rows, int cols)
 {
@@ -377,73 +378,155 @@ void Board::DestroyPreviewZombies()
 	mPreviewZombieList.clear();
 }
 
-void Board::TrySummonZombie()
+void Board::InitializeRows()
 {
-	if (mCurrentWave > mMaxWave) return;  // 超出最大波次，不再生成
-
-	// 计算本波总点数
-	int totalPoints = CalculateWaveZombiePoints();
-	int remainingPoints = totalPoints;
-	int zombiesSpawned = 0;
-
-	// 获取可用僵尸类型（根据 appearWave 过滤）
-	std::vector<ZombieType> availableTypes;
-	for (ZombieType type : mSpawnZombieList)
+	mRowInfos.clear();
+	mRowInfos.resize(mRows);
+	for (int i = 0; i < mRows; i++)
 	{
-		if (GameDataManager::GetInstance().GetZombieAppearWave(type) <= mCurrentWave)
-		{
-			availableTypes.push_back(type);
-		}
+		mRowInfos[i].rowIndex         = i;
+		mRowInfos[i].weight           = 1.0f;
+		mRowInfos[i].smoothWeight     = 1.0f;
+		mRowInfos[i].loseMower        = -3;
+		mRowInfos[i].lastPicked       = 0;
+		mRowInfos[i].secondLastPicked = 0;
+	}
+}
+
+void Board::SetRowLoseMower(int row)
+{
+	if (row < 0 || row >= static_cast<int>(mRowInfos.size())) return;
+	mRowInfos[row].loseMower = mCurrentWave;
+}
+
+int Board::SelectSpawnRow()
+{
+	if (mRowInfos.empty()) InitializeRows();
+
+	// 第一步：根据 loseMower 计算基础权重
+	float totalWeight = 0.0f;
+	for (int i = 0; i < mRows; i++)
+	{
+		int mowerTest = mCurrentWave - mRowInfos[i].loseMower;
+		if (mowerTest <= 1)       mRowInfos[i].weight = 0.01f;
+		else if (mowerTest <= 2)  mRowInfos[i].weight = 0.5f;
+		else                      mRowInfos[i].weight = 1.0f;
+		totalWeight += mRowInfos[i].weight;
 	}
 
-	// 如果没有可用类型，保底使用普通僵尸
-	if (availableTypes.empty())
+	// 第二步：计算平滑权重（避免重复选同一行）
+	float smoothTotal = 0.0f;
+	for (int i = 0; i < mRows; i++)
 	{
-		availableTypes.push_back(ZombieType::ZOMBIE_NORMAL);
-	}
-
-	// 计算权重指数因子 alpha，范围 [-1, 1]
-	float alpha = -1.0f;
-	if (mMaxWave > 1)
-	{
-		alpha = 2.0f * (mCurrentWave - 1) / (mMaxWave - 1) - 1.0f;
-	}
-
-	// 循环生成僵尸，直到点数不足或达到波次上限
-	while (remainingPoints > 0 && zombiesSpawned < MAX_ZOMBIES_PER_WAVE)
-	{
-		// 计算每个可用类型的得分（权重^alpha）
-		std::vector<float> scores;
-		scores.reserve(availableTypes.size());
-		for (ZombieType type : availableTypes)
+		float wp = (totalWeight > 0.0f) ? (mRowInfos[i].weight / totalWeight) : 0.0f;
+		if (wp >= ROW_WEIGHT_THRESHOLD)
 		{
-			int weight = GameDataManager::GetInstance().GetZombieWeight(type);
-			// 避免权重为0导致的数学异常（正常情况下权重>0）
-			float score = (weight > 0) ? std::pow(static_cast<float>(weight), alpha) : 0.0f;
-			scores.push_back(score);
-		}
-
-		// 加权随机选择一个类型
-		const ZombieType& selected = GameRandom::WeightedChoice(availableTypes, scores);
-
-		int weight = GameDataManager::GetInstance().GetZombieWeight(selected);
-		if (weight <= 0) continue; // 安全保护
-
-		// 随机选择行（0 到 mRows-1）
-		int row = GameRandom::Range(0, mRows - 1);
-
-		float x = static_cast<float>(SCENE_WIDTH) + 30;
-
-		auto zombie = CreateZombie(selected, row, x, 0, false);
-		if (zombie)
-		{
-			zombiesSpawned++;
-			remainingPoints -= weight;
+			float pLast = (6.0f * static_cast<float>(mRowInfos[i].lastPicked) * wp
+			               + 6.0f * wp - 3.0f) / 4.0f;
+			float pSecond = (static_cast<float>(mRowInfos[i].secondLastPicked) * wp
+			                 + wp - 1.0f) / 4.0f;
+			float combined = pLast + pSecond;
+			if (combined < 0.01f) combined = 0.01f;
+			if (combined > 100.0f) combined = 100.0f;
+			mRowInfos[i].smoothWeight = wp * combined;
 		}
 		else
 		{
-			// 创建失败
-			continue;
+			mRowInfos[i].smoothWeight = 0.01f;
+		}
+		smoothTotal += mRowInfos[i].smoothWeight;
+	}
+
+	// 第三步：加权随机选行
+	if (smoothTotal <= 0.0f) return mRows - 1;
+
+	float randNum = GameRandom::Range(0.0f, smoothTotal);
+	float cumulative = 0.0f;
+	for (int i = 0; i < mRows - 1; i++)
+	{
+		cumulative += mRowInfos[i].smoothWeight;
+		if (cumulative >= randNum) return i;
+	}
+	return mRows - 1;
+}
+
+ZombieType Board::GetWeightedRandomZombie()
+{
+	if (mSpawnZombieList.empty()) return ZombieType::ZOMBIE_NORMAL;
+
+	int totalWeight = 0;
+	for (ZombieType type : mSpawnZombieList)
+		totalWeight += GameDataManager::GetInstance().GetZombieWeight(type);
+
+	if (totalWeight <= 0) return mSpawnZombieList[0];
+
+	int randVal = GameRandom::Range(0, totalWeight - 1);
+	for (ZombieType type : mSpawnZombieList)
+	{
+		randVal -= GameDataManager::GetInstance().GetZombieWeight(type);
+		if (randVal < 0) return type;
+	}
+	return mSpawnZombieList[0];
+}
+
+ZombieType Board::GetCheapestZombie()
+{
+	ZombieType cheapest = ZombieType::ZOMBIE_NORMAL;
+	int minCost = INT_MAX;
+	for (ZombieType type : mSpawnZombieList)
+	{
+		int cost = GameDataManager::GetInstance().GetZombieWeight(type);
+		if (cost < minCost) { minCost = cost; cheapest = type; }
+	}
+	return cheapest;
+}
+
+ZombieType Board::PickZombieType(int remainingPoints)
+{
+	for (int attempt = 0; attempt < 1000; attempt++)
+	{
+		ZombieType type = GetWeightedRandomZombie();
+		int cost    = GameDataManager::GetInstance().GetZombieWeight(type);
+		int minWave = GameDataManager::GetInstance().GetZombieAppearWave(type);
+		if (remainingPoints >= cost && mCurrentWave >= minWave)
+			return type;
+	}
+	return GetCheapestZombie();
+}
+
+void Board::TrySummonZombie()
+{
+	if (mCurrentWave > mMaxWave) return;
+
+	int remainingPoints = CalculateWaveZombiePoints();
+	int zombiesSpawned  = 0;
+	float x = static_cast<float>(SCENE_WIDTH) + 30;
+
+	while (remainingPoints > 0 && zombiesSpawned < MAX_ZOMBIES_PER_WAVE)
+	{
+		ZombieType selected = PickZombieType(remainingPoints);
+		int cost = GameDataManager::GetInstance().GetZombieWeight(selected);
+		if (cost <= 0) break;
+
+		int row = SelectSpawnRow();
+
+		// 更新行追踪计数器
+		for (int i = 0; i < mRows; i++)
+		{
+			if (mRowInfos[i].weight > 0.0f)
+			{
+				mRowInfos[i].lastPicked++;
+				mRowInfos[i].secondLastPicked++;
+			}
+		}
+		mRowInfos[row].secondLastPicked = mRowInfos[row].lastPicked;
+		mRowInfos[row].lastPicked = 0;
+
+		auto zombie = CreateZombie(selected, row, x, 0.0f, false);
+		if (zombie)
+		{
+			zombiesSpawned++;
+			remainingPoints -= cost;
 		}
 	}
 }
