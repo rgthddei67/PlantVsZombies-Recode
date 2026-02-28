@@ -1,4 +1,4 @@
-#include "ChooseCardUI.h"
+﻿#include "ChooseCardUI.h"
 #include "SceneManager.h"
 #include "../ResourceKeys.h"
 #include "../ResourceManager.h"
@@ -83,7 +83,7 @@ void ChooseCardUI::Draw(Graphics* g) {
 		Vector newpos = g->ScreenToWorldPosition(pos.x, pos.y);
 		int w = mCardUITexture->width;
 		int h = mCardUITexture->height;
-		// 使用 Graphics 绘制纹理
+
 		g->DrawTexture(mCardUITexture,
 			newpos.x, newpos.y,
 			static_cast<float>(w), static_cast<float>(h));
@@ -133,8 +133,9 @@ void ChooseCardUI::RemoveCard(std::shared_ptr<Card> card)
 }
 
 void ChooseCardUI::AddAllCard() {
-	for (int i = 0; i < static_cast<int>(PlantType::PLANT_CHERRYBOMB); ++i) {
-		AddCard(static_cast<PlantType>(i));
+	const auto& haveCards = GameAPP::GetInstance().mHaveCards;  
+	for (const auto& card : haveCards) {
+		AddCard(card);
 	}
 }
 
@@ -173,7 +174,7 @@ void ChooseCardUI::UpdateTargetPositions() {
 		(ResourceKeys::Sounds::SOUND_CHOOSEPLANT2, 0.4f);
 	}
 
-	for (size_t i = 0; i < mCards.size(); ++i) {
+	for (size_t i = 0; i < mCards.size(); i++) {
 		auto card = mCards[i];
 		Vector targetPos = Vector(0, 0);
 		// 检查是否在选中列表中

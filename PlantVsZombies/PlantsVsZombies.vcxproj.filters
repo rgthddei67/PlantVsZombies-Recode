@@ -178,6 +178,9 @@
     <ClCompile Include="GameInfoSaver.cpp">
       <Filter>Code</Filter>
     </ClCompile>
+    <ClCompile Include="Game\MainMenuScene.cpp">
+      <Filter>Code\Game</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="UI\Button.h">
@@ -392,6 +395,9 @@
     </ClInclude>
     <ClInclude Include="GameInfoSaver.h">
       <Filter>Code</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\MainMenuScene.h">
+      <Filter>Code\Game</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

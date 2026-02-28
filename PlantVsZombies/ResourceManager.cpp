@@ -367,7 +367,7 @@ std::shared_ptr<Reanimation> ResourceManager::GetReanimation(const std::string& 
         newReanim->mFPS = cachedReanim->mFPS;
         newReanim->mIsLoaded = cachedReanim->mIsLoaded;
         newReanim->mResourceManager = cachedReanim->mResourceManager;
-        newReanim->mTracks = cachedReanim->mTracks;  // 假设 mTracks 可复制
+        newReanim->mTracks = cachedReanim->mTracks;
         return newReanim;
     }
     std::cerr << "Reanimation not found: " << key << std::endl;

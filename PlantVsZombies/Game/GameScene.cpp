@@ -62,7 +62,9 @@ void GameScene::OnEnter() {
 #ifdef _DEBUG
 	std::cout << "进入游戏场景" << std::endl;
 #endif
-	mBoard = std::make_unique<Board>(this, 1);
+
+	int mEnterLevel = std::stoi(SceneManager::GetInstance().GetGlobalData("EnterLevel"));
+	mBoard = std::make_unique<Board>(this, mEnterLevel);
 	auto CardUI = GameObjectManager::GetInstance().CreateGameObjectImmediate<GameObject>(
 		LAYER_UI);
 	CardUI->SetName("CardUI");
@@ -107,8 +109,7 @@ void GameScene::OpenMenu()
 
 	buttons.push_back({ u8"主菜单", Vector(485, 371),Vector(213 * 0.9f, 50 * 0.9f),
 		21 ,[this]() {
-		this->mOpenMenu = false;
-		DeltaTime::SetPaused(false);
+		this->OpenQuitMenu();
 	}, ResourceKeys::Textures::IMAGE_BUTTONBIG, true });
 
 	sliders.push_back({ Vector(530, 175), Vector(135, 10),
@@ -161,6 +162,31 @@ void GameScene::OpenRestartMenu()
 		u8"    确定重新开始游戏吗?", buttons, sliders, texts, "", 1.5f);
 }
 
+void GameScene::OpenQuitMenu()
+{
+	if (this->mOpenQuitMenu) return;
+	this->mOpenQuitMenu = true;
+
+	std::vector<GameMessageBox::ButtonConfig> buttons;
+	std::vector<GameMessageBox::SliderConfig> sliders;
+	std::vector<GameMessageBox::TextConfig> texts;
+
+	buttons.push_back({ u8"取消", Vector(380, 380), Vector(125 * 0.8f, 52 * 0.8f),14, [this]() {
+		this->mOpenMenu = false;
+		this->mOpenQuitMenu = false;
+		DeltaTime::SetPaused(false);
+	}, ResourceKeys::Textures::IMAGE_BUTTONSMALL, true });
+	buttons.push_back({ u8"确定", Vector(560, 380), Vector(125 * 0.8f, 52 * 0.8f),14, [this]() {
+		this->mReadyToBackMenu = true;
+		this->mOpenQuitMenu = false;
+		this->mOpenMenu = false;
+		DeltaTime::SetPaused(false);
+	}, ResourceKeys::Textures::IMAGE_BUTTONSMALL, true });
+
+	mUIManager.CreateMessageBox(Vector(SCENE_WIDTH / 2, SCENE_HEIGHT / 2),
+		u8"    确定退出这把游戏吗?", buttons, sliders, texts, "", 1.5f);
+}
+
 void GameScene::OnExit() {
 	Scene::OnExit();
 	std::cout << "退出GameScene" << std::endl;
@@ -175,7 +201,7 @@ void GameScene::OnExit() {
 
 void GameScene::Update() {
 	Scene::Update();
-	if (mBoard && !mReadyToRestart)
+	if (mBoard && !mReadyToRestart && !mOpenQuitMenu)
 	{
 		mBoard->Update();
 
@@ -386,8 +412,16 @@ void GameScene::Update() {
 
 	if (mReadyToRestart) {
 		mReadyToRestart = false;
-		SceneManager::GetInstance().ClearCurrentScene();
+		GameAPP::GetInstance().GetGraphics().SetCameraPosition(0, 0);
 		SceneManager::GetInstance().SwitchTo("GameScene");
+		return;	// 避免场景已经弹出，变量错乱，执行后续代码
+	}
+
+	if (mReadyToBackMenu) {
+		mReadyToBackMenu = false;
+		GameAPP::GetInstance().GetGraphics().SetCameraPosition(0, 0);
+		SceneManager::GetInstance().SwitchTo("MainMenuScene");
+		return;
 	}
 }
 
@@ -456,7 +490,8 @@ void GameScene::GameOver()
 	std::vector<GameMessageBox::TextConfig> texts;
 
 	buttons.push_back({ u8"返回菜单", Vector(380, 380), Vector(125 * 0.8f, 52 * 0.8f),14, []() {
-
+		DeltaTime::SetPaused(false);
+		SceneManager::GetInstance().SwitchTo("MainMenuScene");
 	}, ResourceKeys::Textures::IMAGE_BUTTONSMALL, true });
 	buttons.push_back({ u8"重新开始", Vector(560, 380), Vector(125 * 0.8f, 52 * 0.8f),14, [this]() {
 		this->mReadyToRestart = true;

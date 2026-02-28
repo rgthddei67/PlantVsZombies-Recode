@@ -45,6 +45,16 @@ void GameDataManager::InitializeHardcodedData() {
 		Vector(-37.6f, -44)
 	);
 
+	RegisterPlant(
+		PlantType::PLANT_CHERRYBOMB,
+		0, 50.0f,
+		"PLANT_CHERRYBOMB",
+		ResourceKeys::Textures::IMAGE_CHERRYBOMB,
+		AnimationType::ANIM_CHERRYBOMB,
+		ResourceKeys::Reanimations::REANIM_CHERRYBOMB,
+		Vector(-37.6f, -44)
+	);
+
 
 	// ==================== 僵尸注册 ====================
 	// 普通僵尸

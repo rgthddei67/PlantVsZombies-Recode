@@ -48,7 +48,6 @@ public:
     void OnEnter() override;
     void OnExit() override;
     void Update() override;
-    void BuildDrawCommands() override;
 
     void ChooseCardComplete();  // 选卡完成
 
@@ -62,6 +61,9 @@ public:
         float holdDur = 3.0f,
         float fadeDur = 1.0f);
 
+protected:
+    void BuildDrawCommands() override;
+
 private:
     std::unique_ptr<Board> mBoard = nullptr;
     std::weak_ptr<Button> mMainMenuButton;
@@ -72,6 +74,9 @@ private:
 
     bool mOpenMenu = false;
     bool mOpenRestartMenu = false;
+    bool mOpenQuitMenu = false;
+
+    bool mReadyToBackMenu = false;
     bool mReadyToRestart = false;
 
     IntroStage mCurrentStage = IntroStage::BACKGROUND_MOVE;
@@ -106,6 +111,7 @@ private:
 
     void OpenMenu();
     void OpenRestartMenu();
+    void OpenQuitMenu();
 };
 
 #endif

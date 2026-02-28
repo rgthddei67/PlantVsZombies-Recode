@@ -1,5 +1,6 @@
 ﻿#include "GameInfoSaver.h"
 #include "GameApp.h"
+#include "./Game/Board.h"
 #include "./Game/AudioSystem.h"
 
 bool GameInfoSaver::SavePlayerInfo()
@@ -17,6 +18,8 @@ bool GameInfoSaver::SavePlayerInfo()
 	j["soundVolume"] = AudioSystem::GetSoundVolume();
 	j["musicVolume"] = AudioSystem::GetMusicVolume();
 
+	j["havecards"] = gameApp.mHaveCards;
+
 	return FileManager::SaveJsonFile("./save/PlayerInfo.json", j);
 }
 
@@ -32,6 +35,8 @@ bool GameInfoSaver::LoadPlayerInfo()
 	gameApp.mShowPlantHP = j.value("showPlantHP", false);
 	gameApp.mShowZombieHP = j.value("showZombieHP", false);
 	gameApp.mAutoCollected = j.value("autoCollected", true);
+	gameApp.mHaveCards = j.value("havecards",
+		std::vector<PlantType>{PlantType::PLANT_PEASHOOTER});
 
 	AudioSystem::SetSoundVolume(j.value("soundVolume", 0.5f));
 	AudioSystem::SetMusicVolume(j.value("musicVolume", 0.5f));
@@ -39,12 +44,13 @@ bool GameInfoSaver::LoadPlayerInfo()
 	return true;
 }
 
-bool GameInfoSaver::SaveLevelData(Board* /*board*/)
+bool GameInfoSaver::SaveLevelData(Board* board)
 {
+	
 	return false;
 }
 
-bool GameInfoSaver::LoadLevelData(Board* /*board*/)
+bool GameInfoSaver::LoadLevelData(Board* board)
 {
 	return false;
 }

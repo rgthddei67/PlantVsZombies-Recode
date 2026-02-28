@@ -111,10 +111,20 @@ std::shared_ptr<Plant> Board::CreatePlant(PlantType plantType, int row, int colu
 		);
 		break;
 
-	case PlantType::PLANT_WALLNUT:
+	case PlantType::PLANT_CHERRYBOMB:
+		plant = GameObjectManager::GetInstance().CreateGameObjectImmediate<Plant>(
+			LAYER_GAME_PLANT,
+			this,
+			PlantType::PLANT_CHERRYBOMB,
+			row,
+			column,
+			AnimationType::ANIM_CHERRYBOMB,
+			1.0f,
+			isPreview
+		);
 		break;
 
-	case PlantType::PLANT_CHERRYBOMB:
+	case PlantType::PLANT_WALLNUT:
 		break;
 
 	case PlantType::PLANT_SNOWPEA:

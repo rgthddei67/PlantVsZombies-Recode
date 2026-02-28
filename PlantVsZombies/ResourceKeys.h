@@ -191,6 +191,7 @@ namespace ResourceKeys
         const std::string SOUND_SQUASH_HMM2 = "SOUND_SQUASH_HMM2";
         const std::string SOUND_SHOOTER_SHOOT = "SOUND_THROW";
         const std::string SOUND_SHOOTER_SHOOT2 = "SOUND_THROW2";
+        const std::string SOUND_CHERRYBOMB = "SOUND_CHERRYBOMB";
 
         // 子弹击中僵尸
         const std::string SOUND_SNOW_PEA_SPARKLES = "SOUND_SNOW_PEA_SPARKLES";
@@ -222,6 +223,7 @@ namespace ResourceKeys
         const std::string REANIM_SUN = "Sun";
         const std::string REANIM_SUNFLOWER = "SunFlower";
 		const std::string REANIM_PEASHOOTER = "PeaShooter";
+        const std::string REANIM_CHERRYBOMB = "CherryBomb";
         const std::string REANIM_NORMAL_ZOMBIE = "NormalZombie";
         const std::string REANIM_CONE_ZOMBIE = "ConeZombie";
         const std::string REANIM_POLEVAULTER_ZOMBIE = "PolevaulterZombie";

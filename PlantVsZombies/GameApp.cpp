@@ -4,6 +4,7 @@
 #include "./Game/Board.h"
 #include "./Game/SceneManager.h"
 #include "./Game/GameScene.h"
+#include "./Game/MainMenuScene.h"
 #include "./CursorManager.h"
 #include "./Game/AudioSystem.h"
 #include "./GameRandom.h"
@@ -22,6 +23,8 @@ GameAPP::GameAPP()
 	, mRunning(false)
 	, mInitialized(false)
 {
+	mHaveCards.reserve(64);
+	mHaveCards.push_back(PlantType::PLANT_PEASHOOTER);
 }
 
 GameAPP::~GameAPP()
@@ -252,8 +255,11 @@ int GameAPP::Run()
 	g_particleSystem = std::make_unique<ParticleSystem>(m_graphics.get());
 
 	auto& sceneManager = SceneManager::GetInstance();
+
+	sceneManager.RegisterScene<MainMenuScene>("MainMenuScene");
 	sceneManager.RegisterScene<GameScene>("GameScene");
-	sceneManager.SwitchTo("GameScene");
+
+	sceneManager.SwitchTo("MainMenuScene");
 
 	DeltaTime::Reset();
 

@@ -4,7 +4,6 @@
 #ifdef DrawText
 #undef DrawText
 #endif
-#include "ResourceKeys.h"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_ttf.h>
@@ -15,9 +14,11 @@
 #include <memory>
 #include <functional>
 #include <stdexcept>
+#include "ResourceKeys.h"
 #include "./Game/Definit.h"
 #include "./ParticleSystem/ParticleSystem.h"
 #include "GameInfoSaver.h"
+#include "./Game/Plant/PlantType.h"
 #include "Graphics.h"      
 
 constexpr int SCENE_WIDTH = 1100;
@@ -33,6 +34,8 @@ public:
     bool mShowPlantHP = false;  // 植物显示血量
     bool mShowZombieHP = false; // 僵尸显示血量
     bool mAutoCollected = true; // 自动收集
+
+    std::vector<PlantType> mHaveCards;      // 玩家拥有的卡牌
 
     GameInfoSaver mGameInfoSaver;
 
@@ -75,6 +78,9 @@ public:
 
     // 获取 Graphics 对象
     Graphics& GetGraphics() { return *m_graphics; }
+
+    // 设置游戏是否运行
+    void SetRunning(bool running) { this->mRunning = running; }
 
     // 世界坐标绘制文本 UTF8编码
     void DrawText(const std::string& text,
