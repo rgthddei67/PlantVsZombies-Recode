@@ -6,6 +6,7 @@
 #include "../ResourceKeys.h"
 #include "../DeltaTime.h"
 #include "./AudioSystem.h"
+#include "../GameInfoSaver.h"
 #include "GameProgress.h"
 #include "ChooseCardUI.h"
 #include "../UI/GameMessageBox.h"
@@ -32,9 +33,6 @@ void GameScene::BuildDrawCommands()
 		mStartX, mBackgroundY, 1.0f, 1.0f, LAYER_BACKGROUND, false);
 
 	if (mBoard) {
-		//RegisterDrawCommand("Board",
-		//    [this](Graphics* g) { mBoard->Draw(g); },
-		//    LAYER_GAME_OBJECT);
 		RegisterDrawCommand("Prompt",
 			[this](Graphics* g) {
 				if (!mPrompt.active) return;
@@ -53,8 +51,41 @@ void GameScene::BuildDrawCommands()
 				g->DrawTexture(texture, drawX, drawY, w, h, 0.0f, tint);
 			},
 			LAYER_UI + 1000);
+
+		// 读档恢复时，board 已处于 GAME 状态，需在此重新注册 UI 文字命令
+		if (mBoard->mBoardState == BoardState::GAME) {
+			RegisterDrawCommand("ZombieNumber",
+				[this](Graphics* g) {
+					auto& gameApp = GameAPP::GetInstance();
+					gameApp.DrawText(u8"当前僵尸数量: " + std::to_string(mBoard->mZombieNumber),
+						Vector(3, 569), { 0,0,0,255 }, ResourceKeys::Fonts::FONT_FZCQ, 24);
+					gameApp.DrawText(u8"当前僵尸数量: " + std::to_string(mBoard->mZombieNumber),
+						Vector(5, 570), { 223,186,98,255 }, ResourceKeys::Fonts::FONT_FZCQ, 24);
+				},
+				LAYER_UI);
+
+			RegisterDrawCommand("LevelName",
+				[this](Graphics* g) {
+					auto& gameApp = GameAPP::GetInstance();
+					gameApp.DrawText(mBoard->mLevelName,
+						Vector(766, 575), { 0,0,0,255 }, ResourceKeys::Fonts::FONT_FZCQ, 21);
+					gameApp.DrawText(mBoard->mLevelName,
+						Vector(768, 576), { 223,186,98,255 }, ResourceKeys::Fonts::FONT_FZCQ, 21);
+				},
+				LAYER_UI);
+
+			RegisterDrawCommand("Difficulty",
+				[](Graphics* g) {
+					auto& gameApp = GameAPP::GetInstance();
+					gameApp.DrawText("难度: " + std::to_string(gameApp.Difficulty),
+						Vector(1030, 575), { 0,0,0,255 }, ResourceKeys::Fonts::FONT_FZCQ, 21);
+					gameApp.DrawText("难度: " + std::to_string(gameApp.Difficulty),
+						Vector(1032, 576), { 223,186,98,255 }, ResourceKeys::Fonts::FONT_FZCQ, 21);
+				},
+				LAYER_UI);
+			ShowSunCount();
+		}
 	}
-	SortDrawCommands();
 }
 
 void GameScene::OnEnter() {
@@ -86,7 +117,22 @@ void GameScene::OnEnter() {
 		this->OpenMenu();
 		});
 
-	AudioSystem::PlayMusic(ResourceKeys::Music::MUSIC_CHOOSEYOURSEEDS, -1);
+	GameAPP::GetInstance().mGameInfoSaver.LoadLevelData(mBoard.get(), mCardSlotManager.get());
+
+	if (mBoard->mBoardState == BoardState::GAME) {
+		// 跳过选卡和开场动画，直接进入游戏
+		GameAPP::GetInstance().GetGraphics().SetCameraPosition(0, 0);
+		mCurrentStage = IntroStage::FINISH;
+		mCurrectSceneX = mGameStartX;
+		mSeedbankAdded = true;
+		mBoard->StartGame();
+
+		AddTexture(ResourceKeys::Textures::IMAGE_SEEDBANK_LONG,
+			130.0f, -10.0f, 0.85f, 0.9f, LAYER_UI, true);
+	}
+	else {
+		AudioSystem::PlayMusic(ResourceKeys::Music::MUSIC_CHOOSEYOURSEEDS, -1);
+	}
 }
 
 void GameScene::OpenMenu()
@@ -318,16 +364,7 @@ void GameScene::Update() {
 		}
 		case IntroStage::COMPLETE:
 		{
-			if (!mSunCounterRegistered) {
-				RegisterDrawCommand("SunCounter",
-					[this](Graphics* g) {
-						GameAPP::GetInstance().DrawText(std::to_string(mBoard->GetSun()),
-							g->ScreenToWorldPosition(142, 42), { 0,0,0,255 }, ResourceKeys::Fonts::FONT_FZCQ, 17);
-					},
-					LAYER_UI + 100000);
-				SortDrawCommands();
-				mSunCounterRegistered = true;
-			}
+			ShowSunCount();
 			break;
 		}
 		case IntroStage::READY_SET_PLANT:
@@ -412,17 +449,33 @@ void GameScene::Update() {
 
 	if (mReadyToRestart) {
 		mReadyToRestart = false;
-		GameAPP::GetInstance().GetGraphics().SetCameraPosition(0, 0);
+		auto& gameApp = GameAPP::GetInstance();
+		gameApp.GetGraphics().SetCameraPosition(0, 0);
+		gameApp.mGameInfoSaver.DeleteLevelData(mBoard.get());
 		SceneManager::GetInstance().SwitchTo("GameScene");
 		return;	// 避免场景已经弹出，变量错乱，执行后续代码
 	}
 
 	if (mReadyToBackMenu) {
 		mReadyToBackMenu = false;
+		GameAPP::GetInstance().mGameInfoSaver.SaveLevelData(mBoard.get(), mCardSlotManager.get());
 		GameAPP::GetInstance().GetGraphics().SetCameraPosition(0, 0);
 		SceneManager::GetInstance().SwitchTo("MainMenuScene");
 		return;
 	}
+}
+
+void GameScene::ShowSunCount()
+{
+	if (mSunCounterRegistered) return;
+	RegisterDrawCommand("SunCounter",
+		[this](Graphics* g) {
+			GameAPP::GetInstance().DrawText(std::to_string(mBoard->GetSun()),
+				g->ScreenToWorldPosition(142, 42), { 0,0,0,255 }, ResourceKeys::Fonts::FONT_FZCQ, 17);
+		},
+		LAYER_UI + 100000);
+	SortDrawCommands();
+	mSunCounterRegistered = true;
 }
 
 void GameScene::ChooseCardComplete()

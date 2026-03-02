@@ -81,6 +81,11 @@ public:
 
     void SetFramesForLayer(const std::string& trackName);
 
+    // 存档/读档辅助
+    std::string GetCurrentTrackName() const;
+    float GetCurrentFrame() const;
+    void SetCurrentFrame(float frameIndex);
+
     // 组件获取
     std::shared_ptr<TransformComponent> GetTransformComponent() const;
     std::shared_ptr<ColliderComponent> GetColliderComponent() const;

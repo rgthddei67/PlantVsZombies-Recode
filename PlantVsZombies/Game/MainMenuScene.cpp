@@ -48,6 +48,7 @@ void MainMenuScene::BuildDrawCommands()
 	Scene::BuildDrawCommands();
 	RegisterDrawCommand("DrawLevel",
 		[this](Graphics* g) {
+			if (this->mOpenMenu) return;
 			auto& gameApp = GameAPP::GetInstance();
 			int mBigLevel = gameApp.mAdventureLevel / 10 + 1;
 			int mSmallLevel = gameApp.mAdventureLevel % 10;

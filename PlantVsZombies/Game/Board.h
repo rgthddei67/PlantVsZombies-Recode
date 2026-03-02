@@ -50,8 +50,6 @@ public:
 	int mColumns = 8; // 列数
 	int mSun = 50;
 	float mSunCountDown = 5.0f;
-	int mNextPlantID = 1;	// 下一个植物的ID
-	int mNextCoinID = 1;	// 下一个Coin的ID
 	EntityManager mEntityManager;
 	int mCurrentWave = 0;			// 当前波
 	int mMaxWave = 10;		// 关卡总波数

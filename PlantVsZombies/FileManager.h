@@ -60,6 +60,9 @@ public:
     static std::vector<std::string> GetFilesInDirectory(const std::string& directory,
         const std::string& extension = "");
 
+    // 删除文件
+    static bool DeleteFile(const std::string& path);
+
     // 路径操作工具函数
     static std::string GetFileName(const std::string& path);
     static std::string GetFileExtension(const std::string& path);

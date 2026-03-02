@@ -60,6 +60,7 @@ public:
     // 获取卡牌信息
     std::shared_ptr<GameObject> GetSelectedCard() const { return selectedCard.lock(); }
     int GetCurrentSun() const { return mBoard ? mBoard->GetSun() : 0; }
+    const std::vector<std::weak_ptr<Card>>& GetCards() const { return cards; }
 
 private:
     void CreatePlantPreview(PlantType plantType);

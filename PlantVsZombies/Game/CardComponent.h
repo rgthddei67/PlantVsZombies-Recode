@@ -38,8 +38,11 @@ public:
 
     PlantType GetPlantType() const { return mPlantType; }
     int GetSunCost() const { return mSunCost; }
+    float GetCooldownTimer() const { return mCooldownTimer; }
+    float GetCooldownTime()  const { return mCooldownTime;  }
     float GetCooldownProgress() const;
     CardState GetCardState() const;
+    void RestoreCooldown(float timer, float time);
 
 	bool GetIsInChooseCardUI() const { return mIsInChooseCardUI; }
 	void SetIsInChooseCardUI(bool isInChooseCardUI) { mIsInChooseCardUI = isInChooseCardUI; }

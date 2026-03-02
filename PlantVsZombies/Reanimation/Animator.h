@@ -64,6 +64,8 @@ private:
     SDL_Color mExtraAdditiveColor = { 255, 255, 255, 128 };  ///< 高亮颜色
     SDL_Color mExtraOverlayColor = { 255, 255, 255, 64 };    ///< 覆盖层颜色
 
+    std::string mCurrentTrackName = "";         ///< 当前正在播放的轨道名
+
     // 过渡目标
     std::string mTargetTrack = "";              ///< 播放一次后要切换到的轨道名
     float mOriginalSpeed = 1.0f;                ///< 原始速度 (用于恢复)
@@ -224,6 +226,16 @@ public:
      * @brief 获取当前帧索引 (浮点)
      */
     float GetCurrentFrame() const { return mFrameIndexNow; }
+
+    /**
+     * @brief 获取当前正在播放的轨道名
+     */
+    const std::string& GetCurrentTrackName() const { return mCurrentTrackName; }
+
+    /**
+     * @brief 直接设置当前帧索引 (用于存档恢复)
+     */
+    void SetCurrentFrame(float frameIndex) { mFrameIndexNow = frameIndex; }
 
     /**
      * @brief 设置播放速度倍率

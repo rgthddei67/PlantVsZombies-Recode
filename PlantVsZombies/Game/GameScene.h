@@ -55,6 +55,8 @@ public:
 
     void GameOver();
 
+    void ShowSunCount();
+
     // 显示红色大字指示
     void ShowPrompt(const std::string& textureKey,
         float appearDur = 1.0f,

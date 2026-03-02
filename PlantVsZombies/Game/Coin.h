@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #ifndef _COIN_H
 #define _COIN_H
 
@@ -50,12 +50,13 @@ public:
     void StopMove();
     bool IsMoving() const;
     void SetTargetPosition(const Vector& target);
-    virtual void OnReachTargetBack();
 
-protected:
+
     Vector GetPosition() const;
     void SetPosition(const Vector& newPos);
 
+protected:
+    virtual void OnReachTargetBack();
     void SetScale(float scale);
     void UpdateScale();
     void StopScaleAnimation();

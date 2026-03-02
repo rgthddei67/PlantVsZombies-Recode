@@ -276,6 +276,20 @@ void AnimatedObject::SetFramesForLayer(const std::string& trackName) {
     }
 }
 
+std::string AnimatedObject::GetCurrentTrackName() const {
+    return mAnimator ? mAnimator->GetCurrentTrackName() : "";
+}
+
+float AnimatedObject::GetCurrentFrame() const {
+    return mAnimator ? mAnimator->GetCurrentFrame() : 0.0f;
+}
+
+void AnimatedObject::SetCurrentFrame(float frameIndex) {
+    if (mAnimator) {
+        mAnimator->SetCurrentFrame(frameIndex);
+    }
+}
+
 std::shared_ptr<TransformComponent> AnimatedObject::GetTransformComponent() const {
     return mTransform.lock();
 }

@@ -89,6 +89,7 @@ bool Animator::PlayTrack(const std::string& trackName, float speed, float blendT
 
     mIsPlaying = true;
     mPlayingState = PlayState::PLAY_REPEAT;
+    mCurrentTrackName = trackName;
 
     return true;
 }

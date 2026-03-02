@@ -123,6 +123,18 @@ void CardComponent::ForceStateUpdate() {
 	}
 }
 
+void CardComponent::RestoreCooldown(float timer, float time) {
+	mCooldownTime  = time;
+	mCooldownTimer = timer;
+	mIsCooldown    = (timer > 0.0f);
+	if (auto display = GetCardDisplayComponent()) {
+		if (mIsCooldown) {
+			display->TranToCooling();
+			display->SetCooldownProgress(1.0f - (mCooldownTimer / mCooldownTime));
+		}
+	}
+}
+
 void CardComponent::StartCooldown() {
 	if (IsReady() && !mIsCooldown) {
 		mIsCooldown = true;

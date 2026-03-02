@@ -190,6 +190,16 @@ std::vector<std::string> FileManager::GetFilesInDirectory(const std::string& dir
     return files;
 }
 
+bool FileManager::DeleteFile(const std::string& path) {
+    try {
+        return std::filesystem::remove(path);
+    }
+    catch (const std::filesystem::filesystem_error& e) {
+        LogError("Failed to delete file: " + path + ", error: " + e.what());
+        return false;
+    }
+}
+
 void FileManager::LogError(const std::string& message) {
     std::cerr << "[FileManager Error] " << message << std::endl;
 }
