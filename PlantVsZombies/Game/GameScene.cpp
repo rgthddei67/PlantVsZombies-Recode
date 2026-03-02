@@ -135,6 +135,22 @@ void GameScene::OnEnter() {
 	}
 }
 
+void GameScene::OnExit() {
+	if (mBoard->mBoardState == BoardState::GAME && !mReadyToRestart) {
+		GameAPP::GetInstance().mGameInfoSaver.SaveLevelData
+		(mBoard.get(), mCardSlotManager.get());
+	}
+	Scene::OnExit();
+	std::cout << "退出GameScene" << std::endl;
+	mBoard.reset();
+	mGameProgress.reset();
+	mCardSlotManager.reset();
+	if (mChooseCardUI)
+	{
+		mChooseCardUI.reset();
+	}
+}
+
 void GameScene::OpenMenu()
 {
 	if (mOpenMenu) return;
@@ -231,18 +247,6 @@ void GameScene::OpenQuitMenu()
 
 	mUIManager.CreateMessageBox(Vector(SCENE_WIDTH / 2, SCENE_HEIGHT / 2),
 		u8"    确定退出这把游戏吗?", buttons, sliders, texts, "", 1.5f);
-}
-
-void GameScene::OnExit() {
-	Scene::OnExit();
-	std::cout << "退出GameScene" << std::endl;
-	mBoard.reset();
-	mGameProgress.reset();
-	mCardSlotManager.reset();
-	if (mChooseCardUI)
-	{
-		mChooseCardUI.reset();
-	}
 }
 
 void GameScene::Update() {
@@ -448,7 +452,6 @@ void GameScene::Update() {
 	}
 
 	if (mReadyToRestart) {
-		mReadyToRestart = false;
 		auto& gameApp = GameAPP::GetInstance();
 		gameApp.GetGraphics().SetCameraPosition(0, 0);
 		gameApp.mGameInfoSaver.DeleteLevelData(mBoard.get());
@@ -457,8 +460,6 @@ void GameScene::Update() {
 	}
 
 	if (mReadyToBackMenu) {
-		mReadyToBackMenu = false;
-		GameAPP::GetInstance().mGameInfoSaver.SaveLevelData(mBoard.get(), mCardSlotManager.get());
 		GameAPP::GetInstance().GetGraphics().SetCameraPosition(0, 0);
 		SceneManager::GetInstance().SwitchTo("MainMenuScene");
 		return;

@@ -1,8 +1,7 @@
-#include "Scene.h"
+﻿#include "Scene.h"
 #include "GameObjectManager.h"
 #include "CollisionSystem.h"
 #include "../ResourceManager.h"
-#include "../ParticleSystem/ParticleSystem.h"
 #include "ClickableComponent.h"
 #include "../GameApp.h"
 #include <iostream>

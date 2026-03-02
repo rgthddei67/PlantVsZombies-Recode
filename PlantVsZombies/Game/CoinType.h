@@ -1,8 +1,8 @@
-#pragma once
+﻿#pragma once
 #ifndef _COINTYPE_H
 #define _COINTYPE_H
 
-constexpr int NUM_COIN_ID = -1024;
+constexpr int NULL_COIN_ID = -1024;
 
 enum class CoinType {
 	COIN_NONE,

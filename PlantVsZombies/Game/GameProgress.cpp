@@ -1,4 +1,4 @@
-#include "GameProgress.h"
+﻿#include "GameProgress.h"
 #include "GameScene.h"
 #include "Board.h"
 #include "SceneManager.h"
@@ -11,7 +11,7 @@
 
 GameProgress::GameProgress(Board* board, GameScene* gameScene)
     : mBoard(board), mGameScene(gameScene),
-    mCurrentSliderValue(1.0f), mTargetSliderValue(1.0f), mLerpSpeed(5.0f)
+    mCurrentSliderValue(1.0f), mTargetSliderValue(1.0f), mLerpSpeed(1.1f)
 {
     if (!board || !gameScene) {
         std::cerr << "GameProgress::GameProgress初始化失败，board或者gameScene为nullptr！" << std::endl;
@@ -52,7 +52,7 @@ void GameProgress::Update()
 
     mUpdateTimer += delta;
 
-    if (mBoard && mUpdateTimer >= 0.7f)
+    if (mBoard && mUpdateTimer >= 0.4f)
     {
         mUpdateTimer = 0.0f;
         int currentWave = mBoard->mCurrentWave;

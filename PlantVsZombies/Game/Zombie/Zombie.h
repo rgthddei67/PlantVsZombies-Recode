@@ -8,6 +8,7 @@
 #include "../../DeltaTime.h"
 #include "../../GameRandom.h"
 #include "../EntityManager.h"
+#include <nlohmann/json.hpp>
 
 class Board;
 class Plant;
@@ -17,7 +18,7 @@ public:
 	Board* mBoard;
 	ZombieType mZombieType = ZombieType::NUM_ZOMBIE_TYPES;
 	Vector mVisualOffset;   // 视觉偏移量
-	
+
 	int mRow = -1;
 
 	int mAttackDamage = 50;
@@ -41,7 +42,7 @@ public:
 protected:
 	float mCheckPositionTimer = 0.0f;
 	bool mIsMindControlled = false;	//有没有被魅惑
-		
+
 	float mEatSoundTimer = 0.0f;
 	bool mIsEating = false;
 	int mEatPlantID = NULL_PLANT_ID;
@@ -59,8 +60,11 @@ public:
 
 	void Start() override;
 	void Update() override;
-	virtual void ZombieUpdate() { }		// 子类重写Update用这个
+	virtual void ZombieUpdate() {}		// 子类重写Update用这个
 	virtual void TakeDamage(int damage);
+	virtual void SaveExtraData(nlohmann::json& j) const {}	// 保存额外数据
+	virtual void LoadExtraData(const nlohmann::json& j) {}	// 加载额外数据 
+	virtual void ZombieItemUpdate() const; // 处理僵尸防具等内容
 	int TakeShieldDamage(int damage);
 	int TakeHelmDamage(int damage);
 	void TakeBodyDamage(int damage);
@@ -79,14 +83,34 @@ public:
 	Vector GetPosition() const;
 	void SetPosition(const Vector& position);
 
-	bool IsMindControlled() { return this->mIsMindControlled;  }
+	bool IsMindControlled() { return this->mIsMindControlled; }
+
+	void SaveProtectedData(nlohmann::json& j) const {
+		j["isMindControlled"] = mIsMindControlled;
+		j["isEating"] = mIsEating;
+		j["eatPlantID"] = mEatPlantID;
+		j["hasHead"] = mHasHead;
+		j["hasArm"] = mHasArm;
+		j["isDying"] = mIsDying;
+		j["speed"] = mSpeed;
+	}
+
+	void LoadProtectedData(const nlohmann::json& j) {
+		mIsMindControlled = j.value("isMindControlled", false);
+		mIsEating = j.value("isEating", false);
+		mEatPlantID = j.value("eatPlantID", NULL_PLANT_ID);
+		mHasHead = j.value("hasHead", true);
+		mHasArm = j.value("hasArm", true);
+		mIsDying = j.value("isDying", false);
+		mSpeed = j.value("speed", 10.0f);
+	}
 
 protected:
 	// 此处仅用于设置僵尸死亡的回调函数! 不要在子类中调用基类！
 	virtual void SetupZombieDeathEvent();
 
 	// 这才是设置僵尸
-	virtual void SetupZombie() { }
+	virtual void SetupZombie() {}
 
 	virtual void CheckHelmImage() {}	// 检查是否应该更换一类防具图片
 	virtual void CheckShieldImage() {} 	// 检查是否应该更换二类防具图片

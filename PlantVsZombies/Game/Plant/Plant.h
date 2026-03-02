@@ -1,9 +1,10 @@
-#pragma once
+﻿#pragma once
 #ifndef _PLANT_H
 #define _PLANT_H
 #include <iostream>
 #include <algorithm>
 #include <memory>
+#include <nlohmann/json.hpp>
 #include "./PlantType.h"
 #include "../ColliderComponent.h"
 #include "../TransformComponent.h"
@@ -38,6 +39,8 @@ public:
 	Vector GetVisualPosition() const override;
 	virtual void PlantUpdate();		// 子类重写Update用这个
 	virtual void TakeDamage(int damage);
+	virtual void SaveExtraData(nlohmann::json& j) const { }
+	virtual void LoadExtraData(const nlohmann::json& j) { }
 	void Die();
 	Vector GetPosition() const;
 	void SetPosition(const Vector& position);

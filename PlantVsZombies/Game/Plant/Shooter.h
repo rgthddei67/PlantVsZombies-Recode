@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #ifndef SHOOTER_H
 #define SHOOTER_H
 
@@ -18,6 +18,14 @@ protected:
 
 public:
 	using Plant::Plant;
+
+	void SaveExtraData(nlohmann::json& j) const override {
+		j["shootTimer"] = mShootTimer;
+	}
+
+	void LoadExtraData(const nlohmann::json& j) override {
+		mShootTimer = j.value("shootTimer", 1.0f);
+	}
 
 	void PlantUpdate() override;
 

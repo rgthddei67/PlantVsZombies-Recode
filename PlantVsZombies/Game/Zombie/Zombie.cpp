@@ -62,6 +62,22 @@ void Zombie::SetupZombieDeathEvent()
 	mAnimator->AddFrameEvent(216, [this]() { this->Die(); });
 }
 
+void Zombie::ZombieItemUpdate() const
+{
+	if (!mHasArm) {
+		mAnimator->SetTrackVisible("Zombie_outerarm_hand", false);
+		mAnimator->SetTrackVisible("Zombie_outerarm_lower", false);
+		mAnimator->SetTrackImage("Zombie_outerarm_upper", ResourceManager::GetInstance().
+			GetTexture(ResourceKeys::Textures::IMAGE_ZOMBIE_OUTERARM_UPPER2));
+	}
+	if (!mHasHead) {
+		mAnimator->SetTrackVisible("anim_head1", false);
+		mAnimator->SetTrackVisible("anim_head2", false);
+		mAnimator->SetTrackVisible("anim_tongue", false);
+		mAnimator->SetTrackVisible("anim_hair", false);
+	}
+}
+
 void Zombie::Start()
 {
 	AnimatedObject::Start();

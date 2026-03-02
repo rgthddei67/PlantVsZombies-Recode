@@ -132,3 +132,39 @@ std::vector<int> EntityManager::CleanupExpired() {
 
     return removedPlants;
 }
+
+int EntityManager::AddPlantWithID(std::shared_ptr<Plant> plant, int id) {
+    mPlants[id] = plant;
+    plant->mPlantID = id;
+    if (id >= mNextPlantID) {
+        mNextPlantID = id + 1;
+    }
+    return id;
+}
+
+int EntityManager::AddZombieWithID(std::shared_ptr<Zombie> zombie, int id) {
+    mZombies[id] = zombie;
+    zombie->mZombieID = id;
+    if (id >= mNextZombieID) {
+        mNextZombieID = id + 1;
+    }
+    return id;
+}
+
+int EntityManager::AddBulletWithID(std::shared_ptr<Bullet> bullet, int id) {
+    mBullets[id] = bullet;
+    bullet->mBulletID = id;
+    if (id >= mNextBulletID) {
+        mNextBulletID = id + 1;
+    }
+    return id;
+}
+
+int EntityManager::AddCoinWithID(std::shared_ptr<Coin> coin, int id) {
+    mCoins[id] = coin;
+    coin->mCoinID = id;
+    if (id >= mNextCoinID) {
+        mNextCoinID = id + 1;
+    }
+    return id;
+}

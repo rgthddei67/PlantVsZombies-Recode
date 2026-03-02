@@ -141,7 +141,7 @@ public:
 	}
 
 	// 创建僵尸 有row就用row，如果row<0，则使用y
-	std::shared_ptr<Zombie> CreateZombie(ZombieType zombieType, int row, float x, float y, bool isPreview = false);
+	std::shared_ptr<Zombie> CreateZombie(ZombieType zombieType, int row, float x, float y, bool skipsettings = false, bool isPreview = false);
 
 	// 创建太阳
 	std::shared_ptr<Sun> CreateSun(const Vector& position, bool needAnimation = false);
@@ -150,10 +150,16 @@ public:
 	std::shared_ptr<Sun> CreateSun(float x, float y, bool needAnimation = false);
 
 	// 创建植物
-	std::shared_ptr<Plant> CreatePlant(PlantType plantType, int row, int column, bool isPreview = false);
+	std::shared_ptr<Plant> CreatePlant(PlantType plantType, int row, int column, bool skipsettings = false, bool isPreview = false);
 
 	// 创建子弹
 	std::shared_ptr<Bullet> CreateBullet(BulletType plantType, int row, const Vector& position);
+
+	// 带指定 ID 创建实体（用于读档）
+	std::shared_ptr<Plant> CreatePlantWithID(PlantType type, int row, int col, int id);
+	std::shared_ptr<Zombie> CreateZombieWithID(ZombieType type, int row, float x, float y, int id);
+	std::shared_ptr<Bullet> CreateBulletWithID(BulletType type, int row, const Vector& pos, int id);
+	std::shared_ptr<Sun> CreateSunWithID(const Vector& pos, bool fromSky, int id);
 
 	// 更新关卡
 	void UpdateLevel();

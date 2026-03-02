@@ -14,9 +14,9 @@ void MainMenuScene::OnEnter()
 
 void MainMenuScene::OnExit() 
 {
-	Scene::OnExit();
 	GameObjectManager::GetInstance().DestroyGameObject(mGameButton);
 	mOpitionButton.reset();
+	Scene::OnExit();
 }
 
 void MainMenuScene::Update()

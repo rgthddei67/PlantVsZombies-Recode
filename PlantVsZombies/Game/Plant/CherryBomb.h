@@ -15,6 +15,14 @@ public:
 	void SetupPlant() override;
 	void PlantUpdate() override;
 
+	void SaveExtraData(nlohmann::json& j) const override {
+		j["bombTimer"] = mBombTimer;
+	}
+
+	void LoadExtraData(const nlohmann::json& j) override {
+		mBombTimer = j.value("bombTimer", 0.0f);
+	}
+
 
 };
 

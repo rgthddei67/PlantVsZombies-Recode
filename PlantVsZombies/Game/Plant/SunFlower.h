@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #ifndef _SUNFLOWER_H
 #define _SUNFLOWER_H
 
@@ -15,7 +15,19 @@ private:
     float mProductionGlowStartTimer = 0.0f;  // 发光开始时间
 
 public:
-    using Plant::Plant;		// 继承构造函数
+    using Plant::Plant;		
+
+    void SaveExtraData(nlohmann::json& j) const override {
+        j["produceTimer"] = mProduceTimer;
+        j["isGlowingForProduction"] = mIsGlowingForProduction;
+        j["productionGlowStartTimer"] = mProductionGlowStartTimer;
+    }
+
+    void LoadExtraData(const nlohmann::json& j) override {
+        mProduceTimer = j.value("produceTimer", 15.0f);
+        mIsGlowingForProduction = j.value("isGlowingForProduction", false);
+        mProductionGlowStartTimer = j.value("productionGlowStartTimer", 0.0f);
+    }
 
     void PlantUpdate() override
     {

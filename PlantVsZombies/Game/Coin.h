@@ -30,7 +30,7 @@ protected:
 	bool mIsDestroyed = false;            // 是否已销毁
 
 public:
-    int mCoinID = NUM_COIN_ID;
+    int mCoinID = NULL_COIN_ID;
 
 public:
     Coin(Board* board, AnimationType animType, const Vector& position, 

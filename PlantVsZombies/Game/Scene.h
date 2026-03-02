@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #ifndef _SCENE_H
 #define _SCENE_H
 
@@ -6,6 +6,7 @@
 #include "../ResourceKeys.h"
 #include "../ResourceManager.h"
 #include "./GameObjectManager.h"
+#include "../ParticleSystem/ParticleSystem.h"
 #include <SDL2/SDL.h>
 #include <string>
 #include <vector>
@@ -65,6 +66,8 @@ public:
     virtual void OnExit()    // 退出场景时调用  
     {
         mUIManager.ClearAll();
+        if (g_particleSystem)
+            g_particleSystem->ClearAll();
         GameObjectManager::GetInstance().DestroyAllGameObjects();
         mDrawCommands.clear();
     }

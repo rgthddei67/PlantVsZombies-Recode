@@ -64,15 +64,21 @@ bool GameInfoSaver::SaveLevelData(Board* board, CardSlotManager* manager)
 	nlohmann::json j;
 
 	// Board 状态
-	j["boardState"]            = static_cast<int>(board->mBoardState);
-	j["sun"]                   = board->mSun;
-	j["currentWave"]           = board->mCurrentWave;
-	j["maxWave"]               = board->mMaxWave;
-	j["zombieCountDown"]       = board->mZombieCountDown;
-	j["totalZombieHP"]         = board->mTotalZombieHP;
-	j["currentWaveZombieHP"]   = board->mCurrectWaveZombieHP;
+	j["boardState"] = static_cast<int>(board->mBoardState);
+	j["sun"] = board->mSun;
+	j["currentWave"] = board->mCurrentWave;
+	j["maxWave"] = board->mMaxWave;
+	j["zombieCountDown"] = board->mZombieCountDown;
+	j["totalZombieHP"] = board->mTotalZombieHP;
+	j["currentWaveZombieHP"] = board->mCurrectWaveZombieHP;
 	j["nextWaveSpawnZombieHP"] = board->mNextWaveSpawnZombieHP;
-	j["zombieNumber"]          = board->mZombieNumber;
+	j["zombieNumber"] = board->mZombieNumber;
+
+	// 保存 EntityManager 的 ID 计数器
+	j["nextPlantID"] = board->mEntityManager.GetNextPlantID();
+	j["nextZombieID"] = board->mEntityManager.GetNextZombieID();
+	j["nextBulletID"] = board->mEntityManager.GetNextBulletID();
+	j["nextCoinID"] = board->mEntityManager.GetNextCoinID();
 
 	// 植物
 	nlohmann::json plantsArr = nlohmann::json::array();
@@ -80,13 +86,20 @@ bool GameInfoSaver::SaveLevelData(Board* board, CardSlotManager* manager)
 		auto plant = board->mEntityManager.GetPlant(id);
 		if (!plant) continue;
 		nlohmann::json p;
-		p["id"]     = id;
-		p["type"]   = static_cast<int>(plant->mPlantType);
-		p["row"]    = plant->mRow;
+		p["id"] = id;
+		p["type"] = static_cast<int>(plant->mPlantType);
+		p["row"] = plant->mRow;
 		p["column"] = plant->mColumn;
 		p["health"] = plant->mPlantHealth;
+		p["maxHealth"] = plant->mPlantMaxHealth;
+		p["isSleeping"] = plant->mIsSleeping;
 		p["animTrack"] = plant->GetCurrentTrackName();
 		p["animFrame"] = plant->GetCurrentFrame();
+		nlohmann::json extraData;
+		plant->SaveExtraData(extraData);
+		if (!extraData.empty()) {
+			p["extraData"] = extraData;
+		}
 		plantsArr.push_back(p);
 	}
 	j["plants"] = plantsArr;
@@ -97,16 +110,32 @@ bool GameInfoSaver::SaveLevelData(Board* board, CardSlotManager* manager)
 		auto zombie = board->mEntityManager.GetZombie(id);
 		if (!zombie) continue;
 		nlohmann::json z;
-		z["id"]           = id;
-		z["type"]         = static_cast<int>(zombie->mZombieType);
-		z["row"]          = zombie->mRow;
-		z["x"]            = zombie->GetPosition().x;
-		z["bodyHealth"]   = zombie->mBodyHealth;
-		z["helmHealth"]   = zombie->mHelmHealth;
+		z["id"] = id;
+		z["type"] = static_cast<int>(zombie->mZombieType);
+		z["row"] = zombie->mRow;
+		z["x"] = zombie->GetPosition().x;
+
+		z["bodyHealth"] = zombie->mBodyHealth;
+		z["bodyMaxHealth"] = zombie->mBodyMaxHealth;
+		z["helmType"] = zombie->mHelmType;
+		z["helmHealth"] = zombie->mHelmHealth;
+		z["helmMaxHealth"] = zombie->mHelmMaxHealth;
+		z["shieldType"] = zombie->mShieldType;
 		z["shieldHealth"] = zombie->mShieldHealth;
-		z["spawnWave"]    = zombie->mSpawnWave;
+		z["shieldMaxHealth"] = zombie->mShieldMaxHealth;
+
+		z["spawnWave"] = zombie->mSpawnWave;
+		z["attackDamage"] = zombie->mAttackDamage;
+		z["needDropArm"] = zombie->mNeedDropArm;
+		z["needDropHead"] = zombie->mNeedDropHead;
+		zombie->SaveProtectedData(z);
 		z["animTrack"] = zombie->GetCurrentTrackName();
 		z["animFrame"] = zombie->GetCurrentFrame();
+		nlohmann::json extraData;
+		zombie->SaveExtraData(extraData);
+		if (!extraData.empty()) {
+			z["extraData"] = extraData;
+		}
 		zombiesArr.push_back(z);
 	}
 	j["zombies"] = zombiesArr;
@@ -117,11 +146,12 @@ bool GameInfoSaver::SaveLevelData(Board* board, CardSlotManager* manager)
 		auto bullet = board->mEntityManager.GetBullet(id);
 		if (!bullet) continue;
 		nlohmann::json b;
-		b["type"]      = static_cast<int>(bullet->mBulletType);
-		b["row"]       = bullet->mRow;
-		b["x"]         = bullet->GetPosition().x;
-		b["y"]         = bullet->GetPosition().y;
-		b["damage"]    = bullet->GetBulletDamage();
+		b["type"] = static_cast<int>(bullet->mBulletType);
+		b["id"] = id;
+		b["row"] = bullet->mRow;
+		b["x"] = bullet->GetPosition().x;
+		b["y"] = bullet->GetPosition().y;
+		b["damage"] = bullet->GetBulletDamage();
 		b["velocityX"] = bullet->GetVelocityX();
 		b["velocityY"] = bullet->GetVelocityY();
 		bulletsArr.push_back(b);
@@ -136,6 +166,7 @@ bool GameInfoSaver::SaveLevelData(Board* board, CardSlotManager* manager)
 		auto sun = std::dynamic_pointer_cast<Sun>(coin);
 		if (!sun) continue;
 		nlohmann::json s;
+		s["id"] = id;
 		s["x"] = sun->GetPosition().x;
 		s["y"] = sun->GetPosition().y;
 		s["animTrack"] = sun->GetCurrentTrackName();
@@ -155,12 +186,12 @@ bool GameInfoSaver::SaveLevelData(Board* board, CardSlotManager* manager)
 			auto transform = card->GetComponent<TransformComponent>();
 			if (!transform) continue;
 			nlohmann::json c;
-			c["plantType"]     = static_cast<int>(comp->GetPlantType());
-			c["posX"]          = transform->GetPosition().x;
-			c["posY"]          = transform->GetPosition().y;
-			c["sunCost"]       = comp->GetSunCost();
-			c["cooldownTime"]  = comp->GetCooldownTime();
-			c["isCooldown"]    = comp->IsCooldown();
+			c["plantType"] = static_cast<int>(comp->GetPlantType());
+			c["posX"] = transform->GetPosition().x;
+			c["posY"] = transform->GetPosition().y;
+			c["sunCost"] = comp->GetSunCost();
+			c["cooldownTime"] = comp->GetCooldownTime();
+			c["isCooldown"] = comp->IsCooldown();
 			c["cooldownTimer"] = comp->GetCooldownTimer();
 			cardsArr.push_back(c);
 		}
@@ -179,29 +210,60 @@ bool GameInfoSaver::LoadLevelData(Board* board, CardSlotManager* manager)
 		return false;
 
 	// 恢复 Board 状态
-	board->mBoardState            = static_cast<BoardState>(j.value("boardState", static_cast<int>(BoardState::GAME)));
-	board->mSun                   = j.value("sun", 50);
-	board->mCurrentWave           = j.value("currentWave", 0);
-	board->mMaxWave               = j.value("maxWave", 10);
-	board->mZombieCountDown       = j.value("zombieCountDown", 20.0f);
-	board->mTotalZombieHP         = j.value("totalZombieHP", 0.0);
-	board->mCurrectWaveZombieHP   = j.value("currentWaveZombieHP", 0.0);
+	board->mBoardState = static_cast<BoardState>(j.value("boardState", static_cast<int>(BoardState::GAME)));
+	board->mSun = j.value("sun", 50);
+	board->mCurrentWave = j.value("currentWave", 0);
+	board->mMaxWave = j.value("maxWave", 10);
+	board->mZombieCountDown = j.value("zombieCountDown", 20.0f);
+	board->mTotalZombieHP = j.value("totalZombieHP", 0.0);
+	board->mCurrectWaveZombieHP = j.value("currentWaveZombieHP", 0.0);
 	board->mNextWaveSpawnZombieHP = j.value("nextWaveSpawnZombieHP", 0.0);
-	board->mZombieNumber          = j.value("zombieNumber", 0);
+	board->mZombieNumber = j.value("zombieNumber", 0);
+
+	// 恢复 EntityManager 的 ID 计数器（向后兼容：旧存档没有则使用默认值）
+	board->mEntityManager.SetNextPlantID(j.value("nextPlantID", 1));
+	board->mEntityManager.SetNextZombieID(j.value("nextZombieID", 1));
+	board->mEntityManager.SetNextBulletID(j.value("nextBulletID", 1));
+	board->mEntityManager.SetNextCoinID(j.value("nextCoinID", 1));
+
+	// 恢复进度条
+	if (board->mCurrentWave > 0) {
+		auto gameProgress = board->mGameScene->GetGameProgress();
+		gameProgress->SetActive(true);
+		auto& res = ResourceManager::GetInstance();
+		gameProgress->SetupFlags(res.GetTexture(ResourceKeys::Textures::IMAGE_FLAGMETER_PART_STICK)
+			, res.GetTexture(ResourceKeys::Textures::IMAGE_FLAGMETER_PART_FLAG));
+	}
 
 	// 恢复植物
 	for (auto& p : j.value("plants", nlohmann::json::array())) {
 		PlantType type = static_cast<PlantType>(p["type"].get<int>());
-		int row    = p["row"].get<int>();
-		int col    = p["column"].get<int>();
+		int row = p["row"].get<int>();
+		int col = p["column"].get<int>();
 		int health = p["health"].get<int>();
-		auto plant = board->CreatePlant(type, row, col);
+		int maxHealth = p["maxHealth"].get<int>();
+		bool isSleeping = p["isSleeping"].get<bool>();
+		int id = p.value("id", NULL_PLANT_ID);
+
+		std::shared_ptr<Plant> plant;
+		if (id != NULL_PLANT_ID) {
+			plant = board->CreatePlantWithID(type, row, col, id);
+		}
+		else {
+			plant = board->CreatePlant(type, row, col);
+		}
+
 		if (plant) {
 			plant->mPlantHealth = health;
+			plant->mPlantMaxHealth = maxHealth;
+			plant->mIsSleeping = isSleeping;
 			std::string track = p.value("animTrack", "");
 			if (!track.empty()) {
 				plant->PlayTrack(track);
 				plant->SetCurrentFrame(p.value("animFrame", 0.0f));
+			}
+			if (p.contains("extraData")) {
+				plant->LoadExtraData(p["extraData"]);
 			}
 		}
 	}
@@ -210,18 +272,43 @@ bool GameInfoSaver::LoadLevelData(Board* board, CardSlotManager* manager)
 	for (auto& z : j.value("zombies", nlohmann::json::array())) {
 		ZombieType type = static_cast<ZombieType>(z["type"].get<int>());
 		int   row = z["row"].get<int>();
-		float x   = z["x"].get<float>();
-		auto zombie = board->CreateZombie(type, row, x, 0.0f);
+		float x = z["x"].get<float>();
+		int   id = z.value("id", NULL_ZOMBIE_ID);
+
+		std::shared_ptr<Zombie> zombie;
+		if (id != NULL_ZOMBIE_ID) {
+			zombie = board->CreateZombieWithID(type, row, x, 0.0f, id);
+		}
+		else {
+			zombie = board->CreateZombie(type, row, x, 0.0f);
+		}
+
 		if (zombie) {
-			zombie->mBodyHealth   = z["bodyHealth"].get<int>();
-			zombie->mHelmHealth   = z["helmHealth"].get<int>();
-			zombie->mShieldHealth = z["shieldHealth"].get<int>();
-			zombie->mSpawnWave    = z["spawnWave"].get<int>();
+			zombie->mBodyHealth = z.value("bodyHealth", 270);
+			zombie->mBodyMaxHealth = z.value("bodyMaxHealth", 270);
+			zombie->mHelmType = static_cast<HelmType>(z.value("helmType",HelmType::HELMTYPE_NONE));
+			zombie->mHelmHealth = z.value("helmHealth", 0);
+			zombie->mHelmMaxHealth = z.value("helmMaxHealth", 0);
+			zombie->mShieldType = static_cast<ShieldType>(z.value("shieldType", ShieldType::SHIELDTYPE_NONE));
+			zombie->mShieldHealth = z.value("shieldHealth", 0);
+			zombie->mShieldMaxHealth = z.value("shieldMaxHealth", 0);
+			zombie->mSpawnWave = z.value("spawnWave", -1);
+			zombie->mAttackDamage = z.value("attackDamage", 50);
+			zombie->mNeedDropArm = z.value("needDropArm", true);
+			zombie->mNeedDropHead = z.value("needDropHead", true);
+
+			zombie->LoadProtectedData(z);
 			std::string track = z.value("animTrack", "");
 			if (!track.empty()) {
 				zombie->PlayTrack(track);
 				zombie->SetCurrentFrame(z.value("animFrame", 0.0f));
 			}
+
+			if (z.contains("extraData")) {
+				zombie->LoadExtraData(z["extraData"]);
+			}
+
+			zombie->ZombieItemUpdate();
 		}
 	}
 
@@ -229,9 +316,18 @@ bool GameInfoSaver::LoadLevelData(Board* board, CardSlotManager* manager)
 	for (auto& b : j.value("bullets", nlohmann::json::array())) {
 		BulletType type = static_cast<BulletType>(b["type"].get<int>());
 		int   row = b["row"].get<int>();
-		float x   = b["x"].get<float>();
-		float y   = b["y"].get<float>();
-		auto bullet = board->CreateBullet(type, row, Vector(x, y));
+		float x = b["x"].get<float>();
+		float y = b["y"].get<float>();
+		int   id = b.value("id", NULL_BULLET_ID);
+
+		std::shared_ptr<Bullet> bullet;
+		if (id != NULL_BULLET_ID) {
+			bullet = board->CreateBulletWithID(type, row, Vector(x, y), id);
+		}
+		else {
+			bullet = board->CreateBullet(type, row, Vector(x, y));
+		}
+
 		if (bullet) {
 			bullet->SetBulletDamage(b["damage"].get<int>());
 			bullet->SetVelocityX(b["velocityX"].get<float>());
@@ -243,7 +339,16 @@ bool GameInfoSaver::LoadLevelData(Board* board, CardSlotManager* manager)
 	for (auto& s : j.value("suns", nlohmann::json::array())) {
 		float x = s["x"].get<float>();
 		float y = s["y"].get<float>();
-		auto sun = board->CreateSun(Vector(x, y), false);
+		int  id = s.value("id", NULL_COIN_ID);
+
+		std::shared_ptr<Sun> sun;
+		if (id != NULL_COIN_ID) {
+			sun = board->CreateSunWithID(Vector(x, y), false, id);
+		}
+		else {
+			sun = board->CreateSun(Vector(x, y), false);
+		}
+
 		if (sun) {
 			std::string track = s.value("animTrack", "");
 			if (!track.empty()) {
@@ -257,11 +362,11 @@ bool GameInfoSaver::LoadLevelData(Board* board, CardSlotManager* manager)
 	if (manager) {
 		for (auto& c : j.value("cards", nlohmann::json::array())) {
 			PlantType plantType = static_cast<PlantType>(c["plantType"].get<int>());
-			float posX          = c["posX"].get<float>();
-			float posY          = c["posY"].get<float>();
-			int sunCost         = c["sunCost"].get<int>();
-			float cooldownTime  = c["cooldownTime"].get<float>();
-			bool isCooldown     = c["isCooldown"].get<bool>();
+			float posX = c["posX"].get<float>();
+			float posY = c["posY"].get<float>();
+			int sunCost = c["sunCost"].get<int>();
+			float cooldownTime = c["cooldownTime"].get<float>();
+			bool isCooldown = c["isCooldown"].get<bool>();
 			float cooldownTimer = c["cooldownTimer"].get<float>();
 
 			auto card = GameObjectManager::GetInstance().CreateGameObjectImmediate<Card>(

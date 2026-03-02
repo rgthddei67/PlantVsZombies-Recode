@@ -1,4 +1,6 @@
-#pragma once
+﻿#pragma once
+#ifndef _ENTITYMANAGER_H
+#define _ENTITYMANAGER_H
 #include <memory>
 #include <unordered_map>
 #include <vector>
@@ -27,6 +29,23 @@ public:
     std::shared_ptr<Coin> GetCoin(int id) const;
     std::vector<int> GetAllCoinIDs() const;
 
+    // 带指定 ID 添加实体（用于读档恢复）
+    int AddPlantWithID(std::shared_ptr<Plant> plant, int id);
+    int AddZombieWithID(std::shared_ptr<Zombie> zombie, int id);
+    int AddBulletWithID(std::shared_ptr<Bullet> bullet, int id);
+    int AddCoinWithID(std::shared_ptr<Coin> coin, int id);
+
+    // ID 计数器访问方法（用于存档）
+    int GetNextPlantID() const { return mNextPlantID; }
+    int GetNextZombieID() const { return mNextZombieID; }
+    int GetNextBulletID() const { return mNextBulletID; }
+    int GetNextCoinID() const { return mNextCoinID; }
+
+    void SetNextPlantID(int id) { mNextPlantID = id; }
+    void SetNextZombieID(int id) { mNextZombieID = id; }
+    void SetNextBulletID(int id) { mNextBulletID = id; }
+    void SetNextCoinID(int id) { mNextCoinID = id; }
+
     // 清理过期对象 返回清理的植物ID
     std::vector<int> CleanupExpired();
 
@@ -41,3 +60,5 @@ private:
     std::unordered_map<int, std::weak_ptr<Bullet>> mBullets;
     std::unordered_map<int, std::weak_ptr<Coin>> mCoins;
 };
+
+#endif

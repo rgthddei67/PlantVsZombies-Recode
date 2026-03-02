@@ -177,7 +177,7 @@ void CardSlotManager::CreatePlantPreview(PlantType plantType) {
     DestroyPlantPreview();
 
     if (mBoard) {
-        plantPreview = mBoard->CreatePlant(plantType, 0, 0, true);
+        plantPreview = mBoard->CreatePlant(plantType, 0, 0, true, true);
         plantPreview->PauseAnimation();
         plantPreview->SetRenderOrder(LAYER_EFFECTS + 10000);
     }
@@ -187,7 +187,7 @@ void CardSlotManager::CreateCellPlantPreview(PlantType plantType, std::shared_pt
     DestroyCellPlantPreview();
 
     if (mBoard && cell) {
-        cellPlantPreview = mBoard->CreatePlant(plantType, 0, 0, true);
+        cellPlantPreview = mBoard->CreatePlant(plantType, 0, 0, true, true);
         if (cellPlantPreview) {
             GameDataManager& plantMgr = GameDataManager::GetInstance();
             Vector plantOffset = plantMgr.GetPlantOffset(plantType);

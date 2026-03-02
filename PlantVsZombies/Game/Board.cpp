@@ -72,7 +72,7 @@ std::shared_ptr<Sun> Board::CreateSun(float x, float y, bool needAnimation) {
 	return CreateSun(Vector(x, y), needAnimation);
 }
 
-std::shared_ptr<Plant> Board::CreatePlant(PlantType plantType, int row, int column, bool isPreview)
+std::shared_ptr<Plant> Board::CreatePlant(PlantType plantType, int row, int column, bool skipsettings, bool isPreview)
 {
 	// 检查行列是否有效
 	if (row < 0 || row >= mRows || column < 0 || column >= mColumns) {
@@ -144,7 +144,7 @@ std::shared_ptr<Plant> Board::CreatePlant(PlantType plantType, int row, int colu
 		break;
 	}
 
-	if (plant && !isPreview) {
+	if (plant && !isPreview && !skipsettings) {
 		mEntityManager.AddPlant(plant);
 
 		// 将植物与格子关联
@@ -158,7 +158,7 @@ std::shared_ptr<Plant> Board::CreatePlant(PlantType plantType, int row, int colu
 	return plant;
 }
 
-std::shared_ptr<Zombie> Board::CreateZombie(ZombieType zombieType, int row, float x, float y, bool isPreview) {
+std::shared_ptr<Zombie> Board::CreateZombie(ZombieType zombieType, int row, float x, float y, bool skipsettings, bool isPreview) {
 	std::shared_ptr<Zombie> zombie = nullptr;
 
 	if (row >= 0)
@@ -200,9 +200,8 @@ std::shared_ptr<Zombie> Board::CreateZombie(ZombieType zombieType, int row, floa
 		return nullptr;
 	}
 
-	if (zombie && !isPreview) {
+	if (zombie && !isPreview && !skipsettings) {
 		mEntityManager.AddZombie(zombie);
-
 		zombie->mSpawnWave = this->mCurrentWave;
 	}
 	return zombie;
@@ -296,7 +295,7 @@ void Board::UpdateLevel()
 	if (mZombieCountDown <= 0.0f)
 	{
 		// 一大波僵尸处理
-		if (mCurrentWave == 9)
+		if ((mCurrentWave + 1) % 10 == 0)
 		{
 			mHugeWaveCountDown += deltaTime;
 			if (!mHasHugeWaveSound)
@@ -369,7 +368,7 @@ void Board::CreatePreviewZombies()
 		(mSpawnZombiePos1.x, mSpawnZombiePos2.x), GameRandom::Range
 		(mSpawnZombiePos1.y, mSpawnZombiePos2.y));
 		auto preview = this->
-			CreateZombie(zombieType, -1, spawnPosition.x, spawnPosition.y, true);
+			CreateZombie(zombieType, -1, spawnPosition.x, spawnPosition.y, true, true);
 		mPreviewZombieList.push_back(preview);
 	}
 }
@@ -532,7 +531,7 @@ void Board::TrySummonZombie()
 		mRowInfos[row].secondLastPicked = mRowInfos[row].lastPicked;
 		mRowInfos[row].lastPicked = 0;
 
-		auto zombie = CreateZombie(selected, row, x, 0.0f, false);
+		auto zombie = CreateZombie(selected, row, x, 0.0f);
 		if (zombie)
 		{
 			zombiesSpawned++;
@@ -632,4 +631,41 @@ void Board::LoadSpawnListFromJson()
 		return;
 	}
 	// 没找到对应关卡配置，保持默认 ZOMBIE_NORMAL（不清空）
+}
+
+std::shared_ptr<Plant> Board::CreatePlantWithID(PlantType type, int row, int col, int id) {
+	auto plant = CreatePlant(type, row, col, true, false);
+	if (plant) {
+		mEntityManager.AddPlantWithID(plant, id);
+		auto cell = GetCell(row, col);
+		if (cell) {
+			cell->SetPlantID(id);
+		}
+	}
+	return plant;
+}
+
+std::shared_ptr<Zombie> Board::CreateZombieWithID(ZombieType type, int row, float x, float y, int id) {
+	auto zombie = CreateZombie(type, row, x, y, true, false);
+	if (zombie) {
+		mEntityManager.AddZombieWithID(zombie, id);
+		zombie->mSpawnWave = this->mCurrentWave;
+	}
+	return zombie;
+}
+
+std::shared_ptr<Bullet> Board::CreateBulletWithID(BulletType type, int row, const Vector& pos, int id) {
+	auto bullet = CreateBullet(type, row, pos);
+	if (bullet) {
+		mEntityManager.AddBulletWithID(bullet, id);
+	}
+	return bullet;
+}
+
+std::shared_ptr<Sun> Board::CreateSunWithID(const Vector& pos, bool fromSky, int id) {
+	auto sun = CreateSun(pos, fromSky);
+	if (sun) {
+		mEntityManager.AddCoinWithID(sun, id);
+	}
+	return sun;
 }
