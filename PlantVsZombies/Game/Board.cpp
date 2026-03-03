@@ -40,6 +40,11 @@ void Board::InitializeCell(int rows, int cols)
 	}
 }
 
+void Board::CreateBoom(const Vector& position, int damage)
+{
+	
+}
+
 std::shared_ptr<Sun> Board::CreateSun(const Vector& position, bool needAnimation)
 {
 	auto sun = GameObjectManager::GetInstance().CreateGameObject<Sun>

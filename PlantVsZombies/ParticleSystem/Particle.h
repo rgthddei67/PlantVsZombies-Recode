@@ -9,6 +9,7 @@
 
 enum class ParticleType {
     PEA_BULLET_HIT,
+    CHEERYBOMB,
     ZOMBIE_HEAD_OFF,
     ZOMBIE_ARM_OFF,
     ZOMBIE_POLEVAULTER_ARM_OFF,

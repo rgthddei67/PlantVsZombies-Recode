@@ -64,6 +64,18 @@ void ParticleConfigManager::InitializeConfigs() {
     config.gravity = 130.0f;
     config.textureKeys = { "IMAGE_ZOMBIE_CONE3" };
     configs[ParticleType::ZOMBIE_CONE_OFF] = config;
+
+    config.startColor = glm::vec4(255.0f);
+    config.endColor = glm::vec4(255.0f);
+    config.lifetime = 0.8f;
+    config.startSize = 0.8f;
+    config.endSize = 0.8f;
+    config.minVelocity = 70.0f;
+    config.maxVelocity = 110.0f;
+    config.spreadAngle = 140.0f;
+    config.gravity = 130.0f;
+    config.textureKeys = { ResourceKeys::Particles::PARTICLE_EXPLOSIONCLOUD };
+    configs[ParticleType::CHEERYBOMB] = config;
 }
 
 const ParticleConfig& ParticleConfigManager::GetConfig(ParticleType effect) const {

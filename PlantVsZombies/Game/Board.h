@@ -161,6 +161,9 @@ public:
 	// 创建子弹
 	std::shared_ptr<Bullet> CreateBullet(BulletType plantType, int row, const Vector& position, bool skipsettings = false);
 
+	// 创建樱桃爆炸效果
+	void CreateBoom(const Vector& position, int damage = 1800);
+
 	// 带指定 ID 创建实体（用于读档）
 	std::shared_ptr<Plant> CreatePlantWithID(PlantType type, int row, int col, int id);
 	std::shared_ptr<Zombie> CreateZombieWithID(ZombieType type, int row, float x, float y, int id);
