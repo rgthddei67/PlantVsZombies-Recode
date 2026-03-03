@@ -37,6 +37,7 @@ enum class BoardState {
 	CHOOSE_CARD,
 	GAME,
 	LOSE_GAME,
+	WIN,
 	NONE,
 };
 

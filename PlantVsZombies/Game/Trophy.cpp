@@ -41,9 +41,18 @@ void Trophy::SetOnClickBack(std::shared_ptr<ClickableComponent> click)
 
 		mIsGrowing = true;
 		mIsMoving = true;
+		mBoard->mBoardState = BoardState::WIN;
 		AudioSystem::StopMusic();
 		AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_WINMUSIC, 0.5f);
-		GameAPP::GetInstance().mGameInfoSaver.DeleteLevelData(mBoard);
+		auto& gameApp = GameAPP::GetInstance();
+		gameApp.mGameInfoSaver.DeleteLevelData(mBoard);
+		// 判断是否是冒险模式
+		// TODO: 若以后增加小游戏，就改这里
+		if (mBoard->mLevel <= 50) {
+			gameApp.mAdventureLevel++;
+			gameApp.mHaveCards.push_back(static_cast<PlantType>(mBoard->mLevel));
+		}
+
 		// 禁用点击，防止重复触发
 		if (auto c = GetComponent<ClickableComponent>())
 			c->IsClickable = false;

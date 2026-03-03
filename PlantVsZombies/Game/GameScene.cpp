@@ -136,7 +136,7 @@ void GameScene::OnEnter() {
 }
 
 void GameScene::OnExit() {
-	if (mBoard->mBoardState == BoardState::GAME && !mReadyToRestart && !mReadyToBackMenu) {
+	if (mBoard->mBoardState == BoardState::GAME && !mReadyToRestart) {
 		GameAPP::GetInstance().mGameInfoSaver.SaveLevelData
 		(mBoard.get(), mCardSlotManager.get());
 	}
@@ -251,7 +251,7 @@ void GameScene::OpenQuitMenu()
 
 void GameScene::Update() {
 	Scene::Update();
-	if (mBoard && !mReadyToRestart && !mOpenQuitMenu)
+	if (mBoard && !mReadyToRestart && !mReadyToBackMenu)
 	{
 		mBoard->Update();
 

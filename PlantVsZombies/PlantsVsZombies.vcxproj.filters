@@ -181,7 +181,12 @@
     <ClCompile Include="Game\MainMenuScene.cpp">
       <Filter>Code\Game</Filter>
     </ClCompile>
-    <ClCompile Include="Game\Plant\CherryBomb.cpp" />
+    <ClCompile Include="Game\Plant\CherryBomb.cpp">
+      <Filter>Code\Game\Plant</Filter>
+    </ClCompile>
+    <ClCompile Include="Game\Trophy.cpp">
+      <Filter>Code\Game</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="UI\Button.h">
@@ -400,9 +405,11 @@
     <ClInclude Include="Game\MainMenuScene.h">
       <Filter>Code\Game</Filter>
     </ClInclude>
-    <ClInclude Include="Game\Plant\CherryBomb.h" />
     <ClInclude Include="Game\Trophy.h">
       <Filter>Code\Game</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\Plant\CherryBomb.h">
+      <Filter>Code\Game\Plant</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
