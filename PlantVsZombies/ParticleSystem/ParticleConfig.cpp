@@ -12,8 +12,8 @@ void ParticleConfigManager::InitializeConfigs() {
     ResourceManager& resourceManager = ResourceManager::GetInstance();
 
     ParticleConfig config;
-    config.startColor = glm::vec4(1.0f);
-    config.endColor = glm::vec4(1.0f);
+    config.startColor = glm::vec4(255.0f);
+    config.endColor = glm::vec4(255.0f);
     config.lifetime = 0.8f;
     config.startSize = 1.3f;
     config.endSize = 0.4f;
@@ -29,8 +29,8 @@ void ParticleConfigManager::InitializeConfigs() {
     };
     configs[ParticleType::PEA_BULLET_HIT] = config;
 
-    config.startColor = glm::vec4(1.0f);
-    config.endColor = glm::vec4(1.0f);
+    config.startColor = glm::vec4(255.0f);
+    config.endColor = glm::vec4(255.0f);
     config.lifetime = 0.8f;
     config.startSize = 0.75f;
     config.endSize = 0.75f;
@@ -41,8 +41,8 @@ void ParticleConfigManager::InitializeConfigs() {
     config.textureKeys = { ResourceKeys::Particles::PARTICLE_ZOMBIE_HEAD };
     configs[ParticleType::ZOMBIE_HEAD_OFF] = config;
 
-    config.startColor = glm::vec4(1.0f);
-    config.endColor = glm::vec4(1.0f);
+    config.startColor = glm::vec4(255.0f);
+    config.endColor = glm::vec4(255.0f);
     config.lifetime = 0.8f;
     config.startSize = 0.7f;
     config.endSize = 0.7f;
@@ -53,8 +53,8 @@ void ParticleConfigManager::InitializeConfigs() {
     config.textureKeys = { ResourceKeys::Particles::PARTICLE_ZOMBIEARM };
     configs[ParticleType::ZOMBIE_ARM_OFF] = config;
 
-    config.startColor = glm::vec4(1.0f);
-    config.endColor = glm::vec4(1.0f);
+    config.startColor = glm::vec4(255.0f);
+    config.endColor = glm::vec4(255.0f);
     config.lifetime = 0.8f;
     config.startSize = 0.8f;
     config.endSize = 0.8f;

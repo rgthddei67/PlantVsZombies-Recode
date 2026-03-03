@@ -63,6 +63,8 @@ public:
         float holdDur = 3.0f,
         float fadeDur = 1.0f);
 
+    void SetReadyToBackMenu() { mReadyToBackMenu = true; }
+
 protected:
     void BuildDrawCommands() override;
 

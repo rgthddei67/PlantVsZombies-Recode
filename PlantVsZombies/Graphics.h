@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #ifndef __GRAPHICS_H__
 #define __GRAPHICS_H__
 
@@ -25,7 +25,7 @@
 
 /**
  * @brief 将 glm::vec4 颜色转换为 SDL_Color。
- * @param color 输入颜色（各分量范围 [0,1]）
+ * @param color 输入颜色（各分量范围 [0,255]）
  * @return 转换后的 SDL_Color（各分量范围 0~255）
  */
 inline SDL_Color ToSDLColor(const glm::vec4& color) {
@@ -35,6 +35,16 @@ inline SDL_Color ToSDLColor(const glm::vec4& color) {
 	result.b = static_cast<Uint8>(color.b);
 	result.a = static_cast<Uint8>(color.a);
 	return result;
+}
+
+/**
+ * @brief 将 0-255 格式的颜色转换为 0-1 归一化格式（用于 OpenGL）。
+ * @param color 输入颜色（各分量范围 [0,255]）
+ * @return 归一化后的颜色（各分量范围 [0,1]）
+ */
+inline glm::vec4 NormalizeColor(const glm::vec4& color) {
+	return glm::vec4(color.r / 255.0f, color.g / 255.0f,
+		color.b / 255.0f, color.a / 255.0f);
 }
 
 /**
@@ -159,7 +169,7 @@ public:
 	// ==================== 绘制接口 ====================
 
 	void DrawTexture(const GLTexture* tex, float x, float y, float width, float height,
-		float rotation = 0.0f, const glm::vec4& tint = glm::vec4(1.0f));
+		float rotation = 0.0f, const glm::vec4& tint = glm::vec4(255.0f));
 
 	/**
 	 * @brief 绘制文字。
@@ -174,36 +184,36 @@ public:
 	void DrawText(const std::string& text, const std::string& fontKey, int fontSize,
 		const glm::vec4& color, float x, float y, float scale = 1.0f);
 
-		/**
-	 * @brief 使用自定义变换矩阵绘制纹理，并支持指定枢轴点。
-	 * @param tex        纹理
-	 * @param transform  模型变换矩阵（相对于纹理局部坐标）
-	 * @param pivotX     枢轴点 X 坐标（纹理局部坐标，默认0）
-	 * @param pivotY     枢轴点 Y 坐标（纹理局部坐标，默认0）
-	 * @param tint       色调颜色
-	 */
+	/**
+ * @brief 使用自定义变换矩阵绘制纹理，并支持指定枢轴点。
+ * @param tex        纹理
+ * @param transform  模型变换矩阵（相对于纹理局部坐标）
+ * @param pivotX     枢轴点 X 坐标（纹理局部坐标，默认0）
+ * @param pivotY     枢轴点 Y 坐标（纹理局部坐标，默认0）
+ * @param tint       色调颜色
+ */
 	void DrawTextureMatrix(const GLTexture* tex, const glm::mat4& transform,
 		float pivotX = 0.0f, float pivotY = 0.0f,
-		const glm::vec4& tint = glm::vec4(1.0f));
+		const glm::vec4& tint = glm::vec4(255.0f));
 
-		/**
-	 * @brief 绘制纹理的指定区域到目标矩形。
-	 * @param tex    纹理指针
-	 * @param srcX   源区域左上角 X（像素）
-	 * @param srcY   源区域左上角 Y（像素）
-	 * @param srcW   源区域宽度（像素）
-	 * @param srcH   源区域高度（像素）
-	 * @param dstX   目标矩形左上角 X
-	 * @param dstY   目标矩形左上角 Y
-	 * @param dstW   目标矩形宽度
-	 * @param dstH   目标矩形高度
-	 * @param rotation 旋转角度（度），绕目标矩形中心旋转
-	 * @param tint   色调颜色
-	 */
+	/**
+ * @brief 绘制纹理的指定区域到目标矩形。
+ * @param tex    纹理指针
+ * @param srcX   源区域左上角 X（像素）
+ * @param srcY   源区域左上角 Y（像素）
+ * @param srcW   源区域宽度（像素）
+ * @param srcH   源区域高度（像素）
+ * @param dstX   目标矩形左上角 X
+ * @param dstY   目标矩形左上角 Y
+ * @param dstW   目标矩形宽度
+ * @param dstH   目标矩形高度
+ * @param rotation 旋转角度（度），绕目标矩形中心旋转
+ * @param tint   色调颜色
+ */
 	void DrawTextureRegion(const GLTexture* tex,
 		float srcX, float srcY, float srcW, float srcH,
 		float dstX, float dstY, float dstW, float dstH,
-		float rotation = 0.0f, const glm::vec4& tint = glm::vec4(1.0f));
+		float rotation = 0.0f, const glm::vec4& tint = glm::vec4(255.0f));
 
 	// ==================== 几何图形绘制 ====================
 
@@ -216,7 +226,7 @@ public:
 	 * @param color 线段颜色（默认为白色）
 	 */
 	void DrawLine(float x1, float y1, float x2, float y2,
-		const glm::vec4& color = glm::vec4(1.0f));
+		const glm::vec4& color = glm::vec4(255.0f));
 
 	/**
 	 * @brief 绘制空心矩形（边框）。
@@ -227,7 +237,7 @@ public:
 	 * @param color  边框颜色（默认为白色）
 	 */
 	void DrawRect(float x, float y, float width, float height,
-		const glm::vec4& color = glm::vec4(1.0f));
+		const glm::vec4& color = glm::vec4(255.0f));
 
 	/**
 	 * @brief 绘制实心矩形。
@@ -238,7 +248,7 @@ public:
 	 * @param color  填充颜色（默认为白色）
 	 */
 	void FillRect(float x, float y, float width, float height,
-		const glm::vec4& color = glm::vec4(1.0f));
+		const glm::vec4& color = glm::vec4(255.0f));
 
 	/**
 	 * @brief 绘制空心圆（折线近似）。
@@ -249,7 +259,7 @@ public:
 	 * @param segments 分段数（越多越圆滑，默认32）
 	 */
 	void DrawCircle(float cx, float cy, float radius,
-		const glm::vec4& color = glm::vec4(1.0f), int segments = 32);
+		const glm::vec4& color = glm::vec4(255.0f), int segments = 32);
 
 	/**
 	 * @brief 绘制实心圆（扇形三角形）。
@@ -260,7 +270,7 @@ public:
 	 * @param segments 分段数（越多越圆滑，默认32）
 	 */
 	void FillCircle(float cx, float cy, float radius,
-		const glm::vec4& color = glm::vec4(1.0f), int segments = 32);
+		const glm::vec4& color = glm::vec4(255.0f), int segments = 32);
 
 	// ==================== 批处理控制 ====================
 
@@ -383,34 +393,34 @@ public:
 
 	// 以下为线程安全的绘制提交接口，可从任意线程调用
 	void SubmitDrawTexture(const GLTexture* texture, float x, float y, float width, float height,
-		float rotation = 0.0f, const glm::vec4& tint = glm::vec4(1.0f));
+		float rotation = 0.0f, const glm::vec4& tint = glm::vec4(255.0f));
 
 	void SubmitDrawTextureMatrix(const GLTexture* texture, const glm::mat4& transform,
 		float pivotX = 0.0f, float pivotY = 0.0f,
-		const glm::vec4& tint = glm::vec4(1.0f));
+		const glm::vec4& tint = glm::vec4(255.0f));
 
 	void SubmitDrawTextureRegion(const GLTexture* tex,
 		float srcX, float srcY, float srcW, float srcH,
 		float dstX, float dstY, float dstW, float dstH,
-		float rotation = 0.0f, const glm::vec4& tint = glm::vec4(1.0f));
+		float rotation = 0.0f, const glm::vec4& tint = glm::vec4(255.0f));
 
 	void SubmitDrawText(const std::string& text, const std::string& fontKey, int fontSize,
 		const glm::vec4& color, float x, float y, float scale = 1.0f);
 
 	void SubmitDrawLine(float x1, float y1, float x2, float y2,
-		const glm::vec4& color = glm::vec4(1.0f));
+		const glm::vec4& color = glm::vec4(255.0f));
 
 	void SubmitDrawRect(float x, float y, float width, float height,
-		const glm::vec4& color = glm::vec4(1.0f));
+		const glm::vec4& color = glm::vec4(255.0f));
 
 	void SubmitFillRect(float x, float y, float width, float height,
-		const glm::vec4& color = glm::vec4(1.0f));
+		const glm::vec4& color = glm::vec4(255.0f));
 
 	void SubmitDrawCircle(float cx, float cy, float radius,
-		const glm::vec4& color = glm::vec4(1.0f), int segments = 32);
+		const glm::vec4& color = glm::vec4(255.0f), int segments = 32);
 
 	void SubmitFillCircle(float cx, float cy, float radius,
-		const glm::vec4& color = glm::vec4(1.0f), int segments = 32);
+		const glm::vec4& color = glm::vec4(255.0f), int segments = 32);
 
 private:
 	BlendMode m_currentBlendMode = BlendMode::None;   ///< 当前混合模式
@@ -457,7 +467,7 @@ private:
 
 	static const int VERTEX_BATCH_LIMIT = 1024;   ///< 单批次最大顶点数
 	static const int MATRIX_BATCH_LIMIT = 256;    ///< 单批次最大矩阵数（UBO 保证最小 16KB，可存 256 个 mat4）
-	static const int GEOM_BATCH_LIMIT   = 2048;   ///< 单批次最大几何顶点数
+	static const int GEOM_BATCH_LIMIT = 2048;   ///< 单批次最大几何顶点数
 
 	static const int TEXT_CACHE_MAX_SIZE = 256;  ///< 文字缓存最大条目数（LRU 淘汰）
 	std::list<std::string> m_textCacheOrder;     ///< LRU 顺序链表（front = 最近使用）

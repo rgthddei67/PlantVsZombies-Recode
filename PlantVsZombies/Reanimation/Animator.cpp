@@ -335,27 +335,27 @@ void Animator::CollectDrawCommands(std::vector<AnimDrawCommand>& outCommands, fl
             AnimDrawCommand cmd;
             cmd.texture = image;
             cmd.blendMode = BlendMode::Alpha;
-            cmd.color = glm::vec4(1.0f, 1.0f, 1.0f, baseAlpha);
+            cmd.color = glm::vec4(255.0f, 255.0f, 255.0f, baseAlpha * 255.0f);
             memcpy(cmd.points, worldPoints, sizeof(worldPoints));
             outCommands.push_back(cmd);
 
             // 发光效果（叠加混合）
             if (mEnableExtraAdditiveDraw) {
                 cmd.blendMode = BlendMode::Add;
-                cmd.color = glm::vec4(mExtraAdditiveColor.r / 255.0f,
-                    mExtraAdditiveColor.g / 255.0f,
-                    mExtraAdditiveColor.b / 255.0f,
-                    mExtraAdditiveColor.a / 255.0f);
+                cmd.color = glm::vec4(mExtraAdditiveColor.r,
+                    mExtraAdditiveColor.g,
+                    mExtraAdditiveColor.b,
+                    mExtraAdditiveColor.a);
                 outCommands.push_back(cmd);
             }
 
             // 覆盖层效果（Alpha 混合，颜色需乘以基础透明度）
             if (mEnableExtraOverlayDraw) {
                 cmd.blendMode = BlendMode::Alpha;
-                glm::vec4 overlayColor(mExtraOverlayColor.r / 255.0f,
-                    mExtraOverlayColor.g / 255.0f,
-                    mExtraOverlayColor.b / 255.0f,
-                    (mExtraOverlayColor.a / 255.0f) * baseAlpha);
+                glm::vec4 overlayColor(mExtraOverlayColor.r,
+                    mExtraOverlayColor.g,
+                    mExtraOverlayColor.b,
+                    mExtraOverlayColor.a * baseAlpha);
                 cmd.color = overlayColor;
                 outCommands.push_back(cmd);
             }

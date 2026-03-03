@@ -26,11 +26,11 @@ private:
     std::string pressedImageKey = ResourceKeys::Textures::IMAGE_OPTIONS_CHECKBOX0;
     std::string checkedImageKey = ResourceKeys::Textures::IMAGE_OPTIONS_CHECKBOX1;
 
-    std::string text = "";                   
-    std::string fontName = ResourceKeys::Fonts::FONT_FZCQ;      
-    int fontSize = 17;                    
-    glm::vec4 textColor = { 0, 0, 0, 255 };      
-    glm::vec4 hoverTextColor = { 255, 255, 255, 255 };
+    std::string text = "";
+    std::string fontName = ResourceKeys::Fonts::FONT_FZCQ;
+    int fontSize = 17;
+    glm::vec4 textColor = glm::vec4(0.0f, 0.0f, 0.0f, 255.0f);
+    glm::vec4 hoverTextColor = glm::vec4(255.0f, 255.0f, 255.0f, 255.0f);
 
     std::function<void(bool isChecked)> onClickCallback = nullptr; 
     static std::string s_defaultFontPath;

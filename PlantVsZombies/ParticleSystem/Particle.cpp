@@ -9,9 +9,9 @@ Particle::Particle() : active(false) {
 void Particle::Reset() {
     position = { 0, 0 };
     velocity = { 0, 0 };
-    color = glm::vec4(1.0f);
-    startColor = glm::vec4(1.0f);
-    endColor = glm::vec4(1.0f, 1.0f, 1.0f, 0.0f);
+    color = glm::vec4(255.0f);
+    startColor = glm::vec4(255.0f);
+    endColor = glm::vec4(255.0f, 255.0f, 255.0f, 0.0f);
     lifetime = 0.0f;
     maxLifetime = 60.0f;
     size = 1.0f;

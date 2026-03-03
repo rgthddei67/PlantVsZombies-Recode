@@ -53,9 +53,9 @@ void MainMenuScene::BuildDrawCommands()
 			int mBigLevel = gameApp.mAdventureLevel / 10 + 1;
 			int mSmallLevel = gameApp.mAdventureLevel % 10;
 			gameApp.DrawText(std::to_string(mBigLevel), Vector(703, 158),
-				glm::vec4{ 255, 255, 255, 255 });
+				glm::vec4(255.0f, 255.0f, 255.0f, 255.0f));
 			gameApp.DrawText(std::to_string(mSmallLevel), Vector(722, 160),
-				glm::vec4{ 255, 255, 255, 255 });
+				glm::vec4(255.0f, 255.0f, 255.0f, 255.0f));
 		},
 		LAYER_UI + 10000);
 	SortDrawCommands();

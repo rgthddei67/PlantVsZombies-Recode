@@ -1,8 +1,10 @@
 ﻿#include "Board.h"
 #include "Sun.h"
+#include "Trophy.h"
 #include "../GameRandom.h"
 #include "./Plant/Plant.h"
 #include "./Plant/SunFlower.h"
+#include "./Plant/CherryBomb.h"
 #include "./Plant/Shooter.h"
 #include "./Zombie/Zombie.h"
 #include "./Zombie/ConeZombie.h"
@@ -72,6 +74,17 @@ std::shared_ptr<Sun> Board::CreateSun(float x, float y, bool needAnimation) {
 	return CreateSun(Vector(x, y), needAnimation);
 }
 
+void Board::CreateTrophy(const Vector& position)
+{
+	if (mTrophySpawned) return;
+	mTrophySpawned = true;
+	auto trophy = GameObjectManager::GetInstance().CreateGameObject<Trophy>(
+		LAYER_GAME_COIN, this, position);
+	if (trophy) {
+		mEntityManager.AddCoin(trophy);
+	}
+}
+
 std::shared_ptr<Plant> Board::CreatePlant(PlantType plantType, int row, int column, bool skipsettings, bool isPreview)
 {
 	// 检查行列是否有效
@@ -112,7 +125,7 @@ std::shared_ptr<Plant> Board::CreatePlant(PlantType plantType, int row, int colu
 		break;
 
 	case PlantType::PLANT_CHERRYBOMB:
-		plant = GameObjectManager::GetInstance().CreateGameObjectImmediate<Plant>(
+		plant = GameObjectManager::GetInstance().CreateGameObjectImmediate<CherryBomb>(
 			LAYER_GAME_PLANT,
 			this,
 			PlantType::PLANT_CHERRYBOMB,
@@ -663,9 +676,22 @@ std::shared_ptr<Bullet> Board::CreateBulletWithID(BulletType type, int row, cons
 }
 
 std::shared_ptr<Sun> Board::CreateSunWithID(const Vector& pos, bool fromSky, int id) {
-	auto sun = CreateSun(pos, fromSky);
+	auto sun = GameObjectManager::GetInstance().CreateGameObject<Sun>
+		(LAYER_GAME_COIN, this, pos, 0.85f, "Sun",
+			fromSky, true);
 	if (sun) {
 		mEntityManager.AddCoinWithID(sun, id);
 	}
 	return sun;
+}
+
+std::shared_ptr<Trophy> Board::CreateTrophyWithID(const Vector& pos, int id) {
+	if (mTrophySpawned) return nullptr;
+	mTrophySpawned = true;
+	auto trophy = GameObjectManager::GetInstance().CreateGameObject<Trophy>(
+		LAYER_GAME_COIN, this, pos);
+	if (trophy) {
+		mEntityManager.AddCoinWithID(trophy, id);
+	}
+	return trophy;
 }

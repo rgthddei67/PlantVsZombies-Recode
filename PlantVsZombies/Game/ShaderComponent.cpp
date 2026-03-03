@@ -64,6 +64,6 @@ void ShadowComponent::Draw(Graphics* g) {
     float drawH = texHeight * mScale.y;
 
     // 绘制阴影，使用 tint 的 alpha 控制透明度
-    glm::vec4 tint(1, 1, 1, mAlpha);
+    glm::vec4 tint(255.0f, 255.0f, 255.0f, mAlpha * 255.0f);
     g->DrawTexture(mShadowTexture, drawX, drawY, drawW, drawH, 0.0f, tint);
 }

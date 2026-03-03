@@ -181,6 +181,7 @@
     <ClCompile Include="Game\MainMenuScene.cpp">
       <Filter>Code\Game</Filter>
     </ClCompile>
+    <ClCompile Include="Game\Plant\CherryBomb.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="UI\Button.h">
@@ -397,6 +398,10 @@
       <Filter>Code</Filter>
     </ClInclude>
     <ClInclude Include="Game\MainMenuScene.h">
+      <Filter>Code\Game</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\Plant\CherryBomb.h" />
+    <ClInclude Include="Game\Trophy.h">
       <Filter>Code\Game</Filter>
     </ClInclude>
   </ItemGroup>

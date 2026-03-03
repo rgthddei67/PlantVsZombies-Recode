@@ -81,11 +81,11 @@ void ColliderComponent::Draw(Graphics* g) {
 
 // 绘制矩形碰撞框
 void ColliderComponent::DrawBoxCollider(Graphics* g, const SDL_FRect& rect) {
-    // 将调试颜色转换为 glm::vec4 (0~1)
-    glm::vec4 color(debugColor.r / 255.0f,
-        debugColor.g / 255.0f,
-        debugColor.b / 255.0f,
-        debugColor.a / 255.0f);
+    // 将调试颜色转换为 glm::vec4 (0~255)
+    glm::vec4 color(debugColor.r,
+        debugColor.g,
+        debugColor.b,
+        debugColor.a);
 
     // 为清晰显示，稍微扩大矩形
     float x = rect.x - 1.0f;
@@ -127,10 +127,10 @@ void ColliderComponent::DrawBoxCollider(Graphics* g, const SDL_FRect& rect) {
 
 // 绘制圆形碰撞框
 void ColliderComponent::DrawCircleCollider(Graphics* g, const Vector& center, float radius) {
-    glm::vec4 color(debugColor.r / 255.0f,
-        debugColor.g / 255.0f,
-        debugColor.b / 255.0f,
-        debugColor.a / 255.0f);
+    glm::vec4 color(debugColor.r,
+        debugColor.g,
+        debugColor.b,
+        debugColor.a);
 
     // 绘制空心圆（使用32个线段）
     g->DrawCircle(center.x, center.y, radius, color);

@@ -1,4 +1,4 @@
-#include "CardDisplayComponent.h"
+﻿#include "CardDisplayComponent.h"
 #include "../ResourceKeys.h"
 #include "./Card.h"
 #include "./CardComponent.h"
@@ -142,7 +142,7 @@ void CardDisplayComponent::DrawCooldownMask(Graphics* g, std::shared_ptr<Transfo
         static_cast<float>(maskRect.y),
         static_cast<float>(maskRect.w),
         static_cast<float>(maskRect.h),
-        glm::vec4(0.0f, 0.0f, 0.0f, 64.0f / 255.0f));
+        glm::vec4(0.0f, 0.0f, 0.0f, 64.0f));
 
     // 恢复混合模式
     g->SetBlendMode(oldMode);
@@ -156,7 +156,7 @@ void CardDisplayComponent::DrawSunCost(Graphics* g, std::shared_ptr<TransformCom
 
     GameAPP::GetInstance().DrawText(std::to_string(needSun),
         Vector(position.x + 6, position.y + 58),
-        { 0, 0, 0, 255 }, 
+        glm::vec4(0.0f, 0.0f, 0.0f, 255.0f),
         ResourceKeys::Fonts::FONT_FZCQ,
         14);
 }
@@ -174,7 +174,7 @@ void CardDisplayComponent::DrawSelectionHighlight(Graphics* g, std::shared_ptr<T
     g->FillRect(position.x, position.y,
         static_cast<float>(CARD_WIDTH),
         static_cast<float>(CARD_HEIGHT),
-        glm::vec4(0.0f, 0.0f, 0.0f, 64.0f / 255.0f));
+        glm::vec4(0.0f, 0.0f, 0.0f, 64.0f));
 
     g->SetBlendMode(oldMode);
 }

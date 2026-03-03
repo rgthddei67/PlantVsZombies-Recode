@@ -17,6 +17,7 @@ class Coin;
 class Plant;
 class Zombie;
 class Bullet;
+class Trophy;
 
 struct RowInfo {
 	int rowIndex         = 0;
@@ -59,6 +60,7 @@ public:
 	double mNextWaveSpawnZombieHP = 0;		// 下一波僵尸刷新血量
 
 	int mZombieNumber = 0;
+	bool mTrophySpawned = false;  // 防止重复生成
 
 	Vector mSpawnZombiePos1 = Vector(1180, 85);			// 左上角坐标
 	Vector mSpawnZombiePos2 = Vector(1500, 581);		// 右下角坐标
@@ -149,6 +151,9 @@ public:
 	// 创建太阳
 	std::shared_ptr<Sun> CreateSun(float x, float y, bool needAnimation = false);
 
+	// 创建奖杯
+	void CreateTrophy(const Vector& position);
+
 	// 创建植物
 	std::shared_ptr<Plant> CreatePlant(PlantType plantType, int row, int column, bool skipsettings = false, bool isPreview = false);
 
@@ -160,6 +165,7 @@ public:
 	std::shared_ptr<Zombie> CreateZombieWithID(ZombieType type, int row, float x, float y, int id);
 	std::shared_ptr<Bullet> CreateBulletWithID(BulletType type, int row, const Vector& pos, int id);
 	std::shared_ptr<Sun> CreateSunWithID(const Vector& pos, bool fromSky, int id);
+	std::shared_ptr<Trophy> CreateTrophyWithID(const Vector& pos, int id);
 
 	// 更新关卡
 	void UpdateLevel();

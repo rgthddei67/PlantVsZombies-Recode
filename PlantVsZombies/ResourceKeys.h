@@ -10,6 +10,8 @@ namespace ResourceKeys
     namespace Textures
     {
         const std::string IMAGE_KID = "IMAGE_KID";
+        const std::string IMAGE_GLOWING = "IMAGE_AWARDGLOW";
+        const std::string IMAGE_TROPHY = "IMAGE_TROPHY_HI_RES";
         const std::string IMAGE_OPTIONS_CHECKBOX0 = "IMAGE_OPTIONS_CHECKBOX0";
         const std::string IMAGE_OPTIONS_CHECKBOX1 = "IMAGE_OPTIONS_CHECKBOX1";
         const std::string IMAGE_SEEDCHOOSER_BUTTON2 = "IMAGE_SEEDCHOOSER_BUTTON2";
@@ -224,6 +226,7 @@ namespace ResourceKeys
         const std::string REANIM_SUNFLOWER = "SunFlower";
 		const std::string REANIM_PEASHOOTER = "PeaShooter";
         const std::string REANIM_CHERRYBOMB = "CherryBomb";
+        const std::string REANIM_ZOMBIE_CHARRED = "Zombie_Charred";
         const std::string REANIM_NORMAL_ZOMBIE = "NormalZombie";
         const std::string REANIM_CONE_ZOMBIE = "ConeZombie";
         const std::string REANIM_POLEVAULTER_ZOMBIE = "PolevaulterZombie";

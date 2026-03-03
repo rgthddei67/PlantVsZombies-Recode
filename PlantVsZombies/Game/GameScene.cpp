@@ -136,7 +136,7 @@ void GameScene::OnEnter() {
 }
 
 void GameScene::OnExit() {
-	if (mBoard->mBoardState == BoardState::GAME && !mReadyToRestart) {
+	if (mBoard->mBoardState == BoardState::GAME && !mReadyToRestart && !mReadyToBackMenu) {
 		GameAPP::GetInstance().mGameInfoSaver.SaveLevelData
 		(mBoard.get(), mCardSlotManager.get());
 	}

@@ -8,6 +8,7 @@
 #include "./Game/Zombie/Zombie.h"
 #include "./Game/GameProgress.h"
 #include "./Game/Sun.h"
+#include "./Game/Trophy.h"
 #include "./Game/Bullet/BulletType.h"
 #include "./Game/CardSlotManager.h"
 #include "./Game/Card.h"
@@ -158,22 +159,39 @@ bool GameInfoSaver::SaveLevelData(Board* board, CardSlotManager* manager)
 	}
 	j["bullets"] = bulletsArr;
 
-	// 太阳（Sun 继承 Coin，SunPoint 固定 25，只需保存位置）
+	// 太阳
 	nlohmann::json sunsArr = nlohmann::json::array();
 	for (int id : board->mEntityManager.GetAllCoinIDs()) {
 		auto coin = board->mEntityManager.GetCoin(id);
 		if (!coin) continue;
 		auto sun = std::dynamic_pointer_cast<Sun>(coin);
-		if (!sun) continue;
-		nlohmann::json s;
-		s["id"] = id;
-		s["x"] = sun->GetPosition().x;
-		s["y"] = sun->GetPosition().y;
-		s["animTrack"] = sun->GetCurrentTrackName();
-		s["animFrame"] = sun->GetCurrentFrame();
-		sunsArr.push_back(s);
+		if (sun) {
+			nlohmann::json s;
+			s["id"] = id;
+			s["x"] = sun->GetPosition().x;
+			s["y"] = sun->GetPosition().y;
+			s["animTrack"] = sun->GetCurrentTrackName();
+			s["animFrame"] = sun->GetCurrentFrame();
+			sunsArr.push_back(s);
+		}
 	}
 	j["suns"] = sunsArr;
+
+	// 奖杯
+	nlohmann::json trophiesArr = nlohmann::json::array();
+	for (int id : board->mEntityManager.GetAllCoinIDs()) {
+		auto coin = board->mEntityManager.GetCoin(id);
+		if (!coin) continue;
+		auto trophy = std::dynamic_pointer_cast<Trophy>(coin);
+		if (trophy) {
+			nlohmann::json t;
+			t["id"] = id;
+			t["x"] = trophy->GetPosition().x;
+			t["y"] = trophy->GetPosition().y;
+			trophiesArr.push_back(t);
+		}
+	}
+	j["trophies"] = trophiesArr;
 
 	// 卡牌
 	nlohmann::json cardsArr = nlohmann::json::array();
@@ -355,6 +373,18 @@ bool GameInfoSaver::LoadLevelData(Board* board, CardSlotManager* manager)
 				sun->PlayTrack(track);
 				sun->SetCurrentFrame(s.value("animFrame", 0.0f));
 			}
+		}
+	}
+
+	// 恢复奖杯
+	for (auto& t : j.value("trophies", nlohmann::json::array())) {
+		float x = t["x"].get<float>();
+		float y = t["y"].get<float>();
+		int id = t.value("id", NULL_COIN_ID);
+
+		std::shared_ptr<Trophy> trophy;
+		if (id != NULL_COIN_ID) {
+			trophy = board->CreateTrophyWithID(Vector(x, y), id);
 		}
 	}
 

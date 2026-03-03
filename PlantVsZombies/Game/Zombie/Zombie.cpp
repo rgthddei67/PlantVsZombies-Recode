@@ -117,6 +117,12 @@ void Zombie::Update()
 			}
 		}
 
+		if (mBoard && mBoard->mCurrentWave >= mBoard->mMaxWave
+			&& mBoard->mZombieNumber == 1 && (this->mBodyHealth <= 0 || !this->mHasHead))
+		{
+			mBoard->CreateTrophy(GetPosition());
+		}
+
 		if (!mHasHead)
 		{
 			mBodyHealth--;

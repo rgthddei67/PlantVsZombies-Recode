@@ -6,20 +6,20 @@
 // 灏哠DL棰滆壊杞崲涓篻lm::vec4
 static glm::vec4 ColorToVec4(const SDL_Color& color) {
     return glm::vec4(
-        color.r / 255.0f,
-        color.g / 255.0f,
-        color.b / 255.0f,
-        color.a / 255.0f
+        color.r,
+        color.g,
+        color.b,
+        color.a
     );
 }
 
 // 灏唃lm::vec4杞崲涓篠DL棰滆壊
 static SDL_Color Vec4ToColor(const glm::vec4& vec) {
     return SDL_Color{
-        static_cast<Uint8>(std::clamp(vec.r * 255.0f, 0.0f, 255.0f)),
-        static_cast<Uint8>(std::clamp(vec.g * 255.0f, 0.0f, 255.0f)),
-        static_cast<Uint8>(std::clamp(vec.b * 255.0f, 0.0f, 255.0f)),
-        static_cast<Uint8>(std::clamp(vec.a * 255.0f, 0.0f, 255.0f))
+        static_cast<Uint8>(std::clamp(vec.r, 0.0f, 255.0f)),
+        static_cast<Uint8>(std::clamp(vec.g, 0.0f, 255.0f)),
+        static_cast<Uint8>(std::clamp(vec.b, 0.0f, 255.0f)),
+        static_cast<Uint8>(std::clamp(vec.a, 0.0f, 255.0f))
     };
 }
 
