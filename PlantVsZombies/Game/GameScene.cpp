@@ -47,7 +47,7 @@ void GameScene::BuildDrawCommands()
 				float drawX = centerX - w / 2;
 				float drawY = centerY - h / 2;
 
-				glm::vec4 tint(1.0f, 1.0f, 1.0f, mPrompt.alpha / 255.0f);
+				glm::vec4 tint(255.0f, 255.0f, 255.0f, mPrompt.alpha);
 				g->DrawTexture(texture, drawX, drawY, w, h, 0.0f, tint);
 			},
 			LAYER_UI + 1000);

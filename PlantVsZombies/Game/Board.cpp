@@ -40,24 +40,6 @@ void Board::InitializeCell(int rows, int cols)
 	}
 }
 
-/*
-void Board::DrawCell(SDL_Renderer* renderer)
-{
-	SDL_SetRenderDrawColor(renderer, 0, 255, 0, 100); // 半透明绿色
-	for (auto& row : mCells) {
-		for (auto& cell : row) {
-			Vector pos = cell->GetWorldPosition();
-			SDL_FRect rect = { pos.x, pos.y, CELL_COLLIDER_SIZE_X, CELL_COLLIDER_SIZE_Y };
-			SDL_RenderDrawRectF(renderer, &rect);
-		}
-	}
-}
-
-void Board::Draw(SDL_Renderer* renderer)
-{
-	// DrawCell(renderer);
-}
-*/
 std::shared_ptr<Sun> Board::CreateSun(const Vector& position, bool needAnimation)
 {
 	auto sun = GameObjectManager::GetInstance().CreateGameObject<Sun>
@@ -220,31 +202,36 @@ std::shared_ptr<Zombie> Board::CreateZombie(ZombieType zombieType, int row, floa
 	return zombie;
 }
 
-std::shared_ptr<Bullet> Board::CreateBullet(BulletType bulletType, int row, const Vector& position)
+std::shared_ptr<Bullet> Board::CreateBullet(BulletType bulletType, int row, const Vector& position, bool skipsettings)
 {
-	std::shared_ptr<Bullet> bullet = nullptr;
-	// TODO: 新增子弹也要改这里
+	// 使用对象池创建子弹
+	BulletPool* bulletPool = GameObjectManager::GetInstance().GetBulletPool();
+	if (!bulletPool) {
+		std::cout << "Board::CreateBullet 对象池未初始化" << std::endl;
+		return nullptr;
+	}
+
+	const GLTexture* texture = nullptr;
+	Vector colliderRadius(10, 10);
+
+	// 根据子弹类型获取纹理
 	switch (bulletType) {
 	case BulletType::BULLET_PEA:
-		bullet = GameObjectManager::GetInstance().CreateGameObjectImmediate<PeaBullet>(
-			LAYER_GAME_BULLET,
-			this,
-			BulletType::BULLET_PEA,
-			row,
-			ResourceManager::GetInstance().GetTexture(
-				ResourceKeys::Textures::IMAGE_PROJECTILEPEA),
-			Vector(10, 10),
-			position);
+		texture = ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_PROJECTILEPEA);
 		break;
 	default:
 		std::cout << "Board::CreateBullet未知的子弹类型" << std::endl;
 		return nullptr;
 	}
 
-	if (bullet)
-	{
+	// 从对象池获取子弹
+	std::shared_ptr<Bullet> bullet = bulletPool->Acquire(this, bulletType, row, texture, colliderRadius, position);
+
+	if (bullet && !skipsettings) {
 		mEntityManager.AddBullet(bullet);
 	}
+
 	return bullet;
 }
 
@@ -668,7 +655,7 @@ std::shared_ptr<Zombie> Board::CreateZombieWithID(ZombieType type, int row, floa
 }
 
 std::shared_ptr<Bullet> Board::CreateBulletWithID(BulletType type, int row, const Vector& pos, int id) {
-	auto bullet = CreateBullet(type, row, pos);
+	auto bullet = CreateBullet(type, row, pos, true);
 	if (bullet) {
 		mEntityManager.AddBulletWithID(bullet, id);
 	}

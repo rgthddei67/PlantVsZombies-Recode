@@ -2,6 +2,7 @@
 #include "../Zombie/Zombie.h"
 #include "Bullet.h"
 #include "../GameObjectManager.h"
+#include "../ObjectPool/BulletPool.h"
 #include "../../GameApp.h"
 
 Bullet::Bullet(Board* board, BulletType bulletType, int row, const GLTexture* texture, const Vector& colliderRadius,
@@ -32,8 +33,39 @@ Bullet::Bullet(Board* board, BulletType bulletType, int row, const GLTexture* te
 		};
 }
 
+void Bullet::Reset(Board* board, int row, const GLTexture* texture,
+	const Vector& colliderRadius, const Vector& position) {
+	mBoard = board;
+	mRow = row;
+	mTexture = texture;
+	mHasHit = false;
+	mCheckPositionTimer = 0.0f;
+	mBulletID = NULL_BULLET_ID;
+	mFromPool = true;  // 标记为来自对象池
+
+	// 重置 Transform
+	if (auto transform = mTransform.lock()) {
+		transform->SetPosition(position);
+	}
+
+	// 重置 Collider
+	if (auto collider = mCollider.lock()) {
+		collider->mEnabled = true;
+	}
+}
+
 void Bullet::Die()
 {
+	// 如果来自对象池，回收到池中
+	if (mFromPool) {
+		BulletPool* bulletPool = GameObjectManager::GetInstance().GetBulletPool();
+		if (bulletPool) {
+			bulletPool->Release(this);
+			return;
+		}
+	}
+
+	// 否则正常销毁
 	GameObjectManager::GetInstance().DestroyGameObject(shared_from_this());
 }
 

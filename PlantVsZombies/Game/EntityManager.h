@@ -24,6 +24,7 @@ public:
     int AddBullet(std::shared_ptr<Bullet> bullet);
     std::shared_ptr<Bullet> GetBullet(int id) const;
     std::vector<int> GetAllBulletIDs() const;
+    void RemoveBullet(int id);
 
     int AddCoin(std::shared_ptr<Coin> coin);
     std::shared_ptr<Coin> GetCoin(int id) const;

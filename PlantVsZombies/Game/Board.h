@@ -159,7 +159,7 @@ public:
 	std::shared_ptr<Plant> CreatePlant(PlantType plantType, int row, int column, bool skipsettings = false, bool isPreview = false);
 
 	// 创建子弹
-	std::shared_ptr<Bullet> CreateBullet(BulletType plantType, int row, const Vector& position);
+	std::shared_ptr<Bullet> CreateBullet(BulletType plantType, int row, const Vector& position, bool skipsettings = false);
 
 	// 带指定 ID 创建实体（用于读档）
 	std::shared_ptr<Plant> CreatePlantWithID(PlantType type, int row, int col, int id);
@@ -170,11 +170,6 @@ public:
 
 	// 更新关卡
 	void UpdateLevel();
-
-	// 渲染网格（调试用）
-	//void DrawCell();
-
-	//void Draw();
 
 	// 清理删除的对象
 	void CleanupExpiredObjects(); 

@@ -32,6 +32,9 @@
     <Filter Include="Code\Shader">
       <UniqueIdentifier>{985eca82-111a-4c23-85a4-ce150e1a61d0}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Code\Game\ObjectPool">
+      <UniqueIdentifier>{35351a2a-8829-44ec-b71b-0e7000c686bf}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="UI\Button.cpp">
@@ -186,6 +189,9 @@
     </ClCompile>
     <ClCompile Include="Game\Trophy.cpp">
       <Filter>Code\Game</Filter>
+    </ClCompile>
+    <ClCompile Include="Game\ObjectPool\BulletPool.cpp">
+      <Filter>Code\Game\ObjectPool</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -410,6 +416,9 @@
     </ClInclude>
     <ClInclude Include="Game\Plant\CherryBomb.h">
       <Filter>Code\Game\Plant</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\ObjectPool\BulletPool.h">
+      <Filter>Code\Game\ObjectPool</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

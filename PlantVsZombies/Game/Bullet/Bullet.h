@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #ifndef _BULLET_H
 #define _BULLET_H
 
@@ -14,8 +14,10 @@
 #include "../TransformComponent.h"
 #include "../ColliderComponent.h"
 #include "../AudioSystem.h"
+#include "../Zombie/Zombie.h"
 
 class Board;
+class BulletPool;
 
 class Bullet : public GameObject
 {
@@ -24,6 +26,7 @@ public:
 	float mScale = 0.9f;
 	int mRow = -1;
 	int mBulletID = NULL_BULLET_ID;
+	bool mFromPool = false;  // 标记是否来自对象池
 
 protected:
 	Board* mBoard = nullptr;
@@ -43,6 +46,14 @@ protected:
 public:
 	Bullet(Board* board, BulletType bulletType, int row, const GLTexture*, const Vector& colliderRadius,
 		const Vector& position);
+
+	// 重置子弹状态（用于对象池复用）
+	virtual void Reset(Board* board, int row, const GLTexture* texture,
+		const Vector& colliderRadius, const Vector& position);
+
+	// 设置是否来自对象池
+	void SetFromPool(bool fromPool) { mFromPool = fromPool; }
+	bool IsFromPool() const { return mFromPool; }
 
 	// 子弹消失
 	void Die();

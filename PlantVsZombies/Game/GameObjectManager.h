@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #ifndef _GAMEOBJECTMANAGER_H
 #define _GAMEOBJECTMANAGER_H
 
@@ -11,6 +11,7 @@
 #include <thread>
 #include "GameObject.h"
 #include "ThreadPool.h"
+#include "ObjectPool/BulletPool.h"
 
 const int SUBORDER_PER_KEY = 1000;  // 每个key最多同时存在的顺序数量
 
@@ -32,6 +33,9 @@ private:
     std::unique_ptr<ThreadPool> mThreadPool;
     bool mSortDirty = true;
 
+    // 对象池
+    std::unique_ptr<BulletPool> mBulletPool;
+
 public:
     static GameObjectManager& GetInstance() {
         static GameObjectManager instance;
@@ -44,6 +48,10 @@ public:
         int n = static_cast<int>(std::thread::hardware_concurrency());
         if (n < 1) n = 1;
         mThreadPool = std::make_unique<ThreadPool>(n);
+
+        // 初始化对象池
+        mBulletPool = std::make_unique<BulletPool>();
+        mBulletPool->Initialize(250, 500);  // 初始容量 250，警告阈值 500
     }
 
     // 创建游戏对象 (塞入mObjectsToAdd，在Update时执行Start)
@@ -80,6 +88,8 @@ public:
 
     // 销毁全部游戏对象
     void DestroyAllGameObjects() {
+        mBulletPool->Clear();
+
         // 销毁所有现有对象
         for (auto& obj : mGameObjects) {
             if (obj) {
@@ -248,6 +258,16 @@ public:
         mObjectsToRemove.clear();
 
         ResetAllLayers();
+    }
+
+    // 获取对象池
+    BulletPool* GetBulletPool() { return mBulletPool.get(); }
+
+    // 打印对象池统计信息
+    void PrintPoolStats() const {
+        if (mBulletPool) {
+            mBulletPool->PrintStats();
+        }
     }
 
     // 初始化所有图层

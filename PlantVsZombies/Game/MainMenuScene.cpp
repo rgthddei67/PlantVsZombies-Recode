@@ -35,14 +35,6 @@ void MainMenuScene::Update()
 	}
 }
 
-void MainMenuScene::Draw(Graphics* g)
-{
-	Scene::Draw(g);
-	if (!mOpenMenu &&mOpitionButton) {
-		mOpitionButton->Draw(g);
-	}
-}
-
 void MainMenuScene::BuildDrawCommands()
 {
 	Scene::BuildDrawCommands();
@@ -58,6 +50,14 @@ void MainMenuScene::BuildDrawCommands()
 				glm::vec4(255.0f, 255.0f, 255.0f, 255.0f));
 		},
 		LAYER_UI + 10000);
+	RegisterDrawCommand("DrawButton",
+		[this](Graphics* g) {
+			if (!mOpenMenu && mOpitionButton) {
+				mOpitionButton->Draw(g);
+			}
+		},
+		LAYER_UI + 100);
+
 	SortDrawCommands();
 
 	AddTexture(ResourceKeys::Textures::IMAGE_SELECTORSCREEN_BG, 0.0f, 0.0f, 12.0f, 12.0f, -10);

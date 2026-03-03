@@ -67,10 +67,18 @@ std::shared_ptr<Bullet> EntityManager::GetBullet(int id) const {
 std::vector<int> EntityManager::GetAllBulletIDs() const {
     std::vector<int> ids;
     for (const auto& pair : mBullets) {
-        if (!pair.second.expired())
-            ids.push_back(pair.first);
+        if (!pair.second.expired()) {
+            auto bullet = pair.second.lock();
+            if (bullet && bullet->IsActive()) {
+                ids.push_back(pair.first);
+            }
+        }
     }
     return ids;
+}
+
+void EntityManager::RemoveBullet(int id) {
+    mBullets.erase(id);
 }
 
 int EntityManager::AddCoin(std::shared_ptr<Coin> coin) {
