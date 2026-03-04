@@ -3,6 +3,8 @@
 #define __PARTICLE_SYSTEM_H__
 
 #include "ParticleEmitter.h"
+#include "ParticleEffect.h"
+#include "ParticleConfig.h"
 #include "../Game/Definit.h"
 #include "../Graphics.h"
 #include <vector>
@@ -11,7 +13,9 @@
 class ParticleSystem {
 private:
     std::vector<std::unique_ptr<ParticleEmitter>> emitters;
-    Graphics* m_graphics;  
+    std::vector<std::unique_ptr<ParticleEffect>> effects;
+    Graphics* m_graphics;
+    ParticleConfigManager configManager;
 
 public:
     explicit ParticleSystem(Graphics* graphics);
@@ -24,17 +28,16 @@ public:
     void DrawAll();
     void ClearAll();
 
-    void EmitEffect(ParticleType type, const Vector& position, int count = 1);
-
-    // 创建持续的粒子
-    ParticleEmitter* CreatePersistentEmitter(ParticleType type, const Vector& position);
-    void RemoveEmitter(ParticleEmitter* emitter);
+    // XML配置API
+    bool LoadXMLConfigs(const std::string& directory);
+    void EmitEffect(const std::string& effectName, const Vector& position);
 
     int GetTotalParticles() const;
     size_t GetActiveEmitters() const;
 
 private:
     void CleanupInactiveEmitters();
+    void CleanupInactiveEffects();
 };
 
 extern std::unique_ptr<ParticleSystem> g_particleSystem;

@@ -1,9 +1,11 @@
 ﻿#include "ParticleSystem.h"
+#include <iostream>
 
 std::unique_ptr<ParticleSystem> g_particleSystem = nullptr;
 
 ParticleSystem::ParticleSystem(Graphics* graphics)
-    : m_graphics(graphics) {
+    : m_graphics(graphics)
+    , configManager(graphics) {
 }
 
 ParticleSystem::~ParticleSystem() {
@@ -12,9 +14,16 @@ ParticleSystem::~ParticleSystem() {
 
 void ParticleSystem::UpdateAll() {
     CleanupInactiveEmitters();
+    CleanupInactiveEffects();
+
     for (size_t i = 0; i < emitters.size(); i++)
     {
         emitters[i].get()->Update();
+    }
+
+    for (size_t i = 0; i < effects.size(); i++)
+    {
+        effects[i].get()->Update();
     }
 }
 
@@ -23,34 +32,16 @@ void ParticleSystem::DrawAll() {
     {
         emitters[i].get()->Draw();
     }
+
+    for (size_t i = 0; i < effects.size(); i++)
+    {
+        effects[i].get()->Draw();
+    }
 }
 
 void ParticleSystem::ClearAll() {
     emitters.clear();
-}
-
-void ParticleSystem::EmitEffect(ParticleType type, const Vector& position, int count) {
-    auto emitter = std::make_unique<ParticleEmitter>(m_graphics);
-    emitter->Initialize(type, position);
-    emitter->SetOneShot(true);
-    emitter->SetAutoDestroyTime(-2.0f);  
-    emitter->EmitParticles(count);
-    emitters.push_back(std::move(emitter));
-}
-
-ParticleEmitter* ParticleSystem::CreatePersistentEmitter(ParticleType type, const Vector& position) {
-    auto emitter = std::make_unique<ParticleEmitter>(m_graphics);
-    emitter->Initialize(type, position);
-    emitter->SetSpawnRate(10);   
-    ParticleEmitter* ptr = emitter.get();
-    emitters.push_back(std::move(emitter));
-    return ptr;
-}
-
-void ParticleSystem::RemoveEmitter(ParticleEmitter* emitter) {
-    if (emitter) {
-        emitter->Stop();
-    }
+    effects.clear();
 }
 
 void ParticleSystem::CleanupInactiveEmitters() {
@@ -73,4 +64,30 @@ int ParticleSystem::GetTotalParticles() const {
 
 size_t ParticleSystem::GetActiveEmitters() const {
     return emitters.size();
+}
+
+bool ParticleSystem::LoadXMLConfigs(const std::string& directory) {
+    return configManager.LoadXMLConfigs(directory);
+}
+
+void ParticleSystem::EmitEffect(const std::string& effectName, const Vector& position) {
+    const ParticleEffectConfig* config = configManager.GetEffectConfig(effectName);
+    if (!config) {
+        std::cerr << "错误: 找不到粒子特效配置: " << effectName << std::endl;
+        return;
+    }
+
+    auto effect = std::make_unique<ParticleEffect>();
+    effect->InitializeFromConfig(*config, m_graphics, position);
+    effects.push_back(std::move(effect));
+}
+
+void ParticleSystem::CleanupInactiveEffects() {
+    effects.erase(
+        std::remove_if(effects.begin(), effects.end(),
+            [](const std::unique_ptr<ParticleEffect>& effect) {
+                return effect->ShouldDestroy();
+            }),
+        effects.end()
+    );
 }

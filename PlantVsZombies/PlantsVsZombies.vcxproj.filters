@@ -193,6 +193,15 @@
     <ClCompile Include="Game\ObjectPool\BulletPool.cpp">
       <Filter>Code\Game\ObjectPool</Filter>
     </ClCompile>
+    <ClCompile Include="ParticleSystem\ParticleEffect.cpp">
+      <Filter>Code\ParticleSystem</Filter>
+    </ClCompile>
+    <ClCompile Include="ParticleSystem\ParticleXMLConfig.cpp">
+      <Filter>Code\ParticleSystem</Filter>
+    </ClCompile>
+    <ClCompile Include="ParticleSystem\ParticleXMLLoader.cpp">
+      <Filter>Code\ParticleSystem</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="UI\Button.h">
@@ -419,6 +428,15 @@
     </ClInclude>
     <ClInclude Include="Game\ObjectPool\BulletPool.h">
       <Filter>Code\Game\ObjectPool</Filter>
+    </ClInclude>
+    <ClInclude Include="ParticleSystem\ParticleEffect.h">
+      <Filter>Code\ParticleSystem</Filter>
+    </ClInclude>
+    <ClInclude Include="ParticleSystem\ParticleXMLConfig.h">
+      <Filter>Code\ParticleSystem</Filter>
+    </ClInclude>
+    <ClInclude Include="ParticleSystem\ParticleXMLLoader.h">
+      <Filter>Code\ParticleSystem</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

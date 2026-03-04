@@ -254,6 +254,10 @@ int GameAPP::Run()
 	mInputHandler = std::make_unique<InputHandler>(m_graphics.get());
 	g_particleSystem = std::make_unique<ParticleSystem>(m_graphics.get());
 
+	if (g_particleSystem) {
+		g_particleSystem->LoadXMLConfigs("./resources/particles/config");
+	}
+
 	auto& sceneManager = SceneManager::GetInstance();
 
 	sceneManager.RegisterScene<MainMenuScene>("MainMenuScene");

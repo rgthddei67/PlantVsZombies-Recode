@@ -1,4 +1,4 @@
-#include "Particle.h"
+﻿#include "Particle.h"
 #include "../DeltaTime.h"
 #include <cmath>
 
@@ -23,6 +23,17 @@ void Particle::Reset() {
     active = false;
     fadeOut = true;
     texture = nullptr;
+
+    // XML特性初始化
+    brightness = 1.0f;
+    stretch = 1.0f;
+    colorMultiplier = glm::vec3(1.0f);
+    currentFrame = 0;
+    animationTimer = 0.0f;
+    totalFrames = 1;
+    frameRate = 12.0f;
+    fieldOffset = { 0, 0 };
+    shakeOffset = { 0, 0 };
 }
 
 void Particle::Update() {
@@ -36,20 +47,29 @@ void Particle::Update() {
         return;
     }
 
-    // 鐗╃悊鏇存柊
     velocity.y += gravity * deltaTime;
     position.x += velocity.x * deltaTime;
     position.y += velocity.y * deltaTime;
     rotation += rotationSpeed * deltaTime;
 
-    float t = lifetime / maxLifetime;
-    size = startSize + (endSize - startSize) * t;
+    // 注意：size由ParticleEmitter通过XML配置的插值轨迹控制
+    // 不再使用startSize和endSize的线性插值
 
-    // 棰滆壊鎻掑€硷紙fadeOut 鎺у埗閫忔槑搴︽笎鍙橈級
-    if (fadeOut) {
-        color.r = startColor.r + (endColor.r - startColor.r) * t;
-        color.g = startColor.g + (endColor.g - startColor.g) * t;
-        color.b = startColor.b + (endColor.b - startColor.b) * t;
-        color.a = startColor.a + (endColor.a - startColor.a) * t;
+    // 更新动画
+    UpdateAnimation();
+}
+
+void Particle::UpdateAnimation() {
+    if (totalFrames <= 1 || frameRate <= 0.0f) {
+        return;
+    }
+
+    float deltaTime = DeltaTime::GetDeltaTime();
+    animationTimer += deltaTime;
+
+    float frameDuration = 1.0f / frameRate;
+    if (animationTimer >= frameDuration) {
+        animationTimer -= frameDuration;
+        currentFrame = (currentFrame + 1) % totalFrames;
     }
 }

@@ -59,8 +59,11 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="ParticleSystem\Particle.cpp" />
     <ClCompile Include="ParticleSystem\ParticleConfig.cpp" />
+    <ClCompile Include="ParticleSystem\ParticleEffect.cpp" />
     <ClCompile Include="ParticleSystem\ParticleEmitter.cpp" />
     <ClCompile Include="ParticleSystem\ParticleSystem.cpp" />
+    <ClCompile Include="ParticleSystem\ParticleXMLConfig.cpp" />
+    <ClCompile Include="ParticleSystem\ParticleXMLLoader.cpp" />
     <ClCompile Include="Reanimation\Animator.cpp" />
     <ClCompile Include="Reanimation\Reanimation.cpp" />
     <ClCompile Include="ResourceManager.cpp" />
@@ -129,8 +132,11 @@
     <ClInclude Include="Graphics.h" />
     <ClInclude Include="ParticleSystem\Particle.h" />
     <ClInclude Include="ParticleSystem\ParticleConfig.h" />
+    <ClInclude Include="ParticleSystem\ParticleEffect.h" />
     <ClInclude Include="ParticleSystem\ParticleEmitter.h" />
     <ClInclude Include="ParticleSystem\ParticleSystem.h" />
+    <ClInclude Include="ParticleSystem\ParticleXMLConfig.h" />
+    <ClInclude Include="ParticleSystem\ParticleXMLLoader.h" />
     <ClInclude Include="Reanimation\AnimationTypes.h" />
     <ClInclude Include="Reanimation\Animator.h" />
     <ClInclude Include="Reanimation\Reanimation.h" />

@@ -10,7 +10,7 @@ protected:
 	void BulletHitZombie(std::shared_ptr<Zombie> zombie) override
 	{
 		Bullet::BulletHitZombie(zombie);
-		g_particleSystem->EmitEffect(ParticleType::PEA_BULLET_HIT, GetPosition());	
+		g_particleSystem->EmitEffect("PeaBulletHit", GetPosition());
 		if (zombie->mHelmType == HelmType::HELMTYPE_TRAFFIC_CONE || 
 			zombie->mHelmType == HelmType::HELMTYPE_FOOTBALL) {
 			int random = GameRandom::Range(1, 2);

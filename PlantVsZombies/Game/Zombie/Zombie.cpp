@@ -273,8 +273,8 @@ void Zombie::HeadDrop()
 	mAnimator->SetTrackVisible("anim_head2", false);
 	mAnimator->SetTrackVisible("anim_tongue", false);
 	mAnimator->SetTrackVisible("anim_hair", false);
-	g_particleSystem->EmitEffect(ParticleType::ZOMBIE_HEAD_OFF,
-		GetPosition() + Vector(-10, -50));
+	g_particleSystem->EmitEffect("ZombieHeadOff",
+		GetPosition());
 	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_ARM_HEAD_DROP, 0.25f);
 }
 
@@ -285,8 +285,8 @@ void Zombie::ArmDrop()
 	mAnimator->SetTrackVisible("Zombie_outerarm_lower", false);
 	mAnimator->SetTrackImage("Zombie_outerarm_upper", ResourceManager::GetInstance().
 		GetTexture(ResourceKeys::Textures::IMAGE_ZOMBIE_OUTERARM_UPPER2));
-	g_particleSystem->EmitEffect(ParticleType::ZOMBIE_ARM_OFF,
-		GetPosition() + Vector(-10, -8));
+	g_particleSystem->EmitEffect("ZombieArmOff",
+		GetPosition());
 	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_ARM_HEAD_DROP, 0.25f);
 }
 

@@ -13,8 +13,8 @@ void ConeZombie::HelmDrop()
 	mHelmStage = ArmorBrokenState::NONE;
 	mAnimator->SetTrackVisible("anim_cone", false);
 	if (g_particleSystem) {
-		g_particleSystem->EmitEffect(ParticleType::ZOMBIE_CONE_OFF, 
-			GetPosition() + Vector(0, -80));
+		g_particleSystem->EmitEffect("ZombieConeOff",
+			GetPosition());
 	}
 }
 
