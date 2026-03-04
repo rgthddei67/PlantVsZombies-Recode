@@ -4,15 +4,15 @@
 #include "../ResourceKeys.h"
 #include "GameObjectManager.h"
 
-void MainMenuScene::OnEnter() 
+void MainMenuScene::OnEnter()
 {
 	Scene::OnEnter();
 	mGameButton = GameObjectManager::GetInstance().CreateGameObject<GameButton>(LAYER_UI
-	, &mUIManager, this);
+		, &mUIManager, this);
 	AudioSystem::PlayMusic(ResourceKeys::Music::MUSIC_MAINMENU, -1);
 }
 
-void MainMenuScene::OnExit() 
+void MainMenuScene::OnExit()
 {
 	GameObjectManager::GetInstance().DestroyGameObject(mGameButton);
 	mOpitionButton.reset();
@@ -92,7 +92,7 @@ void MainMenuScene::BuildDrawCommands()
 	AddTexture(ResourceKeys::Textures::IMAGE_SELECTORSCREEN_FLOWER3, 870.0f, 450.0f, 1.0f, 1.0f, 12);
 }
 
-void MainMenuScene::OpenMenu() 
+void MainMenuScene::OpenMenu()
 {
 	if (mOpenMenu) return;
 

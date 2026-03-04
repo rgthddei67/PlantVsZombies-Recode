@@ -1,4 +1,6 @@
 ﻿#pragma once
+#ifndef _BULLET_PEA_H
+#define _BULLET_PEA_H
 #include "Bullet.h"
 
 class PeaBullet : public Bullet
@@ -6,12 +8,18 @@ class PeaBullet : public Bullet
 public:
 	using Bullet::Bullet;
 
+	void Start() override {
+		GameObject::Start();
+		this->mTexture = ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_PROJECTILEPEA);
+	}
+
 protected:
 	void BulletHitZombie(std::shared_ptr<Zombie> zombie) override
 	{
 		Bullet::BulletHitZombie(zombie);
 		g_particleSystem->EmitEffect("PeaBulletHit", GetPosition());
-		if (zombie->mHelmType == HelmType::HELMTYPE_TRAFFIC_CONE || 
+		if (zombie->mHelmType == HelmType::HELMTYPE_TRAFFIC_CONE ||
 			zombie->mHelmType == HelmType::HELMTYPE_FOOTBALL) {
 			int random = GameRandom::Range(1, 2);
 			if (random == 1)
@@ -19,7 +27,7 @@ protected:
 			else if (random == 2)
 				AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_HITCONE2, 0.3f);
 		}
-		else if (zombie->mHelmType == HelmType::HELMTYPE_PAIL || 
+		else if (zombie->mHelmType == HelmType::HELMTYPE_PAIL ||
 			zombie->mShieldType == ShieldType::SHIELDTYPE_DOOR ||
 			zombie->mShieldType == ShieldType::SHIELDTYPE_LADDER ||
 			zombie->mZombieType == ZombieType::ZOMBIE_ZAMBONI) {
@@ -40,3 +48,5 @@ protected:
 		}
 	}
 };
+
+#endif

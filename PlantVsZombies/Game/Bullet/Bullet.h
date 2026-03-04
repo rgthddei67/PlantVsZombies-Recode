@@ -44,11 +44,11 @@ protected:
 	virtual void BulletHitZombie(std::shared_ptr<Zombie> zombie) { }
 
 public:
-	Bullet(Board* board, BulletType bulletType, int row, const GLTexture*, const Vector& colliderRadius,
+	Bullet(Board* board, BulletType bulletType, int row, const Vector& colliderRadius,
 		const Vector& position);
 
 	// 重置子弹状态（用于对象池复用）
-	virtual void Reset(Board* board, int row, const GLTexture* texture,
+	virtual void Reset(Board* board, int row,
 		const Vector& colliderRadius, const Vector& position);
 
 	// 设置是否来自对象池

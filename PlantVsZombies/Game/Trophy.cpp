@@ -8,10 +8,10 @@
 #include "../ResourceKeys.h"
 #include "../Graphics.h"
 
-Trophy::Trophy(Board* board, const Vector& position)
+Trophy::Trophy(Board * board, const Vector & position)
 	: Coin(board, AnimationType::ANIM_NONE, position,
 		Vector(60, 60), Vector(0, 0),
-		999.0f,   
+		999.0f,
 		BASE_SCALE, "Trophy", false, false)
 {
 	mCoinType = CoinType::COIN_TROPHY;

@@ -4,7 +4,7 @@
 #include "../Zombie/Zombie.h"
 
 void Shooter::SetupPlant() {
-    Plant::SetupPlant(); 
+    Plant::SetupPlant();
 
     auto reanim = mAnimator->GetReanimation();
     if (!reanim) return;
@@ -28,12 +28,12 @@ void Shooter::SetupPlant() {
 
 void Shooter::PlantUpdate()
 {
-	Plant::PlantUpdate();
-	this->mShootTimer += DeltaTime::GetDeltaTime();
-	if (this->mShootTimer >= this->mShootTime)
-	{
-		if (HasZombieInRow())
-		{
+    Plant::PlantUpdate();
+    this->mShootTimer += DeltaTime::GetDeltaTime();
+    if (this->mShootTimer >= this->mShootTime)
+    {
+        if (HasZombieInRow())
+        {
             mShootTimer = 0;
             mHeadAnim->PlayTrackOnce("anim_shooting", "anim_head_idle", 1.5f, 0.2f);
             mHeadAnim->AddFrameEvent(63, [this]() {
@@ -45,15 +45,15 @@ void Shooter::PlantUpdate()
                     AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_SHOOTER_SHOOT2, 0.3f);
                 }
                 this->ShootBullet();
-				});
-		}
-	}
+                });
+        }
+    }
 }
 
 bool Shooter::HasZombieInRow()
 {
-	if (mBoard)
-	{
+    if (mBoard)
+    {
         mCheckZombieTimer += DeltaTime::GetDeltaTime();
         if (mCheckZombieTimer >= 0.6f)
         {
@@ -73,6 +73,6 @@ bool Shooter::HasZombieInRow()
                 }
             }
         }
-	}
-	return false;
+    }
+    return false;
 }

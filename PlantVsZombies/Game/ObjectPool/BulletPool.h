@@ -36,7 +36,7 @@ public:
 
 	// 从池中获取子弹
 	std::shared_ptr<Bullet> Acquire(Board* board, BulletType type, int row,
-		const GLTexture* texture, const Vector& colliderRadius, const Vector& position);
+		const Vector& colliderRadius, const Vector& position);
 
 	// 回收子弹到池中
 	void Release(Bullet* bullet);

@@ -219,19 +219,8 @@ std::shared_ptr<Bullet> Board::CreateBullet(BulletType bulletType, int row, cons
 	const GLTexture* texture = nullptr;
 	Vector colliderRadius(10, 10);
 
-	// 根据子弹类型获取纹理
-	switch (bulletType) {
-	case BulletType::BULLET_PEA:
-		texture = ResourceManager::GetInstance().GetTexture(
-			ResourceKeys::Textures::IMAGE_PROJECTILEPEA);
-		break;
-	default:
-		std::cout << "Board::CreateBullet未知的子弹类型" << std::endl;
-		return nullptr;
-	}
-
 	// 从对象池获取子弹
-	std::shared_ptr<Bullet> bullet = bulletPool->Acquire(this, bulletType, row, texture, colliderRadius, position);
+	std::shared_ptr<Bullet> bullet = bulletPool->Acquire(this, bulletType, row, colliderRadius, position);
 
 	if (bullet && !skipsettings) {
 		mEntityManager.AddBullet(bullet);
@@ -606,7 +595,7 @@ void Board::GameOver()
 {
 	mBoardState = BoardState::LOSE_GAME;
 	DeltaTime::SetPaused(true);
-	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_LOSTGAME, 0.6f);
+	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_LOSTGAME, 0.65f);
 	AudioSystem::StopMusic();
 	if (mGameScene)
 		mGameScene->GameOver();

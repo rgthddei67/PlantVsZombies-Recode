@@ -80,7 +80,7 @@ void GameDataManager::InitializeHardcodedData() {
 
 	// ==================== 非植物/僵尸动画映射 ====================
 	mAnimToString[AnimationType::ANIM_SUN] = ResourceKeys::Reanimations::REANIM_SUN;
-	mAnimToString[AnimationType::ANIM_ZOMBIE_CHARRED] = 
+	mAnimToString[AnimationType::ANIM_ZOMBIE_CHARRED] =
 		ResourceKeys::Reanimations::REANIM_ZOMBIE_CHARRED;
 	mAnimToString[AnimationType::ANIM_NONE] = "Unknown";
 }

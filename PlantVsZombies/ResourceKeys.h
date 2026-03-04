@@ -70,10 +70,10 @@ namespace ResourceKeys
         const std::string IMAGE_SHOVEL = "IMAGE_SHOVEL";
 
         const std::string IMAGE_HUGE_WAVE_APPROACHING = "IMAGE_APPROACHING";
-        
+
         const std::string IMAGE_FINAL_WAVE = "IMAGE_FINALWAVE";
 
-		const std::string IMAGE_PLANTSHADOW = "IMAGE_PLANTSHADOW";
+        const std::string IMAGE_PLANTSHADOW = "IMAGE_PLANTSHADOW";
         const std::string IMAGE_PLANTSHADOW2 = "IMAGE_PLANTSHADOW2";
 
         const std::string IMAGE_ZOMBIE_BACKUP_OUTERARM_UPPER_BONE = "IMAGE_ZOMBIE_BACKUP_OUTERARM_UPPER_BONE";
@@ -149,7 +149,7 @@ namespace ResourceKeys
         const std::string PARTICLE_PEA_HIT_1 = "PARTICLE_PEA_SPLATS_PART_1";
         const std::string PARTICLE_PEA_HIT_2 = "PARTICLE_PEA_SPLATS_PART_2";
         const std::string PARTICLE_PEA_HIT_3 = "PARTICLE_PEA_SPLATS_PART_3";
-	}
+    }
 
     namespace Fonts
     {
@@ -225,7 +225,7 @@ namespace ResourceKeys
     {
         const std::string REANIM_SUN = "Sun";
         const std::string REANIM_SUNFLOWER = "SunFlower";
-		const std::string REANIM_PEASHOOTER = "PeaShooter";
+        const std::string REANIM_PEASHOOTER = "PeaShooter";
         const std::string REANIM_CHERRYBOMB = "CherryBomb";
         const std::string REANIM_ZOMBIE_CHARRED = "Zombie_Charred";
         const std::string REANIM_NORMAL_ZOMBIE = "NormalZombie";

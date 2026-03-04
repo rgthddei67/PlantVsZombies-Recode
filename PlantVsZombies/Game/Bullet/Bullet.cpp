@@ -1,16 +1,15 @@
-#include "../Board.h"
+﻿#include "../Board.h"
 #include "../Zombie/Zombie.h"
 #include "Bullet.h"
 #include "../GameObjectManager.h"
 #include "../ObjectPool/BulletPool.h"
 #include "../../GameApp.h"
 
-Bullet::Bullet(Board* board, BulletType bulletType, int row, const GLTexture* texture, const Vector& colliderRadius,
+Bullet::Bullet(Board* board, BulletType bulletType, int row, const Vector& colliderRadius,
 	const Vector& position) : GameObject(ObjectType::OBJECT_BULLET)
 {
 	this->mBoard = board;
 	this->mBulletType = bulletType;
-	this->mTexture = texture;
 	this->mRow = row;
 	if (!mBoard) return;
 
@@ -33,11 +32,10 @@ Bullet::Bullet(Board* board, BulletType bulletType, int row, const GLTexture* te
 		};
 }
 
-void Bullet::Reset(Board* board, int row, const GLTexture* texture,
+void Bullet::Reset(Board* board, int row,
 	const Vector& colliderRadius, const Vector& position) {
 	mBoard = board;
 	mRow = row;
-	mTexture = texture;
 	mHasHit = false;
 	mCheckPositionTimer = 0.0f;
 	mBulletID = NULL_BULLET_ID;

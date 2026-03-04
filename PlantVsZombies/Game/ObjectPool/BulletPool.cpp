@@ -16,7 +16,7 @@ void BulletPool::Initialize(int initialCapacity, int warningThreshold) {
 }
 
 std::shared_ptr<Bullet> BulletPool::Acquire(Board* board, BulletType type, int row,
-	const GLTexture* texture, const Vector& colliderRadius, const Vector& position) {
+	const Vector& colliderRadius, const Vector& position) {
 
 	// 1. 查找空闲对象（相同类型）
 	for (auto& pooled : mPool) {
@@ -29,7 +29,7 @@ std::shared_ptr<Bullet> BulletPool::Acquire(Board* board, BulletType type, int r
 
 			pooled.active = true;
 			bullet->SetActive(true);
-			bullet->Reset(board, row, texture, colliderRadius, position);
+			bullet->Reset(board, row, colliderRadius, position);
 			mActiveCount++;
 			if (mActiveCount > mPeakCount) {
 				mPeakCount = mActiveCount;
@@ -51,7 +51,7 @@ std::shared_ptr<Bullet> BulletPool::Acquire(Board* board, BulletType type, int r
 	case BulletType::BULLET_PEA:
 		bullet = GameObjectManager::GetInstance().CreateGameObjectImmediate<PeaBullet>(
 			LAYER_GAME_BULLET,
-			board, type, row, texture, colliderRadius, position);
+			board, type, row, colliderRadius, position);
 		break;
 	default:
 		std::cout << "BulletPool::Acquire 未知的子弹类型" << std::endl;

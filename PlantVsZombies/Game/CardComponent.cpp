@@ -1,4 +1,4 @@
-#include "CardComponent.h"
+﻿#include "CardComponent.h"
 #include "../ResourceKeys.h"
 #include "CardDisplayComponent.h"
 #include "ClickableComponent.h"

@@ -7,7 +7,7 @@
 #include "../../ParticleSystem/ParticleSystem.h"
 #include "../../GameApp.h"
 
-Zombie::Zombie(Board* board, ZombieType zombieType, float x, float y, int row,
+Zombie::Zombie(Board * board, ZombieType zombieType, float x, float y, int row,
 	AnimationType animType, float scale, bool isPreview)
 	: AnimatedObject(ObjectType::OBJECT_ZOMBIE, board,
 		Vector(x, y),
@@ -165,7 +165,7 @@ void Zombie::Update()
 		}
 
 		if (mIsEating) return;
-		
+
 		float speed = 0.0f;
 		// 尝试从 _ground 轨道获取速度
 		if (mAnimator) {
