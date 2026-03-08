@@ -73,7 +73,6 @@ bool GameInfoSaver::SaveLevelData(Board* board, CardSlotManager* manager)
 	j["totalZombieHP"] = board->mTotalZombieHP;
 	j["currentWaveZombieHP"] = board->mCurrectWaveZombieHP;
 	j["nextWaveSpawnZombieHP"] = board->mNextWaveSpawnZombieHP;
-	j["zombieNumber"] = board->mZombieNumber;
 
 	// 保存 EntityManager 的 ID 计数器
 	j["nextPlantID"] = board->mEntityManager.GetNextPlantID();
@@ -236,7 +235,6 @@ bool GameInfoSaver::LoadLevelData(Board* board, CardSlotManager* manager)
 	board->mTotalZombieHP = j.value("totalZombieHP", 0.0);
 	board->mCurrectWaveZombieHP = j.value("currentWaveZombieHP", 0.0);
 	board->mNextWaveSpawnZombieHP = j.value("nextWaveSpawnZombieHP", 0.0);
-	board->mZombieNumber = j.value("zombieNumber", 0);
 
 	// 恢复 EntityManager 的 ID 计数器（向后兼容：旧存档没有则使用默认值）
 	board->mEntityManager.SetNextPlantID(j.value("nextPlantID", 1));

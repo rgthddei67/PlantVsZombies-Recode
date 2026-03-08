@@ -42,7 +42,27 @@ void Board::InitializeCell(int rows, int cols)
 
 void Board::CreateBoom(const Vector& position, int damage)
 {
-	
+	g_particleSystem->EmitEffect("CherryBomb", position);
+	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_CHERRYBOMB, 0.4f);
+	std::vector<int> zombieIDs = mEntityManager.GetAllZombieIDs();
+	for (auto zombieID : zombieIDs)
+	{
+		if (auto zombie = mEntityManager.GetZombie(zombieID)) {
+			Vector zombiePositon = zombie->GetPosition();
+			if (std::abs(zombiePositon.x - position.x) <= 150.0f &&
+				std::abs(zombiePositon.y - position.y) <= 130.0f)
+			{
+				if (zombie->mBodyHealth <= damage) 
+				{
+					zombie->Charred();
+				}
+				else
+				{
+					zombie->TakeDamage(damage);
+				}
+			}
+		}
+	}
 }
 
 std::shared_ptr<Sun> Board::CreateSun(const Vector& position, bool needAnimation)
@@ -199,6 +219,8 @@ std::shared_ptr<Zombie> Board::CreateZombie(ZombieType zombieType, int row, floa
 		std::cout << "[Board::CreateZombie] 未知的僵尸类型" << std::endl;
 		return nullptr;
 	}
+
+	mZombieNumber++;
 
 	if (zombie && !isPreview && !skipsettings) {
 		mEntityManager.AddZombie(zombie);
@@ -554,12 +576,10 @@ int Board::CalculateWaveZombiePoints() const
 void Board::UpdateZombieHP()
 {
 	double TotalHP = 0, CurrectWaveHP = 0;
-	int zombieNumber = 0;
 	for (auto zombieID : mEntityManager.GetAllZombieIDs())
 	{
 		if (auto zombie = mEntityManager.GetZombie(zombieID))
 		{
-			zombieNumber++;
 			if (zombie->IsMindControlled()) continue;	// 判断是不是魅惑
 
 			double zombieHp = static_cast<double>(zombie->mBodyHealth +
@@ -575,7 +595,6 @@ void Board::UpdateZombieHP()
 
 	mTotalZombieHP = TotalHP;
 	mCurrectWaveZombieHP = CurrectWaveHP;
-	mZombieNumber = zombieNumber;
 }
 
 void Board::Update()

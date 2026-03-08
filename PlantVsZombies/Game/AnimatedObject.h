@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #ifndef _ANIMATED_OBJECT_H
 #define _ANIMATED_OBJECT_H
 
@@ -93,13 +93,14 @@ public:
     // 获取视觉绘制位置
     virtual Vector GetVisualPosition() const;
 
+    std::shared_ptr<Animator> GetAnimatorInternal() const;
+
     void Update() override;
     void Draw(Graphics* g) override;
     void PrepareForDraw() override;
 
 private:
     void UpdateGlowingEffect();
-    std::shared_ptr<Animator> GetAnimatorInternal() const;
 };
 
 #endif

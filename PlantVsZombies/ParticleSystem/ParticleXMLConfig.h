@@ -44,7 +44,8 @@ struct ValueRange {
 enum class ParticleFieldType {
     POSITION,         // 位置场（影响粒子位置）
     SHAKE,            // 抖动场（随机抖动）
-    SYSTEM_POSITION   // 系统位置场（影响发射器位置）
+    SYSTEM_POSITION,  // 系统位置场（影响发射器位置）
+    FRICTION          // 摩擦力场（使粒子减速）
 };
 
 // 场效果
@@ -70,7 +71,8 @@ struct EmitterConfig {
     // 基础属性
     int spawnMinActive;
     int spawnMaxLaunched;
-    float particleDuration;
+    int spawnRate;
+    ValueRange particleDuration;
     float systemDuration;  // -1表示无限
 
     // 粒子外观
@@ -81,6 +83,7 @@ struct EmitterConfig {
     InterpolationTrack particleRed;
     InterpolationTrack particleGreen;
     InterpolationTrack particleBlue;
+    InterpolationTrack systemAlpha;
 
     // 发射器形状
     EmitterType emitterType;

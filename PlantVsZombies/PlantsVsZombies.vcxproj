@@ -128,6 +128,7 @@
     <ClInclude Include="Game\Trophy.h" />
     <ClInclude Include="Game\Zombie\ConeZombie.h" />
     <ClInclude Include="Game\Zombie\Zombie.h" />
+    <ClInclude Include="Game\Zombie\ZombieCharred.h" />
     <ClInclude Include="Game\Zombie\ZombieType.h" />
     <ClInclude Include="Graphics.h" />
     <ClInclude Include="ParticleSystem\Particle.h" />

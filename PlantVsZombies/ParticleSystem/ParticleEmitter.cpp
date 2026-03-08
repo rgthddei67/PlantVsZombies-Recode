@@ -31,6 +31,9 @@ void ParticleEmitter::Initialize(const EmitterConfig& config, const Vector& pos)
     particlesEmitted = 0;
     systemTimer = 0.0f;
 
+    // 设置发射速率
+    spawnRate = config.spawnRate;
+
     // 设置为一次性发射
     isOneShot = true;
     particlesToEmit = config.spawnMaxLaunched;
@@ -100,6 +103,13 @@ void ParticleEmitter::Update() {
             // 应用XML场效果
             float normalizedTime = particle.lifetime / particle.maxLifetime;
 
+            // 计算系统透明度
+            float systemAlphaValue = 1.0f;
+            if (autoDestroyTime > 0.0f) {
+                float systemNormalizedTime = systemTimer / autoDestroyTime;
+                systemAlphaValue = xmlConfig.systemAlpha.GetValue(systemNormalizedTime);
+            }
+
             // 应用插值轨迹
             float alpha = xmlConfig.particleAlpha.GetValue(normalizedTime);
             float scale = xmlConfig.particleScale.GetValue(normalizedTime);
@@ -107,7 +117,7 @@ void ParticleEmitter::Update() {
 
             particle.size = scale;
             particle.stretch = stretch;
-            particle.color.a = alpha * 255.0f;
+            particle.color.a = alpha * systemAlphaValue * 255.0f;
 
             // 应用颜色乘数
             float red = xmlConfig.particleRed.GetValue(normalizedTime);
@@ -127,6 +137,11 @@ void ParticleEmitter::Update() {
                 else if (field.type == ParticleFieldType::SHAKE) {
                     particle.shakeOffset.x = GameRandom::Range(-xValue, xValue);
                     particle.shakeOffset.y = GameRandom::Range(-yValue, yValue);
+                }
+                else if (field.type == ParticleFieldType::FRICTION) {
+                    // 应用摩擦力：速度乘以 (1 - 摩擦值)
+                    particle.velocity.x *= (1.0f - xValue);
+                    particle.velocity.y *= (1.0f - yValue);
                 }
             }
 
@@ -160,7 +175,7 @@ void ParticleEmitter::EmitSingleParticle() {
     particle->position = GetSpawnPosition();
 
     // 基础属性
-    particle->maxLifetime = xmlConfig.particleDuration;
+    particle->maxLifetime = xmlConfig.particleDuration.GetRandomValue();
 
     // 发射速度
     float speed = xmlConfig.launchSpeed.GetRandomValue();

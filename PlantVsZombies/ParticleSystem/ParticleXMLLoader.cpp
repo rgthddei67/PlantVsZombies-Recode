@@ -89,7 +89,12 @@ EmitterConfig ParticleXMLLoader::ParseEmitter(const pugi::xml_node& emitterNode)
     config.name = emitterNode.child_value("Name");
     config.spawnMinActive = emitterNode.child("SpawnMinActive").text().as_int(1);
     config.spawnMaxLaunched = emitterNode.child("SpawnMaxLaunched").text().as_int(1);
-    config.particleDuration = emitterNode.child("ParticleDuration").text().as_float(1.0f);
+    if (emitterNode.child("SpawnRate")) {
+        config.spawnRate = emitterNode.child("SpawnRate").text().as_int(0);
+    }
+    if (emitterNode.child("ParticleDuration")) {
+        config.particleDuration = ParseValueRange(emitterNode.child_value("ParticleDuration"));
+    }
     config.systemDuration = emitterNode.child("SystemDuration").text().as_float(-1.0f);
 
     // 粒子外观
@@ -114,6 +119,9 @@ EmitterConfig ParticleXMLLoader::ParseEmitter(const pugi::xml_node& emitterNode)
     if (emitterNode.child("ParticleBlue")) {
         config.particleBlue = ParseInterpolationTrack(emitterNode.child_value("ParticleBlue"));
     }
+    if (emitterNode.child("SystemAlpha")) {
+        config.systemAlpha = ParseInterpolationTrack(emitterNode.child_value("SystemAlpha"));
+    }
 
     // 发射器形状
     if (emitterNode.child("EmitterType")) {
@@ -127,6 +135,11 @@ EmitterConfig ParticleXMLLoader::ParseEmitter(const pugi::xml_node& emitterNode)
     }
     if (emitterNode.child("EmitterRadius")) {
         config.emitterRadius = ParseValueRange(emitterNode.child_value("EmitterRadius"));
+
+        // 自动检测：如果未指定 EmitterType 但存在 EmitterRadius，使用 CIRCLE
+        if (!emitterNode.child("EmitterType")) {
+            config.emitterType = EmitterType::CIRCLE;
+        }
     }
     config.emitterOffsetX = emitterNode.child("EmitterOffsetX").text().as_float(0.0f);
     config.emitterOffsetY = emitterNode.child("EmitterOffsetY").text().as_float(0.0f);
@@ -265,6 +278,9 @@ ParticleFieldType ParticleXMLLoader::ParseFieldType(const std::string& typeStr) 
     }
     else if (typeStr == "SystemPosition") {
         return ParticleFieldType::SYSTEM_POSITION;
+    }
+    else if (typeStr == "Friction") {
+        return ParticleFieldType::FRICTION;
     }
     return ParticleFieldType::POSITION;
 }

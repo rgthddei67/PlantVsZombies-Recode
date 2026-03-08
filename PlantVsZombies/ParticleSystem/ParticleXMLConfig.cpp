@@ -41,7 +41,7 @@ float ValueRange::GetRandomValue() const {
 EmitterConfig::EmitterConfig()
     : spawnMinActive(1)
     , spawnMaxLaunched(1)
-    , particleDuration(1.0f)
+    , spawnRate(0)
     , systemDuration(-1.0f)
     , emitterType(EmitterType::POINT)
     , emitterOffsetX(0.0f)
@@ -53,6 +53,8 @@ EmitterConfig::EmitterConfig()
     , particleGravity(100.0f) {
 
     // 默认值
+    particleDuration = ValueRange(1.0f);
+
     particleAlpha.isConstant = true;
     particleAlpha.constantValue = 1.0f;
 
@@ -72,6 +74,9 @@ EmitterConfig::EmitterConfig()
 
     particleBlue.isConstant = true;
     particleBlue.constantValue = 1.0f;
+
+    systemAlpha.isConstant = true;
+    systemAlpha.constantValue = 1.0f;
 
     launchSpeed = ValueRange(0.0f);
     particleSpinSpeed = ValueRange(0.0f);

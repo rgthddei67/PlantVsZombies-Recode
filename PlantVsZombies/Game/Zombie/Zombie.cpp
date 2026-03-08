@@ -1,4 +1,5 @@
 ﻿#include "Zombie.h"
+#include "ZombieCharred.h"
 #include "../Plant/Plant.h"
 #include "../Board.h"
 #include "../ShadowComponent.h"
@@ -78,6 +79,13 @@ void Zombie::ZombieItemUpdate() const
 	}
 }
 
+void Zombie::Charred()
+{
+	GameObjectManager::GetInstance().CreateGameObjectImmediate<ZombieCharred>
+		(LAYER_GAME_ZOMBIE, ObjectType::OBJECT_ZOMBIE, mBoard, this->GetVisualPosition(), AnimationType::ANIM_ZOMBIE_CHARRED);
+	Die();
+}
+
 void Zombie::Start()
 {
 	AnimatedObject::Start();
@@ -91,6 +99,14 @@ void Zombie::Start()
 	SetAnimationSpeed(GameRandom::Range(1.1f, 1.4f));
 	SetupZombieDeathEvent();
 	SetupZombie();
+}
+
+void Zombie::CheckWin() const
+{
+	if (mBoard && mBoard->mCurrentWave >= mBoard->mMaxWave && mBoard->mZombieNumber <= 0)
+	{
+		mBoard->CreateTrophy(GetPosition());
+	}
 }
 
 void Zombie::Update()
@@ -115,12 +131,6 @@ void Zombie::Update()
 			{
 				this->Die();
 			}
-		}
-
-		if (mBoard && mBoard->mCurrentWave >= mBoard->mMaxWave
-			&& mBoard->mZombieNumber == 1 && (this->mBodyHealth <= 0 || !this->mHasHead))
-		{
-			mBoard->CreateTrophy(GetPosition());
 		}
 
 		if (!mHasHead)
@@ -304,6 +314,10 @@ void Zombie::HelmDrop()
 
 void Zombie::Die()
 {
+	if (mBoard) {
+		mBoard->mZombieNumber--;
+		CheckWin();
+	}
 	// 禁用碰撞体
 	if (auto collider = mCollider.lock()) {
 		collider->mEnabled = false;

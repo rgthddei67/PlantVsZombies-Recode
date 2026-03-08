@@ -65,11 +65,15 @@ public:
 	virtual void SaveExtraData(nlohmann::json& j) const {}	// 保存额外数据
 	virtual void LoadExtraData(const nlohmann::json& j) {}	// 加载额外数据 
 	virtual void ZombieItemUpdate() const; // 处理僵尸防具等内容
+	virtual void Charred();	// 变成灰烬
+
 	int TakeShieldDamage(int damage);
 	int TakeHelmDamage(int damage);
 	void TakeBodyDamage(int damage);
 
 	int GetSortingKey() const override { return mRow; }
+
+	void CheckWin() const;
 
 	virtual void ShieldDrop();		// 二类防具掉落 必须调用Zombie::SheildDrop
 	virtual void HelmDrop();	// 一类防具掉落 必须调用Zombie::HelmDrop
