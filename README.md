@@ -24,14 +24,7 @@
 - 卡片选择界面
 - 关卡进度系统
 
-## 🛠️ 技术栈
-
-- **编程语言**: C++
-- **图形库**: SDL2、OpenGL
-- **构建工具**: Visual Studio 2022
-- **平台**: Windows
-
-## 📁 项目结构
+## 项目结构
 
 ```
 PlantVsZombies/
@@ -61,7 +54,7 @@ PlantVsZombies/
 └── main.cpp                 # 程序入口
 ```
 
-## 🚀 构建说明
+## 构建说明
 
 ### 环境要求
 
@@ -73,8 +66,8 @@ PlantVsZombies/
 
 1. 克隆仓库
 ```bash
-git clone https://github.com/your-username/PlantVsZombies.git
-cd PlantVsZombies
+git clone https://github.com/rgthddei67/PlantVsZombies.git
+cd PlantsVsZombies
 ```
 
 2. 打开 Visual Studio 解决方案
@@ -93,7 +86,7 @@ cd PlantVsZombies
 5. 运行游戏
    - 按 F5 运行，或直接运行生成的 exe 文件
 
-## 🎮 使用说明
+## 使用说明
 
 ### 启动游戏
 
@@ -107,7 +100,7 @@ cd PlantVsZombies
 - **资源管理**: 统一的资源加载和管理系统
 - **场景管理**: 场景切换机制
 
-## 📝 开发计划
+## 开发计划
 
 - [ ] 完善更多植物类型
 - [ ] 添加更多僵尸类型
@@ -115,13 +108,13 @@ cd PlantVsZombies
 - [ ] 优化性能和内存使用
 - [ ] 添加更多游戏模式
 
-## 🙏 致谢
+## 致谢
 
 - 感谢 PopCap Games 创造了经典的《植物大战僵尸》
 - 感谢 SDL2 团队提供优秀的跨平台图形库
 - 本项目仅供学习交流使用，不用于商业目的
 
-## 📧 联系方式
+## 联系方式
 
 如有问题或建议，欢迎提交 Issue 或 Pull Request。
 
