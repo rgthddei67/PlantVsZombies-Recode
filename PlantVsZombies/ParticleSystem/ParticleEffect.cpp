@@ -34,21 +34,21 @@ void ParticleEffect::InitializeFromConfig(const ParticleEffectConfig& config, Gr
 }
 
 void ParticleEffect::Update() {
-    if (!active) return;
+    if (active) {
+        float deltaTime = DeltaTime::GetDeltaTime();
+        systemTimer += deltaTime;
 
-    float deltaTime = DeltaTime::GetDeltaTime();
-    systemTimer += deltaTime;
-
-    // 检查系统持续时间
-    if (systemDuration > 0.0f && systemTimer >= systemDuration) {
-        active = false;
-        // 停止所有发射器
-        for (auto& emitter : emitters) {
-            emitter->Stop();
+        // 检查系统持续时间
+        if (systemDuration > 0.0f && systemTimer >= systemDuration) {
+            active = false;
+            // 停止所有发射器（不再生成新粒子）
+            for (auto& emitter : emitters) {
+                emitter->Stop();
+            }
         }
     }
 
-    // 更新所有发射器
+    // 无论是否活跃，都继续更新发射器，让已有粒子自然消亡
     for (auto& emitter : emitters) {
         emitter->Update();
     }

@@ -60,41 +60,41 @@ void ParticleEmitter::SetAutoDestroyTime(float seconds) {
 }
 
 void ParticleEmitter::Update() {
-    if (!active) return;
-
     float deltaTime = DeltaTime::GetDeltaTime();
 
-    systemTimer += deltaTime;
+    if (active) {
+        systemTimer += deltaTime;
 
-    // 自动销毁
-    if (autoDestroyTime > 0) {
-        autoDestroyTimer += deltaTime;
-        if (autoDestroyTimer >= autoDestroyTime) {
-            active = false;
+        // 自动销毁
+        if (autoDestroyTime > 0) {
+            autoDestroyTimer += deltaTime;
+            if (autoDestroyTimer >= autoDestroyTime) {
+                active = false;
+            }
         }
-    }
 
-    // 是否发射完毕
-    if (isOneShot && particlesEmitted >= particlesToEmit) {
-        spawnRate = 0;
-        if (GetActiveParticleCount() == 0) {
-            active = false;
+        // 是否发射完毕
+        if (isOneShot && particlesEmitted >= particlesToEmit) {
+            spawnRate = 0;
+            if (GetActiveParticleCount() == 0) {
+                active = false;
+            }
         }
-    }
 
-    if (spawnRate > 0 && (!isOneShot || particlesEmitted < particlesToEmit)) {
-        spawnTimer += deltaTime;
-        float spawnInterval = 1.0f / spawnRate;
-        if (spawnTimer >= spawnInterval) {
-            if (!isOneShot || particlesEmitted < particlesToEmit) {
-                EmitSingleParticle();
-                spawnTimer = 0;
-                particlesEmitted++;
+        if (spawnRate > 0 && (!isOneShot || particlesEmitted < particlesToEmit)) {
+            spawnTimer += deltaTime;
+            float spawnInterval = 1.0f / spawnRate;
+            if (spawnTimer >= spawnInterval) {
+                if (!isOneShot || particlesEmitted < particlesToEmit) {
+                    EmitSingleParticle();
+                    spawnTimer = 0;
+                    particlesEmitted++;
+                }
             }
         }
     }
 
-    // 更新粒子
+    // 无论发射器是否活跃，都继续更新已有粒子，让它们自然消亡
     for (size_t i = 0; i < particles.size(); i++)
     {
         Particle& particle = particles[i];
