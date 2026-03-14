@@ -328,6 +328,13 @@ bool GameInfoSaver::LoadLevelData(Board* board, CardSlotManager* manager)
 		}
 	}
 
+	// 验证僵尸进食状态（防止植物不存在时崩溃）
+	for (int id : board->mEntityManager.GetAllZombieIDs()) {
+		auto zombie = board->mEntityManager.GetZombie(id);
+		if (!zombie) continue;
+		zombie->ValidateEatingState(board->mEntityManager);
+	}
+
 	// 恢复子弹
 	for (auto& b : j.value("bullets", nlohmann::json::array())) {
 		BulletType type = static_cast<BulletType>(b["type"].get<int>());
@@ -345,6 +352,7 @@ bool GameInfoSaver::LoadLevelData(Board* board, CardSlotManager* manager)
 		}
 
 		if (bullet) {
+			bullet->mFromPool = false;
 			bullet->SetBulletDamage(b["damage"].get<int>());
 			bullet->SetVelocityX(b["velocityX"].get<float>());
 			bullet->SetVelocityY(b["velocityY"].get<float>());

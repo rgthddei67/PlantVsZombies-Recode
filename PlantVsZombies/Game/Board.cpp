@@ -647,10 +647,13 @@ void Board::LoadSpawnListFromJson()
 }
 
 std::shared_ptr<Plant> Board::CreatePlantWithID(PlantType type, int row, int col, int id) {
+	auto cell = GetCell(row, col);
+	if (cell && cell->GetPlantID() != NULL_PLANT_ID) {
+		return nullptr;
+	}
 	auto plant = CreatePlant(type, row, col, true, false);
 	if (plant) {
 		mEntityManager.AddPlantWithID(plant, id);
-		auto cell = GetCell(row, col);
 		if (cell) {
 			cell->SetPlantID(id);
 		}
