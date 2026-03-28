@@ -1,4 +1,5 @@
 ﻿#include "Board.h"
+#include "Shovel.h"
 #include "Sun.h"
 #include "Trophy.h"
 #include "../GameRandom.h"
@@ -49,7 +50,7 @@ void Board::CreateBoom(const Vector& position, int damage)
 	{
 		if (auto zombie = mEntityManager.GetZombie(zombieID)) {
 			Vector zombiePositon = zombie->GetPosition();
-			if (std::abs(zombiePositon.x - position.x) <= 150.0f &&
+			if (std::abs(zombiePositon.x - position.x) <= 130.0f &&
 				std::abs(zombiePositon.y - position.y) <= 130.0f)
 			{
 				if (zombie->mBodyHealth <= damage) 
@@ -606,6 +607,9 @@ void Board::Update()
 void Board::StartGame()
 {
 	DestroyPreviewZombies();
+	if (mGameScene) {
+		mGameScene->ShowShovel();
+	}
 	mBoardState = BoardState::GAME;
 	AudioSystem::PlayMusic(ResourceKeys::Music::MUSIC_DAY, -1);
 }
@@ -697,4 +701,19 @@ std::shared_ptr<Trophy> Board::CreateTrophyWithID(const Vector& pos, int id) {
 		mEntityManager.AddCoinWithID(trophy, id);
 	}
 	return trophy;
+}
+
+std::weak_ptr<Shovel> Board::CreateShovel() {
+	if (!mShovel.expired())
+		return mShovel;
+
+	auto shovel = GameObjectManager::GetInstance().CreateGameObjectImmediate<Shovel>(LAYER_UI, this);
+	mShovel = shovel;
+	return mShovel;
+}
+
+void Board::ActivateShovel()
+{
+	if (auto shovel = mShovel.lock())
+		shovel->Activate();
 }

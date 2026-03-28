@@ -65,12 +65,15 @@ public:
 
     void SetReadyToBackMenu() { mReadyToBackMenu = true; }
 
+    void ShowShovel();
+
 protected:
     void BuildDrawCommands() override;
 
 private:
     std::unique_ptr<Board> mBoard = nullptr;
     std::weak_ptr<Button> mMainMenuButton;
+    std::weak_ptr<Button> mShovelUI;
     std::weak_ptr<GameMessageBox> mMenu;
     std::shared_ptr<CardSlotManager> mCardSlotManager = nullptr;
     std::shared_ptr<ChooseCardUI> mChooseCardUI = nullptr;

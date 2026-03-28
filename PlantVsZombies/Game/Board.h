@@ -18,6 +18,7 @@ class Plant;
 class Zombie;
 class Bullet;
 class Trophy;
+class Shovel;
 
 struct RowInfo {
 	int rowIndex         = 0;
@@ -50,6 +51,7 @@ public:
 	int mBackGround = 0; // 背景图
 	int mRows = 5;	// 行数
 	int mColumns = 8; // 列数
+	std::weak_ptr<Shovel> mShovel;
 	int mSun = 50;
 	float mSunCountDown = 5.0f;
 	EntityManager mEntityManager;
@@ -157,6 +159,12 @@ public:
 
 	// 创建植物
 	std::shared_ptr<Plant> CreatePlant(PlantType plantType, int row, int column, bool skipsettings = false, bool isPreview = false);
+
+	// 创建铲子
+	std::weak_ptr<Shovel> CreateShovel();
+
+	// 激活铲子
+	void ActivateShovel();
 
 	// 创建子弹
 	std::shared_ptr<Bullet> CreateBullet(BulletType plantType, int row, const Vector& position, bool skipsettings = false);

@@ -12,6 +12,7 @@
 #include "../UI/GameMessageBox.h"
 #include "../GameApp.h" 
 #include "../Graphics.h"
+#include "./Shovel.h"
 #include <iostream>
 #include <cmath>
 
@@ -142,6 +143,7 @@ void GameScene::OnExit() {
 	}
 	Scene::OnExit();
 	std::cout << "退出GameScene" << std::endl;
+	mShovelUI.reset();
 	mBoard.reset();
 	mGameProgress.reset();
 	mCardSlotManager.reset();
@@ -256,7 +258,7 @@ void GameScene::Update() {
 		mBoard->Update();
 
 		auto& input = GameAPP::GetInstance().GetInputHandler();
-		if (!this->mOpenRestartMenu && (input.IsKeyPressed(SDLK_SPACE) || input.IsKeyPressed(SDLK_ESCAPE))) {
+		if (mBoard->mBoardState != BoardState::LOSE_GAME && !this->mOpenRestartMenu && (input.IsKeyPressed(SDLK_SPACE) || input.IsKeyPressed(SDLK_ESCAPE))) {
 			if (this->mOpenMenu) {
 				mOpenMenu = false;
 				DeltaTime::SetPaused(false);
@@ -531,6 +533,32 @@ void GameScene::ChooseCardComplete()
 	SortDrawCommands();
 }
 
+void GameScene::ShowShovel()
+{
+	const Vector shovelBankCenter(850.0f, 30.0f);
+	const Vector shovelBankSize(70.0f, 72.0f);
+
+	// 创建铲子
+	auto shovelWeak = mBoard->CreateShovel();
+	if (auto shovel = shovelWeak.lock())
+		shovel->SetHomePosition(shovelBankCenter);
+
+	auto shovelBtn = mUIManager.CreateButton(
+		Vector(shovelBankCenter.x - shovelBankSize.x * 0.5f,
+			shovelBankCenter.y - shovelBankSize.y * 0.5f),
+		shovelBankSize);
+	mShovelUI = shovelBtn;
+	shovelBtn->SetAsCheckbox(false);
+	shovelBtn->SetImageKeys(
+		ResourceKeys::Textures::IMAGE_SHOVELBANK,
+		ResourceKeys::Textures::IMAGE_SHOVELBANK,
+		ResourceKeys::Textures::IMAGE_SHOVELBANK,
+		ResourceKeys::Textures::IMAGE_SHOVELBANK);
+	shovelBtn->SetClickCallBack([this](bool) {
+		mBoard->ActivateShovel();
+		});
+}
+
 std::shared_ptr<GameProgress> GameScene::GetGameProgress() const
 {
 	return this->mGameProgress;
@@ -538,14 +566,19 @@ std::shared_ptr<GameProgress> GameScene::GetGameProgress() const
 
 void GameScene::GameOver()
 {
+	GameAPP::GetInstance().mGameInfoSaver.DeleteLevelData(mBoard.get());
 	mUIManager.RemoveButton(this->mMainMenuButton.lock());
+	mMainMenuButton.reset();
+	mUIManager.RemoveButton(this->mShovelUI.lock());
+	mShovelUI.reset();
+	mBoard->mShovel.lock()->Die();
 	std::vector<GameMessageBox::ButtonConfig> buttons;
 	std::vector<GameMessageBox::SliderConfig> sliders;
 	std::vector<GameMessageBox::TextConfig> texts;
 
-	buttons.push_back({ u8"返回菜单", Vector(380, 380), Vector(125 * 0.8f, 52 * 0.8f),14, []() {
+	buttons.push_back({ u8"返回菜单", Vector(380, 380), Vector(125 * 0.8f, 52 * 0.8f),14, [this]() {
+		this->mReadyToBackMenu = true;
 		DeltaTime::SetPaused(false);
-		SceneManager::GetInstance().SwitchTo("MainMenuScene");
 	}, ResourceKeys::Textures::IMAGE_BUTTONSMALL, true });
 	buttons.push_back({ u8"重新开始", Vector(560, 380), Vector(125 * 0.8f, 52 * 0.8f),14, [this]() {
 		this->mReadyToRestart = true;
