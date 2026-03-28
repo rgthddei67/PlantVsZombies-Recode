@@ -1,4 +1,5 @@
 ﻿#include "GameScene.h"
+#include "CursorObjectManager.h"
 #include "SceneManager.h"
 #include "../ResourceManager.h"
 #include "./Plant/PlantType.h"
@@ -157,6 +158,8 @@ void GameScene::OnExit() {
 void GameScene::OpenMenu()
 {
 	if (mOpenMenu) return;
+
+	mBoard->mCursorObjectManager.ClearActive();
 
 	mOpenMenu = true;
 	DeltaTime::SetPaused(true);
@@ -556,6 +559,7 @@ std::shared_ptr<GameProgress> GameScene::GetGameProgress() const
 
 void GameScene::GameOver()
 {
+	mBoard->mCursorObjectManager.ClearActive();
 	GameAPP::GetInstance().mGameInfoSaver.DeleteLevelData(mBoard.get());
 	mUIManager.RemoveButton(this->mMainMenuButton.lock());
 	mMainMenuButton.reset();

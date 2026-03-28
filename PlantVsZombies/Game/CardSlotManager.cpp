@@ -47,6 +47,7 @@ void CardSlotManager::Update() {
         // 右键取消选择
         if (input.IsMouseButtonPressed(SDL_BUTTON_RIGHT)) {
             DeselectCard();
+            mBoard->mCursorObjectManager.ClearActive();
         }
     }
 
@@ -123,6 +124,11 @@ void CardSlotManager::SelectCard(std::weak_ptr<GameObject> cardWeak) {
             prevCardComp->SetSelected(false);
         }
     }
+
+    // 通过 CursorObjectManager 清除当前手持物（如铲子）
+    mBoard->mCursorObjectManager.Activate(CursorObjectType::PLANT_PREVIEW, [this]() {
+        DeselectCard();
+    });
 
     // 选择新卡牌
     selectedCard = card;
@@ -364,6 +370,7 @@ void CardSlotManager::PlacePlantInCell(int row, int col) {
 
     // 取消选择
     DeselectCard();
+    mBoard->mCursorObjectManager.ClearActive();
 }
 
 PlantType CardSlotManager::GetSelectedPlantType() const {

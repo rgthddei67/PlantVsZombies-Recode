@@ -8,6 +8,7 @@
 #include "./Zombie/ZombieType.h"
 #include "./Bullet/BulletType.h"
 #include "EntityManager.h"
+#include "CursorObjectManager.h"
 #include <vector>
 #include <memory>
 
@@ -52,6 +53,7 @@ public:
 	int mRows = 5;	// 行数
 	int mColumns = 8; // 列数
 	std::weak_ptr<Shovel> mShovel;
+	CursorObjectManager mCursorObjectManager;
 	int mSun = 50;
 	float mSunCountDown = 5.0f;
 	EntityManager mEntityManager;

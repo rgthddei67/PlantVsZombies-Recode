@@ -714,6 +714,10 @@ std::weak_ptr<Shovel> Board::CreateShovel() {
 
 void Board::ActivateShovel()
 {
-	if (auto shovel = mShovel.lock())
+	if (auto shovel = mShovel.lock()) {
+		mCursorObjectManager.Activate(CursorObjectType::SHOVEL, [shovel]() {
+			shovel->ReturnHome();
+		});
 		shovel->Activate();
+	}
 }

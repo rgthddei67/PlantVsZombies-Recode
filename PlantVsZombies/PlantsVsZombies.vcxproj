@@ -28,6 +28,7 @@
     <ClCompile Include="Game\AnimatedObject.cpp" />
     <ClCompile Include="Game\AudioSystem.cpp" />
     <ClCompile Include="Game\Board.cpp" />
+    <ClCompile Include="Game\CursorObjectManager.cpp" />
     <ClCompile Include="Game\Shovel.cpp" />
     <ClCompile Include="Game\ShovelBank.cpp" />
     <ClCompile Include="Game\Bullet\Bullet.cpp" />
@@ -89,6 +90,7 @@
     <ClInclude Include="Game\AnimatedObject.h" />
     <ClInclude Include="Game\AudioSystem.h" />
     <ClInclude Include="Game\Board.h" />
+    <ClInclude Include="Game\CursorObjectManager.h" />
     <ClInclude Include="Game\Shovel.h" />
     <ClInclude Include="Game\ShovelBank.h" />
     <ClInclude Include="Game\Bullet\Bullet.h" />
