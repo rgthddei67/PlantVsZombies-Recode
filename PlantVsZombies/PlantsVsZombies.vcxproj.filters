@@ -202,6 +202,12 @@
     <ClCompile Include="ParticleSystem\ParticleXMLLoader.cpp">
       <Filter>Code\ParticleSystem</Filter>
     </ClCompile>
+    <ClCompile Include="Game\Shovel.cpp">
+      <Filter>Code\Game</Filter>
+    </ClCompile>
+    <ClCompile Include="Game\ShovelBank.cpp">
+      <Filter>Code\Game</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="UI\Button.h">
@@ -440,6 +446,12 @@
     </ClInclude>
     <ClInclude Include="Game\Zombie\ZombieCharred.h">
       <Filter>Code\Game\Zombie</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\ShovelBank.h">
+      <Filter>Code\Game</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\Shovel.h">
+      <Filter>Code\Game</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

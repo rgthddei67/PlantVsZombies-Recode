@@ -13,6 +13,7 @@
 #include "../GameApp.h" 
 #include "../Graphics.h"
 #include "./Shovel.h"
+#include "ShovelBank.h"
 #include <iostream>
 #include <cmath>
 
@@ -536,27 +537,16 @@ void GameScene::ChooseCardComplete()
 void GameScene::ShowShovel()
 {
 	const Vector shovelBankCenter(850.0f, 30.0f);
-	const Vector shovelBankSize(70.0f, 72.0f);
 
-	// 创建铲子
+	// 先创建铲子背景（renderOrder 较低，画在下面）
+	auto shovelBank = GameObjectManager::GetInstance()
+		.CreateGameObjectImmediate<ShovelBank>(LAYER_UI, mBoard.get());
+	mShovelUI = shovelBank;
+
+	// 再创建铲子（renderOrder 较高，画在上面）
 	auto shovelWeak = mBoard->CreateShovel();
 	if (auto shovel = shovelWeak.lock())
 		shovel->SetHomePosition(shovelBankCenter);
-
-	auto shovelBtn = mUIManager.CreateButton(
-		Vector(shovelBankCenter.x - shovelBankSize.x * 0.5f,
-			shovelBankCenter.y - shovelBankSize.y * 0.5f),
-		shovelBankSize);
-	mShovelUI = shovelBtn;
-	shovelBtn->SetAsCheckbox(false);
-	shovelBtn->SetImageKeys(
-		ResourceKeys::Textures::IMAGE_SHOVELBANK,
-		ResourceKeys::Textures::IMAGE_SHOVELBANK,
-		ResourceKeys::Textures::IMAGE_SHOVELBANK,
-		ResourceKeys::Textures::IMAGE_SHOVELBANK);
-	shovelBtn->SetClickCallBack([this](bool) {
-		mBoard->ActivateShovel();
-		});
 }
 
 std::shared_ptr<GameProgress> GameScene::GetGameProgress() const
@@ -569,7 +559,8 @@ void GameScene::GameOver()
 	GameAPP::GetInstance().mGameInfoSaver.DeleteLevelData(mBoard.get());
 	mUIManager.RemoveButton(this->mMainMenuButton.lock());
 	mMainMenuButton.reset();
-	mUIManager.RemoveButton(this->mShovelUI.lock());
+	if (auto shovelBank = mShovelUI.lock())
+		GameObjectManager::GetInstance().DestroyGameObject(shovelBank);
 	mShovelUI.reset();
 	mBoard->mShovel.lock()->Die();
 	std::vector<GameMessageBox::ButtonConfig> buttons;

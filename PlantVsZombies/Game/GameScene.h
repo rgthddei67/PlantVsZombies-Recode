@@ -7,6 +7,7 @@
 class ChooseCardUI;
 class CardSlotManager;
 class GameProgress;
+class ShovelBank;
 
 constexpr float mBackgroundY = -50;
 
@@ -73,7 +74,7 @@ protected:
 private:
     std::unique_ptr<Board> mBoard = nullptr;
     std::weak_ptr<Button> mMainMenuButton;
-    std::weak_ptr<Button> mShovelUI;
+    std::weak_ptr<ShovelBank> mShovelUI;
     std::weak_ptr<GameMessageBox> mMenu;
     std::shared_ptr<CardSlotManager> mCardSlotManager = nullptr;
     std::shared_ptr<ChooseCardUI> mChooseCardUI = nullptr;
