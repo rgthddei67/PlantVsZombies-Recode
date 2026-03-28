@@ -66,7 +66,7 @@ PlantVsZombies/
 
 1. 克隆仓库
 ```bash
-git clone https://github.com/rgthddei67/PlantVsZombies.git
+git clone https://github.com/rgthddei67/PlantVsZombies-Recode.git
 cd PlantsVsZombies
 ```
 
