@@ -22,7 +22,6 @@ void ShovelBank::Start()
 {
 	GameObject::Start();
 
-	// 添加 ClickableComponent
 	auto clickComponent = AddComponent<ClickableComponent>();
 	if (clickComponent) {
 		clickComponent->IsClickable = true;
@@ -30,6 +29,7 @@ void ShovelBank::Start()
 		clickComponent->SetClickArea(Vector(70.0f, 72.0f));
 		clickComponent->SetClickOffset(Vector(-35.0f, -36.0f));
 		clickComponent->onClick = [this]() {
+			AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_SHOVEL, 0.4f);
 			mBoard->ActivateShovel();
 		};
 	}

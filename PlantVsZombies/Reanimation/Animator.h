@@ -36,7 +36,7 @@ struct AnimDrawCommand {
     const GLTexture* texture;   ///< 纹理指针
     BlendMode blendMode;        ///< 混合模式
     glm::vec4 color;            ///< 颜色 (RGBA)
-    float points[8];            ///< 4个顶点的世界坐标 (x1,y1, x2,y2, x3,y3, x4,y4)
+    glm::mat4 transform;        ///< 仿射变换矩阵（将单位矩形映射到目标四边形）
 };
 
 class Animator {

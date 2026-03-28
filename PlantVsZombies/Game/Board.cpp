@@ -252,7 +252,7 @@ std::shared_ptr<Bullet> Board::CreateBullet(BulletType bulletType, int row, cons
 	return bullet;
 }
 
-void Board::CleanupExpiredObjects()
+inline void Board::CleanupExpiredObjects()
 {
 	// 清理已过期的植物ID映射
 	// TODO 如果其他地方也有存储植物ID,也要删除
@@ -264,7 +264,7 @@ void Board::CleanupExpiredObjects()
 	}
 }
 
-void Board::CleanPlantFromCells(int plantID)
+inline void Board::CleanPlantFromCells(int plantID)
 {
 	for (size_t i = 0; i < mCells.size(); i++) {
 		for (size_t j = 0; j < mCells[i].size(); j++) {
@@ -275,7 +275,7 @@ void Board::CleanPlantFromCells(int plantID)
 	}
 }
 
-void Board::UpdateSunFalling(float deltaTime)
+inline void Board::UpdateSunFalling(float deltaTime)
 {
 	mSunCountDown -= deltaTime;
 	if (mSunCountDown <= 0.0f)
@@ -425,7 +425,7 @@ void Board::SetRowLoseMower(int row)
 	mRowInfos[row].loseMower = mCurrentWave;
 }
 
-int Board::SelectSpawnRow()
+inline int Board::SelectSpawnRow()
 {
 	if (mRowInfos.empty()) InitializeRows();
 
@@ -476,7 +476,7 @@ int Board::SelectSpawnRow()
 	return mRows - 1;
 }
 
-ZombieType Board::GetWeightedRandomZombie()
+inline ZombieType Board::GetWeightedRandomZombie()
 {
 	if (mSpawnZombieList.empty()) return ZombieType::ZOMBIE_NORMAL;
 
@@ -495,7 +495,7 @@ ZombieType Board::GetWeightedRandomZombie()
 	return mSpawnZombieList[0];
 }
 
-ZombieType Board::GetCheapestZombie()
+inline ZombieType Board::GetCheapestZombie()
 {
 	ZombieType cheapest = ZombieType::ZOMBIE_NORMAL;
 	int minCost = INT_MAX;
@@ -507,7 +507,7 @@ ZombieType Board::GetCheapestZombie()
 	return cheapest;
 }
 
-ZombieType Board::PickZombieType(int remainingPoints)
+inline ZombieType Board::PickZombieType(int remainingPoints)
 {
 	for (int attempt = 0; attempt < 1000; attempt++)
 	{
@@ -520,7 +520,7 @@ ZombieType Board::PickZombieType(int remainingPoints)
 	return GetCheapestZombie();
 }
 
-void Board::TrySummonZombie()
+inline void Board::TrySummonZombie()
 {
 	if (mCurrentWave > mMaxWave) return;
 
@@ -557,7 +557,7 @@ void Board::TrySummonZombie()
 	}
 }
 
-int Board::CalculateWaveZombiePoints() const
+inline int Board::CalculateWaveZombiePoints() const
 {
 	// 基础点数
 	float points = (static_cast<float>(mCurrentWave) / 3 + 1.0f) * 1000.0f;
@@ -574,7 +574,7 @@ int Board::CalculateWaveZombiePoints() const
 	return static_cast<int>(points);
 }
 
-void Board::UpdateZombieHP()
+inline void Board::UpdateZombieHP()
 {
 	double TotalHP = 0, CurrectWaveHP = 0;
 	for (auto zombieID : mEntityManager.GetAllZombieIDs())

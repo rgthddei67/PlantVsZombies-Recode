@@ -244,21 +244,7 @@ void Animator::Draw(Graphics* g, float baseX, float baseY, float Scale) {
             lastBlend = cmd.blendMode;
         }
 
-        // 从 points 提取四个顶点坐标（顺序：左上、右上、右下、左下）
-        float x0 = cmd.points[0], y0 = cmd.points[1];
-        float x1 = cmd.points[2], y1 = cmd.points[3];
-        float x2 = cmd.points[4], y2 = cmd.points[5];
-        float x3 = cmd.points[6], y3 = cmd.points[7];
-
-        // 构造仿射变换矩阵（列主序，将单位矩形映射到目标四边形）
-        glm::mat4 transform(
-            x1 - x0, y1 - y0, 0.0f, 0.0f,   // 第一列 (a, d, 0, 0)
-            x3 - x0, y3 - y0, 0.0f, 0.0f,   // 第二列 (b, e, 0, 0)
-            0.0f, 0.0f, 1.0f, 0.0f,         // 第三列 (0,0,1,0)
-            x0, y0, 0.0f, 1.0f              // 第四列 (tx, ty, 0, 1)
-        );
-
-        g->DrawTextureMatrix(cmd.texture, transform, 0.0f, 0.0f, cmd.color);
+        g->DrawTextureMatrix(cmd.texture, cmd.transform, 0.0f, 0.0f, cmd.color);
     }
 
     // 恢复进入时的混合模式
@@ -316,17 +302,13 @@ void Animator::CollectDrawCommands(std::vector<AnimDrawCommand>& outCommands, fl
             float tx = transform.x + mExtraInfos[i].mOffsetX;
             float ty = transform.y + mExtraInfos[i].mOffsetY;
 
-            float worldPoints[8];
-            for (int j = 0; j < 4; ++j) {
-                float u = (j == 0 || j == 3) ? 0.0f : w;
-                float v = (j == 0 || j == 1) ? 0.0f : h;
-
-                float x = a * u + c * v + tx;
-                float y = b * u + d * v + ty;
-
-                worldPoints[j * 2] = baseX + x * Scale;
-                worldPoints[j * 2 + 1] = baseY + y * Scale;
-            }
+            // 直接构造仿射变换矩阵（将单位矩形映射到目标四边形，省去中间顶点计算）
+            glm::mat4 mat(
+                a * w * Scale,  b * w * Scale,  0.0f, 0.0f,
+                c * h * Scale,  d * h * Scale,  0.0f, 0.0f,
+                0.0f,           0.0f,           1.0f, 0.0f,
+                baseX + tx * Scale, baseY + ty * Scale, 0.0f, 1.0f
+            );
 
             float combinedAlpha = transform.a * mAlpha;
             float baseAlpha = std::clamp(combinedAlpha, 0.0f, 1.0f);
@@ -336,7 +318,7 @@ void Animator::CollectDrawCommands(std::vector<AnimDrawCommand>& outCommands, fl
             cmd.texture = image;
             cmd.blendMode = BlendMode::Alpha;
             cmd.color = glm::vec4(255.0f, 255.0f, 255.0f, baseAlpha * 255.0f);
-            memcpy(cmd.points, worldPoints, sizeof(worldPoints));
+            cmd.transform = mat;
             outCommands.push_back(cmd);
 
             // 发光效果（叠加混合）

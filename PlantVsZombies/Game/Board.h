@@ -85,10 +85,10 @@ private:
 
 	void LoadSpawnListFromJson();
 	void InitializeRows();
-	int SelectSpawnRow();
-	ZombieType PickZombieType(int remainingPoints);
-	ZombieType GetWeightedRandomZombie();
-	ZombieType GetCheapestZombie();
+	inline int SelectSpawnRow();
+	inline ZombieType PickZombieType(int remainingPoints);
+	inline ZombieType GetWeightedRandomZombie();
+	inline ZombieType GetCheapestZombie();
 
 public:
 	Board(GameScene* gameScene, int level)
@@ -185,20 +185,20 @@ public:
 	void UpdateLevel();
 
 	// 清理删除的对象
-	void CleanupExpiredObjects(); 
+	inline void CleanupExpiredObjects();
 
 	// 从所有Cell中清除指定植物ID
-	void CleanPlantFromCells(int plantID);
+	inline void CleanPlantFromCells(int plantID);
 
-	void UpdateSunFalling(float deltaTime);
+	inline void UpdateSunFalling(float deltaTime);
 
-	void UpdateZombieHP();
+	inline void UpdateZombieHP();
 
 	// 尝试生成本波僵尸
-	void TrySummonZombie();
+	inline void TrySummonZombie();
 
 	// 计算当前波的总点数
-	int CalculateWaveZombiePoints() const;
+	inline int CalculateWaveZombiePoints() const;
 
 	// 选好卡，开始游戏
 	void StartGame();
