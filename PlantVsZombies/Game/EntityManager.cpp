@@ -3,6 +3,7 @@
 #include "Zombie/Zombie.h"
 #include "Bullet/Bullet.h"
 #include "Coin.h"
+#include "LawnMower.h"
 
 int EntityManager::AddPlant(std::shared_ptr<Plant> plant) {
     int id = mNextPlantID++;
@@ -135,6 +136,16 @@ std::vector<int> EntityManager::CleanupExpired() {
         }
     }
 
+    // 清理小推车
+    for (auto it = mMowers.begin(); it != mMowers.end(); ) {
+        if (it->second.expired()) {
+            it = mMowers.erase(it);
+        }
+        else {
+            ++it;
+        }
+    }
+
     return removedPlants;
 }
 
@@ -170,6 +181,38 @@ int EntityManager::AddCoinWithID(std::shared_ptr<Coin> coin, int id) {
     coin->mCoinID = id;
     if (id >= mNextCoinID) {
         mNextCoinID = id + 1;
+    }
+    return id;
+}
+
+int EntityManager::AddMower(std::shared_ptr<Mower> mower) {
+    int id = mNextMowerID++;
+    mMowers[id] = mower;
+    mower->mMowerID = id;
+    return id;
+}
+
+Mower* EntityManager::GetMower(int id) const {
+    auto it = mMowers.find(id);
+    if (it != mMowers.end())
+        return it->second.lock().get();
+    return nullptr;
+}
+
+std::vector<int> EntityManager::GetAllMowerIDs() const {
+    std::vector<int> ids;
+    for (const auto& pair : mMowers) {
+        if (pair.second.lock())
+            ids.push_back(pair.first);
+    }
+    return ids;
+}
+
+int EntityManager::AddMowerWithID(std::shared_ptr<Mower> mower, int id) {
+    mMowers[id] = mower;
+    mower->mMowerID = id;
+    if (id >= mNextMowerID) {
+        mNextMowerID = id + 1;
     }
     return id;
 }

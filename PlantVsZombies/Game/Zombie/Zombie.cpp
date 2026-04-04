@@ -28,9 +28,11 @@ Zombie::Zombie(Board * board, ZombieType zombieType, float x, float y, int row,
 
 	mVisualOffset = GameDataManager::GetInstance().GetZombieOffset(zombieType);
 
-	int random = GameRandom::Range(0, 1);
+	mHasTongue = static_cast<bool>(GameRandom::Range(0, 1));
 
-	mAnimator->SetTrackVisible("anim_tongue", static_cast<bool>(random));
+	if (!mAnimator->GetTracksByName("anim_tongue").empty()) {
+		mAnimator->SetTrackVisible("anim_tongue", mHasTongue);
+	}
 
 	if (isPreview)
 	{
@@ -38,9 +40,7 @@ Zombie::Zombie(Board * board, ZombieType zombieType, float x, float y, int row,
 		return;
 	}
 
-	random = GameRandom::Range(0, 1);
-
-	if (random == 0)
+	if (GameRandom::Range(0, 1) == 0)
 		this->PlayTrack("anim_walk");
 	else
 		this->PlayTrack("anim_walk2");
@@ -77,6 +77,7 @@ void Zombie::ZombieItemUpdate() const
 		mAnimator->SetTrackVisible("anim_tongue", false);
 		mAnimator->SetTrackVisible("anim_hair", false);
 	}
+	mAnimator->SetTrackVisible("anim_tongue", mHasTongue);
 }
 
 void Zombie::Charred()
@@ -337,13 +338,12 @@ void Zombie::EatTarget(std::shared_ptr<ColliderComponent> other)
 	auto gameObject = other->GetGameObject();
 	if (gameObject->GetObjectType() == ObjectType::OBJECT_PLANT)
 	{
-		if (auto plant = std::dynamic_pointer_cast<Plant>(gameObject))
+		if (auto plant = std::dynamic_pointer_cast<Plant>(gameObject).get())
 		{
 			if (mEatPlantID != NULL_PLANT_ID || plant->mRow != this->mRow) return;	// 正在吃一个植物，那么不吃别的植物
 
 			if (!mIsEating) {
 				this->PlayTrack("anim_eat", 2.1f, 0.3f);
-				this->SetOriginalSpeed(GetAnimationSpeed());
 			}
 			mIsEating = true;
 			mEatPlantID = plant->mPlantID;
@@ -357,12 +357,13 @@ void Zombie::StopEat(std::shared_ptr<ColliderComponent> other)
 	auto gameObject = other->GetGameObject();
 	if (gameObject->GetObjectType() == ObjectType::OBJECT_PLANT)
 	{
-		if (auto plant = std::dynamic_pointer_cast<Plant>(gameObject))
+		if (auto plant = std::dynamic_pointer_cast<Plant>(gameObject).get())
 		{
 			if (mEatPlantID != plant->mPlantID || plant->mRow != this->mRow) return;
 
 			if (mIsEating) {
-				this->PlayTrack("anim_walk2", GetOriginalSpeed(), 0.3f);
+				this->PlayTrack("anim_walk2", 0.0f, 0.3f);
+				this->RestoreSpeed();
 			}
 			mIsEating = false;
 			mEatPlantID = NULL_PLANT_ID;

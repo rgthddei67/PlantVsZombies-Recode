@@ -37,6 +37,9 @@ public:
 	void Start() override;
 	void Update() override;
 	Vector GetVisualPosition() const override;
+
+	int GetSortingKey() const override { return this->mRow; }
+
 	virtual void PlantUpdate();		// 子类重写Update用这个
 	virtual void TakeDamage(int damage);
 	virtual void SaveExtraData(nlohmann::json& j) const { }

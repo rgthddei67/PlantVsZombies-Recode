@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #ifndef _LAWN_MOWER_H
 #define _LAWN_MOWER_H
 
@@ -13,16 +13,29 @@ enum class MowerType {
 	ROOF
 };
 
+enum class MowerState {
+	IDLE,		// 静止等待
+	MOVING		// 向右移动中
+};
+
 class Mower : public AnimatedObject {
-private:
+public:
 	int mRow;
 	int mMowerID = NULL_MOWER_ID;
 	MowerType mMowerType;
+	MowerState mState = MowerState::IDLE;
+	float mSpeed = 230.0f;
 
-public:
+	Mower(Board* board, MowerType type, AnimationType animType,
+		float x, float y, int row, float scale = 0.85f);
 
-	Mower(Board* board, MowerType type, AnimationType mowerType, float x, float y, int row, float scale = 1.0f);
-	~Mower() = default;
+	void Update() override;
+	void Die();
+	void Trigger();
+
+	Vector GetPosition() const;
+	void SetPosition(const Vector& position);
+	int GetSortingKey() const override { return this->mRow; }
 };
 
 #endif

@@ -6,6 +6,7 @@
 #include "./Game/Bullet/Bullet.h"
 #include "./Game/Plant/Plant.h"
 #include "./Game/Zombie/Zombie.h"
+#include "./Game/LawnMower.h"
 #include "./Game/GameProgress.h"
 #include "./Game/Sun.h"
 #include "./Game/Trophy.h"
@@ -20,7 +21,7 @@ bool GameInfoSaver::SavePlayerInfo()
 {
 	auto& gameApp = GameAPP::GetInstance();
 
-	FileManager::CreateDirectory("./save");
+	FileManager::CreateDirectory("./saves");
 
 	nlohmann::json j;
 	j["difficulty"] = gameApp.Difficulty;
@@ -33,13 +34,13 @@ bool GameInfoSaver::SavePlayerInfo()
 
 	j["havecards"] = gameApp.mHaveCards;
 
-	return FileManager::SaveJsonFile("./save/PlayerInfo.json", j);
+	return FileManager::SaveJsonFile("./saves/PlayerInfo.json", j);
 }
 
 bool GameInfoSaver::LoadPlayerInfo()
 {
 	nlohmann::json j;
-	if (!FileManager::LoadJsonFile("./save/PlayerInfo.json", j))
+	if (!FileManager::LoadJsonFile("./saves/PlayerInfo.json", j))
 		return false;
 
 	auto& gameApp = GameAPP::GetInstance();
@@ -60,7 +61,7 @@ bool GameInfoSaver::LoadPlayerInfo()
 bool GameInfoSaver::SaveLevelData(Board* board, CardSlotManager* manager)
 {
 	if (board->mBoardState != BoardState::GAME) return false;
-	FileManager::CreateDirectory("./save");
+	FileManager::CreateDirectory("./saves");
 
 	nlohmann::json j;
 
@@ -79,6 +80,7 @@ bool GameInfoSaver::SaveLevelData(Board* board, CardSlotManager* manager)
 	j["nextZombieID"] = board->mEntityManager.GetNextZombieID();
 	j["nextBulletID"] = board->mEntityManager.GetNextBulletID();
 	j["nextCoinID"] = board->mEntityManager.GetNextCoinID();
+	j["nextMowerID"] = board->mEntityManager.GetNextMowerID();
 
 	// 植物
 	nlohmann::json plantsArr = nlohmann::json::array();
@@ -103,6 +105,25 @@ bool GameInfoSaver::SaveLevelData(Board* board, CardSlotManager* manager)
 		plantsArr.push_back(p);
 	}
 	j["plants"] = plantsArr;
+
+	// 小推车
+	nlohmann::json mowersArr = nlohmann::json::array();
+	for (int id : board->mEntityManager.GetAllMowerIDs()) {
+		auto* mower = board->mEntityManager.GetMower(id);
+		if (!mower) continue;
+		nlohmann::json m;
+		m["id"] = id;
+		m["type"] = static_cast<int>(mower->mMowerType);
+		m["row"] = mower->mRow;
+		m["state"] = static_cast<int>(mower->mState);
+		m["speed"] = mower->mSpeed;
+		m["x"] = mower->GetPosition().x;
+		m["y"] = mower->GetPosition().y;
+		m["animTrack"] = mower->GetCurrentTrackName();
+		m["animFrame"] = mower->GetCurrentFrame();
+		mowersArr.push_back(m);
+	}
+	j["mowers"] = mowersArr;
 
 	// 僵尸
 	nlohmann::json zombiesArr = nlohmann::json::array();
@@ -131,6 +152,8 @@ bool GameInfoSaver::SaveLevelData(Board* board, CardSlotManager* manager)
 		zombie->SaveProtectedData(z);
 		z["animTrack"] = zombie->GetCurrentTrackName();
 		z["animFrame"] = zombie->GetCurrentFrame();
+		z["animSpeed"] = zombie->GetAnimationSpeed();
+		z["animOriginalSpeed"] = zombie->GetOriginalSpeed();
 		nlohmann::json extraData;
 		zombie->SaveExtraData(extraData);
 		if (!extraData.empty()) {
@@ -215,13 +238,13 @@ bool GameInfoSaver::SaveLevelData(Board* board, CardSlotManager* manager)
 	}
 	j["cards"] = cardsArr;
 
-	std::string filename = "./save/level" + std::to_string(board->mLevel) + "_data.json";
+	std::string filename = "./saves/level" + std::to_string(board->mLevel) + "_data.json";
 	return FileManager::SaveJsonFile(filename, j);
 }
 
 bool GameInfoSaver::LoadLevelData(Board* board, CardSlotManager* manager)
 {
-	std::string filename = "./save/level" + std::to_string(board->mLevel) + "_data.json";
+	std::string filename = "./saves/level" + std::to_string(board->mLevel) + "_data.json";
 	nlohmann::json j;
 	if (!FileManager::LoadJsonFile(filename, j))
 		return false;
@@ -241,6 +264,7 @@ bool GameInfoSaver::LoadLevelData(Board* board, CardSlotManager* manager)
 	board->mEntityManager.SetNextZombieID(j.value("nextZombieID", 1));
 	board->mEntityManager.SetNextBulletID(j.value("nextBulletID", 1));
 	board->mEntityManager.SetNextCoinID(j.value("nextCoinID", 1));
+	board->mEntityManager.SetNextMowerID(j.value("nextMowerID", 1));
 
 	// 恢复进度条
 	if (board->mCurrentWave > 0) {
@@ -284,6 +308,32 @@ bool GameInfoSaver::LoadLevelData(Board* board, CardSlotManager* manager)
 		}
 	}
 
+	// 恢复小推车
+	for (auto& m : j.value("mowers", nlohmann::json::array())) {
+		MowerType type = static_cast<MowerType>(m["type"].get<int>());
+		int row = m["row"].get<int>();
+		float x = m["x"].get<float>();
+		float y = m["y"].get<float>();
+		int id = m.value("id", NULL_MOWER_ID);
+
+		std::shared_ptr<Mower> mower;
+		if (id != NULL_MOWER_ID) {
+			mower = board->CreateMowerWithID(type, row, x, y, id);
+		} else {
+			mower = board->CreateMower(type, row);
+		}
+
+		if (mower) {
+			mower->mState = static_cast<MowerState>(m.value("state", 0));
+			mower->mSpeed = m.value("speed", 300.0f);
+			std::string track = m.value("animTrack", "");
+			if (!track.empty()) {
+				mower->PlayTrack(track);
+				mower->SetCurrentFrame(m.value("animFrame", 0.0f));
+			}
+		}
+	}
+
 	// 恢复僵尸
 	for (auto& z : j.value("zombies", nlohmann::json::array())) {
 		ZombieType type = static_cast<ZombieType>(z["type"].get<int>());
@@ -318,6 +368,8 @@ bool GameInfoSaver::LoadLevelData(Board* board, CardSlotManager* manager)
 			if (!track.empty()) {
 				zombie->PlayTrack(track);
 				zombie->SetCurrentFrame(z.value("animFrame", 0.0f));
+				zombie->SetAnimationSpeed(z.value("animSpeed", 1.0f));
+				zombie->SetOriginalSpeed(z.value("animOriginalSpeed", 1.0f));
 			}
 
 			if (z.contains("extraData")) {
@@ -433,6 +485,6 @@ bool GameInfoSaver::LoadLevelData(Board* board, CardSlotManager* manager)
 
 bool GameInfoSaver::DeleteLevelData(Board* board)
 {
-	std::string filename = "./save/level" + std::to_string(board->mLevel) + "_data.json";
+	std::string filename = "./saves/level" + std::to_string(board->mLevel) + "_data.json";
 	return FileManager::DeleteFile(filename);
 }

@@ -73,11 +73,12 @@ public:
     void OverrideColor(const SDL_Color& color);
 
     // 轨道播放
-    bool PlayTrack(const std::string& trackName, float speed = 1.0f, float blendTime = 0.0f);
+    bool PlayTrack(const std::string& trackName, float speed = 0.0f, float blendTime = 0.0f);
     bool PlayTrackOnce(const std::string& trackName,
         const std::string& returnTrack = "",
-        float speed = 1.0f,
+        float speed = 0.0f,
         float blendTime = 0.0f);
+    void RestoreSpeed();
 
     void SetFramesForLayer(const std::string& trackName);
 

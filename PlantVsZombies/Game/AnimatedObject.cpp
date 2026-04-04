@@ -48,7 +48,7 @@ AnimatedObject::AnimatedObject(ObjectType type,
     }
 
     PlayAnimation();
-    SetAnimationSpeed(GameRandom::Range(0.65f, 0.85f));
+    SetAnimationSpeed(GameRandom::Range(1.0f, 1.2f));
 }
 
 Vector AnimatedObject::GetVisualPosition() const {
@@ -267,6 +267,14 @@ void AnimatedObject::SetOriginalSpeed(float speed)
     if (mAnimator)
     {
         mAnimator->SetOriginalSpeed(speed);
+    }
+}
+
+void AnimatedObject::RestoreSpeed()
+{
+    if (mAnimator)
+    {
+        mAnimator->RestoreSpeed();
     }
 }
 

@@ -1,4 +1,5 @@
 ﻿#include "Board.h"
+#include "LawnMower.h"
 #include "Shovel.h"
 #include "Sun.h"
 #include "Trophy.h"
@@ -616,6 +617,7 @@ void Board::StartGame()
 	if (mGameScene) {
 		mGameScene->ShowShovel();
 	}
+	InitializeMowers();
 	mBoardState = BoardState::GAME;
 	AudioSystem::PlayMusic(ResourceKeys::Music::MUSIC_DAY, -1);
 }
@@ -725,5 +727,40 @@ void Board::ActivateShovel()
 			shovel->ReturnHome();
 		});
 		shovel->Activate();
+	}
+}
+
+std::shared_ptr<Mower> Board::CreateMower(MowerType type, int row)
+{
+	float x = 160.0f;
+	float y = 135.0f + row * 100.0f;
+
+	auto mower = GameObjectManager::GetInstance().CreateGameObjectImmediate<Mower>(
+		LAYER_GAME_OBJECT, this, type, AnimationType::ANIM_LAWNMOWER, x, y, row);
+
+	if (mower) {
+		mEntityManager.AddMower(mower);
+	}
+	return mower;
+}
+
+std::shared_ptr<Mower> Board::CreateMowerWithID(MowerType type, int row, float x, float y, int id)
+{
+	auto mower = GameObjectManager::GetInstance().CreateGameObjectImmediate<Mower>(
+		LAYER_GAME_OBJECT, this, type, AnimationType::ANIM_LAWNMOWER, x, y, row);
+
+	if (mower) {
+		mEntityManager.AddMowerWithID(mower, id);
+	}
+	return mower;
+}
+
+void Board::InitializeMowers()
+{
+	// 读档恢复时已有小推车，不重复创建
+	if (!mEntityManager.GetAllMowerIDs().empty()) return;
+
+	for (int row = 0; row < mRows; row++) {
+		CreateMower(MowerType::LAWN, row);
 	}
 }

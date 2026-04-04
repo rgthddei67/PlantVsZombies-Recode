@@ -84,6 +84,7 @@ bool Animator::PlayTrack(const std::string& trackName, float speed, float blendT
     }
 
     if (speed > 0.0f) {
+        mOriginalSpeed = mSpeed;
         SetSpeed(speed);
     }
 
@@ -145,7 +146,8 @@ void Animator::Update() {
             mFrameIndexNow = mFrameIndexEnd;
             mIsPlaying = false;
             if (!mTargetTrack.empty()) {
-                PlayTrack(mTargetTrack, mOriginalSpeed, 0.5f);
+                PlayTrack(mTargetTrack, 0.0f, 0.5f);
+                RestoreSpeed();
                 mTargetTrack = "";
             }
             break;

@@ -127,23 +127,23 @@ public:
     /**
      * @brief 播放指定轨道动画，支持过渡效果
      * @param trackName 轨道名
-     * @param speed 播放速度倍率 (默认1.0)
+     * @param speed 播放速度倍率，0.0表示保持当前速度不变，>0时自动保存原始速度
      * @param blendTime 过渡时间 (秒)，0表示无过渡
      * @return 是否成功
      */
-    bool PlayTrack(const std::string& trackName, float speed = 1.0f, float blendTime = 0);
+    bool PlayTrack(const std::string& trackName, float speed = 0.0f, float blendTime = 0);
 
     /**
      * @brief 播放指定轨道动画一次，播放完后可切换回另一轨道
      * @param trackName 要播放的轨道名
      * @param returnTrack 播放完后要返回的轨道名 (为空则不切换)
-     * @param speed 播放速度倍率
+     * @param speed 播放速度倍率，0.0表示保持当前速度不变，>0时自动保存原始速度
      * @param blendTime 过渡时间
      * @return 是否成功
      */
     bool PlayTrackOnce(const std::string& trackName,
         const std::string& returnTrack = "",
-        float speed = 1.0f,
+        float speed = 0.0f,
         float blendTime = 0);
 
     /**
@@ -155,6 +155,11 @@ public:
      * @brief 获取原始速度
      */
     float GetOriginalSpeed() { return this->mOriginalSpeed; }
+
+    /**
+     * @brief 恢复到原始速度
+     */
+    void RestoreSpeed() { SetSpeed(mOriginalSpeed); }
 
     // ---------- 轨道范围控制 ----------
     /**

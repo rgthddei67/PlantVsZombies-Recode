@@ -68,6 +68,7 @@ public:
 	float GetVelocityY() { return mVelocityY; }
 	void SetVelocityY(float y) { this->mVelocityY = y; }
 
+	int GetSortingKey() const override { return this->mRow; }
 	std::shared_ptr<TransformComponent> GetTransformComponent() const { return mTransform.lock(); }
 	Vector GetPosition() const { return GetTransformComponent()->GetPosition(); }
 	std::shared_ptr<ColliderComponent> GetColliderComponent() const { return mCollider.lock(); }

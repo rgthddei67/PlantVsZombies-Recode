@@ -20,6 +20,8 @@ class Zombie;
 class Bullet;
 class Trophy;
 class Shovel;
+class Mower;
+enum class MowerType;
 
 struct RowInfo {
 	int rowIndex         = 0;
@@ -217,6 +219,11 @@ public:
 
 	// 割草机触发时调用（预留接口）
 	void SetRowLoseMower(int row);
+
+	// 小推车
+	std::shared_ptr<Mower> CreateMower(MowerType type, int row);
+	std::shared_ptr<Mower> CreateMowerWithID(MowerType type, int row, float x, float y, int id);
+	void InitializeMowers();
 
 };
 #endif

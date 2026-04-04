@@ -49,6 +49,7 @@ protected:
 
 	bool mHasHead = true;
 	bool mHasArm = true;
+	bool mHasTongue = false;
 	bool mIsDying = false;	// 是否播放死亡动画 大概可以这么理解 这个时候不能走路
 
 	float mSpeed = 10.0f;
@@ -64,16 +65,16 @@ public:
 	virtual void TakeDamage(int damage);
 	virtual void SaveExtraData(nlohmann::json& j) const {}	// 保存额外数据
 	virtual void LoadExtraData(const nlohmann::json& j) {}	// 加载额外数据 
-	virtual void ZombieItemUpdate() const; // 处理僵尸防具等内容
+	virtual void ZombieItemUpdate() const; // 处理僵尸读档的时候的手臂、防具等处理
 	virtual void Charred();	// 变成灰烬
 
 	int TakeShieldDamage(int damage);
 	int TakeHelmDamage(int damage);
 	void TakeBodyDamage(int damage);
 
-	int GetSortingKey() const override { return mRow; }
+	int GetSortingKey() const override { return this->mRow; }
 
-	void CheckWin() const;
+	void CheckWin() const;		// 生成奖杯判断
 
 	virtual void ShieldDrop();		// 二类防具掉落 必须调用Zombie::SheildDrop
 	virtual void HelmDrop();	// 一类防具掉落 必须调用Zombie::HelmDrop
@@ -95,6 +96,7 @@ public:
 		j["eatPlantID"] = mEatPlantID;
 		j["hasHead"] = mHasHead;
 		j["hasArm"] = mHasArm;
+		j["hasTongue"] = mHasTongue;
 		j["isDying"] = mIsDying;
 		j["speed"] = mSpeed;
 	}
@@ -105,6 +107,7 @@ public:
 		mEatPlantID = j.value("eatPlantID", NULL_PLANT_ID);
 		mHasHead = j.value("hasHead", true);
 		mHasArm = j.value("hasArm", true);
+		mHasTongue = j.value("hasTongue", false);
 		mIsDying = j.value("isDying", false);
 		mSpeed = j.value("speed", 10.0f);
 	}
@@ -114,7 +117,8 @@ public:
 			if (!em.GetPlant(mEatPlantID)) {
 				mIsEating = false;
 				mEatPlantID = NULL_PLANT_ID;
-				PlayTrack("anim_walk2", GetOriginalSpeed(), 0.3f);
+				PlayTrack("anim_walk2", 0.0f, 0.3f);
+				RestoreSpeed();
 			}
 		}
 	}
