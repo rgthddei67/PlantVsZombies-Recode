@@ -29,12 +29,12 @@ public:
 	void Die();
 
 private:
-	Board* mBoard;
-	const GLTexture* mTexture;
+	Board* mBoard = nullptr;
+	const GLTexture* mTexture = nullptr;
 	Vector           mPosition;
 	Vector           mHomePosition;
 	ShovelState      mState;
-	std::weak_ptr<Plant> mPlant;	// 选中的植物
+	Plant* mPlant = nullptr;	// 选中的植物
 };
 
 #endif

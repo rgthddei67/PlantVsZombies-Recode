@@ -78,6 +78,7 @@ public:
 private:
 	std::vector<ZombieType> mSpawnZombieList;	// 本关出怪表
 	float mHugeWaveCountDown = 0.0f;	// 一大波倒计时
+	float mUpdateHPCheckTimer = 0.0f;	// 僵尸血量检查计时器
 	bool mHasHugeWaveSound = false;		// 有无放过一大波音乐
 
 	std::vector<RowInfo> mRowInfos;

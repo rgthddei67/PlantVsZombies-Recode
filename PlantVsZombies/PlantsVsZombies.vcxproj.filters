@@ -211,6 +211,9 @@
     <ClCompile Include="Game\CursorObjectManager.cpp">
       <Filter>Code\Game</Filter>
     </ClCompile>
+    <ClCompile Include="Game\LawnMower.cpp">
+      <Filter>Code\Game</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="UI\Button.h">
@@ -457,6 +460,9 @@
       <Filter>Code\Game</Filter>
     </ClInclude>
     <ClInclude Include="Game\CursorObjectManager.h">
+      <Filter>Code\Game</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\LawnMower.h">
       <Filter>Code\Game</Filter>
     </ClInclude>
   </ItemGroup>

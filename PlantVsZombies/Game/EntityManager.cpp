@@ -11,17 +11,17 @@ int EntityManager::AddPlant(std::shared_ptr<Plant> plant) {
     return id;
 }
 
-std::shared_ptr<Plant> EntityManager::GetPlant(int id) const {
+Plant* EntityManager::GetPlant(int id) const {
     auto it = mPlants.find(id);
     if (it != mPlants.end())
-        return it->second.lock();
+        return it->second.lock().get();
     return nullptr;
 }
 
 std::vector<int> EntityManager::GetAllPlantIDs() const {
     std::vector<int> ids;
     for (const auto& pair : mPlants) {
-        if (!pair.second.expired())
+        if (pair.second.lock())
             ids.push_back(pair.first);
     }
     return ids;
@@ -34,17 +34,17 @@ int EntityManager::AddZombie(std::shared_ptr<Zombie> zombie) {
     return id;
 }
 
-std::shared_ptr<Zombie> EntityManager::GetZombie(int id) const {
+Zombie* EntityManager::GetZombie(int id) const {
     auto it = mZombies.find(id);
     if (it != mZombies.end())
-        return it->second.lock();
+        return it->second.lock().get();
     return nullptr;
 }
 
 std::vector<int> EntityManager::GetAllZombieIDs() const {
     std::vector<int> ids;
     for (const auto& pair : mZombies) {
-        if (!pair.second.expired())
+        if (pair.second.lock())
             ids.push_back(pair.first);
     }
     return ids;
@@ -57,22 +57,19 @@ int EntityManager::AddBullet(std::shared_ptr<Bullet> bullet) {
     return id;
 }
 
-std::shared_ptr<Bullet> EntityManager::GetBullet(int id) const {
+Bullet* EntityManager::GetBullet(int id) const {
     auto it = mBullets.find(id);
     if (it != mBullets.end())
-        return it->second.lock();
+        return it->second.lock().get();
     return nullptr;
 }
 
 std::vector<int> EntityManager::GetAllBulletIDs() const {
     std::vector<int> ids;
     for (const auto& pair : mBullets) {
-        if (!pair.second.expired()) {
-            auto bullet = pair.second.lock();
-            if (bullet && bullet->IsActive()) {
-                ids.push_back(pair.first);
-            }
-        }
+        auto bullet = pair.second.lock();
+        if (bullet && bullet->IsActive())
+            ids.push_back(pair.first);
     }
     return ids;
 }
@@ -88,17 +85,17 @@ int EntityManager::AddCoin(std::shared_ptr<Coin> coin) {
     return id;
 }
 
-std::shared_ptr<Coin> EntityManager::GetCoin(int id) const {
+Coin* EntityManager::GetCoin(int id) const {
     auto it = mCoins.find(id);
     if (it != mCoins.end())
-        return it->second.lock();
+        return it->second.lock().get();
     return nullptr;
 }
 
 std::vector<int> EntityManager::GetAllCoinIDs() const {
     std::vector<int> ids;
     for (const auto& pair : mCoins) {
-        if (!pair.second.expired())
+        if (pair.second.lock())
             ids.push_back(pair.first);
     }
     return ids;

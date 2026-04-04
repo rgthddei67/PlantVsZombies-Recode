@@ -155,21 +155,22 @@ void Zombie::Update()
 			{
 				mEatSoundTimer = 0;
 
-				auto plant = mBoard->mEntityManager.GetPlant(mEatPlantID);
-				plant->TakeDamage(mAttackDamage);
-				if (plant->mPlantHealth <= 0)
-				{
-					AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_ZOMBIE_FINISHEAT, 0.25f);
-				}
+				if (auto* plant = mBoard->mEntityManager.GetPlant(mEatPlantID)) {
+					plant->TakeDamage(mAttackDamage);
+					if (plant->mPlantHealth <= 0)
+					{
+						AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_ZOMBIE_FINISHEAT, 0.25f);
+					}
 
-				int random = GameRandom::Range(0, 1);
-				if (random == 0)
-				{
-					AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_ZOMBIE_EAT, 0.2f);
-				}
-				else
-				{
-					AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_ZOMBIE_EAT2, 0.2f);
+					int random = GameRandom::Range(0, 1);
+					if (random == 0)
+					{
+						AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_ZOMBIE_EAT, 0.2f);
+					}
+					else
+					{
+						AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_ZOMBIE_EAT2, 0.2f);
+					}
 				}
 			}
 		}

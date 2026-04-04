@@ -295,7 +295,13 @@ void Board::UpdateLevel()
 	if (mBoardState != BoardState::GAME) return;
 	float deltaTime = DeltaTime::GetDeltaTime();
 	UpdateSunFalling(deltaTime);
-	UpdateZombieHP();
+
+	mUpdateHPCheckTimer += deltaTime;
+	if (mUpdateHPCheckTimer >= 0.5f)
+	{
+		mUpdateHPCheckTimer = 0.0f;
+		UpdateZombieHP();
+	}
 
 	if (mCurrentWave >= mMaxWave)
 	{

@@ -161,9 +161,9 @@ bool GameInfoSaver::SaveLevelData(Board* board, CardSlotManager* manager)
 	// 太阳
 	nlohmann::json sunsArr = nlohmann::json::array();
 	for (int id : board->mEntityManager.GetAllCoinIDs()) {
-		auto coin = board->mEntityManager.GetCoin(id);
+		auto* coin = board->mEntityManager.GetCoin(id);
 		if (!coin) continue;
-		auto sun = std::dynamic_pointer_cast<Sun>(coin);
+		auto* sun = dynamic_cast<Sun*>(coin);
 		if (sun) {
 			nlohmann::json s;
 			s["id"] = id;
@@ -179,9 +179,9 @@ bool GameInfoSaver::SaveLevelData(Board* board, CardSlotManager* manager)
 	// 奖杯
 	nlohmann::json trophiesArr = nlohmann::json::array();
 	for (int id : board->mEntityManager.GetAllCoinIDs()) {
-		auto coin = board->mEntityManager.GetCoin(id);
+		auto* coin = board->mEntityManager.GetCoin(id);
 		if (!coin) continue;
-		auto trophy = std::dynamic_pointer_cast<Trophy>(coin);
+		auto* trophy = dynamic_cast<Trophy*>(coin);
 		if (trophy) {
 			nlohmann::json t;
 			t["id"] = id;

@@ -47,7 +47,7 @@ void GameDataManager::InitializeHardcodedData() {
 
 	RegisterPlant(
 		PlantType::PLANT_CHERRYBOMB,
-		0, 50.0f,
+		150, 50.0f,
 		"PLANT_CHERRYBOMB",
 		ResourceKeys::Textures::IMAGE_CHERRYBOMB,
 		AnimationType::ANIM_CHERRYBOMB,
@@ -82,6 +82,8 @@ void GameDataManager::InitializeHardcodedData() {
 	mAnimToString[AnimationType::ANIM_SUN] = ResourceKeys::Reanimations::REANIM_SUN;
 	mAnimToString[AnimationType::ANIM_ZOMBIE_CHARRED] =
 		ResourceKeys::Reanimations::REANIM_ZOMBIE_CHARRED;
+	mAnimToString[AnimationType::ANIM_LAWNMOWER] =
+		ResourceKeys::Reanimations::REANIM_LAWNMOWER;
 	mAnimToString[AnimationType::ANIM_NONE] = "Unknown";
 }
 

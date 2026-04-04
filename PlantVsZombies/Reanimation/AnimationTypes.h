@@ -16,6 +16,7 @@ enum class AnimationType
     ANIM_CONE_ZOMBIE,
     ANIM_POLEVAULTER_ZOMBIE,
     ANIM_PAIL_ZOMBIE,   //铁通僵尸
+    ANIM_LAWNMOWER,
 };
 
 #endif

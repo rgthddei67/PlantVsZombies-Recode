@@ -232,6 +232,7 @@ namespace ResourceKeys
         const std::string REANIM_CONE_ZOMBIE = "ConeZombie";
         const std::string REANIM_POLEVAULTER_ZOMBIE = "PolevaulterZombie";
         const std::string REANIM_PAIL_ZOMBIE = "BucketZombie";
+        const std::string REANIM_LAWNMOWER = "LawnMower";
     }
 
     class ResourceKeyGenerator

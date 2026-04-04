@@ -36,6 +36,7 @@ void Shovel::ReturnHome()
 {
 	mState = ShovelState::IDLE;
 	mPosition = mHomePosition;
+	mPlant = nullptr;
 }
 
 void Shovel::Die()
@@ -44,6 +45,7 @@ void Shovel::Die()
 	mPosition = mHomePosition;
 	GameObjectManager::GetInstance().DestroyGameObject(shared_from_this());
 	mBoard->mShovel.reset();
+	mPlant = nullptr;
 }
 
 void Shovel::Update()
@@ -63,8 +65,9 @@ void Shovel::Update()
 	}
 
 	if (input.IsMouseButtonPressed(SDL_BUTTON_LEFT)) {
-		if (auto plant = mPlant.lock()) {
-			plant->Die();
+		if (mPlant) {
+			mPlant->Die();
+			mPlant = nullptr;
 			AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_DELETEPLANT, 0.3f);
 		}
 		ReturnHome();
@@ -78,12 +81,12 @@ void Shovel::CheckPlant()
 		for (auto& cell : rowCells) {
 			if (cell && cell->ContainsPoint(mPosition) && !cell->IsEmpty()) {
 				mPlant = mBoard->mEntityManager.GetPlant(cell->GetPlantID());
-				mPlant.lock()->SetGlowingTimer(0.1f);
+				mPlant->SetGlowingTimer(0.1f);
 				return;
 			}
 		}
 	}
-	mPlant.reset();
+	mPlant = nullptr;
 }
 
 void Shovel::Draw(Graphics* g)
