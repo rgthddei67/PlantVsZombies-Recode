@@ -1,8 +1,8 @@
 #version 330 core
 layout (location = 0) in vec2 aPos;
 layout (location = 1) in vec2 aTexCoord;
-layout (location = 2) in float aTexIndex;
-layout (location = 3) in float aMatrixIndex;
+layout (location = 2) in uint aTexIndex;
+layout (location = 3) in uint aMatrixIndex;
 layout (location = 4) in vec4 aColor;   // tint
 
 out vec2 TexCoord;
@@ -17,7 +17,7 @@ layout(std140) uniform MatrixBlock {
 };
 
 void main() {
-    mat4 model = posMatrix[int(aMatrixIndex)];
+    mat4 model = posMatrix[aMatrixIndex];
     gl_Position = proj * view * model * vec4(aPos, 0.0, 1.0);
     TexCoord = aTexCoord;
     TexIndex = int(aTexIndex);

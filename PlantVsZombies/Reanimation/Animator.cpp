@@ -236,22 +236,8 @@ void Animator::Draw(Graphics* g, float baseX, float baseY, float Scale) {
     // 保存当前变换栈，确保我们不叠加额外变换
     g->PushTransform(glm::mat4(1.0f));
 
-    BlendMode originalBlend = g->GetBlendMode();  // 记录进入时的混合模式
-    BlendMode lastBlend = originalBlend;
-
     for (const auto& cmd : *commands) {
-        // 切换混合模式（若不同）
-        if (cmd.blendMode != lastBlend) {
-            g->SetBlendMode(cmd.blendMode);
-            lastBlend = cmd.blendMode;
-        }
-
-        g->DrawTextureMatrix(cmd.texture, cmd.transform, 0.0f, 0.0f, cmd.color);
-    }
-
-    // 恢复进入时的混合模式
-    if (g->GetBlendMode() != originalBlend) {
-        g->SetBlendMode(originalBlend);
+        g->DrawTextureMatrix(cmd.texture, cmd.transform, 0.0f, 0.0f, cmd.color, cmd.blendMode);
     }
 
     g->PopTransform();

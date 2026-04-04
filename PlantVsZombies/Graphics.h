@@ -53,9 +53,10 @@ inline glm::vec4 NormalizeColor(const glm::vec4& color) {
 struct BatchVertex {
 	float x, y;          // 顶点位置（局部坐标，通常为 0~1 矩形）
 	float u, v;          // 纹理坐标
-	float texIndex;      // 纹理索引（对应纹理单元）
-	float matrixIndex;   // 变换矩阵索引（对应矩阵数组）
+	GLuint texIndex;     // 纹理索引（对应纹理单元）
+	GLuint matrixIndex;  // 变换矩阵索引（对应矩阵数组）
 	float r, g, b, a;    // 顶点颜色（预乘色调）
+	float blendMode;     // 混合模式（0.0 = Alpha, 1.0 = Additive），仅 CPU 侧分段使用
 };
 
 /**
@@ -194,7 +195,8 @@ public:
  */
 	void DrawTextureMatrix(const GLTexture* tex, const glm::mat4& transform,
 		float pivotX = 0.0f, float pivotY = 0.0f,
-		const glm::vec4& tint = glm::vec4(255.0f));
+		const glm::vec4& tint = glm::vec4(255.0f),
+		BlendMode blendMode = BlendMode::None);
 
 	/**
  * @brief 绘制纹理的指定区域到目标矩形。
@@ -397,7 +399,8 @@ public:
 
 	void SubmitDrawTextureMatrix(const GLTexture* texture, const glm::mat4& transform,
 		float pivotX = 0.0f, float pivotY = 0.0f,
-		const glm::vec4& tint = glm::vec4(255.0f));
+		const glm::vec4& tint = glm::vec4(255.0f),
+		BlendMode blendMode = BlendMode::None);
 
 	void SubmitDrawTextureRegion(const GLTexture* tex,
 		float srcX, float srcY, float srcW, float srcH,

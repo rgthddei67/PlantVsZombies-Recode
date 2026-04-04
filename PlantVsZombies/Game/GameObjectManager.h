@@ -49,9 +49,13 @@ public:
         if (n < 1) n = 1;
         mThreadPool = std::make_unique<ThreadPool>(n);
 
+        mGameObjects.reserve(2048);
+        mObjectsToAdd.reserve(128);
+        mObjectsToRemove.reserve(512);
+
         // 初始化对象池
         mBulletPool = std::make_unique<BulletPool>();
-        mBulletPool->Initialize(250, 500);  // 初始容量 250，警告阈值 500
+        mBulletPool->Initialize(300, 600);  // 初始容量 300，警告阈值 600
     }
 
     // 创建游戏对象 (塞入mObjectsToAdd，在Update时执行Start)

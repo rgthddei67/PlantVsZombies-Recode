@@ -50,14 +50,14 @@ bool Graphics::Initialize(int windowWidth, int windowHeight) {
 	// 纹理坐标 (u,v)
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(BatchVertex), (void*)(2 * sizeof(float)));
 	glEnableVertexAttribArray(1);
-	// 纹理索引
-	glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, sizeof(BatchVertex), (void*)(4 * sizeof(float)));
+	// 纹理索引（整数属性，用 IPointer）
+	glVertexAttribIPointer(2, 1, GL_UNSIGNED_INT, sizeof(BatchVertex), (void*)(4 * sizeof(float)));
 	glEnableVertexAttribArray(2);
-	// 矩阵索引
-	glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(BatchVertex), (void*)(5 * sizeof(float)));
+	// 矩阵索引（整数属性，用 IPointer）
+	glVertexAttribIPointer(3, 1, GL_UNSIGNED_INT, sizeof(BatchVertex), (void*)(4 * sizeof(float) + sizeof(GLuint)));
 	glEnableVertexAttribArray(3);
 	// 颜色
-	glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, sizeof(BatchVertex), (void*)(6 * sizeof(float)));
+	glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, sizeof(BatchVertex), (void*)(4 * sizeof(float) + 2 * sizeof(GLuint)));
 	glEnableVertexAttribArray(4);
 
 	glBindVertexArray(0);
@@ -227,10 +227,40 @@ void Graphics::FlushBatch() {
 		glBindBuffer(GL_ARRAY_BUFFER, m_batchVBO);
 		glBufferSubData(GL_ARRAY_BUFFER, 0, m_batchVertices.size() * sizeof(BatchVertex), m_batchVertices.data());
 
-		// 绘制
+		// 按连续相同 blendMode 分段绘制，每段设置对应 GL 混合状态
 		glBindVertexArray(m_batchVAO);
-		glDrawArrays(GL_TRIANGLES, 0, (GLsizei)m_batchVertices.size());
+		size_t segStart = 0;
+		while (segStart < m_batchVertices.size()) {
+			float curBM = m_batchVertices[segStart].blendMode;
+			size_t segEnd = segStart + 1;
+			while (segEnd < m_batchVertices.size() && m_batchVertices[segEnd].blendMode == curBM) {
+				++segEnd;
+			}
+
+			// 设置该段的混合模式
+			if (curBM > 0.5f) {
+				glBlendFunc(GL_SRC_ALPHA, GL_ONE);           // Additive
+			}
+			else {
+				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); // Alpha
+			}
+
+			glDrawArrays(GL_TRIANGLES, (GLint)segStart, (GLsizei)(segEnd - segStart));
+			segStart = segEnd;
+		}
 		glBindVertexArray(0);
+
+		// 恢复当前混合模式对应的 GL 状态
+		switch (m_currentBlendMode) {
+		case BlendMode::Alpha:
+			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+			break;
+		case BlendMode::Add:
+			glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+			break;
+		default:
+			break;
+		}
 
 		// 清空批处理容器
 		m_batchVertices.clear();
@@ -318,13 +348,14 @@ void Graphics::DrawTexture(const GLTexture* tex, float x, float y, float width, 
 		glm::vec4 normalizedTint = NormalizeColor(tint);
 
 		// 构建两个三角形（6个顶点）的批处理顶点数据
+		float bm = (m_currentBlendMode == BlendMode::Add) ? 1.0f : 0.0f;
 		BatchVertex vertices[6] = {
-			{0.0f, 1.0f, 0.0f, 1.0f, (float)texIndex, (float)matrixIndex, normalizedTint.r , normalizedTint.g , normalizedTint.b , normalizedTint.a },
-			{1.0f, 1.0f, 1.0f, 1.0f, (float)texIndex, (float)matrixIndex, normalizedTint.r, normalizedTint.g , normalizedTint.b, normalizedTint.a },
-			{1.0f, 0.0f, 1.0f, 0.0f, (float)texIndex, (float)matrixIndex, normalizedTint.r , normalizedTint.g , normalizedTint.b , normalizedTint.a },
-			{0.0f, 1.0f, 0.0f, 1.0f, (float)texIndex, (float)matrixIndex, normalizedTint.r , normalizedTint.g, normalizedTint.b , normalizedTint.a },
-			{0.0f, 0.0f, 0.0f, 0.0f, (float)texIndex, (float)matrixIndex, normalizedTint.r , normalizedTint.g , normalizedTint.b, normalizedTint.a},
-			{1.0f, 0.0f, 1.0f, 0.0f, (float)texIndex, (float)matrixIndex, normalizedTint.r, normalizedTint.g, normalizedTint.b , normalizedTint.a}
+			{0.0f, 1.0f, 0.0f, 1.0f, (GLuint)texIndex, (GLuint)matrixIndex, normalizedTint.r , normalizedTint.g , normalizedTint.b , normalizedTint.a, bm},
+			{1.0f, 1.0f, 1.0f, 1.0f, (GLuint)texIndex, (GLuint)matrixIndex, normalizedTint.r, normalizedTint.g , normalizedTint.b, normalizedTint.a, bm},
+			{1.0f, 0.0f, 1.0f, 0.0f, (GLuint)texIndex, (GLuint)matrixIndex, normalizedTint.r , normalizedTint.g , normalizedTint.b , normalizedTint.a, bm},
+			{0.0f, 1.0f, 0.0f, 1.0f, (GLuint)texIndex, (GLuint)matrixIndex, normalizedTint.r , normalizedTint.g, normalizedTint.b , normalizedTint.a, bm},
+			{0.0f, 0.0f, 0.0f, 0.0f, (GLuint)texIndex, (GLuint)matrixIndex, normalizedTint.r , normalizedTint.g , normalizedTint.b, normalizedTint.a, bm},
+			{1.0f, 0.0f, 1.0f, 0.0f, (GLuint)texIndex, (GLuint)matrixIndex, normalizedTint.r, normalizedTint.g, normalizedTint.b , normalizedTint.a, bm}
 		};
 		AddVertices(vertices, 6);
 		CheckBatch();
@@ -359,7 +390,7 @@ void Graphics::DrawTexture(const GLTexture* tex, float x, float y, float width, 
 }
 
 void Graphics::DrawTextureMatrix(const GLTexture* tex, const glm::mat4& transform,
-	float pivotX, float pivotY, const glm::vec4& tint) {
+	float pivotX, float pivotY, const glm::vec4& tint, BlendMode blendMode) {
 
 	if (!tex) return;
 
@@ -382,13 +413,17 @@ void Graphics::DrawTextureMatrix(const GLTexture* tex, const glm::mat4& transfor
 		// 转换颜色为 0-1 格式
 		glm::vec4 normalizedTint = NormalizeColor(tint);
 
+		// 确定实际混合模式：None 表示使用当前全局混合模式
+		BlendMode actualMode = (blendMode == BlendMode::None) ? m_currentBlendMode : blendMode;
+		float bm = (actualMode == BlendMode::Add) ? 1.0f : 0.0f;
+
 		BatchVertex vertices[6] = {
-			{0.0f, 1.0f, 0.0f, 1.0f, (float)texIndex, (float)matrixIndex, normalizedTint.r, normalizedTint.g, normalizedTint.b, normalizedTint.a},
-			{1.0f, 1.0f, 1.0f, 1.0f, (float)texIndex, (float)matrixIndex, normalizedTint.r, normalizedTint.g, normalizedTint.b, normalizedTint.a},
-			{1.0f, 0.0f, 1.0f, 0.0f, (float)texIndex, (float)matrixIndex, normalizedTint.r, normalizedTint.g, normalizedTint.b, normalizedTint.a},
-			{0.0f, 1.0f, 0.0f, 1.0f, (float)texIndex, (float)matrixIndex, normalizedTint.r, normalizedTint.g, normalizedTint.b, normalizedTint.a},
-			{0.0f, 0.0f, 0.0f, 0.0f, (float)texIndex, (float)matrixIndex, normalizedTint.r, normalizedTint.g, normalizedTint.b, normalizedTint.a},
-			{1.0f, 0.0f, 1.0f, 0.0f, (float)texIndex, (float)matrixIndex, normalizedTint.r, normalizedTint.g, normalizedTint.b, normalizedTint.a}
+			{0.0f, 1.0f, 0.0f, 1.0f, (GLuint)texIndex, (GLuint)matrixIndex, normalizedTint.r, normalizedTint.g, normalizedTint.b, normalizedTint.a, bm},
+			{1.0f, 1.0f, 1.0f, 1.0f, (GLuint)texIndex, (GLuint)matrixIndex, normalizedTint.r, normalizedTint.g, normalizedTint.b, normalizedTint.a, bm},
+			{1.0f, 0.0f, 1.0f, 0.0f, (GLuint)texIndex, (GLuint)matrixIndex, normalizedTint.r, normalizedTint.g, normalizedTint.b, normalizedTint.a, bm},
+			{0.0f, 1.0f, 0.0f, 1.0f, (GLuint)texIndex, (GLuint)matrixIndex, normalizedTint.r, normalizedTint.g, normalizedTint.b, normalizedTint.a, bm},
+			{0.0f, 0.0f, 0.0f, 0.0f, (GLuint)texIndex, (GLuint)matrixIndex, normalizedTint.r, normalizedTint.g, normalizedTint.b, normalizedTint.a, bm},
+			{1.0f, 0.0f, 1.0f, 0.0f, (GLuint)texIndex, (GLuint)matrixIndex, normalizedTint.r, normalizedTint.g, normalizedTint.b, normalizedTint.a, bm}
 		};
 		AddVertices(vertices, 6);
 		CheckBatch();
@@ -396,6 +431,13 @@ void Graphics::DrawTextureMatrix(const GLTexture* tex, const glm::mat4& transfor
 	else {
 		// 立即模式
 		glm::vec4 normalizedTint = NormalizeColor(tint);
+
+		// 如果指定了混合模式且与当前不同，先切换
+		BlendMode originalMode = m_currentBlendMode;
+		if (blendMode != BlendMode::None && blendMode != m_currentBlendMode) {
+			SetBlendMode(blendMode);
+		}
+
 		m_spriteShader.use();
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, tex->id);
@@ -420,6 +462,11 @@ void Graphics::DrawTextureMatrix(const GLTexture* tex, const glm::mat4& transfor
 		glBindVertexArray(m_spriteVAO);
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 		glBindVertexArray(0);
+
+		// 恢复原始混合模式
+		if (m_currentBlendMode != originalMode) {
+			SetBlendMode(originalMode);
+		}
 	}
 }
 
@@ -454,13 +501,14 @@ void Graphics::DrawTextureRegion(const GLTexture* tex,
 		// 转换颜色为 0-1 格式
 		glm::vec4 normalizedTint = NormalizeColor(tint);
 
+		float bm = (m_currentBlendMode == BlendMode::Add) ? 1.0f : 0.0f;
 		BatchVertex vertices[6] = {
-			{0.0f, 1.0f, u0, v1, (float)texIndex, (float)matrixIndex, normalizedTint.r, normalizedTint.g, normalizedTint.b, normalizedTint.a},
-			{1.0f, 1.0f, u1, v1, (float)texIndex, (float)matrixIndex, normalizedTint.r, normalizedTint.g, normalizedTint.b, normalizedTint.a},
-			{1.0f, 0.0f, u1, v0, (float)texIndex, (float)matrixIndex, normalizedTint.r, normalizedTint.g, normalizedTint.b, normalizedTint.a},
-			{0.0f, 1.0f, u0, v1, (float)texIndex, (float)matrixIndex, normalizedTint.r, normalizedTint.g, normalizedTint.b, normalizedTint.a},
-			{0.0f, 0.0f, u0, v0, (float)texIndex, (float)matrixIndex, normalizedTint.r, normalizedTint.g, normalizedTint.b, normalizedTint.a},
-			{1.0f, 0.0f, u1, v0, (float)texIndex, (float)matrixIndex, normalizedTint.r, normalizedTint.g, normalizedTint.b, normalizedTint.a}
+			{0.0f, 1.0f, u0, v1, (GLuint)texIndex, (GLuint)matrixIndex, normalizedTint.r, normalizedTint.g, normalizedTint.b, normalizedTint.a, bm},
+			{1.0f, 1.0f, u1, v1, (GLuint)texIndex, (GLuint)matrixIndex, normalizedTint.r, normalizedTint.g, normalizedTint.b, normalizedTint.a, bm},
+			{1.0f, 0.0f, u1, v0, (GLuint)texIndex, (GLuint)matrixIndex, normalizedTint.r, normalizedTint.g, normalizedTint.b, normalizedTint.a, bm},
+			{0.0f, 1.0f, u0, v1, (GLuint)texIndex, (GLuint)matrixIndex, normalizedTint.r, normalizedTint.g, normalizedTint.b, normalizedTint.a, bm},
+			{0.0f, 0.0f, u0, v0, (GLuint)texIndex, (GLuint)matrixIndex, normalizedTint.r, normalizedTint.g, normalizedTint.b, normalizedTint.a, bm},
+			{1.0f, 0.0f, u1, v0, (GLuint)texIndex, (GLuint)matrixIndex, normalizedTint.r, normalizedTint.g, normalizedTint.b, normalizedTint.a, bm}
 		};
 		AddVertices(vertices, 6);
 		CheckBatch();
@@ -594,12 +642,12 @@ void Graphics::DrawText(const std::string& text, const std::string& fontKey, int
 		int matrixIndex = AddMatrix(finalMatrix);
 
 		BatchVertex vertices[6] = {
-			{0.0f, 1.0f, 0.0f, 1.0f, (float)texIndex, (float)matrixIndex, 1,1,1,1},
-			{1.0f, 1.0f, 1.0f, 1.0f, (float)texIndex, (float)matrixIndex, 1,1,1,1},
-			{1.0f, 0.0f, 1.0f, 0.0f, (float)texIndex, (float)matrixIndex, 1,1,1,1},
-			{0.0f, 1.0f, 0.0f, 1.0f, (float)texIndex, (float)matrixIndex, 1,1,1,1},
-			{0.0f, 0.0f, 0.0f, 0.0f, (float)texIndex, (float)matrixIndex, 1,1,1,1},
-			{1.0f, 0.0f, 1.0f, 0.0f, (float)texIndex, (float)matrixIndex, 1,1,1,1}
+			{0.0f, 1.0f, 0.0f, 1.0f, (GLuint)texIndex, (GLuint)matrixIndex, 1,1,1,1, 0.0f},
+			{1.0f, 1.0f, 1.0f, 1.0f, (GLuint)texIndex, (GLuint)matrixIndex, 1,1,1,1, 0.0f},
+			{1.0f, 0.0f, 1.0f, 0.0f, (GLuint)texIndex, (GLuint)matrixIndex, 1,1,1,1, 0.0f},
+			{0.0f, 1.0f, 0.0f, 1.0f, (GLuint)texIndex, (GLuint)matrixIndex, 1,1,1,1, 0.0f},
+			{0.0f, 0.0f, 0.0f, 0.0f, (GLuint)texIndex, (GLuint)matrixIndex, 1,1,1,1, 0.0f},
+			{1.0f, 0.0f, 1.0f, 0.0f, (GLuint)texIndex, (GLuint)matrixIndex, 1,1,1,1, 0.0f}
 		};
 		AddVertices(vertices, 6);
 		CheckBatch();
@@ -641,12 +689,22 @@ void Graphics::SetClearColor(float r, float g, float b, float a) {
 }
 
 void Graphics::SetBlendMode(BlendMode mode) {
-	// 提交当前批次，避免混合状态混乱
-	if (!m_batchVertices.empty() || !m_geomBatchVertices.empty()) {
-		FlushBatch();
+	if (m_currentBlendMode == mode) return;
+
+	// 几何批次无逐顶点混合模式，切换时需提交
+	if (!m_geomBatchVertices.empty()) {
+		FlushGeomBatch();
 	}
 
 	m_currentBlendMode = mode;
+
+	// 纹理批次通过逐顶点 blendMode 字段在 FlushBatch 时分段处理，无需提交
+	// 非批处理模式下直接设置 GL 状态
+	if (!m_batchMode) {
+		if (!m_batchVertices.empty()) {
+			FlushBatch();
+		}
+	}
 
 	GLenum src, dst;
 	switch (mode) {
@@ -959,8 +1017,8 @@ void Graphics::SubmitDrawTexture(const GLTexture* texture, float x, float y, flo
 }
 
 void Graphics::SubmitDrawTextureMatrix(const GLTexture* texture, const glm::mat4& transform,
-	float pivotX, float pivotY, const glm::vec4& tint) {
-	Submit([=]() { DrawTextureMatrix(texture, transform, pivotX, pivotY, tint); });
+	float pivotX, float pivotY, const glm::vec4& tint, BlendMode blendMode) {
+	Submit([=]() { DrawTextureMatrix(texture, transform, pivotX, pivotY, tint, blendMode); });
 }
 
 void Graphics::SubmitDrawTextureRegion(const GLTexture* tex,
