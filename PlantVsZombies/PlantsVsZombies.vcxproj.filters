@@ -476,16 +476,16 @@
     <None Include="Shader\batch_vertex.glsl">
       <Filter>Code\Shader</Filter>
     </None>
-    <None Include="Shader\geom_fragment.glsl">
-      <Filter>Code\Shader</Filter>
-    </None>
-    <None Include="Shader\geom_vertex.glsl">
-      <Filter>Code\Shader</Filter>
-    </None>
     <None Include="Shader\sprite_fragment.glsl">
       <Filter>Code\Shader</Filter>
     </None>
     <None Include="Shader\sprite_vertex.glsl">
+      <Filter>Code\Shader</Filter>
+    </None>
+    <None Include="Shader\geom_fragment.glsl">
+      <Filter>Code\Shader</Filter>
+    </None>
+    <None Include="Shader\geom_vertex.glsl">
       <Filter>Code\Shader</Filter>
     </None>
   </ItemGroup>

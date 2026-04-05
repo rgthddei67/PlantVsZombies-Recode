@@ -468,6 +468,8 @@ private:
 
 	bool m_batchMode = true;                      ///< 是否启用批处理模式
 
+	GLuint m_whiteTexture = 0;   ///< 1×1 纯白纹理，用于 FillRect 批处理
+
 	static const int VERTEX_BATCH_LIMIT = 1024;   ///< 单批次最大顶点数
 	static const int MATRIX_BATCH_LIMIT = 256;    ///< 单批次最大矩阵数（UBO 保证最小 16KB，可存 256 个 mat4）
 	static const int GEOM_BATCH_LIMIT = 2048;   ///< 单批次最大几何顶点数

@@ -20,6 +20,8 @@ Graphics::~Graphics() {
 	// 释放几何图形渲染资源
 	if (m_geomVAO) glDeleteVertexArrays(1, &m_geomVAO);
 	if (m_geomVBO) glDeleteBuffers(1, &m_geomVBO);
+
+	if (m_whiteTexture) glDeleteTextures(1, &m_whiteTexture);
 }
 
 bool Graphics::Initialize(int windowWidth, int windowHeight) {
@@ -77,6 +79,17 @@ bool Graphics::Initialize(int windowWidth, int windowHeight) {
 		return false;
 	}
 	glUniformBlockBinding(m_batchShader.getProgramID(), blockIndex, 0);
+
+	// 创建 1×1 纯白纹理，供 FillRect 批处理使用
+	{
+		unsigned char whitePixel[4] = { 255, 255, 255, 255 };
+		glGenTextures(1, &m_whiteTexture);
+		glBindTexture(GL_TEXTURE_2D, m_whiteTexture);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, whitePixel);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glBindTexture(GL_TEXTURE_2D, 0);
+	}
 
 	return true;
 }
@@ -934,65 +947,216 @@ void Graphics::DrawGeomImmediate(const std::vector<GeomVertex>& vertices, GLenum
 }
 
 void Graphics::DrawLine(float x1, float y1, float x2, float y2, const glm::vec4& color) {
-	glm::vec4 normalizedColor = NormalizeColor(color);
-	std::vector<GeomVertex> verts = {
-		{x1, y1, normalizedColor.r, normalizedColor.g, normalizedColor.b, normalizedColor.a},
-		{x2, y2, normalizedColor.r, normalizedColor.g, normalizedColor.b, normalizedColor.a}
-	};
-	DrawGeomImmediate(verts, GL_LINES);
+	glm::vec4 nc = NormalizeColor(color);
+	float r = nc.r, g = nc.g, b = nc.b, a = nc.a;
+
+	if (m_batchMode) {
+		// batch 模式：将线段转为 1px 宽四边形，走纹理批次保证绘制顺序
+		const glm::mat4& transform = m_transformStack.back();
+		glm::vec4 p0 = transform * glm::vec4(x1, y1, 0.0f, 1.0f);
+		glm::vec4 p1 = transform * glm::vec4(x2, y2, 0.0f, 1.0f);
+
+		float dx = p1.x - p0.x, dy = p1.y - p0.y;
+		float len = sqrtf(dx * dx + dy * dy);
+		if (len < 0.001f) return;
+		float nx = -dy / len * 0.5f, ny = dx / len * 0.5f;
+
+		int texIndex = BindTexture(m_whiteTexture);
+		int matIndex = AddMatrix(glm::mat4(1.0f));
+		float bm = (m_currentBlendMode == BlendMode::Add) ? 1.0f : 0.0f;
+
+		BatchVertex verts[6] = {
+			{p0.x + nx, p0.y + ny, 0.5f, 0.5f, (GLuint)texIndex, (GLuint)matIndex, r,g,b,a, bm},
+			{p0.x - nx, p0.y - ny, 0.5f, 0.5f, (GLuint)texIndex, (GLuint)matIndex, r,g,b,a, bm},
+			{p1.x - nx, p1.y - ny, 0.5f, 0.5f, (GLuint)texIndex, (GLuint)matIndex, r,g,b,a, bm},
+			{p0.x + nx, p0.y + ny, 0.5f, 0.5f, (GLuint)texIndex, (GLuint)matIndex, r,g,b,a, bm},
+			{p1.x - nx, p1.y - ny, 0.5f, 0.5f, (GLuint)texIndex, (GLuint)matIndex, r,g,b,a, bm},
+			{p1.x + nx, p1.y + ny, 0.5f, 0.5f, (GLuint)texIndex, (GLuint)matIndex, r,g,b,a, bm},
+		};
+		AddVertices(verts, 6);
+		CheckBatch();
+	}
+	else {
+		std::vector<GeomVertex> verts = {
+			{x1, y1, r, g, b, a},
+			{x2, y2, r, g, b, a}
+		};
+		DrawGeomImmediate(verts, GL_LINES);
+	}
 }
 
 void Graphics::DrawRect(float x, float y, float width, float height, const glm::vec4& color) {
-	glm::vec4 normalizedColor = NormalizeColor(color);
-	float r = normalizedColor.r, g = normalizedColor.g, b = normalizedColor.b, a = normalizedColor.a;
-	std::vector<GeomVertex> verts = {
-		{x,         y,          r, g, b, a},  // 左上
-		{x + width, y,          r, g, b, a},  // 右上
-		{x + width, y + height, r, g, b, a},  // 右下
-		{x,         y + height, r, g, b, a}   // 左下
-	};
-	DrawGeomImmediate(verts, GL_LINE_LOOP);
+	glm::vec4 nc = NormalizeColor(color);
+	float r = nc.r, g = nc.g, b = nc.b, a = nc.a;
+
+	if (m_batchMode) {
+		// batch 模式：4条边各转为 1px 宽四边形，走纹理批次
+		const glm::mat4& transform = m_transformStack.back();
+		glm::vec4 p[4] = {
+			transform * glm::vec4(x,         y,          0.0f, 1.0f),
+			transform * glm::vec4(x + width, y,          0.0f, 1.0f),
+			transform * glm::vec4(x + width, y + height, 0.0f, 1.0f),
+			transform * glm::vec4(x,         y + height, 0.0f, 1.0f),
+		};
+
+		int texIndex = BindTexture(m_whiteTexture);
+		int matIndex = AddMatrix(glm::mat4(1.0f));
+		float bm = (m_currentBlendMode == BlendMode::Add) ? 1.0f : 0.0f;
+
+		for (int i = 0; i < 4; ++i) {
+			float ax = p[i].x, ay = p[i].y;
+			float bx = p[(i + 1) % 4].x, by = p[(i + 1) % 4].y;
+			float edx = bx - ax, edy = by - ay;
+			float len = sqrtf(edx * edx + edy * edy);
+			if (len < 0.001f) continue;
+			float nx = -edy / len * 0.5f, ny = edx / len * 0.5f;
+
+			BatchVertex verts[6] = {
+				{ax + nx, ay + ny, 0.5f, 0.5f, (GLuint)texIndex, (GLuint)matIndex, r,g,b,a, bm},
+				{ax - nx, ay - ny, 0.5f, 0.5f, (GLuint)texIndex, (GLuint)matIndex, r,g,b,a, bm},
+				{bx - nx, by - ny, 0.5f, 0.5f, (GLuint)texIndex, (GLuint)matIndex, r,g,b,a, bm},
+				{ax + nx, ay + ny, 0.5f, 0.5f, (GLuint)texIndex, (GLuint)matIndex, r,g,b,a, bm},
+				{bx - nx, by - ny, 0.5f, 0.5f, (GLuint)texIndex, (GLuint)matIndex, r,g,b,a, bm},
+				{bx + nx, by + ny, 0.5f, 0.5f, (GLuint)texIndex, (GLuint)matIndex, r,g,b,a, bm},
+			};
+			AddVertices(verts, 6);
+		}
+		CheckBatch();
+	}
+	else {
+		std::vector<GeomVertex> verts = {
+			{x,         y,          r, g, b, a},
+			{x + width, y,          r, g, b, a},
+			{x + width, y + height, r, g, b, a},
+			{x,         y + height, r, g, b, a}
+		};
+		DrawGeomImmediate(verts, GL_LINE_LOOP);
+	}
 }
 
 void Graphics::FillRect(float x, float y, float width, float height, const glm::vec4& color) {
-	glm::vec4 normalizedColor = NormalizeColor(color);
-	float r = normalizedColor.r, g = normalizedColor.g, b = normalizedColor.b, a = normalizedColor.a;
-	std::vector<GeomVertex> verts = {
-		{x,         y,          r, g, b, a},  // 左上
-		{x + width, y,          r, g, b, a},  // 右上
-		{x + width, y + height, r, g, b, a},  // 右下
-		{x,         y,          r, g, b, a},  // 左上（第二个三角形）
-		{x + width, y + height, r, g, b, a},  // 右下
-		{x,         y + height, r, g, b, a}   // 左下
-	};
-	DrawGeomImmediate(verts, GL_TRIANGLES);
+	if (m_batchMode) {
+		// 批处理模式：使用 1×1 白色纹理加入纹理批次，保证与其他纹理的绘制顺序正确
+		int texIndex = BindTexture(m_whiteTexture);
+
+		glm::mat4 local = glm::mat4(1.0f);
+		local = glm::translate(local, glm::vec3(x, y, 0.0f));
+		local = glm::scale(local, glm::vec3(width, height, 1.0f));
+		glm::mat4 finalMatrix = m_transformStack.back() * local;
+		int matrixIndex = AddMatrix(finalMatrix);
+
+		glm::vec4 nc = NormalizeColor(color);
+		float bm = (m_currentBlendMode == BlendMode::Add) ? 1.0f : 0.0f;
+		BatchVertex vertices[6] = {
+			{0.0f, 1.0f, 0.0f, 1.0f, (GLuint)texIndex, (GLuint)matrixIndex, nc.r, nc.g, nc.b, nc.a, bm},
+			{1.0f, 1.0f, 1.0f, 1.0f, (GLuint)texIndex, (GLuint)matrixIndex, nc.r, nc.g, nc.b, nc.a, bm},
+			{1.0f, 0.0f, 1.0f, 0.0f, (GLuint)texIndex, (GLuint)matrixIndex, nc.r, nc.g, nc.b, nc.a, bm},
+			{0.0f, 1.0f, 0.0f, 1.0f, (GLuint)texIndex, (GLuint)matrixIndex, nc.r, nc.g, nc.b, nc.a, bm},
+			{0.0f, 0.0f, 0.0f, 0.0f, (GLuint)texIndex, (GLuint)matrixIndex, nc.r, nc.g, nc.b, nc.a, bm},
+			{1.0f, 0.0f, 1.0f, 0.0f, (GLuint)texIndex, (GLuint)matrixIndex, nc.r, nc.g, nc.b, nc.a, bm},
+		};
+		AddVertices(vertices, 6);
+		CheckBatch();
+	}
+	else {
+		glm::vec4 nc = NormalizeColor(color);
+		float r = nc.r, g = nc.g, b = nc.b, a = nc.a;
+		std::vector<GeomVertex> verts = {
+			{x,         y,          r, g, b, a},
+			{x + width, y,          r, g, b, a},
+			{x + width, y + height, r, g, b, a},
+			{x,         y,          r, g, b, a},
+			{x + width, y + height, r, g, b, a},
+			{x,         y + height, r, g, b, a}
+		};
+		DrawGeomImmediate(verts, GL_TRIANGLES);
+	}
 }
 
 void Graphics::DrawCircle(float cx, float cy, float radius, const glm::vec4& color, int segments) {
-	glm::vec4 normalizedColor = NormalizeColor(color);
-	std::vector<GeomVertex> verts;
-	verts.reserve(segments);
-	float r = normalizedColor.r, g = normalizedColor.g, b = normalizedColor.b, a = normalizedColor.a;
-	for (int i = 0; i < segments; ++i) {
-		float angle = 2.0f * glm::pi<float>() * i / segments;
-		verts.push_back({ cx + radius * cosf(angle), cy + radius * sinf(angle), r, g, b, a });
+	glm::vec4 nc = NormalizeColor(color);
+	float r = nc.r, g = nc.g, b = nc.b, a = nc.a;
+
+	if (m_batchMode) {
+		// batch 模式：每段弧转为 1px 宽四边形，走纹理批次
+		const glm::mat4& transform = m_transformStack.back();
+
+		int texIndex = BindTexture(m_whiteTexture);
+		int matIndex = AddMatrix(glm::mat4(1.0f));
+		float bm = (m_currentBlendMode == BlendMode::Add) ? 1.0f : 0.0f;
+
+		for (int i = 0; i < segments; ++i) {
+			float angle0 = 2.0f * glm::pi<float>() * i / segments;
+			float angle1 = 2.0f * glm::pi<float>() * (i + 1) / segments;
+			glm::vec4 p0 = transform * glm::vec4(cx + radius * cosf(angle0), cy + radius * sinf(angle0), 0.0f, 1.0f);
+			glm::vec4 p1 = transform * glm::vec4(cx + radius * cosf(angle1), cy + radius * sinf(angle1), 0.0f, 1.0f);
+
+			float dx = p1.x - p0.x, dy = p1.y - p0.y;
+			float len = sqrtf(dx * dx + dy * dy);
+			if (len < 0.001f) continue;
+			float nx = -dy / len * 0.5f, ny = dx / len * 0.5f;
+
+			BatchVertex verts[6] = {
+				{p0.x + nx, p0.y + ny, 0.5f, 0.5f, (GLuint)texIndex, (GLuint)matIndex, r,g,b,a, bm},
+				{p0.x - nx, p0.y - ny, 0.5f, 0.5f, (GLuint)texIndex, (GLuint)matIndex, r,g,b,a, bm},
+				{p1.x - nx, p1.y - ny, 0.5f, 0.5f, (GLuint)texIndex, (GLuint)matIndex, r,g,b,a, bm},
+				{p0.x + nx, p0.y + ny, 0.5f, 0.5f, (GLuint)texIndex, (GLuint)matIndex, r,g,b,a, bm},
+				{p1.x - nx, p1.y - ny, 0.5f, 0.5f, (GLuint)texIndex, (GLuint)matIndex, r,g,b,a, bm},
+				{p1.x + nx, p1.y + ny, 0.5f, 0.5f, (GLuint)texIndex, (GLuint)matIndex, r,g,b,a, bm},
+			};
+			AddVertices(verts, 6);
+		}
+		CheckBatch();
 	}
-	DrawGeomImmediate(verts, GL_LINE_LOOP);
+	else {
+		std::vector<GeomVertex> verts;
+		verts.reserve(segments);
+		for (int i = 0; i < segments; ++i) {
+			float angle = 2.0f * glm::pi<float>() * i / segments;
+			verts.push_back({ cx + radius * cosf(angle), cy + radius * sinf(angle), r, g, b, a });
+		}
+		DrawGeomImmediate(verts, GL_LINE_LOOP);
+	}
 }
 
 void Graphics::FillCircle(float cx, float cy, float radius, const glm::vec4& color, int segments) {
-	glm::vec4 normalizedColor = NormalizeColor(color);
-	std::vector<GeomVertex> verts;
-	verts.reserve(segments + 2);
-	float r = normalizedColor.r, g = normalizedColor.g, b = normalizedColor.b, a = normalizedColor.a;
-	// 圆心
-	verts.push_back({ cx, cy, r, g, b, a });
-	// 圆周上的点
-	for (int i = 0; i <= segments; ++i) {
-		float angle = 2.0f * glm::pi<float>() * i / segments;
-		verts.push_back({ cx + radius * cosf(angle), cy + radius * sinf(angle), r, g, b, a });
+	glm::vec4 nc = NormalizeColor(color);
+	float r = nc.r, g = nc.g, b = nc.b, a = nc.a;
+
+	if (m_batchMode) {
+		// batch 模式：展开三角扇，走纹理批次
+		const glm::mat4& transform = m_transformStack.back();
+		glm::vec4 center = transform * glm::vec4(cx, cy, 0.0f, 1.0f);
+
+		int texIndex = BindTexture(m_whiteTexture);
+		int matIndex = AddMatrix(glm::mat4(1.0f));
+		float bm = (m_currentBlendMode == BlendMode::Add) ? 1.0f : 0.0f;
+
+		for (int i = 0; i < segments; ++i) {
+			float angle0 = 2.0f * glm::pi<float>() * i / segments;
+			float angle1 = 2.0f * glm::pi<float>() * (i + 1) / segments;
+			glm::vec4 p0 = transform * glm::vec4(cx + radius * cosf(angle0), cy + radius * sinf(angle0), 0.0f, 1.0f);
+			glm::vec4 p1 = transform * glm::vec4(cx + radius * cosf(angle1), cy + radius * sinf(angle1), 0.0f, 1.0f);
+
+			BatchVertex verts[3] = {
+				{center.x, center.y, 0.5f, 0.5f, (GLuint)texIndex, (GLuint)matIndex, r,g,b,a, bm},
+				{p0.x, p0.y,         0.5f, 0.5f, (GLuint)texIndex, (GLuint)matIndex, r,g,b,a, bm},
+				{p1.x, p1.y,         0.5f, 0.5f, (GLuint)texIndex, (GLuint)matIndex, r,g,b,a, bm},
+			};
+			AddVertices(verts, 3);
+		}
+		CheckBatch();
 	}
-	DrawGeomImmediate(verts, GL_TRIANGLE_FAN);
+	else {
+		std::vector<GeomVertex> verts;
+		verts.reserve(segments + 2);
+		verts.push_back({ cx, cy, r, g, b, a });
+		for (int i = 0; i <= segments; ++i) {
+			float angle = 2.0f * glm::pi<float>() * i / segments;
+			verts.push_back({ cx + radius * cosf(angle), cy + radius * sinf(angle), r, g, b, a });
+		}
+		DrawGeomImmediate(verts, GL_TRIANGLE_FAN);
+	}
 }
 
 void Graphics::Submit(std::function<void()> cmd) {

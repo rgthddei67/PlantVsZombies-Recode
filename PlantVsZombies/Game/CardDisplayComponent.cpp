@@ -133,19 +133,12 @@ void CardDisplayComponent::DrawCooldownMask(Graphics* g, std::shared_ptr<Transfo
         maskHeight
     };
 
-    // 保存当前混合模式，设置为半透明混合
-    BlendMode oldMode = g->GetBlendMode();
-    g->SetBlendMode(BlendMode::Alpha);
-
     // 绘制半透明黑色矩形
     g->FillRect(static_cast<float>(maskRect.x),
         static_cast<float>(maskRect.y),
         static_cast<float>(maskRect.w),
         static_cast<float>(maskRect.h),
         glm::vec4(0.0f, 0.0f, 0.0f, 64.0f));
-
-    // 恢复混合模式
-    g->SetBlendMode(oldMode);
 }
 
 void CardDisplayComponent::DrawSunCost(Graphics* g, std::shared_ptr<TransformComponent> transform) {
@@ -167,16 +160,11 @@ void CardDisplayComponent::DrawSelectionHighlight(Graphics* g, std::shared_ptr<T
     Vector pos = transform->GetPosition();
     Vector position = g->ScreenToWorldPosition(pos.x, pos.y);
 
-    BlendMode oldMode = g->GetBlendMode();
-    g->SetBlendMode(BlendMode::Alpha);
-
     // 绘制半透明黑色遮罩表示选中
     g->FillRect(position.x, position.y,
         static_cast<float>(CARD_WIDTH),
         static_cast<float>(CARD_HEIGHT),
         glm::vec4(0.0f, 0.0f, 0.0f, 64.0f));
-
-    g->SetBlendMode(oldMode);
 }
 
 void CardDisplayComponent::UpdateCardState() {
