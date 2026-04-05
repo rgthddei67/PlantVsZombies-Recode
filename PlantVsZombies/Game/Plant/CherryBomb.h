@@ -9,6 +9,8 @@ public:
 	using Plant::Plant;
 
 	void SetupPlant() override;
+
+	void TakeDamage(int damage) override;
 };
 
 #endif

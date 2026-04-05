@@ -28,6 +28,7 @@ public:
 	bool mIsSleeping = false;
 	bool mIsPreview = false;
 	int mPlantID = NULL_PLANT_ID;
+	int mEaterCount = 0;			// 正在啃食此植物的僵尸数量
 
 public:
 	Plant(Board* board, PlantType plantType, int row, int column,

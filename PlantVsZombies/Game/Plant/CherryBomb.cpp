@@ -10,3 +10,9 @@ void CherryBomb::SetupPlant()
 		Die();
 		});
 }
+
+void CherryBomb::TakeDamage(int damage)
+{
+	this->SetGlowingTimer(0.1f);
+	return;
+}

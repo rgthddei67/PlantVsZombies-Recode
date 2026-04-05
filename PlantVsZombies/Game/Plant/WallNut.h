@@ -7,6 +7,7 @@
 class WallNut : public Plant {
 private:
 	float mUpdateTextureTimer = 0.0f;
+	bool mWasBeingEaten = false;
 
 public:
 	using Plant::Plant;

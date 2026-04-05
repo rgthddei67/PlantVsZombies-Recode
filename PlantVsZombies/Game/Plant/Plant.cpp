@@ -1,4 +1,4 @@
-#include "Plant.h"
+﻿#include "Plant.h"
 #include "../Board.h"
 #include "../Zombie/Zombie.h"
 #include "../GameObjectManager.h"
@@ -36,6 +36,10 @@ Plant::Plant(Board* board, PlantType plantType, int row, int column,
 		);
 		SetPosition(cellCenterPosition);  // 逻辑位置
 		mVisualOffset = GameDataManager::GetInstance().GetPlantOffset(plantType);
+		auto shadowcomponent = AddComponent<ShadowComponent>
+			(ResourceManager::GetInstance().GetTexture
+			(ResourceKeys::Textures::IMAGE_PLANTSHADOW));
+		shadowcomponent->SetDrawOrder(-80);
 	}
 	else {
 		SetPosition(Vector(-512, -512));
@@ -50,17 +54,13 @@ void Plant::SetupPlant()
 void Plant::Start()
 {
 	GameObject::Start();
+	this->PlayTrack("anim_idle");
 	if (this->mIsPreview) {
 		RemoveComponent<ColliderComponent>();
 	}
 	else {
-		auto shadowcomponent = AddComponent<ShadowComponent>
-			(ResourceManager::GetInstance().GetTexture
-			(ResourceKeys::Textures::IMAGE_PLANTSHADOW));
-		shadowcomponent->SetDrawOrder(-80);
+		SetupPlant();
 	}
-	this->PlayTrack("anim_idle");
-	SetupPlant();
 }
 
 void Plant::TakeDamage(int damage) {

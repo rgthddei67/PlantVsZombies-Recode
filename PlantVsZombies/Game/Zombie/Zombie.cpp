@@ -347,6 +347,7 @@ void Zombie::EatTarget(std::shared_ptr<ColliderComponent> other)
 			}
 			mIsEating = true;
 			mEatPlantID = plant->mPlantID;
+			plant->mEaterCount++;
 		}
 	}
 }
@@ -364,6 +365,7 @@ void Zombie::StopEat(std::shared_ptr<ColliderComponent> other)
 			if (mIsEating) {
 				this->PlayTrack("anim_walk2", 0.0f, 0.3f);
 				this->RestoreSpeed();
+				plant->mEaterCount--;
 			}
 			mIsEating = false;
 			mEatPlantID = NULL_PLANT_ID;
