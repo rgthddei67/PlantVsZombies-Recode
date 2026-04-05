@@ -214,6 +214,9 @@
     <ClCompile Include="Game\LawnMower.cpp">
       <Filter>Code\Game</Filter>
     </ClCompile>
+    <ClCompile Include="Game\GameObjectManager.cpp">
+      <Filter>Code\Game</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="UI\Button.h">

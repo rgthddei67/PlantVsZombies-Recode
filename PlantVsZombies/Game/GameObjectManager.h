@@ -42,21 +42,7 @@ public:
         return instance;
     }
 
-    GameObjectManager()
-    {
-        ResetAllLayers();
-        int n = static_cast<int>(std::thread::hardware_concurrency());
-        if (n < 1) n = 1;
-        mThreadPool = std::make_unique<ThreadPool>(n);
-
-        mGameObjects.reserve(2048);
-        mObjectsToAdd.reserve(128);
-        mObjectsToRemove.reserve(512);
-
-        // 初始化对象池
-        mBulletPool = std::make_unique<BulletPool>();
-        mBulletPool->Initialize(300, 600);  // 初始容量 300，警告阈值 600
-    }
+    GameObjectManager();
 
     // 创建游戏对象 (塞入mObjectsToAdd，在Update时执行Start)
     template<typename T, typename... Args>
@@ -83,325 +69,54 @@ public:
     }
 
     // 销毁游戏对象
-    void DestroyGameObject(std::shared_ptr<GameObject> obj) {
-        if (obj) {
-            RecycleRenderOrder(obj->GetRenderOrder(), obj->GetLayer(), obj->GetSortingKey());
-            mObjectsToRemove.push_back(obj);
-        }
-    }
+    void DestroyGameObject(std::shared_ptr<GameObject> obj);
 
     // 销毁全部游戏对象
-    void DestroyAllGameObjects() {
-        mBulletPool->Clear();
-
-        // 销毁所有现有对象
-        for (auto& obj : mGameObjects) {
-            if (obj) {
-                obj->DestroyAllComponents();
-            }
-        }
-        mGameObjects.clear();
-
-        // 销毁待添加对象
-        for (auto& obj : mObjectsToAdd) {
-            if (obj) {
-                obj->DestroyAllComponents();
-            }
-        }
-        mObjectsToAdd.clear();
-
-        // 销毁待删除对象
-        for (auto& obj : mObjectsToRemove) {
-            if (obj) {
-                obj->DestroyAllComponents();
-            }
-        }
-        mObjectsToRemove.clear();
-
-        ResetAllLayers();
-
-#ifdef _DEBUG
-        std::cout << "GameObjectManager::DestroyAllGameObjects 已销毁所有游戏对象" << std::endl;
-#endif
-    }
+    void DestroyAllGameObjects();
 
     // 更新
-    void Update() {
-        // 有增删时标记排序脏
-        if (!mObjectsToRemove.empty() || !mObjectsToAdd.empty())
-            mSortDirty = true;
-
-        // 移除在mObjectsToRemove中的对象
-        for (size_t i = 0; i < mObjectsToRemove.size(); i++) {
-            auto obj = mObjectsToRemove[i];
-            if (obj) {
-                obj->DestroyAllComponents();
-            }
-            mGameObjects.erase(
-                std::remove(mGameObjects.begin(), mGameObjects.end(), obj),
-                mGameObjects.end()
-            );
-        }
-        mObjectsToRemove.clear();
-
-        // 新对象的操作
-        for (size_t i = 0; i < mObjectsToAdd.size(); i++) {
-            auto obj = mObjectsToAdd[i];
-            mGameObjects.push_back(obj);
-            obj->Start();
-        }
-
-        mObjectsToAdd.clear();
-
-        /*
-        * TODO: 一定不要存vector元素的&!!!!!!一定不要存vector元素的&!!!!!!一定不要存vector元素的&!!!！
-        * shared_ptr指向堆上的 GameObject 对象
-        e.g.
-        GameObject* rawPtr = mGameObjects[0].get();  // 指向堆上的 GameObject
-        rawPtr 指向的是由 shared_ptr 管理的堆对象。
-
-        vector 扩容只移动 shared_ptr 本身，堆对象一动不动。
-
-        所以 rawPtr 始终有效（只要对象未被销毁）。
-        */
-
-        // 更新现有（mGameObjects）对象
-        for (size_t i = 0; i < mGameObjects.size(); i++) {
-            auto obj = mGameObjects[i].get();
-            if (obj->IsActive()) {
-                obj->Update();
-            }
-        }
-    }
+    void Update();
 
     // 绘制所有GameObject对象
-    void DrawAll(Graphics* g) {
-        // 按渲染顺序排序（仅在有增删时重新排序）
-        if (mSortDirty) {
-            std::sort(mGameObjects.begin(), mGameObjects.end(),
-                [](const std::shared_ptr<GameObject>& a, const std::shared_ptr<GameObject>& b) {
-                    return a->GetRenderOrder() < b->GetRenderOrder();
-                });
-            mSortDirty = false;
-        }
-
-        // ---- 并行预计算阶段（纯CPU变换，不涉及OpenGL）----
-        int total = static_cast<int>(mGameObjects.size());
-
-        if (total > 1) {
-            mThreadPool->Dispatch(total, [this](int start, int end) {
-                for (int i = start; i < end; i++) {
-                    if (mGameObjects[i]->IsActive())
-                        mGameObjects[i]->PrepareForDraw();
-                }
-            });
-        }
-        else {
-            for (size_t i = 0; i < mGameObjects.size(); i++)
-            {
-                auto* obj = mGameObjects[i].get();
-                if (obj->IsActive()) {
-                    obj->PrepareForDraw();
-                }
-            }
-        }
-
-        // ---- 串行绘制阶段（按 mRenderOrder 顺序，保证绘制顺序正确）----
-        for (size_t i = 0; i < mGameObjects.size(); ++i) {
-            auto* obj = mGameObjects[i].get();
-            if (obj->IsActive()) {
-                obj->Draw(g);
-            }
-        }
-    }
+    void DrawAll(Graphics* g);
 
     // 查找在gameObjects中的符合条件游戏对象 (根据tag标签)
-    std::vector<std::shared_ptr<GameObject>> FindGameObjectsWithTag(const std::string& tag) {
-        std::vector<std::shared_ptr<GameObject>> result;
-        for (auto& obj : mGameObjects) {
-            if (obj->GetTag() == tag) {
-                result.push_back(obj);
-            }
-        }
-        return result;
-    }
+    std::vector<std::shared_ptr<GameObject>> FindGameObjectsWithTag(const std::string& tag);
 
     // 查找在gameObjects中的第一个符合条件游戏对象 (根据tag标签)
-    std::shared_ptr<GameObject> FindGameObjectWithTag(const std::string& tag) {
-        auto objects = FindGameObjectsWithTag(tag);
-        return objects.empty() ? nullptr : objects[0];
-    }
+    std::shared_ptr<GameObject> FindGameObjectWithTag(const std::string& tag);
 
     // 获取gameObjects引用
-    const std::vector<std::shared_ptr<GameObject>>& GetAllGameObjects() const {
-        return mGameObjects;
-    }
+    const std::vector<std::shared_ptr<GameObject>>& GetAllGameObjects() const { return mGameObjects; }
 
     // 清空所有对象
-    void ClearAll() {
-        // 先销毁所有对象
-        for (auto& obj : mGameObjects) {
-            if (obj) {
-                obj->DestroyAllComponents();
-            }
-        }
-        mGameObjects.clear();
-
-        for (auto& obj : mObjectsToAdd) {
-            if (obj) {
-                obj->DestroyAllComponents();
-            }
-        }
-        mObjectsToAdd.clear();
-
-        for (auto& obj : mObjectsToRemove) {
-            if (obj) {
-                obj->DestroyAllComponents();
-            }
-        }
-        mObjectsToRemove.clear();
-
-        ResetAllLayers();
-    }
+    void ClearAll();
 
     // 获取对象池
     BulletPool* GetBulletPool() { return mBulletPool.get(); }
 
     // 打印对象池统计信息
-    void PrintPoolStats() const {
-        if (mBulletPool) {
-            mBulletPool->PrintStats();
-        }
-    }
+    void PrintPoolStats() const;
 
     // 初始化所有图层
-    void ResetAllLayers() {
-        mLayerRecycledOrders.clear();
-        mLayerMaxSubOrder.clear();
-        mLayerKeyRecycledOrders.clear();
-        mLayerKeyMaxLocalIdx.clear();
+    void ResetAllLayers();
 
-        // 初始化所有枚举值
-        RenderLayer layers[] = {
-            LAYER_BACKGROUND,
-            LAYER_GAME_OBJECT,
-            LAYER_GAME_PLANT,
-            LAYER_GAME_ZOMBIE,
-            LAYER_GAME_BULLET,
-            LAYER_GAME_COIN,
-            LAYER_EFFECTS,
-            LAYER_UI,
-            LAYER_DEBUG
-        };
-
-        for (RenderLayer layer : layers) {
-            ResetLayer(layer);
-        }
-    }
-
-    void AssignRenderOrder(std::shared_ptr<GameObject> gameObject, RenderLayer layer) {
-        // 先回收旧的渲染顺序（需要知道旧的 key）
-        RecycleRenderOrder(gameObject->GetRenderOrder(), gameObject->GetLayer(), gameObject->GetSortingKey());
-
-        int subOrder;
-        int key = gameObject->GetSortingKey();
-        if (key >= 0) {
-            subOrder = GetNextSubOrderForKey(layer, key);
-        }
-        else {
-            subOrder = GetNextSubOrder(layer);
-        }
-        int renderOrder = static_cast<int>(layer) + subOrder;
-        gameObject->SetRenderOrder(renderOrder);
-    }
+    void AssignRenderOrder(std::shared_ptr<GameObject> gameObject, RenderLayer layer);
 
     // 回收渲染顺序
-    void RecycleRenderOrder(int renderOrder, RenderLayer layer, int key = -1) {
-        int subOrder = renderOrder - static_cast<int>(layer);
-        if (subOrder >= 0 && subOrder < 10000) {  // 子顺序范围 0~9999
-            if (key >= 0) {
-                mLayerKeyRecycledOrders[layer][key].insert(subOrder);
-            }
-            else {
-                mLayerRecycledOrders[layer].insert(subOrder);
-            }
-        }
-    }
+    void RecycleRenderOrder(int renderOrder, RenderLayer layer, int key = -1);
 
 private:
     // 获取图层内的下一个可用子顺序
-    int GetNextSubOrder(RenderLayer layer) {
-        // 1. 优先从回收池获取
-        if (!mLayerRecycledOrders[layer].empty()) {
-            int recycled = *mLayerRecycledOrders[layer].begin();
-            mLayerRecycledOrders[layer].erase(mLayerRecycledOrders[layer].begin());
-            return recycled;
-        }
-
-        // 2. 分配新的子顺序
-        int newOrder = mLayerMaxSubOrder[layer]++;
-
-        // 3. 检查是否超过图层容量
-        if (newOrder >= 10000) { // 每个图层最多10000个子顺序
-            // 尝试从回收池获取
-            if (!mLayerRecycledOrders[layer].empty()) {
-                newOrder = *mLayerRecycledOrders[layer].begin();
-                mLayerRecycledOrders[layer].erase(mLayerRecycledOrders[layer].begin());
-            }
-            else {
-                // 重置该图层
-                ResetLayer(layer);
-                newOrder = mLayerMaxSubOrder[layer]++; // 从0开始
-            }
-        }
-
-        return newOrder;
-    }
+    int GetNextSubOrder(RenderLayer layer);
 
     // 按key分配下一个可用子顺序
-    int GetNextSubOrderForKey(RenderLayer layer, int key) {
-        // 1. 优先从该 key 的空闲池中取
-        auto& recycled = mLayerKeyRecycledOrders[layer][key];
-        if (!recycled.empty()) {
-            int sub = *recycled.begin();
-            recycled.erase(recycled.begin());
-            return sub;
-        }
+    int GetNextSubOrderForKey(RenderLayer layer, int key);
 
-        // 2. 分配新区间内的本地索引
-        int localIdx = mLayerKeyMaxLocalIdx[layer][key];  // 默认初始为 0
-        if (localIdx < SUBORDER_PER_KEY) {
-            int globalSub = key * SUBORDER_PER_KEY + localIdx;
-            mLayerKeyMaxLocalIdx[layer][key] = localIdx + 1;
-            return globalSub;
-        }
-
-        // 3. 超出区间上限，尝试再次检查回收池
-        if (!recycled.empty()) {
-            int sub = *recycled.begin();
-            recycled.erase(recycled.begin());
-            return sub;
-        }
-
-        // 4. 极端情况：重置该 key 的区间（清空回收池，从 0 重新开始）
-        // 注意：这会导致之前已分配但尚未回收的子顺序被废弃，但概率极低
-        ResetKeyLayer(layer, key);
-        int globalSub = key * SUBORDER_PER_KEY;  // 从 0 开始
-        mLayerKeyMaxLocalIdx[layer][key] = 1;    // 下一个可用本地索引为 1
-        return globalSub;
-    }
-
-    void ResetKeyLayer(RenderLayer layer, int key) {
-        mLayerKeyMaxLocalIdx[layer][key] = 0;
-        mLayerKeyRecycledOrders[layer][key].clear();
-    }
+    void ResetKeyLayer(RenderLayer layer, int key);
 
     // 重置指定图层
-    void ResetLayer(RenderLayer layer) {
-        mLayerMaxSubOrder[layer] = 0;
-        mLayerRecycledOrders[layer].clear();
-    }
-
+    void ResetLayer(RenderLayer layer);
 };
 
 #endif

@@ -394,7 +394,7 @@ private:
      * @param trackIndex 轨道索引
      * @return 插值后的帧变换
      */
-    TrackFrameTransform GetInterpolatedTransform(int trackIndex) const;
+    TrackFrameTransform GetInterpolatedTransform(int trackIndex, float blendRatio) const;
 
     /**
      * @brief 根据轨道名获取所有 TrackExtraInfo 指针

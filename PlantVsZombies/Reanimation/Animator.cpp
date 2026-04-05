@@ -233,7 +233,7 @@ void Animator::Draw(Graphics* g, float baseX, float baseY, float Scale) {
         commands = &localCommands;
     }
 
-    // 保存当前变换栈，确保我们不叠加额外变换
+    // 保存当前变换栈，确保不叠加额外变换
     g->PushTransform(glm::mat4(1.0f));
 
     for (const auto& cmd : *commands) {
@@ -249,13 +249,30 @@ void Animator::Draw(Graphics* g, float baseX, float baseY, float Scale) {
 void Animator::CollectDrawCommands(std::vector<AnimDrawCommand>& outCommands, float baseX, float baseY, float Scale) const {
     if (!mReanim) return;
 
-    const float DEG_TO_RAD = 3.14159265358979323846f / 180.0f;
+    static constexpr float DEG_TO_RAD = 3.14159265358979323846f / 180.0f;
+
+    // 预计算混合比例，避免在轨道循环内每次做浮点除法
+    float blendRatio = 0.0f;
+    if (mReanimBlendCounter > 0.0f)
+        blendRatio = 1.0f - mReanimBlendCounter / mReanimBlendCounterMax;
 
     for (int i = 0; i < static_cast<int>(mReanim->GetTrackCount()); ++i) {
         auto track = mReanim->GetTrack(i);
         if (!track || !track->mAvailable || track->mFrames.empty()) continue;
 
-        TrackFrameTransform transform = GetInterpolatedTransform(i);
+        TrackFrameTransform transform = GetInterpolatedTransform(i, blendRatio);
+
+        // 对本轨道 transform 只计算一次三角，自绘块和子动画块共用
+        float angleX = -transform.kx * DEG_TO_RAD;
+        float angleY = -transform.ky * DEG_TO_RAD;
+        float cosX = cosf(angleX);
+        float sinX = sinf(angleX);
+        float cosY = cosf(angleY);
+        float sinY = sinf(angleY);
+        float tA = cosX * transform.sx;
+        float tB = -sinX * transform.sx;
+        float tC = sinY * transform.sy;
+        float tD = cosY * transform.sy;
 
         bool shouldDrawSelf = (i < static_cast<int>(mExtraInfos.size()) &&
             mExtraInfos[i].mVisible &&
@@ -274,27 +291,14 @@ void Animator::CollectDrawCommands(std::vector<AnimDrawCommand>& outCommands, fl
             float w = static_cast<float>(imgWidth);
             float h = static_cast<float>(imgHeight);
 
-            // 计算扭曲参数（与原逻辑相同）
-            float angleX = -transform.kx * DEG_TO_RAD;
-            float angleY = -transform.ky * DEG_TO_RAD;
-            float cosX = cosf(angleX);
-            float sinX = sinf(angleX);
-            float cosY = cosf(angleY);
-            float sinY = sinf(angleY);
-
-            float a = cosX * transform.sx;
-            float b = -sinX * transform.sx;
-            float c = sinY * transform.sy;
-            float d = cosY * transform.sy;
-
             float tx = transform.x + mExtraInfos[i].mOffsetX;
             float ty = transform.y + mExtraInfos[i].mOffsetY;
 
             // 直接构造仿射变换矩阵（将单位矩形映射到目标四边形，省去中间顶点计算）
             glm::mat4 mat(
-                a * w * Scale,  b * w * Scale,  0.0f, 0.0f,
-                c * h * Scale,  d * h * Scale,  0.0f, 0.0f,
-                0.0f,           0.0f,           1.0f, 0.0f,
+                tA * w * Scale,  tB * w * Scale,  0.0f, 0.0f,
+                tC * h * Scale,  tD * h * Scale,  0.0f, 0.0f,
+                0.0f,            0.0f,             1.0f, 0.0f,
                 baseX + tx * Scale, baseY + ty * Scale, 0.0f, 1.0f
             );
 
@@ -337,23 +341,15 @@ void Animator::CollectDrawCommands(std::vector<AnimDrawCommand>& outCommands, fl
                 auto child = weakChild.lock();
                 if (!child || !child->mReanim) continue;
 
-                float angleX = -transform.kx * DEG_TO_RAD;
-                float angleY = -transform.ky * DEG_TO_RAD;
-                float cosX = cosf(angleX), sinX = sinf(angleX);
-                float cosY = cosf(angleY), sinY = sinf(angleY);
-                float a = cosX * transform.sx;
-                float b = -sinX * transform.sx;
-                float c = sinY * transform.sy;
-                float d = cosY * transform.sy;
-
+                // 复用本轨道已计算的 tA/tB/tC/tD，无需重复三角运算
                 float tx = transform.x + mExtraInfos[i].mOffsetX;
                 float ty = transform.y + mExtraInfos[i].mOffsetY;
 
                 float childX = child->mLocalPosX;
                 float childY = child->mLocalPosY;
 
-                float worldX = tx + a * childX + c * childY;
-                float worldY = ty + b * childX + d * childY;
+                float worldX = tx + tA * childX + tC * childY;
+                float worldY = ty + tB * childX + tD * childY;
 
                 worldX = baseX + worldX * Scale;
                 worldY = baseY + worldY * Scale;
@@ -653,7 +649,7 @@ bool Animator::GetTrackVisible(const std::string& trackName) const {
     return false;
 }
 
-TrackFrameTransform Animator::GetInterpolatedTransform(int trackIndex) const {
+TrackFrameTransform Animator::GetInterpolatedTransform(int trackIndex, float blendRatio) const {
     TrackFrameTransform result;
     if (!mReanim) return result;
 
@@ -665,10 +661,10 @@ TrackFrameTransform Animator::GetInterpolatedTransform(int trackIndex) const {
     int frameAfter = std::min(frameBefore + 1, static_cast<int>(track->mFrames.size() - 1));
 
     if (mReanimBlendCounter > 0) {
-        // 过渡动画插值
+        // 过渡动画插值（blendRatio 由调用方预计算，避免此处重复做除法）
         GetDeltaTransform(track->mFrames[mFrameIndexBlendBuffer],
             track->mFrames[frameBefore],
-            1.0f - mReanimBlendCounter / mReanimBlendCounterMax,
+            blendRatio,
             result, true);
     }
     else {
