@@ -31,7 +31,6 @@ enum class ArmorBrokenState {
 
 enum class ZombieType {
 	ZOMBIE_NORMAL,
-	ZOMBIE_FLAG,
 	ZOMBIE_TRAFFIC_CONE,
 	ZOMBIE_POLEVAULTER,
 	ZOMBIE_PAIL,

@@ -32,6 +32,7 @@ public:
 		speedSlow = 500.0f;
 		slowDownDistance = 130.0f;
         this->mCoinType = CoinType::COIN_SUN;
+		mStartScale = 0.2f;  // 出现动画从0.2开始，而非接近0
 	}
 
 	// TODO 析构函数会自动调用基类的析构函数 不能自己写

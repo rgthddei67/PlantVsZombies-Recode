@@ -12,14 +12,16 @@ Trophy::Trophy(Board * board, const Vector & position)
 	: Coin(board, AnimationType::ANIM_NONE, position,
 		Vector(60, 60), Vector(0, 0),
 		999.0f,
-		BASE_SCALE, "Trophy", false, false)
+		BASE_SCALE, "Trophy", true, false)
 {
 	mCoinType = CoinType::COIN_TROPHY;
+	mStartScale = 0.2f;  // 出现动画从0.2开始
 }
 
 void Trophy::Start()
 {
 	AnimatedObject::Start();
+	SetScale(mStartScale);  // 出现时从缩放起始值开始
 
 	// 注册点击组件
 	auto clickComponent = AddComponent<ClickableComponent>();
@@ -48,7 +50,7 @@ void Trophy::SetOnClickBack(std::shared_ptr<ClickableComponent> click)
 		gameApp.mGameInfoSaver.DeleteLevelData(mBoard);
 		// 判断是否是冒险模式
 		// TODO: 若以后增加小游戏，就改这里
-		if (mBoard->mLevel <= 50) {
+		if (mBoard->mLevel <= 50 && gameApp.mAdventureLevel == mBoard->mLevel) {
 			gameApp.mAdventureLevel++;
 			gameApp.mHaveCards.push_back(static_cast<PlantType>(mBoard->mLevel));
 		}

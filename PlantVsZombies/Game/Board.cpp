@@ -655,6 +655,12 @@ void Board::LoadSpawnListFromJson()
 			seen.insert(val);
 			mSpawnZombieList.push_back(static_cast<ZombieType>(val));
 		}
+		if (entry.contains("waves"))
+		{
+			int waves = entry["waves"].get<int>();
+			if (waves > 0)
+				mMaxWave = waves;
+		}
 		return;
 	}
 	// 没找到对应关卡配置，保持默认 ZOMBIE_NORMAL（不清空）

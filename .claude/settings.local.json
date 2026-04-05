@@ -6,7 +6,8 @@
       "Bash(find /Users/p7tbq8 -type f -name *.h -o -name *.cpp)",
       "Bash(grep -rn \"CardDisplayComponent\\\\|CardSlotManager.*Draw\" /d/C++/PlantsVsZombies/PlantVsZombies/PlantVsZombies/Game/*.cpp)",
       "Bash(grep -rn \"CreateGameObject.*Card\\\\|new Card\" /d/C++/PlantsVsZombies/PlantVsZombies/PlantVsZombies/Game/*.cpp)",
-      "Bash(grep -rn \"Card.*false\\\\|isInChooseCardUI.*false\" /d/C++/PlantsVsZombies/PlantVsZombies/PlantVsZombies/Game/*.cpp)"
+      "Bash(grep -rn \"Card.*false\\\\|isInChooseCardUI.*false\" /d/C++/PlantsVsZombies/PlantVsZombies/PlantVsZombies/Game/*.cpp)",
+      "Bash(xargs grep:*)"
     ]
   }
 }
