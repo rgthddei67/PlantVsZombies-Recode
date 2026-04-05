@@ -12,6 +12,7 @@
 #include <vector>
 #include <memory>
 
+class GameInfoSaver;
 class GameScene;
 class Sun;
 class Coin;
@@ -47,6 +48,9 @@ enum class BoardState {
 
 class Board {
 public:
+	friend GameScene;
+	friend GameInfoSaver;
+
 	BoardState mBoardState = BoardState::CHOOSE_CARD;
 	GameScene* mGameScene = nullptr;
 	std::string mLevelName = "关卡 1-1";
@@ -82,6 +86,7 @@ private:
 	float mHugeWaveCountDown = 0.0f;	// 一大波倒计时
 	float mUpdateHPCheckTimer = 0.0f;	// 僵尸血量检查计时器
 	bool mHasHugeWaveSound = false;		// 有无放过一大波音乐
+	bool mIsLoadSave = false;	// 是否正在加载存档
 
 	std::vector<RowInfo> mRowInfos;
 	static constexpr float ROW_WEIGHT_THRESHOLD = 1e-6f;

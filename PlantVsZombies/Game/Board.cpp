@@ -617,7 +617,9 @@ void Board::StartGame()
 	if (mGameScene) {
 		mGameScene->ShowShovel();
 	}
-	InitializeMowers();
+	if (!mIsLoadSave) {
+		InitializeMowers();
+	}
 	mBoardState = BoardState::GAME;
 	AudioSystem::PlayMusic(ResourceKeys::Music::MUSIC_DAY, -1);
 }
@@ -757,9 +759,6 @@ std::shared_ptr<Mower> Board::CreateMowerWithID(MowerType type, int row, float x
 
 void Board::InitializeMowers()
 {
-	// 读档恢复时已有小推车，不重复创建
-	if (!mEntityManager.GetAllMowerIDs().empty()) return;
-
 	for (int row = 0; row < mRows; row++) {
 		CreateMower(MowerType::LAWN, row);
 	}

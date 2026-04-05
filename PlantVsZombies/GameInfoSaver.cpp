@@ -249,6 +249,8 @@ bool GameInfoSaver::LoadLevelData(Board* board, CardSlotManager* manager)
 	if (!FileManager::LoadJsonFile(filename, j))
 		return false;
 
+	board->mIsLoadSave = true;		// 读档标记
+
 	// 恢复 Board 状态
 	board->mBoardState = static_cast<BoardState>(j.value("boardState", static_cast<int>(BoardState::GAME)));
 	board->mSun = j.value("sun", 50);

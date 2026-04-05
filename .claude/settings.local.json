@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(find /d/C++/PlantsVsZombies/PlantVsZombies/PlantVsZombies -type f \\\\\\(-name *.cpp -o -name *.h \\\\\\))",
-      "Bash(ls -la GameInfoSaver.*)"
+      "Bash(ls -la GameInfoSaver.*)",
+      "Bash(find /Users/p7tbq8 -type f -name *.h -o -name *.cpp)"
     ]
   }
 }

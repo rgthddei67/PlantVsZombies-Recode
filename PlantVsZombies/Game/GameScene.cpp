@@ -120,6 +120,7 @@ void GameScene::OnEnter() {
 		this->OpenMenu();
 		});
 
+	// 读档
 	GameAPP::GetInstance().mGameInfoSaver.LoadLevelData(mBoard.get(), mCardSlotManager.get());
 
 	if (mBoard->mBoardState == BoardState::GAME) {
@@ -132,6 +133,8 @@ void GameScene::OnEnter() {
 
 		AddTexture(ResourceKeys::Textures::IMAGE_SEEDBANK_LONG,
 			130.0f, -10.0f, 0.85f, 0.9f, LAYER_UI, true);
+
+		mBoard->mIsLoadSave = false;
 	}
 	else {
 		AudioSystem::PlayMusic(ResourceKeys::Music::MUSIC_CHOOSEYOURSEEDS, -1);
