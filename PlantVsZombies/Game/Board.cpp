@@ -7,6 +7,7 @@
 #include "./Plant/Plant.h"
 #include "./Plant/SunFlower.h"
 #include "./Plant/CherryBomb.h"
+#include "./Plant/WallNut.h"
 #include "./Plant/Shooter.h"
 #include "./Zombie/Zombie.h"
 #include "./Zombie/ConeZombie.h"
@@ -147,6 +148,16 @@ std::shared_ptr<Plant> Board::CreatePlant(PlantType plantType, int row, int colu
 		break;
 
 	case PlantType::PLANT_WALLNUT:
+		plant = GameObjectManager::GetInstance().CreateGameObjectImmediate<WallNut>(
+			LAYER_GAME_PLANT,
+			this,
+			PlantType::PLANT_WALLNUT,
+			row,
+			column,
+			AnimationType::ANIM_WALLNUT,
+			1.0f,
+			isPreview
+		);
 		break;
 
 	case PlantType::PLANT_SNOWPEA:
@@ -626,12 +637,12 @@ void Board::StartGame()
 
 void Board::GameOver()
 {
-	mBoardState = BoardState::LOSE_GAME;
 	DeltaTime::SetPaused(true);
 	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_LOSTGAME, 0.65f);
 	AudioSystem::StopMusic();
 	if (mGameScene)
 		mGameScene->GameOver();
+	mBoardState = BoardState::LOSE_GAME;
 }
 
 void Board::LoadSpawnListFromJson()

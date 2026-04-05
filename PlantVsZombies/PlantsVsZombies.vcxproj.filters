@@ -217,6 +217,9 @@
     <ClCompile Include="Game\GameObjectManager.cpp">
       <Filter>Code\Game</Filter>
     </ClCompile>
+    <ClCompile Include="Game\Plant\WallNut.cpp">
+      <Filter>Code\Game\Plant</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="UI\Button.h">
@@ -467,6 +470,9 @@
     </ClInclude>
     <ClInclude Include="Game\LawnMower.h">
       <Filter>Code\Game</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\Plant\WallNut.h">
+      <Filter>Code\Game\Plant</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

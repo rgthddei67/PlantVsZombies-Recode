@@ -562,14 +562,22 @@ std::shared_ptr<GameProgress> GameScene::GetGameProgress() const
 
 void GameScene::GameOver()
 {
+	if (mBoard->mBoardState == BoardState::LOSE_GAME) return;
+
 	mBoard->mCursorObjectManager.ClearActive();
 	GameAPP::GetInstance().mGameInfoSaver.DeleteLevelData(mBoard.get());
 	mUIManager.RemoveButton(this->mMainMenuButton.lock());
 	mMainMenuButton.reset();
 	if (auto shovelBank = mShovelUI.lock())
 		GameObjectManager::GetInstance().DestroyGameObject(shovelBank);
+
 	mShovelUI.reset();
-	mBoard->mShovel.lock()->Die();
+
+	if (auto shovel = mBoard->mShovel.lock())
+	{
+		shovel->Die();
+	}
+
 	std::vector<GameMessageBox::ButtonConfig> buttons;
 	std::vector<GameMessageBox::SliderConfig> sliders;
 	std::vector<GameMessageBox::TextConfig> texts;

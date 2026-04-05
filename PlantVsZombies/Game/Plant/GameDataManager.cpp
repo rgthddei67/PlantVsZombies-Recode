@@ -55,6 +55,16 @@ void GameDataManager::InitializeHardcodedData() {
 		Vector(-37.6f, -44)
 	);
 
+	RegisterPlant(
+		PlantType::PLANT_WALLNUT,
+		50, 25.0f,
+		"PLANT_WALLNUT",
+		ResourceKeys::Textures::IMAGE_WALLNUT,
+		AnimationType::ANIM_WALLNUT,
+		ResourceKeys::Reanimations::REANIM_WALLNUT,
+		Vector(-37.6f, -44)
+	);
+
 
 	// ==================== 僵尸注册 ====================
 	// 普通僵尸
@@ -80,10 +90,13 @@ void GameDataManager::InitializeHardcodedData() {
 
 	// ==================== 非植物/僵尸动画映射 ====================
 	mAnimToString[AnimationType::ANIM_SUN] = ResourceKeys::Reanimations::REANIM_SUN;
+
 	mAnimToString[AnimationType::ANIM_ZOMBIE_CHARRED] =
 		ResourceKeys::Reanimations::REANIM_ZOMBIE_CHARRED;
+
 	mAnimToString[AnimationType::ANIM_LAWNMOWER] =
 		ResourceKeys::Reanimations::REANIM_LAWNMOWER;
+
 	mAnimToString[AnimationType::ANIM_NONE] = "Unknown";
 }
 

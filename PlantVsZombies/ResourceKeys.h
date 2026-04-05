@@ -224,14 +224,20 @@ namespace ResourceKeys
     namespace Reanimations
     {
         const std::string REANIM_SUN = "Sun";
+
         const std::string REANIM_SUNFLOWER = "SunFlower";
         const std::string REANIM_PEASHOOTER = "PeaShooter";
         const std::string REANIM_CHERRYBOMB = "CherryBomb";
-        const std::string REANIM_ZOMBIE_CHARRED = "Zombie_Charred";
+        const std::string REANIM_WALLNUT = "Wallnut";
+        const std::string REANIM_POTATOMINE = "PotatoMine";
+
         const std::string REANIM_NORMAL_ZOMBIE = "NormalZombie";
         const std::string REANIM_CONE_ZOMBIE = "ConeZombie";
         const std::string REANIM_POLEVAULTER_ZOMBIE = "PolevaulterZombie";
         const std::string REANIM_PAIL_ZOMBIE = "BucketZombie";
+
+        const std::string REANIM_ZOMBIE_CHARRED = "Zombie_Charred";
+
         const std::string REANIM_LAWNMOWER = "LawnMower";
     }
 
