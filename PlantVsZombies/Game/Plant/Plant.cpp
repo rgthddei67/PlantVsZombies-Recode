@@ -54,13 +54,12 @@ void Plant::SetupPlant()
 void Plant::Start()
 {
 	GameObject::Start();
-	this->PlayTrack("anim_idle");
 	if (this->mIsPreview) {
 		RemoveComponent<ColliderComponent>();
 	}
-	else {
-		SetupPlant();
-	}
+
+	this->PlayTrack("anim_idle");
+	this->SetupPlant();
 }
 
 void Plant::TakeDamage(int damage) {

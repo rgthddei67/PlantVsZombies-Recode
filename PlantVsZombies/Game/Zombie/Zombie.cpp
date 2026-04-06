@@ -316,6 +316,15 @@ void Zombie::HelmDrop()
 
 void Zombie::Die()
 {
+	// 若死亡时仍在啃食植物，手动清理啃食状态（防止 mEaterCount 无法归零）
+	if (mIsEating && mEatPlantID != NULL_PLANT_ID && mBoard) {
+		if (auto* plant = mBoard->mEntityManager.GetPlant(mEatPlantID)) {
+			plant->mEaterCount--;
+		}
+		mIsEating = false;
+		mEatPlantID = NULL_PLANT_ID;
+	}
+
 	if (mBoard) {
 		mBoard->mZombieNumber--;
 		CheckWin();
@@ -381,4 +390,20 @@ Vector Zombie::GetPosition() const
 void Zombie::SetPosition(const Vector& position)
 {
 	this->GetTransformComponent()->SetPosition(position);
+}
+
+void Zombie::ValidateEatingState(EntityManager& em)
+{
+	if (mIsEating && mEatPlantID != NULL_PLANT_ID) {
+		auto plant = em.GetPlant(mEatPlantID);
+		if (!plant) {
+			mIsEating = false;
+			mEatPlantID = NULL_PLANT_ID;
+			PlayTrack("anim_walk2", 0.0f, 0.3f);
+			RestoreSpeed();
+		}
+		else {
+			plant->mEaterCount++;
+		}
+	}
 }

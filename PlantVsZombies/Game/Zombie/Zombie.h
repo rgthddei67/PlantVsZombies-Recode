@@ -112,16 +112,7 @@ public:
 		mSpeed = j.value("speed", 10.0f);
 	}
 
-	void ValidateEatingState(EntityManager& em) {
-		if (mIsEating && mEatPlantID != NULL_PLANT_ID) {
-			if (!em.GetPlant(mEatPlantID)) {
-				mIsEating = false;
-				mEatPlantID = NULL_PLANT_ID;
-				PlayTrack("anim_walk2", 0.0f, 0.3f);
-				RestoreSpeed();
-			}
-		}
-	}
+	void ValidateEatingState(EntityManager& em);
 
 protected:
 	// 此处仅用于设置僵尸死亡的回调函数! 不要在子类中调用基类！

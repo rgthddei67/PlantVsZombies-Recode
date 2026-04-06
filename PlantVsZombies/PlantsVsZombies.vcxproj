@@ -57,7 +57,7 @@
     <ClCompile Include="Game\Plant\Shooter.cpp" />
     <ClCompile Include="Game\Scene.cpp" />
     <ClCompile Include="Game\SceneManager.cpp" />
-    <ClCompile Include="Game\ShaderComponent.cpp" />
+    <ClCompile Include="Game\ShadowComponent.cpp" />
     <ClCompile Include="Game\Trophy.cpp" />
     <ClCompile Include="Game\Zombie\ConeZombie.cpp" />
     <ClCompile Include="Game\Zombie\Zombie.cpp" />

@@ -139,7 +139,7 @@
     <ClCompile Include="CursorManager.cpp">
       <Filter>Code</Filter>
     </ClCompile>
-    <ClCompile Include="Game\ShaderComponent.cpp">
+    <ClCompile Include="Game\ShadowComponent.cpp">
       <Filter>Code\Game</Filter>
     </ClCompile>
     <ClCompile Include="Game\Plant\Shooter.cpp">

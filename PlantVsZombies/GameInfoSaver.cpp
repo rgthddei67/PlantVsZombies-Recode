@@ -97,6 +97,7 @@ bool GameInfoSaver::SaveLevelData(Board* board, CardSlotManager* manager)
 		p["isSleeping"] = plant->mIsSleeping;
 		p["animTrack"] = plant->GetCurrentTrackName();
 		p["animFrame"] = plant->GetCurrentFrame();
+
 		nlohmann::json extraData;
 		plant->SaveExtraData(extraData);
 		if (!extraData.empty()) {
