@@ -17,13 +17,12 @@ PVOID CrashHandler::vehHandle = nullptr;
 LONG64 CrashHandler::lastUACTime = 0;
 
 void CrashHandler::Initialize() {
-    std::cout << "Installing vectored exception handler..." << std::endl;
     ULONG stackGuarantee = 4 * 1024; // 4KB stack guarantee
     SetThreadStackGuarantee(&stackGuarantee);
     vehHandle = AddVectoredExceptionHandler(1, VectoredExceptionHandler);
 
     if (vehHandle) {
-        std::cout << "Vectored exception handler installed successfully" << std::endl;
+
     }
     else {
         std::cerr << "Failed to install vectored exception handler" << std::endl;
@@ -34,7 +33,6 @@ void CrashHandler::Cleanup() {
     if (vehHandle) {
         RemoveVectoredExceptionHandler(vehHandle);
         vehHandle = nullptr;
-        std::cout << "Vectored exception handler uninstalled" << std::endl;
     }
 }
 

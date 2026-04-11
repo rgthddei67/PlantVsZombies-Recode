@@ -2,7 +2,6 @@
 #include "CursorObjectManager.h"
 #include "SceneManager.h"
 #include "../ResourceManager.h"
-#include "./Plant/PlantType.h"
 #include "./CardSlotManager.h"
 #include "../ResourceKeys.h"
 #include "../DeltaTime.h"
@@ -18,14 +17,12 @@
 #include <iostream>
 #include <cmath>
 
-#include "./Zombie/Zombie.h"
-
 GameScene::GameScene() {
-	std::cout << "游戏场景创建" << std::endl;
+
 }
 
 GameScene::~GameScene() {
-	std::cout << "游戏场景销毁" << std::endl;
+
 }
 
 void GameScene::BuildDrawCommands()
@@ -93,9 +90,6 @@ void GameScene::BuildDrawCommands()
 
 void GameScene::OnEnter() {
 	Scene::OnEnter();
-#ifdef _DEBUG
-	std::cout << "进入游戏场景" << std::endl;
-#endif
 
 	int mEnterLevel = std::stoi(SceneManager::GetInstance().GetGlobalData("EnterLevel"));
 	mBoard = std::make_unique<Board>(this, mEnterLevel);
@@ -147,7 +141,6 @@ void GameScene::OnExit() {
 		(mBoard.get(), mCardSlotManager.get());
 	}
 	Scene::OnExit();
-	std::cout << "退出GameScene" << std::endl;
 	mShovelUI.reset();
 	mBoard.reset();
 	mGameProgress.reset();

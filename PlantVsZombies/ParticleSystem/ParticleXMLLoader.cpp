@@ -20,8 +20,9 @@ bool ParticleXMLLoader::LoadFromDirectory(const std::string& directory) {
             success = false;
         }
     }
-
+#ifdef _DEBUG
     std::cout << "粒子XML配置加载完成: " << effectConfigs.size() << " 个特效" << std::endl;
+#endif
     return success;
 }
 
@@ -321,4 +322,3 @@ std::vector<std::string> ParticleXMLLoader::ParseImageKeys(const std::string& te
 
     return keys;
 }
-

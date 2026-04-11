@@ -31,8 +31,9 @@ bool SceneManager::SwitchTo(const std::string& name) {
     auto newScene = it->second();
     newScene->OnEnter();
     sceneStack_.push(std::move(newScene));
-
+#ifdef _DEBUG
     std::cout << "切换到场景: " << name << std::endl;
+#endif
     return true;
 }
 

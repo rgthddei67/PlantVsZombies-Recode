@@ -84,7 +84,7 @@ void GameDataManager::InitializeHardcodedData() {
 		AnimationType::ANIM_CONE_ZOMBIE,
 		ResourceKeys::Reanimations::REANIM_CONE_ZOMBIE,
 		Vector(-50, -85),
-		1000,
+		1500,
 		3
 	);
 
@@ -94,8 +94,8 @@ void GameDataManager::InitializeHardcodedData() {
 		AnimationType::ANIM_POLEVAULTER_ZOMBIE,
 		ResourceKeys::Reanimations::REANIM_POLEVAULTER_ZOMBIE,
 		Vector(-50, -85),
-		1000,
-		1
+		1700,
+		5
 	);
 
 	// ==================== 非植物/僵尸动画映射 ====================
