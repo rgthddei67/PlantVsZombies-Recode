@@ -28,22 +28,11 @@ Zombie::Zombie(Board * board, ZombieType zombieType, float x, float y, int row,
 
 	mVisualOffset = GameDataManager::GetInstance().GetZombieOffset(zombieType);
 
-	mHasTongue = static_cast<bool>(GameRandom::Range(0, 1));
-
-	if (!mAnimator->GetTracksByName("anim_tongue").empty()) {
-		mAnimator->SetTrackVisible("anim_tongue", mHasTongue);
-	}
-
 	if (isPreview)
 	{
 		this->PlayTrack("anim_idle");
 		return;
 	}
-
-	if (GameRandom::Range(0, 1) == 0)
-		this->PlayTrack("anim_walk");
-	else
-		this->PlayTrack("anim_walk2");
 
 	auto collider = GetColliderComponent();
 	collider->isTrigger = true;
@@ -51,16 +40,33 @@ Zombie::Zombie(Board * board, ZombieType zombieType, float x, float y, int row,
 	(std::shared_ptr<ColliderComponent> other) {
 		this->EatTarget(other);
 		};
+	collider->onTriggerStay = [this]
+	(std::shared_ptr<ColliderComponent> other) {
+		this->EatTarget(other);
+		};
 	collider->onTriggerExit = [this]
 	(std::shared_ptr<ColliderComponent> other) {
 		this->StopEat(other);
 		};
-	mSpeed += GameRandom::Range(-3, 3);
 }
 
-void Zombie::SetupZombieDeathEvent()
+void Zombie::SetupZombie()
 {
 	mAnimator->AddFrameEvent(216, [this]() { this->Die(); });
+	mHasTongue = static_cast<bool>(GameRandom::Range(0, 1));
+
+	if (!mAnimator->GetTracksByName("anim_tongue").empty()) {
+		mAnimator->SetTrackVisible("anim_tongue", mHasTongue);
+	}
+
+	if (mIsPreview) return;
+
+	mSpeed += GameRandom::Range(-3, 3);
+
+	if (GameRandom::Range(0, 1) == 0)
+		this->PlayTrack("anim_walk");
+	else
+		this->PlayTrack("anim_walk2");
 }
 
 void Zombie::ZombieItemUpdate() const
@@ -98,7 +104,6 @@ void Zombie::Start()
 		RemoveComponent<ColliderComponent>();
 	}
 	SetAnimationSpeed(GameRandom::Range(1.1f, 1.4f));
-	SetupZombieDeathEvent();
 	SetupZombie();
 }
 
@@ -115,7 +120,7 @@ void Zombie::Update()
 	AnimatedObject::Update();
 	if (!mIsPreview) {
 		float deltaTime = DeltaTime::GetDeltaTime();
-		auto transform = this->GetTransformComponent();
+		auto* transform = this->GetTransformComponent().get();
 
 		if (!transform) return;
 
@@ -178,20 +183,25 @@ void Zombie::Update()
 
 		if (mIsEating) return;
 
-		float speed = 0.0f;
-		// 尝试从 _ground 轨道获取速度
-		if (mAnimator) {
-			speed = mAnimator->GetTrackVelocity("_ground") + mSpeed;
-			if (mIsMindControlled)
-			{
-				transform->Translate(speed * deltaTime, 0);
-			}
-			else
-			{
-				transform->Translate(-speed * deltaTime, 0);
-			}
-		}
+		ZombieMove(deltaTime, transform);
 		ZombieUpdate();
+	}
+}
+
+void Zombie::ZombieMove(float deltaTime, TransformComponent* transform)
+{
+	float speed = 0.0f;
+	// 尝试从 _ground 轨道获取速度
+	if (mAnimator) {
+		speed = mAnimator->GetTrackVelocity("_ground") + mSpeed;
+		if (mIsMindControlled)
+		{
+			transform->Translate(speed * deltaTime, 0);
+		}
+		else
+		{
+			transform->Translate(-speed * deltaTime, 0);
+		}
 	}
 }
 

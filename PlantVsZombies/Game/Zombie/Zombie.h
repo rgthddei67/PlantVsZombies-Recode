@@ -81,9 +81,9 @@ public:
 	virtual void HeadDrop();	// 头掉落 不用调用Zombie::HeadDrop
 	virtual void ArmDrop();		// 手掉落 不用调用Zombie::ArmDrop
 
-	void Die();
-	void EatTarget(std::shared_ptr<ColliderComponent> other);
-	void StopEat(std::shared_ptr<ColliderComponent> other);
+	virtual void Die();
+	virtual void EatTarget(std::shared_ptr<ColliderComponent> other);
+	virtual void StopEat(std::shared_ptr<ColliderComponent> other);
 	Vector GetVisualPosition() const override;
 	Vector GetPosition() const;
 	void SetPosition(const Vector& position);
@@ -112,14 +112,13 @@ public:
 		mSpeed = j.value("speed", 10.0f);
 	}
 
-	void ValidateEatingState(EntityManager& em);
+	virtual void ValidateEatingState(EntityManager& em);
 
 protected:
-	// 此处仅用于设置僵尸死亡的回调函数! 不要在子类中调用基类！
-	virtual void SetupZombieDeathEvent();
+	virtual void ZombieMove(float deltaTime, TransformComponent* transform);
 
 	// 这才是设置僵尸
-	virtual void SetupZombie() {}
+	virtual void SetupZombie();
 
 	virtual void CheckHelmImage() {}	// 检查是否应该更换一类防具图片
 	virtual void CheckShieldImage() {} 	// 检查是否应该更换二类防具图片

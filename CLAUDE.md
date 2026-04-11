@@ -1,24 +1,79 @@
-我正在进行一个使用 SDL2 和自制的 Graphics 类开发的《植物大战僵尸1》同人游戏。目前项目已完成了基础框架，并实现了以下系统：
+# CLAUDE.md
 
-动画系统（使用矩阵来转换）
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-粒子特效系统
+## Build & Run
 
-控件系统（Button、Slider、GameMessageBox等 UI 元素）
+This is a Visual Studio 2022 C++ project (x64 Windows only).
 
-碰撞系统
+- **Build:** Open `PlantsVsZombies.sln` in Visual Studio 2022, press F7 (or Build Solution)
+- **Run:** F5 in Visual Studio, or run the compiled `x64\Debug\PlantsVsZombies.exe`
+- **Debug mode:** Run with `-Debug` flag to show collision hitboxes
+- **Speed cheat:** Press F3 during gameplay to toggle 5× game speed
 
-我的代码风格偏好：
+Dependencies: SDL2, SDL2_image, SDL2_ttf, SDL2_mixer, OpenGL 3.3+, glad, glm, nlohmann/json
 
-不喜欢使用现代 C++ 的高级特性，例如模板（template）、C++20 及之后的复杂语法。但可以接受智能指针（std::unique_ptr, std::shared_ptr std::weak_ptr）和 std::vector 、std::unordered_map、std::map、std::set 等这类实用且易懂的容器。
+## Architecture Overview
 
-追求代码的高效、简单易懂、无 bug，逻辑清晰，避免过度设计。
+### Object Hierarchy
+```
+GameObject (base: component system, render order, active state)
+└── AnimatedObject (adds Animator for sprite animation)
+    ├── Plant → Shooter → PeaShooter
+    │          SunFlower, WallNut, CherryBomb
+    ├── Zombie → ConeZombie, Polevaulter, ZombieCharred
+    └── Coin (collectibles)
+Bullet (separate; uses object pooling via BulletPool)
+```
 
-类型转换：大部分情况下使用 static_cast，只有在少数场景才会考虑C风格的转换。
+### Component System
+`GameObject` stores components in `std::unordered_map<std::type_index, shared_ptr<Component>>`. Standard components:
+- `TransformComponent` — position (x, y), rotation, scale
+- `ColliderComponent` — hitbox with `onTriggerEnter/Stay/Exit` and `onCollisionEnter/Exit` callbacks
+- `ClickableComponent` — mouse interaction
+- `ShadowComponent` — drop shadow rendering
 
-请你给我修改代码的时候遵循上述代码风格且编辑、读取文件使用UTF8编码，谢谢！
+Add/get components via `AddComponent<T>(args...)` and `GetComponent<T>()`.
 
-若有任何代码上的问题，比如是否考虑兼容性、是否能忍受重构代码、性能要求是什么等问题你可以问我！
+### Key System Classes
+| Class | File | Role |
+|---|---|---|
+| `Board` | `Game/Board.cpp` | Level manager: zombie waves, sun spawning, win/lose logic |
+| `GameObjectManager` | `Game/GameObjectManager` | Create/destroy objects, render order, thread pool for PrepareForDraw |
+| `CollisionSystem` | `Game/CollisionSystem` | Per-frame collision checks, callbacks |
+| `EntityManager` | `Game/EntityManager` | ID-based entity tracking (used by save system) |
+| `SceneManager` | `Game/SceneManager` | Switch between `MainMenuScene` and `GameScene` |
+| `ResourceManager` | `ResourceManager` | Asset loading/caching; keys in `ResourceKeys.h` |
+| `Graphics` | `Graphics.cpp` | Custom OpenGL wrapper with transform stack and batch rendering |
+| `Animator` | `Reanimation/Animator` | Named track system; `PlayTrack()`, `PlayTrackOnce()`, frame events |
+| `ParticleSystem` | `ParticleSystem/` | XML-configured particle effects (`resources/particles/`) |
 
-备注:
-我的VS2022安装在D:\VS2022;
+### Game Loop (GameApp::Run)
+1. **Input** — SDL events → `InputHandler`
+2. **Update** — `SceneManager` → `Board::Update()` + `GameObjectManager::Update()` (spawning, AI, collision)
+3. **Render** — `PrepareForDraw()` per object (threaded), then `Draw()` in render-order, `Graphics::FlushBatch()`
+
+### Board Grid
+The board is a `vector<vector<shared_ptr<Cell>>>` grid. Plants are placed at `(row, column)`. Zombies travel by row. `Board` manages zombie waves and game state transitions (`CHOOSE_CARD → GAME → WIN/LOSE`).
+
+### Save System
+JSON serialization via nlohmann/json (`GameInfoSaver`). Plants/zombies implement `SaveExtraData(json&)` and `LoadExtraData(const json&)` virtual methods for custom state.
+
+## Adding a New Plant
+1. Subclass `Plant` (or `Shooter` for shooting plants) in `Game/Plant/`
+2. Add entry to `PlantType` enum (`Game/Plant/PlantType.h`)
+3. Register data (cost, cooldown, etc.) in `GameDataManager`
+4. Load textures/animations via `ResourceManager` using a key in `ResourceKeys.h`
+5. Add a corresponding `Card` entry
+
+## Adding a New Zombie
+1. Subclass `Zombie` in `Game/Zombie/`
+2. Add entry to `ZombieType` enum (`Game/Zombie/ZombieType.h`)
+3. Override virtual methods: `ZombieUpdate()`, `TakeDamage()`, `SetupZombie()`,`HelmDrop()` / `ShieldDrop()`(etc.) as needed
+4. Register in `Board` wave-spawning logic
+
+## Coding Conventions
+- All game objects are managed as `shared_ptr`; use `weak_ptr` inside components (`mGameObjectWeak`) to avoid circular references
+- Visual offsets use `mVisualOffset` (separate from the logical grid position)
+- Row/column position (`mRow`, `mColumn`) is the gameplay grid cell; pixel position is in `TransformComponent`
+- Chinese (UTF-8) strings are used throughout the codebase for UI text

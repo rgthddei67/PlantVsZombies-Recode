@@ -11,6 +11,7 @@
 #include "./Plant/Shooter.h"
 #include "./Zombie/Zombie.h"
 #include "./Zombie/ConeZombie.h"
+#include "./Zombie/Polevaulter.h"
 #include "./Bullet/PeaBullet.h"
 #include "./Plant/PeaShooter.h"
 #include "./SceneManager.h"
@@ -225,6 +226,18 @@ std::shared_ptr<Zombie> Board::CreateZombie(ZombieType zombieType, int row, floa
 			y,
 			row,
 			AnimationType::ANIM_CONE_ZOMBIE,
+			1.0f,
+			isPreview);
+		break;
+	case ZombieType::ZOMBIE_POLEVAULTER:
+		zombie = GameObjectManager::GetInstance().CreateGameObjectImmediate<Polevaulter>(
+			LAYER_GAME_ZOMBIE,
+			this,
+			ZombieType::ZOMBIE_POLEVAULTER,
+			x,
+			y,
+			row,
+			AnimationType::ANIM_POLEVAULTER_ZOMBIE,
 			1.0f,
 			isPreview);
 		break;

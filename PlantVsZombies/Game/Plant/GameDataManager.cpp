@@ -88,6 +88,16 @@ void GameDataManager::InitializeHardcodedData() {
 		3
 	);
 
+	RegisterZombie(
+		ZombieType::ZOMBIE_POLEVAULTER,
+		"ZOMBIE_POLEVAULTER",
+		AnimationType::ANIM_POLEVAULTER_ZOMBIE,
+		ResourceKeys::Reanimations::REANIM_POLEVAULTER_ZOMBIE,
+		Vector(-50, -85),
+		1000,
+		1
+	);
+
 	// ==================== 非植物/僵尸动画映射 ====================
 	mAnimToString[AnimationType::ANIM_SUN] = ResourceKeys::Reanimations::REANIM_SUN;
 

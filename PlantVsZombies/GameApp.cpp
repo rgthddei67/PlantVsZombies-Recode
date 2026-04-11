@@ -123,7 +123,7 @@ bool GameAPP::CreateWindowAndRenderer()
 	}
 
 	// 设置默认清屏颜色
-	m_graphics->SetClearColor(0, 0, 0, 1);
+	m_graphics->SetClearColor(255, 255, 255, 255);
 
 	return true;
 }

@@ -2,6 +2,7 @@
 
 void ConeZombie::SetupZombie()
 {
+	Zombie::SetupZombie();
 	this->mHelmHealth = 370;
 	this->mHelmMaxHealth = 370;
 	this->mHelmType = HelmType::HELMTYPE_TRAFFIC_CONE;

@@ -184,6 +184,7 @@ namespace ResourceKeys
         const std::string SOUND_ZOMBIE_FINISHEAT = "SOUND_FINISHEATING";
         const std::string SOUND_HUGEWAVE = "SOUND_HUGEWAVE";
         const std::string SOUND_ARM_HEAD_DROP = "SOUND_ARM_HEAD_DROP";
+        const std::string SOUND_POLEVAULT_JUMP = "SOUND_POLEVAULT";
 
         const std::string SOUND_CLICKSEED = "SOUND_CLICKSEED";
         const std::string SOUND_DELETEPLANT = "SOUND_DELETEPLANT";

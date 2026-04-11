@@ -220,6 +220,9 @@
     <ClCompile Include="Game\Plant\WallNut.cpp">
       <Filter>Code\Game\Plant</Filter>
     </ClCompile>
+    <ClCompile Include="Game\Zombie\Polevaulter.cpp">
+      <Filter>Code\Game\Zombie</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="UI\Button.h">
@@ -473,6 +476,9 @@
     </ClInclude>
     <ClInclude Include="Game\Plant\WallNut.h">
       <Filter>Code\Game\Plant</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\Zombie\Polevaulter.h">
+      <Filter>Code\Game\Zombie</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
