@@ -57,6 +57,7 @@ public:
     void SetAsCheckbox(bool checkbox);
 	void SetCanClick(bool canClick);
     void SetEnabled(bool enabled) { this->mEnabled = enabled; }
+    bool IsCheckBox() const { return this->isCheckbox; }
     // 跳过自己按钮的绘制，让别的玩意去绘制
     void SetSkipDraw(bool skip) { m_skipDraw = skip; }
     bool IsSkipDraw() const { return m_skipDraw; }

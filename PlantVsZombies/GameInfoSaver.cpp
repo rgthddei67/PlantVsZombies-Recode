@@ -24,6 +24,7 @@ bool GameInfoSaver::SavePlayerInfo()
 	FileManager::CreateDirectory("./saves");
 
 	nlohmann::json j;
+	j["vsync"] = gameApp.mVsync;
 	j["difficulty"] = gameApp.Difficulty;
 	j["adventureLevel"] = gameApp.mAdventureLevel;
 	j["showPlantHP"] = gameApp.mShowPlantHP;
@@ -31,7 +32,6 @@ bool GameInfoSaver::SavePlayerInfo()
 	j["autoCollected"] = gameApp.mAutoCollected;
 	j["soundVolume"] = AudioSystem::GetSoundVolume();
 	j["musicVolume"] = AudioSystem::GetMusicVolume();
-
 	j["havecards"] = gameApp.mHaveCards;
 
 	return FileManager::SaveJsonFile("./saves/PlayerInfo.json", j);
@@ -44,6 +44,7 @@ bool GameInfoSaver::LoadPlayerInfo()
 		return false;
 
 	auto& gameApp = GameAPP::GetInstance();
+	gameApp.mVsync = j.value("vsync", false);
 	gameApp.Difficulty = j.value("difficulty", 1);
 	gameApp.mAdventureLevel = j.value("adventureLevel", 1);
 	gameApp.mShowPlantHP = j.value("showPlantHP", false);

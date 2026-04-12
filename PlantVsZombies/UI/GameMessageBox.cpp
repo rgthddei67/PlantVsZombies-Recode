@@ -89,12 +89,21 @@ void GameMessageBox::Start()
 		int fontSize = static_cast<int>(config.fontsize * m_scale);
 		if (fontSize < 8) fontSize = 8;
 
-		button->SetAsCheckbox(false);
-		button->SetTextColor(m_titleColor);
-		button->SetHoverTextColor(m_titleColor);
-		button->SetText(config.text, ResourceKeys::Fonts::FONT_FZCQ, fontSize);
-		button->SetImageKeys
-			(config.texture, config.texture, config.texture, config.texture);
+		if (config.texture == ResourceKeys::Textures::IMAGE_OPTIONS_CHECKBOX0 ||
+			config.texture == ResourceKeys::Textures::IMAGE_OPTIONS_CHECKBOX1) {
+			button->SetAsCheckbox(true);
+			button->SetImageKeys
+				(config.texture, config.texture, config.texture, 
+					ResourceKeys::Textures::IMAGE_OPTIONS_CHECKBOX1);
+		}
+		else {
+			button->SetTextColor(m_titleColor);
+			button->SetHoverTextColor(m_titleColor);
+			button->SetText(config.text, ResourceKeys::Fonts::FONT_FZCQ, fontSize);
+			button->SetAsCheckbox(false);
+			button->SetImageKeys
+				(config.texture, config.texture, config.texture, config.texture);
+		}
 
 		// 使用weakptr 避免循环引用
 		auto weakSelf = std::weak_ptr<GameMessageBox>(std::dynamic_pointer_cast<GameMessageBox>(shared_from_this()));

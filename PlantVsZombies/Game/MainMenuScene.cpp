@@ -3,6 +3,7 @@
 #include "AudioSystem.h"
 #include "../ResourceKeys.h"
 #include "GameObjectManager.h"
+#include "../UI/GameMessageBox.h"
 
 void MainMenuScene::OnEnter()
 {
@@ -101,10 +102,16 @@ void MainMenuScene::OpenMenu()
 	std::vector<GameMessageBox::ButtonConfig> buttons;
 	std::vector<GameMessageBox::SliderConfig> sliders;
 	std::vector<GameMessageBox::TextConfig> texts;
+
 	buttons.push_back({ u8"返回游戏", Vector(400, 430),Vector(360, 100), 40,[this]() {
 		mOpenMenu = false;
 		DeltaTime::SetPaused(false);
 	}, ResourceKeys::Textures::IMAGE_OPTIONS_BACKTOGAMEBUTTON0 ,true });
+
+	buttons.push_back({ u8"", Vector(480, 250),Vector(42, 39), 1,[this]() {
+		auto& gameApp = GameAPP::GetInstance();
+		gameApp.mVsync = !gameApp.mVsync;
+	}, ResourceKeys::Textures::IMAGE_OPTIONS_CHECKBOX0 ,false });
 
 	sliders.push_back({ Vector(530, 175), Vector(135, 10),
 		0.0f ,1.0f, AudioSystem::GetMusicVolume(),[](float value) {
@@ -127,7 +134,20 @@ void MainMenuScene::OpenMenu()
 	({ Vector(480, 190), 22, u8"音效" , glm::vec4{ 107, 109, 144, 255} });
 	texts.push_back
 	({ Vector(480, 215), 22, u8"难度" , glm::vec4{ 107, 109, 144, 255} });
+	texts.push_back
+	({ Vector(525, 254), 18, u8"垂直同步 (需重启游戏)" , glm::vec4{ 107, 109, 144, 255} });
 
 	mMenu = mUIManager.CreateMessageBox(Vector(SCENE_WIDTH / 2 + 50, SCENE_HEIGHT / 2 - 80.0f),
 		"", buttons, sliders, texts, "", 1.0f, ResourceKeys::Textures::IMAGE_OPTIONS_MENUBACK);
+
+	auto& buttonChecks = mMenu.lock()->m_buttons;
+	for (size_t i = 0; i < buttonChecks.size(); i++) {
+		if (auto* aButton = buttonChecks[i].get()) {
+			if (aButton->IsCheckBox())
+			{
+				aButton->SetChecked(GameAPP::GetInstance().mVsync);
+				break;
+			}
+		}
+	}
 }

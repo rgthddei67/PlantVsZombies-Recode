@@ -34,6 +34,7 @@ public:
     bool mShowPlantHP = false;  // 植物显示血量
     bool mShowZombieHP = false; // 僵尸显示血量
     bool mAutoCollected = true; // 自动收集
+    bool mVsync = false;    // 是否开启垂直同步
 
     std::vector<PlantType> mHaveCards;      // 玩家拥有的卡牌
 
@@ -63,7 +64,6 @@ private:
     bool InitializeResourceManager();
     bool LoadAllResources();
     void CleanupResources();
-    void Update();
     void Draw(Uint64 start);
     void Shutdown();
 

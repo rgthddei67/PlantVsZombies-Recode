@@ -14,6 +14,8 @@
 
 class GameMessageBox : public GameObject {
 public:
+    friend class MainMenuScene;
+
     struct ButtonConfig {
         std::string text;               
         Vector pos;

@@ -1,7 +1,6 @@
 ﻿#include "./GameAPP.h"
 #include "./UI/InputHandler.h"
 #include "./ResourceManager.h"
-#include "./Game/Board.h"
 #include "./Game/SceneManager.h"
 #include "./Game/GameScene.h"
 #include "./Game/MainMenuScene.h"
@@ -14,7 +13,6 @@
 #include "./Game/CollisionSystem.h"
 #include "./Game/Plant/GameDataManager.h"
 #include <iostream>
-#include <sstream>
 
 GameAPP::GameAPP()
 	: mInputHandler(nullptr)
@@ -109,10 +107,6 @@ bool GameAPP::CreateWindowAndRenderer()
 	if (!gladLoadGLLoader(SDL_GL_GetProcAddress)) {
 		std::cerr << "glad初始化失败" << std::endl;
 		return false;
-	}
-
-	if (SDL_GL_SetSwapInterval(1) != 0) {
-		std::cerr << "警告：无法启用垂直同步，错误：" << SDL_GetError() << std::endl;
 	}
 
 	// 创建 Graphics 实例并初始化
@@ -251,6 +245,8 @@ int GameAPP::Run()
 		std::cout << "无法加载玩家存档数据！可能是没有存档!" << std::endl;
 	}
 
+	SDL_GL_SetSwapInterval(static_cast<int>(this->mVsync));
+
 	mInputHandler = std::make_unique<InputHandler>(m_graphics.get());
 	g_particleSystem = std::make_unique<ParticleSystem>(m_graphics.get());
 
@@ -305,7 +301,6 @@ int GameAPP::Run()
 		// 渲染
 		Draw(start);
 
-
 #ifdef _DEBUG
 		static int MousePoint = 0;
 		if (MousePoint++ % 40 == 0)
@@ -334,23 +329,27 @@ void GameAPP::Draw(Uint64 start)
 	// 处理多线程渲染命令 
 	m_graphics->ProcessCommandQueue();
 
-	// 绘制场景 (传入 Graphics 对象)
+	// 绘制场景
 	SceneManager::GetInstance().Draw(m_graphics.get());
+
 
 	int fps = 60;
 	fps = (int)(1.0f / DeltaTime::GetUnscaledDeltaTime());
 	DrawText(u8"FPS:" + std::to_string(fps), Vector(5, 10), glm::vec4(0.0f, 255.0f, 100.0f, 255.0f),
 		ResourceKeys::Fonts::FONT_FZCQ, 30);
 
+
 	// 提交批处理并执行绘制
 	m_graphics->FlushBatch();
 
-	// 在 SwapWindow 前主动 sleep，避免驱动忙等待吃满 CPU
-	Uint64 now2 = SDL_GetPerformanceCounter();
-	float elapsedMS2 = (now2 - start) * 1000.0f / SDL_GetPerformanceFrequency();
-	const float targetMS = 1000.0f / 60.0f;
-	if (elapsedMS2 < targetMS - 2.0f) {
-		SDL_Delay((Uint32)(targetMS - elapsedMS2 - 2.0f));
+	if (this->mVsync) {
+		// 在 SwapWindow 前主动 sleep，避免驱动忙等待吃满 CPU
+		Uint64 now2 = SDL_GetPerformanceCounter();
+		float elapsedMS2 = (now2 - start) * 1000.0f / SDL_GetPerformanceFrequency();
+		const float targetMS = 1000.0f / 60.0f;
+		if (elapsedMS2 < targetMS - 2.0f) {
+			SDL_Delay((Uint32)(targetMS - elapsedMS2 - 2.0f));
+		}
 	}
 
 	// 交换缓冲区
