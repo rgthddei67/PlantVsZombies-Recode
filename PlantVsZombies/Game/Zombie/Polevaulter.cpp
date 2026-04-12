@@ -46,6 +46,44 @@ void Polevaulter::SetupZombie()
 
 }
 
+void Polevaulter::HeadDrop()
+{
+	if (!mHasHead) return;
+	mAnimator->SetTrackVisible("anim_head1", false);
+	mAnimator->SetTrackVisible("anim_head2", false);
+	mAnimator->SetTrackVisible("anim_hair", false);
+	g_particleSystem->EmitEffect("PolevaulterHeadOff",
+		GetPosition());
+	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_ARM_HEAD_DROP, 0.25f);
+}
+
+void Polevaulter::ArmDrop()
+{
+	if (!mHasArm) return;
+	mAnimator->SetTrackVisible("Zombie_outerarm_hand", false);
+	mAnimator->SetTrackVisible("Zombie_polevaulter_outerarm_lower", false);
+	mAnimator->SetTrackImage("Zombie_polevaulter_outerarm_upper", ResourceManager::GetInstance().
+		GetTexture(ResourceKeys::Textures::IMAGE_ZOMBIE_POLEVAULTER_OUTERARM_UPPER2));
+	g_particleSystem->EmitEffect("PolevaulterArmOff",
+		GetPosition());
+	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_ARM_HEAD_DROP, 0.25f);
+}
+
+void Polevaulter::ZombieItemUpdate() const
+{
+	if (!mHasArm) {
+		mAnimator->SetTrackVisible("Zombie_outerarm_hand", false);
+		mAnimator->SetTrackVisible("Zombie_polevaulter_outerarm_lower", false);
+		mAnimator->SetTrackImage("Zombie_polevaulter_outerarm_upper", ResourceManager::GetInstance().
+			GetTexture(ResourceKeys::Textures::IMAGE_ZOMBIE_POLEVAULTER_OUTERARM_UPPER2));
+	}
+	if (!mHasHead) {
+		mAnimator->SetTrackVisible("anim_head1", false);
+		mAnimator->SetTrackVisible("anim_head2", false);
+		mAnimator->SetTrackVisible("anim_hair", false);
+	}
+}
+
 void Polevaulter::StartJump()
 {
 	mVaultState = VaultState::JUMPING;

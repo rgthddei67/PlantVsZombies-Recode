@@ -323,7 +323,7 @@
       <AdditionalDependencies>legacy_stdio_definitions.lib;version.lib;setupapi.lib;imm32.lib;winmm.lib;$(CoreLibraryDependencies)</AdditionalDependencies>
       <StackReserveSize>4194304</StackReserveSize>
       <StackCommitSize>65536</StackCommitSize>
-      <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
+      <LinkTimeCodeGeneration>UseFastLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       <AdditionalLibraryDirectories>$(VC_LibraryPath_x64);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
