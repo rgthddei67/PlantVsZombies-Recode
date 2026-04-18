@@ -65,6 +65,15 @@ void GameDataManager::InitializeHardcodedData() {
 		Vector(-37.6f, -44)
 	);
 
+	RegisterPlant(
+		PlantType::PLANT_POTATOMINE,
+		25, 20.0f,
+		"PLANT_POTATOMINE",
+		ResourceKeys::Textures::IMAGE_POTATOMINE,
+		AnimationType::ANIM_POTATOMINE,
+		ResourceKeys::Reanimations::REANIM_POTATOMINE,
+		Vector(-30.0f, -35.2f)
+	);
 
 	// ==================== 僵尸注册 ====================
 	// 普通僵尸

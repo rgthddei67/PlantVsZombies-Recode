@@ -54,6 +54,7 @@ void Trophy::SetOnClickBack(std::shared_ptr<ClickableComponent> click)
 			gameApp.mAdventureLevel++;
 			gameApp.mHaveCards.push_back(static_cast<PlantType>(mBoard->mLevel));
 		}
+		gameApp.mGameInfoSaver.SavePlayerInfo();
 
 		// 禁用点击，防止重复触发
 		if (auto c = GetComponent<ClickableComponent>())

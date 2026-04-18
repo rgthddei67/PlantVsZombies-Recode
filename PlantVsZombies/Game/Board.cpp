@@ -8,11 +8,10 @@
 #include "./Plant/SunFlower.h"
 #include "./Plant/CherryBomb.h"
 #include "./Plant/WallNut.h"
-#include "./Plant/Shooter.h"
+#include "./Plant/PotatoMine.h"
 #include "./Zombie/Zombie.h"
 #include "./Zombie/ConeZombie.h"
 #include "./Zombie/Polevaulter.h"
-#include "./Bullet/PeaBullet.h"
 #include "./Plant/PeaShooter.h"
 #include "./SceneManager.h"
 #include "EntityManager.h"
@@ -161,6 +160,19 @@ std::shared_ptr<Plant> Board::CreatePlant(PlantType plantType, int row, int colu
 		);
 		break;
 
+	case PlantType::PLANT_POTATOMINE:
+		plant = GameObjectManager::GetInstance().CreateGameObjectImmediate<PotatoMine>(
+			LAYER_GAME_PLANT,
+			this,
+			PlantType::PLANT_POTATOMINE,
+			row,
+			column,
+			AnimationType::ANIM_POTATOMINE,
+			0.8f,
+			isPreview
+		);
+		break;
+
 	case PlantType::PLANT_SNOWPEA:
 		break;
 
@@ -168,9 +180,6 @@ std::shared_ptr<Plant> Board::CreatePlant(PlantType plantType, int row, int colu
 		break;
 
 	case PlantType::PLANT_REPEATER:
-		break;
-
-	case PlantType::PLANT_POTATOMINE:
 		break;
 
 	default:

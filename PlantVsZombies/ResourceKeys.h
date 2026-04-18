@@ -143,12 +143,6 @@ namespace ResourceKeys
         const std::string PARTICLE_ZOMBIE_POLEVAULTERHEAD = "PARTICLE_ZOMBIEPOLEVAULTERHEAD";
         const std::string PARTICLE_ZOMBIE_YETIHEAD = "PARTICLE_ZOMBIEYETIHEAD";
         const std::string PARTICLE_ZOMBIEARM = "PARTICLE_ZOMBIEARM";
-
-        // 植物子弹
-        const std::string PARTICLE_PEA_HIT_0 = "PARTICLE_PEA_SPLATS_PART_0";
-        const std::string PARTICLE_PEA_HIT_1 = "PARTICLE_PEA_SPLATS_PART_1";
-        const std::string PARTICLE_PEA_HIT_2 = "PARTICLE_PEA_SPLATS_PART_2";
-        const std::string PARTICLE_PEA_HIT_3 = "PARTICLE_PEA_SPLATS_PART_3";
     }
 
     namespace Fonts

@@ -136,10 +136,13 @@ void GameScene::OnEnter() {
 }
 
 void GameScene::OnExit() {
+	auto& gameApp = GameAPP::GetInstance();
 	if (mBoard->mBoardState == BoardState::GAME && !mReadyToRestart) {
-		GameAPP::GetInstance().mGameInfoSaver.SaveLevelData
+		gameApp.mGameInfoSaver.SaveLevelData
 		(mBoard.get(), mCardSlotManager.get());
 	}
+	gameApp.mGameInfoSaver.SavePlayerInfo();
+
 	Scene::OnExit();
 	mShovelUI.reset();
 	mBoard.reset();

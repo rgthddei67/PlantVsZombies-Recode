@@ -88,7 +88,9 @@ public:
 	Vector GetPosition() const;
 	void SetPosition(const Vector& position);
 
-	bool IsMindControlled() { return this->mIsMindControlled; }
+	bool IsMindControlled() const { return this->mIsMindControlled; }
+	bool HasHead() const { return this->mHasHead; }
+	bool HasArm() const { return this->mHasArm; }
 
 	void SaveProtectedData(nlohmann::json& j) const {
 		j["isMindControlled"] = mIsMindControlled;
