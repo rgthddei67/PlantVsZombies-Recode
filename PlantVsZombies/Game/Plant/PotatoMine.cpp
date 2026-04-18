@@ -19,7 +19,7 @@ void PotatoMine::SetupPlant()
 		{
 			if (auto zombie = dynamic_cast<Zombie*>(gameObject))
 			{
-				if (!zombie->IsMindControlled() && zombie->HasHead()) {
+				if (!this->mIsBoom && !zombie->IsMindControlled() && zombie->HasHead()) {
 					AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_POTATO_MINE, 0.4f);
 					PlayTrackOnce("anim_mashed", "");
 					this->mIsBoom = true;

@@ -53,6 +53,7 @@ protected:
 	bool mHasArm = true;
 	bool mHasTongue = false;
 	bool mIsDying = false;	// 是否播放死亡动画 大概可以这么理解 这个时候不能走路
+	float mDyingTimer = 0.0f;	// mIsDying 持续时间，超过 10s 强制 Die 防止卡 BUG
 
 	float mSpeed = 10.0f;
 

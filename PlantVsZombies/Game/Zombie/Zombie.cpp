@@ -79,6 +79,7 @@ void Zombie::SaveProtectedData(nlohmann::json& j) const {
 	j["isDying"] = mIsDying;
 	j["speed"] = mSpeed;
 	j["cooldownTimer"] = mCooldownTimer;
+	j["dyingTimer"] = mDyingTimer;
 }
 
 void Zombie::LoadProtectedData(const nlohmann::json& j) {
@@ -93,6 +94,11 @@ void Zombie::LoadProtectedData(const nlohmann::json& j) {
 	float cooldown = j.value("cooldownTimer", 0.0f);
 	if (cooldown > 0.0f) {
 		this->SetCooldown(cooldown);
+	}
+
+	mDyingTimer = j.value("dyingTimer", 0.0f);
+	if (mDyingTimer >= 10.0f) {
+		this->Die();
 	}
 }
 
@@ -150,6 +156,16 @@ void Zombie::Update()
 		auto* transform = this->GetTransformComponent().get();
 
 		if (!transform) return;
+
+		if (mIsDying)
+		{
+			mDyingTimer += deltaTime;
+			if (mDyingTimer >= 10.0f)
+			{
+				this->Die();
+				return;
+			}
+		}
 
 		// —— 减速滴答（用真实 deltaTime，保证以真实秒数倒计时） ——
 		if (mCooldownTimer > 0.0f)
