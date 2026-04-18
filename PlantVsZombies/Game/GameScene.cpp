@@ -158,8 +158,6 @@ void GameScene::OpenMenu()
 {
 	if (mOpenMenu) return;
 
-	mBoard->mCursorObjectManager.ClearActive();
-
 	mOpenMenu = true;
 	DeltaTime::SetPaused(true);
 	std::vector<GameMessageBox::ButtonConfig> buttons;

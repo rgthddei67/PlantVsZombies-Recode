@@ -12,6 +12,8 @@ void PotatoMine::SetupPlant()
 
 	GetColliderComponent()->onCollisionEnter = 
 		([this](std::shared_ptr<ColliderComponent> other) {
+		if (!mIsRise) return;
+
 		auto gameObject = other->GetGameObject().get();
 		if (gameObject->GetObjectType() == ObjectType::OBJECT_ZOMBIE)
 		{

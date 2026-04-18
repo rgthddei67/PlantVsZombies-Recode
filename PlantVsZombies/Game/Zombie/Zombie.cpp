@@ -69,6 +69,33 @@ void Zombie::SetupZombie()
 		this->PlayTrack("anim_walk2");
 }
 
+void Zombie::SaveProtectedData(nlohmann::json& j) const {
+	j["isMindControlled"] = mIsMindControlled;
+	j["isEating"] = mIsEating;
+	j["eatPlantID"] = mEatPlantID;
+	j["hasHead"] = mHasHead;
+	j["hasArm"] = mHasArm;
+	j["hasTongue"] = mHasTongue;
+	j["isDying"] = mIsDying;
+	j["speed"] = mSpeed;
+	j["cooldownTimer"] = mCooldownTimer;
+}
+
+void Zombie::LoadProtectedData(const nlohmann::json& j) {
+	mIsMindControlled = j.value("isMindControlled", false);
+	mIsEating = j.value("isEating", false);
+	mEatPlantID = j.value("eatPlantID", NULL_PLANT_ID);
+	mHasHead = j.value("hasHead", true);
+	mHasArm = j.value("hasArm", true);
+	mHasTongue = j.value("hasTongue", false);
+	mIsDying = j.value("isDying", false);
+	mSpeed = j.value("speed", 10.0f);
+	float cooldown = j.value("cooldownTimer", 0.0f);
+	if (cooldown > 0.0f) {
+		this->SetCooldown(cooldown);
+	}
+}
+
 void Zombie::ZombieItemUpdate() const
 {
 	if (!mHasArm) {
@@ -124,6 +151,25 @@ void Zombie::Update()
 
 		if (!transform) return;
 
+		// —— 减速滴答（用真实 deltaTime，保证以真实秒数倒计时） ——
+		if (mCooldownTimer > 0.0f)
+		{
+			mCooldownTimer -= deltaTime;
+			if (mCooldownTimer <= 0.0f)
+			{
+				mCooldownTimer = 0.0f;
+				if (mAnimator)
+				{
+					mAnimator->SetExtraSpeedMultiplier(1.0f);
+					mAnimator->EnableOverlayEffect(false);
+				}
+			}
+		}
+
+		// —— 减速时 50% 缩放僵尸内部逻辑 deltaTime ——
+		const float slowMul = (mCooldownTimer > 0.0f) ? 0.5f : 1.0f;
+		const float scaledDelta = deltaTime * slowMul;
+
 		mCheckPositionTimer += deltaTime;
 		if (mCheckPositionTimer >= 1.0f)
 		{
@@ -156,7 +202,7 @@ void Zombie::Update()
 
 		if (mEatPlantID != NULL_PLANT_ID && mHasHead)
 		{
-			mEatSoundTimer += deltaTime;
+			mEatSoundTimer += scaledDelta;
 			if (mEatSoundTimer >= 0.7f)
 			{
 				mEatSoundTimer = 0;
@@ -183,26 +229,46 @@ void Zombie::Update()
 
 		if (mIsEating) return;
 
-		ZombieMove(deltaTime, transform);
-		ZombieUpdate();
+		ZombieMove(scaledDelta, transform);
+		ZombieUpdate(scaledDelta);
 	}
 }
 
-void Zombie::ZombieMove(float deltaTime, TransformComponent* transform)
+void Zombie::ZombieMove(float scaledDelta, TransformComponent* transform)
 {
 	float speed = 0.0f;
 	// 尝试从 _ground 轨道获取速度
 	if (mAnimator) {
+		// GetTrackVelocity 内部已乘 animator mSpeed，减速时 SetSpeed(0.5) 已令其自动减半。
+		// 但 this->mSpeed 是独立的固定项，需单独在减速时乘 0.5 但是deltaTime又变小了，所以不用
 		speed = mAnimator->GetTrackVelocity("_ground") + mSpeed;
 		if (mIsMindControlled)
 		{
-			transform->Translate(speed * deltaTime, 0);
+			transform->Translate(speed * scaledDelta, 0);
 		}
 		else
 		{
-			transform->Translate(-speed * deltaTime, 0);
+			transform->Translate(-speed * scaledDelta, 0);
 		}
 	}
+}
+
+void Zombie::SetCooldown(float timer)
+{
+	if (!mAnimator) return;
+
+	// 首次进入减速：启用独立的 0.6x 速度倍率 + 蓝色 overlay。
+	// 用 mExtraSpeedMultiplier 而非 SetSpeed，这样后续 PlayTrack / SetSpeed
+	// （例如切换啃食、死亡动画）不会覆盖减速效果。
+	if (mCooldownTimer <= 0.0f)
+	{
+		mAnimator->SetExtraSpeedMultiplier(0.6f);
+		mAnimator->EnableOverlayEffect(true);
+		mAnimator->SetOverlayColor(80, 80, 255, 255);
+	}
+
+	// 已在减速中则取 max，避免短射缩短减速
+	mCooldownTimer = std::max(mCooldownTimer, timer);
 }
 
 int Zombie::TakeShieldDamage(int damage)

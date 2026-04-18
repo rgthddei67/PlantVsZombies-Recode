@@ -18,7 +18,14 @@ protected:
 	void BulletHitZombie(std::shared_ptr<Zombie> zombie) override
 	{
 		Bullet::BulletHitZombie(zombie);
+
+		if (zombie->GetCooldownTimer() <= 0.0f) {
+			AudioSystem::PlaySound("SOUND_COOLDOWNZOMBIE", 0.4f);
+		}
+
+		zombie->SetCooldown(7.5f);
 		g_particleSystem->EmitEffect("SnowPeaBulletHit", GetPosition());
+
 		if (zombie->mHelmType == HelmType::HELMTYPE_TRAFFIC_CONE ||
 			zombie->mHelmType == HelmType::HELMTYPE_FOOTBALL) {
 			int random = GameRandom::Range(1, 2);

@@ -47,6 +47,7 @@ private:
     float mFrameIndexBegin = 0.0f;           ///< 起始帧索引
     float mFrameIndexEnd = 0.0f;              ///< 结束帧索引
     float mSpeed = 1.0f;                      ///< 播放速度倍率
+    float mExtraSpeedMultiplier = 1.0f;       ///< 额外速度倍率 (独立于 mSpeed，与 PlayTrack/SetSpeed 正交，用于减速等状态效果)
     float mAlpha = 1.0f;                      ///< 整体透明度
 
     // 过渡动画相关
@@ -252,6 +253,18 @@ public:
      * @brief 获取播放速度倍率
      */
     float GetSpeed() const { return mSpeed; }
+
+    /**
+     * @brief 设置额外速度倍率 (独立于 mSpeed，与 PlayTrack/SetSpeed 正交)
+     *        实际播放速度 = mSpeed * mExtraSpeedMultiplier，用于状态效果如减速
+     * @param mul 倍率
+     */
+    void SetExtraSpeedMultiplier(float mul);
+
+    /**
+     * @brief 获取额外速度倍率
+     */
+    float GetExtraSpeedMultiplier() const { return mExtraSpeedMultiplier; }
 
     /**
      * @brief 获取指定轨道的运动速度 (基于当前帧的前后位置差)

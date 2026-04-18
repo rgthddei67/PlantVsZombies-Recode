@@ -77,7 +77,7 @@ void GameDataManager::InitializeHardcodedData() {
 
 	RegisterPlant(
 		PlantType::PLANT_SNOWPEA,
-		50, 25.0f,
+		175, 7.5f,
 		"PLANT_SNOWPEASHOOTER",
 		ResourceKeys::Textures::IMAGE_SNOWPEASHOOTER,
 		AnimationType::ANIM_SNOWPEASHOOTER,

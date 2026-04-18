@@ -127,8 +127,8 @@ void Animator::Update() {
     float deltaTime = DeltaTime::GetDeltaTime();
     float oldFrame = mFrameIndexNow;   // 记录更新前的帧索引
 
-    // 帧索引前进
-    float frameAdvance = deltaTime * mFPS * mSpeed;
+    // 帧索引前进 (mExtraSpeedMultiplier 让状态效果如减速可独立于 mSpeed)
+    float frameAdvance = deltaTime * mFPS * mSpeed * mExtraSpeedMultiplier;
     mFrameIndexNow += frameAdvance;
 
     // 处理动画结束/循环逻辑
@@ -597,9 +597,22 @@ float Animator::GetTrackVelocity(const std::string& trackName) const {
     float xAfter = track->mFrames[frameAfter].x;
     float dx = xAfter - xBefore;
 
-    // 计算速度
-    float velocity = dx * mSpeed;
+    // 计算速度 (与 Update 保持一致，同乘额外倍率)
+    float velocity = dx * mSpeed * mExtraSpeedMultiplier;
     return std::abs(velocity);
+}
+
+void Animator::SetExtraSpeedMultiplier(float mul) {
+    mExtraSpeedMultiplier = mul;
+
+    for (size_t i = 0; i < mExtraInfos.size(); i++) {
+        for (size_t j = 0; j < mExtraInfos[i].mAttachedReanims.size(); j++) {
+            auto child = mExtraInfos[i].mAttachedReanims[j].lock();
+            if (child) {
+                child->SetExtraSpeedMultiplier(mul);
+            }
+        }
+    }
 }
 
 std::vector<TrackInfo*> Animator::GetTracksByName(const std::string& trackName) const {

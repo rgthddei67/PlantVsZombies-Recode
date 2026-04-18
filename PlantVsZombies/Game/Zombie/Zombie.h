@@ -63,7 +63,7 @@ public:
 
 	void Start() override;
 	void Update() override;
-	virtual void ZombieUpdate() {}		// 子类重写Update用这个
+	virtual void ZombieUpdate(float scaledTime) {}		// 子类重写Update用这个
 	virtual void TakeDamage(int damage);
 	virtual void SaveExtraData(nlohmann::json& j) const {}	// 保存额外数据
 	virtual void LoadExtraData(const nlohmann::json& j) {}	// 加载额外数据 
@@ -97,32 +97,14 @@ public:
 
 	void SetCooldown(float timer);		// 设置僵尸减速状态
 
-	void SaveProtectedData(nlohmann::json& j) const {
-		j["isMindControlled"] = mIsMindControlled;
-		j["isEating"] = mIsEating;
-		j["eatPlantID"] = mEatPlantID;
-		j["hasHead"] = mHasHead;
-		j["hasArm"] = mHasArm;
-		j["hasTongue"] = mHasTongue;
-		j["isDying"] = mIsDying;
-		j["speed"] = mSpeed;
-	}
+	void SaveProtectedData(nlohmann::json& j) const;
 
-	void LoadProtectedData(const nlohmann::json& j) {
-		mIsMindControlled = j.value("isMindControlled", false);
-		mIsEating = j.value("isEating", false);
-		mEatPlantID = j.value("eatPlantID", NULL_PLANT_ID);
-		mHasHead = j.value("hasHead", true);
-		mHasArm = j.value("hasArm", true);
-		mHasTongue = j.value("hasTongue", false);
-		mIsDying = j.value("isDying", false);
-		mSpeed = j.value("speed", 10.0f);
-	}
+	void LoadProtectedData(const nlohmann::json& j);
 
 	virtual void ValidateEatingState(EntityManager& em);
 
 protected:
-	virtual void ZombieMove(float deltaTime, TransformComponent* transform);
+	virtual void ZombieMove(float scaledDelta, TransformComponent* transform);
 
 	// 这才是设置僵尸
 	virtual void SetupZombie();
