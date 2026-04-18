@@ -486,6 +486,12 @@
     <ClInclude Include="Game\Plant\PotatoMine.h">
       <Filter>Code\Game\Plant</Filter>
     </ClInclude>
+    <ClInclude Include="Game\Plant\SnowPeaShooter.h">
+      <Filter>Code\Game\Plant</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\Bullet\SnowPea.h">
+      <Filter>Code\Game\Bullet</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Shader\batch_fragment.glsl">

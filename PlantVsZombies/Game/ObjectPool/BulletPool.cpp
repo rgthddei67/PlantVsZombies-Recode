@@ -1,5 +1,8 @@
 ﻿#include "BulletPool.h"
+
 #include "../Bullet/PeaBullet.h"
+#include "../Bullet/SnowPea.h"
+
 #include "../Board.h"
 #include "../GameObjectManager.h"
 #include <iostream>
@@ -46,16 +49,21 @@ std::shared_ptr<Bullet> BulletPool::Acquire(Board* board, BulletType type, int r
 
 	std::shared_ptr<Bullet> bullet = nullptr;
 
-	// 根据类型创建具体子类
+	// TODO: 新增子弹修改我
 	switch (type) {
 	case BulletType::BULLET_PEA:
 		bullet = GameObjectManager::GetInstance().CreateGameObjectImmediate<PeaBullet>(
 			LAYER_GAME_BULLET,
 			board, type, row, colliderRadius, position);
 		break;
+	case BulletType::BULLET_SNOWPEA:
+		bullet = GameObjectManager::GetInstance().CreateGameObjectImmediate<SnowPeaBullet>(
+			LAYER_GAME_BULLET,
+			board, type, row, colliderRadius, position);
+		break;
 	default:
 		std::cout << "BulletPool::Acquire 未知的子弹类型" << std::endl;
-		return nullptr;  
+		return nullptr;
 	}
 
 	if (bullet) {

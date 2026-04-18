@@ -95,9 +95,11 @@
     <ClInclude Include="Game\AnimatedObject.h" />
     <ClInclude Include="Game\AudioSystem.h" />
     <ClInclude Include="Game\Board.h" />
+    <ClInclude Include="Game\Bullet\SnowPea.h" />
     <ClInclude Include="Game\CursorObjectManager.h" />
     <ClInclude Include="Game\LawnMower.h" />
     <ClInclude Include="Game\Plant\PotatoMine.h" />
+    <ClInclude Include="Game\Plant\SnowPeaShooter.h" />
     <ClInclude Include="Game\Plant\WallNut.h" />
     <ClInclude Include="Game\Shovel.h" />
     <ClInclude Include="Game\ShovelBank.h" />

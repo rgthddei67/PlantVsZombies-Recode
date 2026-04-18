@@ -5,15 +5,18 @@
 #include "Trophy.h"
 #include "../GameRandom.h"
 #include "./Plant/Plant.h"
+
+#include "./Plant/PeaShooter.h"
 #include "./Plant/SunFlower.h"
 #include "./Plant/CherryBomb.h"
 #include "./Plant/WallNut.h"
 #include "./Plant/PotatoMine.h"
+#include "./Plant/SnowPeaShooter.h"
+
 #include "./Zombie/Zombie.h"
 #include "./Zombie/ConeZombie.h"
 #include "./Zombie/Polevaulter.h"
-#include "./Plant/PeaShooter.h"
-#include "./SceneManager.h"
+
 #include "EntityManager.h"
 #include "RenderOrder.h"
 #include "GameScene.h"
@@ -174,6 +177,16 @@ std::shared_ptr<Plant> Board::CreatePlant(PlantType plantType, int row, int colu
 		break;
 
 	case PlantType::PLANT_SNOWPEA:
+		plant = GameObjectManager::GetInstance().CreateGameObjectImmediate<SnowPeaShooter>(
+			LAYER_GAME_PLANT,
+			this,
+			PlantType::PLANT_SNOWPEA,
+			row,
+			column,
+			AnimationType::ANIM_SNOWPEASHOOTER,
+			1.0f,
+			isPreview
+		);
 		break;
 
 	case PlantType::PLANT_CHOMPER:
@@ -273,11 +286,9 @@ std::shared_ptr<Bullet> Board::CreateBullet(BulletType bulletType, int row, cons
 		return nullptr;
 	}
 
-	const GLTexture* texture = nullptr;
-	Vector colliderRadius(10, 10);
-
 	// 从对象池获取子弹
-	std::shared_ptr<Bullet> bullet = bulletPool->Acquire(this, bulletType, row, colliderRadius, position);
+	std::shared_ptr<Bullet> bullet = bulletPool->Acquire
+		(this, bulletType, row, Vector(10, 10), position);
 
 	if (bullet && !skipsettings) {
 		mEntityManager.AddBullet(bullet);

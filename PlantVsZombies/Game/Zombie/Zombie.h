@@ -40,6 +40,8 @@ public:
 	int mShieldMaxHealth = 0;
 
 protected:
+	float mCooldownTimer = 0.0f;	// 僵尸减速倒计时时间
+
 	float mCheckPositionTimer = 0.0f;
 	bool mIsMindControlled = false;	//有没有被魅惑
 
@@ -91,6 +93,9 @@ public:
 	bool IsMindControlled() const { return this->mIsMindControlled; }
 	bool HasHead() const { return this->mHasHead; }
 	bool HasArm() const { return this->mHasArm; }
+	float GetCooldownTimer() const { return this->mCooldownTimer; }
+
+	void SetCooldown(float timer);		// 设置僵尸减速状态
 
 	void SaveProtectedData(nlohmann::json& j) const {
 		j["isMindControlled"] = mIsMindControlled;

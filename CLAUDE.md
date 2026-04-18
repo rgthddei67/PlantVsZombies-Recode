@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Build & Run
 
-This is a Visual Studio 2022 C++ project (x64 Windows only).
+This is a Visual Studio 2026 C++ project (x64 Windows only).
 
-- **Build:** Open `PlantsVsZombies.sln` in Visual Studio 2022, press F7 (or Build Solution)
+- **Build:** Open `PlantsVsZombies.sln` in Visual Studio 2026, press F7 (or Build Solution)
 - **Run:** F5 in Visual Studio, or run the compiled `x64\Debug\PlantsVsZombies.exe`
 - **Debug mode:** Run with `-Debug` flag to show collision hitboxes
 - **Speed cheat:** Press F3 during gameplay to toggle 5× game speed

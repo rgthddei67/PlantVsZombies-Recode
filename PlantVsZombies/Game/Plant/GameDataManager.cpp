@@ -75,6 +75,16 @@ void GameDataManager::InitializeHardcodedData() {
 		Vector(-30.0f, -35.2f)
 	);
 
+	RegisterPlant(
+		PlantType::PLANT_SNOWPEA,
+		50, 25.0f,
+		"PLANT_SNOWPEASHOOTER",
+		ResourceKeys::Textures::IMAGE_SNOWPEASHOOTER,
+		AnimationType::ANIM_SNOWPEASHOOTER,
+		ResourceKeys::Reanimations::REANIM_SNOWPEASHOOTER,
+		Vector(-37.6f, -44)
+	);
+
 	// ==================== 僵尸注册 ====================
 	// 普通僵尸
 	RegisterZombie(
