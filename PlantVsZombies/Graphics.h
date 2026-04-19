@@ -186,6 +186,20 @@ public:
 		const glm::vec4& color, float x, float y, float scale = 1.0f);
 
 	/**
+	 * @brief 取得一份常驻（pinned）文字纹理句柄；颜色已烘焙到纹理。
+	 *        用于对同一段文字频繁重绘的场景，避免 DrawText 每帧的 key 构造与 LRU 维护开销。
+	 *        句柄直到 Graphics 销毁（或显式清理）前都有效，不参与 LRU 淘汰。
+	 * @return 句柄；若渲染失败 textureID 为 0。
+	 */
+	CachedText AcquireTextTexture(const std::string& text, const std::string& fontKey,
+		int fontSize, const glm::vec4& color);
+
+	/**
+	 * @brief 使用 AcquireTextTexture 返回的句柄直接批次提交，跳过缓存查找。
+	 */
+	void DrawCachedText(const CachedText& handle, float x, float y, float scale = 1.0f);
+
+	/**
  * @brief 使用自定义变换矩阵绘制纹理，并支持指定枢轴点。
  * @param tex        纹理
  * @param transform  模型变换矩阵（相对于纹理局部坐标）
@@ -478,6 +492,7 @@ private:
 	std::list<std::string> m_textCacheOrder;     ///< LRU 顺序链表（front = 最近使用）
 	std::unordered_map<std::string,
 		std::pair<CachedText, std::list<std::string>::iterator>> m_textCache;  ///< 文字纹理 LRU 缓存
+	std::unordered_map<std::string, CachedText> m_pinnedTextCache;  ///< 常驻文字纹理缓存（AcquireTextTexture 使用，不淘汰）
 
 	// 多线程命令队列
 	std::mutex m_commandMutex;                               ///< 命令队列互斥锁
@@ -560,6 +575,19 @@ private:
 	GLuint GetOrCreateTextTexture(const std::string& text, const std::string& fontKey,
 		int fontSize, const glm::vec4& color,
 		int& outWidth, int& outHeight);
+
+	/**
+	 * @brief 通过 TTF 渲染一段文字并上传为一张新的 GL 纹理。
+	 *        调用方负责在不再需要时释放返回纹理。
+	 * @return 成功返回 true，并填充 out；失败返回 false。
+	 */
+	bool RenderTextToGLTexture(const std::string& text, const std::string& fontKey,
+		int fontSize, const glm::vec4& color, CachedText& out);
+
+	/**
+	 * @brief 清空常驻文字纹理缓存（释放 GL 纹理）。析构时调用。
+	 */
+	void ClearPinnedTextCache();
 
 	/**
 	 * @brief 调整批处理 VBO 的容量。

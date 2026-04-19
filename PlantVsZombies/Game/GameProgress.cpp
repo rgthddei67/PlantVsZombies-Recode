@@ -120,3 +120,20 @@ void GameProgress::InitializeRaisedFlags(float raiseY)
         m_flagMeter->SetFlagRaiseImmediate(reverseIndex, raiseY);
     }
 }
+
+void GameProgress::SnapProgressToCurrentWave()
+{
+    if (!mBoard || !m_flagMeter) return;
+
+    int maxWave = mBoard->mMaxWave;
+    if (maxWave <= 0) return;
+
+    int currentWave = mBoard->mCurrentWave;
+    float value = 1.0f - static_cast<float>(currentWave) / static_cast<float>(maxWave);
+
+    mTargetSliderValue = value;
+    mCurrentSliderValue = value;
+    mUpdateTimer = 0.0f;
+    m_lastWave = currentWave;
+    m_flagMeter->SetProgress(mCurrentSliderValue);
+}

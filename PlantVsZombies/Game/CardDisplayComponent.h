@@ -4,6 +4,7 @@
 
 #include "Component.h"
 #include "./Plant/PlantType.h"
+#include "./Definit.h"
 #include "../Graphics.h"          // 引入 Graphics
 #include <string>
 
@@ -47,6 +48,10 @@ private:
     glm::vec4 waitingSunColor = glm::vec4(215.0f, 215.0f, 215.0f, 255.0f); // 浅灰
     glm::vec4 clickColor = glm::vec4(160.0f, 160.0f, 160.0f, 255.0f); // 灰色
 
+    // 阳光数字文本缓存（避免每帧走 DrawText 的 key 构造与 LRU 维护）
+    CachedText mSunTextCache{};
+    int mCachedSunValue = -1;
+
 public:
     CardDisplayComponent(PlantType type, int sunCost, float cooldown);
 
@@ -81,11 +86,11 @@ public:
 
 private:
     void LoadTextures();
-    void DrawCardBackground(Graphics* g, std::shared_ptr<TransformComponent> transform);
-    void DrawPlantImage(Graphics* g, std::shared_ptr<TransformComponent> transform);
-    void DrawCooldownMask(Graphics* g, std::shared_ptr<TransformComponent> transform);
-    void DrawSunCost(Graphics* g, std::shared_ptr<TransformComponent> transform);
-    void DrawSelectionHighlight(Graphics* g, std::shared_ptr<TransformComponent> transform);
+    void DrawCardBackground(Graphics* g, const Vector& position, const glm::vec4& color);
+    void DrawPlantImage(Graphics* g, const Vector& position, const glm::vec4& color);
+    void DrawCooldownMask(Graphics* g, const Vector& position);
+    void DrawSunCost(Graphics* g, const Vector& position);
+    void DrawSelectionHighlight(Graphics* g, const Vector& position);
 
     glm::vec4 GetCurrentColor() const;
     std::string GetPlantTextureKey() const;

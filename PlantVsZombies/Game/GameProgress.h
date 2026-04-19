@@ -14,13 +14,16 @@ public:
     ~GameProgress();
 
     void Update() override;
-    void Draw(Graphics* g) override;   // 参数改为 Graphics*
+    void Draw(Graphics* g) override;   
 
     // 根据最大波数生成旗子，使用传入的图片键
     void SetupFlags(const GLTexture* stickTex, const GLTexture* flagTex);
 
     // 初始化升起状态（根据当前波数直接设置已升起的旗子）
     void InitializeRaisedFlags(float raiseY);
+
+    // 立刻将进度条滑块对齐当前波数，跳过插值动画
+    void SnapProgressToCurrentWave();
 
 private:
     Board* mBoard;

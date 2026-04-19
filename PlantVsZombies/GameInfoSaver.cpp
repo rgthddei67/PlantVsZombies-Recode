@@ -272,7 +272,7 @@ bool GameInfoSaver::LoadLevelData(Board* board, CardSlotManager* manager)
 
 	// 恢复进度条
 	if (board->mCurrentWave > 0) {
-		auto gameProgress = board->mGameScene->GetGameProgress();
+		auto gameProgress = board->mGameScene->GetGameProgress().get();
 		gameProgress->SetActive(true);
 		auto& res = ResourceManager::GetInstance();
 		gameProgress->SetupFlags(res.GetTexture(ResourceKeys::Textures::IMAGE_FLAGMETER_PART_STICK)
@@ -477,10 +477,11 @@ bool GameInfoSaver::LoadLevelData(Board* board, CardSlotManager* manager)
 		}
 	}
 
-	// 恢复旗子升起状态
+	// 恢复旗子升起状态，并立刻对齐进度条滑块（跳过缓动动画）
 	if (board->mGameScene) {
 		if (auto progress = board->mGameScene->GetGameProgress()) {
 			progress->InitializeRaisedFlags(-10.0f);
+			progress->SnapProgressToCurrentWave();
 		}
 	}
 

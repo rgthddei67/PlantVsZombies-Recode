@@ -141,16 +141,48 @@ public:
             }
         }
 
-        // 动态和静态碰撞检测
-        for (auto dynamicCol : dynamicColliders) {
-            for (auto staticCol : staticColliders) {
-                if (CheckCollision(dynamicCol, staticCol)) {
-                    auto collisionPair = (dynamicCol < staticCol) ?
-                        std::make_pair(dynamicCol, staticCol) :
-                        std::make_pair(staticCol, dynamicCol);
-                    newCollisions.insert(collisionPair);
-                    HandleNewCollision(dynamicCol, staticCol, collisionPair);
+        // 动态和静态碰撞检测（行分桶）
+        std::unordered_map<int, std::vector<std::shared_ptr<ColliderComponent>>> staticRowBuckets;
+        std::vector<std::shared_ptr<ColliderComponent>> noRowStatic;
+        for (auto& col : staticColliders) {
+            int row = col->GetGameObject()->GetSortingKey();
+            if (row >= 0) staticRowBuckets[row].push_back(col);
+            else          noRowStatic.push_back(col);
+        }
+
+        auto checkAndRecord = [&](std::shared_ptr<ColliderComponent>& a,
+                                  std::shared_ptr<ColliderComponent>& b) {
+            if (CheckCollision(a, b)) {
+                auto collisionPair = (a < b) ?
+                    std::make_pair(a, b) :
+                    std::make_pair(b, a);
+                newCollisions.insert(collisionPair);
+                HandleNewCollision(a, b, collisionPair);
+            }
+        };
+
+        // 有行动态 vs 同行静态 + 无行静态
+        for (auto& kv : rowBuckets) {
+            auto& dynBucket = kv.second;
+            auto it = staticRowBuckets.find(kv.first);
+            if (it != staticRowBuckets.end()) {
+                for (auto& d : dynBucket) {
+                    for (auto& s : it->second) {
+                        checkAndRecord(d, s);
+                    }
                 }
+            }
+            for (auto& d : dynBucket) {
+                for (auto& s : noRowStatic) {
+                    checkAndRecord(d, s);
+                }
+            }
+        }
+
+        // 无行动态 vs 全部静态
+        for (auto& d : noRowDynamic) {
+            for (auto& s : staticColliders) {
+                checkAndRecord(d, s);
             }
         }
         // 检测碰撞结束

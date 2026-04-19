@@ -44,18 +44,22 @@ void CardDisplayComponent::Draw(Graphics* g) {
     auto transform = GetTransformComponent();
     if (!transform) return;
 
-    DrawCardBackground(g, transform);
-    DrawPlantImage(g, transform);
+    // 一次性算出世界坐标与当前色调，避免各子函数重复查询
+    Vector pos = transform->GetPosition();
+    Vector position = g->ScreenToWorldPosition(pos.x, pos.y);
+    glm::vec4 color = GetCurrentColor();
 
-    if (showMask && maskFillAmount > 0 ||
-        !GetCardComponent()->GetIsInChooseCardUI()) {
-        DrawCooldownMask(g, transform);
+    DrawCardBackground(g, position, color);
+    DrawPlantImage(g, position, color);
+
+    if (showMask && maskFillAmount > 0) {
+        DrawCooldownMask(g, position);
     }
 
-    DrawSunCost(g, transform);
+    DrawSunCost(g, position);
 
     if (isSelected) {
-        DrawSelectionHighlight(g, transform);
+        DrawSelectionHighlight(g, position);
     }
 }
 
@@ -81,86 +85,49 @@ void CardDisplayComponent::LoadTextures() {
     }
 }
 
-void CardDisplayComponent::DrawCardBackground(Graphics* g, std::shared_ptr<TransformComponent> transform) {
-    if (!GetGameObject()) return;
-
-    Vector pos = transform->GetPosition();
-    Vector position = g->ScreenToWorldPosition(pos.x, pos.y);
-    glm::vec4 color = GetCurrentColor();
-
-    // 绘制卡牌背景
-    if (cardNormal) {
-        g->DrawTexture(cardNormal,
-            position.x, position.y,
-            static_cast<float>(CARD_WIDTH),
-            static_cast<float>(CARD_HEIGHT),
-            0.0f, color);
-    }
+void CardDisplayComponent::DrawCardBackground(Graphics* g, const Vector& position, const glm::vec4& color) {
+    if (!cardNormal) return;
+    g->DrawTexture(cardNormal,
+        position.x, position.y,
+        static_cast<float>(CARD_WIDTH),
+        static_cast<float>(CARD_HEIGHT),
+        0.0f, color);
 }
 
-void CardDisplayComponent::DrawPlantImage(Graphics* g, std::shared_ptr<TransformComponent> transform) {
-    if (!GetGameObject() || !plantTexture) return;
+void CardDisplayComponent::DrawPlantImage(Graphics* g, const Vector& position, const glm::vec4& color) {
+    if (!plantTexture) return;
 
-    Vector pos = transform->GetPosition();
-    Vector position = g->ScreenToWorldPosition(pos.x, pos.y);
-
-    int imgWidth = plantTexture->width;
-    int imgHeight = plantTexture->height;
-
-    // 植物图片位置（在卡牌中央）
     float drawX = position.x - 14;
     float drawY = position.y - 10;
-    float drawW = imgWidth * 0.7f;
-    float drawH = imgHeight * 0.7f;
-
-    glm::vec4 color = GetCurrentColor();
+    float drawW = plantTexture->width * 0.7f;
+    float drawH = plantTexture->height * 0.7f;
 
     g->DrawTexture(plantTexture, drawX, drawY, drawW, drawH, 0.0f, color);
 }
 
-void CardDisplayComponent::DrawCooldownMask(Graphics* g, std::shared_ptr<TransformComponent> transform) {
-    if (!GetGameObject() || !cardBackground) return;
+void CardDisplayComponent::DrawCooldownMask(Graphics* g, const Vector& position) {
+    if (!cardBackground) return;
 
-    Vector pos = transform->GetPosition();
-    Vector position = g->ScreenToWorldPosition(pos.x, pos.y);
-
-    // 计算遮罩高度（从顶部开始）
     int maskHeight = static_cast<int>(CARD_HEIGHT * maskFillAmount);
-    SDL_Rect maskRect = {
-        static_cast<int>(position.x),
-        static_cast<int>(position.y),
-        CARD_WIDTH,
-        maskHeight
-    };
-
-    // 绘制半透明黑色矩形
-    g->FillRect(static_cast<float>(maskRect.x),
-        static_cast<float>(maskRect.y),
-        static_cast<float>(maskRect.w),
-        static_cast<float>(maskRect.h),
+    g->FillRect(position.x, position.y,
+        static_cast<float>(CARD_WIDTH),
+        static_cast<float>(maskHeight),
         glm::vec4(0.0f, 0.0f, 0.0f, 64.0f));
 }
 
-void CardDisplayComponent::DrawSunCost(Graphics* g, std::shared_ptr<TransformComponent> transform) {
-    if (!GetGameObject()) return;
-
-    Vector pos = transform->GetPosition();
-    Vector position = g->ScreenToWorldPosition(pos.x, pos.y);
-
-    GameAPP::GetInstance().DrawText(std::to_string(needSun),
-        Vector(position.x + 6, position.y + 58),
-        glm::vec4(0.0f, 0.0f, 0.0f, 255.0f),
-        ResourceKeys::Fonts::FONT_FZCQ,
-        14);
+void CardDisplayComponent::DrawSunCost(Graphics* g, const Vector& position) {
+    // 阳光数字在运行期基本恒定；仅当数值变化时才重建纹理。
+    if (mCachedSunValue != needSun || mSunTextCache.textureID == 0) {
+        mSunTextCache = g->AcquireTextTexture(std::to_string(needSun),
+            ResourceKeys::Fonts::FONT_FZCQ,
+            14,
+            glm::vec4(0.0f, 0.0f, 0.0f, 255.0f));
+        mCachedSunValue = needSun;
+    }
+    g->DrawCachedText(mSunTextCache, position.x + 6, position.y + 58);
 }
 
-void CardDisplayComponent::DrawSelectionHighlight(Graphics* g, std::shared_ptr<TransformComponent> transform) {
-    if (!GetGameObject()) return;
-
-    Vector pos = transform->GetPosition();
-    Vector position = g->ScreenToWorldPosition(pos.x, pos.y);
-
-    // 绘制半透明黑色遮罩表示选中
+void CardDisplayComponent::DrawSelectionHighlight(Graphics* g, const Vector& position) {
     g->FillRect(position.x, position.y,
         static_cast<float>(CARD_WIDTH),
         static_cast<float>(CARD_HEIGHT),

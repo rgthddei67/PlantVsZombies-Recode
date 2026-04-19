@@ -8,6 +8,7 @@ Graphics::Graphics() {
 Graphics::~Graphics() {
 	FlushBatch();                       // 提交剩余顶点
 	ClearTextCache();                    // 释放文字纹理
+	ClearPinnedTextCache();              // 释放常驻文字纹理
 
 	if (m_spriteVAO) glDeleteVertexArrays(1, &m_spriteVAO);
 	if (m_spriteVBO) glDeleteBuffers(1, &m_spriteVBO);
@@ -586,24 +587,49 @@ GLuint Graphics::GetOrCreateTextTexture(const std::string& text, const std::stri
 		return it->second.first.textureID;
 	}
 
+	CachedText entry;
+	if (!RenderTextToGLTexture(text, fontKey, fontSize, color, entry)) {
+		return 0;
+	}
+	outWidth = entry.width;
+	outHeight = entry.height;
+
+	// 超出容量时淘汰最久未使用的条目
+	if ((int)m_textCache.size() >= TEXT_CACHE_MAX_SIZE) {
+		const std::string& lruKey = m_textCacheOrder.back();
+		auto lruIt = m_textCache.find(lruKey);
+		if (lruIt != m_textCache.end()) {
+			glDeleteTextures(1, &lruIt->second.first.textureID);
+			m_textCache.erase(lruIt);
+		}
+		m_textCacheOrder.pop_back();
+	}
+
+	// 插入新条目到链表头部
+	m_textCacheOrder.push_front(key);
+	m_textCache[key] = { entry, m_textCacheOrder.begin() };
+	return entry.textureID;
+}
+
+bool Graphics::RenderTextToGLTexture(const std::string& text, const std::string& fontKey,
+	int fontSize, const glm::vec4& color, CachedText& out) {
 	TTF_Font* font = ResourceManager::GetInstance().GetFont(fontKey, fontSize);
 	if (!font) {
-		std::cerr << "[GetOrCreateTextTexture] Failed to get font: " << fontKey << " size " << fontSize << std::endl;
-		return 0;
+		std::cerr << "[RenderTextToGLTexture] Failed to get font: " << fontKey << " size " << fontSize << std::endl;
+		return false;
 	}
 
 	SDL_Surface* surface = TTF_RenderUTF8_Blended(font, text.c_str(), ToSDLColor(color));
 	if (!surface) {
-		std::cerr << "[GetOrCreateTextTexture] TTF_RenderText_Blended error: " << TTF_GetError() << std::endl;
-		return 0;
+		std::cerr << "[RenderTextToGLTexture] TTF_RenderText_Blended error: " << TTF_GetError() << std::endl;
+		return false;
 	}
 
-	// 转换为 ABGR8888 格式以便 OpenGL 使用
 	SDL_Surface* rgbaSurface = SDL_ConvertSurfaceFormat(surface, SDL_PIXELFORMAT_ABGR8888, 0);
 	SDL_FreeSurface(surface);
 	if (!rgbaSurface) {
-		std::cerr << "Convert surface error: " << SDL_GetError() << std::endl;
-		return 0;
+		std::cerr << "[RenderTextToGLTexture] Convert surface error: " << SDL_GetError() << std::endl;
+		return false;
 	}
 
 	GLuint textureID;
@@ -619,25 +645,83 @@ GLuint Graphics::GetOrCreateTextTexture(const std::string& text, const std::stri
 		GL_RGBA, GL_UNSIGNED_BYTE, rgbaSurface->pixels);
 	glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
 
-	outWidth = rgbaSurface->w;
-	outHeight = rgbaSurface->h;
+	out.textureID = textureID;
+	out.width = rgbaSurface->w;
+	out.height = rgbaSurface->h;
 	SDL_FreeSurface(rgbaSurface);
+	return true;
+}
 
-	// 超出容量时淘汰最久未使用的条目
-	if ((int)m_textCache.size() >= TEXT_CACHE_MAX_SIZE) {
-		const std::string& lruKey = m_textCacheOrder.back();
-		auto lruIt = m_textCache.find(lruKey);
-		if (lruIt != m_textCache.end()) {
-			glDeleteTextures(1, &lruIt->second.first.textureID);
-			m_textCache.erase(lruIt);
-		}
-		m_textCacheOrder.pop_back();
+CachedText Graphics::AcquireTextTexture(const std::string& text, const std::string& fontKey,
+	int fontSize, const glm::vec4& color) {
+	std::stringstream ss;
+	ss << text << "|" << fontKey << "|" << fontSize << "|"
+		<< (int)color.r << "," << (int)color.g << "," << (int)color.b << "," << (int)color.a;
+	std::string key = ss.str();
+
+	auto it = m_pinnedTextCache.find(key);
+	if (it != m_pinnedTextCache.end()) {
+		return it->second;
 	}
 
-	// 插入新条目到链表头部
-	m_textCacheOrder.push_front(key);
-	m_textCache[key] = { {textureID, outWidth, outHeight}, m_textCacheOrder.begin() };
-	return textureID;
+	CachedText entry;
+	if (!RenderTextToGLTexture(text, fontKey, fontSize, color, entry)) {
+		return {};
+	}
+	m_pinnedTextCache.emplace(std::move(key), entry);
+	return entry;
+}
+
+void Graphics::DrawCachedText(const CachedText& handle, float x, float y, float scale) {
+	if (handle.textureID == 0) return;
+
+	if (m_batchMode) {
+		int texIndex = BindTexture(handle.textureID);
+		glm::mat4 local = glm::mat4(1.0f);
+		local = glm::translate(local, glm::vec3(x, y, 0.0f));
+		local = glm::scale(local, glm::vec3(handle.width * scale, handle.height * scale, 1.0f));
+		glm::mat4 finalMatrix = m_transformStack.back() * local;
+		int matrixIndex = AddMatrix(finalMatrix);
+
+		BatchVertex vertices[6] = {
+			{0.0f, 1.0f, 0.0f, 1.0f, (GLuint)texIndex, (GLuint)matrixIndex, 1,1,1,1, 0.0f},
+			{1.0f, 1.0f, 1.0f, 1.0f, (GLuint)texIndex, (GLuint)matrixIndex, 1,1,1,1, 0.0f},
+			{1.0f, 0.0f, 1.0f, 0.0f, (GLuint)texIndex, (GLuint)matrixIndex, 1,1,1,1, 0.0f},
+			{0.0f, 1.0f, 0.0f, 1.0f, (GLuint)texIndex, (GLuint)matrixIndex, 1,1,1,1, 0.0f},
+			{0.0f, 0.0f, 0.0f, 0.0f, (GLuint)texIndex, (GLuint)matrixIndex, 1,1,1,1, 0.0f},
+			{1.0f, 0.0f, 1.0f, 0.0f, (GLuint)texIndex, (GLuint)matrixIndex, 1,1,1,1, 0.0f}
+		};
+		AddVertices(vertices, 6);
+		CheckBatch();
+	}
+	else {
+		m_spriteShader.use();
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, handle.textureID);
+		glUniform1i(m_spriteShader.getUniformLocation("texture1"), 0);
+		glUniform4f(m_spriteShader.getUniformLocation("color"), 1, 1, 1, 1);
+
+		glm::mat4 local = glm::mat4(1.0f);
+		local = glm::translate(local, glm::vec3(x, y, 0.0f));
+		local = glm::scale(local, glm::vec3(handle.width * scale, handle.height * scale, 1.0f));
+		glm::mat4 finalModel = m_transformStack.back() * local;
+		glUniformMatrix4fv(m_spriteShader.getUniformLocation("model"), 1, GL_FALSE, glm::value_ptr(finalModel));
+		glUniformMatrix4fv(m_spriteShader.getUniformLocation("projection"), 1, GL_FALSE, glm::value_ptr(m_projection));
+		glUniformMatrix4fv(m_spriteShader.getUniformLocation("view"), 1, GL_FALSE, glm::value_ptr(m_viewMatrix));
+
+		glBindVertexArray(m_spriteVAO);
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+		glBindVertexArray(0);
+	}
+}
+
+void Graphics::ClearPinnedTextCache() {
+	for (auto& pair : m_pinnedTextCache) {
+		if (pair.second.textureID) {
+			glDeleteTextures(1, &pair.second.textureID);
+		}
+	}
+	m_pinnedTextCache.clear();
 }
 
 void Graphics::DrawText(const std::string& text, const std::string& fontKey, int fontSize,
