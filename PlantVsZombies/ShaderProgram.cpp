@@ -15,8 +15,13 @@ ShaderProgram::~ShaderProgram() {
 }
 
 bool ShaderProgram::loadFromFile(const char* vertexPath, const char* fragmentPath) {
-    GLuint vertexShader = compileShader(vertexPath, VERTEX_SHADER);
-    GLuint fragmentShader = compileShader(fragmentPath, FRAGMENT_SHADER);
+    return loadFromFile(vertexPath, fragmentPath, std::string());
+}
+
+bool ShaderProgram::loadFromFile(const char* vertexPath, const char* fragmentPath,
+                                 const std::string& defines) {
+    GLuint vertexShader = compileShader(vertexPath, VERTEX_SHADER, defines);
+    GLuint fragmentShader = compileShader(fragmentPath, FRAGMENT_SHADER, defines);
 
     if (vertexShader == 0 || fragmentShader == 0) {
         return false;
@@ -54,7 +59,8 @@ GLint ShaderProgram::getUniformLocation(const char* name) const {
     return glGetUniformLocation(m_programID, name);
 }
 
-GLuint ShaderProgram::compileShader(const char* path, ShaderType type) {
+GLuint ShaderProgram::compileShader(const char* path, ShaderType type,
+                                    const std::string& defines) {
     std::string file = FileManager::LoadFileAsString(path);
     if (file.empty()) {
         std::cerr << "Failed to open shader file: " << path << std::endl;
@@ -62,6 +68,22 @@ GLuint ShaderProgram::compileShader(const char* path, ShaderType type) {
     }
 
     std::string source = file;
+    if (!defines.empty()) {
+        // 在 #version ... 行之后插入 defines；若找不到 #version 则前置
+        size_t versionPos = source.find("#version");
+        if (versionPos != std::string::npos) {
+            size_t lineEnd = source.find('\n', versionPos);
+            if (lineEnd != std::string::npos) {
+                source.insert(lineEnd + 1, defines);
+            }
+            else {
+                source += "\n" + defines;
+            }
+        }
+        else {
+            source = defines + source;
+        }
+    }
     const char* sourceCStr = source.c_str();
 
     GLenum glShaderType = (type == VERTEX_SHADER) ? GL_VERTEX_SHADER : GL_FRAGMENT_SHADER;

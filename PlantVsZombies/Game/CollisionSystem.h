@@ -69,10 +69,14 @@ public:
         std::vector<std::shared_ptr<ColliderComponent>> dynamicColliders;
         std::vector<std::shared_ptr<ColliderComponent>> staticColliders;
 
-		// 区分静态和动态碰撞体
+		// 区分静态和动态碰撞体，并一次性写入帧缓存（AABB + 世界坐标），
+		// 避免 CheckCollision 里每次都走 GetComponent<TransformComponent>() 的哈希查找。
         for (auto collider : colliders) {
             auto gameObj = collider->GetGameObject();
             if (!collider->mEnabled || !gameObj || !gameObj->IsActive()) continue;
+
+            collider->cachedWorldPos = collider->GetWorldPosition();
+            collider->cachedBounds   = collider->GetBoundingBox();
 
             if (collider->isStatic) {
                 staticColliders.push_back(collider);
@@ -248,9 +252,10 @@ public:
 
 private:
     // 检查两个碰撞体是否发生碰撞
+    // 读 cachedBounds / cachedWorldPos（由 Update 帧首写入），避免 Transform 哈希查找。
     bool CheckCollision(std::shared_ptr<ColliderComponent> a, std::shared_ptr<ColliderComponent> b) {
-        SDL_FRect rectA = a->GetBoundingBox();
-        SDL_FRect rectB = b->GetBoundingBox();
+        const SDL_FRect& rectA = a->cachedBounds;
+        const SDL_FRect& rectB = b->cachedBounds;
 
         // 粗略检查有无碰撞
         if (!CheckRectCollision(rectA, rectB)) {
@@ -259,18 +264,16 @@ private:
 
         // 精确形状检查
         if (a->colliderType == ColliderType::CIRCLE && b->colliderType == ColliderType::CIRCLE) {
-            Vector posA = a->GetWorldPosition();
-            Vector posB = b->GetWorldPosition();
             float radiusA = a->size.x * 0.5f;
             float radiusB = b->size.x * 0.5f;
-            float distance = Vector::distance(posA, posB);
+            float distance = Vector::distance(a->cachedWorldPos, b->cachedWorldPos);
             return distance <= (radiusA + radiusB);
         }
         else if (a->colliderType == ColliderType::CIRCLE && b->colliderType == ColliderType::BOX) {
-            return CheckCircleRectCollision(a->GetWorldPosition(), a->size.x * 0.5f, rectB);
+            return CheckCircleRectCollision(a->cachedWorldPos, a->size.x * 0.5f, rectB);
         }
         else if (a->colliderType == ColliderType::BOX && b->colliderType == ColliderType::CIRCLE) {
-            return CheckCircleRectCollision(b->GetWorldPosition(), b->size.x * 0.5f, rectA);
+            return CheckCircleRectCollision(b->cachedWorldPos, b->size.x * 0.5f, rectA);
         }
         else {
             return CheckRectCollision(rectA, rectB);

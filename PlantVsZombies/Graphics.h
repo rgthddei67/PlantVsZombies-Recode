@@ -467,6 +467,7 @@ private:
 	std::vector<glm::mat4> m_batchMatrices;     ///< 当前批次使用的变换矩阵列表
 
 	int m_maxTextureUnits = 32;                  ///< 最大纹理单元数（着色器限制）
+	int m_matrixBatchLimit = 256;                ///< 单批次最大矩阵数（运行时由 GL_MAX_UNIFORM_BLOCK_SIZE 决定，最低 256）
 
 	GLuint m_batchVAO = 0;                       ///< 批处理 VAO
 	GLuint m_batchVBO = 0;                       ///< 批处理 VBO
@@ -484,8 +485,9 @@ private:
 
 	GLuint m_whiteTexture = 0;   ///< 1×1 纯白纹理，用于 FillRect 批处理
 
-	static const int VERTEX_BATCH_LIMIT = 1024;   ///< 单批次最大顶点数
-	static const int MATRIX_BATCH_LIMIT = 256;    ///< 单批次最大矩阵数（UBO 保证最小 16KB，可存 256 个 mat4）
+	static const int VERTEX_BATCH_LIMIT_MIN = 1024;   ///< 单批次最大顶点数最低保证（运行时可更大）
+	int m_vertexBatchLimit = VERTEX_BATCH_LIMIT_MIN;  ///< 单批次最大顶点数（= m_matrixBatchLimit * 6）
+	static const int MATRIX_BATCH_LIMIT_MIN = 256;    ///< 单批次最大矩阵数最低保证（UBO 保证最小 16KB）
 	static const int GEOM_BATCH_LIMIT = 2048;   ///< 单批次最大几何顶点数
 
 	static const int TEXT_CACHE_MAX_SIZE = 256;  ///< 文字缓存最大条目数（LRU 淘汰）

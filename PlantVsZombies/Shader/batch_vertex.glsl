@@ -12,8 +12,12 @@ out vec4 Color;
 uniform mat4 proj;
 uniform mat4 view;   // 摄像机视图矩阵
 
+#ifndef MATRIX_BATCH_LIMIT
+#define MATRIX_BATCH_LIMIT 256
+#endif
+
 layout(std140) uniform MatrixBlock {
-    mat4 posMatrix[256];
+    mat4 posMatrix[MATRIX_BATCH_LIMIT];
 };
 
 void main() {

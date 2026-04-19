@@ -30,6 +30,22 @@ bool Graphics::Initialize(int windowWidth, int windowHeight) {
 	glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &m_maxTextureUnits);
 	if (m_maxTextureUnits > 32) m_maxTextureUnits = 32;
 
+	// 查询 UBO 最大块大小，用它决定单批次矩阵上限
+	// std140 保证 mat4 占 64 字节；GL 3.3 最低保证 GL_MAX_UNIFORM_BLOCK_SIZE >= 16KB（256 个 mat4），桌面 GPU 普遍为 64KB（1024 个）
+	GLint maxUBOSize = 0;
+	glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, &maxUBOSize);
+	int computed = maxUBOSize > 0 ? maxUBOSize / static_cast<int>(sizeof(glm::mat4)) : MATRIX_BATCH_LIMIT_MIN;
+	if (computed < MATRIX_BATCH_LIMIT_MIN) computed = MATRIX_BATCH_LIMIT_MIN;
+	if (computed > 2048) computed = 2048;  // 硬上限：超过收益递减
+	m_matrixBatchLimit = computed;
+	m_vertexBatchLimit = m_matrixBatchLimit * 6;
+
+#ifdef _DEBUG
+	std::cout << "[Graphics] GL_MAX_UNIFORM_BLOCK_SIZE=" << maxUBOSize
+		<< "  -> m_matrixBatchLimit=" << m_matrixBatchLimit
+		<< "  m_vertexBatchLimit=" << m_vertexBatchLimit << std::endl;
+#endif
+
 	if (!InitShaders()) return false;
 	if (!InitSpriteRenderer()) return false;
 	if (!InitGeomRenderer()) return false;
@@ -40,8 +56,8 @@ bool Graphics::Initialize(int windowWidth, int windowHeight) {
 	glGenVertexArrays(1, &m_batchVAO);
 	glGenBuffers(1, &m_batchVBO);
 
-	// 初始容量设为 VERTEX_BATCH_LIMIT
-	m_batchBufferCapacity = VERTEX_BATCH_LIMIT;
+	// 初始容量设为 m_vertexBatchLimit
+	m_batchBufferCapacity = m_vertexBatchLimit;
 	glBindVertexArray(m_batchVAO);
 	glBindBuffer(GL_ARRAY_BUFFER, m_batchVBO);
 	glBufferData(GL_ARRAY_BUFFER, m_batchBufferCapacity * sizeof(BatchVertex), nullptr, GL_DYNAMIC_DRAW);
@@ -69,7 +85,7 @@ bool Graphics::Initialize(int windowWidth, int windowHeight) {
 	// 创建矩阵 UBO，绑定到 binding point 0
 	glGenBuffers(1, &m_matrixUBO);
 	glBindBuffer(GL_UNIFORM_BUFFER, m_matrixUBO);
-	glBufferData(GL_UNIFORM_BUFFER, sizeof(glm::mat4) * MATRIX_BATCH_LIMIT, nullptr, GL_DYNAMIC_DRAW);
+	glBufferData(GL_UNIFORM_BUFFER, sizeof(glm::mat4) * m_matrixBatchLimit, nullptr, GL_DYNAMIC_DRAW);
 	glBindBufferBase(GL_UNIFORM_BUFFER, 0, m_matrixUBO);
 	glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
@@ -102,8 +118,9 @@ bool Graphics::InitShaders() {
 		return false;
 	}
 
-	// 加载批处理着色器
-	if (!m_batchShader.loadFromFile("./Shader/batch_vertex.glsl", "./Shader/batch_fragment.glsl")) {
+	// 加载批处理着色器；运行时把 MATRIX_BATCH_LIMIT 注入为 GLSL 宏，使 UBO 数组维度与 C++ 端一致
+	std::string batchDefines = "#define MATRIX_BATCH_LIMIT " + std::to_string(m_matrixBatchLimit) + "\n";
+	if (!m_batchShader.loadFromFile("./Shader/batch_vertex.glsl", "./Shader/batch_fragment.glsl", batchDefines)) {
 		std::cerr << "[Graphics] Failed to load batch shader." << std::endl;
 		return false;
 	}
@@ -216,9 +233,12 @@ void Graphics::FlushBatch() {
 		// 上传投影矩阵
 		glUniformMatrix4fv(m_batchShader.getUniformLocation("proj"), 1, GL_FALSE, glm::value_ptr(m_projection));
 
-		// 上传所有变换矩阵到 UBO
+		// 上传所有变换矩阵到 UBO（orphan 旧 buffer 避免驱动隐式同步）
 		if (!m_batchMatrices.empty()) {
 			glBindBuffer(GL_UNIFORM_BUFFER, m_matrixUBO);
+			glBufferData(GL_UNIFORM_BUFFER,
+				sizeof(glm::mat4) * m_matrixBatchLimit,
+				nullptr, GL_DYNAMIC_DRAW);
 			glBufferSubData(GL_UNIFORM_BUFFER, 0,
 				m_batchMatrices.size() * sizeof(glm::mat4),
 				glm::value_ptr(m_batchMatrices[0]));
@@ -237,8 +257,11 @@ void Graphics::FlushBatch() {
 			glBindTexture(GL_TEXTURE_2D, m_batchTextures[i]);
 		}
 
-		// 上传顶点数据到 VBO
+		// 上传顶点数据到 VBO（orphan 旧 buffer 避免驱动隐式同步）
 		glBindBuffer(GL_ARRAY_BUFFER, m_batchVBO);
+		glBufferData(GL_ARRAY_BUFFER,
+			m_batchBufferCapacity * sizeof(BatchVertex),
+			nullptr, GL_DYNAMIC_DRAW);
 		glBufferSubData(GL_ARRAY_BUFFER, 0, m_batchVertices.size() * sizeof(BatchVertex), m_batchVertices.data());
 
 		// 按连续相同 blendMode 分段绘制，每段设置对应 GL 混合状态
@@ -315,7 +338,7 @@ int Graphics::BindTexture(GLuint textureID) {
 }
 
 int Graphics::AddMatrix(const glm::mat4& matrix) {
-	if ((int)m_batchMatrices.size() >= MATRIX_BATCH_LIMIT) {
+	if ((int)m_batchMatrices.size() >= m_matrixBatchLimit) {
 		FlushBatch();
 	}
 	m_batchMatrices.push_back(matrix);
@@ -329,8 +352,8 @@ void Graphics::AddVertices(const BatchVertex* vertices, int count) {
 }
 
 void Graphics::CheckBatch() {
-	if ((int)m_batchVertices.size() >= VERTEX_BATCH_LIMIT ||
-		(int)m_batchMatrices.size() >= MATRIX_BATCH_LIMIT ||
+	if ((int)m_batchVertices.size() >= m_vertexBatchLimit ||
+		(int)m_batchMatrices.size() >= m_matrixBatchLimit ||
 		(int)m_batchTextures.size() >= m_maxTextureUnits) {
 		FlushBatch();
 	}

@@ -33,6 +33,11 @@ public:
 
 	SDL_Color debugColor = { 255, 0, 0, 255 }; // 调试颜色（红色）
 
+	// 帧缓存：由 CollisionSystem::Update 在帧首一次性写入，CheckCollision 直接读取，
+	// 避免每次检测都走 GetComponent<TransformComponent>() 的 unordered_map 查找。
+	SDL_FRect cachedBounds{ 0, 0, 0, 0 };
+	Vector    cachedWorldPos;
+
 	ColliderComponent(const Vector& size, const Vector& offset = Vector(0, 0), ColliderType type = ColliderType::BOX)
 		: size(size), offset(offset), colliderType(type) {
 	}
