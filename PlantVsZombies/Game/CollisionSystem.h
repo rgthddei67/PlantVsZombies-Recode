@@ -3,6 +3,7 @@
 #define _COLLISION_SYSTEM_H
 
 #include "ColliderComponent.h"
+#include "ThreadPool.h"
 #include <memory>
 #include <vector>
 #include <unordered_set>
@@ -25,11 +26,24 @@ struct ColliderPairHash {
 
 class CollisionSystem {
 private:
-    std::vector<std::shared_ptr<ColliderComponent>> colliders;  // 所有的collider组件
+    std::vector<std::shared_ptr<ColliderComponent>> colliders;
     std::unordered_set<
-        std::pair<std::shared_ptr<ColliderComponent>, 
-        std::shared_ptr<ColliderComponent>>, 
-        ColliderPairHash> currentCollisions;  
+        std::pair<std::shared_ptr<ColliderComponent>,
+        std::shared_ptr<ColliderComponent>>,
+        ColliderPairHash> currentCollisions;
+
+    std::unique_ptr<ThreadPool> mThreadPool;
+    static constexpr int PARALLEL_THRESHOLD = 100;
+
+    struct DetectedPair {
+        std::shared_ptr<ColliderComponent> a;
+        std::shared_ptr<ColliderComponent> b;
+    };
+
+    CollisionSystem() {
+        int n = std::max(1, (int)std::thread::hardware_concurrency());
+        mThreadPool = std::make_unique<ThreadPool>(n);
+    }
 
 public:
     static CollisionSystem& GetInstance() {
@@ -65,87 +79,46 @@ public:
     }
 
     void Update() {
-        // 分离静态和动态碰撞器以提高性能
-        std::vector<std::shared_ptr<ColliderComponent>> dynamicColliders;
-        std::vector<std::shared_ptr<ColliderComponent>> staticColliders;
+        int totalColliders = (int)colliders.size();
 
-		// 区分静态和动态碰撞体，并一次性写入帧缓存（AABB + 世界坐标），
-		// 避免 CheckCollision 里每次都走 GetComponent<TransformComponent>() 的哈希查找。
-        for (auto collider : colliders) {
-            auto gameObj = collider->GetGameObject();
-            if (!collider->mEnabled || !gameObj || !gameObj->IsActive()) continue;
-
-            collider->cachedWorldPos = collider->GetWorldPosition();
-            collider->cachedBounds   = collider->GetBoundingBox();
-
-            if (collider->isStatic) {
-                staticColliders.push_back(collider);
-            }
-            else {
-                dynamicColliders.push_back(collider);
+        // ── 阶段1: 并行缓存世界坐标和AABB ──
+        if (totalColliders >= PARALLEL_THRESHOLD && mThreadPool) {
+            mThreadPool->Dispatch(totalColliders, [this](int start, int end) {
+                for (int i = start; i < end; i++) {
+                    auto& col = colliders[i];
+                    auto gameObj = col->GetGameObject();
+                    if (!col->mEnabled || !gameObj || !gameObj->IsActive()) continue;
+                    col->cachedWorldPos = col->GetWorldPosition();
+                    col->cachedBounds   = col->GetBoundingBox();
+                }
+            });
+        } else {
+            for (auto& col : colliders) {
+                auto gameObj = col->GetGameObject();
+                if (!col->mEnabled || !gameObj || !gameObj->IsActive()) continue;
+                col->cachedWorldPos = col->GetWorldPosition();
+                col->cachedBounds   = col->GetBoundingBox();
             }
         }
 
-        std::unordered_set<
-            std::pair<std::shared_ptr<ColliderComponent>, std::shared_ptr<ColliderComponent>>,
-            ColliderPairHash> newCollisions;
+        // ── 阶段2: 串行分桶 ──
+        std::vector<std::shared_ptr<ColliderComponent>> dynamicColliders;
+        std::vector<std::shared_ptr<ColliderComponent>> staticColliders;
+        for (auto& col : colliders) {
+            auto gameObj = col->GetGameObject();
+            if (!col->mEnabled || !gameObj || !gameObj->IsActive()) continue;
+            if (col->isStatic) staticColliders.push_back(col);
+            else                dynamicColliders.push_back(col);
+        }
 
-        // 动态和动态碰撞检测（行分桶：同行内才检测）
         std::unordered_map<int, std::vector<std::shared_ptr<ColliderComponent>>> rowBuckets;
         std::vector<std::shared_ptr<ColliderComponent>> noRowDynamic;
-
         for (auto& col : dynamicColliders) {
             int row = col->GetGameObject()->GetSortingKey();
             if (row >= 0) rowBuckets[row].push_back(col);
             else          noRowDynamic.push_back(col);
         }
 
-        // 同行内检测
-        for (auto& kv : rowBuckets) {
-            auto& bucket = kv.second;
-            for (size_t i = 0; i < bucket.size(); ++i) {
-                for (size_t j = i + 1; j < bucket.size(); ++j) {
-                    auto& colliderA = bucket[i];
-                    auto& colliderB = bucket[j];
-                    if (CheckCollision(colliderA, colliderB)) {
-                        auto collisionPair = (colliderA < colliderB) ?
-                            std::make_pair(colliderA, colliderB) :
-                            std::make_pair(colliderB, colliderA);
-                        newCollisions.insert(collisionPair);
-                        HandleNewCollision(colliderA, colliderB, collisionPair);
-                    }
-                }
-            }
-        }
-
-        // 无行号的动态对象与所有动态对象检测（保持原逻辑）
-        for (size_t i = 0; i < noRowDynamic.size(); ++i) {
-            auto& colliderA = noRowDynamic[i];
-            for (size_t j = i + 1; j < noRowDynamic.size(); ++j) {
-                auto& colliderB = noRowDynamic[j];
-                if (CheckCollision(colliderA, colliderB)) {
-                    auto collisionPair = (colliderA < colliderB) ?
-                        std::make_pair(colliderA, colliderB) :
-                        std::make_pair(colliderB, colliderA);
-                    newCollisions.insert(collisionPair);
-                    HandleNewCollision(colliderA, colliderB, collisionPair);
-                }
-            }
-            // noRowDynamic 与有行号的动态对象也检测
-            for (auto& kv : rowBuckets) {
-                for (auto& colliderB : kv.second) {
-                    if (CheckCollision(colliderA, colliderB)) {
-                        auto collisionPair = (colliderA < colliderB) ?
-                            std::make_pair(colliderA, colliderB) :
-                            std::make_pair(colliderB, colliderA);
-                        newCollisions.insert(collisionPair);
-                        HandleNewCollision(colliderA, colliderB, collisionPair);
-                    }
-                }
-            }
-        }
-
-        // 动态和静态碰撞检测（行分桶）
         std::unordered_map<int, std::vector<std::shared_ptr<ColliderComponent>>> staticRowBuckets;
         std::vector<std::shared_ptr<ColliderComponent>> noRowStatic;
         for (auto& col : staticColliders) {
@@ -154,42 +127,119 @@ public:
             else          noRowStatic.push_back(col);
         }
 
-        auto checkAndRecord = [&](std::shared_ptr<ColliderComponent>& a,
-                                  std::shared_ptr<ColliderComponent>& b) {
-            if (CheckCollision(a, b)) {
-                auto collisionPair = (a < b) ?
-                    std::make_pair(a, b) :
-                    std::make_pair(b, a);
-                newCollisions.insert(collisionPair);
-                HandleNewCollision(a, b, collisionPair);
-            }
-        };
+        // ── 阶段3: 并行检测（每行独立，无共享写入） ──
+        std::vector<int> rowKeys;
+        rowKeys.reserve(rowBuckets.size());
+        for (auto& kv : rowBuckets) rowKeys.push_back(kv.first);
+        int numRows = (int)rowKeys.size();
 
-        // 有行动态 vs 同行静态 + 无行静态
-        for (auto& kv : rowBuckets) {
-            auto& dynBucket = kv.second;
-            auto it = staticRowBuckets.find(kv.first);
-            if (it != staticRowBuckets.end()) {
-                for (auto& d : dynBucket) {
-                    for (auto& s : it->second) {
-                        checkAndRecord(d, s);
+        std::vector<std::vector<DetectedPair>> rowResults(numRows);
+        int totalDynamic = (int)dynamicColliders.size();
+
+        if (numRows > 1 && totalDynamic >= PARALLEL_THRESHOLD && mThreadPool) {
+            mThreadPool->Dispatch(numRows, [&](int start, int end) {
+                for (int ri = start; ri < end; ri++) {
+                    auto& bucket = rowBuckets[rowKeys[ri]];
+                    auto& results = rowResults[ri];
+
+                    for (size_t i = 0; i < bucket.size(); ++i) {
+                        for (size_t j = i + 1; j < bucket.size(); ++j) {
+                            if (CheckCollision(bucket[i], bucket[j])) {
+                                auto& a = bucket[i]; auto& b = bucket[j];
+                                results.push_back({ (a < b) ? a : b, (a < b) ? b : a });
+                            }
+                        }
+                    }
+
+                    auto sit = staticRowBuckets.find(rowKeys[ri]);
+                    if (sit != staticRowBuckets.end()) {
+                        for (auto& d : bucket) {
+                            for (auto& s : sit->second) {
+                                if (CheckCollision(d, s))
+                                    results.push_back({ (d < s) ? d : s, (d < s) ? s : d });
+                            }
+                        }
+                    }
+
+                    for (auto& d : bucket) {
+                        for (auto& s : noRowStatic) {
+                            if (CheckCollision(d, s))
+                                results.push_back({ (d < s) ? d : s, (d < s) ? s : d });
+                        }
+                    }
+                }
+            });
+        } else {
+            for (int ri = 0; ri < numRows; ri++) {
+                auto& bucket = rowBuckets[rowKeys[ri]];
+                auto& results = rowResults[ri];
+                for (size_t i = 0; i < bucket.size(); ++i) {
+                    for (size_t j = i + 1; j < bucket.size(); ++j) {
+                        if (CheckCollision(bucket[i], bucket[j])) {
+                            auto& a = bucket[i]; auto& b = bucket[j];
+                            results.push_back({ (a < b) ? a : b, (a < b) ? b : a });
+                        }
+                    }
+                }
+                auto sit = staticRowBuckets.find(rowKeys[ri]);
+                if (sit != staticRowBuckets.end()) {
+                    for (auto& d : bucket) {
+                        for (auto& s : sit->second) {
+                            if (CheckCollision(d, s))
+                                results.push_back({ (d < s) ? d : s, (d < s) ? s : d });
+                        }
+                    }
+                }
+                for (auto& d : bucket) {
+                    for (auto& s : noRowStatic) {
+                        if (CheckCollision(d, s))
+                            results.push_back({ (d < s) ? d : s, (d < s) ? s : d });
                     }
                 }
             }
-            for (auto& d : dynBucket) {
-                for (auto& s : noRowStatic) {
-                    checkAndRecord(d, s);
+        }
+
+        // noRowDynamic 串行检测（通常很少）
+        std::vector<DetectedPair> noRowResults;
+        for (size_t i = 0; i < noRowDynamic.size(); ++i) {
+            auto& a = noRowDynamic[i];
+            for (size_t j = i + 1; j < noRowDynamic.size(); ++j) {
+                auto& b = noRowDynamic[j];
+                if (CheckCollision(a, b))
+                    noRowResults.push_back({ (a < b) ? a : b, (a < b) ? b : a });
+            }
+            for (auto& kv : rowBuckets) {
+                for (auto& b : kv.second) {
+                    if (CheckCollision(a, b))
+                        noRowResults.push_back({ (a < b) ? a : b, (a < b) ? b : a });
                 }
             }
         }
-
-        // 无行动态 vs 全部静态
         for (auto& d : noRowDynamic) {
             for (auto& s : staticColliders) {
-                checkAndRecord(d, s);
+                if (CheckCollision(d, s))
+                    noRowResults.push_back({ (d < s) ? d : s, (d < s) ? s : d });
             }
         }
-        // 检测碰撞结束
+
+        // ── 阶段4: 串行回调（主线程，保证线程安全） ──
+        std::unordered_set<
+            std::pair<std::shared_ptr<ColliderComponent>, std::shared_ptr<ColliderComponent>>,
+            ColliderPairHash> newCollisions;
+
+        for (auto& results : rowResults) {
+            for (auto& p : results) {
+                auto collisionPair = std::make_pair(p.a, p.b);
+                newCollisions.insert(collisionPair);
+                HandleNewCollision(p.a, p.b, collisionPair);
+            }
+        }
+        for (auto& p : noRowResults) {
+            auto collisionPair = std::make_pair(p.a, p.b);
+            newCollisions.insert(collisionPair);
+            HandleNewCollision(p.a, p.b, collisionPair);
+        }
+
         DetectEndedCollisions(newCollisions);
     }
 
