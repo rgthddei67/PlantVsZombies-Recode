@@ -56,7 +56,11 @@ void ShaderProgram::use() const {
 }
 
 GLint ShaderProgram::getUniformLocation(const char* name) const {
-    return glGetUniformLocation(m_programID, name);
+    auto it = m_uniformCache.find(name);
+    if (it != m_uniformCache.end()) return it->second;
+    GLint loc = glGetUniformLocation(m_programID, name);
+    m_uniformCache[name] = loc;
+    return loc;
 }
 
 GLuint ShaderProgram::compileShader(const char* path, ShaderType type,

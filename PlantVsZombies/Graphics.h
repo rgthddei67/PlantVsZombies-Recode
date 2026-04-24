@@ -441,6 +441,8 @@ public:
 
 private:
 	BlendMode m_currentBlendMode = BlendMode::None;   ///< 当前混合模式
+	GLuint m_currentVAO = 0;                           ///< 当前绑定的 VAO（避免冗余切换）
+	void BindVAO(GLuint vao);
 
 	ShaderProgram m_spriteShader;      ///< 精灵着色器（立即模式）
 	ShaderProgram m_batchShader;        ///< 批处理着色器

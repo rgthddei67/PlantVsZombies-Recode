@@ -4,6 +4,7 @@
 
 #include <glad/glad.h>
 #include <string>
+#include <unordered_map>
 
 class ShaderProgram {
 public:
@@ -29,6 +30,7 @@ private:
 
 private:
     GLuint m_programID;
+    mutable std::unordered_map<std::string, GLint> m_uniformCache;
 };
 
 #endif

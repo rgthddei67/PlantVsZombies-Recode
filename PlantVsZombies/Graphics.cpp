@@ -87,7 +87,6 @@ bool Graphics::Initialize(int windowWidth, int windowHeight) {
 	glBindBuffer(GL_UNIFORM_BUFFER, m_matrixUBO);
 	glBufferData(GL_UNIFORM_BUFFER, sizeof(glm::mat4) * m_matrixBatchLimit, nullptr, GL_DYNAMIC_DRAW);
 	glBindBufferBase(GL_UNIFORM_BUFFER, 0, m_matrixUBO);
-	glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 	// 将 batch shader 的 MatrixBlock 绑定到 binding point 0
 	GLuint blockIndex = glGetUniformBlockIndex(m_batchShader.getProgramID(), "MatrixBlock");
@@ -167,6 +166,10 @@ bool Graphics::InitSpriteRenderer() {
 	glEnableVertexAttribArray(1);
 
 	glBindVertexArray(0);
+
+	glBindVertexArray(m_batchVAO);
+	m_currentVAO = m_batchVAO;
+
 	return true;
 }
 
@@ -211,6 +214,13 @@ void Graphics::Scale(float sx, float sy, float sz) {
 	m_transformStack.back() = glm::scale(m_transformStack.back(), glm::vec3(sx, sy, sz));
 }
 
+void Graphics::BindVAO(GLuint vao) {
+	if (m_currentVAO != vao) {
+		glBindVertexArray(vao);
+		m_currentVAO = vao;
+	}
+}
+
 void Graphics::BeginBatch() {
 	// 自动累积，无需操作
 }
@@ -233,16 +243,12 @@ void Graphics::FlushBatch() {
 		// 上传投影矩阵
 		glUniformMatrix4fv(m_batchShader.getUniformLocation("proj"), 1, GL_FALSE, glm::value_ptr(m_projection));
 
-		// 上传所有变换矩阵到 UBO（orphan 旧 buffer 避免驱动隐式同步）
+		// 上传所有变换矩阵到 UBO
 		if (!m_batchMatrices.empty()) {
 			glBindBuffer(GL_UNIFORM_BUFFER, m_matrixUBO);
-			glBufferData(GL_UNIFORM_BUFFER,
-				sizeof(glm::mat4) * m_matrixBatchLimit,
-				nullptr, GL_DYNAMIC_DRAW);
 			glBufferSubData(GL_UNIFORM_BUFFER, 0,
 				m_batchMatrices.size() * sizeof(glm::mat4),
 				glm::value_ptr(m_batchMatrices[0]));
-			glBindBuffer(GL_UNIFORM_BUFFER, 0);
 		}
 
 		// 设置视图矩阵
@@ -257,15 +263,12 @@ void Graphics::FlushBatch() {
 			glBindTexture(GL_TEXTURE_2D, m_batchTextures[i]);
 		}
 
-		// 上传顶点数据到 VBO（orphan 旧 buffer 避免驱动隐式同步）
+		// 上传顶点数据到 VBO
 		glBindBuffer(GL_ARRAY_BUFFER, m_batchVBO);
-		glBufferData(GL_ARRAY_BUFFER,
-			m_batchBufferCapacity * sizeof(BatchVertex),
-			nullptr, GL_DYNAMIC_DRAW);
 		glBufferSubData(GL_ARRAY_BUFFER, 0, m_batchVertices.size() * sizeof(BatchVertex), m_batchVertices.data());
 
 		// 按连续相同 blendMode 分段绘制，每段设置对应 GL 混合状态
-		glBindVertexArray(m_batchVAO);
+		BindVAO(m_batchVAO);
 		size_t segStart = 0;
 		while (segStart < m_batchVertices.size()) {
 			float curBM = m_batchVertices[segStart].blendMode;
@@ -285,7 +288,6 @@ void Graphics::FlushBatch() {
 			glDrawArrays(GL_TRIANGLES, (GLint)segStart, (GLsizei)(segEnd - segStart));
 			segStart = segEnd;
 		}
-		glBindVertexArray(0);
 
 		// 恢复当前混合模式对应的 GL 状态
 		switch (m_currentBlendMode) {
@@ -420,9 +422,8 @@ void Graphics::DrawTexture(const GLTexture* tex, float x, float y, float width, 
 		glUniformMatrix4fv(m_spriteShader.getUniformLocation("projection"), 1, GL_FALSE, glm::value_ptr(m_projection));
 		glUniformMatrix4fv(m_spriteShader.getUniformLocation("view"), 1, GL_FALSE, glm::value_ptr(m_viewMatrix));
 
-		glBindVertexArray(m_spriteVAO);
+		BindVAO(m_spriteVAO);
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-		glBindVertexArray(0);
 	}
 }
 
@@ -496,9 +497,8 @@ void Graphics::DrawTextureMatrix(const GLTexture* tex, const glm::mat4& transfor
 		glUniformMatrix4fv(m_spriteShader.getUniformLocation("projection"), 1, GL_FALSE, glm::value_ptr(m_projection));
 		glUniformMatrix4fv(m_spriteShader.getUniformLocation("view"), 1, GL_FALSE, glm::value_ptr(m_viewMatrix));
 
-		glBindVertexArray(m_spriteVAO);
+		BindVAO(m_spriteVAO);
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-		glBindVertexArray(0);
 
 		// 恢复原始混合模式
 		if (m_currentBlendMode != originalMode) {
@@ -574,9 +574,8 @@ void Graphics::DrawTextureRegion(const GLTexture* tex,
 		glUniformMatrix4fv(m_spriteShader.getUniformLocation("projection"), 1, GL_FALSE, glm::value_ptr(m_projection));
 		glUniformMatrix4fv(m_spriteShader.getUniformLocation("view"), 1, GL_FALSE, glm::value_ptr(m_viewMatrix));
 
-		glBindVertexArray(m_spriteVAO);
+		BindVAO(m_spriteVAO);
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-		glBindVertexArray(0);
 
 		// 恢复全纹理 UV
 		float fullVerts[] = {
@@ -732,9 +731,8 @@ void Graphics::DrawCachedText(const CachedText& handle, float x, float y, float 
 		glUniformMatrix4fv(m_spriteShader.getUniformLocation("projection"), 1, GL_FALSE, glm::value_ptr(m_projection));
 		glUniformMatrix4fv(m_spriteShader.getUniformLocation("view"), 1, GL_FALSE, glm::value_ptr(m_viewMatrix));
 
-		glBindVertexArray(m_spriteVAO);
+		BindVAO(m_spriteVAO);
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-		glBindVertexArray(0);
 	}
 }
 
@@ -788,9 +786,8 @@ void Graphics::DrawText(const std::string& text, const std::string& fontKey, int
 		glUniformMatrix4fv(m_spriteShader.getUniformLocation("projection"), 1, GL_FALSE, glm::value_ptr(m_projection));
 		glUniformMatrix4fv(m_spriteShader.getUniformLocation("view"), 1, GL_FALSE, glm::value_ptr(m_viewMatrix));
 
-		glBindVertexArray(m_spriteVAO);
+		BindVAO(m_spriteVAO);
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-		glBindVertexArray(0);
 	}
 }
 
@@ -907,7 +904,7 @@ void Graphics::FlushGeomBatch() {
 	glUniformMatrix4fv(m_geomShader.getUniformLocation("view"), 1, GL_FALSE, glm::value_ptr(m_viewMatrix));
 	glUniformMatrix4fv(m_geomShader.getUniformLocation("model"), 1, GL_FALSE, glm::value_ptr(identity));
 
-	glBindVertexArray(m_geomVAO);
+	BindVAO(m_geomVAO);
 	glBindBuffer(GL_ARRAY_BUFFER, m_geomVBO);
 
 	// 按需扩容
@@ -918,9 +915,6 @@ void Graphics::FlushGeomBatch() {
 
 	glBufferSubData(GL_ARRAY_BUFFER, 0, m_geomBatchVertices.size() * sizeof(GeomVertex), m_geomBatchVertices.data());
 	glDrawArrays(m_geomBatchMode, 0, (GLsizei)m_geomBatchVertices.size());
-
-	glBindVertexArray(0);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	m_geomBatchVertices.clear();
 }
@@ -1038,7 +1032,7 @@ void Graphics::DrawGeomImmediate(const std::vector<GeomVertex>& vertices, GLenum
 	glUniformMatrix4fv(m_geomShader.getUniformLocation("model"), 1, GL_FALSE, glm::value_ptr(m_transformStack.back()));
 
 	// 上传顶点数据
-	glBindVertexArray(m_geomVAO);
+	BindVAO(m_geomVAO);
 	glBindBuffer(GL_ARRAY_BUFFER, m_geomVBO);
 
 	if (vertices.size() > m_geomBatchCapacity) {
@@ -1048,9 +1042,6 @@ void Graphics::DrawGeomImmediate(const std::vector<GeomVertex>& vertices, GLenum
 	glBufferSubData(GL_ARRAY_BUFFER, 0, vertices.size() * sizeof(GeomVertex), vertices.data());
 
 	glDrawArrays(mode, 0, (GLsizei)vertices.size());
-
-	glBindVertexArray(0);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 void Graphics::DrawLine(float x1, float y1, float x2, float y2, const glm::vec4& color) {
