@@ -30,6 +30,12 @@ Plant::Plant(Board* board, PlantType plantType, int row, int column,
 	Vector plantOffset = plantMgr.GetPlantOffset(plantType);
 	// 设置植物在格子中的位置
 	if (!mIsPreview) {
+		if (auto collider = GetColliderComponent()) {
+			collider->isStatic = true;
+			collider->layerMask = CollisionLayer::PLANT;
+			collider->collisionMask = CollisionLayer::ZOMBIE;
+		}
+
 		Vector cellCenterPosition(
 			CELL_INITALIZE_POS_X + column * CELL_COLLIDER_SIZE_X + CELL_COLLIDER_SIZE_X / 2,
 			CELL_INITALIZE_POS_Y + row * CELL_COLLIDER_SIZE_Y + CELL_COLLIDER_SIZE_Y / 2

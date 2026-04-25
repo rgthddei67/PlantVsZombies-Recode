@@ -38,6 +38,8 @@ public:
 		auto Collider = mCollider.lock();
         Collider->isTrigger = true;
         Collider->isStatic = true;
+        Collider->layerMask = CollisionLayer::NONE;
+        Collider->collisionMask = CollisionLayer::NONE;
         auto clickable = this->AddComponent<ClickableComponent>();
         if (!clickable) return;
         clickable->ChangeCursorOnHover = false;

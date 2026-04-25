@@ -23,6 +23,8 @@ Mower::Mower(Board* board, MowerType type, AnimationType animType, float x, floa
 	if (!collider) return;
 
 	collider->isTrigger = true;
+	collider->layerMask = CollisionLayer::MOWER;
+	collider->collisionMask = CollisionLayer::ZOMBIE;
 	collider->onTriggerEnter = [this](std::shared_ptr<ColliderComponent> other) {
 		auto go = other->GetGameObject();
 		if (!go || go->GetObjectType() != ObjectType::OBJECT_ZOMBIE) return;

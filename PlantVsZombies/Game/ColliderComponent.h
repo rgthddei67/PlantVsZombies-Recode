@@ -7,6 +7,7 @@
 #include <SDL2/SDL.h>
 #include <functional>
 #include <memory>
+#include <cstdint>
 
 class TransformComponent;
 
@@ -16,6 +17,16 @@ enum class ColliderType {
 	CIRCLE
 };
 
+namespace CollisionLayer {
+	constexpr uint16_t NONE   = 0;
+	constexpr uint16_t PLANT  = 1 << 0;
+	constexpr uint16_t ZOMBIE = 1 << 1;
+	constexpr uint16_t BULLET = 1 << 2;
+	constexpr uint16_t MOWER  = 1 << 3;
+	constexpr uint16_t COIN   = 1 << 4;
+	constexpr uint16_t ALL    = 0xFFFF;
+}
+
 class ColliderComponent : public Component {
 public:
 	Vector offset = Vector::zero();    // 相对于游戏对象的偏移
@@ -23,6 +34,11 @@ public:
 	ColliderType colliderType = ColliderType::BOX;
 	bool isTrigger = false;            // 是否是触发器
 	bool isStatic = false;             // 是否是静态碰撞体
+
+	uint16_t layerMask     = CollisionLayer::ALL;
+	uint16_t collisionMask = CollisionLayer::ALL;
+	uint32_t colliderID    = 0;
+	bool     mRegistered   = false;
 
 	// 碰撞的事件（回调函数）
 	std::function<void(std::shared_ptr<ColliderComponent>)> onTriggerEnter;

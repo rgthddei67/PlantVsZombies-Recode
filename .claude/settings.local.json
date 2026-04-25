@@ -13,7 +13,8 @@
       "Read(//c/Users/Zijin.han//**)",
       "Read(//c/Users/Zijin.han/**)",
       "Bash(where vcpkg *)",
-      "Bash(vcpkg env *)"
+      "Bash(vcpkg env *)",
+      "Bash(grep -E \"\\\\.\\(h|cpp\\)$\")"
     ]
   }
 }

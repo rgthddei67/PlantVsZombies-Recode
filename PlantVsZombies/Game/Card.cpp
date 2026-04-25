@@ -21,6 +21,8 @@ void Card::SetupComponents(PlantType plantType, int sunCost, float cooldown) {
     auto collision = AddComponent<ColliderComponent>(Vector(CARD_WIDTH, CARD_HEIGHT));
     collision->isStatic = true;
 	collision->isTrigger = true;
+    collision->layerMask = CollisionLayer::NONE;
+    collision->collisionMask = CollisionLayer::NONE;
     auto clickable = AddComponent<ClickableComponent>();
     clickable->ConsumeEvent = true;
 

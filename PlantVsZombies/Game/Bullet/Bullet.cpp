@@ -18,6 +18,8 @@ Bullet::Bullet(Board* board, BulletType bulletType, int row, const Vector& colli
 		(colliderRadius, Vector(0, 0), ColliderType::CIRCLE);
 	auto collider = GetColliderComponent();
 	collider->isTrigger = true;	// 设置为触发器
+	collider->layerMask = CollisionLayer::BULLET;
+	collider->collisionMask = CollisionLayer::ZOMBIE;
 	collider->onTriggerEnter = [this](std::shared_ptr<ColliderComponent> other) {
 		auto otherGameObject = other->GetGameObject();
 		if (otherGameObject && otherGameObject->GetObjectType() == ObjectType::OBJECT_ZOMBIE) {

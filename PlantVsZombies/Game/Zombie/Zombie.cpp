@@ -36,6 +36,8 @@ Zombie::Zombie(Board * board, ZombieType zombieType, float x, float y, int row,
 
 	auto collider = GetColliderComponent();
 	collider->isTrigger = true;
+	collider->layerMask = CollisionLayer::ZOMBIE;
+	collider->collisionMask = CollisionLayer::PLANT | CollisionLayer::BULLET | CollisionLayer::MOWER;
 	collider->onTriggerEnter = [this]
 	(std::shared_ptr<ColliderComponent> other) {
 		this->EatTarget(other);

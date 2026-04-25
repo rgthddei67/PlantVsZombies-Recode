@@ -14,6 +14,11 @@ Coin::Coin(Board* board, AnimationType animType, const Vector& position,
 	this->mStartScale = scale * 0.1f;
 	this->mIsScaling = needScaleAnimation;
 	this->mScaleAnimationFinished = !needScaleAnimation;
+
+	if (auto collider = GetColliderComponent()) {
+		collider->layerMask = CollisionLayer::NONE;
+		collider->collisionMask = CollisionLayer::NONE;
+	}
 }
 
 void Coin::Start()
