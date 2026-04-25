@@ -48,6 +48,8 @@ Zombie::Zombie(Board * board, ZombieType zombieType, float x, float y, int row,
 	(std::shared_ptr<ColliderComponent> other) {
 		this->StopEat(other);
 		};
+
+	mGroundTrackIndex = mAnimator->GetFirstTrackIndexByName("_ground");
 }
 
 void Zombie::SetupZombie()
@@ -255,9 +257,13 @@ void Zombie::ZombieMove(float scaledDelta, TransformComponent* transform)
 	float speed = 0.0f;
 	// 尝试从 _ground 轨道获取速度
 	if (mAnimator) {
-		// GetTrackVelocity 内部已乘 animator mSpeed，减速时 SetSpeed(0.5) 已令其自动减半。
-		// 但 this->mSpeed 是独立的固定项，需单独在减速时乘 0.5 但是deltaTime又变小了，所以不用
-		speed = mAnimator->GetTrackVelocity("_ground") + mSpeed;
+		// GetTrackVelocity 内部已乘 animator mSpeed，减速时 SetSpeed(0.5) 已令其自动减半
+		//  但 this->mSpeed 是独立的固定项，需单独在减速时乘 0.5 但是deltaTime又变小了，所以不用
+
+		speed = (mGroundTrackIndex >= 0
+			? mAnimator->GetTrackVelocity(mGroundTrackIndex)
+			: mAnimator->GetTrackVelocity("_ground"))
+			+ mSpeed;
 		if (mIsMindControlled)
 		{
 			transform->Translate(speed * scaledDelta, 0);

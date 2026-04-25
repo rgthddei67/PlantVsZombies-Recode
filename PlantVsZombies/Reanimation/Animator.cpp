@@ -42,7 +42,7 @@ void Animator::Init(std::shared_ptr<Reanimation> reanim) {
         for (int i = 0; i < reanim->GetTrackCount(); i++) {
             auto track = reanim->GetTrack(i);
             if (track) {
-                mTrackIndicesMap[track->mTrackName] = i;
+                mTrackIndicesMap.try_emplace(track->mTrackName, i);
                 TrackExtraInfo extra;
                 mExtraInfos.push_back(extra);
             }
@@ -578,26 +578,26 @@ void Animator::SetFrameRangeToDefault() {
 }
 
 float Animator::GetTrackVelocity(const std::string& trackName) const {
+    int index = GetFirstTrackIndexByName(trackName);
+    if (index < 0) return 0.0f;
+    return GetTrackVelocity(index);
+}
+
+float Animator::GetTrackVelocity(int trackIndex) const {
     if (!mReanim) return 0.0f;
 
-    // 获取轨道
-    auto tracks = GetTracksByName(trackName);
-    if (tracks.empty()) return 0.0f;
-    TrackInfo* track = tracks[0];
+    auto* track = mReanim->GetTrack(trackIndex);
     if (!track || track->mFrames.empty()) return 0.0f;
 
-    // 获取当前帧整数索引，并限制在有效范围内
     int frameBefore = static_cast<int>(mFrameIndexNow);
     int maxIndex = static_cast<int>(track->mFrames.size()) - 1;
     frameBefore = std::clamp(frameBefore, 0, maxIndex);
     int frameAfter = std::min(frameBefore + 1, maxIndex);
 
-    // 获取前后帧的 X 坐标
     float xBefore = track->mFrames[frameBefore].x;
     float xAfter = track->mFrames[frameAfter].x;
     float dx = xAfter - xBefore;
 
-    // 计算速度 (与 Update 保持一致，同乘额外倍率)
     float velocity = dx * mSpeed * mExtraSpeedMultiplier;
     return std::abs(velocity);
 }
@@ -712,13 +712,8 @@ std::vector<TrackExtraInfo*> Animator::GetTrackExtrasByName(const std::string& t
 }
 
 int Animator::GetFirstTrackIndexByName(const std::string& trackName) const {
-    for (int i = 0; i < static_cast<int>(mExtraInfos.size()); i++) {
-        auto track = mReanim->GetTrack(i);
-        if (track && track->mTrackName == trackName) {
-            return i;
-        }
-    }
-    return -1;
+    auto it = mTrackIndicesMap.find(trackName);
+    return (it != mTrackIndicesMap.end()) ? it->second : -1;
 }
 
 // 颜色混合函数

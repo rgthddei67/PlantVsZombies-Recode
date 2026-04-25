@@ -273,6 +273,20 @@ public:
      */
     float GetTrackVelocity(const std::string& trackName) const;
 
+    /**
+     * @brief 通过轨道索引获取运动速度 (跳过字符串查找，用于热路径)
+     * @param trackIndex 轨道索引
+     * @return 速度值
+     */
+    float GetTrackVelocity(int trackIndex) const;
+
+    /**
+     * @brief 根据轨道名获取第一个匹配的轨道索引 (O(1) 哈希查找)
+     * @param trackName 轨道名
+     * @return 索引，-1 表示未找到
+     */
+    int GetFirstTrackIndexByName(const std::string& trackName) const;
+
     // ---------- 透明度和颜色控制 ----------
     /**
      * @brief 设置整体透明度
@@ -415,13 +429,6 @@ private:
      * @return 指针数组
      */
     std::vector<TrackExtraInfo*> GetTrackExtrasByName(const std::string& trackName);
-
-    /**
-     * @brief 根据轨道名获取第一个匹配的轨道索引
-     * @param trackName 轨道名
-     * @return 索引，-1 表示未找到
-     */
-    int GetFirstTrackIndexByName(const std::string& trackName) const;
 
     /**
      * @brief 收集所有绘制命令 (递归调用子动画)

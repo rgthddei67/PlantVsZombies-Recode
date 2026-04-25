@@ -56,6 +56,7 @@ protected:
 	float mDyingTimer = 0.0f;	// mIsDying 持续时间，超过 10s 强制 Die 防止卡 BUG
 
 	float mSpeed = 10.0f;
+	int mGroundTrackIndex = -1;
 
 public:
 	Zombie(Board* board, ZombieType zombieType, float x, float y, int row,
