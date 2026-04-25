@@ -965,21 +965,8 @@ void Graphics::FlushGeomBatch() {
 }
 
 void Graphics::ResizeBatchBuffer(size_t newCapacity) {
-	// 暂存当前数据
-	std::vector<BatchVertex> oldData;
-	if (!m_batchVertices.empty()) {
-		oldData = m_batchVertices;
-	}
-
-	// 重新分配 VBO
 	glBindBuffer(GL_ARRAY_BUFFER, m_batchVBO);
 	glBufferData(GL_ARRAY_BUFFER, newCapacity * sizeof(BatchVertex), nullptr, GL_DYNAMIC_DRAW);
-
-	// 恢复数据（如果有）
-	if (!oldData.empty()) {
-		glBufferSubData(GL_ARRAY_BUFFER, 0, oldData.size() * sizeof(BatchVertex), oldData.data());
-	}
-
 	m_batchBufferCapacity = newCapacity;
 }
 
