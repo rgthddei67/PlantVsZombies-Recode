@@ -16,7 +16,7 @@ Graphics::~Graphics() {
 
 	if (m_batchVAO) glDeleteVertexArrays(1, &m_batchVAO);
 	if (m_batchVBO) glDeleteBuffers(1, &m_batchVBO);
-	if (m_matrixUBO) glDeleteBuffers(1, &m_matrixUBO);
+	if (m_matrixBuffer) glDeleteBuffers(1, &m_matrixBuffer);
 
 	// 释放几何图形渲染资源
 	if (m_geomVAO) glDeleteVertexArrays(1, &m_geomVAO);
@@ -30,18 +30,49 @@ bool Graphics::Initialize(int windowWidth, int windowHeight) {
 	glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &m_maxTextureUnits);
 	if (m_maxTextureUnits > 32) m_maxTextureUnits = 32;
 
-	// 查询 UBO 最大块大小，用它决定单批次矩阵上限
+	// 查询 UBO 最大块大小，用它决定单批次矩阵上限（UBO 回退路径）
 	// std140 保证 mat4 占 64 字节；GL 3.3 最低保证 GL_MAX_UNIFORM_BLOCK_SIZE >= 16KB（256 个 mat4），桌面 GPU 普遍为 64KB（1024 个）
 	GLint maxUBOSize = 0;
 	glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, &maxUBOSize);
 	int computed = maxUBOSize > 0 ? maxUBOSize / static_cast<int>(sizeof(glm::mat4)) : MATRIX_BATCH_LIMIT_MIN;
 	if (computed < MATRIX_BATCH_LIMIT_MIN) computed = MATRIX_BATCH_LIMIT_MIN;
-	if (computed > 2048) computed = 2048;  // 硬上限：超过收益递减
+	if (computed > 2048) computed = 2048;
 	m_matrixBatchLimit = computed;
+
+	// 检测 SSBO 支持（GL 4.3 core 或 GL_ARB_shader_storage_buffer_object 扩展）
+	if (GLAD_GL_VERSION_4_3) {
+		m_useSSBO = true;
+	}
+	else {
+		GLint numExtensions = 0;
+		glGetIntegerv(GL_NUM_EXTENSIONS, &numExtensions);
+		for (GLint i = 0; i < numExtensions; ++i) {
+			const char* ext = reinterpret_cast<const char*>(glGetStringi(GL_EXTENSIONS, i));
+			if (ext && std::string(ext) == "GL_ARB_shader_storage_buffer_object") {
+				m_useSSBO = true;
+				break;
+			}
+		}
+	}
+	if (m_useSSBO) {
+		GLint maxSSBOSize = 0;
+		glGetIntegerv(GL_MAX_SHADER_STORAGE_BLOCK_SIZE, &maxSSBOSize);
+		if (maxSSBOSize > 0) {
+			int ssboComputed = maxSSBOSize / static_cast<int>(sizeof(glm::mat4));
+			if (ssboComputed > 16384) ssboComputed = 16384;
+			if (ssboComputed > m_matrixBatchLimit) {
+				m_matrixBatchLimit = ssboComputed;
+			}
+		}
+		else {
+			m_useSSBO = false;
+		}
+	}
 	m_vertexBatchLimit = m_matrixBatchLimit * 6;
 
 #ifdef _DEBUG
 	std::cout << "[Graphics] GL_MAX_UNIFORM_BLOCK_SIZE=" << maxUBOSize
+		<< "  SSBO=" << (m_useSSBO ? "yes" : "no")
 		<< "  -> m_matrixBatchLimit=" << m_matrixBatchLimit
 		<< "  m_vertexBatchLimit=" << m_vertexBatchLimit << std::endl;
 #endif
@@ -82,19 +113,28 @@ bool Graphics::Initialize(int windowWidth, int windowHeight) {
 	glBindVertexArray(0);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-	// 创建矩阵 UBO，绑定到 binding point 0
-	glGenBuffers(1, &m_matrixUBO);
-	glBindBuffer(GL_UNIFORM_BUFFER, m_matrixUBO);
-	glBufferData(GL_UNIFORM_BUFFER, sizeof(glm::mat4) * m_matrixBatchLimit, nullptr, GL_DYNAMIC_DRAW);
-	glBindBufferBase(GL_UNIFORM_BUFFER, 0, m_matrixUBO);
-
-	// 将 batch shader 的 MatrixBlock 绑定到 binding point 0
-	GLuint blockIndex = glGetUniformBlockIndex(m_batchShader.getProgramID(), "MatrixBlock");
-	if (blockIndex == GL_INVALID_INDEX) {
-		std::cerr << "[Graphics] MatrixBlock not found in batch shader (UBO binding failed)" << std::endl;
-		return false;
+	// 创建矩阵缓冲（SSBO 或 UBO），绑定到 binding point 0
+	glGenBuffers(1, &m_matrixBuffer);
+	if (m_useSSBO) {
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_matrixBuffer);
+		glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(glm::mat4) * m_matrixBatchLimit, nullptr, GL_DYNAMIC_DRAW);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_matrixBuffer);
 	}
-	glUniformBlockBinding(m_batchShader.getProgramID(), blockIndex, 0);
+	else {
+		glBindBuffer(GL_UNIFORM_BUFFER, m_matrixBuffer);
+		glBufferData(GL_UNIFORM_BUFFER, sizeof(glm::mat4) * m_matrixBatchLimit, nullptr, GL_DYNAMIC_DRAW);
+		glBindBufferBase(GL_UNIFORM_BUFFER, 0, m_matrixBuffer);
+	}
+
+	// UBO 路径需要手动绑定 uniform block
+	if (!m_useSSBO) {
+		GLuint blockIndex = glGetUniformBlockIndex(m_batchShader.getProgramID(), "MatrixBlock");
+		if (blockIndex == GL_INVALID_INDEX) {
+			std::cerr << "[Graphics] MatrixBlock not found in batch shader (UBO binding failed)" << std::endl;
+			return false;
+		}
+		glUniformBlockBinding(m_batchShader.getProgramID(), blockIndex, 0);
+	}
 
 	// 创建 1×1 纯白纹理，供 FillRect 批处理使用
 	{
@@ -117,8 +157,12 @@ bool Graphics::InitShaders() {
 		return false;
 	}
 
-	// 加载批处理着色器；运行时把 MATRIX_BATCH_LIMIT 注入为 GLSL 宏，使 UBO 数组维度与 C++ 端一致
+	// 加载批处理着色器；运行时把 MATRIX_BATCH_LIMIT 注入为 GLSL 宏，使数组维度与 C++ 端一致
 	std::string batchDefines = "#define MATRIX_BATCH_LIMIT " + std::to_string(m_matrixBatchLimit) + "\n";
+	if (m_useSSBO) {
+		batchDefines = "#extension GL_ARB_shader_storage_buffer_object : require\n" + batchDefines;
+		batchDefines += "#define USE_SSBO 1\n";
+	}
 	if (!m_batchShader.loadFromFile("./Shader/batch_vertex.glsl", "./Shader/batch_fragment.glsl", batchDefines)) {
 		std::cerr << "[Graphics] Failed to load batch shader." << std::endl;
 		return false;
@@ -243,10 +287,11 @@ void Graphics::FlushBatch() {
 		// 上传投影矩阵
 		glUniformMatrix4fv(m_batchShader.getUniformLocation("proj"), 1, GL_FALSE, glm::value_ptr(m_projection));
 
-		// 上传所有变换矩阵到 UBO
+		// 上传所有变换矩阵到缓冲（SSBO 或 UBO）
 		if (!m_batchMatrices.empty()) {
-			glBindBuffer(GL_UNIFORM_BUFFER, m_matrixUBO);
-			glBufferSubData(GL_UNIFORM_BUFFER, 0,
+			GLenum target = m_useSSBO ? GL_SHADER_STORAGE_BUFFER : GL_UNIFORM_BUFFER;
+			glBindBuffer(target, m_matrixBuffer);
+			glBufferSubData(target, 0,
 				m_batchMatrices.size() * sizeof(glm::mat4),
 				glm::value_ptr(m_batchMatrices[0]));
 		}

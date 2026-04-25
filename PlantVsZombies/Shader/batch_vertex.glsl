@@ -12,6 +12,11 @@ out vec4 Color;
 uniform mat4 proj;
 uniform mat4 view;   // 摄像机视图矩阵
 
+#ifdef USE_SSBO
+layout(std430, binding = 0) buffer MatrixBlock {
+    mat4 posMatrix[];
+};
+#else
 #ifndef MATRIX_BATCH_LIMIT
 #define MATRIX_BATCH_LIMIT 256
 #endif
@@ -19,6 +24,7 @@ uniform mat4 view;   // 摄像机视图矩阵
 layout(std140) uniform MatrixBlock {
     mat4 posMatrix[MATRIX_BATCH_LIMIT];
 };
+#endif
 
 void main() {
     mat4 model = posMatrix[aMatrixIndex];

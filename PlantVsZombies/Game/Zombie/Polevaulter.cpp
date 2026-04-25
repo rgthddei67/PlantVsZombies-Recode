@@ -147,7 +147,7 @@ void Polevaulter::ValidateEatingState(EntityManager& em)
 		if (!plant) {
 			mIsEating = false;
 			mEatPlantID = NULL_PLANT_ID;
-			PlayTrack("anim_walk", 0.0f, 0.3f);
+			PlayTrack("anim_walk", 0.0f, 0.2f);
 			RestoreSpeed();
 		}
 		else {
@@ -191,7 +191,7 @@ void Polevaulter::StopEat(std::shared_ptr<ColliderComponent> other)
 			if (mEatPlantID != plant->mPlantID || plant->mRow != this->mRow) return;
 
 			if (mIsEating) {
-				this->PlayTrack("anim_walk", 0.0f, 0.3f);
+				this->PlayTrack("anim_walk", 0.0f, 0.2f);
 				this->RestoreSpeed();
 				plant->mEaterCount--;
 			}

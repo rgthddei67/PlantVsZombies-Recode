@@ -473,7 +473,8 @@ private:
 
 	GLuint m_batchVAO = 0;                       ///< 批处理 VAO
 	GLuint m_batchVBO = 0;                       ///< 批处理 VBO
-	GLuint m_matrixUBO = 0;                      ///< 矩阵 UBO（替代 uniform 数组，突破 64 上限）
+	GLuint m_matrixBuffer = 0;                   ///< 矩阵缓冲（UBO 或 SSBO）
+	bool m_useSSBO = false;                      ///< 运行时是否使用 SSBO（GL 4.3+）
 	size_t m_batchBufferCapacity = 0;             ///< 当前 VBO 容量（顶点个数）
 
 	GLuint m_geomVAO = 0;                         ///< 几何图形 VAO

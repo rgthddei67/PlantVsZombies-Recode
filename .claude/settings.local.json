@@ -11,7 +11,9 @@
       "Bash(grep -r \"class.*Plant\\\\|class.*Zombie\" PlantVsZombies/Game/Plant/*.h PlantVsZombies/Game/Zombie/*.h)",
       "Bash(grep -v \"//\")",
       "Read(//c/Users/Zijin.han//**)",
-      "Read(//c/Users/Zijin.han/**)"
+      "Read(//c/Users/Zijin.han/**)",
+      "Bash(where vcpkg *)",
+      "Bash(vcpkg env *)"
     ]
   }
 }

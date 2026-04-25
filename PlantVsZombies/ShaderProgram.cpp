@@ -72,6 +72,7 @@ GLuint ShaderProgram::compileShader(const char* path, ShaderType type,
     }
 
     std::string source = file;
+
     if (!defines.empty()) {
         // 在 #version ... 行之后插入 defines；若找不到 #version 则前置
         size_t versionPos = source.find("#version");

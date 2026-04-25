@@ -155,7 +155,7 @@ void Zombie::Update()
 		float deltaTime = DeltaTime::GetDeltaTime();
 		auto* transform = this->GetTransformComponent().get();
 
-		if (!transform) return;
+		if (!transform && !mBoard) return;
 
 		if (mIsDying)
 		{
@@ -191,7 +191,7 @@ void Zombie::Update()
 		{
 			mCheckPositionTimer = 0.0f;
 			Vector position = transform->GetPosition();
-			if (position.x < 110.0f && mBoard)
+			if (position.x < 110.0f && mBoard->mBoardState == BoardState::GAME)
 			{
 				mBoard->GameOver();
 			}
@@ -444,7 +444,7 @@ void Zombie::EatTarget(std::shared_ptr<ColliderComponent> other)
 			if (mEatPlantID != NULL_PLANT_ID || plant->mRow != this->mRow) return;	// 正在吃一个植物，那么不吃别的植物
 
 			if (!mIsEating) {
-				this->PlayTrack("anim_eat", 2.1f, 0.3f);
+				this->PlayTrack("anim_eat", 2.1f, 0.2f);
 			}
 			mIsEating = true;
 			mEatPlantID = plant->mPlantID;
@@ -464,7 +464,7 @@ void Zombie::StopEat(std::shared_ptr<ColliderComponent> other)
 			if (mEatPlantID != plant->mPlantID || plant->mRow != this->mRow) return;
 
 			if (mIsEating) {
-				this->PlayTrack("anim_walk2", 0.0f, 0.3f);
+				this->PlayTrack("anim_walk2", 0.0f, 0.2f);
 				this->RestoreSpeed();
 				plant->mEaterCount--;
 			}
