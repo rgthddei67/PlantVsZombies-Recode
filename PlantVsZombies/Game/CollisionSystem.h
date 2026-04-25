@@ -32,7 +32,7 @@ private:
     }
 
     static bool CanCollide(const ColliderComponent* a, const ColliderComponent* b) {
-        return (a->layerMask & b->collisionMask) | (b->layerMask & a->collisionMask);
+        return ((a->layerMask & b->collisionMask) | (b->layerMask & a->collisionMask)) != 0;
     }
 
     CollisionSystem() {
@@ -250,13 +250,17 @@ public:
             HandleNewCollision(p.a, p.b, p.pairKey);
         }
 
-        DetectEndedCollisions(newCollisions);
+        std::unordered_map<uint32_t, std::shared_ptr<ColliderComponent>> idMap;
+        idMap.reserve(colliders.size());
+        for (auto& col : colliders) idMap[col->colliderID] = col;
+        DetectEndedCollisions(newCollisions, idMap);
     }
 
     // 射线检测
     std::shared_ptr<ColliderComponent> Raycast(const Vector& start, const Vector& end, const std::string& tag = "") {
-        Vector direction = (end - start).normalized();
         float maxDistance = Vector::distance(start, end);
+        if (maxDistance == 0.0f) return nullptr;
+        Vector direction = (end - start).normalized();
 
         std::shared_ptr<ColliderComponent> closestHit = nullptr;
         float closestDistance = maxDistance;
@@ -404,19 +408,19 @@ private:
             currentCollisions.insert(pairKey);
         }
         else {
-            if (a->onTriggerStay) {
+            if (a->isTrigger && a->onTriggerStay) {
                 auto bsp = ToShared(b);
                 a->onTriggerStay(bsp);
             }
-            if (b->onTriggerStay) {
+            if (b->isTrigger && b->onTriggerStay) {
                 auto asp = ToShared(a);
                 b->onTriggerStay(asp);
             }
         }
     }
 
-    // 检测结束的碰撞
-    void DetectEndedCollisions(const std::unordered_set<uint64_t>& newCollisions) {
+    void DetectEndedCollisions(const std::unordered_set<uint64_t>& newCollisions,
+                               const std::unordered_map<uint32_t, std::shared_ptr<ColliderComponent>>& idMap) {
         std::vector<uint64_t> endedKeys;
 
         for (auto key : currentCollisions) {
@@ -428,13 +432,10 @@ private:
         for (auto key : endedKeys) {
             uint32_t idA = static_cast<uint32_t>(key >> 32);
             uint32_t idB = static_cast<uint32_t>(key & 0xFFFFFFFF);
-            std::shared_ptr<ColliderComponent> a, b;
-            for (auto& col : colliders) {
-                if (col->colliderID == idA) a = col;
-                else if (col->colliderID == idB) b = col;
-                if (a && b) break;
-            }
-            if (a && b) HandleCollisionExit(a, b);
+            auto itA = idMap.find(idA);
+            auto itB = idMap.find(idB);
+            if (itA != idMap.end() && itB != idMap.end())
+                HandleCollisionExit(itA->second, itB->second);
             currentCollisions.erase(key);
         }
     }
