@@ -1,6 +1,5 @@
 ﻿#include "../Game/AudioSystem.h"
 #include "../ResourceManager.h"
-#include <fstream>
 #include <algorithm>
 
 float AudioSystem::masterVolume = 1.0f;
@@ -16,7 +15,7 @@ bool AudioSystem::Initialize()
         return false;
     }
 
-    Mix_AllocateChannels(16);
+    Mix_AllocateChannels(128);
     /*
     // 加载保存的音量设置
     LoadVolumeSettings();
