@@ -19,7 +19,8 @@ protected:
 	{
 		Bullet::BulletHitZombie(zombie);
 
-		if (zombie->GetCooldownTimer() <= 0.0f) {
+		if (zombie->GetCooldownTimer() <= 0.0f && zombie->mHelmType == HelmType::HELMTYPE_NONE
+			&& zombie->mShieldType == ShieldType::SHIELDTYPE_NONE) {
 			AudioSystem::PlaySound("SOUND_COOLDOWNZOMBIE", 0.4f);
 		}
 
@@ -34,7 +35,7 @@ protected:
 			else if (random == 2)
 				AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_HITCONE2, 0.3f);
 		}
-		else if (zombie->mHelmType == HelmType::HELMTYPE_PAIL ||
+		else if (zombie->mHelmType == HelmType::HELMTYPE_BUCKET ||
 			zombie->mShieldType == ShieldType::SHIELDTYPE_DOOR ||
 			zombie->mShieldType == ShieldType::SHIELDTYPE_LADDER ||
 			zombie->mZombieType == ZombieType::ZOMBIE_ZAMBONI) {

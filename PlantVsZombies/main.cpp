@@ -2,6 +2,7 @@
 #include "./CrashHandler.h"
 #include "./GameRandom.h"
 #include "./GameAPP.h"
+#include "GameMonitor.h"
 #include <iostream>
 
 int main(int argc, char** argv)
@@ -10,6 +11,8 @@ int main(int argc, char** argv)
     system("cls");
     CrashHandler::Initialize();
     GameRandom::RandomizeSeed();
+
+    GameMonitor::Init();
 
     // 检查命令行参数是否包含 -Debug 后缀
     for (int i = 1; i < argc; ++i)

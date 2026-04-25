@@ -27,7 +27,7 @@ protected:
 			else if (random == 2)
 				AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_HITCONE2, 0.3f);
 		}
-		else if (zombie->mHelmType == HelmType::HELMTYPE_PAIL ||
+		else if (zombie->mHelmType == HelmType::HELMTYPE_BUCKET ||
 			zombie->mShieldType == ShieldType::SHIELDTYPE_DOOR ||
 			zombie->mShieldType == ShieldType::SHIELDTYPE_LADDER ||
 			zombie->mZombieType == ZombieType::ZOMBIE_ZAMBONI) {

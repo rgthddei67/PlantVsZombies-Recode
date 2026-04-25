@@ -16,6 +16,7 @@
 #include "./Zombie/Zombie.h"
 #include "./Zombie/ConeZombie.h"
 #include "./Zombie/Polevaulter.h"
+#include "./Zombie/BucketZombie.h"
 
 #include "EntityManager.h"
 #include "RenderOrder.h"
@@ -260,6 +261,18 @@ std::shared_ptr<Zombie> Board::CreateZombie(ZombieType zombieType, int row, floa
 			y,
 			row,
 			AnimationType::ANIM_POLEVAULTER_ZOMBIE,
+			1.0f,
+			isPreview);
+		break;
+	case ZombieType::ZOMBIE_BUCKET:
+		zombie = GameObjectManager::GetInstance().CreateGameObjectImmediate<BucketZombie>(
+			LAYER_GAME_ZOMBIE,
+			this,
+			ZombieType::ZOMBIE_BUCKET,
+			x,
+			y,
+			row,
+			AnimationType::ANIM_BUCKET_ZOMBIE,
 			1.0f,
 			isPreview);
 		break;

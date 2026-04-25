@@ -117,6 +117,16 @@ void GameDataManager::InitializeHardcodedData() {
 		5
 	);
 
+	RegisterZombie(
+		ZombieType::ZOMBIE_BUCKET,
+		"ZOMBIE_BUCKET",
+		AnimationType::ANIM_BUCKET_ZOMBIE,
+		ResourceKeys::Reanimations::REANIM_BUCKET_ZOMBIE,
+		Vector(-50, -85),
+		2000,
+		5
+	);
+
 	// ==================== 非植物/僵尸动画映射 ====================
 	mAnimToString[AnimationType::ANIM_SUN] = ResourceKeys::Reanimations::REANIM_SUN;
 
