@@ -17,6 +17,7 @@ void MainMenuScene::OnExit()
 {
 	GameObjectManager::GetInstance().DestroyGameObject(mGameButton);
 	mOpitionButton.reset();
+	mAlmanacButton.reset();
 	Scene::OnExit();
 }
 
@@ -33,6 +34,13 @@ void MainMenuScene::Update()
 		SceneMgr.SetGlobalData("EnterLevel", std::to_string(gameApp.mAdventureLevel));
 		SceneMgr.SwitchTo("GameScene");
 		return;
+	}
+	if (mReadyToSwitchAlmanac) {
+		mReadyToSwitchAlmanac = false;
+		auto& gameApp = GameAPP::GetInstance();
+		auto& SceneMgr = SceneManager::GetInstance();
+		gameApp.GetGraphics().SetCameraPosition(0, 0);
+		SceneMgr.SwitchTo("AlmanacScene");
 	}
 }
 
@@ -56,6 +64,9 @@ void MainMenuScene::BuildDrawCommands()
 			if (!mOpenMenu && mOpitionButton) {
 				mOpitionButton->Draw(g);
 			}
+			if (!mOpenMenu && mAlmanacButton) {
+				mAlmanacButton->Draw(g);
+			}
 		},
 		LAYER_UI + 100);
 
@@ -77,20 +88,30 @@ void MainMenuScene::BuildDrawCommands()
 		this->OpenMenu();
 		});
 	AddTexture(ResourceKeys::Textures::IMAGE_SELECTORSCREEN_HELP1, 786.0f, 515.0f, 1.0f, 1.0f, 10);
-	auto button = mUIManager.CreateButton(Vector(855, 495), Vector(47 * 1.2f, 27 * 1.2f));
-	mExitButton = button;
-	button->SetAsCheckbox(false);
-	button->SetImageKeys(ResourceKeys::Textures::IMAGE_SELECTORSCREEN_QUIT1,
+	mExitButton = mUIManager.CreateButton(Vector(855, 495), Vector(47 * 1.2f, 27 * 1.2f));
+	mExitButton->SetAsCheckbox(false);
+	mExitButton->SetImageKeys(ResourceKeys::Textures::IMAGE_SELECTORSCREEN_QUIT1,
 		ResourceKeys::Textures::IMAGE_SELECTORSCREEN_QUIT2,
 		ResourceKeys::Textures::IMAGE_SELECTORSCREEN_QUIT2,
 		ResourceKeys::Textures::IMAGE_SELECTORSCREEN_QUIT2);
-	button->SetClickCallBack([this](bool) {
+	mExitButton->SetClickCallBack([this](bool) {
 		GameAPP::GetInstance().SetRunning(false);
 		});
 	// 花
 	AddTexture(ResourceKeys::Textures::IMAGE_SELECTORSCREEN_FLOWER1, 825.0f, 420.0f, 1.0f, 1.0f, 12);
 	AddTexture(ResourceKeys::Textures::IMAGE_SELECTORSCREEN_FLOWER2, 785.0f, 439.0f, 1.0f, 1.0f, 12);
 	AddTexture(ResourceKeys::Textures::IMAGE_SELECTORSCREEN_FLOWER3, 870.0f, 450.0f, 1.0f, 1.0f, 12);
+
+	mAlmanacButton = mUIManager.CreateButton(Vector(521, 441), Vector(99 * 1.0f, 99 * 1.0f));
+	mAlmanacButton->SetAsCheckbox(false);
+	mAlmanacButton->SetSkipDraw(true);
+	mAlmanacButton->SetImageKeys("IMAGE_SELECTORSCREEN_ALMANAC",
+		"IMAGE_SELECTORSCREEN_ALMANAC",
+		"IMAGE_SELECTORSCREEN_ALMANAC",
+		"IMAGE_SELECTORSCREEN_ALMANAC");
+	mAlmanacButton->SetClickCallBack([this](bool) {
+		this->mReadyToSwitchAlmanac = true;
+		});
 }
 
 void MainMenuScene::OpenMenu()

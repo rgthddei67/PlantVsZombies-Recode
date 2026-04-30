@@ -19,12 +19,16 @@
 #include "./ParticleSystem/ParticleSystem.h"
 #include "GameInfoSaver.h"
 #include "./Game/Plant/PlantType.h"
-#include "Graphics.h"      
+#include "./Game/Zombie/ZombieType.h"
+#include "Graphics.h"
 
 constexpr int SCENE_WIDTH = 1100;
 constexpr int SCENE_HEIGHT = 600;
 
 class InputHandler;
+class Board;
+class Plant;
+class Zombie;
 
 class GameAPP
 {
@@ -101,6 +105,9 @@ public:
 
     // 获取窗口 (可能用于其他目的)
     SDL_Window* GetWindow() const { return mWindow; }
+
+    std::shared_ptr<Plant> InstantiatePlant(PlantType plantType, Board* board, int row, int column, bool isPreview = false);
+    std::shared_ptr<Zombie> InstantiateZombie(ZombieType zombieType, Board* board, float x, float y, int row, bool isPreview = false);
 
 };
 

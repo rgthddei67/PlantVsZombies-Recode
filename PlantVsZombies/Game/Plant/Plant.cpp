@@ -28,6 +28,13 @@ Plant::Plant(Board* board, PlantType plantType, int row, int column,
 
 	GameDataManager& plantMgr = GameDataManager::GetInstance();
 	Vector plantOffset = plantMgr.GetPlantOffset(plantType);
+
+	mVisualOffset = GameDataManager::GetInstance().GetPlantOffset(plantType);
+	auto shadowcomponent = AddComponent<ShadowComponent>
+		(ResourceManager::GetInstance().GetTexture
+		(ResourceKeys::Textures::IMAGE_PLANTSHADOW));
+	shadowcomponent->SetDrawOrder(-80);
+
 	// 设置植物在格子中的位置
 	if (!mIsPreview) {
 		if (auto collider = GetColliderComponent()) {
@@ -41,11 +48,6 @@ Plant::Plant(Board* board, PlantType plantType, int row, int column,
 			CELL_INITALIZE_POS_Y + row * CELL_COLLIDER_SIZE_Y + CELL_COLLIDER_SIZE_Y / 2
 		);
 		SetPosition(cellCenterPosition);  // 逻辑位置
-		mVisualOffset = GameDataManager::GetInstance().GetPlantOffset(plantType);
-		auto shadowcomponent = AddComponent<ShadowComponent>
-			(ResourceManager::GetInstance().GetTexture
-			(ResourceKeys::Textures::IMAGE_PLANTSHADOW));
-		shadowcomponent->SetDrawOrder(-80);
 	}
 	else {
 		SetPosition(Vector(-512, -512));

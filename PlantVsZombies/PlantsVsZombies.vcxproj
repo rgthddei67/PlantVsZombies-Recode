@@ -25,12 +25,14 @@
     <ClCompile Include="GameApp.cpp" />
     <ClCompile Include="GameInfoSaver.cpp" />
     <ClCompile Include="GameMonitor.cpp" />
+    <ClCompile Include="Game\AlmanacScene.cpp" />
     <ClCompile Include="Game\AnimatedObject.cpp" />
     <ClCompile Include="Game\AudioSystem.cpp" />
     <ClCompile Include="Game\Board.cpp" />
     <ClCompile Include="Game\CursorObjectManager.cpp" />
     <ClCompile Include="Game\GameObjectManager.cpp" />
     <ClCompile Include="Game\LawnMower.cpp" />
+    <ClCompile Include="Game\PlantAlmanacScene.cpp" />
     <ClCompile Include="Game\Plant\PotatoMine.cpp" />
     <ClCompile Include="Game\Plant\WallNut.cpp" />
     <ClCompile Include="Game\Shovel.cpp" />
@@ -60,6 +62,7 @@
     <ClCompile Include="Game\SceneManager.cpp" />
     <ClCompile Include="Game\ShadowComponent.cpp" />
     <ClCompile Include="Game\Trophy.cpp" />
+    <ClCompile Include="Game\ZombieAlmanacScene.cpp" />
     <ClCompile Include="Game\Zombie\BucketZombie.cpp" />
     <ClCompile Include="Game\Zombie\ConeZombie.cpp" />
     <ClCompile Include="Game\Zombie\Polevaulter.cpp" />
@@ -93,12 +96,14 @@
     <ClInclude Include="GameInfoSaver.h" />
     <ClInclude Include="GameMonitor.h" />
     <ClInclude Include="GameRandom.h" />
+    <ClInclude Include="Game\AlmanacScene.h" />
     <ClInclude Include="Game\AnimatedObject.h" />
     <ClInclude Include="Game\AudioSystem.h" />
     <ClInclude Include="Game\Board.h" />
     <ClInclude Include="Game\Bullet\SnowPea.h" />
     <ClInclude Include="Game\CursorObjectManager.h" />
     <ClInclude Include="Game\LawnMower.h" />
+    <ClInclude Include="Game\PlantAlmanacScene.h" />
     <ClInclude Include="Game\Plant\PotatoMine.h" />
     <ClInclude Include="Game\Plant\SnowPeaShooter.h" />
     <ClInclude Include="Game\Plant\WallNut.h" />
@@ -143,6 +148,7 @@
     <ClInclude Include="Game\ThreadPool.h" />
     <ClInclude Include="Game\TransformComponent.h" />
     <ClInclude Include="Game\Trophy.h" />
+    <ClInclude Include="Game\ZombieAlmanacScene.h" />
     <ClInclude Include="Game\Zombie\BucketZombie.h" />
     <ClInclude Include="Game\Zombie\ConeZombie.h" />
     <ClInclude Include="Game\Zombie\Polevaulter.h" />

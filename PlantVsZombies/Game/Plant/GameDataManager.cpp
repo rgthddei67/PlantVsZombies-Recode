@@ -89,7 +89,7 @@ void GameDataManager::InitializeHardcodedData() {
 	// 普通僵尸
 	RegisterZombie(
 		ZombieType::ZOMBIE_NORMAL,
-		"ZOMBIE_NORMAL",			// 这个项目其实没啥意义，随便填
+		"ZOMBIE_NORMAL",			
 		AnimationType::ANIM_NORMAL_ZOMBIE,
 		ResourceKeys::Reanimations::REANIM_NORMAL_ZOMBIE,
 		Vector(-50, -85),
@@ -333,6 +333,13 @@ int GameDataManager::GetZombieAppearWave(ZombieType zombieType) const
 	if (it != mZombieInfo.end())
 		return it->second.appearWave;
 	return 0;
+}
+
+std::string GameDataManager::ZombieTypeToEnumName(ZombieType type) const {
+	auto it = mZombieInfo.find(type);
+	if (it != mZombieInfo.end())
+		return it->second.enumName;
+	return "ZOMBIE_NONE";
 }
 
 std::vector<ZombieType> GameDataManager::GetAllZombieTypes() const {

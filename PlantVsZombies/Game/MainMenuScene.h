@@ -15,11 +15,13 @@ public:
     void Update() override;
 
     bool mReadyToSwitchAdventureLevel = false;
+    bool mReadyToSwitchAlmanac = false;
 
 private:
     std::shared_ptr<class GameButton> mGameButton;
     std::shared_ptr<Button> mOpitionButton;
-    std::weak_ptr<Button> mExitButton;
+    std::shared_ptr<Button> mExitButton;
+    std::shared_ptr<Button> mAlmanacButton;
 
     std::weak_ptr<GameMessageBox> mMenu;
 

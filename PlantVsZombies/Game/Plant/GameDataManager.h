@@ -203,6 +203,13 @@ public:
     int GetZombieAppearWave(ZombieType zombieType) const;
 
     /**
+     * @brief 将僵尸类型转换为对应的枚举名字符串
+     * @param type 僵尸类型
+     * @return std::string 枚举名，若未找到返回 "ZOMBIE_NONE"
+     */
+    std::string ZombieTypeToEnumName(ZombieType type) const;
+
+    /**
      * @brief 获取所有已注册的僵尸类型列表
      * @return std::vector<ZombieType> 僵尸类型数组
      */

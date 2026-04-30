@@ -24,7 +24,6 @@ Zombie::Zombie(Board * board, ZombieType zombieType, float x, float y, int row,
 	mZombieType = zombieType;
 	mRow = row;
 	mIsPreview = isPreview;
-	if (!mBoard) return;
 
 	mVisualOffset = GameDataManager::GetInstance().GetZombieOffset(zombieType);
 
@@ -33,6 +32,8 @@ Zombie::Zombie(Board * board, ZombieType zombieType, float x, float y, int row,
 		this->PlayTrack("anim_idle");
 		return;
 	}
+
+	if (!mBoard) return;
 
 	auto collider = GetColliderComponent();
 	collider->isTrigger = true;

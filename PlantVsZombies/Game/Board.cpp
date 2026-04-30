@@ -5,18 +5,7 @@
 #include "Trophy.h"
 #include "../GameRandom.h"
 #include "./Plant/Plant.h"
-
-#include "./Plant/PeaShooter.h"
-#include "./Plant/SunFlower.h"
-#include "./Plant/CherryBomb.h"
-#include "./Plant/WallNut.h"
-#include "./Plant/PotatoMine.h"
-#include "./Plant/SnowPeaShooter.h"
-
 #include "./Zombie/Zombie.h"
-#include "./Zombie/ConeZombie.h"
-#include "./Zombie/Polevaulter.h"
-#include "./Zombie/BucketZombie.h"
 
 #include "EntityManager.h"
 #include "RenderOrder.h"
@@ -108,98 +97,7 @@ std::shared_ptr<Plant> Board::CreatePlant(PlantType plantType, int row, int colu
 	}
 
 	// 根据植物类型创建对应的植物
-	// TODO: 新增植物也要改这里
-	std::shared_ptr<Plant> plant = nullptr;
-
-	switch (plantType) {
-	case PlantType::PLANT_SUNFLOWER:
-		plant = GameObjectManager::GetInstance().CreateGameObjectImmediate<SunFlower>(
-			LAYER_GAME_PLANT,        // int renderOrder
-			this,                    // Board* board
-			PlantType::PLANT_SUNFLOWER,  // PlantType plantType
-			row,                    // int row
-			column,                 // int column
-			AnimationType::ANIM_SUNFLOWER,  // AnimationType animType
-			1.0f,                   // scale
-			isPreview               // mIsPreview
-		);
-		break;
-
-	case PlantType::PLANT_PEASHOOTER:
-		plant = GameObjectManager::GetInstance().CreateGameObjectImmediate<PeaShooter>(
-			LAYER_GAME_PLANT,
-			this,
-			PlantType::PLANT_PEASHOOTER,
-			row,
-			column,
-			AnimationType::ANIM_PEASHOOTER,
-			1.0f,
-			isPreview
-		);
-		break;
-
-	case PlantType::PLANT_CHERRYBOMB:
-		plant = GameObjectManager::GetInstance().CreateGameObjectImmediate<CherryBomb>(
-			LAYER_GAME_PLANT,
-			this,
-			PlantType::PLANT_CHERRYBOMB,
-			row,
-			column,
-			AnimationType::ANIM_CHERRYBOMB,
-			1.0f,
-			isPreview
-		);
-		break;
-
-	case PlantType::PLANT_WALLNUT:
-		plant = GameObjectManager::GetInstance().CreateGameObjectImmediate<WallNut>(
-			LAYER_GAME_PLANT,
-			this,
-			PlantType::PLANT_WALLNUT,
-			row,
-			column,
-			AnimationType::ANIM_WALLNUT,
-			1.0f,
-			isPreview
-		);
-		break;
-
-	case PlantType::PLANT_POTATOMINE:
-		plant = GameObjectManager::GetInstance().CreateGameObjectImmediate<PotatoMine>(
-			LAYER_GAME_PLANT,
-			this,
-			PlantType::PLANT_POTATOMINE,
-			row,
-			column,
-			AnimationType::ANIM_POTATOMINE,
-			0.8f,
-			isPreview
-		);
-		break;
-
-	case PlantType::PLANT_SNOWPEA:
-		plant = GameObjectManager::GetInstance().CreateGameObjectImmediate<SnowPeaShooter>(
-			LAYER_GAME_PLANT,
-			this,
-			PlantType::PLANT_SNOWPEA,
-			row,
-			column,
-			AnimationType::ANIM_SNOWPEASHOOTER,
-			1.0f,
-			isPreview
-		);
-		break;
-
-	case PlantType::PLANT_CHOMPER:
-		break;
-
-	case PlantType::PLANT_REPEATER:
-		break;
-
-	default:
-		std::cout << "未知的植物类型: " << static_cast<int>(plantType) << std::endl;
-		break;
-	}
+	std::shared_ptr<Plant> plant = GameAPP::GetInstance().InstantiatePlant(plantType, this, row, column, isPreview);
 
 	if (plant && !isPreview && !skipsettings) {
 		mEntityManager.AddPlant(plant);
@@ -216,7 +114,6 @@ std::shared_ptr<Plant> Board::CreatePlant(PlantType plantType, int row, int colu
 }
 
 std::shared_ptr<Zombie> Board::CreateZombie(ZombieType zombieType, int row, float x, float y, bool skipsettings, bool isPreview) {
-	std::shared_ptr<Zombie> zombie = nullptr;
 
 	if (row >= 0)
 	{
@@ -226,64 +123,12 @@ std::shared_ptr<Zombie> Board::CreateZombie(ZombieType zombieType, int row, floa
 		}
 	}
 
-	// TODO: 新增僵尸也要改这里
-	switch (zombieType) {
-	case ZombieType::ZOMBIE_NORMAL:
-		zombie = GameObjectManager::GetInstance().CreateGameObjectImmediate<Zombie>(
-			LAYER_GAME_ZOMBIE,
-			this,
-			ZombieType::ZOMBIE_NORMAL,
-			x,
-			y,
-			row,
-			AnimationType::ANIM_NORMAL_ZOMBIE,
-			1.0f,
-			isPreview);
-		break;
-	case ZombieType::ZOMBIE_TRAFFIC_CONE:
-		zombie = GameObjectManager::GetInstance().CreateGameObjectImmediate<ConeZombie>(
-			LAYER_GAME_ZOMBIE,
-			this,
-			ZombieType::ZOMBIE_TRAFFIC_CONE,
-			x,
-			y,
-			row,
-			AnimationType::ANIM_CONE_ZOMBIE,
-			1.0f,
-			isPreview);
-		break;
-	case ZombieType::ZOMBIE_POLEVAULTER:
-		zombie = GameObjectManager::GetInstance().CreateGameObjectImmediate<Polevaulter>(
-			LAYER_GAME_ZOMBIE,
-			this,
-			ZombieType::ZOMBIE_POLEVAULTER,
-			x,
-			y,
-			row,
-			AnimationType::ANIM_POLEVAULTER_ZOMBIE,
-			1.0f,
-			isPreview);
-		break;
-	case ZombieType::ZOMBIE_BUCKET:
-		zombie = GameObjectManager::GetInstance().CreateGameObjectImmediate<BucketZombie>(
-			LAYER_GAME_ZOMBIE,
-			this,
-			ZombieType::ZOMBIE_BUCKET,
-			x,
-			y,
-			row,
-			AnimationType::ANIM_BUCKET_ZOMBIE,
-			1.0f,
-			isPreview);
-		break;
-	default:
-		std::cout << "[Board::CreateZombie] 未知的僵尸类型" << std::endl;
-		return nullptr;
-	}
+	std::shared_ptr<Zombie> zombie = GameAPP::GetInstance().InstantiateZombie(zombieType, this, x, y, row, isPreview);
+	if (!zombie) return nullptr;
 
 	mZombieNumber++;
 
-	if (zombie && !isPreview && !skipsettings) {
+	if (!isPreview && !skipsettings) {
 		mEntityManager.AddZombie(zombie);
 		zombie->mSpawnWave = this->mCurrentWave;
 	}

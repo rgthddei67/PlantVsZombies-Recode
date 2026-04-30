@@ -229,6 +229,15 @@
     <ClCompile Include="Game\Zombie\BucketZombie.cpp">
       <Filter>Code\Game\Zombie</Filter>
     </ClCompile>
+    <ClCompile Include="Game\AlmanacScene.cpp">
+      <Filter>Code\Game</Filter>
+    </ClCompile>
+    <ClCompile Include="Game\PlantAlmanacScene.cpp">
+      <Filter>Code\Game</Filter>
+    </ClCompile>
+    <ClCompile Include="Game\ZombieAlmanacScene.cpp">
+      <Filter>Code\Game</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="UI\Button.h">
@@ -497,6 +506,15 @@
     </ClInclude>
     <ClInclude Include="Game\Zombie\BucketZombie.h">
       <Filter>Code\Game\Zombie</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\AlmanacScene.h">
+      <Filter>Code\Game</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\PlantAlmanacScene.h">
+      <Filter>Code\Game</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\ZombieAlmanacScene.h">
+      <Filter>Code\Game</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
