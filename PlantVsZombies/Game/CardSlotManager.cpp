@@ -9,6 +9,7 @@
 #include "AudioSystem.h"
 #include "./Plant/Plant.h"
 #include <iostream>
+#include "ShadowComponent.h"
 
 CardSlotManager::CardSlotManager(Board* board)
     : mBoard(board)
@@ -186,6 +187,7 @@ void CardSlotManager::CreatePlantPreview(PlantType plantType) {
         plantPreview = mBoard->CreatePlant(plantType, 0, 0, true, true);
         plantPreview->PauseAnimation();
         plantPreview->SetRenderOrder(LAYER_EFFECTS + 10000);
+        plantPreview->RemoveComponent<ShadowComponent>();
     }
 }
 
@@ -196,18 +198,17 @@ void CardSlotManager::CreateCellPlantPreview(PlantType plantType, std::shared_pt
         cellPlantPreview = mBoard->CreatePlant(plantType, 0, 0, true, true);
         if (cellPlantPreview) {
             GameDataManager& plantMgr = GameDataManager::GetInstance();
-            Vector plantOffset = plantMgr.GetPlantOffset(plantType);
 
             Vector centerPos = cell->GetCenterPosition();          // 世界坐标
-            Vector plantPosition = centerPos + plantOffset;        // 世界坐标
 
             cellPlantPreview->SetRenderOrder(LAYER_BACKGROUND + 100);
 
             if (auto transform = cellPlantPreview->GetTransformComponent()) {
-                transform->SetPosition(plantPosition);             // 设置为世界坐标
+                transform->SetPosition(centerPos);             // 设置为世界坐标
             }
 
             cellPlantPreview->SetAlpha(0.35f);
+            cellPlantPreview->RemoveComponent<ShadowComponent>();
             cellPlantPreview->PauseAnimation();
         }
     }
@@ -269,31 +270,25 @@ void CardSlotManager::UpdatePlantPreviewPosition(Graphics* g, const Vector& mous
     if (cellPlantPreview && hoveredCell) {
         if (auto cardComp = selected->GetComponent<CardComponent>()) {
             GameDataManager& plantMgr = GameDataManager::GetInstance();
-            Vector plantOffset = plantMgr.GetPlantOffset(cardComp->GetPlantType());
 
             Vector centerPos = hoveredCell->GetCenterPosition();               // 世界坐标
-            Vector plantPosition = centerPos + plantOffset;                    // 世界坐标
 
-            if (auto transform = cellPlantPreview->GetComponent<TransformComponent>()) {
-                transform->SetPosition(plantPosition);                         // 设置世界坐标
+            if (auto transform = cellPlantPreview->GetTransformComponent()) {
+                transform->SetPosition(centerPos);                         // 设置世界坐标
             }
         }
     }
 
-    // 更新鼠标预览植物位置：直接使用世界坐标 + 偏移
+    // 更新鼠标预览植物位置
     UpdatePreviewToMouse(mouseWorld);
 }
 
 void CardSlotManager::UpdatePreviewToMouse(const Vector& mouseWorld) {
     if (plantPreview) {
         GameDataManager& plantMgr = GameDataManager::GetInstance();
-        Vector plantOffset = plantMgr.GetPlantOffset(plantPreview->mPlantType);
 
-        // 预览植物位置 = 鼠标世界坐标 + 偏移
-        Vector plantPosition = mouseWorld + plantOffset;
-
-        if (auto transform = plantPreview->GetComponent<TransformComponent>()) {
-            transform->SetPosition(plantPosition);      // 世界坐标
+        if (auto transform = plantPreview->GetTransformComponent()) {
+            transform->SetPosition(mouseWorld);      // 世界坐标
         }
 
         plantPreview->mRow = -1;
@@ -305,7 +300,7 @@ void CardSlotManager::UpdatePreviewToCell(std::weak_ptr<Cell> cell) {
     if (plantPreview) {
         if (auto lockedCell = cell.lock()) {
             Vector centerPos = lockedCell->GetCenterPosition();      // 世界坐标
-            if (auto transform = plantPreview->GetComponent<TransformComponent>()) {
+            if (auto transform = plantPreview->GetTransformComponent()) {
                 transform->SetPosition(centerPos);                  // 世界坐标
             }
         }
