@@ -86,6 +86,7 @@ private:
 
     bool mReadyToBackMenu = false;
     bool mReadyToRestart = false;
+    bool mLendToAlmanacScene = false;
 
     IntroStage mCurrentStage = IntroStage::BACKGROUND_MOVE;
 

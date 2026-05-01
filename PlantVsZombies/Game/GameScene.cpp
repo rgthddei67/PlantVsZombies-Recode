@@ -177,6 +177,12 @@ void GameScene::OpenMenu()
 		this->OpenQuitMenu();
 	}, ResourceKeys::Textures::IMAGE_BUTTONBIG, true });
 
+	buttons.push_back({ u8"查看图鉴", Vector(485, 289),Vector(213 * 0.9f, 50 * 0.9f),
+	21 ,[this]() {
+		DeltaTime::SetPaused(false);
+		this->mLendToAlmanacScene = true;
+	}, ResourceKeys::Textures::IMAGE_BUTTONBIG, true });
+
 	sliders.push_back({ Vector(530, 175), Vector(135, 10),
 		0.0f ,1.0f, AudioSystem::GetMusicVolume(),[](float value) {
 		AudioSystem::SetMusicVolume(value);
@@ -465,6 +471,12 @@ void GameScene::Update() {
 	if (mReadyToBackMenu) {
 		GameAPP::GetInstance().GetGraphics().SetCameraPosition(0, 0);
 		SceneManager::GetInstance().SwitchTo("MainMenuScene");
+		return;
+	}
+
+	if (mLendToAlmanacScene) {
+		GameAPP::GetInstance().GetGraphics().SetCameraPosition(0, 0);
+		SceneManager::GetInstance().SwitchTo("AlmanacScene");
 		return;
 	}
 }

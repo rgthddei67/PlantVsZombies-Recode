@@ -34,7 +34,7 @@ protected:
 	float mCheckPositionTimer = 0.0f;
 	bool mHasHit = false;	// 是否已经击中过僵尸
 	int mDamage = 20;			// 子弹伤害
-	float mVelocityX = 180.0f;	// 子弹X轴动量
+	float mVelocityX = 290.0f;	// 子弹X轴动量
 	float mVelocityY = 0.0f;	// 子弹Y轴动量
 
 	std::weak_ptr<TransformComponent> mTransform;

@@ -4,6 +4,7 @@
 
 #include <vector>
 #include <memory>
+#include <unordered_map>
 #include "../Bullet/Bullet.h"
 #include "../Bullet/BulletType.h"
 
@@ -18,6 +19,8 @@ private:
 	};
 
 	std::vector<PooledBullet> mPool;
+	std::vector<std::vector<int>> mFreeByType;         // 各类型空闲槽位下标，Acquire O(1)
+	std::unordered_map<Bullet*, int> mBulletIndexMap;  // 指针→下标，Release O(1)
 	int mInitialCapacity = 250;   // 初始容量
 	int mWarningThreshold = 500;  // 警告阈值
 

@@ -265,7 +265,7 @@ public:
         std::shared_ptr<ColliderComponent> closestHit = nullptr;
         float closestDistance = maxDistance;
 
-        for (auto collider : colliders) {
+        for (const auto& collider : colliders) {
             if (!collider->mEnabled || !collider->GetGameObject()->IsActive()) continue;
             if (!tag.empty() && collider->GetGameObject()->GetTag() != tag) continue;
 
@@ -295,7 +295,7 @@ public:
     std::vector<std::shared_ptr<ColliderComponent>> OverlapArea(const SDL_FRect& area, const std::string& tag = "") {
         std::vector<std::shared_ptr<ColliderComponent>> results;
 
-        for (auto collider : colliders) {
+        for (const auto& collider : colliders) {
             if (!collider->mEnabled || !collider->GetGameObject()->IsActive()) continue;
             if (!tag.empty() && collider->GetGameObject()->GetTag() != tag) continue;
 

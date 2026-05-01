@@ -11,7 +11,9 @@ void BulletPool::Initialize(int initialCapacity, int warningThreshold) {
 	mInitialCapacity = initialCapacity;
 	mWarningThreshold = warningThreshold;
 	mPool.clear();
-	mPool.reserve(initialCapacity);  // 预留初始容量
+	mPool.reserve(initialCapacity);
+	mFreeByType.assign(static_cast<int>(BulletType::NUM_BULLETS), {});
+	mBulletIndexMap.clear();
 	mActiveCount = 0;
 	mPeakCount = 0;
 	mHitCount = 0;
@@ -21,25 +23,28 @@ void BulletPool::Initialize(int initialCapacity, int warningThreshold) {
 std::shared_ptr<Bullet> BulletPool::Acquire(Board* board, BulletType type, int row,
 	const Vector& colliderRadius, const Vector& position) {
 
-	// 1. 查找空闲对象（相同类型）
-	for (auto& pooled : mPool) {
+	int typeIdx = static_cast<int>(type);
+
+	// 1. 从对应类型的空闲列表直接取槽位，O(1)
+	auto& freeList = mFreeByType[typeIdx];
+	while (!freeList.empty()) {
+		int idx = freeList.back();
+		freeList.pop_back();
+		auto& pooled = mPool[idx];
 		auto bullet = pooled.bullet.lock();
-		if (bullet && !pooled.active && pooled.type == type) {
-			// 在重用前，先从 EntityManager 中移除旧 ID 映射
+		if (bullet) {
 			if (bullet->mBulletID != NULL_BULLET_ID) {
 				board->mEntityManager.RemoveBullet(bullet->mBulletID);
 			}
-
 			pooled.active = true;
 			bullet->SetActive(true);
 			bullet->Reset(board, row, colliderRadius, position);
 			mActiveCount++;
-			if (mActiveCount > mPeakCount) {
-				mPeakCount = mActiveCount;
-			}
+			if (mActiveCount > mPeakCount) mPeakCount = mActiveCount;
 			mHitCount++;
 			return bullet;
 		}
+		// weak_ptr 已失效（理论上不应发生），丢弃该槽位
 	}
 
 	// 2. 没有空闲对象，创建新对象并添加到池中（自动扩容）
@@ -67,13 +72,13 @@ std::shared_ptr<Bullet> BulletPool::Acquire(Board* board, BulletType type, int r
 	}
 
 	if (bullet) {
-		bullet->SetFromPool(true);  // 标记为来自对象池
+		bullet->SetFromPool(true);
 		pooled.bullet = bullet;
-		mPool.push_back(pooled);  // 直接添加，自动扩容
+		int idx = static_cast<int>(mPool.size());
+		mPool.push_back(pooled);
+		mBulletIndexMap[bullet.get()] = idx;
 		mActiveCount++;
-		if (mActiveCount > mPeakCount) {
-			mPeakCount = mActiveCount;
-		}
+		if (mActiveCount > mPeakCount) mPeakCount = mActiveCount;
 		mHitCount++;
 
 		// 警告：池大小超过阈值
@@ -91,19 +96,18 @@ std::shared_ptr<Bullet> BulletPool::Acquire(Board* board, BulletType type, int r
 void BulletPool::Release(Bullet* bullet) {
 	if (!bullet) return;
 
-	// 查找对应的池对象并标记为非活跃
-	for (auto& pooled : mPool) {
-		auto pooledBullet = pooled.bullet.lock();
-		if (pooledBullet && pooledBullet.get() == bullet && pooled.active) {
-			pooled.active = false;
-			bullet->SetActive(false);
-			mActiveCount--;
-			return;
-		}
+	auto it = mBulletIndexMap.find(bullet);
+	if (it == mBulletIndexMap.end()) {
+		std::cout << "警告: BulletPool::Release 找不到对应的池对象" << std::endl;
+		return;
 	}
 
-	// 如果找不到，说明不是来自对象池的对象（理论上不应该发生）
-	std::cout << "警告: BulletPool::Release 找不到对应的池对象" << std::endl;
+	int idx = it->second;
+	auto& pooled = mPool[idx];
+	pooled.active = false;
+	bullet->SetActive(false);
+	mActiveCount--;
+	mFreeByType[static_cast<int>(pooled.type)].push_back(idx);
 }
 
 void BulletPool::Clear() {
@@ -116,6 +120,8 @@ void BulletPool::Clear() {
 	}
 
 	mPool.clear();
+	for (auto& fl : mFreeByType) fl.clear();
+	mBulletIndexMap.clear();
 	mActiveCount = 0;
 	mPeakCount = 0;
 	mHitCount = 0;

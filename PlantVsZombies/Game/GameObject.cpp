@@ -49,24 +49,24 @@ void GameObject::Draw(Graphics* g) {
     if (!mActive || !mStarted) return;
 
     // 收集所有启用的组件
-    std::vector<std::shared_ptr<Component>> componentsToDraw;
+    std::vector<Component*> componentsToDraw;
     componentsToDraw.reserve(mComponents.size());
 
     for (auto& [type, component] : mComponents) {
         if (component->mEnabled) {
-            componentsToDraw.push_back(component);
+            componentsToDraw.push_back(component.get());
         }
     }
 
     // 按绘制顺序排序：mDrawOrder 越大越先绘制（在底层）
     // 使用稳定排序，当 mDrawOrder 相等时保持原顺序（稳定排序）
     std::stable_sort(componentsToDraw.begin(), componentsToDraw.end(),
-        [](const std::shared_ptr<Component>& a, const std::shared_ptr<Component>& b) {
+        [](const Component* a, const Component* b) {
             return a->GetDrawOrder() < b->GetDrawOrder();  // 降序排序
         });
 
     // 绘制组件
-    for (auto& component : componentsToDraw) {
+    for (auto* component : componentsToDraw) {
         component->Draw(g);
     }
 }
