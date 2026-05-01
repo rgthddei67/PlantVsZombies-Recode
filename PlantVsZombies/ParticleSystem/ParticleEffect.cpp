@@ -77,16 +77,10 @@ void ParticleEffect::SetPosition(const Vector& pos) {
     Vector offset = pos - position;
     position = pos;
 
-    // 更新所有发射器的位置
     for (auto& emitter : emitters) {
         Vector emitterPos = emitter->GetPosition();
         emitterPos.x += offset.x;
         emitterPos.y += offset.y;
         emitter->SetPosition(emitterPos);
     }
-}
-
-void ParticleEffect::ApplySystemFields(const std::vector<ParticleField>& systemFields) {
-    // 系统场效果应用于发射器位置
-    // 这个功能将在发射器中实现
 }

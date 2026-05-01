@@ -1,4 +1,4 @@
-﻿#include "Particle.h"
+#include "Particle.h"
 #include "../DeltaTime.h"
 #include <cmath>
 
@@ -10,21 +10,15 @@ void Particle::Reset() {
     position = { 0, 0 };
     velocity = { 0, 0 };
     color = glm::vec4(255.0f);
-    startColor = glm::vec4(255.0f);
-    endColor = glm::vec4(255.0f, 255.0f, 255.0f, 0.0f);
     lifetime = 0.0f;
     maxLifetime = 60.0f;
     size = 1.0f;
-    startSize = 1.0f;
-    endSize = 0.5f;
     rotation = 0.0f;
     rotationSpeed = 0.0f;
     gravity = 0.0f;
     active = false;
-    fadeOut = true;
     texture = nullptr;
 
-    // XML特性初始化
     brightness = 1.0f;
     stretch = 1.0f;
     colorMultiplier = glm::vec3(1.0f);
@@ -52,10 +46,6 @@ void Particle::Update() {
     position.y += velocity.y * deltaTime;
     rotation += rotationSpeed * deltaTime;
 
-    // 注意：size由ParticleEmitter通过XML配置的插值轨迹控制
-    // 不再使用startSize和endSize的线性插值
-
-    // 更新动画
     UpdateAnimation();
 }
 

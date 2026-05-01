@@ -32,9 +32,6 @@ public:
 
     void SetPosition(const Vector& pos);
     Vector GetPosition() const { return position; }
-
-private:
-    void ApplySystemFields(const std::vector<ParticleField>& systemFields);
 };
 
 #endif

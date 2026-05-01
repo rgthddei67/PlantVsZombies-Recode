@@ -1,4 +1,4 @@
-﻿#include "ParticleSystem.h"
+#include "ParticleSystem.h"
 #include <iostream>
 
 std::unique_ptr<ParticleSystem> g_particleSystem = nullptr;
@@ -13,57 +13,21 @@ ParticleSystem::~ParticleSystem() {
 }
 
 void ParticleSystem::UpdateAll() {
-    CleanupInactiveEmitters();
     CleanupInactiveEffects();
 
-    for (size_t i = 0; i < emitters.size(); i++)
-    {
-        emitters[i].get()->Update();
-    }
-
-    for (size_t i = 0; i < effects.size(); i++)
-    {
-        effects[i].get()->Update();
+    for (auto& effect : effects) {
+        effect->Update();
     }
 }
 
 void ParticleSystem::DrawAll() {
-    for (size_t i = 0; i < emitters.size(); i++)
-    {
-        emitters[i].get()->Draw();
-    }
-
-    for (size_t i = 0; i < effects.size(); i++)
-    {
-        effects[i].get()->Draw();
+    for (auto& effect : effects) {
+        effect->Draw();
     }
 }
 
 void ParticleSystem::ClearAll() {
-    emitters.clear();
     effects.clear();
-}
-
-void ParticleSystem::CleanupInactiveEmitters() {
-    emitters.erase(
-        std::remove_if(emitters.begin(), emitters.end(),
-            [](const std::unique_ptr<ParticleEmitter>& emitter) {
-                return emitter->ShouldDestroy();
-            }),
-        emitters.end()
-    );
-}
-
-int ParticleSystem::GetTotalParticles() const {
-    int total = 0;
-    for (const auto& emitter : emitters) {
-        total += emitter->GetActiveParticleCount();
-    }
-    return total;
-}
-
-size_t ParticleSystem::GetActiveEmitters() const {
-    return emitters.size();
 }
 
 bool ParticleSystem::LoadXMLConfigs(const std::string& directory) {
