@@ -258,6 +258,62 @@ void Graphics::Scale(float sx, float sy, float sz) {
 	m_transformStack.back() = glm::scale(m_transformStack.back(), glm::vec3(sx, sy, sz));
 }
 
+// ==================== 裁剪栈（PushClipRect / PopClipRect） ====================
+
+ClipRect Graphics::IntersectClip(const ClipRect& a, const ClipRect& b) {
+	int x1 = std::max(a.x, b.x);
+	int y1 = std::max(a.y, b.y);
+	int x2 = std::min(a.x + a.w, b.x + b.w);
+	int y2 = std::min(a.y + a.h, b.y + b.h);
+	ClipRect r;
+	r.x = x1;
+	r.y = y1;
+	r.w = std::max(0, x2 - x1);
+	r.h = std::max(0, y2 - y1);
+	return r;
+}
+
+void Graphics::ApplyTopClipRectToGL() {
+	const ClipRect& r = m_clipStack.back();
+	int w = std::max(0, r.w);
+	int h = std::max(0, r.h);
+	// OpenGL scissor 用左下原点；窗口左上 (rx, ry) -> GL 左下 (rx, windowH - ry - h)
+	int glY = m_windowHeight - r.y - h;
+	glEnable(GL_SCISSOR_TEST);
+	glScissor(r.x, glY, w, h);
+}
+
+void Graphics::PushClipRect(int x, int y, int w, int h) {
+	// 必须先把已积累的顶点刷出去，否则 push 之前 batched 的内容会被新的 scissor 一起裁剪。
+	FlushBatch();
+	FlushGeomBatch();
+
+	ClipRect rect;
+	rect.x = x; rect.y = y; rect.w = w; rect.h = h;
+	if (!m_clipStack.empty()) {
+		rect = IntersectClip(m_clipStack.back(), rect);  // 嵌套取交集
+	}
+	m_clipStack.push_back(rect);
+	ApplyTopClipRectToGL();
+}
+
+void Graphics::PopClipRect() {
+	if (m_clipStack.empty()) {
+		std::cerr << "[Graphics] PopClipRect failed: stack underflow." << std::endl;
+		return;
+	}
+	// 在切换 scissor 状态之前先 flush，把当前 rect 下的顶点全部提交。
+	FlushBatch();
+	FlushGeomBatch();
+	m_clipStack.pop_back();
+	if (m_clipStack.empty()) {
+		glDisable(GL_SCISSOR_TEST);
+	}
+	else {
+		ApplyTopClipRectToGL();
+	}
+}
+
 void Graphics::BindVAO(GLuint vao) {
 	if (m_currentVAO != vao) {
 		glBindVertexArray(vao);
@@ -886,6 +942,14 @@ void Graphics::SetBlendMode(BlendMode mode) {
 }
 
 void Graphics::Clear() {
+	// 帧入口安全：scissor test 必须关闭，否则 glClear 只清空 scissor 区域内的像素，
+	// 区域外会残留上一帧画面。同时检测裁剪栈是否上一帧没 pop 干净。
+	if (!m_clipStack.empty()) {
+		std::cerr << "[Graphics] Unbalanced PushClipRect/PopClipRect across frames ("
+			<< m_clipStack.size() << " entries left); resetting." << std::endl;
+		m_clipStack.clear();
+	}
+	glDisable(GL_SCISSOR_TEST);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 

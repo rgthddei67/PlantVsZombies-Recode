@@ -122,7 +122,15 @@ void GameObjectManager::DrawAll(Graphics* g) {
     for (size_t i = 0; i < mGameObjects.size(); ++i) {
         auto* obj = mGameObjects[i].get();
         if (obj->IsActive()) {
+            const bool clipped = obj->HasClipRect();
+            if (clipped) {
+                const auto& cr = obj->GetClipRect();
+                g->PushClipRect(cr.x, cr.y, cr.w, cr.h);
+            }
             obj->Draw(g);
+            if (clipped) {
+                g->PopClipRect();
+            }
         }
     }
 }

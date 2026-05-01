@@ -77,6 +77,17 @@ struct CachedText {
 };
 
 /**
+ * @brief 屏幕像素裁剪矩形（左上原点，与 DrawTexture 等绘制接口的坐标语义一致）。
+ *        宽或高 <= 0 视为退化矩形，等价于"什么都不画"。
+ */
+struct ClipRect {
+	int x = 0;
+	int y = 0;
+	int w = 0;
+	int h = 0;
+};
+
+/**
  * @brief 混合模式
  */
 enum class BlendMode {
@@ -166,6 +177,40 @@ public:
 	 * @return 当前变换矩阵的常量引用
 	 */
 	const glm::mat4& GetCurrentTransform() const { return m_transformStack.back(); }
+
+	// ==================== 裁剪栈（屏幕像素矩形，类似 Unity RectMask2D） ====================
+
+	/**
+	 * @brief 压入一个屏幕像素矩形作为当前裁剪区域；区域外的像素不会被绘制。
+	 *        坐标采用屏幕左上原点（与 DrawTexture 等接口一致），不被 Transform 栈或摄像机影响。
+	 *        嵌套调用时与父矩形取交集 —— 子裁剪不能"暴露"父裁剪遮住的内容。
+	 *        会强制刷新当前批处理（否则之前累积的顶点会被新 scissor 一起裁剪），所以应当
+	 *        粗粒度使用（在一组绘制外面 push 一次），不要在每个 GameObject 周围 push/pop。
+	 * @param x 矩形左上角 X（屏幕像素）
+	 * @param y 矩形左上角 Y（屏幕像素）
+	 * @param w 矩形宽度（屏幕像素）
+	 * @param h 矩形高度（屏幕像素）
+	 */
+	void PushClipRect(int x, int y, int w, int h);
+
+	/**
+	 * @brief 弹出栈顶裁剪矩形，恢复到父矩形（若栈空则禁用 scissor test）。
+	 *        会强制刷新当前批处理。栈空时调用会输出错误并直接返回。
+	 */
+	void PopClipRect();
+
+	/**
+	 * @brief 当前是否有生效的裁剪矩形。
+	 */
+	bool IsClipActive() const { return !m_clipStack.empty(); }
+
+	/**
+	 * @brief 取得当前生效的裁剪矩形（栈顶，已经过嵌套交集）。
+	 * @return 栈空返回 nullptr。
+	 */
+	const ClipRect* CurrentClipRect() const {
+		return m_clipStack.empty() ? nullptr : &m_clipStack.back();
+	}
 
 	// ==================== 绘制接口 ====================
 
@@ -463,6 +508,8 @@ private:
 
 	std::vector<glm::mat4> m_transformStack;   ///< 变换矩阵栈
 
+	std::vector<ClipRect> m_clipStack;          ///< 裁剪矩形栈（屏幕像素，已经过嵌套交集）
+
 	// 批处理数据缓冲区
 	std::vector<BatchVertex> m_batchVertices;   ///< 批处理顶点列表
 	std::vector<GLuint> m_batchTextures;        ///< 当前批次使用的纹理 ID 列表
@@ -540,6 +587,17 @@ private:
 	 * @brief 提交几何批处理缓冲区中的所有顶点并清空。
 	 */
 	void FlushGeomBatch();
+
+	/**
+	 * @brief 把裁剪栈栈顶矩形写入 OpenGL（启用 GL_SCISSOR_TEST 并调用 glScissor）。
+	 *        要求栈非空。负责 y 轴翻转（GL 用左下原点）和退化矩形处理。
+	 */
+	void ApplyTopClipRectToGL();
+
+	/**
+	 * @brief 求两个屏幕像素矩形的交集（左上原点）。无交集时返回 w/h 为 0 的退化矩形。
+	 */
+	static ClipRect IntersectClip(const ClipRect& a, const ClipRect& b);
 
 	/**
 	 * @brief 将纹理 ID 绑定到批处理纹理列表，返回纹理单元索引。

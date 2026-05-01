@@ -117,7 +117,7 @@ void ZombieAlmanacScene::CreateAllZombieEntries()
 		zombie->mIsUI = true;
 		zombie->SetRenderOrder(LAYER_UI + 51);
 		if (auto transform = zombie->GetComponent<TransformComponent>()) {
-			float s = 0.52f;
+			float s = 0.7f;
 			transform->SetScale(s);
 		}
 
@@ -131,6 +131,12 @@ void ZombieAlmanacScene::CreateAllZombieEntries()
 		};
 
 		mGridZombies.push_back(zombie);
+		constexpr int CLIP_INSET = 3;
+		zombie->SetClipRect(
+			static_cast<int>(frameX) + CLIP_INSET,
+			static_cast<int>(frameY) + CLIP_INSET,
+			ZOMBIE_WINDOW_SIZE - 2 * CLIP_INSET,
+			ZOMBIE_WINDOW_SIZE - 2 * CLIP_INSET);
 		entryCount++;
 	}
 }

@@ -33,6 +33,8 @@ protected:
     RenderLayer mLayer = LAYER_GAME_OBJECT;
     bool mActive = true; // 是否在活动
     bool mStarted = false;   // 标记
+    bool mHasClipRect = false;
+    ClipRect mClipRect;
     std::vector<std::shared_ptr<Component>> mComponentsToInitialize; // 待初始化的组件
     std::unordered_map<std::type_index, std::shared_ptr<Component>> mComponents; // 包含的组件
     std::string mTag = "Untagged";
@@ -121,6 +123,14 @@ public:
     void SetRenderOrder(int order) { mRenderOrder = order; }
     RenderLayer GetLayer() const { return mLayer; }
     void SetLayer(RenderLayer layer) { mLayer = layer; }
+
+    void SetClipRect(int x, int y, int w, int h) {
+        mHasClipRect = true;
+        mClipRect = { x, y, w, h };
+    }
+    void ClearClipRect() { mHasClipRect = false; }
+    bool HasClipRect() const { return mHasClipRect; }
+    const ClipRect& GetClipRect() const { return mClipRect; }
     virtual int GetSortingKey() const { return -1; }        // 获取排序顺序，实现不同row顺序不一样
 
     static RenderLayer GetLayerFromOrder(int renderOrder) {
