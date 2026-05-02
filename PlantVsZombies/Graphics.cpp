@@ -59,7 +59,7 @@ bool Graphics::Initialize(int windowWidth, int windowHeight) {
 		glGetIntegerv(GL_MAX_SHADER_STORAGE_BLOCK_SIZE, &maxSSBOSize);
 		if (maxSSBOSize > 0) {
 			int ssboComputed = maxSSBOSize / static_cast<int>(sizeof(glm::mat4));
-			if (ssboComputed > 16384) ssboComputed = 16384;
+			if (ssboComputed > 32768) ssboComputed = 32768;
 			if (ssboComputed > m_matrixBatchLimit) {
 				m_matrixBatchLimit = ssboComputed;
 			}

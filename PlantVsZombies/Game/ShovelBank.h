@@ -16,6 +16,7 @@ public:
 private:
 	Board* mBoard;
 	const GLTexture* mTexture;
+	bool mWasShovelActive = false;
 };
 
 #endif

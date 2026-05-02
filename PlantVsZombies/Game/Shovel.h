@@ -23,6 +23,7 @@ public:
 
 	void CheckPlant();
 	void Activate();
+	ShovelState GetState() const { return mState; }
 	void SetHomePosition(const Vector& pos);
 	void ReturnHome();
 

@@ -1,5 +1,6 @@
 ﻿#include "ShovelBank.h"
 #include "Board.h"
+#include "Shovel.h"
 #include "ClickableComponent.h"
 #include "TransformComponent.h"
 #include "GameObjectManager.h"
@@ -28,7 +29,16 @@ void ShovelBank::Start()
 		clickComponent->ConsumeEvent = true;
 		clickComponent->SetClickArea(Vector(70.0f, 72.0f));
 		clickComponent->SetClickOffset(Vector(-35.0f, -36.0f));
+		clickComponent->onMouseDown = [this]() {
+			if (auto shovel = mBoard->mShovel.lock()) {
+				mWasShovelActive = (shovel->GetState() == ShovelState::ACTIVE);
+			} else {
+				mWasShovelActive = false;
+			}
+		};
 		clickComponent->onClick = [this]() {
+			if (mWasShovelActive)
+				return;
 			AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_SHOVEL, 0.4f);
 			mBoard->ActivateShovel();
 		};

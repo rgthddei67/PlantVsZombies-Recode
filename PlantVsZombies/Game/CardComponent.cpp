@@ -198,8 +198,9 @@ std::shared_ptr<CardSlotManager> CardComponent::FindCardSlotManager() const {
 			}
 		}
 	}
-
+#ifdef _DEBUG
 	std::cerr << "Warning: No CardSlotManager found in scene!" << std::endl;
+#endif
 	return nullptr;
 }
 
