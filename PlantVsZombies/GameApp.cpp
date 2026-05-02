@@ -22,6 +22,7 @@
 #include "./Game/Plant/WallNut.h"
 #include "./Game/Plant/PotatoMine.h"
 #include "./Game/Plant/SnowPeaShooter.h"
+#include "./Game/Plant/Chomper.h"
 
 #include "./Game/Zombie/Zombie.h"
 #include "./Game/Zombie/ConeZombie.h"
@@ -468,6 +469,9 @@ std::shared_ptr<Plant> GameAPP::InstantiatePlant(PlantType plantType, Board* boa
 			LAYER_GAME_PLANT, board, PlantType::PLANT_SNOWPEA, row, column,
 			AnimationType::ANIM_SNOWPEASHOOTER, 1.0f, isPreview);
 	case PlantType::PLANT_CHOMPER:
+		return GameObjectManager::GetInstance().CreateGameObjectImmediate<Chomper>(
+			LAYER_GAME_PLANT, board, PlantType::PLANT_CHOMPER, row, column,
+			AnimationType::ANIM_CHOMPER, 1.0f, isPreview);
 	case PlantType::PLANT_REPEATER:
 		return nullptr;
 	default:

@@ -238,6 +238,9 @@
     <ClCompile Include="Game\ZombieAlmanacScene.cpp">
       <Filter>Code\Game</Filter>
     </ClCompile>
+    <ClCompile Include="Game\Plant\Chomper.cpp">
+      <Filter>Code\Game\Plant</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="UI\Button.h">
@@ -515,6 +518,9 @@
     </ClInclude>
     <ClInclude Include="Game\ZombieAlmanacScene.h">
       <Filter>Code\Game</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\Plant\Chomper.h">
+      <Filter>Code\Game\Plant</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

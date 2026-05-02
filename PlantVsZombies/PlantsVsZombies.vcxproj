@@ -33,6 +33,7 @@
     <ClCompile Include="Game\GameObjectManager.cpp" />
     <ClCompile Include="Game\LawnMower.cpp" />
     <ClCompile Include="Game\PlantAlmanacScene.cpp" />
+    <ClCompile Include="Game\Plant\Chomper.cpp" />
     <ClCompile Include="Game\Plant\PotatoMine.cpp" />
     <ClCompile Include="Game\Plant\WallNut.cpp" />
     <ClCompile Include="Game\Shovel.cpp" />
@@ -104,6 +105,7 @@
     <ClInclude Include="Game\CursorObjectManager.h" />
     <ClInclude Include="Game\LawnMower.h" />
     <ClInclude Include="Game\PlantAlmanacScene.h" />
+    <ClInclude Include="Game\Plant\Chomper.h" />
     <ClInclude Include="Game\Plant\PotatoMine.h" />
     <ClInclude Include="Game\Plant\SnowPeaShooter.h" />
     <ClInclude Include="Game\Plant\WallNut.h" />

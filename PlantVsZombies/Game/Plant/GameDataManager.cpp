@@ -85,6 +85,16 @@ void GameDataManager::InitializeHardcodedData() {
 		Vector(-37.6f, -44)
 	);
 
+	RegisterPlant(
+		PlantType::PLANT_CHOMPER,
+		0, 7.5f,
+		"PLANT_CHOMPER",
+		ResourceKeys::Textures::IMAGE_CHOMPER,
+		AnimationType::ANIM_CHOMPER,
+		"Chomper",
+		Vector(-37.6f, -44)
+	);
+
 	// ==================== 僵尸注册 ====================
 	// 普通僵尸
 	RegisterZombie(
