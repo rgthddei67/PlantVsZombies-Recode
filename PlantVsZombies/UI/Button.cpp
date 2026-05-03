@@ -135,7 +135,7 @@ void Button::Update(InputHandler* input)
 
 void Button::Draw(Graphics* g) const
 {
-    if (!mEnabled || !g) return;
+    if (!g) return;
 
 	ResourceManager& resourceManager = ResourceManager::GetInstance();
 

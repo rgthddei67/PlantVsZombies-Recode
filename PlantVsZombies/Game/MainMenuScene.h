@@ -92,6 +92,13 @@ public:
             ResourceKeys::Textures::IMAGE_SELECTORSCREEN_SURIVAL_SHADOW);
     }
 
+    void SetEnabled(bool enabled) {
+        if (auto btn = mAdventure.lock()) btn->SetEnabled(enabled);
+        if (auto btn = mMiniGames.lock()) btn->SetEnabled(enabled);
+        if (auto btn = mPizzle.lock()) btn->SetEnabled(enabled);
+        if (auto btn = mSurvival.lock()) btn->SetEnabled(enabled);
+    }
+
     void Draw(Graphics* g) override {
         GameObject::Draw(g);
         if (auto adventure = mAdventure.lock())

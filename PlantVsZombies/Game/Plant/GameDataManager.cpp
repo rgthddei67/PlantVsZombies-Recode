@@ -87,7 +87,7 @@ void GameDataManager::InitializeHardcodedData() {
 
 	RegisterPlant(
 		PlantType::PLANT_CHOMPER,
-		0, 7.5f,
+		150, 7.5f,
 		"PLANT_CHOMPER",
 		ResourceKeys::Textures::IMAGE_CHOMPER,
 		AnimationType::ANIM_CHOMPER,

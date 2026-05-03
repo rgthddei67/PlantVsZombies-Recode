@@ -120,11 +120,17 @@ void MainMenuScene::OpenMenu()
 
 	mOpenMenu = true;
 	DeltaTime::SetPaused(true);
+	if (mAlmanacButton) mAlmanacButton->SetEnabled(false);
+	if (mOpitionButton) mOpitionButton->SetEnabled(false);
+	if (mGameButton) mGameButton->SetEnabled(false);
 	std::vector<GameMessageBox::ButtonConfig> buttons;
 	std::vector<GameMessageBox::SliderConfig> sliders;
 	std::vector<GameMessageBox::TextConfig> texts;
 
 	buttons.push_back({ u8"返回游戏", Vector(400, 430),Vector(360, 100), 40,[this]() {
+		if (mAlmanacButton) mAlmanacButton->SetEnabled(true);
+		if (mOpitionButton) mOpitionButton->SetEnabled(true);
+		if (mGameButton) mGameButton->SetEnabled(true);
 		mOpenMenu = false;
 		DeltaTime::SetPaused(false);
 	}, ResourceKeys::Textures::IMAGE_OPTIONS_BACKTOGAMEBUTTON0 ,true });
