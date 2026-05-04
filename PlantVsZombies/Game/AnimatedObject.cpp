@@ -37,7 +37,6 @@ AnimatedObject::AnimatedObject(ObjectType type,
 	auto reanimResource = resMgr.GetReanimation(resMgr.AnimationTypeToString(mAnimType));
 	if (reanimResource) {
 		mAnimator = std::make_shared<Animator>(reanimResource);
-		mAnimator->SetSpeed(1.0f);
 		mAnimator->SetAlpha(1.0f);
 		mAnimator->Play(mLoopType);
 		mIsPlaying = true;

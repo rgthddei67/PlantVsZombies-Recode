@@ -29,6 +29,7 @@
 #include "./Game/Zombie/ConeZombie.h"
 #include "./Game/Zombie/Polevaulter.h"
 #include "./Game/Zombie/BucketZombie.h"
+#include "./Game/Zombie/FastBucketZombie.h"
 
 #include <iostream>
 
@@ -502,6 +503,10 @@ std::shared_ptr<Zombie> GameAPP::InstantiateZombie(ZombieType zombieType, Board*
 	case ZombieType::ZOMBIE_BUCKET:
 		return GameObjectManager::GetInstance().CreateGameObjectImmediate<BucketZombie>(
 			LAYER_GAME_ZOMBIE, board, ZombieType::ZOMBIE_BUCKET, x, y, row,
+			AnimationType::ANIM_BUCKET_ZOMBIE, 1.0f, isPreview);
+	case ZombieType::ZOMBIE_FASTBUCKET:
+		return GameObjectManager::GetInstance().CreateGameObjectImmediate<FastBucketZombie>(
+			LAYER_GAME_ZOMBIE, board, ZombieType::ZOMBIE_FASTBUCKET, x, y, row,
 			AnimationType::ANIM_BUCKET_ZOMBIE, 1.0f, isPreview);
 	default:
 		std::cout << "[GameAPP::InstantiateZombie] 未知的僵尸类型" << std::endl;

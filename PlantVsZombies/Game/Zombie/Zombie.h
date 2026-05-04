@@ -40,6 +40,8 @@ public:
 	int mShieldMaxHealth = 0;
 
 protected:
+	float mExtraSpeed = 1.0f;
+
 	float mCooldownTimer = 0.0f;	// 僵尸减速倒计时时间
 
 	float mCheckPositionTimer = 0.0f;
@@ -97,7 +99,7 @@ public:
 	bool HasArm() const { return this->mHasArm; }
 	float GetCooldownTimer() const { return this->mCooldownTimer; }
 
-	void SetCooldown(float timer);		// 设置僵尸减速状态
+	virtual void SetCooldown(float timer);		// 设置僵尸减速状态
 
 	void SaveProtectedData(nlohmann::json& j) const;
 

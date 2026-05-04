@@ -181,7 +181,7 @@ void Zombie::Update()
 				mCooldownTimer = 0.0f;
 				if (mAnimator)
 				{
-					mAnimator->SetExtraSpeedMultiplier(1.0f);
+					mAnimator->SetExtraSpeedMultiplier(mExtraSpeed);
 					mAnimator->EnableOverlayEffect(false);
 				}
 			}
@@ -287,7 +287,7 @@ void Zombie::SetCooldown(float timer)
 	// （例如切换啃食、死亡动画）不会覆盖减速效果。
 	if (mCooldownTimer <= 0.0f)
 	{
-		mAnimator->SetExtraSpeedMultiplier(0.6f);
+		mAnimator->SetExtraSpeedMultiplier(mExtraSpeed * 0.6f);
 		mAnimator->EnableOverlayEffect(true);
 		mAnimator->SetOverlayColor(80, 80, 255, 255);
 	}
