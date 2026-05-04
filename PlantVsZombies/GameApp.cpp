@@ -23,6 +23,7 @@
 #include "./Game/Plant/PotatoMine.h"
 #include "./Game/Plant/SnowPeaShooter.h"
 #include "./Game/Plant/Chomper.h"
+#include "./Game/Plant/Repeater.h"
 
 #include "./Game/Zombie/Zombie.h"
 #include "./Game/Zombie/ConeZombie.h"
@@ -473,7 +474,9 @@ std::shared_ptr<Plant> GameAPP::InstantiatePlant(PlantType plantType, Board* boa
 			LAYER_GAME_PLANT, board, PlantType::PLANT_CHOMPER, row, column,
 			AnimationType::ANIM_CHOMPER, 1.0f, isPreview);
 	case PlantType::PLANT_REPEATER:
-		return nullptr;
+		return GameObjectManager::GetInstance().CreateGameObjectImmediate<Repeater>(
+			LAYER_GAME_PLANT, board, PlantType::PLANT_REPEATER, row, column,
+			AnimationType::ANIM_REPEAT, 1.0f, isPreview);
 	default:
 		std::cout << "未知的植物类型: " << static_cast<int>(plantType) << std::endl;
 		return nullptr;

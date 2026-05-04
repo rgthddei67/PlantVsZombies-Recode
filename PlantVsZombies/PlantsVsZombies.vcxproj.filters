@@ -522,6 +522,9 @@
     <ClInclude Include="Game\Plant\Chomper.h">
       <Filter>Code\Game\Plant</Filter>
     </ClInclude>
+    <ClInclude Include="Game\Plant\Repeater.h">
+      <Filter>Code\Game\Plant</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Shader\batch_fragment.glsl">

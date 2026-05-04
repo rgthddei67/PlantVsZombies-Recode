@@ -95,6 +95,16 @@ void GameDataManager::InitializeHardcodedData() {
 		Vector(-37.6f, -44)
 	);
 
+	RegisterPlant(
+		PlantType::PLANT_REPEATER,
+		200, 7.5f,
+		"PLANT_REPEATER",
+		ResourceKeys::Textures::IMAGE_REPEATER,
+		AnimationType::ANIM_REPEAT,
+		"Repeater",
+		Vector(-37.6f, -44)
+	);
+
 	// ==================== 僵尸注册 ====================
 	// 普通僵尸
 	RegisterZombie(

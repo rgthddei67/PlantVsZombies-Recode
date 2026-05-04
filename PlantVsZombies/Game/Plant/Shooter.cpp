@@ -36,7 +36,7 @@ void Shooter::PlantUpdate()
 		{
 			mShootTimer = 0;
 			mHeadAnim->PlayTrackOnce("anim_shooting", "anim_head_idle", 1.5f, 0.2f);
-			mHeadAnim->AddFrameEvent(62, [this]() {
+			mHeadAnim->AddFrameEvent(64, [this]() {
 				if (GameRandom::Chance())
 				{
 					AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_SHOOTER_SHOOT, 0.3f);
