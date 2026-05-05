@@ -303,18 +303,6 @@ int GameAPP::Run()
 			mInputHandler->ProcessEvent(&event);
 		}
 
-		// 特殊按键处理
-		if (!DeltaTime::IsPaused() && mInputHandler->IsKeyReleased(SDLK_F3))
-		{
-			if (DeltaTime::GetTimeScale() == 5.0f)
-			{
-				DeltaTime::SetTimeScale(1.0f);
-			}
-			else {
-				DeltaTime::SetTimeScale(5.0f);
-			}
-		}
-
 		// 更新
 		CursorManager::GetInstance().ResetHoverCount();
 		sceneManager.Update();

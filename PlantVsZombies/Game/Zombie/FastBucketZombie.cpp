@@ -11,7 +11,8 @@ void FastBucketZombie::SetupZombie()
 	this->mHelmMaxHealth = 600;
 	this->mHelmType = HelmType::HELMTYPE_BUCKET;
 	this->mSpeed *= GameRandom::Range(2.1f, 3.0f);
-	this->mAttackDamage *= 1.5f;
+	int damage = static_cast<int>(this->mAttackDamage * 1.5f);
+	this->mAttackDamage = damage;
 	mExtraSpeed = GameRandom::Range(1.6f, 2.7f);
 	mAnimator->SetExtraSpeedMultiplier(mExtraSpeed);
 }

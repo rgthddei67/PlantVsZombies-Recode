@@ -13,6 +13,8 @@ private:
     inline static float maxDeltaTime = 0.1f;
     inline static bool isPaused = false;
     inline static float timeScale = 1.0f;
+    // 暂停前保存的时间缩放系数，恢复时还原（避免暂停后丢失用户选择的速度）
+    inline static float savedTimeScale = 1.0f;
 
     // 最小时间限制，防止调试时暂停导致的时间异常
     inline static float minDeltaTime = 0.0001f;
@@ -71,13 +73,18 @@ public:
 
     // 暂停/恢复游戏
     static void SetPaused(bool paused) {
-        isPaused = paused;
         if (paused) {
-            timeScale = 0.0f;
+            if (!isPaused) {
+                savedTimeScale = timeScale;
+                timeScale = 0.0f;
+            }
         }
-        else if (timeScale == 0.0f) {
-            timeScale = 1.0f;  // 恢复时设为正常速度
+        else {
+            if (isPaused) {
+                timeScale = (savedTimeScale > 0.0f) ? savedTimeScale : 1.0f;
+            }
         }
+        isPaused = paused;
     }
 
     // 检查是否暂停
@@ -116,6 +123,7 @@ public:
         unscaledDeltaTime = 0.016f;
         deltaTime = 0.016f;
         timeScale = 1.0f;
+        savedTimeScale = 1.0f;
         isPaused = false;
         totalGameTime = 0.0;
         unscaledTotalTime = 0.0;

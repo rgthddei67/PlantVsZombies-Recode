@@ -16,6 +16,7 @@
 #include "ShovelBank.h"
 #include <iostream>
 #include <cmath>
+#include <cstdio>
 
 GameScene::GameScene() {
 
@@ -114,6 +115,33 @@ void GameScene::OnEnter() {
 		this->OpenMenu();
 		});
 
+	auto button2 = mUIManager.CreateButton(Vector(990, 45), Vector(125 * 0.9f, 52 * 0.9f));
+	mSpeedSettingsButton = button2;
+	auto formatSpeedText = [](float scale) {
+		char buf[16];
+		std::snprintf(buf, sizeof(buf), "x%.1f", scale);
+		return std::string(buf);
+	};
+	button2->SetText(formatSpeedText(DeltaTime::GetTimeScale()));
+	button2->SetAsCheckbox(false);
+	button2->SetTextColor(glm::vec4{ 53, 191, 61, 255 });
+	button2->SetHoverTextColor(glm::vec4{ 53, 240, 61, 255 });
+	button2->SetImageKeys(ResourceKeys::Textures::IMAGE_BUTTONSMALL, ResourceKeys::Textures::IMAGE_BUTTONSMALL,
+		ResourceKeys::Textures::IMAGE_BUTTONSMALL, ResourceKeys::Textures::IMAGE_BUTTONSMALL);
+	button2->SetClickCallBack([this, formatSpeedText](bool) {
+		// 暂停时不响应点击，避免 SetTimeScale 把游戏从暂停状态拉回
+		if (DeltaTime::IsPaused()) return;
+		float current = DeltaTime::GetTimeScale();
+		float next = 1.0f;
+		if (current == 1.0f)      next = 2.0f;
+		else if (current == 2.0f) next = 0.5f;
+		else                       next = 1.0f;
+		DeltaTime::SetTimeScale(next);
+		if (auto btn = mSpeedSettingsButton.lock()) {
+			btn->SetText(formatSpeedText(next));
+		}
+		});
+
 	// 读档
 	GameAPP::GetInstance().mGameInfoSaver.LoadLevelData(mBoard.get(), mCardSlotManager.get());
 
@@ -146,6 +174,8 @@ void GameScene::OnExit() {
 	Scene::OnExit();
 	mShovelUI.reset();
 	mBoard.reset();
+	mSpeedSettingsButton.reset();
+	mMainMenuButton.reset();
 	mGameProgress.reset();
 	mCardSlotManager.reset();
 	if (mChooseCardUI)
@@ -260,6 +290,17 @@ void GameScene::OpenQuitMenu()
 
 void GameScene::Update() {
 	Scene::Update();
+
+	// 同步速度按钮文字与当前时间缩放（仅在非暂停时；暂停期间 timeScale=0，保持上一次显示）
+	// 这样 F3 切换 5x、菜单暂停后恢复用户速度，按钮文字都能保持一致
+	if (!DeltaTime::IsPaused()) {
+		if (auto btn = mSpeedSettingsButton.lock()) {
+			char buf[16];
+			std::snprintf(buf, sizeof(buf), "x%.1f", DeltaTime::GetTimeScale());
+			btn->SetText(buf);
+		}
+	}
+
 	if (mBoard && !mReadyToRestart && !mReadyToBackMenu)
 	{
 		mBoard->Update();

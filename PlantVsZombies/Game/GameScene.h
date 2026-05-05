@@ -74,6 +74,7 @@ protected:
 private:
     std::unique_ptr<Board> mBoard = nullptr;
     std::weak_ptr<Button> mMainMenuButton;
+    std::weak_ptr<Button> mSpeedSettingsButton;
     std::weak_ptr<ShovelBank> mShovelUI;
     std::weak_ptr<GameMessageBox> mMenu;
     std::shared_ptr<CardSlotManager> mCardSlotManager = nullptr;
