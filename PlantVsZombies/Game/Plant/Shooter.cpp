@@ -24,6 +24,17 @@ void Shooter::SetupPlant() {
 	}
 
 	mAnimator->SetSpeed(GameRandom::Range(1.1f, 1.3f));
+
+	mHeadAnim->AddFrameEvent(64, [this]() {
+		if (GameRandom::Chance())
+		{
+			AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_SHOOTER_SHOOT, 0.3f);
+		}
+		else {
+			AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_SHOOTER_SHOOT2, 0.3f);
+		}
+		this->ShootBullet();
+		}, true);
 }
 
 void Shooter::PlantUpdate()
@@ -36,16 +47,6 @@ void Shooter::PlantUpdate()
 		{
 			mShootTimer = 0;
 			mHeadAnim->PlayTrackOnce("anim_shooting", "anim_head_idle", 1.5f, 0.2f);
-			mHeadAnim->AddFrameEvent(64, [this]() {
-				if (GameRandom::Chance())
-				{
-					AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_SHOOTER_SHOOT, 0.3f);
-				}
-				else {
-					AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_SHOOTER_SHOOT2, 0.3f);
-				}
-				this->ShootBullet();
-				});
 		}
 	}
 }

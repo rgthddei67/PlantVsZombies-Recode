@@ -6,11 +6,18 @@ void Polevaulter::SetupZombie()
 {
 	if (!mIsPreview) {
 		mAnimator->AddFrameEvent(92, [this]() {
-			EndJump();
+			this->EndJump();
 			});
 		mAnimator->AddFrameEvent(164, [this]() {
-			Die();
+			this->Die();
 			});
+		mAnimator->AddFrameEvent(179, [this]() {
+			this->EatTarget();
+			}, true);
+		mAnimator->AddFrameEvent(191, [this]() {
+			this->EatTarget();
+			}, true);
+
 		this->SetAnimationSpeed(GameRandom::Range(2.2f, 3.2f));
 		PlayTrack("anim_run");
 		// 重写碰撞回调：RUNNING状态碰到植物触发跳跃，WALKING状态走基类吃植物逻辑
@@ -30,7 +37,7 @@ void Polevaulter::SetupZombie()
 				}
 				else {
 					// 跳跃后走基类吃植物逻辑
-					EatTarget(other);
+					StartEat(other);
 				}
 				};
 		}

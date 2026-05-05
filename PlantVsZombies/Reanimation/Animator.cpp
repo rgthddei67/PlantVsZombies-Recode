@@ -54,9 +54,9 @@ void Animator::Init(std::shared_ptr<Reanimation> reanim) {
     }
 }
 
-void Animator::AddFrameEvent(int frameIndex, std::function<void()> callback) {
+void Animator::AddFrameEvent(int frameIndex, std::function<void()> callback, bool persistent) {
     if (callback) {
-        mFrameEvents.insert({ frameIndex, callback });
+        mFrameEvents.insert({ frameIndex, FrameEvent{ std::move(callback), persistent } });
     }
 }
 
@@ -161,7 +161,7 @@ void Animator::Update() {
     // 限制帧范围
     mFrameIndexNow = std::clamp(mFrameIndexNow, mFrameIndexBegin, mFrameIndexEnd);
 
-    // ----- 触发帧事件（一次性，触发后自动移除）-----
+    // ----- 触发帧事件（一次性触发后自动移除；持久事件保留）-----
     int oldInt = static_cast<int>(oldFrame);
     int newInt = static_cast<int>(mFrameIndexNow);
 
@@ -170,8 +170,12 @@ void Animator::Update() {
         for (int f = oldInt + 1; f <= newInt; ++f) {
             auto range = mFrameEvents.equal_range(f);
             for (auto it = range.first; it != range.second;) {
-                it->second();               // 执行回调
-                it = mFrameEvents.erase(it); // 移除（一次性）
+                it->second.callback();
+                if (it->second.persistent) {
+                    ++it;
+                } else {
+                    it = mFrameEvents.erase(it);
+                }
             }
         }
     }
@@ -181,16 +185,24 @@ void Animator::Update() {
         for (int f = oldInt + 1; f <= endInt; ++f) {
             auto range = mFrameEvents.equal_range(f);
             for (auto it = range.first; it != range.second;) {
-                it->second();
-                it = mFrameEvents.erase(it);
+                it->second.callback();
+                if (it->second.persistent) {
+                    ++it;
+                } else {
+                    it = mFrameEvents.erase(it);
+                }
             }
         }
         int beginInt = static_cast<int>(mFrameIndexBegin);
         for (int f = beginInt; f <= newInt; ++f) {
             auto range = mFrameEvents.equal_range(f);
             for (auto it = range.first; it != range.second;) {
-                it->second();
-                it = mFrameEvents.erase(it);
+                it->second.callback();
+                if (it->second.persistent) {
+                    ++it;
+                } else {
+                    it = mFrameEvents.erase(it);
+                }
             }
         }
     }

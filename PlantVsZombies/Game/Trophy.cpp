@@ -8,7 +8,7 @@
 #include "../ResourceKeys.h"
 #include "../Graphics.h"
 
-Trophy::Trophy(Board * board, const Vector & position)
+Trophy::Trophy(Board* board, const Vector& position)
 	: Coin(board, AnimationType::ANIM_NONE, position,
 		Vector(60, 60), Vector(0, 0),
 		999.0f,
@@ -52,9 +52,7 @@ void Trophy::SetOnClickBack(std::shared_ptr<ClickableComponent> click)
 		// TODO: 若以后增加小游戏，就改这里
 		if (mBoard->mLevel <= 50 && gameApp.mAdventureLevel == mBoard->mLevel) {
 			gameApp.mAdventureLevel++;
-			if ((mBoard->mLevel + 1) % 10 != 0) {
-				gameApp.mHaveCards.push_back(static_cast<PlantType>(mBoard->mLevel));
-			}
+			gameApp.mHaveCards.push_back(static_cast<PlantType>(mBoard->mLevel));
 		}
 		gameApp.mGameInfoSaver.SavePlayerInfo();
 

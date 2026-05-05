@@ -8,7 +8,7 @@
 #include "../../ParticleSystem/ParticleSystem.h"
 #include "../../GameApp.h"
 
-Zombie::Zombie(Board * board, ZombieType zombieType, float x, float y, int row,
+Zombie::Zombie(Board* board, ZombieType zombieType, float x, float y, int row,
 	AnimationType animType, float scale, bool isPreview)
 	: AnimatedObject(ObjectType::OBJECT_ZOMBIE, board,
 		Vector(x, y),
@@ -41,11 +41,11 @@ Zombie::Zombie(Board * board, ZombieType zombieType, float x, float y, int row,
 	collider->collisionMask = CollisionLayer::PLANT | CollisionLayer::BULLET | CollisionLayer::MOWER;
 	collider->onTriggerEnter = [this]
 	(std::shared_ptr<ColliderComponent> other) {
-		this->EatTarget(other);
+		this->StartEat(other);
 		};
 	collider->onTriggerStay = [this]
 	(std::shared_ptr<ColliderComponent> other) {
-		this->EatTarget(other);
+		this->StartEat(other);
 		};
 	collider->onTriggerExit = [this]
 	(std::shared_ptr<ColliderComponent> other) {
@@ -58,6 +58,9 @@ Zombie::Zombie(Board * board, ZombieType zombieType, float x, float y, int row,
 void Zombie::SetupZombie()
 {
 	mAnimator->AddFrameEvent(216, [this]() { this->Die(); });
+	mAnimator->AddFrameEvent(152, [this]() { this->EatTarget(); }, true);
+	mAnimator->AddFrameEvent(171, [this]() { this->EatTarget(); }, true);
+
 	mHasTongue = static_cast<bool>(GameRandom::Range(0, 1));
 
 	if (!mAnimator->GetTracksByName("anim_tongue").empty()) {
@@ -218,33 +221,6 @@ void Zombie::Update()
 					mIsDying = true;
 				}
 				return;
-			}
-		}
-
-		if (mEatPlantID != NULL_PLANT_ID && mHasHead)
-		{
-			mEatSoundTimer += scaledDelta;
-			if (mEatSoundTimer >= 0.7f)
-			{
-				mEatSoundTimer = 0;
-
-				if (auto* plant = mBoard->mEntityManager.GetPlant(mEatPlantID)) {
-					plant->TakeDamage(mAttackDamage);
-					if (plant->mPlantHealth <= 0)
-					{
-						AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_ZOMBIE_FINISHEAT, 0.25f);
-					}
-
-					int random = GameRandom::Range(0, 1);
-					if (random == 0)
-					{
-						AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_ZOMBIE_EAT, 0.2f);
-					}
-					else
-					{
-						AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_ZOMBIE_EAT2, 0.2f);
-					}
-				}
 			}
 		}
 
@@ -442,7 +418,31 @@ Vector Zombie::GetVisualPosition() const {
 	return GetTransformComponent()->GetPosition() + mVisualOffset;
 }
 
-void Zombie::EatTarget(std::shared_ptr<ColliderComponent> other)
+void Zombie::EatTarget()
+{
+	if (mEatPlantID != NULL_PLANT_ID && mHasHead)
+	{
+		if (auto* plant = mBoard->mEntityManager.GetPlant(mEatPlantID)) {
+			plant->TakeDamage(mAttackDamage);
+			if (plant->mPlantHealth <= 0)
+			{
+				AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_ZOMBIE_FINISHEAT, 0.25f);
+			}
+
+			int random = GameRandom::Range(0, 1);
+			if (random == 0)
+			{
+				AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_ZOMBIE_EAT, 0.2f);
+			}
+			else
+			{
+				AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_ZOMBIE_EAT2, 0.2f);
+			}
+		}
+	}
+}
+
+void Zombie::StartEat(std::shared_ptr<ColliderComponent> other)
 {
 	if (mIsPreview || mIsDying)	return;
 	auto gameObject = other->GetGameObject();

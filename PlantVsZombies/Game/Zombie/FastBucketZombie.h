@@ -51,7 +51,7 @@ public:
 	}
 
 	void TakeDamage(int damage) override {
-		if (GameRandom::Range(1, 10) <= 4) return;
+		if (GameRandom::Range(1, 10) <= 2) return;
 		Zombie::TakeDamage(damage);
 	}
 

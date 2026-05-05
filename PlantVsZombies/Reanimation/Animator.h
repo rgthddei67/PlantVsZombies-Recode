@@ -71,7 +71,11 @@ private:
     std::string mTargetTrack = "";              ///< 播放一次后要切换到的轨道名
     float mOriginalSpeed = 1.0f;                ///< 原始速度 (用于恢复)
 
-    std::unordered_multimap<int, std::function<void()>> mFrameEvents;  ///< 帧事件表 (一次性)
+    struct FrameEvent {
+        std::function<void()> callback;
+        bool persistent;   ///< false=一次性，触发后移除；true=每次穿过该帧都触发
+    };
+    std::unordered_multimap<int, FrameEvent> mFrameEvents;  ///< 帧事件表
 
 public:
     /**
@@ -119,11 +123,12 @@ public:
     void Stop();
 
     /**
-     * @brief 添加帧事件 (一次性，触发后自动移除)
+     * @brief 添加帧事件
      * @param frameIndex 帧索引 (整数)
      * @param callback 回调函数
+     * @param persistent false=一次性，触发后自动移除（默认）；true=持久事件，每次帧索引穿过该帧都触发，仅在 Die()/Init() 时清空
      */
-    void AddFrameEvent(int frameIndex, std::function<void()> callback);
+    void AddFrameEvent(int frameIndex, std::function<void()> callback, bool persistent = false);
 
     /**
      * @brief 播放指定轨道动画，支持过渡效果

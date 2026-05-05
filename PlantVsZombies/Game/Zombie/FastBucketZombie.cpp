@@ -7,12 +7,12 @@ void FastBucketZombie::SetupZombie()
 		GetTexture("IMAGE_FASTZOMBIE_BUCKET1"));
 
 	if (mIsPreview) return;
-	this->mHelmHealth = 620;
-	this->mHelmMaxHealth = 620;
+	this->mHelmHealth = 600;
+	this->mHelmMaxHealth = 600;
 	this->mHelmType = HelmType::HELMTYPE_BUCKET;
 	this->mSpeed *= GameRandom::Range(2.1f, 3.0f);
-	this->mAttackDamage *= 3;
-	mExtraSpeed = GameRandom::Range(1.8f, 2.9f);
+	this->mAttackDamage *= 1.5f;
+	mExtraSpeed = GameRandom::Range(1.6f, 2.7f);
 	mAnimator->SetExtraSpeedMultiplier(mExtraSpeed);
 }
 

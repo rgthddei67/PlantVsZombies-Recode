@@ -47,7 +47,6 @@ protected:
 	float mCheckPositionTimer = 0.0f;
 	bool mIsMindControlled = false;	//有没有被魅惑
 
-	float mEatSoundTimer = 0.0f;
 	bool mIsEating = false;
 	int mEatPlantID = NULL_PLANT_ID;
 
@@ -88,8 +87,10 @@ public:
 	virtual void ArmDrop();		// 手掉落 不用调用Zombie::ArmDrop
 
 	virtual void Die();
-	virtual void EatTarget(std::shared_ptr<ColliderComponent> other);
+	virtual void StartEat(std::shared_ptr<ColliderComponent> other);
 	virtual void StopEat(std::shared_ptr<ColliderComponent> other);
+	virtual void EatTarget();	// 吃东西掉血的函数
+
 	Vector GetVisualPosition() const override;
 	Vector GetPosition() const;
 	void SetPosition(const Vector& position);
