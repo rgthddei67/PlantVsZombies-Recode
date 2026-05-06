@@ -64,6 +64,7 @@ void Plant::Start()
 	GameObject::Start();
 	if (this->mIsPreview) {
 		RemoveComponent<ColliderComponent>();
+		mCollider = nullptr;  // 缓存的裸指针随之失效，显式置空
 	}
 
 	this->PlayTrack("anim_idle");
@@ -83,8 +84,8 @@ void Plant::Die() {
 	StopAnimation();
 
 	// 禁用碰撞体
-	if (auto collider = mCollider.lock()) {
-		collider->mEnabled = false;
+	if (mCollider) {
+		mCollider->mEnabled = false;
 	}
 
 	// 清理植物在Cell上的ID
@@ -94,7 +95,7 @@ void Plant::Die() {
 			cell->ClearPlantID();
 		}
 	}
-	GameObjectManager::GetInstance().DestroyGameObject(shared_from_this());
+	GameObjectManager::GetInstance().DestroyGameObject(this);
 }
 
 void Plant::Update()

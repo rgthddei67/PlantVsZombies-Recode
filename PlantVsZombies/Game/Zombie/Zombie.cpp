@@ -39,16 +39,13 @@ Zombie::Zombie(Board* board, ZombieType zombieType, float x, float y, int row,
 	collider->isTrigger = true;
 	collider->layerMask = CollisionLayer::ZOMBIE;
 	collider->collisionMask = CollisionLayer::PLANT | CollisionLayer::BULLET | CollisionLayer::MOWER;
-	collider->onTriggerEnter = [this]
-	(std::shared_ptr<ColliderComponent> other) {
+	collider->onTriggerEnter = [this](ColliderComponent* other) {
 		this->StartEat(other);
 		};
-	collider->onTriggerStay = [this]
-	(std::shared_ptr<ColliderComponent> other) {
+	collider->onTriggerStay = [this](ColliderComponent* other) {
 		this->StartEat(other);
 		};
-	collider->onTriggerExit = [this]
-	(std::shared_ptr<ColliderComponent> other) {
+	collider->onTriggerExit = [this](ColliderComponent* other) {
 		this->StopEat(other);
 		};
 
@@ -143,6 +140,7 @@ void Zombie::Start()
 	shadowcomponent->SetDrawOrder(-80);
 	if (this->mIsPreview) {
 		RemoveComponent<ColliderComponent>();
+		mCollider = nullptr;  // 缓存的裸指针随之失效，显式置空
 	}
 	SetAnimationSpeed(GameRandom::Range(1.1f, 1.4f));
 	SetupZombie();
@@ -161,7 +159,7 @@ void Zombie::Update()
 	AnimatedObject::Update();
 	if (!mIsPreview) {
 		float deltaTime = DeltaTime::GetDeltaTime();
-		auto* transform = this->GetTransformComponent().get();
+		auto* transform = this->GetTransformComponent();
 
 		if (!transform && !mBoard) return;
 
@@ -407,11 +405,11 @@ void Zombie::Die()
 		CheckWin();
 	}
 	// 禁用碰撞体
-	if (auto collider = mCollider.lock()) {
-		collider->mEnabled = false;
+	if (mCollider) {
+		mCollider->mEnabled = false;
 	}
 	this->mActive = false;
-	GameObjectManager::GetInstance().DestroyGameObject(shared_from_this());
+	GameObjectManager::GetInstance().DestroyGameObject(this);
 }
 
 Vector Zombie::GetVisualPosition() const {
@@ -442,13 +440,13 @@ void Zombie::EatTarget()
 	}
 }
 
-void Zombie::StartEat(std::shared_ptr<ColliderComponent> other)
+void Zombie::StartEat(ColliderComponent* other)
 {
 	if (mIsPreview || mIsDying)	return;
-	auto gameObject = other->GetGameObject();
+	auto* gameObject = other->GetGameObject();
 	if (gameObject->GetObjectType() == ObjectType::OBJECT_PLANT)
 	{
-		if (auto plant = std::dynamic_pointer_cast<Plant>(gameObject).get())
+		if (auto* plant = dynamic_cast<Plant*>(gameObject))
 		{
 			if (mEatPlantID != NULL_PLANT_ID || plant->mRow != this->mRow) return;	// 正在吃一个植物，那么不吃别的植物
 
@@ -462,13 +460,13 @@ void Zombie::StartEat(std::shared_ptr<ColliderComponent> other)
 	}
 }
 
-void Zombie::StopEat(std::shared_ptr<ColliderComponent> other)
+void Zombie::StopEat(ColliderComponent* other)
 {
 	if (mIsPreview || mIsDying)	return;
-	auto gameObject = other->GetGameObject();
+	auto* gameObject = other->GetGameObject();
 	if (gameObject->GetObjectType() == ObjectType::OBJECT_PLANT)
 	{
-		if (auto plant = std::dynamic_pointer_cast<Plant>(gameObject).get())
+		if (auto* plant = dynamic_cast<Plant*>(gameObject))
 		{
 			if (mEatPlantID != plant->mPlantID || plant->mRow != this->mRow) return;
 

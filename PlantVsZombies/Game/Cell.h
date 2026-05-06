@@ -17,8 +17,8 @@ constexpr float CELL_INITALIZE_POS_Y = 88.0f;
 class Cell : public GameObject {
 private:
     std::function<void(int, int)> OnCellClicked;
-    std::weak_ptr<ColliderComponent> mCollider;
-    std::weak_ptr<TransformComponent> mTransform;
+    ColliderComponent* mCollider = nullptr;
+    TransformComponent* mTransform = nullptr;
     int mPlantID = NULL_PLANT_ID;
 
 public:
@@ -35,12 +35,11 @@ public:
         mTransform = this->AddComponent<TransformComponent>(position);
         mCollider = this->AddComponent<ColliderComponent>(
             Vector(CELL_COLLIDER_SIZE_X, CELL_COLLIDER_SIZE_Y));
-		auto Collider = mCollider.lock();
-        Collider->isTrigger = true;
-        Collider->isStatic = true;
-        Collider->layerMask = CollisionLayer::NONE;
-        Collider->collisionMask = CollisionLayer::NONE;
-        auto clickable = this->AddComponent<ClickableComponent>();
+        mCollider->isTrigger = true;
+        mCollider->isStatic = true;
+        mCollider->layerMask = CollisionLayer::NONE;
+        mCollider->collisionMask = CollisionLayer::NONE;
+        auto* clickable = this->AddComponent<ClickableComponent>();
         if (!clickable) return;
         clickable->ChangeCursorOnHover = false;
         clickable->onClick = [this]() {
@@ -49,13 +48,13 @@ public:
             }
             };
     }
-	
+
 	// 获取格子世界位置
     Vector GetWorldPosition() const
     {
-        if (auto transform = mTransform.lock()) 
+        if (mTransform)
         {
-            return transform->GetPosition();
+            return mTransform->GetPosition();
         }
 
         float x = CELL_INITALIZE_POS_X + mColumn * CELL_COLLIDER_SIZE_X;
@@ -100,9 +99,9 @@ public:
     // 检查点是否在格子内
     bool ContainsPoint(const Vector& point) const
     {
-        if (auto collider = mCollider.lock())
+        if (mCollider)
         {
-            return collider->ContainsPoint(point);
+            return mCollider->ContainsPoint(point);
         }
         else
         {
@@ -111,9 +110,9 @@ public:
     }
 
     // 获取碰撞体
-    std::shared_ptr<ColliderComponent> GetCollider() const
+    ColliderComponent* GetCollider() const
     {
-        return mCollider.lock();
+        return mCollider;
     }
 
     // 设置点击回调

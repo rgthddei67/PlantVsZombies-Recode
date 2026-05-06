@@ -32,7 +32,7 @@ public:
     static void ClearProcessedEvents();
 
 private:
-    std::shared_ptr<ColliderComponent> mCollider;
+    ColliderComponent* mCollider = nullptr;
 
     // 存储当前帧处理过的点击事件
     inline static std::unordered_set<ClickableComponent*> s_processedEvents;

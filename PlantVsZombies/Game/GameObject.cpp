@@ -8,10 +8,10 @@ GameObject::GameObject(ObjectType type)
 {
 }
 
-GameObject::~GameObject() 
+GameObject::~GameObject()
 {
     for (auto& [type, component] : mComponents) {
-        UnregisterComponentIfNeeded(component);
+        UnregisterComponentIfNeeded(component.get());
         component->OnDestroy();
     }
     mComponents.clear();
@@ -19,7 +19,7 @@ GameObject::~GameObject()
 
 void GameObject::Start() {
     if (!mStarted) {
-        for (auto& component : mComponentsToInitialize) {
+        for (auto* component : mComponentsToInitialize) {
             InitializeComponent(component);
         }
         mComponentsToInitialize.clear();
@@ -71,8 +71,8 @@ void GameObject::Draw(Graphics* g) {
     }
 }
 
-void GameObject::InitializeComponent(std::shared_ptr<Component> component) {
-    component->SetGameObject(shared_from_this());
+void GameObject::InitializeComponent(Component* component) {
+    component->SetGameObject(this);
     if (mStarted && component->mEnabled) {
         component->Start();
     }
@@ -80,7 +80,7 @@ void GameObject::InitializeComponent(std::shared_ptr<Component> component) {
 
 void GameObject::DestroyAllComponents() {
     for (auto& [type, component] : mComponents) {
-		UnregisterComponentIfNeeded(component);
+        UnregisterComponentIfNeeded(component.get());
         component->OnDestroy();
     }
     mComponents.clear();
@@ -89,18 +89,18 @@ void GameObject::DestroyAllComponents() {
 
 void GameObject::RegisterAllColliders() {
     for (auto& [type, component] : mComponents) {
-        RegisterComponentIfNeeded(component);
+        RegisterComponentIfNeeded(component.get());
     }
 }
 
-void GameObject::RegisterComponentIfNeeded(std::shared_ptr<Component> component) {
-    if (auto collider = std::dynamic_pointer_cast<ColliderComponent>(component)) {
+void GameObject::RegisterComponentIfNeeded(Component* component) {
+    if (auto* collider = dynamic_cast<ColliderComponent*>(component)) {
         CollisionSystem::GetInstance().RegisterCollider(collider);
     }
 }
 
-void GameObject::UnregisterComponentIfNeeded(std::shared_ptr<Component> component) {
-    if (auto collider = std::dynamic_pointer_cast<ColliderComponent>(component)) {
+void GameObject::UnregisterComponentIfNeeded(Component* component) {
+    if (auto* collider = dynamic_cast<ColliderComponent*>(component)) {
         CollisionSystem::GetInstance().UnregisterCollider(collider);
     }
 }

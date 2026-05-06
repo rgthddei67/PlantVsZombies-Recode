@@ -16,8 +16,8 @@ class Plant;
 
 class CardSlotManager : public Component {
 private:
-    std::vector<std::weak_ptr<Card>> cards;  // 卡牌列表
-    std::weak_ptr<GameObject> selectedCard;                 // 当前选中的卡牌
+    std::vector<Card*> cards;  // 卡牌列表（观察者，所有权在 GameObjectManager）
+    GameObject* selectedCard = nullptr;       // 当前选中的卡牌（观察者）
     std::shared_ptr<Plant> plantPreview = nullptr;          // 植物预览
     std::shared_ptr<Plant> cellPlantPreview = nullptr;
 
@@ -38,8 +38,8 @@ public:
     void UpdatePreviewToMouse(const Vector& mousePos);
 
     // 卡牌操作
-    void AddCard(std::shared_ptr<Card> card);
-    void SelectCard(std::weak_ptr<GameObject> card);
+    void AddCard(Card* card);
+    void SelectCard(GameObject* card);
     void DeselectCard();
 
     bool CanAfford(int cost) const { return mBoard ? mBoard->GetSun() >= cost : false; }
@@ -58,9 +58,9 @@ public:
     PlantType GetSelectedPlantType() const;
 
     // 获取卡牌信息
-    std::shared_ptr<GameObject> GetSelectedCard() const { return selectedCard.lock(); }
+    GameObject* GetSelectedCard() const { return selectedCard; }
     int GetCurrentSun() const { return mBoard ? mBoard->GetSun() : 0; }
-    const std::vector<std::weak_ptr<Card>>& GetCards() const { return cards; }
+    const std::vector<Card*>& GetCards() const { return cards; }
 
 private:
     void CreatePlantPreview(PlantType plantType);

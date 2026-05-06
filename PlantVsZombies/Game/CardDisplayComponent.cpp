@@ -241,34 +241,20 @@ glm::vec4 CardDisplayComponent::GetCurrentColor() const {
     }
 }
 
-std::shared_ptr<CardComponent> CardDisplayComponent::GetCardComponent() const {
-    if (auto cardComp = mCardComponent.lock()) {
-        return cardComp;
+CardComponent* CardDisplayComponent::GetCardComponent() const {
+    if (mCardComponent) return mCardComponent;
+    if (auto* gameObject = GetGameObject()) {
+        mCardComponent = gameObject->GetComponent<CardComponent>();
     }
-    // 如果 weak_ptr 已失效，重新查找
-    if (auto gameObject = GetGameObject()) {
-        auto cardComp = gameObject->GetComponent<CardComponent>();
-        if (cardComp) {
-            this->mCardComponent = cardComp;
-        }
-        return cardComp;
-    }
-    return nullptr;
+    return mCardComponent;
 }
 
-std::shared_ptr<TransformComponent> CardDisplayComponent::GetTransformComponent() const {
-    if (auto transformComp = mTransformComponent.lock()) {
-        return transformComp;
+TransformComponent* CardDisplayComponent::GetTransformComponent() const {
+    if (mTransformComponent) return mTransformComponent;
+    if (auto* gameObject = GetGameObject()) {
+        mTransformComponent = gameObject->GetComponent<TransformComponent>();
     }
-
-    if (auto gameObject = GetGameObject()) {
-        auto transformComp = gameObject->GetComponent<TransformComponent>();
-        if (transformComp) {
-            this->mTransformComponent = transformComp;
-        }
-        return transformComp;
-    }
-    return nullptr;
+    return mTransformComponent;
 }
 
 std::string CardDisplayComponent::GetPlantTextureKey() const {

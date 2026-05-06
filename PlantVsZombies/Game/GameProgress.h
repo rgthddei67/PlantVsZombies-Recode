@@ -40,5 +40,5 @@ private:
     Vector createPosition = Vector(870, 575);
 
     std::unique_ptr<FlagMeter> m_flagMeter;
-    std::weak_ptr<TransformComponent> mTransform;
+    TransformComponent* mTransform = nullptr;
 };

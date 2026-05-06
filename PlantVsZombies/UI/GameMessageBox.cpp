@@ -105,14 +105,11 @@ void GameMessageBox::Start()
 				(config.texture, config.texture, config.texture, config.texture);
 		}
 
-		// 使用weakptr 避免循环引用
-		auto weakSelf = std::weak_ptr<GameMessageBox>(std::dynamic_pointer_cast<GameMessageBox>(shared_from_this()));
-		button->SetClickCallBack([weakSelf, config](bool) {
+		// 销毁是延迟到帧末，回调期间 this 一定有效
+		button->SetClickCallBack([this, config](bool) {
 			if (config.callback) config.callback();
 			if (config.autoClose) {
-				if (auto self = weakSelf.lock()) {
-					self->Close();
-				}
+				Close();
 			}
 			});
 
@@ -125,8 +122,7 @@ void GameMessageBox::Start()
 			CreateSlider
 			(config.pos, config.size * m_scale, config.min, config.max, config.initValue);
 
-		auto weakSelf = std::weak_ptr<GameMessageBox>(std::dynamic_pointer_cast<GameMessageBox>(shared_from_this()));
-		slider->SetChangeCallBack([weakSelf, config](float value) {
+		slider->SetChangeCallBack([config](float value) {
 			if (config.callback)
 				config.callback(value);
 			});
@@ -187,5 +183,5 @@ void GameMessageBox::Draw(Graphics* g)
 
 void GameMessageBox::Close()
 {
-	GameObjectManager::GetInstance().DestroyGameObject(shared_from_this());
+	GameObjectManager::GetInstance().DestroyGameObject(this);
 }

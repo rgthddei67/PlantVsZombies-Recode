@@ -33,16 +33,16 @@ void ClickableComponent::ProcessMouseEvents() {
         auto obj = allObjects[i];
         if (!obj->IsActive()) continue;
 
-        auto clickable = obj->GetComponent<ClickableComponent>();
+        auto* clickable = obj->GetComponent<ClickableComponent>();
         if (!clickable || !clickable->IsClickable) continue;
 
-        auto collider = clickable->mCollider;
+        auto* collider = clickable->mCollider;
         if (!collider || !collider->mEnabled) continue;
 
         Vector testPoint = obj->mIsUI ? mouseScreen : mouseWorld;
 
         if (collider->ContainsPoint(testPoint)) {
-            clickableObjects.emplace_back(obj, clickable.get());
+            clickableObjects.emplace_back(obj, clickable);
 
             if (clickable->ChangeCursorOnHover) {
                 s_hoveringClickable = true;
@@ -51,7 +51,7 @@ void ClickableComponent::ProcessMouseEvents() {
 
         // 使用转换后的世界坐标进行点包含测试
         if (collider->ContainsPoint(testPoint)) {
-            clickableObjects.emplace_back(obj, clickable.get());
+            clickableObjects.emplace_back(obj, clickable);
 
             if (clickable->ChangeCursorOnHover) {
                 s_hoveringClickable = true;
@@ -116,7 +116,7 @@ void ClickableComponent::ProcessMouseEvents() {
 }
 
 void ClickableComponent::Start() {
-    if (auto gameObject = this->GetGameObject()) {
+    if (auto* gameObject = this->GetGameObject()) {
         mCollider = gameObject->GetComponent<ColliderComponent>();
         if (!mCollider) {
             mCollider = gameObject->AddComponent<ColliderComponent>(Vector(50, 50));

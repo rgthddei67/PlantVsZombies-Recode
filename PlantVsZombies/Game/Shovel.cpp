@@ -43,7 +43,7 @@ void Shovel::Die()
 {
 	mState = ShovelState::IDLE;
 	mPosition = mHomePosition;
-	GameObjectManager::GetInstance().DestroyGameObject(shared_from_this());
+	GameObjectManager::GetInstance().DestroyGameObject(this);
 	mBoard->mShovel.reset();
 	mPlant = nullptr;
 }

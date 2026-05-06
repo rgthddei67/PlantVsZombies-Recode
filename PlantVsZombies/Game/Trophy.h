@@ -25,7 +25,7 @@ public:
 	void Draw(Graphics* g) override;
 
 protected:
-	void SetOnClickBack(std::shared_ptr<ClickableComponent> click) override;
+	void SetOnClickBack(ClickableComponent* click) override;
 };
 
 #endif

@@ -6,7 +6,6 @@
 #include "Definit.h"
 #include <SDL2/SDL.h>
 #include <functional>
-#include <memory>
 #include <cstdint>
 
 class TransformComponent;
@@ -40,12 +39,12 @@ public:
 	uint32_t colliderID    = 0;
 	bool     mRegistered   = false;
 
-	// 碰撞的事件（回调函数）
-	std::function<void(std::shared_ptr<ColliderComponent>)> onTriggerEnter;
-	std::function<void(std::shared_ptr<ColliderComponent>)> onTriggerStay;
-	std::function<void(std::shared_ptr<ColliderComponent>)> onTriggerExit;
-	std::function<void(std::shared_ptr<ColliderComponent>)> onCollisionEnter;
-	std::function<void(std::shared_ptr<ColliderComponent>)> onCollisionExit;
+	// 碰撞的事件（回调函数） —— 裸指针 other，回调阶段保证对象活
+	std::function<void(ColliderComponent*)> onTriggerEnter;
+	std::function<void(ColliderComponent*)> onTriggerStay;
+	std::function<void(ColliderComponent*)> onTriggerExit;
+	std::function<void(ColliderComponent*)> onCollisionEnter;
+	std::function<void(ColliderComponent*)> onCollisionExit;
 
 	SDL_Color debugColor = { 255, 0, 0, 255 }; // 调试颜色（红色）
 
@@ -81,7 +80,7 @@ public:
 	void DrawCircleCollider(Graphics* g, const Vector& center, float radius);
 
 private:
-	std::shared_ptr<TransformComponent> GetTransform() const;
+	TransformComponent* GetTransform() const;
 };
 
 #endif

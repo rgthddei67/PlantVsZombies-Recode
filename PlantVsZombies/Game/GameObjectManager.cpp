@@ -22,6 +22,22 @@ void GameObjectManager::DestroyGameObject(std::shared_ptr<GameObject> obj) {
     }
 }
 
+void GameObjectManager::DestroyGameObject(GameObject* raw) {
+    if (!raw) return;
+    for (const auto& obj : mGameObjects) {
+        if (obj.get() == raw) {
+            DestroyGameObject(obj);
+            return;
+        }
+    }
+    for (const auto& obj : mObjectsToAdd) {
+        if (obj.get() == raw) {
+            DestroyGameObject(obj);
+            return;
+        }
+    }
+}
+
 void GameObjectManager::DestroyAllGameObjects() {
     mBulletPool->Clear();
 

@@ -25,8 +25,8 @@ Mower::Mower(Board* board, MowerType type, AnimationType animType, float x, floa
 	collider->isTrigger = true;
 	collider->layerMask = CollisionLayer::MOWER;
 	collider->collisionMask = CollisionLayer::ZOMBIE;
-	collider->onTriggerEnter = [this](std::shared_ptr<ColliderComponent> other) {
-		auto go = other->GetGameObject();
+	collider->onTriggerEnter = [this](ColliderComponent* other) {
+		auto* go = other->GetGameObject();
 		if (!go || go->GetObjectType() != ObjectType::OBJECT_ZOMBIE) return;
 
 		// 首次碰撞触发移动
@@ -34,7 +34,7 @@ Mower::Mower(Board* board, MowerType type, AnimationType animType, float x, floa
 			Trigger();
 		}
 
-		Zombie* zombie = std::dynamic_pointer_cast<Zombie>(go).get();
+		Zombie* zombie = dynamic_cast<Zombie*>(go);
 		int totalHP = zombie->mBodyHealth + zombie->mHelmHealth + zombie->mShieldHealth;
 		zombie->TakeDamage(totalHP);
 		};
@@ -75,23 +75,23 @@ void Mower::Update()
 
 void Mower::Die()
 {
-	if (auto collider = mCollider.lock()) {
-		collider->mEnabled = false;
+	if (mCollider) {
+		mCollider->mEnabled = false;
 	}
-	GameObjectManager::GetInstance().DestroyGameObject(shared_from_this());
+	GameObjectManager::GetInstance().DestroyGameObject(this);
 }
 
 Vector Mower::GetPosition() const
 {
-	if (auto transform = mTransform.lock()) {
-		return transform->GetPosition();
+	if (mTransform) {
+		return mTransform->GetPosition();
 	}
 	return Vector::zero();
 }
 
 void Mower::SetPosition(const Vector& position)
 {
-	if (auto transform = mTransform.lock()) {
-		transform->SetPosition(position);
+	if (mTransform) {
+		mTransform->SetPosition(position);
 	}
 }

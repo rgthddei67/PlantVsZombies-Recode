@@ -37,11 +37,11 @@ protected:
 	float mVelocityX = 290.0f;	// 子弹X轴动量
 	float mVelocityY = 0.0f;	// 子弹Y轴动量
 
-	std::weak_ptr<TransformComponent> mTransform;
-	std::weak_ptr<ColliderComponent> mCollider;
+	TransformComponent* mTransform = nullptr;
+	ColliderComponent* mCollider = nullptr;
 
 	// 子弹击中僵尸的效果
-	virtual void BulletHitZombie(std::shared_ptr<Zombie> zombie) { }
+	virtual void BulletHitZombie(Zombie* zombie) { }
 
 public:
 	Bullet(Board* board, BulletType bulletType, int row, const Vector& colliderRadius,
@@ -69,9 +69,9 @@ public:
 	void SetVelocityY(float y) { this->mVelocityY = y; }
 
 	int GetSortingKey() const override { return this->mRow; }
-	std::shared_ptr<TransformComponent> GetTransformComponent() const { return mTransform.lock(); }
+	TransformComponent* GetTransformComponent() const { return mTransform; }
 	Vector GetPosition() const { return GetTransformComponent()->GetPosition(); }
-	std::shared_ptr<ColliderComponent> GetColliderComponent() const { return mCollider.lock(); }
+	ColliderComponent* GetColliderComponent() const { return mCollider; }
 };
 
 #endif

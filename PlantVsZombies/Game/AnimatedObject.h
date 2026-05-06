@@ -18,8 +18,8 @@ protected:
     Board* mBoard = nullptr;
     float mGlowingTimer = 0.0f;
 
-    std::weak_ptr<TransformComponent> mTransform;
-    std::weak_ptr<ColliderComponent> mCollider;
+    TransformComponent* mTransform = nullptr;
+    ColliderComponent* mCollider = nullptr;
     std::shared_ptr<Animator> mAnimator;
 
     AnimationType mAnimType;
@@ -93,8 +93,8 @@ public:
     void SetCurrentFrame(float frameIndex);
 
     // 组件获取
-    std::shared_ptr<TransformComponent> GetTransformComponent() const;
-    std::shared_ptr<ColliderComponent> GetColliderComponent() const;
+    TransformComponent* GetTransformComponent() const;
+    ColliderComponent* GetColliderComponent() const;
 
     // 获取视觉绘制位置
     virtual Vector GetVisualPosition() const;

@@ -40,7 +40,7 @@ public:
     void Start() override;
     void Update() override;
 
-    virtual void SetOnClickBack(std::shared_ptr<ClickableComponent> clickComponent);
+    virtual void SetOnClickBack(ClickableComponent* clickComponent);
 
     void StartMoveToTarget(const Vector& target = Vector(10, 10),
         float fastSpeed = 500.0f,

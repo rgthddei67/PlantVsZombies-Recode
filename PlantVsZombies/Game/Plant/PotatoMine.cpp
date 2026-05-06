@@ -10,11 +10,11 @@ void PotatoMine::SetupPlant()
 
 	if (mIsPreview) return;
 
-	GetColliderComponent()->onCollisionEnter = 
-		([this](std::shared_ptr<ColliderComponent> other) {
+	GetColliderComponent()->onCollisionEnter =
+		([this](ColliderComponent* other) {
 		if (!mIsRise) return;
 
-		auto gameObject = other->GetGameObject().get();
+		auto* gameObject = other->GetGameObject();
 		if (gameObject->GetObjectType() == ObjectType::OBJECT_ZOMBIE)
 		{
 			if (auto zombie = dynamic_cast<Zombie*>(gameObject))

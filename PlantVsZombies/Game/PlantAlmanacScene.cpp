@@ -88,10 +88,10 @@ void PlantAlmanacScene::CreateAllCards()
 		if (auto clickable = card->GetComponent<ClickableComponent>()) {
 			clickable->onClick = [this, plantType]() {
 				OnCardClicked(plantType);
-			};
+				};
 		}
 
-		mCards.push_back(card);
+		mCards.push_back(card.get());   
 		cardCount++;
 	}
 }

@@ -24,7 +24,7 @@ AnimatedObject::AnimatedObject(ObjectType type,
 {
 	SetTag(tag);
 
-	auto transform = AddComponent<TransformComponent>();
+	auto* transform = AddComponent<TransformComponent>();
 	transform->SetPosition(position);
 	transform->SetScale(scale);
 	mTransform = transform;
@@ -51,8 +51,8 @@ AnimatedObject::AnimatedObject(ObjectType type,
 }
 
 Vector AnimatedObject::GetVisualPosition() const {
-	if (auto transform = mTransform.lock()) {
-		return transform->GetPosition();;
+	if (mTransform) {
+		return mTransform->GetPosition();
 	}
 	return Vector::zero();
 }
@@ -66,7 +66,7 @@ void AnimatedObject::Update() {
 		// 自动销毁逻辑（非循环动画且结束后自动销毁）
 		if (mIsPlaying && mLoopType != PlayState::PLAY_REPEAT && IsAnimationFinished()) {
 			if (mAutoDestroy) {
-				GameObjectManager::GetInstance().DestroyGameObject(shared_from_this());
+				GameObjectManager::GetInstance().DestroyGameObject(this);
 			}
 			else {
 				mIsPlaying = false;
@@ -84,8 +84,8 @@ void AnimatedObject::PrepareForDraw() {
 	mCachedPosX = pos.x;
 	mCachedPosY = pos.y;
 	mCachedScale = 1.0f;
-	if (auto transform = mTransform.lock()) {
-		mCachedScale = transform->GetScale();
+	if (mTransform) {
+		mCachedScale = mTransform->GetScale();
 	}
 	mAnimator->PrepareCommands(mCachedPosX, mCachedPosY, mCachedScale);
 }
@@ -118,27 +118,27 @@ void AnimatedObject::StopAnimation() {
 }
 
 void AnimatedObject::SetAnimationPosition(const Vector& position) {
-	if (auto transform = mTransform.lock()) {
-		transform->SetPosition(position);
+	if (mTransform) {
+		mTransform->SetPosition(position);
 	}
 }
 
 Vector AnimatedObject::GetAnimationPosition() const {
-	if (auto transform = mTransform.lock()) {
-		return transform->GetPosition();
+	if (mTransform) {
+		return mTransform->GetPosition();
 	}
 	return Vector::zero();
 }
 
 void AnimatedObject::SetAnimationScale(float scale) {
-	if (auto transform = mTransform.lock()) {
-		transform->SetScale(scale);
+	if (mTransform) {
+		mTransform->SetScale(scale);
 	}
 }
 
 float AnimatedObject::GetAnimationScale() const {
-	if (auto transform = mTransform.lock()) {
-		return transform->GetScale();
+	if (mTransform) {
+		return mTransform->GetScale();
 	}
 	return 1.0f;
 }
@@ -292,12 +292,12 @@ void AnimatedObject::SetCurrentFrame(float frameIndex) {
 	}
 }
 
-std::shared_ptr<TransformComponent> AnimatedObject::GetTransformComponent() const {
-	return mTransform.lock();
+TransformComponent* AnimatedObject::GetTransformComponent() const {
+	return mTransform;
 }
 
-std::shared_ptr<ColliderComponent> AnimatedObject::GetColliderComponent() const {
-	return mCollider.lock();
+ColliderComponent* AnimatedObject::GetColliderComponent() const {
+	return mCollider;
 }
 
 std::shared_ptr<Animator> AnimatedObject::GetAnimatorInternal() const {

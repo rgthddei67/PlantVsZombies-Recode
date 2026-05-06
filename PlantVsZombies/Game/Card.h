@@ -18,9 +18,9 @@ public:
     Card(PlantType plantType, int sunCost, float cooldown, bool isInChooseCardUI = false);
 
     // 便捷方法
-    std::shared_ptr<CardComponent> GetCardComponent() { return GetComponent<CardComponent>(); }
-    std::shared_ptr<TransformComponent> GetTransform() { return mTransform.lock(); }
-    std::shared_ptr<CardDisplayComponent> GetDisplay() { return GetComponent<CardDisplayComponent>(); }
+    CardComponent* GetCardComponent() { return GetComponent<CardComponent>(); }
+    TransformComponent* GetTransform() { return mTransform; }
+    CardDisplayComponent* GetDisplay() { return GetComponent<CardDisplayComponent>(); }
 	bool GetIsInChooseCardUI() const { return mIsInChooseCardUI; }
 	void SetIsInChooseCardUI(bool isInChooseCardUI) { mIsInChooseCardUI = isInChooseCardUI; }
 
@@ -33,7 +33,7 @@ public:
     void Update() override;
 
 private:
-	std::weak_ptr<TransformComponent> mTransform;
+	TransformComponent* mTransform = nullptr;
     bool mIsInChooseCardUI = false;     // 是否是在选卡界面中的卡牌
 
     Vector m_originalPos;      // 原始位置（在选卡界面中的固定位置）

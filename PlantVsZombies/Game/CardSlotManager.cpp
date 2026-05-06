@@ -39,7 +39,7 @@ void CardSlotManager::Update() {
     static int lastSun = 0;
 
     // 如果有选中的卡牌，更新鼠标悬停的Cell
-    auto selected = selectedCard.lock();
+    auto* selected = selectedCard;
     if (selected) {
         auto& input = GameAPP::GetInstance().GetInputHandler();
         Vector mouseScreen = input.GetMousePosition();  // 屏幕坐标
@@ -60,7 +60,7 @@ void CardSlotManager::Update() {
 }
 
 void CardSlotManager::Draw(Graphics* g) {
-    if (auto selected = selectedCard.lock()) {
+    if (selectedCard) {
         Vector mouseScreen = GameAPP::GetInstance().GetInputHandler().GetMousePosition();
 
         // 更新预览位置
@@ -69,32 +69,30 @@ void CardSlotManager::Draw(Graphics* g) {
 }
 
 void CardSlotManager::UpdateAllCardsState() {
-    for (auto& cardWeak : cards) {
-        if (auto card = cardWeak.lock()) {
-            if (auto cardComp = card->GetComponent<CardComponent>()) {
-                // 如果卡牌正在冷却，不强制更新状态，只更新冷却进度
-                if (cardComp->IsCooldown()) {
-                    // 只更新冷却进度显示
-                    if (auto display = cardComp->GetCardDisplayComponent()) {
-                        float progress = 1.0f - (cardComp->GetCooldownProgress());
-                        display->SetCooldownProgress(progress);
-                    }
+    for (auto* card : cards) {
+        if (!card) continue;
+        if (auto cardComp = card->GetComponent<CardComponent>()) {
+            // 如果卡牌正在冷却，不强制更新状态，只更新冷却进度
+            if (cardComp->IsCooldown()) {
+                // 只更新冷却进度显示
+                if (auto display = cardComp->GetCardDisplayComponent()) {
+                    float progress = 1.0f - (cardComp->GetCooldownProgress());
+                    display->SetCooldownProgress(progress);
                 }
-                else {
-                    // 不在冷却状态，才更新状态
-                    cardComp->ForceStateUpdate();
-                }
+            }
+            else {
+                // 不在冷却状态，才更新状态
+                cardComp->ForceStateUpdate();
             }
         }
     }
 }
 
-void CardSlotManager::AddCard(std::shared_ptr<Card> card) {
-    cards.push_back(card);
+void CardSlotManager::AddCard(Card* card) {
+    if (card) cards.push_back(card);
 }
 
-void CardSlotManager::SelectCard(std::weak_ptr<GameObject> cardWeak) {
-    auto card = cardWeak.lock();
+void CardSlotManager::SelectCard(GameObject* card) {
     if (!card) return;
 
     auto cardComp = card->GetComponent<CardComponent>();
@@ -113,15 +111,14 @@ void CardSlotManager::SelectCard(std::weak_ptr<GameObject> cardWeak) {
     }
 
     // 如果点击的是已选中的卡牌，取消选择
-    auto currentSelected = selectedCard.lock();
-    if (currentSelected == card) {
+    if (selectedCard == card) {
         DeselectCard();
         return;
     }
 
     // 取消之前的选择
-    if (currentSelected) {
-        if (auto prevCardComp = currentSelected->GetComponent<CardComponent>()) {
+    if (selectedCard) {
+        if (auto prevCardComp = selectedCard->GetComponent<CardComponent>()) {
             prevCardComp->SetSelected(false);
         }
     }
@@ -133,19 +130,16 @@ void CardSlotManager::SelectCard(std::weak_ptr<GameObject> cardWeak) {
 
     // 选择新卡牌
     selectedCard = card;
-    if (cardComp) {
-        cardComp->SetSelected(true);
-        CreatePlantPreview(cardComp->GetPlantType());
-    }
+    cardComp->SetSelected(true);
+    CreatePlantPreview(cardComp->GetPlantType());
 }
 
 void CardSlotManager::DeselectCard() {
-    auto selected = selectedCard.lock();
-    if (selected) {
-        if (auto cardComp = selected->GetComponent<CardComponent>()) {
+    if (selectedCard) {
+        if (auto cardComp = selectedCard->GetComponent<CardComponent>()) {
             cardComp->SetSelected(false);
         }
-        selectedCard.reset();
+        selectedCard = nullptr;
         mHoveredCell.reset();
     }
     DestroyPlantPreview();
@@ -217,7 +211,7 @@ void CardSlotManager::CreateCellPlantPreview(PlantType plantType, std::shared_pt
 void CardSlotManager::UpdatePlantPreviewPosition(Graphics* g, const Vector& mouseScreen) {
     if (!plantPreview) return;
 
-    auto selected = selectedCard.lock();
+    auto* selected = selectedCard;
     if (!selected) return;
 
     // 屏幕坐标转世界坐标
@@ -308,8 +302,7 @@ void CardSlotManager::UpdatePreviewToCell(std::weak_ptr<Cell> cell) {
 }
 
 void CardSlotManager::HandleCellClick(int row, int col) {
-    auto selected = selectedCard.lock();
-    if (!selected) return;
+    if (!selectedCard) return;
 
     auto cell = mBoard ? mBoard->GetCell(row, col) : nullptr;
     if (!cell) return;
@@ -320,8 +313,7 @@ void CardSlotManager::HandleCellClick(int row, int col) {
 }
 
 bool CardSlotManager::CanPlaceInCell(const std::shared_ptr<Cell>& cell) const {
-    auto selected = selectedCard.lock();
-    if (!selected || !cell) return false;
+    if (!selectedCard || !cell) return false;
 
     // 检查格子是否已有植物
     if (!cell->IsEmpty()) {
@@ -329,7 +321,7 @@ bool CardSlotManager::CanPlaceInCell(const std::shared_ptr<Cell>& cell) const {
     }
 
     // 检查阳光是否足够
-    if (auto cardComp = selected->GetComponent<CardComponent>()) {
+    if (auto cardComp = selectedCard->GetComponent<CardComponent>()) {
         if (!CanAfford(cardComp->GetSunCost())) {
             return false;
         }
@@ -339,10 +331,9 @@ bool CardSlotManager::CanPlaceInCell(const std::shared_ptr<Cell>& cell) const {
 }
 
 void CardSlotManager::PlacePlantInCell(int row, int col) {
-    auto selected = selectedCard.lock();
-    if (!selected || !mBoard) return;
+    if (!selectedCard || !mBoard) return;
 
-    auto cardComp = selected->GetComponent<CardComponent>();
+    auto cardComp = selectedCard->GetComponent<CardComponent>();
     if (!cardComp) return;
 
     auto cell = mBoard->GetCell(row, col);
@@ -369,8 +360,8 @@ void CardSlotManager::PlacePlantInCell(int row, int col) {
 }
 
 PlantType CardSlotManager::GetSelectedPlantType() const {
-    if (auto selected = selectedCard.lock()) {
-        if (auto cardComp = selected->GetComponent<CardComponent>()) {
+    if (selectedCard) {
+        if (auto cardComp = selectedCard->GetComponent<CardComponent>()) {
             return cardComp->GetPlantType();
         }
     }

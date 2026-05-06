@@ -1,4 +1,4 @@
-﻿#include "../Board.h"
+#include "../Board.h"
 #include "../Zombie/Zombie.h"
 #include "Bullet.h"
 #include "../GameObjectManager.h"
@@ -16,14 +16,14 @@ Bullet::Bullet(Board* board, BulletType bulletType, int row, const Vector& colli
 	mTransform = AddComponent<TransformComponent>(position);
 	mCollider = AddComponent<ColliderComponent>
 		(colliderRadius, Vector(0, 0), ColliderType::CIRCLE);
-	auto collider = GetColliderComponent();
+	auto* collider = GetColliderComponent();
 	collider->isTrigger = true;	// 设置为触发器
 	collider->layerMask = CollisionLayer::BULLET;
 	collider->collisionMask = CollisionLayer::ZOMBIE;
-	collider->onTriggerEnter = [this](std::shared_ptr<ColliderComponent> other) {
-		auto otherGameObject = other->GetGameObject();
+	collider->onTriggerEnter = [this](ColliderComponent* other) {
+		auto* otherGameObject = other->GetGameObject();
 		if (otherGameObject && otherGameObject->GetObjectType() == ObjectType::OBJECT_ZOMBIE) {
-			auto zombie = std::dynamic_pointer_cast<Zombie>(otherGameObject);
+			auto* zombie = dynamic_cast<Zombie*>(otherGameObject);
 			if (zombie && zombie->mRow == this->mRow && !this->mHasHit) {
 				this->mHasHit = true;
 				zombie->TakeDamage(this->GetBulletDamage());
@@ -44,13 +44,13 @@ void Bullet::Reset(Board* board, int row,
 	mFromPool = true;  // 标记为来自对象池
 
 	// 重置 Transform
-	if (auto transform = mTransform.lock()) {
-		transform->SetPosition(position);
+	if (mTransform) {
+		mTransform->SetPosition(position);
 	}
 
 	// 重置 Collider
-	if (auto collider = mCollider.lock()) {
-		collider->mEnabled = true;
+	if (mCollider) {
+		mCollider->mEnabled = true;
 	}
 }
 
@@ -66,12 +66,12 @@ void Bullet::Die()
 	}
 
 	// 否则正常销毁
-	GameObjectManager::GetInstance().DestroyGameObject(shared_from_this());
+	GameObjectManager::GetInstance().DestroyGameObject(this);
 }
 
 void Bullet::Update()
 {
-	auto transform = GetTransformComponent();
+	auto* transform = GetTransformComponent();
 	float deltaTime = DeltaTime::GetDeltaTime();
 	if (transform)
 	{
@@ -94,7 +94,7 @@ void Bullet::Draw(Graphics* g)
 {
 	if (mTexture) {
 		Vector position = GetPosition();
-		g->DrawTexture(mTexture, position.x, position.y, 
+		g->DrawTexture(mTexture, position.x, position.y,
 			static_cast<float>(mTexture->width * mScale), static_cast<float>(mTexture->height) * mScale);
 	}
 }

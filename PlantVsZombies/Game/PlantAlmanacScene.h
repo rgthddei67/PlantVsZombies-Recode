@@ -15,7 +15,7 @@ class Plant;
 class PlantAlmanacScene : public Scene {
 private:
     std::shared_ptr<Button> mBackMenuButton;
-    std::vector<std::shared_ptr<Card>> mCards;
+    std::vector<Card*> mCards;
     std::weak_ptr<Plant> mPreviewPlant;
 
     PlantType mCurrentPlantType = PlantType::NUM_PLANT_TYPES;

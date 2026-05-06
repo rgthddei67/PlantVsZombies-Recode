@@ -220,8 +220,7 @@ bool GameInfoSaver::SaveLevelData(Board* board, CardSlotManager* manager)
 	// 卡牌
 	nlohmann::json cardsArr = nlohmann::json::array();
 	if (manager) {
-		for (auto& weakCard : manager->GetCards()) {
-			auto card = weakCard.lock();
+		for (auto* card : manager->GetCards()) {
 			if (!card) continue;
 			auto comp = card->GetComponent<CardComponent>();
 			if (!comp) continue;
@@ -473,7 +472,7 @@ bool GameInfoSaver::LoadLevelData(Board* board, CardSlotManager* manager)
 					comp->RestoreCooldown(cooldownTimer, cooldownTime);
 				}
 			}
-			manager->AddCard(card);
+			manager->AddCard(card.get());
 		}
 	}
 

@@ -27,8 +27,9 @@ private:
     const GLTexture* cardNormal = nullptr;        // IMAGE_SeedPacketNormal
     const GLTexture* plantTexture = nullptr;      // 植物图片
 
-    mutable std::weak_ptr<CardComponent> mCardComponent;
-    mutable std::weak_ptr<TransformComponent> mTransformComponent;
+    // 同 GameObject 内的兄弟组件，生命周期一致，直接缓存裸指针
+    mutable CardComponent* mCardComponent = nullptr;
+    mutable TransformComponent* mTransformComponent = nullptr;
 
     // 状态相关
     CardState cardState = CardState::Cooling;
@@ -81,8 +82,8 @@ public:
     bool IsReady() const { return cardState == CardState::Ready; }
     bool IsCooling() const { return cardState == CardState::Cooling; }
 
-    std::shared_ptr<CardComponent> GetCardComponent() const;
-    std::shared_ptr<TransformComponent> GetTransformComponent() const;
+    CardComponent* GetCardComponent() const;
+    TransformComponent* GetTransformComponent() const;
 
 private:
     void LoadTextures();

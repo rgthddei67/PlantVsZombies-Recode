@@ -1,4 +1,4 @@
-﻿#include "CardComponent.h"
+#include "CardComponent.h"
 #include "../ResourceKeys.h"
 #include "CardDisplayComponent.h"
 #include "ClickableComponent.h"
@@ -16,39 +16,38 @@ CardComponent::CardComponent(PlantType type, int cost, float cooldown)
 }
 
 void CardComponent::Start() {
-	if (auto manager = FindCardSlotManager()) {
-		mCardSlotManager = manager;
+	if (auto* host = FindCardSlotManagerHost()) {
+		mCardSlotManagerHost = host;
 	}
 
-	auto gameObject = GetGameObject();
-
-	auto card = std::dynamic_pointer_cast<Card>(gameObject);
+	auto* gameObject = GetGameObject();
+	auto* card = dynamic_cast<Card*>(gameObject);
 	if (!card) return;
 
 	mIsInChooseCardUI = card->GetIsInChooseCardUI();
 	if (mIsInChooseCardUI) {
-		SetCardChooseClick(gameObject, card);
+		SetCardChooseClick(card, card);
 	}
 	else
 	{
-		SetCardGameClick(gameObject);
+		SetCardGameClick(card);
 	}
 }
 
-void CardComponent::SetCardChooseClick(std::shared_ptr<GameObject> gameObject, 
-	std::shared_ptr<Card> card)
+void CardComponent::SetCardChooseClick(GameObject* gameObject, Card* card)
 {
-	if (auto clickable = gameObject->GetComponent<ClickableComponent>()) {
+	if (!gameObject || !card) return;
+	if (auto* clickable = gameObject->GetComponent<ClickableComponent>()) {
 		// ---------- 选卡界面点击逻辑 ----------
 		clickable->onClick = [this, card]() {
 			if (card->IsMoving()) return;
 
 			// 查找 ChooseCardUI
 			auto& manager = GameObjectManager::GetInstance();
-			std::shared_ptr<ChooseCardUI> chooseUI;
-			for (auto obj : manager.GetAllGameObjects()) {
+			ChooseCardUI* chooseUI = nullptr;
+			for (const auto& obj : manager.GetAllGameObjects()) {
 				if (obj && obj->GetName() == "ChooseCardUI") {
-					chooseUI = std::dynamic_pointer_cast<ChooseCardUI>(obj);
+					chooseUI = dynamic_cast<ChooseCardUI*>(obj.get());
 					break;
 				}
 			}
@@ -59,21 +58,21 @@ void CardComponent::SetCardChooseClick(std::shared_ptr<GameObject> gameObject,
 			}
 
 			// 切换选中状态
-			bool isPickedUp = chooseUI->ToggleCardSelection(card);
-
+			chooseUI->ToggleCardSelection(card);
 			};
 	}
 }
 
-void CardComponent::SetCardGameClick(std::shared_ptr<GameObject> gameObject)
+void CardComponent::SetCardGameClick(GameObject* gameObject)
 {
+	if (!gameObject) return;
 	// 这里CardDisplayComponent还没有创建好，所以不能缓存 放到GetCardDisplayComponent里加载
 	// 获取点击组件并设置回调
-	if (auto clickable = gameObject->GetComponent<ClickableComponent>()) {
+	if (auto* clickable = gameObject->GetComponent<ClickableComponent>()) {
 		clickable->onClick = [this]() {
 			// 通知卡槽管理器这个卡牌被点击了
-			auto manager = GetCardSlotManager();
-			if (!IsReady() || !manager->CanAfford(mSunCost)) {
+			auto* manager = GetCardSlotManager();
+			if (!IsReady() || !manager || !manager->CanAfford(mSunCost)) {
 				AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_CLICKFAILED, 0.5f);
 				return;
 			}
@@ -96,7 +95,7 @@ void CardComponent::Update() {
 		}
 		else {
 			// 更新冷却进度显示
-			if (auto display = GetCardDisplayComponent()) {
+			if (auto* display = GetCardDisplayComponent()) {
 				float progress = 1.0f - (mCooldownTimer / mCooldownTime);
 				display->SetCooldownProgress(progress);
 			}
@@ -105,7 +104,7 @@ void CardComponent::Update() {
 }
 
 void CardComponent::ForceStateUpdate() {
-	if (auto display = GetCardDisplayComponent()) {
+	if (auto* display = GetCardDisplayComponent()) {
 		// 如果正在冷却，只更新冷却进度，不改变状态
 		if (mIsCooldown) {
 			float progress = 1.0f - (mCooldownTimer / mCooldownTime);
@@ -127,7 +126,7 @@ void CardComponent::RestoreCooldown(float timer, float time) {
 	mCooldownTime  = time;
 	mCooldownTimer = timer;
 	mIsCooldown    = (timer > 0.0f);
-	if (auto display = GetCardDisplayComponent()) {
+	if (auto* display = GetCardDisplayComponent()) {
 		if (mIsCooldown) {
 			display->TranToCooling();
 			display->SetCooldownProgress(1.0f - (mCooldownTimer / mCooldownTime));
@@ -141,7 +140,7 @@ void CardComponent::StartCooldown() {
 		mCooldownTimer = mCooldownTime;
 
 		// 通知显示组件开始冷却
-		if (auto display = GetCardDisplayComponent()) {
+		if (auto* display = GetCardDisplayComponent()) {
 			display->TranToCooling();
 		}
 	}
@@ -151,7 +150,7 @@ void CardComponent::SetSelected(bool selected) {
 	mIsSelected = selected;
 
 	// 通知显示组件选中状态变化
-	if (auto display = GetCardDisplayComponent()) {
+	if (auto* display = GetCardDisplayComponent()) {
 		display->SetSelected(selected);
 		if (selected) {
 			display->TranToClick();
@@ -177,24 +176,24 @@ float CardComponent::GetCooldownProgress() const {
 }
 
 CardState CardComponent::GetCardState() const {
-	if (auto display = GetCardDisplayComponent()) {
+	if (auto* display = GetCardDisplayComponent()) {
 		return display->GetCardState();
 	}
 	return CardState::Cooling; // 默认返回冷却状态
 }
 
-std::shared_ptr<CardSlotManager> CardComponent::FindCardSlotManager() const {
-	// 在场景中查找CardSlotManager
+GameObject* CardComponent::FindCardSlotManagerHost() const {
+	// 在场景中查找 CardSlotManager 所在的 GameObject
 	auto& manager = GameObjectManager::GetInstance();
-	auto allObjects = manager.GetAllGameObjects();
+	const auto& allObjects = manager.GetAllGameObjects();
 
 	for (size_t i = 0; i < allObjects.size(); i++)
 	{
-		if (auto gameObj = allObjects[i])
+		if (const auto& gameObj = allObjects[i])
 		{
-			if (auto cardManager = gameObj->GetComponent<CardSlotManager>())
+			if (gameObj->GetComponent<CardSlotManager>())
 			{
-				return cardManager;
+				return gameObj.get();
 			}
 		}
 	}
@@ -204,29 +203,29 @@ std::shared_ptr<CardSlotManager> CardComponent::FindCardSlotManager() const {
 	return nullptr;
 }
 
-std::shared_ptr<CardSlotManager> CardComponent::GetCardSlotManager() const {
-	if (auto manager = mCardSlotManager.lock()) {
-		return manager;
-	}
-	// 如果 weak_ptr 已失效，重新查找
-	std::cerr << "Warning: CardSlotManager weak_ptr expired, re-finding..." << std::endl;
-	auto manager = FindCardSlotManager();
-	if (manager) {
-		this->mCardSlotManager = manager;
-	}
-	return manager;
-}
-
-std::shared_ptr<CardDisplayComponent> CardComponent::GetCardDisplayComponent() const {
-	if (auto display = mCardDisplayComponent.lock()) {
-		return display;
-	}
-	// 如果 weak_ptr 已失效，重新获取
-	if (auto gameObject = GetGameObject()) {
-		if (auto display = gameObject->GetComponent<CardDisplayComponent>()) {
-			this->mCardDisplayComponent = display;
-			return display;
+CardSlotManager* CardComponent::GetCardSlotManager() const {
+	if (mCardSlotManagerHost) {
+		if (auto* manager = mCardSlotManagerHost->GetComponent<CardSlotManager>()) {
+			return manager;
 		}
 	}
+	// 缓存失效，重新查找
+	std::cerr << "Warning: CardSlotManager host invalid, re-finding..." << std::endl;
+	auto* host = FindCardSlotManagerHost();
+	if (host) {
+		this->mCardSlotManagerHost = host;
+		return host->GetComponent<CardSlotManager>();
+	}
 	return nullptr;
+}
+
+CardDisplayComponent* CardComponent::GetCardDisplayComponent() const {
+	if (mCardDisplayComponent) {
+		return mCardDisplayComponent;
+	}
+	// 首次访问时从同 GameObject 获取并缓存
+	if (auto* gameObject = GetGameObject()) {
+		mCardDisplayComponent = gameObject->GetComponent<CardDisplayComponent>();
+	}
+	return mCardDisplayComponent;
 }

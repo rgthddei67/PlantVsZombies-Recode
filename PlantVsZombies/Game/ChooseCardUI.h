@@ -19,12 +19,12 @@ public:
     // 后续添加卡牌的方法
     void AddCard(PlantType type);
 
-    void RemoveCard(std::shared_ptr<Card> card);
+    void RemoveCard(Card* card);
 
     void RemoveAllCards();
 
-    std::shared_ptr<TransformComponent> GetTransformComponent() const {
-        return mTransform.lock();
+    TransformComponent* GetTransformComponent() const {
+        return mTransform;
     }
 
     Vector GetPosition() const {
@@ -32,11 +32,11 @@ public:
     }
 
     // 切换卡牌选中状态，返回是否选中
-    bool ToggleCardSelection(std::shared_ptr<Card> card);
+    bool ToggleCardSelection(Card* card);
     // 判断卡牌是否已选中
-    bool IsCardSelected(std::shared_ptr<Card> card) const;
+    bool IsCardSelected(Card* card) const;
     // 获取所有选中的卡牌
-    const std::vector<std::shared_ptr<Card>>& GetSelectedCards() const { return mSelectedCards; }
+    const std::vector<Card*>& GetSelectedCards() const { return mSelectedCards; }
     // 获取“一起摇滚吧”按钮
     std::shared_ptr<Button> GetButton() const { return mButton.lock(); }
     // 添加所有卡牌
@@ -48,11 +48,11 @@ private:
     const GLTexture* mCardUITexture = nullptr;   
     GameScene* mGameScene = nullptr;
 
-    std::weak_ptr<TransformComponent> mTransform;
+    TransformComponent* mTransform = nullptr;
     std::weak_ptr<Button> mButton;
 
-    std::vector<std::shared_ptr<Card>> mCards;  // 存储选卡界面的卡牌
-    std::vector<std::shared_ptr<Card>> mSelectedCards;   // 存储选中的卡牌对象
+    std::vector<Card*> mCards;  // 存储选卡界面的卡牌（观察者，所有权在 GameObjectManager）
+    std::vector<Card*> mSelectedCards;   // 存储选中的卡牌对象
 
     static constexpr int MAX_SELECTED = 10;              // 最大选择数量
     static constexpr float SLOT_START_X = 195;                  // 槽位起始 X 屏幕坐标

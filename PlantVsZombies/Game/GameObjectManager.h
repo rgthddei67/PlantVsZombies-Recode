@@ -71,6 +71,9 @@ public:
     // 销毁游戏对象
     void DestroyGameObject(std::shared_ptr<GameObject> obj);
 
+    // 裸指针重载：用于子类内部调用 DestroyGameObject(this)，内部线性扫描还原 shared_ptr
+    void DestroyGameObject(GameObject* raw);
+
     // 销毁全部游戏对象
     void DestroyAllGameObjects();
 

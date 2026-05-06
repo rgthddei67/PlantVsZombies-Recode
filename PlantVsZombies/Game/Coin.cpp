@@ -74,12 +74,12 @@ void Coin::Update()
 		if (mVanlishTimer >= mVanlishTime)
 		{
 			mVanlishTimer = 0.0f;
-			GameObjectManager::GetInstance().DestroyGameObject(shared_from_this());
+			GameObjectManager::GetInstance().DestroyGameObject(this);
 		}
 	}
 }
 
-void Coin::SetOnClickBack(std::shared_ptr<ClickableComponent> clickComponent)
+void Coin::SetOnClickBack(ClickableComponent* clickComponent)
 {
 	if (clickComponent == nullptr) return;
 	clickComponent->onClick = [this]() {
@@ -122,28 +122,28 @@ void Coin::OnReachTargetBack()
 	if (mIsDestroyed) return;
 	isMovingToTarget = false;
 	mIsDestroyed = true;
-	GameObjectManager::GetInstance().DestroyGameObject(shared_from_this());
+	GameObjectManager::GetInstance().DestroyGameObject(this);
 }
 
 Vector Coin::GetPosition() const
 {
-	if (auto transform = mTransform.lock()) {
-		return transform->GetPosition();
+	if (mTransform) {
+		return mTransform->GetPosition();
 	}
 	return Vector::zero();
 }
 
 void Coin::SetPosition(const Vector& newPos)
 {
-	if (auto transform = mTransform.lock()) {
-		transform->SetPosition(newPos);
+	if (mTransform) {
+		mTransform->SetPosition(newPos);
 	}
 }
 
 void Coin::SetScale(float scale)
 {
-	if (auto transfrom = mTransform.lock()) {
-		transfrom->SetScale(scale);
+	if (mTransform) {
+		mTransform->SetScale(scale);
 	}
 }
 

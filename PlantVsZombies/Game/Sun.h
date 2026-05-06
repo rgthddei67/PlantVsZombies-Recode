@@ -57,7 +57,7 @@ public:
 		mBoard->AddSun(SunPoint);
 	}
 
-    void SetOnClickBack(std::shared_ptr<ClickableComponent> clickComponent) override
+    void SetOnClickBack(ClickableComponent* clickComponent) override
     {
         if (clickComponent == nullptr) return;
         clickComponent->onClick = [this]() {

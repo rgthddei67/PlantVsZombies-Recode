@@ -143,7 +143,7 @@ void GameScene::OnEnter() {
 		});
 
 	// 读档
-	GameAPP::GetInstance().mGameInfoSaver.LoadLevelData(mBoard.get(), mCardSlotManager.get());
+	GameAPP::GetInstance().mGameInfoSaver.LoadLevelData(mBoard.get(), mCardSlotManager);
 
 	if (mBoard->mBoardState == BoardState::GAME) {
 		// 跳过选卡和开场动画，直接进入游戏
@@ -167,7 +167,7 @@ void GameScene::OnExit() {
 	auto& gameApp = GameAPP::GetInstance();
 	if (mBoard->mBoardState == BoardState::GAME && !mReadyToRestart) {
 		gameApp.mGameInfoSaver.SaveLevelData
-		(mBoard.get(), mCardSlotManager.get());
+		(mBoard.get(), mCardSlotManager);
 	}
 	gameApp.mGameInfoSaver.SavePlayerInfo();
 
@@ -177,7 +177,7 @@ void GameScene::OnExit() {
 	mSpeedSettingsButton.reset();
 	mMainMenuButton.reset();
 	mGameProgress.reset();
-	mCardSlotManager.reset();
+	mCardSlotManager = nullptr;
 	if (mChooseCardUI)
 	{
 		mChooseCardUI.reset();
@@ -545,7 +545,7 @@ void GameScene::ChooseCardComplete()
 	mReadyStartPos = Vector(mCurrectSceneX, 0);
 
 	if (mChooseCardUI) {
-		mChooseCardUI->TransferSelectedCardsTo(mCardSlotManager.get());
+		mChooseCardUI->TransferSelectedCardsTo(mCardSlotManager);
 		mChooseCardUI->RemoveAllCards();
 		GameObjectManager::GetInstance().DestroyGameObject(mChooseCardUI);
 		mChooseCardUI.reset();

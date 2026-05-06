@@ -15,7 +15,7 @@ public:
 	}
 
 protected:
-	void BulletHitZombie(std::shared_ptr<Zombie> zombie) override
+	void BulletHitZombie(Zombie* zombie) override
 	{
 		Bullet::BulletHitZombie(zombie);
 

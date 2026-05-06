@@ -77,7 +77,7 @@ private:
     std::weak_ptr<Button> mSpeedSettingsButton;
     std::weak_ptr<ShovelBank> mShovelUI;
     std::weak_ptr<GameMessageBox> mMenu;
-    std::shared_ptr<CardSlotManager> mCardSlotManager = nullptr;
+    CardSlotManager* mCardSlotManager = nullptr;  // 由 CardUI GameObject 持有 unique_ptr，本字段仅缓存指针
     std::shared_ptr<ChooseCardUI> mChooseCardUI = nullptr;
     std::shared_ptr<GameProgress> mGameProgress = nullptr;
 

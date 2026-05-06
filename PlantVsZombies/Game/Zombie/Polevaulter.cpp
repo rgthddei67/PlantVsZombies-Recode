@@ -23,13 +23,13 @@ void Polevaulter::SetupZombie()
 		// 重写碰撞回调：RUNNING状态碰到植物触发跳跃，WALKING状态走基类吃植物逻辑
 		auto collider = GetColliderComponent();
 		if (collider) {
-			collider->onTriggerEnter = [this](std::shared_ptr<ColliderComponent> other) {
+			collider->onTriggerEnter = [this](ColliderComponent* other) {
 				if (mIsPreview || mIsDying) return;
 
-				auto gameObject = other->GetGameObject();
+				auto* gameObject = other->GetGameObject();
 				if (gameObject->GetObjectType() != ObjectType::OBJECT_PLANT) return;
 
-				auto plant = std::dynamic_pointer_cast<Plant>(gameObject);
+				auto* plant = dynamic_cast<Plant*>(gameObject);
 				if (!plant || plant->mRow != this->mRow) return;
 
 				if (!mHasVaulted && mVaultState == VaultState::RUNNING) {
@@ -187,13 +187,13 @@ void Polevaulter::LoadExtraData(const nlohmann::json& j)
 	}
 }
 
-void Polevaulter::StopEat(std::shared_ptr<ColliderComponent> other)
+void Polevaulter::StopEat(ColliderComponent* other)
 {
 	if (mIsPreview || mIsDying)	return;
-	auto gameObject = other->GetGameObject();
+	auto* gameObject = other->GetGameObject();
 	if (gameObject->GetObjectType() == ObjectType::OBJECT_PLANT)
 	{
-		if (auto plant = std::dynamic_pointer_cast<Plant>(gameObject).get())
+		if (auto* plant = dynamic_cast<Plant*>(gameObject))
 		{
 			if (mEatPlantID != plant->mPlantID || plant->mRow != this->mRow) return;
 

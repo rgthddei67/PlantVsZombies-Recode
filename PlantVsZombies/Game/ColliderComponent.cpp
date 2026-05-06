@@ -53,8 +53,8 @@ bool ColliderComponent::ContainsPoint(const Vector& point) const {
     return false;
 }
 
-std::shared_ptr<TransformComponent> ColliderComponent::GetTransform() const {
-    if (auto gameObj = GetGameObject()) {
+TransformComponent* ColliderComponent::GetTransform() const {
+    if (auto* gameObj = GetGameObject()) {
         return gameObj->GetComponent<TransformComponent>();
     }
     return nullptr;

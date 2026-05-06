@@ -17,7 +17,7 @@ public:
 	VaultState mVaultState = VaultState::RUNNING;
 	bool mHasVaulted = false;
 
-	void StopEat(std::shared_ptr<ColliderComponent> other) override;
+	void StopEat(ColliderComponent* other) override;
 
 	void StartJump();
 	void EndJump();

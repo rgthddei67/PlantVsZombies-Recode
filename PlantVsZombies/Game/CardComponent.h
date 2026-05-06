@@ -9,12 +9,16 @@
 
 class CardSlotManager;
 class Card;
+class GameObject;
 
 class CardComponent : public Component {
 private:
     bool mIsInChooseCardUI = false; // 是否在选卡界面
-    mutable std::weak_ptr<CardSlotManager> mCardSlotManager;    // 可直接被const函数修改
-    mutable std::weak_ptr<CardDisplayComponent> mCardDisplayComponent;
+    // CardSlotManager 由另一个 GameObject 持有（跨 GameObject 引用）；
+    // host 是场景级别对象，比 Card 活得久，用裸指针观察即可
+    mutable GameObject* mCardSlotManagerHost = nullptr;
+    // CardDisplayComponent 与本组件同属一个 GameObject，生命周期一致，直接缓存裸指针
+    mutable CardDisplayComponent* mCardDisplayComponent = nullptr;
     PlantType mPlantType = PlantType::PLANT_PEASHOOTER;
     int mSunCost = 0;
     float mCooldownTimer = 0;
@@ -47,13 +51,13 @@ public:
 	bool GetIsInChooseCardUI() const { return mIsInChooseCardUI; }
 	void SetIsInChooseCardUI(bool isInChooseCardUI) { mIsInChooseCardUI = isInChooseCardUI; }
 
-    std::shared_ptr<CardSlotManager> FindCardSlotManager() const;
+    GameObject* FindCardSlotManagerHost() const;
 
-    std::shared_ptr<CardSlotManager> GetCardSlotManager() const;
-    std::shared_ptr<CardDisplayComponent> GetCardDisplayComponent() const;
+    CardSlotManager* GetCardSlotManager() const;
+    CardDisplayComponent* GetCardDisplayComponent() const;
 
-	void SetCardGameClick(std::shared_ptr<GameObject> gameObject);    // 设置游戏界面点击回调 而不是选卡见面的
-	void SetCardChooseClick(std::shared_ptr<GameObject> gameObject, std::shared_ptr<Card> card);  // 设置选卡界面点击回调
+	void SetCardGameClick(GameObject* gameObject);    // 设置游戏界面点击回调 而不是选卡见面的
+	void SetCardChooseClick(GameObject* gameObject, Card* card);  // 设置选卡界面点击回调
 };
 
 #endif

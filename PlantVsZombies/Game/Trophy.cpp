@@ -32,7 +32,7 @@ void Trophy::Start()
 	}
 }
 
-void Trophy::SetOnClickBack(std::shared_ptr<ClickableComponent> click)
+void Trophy::SetOnClickBack(ClickableComponent* click)
 {
 	if (!click) return;
 	click->onClick = [this]() {
@@ -85,13 +85,13 @@ void Trophy::Update()
 	if (mGrowTimer >= GROW_DURATION) {
 		if (mBoard && mBoard->mGameScene)
 			mBoard->mGameScene->SetReadyToBackMenu();
-		GameObjectManager::GetInstance().DestroyGameObject(shared_from_this());
+		GameObjectManager::GetInstance().DestroyGameObject(this);
 	}
 }
 
 void Trophy::Draw(Graphics* g)
 {
-	auto transform = mTransform.lock();
+	auto* transform = mTransform;
 	float scale = transform ? transform->GetScale() : 1.0f;
 	Vector pos = GetPosition();
 

@@ -4,7 +4,6 @@
 
 #include "ColliderComponent.h"
 #include "ThreadPool.h"
-#include <memory>
 #include <vector>
 #include <unordered_set>
 #include <unordered_map>
@@ -13,7 +12,7 @@
 
 class CollisionSystem {
 private:
-    std::vector<std::shared_ptr<ColliderComponent>> colliders;
+    std::vector<ColliderComponent*> colliders;
     std::unordered_set<uint64_t> currentCollisions;
 
     std::unique_ptr<ThreadPool> mThreadPool;
@@ -47,7 +46,7 @@ public:
     }
 
     // 注册碰撞体
-    void RegisterCollider(std::shared_ptr<ColliderComponent> collider) {
+    void RegisterCollider(ColliderComponent* collider) {
         if (collider && !collider->mRegistered) {
             collider->colliderID = mNextColliderID++;
             collider->mRegistered = true;
@@ -56,7 +55,7 @@ public:
     }
 
     // 注销碰撞体
-    void UnregisterCollider(std::shared_ptr<ColliderComponent> collider) {
+    void UnregisterCollider(ColliderComponent* collider) {
         auto it = std::find(colliders.begin(), colliders.end(), collider);
         if (it != colliders.end()) {
             uint32_t id = collider->colliderID;
@@ -72,7 +71,7 @@ public:
                 currentCollisions.erase(key);
             }
             // 触发碰撞退出回调
-            for (auto& other : colliders) {
+            for (auto* other : colliders) {
                 if (other == collider) continue;
                 uint64_t pairKey = MakePairKey(id, other->colliderID);
                 for (auto removedKey : toRemove) {
@@ -98,26 +97,26 @@ public:
         if (totalColliders >= PARALLEL_THRESHOLD && mThreadPool) {
             mThreadPool->Dispatch(totalColliders, [this](int start, int end) {
                 for (int i = start; i < end; i++) {
-                    auto& col = colliders[i];
-                    auto gameObj = col->GetGameObject();
+                    auto* col = colliders[i];
+                    auto* gameObj = col->GetGameObject();
                     if (!col->mEnabled || !gameObj || !gameObj->IsActive()) continue;
                     col->cachedWorldPos = col->GetWorldPosition();
                     col->cachedBounds   = col->GetBoundingBox();
                 }
             });
-            for (auto& col : colliders) {
+            for (auto* col : colliders) {
                 if (!col->mEnabled) continue;
-                auto gameObj = col->GetGameObject();
+                auto* gameObj = col->GetGameObject();
                 if (!gameObj || !gameObj->IsActive()) continue;
-                activeColliders.push_back(col.get());
+                activeColliders.push_back(col);
             }
         } else {
-            for (auto& col : colliders) {
-                auto gameObj = col->GetGameObject();
+            for (auto* col : colliders) {
+                auto* gameObj = col->GetGameObject();
                 if (!col->mEnabled || !gameObj || !gameObj->IsActive()) continue;
                 col->cachedWorldPos = col->GetWorldPosition();
                 col->cachedBounds   = col->GetBoundingBox();
-                activeColliders.push_back(col.get());
+                activeColliders.push_back(col);
             }
         }
 
@@ -236,7 +235,7 @@ public:
             }
         }
 
-        // ── 阶段4: 回调（主线程，shared_ptr 仅在此处使用） ──
+        // ── 阶段4: 回调（主线程，无原子操作） ──
         std::unordered_set<uint64_t> newCollisions;
 
         for (auto& results : rowResults) {
@@ -250,22 +249,19 @@ public:
             HandleNewCollision(p.a, p.b, p.pairKey);
         }
 
-        std::unordered_map<uint32_t, std::shared_ptr<ColliderComponent>> idMap;
-        idMap.reserve(colliders.size());
-        for (auto& col : colliders) idMap[col->colliderID] = col;
-        DetectEndedCollisions(newCollisions, idMap);
+        DetectEndedCollisions(newCollisions);
     }
 
     // 射线检测
-    std::shared_ptr<ColliderComponent> Raycast(const Vector& start, const Vector& end, const std::string& tag = "") {
+    ColliderComponent* Raycast(const Vector& start, const Vector& end, const std::string& tag = "") {
         float maxDistance = Vector::distance(start, end);
         if (maxDistance == 0.0f) return nullptr;
         Vector direction = (end - start).normalized();
 
-        std::shared_ptr<ColliderComponent> closestHit = nullptr;
+        ColliderComponent* closestHit = nullptr;
         float closestDistance = maxDistance;
 
-        for (const auto& collider : colliders) {
+        for (auto* collider : colliders) {
             if (!collider->mEnabled || !collider->GetGameObject()->IsActive()) continue;
             if (!tag.empty() && collider->GetGameObject()->GetTag() != tag) continue;
 
@@ -292,10 +288,10 @@ public:
     }
 
     // 在一定区域内查找碰撞体
-    std::vector<std::shared_ptr<ColliderComponent>> OverlapArea(const SDL_FRect& area, const std::string& tag = "") {
-        std::vector<std::shared_ptr<ColliderComponent>> results;
+    std::vector<ColliderComponent*> OverlapArea(const SDL_FRect& area, const std::string& tag = "") {
+        std::vector<ColliderComponent*> results;
 
-        for (const auto& collider : colliders) {
+        for (auto* collider : colliders) {
             if (!collider->mEnabled || !collider->GetGameObject()->IsActive()) continue;
             if (!tag.empty() && collider->GetGameObject()->GetTag() != tag) continue;
 
@@ -310,7 +306,7 @@ public:
 
     // 清空所有碰撞体
     void ClearAll() {
-        for (auto& col : colliders) col->mRegistered = false;
+        for (auto* col : colliders) col->mRegistered = false;
         colliders.clear();
         currentCollisions.clear();
         mNextColliderID = 1;
@@ -362,7 +358,7 @@ private:
     }
 
     // 处理碰撞开始
-    void HandleCollisionEnter(std::shared_ptr<ColliderComponent> a, std::shared_ptr<ColliderComponent> b) {
+    void HandleCollisionEnter(ColliderComponent* a, ColliderComponent* b) {
         if (a->isTrigger && a->onTriggerEnter) {
             a->onTriggerEnter(b);
         }
@@ -379,7 +375,7 @@ private:
     }
 
     // 处理碰撞结束
-    void HandleCollisionExit(std::shared_ptr<ColliderComponent> a, std::shared_ptr<ColliderComponent> b) {
+    void HandleCollisionExit(ColliderComponent* a, ColliderComponent* b) {
         if (a->isTrigger && a->onTriggerExit) {
             a->onTriggerExit(b);
         }
@@ -395,32 +391,23 @@ private:
         }
     }
 
-    std::shared_ptr<ColliderComponent> ToShared(ColliderComponent* raw) {
-        return std::static_pointer_cast<ColliderComponent>(raw->shared_from_this());
-    }
-
     // 处理新碰撞
     void HandleNewCollision(ColliderComponent* a, ColliderComponent* b, uint64_t pairKey) {
         if (currentCollisions.find(pairKey) == currentCollisions.end()) {
-            auto asp = ToShared(a);
-            auto bsp = ToShared(b);
-            HandleCollisionEnter(asp, bsp);
+            HandleCollisionEnter(a, b);
             currentCollisions.insert(pairKey);
         }
         else {
             if (a->isTrigger && a->onTriggerStay) {
-                auto bsp = ToShared(b);
-                a->onTriggerStay(bsp);
+                a->onTriggerStay(b);
             }
             if (b->isTrigger && b->onTriggerStay) {
-                auto asp = ToShared(a);
-                b->onTriggerStay(asp);
+                b->onTriggerStay(a);
             }
         }
     }
 
-    void DetectEndedCollisions(const std::unordered_set<uint64_t>& newCollisions,
-                               const std::unordered_map<uint32_t, std::shared_ptr<ColliderComponent>>& idMap) {
+    void DetectEndedCollisions(const std::unordered_set<uint64_t>& newCollisions) {
         std::vector<uint64_t> endedKeys;
 
         for (auto key : currentCollisions) {
@@ -428,6 +415,13 @@ private:
                 endedKeys.push_back(key);
             }
         }
+
+        if (endedKeys.empty()) return;
+
+        // 用 ID 索引建立 raw 指针映射，避免每次扫描整个 colliders 列表
+        std::unordered_map<uint32_t, ColliderComponent*> idMap;
+        idMap.reserve(colliders.size());
+        for (auto* col : colliders) idMap[col->colliderID] = col;
 
         for (auto key : endedKeys) {
             uint32_t idA = static_cast<uint32_t>(key >> 32);

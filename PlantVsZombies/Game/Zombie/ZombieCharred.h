@@ -12,8 +12,8 @@ public:
 	void Start() override
 	{
 		AnimatedObject::Start();
-		mAnimator->AddFrameEvent(42, [=]() {
-			GameObjectManager::GetInstance().DestroyGameObject(shared_from_this());
+		mAnimator->AddFrameEvent(42, [this]() {
+			GameObjectManager::GetInstance().DestroyGameObject(this);
 			});
 		PlayTrackOnce("anim_crumble", "", GameRandom::Range(0.75f, 0.92f), 0.0f);
 	}

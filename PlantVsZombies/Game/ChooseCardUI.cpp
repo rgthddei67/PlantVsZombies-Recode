@@ -48,7 +48,7 @@ ChooseCardUI::~ChooseCardUI() {
 }
 
 void ChooseCardUI::RemoveAllCards() {
-	for (auto& card : mCards) {
+	for (auto* card : mCards) {
 		GameObjectManager::GetInstance().DestroyGameObject(card);
 	}
 	mCards.clear();
@@ -56,7 +56,7 @@ void ChooseCardUI::RemoveAllCards() {
 }
 
 void ChooseCardUI::TransferSelectedCardsTo(CardSlotManager* manager) {
-	for (auto& card : mSelectedCards) {
+	for (auto* card : mSelectedCards) {
 		// 设置卡牌状态为游戏内
 		card->SetIsInChooseCardUI(false);
 		if (auto comp = card->GetCardComponent()) {
@@ -112,10 +112,10 @@ void ChooseCardUI::AddCard(PlantType type) {
 	}
 	card->SetOriginalPosition(Vector(posX, posY));
 	card->mIsUI = true;
-	mCards.push_back(card);
+	mCards.push_back(card.get());
 }
 
-void ChooseCardUI::RemoveCard(std::shared_ptr<Card> card)
+void ChooseCardUI::RemoveCard(Card* card)
 {
 	auto it = std::find(mCards.begin(), mCards.end(), card);
 	if (it != mCards.end()) {
@@ -139,7 +139,7 @@ void ChooseCardUI::AddAllCard() {
 	}
 }
 
-bool ChooseCardUI::ToggleCardSelection(std::shared_ptr<Card> card) {
+bool ChooseCardUI::ToggleCardSelection(Card* card) {
 	if (!card) return false;
 
 	auto it = std::find(mSelectedCards.begin(), mSelectedCards.end(), card);
@@ -175,7 +175,7 @@ void ChooseCardUI::UpdateTargetPositions() {
 	}
 
 	for (size_t i = 0; i < mCards.size(); i++) {
-		auto card = mCards[i];
+		auto* card = mCards[i];
 		Vector targetPos = Vector(0, 0);
 		// 检查是否在选中列表中
 		auto it = std::find(mSelectedCards.begin(), mSelectedCards.end(), card);
@@ -194,6 +194,6 @@ void ChooseCardUI::UpdateTargetPositions() {
 	}
 }
 
-bool ChooseCardUI::IsCardSelected(std::shared_ptr<Card> card) const {
+bool ChooseCardUI::IsCardSelected(Card* card) const {
 	return std::find(mSelectedCards.begin(), mSelectedCards.end(), card) != mSelectedCards.end();
 }

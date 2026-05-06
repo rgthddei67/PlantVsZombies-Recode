@@ -87,8 +87,8 @@ public:
 	virtual void ArmDrop();		// 手掉落 不用调用Zombie::ArmDrop
 
 	virtual void Die();
-	virtual void StartEat(std::shared_ptr<ColliderComponent> other);
-	virtual void StopEat(std::shared_ptr<ColliderComponent> other);
+	virtual void StartEat(ColliderComponent* other);
+	virtual void StopEat(ColliderComponent* other);
 	virtual void EatTarget();	// 吃东西掉血的函数
 
 	Vector GetVisualPosition() const override;

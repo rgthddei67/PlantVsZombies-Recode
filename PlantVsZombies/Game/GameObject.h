@@ -24,7 +24,7 @@ enum class ObjectType {
 
 class Component;
 
-class GameObject : public std::enable_shared_from_this<GameObject> {
+class GameObject {
 public:
     bool mIsUI = false;
 protected:
@@ -35,55 +35,50 @@ protected:
     bool mStarted = false;   // 标记
     bool mHasClipRect = false;
     ClipRect mClipRect;
-    std::vector<std::shared_ptr<Component>> mComponentsToInitialize; // 待初始化的组件
-    std::unordered_map<std::type_index, std::shared_ptr<Component>> mComponents; // 包含的组件
+    std::vector<Component*> mComponentsToInitialize; // 待初始化的组件（裸指针指向 mComponents 内的对象）
+    std::unordered_map<std::type_index, std::unique_ptr<Component>> mComponents; // 包含的组件
     std::string mTag = "Untagged";
     std::string mName = "GameObject";
 
 private:
     void RegisterAllColliders();
-    void RegisterComponentIfNeeded(std::shared_ptr<Component> component);
-    void UnregisterComponentIfNeeded(std::shared_ptr<Component> component);
+    void RegisterComponentIfNeeded(Component* component);
+    void UnregisterComponentIfNeeded(Component* component);
 
 public:
     GameObject(ObjectType type = ObjectType::OBJECT_NONE);
 
-    ~GameObject();
+    virtual ~GameObject();
 
     // 添加组件 若是刚刚创建的对象，则不能使用，因为还没有
     template<typename T, typename... Args>
-    std::shared_ptr<T> AddComponent(Args&&... args) {
+    T* AddComponent(Args&&... args) {
         static_assert(std::is_base_of<Component, T>::value, "T must be a Component");
 
-        auto component = std::make_shared<T>(std::forward<Args>(args)...);
+        auto component = std::make_unique<T>(std::forward<Args>(args)...);
+        T* raw = component.get();
 
         auto typeIndex = std::type_index(typeid(T));
-        mComponents[typeIndex] = component;
+        mComponents[typeIndex] = std::move(component);
 
-        // 延迟设置GameObject，避免在构造函数中调用shared_from_this() 造成bad_weak_ptr错误
-        // TODO: 警告: 在构造函数中不要调用 shared_from_this()
-        mComponentsToInitialize.push_back(component);
+        mComponentsToInitialize.push_back(raw);
 
         // 如果对象已启动，立即初始化组件
         if (mStarted) {
-            InitializeComponent(component);
-            RegisterComponentIfNeeded(component);
+            InitializeComponent(raw);
+            RegisterComponentIfNeeded(raw);
         }
 
-        return component;
+        return raw;
     }
 
     // 获取组件
     template<typename T>
-    std::shared_ptr<T> GetComponent() {
+    T* GetComponent() {
         auto typeIndex = std::type_index(typeid(T));
         auto it = mComponents.find(typeIndex);
         if (it != mComponents.end()) {
-            auto component = std::static_pointer_cast<T>(it->second);
-            // 检查组件是否还有效
-            if (component->GetGameObject()) {
-                return component;
-            }
+            return static_cast<T*>(it->second.get());
         }
         return nullptr;
     }
@@ -96,8 +91,12 @@ public:
         if (it != mComponents.end()) {
             // 如果是碰撞器组件，从碰撞系统中注销
             // TODO: 以后若还有别的大系统，也要这么做
-            UnregisterComponentIfNeeded(it->second);
+            UnregisterComponentIfNeeded(it->second.get());
             it->second->OnDestroy();
+            // 同步从 pending 列表中移除（防止删除后还有人对它做 InitializeComponent）
+            mComponentsToInitialize.erase(
+                std::remove(mComponentsToInitialize.begin(), mComponentsToInitialize.end(), it->second.get()),
+                mComponentsToInitialize.end());
             mComponents.erase(it);
             return true;
         }
@@ -167,7 +166,7 @@ public:
     void SetActive(bool state) { mActive = state; }
 
     // 初始化单个组件
-    void InitializeComponent(std::shared_ptr<Component> component);
+    void InitializeComponent(Component* component);
 
     // 销毁所有组件
     void DestroyAllComponents();
