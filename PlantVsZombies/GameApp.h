@@ -30,6 +30,8 @@ class Board;
 class Plant;
 class Zombie;
 
+enum class Background;
+
 class GameAPP
 {
 public:
@@ -92,6 +94,9 @@ public:
         const glm::vec4& color,
         const std::string& fontKey = ResourceKeys::Fonts::FONT_FZCQ,
         int fontSize = 17);
+
+	// 获取当前背景索引(根据关卡)
+    Background GetBackgroundID(int level) const;
 
     // 获取输入处理器
     InputHandler& GetInputHandler() const {

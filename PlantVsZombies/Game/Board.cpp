@@ -17,6 +17,30 @@
 #include <unordered_set>
 #include <climits>
 
+Board::Board(GameScene* gameScene, Background background, int level)
+{
+	mGameScene = gameScene;
+	mLevel = level;
+	mBackGround = background;
+	if (mLevel >= 1)
+	{
+		mLevelName.clear();
+		int mBigLevel = (mLevel / 9) + 1;
+		int mSmallLevel = mLevel % 9;
+		mLevelName = u8"关卡 " + std::to_string(mBigLevel) + u8"-" + std::to_string(mSmallLevel);
+	}
+	mSpawnZombieList.reserve(32);
+	mSpawnZombieList.push_back(ZombieType::ZOMBIE_NORMAL);
+	mPreviewZombieList.reserve(32);
+	if (mLevel > 0)
+	{
+		LoadSpawnListFromJson();
+	}
+	CreatePreviewZombies();
+	InitializeCell();
+	InitializeRows();
+}
+
 void Board::InitializeCell(int rows, int cols)
 {
 	mRows = rows + 1;
@@ -114,16 +138,13 @@ Plant* Board::CreatePlant(PlantType plantType, int row, int column, bool skipset
 }
 
 Zombie* Board::CreateZombie(ZombieType zombieType, int row, float x, float y, bool skipsettings, bool isPreview) {
-
-	if (row >= 0)
-	{
-		if (this->mBackGround == 0)
-		{
-			y = static_cast<float>(140 + row * 100);
-		}
+	float spawnY = GetZombieSpawnY(row);
+	if (spawnY != -1.0f) {
+		y = spawnY;
 	}
-
-	std::shared_ptr<Zombie> zombie = GameAPP::GetInstance().InstantiateZombie(zombieType, this, x, y, row, isPreview);
+	
+	std::shared_ptr<Zombie> zombie = GameAPP::GetInstance().InstantiateZombie
+		(zombieType, this, x, y, row, isPreview);
 	if (!zombie) return nullptr;
 
 	mZombieNumber++;
@@ -197,7 +218,11 @@ void Board::UpdateLevel()
 {
 	if (mBoardState != BoardState::GAME) return;
 	float deltaTime = DeltaTime::GetDeltaTime();
-	UpdateSunFalling(deltaTime);
+
+	if (mBackGround == Background::GROUND_DAY || mBackGround == Background::WATER_POOL ||
+		mBackGround == Background::ROOF) {
+		UpdateSunFalling(deltaTime);
+	}
 
 	mUpdateHPCheckTimer += deltaTime;
 	if (mUpdateHPCheckTimer >= 0.5f)
@@ -523,7 +548,15 @@ void Board::StartGame()
 		InitializeMowers();
 	}
 	mBoardState = BoardState::GAME;
-	AudioSystem::PlayMusic(ResourceKeys::Music::MUSIC_DAY, -1);
+	if (mBackGround == Background::GROUND_DAY) {
+		AudioSystem::PlayMusic(ResourceKeys::Music::MUSIC_DAY, -1);
+	}
+	else if (mBackGround == Background::GROUND_NIGHT) {
+		AudioSystem::PlayMusic(ResourceKeys::Music::MUSIC_NIGHT, -1);
+	}
+	else {
+		AudioSystem::PlayMusic(ResourceKeys::Music::MUSIC_DAY, -1);
+	}
 }
 
 void Board::GameOver()
@@ -589,10 +622,13 @@ Plant* Board::CreatePlantWithID(PlantType type, int row, int col, int id) {
 }
 
 Zombie* Board::CreateZombieWithID(ZombieType type, int row, float x, float y, int id) {
-	if (row >= 0 && this->mBackGround == 0) {
-		y = static_cast<float>(140 + row * 100);
+	float spawnY = GetZombieSpawnY(row);
+	if (spawnY != -1.0f) {
+		y = spawnY;
 	}
-	std::shared_ptr<Zombie> zombie = GameAPP::GetInstance().InstantiateZombie(type, this, x, y, row, false);
+
+	std::shared_ptr<Zombie> zombie = GameAPP::GetInstance().InstantiateZombie
+		(type, this, x, y, row, false);
 	if (!zombie) return nullptr;
 	mZombieNumber++;
 	mEntityManager.AddZombieWithID(zombie, id);
@@ -682,5 +718,21 @@ void Board::InitializeMowers()
 {
 	for (int row = 0; row < mRows; row++) {
 		CreateMower(MowerType::LAWN, row);
+	}
+}
+
+float Board::GetZombieSpawnY(int row) const {
+	if (row < 0 || row >= mRows) {
+		std::cout << "Board::GetZombieSpawnY: 无效的行索引: " << row << std::endl;
+		return -1.0f;
+	}
+
+	if (this->mBackGround == Background::GROUND_DAY ||
+		this->mBackGround == Background::GROUND_NIGHT)
+	{
+			return static_cast<float>(140 + row * 100);
+	}
+	else {
+		return 0.0f;
 	}
 }

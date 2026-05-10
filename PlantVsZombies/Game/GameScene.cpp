@@ -30,8 +30,17 @@ void GameScene::BuildDrawCommands()
 {
 	Scene::BuildDrawCommands();
 
-	AddTexture(ResourceKeys::Textures::IMAGE_BACKGROUND_DAY,
-		mStartX, mBackgroundY, 1.0f, 1.0f, LAYER_BACKGROUND, false);
+	Background background = GameAPP::GetInstance().GetBackgroundID
+		(std::stoi(SceneManager::GetInstance().GetGlobalData("EnterLevel")));
+
+	if (background == Background::GROUND_DAY) {
+		AddTexture(ResourceKeys::Textures::IMAGE_BACKGROUND_DAY,
+			mStartX, mBackgroundY, 1.0f, 1.0f, LAYER_BACKGROUND, false);
+	}
+	else if (background == Background::GROUND_NIGHT) {
+		AddTexture(ResourceKeys::Textures::IMAGE_BACKGROUND_NIGHT,
+			mStartX, mBackgroundY, 1.0f, 1.0f, LAYER_BACKGROUND, false);
+	}
 
 	if (mBoard) {
 		RegisterDrawCommand("Prompt",
@@ -92,8 +101,9 @@ void GameScene::BuildDrawCommands()
 void GameScene::OnEnter() {
 	Scene::OnEnter();
 
-	int mEnterLevel = std::stoi(SceneManager::GetInstance().GetGlobalData("EnterLevel"));
-	mBoard = std::make_unique<Board>(this, mEnterLevel);
+	int enterLevel = std::stoi(SceneManager::GetInstance().GetGlobalData("EnterLevel"));
+
+	mBoard = std::make_unique<Board>(this, GameAPP::GetInstance().GetBackgroundID(enterLevel), enterLevel);
 	auto CardUI = GameObjectManager::GetInstance().CreateGameObjectImmediate<GameObject>(
 		LAYER_UI);
 	CardUI->SetName("CardUI");

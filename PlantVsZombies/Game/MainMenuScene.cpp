@@ -52,8 +52,8 @@ void MainMenuScene::BuildDrawCommands()
 		[this](Graphics* g) {
 			if (this->mOpenMenu) return;
 			auto& gameApp = GameAPP::GetInstance();
-			int mBigLevel = gameApp.mAdventureLevel / 10 + 1;
-			int mSmallLevel = gameApp.mAdventureLevel % 10;
+			int mBigLevel = gameApp.mAdventureLevel / 9 + 1;
+			int mSmallLevel = gameApp.mAdventureLevel % 9;
 			gameApp.DrawText(std::to_string(mBigLevel), Vector(703, 158),
 				glm::vec4(255.0f, 255.0f, 255.0f, 255.0f));
 			gameApp.DrawText(std::to_string(mSmallLevel), Vector(722, 160),

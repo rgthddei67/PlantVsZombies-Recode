@@ -24,6 +24,15 @@ class Shovel;
 class Mower;
 enum class MowerType;
 
+enum class Background {
+	GROUND_DAY,
+	GROUND_NIGHT,
+	WATER_POOL,
+	NIGHT_WATER_POOL,
+	ROOF,
+	NIGHT_ROOF
+};
+
 struct RowInfo {
 	int rowIndex         = 0;
 	float weight         = 1.0f;
@@ -55,7 +64,7 @@ public:
 	GameScene* mGameScene = nullptr;
 	std::string mLevelName = "关卡 1-1";
 	int mLevel = -1;	// 冒险模式当前关卡序号
-	int mBackGround = 0; // 背景图
+	Background mBackGround = Background::GROUND_DAY; // 背景图
 	int mRows = 5;	// 行数
 	int mColumns = 8; // 列数
 	std::weak_ptr<Shovel> mShovel;
@@ -98,31 +107,12 @@ private:
 	inline ZombieType GetWeightedRandomZombie();
 	inline ZombieType GetCheapestZombie();
 
-public:
-	Board(GameScene* gameScene, int level)
-	{
-		mGameScene = gameScene;
-		mLevel = level;
-		if (mLevel >= 1)
-		{
-			mLevelName.clear();
-			int mBigLevel = mLevel / 10 + 1;
-			int mSmallLevel = mLevel % 10;
-			mLevelName = u8"关卡 " + std::to_string(mBigLevel) + u8"-" + std::to_string(mSmallLevel);
-		}
-		mSpawnZombieList.reserve(16);
-		mSpawnZombieList.push_back(ZombieType::ZOMBIE_NORMAL);
-		mPreviewZombieList.reserve(16);
-		if (mLevel > 0)
-		{
-			LoadSpawnListFromJson();
-		}
-		CreatePreviewZombies();
-		InitializeCell();
-		InitializeRows();
-	}
+	float GetZombieSpawnY(int row) const;
 
-	void AddSun(int amount) 
+public:
+	Board(GameScene* gameScene, Background background, int level);
+
+	inline void AddSun(int amount) 
 	{ 
 		int temp = mSun + amount;
 		if (temp > MAX_SUN)
@@ -133,12 +123,12 @@ public:
 		mSun += amount; 
 	}
 
-	void SubSun(int amount) 
+	inline void SubSun(int amount)
 	{ 
 		mSun -= amount;
 	}
 
-	int GetSun() { return mSun; }
+	inline int GetSun() { return mSun; }
 
 	void SetZombieSpawnList(std::vector<ZombieType>& zombieTypeList) {
 		this->mSpawnZombieList = zombieTypeList;

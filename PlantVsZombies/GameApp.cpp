@@ -31,6 +31,8 @@
 #include "./Game/Zombie/BucketZombie.h"
 #include "./Game/Zombie/FastBucketZombie.h"
 
+#include "./Game/Board.h"
+
 #include <iostream>
 
 GameAPP::GameAPP()
@@ -428,6 +430,19 @@ void GameAPP::DrawText(const std::string& text, const Vector& position,
 {
 	if (!m_graphics) return;
 	m_graphics->DrawText(text, fontKey, fontSize, color, position.x, position.y);
+}
+
+Background GameAPP::GetBackgroundID(int level) const 
+{
+	if (level >= 1 && level <= 9) {
+		return Background::GROUND_DAY;   // 白天
+	}
+	else if (level >= 10 && level <= 19) {
+		return Background::GROUND_NIGHT; // 黑天
+	}
+	else {
+		return Background::GROUND_DAY;   // 默认白天
+	}
 }
 
 std::shared_ptr<Plant> GameAPP::InstantiatePlant(PlantType plantType, Board* board, int row, int column, bool isPreview)
