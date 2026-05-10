@@ -25,8 +25,8 @@ Board::Board(GameScene* gameScene, Background background, int level)
 	if (mLevel >= 1)
 	{
 		mLevelName.clear();
-		int mBigLevel = (mLevel / 9) + 1;
-		int mSmallLevel = mLevel % 9;
+		int mBigLevel = (mLevel - 1) / 9 + 1;
+		int mSmallLevel = (mLevel - 1) % 9 + 1;
 		mLevelName = u8"关卡 " + std::to_string(mBigLevel) + u8"-" + std::to_string(mSmallLevel);
 	}
 	mSpawnZombieList.reserve(32);
