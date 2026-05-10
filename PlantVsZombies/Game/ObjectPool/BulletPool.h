@@ -37,8 +37,12 @@ public:
 	// 初始化对象池
 	void Initialize(int initialCapacity, int warningThreshold = 500);
 
-	// 从池中获取子弹
-	std::shared_ptr<Bullet> Acquire(Board* board, BulletType type, int row,
+	// 从池中获取子弹（默认接口，返回原始指针）
+	Bullet* Acquire(Board* board, BulletType type, int row,
+		const Vector& colliderRadius, const Vector& position);
+
+	// shared_ptr 版本：仅当调用方需要把 weak_ptr 注册到 EntityManager 时使用
+	std::shared_ptr<Bullet> AcquireShared(Board* board, BulletType type, int row,
 		const Vector& colliderRadius, const Vector& position);
 
 	// 回收子弹到池中

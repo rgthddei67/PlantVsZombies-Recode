@@ -16,6 +16,7 @@ void MainMenuScene::OnEnter()
 void MainMenuScene::OnExit()
 {
 	GameObjectManager::GetInstance().DestroyGameObject(mGameButton);
+	mGameButton = nullptr;
 	mOpitionButton.reset();
 	mAlmanacButton.reset();
 	Scene::OnExit();

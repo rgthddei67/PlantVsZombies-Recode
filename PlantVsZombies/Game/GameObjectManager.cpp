@@ -221,7 +221,7 @@ void GameObjectManager::ResetAllLayers() {
     }
 }
 
-void GameObjectManager::AssignRenderOrder(std::shared_ptr<GameObject> gameObject, RenderLayer layer) {
+void GameObjectManager::AssignRenderOrder(GameObject* gameObject, RenderLayer layer) {
     // 先回收旧的渲染顺序（需要知道旧的 key）
     RecycleRenderOrder(gameObject->GetRenderOrder(), gameObject->GetLayer(), gameObject->GetSortingKey());
 

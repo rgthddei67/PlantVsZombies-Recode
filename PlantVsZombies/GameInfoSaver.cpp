@@ -271,7 +271,7 @@ bool GameInfoSaver::LoadLevelData(Board* board, CardSlotManager* manager)
 
 	// 恢复进度条
 	if (board->mCurrentWave > 0) {
-		auto gameProgress = board->mGameScene->GetGameProgress().get();
+		auto gameProgress = board->mGameScene->GetGameProgress();
 		gameProgress->SetActive(true);
 		auto& res = ResourceManager::GetInstance();
 		gameProgress->SetupFlags(res.GetTexture(ResourceKeys::Textures::IMAGE_FLAGMETER_PART_STICK)
@@ -288,7 +288,7 @@ bool GameInfoSaver::LoadLevelData(Board* board, CardSlotManager* manager)
 		bool isSleeping = p["isSleeping"].get<bool>();
 		int id = p.value("id", NULL_PLANT_ID);
 
-		std::shared_ptr<Plant> plant;
+		Plant* plant = nullptr;
 		if (id != NULL_PLANT_ID) {
 			plant = board->CreatePlantWithID(type, row, col, id);
 		}
@@ -319,7 +319,7 @@ bool GameInfoSaver::LoadLevelData(Board* board, CardSlotManager* manager)
 		float y = m["y"].get<float>();
 		int id = m.value("id", NULL_MOWER_ID);
 
-		std::shared_ptr<Mower> mower;
+		Mower* mower = nullptr;
 		if (id != NULL_MOWER_ID) {
 			mower = board->CreateMowerWithID(type, row, x, y, id);
 		} else {
@@ -344,7 +344,7 @@ bool GameInfoSaver::LoadLevelData(Board* board, CardSlotManager* manager)
 		float x = z["x"].get<float>();
 		int   id = z.value("id", NULL_ZOMBIE_ID);
 
-		std::shared_ptr<Zombie> zombie;
+		Zombie* zombie = nullptr;
 		if (id != NULL_ZOMBIE_ID) {
 			zombie = board->CreateZombieWithID(type, row, x, 0.0f, id);
 		}
@@ -398,7 +398,7 @@ bool GameInfoSaver::LoadLevelData(Board* board, CardSlotManager* manager)
 		float y = b["y"].get<float>();
 		int   id = b.value("id", NULL_BULLET_ID);
 
-		std::shared_ptr<Bullet> bullet;
+		Bullet* bullet = nullptr;
 		if (id != NULL_BULLET_ID) {
 			bullet = board->CreateBulletWithID(type, row, Vector(x, y), id);
 		}
@@ -420,7 +420,7 @@ bool GameInfoSaver::LoadLevelData(Board* board, CardSlotManager* manager)
 		float y = s["y"].get<float>();
 		int  id = s.value("id", NULL_COIN_ID);
 
-		std::shared_ptr<Sun> sun;
+		Sun* sun = nullptr;
 		if (id != NULL_COIN_ID) {
 			sun = board->CreateSunWithID(Vector(x, y), false, id);
 		}
@@ -443,9 +443,8 @@ bool GameInfoSaver::LoadLevelData(Board* board, CardSlotManager* manager)
 		float y = t["y"].get<float>();
 		int id = t.value("id", NULL_COIN_ID);
 
-		std::shared_ptr<Trophy> trophy;
 		if (id != NULL_COIN_ID) {
-			trophy = board->CreateTrophyWithID(Vector(x, y), id);
+			board->CreateTrophyWithID(Vector(x, y), id);
 		}
 	}
 
@@ -472,7 +471,7 @@ bool GameInfoSaver::LoadLevelData(Board* board, CardSlotManager* manager)
 					comp->RestoreCooldown(cooldownTimer, cooldownTime);
 				}
 			}
-			manager->AddCard(card.get());
+			manager->AddCard(card);
 		}
 	}
 

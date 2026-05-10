@@ -29,7 +29,7 @@ void Board::InitializeCell(int rows, int cols)
 		{
 			Vector position(CELL_INITALIZE_POS_X + j * CELL_COLLIDER_SIZE_X,
 				CELL_INITALIZE_POS_Y + i * CELL_COLLIDER_SIZE_Y);
-			auto cell = GameObjectManager::GetInstance().CreateGameObject<Cell>(
+			Cell* cell = GameObjectManager::GetInstance().CreateGameObject<Cell>(
 				LAYER_BACKGROUND, i, j, position);
 			mCells[i][j] = cell;
 		}
@@ -61,19 +61,19 @@ void Board::CreateBoom(const Vector& position, int damage)
 	}
 }
 
-std::shared_ptr<Sun> Board::CreateSun(const Vector& position, bool needAnimation)
+Sun* Board::CreateSun(const Vector& position, bool needAnimation)
 {
-	auto sun = GameObjectManager::GetInstance().CreateGameObject<Sun>
+	auto sun = GameObjectManager::GetInstance().CreateGameObjectAsShared<Sun>
 		(LAYER_GAME_COIN, this, position, 0.85f, "Sun",
 			needAnimation, true);
 	if (sun) {
 		mEntityManager.AddCoin(sun);
 	}
 
-	return sun;
+	return sun.get();
 }
 
-std::shared_ptr<Sun> Board::CreateSun(float x, float y, bool needAnimation) {
+Sun* Board::CreateSun(float x, float y, bool needAnimation) {
 	return CreateSun(Vector(x, y), needAnimation);
 }
 
@@ -81,14 +81,14 @@ void Board::CreateTrophy(const Vector& position)
 {
 	if (mTrophySpawned) return;
 	mTrophySpawned = true;
-	auto trophy = GameObjectManager::GetInstance().CreateGameObject<Trophy>(
+	auto trophy = GameObjectManager::GetInstance().CreateGameObjectAsShared<Trophy>(
 		LAYER_GAME_COIN, this, position);
 	if (trophy) {
 		mEntityManager.AddCoin(trophy);
 	}
 }
 
-std::shared_ptr<Plant> Board::CreatePlant(PlantType plantType, int row, int column, bool skipsettings, bool isPreview)
+Plant* Board::CreatePlant(PlantType plantType, int row, int column, bool skipsettings, bool isPreview)
 {
 	// 检查行列是否有效
 	if (row < 0 || row >= mRows || column < 0 || column >= mColumns) {
@@ -103,17 +103,17 @@ std::shared_ptr<Plant> Board::CreatePlant(PlantType plantType, int row, int colu
 		mEntityManager.AddPlant(plant);
 
 		// 将植物与格子关联
-		auto cell = GetCell(row, column);
+		Cell* cell = GetCell(row, column);
 		if (cell)
 		{
 			cell->SetPlantID(plant->mPlantID);
 		}
 	}
 
-	return plant;
+	return plant.get();
 }
 
-std::shared_ptr<Zombie> Board::CreateZombie(ZombieType zombieType, int row, float x, float y, bool skipsettings, bool isPreview) {
+Zombie* Board::CreateZombie(ZombieType zombieType, int row, float x, float y, bool skipsettings, bool isPreview) {
 
 	if (row >= 0)
 	{
@@ -132,10 +132,10 @@ std::shared_ptr<Zombie> Board::CreateZombie(ZombieType zombieType, int row, floa
 		mEntityManager.AddZombie(zombie);
 		zombie->mSpawnWave = this->mCurrentWave;
 	}
-	return zombie;
+	return zombie.get();
 }
 
-std::shared_ptr<Bullet> Board::CreateBullet(BulletType bulletType, int row, const Vector& position, bool skipsettings)
+Bullet* Board::CreateBullet(BulletType bulletType, int row, const Vector& position, bool skipsettings)
 {
 	// 使用对象池创建子弹
 	BulletPool* bulletPool = GameObjectManager::GetInstance().GetBulletPool();
@@ -144,15 +144,15 @@ std::shared_ptr<Bullet> Board::CreateBullet(BulletType bulletType, int row, cons
 		return nullptr;
 	}
 
-	// 从对象池获取子弹
-	std::shared_ptr<Bullet> bullet = bulletPool->Acquire
+	// 从对象池获取子弹（shared_ptr 局部变量，用于把 weak_ptr 注册进 EntityManager）
+	std::shared_ptr<Bullet> bullet = bulletPool->AcquireShared
 		(this, bulletType, row, Vector(10, 10), position);
 
 	if (bullet && !skipsettings) {
 		mEntityManager.AddBullet(bullet);
 	}
 
-	return bullet;
+	return bullet.get();
 }
 
 inline void Board::CleanupExpiredObjects()
@@ -303,9 +303,9 @@ void Board::DestroyPreviewZombies()
 {
 	if (mPreviewZombieList.empty()) return;
 
-	for (auto& zombieWeak : mPreviewZombieList)
+	for (Zombie* zombie : mPreviewZombieList)
 	{
-		if (auto zombie = zombieWeak.lock())
+		if (zombie)
 		{
 			zombie->Die();
 		}
@@ -568,64 +568,77 @@ void Board::LoadSpawnListFromJson()
 	// 没找到对应关卡配置，保持默认 ZOMBIE_NORMAL（不清空）
 }
 
-std::shared_ptr<Plant> Board::CreatePlantWithID(PlantType type, int row, int col, int id) {
-	auto cell = GetCell(row, col);
+Plant* Board::CreatePlantWithID(PlantType type, int row, int col, int id) {
+	Cell* cell = GetCell(row, col);
 	if (cell && cell->GetPlantID() != NULL_PLANT_ID) {
 		return nullptr;
 	}
-	auto plant = CreatePlant(type, row, col, true, false);
+	// 走 GameApp 工厂拿 shared_ptr 用于 EntityManager 注册
+	if (row < 0 || row >= mRows || col < 0 || col >= mColumns) {
+		std::cout << "无效的行列位置: (" << row << ", " << col << ")" << std::endl;
+		return nullptr;
+	}
+	std::shared_ptr<Plant> plant = GameAPP::GetInstance().InstantiatePlant(type, this, row, col, false);
 	if (plant) {
 		mEntityManager.AddPlantWithID(plant, id);
 		if (cell) {
 			cell->SetPlantID(id);
 		}
 	}
-	return plant;
+	return plant.get();
 }
 
-std::shared_ptr<Zombie> Board::CreateZombieWithID(ZombieType type, int row, float x, float y, int id) {
-	auto zombie = CreateZombie(type, row, x, y, true, false);
-	if (zombie) {
-		mEntityManager.AddZombieWithID(zombie, id);
-		zombie->mSpawnWave = this->mCurrentWave;
+Zombie* Board::CreateZombieWithID(ZombieType type, int row, float x, float y, int id) {
+	if (row >= 0 && this->mBackGround == 0) {
+		y = static_cast<float>(140 + row * 100);
 	}
-	return zombie;
+	std::shared_ptr<Zombie> zombie = GameAPP::GetInstance().InstantiateZombie(type, this, x, y, row, false);
+	if (!zombie) return nullptr;
+	mZombieNumber++;
+	mEntityManager.AddZombieWithID(zombie, id);
+	zombie->mSpawnWave = this->mCurrentWave;
+	return zombie.get();
 }
 
-std::shared_ptr<Bullet> Board::CreateBulletWithID(BulletType type, int row, const Vector& pos, int id) {
-	auto bullet = CreateBullet(type, row, pos, true);
+Bullet* Board::CreateBulletWithID(BulletType type, int row, const Vector& pos, int id) {
+	BulletPool* bulletPool = GameObjectManager::GetInstance().GetBulletPool();
+	if (!bulletPool) {
+		std::cout << "Board::CreateBulletWithID 对象池未初始化" << std::endl;
+		return nullptr;
+	}
+	std::shared_ptr<Bullet> bullet = bulletPool->AcquireShared(this, type, row, Vector(10, 10), pos);
 	if (bullet) {
 		mEntityManager.AddBulletWithID(bullet, id);
 	}
-	return bullet;
+	return bullet.get();
 }
 
-std::shared_ptr<Sun> Board::CreateSunWithID(const Vector& pos, bool fromSky, int id) {
-	auto sun = GameObjectManager::GetInstance().CreateGameObject<Sun>
+Sun* Board::CreateSunWithID(const Vector& pos, bool fromSky, int id) {
+	auto sun = GameObjectManager::GetInstance().CreateGameObjectAsShared<Sun>
 		(LAYER_GAME_COIN, this, pos, 0.85f, "Sun",
 			fromSky, true);
 	if (sun) {
 		mEntityManager.AddCoinWithID(sun, id);
 	}
-	return sun;
+	return sun.get();
 }
 
-std::shared_ptr<Trophy> Board::CreateTrophyWithID(const Vector& pos, int id) {
+Trophy* Board::CreateTrophyWithID(const Vector& pos, int id) {
 	if (mTrophySpawned) return nullptr;
 	mTrophySpawned = true;
-	auto trophy = GameObjectManager::GetInstance().CreateGameObject<Trophy>(
+	auto trophy = GameObjectManager::GetInstance().CreateGameObjectAsShared<Trophy>(
 		LAYER_GAME_COIN, this, pos);
 	if (trophy) {
 		mEntityManager.AddCoinWithID(trophy, id);
 	}
-	return trophy;
+	return trophy.get();
 }
 
 std::weak_ptr<Shovel> Board::CreateShovel() {
 	if (!mShovel.expired())
 		return mShovel;
 
-	auto shovel = GameObjectManager::GetInstance().CreateGameObjectImmediate<Shovel>(LAYER_UI, this);
+	auto shovel = GameObjectManager::GetInstance().CreateGameObjectImmediateAsShared<Shovel>(LAYER_UI, this);
 	mShovel = shovel;
 	return mShovel;
 }
@@ -640,29 +653,29 @@ void Board::ActivateShovel()
 	}
 }
 
-std::shared_ptr<Mower> Board::CreateMower(MowerType type, int row)
+Mower* Board::CreateMower(MowerType type, int row)
 {
 	float x = 160.0f;
 	float y = 135.0f + row * 100.0f;
 
-	auto mower = GameObjectManager::GetInstance().CreateGameObjectImmediate<Mower>(
+	auto mower = GameObjectManager::GetInstance().CreateGameObjectImmediateAsShared<Mower>(
 		LAYER_GAME_OBJECT, this, type, AnimationType::ANIM_LAWNMOWER, x, y, row);
 
 	if (mower) {
 		mEntityManager.AddMower(mower);
 	}
-	return mower;
+	return mower.get();
 }
 
-std::shared_ptr<Mower> Board::CreateMowerWithID(MowerType type, int row, float x, float y, int id)
+Mower* Board::CreateMowerWithID(MowerType type, int row, float x, float y, int id)
 {
-	auto mower = GameObjectManager::GetInstance().CreateGameObjectImmediate<Mower>(
+	auto mower = GameObjectManager::GetInstance().CreateGameObjectImmediateAsShared<Mower>(
 		LAYER_GAME_OBJECT, this, type, AnimationType::ANIM_LAWNMOWER, x, y, row);
 
 	if (mower) {
 		mEntityManager.AddMowerWithID(mower, id);
 	}
-	return mower;
+	return mower.get();
 }
 
 void Board::InitializeMowers()

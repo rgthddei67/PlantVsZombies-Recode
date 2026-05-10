@@ -435,35 +435,35 @@ std::shared_ptr<Plant> GameAPP::InstantiatePlant(PlantType plantType, Board* boa
 	// TODO 新增植物改这里
 	switch (plantType) {
 	case PlantType::PLANT_SUNFLOWER:
-		return GameObjectManager::GetInstance().CreateGameObjectImmediate<SunFlower>(
+		return GameObjectManager::GetInstance().CreateGameObjectImmediateAsShared<SunFlower>(
 			LAYER_GAME_PLANT, board, PlantType::PLANT_SUNFLOWER, row, column,
 			AnimationType::ANIM_SUNFLOWER, 1.0f, isPreview);
 	case PlantType::PLANT_PEASHOOTER:
-		return GameObjectManager::GetInstance().CreateGameObjectImmediate<PeaShooter>(
+		return GameObjectManager::GetInstance().CreateGameObjectImmediateAsShared<PeaShooter>(
 			LAYER_GAME_PLANT, board, PlantType::PLANT_PEASHOOTER, row, column,
 			AnimationType::ANIM_PEASHOOTER, 1.0f, isPreview);
 	case PlantType::PLANT_CHERRYBOMB:
-		return GameObjectManager::GetInstance().CreateGameObjectImmediate<CherryBomb>(
+		return GameObjectManager::GetInstance().CreateGameObjectImmediateAsShared<CherryBomb>(
 			LAYER_GAME_PLANT, board, PlantType::PLANT_CHERRYBOMB, row, column,
 			AnimationType::ANIM_CHERRYBOMB, 1.0f, isPreview);
 	case PlantType::PLANT_WALLNUT:
-		return GameObjectManager::GetInstance().CreateGameObjectImmediate<WallNut>(
+		return GameObjectManager::GetInstance().CreateGameObjectImmediateAsShared<WallNut>(
 			LAYER_GAME_PLANT, board, PlantType::PLANT_WALLNUT, row, column,
 			AnimationType::ANIM_WALLNUT, 1.0f, isPreview);
 	case PlantType::PLANT_POTATOMINE:
-		return GameObjectManager::GetInstance().CreateGameObjectImmediate<PotatoMine>(
+		return GameObjectManager::GetInstance().CreateGameObjectImmediateAsShared<PotatoMine>(
 			LAYER_GAME_PLANT, board, PlantType::PLANT_POTATOMINE, row, column,
 			AnimationType::ANIM_POTATOMINE, 0.8f, isPreview);
 	case PlantType::PLANT_SNOWPEA:
-		return GameObjectManager::GetInstance().CreateGameObjectImmediate<SnowPeaShooter>(
+		return GameObjectManager::GetInstance().CreateGameObjectImmediateAsShared<SnowPeaShooter>(
 			LAYER_GAME_PLANT, board, PlantType::PLANT_SNOWPEA, row, column,
 			AnimationType::ANIM_SNOWPEASHOOTER, 1.0f, isPreview);
 	case PlantType::PLANT_CHOMPER:
-		return GameObjectManager::GetInstance().CreateGameObjectImmediate<Chomper>(
+		return GameObjectManager::GetInstance().CreateGameObjectImmediateAsShared<Chomper>(
 			LAYER_GAME_PLANT, board, PlantType::PLANT_CHOMPER, row, column,
 			AnimationType::ANIM_CHOMPER, 1.0f, isPreview);
 	case PlantType::PLANT_REPEATER:
-		return GameObjectManager::GetInstance().CreateGameObjectImmediate<Repeater>(
+		return GameObjectManager::GetInstance().CreateGameObjectImmediateAsShared<Repeater>(
 			LAYER_GAME_PLANT, board, PlantType::PLANT_REPEATER, row, column,
 			AnimationType::ANIM_REPEAT, 1.0f, isPreview);
 	default:
@@ -477,23 +477,23 @@ std::shared_ptr<Zombie> GameAPP::InstantiateZombie(ZombieType zombieType, Board*
 	// TODO 新增僵尸改这里
 	switch (zombieType) {
 	case ZombieType::ZOMBIE_NORMAL:
-		return GameObjectManager::GetInstance().CreateGameObjectImmediate<Zombie>(
+		return GameObjectManager::GetInstance().CreateGameObjectImmediateAsShared<Zombie>(
 			LAYER_GAME_ZOMBIE, board, ZombieType::ZOMBIE_NORMAL, x, y, row,
 			AnimationType::ANIM_NORMAL_ZOMBIE, 1.0f, isPreview);
 	case ZombieType::ZOMBIE_TRAFFIC_CONE:
-		return GameObjectManager::GetInstance().CreateGameObjectImmediate<ConeZombie>(
+		return GameObjectManager::GetInstance().CreateGameObjectImmediateAsShared<ConeZombie>(
 			LAYER_GAME_ZOMBIE, board, ZombieType::ZOMBIE_TRAFFIC_CONE, x, y, row,
 			AnimationType::ANIM_CONE_ZOMBIE, 1.0f, isPreview);
 	case ZombieType::ZOMBIE_POLEVAULTER:
-		return GameObjectManager::GetInstance().CreateGameObjectImmediate<Polevaulter>(
+		return GameObjectManager::GetInstance().CreateGameObjectImmediateAsShared<Polevaulter>(
 			LAYER_GAME_ZOMBIE, board, ZombieType::ZOMBIE_POLEVAULTER, x, y, row,
 			AnimationType::ANIM_POLEVAULTER_ZOMBIE, 1.0f, isPreview);
 	case ZombieType::ZOMBIE_BUCKET:
-		return GameObjectManager::GetInstance().CreateGameObjectImmediate<BucketZombie>(
+		return GameObjectManager::GetInstance().CreateGameObjectImmediateAsShared<BucketZombie>(
 			LAYER_GAME_ZOMBIE, board, ZombieType::ZOMBIE_BUCKET, x, y, row,
 			AnimationType::ANIM_BUCKET_ZOMBIE, 1.0f, isPreview);
 	case ZombieType::ZOMBIE_FASTBUCKET:
-		return GameObjectManager::GetInstance().CreateGameObjectImmediate<FastBucketZombie>(
+		return GameObjectManager::GetInstance().CreateGameObjectImmediateAsShared<FastBucketZombie>(
 			LAYER_GAME_ZOMBIE, board, ZombieType::ZOMBIE_FASTBUCKET, x, y, row,
 			AnimationType::ANIM_BUCKET_ZOMBIE, 1.0f, isPreview);
 	default:

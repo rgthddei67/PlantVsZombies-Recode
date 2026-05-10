@@ -76,10 +76,10 @@ public:
 	Vector mSpawnZombiePos1 = Vector(1180, 85);			// 左上角坐标
 	Vector mSpawnZombiePos2 = Vector(1500, 581);		// 右下角坐标
 
-	std::vector<std::weak_ptr<Zombie>> mPreviewZombieList;
+	std::vector<Zombie*> mPreviewZombieList;  // 预览僵尸（选卡阶段）；Board 显式管理生命周期，Die() 后立刻 clear()
 
-	// 外层表示行（rows） 内层columns
-	std::vector<std::vector<std::shared_ptr<Cell>>> mCells;
+	// 外层表示行（rows） 内层columns。Cell 所有权在 GameObjectManager；这里仅做格子寻址
+	std::vector<std::vector<Cell*>> mCells;
 
 private:
 	std::vector<ZombieType> mSpawnZombieList;	// 本关出怪表
@@ -147,8 +147,8 @@ public:
 	// 初始化格子 默认5行9列
 	void InitializeCell(int rows = 4, int cols = 8);
 
-	// 获取格子智能指针
-	std::shared_ptr<Cell> GetCell(int row, int col) {
+	// 获取格子。返回原始指针：Cell 所有权在 GameObjectManager，调用方仅做非所有 view
+	Cell* GetCell(int row, int col) {
 		if (row >= 0 && row < mRows && col >= 0 && col < mColumns) {
 			return mCells[row][col];
 		}
@@ -156,38 +156,38 @@ public:
 	}
 
 	// 创建僵尸 有row就用row，如果row<0，则使用y
-	std::shared_ptr<Zombie> CreateZombie(ZombieType zombieType, int row, float x, float y, bool skipsettings = false, bool isPreview = false);
+	Zombie* CreateZombie(ZombieType zombieType, int row, float x, float y, bool skipsettings = false, bool isPreview = false);
 
 	// 创建太阳
-	std::shared_ptr<Sun> CreateSun(const Vector& position, bool needAnimation = false);
+	Sun* CreateSun(const Vector& position, bool needAnimation = false);
 
 	// 创建太阳
-	std::shared_ptr<Sun> CreateSun(float x, float y, bool needAnimation = false);
+	Sun* CreateSun(float x, float y, bool needAnimation = false);
 
 	// 创建奖杯
 	void CreateTrophy(const Vector& position);
 
 	// 创建植物
-	std::shared_ptr<Plant> CreatePlant(PlantType plantType, int row, int column, bool skipsettings = false, bool isPreview = false);
+	Plant* CreatePlant(PlantType plantType, int row, int column, bool skipsettings = false, bool isPreview = false);
 
-	// 创建铲子
+	// 创建铲子（保持 weak_ptr：mShovel 是跨帧成员，需要悬垂检测）
 	std::weak_ptr<Shovel> CreateShovel();
 
 	// 激活铲子
 	void ActivateShovel();
 
 	// 创建子弹
-	std::shared_ptr<Bullet> CreateBullet(BulletType plantType, int row, const Vector& position, bool skipsettings = false);
+	Bullet* CreateBullet(BulletType plantType, int row, const Vector& position, bool skipsettings = false);
 
 	// 创建樱桃爆炸效果
 	void CreateBoom(const Vector& position, int damage = 1800);
 
 	// 带指定 ID 创建实体（用于读档）
-	std::shared_ptr<Plant> CreatePlantWithID(PlantType type, int row, int col, int id);
-	std::shared_ptr<Zombie> CreateZombieWithID(ZombieType type, int row, float x, float y, int id);
-	std::shared_ptr<Bullet> CreateBulletWithID(BulletType type, int row, const Vector& pos, int id);
-	std::shared_ptr<Sun> CreateSunWithID(const Vector& pos, bool fromSky, int id);
-	std::shared_ptr<Trophy> CreateTrophyWithID(const Vector& pos, int id);
+	Plant* CreatePlantWithID(PlantType type, int row, int col, int id);
+	Zombie* CreateZombieWithID(ZombieType type, int row, float x, float y, int id);
+	Bullet* CreateBulletWithID(BulletType type, int row, const Vector& pos, int id);
+	Sun* CreateSunWithID(const Vector& pos, bool fromSky, int id);
+	Trophy* CreateTrophyWithID(const Vector& pos, int id);
 
 	// 更新关卡
 	void UpdateLevel();
@@ -226,8 +226,8 @@ public:
 	void SetRowLoseMower(int row);
 
 	// 小推车
-	std::shared_ptr<Mower> CreateMower(MowerType type, int row);
-	std::shared_ptr<Mower> CreateMowerWithID(MowerType type, int row, float x, float y, int id);
+	Mower* CreateMower(MowerType type, int row);
+	Mower* CreateMowerWithID(MowerType type, int row, float x, float y, int id);
 	void InitializeMowers();
 
 };

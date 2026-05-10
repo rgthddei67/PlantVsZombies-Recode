@@ -20,7 +20,7 @@ void BulletPool::Initialize(int initialCapacity, int warningThreshold) {
 	mMissCount = 0;
 }
 
-std::shared_ptr<Bullet> BulletPool::Acquire(Board* board, BulletType type, int row,
+std::shared_ptr<Bullet> BulletPool::AcquireShared(Board* board, BulletType type, int row,
 	const Vector& colliderRadius, const Vector& position) {
 
 	int typeIdx = static_cast<int>(type);
@@ -57,12 +57,12 @@ std::shared_ptr<Bullet> BulletPool::Acquire(Board* board, BulletType type, int r
 	// TODO: 新增子弹修改我
 	switch (type) {
 	case BulletType::BULLET_PEA:
-		bullet = GameObjectManager::GetInstance().CreateGameObjectImmediate<PeaBullet>(
+		bullet = GameObjectManager::GetInstance().CreateGameObjectImmediateAsShared<PeaBullet>(
 			LAYER_GAME_BULLET,
 			board, type, row, colliderRadius, position);
 		break;
 	case BulletType::BULLET_SNOWPEA:
-		bullet = GameObjectManager::GetInstance().CreateGameObjectImmediate<SnowPeaBullet>(
+		bullet = GameObjectManager::GetInstance().CreateGameObjectImmediateAsShared<SnowPeaBullet>(
 			LAYER_GAME_BULLET,
 			board, type, row, colliderRadius, position);
 		break;
@@ -91,6 +91,11 @@ std::shared_ptr<Bullet> BulletPool::Acquire(Board* board, BulletType type, int r
 	}
 
 	return nullptr;
+}
+
+Bullet* BulletPool::Acquire(Board* board, BulletType type, int row,
+	const Vector& colliderRadius, const Vector& position) {
+	return AcquireShared(board, type, row, colliderRadius, position).get();
 }
 
 void BulletPool::Release(Bullet* bullet) {

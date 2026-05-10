@@ -112,7 +112,7 @@ void ChooseCardUI::AddCard(PlantType type) {
 	}
 	card->SetOriginalPosition(Vector(posX, posY));
 	card->mIsUI = true;
-	mCards.push_back(card.get());
+	mCards.push_back(card);
 }
 
 void ChooseCardUI::RemoveCard(Card* card)

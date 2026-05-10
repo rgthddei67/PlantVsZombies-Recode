@@ -45,23 +45,36 @@ public:
     GameObjectManager();
 
     // 创建游戏对象 (塞入mObjectsToAdd，在Update时执行Start)
+    // 返回原始指针：所有权在 mObjectsToAdd / mGameObjects 中，调用方仅作非所有 view 使用
     template<typename T, typename... Args>
-    std::shared_ptr<T> CreateGameObject(RenderLayer layer, Args&&... args) {
+    T* CreateGameObject(RenderLayer layer, Args&&... args) {
+        return CreateGameObjectAsShared<T>(layer, std::forward<Args>(args)...).get();
+    }
+
+    // 立即创建游戏对象并启动（立刻调用Start 并且塞入mGameObjects 而不是mObjectsToAdd)
+    // 返回原始指针：所有权在 mGameObjects 中
+    template<typename T, typename... Args>
+    T* CreateGameObjectImmediate(RenderLayer layer, Args&&... args) {
+        return CreateGameObjectImmediateAsShared<T>(layer, std::forward<Args>(args)...).get();
+    }
+
+    // shared_ptr 版本：仅在调用方需要把对象登记到 weak_ptr 容器（如 EntityManager / BulletPool）时使用
+    template<typename T, typename... Args>
+    std::shared_ptr<T> CreateGameObjectAsShared(RenderLayer layer, Args&&... args) {
         static_assert(std::is_base_of<GameObject, T>::value, "T must be a GameObject");
         auto obj = std::make_shared<T>(std::forward<Args>(args)...);
         obj->SetLayer(layer);
-        AssignRenderOrder(obj, layer);
+        AssignRenderOrder(obj.get(), layer);
         mObjectsToAdd.push_back(obj);
         return obj;
     }
 
-    // 立即创建游戏对象并启动（立刻调用Start 并且塞入mGameObjects 而不是mObjectsToAdd)
     template<typename T, typename... Args>
-    std::shared_ptr<T> CreateGameObjectImmediate(RenderLayer layer, Args&&... args) {
+    std::shared_ptr<T> CreateGameObjectImmediateAsShared(RenderLayer layer, Args&&... args) {
         static_assert(std::is_base_of<GameObject, T>::value, "T must be a GameObject");
         auto obj = std::make_shared<T>(std::forward<Args>(args)...);
         obj->SetLayer(layer);
-        AssignRenderOrder(obj, layer);
+        AssignRenderOrder(obj.get(), layer);
         mGameObjects.push_back(obj);
         mSortDirty = true;   // 直接加入 mGameObjects，需要重新排序
         obj->Start();
@@ -104,7 +117,7 @@ public:
     // 初始化所有图层
     void ResetAllLayers();
 
-    void AssignRenderOrder(std::shared_ptr<GameObject> gameObject, RenderLayer layer);
+    void AssignRenderOrder(GameObject* gameObject, RenderLayer layer);
 
     // 回收渲染顺序
     void RecycleRenderOrder(int renderOrder, RenderLayer layer, int key = -1);

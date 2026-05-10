@@ -91,7 +91,7 @@ void PlantAlmanacScene::CreateAllCards()
 				};
 		}
 
-		mCards.push_back(card.get());   
+		mCards.push_back(card);
 		cardCount++;
 	}
 }

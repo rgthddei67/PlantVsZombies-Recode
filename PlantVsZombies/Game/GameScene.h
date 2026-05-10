@@ -52,7 +52,7 @@ public:
 
     void ChooseCardComplete();  // 选卡完成
 
-    std::shared_ptr<GameProgress> GetGameProgress() const;
+    GameProgress* GetGameProgress() const;
 
     void GameOver();
 
@@ -75,11 +75,11 @@ private:
     std::unique_ptr<Board> mBoard = nullptr;
     std::weak_ptr<Button> mMainMenuButton;
     std::weak_ptr<Button> mSpeedSettingsButton;
-    std::weak_ptr<ShovelBank> mShovelUI;
+    ShovelBank* mShovelUI = nullptr;   // 所有权在 GameObjectManager
     std::weak_ptr<GameMessageBox> mMenu;
     CardSlotManager* mCardSlotManager = nullptr;  // 由 CardUI GameObject 持有 unique_ptr，本字段仅缓存指针
-    std::shared_ptr<ChooseCardUI> mChooseCardUI = nullptr;
-    std::shared_ptr<GameProgress> mGameProgress = nullptr;
+    ChooseCardUI* mChooseCardUI = nullptr;        // 所有权在 GameObjectManager
+    GameProgress* mGameProgress = nullptr;        // 所有权在 GameObjectManager
 
     bool mOpenMenu = false;
     bool mOpenRestartMenu = false;

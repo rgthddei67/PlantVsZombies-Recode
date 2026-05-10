@@ -63,7 +63,7 @@ public:
         float scale = 1.0f,
         const std::string& backgroundImageKey = ResourceKeys::Textures::IMAGE_MESSAGEBOX)
     {
-        return GameObjectManager::GetInstance().CreateGameObjectImmediate<GameMessageBox>(
+        return GameObjectManager::GetInstance().CreateGameObjectImmediateAsShared<GameMessageBox>(
             LAYER_UI, pos, message, buttons, sliders, texts, title, backgroundImageKey, scale);
     }
 

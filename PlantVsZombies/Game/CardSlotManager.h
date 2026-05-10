@@ -18,15 +18,15 @@ class CardSlotManager : public Component {
 private:
     std::vector<Card*> cards;  // 卡牌列表（观察者，所有权在 GameObjectManager）
     GameObject* selectedCard = nullptr;       // 当前选中的卡牌（观察者）
-    std::shared_ptr<Plant> plantPreview = nullptr;          // 植物预览
-    std::shared_ptr<Plant> cellPlantPreview = nullptr;
+    Plant* plantPreview = nullptr;          // 植物预览（观察者，所有权在 GameObjectManager）
+    Plant* cellPlantPreview = nullptr;
 
     // 常量参数
     Vector firstSlotPosition = Vector(64, -2); // 第一个卡牌槽的位置
     float slotSpacing = CARD_WIDTH + 5; // 卡牌间距 = 卡牌宽度 + 5像素间隔
 
     Board* mBoard = nullptr;
-    std::weak_ptr<Cell> mHoveredCell;     // 当前鼠标悬停的Cell
+    Cell* mHoveredCell = nullptr;     // 当前鼠标悬停的Cell（观察者）
 
 public:
     CardSlotManager(Board* board);
@@ -52,7 +52,7 @@ public:
     void HandleCellClick(int row, int col);
 
     // 移动预览到指定Cell
-    void UpdatePreviewToCell(std::weak_ptr<Cell> cell);
+    void UpdatePreviewToCell(Cell* cell);
 
     // 获取当前选中的植物类型
     PlantType GetSelectedPlantType() const;
@@ -67,12 +67,12 @@ private:
     void UpdatePlantPreviewPosition(Graphics* g, const Vector& position);
 
     // 创建Cell悬停预览（透明）
-    void CreateCellPlantPreview(PlantType plantType, std::shared_ptr<Cell> cell);
+    void CreateCellPlantPreview(PlantType plantType, Cell* cell);
     // 销毁Cell悬停预览
     void DestroyCellPlantPreview();
 
     // 检查是否可以在指定Cell放置植物
-    bool CanPlaceInCell(const std::shared_ptr<Cell>& cell) const;
+    bool CanPlaceInCell(Cell* cell) const;
 
     // 在指定Cell放置植物
     void PlacePlantInCell(int row, int col);

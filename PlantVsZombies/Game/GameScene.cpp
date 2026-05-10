@@ -172,16 +172,13 @@ void GameScene::OnExit() {
 	gameApp.mGameInfoSaver.SavePlayerInfo();
 
 	Scene::OnExit();
-	mShovelUI.reset();
+	mShovelUI = nullptr;
 	mBoard.reset();
 	mSpeedSettingsButton.reset();
 	mMainMenuButton.reset();
-	mGameProgress.reset();
+	mGameProgress = nullptr;
 	mCardSlotManager = nullptr;
-	if (mChooseCardUI)
-	{
-		mChooseCardUI.reset();
-	}
+	mChooseCardUI = nullptr;
 }
 
 void GameScene::OpenMenu()
@@ -548,7 +545,7 @@ void GameScene::ChooseCardComplete()
 		mChooseCardUI->TransferSelectedCardsTo(mCardSlotManager);
 		mChooseCardUI->RemoveAllCards();
 		GameObjectManager::GetInstance().DestroyGameObject(mChooseCardUI);
-		mChooseCardUI.reset();
+		mChooseCardUI = nullptr;
 	}
 
 	RegisterDrawCommand("ZombieNumber",
@@ -602,7 +599,7 @@ void GameScene::ShowShovel()
 		shovel->SetHomePosition(shovelBankCenter);
 }
 
-std::shared_ptr<GameProgress> GameScene::GetGameProgress() const
+GameProgress* GameScene::GetGameProgress() const
 {
 	return this->mGameProgress;
 }
@@ -615,10 +612,10 @@ void GameScene::GameOver()
 	GameAPP::GetInstance().mGameInfoSaver.DeleteLevelData(mBoard.get());
 	mUIManager.RemoveButton(this->mMainMenuButton.lock());
 	mMainMenuButton.reset();
-	if (auto shovelBank = mShovelUI.lock())
-		GameObjectManager::GetInstance().DestroyGameObject(shovelBank);
+	if (mShovelUI)
+		GameObjectManager::GetInstance().DestroyGameObject(mShovelUI);
 
-	mShovelUI.reset();
+	mShovelUI = nullptr;
 
 	if (auto shovel = mBoard->mShovel.lock())
 	{

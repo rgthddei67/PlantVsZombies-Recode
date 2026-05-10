@@ -24,7 +24,7 @@ void CardSlotManager::Start() {
     if (mBoard) {
         for (int row = 0; row < mBoard->mRows; ++row) {
             for (int col = 0; col < mBoard->mColumns; ++col) {
-                auto cell = mBoard->GetCell(row, col);
+                Cell* cell = mBoard->GetCell(row, col);
                 if (cell) {
                     cell->SetClickCallback([this](int r, int c) {
                         HandleCellClick(r, c);
@@ -140,7 +140,7 @@ void CardSlotManager::DeselectCard() {
             cardComp->SetSelected(false);
         }
         selectedCard = nullptr;
-        mHoveredCell.reset();
+        mHoveredCell = nullptr;
     }
     DestroyPlantPreview();
     DestroyCellPlantPreview();
@@ -185,7 +185,7 @@ void CardSlotManager::CreatePlantPreview(PlantType plantType) {
     }
 }
 
-void CardSlotManager::CreateCellPlantPreview(PlantType plantType, std::shared_ptr<Cell> cell) {
+void CardSlotManager::CreateCellPlantPreview(PlantType plantType, Cell* cell) {
     DestroyCellPlantPreview();
 
     if (mBoard && cell) {
@@ -217,13 +217,13 @@ void CardSlotManager::UpdatePlantPreviewPosition(Graphics* g, const Vector& mous
     // 屏幕坐标转世界坐标
     Vector mouseWorld = g->ScreenToWorldPosition(mouseScreen.x, mouseScreen.y);
 
-    std::shared_ptr<Cell> hoveredCell = nullptr;
+    Cell* hoveredCell = nullptr;
 
     if (mBoard) {
         // 遍历所有 Cell，使用世界坐标检测鼠标是否在 Cell 的碰撞器内
         for (int row = 0; row < mBoard->mRows; ++row) {
             for (int col = 0; col < mBoard->mColumns; ++col) {
-                auto cell = mBoard->GetCell(row, col);
+                Cell* cell = mBoard->GetCell(row, col);
                 if (cell) {
                     auto collider = cell->GetComponent<ColliderComponent>();
                     if (collider && collider->mEnabled) {
@@ -248,8 +248,7 @@ void CardSlotManager::UpdatePlantPreviewPosition(Graphics* g, const Vector& mous
         hoveredCell = nullptr;
     }
 
-    auto oldHoveredCell = mHoveredCell.lock();
-    if (hoveredCell != oldHoveredCell) {
+    if (hoveredCell != mHoveredCell) {
         DestroyCellPlantPreview();
 
         if (hoveredCell) {
@@ -290,13 +289,11 @@ void CardSlotManager::UpdatePreviewToMouse(const Vector& mouseWorld) {
     }
 }
 
-void CardSlotManager::UpdatePreviewToCell(std::weak_ptr<Cell> cell) {
-    if (plantPreview) {
-        if (auto lockedCell = cell.lock()) {
-            Vector centerPos = lockedCell->GetCenterPosition();      // 世界坐标
-            if (auto transform = plantPreview->GetTransformComponent()) {
-                transform->SetPosition(centerPos);                  // 世界坐标
-            }
+void CardSlotManager::UpdatePreviewToCell(Cell* cell) {
+    if (plantPreview && cell) {
+        Vector centerPos = cell->GetCenterPosition();      // 世界坐标
+        if (auto transform = plantPreview->GetTransformComponent()) {
+            transform->SetPosition(centerPos);                  // 世界坐标
         }
     }
 }
@@ -304,7 +301,7 @@ void CardSlotManager::UpdatePreviewToCell(std::weak_ptr<Cell> cell) {
 void CardSlotManager::HandleCellClick(int row, int col) {
     if (!selectedCard) return;
 
-    auto cell = mBoard ? mBoard->GetCell(row, col) : nullptr;
+    Cell* cell = mBoard ? mBoard->GetCell(row, col) : nullptr;
     if (!cell) return;
 
     if (CanPlaceInCell(cell)) {
@@ -312,7 +309,7 @@ void CardSlotManager::HandleCellClick(int row, int col) {
     }
 }
 
-bool CardSlotManager::CanPlaceInCell(const std::shared_ptr<Cell>& cell) const {
+bool CardSlotManager::CanPlaceInCell(Cell* cell) const {
     if (!selectedCard || !cell) return false;
 
     // 检查格子是否已有植物
@@ -336,7 +333,7 @@ void CardSlotManager::PlacePlantInCell(int row, int col) {
     auto cardComp = selectedCard->GetComponent<CardComponent>();
     if (!cardComp) return;
 
-    auto cell = mBoard->GetCell(row, col);
+    Cell* cell = mBoard->GetCell(row, col);
     if (!cell) return;
 
     if (!SpendSun(cardComp->GetSunCost())) {
@@ -348,7 +345,7 @@ void CardSlotManager::PlacePlantInCell(int row, int col) {
     AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_PLANT, 0.5f);
 
     // 创建植物
-    auto plant = mBoard->CreatePlant(cardComp->GetPlantType(), row, col);
+    Plant* plant = mBoard->CreatePlant(cardComp->GetPlantType(), row, col);
 
     if (plant) {
         cardComp->StartCooldown();

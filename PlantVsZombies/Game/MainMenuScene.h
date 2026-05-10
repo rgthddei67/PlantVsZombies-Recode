@@ -18,7 +18,7 @@ public:
     bool mReadyToSwitchAlmanac = false;
 
 private:
-    std::shared_ptr<class GameButton> mGameButton;
+    class GameButton* mGameButton = nullptr;   // 所有权在 GameObjectManager
     std::shared_ptr<Button> mOpitionButton;
     std::shared_ptr<Button> mExitButton;
     std::shared_ptr<Button> mAlmanacButton;
