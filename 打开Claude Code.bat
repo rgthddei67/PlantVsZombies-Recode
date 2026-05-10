@@ -2,7 +2,7 @@
 chcp 65001 >nul
 setlocal enabledelayedexpansion
 
-curl --max-time 5 -s www.discord.com > nul 2>&1
+curl --max-time 5 -s www.youtube.com > nul 2>&1
 if errorlevel 1 (
     echo [错误] 无法连接外网，请先开启 VPN 再运行 Claude Code！
     pause

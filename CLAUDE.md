@@ -9,7 +9,6 @@ This is a Visual Studio 2026 C++ project (x64 Windows only).
 - **Build:** Open `PlantsVsZombies.sln` in Visual Studio 2026, press F7 (or Build Solution)
 - **Run:** F5 in Visual Studio, or run the compiled `x64\Debug\PlantsVsZombies.exe`
 - **Debug mode:** Run with `-Debug` flag to show collision hitboxes
-- **Speed cheat:** Press F3 during gameplay to toggle 5× game speed
 
 > **Important:** After making code changes, do NOT attempt to build the project yourself (e.g., via MSVC or any build command). The user will handle all builds manually in Visual Studio.
 
