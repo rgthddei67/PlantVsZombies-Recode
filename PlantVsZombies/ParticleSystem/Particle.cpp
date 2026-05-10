@@ -21,6 +21,7 @@ void Particle::Reset() {
 
     brightness = 1.0f;
     stretch = 1.0f;
+    baseScale = 1.0f;
     colorMultiplier = glm::vec3(1.0f);
     currentFrame = 0;
     animationTimer = 0.0f;

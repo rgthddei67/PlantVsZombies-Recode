@@ -3,6 +3,10 @@
 #include <algorithm>
 
 float InterpolationTrack::GetValue(float normalizedTime) const {
+    if (isRandomRange) {
+        // 兜底：未分支到 baseScale 的消费方拿到稳定的中值，避免每帧重抽闪烁
+        return (randomMin + randomMax) * 0.5f;
+    }
     if (isConstant) {
         return constantValue;
     }
@@ -18,17 +22,34 @@ float InterpolationTrack::GetValue(float normalizedTime) const {
     // 限制时间范围
     normalizedTime = std::max(0.0f, std::min(1.0f, normalizedTime));
 
+    // 在第一个关键帧之前 / 最后一个关键帧之后，按 PvZ 原版语义"夹住"端点值
+    if (normalizedTime <= points.front().time) {
+        return points.front().value;
+    }
+    if (normalizedTime >= points.back().time) {
+        return points.back().value;
+    }
+
     // 查找插值区间
     for (size_t i = 0; i < points.size() - 1; i++) {
         if (normalizedTime >= points[i].time && normalizedTime <= points[i + 1].time) {
-            // 线性插值
             float t = (normalizedTime - points[i].time) / (points[i + 1].time - points[i].time);
             return points[i].value + t * (points[i + 1].value - points[i].value);
         }
     }
 
-    // 如果超出范围，返回最后一个值
+    // 不应到达
     return points.back().value;
+}
+
+float InterpolationTrack::SampleConstant() const {
+    if (isRandomRange) {
+        return GameRandom::Range(randomMin, randomMax);
+    }
+    if (isConstant) {
+        return constantValue;
+    }
+    return GetValue(0.0f);
 }
 
 float ValueRange::GetRandomValue() const {
@@ -39,8 +60,8 @@ float ValueRange::GetRandomValue() const {
 }
 
 EmitterConfig::EmitterConfig()
-    : spawnMinActive(1)
-    , spawnMaxLaunched(1)
+    : spawnMinActive(ValueRange(1.0f))
+    , spawnMaxLaunched(ValueRange(1.0f))
     , spawnRate(0)
     , systemDuration(-1.0f)
     , emitterType(EmitterType::POINT)

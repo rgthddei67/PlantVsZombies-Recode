@@ -723,7 +723,9 @@ void Board::InitializeMowers()
 
 float Board::GetZombieSpawnY(int row) const {
 	if (row < 0 || row >= mRows) {
+#ifdef _DEBUG
 		std::cout << "Board::GetZombieSpawnY: 无效的行索引: " << row << std::endl;
+#endif
 		return -1.0f;
 	}
 

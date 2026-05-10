@@ -31,12 +31,14 @@ void ParticleEmitter::Initialize(const EmitterConfig& config, const Vector& pos)
     spawnRate = config.spawnRate;
 
     isOneShot = true;
-    particlesToEmit = config.spawnMaxLaunched;
+    int minActive = std::max(0, static_cast<int>(config.spawnMinActive.GetRandomValue()));
+    int maxLaunched = std::max(0, static_cast<int>(config.spawnMaxLaunched.GetRandomValue()));
+    particlesToEmit = maxLaunched;
 
-    maxParticles = std::max(config.spawnMaxLaunched, config.spawnMinActive);
+    maxParticles = std::max(maxLaunched, minActive);
     particles.resize(maxParticles);
 
-    for (int i = 0; i < config.spawnMinActive; i++) {
+    for (int i = 0; i < minActive; i++) {
         EmitSingleParticle();
     }
 
@@ -83,7 +85,9 @@ void ParticleEmitter::Update() {
             }
 
             float alpha = xmlConfig.particleAlpha.GetValue(normalizedTime);
-            float scale = xmlConfig.particleScale.GetValue(normalizedTime);
+            float scale = xmlConfig.particleScale.isRandomRange
+                ? particle.baseScale
+                : xmlConfig.particleScale.GetValue(normalizedTime);
             float stretch = xmlConfig.particleStretch.GetValue(normalizedTime);
 
             particle.size = scale;
@@ -110,6 +114,10 @@ void ParticleEmitter::Update() {
                 else if (field.type == ParticleFieldType::FRICTION) {
                     particle.velocity.x *= (1.0f - xValue);
                     particle.velocity.y *= (1.0f - yValue);
+                }
+                else if (field.type == ParticleFieldType::ACCELERATION) {
+                    particle.velocity.x += xValue * deltaTime;
+                    particle.velocity.y += yValue * deltaTime;
                 }
             }
 
@@ -167,7 +175,10 @@ void ParticleEmitter::EmitSingleParticle() {
 
     particle->brightness = xmlConfig.particleBrightness.GetRandomValue();
 
-    particle->size = xmlConfig.particleScale.GetValue(0.0f);
+    particle->baseScale = xmlConfig.particleScale.SampleConstant();
+    particle->size = xmlConfig.particleScale.isRandomRange
+        ? particle->baseScale
+        : xmlConfig.particleScale.GetValue(0.0f);
 
     particle->color = glm::vec4(255.0f);
 }

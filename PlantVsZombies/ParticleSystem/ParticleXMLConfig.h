@@ -19,11 +19,19 @@ struct InterpolationTrack {
     std::vector<InterpolationPoint> points;
     bool isConstant;
     float constantValue;
+    bool isRandomRange;   // "[a b]" 语义：每粒子在生成时随机一次，整生命周期保持
+    float randomMin;
+    float randomMax;
 
-    InterpolationTrack() : isConstant(true), constantValue(1.0f) {}
+    InterpolationTrack()
+        : isConstant(true), constantValue(1.0f),
+          isRandomRange(false), randomMin(0.0f), randomMax(0.0f) {}
 
     // 根据归一化时间获取插值
     float GetValue(float normalizedTime) const;
+
+    // spawn 时调用：随机范围 → 采样一次；常量/插值 → 起始值
+    float SampleConstant() const;
 };
 
 // 值范围（如 "[0.3 0.6]" 表示随机范围，或单个值 "1.5"）
@@ -45,7 +53,8 @@ enum class ParticleFieldType {
     POSITION,         // 位置场（影响粒子位置）
     SHAKE,            // 抖动场（随机抖动）
     SYSTEM_POSITION,  // 系统位置场（影响发射器位置）
-    FRICTION          // 摩擦力场（使粒子减速）
+    FRICTION,         // 摩擦力场（使粒子减速）
+    ACCELERATION      // 加速度场（按时间累加到速度）
 };
 
 // 场效果
@@ -69,8 +78,8 @@ struct EmitterConfig {
     std::string name;
 
     // 基础属性
-    int spawnMinActive;
-    int spawnMaxLaunched;
+    ValueRange spawnMinActive;     // 支持 "[a b]"：每次发射器初始化时随机一个数量
+    ValueRange spawnMaxLaunched;   // 同上
     int spawnRate;
     ValueRange particleDuration;
     float systemDuration;  // -1表示无限

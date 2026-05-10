@@ -22,6 +22,7 @@ struct Particle {
 
     float brightness;
     float stretch;
+    float baseScale;   // 随机范围 ParticleScale 的 spawn 采样（每粒子保持）
     glm::vec3 colorMultiplier;
     int currentFrame;
     float animationTimer;

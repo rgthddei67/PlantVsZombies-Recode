@@ -102,11 +102,23 @@ bool ResourceManager::HasTexture(const std::string& key) const {
 
 bool ResourceManager::LoadTiledTextureGL(const TiledImageInfo& info, const std::string& prefix) {
     // 加载原图到表面（用于分割）
-    SDL_Surface* originalSurface = IMG_Load(info.path.c_str());
-    if (!originalSurface) {
+    SDL_Surface* loadedSurface = IMG_Load(info.path.c_str());
+    if (!loadedSurface) {
         std::cerr << "无法加载图片: " << info.path << " - " << IMG_GetError() << std::endl;
         return false;
     }
+
+    // 切片前统一转为 ABGR8888，统一处理索引色/灰度/RGB 等源格式，
+    // 否则 SDL_CreateRGBSurface 用源 BPP/Rmask 复制时不会带调色板，
+    // 导致索引色 PNG 切出来的子图全黑/全透明
+    SDL_Surface* originalSurface = SDL_ConvertSurfaceFormat(loadedSurface, SDL_PIXELFORMAT_ABGR8888, 0);
+    SDL_FreeSurface(loadedSurface);
+    if (!originalSurface) {
+        std::cerr << "无法转换源图片格式: " << info.path << " - " << SDL_GetError() << std::endl;
+        return false;
+    }
+    // 关闭 src 的 alpha-blend，blit 走纯拷贝，避免与 dst 全 0 alpha 混合丢失
+    SDL_SetSurfaceBlendMode(originalSurface, SDL_BLENDMODE_NONE);
 
     int imgW = originalSurface->w;
     int imgH = originalSurface->h;
@@ -124,15 +136,9 @@ bool ResourceManager::LoadTiledTextureGL(const TiledImageInfo& info, const std::
 
     for (int row = 0; row < info.rows; ++row) {
         for (int col = 0; col < info.columns; ++col) {
-            // 创建子表面
-            SDL_Surface* tileSurface = SDL_CreateRGBSurface(
-                0, tileW, tileH,
-                originalSurface->format->BitsPerPixel,
-                originalSurface->format->Rmask,
-                originalSurface->format->Gmask,
-                originalSurface->format->Bmask,
-                originalSurface->format->Amask
-            );
+            // 直接创建 ABGR8888 子表面（源已统一为该格式）
+            SDL_Surface* tileSurface = SDL_CreateRGBSurfaceWithFormat(
+                0, tileW, tileH, 32, SDL_PIXELFORMAT_ABGR8888);
             if (!tileSurface) {
                 std::cerr << "无法创建子表面: " << SDL_GetError() << std::endl;
                 success = false;
@@ -147,28 +153,19 @@ bool ResourceManager::LoadTiledTextureGL(const TiledImageInfo& info, const std::
                 continue;
             }
 
-            // 统一转换为 RGBA，解决对齐和格式问题
-            SDL_Surface* tileConverted = SDL_ConvertSurfaceFormat(tileSurface, SDL_PIXELFORMAT_ABGR8888, 0);
-            SDL_FreeSurface(tileSurface);
-            if (!tileConverted) {
-                std::cerr << "无法转换子图片格式: " << SDL_GetError() << std::endl;
-                success = false;
-                continue;
-            }
-
             // 创建 OpenGL 纹理
             GLuint textureId;
             glGenTextures(1, &textureId);
             glBindTexture(GL_TEXTURE_2D, textureId);
 
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, tileW, tileH, 0,
-                GL_RGBA, GL_UNSIGNED_BYTE, tileConverted->pixels);
+                GL_RGBA, GL_UNSIGNED_BYTE, tileSurface->pixels);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-            SDL_FreeSurface(tileConverted);
+            SDL_FreeSurface(tileSurface);
 
             GLTexture tex;
             tex.id = textureId;

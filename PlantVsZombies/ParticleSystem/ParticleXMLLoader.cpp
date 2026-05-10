@@ -88,8 +88,12 @@ EmitterConfig ParticleXMLLoader::ParseEmitter(const pugi::xml_node& emitterNode)
 
     // 基础属性
     config.name = emitterNode.child_value("Name");
-    config.spawnMinActive = emitterNode.child("SpawnMinActive").text().as_int(1);
-    config.spawnMaxLaunched = emitterNode.child("SpawnMaxLaunched").text().as_int(1);
+    if (emitterNode.child("SpawnMinActive")) {
+        config.spawnMinActive = ParseValueRange(emitterNode.child_value("SpawnMinActive"));
+    }
+    if (emitterNode.child("SpawnMaxLaunched")) {
+        config.spawnMaxLaunched = ParseValueRange(emitterNode.child_value("SpawnMaxLaunched"));
+    }
     if (emitterNode.child("SpawnRate")) {
         config.spawnRate = emitterNode.child("SpawnRate").text().as_int(0);
     }
@@ -178,57 +182,110 @@ EmitterConfig ParticleXMLLoader::ParseEmitter(const pugi::xml_node& emitterNode)
 
 InterpolationTrack ParticleXMLLoader::ParseInterpolationTrack(const std::string& text) {
     InterpolationTrack track;
-
     if (text.empty()) {
         return track;
     }
 
+    // "[a b]" 随机范围语义：每粒子在生成时随机一次、整生命周期保持
+    if (text.find('[') != std::string::npos) {
+        std::string cleaned = text;
+        cleaned.erase(std::remove(cleaned.begin(), cleaned.end(), '['), cleaned.end());
+        cleaned.erase(std::remove(cleaned.begin(), cleaned.end(), ']'), cleaned.end());
+
+        std::istringstream iss(cleaned);
+        float a = 0.0f, b = 0.0f;
+        if (iss >> a >> b) {
+            track.isConstant = false;
+            track.isRandomRange = true;
+            track.randomMin = a;
+            track.randomMax = b;
+            return track;
+        }
+        if (!cleaned.empty()) {
+            std::istringstream iss2(cleaned);
+            if (iss2 >> a) {
+                track.isConstant = true;
+                track.constantValue = a;
+                return track;
+            }
+        }
+        return track;
+    }
+
+    // 切分 token，记录是否带显式时间（comma 形式）
+    struct Raw { float val; float time; bool hasTime; };
+    std::vector<Raw> raws;
     std::istringstream iss(text);
-    std::vector<float> values;
-    float value;
-
-    // 读取所有数值
-    while (iss >> value) {
-        values.push_back(value);
-    }
-
-    if (values.empty()) {
-        return track;
-    }
-
-    // 如果只有一个值，是常量
-    if (values.size() == 1) {
-        track.isConstant = true;
-        track.constantValue = values[0];
-        return track;
-    }
-
-    // 解析插值点（格式: value1,time1 value2,time2 ...）
-    // 或简化格式: value1 value2（时间均匀分布）
-    track.isConstant = false;
-
-    // 检查是否有逗号（完整格式）
-    if (text.find(',') != std::string::npos) {
-        // 完整格式: "1,90 0"
-        std::istringstream iss2(text);
-        std::string token;
-        while (iss2 >> token) {
-            size_t commaPos = token.find(',');
+    std::string token;
+    while (iss >> token) {
+        size_t commaPos = token.find(',');
+        try {
             if (commaPos != std::string::npos) {
                 float val = std::stof(token.substr(0, commaPos));
-                float time = std::stof(token.substr(commaPos + 1));
-                track.points.push_back(InterpolationPoint(val, time / 100.0f));  // 归一化
+                float t = std::stof(token.substr(commaPos + 1)) / 100.0f;
+                raws.push_back({ val, t, true });
             }
+            else {
+                raws.push_back({ std::stof(token), 0.0f, false });
+            }
+        }
+        catch (const std::exception& e) {
+            std::cerr << "警告: 无法解析关键帧 token \"" << token
+                << "\" (来源: " << text << "): " << e.what() << std::endl;
+        }
+    }
+
+    if (raws.empty()) {
+        return track;
+    }
+    if (raws.size() == 1) {
+        track.isConstant = true;
+        track.constantValue = raws[0].val;
+        return track;
+    }
+
+    // 给无显式时间的 token 填时间：
+    // - 全部无显式 → 均匀分布 0..1（兼容 "1 0"）
+    // - 否则 → 首默认 0.0，尾默认 1.0，中间在前后锚点间均匀分布（兼容 "1,80 0" / "0.0,40 .1"）
+    bool anyExplicit = false;
+    for (const auto& r : raws) {
+        if (r.hasTime) { anyExplicit = true; break; }
+    }
+    if (!anyExplicit) {
+        for (size_t i = 0; i < raws.size(); ++i) {
+            raws[i].time = static_cast<float>(i) / static_cast<float>(raws.size() - 1);
         }
     }
     else {
-        // 简化格式: "1 0"（时间均匀分布）
-        for (size_t i = 0; i < values.size(); i++) {
-            float time = static_cast<float>(i) / static_cast<float>(values.size() - 1);
-            track.points.push_back(InterpolationPoint(values[i], time));
+        if (!raws.front().hasTime) {
+            raws.front().time = 0.0f;
+            raws.front().hasTime = true;
+        }
+        if (!raws.back().hasTime) {
+            raws.back().time = 1.0f;
+            raws.back().hasTime = true;
+        }
+        for (size_t i = 1; i + 1 < raws.size(); ++i) {
+            if (raws[i].hasTime) continue;
+            size_t prev = i - 1;
+            size_t next = i + 1;
+            while (next < raws.size() && !raws[next].hasTime) ++next;
+            float t0 = raws[prev].time;
+            float t1 = (next < raws.size()) ? raws[next].time : 1.0f;
+            size_t span = next - prev;
+            for (size_t j = i; j < next; ++j) {
+                raws[j].time = t0 + (t1 - t0) * static_cast<float>(j - prev) / static_cast<float>(span);
+                raws[j].hasTime = true;
+            }
+            i = next - 1;  // 跳过已填的中间段
         }
     }
 
+    track.isConstant = false;
+    track.isRandomRange = false;
+    for (const auto& r : raws) {
+        track.points.push_back(InterpolationPoint(r.val, r.time));
+    }
     return track;
 }
 
@@ -237,22 +294,21 @@ ValueRange ParticleXMLLoader::ParseValueRange(const std::string& text) {
         return ValueRange(0.0f);
     }
 
-    // 检查是否是范围格式 "[min max]"
-    if (text.find('[') != std::string::npos) {
-        std::string cleaned = text;
-        cleaned.erase(std::remove(cleaned.begin(), cleaned.end(), '['), cleaned.end());
-        cleaned.erase(std::remove(cleaned.begin(), cleaned.end(), ']'), cleaned.end());
+    // 一律先剥括号，避免后续 stof/流读取拿到 '['/']'
+    std::string cleaned = text;
+    cleaned.erase(std::remove(cleaned.begin(), cleaned.end(), '['), cleaned.end());
+    cleaned.erase(std::remove(cleaned.begin(), cleaned.end(), ']'), cleaned.end());
 
-        std::istringstream iss(cleaned);
-        float min, max;
-        if (iss >> min >> max) {
-            return ValueRange(min, max);
-        }
+    std::istringstream iss(cleaned);
+    float v1 = 0.0f, v2 = 0.0f;
+    if (!(iss >> v1)) {
+        std::cerr << "警告: 无法解析数值: " << text << std::endl;
+        return ValueRange(0.0f);
     }
-
-    // 单个值
-    float value = std::stof(text);
-    return ValueRange(value);
+    if (iss >> v2) {
+        return ValueRange(v1, v2);
+    }
+    return ValueRange(v1);
 }
 
 ParticleField ParticleXMLLoader::ParseField(const pugi::xml_node& fieldNode) {
@@ -282,6 +338,9 @@ ParticleFieldType ParticleXMLLoader::ParseFieldType(const std::string& typeStr) 
     }
     else if (typeStr == "Friction") {
         return ParticleFieldType::FRICTION;
+    }
+    else if (typeStr == "Acceleration") {
+        return ParticleFieldType::ACCELERATION;
     }
     return ParticleFieldType::POSITION;
 }
