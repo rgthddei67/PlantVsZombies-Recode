@@ -70,7 +70,7 @@ private:
     bool InitializeResourceManager();
     bool LoadAllResources();
     void CleanupResources();
-    void Draw(Uint64 start);
+    void Draw();
     void Shutdown();
 
 public:

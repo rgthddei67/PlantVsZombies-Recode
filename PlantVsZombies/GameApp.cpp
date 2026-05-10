@@ -292,8 +292,6 @@ int GameAPP::Run()
 
 	while (mRunning && !sceneManager.IsEmpty())
 	{
-		Uint64 start = SDL_GetPerformanceCounter();
-
 		DeltaTime::BeginFrame();
 		// 处理事件
 		while (SDL_PollEvent(&event))
@@ -311,7 +309,7 @@ int GameAPP::Run()
 		CursorManager::GetInstance().Update();
 
 		// 渲染
-		Draw(start);
+		Draw();
 
 #ifdef _DEBUG
 		static int MousePoint = 0;
@@ -333,7 +331,7 @@ int GameAPP::Run()
 	return 0;
 }
 
-void GameAPP::Draw(Uint64 start)
+void GameAPP::Draw()
 {
 	// 清除颜色缓冲
 	m_graphics->Clear();
@@ -346,16 +344,6 @@ void GameAPP::Draw(Uint64 start)
 
 	// 提交批处理并执行绘制
 	m_graphics->FlushBatch();
-
-	if (this->mVsync) {
-		// 在 SwapWindow 前主动 sleep，避免驱动忙等待吃满 CPU
-		Uint64 now2 = SDL_GetPerformanceCounter();
-		float elapsedMS2 = (now2 - start) * 1000.0f / SDL_GetPerformanceFrequency();
-		const float targetMS = 1000.0f / 60.0f;
-		if (elapsedMS2 < targetMS - 2.0f) {
-			SDL_Delay((Uint32)(targetMS - elapsedMS2 - 2.0f));
-		}
-	}
 
 	// 交换缓冲区
 	SDL_GL_SwapWindow(mWindow);
