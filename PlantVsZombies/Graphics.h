@@ -507,6 +507,7 @@ private:
 	float     m_cameraRotation = 0.0f;              ///< 旋转角度（度）
 
 	std::vector<glm::mat4> m_transformStack;   ///< 变换矩阵栈
+	std::vector<char>      m_transformIsIdentity; ///< 与 m_transformStack 平行：该层是否为单位阵（用于跳过冗余 mat4 乘法）
 
 	std::vector<ClipRect> m_clipStack;          ///< 裁剪矩形栈（屏幕像素，已经过嵌套交集）
 

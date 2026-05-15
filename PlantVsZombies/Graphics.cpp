@@ -1,7 +1,14 @@
 ﻿#include "Graphics.h"
+#include "Profiler.h"
+
+// 与 glm::mat4(1.0f) 精确比较：仅用于快路判定，假阴性只会多做一次乘法（结果仍正确），不会出错。
+static inline bool IsIdentityMat(const glm::mat4& m) {
+	return m == glm::mat4(1.0f);
+}
 
 Graphics::Graphics() {
 	m_transformStack.push_back(glm::mat4(1.0f));
+	m_transformIsIdentity.push_back(1);
 	this->SetBlendMode(BlendMode::Alpha);
 }
 
@@ -225,13 +232,18 @@ void Graphics::SetWindowSize(int width, int height) {
 }
 
 void Graphics::PushTransform(const glm::mat4& transform) {
-	glm::mat4 newTop = m_transformStack.back() * transform;
+	const bool curId = m_transformIsIdentity.back() != 0;
+	const bool tId = IsIdentityMat(transform);
+	// 栈顶为单位阵时无需相乘，直接取 transform（这本身也消除一次冗余乘法）
+	glm::mat4 newTop = curId ? transform : (m_transformStack.back() * transform);
 	m_transformStack.push_back(newTop);
+	m_transformIsIdentity.push_back((curId && tId) ? 1 : 0);
 }
 
 void Graphics::PopTransform() {
 	if (m_transformStack.size() > 1) {
 		m_transformStack.pop_back();
+		m_transformIsIdentity.pop_back();
 	}
 	else {
 		std::cerr << "[Graphics] PopTransform failed: stack underflow." << std::endl;
@@ -239,23 +251,28 @@ void Graphics::PopTransform() {
 }
 
 void Graphics::SetIdentity() {
-	if (!m_transformStack.empty())
+	if (!m_transformStack.empty()) {
 		m_transformStack.back() = glm::mat4(1.0f);
+		m_transformIsIdentity.back() = 1;
+	}
 }
 
 void Graphics::Translate(float x, float y, float z) {
 	if (m_transformStack.empty()) return;
 	m_transformStack.back() = glm::translate(m_transformStack.back(), glm::vec3(x, y, z));
+	m_transformIsIdentity.back() = 0;
 }
 
 void Graphics::Rotate(float angleDegrees, float x, float y, float z) {
 	if (m_transformStack.empty()) return;
 	m_transformStack.back() = glm::rotate(m_transformStack.back(), glm::radians(angleDegrees), glm::vec3(x, y, z));
+	m_transformIsIdentity.back() = 0;
 }
 
 void Graphics::Scale(float sx, float sy, float sz) {
 	if (m_transformStack.empty()) return;
 	m_transformStack.back() = glm::scale(m_transformStack.back(), glm::vec3(sx, sy, sz));
+	m_transformIsIdentity.back() = 0;
 }
 
 // ==================== 裁剪栈（PushClipRect / PopClipRect） ====================
@@ -331,6 +348,7 @@ void Graphics::EndBatch() {
 
 void Graphics::FlushBatch() {
 	if (!m_batchVertices.empty()) {
+		Profiler::Get().CountFlush(m_batchVertices.size());
 		// 确保 VBO 容量足够
 		if (m_batchVertices.size() > m_batchBufferCapacity) {
 			size_t newCapacity = m_batchVertices.size() * 2;
@@ -534,7 +552,14 @@ void Graphics::DrawTextureMatrix(const GLTexture* tex, const glm::mat4& transfor
 	if (!tex) return;
 
 	if (m_batchMode) {
-		int texIndex = BindTexture(tex->id);
+		// 图集重映射：若该纹理已被打进图集页，则改绑图集页并把 UV 收窄到子矩形
+		const GLTexture* bindTex = tex;
+		float u0 = 0.0f, v0 = 0.0f, u1 = 1.0f, v1 = 1.0f;
+		if (tex->atlasPage) {
+			bindTex = tex->atlasPage;
+			u0 = tex->aU0; v0 = tex->aV0; u1 = tex->aU1; v1 = tex->aV1;
+		}
+		int texIndex = BindTexture(bindTex->id);
 
 		glm::mat4 pivotTransform;
 		if (pivotX != 0.0f || pivotY != 0.0f) {
@@ -546,7 +571,10 @@ void Graphics::DrawTextureMatrix(const GLTexture* tex, const glm::mat4& transfor
 		else {
 			pivotTransform = transform;
 		}
-		glm::mat4 finalMatrix = m_transformStack.back() * pivotTransform;
+		// 栈顶为单位阵时跳过 mat4×mat4（Animator::Draw 压入单位阵，~9万 sprite/帧的串行热点）
+		glm::mat4 finalMatrix = m_transformIsIdentity.back()
+			? pivotTransform
+			: (m_transformStack.back() * pivotTransform);
 		int matrixIndex = AddMatrix(finalMatrix);
 
 		// 转换颜色为 0-1 格式
@@ -557,12 +585,12 @@ void Graphics::DrawTextureMatrix(const GLTexture* tex, const glm::mat4& transfor
 		float bm = (actualMode == BlendMode::Add) ? 1.0f : 0.0f;
 
 		BatchVertex vertices[6] = {
-			{0.0f, 1.0f, 0.0f, 1.0f, (GLuint)texIndex, (GLuint)matrixIndex, normalizedTint.r, normalizedTint.g, normalizedTint.b, normalizedTint.a, bm},
-			{1.0f, 1.0f, 1.0f, 1.0f, (GLuint)texIndex, (GLuint)matrixIndex, normalizedTint.r, normalizedTint.g, normalizedTint.b, normalizedTint.a, bm},
-			{1.0f, 0.0f, 1.0f, 0.0f, (GLuint)texIndex, (GLuint)matrixIndex, normalizedTint.r, normalizedTint.g, normalizedTint.b, normalizedTint.a, bm},
-			{0.0f, 1.0f, 0.0f, 1.0f, (GLuint)texIndex, (GLuint)matrixIndex, normalizedTint.r, normalizedTint.g, normalizedTint.b, normalizedTint.a, bm},
-			{0.0f, 0.0f, 0.0f, 0.0f, (GLuint)texIndex, (GLuint)matrixIndex, normalizedTint.r, normalizedTint.g, normalizedTint.b, normalizedTint.a, bm},
-			{1.0f, 0.0f, 1.0f, 0.0f, (GLuint)texIndex, (GLuint)matrixIndex, normalizedTint.r, normalizedTint.g, normalizedTint.b, normalizedTint.a, bm}
+			{0.0f, 1.0f, u0, v1, (GLuint)texIndex, (GLuint)matrixIndex, normalizedTint.r, normalizedTint.g, normalizedTint.b, normalizedTint.a, bm},
+			{1.0f, 1.0f, u1, v1, (GLuint)texIndex, (GLuint)matrixIndex, normalizedTint.r, normalizedTint.g, normalizedTint.b, normalizedTint.a, bm},
+			{1.0f, 0.0f, u1, v0, (GLuint)texIndex, (GLuint)matrixIndex, normalizedTint.r, normalizedTint.g, normalizedTint.b, normalizedTint.a, bm},
+			{0.0f, 1.0f, u0, v1, (GLuint)texIndex, (GLuint)matrixIndex, normalizedTint.r, normalizedTint.g, normalizedTint.b, normalizedTint.a, bm},
+			{0.0f, 0.0f, u0, v0, (GLuint)texIndex, (GLuint)matrixIndex, normalizedTint.r, normalizedTint.g, normalizedTint.b, normalizedTint.a, bm},
+			{1.0f, 0.0f, u1, v0, (GLuint)texIndex, (GLuint)matrixIndex, normalizedTint.r, normalizedTint.g, normalizedTint.b, normalizedTint.a, bm}
 		};
 		AddVertices(vertices, 6);
 		CheckBatch();

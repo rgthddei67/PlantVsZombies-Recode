@@ -1,4 +1,5 @@
 #include "GameObjectManager.h"
+#include "../Profiler.h"
 
 GameObjectManager::GameObjectManager() {
     ResetAllLayers();
@@ -70,6 +71,7 @@ void GameObjectManager::DestroyAllGameObjects() {
 }
 
 void GameObjectManager::Update() {
+    PROFILE_SCOPE("2.GOM_Update(serial)");
     // 有增删时标记排序脏
     if (!mObjectsToRemove.empty() || !mObjectsToAdd.empty())
         mSortDirty = true;
@@ -106,46 +108,55 @@ void GameObjectManager::Update() {
 
 void GameObjectManager::DrawAll(Graphics* g) {
     // 按渲染顺序排序（仅在有增删时重新排序）
-    if (mSortDirty) {
-        std::sort(mGameObjects.begin(), mGameObjects.end(),
-            [](const std::shared_ptr<GameObject>& a, const std::shared_ptr<GameObject>& b) {
-                return a->GetRenderOrder() < b->GetRenderOrder();
-            });
-        mSortDirty = false;
+    {
+        PROFILE_SCOPE("4.Draw_sort(serial)");
+        if (mSortDirty) {
+            std::sort(mGameObjects.begin(), mGameObjects.end(),
+                [](const std::shared_ptr<GameObject>& a, const std::shared_ptr<GameObject>& b) {
+                    return a->GetRenderOrder() < b->GetRenderOrder();
+                });
+            mSortDirty = false;
+        }
     }
 
     // ---- 并行预计算阶段（纯CPU变换，不涉及OpenGL）----
-    int total = static_cast<int>(mGameObjects.size());
+    {
+        PROFILE_SCOPE("5.Draw_prepare(par)");
+        int total = static_cast<int>(mGameObjects.size());
 
-    if (total >= 90) {
-        mThreadPool->Dispatch(total, [this](int start, int end) {
-            for (int i = start; i < end; i++) {
-                if (mGameObjects[i]->IsActive())
-                    mGameObjects[i]->PrepareForDraw();
-            }
-            });
-    }
-    else {
-        for (size_t i = 0; i < mGameObjects.size(); i++) {
-            auto* obj = mGameObjects[i].get();
-            if (obj->IsActive()) {
-                obj->PrepareForDraw();
+        if (total >= 90) {
+            mThreadPool->Dispatch(total, [this](int start, int end) {
+                for (int i = start; i < end; i++) {
+                    if (mGameObjects[i]->IsActive())
+                        mGameObjects[i]->PrepareForDraw();
+                }
+                });
+        }
+        else {
+            for (size_t i = 0; i < mGameObjects.size(); i++) {
+                auto* obj = mGameObjects[i].get();
+                if (obj->IsActive()) {
+                    obj->PrepareForDraw();
+                }
             }
         }
     }
 
     // ---- 串行绘制阶段（按 mRenderOrder 顺序，保证绘制顺序正确）----
-    for (size_t i = 0; i < mGameObjects.size(); ++i) {
-        auto* obj = mGameObjects[i].get();
-        if (obj->IsActive()) {
-            const bool clipped = obj->HasClipRect();
-            if (clipped) {
-                const auto& cr = obj->GetClipRect();
-                g->PushClipRect(cr.x, cr.y, cr.w, cr.h);
-            }
-            obj->Draw(g);
-            if (clipped) {
-                g->PopClipRect();
+    {
+        PROFILE_SCOPE("6.Draw_submit(serial)");
+        for (size_t i = 0; i < mGameObjects.size(); ++i) {
+            auto* obj = mGameObjects[i].get();
+            if (obj->IsActive()) {
+                const bool clipped = obj->HasClipRect();
+                if (clipped) {
+                    const auto& cr = obj->GetClipRect();
+                    g->PushClipRect(cr.x, cr.y, cr.w, cr.h);
+                }
+                obj->Draw(g);
+                if (clipped) {
+                    g->PopClipRect();
+                }
             }
         }
     }

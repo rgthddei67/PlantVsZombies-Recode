@@ -1,9 +1,11 @@
 ﻿#include "ResourceManager.h"
 #include "./Game/Plant/GameDataManager.h"
-#include <filesystem> 
+#include <filesystem>
 #include <algorithm>
-#include <cctype>   
+#include <cctype>
 #include <iostream>
+#include <unordered_set>
+#include <vector>
 
 namespace fs = std::filesystem;
 
@@ -291,6 +293,121 @@ bool ResourceManager::LoadAllReanimations()
         }
     }
     return success;
+}
+
+void ResourceManager::BuildReanimAtlases() {
+    // 1. 按 reanim 分组收集去重纹理。组内按高度降序（利于 shelf 装箱），
+    //    但保持「组与组」的先后顺序不打乱——这样同一 reanim 的部件在图集里
+    //    连续排布、几乎总落在同一页，从而每个僵尸只引用 1 张图集纹理。
+    std::vector<GLTexture*> srcTextures;
+    std::unordered_set<GLTexture*> seen;
+    for (auto& kv : mReanimations) {
+        auto& reanim = kv.second;
+        if (!reanim || !reanim->mTracks) continue;
+
+        std::vector<GLTexture*> group;
+        for (auto& track : *reanim->mTracks) {
+            for (auto& fr : track.mFrames) {
+                if (!fr.image) continue;
+                GLTexture* t = const_cast<GLTexture*>(fr.image);
+                if (t->atlasPage) continue;                 // 已规划
+                if (t->id == 0 || t->width <= 0 || t->height <= 0) continue;
+                if (seen.insert(t).second) group.push_back(t);
+            }
+        }
+        std::sort(group.begin(), group.end(),
+            [](GLTexture* a, GLTexture* b) { return a->height > b->height; });
+        srcTextures.insert(srcTextures.end(), group.begin(), group.end());
+    }
+    if (srcTextures.empty()) return;
+
+    // 2. 图集页尺寸
+    GLint maxTex = 2048;
+    glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maxTex);
+    const int pageDim = (std::min)(maxTex, 4096);
+    const int PAD = 2;
+
+    GLint prevFbo = 0;
+    glGetIntegerv(GL_FRAMEBUFFER_BINDING, &prevFbo);
+    GLuint readFbo = 0, drawFbo = 0;
+    glGenFramebuffers(1, &readFbo);
+    glGenFramebuffers(1, &drawFbo);
+
+    GLTexture* page = nullptr;
+    int curX = PAD, curY = PAD, shelfH = 0;
+
+    auto beginPage = [&]() {
+        GLuint id;
+        glGenTextures(1, &id);
+        glBindTexture(GL_TEXTURE_2D, id);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, pageDim, pageDim, 0,
+            GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        mAtlasPages.push_back(GLTexture{ id, pageDim, pageDim });
+        page = &mAtlasPages.back();
+
+        glBindFramebuffer(GL_FRAMEBUFFER, drawFbo);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, id, 0);
+        glDisable(GL_SCISSOR_TEST);
+        glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        curX = PAD; curY = PAD; shelfH = 0;
+    };
+    beginPage();
+
+    for (GLTexture* t : srcTextures) {
+        const int w = t->width, h = t->height;
+        if (w + 2 * PAD > pageDim || h + 2 * PAD > pageDim) {
+            // 单张超过整页：放弃图集化，绘制时回退到原纹理
+            continue;
+        }
+        if (curX + w + PAD > pageDim) {     // 换行
+            curX = PAD;
+            curY += shelfH + PAD;
+            shelfH = 0;
+        }
+        if (curY + h + PAD > pageDim) {     // 换页
+            beginPage();
+        }
+
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, readFbo);
+        glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, t->id, 0);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, drawFbo);
+        glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, page->id, 0);
+        glBlitFramebuffer(0, 0, w, h,
+            curX, curY, curX + w, curY + h,
+            GL_COLOR_BUFFER_BIT, GL_NEAREST);
+
+        // 半纹素内缩，避免线性过滤渗到相邻块
+        const float halfU = 0.5f / pageDim;
+        const float halfV = 0.5f / pageDim;
+        t->atlasPage = page;
+        t->aU0 = static_cast<float>(curX) / pageDim + halfU;
+        t->aV0 = static_cast<float>(curY) / pageDim + halfV;
+        t->aU1 = static_cast<float>(curX + w) / pageDim - halfU;
+        t->aV1 = static_cast<float>(curY + h) / pageDim - halfV;
+
+        curX += w + PAD;
+        if (h > shelfH) shelfH = h;
+    }
+
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+    glBindFramebuffer(GL_FRAMEBUFFER, static_cast<GLuint>(prevFbo));
+    glDeleteFramebuffers(1, &readFbo);
+    glDeleteFramebuffers(1, &drawFbo);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+#ifdef _DEBUG
+    std::cout << "[Atlas] reanim 纹理图集化完成: " << srcTextures.size()
+        << " 张源纹理 -> " << mAtlasPages.size()
+        << " 页 (" << pageDim << "^2)" << std::endl;
+#endif
 }
 
 bool ResourceManager::LoadAllImagesFromPath(const std::string& directory) {

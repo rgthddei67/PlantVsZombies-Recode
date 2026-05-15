@@ -4,6 +4,7 @@
 #include "../ResourceManager.h"
 #include "ClickableComponent.h"
 #include "../GameApp.h"
+#include "../Profiler.h"
 #include <iostream>
 
 void Scene::BuildDrawCommands() {
@@ -64,16 +65,22 @@ void Scene::Draw(Graphics* g) {
 
 void Scene::Update()
 {
-    if (g_particleSystem) 
     {
-        g_particleSystem->UpdateAll();
+        PROFILE_SCOPE("1.Particles_Update");
+        if (g_particleSystem)
+        {
+            g_particleSystem->UpdateAll();
+        }
     }
     auto input = &GameAPP::GetInstance().GetInputHandler();
 	mUIManager.ProcessMouseEvent(input);
 	mUIManager.UpdateAll(input);
     GameObjectManager::GetInstance().Update();
     ClickableComponent::ProcessMouseEvents();
-    CollisionSystem::GetInstance().Update();
+    {
+        PROFILE_SCOPE("3.Collision_Update");
+        CollisionSystem::GetInstance().Update();
+    }
 }
 
 void Scene::UnregisterDrawCommand(const std::string& name) {

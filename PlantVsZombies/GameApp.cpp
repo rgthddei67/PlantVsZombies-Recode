@@ -15,6 +15,7 @@
 #include "./Game/CollisionSystem.h"
 #include "./Game/Plant/GameDataManager.h"
 #include "./Game/RenderOrder.h"
+#include "./Profiler.h"
 
 #include "./Game/Plant/PeaShooter.h"
 #include "./Game/Plant/SunFlower.h"
@@ -184,6 +185,9 @@ bool GameAPP::LoadAllResources()
 		return false;
 	}
 
+	// 所有 reanim 与其部件纹理就绪后，构建图集页（消除批渲染的 32 纹理单元抖动）
+	resourceManager.BuildReanimAtlases();
+
 	return true;
 }
 
@@ -323,6 +327,8 @@ int GameAPP::Run()
 #endif
 
 		mInputHandler->Update();
+
+		Profiler::Get().EndFrame();
 	}
 
 	// 清理
@@ -336,17 +342,26 @@ void GameAPP::Draw()
 	// 清除颜色缓冲
 	m_graphics->Clear();
 
-	// 处理多线程渲染命令 
+	// 处理多线程渲染命令
 	m_graphics->ProcessCommandQueue();
 
 	// 绘制场景
-	SceneManager::GetInstance().Draw(m_graphics.get());
+	{
+		PROFILE_SCOPE("7.Scene_Draw(serial)");
+		SceneManager::GetInstance().Draw(m_graphics.get());
+	}
 
 	// 提交批处理并执行绘制
-	m_graphics->FlushBatch();
+	{
+		PROFILE_SCOPE("8.FinalFlush");
+		m_graphics->FlushBatch();
+	}
 
 	// 交换缓冲区
-	SDL_GL_SwapWindow(mWindow);
+	{
+		PROFILE_SCOPE("9.SwapWindow(vsync)");
+		SDL_GL_SwapWindow(mWindow);
+	}
 }
 
 void GameAPP::Shutdown()
