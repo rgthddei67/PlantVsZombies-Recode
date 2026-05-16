@@ -66,7 +66,7 @@ bool Graphics::Initialize(int windowWidth, int windowHeight) {
 		glGetIntegerv(GL_MAX_SHADER_STORAGE_BLOCK_SIZE, &maxSSBOSize);
 		if (maxSSBOSize > 0) {
 			int ssboComputed = maxSSBOSize / static_cast<int>(sizeof(glm::mat4));
-			if (ssboComputed > 32768) ssboComputed = 32768;
+			if (ssboComputed > 262144) ssboComputed = 262144;
 			if (ssboComputed > m_matrixBatchLimit) {
 				m_matrixBatchLimit = ssboComputed;
 			}
@@ -144,15 +144,13 @@ bool Graphics::Initialize(int windowWidth, int windowHeight) {
 	}
 
 	// 创建 1×1 纯白纹理，供 FillRect 批处理使用
-	{
-		unsigned char whitePixel[4] = { 255, 255, 255, 255 };
-		glGenTextures(1, &m_whiteTexture);
-		glBindTexture(GL_TEXTURE_2D, m_whiteTexture);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, whitePixel);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-		glBindTexture(GL_TEXTURE_2D, 0);
-	}
+	unsigned char whitePixel[4] = { 255, 255, 255, 255 };
+	glGenTextures(1, &m_whiteTexture);
+	glBindTexture(GL_TEXTURE_2D, m_whiteTexture);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, whitePixel);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glBindTexture(GL_TEXTURE_2D, 0);
 
 	return true;
 }
