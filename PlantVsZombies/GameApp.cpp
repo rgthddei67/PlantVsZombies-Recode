@@ -15,7 +15,6 @@
 #include "./Game/CollisionSystem.h"
 #include "./Game/Plant/GameDataManager.h"
 #include "./Game/RenderOrder.h"
-#include "./Profiler.h"
 
 #include "./Game/Plant/PeaShooter.h"
 #include "./Game/Plant/SunFlower.h"
@@ -286,7 +285,7 @@ int GameAPP::Run()
 	sceneManager.RegisterScene<GameScene>("GameScene");
 	sceneManager.RegisterScene<PlantAlmanacScene>("PlantAlmanacScene");
 	sceneManager.RegisterScene<ZombieAlmanacScene>("ZombieAlmanacScene");
-	
+
 	sceneManager.SwitchTo("MainMenuScene");
 
 	DeltaTime::Reset();
@@ -328,7 +327,7 @@ int GameAPP::Run()
 
 		mInputHandler->Update();
 
-		Profiler::Get().EndFrame();
+		// Profiler::Get().EndFrame();
 	}
 
 	// 清理
@@ -346,22 +345,15 @@ void GameAPP::Draw()
 	m_graphics->ProcessCommandQueue();
 
 	// 绘制场景
-	{
-		PROFILE_SCOPE("7.Scene_Draw(serial)");
-		SceneManager::GetInstance().Draw(m_graphics.get());
-	}
+	SceneManager::GetInstance().Draw(m_graphics.get());
 
 	// 提交批处理并执行绘制
-	{
-		PROFILE_SCOPE("8.FinalFlush");
-		m_graphics->FlushBatch();
-	}
+	// PROFILE_SCOPE("8.FinalFlush");
+	m_graphics->FlushBatch();
 
 	// 交换缓冲区
-	{
-		PROFILE_SCOPE("9.SwapWindow(vsync)");
-		SDL_GL_SwapWindow(mWindow);
-	}
+	// PROFILE_SCOPE("9.SwapWindow(vsync)");
+	SDL_GL_SwapWindow(mWindow);
 }
 
 void GameAPP::Shutdown()
@@ -435,7 +427,7 @@ void GameAPP::DrawText(const std::string& text, const Vector& position,
 	m_graphics->DrawText(text, fontKey, fontSize, color, position.x, position.y);
 }
 
-Background GameAPP::GetBackgroundID(int level) const 
+Background GameAPP::GetBackgroundID(int level) const
 {
 	if (level >= 1 && level <= 9) {
 		return Background::GROUND_DAY;   // 白天

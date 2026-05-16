@@ -348,7 +348,7 @@ void Graphics::EndBatch() {
 
 void Graphics::FlushBatch() {
 	if (!m_batchVertices.empty()) {
-		Profiler::Get().CountFlush(m_batchVertices.size());
+		// Profiler::Get().CountFlush(m_batchVertices.size());
 		// 确保 VBO 容量足够
 		if (m_batchVertices.size() > m_batchBufferCapacity) {
 			size_t newCapacity = m_batchVertices.size() * 2;

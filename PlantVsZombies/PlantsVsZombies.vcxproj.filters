@@ -531,6 +531,9 @@
     <ClInclude Include="Game\Zombie\FastBucketZombie.h">
       <Filter>Code\Game\Zombie</Filter>
     </ClInclude>
+    <ClInclude Include="Profiler.h">
+      <Filter>Code</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Shader\batch_fragment.glsl">
