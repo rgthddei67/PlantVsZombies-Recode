@@ -46,212 +46,33 @@ Graphics::Graphics() {
 }
 
 Graphics::~Graphics() {
-	FlushBatch();                       // 提交剩余顶点
-	ClearTextCache();                    // 释放文字纹理
-	ClearPinnedTextCache();              // 释放常驻文字纹理
-
-	if (m_spriteVAO) glDeleteVertexArrays(1, &m_spriteVAO);
-	if (m_spriteVBO) glDeleteBuffers(1, &m_spriteVBO);
-	if (m_spriteEBO) glDeleteBuffers(1, &m_spriteEBO);
-
-	if (m_batchVAO) glDeleteVertexArrays(1, &m_batchVAO);
-	if (m_batchVBO) glDeleteBuffers(1, &m_batchVBO);
-	if (m_matrixBuffer) glDeleteBuffers(1, &m_matrixBuffer);
-
-	// 释放几何图形渲染资源
-	if (m_geomVAO) glDeleteVertexArrays(1, &m_geomVAO);
-	if (m_geomVBO) glDeleteBuffers(1, &m_geomVBO);
-
-	if (m_whiteTexture) glDeleteTextures(1, &m_whiteTexture);
+	// Phase 3a：GL 资源句柄全部未分配（Init 不再申请），析构只清 CPU 侧的批处理 vector + 文字缓存。
+	FlushBatch();
+	ClearTextCache();
+	ClearPinnedTextCache();
 }
 
 bool Graphics::Initialize(int windowWidth, int windowHeight) {
-	// 查询最大纹理单元数，并限制不超过 32（着色器数组大小）
-	glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &m_maxTextureUnits);
-	if (m_maxTextureUnits > 32) m_maxTextureUnits = 32;
-
-	// 查询 UBO 最大块大小，用它决定单批次矩阵上限（UBO 回退路径）
-	// std140 保证 mat4 占 64 字节；GL 3.3 最低保证 GL_MAX_UNIFORM_BLOCK_SIZE >= 16KB（256 个 mat4），桌面 GPU 普遍为 64KB（1024 个）
-	GLint maxUBOSize = 0;
-	glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, &maxUBOSize);
-	int computed = maxUBOSize > 0 ? maxUBOSize / static_cast<int>(sizeof(glm::mat4)) : MATRIX_BATCH_LIMIT_MIN;
-	if (computed < MATRIX_BATCH_LIMIT_MIN) computed = MATRIX_BATCH_LIMIT_MIN;
-	if (computed > 2048) computed = 2048;
-	m_matrixBatchLimit = computed;
-
-	// 检测 SSBO 支持（GL 4.3 core 或 GL_ARB_shader_storage_buffer_object 扩展）
-	if (GLAD_GL_VERSION_4_3) {
-		m_useSSBO = true;
-	}
-	else {
-		GLint numExtensions = 0;
-		glGetIntegerv(GL_NUM_EXTENSIONS, &numExtensions);
-		for (GLint i = 0; i < numExtensions; ++i) {
-			const char* ext = reinterpret_cast<const char*>(glGetStringi(GL_EXTENSIONS, i));
-			if (ext && std::string(ext) == "GL_ARB_shader_storage_buffer_object") {
-				m_useSSBO = true;
-				break;
-			}
-		}
-	}
-	if (m_useSSBO) {
-		GLint maxSSBOSize = 0;
-		glGetIntegerv(GL_MAX_SHADER_STORAGE_BLOCK_SIZE, &maxSSBOSize);
-		if (maxSSBOSize > 0) {
-			int ssboComputed = maxSSBOSize / static_cast<int>(sizeof(glm::mat4));
-			if (ssboComputed > 262144) ssboComputed = 262144;
-			if (ssboComputed > m_matrixBatchLimit) {
-				m_matrixBatchLimit = ssboComputed;
-			}
-		}
-		else {
-			m_useSSBO = false;
-		}
-	}
+	// Phase 3a stub：不再创建任何 GL 资源。
+	// 给批处理上限设保守默认值，让 worker record 的 reserve()、AddMatrix 的 flush 阈值
+	// 等纯 CPU 逻辑继续按"原 GL 上限"工作；后续 phase 切到 Vulkan 后再用实际硬件能力填充。
+	m_maxTextureUnits  = 32;
+	m_matrixBatchLimit = 1024;
 	m_vertexBatchLimit = m_matrixBatchLimit * 6;
-
-#ifdef _DEBUG
-	std::cout << "[Graphics] GL_MAX_UNIFORM_BLOCK_SIZE=" << maxUBOSize
-		<< "  SSBO=" << (m_useSSBO ? "yes" : "no")
-		<< "  -> m_matrixBatchLimit=" << m_matrixBatchLimit
-		<< "  m_vertexBatchLimit=" << m_vertexBatchLimit << std::endl;
-#endif
-
-	if (!InitShaders()) return false;
-	if (!InitSpriteRenderer()) return false;
-	if (!InitGeomRenderer()) return false;
+	m_useSSBO          = false;
+	m_whiteTexture     = 0;  // batch 路径里通过 BindTexture(0) 走得通——只占一个 slot 不真采样
 
 	SetWindowSize(windowWidth, windowHeight);
-
-	// 初始化批处理 VAO 和 VBO
-	glGenVertexArrays(1, &m_batchVAO);
-	glGenBuffers(1, &m_batchVBO);
-
-	// 初始容量设为 m_vertexBatchLimit
-	m_batchBufferCapacity = m_vertexBatchLimit;
-	glBindVertexArray(m_batchVAO);
-	glBindBuffer(GL_ARRAY_BUFFER, m_batchVBO);
-	glBufferData(GL_ARRAY_BUFFER, m_batchBufferCapacity * sizeof(BatchVertex), nullptr, GL_DYNAMIC_DRAW);
-
-	// 设置顶点属性指针（与 FlushBatch 中的布局一致）
-	// 位置 (x,y)
-	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(BatchVertex), (void*)0);
-	glEnableVertexAttribArray(0);
-	// 纹理坐标 (u,v)
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(BatchVertex), (void*)(2 * sizeof(float)));
-	glEnableVertexAttribArray(1);
-	// 纹理索引（整数属性，用 IPointer）
-	glVertexAttribIPointer(2, 1, GL_UNSIGNED_INT, sizeof(BatchVertex), (void*)(4 * sizeof(float)));
-	glEnableVertexAttribArray(2);
-	// 矩阵索引（整数属性，用 IPointer）
-	glVertexAttribIPointer(3, 1, GL_UNSIGNED_INT, sizeof(BatchVertex), (void*)(4 * sizeof(float) + sizeof(GLuint)));
-	glEnableVertexAttribArray(3);
-	// 颜色
-	glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, sizeof(BatchVertex), (void*)(4 * sizeof(float) + 2 * sizeof(GLuint)));
-	glEnableVertexAttribArray(4);
-
-	glBindVertexArray(0);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-	// 创建矩阵缓冲（SSBO 或 UBO），绑定到 binding point 0
-	glGenBuffers(1, &m_matrixBuffer);
-	if (m_useSSBO) {
-		glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_matrixBuffer);
-		glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(glm::mat4) * m_matrixBatchLimit, nullptr, GL_DYNAMIC_DRAW);
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_matrixBuffer);
-	}
-	else {
-		glBindBuffer(GL_UNIFORM_BUFFER, m_matrixBuffer);
-		glBufferData(GL_UNIFORM_BUFFER, sizeof(glm::mat4) * m_matrixBatchLimit, nullptr, GL_DYNAMIC_DRAW);
-		glBindBufferBase(GL_UNIFORM_BUFFER, 0, m_matrixBuffer);
-	}
-
-	// UBO 路径需要手动绑定 uniform block
-	if (!m_useSSBO) {
-		GLuint blockIndex = glGetUniformBlockIndex(m_batchShader.getProgramID(), "MatrixBlock");
-		if (blockIndex == GL_INVALID_INDEX) {
-			std::cerr << "[Graphics] MatrixBlock not found in batch shader (UBO binding failed)" << std::endl;
-			return false;
-		}
-		glUniformBlockBinding(m_batchShader.getProgramID(), blockIndex, 0);
-	}
-
-	// 创建 1×1 纯白纹理，供 FillRect 批处理使用
-	unsigned char whitePixel[4] = { 255, 255, 255, 255 };
-	glGenTextures(1, &m_whiteTexture);
-	glBindTexture(GL_TEXTURE_2D, m_whiteTexture);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, whitePixel);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glBindTexture(GL_TEXTURE_2D, 0);
-
 	return true;
 }
 
 bool Graphics::InitShaders() {
-	// 加载精灵着色器（立即模式）
-	if (!m_spriteShader.loadFromFile("./Shader/sprite_vertex.glsl", "./Shader/sprite_fragment.glsl")) {
-		std::cerr << "[Graphics] Failed to load sprite shader." << std::endl;
-		return false;
-	}
-
-	// 加载批处理着色器；运行时把 MATRIX_BATCH_LIMIT 注入为 GLSL 宏，使数组维度与 C++ 端一致
-	std::string batchDefines = "#define MATRIX_BATCH_LIMIT " + std::to_string(m_matrixBatchLimit) + "\n";
-	if (m_useSSBO) {
-		batchDefines = "#extension GL_ARB_shader_storage_buffer_object : require\n" + batchDefines;
-		batchDefines += "#define USE_SSBO 1\n";
-	}
-	if (!m_batchShader.loadFromFile("./Shader/batch_vertex.glsl", "./Shader/batch_fragment.glsl", batchDefines)) {
-		std::cerr << "[Graphics] Failed to load batch shader." << std::endl;
-		return false;
-	}
-
-	// 设置批处理着色器的纹理采样器数组（绑定到纹理单元 0~31）
-	m_batchShader.use();
-	GLint texLoc = m_batchShader.getUniformLocation("textures");
-	if (texLoc != -1) {
-		int samplers[32];
-		for (int i = 0; i < 32; ++i) samplers[i] = i;
-		glUniform1iv(texLoc, 32, samplers);
-	}
+	// Phase 3a stub：不再加载 GLSL/编译 program。Phase 3b/3c 用 VulkanPipeline 取代。
 	return true;
 }
 
 bool Graphics::InitSpriteRenderer() {
-	// 顶点数据：位置 + 纹理坐标（单位矩形）
-	float vertices[] = {
-		// 位置     // 纹理坐标
-		0.0f, 1.0f, 0.0f, 1.0f,
-		1.0f, 1.0f, 1.0f, 1.0f,
-		1.0f, 0.0f, 1.0f, 0.0f,
-		0.0f, 0.0f, 0.0f, 0.0f
-	};
-	unsigned int indices[] = { 0, 1, 2, 0, 2, 3 };
-
-	glGenVertexArrays(1, &m_spriteVAO);
-	glGenBuffers(1, &m_spriteVBO);
-	glGenBuffers(1, &m_spriteEBO);
-
-	glBindVertexArray(m_spriteVAO);
-
-	glBindBuffer(GL_ARRAY_BUFFER, m_spriteVBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_spriteEBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-
-	// 位置属性
-	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
-	glEnableVertexAttribArray(0);
-	// 纹理坐标属性
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
-	glEnableVertexAttribArray(1);
-
-	glBindVertexArray(0);
-
-	glBindVertexArray(m_batchVAO);
-	m_currentVAO = m_batchVAO;
-
+	// Phase 3a stub：立即模式 sprite 路径已废弃（plan 中标记 sprite_*.glsl 删除）。
 	return true;
 }
 
@@ -259,7 +80,7 @@ void Graphics::SetWindowSize(int width, int height) {
 	m_windowWidth = width;
 	m_windowHeight = height;
 	m_projection = glm::ortho(0.0f, (float)width, (float)height, 0.0f, -1.0f, 1.0f);
-	glViewport(0, 0, width, height);
+	// Phase 3a：视口由 Vulkan dynamic state 处理，CPU 侧只更新投影矩阵。
 }
 
 void Graphics::PushTransform(const glm::mat4& transform) {
@@ -366,13 +187,7 @@ ClipRect Graphics::IntersectClip(const ClipRect& a, const ClipRect& b) {
 }
 
 void Graphics::ApplyTopClipRectToGL() {
-	const ClipRect& r = m_clipStack.back();
-	int w = std::max(0, r.w);
-	int h = std::max(0, r.h);
-	// OpenGL scissor 用左下原点；窗口左上 (rx, ry) -> GL 左下 (rx, windowH - ry - h)
-	int glY = m_windowHeight - r.y - h;
-	glEnable(GL_SCISSOR_TEST);
-	glScissor(r.x, glY, w, h);
+	// Phase 3a stub：clip 栈在 CPU 侧维护；scissor 实际应用在 Phase 3c 接到 vkCmdSetScissor。
 }
 
 void Graphics::PushClipRect(int x, int y, int w, int h) {
@@ -400,19 +215,15 @@ void Graphics::PopClipRect() {
 	FlushBatch();
 	FlushGeomBatch();
 	m_clipStack.pop_back();
-	if (m_clipStack.empty()) {
-		glDisable(GL_SCISSOR_TEST);
-	}
-	else {
+	if (!m_clipStack.empty()) {
 		ApplyTopClipRectToGL();
 	}
+	// Phase 3a：栈空时无需特殊处理（ApplyTopClipRectToGL 本身已是 no-op）。
 }
 
 void Graphics::BindVAO(GLuint vao) {
-	if (m_currentVAO != vao) {
-		glBindVertexArray(vao);
-		m_currentVAO = vao;
-	}
+	// Phase 3a stub：VAO 概念在 Vulkan 中由 pipeline + bound buffer 取代。
+	m_currentVAO = vao;
 }
 
 void Graphics::BeginBatch() {
@@ -424,88 +235,11 @@ void Graphics::EndBatch() {
 }
 
 void Graphics::FlushBatch() {
-	if (!m_batchVertices.empty()) {
-		// Profiler::Get().CountFlush(m_batchVertices.size());
-		// 确保 VBO 容量足够
-		if (m_batchVertices.size() > m_batchBufferCapacity) {
-			size_t newCapacity = m_batchVertices.size() * 2;
-			ResizeBatchBuffer(newCapacity);
-		}
-
-		// 使用批处理着色器
-		m_batchShader.use();
-
-		// 上传投影矩阵
-		glUniformMatrix4fv(m_batchShader.getUniformLocation("proj"), 1, GL_FALSE, glm::value_ptr(m_projection));
-
-		// 上传所有变换矩阵到缓冲（SSBO 或 UBO）
-		if (!m_batchMatrices.empty()) {
-			GLenum target = m_useSSBO ? GL_SHADER_STORAGE_BUFFER : GL_UNIFORM_BUFFER;
-			glBindBuffer(target, m_matrixBuffer);
-			glBufferSubData(target, 0,
-				m_batchMatrices.size() * sizeof(glm::mat4),
-				glm::value_ptr(m_batchMatrices[0]));
-		}
-
-		// 设置视图矩阵
-		GLint viewLoc = m_batchShader.getUniformLocation("view");
-		if (viewLoc != -1) {
-			glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(m_viewMatrix));
-		}
-
-		// 绑定所有使用到的纹理到对应的纹理单元
-		for (size_t i = 0; i < m_batchTextures.size(); ++i) {
-			glActiveTexture(GL_TEXTURE0 + static_cast<int>(i));
-			glBindTexture(GL_TEXTURE_2D, m_batchTextures[i]);
-		}
-
-		// 上传顶点数据到 VBO
-		glBindBuffer(GL_ARRAY_BUFFER, m_batchVBO);
-		glBufferSubData(GL_ARRAY_BUFFER, 0, m_batchVertices.size() * sizeof(BatchVertex), m_batchVertices.data());
-
-		// 按连续相同 blendMode 分段绘制，每段设置对应 GL 混合状态
-		BindVAO(m_batchVAO);
-		size_t segStart = 0;
-		while (segStart < m_batchVertices.size()) {
-			float curBM = m_batchVertices[segStart].blendMode;
-			size_t segEnd = segStart + 1;
-			while (segEnd < m_batchVertices.size() && m_batchVertices[segEnd].blendMode == curBM) {
-				++segEnd;
-			}
-
-			// 设置该段的混合模式
-			if (curBM > 0.5f) {
-				glBlendFunc(GL_SRC_ALPHA, GL_ONE);           // Additive
-			}
-			else {
-				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); // Alpha
-			}
-
-			glDrawArrays(GL_TRIANGLES, (GLint)segStart, (GLsizei)(segEnd - segStart));
-			segStart = segEnd;
-		}
-
-		// 恢复当前混合模式对应的 GL 状态
-		switch (m_currentBlendMode) {
-		case BlendMode::Alpha:
-			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-			break;
-		case BlendMode::Add:
-			glBlendFunc(GL_SRC_ALPHA, GL_ONE);
-			break;
-		default:
-			break;
-		}
-
-		// 清空批处理容器
-		m_batchVertices.clear();
-		m_batchTextures.clear();
-		m_batchMatrices.clear();
-
-		// 恢复默认纹理单元
-		glActiveTexture(GL_TEXTURE0);
-	}
-
+	// Phase 3a stub：GL 上传 + draw 全部去掉，仅清 CPU 缓冲。CheckBatch 的 flush 阈值
+	// 因此变成"周期性回收 vector 容量"，不影响正确性。Phase 3b 在这里接 Vulkan 路径。
+	m_batchVertices.clear();
+	m_batchTextures.clear();
+	m_batchMatrices.clear();
 	FlushGeomBatch();
 }
 
@@ -596,32 +330,7 @@ void Graphics::DrawTexture(const GLTexture* tex, float x, float y, float width, 
 		AddVertices(vertices, 6);
 		CheckBatch();
 	}
-	else {
-		// 立即模式绘制
-		glm::vec4 normalizedTint = NormalizeColor(tint);
-		m_spriteShader.use();
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, tex->id);
-		glUniform1i(m_spriteShader.getUniformLocation("texture1"), 0);
-		glUniform4f(m_spriteShader.getUniformLocation("color"), normalizedTint.r, normalizedTint.g, normalizedTint.b, normalizedTint.a);
-
-		// 构建局部变换矩阵（同上）
-		glm::mat4 local = glm::mat4(1.0f);
-		local = glm::translate(local, glm::vec3(x, y, 0.0f));
-		local = glm::scale(local, glm::vec3(width, height, 1.0f));
-		if (rotation != 0.0f) {
-			local = glm::translate(local, glm::vec3(0.5f, 0.5f, 0.0f));
-			local = glm::rotate(local, glm::radians(rotation), glm::vec3(0.0f, 0.0f, 1.0f));
-			local = glm::translate(local, glm::vec3(-0.5f, -0.5f, 0.0f));
-		}
-		glm::mat4 finalModel = m_transformStack.back() * local;
-		glUniformMatrix4fv(m_spriteShader.getUniformLocation("model"), 1, GL_FALSE, glm::value_ptr(finalModel));
-		glUniformMatrix4fv(m_spriteShader.getUniformLocation("projection"), 1, GL_FALSE, glm::value_ptr(m_projection));
-		glUniformMatrix4fv(m_spriteShader.getUniformLocation("view"), 1, GL_FALSE, glm::value_ptr(m_viewMatrix));
-
-		BindVAO(m_spriteVAO);
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-	}
+	// Phase 3a：m_batchMode 始终为 true，立即模式分支已删（依赖 sprite shader）。
 }
 
 void Graphics::DrawTextureMatrix(const GLTexture* tex, const glm::mat4& transform,
@@ -674,45 +383,7 @@ void Graphics::DrawTextureMatrix(const GLTexture* tex, const glm::mat4& transfor
 		AddVertices(vertices, 6);
 		CheckBatch();
 	}
-	else {
-		// 立即模式
-		glm::vec4 normalizedTint = NormalizeColor(tint);
-
-		// 如果指定了混合模式且与当前不同，先切换
-		BlendMode originalMode = m_currentBlendMode;
-		if (blendMode != BlendMode::None && blendMode != m_currentBlendMode) {
-			SetBlendMode(blendMode);
-		}
-
-		m_spriteShader.use();
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, tex->id);
-		glUniform1i(m_spriteShader.getUniformLocation("texture1"), 0);
-		glUniform4f(m_spriteShader.getUniformLocation("color"), normalizedTint.r, normalizedTint.g, normalizedTint.b, normalizedTint.a);
-
-		glm::mat4 pivotTransform;
-		if (pivotX != 0.0f || pivotY != 0.0f) {
-			glm::vec3 pivot(pivotX, pivotY, 0.0f);
-			pivotTransform = glm::translate(glm::mat4(1.0f), pivot) *
-				transform *
-				glm::translate(glm::mat4(1.0f), -pivot);
-		}
-		else {
-			pivotTransform = transform;
-		}
-		glm::mat4 finalModel = m_transformStack.back() * pivotTransform;
-		glUniformMatrix4fv(m_spriteShader.getUniformLocation("model"), 1, GL_FALSE, glm::value_ptr(finalModel));
-		glUniformMatrix4fv(m_spriteShader.getUniformLocation("projection"), 1, GL_FALSE, glm::value_ptr(m_projection));
-		glUniformMatrix4fv(m_spriteShader.getUniformLocation("view"), 1, GL_FALSE, glm::value_ptr(m_viewMatrix));
-
-		BindVAO(m_spriteVAO);
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-
-		// 恢复原始混合模式
-		if (m_currentBlendMode != originalMode) {
-			SetBlendMode(originalMode);
-		}
-	}
+	// Phase 3a：立即模式分支已删。
 }
 
 void Graphics::DrawTextureRegion(const GLTexture* tex,
@@ -759,44 +430,7 @@ void Graphics::DrawTextureRegion(const GLTexture* tex,
 		AddVertices(vertices, 6);
 		CheckBatch();
 	}
-	else {
-		// 立即模式：用区域 UV 临时更新 sprite VBO
-		float verts[] = {
-			0.0f, 1.0f, u0, v1,
-			1.0f, 1.0f, u1, v1,
-			1.0f, 0.0f, u1, v0,
-			0.0f, 0.0f, u0, v0
-		};
-		glBindBuffer(GL_ARRAY_BUFFER, m_spriteVBO);
-		glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(verts), verts);
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-		glm::vec4 normalizedTint = NormalizeColor(tint);
-		m_spriteShader.use();
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, tex->id);
-		glUniform1i(m_spriteShader.getUniformLocation("texture1"), 0);
-		glUniform4f(m_spriteShader.getUniformLocation("color"), normalizedTint.r, normalizedTint.g, normalizedTint.b, normalizedTint.a);
-
-		glm::mat4 finalModel = m_transformStack.back() * local;
-		glUniformMatrix4fv(m_spriteShader.getUniformLocation("model"), 1, GL_FALSE, glm::value_ptr(finalModel));
-		glUniformMatrix4fv(m_spriteShader.getUniformLocation("projection"), 1, GL_FALSE, glm::value_ptr(m_projection));
-		glUniformMatrix4fv(m_spriteShader.getUniformLocation("view"), 1, GL_FALSE, glm::value_ptr(m_viewMatrix));
-
-		BindVAO(m_spriteVAO);
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-
-		// 恢复全纹理 UV
-		float fullVerts[] = {
-			0.0f, 1.0f, 0.0f, 1.0f,
-			1.0f, 1.0f, 1.0f, 1.0f,
-			1.0f, 0.0f, 1.0f, 0.0f,
-			0.0f, 0.0f, 0.0f, 0.0f
-		};
-		glBindBuffer(GL_ARRAY_BUFFER, m_spriteVBO);
-		glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(fullVerts), fullVerts);
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
-	}
+	// Phase 3a：立即模式分支已删（local 仅 batch 分支用）。
 }
 
 GLuint Graphics::GetOrCreateTextTexture(const std::string& text, const std::string& fontKey,
@@ -830,7 +464,7 @@ GLuint Graphics::GetOrCreateTextTexture(const std::string& text, const std::stri
 		const std::string& lruKey = m_textCacheOrder.back();
 		auto lruIt = m_textCache.find(lruKey);
 		if (lruIt != m_textCache.end()) {
-			glDeleteTextures(1, &lruIt->second.first.textureID);
+			// Phase 3a stub：textureID 都是 0；3c 时改回收 bindless 槽位。
 			m_textCache.erase(lruIt);
 		}
 		m_textCacheOrder.pop_back();
@@ -842,45 +476,12 @@ GLuint Graphics::GetOrCreateTextTexture(const std::string& text, const std::stri
 	return entry.textureID;
 }
 
-bool Graphics::RenderTextToGLTexture(const std::string& text, const std::string& fontKey,
-	int fontSize, const glm::vec4& color, CachedText& out) {
-	TTF_Font* font = ResourceManager::GetInstance().GetFont(fontKey, fontSize);
-	if (!font) {
-		std::cerr << "[RenderTextToGLTexture] Failed to get font: " << fontKey << " size " << fontSize << std::endl;
-		return false;
-	}
-
-	SDL_Surface* surface = TTF_RenderUTF8_Blended(font, text.c_str(), ToSDLColor(color));
-	if (!surface) {
-		std::cerr << "[RenderTextToGLTexture] TTF_RenderText_Blended error: " << TTF_GetError() << std::endl;
-		return false;
-	}
-
-	SDL_Surface* rgbaSurface = SDL_ConvertSurfaceFormat(surface, SDL_PIXELFORMAT_ABGR8888, 0);
-	SDL_FreeSurface(surface);
-	if (!rgbaSurface) {
-		std::cerr << "[RenderTextToGLTexture] Convert surface error: " << SDL_GetError() << std::endl;
-		return false;
-	}
-
-	GLuint textureID;
-	glGenTextures(1, &textureID);
-	glBindTexture(GL_TEXTURE_2D, textureID);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-	glPixelStorei(GL_UNPACK_ROW_LENGTH, rgbaSurface->pitch / 4);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, rgbaSurface->w, rgbaSurface->h, 0,
-		GL_RGBA, GL_UNSIGNED_BYTE, rgbaSurface->pixels);
-	glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-
-	out.textureID = textureID;
-	out.width = rgbaSurface->w;
-	out.height = rgbaSurface->h;
-	SDL_FreeSurface(rgbaSurface);
-	return true;
+bool Graphics::RenderTextToGLTexture(const std::string& /*text*/, const std::string& /*fontKey*/,
+	int /*fontSize*/, const glm::vec4& /*color*/, CachedText& /*out*/) {
+	// Phase 3a stub：返回 false 让上层（GetOrCreateTextTexture / AcquireTextTexture）放弃缓存写入，
+	// DrawText / DrawCachedText 的 textureID == 0 检查随即触发 early-return，于是文字在 3a 期间不显示。
+	// 3c 时这里会改成：SDL_Surface → 上传到 VulkanTexturePool，返回带 bindlessIndex 的句柄。
+	return false;
 }
 
 CachedText Graphics::AcquireTextTexture(const std::string& text, const std::string& fontKey,
@@ -933,32 +534,11 @@ void Graphics::DrawCachedText(const CachedText& handle, float x, float y, float 
 		AddVertices(vertices, 6);
 		CheckBatch();
 	}
-	else {
-		m_spriteShader.use();
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, handle.textureID);
-		glUniform1i(m_spriteShader.getUniformLocation("texture1"), 0);
-		glUniform4f(m_spriteShader.getUniformLocation("color"), 1, 1, 1, 1);
-
-		glm::mat4 local = glm::mat4(1.0f);
-		local = glm::translate(local, glm::vec3(x, y, 0.0f));
-		local = glm::scale(local, glm::vec3(handle.width * scale, handle.height * scale, 1.0f));
-		glm::mat4 finalModel = m_transformStack.back() * local;
-		glUniformMatrix4fv(m_spriteShader.getUniformLocation("model"), 1, GL_FALSE, glm::value_ptr(finalModel));
-		glUniformMatrix4fv(m_spriteShader.getUniformLocation("projection"), 1, GL_FALSE, glm::value_ptr(m_projection));
-		glUniformMatrix4fv(m_spriteShader.getUniformLocation("view"), 1, GL_FALSE, glm::value_ptr(m_viewMatrix));
-
-		BindVAO(m_spriteVAO);
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-	}
+	// Phase 3a：立即模式分支已删。
 }
 
 void Graphics::ClearPinnedTextCache() {
-	for (auto& pair : m_pinnedTextCache) {
-		if (pair.second.textureID) {
-			glDeleteTextures(1, &pair.second.textureID);
-		}
-	}
+	// Phase 3a stub：纹理 ID 都是 0（RenderTextToGLTexture 不再上传），无需 glDeleteTextures。
 	m_pinnedTextCache.clear();
 }
 
@@ -989,39 +569,21 @@ void Graphics::DrawText(const std::string& text, const std::string& fontKey, int
 		AddVertices(vertices, 6);
 		CheckBatch();
 	}
-	else {
-		// 立即模式
-		m_spriteShader.use();
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, texID);
-		glUniform1i(m_spriteShader.getUniformLocation("texture1"), 0);
-		glUniform4f(m_spriteShader.getUniformLocation("color"), 1, 1, 1, 1);
-
-		glm::mat4 local = glm::mat4(1.0f);
-		local = glm::translate(local, glm::vec3(x, y, 0.0f));
-		local = glm::scale(local, glm::vec3(w * scale, h * scale, 1.0f));
-		glm::mat4 finalModel = m_transformStack.back() * local;
-		glUniformMatrix4fv(m_spriteShader.getUniformLocation("model"), 1, GL_FALSE, glm::value_ptr(finalModel));
-		glUniformMatrix4fv(m_spriteShader.getUniformLocation("projection"), 1, GL_FALSE, glm::value_ptr(m_projection));
-		glUniformMatrix4fv(m_spriteShader.getUniformLocation("view"), 1, GL_FALSE, glm::value_ptr(m_viewMatrix));
-
-		BindVAO(m_spriteVAO);
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-	}
+	// Phase 3a：立即模式分支已删。
 }
 
 void Graphics::ClearTextCache() {
-	for (auto& pair : m_textCache) {
-		if (pair.second.first.textureID) {
-			glDeleteTextures(1, &pair.second.first.textureID);
-		}
-	}
+	// Phase 3a stub：同 ClearPinnedTextCache，无 GL 资源。
 	m_textCache.clear();
 	m_textCacheOrder.clear();
 }
 
 void Graphics::SetClearColor(float r, float g, float b, float a) {
-	glClearColor(r / 255.0f, g / 255.0f, b / 255.0f, a / 255.0f);
+	// Phase 3a：保存归一化到 [0,1]，每帧由 VulkanRenderer::DrawFrame 读取。
+	m_clearR = r / 255.0f;
+	m_clearG = g / 255.0f;
+	m_clearB = b / 255.0f;
+	m_clearA = a / 255.0f;
 }
 
 void Graphics::SetBlendMode(BlendMode mode) {
@@ -1036,41 +598,17 @@ void Graphics::SetBlendMode(BlendMode mode) {
 
 	m_currentBlendMode = mode;
 
-	// 纹理批次通过逐顶点 blendMode 字段在 FlushBatch 时分段处理，无需提交
-	// 非批处理模式下直接设置 GL 状态
-	if (!m_batchMode) {
-		if (!m_batchVertices.empty()) {
-			FlushBatch();
-		}
-	}
-
-	GLenum src, dst;
-	switch (mode) {
-	case BlendMode::Alpha:
-		src = GL_SRC_ALPHA;
-		dst = GL_ONE_MINUS_SRC_ALPHA;
-		break;
-	case BlendMode::Add:
-		src = GL_SRC_ALPHA;
-		dst = GL_ONE;
-		break;
-	default:
-		return;
-	}
-	glEnable(GL_BLEND);
-	glBlendFunc(src, dst);
+	// 纹理批次通过逐顶点 blendMode 字段在 FlushBatch 时分段处理，无需提交。
+	// Phase 3a stub：GL 状态切换由 3b 在 Vulkan pipeline 切换处理。
 }
 
 void Graphics::Clear() {
-	// 帧入口安全：scissor test 必须关闭，否则 glClear 只清空 scissor 区域内的像素，
-	// 区域外会残留上一帧画面。同时检测裁剪栈是否上一帧没 pop 干净。
+	// Phase 3a：真正的清屏由 VulkanRenderer::DrawFrame 完成；这里只做 CPU 侧的卫生检查。
 	if (!m_clipStack.empty()) {
 		std::cerr << "[Graphics] Unbalanced PushClipRect/PopClipRect across frames ("
 			<< m_clipStack.size() << " entries left); resetting." << std::endl;
 		m_clipStack.clear();
 	}
-	glDisable(GL_SCISSOR_TEST);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
 void Graphics::UpdateViewMatrix() {
@@ -1125,67 +663,25 @@ glm::vec2 Graphics::WorldToScreenPosition(float worldX, float worldY) const {
 }
 
 void Graphics::FlushGeomBatch() {
-	if (m_geomBatchVertices.empty()) return;
-
-	m_geomShader.use();
-	glm::mat4 identity(1.0f);
-	glUniformMatrix4fv(m_geomShader.getUniformLocation("proj"), 1, GL_FALSE, glm::value_ptr(m_projection));
-	glUniformMatrix4fv(m_geomShader.getUniformLocation("view"), 1, GL_FALSE, glm::value_ptr(m_viewMatrix));
-	glUniformMatrix4fv(m_geomShader.getUniformLocation("model"), 1, GL_FALSE, glm::value_ptr(identity));
-
-	BindVAO(m_geomVAO);
-	glBindBuffer(GL_ARRAY_BUFFER, m_geomVBO);
-
-	// 按需扩容
-	if (m_geomBatchVertices.size() > m_geomBatchCapacity) {
-		m_geomBatchCapacity = m_geomBatchVertices.size() * 2;
-		glBufferData(GL_ARRAY_BUFFER, m_geomBatchCapacity * sizeof(GeomVertex), nullptr, GL_DYNAMIC_DRAW);
-	}
-
-	glBufferSubData(GL_ARRAY_BUFFER, 0, m_geomBatchVertices.size() * sizeof(GeomVertex), m_geomBatchVertices.data());
-	glDrawArrays(m_geomBatchMode, 0, (GLsizei)m_geomBatchVertices.size());
-
+	// Phase 3a stub：仅清 CPU 缓冲。
 	m_geomBatchVertices.clear();
 }
 
 void Graphics::ResizeBatchBuffer(size_t newCapacity) {
-	glBindBuffer(GL_ARRAY_BUFFER, m_batchVBO);
-	glBufferData(GL_ARRAY_BUFFER, newCapacity * sizeof(BatchVertex), nullptr, GL_DYNAMIC_DRAW);
+	// Phase 3a stub：不再有 GL VBO；只更新记账值，便于 3b 重新挂 Vulkan VBO。
 	m_batchBufferCapacity = newCapacity;
 }
 
 bool Graphics::InitGeomRenderer() {
-	// 加载几何着色器（顶点+片段）
-	if (!m_geomShader.loadFromFile("./Shader/geom_vertex.glsl", "./Shader/geom_fragment.glsl")) {
-		std::cerr << "[Graphics] Failed to load geometry shader." << std::endl;
-		return false;
-	}
-
-	glGenVertexArrays(1, &m_geomVAO);
-	glGenBuffers(1, &m_geomVBO);
-
-	glBindVertexArray(m_geomVAO);
-	glBindBuffer(GL_ARRAY_BUFFER, m_geomVBO);
-
-	// 预分配批处理缓冲区
-	glBufferData(GL_ARRAY_BUFFER, GEOM_BATCH_LIMIT * sizeof(GeomVertex), nullptr, GL_DYNAMIC_DRAW);
+	// Phase 3a stub。3c 时接 pipeGeomTris / pipeGeomLines。
 	m_geomBatchCapacity = GEOM_BATCH_LIMIT;
-
-	// 属性0：位置 (x, y)
-	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(GeomVertex), (void*)0);
-	glEnableVertexAttribArray(0);
-	// 属性1：颜色 (r, g, b, a)
-	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(GeomVertex), (void*)(2 * sizeof(float)));
-	glEnableVertexAttribArray(1);
-
-	glBindVertexArray(0);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	return true;
 }
 
 void Graphics::DrawGeomImmediate(const std::vector<GeomVertex>& vertices, GLenum mode) {
 	if (vertices.empty()) return;
 
+	// Phase 3a：始终走 batch 路径（m_batchMode 不会为 false），下面的 if 是历史结构保留。
 	if (m_batchMode) {
 		// 统一为两种可合并的图元类型
 		GLenum batchMode = (mode == GL_TRIANGLES || mode == GL_TRIANGLE_FAN) ? GL_TRIANGLES : GL_LINES;
@@ -1236,28 +732,7 @@ void Graphics::DrawGeomImmediate(const std::vector<GeomVertex>& vertices, GLenum
 		}
 		return;
 	}
-
-	// 立即模式：先提交批处理队列，保证绘制顺序正确
-	FlushBatch();
-
-	m_geomShader.use();
-
-	// 设置投影矩阵、视图矩阵和当前变换矩阵
-	glUniformMatrix4fv(m_geomShader.getUniformLocation("proj"), 1, GL_FALSE, glm::value_ptr(m_projection));
-	glUniformMatrix4fv(m_geomShader.getUniformLocation("view"), 1, GL_FALSE, glm::value_ptr(m_viewMatrix));
-	glUniformMatrix4fv(m_geomShader.getUniformLocation("model"), 1, GL_FALSE, glm::value_ptr(m_transformStack.back()));
-
-	// 上传顶点数据
-	BindVAO(m_geomVAO);
-	glBindBuffer(GL_ARRAY_BUFFER, m_geomVBO);
-
-	if (vertices.size() > m_geomBatchCapacity) {
-		m_geomBatchCapacity = vertices.size() * 2;
-		glBufferData(GL_ARRAY_BUFFER, m_geomBatchCapacity * sizeof(GeomVertex), nullptr, GL_DYNAMIC_DRAW);
-	}
-	glBufferSubData(GL_ARRAY_BUFFER, 0, vertices.size() * sizeof(GeomVertex), vertices.data());
-
-	glDrawArrays(mode, 0, (GLsizei)vertices.size());
+	// Phase 3a：立即模式分支已删。
 }
 
 void Graphics::DrawLine(float x1, float y1, float x2, float y2, const glm::vec4& color) {

@@ -364,3 +364,5 @@ FodyWeavers.xsd
 
 # Git worktrees
 .worktrees/
+# Vulkan: SPIR-V build outputs (generated from Shader/*.glsl by glslc)
+PlantVsZombies/Shader/spv/

@@ -30,6 +30,11 @@ class Board;
 class Plant;
 class Zombie;
 
+namespace pvz {
+    class VulkanContext;
+    class VulkanRenderer;
+}
+
 enum class Background;
 
 class GameAPP
@@ -51,7 +56,9 @@ private:
     std::unique_ptr<Graphics> m_graphics;   // 改用 Graphics
 
     SDL_Window* mWindow;
-    SDL_GLContext m_glContext;               // OpenGL 上下文
+    // Phase 3a：Vulkan 接管。VulkanContext / VulkanRenderer 取代了 SDL_GLContext。
+    std::unique_ptr<pvz::VulkanContext>  m_vulkanCtx;
+    std::unique_ptr<pvz::VulkanRenderer> m_vulkanRenderer;
 
     bool mRunning;
     bool mInitialized;

@@ -1,0 +1,76 @@
+#pragma once
+
+// volk 必须在任何 vulkan.h 之前被包含（它会替换原型声明为函数指针）。
+// VK_NO_PROTOTYPES 已在项目级预处理器定义里设置。
+#include <volk.h>
+#include <vma/vk_mem_alloc.h>
+
+#include <cstdint>
+#include <vector>
+
+struct SDL_Window;
+
+namespace pvz {
+
+// 拥有从 instance 到 swapchain 的全部 Vulkan 设备级对象。
+// 不负责具体的帧渲染——那是 VulkanRenderer 的职责。
+class VulkanContext {
+public:
+    VulkanContext();
+    ~VulkanContext();
+
+    VulkanContext(const VulkanContext&) = delete;
+    VulkanContext& operator=(const VulkanContext&) = delete;
+
+    bool Initialize(SDL_Window* window, bool enableValidation);
+    void Shutdown();
+
+    bool IsInitialized() const { return mInitialized; }
+
+    // 给后续 phase 的渲染层用的访问器
+    VkInstance       Instance()        const { return mInstance; }
+    VkPhysicalDevice PhysicalDevice()  const { return mPhysicalDevice; }
+    VkDevice         Device()          const { return mDevice; }
+    VkQueue          GraphicsQueue()   const { return mGraphicsQueue; }
+    uint32_t         GraphicsQueueFamily() const { return mGraphicsQueueFamily; }
+    VkSurfaceKHR     Surface()         const { return mSurface; }
+    VmaAllocator     Allocator()       const { return mAllocator; }
+
+    VkSwapchainKHR   Swapchain()       const { return mSwapchain; }
+    VkFormat         SwapchainFormat() const { return mSwapchainFormat; }
+    VkExtent2D       SwapchainExtent() const { return mSwapchainExtent; }
+    const std::vector<VkImage>&      SwapchainImages()     const { return mSwapchainImages; }
+    const std::vector<VkImageView>&  SwapchainImageViews() const { return mSwapchainImageViews; }
+
+private:
+    bool CreateInstance(SDL_Window* window, bool enableValidation);
+    bool CreateDebugMessenger();
+    bool CreateSurface(SDL_Window* window);
+    bool PickPhysicalDevice();
+    bool CreateLogicalDevice();
+    bool CreateSwapchain(SDL_Window* window);
+    bool CreateAllocator();
+
+    void DestroySwapchain();
+
+    bool                       mInitialized = false;
+    bool                       mValidationEnabled = false;
+
+    VkInstance                 mInstance        = VK_NULL_HANDLE;
+    VkDebugUtilsMessengerEXT   mDebugMessenger  = VK_NULL_HANDLE;
+    VkSurfaceKHR               mSurface         = VK_NULL_HANDLE;
+    VkPhysicalDevice           mPhysicalDevice  = VK_NULL_HANDLE;
+    VkDevice                   mDevice          = VK_NULL_HANDLE;
+    VkQueue                    mGraphicsQueue   = VK_NULL_HANDLE;
+    uint32_t                   mGraphicsQueueFamily = UINT32_MAX;
+
+    VkSwapchainKHR             mSwapchain       = VK_NULL_HANDLE;
+    VkFormat                   mSwapchainFormat = VK_FORMAT_UNDEFINED;
+    VkExtent2D                 mSwapchainExtent { 0, 0 };
+    std::vector<VkImage>       mSwapchainImages;
+    std::vector<VkImageView>   mSwapchainImageViews;
+
+    VmaAllocator               mAllocator       = VK_NULL_HANDLE;
+};
+
+} // namespace pvz

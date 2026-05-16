@@ -461,12 +461,19 @@ public:
 
 	/**
 	 * @brief 设置清屏颜色。
-	 * @param r 红色分量 [0,1]
-	 * @param g 绿色分量 [0,1]
-	 * @param b 蓝色分量 [0,1]
-	 * @param a Alpha 分量 [0,1]
+	 * @param r 红色分量 [0,255]
+	 * @param g 绿色分量 [0,255]
+	 * @param b 蓝色分量 [0,255]
+	 * @param a Alpha 分量 [0,255]
 	 */
 	void SetClearColor(float r, float g, float b, float a);
+
+	/**
+	 * @brief 获取当前清屏颜色（归一化 [0,1]）。Phase 3a：由 VulkanRenderer 在每帧 DrawFrame 时使用。
+	 */
+	void GetClearColor(float& r, float& g, float& b, float& a) const {
+		r = m_clearR; g = m_clearG; b = m_clearB; a = m_clearA;
+	}
 
 	/**
 	 * @brief 设置混合模式。
@@ -674,6 +681,9 @@ private:
 	bool m_batchMode = true;                      ///< 是否启用批处理模式
 
 	GLuint m_whiteTexture = 0;   ///< 1×1 纯白纹理，用于 FillRect 批处理
+
+	// Phase 3a：清屏颜色（归一化 [0,1]），SetClearColor 写入、GetClearColor 读出，供 VulkanRenderer 使用。
+	float m_clearR = 1.0f, m_clearG = 1.0f, m_clearB = 1.0f, m_clearA = 1.0f;
 
 	static const int VERTEX_BATCH_LIMIT_MIN = 1024;   ///< 单批次最大顶点数最低保证（运行时可更大）
 	int m_vertexBatchLimit = VERTEX_BATCH_LIMIT_MIN;  ///< 单批次最大顶点数（= m_matrixBatchLimit * 6）

@@ -1,4 +1,7 @@
 ﻿#include "./GameAPP.h"
+#include "./Renderer/VulkanContext.h"
+#include "./Renderer/VulkanRenderer.h"
+#include <SDL2/SDL_vulkan.h>
 #include "./UI/InputHandler.h"
 #include "./ResourceManager.h"
 #include "./Game/SceneManager.h"
@@ -38,7 +41,6 @@
 GameAPP::GameAPP()
 	: mInputHandler(nullptr)
 	, mWindow(nullptr)
-	, m_glContext(nullptr)
 	, mRunning(false)
 	, mInitialized(false)
 {
@@ -100,44 +102,46 @@ bool GameAPP::InitializeAudioSystem()
 
 bool GameAPP::CreateWindowAndRenderer()
 {
-	// 设置 OpenGL 版本 
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-
-	// 创建带 OpenGL 标志的窗口
+	// Phase 3a：Vulkan 窗口。SDL_WINDOW_VULKAN 让 SDL 在创建窗口时加载 Vulkan loader，
+	// 并把窗口标记为 Vulkan 兼容（影响 surface 创建路径）。
 	mWindow = SDL_CreateWindow(u8"植物大战僵尸中文版",
 		SDL_WINDOWPOS_CENTERED,
 		SDL_WINDOWPOS_CENTERED,
 		SCENE_WIDTH, SCENE_HEIGHT,
-		SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN);
+		SDL_WINDOW_VULKAN | SDL_WINDOW_SHOWN);
 
 	if (!mWindow) {
 		std::cerr << "窗口创建失败: " << SDL_GetError() << std::endl;
 		return false;
 	}
 
-	// 创建 OpenGL 上下文
-	m_glContext = SDL_GL_CreateContext(mWindow);
-	if (!m_glContext) {
-		std::cerr << "OpenGL上下文创建失败: " << SDL_GetError() << std::endl;
+	// 校验层：Debug 构建打开；Release 关闭以减少开销。
+#ifdef _DEBUG
+	const bool enableValidation = true;
+#else
+	const bool enableValidation = false;
+#endif
+
+	m_vulkanCtx = std::make_unique<pvz::VulkanContext>();
+	if (!m_vulkanCtx->Initialize(mWindow, enableValidation)) {
+		std::cerr << "VulkanContext 初始化失败" << std::endl;
 		return false;
 	}
 
-	// 初始化 glad (如果使用 glad)
-	if (!gladLoadGLLoader(SDL_GL_GetProcAddress)) {
-		std::cerr << "glad初始化失败" << std::endl;
+	m_vulkanRenderer = std::make_unique<pvz::VulkanRenderer>();
+	if (!m_vulkanRenderer->Initialize(m_vulkanCtx.get())) {
+		std::cerr << "VulkanRenderer 初始化失败" << std::endl;
 		return false;
 	}
 
-	// 创建 Graphics 实例并初始化
+	// 创建 Graphics 实例并初始化（Phase 3a：GL-free stub）
 	m_graphics = std::make_unique<Graphics>();
 	if (!m_graphics->Initialize(SCENE_WIDTH, SCENE_HEIGHT)) {
 		std::cerr << "Graphics 初始化失败" << std::endl;
 		return false;
 	}
 
-	// 设置默认清屏颜色
+	// 设置默认清屏颜色（0~255 输入，内部归一化）
 	m_graphics->SetClearColor(255, 255, 255, 255);
 
 	return true;
@@ -242,7 +246,8 @@ int GameAPP::Run()
 		CleanupResources();
 		AudioSystem::Shutdown();
 		m_graphics.reset();
-		if (m_glContext) SDL_GL_DeleteContext(m_glContext);
+		m_vulkanRenderer.reset();
+		m_vulkanCtx.reset();
 		SDL_DestroyWindow(mWindow);
 		TTF_Quit();
 		IMG_Quit();
@@ -256,7 +261,8 @@ int GameAPP::Run()
 		AudioSystem::Shutdown();
 		CursorManager::GetInstance().Cleanup();
 		m_graphics.reset();
-		if (m_glContext) SDL_GL_DeleteContext(m_glContext);
+		m_vulkanRenderer.reset();
+		m_vulkanCtx.reset();
 		SDL_DestroyWindow(mWindow);
 		TTF_Quit();
 		IMG_Quit();
@@ -269,7 +275,8 @@ int GameAPP::Run()
 		std::cout << "无法加载玩家存档数据！可能是没有存档!" << std::endl;
 	}
 
-	SDL_GL_SetSwapInterval(static_cast<int>(this->mVsync));
+	// Phase 3a：垂直同步由 swapchain present mode 决定（当前固定 FIFO，等同 vsync on）。
+	// mVsync 字段保留作为未来 phase 切换 MAILBOX 的开关。
 
 	mInputHandler = std::make_unique<InputHandler>(m_graphics.get());
 	g_particleSystem = std::make_unique<ParticleSystem>(m_graphics.get());
@@ -338,22 +345,17 @@ int GameAPP::Run()
 
 void GameAPP::Draw()
 {
-	// 清除颜色缓冲
+	// Phase 3a：Graphics 的 Draw* 都被 stub 成 no-op，本帧最终结果只剩 VulkanRenderer 输出的 clear color。
+	// 仍然走一遍 Scene 的 Draw 流程，确保 CPU 侧的录制/回放/状态机依然被覆盖（不至于让代码路径腐烂）。
 	m_graphics->Clear();
-
-	// 处理多线程渲染命令
 	m_graphics->ProcessCommandQueue();
-
-	// 绘制场景
 	SceneManager::GetInstance().Draw(m_graphics.get());
-
-	// 提交批处理并执行绘制
-	// PROFILE_SCOPE("8.FinalFlush");
 	m_graphics->FlushBatch();
 
-	// 交换缓冲区
-	// PROFILE_SCOPE("9.SwapWindow(vsync)");
-	SDL_GL_SwapWindow(mWindow);
+	// 把当前 clear color 喂给 Vulkan，由它执行真正的清屏 + present。
+	float r, g, b, a;
+	m_graphics->GetClearColor(r, g, b, a);
+	m_vulkanRenderer->DrawFrame(r, g, b, a);
 }
 
 void GameAPP::Shutdown()
@@ -390,11 +392,10 @@ void GameAPP::Shutdown()
 	// 清理 Graphics
 	m_graphics.reset();
 
-	// 清理 OpenGL 上下文
-	if (m_glContext) {
-		SDL_GL_DeleteContext(m_glContext);
-		m_glContext = nullptr;
-	}
+	// 清理 Vulkan（顺序：renderer 先于 ctx，且都在 SDL_DestroyWindow 之前——
+	// VulkanContext 析构会销毁 surface，而 surface 来自该窗口）
+	m_vulkanRenderer.reset();
+	m_vulkanCtx.reset();
 
 	// 清理窗口
 	if (mWindow) {

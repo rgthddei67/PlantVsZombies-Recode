@@ -80,6 +80,12 @@
     <ClCompile Include="ParticleSystem\ParticleXMLLoader.cpp" />
     <ClCompile Include="Reanimation\Animator.cpp" />
     <ClCompile Include="Reanimation\Reanimation.cpp" />
+    <ClCompile Include="Renderer\VmaImpl.cpp" />
+    <ClCompile Include="Renderer\VulkanBuffer.cpp" />
+    <ClCompile Include="Renderer\VulkanContext.cpp" />
+    <ClCompile Include="Renderer\VulkanPipeline.cpp" />
+    <ClCompile Include="Renderer\VulkanRenderer.cpp" />
+    <ClCompile Include="Renderer\VulkanTexturePool.cpp" />
     <ClCompile Include="ResourceManager.cpp" />
     <ClCompile Include="ShaderProgram.cpp" />
     <ClCompile Include="UI\Button.cpp" />
@@ -175,6 +181,11 @@
     <ClInclude Include="Reanimation\ReanimTypes.h" />
     <ClInclude Include="Reanimation\TodCommon.h" />
     <ClInclude Include="Reanimation\TodDebug.h" />
+    <ClInclude Include="Renderer\VulkanBuffer.h" />
+    <ClInclude Include="Renderer\VulkanContext.h" />
+    <ClInclude Include="Renderer\VulkanPipeline.h" />
+    <ClInclude Include="Renderer\VulkanRenderer.h" />
+    <ClInclude Include="Renderer\VulkanTexturePool.h" />
     <ClInclude Include="ResourceKeys.h" />
     <ClInclude Include="ResourceManager.h" />
     <ClInclude Include="ResourcesXMLConfigReader.h" />
@@ -194,6 +205,25 @@
     <None Include="Shader\geom_vertex.glsl" />
     <None Include="Shader\sprite_fragment.glsl" />
     <None Include="Shader\sprite_vertex.glsl" />
+    <None Include="Shader\quad.frag.glsl" />
+    <None Include="Shader\quad.vert.glsl" />
+    <None Include="Shader\triangle.frag.glsl" />
+    <None Include="Shader\triangle.vert.glsl" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Phase 2a+: Vulkan GLSL → SPIR-V 编译输入。每项的 Stage 元数据驱动 glslc 的 -fshader-stage 参数。 -->
+    <ShaderSource Include="Shader\triangle.vert.glsl">
+      <Stage>vert</Stage>
+    </ShaderSource>
+    <ShaderSource Include="Shader\triangle.frag.glsl">
+      <Stage>frag</Stage>
+    </ShaderSource>
+    <ShaderSource Include="Shader\quad.vert.glsl">
+      <Stage>vert</Stage>
+    </ShaderSource>
+    <ShaderSource Include="Shader\quad.frag.glsl">
+      <Stage>frag</Stage>
+    </ShaderSource>
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
@@ -300,7 +330,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;VK_NO_PROTOTYPES;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <LanguageStandard>stdcpp17</LanguageStandard>
@@ -322,15 +352,15 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_HAS_ITERATOR_DEBUGGING=0;_SCL_SECURE_NO_WARNINGS;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_HAS_ITERATOR_DEBUGGING=0;_SCL_SECURE_NO_WARNINGS;_CONSOLE;VK_NO_PROTOTYPES;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <Optimization>MaxSpeed</Optimization>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <OmitFramePointers>true</OmitFramePointers>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <StructMemberAlignment>16Bytes</StructMemberAlignment>
       <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
       <FloatingPointModel>Fast</FloatingPointModel>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
@@ -341,13 +371,21 @@
       <AdditionalDependencies>legacy_stdio_definitions.lib;version.lib;setupapi.lib;imm32.lib;winmm.lib;$(CoreLibraryDependencies)</AdditionalDependencies>
       <StackReserveSize>4194304</StackReserveSize>
       <StackCommitSize>65536</StackCommitSize>
-      <LinkTimeCodeGeneration>UseFastLinkTimeCodeGeneration</LinkTimeCodeGeneration>
+      <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       <AdditionalLibraryDirectories>$(VC_LibraryPath_x64);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
+  <!-- Phase 2a+: GLSL → SPIR-V 预构建。需要 glslc.exe 在 PATH 上（装 VulkanSDK 即可）。 -->
+  <Target Name="CompileShaders" BeforeTargets="ClCompile"
+          Inputs="@(ShaderSource)"
+          Outputs="@(ShaderSource-&gt;'$(ProjectDir)Shader\spv\%(Filename).spv')">
+    <MakeDir Directories="$(ProjectDir)Shader\spv" />
+    <Message Importance="high" Text="[glslc] %(ShaderSource.Identity) -&gt; Shader\spv\%(ShaderSource.Filename).spv" />
+    <Exec Command="glslc.exe -fshader-stage=%(ShaderSource.Stage) --target-env=vulkan1.2 -O &quot;%(ShaderSource.FullPath)&quot; -o &quot;$(ProjectDir)Shader\spv\%(ShaderSource.Filename).spv&quot;" />
+  </Target>
   <ItemDefinitionGroup>
     <PostBuildEvent>
       <Command>xcopy /E /Y /I "$(ProjectDir)Shader" "$(OutDir)Shader"</Command>
