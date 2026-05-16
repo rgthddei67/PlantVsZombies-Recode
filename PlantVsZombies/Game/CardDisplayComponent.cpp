@@ -22,6 +22,16 @@ CardDisplayComponent::CardDisplayComponent(PlantType type, int sunCost, float co
 
 void CardDisplayComponent::Start() {
     LoadTextures();
+
+    // 阳光数字纹理必须在主线程创建：AcquireTextTexture 内部走 glTexImage2D
+    // 且写共享缓存，而卡片 Draw 现在跑在 worker 线程（并行录制），不能在那里
+    // 建纹理。needSun 构造时即固定，这里主线程预热一次，DrawSunCost 之后永远命中缓存。
+    mSunTextCache = GameAPP::GetInstance().GetGraphics().AcquireTextTexture(
+        std::to_string(needSun),
+        ResourceKeys::Fonts::FONT_FZCQ,
+        14,
+        glm::vec4(0.0f, 0.0f, 0.0f, 255.0f));
+    mCachedSunValue = needSun;
 }
 
 void CardDisplayComponent::Update() {

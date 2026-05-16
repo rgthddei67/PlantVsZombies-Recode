@@ -7,7 +7,9 @@
       "Bash(git *)",
       "Skill(superpowers:brainstorming)",
       "Skill(superpowers:using-superpowers)",
-      "Skill(superpowers:executing-plans)"
+      "Skill(superpowers:executing-plans)",
+      "Read(//c/Users/ZJ/.claude/**)",
+      "Read(//c/Users/ZJ/.claude/plugins/**)"
     ]
   }
 }

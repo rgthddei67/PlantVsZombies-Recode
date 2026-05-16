@@ -895,6 +895,13 @@ CachedText Graphics::AcquireTextTexture(const std::string& text, const std::stri
 		return it->second;
 	}
 
+	// RenderTextToGLTexture 走 glGenTextures/glTexImage2D，且要写共享的
+	// m_pinnedTextCache——两者都只能在持有 GL 上下文的主线程做。worker 线程
+	// （tl_record 非空，例如并行 Draw 录制阶段）上未命中时直接放弃本帧返回空
+	// 句柄，由主线程预热缓存后即稳定命中。缺少此守卫会在 worker 线程拿到无效/
+	// 串号的纹理 ID（表现为数字变成贴图或别的文字），并发写 map 还会损坏容器。
+	if (tl_record) return {};
+
 	CachedText entry;
 	if (!RenderTextToGLTexture(text, fontKey, fontSize, color, entry)) {
 		return {};
