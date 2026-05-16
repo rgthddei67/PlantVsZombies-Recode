@@ -117,10 +117,10 @@ void GameObjectManager::DrawAll(Graphics* g) {
 		mSortDirty = false;
 	}
 
+	const int total = static_cast<int>(mGameObjects.size());
+
 	// ---- 并行预计算阶段（纯CPU变换，不涉及OpenGL）----
 	// PROFILE_SCOPE("5.Draw_prepare(par)");
-	int total = static_cast<int>(mGameObjects.size());
-
 	if (total >= 90) {
 		mThreadPool->Dispatch(total, [this](int start, int end) {
 			for (int i = start; i < end; i++) {
@@ -138,11 +138,47 @@ void GameObjectManager::DrawAll(Graphics* g) {
 		}
 	}
 
-	// ---- 串行绘制阶段（按 mRenderOrder 顺序，保证绘制顺序正确）----
-	// PROFILE_SCOPE("6.Draw_submit(serial)");
-	for (size_t i = 0; i < mGameObjects.size(); ++i) {
-		auto* obj = mGameObjects[i].get();
-		if (obj->IsActive()) {
+	// ---- 绘制阶段：小对象数走原串行；大场景走并行 record + 主线程 replay ----
+	constexpr int kParallelDrawThreshold = 200;  // 小于此阈值，并行 dispatch overhead 不划算
+
+	if (!g->IsParallelDrawEnabled() || total < kParallelDrawThreshold) {
+		// 串行 fallback（菜单/图鉴等少对象场景，行为与原代码完全等价）
+		// PROFILE_SCOPE("6.Draw_submit(serial-fallback)");
+		for (size_t i = 0; i < mGameObjects.size(); ++i) {
+			auto* obj = mGameObjects[i].get();
+			if (obj->IsActive()) {
+				const bool clipped = obj->HasClipRect();
+				if (clipped) {
+					const auto& cr = obj->GetClipRect();
+					g->PushClipRect(cr.x, cr.y, cr.w, cr.h);
+				}
+				obj->Draw(g);
+				if (clipped) {
+					g->PopClipRect();
+				}
+			}
+		}
+		return;
+	}
+
+	// 并行 record + replay
+	// workers 数和 ThreadPool 内部 numActive 必须保持一致，否则 slot 索引推导（start/chunkSize）
+	// 可能错位。ThreadPool::Dispatch 把 numActive 钳到 min(线程数, total)，我们这里同步钳一下。
+	int numWorkers = static_cast<int>(std::thread::hardware_concurrency());
+	if (numWorkers < 1) numWorkers = 1;
+	if (numWorkers > total) numWorkers = total;
+
+	// PROFILE_SCOPE("6.Draw_submit(par-record)");
+	g->BeginParallelRecord(numWorkers);
+
+	mThreadPool->Dispatch(total, [this, g, total, numWorkers](int start, int end) {
+		const int chunkSize = (total + numWorkers - 1) / numWorkers;
+		const int slot = (chunkSize > 0) ? (start / chunkSize) : 0;
+
+		g->SetWorkerSlot(slot);
+		for (int i = start; i < end; ++i) {
+			auto* obj = mGameObjects[i].get();
+			if (!obj->IsActive()) continue;
 			const bool clipped = obj->HasClipRect();
 			if (clipped) {
 				const auto& cr = obj->GetClipRect();
@@ -153,7 +189,11 @@ void GameObjectManager::DrawAll(Graphics* g) {
 				g->PopClipRect();
 			}
 		}
-	}
+		g->ClearWorkerSlot();
+		});
+
+	// PROFILE_SCOPE("7.Draw_replay(serial)");
+	g->ReplayAndEndParallel();
 }
 
 std::vector<std::shared_ptr<GameObject>> GameObjectManager::FindGameObjectsWithTag(const std::string& tag) {

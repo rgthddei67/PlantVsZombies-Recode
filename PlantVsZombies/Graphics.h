@@ -96,6 +96,100 @@ enum class BlendMode {
 	Add     // 叠加混合：GL_SRC_ALPHA, GL_ONE
 };
 
+// ==================== 多线程录制（Record / Replay）相关结构 ====================
+//
+// 设计：GameObjectManager 在 Draw 阶段把对象按渲染顺序切成 N 块，每个工作线程把自己
+// 那块的 Graphics 调用录制到 thread-local 的 WorkerRecord（POD 命令流 + 顶点池），
+// 不调任何 GL；主线程随后按 slot 顺序回放，转成真实的 BindTexture / AddMatrix /
+// AddVertices / FlushBatch 调用。这样把矩阵乘法、UV、顶点构造等纯 CPU 工作分摊到多
+// 核，主线程仅做 GL 调用与轻量 append。绘制顺序通过 slot 升序 + slot 内 record 顺
+// 序严格保留。
+
+/**
+ * @brief 录制命令类型。命令类型决定如何在回放时解释 RecordCmd 的字段。
+ */
+enum class RecCmdType : uint8_t {
+	BatchVerts,     ///< 一组纹理批次顶点（vertOffset/count 指向 verts；localTexIdx/localMatIdx 指向本地表）
+	PushClip,       ///< 推入裁剪矩形（payloadIdx 指向 clips）
+	PopClip,        ///< 弹出裁剪矩形
+	SetBlend,       ///< 切换混合模式（payloadIdx 指向 blendModes）
+	DeferredText,   ///< DrawText 延迟到主线程执行（payloadIdx 指向 textCmds）
+	Custom          ///< Submit(lambda) 的兼容兜底（payloadIdx 指向 customCmds）
+};
+
+/**
+ * @brief 单条录制命令（16 字节，POD）。
+ *        用位段把类型 + 顶点计数挤进一个 uint32_t。BatchVerts 时 localTex/MatIdx 指
+ *        向 worker 本地表，回放时再 BindTexture/AddMatrix 分配全局槽位。
+ */
+struct RecordCmd {
+	uint32_t type        : 4;   // RecCmdType
+	uint32_t aux         : 4;   // 备用（未来扩展用）
+	uint32_t count       : 24;  // 顶点数（BatchVerts 时通常 3 或 6）
+	uint32_t vertOffset;        // 进 WorkerRecord::verts 的起始下标
+	uint16_t localTexIdx;       // 本地 texList 索引（仅 BatchVerts）
+	uint16_t localMatIdx;       // 本地 matList 索引（仅 BatchVerts）
+	uint32_t payloadIdx;        // 进 clips/blendModes/textCmds/customCmds 的索引
+};
+
+/**
+ * @brief 延迟执行的 DrawText 参数。worker 不能触碰 LRU 与 glTexImage2D，所以把整
+ *        条 DrawText 调用打包，主线程回放时再走原 DrawText 路径。
+ */
+struct DeferredTextCmd {
+	std::string text;
+	std::string fontKey;
+	int         fontSize = 0;
+	glm::vec4   color = glm::vec4(255.0f);
+	float       x = 0.0f;
+	float       y = 0.0f;
+	float       scale = 1.0f;
+};
+
+/**
+ * @brief 每个 worker slot 一份的录制缓冲。析构无 GL 资源，Reset 仅 clear()，
+ *        capacity 跨帧复用以避免 realloc。
+ */
+struct WorkerRecord {
+	std::vector<RecordCmd>             cmds;
+	std::vector<BatchVertex>           verts;          // 顶点池，texIndex/matrixIndex 留占位
+	std::vector<GLuint>                texList;        // 本地纹理表（线性扫描去重）
+	std::vector<glm::mat4>             matList;        // 本地矩阵表（不去重）
+	std::vector<ClipRect>              clips;
+	std::vector<BlendMode>             blendModes;
+	std::vector<DeferredTextCmd>       textCmds;
+	std::vector<std::function<void()>> customCmds;     // Submit(lambda) 兼容兜底
+
+	// 初始状态快照（BeginParallelRecord 时由主线程填充，SetWorkerSlot 时给 worker 用）
+	glm::mat4              initialTopTransform   = glm::mat4(1.0f);
+	bool                   initialTopIsIdentity  = true;
+	std::vector<ClipRect>  initialClipStack;
+	BlendMode              initialBlend          = BlendMode::None;
+
+	// 清空所有命令与顶点池，但保留 vector capacity，下帧复用避免 realloc。
+	void Reset() {
+		cmds.clear();
+		verts.clear();
+		texList.clear();
+		matList.clear();
+		clips.clear();
+		blendModes.clear();
+		textCmds.clear();
+		customCmds.clear();
+		initialClipStack.clear();
+	}
+};
+
+/**
+ * @brief 每个 worker slot 一份的 thread-local 栈存储。SetWorkerSlot 时让 worker 的
+ *        thread_local 指针指向这里，clip / transform 栈在这里增删，结束时不释放。
+ */
+struct WorkerThreadState {
+	std::vector<glm::mat4> transformStack;
+	std::vector<char>      transformIsIdentity;
+	std::vector<ClipRect>  clipStack;
+};
+
 /**
  * @brief 图形渲染核心类，负责纹理绘制、文字渲染、几何图形绘制及批处理。
  *
@@ -484,6 +578,51 @@ public:
 	void SubmitFillCircle(float cx, float cy, float radius,
 		const glm::vec4& color = glm::vec4(255.0f), int segments = 32);
 
+	// ==================== 多线程录制 / 回放（Record / Replay） ====================
+	//
+	// 用法（GameObjectManager::DrawAll 内）：
+	//   g->BeginParallelRecord(N);                          // 主线程
+	//   threadPool->Dispatch(total, [](int s, int e){
+	//       g->SetWorkerSlot(slot);
+	//       for (i in [s,e)) { ... obj->Draw(g); ... }
+	//       g->ClearWorkerSlot();
+	//   });
+	//   g->ReplayAndEndParallel();                          // 主线程
+	//
+	// worker 内调用 DrawTexture / DrawTextureMatrix / DrawText / PushTransform 等
+	// 都会被 Graphics 内部 thread_local 检测拦截到 record 路径，不调任何 GL。
+
+	/**
+	 * @brief 主线程：开启并行录制阶段，确保有 numWorkers 个 WorkerRecord，
+	 *        Reset 每个 record 并把当前 Graphics 状态（变换栈顶、裁剪栈、混合模式）
+	 *        快照到每个 record 的 initial* 字段。首次调用会按推荐容量预分配以避
+	 *        免运行中 realloc。
+	 */
+	void BeginParallelRecord(int numWorkers);
+
+	/**
+	 * @brief worker 线程：把本线程的 thread_local 指针指向 slot 对应的 WorkerRecord
+	 *        与 WorkerThreadState；用 record 的 initial* 字段初始化 thread-local 的
+	 *        变换栈与裁剪栈。slot 必须在 [0, numWorkers)。
+	 */
+	void SetWorkerSlot(int slot);
+
+	/**
+	 * @brief worker 线程：清空 thread_local 指针。底层存储不释放，下帧复用 capacity。
+	 *        若发现 worker 块结束时栈不平衡，会打印警告（防御性）。
+	 */
+	void ClearWorkerSlot();
+
+	/**
+	 * @brief 主线程：按 slot 0..N-1 顺序回放所有录制的命令到真实 Graphics 状态，
+	 *        触发必要的 FlushBatch / GL 调用，最后重置标志。不释放 record 存储。
+	 */
+	void ReplayAndEndParallel();
+
+	/// 运行时开关：true 启用并行 record/replay 路径，false 强制走原串行路径（A/B 测试用）。
+	void SetParallelDrawEnabled(bool e) { m_parallelDrawEnabled = e; }
+	bool IsParallelDrawEnabled() const { return m_parallelDrawEnabled; }
+
 private:
 	BlendMode m_currentBlendMode = BlendMode::None;   ///< 当前混合模式
 	GLuint m_currentVAO = 0;                           ///< 当前绑定的 VAO（避免冗余切换）
@@ -551,6 +690,12 @@ private:
 	std::mutex m_commandMutex;                               ///< 命令队列互斥锁
 	std::vector<std::function<void()>> m_pendingCommands;    ///< 待处理命令（任意线程写入）
 	std::vector<std::function<void()>> m_activeCommands;     ///< 当前帧处理命令（渲染线程读取）
+
+	// ==================== 多线程录制状态 ====================
+	std::vector<WorkerRecord>      m_workerRecords;       ///< 每个 worker slot 一份的录制缓冲
+	std::vector<WorkerThreadState> m_workerStates;        ///< 每个 worker slot 一份的栈存储
+	int                            m_numActiveWorkers = 0;///< 本轮 Dispatch 的有效 slot 数（=Replay 时遍历的上限）
+	bool                           m_parallelDrawEnabled = true; ///< 是否启用并行 record/replay 路径
 
 	// ==================== 内部辅助函数 ====================
 
@@ -658,6 +803,52 @@ private:
 	 * @param newCapacity 新容量（顶点个数）
 	 */
 	void ResizeBatchBuffer(size_t newCapacity);
+
+	// ==================== Record 路径辅助函数 ====================
+	// 这些函数把对应的 DrawXxx 调用录制到当前 worker 的 WorkerRecord 中，不调任何
+	// GL。每个函数对应一个公开 DrawXxx，做的事情是公开版批处理路径里"BindTexture
+	// + AddMatrix + AddVertices + CheckBatch"那一段在 worker 上的等价物（但把全局
+	// 槽位分配延迟到回放时）。
+
+	void RecordDrawTexture(WorkerRecord& r,
+		const GLTexture* tex, float x, float y, float width, float height,
+		float rotation, const glm::vec4& tint);
+
+	void RecordDrawTextureMatrix(WorkerRecord& r,
+		const GLTexture* tex, const glm::mat4& transform,
+		float pivotX, float pivotY, const glm::vec4& tint, BlendMode blendMode);
+
+	void RecordDrawTextureRegion(WorkerRecord& r,
+		const GLTexture* tex,
+		float srcX, float srcY, float srcW, float srcH,
+		float dstX, float dstY, float dstW, float dstH,
+		float rotation, const glm::vec4& tint);
+
+	void RecordDrawCachedText(WorkerRecord& r,
+		const CachedText& handle, float x, float y, float scale);
+
+	void RecordDrawText(WorkerRecord& r,
+		const std::string& text, const std::string& fontKey, int fontSize,
+		const glm::vec4& color, float x, float y, float scale);
+
+	void RecordFillRect(WorkerRecord& r,
+		float x, float y, float width, float height, const glm::vec4& color);
+
+	void RecordDrawRect(WorkerRecord& r,
+		float x, float y, float width, float height, const glm::vec4& color);
+
+	void RecordDrawLine(WorkerRecord& r,
+		float x1, float y1, float x2, float y2, const glm::vec4& color);
+
+	void RecordDrawCircle(WorkerRecord& r,
+		float cx, float cy, float radius, const glm::vec4& color, int segments);
+
+	void RecordFillCircle(WorkerRecord& r,
+		float cx, float cy, float radius, const glm::vec4& color, int segments);
+
+	void RecordPushClipRect(WorkerRecord& r, int x, int y, int w, int h);
+	void RecordPopClipRect(WorkerRecord& r);
+	void RecordSetBlendMode(WorkerRecord& r, BlendMode mode);
 };
 
 #endif

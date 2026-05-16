@@ -6,6 +6,39 @@ static inline bool IsIdentityMat(const glm::mat4& m) {
 	return m == glm::mat4(1.0f);
 }
 
+// ==================== 多线程录制状态（thread_local） ====================
+//
+// 这些指针在主线程上始终为 nullptr，所以所有公开 DrawXxx 路径在主线程上保持原行为
+// 不变；只有 SetWorkerSlot() 在 worker 线程把它们置位后，DrawXxx 才走 Record 路径。
+// 注意：thread_local 是按线程而非按 slot 的。Dispatch 每轮把同一个 worker 线程绑到
+// 同一个 slot 上跑完一整段（slot = idx），所以指针在该线程内稳定。
+namespace {
+	thread_local WorkerRecord*           tl_record              = nullptr;
+	thread_local std::vector<glm::mat4>* tl_transformStack      = nullptr;
+	thread_local std::vector<char>*      tl_transformIsIdentity = nullptr;
+	thread_local std::vector<ClipRect>*  tl_clipStack           = nullptr;
+	thread_local BlendMode               tl_blend               = BlendMode::None;
+
+	// 在 worker 本地 texList 中查找/插入 textureID，返回索引。texList 通常 <= 64，
+	// 线性扫描足够快。
+	inline int InternTex(WorkerRecord& r, GLuint textureID) {
+		const size_t n = r.texList.size();
+		for (size_t i = 0; i < n; ++i) {
+			if (r.texList[i] == textureID) return (int)i;
+		}
+		r.texList.push_back(textureID);
+		return (int)n;
+	}
+
+	// 把矩阵 push 到本地 matList，返回索引。我们不去重——Animator 几乎不会重复使
+	// 用同一矩阵，hash mat4 的成本会盖过收益。
+	inline int InternMat(WorkerRecord& r, const glm::mat4& m) {
+		const int idx = (int)r.matList.size();
+		r.matList.push_back(m);
+		return idx;
+	}
+}
+
 Graphics::Graphics() {
 	m_transformStack.push_back(glm::mat4(1.0f));
 	m_transformIsIdentity.push_back(1);
@@ -230,6 +263,15 @@ void Graphics::SetWindowSize(int width, int height) {
 }
 
 void Graphics::PushTransform(const glm::mat4& transform) {
+	if (tl_record) {
+		// worker：只动 thread-local 栈，不进 record 流（每次 DrawXxx 已把 finalMatrix 烘到 record 里）
+		const bool curId = tl_transformIsIdentity->back() != 0;
+		const bool tId = IsIdentityMat(transform);
+		glm::mat4 newTop = curId ? transform : (tl_transformStack->back() * transform);
+		tl_transformStack->push_back(newTop);
+		tl_transformIsIdentity->push_back((curId && tId) ? 1 : 0);
+		return;
+	}
 	const bool curId = m_transformIsIdentity.back() != 0;
 	const bool tId = IsIdentityMat(transform);
 	// 栈顶为单位阵时无需相乘，直接取 transform（这本身也消除一次冗余乘法）
@@ -239,6 +281,16 @@ void Graphics::PushTransform(const glm::mat4& transform) {
 }
 
 void Graphics::PopTransform() {
+	if (tl_record) {
+		if (tl_transformStack->size() > 1) {
+			tl_transformStack->pop_back();
+			tl_transformIsIdentity->pop_back();
+		}
+		else {
+			std::cerr << "[Graphics] PopTransform (worker) failed: stack underflow." << std::endl;
+		}
+		return;
+	}
 	if (m_transformStack.size() > 1) {
 		m_transformStack.pop_back();
 		m_transformIsIdentity.pop_back();
@@ -249,6 +301,13 @@ void Graphics::PopTransform() {
 }
 
 void Graphics::SetIdentity() {
+	if (tl_record) {
+		if (!tl_transformStack->empty()) {
+			tl_transformStack->back() = glm::mat4(1.0f);
+			tl_transformIsIdentity->back() = 1;
+		}
+		return;
+	}
 	if (!m_transformStack.empty()) {
 		m_transformStack.back() = glm::mat4(1.0f);
 		m_transformIsIdentity.back() = 1;
@@ -256,18 +315,36 @@ void Graphics::SetIdentity() {
 }
 
 void Graphics::Translate(float x, float y, float z) {
+	if (tl_record) {
+		if (tl_transformStack->empty()) return;
+		tl_transformStack->back() = glm::translate(tl_transformStack->back(), glm::vec3(x, y, z));
+		tl_transformIsIdentity->back() = 0;
+		return;
+	}
 	if (m_transformStack.empty()) return;
 	m_transformStack.back() = glm::translate(m_transformStack.back(), glm::vec3(x, y, z));
 	m_transformIsIdentity.back() = 0;
 }
 
 void Graphics::Rotate(float angleDegrees, float x, float y, float z) {
+	if (tl_record) {
+		if (tl_transformStack->empty()) return;
+		tl_transformStack->back() = glm::rotate(tl_transformStack->back(), glm::radians(angleDegrees), glm::vec3(x, y, z));
+		tl_transformIsIdentity->back() = 0;
+		return;
+	}
 	if (m_transformStack.empty()) return;
 	m_transformStack.back() = glm::rotate(m_transformStack.back(), glm::radians(angleDegrees), glm::vec3(x, y, z));
 	m_transformIsIdentity.back() = 0;
 }
 
 void Graphics::Scale(float sx, float sy, float sz) {
+	if (tl_record) {
+		if (tl_transformStack->empty()) return;
+		tl_transformStack->back() = glm::scale(tl_transformStack->back(), glm::vec3(sx, sy, sz));
+		tl_transformIsIdentity->back() = 0;
+		return;
+	}
 	if (m_transformStack.empty()) return;
 	m_transformStack.back() = glm::scale(m_transformStack.back(), glm::vec3(sx, sy, sz));
 	m_transformIsIdentity.back() = 0;
@@ -299,6 +376,7 @@ void Graphics::ApplyTopClipRectToGL() {
 }
 
 void Graphics::PushClipRect(int x, int y, int w, int h) {
+	if (tl_record) { RecordPushClipRect(*tl_record, x, y, w, h); return; }
 	// 必须先把已积累的顶点刷出去，否则 push 之前 batched 的内容会被新的 scissor 一起裁剪。
 	FlushBatch();
 	FlushGeomBatch();
@@ -313,6 +391,7 @@ void Graphics::PushClipRect(int x, int y, int w, int h) {
 }
 
 void Graphics::PopClipRect() {
+	if (tl_record) { RecordPopClipRect(*tl_record); return; }
 	if (m_clipStack.empty()) {
 		std::cerr << "[Graphics] PopClipRect failed: stack underflow." << std::endl;
 		return;
@@ -484,6 +563,7 @@ void Graphics::DrawTexture(const GLTexture* tex, float x, float y, float width, 
 		std::cerr << "[Graphics] Texture not found: " << tex << std::endl;
 		return;
 	}
+	if (tl_record) { RecordDrawTexture(*tl_record, tex, x, y, width, height, rotation, tint); return; }
 
 	if (m_batchMode) {
 		int texIndex = BindTexture(tex->id);
@@ -548,6 +628,7 @@ void Graphics::DrawTextureMatrix(const GLTexture* tex, const glm::mat4& transfor
 	float pivotX, float pivotY, const glm::vec4& tint, BlendMode blendMode) {
 
 	if (!tex) return;
+	if (tl_record) { RecordDrawTextureMatrix(*tl_record, tex, transform, pivotX, pivotY, tint, blendMode); return; }
 
 	if (m_batchMode) {
 		// 图集重映射：若该纹理已被打进图集页，则改绑图集页并把 UV 收窄到子矩形
@@ -640,6 +721,7 @@ void Graphics::DrawTextureRegion(const GLTexture* tex,
 	float rotation, const glm::vec4& tint)
 {
 	if (!tex || tex->id == 0) return;
+	if (tl_record) { RecordDrawTextureRegion(*tl_record, tex, srcX, srcY, srcW, srcH, dstX, dstY, dstW, dstH, rotation, tint); return; }
 
 	// 计算归一化 UV 坐标
 	float u0 = srcX / tex->width;
@@ -823,6 +905,7 @@ CachedText Graphics::AcquireTextTexture(const std::string& text, const std::stri
 
 void Graphics::DrawCachedText(const CachedText& handle, float x, float y, float scale) {
 	if (handle.textureID == 0) return;
+	if (tl_record) { RecordDrawCachedText(*tl_record, handle, x, y, scale); return; }
 
 	if (m_batchMode) {
 		int texIndex = BindTexture(handle.textureID);
@@ -874,6 +957,8 @@ void Graphics::ClearPinnedTextCache() {
 
 void Graphics::DrawText(const std::string& text, const std::string& fontKey, int fontSize,
 	const glm::vec4& color, float x, float y, float scale) {
+	if (tl_record) { RecordDrawText(*tl_record, text, fontKey, fontSize, color, x, y, scale); return; }
+
 	int w, h;
 	GLuint texID = GetOrCreateTextTexture(text, fontKey, fontSize, color, w, h);
 	if (texID == 0) return;
@@ -933,6 +1018,8 @@ void Graphics::SetClearColor(float r, float g, float b, float a) {
 }
 
 void Graphics::SetBlendMode(BlendMode mode) {
+	if (tl_record) { RecordSetBlendMode(*tl_record, mode); return; }
+
 	if (m_currentBlendMode == mode) return;
 
 	// 几何批次无逐顶点混合模式，切换时需提交
@@ -1167,6 +1254,8 @@ void Graphics::DrawGeomImmediate(const std::vector<GeomVertex>& vertices, GLenum
 }
 
 void Graphics::DrawLine(float x1, float y1, float x2, float y2, const glm::vec4& color) {
+	if (tl_record) { RecordDrawLine(*tl_record, x1, y1, x2, y2, color); return; }
+
 	glm::vec4 nc = NormalizeColor(color);
 	float r = nc.r, g = nc.g, b = nc.b, a = nc.a;
 
@@ -1206,6 +1295,8 @@ void Graphics::DrawLine(float x1, float y1, float x2, float y2, const glm::vec4&
 }
 
 void Graphics::DrawRect(float x, float y, float width, float height, const glm::vec4& color) {
+	if (tl_record) { RecordDrawRect(*tl_record, x, y, width, height, color); return; }
+
 	glm::vec4 nc = NormalizeColor(color);
 	float r = nc.r, g = nc.g, b = nc.b, a = nc.a;
 
@@ -1255,6 +1346,8 @@ void Graphics::DrawRect(float x, float y, float width, float height, const glm::
 }
 
 void Graphics::FillRect(float x, float y, float width, float height, const glm::vec4& color) {
+	if (tl_record) { RecordFillRect(*tl_record, x, y, width, height, color); return; }
+
 	if (m_batchMode) {
 		// 批处理模式：使用 1×1 白色纹理加入纹理批次，保证与其他纹理的绘制顺序正确
 		int texIndex = BindTexture(m_whiteTexture);
@@ -1294,6 +1387,8 @@ void Graphics::FillRect(float x, float y, float width, float height, const glm::
 }
 
 void Graphics::DrawCircle(float cx, float cy, float radius, const glm::vec4& color, int segments) {
+	if (tl_record) { RecordDrawCircle(*tl_record, cx, cy, radius, color, segments); return; }
+
 	glm::vec4 nc = NormalizeColor(color);
 	float r = nc.r, g = nc.g, b = nc.b, a = nc.a;
 
@@ -1340,6 +1435,8 @@ void Graphics::DrawCircle(float cx, float cy, float radius, const glm::vec4& col
 }
 
 void Graphics::FillCircle(float cx, float cy, float radius, const glm::vec4& color, int segments) {
+	if (tl_record) { RecordFillCircle(*tl_record, cx, cy, radius, color, segments); return; }
+
 	glm::vec4 nc = NormalizeColor(color);
 	float r = nc.r, g = nc.g, b = nc.b, a = nc.a;
 
@@ -1380,6 +1477,15 @@ void Graphics::FillCircle(float cx, float cy, float radius, const glm::vec4& col
 }
 
 void Graphics::Submit(std::function<void()> cmd) {
+	if (tl_record) {
+		// worker 内调用 Submit：录到本 slot 的 customCmds，回放时按顺序在主线程执行
+		tl_record->customCmds.push_back(std::move(cmd));
+		RecordCmd c{};
+		c.type       = static_cast<uint32_t>(RecCmdType::Custom);
+		c.payloadIdx = static_cast<uint32_t>(tl_record->customCmds.size() - 1);
+		tl_record->cmds.push_back(c);
+		return;
+	}
 	std::lock_guard<std::mutex> lock(m_commandMutex);
 	m_pendingCommands.push_back(std::move(cmd));
 }
@@ -1436,4 +1542,620 @@ void Graphics::SubmitDrawCircle(float cx, float cy, float radius, const glm::vec
 
 void Graphics::SubmitFillCircle(float cx, float cy, float radius, const glm::vec4& color, int segments) {
 	Submit([=]() { FillCircle(cx, cy, radius, color, segments); });
+}
+
+// ============================================================================
+//  多线程录制 / 回放
+// ============================================================================
+//
+// 关键不变量：
+//   1. tl_record 只在 worker 线程上非空，主线程上始终为 nullptr。
+//   2. 每个 slot 一份的 WorkerRecord / WorkerThreadState 由该 slot 绑定的 worker
+//      线程独占写入，无 lock 必要。
+//   3. Replay 在主线程串行执行；走的是和原来一样的 BindTexture / AddMatrix /
+//      AddVertices / CheckBatch / FlushBatch 路径，所以 GL 行为与原顺序提交一致。
+//   4. 顺序保证：ThreadPool 按 idx 把 [idx*chunk, idx*chunk+chunk) 分给 worker
+//      idx，slot 也取这个 idx。回放循环 slot = 0..N-1，slot 内按 cmd push 顺序
+//      重放，整体绝对顺序与原串行 Draw 等价。
+
+void Graphics::BeginParallelRecord(int numWorkers) {
+	if (numWorkers <= 0) {
+		m_numActiveWorkers = 0;
+		return;
+	}
+
+	// 确保 records 与 states 都有 numWorkers 份
+	if ((int)m_workerRecords.size() < numWorkers) m_workerRecords.resize(numWorkers);
+	if ((int)m_workerStates.size()  < numWorkers) m_workerStates.resize(numWorkers);
+
+	// 当前 Graphics 状态作为每个 worker 的初始基线
+	const glm::mat4& curTop = m_transformStack.back();
+	const bool       curId  = m_transformIsIdentity.back() != 0;
+
+	for (int i = 0; i < numWorkers; ++i) {
+		WorkerRecord& r = m_workerRecords[i];
+		r.Reset();
+
+		// 首次使用此 slot 时按推荐容量 reserve，避免运行中 realloc 抖动。
+		// 用 cmds.capacity() 作为"是否首帧"的廉价判定（Reset 不改 capacity）。
+		if (r.cmds.capacity() == 0) {
+			r.verts.reserve(96 * 1024);
+			r.matList.reserve(16 * 1024);
+			r.cmds.reserve(16 * 1024);
+			r.texList.reserve(64);
+			r.clips.reserve(8);
+			r.blendModes.reserve(16);
+			r.textCmds.reserve(64);
+		}
+
+		r.initialTopTransform  = curTop;
+		r.initialTopIsIdentity = curId;
+		r.initialClipStack     = m_clipStack;       // 拷贝当前裁剪栈
+		r.initialBlend         = m_currentBlendMode;
+	}
+
+	m_numActiveWorkers = numWorkers;
+}
+
+void Graphics::SetWorkerSlot(int slot) {
+	if (slot < 0 || slot >= m_numActiveWorkers) {
+		std::cerr << "[Graphics] SetWorkerSlot: invalid slot " << slot
+			<< " (active=" << m_numActiveWorkers << ")" << std::endl;
+		return;
+	}
+	WorkerRecord&      r = m_workerRecords[slot];
+	WorkerThreadState& s = m_workerStates[slot];
+
+	// 用快照初始化 thread-local 变换栈 / 裁剪栈 / 混合模式。clear() 保留 capacity。
+	s.transformStack.clear();
+	s.transformIsIdentity.clear();
+	s.clipStack.clear();
+	s.transformStack.push_back(r.initialTopTransform);
+	s.transformIsIdentity.push_back(r.initialTopIsIdentity ? 1 : 0);
+	s.clipStack = r.initialClipStack;
+
+	tl_record              = &r;
+	tl_transformStack      = &s.transformStack;
+	tl_transformIsIdentity = &s.transformIsIdentity;
+	tl_clipStack           = &s.clipStack;
+	tl_blend               = r.initialBlend;
+}
+
+void Graphics::ClearWorkerSlot() {
+	// 防御性检查：worker 块结束时栈应平衡（GameObjectManager 总是把 Push/PopClip 配
+	// 对调用；component 的 Push/PopTransform 也配对）。不平衡只打印警告，不阻塞，
+	// 回放时主线程会自己保证 m_clipStack 起止一致。
+	if (tl_record && tl_clipStack &&
+		tl_clipStack->size() != tl_record->initialClipStack.size()) {
+		std::cerr << "[Graphics] ClearWorkerSlot: clip stack imbalanced ("
+			<< tl_clipStack->size() << " vs initial "
+			<< tl_record->initialClipStack.size() << ")" << std::endl;
+	}
+	if (tl_transformStack && tl_transformStack->size() != 1) {
+		std::cerr << "[Graphics] ClearWorkerSlot: transform stack imbalanced ("
+			<< tl_transformStack->size() << ", expected 1)" << std::endl;
+	}
+
+	tl_record              = nullptr;
+	tl_transformStack      = nullptr;
+	tl_transformIsIdentity = nullptr;
+	tl_clipStack           = nullptr;
+	tl_blend               = BlendMode::None;
+}
+
+void Graphics::ReplayAndEndParallel() {
+	// 优化点：
+	// 1) **texMap 缓存**：worker 本地 texList 已经去重（典型 <=64 个），主线程不必每 cmd
+	//    都跑一遍 BindTexture 的 32 元素线性扫描。给每个 slot 一份 texMap[localIdx]→
+	//    globalSlot，命中即 O(1)；FlushBatch 一旦触发就全表失效。AddMatrix 触发的 flush
+	//    会清空 m_batchTextures，所以也得重绑当前用到的纹理。
+	//
+	// 2) **resize + 单循环代替 insert + 第二轮 overwrite**：避免对同一段内存遍历两遍。
+	//
+	// 矩阵不缓存——worker 几乎不复用同一矩阵（每个 sprite 各算各的 finalMatrix），
+	// hash mat4 的成本会盖过收益。
+	std::vector<int> texMap;
+
+	auto invalidateTexMap = [&]() { std::fill(texMap.begin(), texMap.end(), -1); };
+
+	for (int slot = 0; slot < m_numActiveWorkers; ++slot) {
+		WorkerRecord& r = m_workerRecords[slot];
+		texMap.assign(r.texList.size(), -1);
+
+		for (const RecordCmd& cmd : r.cmds) {
+			switch (static_cast<RecCmdType>(cmd.type)) {
+
+			case RecCmdType::BatchVerts: {
+				const GLuint textureID = r.texList[cmd.localTexIdx];
+
+				// 步骤 1：拿全局纹理槽位。先查 texMap 缓存；未命中则调 BindTexture。
+				int gTex = texMap[cmd.localTexIdx];
+				if (gTex < 0) {
+					const size_t sz0 = m_batchVertices.size();
+					gTex = BindTexture(textureID);
+					if (m_batchVertices.size() < sz0) {
+						// BindTexture 触发 FlushBatch（纹理槽位满）：旧缓存全部失效
+						invalidateTexMap();
+					}
+					texMap[cmd.localTexIdx] = gTex;
+				}
+
+				// 步骤 2：拿全局矩阵槽位。AddMatrix 触发 flush 会同时清空 m_batchTextures，
+				// 让上一步缓存的 gTex 失效——这种情况下要重绑纹理到新批次。
+				const size_t sz1 = m_batchVertices.size();
+				const int gMat = AddMatrix(r.matList[cmd.localMatIdx]);
+				if (m_batchVertices.size() < sz1) {
+					invalidateTexMap();
+					gTex = BindTexture(textureID);
+					texMap[cmd.localTexIdx] = gTex;
+				}
+
+				// 步骤 3：拷贝顶点 + 覆写两个索引字段。
+				// 用 insert（trivially-copyable 类型内部走 memcpy/memmove，不会对新位置零初始化）
+				// 而不是 resize+循环——resize 对聚合类型 BatchVertex 做 value-initialization
+				// 会先全员清零再被我们整个覆写，每帧多写 31MB 零字节，反而拖累 cache。
+				const size_t before = m_batchVertices.size();
+				m_batchVertices.insert(m_batchVertices.end(),
+					r.verts.begin() + cmd.vertOffset,
+					r.verts.begin() + cmd.vertOffset + cmd.count);
+				const GLuint gTexU = static_cast<GLuint>(gTex);
+				const GLuint gMatU = static_cast<GLuint>(gMat);
+				for (size_t i = before; i < before + cmd.count; ++i) {
+					m_batchVertices[i].texIndex    = gTexU;
+					m_batchVertices[i].matrixIndex = gMatU;
+				}
+
+				// 步骤 4：CheckBatch 可能触发 flush（顶点 / 矩阵 / 纹理满）；失效缓存。
+				const size_t sz2 = m_batchVertices.size();
+				CheckBatch();
+				if (m_batchVertices.size() < sz2) {
+					invalidateTexMap();
+				}
+				break;
+			}
+
+			case RecCmdType::PushClip: {
+				const ClipRect& cr = r.clips[cmd.payloadIdx];
+				PushClipRect(cr.x, cr.y, cr.w, cr.h);   // 内部 FlushBatch + glScissor
+				invalidateTexMap();
+				break;
+			}
+
+			case RecCmdType::PopClip: {
+				PopClipRect();                          // 内部 FlushBatch
+				invalidateTexMap();
+				break;
+			}
+
+			case RecCmdType::SetBlend: {
+				SetBlendMode(r.blendModes[cmd.payloadIdx]);
+				// SetBlendMode 在批处理模式下不 flush 纹理批次，但保守失效一次代价极低
+				break;
+			}
+
+			case RecCmdType::DeferredText: {
+				const DeferredTextCmd& t = r.textCmds[cmd.payloadIdx];
+				DrawText(t.text, t.fontKey, t.fontSize, t.color, t.x, t.y, t.scale);
+				// DrawText 内部走批处理；保守失效缓存
+				invalidateTexMap();
+				break;
+			}
+
+			case RecCmdType::Custom: {
+				r.customCmds[cmd.payloadIdx]();
+				invalidateTexMap();
+				break;
+			}
+
+			default:
+				break;
+			}
+		}
+	}
+
+	m_numActiveWorkers = 0;
+	// 不释放 record 存储；下帧 Reset 复用 capacity。
+}
+
+// ----------------------------------------------------------------------------
+//  Record 路径辅助函数：与对应的公开 DrawXxx 批处理路径一一镜像，把矩阵乘法、UV
+//  计算、顶点构造留在 worker 上跑；BindTexture 与 AddMatrix 的全局槽位分配延迟到
+//  Replay 阶段（顶点的 texIndex/matrixIndex 字段先留 0xFFFFFFFF 占位）。
+// ----------------------------------------------------------------------------
+
+// 顶点用的占位值；Replay 会覆写。
+static constexpr GLuint kPlaceholderIdx = 0xFFFFFFFFu;
+
+void Graphics::RecordDrawTexture(WorkerRecord& r,
+	const GLTexture* tex, float x, float y, float width, float height,
+	float rotation, const glm::vec4& tint)
+{
+	if (!tex) return;
+	const int localTex = InternTex(r, tex->id);
+
+	glm::mat4 local = glm::mat4(1.0f);
+	local = glm::translate(local, glm::vec3(x, y, 0.0f));
+	local = glm::scale(local, glm::vec3(width, height, 1.0f));
+	if (rotation != 0.0f) {
+		local = glm::translate(local, glm::vec3(0.5f, 0.5f, 0.0f));
+		local = glm::rotate(local, glm::radians(rotation), glm::vec3(0.0f, 0.0f, 1.0f));
+		local = glm::translate(local, glm::vec3(-0.5f, -0.5f, 0.0f));
+	}
+	const bool curId = tl_transformIsIdentity->back() != 0;
+	glm::mat4 finalMatrix = curId ? local : (tl_transformStack->back() * local);
+	const int localMat = InternMat(r, finalMatrix);
+
+	const glm::vec4 nt = NormalizeColor(tint);
+	const float bm = (tl_blend == BlendMode::Add) ? 1.0f : 0.0f;
+
+	const size_t vOff = r.verts.size();
+	r.verts.resize(vOff + 6);
+	BatchVertex* v = r.verts.data() + vOff;
+	v[0] = { 0.0f, 1.0f, 0.0f, 1.0f, kPlaceholderIdx, kPlaceholderIdx, nt.r, nt.g, nt.b, nt.a, bm };
+	v[1] = { 1.0f, 1.0f, 1.0f, 1.0f, kPlaceholderIdx, kPlaceholderIdx, nt.r, nt.g, nt.b, nt.a, bm };
+	v[2] = { 1.0f, 0.0f, 1.0f, 0.0f, kPlaceholderIdx, kPlaceholderIdx, nt.r, nt.g, nt.b, nt.a, bm };
+	v[3] = { 0.0f, 1.0f, 0.0f, 1.0f, kPlaceholderIdx, kPlaceholderIdx, nt.r, nt.g, nt.b, nt.a, bm };
+	v[4] = { 0.0f, 0.0f, 0.0f, 0.0f, kPlaceholderIdx, kPlaceholderIdx, nt.r, nt.g, nt.b, nt.a, bm };
+	v[5] = { 1.0f, 0.0f, 1.0f, 0.0f, kPlaceholderIdx, kPlaceholderIdx, nt.r, nt.g, nt.b, nt.a, bm };
+
+	RecordCmd c{};
+	c.type        = static_cast<uint32_t>(RecCmdType::BatchVerts);
+	c.count       = 6;
+	c.vertOffset  = static_cast<uint32_t>(vOff);
+	c.localTexIdx = static_cast<uint16_t>(localTex);
+	c.localMatIdx = static_cast<uint16_t>(localMat);
+	r.cmds.push_back(c);
+}
+
+void Graphics::RecordDrawTextureMatrix(WorkerRecord& r,
+	const GLTexture* tex, const glm::mat4& transform,
+	float pivotX, float pivotY, const glm::vec4& tint, BlendMode blendMode)
+{
+	// 这是 Animator 的最热路径（~9 万次/帧）。镜像 Graphics.cpp:547-594 的批处理段。
+	if (!tex) return;
+
+	const GLTexture* bindTex = tex;
+	float u0 = 0.0f, v0 = 0.0f, u1 = 1.0f, v1 = 1.0f;
+	if (tex->atlasPage) {
+		bindTex = tex->atlasPage;
+		u0 = tex->aU0; v0 = tex->aV0; u1 = tex->aU1; v1 = tex->aV1;
+	}
+	const int localTex = InternTex(r, bindTex->id);
+
+	glm::mat4 pivotTransform;
+	if (pivotX != 0.0f || pivotY != 0.0f) {
+		const glm::vec3 pivot(pivotX, pivotY, 0.0f);
+		pivotTransform = glm::translate(glm::mat4(1.0f), pivot)
+			* transform
+			* glm::translate(glm::mat4(1.0f), -pivot);
+	}
+	else {
+		pivotTransform = transform;
+	}
+	// 单位阵快速路径——Animator 通常压入单位阵作为基线，跳过 mat4×mat4 节省大量浮点。
+	const bool curId = tl_transformIsIdentity->back() != 0;
+	glm::mat4 finalMatrix = curId ? pivotTransform
+		: (tl_transformStack->back() * pivotTransform);
+	const int localMat = InternMat(r, finalMatrix);
+
+	const glm::vec4 nt = NormalizeColor(tint);
+	const BlendMode actualMode = (blendMode == BlendMode::None) ? tl_blend : blendMode;
+	const float bm = (actualMode == BlendMode::Add) ? 1.0f : 0.0f;
+
+	const size_t vOff = r.verts.size();
+	r.verts.resize(vOff + 6);
+	BatchVertex* v = r.verts.data() + vOff;
+	v[0] = { 0.0f, 1.0f, u0, v1, kPlaceholderIdx, kPlaceholderIdx, nt.r, nt.g, nt.b, nt.a, bm };
+	v[1] = { 1.0f, 1.0f, u1, v1, kPlaceholderIdx, kPlaceholderIdx, nt.r, nt.g, nt.b, nt.a, bm };
+	v[2] = { 1.0f, 0.0f, u1, v0, kPlaceholderIdx, kPlaceholderIdx, nt.r, nt.g, nt.b, nt.a, bm };
+	v[3] = { 0.0f, 1.0f, u0, v1, kPlaceholderIdx, kPlaceholderIdx, nt.r, nt.g, nt.b, nt.a, bm };
+	v[4] = { 0.0f, 0.0f, u0, v0, kPlaceholderIdx, kPlaceholderIdx, nt.r, nt.g, nt.b, nt.a, bm };
+	v[5] = { 1.0f, 0.0f, u1, v0, kPlaceholderIdx, kPlaceholderIdx, nt.r, nt.g, nt.b, nt.a, bm };
+
+	RecordCmd c{};
+	c.type        = static_cast<uint32_t>(RecCmdType::BatchVerts);
+	c.count       = 6;
+	c.vertOffset  = static_cast<uint32_t>(vOff);
+	c.localTexIdx = static_cast<uint16_t>(localTex);
+	c.localMatIdx = static_cast<uint16_t>(localMat);
+	r.cmds.push_back(c);
+}
+
+void Graphics::RecordDrawTextureRegion(WorkerRecord& r,
+	const GLTexture* tex,
+	float srcX, float srcY, float srcW, float srcH,
+	float dstX, float dstY, float dstW, float dstH,
+	float rotation, const glm::vec4& tint)
+{
+	if (!tex || tex->id == 0) return;
+
+	const float u0 = srcX / tex->width;
+	const float v0 = srcY / tex->height;
+	const float u1 = (srcX + srcW) / tex->width;
+	const float v1 = (srcY + srcH) / tex->height;
+
+	glm::mat4 local = glm::mat4(1.0f);
+	local = glm::translate(local, glm::vec3(dstX, dstY, 0.0f));
+	local = glm::scale(local, glm::vec3(dstW, dstH, 1.0f));
+	if (rotation != 0.0f) {
+		local = glm::translate(local, glm::vec3(0.5f, 0.5f, 0.0f));
+		local = glm::rotate(local, glm::radians(rotation), glm::vec3(0.0f, 0.0f, 1.0f));
+		local = glm::translate(local, glm::vec3(-0.5f, -0.5f, 0.0f));
+	}
+	const bool curId = tl_transformIsIdentity->back() != 0;
+	glm::mat4 finalMatrix = curId ? local : (tl_transformStack->back() * local);
+
+	const int localTex = InternTex(r, tex->id);
+	const int localMat = InternMat(r, finalMatrix);
+
+	const glm::vec4 nt = NormalizeColor(tint);
+	const float bm = (tl_blend == BlendMode::Add) ? 1.0f : 0.0f;
+
+	const size_t vOff = r.verts.size();
+	r.verts.resize(vOff + 6);
+	BatchVertex* v = r.verts.data() + vOff;
+	v[0] = { 0.0f, 1.0f, u0, v1, kPlaceholderIdx, kPlaceholderIdx, nt.r, nt.g, nt.b, nt.a, bm };
+	v[1] = { 1.0f, 1.0f, u1, v1, kPlaceholderIdx, kPlaceholderIdx, nt.r, nt.g, nt.b, nt.a, bm };
+	v[2] = { 1.0f, 0.0f, u1, v0, kPlaceholderIdx, kPlaceholderIdx, nt.r, nt.g, nt.b, nt.a, bm };
+	v[3] = { 0.0f, 1.0f, u0, v1, kPlaceholderIdx, kPlaceholderIdx, nt.r, nt.g, nt.b, nt.a, bm };
+	v[4] = { 0.0f, 0.0f, u0, v0, kPlaceholderIdx, kPlaceholderIdx, nt.r, nt.g, nt.b, nt.a, bm };
+	v[5] = { 1.0f, 0.0f, u1, v0, kPlaceholderIdx, kPlaceholderIdx, nt.r, nt.g, nt.b, nt.a, bm };
+
+	RecordCmd c{};
+	c.type        = static_cast<uint32_t>(RecCmdType::BatchVerts);
+	c.count       = 6;
+	c.vertOffset  = static_cast<uint32_t>(vOff);
+	c.localTexIdx = static_cast<uint16_t>(localTex);
+	c.localMatIdx = static_cast<uint16_t>(localMat);
+	r.cmds.push_back(c);
+}
+
+void Graphics::RecordDrawCachedText(WorkerRecord& r,
+	const CachedText& handle, float x, float y, float scale)
+{
+	// CachedText 是 immutable POD（textureID/width/height）——worker 直接走快速路径，
+	// 不需要走 DeferredText。镜像 Graphics.cpp:824-844。
+	if (handle.textureID == 0) return;
+	const int localTex = InternTex(r, handle.textureID);
+
+	glm::mat4 local = glm::mat4(1.0f);
+	local = glm::translate(local, glm::vec3(x, y, 0.0f));
+	local = glm::scale(local, glm::vec3(handle.width * scale, handle.height * scale, 1.0f));
+	const bool curId = tl_transformIsIdentity->back() != 0;
+	glm::mat4 finalMatrix = curId ? local : (tl_transformStack->back() * local);
+	const int localMat = InternMat(r, finalMatrix);
+
+	const float bm = (tl_blend == BlendMode::Add) ? 1.0f : 0.0f;
+
+	const size_t vOff = r.verts.size();
+	r.verts.resize(vOff + 6);
+	BatchVertex* v = r.verts.data() + vOff;
+	v[0] = { 0.0f, 1.0f, 0.0f, 1.0f, kPlaceholderIdx, kPlaceholderIdx, 1,1,1,1, bm };
+	v[1] = { 1.0f, 1.0f, 1.0f, 1.0f, kPlaceholderIdx, kPlaceholderIdx, 1,1,1,1, bm };
+	v[2] = { 1.0f, 0.0f, 1.0f, 0.0f, kPlaceholderIdx, kPlaceholderIdx, 1,1,1,1, bm };
+	v[3] = { 0.0f, 1.0f, 0.0f, 1.0f, kPlaceholderIdx, kPlaceholderIdx, 1,1,1,1, bm };
+	v[4] = { 0.0f, 0.0f, 0.0f, 0.0f, kPlaceholderIdx, kPlaceholderIdx, 1,1,1,1, bm };
+	v[5] = { 1.0f, 0.0f, 1.0f, 0.0f, kPlaceholderIdx, kPlaceholderIdx, 1,1,1,1, bm };
+
+	RecordCmd c{};
+	c.type        = static_cast<uint32_t>(RecCmdType::BatchVerts);
+	c.count       = 6;
+	c.vertOffset  = static_cast<uint32_t>(vOff);
+	c.localTexIdx = static_cast<uint16_t>(localTex);
+	c.localMatIdx = static_cast<uint16_t>(localMat);
+	r.cmds.push_back(c);
+}
+
+void Graphics::RecordDrawText(WorkerRecord& r,
+	const std::string& text, const std::string& fontKey, int fontSize,
+	const glm::vec4& color, float x, float y, float scale)
+{
+	// DrawText 涉及 TTF 渲染 + glTexImage2D + LRU 维护，全部都不是线程安全的——
+	// 一律 defer 到主线程。频率不高（数千次/帧，且 LRU 命中率高），影响可忽略。
+	DeferredTextCmd t;
+	t.text     = text;
+	t.fontKey  = fontKey;
+	t.fontSize = fontSize;
+	t.color    = color;
+	t.x        = x;
+	t.y        = y;
+	t.scale    = scale;
+	r.textCmds.push_back(std::move(t));
+
+	RecordCmd c{};
+	c.type       = static_cast<uint32_t>(RecCmdType::DeferredText);
+	c.payloadIdx = static_cast<uint32_t>(r.textCmds.size() - 1);
+	r.cmds.push_back(c);
+}
+
+void Graphics::RecordFillRect(WorkerRecord& r,
+	float x, float y, float width, float height, const glm::vec4& color)
+{
+	const int localTex = InternTex(r, m_whiteTexture);
+
+	glm::mat4 local = glm::mat4(1.0f);
+	local = glm::translate(local, glm::vec3(x, y, 0.0f));
+	local = glm::scale(local, glm::vec3(width, height, 1.0f));
+	const bool curId = tl_transformIsIdentity->back() != 0;
+	glm::mat4 finalMatrix = curId ? local : (tl_transformStack->back() * local);
+	const int localMat = InternMat(r, finalMatrix);
+
+	const glm::vec4 nc = NormalizeColor(color);
+	const float bm = (tl_blend == BlendMode::Add) ? 1.0f : 0.0f;
+
+	const size_t vOff = r.verts.size();
+	r.verts.resize(vOff + 6);
+	BatchVertex* v = r.verts.data() + vOff;
+	v[0] = { 0.0f, 1.0f, 0.0f, 1.0f, kPlaceholderIdx, kPlaceholderIdx, nc.r, nc.g, nc.b, nc.a, bm };
+	v[1] = { 1.0f, 1.0f, 1.0f, 1.0f, kPlaceholderIdx, kPlaceholderIdx, nc.r, nc.g, nc.b, nc.a, bm };
+	v[2] = { 1.0f, 0.0f, 1.0f, 0.0f, kPlaceholderIdx, kPlaceholderIdx, nc.r, nc.g, nc.b, nc.a, bm };
+	v[3] = { 0.0f, 1.0f, 0.0f, 1.0f, kPlaceholderIdx, kPlaceholderIdx, nc.r, nc.g, nc.b, nc.a, bm };
+	v[4] = { 0.0f, 0.0f, 0.0f, 0.0f, kPlaceholderIdx, kPlaceholderIdx, nc.r, nc.g, nc.b, nc.a, bm };
+	v[5] = { 1.0f, 0.0f, 1.0f, 0.0f, kPlaceholderIdx, kPlaceholderIdx, nc.r, nc.g, nc.b, nc.a, bm };
+
+	RecordCmd c{};
+	c.type        = static_cast<uint32_t>(RecCmdType::BatchVerts);
+	c.count       = 6;
+	c.vertOffset  = static_cast<uint32_t>(vOff);
+	c.localTexIdx = static_cast<uint16_t>(localTex);
+	c.localMatIdx = static_cast<uint16_t>(localMat);
+	r.cmds.push_back(c);
+}
+
+// 公共辅助：把已变换到世界坐标的边端点拼成 1px 宽四边形（线段、矩形边、圆边复用）。
+// localTex/localMat 指向 m_whiteTexture / 单位阵在 worker 本地表中的索引。
+static inline void AppendEdgeQuad(WorkerRecord& r,
+	float ax, float ay, float bx, float by,
+	float rr, float gg, float bb, float aa, float bm,
+	int localTex, int localMat)
+{
+	const float edx = bx - ax, edy = by - ay;
+	const float len = std::sqrt(edx * edx + edy * edy);
+	if (len < 0.001f) return;
+	const float nx = -edy / len * 0.5f, ny = edx / len * 0.5f;
+
+	const size_t vOff = r.verts.size();
+	r.verts.resize(vOff + 6);
+	BatchVertex* v = r.verts.data() + vOff;
+	v[0] = { ax + nx, ay + ny, 0.5f, 0.5f, kPlaceholderIdx, kPlaceholderIdx, rr,gg,bb,aa, bm };
+	v[1] = { ax - nx, ay - ny, 0.5f, 0.5f, kPlaceholderIdx, kPlaceholderIdx, rr,gg,bb,aa, bm };
+	v[2] = { bx - nx, by - ny, 0.5f, 0.5f, kPlaceholderIdx, kPlaceholderIdx, rr,gg,bb,aa, bm };
+	v[3] = { ax + nx, ay + ny, 0.5f, 0.5f, kPlaceholderIdx, kPlaceholderIdx, rr,gg,bb,aa, bm };
+	v[4] = { bx - nx, by - ny, 0.5f, 0.5f, kPlaceholderIdx, kPlaceholderIdx, rr,gg,bb,aa, bm };
+	v[5] = { bx + nx, by + ny, 0.5f, 0.5f, kPlaceholderIdx, kPlaceholderIdx, rr,gg,bb,aa, bm };
+
+	RecordCmd c{};
+	c.type        = static_cast<uint32_t>(RecCmdType::BatchVerts);
+	c.count       = 6;
+	c.vertOffset  = static_cast<uint32_t>(vOff);
+	c.localTexIdx = static_cast<uint16_t>(localTex);
+	c.localMatIdx = static_cast<uint16_t>(localMat);
+	r.cmds.push_back(c);
+}
+
+void Graphics::RecordDrawLine(WorkerRecord& r,
+	float x1, float y1, float x2, float y2, const glm::vec4& color)
+{
+	const glm::mat4& transform = tl_transformStack->back();
+	const glm::vec4 p0 = transform * glm::vec4(x1, y1, 0.0f, 1.0f);
+	const glm::vec4 p1 = transform * glm::vec4(x2, y2, 0.0f, 1.0f);
+
+	const int localTex = InternTex(r, m_whiteTexture);
+	const int localMat = InternMat(r, glm::mat4(1.0f));
+	const glm::vec4 nc = NormalizeColor(color);
+	const float bm = (tl_blend == BlendMode::Add) ? 1.0f : 0.0f;
+
+	AppendEdgeQuad(r, p0.x, p0.y, p1.x, p1.y, nc.r, nc.g, nc.b, nc.a, bm, localTex, localMat);
+}
+
+void Graphics::RecordDrawRect(WorkerRecord& r,
+	float x, float y, float width, float height, const glm::vec4& color)
+{
+	const glm::mat4& transform = tl_transformStack->back();
+	const glm::vec4 p[4] = {
+		transform * glm::vec4(x,         y,          0.0f, 1.0f),
+		transform * glm::vec4(x + width, y,          0.0f, 1.0f),
+		transform * glm::vec4(x + width, y + height, 0.0f, 1.0f),
+		transform * glm::vec4(x,         y + height, 0.0f, 1.0f),
+	};
+	const int localTex = InternTex(r, m_whiteTexture);
+	const int localMat = InternMat(r, glm::mat4(1.0f));
+	const glm::vec4 nc = NormalizeColor(color);
+	const float bm = (tl_blend == BlendMode::Add) ? 1.0f : 0.0f;
+
+	for (int i = 0; i < 4; ++i) {
+		const int j = (i + 1) % 4;
+		AppendEdgeQuad(r, p[i].x, p[i].y, p[j].x, p[j].y, nc.r, nc.g, nc.b, nc.a, bm, localTex, localMat);
+	}
+}
+
+void Graphics::RecordDrawCircle(WorkerRecord& r,
+	float cx, float cy, float radius, const glm::vec4& color, int segments)
+{
+	const glm::mat4& transform = tl_transformStack->back();
+	const int localTex = InternTex(r, m_whiteTexture);
+	const int localMat = InternMat(r, glm::mat4(1.0f));
+	const glm::vec4 nc = NormalizeColor(color);
+	const float bm = (tl_blend == BlendMode::Add) ? 1.0f : 0.0f;
+
+	for (int i = 0; i < segments; ++i) {
+		const float a0 = 2.0f * glm::pi<float>() * i / segments;
+		const float a1 = 2.0f * glm::pi<float>() * (i + 1) / segments;
+		const glm::vec4 p0 = transform * glm::vec4(cx + radius * std::cos(a0), cy + radius * std::sin(a0), 0.0f, 1.0f);
+		const glm::vec4 p1 = transform * glm::vec4(cx + radius * std::cos(a1), cy + radius * std::sin(a1), 0.0f, 1.0f);
+		AppendEdgeQuad(r, p0.x, p0.y, p1.x, p1.y, nc.r, nc.g, nc.b, nc.a, bm, localTex, localMat);
+	}
+}
+
+void Graphics::RecordFillCircle(WorkerRecord& r,
+	float cx, float cy, float radius, const glm::vec4& color, int segments)
+{
+	const glm::mat4& transform = tl_transformStack->back();
+	const glm::vec4 center = transform * glm::vec4(cx, cy, 0.0f, 1.0f);
+
+	const int localTex = InternTex(r, m_whiteTexture);
+	const int localMat = InternMat(r, glm::mat4(1.0f));
+	const glm::vec4 nc = NormalizeColor(color);
+	const float bm = (tl_blend == BlendMode::Add) ? 1.0f : 0.0f;
+
+	for (int i = 0; i < segments; ++i) {
+		const float a0 = 2.0f * glm::pi<float>() * i / segments;
+		const float a1 = 2.0f * glm::pi<float>() * (i + 1) / segments;
+		const glm::vec4 p0 = transform * glm::vec4(cx + radius * std::cos(a0), cy + radius * std::sin(a0), 0.0f, 1.0f);
+		const glm::vec4 p1 = transform * glm::vec4(cx + radius * std::cos(a1), cy + radius * std::sin(a1), 0.0f, 1.0f);
+
+		const size_t vOff = r.verts.size();
+		r.verts.resize(vOff + 3);
+		BatchVertex* v = r.verts.data() + vOff;
+		v[0] = { center.x, center.y, 0.5f, 0.5f, kPlaceholderIdx, kPlaceholderIdx, nc.r, nc.g, nc.b, nc.a, bm };
+		v[1] = { p0.x,     p0.y,     0.5f, 0.5f, kPlaceholderIdx, kPlaceholderIdx, nc.r, nc.g, nc.b, nc.a, bm };
+		v[2] = { p1.x,     p1.y,     0.5f, 0.5f, kPlaceholderIdx, kPlaceholderIdx, nc.r, nc.g, nc.b, nc.a, bm };
+
+		RecordCmd c{};
+		c.type        = static_cast<uint32_t>(RecCmdType::BatchVerts);
+		c.count       = 3;
+		c.vertOffset  = static_cast<uint32_t>(vOff);
+		c.localTexIdx = static_cast<uint16_t>(localTex);
+		c.localMatIdx = static_cast<uint16_t>(localMat);
+		r.cmds.push_back(c);
+	}
+}
+
+void Graphics::RecordPushClipRect(WorkerRecord& r, int x, int y, int w, int h) {
+	// 在 worker 本地 clipStack 上做嵌套交集，replay 时再调真实 PushClipRect 触发
+	// FlushBatch + glScissor。本地维护是为了让 worker 内后续的 Push 能正确计算交集。
+	ClipRect rect = { x, y, w, h };
+	if (!tl_clipStack->empty()) {
+		rect = IntersectClip(tl_clipStack->back(), rect);
+	}
+	tl_clipStack->push_back(rect);
+
+	r.clips.push_back(rect);
+	RecordCmd c{};
+	c.type       = static_cast<uint32_t>(RecCmdType::PushClip);
+	c.payloadIdx = static_cast<uint32_t>(r.clips.size() - 1);
+	r.cmds.push_back(c);
+}
+
+void Graphics::RecordPopClipRect(WorkerRecord& r) {
+	if (tl_clipStack->empty()) {
+		std::cerr << "[Graphics] RecordPopClipRect: worker clip stack underflow" << std::endl;
+		return;
+	}
+	tl_clipStack->pop_back();
+
+	RecordCmd c{};
+	c.type = static_cast<uint32_t>(RecCmdType::PopClip);
+	r.cmds.push_back(c);
+}
+
+void Graphics::RecordSetBlendMode(WorkerRecord& r, BlendMode mode) {
+	if (mode == tl_blend) return;
+	tl_blend = mode;
+
+	r.blendModes.push_back(mode);
+	RecordCmd c{};
+	c.type       = static_cast<uint32_t>(RecCmdType::SetBlend);
+	c.payloadIdx = static_cast<uint32_t>(r.blendModes.size() - 1);
+	r.cmds.push_back(c);
 }

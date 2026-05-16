@@ -4,7 +4,10 @@
       "Skill(superpowers:systematic-debugging)",
       "Skill(superpowers:writing-plans)",
       "Skill(superpowers:subagent-driven-development)",
-      "Bash(git *)"
+      "Bash(git *)",
+      "Skill(superpowers:brainstorming)",
+      "Skill(superpowers:using-superpowers)",
+      "Skill(superpowers:executing-plans)"
     ]
   }
 }
