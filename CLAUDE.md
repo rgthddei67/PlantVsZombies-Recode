@@ -12,7 +12,7 @@ This is a Visual Studio 2026 C++ project (x64 Windows only).
 
 > **Important:** After making code changes, do NOT attempt to build the project yourself (e.g., via MSVC or any build command). The user will handle all builds manually in Visual Studio.
 
-Dependencies: SDL2, SDL2_image, SDL2_ttf, SDL2_mixer, OpenGL 3.3+, glad, glm, nlohmann/json, plugxml
+Dependencies: SDL2, SDL2_image, SDL2_ttf, SDL2_mixer, Vulkan 1.3, glm, nlohmann/json, plugxml
 
 Toolchain: C++17, `/utf-8` source encoding (required for the Chinese UI strings), Unicode character set, vcpkg static linking. Crash dialogs are produced by `CrashHandler` via a Windows Vectored Exception Handler — not visible on stderr in headless runs.
 
@@ -47,7 +47,7 @@ Add/get components via `AddComponent<T>(args...)` and `GetComponent<T>()`.
 | `EntityManager` | `Game/EntityManager` | ID-based entity tracking (used by save system) |
 | `SceneManager` | `Game/SceneManager` | Switches between scenes (`MainMenuScene`, `AlmanacScene`, `GameScene`, `PlantAlmanacScene`, `ZombieAlmanacScene`) — registered in `GameApp.cpp` |
 | `ResourceManager` | `ResourceManager` | Asset loading/caching; keys in `ResourceKeys.h` |
-| `Graphics` | `Graphics.cpp` | Custom OpenGL wrapper with transform stack and batch rendering |
+| `Graphics` | `Graphics.cpp` | Custom Vulkan wrapper with transform stack and batch rendering |
 | `Animator` | `Reanimation/Animator` | Named track system; `PlayTrack()`, `PlayTrackOnce()`, frame events |
 | `ParticleSystem` | `ParticleSystem/` | XML-configured particle effects (`resources/particles/`) |
 | `AudioSystem` | `Game/AudioSystem.h` | SDL2_mixer wrapper for SFX + music; channel management |
@@ -56,7 +56,7 @@ Add/get components via `AddComponent<T>(args...)` and `GetComponent<T>()`.
 ### Game Loop (GameApp::Run)
 1. **Input** — SDL events → `InputHandler`
 2. **Update** — `SceneManager` → `Board::Update()` + `GameObjectManager::Update()` (spawning, AI, collision)
-3. **Render** — `Draw()` walks objects in render order; internally calls `PrepareForDraw()` per object via the thread pool to parallel-prepare batch data, then issues GL calls and `Graphics::FlushBatch()`
+3. **Render** — `Draw()` walks objects in render order; internally calls `PrepareForDraw()` per object via the thread pool to parallel-prepare batch data, then records/submits Vulkan commands and `Graphics::FlushBatch()`
 
 ### Board Grid
 The board is a `vector<vector<shared_ptr<Cell>>>` grid. Plants are placed at `(row, column)`. Zombies travel by row. `Board` manages zombie waves and game state transitions via the `BoardState` enum: `CHOOSE_CARD → GAME → WIN` or `LOSE_GAME` (`NONE` is the uninitialized state).
