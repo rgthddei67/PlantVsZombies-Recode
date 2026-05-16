@@ -1,5 +1,6 @@
 ﻿#include "ResourceManager.h"
 #include "./Game/Plant/GameDataManager.h"
+#include "./Renderer/VulkanTexturePool.h"
 #include <filesystem>
 #include <algorithm>
 #include <cctype>
@@ -30,10 +31,10 @@ bool ResourceManager::Initialize(const std::string& configPath) {
     return configReader.LoadConfig(configPath);
 }
 
-const GLTexture* ResourceManager::LoadTexture(const std::string& filepath, const std::string& key) {
+const Texture* ResourceManager::LoadTexture(const std::string& filepath, const std::string& key) {
     std::string actualKey = key.empty() ? filepath : key;
-    auto it = mGLTextures.find(actualKey);
-    if (it != mGLTextures.end()) {
+    auto it = mTextures.find(actualKey);
+    if (it != mTextures.end()) {
         return &it->second;
     }
 
@@ -52,32 +53,40 @@ const GLTexture* ResourceManager::LoadTexture(const std::string& filepath, const
         return nullptr;
     }
 
-    // Phase 3a stub：跳过 GPU 上传，仅记录尺寸。Phase 3b 在此调用 VulkanTexturePool::CreateTextureRGBA8。
     int w = converted->w;
     int h = converted->h;
-    SDL_FreeSurface(converted);
 
-    GLTexture tex;
-    tex.id = 0;
+    Texture tex;
     tex.width = w;
     tex.height = h;
-    mGLTextures[actualKey] = tex;
 
-    //std::cout << "成功加载图片: " << filepath << " (key: " << actualKey
-    //    << ") 尺寸 " << tex.width << "x" << tex.height << std::endl;
-    return &mGLTextures[actualKey];
+    if (mTexturePool) {
+        pvz::VulkanTexture* vkt = mTexturePool->CreateTextureRGBA8(w, h, converted->pixels);
+        if (vkt) {
+            tex.vkTex = vkt;
+            tex.id    = vkt->bindlessIndex;
+        } else {
+            std::cerr << "[ResourceManager::LoadTexture] VulkanTexturePool 上传失败: " << filepath << std::endl;
+        }
+    }
+    SDL_FreeSurface(converted);
+
+    mTextures[actualKey] = tex;
+    return &mTextures[actualKey];
 }
 
-const GLTexture* ResourceManager::GetTexture(const std::string& key) const {
-    auto it = mGLTextures.find(key);
-    return (it != mGLTextures.end()) ? &it->second : nullptr;
+const Texture* ResourceManager::GetTexture(const std::string& key) const {
+    auto it = mTextures.find(key);
+    return (it != mTextures.end()) ? &it->second : nullptr;
 }
 
 void ResourceManager::UnloadTexture(const std::string& key) {
-    auto it = mGLTextures.find(key);
-    if (it != mGLTextures.end()) {
-        // Phase 3a stub：id 都是 0；3b 时改为 VulkanTexturePool::Free。
-        mGLTextures.erase(it);
+    auto it = mTextures.find(key);
+    if (it != mTextures.end()) {
+        if (mTexturePool && it->second.vkTex) {
+            mTexturePool->DestroyTexture(it->second.vkTex);
+        }
+        mTextures.erase(it);
 #ifdef _DEBUG
         std::cout << "卸载纹理: " << key << std::endl;
 #endif
@@ -85,7 +94,7 @@ void ResourceManager::UnloadTexture(const std::string& key) {
 }
 
 bool ResourceManager::HasTexture(const std::string& key) const {
-    return mGLTextures.find(key) != mGLTextures.end();
+    return mTextures.find(key) != mTextures.end();
 }
 
 bool ResourceManager::LoadTiledTextureGL(const TiledImageInfo& info, const std::string& prefix) {
@@ -141,16 +150,24 @@ bool ResourceManager::LoadTiledTextureGL(const TiledImageInfo& info, const std::
                 continue;
             }
 
-            // Phase 3a stub：跳过 GPU 上传，仅记录尺寸。
-            SDL_FreeSurface(tileSurface);
-
-            GLTexture tex;
-            tex.id = 0;
+            Texture tex;
             tex.width = tileW;
             tex.height = tileH;
+            if (mTexturePool) {
+                pvz::VulkanTexture* vkt = mTexturePool->CreateTextureRGBA8(tileW, tileH, tileSurface->pixels);
+                if (vkt) {
+                    tex.vkTex = vkt;
+                    tex.id    = vkt->bindlessIndex;
+                } else {
+                    std::cerr << "[ResourceManager] 分割贴图上传失败: " << info.path << " tile " << row << "," << col << std::endl;
+                    success = false;
+                }
+            }
+            SDL_FreeSurface(tileSurface);
+
             int index = row * info.columns + col;
             std::string key = baseKey + "_PART_" + std::to_string(index);
-            mGLTextures[key] = tex;
+            mTextures[key] = tex;
 
             // std::cout << "加载子纹理: " << key << " 尺寸 " << tileW << "x" << tileH << std::endl;
         }
@@ -583,8 +600,14 @@ std::string ResourceManager::GenerateStandardKey(const std::string& path, const 
 }
 
 void ResourceManager::UnloadAll() {
-    // Phase 3a stub：GLTexture::id 均为 0，无 GL 资源要释放。3b 时改为回收 bindless 槽位。
-    mGLTextures.clear();
+    // Phase 3b：先把每张 bindless 纹理还给 pool，再 clear。调用方需保证 pool 仍存活
+    // （GameApp::Shutdown 顺序：先 RM.UnloadAll → 再 pool->Shutdown → 再 ctx->Shutdown）。
+    if (mTexturePool) {
+        for (auto& kv : mTextures) {
+            if (kv.second.vkTex) mTexturePool->DestroyTexture(kv.second.vkTex);
+        }
+    }
+    mTextures.clear();
     mAtlasPages.clear();
 
     // 清理动画

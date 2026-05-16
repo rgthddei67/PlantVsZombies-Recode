@@ -14,8 +14,8 @@ void FlagMeter::SetProgress(float progress)
     m_progress = std::clamp(progress, 0.0f, 1.0f);
 }
 
-void FlagMeter::SetImages(const GLTexture* bgTex, const GLTexture* fillTex,
-    const GLTexture* headTex, const GLTexture* middleTex)
+void FlagMeter::SetImages(const Texture* bgTex, const Texture* fillTex,
+    const Texture* headTex, const Texture* middleTex)
 {
     m_bgTexture = bgTex;
     m_fillTexture = fillTex;
@@ -23,7 +23,7 @@ void FlagMeter::SetImages(const GLTexture* bgTex, const GLTexture* fillTex,
     m_middleTexture = middleTex;
 }
 
-void FlagMeter::GetTextureSize(const GLTexture* tex, int& w, int& h) const
+void FlagMeter::GetTextureSize(const Texture* tex, int& w, int& h) const
 {
     if (tex) {
         w = tex->width;
@@ -165,7 +165,7 @@ void FlagMeter::Update(float deltaTime)
     }
 }
 
-void FlagMeter::AddFlag(const GLTexture* tex1, const GLTexture* tex2, float position)
+void FlagMeter::AddFlag(const Texture* tex1, const Texture* tex2, float position)
 {
     m_flags.push_back({ tex1, tex2, std::clamp(position, 0.0f, 1.0f) });
 }

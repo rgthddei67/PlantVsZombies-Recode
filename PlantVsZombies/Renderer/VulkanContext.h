@@ -1,8 +1,8 @@
 #pragma once
 
-// volk 必须在任何 vulkan.h 之前被包含（它会替换原型声明为函数指针）。
-// VK_NO_PROTOTYPES 已在项目级预处理器定义里设置。
-#include <volk.h>
+// VulkanSDK 静态链接路径：函数原型由 <vulkan/vulkan.h> 提供，
+// 实现来自 vulkan-1.lib（项目链接器额外依赖里加入）。
+#include <vulkan/vulkan.h>
 #include <vma/vk_mem_alloc.h>
 
 #include <cstdint>

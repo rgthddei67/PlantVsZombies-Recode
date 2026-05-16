@@ -1,6 +1,6 @@
 #pragma once
 
-#include <volk.h>
+#include <vulkan/vulkan.h>
 
 #include <array>
 #include <cstdint>
@@ -26,23 +26,15 @@ public:
     bool Initialize(VulkanContext* ctx);
     void Shutdown();
 
-    // 设置当前帧要用的 pipeline。nullptr 表示只 clear。
-    void SetTrianglePipeline(VulkanPipeline* p) { mTrianglePipeline = p; }
+    // Phase 3b — 帧生命周期拆分。
+    // BeginFrame: wait fence + acquire image + reset pool + begin cb + barrier + beginRendering + setViewport/Scissor。
+    //             成功后 CurrentCmdBuffer() 返回本帧 cb，调用方可往里录命令；失败返回 false 时调用方不应再调用 EndFrame。
+    // EndFrame:   endRendering + barrier → PRESENT_SRC + endCb + submit2 + present。失败返回 false。
+    bool BeginFrame(float r, float g, float b, float a);
+    bool EndFrame();
 
-    // Phase 2b — 设置一个 bindless 贴图 quad（在三角形之后绘制）。
-    // pipeline 必须用 quad shader 创建（带 descriptor set layout 和 push constant）。
-    void SetTexturedQuad(VulkanPipeline* pipeline,
-                         VkDescriptorSet bindlessSet,
-                         float ndcX, float ndcY, float ndcW, float ndcH,
-                         uint32_t texIndex) {
-        mQuadPipeline = pipeline;
-        mQuadDescSet  = bindlessSet;
-        mQuadPC       = { ndcX, ndcY, ndcW, ndcH, texIndex };
-    }
-    void ClearTexturedQuad() { mQuadPipeline = nullptr; mQuadDescSet = VK_NULL_HANDLE; }
-
-    // 渲染一帧。clear color + （如果有 pipeline）画三角形 + （如果有 quad）画贴图 quad。
-    bool DrawFrame(float r, float g, float b, float a);
+    VkCommandBuffer CurrentCmdBuffer() const;
+    uint32_t        CurrentFrameIdx() const { return mFrameIdx; }
 
 private:
     struct PerFrame {
@@ -55,17 +47,11 @@ private:
     bool CreateFrameResources();
     void DestroyFrameResources();
 
-    struct QuadPushConsts {
-        float    x, y, w, h;  // 16 字节
-        uint32_t texIndex;    // 4 字节，total 20
-    };
+    // 当前帧 acquire 到的 swapchain image 索引；仅在 BeginFrame..EndFrame 之间有效。
+    uint32_t mAcquiredImageIdx = UINT32_MAX;
+    bool     mFrameActive      = false;
 
     VulkanContext*  mCtx              = nullptr;
-    VulkanPipeline* mTrianglePipeline = nullptr;
-
-    VulkanPipeline* mQuadPipeline     = nullptr;
-    VkDescriptorSet mQuadDescSet      = VK_NULL_HANDLE;
-    QuadPushConsts  mQuadPC{};
 
     std::array<PerFrame, FRAMES_IN_FLIGHT> mFrames;
     std::vector<VkSemaphore> mRenderFinished;  // 每张 swapchain image 一个（用于 present 时等待）

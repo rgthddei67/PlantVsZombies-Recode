@@ -33,7 +33,7 @@ SDL_Color ColorsMultiply(const SDL_Color& theColor1, const SDL_Color& theColor2)
  * @brief 动画绘制命令结构体，用于缓存或直接绘制
  */
 struct AnimDrawCommand {
-    const GLTexture* texture;   ///< 纹理指针
+    const Texture* texture;   ///< 纹理指针
     BlendMode blendMode;        ///< 混合模式
     glm::vec4 color;            ///< 颜色 (RGBA)
     glm::mat4 transform;        ///< 仿射变换矩阵（将单位矩形映射到目标四边形）
@@ -198,7 +198,7 @@ public:
      * @param trackName 轨道名
      * @param image 纹理指针，nullptr 表示恢复默认
      */
-    void SetTrackImage(const std::string& trackName, const GLTexture* image);
+    void SetTrackImage(const std::string& trackName, const Texture* image);
 
     /**
      * @brief 设置轨道可见性

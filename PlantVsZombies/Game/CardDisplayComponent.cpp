@@ -76,7 +76,7 @@ void CardDisplayComponent::Draw(Graphics* g) {
 void CardDisplayComponent::LoadTextures() {
     auto& resourceManager = ResourceManager::GetInstance();
 
-    // 加载卡牌背景纹理（返回 const GLTexture*）
+    // 加载卡牌背景纹理（返回 const Texture*）
     cardBackground = resourceManager.GetTexture(ResourceKeys::Textures::IMAGE_CARD_BK);
     cardNormal = resourceManager.GetTexture(ResourceKeys::Textures::IMAGE_SEEDPACKETNORMAL);
 

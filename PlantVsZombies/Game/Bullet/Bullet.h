@@ -30,7 +30,7 @@ public:
 
 protected:
 	Board* mBoard = nullptr;
-	const GLTexture* mTexture = nullptr;
+	const Texture* mTexture = nullptr;
 	float mCheckPositionTimer = 0.0f;
 	bool mHasHit = false;	// 是否已经击中过僵尸
 	int mDamage = 20;			// 子弹伤害

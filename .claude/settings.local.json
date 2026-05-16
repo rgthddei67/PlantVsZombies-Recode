@@ -9,7 +9,12 @@
       "Skill(superpowers:using-superpowers)",
       "Skill(superpowers:executing-plans)",
       "Read(//c/Users/ZJ/.claude/**)",
-      "Read(//c/Users/ZJ/.claude/plugins/**)"
+      "Read(//c/Users/ZJ/.claude/plugins/**)",
+      "PowerShell(Copy-Item *)",
+      "Bash(grep -E \"\\\\.\\(h|cpp\\)$\")",
+      "Bash(dir)",
+      "Bash(xargs wc -l)",
+      "Skill(superpowers:finishing-a-development-branch)"
     ]
   }
 }

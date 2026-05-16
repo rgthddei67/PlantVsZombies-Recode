@@ -9,36 +9,40 @@
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_ttf.h>
 #include <SDL2/SDL_mixer.h>
-#include <glad/glad.h>
+#include <cstdint>
 #include <string>
 #include <unordered_map>
 #include <memory>
 #include <iostream>
 #include <list>
 
-// OpenGL 纹理信息
-struct GLTexture {
-    GLuint id = 0;
+namespace pvz { class VulkanTexturePool; struct VulkanTexture; }
+
+// 纹理信息：id = bindless slot 索引；vkTex 为拥有的底层 VulkanTexture（Unload 时回收槽位 + 销毁 image）
+struct Texture {
+    uint32_t id = 0;           // Phase 3b: bindlessIndex（4096 槽位之一）
     int width = 0;
     int height = 0;
+    // Phase 3b: 拥有的 VulkanTexture* —— 用于 Unload 时回收 bindless 槽位 + 销毁 image
+    pvz::VulkanTexture* vkTex = nullptr;
 
     // —— 图集映射 ——
     // 若 atlasPage != nullptr，说明本纹理已被打进 atlasPage 指向的图集页，
     // 绘制时应改用 atlasPage->id，并把 [0,1] UV 重映射到 [aU0,aU1]x[aV0,aV1]。
-    const GLTexture* atlasPage = nullptr;
+    const Texture* atlasPage = nullptr;
     float aU0 = 0.0f, aV0 = 0.0f, aU1 = 1.0f, aV1 = 1.0f;
 };
 
 class ResourceManager {
 private:
     // OpenGL 纹理缓存
-    std::unordered_map<std::string, GLTexture> mGLTextures;
+    std::unordered_map<std::string, Texture> mTextures;
 
     // 动画缓存
     std::unordered_map<std::string, std::shared_ptr<Reanimation>> mReanimations;
 
-    // reanim 纹理图集页（用 list 保证元素地址稳定，GLTexture::atlasPage 会指向其中元素）
-    std::list<GLTexture> mAtlasPages;
+    // reanim 纹理图集页（用 list 保证元素地址稳定，Texture::atlasPage 会指向其中元素）
+    std::list<Texture> mAtlasPages;
 
     // 字体缓存（按字体名 -> 大小 -> TTF_Font*）
     std::unordered_map<std::string, std::unordered_map<int, TTF_Font*>> fonts;
@@ -53,6 +57,7 @@ private:
     ResourcesXMLConfigReader configReader;
 
     static ResourceManager* instance;
+    pvz::VulkanTexturePool* mTexturePool = nullptr;
     ResourceManager() {}
 
     // 加载分割贴图
@@ -64,10 +69,13 @@ public:
 
     bool Initialize(const std::string& configPath = "./resources/resources.xml");
 
+    // Phase 3b：由 GameApp 在初始化期注入。LoadTexture / LoadTiledTextureGL 会通过它上传像素并获取 bindless 槽位。
+    void SetVulkanTexturePool(pvz::VulkanTexturePool* pool) { mTexturePool = pool; }
+
     // 加载纹理，返回纹理信息指针，失败返回 nullptr
-    const GLTexture* LoadTexture(const std::string& filepath, const std::string& key = "");
+    const Texture* LoadTexture(const std::string& filepath, const std::string& key = "");
     // 获取已加载的纹理，不存在返回 nullptr
-    const GLTexture* GetTexture(const std::string& key) const;
+    const Texture* GetTexture(const std::string& key) const;
     // 卸载单个纹理
     void UnloadTexture(const std::string& key);
     // 检查纹理是否存在

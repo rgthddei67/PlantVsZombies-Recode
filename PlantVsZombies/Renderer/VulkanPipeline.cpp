@@ -64,9 +64,12 @@ bool VulkanPipeline::Initialize(VulkanContext* ctx, const Desc& desc) {
         return false;
     }
 
-    // pipeline layout：可选 descriptor set + 可选 push constant
+    // pipeline layout：单 set 或多 set（后者优先）+ 可选 push constant
     VkPipelineLayoutCreateInfo plci{ VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
-    if (desc.descriptorSetLayout != VK_NULL_HANDLE) {
+    if (desc.setLayoutCount > 0 && desc.setLayouts) {
+        plci.setLayoutCount = desc.setLayoutCount;
+        plci.pSetLayouts    = desc.setLayouts;
+    } else if (desc.descriptorSetLayout != VK_NULL_HANDLE) {
         plci.setLayoutCount = 1;
         plci.pSetLayouts    = &desc.descriptorSetLayout;
     }
@@ -91,6 +94,14 @@ bool VulkanPipeline::Initialize(VulkanContext* ctx, const Desc& desc) {
     stages[1].pName  = "main";
 
     VkPipelineVertexInputStateCreateInfo vis{ VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO };
+    if (desc.vertexBindingCount > 0 && desc.vertexBindings) {
+        vis.vertexBindingDescriptionCount = desc.vertexBindingCount;
+        vis.pVertexBindingDescriptions    = desc.vertexBindings;
+    }
+    if (desc.vertexAttributeCount > 0 && desc.vertexAttributes) {
+        vis.vertexAttributeDescriptionCount = desc.vertexAttributeCount;
+        vis.pVertexAttributeDescriptions    = desc.vertexAttributes;
+    }
 
     VkPipelineInputAssemblyStateCreateInfo ia{ VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO };
     ia.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
@@ -118,6 +129,14 @@ bool VulkanPipeline::Initialize(VulkanContext* ctx, const Desc& desc) {
         blendAtt.colorBlendOp        = VK_BLEND_OP_ADD;
         blendAtt.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
         blendAtt.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+        blendAtt.alphaBlendOp        = VK_BLEND_OP_ADD;
+    } else if (desc.additiveBlend) {
+        blendAtt.blendEnable         = VK_TRUE;
+        blendAtt.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+        blendAtt.dstColorBlendFactor = VK_BLEND_FACTOR_ONE;
+        blendAtt.colorBlendOp        = VK_BLEND_OP_ADD;
+        blendAtt.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+        blendAtt.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
         blendAtt.alphaBlendOp        = VK_BLEND_OP_ADD;
     }
 

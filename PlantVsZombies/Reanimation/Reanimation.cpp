@@ -40,7 +40,7 @@ bool Reanimation::LoadFromFile(const std::string& filePath) {
             float prevSy = 1.0f;
             float prevA = 1.0f;
             int prevF = 0;
-            const GLTexture* prevImage = nullptr;
+            const Texture* prevImage = nullptr;
 
             for (pugi::xml_node child : node.children()) {
                 std::string childName = child.name();
@@ -98,7 +98,7 @@ bool Reanimation::LoadFromFile(const std::string& filePath) {
                                 // 自动加载相关图片
                                 if (imageName.find("IMAGE_REANIM_") == 0) {
                                     std::string fileName = imageName.substr(13);
-                                    const GLTexture* tex = mResourceManager->GetTexture(fileName);
+                                    const Texture* tex = mResourceManager->GetTexture(fileName);
                                     if (!tex) {
                                         std::string filePath = "./resources/image/reanim/" + fileName;
 

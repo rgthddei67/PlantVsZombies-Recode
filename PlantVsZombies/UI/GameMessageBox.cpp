@@ -65,7 +65,7 @@ Vector GameMessageBox::GetBackgroundOriginalSize() const
 {
 	if (!m_backgroundImageKey.empty()) {
 		auto& resMgr = ResourceManager::GetInstance();
-		const GLTexture* tex = resMgr.GetTexture(m_backgroundImageKey);
+		const Texture* tex = resMgr.GetTexture(m_backgroundImageKey);
 		if (tex) {
 			int w, h;
 			w = tex->width;
@@ -138,7 +138,7 @@ void GameMessageBox::Draw(Graphics* g)
 
 	if (!m_backgroundImageKey.empty()) {
 		auto& resMgr = ResourceManager::GetInstance();
-		const GLTexture* tex = resMgr.GetTexture(m_backgroundImageKey);
+		const Texture* tex = resMgr.GetTexture(m_backgroundImageKey);
 		Vector pos = g->ScreenToWorldPosition(m_position.x - 230, m_position.y - 180);
 		g->DrawTexture(tex, pos.x, pos.y, m_size.x, m_size.y);
 	}

@@ -7,7 +7,7 @@
 #include "./Plant/Plant.h"
 
 class Board;
-struct GLTexture;
+struct Texture;
 
 enum class ShovelState {
 	IDLE,
@@ -31,7 +31,7 @@ public:
 
 private:
 	Board* mBoard = nullptr;
-	const GLTexture* mTexture = nullptr;
+	const Texture* mTexture = nullptr;
 	Vector           mPosition;
 	Vector           mHomePosition;
 	ShovelState      mState;

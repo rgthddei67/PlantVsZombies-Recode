@@ -2,7 +2,6 @@
 #ifndef __GRAPHICS_H__
 #define __GRAPHICS_H__
 
-#include <glad/glad.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -19,9 +18,17 @@
 #include <mutex>
 #include <functional>
 #include <list>
+#include <memory>
+#include <cstdint>
 
-#include "ShaderProgram.h"
 #include "ResourceManager.h"
+
+namespace pvz {
+    class VulkanContext;
+    class VulkanRenderer;
+    class VulkanTexturePool;
+    struct VulkanTexture;
+}
 
 /**
  * @brief 将 glm::vec4 颜色转换为 SDL_Color。
@@ -53,27 +60,22 @@ inline glm::vec4 NormalizeColor(const glm::vec4& color) {
 struct BatchVertex {
 	float x, y;          // 顶点位置（局部坐标，通常为 0~1 矩形）
 	float u, v;          // 纹理坐标
-	GLuint texIndex;     // 纹理索引（对应纹理单元）
-	GLuint matrixIndex;  // 变换矩阵索引（对应矩阵数组）
+	uint32_t texIndex;     // 纹理索引（bindless 槽位）
+	uint32_t matrixIndex;  // 变换矩阵索引（SSBO 槽位）
 	float r, g, b, a;    // 顶点颜色（预乘色调）
 	float blendMode;     // 混合模式（0.0 = Alpha, 1.0 = Additive），仅 CPU 侧分段使用
 };
 
 /**
- * @brief 几何图形顶点格式（仅位置和颜色，无纹理坐标）。
- */
-struct GeomVertex {
-	float x, y;          // 顶点位置（世界坐标）
-	float r, g, b, a;    // 顶点颜色
-};
-
-/**
  * @brief 文字缓存条目，存储已生成的文字纹理及其尺寸。
+ *        Phase 3c：textureID 现在是 bindless 槽位下标；vkTex 持有上传到 VulkanTexturePool
+ *        的纹理句柄，LRU 淘汰 / 缓存清空时用它把槽位还回 pool。
  */
 struct CachedText {
-	GLuint textureID = 0;   // OpenGL 纹理 ID
-	int width = 0;          // 纹理宽度（像素）
-	int height = 0;         // 纹理高度（像素）
+	uint32_t textureID = 0;          // bindless 槽位（Phase 3c）
+	int width = 0;
+	int height = 0;
+	pvz::VulkanTexture* vkTex = nullptr;
 };
 
 /**
@@ -107,9 +109,10 @@ enum class BlendMode {
 
 /**
  * @brief 录制命令类型。命令类型决定如何在回放时解释 RecordCmd 的字段。
+ *        Phase 5：BatchVerts 已删除——worker 直接把顶点和矩阵写进 VkWorkerSlice 指向的
+ *        持久映射 VBO/SSBO 切片，cmds 仅用于记录状态变更点（让回放知道在哪里切 vkCmdDraw）。
  */
 enum class RecCmdType : uint8_t {
-	BatchVerts,     ///< 一组纹理批次顶点（vertOffset/count 指向 verts；localTexIdx/localMatIdx 指向本地表）
 	PushClip,       ///< 推入裁剪矩形（payloadIdx 指向 clips）
 	PopClip,        ///< 弹出裁剪矩形
 	SetBlend,       ///< 切换混合模式（payloadIdx 指向 blendModes）
@@ -118,22 +121,21 @@ enum class RecCmdType : uint8_t {
 };
 
 /**
- * @brief 单条录制命令（16 字节，POD）。
- *        用位段把类型 + 顶点计数挤进一个 uint32_t。BatchVerts 时 localTex/MatIdx 指
- *        向 worker 本地表，回放时再 BindTexture/AddMatrix 分配全局槽位。
+ * @brief 单条录制命令（12 字节，POD）。Phase 5 简化：只标记状态变更点。
+ *        vertOffsetAtCmd 是命令插入时 slice.vboCount 的值，回放时配合 slice.vboBaseVert
+ *        定位状态变更应该发生在哪个绝对顶点位置，并据此切分 vkCmdDraw 区段。
  */
 struct RecordCmd {
-	uint32_t type        : 4;   // RecCmdType
-	uint32_t aux         : 4;   // 备用（未来扩展用）
-	uint32_t count       : 24;  // 顶点数（BatchVerts 时通常 3 或 6）
-	uint32_t vertOffset;        // 进 WorkerRecord::verts 的起始下标
-	uint16_t localTexIdx;       // 本地 texList 索引（仅 BatchVerts）
-	uint16_t localMatIdx;       // 本地 matList 索引（仅 BatchVerts）
-	uint32_t payloadIdx;        // 进 clips/blendModes/textCmds/customCmds 的索引
+	RecCmdType type;             ///< 1 B
+	uint8_t    pad0 = 0;         ///< 1 B  对齐填充
+	uint16_t   pad1 = 0;         ///< 2 B  对齐填充
+	uint32_t   vertOffsetAtCmd;  ///< 4 B  命令插入时 slice.vboCount
+	uint32_t   payloadIdx;       ///< 4 B  clips/blendModes/textCmds/customCmds 下标
 };
+static_assert(sizeof(RecordCmd) == 12, "RecordCmd should pack to 12 bytes");
 
 /**
- * @brief 延迟执行的 DrawText 参数。worker 不能触碰 LRU 与 glTexImage2D，所以把整
+ * @brief 延迟执行的 DrawText 参数。worker 不能触碰 LRU 与纹理上传，所以把整
  *        条 DrawText 调用打包，主线程回放时再走原 DrawText 路径。
  */
 struct DeferredTextCmd {
@@ -147,18 +149,36 @@ struct DeferredTextCmd {
 };
 
 /**
- * @brief 每个 worker slot 一份的录制缓冲。析构无 GL 资源，Reset 仅 clear()，
- *        capacity 跨帧复用以避免 realloc。
+ * @brief Phase 5：每个 worker 在当前帧持久映射 VBO/SSBO 中的非重叠窗口。
+ *        BeginParallelRecord 切分容量后填充指针 / 基址 / 容量，worker 线程独占写入。
+ *        vboBaseVert / ssboBaseMat 是 vboPtr[0] / ssboPtr[0] 在整帧缓冲里的绝对元素
+ *        下标——worker 写顶点时直接把 matrixIndex 设为 (ssboBaseMat + ssboCount)，
+ *        replay 不再做任何 patch；texIndex 也是 bindless 槽位的绝对值。
+ */
+struct VkWorkerSlice {
+	BatchVertex* vboPtr      = nullptr;  ///< 切片首个 BatchVertex 的映射指针
+	glm::mat4*   ssboPtr     = nullptr;  ///< 切片首个 mat4 的映射指针
+	uint32_t     vboBaseVert = 0;        ///< vboPtr[0] 在整帧 VBO 中的绝对顶点下标
+	uint32_t     ssboBaseMat = 0;        ///< ssboPtr[0] 在整帧 SSBO 中的绝对 mat4 下标
+	uint32_t     vboCap      = 0;        ///< 切片容量（BatchVertex 个数）
+	uint32_t     ssboCap     = 0;        ///< 切片容量（mat4 个数）
+	uint32_t     vboCount    = 0;        ///< 当前已写顶点数
+	uint32_t     ssboCount   = 0;        ///< 当前已写矩阵数
+	bool         overflowed  = false;    ///< 写超容量时置 true，回放只画前 vboCount 个
+};
+
+/**
+ * @brief 每个 worker slot 一份的录制缓冲。Phase 5 起 verts/texList/matList 已删除——
+ *        顶点和矩阵走 slice 直写 VBO/SSBO；cmds 只记录状态变更（clip/blend/text/custom）。
+ *        析构无 GL 资源，Reset 仅 clear()，capacity 跨帧复用以避免 realloc。
  */
 struct WorkerRecord {
-	std::vector<RecordCmd>             cmds;
-	std::vector<BatchVertex>           verts;          // 顶点池，texIndex/matrixIndex 留占位
-	std::vector<GLuint>                texList;        // 本地纹理表（线性扫描去重）
-	std::vector<glm::mat4>             matList;        // 本地矩阵表（不去重）
-	std::vector<ClipRect>              clips;
-	std::vector<BlendMode>             blendModes;
-	std::vector<DeferredTextCmd>       textCmds;
-	std::vector<std::function<void()>> customCmds;     // Submit(lambda) 兼容兜底
+	VkWorkerSlice                      slice;          ///< Phase 5：本帧的 VBO/SSBO 切片
+	std::vector<RecordCmd>             cmds;           ///< 仅状态变更命令流
+	std::vector<ClipRect>              clips;          ///< PushClip 的 payload
+	std::vector<BlendMode>             blendModes;     ///< SetBlend 的 payload
+	std::vector<DeferredTextCmd>       textCmds;       ///< DeferredText 的 payload
+	std::vector<std::function<void()>> customCmds;     ///< Submit(lambda) 兼容兜底
 
 	// 初始状态快照（BeginParallelRecord 时由主线程填充，SetWorkerSlot 时给 worker 用）
 	glm::mat4              initialTopTransform   = glm::mat4(1.0f);
@@ -166,12 +186,10 @@ struct WorkerRecord {
 	std::vector<ClipRect>  initialClipStack;
 	BlendMode              initialBlend          = BlendMode::None;
 
-	// 清空所有命令与顶点池，但保留 vector capacity，下帧复用避免 realloc。
+	// 清空所有命令，但保留 vector capacity，下帧复用避免 realloc。
+	// slice 不在这里重置——由 BeginParallelRecord 每帧重新切分并写入。
 	void Reset() {
 		cmds.clear();
-		verts.clear();
-		texList.clear();
-		matList.clear();
 		clips.clear();
 		blendModes.clear();
 		textCmds.clear();
@@ -215,6 +233,18 @@ public:
 	 * @return 初始化成功返回 true，否则 false
 	 */
 	bool Initialize(int windowWidth, int windowHeight);
+
+	// Phase 3b — Vulkan 渲染接入。
+	// InitializeVulkan: 在 VulkanContext / VulkanRenderer / VulkanTexturePool 都就绪、
+	//   且所有纹理已经上传之后调用一次，建立 batch pipeline、逐帧 VBO/SSBO、descriptor set。
+	// BeginFrame / EndFrame: GameApp::Draw 每帧调用一对，承担 acquire→record→submit→present。
+	//   绘制 API（DrawTexture 等）必须在这两个调用之间使用。
+	bool InitializeVulkan(pvz::VulkanContext* ctx,
+	                      pvz::VulkanRenderer* renderer,
+	                      pvz::VulkanTexturePool* pool);
+	void ShutdownVulkan();
+	bool BeginFrame();
+	bool EndFrame();
 
 	/**
 	 * @brief 设置窗口尺寸，更新投影矩阵和视口。
@@ -308,7 +338,7 @@ public:
 
 	// ==================== 绘制接口 ====================
 
-	void DrawTexture(const GLTexture* tex, float x, float y, float width, float height,
+	void DrawTexture(const Texture* tex, float x, float y, float width, float height,
 		float rotation = 0.0f, const glm::vec4& tint = glm::vec4(255.0f));
 
 	/**
@@ -346,7 +376,7 @@ public:
  * @param pivotY     枢轴点 Y 坐标（纹理局部坐标，默认0）
  * @param tint       色调颜色
  */
-	void DrawTextureMatrix(const GLTexture* tex, const glm::mat4& transform,
+	void DrawTextureMatrix(const Texture* tex, const glm::mat4& transform,
 		float pivotX = 0.0f, float pivotY = 0.0f,
 		const glm::vec4& tint = glm::vec4(255.0f),
 		BlendMode blendMode = BlendMode::None);
@@ -365,7 +395,7 @@ public:
  * @param rotation 旋转角度（度），绕目标矩形中心旋转
  * @param tint   色调颜色
  */
-	void DrawTextureRegion(const GLTexture* tex,
+	void DrawTextureRegion(const Texture* tex,
 		float srcX, float srcY, float srcW, float srcH,
 		float dstX, float dstY, float dstW, float dstH,
 		float rotation = 0.0f, const glm::vec4& tint = glm::vec4(255.0f));
@@ -469,7 +499,7 @@ public:
 	void SetClearColor(float r, float g, float b, float a);
 
 	/**
-	 * @brief 获取当前清屏颜色（归一化 [0,1]）。Phase 3a：由 VulkanRenderer 在每帧 DrawFrame 时使用。
+	 * @brief 获取当前清屏颜色（归一化 [0,1]）。Phase 3a：由 VulkanRenderer 在每帧 BeginFrame 时使用。
 	 */
 	void GetClearColor(float& r, float& g, float& b, float& a) const {
 		r = m_clearR; g = m_clearG; b = m_clearB; a = m_clearA;
@@ -554,15 +584,15 @@ public:
 	void ProcessCommandQueue();
 
 	// 以下为线程安全的绘制提交接口，可从任意线程调用
-	void SubmitDrawTexture(const GLTexture* texture, float x, float y, float width, float height,
+	void SubmitDrawTexture(const Texture* texture, float x, float y, float width, float height,
 		float rotation = 0.0f, const glm::vec4& tint = glm::vec4(255.0f));
 
-	void SubmitDrawTextureMatrix(const GLTexture* texture, const glm::mat4& transform,
+	void SubmitDrawTextureMatrix(const Texture* texture, const glm::mat4& transform,
 		float pivotX = 0.0f, float pivotY = 0.0f,
 		const glm::vec4& tint = glm::vec4(255.0f),
 		BlendMode blendMode = BlendMode::None);
 
-	void SubmitDrawTextureRegion(const GLTexture* tex,
+	void SubmitDrawTextureRegion(const Texture* tex,
 		float srcX, float srcY, float srcW, float srcH,
 		float dstX, float dstY, float dstW, float dstH,
 		float rotation = 0.0f, const glm::vec4& tint = glm::vec4(255.0f));
@@ -632,15 +662,6 @@ public:
 
 private:
 	BlendMode m_currentBlendMode = BlendMode::None;   ///< 当前混合模式
-	GLuint m_currentVAO = 0;                           ///< 当前绑定的 VAO（避免冗余切换）
-	void BindVAO(GLuint vao);
-
-	ShaderProgram m_spriteShader;      ///< 精灵着色器（立即模式）
-	ShaderProgram m_batchShader;        ///< 批处理着色器
-	ShaderProgram m_geomShader;         ///< 几何图形着色器（仅颜色，无纹理）
-	GLuint m_spriteVAO = 0;              ///< 精灵渲染 VAO
-	GLuint m_spriteVBO = 0;              ///< 精灵渲染 VBO
-	GLuint m_spriteEBO = 0;              ///< 精灵渲染 EBO
 
 	glm::mat4 m_projection = glm::mat4(1.0f);   ///< 正交投影矩阵
 	glm::mat4 m_viewMatrix = glm::mat4(1.0f);   ///< 摄像机视图矩阵
@@ -659,31 +680,25 @@ private:
 
 	// 批处理数据缓冲区
 	std::vector<BatchVertex> m_batchVertices;   ///< 批处理顶点列表
-	std::vector<GLuint> m_batchTextures;        ///< 当前批次使用的纹理 ID 列表
+	std::vector<uint32_t> m_batchTextures;        ///< 当前批次使用的 bindless 槽位列表
 	std::vector<glm::mat4> m_batchMatrices;     ///< 当前批次使用的变换矩阵列表
 
 	int m_maxTextureUnits = 32;                  ///< 最大纹理单元数（着色器限制）
 	int m_matrixBatchLimit = 256;                ///< 单批次最大矩阵数（运行时由 GL_MAX_UNIFORM_BLOCK_SIZE 决定，最低 256）
 
-	GLuint m_batchVAO = 0;                       ///< 批处理 VAO
-	GLuint m_batchVBO = 0;                       ///< 批处理 VBO
-	GLuint m_matrixBuffer = 0;                   ///< 矩阵缓冲（UBO 或 SSBO）
-	bool m_useSSBO = false;                      ///< 运行时是否使用 SSBO（GL 4.3+）
 	size_t m_batchBufferCapacity = 0;             ///< 当前 VBO 容量（顶点个数）
-
-	GLuint m_geomVAO = 0;                         ///< 几何图形 VAO
-	GLuint m_geomVBO = 0;                         ///< 几何图形 VBO
-
-	std::vector<GeomVertex> m_geomBatchVertices;  ///< 几何图形批处理顶点列表
-	GLenum m_geomBatchMode = GL_TRIANGLES;         ///< 当前几何批处理图元类型（仅 GL_LINES / GL_TRIANGLES）
-	size_t m_geomBatchCapacity = 0;                ///< 几何批处理 VBO 容量（顶点个数）
 
 	bool m_batchMode = true;                      ///< 是否启用批处理模式
 
-	GLuint m_whiteTexture = 0;   ///< 1×1 纯白纹理，用于 FillRect 批处理
+	uint32_t m_whiteTexture = 0;   ///< 1×1 纯白纹理 bindless 槽位，用于 FillRect 批处理
 
 	// Phase 3a：清屏颜色（归一化 [0,1]），SetClearColor 写入、GetClearColor 读出，供 VulkanRenderer 使用。
 	float m_clearR = 1.0f, m_clearG = 1.0f, m_clearB = 1.0f, m_clearA = 1.0f;
+
+	// Phase 3b：Vulkan 真渲染的 PIMPL 状态（pipeline / 逐帧 VBO+SSBO / descriptor set 等），
+	// 定义在 Graphics.cpp 内部，避免把 vulkan.h 暴露给整个工程。
+	struct VulkanGraphicsState;
+	std::unique_ptr<VulkanGraphicsState> m_vk;
 
 	static const int VERTEX_BATCH_LIMIT_MIN = 1024;   ///< 单批次最大顶点数最低保证（运行时可更大）
 	int m_vertexBatchLimit = VERTEX_BATCH_LIMIT_MIN;  ///< 单批次最大顶点数（= m_matrixBatchLimit * 6）
@@ -707,6 +722,14 @@ private:
 	int                            m_numActiveWorkers = 0;///< 本轮 Dispatch 的有效 slot 数（=Replay 时遍历的上限）
 	bool                           m_parallelDrawEnabled = true; ///< 是否启用并行 record/replay 路径
 
+	// Phase 5：BeginParallelRecord 切片时记录主线程基准游标和切片总占用，
+	// ReplayAndEndParallel 收尾时据此跳过整段并行区域。
+	// 用 uint64_t 而非 VkDeviceSize 是为了避免在 Graphics.h 里引入 vulkan.h（保持 PIMPL）。
+	uint64_t m_parallelBaseVbo   = 0;
+	uint64_t m_parallelBaseSsbo  = 0;
+	uint64_t m_parallelVboBytes  = 0;
+	uint64_t m_parallelSsboBytes = 0;
+
 	// ==================== 内部辅助函数 ====================
 
 	/**
@@ -719,30 +742,6 @@ private:
 	 * @brief 根据摄像机状态重新计算视图矩阵。
 	 */
 	void UpdateViewMatrix();
-
-	/**
-	 * @brief 初始化精灵渲染器（立即模式）。
-	 * @return 成功返回 true
-	 */
-	bool InitSpriteRenderer();
-
-	/**
-	 * @brief 初始化几何图形渲染器。
-	 * @return 成功返回 true
-	 */
-	bool InitGeomRenderer();
-
-	/**
-	 * @brief 立即模式绘制几何图形（内部使用）。
-	 * @param vertices 顶点数据
-	 * @param mode     OpenGL 图元类型
-	 */
-	void DrawGeomImmediate(const std::vector<GeomVertex>& vertices, GLenum mode);
-
-	/**
-	 * @brief 提交几何批处理缓冲区中的所有顶点并清空。
-	 */
-	void FlushGeomBatch();
 
 	/**
 	 * @brief 把裁剪栈栈顶矩形写入 OpenGL（启用 GL_SCISSOR_TEST 并调用 glScissor）。
@@ -760,7 +759,7 @@ private:
 	 * @param textureID OpenGL 纹理 ID
 	 * @return 纹理单元索引
 	 */
-	int BindTexture(GLuint textureID);
+	int BindTexture(uint32_t textureID);
 
 	/**
 	 * @brief 将变换矩阵添加到批处理矩阵列表，返回矩阵索引。
@@ -791,16 +790,16 @@ private:
 	 * @param outHeight 输出纹理高度
 	 * @return OpenGL 纹理 ID，失败返回 0
 	 */
-	GLuint GetOrCreateTextTexture(const std::string& text, const std::string& fontKey,
+	uint32_t GetOrCreateTextTexture(const std::string& text, const std::string& fontKey,
 		int fontSize, const glm::vec4& color,
 		int& outWidth, int& outHeight);
 
 	/**
-	 * @brief 通过 TTF 渲染一段文字并上传为一张新的 GL 纹理。
+	 * @brief 通过 TTF 渲染一段文字并上传为一张新的 Vulkan 纹理。
 	 *        调用方负责在不再需要时释放返回纹理。
 	 * @return 成功返回 true，并填充 out；失败返回 false。
 	 */
-	bool RenderTextToGLTexture(const std::string& text, const std::string& fontKey,
+	bool RenderTextToVulkanTexture(const std::string& text, const std::string& fontKey,
 		int fontSize, const glm::vec4& color, CachedText& out);
 
 	/**
@@ -821,15 +820,15 @@ private:
 	// 槽位分配延迟到回放时）。
 
 	void RecordDrawTexture(WorkerRecord& r,
-		const GLTexture* tex, float x, float y, float width, float height,
+		const Texture* tex, float x, float y, float width, float height,
 		float rotation, const glm::vec4& tint);
 
 	void RecordDrawTextureMatrix(WorkerRecord& r,
-		const GLTexture* tex, const glm::mat4& transform,
+		const Texture* tex, const glm::mat4& transform,
 		float pivotX, float pivotY, const glm::vec4& tint, BlendMode blendMode);
 
 	void RecordDrawTextureRegion(WorkerRecord& r,
-		const GLTexture* tex,
+		const Texture* tex,
 		float srcX, float srcY, float srcW, float srcH,
 		float dstX, float dstY, float dstW, float dstH,
 		float rotation, const glm::vec4& tint);

@@ -289,7 +289,7 @@ void Animator::CollectDrawCommands(std::vector<AnimDrawCommand>& outCommands, fl
         bool shouldDrawSelf = (i < static_cast<int>(mExtraInfos.size()) &&
             mExtraInfos[i].mVisible &&
             transform.f != -1);
-        const GLTexture* image = nullptr;
+        const Texture* image = nullptr;
 
         if (shouldDrawSelf) {
             image = mExtraInfos[i].mImage ? mExtraInfos[i].mImage : transform.image;
@@ -297,7 +297,7 @@ void Animator::CollectDrawCommands(std::vector<AnimDrawCommand>& outCommands, fl
         }
 
         if (shouldDrawSelf) {
-            // 获取纹理原始尺寸（假设 GLTexture 包含 width/height 成员）
+            // 获取纹理原始尺寸（假设 Texture 包含 width/height 成员）
             int imgWidth = image->width;
             int imgHeight = image->height;
             float w = static_cast<float>(imgWidth);
@@ -456,7 +456,7 @@ void Animator::SetTrackVisible(const std::string& trackName, bool visible) {
     }
 }
 
-void Animator::SetTrackImage(const std::string& trackName, const GLTexture* image) {
+void Animator::SetTrackImage(const std::string& trackName, const Texture* image) {
     for (auto& extra : GetTrackExtrasByName(trackName)) {
         extra->mImage = image;
     }

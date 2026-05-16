@@ -6,7 +6,7 @@
 #include "Plant/Plant.h"
 #include "Zombie/Zombie.h"
 
-ShadowComponent::ShadowComponent(const GLTexture* shadowTexture,
+ShadowComponent::ShadowComponent(const Texture* shadowTexture,
     const Vector& offset,
     float alpha)
     : mShadowTexture(shadowTexture)

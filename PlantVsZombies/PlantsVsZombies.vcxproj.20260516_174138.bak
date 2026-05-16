@@ -80,13 +80,8 @@
     <ClCompile Include="ParticleSystem\ParticleXMLLoader.cpp" />
     <ClCompile Include="Reanimation\Animator.cpp" />
     <ClCompile Include="Reanimation\Reanimation.cpp" />
-    <ClCompile Include="Renderer\VmaImpl.cpp" />
-    <ClCompile Include="Renderer\VulkanBuffer.cpp" />
-    <ClCompile Include="Renderer\VulkanContext.cpp" />
-    <ClCompile Include="Renderer\VulkanPipeline.cpp" />
-    <ClCompile Include="Renderer\VulkanRenderer.cpp" />
-    <ClCompile Include="Renderer\VulkanTexturePool.cpp" />
     <ClCompile Include="ResourceManager.cpp" />
+    <ClCompile Include="ShaderProgram.cpp" />
     <ClCompile Include="UI\Button.cpp" />
     <ClCompile Include="UI\ButtonManager.cpp" />
     <ClCompile Include="UI\GameMessageBox.cpp" />
@@ -180,14 +175,10 @@
     <ClInclude Include="Reanimation\ReanimTypes.h" />
     <ClInclude Include="Reanimation\TodCommon.h" />
     <ClInclude Include="Reanimation\TodDebug.h" />
-    <ClInclude Include="Renderer\VulkanBuffer.h" />
-    <ClInclude Include="Renderer\VulkanContext.h" />
-    <ClInclude Include="Renderer\VulkanPipeline.h" />
-    <ClInclude Include="Renderer\VulkanRenderer.h" />
-    <ClInclude Include="Renderer\VulkanTexturePool.h" />
     <ClInclude Include="ResourceKeys.h" />
     <ClInclude Include="ResourceManager.h" />
     <ClInclude Include="ResourcesXMLConfigReader.h" />
+    <ClInclude Include="ShaderProgram.h" />
     <ClInclude Include="UI\Button.h" />
     <ClInclude Include="UI\ButtonManager.h" />
     <ClInclude Include="UI\InputHandler.h" />
@@ -197,17 +188,12 @@
     <ClInclude Include="UI\UIManager.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Shader\batch.vert.glsl" />
-    <None Include="Shader\batch.frag.glsl" />
-  </ItemGroup>
-  <ItemGroup>
-    <!-- Phase 2a+: Vulkan GLSL → SPIR-V 编译输入。每项的 Stage 元数据驱动 glslc 的 -fshader-stage 参数。 -->
-    <ShaderSource Include="Shader\batch.vert.glsl">
-      <Stage>vert</Stage>
-    </ShaderSource>
-    <ShaderSource Include="Shader\batch.frag.glsl">
-      <Stage>frag</Stage>
-    </ShaderSource>
+    <None Include="Shader\batch_fragment.glsl" />
+    <None Include="Shader\batch_vertex.glsl" />
+    <None Include="Shader\geom_fragment.glsl" />
+    <None Include="Shader\geom_vertex.glsl" />
+    <None Include="Shader\sprite_fragment.glsl" />
+    <None Include="Shader\sprite_vertex.glsl" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
@@ -264,12 +250,12 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>D:\VulkanSDK\Include;$(IncludePath)</IncludePath>
-    <LibraryPath>D:\VulkanSDK\Lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(IncludePath)</IncludePath>
+    <LibraryPath>$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>D:\VulkanSDK\Include;$(IncludePath)</IncludePath>
-    <LibraryPath>D:\VulkanSDK\Lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(IncludePath)</IncludePath>
+    <LibraryPath>$(LibraryPath)</LibraryPath>
     <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Label="Vcpkg">
@@ -324,7 +310,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>vulkan-1.lib;legacy_stdio_definitions.lib;version.lib;setupapi.lib;imm32.lib;winmm.lib;$(CoreLibraryDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>legacy_stdio_definitions.lib;version.lib;setupapi.lib;imm32.lib;winmm.lib;$(CoreLibraryDependencies)</AdditionalDependencies>
       <StackReserveSize>4194304</StackReserveSize>
       <StackCommitSize>65536</StackCommitSize>
       <AdditionalLibraryDirectories>$(VC_LibraryPath_x64);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
@@ -338,13 +324,13 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_HAS_ITERATOR_DEBUGGING=0;_SCL_SECURE_NO_WARNINGS;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <Optimization>MaxSpeed</Optimization>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <OmitFramePointers>true</OmitFramePointers>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <StructMemberAlignment>16Bytes</StructMemberAlignment>
       <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
       <FloatingPointModel>Fast</FloatingPointModel>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
@@ -352,7 +338,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>vulkan-1.lib;legacy_stdio_definitions.lib;version.lib;setupapi.lib;imm32.lib;winmm.lib;$(CoreLibraryDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>legacy_stdio_definitions.lib;version.lib;setupapi.lib;imm32.lib;winmm.lib;$(CoreLibraryDependencies)</AdditionalDependencies>
       <StackReserveSize>4194304</StackReserveSize>
       <StackCommitSize>65536</StackCommitSize>
       <LinkTimeCodeGeneration>UseFastLinkTimeCodeGeneration</LinkTimeCodeGeneration>
@@ -362,12 +348,6 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
-  <!-- Phase 2a+: GLSL → SPIR-V 预构建。需要 glslc.exe 在 PATH 上（装 VulkanSDK 即可）。 -->
-  <Target Name="CompileShaders" BeforeTargets="ClCompile" Inputs="@(ShaderSource)" Outputs="@(ShaderSource->'$(ProjectDir)Shader\spv\%(Filename).spv')">
-    <MakeDir Directories="$(ProjectDir)Shader\spv" />
-    <Message Importance="high" Text="[glslc] %(ShaderSource.Identity) -&gt; Shader\spv\%(ShaderSource.Filename).spv" />
-    <Exec Command="glslc.exe -fshader-stage=%(ShaderSource.Stage) --target-env=vulkan1.2 -O &quot;%(ShaderSource.FullPath)&quot; -o &quot;$(ProjectDir)Shader\spv\%(ShaderSource.Filename).spv&quot;" />
-  </Target>
   <ItemDefinitionGroup>
     <PostBuildEvent>
       <Command>xcopy /E /Y /I "$(ProjectDir)Shader" "$(OutDir)Shader"</Command>

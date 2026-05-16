@@ -10,10 +10,13 @@ if errorlevel 1 (
 )
 
 echo 是否启动 Claude Code？ 注意: 请使用 Taiwan-1 节点! 观察WiFi图片是否变成网卡的图标（必须先确认！）
-set /p confirm="Press 1 to start, other to stop: "
+set /p confirm="Press 1 to start, Press 2 to start with dangerous mode. Other to stop: "
 if "%confirm%"=="1" (
     cls
     claude
+) else if "%confirm%"=="2" (
+    cls
+    claude --dangerously-skip-permissions
 ) else (
     echo 已取消启动。
 )

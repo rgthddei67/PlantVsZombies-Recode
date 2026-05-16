@@ -22,10 +22,10 @@ class TransformComponent;
 
 class CardDisplayComponent : public Component {
 private:
-    // 纹理资源（改为 const GLTexture*）
-    const GLTexture* cardBackground = nullptr;    // IMAGE_card_bk
-    const GLTexture* cardNormal = nullptr;        // IMAGE_SeedPacketNormal
-    const GLTexture* plantTexture = nullptr;      // 植物图片
+    // 纹理资源（改为 const Texture*）
+    const Texture* cardBackground = nullptr;    // IMAGE_card_bk
+    const Texture* cardNormal = nullptr;        // IMAGE_SeedPacketNormal
+    const Texture* plantTexture = nullptr;      // 植物图片
 
     // 同 GameObject 内的兄弟组件，生命周期一致，直接缓存裸指针
     mutable CardComponent* mCardComponent = nullptr;

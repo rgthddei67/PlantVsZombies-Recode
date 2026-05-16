@@ -22,13 +22,13 @@ GameProgress::GameProgress(Board* board, GameScene* gameScene)
 
     m_flagMeter = std::make_unique<FlagMeter>(createPosition, 1.0f);
 
-    // 从资源管理器获取纹理（返回 const GLTexture*）
+    // 从资源管理器获取纹理（返回 const Texture*）
     auto& rm = ResourceManager::GetInstance();
     using namespace ResourceKeys::Textures;
-    const GLTexture* bgTex = rm.GetTexture(IMAGE_FLAG_METER);
-    const GLTexture* fillTex = rm.GetTexture(IMAGE_FLAG_METERFULL);
-    const GLTexture* headTex = rm.GetTexture(IMAGE_FLAGMETER_PART_HEAD);
-    const GLTexture* middleTex = rm.GetTexture(IMAGE_FLAGMETERLEVELPROGRESS);
+    const Texture* bgTex = rm.GetTexture(IMAGE_FLAG_METER);
+    const Texture* fillTex = rm.GetTexture(IMAGE_FLAG_METERFULL);
+    const Texture* headTex = rm.GetTexture(IMAGE_FLAGMETER_PART_HEAD);
+    const Texture* middleTex = rm.GetTexture(IMAGE_FLAGMETERLEVELPROGRESS);
 
     m_flagMeter->SetImages(bgTex, fillTex, headTex, middleTex);
 }
@@ -93,7 +93,7 @@ void GameProgress::Draw(Graphics* g)
         m_flagMeter->Draw(g);
 }
 
-void GameProgress::SetupFlags(const GLTexture* stickTex, const GLTexture* flagTex)
+void GameProgress::SetupFlags(const Texture* stickTex, const Texture* flagTex)
 {
     if (!m_flagMeter) return;
 

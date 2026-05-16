@@ -114,7 +114,7 @@ void Slider::Draw(Graphics* g) const
 
     if (!backgroundImageKey.empty() && resourceManager.HasTexture(backgroundImageKey))
     {
-        const GLTexture* texture = resourceManager.GetTexture(backgroundImageKey);
+        const Texture* texture = resourceManager.GetTexture(backgroundImageKey);
         if (texture != nullptr)
         {
             Vector newPosition = g->ScreenToWorldPosition(position.x, position.y);
@@ -136,7 +136,7 @@ void Slider::Draw(Graphics* g) const
 
     if (!knobImageKey.empty() && resourceManager.HasTexture(knobImageKey))
     {
-        const GLTexture* texture2 = resourceManager.GetTexture(knobImageKey);
+        const Texture* texture2 = resourceManager.GetTexture(knobImageKey);
         if (texture2 != nullptr)
         {
             Vector newPosition = g->ScreenToWorldPosition(knobPosition.x, knobPosition.y);

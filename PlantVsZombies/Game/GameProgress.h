@@ -17,7 +17,7 @@ public:
     void Draw(Graphics* g) override;   
 
     // 根据最大波数生成旗子，使用传入的图片键
-    void SetupFlags(const GLTexture* stickTex, const GLTexture* flagTex);
+    void SetupFlags(const Texture* stickTex, const Texture* flagTex);
 
     // 初始化升起状态（根据当前波数直接设置已升起的旗子）
     void InitializeRaisedFlags(float raiseY);

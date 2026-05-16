@@ -45,7 +45,7 @@ public:
     void TransferSelectedCardsTo(CardSlotManager* manager);
 
 private:
-    const GLTexture* mCardUITexture = nullptr;   
+    const Texture* mCardUITexture = nullptr;   
     GameScene* mGameScene = nullptr;
 
     TransformComponent* mTransform = nullptr;

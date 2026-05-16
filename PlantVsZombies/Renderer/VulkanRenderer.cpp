@@ -116,8 +116,12 @@ void VulkanRenderer::Shutdown() {
     mCtx = nullptr;
 }
 
-bool VulkanRenderer::DrawFrame(float r, float g, float b, float a) {
+bool VulkanRenderer::BeginFrame(float r, float g, float b, float a) {
     if (!mCtx || !mCtx->IsInitialized()) return false;
+    if (mFrameActive) {
+        std::fprintf(stderr, "[VulkanRenderer] BeginFrame called twice without EndFrame\n");
+        return false;
+    }
     VkDevice dev = mCtx->Device();
     PerFrame& frame = mFrames[mFrameIdx];
 
@@ -125,13 +129,11 @@ bool VulkanRenderer::DrawFrame(float r, float g, float b, float a) {
     vkWaitForFences(dev, 1, &frame.inFlight, VK_TRUE, UINT64_MAX);
 
     // 2) 拿下一张 swapchain image
-    uint32_t imageIdx = 0;
     VkResult acquireResult = vkAcquireNextImageKHR(
         dev, mCtx->Swapchain(), UINT64_MAX,
-        frame.imageAvailable, VK_NULL_HANDLE, &imageIdx);
+        frame.imageAvailable, VK_NULL_HANDLE, &mAcquiredImageIdx);
     if (acquireResult == VK_ERROR_OUT_OF_DATE_KHR) {
-        // Phase 1.5 不支持 resize；遇到这种情况直接报错退出
-        std::fprintf(stderr, "[VulkanRenderer] swapchain out of date — resize not supported in Phase 1.5\n");
+        std::fprintf(stderr, "[VulkanRenderer] swapchain out of date — resize not supported\n");
         return false;
     }
     if (acquireResult != VK_SUCCESS && acquireResult != VK_SUBOPTIMAL_KHR) {
@@ -142,16 +144,14 @@ bool VulkanRenderer::DrawFrame(float r, float g, float b, float a) {
     // 拿到 image 后才能 reset fence（避免死锁）
     vkResetFences(dev, 1, &frame.inFlight);
 
-    // 3) 重置命令池并录制
+    // 3) 重置命令池并 begin
     vkResetCommandPool(dev, frame.cmdPool, 0);
 
     VkCommandBufferBeginInfo bi{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
     bi.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
     VK_CHECK(vkBeginCommandBuffer(frame.cmdBuffer, &bi));
 
-    VkImage swapImage = mCtx->SwapchainImages()[imageIdx];
-
-    // UNDEFINED → COLOR_ATTACHMENT_OPTIMAL
+    VkImage swapImage = mCtx->SwapchainImages()[mAcquiredImageIdx];
     ImageBarrier2(frame.cmdBuffer, swapImage,
         VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT, 0,
         VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
@@ -160,7 +160,7 @@ bool VulkanRenderer::DrawFrame(float r, float g, float b, float a) {
         VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 
     VkRenderingAttachmentInfo color{ VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO };
-    color.imageView   = mCtx->SwapchainImageViews()[imageIdx];
+    color.imageView   = mCtx->SwapchainImageViews()[mAcquiredImageIdx];
     color.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
     color.loadOp      = VK_ATTACHMENT_LOAD_OP_CLEAR;
     color.storeOp     = VK_ATTACHMENT_STORE_OP_STORE;
@@ -171,43 +171,37 @@ bool VulkanRenderer::DrawFrame(float r, float g, float b, float a) {
     ri.layerCount = 1;
     ri.colorAttachmentCount = 1;
     ri.pColorAttachments = &color;
-
     vkCmdBeginRendering(frame.cmdBuffer, &ri);
 
-    // viewport / scissor 对所有 pipeline 公用（dynamic state）
+    // 默认 viewport / scissor（PushClipRect 路径会在帧内 vkCmdSetScissor 改写）
+    // 负高度 viewport：Vulkan 1.1+ 支持，效果是把 clip-space Y 翻转，让 PVZ 沿用
+    // 的 GL 风格正交矩阵 (top=0, bottom=h) 渲染到 framebuffer 时方向正确。
+    // y 偏到 height，height 取负，等价于绕屏幕水平线翻转。
     VkViewport vp{};
     vp.x = 0.0f;
-    vp.y = 0.0f;
+    vp.y = (float)mCtx->SwapchainExtent().height;
     vp.width  = (float)mCtx->SwapchainExtent().width;
-    vp.height = (float)mCtx->SwapchainExtent().height;
+    vp.height = -(float)mCtx->SwapchainExtent().height;
     vp.minDepth = 0.0f;
     vp.maxDepth = 1.0f;
     VkRect2D scissorRect{ {0, 0}, mCtx->SwapchainExtent() };
+    vkCmdSetViewport(frame.cmdBuffer, 0, 1, &vp);
+    vkCmdSetScissor (frame.cmdBuffer, 0, 1, &scissorRect);
 
-    if (mTrianglePipeline && mTrianglePipeline->Handle()) {
-        vkCmdBindPipeline(frame.cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                          mTrianglePipeline->Handle());
-        vkCmdSetViewport(frame.cmdBuffer, 0, 1, &vp);
-        vkCmdSetScissor (frame.cmdBuffer, 0, 1, &scissorRect);
-        vkCmdDraw(frame.cmdBuffer, 3, 1, 0, 0);
-    }
+    mFrameActive = true;
+    return true;
+}
 
-    if (mQuadPipeline && mQuadPipeline->Handle() && mQuadDescSet != VK_NULL_HANDLE) {
-        vkCmdBindPipeline(frame.cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                          mQuadPipeline->Handle());
-        vkCmdSetViewport(frame.cmdBuffer, 0, 1, &vp);
-        vkCmdSetScissor (frame.cmdBuffer, 0, 1, &scissorRect);
-        vkCmdBindDescriptorSets(frame.cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                mQuadPipeline->Layout(), 0, 1, &mQuadDescSet, 0, nullptr);
-        vkCmdPushConstants(frame.cmdBuffer, mQuadPipeline->Layout(),
-                           VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-                           0, sizeof(QuadPushConsts), &mQuadPC);
-        vkCmdDraw(frame.cmdBuffer, 6, 1, 0, 0);
+bool VulkanRenderer::EndFrame() {
+    if (!mFrameActive) {
+        std::fprintf(stderr, "[VulkanRenderer] EndFrame called without BeginFrame\n");
+        return false;
     }
+    PerFrame& frame = mFrames[mFrameIdx];
+    VkImage swapImage = mCtx->SwapchainImages()[mAcquiredImageIdx];
 
     vkCmdEndRendering(frame.cmdBuffer);
 
-    // COLOR_ATTACHMENT_OPTIMAL → PRESENT_SRC_KHR
     ImageBarrier2(frame.cmdBuffer, swapImage,
         VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
         VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
@@ -217,13 +211,12 @@ bool VulkanRenderer::DrawFrame(float r, float g, float b, float a) {
 
     VK_CHECK(vkEndCommandBuffer(frame.cmdBuffer));
 
-    // 4) 提交（用 SYNC2 风格）
     VkSemaphoreSubmitInfo waitSem{ VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO };
     waitSem.semaphore = frame.imageAvailable;
     waitSem.stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
 
     VkSemaphoreSubmitInfo signalSem{ VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO };
-    signalSem.semaphore = mRenderFinished[imageIdx];
+    signalSem.semaphore = mRenderFinished[mAcquiredImageIdx];
     signalSem.stageMask = VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT;
 
     VkCommandBufferSubmitInfo cbSi{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO };
@@ -236,22 +229,29 @@ bool VulkanRenderer::DrawFrame(float r, float g, float b, float a) {
 
     VK_CHECK(vkQueueSubmit2(mCtx->GraphicsQueue(), 1, &si2, frame.inFlight));
 
-    // 5) Present
     VkSwapchainKHR sc = mCtx->Swapchain();
     VkPresentInfoKHR pi{ VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
     pi.waitSemaphoreCount = 1;
-    pi.pWaitSemaphores    = &mRenderFinished[imageIdx];
+    pi.pWaitSemaphores    = &mRenderFinished[mAcquiredImageIdx];
     pi.swapchainCount     = 1;
     pi.pSwapchains        = &sc;
-    pi.pImageIndices      = &imageIdx;
+    pi.pImageIndices      = &mAcquiredImageIdx;
     VkResult presentResult = vkQueuePresentKHR(mCtx->GraphicsQueue(), &pi);
     if (presentResult != VK_SUCCESS && presentResult != VK_SUBOPTIMAL_KHR) {
         std::fprintf(stderr, "[VulkanRenderer] vkQueuePresentKHR failed (%d)\n", (int)presentResult);
+        mFrameActive = false;
         return false;
     }
 
+    mFrameActive = false;
+    mAcquiredImageIdx = UINT32_MAX;
     mFrameIdx = (mFrameIdx + 1) % FRAMES_IN_FLIGHT;
     return true;
+}
+
+VkCommandBuffer VulkanRenderer::CurrentCmdBuffer() const {
+    if (!mFrameActive) return VK_NULL_HANDLE;
+    return mFrames[mFrameIdx].cmdBuffer;
 }
 
 } // namespace pvz

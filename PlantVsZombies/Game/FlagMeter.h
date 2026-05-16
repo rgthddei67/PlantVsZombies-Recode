@@ -5,8 +5,8 @@
 #include "../Graphics.h"  
 
 struct FlagMarker {
-    const GLTexture* texture1;   // 第一个图片纹理（如旗杆）
-    const GLTexture* texture2;   // 第二个图片纹理（如旗面）
+    const Texture* texture1;   // 第一个图片纹理（如旗杆）
+    const Texture* texture2;   // 第二个图片纹理（如旗面）
     float position;              // 0~1 从左到右
 
     // 升起动画
@@ -28,14 +28,14 @@ public:
     Vector GetPosition() const { return m_position; }
 
     // 设置4张图片的纹理
-    void SetImages(const GLTexture* bgTex, const GLTexture* fillTex,
-        const GLTexture* headTex, const GLTexture* middleTex);
+    void SetImages(const Texture* bgTex, const Texture* fillTex,
+        const Texture* headTex, const Texture* middleTex);
 
     // 绘制函数
     void Draw(Graphics* g) const;
     void Update(float deltaTime);
 
-    void AddFlag(const GLTexture* tex1, const GLTexture* tex2, float position);
+    void AddFlag(const Texture* tex1, const Texture* tex2, float position);
     void ClearFlags();
     void SetFlags(const std::vector<FlagMarker>& flags);
     size_t GetFlagCount() const { return m_flags.size(); }
@@ -52,10 +52,10 @@ private:
     Vector m_position;          // 背景左上角坐标
     float m_progress;            // 0~1
 
-    const GLTexture* m_bgTexture = nullptr;      // 背景纹理
-    const GLTexture* m_fillTexture = nullptr;     // 填充条纹理
-    const GLTexture* m_headTexture = nullptr;     // 头部小旗纹理
-    const GLTexture* m_middleTexture = nullptr;   // 中间装饰纹理
+    const Texture* m_bgTexture = nullptr;      // 背景纹理
+    const Texture* m_fillTexture = nullptr;     // 填充条纹理
+    const Texture* m_headTexture = nullptr;     // 头部小旗纹理
+    const Texture* m_middleTexture = nullptr;   // 中间装饰纹理
 
     std::vector<FlagMarker> m_flags;
 
@@ -63,5 +63,5 @@ private:
     float m_rightBound = 1.0f;
 
     // 获取纹理尺寸（辅助函数）
-    void GetTextureSize(const GLTexture* tex, int& w, int& h) const;
+    void GetTextureSize(const Texture* tex, int& w, int& h) const;
 };

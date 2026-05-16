@@ -156,7 +156,7 @@ void Button::Draw(Graphics* g) const
 
     if (!imageKey.empty() && resourceManager.HasTexture(imageKey))
     {
-        const GLTexture* texture = resourceManager.GetTexture(imageKey);
+        const Texture* texture = resourceManager.GetTexture(imageKey);
         if (texture != nullptr)
         {
             Vector pos = g->ScreenToWorldPosition(position.x, position.y);

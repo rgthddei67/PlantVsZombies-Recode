@@ -9,7 +9,7 @@
 #include <unordered_map>
 #include "../Game/Definit.h"
 
-struct GLTexture;
+struct Texture;
 
 // 鍔ㄧ敾甯у彉鎹㈡暟鎹?
 struct TrackFrameTransform {
@@ -21,7 +21,7 @@ struct TrackFrameTransform {
     float sy = 1.0f;  // 缂╂斁Y
     float a = 1.0f;   // 閫忔槑搴?
     int f = 0;        // 鏄剧ず鏍囧織锛?=鏄剧ず锛?1=绌虹櫧/鍒嗛殧锛?
-    const GLTexture* image = nullptr; // 鍥惧儚
+    const Texture* image = nullptr; // 鍥惧儚
 
     TrackFrameTransform() = default;
 };
@@ -41,8 +41,8 @@ struct TrackExtraInfo {
     bool mVisible = true;
     float mOffsetX = 0.0f;          // 杞ㄩ亾鑷韩缁樺埗鍋忕Щ X
     float mOffsetY = 0.0f;          // 杞ㄩ亾鑷韩缁樺埗鍋忕Щ Y
-    const GLTexture* mImage = nullptr;  // 鎵嬪姩瑕嗙洊鍥剧墖璁剧疆
-    std::unordered_map<std::string, const GLTexture*> mTextureCache; // 鍥剧墖鍚?-> 绾圭悊
+    const Texture* mImage = nullptr;  // 鎵嬪姩瑕嗙洊鍥剧墖璁剧疆
+    std::unordered_map<std::string, const Texture*> mTextureCache; // 鍥剧墖鍚?-> 绾圭悊
     std::vector<std::weak_ptr<class Animator>> mAttachedReanims;  // 闄勫姞鐨勫瓙鍔ㄧ敾
 };
 

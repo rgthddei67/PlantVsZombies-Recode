@@ -1,6 +1,7 @@
 ﻿#include "./GameAPP.h"
 #include "./Renderer/VulkanContext.h"
 #include "./Renderer/VulkanRenderer.h"
+#include "./Renderer/VulkanTexturePool.h"
 #include <SDL2/SDL_vulkan.h>
 #include "./UI/InputHandler.h"
 #include "./ResourceManager.h"
@@ -134,10 +135,22 @@ bool GameAPP::CreateWindowAndRenderer()
 		return false;
 	}
 
-	// 创建 Graphics 实例并初始化（Phase 3a：GL-free stub）
+	// Phase 3b：bindless 纹理池——LoadAllResources 把所有纹理上传到这里取得 slot；
+	// Graphics::InitializeVulkan 也需要它来构 batch pipeline 的 descriptor layout。
+	m_vulkanTexPool = std::make_unique<pvz::VulkanTexturePool>();
+	if (!m_vulkanTexPool->Initialize(m_vulkanCtx.get())) {
+		std::cerr << "VulkanTexturePool 初始化失败" << std::endl;
+		return false;
+	}
+
+	// 创建 Graphics 实例并初始化（Phase 3b：CPU 端默认，Vulkan 资源在 InitializeVulkan 时挂上）
 	m_graphics = std::make_unique<Graphics>();
 	if (!m_graphics->Initialize(SCENE_WIDTH, SCENE_HEIGHT)) {
 		std::cerr << "Graphics 初始化失败" << std::endl;
+		return false;
+	}
+	if (!m_graphics->InitializeVulkan(m_vulkanCtx.get(), m_vulkanRenderer.get(), m_vulkanTexPool.get())) {
+		std::cerr << "Graphics::InitializeVulkan 失败" << std::endl;
 		return false;
 	}
 
@@ -160,6 +173,9 @@ bool GameAPP::InitializeResourceManager()
 	plantMgr.Initialize();
 
 	ResourceManager& resourceManager = ResourceManager::GetInstance();
+
+	// Phase 3b：先注入 Vulkan 纹理池，再 Initialize 读 XML；LoadAllResources 上传时就能拿到 pool。
+	resourceManager.SetVulkanTexturePool(m_vulkanTexPool.get());
 
 	if (!resourceManager.Initialize("./resources/resources.xml")) {
 		std::cerr << "ResourceManager 初始化失败！" << std::endl;
@@ -246,6 +262,7 @@ int GameAPP::Run()
 		CleanupResources();
 		AudioSystem::Shutdown();
 		m_graphics.reset();
+		m_vulkanTexPool.reset();
 		m_vulkanRenderer.reset();
 		m_vulkanCtx.reset();
 		SDL_DestroyWindow(mWindow);
@@ -261,6 +278,7 @@ int GameAPP::Run()
 		AudioSystem::Shutdown();
 		CursorManager::GetInstance().Cleanup();
 		m_graphics.reset();
+		m_vulkanTexPool.reset();
 		m_vulkanRenderer.reset();
 		m_vulkanCtx.reset();
 		SDL_DestroyWindow(mWindow);
@@ -345,17 +363,14 @@ int GameAPP::Run()
 
 void GameAPP::Draw()
 {
-	// Phase 3a：Graphics 的 Draw* 都被 stub 成 no-op，本帧最终结果只剩 VulkanRenderer 输出的 clear color。
-	// 仍然走一遍 Scene 的 Draw 流程，确保 CPU 侧的录制/回放/状态机依然被覆盖（不至于让代码路径腐烂）。
+	// Phase 3b：Graphics 接管帧生命周期。BeginFrame 负责 acquire+begin+barrier+beginRendering，
+	// SceneManager::Draw 累积 batch，EndFrame 把 batch 拷到 GPU、issue draw、submit、present。
 	m_graphics->Clear();
 	m_graphics->ProcessCommandQueue();
-	SceneManager::GetInstance().Draw(m_graphics.get());
-	m_graphics->FlushBatch();
 
-	// 把当前 clear color 喂给 Vulkan，由它执行真正的清屏 + present。
-	float r, g, b, a;
-	m_graphics->GetClearColor(r, g, b, a);
-	m_vulkanRenderer->DrawFrame(r, g, b, a);
+	if (!m_graphics->BeginFrame()) return;
+	SceneManager::GetInstance().Draw(m_graphics.get());
+	m_graphics->EndFrame();
 }
 
 void GameAPP::Shutdown()
@@ -375,7 +390,7 @@ void GameAPP::Shutdown()
 	GameObjectManager::GetInstance().ClearAll();
 	CollisionSystem::GetInstance().ClearAll();
 
-	// 清理资源管理器 (会释放 OpenGL 纹理)
+	// 清理资源管理器 (会通过 VulkanTexturePool 释放每张 bindless 纹理 —— 此时 pool 必须仍存活)
 	ResourceManager::ReleaseInstance();
 
 	// 清理文字缓存 (Graphics 内部有缓存)
@@ -389,11 +404,12 @@ void GameAPP::Shutdown()
 	// 清理输入处理器
 	mInputHandler.reset();
 
-	// 清理 Graphics
+	// 清理 Graphics（Phase 3b：内部会先 ShutdownVulkan 释放 pipeline / 缓冲 / descriptor pool —— 需要 ctx 仍存活）
 	m_graphics.reset();
 
-	// 清理 Vulkan（顺序：renderer 先于 ctx，且都在 SDL_DestroyWindow 之前——
-	// VulkanContext 析构会销毁 surface，而 surface 来自该窗口）
+	// 清理 Vulkan：先纹理池（依赖 ctx），再 renderer，最后 ctx；都在 SDL_DestroyWindow 之前——
+	// VulkanContext 析构会销毁 surface，而 surface 来自该窗口
+	m_vulkanTexPool.reset();
 	m_vulkanRenderer.reset();
 	m_vulkanCtx.reset();
 

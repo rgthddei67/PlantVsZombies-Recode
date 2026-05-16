@@ -56,20 +56,13 @@ VulkanContext::~VulkanContext() { Shutdown(); }
 bool VulkanContext::Initialize(SDL_Window* window, bool enableValidation) {
     mValidationEnabled = enableValidation;
 
-    if (volkInitialize() != VK_SUCCESS) {
-        std::fprintf(stderr, "[Vulkan] volkInitialize failed — vulkan-1.dll not found?\n");
-        return false;
-    }
-
+    // VulkanSDK 静态链接：函数原型与实现都在 vulkan-1.lib 中。
+    // 不再需要 volkInitialize / volkLoadInstance / volkLoadDevice。
     if (!CreateInstance(window, enableValidation)) return false;
-    volkLoadInstance(mInstance);
-
     if (enableValidation && !CreateDebugMessenger()) return false;
     if (!CreateSurface(window))                     return false;
     if (!PickPhysicalDevice())                      return false;
     if (!CreateLogicalDevice())                     return false;
-    volkLoadDevice(mDevice);
-
     if (!CreateSwapchain(window))                   return false;
     if (!CreateAllocator())                         return false;
 
@@ -129,6 +122,16 @@ bool VulkanContext::CreateInstance(SDL_Window* window, bool enableValidation) {
 }
 
 bool VulkanContext::CreateDebugMessenger() {
+    // VK_EXT_debug_utils 的两个函数不在 vulkan-1.lib 的静态导出表里——它们是
+    // instance-level extension，必须用 vkGetInstanceProcAddr 在运行时取。
+    auto fnCreate = (PFN_vkCreateDebugUtilsMessengerEXT)
+        vkGetInstanceProcAddr(mInstance, "vkCreateDebugUtilsMessengerEXT");
+    if (!fnCreate) {
+        std::fprintf(stderr, "[Vulkan] vkCreateDebugUtilsMessengerEXT not found "
+                             "(VK_EXT_debug_utils not loaded?)\n");
+        return false;
+    }
+
     VkDebugUtilsMessengerCreateInfoEXT info{ VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT };
     info.messageSeverity =
         VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
@@ -138,7 +141,7 @@ bool VulkanContext::CreateDebugMessenger() {
         VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT  |
         VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
     info.pfnUserCallback = DebugCallback;
-    VK_CHECK(vkCreateDebugUtilsMessengerEXT(mInstance, &info, nullptr, &mDebugMessenger));
+    VK_CHECK(fnCreate(mInstance, &info, nullptr, &mDebugMessenger));
     return true;
 }
 
@@ -324,17 +327,12 @@ bool VulkanContext::CreateSwapchain(SDL_Window* window) {
 }
 
 bool VulkanContext::CreateAllocator() {
-    // VMA 需要拿到我们已用 volk 加载的函数指针，否则会自己 dlsym 出问题（因为 VK_NO_PROTOTYPES）
-    VmaVulkanFunctions fns{};
-    fns.vkGetInstanceProcAddr = vkGetInstanceProcAddr;
-    fns.vkGetDeviceProcAddr   = vkGetDeviceProcAddr;
-
+    // 静态链接路径：VMA 直接调用 vkXxx 原型，pVulkanFunctions 留 nullptr。
     VmaAllocatorCreateInfo aci{};
     aci.vulkanApiVersion = VK_API_VERSION_1_3;
     aci.instance         = mInstance;
     aci.physicalDevice   = mPhysicalDevice;
     aci.device           = mDevice;
-    aci.pVulkanFunctions = &fns;
 
     VK_CHECK(vmaCreateAllocator(&aci, &mAllocator));
     return true;
@@ -356,10 +354,14 @@ void VulkanContext::Shutdown() {
     DestroySwapchain();
     if (mDevice)         { vkDestroyDevice(mDevice, nullptr);  mDevice = VK_NULL_HANDLE; }
     if (mSurface)        { vkDestroySurfaceKHR(mInstance, mSurface, nullptr); mSurface = VK_NULL_HANDLE; }
-    if (mDebugMessenger) { vkDestroyDebugUtilsMessengerEXT(mInstance, mDebugMessenger, nullptr); mDebugMessenger = VK_NULL_HANDLE; }
+    if (mDebugMessenger) {
+        auto fnDestroy = (PFN_vkDestroyDebugUtilsMessengerEXT)
+            vkGetInstanceProcAddr(mInstance, "vkDestroyDebugUtilsMessengerEXT");
+        if (fnDestroy) fnDestroy(mInstance, mDebugMessenger, nullptr);
+        mDebugMessenger = VK_NULL_HANDLE;
+    }
     if (mInstance)       { vkDestroyInstance(mInstance, nullptr); mInstance = VK_NULL_HANDLE; }
 
-    volkFinalize();
     mInitialized = false;
 }
 

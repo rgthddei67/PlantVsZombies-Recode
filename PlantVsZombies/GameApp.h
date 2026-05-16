@@ -33,6 +33,7 @@ class Zombie;
 namespace pvz {
     class VulkanContext;
     class VulkanRenderer;
+    class VulkanTexturePool;
 }
 
 enum class Background;
@@ -56,9 +57,11 @@ private:
     std::unique_ptr<Graphics> m_graphics;   // 改用 Graphics
 
     SDL_Window* mWindow;
-    // Phase 3a：Vulkan 接管。VulkanContext / VulkanRenderer 取代了 SDL_GLContext。
-    std::unique_ptr<pvz::VulkanContext>  m_vulkanCtx;
-    std::unique_ptr<pvz::VulkanRenderer> m_vulkanRenderer;
+    // Phase 3a/3b：Vulkan 接管。VulkanContext / VulkanRenderer 取代了 SDL_GLContext。
+    // Phase 3b 起增加 VulkanTexturePool，承载 bindless 纹理槽位。
+    std::unique_ptr<pvz::VulkanContext>     m_vulkanCtx;
+    std::unique_ptr<pvz::VulkanRenderer>    m_vulkanRenderer;
+    std::unique_ptr<pvz::VulkanTexturePool> m_vulkanTexPool;
 
     bool mRunning;
     bool mInitialized;

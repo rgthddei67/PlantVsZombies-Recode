@@ -34,7 +34,7 @@ struct DrawCommand {
 
 // 图片信息结构
 struct TextureInfo {
-    const GLTexture* texture = nullptr;
+    const Texture* texture = nullptr;
     float posX = 0.0f;
     float posY = 0.0f;
     float scaleX = 1.0f;

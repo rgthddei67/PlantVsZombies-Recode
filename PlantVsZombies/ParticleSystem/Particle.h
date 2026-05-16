@@ -18,7 +18,7 @@ struct Particle {
     float rotationSpeed;
     float gravity;
     bool active;
-    const GLTexture* texture;
+    const Texture* texture;
 
     float brightness;
     float stretch;

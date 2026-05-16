@@ -86,7 +86,7 @@ void Scene::UnregisterDrawCommand(const std::string& name) {
 }
 
 void Scene::AddTexture(const std::string& textureName, float posX, float posY, float scaleX, float scaleY, int drawOrder, bool isUI) {
-	const GLTexture* texture = ResourceManager::GetInstance().GetTexture(textureName);
+	const Texture* texture = ResourceManager::GetInstance().GetTexture(textureName);
 	if (texture) {
 		TextureInfo info{ texture, posX, posY };
 		info.scaleX = scaleX;

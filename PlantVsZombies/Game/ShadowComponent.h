@@ -11,13 +11,13 @@
 
 class ShadowComponent : public Component {
 private:
-    const GLTexture* mShadowTexture = nullptr;
+    const Texture* mShadowTexture = nullptr;
     Vector mOffset = Vector(15, 28);  // 阴影相对于物体位置的偏移
     Vector mScale = Vector(1.0f, 0.75f);  // 阴影的缩放（通常水平拉伸，垂直压缩）
     float mAlpha = 0.9f;            // 阴影透明度
 
 public:
-    ShadowComponent(const GLTexture* shadowTexture = nullptr,
+    ShadowComponent(const Texture* shadowTexture = nullptr,
         const Vector& offset = Vector(0, 28),
         float alpha = 0.9f);
 
@@ -27,7 +27,7 @@ public:
     void Draw(Graphics* g) override;
 
     // 设置阴影纹理
-    void SetShadowTexture(const GLTexture* texture) { mShadowTexture = texture; }
+    void SetShadowTexture(const Texture* texture) { mShadowTexture = texture; }
 
     // 设置阴影偏移
     void SetOffset(const Vector& offset) { mOffset = offset; }

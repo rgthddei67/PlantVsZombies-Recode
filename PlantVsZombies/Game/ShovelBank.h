@@ -5,7 +5,7 @@
 #include "GameObject.h"
 
 class Board;
-struct GLTexture;
+struct Texture;
 
 class ShovelBank : public GameObject {
 public:
@@ -15,7 +15,7 @@ public:
 
 private:
 	Board* mBoard;
-	const GLTexture* mTexture;
+	const Texture* mTexture;
 	bool mWasShovelActive = false;
 };
 

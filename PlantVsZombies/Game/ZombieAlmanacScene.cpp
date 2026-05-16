@@ -44,7 +44,7 @@ void ZombieAlmanacScene::BuildDrawCommands()
 	RegisterDrawCommand("ZombieWindowBack",
 		[this](Graphics* g) {
 			auto& resMgr = ResourceManager::GetInstance();
-			const GLTexture* windowTex = resMgr.GetTexture("IMAGE_ALMANAC_ZOMBIEWINDOW");
+			const Texture* windowTex = resMgr.GetTexture("IMAGE_ALMANAC_ZOMBIEWINDOW");
 			for (const auto& pos : mGridPositions) {
 				if (windowTex)
 					g->DrawTexture(windowTex, pos.x, pos.y,
@@ -57,7 +57,7 @@ void ZombieAlmanacScene::BuildDrawCommands()
 	RegisterDrawCommand("ZombieWindowFront",
 		[this](Graphics* g) {
 			auto& resMgr = ResourceManager::GetInstance();
-			const GLTexture* window2Tex = resMgr.GetTexture("IMAGE_ALMANAC_ZOMBIEWINDOW2");
+			const Texture* window2Tex = resMgr.GetTexture("IMAGE_ALMANAC_ZOMBIEWINDOW2");
 			for (const auto& pos : mGridPositions) {
 				if (window2Tex)
 					g->DrawTexture(window2Tex, pos.x, pos.y,
