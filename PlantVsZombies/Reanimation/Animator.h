@@ -29,16 +29,6 @@ int ColorComponentMultiply(int theColor1, int theColor2);
  */
 SDL_Color ColorsMultiply(const SDL_Color& theColor1, const SDL_Color& theColor2);
 
-/**
- * @brief 动画绘制命令结构体，用于缓存或直接绘制
- */
-struct AnimDrawCommand {
-    const Texture* texture;   ///< 纹理指针
-    BlendMode blendMode;        ///< 混合模式
-    glm::vec4 color;            ///< 颜色 (RGBA)
-    glm::mat4 transform;        ///< 仿射变换矩阵（将单位矩形映射到目标四边形）
-};
-
 class Animator {
 private:
     std::shared_ptr<Reanimation> mReanim;   ///< 关联的 Reanimation 数据
@@ -335,21 +325,13 @@ public:
     void Update();
 
     /**
-     * @brief 立即绘制动画 (若未调用 PrepareCommands，则实时计算)
+     * @brief 绘制动画 (现场计算变换并提交，递归绘制子动画)
      * @param g Graphics 对象
      * @param baseX 基准 X 坐标 (世界坐标)
      * @param baseY 基准 Y 坐标
      * @param Scale 全局缩放系数
      */
     void Draw(Graphics* g, float baseX, float baseY, float Scale = 1.0f);
-
-    /**
-     * @brief 预计算绘制命令并缓存 (可在任意线程调用，不涉及 OpenGL)
-     * @param baseX 基准 X 坐标
-     * @param baseY 基准 Y 坐标
-     * @param Scale 全局缩放系数
-     */
-    void PrepareCommands(float baseX, float baseY, float Scale = 1.0f);
 
     /**
      * @brief 获取底层 Reanimation 对象
@@ -418,8 +400,6 @@ private:
     float mLocalScaleY = 1.0f;
     float mLocalRotation = 0.0f;   // 角度制
 
-    std::vector<AnimDrawCommand> mCachedCommands;  ///< PrepareCommands() 的缓存结果
-
 private:
     /**
      * @brief 获取指定轨道的插值变换结果 (包含混合)
@@ -436,13 +416,13 @@ private:
     std::vector<TrackExtraInfo*> GetTrackExtrasByName(const std::string& trackName);
 
     /**
-     * @brief 收集所有绘制命令 (递归调用子动画)
-     * @param outCommands 输出命令列表
+     * @brief Draw 的内部递归实现：不 push/pop 根矩阵，纯计算并直接提交 g->DrawTextureMatrix
+     * @param g Graphics 对象
      * @param baseX 基准 X
      * @param baseY 基准 Y
      * @param Scale 全局缩放
      */
-    void CollectDrawCommands(std::vector<AnimDrawCommand>& outCommands, float baseX, float baseY, float Scale) const;
+    void DrawInternal(Graphics* g, float baseX, float baseY, float Scale) const;
 };
 
 #endif

@@ -68,11 +68,13 @@ bool VulkanContext::Initialize(SDL_Window* window, bool enableValidation) {
 
     mInitialized = true;
 
+#ifdef _DEBUG
     std::fprintf(stdout,
         "[Vulkan] Ready. swapchain=%ux%u format=%d images=%zu validation=%d\n",
         mSwapchainExtent.width, mSwapchainExtent.height,
         (int)mSwapchainFormat, mSwapchainImages.size(),
         mValidationEnabled ? 1 : 0);
+#endif
 
     return true;
 }

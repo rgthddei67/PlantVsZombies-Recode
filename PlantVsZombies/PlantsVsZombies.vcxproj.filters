@@ -29,9 +29,6 @@
     <Filter Include="Code\Game\Bullet">
       <UniqueIdentifier>{3d793b5e-15bd-4605-8ef3-948094f47337}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Code\Shader">
-      <UniqueIdentifier>{985eca82-111a-4c23-85a4-ce150e1a61d0}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Code\Game\ObjectPool">
       <UniqueIdentifier>{35351a2a-8829-44ec-b71b-0e7000c686bf}</UniqueIdentifier>
     </Filter>
@@ -564,13 +561,5 @@
     <ClInclude Include="Renderer\VulkanTexturePool.h">
       <Filter>Code\Renderer</Filter>
     </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Shader\batch.frag.glsl">
-      <Filter>Code\Renderer</Filter>
-    </None>
-    <None Include="Shader\batch.vert.glsl">
-      <Filter>Code\Renderer</Filter>
-    </None>
   </ItemGroup>
 </Project>

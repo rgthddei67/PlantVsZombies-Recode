@@ -223,42 +223,16 @@ void Animator::Update() {
     }
 }
 
-void Animator::PrepareCommands(float baseX, float baseY, float Scale) {
-    mCachedCommands.clear();
-    if (!mReanim) return;
-    CollectDrawCommands(mCachedCommands, baseX, baseY, Scale);
-}
-
 void Animator::Draw(Graphics* g, float baseX, float baseY, float Scale) {
     if (!mReanim || !g) return;
 
-    // 优先使用 PrepareCommands() 预计算的缓存（多线程模式）
-    // 若缓存为空则即时计算（单线程回退）
-    std::vector<AnimDrawCommand> localCommands;
-    const std::vector<AnimDrawCommand>* commands;
-
-    if (!mCachedCommands.empty()) {
-        commands = &mCachedCommands;
-    }
-    else {
-        CollectDrawCommands(localCommands, baseX, baseY, Scale);
-        commands = &localCommands;
-    }
-
     // 保存当前变换栈，确保不叠加额外变换
     g->PushTransform(glm::mat4(1.0f));
-
-    for (const auto& cmd : *commands) {
-        g->DrawTextureMatrix(cmd.texture, cmd.transform, 0.0f, 0.0f, cmd.color, cmd.blendMode);
-    }
-
+    DrawInternal(g, baseX, baseY, Scale);
     g->PopTransform();
-
-    // 清空缓存，下帧由 PrepareCommands() 重新填充
-    mCachedCommands.clear();
 }
 
-void Animator::CollectDrawCommands(std::vector<AnimDrawCommand>& outCommands, float baseX, float baseY, float Scale) const {
+void Animator::DrawInternal(Graphics* g, float baseX, float baseY, float Scale) const {
     if (!mReanim) return;
 
     static constexpr float DEG_TO_RAD = 3.14159265358979323846f / 180.0f;
@@ -297,7 +271,6 @@ void Animator::CollectDrawCommands(std::vector<AnimDrawCommand>& outCommands, fl
         }
 
         if (shouldDrawSelf) {
-            // 获取纹理原始尺寸（假设 Texture 包含 width/height 成员）
             int imgWidth = image->width;
             int imgHeight = image->height;
             float w = static_cast<float>(imgWidth);
@@ -317,33 +290,26 @@ void Animator::CollectDrawCommands(std::vector<AnimDrawCommand>& outCommands, fl
             float combinedAlpha = transform.a * mAlpha;
             float baseAlpha = std::clamp(combinedAlpha, 0.0f, 1.0f);
 
-            // 正常绘制命令
-            AnimDrawCommand cmd;
-            cmd.texture = image;
-            cmd.blendMode = BlendMode::Alpha;
-            cmd.color = glm::vec4(255.0f, 255.0f, 255.0f, baseAlpha * 255.0f);
-            cmd.transform = mat;
-            outCommands.push_back(cmd);
+            // 正常绘制
+            glm::vec4 baseColor(255.0f, 255.0f, 255.0f, baseAlpha * 255.0f);
+            g->DrawTextureMatrix(image, mat, 0.0f, 0.0f, baseColor, BlendMode::Alpha);
 
             // 发光效果（叠加混合）
             if (mEnableExtraAdditiveDraw) {
-                cmd.blendMode = BlendMode::Add;
-                cmd.color = glm::vec4(mExtraAdditiveColor.r,
+                glm::vec4 glowColor(mExtraAdditiveColor.r,
                     mExtraAdditiveColor.g,
                     mExtraAdditiveColor.b,
                     mExtraAdditiveColor.a);
-                outCommands.push_back(cmd);
+                g->DrawTextureMatrix(image, mat, 0.0f, 0.0f, glowColor, BlendMode::Add);
             }
 
             // 覆盖层效果（Alpha 混合，颜色需乘以基础透明度）
             if (mEnableExtraOverlayDraw) {
-                cmd.blendMode = BlendMode::Alpha;
                 glm::vec4 overlayColor(mExtraOverlayColor.r,
                     mExtraOverlayColor.g,
                     mExtraOverlayColor.b,
                     mExtraOverlayColor.a * baseAlpha);
-                cmd.color = overlayColor;
-                outCommands.push_back(cmd);
+                g->DrawTextureMatrix(image, mat, 0.0f, 0.0f, overlayColor, BlendMode::Alpha);
             }
         }
 
@@ -366,7 +332,7 @@ void Animator::CollectDrawCommands(std::vector<AnimDrawCommand>& outCommands, fl
                 worldX = baseX + worldX * Scale;
                 worldY = baseY + worldY * Scale;
 
-                child->CollectDrawCommands(outCommands, worldX, worldY, 1.0f);
+                child->DrawInternal(g, worldX, worldY, 1.0f);
             }
         }
     }

@@ -119,25 +119,6 @@ void GameObjectManager::DrawAll(Graphics* g) {
 
 	const int total = static_cast<int>(mGameObjects.size());
 
-	// ---- 并行预计算阶段（纯CPU变换，不涉及OpenGL）----
-	// PROFILE_SCOPE("5.Draw_prepare(par)");
-	if (total >= 90) {
-		mThreadPool->Dispatch(total, [this](int start, int end) {
-			for (int i = start; i < end; i++) {
-				if (mGameObjects[i]->IsActive())
-					mGameObjects[i]->PrepareForDraw();
-			}
-			});
-	}
-	else {
-		for (size_t i = 0; i < mGameObjects.size(); i++) {
-			auto* obj = mGameObjects[i].get();
-			if (obj->IsActive()) {
-				obj->PrepareForDraw();
-			}
-		}
-	}
-
 	// ---- 绘制阶段：小对象数走原串行；大场景走并行 record + 主线程 replay ----
 	constexpr int kParallelDrawThreshold = 200;  // 小于此阈值，并行 dispatch overhead 不划算
 

@@ -77,23 +77,12 @@ void AnimatedObject::Update() {
 	UpdateGlowingEffect();
 }
 
-void AnimatedObject::PrepareForDraw() {
-	if (!mAnimator) return;
-
-	Vector pos = GetVisualPosition();
-	mCachedPosX = pos.x;
-	mCachedPosY = pos.y;
-	mCachedScale = 1.0f;
-	if (mTransform) {
-		mCachedScale = mTransform->GetScale();
-	}
-	mAnimator->PrepareCommands(mCachedPosX, mCachedPosY, mCachedScale);
-}
-
 void AnimatedObject::Draw(Graphics* g) {
 	GameObject::Draw(g);
 	if (!mAnimator) return;
-	mAnimator->Draw(g, mCachedPosX, mCachedPosY, mCachedScale);
+	Vector pos = GetVisualPosition();
+	float scale = mTransform ? mTransform->GetScale() : 1.0f;
+	mAnimator->Draw(g, pos.x, pos.y, scale);
 }
 
 void AnimatedObject::PlayAnimation() {

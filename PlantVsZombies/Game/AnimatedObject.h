@@ -27,11 +27,6 @@ protected:
     PlayState mLoopType;
     bool mAutoDestroy;
 
-    // 帧内缓存，PrepareForDraw() 写入，Draw() 直接读取，同帧内位置不变
-    float mCachedPosX  = 0.0f;
-    float mCachedPosY  = 0.0f;
-    float mCachedScale = 1.0f;
-
 public:
     AnimatedObject(ObjectType type,
         Board* board,
@@ -103,7 +98,6 @@ public:
 
     void Update() override;
     void Draw(Graphics* g) override;
-    void PrepareForDraw() override;
 
 private:
     void UpdateGlowingEffect();
