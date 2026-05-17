@@ -730,6 +730,14 @@ private:
 	uint64_t m_parallelVboBytes  = 0;
 	uint64_t m_parallelSsboBytes = 0;
 
+	// 自适应负载均衡（修复 worker 切片单点溢出）：
+	// 并行区不再按 worker 数等分——按"上一并行帧各 slot 的实际占用"成比例切片，
+	// 重的 slot 下帧拿更大切片、轻的缩小，总和 ≤ 可用区。溢出的 slot 真实需求
+	// 被丢弃无法测量，记为 cap×1.5 的放大估计，使其 1~2 帧内收敛（快 attack）。
+	// slot→对象映射与回放契约保持不变，渲染序不受影响。
+	std::vector<uint32_t> m_prevSliceVboDemand;   ///< 上一并行帧各 slot 顶点占用（溢出则放大估计）
+	std::vector<uint32_t> m_prevSliceSsboDemand;  ///< 上一并行帧各 slot 矩阵占用（溢出则放大估计）
+
 	// ==================== 内部辅助函数 ====================
 
 	/**

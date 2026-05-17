@@ -197,10 +197,6 @@
     <ClInclude Include="UI\UIManager.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Shader\batch.vert.glsl" />
-    <None Include="Shader\batch.frag.glsl" />
-  </ItemGroup>
-  <ItemGroup>
     <!-- Phase 2a+: Vulkan GLSL → SPIR-V 编译输入。每项的 Stage 元数据驱动 glslc 的 -fshader-stage 参数。 -->
     <ShaderSource Include="Shader\batch.vert.glsl">
       <Stage>vert</Stage>

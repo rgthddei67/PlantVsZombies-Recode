@@ -25,11 +25,11 @@ constexpr VkVertexInputAttributeDescription kBatchVertexAttrs[4] = {
 };
 
 // 每帧持久映射 host-visible 缓冲容量。
-// VBO: 64 MB ≈ 1.5M BatchVertex ≈ 254k quad。实测有些 scene 在加载/瞬时会摸到 380k 顶点，
-// 给 5× 余量避免 drop。两帧 in flight 共 128 MB host-visible VRAM，Intel Arc B370 完全吃得下。
-// SSBO: 16 MB / 64B = 262144 mat4，跟 VBO 上限对得上（典型 6 顶点/矩阵比例）。
-constexpr VkDeviceSize VBO_BYTES_PER_FRAME  = 64u * 1024u * 1024u;
-constexpr VkDeviceSize SSBO_BYTES_PER_FRAME = 16u * 1024u * 1024u;
+// VBO: 128 MB ≈ 3M BatchVertex ≈ 254*2k quad。实测有些 scene 在加载/瞬时会摸到顶点，
+// 给 5× 余量避免 drop。两帧 in flight 共 128 MB host-visible VRAM
+// SSBO: 32 MB / 64B = 262144*2 mat4，跟 VBO 上限对得上（典型 6 顶点/矩阵比例）
+constexpr VkDeviceSize VBO_BYTES_PER_FRAME  = 128u * 1024u * 1024u;
+constexpr VkDeviceSize SSBO_BYTES_PER_FRAME = 32u * 1024u * 1024u;
 } // anonymous
 
 // Phase 3b — Vulkan 端持有的全部渲染资源。PIMPL 在 Graphics.cpp 内部定义，
@@ -296,9 +296,11 @@ bool Graphics::InitializeVulkan(pvz::VulkanContext* ctx,
 	}
 
 	m_vk = std::move(state);
+#ifdef _DEBUG
 	std::cout << "[Graphics] Vulkan 接入完成。VBO=" << (VBO_BYTES_PER_FRAME / 1024 / 1024)
 	          << "MB/frame, SSBO=" << (SSBO_BYTES_PER_FRAME / 1024 / 1024)
 	          << "MB/frame, white tex bindless=" << m_whiteTexture << std::endl;
+#endif
 	return true;
 }
 
@@ -1349,17 +1351,16 @@ void Graphics::BeginParallelRecord(int numWorkers) {
 	// 之前出现过 slice 把整段 buffer 吃光、deferred text 再走 FlushBatch 时 1 字节没剩立刻 overflow
 	// 的情况。8MB VBO / 1MB SSBO 足够装一帧的 UI + text；占整段 64MB / 16MB 的 12.5% / 6.25%，
 	// 损失的并行写入容量可以忽略（4400 僵尸场景实测 ~17MB 顶点，并行区 56MB 仍然有 3× 余量）。
-	constexpr uint64_t POST_PARALLEL_RESERVE_VBO  = 8u * 1024u * 1024u;
+	constexpr uint64_t POST_PARALLEL_RESERVE_VBO  = 4u * 1024u * 1024u;
 	constexpr uint64_t POST_PARALLEL_RESERVE_SSBO = 1u * 1024u * 1024u;
 	const uint64_t vboUsable  = (vboRemain  > POST_PARALLEL_RESERVE_VBO)  ? (vboRemain  - POST_PARALLEL_RESERVE_VBO)  : 0;
 	const uint64_t ssboUsable = (ssboRemain > POST_PARALLEL_RESERVE_SSBO) ? (ssboRemain - POST_PARALLEL_RESERVE_SSBO) : 0;
 
-	// 切片大小 floor 到元素 stride，保证 vboPtr/ssboPtr 是元素对齐的。
-	const uint64_t sliceVboBytes  = (vboUsable  / numWorkers / sizeof(BatchVertex)) * sizeof(BatchVertex);
-	const uint64_t sliceSsboBytes = (ssboUsable / numWorkers / sizeof(glm::mat4))   * sizeof(glm::mat4);
-
-	if (sliceVboBytes == 0 || sliceSsboBytes == 0) {
-		// 本帧已经被主线程画满。slot 切片保持零容量，所有 worker 写入会被静默丢弃。
+	// 硬门槛：连"每 worker 一个 stride 的等分"都放不下，说明本帧已被主线程画满。
+	// 与旧逻辑语义一致——slot 切片保持零容量，worker 写入会被静默丢弃。
+	const uint64_t equalVboBytes  = (vboUsable  / numWorkers / sizeof(BatchVertex)) * sizeof(BatchVertex);
+	const uint64_t equalSsboBytes = (ssboUsable / numWorkers / sizeof(glm::mat4))   * sizeof(glm::mat4);
+	if (equalVboBytes == 0 || equalSsboBytes == 0) {
 		// 每帧只打一次警告（fr.overflowWarned 是 FlushBatch overflow 共用的旗，足够）。
 		if (!fr.overflowWarned) {
 			std::cerr << "[Graphics] BeginParallelRecord: insufficient frame buffer capacity ("
@@ -1370,29 +1371,63 @@ void Graphics::BeginParallelRecord(int numWorkers) {
 		return;
 	}
 
+	// 自适应加权切片：用上一并行帧各 slot 的占用作权重，按比例瓜分 usable。
+	// 每个 slot 先保底一块地板（让上帧空、本帧突然变重的 slot 不至于 0 容量直接丢，
+	// 撑过一帧后权重就会把它放大）；剩余弹性容量按权重分配。Σ ≤ usable 由构造保证。
+	// 无历史（首并行帧 / numWorkers 变化）则退回等分，1~2 帧内自动收敛。
+	auto floorTo = [](uint64_t v, uint64_t stride) { return (v / stride) * stride; };
+	const uint64_t VSTRIDE = sizeof(BatchVertex);
+	const uint64_t MSTRIDE = sizeof(glm::mat4);
+	const uint64_t minVbo  = floorTo(2048ull * VSTRIDE, VSTRIDE);  // ~88 KB/slot 地板
+	const uint64_t minSsbo = floorTo(512ull  * MSTRIDE, MSTRIDE);  // ~32 KB/slot 地板
+
+	std::vector<uint64_t> vboSlice(numWorkers), ssboSlice(numWorkers);
+	auto splitWeighted = [&](uint64_t usable, uint64_t stride, uint64_t minBytes,
+	                         const std::vector<uint32_t>& hist,
+	                         std::vector<uint64_t>& out) {
+		const bool haveHist = (hist.size() == (size_t)numWorkers);
+		const uint64_t totalMin = (uint64_t)numWorkers * minBytes;
+		// 地板都放不下 → 退回纯等分（极端兜底，实测 56MB vs ~1MB 地板不会触发）。
+		if (!haveHist || totalMin >= usable) {
+			const uint64_t eq = floorTo(usable / numWorkers, stride);
+			for (int i = 0; i < numWorkers; ++i) out[i] = eq;
+			return;
+		}
+		const uint64_t elastic = usable - totalMin;
+		double sumW = 0.0;
+		std::vector<double> w(numWorkers);
+		for (int i = 0; i < numWorkers; ++i) { w[i] = std::max<double>(1.0, (double)hist[i]); sumW += w[i]; }
+		for (int i = 0; i < numWorkers; ++i)
+			out[i] = minBytes + floorTo((uint64_t)((double)elastic * (w[i] / sumW)), stride);
+	};
+	splitWeighted(vboUsable,  VSTRIDE, minVbo,  m_prevSliceVboDemand,  vboSlice);
+	splitWeighted(ssboUsable, MSTRIDE, minSsbo, m_prevSliceSsboDemand, ssboSlice);
+
 	char* const vboBaseMap  = static_cast<char*>(fr.vbo->MappedPtr())  + baseVbo;
 	char* const ssboBaseMap = static_cast<char*>(fr.ssbo->MappedPtr()) + baseSsbo;
 	const uint32_t baseVertGlobal = (uint32_t)(baseVbo  / sizeof(BatchVertex));
 	const uint32_t baseMatGlobal  = (uint32_t)(baseSsbo / sizeof(glm::mat4));
-	const uint32_t vertsPerSlice  = (uint32_t)(sliceVboBytes  / sizeof(BatchVertex));
-	const uint32_t matsPerSlice   = (uint32_t)(sliceSsboBytes / sizeof(glm::mat4));
 
+	// 切片在区域内连续排布（前缀和偏移），无空洞；vbo / ssbo 各自独立排布。
+	uint64_t vOff = 0, mOff = 0;
 	for (int i = 0; i < numWorkers; ++i) {
 		VkWorkerSlice& sl = m_workerRecords[i].slice;
-		sl.vboPtr      = reinterpret_cast<BatchVertex*>(vboBaseMap  + (uint64_t)i * sliceVboBytes);
-		sl.ssboPtr     = reinterpret_cast<glm::mat4*>  (ssboBaseMap + (uint64_t)i * sliceSsboBytes);
-		sl.vboBaseVert = baseVertGlobal + (uint32_t)i * vertsPerSlice;
-		sl.ssboBaseMat = baseMatGlobal  + (uint32_t)i * matsPerSlice;
-		sl.vboCap      = vertsPerSlice;
-		sl.ssboCap     = matsPerSlice;
+		sl.vboPtr      = reinterpret_cast<BatchVertex*>(vboBaseMap  + vOff);
+		sl.ssboPtr     = reinterpret_cast<glm::mat4*>  (ssboBaseMap + mOff);
+		sl.vboBaseVert = baseVertGlobal + (uint32_t)(vOff / VSTRIDE);
+		sl.ssboBaseMat = baseMatGlobal  + (uint32_t)(mOff / MSTRIDE);
+		sl.vboCap      = (uint32_t)(vboSlice[i]  / VSTRIDE);
+		sl.ssboCap     = (uint32_t)(ssboSlice[i] / MSTRIDE);
 		// vboCount / ssboCount / overflowed 已经在上面 VkWorkerSlice{} 清零
+		vOff += vboSlice[i];
+		mOff += ssboSlice[i];
 	}
 
 	// 记录整段切片区域大小，ReplayAndEndParallel 收尾时一次性把游标推到末尾。
 	m_parallelBaseVbo   = baseVbo;
 	m_parallelBaseSsbo  = baseSsbo;
-	m_parallelVboBytes  = (uint64_t)numWorkers * sliceVboBytes;
-	m_parallelSsboBytes = (uint64_t)numWorkers * sliceSsboBytes;
+	m_parallelVboBytes  = vOff;
+	m_parallelSsboBytes = mOff;
 }
 
 void Graphics::SetWorkerSlot(int slot) {
@@ -1561,6 +1596,18 @@ void Graphics::ReplayAndEndParallel() {
 		emitUpTo(sl.vboBaseVert + sl.vboCount);
 	}
 
+	// 自适应负载均衡：采样本帧各 slot 的实际占用，作为下一并行帧的切片权重。
+	// 溢出 slot 的真实需求已被丢弃无法测量——记为 cap×1.5 放大估计，使其下帧
+	// 拿到更大切片（快 attack，1~2 帧内收敛）；非溢出 slot 直接用真实 count。
+	// 必须在 m_numActiveWorkers 清零前采，且 slice 计数此刻已最终化。
+	if ((int)m_prevSliceVboDemand.size()  != m_numActiveWorkers) m_prevSliceVboDemand.assign(m_numActiveWorkers, 0);
+	if ((int)m_prevSliceSsboDemand.size() != m_numActiveWorkers) m_prevSliceSsboDemand.assign(m_numActiveWorkers, 0);
+	for (int slot = 0; slot < m_numActiveWorkers; ++slot) {
+		const VkWorkerSlice& sl = m_workerRecords[slot].slice;
+		m_prevSliceVboDemand[slot]  = sl.overflowed ? (uint32_t)((uint64_t)sl.vboCap  * 3u / 2u) : sl.vboCount;
+		m_prevSliceSsboDemand[slot] = sl.overflowed ? (uint32_t)((uint64_t)sl.ssboCap * 3u / 2u) : sl.ssboCount;
+	}
+
 	// 把每帧游标推到整段切片区域末尾（underfilled slot 的尾部空间也作为已占用，简化逻辑）。
 	fr.vboCursor  = (VkDeviceSize)(m_parallelBaseVbo  + m_parallelVboBytes);
 	fr.ssboCursor = (VkDeviceSize)(m_parallelBaseSsbo + m_parallelSsboBytes);
@@ -1680,6 +1727,12 @@ void Graphics::RecordDrawTextureMatrix(WorkerRecord& r,
 {
 	// Animator 最热路径（~9 万次/帧）。镜像公开 DrawTextureMatrix 的批处理段，但写进切片。
 	if (!tex) return;
+
+	// 确保 worker 的混合模式与本次绘制要求的模式一致
+	if (blendMode != BlendMode::None && blendMode != tl_blend) {
+		RecordSetBlendMode(r, blendMode);   // 插入 SetBlend 命令并更新 tl_blend
+	}
+
 	VkWorkerSlice& sl = r.slice;
 	if (!SliceHasRoom(sl, 6, 1)) return;
 
