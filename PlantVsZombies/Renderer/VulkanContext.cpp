@@ -53,7 +53,7 @@ bool HasLayer(const char* name) {
 VulkanContext::VulkanContext() = default;
 VulkanContext::~VulkanContext() { Shutdown(); }
 
-bool VulkanContext::Initialize(SDL_Window* window, bool enableValidation) {
+bool VulkanContext::Initialize(SDL_Window* window, bool enableValidation, bool vsync) {
     mValidationEnabled = enableValidation;
 
     // VulkanSDK 静态链接：函数原型与实现都在 vulkan-1.lib 中。
@@ -63,7 +63,7 @@ bool VulkanContext::Initialize(SDL_Window* window, bool enableValidation) {
     if (!CreateSurface(window))                     return false;
     if (!PickPhysicalDevice())                      return false;
     if (!CreateLogicalDevice())                     return false;
-    if (!CreateSwapchain(window))                   return false;
+    if (!CreateSwapchain(window, vsync))            return false;
     if (!CreateAllocator())                         return false;
 
     mInitialized = true;
@@ -262,7 +262,7 @@ bool VulkanContext::CreateLogicalDevice() {
     return true;
 }
 
-bool VulkanContext::CreateSwapchain(SDL_Window* window) {
+bool VulkanContext::CreateSwapchain(SDL_Window* window, bool vsync) {
     VkSurfaceCapabilitiesKHR caps{};
     VK_CHECK(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(mPhysicalDevice, mSurface, &caps));
 
@@ -295,6 +295,22 @@ bool VulkanContext::CreateSwapchain(SDL_Window* window) {
     uint32_t imageCount = caps.minImageCount + 1;
     if (caps.maxImageCount > 0 && imageCount > caps.maxImageCount) imageCount = caps.maxImageCount;
 
+    // Present mode：vsync=true 必走 FIFO（spec 强制支持）；vsync=false 优先 MAILBOX、其次 IMMEDIATE，
+    // 都没有再回落 FIFO。
+    uint32_t pmCount = 0;
+    VK_CHECK(vkGetPhysicalDeviceSurfacePresentModesKHR(mPhysicalDevice, mSurface, &pmCount, nullptr));
+    std::vector<VkPresentModeKHR> modes(pmCount);
+    VK_CHECK(vkGetPhysicalDeviceSurfacePresentModesKHR(mPhysicalDevice, mSurface, &pmCount, modes.data()));
+    auto has = [&](VkPresentModeKHR m) {
+        return std::find(modes.begin(), modes.end(), m) != modes.end();
+    };
+
+    VkPresentModeKHR chosenPresentMode = VK_PRESENT_MODE_FIFO_KHR;
+    if (!vsync) {
+        if (has(VK_PRESENT_MODE_MAILBOX_KHR))        chosenPresentMode = VK_PRESENT_MODE_MAILBOX_KHR;
+        else if (has(VK_PRESENT_MODE_IMMEDIATE_KHR)) chosenPresentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
+    }
+
     VkSwapchainCreateInfoKHR sci{ VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR };
     sci.surface          = mSurface;
     sci.minImageCount    = imageCount;
@@ -306,7 +322,7 @@ bool VulkanContext::CreateSwapchain(SDL_Window* window) {
     sci.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
     sci.preTransform     = caps.currentTransform;
     sci.compositeAlpha   = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-    sci.presentMode      = VK_PRESENT_MODE_FIFO_KHR;  // 保底支持，无需查询
+    sci.presentMode      = chosenPresentMode;
     sci.clipped          = VK_TRUE;
 
     VK_CHECK(vkCreateSwapchainKHR(mDevice, &sci, nullptr, &mSwapchain));

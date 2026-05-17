@@ -124,7 +124,7 @@ bool GameAPP::CreateWindowAndRenderer()
 #endif
 
 	m_vulkanCtx = std::make_unique<pvz::VulkanContext>();
-	if (!m_vulkanCtx->Initialize(mWindow, enableValidation)) {
+	if (!m_vulkanCtx->Initialize(mWindow, enableValidation, mVsync)) {
 		std::cerr << "VulkanContext 初始化失败" << std::endl;
 		return false;
 	}
@@ -238,6 +238,12 @@ int GameAPP::Run()
 		// 音频失败仍继续
 	}
 
+	// 玩家存档需要在创建 swapchain 之前加载，否则 mVsync 还是默认值，present mode 选错。
+	if (!mGameInfoSaver.LoadPlayerInfo())
+	{
+		std::cout << "无法加载玩家存档数据！可能是没有存档!" << std::endl;
+	}
+
 	// 初始化 GameAPP 自身
 	if (!Initialize()) {
 		CleanupResources();
@@ -287,14 +293,6 @@ int GameAPP::Run()
 		SDL_Quit();
 		return -7;
 	}
-
-	if (!mGameInfoSaver.LoadPlayerInfo())
-	{
-		std::cout << "无法加载玩家存档数据！可能是没有存档!" << std::endl;
-	}
-
-	// Phase 3a：垂直同步由 swapchain present mode 决定（当前固定 FIFO，等同 vsync on）。
-	// mVsync 字段保留作为未来 phase 切换 MAILBOX 的开关。
 
 	mInputHandler = std::make_unique<InputHandler>(m_graphics.get());
 	g_particleSystem = std::make_unique<ParticleSystem>(m_graphics.get());

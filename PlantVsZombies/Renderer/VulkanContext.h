@@ -22,7 +22,7 @@ public:
     VulkanContext(const VulkanContext&) = delete;
     VulkanContext& operator=(const VulkanContext&) = delete;
 
-    bool Initialize(SDL_Window* window, bool enableValidation);
+    bool Initialize(SDL_Window* window, bool enableValidation, bool vsync);
     void Shutdown();
 
     bool IsInitialized() const { return mInitialized; }
@@ -48,7 +48,7 @@ private:
     bool CreateSurface(SDL_Window* window);
     bool PickPhysicalDevice();
     bool CreateLogicalDevice();
-    bool CreateSwapchain(SDL_Window* window);
+    bool CreateSwapchain(SDL_Window* window, bool vsync);
     bool CreateAllocator();
 
     void DestroySwapchain();
