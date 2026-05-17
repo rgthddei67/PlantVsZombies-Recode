@@ -116,6 +116,25 @@ void VulkanRenderer::Shutdown() {
     mCtx = nullptr;
 }
 
+bool VulkanRenderer::OnSwapchainRecreated() {
+    if (!mCtx || !mCtx->Device()) return false;
+    VkDevice dev = mCtx->Device();
+
+    // image 数可能变化（例如 MAILBOX 通常返回 3，FIFO 可能 2/3）。
+    // 销毁旧的 per-image renderFinished 信号量，按新的 image 数重建。
+    for (auto s : mRenderFinished) if (s) vkDestroySemaphore(dev, s, nullptr);
+    mRenderFinished.clear();
+
+    mRenderFinished.resize(mCtx->SwapchainImages().size());
+    for (auto& s : mRenderFinished) s = MakeSemaphore(dev);
+
+    // 帧索引复位，避免新一轮 BeginFrame 用错 PerFrame 槽位。
+    mFrameIdx         = 0;
+    mAcquiredImageIdx = UINT32_MAX;
+    mFrameActive      = false;
+    return true;
+}
+
 bool VulkanRenderer::BeginFrame(float r, float g, float b, float a) {
     if (!mCtx || !mCtx->IsInitialized()) return false;
     if (mFrameActive) {
@@ -133,12 +152,17 @@ bool VulkanRenderer::BeginFrame(float r, float g, float b, float a) {
         dev, mCtx->Swapchain(), UINT64_MAX,
         frame.imageAvailable, VK_NULL_HANDLE, &mAcquiredImageIdx);
     if (acquireResult == VK_ERROR_OUT_OF_DATE_KHR) {
-        std::fprintf(stderr, "[VulkanRenderer] swapchain out of date — resize not supported\n");
+        // swapchain 失效：标记需要重建，本帧跳过。fence 没 reset，下次照样能 wait。
+        mSwapchainNeedsRebuild = true;
         return false;
     }
     if (acquireResult != VK_SUCCESS && acquireResult != VK_SUBOPTIMAL_KHR) {
         std::fprintf(stderr, "[VulkanRenderer] vkAcquireNextImageKHR failed (%d)\n", (int)acquireResult);
         return false;
+    }
+    if (acquireResult == VK_SUBOPTIMAL_KHR) {
+        // 还能用，本帧继续，但帧末触发重建。
+        mSwapchainNeedsRebuild = true;
     }
 
     // 拿到 image 后才能 reset fence（避免死锁）
@@ -237,7 +261,10 @@ bool VulkanRenderer::EndFrame() {
     pi.pSwapchains        = &sc;
     pi.pImageIndices      = &mAcquiredImageIdx;
     VkResult presentResult = vkQueuePresentKHR(mCtx->GraphicsQueue(), &pi);
-    if (presentResult != VK_SUCCESS && presentResult != VK_SUBOPTIMAL_KHR) {
+    if (presentResult == VK_ERROR_OUT_OF_DATE_KHR || presentResult == VK_SUBOPTIMAL_KHR) {
+        // swapchain 已 stale：本帧已经送出去，无需视为失败；标记由上层在帧外重建。
+        mSwapchainNeedsRebuild = true;
+    } else if (presentResult != VK_SUCCESS) {
         std::fprintf(stderr, "[VulkanRenderer] vkQueuePresentKHR failed (%d)\n", (int)presentResult);
         mFrameActive = false;
         return false;

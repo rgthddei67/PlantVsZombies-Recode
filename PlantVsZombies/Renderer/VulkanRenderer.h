@@ -26,6 +26,10 @@ public:
     bool Initialize(VulkanContext* ctx);
     void Shutdown();
 
+    // swapchain 热重建后调用：销毁旧的 per-image renderFinished 信号量、按新的 image 数重建。
+    // 必须在 vkDeviceWaitIdle 后、下次 BeginFrame 之前调用。
+    bool OnSwapchainRecreated();
+
     // Phase 3b — 帧生命周期拆分。
     // BeginFrame: wait fence + acquire image + reset pool + begin cb + barrier + beginRendering + setViewport/Scissor。
     //             成功后 CurrentCmdBuffer() 返回本帧 cb，调用方可往里录命令；失败返回 false 时调用方不应再调用 EndFrame。
@@ -35,6 +39,11 @@ public:
 
     VkCommandBuffer CurrentCmdBuffer() const;
     uint32_t        CurrentFrameIdx() const { return mFrameIdx; }
+
+    // 当 acquire / present 报 OUT_OF_DATE / SUBOPTIMAL 时被置 true。
+    // 上层应在帧外调用 VulkanContext::RecreateSwapchain + OnSwapchainRecreated 后调 Clear。
+    bool NeedsSwapchainRebuild() const { return mSwapchainNeedsRebuild; }
+    void ClearSwapchainRebuildFlag() { mSwapchainNeedsRebuild = false; }
 
 private:
     struct PerFrame {
@@ -57,6 +66,7 @@ private:
     std::vector<VkSemaphore> mRenderFinished;  // 每张 swapchain image 一个（用于 present 时等待）
 
     uint32_t mFrameIdx = 0;
+    bool     mSwapchainNeedsRebuild = false;
 };
 
 } // namespace pvz

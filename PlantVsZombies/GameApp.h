@@ -95,6 +95,10 @@ public:
     // 获取 Graphics 对象
     Graphics& GetGraphics() { return *m_graphics; }
 
+    // 应用新的垂直同步设置：写 mVsync + 热重建 swapchain（不重启）。
+    // 必须在主线程、帧外（不在 BeginFrame..EndFrame 之间）调用。
+    bool ApplyVsync(bool vsync);
+
     // 设置游戏是否运行
     void SetRunning(bool running) { this->mRunning = running; }
 

@@ -25,6 +25,10 @@ public:
     bool Initialize(SDL_Window* window, bool enableValidation, bool vsync);
     void Shutdown();
 
+    // 热切换 swapchain：销毁旧 swapchain/image views，按新 vsync 选 present mode 重建。
+    // 调用者负责在调用前后处理 renderer 端 per-swapchain-image 资源（VulkanRenderer::OnSwapchainRecreated）。
+    bool RecreateSwapchain(bool vsync);
+
     bool IsInitialized() const { return mInitialized; }
 
     // 给后续 phase 的渲染层用的访问器
@@ -55,6 +59,8 @@ private:
 
     bool                       mInitialized = false;
     bool                       mValidationEnabled = false;
+
+    SDL_Window*                mWindow          = nullptr;  // Recreate 时复用
 
     VkInstance                 mInstance        = VK_NULL_HANDLE;
     VkDebugUtilsMessengerEXT   mDebugMessenger  = VK_NULL_HANDLE;

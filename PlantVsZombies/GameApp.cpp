@@ -366,9 +366,30 @@ void GameAPP::Draw()
 	m_graphics->Clear();
 	m_graphics->ProcessCommandQueue();
 
-	if (!m_graphics->BeginFrame()) return;
-	SceneManager::GetInstance().Draw(m_graphics.get());
-	m_graphics->EndFrame();
+	if (!m_graphics->BeginFrame()) {
+		// acquire 报 OUT_OF_DATE 等：BeginFrame 已置 NeedsSwapchainRebuild，下面统一处理。
+	} else {
+		SceneManager::GetInstance().Draw(m_graphics.get());
+		m_graphics->EndFrame();
+	}
+
+	// 帧外消化 swapchain rebuild 请求（OUT_OF_DATE / SUBOPTIMAL）。vsync 主动切换走 ApplyVsync 直接重建，
+	// 这里只兜底未来的窗口大小变化、Alt+Tab 全屏切换等情况。
+	if (m_vulkanRenderer && m_vulkanRenderer->NeedsSwapchainRebuild()) {
+		m_vulkanCtx->RecreateSwapchain(mVsync);
+		m_vulkanRenderer->OnSwapchainRecreated();
+		m_vulkanRenderer->ClearSwapchainRebuildFlag();
+	}
+}
+
+bool GameAPP::ApplyVsync(bool vsync)
+{
+	if (!m_vulkanCtx || !m_vulkanRenderer) return false;
+	mVsync = vsync;
+	if (!m_vulkanCtx->RecreateSwapchain(mVsync)) return false;
+	if (!m_vulkanRenderer->OnSwapchainRecreated()) return false;
+	m_vulkanRenderer->ClearSwapchainRebuildFlag();
+	return true;
 }
 
 void GameAPP::Shutdown()

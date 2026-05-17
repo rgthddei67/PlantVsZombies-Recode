@@ -55,6 +55,7 @@ VulkanContext::~VulkanContext() { Shutdown(); }
 
 bool VulkanContext::Initialize(SDL_Window* window, bool enableValidation, bool vsync) {
     mValidationEnabled = enableValidation;
+    mWindow            = window;
 
     // VulkanSDK 静态链接：函数原型与实现都在 vulkan-1.lib 中。
     // 不再需要 volkInitialize / volkLoadInstance / volkLoadDevice。
@@ -361,6 +362,17 @@ void VulkanContext::DestroySwapchain() {
     mSwapchainImageViews.clear();
     mSwapchainImages.clear();
     if (mSwapchain) { vkDestroySwapchainKHR(mDevice, mSwapchain, nullptr); mSwapchain = VK_NULL_HANDLE; }
+}
+
+bool VulkanContext::RecreateSwapchain(bool vsync) {
+    if (!mInitialized || !mDevice || !mWindow) return false;
+    vkDeviceWaitIdle(mDevice);
+    DestroySwapchain();
+    if (!CreateSwapchain(mWindow, vsync)) {
+        std::fprintf(stderr, "[Vulkan] RecreateSwapchain failed\n");
+        return false;
+    }
+    return true;
 }
 
 void VulkanContext::Shutdown() {

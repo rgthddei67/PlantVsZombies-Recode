@@ -136,9 +136,9 @@ void MainMenuScene::OpenMenu()
 		DeltaTime::SetPaused(false);
 	}, ResourceKeys::Textures::IMAGE_OPTIONS_BACKTOGAMEBUTTON0 ,true });
 
-	buttons.push_back({ u8"", Vector(480, 250),Vector(42, 39), 1,[this]() {
+	buttons.push_back({ u8"", Vector(510, 250),Vector(42, 39), 1,[this]() {
 		auto& gameApp = GameAPP::GetInstance();
-		gameApp.mVsync = !gameApp.mVsync;
+		gameApp.ApplyVsync(!gameApp.mVsync);
 	}, ResourceKeys::Textures::IMAGE_OPTIONS_CHECKBOX0 ,false });
 
 	sliders.push_back({ Vector(530, 175), Vector(135, 10),
@@ -163,7 +163,7 @@ void MainMenuScene::OpenMenu()
 	texts.push_back
 	({ Vector(480, 215), 22, u8"难度" , glm::vec4{ 107, 109, 144, 255} });
 	texts.push_back
-	({ Vector(525, 254), 18, u8"垂直同步 (需重启游戏)" , glm::vec4{ 107, 109, 144, 255} });
+	({ Vector(555, 254), 18, u8"垂直同步" , glm::vec4{ 107, 109, 144, 255} });
 
 	mMenu = mUIManager.CreateMessageBox(Vector(SCENE_WIDTH / 2 + 50, SCENE_HEIGHT / 2 - 80.0f),
 		"", buttons, sliders, texts, "", 1.0f, ResourceKeys::Textures::IMAGE_OPTIONS_MENUBACK);
