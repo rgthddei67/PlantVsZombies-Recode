@@ -1215,75 +1215,6 @@ void Graphics::FillCircle(float cx, float cy, float radius, const glm::vec4& col
 	CheckBatch();
 }
 
-void Graphics::Submit(std::function<void()> cmd) {
-	if (tl_record) {
-		// worker 内调用 Submit：录到本 slot 的 customCmds，回放时按顺序在主线程执行
-		tl_record->customCmds.push_back(std::move(cmd));
-		RecordCmd c{};
-		c.type            = RecCmdType::Custom;
-		c.vertOffsetAtCmd = tl_record->slice.vboCount;
-		c.payloadIdx      = (uint32_t)(tl_record->customCmds.size() - 1);
-		tl_record->cmds.push_back(c);
-		return;
-	}
-	std::lock_guard<std::mutex> lock(m_commandMutex);
-	m_pendingCommands.push_back(std::move(cmd));
-}
-
-void Graphics::ProcessCommandQueue() {
-	{
-		std::lock_guard<std::mutex> lock(m_commandMutex);
-		std::swap(m_pendingCommands, m_activeCommands);
-	}
-	for (auto& cmd : m_activeCommands) {
-		cmd();
-	}
-	m_activeCommands.clear();
-}
-
-void Graphics::SubmitDrawTexture(const Texture* texture, float x, float y, float width, float height,
-	float rotation, const glm::vec4& tint) {
-	Submit([=]() { DrawTexture(texture, x, y, width, height, rotation, tint); });
-}
-
-void Graphics::SubmitDrawTextureMatrix(const Texture* texture, const glm::mat4& transform,
-	float pivotX, float pivotY, const glm::vec4& tint, BlendMode blendMode) {
-	Submit([=]() { DrawTextureMatrix(texture, transform, pivotX, pivotY, tint, blendMode); });
-}
-
-void Graphics::SubmitDrawTextureRegion(const Texture* tex,
-	float srcX, float srcY, float srcW, float srcH,
-	float dstX, float dstY, float dstW, float dstH,
-	float rotation, const glm::vec4& tint)
-{
-	Submit([=]() { DrawTextureRegion(tex, srcX, srcY, srcW, srcH, dstX, dstY, dstW, dstH, rotation, tint); });
-}
-
-void Graphics::SubmitDrawText(const std::string& text, const std::string& fontKey, int fontSize,
-	const glm::vec4& color, float x, float y, float scale) {
-	Submit([=]() { DrawText(text, fontKey, fontSize, color, x, y, scale); });
-}
-
-void Graphics::SubmitDrawLine(float x1, float y1, float x2, float y2, const glm::vec4& color) {
-	Submit([=]() { DrawLine(x1, y1, x2, y2, color); });
-}
-
-void Graphics::SubmitDrawRect(float x, float y, float width, float height, const glm::vec4& color) {
-	Submit([=]() { DrawRect(x, y, width, height, color); });
-}
-
-void Graphics::SubmitFillRect(float x, float y, float width, float height, const glm::vec4& color) {
-	Submit([=]() { FillRect(x, y, width, height, color); });
-}
-
-void Graphics::SubmitDrawCircle(float cx, float cy, float radius, const glm::vec4& color, int segments) {
-	Submit([=]() { DrawCircle(cx, cy, radius, color, segments); });
-}
-
-void Graphics::SubmitFillCircle(float cx, float cy, float radius, const glm::vec4& color, int segments) {
-	Submit([=]() { FillCircle(cx, cy, radius, color, segments); });
-}
-
 // ============================================================================
 //  多线程录制 / 回放
 // ============================================================================
@@ -1478,7 +1409,7 @@ void Graphics::ClearWorkerSlot() {
 
 void Graphics::ReplayAndEndParallel() {
 	// Phase 5（cmd-based blend）：worker 已经把顶点和矩阵直写进每帧 mapped VBO/SSBO 切片，
-	// r.cmds 里只剩状态变更命令（PushClip / PopClip / SetBlend / DeferredText / Custom）。
+	// r.cmds 里只剩状态变更命令（PushClip / PopClip / SetBlend / DeferredText）。
 	//
 	// 关键：blend 分段走 cmd 流而非扫 per-vertex blendMode 字段。
 	// 原因：mapped host-coherent 内存读取比 cache 内存慢 ~100×（write-combined），4400 僵尸
@@ -1583,10 +1514,6 @@ void Graphics::ReplayAndEndParallel() {
 			}
 			case RecCmdType::DeferredText: {
 				pendingText.push_back(&r.textCmds[cmd.payloadIdx]);
-				break;
-			}
-			case RecCmdType::Custom: {
-				r.customCmds[cmd.payloadIdx]();
 				break;
 			}
 			}
@@ -1728,13 +1655,22 @@ void Graphics::RecordDrawTextureMatrix(WorkerRecord& r,
 	// Animator 最热路径（~9 万次/帧）。镜像公开 DrawTextureMatrix 的批处理段，但写进切片。
 	if (!tex) return;
 
-	// 确保 worker 的混合模式与本次绘制要求的模式一致
-	if (blendMode != BlendMode::None && blendMode != tl_blend) {
+	// 显式 blendMode 参数语义为"per-draw override，不污染全局状态"——与非录制路径
+	// （DrawTextureMatrix 只把 actualMode 写进 per-vertex bm 字段而不动 m_currentBlendMode）
+	// 对齐。回放按 SetBlend 命令分段切流水线，所以这里必须在画完后把 tl_blend 恢复回去，
+	// 否则 Animator 画完发光 quad 留下的 Add 状态会污染本 slot 后续所有 DrawTexture 调用
+	// （典型现象：下一个 GameObject 的 ShadowComponent 影子被 Add 混合成不可见）。
+	const BlendMode savedBlend = tl_blend;
+	const bool needSwitch = (blendMode != BlendMode::None && blendMode != tl_blend);
+	if (needSwitch) {
 		RecordSetBlendMode(r, blendMode);   // 插入 SetBlend 命令并更新 tl_blend
 	}
 
 	VkWorkerSlice& sl = r.slice;
-	if (!SliceHasRoom(sl, 6, 1)) return;
+	if (!SliceHasRoom(sl, 6, 1)) {
+		if (needSwitch) RecordSetBlendMode(r, savedBlend);   // 容量不足提前返回也要恢复
+		return;
+	}
 
 	const Texture* bindTex = tex;
 	float u0 = 0.0f, v0 = 0.0f, u1 = 1.0f, v1 = 1.0f;
@@ -1763,6 +1699,10 @@ void Graphics::RecordDrawTextureMatrix(WorkerRecord& r,
 	const BlendMode actualMode = (blendMode == BlendMode::None) ? tl_blend : blendMode;
 	const float bm = (actualMode == BlendMode::Add) ? 1.0f : 0.0f;
 	EmitQuad(sl, u0, v0, u1, v1, (uint32_t)bindTex->id, matAbs, nt.r, nt.g, nt.b, nt.a, bm);
+
+	if (needSwitch) {
+		RecordSetBlendMode(r, savedBlend);   // 恢复进入时的 tl_blend，避免污染后续绘制
+	}
 }
 
 void Graphics::RecordDrawTextureRegion(WorkerRecord& r,

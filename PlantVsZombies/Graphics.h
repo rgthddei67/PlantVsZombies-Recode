@@ -15,8 +15,6 @@
 #include <iostream>
 #include <sstream>
 #include <algorithm>
-#include <mutex>
-#include <functional>
 #include <list>
 #include <memory>
 #include <cstdint>
@@ -116,8 +114,7 @@ enum class RecCmdType : uint8_t {
 	PushClip,       ///< 推入裁剪矩形（payloadIdx 指向 clips）
 	PopClip,        ///< 弹出裁剪矩形
 	SetBlend,       ///< 切换混合模式（payloadIdx 指向 blendModes）
-	DeferredText,   ///< DrawText 延迟到主线程执行（payloadIdx 指向 textCmds）
-	Custom          ///< Submit(lambda) 的兼容兜底（payloadIdx 指向 customCmds）
+	DeferredText    ///< DrawText 延迟到主线程执行（payloadIdx 指向 textCmds）
 };
 
 /**
@@ -130,7 +127,7 @@ struct RecordCmd {
 	uint8_t    pad0 = 0;         ///< 1 B  对齐填充
 	uint16_t   pad1 = 0;         ///< 2 B  对齐填充
 	uint32_t   vertOffsetAtCmd;  ///< 4 B  命令插入时 slice.vboCount
-	uint32_t   payloadIdx;       ///< 4 B  clips/blendModes/textCmds/customCmds 下标
+	uint32_t   payloadIdx;       ///< 4 B  clips/blendModes/textCmds 下标
 };
 static_assert(sizeof(RecordCmd) == 12, "RecordCmd should pack to 12 bytes");
 
@@ -169,16 +166,15 @@ struct VkWorkerSlice {
 
 /**
  * @brief 每个 worker slot 一份的录制缓冲。Phase 5 起 verts/texList/matList 已删除——
- *        顶点和矩阵走 slice 直写 VBO/SSBO；cmds 只记录状态变更（clip/blend/text/custom）。
+ *        顶点和矩阵走 slice 直写 VBO/SSBO；cmds 只记录状态变更（clip/blend/text）。
  *        析构无 GL 资源，Reset 仅 clear()，capacity 跨帧复用以避免 realloc。
  */
 struct WorkerRecord {
-	VkWorkerSlice                      slice;          ///< Phase 5：本帧的 VBO/SSBO 切片
-	std::vector<RecordCmd>             cmds;           ///< 仅状态变更命令流
-	std::vector<ClipRect>              clips;          ///< PushClip 的 payload
-	std::vector<BlendMode>             blendModes;     ///< SetBlend 的 payload
-	std::vector<DeferredTextCmd>       textCmds;       ///< DeferredText 的 payload
-	std::vector<std::function<void()>> customCmds;     ///< Submit(lambda) 兼容兜底
+	VkWorkerSlice                slice;          ///< Phase 5：本帧的 VBO/SSBO 切片
+	std::vector<RecordCmd>       cmds;           ///< 仅状态变更命令流
+	std::vector<ClipRect>        clips;          ///< PushClip 的 payload
+	std::vector<BlendMode>       blendModes;     ///< SetBlend 的 payload
+	std::vector<DeferredTextCmd> textCmds;       ///< DeferredText 的 payload
 
 	// 初始状态快照（BeginParallelRecord 时由主线程填充，SetWorkerSlot 时给 worker 用）
 	glm::mat4              initialTopTransform   = glm::mat4(1.0f);
@@ -193,7 +189,6 @@ struct WorkerRecord {
 		clips.clear();
 		blendModes.clear();
 		textCmds.clear();
-		customCmds.clear();
 		initialClipStack.clear();
 	}
 };
@@ -568,53 +563,6 @@ public:
 	 */
 	glm::vec2 WorldToScreenPosition(float worldX, float worldY) const;
 
-	// ==================== 多线程渲染支持 ====================
-
-	/**
-	 * @brief 从任意线程提交一个渲染命令（lambda）。
-	 *        命令将在下一次 ProcessCommandQueue() 时由渲染线程执行。
-	 * @param cmd 渲染命令（可捕获任意参数的 lambda）
-	 */
-	void Submit(std::function<void()> cmd);
-
-	/**
-	 * @brief 处理所有待执行的渲染命令队列（必须在渲染线程调用）。
-	 *        通常在每帧 Clear() 之后、FlushBatch() 之前调用。
-	 */
-	void ProcessCommandQueue();
-
-	// 以下为线程安全的绘制提交接口，可从任意线程调用
-	void SubmitDrawTexture(const Texture* texture, float x, float y, float width, float height,
-		float rotation = 0.0f, const glm::vec4& tint = glm::vec4(255.0f));
-
-	void SubmitDrawTextureMatrix(const Texture* texture, const glm::mat4& transform,
-		float pivotX = 0.0f, float pivotY = 0.0f,
-		const glm::vec4& tint = glm::vec4(255.0f),
-		BlendMode blendMode = BlendMode::None);
-
-	void SubmitDrawTextureRegion(const Texture* tex,
-		float srcX, float srcY, float srcW, float srcH,
-		float dstX, float dstY, float dstW, float dstH,
-		float rotation = 0.0f, const glm::vec4& tint = glm::vec4(255.0f));
-
-	void SubmitDrawText(const std::string& text, const std::string& fontKey, int fontSize,
-		const glm::vec4& color, float x, float y, float scale = 1.0f);
-
-	void SubmitDrawLine(float x1, float y1, float x2, float y2,
-		const glm::vec4& color = glm::vec4(255.0f));
-
-	void SubmitDrawRect(float x, float y, float width, float height,
-		const glm::vec4& color = glm::vec4(255.0f));
-
-	void SubmitFillRect(float x, float y, float width, float height,
-		const glm::vec4& color = glm::vec4(255.0f));
-
-	void SubmitDrawCircle(float cx, float cy, float radius,
-		const glm::vec4& color = glm::vec4(255.0f), int segments = 32);
-
-	void SubmitFillCircle(float cx, float cy, float radius,
-		const glm::vec4& color = glm::vec4(255.0f), int segments = 32);
-
 	// ==================== 多线程录制 / 回放（Record / Replay） ====================
 	//
 	// 用法（GameObjectManager::DrawAll 内）：
@@ -710,11 +658,6 @@ private:
 	std::unordered_map<std::string,
 		std::pair<CachedText, std::list<std::string>::iterator>> m_textCache;  ///< 文字纹理 LRU 缓存
 	std::unordered_map<std::string, CachedText> m_pinnedTextCache;  ///< 常驻文字纹理缓存（AcquireTextTexture 使用，不淘汰）
-
-	// 多线程命令队列
-	std::mutex m_commandMutex;                               ///< 命令队列互斥锁
-	std::vector<std::function<void()>> m_pendingCommands;    ///< 待处理命令（任意线程写入）
-	std::vector<std::function<void()>> m_activeCommands;     ///< 当前帧处理命令（渲染线程读取）
 
 	// ==================== 多线程录制状态 ====================
 	std::vector<WorkerRecord>      m_workerRecords;       ///< 每个 worker slot 一份的录制缓冲

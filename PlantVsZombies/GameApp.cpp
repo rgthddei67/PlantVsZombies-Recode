@@ -364,7 +364,6 @@ void GameAPP::Draw()
 	// Phase 3b：Graphics 接管帧生命周期。BeginFrame 负责 acquire+begin+barrier+beginRendering，
 	// SceneManager::Draw 累积 batch，EndFrame 把 batch 拷到 GPU、issue draw、submit、present。
 	m_graphics->Clear();
-	m_graphics->ProcessCommandQueue();
 
 	if (!m_graphics->BeginFrame()) {
 		// acquire 报 OUT_OF_DATE 等：BeginFrame 已置 NeedsSwapchainRebuild，下面统一处理。
