@@ -73,7 +73,7 @@ void GameObjectManager::DestroyAllGameObjects() {
 }
 
 void GameObjectManager::Update() {
-	// PROFILE_SCOPE("2.GOM_Update(serial)");
+	PROFILE_SCOPE("2.GOM_Update(serial)");
 	// 有增删时标记排序脏
 	if (!mObjectsToRemove.empty() || !mObjectsToAdd.empty())
 		mSortDirty = true;
@@ -199,7 +199,7 @@ void GameObjectManager::DrawAll(Graphics* g) {
 	if (numWorkers > total) numWorkers = total;
 
 	{
-		// PROFILE_SCOPE("6.Draw_submit(par-record)");
+		PROFILE_SCOPE("6.Draw_submit(par-record)");
 		g->BeginParallelRecord(numWorkers);
 
 		mThreadPool->Dispatch(total, [this, g, total, numWorkers](int start, int end) {
@@ -225,7 +225,7 @@ void GameObjectManager::DrawAll(Graphics* g) {
 	}
 
 	{
-		// PROFILE_SCOPE("7.Draw_replay(serial)");
+		PROFILE_SCOPE("7.Draw_replay(serial)");
 		g->ReplayAndEndParallel();
 	}
 }

@@ -78,7 +78,7 @@ void Scene::Update()
 	GameObjectManager::GetInstance().Update();
 	ClickableComponent::ProcessMouseEvents();
 	{
-		// PROFILE_SCOPE("3.Collision_Update");
+		PROFILE_SCOPE("3.Collision_Update");
 		CollisionSystem::GetInstance().Update();
 	}
 }
