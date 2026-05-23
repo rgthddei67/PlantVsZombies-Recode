@@ -73,7 +73,7 @@ void GameObjectManager::DestroyAllGameObjects() {
 }
 
 void GameObjectManager::Update() {
-	PROFILE_SCOPE("2.GOM_Update(serial)");
+	// PROFILE_SCOPE("2.GOM_Update(serial)");
 	// 有增删时标记排序脏
 	if (!mObjectsToRemove.empty() || !mObjectsToAdd.empty())
 		mSortDirty = true;
@@ -101,7 +101,7 @@ void GameObjectManager::Update() {
 
 	// 现有对象
 	{
-		PROFILE_SCOPE("2b.GOM_objUpdateLoop(serial)");
+		// PROFILE_SCOPE("2b.GOM_objUpdateLoop(serial)");
 		const int total = static_cast<int>(mGameObjects.size());
 		constexpr int kParallelUpdateThreshold = 200;            // 与并行 Draw 阈值同量级
 
@@ -127,7 +127,7 @@ void GameObjectManager::Update() {
 
 			// 阶段 B-1：主线程 drain deferred event buffers
 			{
-				PROFILE_SCOPE("2c.PhaseB_DrainEvents");
+				// PROFILE_SCOPE("2c.PhaseB_DrainEvents");
 				for (auto& buf : mDeferredEventBuffers) {
 					for (auto& evt : buf) evt.cb();
 				}
@@ -135,7 +135,7 @@ void GameObjectManager::Update() {
 
 			// 阶段 B-2：串行（mGameObjects 序），其余 Update 全部在此
 			{
-				PROFILE_SCOPE("2d.PhaseB_serialUpdate");
+				// PROFILE_SCOPE("2d.PhaseB_serialUpdate");
 				for (int i = 0; i < total; ++i) {
 					auto* obj = mGameObjects[i].get();
 					if (obj->IsActive()) obj->Update();
@@ -156,7 +156,7 @@ void GameObjectManager::Update() {
 void GameObjectManager::DrawAll(Graphics* g) {
 	// 按渲染顺序排序（仅在有增删时重新排序）
 	{
-		PROFILE_SCOPE("4.Draw_sort(serial)");
+		// PROFILE_SCOPE("4.Draw_sort(serial)");
 		if (mSortDirty) {
 			std::sort(mGameObjects.begin(), mGameObjects.end(),
 				[](const std::shared_ptr<GameObject>& a, const std::shared_ptr<GameObject>& b) {
@@ -173,7 +173,7 @@ void GameObjectManager::DrawAll(Graphics* g) {
 
 	if (!g->IsParallelDrawEnabled() || total < kParallelDrawThreshold) {
 		// 串行 fallback（菜单/图鉴等少对象场景，行为与原代码完全等价）
-		PROFILE_SCOPE("6.Draw_submit(serial-fallback)");
+		// PROFILE_SCOPE("6.Draw_submit(serial-fallback)");
 		for (size_t i = 0; i < mGameObjects.size(); ++i) {
 			auto* obj = mGameObjects[i].get();
 			if (obj->IsActive()) {
@@ -199,7 +199,7 @@ void GameObjectManager::DrawAll(Graphics* g) {
 	if (numWorkers > total) numWorkers = total;
 
 	{
-		PROFILE_SCOPE("6.Draw_submit(par-record)");
+		// PROFILE_SCOPE("6.Draw_submit(par-record)");
 		g->BeginParallelRecord(numWorkers);
 
 		mThreadPool->Dispatch(total, [this, g, total, numWorkers](int start, int end) {
@@ -225,7 +225,7 @@ void GameObjectManager::DrawAll(Graphics* g) {
 	}
 
 	{
-		PROFILE_SCOPE("7.Draw_replay(serial)");
+		// PROFILE_SCOPE("7.Draw_replay(serial)");
 		g->ReplayAndEndParallel();
 	}
 }
