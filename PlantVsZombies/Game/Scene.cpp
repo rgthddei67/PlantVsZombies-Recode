@@ -65,7 +65,7 @@ void Scene::Draw(Graphics* g) {
 
 void Scene::Update()
 {
-	//PROFILE_SCOPE("1.Particles_Update");
+	PROFILE_SCOPE("1.Particles_Update");
 	if (g_particleSystem)
 	{
 		g_particleSystem->UpdateAll();
@@ -75,7 +75,7 @@ void Scene::Update()
 	mUIManager.UpdateAll(input);
 	GameObjectManager::GetInstance().Update();
 	ClickableComponent::ProcessMouseEvents();
-	//PROFILE_SCOPE("3.Collision_Update");
+	PROFILE_SCOPE("3.Collision_Update");
 	CollisionSystem::GetInstance().Update();
 }
 

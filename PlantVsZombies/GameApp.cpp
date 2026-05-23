@@ -37,6 +37,8 @@
 
 #include "./Game/Board.h"
 
+#include "./Profiler.h"
+
 #include <iostream>
 
 GameAPP::GameAPP()
@@ -350,7 +352,7 @@ int GameAPP::Run()
 
 		mInputHandler->Update();
 
-		// Profiler::Get().EndFrame();
+		Profiler::Get().EndFrame();
 	}
 
 	// 清理

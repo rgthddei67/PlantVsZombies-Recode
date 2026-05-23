@@ -71,7 +71,7 @@ void GameObjectManager::DestroyAllGameObjects() {
 }
 
 void GameObjectManager::Update() {
-	//PROFILE_SCOPE("2.GOM_Update(serial)");
+	PROFILE_SCOPE("2.GOM_Update(serial)");
 	// 有增删时标记排序脏
 	if (!mObjectsToRemove.empty() || !mObjectsToAdd.empty())
 		mSortDirty = true;
@@ -108,7 +108,7 @@ void GameObjectManager::Update() {
 
 void GameObjectManager::DrawAll(Graphics* g) {
 	// 按渲染顺序排序（仅在有增删时重新排序）
-	// PROFILE_SCOPE("4.Draw_sort(serial)");
+	PROFILE_SCOPE("4.Draw_sort(serial)");
 	if (mSortDirty) {
 		std::sort(mGameObjects.begin(), mGameObjects.end(),
 			[](const std::shared_ptr<GameObject>& a, const std::shared_ptr<GameObject>& b) {
@@ -124,7 +124,7 @@ void GameObjectManager::DrawAll(Graphics* g) {
 
 	if (!g->IsParallelDrawEnabled() || total < kParallelDrawThreshold) {
 		// 串行 fallback（菜单/图鉴等少对象场景，行为与原代码完全等价）
-		// PROFILE_SCOPE("6.Draw_submit(serial-fallback)");
+		PROFILE_SCOPE("6.Draw_submit(serial-fallback)");
 		for (size_t i = 0; i < mGameObjects.size(); ++i) {
 			auto* obj = mGameObjects[i].get();
 			if (obj->IsActive()) {
@@ -149,7 +149,7 @@ void GameObjectManager::DrawAll(Graphics* g) {
 	if (numWorkers < 1) numWorkers = 1;
 	if (numWorkers > total) numWorkers = total;
 
-	// PROFILE_SCOPE("6.Draw_submit(par-record)");
+	PROFILE_SCOPE("6.Draw_submit(par-record)");
 	g->BeginParallelRecord(numWorkers);
 
 	mThreadPool->Dispatch(total, [this, g, total, numWorkers](int start, int end) {
@@ -173,7 +173,7 @@ void GameObjectManager::DrawAll(Graphics* g) {
 		g->ClearWorkerSlot();
 		});
 
-	// PROFILE_SCOPE("7.Draw_replay(serial)");
+	PROFILE_SCOPE("7.Draw_replay(serial)");
 	g->ReplayAndEndParallel();
 }
 

@@ -14,7 +14,8 @@
       "Bash(grep -E \"\\\\.\\(h|cpp\\)$\")",
       "Bash(dir)",
       "Bash(xargs wc -l)",
-      "Skill(superpowers:finishing-a-development-branch)"
+      "Skill(superpowers:finishing-a-development-branch)",
+      "Bash(ls *)"
     ]
   }
 }
