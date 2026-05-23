@@ -118,7 +118,7 @@ void CardDisplayComponent::DrawPlantImage(Graphics* g, const Vector& position, c
 void CardDisplayComponent::DrawCooldownMask(Graphics* g, const Vector& position) {
     if (!cardBackground) return;
 
-    int maskHeight = static_cast<int>(CARD_HEIGHT * maskFillAmount);
+    int maskHeight = static_cast<int>(CARD_HEIGHT * (1.0 - maskFillAmount));
     g->FillRect(position.x, position.y,
         static_cast<float>(CARD_WIDTH),
         static_cast<float>(maskHeight),

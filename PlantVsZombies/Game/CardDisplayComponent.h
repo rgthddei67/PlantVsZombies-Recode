@@ -46,7 +46,7 @@ private:
     // 颜色状态（改为 glm::vec4，0~255范围）
     glm::vec4 readyColor = glm::vec4(255.0f);               // 白色
     glm::vec4 disabledColor = glm::vec4(160.0f, 160.0f, 160.0f, 255.0f); // 灰色
-    glm::vec4 waitingSunColor = glm::vec4(215.0f, 215.0f, 215.0f, 255.0f); // 浅灰
+    glm::vec4 waitingSunColor = glm::vec4(160.0f, 160.0f, 160.0f, 255.0f); // 浅灰
     glm::vec4 clickColor = glm::vec4(160.0f, 160.0f, 160.0f, 255.0f); // 灰色
 
     // 阳光数字文本缓存（避免每帧走 DrawText 的 key 构造与 LRU 维护）
