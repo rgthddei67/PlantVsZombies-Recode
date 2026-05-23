@@ -33,6 +33,7 @@ public:
 
     void Start() override;
     void Update() override;
+    bool NeedsUpdate() const override { return true; }
     void Draw(Graphics* g) override;
     void UpdateAllCardsState();
     void UpdatePreviewToMouse(const Vector& mousePos);

@@ -32,6 +32,7 @@ public:
 
     void Start() override;
     void Update() override;
+    bool NeedsUpdate() const override { return true; }
     void ForceStateUpdate();
 
     bool IsReady() const { return mIsReady && !mIsCooldown; }

@@ -67,7 +67,7 @@ void AnimatedObject::Update() {
 
 	if (mAnimator) {
 		if (mAdvancedInParallel) { mAdvancedInParallel = false; /* events 在 phase B drain 已处理；Animator 状态已就位 */ }
-		else                     { mAnimator->Update(); }
+		else { mAnimator->Update(); }
 
 		// 自动销毁逻辑（非循环动画且结束后自动销毁）
 		if (mIsPlaying && mLoopType != PlayState::PLAY_REPEAT && IsAnimationFinished()) {
@@ -79,7 +79,6 @@ void AnimatedObject::Update() {
 			}
 		}
 	}
-
 	UpdateGlowingEffect();
 }
 

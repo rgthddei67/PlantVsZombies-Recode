@@ -38,10 +38,10 @@ void GameObject::Start() {
 void GameObject::Update() {
     if (!mActive || !mStarted) return;
 
-    for (auto& [type, component] : mComponents) {
-        if (component->mEnabled) {
-            component->Update();
-        }
+    // 阶段三：仅 iterate mUpdatableComponents 视图（通常 size 0-1）
+    // zombie/plant/bullet 上挂的 Transform/Collider/Shadow 都 NeedsUpdate()=false，视图为空，outer loop 直接退出
+    for (Component* c : mUpdatableComponents) {
+        if (c->mEnabled) c->Update();
     }
 }
 
@@ -85,6 +85,7 @@ void GameObject::DestroyAllComponents() {
     }
     mComponents.clear();
     mComponentsToInitialize.clear();
+    mUpdatableComponents.clear();
 }
 
 void GameObject::RegisterAllColliders() {

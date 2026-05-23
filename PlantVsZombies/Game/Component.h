@@ -26,6 +26,12 @@ public:
 
     virtual void Start() {}                         // 组件开始时调用
     virtual void Update() {}                        // 每帧更新
+    /**
+     * @brief 本 Component 是否需要每帧 Update。默认 false。
+     *        type-level 静态属性（不依赖实例状态）；运行时 disable 走 mEnabled，与本方法正交。
+     *        新增的 Component 派生类如果 override 了 Update() 做实事，必须 override 本方法返回 true。
+     */
+    virtual bool NeedsUpdate() const { return false; }
     virtual void OnDestroy() {}                     // 组件销毁时调用
     virtual void Draw(Graphics* g) {}    // 绘制方法
 

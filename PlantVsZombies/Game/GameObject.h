@@ -38,6 +38,9 @@ protected:
     ClipRect mClipRect;
     std::vector<Component*> mComponentsToInitialize; // 待初始化的组件（裸指针指向 mComponents 内的对象）
     std::unordered_map<std::type_index, std::unique_ptr<Component>> mComponents; // 包含的组件
+    // 阶段三：仅缓存 NeedsUpdate()=true 的 Component 视图，避免每帧 iterate mComponents 全表
+    // 非所有权 raw ptr 视图，所有权仍在 mComponents 的 unique_ptr
+    std::vector<Component*> mUpdatableComponents;
     std::string mTag = "Untagged";
     std::string mName = "GameObject";
 
@@ -61,6 +64,7 @@ public:
 
         auto typeIndex = std::type_index(typeid(T));
         mComponents[typeIndex] = std::move(component);
+        if (raw->NeedsUpdate()) mUpdatableComponents.push_back(raw);
 
         mComponentsToInitialize.push_back(raw);
 
@@ -98,6 +102,10 @@ public:
             mComponentsToInitialize.erase(
                 std::remove(mComponentsToInitialize.begin(), mComponentsToInitialize.end(), it->second.get()),
                 mComponentsToInitialize.end());
+            // 阶段三：同步从 mUpdatableComponents 视图移除（vector 通常长度 0-1，扫描成本 O(0)~O(1)）
+            mUpdatableComponents.erase(
+                std::remove(mUpdatableComponents.begin(), mUpdatableComponents.end(), it->second.get()),
+                mUpdatableComponents.end());
             mComponents.erase(it);
             return true;
         }
