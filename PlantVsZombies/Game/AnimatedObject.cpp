@@ -57,11 +57,17 @@ Vector AnimatedObject::GetVisualPosition() const {
 	return Vector::zero();
 }
 
+void AnimatedObject::UpdateParallel(std::vector<DeferredEvent>& outBuf) {
+	if (mAnimator) mAnimator->UpdateParallelDeferred(outBuf);
+	mAdvancedInParallel = true;
+}
+
 void AnimatedObject::Update() {
 	GameObject::Update();
 
 	if (mAnimator) {
-		mAnimator->Update();
+		if (mAdvancedInParallel) { mAdvancedInParallel = false; /* events 在 phase B drain 已处理；Animator 状态已就位 */ }
+		else                     { mAnimator->Update(); }
 
 		// 自动销毁逻辑（非循环动画且结束后自动销毁）
 		if (mIsPlaying && mLoopType != PlayState::PLAY_REPEAT && IsAnimationFinished()) {

@@ -2,6 +2,7 @@
 #include "../DeltaTime.h"
 #include "../ResourceManager.h"
 #include <algorithm>
+#include <cmath>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -218,6 +219,101 @@ void Animator::Update() {
             auto child = mExtraInfos[i].mAttachedReanims[j].lock();
             if (child) {
                 child->Update();
+            }
+        }
+    }
+}
+
+void Animator::UpdateParallelDeferred(std::vector<DeferredEvent>& outBuf) {
+    if (!mIsPlaying || !mReanim) return;
+
+    float deltaTime = DeltaTime::GetDeltaTime();
+    float oldFrame = mFrameIndexNow;
+
+    float frameAdvance = deltaTime * mFPS * mSpeed * mExtraSpeedMultiplier;
+    mFrameIndexNow += frameAdvance;
+
+    bool reachedEnd = mFrameIndexNow >= mFrameIndexEnd;
+    if (reachedEnd) {
+        switch (mPlayingState) {
+        case PlayState::PLAY_REPEAT:
+            mFrameIndexNow = mFrameIndexBegin;
+            break;
+        case PlayState::PLAY_ONCE:
+            mFrameIndexNow = mFrameIndexEnd;
+            mIsPlaying = false;
+            break;
+        case PlayState::PLAY_ONCE_TO:
+            mFrameIndexNow = mFrameIndexEnd;
+            mIsPlaying = false;
+            if (!mTargetTrack.empty()) {
+                PlayTrack(mTargetTrack, 0.0f, 0.5f);
+                RestoreSpeed();
+                mTargetTrack = "";
+            }
+            break;
+        case PlayState::PLAY_NONE:
+            mFrameIndexNow = mFrameIndexEnd;
+            mIsPlaying = false;
+            break;
+        }
+    }
+
+    mFrameIndexNow = std::clamp(mFrameIndexNow, mFrameIndexBegin, mFrameIndexEnd);
+
+    int oldInt = static_cast<int>(oldFrame);
+    int newInt = static_cast<int>(mFrameIndexNow);
+
+    if (newInt >= oldInt) {
+        for (int f = oldInt + 1; f <= newInt; ++f) {
+            auto range = mFrameEvents.equal_range(f);
+            for (auto it = range.first; it != range.second;) {
+                outBuf.push_back({ it->second.callback });
+                if (it->second.persistent) {
+                    ++it;
+                } else {
+                    it = mFrameEvents.erase(it);
+                }
+            }
+        }
+    }
+    else {
+        int endInt = static_cast<int>(mFrameIndexEnd);
+        for (int f = oldInt + 1; f <= endInt; ++f) {
+            auto range = mFrameEvents.equal_range(f);
+            for (auto it = range.first; it != range.second;) {
+                outBuf.push_back({ it->second.callback });
+                if (it->second.persistent) {
+                    ++it;
+                } else {
+                    it = mFrameEvents.erase(it);
+                }
+            }
+        }
+        int beginInt = static_cast<int>(mFrameIndexBegin);
+        for (int f = beginInt; f <= newInt; ++f) {
+            auto range = mFrameEvents.equal_range(f);
+            for (auto it = range.first; it != range.second;) {
+                outBuf.push_back({ it->second.callback });
+                if (it->second.persistent) {
+                    ++it;
+                } else {
+                    it = mFrameEvents.erase(it);
+                }
+            }
+        }
+    }
+
+    if (mReanimBlendCounter > 0) {
+        mReanimBlendCounter -= deltaTime;
+        if (mReanimBlendCounter < 0) mReanimBlendCounter = 0;
+    }
+
+    for (size_t i = 0; i < mExtraInfos.size(); i++) {
+        for (size_t j = 0; j < mExtraInfos[i].mAttachedReanims.size(); j++) {
+            auto child = mExtraInfos[i].mAttachedReanims[j].lock();
+            if (child) {
+                child->UpdateParallelDeferred(outBuf);
             }
         }
     }

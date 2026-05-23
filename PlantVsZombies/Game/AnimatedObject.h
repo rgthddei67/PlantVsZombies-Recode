@@ -26,6 +26,7 @@ protected:
     bool mIsPlaying;
     PlayState mLoopType;
     bool mAutoDestroy;
+    bool mAdvancedInParallel = false;   // 阶段二：本帧 animator 是否已在并行段推进过
 
 public:
     AnimatedObject(ObjectType type,
@@ -97,6 +98,7 @@ public:
     std::shared_ptr<Animator> GetAnimatorInternal() const;
 
     void Update() override;
+    void UpdateParallel(std::vector<DeferredEvent>& outBuf) override;
     void Draw(Graphics* g) override;
 
 private:

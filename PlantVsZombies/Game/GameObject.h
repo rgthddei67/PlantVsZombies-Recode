@@ -4,6 +4,7 @@
 
 #include "RenderOrder.h"
 #include "../Graphics.h"
+#include "DeferredEvent.h"
 #include <memory>
 #include <vector>
 #include <unordered_map>
@@ -112,6 +113,10 @@ public:
     virtual void Start();
 
     virtual void Update();
+
+    // 阶段二并行：默认空。约定——只做对象本地工作，worker 线程安全；
+    //               遇到 deferred 操作 push 到 outBuf，主线程串行回放。
+    virtual void UpdateParallel(std::vector<DeferredEvent>& outBuf) {}
 
 	ObjectType GetObjectType() const { return mObjectType; }
     int GetRenderOrder() const { return mRenderOrder; }

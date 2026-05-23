@@ -33,11 +33,11 @@
 - Read: `PlantVsZombies/Reanimation/Animator.cpp`（`AttachAnimator` 实现 + `DetachAnimator`、`DetachAllAnimators`）
 - Read: 所有调用 `Animator::AttachAnimator` / `AttachAnimatorToTrack` 的位置（用 grep 找：`Animator->Attach`、`->AttachAnimator`）
 
-- [ ] **Step 1: 列举所有 AttachAnimator caller**
+- [x] **Step 1: 列举所有 AttachAnimator caller**
 
 用 Grep 工具搜 `AttachAnimator(` 与 `AttachAnimatorToTrack(`，列出所有 caller 文件:行。
 
-- [ ] **Step 2: 逐 caller 核实 child 是否独有**
+- [x] **Step 2: 逐 caller 核实 child 是否独有**
 
 对每个 caller，回答：
 - 传入的 child `std::shared_ptr<Animator>` 是 caller 自己 new 出来的（独有），还是从其他对象拿来的（可能共享）？
@@ -47,18 +47,35 @@
 
 **典型 FAIL 形态（不期望）：** 多个父对象同一 `shared_ptr<Animator>` attach（同一 child 出现在两个 `mExtraInfos[].mAttachedReanims[]` 容器中）。
 
-- [ ] **Step 3: 写下结论**
+- [x] **Step 3: 写下结论**
 
 在本文件 Task 1 末尾追加：`结论：PASS`（child Animator 独有，没有跨父共享）或 `结论：FAIL —— <每处 cross-parent share 的位置>`。
 
 - **PASS 处理：** 进 Task 2。
 - **FAIL 处理：** 立即停止本 plan，回 brainstorming 修订 spec（需要 `mFrameEvents` 加 atomic 或 mutex，或彻底放弃 deferred 设计）。
 
-- [ ] **Step 4: 用户检查点**
+- [x] **Step 4: 用户检查点**
 
 把结论贴给用户确认后再进 Task 2。无代码改动，无需构建/提交。
 
-**结论：** _（执行 Task 1 时填写）_
+**结论：PASS** —— Audit 由 Explore subagent 执行（2026-05-23）。
+
+实际 caller 表：
+
+| File:Line | Caller | 性质 |
+|---|---|---|
+| `Game/Plant/Shooter.cpp:23` | `Shooter::SetupPlant()` | 把 `mHeadAnim` 附加到自身 `mAnimator`；`mHeadAnim = std::make_shared<Animator>(...)` 在 `Shooter.cpp:15`，**每个 Shooter 实例独占 new** |
+| `Game/AnimatedObject.cpp:176` | `AnimatedObject::AttachAnimatorToTrack()` | 公开包装方法，**项目内无任何调用**（grep 确认零 caller） |
+
+容器类型（`ReanimTypes.h:46`）：
+
+```cpp
+std::vector<std::weak_ptr<class Animator>> mAttachedReanims;
+```
+
+容器存的是 `weak_ptr`，strong 持有权在 `Shooter::mHeadAnim`（实例字段，per-parent 独占）。任何 child Animator 都只属于一个父，`mFrameEvents` 不可能被两个父的 worker 并发访问。
+
+**并发安全前提成立**，进 Task 2。
 
 ---
 
@@ -69,7 +86,7 @@
 - Modify: `PlantVsZombies/Reanimation/Animator.h`（include + 1 方法声明）
 - Modify: `PlantVsZombies/Reanimation/Animator.cpp`（1 方法实现）
 
-- [ ] **Step 1: 创建 DeferredEvent.h**
+- [x] **Step 1: 创建 DeferredEvent.h**
 
 新建文件 `PlantVsZombies/Game/DeferredEvent.h`：
 
@@ -89,7 +106,7 @@ struct DeferredEvent {
 #endif
 ```
 
-- [ ] **Step 2: Animator.h 新增 include + 方法声明**
+- [x] **Step 2: Animator.h 新增 include + 方法声明**
 
 `Animator.h` 顶部 include 区（在 `#include <unordered_map>` 之后或随便相邻位置）加：
 
@@ -111,7 +128,7 @@ struct DeferredEvent {
     void UpdateParallelDeferred(std::vector<DeferredEvent>& outBuf);
 ```
 
-- [ ] **Step 3: Animator.cpp 新增 UpdateParallelDeferred 实现**
+- [x] **Step 3: Animator.cpp 新增 UpdateParallelDeferred 实现**
 
 在 `Animator.cpp` 第 224 行（`Update()` 的结束 `}`）之后插入：
 
@@ -231,7 +248,7 @@ void Animator::UpdateParallelDeferred(std::vector<DeferredEvent>& outBuf) {
 - Modify: `PlantVsZombies/Game/AnimatedObject.h`（新增成员 + override 声明）
 - Modify: `PlantVsZombies/Game/AnimatedObject.cpp`（新增 `UpdateParallel`，改 `Update` 内一行）
 
-- [ ] **Step 1: GameObject.h 加 include + 新增虚函数**
+- [x] **Step 1: GameObject.h 加 include + 新增虚函数**
 
 在 `GameObject.h` 顶部 include 区（紧贴 `#include <algorithm>` 之后）加：
 
@@ -248,7 +265,7 @@ void Animator::UpdateParallelDeferred(std::vector<DeferredEvent>& outBuf) {
     virtual void UpdateParallel(std::vector<DeferredEvent>& outBuf) {}
 ```
 
-- [ ] **Step 2: AnimatedObject.h 新增成员与 override**
+- [x] **Step 2: AnimatedObject.h 新增成员与 override**
 
 在 `AnimatedObject.h` 第 28 行 `bool mAutoDestroy;` 之后插入：
 
@@ -262,7 +279,7 @@ void Animator::UpdateParallelDeferred(std::vector<DeferredEvent>& outBuf) {
     void UpdateParallel(std::vector<DeferredEvent>& outBuf) override;
 ```
 
-- [ ] **Step 3: AnimatedObject.cpp 新增 UpdateParallel + 改 Update 一行**
+- [x] **Step 3: AnimatedObject.cpp 新增 UpdateParallel + 改 Update 一行**
 
 `AnimatedObject.cpp` 当前 `Update()`（line 60-78）：
 
@@ -338,7 +355,7 @@ void AnimatedObject::Update() {
 
 > 本任务全部为**临时**代码，Task 7 在 GATE KEEP 后整体删除。
 
-- [ ] **Step 1: Animator.h 新增临时快照结构与方法声明**
+- [x] **Step 1: Animator.h 新增临时快照结构与方法声明**
 
 在 `Animator.h` 第 444 行（类结束 `};`）之前插入：
 
@@ -362,7 +379,7 @@ public:
     // ===== 临时结束 =====
 ```
 
-- [ ] **Step 2: Animator.cpp 顶部加 cmath include**
+- [x] **Step 2: Animator.cpp 顶部加 cmath include**
 
 在 `Animator.cpp` 顶部 include 区（line 1-6）加：
 
@@ -372,7 +389,7 @@ public:
 
 （若 `<cmath>` 已被间接 include 不影响。）
 
-- [ ] **Step 3: Animator.cpp 新增三方法实现**
+- [x] **Step 3: Animator.cpp 新增三方法实现**
 
 在 `Animator.cpp` 文件末尾（最后一个 `}` 之后）插入：
 
@@ -454,7 +471,7 @@ bool Animator::EqualsAdvanceState(const AdvanceSnapshot& a,
 - Modify: `PlantVsZombies/Game/GameObjectManager.h`（新增成员 + include）
 - Modify: `PlantVsZombies/Game/GameObjectManager.cpp:100-106`（裸 for 替换为阶段 A/B）
 
-- [ ] **Step 1: GameObjectManager.h 新增成员 + include**
+- [x] **Step 1: GameObjectManager.h 新增成员 + include**
 
 在 `GameObjectManager.h` 顶部 include 区加：
 
@@ -469,7 +486,7 @@ private:
     std::vector<std::vector<DeferredEvent>> mDeferredEventBuffers;  // size = numWorkers，跨帧 capacity 复用
 ```
 
-- [ ] **Step 2: GameObjectManager.cpp 顶部加 include**
+- [x] **Step 2: GameObjectManager.cpp 顶部加 include**
 
 在 `GameObjectManager.cpp` 顶部 `#include "../Profiler.h"` 之后加：
 
@@ -480,7 +497,7 @@ private:
 
 （`AnimatedObject.h` 已 `#include "../Reanimation/Animator.h"`，`Animator::AdvanceSnapshot` 随之可见。）
 
-- [ ] **Step 3: 替换 Update() 内的 obj->Update() 循环**
+- [x] **Step 3: 替换 Update() 内的 obj->Update() 循环**
 
 `GameObjectManager.cpp` 当前 Update() 内（line 100-106）：
 
@@ -622,7 +639,7 @@ private:
 	}
 ```
 
-- [ ] **Step 4: 用户构建验证（验证模式关）**
+- [x] **Step 4: 用户构建验证（验证模式关）**
 
 用户 VS F7 构建（`kVerifyParallelAdvance=false`）。运行：
 - **正常关卡**（< 200 对象）走 fallback：行为与改前完全一致
@@ -630,7 +647,7 @@ private:
 
 ⚠️ 不要立刻跑 GATE 实测——先冒烟确认正确性。
 
-- [ ] **Step 5: 用户构建验证（验证模式开）**
+- [x] **Step 5: 用户构建验证（验证模式开）** — 实测零 [VERIFY] 发散 / 零 event mismatch。Graphics overflow 警告来自 Graphics.cpp:1471（Vulkan Draw 渲染并行预算，与本 plan 无关）。
 
 用户把 `GameObjectManager.cpp` 内 `kVerifyParallelAdvance` 改为 `true`，F7 构建，跑 **11000 僵尸场景 30–60 秒并做交互**（种植/僵尸啃食/掉臂/CherryBomb 爆炸）。预期：调试控制台**零** `[VERIFY] 串/并行发散` 行 **且**零 `[VERIFY] event total mismatch` 行。若出现：
 - 记录 obj 名/diff 内容，停止并按 systematic-debugging 定位
@@ -649,15 +666,15 @@ private:
 
 **Files:** 无代码改动。
 
-- [ ] **Step 1: A 基线（强制串行 fallback）**
+- [x] **Step 1: A 基线（强制串行 fallback）** — total/frame 14.43ms (69.3 FPS), 2.GOM_Update 6.52ms
 
 `GameObjectManager.cpp` 把 `kParallelUpdateThreshold` 临时改为 `999999`（强制走串行 fallback —— 等价基线，逐字节一致）。F7 构建，预热后稳态 11000 僵尸场景，记录整块 `FRAME PROFILE`（重点 `2.GOM_Update / 2b.GOM_objUpdateLoop / total/frame`）。然后把阈值改回 `200`。
 
-- [ ] **Step 2: B 阶段二（并行开）**
+- [x] **Step 2: B 阶段二（并行开）** — total/frame 10.99ms (91.0 FPS), 2.GOM_Update 3.38ms, 2c.DrainEvents 0.00ms, 2d.PhaseB_serial 2.53ms
 
 同一 session、同 build 配置，阈值 `200`（并行生效，`kVerifyParallelAdvance=false`）。同样预热后稳态 11000 僵尸场景，记录整块 `FRAME PROFILE`（重点 `2.GOM_Update / 2b / 2c.PhaseB_DrainEvents / 2d.PhaseB_serialUpdate / total/frame`）。同时肉眼 + `-Debug` 复核视觉/音频/碰撞框无回归。
 
-- [ ] **Step 3: 把数据贴给 assistant 决策**
+- [x] **Step 3: 决策 = KEEP** — total/frame 改善 -3.44ms (≥1ms ✓), 零发散 ✓, 无回归 ✓, drain 0ms 证伪 `std::function` heap alloc 担心。Particles_Update 顺带 -3.10ms（间接受益，未深究）。
 
 按 spec §7.2 决策规则：
 - **KEEP**：`total/frame` 改善 ≥ 1ms **且** Task 5 Step 5 零发散 **且** 无视觉/玩法/音频回归 → 进 Task 7。
@@ -675,13 +692,13 @@ private:
 - Modify: `PlantVsZombies/Reanimation/Animator.cpp`（删 Task 4 Step 3 的"临时"实现块；若 `<cmath>` 无他用则删）
 - Modify: `PlantVsZombies/Game/GameObjectManager.cpp`（删 `kVerifyParallelAdvance` 整个 `if (kVerifyParallelAdvance) {...} else` 验证分支，只留阶段 A 的 `Dispatch`）
 
-- [ ] **Step 1: 删除 Animator 临时块**
+- [x] **Step 1: 删除 Animator 临时块** — 保留 `<cmath>`（line 676 `std::abs(velocity)` 仍在用）
 
 删掉 `Animator.h` 中 `// ===== 临时（阶段二验证脚手架...` 到 `// ===== 临时结束 =====` 整块（含 3 方法声明 + `AdvanceSnapshot`）。删掉 `Animator.cpp` 中对应的 `// ===== 临时（阶段二...` 到 `// ===== 临时结束 =====` 实现块。
 
 检查 `Animator.cpp` 里 `<cmath>` 是否仅被临时 oracle 用：grep `std::abs` / `std::sqrt` 等 cmath 函数；若全部在临时块内，删 `#include <cmath>`；若有其他用途，保留。
 
-- [ ] **Step 2: 精简 GameObjectManager 验证分支**
+- [x] **Step 2: 精简 GameObjectManager 验证分支** — 整 if(kVerifyParallelAdvance){...}else{...} 整段替换为只剩阶段 A `Dispatch`；保留 `#include "AnimatedObject.h"` 与 `<cstdio>` 实际可移除但留无害
 
 把 Task 5 Step 3 的整段中 `if (mThreadPool && total >= kParallelUpdateThreshold) { ... }` 内层简化为只剩阶段 A：
 

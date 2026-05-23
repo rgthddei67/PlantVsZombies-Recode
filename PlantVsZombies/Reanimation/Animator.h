@@ -5,11 +5,13 @@
 #include "ReanimTypes.h"
 #include "Reanimation.h"
 #include "../Graphics.h"
+#include "../Game/DeferredEvent.h"
 #include <algorithm>
 #include <functional>
 #include <unordered_map>
 #include <map>
 #include <memory>
+#include <vector>
 #include <glm/glm.hpp>
 #include <iostream>
 
@@ -323,6 +325,13 @@ public:
      * @brief 更新动画逻辑 (帧前进、事件触发、子动画更新)
      */
     void Update();
+
+    /**
+     * @brief 阶段二并行段：完整推进帧 + 计时器 + 子节点递归；遇到帧事件 = 拷贝 callback 入 outBuf。
+     *        对象本地、worker 线程安全；不调用任何 callback。
+     *        前置：本 Animator 与其子 Animator 树不被其他线程并发访问（Task 1 audit PASS）。
+     */
+    void UpdateParallelDeferred(std::vector<DeferredEvent>& outBuf);
 
     /**
      * @brief 绘制动画 (现场计算变换并提交，递归绘制子动画)

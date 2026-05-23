@@ -1,5 +1,7 @@
 #include "GameObjectManager.h"
 #include "../Profiler.h"
+#include "AnimatedObject.h"
+#include <cstdio>
 
 GameObjectManager::GameObjectManager() {
 	ResetAllLayers();
@@ -98,10 +100,55 @@ void GameObjectManager::Update() {
 	mObjectsToAdd.clear();
 
 	// 现有对象
-	for (size_t i = 0; i < mGameObjects.size(); i++) {
-		auto obj = mGameObjects[i].get();
-		if (obj->IsActive()) {
-			obj->Update();
+	{
+		PROFILE_SCOPE("2b.GOM_objUpdateLoop(serial)");
+		const int total = static_cast<int>(mGameObjects.size());
+		constexpr int kParallelUpdateThreshold = 200;            // 与并行 Draw 阈值同量级
+
+		if (mThreadPool && total >= kParallelUpdateThreshold) {
+			int numWorkers = static_cast<int>(std::thread::hardware_concurrency());
+			if (numWorkers < 1) numWorkers = 1;
+			if (numWorkers > total) numWorkers = total;
+
+			if (static_cast<int>(mDeferredEventBuffers.size()) < numWorkers)
+				mDeferredEventBuffers.resize(numWorkers);
+			for (auto& buf : mDeferredEventBuffers) buf.clear();
+
+			// 阶段 A：并行推进（仅 animator 帧推进 + 事件入队，对象本地）
+			mThreadPool->Dispatch(total, [this, total, numWorkers](int start, int end) {
+				const int chunkSize = (total + numWorkers - 1) / numWorkers;
+				const int slot = (chunkSize > 0) ? (start / chunkSize) : 0;
+				auto& outBuf = mDeferredEventBuffers[slot];
+				for (int i = start; i < end; ++i) {
+					auto* obj = mGameObjects[i].get();
+					if (obj->IsActive()) obj->UpdateParallel(outBuf);
+				}
+			});
+
+			// 阶段 B-1：主线程 drain deferred event buffers
+			{
+				PROFILE_SCOPE("2c.PhaseB_DrainEvents");
+				for (auto& buf : mDeferredEventBuffers) {
+					for (auto& evt : buf) evt.cb();
+				}
+			}
+
+			// 阶段 B-2：串行（mGameObjects 序），其余 Update 全部在此
+			{
+				PROFILE_SCOPE("2d.PhaseB_serialUpdate");
+				for (int i = 0; i < total; ++i) {
+					auto* obj = mGameObjects[i].get();
+					if (obj->IsActive()) obj->Update();
+				}
+			}
+		} else {
+			// 串行 fallback：与原代码逐字节一致
+			for (size_t i = 0; i < mGameObjects.size(); i++) {
+				auto obj = mGameObjects[i].get();
+				if (obj->IsActive()) {
+					obj->Update();
+				}
+			}
 		}
 	}
 }

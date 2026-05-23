@@ -12,6 +12,7 @@
 #include "GameObject.h"
 #include "ThreadPool.h"
 #include "ObjectPool/BulletPool.h"
+#include "DeferredEvent.h"
 
 const int SUBORDER_PER_KEY = 1000;  // 每个key最多同时存在的顺序数量
 
@@ -32,6 +33,8 @@ private:
 
     std::unique_ptr<ThreadPool> mThreadPool;
     bool mSortDirty = true;
+
+    std::vector<std::vector<DeferredEvent>> mDeferredEventBuffers;  // size = numWorkers，跨帧 capacity 复用
 
     // 对象池
     std::unique_ptr<BulletPool> mBulletPool;
