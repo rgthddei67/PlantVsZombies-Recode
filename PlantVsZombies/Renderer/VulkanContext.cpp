@@ -366,6 +366,16 @@ void VulkanContext::DestroySwapchain() {
 
 bool VulkanContext::RecreateSwapchain(bool vsync) {
     if (!mInitialized || !mDevice || !mWindow) return false;
+
+    // 窗口最小化/隐藏时 surface 尺寸为 {0,0}，此时 vkCreateSwapchainKHR 会失败。
+    // 不销毁现有 swapchain，让调用方在下一帧重试，直到窗口恢复。
+    VkSurfaceCapabilitiesKHR caps{};
+    if (vkGetPhysicalDeviceSurfaceCapabilitiesKHR(mPhysicalDevice, mSurface, &caps) == VK_SUCCESS) {
+        if (caps.currentExtent.width == 0 || caps.currentExtent.height == 0) {
+            return false;
+        }
+    }
+
     vkDeviceWaitIdle(mDevice);
     DestroySwapchain();
     if (!CreateSwapchain(mWindow, vsync)) {

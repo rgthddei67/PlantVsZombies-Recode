@@ -155,13 +155,15 @@ void GameObjectManager::Update() {
 
 void GameObjectManager::DrawAll(Graphics* g) {
 	// 按渲染顺序排序（仅在有增删时重新排序）
-	PROFILE_SCOPE("4.Draw_sort(serial)");
-	if (mSortDirty) {
-		std::sort(mGameObjects.begin(), mGameObjects.end(),
-			[](const std::shared_ptr<GameObject>& a, const std::shared_ptr<GameObject>& b) {
-				return a->GetRenderOrder() < b->GetRenderOrder();
-			});
-		mSortDirty = false;
+	{
+		PROFILE_SCOPE("4.Draw_sort(serial)");
+		if (mSortDirty) {
+			std::sort(mGameObjects.begin(), mGameObjects.end(),
+				[](const std::shared_ptr<GameObject>& a, const std::shared_ptr<GameObject>& b) {
+					return a->GetRenderOrder() < b->GetRenderOrder();
+				});
+			mSortDirty = false;
+		}
 	}
 
 	const int total = static_cast<int>(mGameObjects.size());
@@ -196,32 +198,36 @@ void GameObjectManager::DrawAll(Graphics* g) {
 	if (numWorkers < 1) numWorkers = 1;
 	if (numWorkers > total) numWorkers = total;
 
-	PROFILE_SCOPE("6.Draw_submit(par-record)");
-	g->BeginParallelRecord(numWorkers);
+	{
+		PROFILE_SCOPE("6.Draw_submit(par-record)");
+		g->BeginParallelRecord(numWorkers);
 
-	mThreadPool->Dispatch(total, [this, g, total, numWorkers](int start, int end) {
-		const int chunkSize = (total + numWorkers - 1) / numWorkers;
-		const int slot = (chunkSize > 0) ? (start / chunkSize) : 0;
+		mThreadPool->Dispatch(total, [this, g, total, numWorkers](int start, int end) {
+			const int chunkSize = (total + numWorkers - 1) / numWorkers;
+			const int slot = (chunkSize > 0) ? (start / chunkSize) : 0;
 
-		g->SetWorkerSlot(slot);
-		for (int i = start; i < end; ++i) {
-			auto* obj = mGameObjects[i].get();
-			if (!obj->IsActive()) continue;
-			const bool clipped = obj->HasClipRect();
-			if (clipped) {
-				const auto& cr = obj->GetClipRect();
-				g->PushClipRect(cr.x, cr.y, cr.w, cr.h);
+			g->SetWorkerSlot(slot);
+			for (int i = start; i < end; ++i) {
+				auto* obj = mGameObjects[i].get();
+				if (!obj->IsActive()) continue;
+				const bool clipped = obj->HasClipRect();
+				if (clipped) {
+					const auto& cr = obj->GetClipRect();
+					g->PushClipRect(cr.x, cr.y, cr.w, cr.h);
+				}
+				obj->Draw(g);
+				if (clipped) {
+					g->PopClipRect();
+				}
 			}
-			obj->Draw(g);
-			if (clipped) {
-				g->PopClipRect();
-			}
-		}
-		g->ClearWorkerSlot();
-		});
+			g->ClearWorkerSlot();
+			});
+	}
 
-	PROFILE_SCOPE("7.Draw_replay(serial)");
-	g->ReplayAndEndParallel();
+	{
+		PROFILE_SCOPE("7.Draw_replay(serial)");
+		g->ReplayAndEndParallel();
+	}
 }
 
 std::vector<std::shared_ptr<GameObject>> GameObjectManager::FindGameObjectsWithTag(const std::string& tag) {

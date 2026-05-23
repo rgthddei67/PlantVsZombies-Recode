@@ -1,6 +1,6 @@
 # 植物大战僵尸 - 同人游戏
 
-一个使用 C++ 和 SDL2、OpenGL 从零开始开发的《植物大战僵尸》同人游戏项目。使用自己封装的Graphics进行绘制。
+一个使用 C++ 和 SDL2、Vulkan 从零开始开发的《植物大战僵尸》同人游戏项目。使用自己封装的Graphics进行绘制。
 
 ## 功能特性
 
@@ -59,8 +59,8 @@ PlantVsZombies/
 ### 环境要求
 
 - Windows 10 或更高版本
-- Visual Studio 2022 或更高版本
-- SDL2 库
+- Visual Studio 2026
+- SDL2, glm, VulkanSDK, ...
 
 ### 构建步骤
 

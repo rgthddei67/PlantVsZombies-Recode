@@ -376,10 +376,13 @@ void GameAPP::Draw()
 
 	// 帧外消化 swapchain rebuild 请求（OUT_OF_DATE / SUBOPTIMAL）。vsync 主动切换走 ApplyVsync 直接重建，
 	// 这里只兜底未来的窗口大小变化、Alt+Tab 全屏切换等情况。
+	// 注意：RecreateSwapchain 在窗口最小化/隐藏（extent=0x0）时返回 false 且不销毁旧 swapchain，
+	// 此时跳过 OnSwapchainRecreated，保留 rebuild 标志，下一帧继续重试。
 	if (m_vulkanRenderer && m_vulkanRenderer->NeedsSwapchainRebuild()) {
-		m_vulkanCtx->RecreateSwapchain(mVsync);
-		m_vulkanRenderer->OnSwapchainRecreated();
-		m_vulkanRenderer->ClearSwapchainRebuildFlag();
+		if (m_vulkanCtx->RecreateSwapchain(mVsync)) {
+			m_vulkanRenderer->OnSwapchainRecreated();
+			m_vulkanRenderer->ClearSwapchainRebuildFlag();
+		}
 	}
 }
 
