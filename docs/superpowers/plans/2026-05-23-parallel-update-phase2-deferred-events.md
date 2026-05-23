@@ -754,13 +754,11 @@ private:
 
 > 保留项（永久）：`DeferredEvent` struct、`Animator::UpdateParallelDeferred`、`GameObject::UpdateParallel`、`AnimatedObject::UpdateParallel/mAdvancedInParallel`、`GameObjectManager::mDeferredEventBuffers`、阶段 A/B 派发与阈值 fallback。粗粒度 `Profiler` 埋点 `2b/2c/2d` 保留至整个优化收尾再随 `Profiler.h` 移除（不在本 plan 范围）。
 
-- [ ] **Step 3: 用户构建验证**
+- [x] **Step 3: 用户构建验证** — 性能与 B 测一致 (±0.2ms 容差内)，行为无回归，grep 临时符号零残留
 
 用户 F7 构建并重跑 11000 僵尸场景：性能与 Task 6 B 测一致（容差 ±0.2ms），视觉/音频无回归，临时验证代码已无残留（全局搜索 `kVerifyParallelAdvance` / `AdvanceSnapshot` 应为零）。
 
-- [ ] **Step 4: 用户提交检查点（用户驱动）**
-
-提交建议信息：`阶段二完成：deferred-events 并行 Animator（清理验证脚手架，GATE 已 KEEP）`。更新 [[pvz-perf-optimization]] 内存记录本阶段结果与下一阶段指向（GameObject components 2.93ms / 算法削减 / 等）。
+- [x] **Step 4: 用户提交检查点** — commit `292f68e 阶段二并行 Update：deferred-events 完成（-3.44ms / 69.3→91 FPS）`（未 push，在 master 上比 origin/master 领先 1）。Memory [[pvz-parallel-update-phase2]] / [[pvz-perf-optimization]] 已更新。
 
 ---
 

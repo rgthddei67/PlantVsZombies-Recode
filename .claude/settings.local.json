@@ -17,5 +17,6 @@
       "Skill(superpowers:finishing-a-development-branch)",
       "Bash(ls *)"
     ]
-  }
+  },
+  "outputStyle": "Explanatory"
 }
