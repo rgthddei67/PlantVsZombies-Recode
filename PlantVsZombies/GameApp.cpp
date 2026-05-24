@@ -328,22 +328,31 @@ int GameAPP::Run()
 	{
 		DeltaTime::BeginFrame();
 		// 处理事件
-		while (SDL_PollEvent(&event))
 		{
-			if (event.type == SDL_QUIT)
+			PROFILE_SCOPE("A.InputPoll");
+			while (SDL_PollEvent(&event))
 			{
-				mRunning = false;
+				if (event.type == SDL_QUIT)
+				{
+					mRunning = false;
+				}
+				mInputHandler->ProcessEvent(&event);
 			}
-			mInputHandler->ProcessEvent(&event);
 		}
 
 		// 更新
-		CursorManager::GetInstance().ResetHoverCount();
-		sceneManager.Update();
-		CursorManager::GetInstance().Update();
+		{
+			PROFILE_SCOPE("B.SceneUpdate_total");
+			CursorManager::GetInstance().ResetHoverCount();
+			sceneManager.Update();
+			CursorManager::GetInstance().Update();
+		}
 
 		// 渲染
-		Draw();
+		{
+			PROFILE_SCOPE("C.SceneDraw_total");
+			Draw();
+		}
 
 #ifdef _DEBUG
 		static int MousePoint = 0;
@@ -373,12 +382,23 @@ void GameAPP::Draw()
 	// SceneManager::Draw 累积 batch，EndFrame 把 batch 拷到 GPU、issue draw、submit、present。
 	m_graphics->Clear();
 
-	if (!m_graphics->BeginFrame()) {
+	bool ok;
+	{
+		PROFILE_SCOPE("C1.BeginFrame");
+		ok = m_graphics->BeginFrame();
+	}
+	if (!ok) {
 		// acquire 报 OUT_OF_DATE 等：BeginFrame 已置 NeedsSwapchainRebuild，下面统一处理。
 	}
 	else {
-		SceneManager::GetInstance().Draw(m_graphics.get());
-		m_graphics->EndFrame();
+		{
+			PROFILE_SCOPE("C2.SceneManagerDraw");
+			SceneManager::GetInstance().Draw(m_graphics.get());
+		}
+		{
+			PROFILE_SCOPE("C3.EndFrame_Present");
+			m_graphics->EndFrame();
+		}
 	}
 
 	// 帧外消化 swapchain rebuild 请求（OUT_OF_DATE / SUBOPTIMAL）。vsync 主动切换走 ApplyVsync 直接重建，

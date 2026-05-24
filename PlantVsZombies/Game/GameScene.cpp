@@ -12,6 +12,7 @@
 #include "../UI/GameMessageBox.h"
 #include "../GameApp.h"
 #include "../Graphics.h"
+#include "../Profiler.h"
 #include "./Shovel.h"
 #include "ShovelBank.h"
 #include <iostream>
@@ -308,7 +309,10 @@ void GameScene::Update() {
 
 	if (mBoard && !mReadyToRestart && !mReadyToBackMenu)
 	{
-		mBoard->Update();
+		{
+			PROFILE_SCOPE("2a.Board_Update");
+			mBoard->Update();
+		}
 
 		auto& input = GameAPP::GetInstance().GetInputHandler();
 		if (mBoard->mBoardState != BoardState::LOSE_GAME && !this->mOpenRestartMenu && (input.IsKeyPressed(SDLK_SPACE) || input.IsKeyPressed(SDLK_ESCAPE))) {

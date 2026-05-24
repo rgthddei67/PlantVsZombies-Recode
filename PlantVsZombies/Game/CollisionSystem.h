@@ -7,6 +7,7 @@
 #include <vector>
 #include <unordered_set>
 #include <unordered_map>
+#include <array>
 #include <algorithm>
 #include <cstdint>
 
@@ -17,6 +18,8 @@ private:
 
 	std::unique_ptr<ThreadPool> mThreadPool;
 	static constexpr int PARALLEL_THRESHOLD = 100;
+	// PvZ 默认 5 行，泳池 6 行，留余地到 8（屋顶/将来扩展）
+	static constexpr int MAX_ROWS = 8;
 	uint32_t mNextColliderID = 1;
 
 	struct DetectedPair {
@@ -24,6 +27,17 @@ private:
 		ColliderComponent* b;
 		uint64_t pairKey;
 	};
+
+	// 跨帧复用的临时容器：每帧 clear() 而非重新分配
+	std::vector<ColliderComponent*> mActiveColliders;
+	std::array<std::vector<ColliderComponent*>, MAX_ROWS> mRowBuckets;
+	std::array<std::vector<ColliderComponent*>, MAX_ROWS> mStaticRowBuckets;
+	std::vector<ColliderComponent*> mNoRowDynamic;
+	std::vector<ColliderComponent*> mNoRowStatic;
+	std::array<std::vector<DetectedPair>, MAX_ROWS> mRowResults;
+	std::vector<DetectedPair> mNoRowResults;
+	std::vector<int> mActiveRowIndices;
+	std::unordered_set<uint64_t> mNewCollisions;
 
 	static uint64_t MakePairKey(uint32_t idA, uint32_t idB) {
 		if (idA > idB) std::swap(idA, idB);
@@ -90,9 +104,19 @@ public:
 	void Update() {
 		int totalColliders = (int)colliders.size();
 
+		// 清空跨帧复用容器（capacity 保留）
+		mActiveColliders.clear();
+		for (auto& v : mRowBuckets)       v.clear();
+		for (auto& v : mStaticRowBuckets) v.clear();
+		mNoRowDynamic.clear();
+		mNoRowStatic.clear();
+		for (auto& v : mRowResults)       v.clear();
+		mNoRowResults.clear();
+		mActiveRowIndices.clear();
+		mNewCollisions.clear();
+
 		// ── 阶段1: 缓存世界坐标和AABB + 构建活跃列表 ──
-		std::vector<ColliderComponent*> activeColliders;
-		activeColliders.reserve(totalColliders);
+		mActiveColliders.reserve(totalColliders);
 
 		if (totalColliders >= PARALLEL_THRESHOLD && mThreadPool) {
 			mThreadPool->Dispatch(totalColliders, [this](int start, int end) {
@@ -108,7 +132,7 @@ public:
 				if (!col->mEnabled) continue;
 				auto* gameObj = col->GetGameObject();
 				if (!gameObj || !gameObj->IsActive()) continue;
-				activeColliders.push_back(col);
+				mActiveColliders.push_back(col);
 			}
 		}
 		else {
@@ -117,43 +141,39 @@ public:
 				if (!col->mEnabled || !gameObj || !gameObj->IsActive()) continue;
 				col->cachedWorldPos = col->GetWorldPosition();
 				col->cachedBounds = col->GetBoundingBox();
-				activeColliders.push_back(col);
+				mActiveColliders.push_back(col);
 			}
 		}
 
-		// ── 阶段2: 分桶（raw pointer，无原子操作） ──
-		std::unordered_map<int, std::vector<ColliderComponent*>> rowBuckets;
-		std::vector<ColliderComponent*> noRowDynamic;
-		std::unordered_map<int, std::vector<ColliderComponent*>> staticRowBuckets;
-		std::vector<ColliderComponent*> noRowStatic;
-
-		for (auto* col : activeColliders) {
+		// ── 阶段2: 分桶（array 直接索引，避免 unordered_map 哈希开销） ──
+		for (auto* col : mActiveColliders) {
 			if (col->layerMask == CollisionLayer::NONE && col->collisionMask == CollisionLayer::NONE)
 				continue;
 			int row = col->GetGameObject()->GetSortingKey();
+			bool inRange = (row >= 0 && row < MAX_ROWS);
 			if (col->isStatic) {
-				if (row >= 0) staticRowBuckets[row].push_back(col);
-				else          noRowStatic.push_back(col);
+				if (inRange) mStaticRowBuckets[row].push_back(col);
+				else         mNoRowStatic.push_back(col);
 			}
 			else {
-				if (row >= 0) rowBuckets[row].push_back(col);
-				else          noRowDynamic.push_back(col);
+				if (inRange) mRowBuckets[row].push_back(col);
+				else         mNoRowDynamic.push_back(col);
 			}
 		}
 
-		// ── 阶段3: 检测（sweep-and-prune + 层掩码 + raw pointer） ──
-		std::vector<int> rowKeys;
-		rowKeys.reserve(rowBuckets.size());
-		for (auto& kv : rowBuckets) rowKeys.push_back(kv.first);
-		int numRows = (int)rowKeys.size();
-
-		std::vector<std::vector<DetectedPair>> rowResults(numRows);
+		// ── 阶段3: 检测（sweep-and-prune + 层掩码） ──
 		int totalDynamic = 0;
-		for (auto& kv : rowBuckets) totalDynamic += (int)kv.second.size();
+		for (int r = 0; r < MAX_ROWS; r++) {
+			if (!mRowBuckets[r].empty()) {
+				mActiveRowIndices.push_back(r);
+				totalDynamic += (int)mRowBuckets[r].size();
+			}
+		}
+		int numRows = (int)mActiveRowIndices.size();
 
-		auto detectRow = [&](int ri) {
-			auto& bucket = rowBuckets[rowKeys[ri]];
-			auto& results = rowResults[ri];
+		auto detectRow = [this](int row) {
+			auto& bucket = mRowBuckets[row];
+			auto& results = mRowResults[row];
 
 			std::sort(bucket.begin(), bucket.end(),
 				[](const ColliderComponent* a, const ColliderComponent* b) {
@@ -173,10 +193,10 @@ public:
 				}
 			}
 
-			auto sit = staticRowBuckets.find(rowKeys[ri]);
-			if (sit != staticRowBuckets.end()) {
+			auto& staticBucket = mStaticRowBuckets[row];
+			if (!staticBucket.empty()) {
 				for (auto* d : bucket) {
-					for (auto* s : sit->second) {
+					for (auto* s : staticBucket) {
 						if (!CanCollide(d, s)) continue;
 						if (CheckCollision(d, s)) {
 							uint64_t key = MakePairKey(d->colliderID, s->colliderID);
@@ -187,7 +207,7 @@ public:
 			}
 
 			for (auto* d : bucket) {
-				for (auto* s : noRowStatic) {
+				for (auto* s : mNoRowStatic) {
 					if (!CanCollide(d, s)) continue;
 					if (CheckCollision(d, s)) {
 						uint64_t key = MakePairKey(d->colliderID, s->colliderID);
@@ -198,61 +218,58 @@ public:
 			};
 
 		if (numRows > 1 && totalDynamic >= PARALLEL_THRESHOLD && mThreadPool) {
-			mThreadPool->Dispatch(numRows, [&](int start, int end) {
-				for (int ri = start; ri < end; ri++) detectRow(ri);
+			mThreadPool->Dispatch(numRows, [this, &detectRow](int start, int end) {
+				for (int ri = start; ri < end; ri++) detectRow(mActiveRowIndices[ri]);
 				});
 		}
 		else {
-			for (int ri = 0; ri < numRows; ri++) detectRow(ri);
+			for (int ri = 0; ri < numRows; ri++) detectRow(mActiveRowIndices[ri]);
 		}
 
 		// noRowDynamic 串行检测
-		std::vector<DetectedPair> noRowResults;
-		for (size_t i = 0; i < noRowDynamic.size(); ++i) {
-			auto* a = noRowDynamic[i];
-			for (size_t j = i + 1; j < noRowDynamic.size(); ++j) {
-				auto* b = noRowDynamic[j];
+		for (size_t i = 0; i < mNoRowDynamic.size(); ++i) {
+			auto* a = mNoRowDynamic[i];
+			for (size_t j = i + 1; j < mNoRowDynamic.size(); ++j) {
+				auto* b = mNoRowDynamic[j];
 				if (!CanCollide(a, b)) continue;
 				if (CheckCollision(a, b)) {
 					uint64_t key = MakePairKey(a->colliderID, b->colliderID);
-					noRowResults.push_back({ a, b, key });
+					mNoRowResults.push_back({ a, b, key });
 				}
 			}
-			for (auto& kv : rowBuckets) {
-				for (auto* b : kv.second) {
+			for (auto& bucket : mRowBuckets) {
+				for (auto* b : bucket) {
 					if (!CanCollide(a, b)) continue;
 					if (CheckCollision(a, b)) {
 						uint64_t key = MakePairKey(a->colliderID, b->colliderID);
-						noRowResults.push_back({ a, b, key });
+						mNoRowResults.push_back({ a, b, key });
 					}
 				}
 			}
 		}
-		for (auto* d : noRowDynamic) {
-			for (auto* s : noRowStatic) {
+		for (auto* d : mNoRowDynamic) {
+			for (auto* s : mNoRowStatic) {
 				if (!CanCollide(d, s)) continue;
 				if (CheckCollision(d, s)) {
 					uint64_t key = MakePairKey(d->colliderID, s->colliderID);
-					noRowResults.push_back({ d, s, key });
+					mNoRowResults.push_back({ d, s, key });
 				}
 			}
 		}
 
 		// ── 阶段4: 回调（主线程，无原子操作） ──
-		std::unordered_set<uint64_t> newCollisions;
-
-		for (auto& results : rowResults) {
+		for (auto& results : mRowResults) {
 			for (auto& p : results) {
-				newCollisions.insert(p.pairKey);
+				mNewCollisions.insert(p.pairKey);
 				HandleNewCollision(p.a, p.b, p.pairKey);
 			}
 		}
-		for (auto& p : noRowResults) {
-			newCollisions.insert(p.pairKey);
+		for (auto& p : mNoRowResults) {
+			mNewCollisions.insert(p.pairKey);
 			HandleNewCollision(p.a, p.b, p.pairKey);
 		}
 
-		DetectEndedCollisions(newCollisions);
+		DetectEndedCollisions(mNewCollisions);
 	}
 
 	// 射线检测

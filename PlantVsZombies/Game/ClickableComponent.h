@@ -4,6 +4,7 @@
 
 #include "Component.h"
 #include <unordered_set>
+#include <vector>
 #include <functional>
 
 class ColliderComponent;
@@ -20,7 +21,8 @@ public:
 	std::function<void()> onMouseDown;
 	std::function<void()> onMouseUp;
 
-	ClickableComponent() = default;
+	ClickableComponent();
+	~ClickableComponent() override;
 
 	void Start() override;
 	void Update() override;
@@ -34,6 +36,9 @@ public:
 
 private:
 	ColliderComponent* mCollider = nullptr;
+
+	// 所有 ClickableComponent 的自注册表，避免每帧扫全场 GameObject
+	inline static std::vector<ClickableComponent*> s_allClickables;
 
 	// 存储当前帧处理过的点击事件
 	inline static std::unordered_set<ClickableComponent*> s_processedEvents;

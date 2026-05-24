@@ -7,6 +7,19 @@
 #include "../CursorManager.h"
 #include <algorithm>
 
+ClickableComponent::ClickableComponent() {
+	s_allClickables.push_back(this);
+}
+
+ClickableComponent::~ClickableComponent() {
+	// swap-with-back-and-pop：O(1) 移除，顺序不重要
+	auto it = std::find(s_allClickables.begin(), s_allClickables.end(), this);
+	if (it != s_allClickables.end()) {
+		*it = s_allClickables.back();
+		s_allClickables.pop_back();
+	}
+}
+
 void ClickableComponent::ClearProcessedEvents() {
 	s_processedEvents.clear();
 }
@@ -22,34 +35,22 @@ void ClickableComponent::ProcessMouseEvents() {
 	ClearProcessedEvents();
 
 	s_hoveringClickable = false;
-	// 收集所有鼠标位置下的可点击对象（使用世界坐标）
-	auto& manager = GameObjectManager::GetInstance();
-	auto allObjects = manager.GetAllGameObjects();
+	// 收集所有鼠标位置下的可点击对象：直接遍历自注册表，避免扫全场 GameObject
+	std::vector<std::pair<GameObject*, ClickableComponent*>> clickableObjects;
+	clickableObjects.reserve(s_allClickables.size());
 
-	std::vector<std::pair<std::shared_ptr<GameObject>, ClickableComponent*>> clickableObjects;
-
-	for (size_t i = 0; i < allObjects.size(); i++)
+	for (auto* clickable : s_allClickables)
 	{
-		auto obj = allObjects[i];
-		if (!obj->IsActive()) continue;
+		if (!clickable->IsClickable) continue;
 
-		auto* clickable = obj->GetComponent<ClickableComponent>();
-		if (!clickable || !clickable->IsClickable) continue;
+		auto* obj = clickable->GetGameObject();
+		if (!obj || !obj->IsActive()) continue;
 
 		auto* collider = clickable->mCollider;
 		if (!collider || !collider->mEnabled) continue;
 
 		Vector testPoint = obj->mIsUI ? mouseScreen : mouseWorld;
 
-		if (collider->ContainsPoint(testPoint)) {
-			clickableObjects.emplace_back(obj, clickable);
-
-			if (clickable->ChangeCursorOnHover) {
-				s_hoveringClickable = true;
-			}
-		}
-
-		// 使用转换后的世界坐标进行点包含测试
 		if (collider->ContainsPoint(testPoint)) {
 			clickableObjects.emplace_back(obj, clickable);
 

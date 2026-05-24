@@ -55,9 +55,14 @@ public:
 	void SetNextMowerID(int id) { mNextMowerID = id; }
 
 	// 清理过期对象 返回清理的植物ID
+	// 植物每帧扫（用于 cell 同步），僵尸/coin/mower 每 CLEANUP_FULL_INTERVAL 帧扫一次（纯内存 hygiene）
 	std::vector<int> CleanupExpired();
 
 private:
+	// 每 N 帧做一次"重表"全扫；植物表始终每帧扫
+	static constexpr int CLEANUP_FULL_INTERVAL = 30;
+	int mCleanupTick = 0;
+
 	int mNextPlantID = 1;
 	int mNextZombieID = 1;
 	int mNextBulletID = 1;

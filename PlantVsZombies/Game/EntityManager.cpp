@@ -105,7 +105,7 @@ std::vector<int> EntityManager::GetAllCoinIDs() const {
 std::vector<int> EntityManager::CleanupExpired() {
 	std::vector<int> removedPlants;
 
-	// 清理植物
+	// 清理植物：每帧扫，返回值用于 Board cell 同步（需准实时）
 	for (auto it = mPlants.begin(); it != mPlants.end(); ) {
 		if (it->second.expired()) {
 			removedPlants.push_back(it->first);
@@ -116,33 +116,37 @@ std::vector<int> EntityManager::CleanupExpired() {
 		}
 	}
 
-	// 清理僵尸
-	for (auto it = mZombies.begin(); it != mZombies.end(); ) {
-		if (it->second.expired()) {
-			it = mZombies.erase(it);
-		}
-		else {
-			++it;
-		}
-	}
+	// 僵尸/coin/mower：纯内存 hygiene，攒到 CLEANUP_FULL_INTERVAL 帧一次性扫。
+	// 间隔期间过期 weak_ptr 会滞留在 map 里，但 GetZombie/GetCoin 等都通过 weak_ptr.lock()
+	// 取值，过期返回 nullptr，调用方语义不受影响。
+	if (++mCleanupTick >= CLEANUP_FULL_INTERVAL) {
+		mCleanupTick = 0;
 
-	// 清理太阳
-	for (auto it = mCoins.begin(); it != mCoins.end(); ) {
-		if (it->second.expired()) {
-			it = mCoins.erase(it);
+		for (auto it = mZombies.begin(); it != mZombies.end(); ) {
+			if (it->second.expired()) {
+				it = mZombies.erase(it);
+			}
+			else {
+				++it;
+			}
 		}
-		else {
-			++it;
-		}
-	}
 
-	// 清理小推车
-	for (auto it = mMowers.begin(); it != mMowers.end(); ) {
-		if (it->second.expired()) {
-			it = mMowers.erase(it);
+		for (auto it = mCoins.begin(); it != mCoins.end(); ) {
+			if (it->second.expired()) {
+				it = mCoins.erase(it);
+			}
+			else {
+				++it;
+			}
 		}
-		else {
-			++it;
+
+		for (auto it = mMowers.begin(); it != mMowers.end(); ) {
+			if (it->second.expired()) {
+				it = mMowers.erase(it);
+			}
+			else {
+				++it;
+			}
 		}
 	}
 
