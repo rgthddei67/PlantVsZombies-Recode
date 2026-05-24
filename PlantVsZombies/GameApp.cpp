@@ -156,6 +156,12 @@ bool GameAPP::CreateWindowAndRenderer()
 		return false;
 	}
 
+	// Task 7: apply A/B toggle from startup flag
+	m_graphics->SetInstancePathEnabled(!mDisableInstancePath);
+	if (mDisableInstancePath) {
+		std::cout << "[Graphics] Instance path 关闭 — reanim 全走 slow path (DrawTextureMatrix)" << std::endl;
+	}
+
 	// 设置默认清屏颜色（0~255 输入，内部归一化）
 	m_graphics->SetClearColor(255, 255, 255, 255);
 

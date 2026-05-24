@@ -65,6 +65,28 @@ struct BatchVertex {
 };
 
 /**
+ * @brief Per-sprite instance record consumed by reanim_inst.vert.glsl.
+ *
+ *        Vertex shader expands gl_VertexIndex 0..5 to a unit-quad corner+UV,
+ *        applies the 2x3 affine (columns (tA,tB) and (tC,tD); translation (tx,ty)),
+ *        samples atlas UV range (u0,v0,u1,v1), multiplies vertex color.
+ *
+ *        CPU side (Task 5) must pre-multiply tA..tD by (sprite_width × Scale) and
+ *        (sprite_height × Scale) so the shader's `corner` is a unit quad.
+ *
+ *        Stride 48 B (16-byte aligned for std140-style SSBO layout).
+ */
+struct InstanceRecord {
+    float tA, tB, tC, tD;   // 16 B — pre-multiplied 2x2: cols (tA,tB) and (tC,tD)
+    float tx, ty;           // 8 B  — world translation (already absorbs baseX + transform.x*Scale + offsets)
+    float u0, v0;           // 8 B  — atlas UV top-left
+    float u1, v1;           // 8 B  — atlas UV bottom-right
+    uint32_t texSlot;       // 4 B  — bindless texture index
+    uint32_t colorRGBA8;    // 4 B  — packed RGBA8 (r=lsb, a=msb), pre-tinted
+};
+static_assert(sizeof(InstanceRecord) == 48, "InstanceRecord must be 48 bytes");
+
+/**
  * @brief 文字缓存条目，存储已生成的文字纹理及其尺寸。
  *        Phase 3c：textureID 现在是 bindless 槽位下标；vkTex 持有上传到 VulkanTexturePool
  *        的纹理句柄，LRU 淘汰 / 缓存清空时用它把槽位还回 pool。
@@ -118,18 +140,20 @@ enum class RecCmdType : uint8_t {
 };
 
 /**
- * @brief 单条录制命令（12 字节，POD）。Phase 5 简化：只标记状态变更点。
+ * @brief 单条录制命令（16 字节，POD）。Phase 5 简化：只标记状态变更点。
  *        vertOffsetAtCmd 是命令插入时 slice.vboCount 的值，回放时配合 slice.vboBaseVert
  *        定位状态变更应该发生在哪个绝对顶点位置，并据此切分 vkCmdDraw 区段。
+ *        instOffsetAtCmd 是命令插入时 slice.instCount 的值（Task 4），用于切分实例 draw 区段。
  */
 struct RecordCmd {
 	RecCmdType type;             ///< 1 B
 	uint8_t    pad0 = 0;         ///< 1 B  对齐填充
 	uint16_t   pad1 = 0;         ///< 2 B  对齐填充
 	uint32_t   vertOffsetAtCmd;  ///< 4 B  命令插入时 slice.vboCount
+	uint32_t   instOffsetAtCmd;  ///< 4 B  命令插入时 slice.instCount（Task 4）
 	uint32_t   payloadIdx;       ///< 4 B  clips/blendModes/textCmds 下标
 };
-static_assert(sizeof(RecordCmd) == 12, "RecordCmd should pack to 12 bytes");
+static_assert(sizeof(RecordCmd) == 16, "RecordCmd should pack to 16 bytes");
 
 /**
  * @brief 延迟执行的 DrawText 参数。worker 不能触碰 LRU 与纹理上传，所以把整
@@ -153,15 +177,19 @@ struct DeferredTextCmd {
  *        replay 不再做任何 patch；texIndex 也是 bindless 槽位的绝对值。
  */
 struct VkWorkerSlice {
-	BatchVertex* vboPtr      = nullptr;  ///< 切片首个 BatchVertex 的映射指针
-	glm::mat4*   ssboPtr     = nullptr;  ///< 切片首个 mat4 的映射指针
-	uint32_t     vboBaseVert = 0;        ///< vboPtr[0] 在整帧 VBO 中的绝对顶点下标
-	uint32_t     ssboBaseMat = 0;        ///< ssboPtr[0] 在整帧 SSBO 中的绝对 mat4 下标
-	uint32_t     vboCap      = 0;        ///< 切片容量（BatchVertex 个数）
-	uint32_t     ssboCap     = 0;        ///< 切片容量（mat4 个数）
-	uint32_t     vboCount    = 0;        ///< 当前已写顶点数
-	uint32_t     ssboCount   = 0;        ///< 当前已写矩阵数
-	bool         overflowed  = false;    ///< 写超容量时置 true，回放只画前 vboCount 个
+	BatchVertex*    vboPtr      = nullptr;  ///< 切片首个 BatchVertex 的映射指针
+	glm::mat4*      ssboPtr     = nullptr;  ///< 切片首个 mat4 的映射指针
+	InstanceRecord* instPtr     = nullptr;  ///< 切片首个 InstanceRecord 的映射指针（Task 3）
+	uint32_t        vboBaseVert = 0;        ///< vboPtr[0] 在整帧 VBO 中的绝对顶点下标
+	uint32_t        ssboBaseMat = 0;        ///< ssboPtr[0] 在整帧 SSBO 中的绝对 mat4 下标
+	uint32_t        instBaseIdx = 0;        ///< instPtr[0] 在整帧 instBuf 中的绝对下标（Task 3）
+	uint32_t        vboCap      = 0;        ///< 切片容量（BatchVertex 个数）
+	uint32_t        ssboCap     = 0;        ///< 切片容量（mat4 个数）
+	uint32_t        instCap     = 0;        ///< 切片容量（InstanceRecord 个数）（Task 3）
+	uint32_t        vboCount    = 0;        ///< 当前已写顶点数
+	uint32_t        ssboCount   = 0;        ///< 当前已写矩阵数
+	uint32_t        instCount   = 0;        ///< 当前已写 InstanceRecord 数（Task 3）
+	bool            overflowed  = false;    ///< 写超容量时置 true，回放只画前 vboCount 个
 };
 
 /**
@@ -377,6 +405,18 @@ public:
 		BlendMode blendMode = BlendMode::None);
 
 	/**
+	 * @brief Append a per-sprite instance record consumed by the GPU-instancing reanim pipeline.
+	 *        Caller (Task 5+) must pre-multiply tA..tD by (sprite_width × Scale) /
+	 *        (sprite_height × Scale); tx/ty are absolute world coords; tex slot is a bindless
+	 *        index; colorRGBA8 is pre-tinted (r=lsb, a=msb).
+	 *
+	 *        Worker thread (tl_record set): writes into the slot's slice.instPtr at instCount,
+	 *        records a SetBlend cmd if blendMode differs from tl_blend.
+	 *        Main thread: appends to m_batchInstances, flushes on BlendMode change or chunk full.
+	 */
+	void AppendReanimInstance(const InstanceRecord& rec, BlendMode blendMode);
+
+	/**
  * @brief 绘制纹理的指定区域到目标矩形。
  * @param tex    纹理指针
  * @param srcX   源区域左上角 X（像素）
@@ -513,6 +553,15 @@ public:
 	BlendMode GetBlendMode() const { return m_currentBlendMode; }
 
 	/**
+	 * @brief Task 7: A/B toggle for the GPU-instancing reanim path.
+	 *        Default true. When false, Animator::DrawInternal forces the slow
+	 *        DrawTextureMatrix path even for animators without children.
+	 *        Set at startup via main.cpp's -NoInstance flag.
+	 */
+	void SetInstancePathEnabled(bool e) { m_useInstancePath = e; }
+	bool IsInstancePathEnabled() const { return m_useInstancePath; }
+
+	/**
 	 * @brief 清除颜色缓冲和深度缓冲。
 	 */
 	void Clear();
@@ -630,6 +679,9 @@ private:
 	std::vector<BatchVertex> m_batchVertices;   ///< 批处理顶点列表
 	std::vector<uint32_t> m_batchTextures;        ///< 当前批次使用的 bindless 槽位列表
 	std::vector<glm::mat4> m_batchMatrices;     ///< 当前批次使用的变换矩阵列表
+	std::vector<InstanceRecord> m_batchInstances;   ///< 主线程串行 instance 缓冲（worker 走 slice 不经此处）
+	int m_batchInstancesLimit = 8192;               ///< 单次 flush 上限，~384 KB 一次 vkCmdDraw
+	bool m_useInstancePath = true;   ///< Task 7: false强制走 slow path 做 A/B baseline
 
 	int m_maxTextureUnits = 32;                  ///< 最大纹理单元数（着色器限制）
 	int m_matrixBatchLimit = 256;                ///< 单批次最大矩阵数（运行时由 GL_MAX_UNIFORM_BLOCK_SIZE 决定，最低 256）
@@ -670,8 +722,10 @@ private:
 	// 用 uint64_t 而非 VkDeviceSize 是为了避免在 Graphics.h 里引入 vulkan.h（保持 PIMPL）。
 	uint64_t m_parallelBaseVbo   = 0;
 	uint64_t m_parallelBaseSsbo  = 0;
+	uint64_t m_parallelBaseInst  = 0;
 	uint64_t m_parallelVboBytes  = 0;
 	uint64_t m_parallelSsboBytes = 0;
+	uint64_t m_parallelInstBytes = 0;
 
 	// 自适应负载均衡（修复 worker 切片单点溢出）：
 	// 并行区不再按 worker 数等分——按"上一并行帧各 slot 的实际占用"成比例切片，
@@ -680,6 +734,7 @@ private:
 	// slot→对象映射与回放契约保持不变，渲染序不受影响。
 	std::vector<uint32_t> m_prevSliceVboDemand;   ///< 上一并行帧各 slot 顶点占用（溢出则放大估计）
 	std::vector<uint32_t> m_prevSliceSsboDemand;  ///< 上一并行帧各 slot 矩阵占用（溢出则放大估计）
+	std::vector<uint32_t> m_prevSliceInstDemand;  ///< 上一并行帧各 slot 实例占用（溢出则放大估计）
 
 	// ==================== 内部辅助函数 ====================
 
@@ -809,6 +864,12 @@ private:
 	void RecordPushClipRect(WorkerRecord& r, int x, int y, int w, int h);
 	void RecordPopClipRect(WorkerRecord& r);
 	void RecordSetBlendMode(WorkerRecord& r, BlendMode mode);
+
+	/**
+	 * @brief Flush m_batchInstances to fr.instBuf, emit one vkCmdDraw using current m_currentBlendMode.
+	 *        Called on BlendMode change, chunk overflow, end of frame, or before clip changes.
+	 */
+	void FlushInstances();
 };
 
 #endif

@@ -204,6 +204,12 @@
     <ShaderSource Include="Shader\batch.frag.glsl">
       <Stage>frag</Stage>
     </ShaderSource>
+    <ShaderSource Include="Shader\reanim_inst.vert.glsl">
+      <Stage>vert</Stage>
+    </ShaderSource>
+    <ShaderSource Include="Shader\reanim_inst.frag.glsl">
+      <Stage>frag</Stage>
+    </ShaderSource>
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>

@@ -30,6 +30,9 @@ constexpr VkVertexInputAttributeDescription kBatchVertexAttrs[4] = {
 // SSBO: 32 MB / 64B = 262144*2 mat4，跟 VBO 上限对得上（典型 6 顶点/矩阵比例）
 constexpr VkDeviceSize VBO_BYTES_PER_FRAME  = 128u * 1024u * 1024u;
 constexpr VkDeviceSize SSBO_BYTES_PER_FRAME = 32u * 1024u * 1024u;
+// InstanceRecord: 48 B/instance. 32 MB / 48 B ≈ 700k 容量。
+// 11000 zombie × ~15 track × 3 (normal+glow+overlay) ≈ 500k 上限，留 ~40% 余量。
+constexpr VkDeviceSize INST_BYTES_PER_FRAME = 32u * 1024u * 1024u;
 } // anonymous
 
 // Phase 3b — Vulkan 端持有的全部渲染资源。PIMPL 在 Graphics.cpp 内部定义，
@@ -46,9 +49,12 @@ struct Graphics::VulkanGraphicsState {
     struct PerFrame {
         std::unique_ptr<pvz::VulkanBuffer> vbo;          // host-visible 持久映射
         std::unique_ptr<pvz::VulkanBuffer> ssbo;         // host-visible 持久映射
+        std::unique_ptr<pvz::VulkanBuffer> instBuf;      // host-visible 持久映射（Task 3）
         VkDescriptorSet                    matrixSet = VK_NULL_HANDLE;
+        VkDescriptorSet                    instSet   = VK_NULL_HANDLE;  // Task 3
         VkDeviceSize                       vboCursor  = 0;   // 当前写入字节偏移
         VkDeviceSize                       ssboCursor = 0;
+        VkDeviceSize                       instCursor = 0;   // Task 3
         bool                               overflowWarned = false;  // 本帧已打过 overflow 警告？
     };
     static constexpr uint32_t FRAMES = pvz::VulkanRenderer::FRAMES_IN_FLIGHT;
@@ -57,6 +63,14 @@ struct Graphics::VulkanGraphicsState {
 
     std::unique_ptr<pvz::VulkanPipeline> pipeBatchAlpha;
     std::unique_ptr<pvz::VulkanPipeline> pipeBatchAdd;
+
+    // Phase 4 — instance pipelines for reanim sprites (consumed by Task 5).
+    // Independent set=0 descriptor layout: binding=0 = InstanceRecord SSBO.
+    // per-frame instance buffer + descriptor set are added in Task 3.
+    VkDescriptorSetLayout                 instanceSetLayout = VK_NULL_HANDLE;
+    VkDescriptorPool                      instancePool      = VK_NULL_HANDLE;
+    std::unique_ptr<pvz::VulkanPipeline>  pipeInstAlpha;
+    std::unique_ptr<pvz::VulkanPipeline>  pipeInstAdd;
 
     // 1x1 白色纹理：FillRect / DrawText 等"无纹理但走 batch 路径"的画法用它的 bindless 槽。
     pvz::VulkanTexture* whiteTex = nullptr;
@@ -203,6 +217,23 @@ bool Graphics::InitializeVulkan(pvz::VulkanContext* ctx,
 		}
 	}
 
+	// 1b) instance set=0 layout：binding=0 InstanceRecord SSBO，VERTEX 阶段
+	{
+		VkDescriptorSetLayoutBinding b{};
+		b.binding         = 0;
+		b.descriptorType  = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+		b.descriptorCount = 1;
+		b.stageFlags      = VK_SHADER_STAGE_VERTEX_BIT;
+
+		VkDescriptorSetLayoutCreateInfo lci{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
+		lci.bindingCount = 1;
+		lci.pBindings    = &b;
+		if (vkCreateDescriptorSetLayout(dev, &lci, nullptr, &state->instanceSetLayout) != VK_SUCCESS) {
+			std::cerr << "[Graphics] instance SSBO descriptor set layout 创建失败" << std::endl;
+			return false;
+		}
+	}
+
 	// 2) descriptor pool：能装 FRAMES 个 set，每个 set 一个 SSBO
 	{
 		VkDescriptorPoolSize ps{};
@@ -219,6 +250,22 @@ bool Graphics::InitializeVulkan(pvz::VulkanContext* ctx,
 		}
 	}
 
+	// 2b) instance descriptor pool：能装 FRAMES 个 instance set，每个 set 一个 SSBO
+	{
+		VkDescriptorPoolSize ps{};
+		ps.type            = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+		ps.descriptorCount = VulkanGraphicsState::FRAMES;
+
+		VkDescriptorPoolCreateInfo pci{ VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
+		pci.maxSets       = VulkanGraphicsState::FRAMES;
+		pci.poolSizeCount = 1;
+		pci.pPoolSizes    = &ps;
+		if (vkCreateDescriptorPool(dev, &pci, nullptr, &state->instancePool) != VK_SUCCESS) {
+			std::cerr << "[Graphics] instance descriptor pool 创建失败" << std::endl;
+			return false;
+		}
+	}
+
 	// 3) 逐帧资源：VBO + SSBO + descriptor set
 	for (uint32_t i = 0; i < VulkanGraphicsState::FRAMES; ++i) {
 		auto& fr = state->frames[i];
@@ -229,6 +276,9 @@ bool Graphics::InitializeVulkan(pvz::VulkanContext* ctx,
 		                    VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, /*hostVisible*/true)) return false;
 		if (!fr.ssbo->Create(ctx, SSBO_BYTES_PER_FRAME,
 		                    VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, /*hostVisible*/true)) return false;
+		fr.instBuf = std::make_unique<pvz::VulkanBuffer>();
+		if (!fr.instBuf->Create(ctx, INST_BYTES_PER_FRAME,
+		                       VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, /*hostVisible*/true)) return false;
 
 		VkDescriptorSetAllocateInfo ai{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
 		ai.descriptorPool     = state->matrixPool;
@@ -251,6 +301,29 @@ bool Graphics::InitializeVulkan(pvz::VulkanContext* ctx,
 		w.descriptorType  = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 		w.pBufferInfo     = &bi;
 		vkUpdateDescriptorSets(dev, 1, &w, 0, nullptr);
+
+		// Instance descriptor set: alloc from instancePool, bind binding=0 to this frame's instBuf
+		VkDescriptorSetAllocateInfo aiInst{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
+		aiInst.descriptorPool     = state->instancePool;
+		aiInst.descriptorSetCount = 1;
+		aiInst.pSetLayouts        = &state->instanceSetLayout;
+		if (vkAllocateDescriptorSets(dev, &aiInst, &fr.instSet) != VK_SUCCESS) {
+			std::cerr << "[Graphics] instance descriptor set 分配失败" << std::endl;
+			return false;
+		}
+
+		VkDescriptorBufferInfo biInst{};
+		biInst.buffer = fr.instBuf->Handle();
+		biInst.offset = 0;
+		biInst.range  = VK_WHOLE_SIZE;
+
+		VkWriteDescriptorSet wInst{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
+		wInst.dstSet          = fr.instSet;
+		wInst.dstBinding      = 0;
+		wInst.descriptorCount = 1;
+		wInst.descriptorType  = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+		wInst.pBufferInfo     = &biInst;
+		vkUpdateDescriptorSets(dev, 1, &wInst, 0, nullptr);
 	}
 
 	// 4) 两条 batch pipeline（alpha / additive），共享 layout 形状但各自单独 create
@@ -282,6 +355,47 @@ bool Graphics::InitializeVulkan(pvz::VulkanContext* ctx,
 		desc.additiveBlend = true;
 		state->pipeBatchAdd = std::make_unique<pvz::VulkanPipeline>();
 		if (!state->pipeBatchAdd->Initialize(ctx, desc)) return false;
+	}
+
+	// 4b) 两条 instance pipeline（alpha / additive）。
+	//     使用独立的 instanceSetLayout (set=0 binding=0 = InstanceRecord SSBO)；
+	//     与 batch 共用 set=1 (bindless textures)。无 vertex input — gl_VertexIndex
+	//     + gl_InstanceIndex 由 shader 自展开 6 顶点。Task 3 创建 per-frame instance
+	//     buffer + descriptor set，Task 5 接 reanim 走这条路径。
+	{
+		const VkDescriptorSetLayout instSets[2] = {
+			state->instanceSetLayout,      // set=0 instance SSBO
+			pool->DescriptorSetLayout(),   // set=1 bindless textures
+		};
+
+		pvz::VulkanPipeline::Desc desc{};
+		desc.vertSpvPath          = "Shader/spv/reanim_inst.vert.spv";
+		desc.fragSpvPath          = "Shader/spv/reanim_inst.frag.spv";
+		desc.colorFormat          = ctx->SwapchainFormat();
+		desc.setLayouts           = instSets;
+		desc.setLayoutCount       = 2;
+		desc.pushConstantSize     = sizeof(glm::mat4);
+		desc.pushConstantStages   = VK_SHADER_STAGE_VERTEX_BIT;
+		desc.vertexBindings       = nullptr;
+		desc.vertexBindingCount   = 0;
+		desc.vertexAttributes     = nullptr;
+		desc.vertexAttributeCount = 0;
+
+		desc.alphaBlend    = true;
+		desc.additiveBlend = false;
+		state->pipeInstAlpha = std::make_unique<pvz::VulkanPipeline>();
+		if (!state->pipeInstAlpha->Initialize(ctx, desc)) {
+			std::cerr << "[Graphics] pipeInstAlpha 创建失败" << std::endl;
+			return false;
+		}
+
+		desc.alphaBlend    = false;
+		desc.additiveBlend = true;
+		state->pipeInstAdd = std::make_unique<pvz::VulkanPipeline>();
+		if (!state->pipeInstAdd->Initialize(ctx, desc)) {
+			std::cerr << "[Graphics] pipeInstAdd 创建失败" << std::endl;
+			return false;
+		}
 	}
 
 	// 5) 1x1 白色纹理：FillRect / DrawText 等画法用它的 bindless 槽
@@ -317,6 +431,8 @@ void Graphics::ShutdownVulkan() {
 
 	m_vk->pipeBatchAlpha.reset();
 	m_vk->pipeBatchAdd.reset();
+	m_vk->pipeInstAlpha.reset();
+	m_vk->pipeInstAdd.reset();
 
 	for (auto& fr : m_vk->frames) {
 		fr.vbo.reset();
@@ -328,9 +444,13 @@ void Graphics::ShutdownVulkan() {
 	if (dev) {
 		if (m_vk->matrixPool)      vkDestroyDescriptorPool(dev, m_vk->matrixPool, nullptr);
 		if (m_vk->matrixSetLayout) vkDestroyDescriptorSetLayout(dev, m_vk->matrixSetLayout, nullptr);
+		if (m_vk->instancePool)      vkDestroyDescriptorPool(dev, m_vk->instancePool, nullptr);
+		if (m_vk->instanceSetLayout) vkDestroyDescriptorSetLayout(dev, m_vk->instanceSetLayout, nullptr);
 	}
 	m_vk->matrixPool = VK_NULL_HANDLE;
 	m_vk->matrixSetLayout = VK_NULL_HANDLE;
+	m_vk->instancePool = VK_NULL_HANDLE;
+	m_vk->instanceSetLayout = VK_NULL_HANDLE;
 
 	m_vk.reset();
 }
@@ -350,6 +470,7 @@ bool Graphics::BeginFrame() {
 	auto& fr = m_vk->frames[m_vk->frameIdx];
 	fr.vboCursor  = 0;
 	fr.ssboCursor = 0;
+	fr.instCursor = 0;  // Task 3
 	fr.overflowWarned = false;
 	m_vk->frameOpen = true;
 	return true;
@@ -358,6 +479,7 @@ bool Graphics::BeginFrame() {
 bool Graphics::EndFrame() {
 	if (!m_vk || !m_vk->frameOpen) return false;
 	FlushBatch();
+	FlushInstances();
 	m_vk->frameOpen = false;
 	return m_vk->renderer->EndFrame();
 }
@@ -498,6 +620,7 @@ void Graphics::PushClipRect(int x, int y, int w, int h) {
 	if (tl_record) { RecordPushClipRect(*tl_record, x, y, w, h); return; }
 	// 必须先把已积累的顶点刷出去，否则 push 之前 batched 的内容会被新的 scissor 一起裁剪。
 	FlushBatch();
+	FlushInstances();
 
 	ClipRect rect;
 	rect.x = x; rect.y = y; rect.w = w; rect.h = h;
@@ -516,6 +639,7 @@ void Graphics::PopClipRect() {
 	}
 	// 在切换 scissor 状态之前先 flush，把当前 rect 下的顶点全部提交。
 	FlushBatch();
+	FlushInstances();
 	m_clipStack.pop_back();
 	// 栈空时也要把 scissor 重置回全屏，否则上一条 scissor 会继续影响后续画的内容。
 	ApplyTopClipRectToGL();
@@ -599,6 +723,50 @@ void Graphics::FlushBatch() {
 	              sets, projView);
 
 	clearCpu();
+}
+
+void Graphics::FlushInstances() {
+	if (m_batchInstances.empty()) return;
+	if (!m_vk || !m_vk->frameOpen) {
+		m_batchInstances.clear();
+		return;
+	}
+
+	auto& fr = m_vk->frames[m_vk->frameIdx];
+	const size_t needBytes = m_batchInstances.size() * sizeof(InstanceRecord);
+	if (fr.instCursor + needBytes > INST_BYTES_PER_FRAME) {
+		if (!fr.overflowWarned) {
+			std::cerr << "[Graphics] FlushInstances overflow ("
+			          << fr.instCursor << "+" << needBytes
+			          << ">" << INST_BYTES_PER_FRAME << ")" << std::endl;
+			fr.overflowWarned = true;
+		}
+		m_batchInstances.clear();
+		return;
+	}
+
+	const uint32_t baseInstAbs = (uint32_t)(fr.instCursor / sizeof(InstanceRecord));
+	std::memcpy(static_cast<char*>(fr.instBuf->MappedPtr()) + fr.instCursor,
+	            m_batchInstances.data(), needBytes);
+	fr.instCursor += needBytes;
+
+	VkCommandBuffer cb = m_vk->renderer->CurrentCmdBuffer();
+	if (cb == VK_NULL_HANDLE) { m_batchInstances.clear(); return; }
+
+	const glm::mat4 projView = m_projection * m_viewMatrix;
+	const VkDescriptorSet sets[2] = { fr.instSet, m_vk->texPool->DescriptorSet() };
+	pvz::VulkanPipeline* pipe = (m_currentBlendMode == BlendMode::Add)
+	                          ? m_vk->pipeInstAdd.get()
+	                          : m_vk->pipeInstAlpha.get();
+
+	vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, pipe->Handle());
+	vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, pipe->Layout(),
+	                        0, 2, sets, 0, nullptr);
+	vkCmdPushConstants(cb, pipe->Layout(), VK_SHADER_STAGE_VERTEX_BIT,
+	                   0, sizeof(glm::mat4), &projView);
+	vkCmdDraw(cb, 6, (uint32_t)m_batchInstances.size(), 0, baseInstAbs);
+
+	m_batchInstances.clear();
 }
 
 int Graphics::BindTexture(uint32_t textureID) {
@@ -731,6 +899,37 @@ void Graphics::DrawTextureMatrix(const Texture* tex, const glm::mat4& transform,
 	};
 	AddVertices(vertices, 6);
 	CheckBatch();
+}
+
+void Graphics::AppendReanimInstance(const InstanceRecord& rec, BlendMode blendMode) {
+	// Worker thread path: write into slot's slice
+	if (tl_record) {
+		WorkerRecord& r = *tl_record;
+		VkWorkerSlice& sl = r.slice;
+
+		// Record a SetBlend cmd if needed — must come BEFORE the data write so the
+		// instOffsetAtCmd correctly captures "instance count at the moment blend changed".
+		if (blendMode != tl_blend) {
+			RecordSetBlendMode(r, blendMode);
+		}
+
+		if (sl.instCount >= sl.instCap) {
+			sl.overflowed = true;
+			return;
+		}
+		sl.instPtr[sl.instCount++] = rec;
+		return;
+	}
+
+	// Main thread serial path
+	if (blendMode != m_currentBlendMode) {
+		FlushInstances();
+		m_currentBlendMode = blendMode;
+	}
+	if ((int)m_batchInstances.size() >= m_batchInstancesLimit) {
+		FlushInstances();
+	}
+	m_batchInstances.push_back(rec);
 }
 
 void Graphics::DrawTextureRegion(const Texture* tex,
@@ -1238,6 +1437,7 @@ void Graphics::BeginParallelRecord(int numWorkers) {
 	// Phase 5：先把主线程预先累积的 CPU 批排空到 GPU。这样切片区域起始游标干净，
 	// 主线程 UI 既有数据落在并行区前面，回放后续的 text spill 落在后面。
 	FlushBatch();
+	FlushInstances();  // Task 4: 同步刷新主线程 instance 缓冲，保证 instCursor 在并行区起始干净
 
 	// 确保 records 与 states 都有 numWorkers 份
 	if ((int)m_workerRecords.size() < numWorkers) m_workerRecords.resize(numWorkers);
@@ -1264,8 +1464,8 @@ void Graphics::BeginParallelRecord(int numWorkers) {
 		r.initialClipStack     = m_clipStack;
 		r.initialBlend         = m_currentBlendMode;
 	}
-	m_parallelBaseVbo = m_parallelBaseSsbo = 0;
-	m_parallelVboBytes = m_parallelSsboBytes = 0;
+	m_parallelBaseVbo = m_parallelBaseSsbo = m_parallelBaseInst = 0;
+	m_parallelVboBytes = m_parallelSsboBytes = m_parallelInstBytes = 0;
 	m_numActiveWorkers = numWorkers;  // 永远 set —— 调用方（GameObjectManager）依赖此值 dispatch
 
 	// 没活动帧（构造期 / shutdown 期 / 切场景瞬间）就跳过切片填充——
@@ -1275,8 +1475,10 @@ void Graphics::BeginParallelRecord(int numWorkers) {
 
 	const uint64_t baseVbo  = (uint64_t)fr.vboCursor;
 	const uint64_t baseSsbo = (uint64_t)fr.ssboCursor;
+	const uint64_t baseInst = (uint64_t)fr.instCursor;
 	const uint64_t vboRemain  = (VBO_BYTES_PER_FRAME  > baseVbo)  ? (VBO_BYTES_PER_FRAME  - baseVbo)  : 0;
 	const uint64_t ssboRemain = (SSBO_BYTES_PER_FRAME > baseSsbo) ? (SSBO_BYTES_PER_FRAME - baseSsbo) : 0;
+	const uint64_t instRemain = (INST_BYTES_PER_FRAME > baseInst) ? (INST_BYTES_PER_FRAME - baseInst) : 0;
 
 	// 给并行区域之后的主线程绘制留点余量：deferred text、post-parallel UI、debug overlay 之类。
 	// 之前出现过 slice 把整段 buffer 吃光、deferred text 再走 FlushBatch 时 1 字节没剩立刻 overflow
@@ -1284,19 +1486,23 @@ void Graphics::BeginParallelRecord(int numWorkers) {
 	// 损失的并行写入容量可以忽略（4400 僵尸场景实测 ~17MB 顶点，并行区 56MB 仍然有 3× 余量）。
 	constexpr uint64_t POST_PARALLEL_RESERVE_VBO  = 4u * 1024u * 1024u;
 	constexpr uint64_t POST_PARALLEL_RESERVE_SSBO = 1u * 1024u * 1024u;
+	constexpr uint64_t POST_PARALLEL_RESERVE_INST = 1u * 1024u * 1024u;
 	const uint64_t vboUsable  = (vboRemain  > POST_PARALLEL_RESERVE_VBO)  ? (vboRemain  - POST_PARALLEL_RESERVE_VBO)  : 0;
 	const uint64_t ssboUsable = (ssboRemain > POST_PARALLEL_RESERVE_SSBO) ? (ssboRemain - POST_PARALLEL_RESERVE_SSBO) : 0;
+	const uint64_t instUsable = (instRemain > POST_PARALLEL_RESERVE_INST) ? (instRemain - POST_PARALLEL_RESERVE_INST) : 0;
 
 	// 硬门槛：连"每 worker 一个 stride 的等分"都放不下，说明本帧已被主线程画满。
 	// 与旧逻辑语义一致——slot 切片保持零容量，worker 写入会被静默丢弃。
-	const uint64_t equalVboBytes  = (vboUsable  / numWorkers / sizeof(BatchVertex)) * sizeof(BatchVertex);
-	const uint64_t equalSsboBytes = (ssboUsable / numWorkers / sizeof(glm::mat4))   * sizeof(glm::mat4);
-	if (equalVboBytes == 0 || equalSsboBytes == 0) {
+	const uint64_t equalVboBytes  = (vboUsable  / numWorkers / sizeof(BatchVertex))    * sizeof(BatchVertex);
+	const uint64_t equalSsboBytes = (ssboUsable / numWorkers / sizeof(glm::mat4))      * sizeof(glm::mat4);
+	const uint64_t equalInstBytes = (instUsable / numWorkers / sizeof(InstanceRecord)) * sizeof(InstanceRecord);
+	if (equalVboBytes == 0 || equalSsboBytes == 0 || equalInstBytes == 0) {
 		// 每帧只打一次警告（fr.overflowWarned 是 FlushBatch overflow 共用的旗，足够）。
 		if (!fr.overflowWarned) {
 			std::cerr << "[Graphics] BeginParallelRecord: insufficient frame buffer capacity ("
 			          << "vbo " << baseVbo << "/" << VBO_BYTES_PER_FRAME
-			          << ", ssbo " << baseSsbo << "/" << SSBO_BYTES_PER_FRAME << ")" << std::endl;
+			          << ", ssbo " << baseSsbo << "/" << SSBO_BYTES_PER_FRAME
+			          << ", inst " << baseInst << "/" << INST_BYTES_PER_FRAME << ")" << std::endl;
 			fr.overflowWarned = true;
 		}
 		return;
@@ -1309,10 +1515,12 @@ void Graphics::BeginParallelRecord(int numWorkers) {
 	auto floorTo = [](uint64_t v, uint64_t stride) { return (v / stride) * stride; };
 	const uint64_t VSTRIDE = sizeof(BatchVertex);
 	const uint64_t MSTRIDE = sizeof(glm::mat4);
+	const uint64_t ISTRIDE = sizeof(InstanceRecord);
 	const uint64_t minVbo  = floorTo(2048ull * VSTRIDE, VSTRIDE);  // ~88 KB/slot 地板
 	const uint64_t minSsbo = floorTo(512ull  * MSTRIDE, MSTRIDE);  // ~32 KB/slot 地板
+	const uint64_t minInst = floorTo(1024ull * ISTRIDE, ISTRIDE);  // ~48 KB/slot 地板
 
-	std::vector<uint64_t> vboSlice(numWorkers), ssboSlice(numWorkers);
+	std::vector<uint64_t> vboSlice(numWorkers), ssboSlice(numWorkers), instSlice(numWorkers);
 	auto splitWeighted = [&](uint64_t usable, uint64_t stride, uint64_t minBytes,
 	                         const std::vector<uint32_t>& hist,
 	                         std::vector<uint64_t>& out) {
@@ -1333,32 +1541,41 @@ void Graphics::BeginParallelRecord(int numWorkers) {
 	};
 	splitWeighted(vboUsable,  VSTRIDE, minVbo,  m_prevSliceVboDemand,  vboSlice);
 	splitWeighted(ssboUsable, MSTRIDE, minSsbo, m_prevSliceSsboDemand, ssboSlice);
+	splitWeighted(instUsable, ISTRIDE, minInst, m_prevSliceInstDemand, instSlice);
 
-	char* const vboBaseMap  = static_cast<char*>(fr.vbo->MappedPtr())  + baseVbo;
-	char* const ssboBaseMap = static_cast<char*>(fr.ssbo->MappedPtr()) + baseSsbo;
+	char* const vboBaseMap  = static_cast<char*>(fr.vbo->MappedPtr())     + baseVbo;
+	char* const ssboBaseMap = static_cast<char*>(fr.ssbo->MappedPtr())    + baseSsbo;
+	char* const instBaseMap = static_cast<char*>(fr.instBuf->MappedPtr()) + baseInst;
 	const uint32_t baseVertGlobal = (uint32_t)(baseVbo  / sizeof(BatchVertex));
 	const uint32_t baseMatGlobal  = (uint32_t)(baseSsbo / sizeof(glm::mat4));
+	const uint32_t baseInstGlobal = (uint32_t)(baseInst / sizeof(InstanceRecord));
 
-	// 切片在区域内连续排布（前缀和偏移），无空洞；vbo / ssbo 各自独立排布。
-	uint64_t vOff = 0, mOff = 0;
+	// 切片在区域内连续排布（前缀和偏移），无空洞；vbo / ssbo / inst 各自独立排布。
+	uint64_t vOff = 0, mOff = 0, iOff = 0;
 	for (int i = 0; i < numWorkers; ++i) {
 		VkWorkerSlice& sl = m_workerRecords[i].slice;
-		sl.vboPtr      = reinterpret_cast<BatchVertex*>(vboBaseMap  + vOff);
-		sl.ssboPtr     = reinterpret_cast<glm::mat4*>  (ssboBaseMap + mOff);
+		sl.vboPtr      = reinterpret_cast<BatchVertex*>  (vboBaseMap  + vOff);
+		sl.ssboPtr     = reinterpret_cast<glm::mat4*>    (ssboBaseMap + mOff);
+		sl.instPtr     = reinterpret_cast<InstanceRecord*>(instBaseMap + iOff);   // Task 3
 		sl.vboBaseVert = baseVertGlobal + (uint32_t)(vOff / VSTRIDE);
 		sl.ssboBaseMat = baseMatGlobal  + (uint32_t)(mOff / MSTRIDE);
+		sl.instBaseIdx = baseInstGlobal + (uint32_t)(iOff / ISTRIDE);              // Task 3
 		sl.vboCap      = (uint32_t)(vboSlice[i]  / VSTRIDE);
 		sl.ssboCap     = (uint32_t)(ssboSlice[i] / MSTRIDE);
-		// vboCount / ssboCount / overflowed 已经在上面 VkWorkerSlice{} 清零
+		sl.instCap     = (uint32_t)(instSlice[i] / ISTRIDE);                       // Task 3
+		// vboCount / ssboCount / instCount / overflowed 已经在上面 VkWorkerSlice{} 清零
 		vOff += vboSlice[i];
 		mOff += ssboSlice[i];
+		iOff += instSlice[i];                                                       // Task 3
 	}
 
 	// 记录整段切片区域大小，ReplayAndEndParallel 收尾时一次性把游标推到末尾。
 	m_parallelBaseVbo   = baseVbo;
 	m_parallelBaseSsbo  = baseSsbo;
+	m_parallelBaseInst  = baseInst;
 	m_parallelVboBytes  = vOff;
 	m_parallelSsboBytes = mOff;
+	m_parallelInstBytes = iOff;
 }
 
 void Graphics::SetWorkerSlot(int slot) {
@@ -1444,17 +1661,32 @@ void Graphics::ReplayAndEndParallel() {
 	const VkDescriptorSet sets[2] = { fr.matrixSet, m_vk->texPool->DescriptorSet() };
 
 	// 跨 slot 复用的 pipeline binding 状态：用一个"还没绑过"哨兵值，第一次 emit 时强制绑。
-	enum class BoundPipe : uint8_t { None, Alpha, Add };
+	enum class BoundPipe : uint8_t { None, BatchAlpha, BatchAdd, InstAlpha, InstAdd };
 	BoundPipe boundPipe = BoundPipe::None;
 
-	auto bindForBlend = [&](BlendMode bm) {
-		const BoundPipe want = (bm == BlendMode::Add) ? BoundPipe::Add : BoundPipe::Alpha;
+	auto bindBatchForBlend = [&](BlendMode bm) {
+		const BoundPipe want = (bm == BlendMode::Add) ? BoundPipe::BatchAdd : BoundPipe::BatchAlpha;
 		if (want == boundPipe) return;
-		pvz::VulkanPipeline* pipe = (want == BoundPipe::Add) ? m_vk->pipeBatchAdd.get()
-		                                                     : m_vk->pipeBatchAlpha.get();
+		pvz::VulkanPipeline* pipe = (want == BoundPipe::BatchAdd) ? m_vk->pipeBatchAdd.get()
+		                                                           : m_vk->pipeBatchAlpha.get();
 		vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, pipe->Handle());
 		vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, pipe->Layout(),
 		                        0, 2, sets, 0, nullptr);
+		vkCmdPushConstants(cb, pipe->Layout(), VK_SHADER_STAGE_VERTEX_BIT,
+		                   0, sizeof(glm::mat4), &projView);
+		boundPipe = want;
+	};
+
+	// 6.2: Instance pipeline bind helper — uses fr.instSet at set=0 (not fr.matrixSet).
+	auto bindInstForBlend = [&](BlendMode bm) {
+		const BoundPipe want = (bm == BlendMode::Add) ? BoundPipe::InstAdd : BoundPipe::InstAlpha;
+		if (want == boundPipe) return;
+		pvz::VulkanPipeline* pipe = (want == BoundPipe::InstAdd) ? m_vk->pipeInstAdd.get()
+		                                                         : m_vk->pipeInstAlpha.get();
+		const VkDescriptorSet instSets[2] = { fr.instSet, m_vk->texPool->DescriptorSet() };
+		vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, pipe->Handle());
+		vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, pipe->Layout(),
+		                        0, 2, instSets, 0, nullptr);
 		vkCmdPushConstants(cb, pipe->Layout(), VK_SHADER_STAGE_VERTEX_BIT,
 		                   0, sizeof(glm::mat4), &projView);
 		boundPipe = want;
@@ -1471,7 +1703,8 @@ void Graphics::ReplayAndEndParallel() {
 		if (sl.overflowed && !fr.overflowWarned) {
 			std::cerr << "[Graphics] Worker slot " << slot
 			          << " overflowed slice (vbo " << sl.vboCount << "/" << sl.vboCap
-			          << ", ssbo " << sl.ssboCount << "/" << sl.ssboCap << ")" << std::endl;
+			          << ", ssbo " << sl.ssboCount << "/" << sl.ssboCap
+			          << ", inst " << sl.instCount << "/" << sl.instCap << ")" << std::endl;
 			fr.overflowWarned = true;
 		}
 
@@ -1480,18 +1713,31 @@ void Graphics::ReplayAndEndParallel() {
 		m_currentBlendMode = curBlend;
 
 		uint32_t drawStart = sl.vboBaseVert;
+		uint32_t instStart = sl.instBaseIdx;
 
-		auto emitUpTo = [&](uint32_t absEnd) {
-			if (absEnd <= drawStart) return;
-			bindForBlend(curBlend);
-			vkCmdDraw(cb, absEnd - drawStart, 1, drawStart, 0);
-			drawStart = absEnd;
+		// Emit batch verts AND instance records up to the given absolute cutoffs.
+		// Order: batch first, then instance — matches PvZ z-order convention
+		// (shadow → reanim) within a single BlendMode segment in a slot.
+		auto emitUpTo = [&](uint32_t absVbo, uint32_t absInst) {
+			if (absVbo > drawStart) {
+				bindBatchForBlend(curBlend);
+				vkCmdDraw(cb, absVbo - drawStart, 1, drawStart, 0);
+				drawStart = absVbo;
+			}
+			if (absInst > instStart) {
+				bindInstForBlend(curBlend);
+				// 6 vertices per instance, instanceCount = (absInst - instStart),
+				// firstInstance = instStart (absolute index into fr.instBuf).
+				vkCmdDraw(cb, 6, absInst - instStart, 0, instStart);
+				instStart = absInst;
+			}
 		};
 
 		for (const RecordCmd& cmd : r.cmds) {
-			const uint32_t cmdAbsVert = sl.vboBaseVert + cmd.vertOffsetAtCmd;
-			// 命令插入点之前的顶点必须先 emit（用 cmd 应用 *之前* 的状态）
-			emitUpTo(cmdAbsVert);
+			const uint32_t cmdAbsVert = sl.vboBaseVert  + cmd.vertOffsetAtCmd;
+			const uint32_t cmdAbsInst = sl.instBaseIdx + cmd.instOffsetAtCmd;
+			// 命令插入点之前的顶点 + 实例必须先 emit（用 cmd 应用 *之前* 的状态）
+			emitUpTo(cmdAbsVert, cmdAbsInst);
 
 			switch (cmd.type) {
 			case RecCmdType::PushClip: {
@@ -1519,8 +1765,8 @@ void Graphics::ReplayAndEndParallel() {
 			}
 		}
 
-		// slot 末尾：剩余顶点 emit
-		emitUpTo(sl.vboBaseVert + sl.vboCount);
+		// slot 末尾：剩余顶点 + 剩余实例 emit
+		emitUpTo(sl.vboBaseVert + sl.vboCount, sl.instBaseIdx + sl.instCount);
 	}
 
 	// 自适应负载均衡：采样本帧各 slot 的实际占用，作为下一并行帧的切片权重。
@@ -1529,15 +1775,18 @@ void Graphics::ReplayAndEndParallel() {
 	// 必须在 m_numActiveWorkers 清零前采，且 slice 计数此刻已最终化。
 	if ((int)m_prevSliceVboDemand.size()  != m_numActiveWorkers) m_prevSliceVboDemand.assign(m_numActiveWorkers, 0);
 	if ((int)m_prevSliceSsboDemand.size() != m_numActiveWorkers) m_prevSliceSsboDemand.assign(m_numActiveWorkers, 0);
+	if ((int)m_prevSliceInstDemand.size() != m_numActiveWorkers) m_prevSliceInstDemand.assign(m_numActiveWorkers, 0);   // Task 3
 	for (int slot = 0; slot < m_numActiveWorkers; ++slot) {
 		const VkWorkerSlice& sl = m_workerRecords[slot].slice;
 		m_prevSliceVboDemand[slot]  = sl.overflowed ? (uint32_t)((uint64_t)sl.vboCap  * 3u / 2u) : sl.vboCount;
 		m_prevSliceSsboDemand[slot] = sl.overflowed ? (uint32_t)((uint64_t)sl.ssboCap * 3u / 2u) : sl.ssboCount;
+		m_prevSliceInstDemand[slot] = sl.overflowed ? (uint32_t)((uint64_t)sl.instCap * 3u / 2u) : sl.instCount;       // Task 3
 	}
 
 	// 把每帧游标推到整段切片区域末尾（underfilled slot 的尾部空间也作为已占用，简化逻辑）。
 	fr.vboCursor  = (VkDeviceSize)(m_parallelBaseVbo  + m_parallelVboBytes);
 	fr.ssboCursor = (VkDeviceSize)(m_parallelBaseSsbo + m_parallelSsboBytes);
+	fr.instCursor = (VkDeviceSize)(m_parallelBaseInst + m_parallelInstBytes);  // Task 3
 
 	// 所有 deferred text 在主线程一次性渲染。DrawText 内部走 m_batchVertices/CheckBatch/FlushBatch，
 	// 写入位置从 fr.vboCursor 开始（在 BeginParallelRecord 保留的 8MB 余量内）。
@@ -1776,6 +2025,7 @@ void Graphics::RecordDrawText(WorkerRecord& r,
 	RecordCmd c{};
 	c.type            = RecCmdType::DeferredText;
 	c.vertOffsetAtCmd = r.slice.vboCount;
+	c.instOffsetAtCmd = r.slice.instCount;   // Task 4
 	c.payloadIdx      = (uint32_t)(r.textCmds.size() - 1);
 	r.cmds.push_back(c);
 }
@@ -1908,6 +2158,7 @@ void Graphics::RecordPushClipRect(WorkerRecord& r, int x, int y, int w, int h) {
 	RecordCmd c{};
 	c.type            = RecCmdType::PushClip;
 	c.vertOffsetAtCmd = r.slice.vboCount;
+	c.instOffsetAtCmd = r.slice.instCount;   // Task 4
 	c.payloadIdx      = (uint32_t)(r.clips.size() - 1);
 	r.cmds.push_back(c);
 }
@@ -1922,6 +2173,7 @@ void Graphics::RecordPopClipRect(WorkerRecord& r) {
 	RecordCmd c{};
 	c.type            = RecCmdType::PopClip;
 	c.vertOffsetAtCmd = r.slice.vboCount;
+	c.instOffsetAtCmd = r.slice.instCount;   // Task 4
 	c.payloadIdx      = 0;
 	r.cmds.push_back(c);
 }
@@ -1934,6 +2186,7 @@ void Graphics::RecordSetBlendMode(WorkerRecord& r, BlendMode mode) {
 	RecordCmd c{};
 	c.type            = RecCmdType::SetBlend;
 	c.vertOffsetAtCmd = r.slice.vboCount;
+	c.instOffsetAtCmd = r.slice.instCount;   // Task 4
 	c.payloadIdx      = (uint32_t)(r.blendModes.size() - 1);
 	r.cmds.push_back(c);
 }

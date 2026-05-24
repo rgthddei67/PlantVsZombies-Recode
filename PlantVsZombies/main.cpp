@@ -26,6 +26,11 @@ int main(int argc, char** argv)
             GameAPP::mShowColliders = true;
             std::cout << "Debug模式已启用" << std::endl;
         }
+        else if (arg == "-NoInstance" || arg == "-noinstance")
+        {
+            GameAPP::mDisableInstancePath = true;
+            std::cout << "GPU instance path 已禁用 (A/B baseline)" << std::endl;
+        }
     }
 
     int result = GameAPP::GetInstance().Run();

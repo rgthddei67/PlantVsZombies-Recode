@@ -328,8 +328,121 @@ void Animator::Draw(Graphics* g, float baseX, float baseY, float Scale) {
     g->PopTransform();
 }
 
+namespace {
+    // Pack RGBA8 with r=lsb, a=msb — matches reanim_inst.vert.glsl unpack convention.
+    inline uint32_t PackRGBA8(uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
+        return  static_cast<uint32_t>(r)
+             | (static_cast<uint32_t>(g) <<  8)
+             | (static_cast<uint32_t>(b) << 16)
+             | (static_cast<uint32_t>(a) << 24);
+    }
+}
+
+void Animator::DrawInternalInstanced(Graphics* g, float baseX, float baseY, float Scale) const {
+    static constexpr float DEG_TO_RAD = 3.14159265358979323846f / 180.0f;
+
+    float blendRatio = 0.0f;
+    if (mReanimBlendCounter > 0.0f)
+        blendRatio = 1.0f - mReanimBlendCounter / mReanimBlendCounterMax;
+
+    for (int i = 0; i < static_cast<int>(mReanim->GetTrackCount()); ++i) {
+        auto track = mReanim->GetTrack(i);
+        if (!track || !track->mAvailable || track->mFrames.empty()) continue;
+
+        const TrackFrameTransform transform = GetInterpolatedTransform(i, blendRatio);
+
+        bool visible = (i < static_cast<int>(mExtraInfos.size())) &&
+                       mExtraInfos[i].mVisible && transform.f != -1;
+        if (!visible) continue;
+
+        const Texture* image = mExtraInfos[i].mImage ? mExtraInfos[i].mImage : transform.image;
+        if (!image) continue;
+
+        // CPU still computes the trig — GATE A measured this is ~6 ms CPU sum across
+        // 165k tracks/frame; the GPU instancing win comes from removing per-call mat4
+        // construction + 6-vertex inflation + write traffic (7× write bandwidth reduction),
+        // not from moving trig itself.
+        const float angleX = -transform.kx * DEG_TO_RAD;
+        const float angleY = -transform.ky * DEG_TO_RAD;
+        const float cosX = cosf(angleX);
+        const float sinX = sinf(angleX);
+        const float cosY = cosf(angleY);
+        const float sinY = sinf(angleY);
+
+        const float w = static_cast<float>(image->width);
+        const float h = static_cast<float>(image->height);
+        const float tx = transform.x + mExtraInfos[i].mOffsetX;
+        const float ty = transform.y + mExtraInfos[i].mOffsetY;
+
+        InstanceRecord rec;
+        // Bake (w*Scale) into column 0, (h*Scale) into column 1 so the shader's `corner`
+        // is unit. Layout matches Animator.cpp slow-path mat4 construction (lines ~379-384):
+        //   mat[0] = (tA*w*Scale, tB*w*Scale, 0, 0)
+        //   mat[1] = (tC*h*Scale, tD*h*Scale, 0, 0)
+        //   mat[3] = (baseX + tx*Scale, baseY + ty*Scale, 0, 1)
+        rec.tA = cosX * transform.sx * w * Scale;
+        rec.tB = -sinX * transform.sx * w * Scale;
+        rec.tC = sinY  * transform.sy * h * Scale;
+        rec.tD = cosY  * transform.sy * h * Scale;
+        rec.tx = baseX + tx * Scale;
+        rec.ty = baseY + ty * Scale;
+
+        // Atlas UV resolution: if image is part of an atlas page, use the page's bindless
+        // slot id and the per-sprite atlas UV bbox; otherwise use image itself.
+        const Texture* bindTex = image->atlasPage ? image->atlasPage : image;
+        rec.u0 = image->aU0;
+        rec.v0 = image->aV0;
+        rec.u1 = image->aU1;
+        rec.v1 = image->aV1;
+        rec.texSlot = bindTex->id;
+
+        // Normal draw: white tint × alpha
+        const float baseAlpha = std::clamp(transform.a * mAlpha, 0.0f, 1.0f);
+        const uint8_t alpha8 = static_cast<uint8_t>(baseAlpha * 255.0f);
+        rec.colorRGBA8 = PackRGBA8(255, 255, 255, alpha8);
+        g->AppendReanimInstance(rec, BlendMode::Alpha);
+
+        // Glow (Add blend) — same geometry/UV, different color + BlendMode
+        if (mEnableExtraAdditiveDraw) {
+            InstanceRecord glow = rec;
+            glow.colorRGBA8 = PackRGBA8(mExtraAdditiveColor.r,
+                                        mExtraAdditiveColor.g,
+                                        mExtraAdditiveColor.b,
+                                        mExtraAdditiveColor.a);
+            g->AppendReanimInstance(glow, BlendMode::Add);
+        }
+
+        // Overlay (Alpha blend, color alpha scaled by baseAlpha to match slow path)
+        if (mEnableExtraOverlayDraw) {
+            InstanceRecord ov = rec;
+            const uint8_t ovAlpha = static_cast<uint8_t>(mExtraOverlayColor.a * baseAlpha);
+            ov.colorRGBA8 = PackRGBA8(mExtraOverlayColor.r,
+                                      mExtraOverlayColor.g,
+                                      mExtraOverlayColor.b,
+                                      ovAlpha);
+            g->AppendReanimInstance(ov, BlendMode::Alpha);
+        }
+    }
+}
+
 void Animator::DrawInternal(Graphics* g, float baseX, float baseY, float Scale) const {
     if (!mReanim) return;
+
+    // Task 5: fast path — if no track has attached child animators, route through
+    // the GPU-instancing pipeline (AppendReanimInstance). The slow fallback (mat4 + DrawTextureMatrix)
+    // remains for the ~1% case where animators carry children (e.g. PeaShooter anim_stem→head).
+    // GATE A measured this fork's "fast path" rate at ~100% in the 11000-zombie stress scene.
+    bool hasChildren = false;
+    for (size_t i = 0; i < mExtraInfos.size(); ++i) {
+        if (!mExtraInfos[i].mAttachedReanims.empty()) {
+            hasChildren = true;
+            break;
+        }
+    }
+    if (!hasChildren && g->IsInstancePathEnabled()) {
+        DrawInternalInstanced(g, baseX, baseY, Scale);
+        return;
+    }
 
     static constexpr float DEG_TO_RAD = 3.14159265358979323846f / 180.0f;
 

@@ -432,6 +432,14 @@ private:
      * @param Scale 全局缩放
      */
     void DrawInternal(Graphics* g, float baseX, float baseY, float Scale) const;
+
+    /**
+     * @brief Task 5: fast path of DrawInternal for animators WITHOUT child sub-animators.
+     *        Builds one InstanceRecord per visible track (plus glow/overlay copies) and
+     *        emits via g->AppendReanimInstance — no per-call mat4 ctor, no DrawTextureMatrix.
+     *        Mat is pre-multiplied 2x3 with sprite (w*Scale, h*Scale) baked into tA..tD.
+     */
+    void DrawInternalInstanced(Graphics* g, float baseX, float baseY, float Scale) const;
 };
 
 #endif
