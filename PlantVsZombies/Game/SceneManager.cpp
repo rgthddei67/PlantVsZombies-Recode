@@ -3,95 +3,95 @@
 #include <iostream>
 
 SceneManager& SceneManager::GetInstance() {
-    static SceneManager instance;
-    return instance;
+	static SceneManager instance;
+	return instance;
 }
 
 void SceneManager::ClearCurrentScene() {
-    if (!sceneStack_.empty()) {
-        sceneStack_.top()->OnExit();  
-        sceneStack_.pop();            
-    }
+	if (!sceneStack_.empty()) {
+		sceneStack_.top()->OnExit();
+		sceneStack_.pop();
+	}
 }
 
 bool SceneManager::SwitchTo(const std::string& name) {
-    auto it = scenes_.find(name);
-    if (it == scenes_.end()) {
-        std::cerr << "场景未注册: " << name << std::endl;
-        return false;
-    }
+	auto it = scenes_.find(name);
+	if (it == scenes_.end()) {
+		std::cerr << "场景未注册: " << name << std::endl;
+		return false;
+	}
 
-    // 退出当前场景
-    if (!sceneStack_.empty()) {
-        sceneStack_.top()->OnExit();
-        sceneStack_.pop();
-    }
+	// 退出当前场景
+	if (!sceneStack_.empty()) {
+		sceneStack_.top()->OnExit();
+		sceneStack_.pop();
+	}
 
-    // 创建并进入新场景
-    auto newScene = it->second();
-    newScene->OnEnter();
-    sceneStack_.push(std::move(newScene));
+	// 创建并进入新场景
+	auto newScene = it->second();
+	newScene->OnEnter();
+	sceneStack_.push(std::move(newScene));
 #ifdef _DEBUG
-    std::cout << "切换到场景: " << name << std::endl;
+	std::cout << "切换到场景: " << name << std::endl;
 #endif
-    return true;
+	return true;
 }
 
 void SceneManager::PushScene(const std::string& name) {
-    auto it = scenes_.find(name);
-    if (it == scenes_.end()) {
-        std::cerr << "场景未注册: " << name << std::endl;
-        return;
-    }
+	auto it = scenes_.find(name);
+	if (it == scenes_.end()) {
+		std::cerr << "场景未注册: " << name << std::endl;
+		return;
+	}
 
-    // 暂停当前场景（不调用OnExit）
-    // 创建并进入新场景
-    auto newScene = it->second();
-    newScene->OnEnter();
-    sceneStack_.push(std::move(newScene));
+	// 暂停当前场景（不调用OnExit）
+	// 创建并进入新场景
+	auto newScene = it->second();
+	newScene->OnEnter();
+	sceneStack_.push(std::move(newScene));
 }
 
 void SceneManager::PopScene() {
-    if (sceneStack_.empty()) return;
+	if (sceneStack_.empty()) return;
 
-    sceneStack_.top()->OnExit();
-    sceneStack_.pop();
+	sceneStack_.top()->OnExit();
+	sceneStack_.pop();
 
-    // 恢复上一个场景
-    if (!sceneStack_.empty()) {
-        sceneStack_.top()->OnEnter();
-    }
+	// 恢复上一个场景
+	if (!sceneStack_.empty()) {
+		sceneStack_.top()->OnEnter();
+	}
 }
 
 void SceneManager::Update() {
-    if (!sceneStack_.empty()) {
-        sceneStack_.top()->Update();
-    }
+	if (!sceneStack_.empty()) {
+		sceneStack_.top()->Update();
+	}
 }
 
 void SceneManager::Draw(Graphics* g) {
-    if (!sceneStack_.empty()) {
-        sceneStack_.top()->Draw(g);
-    }
+	if (!sceneStack_.empty()) {
+		sceneStack_.top()->Draw(g);
+	}
 }
 
 Scene* SceneManager::GetCurrentScene() const {
-    return sceneStack_.empty() ? nullptr : sceneStack_.top().get();
+	return sceneStack_.empty() ? nullptr : sceneStack_.top().get();
 }
 
 bool SceneManager::IsEmpty() const {
-    return sceneStack_.empty();
+	return sceneStack_.empty();
 }
 
 void SceneManager::SetGlobalData(const std::string& key, const std::string& value) {
-    globalData_[key] = value;
+	globalData_[key] = value;
 }
 
 std::string SceneManager::GetGlobalData(const std::string& key, const std::string& defaultValue) const {
-    auto it = globalData_.find(key);
-    return it != globalData_.end() ? it->second : defaultValue;
+	auto it = globalData_.find(key);
+	return it != globalData_.end() ? it->second : defaultValue;
 }
 
 void SceneManager::ClearGlobalData() {
-    globalData_.clear();
+	globalData_.clear();
 }

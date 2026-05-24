@@ -32,16 +32,17 @@ void ShovelBank::Start()
 		clickComponent->onMouseDown = [this]() {
 			if (auto shovel = mBoard->mShovel.lock()) {
 				mWasShovelActive = (shovel->GetState() == ShovelState::ACTIVE);
-			} else {
+			}
+			else {
 				mWasShovelActive = false;
 			}
-		};
+			};
 		clickComponent->onClick = [this]() {
 			if (mWasShovelActive)
 				return;
 			AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_SHOVEL, 0.4f);
 			mBoard->ActivateShovel();
-		};
+			};
 	}
 }
 

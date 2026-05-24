@@ -222,7 +222,7 @@ bool GameAPP::Initialize()
 {
 	if (mInitialized) return true;
 
-	// 设置默认字体路径 
+	// 设置默认字体路径
 	Button::SetDefaultFontPath(ResourceKeys::Fonts::FONT_FZCQ);
 
 	mInitialized = true;
@@ -261,7 +261,7 @@ int GameAPP::Run()
 		return -4;
 	}
 
-	// 创建窗口和渲染器 
+	// 创建窗口和渲染器
 	if (!CreateWindowAndRenderer()) {
 		CleanupResources();
 		AudioSystem::Shutdown();
@@ -375,7 +375,8 @@ void GameAPP::Draw()
 
 	if (!m_graphics->BeginFrame()) {
 		// acquire 报 OUT_OF_DATE 等：BeginFrame 已置 NeedsSwapchainRebuild，下面统一处理。
-	} else {
+	}
+	else {
 		SceneManager::GetInstance().Draw(m_graphics.get());
 		m_graphics->EndFrame();
 	}

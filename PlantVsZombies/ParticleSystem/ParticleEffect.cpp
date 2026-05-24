@@ -2,85 +2,85 @@
 #include "../DeltaTime.h"
 
 ParticleEffect::ParticleEffect()
-    : systemTimer(0.0f)
-    , systemDuration(-1.0f)
-    , active(false) {
+	: systemTimer(0.0f)
+	, systemDuration(-1.0f)
+	, active(false) {
 }
 
 void ParticleEffect::InitializeFromConfig(const ParticleEffectConfig& config, Graphics* graphics, const Vector& pos) {
-    position = pos;
-    systemTimer = 0.0f;
-    active = true;
+	position = pos;
+	systemTimer = 0.0f;
+	active = true;
 
-    // 为每个发射器配置创建发射器
-    for (const EmitterConfig& emitterConfig : config.emitters) {
-        auto emitter = std::make_unique<ParticleEmitter>(graphics);
+	// 为每个发射器配置创建发射器
+	for (const EmitterConfig& emitterConfig : config.emitters) {
+		auto emitter = std::make_unique<ParticleEmitter>(graphics);
 
-        // 计算发射器位置（基础位置 + 偏移）
-        Vector emitterPos = position;
-        emitterPos.x += emitterConfig.emitterOffsetX;
-        emitterPos.y += emitterConfig.emitterOffsetY;
+		// 计算发射器位置（基础位置 + 偏移）
+		Vector emitterPos = position;
+		emitterPos.x += emitterConfig.emitterOffsetX;
+		emitterPos.y += emitterConfig.emitterOffsetY;
 
-        // 从XML配置初始化发射器
-        emitter->Initialize(emitterConfig, emitterPos);
+		// 从XML配置初始化发射器
+		emitter->Initialize(emitterConfig, emitterPos);
 
-        // 设置系统持续时间（使用第一个发射器的系统持续时间）
-        if (emitters.empty() && emitterConfig.systemDuration > 0.0f) {
-            systemDuration = emitterConfig.systemDuration;
-        }
+		// 设置系统持续时间（使用第一个发射器的系统持续时间）
+		if (emitters.empty() && emitterConfig.systemDuration > 0.0f) {
+			systemDuration = emitterConfig.systemDuration;
+		}
 
-        emitters.push_back(std::move(emitter));
-    }
+		emitters.push_back(std::move(emitter));
+	}
 }
 
 void ParticleEffect::Update() {
-    if (active) {
-        float deltaTime = DeltaTime::GetDeltaTime();
-        systemTimer += deltaTime;
+	if (active) {
+		float deltaTime = DeltaTime::GetDeltaTime();
+		systemTimer += deltaTime;
 
-        // 检查系统持续时间
-        if (systemDuration > 0.0f && systemTimer >= systemDuration) {
-            active = false;
-            // 停止所有发射器（不再生成新粒子）
-            for (auto& emitter : emitters) {
-                emitter->Stop();
-            }
-        }
-    }
+		// 检查系统持续时间
+		if (systemDuration > 0.0f && systemTimer >= systemDuration) {
+			active = false;
+			// 停止所有发射器（不再生成新粒子）
+			for (auto& emitter : emitters) {
+				emitter->Stop();
+			}
+		}
+	}
 
-    // 无论是否活跃，都继续更新发射器，让已有粒子自然消亡
-    for (auto& emitter : emitters) {
-        emitter->Update();
-    }
+	// 无论是否活跃，都继续更新发射器，让已有粒子自然消亡
+	for (auto& emitter : emitters) {
+		emitter->Update();
+	}
 }
 
 void ParticleEffect::Draw() {
-    for (auto& emitter : emitters) {
-        emitter->Draw();
-    }
+	for (auto& emitter : emitters) {
+		emitter->Draw();
+	}
 }
 
 bool ParticleEffect::ShouldDestroy() const {
-    if (!active) {
-        // 检查所有发射器是否都应该销毁
-        for (const auto& emitter : emitters) {
-            if (!emitter->ShouldDestroy()) {
-                return false;
-            }
-        }
-        return true;
-    }
-    return false;
+	if (!active) {
+		// 检查所有发射器是否都应该销毁
+		for (const auto& emitter : emitters) {
+			if (!emitter->ShouldDestroy()) {
+				return false;
+			}
+		}
+		return true;
+	}
+	return false;
 }
 
 void ParticleEffect::SetPosition(const Vector& pos) {
-    Vector offset = pos - position;
-    position = pos;
+	Vector offset = pos - position;
+	position = pos;
 
-    for (auto& emitter : emitters) {
-        Vector emitterPos = emitter->GetPosition();
-        emitterPos.x += offset.x;
-        emitterPos.y += offset.y;
-        emitter->SetPosition(emitterPos);
-    }
+	for (auto& emitter : emitters) {
+		Vector emitterPos = emitter->GetPosition();
+		emitterPos.x += offset.x;
+		emitterPos.y += offset.y;
+		emitter->SetPosition(emitterPos);
+	}
 }

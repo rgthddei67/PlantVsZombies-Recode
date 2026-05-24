@@ -322,7 +322,8 @@ bool GameInfoSaver::LoadLevelData(Board* board, CardSlotManager* manager)
 		Mower* mower = nullptr;
 		if (id != NULL_MOWER_ID) {
 			mower = board->CreateMowerWithID(type, row, x, y, id);
-		} else {
+		}
+		else {
 			mower = board->CreateMower(type, row);
 		}
 
@@ -355,7 +356,7 @@ bool GameInfoSaver::LoadLevelData(Board* board, CardSlotManager* manager)
 		if (zombie) {
 			zombie->mBodyHealth = z.value("bodyHealth", 270);
 			zombie->mBodyMaxHealth = z.value("bodyMaxHealth", 270);
-			zombie->mHelmType = static_cast<HelmType>(z.value("helmType",HelmType::HELMTYPE_NONE));
+			zombie->mHelmType = static_cast<HelmType>(z.value("helmType", HelmType::HELMTYPE_NONE));
 			zombie->mHelmHealth = z.value("helmHealth", 0);
 			zombie->mHelmMaxHealth = z.value("helmMaxHealth", 0);
 			zombie->mShieldType = static_cast<ShieldType>(z.value("shieldType", ShieldType::SHIELDTYPE_NONE));

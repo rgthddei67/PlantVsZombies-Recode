@@ -27,7 +27,7 @@ void PotatoMine::SetupPlant()
 				}
 			}
 		}
-		});
+			});
 }
 
 void PotatoMine::PlantUpdate()

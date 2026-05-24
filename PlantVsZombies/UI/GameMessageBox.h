@@ -14,69 +14,69 @@
 
 class GameMessageBox : public GameObject {
 public:
-    friend class MainMenuScene;
+	friend class MainMenuScene;
 
-    struct ButtonConfig {
-        std::string text;               
-        Vector pos;
-        Vector size;   // 大小，如果是Vector::zero就是按照NormalButton处理
-        float fontsize;
-        std::function<void()> callback; 
-        std::string texture;
-        bool autoClose = true;             // 是否自动关闭
-    };
+	struct ButtonConfig {
+		std::string text;
+		Vector pos;
+		Vector size;   // 大小，如果是Vector::zero就是按照NormalButton处理
+		float fontsize;
+		std::function<void()> callback;
+		std::string texture;
+		bool autoClose = true;             // 是否自动关闭
+	};
 
-    struct SliderConfig {
-        Vector pos;
-        Vector size;   
-        float min;
-        float max;
-        float initValue;    // 初始化的值
-        std::function<void(float)> callback;
-    };
+	struct SliderConfig {
+		Vector pos;
+		Vector size;
+		float min;
+		float max;
+		float initValue;    // 初始化的值
+		std::function<void(float)> callback;
+	};
 
-    struct TextConfig {
-        Vector pos;
-        float size;
-        std::string text;
-        glm::vec4 color;
-        std::string font = ResourceKeys::Fonts::FONT_FZCQ;
-    };
+	struct TextConfig {
+		Vector pos;
+		float size;
+		std::string text;
+		glm::vec4 color;
+		std::string font = ResourceKeys::Fonts::FONT_FZCQ;
+	};
 
-    GameMessageBox(const Vector& pos,
-        const std::string& message,
-        const std::vector<ButtonConfig>& buttons,
-        const std::vector<SliderConfig>& sliders,
-        const std::vector<TextConfig>& texts,
-        const std::string& title = "",
-        const std::string& backgroundImageKey = "",
-        float scale = 1.0f);
+	GameMessageBox(const Vector& pos,
+		const std::string& message,
+		const std::vector<ButtonConfig>& buttons,
+		const std::vector<SliderConfig>& sliders,
+		const std::vector<TextConfig>& texts,
+		const std::string& title = "",
+		const std::string& backgroundImageKey = "",
+		float scale = 1.0f);
 
-    ~GameMessageBox();
+	~GameMessageBox();
 
-    virtual void Start() override;
-    virtual void Draw(Graphics* g) override;
+	virtual void Start() override;
+	virtual void Draw(Graphics* g) override;
 
-    void Close();
+	void Close();
 
 private:
-    Vector m_position;
-    float m_scale;
-    Vector m_size;             
-    std::string m_title;
-    std::string m_message;
-    std::string m_backgroundImageKey = ResourceKeys::Textures::IMAGE_MESSAGEBOX;
-    std::vector<ButtonConfig> m_buttonConfigs;
-    std::vector<SliderConfig> m_sliderConfigs;
-    std::vector<TextConfig> m_textConfigs;
+	Vector m_position;
+	float m_scale;
+	Vector m_size;
+	std::string m_title;
+	std::string m_message;
+	std::string m_backgroundImageKey = ResourceKeys::Textures::IMAGE_MESSAGEBOX;
+	std::vector<ButtonConfig> m_buttonConfigs;
+	std::vector<SliderConfig> m_sliderConfigs;
+	std::vector<TextConfig> m_textConfigs;
 
-    std::vector<std::shared_ptr<Button>> m_buttons;
-    std::vector<std::shared_ptr<Slider>> m_sliders;
+	std::vector<std::shared_ptr<Button>> m_buttons;
+	std::vector<std::shared_ptr<Slider>> m_sliders;
 
-    glm::vec4 m_textColor = { 245, 214, 127, 255 };
-    glm::vec4 m_titleColor = { 53, 191, 61, 255 };
+	glm::vec4 m_textColor = { 245, 214, 127, 255 };
+	glm::vec4 m_titleColor = { 53, 191, 61, 255 };
 
-    Vector GetBackgroundOriginalSize() const;
+	Vector GetBackgroundOriginalSize() const;
 };
 
 #endif

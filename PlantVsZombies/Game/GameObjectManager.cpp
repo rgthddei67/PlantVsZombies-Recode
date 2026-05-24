@@ -123,7 +123,7 @@ void GameObjectManager::Update() {
 					auto* obj = mGameObjects[i].get();
 					if (obj->IsActive()) obj->UpdateParallel(outBuf);
 				}
-			});
+				});
 
 			// 阶段 B-1：主线程 drain deferred event buffers
 			{
@@ -141,7 +141,8 @@ void GameObjectManager::Update() {
 					if (obj->IsActive()) obj->Update();
 				}
 			}
-		} else {
+		}
+		else {
 			// 串行 fallback：与原代码逐字节一致
 			for (size_t i = 0; i < mGameObjects.size(); i++) {
 				auto obj = mGameObjects[i].get();

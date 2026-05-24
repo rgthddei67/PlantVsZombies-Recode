@@ -20,7 +20,6 @@ public:
 	void Update() override;
 	void Draw(Graphics* g) override;
 
-
 	void CheckPlant();
 	void Activate();
 	ShovelState GetState() const { return mState; }

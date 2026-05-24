@@ -28,7 +28,7 @@ public:
 	void HeadDrop() override;
 	void ArmDrop() override;
 	void ZombieItemUpdate() const override;
- 
+
 protected:
 	void SaveExtraData(nlohmann::json& j) const override;
 	void LoadExtraData(const nlohmann::json& j) override;

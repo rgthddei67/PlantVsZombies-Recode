@@ -13,11 +13,11 @@ int Chomper::FindTargetZombieID()
 	if (!mBoard) return NULL_ZOMBIE_ID;
 
 	auto& mgr = mBoard->mEntityManager;
-	auto ids  = mgr.GetAllZombieIDs();
+	auto ids = mgr.GetAllZombieIDs();
 
-	int   closestID       = NULL_ZOMBIE_ID;
+	int   closestID = NULL_ZOMBIE_ID;
 	float closestDistance = FLT_MAX;
-	Vector myPos          = GetPosition();
+	Vector myPos = GetPosition();
 
 	for (int id : ids) {
 		auto* z = mgr.GetZombie(id);
@@ -46,7 +46,7 @@ void Chomper::StartBite(int zombieID)
 	PlayTrackOnce("anim_bite", "anim_chew", 1.4f, 0.05f);
 	mAnimator->AddFrameEvent(BITE_KILL_FRAME, [this]() {
 		OnBiteKillFrame();
-	});
+		});
 }
 
 void Chomper::OnBiteKillFrame()
@@ -101,15 +101,15 @@ void Chomper::PlantUpdate()
 
 void Chomper::SaveExtraData(nlohmann::json& j) const
 {
-	j["state"]          = static_cast<int>(mState);
-	j["digestTimer"]    = mDigestTimer;
+	j["state"] = static_cast<int>(mState);
+	j["digestTimer"] = mDigestTimer;
 	j["targetZombieID"] = mTargetZombieID;
 }
 
 void Chomper::LoadExtraData(const nlohmann::json& j)
 {
-	mState          = static_cast<State>(j.value("state", 0));
-	mDigestTimer    = j.value("digestTimer", 0.0f);
+	mState = static_cast<State>(j.value("state", 0));
+	mDigestTimer = j.value("digestTimer", 0.0f);
 	mTargetZombieID = j.value("targetZombieID", NULL_ZOMBIE_ID);
 
 	// 注意：GameInfoSaver 先恢复植物再恢复僵尸，此时 EntityManager 里还没有
@@ -136,7 +136,7 @@ void Chomper::LoadExtraData(const nlohmann::json& j)
 		mAnimator->SetCurrentFrame(savedFrame);
 		mAnimator->AddFrameEvent(BITE_KILL_FRAME, [this]() {
 			OnBiteKillFrame();
-		});
+			});
 		break;
 	}
 	case State::DIGESTING:

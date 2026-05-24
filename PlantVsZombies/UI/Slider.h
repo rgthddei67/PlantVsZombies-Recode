@@ -14,69 +14,67 @@ class ResourceManager;
 class Slider
 {
 private:
-    Vector position = Vector::zero();         
-    Vector size = Vector(135, 10);       
-    float minValue = 0.0f;                
-    float maxValue = 1.0f;                
-    float currentValue = 0.5f;                
+	Vector position = Vector::zero();
+	Vector size = Vector(135, 10);
+	float minValue = 0.0f;
+	float maxValue = 1.0f;
+	float currentValue = 0.5f;
 
-    std::string backgroundImageKey = ResourceKeys::Textures::IMAGE_OPTIONS_SLIDERSLOT;            // 鑳屾櫙鍥剧墖key
-    std::string knobImageKey = ResourceKeys::Textures::IMAGE_OPTIONS_SLIDERKNOB2;                  // 婊戝潡鍥剧墖key
+	std::string backgroundImageKey = ResourceKeys::Textures::IMAGE_OPTIONS_SLIDERSLOT;            // 鑳屾櫙鍥剧墖key
+	std::string knobImageKey = ResourceKeys::Textures::IMAGE_OPTIONS_SLIDERKNOB2;                  // 婊戝潡鍥剧墖key
 
-    bool isDragging = false;                  
-	bool canDrag = true;                      
-    Vector dragStartPosition;               
-    float dragStartValue;                  
+	bool isDragging = false;
+	bool canDrag = true;
+	Vector dragStartPosition;
+	float dragStartValue;
 
-    int SliderSizeX = 22;
-    int SliderSizeY = 29;
+	int SliderSizeX = 22;
+	int SliderSizeY = 29;
 
-    std::function<void(float)> onChangeCallback = nullptr;
-    bool m_skipDraw = false;
+	std::function<void(float)> onChangeCallback = nullptr;
+	bool m_skipDraw = false;
 
 public:
-    Slider(Vector createPosition = Vector::zero(),
-        Vector sliderSize = Vector(135, 10),
-        float minVal = 0.0f,
-        float maxVal = 1.0f,
-        float initialValue = 0.5f);
+	Slider(Vector createPosition = Vector::zero(),
+		Vector sliderSize = Vector(135, 10),
+		float minVal = 0.0f,
+		float maxVal = 1.0f,
+		float initialValue = 0.5f);
 
-    void SetPosition(Vector pos);
-    void SetSize(Vector size);
-    void SetValueRange(float min, float max);
-    void SetValue(float value);
+	void SetPosition(Vector pos);
+	void SetSize(Vector size);
+	void SetValueRange(float min, float max);
+	void SetValue(float value);
 
-    // 是否能拖动
+	// 是否能拖动
 	void SetDrag(bool canDrag);
 
+	void SetImageKeys(const std::string& background, const std::string& knob);
 
-    void SetImageKeys(const std::string& background, const std::string& knob);
+	void SetChangeCallBack(std::function<void(float)> callback);
 
+	void ProcessMouseEvent(InputHandler* input);
+	void Update(InputHandler* input);
 
-    void SetChangeCallBack(std::function<void(float)> callback);
+	void Draw(Graphics* g) const;
 
-    void ProcessMouseEvent(InputHandler* input);
-    void Update(InputHandler* input);
+	bool IsDragging() const;
+	float GetValue() const;
+	// 获取0-1的值
+	float GetNormalizedValue() const;
 
-    void Draw(Graphics* g) const;
+	bool KnobContainsPoint(Vector point) const;
 
-    bool IsDragging() const;
-    float GetValue() const;
-    // 获取0-1的值
-    float GetNormalizedValue() const; 
+	bool BackgroundContainsPoint(Vector point) const;
 
-    bool KnobContainsPoint(Vector point) const;
+	float CalculateValueFromX(float x) const;
 
-    bool BackgroundContainsPoint(Vector point) const;
+	float CalculateKnobXFromValue() const;
 
-    float CalculateValueFromX(float x) const;
+	// 跳过自己按钮的绘制，让别的玩意去绘制
+	void SetSkipDraw(bool skip) { m_skipDraw = skip; }
+	bool IsSkipDraw() const { return m_skipDraw; }
 
-    float CalculateKnobXFromValue() const;
-
-    // 跳过自己按钮的绘制，让别的玩意去绘制
-    void SetSkipDraw(bool skip) { m_skipDraw = skip; }
-    bool IsSkipDraw() const { return m_skipDraw; }
-
-    void ForceResetState();
+	void ForceResetState();
 };
 #endif

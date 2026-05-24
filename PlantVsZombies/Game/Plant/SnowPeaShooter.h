@@ -14,7 +14,6 @@ protected:
 		Vector bulletPosition = GetPosition() + Vector(30, -30);
 		mBoard->CreateBullet(BulletType::BULLET_SNOWPEA, mRow, bulletPosition);
 	}
-
 };
 
 #endif

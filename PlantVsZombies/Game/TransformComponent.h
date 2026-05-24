@@ -81,7 +81,6 @@ public:
 	float GetRotation() const {
 		return rotation;
 	}
-
 };
 
 #endif

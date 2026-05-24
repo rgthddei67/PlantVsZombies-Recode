@@ -42,11 +42,11 @@ protected:
 		if (!mIsSecondShot) {
 			mPendingSecondShot = true;
 			mIsSecondShot = true;
-		} else {
+		}
+		else {
 			mIsSecondShot = false;
 		}
 	}
-
 };
 
 #endif

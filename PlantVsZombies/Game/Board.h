@@ -34,11 +34,11 @@ enum class Background {
 };
 
 struct RowInfo {
-	int rowIndex         = 0;
-	float weight         = 1.0f;
-	float smoothWeight   = 1.0f;
-	int loseMower        = -3;   // 割草机丢失时的波次（-3 使第1波权重正常为1.0）
-	int lastPicked       = 0;    // 上次被选中后经过的僵尸数
+	int rowIndex = 0;
+	float weight = 1.0f;
+	float smoothWeight = 1.0f;
+	int loseMower = -3;   // 割草机丢失时的波次（-3 使第1波权重正常为1.0）
+	int lastPicked = 0;    // 上次被选中后经过的僵尸数
 	int secondLastPicked = 0;
 };
 
@@ -112,19 +112,19 @@ private:
 public:
 	Board(GameScene* gameScene, Background background, int level);
 
-	inline void AddSun(int amount) 
-	{ 
+	inline void AddSun(int amount)
+	{
 		int temp = mSun + amount;
 		if (temp > MAX_SUN)
 		{
 			mSun = MAX_SUN;
 			return;
 		}
-		mSun += amount; 
+		mSun += amount;
 	}
 
 	inline void SubSun(int amount)
-	{ 
+	{
 		mSun -= amount;
 	}
 
@@ -219,6 +219,5 @@ public:
 	Mower* CreateMower(MowerType type, int row);
 	Mower* CreateMowerWithID(MowerType type, int row, float x, float y, int id);
 	void InitializeMowers();
-
 };
 #endif

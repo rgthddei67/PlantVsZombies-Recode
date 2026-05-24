@@ -167,7 +167,7 @@ void PlantAlmanacScene::LoadInfoFile()
 		while (!s.empty() && (s.back() == ' ' || s.back() == '\t' ||
 			s.back() == '\r' || s.back() == '\n'))
 			s.pop_back();
-	};
+		};
 
 	std::string line;
 	while (std::getline(file, line)) {

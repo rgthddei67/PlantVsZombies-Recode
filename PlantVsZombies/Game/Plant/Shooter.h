@@ -28,8 +28,6 @@ public:
 	}
 
 	void PlantUpdate() override;
-
 };
-
 
 #endif

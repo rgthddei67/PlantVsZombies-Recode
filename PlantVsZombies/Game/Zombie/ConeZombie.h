@@ -16,7 +16,7 @@ public:
 	void LoadExtraData(const nlohmann::json& j) override {
 		mHelmStage = static_cast<ArmorBrokenState>(
 			j.value("helmStage", static_cast<int>(ArmorBrokenState::NO_BROKEN))
-		);
+			);
 	}
 
 	void ZombieItemUpdate() const override {
@@ -39,6 +39,5 @@ protected:
 	void SetupZombie() override;
 	void CheckHelmImage() override;
 };
-
 
 #endif

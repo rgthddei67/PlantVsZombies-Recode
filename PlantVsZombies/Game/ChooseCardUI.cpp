@@ -91,7 +91,6 @@ void ChooseCardUI::Draw(Graphics* g) {
 }
 
 void ChooseCardUI::AddCard(PlantType type) {
-
 	// 计算当前卡牌数量对应的行列
 	int cardCount = static_cast<int>(mCards.size());
 	int row = cardCount / MAX_CARDS_PER_ROW;
@@ -133,7 +132,7 @@ void ChooseCardUI::RemoveCard(Card* card)
 }
 
 void ChooseCardUI::AddAllCard() {
-	const auto& haveCards = GameAPP::GetInstance().mHaveCards;  
+	const auto& haveCards = GameAPP::GetInstance().mHaveCards;
 	for (const auto& card : haveCards) {
 		AddCard(card);
 	}

@@ -22,7 +22,6 @@ void BulletPool::Initialize(int initialCapacity, int warningThreshold) {
 
 std::shared_ptr<Bullet> BulletPool::AcquireShared(Board* board, BulletType type, int row,
 	const Vector& colliderRadius, const Vector& position) {
-
 	int typeIdx = static_cast<int>(type);
 
 	// 1. 从对应类型的空闲列表直接取槽位，O(1)

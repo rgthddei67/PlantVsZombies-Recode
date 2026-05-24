@@ -5,8 +5,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#include <glm/gtc/constants.hpp>  
-#include <cmath>                 
+#include <glm/gtc/constants.hpp>
+#include <cmath>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 #include <string>
@@ -22,10 +22,10 @@
 #include "ResourceManager.h"
 
 namespace pvz {
-    class VulkanContext;
-    class VulkanRenderer;
-    class VulkanTexturePool;
-    struct VulkanTexture;
+	class VulkanContext;
+	class VulkanRenderer;
+	class VulkanTexturePool;
+	struct VulkanTexture;
 }
 
 /**
@@ -77,12 +77,12 @@ struct BatchVertex {
  *        Stride 48 B (16-byte aligned for std140-style SSBO layout).
  */
 struct InstanceRecord {
-    float tA, tB, tC, tD;   // 16 B — pre-multiplied 2x2: cols (tA,tB) and (tC,tD)
-    float tx, ty;           // 8 B  — world translation (already absorbs baseX + transform.x*Scale + offsets)
-    float u0, v0;           // 8 B  — atlas UV top-left
-    float u1, v1;           // 8 B  — atlas UV bottom-right
-    uint32_t texSlot;       // 4 B  — bindless texture index
-    uint32_t colorRGBA8;    // 4 B  — packed RGBA8 (r=lsb, a=msb), pre-tinted
+	float tA, tB, tC, tD;   // 16 B — pre-multiplied 2x2: cols (tA,tB) and (tC,tD)
+	float tx, ty;           // 8 B  — world translation (already absorbs baseX + transform.x*Scale + offsets)
+	float u0, v0;           // 8 B  — atlas UV top-left
+	float u1, v1;           // 8 B  — atlas UV bottom-right
+	uint32_t texSlot;       // 4 B  — bindless texture index
+	uint32_t colorRGBA8;    // 4 B  — packed RGBA8 (r=lsb, a=msb), pre-tinted
 };
 static_assert(sizeof(InstanceRecord) == 48, "InstanceRecord must be 48 bytes");
 
@@ -177,19 +177,19 @@ struct DeferredTextCmd {
  *        replay 不再做任何 patch；texIndex 也是 bindless 槽位的绝对值。
  */
 struct VkWorkerSlice {
-	BatchVertex*    vboPtr      = nullptr;  ///< 切片首个 BatchVertex 的映射指针
-	glm::mat4*      ssboPtr     = nullptr;  ///< 切片首个 mat4 的映射指针
-	InstanceRecord* instPtr     = nullptr;  ///< 切片首个 InstanceRecord 的映射指针（Task 3）
+	BatchVertex* vboPtr = nullptr;  ///< 切片首个 BatchVertex 的映射指针
+	glm::mat4* ssboPtr = nullptr;  ///< 切片首个 mat4 的映射指针
+	InstanceRecord* instPtr = nullptr;  ///< 切片首个 InstanceRecord 的映射指针（Task 3）
 	uint32_t        vboBaseVert = 0;        ///< vboPtr[0] 在整帧 VBO 中的绝对顶点下标
 	uint32_t        ssboBaseMat = 0;        ///< ssboPtr[0] 在整帧 SSBO 中的绝对 mat4 下标
 	uint32_t        instBaseIdx = 0;        ///< instPtr[0] 在整帧 instBuf 中的绝对下标（Task 3）
-	uint32_t        vboCap      = 0;        ///< 切片容量（BatchVertex 个数）
-	uint32_t        ssboCap     = 0;        ///< 切片容量（mat4 个数）
-	uint32_t        instCap     = 0;        ///< 切片容量（InstanceRecord 个数）（Task 3）
-	uint32_t        vboCount    = 0;        ///< 当前已写顶点数
-	uint32_t        ssboCount   = 0;        ///< 当前已写矩阵数
-	uint32_t        instCount   = 0;        ///< 当前已写 InstanceRecord 数（Task 3）
-	bool            overflowed  = false;    ///< 写超容量时置 true，回放只画前 vboCount 个
+	uint32_t        vboCap = 0;        ///< 切片容量（BatchVertex 个数）
+	uint32_t        ssboCap = 0;        ///< 切片容量（mat4 个数）
+	uint32_t        instCap = 0;        ///< 切片容量（InstanceRecord 个数）（Task 3）
+	uint32_t        vboCount = 0;        ///< 当前已写顶点数
+	uint32_t        ssboCount = 0;        ///< 当前已写矩阵数
+	uint32_t        instCount = 0;        ///< 当前已写 InstanceRecord 数（Task 3）
+	bool            overflowed = false;    ///< 写超容量时置 true，回放只画前 vboCount 个
 };
 
 /**
@@ -205,10 +205,10 @@ struct WorkerRecord {
 	std::vector<DeferredTextCmd> textCmds;       ///< DeferredText 的 payload
 
 	// 初始状态快照（BeginParallelRecord 时由主线程填充，SetWorkerSlot 时给 worker 用）
-	glm::mat4              initialTopTransform   = glm::mat4(1.0f);
-	bool                   initialTopIsIdentity  = true;
+	glm::mat4              initialTopTransform = glm::mat4(1.0f);
+	bool                   initialTopIsIdentity = true;
 	std::vector<ClipRect>  initialClipStack;
-	BlendMode              initialBlend          = BlendMode::None;
+	BlendMode              initialBlend = BlendMode::None;
 
 	// 清空所有命令，但保留 vector capacity，下帧复用避免 realloc。
 	// slice 不在这里重置——由 BeginParallelRecord 每帧重新切分并写入。
@@ -263,8 +263,8 @@ public:
 	// BeginFrame / EndFrame: GameApp::Draw 每帧调用一对，承担 acquire→record→submit→present。
 	//   绘制 API（DrawTexture 等）必须在这两个调用之间使用。
 	bool InitializeVulkan(pvz::VulkanContext* ctx,
-	                      pvz::VulkanRenderer* renderer,
-	                      pvz::VulkanTexturePool* pool);
+		pvz::VulkanRenderer* renderer,
+		pvz::VulkanTexturePool* pool);
 	void ShutdownVulkan();
 	bool BeginFrame();
 	bool EndFrame();
@@ -566,7 +566,6 @@ public:
 	 */
 	void Clear();
 
-
 	/**
 	 * @brief 设置摄像机位置（世界坐标）。
 	 */
@@ -720,10 +719,10 @@ private:
 	// Phase 5：BeginParallelRecord 切片时记录主线程基准游标和切片总占用，
 	// ReplayAndEndParallel 收尾时据此跳过整段并行区域。
 	// 用 uint64_t 而非 VkDeviceSize 是为了避免在 Graphics.h 里引入 vulkan.h（保持 PIMPL）。
-	uint64_t m_parallelBaseVbo   = 0;
-	uint64_t m_parallelBaseSsbo  = 0;
-	uint64_t m_parallelBaseInst  = 0;
-	uint64_t m_parallelVboBytes  = 0;
+	uint64_t m_parallelBaseVbo = 0;
+	uint64_t m_parallelBaseSsbo = 0;
+	uint64_t m_parallelBaseInst = 0;
+	uint64_t m_parallelVboBytes = 0;
 	uint64_t m_parallelSsboBytes = 0;
 	uint64_t m_parallelInstBytes = 0;
 

@@ -22,7 +22,7 @@ public:
 
 protected:
 	void SetupPlant() override;
-	
+
 	void Ready(bool quick);
 };
 

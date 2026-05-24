@@ -11,21 +11,21 @@
 
 class ParticleConfigManager {
 private:
-    Graphics* m_graphics;
+	Graphics* m_graphics;
 
-    // XML配置支持
-    std::unique_ptr<ParticleXMLLoader> xmlLoader;
+	// XML配置支持
+	std::unique_ptr<ParticleXMLLoader> xmlLoader;
 
 public:
-    ParticleConfigManager(Graphics* graphics);
-    ~ParticleConfigManager() = default;
+	ParticleConfigManager(Graphics* graphics);
+	~ParticleConfigManager() = default;
 
-    void SetGraphics(Graphics* graphics) { m_graphics = graphics; }
+	void SetGraphics(Graphics* graphics) { m_graphics = graphics; }
 
-    // XML配置支持
-    bool LoadXMLConfigs(const std::string& directory);
-    const ParticleEffectConfig* GetEffectConfig(const std::string& name) const;
-    std::vector<std::string> GetAllXMLEffectNames() const;
+	// XML配置支持
+	bool LoadXMLConfigs(const std::string& directory);
+	const ParticleEffectConfig* GetEffectConfig(const std::string& name) const;
+	std::vector<std::string> GetAllXMLEffectNames() const;
 };
 
 #endif

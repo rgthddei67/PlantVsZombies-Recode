@@ -10,7 +10,7 @@
 #define TOD_TRACE_FORMAT(fmt, ...) printf(fmt, __VA_ARGS__)
 
 inline void TodErrorMessageBox(const char* message, const char* title) {
-    std::cerr << title << ": " << message << std::endl;
+	std::cerr << title << ": " << message << std::endl;
 }
 
 #endif

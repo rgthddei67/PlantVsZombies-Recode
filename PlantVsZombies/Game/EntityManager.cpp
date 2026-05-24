@@ -6,213 +6,213 @@
 #include "LawnMower.h"
 
 int EntityManager::AddPlant(std::shared_ptr<Plant> plant) {
-    int id = mNextPlantID++;
-    mPlants[id] = plant;
-    plant->mPlantID = id;
-    return id;
+	int id = mNextPlantID++;
+	mPlants[id] = plant;
+	plant->mPlantID = id;
+	return id;
 }
 
 Plant* EntityManager::GetPlant(int id) const {
-    auto it = mPlants.find(id);
-    if (it != mPlants.end())
-        return it->second.lock().get();
-    return nullptr;
+	auto it = mPlants.find(id);
+	if (it != mPlants.end())
+		return it->second.lock().get();
+	return nullptr;
 }
 
 std::vector<int> EntityManager::GetAllPlantIDs() const {
-    std::vector<int> ids;
-    for (const auto& pair : mPlants) {
-        if (pair.second.lock())
-            ids.push_back(pair.first);
-    }
-    return ids;
+	std::vector<int> ids;
+	for (const auto& pair : mPlants) {
+		if (pair.second.lock())
+			ids.push_back(pair.first);
+	}
+	return ids;
 }
 
 int EntityManager::AddZombie(std::shared_ptr<Zombie> zombie) {
-    int id = mNextZombieID++;
-    mZombies[id] = zombie;
-    zombie->mZombieID = id;
-    return id;
+	int id = mNextZombieID++;
+	mZombies[id] = zombie;
+	zombie->mZombieID = id;
+	return id;
 }
 
 Zombie* EntityManager::GetZombie(int id) const {
-    auto it = mZombies.find(id);
-    if (it != mZombies.end())
-        return it->second.lock().get();
-    return nullptr;
+	auto it = mZombies.find(id);
+	if (it != mZombies.end())
+		return it->second.lock().get();
+	return nullptr;
 }
 
 std::vector<int> EntityManager::GetAllZombieIDs() const {
-    std::vector<int> ids;
-    for (const auto& pair : mZombies) {
-        if (pair.second.lock())
-            ids.push_back(pair.first);
-    }
-    return ids;
+	std::vector<int> ids;
+	for (const auto& pair : mZombies) {
+		if (pair.second.lock())
+			ids.push_back(pair.first);
+	}
+	return ids;
 }
 
 int EntityManager::AddBullet(std::shared_ptr<Bullet> bullet) {
-    int id = mNextBulletID++;
-    mBullets[id] = bullet;
-    bullet->mBulletID = id;
-    return id;
+	int id = mNextBulletID++;
+	mBullets[id] = bullet;
+	bullet->mBulletID = id;
+	return id;
 }
 
 Bullet* EntityManager::GetBullet(int id) const {
-    auto it = mBullets.find(id);
-    if (it != mBullets.end())
-        return it->second.lock().get();
-    return nullptr;
+	auto it = mBullets.find(id);
+	if (it != mBullets.end())
+		return it->second.lock().get();
+	return nullptr;
 }
 
 std::vector<int> EntityManager::GetAllBulletIDs() const {
-    std::vector<int> ids;
-    for (const auto& pair : mBullets) {
-        auto bullet = pair.second.lock();
-        if (bullet && bullet->IsActive())
-            ids.push_back(pair.first);
-    }
-    return ids;
+	std::vector<int> ids;
+	for (const auto& pair : mBullets) {
+		auto bullet = pair.second.lock();
+		if (bullet && bullet->IsActive())
+			ids.push_back(pair.first);
+	}
+	return ids;
 }
 
 void EntityManager::RemoveBullet(int id) {
-    mBullets.erase(id);
+	mBullets.erase(id);
 }
 
 int EntityManager::AddCoin(std::shared_ptr<Coin> coin) {
-    int id = mNextCoinID++;
-    mCoins[id] = coin;
-    coin->mCoinID = id;
-    return id;
+	int id = mNextCoinID++;
+	mCoins[id] = coin;
+	coin->mCoinID = id;
+	return id;
 }
 
 Coin* EntityManager::GetCoin(int id) const {
-    auto it = mCoins.find(id);
-    if (it != mCoins.end())
-        return it->second.lock().get();
-    return nullptr;
+	auto it = mCoins.find(id);
+	if (it != mCoins.end())
+		return it->second.lock().get();
+	return nullptr;
 }
 
 std::vector<int> EntityManager::GetAllCoinIDs() const {
-    std::vector<int> ids;
-    for (const auto& pair : mCoins) {
-        if (pair.second.lock())
-            ids.push_back(pair.first);
-    }
-    return ids;
+	std::vector<int> ids;
+	for (const auto& pair : mCoins) {
+		if (pair.second.lock())
+			ids.push_back(pair.first);
+	}
+	return ids;
 }
 
 std::vector<int> EntityManager::CleanupExpired() {
-    std::vector<int> removedPlants;
+	std::vector<int> removedPlants;
 
-    // 清理植物
-    for (auto it = mPlants.begin(); it != mPlants.end(); ) {
-        if (it->second.expired()) {
-            removedPlants.push_back(it->first);
-            it = mPlants.erase(it);
-        }
-        else {
-            ++it;
-        }
-    }
+	// 清理植物
+	for (auto it = mPlants.begin(); it != mPlants.end(); ) {
+		if (it->second.expired()) {
+			removedPlants.push_back(it->first);
+			it = mPlants.erase(it);
+		}
+		else {
+			++it;
+		}
+	}
 
-    // 清理僵尸
-    for (auto it = mZombies.begin(); it != mZombies.end(); ) {
-        if (it->second.expired()) {
-            it = mZombies.erase(it);
-        }
-        else {
-            ++it;
-        }
-    }
+	// 清理僵尸
+	for (auto it = mZombies.begin(); it != mZombies.end(); ) {
+		if (it->second.expired()) {
+			it = mZombies.erase(it);
+		}
+		else {
+			++it;
+		}
+	}
 
-    // 清理太阳
-    for (auto it = mCoins.begin(); it != mCoins.end(); ) {
-        if (it->second.expired()) {
-            it = mCoins.erase(it);
-        }
-        else {
-            ++it;
-        }
-    }
+	// 清理太阳
+	for (auto it = mCoins.begin(); it != mCoins.end(); ) {
+		if (it->second.expired()) {
+			it = mCoins.erase(it);
+		}
+		else {
+			++it;
+		}
+	}
 
-    // 清理小推车
-    for (auto it = mMowers.begin(); it != mMowers.end(); ) {
-        if (it->second.expired()) {
-            it = mMowers.erase(it);
-        }
-        else {
-            ++it;
-        }
-    }
+	// 清理小推车
+	for (auto it = mMowers.begin(); it != mMowers.end(); ) {
+		if (it->second.expired()) {
+			it = mMowers.erase(it);
+		}
+		else {
+			++it;
+		}
+	}
 
-    return removedPlants;
+	return removedPlants;
 }
 
 int EntityManager::AddPlantWithID(std::shared_ptr<Plant> plant, int id) {
-    mPlants[id] = plant;
-    plant->mPlantID = id;
-    if (id >= mNextPlantID) {
-        mNextPlantID = id + 1;
-    }
-    return id;
+	mPlants[id] = plant;
+	plant->mPlantID = id;
+	if (id >= mNextPlantID) {
+		mNextPlantID = id + 1;
+	}
+	return id;
 }
 
 int EntityManager::AddZombieWithID(std::shared_ptr<Zombie> zombie, int id) {
-    mZombies[id] = zombie;
-    zombie->mZombieID = id;
-    if (id >= mNextZombieID) {
-        mNextZombieID = id + 1;
-    }
-    return id;
+	mZombies[id] = zombie;
+	zombie->mZombieID = id;
+	if (id >= mNextZombieID) {
+		mNextZombieID = id + 1;
+	}
+	return id;
 }
 
 int EntityManager::AddBulletWithID(std::shared_ptr<Bullet> bullet, int id) {
-    mBullets[id] = bullet;
-    bullet->mBulletID = id;
-    if (id >= mNextBulletID) {
-        mNextBulletID = id + 1;
-    }
-    return id;
+	mBullets[id] = bullet;
+	bullet->mBulletID = id;
+	if (id >= mNextBulletID) {
+		mNextBulletID = id + 1;
+	}
+	return id;
 }
 
 int EntityManager::AddCoinWithID(std::shared_ptr<Coin> coin, int id) {
-    mCoins[id] = coin;
-    coin->mCoinID = id;
-    if (id >= mNextCoinID) {
-        mNextCoinID = id + 1;
-    }
-    return id;
+	mCoins[id] = coin;
+	coin->mCoinID = id;
+	if (id >= mNextCoinID) {
+		mNextCoinID = id + 1;
+	}
+	return id;
 }
 
 int EntityManager::AddMower(std::shared_ptr<Mower> mower) {
-    int id = mNextMowerID++;
-    mMowers[id] = mower;
-    mower->mMowerID = id;
-    return id;
+	int id = mNextMowerID++;
+	mMowers[id] = mower;
+	mower->mMowerID = id;
+	return id;
 }
 
 Mower* EntityManager::GetMower(int id) const {
-    auto it = mMowers.find(id);
-    if (it != mMowers.end())
-        return it->second.lock().get();
-    return nullptr;
+	auto it = mMowers.find(id);
+	if (it != mMowers.end())
+		return it->second.lock().get();
+	return nullptr;
 }
 
 std::vector<int> EntityManager::GetAllMowerIDs() const {
-    std::vector<int> ids;
-    for (const auto& pair : mMowers) {
-        if (pair.second.lock())
-            ids.push_back(pair.first);
-    }
-    return ids;
+	std::vector<int> ids;
+	for (const auto& pair : mMowers) {
+		if (pair.second.lock())
+			ids.push_back(pair.first);
+	}
+	return ids;
 }
 
 int EntityManager::AddMowerWithID(std::shared_ptr<Mower> mower, int id) {
-    mMowers[id] = mower;
-    mower->mMowerID = id;
-    if (id >= mNextMowerID) {
-        mNextMowerID = id + 1;
-    }
-    return id;
+	mMowers[id] = mower;
+	mower->mMowerID = id;
+	if (id >= mNextMowerID) {
+		mNextMowerID = id + 1;
+	}
+	return id;
 }

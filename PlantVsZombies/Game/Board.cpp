@@ -72,7 +72,7 @@ void Board::CreateBoom(const Vector& position, int damage)
 			if (std::abs(zombiePositon.x - position.x) <= 130.0f &&
 				std::abs(zombiePositon.y - position.y) <= 130.0f)
 			{
-				if (zombie->mBodyHealth <= damage) 
+				if (zombie->mBodyHealth <= damage)
 				{
 					zombie->Charred();
 				}
@@ -142,9 +142,9 @@ Zombie* Board::CreateZombie(ZombieType zombieType, int row, float x, float y, bo
 	if (spawnY != -1.0f) {
 		y = spawnY;
 	}
-	
+
 	std::shared_ptr<Zombie> zombie = GameAPP::GetInstance().InstantiateZombie
-		(zombieType, this, x, y, row, isPreview);
+	(zombieType, this, x, y, row, isPreview);
 	if (!zombie) return nullptr;
 
 	mZombieNumber++;
@@ -167,7 +167,7 @@ Bullet* Board::CreateBullet(BulletType bulletType, int row, const Vector& positi
 
 	// 从对象池获取子弹（shared_ptr 局部变量，用于把 weak_ptr 注册进 EntityManager）
 	std::shared_ptr<Bullet> bullet = bulletPool->AcquireShared
-		(this, bulletType, row, Vector(10, 10), position);
+	(this, bulletType, row, Vector(10, 10), position);
 
 	if (bullet && !skipsettings) {
 		mEntityManager.AddBullet(bullet);
@@ -628,7 +628,7 @@ Zombie* Board::CreateZombieWithID(ZombieType type, int row, float x, float y, in
 	}
 
 	std::shared_ptr<Zombie> zombie = GameAPP::GetInstance().InstantiateZombie
-		(type, this, x, y, row, false);
+	(type, this, x, y, row, false);
 	if (!zombie) return nullptr;
 	mZombieNumber++;
 	mEntityManager.AddZombieWithID(zombie, id);
@@ -684,7 +684,7 @@ void Board::ActivateShovel()
 	if (auto shovel = mShovel.lock()) {
 		mCursorObjectManager.Activate(CursorObjectType::SHOVEL, [shovel]() {
 			shovel->ReturnHome();
-		});
+			});
 		shovel->Activate();
 	}
 }
@@ -732,7 +732,7 @@ float Board::GetZombieSpawnY(int row) const {
 	if (this->mBackGround == Background::GROUND_DAY ||
 		this->mBackGround == Background::GROUND_NIGHT)
 	{
-			return static_cast<float>(140 + row * 100);
+		return static_cast<float>(140 + row * 100);
 	}
 	else {
 		return 0.0f;

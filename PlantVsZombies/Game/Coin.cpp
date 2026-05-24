@@ -3,7 +3,7 @@
 #include "../DeltaTime.h"
 
 Coin::Coin(Board* board, AnimationType animType, const Vector& position,
-	const Vector& colliderSize, const Vector& colliderOffset, float VanlishTime, 
+	const Vector& colliderSize, const Vector& colliderOffset, float VanlishTime,
 	float scale,
 	const std::string& tag, bool needScaleAnimation, bool autoDestroy)
 	: AnimatedObject(ObjectType::OBJECT_COIN, board, position, animType, ColliderType::CIRCLE,

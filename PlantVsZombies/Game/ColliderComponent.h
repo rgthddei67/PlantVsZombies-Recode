@@ -17,13 +17,13 @@ enum class ColliderType {
 };
 
 namespace CollisionLayer {
-	constexpr uint16_t NONE   = 0;
-	constexpr uint16_t PLANT  = 1 << 0;
+	constexpr uint16_t NONE = 0;
+	constexpr uint16_t PLANT = 1 << 0;
 	constexpr uint16_t ZOMBIE = 1 << 1;
 	constexpr uint16_t BULLET = 1 << 2;
-	constexpr uint16_t MOWER  = 1 << 3;
-	constexpr uint16_t COIN   = 1 << 4;
-	constexpr uint16_t ALL    = 0xFFFF;
+	constexpr uint16_t MOWER = 1 << 3;
+	constexpr uint16_t COIN = 1 << 4;
+	constexpr uint16_t ALL = 0xFFFF;
 }
 
 class ColliderComponent : public Component {
@@ -34,10 +34,10 @@ public:
 	bool isTrigger = false;            // 是否是触发器
 	bool isStatic = false;             // 是否是静态碰撞体
 
-	uint16_t layerMask     = CollisionLayer::ALL;
+	uint16_t layerMask = CollisionLayer::ALL;
 	uint16_t collisionMask = CollisionLayer::ALL;
-	uint32_t colliderID    = 0;
-	bool     mRegistered   = false;
+	uint32_t colliderID = 0;
+	bool     mRegistered = false;
 
 	// 碰撞的事件（回调函数） —— 裸指针 other，回调阶段保证对象活
 	std::function<void(ColliderComponent*)> onTriggerEnter;

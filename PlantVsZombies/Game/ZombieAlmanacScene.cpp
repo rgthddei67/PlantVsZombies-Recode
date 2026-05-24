@@ -128,7 +128,7 @@ void ZombieAlmanacScene::CreateAllZombieEntries()
 			offset.y - ZOMBIE_WINDOW_SIZE / 2.0f));
 		clickable->onClick = [this, zombieType]() {
 			OnZombieClicked(zombieType);
-		};
+			};
 
 		mGridZombies.push_back(zombie);
 		constexpr int CLIP_INSET = 3;
@@ -213,7 +213,7 @@ void ZombieAlmanacScene::LoadInfoFile()
 		while (!s.empty() && (s.back() == ' ' || s.back() == '\t' ||
 			s.back() == '\r' || s.back() == '\n'))
 			s.pop_back();
-	};
+		};
 
 	std::string line;
 	while (std::getline(file, line)) {

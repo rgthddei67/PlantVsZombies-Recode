@@ -9,33 +9,33 @@
 
 int main(int argc, char** argv)
 {
-    system("chcp 65001");
-    system("cls");
-    CrashHandler::Initialize();
-    GameRandom::RandomizeSeed();
+	system("chcp 65001");
+	system("cls");
+	CrashHandler::Initialize();
+	GameRandom::RandomizeSeed();
 
-    GameMonitor::Init();
+	GameMonitor::Init();
 
-    // 检查命令行参数
-    for (int i = 1; i < argc; ++i)
-    {
-        const std::string arg = argv[i];
-        if (arg == "-Debug" || arg == "-debug")
-        {
-            GameAPP::mDebugMode = true;
-            GameAPP::mShowColliders = true;
-            std::cout << "Debug模式已启用" << std::endl;
-        }
-        else if (arg == "-NoInstance" || arg == "-noinstance")
-        {
-            GameAPP::mDisableInstancePath = true;
-            std::cout << "GPU instance path 已禁用 (A/B baseline)" << std::endl;
-        }
-    }
+	// 检查命令行参数
+	for (int i = 1; i < argc; ++i)
+	{
+		const std::string arg = argv[i];
+		if (arg == "-Debug" || arg == "-debug")
+		{
+			GameAPP::mDebugMode = true;
+			GameAPP::mShowColliders = true;
+			std::cout << "Debug模式已启用" << std::endl;
+		}
+		else if (arg == "-NoInstance" || arg == "-noinstance")
+		{
+			GameAPP::mDisableInstancePath = true;
+			std::cout << "GPU instance path 已禁用 (A/B baseline)" << std::endl;
+		}
+	}
 
-    int result = GameAPP::GetInstance().Run();
+	int result = GameAPP::GetInstance().Run();
 
-    CrashHandler::Cleanup();
+	CrashHandler::Cleanup();
 
-    return result;
+	return result;
 }

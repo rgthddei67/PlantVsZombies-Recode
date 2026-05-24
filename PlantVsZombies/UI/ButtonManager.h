@@ -10,29 +10,29 @@
 class ButtonManager
 {
 private:
-    std::vector<std::shared_ptr<Button>> buttons; 
+	std::vector<std::shared_ptr<Button>> buttons;
 
 public:
-    std::shared_ptr<Button> CreateButton(Vector pos = Vector::zero(),
-        Vector size = Vector(40, 40));
+	std::shared_ptr<Button> CreateButton(Vector pos = Vector::zero(),
+		Vector size = Vector(40, 40));
 
-    void ProcessMouseEvent(InputHandler* input);
+	void ProcessMouseEvent(InputHandler* input);
 
-    void ResetAllFrameStates();
+	void ResetAllFrameStates();
 
-    void AddButton(std::shared_ptr<Button> button);
+	void AddButton(std::shared_ptr<Button> button);
 
-    void RemoveButton(std::shared_ptr<Button> button);
+	void RemoveButton(std::shared_ptr<Button> button);
 
-    void ClearAllButtons();
+	void ClearAllButtons();
 
-    void UpdateAll(InputHandler* input);
+	void UpdateAll(InputHandler* input);
 
-    void DrawAll(Graphics* g) const;
+	void DrawAll(Graphics* g) const;
 
-    size_t GetButtonCount() const;
+	size_t GetButtonCount() const;
 
-    std::shared_ptr<Button> GetButton(size_t index) const;
+	std::shared_ptr<Button> GetButton(size_t index) const;
 };
 
 #endif

@@ -10,13 +10,13 @@
 #include <memory>
 
 namespace {
-	const Vector DEFAULT_SIZE(SCENE_WIDTH / 2, SCENE_HEIGHT / 2);		// 默认位置	     
+	const Vector DEFAULT_SIZE(SCENE_WIDTH / 2, SCENE_HEIGHT / 2);		// 默认位置
 	const int BASE_TITLE_FONT_SIZE = 20;	// Title大小
-	const int BASE_MESSAGE_FONT_SIZE = 18;	
+	const int BASE_MESSAGE_FONT_SIZE = 18;
 	const int BUTTON_SPACING = 10;			// 按钮距离上面偏移
 	const Vector TITLE_OFFSET = Vector(-70, -65);	// Title偏移
 	const Vector MESSAGE_OFFSET = Vector(-190, -25);
-	const int BOTTOM_MARGIN = 10;              
+	const int BOTTOM_MARGIN = 10;
 }
 
 GameMessageBox::GameMessageBox(const Vector& pos,
@@ -38,7 +38,7 @@ GameMessageBox::GameMessageBox(const Vector& pos,
 	, m_textConfigs(texts)
 {
 	mIsUI = true;
-	
+
 	Vector originalSize = GetBackgroundOriginalSize();
 	m_size = originalSize * scale;
 	this->SetRenderOrder(LAYER_UI + 500000);
@@ -82,7 +82,7 @@ void GameMessageBox::Start()
 
 	for (const auto& config : m_buttonConfigs) {
 		Vector btnSize = config.size * m_scale;
-		
+
 		auto button = SceneManager::GetInstance().GetCurrectSceneUIManager().
 			CreateButton(config.pos, btnSize);
 
@@ -93,8 +93,8 @@ void GameMessageBox::Start()
 			config.texture == ResourceKeys::Textures::IMAGE_OPTIONS_CHECKBOX1) {
 			button->SetAsCheckbox(true);
 			button->SetImageKeys
-				(config.texture, config.texture, config.texture, 
-					ResourceKeys::Textures::IMAGE_OPTIONS_CHECKBOX1);
+			(config.texture, config.texture, config.texture,
+				ResourceKeys::Textures::IMAGE_OPTIONS_CHECKBOX1);
 		}
 		else {
 			button->SetTextColor(m_titleColor);
@@ -102,7 +102,7 @@ void GameMessageBox::Start()
 			button->SetText(config.text, ResourceKeys::Fonts::FONT_FZCQ, fontSize);
 			button->SetAsCheckbox(false);
 			button->SetImageKeys
-				(config.texture, config.texture, config.texture, config.texture);
+			(config.texture, config.texture, config.texture, config.texture);
 		}
 
 		// 销毁是延迟到帧末，回调期间 this 一定有效

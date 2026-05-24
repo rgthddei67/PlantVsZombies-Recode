@@ -12,39 +12,39 @@ class ClickableComponent : public Component {
 public:
 	bool IsClickable = true;    // 是否可点击
 	bool ConsumeEvent = true;   // 是否消耗点击事件，阻止更低层对象响应
-    bool ChangeCursorOnHover = true;   // 悬停时改变光标
+	bool ChangeCursorOnHover = true;   // 悬停时改变光标
 
-    std::function<void()> onClick;
-    std::function<void()> onMouseEnter;
-    std::function<void()> onMouseExit;
-    std::function<void()> onMouseDown;
-    std::function<void()> onMouseUp;
+	std::function<void()> onClick;
+	std::function<void()> onMouseEnter;
+	std::function<void()> onMouseExit;
+	std::function<void()> onMouseDown;
+	std::function<void()> onMouseUp;
 
-    ClickableComponent() = default;
+	ClickableComponent() = default;
 
-    void Start() override;
-    void Update() override;
-    bool NeedsUpdate() const override { return true; }
+	void Start() override;
+	void Update() override;
+	bool NeedsUpdate() const override { return true; }
 
-    void SetClickArea(const Vector& size);
-    void SetClickOffset(const Vector& offset);
+	void SetClickArea(const Vector& size);
+	void SetClickOffset(const Vector& offset);
 
-    static void ProcessMouseEvents();
-    static void ClearProcessedEvents();
+	static void ProcessMouseEvents();
+	static void ClearProcessedEvents();
 
 private:
-    ColliderComponent* mCollider = nullptr;
+	ColliderComponent* mCollider = nullptr;
 
-    // 存储当前帧处理过的点击事件
-    inline static std::unordered_set<ClickableComponent*> s_processedEvents;
+	// 存储当前帧处理过的点击事件
+	inline static std::unordered_set<ClickableComponent*> s_processedEvents;
 
-    // 鼠标状态
-    bool mouseOver = false;
-    bool mouseDown = false;
-    bool prevMouseOver = false;
+	// 鼠标状态
+	bool mouseOver = false;
+	bool mouseDown = false;
+	bool prevMouseOver = false;
 
-    // 当前帧是否有鼠标悬停在可点击对象上
-    inline static bool s_hoveringClickable = false;
+	// 当前帧是否有鼠标悬停在可点击对象上
+	inline static bool s_hoveringClickable = false;
 };
 
 #endif

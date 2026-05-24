@@ -41,5 +41,4 @@ protected:
 	void CheckHelmImage() override;
 };
 
-
 #endif

@@ -50,7 +50,6 @@ void Polevaulter::SetupZombie()
 	if (auto shadowComponent = GetComponent<ShadowComponent>()) {
 		shadowComponent->SetOffset(Vector(4, 42));
 	}
-
 }
 
 void Polevaulter::HeadDrop()

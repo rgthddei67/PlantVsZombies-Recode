@@ -35,7 +35,7 @@ void WallNut::PlantUpdate()
 	}
 }
 
-void WallNut::UpdateTexture() 
+void WallNut::UpdateTexture()
 {
 	if (this->mPlantHealth <= this->mPlantMaxHealth / 3 * 2 &&
 		this->mPlantHealth > this->mPlantMaxHealth / 3) {

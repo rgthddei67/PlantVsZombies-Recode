@@ -109,7 +109,7 @@ void GameDataManager::InitializeHardcodedData() {
 	// 普通僵尸
 	RegisterZombie(
 		ZombieType::ZOMBIE_NORMAL,
-		"ZOMBIE_NORMAL",			
+		"ZOMBIE_NORMAL",
 		AnimationType::ANIM_NORMAL_ZOMBIE,
 		ResourceKeys::Reanimations::REANIM_NORMAL_ZOMBIE,
 		Vector(-50, -85),

@@ -16,5 +16,4 @@ public:
 	bool DeleteLevelData(Board* board);
 };
 
-
 #endif

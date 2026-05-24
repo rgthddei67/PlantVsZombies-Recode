@@ -56,7 +56,6 @@ Plant::Plant(Board* board, PlantType plantType, int row, int column,
 
 void Plant::SetupPlant()
 {
-
 }
 
 void Plant::Start()
@@ -112,7 +111,6 @@ Vector Plant::GetVisualPosition() const {
 
 void Plant::PlantUpdate()
 {
-
 }
 
 Vector Plant::GetPosition() const

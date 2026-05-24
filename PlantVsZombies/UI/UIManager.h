@@ -4,122 +4,122 @@
 #include "../ResourceManager.h"
 #include "ButtonManager.h"
 #include "SliderManager.h"
-#include "GameMessageBox.h"         
+#include "GameMessageBox.h"
 #include "../Graphics.h"
-#include "../Game/GameObjectManager.h" 
+#include "../Game/GameObjectManager.h"
 
 class UIManager
 {
 private:
-    ButtonManager buttonManager;
-    SliderManager sliderManager;
+	ButtonManager buttonManager;
+	SliderManager sliderManager;
 
 public:
-    ~UIManager() 
-    {
-        ClearAll();
-    }
+	~UIManager()
+	{
+		ClearAll();
+	}
 
-    std::shared_ptr<Button> CreateButton(Vector pos = Vector::zero(), Vector size = Vector(40, 40))
-    {
-        return buttonManager.CreateButton(pos, size);
-    }
+	std::shared_ptr<Button> CreateButton(Vector pos = Vector::zero(), Vector size = Vector(40, 40))
+	{
+		return buttonManager.CreateButton(pos, size);
+	}
 
-    void RemoveButton(std::shared_ptr<Button> button)
-    {
-        buttonManager.RemoveButton(button);
-    }
+	void RemoveButton(std::shared_ptr<Button> button)
+	{
+		buttonManager.RemoveButton(button);
+	}
 
-    void ClearAllButtons()
-    {
-        buttonManager.ClearAllButtons();
-    }
+	void ClearAllButtons()
+	{
+		buttonManager.ClearAllButtons();
+	}
 
-    size_t GetButtonCount() const
-    {
-        return buttonManager.GetButtonCount();
-    }
+	size_t GetButtonCount() const
+	{
+		return buttonManager.GetButtonCount();
+	}
 
-    std::shared_ptr<Button> GetButton(size_t index) const
-    {
-        return buttonManager.GetButton(index);
-    }
+	std::shared_ptr<Button> GetButton(size_t index) const
+	{
+		return buttonManager.GetButton(index);
+	}
 
-    std::shared_ptr<Slider> CreateSlider(Vector pos = Vector::zero(),
-        Vector size = Vector(135, 10),
-        float minVal = 0.0f,
-        float maxVal = 1.0f,
-        float initialValue = 0.5f)
-    {
-        return sliderManager.CreateSlider(pos, size, minVal, maxVal, initialValue);
-    }
+	std::shared_ptr<Slider> CreateSlider(Vector pos = Vector::zero(),
+		Vector size = Vector(135, 10),
+		float minVal = 0.0f,
+		float maxVal = 1.0f,
+		float initialValue = 0.5f)
+	{
+		return sliderManager.CreateSlider(pos, size, minVal, maxVal, initialValue);
+	}
 
-    std::shared_ptr<GameMessageBox> CreateMessageBox(const Vector& pos,
-        const std::string& message,
-        const std::vector<GameMessageBox::ButtonConfig>& buttons,
-        const std::vector<GameMessageBox::SliderConfig>& sliders,
-        const std::vector<GameMessageBox::TextConfig>& texts,
-        const std::string& title = "",
-        float scale = 1.0f,
-        const std::string& backgroundImageKey = ResourceKeys::Textures::IMAGE_MESSAGEBOX)
-    {
-        return GameObjectManager::GetInstance().CreateGameObjectImmediateAsShared<GameMessageBox>(
-            LAYER_UI, pos, message, buttons, sliders, texts, title, backgroundImageKey, scale);
-    }
+	std::shared_ptr<GameMessageBox> CreateMessageBox(const Vector& pos,
+		const std::string& message,
+		const std::vector<GameMessageBox::ButtonConfig>& buttons,
+		const std::vector<GameMessageBox::SliderConfig>& sliders,
+		const std::vector<GameMessageBox::TextConfig>& texts,
+		const std::string& title = "",
+		float scale = 1.0f,
+		const std::string& backgroundImageKey = ResourceKeys::Textures::IMAGE_MESSAGEBOX)
+	{
+		return GameObjectManager::GetInstance().CreateGameObjectImmediateAsShared<GameMessageBox>(
+			LAYER_UI, pos, message, buttons, sliders, texts, title, backgroundImageKey, scale);
+	}
 
-    void RemoveSlider(std::shared_ptr<Slider> slider)
-    {
-        sliderManager.RemoveSlider(slider);
-    }
+	void RemoveSlider(std::shared_ptr<Slider> slider)
+	{
+		sliderManager.RemoveSlider(slider);
+	}
 
-    void ClearAllSliders()
-    {
-        sliderManager.ClearAllSliders();
-    }
+	void ClearAllSliders()
+	{
+		sliderManager.ClearAllSliders();
+	}
 
-    size_t GetSliderCount() const
-    {
-        return sliderManager.GetSliderCount();
-    }
+	size_t GetSliderCount() const
+	{
+		return sliderManager.GetSliderCount();
+	}
 
-    std::shared_ptr<Slider> GetSlider(size_t index) const
-    {
-        return sliderManager.GetSlider(index);
-    }
+	std::shared_ptr<Slider> GetSlider(size_t index) const
+	{
+		return sliderManager.GetSlider(index);
+	}
 
-    void ProcessMouseEvent(InputHandler* input)
-    {
-        buttonManager.ProcessMouseEvent(input);
-        sliderManager.ProcessMouseEvent(input);
-    }
+	void ProcessMouseEvent(InputHandler* input)
+	{
+		buttonManager.ProcessMouseEvent(input);
+		sliderManager.ProcessMouseEvent(input);
+	}
 
-    void UpdateAll(InputHandler* input)
-    {
-        buttonManager.UpdateAll(input);
-        sliderManager.UpdateAll(input);
-    }
+	void UpdateAll(InputHandler* input)
+	{
+		buttonManager.UpdateAll(input);
+		sliderManager.UpdateAll(input);
+	}
 
-    void DrawAll(Graphics* g) const
-    {
-        buttonManager.DrawAll(g);
-        sliderManager.DrawAll(g);
-    }
+	void DrawAll(Graphics* g) const
+	{
+		buttonManager.DrawAll(g);
+		sliderManager.DrawAll(g);
+	}
 
-    void ResetAllFrameStates()
-    {
-        buttonManager.ResetAllFrameStates();
-    }
+	void ResetAllFrameStates()
+	{
+		buttonManager.ResetAllFrameStates();
+	}
 
-    void ClearAll()
-    {
-        buttonManager.ClearAllButtons();
-        sliderManager.ClearAllSliders();
-    }
+	void ClearAll()
+	{
+		buttonManager.ClearAllButtons();
+		sliderManager.ClearAllSliders();
+	}
 
-    ButtonManager& GetButtonManager() { return buttonManager; }
-    SliderManager& GetSliderManager() { return sliderManager; }
-    const ButtonManager& GetButtonManager() const { return buttonManager; }
-    const SliderManager& GetSliderManager() const { return sliderManager; }
+	ButtonManager& GetButtonManager() { return buttonManager; }
+	SliderManager& GetSliderManager() { return sliderManager; }
+	const ButtonManager& GetButtonManager() const { return buttonManager; }
+	const SliderManager& GetSliderManager() const { return sliderManager; }
 };
 
 #endif

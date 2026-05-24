@@ -12,82 +12,82 @@
 
 class ThreadPool {
 public:
-    explicit ThreadPool(int numThreads)
-        : mShutdown(false), mWorkGen(0), mDoneCount(0), mNumActive(0), mTotalItems(0)
-    {
-        mWorkers.reserve(numThreads);
-        for (int i = 0; i < numThreads; i++)
-            mWorkers.emplace_back(&ThreadPool::WorkerLoop, this, i);
-    }
+	explicit ThreadPool(int numThreads)
+		: mShutdown(false), mWorkGen(0), mDoneCount(0), mNumActive(0), mTotalItems(0)
+	{
+		mWorkers.reserve(numThreads);
+		for (int i = 0; i < numThreads; i++)
+			mWorkers.emplace_back(&ThreadPool::WorkerLoop, this, i);
+	}
 
-    ~ThreadPool() {
-        {
-            std::unique_lock<std::mutex> lock(mMutex);
-            mShutdown = true;
-        }
-        mStartCV.notify_all();
-        for (auto& t : mWorkers) t.join();
-    }
+	~ThreadPool() {
+		{
+			std::unique_lock<std::mutex> lock(mMutex);
+			mShutdown = true;
+		}
+		mStartCV.notify_all();
+		for (auto& t : mWorkers) t.join();
+	}
 
-    void Dispatch(int totalItems, std::function<void(int, int)> func) {
-        if (totalItems <= 0) return;
-        int n = static_cast<int>(mWorkers.size());
-        if (n > totalItems) n = totalItems;
+	void Dispatch(int totalItems, std::function<void(int, int)> func) {
+		if (totalItems <= 0) return;
+		int n = static_cast<int>(mWorkers.size());
+		if (n > totalItems) n = totalItems;
 
-        mWorkFunc = std::move(func);
-        mTotalItems = totalItems;
-        mNumActive = n;
-        mDoneCount.store(0);
+		mWorkFunc = std::move(func);
+		mTotalItems = totalItems;
+		mNumActive = n;
+		mDoneCount.store(0);
 
-        {
-            std::unique_lock<std::mutex> lock(mMutex);
-            mWorkGen++;
-        }
-        mStartCV.notify_all();
+		{
+			std::unique_lock<std::mutex> lock(mMutex);
+			mWorkGen++;
+		}
+		mStartCV.notify_all();
 
-        std::unique_lock<std::mutex> lock(mMutex);
-        mDoneCV.wait(lock, [this, n] { return mDoneCount.load() == n; });
-    }
+		std::unique_lock<std::mutex> lock(mMutex);
+		mDoneCV.wait(lock, [this, n] { return mDoneCount.load() == n; });
+	}
 
 private:
-    void WorkerLoop(int idx) {
-        int lastGen = 0;
-        while (true) {
-            {
-                std::unique_lock<std::mutex> lock(mMutex);
-                mStartCV.wait(lock, [this, lastGen] { return mShutdown || mWorkGen != lastGen; });
-                if (mShutdown) return;
-                lastGen = mWorkGen;
-            }
-            int numActive  = mNumActive;
-            int totalItems = mTotalItems;
+	void WorkerLoop(int idx) {
+		int lastGen = 0;
+		while (true) {
+			{
+				std::unique_lock<std::mutex> lock(mMutex);
+				mStartCV.wait(lock, [this, lastGen] { return mShutdown || mWorkGen != lastGen; });
+				if (mShutdown) return;
+				lastGen = mWorkGen;
+			}
+			int numActive = mNumActive;
+			int totalItems = mTotalItems;
 
-            int chunkSize = (totalItems + numActive - 1) / numActive;
-            int start = idx * chunkSize;
-            int end = std::min(start + chunkSize, totalItems);
-            if (start < totalItems)
-                mWorkFunc(start, end);
+			int chunkSize = (totalItems + numActive - 1) / numActive;
+			int start = idx * chunkSize;
+			int end = std::min(start + chunkSize, totalItems);
+			if (start < totalItems)
+				mWorkFunc(start, end);
 
-            // 只有参与本轮分发的线程才计数
-            if (idx < numActive) {
-                if (mDoneCount.fetch_add(1) + 1 == numActive) {
-                    std::unique_lock<std::mutex> lock(mMutex);
-                    mDoneCV.notify_one();
-                }
-            }
-        }
-    }
+			// 只有参与本轮分发的线程才计数
+			if (idx < numActive) {
+				if (mDoneCount.fetch_add(1) + 1 == numActive) {
+					std::unique_lock<std::mutex> lock(mMutex);
+					mDoneCV.notify_one();
+				}
+			}
+		}
+	}
 
-    std::vector<std::thread> mWorkers;
-    std::function<void(int, int)> mWorkFunc;
-    int mTotalItems;
-    int mNumActive;
-    std::mutex mMutex;
-    std::condition_variable mStartCV;
-    std::condition_variable mDoneCV;
-    std::atomic<int> mDoneCount;
-    bool mShutdown;
-    int mWorkGen;
+	std::vector<std::thread> mWorkers;
+	std::function<void(int, int)> mWorkFunc;
+	int mTotalItems;
+	int mNumActive;
+	std::mutex mMutex;
+	std::condition_variable mStartCV;
+	std::condition_variable mDoneCV;
+	std::atomic<int> mDoneCount;
+	bool mShutdown;
+	int mWorkGen;
 };
 
 #endif

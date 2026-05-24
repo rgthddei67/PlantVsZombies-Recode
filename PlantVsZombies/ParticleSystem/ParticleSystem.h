@@ -11,26 +11,26 @@
 
 class ParticleSystem {
 private:
-    std::vector<std::unique_ptr<ParticleEffect>> effects;
-    Graphics* m_graphics;
-    ParticleConfigManager configManager;
+	std::vector<std::unique_ptr<ParticleEffect>> effects;
+	Graphics* m_graphics;
+	ParticleConfigManager configManager;
 
 public:
-    explicit ParticleSystem(Graphics* graphics);
-    ~ParticleSystem();
+	explicit ParticleSystem(Graphics* graphics);
+	~ParticleSystem();
 
-    ParticleSystem(const ParticleSystem&) = delete;
-    ParticleSystem& operator=(const ParticleSystem&) = delete;
+	ParticleSystem(const ParticleSystem&) = delete;
+	ParticleSystem& operator=(const ParticleSystem&) = delete;
 
-    void UpdateAll();
-    void DrawAll();
-    void ClearAll();
+	void UpdateAll();
+	void DrawAll();
+	void ClearAll();
 
-    bool LoadXMLConfigs(const std::string& directory);
-    void EmitEffect(const std::string& effectName, const Vector& position);
+	bool LoadXMLConfigs(const std::string& directory);
+	void EmitEffect(const std::string& effectName, const Vector& position);
 
 private:
-    void CleanupInactiveEffects();
+	void CleanupInactiveEffects();
 };
 
 extern std::unique_ptr<ParticleSystem> g_particleSystem;

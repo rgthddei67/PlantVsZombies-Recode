@@ -48,7 +48,7 @@ void Mower::Trigger()
 	else {
 		AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_LAWNMOWER, 0.4f);
 	}
-	
+
 	PlayTrack("anim_normal");
 
 	mState = MowerState::MOVING;

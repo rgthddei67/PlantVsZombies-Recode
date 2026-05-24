@@ -10,7 +10,7 @@
 #include "GameProgress.h"
 #include "ChooseCardUI.h"
 #include "../UI/GameMessageBox.h"
-#include "../GameApp.h" 
+#include "../GameApp.h"
 #include "../Graphics.h"
 #include "./Shovel.h"
 #include "ShovelBank.h"
@@ -19,11 +19,9 @@
 #include <cstdio>
 
 GameScene::GameScene() {
-
 }
 
 GameScene::~GameScene() {
-
 }
 
 void GameScene::BuildDrawCommands()
@@ -31,7 +29,7 @@ void GameScene::BuildDrawCommands()
 	Scene::BuildDrawCommands();
 
 	Background background = GameAPP::GetInstance().GetBackgroundID
-		(std::stoi(SceneManager::GetInstance().GetGlobalData("EnterLevel")));
+	(std::stoi(SceneManager::GetInstance().GetGlobalData("EnterLevel")));
 
 	if (background == Background::GROUND_DAY) {
 		AddTexture(ResourceKeys::Textures::IMAGE_BACKGROUND_DAY,
@@ -131,7 +129,7 @@ void GameScene::OnEnter() {
 		char buf[16];
 		std::snprintf(buf, sizeof(buf), "x%.1f", scale);
 		return std::string(buf);
-	};
+		};
 	button2->SetText(formatSpeedText(DeltaTime::GetTimeScale()));
 	button2->SetAsCheckbox(false);
 	button2->SetTextColor(glm::vec4{ 53, 191, 61, 255 });
@@ -505,7 +503,6 @@ void GameScene::Update() {
 			}
 			}
 		}
-
 	}
 
 	if (mReadyToRestart) {

@@ -69,7 +69,7 @@ public:
 	virtual void ZombieUpdate(float scaledTime) {}		// 子类重写Update用这个
 	virtual void TakeDamage(int damage);
 	virtual void SaveExtraData(nlohmann::json& j) const {}	// 保存额外数据
-	virtual void LoadExtraData(const nlohmann::json& j) {}	// 加载额外数据 
+	virtual void LoadExtraData(const nlohmann::json& j) {}	// 加载额外数据
 	virtual void ZombieItemUpdate() const; // 处理僵尸读档的时候的手臂、防具等处理
 	virtual void Charred();	// 变成灰烬
 

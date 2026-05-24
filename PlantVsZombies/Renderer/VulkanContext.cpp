@@ -9,10 +9,8 @@
 #include <string>
 
 namespace pvz {
-
-namespace {
-
-// 用打印替代异常，让 Phase 1 烟雾测试容易调试。
+	namespace {
+		// 用打印替代异常，让 Phase 1 烟雾测试容易调试。
 #define VK_CHECK(expr)                                                      \
     do {                                                                    \
         VkResult _r = (expr);                                               \
@@ -23,386 +21,386 @@ namespace {
         }                                                                   \
     } while (0)
 
-VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
-    VkDebugUtilsMessageSeverityFlagBitsEXT severity,
-    VkDebugUtilsMessageTypeFlagsEXT        /*types*/,
-    const VkDebugUtilsMessengerCallbackDataEXT* data,
-    void*                                  /*userData*/) {
-    const char* sevTag = "INFO";
-    if (severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)        sevTag = "ERROR";
-    else if (severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) sevTag = "WARN";
-    else if (severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT) sevTag = "VERBOSE";
-    std::fprintf(stderr, "[Vulkan %s] %s\n", sevTag,
-                 data && data->pMessage ? data->pMessage : "(no message)");
-    return VK_FALSE;
-}
+		VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
+			VkDebugUtilsMessageSeverityFlagBitsEXT severity,
+			VkDebugUtilsMessageTypeFlagsEXT        /*types*/,
+			const VkDebugUtilsMessengerCallbackDataEXT* data,
+			void*                                  /*userData*/) {
+			const char* sevTag = "INFO";
+			if (severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)        sevTag = "ERROR";
+			else if (severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) sevTag = "WARN";
+			else if (severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT) sevTag = "VERBOSE";
+			std::fprintf(stderr, "[Vulkan %s] %s\n", sevTag,
+				data && data->pMessage ? data->pMessage : "(no message)");
+			return VK_FALSE;
+		}
 
-bool HasLayer(const char* name) {
-    uint32_t count = 0;
-    vkEnumerateInstanceLayerProperties(&count, nullptr);
-    std::vector<VkLayerProperties> layers(count);
-    vkEnumerateInstanceLayerProperties(&count, layers.data());
-    for (const auto& l : layers) {
-        if (std::strcmp(l.layerName, name) == 0) return true;
-    }
-    return false;
-}
+		bool HasLayer(const char* name) {
+			uint32_t count = 0;
+			vkEnumerateInstanceLayerProperties(&count, nullptr);
+			std::vector<VkLayerProperties> layers(count);
+			vkEnumerateInstanceLayerProperties(&count, layers.data());
+			for (const auto& l : layers) {
+				if (std::strcmp(l.layerName, name) == 0) return true;
+			}
+			return false;
+		}
+	} // anonymous namespace
 
-} // anonymous namespace
+	VulkanContext::VulkanContext() = default;
+	VulkanContext::~VulkanContext() { Shutdown(); }
 
-VulkanContext::VulkanContext() = default;
-VulkanContext::~VulkanContext() { Shutdown(); }
+	bool VulkanContext::Initialize(SDL_Window* window, bool enableValidation, bool vsync) {
+		mValidationEnabled = enableValidation;
+		mWindow = window;
 
-bool VulkanContext::Initialize(SDL_Window* window, bool enableValidation, bool vsync) {
-    mValidationEnabled = enableValidation;
-    mWindow            = window;
+		// VulkanSDK 静态链接：函数原型与实现都在 vulkan-1.lib 中。
+		// 不再需要 volkInitialize / volkLoadInstance / volkLoadDevice。
+		if (!CreateInstance(window, enableValidation)) return false;
+		if (enableValidation && !CreateDebugMessenger()) return false;
+		if (!CreateSurface(window))                     return false;
+		if (!PickPhysicalDevice())                      return false;
+		if (!CreateLogicalDevice())                     return false;
+		if (!CreateSwapchain(window, vsync))            return false;
+		if (!CreateAllocator())                         return false;
 
-    // VulkanSDK 静态链接：函数原型与实现都在 vulkan-1.lib 中。
-    // 不再需要 volkInitialize / volkLoadInstance / volkLoadDevice。
-    if (!CreateInstance(window, enableValidation)) return false;
-    if (enableValidation && !CreateDebugMessenger()) return false;
-    if (!CreateSurface(window))                     return false;
-    if (!PickPhysicalDevice())                      return false;
-    if (!CreateLogicalDevice())                     return false;
-    if (!CreateSwapchain(window, vsync))            return false;
-    if (!CreateAllocator())                         return false;
-
-    mInitialized = true;
+		mInitialized = true;
 
 #ifdef _DEBUG
-    std::fprintf(stdout,
-        "[Vulkan] Ready. swapchain=%ux%u format=%d images=%zu validation=%d\n",
-        mSwapchainExtent.width, mSwapchainExtent.height,
-        (int)mSwapchainFormat, mSwapchainImages.size(),
-        mValidationEnabled ? 1 : 0);
+		std::fprintf(stdout,
+			"[Vulkan] Ready. swapchain=%ux%u format=%d images=%zu validation=%d\n",
+			mSwapchainExtent.width, mSwapchainExtent.height,
+			(int)mSwapchainFormat, mSwapchainImages.size(),
+			mValidationEnabled ? 1 : 0);
 #endif
 
-    return true;
-}
+		return true;
+	}
 
-bool VulkanContext::CreateInstance(SDL_Window* window, bool enableValidation) {
-    VkApplicationInfo app{ VK_STRUCTURE_TYPE_APPLICATION_INFO };
-    app.pApplicationName   = "PlantsVsZombies";
-    app.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-    app.pEngineName        = "PVZ-Vulkan";
-    app.engineVersion      = VK_MAKE_VERSION(1, 0, 0);
-    app.apiVersion         = VK_API_VERSION_1_3;
+	bool VulkanContext::CreateInstance(SDL_Window* window, bool enableValidation) {
+		VkApplicationInfo app{ VK_STRUCTURE_TYPE_APPLICATION_INFO };
+		app.pApplicationName = "PlantsVsZombies";
+		app.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
+		app.pEngineName = "PVZ-Vulkan";
+		app.engineVersion = VK_MAKE_VERSION(1, 0, 0);
+		app.apiVersion = VK_API_VERSION_1_3;
 
-    // SDL 帮我们列出 surface 相关扩展（platform-specific）
-    uint32_t sdlExtCount = 0;
-    if (!SDL_Vulkan_GetInstanceExtensions(window, &sdlExtCount, nullptr)) {
-        std::fprintf(stderr, "[Vulkan] SDL_Vulkan_GetInstanceExtensions(count) failed: %s\n", SDL_GetError());
-        return false;
-    }
-    std::vector<const char*> extensions(sdlExtCount);
-    if (!SDL_Vulkan_GetInstanceExtensions(window, &sdlExtCount, extensions.data())) {
-        std::fprintf(stderr, "[Vulkan] SDL_Vulkan_GetInstanceExtensions failed: %s\n", SDL_GetError());
-        return false;
-    }
-    if (enableValidation) {
-        extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-    }
+		// SDL 帮我们列出 surface 相关扩展（platform-specific）
+		uint32_t sdlExtCount = 0;
+		if (!SDL_Vulkan_GetInstanceExtensions(window, &sdlExtCount, nullptr)) {
+			std::fprintf(stderr, "[Vulkan] SDL_Vulkan_GetInstanceExtensions(count) failed: %s\n", SDL_GetError());
+			return false;
+		}
+		std::vector<const char*> extensions(sdlExtCount);
+		if (!SDL_Vulkan_GetInstanceExtensions(window, &sdlExtCount, extensions.data())) {
+			std::fprintf(stderr, "[Vulkan] SDL_Vulkan_GetInstanceExtensions failed: %s\n", SDL_GetError());
+			return false;
+		}
+		if (enableValidation) {
+			extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+		}
 
-    std::vector<const char*> layers;
-    if (enableValidation) {
-        if (HasLayer("VK_LAYER_KHRONOS_validation")) {
-            layers.push_back("VK_LAYER_KHRONOS_validation");
-        } else {
-            std::fprintf(stderr, "[Vulkan] WARN: validation requested but VK_LAYER_KHRONOS_validation not installed (install VulkanSDK).\n");
-            mValidationEnabled = false;
-        }
-    }
+		std::vector<const char*> layers;
+		if (enableValidation) {
+			if (HasLayer("VK_LAYER_KHRONOS_validation")) {
+				layers.push_back("VK_LAYER_KHRONOS_validation");
+			}
+			else {
+				std::fprintf(stderr, "[Vulkan] WARN: validation requested but VK_LAYER_KHRONOS_validation not installed (install VulkanSDK).\n");
+				mValidationEnabled = false;
+			}
+		}
 
-    VkInstanceCreateInfo info{ VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO };
-    info.pApplicationInfo        = &app;
-    info.enabledExtensionCount   = (uint32_t)extensions.size();
-    info.ppEnabledExtensionNames = extensions.data();
-    info.enabledLayerCount       = (uint32_t)layers.size();
-    info.ppEnabledLayerNames     = layers.data();
+		VkInstanceCreateInfo info{ VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO };
+		info.pApplicationInfo = &app;
+		info.enabledExtensionCount = (uint32_t)extensions.size();
+		info.ppEnabledExtensionNames = extensions.data();
+		info.enabledLayerCount = (uint32_t)layers.size();
+		info.ppEnabledLayerNames = layers.data();
 
-    VK_CHECK(vkCreateInstance(&info, nullptr, &mInstance));
-    return true;
-}
+		VK_CHECK(vkCreateInstance(&info, nullptr, &mInstance));
+		return true;
+	}
 
-bool VulkanContext::CreateDebugMessenger() {
-    // VK_EXT_debug_utils 的两个函数不在 vulkan-1.lib 的静态导出表里——它们是
-    // instance-level extension，必须用 vkGetInstanceProcAddr 在运行时取。
-    auto fnCreate = (PFN_vkCreateDebugUtilsMessengerEXT)
-        vkGetInstanceProcAddr(mInstance, "vkCreateDebugUtilsMessengerEXT");
-    if (!fnCreate) {
-        std::fprintf(stderr, "[Vulkan] vkCreateDebugUtilsMessengerEXT not found "
-                             "(VK_EXT_debug_utils not loaded?)\n");
-        return false;
-    }
+	bool VulkanContext::CreateDebugMessenger() {
+		// VK_EXT_debug_utils 的两个函数不在 vulkan-1.lib 的静态导出表里——它们是
+		// instance-level extension，必须用 vkGetInstanceProcAddr 在运行时取。
+		auto fnCreate = (PFN_vkCreateDebugUtilsMessengerEXT)
+			vkGetInstanceProcAddr(mInstance, "vkCreateDebugUtilsMessengerEXT");
+		if (!fnCreate) {
+			std::fprintf(stderr, "[Vulkan] vkCreateDebugUtilsMessengerEXT not found "
+				"(VK_EXT_debug_utils not loaded?)\n");
+			return false;
+		}
 
-    VkDebugUtilsMessengerCreateInfoEXT info{ VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT };
-    info.messageSeverity =
-        VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
-        VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-    info.messageType =
-        VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT     |
-        VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT  |
-        VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-    info.pfnUserCallback = DebugCallback;
-    VK_CHECK(fnCreate(mInstance, &info, nullptr, &mDebugMessenger));
-    return true;
-}
+		VkDebugUtilsMessengerCreateInfoEXT info{ VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT };
+		info.messageSeverity =
+			VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+			VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+		info.messageType =
+			VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+			VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+			VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+		info.pfnUserCallback = DebugCallback;
+		VK_CHECK(fnCreate(mInstance, &info, nullptr, &mDebugMessenger));
+		return true;
+	}
 
-bool VulkanContext::CreateSurface(SDL_Window* window) {
-    if (!SDL_Vulkan_CreateSurface(window, mInstance, &mSurface)) {
-        std::fprintf(stderr, "[Vulkan] SDL_Vulkan_CreateSurface failed: %s\n", SDL_GetError());
-        return false;
-    }
-    return true;
-}
+	bool VulkanContext::CreateSurface(SDL_Window* window) {
+		if (!SDL_Vulkan_CreateSurface(window, mInstance, &mSurface)) {
+			std::fprintf(stderr, "[Vulkan] SDL_Vulkan_CreateSurface failed: %s\n", SDL_GetError());
+			return false;
+		}
+		return true;
+	}
 
-bool VulkanContext::PickPhysicalDevice() {
-    uint32_t count = 0;
-    vkEnumeratePhysicalDevices(mInstance, &count, nullptr);
-    if (count == 0) {
-        std::fprintf(stderr, "[Vulkan] No Vulkan-capable GPU found.\n");
-        return false;
-    }
-    std::vector<VkPhysicalDevice> devices(count);
-    vkEnumeratePhysicalDevices(mInstance, &count, devices.data());
+	bool VulkanContext::PickPhysicalDevice() {
+		uint32_t count = 0;
+		vkEnumeratePhysicalDevices(mInstance, &count, nullptr);
+		if (count == 0) {
+			std::fprintf(stderr, "[Vulkan] No Vulkan-capable GPU found.\n");
+			return false;
+		}
+		std::vector<VkPhysicalDevice> devices(count);
+		vkEnumeratePhysicalDevices(mInstance, &count, devices.data());
 
-    auto isSuitable = [this](VkPhysicalDevice dev, uint32_t& outQueueFamily) -> bool {
-        VkPhysicalDeviceProperties props;
-        vkGetPhysicalDeviceProperties(dev, &props);
-        if (props.apiVersion < VK_API_VERSION_1_3) return false;
+		auto isSuitable = [this](VkPhysicalDevice dev, uint32_t& outQueueFamily) -> bool {
+			VkPhysicalDeviceProperties props;
+			vkGetPhysicalDeviceProperties(dev, &props);
+			if (props.apiVersion < VK_API_VERSION_1_3) return false;
 
-        // 必须的 1.2 / 1.3 feature
-        VkPhysicalDeviceVulkan13Features f13{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES };
-        VkPhysicalDeviceVulkan12Features f12{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES };
-        f12.pNext = &f13;
-        VkPhysicalDeviceFeatures2 f2{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
-        f2.pNext = &f12;
-        vkGetPhysicalDeviceFeatures2(dev, &f2);
+			// 必须的 1.2 / 1.3 feature
+			VkPhysicalDeviceVulkan13Features f13{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES };
+			VkPhysicalDeviceVulkan12Features f12{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES };
+			f12.pNext = &f13;
+			VkPhysicalDeviceFeatures2 f2{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
+			f2.pNext = &f12;
+			vkGetPhysicalDeviceFeatures2(dev, &f2);
 
-        if (!f13.dynamicRendering || !f13.synchronization2) return false;
-        if (!f12.descriptorIndexing) return false;
-        if (!f12.runtimeDescriptorArray) return false;
-        if (!f12.descriptorBindingPartiallyBound) return false;
-        if (!f12.descriptorBindingSampledImageUpdateAfterBind) return false;
-        if (!f12.shaderSampledImageArrayNonUniformIndexing) return false;
-        if (!f12.descriptorBindingVariableDescriptorCount) return false;
+			if (!f13.dynamicRendering || !f13.synchronization2) return false;
+			if (!f12.descriptorIndexing) return false;
+			if (!f12.runtimeDescriptorArray) return false;
+			if (!f12.descriptorBindingPartiallyBound) return false;
+			if (!f12.descriptorBindingSampledImageUpdateAfterBind) return false;
+			if (!f12.shaderSampledImageArrayNonUniformIndexing) return false;
+			if (!f12.descriptorBindingVariableDescriptorCount) return false;
 
-        // 找到一个同时支持 graphics 和 present 的队列家族
-        uint32_t qCount = 0;
-        vkGetPhysicalDeviceQueueFamilyProperties(dev, &qCount, nullptr);
-        std::vector<VkQueueFamilyProperties> qs(qCount);
-        vkGetPhysicalDeviceQueueFamilyProperties(dev, &qCount, qs.data());
-        for (uint32_t i = 0; i < qCount; ++i) {
-            if (!(qs[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)) continue;
-            VkBool32 supportsPresent = VK_FALSE;
-            vkGetPhysicalDeviceSurfaceSupportKHR(dev, i, mSurface, &supportsPresent);
-            if (supportsPresent) { outQueueFamily = i; return true; }
-        }
-        return false;
-    };
+			// 找到一个同时支持 graphics 和 present 的队列家族
+			uint32_t qCount = 0;
+			vkGetPhysicalDeviceQueueFamilyProperties(dev, &qCount, nullptr);
+			std::vector<VkQueueFamilyProperties> qs(qCount);
+			vkGetPhysicalDeviceQueueFamilyProperties(dev, &qCount, qs.data());
+			for (uint32_t i = 0; i < qCount; ++i) {
+				if (!(qs[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)) continue;
+				VkBool32 supportsPresent = VK_FALSE;
+				vkGetPhysicalDeviceSurfaceSupportKHR(dev, i, mSurface, &supportsPresent);
+				if (supportsPresent) { outQueueFamily = i; return true; }
+			}
+			return false;
+			};
 
-    // 优先 discrete GPU
-    for (auto type : { VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU,
-                       VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU,
-                       VK_PHYSICAL_DEVICE_TYPE_OTHER }) {
-        for (auto dev : devices) {
-            VkPhysicalDeviceProperties props;
-            vkGetPhysicalDeviceProperties(dev, &props);
-            if (props.deviceType != type && type != VK_PHYSICAL_DEVICE_TYPE_OTHER) continue;
-            uint32_t qf = UINT32_MAX;
-            if (isSuitable(dev, qf)) {
-                mPhysicalDevice = dev;
-                mGraphicsQueueFamily = qf;
-                std::fprintf(stdout, "[Vulkan] Selected GPU: %s (api %u.%u.%u)\n",
-                             props.deviceName,
-                             VK_VERSION_MAJOR(props.apiVersion),
-                             VK_VERSION_MINOR(props.apiVersion),
-                             VK_VERSION_PATCH(props.apiVersion));
-                return true;
-            }
-        }
-    }
-    std::fprintf(stderr, "[Vulkan] No GPU meets feature requirements (Vulkan 1.3, dynamic rendering, descriptor indexing).\n");
-    return false;
-}
+		// 优先 discrete GPU
+		for (auto type : { VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU,
+						   VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU,
+						   VK_PHYSICAL_DEVICE_TYPE_OTHER }) {
+			for (auto dev : devices) {
+				VkPhysicalDeviceProperties props;
+				vkGetPhysicalDeviceProperties(dev, &props);
+				if (props.deviceType != type && type != VK_PHYSICAL_DEVICE_TYPE_OTHER) continue;
+				uint32_t qf = UINT32_MAX;
+				if (isSuitable(dev, qf)) {
+					mPhysicalDevice = dev;
+					mGraphicsQueueFamily = qf;
+					std::fprintf(stdout, "[Vulkan] Selected GPU: %s (api %u.%u.%u)\n",
+						props.deviceName,
+						VK_VERSION_MAJOR(props.apiVersion),
+						VK_VERSION_MINOR(props.apiVersion),
+						VK_VERSION_PATCH(props.apiVersion));
+					return true;
+				}
+			}
+		}
+		std::fprintf(stderr, "[Vulkan] No GPU meets feature requirements (Vulkan 1.3, dynamic rendering, descriptor indexing).\n");
+		return false;
+	}
 
-bool VulkanContext::CreateLogicalDevice() {
-    float prio = 1.0f;
-    VkDeviceQueueCreateInfo qci{ VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO };
-    qci.queueFamilyIndex = mGraphicsQueueFamily;
-    qci.queueCount       = 1;
-    qci.pQueuePriorities = &prio;
+	bool VulkanContext::CreateLogicalDevice() {
+		float prio = 1.0f;
+		VkDeviceQueueCreateInfo qci{ VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO };
+		qci.queueFamilyIndex = mGraphicsQueueFamily;
+		qci.queueCount = 1;
+		qci.pQueuePriorities = &prio;
 
-    VkPhysicalDeviceVulkan13Features f13{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES };
-    f13.dynamicRendering  = VK_TRUE;
-    f13.synchronization2  = VK_TRUE;
+		VkPhysicalDeviceVulkan13Features f13{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES };
+		f13.dynamicRendering = VK_TRUE;
+		f13.synchronization2 = VK_TRUE;
 
-    VkPhysicalDeviceVulkan12Features f12{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES };
-    f12.pNext = &f13;
-    f12.descriptorIndexing                              = VK_TRUE;
-    f12.runtimeDescriptorArray                          = VK_TRUE;
-    f12.descriptorBindingPartiallyBound                 = VK_TRUE;
-    f12.descriptorBindingSampledImageUpdateAfterBind    = VK_TRUE;
-    f12.shaderSampledImageArrayNonUniformIndexing       = VK_TRUE;
-    f12.descriptorBindingVariableDescriptorCount        = VK_TRUE;
+		VkPhysicalDeviceVulkan12Features f12{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES };
+		f12.pNext = &f13;
+		f12.descriptorIndexing = VK_TRUE;
+		f12.runtimeDescriptorArray = VK_TRUE;
+		f12.descriptorBindingPartiallyBound = VK_TRUE;
+		f12.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE;
+		f12.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
+		f12.descriptorBindingVariableDescriptorCount = VK_TRUE;
 
-    VkPhysicalDeviceFeatures2 f2{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
-    f2.pNext = &f12;
+		VkPhysicalDeviceFeatures2 f2{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
+		f2.pNext = &f12;
 
-    const char* exts[] = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
+		const char* exts[] = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
 
-    VkDeviceCreateInfo dci{ VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO };
-    dci.pNext                   = &f2;
-    dci.queueCreateInfoCount    = 1;
-    dci.pQueueCreateInfos       = &qci;
-    dci.enabledExtensionCount   = 1;
-    dci.ppEnabledExtensionNames = exts;
+		VkDeviceCreateInfo dci{ VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO };
+		dci.pNext = &f2;
+		dci.queueCreateInfoCount = 1;
+		dci.pQueueCreateInfos = &qci;
+		dci.enabledExtensionCount = 1;
+		dci.ppEnabledExtensionNames = exts;
 
-    VK_CHECK(vkCreateDevice(mPhysicalDevice, &dci, nullptr, &mDevice));
-    vkGetDeviceQueue(mDevice, mGraphicsQueueFamily, 0, &mGraphicsQueue);
-    return true;
-}
+		VK_CHECK(vkCreateDevice(mPhysicalDevice, &dci, nullptr, &mDevice));
+		vkGetDeviceQueue(mDevice, mGraphicsQueueFamily, 0, &mGraphicsQueue);
+		return true;
+	}
 
-bool VulkanContext::CreateSwapchain(SDL_Window* window, bool vsync) {
-    VkSurfaceCapabilitiesKHR caps{};
-    VK_CHECK(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(mPhysicalDevice, mSurface, &caps));
+	bool VulkanContext::CreateSwapchain(SDL_Window* window, bool vsync) {
+		VkSurfaceCapabilitiesKHR caps{};
+		VK_CHECK(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(mPhysicalDevice, mSurface, &caps));
 
-    // 选 surface 格式：优先 B8G8R8A8_UNORM（线性，匹配现有 GL 行为，不做 sRGB 偏移）
-    uint32_t fcount = 0;
-    vkGetPhysicalDeviceSurfaceFormatsKHR(mPhysicalDevice, mSurface, &fcount, nullptr);
-    std::vector<VkSurfaceFormatKHR> formats(fcount);
-    vkGetPhysicalDeviceSurfaceFormatsKHR(mPhysicalDevice, mSurface, &fcount, formats.data());
+		// 选 surface 格式：优先 B8G8R8A8_UNORM（线性，匹配现有 GL 行为，不做 sRGB 偏移）
+		uint32_t fcount = 0;
+		vkGetPhysicalDeviceSurfaceFormatsKHR(mPhysicalDevice, mSurface, &fcount, nullptr);
+		std::vector<VkSurfaceFormatKHR> formats(fcount);
+		vkGetPhysicalDeviceSurfaceFormatsKHR(mPhysicalDevice, mSurface, &fcount, formats.data());
 
-    VkSurfaceFormatKHR chosen = formats[0];
-    for (const auto& f : formats) {
-        if (f.format == VK_FORMAT_B8G8R8A8_UNORM &&
-            f.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
-            chosen = f;
-            break;
-        }
-    }
-    mSwapchainFormat = chosen.format;
+		VkSurfaceFormatKHR chosen = formats[0];
+		for (const auto& f : formats) {
+			if (f.format == VK_FORMAT_B8G8R8A8_UNORM &&
+				f.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
+				chosen = f;
+				break;
+			}
+		}
+		mSwapchainFormat = chosen.format;
 
-    // 大小：Vulkan 推荐用 surface caps.currentExtent；如果是 0xFFFFFFFF，则用窗口大小
-    if (caps.currentExtent.width != UINT32_MAX) {
-        mSwapchainExtent = caps.currentExtent;
-    } else {
-        int w = 0, h = 0;
-        SDL_Vulkan_GetDrawableSize(window, &w, &h);
-        mSwapchainExtent.width  = std::clamp((uint32_t)w, caps.minImageExtent.width,  caps.maxImageExtent.width);
-        mSwapchainExtent.height = std::clamp((uint32_t)h, caps.minImageExtent.height, caps.maxImageExtent.height);
-    }
+		// 大小：Vulkan 推荐用 surface caps.currentExtent；如果是 0xFFFFFFFF，则用窗口大小
+		if (caps.currentExtent.width != UINT32_MAX) {
+			mSwapchainExtent = caps.currentExtent;
+		}
+		else {
+			int w = 0, h = 0;
+			SDL_Vulkan_GetDrawableSize(window, &w, &h);
+			mSwapchainExtent.width = std::clamp((uint32_t)w, caps.minImageExtent.width, caps.maxImageExtent.width);
+			mSwapchainExtent.height = std::clamp((uint32_t)h, caps.minImageExtent.height, caps.maxImageExtent.height);
+		}
 
-    uint32_t imageCount = caps.minImageCount + 1;
-    if (caps.maxImageCount > 0 && imageCount > caps.maxImageCount) imageCount = caps.maxImageCount;
+		uint32_t imageCount = caps.minImageCount + 1;
+		if (caps.maxImageCount > 0 && imageCount > caps.maxImageCount) imageCount = caps.maxImageCount;
 
-    // Present mode：vsync=true 必走 FIFO（spec 强制支持）；vsync=false 优先 MAILBOX、其次 IMMEDIATE，
-    // 都没有再回落 FIFO。
-    uint32_t pmCount = 0;
-    VK_CHECK(vkGetPhysicalDeviceSurfacePresentModesKHR(mPhysicalDevice, mSurface, &pmCount, nullptr));
-    std::vector<VkPresentModeKHR> modes(pmCount);
-    VK_CHECK(vkGetPhysicalDeviceSurfacePresentModesKHR(mPhysicalDevice, mSurface, &pmCount, modes.data()));
-    auto has = [&](VkPresentModeKHR m) {
-        return std::find(modes.begin(), modes.end(), m) != modes.end();
-    };
+		// Present mode：vsync=true 必走 FIFO（spec 强制支持）；vsync=false 优先 MAILBOX、其次 IMMEDIATE，
+		// 都没有再回落 FIFO。
+		uint32_t pmCount = 0;
+		VK_CHECK(vkGetPhysicalDeviceSurfacePresentModesKHR(mPhysicalDevice, mSurface, &pmCount, nullptr));
+		std::vector<VkPresentModeKHR> modes(pmCount);
+		VK_CHECK(vkGetPhysicalDeviceSurfacePresentModesKHR(mPhysicalDevice, mSurface, &pmCount, modes.data()));
+		auto has = [&](VkPresentModeKHR m) {
+			return std::find(modes.begin(), modes.end(), m) != modes.end();
+			};
 
-    VkPresentModeKHR chosenPresentMode = VK_PRESENT_MODE_FIFO_KHR;
-    if (!vsync) {
-        if (has(VK_PRESENT_MODE_MAILBOX_KHR))        chosenPresentMode = VK_PRESENT_MODE_MAILBOX_KHR;
-        else if (has(VK_PRESENT_MODE_IMMEDIATE_KHR)) chosenPresentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
-    }
+		VkPresentModeKHR chosenPresentMode = VK_PRESENT_MODE_FIFO_KHR;
+		if (!vsync) {
+			if (has(VK_PRESENT_MODE_MAILBOX_KHR))        chosenPresentMode = VK_PRESENT_MODE_MAILBOX_KHR;
+			else if (has(VK_PRESENT_MODE_IMMEDIATE_KHR)) chosenPresentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
+		}
 
-    VkSwapchainCreateInfoKHR sci{ VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR };
-    sci.surface          = mSurface;
-    sci.minImageCount    = imageCount;
-    sci.imageFormat      = chosen.format;
-    sci.imageColorSpace  = chosen.colorSpace;
-    sci.imageExtent      = mSwapchainExtent;
-    sci.imageArrayLayers = 1;
-    sci.imageUsage       = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-    sci.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    sci.preTransform     = caps.currentTransform;
-    sci.compositeAlpha   = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-    sci.presentMode      = chosenPresentMode;
-    sci.clipped          = VK_TRUE;
+		VkSwapchainCreateInfoKHR sci{ VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR };
+		sci.surface = mSurface;
+		sci.minImageCount = imageCount;
+		sci.imageFormat = chosen.format;
+		sci.imageColorSpace = chosen.colorSpace;
+		sci.imageExtent = mSwapchainExtent;
+		sci.imageArrayLayers = 1;
+		sci.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+		sci.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		sci.preTransform = caps.currentTransform;
+		sci.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+		sci.presentMode = chosenPresentMode;
+		sci.clipped = VK_TRUE;
 
-    VK_CHECK(vkCreateSwapchainKHR(mDevice, &sci, nullptr, &mSwapchain));
+		VK_CHECK(vkCreateSwapchainKHR(mDevice, &sci, nullptr, &mSwapchain));
 
-    uint32_t actual = 0;
-    vkGetSwapchainImagesKHR(mDevice, mSwapchain, &actual, nullptr);
-    mSwapchainImages.resize(actual);
-    vkGetSwapchainImagesKHR(mDevice, mSwapchain, &actual, mSwapchainImages.data());
+		uint32_t actual = 0;
+		vkGetSwapchainImagesKHR(mDevice, mSwapchain, &actual, nullptr);
+		mSwapchainImages.resize(actual);
+		vkGetSwapchainImagesKHR(mDevice, mSwapchain, &actual, mSwapchainImages.data());
 
-    mSwapchainImageViews.resize(actual);
-    for (uint32_t i = 0; i < actual; ++i) {
-        VkImageViewCreateInfo vci{ VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
-        vci.image    = mSwapchainImages[i];
-        vci.viewType = VK_IMAGE_VIEW_TYPE_2D;
-        vci.format   = chosen.format;
-        vci.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
-        VK_CHECK(vkCreateImageView(mDevice, &vci, nullptr, &mSwapchainImageViews[i]));
-    }
-    return true;
-}
+		mSwapchainImageViews.resize(actual);
+		for (uint32_t i = 0; i < actual; ++i) {
+			VkImageViewCreateInfo vci{ VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
+			vci.image = mSwapchainImages[i];
+			vci.viewType = VK_IMAGE_VIEW_TYPE_2D;
+			vci.format = chosen.format;
+			vci.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+			VK_CHECK(vkCreateImageView(mDevice, &vci, nullptr, &mSwapchainImageViews[i]));
+		}
+		return true;
+	}
 
-bool VulkanContext::CreateAllocator() {
-    // 静态链接路径：VMA 直接调用 vkXxx 原型，pVulkanFunctions 留 nullptr。
-    VmaAllocatorCreateInfo aci{};
-    aci.vulkanApiVersion = VK_API_VERSION_1_3;
-    aci.instance         = mInstance;
-    aci.physicalDevice   = mPhysicalDevice;
-    aci.device           = mDevice;
+	bool VulkanContext::CreateAllocator() {
+		// 静态链接路径：VMA 直接调用 vkXxx 原型，pVulkanFunctions 留 nullptr。
+		VmaAllocatorCreateInfo aci{};
+		aci.vulkanApiVersion = VK_API_VERSION_1_3;
+		aci.instance = mInstance;
+		aci.physicalDevice = mPhysicalDevice;
+		aci.device = mDevice;
 
-    VK_CHECK(vmaCreateAllocator(&aci, &mAllocator));
-    return true;
-}
+		VK_CHECK(vmaCreateAllocator(&aci, &mAllocator));
+		return true;
+	}
 
-void VulkanContext::DestroySwapchain() {
-    for (auto v : mSwapchainImageViews) if (v) vkDestroyImageView(mDevice, v, nullptr);
-    mSwapchainImageViews.clear();
-    mSwapchainImages.clear();
-    if (mSwapchain) { vkDestroySwapchainKHR(mDevice, mSwapchain, nullptr); mSwapchain = VK_NULL_HANDLE; }
-}
+	void VulkanContext::DestroySwapchain() {
+		for (auto v : mSwapchainImageViews) if (v) vkDestroyImageView(mDevice, v, nullptr);
+		mSwapchainImageViews.clear();
+		mSwapchainImages.clear();
+		if (mSwapchain) { vkDestroySwapchainKHR(mDevice, mSwapchain, nullptr); mSwapchain = VK_NULL_HANDLE; }
+	}
 
-bool VulkanContext::RecreateSwapchain(bool vsync) {
-    if (!mInitialized || !mDevice || !mWindow) return false;
+	bool VulkanContext::RecreateSwapchain(bool vsync) {
+		if (!mInitialized || !mDevice || !mWindow) return false;
 
-    // 窗口最小化/隐藏时 surface 尺寸为 {0,0}，此时 vkCreateSwapchainKHR 会失败。
-    // 不销毁现有 swapchain，让调用方在下一帧重试，直到窗口恢复。
-    VkSurfaceCapabilitiesKHR caps{};
-    if (vkGetPhysicalDeviceSurfaceCapabilitiesKHR(mPhysicalDevice, mSurface, &caps) == VK_SUCCESS) {
-        if (caps.currentExtent.width == 0 || caps.currentExtent.height == 0) {
-            return false;
-        }
-    }
+		// 窗口最小化/隐藏时 surface 尺寸为 {0,0}，此时 vkCreateSwapchainKHR 会失败。
+		// 不销毁现有 swapchain，让调用方在下一帧重试，直到窗口恢复。
+		VkSurfaceCapabilitiesKHR caps{};
+		if (vkGetPhysicalDeviceSurfaceCapabilitiesKHR(mPhysicalDevice, mSurface, &caps) == VK_SUCCESS) {
+			if (caps.currentExtent.width == 0 || caps.currentExtent.height == 0) {
+				return false;
+			}
+		}
 
-    vkDeviceWaitIdle(mDevice);
-    DestroySwapchain();
-    if (!CreateSwapchain(mWindow, vsync)) {
-        std::fprintf(stderr, "[Vulkan] RecreateSwapchain failed\n");
-        return false;
-    }
-    return true;
-}
+		vkDeviceWaitIdle(mDevice);
+		DestroySwapchain();
+		if (!CreateSwapchain(mWindow, vsync)) {
+			std::fprintf(stderr, "[Vulkan] RecreateSwapchain failed\n");
+			return false;
+		}
+		return true;
+	}
 
-void VulkanContext::Shutdown() {
-    if (!mInitialized) return;
+	void VulkanContext::Shutdown() {
+		if (!mInitialized) return;
 
-    if (mDevice) vkDeviceWaitIdle(mDevice);
+		if (mDevice) vkDeviceWaitIdle(mDevice);
 
-    if (mAllocator)      { vmaDestroyAllocator(mAllocator);    mAllocator = VK_NULL_HANDLE; }
-    DestroySwapchain();
-    if (mDevice)         { vkDestroyDevice(mDevice, nullptr);  mDevice = VK_NULL_HANDLE; }
-    if (mSurface)        { vkDestroySurfaceKHR(mInstance, mSurface, nullptr); mSurface = VK_NULL_HANDLE; }
-    if (mDebugMessenger) {
-        auto fnDestroy = (PFN_vkDestroyDebugUtilsMessengerEXT)
-            vkGetInstanceProcAddr(mInstance, "vkDestroyDebugUtilsMessengerEXT");
-        if (fnDestroy) fnDestroy(mInstance, mDebugMessenger, nullptr);
-        mDebugMessenger = VK_NULL_HANDLE;
-    }
-    if (mInstance)       { vkDestroyInstance(mInstance, nullptr); mInstance = VK_NULL_HANDLE; }
+		if (mAllocator) { vmaDestroyAllocator(mAllocator);    mAllocator = VK_NULL_HANDLE; }
+		DestroySwapchain();
+		if (mDevice) { vkDestroyDevice(mDevice, nullptr);  mDevice = VK_NULL_HANDLE; }
+		if (mSurface) { vkDestroySurfaceKHR(mInstance, mSurface, nullptr); mSurface = VK_NULL_HANDLE; }
+		if (mDebugMessenger) {
+			auto fnDestroy = (PFN_vkDestroyDebugUtilsMessengerEXT)
+				vkGetInstanceProcAddr(mInstance, "vkDestroyDebugUtilsMessengerEXT");
+			if (fnDestroy) fnDestroy(mInstance, mDebugMessenger, nullptr);
+			mDebugMessenger = VK_NULL_HANDLE;
+		}
+		if (mInstance) { vkDestroyInstance(mInstance, nullptr); mInstance = VK_NULL_HANDLE; }
 
-    mInitialized = false;
-}
-
+		mInitialized = false;
+	}
 } // namespace pvz

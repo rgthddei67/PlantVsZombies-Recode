@@ -43,12 +43,12 @@ public:
 
 	virtual void PlantUpdate();		// 子类重写Update用这个
 	virtual void TakeDamage(int damage);
-	virtual void SaveExtraData(nlohmann::json& j) const { }
-	virtual void LoadExtraData(const nlohmann::json& j) { }
+	virtual void SaveExtraData(nlohmann::json& j) const {}
+	virtual void LoadExtraData(const nlohmann::json& j) {}
 	void Die();
 	Vector GetPosition() const;
 	void SetPosition(const Vector& position);
-	
+
 protected:
 	virtual void SetupPlant();
 };
