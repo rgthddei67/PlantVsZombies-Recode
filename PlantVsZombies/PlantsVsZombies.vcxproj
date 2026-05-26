@@ -372,7 +372,7 @@
   </Target>
   <ItemDefinitionGroup>
     <PostBuildEvent>
-      <Command>xcopy /E /Y /I "$(ProjectDir)Shader" "$(OutDir)Shader"</Command>
+      <Command>xcopy /E /Y /I "$(ProjectDir)Shader\*.spv" "$(OutDir)Shader\"</Command>
       <Message>Copying Shader files to output directory...</Message>
     </PostBuildEvent>
   </ItemDefinitionGroup>

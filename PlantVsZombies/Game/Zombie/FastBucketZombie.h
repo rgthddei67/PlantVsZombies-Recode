@@ -44,7 +44,7 @@ public:
 		{
 			mAnimator->SetExtraSpeedMultiplier(mExtraSpeed * 0.8f);
 			mAnimator->EnableOverlayEffect(true);
-			mAnimator->SetOverlayColor(80, 80, 255, 255);
+			mAnimator->SetOverlayColor(80, 80, 255, 240);
 		}
 
 		mCooldownTimer = std::max(mCooldownTimer, timer);

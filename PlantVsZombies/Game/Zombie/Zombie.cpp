@@ -263,7 +263,7 @@ void Zombie::SetCooldown(float timer)
 	{
 		mAnimator->SetExtraSpeedMultiplier(mExtraSpeed * 0.6f);
 		mAnimator->EnableOverlayEffect(true);
-		mAnimator->SetOverlayColor(80, 80, 255, 255);
+		mAnimator->SetOverlayColor(80, 80, 255, 240);
 	}
 
 	// 已在减速中则取 max，避免短射缩短减速
