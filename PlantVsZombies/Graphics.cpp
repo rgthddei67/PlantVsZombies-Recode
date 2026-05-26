@@ -755,7 +755,11 @@ void Graphics::FlushInstances() {
 
 	const glm::mat4 projView = m_projection * m_viewMatrix;
 	const VkDescriptorSet sets[2] = { fr.instSet, m_vk->texPool->DescriptorSet() };
-	pvz::VulkanPipeline* pipe = (m_currentBlendMode == BlendMode::Add)
+	// 用 m_queuedInstanceBlend（实例队列私有状态）而非 m_currentBlendMode（被
+	// DrawTexture/DrawTextureMatrix 等读作 per-vert bm 默认值的全局态）。这两者必须
+	// 分离，否则 Animator 的 glow Append 会污染同帧后续 shadow 的 bm，把影子打成 Add
+	// 不可见——参见 AppendReanimInstance 主线程分支的同条注释。
+	pvz::VulkanPipeline* pipe = (m_queuedInstanceBlend == BlendMode::Add)
 		? m_vk->pipeInstAdd.get()
 		: m_vk->pipeInstAlpha.get();
 
@@ -786,6 +790,16 @@ int Graphics::AddMatrix(const glm::mat4& matrix) {
 }
 
 void Graphics::AddVertices(const BatchVertex* vertices, int count) {
+	// 主线程 cross-flush（worker 路径走 tl_record 直接进 slice 不经过这里）：
+	// 如果 m_batchInstances 已积累记录，说明在本次 batch 写入之前 caller 调过
+	// AppendReanimInstance。要保证 vkCmdDraw 顺序 == append 顺序（否则 instance
+	// 会在 EndFrame 之前 mid-frame 被 blend-change 触发 flush，先于本批 batch 进入
+	// cmd buffer，导致 lawn/UI 反盖住 plant body）——所以这里先 flush instance。
+	// worker 模式不会走 main thread AddVertices；其 cmd-stream 由 ReplayAndEndParallel
+	// 的 emitUpTo 按 SetBlend 段交错 emit，本来就保序。
+	if (!m_batchInstances.empty()) {
+		FlushInstances();
+	}
 	for (int i = 0; i < count; ++i) {
 		m_batchVertices.push_back(vertices[i]);
 	}
@@ -906,24 +920,51 @@ void Graphics::AppendReanimInstance(const InstanceRecord& rec, BlendMode blendMo
 		WorkerRecord& r = *tl_record;
 		VkWorkerSlice& sl = r.slice;
 
-		// Record a SetBlend cmd if needed — must come BEFORE the data write so the
-		// instOffsetAtCmd correctly captures "instance count at the moment blend changed".
-		if (blendMode != tl_blend) {
-			RecordSetBlendMode(r, blendMode);
-		}
-
 		if (sl.instCount >= sl.instCap) {
 			sl.overflowed = true;
 			return;
 		}
+
+		// Save/restore tl_blend，与 RecordDrawTextureMatrix(行 1897-1951) 的模式对齐。
+		// 不恢复会污染同 slot 后续 Record* 调用——典型表现是 Animator 画完 glow（Add）后，
+		// 同一 worker 的 ShadowComponent::Draw 把 bm 字段（行 1893 读 tl_blend）写成 1.0，
+		// 影子被 Add 混合打成不可见。SetBlend cmd 必须先于 instance 数据写入，以便
+		// instOffsetAtCmd 正确捕获"blend 切换时的 instance 计数"——回放按它分段切 pipeline。
+		const BlendMode savedBlend = tl_blend;
+		const bool needSwitch = (blendMode != tl_blend);
+		if (needSwitch) {
+			RecordSetBlendMode(r, blendMode);
+		}
+
 		sl.instPtr[sl.instCount++] = rec;
+
+		if (needSwitch) {
+			RecordSetBlendMode(r, savedBlend);
+		}
 		return;
 	}
 
-	// Main thread serial path
-	if (blendMode != m_currentBlendMode) {
+	// Main thread serial path——两个独立修复：
+	//
+	// (1) Cross-flush：如果 m_batchVertices 已积累 batch quads（典型是先画 lawn/shadow/UI
+	//     再画 plant），先 FlushBatch 让那批 vkCmdDraw 进 cmd buffer，再让本次 instance
+	//     append 接在后面。否则后续 mid-frame FlushInstances（由 blend 切换触发）会先于
+	//     m_batchVertices 的 EndFrame flush 进 cmd buffer，造成 plant body 被 lawn 反盖
+	//     不可见的 Z-order bug。worker 路径有 emitUpTo 按段交错回放，本身保序，无需此 fix。
+	//
+	// (2) Blend 状态用独立的 m_queuedInstanceBlend，**不再触碰** m_currentBlendMode。
+	//     原始代码用 m_currentBlendMode 同时承担两个不变量：
+	//       (a) 实例队列当前堆的 blend（FlushInstances 据此选 pipeline）
+	//       (b) DrawTexture/DrawTextureMatrix 的 per-vert bm 默认值
+	//     一旦 glow Append 把它改成 Add，下游所有 (b) 的消费者（典型是 ShadowComponent）
+	//     就被污染——shadow 顶点 bm=1，整段走 pipeBatchAdd 被打成不可见。
+	//     分离后 flush 计数与原始代码字节级一致，行为不变，只切断了污染路径。
+	if (!m_batchVertices.empty()) {
+		FlushBatch();
+	}
+	if (blendMode != m_queuedInstanceBlend) {
 		FlushInstances();
-		m_currentBlendMode = blendMode;
+		m_queuedInstanceBlend = blendMode;
 	}
 	if ((int)m_batchInstances.size() >= m_batchInstancesLimit) {
 		FlushInstances();

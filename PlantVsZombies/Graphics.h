@@ -657,7 +657,11 @@ public:
 	bool IsParallelDrawEnabled() const { return m_parallelDrawEnabled; }
 
 private:
-	BlendMode m_currentBlendMode = BlendMode::None;   ///< 当前混合模式
+	BlendMode m_currentBlendMode = BlendMode::None;   ///< 当前混合模式（被 SetBlendMode 公共 API 改，
+	                                                  ///< 被 DrawTexture/DrawTextureMatrix 等 read 用作 per-vert bm 默认值；
+	                                                  ///< AppendReanimInstance **不再修改它**，避免污染 shadow 等下游消费者）。
+	BlendMode m_queuedInstanceBlend = BlendMode::Alpha;  ///< 主线程 instance 队列当前堆的 blend（独立于 m_currentBlendMode）。
+	                                                     ///< FlushInstances 按它选 pipeline；AppendReanimInstance 用它判断是否需要 flush 切换。
 
 	glm::mat4 m_projection = glm::mat4(1.0f);   ///< 正交投影矩阵
 	glm::mat4 m_viewMatrix = glm::mat4(1.0f);   ///< 摄像机视图矩阵
