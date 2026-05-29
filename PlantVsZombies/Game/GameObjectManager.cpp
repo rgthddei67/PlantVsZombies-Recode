@@ -172,39 +172,66 @@ void GameObjectManager::DrawAll(Graphics* g) {
 	// ---- 绘制阶段：小对象数走原串行；大场景走并行 record + 主线程 replay ----
 	constexpr int kParallelDrawThreshold = 200;  // 小于此阈值，并行 dispatch overhead 不划算
 
-	if (!g->IsParallelDrawEnabled() || total < kParallelDrawThreshold) {
-		// 串行 fallback（菜单/图鉴等少对象场景，行为与原代码完全等价）
-		PROFILE_SCOPE("6.Draw_submit(serial-fallback)");
-		for (size_t i = 0; i < mGameObjects.size(); ++i) {
+	// 单个对象的串行绘制（含 clip 处理），并行 fallback 与 overlay 尾段共用。
+	auto drawSerialRange = [&](int begin, int end) {
+		for (int i = begin; i < end; ++i) {
 			auto* obj = mGameObjects[i].get();
-			if (obj->IsActive()) {
-				const bool clipped = obj->HasClipRect();
-				if (clipped) {
-					const auto& cr = obj->GetClipRect();
-					g->PushClipRect(cr.x, cr.y, cr.w, cr.h);
-				}
-				obj->Draw(g);
-				if (clipped) {
-					g->PopClipRect();
-				}
+			if (!obj->IsActive()) continue;
+			const bool clipped = obj->HasClipRect();
+			if (clipped) {
+				const auto& cr = obj->GetClipRect();
+				g->PushClipRect(cr.x, cr.y, cr.w, cr.h);
+			}
+			obj->Draw(g);
+			if (clipped) {
+				g->PopClipRect();
 			}
 		}
+		};
+
+	// ---- 顶层对象（renderOrder ≥ LAYER_UI）必须永远画在游戏主体之上 ----
+	// 并行 replay 的 emitUpTo 在每个 blend 段内固定"先 batch 后 instance"（依赖 shadow→reanim
+	// 约定）。当某个 worker 切片横跨"低层 reanim instance(植物/僵尸) → 高层 batch quad(进度条/
+	// 卡片/铲子)"边界且段内无 blend 切换时，更高层的 batch 顶点会被拉到 reanim instance 之前
+	// emit，导致 reanim 反盖 UI（随切片边界漂移而时隐时现）。把 renderOrder ≥ LAYER_UI 的对象
+	// 摘出，在 replay 之后主线程串行绘制——与 deferred-text"覆盖层最后画"同构，既保证顶层恒在
+	// 最上，又不动主体的并行批处理。
+	//
+	// 注意阈值取 LAYER_UI(40000)，按数值 *同时* 捞走了更高层：LAYER_GAME_COIN(阳光, 50000,
+	// reanim instance) 与 LAYER_EFFECTS(80000)。这无损正确性——split + 两个分区各自升序 = 完整
+	// 保留全局 z-order；阳光的 instance 走主线程 AppendReanimInstance 分支，落在 BeginParallelRecord
+	// 预留的 POST_PARALLEL_RESERVE_INST(1MB) 余量内。代价仅是这两层不再并行（对象数很少，可忽略）。
+	// mGameObjects 已按 renderOrder 升序，二分定位第一个 ≥ LAYER_UI 的对象。
+	int splitIdx = total;
+	{
+		auto it = std::lower_bound(mGameObjects.begin(), mGameObjects.end(), static_cast<int>(LAYER_UI),
+			[](const std::shared_ptr<GameObject>& o, int order) {
+				return o->GetRenderOrder() < order;
+			});
+		splitIdx = static_cast<int>(it - mGameObjects.begin());
+	}
+	const int parallelCount = splitIdx;  // [0, splitIdx) 走并行；[splitIdx, total) overlay 串行
+
+	if (!g->IsParallelDrawEnabled() || parallelCount < kParallelDrawThreshold) {
+		// 串行 fallback（菜单/图鉴等少对象场景，行为与原代码完全等价）
+		PROFILE_SCOPE("6.Draw_submit(serial-fallback)");
+		drawSerialRange(0, total);
 		return;
 	}
 
-	// 并行 record + replay
+	// 并行 record + replay（只覆盖 [0, parallelCount) 的游戏对象主体）
 	// workers 数和 ThreadPool 内部 numActive 必须保持一致，否则 slot 索引推导（start/chunkSize）
-	// 可能错位。ThreadPool::Dispatch 把 numActive 钳到 min(线程数, total)，我们这里同步钳一下。
+	// 可能错位。ThreadPool::Dispatch 把 numActive 钳到 min(线程数, parallelCount)，这里同步钳一下。
 	int numWorkers = static_cast<int>(std::thread::hardware_concurrency());
 	if (numWorkers < 1) numWorkers = 1;
-	if (numWorkers > total) numWorkers = total;
+	if (numWorkers > parallelCount) numWorkers = parallelCount;
 
 	{
 		PROFILE_SCOPE("6.Draw_submit(par-record)");
 		g->BeginParallelRecord(numWorkers);
 
-		mThreadPool->Dispatch(total, [this, g, total, numWorkers](int start, int end) {
-			const int chunkSize = (total + numWorkers - 1) / numWorkers;
+		mThreadPool->Dispatch(parallelCount, [this, g, parallelCount, numWorkers](int start, int end) {
+			const int chunkSize = (parallelCount + numWorkers - 1) / numWorkers;
 			const int slot = (chunkSize > 0) ? (start / chunkSize) : 0;
 
 			g->SetWorkerSlot(slot);
@@ -228,6 +255,13 @@ void GameObjectManager::DrawAll(Graphics* g) {
 	{
 		PROFILE_SCOPE("7.Draw_replay(serial)");
 		g->ReplayAndEndParallel();
+	}
+
+	// overlay 层（renderOrder ≥ LAYER_UI）在 replay 之后主线程串行绘制，保证恒在最上层。
+	// 串行路径走 m_batchVertices / AppendReanimInstance 的主线程分支，自带 cross-flush 严格保序。
+	{
+		PROFILE_SCOPE("8.Draw_overlay(serial)");
+		drawSerialRange(splitIdx, total);
 	}
 }
 

@@ -30,9 +30,11 @@ namespace {
 	// SSBO: 32 MB / 64B = 262144*2 mat4，跟 VBO 上限对得上（典型 6 顶点/矩阵比例）
 	constexpr VkDeviceSize VBO_BYTES_PER_FRAME = 128u * 1024u * 1024u;
 	constexpr VkDeviceSize SSBO_BYTES_PER_FRAME = 32u * 1024u * 1024u;
-	// InstanceRecord: 48 B/instance. 32 MB / 48 B ≈ 700k 容量。
-	// 11000 zombie × ~15 track × 3 (normal+glow+overlay) ≈ 500k 上限，留 ~40% 余量。
-	constexpr VkDeviceSize INST_BYTES_PER_FRAME = 32u * 1024u * 1024u;
+	// InstanceRecord: 48 B/instance. 64 MB / 48 B ≈ 1.4M 容量。
+	// 11000 zombie × ~15 track × 3 (normal+glow+overlay) ≈ 500k；32MB(≈700k) 在
+	// "对象很多很多"场景下被 worker slice 瓜分后单 slot 溢出（[Graphics] Worker slot overflow），
+	// 实测确认 inst 是瓶颈，翻倍到 64MB。代价 +32MB×2 帧 = +64MB host-visible VRAM。
+	constexpr VkDeviceSize INST_BYTES_PER_FRAME = 64u * 1024u * 1024u;
 } // anonymous
 
 // Phase 3b — Vulkan 端持有的全部渲染资源。PIMPL 在 Graphics.cpp 内部定义，

@@ -683,11 +683,10 @@ private:
 	std::vector<uint32_t> m_batchTextures;        ///< 当前批次使用的 bindless 槽位列表
 	std::vector<glm::mat4> m_batchMatrices;     ///< 当前批次使用的变换矩阵列表
 	std::vector<InstanceRecord> m_batchInstances;   ///< 主线程串行 instance 缓冲（worker 走 slice 不经此处）
-	int m_batchInstancesLimit = 8192;               ///< 单次 flush 上限，~384 KB 一次 vkCmdDraw
+	int m_batchInstancesLimit = 32768;              ///< 单次 flush 上限，~1.5 MB 一次 vkCmdDraw（仅切分 draw 段数，不影响总字节；cap = INST_BYTES_PER_FRAME/48 ≈ 699k，远未触及）
 	bool m_useInstancePath = true;   ///< Task 7: false强制走 slow path 做 A/B baseline
 
 	int m_maxTextureUnits = 32;                  ///< 最大纹理单元数（着色器限制）
-	int m_matrixBatchLimit = 256;                ///< 单批次最大矩阵数（运行时由 GL_MAX_UNIFORM_BLOCK_SIZE 决定，最低 256）
 
 	size_t m_batchBufferCapacity = 0;             ///< 当前 VBO 容量（顶点个数）
 
@@ -702,11 +701,6 @@ private:
 	// 定义在 Graphics.cpp 内部，避免把 vulkan.h 暴露给整个工程。
 	struct VulkanGraphicsState;
 	std::unique_ptr<VulkanGraphicsState> m_vk;
-
-	static const int VERTEX_BATCH_LIMIT_MIN = 1024;   ///< 单批次最大顶点数最低保证（运行时可更大）
-	int m_vertexBatchLimit = VERTEX_BATCH_LIMIT_MIN;  ///< 单批次最大顶点数（= m_matrixBatchLimit * 6）
-	static const int MATRIX_BATCH_LIMIT_MIN = 256;    ///< 单批次最大矩阵数最低保证（UBO 保证最小 16KB）
-	static const int GEOM_BATCH_LIMIT = 2048;   ///< 单批次最大几何顶点数
 
 	static const int TEXT_CACHE_MAX_SIZE = 256;  ///< 文字缓存最大条目数（LRU 淘汰）
 	std::list<std::string> m_textCacheOrder;     ///< LRU 顺序链表（front = 最近使用）

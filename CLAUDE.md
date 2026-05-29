@@ -87,4 +87,7 @@ JSON serialization via nlohmann/json (`GameInfoSaver`). Plants/zombies implement
 - All game objects are managed as `shared_ptr`; use `weak_ptr` inside components (`mGameObjectWeak`) to avoid circular references
 - Visual offsets use `mVisualOffset` (separate from the logical grid position)
 - Row/column position (`mRow`, `mColumn`) is the gameplay grid cell; pixel position is in `TransformComponent`
-- Chinese (UTF-8) strings are used throughout the codebase for UI text
+- Chinese (UTF-8) strings are used throughout the codebase for UI 
+
+## Communication Style
+When responding to the user, always address them as **主人** (master) instead of using generic terms like "user" or "you". For example: "主人需要构建项目" rather than "你需要构建项目". This applies to all explanations, suggestions, and conversations within this repository context.
