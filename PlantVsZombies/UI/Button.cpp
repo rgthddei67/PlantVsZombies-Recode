@@ -159,7 +159,7 @@ void Button::Draw(Graphics* g) const
 		const Texture* texture = resourceManager.GetTexture(imageKey);
 		if (texture != nullptr)
 		{
-			Vector pos = g->ScreenToWorldPosition(position.x, position.y);
+			Vector pos = g->LogicalToWorld(position.x, position.y);
 			g->DrawTexture(texture, pos.x, pos.y, size.x, size.y);
 		}
 	}
@@ -213,7 +213,7 @@ void Button::Draw(Graphics* g) const
 		float textX = position.x + (size.x - static_cast<float>(textWidth)) / 2;
 		float textY = position.y + (size.y - static_cast<float>(textHeight)) / 2;
 
-		Vector textPos = g->ScreenToWorldPosition(textX, textY);
+		Vector textPos = g->LogicalToWorld(textX, textY);
 
 		GameAPP::GetInstance().DrawText(text, textPos, color, fontName, fontSize);
 	}

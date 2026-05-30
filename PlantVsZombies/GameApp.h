@@ -47,6 +47,7 @@ public:
 	bool mShowZombieHP = false; // 僵尸显示血量
 	bool mAutoCollected = true; // 自动收集
 	bool mVsync = false;    // 是否开启垂直同步
+	bool mFullscreen = false;   // 是否全屏（等比 letterbox，无边框桌面全屏）
 
 	std::vector<PlantType> mHaveCards;      // 玩家拥有的卡牌
 
@@ -99,6 +100,12 @@ public:
 	// 应用新的垂直同步设置：写 mVsync + 热重建 swapchain（不重启）。
 	// 必须在主线程、帧外（不在 BeginFrame..EndFrame 之间）调用。
 	bool ApplyVsync(bool vsync);
+
+	// 切换全屏：SDL_SetWindowFullscreen(FULLSCREEN_DESKTOP) + 热重建 swapchain + 重算 letterbox。
+	// 画面等比居中、UI 逻辑坐标不变、黑边补齐。必须在主线程、帧外调用。
+	// 按钮直接调用此函数即可（主人自行接 UI）。
+	bool SetFullscreen(bool fullscreen);
+	bool IsFullscreen() const { return mFullscreen; }
 
 	// 设置游戏是否运行
 	void SetRunning(bool running) { this->mRunning = running; }

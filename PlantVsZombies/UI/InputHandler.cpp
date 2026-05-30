@@ -38,9 +38,17 @@ void InputHandler::ProcessEvent(SDL_Event* event)
 	break;
 
 	case SDL_MOUSEMOTION:
-		m_mousePosition = Vector(static_cast<float>(event->motion.x),
+	{
+		// 唯一的坐标咽喉点：SDL 给的是帧缓冲像素，全屏 letterbox 下先逆变换回逻辑坐标，
+		// 再存入 m_mousePosition。这样下游所有消费者（Button/Slider 比逻辑坐标、
+		// Scene/CardSlotManager 经 LogicalToWorld 转世界坐标）都无需改动，
+		// 语义与窗口模式完全一致。窗口模式 scale=1/offset=0 时此换算是恒等。
+		glm::vec2 logical = mGraphics->ScreenToLogical(
+			static_cast<float>(event->motion.x),
 			static_cast<float>(event->motion.y));
+		m_mousePosition = Vector(logical.x, logical.y);
 		break;
+	}
 
 	case SDL_MOUSEBUTTONDOWN:
 		if (event->button.button >= SDL_BUTTON_LEFT && event->button.button <= SDL_BUTTON_X2) {
@@ -129,12 +137,14 @@ bool InputHandler::IsKeyReleased(SDL_Keycode keyCode) const
 
 Vector InputHandler::GetMousePosition() const
 {
+	// m_mousePosition 已是逻辑坐标（letterbox 逆变换在 ProcessEvent 入口完成）。
 	return m_mousePosition;
 }
 
 Vector InputHandler::GetMouseWorldPosition() const {
 	Vector mousePositon = GetMousePosition();
-	return mGraphics->ScreenToWorldPosition(mousePositon.x, mousePositon.y);
+	// 入参已是逻辑坐标，LogicalToWorld 在此基础上做相机逆变换。
+	return mGraphics->LogicalToWorld(mousePositon.x, mousePositon.y);
 }
 
 Vector InputHandler::GetMouseDelta() const

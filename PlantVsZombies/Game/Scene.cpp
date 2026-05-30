@@ -222,7 +222,7 @@ void Scene::DrawAllTextures(Graphics* g) {
 		Vector drawPosition = Vector(texInfo.posX, texInfo.posY);
 
 		if (texInfo.isUI) {
-			drawPosition = g->ScreenToWorldPosition(texInfo.posX, texInfo.posY);
+			drawPosition = g->LogicalToWorld(texInfo.posX, texInfo.posY);
 		}
 
 		g->DrawTexture(texInfo.texture, drawPosition.x, drawPosition.y,

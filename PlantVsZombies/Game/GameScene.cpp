@@ -536,7 +536,7 @@ void GameScene::ShowSunCount()
 	RegisterDrawCommand("SunCounter",
 		[this](Graphics* g) {
 			GameAPP::GetInstance().DrawText(std::to_string(mBoard->GetSun()),
-				g->ScreenToWorldPosition(142, 42), { 0,0,0,255 }, ResourceKeys::Fonts::FONT_FZCQ, 17);
+				g->LogicalToWorld(142, 42), { 0,0,0,255 }, ResourceKeys::Fonts::FONT_FZCQ, 17);
 		},
 		LAYER_UI + 100000);
 	SortDrawCommands();

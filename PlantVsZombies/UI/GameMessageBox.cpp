@@ -139,7 +139,7 @@ void GameMessageBox::Draw(Graphics* g)
 	if (!m_backgroundImageKey.empty()) {
 		auto& resMgr = ResourceManager::GetInstance();
 		const Texture* tex = resMgr.GetTexture(m_backgroundImageKey);
-		Vector pos = g->ScreenToWorldPosition(m_position.x - 230, m_position.y - 180);
+		Vector pos = g->LogicalToWorld(m_position.x - 230, m_position.y - 180);
 		g->DrawTexture(tex, pos.x, pos.y, m_size.x, m_size.y);
 	}
 	else {
@@ -150,7 +150,7 @@ void GameMessageBox::Draw(Graphics* g)
 		int fontSize = static_cast<int>(BASE_TITLE_FONT_SIZE * m_scale);
 		if (fontSize < 8) fontSize = 8;
 		Vector titlePos = m_position + Vector(10 * m_scale + TITLE_OFFSET.x, TITLE_OFFSET.y);
-		Vector pos2 = g->ScreenToWorldPosition(titlePos.x, titlePos.y);
+		Vector pos2 = g->LogicalToWorld(titlePos.x, titlePos.y);
 		GameAPP::GetInstance().DrawText(m_title, pos2, m_titleColor,
 			ResourceKeys::Fonts::FONT_FZCQ, fontSize);
 	}
@@ -159,7 +159,7 @@ void GameMessageBox::Draw(Graphics* g)
 		int fontSize = static_cast<int>(BASE_MESSAGE_FONT_SIZE * m_scale);
 		if (fontSize < 8) fontSize = 8;
 		Vector msgPos = m_position + Vector(10 * m_scale + MESSAGE_OFFSET.x, MESSAGE_OFFSET.y);
-		Vector pos3 = g->ScreenToWorldPosition(msgPos.x, msgPos.y);
+		Vector pos3 = g->LogicalToWorld(msgPos.x, msgPos.y);
 		GameAPP::GetInstance().DrawText(m_message, pos3, m_textColor,
 			ResourceKeys::Fonts::FONT_FZCQ, fontSize);
 	}
@@ -168,7 +168,7 @@ void GameMessageBox::Draw(Graphics* g)
 		int fontSize = static_cast<int>(config.size * m_scale);
 		if (fontSize < 8) fontSize = 8;
 
-		Vector pos4 = g->ScreenToWorldPosition(config.pos.x, config.pos.y);
+		Vector pos4 = g->LogicalToWorld(config.pos.x, config.pos.y);
 		GameAPP::GetInstance().DrawText(config.text, pos4, config.color,
 			config.font, fontSize);
 	}

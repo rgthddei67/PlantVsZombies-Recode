@@ -25,6 +25,7 @@ bool GameInfoSaver::SavePlayerInfo()
 
 	nlohmann::json j;
 	j["vsync"] = gameApp.mVsync;
+	j["fullscreen"] = gameApp.mFullscreen;
 	j["difficulty"] = gameApp.Difficulty;
 	j["adventureLevel"] = gameApp.mAdventureLevel;
 	j["showPlantHP"] = gameApp.mShowPlantHP;
@@ -45,6 +46,7 @@ bool GameInfoSaver::LoadPlayerInfo()
 
 	auto& gameApp = GameAPP::GetInstance();
 	gameApp.mVsync = j.value("vsync", false);
+	gameApp.mFullscreen = j.value("fullscreen", false);
 	gameApp.Difficulty = j.value("difficulty", 1);
 	gameApp.mAdventureLevel = j.value("adventureLevel", 1);
 	gameApp.mShowPlantHP = j.value("showPlantHP", false);

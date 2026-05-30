@@ -215,7 +215,7 @@ void CardSlotManager::UpdatePlantPreviewPosition(Graphics* g, const Vector& mous
 	if (!selected) return;
 
 	// 屏幕坐标转世界坐标
-	Vector mouseWorld = g->ScreenToWorldPosition(mouseScreen.x, mouseScreen.y);
+	Vector mouseWorld = g->LogicalToWorld(mouseScreen.x, mouseScreen.y);
 
 	Cell* hoveredCell = nullptr;
 

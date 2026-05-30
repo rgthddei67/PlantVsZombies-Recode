@@ -35,6 +35,21 @@ void CardDisplayComponent::Start() {
 }
 
 void CardDisplayComponent::Update() {
+	// 阳光数字纹理在主线程维护：数值变化、尚未创建、或 letterbox 切换（全屏⇄窗口）使旧句柄
+	// 失效时重建。必须放在任何 early-return 之前，且只能在主线程做——卡片 Draw 跑在 worker
+	// 线程，那里 AcquireTextTexture 直接返回空句柄。IsCachedTextStale 捕获全屏切换后旧密度/
+	// 已销毁纹理，使数字按新分辨率重新光栅化以保持锐利。
+	{
+		Graphics& g = GameAPP::GetInstance().GetGraphics();
+		if (mCachedSunValue != needSun || mSunTextCache.textureID == 0 || g.IsCachedTextStale(mSunTextCache)) {
+			mSunTextCache = g.AcquireTextTexture(std::to_string(needSun),
+				ResourceKeys::Fonts::FONT_FZCQ,
+				14,
+				glm::vec4(0.0f, 0.0f, 0.0f, 255.0f));
+			mCachedSunValue = needSun;
+		}
+	}
+
 	if (GetCardComponent()->GetIsInChooseCardUI()) return;
 
 	// 更新冷却计时
@@ -56,7 +71,7 @@ void CardDisplayComponent::Draw(Graphics* g) {
 
 	// 一次性算出世界坐标与当前色调，避免各子函数重复查询
 	Vector pos = transform->GetPosition();
-	Vector position = g->ScreenToWorldPosition(pos.x, pos.y);
+	Vector position = g->LogicalToWorld(pos.x, pos.y);
 	glm::vec4 color = GetCurrentColor();
 
 	DrawCardBackground(g, position, color);
@@ -126,14 +141,8 @@ void CardDisplayComponent::DrawCooldownMask(Graphics* g, const Vector& position)
 }
 
 void CardDisplayComponent::DrawSunCost(Graphics* g, const Vector& position) {
-	// 阳光数字在运行期基本恒定；仅当数值变化时才重建纹理。
-	if (mCachedSunValue != needSun || mSunTextCache.textureID == 0) {
-		mSunTextCache = g->AcquireTextTexture(std::to_string(needSun),
-			ResourceKeys::Fonts::FONT_FZCQ,
-			14,
-			glm::vec4(0.0f, 0.0f, 0.0f, 255.0f));
-		mCachedSunValue = needSun;
-	}
+	// 纹理的创建/重建已移到主线程 Update()（worker 线程不能建纹理）；这里只负责绘制。
+	// 句柄若过期，DrawCachedText 内部会安全丢弃，等下一帧 Update 重建。
 	g->DrawCachedText(mSunTextCache, position.x + 6, position.y + 58);
 }
 

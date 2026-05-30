@@ -9,6 +9,8 @@
 
 #include <cstring>
 #include <array>
+#include <algorithm>
+#include <cmath>
 
 namespace {
 	// Phase 3b — BatchVertex 顶点输入描述（与 Graphics.h struct BatchVertex 对齐）
@@ -467,6 +469,25 @@ bool Graphics::BeginFrame() {
 		return false;
 	}
 
+	// Letterbox：renderer 已设铺满交换链的默认 viewport，这里覆盖成等比居中的矩形。
+	// 视口变换把所有几何体约束进该矩形，黑边区域无顶点 → 保持清屏色（黑）。
+	// 保留负高度 Y 翻转（沿用 GL 风格 top=0 正交矩阵）。窗口模式 scale=1/offset=0 时退化为原 viewport。
+	{
+		VkCommandBuffer cb = m_vk->renderer->CurrentCmdBuffer();
+		if (cb != VK_NULL_HANDLE) {
+			float vpW = m_windowWidth * m_letterboxScale;
+			float vpH = m_windowHeight * m_letterboxScale;
+			VkViewport vp{};
+			vp.x = m_letterboxOffsetX;
+			vp.y = m_letterboxOffsetY + vpH;   // 底边，配合负高度翻转
+			vp.width = vpW;
+			vp.height = -vpH;
+			vp.minDepth = 0.0f;
+			vp.maxDepth = 1.0f;
+			vkCmdSetViewport(cb, 0, 1, &vp);
+		}
+	}
+
 	m_vk->frameIdx = m_vk->renderer->CurrentFrameIdx();
 	auto& fr = m_vk->frames[m_vk->frameIdx];
 	fr.vboCursor = 0;
@@ -598,15 +619,18 @@ void Graphics::ApplyTopClipRectToGL() {
 	VkExtent2D sce = m_vk->ctx->SwapchainExtent();
 	VkRect2D rect{};
 	if (m_clipStack.empty()) {
-		rect.offset = { 0, 0 };
-		rect.extent = sce;
+		// 空栈 = 全逻辑画面。letterbox 下应限制到画面矩形（offset..offset+logical*scale），
+		// 否则黑边区域可能被后续绘制写入。窗口模式 scale=1/offset=0 时即整个交换链。
+		LogicalRectToFramebuffer(0, 0, m_windowWidth, m_windowHeight,
+			rect.offset.x, rect.offset.y, rect.extent.width, rect.extent.height);
 	}
 	else {
 		const ClipRect& cr = m_clipStack.back();
-		int32_t  x = std::max(0, cr.x);
-		int32_t  y = std::max(0, cr.y);
-		uint32_t w = (uint32_t)std::max(0, cr.w);
-		uint32_t h = (uint32_t)std::max(0, cr.h);
+		// 逻辑坐标裁剪框 → 帧缓冲像素（scissor 不经 viewport 变换，必须手动套 letterbox）。
+		int32_t  x; int32_t  y; uint32_t w; uint32_t h;
+		LogicalRectToFramebuffer(cr.x, cr.y, cr.w, cr.h, x, y, w, h);
+		if (x < 0) { if ((int32_t)w > -x) w += x; else w = 0; x = 0; }
+		if (y < 0) { if ((int32_t)h > -y) h += y; else h = 0; y = 0; }
 		// clamp to swapchain bounds
 		if ((uint32_t)x > sce.width)  x = (int32_t)sce.width;
 		if ((uint32_t)y > sce.height) y = (int32_t)sce.height;
@@ -1018,11 +1042,26 @@ void Graphics::DrawTextureRegion(const Texture* tex,
 	CheckBatch();
 }
 
+// 文字超采样：letterbox 把整幅逻辑画面放大 letterboxScale 倍铺满全屏。文字若按逻辑
+// fontSize 光栅化再被 GPU 放大就会糊。改为按物理像素 physSize 光栅化，绘制时再按
+// superSample 除回逻辑尺寸——屏幕布局不变、像素密度匹配屏幕。窗口模式 scale=1 → 恒等。
+static int ComputeTextRasterSize(int fontSize, float letterboxScale, float& outSuperSample) {
+	int phys = (int)std::lround(fontSize * (double)letterboxScale);
+	if (phys < 1) phys = 1;
+	outSuperSample = (float)phys / (float)fontSize;
+	return phys;
+}
+
 uint32_t Graphics::GetOrCreateTextTexture(const std::string& text, const std::string& fontKey,
-	int fontSize, const glm::vec4& color, int& outWidth, int& outHeight) {
+	int fontSize, const glm::vec4& color, int& outWidth, int& outHeight, float& outSuperSample) {
+	// 按物理像素超采样光栅化。physSize 进缓存键，避免窗口/全屏两种密度的同一句文字串号。
+	float superSample;
+	const int physSize = ComputeTextRasterSize(fontSize, m_letterboxScale, superSample);
+	outSuperSample = superSample;
+
 	// 生成缓存键
 	std::stringstream ss;
-	ss << text << "|" << fontKey << "|" << fontSize << "|"
+	ss << text << "|" << fontKey << "|" << physSize << "|"
 		<< (int)color.r << "," << (int)color.g << "," << (int)color.b << "," << (int)color.a;
 	std::string key = ss.str();
 
@@ -1038,9 +1077,10 @@ uint32_t Graphics::GetOrCreateTextTexture(const std::string& text, const std::st
 	}
 
 	CachedText entry;
-	if (!RenderTextToVulkanTexture(text, fontKey, fontSize, color, entry)) {
+	if (!RenderTextToVulkanTexture(text, fontKey, physSize, color, entry)) {
 		return 0;
 	}
+	entry.superSample = superSample;
 	outWidth = entry.width;
 	outHeight = entry.height;
 
@@ -1116,8 +1156,12 @@ bool Graphics::RenderTextToVulkanTexture(const std::string& text, const std::str
 
 CachedText Graphics::AcquireTextTexture(const std::string& text, const std::string& fontKey,
 	int fontSize, const glm::vec4& color) {
+	// 与 GetOrCreateTextTexture 同款超采样：按物理像素光栅化，physSize 进键。
+	float superSample;
+	const int physSize = ComputeTextRasterSize(fontSize, m_letterboxScale, superSample);
+
 	std::stringstream ss;
-	ss << text << "|" << fontKey << "|" << fontSize << "|"
+	ss << text << "|" << fontKey << "|" << physSize << "|"
 		<< (int)color.r << "," << (int)color.g << "," << (int)color.b << "," << (int)color.a;
 	std::string key = ss.str();
 
@@ -1134,21 +1178,28 @@ CachedText Graphics::AcquireTextTexture(const std::string& text, const std::stri
 	if (tl_record) return {};
 
 	CachedText entry;
-	if (!RenderTextToVulkanTexture(text, fontKey, fontSize, color, entry)) {
+	if (!RenderTextToVulkanTexture(text, fontKey, physSize, color, entry)) {
 		return {};
 	}
+	entry.superSample = superSample;
+	entry.generation = m_textGeneration;
 	m_pinnedTextCache.emplace(std::move(key), entry);
 	return entry;
 }
 
 void Graphics::DrawCachedText(const CachedText& handle, float x, float y, float scale) {
 	if (handle.textureID == 0) return;
+	// 过期句柄（底层纹理已被 ClearPinnedTextCache 销毁）直接丢弃，避免读悬垂的 bindless 槽位。
+	// 消费者应在主线程经 IsCachedTextStale 重新获取；这里只做防御。
+	if (handle.generation != m_textGeneration) return;
 	if (tl_record) { RecordDrawCachedText(*tl_record, handle, x, y, scale); return; }
 
 	int texIndex = BindTexture(handle.textureID);
 	glm::mat4 local = glm::mat4(1.0f);
 	local = glm::translate(local, glm::vec3(x, y, 0.0f));
-	local = glm::scale(local, glm::vec3(handle.width * scale, handle.height * scale, 1.0f));
+	// 超采样纹理：除回逻辑尺寸保证屏幕布局不变（handle.superSample=1 时等价）。
+	const float inv = scale / handle.superSample;
+	local = glm::scale(local, glm::vec3(handle.width * inv, handle.height * inv, 1.0f));
 	glm::mat4 finalMatrix = m_transformStack.back() * local;
 	int matrixIndex = AddMatrix(finalMatrix);
 
@@ -1172,6 +1223,9 @@ void Graphics::ClearPinnedTextCache() {
 		}
 	}
 	m_pinnedTextCache.clear();
+	// 代际号递增：所有在外部持有的旧句柄副本就此失效（IsCachedTextStale 会返回 true），
+	// 防止消费者拿已销毁的 bindless 槽位去绘制。
+	++m_textGeneration;
 }
 
 void Graphics::DrawText(const std::string& text, const std::string& fontKey, int fontSize,
@@ -1179,13 +1233,16 @@ void Graphics::DrawText(const std::string& text, const std::string& fontKey, int
 	if (tl_record) { RecordDrawText(*tl_record, text, fontKey, fontSize, color, x, y, scale); return; }
 
 	int w, h;
-	uint32_t texID = GetOrCreateTextTexture(text, fontKey, fontSize, color, w, h);
+	float superSample;
+	uint32_t texID = GetOrCreateTextTexture(text, fontKey, fontSize, color, w, h, superSample);
 	if (texID == 0) return;
 
 	int texIndex = BindTexture(texID);
 	glm::mat4 local = glm::mat4(1.0f);
 	local = glm::translate(local, glm::vec3(x, y, 0.0f));
-	local = glm::scale(local, glm::vec3(w * scale, h * scale, 1.0f));
+	// 纹理按物理像素超采样，除回逻辑尺寸保证屏幕布局不变（superSample=1 时等价）。
+	const float inv = scale / superSample;
+	local = glm::scale(local, glm::vec3(w * inv, h * inv, 1.0f));
 	glm::mat4 finalMatrix = m_transformStack.back() * local;
 	int matrixIndex = AddMatrix(finalMatrix);
 
@@ -1275,20 +1332,58 @@ void Graphics::ResetCamera() {
 	m_viewMatrix = glm::mat4(1.0f);
 }
 
-glm::vec2 Graphics::ScreenToWorldPosition(float screenX, float screenY) const {
-	// 屏幕坐标 → NDC（注意 Y 轴翻转，因为正交投影 top=0）
-	float ndcX = (screenX / m_windowWidth) * 2.0f - 1.0f;
-	float ndcY = 1.0f - (screenY / m_windowHeight) * 2.0f;
+void Graphics::RecomputeLetterbox() {
+	// 真实交换链尺寸。m_vk 未就绪（构造期/无 Vulkan）时退化为逻辑尺寸 → scale=1、offset=0。
+	float realW = (float)m_windowWidth;
+	float realH = (float)m_windowHeight;
+	if (m_vk && m_vk->ctx) {
+		VkExtent2D ext = m_vk->ctx->SwapchainExtent();
+		if (ext.width > 0 && ext.height > 0) {
+			realW = (float)ext.width;
+			realH = (float)ext.height;
+		}
+	}
+	const float prevScale = m_letterboxScale;
+	// 等比：取较小的轴缩放比，保证整幅逻辑画面装得下；剩余空间均分为两侧黑边。
+	m_letterboxScale = std::min(realW / (float)m_windowWidth, realH / (float)m_windowHeight);
+	m_letterboxOffsetX = (realW - m_windowWidth * m_letterboxScale) * 0.5f;
+	m_letterboxOffsetY = (realH - m_windowHeight * m_letterboxScale) * 0.5f;
+
+	// 缩放比变了（窗口⇄全屏切换）→ 已缓存的文字纹理是按旧密度光栅化的，立即失效让其按新
+	// 密度重建，否则全屏后文字会沿用低密度纹理而发糊。一次性重光栅化（非每帧），代价可接受。
+	if (std::abs(m_letterboxScale - prevScale) > 1e-4f) {
+		ClearTextCache();
+		ClearPinnedTextCache();
+	}
+}
+
+void Graphics::LogicalRectToFramebuffer(int lx, int ly, int lw, int lh,
+	int32_t& outX, int32_t& outY, uint32_t& outW, uint32_t& outH) const {
+	// scissor 走帧缓冲像素、不经 viewport 变换，所以这里必须手动套 letterbox 缩放+偏移。
+	outX = (int32_t)std::lround(lx * m_letterboxScale + m_letterboxOffsetX);
+	outY = (int32_t)std::lround(ly * m_letterboxScale + m_letterboxOffsetY);
+	outW = (uint32_t)std::max(0L, std::lround(lw * m_letterboxScale));
+	outH = (uint32_t)std::max(0L, std::lround(lh * m_letterboxScale));
+}
+
+glm::vec2 Graphics::LogicalToWorld(float logicalX, float logicalY) const {
+	// 入参是「逻辑坐标」(0..1100/0..600)，不是帧缓冲像素——
+	// 全场 15+ 调用点绝大多数传的是 UI 布局坐标用于绘制（Button/Slider/ShovelBank 等）。
+	// 鼠标的 letterbox 逆变换在 InputHandler::ProcessEvent 入口已完成，故此处不做 letterbox，
+	// 只保留 逻辑坐标 → 世界坐标 的相机逆变换。窗口/全屏行为一致。
+	// 逻辑坐标 → NDC（注意 Y 轴翻转，因为正交投影 top=0）
+	float ndcX = (logicalX / m_windowWidth) * 2.0f - 1.0f;
+	float ndcY = 1.0f - (logicalY / m_windowHeight) * 2.0f;
 	glm::vec4 worldPos = glm::inverse(m_projection * m_viewMatrix) * glm::vec4(ndcX, ndcY, 0.0f, 1.0f);
 	return glm::vec2(worldPos.x, worldPos.y);
 }
 
-glm::vec2 Graphics::WorldToScreenPosition(float worldX, float worldY) const {
+glm::vec2 Graphics::WorldToLogical(float worldX, float worldY) const {
 	glm::vec4 clipPos = m_projection * m_viewMatrix * glm::vec4(worldX, worldY, 0.0f, 1.0f);
-	// NDC → 屏幕坐标（Y 轴翻转）
-	float screenX = (clipPos.x + 1.0f) * 0.5f * m_windowWidth;
-	float screenY = (1.0f - clipPos.y) * 0.5f * m_windowHeight;
-	return glm::vec2(screenX, screenY);
+	// NDC → 逻辑坐标（Y 轴翻转）
+	float logicalX = (clipPos.x + 1.0f) * 0.5f * m_windowWidth;
+	float logicalY = (1.0f - clipPos.y) * 0.5f * m_windowHeight;
+	return glm::vec2(logicalX, logicalY);
 }
 
 void Graphics::DrawLine(float x1, float y1, float x2, float y2, const glm::vec4& color) {
@@ -2031,12 +2126,17 @@ void Graphics::RecordDrawCachedText(WorkerRecord& r,
 {
 	// CachedText 是 immutable POD——worker 直接走快速路径，不需要 DeferredText。
 	if (handle.textureID == 0) return;
+	// 过期句柄丢弃（同 DrawCachedText）。m_textGeneration 只在帧外（RecomputeLetterbox）变更，
+	// 并行录制期间稳定，worker 读取安全。
+	if (handle.generation != m_textGeneration) return;
 	VkWorkerSlice& sl = r.slice;
 	if (!SliceHasRoom(sl, 6, 1)) return;
 
 	glm::mat4 local = glm::mat4(1.0f);
 	local = glm::translate(local, glm::vec3(x, y, 0.0f));
-	local = glm::scale(local, glm::vec3(handle.width * scale, handle.height * scale, 1.0f));
+	// 超采样纹理：除回逻辑尺寸保证屏幕布局不变（handle.superSample=1 时等价）。
+	const float inv = scale / handle.superSample;
+	local = glm::scale(local, glm::vec3(handle.width * inv, handle.height * inv, 1.0f));
 	const bool curId = tl_transformIsIdentity->back() != 0;
 	const glm::mat4 finalMatrix = curId ? local : (tl_transformStack->back() * local);
 	const uint32_t matAbs = PushSliceMatrix(sl, finalMatrix);

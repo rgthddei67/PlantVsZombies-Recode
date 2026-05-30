@@ -163,8 +163,13 @@ bool GameAPP::CreateWindowAndRenderer()
 		std::cout << "[Graphics] Instance path 关闭 — reanim 全走 slow path (DrawTextureMatrix)" << std::endl;
 	}
 
-	// 设置默认清屏颜色（0~255 输入，内部归一化）
-	m_graphics->SetClearColor(255, 255, 255, 255);
+	// 设置默认清屏颜色（0~255 输入，内部归一化）。
+	// 用黑色：全屏 letterbox 时清屏色只在黑边区域可见，黑边即由此而来；
+	// 窗口模式下背景图铺满逻辑画面，清屏色不可见，无副作用。
+	m_graphics->SetClearColor(0, 0, 0, 255);
+
+	// 初始化 letterbox 参数（窗口模式 scale=1/offset=0）。
+	m_graphics->RecomputeLetterbox();
 
 	return true;
 }
@@ -322,6 +327,12 @@ int GameAPP::Run()
 
 	DeltaTime::Reset();
 
+	// 按存档应用全屏设置（mFullscreen 已在 LoadPlayerInfo 时读入）。
+	// 放在主循环前、所有渲染资源就绪后执行（帧外，安全）。
+	if (mFullscreen) {
+		SetFullscreen(true);
+	}
+
 	mRunning = true;
 	SDL_Event event;
 
@@ -410,6 +421,8 @@ void GameAPP::Draw()
 		if (m_vulkanCtx->RecreateSwapchain(mVsync)) {
 			m_vulkanRenderer->OnSwapchainRecreated();
 			m_vulkanRenderer->ClearSwapchainRebuildFlag();
+			// 交换链尺寸可能变了（窗口拉伸 / Alt+Tab 全屏切换的兜底路径），重算 letterbox。
+			if (m_graphics) m_graphics->RecomputeLetterbox();
 		}
 	}
 }
@@ -421,6 +434,27 @@ bool GameAPP::ApplyVsync(bool vsync)
 	if (!m_vulkanCtx->RecreateSwapchain(mVsync)) return false;
 	if (!m_vulkanRenderer->OnSwapchainRecreated()) return false;
 	m_vulkanRenderer->ClearSwapchainRebuildFlag();
+	if (m_graphics) m_graphics->RecomputeLetterbox();
+	return true;
+}
+
+bool GameAPP::SetFullscreen(bool fullscreen)
+{
+	if (!mWindow || !m_vulkanCtx || !m_vulkanRenderer || !m_graphics) return false;
+
+	// FULLSCREEN_DESKTOP：沿用桌面分辨率、不切显示模式、Alt-Tab 顺滑。0 = 还原窗口。
+	Uint32 flag = fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0;
+	if (SDL_SetWindowFullscreen(mWindow, flag) != 0) {
+		std::cerr << "SDL_SetWindowFullscreen 失败: " << SDL_GetError() << std::endl;
+		return false;
+	}
+	mFullscreen = fullscreen;
+
+	// 交换链尺寸随之改变，需热重建并重算 letterbox（缩放比 + 黑边偏移）。
+	if (!m_vulkanCtx->RecreateSwapchain(mVsync)) return false;
+	if (!m_vulkanRenderer->OnSwapchainRecreated()) return false;
+	m_vulkanRenderer->ClearSwapchainRebuildFlag();
+	m_graphics->RecomputeLetterbox();
 	return true;
 }
 

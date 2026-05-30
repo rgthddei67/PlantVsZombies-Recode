@@ -141,6 +141,11 @@ void MainMenuScene::OpenMenu()
 		gameApp.ApplyVsync(!gameApp.mVsync);
 	}, ResourceKeys::Textures::IMAGE_OPTIONS_CHECKBOX0 ,false });
 
+	buttons.push_back({ u8"", Vector(510, 290),Vector(42, 39), 1,[this]() {
+		auto& gameApp = GameAPP::GetInstance();
+		gameApp.SetFullscreen(!gameApp.IsFullscreen());
+	}, ResourceKeys::Textures::IMAGE_OPTIONS_CHECKBOX0 ,false });
+
 	sliders.push_back({ Vector(530, 175), Vector(135, 10),
 		0.0f ,1.0f, AudioSystem::GetMusicVolume(),[](float value) {
 		AudioSystem::SetMusicVolume(value);
@@ -164,18 +169,24 @@ void MainMenuScene::OpenMenu()
 	({ Vector(480, 215), 22, u8"难度" , glm::vec4{ 107, 109, 144, 255} });
 	texts.push_back
 	({ Vector(555, 254), 18, u8"垂直同步" , glm::vec4{ 107, 109, 144, 255} });
+	texts.push_back
+	({ Vector(555, 294), 18, u8"全屏" , glm::vec4{ 107, 109, 144, 255} });
 
 	mMenu = mUIManager.CreateMessageBox(Vector(SCENE_WIDTH / 2 + 50, SCENE_HEIGHT / 2 - 80.0f),
 		"", buttons, sliders, texts, "", 1.0f, ResourceKeys::Textures::IMAGE_OPTIONS_MENUBACK);
 
+	// 按已知槽位初始化两个复选框的勾选态。
+	// m_buttons 与上面 buttons.push_back 的顺序一一对应：
+	//   [0] 返回游戏（非 checkbox）  [1] 垂直同步  [2] 全屏
+	// 注意：不能用"循环找第一个 checkbox 就 break"——那样只会初始化垂直同步，
+	// 全屏框永远停在默认未勾选，与实际全屏状态不符（原 bug）。两个框的初始值来自
+	// 不同的状态变量（mVsync / IsFullscreen），必须分别按槽位赋值。
 	auto& buttonChecks = mMenu.lock()->m_buttons;
-	for (size_t i = 0; i < buttonChecks.size(); i++) {
-		if (auto* aButton = buttonChecks[i].get()) {
-			if (aButton->IsCheckBox())
-			{
-				aButton->SetChecked(GameAPP::GetInstance().mVsync);
-				break;
-			}
-		}
+	auto& gameApp = GameAPP::GetInstance();
+	if (buttonChecks.size() > 1 && buttonChecks[1]) {
+		buttonChecks[1]->SetChecked(gameApp.mVsync);
+	}
+	if (buttonChecks.size() > 2 && buttonChecks[2]) {
+		buttonChecks[2]->SetChecked(gameApp.IsFullscreen());
 	}
 }

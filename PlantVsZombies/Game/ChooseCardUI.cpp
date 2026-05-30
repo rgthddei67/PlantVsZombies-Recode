@@ -80,7 +80,7 @@ void ChooseCardUI::Draw(Graphics* g) {
 	// 绘制背景
 	if (mCardUITexture) {
 		Vector pos = this->GetPosition();
-		Vector newpos = g->ScreenToWorldPosition(pos.x, pos.y);
+		Vector newpos = g->LogicalToWorld(pos.x, pos.y);
 		int w = mCardUITexture->width;
 		int h = mCardUITexture->height;
 

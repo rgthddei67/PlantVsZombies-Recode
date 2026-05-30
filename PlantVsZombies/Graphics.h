@@ -96,6 +96,13 @@ struct CachedText {
 	int width = 0;
 	int height = 0;
 	pvz::VulkanTexture* vkTex = nullptr;
+	// 光栅化时的超采样倍数（= physSize / fontSize）。全屏 letterbox 放大下，文字按物理
+	// 像素光栅化以保持锐利；绘制时用它把 width/height 除回逻辑尺寸，保证屏幕布局不变。
+	float superSample = 1.0f;
+	// pinned 缓存代际号：AcquireTextTexture 时打上当时的 m_textGeneration。letterbox 变化
+	// 清 pinned 缓存会递增代际号，使所有持有旧副本的消费者（如 CardDisplayComponent）能
+	// 用 IsCachedTextStale 察觉自己手里的句柄已失效，避免读已销毁的 bindless 槽位。
+	uint32_t generation = 0;
 };
 
 /**
@@ -387,6 +394,15 @@ public:
 		int fontSize, const glm::vec4& color);
 
 	/**
+	 * @brief 判断一份 pinned 文字句柄是否已失效（底层纹理已被 ClearPinnedTextCache 销毁）。
+	 *        消费者持有句柄副本时，应在主线程重绘前用它判断是否需要重新 AcquireTextTexture。
+	 *        全屏切换会清 pinned 缓存并递增代际号，使旧句柄在此返回 true。
+	 */
+	bool IsCachedTextStale(const CachedText& handle) const {
+		return handle.generation != m_textGeneration;
+	}
+
+	/**
 	 * @brief 使用 AcquireTextTexture 返回的句柄直接批次提交，跳过缓存查找。
 	 */
 	void DrawCachedText(const CachedText& handle, float x, float y, float scale = 1.0f);
@@ -596,20 +612,58 @@ public:
 	void ResetCamera();
 
 	/**
-	 * @brief 将屏幕坐标转换为世界坐标（考虑摄像机位移、缩放、旋转）。
-	 * @param screenX 屏幕 X 坐标（像素）
-	 * @param screenY 屏幕 Y 坐标（像素）
+	 * @brief 逻辑坐标 → 世界坐标（应用摄像机位移、缩放、旋转的逆变换）。
+	 *
+	 * 坐标三层：帧缓冲像素 --ScreenToLogical--> 逻辑坐标 --LogicalToWorld--> 世界坐标。
+	 * 本函数只负责后一段（相机变换）。入参是逻辑坐标(0..1100/0..600)，**不是**帧缓冲像素——
+	 * 鼠标的 letterbox 逆变换已在 InputHandler::ProcessEvent 入口完成，多数调用点传的是 UI 布局坐标。
+	 * @param logicalX 逻辑 X 坐标（UI 坐标空间）
+	 * @param logicalY 逻辑 Y 坐标（UI 坐标空间）
 	 * @return 对应的世界坐标
 	 */
-	glm::vec2 ScreenToWorldPosition(float screenX, float screenY) const;
+	glm::vec2 LogicalToWorld(float logicalX, float logicalY) const;
 
 	/**
-	 * @brief 将世界坐标转换为屏幕坐标。
+	 * @brief 世界坐标 → 逻辑坐标（LogicalToWorld 的反函数）。
 	 * @param worldX 世界 X 坐标
 	 * @param worldY 世界 Y 坐标
-	 * @return 对应的屏幕坐标（像素）
+	 * @return 对应的逻辑坐标（UI 坐标空间，非帧缓冲像素）
 	 */
-	glm::vec2 WorldToScreenPosition(float worldX, float worldY) const;
+	glm::vec2 WorldToLogical(float worldX, float worldY) const;
+
+	// ==================== Letterbox（等比 + 黑边）全屏支持 ====================
+	//
+	// 逻辑分辨率恒为 1100×600（m_windowWidth/Height）。全屏时真实交换链尺寸变大，
+	// 这里算出统一缩放比 + 居中黑边偏移，供三处共用：
+	//   1) VulkanRenderer 默认 viewport（画面等比居中，黑边区域不画）
+	//   2) ApplyTopClipRectToGL 的 scissor（逻辑裁剪框 → 帧缓冲像素）
+	//   3) InputHandler 鼠标坐标（帧缓冲像素 → 逻辑坐标）
+	// 窗口模式（真实尺寸==逻辑尺寸）时 scale=1、offset=0，退化为原行为。
+
+	/**
+	 * @brief 交换链重建后调用一次：读真实交换链尺寸，重算缩放比与黑边偏移。
+	 *        m_vk 未初始化时退化为 scale=1、offset=0。
+	 */
+	void RecomputeLetterbox();
+
+	/// 逻辑→帧缓冲 的统一缩放比（min(realW/logicalW, realH/logicalH)）。
+	float GetLetterboxScale() const { return m_letterboxScale; }
+	/// 居中黑边在帧缓冲中的左上偏移（像素）。
+	glm::vec2 GetLetterboxOffset() const { return { m_letterboxOffsetX, m_letterboxOffsetY }; }
+	/// 画面在帧缓冲中实际占用的矩形尺寸（logical * scale，像素）。
+	glm::vec2 GetLetterboxViewportSize() const {
+		return { m_windowWidth * m_letterboxScale, m_windowHeight * m_letterboxScale };
+	}
+
+	/// 把逻辑坐标裁剪框换算为帧缓冲像素裁剪框（scissor 用，不经过 viewport 变换）。
+	void LogicalRectToFramebuffer(int lx, int ly, int lw, int lh,
+		int32_t& outX, int32_t& outY, uint32_t& outW, uint32_t& outH) const;
+
+	/// 帧缓冲像素 → 逻辑像素（仅 letterbox 逆变换，不含相机）。UI 鼠标坐标用。
+	glm::vec2 ScreenToLogical(float screenX, float screenY) const {
+		return { (screenX - m_letterboxOffsetX) / m_letterboxScale,
+				 (screenY - m_letterboxOffsetY) / m_letterboxScale };
+	}
 
 	// ==================== 多线程录制 / 回放（Record / Replay） ====================
 	//
@@ -665,8 +719,13 @@ private:
 
 	glm::mat4 m_projection = glm::mat4(1.0f);   ///< 正交投影矩阵
 	glm::mat4 m_viewMatrix = glm::mat4(1.0f);   ///< 摄像机视图矩阵
-	int m_windowWidth = 0;                      ///< 窗口宽度（像素）
-	int m_windowHeight = 0;                      ///< 窗口高度（像素）
+	int m_windowWidth = 0;                      ///< 逻辑宽度（=SCENE_WIDTH，UI 坐标空间，不随全屏变化）
+	int m_windowHeight = 0;                      ///< 逻辑高度（=SCENE_HEIGHT）
+
+	// Letterbox 参数：由 RecomputeLetterbox() 从真实交换链尺寸算出。窗口模式下 scale=1、offset=0。
+	float m_letterboxScale = 1.0f;              ///< 逻辑→帧缓冲 统一缩放比
+	float m_letterboxOffsetX = 0.0f;            ///< 黑边左偏移（帧缓冲像素）
+	float m_letterboxOffsetY = 0.0f;            ///< 黑边上偏移（帧缓冲像素）
 
 	// 摄像机状态
 	glm::vec2 m_cameraPos = glm::vec2(0.0f);  ///< 摄像机世界坐标
@@ -707,6 +766,7 @@ private:
 	std::unordered_map<std::string,
 		std::pair<CachedText, std::list<std::string>::iterator>> m_textCache;  ///< 文字纹理 LRU 缓存
 	std::unordered_map<std::string, CachedText> m_pinnedTextCache;  ///< 常驻文字纹理缓存（AcquireTextTexture 使用，不淘汰）
+	uint32_t m_textGeneration = 0;  ///< pinned 缓存代际号；ClearPinnedTextCache 递增，用于失效持有方的旧句柄
 
 	// ==================== 多线程录制状态 ====================
 	std::vector<WorkerRecord>      m_workerRecords;       ///< 每个 worker slot 一份的录制缓冲
@@ -795,7 +855,7 @@ private:
 	 */
 	uint32_t GetOrCreateTextTexture(const std::string& text, const std::string& fontKey,
 		int fontSize, const glm::vec4& color,
-		int& outWidth, int& outHeight);
+		int& outWidth, int& outHeight, float& outSuperSample);
 
 	/**
 	 * @brief 通过 TTF 渲染一段文字并上传为一张新的 Vulkan 纹理。

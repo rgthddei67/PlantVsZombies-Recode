@@ -54,7 +54,7 @@ void ShovelBank::Draw(Graphics* g)
 	if (!transform) return;
 
 	Vector pos = transform->GetPosition();
-	Vector worldPos = g->ScreenToWorldPosition(pos.x, pos.y);
+	Vector worldPos = g->LogicalToWorld(pos.x, pos.y);
 
 	float w = static_cast<float>(mTexture->width);
 	float h = static_cast<float>(mTexture->height);

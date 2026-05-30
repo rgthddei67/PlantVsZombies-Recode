@@ -117,13 +117,13 @@ void Slider::Draw(Graphics* g) const
 		const Texture* texture = resourceManager.GetTexture(backgroundImageKey);
 		if (texture != nullptr)
 		{
-			Vector newPosition = g->ScreenToWorldPosition(position.x, position.y);
+			Vector newPosition = g->LogicalToWorld(position.x, position.y);
 			g->DrawTexture(texture, newPosition.x, newPosition.y, size.x, size.y);
 		}
 	}
 	else
 	{
-		Vector newPosition = g->ScreenToWorldPosition(position.x, position.y);
+		Vector newPosition = g->LogicalToWorld(position.x, position.y);
 		g->FillRect(newPosition.x, newPosition.y, size.x, size.y);
 		g->DrawRect(newPosition.x, newPosition.y, size.x, size.y);
 	}
@@ -139,7 +139,7 @@ void Slider::Draw(Graphics* g) const
 		const Texture* texture2 = resourceManager.GetTexture(knobImageKey);
 		if (texture2 != nullptr)
 		{
-			Vector newPosition = g->ScreenToWorldPosition(knobPosition.x, knobPosition.y);
+			Vector newPosition = g->LogicalToWorld(knobPosition.x, knobPosition.y);
 			g->DrawTexture(texture2, newPosition.x, newPosition.y, knobSize.x, knobSize.y);
 		}
 	}
