@@ -10,7 +10,13 @@ This is a Visual Studio 2026 C++ project (x64 Windows only).
 - **Run:** F5 in Visual Studio, or run the compiled `x64\Debug\PlantsVsZombies.exe`
 - **Debug mode:** Run with `-Debug` flag to show collision hitboxes
 
-> **Important:** After making code changes, do NOT attempt to build the project yourself (e.g., via MSVC or any build command). The user will handle all builds manually in Visual Studio.
+> **Important:** You can use the **MSVC-Debug-MCP** server to drive Visual Studio directly — no manual clicking required. It exposes three families of tools:
+> - **Build:** `build_solution` / `build_project` / `clean_solution` (async — poll `build_status`, then read `errors_list`). Builds the **currently-active configuration**; there is no tool to switch Debug/Release, so confirm the active config first. `clean` + `build` together perform a full rebuild.
+> - **Debug:** `debugger_launch` (F5), `debugger_add_breakpoint`, then poll `debugger_status` until `Mode == "Break"`. While paused, read state via `debugger_get_callstack`, `debugger_get_locals`, and `debugger_evaluate` (Immediate-window expressions). Drive with `debugger_continue` / `step_*`, and always `debugger_stop` when done (a lingering Break freezes the game window).
+>   - In a **Release** build, function locals are often optimized away (shown as "variable optimized away"), but **object members reached through `this` remain readable** — prefer breakpoints where `this` is in scope and evaluate members (e.g. `mRunning`, `mHaveCards.size()`) rather than bare locals.
+> - **Operate MSVC:** open/read/write/save documents, edit (`editor_find` / `editor_replace` / `editor_goto_line`), navigate code (`goto_definition`, `find_references`, `symbol_workspace`), and inspect projects (`project_list`, `solution_info`, `startup_project_set`).
+>
+> Async build/clean note: `build_status` reflects the most recent VS build event and is shared between clean and build, so a poll right after starting a build can return the previous `Done`. Cross-check with the output binary's timestamp before trusting completion.
 
 Dependencies: SDL2, SDL2_image, SDL2_ttf, SDL2_mixer, Vulkan 1.3, glm, nlohmann/json, plugxml
 
