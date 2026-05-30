@@ -3,14 +3,14 @@
 
 void PuffShroom::SetupPlant()
 {
-	Shroom::SetupPlant();
-
-	if (mIsPreview) return;
-	
 	auto shadow = GetComponent<ShadowComponent>();
 	shadow->SetScale(Vector(0.6f, 0.6f));
 	shadow->SetOffset(Vector(3, 30));
 
+	Shroom::SetupPlant();
+
+	if (mIsPreview) return;
+	
 	mAnimator->AddFrameEvent(28, [this]() {
 		if (!mBoard) return;
 		AudioSystem::PlaySound("SOUND_PUFF", 0.28f);

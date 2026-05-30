@@ -11,6 +11,8 @@ layout(location = 2) flat in uint vTex;
 layout(location = 0) out vec4 outColor;
 
 void main() {
+    // 纹理为预乘 alpha；vColor 仍是直通语义（tint.rgb + 淡入淡出 alpha）。
+    // 把 vColor.a 也预乘进 rgb，输出即为预乘色，配合 srcColorBlendFactor=ONE 的混合。
     vec4 t = texture(textures[nonuniformEXT(vTex)], vUV);
-    outColor = t * vColor;
+    outColor = vec4(t.rgb * vColor.rgb * vColor.a, t.a * vColor.a);
 }

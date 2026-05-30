@@ -149,7 +149,24 @@ namespace pvz {
 		// 1) 创建 staging buffer，把像素 memcpy 进去
 		VulkanBuffer staging;
 		if (!staging.Create(mCtx, byteSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, /*hostVisible=*/true)) return false;
-		std::memcpy(staging.MappedPtr(), pixels, (size_t)byteSize);
+		// 预乘 alpha：在拷入 staging 时把 rgb 乘以 a。
+		// 源数据统一为 [R,G,B,A] 字节序（ResourceManager 转 ABGR8888，小端内存即 RGBA），
+		// 目标 format 为 VK_FORMAT_R8G8B8A8_UNORM，布局一致。
+		// 这样完全透明像素 (a=0) 的 rgb 归零，双线性过滤在边缘插值时不会把源图
+		// 透明区域里隐藏的（常为白色）rgb 渗到不透明边缘，从根上消除白边/光晕。
+		// 配套：管线混合 srcColorBlendFactor 用 ONE，片元着色器把 vColor.a 预乘进 rgb。
+		{
+			const uint8_t* src = static_cast<const uint8_t*>(pixels);
+			uint8_t* dst = static_cast<uint8_t*>(staging.MappedPtr());
+			const size_t pixelCount = static_cast<size_t>(byteSize) / 4;
+			for (size_t i = 0; i < pixelCount; ++i) {
+				const uint32_t a = src[i * 4 + 3];
+				dst[i * 4 + 0] = static_cast<uint8_t>((src[i * 4 + 0] * a + 127) / 255);
+				dst[i * 4 + 1] = static_cast<uint8_t>((src[i * 4 + 1] * a + 127) / 255);
+				dst[i * 4 + 2] = static_cast<uint8_t>((src[i * 4 + 2] * a + 127) / 255);
+				dst[i * 4 + 3] = static_cast<uint8_t>(a);
+			}
+		}
 
 		// 2) 分配一次性命令缓冲
 		VkCommandBuffer cb = VK_NULL_HANDLE;

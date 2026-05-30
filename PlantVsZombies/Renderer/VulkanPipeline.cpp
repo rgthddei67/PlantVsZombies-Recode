@@ -122,7 +122,8 @@ namespace pvz {
 			VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 		if (desc.alphaBlend) {
 			blendAtt.blendEnable = VK_TRUE;
-			blendAtt.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+			// 预乘 alpha 混合：纹理 rgb 上传时已乘 alpha，此处不能再乘一次，故用 ONE。
+			blendAtt.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
 			blendAtt.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
 			blendAtt.colorBlendOp = VK_BLEND_OP_ADD;
 			blendAtt.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
@@ -131,7 +132,8 @@ namespace pvz {
 		}
 		else if (desc.additiveBlend) {
 			blendAtt.blendEnable = VK_TRUE;
-			blendAtt.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+			// 预乘 alpha 的叠加混合：rgb 已乘 alpha，直接相加，故 srcColor 用 ONE。
+			blendAtt.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
 			blendAtt.dstColorBlendFactor = VK_BLEND_FACTOR_ONE;
 			blendAtt.colorBlendOp = VK_BLEND_OP_ADD;
 			blendAtt.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
