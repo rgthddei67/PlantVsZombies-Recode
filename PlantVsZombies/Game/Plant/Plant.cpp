@@ -100,7 +100,7 @@ void Plant::Die() {
 void Plant::Update()
 {
 	AnimatedObject::Update();
-	if (!mIsPreview) {
+	if (!mIsPreview && !mIsSleeping) {
 		PlantUpdate();
 	}
 }

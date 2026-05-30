@@ -113,6 +113,9 @@ public:
 	// 获取当前背景索引(根据关卡)
 	Background GetBackgroundID(int level) const;
 
+	// 获取Background是不是夜晚
+	bool GetBackgroundIsNight(Background background) const;
+
 	// 获取输入处理器
 	InputHandler& GetInputHandler() const {
 		if (!mInputHandler) {

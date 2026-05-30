@@ -14,8 +14,6 @@ void WallNut::SetupPlant()
 
 void WallNut::PlantUpdate()
 {
-	Plant::PlantUpdate();
-
 	// 被啃食时暂停动画，不再被啃食时恢复
 	bool isBeingEaten = mEaterCount > 0;
 	if (isBeingEaten && !mWasBeingEaten) {

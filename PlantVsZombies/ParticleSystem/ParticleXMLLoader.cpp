@@ -3,6 +3,7 @@
 #include <iostream>
 #include <sstream>
 #include <algorithm>
+#include <cctype>
 
 bool ParticleXMLLoader::LoadFromDirectory(const std::string& directory) {
 	FileManager fileManager;
@@ -186,51 +187,67 @@ InterpolationTrack ParticleXMLLoader::ParseInterpolationTrack(const std::string&
 		return track;
 	}
 
-	// "[a b]" 随机范围语义：每粒子在生成时随机一次、整生命周期保持
-	if (text.find('[') != std::string::npos) {
-		std::string cleaned = text;
-		cleaned.erase(std::remove(cleaned.begin(), cleaned.end(), '['), cleaned.end());
-		cleaned.erase(std::remove(cleaned.begin(), cleaned.end(), ']'), cleaned.end());
-
-		std::istringstream iss(cleaned);
-		float a = 0.0f, b = 0.0f;
-		if (iss >> a >> b) {
-			track.isConstant = false;
-			track.isRandomRange = true;
-			track.randomMin = a;
-			track.randomMax = b;
-			return track;
-		}
-		if (!cleaned.empty()) {
-			std::istringstream iss2(cleaned);
-			if (iss2 >> a) {
-				track.isConstant = true;
-				track.constantValue = a;
-				return track;
+	// 先按关键帧切分：'[a b]' 这类随机范围内部含空格，必须作为整体保留，
+	// 因此不能直接按空白切——只有"括号外"的空白才是关键帧分隔符。
+	// 这样 ".3,0 [.4 1.0],10 [.4 1.0],70 0,100" 才能被切成 4 个关键帧而不是被
+	// 误当成单一随机范围（旧实现见 "text.find('[')" 短路，会把整条轨迹错读成常量）。
+	std::vector<std::string> tokens;
+	{
+		std::string cur;
+		bool inBracket = false;
+		for (char c : text) {
+			if (c == '[') { inBracket = true; cur += c; }
+			else if (c == ']') { inBracket = false; cur += c; }
+			else if (!inBracket && std::isspace(static_cast<unsigned char>(c))) {
+				if (!cur.empty()) { tokens.push_back(cur); cur.clear(); }
 			}
+			else { cur += c; }
 		}
-		return track;
+		if (!cur.empty()) tokens.push_back(cur);
 	}
 
-	// 切分 token，记录是否带显式时间（comma 形式）
-	struct Raw { float val; float time; bool hasTime; };
+	// 解析单个关键帧 token：形如 VALUE[,TIME]，VALUE 可为数字或 "[a b]" 随机范围。
+	struct Raw { float val; float time; bool hasTime; bool isRange; float rangeMin; float rangeMax; };
 	std::vector<Raw> raws;
-	std::istringstream iss(text);
-	std::string token;
-	while (iss >> token) {
-		size_t commaPos = token.find(',');
+	for (const std::string& tok : tokens) {
+		// 跳过缓动曲线关键字（如 "0 EaseOut 20" 中的 "EaseOut"）：
+		// 本系统的 InterpolationTrack 只做线性插值、未建模曲线，故降级为线性。
+		// 以"首字符为字母"判定，可兼容 EaseIn/EaseInOut/Bounce 等未知曲线名。
+		if (std::isalpha(static_cast<unsigned char>(tok[0]))) {
+			continue;
+		}
+		// 括号内不含逗号，故 token 中的逗号必为"值/时间"分隔符
+		size_t commaPos = tok.find(',');
+		std::string valPart = (commaPos == std::string::npos) ? tok : tok.substr(0, commaPos);
+		bool hasTime = (commaPos != std::string::npos);
 		try {
-			if (commaPos != std::string::npos) {
-				float val = std::stof(token.substr(0, commaPos));
-				float t = std::stof(token.substr(commaPos + 1)) / 100.0f;
-				raws.push_back({ val, t, true });
+			float time = 0.0f;
+			if (hasTime) {
+				time = std::stof(tok.substr(commaPos + 1)) / 100.0f;
+			}
+			if (!valPart.empty() && valPart.front() == '[') {
+				// "[a b]" 关键帧：每个范围本应逐粒子独立采样，但当前 points 为全发射器
+				// 共享、无逐粒子存储，故取范围中点作为确定性值——既恢复正确的缩放/淡出
+				// 曲线，又零额外分配。逐粒子尺寸抖动留作后续可选增强。
+				std::string inner = valPart.substr(1);
+				if (!inner.empty() && inner.back() == ']') inner.pop_back();
+				std::istringstream riss(inner);
+				float a = 0.0f, b = 0.0f;
+				riss >> a;
+				if (riss >> b) {
+					raws.push_back({ (a + b) * 0.5f, time, hasTime, true, a, b });
+				}
+				else {
+					raws.push_back({ a, time, hasTime, false, a, a });
+				}
 			}
 			else {
-				raws.push_back({ std::stof(token), 0.0f, false });
+				float v = std::stof(valPart);
+				raws.push_back({ v, time, hasTime, false, v, v });
 			}
 		}
 		catch (const std::exception& e) {
-			std::cerr << "警告: 无法解析关键帧 token \"" << token
+			std::cerr << "警告: 无法解析关键帧 token \"" << tok
 				<< "\" (来源: " << text << "): " << e.what() << std::endl;
 		}
 	}
@@ -238,13 +255,23 @@ InterpolationTrack ParticleXMLLoader::ParseInterpolationTrack(const std::string&
 	if (raws.empty()) {
 		return track;
 	}
+
+	// 纯单一随机范围 "[a b]"（仅一个关键帧、是范围、无显式时间）：
+	// 保留原有"每粒子生成时随机一次、整生命周期保持"语义（由 baseScale 消费）。
 	if (raws.size() == 1) {
+		if (raws[0].isRange) {
+			track.isConstant = false;
+			track.isRandomRange = true;
+			track.randomMin = raws[0].rangeMin;
+			track.randomMax = raws[0].rangeMax;
+			return track;
+		}
 		track.isConstant = true;
 		track.constantValue = raws[0].val;
 		return track;
 	}
 
-	// 给无显式时间的 token 填时间：
+	// 给无显式时间的关键帧填时间：
 	// - 全部无显式 → 均匀分布 0..1（兼容 "1 0"）
 	// - 否则 → 首默认 0.0，尾默认 1.0，中间在前后锚点间均匀分布（兼容 "1,80 0" / "0.0,40 .1"）
 	bool anyExplicit = false;

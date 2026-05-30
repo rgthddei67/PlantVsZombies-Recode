@@ -10,8 +10,6 @@ public:
 	using Shooter::Shooter;
 
 	void PlantUpdate() override {
-		Plant::PlantUpdate();
-
 		if (mPendingSecondShot) {
 			mPendingSecondShot = false;
 			mHeadAnim->PlayTrackOnce("anim_shooting", "anim_head_idle", 2.0f, 0.1f);

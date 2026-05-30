@@ -3,11 +3,6 @@
 #include "../Zombie/Zombie.h"
 #include <cfloat>
 
-void Chomper::SetupPlant()
-{
-	if (mIsPreview) return;
-}
-
 int Chomper::FindTargetZombieID()
 {
 	if (!mBoard) return NULL_ZOMBIE_ID;
@@ -72,9 +67,6 @@ void Chomper::EndDigest()
 
 void Chomper::PlantUpdate()
 {
-	Plant::PlantUpdate();
-	if (mIsSleeping) return;
-
 	float dt = DeltaTime::GetDeltaTime();
 	switch (mState) {
 	case State::IDLE:

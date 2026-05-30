@@ -20,15 +20,18 @@ class Plant : public AnimatedObject {
 public:
 	Board* mBoard;
 	PlantType mPlantType = PlantType::NUM_PLANT_TYPES;
-	Vector mVisualOffset;	// 视觉显示偏移
+
 	int mRow = 0;
 	int mColumn = 0;
 	int mPlantHealth = 300;
 	int mPlantMaxHealth = 300;
-	bool mIsSleeping = false;
-	bool mIsPreview = false;
 	int mPlantID = NULL_PLANT_ID;
 	int mEaterCount = 0;			// 正在啃食此植物的僵尸数量
+
+protected:
+	bool mIsSleeping = false;	// 
+	bool mIsPreview = false;
+	Vector mVisualOffset;	// 视觉显示偏移
 
 public:
 	Plant(Board* board, PlantType plantType, int row, int column,
@@ -49,7 +52,14 @@ public:
 	Vector GetPosition() const;
 	void SetPosition(const Vector& position);
 
+	// 获取睡觉状态
+	bool GetSleepState() const { return this->mIsSleeping; }
+
+	// 设置睡觉状态
+	virtual void SetSleepState(bool sleep) { this->mIsSleeping = sleep; }
+
 protected:
+	// 注意： 需要判断mIsPreview，所有植物都执行
 	virtual void SetupPlant();
 };
 

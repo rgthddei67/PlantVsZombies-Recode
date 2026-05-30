@@ -2,6 +2,7 @@
 
 #include "../Bullet/PeaBullet.h"
 #include "../Bullet/SnowPea.h"
+#include "../Bullet/PuffBullet.h"
 
 #include "../Board.h"
 #include "../GameObjectManager.h"
@@ -62,6 +63,11 @@ std::shared_ptr<Bullet> BulletPool::AcquireShared(Board* board, BulletType type,
 		break;
 	case BulletType::BULLET_SNOWPEA:
 		bullet = GameObjectManager::GetInstance().CreateGameObjectImmediateAsShared<SnowPeaBullet>(
+			LAYER_GAME_BULLET,
+			board, type, row, colliderRadius, position);
+		break;
+	case BulletType::BULLET_PUFF:
+		bullet = GameObjectManager::GetInstance().CreateGameObjectImmediateAsShared<PuffBullet>(
 			LAYER_GAME_BULLET,
 			board, type, row, colliderRadius, position);
 		break;

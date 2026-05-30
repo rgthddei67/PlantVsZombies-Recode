@@ -28,6 +28,7 @@
 #include "./Game/Plant/SnowPeaShooter.h"
 #include "./Game/Plant/Chomper.h"
 #include "./Game/Plant/Repeater.h"
+#include "./Game/Plant/PuffShroom.h"
 
 #include "./Game/Zombie/Zombie.h"
 #include "./Game/Zombie/ConeZombie.h"
@@ -496,6 +497,7 @@ void GameAPP::DrawText(const std::string& text, const Vector& position,
 
 Background GameAPP::GetBackgroundID(int level) const
 {
+	// TODO: 新增地图改这里
 	if (level >= 1 && level <= 9) {
 		return Background::GROUND_DAY;   // 白天
 	}
@@ -507,42 +509,59 @@ Background GameAPP::GetBackgroundID(int level) const
 	}
 }
 
+bool GameAPP::GetBackgroundIsNight(Background background) const
+{
+	if (background == Background::GROUND_NIGHT || background == Background::NIGHT_WATER_POOL
+		|| background == Background::NIGHT_ROOF)
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
 std::shared_ptr<Plant> GameAPP::InstantiatePlant(PlantType plantType, Board* board, int row, int column, bool isPreview)
 {
 	// TODO 新增植物改这里
 	switch (plantType) {
 	case PlantType::PLANT_SUNFLOWER:
 		return GameObjectManager::GetInstance().CreateGameObjectImmediateAsShared<SunFlower>(
-			LAYER_GAME_PLANT, board, PlantType::PLANT_SUNFLOWER, row, column,
+			LAYER_GAME_PLANT, board, plantType, row, column,
 			AnimationType::ANIM_SUNFLOWER, 1.0f, isPreview);
 	case PlantType::PLANT_PEASHOOTER:
 		return GameObjectManager::GetInstance().CreateGameObjectImmediateAsShared<PeaShooter>(
-			LAYER_GAME_PLANT, board, PlantType::PLANT_PEASHOOTER, row, column,
+			LAYER_GAME_PLANT, board, plantType, row, column,
 			AnimationType::ANIM_PEASHOOTER, 1.0f, isPreview);
 	case PlantType::PLANT_CHERRYBOMB:
 		return GameObjectManager::GetInstance().CreateGameObjectImmediateAsShared<CherryBomb>(
-			LAYER_GAME_PLANT, board, PlantType::PLANT_CHERRYBOMB, row, column,
+			LAYER_GAME_PLANT, board, plantType, row, column,
 			AnimationType::ANIM_CHERRYBOMB, 1.0f, isPreview);
 	case PlantType::PLANT_WALLNUT:
 		return GameObjectManager::GetInstance().CreateGameObjectImmediateAsShared<WallNut>(
-			LAYER_GAME_PLANT, board, PlantType::PLANT_WALLNUT, row, column,
+			LAYER_GAME_PLANT, board, plantType, row, column,
 			AnimationType::ANIM_WALLNUT, 1.0f, isPreview);
 	case PlantType::PLANT_POTATOMINE:
 		return GameObjectManager::GetInstance().CreateGameObjectImmediateAsShared<PotatoMine>(
-			LAYER_GAME_PLANT, board, PlantType::PLANT_POTATOMINE, row, column,
+			LAYER_GAME_PLANT, board, plantType, row, column,
 			AnimationType::ANIM_POTATOMINE, 0.8f, isPreview);
 	case PlantType::PLANT_SNOWPEA:
 		return GameObjectManager::GetInstance().CreateGameObjectImmediateAsShared<SnowPeaShooter>(
-			LAYER_GAME_PLANT, board, PlantType::PLANT_SNOWPEA, row, column,
+			LAYER_GAME_PLANT, board, plantType, row, column,
 			AnimationType::ANIM_SNOWPEASHOOTER, 1.0f, isPreview);
 	case PlantType::PLANT_CHOMPER:
 		return GameObjectManager::GetInstance().CreateGameObjectImmediateAsShared<Chomper>(
-			LAYER_GAME_PLANT, board, PlantType::PLANT_CHOMPER, row, column,
+			LAYER_GAME_PLANT, board, plantType, row, column,
 			AnimationType::ANIM_CHOMPER, 1.0f, isPreview);
 	case PlantType::PLANT_REPEATER:
 		return GameObjectManager::GetInstance().CreateGameObjectImmediateAsShared<Repeater>(
-			LAYER_GAME_PLANT, board, PlantType::PLANT_REPEATER, row, column,
+			LAYER_GAME_PLANT, board, plantType, row, column,
 			AnimationType::ANIM_REPEAT, 1.0f, isPreview);
+	case PlantType::PLANT_PUFFSHROOM:
+		return GameObjectManager::GetInstance().CreateGameObjectImmediateAsShared<PuffShroom>(
+			LAYER_GAME_PLANT, board, plantType, row, column,
+			AnimationType::ANIM_PUFFSHROOM, 1.0f, isPreview);
 	default:
 		std::cout << "未知的植物类型: " << static_cast<int>(plantType) << std::endl;
 		return nullptr;
@@ -555,23 +574,23 @@ std::shared_ptr<Zombie> GameAPP::InstantiateZombie(ZombieType zombieType, Board*
 	switch (zombieType) {
 	case ZombieType::ZOMBIE_NORMAL:
 		return GameObjectManager::GetInstance().CreateGameObjectImmediateAsShared<Zombie>(
-			LAYER_GAME_ZOMBIE, board, ZombieType::ZOMBIE_NORMAL, x, y, row,
+			LAYER_GAME_ZOMBIE, board, zombieType, x, y, row,
 			AnimationType::ANIM_NORMAL_ZOMBIE, 1.0f, isPreview);
 	case ZombieType::ZOMBIE_TRAFFIC_CONE:
 		return GameObjectManager::GetInstance().CreateGameObjectImmediateAsShared<ConeZombie>(
-			LAYER_GAME_ZOMBIE, board, ZombieType::ZOMBIE_TRAFFIC_CONE, x, y, row,
+			LAYER_GAME_ZOMBIE, board, zombieType, x, y, row,
 			AnimationType::ANIM_CONE_ZOMBIE, 1.0f, isPreview);
 	case ZombieType::ZOMBIE_POLEVAULTER:
 		return GameObjectManager::GetInstance().CreateGameObjectImmediateAsShared<Polevaulter>(
-			LAYER_GAME_ZOMBIE, board, ZombieType::ZOMBIE_POLEVAULTER, x, y, row,
+			LAYER_GAME_ZOMBIE, board, zombieType, x, y, row,
 			AnimationType::ANIM_POLEVAULTER_ZOMBIE, 1.0f, isPreview);
 	case ZombieType::ZOMBIE_BUCKET:
 		return GameObjectManager::GetInstance().CreateGameObjectImmediateAsShared<BucketZombie>(
-			LAYER_GAME_ZOMBIE, board, ZombieType::ZOMBIE_BUCKET, x, y, row,
+			LAYER_GAME_ZOMBIE, board, zombieType, x, y, row,
 			AnimationType::ANIM_BUCKET_ZOMBIE, 1.0f, isPreview);
 	case ZombieType::ZOMBIE_FASTBUCKET:
 		return GameObjectManager::GetInstance().CreateGameObjectImmediateAsShared<FastBucketZombie>(
-			LAYER_GAME_ZOMBIE, board, ZombieType::ZOMBIE_FASTBUCKET, x, y, row,
+			LAYER_GAME_ZOMBIE, board, zombieType, x, y, row,
 			AnimationType::ANIM_BUCKET_ZOMBIE, 1.0f, isPreview);
 	default:
 		std::cout << "[GameAPP::InstantiateZombie] 未知的僵尸类型" << std::endl;

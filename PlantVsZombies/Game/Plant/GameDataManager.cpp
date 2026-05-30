@@ -105,6 +105,16 @@ void GameDataManager::InitializeHardcodedData() {
 		Vector(-37.6f, -44)
 	);
 
+	RegisterPlant(
+		PlantType::PLANT_PUFFSHROOM,
+		0, 7.5f,
+		"PLANT_PUFFSHROOM",
+		ResourceKeys::Textures::IMAGE_PUFFSHROOM,
+		AnimationType::ANIM_PUFFSHROOM,
+		"PuffShroom",
+		Vector(-37.6f, -28)
+	);
+
 	// ==================== 僵尸注册 ====================
 	// 普通僵尸
 	RegisterZombie(

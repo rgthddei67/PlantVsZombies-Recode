@@ -39,7 +39,6 @@ void Shooter::SetupPlant() {
 
 void Shooter::PlantUpdate()
 {
-	Plant::PlantUpdate();
 	this->mShootTimer += DeltaTime::GetDeltaTime();
 	if (this->mShootTimer >= this->mShootTime)
 	{
@@ -65,9 +64,10 @@ bool Shooter::HasZombieInRow()
 			{
 				if (auto zombie = manager.GetZombie(zombieID))
 				{
-					Vector zombiePositon = zombie->GetPosition();
-					if (zombie->mRow == this->mRow && zombiePositon.x <= SCENE_WIDTH &&
-						zombiePositon.x >= this->GetPosition().x)
+					float thisX = GetPosition().x;
+					float zombieX = zombie->GetPosition().x;
+
+					if (zombie->mRow == this->mRow && zombieX >= thisX && zombieX <= SCENE_WIDTH)
 					{
 						return true;
 					}

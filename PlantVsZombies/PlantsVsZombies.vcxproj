@@ -35,6 +35,8 @@
     <ClCompile Include="Game\PlantAlmanacScene.cpp" />
     <ClCompile Include="Game\Plant\Chomper.cpp" />
     <ClCompile Include="Game\Plant\PotatoMine.cpp" />
+    <ClCompile Include="Game\Plant\PuffShroom.cpp" />
+    <ClCompile Include="Game\Plant\Shroom.cpp" />
     <ClCompile Include="Game\Plant\WallNut.cpp" />
     <ClCompile Include="Game\Shovel.cpp" />
     <ClCompile Include="Game\ShovelBank.cpp" />
@@ -107,13 +109,16 @@
     <ClInclude Include="Game\AnimatedObject.h" />
     <ClInclude Include="Game\AudioSystem.h" />
     <ClInclude Include="Game\Board.h" />
+    <ClInclude Include="Game\Bullet\PuffBullet.h" />
     <ClInclude Include="Game\Bullet\SnowPea.h" />
     <ClInclude Include="Game\CursorObjectManager.h" />
     <ClInclude Include="Game\LawnMower.h" />
     <ClInclude Include="Game\PlantAlmanacScene.h" />
     <ClInclude Include="Game\Plant\Chomper.h" />
     <ClInclude Include="Game\Plant\PotatoMine.h" />
+    <ClInclude Include="Game\Plant\PuffShroom.h" />
     <ClInclude Include="Game\Plant\Repeater.h" />
+    <ClInclude Include="Game\Plant\Shroom.h" />
     <ClInclude Include="Game\Plant\SnowPeaShooter.h" />
     <ClInclude Include="Game\Plant\WallNut.h" />
     <ClInclude Include="Game\Shovel.h" />

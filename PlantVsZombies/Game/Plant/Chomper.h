@@ -29,9 +29,6 @@ public:
 	void PlantUpdate() override;
 	void SaveExtraData(nlohmann::json& j) const override;
 	void LoadExtraData(const nlohmann::json& j) override;
-
-protected:
-	void SetupPlant() override;
 };
 
 #endif

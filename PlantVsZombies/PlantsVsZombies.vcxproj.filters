@@ -259,6 +259,12 @@
     <ClCompile Include="Renderer\VulkanTexturePool.cpp">
       <Filter>Code\Renderer</Filter>
     </ClCompile>
+    <ClCompile Include="Game\Plant\Shroom.cpp">
+      <Filter>Code\Game\Plant</Filter>
+    </ClCompile>
+    <ClCompile Include="Game\Plant\PuffShroom.cpp">
+      <Filter>Code\Game\Plant</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="UI\Button.h">
@@ -560,6 +566,15 @@
     </ClInclude>
     <ClInclude Include="Renderer\VulkanTexturePool.h">
       <Filter>Code\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\Bullet\PuffBullet.h">
+      <Filter>Code\Game\Bullet</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\Plant\PuffShroom.h">
+      <Filter>Code\Game\Plant</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\Plant\Shroom.h">
+      <Filter>Code\Game\Plant</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

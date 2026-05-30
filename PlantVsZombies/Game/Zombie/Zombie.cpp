@@ -424,17 +424,17 @@ void Zombie::EatTarget()
 			plant->TakeDamage(mAttackDamage);
 			if (plant->mPlantHealth <= 0)
 			{
-				AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_ZOMBIE_FINISHEAT, 0.25f);
+				AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_ZOMBIE_FINISHEAT, 0.15f);
 			}
 
 			int random = GameRandom::Range(0, 1);
 			if (random == 0)
 			{
-				AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_ZOMBIE_EAT, 0.2f);
+				AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_ZOMBIE_EAT, 0.1f);
 			}
 			else
 			{
-				AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_ZOMBIE_EAT2, 0.2f);
+				AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_ZOMBIE_EAT2, 0.1f);
 			}
 		}
 	}

@@ -144,8 +144,25 @@ void ParticleEmitter::EmitSingleParticle() {
 	Particle* particle = GetFreeParticle();
 	if (!particle) return;
 
-	particle->Reset();
+	particle->Reset();  // 注意：Reset 已置 active=false
+
+	// 先解析纹理，并以其为生成前置条件：
+	// - 无 <Image> 的发射器（如 CrossFade 的 FadeOut 伴随发射器）不产生可绘制粒子；
+	// - 指定了纹理键却未加载成功的同样跳过。
+	// 提前返回（粒子保持 inactive），既省掉后续无意义初始化，
+	// 也从源头杜绝 Draw 每帧打印"没有图片绘制"。
+	if (xmlConfig.imageKeys.empty()) {
+		return;
+	}
+	ResourceManager& resourceManager = ResourceManager::GetInstance();
+	int randomIndex = GameRandom::Range(0, static_cast<int>(xmlConfig.imageKeys.size()) - 1);
+	const Texture* texture = resourceManager.GetTexture(xmlConfig.imageKeys[randomIndex]);
+	if (!texture) {
+		return;
+	}
+
 	particle->active = true;
+	particle->texture = texture;
 
 	particle->position = GetSpawnPosition();
 
@@ -161,12 +178,6 @@ void ParticleEmitter::EmitSingleParticle() {
 	particle->rotationSpeed = xmlConfig.particleSpinSpeed.GetRandomValue();
 
 	particle->gravity = xmlConfig.particleGravity;
-
-	if (!xmlConfig.imageKeys.empty()) {
-		ResourceManager& resourceManager = ResourceManager::GetInstance();
-		int randomIndex = GameRandom::Range(0, static_cast<int>(xmlConfig.imageKeys.size()) - 1);
-		particle->texture = resourceManager.GetTexture(xmlConfig.imageKeys[randomIndex]);
-	}
 
 	particle->totalFrames = xmlConfig.imageFrames;
 	particle->frameRate = xmlConfig.animationRate;
@@ -224,7 +235,6 @@ void ParticleEmitter::Draw() {
 		if (particle.active)
 		{
 			if (!particle.texture) {
-				std::cerr << "ParticleEmitter::Draw: 没有图片绘制" << std::endl;
 				continue;
 			}
 			float srcW = static_cast<float>(particle.texture->width);

@@ -17,13 +17,11 @@ class Zombie : public AnimatedObject {
 public:
 	Board* mBoard;
 	ZombieType mZombieType = ZombieType::NUM_ZOMBIE_TYPES;
-	Vector mVisualOffset;   // 视觉偏移量
 
 	int mRow = -1;
 
 	int mAttackDamage = 50;
 
-	bool mIsPreview = false;
 	bool mNeedDropArm = true;
 	bool mNeedDropHead = true;
 	int mZombieID = NULL_ZOMBIE_ID;
@@ -40,6 +38,9 @@ public:
 	int mShieldMaxHealth = 0;
 
 protected:
+	Vector mVisualOffset;   // 视觉偏移量
+	bool mIsPreview = false;
+
 	float mExtraSpeed = 1.0f;
 
 	float mCooldownTimer = 0.0f;	// 僵尸减速倒计时时间

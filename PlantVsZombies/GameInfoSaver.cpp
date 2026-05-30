@@ -95,7 +95,7 @@ bool GameInfoSaver::SaveLevelData(Board* board, CardSlotManager* manager)
 		p["column"] = plant->mColumn;
 		p["health"] = plant->mPlantHealth;
 		p["maxHealth"] = plant->mPlantMaxHealth;
-		p["isSleeping"] = plant->mIsSleeping;
+		p["isSleeping"] = plant->GetSleepState();
 		p["animTrack"] = plant->GetCurrentTrackName();
 		p["animFrame"] = plant->GetCurrentFrame();
 
@@ -299,7 +299,7 @@ bool GameInfoSaver::LoadLevelData(Board* board, CardSlotManager* manager)
 		if (plant) {
 			plant->mPlantHealth = health;
 			plant->mPlantMaxHealth = maxHealth;
-			plant->mIsSleeping = isSleeping;
+			plant->SetSleepState(isSleeping);
 			std::string track = p.value("animTrack", "");
 			if (!track.empty()) {
 				plant->PlayTrack(track);

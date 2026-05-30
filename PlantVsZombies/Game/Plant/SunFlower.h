@@ -31,7 +31,6 @@ public:
 
 	void PlantUpdate() override
 	{
-		Plant::PlantUpdate();
 		if (!mIsGlowingForProduction) {
 			// 正常计时生产
 			mProduceTimer += DeltaTime::GetDeltaTime();
