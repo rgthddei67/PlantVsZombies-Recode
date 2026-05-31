@@ -2,6 +2,7 @@
 #include "../Profiler.h"
 #include "AnimatedObject.h"
 #include <cstdio>
+#include <unordered_set>
 
 GameObjectManager::GameObjectManager() {
 	ResetAllLayers();
@@ -79,17 +80,32 @@ void GameObjectManager::Update() {
 		mSortDirty = true;
 
 	// 移除在mObjectsToRemove中的对象
-	for (size_t i = 0; i < mObjectsToRemove.size(); i++) {
-		auto obj = mObjectsToRemove[i];
-		if (obj) {
-			obj->DestroyAllComponents();
+	// 旧实现：逐个 std::remove 全表扫描 → O(n·k)。
+	// 现改为：收集成 unordered_set，单趟 remove_if → O(n+k)，并保持 renderOrder 有序。
+	if (!mObjectsToRemove.empty()) {
+		// 以裸指针建集合，判定走指针哈希，避开 shared_ptr 引用计数开销
+		std::unordered_set<GameObject*> toRemove;
+		toRemove.reserve(mObjectsToRemove.size() * 2);
+		// 下标循环 + 每次重读 size：保持旧实现的 realloc 安全性——
+		// 若 DestroyAllComponents 期间回调又 DestroyGameObject() 追加新项，本帧一并处理。
+		// （拷贝 shared_ptr 而非引用，避免 vector 重新分配后引用失效。）
+		for (size_t i = 0; i < mObjectsToRemove.size(); i++) {
+			auto obj = mObjectsToRemove[i];
+			if (obj) {
+				obj->DestroyAllComponents();
+				toRemove.insert(obj.get());
+			}
 		}
+		// remove_if 是稳定的：保留剩余元素相对顺序，不破坏按 renderOrder 升序的不变量
 		mGameObjects.erase(
-			std::remove(mGameObjects.begin(), mGameObjects.end(), obj),
+			std::remove_if(mGameObjects.begin(), mGameObjects.end(),
+				[&toRemove](const std::shared_ptr<GameObject>& o) {
+					return toRemove.count(o.get()) != 0;
+				}),
 			mGameObjects.end()
 		);
+		mObjectsToRemove.clear();
 	}
-	mObjectsToRemove.clear();
 
 	// 新对象的操作
 	for (size_t i = 0; i < mObjectsToAdd.size(); i++) {

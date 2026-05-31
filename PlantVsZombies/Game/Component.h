@@ -37,7 +37,8 @@ public:
 
 	// 获取宿主 GameObject（裸指针，永不为 null —— 在 InitializeComponent 时即赋值）
 	GameObject* GetGameObject() const { return mGameObject; }
-	void SetDrawOrder(int order) { mDrawOrder = order; }
+	// 定义在 GameObject.cpp：改变绘制顺序需回调宿主 GameObject 标记 Draw 视图重排（保持每帧重排语义）。
+	void SetDrawOrder(int order);
 	int GetDrawOrder() const { return mDrawOrder; }
 
 	// 设置所属游戏对象

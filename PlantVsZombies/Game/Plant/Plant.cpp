@@ -129,6 +129,8 @@ void Plant::Draw(Graphics* g)
 	AnimatedObject::Draw(g);	// 先画本体动画
 
 	if (!g || mIsPreview || !GameAPP::GetInstance().mShowPlantHP) return;
+	// 视口剔除：屏外植物不画血量文字（与 Zombie::Draw 同构，省 batch VBO + CPU）。
+	if (!g->IsWorldPointVisible(GetPosition().x, GetPosition().y)) return;
 
 	// 直接用逻辑坐标：DrawText 与 Animator 的 DrawTextureMatrix 共享同一 projView，
 	// Animator 画 sprite 时就是用裸逻辑坐标，文字必须同坐标系才能叠在对象上（勿转 World）

@@ -3,6 +3,14 @@
 #include "CollisionSystem.h"
 #include "ColliderComponent.h"
 
+// 定义在此（而非 Component.h inline）：需要完整的 GameObject 类型来回调 MarkDrawableSortDirty，
+// 而 Component.h 与 GameObject.h 互相依赖、无法在 inline 处看到完整 GameObject。
+// 运行时改变绘制顺序会令 Draw 视图重排一次，保持旧代码"每帧重排"的语义。
+void Component::SetDrawOrder(int order) {
+	mDrawOrder = order;
+	if (mGameObject) mGameObject->MarkDrawableSortDirty();
+}
+
 GameObject::GameObject(ObjectType type)
 	: mObjectType(type)
 {
@@ -48,26 +56,22 @@ void GameObject::Update() {
 void GameObject::Draw(Graphics* g) {
 	if (!mActive || !mStarted) return;
 
-	// 收集所有启用的组件
-	std::vector<Component*> componentsToDraw;
-	componentsToDraw.reserve(mComponents.size());
-
-	for (auto& [type, component] : mComponents) {
-		if (component->mEnabled) {
-			componentsToDraw.push_back(component.get());
-		}
+	// Draw 视图已在增删组件时预建。仅当 dirty（增删组件 / 运行时 SetDrawOrder）才重排一次，
+	// 消除旧实现每帧 new vector + 遍历 unordered_map + stable_sort 的 per-frame 开销。
+	// stable_sort 保证 mDrawOrder 相等时维持插入顺序，与旧行为一致。
+	if (mDrawableSortDirty) {
+		std::stable_sort(mDrawableComponents.begin(), mDrawableComponents.end(),
+			[](const Component* a, const Component* b) {
+				return a->GetDrawOrder() < b->GetDrawOrder();
+			});
+		mDrawableSortDirty = false;
 	}
 
-	// 按绘制顺序排序：mDrawOrder 越大越先绘制（在底层）
-	// 使用稳定排序，当 mDrawOrder 相等时保持原顺序（稳定排序）
-	std::stable_sort(componentsToDraw.begin(), componentsToDraw.end(),
-		[](const Component* a, const Component* b) {
-			return a->GetDrawOrder() < b->GetDrawOrder();  // 降序排序
-		});
-
-	// 绘制组件
-	for (auto* component : componentsToDraw) {
-		component->Draw(g);
+	// 禁用的组件留在视图里、在此被跳过——与旧实现"只收集 mEnabled"的可见结果完全一致。
+	for (auto* component : mDrawableComponents) {
+		if (component->mEnabled) {
+			component->Draw(g);
+		}
 	}
 }
 
@@ -86,6 +90,8 @@ void GameObject::DestroyAllComponents() {
 	mComponents.clear();
 	mComponentsToInitialize.clear();
 	mUpdatableComponents.clear();
+	mDrawableComponents.clear();
+	mDrawableSortDirty = false;
 }
 
 void GameObject::RegisterAllColliders() {

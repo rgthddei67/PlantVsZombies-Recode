@@ -41,6 +41,11 @@ protected:
 	// 阶段三：仅缓存 NeedsUpdate()=true 的 Component 视图，避免每帧 iterate mComponents 全表
 	// 非所有权 raw ptr 视图，所有权仍在 mComponents 的 unique_ptr
 	std::vector<Component*> mUpdatableComponents;
+	// Draw 视图：预建并按 mDrawOrder 预排序的可绘制组件，消除 GameObject::Draw 每帧
+	// new vector / 遍历 unordered_map / stable_sort 三重 per-frame 开销（与 mUpdatableComponents 同构）。
+	// 非所有权 raw ptr，所有权仍在 mComponents。mDrawableSortDirty：仅增删组件或 SetDrawOrder 时为真，懒排序。
+	std::vector<Component*> mDrawableComponents;
+	bool mDrawableSortDirty = false;
 	std::string mTag = "Untagged";
 	std::string mName = "GameObject";
 
@@ -65,6 +70,9 @@ public:
 		auto typeIndex = std::type_index(typeid(T));
 		mComponents[typeIndex] = std::move(component);
 		if (raw->NeedsUpdate()) mUpdatableComponents.push_back(raw);
+		// Draw 视图：所有组件都可能 Draw（默认 Draw() 为空），与旧实现一致地全部纳入；排序延后到首次 Draw。
+		mDrawableComponents.push_back(raw);
+		mDrawableSortDirty = true;
 
 		mComponentsToInitialize.push_back(raw);
 
@@ -106,6 +114,10 @@ public:
 			mUpdatableComponents.erase(
 				std::remove(mUpdatableComponents.begin(), mUpdatableComponents.end(), it->second.get()),
 				mUpdatableComponents.end());
+			// Draw 视图同步移除（移除不破坏剩余元素相对顺序，无需置 dirty）
+			mDrawableComponents.erase(
+				std::remove(mDrawableComponents.begin(), mDrawableComponents.end(), it->second.get()),
+				mDrawableComponents.end());
 			mComponents.erase(it);
 			return true;
 		}
@@ -117,6 +129,10 @@ public:
 	bool HasComponent() {
 		return GetComponent<T>() != nullptr;
 	}
+
+	// 标记 Draw 视图需要重排：由 Component::SetDrawOrder 在运行时改变绘制顺序时回调，
+	// 以保持"旧代码每帧重排"的语义（setup 期的 SetDrawOrder 已被 AddComponent 的置 dirty 覆盖）。
+	void MarkDrawableSortDirty() { mDrawableSortDirty = true; }
 
 	virtual void Start();
 

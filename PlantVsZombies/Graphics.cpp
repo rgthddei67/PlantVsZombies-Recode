@@ -182,6 +182,16 @@ void Graphics::SetWindowSize(int width, int height) {
 	// Phase 3a：视口由 Vulkan dynamic state 处理，CPU 侧只更新投影矩阵。
 }
 
+bool Graphics::IsWorldPointVisible(float worldX, float worldY, float marginPx) const {
+	// 用当前 projView 把世界点投到裁剪空间。ortho 下 w==1，无需透视除法，clip.xy 即 NDC。
+	const glm::vec4 clip = (m_projection * m_viewMatrix) * glm::vec4(worldX, worldY, 0.0f, 1.0f);
+	// 像素 margin → NDC：NDC 全宽 2 对应窗口像素全宽。zoom 已包含在 m_viewMatrix 里，margin 是屏幕空间量。
+	const float mx = (m_windowWidth  > 0) ? (2.0f * marginPx / (float)m_windowWidth)  : 0.0f;
+	const float my = (m_windowHeight > 0) ? (2.0f * marginPx / (float)m_windowHeight) : 0.0f;
+	return clip.x >= -1.0f - mx && clip.x <= 1.0f + mx
+		&& clip.y >= -1.0f - my && clip.y <= 1.0f + my;
+}
+
 // ==================== Phase 3b — Vulkan 接入 ====================
 
 bool Graphics::InitializeVulkan(pvz::VulkanContext* ctx,

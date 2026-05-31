@@ -622,6 +622,14 @@ public:
 	float GetCameraRotation()     const { return m_cameraRotation; }
 
 	/**
+	 * @brief 世界坐标点是否落在当前相机可见范围内（含像素 margin）。
+	 *        内部用真实的 m_projection * m_viewMatrix 判定，故相机 zoom/pan/rotate 变化时自动正确。
+	 *        用于视口剔除：屏幕外对象可跳过 DrawText 等批处理绘制（省 VBO + CPU）。
+	 * @param marginPx 屏幕空间外扩边距（像素），避免边缘对象的文字/精灵提前消失。
+	 */
+	bool IsWorldPointVisible(float worldX, float worldY, float marginPx = 128.0f) const;
+
+	/**
 	 * @brief 重置摄像机到默认状态（位置归零、缩放1、旋转0）。
 	 */
 	void ResetCamera();
@@ -776,7 +784,7 @@ private:
 	struct VulkanGraphicsState;
 	std::unique_ptr<VulkanGraphicsState> m_vk;
 
-	static const int TEXT_CACHE_MAX_SIZE = 256;  ///< 文字缓存最大条目数（LRU 淘汰）
+	static const int TEXT_CACHE_MAX_SIZE = 1024;  ///< 文字缓存最大条目数（LRU 淘汰）
 	std::list<std::string> m_textCacheOrder;     ///< LRU 顺序链表（front = 最近使用）
 	std::unordered_map<std::string,
 		std::pair<CachedText, std::list<std::string>::iterator>> m_textCache;  ///< 文字纹理 LRU 缓存

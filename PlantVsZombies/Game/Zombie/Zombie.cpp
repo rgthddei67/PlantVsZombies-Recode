@@ -496,6 +496,9 @@ void Zombie::Draw(Graphics* g)
 	AnimatedObject::Draw(g);	// 先画本体动画
 
 	if (!g || mIsPreview || !GameAPP::GetInstance().mShowZombieHP) return;
+	// 视口剔除：屏外僵尸不画血量文字。11000 压测下绝大多数僵尸堆在屏幕外，
+	// 这些 DrawText 会把 ~40 万文字 quad 砸进 128MB batch VBO 致溢出——剔除后省 VBO + CPU。
+	if (!g->IsWorldPointVisible(GetPosition().x, GetPosition().y)) return;
 
 	// 直接用逻辑坐标：DrawText 与 Animator 的 DrawTextureMatrix 共享同一 projView，
 	// Animator 画 sprite 时就是用裸逻辑坐标，文字必须同坐标系才能叠在对象上（勿转 World）
