@@ -9,6 +9,15 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <memory>
+
+class Board;
+class Plant;
+class Zombie;
+
+// 工厂函数指针：运行期枚举 → 编译期具体类型。零捕获，可直接由 MakePlant<T>/MakeZombie<T> 赋值。
+using PlantFactoryFn  = std::shared_ptr<Plant>(*)(Board*, PlantType, int, int, AnimationType, float, bool);
+using ZombieFactoryFn = std::shared_ptr<Zombie>(*)(Board*, ZombieType, float, float, int, AnimationType, float, bool);
 
 // 植物信息
 struct PlantInfo {
@@ -20,6 +29,8 @@ struct PlantInfo {
 	AnimationType animType;      // 动画类型
 	std::string animName;        // 动画资源名称（如 Reanim 名称）
 	Vector offset;               // 绘制偏移量
+	float scale = 1.0f;          // 创建时的缩放（仅 PotatoMine=0.8，其余=1.0）
+	PlantFactoryFn factory = nullptr;  // 具体类的构造工厂
 
 	PlantInfo() : type(PlantType::NUM_PLANT_TYPES),
 		animType(AnimationType::ANIM_NONE),
@@ -43,6 +54,8 @@ struct ZombieInfo {
 	Vector offset;               // 绘制偏移量
 	int weight;                  // 权重
 	int appearWave;              // 能出现的波数
+	float scale = 1.0f;          // 创建时的缩放
+	ZombieFactoryFn factory = nullptr;  // 具体类的构造工厂
 
 	ZombieInfo() : type(ZombieType::NUM_ZOMBIE_TYPES),
 		animType(AnimationType::ANIM_NONE),
@@ -222,6 +235,18 @@ public:
 	bool HasZombie(ZombieType type) const;
 
 	/**
+	 * @brief 按类型创建植物（注册表派发，取代 GameApp 的 switch）
+	 * @return 未注册或缺工厂返回 nullptr
+	 */
+	std::shared_ptr<Plant> CreatePlant(PlantType type, Board* board, int row, int col, bool isPreview) const;
+
+	/**
+	 * @brief 按类型创建僵尸（注册表派发）
+	 * @return 未注册或缺工厂返回 nullptr
+	 */
+	std::shared_ptr<Zombie> CreateZombie(ZombieType type, Board* board, float x, float y, int row, bool isPreview) const;
+
+	/**
 	 * @brief 打印所有注册数据
 	 */
 	void DebugPrintAll() const;
@@ -251,7 +276,9 @@ private:
 		const std::string& textureKey,
 		AnimationType animType,
 		const std::string& animName,
-		const Vector& offset);
+		const Vector& offset,
+		float scale,
+		PlantFactoryFn factory);
 
 	/**
 	 * @brief 注册一种僵尸（内部使用）
@@ -267,7 +294,9 @@ private:
 		const std::string& enumName,
 		AnimationType animType,
 		const std::string& animName,
-		const Vector& offset, int weight, int appearWave);
+		const Vector& offset, int weight, int appearWave,
+		float scale,
+		ZombieFactoryFn factory);
 
 	// ==================== 数据成员 ====================
 	// 植物数据

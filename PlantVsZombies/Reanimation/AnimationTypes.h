@@ -2,7 +2,8 @@
 #ifndef _ANIMATIONTYPES_H
 #define _ANIMATIONTYPES_H
 
-// TODO: 以后新增植物、僵尸改这里
+// 新增植物/僵尸时，在此加一个动画类型枚举；完整新增步骤见
+// Game/Plant/GameDataManager.cpp 的 InitializeHardcodedData 顶部说明。
 enum class AnimationType
 {
 	ANIM_NONE,

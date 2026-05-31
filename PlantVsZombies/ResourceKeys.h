@@ -215,7 +215,8 @@ namespace ResourceKeys
 		const std::string MUSIC_ZENGARDEN = "MUSIC_ZENGARDEN";
 	}
 
-	// TODO: 新增东西也要改这里
+	// 新增植物/僵尸/资源时，在对应 namespace 加资源键；完整新增步骤见
+	// Game/Plant/GameDataManager.cpp 的 InitializeHardcodedData 顶部说明。
 	namespace Reanimations
 	{
 		const std::string REANIM_SUN = "Sun";

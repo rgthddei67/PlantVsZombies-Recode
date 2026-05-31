@@ -4,6 +4,41 @@
 #include <algorithm>
 #include <vector>
 
+#include "../GameObjectManager.h"
+#include "../RenderOrder.h"
+#include "../Board.h"
+
+#include "PeaShooter.h"
+#include "SunFlower.h"
+#include "CherryBomb.h"
+#include "WallNut.h"
+#include "PotatoMine.h"
+#include "SnowPeaShooter.h"
+#include "Chomper.h"
+#include "Repeater.h"
+#include "PuffShroom.h"
+
+#include "../Zombie/Zombie.h"
+#include "../Zombie/ConeZombie.h"
+#include "../Zombie/Polevaulter.h"
+#include "../Zombie/BucketZombie.h"
+#include "../Zombie/FastBucketZombie.h"
+
+namespace {
+	template<typename T>
+	std::shared_ptr<Plant> MakePlant(Board* b, PlantType t, int row, int col,
+		AnimationType anim, float scale, bool preview) {
+		return GameObjectManager::GetInstance()
+			.CreateGameObjectImmediateAsShared<T>(LAYER_GAME_PLANT, b, t, row, col, anim, scale, preview);
+	}
+	template<typename T>
+	std::shared_ptr<Zombie> MakeZombie(Board* b, ZombieType t, float x, float y, int row,
+		AnimationType anim, float scale, bool preview) {
+		return GameObjectManager::GetInstance()
+			.CreateGameObjectImmediateAsShared<T>(LAYER_GAME_ZOMBIE, b, t, x, y, row, anim, scale, preview);
+	}
+}
+
 GameDataManager::GameDataManager() {}
 
 void GameDataManager::Initialize() {
@@ -24,6 +59,19 @@ void GameDataManager::Initialize() {
 }
 
 void GameDataManager::InitializeHardcodedData() {
+	// ============================================================
+	// 【新增植物】共 4 步（不再需要改 GameApp 的 switch —— 已用注册式工厂取代）：
+	//   1. PlantType.h    加枚举项
+	//   2. Game/Plant/    写植物类（纯头文件即可，构造经 using 继承 Plant/Shooter）
+	//   3. 本文件          在下方“植物注册”区加一行 RegisterPlant(..., scale, &MakePlant<新类>)
+	//                      —— 含全部数据（cost/cooldown/纹理/动画/偏移/缩放）与构造工厂
+	//      并在本文件顶部 #include "你的植物.h"
+	//   4. 加 Card 条目
+	// 【新增僵尸】同理：ZombieType.h 加枚举 → 写僵尸类 → 下方“僵尸注册”区加一行
+	//      RegisterZombie(..., scale, &MakeZombie<新类>) + 顶部 #include；Board 波次逻辑按需。
+	// 配套常量：动画类型加在 Reanimation/AnimationTypes.h；资源键加在 ResourceKeys.h。
+	// ============================================================
+
 	// ==================== 植物注册 ====================
 	RegisterPlant(
 		PlantType::PLANT_SUNFLOWER,
@@ -32,7 +80,8 @@ void GameDataManager::InitializeHardcodedData() {
 		ResourceKeys::Textures::IMAGE_SUNFLOWER,
 		AnimationType::ANIM_SUNFLOWER,
 		ResourceKeys::Reanimations::REANIM_SUNFLOWER,
-		Vector(-37.6f, -44)
+		Vector(-37.6f, -44),
+		1.0f, &MakePlant<SunFlower>
 	);
 
 	RegisterPlant(
@@ -42,7 +91,8 @@ void GameDataManager::InitializeHardcodedData() {
 		ResourceKeys::Textures::IMAGE_PEASHOOTER,
 		AnimationType::ANIM_PEASHOOTER,
 		ResourceKeys::Reanimations::REANIM_PEASHOOTER,
-		Vector(-37.6f, -44)
+		Vector(-37.6f, -44),
+		1.0f, &MakePlant<PeaShooter>
 	);
 
 	RegisterPlant(
@@ -52,7 +102,8 @@ void GameDataManager::InitializeHardcodedData() {
 		ResourceKeys::Textures::IMAGE_CHERRYBOMB,
 		AnimationType::ANIM_CHERRYBOMB,
 		ResourceKeys::Reanimations::REANIM_CHERRYBOMB,
-		Vector(-37.6f, -44)
+		Vector(-37.6f, -44),
+		1.0f, &MakePlant<CherryBomb>
 	);
 
 	RegisterPlant(
@@ -62,7 +113,8 @@ void GameDataManager::InitializeHardcodedData() {
 		ResourceKeys::Textures::IMAGE_WALLNUT,
 		AnimationType::ANIM_WALLNUT,
 		ResourceKeys::Reanimations::REANIM_WALLNUT,
-		Vector(-37.6f, -44)
+		Vector(-37.6f, -44),
+		1.0f, &MakePlant<WallNut>
 	);
 
 	RegisterPlant(
@@ -72,7 +124,8 @@ void GameDataManager::InitializeHardcodedData() {
 		ResourceKeys::Textures::IMAGE_POTATOMINE,
 		AnimationType::ANIM_POTATOMINE,
 		ResourceKeys::Reanimations::REANIM_POTATOMINE,
-		Vector(-30.0f, -35.2f)
+		Vector(-30.0f, -35.2f),
+		0.8f, &MakePlant<PotatoMine>
 	);
 
 	RegisterPlant(
@@ -82,7 +135,8 @@ void GameDataManager::InitializeHardcodedData() {
 		ResourceKeys::Textures::IMAGE_SNOWPEASHOOTER,
 		AnimationType::ANIM_SNOWPEASHOOTER,
 		ResourceKeys::Reanimations::REANIM_SNOWPEASHOOTER,
-		Vector(-37.6f, -44)
+		Vector(-37.6f, -44),
+		1.0f, &MakePlant<SnowPeaShooter>
 	);
 
 	RegisterPlant(
@@ -92,7 +146,8 @@ void GameDataManager::InitializeHardcodedData() {
 		ResourceKeys::Textures::IMAGE_CHOMPER,
 		AnimationType::ANIM_CHOMPER,
 		"Chomper",
-		Vector(-37.6f, -44)
+		Vector(-37.6f, -44),
+		1.0f, &MakePlant<Chomper>
 	);
 
 	RegisterPlant(
@@ -102,7 +157,8 @@ void GameDataManager::InitializeHardcodedData() {
 		ResourceKeys::Textures::IMAGE_REPEATER,
 		AnimationType::ANIM_REPEAT,
 		"Repeater",
-		Vector(-37.6f, -44)
+		Vector(-37.6f, -44),
+		1.0f, &MakePlant<Repeater>
 	);
 
 	RegisterPlant(
@@ -112,7 +168,8 @@ void GameDataManager::InitializeHardcodedData() {
 		ResourceKeys::Textures::IMAGE_PUFFSHROOM,
 		AnimationType::ANIM_PUFFSHROOM,
 		"PuffShroom",
-		Vector(-37.6f, -28)
+		Vector(-37.6f, -28),
+		1.0f, &MakePlant<PuffShroom>
 	);
 
 	// ==================== 僵尸注册 ====================
@@ -124,7 +181,8 @@ void GameDataManager::InitializeHardcodedData() {
 		ResourceKeys::Reanimations::REANIM_NORMAL_ZOMBIE,
 		Vector(-50, -85),
 		1000,
-		1
+		1,
+		1.0f, &MakeZombie<Zombie>
 	);
 
 	RegisterZombie(
@@ -134,7 +192,8 @@ void GameDataManager::InitializeHardcodedData() {
 		ResourceKeys::Reanimations::REANIM_CONE_ZOMBIE,
 		Vector(-50, -85),
 		1500,
-		3
+		3,
+		1.0f, &MakeZombie<ConeZombie>
 	);
 
 	RegisterZombie(
@@ -144,7 +203,8 @@ void GameDataManager::InitializeHardcodedData() {
 		ResourceKeys::Reanimations::REANIM_POLEVAULTER_ZOMBIE,
 		Vector(-50, -85),
 		1700,
-		5
+		5,
+		1.0f, &MakeZombie<Polevaulter>
 	);
 
 	RegisterZombie(
@@ -154,7 +214,8 @@ void GameDataManager::InitializeHardcodedData() {
 		ResourceKeys::Reanimations::REANIM_BUCKET_ZOMBIE,
 		Vector(-50, -85),
 		2000,
-		5
+		5,
+		1.0f, &MakeZombie<BucketZombie>
 	);
 
 	RegisterZombie(
@@ -164,7 +225,8 @@ void GameDataManager::InitializeHardcodedData() {
 		ResourceKeys::Reanimations::REANIM_BUCKET_ZOMBIE,
 		Vector(-50, -85),
 		2500,
-		6
+		6,
+		1.0f, &MakeZombie<FastBucketZombie>
 	);
 
 	// ==================== 非植物/僵尸动画映射 ====================
@@ -185,8 +247,12 @@ void GameDataManager::RegisterPlant(PlantType type,
 	const std::string& textureKey,
 	AnimationType animType,
 	const std::string& animName,
-	const Vector& offset) {
+	const Vector& offset,
+	float scale,
+	PlantFactoryFn factory) {
 	PlantInfo info(type, sunCost, cooldown, enumName, textureKey, animType, animName, offset);
+	info.scale = scale;
+	info.factory = factory;
 	mPlantInfo[type] = info;
 
 	mEnumNameToType[enumName] = type;
@@ -205,8 +271,12 @@ void GameDataManager::RegisterZombie(ZombieType type,
 	const std::string& enumName,
 	AnimationType animType,
 	const std::string& animName,
-	const Vector& offset, int weight, int appearWave) {
+	const Vector& offset, int weight, int appearWave,
+	float scale,
+	ZombieFactoryFn factory) {
 	ZombieInfo info(type, enumName, animType, animName, offset, weight, appearWave);
+	info.scale = scale;
+	info.factory = factory;
 	mZombieInfo[type] = info;
 
 	// 记录动画类型->资源名，以便通过 AnimationType 统一查询
@@ -216,6 +286,26 @@ void GameDataManager::RegisterZombie(ZombieType type,
 	std::cout << "[GameDataManager] 注册僵尸: " << animName
 		<< " (偏移: " << offset.x << ", " << offset.y << ")" << std::endl;
 #endif
+}
+
+std::shared_ptr<Plant> GameDataManager::CreatePlant(PlantType type, Board* board, int row, int col, bool isPreview) const {
+	auto it = mPlantInfo.find(type);
+	if (it == mPlantInfo.end() || !it->second.factory) {
+		std::cout << "[GameDataManager] 未注册或缺工厂的植物类型: " << static_cast<int>(type) << std::endl;
+		return nullptr;
+	}
+	const PlantInfo& i = it->second;
+	return i.factory(board, type, row, col, i.animType, i.scale, isPreview);
+}
+
+std::shared_ptr<Zombie> GameDataManager::CreateZombie(ZombieType type, Board* board, float x, float y, int row, bool isPreview) const {
+	auto it = mZombieInfo.find(type);
+	if (it == mZombieInfo.end() || !it->second.factory) {
+		std::cout << "[GameDataManager] 未注册或缺工厂的僵尸类型: " << static_cast<int>(type) << std::endl;
+		return nullptr;
+	}
+	const ZombieInfo& i = it->second;
+	return i.factory(board, type, x, y, row, i.animType, i.scale, isPreview);
 }
 
 std::string GameDataManager::GetPlantTextureKey(PlantType plantType) const {
