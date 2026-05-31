@@ -40,6 +40,7 @@ public:
 	~Plant() = default;
 	void Start() override;
 	void Update() override;
+	void Draw(Graphics* g) override;	// 重写以叠加血量显示
 	Vector GetVisualPosition() const override;
 
 	int GetSortingKey() const override { return this->mRow; }

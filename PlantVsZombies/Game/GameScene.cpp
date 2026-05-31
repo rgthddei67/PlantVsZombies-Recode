@@ -219,6 +219,16 @@ void GameScene::OpenMenu()
 		this->mLendToAlmanacScene = true;
 	}, ResourceKeys::Textures::IMAGE_BUTTONBIG, true });
 
+	buttons.push_back({ u8"", Vector(455, 250),Vector(42, 39), 1,[this]() {
+		auto& gameApp = GameAPP::GetInstance();
+		gameApp.mShowPlantHP = !gameApp.mShowPlantHP;
+	}, ResourceKeys::Textures::IMAGE_OPTIONS_CHECKBOX0 ,false });
+
+	buttons.push_back({ u8"", Vector(590, 250),Vector(42, 39), 1,[this]() {
+		auto& gameApp = GameAPP::GetInstance();
+		gameApp.mShowZombieHP = !gameApp.mShowZombieHP;
+	}, ResourceKeys::Textures::IMAGE_OPTIONS_CHECKBOX0 ,false });
+
 	sliders.push_back({ Vector(530, 175), Vector(135, 10),
 		0.0f ,1.0f, AudioSystem::GetMusicVolume(),[](float value) {
 		AudioSystem::SetMusicVolume(value);
@@ -240,9 +250,22 @@ void GameScene::OpenMenu()
 	({ Vector(480, 190), 22, u8"音效" , glm::vec4{ 107, 109, 144, 255} });
 	texts.push_back
 	({ Vector(480, 215), 22, u8"难度" , glm::vec4{ 107, 109, 144, 255} });
+	texts.push_back
+	({ Vector(498, 256), 14, u8"植物血量显示" , glm::vec4{ 107, 109, 144, 255} });
+	texts.push_back
+	({ Vector(634, 256), 14, u8"僵尸血量显示" , glm::vec4{ 107, 109, 144, 255} });
 
 	mMenu = mUIManager.CreateMessageBox(Vector(SCENE_WIDTH / 2 + 50, SCENE_HEIGHT / 2 - 80.0f),
 		"", buttons, sliders, texts, "", 1.0f, ResourceKeys::Textures::IMAGE_OPTIONS_MENUBACK);
+
+	auto& buttonChecks = mMenu.lock()->m_buttons;
+	auto& gameApp = GameAPP::GetInstance();
+	if (buttonChecks.size() > 4 && buttonChecks[4]) {
+		buttonChecks[4]->SetChecked(gameApp.mShowPlantHP);
+	}
+	if (buttonChecks.size() > 5 && buttonChecks[5]) {
+		buttonChecks[5]->SetChecked(gameApp.mShowZombieHP);
+	}
 }
 
 void GameScene::OpenRestartMenu()

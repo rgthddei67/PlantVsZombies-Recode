@@ -4,6 +4,7 @@
 #include "../GameObjectManager.h"
 #include "../ShadowComponent.h"
 #include "GameDataManager.h"
+#include "../../GameApp.h"	// GameAPP::mShowPlantHP / Graphics / DrawText
 
 Plant::Plant(Board* board, PlantType plantType, int row, int column,
 	AnimationType animType, float scale, bool isPreview)
@@ -121,4 +122,20 @@ Vector Plant::GetPosition() const
 void Plant::SetPosition(const Vector& position)
 {
 	this->GetTransformComponent()->SetPosition(position);
+}
+
+void Plant::Draw(Graphics* g)
+{
+	AnimatedObject::Draw(g);	// 先画本体动画
+
+	if (!g || mIsPreview || !GameAPP::GetInstance().mShowPlantHP) return;
+
+	// 直接用逻辑坐标：DrawText 与 Animator 的 DrawTextureMatrix 共享同一 projView，
+	// Animator 画 sprite 时就是用裸逻辑坐标，文字必须同坐标系才能叠在对象上（勿转 World）
+	Vector pos = GetPosition() + Vector(-21, -11);
+
+	std::string text = std::to_string(mPlantHealth) + u8"/" + std::to_string(mPlantMaxHealth);
+	// 颜色是 0..255 范围（ToSDLColor 直接 static_cast，不乘 255），勿写成 0..1 否则全透明隐形
+	const glm::vec4 green(0.0f, 255.0f, 0.0f, 255.0f);
+	g->DrawText(text, ResourceKeys::Fonts::FONT_FZCQ, 17, green, pos.x, pos.y);
 }

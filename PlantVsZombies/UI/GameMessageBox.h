@@ -15,6 +15,7 @@
 class GameMessageBox : public GameObject {
 public:
 	friend class MainMenuScene;
+	friend class GameScene;
 
 	struct ButtonConfig {
 		std::string text;

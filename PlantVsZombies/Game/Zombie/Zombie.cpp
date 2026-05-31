@@ -491,6 +491,37 @@ void Zombie::SetPosition(const Vector& position)
 	this->GetTransformComponent()->SetPosition(position);
 }
 
+void Zombie::Draw(Graphics* g)
+{
+	AnimatedObject::Draw(g);	// 先画本体动画
+
+	if (!g || mIsPreview || !GameAPP::GetInstance().mShowZombieHP) return;
+
+	// 直接用逻辑坐标：DrawText 与 Animator 的 DrawTextureMatrix 共享同一 projView，
+	// Animator 画 sprite 时就是用裸逻辑坐标，文字必须同坐标系才能叠在对象上（勿转 World）
+	Vector pos = GetPosition() + Vector(-40, -40);
+
+	constexpr int   fontSize = 15;
+	constexpr float lineHeight = 18.0f;	// 行距 ≈ 字号，逐行向下、无空行
+	// 颜色是 0..255 范围（ToSDLColor 直接 static_cast，不乘 255），勿写成 0..1 否则全透明隐形
+	const glm::vec4 lightBlue(150.0f, 200.0f, 255.0f, 255.0f);
+
+	float y = pos.y;
+	auto drawLine = [&](const std::string& text) {
+		g->DrawText(text, ResourceKeys::Fonts::FONT_FZJZ, fontSize, lightBlue, pos.x, y);
+		y += lineHeight;
+		};
+
+	// 本体（始终显示）
+	drawLine(u8"本体: " + std::to_string(mBodyHealth) + u8"/" + std::to_string(mBodyMaxHealth));
+	// 一类防具（有 mHelmType 才显示）
+	if (mHelmType != HelmType::HELMTYPE_NONE)
+		drawLine(u8"一类: " + std::to_string(mHelmHealth) + u8"/" + std::to_string(mHelmMaxHealth));
+	// 二类防具（有 mShieldType 才显示）
+	if (mShieldType != ShieldType::SHIELDTYPE_NONE)
+		drawLine(u8"二类: " + std::to_string(mShieldHealth) + u8"/" + std::to_string(mShieldMaxHealth));
+}
+
 void Zombie::ValidateEatingState(EntityManager& em)
 {
 	if (mIsEating && mEatPlantID != NULL_PLANT_ID) {

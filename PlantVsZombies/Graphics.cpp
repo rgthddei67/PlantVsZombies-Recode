@@ -1230,7 +1230,14 @@ void Graphics::ClearPinnedTextCache() {
 
 void Graphics::DrawText(const std::string& text, const std::string& fontKey, int fontSize,
 	const glm::vec4& color, float x, float y, float scale) {
-	if (tl_record) { RecordDrawText(*tl_record, text, fontKey, fontSize, color, x, y, scale); return; }
+	// worker：defer 到主线程，onTop=false → 回放时就地交错渲染（与对象同 z-order）。
+	if (tl_record) { RecordDrawText(*tl_record, text, fontKey, fontSize, color, x, y, scale, /*onTop*/false); return; }
+
+	// 主线程串行：先 flush 已排队的 reanim instance（草坪/影子/前面对象 sprite），文字随后写入
+	// batch，将在下一次 cross-flush / EndFrame 落在它们之上——即"当前层"（在已画对象之上、后续
+	// 对象之下）。否则 AppendReanimInstance 的 cross-flush 会把 batch 压到后续 instance 下层 → 隐身。
+	// 对象循环之外的调用（UI/菜单文字）此刻 instance 队列为空，FlushInstances 是 no-op，行为不变。
+	FlushInstances();
 
 	int w, h;
 	float superSample;
@@ -1256,6 +1263,20 @@ void Graphics::DrawText(const std::string& text, const std::string& fontKey, int
 	};
 	AddVertices(vertices, 6);
 	CheckBatch();
+}
+
+void Graphics::DrawTextOnTop(const std::string& text, const std::string& fontKey, int fontSize,
+	const glm::vec4& color, float x, float y, float scale) {
+	// worker 线程：onTop=true → ReplayAndEndParallel 在所有 slot 几何之后统一渲染 = 绝对顶层。
+	if (tl_record) {
+		RecordDrawText(*tl_record, text, fontKey, fontSize, color, x, y, scale, /*onTop*/true);
+		return;
+	}
+	// 主线程串行：无并行回放阶段、无法真正延迟到所有对象之后；这里把已排队的 batch + instance
+	// 全部 flush，再绘制，等价于"当前已绘制内容之上"。串行对象少，足够近似顶层。
+	if (!m_batchVertices.empty()) FlushBatch();
+	FlushInstances();
+	DrawText(text, fontKey, fontSize, color, x, y, scale);
 }
 
 void Graphics::ClearTextCache() {
@@ -1829,9 +1850,17 @@ void Graphics::ReplayAndEndParallel() {
 		boundPipe = want;
 		};
 
-	// DeferredText：所有 slot 收完后统一在主线程跑一次（PVZ 文字以 UI overlay 为主，
-	// 把"slot 内 text 与几何严格交错"简化成"所有几何之后再画文字"）。
-	std::vector<const DeferredTextCmd*> pendingText;
+	// DeferredText 渲染策略（按 cmd 的 onTop 标志区分）：
+	//   onTop=false → 在该 cmd 记录的几何位置就地交错渲染（与对象同 z-order，如血量显示）；
+	//   onTop=true  → 收集到此，待所有 slot 几何 emit 完后统一渲染（绝对顶层）。
+	std::vector<const DeferredTextCmd*> pendingTopText;
+
+	// 把帧游标提前推到 post-parallel 预留区：下面 onTop=false 的内联渲染会走 FlushBatch 写顶点，
+	// 必须落在 BeginParallelRecord 保留的余量内，不能与各 slot 切片数据撞车。
+	// （原本在 slot 循环之后才推；内联渲染要求提前。其后的 overlay 串行绘制会从这里继续累加。）
+	fr.vboCursor  = (VkDeviceSize)(m_parallelBaseVbo  + m_parallelVboBytes);
+	fr.ssboCursor = (VkDeviceSize)(m_parallelBaseSsbo + m_parallelSsboBytes);
+	fr.instCursor = (VkDeviceSize)(m_parallelBaseInst + m_parallelInstBytes);
 
 	for (int slot = 0; slot < m_numActiveWorkers; ++slot) {
 		WorkerRecord& r = m_workerRecords[slot];
@@ -1896,7 +1925,20 @@ void Graphics::ReplayAndEndParallel() {
 				break;
 			}
 			case RecCmdType::DeferredText: {
-				pendingText.push_back(&r.textCmds[cmd.payloadIdx]);
+				const DeferredTextCmd& t = r.textCmds[cmd.payloadIdx];
+				if (t.onTop) {
+					// 绝对顶层：留到所有几何 emit 完后统一画。
+					pendingTopText.push_back(&t);
+				}
+				else {
+					// 当前层：emitUpTo 已把本对象 sprite（记录在该 cmd 之前）emit 完，此处就地画文字，
+					// 文字便夹在"本对象 sprite"与"后续对象"之间 = 与对象同 z-order。
+					// DrawText/FlushBatch 会重绑 pipeline/descriptor/vbo，画完清空 boundPipe 哨兵，
+					// 强制下一次 emitUpTo 重新绑定，避免后续几何沿用文字管线。
+					DrawText(t.text, t.fontKey, t.fontSize, t.color, t.x, t.y, t.scale);
+					FlushBatch();
+					boundPipe = BoundPipe::None;
+				}
 				break;
 			}
 			}
@@ -1920,15 +1962,11 @@ void Graphics::ReplayAndEndParallel() {
 		m_prevSliceInstDemand[slot] = sl.overflowed ? (uint32_t)((uint64_t)sl.instCap * 3u / 2u) : sl.instCount;       // Task 3
 	}
 
-	// 把每帧游标推到整段切片区域末尾（underfilled slot 的尾部空间也作为已占用，简化逻辑）。
-	fr.vboCursor = (VkDeviceSize)(m_parallelBaseVbo + m_parallelVboBytes);
-	fr.ssboCursor = (VkDeviceSize)(m_parallelBaseSsbo + m_parallelSsboBytes);
-	fr.instCursor = (VkDeviceSize)(m_parallelBaseInst + m_parallelInstBytes);  // Task 3
-
-	// 所有 deferred text 在主线程一次性渲染。DrawText 内部走 m_batchVertices/CheckBatch/FlushBatch，
-	// 写入位置从 fr.vboCursor 开始（在 BeginParallelRecord 保留的 8MB 余量内）。
-	if (!pendingText.empty()) {
-		for (const DeferredTextCmd* t : pendingText) {
+	// onTop=true 的 deferred text 在所有 slot 几何之后统一渲染 = 绝对顶层。
+	// （帧游标已在 slot 循环前推到 post-parallel 预留区，onTop=false 的内联文字也已从该区累加写入；
+	//   后续 overlay 串行绘制继续从当前游标累加。）
+	if (!pendingTopText.empty()) {
+		for (const DeferredTextCmd* t : pendingTopText) {
 			DrawText(t->text, t->fontKey, t->fontSize, t->color, t->x, t->y, t->scale);
 		}
 		FlushBatch();
@@ -2147,11 +2185,11 @@ void Graphics::RecordDrawCachedText(WorkerRecord& r,
 
 void Graphics::RecordDrawText(WorkerRecord& r,
 	const std::string& text, const std::string& fontKey, int fontSize,
-	const glm::vec4& color, float x, float y, float scale)
+	const glm::vec4& color, float x, float y, float scale, bool onTop)
 {
-	// DrawText 涉及 TTF 渲染 + GPU 上传 + LRU 维护，全部都不是线程安全的——
-	// 一律 defer 到主线程。Phase 5 简化：所有 slot 的 deferred text 在 ReplayAndEndParallel
-	// 收尾时统一在主线程一次性渲染（顺序在所有几何之后）。
+	// DrawText 涉及 TTF 渲染 + GPU 上传 + LRU 维护，全部都不是线程安全的——一律 defer 到主线程。
+	// onTop=false：ReplayAndEndParallel 在该 cmd 记录的几何位置就地渲染（对象同 z-order）。
+	// onTop=true ：收集到所有 slot 几何之后统一渲染（绝对顶层）。
 	DeferredTextCmd t;
 	t.text = text;
 	t.fontKey = fontKey;
@@ -2160,6 +2198,7 @@ void Graphics::RecordDrawText(WorkerRecord& r,
 	t.x = x;
 	t.y = y;
 	t.scale = scale;
+	t.onTop = onTop;
 	r.textCmds.push_back(std::move(t));
 
 	RecordCmd c{};

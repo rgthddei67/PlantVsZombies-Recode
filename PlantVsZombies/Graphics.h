@@ -174,6 +174,7 @@ struct DeferredTextCmd {
 	float       x = 0.0f;
 	float       y = 0.0f;
 	float       scale = 1.0f;
+	bool        onTop = false;  ///< true=回放末尾统一画(绝对顶层); false=就地交错画(对象同 z-order)
 };
 
 /**
@@ -372,16 +373,30 @@ public:
 		float rotation = 0.0f, const glm::vec4& tint = glm::vec4(255.0f));
 
 	/**
-	 * @brief 绘制文字。
+	 * @brief 绘制文字（**当前层**：与调用处的绘制顺序同 z-order）。
+	 *        在对象 Draw 循环内调用时，文字落在本对象之上、后续对象之下——参与正常 z-order。
+	 *        若要文字盖住一切（HUD/调试 overlay），改用 DrawTextOnTop。
+	 * @note  color 是 **0..255** 范围（ToSDLColor 直接 static_cast，不乘 255），勿写成 0..1 否则全透明。
 	 * @param text     文字内容
 	 * @param fontKey  字体键名
 	 * @param fontSize 字体大小
-	 * @param color    文字颜色
+	 * @param color    文字颜色（0..255）
 	 * @param x        目标左上角 X 坐标
 	 * @param y        目标左上角 Y 坐标
 	 * @param scale    文字缩放系数（默认为1）
 	 */
 	void DrawText(const std::string& text, const std::string& fontKey, int fontSize,
+		const glm::vec4& color, float x, float y, float scale = 1.0f);
+
+	/**
+	 * @brief 绘制 **绝对顶层** 文字：盖在所有游戏对象之上（HUD / 调试 overlay 用）。
+	 *        与 DrawText 的区别只在 z-order——本函数让文字凌驾于本帧后续所有几何之上。
+	 *        worker 路径：标记 onTop，ReplayAndEndParallel 在所有 slot 几何 emit 完后统一渲染；
+	 *        主线程串行：先 flush 已排队 batch/instance 再画（串行无回放阶段，近似顶层）。
+	 *        若只想让文字与对象同层（如血量），用 DrawText。
+	 * @note  color 是 0..255 范围，同 DrawText。
+	 */
+	void DrawTextOnTop(const std::string& text, const std::string& fontKey, int fontSize,
 		const glm::vec4& color, float x, float y, float scale = 1.0f);
 
 	/**
@@ -901,7 +916,7 @@ private:
 
 	void RecordDrawText(WorkerRecord& r,
 		const std::string& text, const std::string& fontKey, int fontSize,
-		const glm::vec4& color, float x, float y, float scale);
+		const glm::vec4& color, float x, float y, float scale, bool onTop);
 
 	void RecordFillRect(WorkerRecord& r,
 		float x, float y, float width, float height, const glm::vec4& color);
