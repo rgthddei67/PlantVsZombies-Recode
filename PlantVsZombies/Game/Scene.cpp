@@ -5,7 +5,7 @@
 #include "ClickableComponent.h"
 #include "../GameApp.h"
 #include "../Profiler.h"
-#include <iostream>
+#include "../Logger.h"
 
 void Scene::BuildDrawCommands() {
 	mDrawCommands.clear();
@@ -105,14 +105,12 @@ void Scene::AddTexture(const std::string& textureName, float posX, float posY, f
 		info.name = textureName;
 		info.isUI = isUI;
 		mTextures.push_back(info);
-#ifdef _DEBUG
-		std::cout << "场景 " << name << " 添加纹理: " << textureName
+		LOG_DEBUG("Scene") << "场景 " << name << " 添加纹理: " << textureName
 			<< " 位置: (" << posX << ", " << posY << ")"
-			<< " 缩放X:" << scaleX << "Y:" << scaleY << std::endl;
-#endif
+			<< " 缩放X:" << scaleX << "Y:" << scaleY;
 	}
 	else {
-		std::cerr << "场景 " << name << " 无法加载纹理: " << textureName << std::endl;
+		LOG_ERROR("Scene") << "场景 " << name << " 无法加载纹理: " << textureName;
 	}
 }
 
@@ -123,9 +121,7 @@ void Scene::RemoveTexture(const std::string& textureName) {
 		});
 
 	if (it != mTextures.end()) {
-#ifdef _DEBUG
-		std::cout << "场景 " << name << " 移除纹理: " << textureName << std::endl;
-#endif
+		LOG_DEBUG("Scene") << "场景 " << name << " 移除纹理: " << textureName;
 		mTextures.erase(it);
 	}
 }
@@ -199,9 +195,7 @@ void Scene::SetTextureDrawOrder(const std::string& textureName, int drawOrder) {
 }
 
 void Scene::ClearAllTextures() {
-#ifdef _DEBUG
-	std::cout << "场景 " << name << " 清空所有纹理" << std::endl;
-#endif
+	LOG_DEBUG("Scene") << "场景 " << name << " 清空所有纹理";
 	mTextures.clear();
 }
 

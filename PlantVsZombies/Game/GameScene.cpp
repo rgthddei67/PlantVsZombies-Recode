@@ -15,7 +15,7 @@
 #include "../Profiler.h"
 #include "./Shovel.h"
 #include "ShovelBank.h"
-#include <iostream>
+#include "../Logger.h"
 #include <cmath>
 #include <cstdio>
 
@@ -568,9 +568,7 @@ void GameScene::ShowSunCount()
 
 void GameScene::ChooseCardComplete()
 {
-#ifdef _DEBUG
-	std::cout << "选卡完成，准备开始游戏" << std::endl;
-#endif
+	LOG_INFO("GameScene") << "选卡完成，准备开始游戏";
 	if (mCurrentStage != IntroStage::COMPLETE) return;
 	mCurrentStage = IntroStage::READY_SET_PLANT;
 	mReadyStartPos = Vector(mCurrectSceneX, 0);

@@ -5,8 +5,8 @@
 #include "../DeltaTime.h"
 #include "../ResourceManager.h"
 #include "../ResourceKeys.h"
+#include "../Logger.h"
 #include <memory>
-#include <iostream>
 #include <cmath>
 
 GameProgress::GameProgress(Board* board, GameScene* gameScene)
@@ -14,7 +14,7 @@ GameProgress::GameProgress(Board* board, GameScene* gameScene)
 	mCurrentSliderValue(1.0f), mTargetSliderValue(1.0f), mLerpSpeed(1.1f)
 {
 	if (!board || !gameScene) {
-		std::cerr << "GameProgress::GameProgress初始化失败，board或者gameScene为nullptr！" << std::endl;
+		LOG_ERROR("GameProgress") << "初始化失败，board或者gameScene为nullptr！";
 		return;
 	}
 
@@ -37,9 +37,7 @@ GameProgress::~GameProgress()
 {
 	mBoard = nullptr;
 	mGameScene = nullptr;
-#ifdef _DEBUG
-	std::cout << "GameProgress::~GameProgress" << std::endl;
-#endif
+	LOG_DEBUG("GameProgress") << "~GameProgress";
 }
 
 void GameProgress::Update()

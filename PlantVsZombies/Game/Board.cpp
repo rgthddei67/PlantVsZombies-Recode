@@ -1,4 +1,5 @@
 ﻿#include "Board.h"
+#include "../Logger.h"
 #include "LawnMower.h"
 #include "Shovel.h"
 #include "Sun.h"
@@ -116,7 +117,7 @@ Plant* Board::CreatePlant(PlantType plantType, int row, int column, bool skipset
 {
 	// 检查行列是否有效
 	if (row < 0 || row >= mRows || column < 0 || column >= mColumns) {
-		std::cout << "无效的行列位置: (" << row << ", " << column << ")" << std::endl;
+		LOG_ERROR("Board") << "无效的行列位置: (" << row << ", " << column << ")";
 		return nullptr;
 	}
 
@@ -161,7 +162,7 @@ Bullet* Board::CreateBullet(BulletType bulletType, int row, const Vector& positi
 	// 使用对象池创建子弹
 	BulletPool* bulletPool = GameObjectManager::GetInstance().GetBulletPool();
 	if (!bulletPool) {
-		std::cout << "Board::CreateBullet 对象池未初始化" << std::endl;
+		LOG_ERROR("Board") << "CreateBullet 对象池未初始化";
 		return nullptr;
 	}
 
@@ -608,7 +609,7 @@ Plant* Board::CreatePlantWithID(PlantType type, int row, int col, int id) {
 	}
 	// 走 GameApp 工厂拿 shared_ptr 用于 EntityManager 注册
 	if (row < 0 || row >= mRows || col < 0 || col >= mColumns) {
-		std::cout << "无效的行列位置: (" << row << ", " << col << ")" << std::endl;
+		LOG_ERROR("Board") << "无效的行列位置: (" << row << ", " << col << ")";
 		return nullptr;
 	}
 	std::shared_ptr<Plant> plant = GameAPP::GetInstance().InstantiatePlant(type, this, row, col, false);
@@ -639,7 +640,7 @@ Zombie* Board::CreateZombieWithID(ZombieType type, int row, float x, float y, in
 Bullet* Board::CreateBulletWithID(BulletType type, int row, const Vector& pos, int id) {
 	BulletPool* bulletPool = GameObjectManager::GetInstance().GetBulletPool();
 	if (!bulletPool) {
-		std::cout << "Board::CreateBulletWithID 对象池未初始化" << std::endl;
+		LOG_ERROR("Board") << "CreateBulletWithID 对象池未初始化";
 		return nullptr;
 	}
 	std::shared_ptr<Bullet> bullet = bulletPool->AcquireShared(this, type, row, Vector(10, 10), pos);
@@ -723,9 +724,7 @@ void Board::InitializeMowers()
 
 float Board::GetZombieSpawnY(int row) const {
 	if (row < 0 || row >= mRows) {
-#ifdef _DEBUG
-		std::cout << "Board::GetZombieSpawnY: 无效的行索引: " << row << std::endl;
-#endif
+		LOG_ERROR("Board") << "GetZombieSpawnY: 无效的行索引: " << row;
 		return -1.0f;
 	}
 

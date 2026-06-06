@@ -1,6 +1,6 @@
 #include "SceneManager.h"
 #include "../Graphics.h"
-#include <iostream>
+#include "../Logger.h"
 
 SceneManager& SceneManager::GetInstance() {
 	static SceneManager instance;
@@ -17,7 +17,7 @@ void SceneManager::ClearCurrentScene() {
 bool SceneManager::SwitchTo(const std::string& name) {
 	auto it = scenes_.find(name);
 	if (it == scenes_.end()) {
-		std::cerr << "场景未注册: " << name << std::endl;
+		LOG_ERROR("SceneManager") << "场景未注册: " << name;
 		return false;
 	}
 
@@ -31,16 +31,14 @@ bool SceneManager::SwitchTo(const std::string& name) {
 	auto newScene = it->second();
 	newScene->OnEnter();
 	sceneStack_.push(std::move(newScene));
-#ifdef _DEBUG
-	std::cout << "切换到场景: " << name << std::endl;
-#endif
+	LOG_INFO("SceneManager") << "切换到场景: " << name;
 	return true;
 }
 
 void SceneManager::PushScene(const std::string& name) {
 	auto it = scenes_.find(name);
 	if (it == scenes_.end()) {
-		std::cerr << "场景未注册: " << name << std::endl;
+		LOG_ERROR("SceneManager") << "场景未注册: " << name;
 		return;
 	}
 

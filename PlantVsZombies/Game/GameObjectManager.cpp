@@ -1,4 +1,5 @@
 #include "GameObjectManager.h"
+#include "../Logger.h"
 #include "../Profiler.h"
 #include "AnimatedObject.h"
 #include <cstdio>
@@ -68,9 +69,7 @@ void GameObjectManager::DestroyAllGameObjects() {
 
 	ResetAllLayers();
 
-#ifdef _DEBUG
-	std::cout << "GameObjectManager::DestroyAllGameObjects 已销毁所有游戏对象" << std::endl;
-#endif
+	LOG_DEBUG("GameObjectManager") << "DestroyAllGameObjects 已销毁所有游戏对象";
 }
 
 void GameObjectManager::Update() {
