@@ -1,5 +1,5 @@
 #include "ParticleSystem.h"
-#include <iostream>
+#include "../Logger.h"
 
 std::unique_ptr<ParticleSystem> g_particleSystem = nullptr;
 
@@ -37,7 +37,7 @@ bool ParticleSystem::LoadXMLConfigs(const std::string& directory) {
 void ParticleSystem::EmitEffect(const std::string& effectName, const Vector& position) {
 	const ParticleEffectConfig* config = configManager.GetEffectConfig(effectName);
 	if (!config) {
-		std::cerr << "错误: 找不到粒子特效配置: " << effectName << std::endl;
+		LOG_ERROR("Particle") << "找不到粒子特效配置: " << effectName;
 		return;
 	}
 

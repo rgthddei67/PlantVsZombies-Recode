@@ -1,6 +1,6 @@
 ﻿#include "ParticleXMLLoader.h"
 #include "../FileManager.h"
-#include <iostream>
+#include "../Logger.h"
 #include <sstream>
 #include <algorithm>
 #include <cctype>
@@ -10,20 +10,18 @@ bool ParticleXMLLoader::LoadFromDirectory(const std::string& directory) {
 	std::vector<std::string> xmlFiles = fileManager.GetFilesInDirectory(directory, ".xml");
 
 	if (xmlFiles.empty()) {
-		std::cerr << "警告: 粒子配置目录为空: " << directory << std::endl;
+		LOG_WARN("Particle") << "粒子配置目录为空: " << directory;
 		return false;
 	}
 
 	bool success = true;
 	for (const std::string& file : xmlFiles) {
 		if (!LoadFromFile(file)) {
-			std::cerr << "警告: 加载粒子配置文件失败: " << file << std::endl;
+			LOG_WARN("Particle") << "加载粒子配置文件失败: " << file;
 			success = false;
 		}
 	}
-#ifdef _DEBUG
-	std::cout << "粒子XML配置加载完成: " << effectConfigs.size() << " 个特效" << std::endl;
-#endif
+	LOG_DEBUG("Particle") << "粒子XML配置加载完成: " << effectConfigs.size() << " 个特效";
 	return success;
 }
 
@@ -32,8 +30,7 @@ bool ParticleXMLLoader::LoadFromFile(const std::string& filePath) {
 	pugi::xml_parse_result result = doc.load_file(filePath.c_str());
 
 	if (!result) {
-		std::cerr << "加载粒子XML文件失败: " << filePath
-			<< "，错误: " << result.description() << std::endl;
+		LOG_ERROR("Particle") << "加载粒子XML文件失败: " << filePath << "，错误: " << result.description();
 		return false;
 	}
 
@@ -45,14 +42,14 @@ bool ParticleXMLLoader::LoadFromFile(const std::string& filePath) {
 	}
 
 	if (emitters.empty()) {
-		std::cerr << "警告: XML文件中没有找到发射器: " << filePath << std::endl;
+		LOG_WARN("Particle") << "XML文件中没有找到发射器: " << filePath;
 		return false;
 	}
 
 	// 使用第一个发射器的名称作为特效名称
 	std::string effectName = emitters[0].name;
 	if (effectName.empty()) {
-		std::cerr << "警告: 发射器没有名称: " << filePath << std::endl;
+		LOG_WARN("Particle") << "发射器没有名称: " << filePath;
 		return false;
 	}
 
@@ -61,9 +58,7 @@ bool ParticleXMLLoader::LoadFromFile(const std::string& filePath) {
 
 	effectConfigs[effectName] = effectConfig;
 
-#ifdef _DEBUG
-	std::cout << "加载粒子特效: " << effectName << " (" << emitters.size() << " 个发射器)" << std::endl;
-#endif
+	LOG_DEBUG("Particle") << "加载粒子特效: " << effectName << " (" << emitters.size() << " 个发射器)";
 
 	return true;
 }
@@ -247,8 +242,7 @@ InterpolationTrack ParticleXMLLoader::ParseInterpolationTrack(const std::string&
 			}
 		}
 		catch (const std::exception& e) {
-			std::cerr << "警告: 无法解析关键帧 token \"" << tok
-				<< "\" (来源: " << text << "): " << e.what() << std::endl;
+			LOG_WARN("Particle") << "无法解析关键帧 token \"" << tok << "\" (来源: " << text << "): " << e.what();
 		}
 	}
 
@@ -329,7 +323,7 @@ ValueRange ParticleXMLLoader::ParseValueRange(const std::string& text) {
 	std::istringstream iss(cleaned);
 	float v1 = 0.0f, v2 = 0.0f;
 	if (!(iss >> v1)) {
-		std::cerr << "警告: 无法解析数值: " << text << std::endl;
+		LOG_WARN("Particle") << "无法解析数值: " << text;
 		return ValueRange(0.0f);
 	}
 	if (iss >> v2) {

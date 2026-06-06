@@ -1,5 +1,5 @@
 ﻿#include "ParticleConfig.h"
-#include <iostream>
+#include "../Logger.h"
 
 ParticleConfigManager::ParticleConfigManager(Graphics* graphics)
 	: m_graphics(graphics)
@@ -8,7 +8,7 @@ ParticleConfigManager::ParticleConfigManager(Graphics* graphics)
 
 bool ParticleConfigManager::LoadXMLConfigs(const std::string& directory) {
 	if (!xmlLoader) {
-		std::cerr << "错误: XML加载器未初始化" << std::endl;
+		LOG_ERROR("Particle") << "XML加载器未初始化";
 		return false;
 	}
 	return xmlLoader->LoadFromDirectory(directory);
