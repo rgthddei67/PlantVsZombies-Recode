@@ -1,5 +1,5 @@
 #include "FileManager.h"
-#include <iostream>
+#include "Logger.h"
 #include <filesystem>
 #include <sstream>
 
@@ -11,9 +11,7 @@ bool FileManager::FileExists(const std::string& path) {
 std::string FileManager::LoadFileAsString(const std::string& path) {
 	std::ifstream file(path);
 	if (!file.is_open()) {
-#ifdef _DEBUG
 		LogError("Failed to open file: " + path);
-#endif
 		return "";
 	}
 
@@ -203,5 +201,5 @@ bool FileManager::DeleteFile(const std::string& path) {
 }
 
 void FileManager::LogError(const std::string& message) {
-	std::cerr << "[FileManager Error] " << message << std::endl;
+	LOG_ERROR("FileManager") << message;
 }

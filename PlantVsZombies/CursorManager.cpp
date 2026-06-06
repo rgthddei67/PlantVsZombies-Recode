@@ -1,5 +1,5 @@
 ﻿#include "CursorManager.h"
-#include <iostream>
+#include "Logger.h"
 
 CursorManager::CursorManager() {
 	// 初始化系统光标映射
@@ -45,7 +45,7 @@ void CursorManager::InitializeSystemCursors() {
 	// 检查是否都创建成功
 	for (auto& [type, cursor] : mSystemCursors) {
 		if (!cursor) {
-			std::cerr << "Failed to create system cursor for type: " << static_cast<int>(type) << std::endl;
+			LOG_ERROR("CursorManager") << "Failed to create system cursor for type: " << static_cast<int>(type);
 		}
 	}
 }
@@ -81,7 +81,7 @@ bool CursorManager::SetCursor(CursorType type) {
 
 	SDL_Cursor* newCursor = GetSystemCursor(type);
 	if (!newCursor) {
-		std::cerr << "Cursor type not available: " << static_cast<int>(type) << std::endl;
+		LOG_ERROR("CursorManager") << "Cursor type not available: " << static_cast<int>(type);
 		return false;
 	}
 
@@ -99,7 +99,7 @@ bool CursorManager::SetCustomCursor(const std::string& cursorName) {
 
 	auto it = mCustomCursors.find(cursorName);
 	if (it == mCustomCursors.end()) {
-		std::cerr << "Custom cursor not found: " << cursorName << std::endl;
+		LOG_ERROR("CursorManager") << "Custom cursor not found: " << cursorName;
 		return false;
 	}
 
@@ -128,8 +128,8 @@ bool CursorManager::LoadCustomCursor(const std::string& name,
 	// 加载图像
 	SDL_Surface* surface = SDL_LoadBMP(imagePath.c_str());
 	if (!surface) {
-		std::cerr << "Failed to load cursor image: " << imagePath
-			<< " - " << SDL_GetError() << std::endl;
+		LOG_ERROR("CursorManager") << "Failed to load cursor image: " << imagePath
+			<< " - " << SDL_GetError();
 		return false;
 	}
 
@@ -156,8 +156,8 @@ bool CursorManager::LoadCustomCursorFromSurface(const std::string& name,
 	SDL_Cursor* cursor = SDL_CreateColorCursor(surface, hotX, hotY);
 
 	if (!cursor) {
-		std::cerr << "Failed to create custom cursor: " << name
-			<< " - " << SDL_GetError() << std::endl;
+		LOG_ERROR("CursorManager") << "Failed to create custom cursor: " << name
+			<< " - " << SDL_GetError();
 		return false;
 	}
 

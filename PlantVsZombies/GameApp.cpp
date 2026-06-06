@@ -27,7 +27,7 @@
 
 #include "./Profiler.h"
 
-#include <iostream>
+#include "Logger.h"
 
 GameAPP::GameAPP()
 	: mInputHandler(nullptr)
@@ -53,7 +53,7 @@ bool GameAPP::InitializeSDL()
 {
 	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0)
 	{
-		std::cerr << "SDL初始化失败: " << SDL_GetError() << std::endl;
+		LOG_ERROR("GameApp") << "SDL初始化失败: " << SDL_GetError();
 		return false;
 	}
 	return true;
@@ -65,8 +65,8 @@ bool GameAPP::InitializeSDL_Image()
 	int initializedFlags = IMG_Init(imgFlags);
 
 	if ((initializedFlags & imgFlags) != imgFlags) {
-		std::cerr << "SDL_image初始化失败，请求: " << imgFlags
-			<< "，实际: " << initializedFlags << " - " << IMG_GetError() << std::endl;
+		LOG_ERROR("GameApp") << "SDL_image初始化失败，请求: " << imgFlags
+			<< "，实际: " << initializedFlags << " - " << IMG_GetError();
 		return false;
 	}
 	return true;
@@ -76,7 +76,7 @@ bool GameAPP::InitializeSDL_TTF()
 {
 	if (TTF_Init() == -1)
 	{
-		std::cerr << "SDL_ttf初始化失败: " << TTF_GetError() << std::endl;
+		LOG_ERROR("GameApp") << "SDL_ttf初始化失败: " << TTF_GetError();
 		return false;
 	}
 	return true;
@@ -86,7 +86,7 @@ bool GameAPP::InitializeAudioSystem()
 {
 	if (!AudioSystem::Initialize())
 	{
-		std::cerr << "警告: 音频初始化失败，游戏将继续运行但没有声音" << std::endl;
+		LOG_WARN("GameApp") << "音频初始化失败，游戏将继续运行但没有声音";
 	}
 	return true;
 }
@@ -102,7 +102,7 @@ bool GameAPP::CreateWindowAndRenderer()
 		SDL_WINDOW_VULKAN | SDL_WINDOW_SHOWN);
 
 	if (!mWindow) {
-		std::cerr << "窗口创建失败: " << SDL_GetError() << std::endl;
+		LOG_ERROR("GameApp") << "窗口创建失败: " << SDL_GetError();
 		return false;
 	}
 
@@ -115,13 +115,13 @@ bool GameAPP::CreateWindowAndRenderer()
 
 	m_vulkanCtx = std::make_unique<pvz::VulkanContext>();
 	if (!m_vulkanCtx->Initialize(mWindow, enableValidation, mVsync)) {
-		std::cerr << "VulkanContext 初始化失败" << std::endl;
+		LOG_ERROR("GameApp") << "VulkanContext 初始化失败";
 		return false;
 	}
 
 	m_vulkanRenderer = std::make_unique<pvz::VulkanRenderer>();
 	if (!m_vulkanRenderer->Initialize(m_vulkanCtx.get())) {
-		std::cerr << "VulkanRenderer 初始化失败" << std::endl;
+		LOG_ERROR("GameApp") << "VulkanRenderer 初始化失败";
 		return false;
 	}
 
@@ -129,25 +129,25 @@ bool GameAPP::CreateWindowAndRenderer()
 	// Graphics::InitializeVulkan 也需要它来构 batch pipeline 的 descriptor layout。
 	m_vulkanTexPool = std::make_unique<pvz::VulkanTexturePool>();
 	if (!m_vulkanTexPool->Initialize(m_vulkanCtx.get())) {
-		std::cerr << "VulkanTexturePool 初始化失败" << std::endl;
+		LOG_ERROR("GameApp") << "VulkanTexturePool 初始化失败";
 		return false;
 	}
 
 	// 创建 Graphics 实例并初始化（Phase 3b：CPU 端默认，Vulkan 资源在 InitializeVulkan 时挂上）
 	m_graphics = std::make_unique<Graphics>();
 	if (!m_graphics->Initialize(SCENE_WIDTH, SCENE_HEIGHT)) {
-		std::cerr << "Graphics 初始化失败" << std::endl;
+		LOG_ERROR("GameApp") << "Graphics 初始化失败";
 		return false;
 	}
 	if (!m_graphics->InitializeVulkan(m_vulkanCtx.get(), m_vulkanRenderer.get(), m_vulkanTexPool.get())) {
-		std::cerr << "Graphics::InitializeVulkan 失败" << std::endl;
+		LOG_ERROR("GameApp") << "Graphics::InitializeVulkan 失败";
 		return false;
 	}
 
 	// Task 7: apply A/B toggle from startup flag
 	m_graphics->SetInstancePathEnabled(!mDisableInstancePath);
 	if (mDisableInstancePath) {
-		std::cout << "[Graphics] Instance path 关闭 — reanim 全走 slow path (DrawTextureMatrix)" << std::endl;
+		LOG_DEBUG("GameApp") << "Instance path 关闭 — reanim 全走 slow path (DrawTextureMatrix)";
 	}
 
 	// 设置默认清屏颜色（0~255 输入，内部归一化）。
@@ -164,7 +164,7 @@ bool GameAPP::CreateWindowAndRenderer()
 bool GameAPP::InitializeResourceManager()
 {
 	if (!CursorManager::GetInstance().Initialize()) {
-		std::cerr << "光标管理器创建失败！" << std::endl;
+		LOG_ERROR("GameApp") << "光标管理器创建失败！";
 		return false;
 	}
 
@@ -179,7 +179,7 @@ bool GameAPP::InitializeResourceManager()
 	resourceManager.SetVulkanTexturePool(m_vulkanTexPool.get());
 
 	if (!resourceManager.Initialize("./resources/resources.xml")) {
-		std::cerr << "ResourceManager 初始化失败！" << std::endl;
+		LOG_ERROR("GameApp") << "ResourceManager 初始化失败！";
 		return false;
 	}
 
@@ -201,7 +201,7 @@ bool GameAPP::LoadAllResources()
 
 	if (!resourcesLoaded)
 	{
-		std::cerr << "资源加载失败！" << std::endl;
+		LOG_ERROR("GameApp") << "资源加载失败！";
 		return false;
 	}
 
@@ -242,7 +242,7 @@ int GameAPP::Run()
 	// 玩家存档需要在创建 swapchain 之前加载，否则 mVsync 还是默认值，present mode 选错。
 	if (!mGameInfoSaver.LoadPlayerInfo())
 	{
-		std::cout << "无法加载玩家存档数据！可能是没有存档!" << std::endl;
+		LOG_WARN("GameApp") << "无法加载玩家存档数据！可能是没有存档!";
 	}
 
 	// 初始化 GameAPP 自身
@@ -353,16 +353,14 @@ int GameAPP::Run()
 			Draw();
 		}
 
-#ifdef _DEBUG
 		static int MousePoint = 0;
 		if (MousePoint++ % 40 == 0)
 		{
 			Vector mousePos = mInputHandler->GetMouseWorldPosition();
-			std::cout << "Mouse World Position: " << mousePos.x << "，" << mousePos.y << std::endl;
-			std::cout << "Mouse Screen Position: " << mInputHandler->GetMousePosition().x << ", "
-				<< mInputHandler->GetMousePosition().y << std::endl;
+			LOG_TRACE("GameApp") << "Mouse World Position: " << mousePos.x << "，" << mousePos.y;
+			LOG_TRACE("GameApp") << "Mouse Screen Position: " << mInputHandler->GetMousePosition().x << ", "
+				<< mInputHandler->GetMousePosition().y;
 		}
-#endif
 
 		mInputHandler->Update();
 
@@ -432,7 +430,7 @@ bool GameAPP::SetFullscreen(bool fullscreen)
 	// FULLSCREEN_DESKTOP：沿用桌面分辨率、不切显示模式、Alt-Tab 顺滑。0 = 还原窗口。
 	Uint32 flag = fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0;
 	if (SDL_SetWindowFullscreen(mWindow, flag) != 0) {
-		std::cerr << "SDL_SetWindowFullscreen 失败: " << SDL_GetError() << std::endl;
+		LOG_ERROR("GameApp") << "SDL_SetWindowFullscreen 失败: " << SDL_GetError();
 		return false;
 	}
 	mFullscreen = fullscreen;
@@ -450,7 +448,7 @@ void GameAPP::Shutdown()
 	if (mRunning) return;
 
 	if (!mGameInfoSaver.SavePlayerInfo()) {
-		std::cout << "错误: 无法保存玩家数据！ 你的数据将会清空！" << std::endl;
+		LOG_ERROR("GameApp") << "无法保存玩家数据！ 你的数据将会清空！";
 	}
 
 	// 清理粒子系统

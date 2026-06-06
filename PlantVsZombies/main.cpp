@@ -6,7 +6,6 @@
 #include "Logger.h"
 #include <SDL2/SDL.h>
 #include <string>
-#include <iostream>
 
 int main(int argc, char** argv)
 {
@@ -25,12 +24,12 @@ int main(int argc, char** argv)
 		{
 			GameAPP::mDebugMode = true;
 			GameAPP::mShowColliders = true;
-			std::cout << "Debug模式已启用" << std::endl;
+			LOG_DEBUG("Main") << "Debug模式已启用";
 		}
 		else if (arg == "-NoInstance" || arg == "-noinstance")
 		{
 			GameAPP::mDisableInstancePath = true;
-			std::cout << "GPU instance path 已禁用 (A/B baseline)" << std::endl;
+			LOG_DEBUG("Main") << "GPU instance path 已禁用 (A/B baseline)";
 		}
 	}
 

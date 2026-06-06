@@ -1,5 +1,5 @@
 ﻿#include "CrashHandler.h"
-#include <iostream>
+#include "Logger.h"
 #include <fstream>
 #include <sstream>
 #include <iomanip>
@@ -24,7 +24,7 @@ void CrashHandler::Initialize() {
 	if (vehHandle) {
 	}
 	else {
-		std::cerr << "Failed to install vectored exception handler" << std::endl;
+		LOG_ERROR("CrashHandler") << "Failed to install vectored exception handler";
 	}
 }
 
@@ -435,8 +435,8 @@ bool CrashHandler::IsUACByTimeWindow(PEXCEPTION_POINTERS exceptionInfo) {
 
 	// 3秒时间窗口内的同类异常忽略（防重复弹窗）
 	if (currentTime - lastUACTime < 3000) {
-		std::cout << "Within time window, ignoring exception (time since last UAC: "
-			<< (currentTime - lastUACTime) << "ms)" << std::endl;
+		LOG_DEBUG("CrashHandler") << "Within time window, ignoring exception (time since last UAC: "
+			<< (currentTime - lastUACTime) << "ms)";
 		return true;
 	}
 
@@ -456,7 +456,7 @@ bool CrashHandler::IsUACByTimeWindow(PEXCEPTION_POINTERS exceptionInfo) {
 			if (moduleName == "kernel32.dll" ||
 				moduleName == "kernelbase.dll" ||
 				moduleName == "ntdll.dll") {
-				std::cout << "Detected UAC-related exception, module: " << moduleName << std::endl;
+				LOG_DEBUG("CrashHandler") << "Detected UAC-related exception, module: " << moduleName;
 				lastUACTime = currentTime;
 				return true;
 			}
