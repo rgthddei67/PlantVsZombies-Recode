@@ -92,6 +92,15 @@ void CardSlotManager::AddCard(Card* card) {
 	if (card) cards.push_back(card);
 }
 
+void CardSlotManager::ClearAllCards() {
+	DeselectCard();
+	for (auto* card : cards) {
+		if (card) GameObjectManager::GetInstance().DestroyGameObject(card);
+	}
+	cards.clear();
+	selectedCard = nullptr;
+}
+
 void CardSlotManager::SelectCard(GameObject* card) {
 	if (!card) return;
 

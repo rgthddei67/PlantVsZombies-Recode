@@ -40,6 +40,8 @@ public:
 
 	// 卡牌操作
 	void AddCard(Card* card);
+	// 清空所有卡槽卡牌（销毁 GameObject）。用于生存模式轮间空槽重选。
+	void ClearAllCards();
 	void SelectCard(GameObject* card);
 	void DeselectCard();
 

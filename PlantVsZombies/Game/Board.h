@@ -47,6 +47,11 @@ constexpr float NEXTWAVE_COUNT_MAX = 25.0f;
 constexpr float SPAWN_SUN_TIME = 15.0f;
 constexpr int MAX_ZOMBIES_PER_WAVE = 120;	// 普通模式一波最大僵尸数量
 
+// ===== 生存模式（无尽）=====
+constexpr int   SURVIVAL_ENDLESS_LEVEL = 1000;   // 生存模式专用 level 号（> 50，避开冒险关推进逻辑）
+constexpr int   SURVIVAL_WAVES_PER_ROUND = 10;   // 每轮（每面旗）波数，10 与"第10波=一大波"逻辑对齐
+constexpr float SURVIVAL_BUDGET_GROWTH = 0.35f;  // 每轮单波点数预算增长系数（可调）
+
 enum class BoardState {
 	CHOOSE_CARD,
 	GAME,
@@ -81,6 +86,9 @@ public:
 
 	int mZombieNumber = 0;
 	bool mTrophySpawned = false;  // 防止重复生成
+
+	bool mIsSurvival = false;     // 是否为生存模式（无尽）
+	int  mSurvivalRound = 1;      // 当前第几面旗（轮次，从 1 起）
 
 	Vector mSpawnZombiePos1 = Vector(1180, 85);			// 左上角坐标
 	Vector mSpawnZombiePos2 = Vector(1500, 581);		// 右下角坐标
@@ -204,6 +212,15 @@ public:
 
 	// 游戏结束
 	void GameOver();
+
+	// 生存模式：一轮（一面旗）清空后推进到下一轮并回到选卡
+	void OnSurvivalRoundClear();
+
+	// 生存模式：根据轮次重建出怪表
+	void BuildSurvivalSpawnList(int round);
+
+	// 生存模式：根据当前轮次刷新关卡名（"生存模式：无尽 第N面旗"）
+	void UpdateSurvivalLevelName();
 
 	void Update();
 

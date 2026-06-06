@@ -4,6 +4,7 @@
 #include "../ResourceKeys.h"
 #include "GameObjectManager.h"
 #include "../UI/GameMessageBox.h"
+#include "Board.h"
 
 void MainMenuScene::OnEnter()
 {
@@ -42,6 +43,15 @@ void MainMenuScene::Update()
 		auto& SceneMgr = SceneManager::GetInstance();
 		gameApp.GetGraphics().SetCameraPosition(0, 0);
 		SceneMgr.SwitchTo("AlmanacScene");
+	}
+	if (mReadyToSwitchSurvival) {
+		mReadyToSwitchSurvival = false;
+		auto& gameApp = GameAPP::GetInstance();
+		auto& SceneMgr = SceneManager::GetInstance();
+		gameApp.GetGraphics().SetCameraPosition(0, 0);
+		SceneMgr.SetGlobalData("EnterLevel", std::to_string(SURVIVAL_ENDLESS_LEVEL));
+		SceneMgr.SwitchTo("GameScene");
+		return;
 	}
 }
 

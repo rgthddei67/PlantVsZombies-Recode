@@ -23,6 +23,8 @@ Board::Board(GameScene* gameScene, Background background, int level)
 	mGameScene = gameScene;
 	mLevel = level;
 	mBackGround = background;
+	mIsSurvival = (level == SURVIVAL_ENDLESS_LEVEL);
+
 	if (mLevel >= 1)
 	{
 		mLevelName.clear();
@@ -33,10 +35,19 @@ Board::Board(GameScene* gameScene, Background background, int level)
 	mSpawnZombieList.reserve(32);
 	mSpawnZombieList.push_back(ZombieType::ZOMBIE_NORMAL);
 	mPreviewZombieList.reserve(32);
-	if (mLevel > 0)
+
+	if (mIsSurvival)
+	{
+		mSurvivalRound = 1;
+		mMaxWave = SURVIVAL_WAVES_PER_ROUND;
+		BuildSurvivalSpawnList(mSurvivalRound);
+		UpdateSurvivalLevelName();
+	}
+	else if (mLevel > 0)
 	{
 		LoadSpawnListFromJson();
 	}
+
 	CreatePreviewZombies();
 	InitializeCell();
 	InitializeRows();
@@ -452,7 +463,7 @@ inline ZombieType Board::PickZombieType(int remainingPoints)
 		ZombieType type = GetWeightedRandomZombie();
 		int cost = GameDataManager::GetInstance().GetZombieWeight(type);
 		int minWave = GameDataManager::GetInstance().GetZombieAppearWave(type);
-		if (remainingPoints >= cost && mCurrentWave >= minWave)
+		if (remainingPoints >= cost && (mIsSurvival || mCurrentWave >= minWave))
 			return type;
 	}
 	return GetCheapestZombie();
@@ -501,6 +512,12 @@ inline int Board::CalculateWaveZombiePoints() const
 	float points = (static_cast<float>(mCurrentWave) / 3 + 1.0f) * 1000.0f;
 
 	points *= (GameAPP::GetInstance().Difficulty * 0.5f);
+
+	// 生存模式：单波点数预算随轮次递增（每轮 mCurrentWave 会重置，故由轮次系数补偿）
+	if (mIsSurvival)
+	{
+		points *= (1.0f + SURVIVAL_BUDGET_GROWTH * static_cast<float>(mSurvivalRound - 1));
+	}
 
 	// 判断是否为旗帜波
 	bool isFlagWave = (mCurrentWave % 10 == 0);
@@ -571,6 +588,25 @@ void Board::GameOver()
 	if (mGameScene)
 		mGameScene->GameOver();
 	mBoardState = BoardState::LOSE_GAME;
+}
+
+void Board::BuildSurvivalSpawnList(int round)
+{
+	// 仅使用本作已实现的可生成僵尸类型（0~5）
+	mSpawnZombieList.clear();
+	mSpawnZombieList.push_back(ZombieType::ZOMBIE_NORMAL);                 // 普通
+	if (round >= 2) mSpawnZombieList.push_back(ZombieType::ZOMBIE_TRAFFIC_CONE); // 路障
+	if (round >= 3) {
+		mSpawnZombieList.push_back(ZombieType::ZOMBIE_POLEVAULTER);       // 撑杆
+		mSpawnZombieList.push_back(ZombieType::ZOMBIE_NEWSPAPER);         // 读报
+	}
+	if (round >= 4) mSpawnZombieList.push_back(ZombieType::ZOMBIE_BUCKET);       // 铁桶
+	if (round >= 5) mSpawnZombieList.push_back(ZombieType::ZOMBIE_FASTBUCKET);   // 快速铁桶
+}
+
+void Board::UpdateSurvivalLevelName()
+{
+	mLevelName = u8"生存模式：无尽 第" + std::to_string(mSurvivalRound) + u8"面旗";
 }
 
 void Board::LoadSpawnListFromJson()

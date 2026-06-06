@@ -16,6 +16,7 @@ public:
 
 	bool mReadyToSwitchAdventureLevel = false;
 	bool mReadyToSwitchAlmanac = false;
+	bool mReadyToSwitchSurvival = false;
 
 private:
 	class GameButton* mGameButton = nullptr;   // 所有权在 GameObjectManager
@@ -90,6 +91,10 @@ public:
 			ResourceKeys::Textures::IMAGE_SELECTORSCREEN_SURIVAL_SHADOW,
 			ResourceKeys::Textures::IMAGE_SELECTORSCREEN_SURIVAL_SHADOW,
 			ResourceKeys::Textures::IMAGE_SELECTORSCREEN_SURIVAL_SHADOW);
+		survival->SetClickCallBack([this](bool) {
+			DeltaTime::SetPaused(false);
+			mMainMenuScene->mReadyToSwitchSurvival = true;
+			});
 	}
 
 	void SetEnabled(bool enabled) {
