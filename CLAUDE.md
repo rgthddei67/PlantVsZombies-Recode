@@ -53,7 +53,7 @@ Add/get components via `AddComponent<T>(args...)` and `GetComponent<T>()`.
 | Class | File | Role |
 |---|---|---|
 | `Board` | `Game/Board.cpp` | Level manager: zombie waves, sun spawning, win/lose logic |
-| `GameObjectManager` | `Game/GameObjectManager` | Create/destroy objects, render order, thread pool for PrepareForDraw |
+| `GameObjectManager` | `Game/GameObjectManager` | Create/destroy objects, render order, thread pool |
 | `CollisionSystem` | `Game/CollisionSystem` | Per-frame collision checks, callbacks |
 | `EntityManager` | `Game/EntityManager` | ID-based entity tracking (used by save system) |
 | `SceneManager` | `Game/SceneManager` | Switches between scenes (`MainMenuScene`, `AlmanacScene`, `GameScene`, `PlantAlmanacScene`, `ZombieAlmanacScene`) — registered in `GameApp.cpp` |
@@ -81,18 +81,42 @@ JSON serialization via nlohmann/json (`GameInfoSaver`). Plants/zombies implement
 - **Reanimation** (`Reanimation/`) is a custom skeletal-animation system, not a sprite-sheet player. It loads `.reanim` XML files and exposes named tracks (e.g. `anim_walk`) via `Animator::PlayTrack()`. Frame events register one-shot callbacks at specific frames.
 - **Particle effects** are XML-configured under `./resources/particles/config/` (`<Emitter>` root with `<Image>`, `<LaunchSpeed>`, `<Field>`, etc.). `ParticleXMLLoader` caches by name.
 
+## Reference & Implementation Guidance
+
+When you need to **add a new classic plant, zombie, or bullet (projectile)**, it is recommended to refer to the original game's behavior and stats using the following approaches:
+
+1. **Search the web**  
+   Consult the *Plants vs. Zombies* community wiki, modding documentation, or open-source recreations to understand the attack patterns, health, speed, and special abilities of classic units (Pea Shooter, Wall-Nut, Basic Zombie, etc.).
+
+2. **Consult the C# reference code (strongly recommended)**  
+   This project was originally inspired by the Lawn engine's C# implementation. The complete code is located at:  
+   `D:\PVZ\PlantsVsZombies.NET-master\Lawn_Shared\Lawn`  
+   The directory contains:
+   - `Plant/` – logic for all plants (shooting, sun production, defense, etc.)
+   - `Zombie/` – behavior for all zombies (movement, attack, helmet drop, etc.)
+   - `Projectile/` – properties and collision logic for bullets (pea, ice pea, fireball, etc.)
+
+   When implementing a new `Plant`, `Zombie` or `Bullet` subclass, **first consult the corresponding C# implementation** to ensure consistent stats and behavior with the original game.
+
+3. **Animation troubleshooting** 
+    If you encounter animation-related problems (e.g., a zombie fails to play a certain animation), first check the `./resources/reanim/` directory for the corresponding `.reanim` file – read its track names and frame data. Cross-reference with the C# reference code (`D:\PVZ\PlantsVsZombies.NET-master\Lawn_Shared\Lawn`) to understand the expected animation sequence and timing. (the animation file is almost the same.)
+
+4. **Frame event note:** 
+    If your new plant or zombie needs frame events, please ask me first.
+
 ## Adding a New Plant
 1. Subclass `Plant` (or `Shooter` for shooting plants) in `Game/Plant/`
 2. Add entry to `PlantType` enum (`Game/Plant/PlantType.h`)
 3. Register data (cost, cooldown, etc.) in `GameDataManager`
 4. Load textures/animations via `ResourceManager` using a key in `ResourceKeys.h`
 5. Add a corresponding `Card` entry
+6. **(Reference)** For classic plants, consult the C# code or web resources mentioned in the "Reference & Implementation Guidance" section above.
 
 ## Adding a New Zombie
 1. Subclass `Zombie` in `Game/Zombie/`
 2. Add entry to `ZombieType` enum (`Game/Zombie/ZombieType.h`)
 3. Override virtual methods: `ZombieUpdate()`, `TakeDamage()`, `SetupZombie()`,`HelmDrop()` / `ShieldDrop()`(etc.) as needed
-4. Register in `Board` wave-spawning logic
+4. **(Reference)** Check the C# implementation under `Zombie/` for attack intervals, health, special abilities, etc.
 
 ### Spawning zombies: two distinct paths
 - **Gameplay (grid-bound):** `Board::CreateZombie(type, row, x, ...)` / `CreateZombieWithID(...)`. Pass an arbitrary pixel `x`, but **`y` is always derived from `row`** via `GetZombieSpawnY(row)` — there is intentionally no `y` parameter. Use this for real zombies, wave spawns, and savegame restore (saves persist only `row + x`).

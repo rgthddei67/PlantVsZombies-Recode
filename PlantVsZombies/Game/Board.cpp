@@ -163,6 +163,9 @@ Zombie* Board::CreateZombie(ZombieType zombieType, int row, float x, bool skipse
 	if (!isPreview && !skipsettings) {
 		mEntityManager.AddZombie(zombie);
 		zombie->mSpawnWave = this->mCurrentWave;
+		// 按当前难度来源对整只僵尸血量施加全局倍率（默认 1，目前由生存模式按轮次提供）。
+		// 仅在此波次生成路径施加；读档走 CreateZombieWithID 直接还原已含倍率的存档血量，不重复缩放。
+		zombie->ApplyHealthMultiplier(GetZombieHpMultiplier());
 	}
 	return zombie.get();
 }
@@ -598,7 +601,7 @@ void Board::OnSurvivalRoundClear()
 	mSurvivalRound++;
 	mCurrentWave = 0;
 	mMaxWave = SURVIVAL_WAVES_PER_ROUND;
-	mZombieCountDown = 20.0f;
+	mZombieCountDown = 10.0f;
 	mTrophySpawned = false;
 	mHasHugeWaveSound = false;
 	mHugeWaveCountDown = 0.0f;
@@ -634,7 +637,7 @@ void Board::BuildSurvivalSpawnList(int round)
 
 void Board::UpdateSurvivalLevelName()
 {
-	mLevelName = u8"生存模式：无尽 第" + std::to_string(mSurvivalRound) + u8"面旗";
+	mLevelName = u8"生存模式：无尽 第" + std::to_string(mSurvivalRound) + u8"轮";
 }
 
 void Board::LoadSpawnListFromJson()

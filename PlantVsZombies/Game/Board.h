@@ -47,10 +47,11 @@ constexpr float NEXTWAVE_COUNT_MAX = 25.0f;
 constexpr float SPAWN_SUN_TIME = 15.0f;
 constexpr int MAX_ZOMBIES_PER_WAVE = 120;	// 普通模式一波最大僵尸数量
 
-// ===== 生存模式（无尽）=====
+// ===== 生存模式设置 =====
 constexpr int   SURVIVAL_ENDLESS_LEVEL = 1000;   // 生存模式专用 level 号（> 50，避开冒险关推进逻辑）
 constexpr int   SURVIVAL_WAVES_PER_ROUND = 10;   // 每轮（每面旗）波数，10 与"第10波=一大波"逻辑对齐
-constexpr float SURVIVAL_BUDGET_GROWTH = 0.35f;  // 每轮单波点数预算增长系数（可调）
+constexpr float SURVIVAL_BUDGET_GROWTH = 0.55f;  // 每轮单波点数预算增长系数
+constexpr float SURVIVAL_HP_GROWTH     = 0.05f;  // 每轮僵尸全局血量倍率线性增长系数（可调）：mult = 1 + x*(轮次-1)
 
 enum class BoardState {
 	CHOOSE_CARD,
@@ -221,6 +222,17 @@ public:
 
 	// 生存模式：根据当前轮次刷新关卡名（"生存模式：无尽 第N面旗"）
 	void UpdateSurvivalLevelName();
+
+	// 僵尸全局血量倍率聚合点：默认 1，按当前生效的难度来源叠乘。
+	// 目前唯一来源是生存模式（线性 1 + SURVIVAL_HP_GROWTH*(轮次-1)）；
+	// 未来其他模式（困难冒险、悬赏关等）若需血量倍率，在此处继续叠乘即可，调用方无需改动。
+	// 新波次僵尸生成时(CreateZombie)对其 body/头盔/护盾血量整体乘此系数；读档(CreateZombieWithID)不乘，避免二次叠加。
+	float GetZombieHpMultiplier() const {
+		float multiplier = 1.0f;
+		if (mIsSurvival)
+			multiplier *= (1.0f + SURVIVAL_HP_GROWTH * static_cast<float>(mSurvivalRound - 1));
+		return multiplier;
+	}
 
 	void Update();
 

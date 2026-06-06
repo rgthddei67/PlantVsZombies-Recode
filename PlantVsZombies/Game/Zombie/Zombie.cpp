@@ -74,6 +74,21 @@ void Zombie::SetupZombie()
 		this->PlayTrack("anim_walk2");
 }
 
+void Zombie::ApplyHealthMultiplier(float multiplier)
+{
+	if (multiplier <= 0.0f || multiplier == 1.0f) return;
+	// 同一原值 × 同一倍率 → 同一舍入结果，故缩放后 current 仍等于 max。血量非负，四舍五入用 +0.5f。
+	auto scale = [multiplier](int v) {
+		return static_cast<int>(static_cast<float>(v) * multiplier + 0.5f);
+	};
+	mBodyHealth = scale(mBodyHealth);
+	mBodyMaxHealth = scale(mBodyMaxHealth);
+	mHelmHealth = scale(mHelmHealth);
+	mHelmMaxHealth = scale(mHelmMaxHealth);
+	mShieldHealth = scale(mShieldHealth);
+	mShieldMaxHealth = scale(mShieldMaxHealth);
+}
+
 void Zombie::SaveProtectedData(nlohmann::json& j) const {
 	j["isMindControlled"] = mIsMindControlled;
 	j["isEating"] = mIsEating;
