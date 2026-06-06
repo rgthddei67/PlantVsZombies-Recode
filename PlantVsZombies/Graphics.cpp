@@ -1,4 +1,5 @@
 ﻿#include "Graphics.h"
+#include "Logger.h"
 #include "Profiler.h"
 
 #include "./Renderer/VulkanContext.h"
@@ -198,11 +199,11 @@ bool Graphics::InitializeVulkan(pvz::VulkanContext* ctx,
 	pvz::VulkanRenderer* renderer,
 	pvz::VulkanTexturePool* pool) {
 	if (!ctx || !renderer || !pool) {
-		std::cerr << "[Graphics::InitializeVulkan] 参数为空" << std::endl;
+		LOG_ERROR("Graphics") << "InitializeVulkan 参数为空";
 		return false;
 	}
 	if (m_vk) {
-		std::cerr << "[Graphics::InitializeVulkan] 已初始化" << std::endl;
+		LOG_WARN("Graphics") << "InitializeVulkan 已初始化";
 		return false;
 	}
 
@@ -225,7 +226,7 @@ bool Graphics::InitializeVulkan(pvz::VulkanContext* ctx,
 		lci.bindingCount = 1;
 		lci.pBindings = &b;
 		if (vkCreateDescriptorSetLayout(dev, &lci, nullptr, &state->matrixSetLayout) != VK_SUCCESS) {
-			std::cerr << "[Graphics] matrix SSBO descriptor set layout 创建失败" << std::endl;
+			LOG_ERROR("Graphics") << "matrix SSBO descriptor set layout 创建失败";
 			return false;
 		}
 	}
@@ -242,7 +243,7 @@ bool Graphics::InitializeVulkan(pvz::VulkanContext* ctx,
 		lci.bindingCount = 1;
 		lci.pBindings = &b;
 		if (vkCreateDescriptorSetLayout(dev, &lci, nullptr, &state->instanceSetLayout) != VK_SUCCESS) {
-			std::cerr << "[Graphics] instance SSBO descriptor set layout 创建失败" << std::endl;
+			LOG_ERROR("Graphics") << "instance SSBO descriptor set layout 创建失败";
 			return false;
 		}
 	}
@@ -258,7 +259,7 @@ bool Graphics::InitializeVulkan(pvz::VulkanContext* ctx,
 		pci.poolSizeCount = 1;
 		pci.pPoolSizes = &ps;
 		if (vkCreateDescriptorPool(dev, &pci, nullptr, &state->matrixPool) != VK_SUCCESS) {
-			std::cerr << "[Graphics] matrix descriptor pool 创建失败" << std::endl;
+			LOG_ERROR("Graphics") << "matrix descriptor pool 创建失败";
 			return false;
 		}
 	}
@@ -274,7 +275,7 @@ bool Graphics::InitializeVulkan(pvz::VulkanContext* ctx,
 		pci.poolSizeCount = 1;
 		pci.pPoolSizes = &ps;
 		if (vkCreateDescriptorPool(dev, &pci, nullptr, &state->instancePool) != VK_SUCCESS) {
-			std::cerr << "[Graphics] instance descriptor pool 创建失败" << std::endl;
+			LOG_ERROR("Graphics") << "instance descriptor pool 创建失败";
 			return false;
 		}
 	}
@@ -298,7 +299,7 @@ bool Graphics::InitializeVulkan(pvz::VulkanContext* ctx,
 		ai.descriptorSetCount = 1;
 		ai.pSetLayouts = &state->matrixSetLayout;
 		if (vkAllocateDescriptorSets(dev, &ai, &fr.matrixSet) != VK_SUCCESS) {
-			std::cerr << "[Graphics] matrix descriptor set 分配失败" << std::endl;
+			LOG_ERROR("Graphics") << "matrix descriptor set 分配失败";
 			return false;
 		}
 
@@ -321,7 +322,7 @@ bool Graphics::InitializeVulkan(pvz::VulkanContext* ctx,
 		aiInst.descriptorSetCount = 1;
 		aiInst.pSetLayouts = &state->instanceSetLayout;
 		if (vkAllocateDescriptorSets(dev, &aiInst, &fr.instSet) != VK_SUCCESS) {
-			std::cerr << "[Graphics] instance descriptor set 分配失败" << std::endl;
+			LOG_ERROR("Graphics") << "instance descriptor set 分配失败";
 			return false;
 		}
 
@@ -398,7 +399,7 @@ bool Graphics::InitializeVulkan(pvz::VulkanContext* ctx,
 		desc.additiveBlend = false;
 		state->pipeInstAlpha = std::make_unique<pvz::VulkanPipeline>();
 		if (!state->pipeInstAlpha->Initialize(ctx, desc)) {
-			std::cerr << "[Graphics] pipeInstAlpha 创建失败" << std::endl;
+			LOG_ERROR("Graphics") << "pipeInstAlpha 创建失败";
 			return false;
 		}
 
@@ -406,7 +407,7 @@ bool Graphics::InitializeVulkan(pvz::VulkanContext* ctx,
 		desc.additiveBlend = true;
 		state->pipeInstAdd = std::make_unique<pvz::VulkanPipeline>();
 		if (!state->pipeInstAdd->Initialize(ctx, desc)) {
-			std::cerr << "[Graphics] pipeInstAdd 创建失败" << std::endl;
+			LOG_ERROR("Graphics") << "pipeInstAdd 创建失败";
 			return false;
 		}
 	}
@@ -416,18 +417,16 @@ bool Graphics::InitializeVulkan(pvz::VulkanContext* ctx,
 		const uint8_t white[4] = { 255, 255, 255, 255 };
 		state->whiteTex = pool->CreateTextureRGBA8(1, 1, white);
 		if (!state->whiteTex) {
-			std::cerr << "[Graphics] 白色纹理上传失败" << std::endl;
+			LOG_ERROR("Graphics") << "白色纹理上传失败";
 			return false;
 		}
 		m_whiteTexture = state->whiteTex->bindlessIndex;
 	}
 
 	m_vk = std::move(state);
-#ifdef _DEBUG
-	std::cout << "[Graphics] Vulkan 接入完成。VBO=" << (VBO_BYTES_PER_FRAME / 1024 / 1024)
+	LOG_INFO("Graphics") << "Vulkan 接入完成。VBO=" << (VBO_BYTES_PER_FRAME / 1024 / 1024)
 		<< "MB/frame, SSBO=" << (SSBO_BYTES_PER_FRAME / 1024 / 1024)
-		<< "MB/frame, white tex bindless=" << m_whiteTexture << std::endl;
-#endif
+		<< "MB/frame, white tex bindless=" << m_whiteTexture;
 	return true;
 }
 
@@ -471,7 +470,7 @@ void Graphics::ShutdownVulkan() {
 bool Graphics::BeginFrame() {
 	if (!m_vk || !m_vk->renderer) return false;
 	if (m_vk->frameOpen) {
-		std::cerr << "[Graphics::BeginFrame] 上一帧未 EndFrame" << std::endl;
+		LOG_WARN("Graphics") << "BeginFrame 上一帧未 EndFrame";
 		return false;
 	}
 
@@ -541,7 +540,7 @@ void Graphics::PopTransform() {
 			tl_transformIsIdentity->pop_back();
 		}
 		else {
-			std::cerr << "[Graphics] PopTransform (worker) failed: stack underflow." << std::endl;
+			LOG_WARN("Graphics") << "PopTransform (worker) failed: stack underflow.";
 		}
 		return;
 	}
@@ -550,7 +549,7 @@ void Graphics::PopTransform() {
 		m_transformIsIdentity.pop_back();
 	}
 	else {
-		std::cerr << "[Graphics] PopTransform failed: stack underflow." << std::endl;
+		LOG_WARN("Graphics") << "PopTransform failed: stack underflow.";
 	}
 }
 
@@ -670,7 +669,7 @@ void Graphics::PushClipRect(int x, int y, int w, int h) {
 void Graphics::PopClipRect() {
 	if (tl_record) { RecordPopClipRect(*tl_record); return; }
 	if (m_clipStack.empty()) {
-		std::cerr << "[Graphics] PopClipRect failed: stack underflow." << std::endl;
+		LOG_WARN("Graphics") << "PopClipRect failed: stack underflow.";
 		return;
 	}
 	// 在切换 scissor 状态之前先 flush，把当前 rect 下的顶点全部提交。
@@ -714,11 +713,11 @@ void Graphics::FlushBatch() {
 	if (fr.ssboCursor + matBytes > SSBO_BYTES_PER_FRAME ||
 		fr.vboCursor + vertBytes > VBO_BYTES_PER_FRAME) {
 		// 每帧只打一次警告——overflow 之后几乎每次 DrawXxx 都会再次 hit 这条路径，
-		// std::cerr 同步写控制台会把主线程憋成死循环（PVZ 在大场景下能堆到 60k+ 次/帧）。
+		// 同步写控制台会把主线程憋成死循环（PVZ 在大场景下能堆到 60k+ 次/帧）。
 		if (!fr.overflowWarned) {
-			std::cerr << "[Graphics] Frame buffer overflow — ssbo " << fr.ssboCursor << "+" << matBytes
+			LOG_WARN("Graphics") << "Frame buffer overflow — ssbo " << fr.ssboCursor << "+" << matBytes
 				<< "/" << SSBO_BYTES_PER_FRAME << "  vbo " << fr.vboCursor << "+" << vertBytes
-				<< "/" << VBO_BYTES_PER_FRAME << " — dropping further draws this frame" << std::endl;
+				<< "/" << VBO_BYTES_PER_FRAME << " — dropping further draws this frame";
 			fr.overflowWarned = true;
 		}
 		clearCpu();
@@ -772,9 +771,9 @@ void Graphics::FlushInstances() {
 	const size_t needBytes = m_batchInstances.size() * sizeof(InstanceRecord);
 	if (fr.instCursor + needBytes > INST_BYTES_PER_FRAME) {
 		if (!fr.overflowWarned) {
-			std::cerr << "[Graphics] FlushInstances overflow ("
+			LOG_WARN("Graphics") << "FlushInstances overflow ("
 				<< fr.instCursor << "+" << needBytes
-				<< ">" << INST_BYTES_PER_FRAME << ")" << std::endl;
+				<< ">" << INST_BYTES_PER_FRAME << ")";
 			fr.overflowWarned = true;
 		}
 		m_batchInstances.clear();
@@ -865,7 +864,7 @@ void Graphics::CheckBatch() {
 void Graphics::DrawTexture(const Texture* tex, float x, float y, float width, float height,
 	float rotation, const glm::vec4& tint) {
 	if (!tex) {
-		std::cerr << "[Graphics] Texture not found: " << tex << std::endl;
+		LOG_WARN("Graphics") << "DrawTexture: null texture pointer";
 		return;
 	}
 	if (tl_record) { RecordDrawTexture(*tl_record, tex, x, y, width, height, rotation, tint); return; }
@@ -1119,23 +1118,23 @@ bool Graphics::RenderTextToVulkanTexture(const std::string& text, const std::str
 	// Phase 3c：TTF → SDL_Surface → ABGR8888 → VulkanTexturePool::CreateTextureRGBA8。
 	// 失败要让 out 保持空（textureID=0），上层会据此 early-return 不显示。
 	if (!m_vk || !m_vk->texPool) {
-		std::cerr << "[Graphics::RenderTextToVulkanTexture] Vulkan 尚未初始化" << std::endl;
+		LOG_ERROR("Graphics") << "RenderTextToVulkanTexture: Vulkan 尚未初始化";
 		return false;
 	}
 	if (text.empty()) return false;
 
 	TTF_Font* font = ResourceManager::GetInstance().GetFont(fontKey, fontSize);
 	if (!font) {
-		std::cerr << "[Graphics::RenderTextToVulkanTexture] 找不到字体: " << fontKey
-			<< " size=" << fontSize << std::endl;
+		LOG_WARN("Graphics") << "RenderTextToVulkanTexture: 找不到字体: " << fontKey
+			<< " size=" << fontSize;
 		return false;
 	}
 
 	const SDL_Color sdlColor = ToSDLColor(color);
 	SDL_Surface* surface = TTF_RenderUTF8_Blended(font, text.c_str(), sdlColor);
 	if (!surface) {
-		std::cerr << "[Graphics::RenderTextToVulkanTexture] TTF_RenderUTF8_Blended 失败: "
-			<< TTF_GetError() << std::endl;
+		LOG_ERROR("Graphics") << "RenderTextToVulkanTexture: TTF_RenderUTF8_Blended 失败: "
+			<< TTF_GetError();
 		return false;
 	}
 
@@ -1143,8 +1142,8 @@ bool Graphics::RenderTextToVulkanTexture(const std::string& text, const std::str
 	SDL_Surface* conv = SDL_ConvertSurfaceFormat(surface, SDL_PIXELFORMAT_ABGR8888, 0);
 	SDL_FreeSurface(surface);
 	if (!conv) {
-		std::cerr << "[Graphics::RenderTextToVulkanTexture] SDL_ConvertSurfaceFormat 失败: "
-			<< SDL_GetError() << std::endl;
+		LOG_ERROR("Graphics") << "RenderTextToVulkanTexture: SDL_ConvertSurfaceFormat 失败: "
+			<< SDL_GetError();
 		return false;
 	}
 
@@ -1153,7 +1152,7 @@ bool Graphics::RenderTextToVulkanTexture(const std::string& text, const std::str
 	const int h = conv->h;
 	SDL_FreeSurface(conv);
 	if (!vkt) {
-		std::cerr << "[Graphics::RenderTextToVulkanTexture] VulkanTexturePool 上传失败" << std::endl;
+		LOG_ERROR("Graphics") << "RenderTextToVulkanTexture: VulkanTexturePool 上传失败";
 		return false;
 	}
 
@@ -1322,8 +1321,8 @@ void Graphics::SetBlendMode(BlendMode mode) {
 void Graphics::Clear() {
 	// Phase 3a：真正的清屏由 VulkanRenderer::BeginFrame 完成；这里只做 CPU 侧的卫生检查。
 	if (!m_clipStack.empty()) {
-		std::cerr << "[Graphics] Unbalanced PushClipRect/PopClipRect across frames ("
-			<< m_clipStack.size() << " entries left); resetting." << std::endl;
+		LOG_WARN("Graphics") << "Unbalanced PushClipRect/PopClipRect across frames ("
+			<< m_clipStack.size() << " entries left); resetting.";
 		m_clipStack.clear();
 	}
 }
@@ -1667,10 +1666,10 @@ void Graphics::BeginParallelRecord(int numWorkers) {
 	if (equalVboBytes == 0 || equalSsboBytes == 0 || equalInstBytes == 0) {
 		// 每帧只打一次警告（fr.overflowWarned 是 FlushBatch overflow 共用的旗，足够）。
 		if (!fr.overflowWarned) {
-			std::cerr << "[Graphics] BeginParallelRecord: insufficient frame buffer capacity ("
+			LOG_WARN("Graphics") << "BeginParallelRecord: insufficient frame buffer capacity ("
 				<< "vbo " << baseVbo << "/" << VBO_BYTES_PER_FRAME
 				<< ", ssbo " << baseSsbo << "/" << SSBO_BYTES_PER_FRAME
-				<< ", inst " << baseInst << "/" << INST_BYTES_PER_FRAME << ")" << std::endl;
+				<< ", inst " << baseInst << "/" << INST_BYTES_PER_FRAME << ")";
 			fr.overflowWarned = true;
 		}
 		return;
@@ -1748,8 +1747,8 @@ void Graphics::BeginParallelRecord(int numWorkers) {
 
 void Graphics::SetWorkerSlot(int slot) {
 	if (slot < 0 || slot >= m_numActiveWorkers) {
-		std::cerr << "[Graphics] SetWorkerSlot: invalid slot " << slot
-			<< " (active=" << m_numActiveWorkers << ")" << std::endl;
+		LOG_WARN("Graphics") << "SetWorkerSlot: invalid slot " << slot
+			<< " (active=" << m_numActiveWorkers << ")";
 		return;
 	}
 	WorkerRecord& r = m_workerRecords[slot];
@@ -1776,13 +1775,13 @@ void Graphics::ClearWorkerSlot() {
 	// 回放时主线程会自己保证 m_clipStack 起止一致。
 	if (tl_record && tl_clipStack &&
 		tl_clipStack->size() != tl_record->initialClipStack.size()) {
-		std::cerr << "[Graphics] ClearWorkerSlot: clip stack imbalanced ("
+		LOG_WARN("Graphics") << "ClearWorkerSlot: clip stack imbalanced ("
 			<< tl_clipStack->size() << " vs initial "
-			<< tl_record->initialClipStack.size() << ")" << std::endl;
+			<< tl_record->initialClipStack.size() << ")";
 	}
 	if (tl_transformStack && tl_transformStack->size() != 1) {
-		std::cerr << "[Graphics] ClearWorkerSlot: transform stack imbalanced ("
-			<< tl_transformStack->size() << ", expected 1)" << std::endl;
+		LOG_WARN("Graphics") << "ClearWorkerSlot: transform stack imbalanced ("
+			<< tl_transformStack->size() << ", expected 1)";
 	}
 
 	tl_record = nullptr;
@@ -1877,10 +1876,10 @@ void Graphics::ReplayAndEndParallel() {
 		VkWorkerSlice& sl = r.slice;
 
 		if (sl.overflowed && !fr.overflowWarned) {
-			std::cerr << "[Graphics] Worker slot " << slot
+			LOG_WARN("Graphics") << "Worker slot " << slot
 				<< " overflowed slice (vbo " << sl.vboCount << "/" << sl.vboCap
 				<< ", ssbo " << sl.ssboCount << "/" << sl.ssboCap
-				<< ", inst " << sl.instCount << "/" << sl.instCap << ")" << std::endl;
+				<< ", inst " << sl.instCount << "/" << sl.instCap << ")";
 			fr.overflowWarned = true;
 		}
 
@@ -2354,7 +2353,7 @@ void Graphics::RecordPushClipRect(WorkerRecord& r, int x, int y, int w, int h) {
 
 void Graphics::RecordPopClipRect(WorkerRecord& r) {
 	if (tl_clipStack->empty()) {
-		std::cerr << "[Graphics] RecordPopClipRect: worker clip stack underflow" << std::endl;
+		LOG_WARN("Graphics") << "RecordPopClipRect: worker clip stack underflow";
 		return;
 	}
 	tl_clipStack->pop_back();
