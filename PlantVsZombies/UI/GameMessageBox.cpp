@@ -5,8 +5,8 @@
 #include "InputHandler.h"
 #include "../ResourceKeys.h"
 #include "../Game/SceneManager.h"
+#include "../Logger.h"
 #include <algorithm>
-#include <iostream>
 #include <memory>
 
 namespace {
@@ -143,7 +143,7 @@ void GameMessageBox::Draw(Graphics* g)
 		g->DrawTexture(tex, pos.x, pos.y, m_size.x, m_size.y);
 	}
 	else {
-		std::cerr << "[GameMessageBox::Draw] 没有合适的绘制图片" << std::endl;
+		LOG_WARN("UI") << "GameMessageBox::Draw 没有合适的绘制图片";
 	}
 
 	if (!m_title.empty()) {

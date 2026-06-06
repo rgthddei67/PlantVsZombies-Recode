@@ -1,7 +1,7 @@
 ﻿#include "Slider.h"
 #include "../ResourceManager.h"
 #include "../CursorManager.h"
-#include <iostream>
+#include "../Logger.h"
 #include <algorithm>
 
 Slider::Slider(Vector createPosition, Vector sliderSize,
@@ -145,8 +145,7 @@ void Slider::Draw(Graphics* g) const
 	}
 	else
 	{
-		std::cerr <<
-			"Slider: 没有合适的绘制图片" << std::endl;
+		LOG_WARN("UI") << "Slider: 没有合适的绘制图片";
 	}
 }
 

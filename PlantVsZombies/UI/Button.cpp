@@ -1,6 +1,6 @@
 ﻿#include "Button.h"
 #include "InputHandler.h"
-#include <iostream>
+#include "../Logger.h"
 #include <SDL2/SDL_image.h>
 #include "../Game/AudioSystem.h"
 #include "../CursorManager.h"
@@ -165,8 +165,7 @@ void Button::Draw(Graphics* g) const
 	}
 	else
 	{
-		std::cerr <<
-			"[Button]: 没有绘制图片!" << std::endl;
+		LOG_WARN("UI") << "Button: 没有绘制图片!";
 	}
 
 	if (!text.empty())
