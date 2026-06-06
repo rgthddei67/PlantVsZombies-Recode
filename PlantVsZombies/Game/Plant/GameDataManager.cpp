@@ -1,6 +1,6 @@
 ﻿#include "GameDataManager.h"
 #include "../../ResourceKeys.h"
-#include <iostream>
+#include "../../Logger.h"
 #include <algorithm>
 #include <vector>
 
@@ -51,11 +51,9 @@ void GameDataManager::Initialize() {
 	mAnimNameToType.clear();
 
 	InitializeHardcodedData();
-#ifdef _DEBUG
-	std::cout << "[GameDataManager] 初始化完成，共注册 "
+	LOG_INFO("GameData") << "初始化完成，共注册 "
 		<< mPlantInfo.size() << " 种植物，"
-		<< mZombieInfo.size() << " 种僵尸" << std::endl;
-#endif
+		<< mZombieInfo.size() << " 种僵尸";
 }
 
 void GameDataManager::InitializeHardcodedData() {
@@ -261,10 +259,8 @@ void GameDataManager::RegisterPlant(PlantType type,
 
 	mAnimToString[animType] = animName;
 
-#ifdef _DEBUG
-	std::cout << "[GameDataManager] 注册植物: " << animName
-		<< " (偏移: " << offset.x << ", " << offset.y << ")" << std::endl;
-#endif
+	LOG_DEBUG("GameData") << "注册植物: " << animName
+		<< " (偏移: " << offset.x << ", " << offset.y << ")";
 }
 
 void GameDataManager::RegisterZombie(ZombieType type,
@@ -282,16 +278,14 @@ void GameDataManager::RegisterZombie(ZombieType type,
 	// 记录动画类型->资源名，以便通过 AnimationType 统一查询
 	mAnimToString[animType] = animName;
 
-#ifdef _DEBUG
-	std::cout << "[GameDataManager] 注册僵尸: " << animName
-		<< " (偏移: " << offset.x << ", " << offset.y << ")" << std::endl;
-#endif
+	LOG_DEBUG("GameData") << "注册僵尸: " << animName
+		<< " (偏移: " << offset.x << ", " << offset.y << ")";
 }
 
 std::shared_ptr<Plant> GameDataManager::CreatePlant(PlantType type, Board* board, int row, int col, bool isPreview) const {
 	auto it = mPlantInfo.find(type);
 	if (it == mPlantInfo.end() || !it->second.factory) {
-		std::cout << "[GameDataManager] 未注册或缺工厂的植物类型: " << static_cast<int>(type) << std::endl;
+		LOG_ERROR("GameData") << "未注册或缺工厂的植物类型: " << static_cast<int>(type);
 		return nullptr;
 	}
 	const PlantInfo& i = it->second;
@@ -301,7 +295,7 @@ std::shared_ptr<Plant> GameDataManager::CreatePlant(PlantType type, Board* board
 std::shared_ptr<Zombie> GameDataManager::CreateZombie(ZombieType type, Board* board, float x, float y, int row, bool isPreview) const {
 	auto it = mZombieInfo.find(type);
 	if (it == mZombieInfo.end() || !it->second.factory) {
-		std::cout << "[GameDataManager] 未注册或缺工厂的僵尸类型: " << static_cast<int>(type) << std::endl;
+		LOG_ERROR("GameData") << "未注册或缺工厂的僵尸类型: " << static_cast<int>(type);
 		return nullptr;
 	}
 	const ZombieInfo& i = it->second;
@@ -351,10 +345,8 @@ void GameDataManager::SetPlantOffset(PlantType plantType, const Vector& offset) 
 	auto it = mPlantInfo.find(plantType);
 	if (it != mPlantInfo.end()) {
 		it->second.offset = offset;
-#ifdef _DEBUG
-		std::cout << "[GameDataManager] 设置植物偏移: " << it->second.animName
-			<< " -> (" << offset.x << ", " << offset.y << ")" << std::endl;
-#endif
+		LOG_DEBUG("GameData") << "设置植物偏移: " << it->second.animName
+			<< " -> (" << offset.x << ", " << offset.y << ")";
 	}
 }
 
@@ -442,10 +434,8 @@ void GameDataManager::SetZombieOffset(ZombieType zombieType, const Vector& offse
 	auto it = mZombieInfo.find(zombieType);
 	if (it != mZombieInfo.end()) {
 		it->second.offset = offset;
-#ifdef _DEBUG
-		std::cout << "[GameDataManager] 设置僵尸偏移: " << it->second.animName
-			<< " -> (" << offset.x << ", " << offset.y << ")" << std::endl;
-#endif
+		LOG_DEBUG("GameData") << "设置僵尸偏移: " << it->second.animName
+			<< " -> (" << offset.x << ", " << offset.y << ")";
 	}
 }
 
@@ -484,22 +474,22 @@ bool GameDataManager::HasZombie(ZombieType type) const {
 }
 
 void GameDataManager::DebugPrintAll() const {
-	std::cout << "========== GameDataManager 硬编码数据 ==========" << std::endl;
-	std::cout << "植物总数: " << mPlantInfo.size() << std::endl;
+	LOG_DEBUG("GameData") << "========== GameDataManager 硬编码数据 ==========";
+	LOG_DEBUG("GameData") << "植物总数: " << mPlantInfo.size();
 	for (const auto& pair : mPlantInfo) {
 		const PlantInfo& info = pair.second;
-		std::cout << "植物: " << info.animName << " (" << info.enumName << ")" << std::endl;
-		std::cout << "  纹理键: " << info.textureKey << std::endl;
-		std::cout << "  动画类型: " << static_cast<int>(info.animType) << std::endl;
-		std::cout << "  偏移量: (" << info.offset.x << ", " << info.offset.y << ")" << std::endl;
+		LOG_DEBUG("GameData") << "植物: " << info.animName << " (" << info.enumName << ")";
+		LOG_DEBUG("GameData") << "  纹理键: " << info.textureKey;
+		LOG_DEBUG("GameData") << "  动画类型: " << static_cast<int>(info.animType);
+		LOG_DEBUG("GameData") << "  偏移量: (" << info.offset.x << ", " << info.offset.y << ")";
 	}
 
-	std::cout << "\n僵尸总数: " << mZombieInfo.size() << std::endl;
+	LOG_DEBUG("GameData") << "僵尸总数: " << mZombieInfo.size();
 	for (const auto& pair : mZombieInfo) {
 		const ZombieInfo& info = pair.second;
-		std::cout << "僵尸: " << info.animName << " (" << info.enumName << ")" << std::endl;
-		std::cout << "  动画类型: " << static_cast<int>(info.animType) << std::endl;
-		std::cout << "  偏移量: (" << info.offset.x << ", " << info.offset.y << ")" << std::endl;
+		LOG_DEBUG("GameData") << "僵尸: " << info.animName << " (" << info.enumName << ")";
+		LOG_DEBUG("GameData") << "  动画类型: " << static_cast<int>(info.animType);
+		LOG_DEBUG("GameData") << "  偏移量: (" << info.offset.x << ", " << info.offset.y << ")";
 	}
-	std::cout << "=============================================" << std::endl;
+	LOG_DEBUG("GameData") << "=============================================";
 }
