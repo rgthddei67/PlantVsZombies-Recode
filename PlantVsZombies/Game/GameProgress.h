@@ -25,6 +25,9 @@ public:
 	// 立刻将进度条滑块对齐当前波数，跳过插值动画
 	void SnapProgressToCurrentWave();
 
+	// 将所有已升起的旗子平滑降回基准位（生存轮清时调用，避免上一轮的旗子一直悬着）
+	void LowerAllFlags(float duration);
+
 private:
 	Board* mBoard;
 	GameScene* mGameScene;

@@ -20,6 +20,37 @@
 #include <cmath>
 #include <cstdio>
 
+namespace {
+	// 右下角关卡名/轮数显示。
+	// 冒险模式：沿用原左对齐（左端锚点 x=768，阴影 766），不改动既有观感。
+	// 生存模式：右对齐——右端锚点固定，文字越长越向左延伸，避免"第10面旗"等长文本撞到右侧"难度"文字。
+	// 右锚点取 1020：第1轮文本宽约 252px，drawX≈768，与原左对齐位置基本重合，故第1轮观感不变。
+	constexpr float kLevelNameRightAnchor = 865.0f;
+
+	void DrawLevelName(GameAPP& gameApp, const std::string& name, bool rightAligned) {
+		if (rightAligned) {
+			float drawX = kLevelNameRightAnchor;   // 兜底：取不到字体时退化为右端起点
+			if (TTF_Font* font = ResourceManager::GetInstance().GetFont(
+				ResourceKeys::Fonts::FONT_FZCQ, 21)) {
+				int tw = 0, th = 0;
+				TTF_SizeUTF8(font, name.c_str(), &tw, &th);
+				drawX = kLevelNameRightAnchor - static_cast<float>(tw);
+			}
+			// 阴影相对主体偏移沿用原 (766,575)/(768,576)：左上 2px / 下 1px
+			gameApp.DrawText(name, Vector(drawX - 2.0f, 575.0f), { 0,0,0,255 },
+				ResourceKeys::Fonts::FONT_FZCQ, 21);
+			gameApp.DrawText(name, Vector(drawX, 576.0f), { 223,186,98,255 },
+				ResourceKeys::Fonts::FONT_FZCQ, 21);
+		}
+		else {
+			gameApp.DrawText(name, Vector(766, 575), { 0,0,0,255 },
+				ResourceKeys::Fonts::FONT_FZCQ, 21);
+			gameApp.DrawText(name, Vector(768, 576), { 223,186,98,255 },
+				ResourceKeys::Fonts::FONT_FZCQ, 21);
+		}
+	}
+}
+
 GameScene::GameScene() {
 }
 
@@ -76,16 +107,14 @@ void GameScene::BuildDrawCommands()
 
 			RegisterDrawCommand("LevelName",
 				[this](Graphics* g) {
-					auto& gameApp = GameAPP::GetInstance();
-					gameApp.DrawText(mBoard->mLevelName,
-						Vector(766, 575), { 0,0,0,255 }, ResourceKeys::Fonts::FONT_FZCQ, 21);
-					gameApp.DrawText(mBoard->mLevelName,
-						Vector(768, 576), { 223,186,98,255 }, ResourceKeys::Fonts::FONT_FZCQ, 21);
+					if (!mBoard || mBoard->mBoardState != BoardState::GAME) return;  // 选卡阶段隐藏
+					DrawLevelName(GameAPP::GetInstance(), mBoard->mLevelName, mBoard->mIsSurvival);
 				},
 				LAYER_UI);
 
 			RegisterDrawCommand("Difficulty",
-				[](Graphics* g) {
+				[this](Graphics* g) {
+					if (!mBoard || mBoard->mBoardState != BoardState::GAME) return;  // 选卡阶段隐藏
 					auto& gameApp = GameAPP::GetInstance();
 					gameApp.DrawText("难度: " + std::to_string(gameApp.Difficulty),
 						Vector(1030, 575), { 0,0,0,255 }, ResourceKeys::Fonts::FONT_FZCQ, 21);
@@ -170,6 +199,13 @@ void GameScene::OnEnter() {
 	}
 	else {
 		AudioSystem::PlayMusic(ResourceKeys::Music::MUSIC_CHOOSEYOURSEEDS, -1);
+		// 生存第 1 轮的轮间存档（首次选卡，StartGame 从未运行过）里没有小推车数据，
+		// 需清掉读档标记，让随后选完卡的 StartGame 正常初始化小推车。
+		// 第 2 轮起的存档已含小推车（且可能因第 1 轮被用掉而合法地变少甚至为空），
+		// 保持 mIsLoadSave=true，由存档恢复，绝不重新生成。
+		if (mBoard->mIsSurvival && mBoard->mSurvivalRound == 1) {
+			mBoard->mIsLoadSave = false;
+		}
 	}
 }
 
@@ -340,7 +376,8 @@ void GameScene::Update() {
 			mBoard->Update();
 		}
 
-		// 轮清后延后一帧的存档：此刻濒死僵尸已被 GameObjectManager 清理，存档干净
+		// 轮清后存档：BeginSurvivalCardSelect 置位，在 Board::Update 返回后（已脱离 Die() 调用栈）执行。
+		// 触发轮清的那只濒死僵尸此刻仍在 EntityManager 中，由 SaveLevelData 内的 IsActive() 过滤排除。
 		if (mPendingSurvivalSave) {
 			mPendingSurvivalSave = false;
 			GameAPP::GetInstance().mGameInfoSaver.SaveLevelData(mBoard.get(), mCardSlotManager);
@@ -596,6 +633,10 @@ void GameScene::BeginSurvivalCardSelect()
 {
 	mSurvivalRoundTransition = true;
 
+	// 让上一轮已升起的旗子平滑降回（否则会一直悬着，直到下一轮第 1 波 SetupFlags 才突变重置）。
+	// 滑块归位由 GameProgress::Update 依据 mCurrentWave(已被 OnSurvivalRoundClear 归 0)自动完成。
+	if (mGameProgress) mGameProgress->LowerAllFlags(1.0f);
+
 	// 清空卡槽前，快照仍在冷却中的卡牌冷却进度，供选完后还原（避免轮末冷却被清空丢失）
 	mSurvivalCardCooldowns.clear();
 	if (mCardSlotManager) {
@@ -624,13 +665,16 @@ void GameScene::BeginSurvivalCardSelect()
 	// 散落在右侧生成区，随相机平移露出；进入下一轮时销毁（见 READY_SET_PLANT 轮间分支）
 	mBoard->CreatePreviewZombies();
 
-	// 复用整套开场过场动画：相机平移"回到右边"露出僵尸区 → 种子槽/选卡UI滑入。
-	// 重置各阶段动画计时与一次性标记，使 BACKGROUND_MOVE / SEEDBANK_SLIDE 能重新播放。
+	// 复用整套开场过场动画：相机平移"回到右边"露出僵尸区 → 选卡UI 滑入（种子槽保持停靠，不再滑落）。
+	// 重置各阶段动画计时与一次性标记，使 BACKGROUND_MOVE / SEEDBANK_SLIDE 阶段能重新走一遍。
 	// 注意：mSeedbankAdded 保持 true（种子槽纹理已存在，不重复添加）；
 	//      mChooseCardUI 当前为 nullptr，SEEDBANK_SLIDE 会据此重新创建选卡界面。
 	mAnimElapsed = 0.0f;
 	mHasEnter = false;
-	mSeedbankAnimElapsed = 0.0f;
+	// 种子槽轮间不重新滑落：上一轮已停靠在 y=-10，这里把滑落动画直接标记为已完成，
+	// SEEDBANK_SLIDE 阶段会令 currentY 恒为 targetY(-10)，种子槽保持停靠、无上下抽动。
+	// （首次进入游戏时此值为 0，正常播放滑入动画，不受影响。）
+	mSeedbankAnimElapsed = mSeedbankAnimDuration;
 	mChooseCardUIAnimElapsed = 0.0f;
 	mChooseCardUIMoving = false;
 	mReadyAnimElapsed = 0.0f;
@@ -694,15 +738,13 @@ void GameScene::RegisterSurvivalGameUiOnce()
 		LAYER_UI);
 	RegisterDrawCommand("LevelName",
 		[this](Graphics* g) {
-			auto& gameApp = GameAPP::GetInstance();
-			gameApp.DrawText(mBoard->mLevelName,
-				Vector(766, 575), { 0,0,0,255 }, ResourceKeys::Fonts::FONT_FZCQ, 21);
-			gameApp.DrawText(mBoard->mLevelName,
-				Vector(768, 576), { 223,186,98,255 }, ResourceKeys::Fonts::FONT_FZCQ, 21);
+			if (!mBoard || mBoard->mBoardState != BoardState::GAME) return;  // 选卡阶段隐藏
+			DrawLevelName(GameAPP::GetInstance(), mBoard->mLevelName, mBoard->mIsSurvival);
 		},
 		LAYER_UI);
 	RegisterDrawCommand("Difficulty",
-		[](Graphics* g) {
+		[this](Graphics* g) {
+			if (!mBoard || mBoard->mBoardState != BoardState::GAME) return;  // 选卡阶段隐藏
 			auto& gameApp = GameAPP::GetInstance();
 			gameApp.DrawText("难度: " + std::to_string(gameApp.Difficulty),
 				Vector(1030, 575), { 0,0,0,255 }, ResourceKeys::Fonts::FONT_FZCQ, 21);

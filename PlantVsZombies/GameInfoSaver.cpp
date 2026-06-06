@@ -137,7 +137,10 @@ bool GameInfoSaver::SaveLevelData(Board* board, CardSlotManager* manager)
 	nlohmann::json zombiesArr = nlohmann::json::array();
 	for (int id : board->mEntityManager.GetAllZombieIDs()) {
 		auto zombie = board->mEntityManager.GetZombie(id);
-		if (!zombie) continue;
+		// 濒死僵尸 Die() 后 shared_ptr 仍滞留在 GameObjectManager 的待删队列中（要到下一帧 flush 才释放），
+		// 其 weak_ptr 此刻仍可 lock，会被 GetAllZombieIDs 返回。mActive 已在 Die() 置 false，借此排除，
+		// 避免把触发轮清的那只死尸序列化进存档（否则重载会复活成血量≤0 的幽灵僵尸）。
+		if (!zombie || !zombie->IsActive()) continue;
 		nlohmann::json z;
 		z["id"] = id;
 		z["type"] = static_cast<int>(zombie->mZombieType);

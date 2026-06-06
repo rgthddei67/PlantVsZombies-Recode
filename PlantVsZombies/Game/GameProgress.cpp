@@ -119,6 +119,18 @@ void GameProgress::InitializeRaisedFlags(float raiseY)
 	}
 }
 
+void GameProgress::LowerAllFlags(float duration)
+{
+	if (!m_flagMeter) return;
+	// targetY=0 即基准位；RaiseFlag 会从当前升起高度平滑插值回 0，得到"下降"动画。
+	int count = static_cast<int>(m_flagMeter->GetFlagCount());
+	for (int i = 0; i < count; ++i) {
+		m_flagMeter->RaiseFlag(i, 0.0f, duration);
+	}
+	// 同步重置波次记录，避免 Update 中 currentWave 与 m_lastWave 的判定残留上一轮状态
+	m_lastWave = mBoard ? mBoard->mCurrentWave : 0;
+}
+
 void GameProgress::SnapProgressToCurrentWave()
 {
 	if (!mBoard || !m_flagMeter) return;

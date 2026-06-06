@@ -100,8 +100,11 @@ void Plant::Die() {
 
 void Plant::Update()
 {
-	AnimatedObject::Update();
-	if (!mIsPreview && !mIsSleeping) {
+	AnimatedObject::Update();   // 待机动画照常推进，让植物在选卡阶段仍"活着"
+	// 仅在对战进行中(GAME)才跑行为逻辑：生存轮间选卡(CHOOSE_CARD)时场上保留的植物应冻结，
+	// 否则向日葵会继续产阳光、射手继续计时等。WIN/LOSE 同理不再行动。
+	if (!mIsPreview && !mIsSleeping &&
+		mBoard && mBoard->mBoardState == BoardState::GAME) {
 		PlantUpdate();
 	}
 }
