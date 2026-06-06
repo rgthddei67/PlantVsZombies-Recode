@@ -150,7 +150,10 @@ void Zombie::CheckWin() const
 {
 	if (mBoard && mBoard->mCurrentWave >= mBoard->mMaxWave && mBoard->mZombieNumber <= 0)
 	{
-		mBoard->CreateTrophy(GetPosition());
+		if (mBoard->mIsSurvival)
+			mBoard->OnSurvivalRoundClear();   // 生存模式：进入下一轮，不出奖杯
+		else
+			mBoard->CreateTrophy(GetPosition());
 	}
 }
 

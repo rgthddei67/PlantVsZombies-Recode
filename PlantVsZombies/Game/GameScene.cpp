@@ -3,6 +3,7 @@
 #include "SceneManager.h"
 #include "../ResourceManager.h"
 #include "./CardSlotManager.h"
+#include "./CardComponent.h"
 #include "../ResourceKeys.h"
 #include "../DeltaTime.h"
 #include "./AudioSystem.h"
@@ -174,7 +175,9 @@ void GameScene::OnEnter() {
 
 void GameScene::OnExit() {
 	auto& gameApp = GameAPP::GetInstance();
-	if (mBoard->mBoardState == BoardState::GAME && !mReadyToRestart) {
+	const bool saveState = (mBoard->mBoardState == BoardState::GAME) ||
+		(mBoard->mIsSurvival && mBoard->mBoardState == BoardState::CHOOSE_CARD);
+	if (saveState && !mReadyToRestart) {
 		gameApp.mGameInfoSaver.SaveLevelData
 		(mBoard.get(), mCardSlotManager);
 	}
@@ -337,6 +340,12 @@ void GameScene::Update() {
 			mBoard->Update();
 		}
 
+		// 轮清后延后一帧的存档：此刻濒死僵尸已被 GameObjectManager 清理，存档干净
+		if (mPendingSurvivalSave) {
+			mPendingSurvivalSave = false;
+			GameAPP::GetInstance().mGameInfoSaver.SaveLevelData(mBoard.get(), mCardSlotManager);
+		}
+
 		auto& input = GameAPP::GetInstance().GetInputHandler();
 		if (mBoard->mBoardState != BoardState::LOSE_GAME && !this->mOpenRestartMenu && (input.IsKeyPressed(SDLK_SPACE) || input.IsKeyPressed(SDLK_ESCAPE))) {
 			if (this->mOpenMenu) {
@@ -393,9 +402,12 @@ void GameScene::Update() {
 				AddTexture(ResourceKeys::Textures::IMAGE_SEEDBANK_LONG,
 					130.0f, -100.0f,            // 起始位置：x=130, y 上方
 					0.85f, 0.9f, LAYER_UI, true);
+				mSeedbankAdded = true;
+			}
+			// 选卡界面：首次进入或生存轮间（上一轮选完已销毁）时按需创建
+			if (!mChooseCardUI) {
 				mChooseCardUI = GameObjectManager::GetInstance().
 					CreateGameObjectImmediate<ChooseCardUI>(LAYER_UI, this);
-				mSeedbankAdded = true;
 			}
 
 			// 种子槽滑落动画
@@ -479,7 +491,21 @@ void GameScene::Update() {
 			mCurrectSceneX = screenX;
 
 			if (mReadyAnimElapsed >= mReadyAnimDuration) {
-				if (mBoard) {
+				if (mSurvivalRoundTransition) {
+					// 生存轮间：铲子/小推车/音乐已存在，不重建，只恢复波次推进
+					mSurvivalRoundTransition = false;
+					if (mBoard) {
+						mBoard->DestroyPreviewZombies();   // 清掉选卡阶段的预览僵尸
+						mBoard->mBoardState = BoardState::GAME;
+					}
+					// 恢复铲子显示
+					if (mShovelUI) mShovelUI->SetActive(true);
+					if (auto shovel = mBoard->mShovel.lock()) shovel->SetActive(true);
+					// 切回战斗音乐（生存固定白天背景；与 Board::StartGame 的 GROUND_DAY 分支一致）
+					AudioSystem::PlayMusic(ResourceKeys::Music::MUSIC_DAY, -1);
+					RegisterSurvivalGameUiOnce();
+				}
+				else if (mBoard) {
 					mBoard->StartGame();
 				}
 				mCurrentStage = IntroStage::FINISH;
@@ -566,12 +592,60 @@ void GameScene::ShowSunCount()
 	mSunCounterRegistered = true;
 }
 
+void GameScene::BeginSurvivalCardSelect()
+{
+	mSurvivalRoundTransition = true;
+
+	// 清空卡槽前，快照仍在冷却中的卡牌冷却进度，供选完后还原（避免轮末冷却被清空丢失）
+	mSurvivalCardCooldowns.clear();
+	if (mCardSlotManager) {
+		for (auto* card : mCardSlotManager->GetCards()) {
+			if (!card) continue;
+			auto comp = card->GetComponent<CardComponent>();
+			if (comp && comp->IsCooldown()) {
+				mSurvivalCardCooldowns[comp->GetPlantType()] =
+					{ comp->GetCooldownTimer(), comp->GetCooldownTime() };
+			}
+		}
+	}
+
+	// 清空上一轮的卡槽（空槽重选），场上植物保留
+	if (mCardSlotManager)
+		mCardSlotManager->ClearAllCards();
+
+	// 轮间选卡：切到选卡背景音乐，进入下一轮时切回战斗音乐（见 READY_SET_PLANT 轮间分支）
+	AudioSystem::PlayMusic(ResourceKeys::Music::MUSIC_CHOOSEYOURSEEDS, -1);
+
+	// 选卡阶段隐藏铲子（不可用），进入下一轮时再恢复（见 READY_SET_PLANT 轮间分支）
+	if (mShovelUI) mShovelUI->SetActive(false);
+	if (auto shovel = mBoard->mShovel.lock()) shovel->SetActive(false);
+
+	// 生成"即将打的那轮"的预览僵尸（mSurvivalRound 已自增、mSpawnZombieList 已重建），
+	// 散落在右侧生成区，随相机平移露出；进入下一轮时销毁（见 READY_SET_PLANT 轮间分支）
+	mBoard->CreatePreviewZombies();
+
+	// 复用整套开场过场动画：相机平移"回到右边"露出僵尸区 → 种子槽/选卡UI滑入。
+	// 重置各阶段动画计时与一次性标记，使 BACKGROUND_MOVE / SEEDBANK_SLIDE 能重新播放。
+	// 注意：mSeedbankAdded 保持 true（种子槽纹理已存在，不重复添加）；
+	//      mChooseCardUI 当前为 nullptr，SEEDBANK_SLIDE 会据此重新创建选卡界面。
+	mAnimElapsed = 0.0f;
+	mHasEnter = false;
+	mSeedbankAnimElapsed = 0.0f;
+	mChooseCardUIAnimElapsed = 0.0f;
+	mChooseCardUIMoving = false;
+	mReadyAnimElapsed = 0.0f;
+	mCurrentStage = IntroStage::BACKGROUND_MOVE;
+
+	// 轮间存档点：延后一帧执行（见 mPendingSurvivalSave）。
+	// 本函数由最后一只僵尸的 Die() 中途调用，该僵尸此刻仍在 EntityManager 中、
+	// 尚未被 GameObjectManager 清理；若此处同帧存档会把濒死僵尸误序列化进存档。
+	mPendingSurvivalSave = true;
+}
+
 void GameScene::ChooseCardComplete()
 {
 	LOG_INFO("GameScene") << "选卡完成，准备开始游戏";
 	if (mCurrentStage != IntroStage::COMPLETE) return;
-	mCurrentStage = IntroStage::READY_SET_PLANT;
-	mReadyStartPos = Vector(mCurrectSceneX, 0);
 
 	if (mChooseCardUI) {
 		mChooseCardUI->TransferSelectedCardsTo(mCardSlotManager);
@@ -580,37 +654,60 @@ void GameScene::ChooseCardComplete()
 		mChooseCardUI = nullptr;
 	}
 
+	// 还原轮末快照的冷却：对重新选回的同种植物恢复其冷却进度（map 为空则无操作）
+	if (!mSurvivalCardCooldowns.empty() && mCardSlotManager) {
+		for (auto* card : mCardSlotManager->GetCards()) {
+			if (!card) continue;
+			auto comp = card->GetComponent<CardComponent>();
+			if (!comp) continue;
+			auto it = mSurvivalCardCooldowns.find(comp->GetPlantType());
+			if (it != mSurvivalCardCooldowns.end()) {
+				comp->RestoreCooldown(it->second.first, it->second.second);
+			}
+		}
+		mSurvivalCardCooldowns.clear();
+	}
+
+	// 所有模式统一走相机回移过场（READY_SET_PLANT）。
+	// 生存轮间与首次进入的区别仅在该阶段末尾：轮间不重建铲子/小推车/音乐
+	// （见 READY_SET_PLANT 对 mSurvivalRoundTransition 的判断）。
+	mCurrentStage = IntroStage::READY_SET_PLANT;
+	mReadyAnimElapsed = 0.0f;   // 复位，保证回移动画重新播放（轮间为第二次进入此阶段）
+	mReadyStartPos = Vector(mCurrectSceneX, 0);
+
+	RegisterSurvivalGameUiOnce();
+}
+
+void GameScene::RegisterSurvivalGameUiOnce()
+{
+	if (mGameUiRegistered) return;
+	mGameUiRegistered = true;
+
 	RegisterDrawCommand("ZombieNumber",
 		[this](Graphics* g) {
 			auto& gameApp = GameAPP::GetInstance();
 			gameApp.DrawText(u8"当前僵尸数量: " + std::to_string(mBoard->mZombieNumber),
-				Vector(3, 569), { 0,0,0,255 },
-				ResourceKeys::Fonts::FONT_FZCQ, 24);
+				Vector(3, 569), { 0,0,0,255 }, ResourceKeys::Fonts::FONT_FZCQ, 24);
 			gameApp.DrawText(u8"当前僵尸数量: " + std::to_string(mBoard->mZombieNumber),
-				Vector(5, 570), { 223,186 ,98 ,255 },
-				ResourceKeys::Fonts::FONT_FZCQ, 24);
+				Vector(5, 570), { 223,186 ,98 ,255 }, ResourceKeys::Fonts::FONT_FZCQ, 24);
 		},
 		LAYER_UI);
 	RegisterDrawCommand("LevelName",
 		[this](Graphics* g) {
 			auto& gameApp = GameAPP::GetInstance();
 			gameApp.DrawText(mBoard->mLevelName,
-				Vector(766, 575), { 0,0,0,255 },
-				ResourceKeys::Fonts::FONT_FZCQ, 21);
+				Vector(766, 575), { 0,0,0,255 }, ResourceKeys::Fonts::FONT_FZCQ, 21);
 			gameApp.DrawText(mBoard->mLevelName,
-				Vector(768, 576), { 223,186,98,255 },
-				ResourceKeys::Fonts::FONT_FZCQ, 21);
+				Vector(768, 576), { 223,186,98,255 }, ResourceKeys::Fonts::FONT_FZCQ, 21);
 		},
 		LAYER_UI);
 	RegisterDrawCommand("Difficulty",
 		[](Graphics* g) {
 			auto& gameApp = GameAPP::GetInstance();
 			gameApp.DrawText("难度: " + std::to_string(gameApp.Difficulty),
-				Vector(1030, 575), { 0,0,0,255 },
-				ResourceKeys::Fonts::FONT_FZCQ, 21);
+				Vector(1030, 575), { 0,0,0,255 }, ResourceKeys::Fonts::FONT_FZCQ, 21);
 			gameApp.DrawText("难度: " + std::to_string(gameApp.Difficulty),
-				Vector(1032, 576), { 223,186,98,255 },
-				ResourceKeys::Fonts::FONT_FZCQ, 21);
+				Vector(1032, 576), { 223,186,98,255 }, ResourceKeys::Fonts::FONT_FZCQ, 21);
 		},
 		LAYER_UI);
 	SortDrawCommands();

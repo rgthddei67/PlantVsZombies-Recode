@@ -590,6 +590,34 @@ void Board::GameOver()
 	mBoardState = BoardState::LOSE_GAME;
 }
 
+void Board::OnSurvivalRoundClear()
+{
+	if (!mIsSurvival) return;
+
+	// 推进轮次并重置本轮波次状态（轮次单列在 mSurvivalRound）
+	mSurvivalRound++;
+	mCurrentWave = 0;
+	mMaxWave = SURVIVAL_WAVES_PER_ROUND;
+	mZombieCountDown = 20.0f;
+	mTrophySpawned = false;
+	mHasHugeWaveSound = false;
+	mHugeWaveCountDown = 0.0f;
+	mNextWaveSpawnZombieHP = 0.0;
+	mCurrectWaveZombieHP = 0.0;
+	mTotalZombieHP = 0.0;
+
+	// 重算难度（解锁更强僵尸）+ 刷新关卡名
+	BuildSurvivalSpawnList(mSurvivalRound);
+	UpdateSurvivalLevelName();
+
+	// 回到选卡：暂停波次推进
+	mBoardState = BoardState::CHOOSE_CARD;
+
+	// 通知场景重新进入选卡子流程（植物/阳光保留）
+	if (mGameScene)
+		mGameScene->BeginSurvivalCardSelect();
+}
+
 void Board::BuildSurvivalSpawnList(int round)
 {
 	// 仅使用本作已实现的可生成僵尸类型（0~5）

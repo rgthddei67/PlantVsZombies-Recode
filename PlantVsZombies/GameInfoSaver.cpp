@@ -63,13 +63,17 @@ bool GameInfoSaver::LoadPlayerInfo()
 
 bool GameInfoSaver::SaveLevelData(Board* board, CardSlotManager* manager)
 {
-	if (board->mBoardState != BoardState::GAME) return false;
+	const bool stateOk = (board->mBoardState == BoardState::GAME) ||
+		(board->mIsSurvival && board->mBoardState == BoardState::CHOOSE_CARD);
+	if (!stateOk) return false;
 	FileManager::CreateDirectory("./saves");
 
 	nlohmann::json j;
 
 	// Board 状态
 	j["boardState"] = static_cast<int>(board->mBoardState);
+	j["isSurvival"] = board->mIsSurvival;
+	j["survivalRound"] = board->mSurvivalRound;
 	j["sun"] = board->mSun;
 	j["currentWave"] = board->mCurrentWave;
 	j["maxWave"] = board->mMaxWave;
@@ -256,6 +260,19 @@ bool GameInfoSaver::LoadLevelData(Board* board, CardSlotManager* manager)
 
 	// 恢复 Board 状态
 	board->mBoardState = static_cast<BoardState>(j.value("boardState", static_cast<int>(BoardState::GAME)));
+	board->mIsSurvival = j.value("isSurvival", false);
+	board->mSurvivalRound = j.value("survivalRound", 1);
+	if (board->mIsSurvival) {
+		board->BuildSurvivalSpawnList(board->mSurvivalRound);
+		board->UpdateSurvivalLevelName();
+		// 轮间（CHOOSE_CARD）读档：Board 构造时按第1轮建的预览僵尸阵容是错的，
+		// 此刻 survivalRound/出怪表已恢复，销毁旧预览并按正确轮次重建。
+		// （GAME 状态读档不处理：OnEnter 会走 StartGame 销毁预览）
+		if (board->mBoardState == BoardState::CHOOSE_CARD) {
+			board->DestroyPreviewZombies();
+			board->CreatePreviewZombies();
+		}
+	}
 	board->mSun = j.value("sun", 50);
 	board->mCurrentWave = j.value("currentWave", 0);
 	board->mMaxWave = j.value("maxWave", 10);

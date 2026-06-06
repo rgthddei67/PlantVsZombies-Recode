@@ -3,6 +3,8 @@
 #define _GAMESCENE_H
 #include "Scene.h"
 #include "../Game/Board.h"
+#include <unordered_map>
+#include <utility>
 
 class ChooseCardUI;
 class CardSlotManager;
@@ -56,6 +58,9 @@ public:
 
 	void GameOver();
 
+	// 生存模式：一轮清空后重新进入选卡子流程（同会话轮间，轻量路径）
+	void BeginSurvivalCardSelect();
+
 	void ShowSunCount();
 
 	// 显示红色大字指示
@@ -87,6 +92,11 @@ private:
 
 	bool mReadyToBackMenu = false;
 	bool mReadyToRestart = false;
+	bool mSurvivalRoundTransition = false;  // true=正处于同会话轮间转场（ChooseCardComplete 走轻量路径）
+	bool mGameUiRegistered = false;         // 防止 ZombieNumber/LevelName/Difficulty 绘制命令重复注册
+	bool mPendingSurvivalSave = false;      // 轮清后延后一帧存档（避开濒死僵尸尚未被清理而被误序列化）
+	// 轮间空槽重选时，快照冷却中卡牌的 {植物类型 → (已计时, 总时长)}，选完后还原到重选回的同种卡
+	std::unordered_map<PlantType, std::pair<float, float>> mSurvivalCardCooldowns;
 	bool mLendToAlmanacScene = false;
 
 	IntroStage mCurrentStage = IntroStage::BACKGROUND_MOVE;
@@ -122,6 +132,7 @@ private:
 	void OpenMenu();
 	void OpenRestartMenu();
 	void OpenQuitMenu();
+	void RegisterSurvivalGameUiOnce();
 };
 
 #endif
