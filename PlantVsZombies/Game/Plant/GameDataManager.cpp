@@ -23,6 +23,7 @@
 #include "../Zombie/Polevaulter.h"
 #include "../Zombie/BucketZombie.h"
 #include "../Zombie/FastBucketZombie.h"
+#include "../Zombie/PaperZombie.h"
 
 namespace {
 	template<typename T>
@@ -225,6 +226,17 @@ void GameDataManager::InitializeHardcodedData() {
 		2500,
 		6,
 		1.0f, &MakeZombie<FastBucketZombie>
+	);
+
+	RegisterZombie(
+		ZombieType::ZOMBIE_NEWSPAPER,
+		"ZOMBIE_NEWSPAPER",
+		AnimationType::ANIM_PAPER_ZOMBIE,
+		"PaperZombie",
+		Vector(-50, -85),
+		2000,
+		2,
+		1.0f, &MakeZombie<PaperZombie>
 	);
 
 	// ==================== 非植物/僵尸动画映射 ====================

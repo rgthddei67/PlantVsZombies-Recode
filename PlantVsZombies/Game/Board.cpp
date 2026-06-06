@@ -138,11 +138,10 @@ Plant* Board::CreatePlant(PlantType plantType, int row, int column, bool skipset
 	return plant.get();
 }
 
-Zombie* Board::CreateZombie(ZombieType zombieType, int row, float x, float y, bool skipsettings, bool isPreview) {
-	float spawnY = GetZombieSpawnY(row);
-	if (spawnY != -1.0f) {
-		y = spawnY;
-	}
+Zombie* Board::CreateZombie(ZombieType zombieType, int row, float x, bool skipsettings, bool isPreview) {
+	// y 始终由 row 决定，调用方无法自定义。GetZombieSpawnY 对非法行返回 -1，兜底为 0。
+	float y = GetZombieSpawnY(row);
+	if (y < 0.0f) y = 0.0f;
 
 	std::shared_ptr<Zombie> zombie = GameAPP::GetInstance().InstantiateZombie
 	(zombieType, this, x, y, row, isPreview);
@@ -319,9 +318,13 @@ void Board::CreatePreviewZombies()
 		Vector spawnPosition = Vector(GameRandom::Range
 		(mSpawnZombiePos1.x, mSpawnZombiePos2.x), GameRandom::Range
 		(mSpawnZombiePos1.y, mSpawnZombiePos2.y));
-		auto preview = this->
-			CreateZombie(zombieType, -1, spawnPosition.x, spawnPosition.y, true, true);
-		mPreviewZombieList.push_back(preview);
+		// 预览僵尸需要在生成区内随机散落（任意 y），不绑定网格行，故走自由摆放路径。
+		auto preview = GameAPP::GetInstance().InstantiateZombieFree(
+			zombieType, this, spawnPosition.x, spawnPosition.y);
+		if (!preview) continue;
+		// 与 Zombie::Die 中的 mZombieNumber-- 保持平衡（预览僵尸 board == this，销毁时会递减）。
+		mZombieNumber++;
+		mPreviewZombieList.push_back(preview.get());
 	}
 }
 
@@ -483,7 +486,7 @@ inline void Board::TrySummonZombie()
 		mRowInfos[row].secondLastPicked = mRowInfos[row].lastPicked;
 		mRowInfos[row].lastPicked = 0;
 
-		auto zombie = CreateZombie(selected, row, x, 0.0f);
+		auto zombie = CreateZombie(selected, row, x);
 		if (zombie)
 		{
 			zombiesSpawned++;
@@ -622,11 +625,10 @@ Plant* Board::CreatePlantWithID(PlantType type, int row, int col, int id) {
 	return plant.get();
 }
 
-Zombie* Board::CreateZombieWithID(ZombieType type, int row, float x, float y, int id) {
-	float spawnY = GetZombieSpawnY(row);
-	if (spawnY != -1.0f) {
-		y = spawnY;
-	}
+Zombie* Board::CreateZombieWithID(ZombieType type, int row, float x, int id) {
+	// y 始终由 row 决定（读档僵尸只持久化 row + x，y 不入存档）。
+	float y = GetZombieSpawnY(row);
+	if (y < 0.0f) y = 0.0f;
 
 	std::shared_ptr<Zombie> zombie = GameAPP::GetInstance().InstantiateZombie
 	(type, this, x, y, row, false);

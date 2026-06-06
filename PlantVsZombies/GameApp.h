@@ -138,6 +138,9 @@ public:
 
 	std::shared_ptr<Plant> InstantiatePlant(PlantType plantType, Board* board, int row, int column, bool isPreview = false);
 	std::shared_ptr<Zombie> InstantiateZombie(ZombieType zombieType, Board* board, float x, float y, int row, bool isPreview = false);
+	// 自由像素摆放：在任意 (x, y) 处生成一只预览/UI 僵尸（row = -1、isPreview = true，不绑定网格行）。
+	// 用于卡片选择界面的预览僵尸、图鉴场景等纯展示场合。
+	std::shared_ptr<Zombie> InstantiateZombieFree(ZombieType zombieType, Board* board, float x, float y);
 };
 
 #endif

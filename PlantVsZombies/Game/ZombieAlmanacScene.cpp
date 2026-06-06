@@ -105,8 +105,8 @@ void ZombieAlmanacScene::CreateAllZombieEntries()
 		float zombieX = frameX + ZOMBIE_WINDOW_SIZE / 2.0f - offset.x - 18.0f;
 		float zombieY = frameY + ZOMBIE_WINDOW_SIZE / 2.0f - offset.y - 30.0f;
 
-		auto zombie = GameAPP::GetInstance().InstantiateZombie(
-			zombieType, nullptr, zombieX, zombieY, -1, true);
+		auto zombie = GameAPP::GetInstance().InstantiateZombieFree(
+			zombieType, nullptr, zombieX, zombieY);
 		if (!zombie) {
 			entryCount++;
 			continue;
@@ -150,8 +150,8 @@ void ZombieAlmanacScene::OnZombieClicked(ZombieType type)
 
 void ZombieAlmanacScene::CreatePreviewZombie(ZombieType type)
 {
-	auto zombie = GameAPP::GetInstance().InstantiateZombie(
-		type, nullptr, PREVIEW_ZOMBIE_X, PREVIEW_ZOMBIE_Y, -1, true);
+	auto zombie = GameAPP::GetInstance().InstantiateZombieFree(
+		type, nullptr, PREVIEW_ZOMBIE_X, PREVIEW_ZOMBIE_Y);
 	if (!zombie) return;
 	mPreviewZombie = zombie;
 }

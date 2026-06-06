@@ -25,6 +25,7 @@
     <ClCompile Include="GameApp.cpp" />
     <ClCompile Include="GameInfoSaver.cpp" />
     <ClCompile Include="GameMonitor.cpp" />
+    <ClCompile Include="Game\Zombie\PaperZombie.cpp" />
     <ClCompile Include="Logger.cpp" />
     <ClCompile Include="Game\AlmanacScene.cpp" />
     <ClCompile Include="Game\AnimatedObject.cpp" />
@@ -105,6 +106,7 @@
     <ClInclude Include="GameApp.h" />
     <ClInclude Include="GameInfoSaver.h" />
     <ClInclude Include="GameMonitor.h" />
+    <ClInclude Include="Game\Zombie\PaperZombie.h" />
     <ClInclude Include="Logger.h" />
     <ClInclude Include="GameRandom.h" />
     <ClInclude Include="Game\AlmanacScene.h" />

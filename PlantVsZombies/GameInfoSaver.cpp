@@ -349,10 +349,10 @@ bool GameInfoSaver::LoadLevelData(Board* board, CardSlotManager* manager)
 
 		Zombie* zombie = nullptr;
 		if (id != NULL_ZOMBIE_ID) {
-			zombie = board->CreateZombieWithID(type, row, x, 0.0f, id);
+			zombie = board->CreateZombieWithID(type, row, x, id);
 		}
 		else {
-			zombie = board->CreateZombie(type, row, x, 0.0f);
+			zombie = board->CreateZombie(type, row, x);
 		}
 
 		if (zombie) {

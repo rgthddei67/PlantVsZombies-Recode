@@ -145,8 +145,9 @@ public:
 		return nullptr;
 	}
 
-	// 创建僵尸 有row就用row，如果row<0，则使用y
-	Zombie* CreateZombie(ZombieType zombieType, int row, float x, float y, bool skipsettings = false, bool isPreview = false);
+	// 创建僵尸：x 为任意像素横坐标，y 始终由 row 决定（不可自定义）。
+	// 需要自由摆放（任意 y）的预览/UI 僵尸请改用 GameAPP::InstantiateZombieFree。
+	Zombie* CreateZombie(ZombieType zombieType, int row, float x, bool skipsettings = false, bool isPreview = false);
 
 	// 创建太阳
 	Sun* CreateSun(const Vector& position, bool needAnimation = false);
@@ -174,7 +175,7 @@ public:
 
 	// 带指定 ID 创建实体（用于读档）
 	Plant* CreatePlantWithID(PlantType type, int row, int col, int id);
-	Zombie* CreateZombieWithID(ZombieType type, int row, float x, float y, int id);
+	Zombie* CreateZombieWithID(ZombieType type, int row, float x, int id);
 	Bullet* CreateBulletWithID(BulletType type, int row, const Vector& pos, int id);
 	Sun* CreateSunWithID(const Vector& pos, bool fromSky, int id);
 	Trophy* CreateTrophyWithID(const Vector& pos, int id);

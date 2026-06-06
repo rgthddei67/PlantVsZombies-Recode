@@ -265,6 +265,12 @@
     <ClCompile Include="Game\Plant\PuffShroom.cpp">
       <Filter>Code\Game\Plant</Filter>
     </ClCompile>
+    <ClCompile Include="Game\Zombie\PaperZombie.cpp">
+      <Filter>Code\Game\Zombie</Filter>
+    </ClCompile>
+    <ClCompile Include="Logger.cpp">
+      <Filter>Code</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="UI\Button.h">
@@ -575,6 +581,12 @@
     </ClInclude>
     <ClInclude Include="Game\Plant\Shroom.h">
       <Filter>Code\Game\Plant</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\Zombie\PaperZombie.h">
+      <Filter>Code\Game\Zombie</Filter>
+    </ClInclude>
+    <ClInclude Include="Logger.h">
+      <Filter>Code</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

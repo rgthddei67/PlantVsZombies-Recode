@@ -84,8 +84,8 @@ void AlmanacScene::OnEnter()
 	mPlant = plant;
 	plant->SetPosition(Vector(355, 310));
 
-	auto zombie = GameAPP::GetInstance().InstantiateZombie(
-		ZombieType::ZOMBIE_NORMAL, nullptr, 745.0f, 330.0f, -1, true);
+	auto zombie = GameAPP::GetInstance().InstantiateZombieFree(
+		ZombieType::ZOMBIE_NORMAL, nullptr, 745.0f, 330.0f);
 	mZombie = zombie;
 }
 

@@ -550,3 +550,9 @@ std::shared_ptr<Zombie> GameAPP::InstantiateZombie(ZombieType zombieType, Board*
 {
 	return GameDataManager::GetInstance().CreateZombie(zombieType, board, x, y, row, isPreview);
 }
+
+std::shared_ptr<Zombie> GameAPP::InstantiateZombieFree(ZombieType zombieType, Board* board, float x, float y)
+{
+	// row = -1 表示不绑定网格行，直接采用传入的像素 (x, y)；isPreview = true 走纯展示初始化路径。
+	return InstantiateZombie(zombieType, board, x, y, -1, true);
+}
