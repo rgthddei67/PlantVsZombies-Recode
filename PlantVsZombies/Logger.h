@@ -31,7 +31,9 @@ public:
 class LogStream {
 public:
     LogStream(LogLevel level, const char* tag) : mLevel(level), mTag(tag) {}
-    ~LogStream() { Logger::Write(mLevel, mTag, mBuffer.str()); }
+    // 析构时再判一次运行期级别（对齐设计 §4.4）：使 LogStream 成为自洽单元，
+    // 即便绕过 LOG_* 宏直接构造也不会越过软阈值。宏路径下这只是一次廉价的 relaxed 原子读。
+    ~LogStream() { if (Logger::ShouldLog(mLevel)) Logger::Write(mLevel, mTag, mBuffer.str()); }
 
     template <typename T>
     LogStream& operator<<(const T& value) { mBuffer << value; return *this; }
