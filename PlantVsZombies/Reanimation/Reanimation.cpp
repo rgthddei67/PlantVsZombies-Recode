@@ -1,7 +1,7 @@
 ﻿#include "Reanimation.h"
 #include "../ResourceManager.h"
-#include <iostream>
 #include "../FileManager.h"
+#include "../Logger.h"
 #include <glm/glm.hpp>
 
 Reanimation::Reanimation() {
@@ -18,7 +18,7 @@ bool Reanimation::LoadFromFile(const std::string& filePath) {
 	// 加载xml
 	pugi::xml_document doc;
 	if (!FileManager::LoadXMLFile(filePath, doc)) {
-		std::cerr << "Failed to load reanim file: " << filePath << std::endl;
+		LOG_ERROR("Reanim") << "LoadFromFile 加载 reanim 文件失败: " << filePath;
 		return false;
 	}
 
@@ -112,7 +112,7 @@ bool Reanimation::LoadFromFile(const std::string& filePath) {
 											prevImage = tex;
 										}
 										else {
-											std::cout << "[Reanimation::LoadFromFile] 没有找到图片" << imageName << std::endl;
+											LOG_WARN("Reanim") << "LoadFromFile 没有找到图片" << imageName;
 										}
 									}
 									else {
@@ -181,11 +181,7 @@ bool Reanimation::LoadFromFile(const std::string& filePath) {
 
 	mIsLoaded = true;
 
-#ifdef _DEBUG
-	std::cout << "成功加载reanim: " << filePath
-		<< "   Track数量: " << mTracks->size()
-		<< "   总帧数" << GetTotalFrames() << std::endl;
-#endif
+	LOG_DEBUG("Reanim") << "成功加载reanim: " << filePath << "   Track数量: " << mTracks->size() << "   总帧数" << GetTotalFrames();
 
 	return true;
 }

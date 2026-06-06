@@ -1,5 +1,6 @@
 #include "AttachmentSystem.h"
 #include "Animator.h"
+#include "../Logger.h"
 #include <algorithm>
 #include <iostream>
 
@@ -222,7 +223,7 @@ bool Attachment::AddEffect(std::shared_ptr<IAttachmentEffect> effect,
 
     // 妫€鏌ユ晥鏋滄槸鍚﹀凡缁忛檮鍔?
     if (effect->IsAttached()) {
-        std::cerr << "Warning: Effect is already attached to another attachment!" << std::endl;
+        LOG_WARN("Reanim") << "Effect is already attached to another attachment!";
         return false;
     }
 
@@ -364,7 +365,7 @@ AttachmentSystem::~AttachmentSystem() {
 std::shared_ptr<Attachment> AttachmentSystem::CreateAttachment(const std::string& name) {
     // 妫€鏌ュ悕绉版槸鍚﹀凡瀛樺湪
     if (!name.empty() && HasAttachment(name)) {
-        std::cerr << "AttachmentSystem: Attachment with name '" << name << "' already exists!" << std::endl;
+        LOG_WARN("Reanim") << "AttachmentSystem: Attachment with name '" << name << "' already exists!";
         return nullptr;
     }
 

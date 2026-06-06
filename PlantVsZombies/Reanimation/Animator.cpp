@@ -1,6 +1,7 @@
 ﻿#include "Animator.h"
 #include "../DeltaTime.h"
 #include "../ResourceManager.h"
+#include "../Logger.h"
 #include <algorithm>
 #include <cmath>
 #include <glm/glm.hpp>
@@ -64,7 +65,7 @@ void Animator::AddFrameEvent(int frameIndex, std::function<void()> callback, boo
 bool Animator::PlayTrack(const std::string& trackName, float speed, float blendTime) {
 	auto range = GetTrackRange(trackName);
 	if (range.first == -1 || range.second == -1) {
-		std::cerr << "动画轨道不存在或为空: " << trackName << std::endl;
+		LOG_ERROR("Reanim") << "动画轨道不存在或为空: " << trackName;
 		return false;
 	}
 
@@ -710,13 +711,13 @@ void Animator::DetachAllAnimators() {
 
 std::pair<int, int> Animator::GetTrackRange(const std::string& trackName) {
 	if (!mReanim) {
-		std::cout << "GetTrackRange: mReanim is null" << std::endl;
+		LOG_DEBUG("Reanim") << "GetTrackRange: mReanim is null";
 		return { -1, -1 };
 	}
 
 	TrackInfo* track = mReanim->GetTrack(trackName);
 	if (!track || track->mFrames.empty()) {
-		std::cout << "GetTrackRange: track '" << trackName << "' not found or empty" << std::endl;
+		LOG_DEBUG("Reanim") << "GetTrackRange: track '" << trackName << "' not found or empty";
 		return { -1, -1 };
 	}
 
@@ -731,7 +732,7 @@ std::pair<int, int> Animator::GetTrackRange(const std::string& trackName) {
 	}
 
 	if (start == -1) {
-		std::cout << "GetTrackRange: no f=0 frames, returning invalid." << std::endl;
+		LOG_DEBUG("Reanim") << "GetTrackRange: no f=0 frames, returning invalid.";
 		return { -1, -1 };
 	}
 
@@ -744,7 +745,7 @@ std::pair<int, int> Animator::GetTrackRange(const std::string& trackName) {
 			break;
 		}
 		else {
-			std::cout << "GetTrackRange: unexpected f=" << track->mFrames[i].f << " at " << i << ", stopping." << std::endl;
+			LOG_DEBUG("Reanim") << "GetTrackRange: unexpected f=" << track->mFrames[i].f << " at " << i << ", stopping.";
 			break;
 		}
 	}
