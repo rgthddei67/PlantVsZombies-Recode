@@ -1,7 +1,7 @@
 #include "VulkanBuffer.h"
 #include "VulkanContext.h"
+#include "../Logger.h"
 
-#include <cstdio>
 #include <utility>
 
 namespace pvz {
@@ -44,7 +44,7 @@ namespace pvz {
 		VmaAllocationInfo info{};
 		VkResult r = vmaCreateBuffer(mCtx->Allocator(), &bci, &aci, &mBuffer, &mAlloc, &info);
 		if (r != VK_SUCCESS) {
-			std::fprintf(stderr, "[VulkanBuffer] vmaCreateBuffer failed (%d)\n", (int)r);
+			LOG_ERROR("VulkanBuffer") << "vmaCreateBuffer failed (" << (int)r << ")";
 			return false;
 		}
 		mMappedPtr = info.pMappedData;

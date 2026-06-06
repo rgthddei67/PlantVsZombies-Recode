@@ -1,10 +1,10 @@
 #include "VulkanContext.h"
+#include "../Logger.h"
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_vulkan.h>
 
 #include <algorithm>
-#include <cstdio>
 #include <cstring>
 #include <string>
 
@@ -15,8 +15,7 @@ namespace pvz {
     do {                                                                    \
         VkResult _r = (expr);                                               \
         if (_r != VK_SUCCESS) {                                             \
-            std::fprintf(stderr, "[Vulkan] %s failed (VkResult=%d)\n",      \
-                         #expr, (int)_r);                                   \
+            LOG_ERROR("VulkanContext") << #expr " failed (VkResult=" << (int)_r << ")"; \
             return false;                                                   \
         }                                                                   \
     } while (0)
@@ -26,12 +25,13 @@ namespace pvz {
 			VkDebugUtilsMessageTypeFlagsEXT        /*types*/,
 			const VkDebugUtilsMessengerCallbackDataEXT* data,
 			void*                                  /*userData*/) {
-			const char* sevTag = "INFO";
-			if (severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)        sevTag = "ERROR";
-			else if (severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) sevTag = "WARN";
-			else if (severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT) sevTag = "VERBOSE";
-			std::fprintf(stderr, "[Vulkan %s] %s\n", sevTag,
-				data && data->pMessage ? data->pMessage : "(no message)");
+			const char* msg = data && data->pMessage ? data->pMessage : "(no message)";
+			if (severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
+				LOG_ERROR("VulkanContext") << msg;
+			else if (severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
+				LOG_WARN("VulkanContext") << msg;
+			else
+				LOG_DEBUG("VulkanContext") << msg;
 			return VK_FALSE;
 		}
 
@@ -66,13 +66,9 @@ namespace pvz {
 
 		mInitialized = true;
 
-#ifdef _DEBUG
-		std::fprintf(stdout,
-			"[Vulkan] Ready. swapchain=%ux%u format=%d images=%zu validation=%d\n",
-			mSwapchainExtent.width, mSwapchainExtent.height,
-			(int)mSwapchainFormat, mSwapchainImages.size(),
-			mValidationEnabled ? 1 : 0);
-#endif
+		LOG_INFO("VulkanContext") << "Ready. swapchain=" << mSwapchainExtent.width << "x" << mSwapchainExtent.height
+			<< " format=" << (int)mSwapchainFormat << " images=" << mSwapchainImages.size()
+			<< " validation=" << (mValidationEnabled ? 1 : 0);
 
 		return true;
 	}
@@ -88,12 +84,12 @@ namespace pvz {
 		// SDL 帮我们列出 surface 相关扩展（platform-specific）
 		uint32_t sdlExtCount = 0;
 		if (!SDL_Vulkan_GetInstanceExtensions(window, &sdlExtCount, nullptr)) {
-			std::fprintf(stderr, "[Vulkan] SDL_Vulkan_GetInstanceExtensions(count) failed: %s\n", SDL_GetError());
+			LOG_ERROR("VulkanContext") << "SDL_Vulkan_GetInstanceExtensions(count) failed: " << SDL_GetError();
 			return false;
 		}
 		std::vector<const char*> extensions(sdlExtCount);
 		if (!SDL_Vulkan_GetInstanceExtensions(window, &sdlExtCount, extensions.data())) {
-			std::fprintf(stderr, "[Vulkan] SDL_Vulkan_GetInstanceExtensions failed: %s\n", SDL_GetError());
+			LOG_ERROR("VulkanContext") << "SDL_Vulkan_GetInstanceExtensions failed: " << SDL_GetError();
 			return false;
 		}
 		if (enableValidation) {
@@ -106,7 +102,7 @@ namespace pvz {
 				layers.push_back("VK_LAYER_KHRONOS_validation");
 			}
 			else {
-				std::fprintf(stderr, "[Vulkan] WARN: validation requested but VK_LAYER_KHRONOS_validation not installed (install VulkanSDK).\n");
+				LOG_WARN("VulkanContext") << "validation requested but VK_LAYER_KHRONOS_validation not installed (install VulkanSDK).";
 				mValidationEnabled = false;
 			}
 		}
@@ -128,8 +124,7 @@ namespace pvz {
 		auto fnCreate = (PFN_vkCreateDebugUtilsMessengerEXT)
 			vkGetInstanceProcAddr(mInstance, "vkCreateDebugUtilsMessengerEXT");
 		if (!fnCreate) {
-			std::fprintf(stderr, "[Vulkan] vkCreateDebugUtilsMessengerEXT not found "
-				"(VK_EXT_debug_utils not loaded?)\n");
+			LOG_ERROR("VulkanContext") << "vkCreateDebugUtilsMessengerEXT not found (VK_EXT_debug_utils not loaded?)";
 			return false;
 		}
 
@@ -148,7 +143,7 @@ namespace pvz {
 
 	bool VulkanContext::CreateSurface(SDL_Window* window) {
 		if (!SDL_Vulkan_CreateSurface(window, mInstance, &mSurface)) {
-			std::fprintf(stderr, "[Vulkan] SDL_Vulkan_CreateSurface failed: %s\n", SDL_GetError());
+			LOG_ERROR("VulkanContext") << "SDL_Vulkan_CreateSurface failed: " << SDL_GetError();
 			return false;
 		}
 		return true;
@@ -158,7 +153,7 @@ namespace pvz {
 		uint32_t count = 0;
 		vkEnumeratePhysicalDevices(mInstance, &count, nullptr);
 		if (count == 0) {
-			std::fprintf(stderr, "[Vulkan] No Vulkan-capable GPU found.\n");
+			LOG_ERROR("VulkanContext") << "No Vulkan-capable GPU found.";
 			return false;
 		}
 		std::vector<VkPhysicalDevice> devices(count);
@@ -211,16 +206,15 @@ namespace pvz {
 				if (isSuitable(dev, qf)) {
 					mPhysicalDevice = dev;
 					mGraphicsQueueFamily = qf;
-					std::fprintf(stdout, "[Vulkan] Selected GPU: %s (api %u.%u.%u)\n",
-						props.deviceName,
-						VK_VERSION_MAJOR(props.apiVersion),
-						VK_VERSION_MINOR(props.apiVersion),
-						VK_VERSION_PATCH(props.apiVersion));
+					LOG_INFO("VulkanContext") << "Selected GPU: " << props.deviceName
+						<< " (api " << VK_VERSION_MAJOR(props.apiVersion)
+						<< "." << VK_VERSION_MINOR(props.apiVersion)
+						<< "." << VK_VERSION_PATCH(props.apiVersion) << ")";
 					return true;
 				}
 			}
 		}
-		std::fprintf(stderr, "[Vulkan] No GPU meets feature requirements (Vulkan 1.3, dynamic rendering, descriptor indexing).\n");
+		LOG_ERROR("VulkanContext") << "No GPU meets feature requirements (Vulkan 1.3, dynamic rendering, descriptor indexing).";
 		return false;
 	}
 
@@ -378,7 +372,7 @@ namespace pvz {
 		vkDeviceWaitIdle(mDevice);
 		DestroySwapchain();
 		if (!CreateSwapchain(mWindow, vsync)) {
-			std::fprintf(stderr, "[Vulkan] RecreateSwapchain failed\n");
+			LOG_ERROR("VulkanContext") << "RecreateSwapchain failed";
 			return false;
 		}
 		return true;

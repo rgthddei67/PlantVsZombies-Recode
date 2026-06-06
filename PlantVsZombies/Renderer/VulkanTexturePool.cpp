@@ -1,8 +1,8 @@
 #include "VulkanTexturePool.h"
 #include "VulkanBuffer.h"
 #include "VulkanContext.h"
+#include "../Logger.h"
 
-#include <cstdio>
 #include <cstring>
 
 namespace pvz {
@@ -11,8 +11,7 @@ namespace pvz {
     do {                                                                        \
         VkResult _r = (expr);                                                   \
         if (_r != VK_SUCCESS) {                                                 \
-            std::fprintf(stderr, "[VulkanTexturePool] %s failed (VkResult=%d)\n", \
-                         #expr, (int)_r);                                       \
+            LOG_ERROR("VulkanTexturePool") << #expr " failed (VkResult=" << (int)_r << ")"; \
             return false;                                                       \
         }                                                                       \
     } while (0)
@@ -243,7 +242,7 @@ namespace pvz {
 
 		const uint32_t idx = AllocBindlessIndex();
 		if (idx >= MAX_TEXTURES) {
-			std::fprintf(stderr, "[VulkanTexturePool] bindless slot exhausted (max=%u)\n", MAX_TEXTURES);
+			LOG_ERROR("VulkanTexturePool") << "bindless slot exhausted (max=" << MAX_TEXTURES << ")";
 			FreeBindlessIndex(idx);
 			return nullptr;
 		}
@@ -269,7 +268,7 @@ namespace pvz {
 		aci.usage = VMA_MEMORY_USAGE_AUTO;
 		VkResult r = vmaCreateImage(mCtx->Allocator(), &ici, &aci, &t->image, &t->alloc, nullptr);
 		if (r != VK_SUCCESS) {
-			std::fprintf(stderr, "[VulkanTexturePool] vmaCreateImage failed (%d)\n", (int)r);
+			LOG_ERROR("VulkanTexturePool") << "vmaCreateImage failed (" << (int)r << ")";
 			FreeBindlessIndex(idx);
 			return nullptr;
 		}
@@ -281,7 +280,7 @@ namespace pvz {
 		vci.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
 		r = vkCreateImageView(mCtx->Device(), &vci, nullptr, &t->view);
 		if (r != VK_SUCCESS) {
-			std::fprintf(stderr, "[VulkanTexturePool] vkCreateImageView failed (%d)\n", (int)r);
+			LOG_ERROR("VulkanTexturePool") << "vkCreateImageView failed (" << (int)r << ")";
 			vmaDestroyImage(mCtx->Allocator(), t->image, t->alloc);
 			FreeBindlessIndex(idx);
 			return nullptr;

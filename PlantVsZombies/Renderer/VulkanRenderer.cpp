@@ -1,8 +1,7 @@
 #include "VulkanRenderer.h"
 #include "VulkanContext.h"
 #include "VulkanPipeline.h"
-
-#include <cstdio>
+#include "../Logger.h"
 
 namespace pvz {
 	namespace {
@@ -10,8 +9,7 @@ namespace pvz {
     do {                                                                    \
         VkResult _r = (expr);                                               \
         if (_r != VK_SUCCESS) {                                             \
-            std::fprintf(stderr, "[VulkanRenderer] %s failed (VkResult=%d)\n", \
-                         #expr, (int)_r);                                   \
+            LOG_ERROR("VulkanRenderer") << #expr " failed (VkResult=" << (int)_r << ")"; \
             return false;                                                   \
         }                                                                   \
     } while (0)
@@ -135,7 +133,7 @@ namespace pvz {
 	bool VulkanRenderer::BeginFrame(float r, float g, float b, float a) {
 		if (!mCtx || !mCtx->IsInitialized()) return false;
 		if (mFrameActive) {
-			std::fprintf(stderr, "[VulkanRenderer] BeginFrame called twice without EndFrame\n");
+			LOG_WARN("VulkanRenderer") << "BeginFrame called twice without EndFrame";
 			return false;
 		}
 		VkDevice dev = mCtx->Device();
@@ -154,7 +152,7 @@ namespace pvz {
 			return false;
 		}
 		if (acquireResult != VK_SUCCESS && acquireResult != VK_SUBOPTIMAL_KHR) {
-			std::fprintf(stderr, "[VulkanRenderer] vkAcquireNextImageKHR failed (%d)\n", (int)acquireResult);
+			LOG_ERROR("VulkanRenderer") << "vkAcquireNextImageKHR failed (" << (int)acquireResult << ")";
 			return false;
 		}
 		if (acquireResult == VK_SUBOPTIMAL_KHR) {
@@ -215,7 +213,7 @@ namespace pvz {
 
 	bool VulkanRenderer::EndFrame() {
 		if (!mFrameActive) {
-			std::fprintf(stderr, "[VulkanRenderer] EndFrame called without BeginFrame\n");
+			LOG_WARN("VulkanRenderer") << "EndFrame called without BeginFrame";
 			return false;
 		}
 		PerFrame& frame = mFrames[mFrameIdx];
@@ -263,7 +261,7 @@ namespace pvz {
 			mSwapchainNeedsRebuild = true;
 		}
 		else if (presentResult != VK_SUCCESS) {
-			std::fprintf(stderr, "[VulkanRenderer] vkQueuePresentKHR failed (%d)\n", (int)presentResult);
+			LOG_ERROR("VulkanRenderer") << "vkQueuePresentKHR failed (" << (int)presentResult << ")";
 			mFrameActive = false;
 			return false;
 		}

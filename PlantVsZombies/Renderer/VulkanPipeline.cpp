@@ -1,7 +1,7 @@
 #include "VulkanPipeline.h"
 #include "VulkanContext.h"
+#include "../Logger.h"
 
-#include <cstdio>
 #include <fstream>
 
 namespace pvz {
@@ -10,8 +10,7 @@ namespace pvz {
     do {                                                                     \
         VkResult _r = (expr);                                                \
         if (_r != VK_SUCCESS) {                                              \
-            std::fprintf(stderr, "[VulkanPipeline] %s failed (VkResult=%d)\n", \
-                         #expr, (int)_r);                                    \
+            LOG_ERROR("VulkanPipeline") << #expr " failed (VkResult=" << (int)_r << ")"; \
             return false;                                                    \
         }                                                                    \
     } while (0)
@@ -23,13 +22,12 @@ namespace pvz {
 	bool VulkanPipeline::LoadFile(const char* path, std::vector<char>& out) {
 		std::ifstream f(path, std::ios::binary | std::ios::ate);
 		if (!f) {
-			std::fprintf(stderr, "[VulkanPipeline] Failed to open shader file: %s\n", path);
+			LOG_ERROR("VulkanPipeline") << "Failed to open shader file: " << path;
 			return false;
 		}
 		const std::streamsize size = f.tellg();
 		if (size <= 0 || (size % 4) != 0) {
-			std::fprintf(stderr, "[VulkanPipeline] Bad SPIR-V file size (%lld) for %s\n",
-				(long long)size, path);
+			LOG_ERROR("VulkanPipeline") << "Bad SPIR-V file size (" << (long long)size << ") for " << path;
 			return false;
 		}
 		out.resize((size_t)size);
@@ -174,7 +172,7 @@ namespace pvz {
 		vkDestroyShaderModule(dev, frag, nullptr);
 
 		if (r != VK_SUCCESS) {
-			std::fprintf(stderr, "[VulkanPipeline] vkCreateGraphicsPipelines failed (%d)\n", (int)r);
+			LOG_ERROR("VulkanPipeline") << "vkCreateGraphicsPipelines failed (" << (int)r << ")";
 			return false;
 		}
 		return true;
