@@ -1,10 +1,10 @@
 ﻿#include "ResourceManager.h"
 #include "./Game/Plant/GameDataManager.h"
 #include "./Renderer/VulkanTexturePool.h"
+#include "Logger.h"
 #include <filesystem>
 #include <algorithm>
 #include <cctype>
-#include <iostream>
 #include <unordered_set>
 #include <vector>
 
@@ -41,7 +41,7 @@ const Texture* ResourceManager::LoadTexture(const std::string& filepath, const s
 	// 使用 SDL_image 加载表面
 	SDL_Surface* surface = IMG_Load(filepath.c_str());
 	if (!surface) {
-		std::cerr << "[ResourceManager::LoadTexture] 无法加载图片: " << filepath << " - " << IMG_GetError() << std::endl;
+		LOG_ERROR("ResourceManager") << "LoadTexture 无法加载图片: " << filepath << " - " << IMG_GetError();
 		return nullptr;
 	}
 
@@ -49,7 +49,7 @@ const Texture* ResourceManager::LoadTexture(const std::string& filepath, const s
 	SDL_Surface* converted = SDL_ConvertSurfaceFormat(surface, SDL_PIXELFORMAT_ABGR8888, 0);
 	SDL_FreeSurface(surface);
 	if (!converted) {
-		std::cerr << "[ResourceManager::LoadTexture] 无法转换图片格式: " << filepath << std::endl;
+		LOG_ERROR("ResourceManager") << "LoadTexture 无法转换图片格式: " << filepath;
 		return nullptr;
 	}
 
@@ -67,7 +67,7 @@ const Texture* ResourceManager::LoadTexture(const std::string& filepath, const s
 			tex.id = vkt->bindlessIndex;
 		}
 		else {
-			std::cerr << "[ResourceManager::LoadTexture] VulkanTexturePool 上传失败: " << filepath << std::endl;
+			LOG_ERROR("ResourceManager") << "LoadTexture VulkanTexturePool 上传失败: " << filepath;
 		}
 	}
 	SDL_FreeSurface(converted);
@@ -88,9 +88,7 @@ void ResourceManager::UnloadTexture(const std::string& key) {
 			mTexturePool->DestroyTexture(it->second.vkTex);
 		}
 		mTextures.erase(it);
-#ifdef _DEBUG
-		std::cout << "卸载纹理: " << key << std::endl;
-#endif
+		LOG_DEBUG("ResourceManager") << "卸载纹理: " << key;
 	}
 }
 
@@ -102,7 +100,7 @@ bool ResourceManager::LoadTiledTextureGL(const TiledImageInfo& info, const std::
 	// 加载原图到表面（用于分割）
 	SDL_Surface* loadedSurface = IMG_Load(info.path.c_str());
 	if (!loadedSurface) {
-		std::cerr << "无法加载图片: " << info.path << " - " << IMG_GetError() << std::endl;
+		LOG_ERROR("ResourceManager") << "LoadTiledTexture 无法加载图片: " << info.path << " - " << IMG_GetError();
 		return false;
 	}
 
@@ -112,7 +110,7 @@ bool ResourceManager::LoadTiledTextureGL(const TiledImageInfo& info, const std::
 	SDL_Surface* originalSurface = SDL_ConvertSurfaceFormat(loadedSurface, SDL_PIXELFORMAT_ABGR8888, 0);
 	SDL_FreeSurface(loadedSurface);
 	if (!originalSurface) {
-		std::cerr << "无法转换源图片格式: " << info.path << " - " << SDL_GetError() << std::endl;
+		LOG_ERROR("ResourceManager") << "LoadTiledTexture 无法转换源图片格式: " << info.path << " - " << SDL_GetError();
 		return false;
 	}
 	// 关闭 src 的 alpha-blend，blit 走纯拷贝，避免与 dst 全 0 alpha 混合丢失
@@ -124,9 +122,9 @@ bool ResourceManager::LoadTiledTextureGL(const TiledImageInfo& info, const std::
 	int tileH = imgH / info.rows;
 
 	if (imgW % info.columns != 0 || imgH % info.rows != 0) {
-		std::cerr << "警告: 图片尺寸 " << imgW << "x" << imgH
+		LOG_WARN("ResourceManager") << "图片尺寸 " << imgW << "x" << imgH
 			<< " 不能被 " << info.columns << "x" << info.rows
-			<< " 整除，可能产生边缘裁剪" << std::endl;
+			<< " 整除，可能产生边缘裁剪";
 	}
 
 	std::string baseKey = GenerateStandardKey(info.path, prefix);
@@ -138,14 +136,14 @@ bool ResourceManager::LoadTiledTextureGL(const TiledImageInfo& info, const std::
 			SDL_Surface* tileSurface = SDL_CreateRGBSurfaceWithFormat(
 				0, tileW, tileH, 32, SDL_PIXELFORMAT_ABGR8888);
 			if (!tileSurface) {
-				std::cerr << "无法创建子表面: " << SDL_GetError() << std::endl;
+				LOG_ERROR("ResourceManager") << "LoadTiledTexture 无法创建子表面: " << SDL_GetError();
 				success = false;
 				continue;
 			}
 
 			SDL_Rect srcRect = { col * tileW, row * tileH, tileW, tileH };
 			if (SDL_BlitSurface(originalSurface, &srcRect, tileSurface, nullptr) != 0) {
-				std::cerr << "Blit失败: " << SDL_GetError() << std::endl;
+				LOG_ERROR("ResourceManager") << "LoadTiledTexture Blit失败: " << SDL_GetError();
 				SDL_FreeSurface(tileSurface);
 				success = false;
 				continue;
@@ -161,7 +159,7 @@ bool ResourceManager::LoadTiledTextureGL(const TiledImageInfo& info, const std::
 					tex.id = vkt->bindlessIndex;
 				}
 				else {
-					std::cerr << "[ResourceManager] 分割贴图上传失败: " << info.path << " tile " << row << "," << col << std::endl;
+					LOG_ERROR("ResourceManager") << "LoadTiledTexture 分割贴图上传失败: " << info.path << " tile " << row << "," << col;
 					success = false;
 				}
 			}
@@ -171,7 +169,6 @@ bool ResourceManager::LoadTiledTextureGL(const TiledImageInfo& info, const std::
 			std::string key = baseKey + "_PART_" + std::to_string(index);
 			mTextures[key] = tex;
 
-			// std::cout << "加载子纹理: " << key << " 尺寸 " << tileW << "x" << tileH << std::endl;
 		}
 	}
 
@@ -187,14 +184,14 @@ bool ResourceManager::LoadAllGameImages() {
 			// 普通图片
 			std::string key = GenerateStandardKey(info.path, "IMAGE_");
 			if (!LoadTexture(info.path, key)) {
-				std::cerr << "加载游戏图片失败: " << info.path << std::endl;
+				LOG_ERROR("ResourceManager") << "加载游戏图片失败: " << info.path;
 				success = false;
 			}
 		}
 		else {
 			// 分割贴图
 			if (!LoadTiledTextureGL(info, "IMAGE_")) {
-				std::cerr << "加载分割贴图失败: " << info.path << std::endl;
+				LOG_ERROR("ResourceManager") << "加载分割贴图失败: " << info.path;
 				success = false;
 			}
 		}
@@ -209,13 +206,13 @@ bool ResourceManager::LoadAllParticleTextures() {
 		if (info.columns <= 1 && info.rows <= 1) {
 			std::string key = GenerateStandardKey(info.path, "PARTICLE_");
 			if (!LoadTexture(info.path, key)) {
-				std::cerr << "加载粒子纹理失败: " << info.path << std::endl;
+				LOG_ERROR("ResourceManager") << "加载粒子纹理失败: " << info.path;
 				success = false;
 			}
 		}
 		else {
 			if (!LoadTiledTextureGL(info, "PARTICLE_")) {
-				std::cerr << "加载粒子分割贴图失败: " << info.path << std::endl;
+				LOG_ERROR("ResourceManager") << "加载粒子分割贴图失败: " << info.path;
 				success = false;
 			}
 		}
@@ -231,7 +228,7 @@ bool ResourceManager::LoadAllFonts()
 	{
 		if (!LoadFont(path))
 		{
-			std::cerr << "注册字体失败: " << path << std::endl;
+			LOG_ERROR("ResourceManager") << "注册字体失败: " << path;
 			success = false;
 		}
 	}
@@ -247,7 +244,7 @@ bool ResourceManager::LoadAllSounds()
 		std::string key = GenerateStandardKey(path, "SOUND_");
 		if (!LoadSound(path, key))
 		{
-			std::cerr << "加载音效失败: " << path << std::endl;
+			LOG_ERROR("ResourceManager") << "加载音效失败: " << path;
 			success = false;
 		}
 	}
@@ -263,7 +260,7 @@ bool ResourceManager::LoadAllMusic()
 		std::string key = GenerateStandardKey(path, "MUSIC_");
 		if (!LoadMusic(path, key))
 		{
-			std::cerr << "加载音乐失败: " << path << std::endl;
+			LOG_ERROR("ResourceManager") << "加载音乐失败: " << path;
 			success = false;
 		}
 	}
@@ -282,7 +279,7 @@ bool ResourceManager::LoadAllReanimations()
 		}
 		else {
 			success = false;
-			std::cerr << "加载动画失败: " << key << " from " << path << std::endl;
+			LOG_ERROR("ResourceManager") << "加载动画失败: " << key << " from " << path;
 		}
 	}
 	return success;
@@ -301,7 +298,7 @@ bool ResourceManager::LoadAllImagesFromPath(const std::string& directory) {
 	int loadedCount = 0;
 
 	if (!fs::exists(directory) || !fs::is_directory(directory)) {
-		std::cerr << "目录不存在: " << directory << std::endl;
+		LOG_ERROR("ResourceManager") << "目录不存在: " << directory;
 		return false;
 	}
 
@@ -331,7 +328,7 @@ bool ResourceManager::LoadAllImagesFromPath(const std::string& directory) {
 	}
 
 	if (loadedCount == 0) {
-		std::cerr << "在目录 " << directory << " 中没有找到任何 JPG/PNG 图片" << std::endl;
+		LOG_ERROR("ResourceManager") << "在目录 " << directory << " 中没有找到任何 JPG/PNG 图片";
 		return false;
 	}
 
@@ -347,14 +344,11 @@ std::shared_ptr<Reanimation> ResourceManager::LoadReanimation(const std::string&
 	auto reanim = std::make_shared<Reanimation>();
 	reanim->mResourceManager = this;
 	if (!reanim->LoadFromFile(path)) {
-		std::cerr << "Failed to load reanimation: " << path << std::endl;
+		LOG_ERROR("ResourceManager") << "LoadReanimation 失败: " << path;
 		return nullptr;
 	}
 
 	mReanimations[key] = reanim;
-	//#ifdef _DEBUG
-	//    std::cout << "Successfully loaded reanimation: " << key << " from " << path << std::endl;
-	//#endif
 	return reanim;
 }
 
@@ -370,7 +364,7 @@ std::shared_ptr<Reanimation> ResourceManager::GetReanimation(const std::string& 
 		newReanim->mTracks = cachedReanim->mTracks;
 		return newReanim;
 	}
-	std::cerr << "Reanimation not found: " << key << std::endl;
+	LOG_ERROR("ResourceManager") << "GetReanimation 未找到: " << key;
 	return nullptr;
 }
 
@@ -392,21 +386,18 @@ bool ResourceManager::LoadFont(const std::string& path, const std::string& key) 
 		return true; // 已注册
 	}
 	fonts[actualKey] = std::unordered_map<int, TTF_Font*>();
-	//#ifdef _DEBUG
-	//    std::cout << "注册字体: " << path << " (key: " << actualKey << ")" << std::endl;
-	//#endif
 	return true;
 }
 
 TTF_Font* ResourceManager::GetFont(const std::string& key, int size) {
 	if (key.empty() || size <= 0) {
-		std::cerr << "无效的字体参数: key=" << key << ", size=" << size << std::endl;
+		LOG_ERROR("ResourceManager") << "GetFont 无效的字体参数: key=" << key << ", size=" << size;
 		return nullptr;
 	}
 
 	auto fontIt = fonts.find(key);
 	if (fontIt == fonts.end()) {
-		std::cerr << "字体未注册: '" << key << "'" << std::endl;
+		LOG_ERROR("ResourceManager") << "GetFont 字体未注册: '" << key << "'";
 		return nullptr;
 	}
 
@@ -434,12 +425,11 @@ TTF_Font* ResourceManager::GetFont(const std::string& key, int size) {
 
 	TTF_Font* font = TTF_OpenFont(fontPath.c_str(), size);
 	if (!font) {
-		std::cerr << "加载字体失败: " << fontPath << " size: " << size << " - " << TTF_GetError() << std::endl;
+		LOG_ERROR("ResourceManager") << "GetFont 加载字体失败: " << fontPath << " size: " << size << " - " << TTF_GetError();
 		return nullptr;
 	}
 
 	sizeMap[size] = font;
-	//std::cout << "成功加载字体: '" << key << "' size: " << size << std::endl;
 	return font;
 }
 
@@ -450,9 +440,7 @@ void ResourceManager::UnloadFont(const std::string& key) {
 			TTF_CloseFont(sizePair.second);
 		}
 		fonts.erase(it);
-#ifdef _DEBUG
-		std::cout << "卸载字体: " << key << std::endl;
-#endif
+		LOG_DEBUG("ResourceManager") << "卸载字体: " << key;
 	}
 }
 
@@ -464,9 +452,7 @@ void ResourceManager::UnloadFontSize(const std::string& key, int size) {
 		if (sizeIt != sizeMap.end()) {
 			TTF_CloseFont(sizeIt->second);
 			sizeMap.erase(sizeIt);
-#ifdef _DEBUG
-			std::cout << "卸载字体: " << key << " size: " << size << std::endl;
-#endif
+			LOG_DEBUG("ResourceManager") << "卸载字体: " << key << " size: " << size;
 			if (sizeMap.empty()) {
 				fonts.erase(fontIt);
 			}
@@ -516,7 +502,7 @@ Mix_Chunk* ResourceManager::LoadSound(const std::string& path, const std::string
 
 	Mix_Chunk* sound = Mix_LoadWAV(path.c_str());
 	if (!sound) {
-		std::cerr << "加载音效失败: " << path << " - " << Mix_GetError() << std::endl;
+		LOG_ERROR("ResourceManager") << "LoadSound 加载音效失败: " << path << " - " << Mix_GetError();
 		return nullptr;
 	}
 
@@ -529,7 +515,7 @@ Mix_Chunk* ResourceManager::GetSound(const std::string& key) {
 	if (it != sounds.end()) {
 		return it->second;
 	}
-	std::cerr << "警告: 音效未找到: " << key << std::endl;
+	LOG_WARN("ResourceManager") << "音效未找到: " << key;
 	return nullptr;
 }
 
@@ -538,9 +524,7 @@ void ResourceManager::UnloadSound(const std::string& key) {
 	if (it != sounds.end()) {
 		Mix_FreeChunk(it->second);
 		sounds.erase(it);
-#ifdef _DEBUG
-		std::cout << "卸载音效: " << key << std::endl;
-#endif
+		LOG_DEBUG("ResourceManager") << "卸载音效: " << key;
 	}
 }
 
@@ -556,7 +540,7 @@ Mix_Music* ResourceManager::LoadMusic(const std::string& path, const std::string
 
 	Mix_Music* mus = Mix_LoadMUS(path.c_str());
 	if (!mus) {
-		std::cerr << "加载音乐失败: " << path << " - " << Mix_GetError() << std::endl;
+		LOG_ERROR("ResourceManager") << "LoadMusic 加载音乐失败: " << path << " - " << Mix_GetError();
 		return nullptr;
 	}
 
@@ -569,7 +553,7 @@ Mix_Music* ResourceManager::GetMusic(const std::string& key) {
 	if (it != music.end()) {
 		return it->second;
 	}
-	std::cerr << "警告: 音乐未找到: " << key << std::endl;
+	LOG_WARN("ResourceManager") << "音乐未找到: " << key;
 	return nullptr;
 }
 
@@ -578,9 +562,7 @@ void ResourceManager::UnloadMusic(const std::string& key) {
 	if (it != music.end()) {
 		Mix_FreeMusic(it->second);
 		music.erase(it);
-#ifdef _DEBUG
-		std::cout << "卸载音乐: " << key << std::endl;
-#endif
+		LOG_DEBUG("ResourceManager") << "卸载音乐: " << key;
 	}
 }
 
@@ -634,7 +616,5 @@ void ResourceManager::UnloadAll() {
 	}
 	music.clear();
 
-#ifdef _DEBUG
-	std::cout << "已卸载所有资源" << std::endl;
-#endif
+	LOG_DEBUG("ResourceManager") << "已卸载所有资源";
 }

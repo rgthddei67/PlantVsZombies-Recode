@@ -3,10 +3,10 @@
 #define _RESOURCESXMLCONFIG_H
 
 #include "pugixml.hpp"
+#include "Logger.h"
 #include <vector>
 #include <string>
 #include <unordered_map>
-#include <iostream>
 
 // 分份贴图信息
 struct TiledImageInfo {
@@ -34,14 +34,14 @@ public:
 		pugi::xml_parse_result result = doc.load_file(xmlPath.c_str());
 
 		if (!result) {
-			std::cerr << "加载XML配置文件失败: " << xmlPath
-				<< "，错误: " << result.description() << std::endl;
+			LOG_ERROR("ResourceXML") << "加载XML配置文件失败: " << xmlPath
+				<< "，错误: " << result.description();
 			return false;
 		}
 
 		pugi::xml_node root = doc.child("Resources");
 		if (!root) {
-			std::cerr << "无效的XML配置文件结构" << std::endl;
+			LOG_ERROR("ResourceXML") << "无效的XML配置文件结构";
 			return false;
 		}
 
@@ -115,15 +115,12 @@ public:
 
 		isLoaded = true;
 
-#ifdef _DEBUG
-		std::cout << "XML配置加载成功:" << std::endl;
-		std::cout << "  游戏图片: " << gameImageInfos.size() << " 个" << std::endl;
-		std::cout << "  粒子纹理: " << particleTextureInfos.size() << " 个" << std::endl;
-		std::cout << "  字体: " << fontPaths.size() << " 个" << std::endl;
-		std::cout << "  音效: " << soundPaths.size() << " 个" << std::endl;
-		std::cout << "  音乐: " << musicPaths.size() << " 个" << std::endl;
-		std::cout << "  动画: " << reanimationPaths.size() << " 个" << std::endl;
-#endif
+		LOG_INFO("ResourceXML") << "XML配置加载成功: 游戏图片=" << gameImageInfos.size()
+			<< " 粒子纹理=" << particleTextureInfos.size()
+			<< " 字体=" << fontPaths.size()
+			<< " 音效=" << soundPaths.size()
+			<< " 音乐=" << musicPaths.size()
+			<< " 动画=" << reanimationPaths.size();
 
 		return true;
 	}
