@@ -1,4 +1,5 @@
 ﻿#include "CardDisplayComponent.h"
+#include "../Logger.h"
 #include "../ResourceKeys.h"
 #include "./Card.h"
 #include "./CardComponent.h"
@@ -10,7 +11,6 @@
 #include "../GameApp.h"
 #include "./CardSlotManager.h"
 #include "./Plant/GameDataManager.h"
-#include <iostream>
 
 CardDisplayComponent::CardDisplayComponent(PlantType type, int sunCost, float cooldown)
 	: plantType(type), needSun(sunCost), cooldownTime(cooldown) {
@@ -100,13 +100,13 @@ void CardDisplayComponent::LoadTextures() {
 	plantTexture = resourceManager.GetTexture(plantKey);
 
 	if (!cardBackground) {
-		std::cerr << "Failed to load card background texture" << std::endl;
+		LOG_ERROR("CardDisplayComponent") << "Failed to load card background texture";
 	}
 	if (!cardNormal) {
-		std::cerr << "Failed to load card normal texture" << std::endl;
+		LOG_ERROR("CardDisplayComponent") << "Failed to load card normal texture";
 	}
 	if (!plantTexture) {
-		std::cerr << "Failed to load plant texture: " << plantKey << std::endl;
+		LOG_ERROR("CardDisplayComponent") << "Failed to load plant texture: " << plantKey;
 	}
 }
 

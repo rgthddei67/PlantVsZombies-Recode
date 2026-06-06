@@ -1,4 +1,5 @@
 ﻿#include "CardSlotManager.h"
+#include "../Logger.h"
 #include "../ResourceKeys.h"
 #include "GameObject.h"
 #include "GameObjectManager.h"
@@ -8,14 +9,13 @@
 #include "./Plant/GameDataManager.h"
 #include "AudioSystem.h"
 #include "./Plant/Plant.h"
-#include <iostream>
 #include "ShadowComponent.h"
 
 CardSlotManager::CardSlotManager(Board* board)
 	: mBoard(board)
 {
 	if (!mBoard) {
-		std::cerr << "Warning: CardSlotManager created without Board reference!" << std::endl;
+		LOG_WARN("CardSlotManager") << "CardSlotManager created without Board reference!";
 	}
 }
 
@@ -97,7 +97,7 @@ void CardSlotManager::SelectCard(GameObject* card) {
 
 	auto cardComp = card->GetComponent<CardComponent>();
 	if (!cardComp) {
-		std::cout << "Card has no CardComponent" << std::endl;
+		LOG_ERROR("CardSlotManager") << "Card has no CardComponent";
 		return;
 	}
 
@@ -148,7 +148,7 @@ void CardSlotManager::DeselectCard() {
 
 bool CardSlotManager::SpendSun(int cost) {
 	if (!mBoard) {
-		std::cout << "No Board reference, cannot spend sun" << std::endl;
+		LOG_ERROR("CardSlotManager") << "No Board reference, cannot spend sun";
 		return false;
 	}
 

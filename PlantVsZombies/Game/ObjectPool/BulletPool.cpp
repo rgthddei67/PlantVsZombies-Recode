@@ -6,7 +6,7 @@
 
 #include "../Board.h"
 #include "../GameObjectManager.h"
-#include <iostream>
+#include "../../Logger.h"
 
 void BulletPool::Initialize(int initialCapacity, int warningThreshold) {
 	mInitialCapacity = initialCapacity;
@@ -72,7 +72,7 @@ std::shared_ptr<Bullet> BulletPool::AcquireShared(Board* board, BulletType type,
 			board, type, row, colliderRadius, position);
 		break;
 	default:
-		std::cout << "BulletPool::Acquire 未知的子弹类型" << std::endl;
+		LOG_ERROR("BulletPool") << "Acquire 未知的子弹类型";
 		return nullptr;
 	}
 
@@ -88,8 +88,8 @@ std::shared_ptr<Bullet> BulletPool::AcquireShared(Board* board, BulletType type,
 
 		// 警告：池大小超过阈值
 		if (static_cast<int>(mPool.size()) > mWarningThreshold) {
-			std::cout << "警告: BulletPool 大小 " << mPool.size()
-				<< " 超过阈值 " << mWarningThreshold << std::endl;
+			LOG_WARN("BulletPool") << "池大小 " << mPool.size()
+				<< " 超过阈值 " << mWarningThreshold;
 		}
 
 		return bullet;
@@ -108,7 +108,7 @@ void BulletPool::Release(Bullet* bullet) {
 
 	auto it = mBulletIndexMap.find(bullet);
 	if (it == mBulletIndexMap.end()) {
-		std::cout << "警告: BulletPool::Release 找不到对应的池对象" << std::endl;
+		LOG_WARN("BulletPool") << "Release 找不到对应的池对象";
 		return;
 	}
 
@@ -139,11 +139,11 @@ void BulletPool::Clear() {
 }
 
 void BulletPool::PrintStats() const {
-	std::cout << "=== BulletPool 统计信息 ===" << std::endl;
-	std::cout << "池大小: " << mPool.size() << " (初始容量: " << mInitialCapacity
-		<< ", 警告阈值: " << mWarningThreshold << ")" << std::endl;
-	std::cout << "活跃对象: " << mActiveCount << std::endl;
-	std::cout << "峰值对象: " << mPeakCount << std::endl;
-	std::cout << "命中次数: " << mHitCount << std::endl;
-	std::cout << "命中率: " << (GetHitRate() * 100.0f) << "%" << std::endl;
+	LOG_DEBUG("BulletPool") << "=== BulletPool 统计信息 ===";
+	LOG_DEBUG("BulletPool") << "池大小: " << mPool.size() << " (初始容量: " << mInitialCapacity
+		<< ", 警告阈值: " << mWarningThreshold << ")";
+	LOG_DEBUG("BulletPool") << "活跃对象: " << mActiveCount;
+	LOG_DEBUG("BulletPool") << "峰值对象: " << mPeakCount;
+	LOG_DEBUG("BulletPool") << "命中次数: " << mHitCount;
+	LOG_DEBUG("BulletPool") << "命中率: " << (GetHitRate() * 100.0f) << "%";
 }

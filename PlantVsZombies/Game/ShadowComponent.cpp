@@ -1,8 +1,8 @@
 ﻿#include "ShadowComponent.h"
+#include "../Logger.h"
 #include "../ResourceManager.h"
 #include "GameObject.h"
 #include <algorithm>
-#include <iostream>
 #include "Plant/Plant.h"
 #include "Zombie/Zombie.h"
 
@@ -20,10 +20,7 @@ ShadowComponent::~ShadowComponent() {
 
 void ShadowComponent::Start() {
 	if (!mShadowTexture) {
-#ifdef _DEBUG
-		std::cout <<
-			"ShadowComponent: No shadow texture set, using default texture." << std::endl;
-#endif
+		LOG_DEBUG("ShadowComponent") << "No shadow texture set, using default texture.";
 		mShadowTexture = ResourceManager::GetInstance().GetTexture(
 			ResourceKeys::Textures::IMAGE_PLANTSHADOW);
 	}
@@ -38,7 +35,7 @@ void ShadowComponent::Draw(Graphics* g) {
 	Vector shadowPos = Vector(0, 0);
 	auto transform = gameObject->GetComponent<TransformComponent>();
 	if (!transform) {
-		std::cout << "ShadowComponent: GameObject has no TransformComponent." << std::endl;
+		LOG_ERROR("ShadowComponent") << "GameObject has no TransformComponent.";
 		return;
 	}
 	Vector objPos = transform->GetPosition();
@@ -47,7 +44,7 @@ void ShadowComponent::Draw(Graphics* g) {
 		shadowPos = objPos + mOffset;
 	}
 	else {
-		std::cout << "ShadowComponent: GameObject is not Plant or Zombie." << std::endl;
+		LOG_WARN("ShadowComponent") << "GameObject is not Plant or Zombie.";
 		return;
 	}
 

@@ -1,5 +1,6 @@
 ﻿#include "../Game/AudioSystem.h"
 #include "../ResourceManager.h"
+#include "../Logger.h"
 #include <algorithm>
 
 float AudioSystem::masterVolume = 1.0f;
@@ -11,20 +12,11 @@ bool AudioSystem::Initialize()
 {
 	if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0)
 	{
-		std::cerr << "音频初始化失败: " << Mix_GetError() << std::endl;
+		LOG_ERROR("AudioSystem") << "音频初始化失败: " << Mix_GetError();
 		return false;
 	}
 
 	Mix_AllocateChannels(128);
-	/*
-	// 加载保存的音量设置
-	LoadVolumeSettings();
-
-	std::cout << "音频系统初始化成功" << std::endl;
-	std::cout << "主音量: " << masterVolume
-		<< ", 音效音量: " << soundVolume
-		<< ", 音乐音量: " << musicVolume << std::endl;
-	*/
 	return true;
 }
 
@@ -127,8 +119,6 @@ void AudioSystem::PlaySound(const std::string& soundKey, float volume, int loops
 
 		Mix_VolumeChunk(sound, finalVolume);
 		Mix_PlayChannel(-1, sound, loops);
-
-		//std::cout << "播放音效: " << soundKey << " 指定音量: " << volume << " 最终音量: " << finalVolume << std::endl;
 	}
 }
 
@@ -151,8 +141,6 @@ void AudioSystem::PlaySound(const std::string& soundKey, float volume, int loops
 		else {
 			Mix_PlayChannel(-1, sound, loops);
 		}
-
-		//std::cout << "播放音效: " << soundKey << " 声道: " << channel << " 音量: " << finalVolume << std::endl;
 	}
 }
 
@@ -169,8 +157,6 @@ void AudioSystem::PlayMusic(const std::string& musicKey, int loops)
 
 		Mix_VolumeMusic(finalVolume);
 		Mix_PlayMusic(music, loops);
-
-		//std::cout << "播放音乐: " << musicKey << " 音量: " << finalVolume << std::endl;
 	}
 }
 

@@ -3,7 +3,7 @@
 #include "../DeltaTime.h"
 #include "../GameRandom.h"
 #include "../GameAPP.h"
-#include <iostream>
+#include "../Logger.h"
 
 AnimatedObject::AnimatedObject(ObjectType type,
 	Board* board,
@@ -42,8 +42,8 @@ AnimatedObject::AnimatedObject(ObjectType type,
 		mIsPlaying = true;
 	}
 	else {
-		std::cerr << "AnimatedObject::Start failed: cannot load animation for type "
-			<< static_cast<int>(mAnimType) << std::endl;
+		LOG_ERROR("AnimatedObject") << "cannot load animation for type "
+			<< static_cast<int>(mAnimType);
 	}
 
 	PlayAnimation();

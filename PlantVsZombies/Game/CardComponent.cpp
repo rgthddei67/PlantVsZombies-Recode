@@ -1,4 +1,5 @@
 #include "CardComponent.h"
+#include "../Logger.h"
 #include "../ResourceKeys.h"
 #include "CardDisplayComponent.h"
 #include "ClickableComponent.h"
@@ -53,7 +54,7 @@ void CardComponent::SetCardChooseClick(GameObject* gameObject, Card* card)
 			}
 
 			if (!chooseUI) {
-				std::cerr << "ChooseCardUI not found!" << std::endl;
+				LOG_ERROR("CardComponent") << "ChooseCardUI not found!";
 				return;
 			}
 
@@ -197,9 +198,7 @@ GameObject* CardComponent::FindCardSlotManagerHost() const {
 			}
 		}
 	}
-#ifdef _DEBUG
-	std::cerr << "Warning: No CardSlotManager found in scene!" << std::endl;
-#endif
+	LOG_WARN("CardComponent") << "No CardSlotManager found in scene!";
 	return nullptr;
 }
 
@@ -210,7 +209,7 @@ CardSlotManager* CardComponent::GetCardSlotManager() const {
 		}
 	}
 	// 缓存失效，重新查找
-	std::cerr << "Warning: CardSlotManager host invalid, re-finding..." << std::endl;
+	LOG_WARN("CardComponent") << "CardSlotManager host invalid, re-finding...";
 	auto* host = FindCardSlotManagerHost();
 	if (host) {
 		this->mCardSlotManagerHost = host;
