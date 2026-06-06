@@ -102,8 +102,26 @@ std::vector<int> EntityManager::GetAllCoinIDs() const {
 	return ids;
 }
 
+void EntityManager::EnsureZombieRowIndex() {
+	if (!mRowIndexDirty) return;
+	// clear() 保留各桶 capacity，跨帧复用，避免反复堆分配。
+	for (auto& bucket : mZombiesByRow) bucket.clear();
+	for (const auto& pair : mZombies) {
+		if (auto z = pair.second.lock()) {
+			int row = z->mRow;  // 唯一真相源：换行只改这里，下一帧重建即归位
+			if (row >= 0 && row < kMaxRows)
+				mZombiesByRow[row].push_back(z.get());
+		}
+	}
+	mRowIndexDirty = false;
+}
+
 std::vector<int> EntityManager::CleanupExpired() {
 	std::vector<int> removedPlants;
+
+	// 每帧标脏：僵尸的增/删/换行都会改变按行分布，统一靠"下一帧首次查询时重建"兜住，
+	// 无需在 Add/Die/换行各处接线（重建只在真的有人 ForEachZombieInRow 查询的帧才触发）。
+	mRowIndexDirty = true;
 
 	// 清理植物：每帧扫，返回值用于 Board cell 同步（需准实时）
 	for (auto it = mPlants.begin(); it != mPlants.end(); ) {

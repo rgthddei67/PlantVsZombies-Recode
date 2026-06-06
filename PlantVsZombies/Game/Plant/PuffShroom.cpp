@@ -40,22 +40,16 @@ bool PuffShroom::HasZombieInRow()
 		if (mCheckZombieTimer >= 0.6f)
 		{
 			mCheckZombieTimer = 0.0f;
-			EntityManager& manager = mBoard->mEntityManager;
-			std::vector<int> zombieIDs = manager.GetAllZombieIDs();
-			for (auto zombieID : zombieIDs)
-			{
-				if (auto zombie = manager.GetZombie(zombieID))
-				{
-					float thisX = GetPosition().x;
-					float zombieX = zombie->GetPosition().x;
-					float dx = zombieX - thisX;
-
-					if (zombie->mRow == this->mRow && dx >= 0 && dx <= 300.0f)
-					{
-						return true;
-					}
-				}
-			}
+			// 按行索引：只遍历本行僵尸，mRow 过滤已由桶保证。
+			const float thisX = GetPosition().x;
+			bool found = false;
+			mBoard->mEntityManager.ForEachZombieInRow(mRow, [&](Zombie* zombie) {
+				if (found) return;  // 已命中，跳过本行其余
+				float dx = zombie->GetPosition().x - thisX;
+				if (dx >= 0 && dx <= 300.0f)
+					found = true;
+			});
+			return found;
 		}
 	}
 	return false;

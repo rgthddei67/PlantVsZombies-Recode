@@ -7,29 +7,24 @@ int Chomper::FindTargetZombieID()
 {
 	if (!mBoard) return NULL_ZOMBIE_ID;
 
-	auto& mgr = mBoard->mEntityManager;
-	auto ids = mgr.GetAllZombieIDs();
-
 	int   closestID = NULL_ZOMBIE_ID;
 	float closestDistance = FLT_MAX;
 	Vector myPos = GetPosition();
 
-	for (int id : ids) {
-		auto* z = mgr.GetZombie(id);
-		if (!z) continue;
-		if (z->mRow != mRow) continue;
-		if (z->IsMindControlled()) continue;
-		if (!z->HasHead()) continue;
+	// 按行索引：只遍历本行僵尸，mRow 过滤已由桶保证。
+	mBoard->mEntityManager.ForEachZombieInRow(mRow, [&](Zombie* z) {
+		if (z->IsMindControlled()) return;
+		if (!z->HasHead()) return;
 
 		float dx = z->GetPosition().x - myPos.x;
-		if (dx < 0.0f) continue;
-		if (dx > CHOMP_RANGE_X) continue;
+		if (dx < 0.0f) return;
+		if (dx > CHOMP_RANGE_X) return;
 
 		if (dx < closestDistance) {
 			closestDistance = dx;
-			closestID = id;
+			closestID = z->mZombieID;
 		}
-	}
+	});
 	return closestID;
 }
 

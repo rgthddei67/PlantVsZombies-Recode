@@ -4,6 +4,7 @@
 #include <memory>
 #include <unordered_map>
 #include <vector>
+#include <array>
 
 class Plant;
 class Zombie;
@@ -58,6 +59,17 @@ public:
 	// 植物每帧扫（用于 cell 同步），僵尸/coin/mower 每 CLEANUP_FULL_INTERVAL 帧扫一次（纯内存 hygiene）
 	std::vector<int> CleanupExpired();
 
+	// 按行遍历存活僵尸，避免射手/嗅食类植物每次都全表扫描 + 双重 weak_ptr.lock。
+	// 索引是"惰性、每帧重建"的（参照 CollisionSystem 的按行分桶）：唯一真相源是僵尸的 mRow。
+	// 因此僵尸换行（如后期的大蒜）只需改 mRow，下一帧首次查询时索引自动归位，无需任何额外通知。
+	// fn 签名为 void(Zombie*)；只回调本行存活僵尸。
+	template<typename Fn>
+	void ForEachZombieInRow(int row, Fn&& fn) {
+		if (row < 0 || row >= kMaxRows) return;
+		EnsureZombieRowIndex();
+		for (Zombie* z : mZombiesByRow[row]) fn(z);
+	}
+
 private:
 	// 每 N 帧做一次"重表"全扫；植物表始终每帧扫
 	static constexpr int CLEANUP_FULL_INTERVAL = 30;
@@ -74,6 +86,14 @@ private:
 	std::unordered_map<int, std::weak_ptr<Bullet>> mBullets;
 	std::unordered_map<int, std::weak_ptr<Coin>> mCoins;
 	std::unordered_map<int, std::weak_ptr<Mower>> mMowers;
+
+	// ── 僵尸按行空间索引（瞬态、每帧惰性重建）──
+	// 与 CollisionSystem::MAX_ROWS 取同值：行号上界，桶用裸指针（删除在 GameObjectManager
+	// 里延迟到帧末统一处理，故同帧内裸指针有效，无悬垂）。
+	static constexpr int kMaxRows = 8;
+	std::array<std::vector<Zombie*>, kMaxRows> mZombiesByRow;
+	bool mRowIndexDirty = true;  // 每帧由 CleanupExpired 置脏；首次 ForEachZombieInRow 查询时重建
+	void EnsureZombieRowIndex();
 };
 
 #endif
