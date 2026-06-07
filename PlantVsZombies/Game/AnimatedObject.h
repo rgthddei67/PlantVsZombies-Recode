@@ -78,7 +78,8 @@ public:
 	bool PlayTrackOnce(const std::string& trackName,
 		const std::string& returnTrack = "",
 		float speed = 0.0f,
-		float blendTime = 0.0f);
+		float blendTime = 0.0f,
+		float returnSpeed = 0.0f);
 
 	void SetFramesForLayer(const std::string& trackName);
 

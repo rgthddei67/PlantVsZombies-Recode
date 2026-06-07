@@ -190,6 +190,18 @@ void GameScene::OnEnter() {
 		mCurrentStage = IntroStage::FINISH;
 		mCurrectSceneX = mGameStartX;
 		mSeedbankAdded = true;
+
+		// 生存第 1 轮的 committed-pan 退出存档（点完"摇滚"但过场途中退出）里没有小推车：
+		// 那份 GAME 快照存盘时 StartGame() 从未运行过，小推车尚未生成。清读档标记，
+		// 让下面的 StartGame 正常初始化小推车。判别条件无歧义：第 0 波时小推车不可能被用掉
+		// （触发小推车需僵尸、僵尸需波次≥1），故"第1轮+第0波+无小推车" 只可能是 committed-pan。
+		// 第 2 轮起小推车从第 1 轮保留、已在存档中，不进此分支（mIsLoadSave 维持 true，绝不重建）。
+		if (mBoard->mIsSurvival && mBoard->mSurvivalRound == 1
+			&& mBoard->mCurrentWave == 0
+			&& mBoard->mEntityManager.GetAllMowerIDs().empty()) {
+			mBoard->mIsLoadSave = false;
+		}
+
 		mBoard->StartGame();
 
 		AddTexture(ResourceKeys::Textures::IMAGE_SEEDBANK_LONG,
@@ -211,6 +223,14 @@ void GameScene::OnEnter() {
 
 void GameScene::OnExit() {
 	auto& gameApp = GameAPP::GetInstance();
+	// 生存模式：玩家已点"一起摇滚吧"进入回移过场（READY_SET_PLANT）、但 mBoardState 要等过场结束
+	// 才翻成 GAME 的这 3 秒窗口里退出——此刻卡已提交、本轮在即，逻辑上已"进入游戏"。
+	// 按 GAME 持久化，避免重进被误判为"仍在选卡"而重播选卡（卡槽还原committed卡 → 可重复选卡的错乱）。
+	// 仅 survival 分支：普通模式过场期 mBoardState 同为 CHOOSE_CARD，但 mIsSurvival=false 不进此分支，行为零改动。
+	if (mBoard->mIsSurvival && mBoard->mBoardState == BoardState::CHOOSE_CARD
+		&& mCurrentStage == IntroStage::READY_SET_PLANT) {
+		mBoard->mBoardState = BoardState::GAME;
+	}
 	const bool saveState = (mBoard->mBoardState == BoardState::GAME) ||
 		(mBoard->mIsSurvival && mBoard->mBoardState == BoardState::CHOOSE_CARD);
 	if (saveState && !mReadyToRestart) {

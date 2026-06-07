@@ -98,6 +98,7 @@ void Zombie::SaveProtectedData(nlohmann::json& j) const {
 	j["hasTongue"] = mHasTongue;
 	j["isDying"] = mIsDying;
 	j["speed"] = mSpeed;
+	j["extraSpeed"] = mExtraSpeed;   // extra 速度层基准（如狂暴报纸僵尸 2.5、铁桶快僵随机值）
 	j["cooldownTimer"] = mCooldownTimer;
 	j["dyingTimer"] = mDyingTimer;
 }
@@ -111,9 +112,16 @@ void Zombie::LoadProtectedData(const nlohmann::json& j) {
 	mHasTongue = j.value("hasTongue", false);
 	mIsDying = j.value("isDying", false);
 	mSpeed = j.value("speed", 10.0f);
+
+	// 必须在 SetCooldown 之前恢复：SetCooldown 内部用 mExtraSpeed*0.6 设置减速倍率，
+	// 若此刻 mExtraSpeed 仍是默认 1.0，减速会被错算（应为 base*0.6）。
+	mExtraSpeed = j.value("extraSpeed", 1.0f);
 	float cooldown = j.value("cooldownTimer", 0.0f);
 	if (cooldown > 0.0f) {
-		this->SetCooldown(cooldown);
+		this->SetCooldown(cooldown);                       // 用已恢复的 mExtraSpeed，正确得到 base*0.6
+	}
+	else if (mAnimator) {
+		mAnimator->SetExtraSpeedMultiplier(mExtraSpeed);   // 无减速：直接应用基准（狂暴 2.5 等）
 	}
 
 	mDyingTimer = j.value("dyingTimer", 0.0f);

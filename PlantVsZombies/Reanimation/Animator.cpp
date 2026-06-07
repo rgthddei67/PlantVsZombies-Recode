@@ -97,13 +97,14 @@ bool Animator::PlayTrack(const std::string& trackName, float speed, float blendT
 }
 
 bool Animator::PlayTrackOnce(const std::string& trackName, const std::string& returnTrack,
-	float speed, float blendTime) {
+	float speed, float blendTime, float returnSpeed) {
 	if (!PlayTrack(trackName, speed, blendTime)) {
 		return false;
 	}
 
 	mPlayingState = PlayState::PLAY_ONCE_TO;
 	mTargetTrack = returnTrack;
+	mTargetTrackSpeed = returnSpeed;   // 回切时用，0=回落 base（保持旧行为）
 
 	return true;
 }
@@ -147,8 +148,9 @@ void Animator::Update() {
 			mFrameIndexNow = mFrameIndexEnd;
 			mIsPlaying = false;
 			if (!mTargetTrack.empty()) {
-				PlayTrack(mTargetTrack, 0.0f, 0.5f);   // speed=0 → clip 清零，回落 base
+				PlayTrack(mTargetTrack, mTargetTrackSpeed, 0.5f);   // 用 PlayTrackOnce 指定的回切速度（0=回落 base）
 				mTargetTrack = "";
+				mTargetTrackSpeed = 0.0f;
 			}
 			break;
 		case PlayState::PLAY_NONE:
@@ -249,8 +251,9 @@ void Animator::UpdateParallelDeferred(std::vector<DeferredEvent>& outBuf) {
 			mFrameIndexNow = mFrameIndexEnd;
 			mIsPlaying = false;
 			if (!mTargetTrack.empty()) {
-				PlayTrack(mTargetTrack, 0.0f, 0.5f);   // speed=0 → clip 清零，回落 base
+				PlayTrack(mTargetTrack, mTargetTrackSpeed, 0.5f);   // 用 PlayTrackOnce 指定的回切速度（0=回落 base）
 				mTargetTrack = "";
+				mTargetTrackSpeed = 0.0f;
 			}
 			break;
 		case PlayState::PLAY_NONE:

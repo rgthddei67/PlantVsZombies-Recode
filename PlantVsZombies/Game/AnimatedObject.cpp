@@ -237,8 +237,8 @@ bool AnimatedObject::PlayTrack(const std::string& trackName, float speed, float 
 }
 
 bool AnimatedObject::PlayTrackOnce(const std::string& trackName,
-	const std::string& returnTrack, float speed, float blendTime) {
-	return mAnimator ? mAnimator->PlayTrackOnce(trackName, returnTrack, speed, blendTime) : false;
+	const std::string& returnTrack, float speed, float blendTime, float returnSpeed) {
+	return mAnimator ? mAnimator->PlayTrackOnce(trackName, returnTrack, speed, blendTime, returnSpeed) : false;
 }
 
 float AnimatedObject::GetClipSpeed() const

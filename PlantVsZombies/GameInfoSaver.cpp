@@ -248,6 +248,21 @@ bool GameInfoSaver::SaveLevelData(Board* board, CardSlotManager* manager)
 	}
 	j["cards"] = cardsArr;
 
+	// 生存轮间空槽重选的冷却快照：选卡阶段卡槽已被清空，仍在冷却的卡牌冷却进度暂存在 GameScene 的
+	// mSurvivalCardCooldowns 里（而非卡槽）。它是该进度的唯一载体，必须单独持久化，否则选卡界面
+	// 退出重进后快照丢失 → 选完卡冷却被清零。仅 survival 写入，普通模式无此字段、行为不变。
+	if (board->mIsSurvival && board->mGameScene) {
+		nlohmann::json cooldownArr = nlohmann::json::array();
+		for (const auto& [type, cd] : board->mGameScene->GetSurvivalCardCooldowns()) {
+			nlohmann::json c;
+			c["plantType"] = static_cast<int>(type);
+			c["cooldownTimer"] = cd.first;
+			c["cooldownTime"] = cd.second;
+			cooldownArr.push_back(c);
+		}
+		j["survivalCardCooldowns"] = cooldownArr;
+	}
+
 	std::string filename = "./saves/level" + std::to_string(board->mLevel) + "_data.json";
 	return FileManager::SaveJsonFile(filename, j);
 }
@@ -496,6 +511,17 @@ bool GameInfoSaver::LoadLevelData(Board* board, CardSlotManager* manager)
 			}
 			manager->AddCard(card);
 		}
+	}
+
+	// 恢复生存轮间冷却快照（见 SaveLevelData 同名字段注释）。必须在 ChooseCardComplete 还原冷却之前就位，
+	// 而本函数在 OnEnter 选卡分支之前执行，时序成立。普通模式无此字段，contains 为假直接跳过。
+	if (board->mIsSurvival && board->mGameScene && j.contains("survivalCardCooldowns")) {
+		std::unordered_map<PlantType, std::pair<float, float>> cooldowns;
+		for (auto& c : j["survivalCardCooldowns"]) {
+			PlantType type = static_cast<PlantType>(c["plantType"].get<int>());
+			cooldowns[type] = { c.value("cooldownTimer", 0.0f), c.value("cooldownTime", 0.0f) };
+		}
+		board->mGameScene->SetSurvivalCardCooldowns(std::move(cooldowns));
 	}
 
 	// 恢复旗子升起状态，并立刻对齐进度条滑块（跳过缓动动画）

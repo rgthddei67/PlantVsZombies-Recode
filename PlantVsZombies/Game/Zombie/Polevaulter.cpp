@@ -141,10 +141,10 @@ void Polevaulter::JumpMove(float distance)
 	}
 }
 
-void Polevaulter::ZombieMove(float deltaTime, TransformComponent* transform)
+void Polevaulter::ZombieMove(float scaledDelta, TransformComponent* transform)
 {
 	if (this->mVaultState == VaultState::JUMPING) return;
-	Zombie::ZombieMove(deltaTime, transform);
+	Zombie::ZombieMove(scaledDelta, transform);
 }
 
 void Polevaulter::ValidateEatingState(EntityManager& em)

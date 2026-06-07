@@ -73,6 +73,15 @@ public:
 
 	void ShowShovel();
 
+	// 生存轮间空槽重选的冷却快照存取：该快照是选卡阶段"仍在冷却卡牌"冷却进度的唯一载体
+	// （卡槽此刻已被 ClearAllCards 清空），必须能被存档持久化，否则选卡界面退出重进冷却会清零。
+	const std::unordered_map<PlantType, std::pair<float, float>>& GetSurvivalCardCooldowns() const {
+		return mSurvivalCardCooldowns;
+	}
+	void SetSurvivalCardCooldowns(std::unordered_map<PlantType, std::pair<float, float>> cooldowns) {
+		mSurvivalCardCooldowns = std::move(cooldowns);
+	}
+
 protected:
 	void BuildDrawCommands() override;
 

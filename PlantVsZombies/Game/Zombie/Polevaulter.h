@@ -33,7 +33,7 @@ protected:
 	void SaveExtraData(nlohmann::json& j) const override;
 	void LoadExtraData(const nlohmann::json& j) override;
 	void SetupZombie() override;
-	void ZombieMove(float deltaTime, TransformComponent* transform) override;
+	void ZombieMove(float scaledDelta, TransformComponent* transform) override;
 };
 
 #endif
