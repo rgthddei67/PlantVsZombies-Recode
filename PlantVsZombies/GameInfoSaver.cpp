@@ -164,7 +164,7 @@ bool GameInfoSaver::SaveLevelData(Board* board, CardSlotManager* manager)
 		z["animTrack"] = zombie->GetCurrentTrackName();
 		z["animFrame"] = zombie->GetCurrentFrame();
 		z["animSpeed"] = zombie->GetAnimationSpeed();
-		z["animOriginalSpeed"] = zombie->GetOriginalSpeed();
+		z["animClipSpeed"] = zombie->GetClipSpeed();
 		nlohmann::json extraData;
 		zombie->SaveExtraData(extraData);
 		if (!extraData.empty()) {
@@ -392,10 +392,10 @@ bool GameInfoSaver::LoadLevelData(Board* board, CardSlotManager* manager)
 			zombie->LoadProtectedData(z);
 			std::string track = z.value("animTrack", "");
 			if (!track.empty()) {
-				zombie->PlayTrack(track);
+				zombie->PlayTrack(track);                                  // 会把 clip 清零
 				zombie->SetCurrentFrame(z.value("animFrame", 0.0f));
-				zombie->SetAnimationSpeed(z.value("animSpeed", 1.0f));
-				zombie->SetOriginalSpeed(z.value("animOriginalSpeed", 1.0f));
+				zombie->SetAnimationSpeed(z.value("animSpeed", 1.0f));     // 恢复 base
+				zombie->SetClipSpeed(z.value("animClipSpeed", 0.0f));      // 再恢复轨道覆盖
 			}
 
 			if (z.contains("extraData")) {

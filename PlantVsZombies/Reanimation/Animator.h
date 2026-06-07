@@ -38,8 +38,9 @@ private:
 	float mFrameIndexNow = 0.0f;             ///< 当前帧索引 (浮点，支持插值)
 	float mFrameIndexBegin = 0.0f;           ///< 起始帧索引
 	float mFrameIndexEnd = 0.0f;              ///< 结束帧索引
-	float mSpeed = 1.0f;                      ///< 播放速度倍率
-	float mExtraSpeedMultiplier = 1.0f;       ///< 额外速度倍率 (独立于 mSpeed，与 PlayTrack/SetSpeed 正交，用于减速等状态效果)
+	float mSpeed = 1.0f;                      ///< 基础播放速度 (每实例随机的 base，PlayTrack 不再覆盖它)
+	float mClipSpeed = 0.0f;                  ///< 当前轨道的绝对速度覆盖；0 = 回落到 mSpeed。每次 PlayTrack 重设，随轨道作用域
+	float mExtraSpeedMultiplier = 1.0f;       ///< 额外速度倍率 (正交状态层，减速/冻结，跨 PlayTrack 存活)
 	float mAlpha = 1.0f;                      ///< 整体透明度
 
 	// 过渡动画相关
@@ -61,7 +62,6 @@ private:
 
 	// 过渡目标
 	std::string mTargetTrack = "";              ///< 播放一次后要切换到的轨道名
-	float mOriginalSpeed = 1.0f;                ///< 原始速度 (用于恢复)
 
 	struct FrameEvent {
 		std::function<void()> callback;
@@ -125,7 +125,7 @@ public:
 	/**
 	 * @brief 播放指定轨道动画，支持过渡效果
 	 * @param trackName 轨道名
-	 * @param speed 播放速度倍率，0.0表示保持当前速度不变，>0时自动保存原始速度
+	 * @param speed 轨道绝对播放速度，0.0=回落到基础速度(base)，>0=本轨道固定用该速度
 	 * @param blendTime 过渡时间 (秒)，0表示无过渡
 	 * @return 是否成功
 	 */
@@ -135,7 +135,7 @@ public:
 	 * @brief 播放指定轨道动画一次，播放完后可切换回另一轨道
 	 * @param trackName 要播放的轨道名
 	 * @param returnTrack 播放完后要返回的轨道名 (为空则不切换)
-	 * @param speed 播放速度倍率，0.0表示保持当前速度不变，>0时自动保存原始速度
+	 * @param speed 轨道绝对播放速度，0.0=回落到基础速度(base)，>0=本轨道固定用该速度
 	 * @param blendTime 过渡时间
 	 * @return 是否成功
 	 */
@@ -144,20 +144,6 @@ public:
 		float speed = 0.0f,
 		float blendTime = 0);
 
-	/**
-	 * @brief 设置原始速度 (用于恢复)
-	 */
-	void SetOriginalSpeed(float speed) { this->mOriginalSpeed = speed; }
-
-	/**
-	 * @brief 获取原始速度
-	 */
-	float GetOriginalSpeed() { return this->mOriginalSpeed; }
-
-	/**
-	 * @brief 恢复到原始速度
-	 */
-	void RestoreSpeed() { SetSpeed(mOriginalSpeed); }
 
 	// ---------- 轨道范围控制 ----------
 	/**
@@ -250,6 +236,24 @@ public:
 	 * @brief 获取播放速度倍率
 	 */
 	float GetSpeed() const { return mSpeed; }
+
+	/**
+	 * @brief 设置当前轨道的绝对速度覆盖 (0 = 回落到基础速度 mSpeed)。
+	 *        会递归到所有附加子动画，复刻旧 SetSpeed 的递归语义。
+	 */
+	void SetClipSpeed(float clipSpeed);
+
+	/**
+	 * @brief 获取当前轨道速度覆盖值 (0 表示正使用基础速度)
+	 */
+	float GetClipSpeed() const { return mClipSpeed; }
+
+	/**
+	 * @brief 实际生效的播放速度 = (clip 覆盖优先, 否则 base) * 状态倍率
+	 */
+	float EffectiveSpeed() const {
+		return (mClipSpeed != 0.0f ? mClipSpeed : mSpeed) * mExtraSpeedMultiplier;
+	}
 
 	/**
 	 * @brief 设置额外速度倍率 (独立于 mSpeed，与 PlayTrack/SetSpeed 正交)

@@ -489,8 +489,7 @@ void Zombie::StopEat(ColliderComponent* other)
 			if (mEatPlantID != plant->mPlantID || plant->mRow != this->mRow) return;
 
 			if (mIsEating) {
-				this->PlayTrack("anim_walk2", 0.0f, 0.2f);
-				this->RestoreSpeed();
+				this->PlayTrack("anim_walk2", 0.0f, 0.2f);   // clip 清零，自动回落走速
 				plant->mEaterCount--;
 			}
 			mIsEating = false;
@@ -550,8 +549,7 @@ void Zombie::ValidateEatingState(EntityManager& em)
 		if (!plant) {
 			mIsEating = false;
 			mEatPlantID = NULL_PLANT_ID;
-			PlayTrack("anim_walk2", 0.0f, 0.3f);
-			RestoreSpeed();
+			PlayTrack("anim_walk2", 0.0f, 0.3f);   // clip 清零，自动回落走速
 		}
 		else {
 			plant->mEaterCount++;

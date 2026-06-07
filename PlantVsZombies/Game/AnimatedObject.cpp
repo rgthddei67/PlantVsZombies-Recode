@@ -241,28 +241,16 @@ bool AnimatedObject::PlayTrackOnce(const std::string& trackName,
 	return mAnimator ? mAnimator->PlayTrackOnce(trackName, returnTrack, speed, blendTime) : false;
 }
 
-float AnimatedObject::GetOriginalSpeed()
+float AnimatedObject::GetClipSpeed() const
 {
-	if (mAnimator)
-	{
-		return mAnimator->GetOriginalSpeed();
-	}
-	return 0.0f;
+	return mAnimator ? mAnimator->GetClipSpeed() : 0.0f;
 }
 
-void AnimatedObject::SetOriginalSpeed(float speed)
+void AnimatedObject::SetClipSpeed(float speed)
 {
 	if (mAnimator)
 	{
-		mAnimator->SetOriginalSpeed(speed);
-	}
-}
-
-void AnimatedObject::RestoreSpeed()
-{
-	if (mAnimator)
-	{
-		mAnimator->RestoreSpeed();
+		mAnimator->SetClipSpeed(speed);
 	}
 }
 

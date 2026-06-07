@@ -85,10 +85,9 @@ bool Animator::PlayTrack(const std::string& trackName, float speed, float blendT
 		mReanimBlendCounter = -1.0f;
 	}
 
-	if (speed > 0.0f) {
-		mOriginalSpeed = mSpeed;
-		SetSpeed(speed);
-	}
+	// speed>0 → 本轨道绝对速度覆盖；speed==0 → 清除覆盖，回落到基础速度 mSpeed。
+	// 递归到子动画，确保附加配件(铁桶/路障/报纸/头部)跟随同样的轨道速度。
+	SetClipSpeed(speed > 0.0f ? speed : 0.0f);
 
 	mIsPlaying = true;
 	mPlayingState = PlayState::PLAY_REPEAT;
@@ -129,8 +128,8 @@ void Animator::Update() {
 	float deltaTime = DeltaTime::GetDeltaTime();
 	float oldFrame = mFrameIndexNow;   // 记录更新前的帧索引
 
-	// 帧索引前进 (mExtraSpeedMultiplier 让状态效果如减速可独立于 mSpeed)
-	float frameAdvance = deltaTime * mFPS * mSpeed * mExtraSpeedMultiplier;
+	// 帧索引前进：clip 覆盖优先于 base，再乘状态层(减速)
+	float frameAdvance = deltaTime * mFPS * EffectiveSpeed();
 	mFrameIndexNow += frameAdvance;
 
 	// 处理动画结束/循环逻辑
@@ -148,8 +147,7 @@ void Animator::Update() {
 			mFrameIndexNow = mFrameIndexEnd;
 			mIsPlaying = false;
 			if (!mTargetTrack.empty()) {
-				PlayTrack(mTargetTrack, 0.0f, 0.5f);
-				RestoreSpeed();
+				PlayTrack(mTargetTrack, 0.0f, 0.5f);   // speed=0 → clip 清零，回落 base
 				mTargetTrack = "";
 			}
 			break;
@@ -234,7 +232,7 @@ void Animator::UpdateParallelDeferred(std::vector<DeferredEvent>& outBuf) {
 	float deltaTime = DeltaTime::GetDeltaTime();
 	float oldFrame = mFrameIndexNow;
 
-	float frameAdvance = deltaTime * mFPS * mSpeed * mExtraSpeedMultiplier;
+	float frameAdvance = deltaTime * mFPS * EffectiveSpeed();
 	mFrameIndexNow += frameAdvance;
 
 	bool reachedEnd = mFrameIndexNow >= mFrameIndexEnd;
@@ -251,8 +249,7 @@ void Animator::UpdateParallelDeferred(std::vector<DeferredEvent>& outBuf) {
 			mFrameIndexNow = mFrameIndexEnd;
 			mIsPlaying = false;
 			if (!mTargetTrack.empty()) {
-				PlayTrack(mTargetTrack, 0.0f, 0.5f);
-				RestoreSpeed();
+				PlayTrack(mTargetTrack, 0.0f, 0.5f);   // speed=0 → clip 清零，回落 base
 				mTargetTrack = "";
 			}
 			break;
@@ -567,6 +564,21 @@ void Animator::SetSpeed(float speed) {
 	}
 }
 
+void Animator::SetClipSpeed(float clipSpeed) {
+	this->mClipSpeed = clipSpeed;
+
+	// 递归到附加子动画，复刻旧 SetSpeed 的传播语义：
+	// 父轨道切到 eat(2.1)/walk(回落) 时，附加配件同步同样的速度
+	for (size_t i = 0; i < mExtraInfos.size(); i++) {
+		for (size_t j = 0; j < mExtraInfos[i].mAttachedReanims.size(); j++) {
+			auto child = mExtraInfos[i].mAttachedReanims[j].lock();
+			if (child) {
+				child->SetClipSpeed(clipSpeed);
+			}
+		}
+	}
+}
+
 void Animator::SetAlpha(float alpha) {
 	this->mAlpha = alpha;
 
@@ -792,7 +804,7 @@ float Animator::GetTrackVelocity(int trackIndex) const {
 	float xAfter = track->mFrames[frameAfter].x;
 	float dx = xAfter - xBefore;
 
-	float velocity = dx * mSpeed * mExtraSpeedMultiplier;
+	float velocity = dx * EffectiveSpeed();
 	return std::abs(velocity);
 }
 

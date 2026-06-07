@@ -58,8 +58,8 @@ public:
 	float GetAnimationSpeed() const;
 	void SetAlpha(float alpha);
 	float GetAlpha() const;
-	void SetOriginalSpeed(float speed);
-	float GetOriginalSpeed();
+	void SetClipSpeed(float speed);
+	float GetClipSpeed() const;
 
 	// 轨道附加
 	bool AttachAnimatorToTrack(const std::string& trackName, std::shared_ptr<Animator> childAnimator);
@@ -79,7 +79,6 @@ public:
 		const std::string& returnTrack = "",
 		float speed = 0.0f,
 		float blendTime = 0.0f);
-	void RestoreSpeed();
 
 	void SetFramesForLayer(const std::string& trackName);
 

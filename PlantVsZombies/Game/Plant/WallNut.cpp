@@ -17,11 +17,10 @@ void WallNut::PlantUpdate()
 	// 被啃食时暂停动画，不再被啃食时恢复
 	bool isBeingEaten = mEaterCount > 0;
 	if (isBeingEaten && !mWasBeingEaten) {
-		mAnimator->SetOriginalSpeed(mAnimator->GetSpeed());
-		mAnimator->SetSpeed(0);
+		mAnimator->SetExtraSpeedMultiplier(0.0f);   // 被啃食：状态层暂停动画，不动 base
 	}
 	else if (!isBeingEaten && mWasBeingEaten) {
-		mAnimator->RestoreSpeed();
+		mAnimator->SetExtraSpeedMultiplier(1.0f);   // 不再被啃：恢复
 	}
 	mWasBeingEaten = isBeingEaten;
 

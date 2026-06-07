@@ -114,8 +114,9 @@ void Polevaulter::EndJump()
 
 	JumpMove(150.0f);
 
-	// 切换为走路动画和普通速度
-	PlayTrack("anim_walk", GameRandom::Range(0.9f, 1.7f));
+	// 切换为走路动画和普通速度：跳跃后永久降速，写入动画 base（而非临时 clip）
+	SetAnimationSpeed(GameRandom::Range(0.9f, 1.7f));
+	PlayTrack("anim_walk");
 	mSpeed = GameRandom::Range(7.0f, 13.0f);
 
 	// 恢复碰撞体
@@ -153,8 +154,7 @@ void Polevaulter::ValidateEatingState(EntityManager& em)
 		if (!plant) {
 			mIsEating = false;
 			mEatPlantID = NULL_PLANT_ID;
-			PlayTrack("anim_walk", 0.0f, 0.2f);
-			RestoreSpeed();
+			PlayTrack("anim_walk", 0.0f, 0.2f);   // clip 清零，自动回落走速
 		}
 		else {
 			plant->mEaterCount++;
@@ -197,8 +197,7 @@ void Polevaulter::StopEat(ColliderComponent* other)
 			if (mEatPlantID != plant->mPlantID || plant->mRow != this->mRow) return;
 
 			if (mIsEating) {
-				this->PlayTrack("anim_walk", 0.0f, 0.2f);
-				this->RestoreSpeed();
+				this->PlayTrack("anim_walk", 0.0f, 0.2f);   // clip 清零，自动回落走速
 				plant->mEaterCount--;
 			}
 			mIsEating = false;
