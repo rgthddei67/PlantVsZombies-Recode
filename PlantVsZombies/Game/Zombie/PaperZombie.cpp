@@ -33,6 +33,14 @@ void PaperZombie::SetupZombie()
 			this->mIsGasp = false;
 			this->mAnimator->SetTrackImage("anim_head1", ResourceManager::GetInstance().
 				GetTexture("IMAGE_ZOMBIE_PAPER_MADHEAD"));
+
+			if (GameRandom::Chance()) {
+				AudioSystem::PlaySound("SOUND_NEWSPAPER_RARRGH", 0.3f);
+			}
+			else {
+				AudioSystem::PlaySound("SOUND_NEWSPAPER_RARRGH2", 0.3f);
+			}
+
 			});
 	}
 	else {
@@ -66,6 +74,8 @@ void PaperZombie::ShieldDrop()
 		g_particleSystem->EmitEffect("ZombiePaperOff",
 			GetPosition());
 	}
+
+	AudioSystem::PlaySound("SOUND_NEWSPAPER_RIP", 0.3f);
 
 	mHasNewspaper = false;
 	mIsGasp = true;

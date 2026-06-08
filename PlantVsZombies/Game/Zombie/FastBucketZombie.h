@@ -38,7 +38,7 @@ public:
 	}
 
 	void SetCooldown(float timer) override {
-		if (!mAnimator) return;
+		if (!mAnimator || mShieldType != ShieldType::SHIELDTYPE_NONE) return;
 
 		if (mCooldownTimer <= 0.0f)
 		{

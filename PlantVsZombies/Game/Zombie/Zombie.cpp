@@ -280,7 +280,7 @@ void Zombie::ZombieMove(float scaledDelta, TransformComponent* transform)
 
 void Zombie::SetCooldown(float timer)
 {
-	if (!mAnimator) return;
+	if (!mAnimator || mShieldType != ShieldType::SHIELDTYPE_NONE) return;
 
 	// 首次进入减速：启用独立的 0.6x 速度倍率 + 蓝色 overlay。
 	// 用 mExtraSpeedMultiplier 而非 SetSpeed，这样后续 PlayTrack / SetSpeed
