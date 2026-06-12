@@ -4,6 +4,7 @@
 
 #include <array>
 #include <cstdint>
+#include <string>
 #include <vector>
 
 namespace pvz {
@@ -36,6 +37,10 @@ namespace pvz {
 		bool BeginFrame(float r, float g, float b, float a);
 		bool EndFrame();
 
+		// AutoTest 截图：登记后下一次 EndFrame 在 present 之前把 swapchain 图像回读并写 PNG。
+		// 截图帧会同步等待本帧 fence（约十几 ms 停顿），仅用于测试场景。
+		void RequestCapture(const std::string& pngPath) { mCapturePath = pngPath; }
+
 		VkCommandBuffer CurrentCmdBuffer() const;
 		uint32_t        CurrentFrameIdx() const { return mFrameIdx; }
 
@@ -66,5 +71,8 @@ namespace pvz {
 
 		uint32_t mFrameIdx = 0;
 		bool     mSwapchainNeedsRebuild = false;
+
+		std::string mCapturePath;   // 非空 = 本帧 EndFrame 执行回读
+		void WriteCapturePng(const void* bgraPixels, uint32_t w, uint32_t h);
 	};
 } // namespace pvz

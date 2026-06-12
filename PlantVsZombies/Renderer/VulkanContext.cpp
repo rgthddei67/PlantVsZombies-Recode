@@ -312,7 +312,8 @@ namespace pvz {
 		sci.imageColorSpace = chosen.colorSpace;
 		sci.imageExtent = mSwapchainExtent;
 		sci.imageArrayLayers = 1;
-		sci.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+		// TRANSFER_SRC：AutoTest 截图回读用（核心规范保证 color attachment 可加 transfer 用途）
+		sci.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 		sci.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		sci.preTransform = caps.currentTransform;
 		sci.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;

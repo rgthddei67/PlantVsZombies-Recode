@@ -1,0 +1,9 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 1 },
+    { "op": "wait_seconds", "value": 1.0 },
+    { "op": "screenshot", "name": "menu_into_level.png" },
+    { "op": "wait_frames", "value": 5 },
+    { "op": "quit" }
+  ]
+}

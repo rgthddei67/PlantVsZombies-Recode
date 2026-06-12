@@ -98,6 +98,9 @@ public:
 	// 获取 Graphics 对象
 	Graphics& GetGraphics() { return *m_graphics; }
 
+	// AutoTest 截图入口
+	pvz::VulkanRenderer* GetVulkanRenderer() const { return m_vulkanRenderer.get(); }
+
 	// 应用新的垂直同步设置：写 mVsync + 热重建 swapchain（不重启）。
 	// 必须在主线程、帧外（不在 BeginFrame..EndFrame 之间）调用。
 	bool ApplyVsync(bool vsync);

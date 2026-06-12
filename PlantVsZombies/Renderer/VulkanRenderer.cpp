@@ -1,7 +1,11 @@
 #include "VulkanRenderer.h"
 #include "VulkanContext.h"
 #include "VulkanPipeline.h"
+#include "VulkanBuffer.h"
 #include "../Logger.h"
+#include <SDL2/SDL_image.h>
+#include <vector>
+#include <cstring>
 
 namespace pvz {
 	namespace {
@@ -221,12 +225,43 @@ namespace pvz {
 
 		vkCmdEndRendering(frame.cmdBuffer);
 
-		ImageBarrier2(frame.cmdBuffer, swapImage,
-			VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-			VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-			VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT, 0,
-			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-			VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+		// AutoTest 截图：present 之后图像归显示引擎所有，回读必须发生在 present 之前。
+		VulkanBuffer captureBuf;   // 函数内 RAII：submit 后等 fence 再读，函数尾析构
+		const bool capturing = !mCapturePath.empty();
+		const VkExtent2D captureExt = mCtx->SwapchainExtent();
+		if (capturing) {
+			ImageBarrier2(frame.cmdBuffer, swapImage,
+				VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+				VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+				VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_READ_BIT,
+				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+				VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+			if (captureBuf.Create(mCtx,
+				VkDeviceSize(captureExt.width) * captureExt.height * 4,
+				VK_BUFFER_USAGE_TRANSFER_DST_BIT, /*hostVisible=*/true)) {
+				VkBufferImageCopy region{};   // bufferRowLength=0 → 行紧密排列
+				region.imageSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
+				region.imageExtent = { captureExt.width, captureExt.height, 1 };
+				vkCmdCopyImageToBuffer(frame.cmdBuffer, swapImage,
+					VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, captureBuf.Handle(), 1, &region);
+			}
+			else {
+				LOG_ERROR("VulkanRenderer") << "截图 buffer 创建失败，本次截图跳过";
+			}
+			ImageBarrier2(frame.cmdBuffer, swapImage,
+				VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_READ_BIT,
+				VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT, 0,
+				VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+				VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+		}
+		else {
+			ImageBarrier2(frame.cmdBuffer, swapImage,
+				VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+				VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+				VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT, 0,
+				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+				VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+		}
 
 		VK_CHECK(vkEndCommandBuffer(frame.cmdBuffer));
 
@@ -266,6 +301,15 @@ namespace pvz {
 			return false;
 		}
 
+		if (capturing) {
+			// 等本帧 GPU 完成（fence 不 reset —— BeginFrame 自己管理 wait+reset）
+			vkWaitForFences(mCtx->Device(), 1, &frame.inFlight, VK_TRUE, UINT64_MAX);
+			if (captureBuf.MappedPtr()) {
+				WriteCapturePng(captureBuf.MappedPtr(), captureExt.width, captureExt.height);
+			}
+			mCapturePath.clear();
+		}
+
 		mFrameActive = false;
 		mAcquiredImageIdx = UINT32_MAX;
 		mFrameIdx = (mFrameIdx + 1) % FRAMES_IN_FLIGHT;
@@ -275,5 +319,27 @@ namespace pvz {
 	VkCommandBuffer VulkanRenderer::CurrentCmdBuffer() const {
 		if (!mFrameActive) return VK_NULL_HANDLE;
 		return mFrames[mFrameIdx].cmdBuffer;
+	}
+
+	void VulkanRenderer::WriteCapturePng(const void* bgraPixels, uint32_t w, uint32_t h) {
+		// swapchain alpha 不参与合成、值不可靠：强制 255，避免 PNG 透明
+		std::vector<uint8_t> pixels(size_t(w) * h * 4);
+		std::memcpy(pixels.data(), bgraPixels, pixels.size());
+		for (size_t i = 3; i < pixels.size(); i += 4) pixels[i] = 0xFF;
+
+		// VK_FORMAT_B8G8R8A8_UNORM 内存序 = 小端 ARGB8888
+		SDL_Surface* surf = SDL_CreateRGBSurfaceWithFormatFrom(
+			pixels.data(), (int)w, (int)h, 32, (int)w * 4, SDL_PIXELFORMAT_ARGB8888);
+		if (!surf) {
+			LOG_ERROR("VulkanRenderer") << "截图 surface 创建失败: " << SDL_GetError();
+			return;
+		}
+		if (IMG_SavePNG(surf, mCapturePath.c_str()) != 0) {
+			LOG_ERROR("VulkanRenderer") << "IMG_SavePNG 失败: " << IMG_GetError();
+		}
+		else {
+			LOG_INFO("VulkanRenderer") << "截图已保存: " << mCapturePath;
+		}
+		SDL_FreeSurface(surf);
 	}
 } // namespace pvz

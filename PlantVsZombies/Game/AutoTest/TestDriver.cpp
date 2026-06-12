@@ -1,5 +1,6 @@
 #include "TestDriver.h"
 #include "../../GameAPP.h"
+#include "../../Renderer/VulkanRenderer.h"
 #include "../../DeltaTime.h"
 #include "../../Logger.h"
 #include "../SceneManager.h"
@@ -244,6 +245,15 @@ bool TestDriver::ExecuteCurrent() {
 		Zombie* z = gs->GetBoard()->CreateZombie(it->second,
 			cmd.value("row", 0), cmd.value("x", 900.0f));
 		if (!z) { Fail("CreateZombie 返回空"); return false; }
+		return true;
+	}
+	if (op == "screenshot") {
+		const std::string name = cmd.value("name", "shot.png");
+		auto* renderer = GameAPP::GetInstance().GetVulkanRenderer();
+		if (!renderer) { Fail("screenshot: renderer 为空"); return false; }
+		renderer->RequestCapture(mOutDir + "/" + name);
+		// 本帧到此为止：截图在本帧 EndFrame 落盘，避免同帧第二个 screenshot 覆盖请求
+		mBreakFrame = true;
 		return true;
 	}
 	if (op == "quit") {
