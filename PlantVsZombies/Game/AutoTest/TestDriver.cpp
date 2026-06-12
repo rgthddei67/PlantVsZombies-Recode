@@ -300,7 +300,13 @@ bool TestDriver::ExecuteCurrent() {
 		const std::string name = cmd.value("name", "state.json");
 		std::ofstream of(mOutDir + "/" + name, std::ios::trunc);
 		if (!of) { Fail("dump_state: 无法写 " + name); return false; }
-		of << out.dump(2);
+		try {
+			of << out.dump(2);
+		}
+		catch (const std::exception& e) {
+			Fail("dump_state: JSON 序列化失败: " + std::string(e.what()));
+			return false;
+		}
 		return true;
 	}
 	if (op == "quit") {
