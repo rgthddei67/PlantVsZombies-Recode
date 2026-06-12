@@ -347,9 +347,7 @@ int GameAPP::Run()
 			CursorManager::GetInstance().ResetHoverCount();
 			sceneManager.Update();
 			CursorManager::GetInstance().Update();
-			if (TestDriver::GetInstance().IsActive()) {
-				TestDriver::GetInstance().Update();
-			}
+			TestDriver::GetInstance().Update();   // 非 AutoTest 模式下首行 !mActive 即返回
 		}
 
 		// 渲染

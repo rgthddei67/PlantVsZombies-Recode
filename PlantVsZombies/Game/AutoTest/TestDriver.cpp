@@ -30,11 +30,19 @@ bool TestDriver::LoadScript(const std::string& path) {
 	}
 	for (const auto& c : j["commands"]) mCommands.push_back(c);
 
-	std::error_code ec;
 	mOutDir = (std::filesystem::path("./autotest/out") /
 		std::filesystem::path(path).stem()).string();
+	std::error_code ec;
 	std::filesystem::create_directories(mOutDir, ec);
+	if (ec) {
+		LOG_ERROR("AutoTest") << "无法创建输出目录 " << mOutDir << ": " << ec.message();
+		return false;
+	}
 	mRunLog.open(mOutDir + "/run.log", std::ios::trunc);
+	if (!mRunLog.is_open()) {
+		LOG_ERROR("AutoTest") << "无法创建 " << mOutDir << "/run.log（权威日志，缺失即盲跑）";
+		return false;
+	}
 
 	mActive = true;
 	Log("script loaded: " + path + " (" + std::to_string(mCommands.size()) + " commands)");
@@ -101,7 +109,9 @@ bool TestDriver::ExecuteCurrent() {
 	}
 	if (op == "wait_frames") {
 		if (mFramesLeft < 0) mFramesLeft = cmd.value("value", 0);
-		return --mFramesLeft < 0;
+		if (mFramesLeft == 0) return true;   // value=0 或已数完：立即完成
+		--mFramesLeft;
+		return mFramesLeft == 0;
 	}
 	if (op == "goto_level") {
 		if (!cmd.contains("level")) { Fail("goto_level 缺 level 字段"); return false; }
