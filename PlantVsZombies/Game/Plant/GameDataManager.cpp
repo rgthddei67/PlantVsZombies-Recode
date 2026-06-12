@@ -24,6 +24,7 @@
 #include "../Zombie/BucketZombie.h"
 #include "../Zombie/FastBucketZombie.h"
 #include "../Zombie/PaperZombie.h"
+#include "../Zombie/FastPaperZombie.h"
 
 namespace {
 	template<typename T>
@@ -237,6 +238,17 @@ void GameDataManager::InitializeHardcodedData() {
 		2000,
 		2,
 		1.0f, &MakeZombie<PaperZombie>
+	);
+
+	RegisterZombie(
+		ZombieType::ZOMBIE_FASTPAPER,
+		"ZOMBIE_FASTPAPER",
+		AnimationType::ANIM_PAPER_ZOMBIE,	// 复用读报僵尸 reanim，仅换报纸贴图
+		"PaperZombie",
+		Vector(-50, -85),
+		2800,	// 权重/点数成本：略高于快速铁桶(2500)，体现加强版
+		6,		// 出现波次（无尽模式忽略此值，由 BuildSurvivalSpawnList 控制）
+		1.0f, &MakeZombie<FastPaperZombie>
 	);
 
 	// ==================== 非植物/僵尸动画映射 ====================

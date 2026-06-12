@@ -633,6 +633,7 @@ void Board::BuildSurvivalSpawnList(int round)
 	}
 	if (round >= 4) mSpawnZombieList.push_back(ZombieType::ZOMBIE_BUCKET);       // 铁桶
 	if (round >= 5) mSpawnZombieList.push_back(ZombieType::ZOMBIE_FASTBUCKET);   // 快速铁桶
+	if (round >= 6) mSpawnZombieList.push_back(ZombieType::ZOMBIE_FASTPAPER);    // 加强读报
 }
 
 void Board::UpdateSurvivalLevelName()

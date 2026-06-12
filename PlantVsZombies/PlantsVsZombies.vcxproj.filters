@@ -268,6 +268,9 @@
     <ClCompile Include="Game\Zombie\PaperZombie.cpp">
       <Filter>Code\Game\Zombie</Filter>
     </ClCompile>
+    <ClCompile Include="Game\Zombie\FastPaperZombie.cpp">
+      <Filter>Code\Game\Zombie</Filter>
+    </ClCompile>
     <ClCompile Include="Logger.cpp">
       <Filter>Code</Filter>
     </ClCompile>
@@ -583,6 +586,9 @@
       <Filter>Code\Game\Plant</Filter>
     </ClInclude>
     <ClInclude Include="Game\Zombie\PaperZombie.h">
+      <Filter>Code\Game\Zombie</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\Zombie\FastPaperZombie.h">
       <Filter>Code\Game\Zombie</Filter>
     </ClInclude>
     <ClInclude Include="Logger.h">
