@@ -19,6 +19,7 @@
 
 bool GameInfoSaver::SavePlayerInfo()
 {
+	if (GameAPP::mAutoTestMode) return true;   // AutoTest：不碰玩家存档
 	auto& gameApp = GameAPP::GetInstance();
 
 	FileManager::CreateDirectory("./saves");
@@ -40,6 +41,7 @@ bool GameInfoSaver::SavePlayerInfo()
 
 bool GameInfoSaver::LoadPlayerInfo()
 {
+	if (GameAPP::mAutoTestMode) return true;   // AutoTest：全默认状态，保证确定性
 	nlohmann::json j;
 	if (!FileManager::LoadJsonFile("./saves/PlayerInfo.json", j))
 		return false;
@@ -63,6 +65,7 @@ bool GameInfoSaver::LoadPlayerInfo()
 
 bool GameInfoSaver::SaveLevelData(Board* board, CardSlotManager* manager)
 {
+	if (GameAPP::mAutoTestMode) return true;
 	const bool stateOk = (board->mBoardState == BoardState::GAME) ||
 		(board->mIsSurvival && board->mBoardState == BoardState::CHOOSE_CARD);
 	if (!stateOk) return false;
@@ -269,6 +272,7 @@ bool GameInfoSaver::SaveLevelData(Board* board, CardSlotManager* manager)
 
 bool GameInfoSaver::LoadLevelData(Board* board, CardSlotManager* manager)
 {
+	if (GameAPP::mAutoTestMode) return true;   // AutoTest：永远全新关卡（不跳过选卡流程）
 	std::string filename = "./saves/level" + std::to_string(board->mLevel) + "_data.json";
 	nlohmann::json j;
 	if (!FileManager::LoadJsonFile(filename, j))

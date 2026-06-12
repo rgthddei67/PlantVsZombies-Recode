@@ -124,6 +124,7 @@ public:
 		engine.seed(std::chrono::high_resolution_clock::now()
 			.time_since_epoch().count());
 	}
+
 };
 
 #endif

@@ -17,6 +17,7 @@ int main(int argc, char** argv)
 	GameMonitor::Init();
 
 	// 检查命令行参数
+	std::string autoTestScript;
 	for (int i = 1; i < argc; ++i)
 	{
 		const std::string arg = argv[i];
@@ -30,6 +31,15 @@ int main(int argc, char** argv)
 		{
 			GameAPP::mDisableInstancePath = true;
 			LOG_DEBUG("Main") << "GPU instance path 已禁用 (A/B baseline)";
+		}
+		else if ((arg == "-AutoTest" || arg == "-autotest") && i + 1 < argc)
+		{
+			autoTestScript = argv[++i];
+			GameAPP::mAutoTestMode = true;
+		}
+		else if ((arg == "-Seed" || arg == "-seed") && i + 1 < argc)
+		{
+			GameRandom::SetSeed(std::stoull(argv[++i]));
 		}
 	}
 
