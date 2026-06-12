@@ -1,0 +1,8 @@
+{
+  "commands": [
+    { "op": "wait_frames", "value": 10 },
+    { "op": "goto_level", "level": 1 },
+    { "op": "wait_seconds", "value": 1.0 },
+    { "op": "quit" }
+  ]
+}

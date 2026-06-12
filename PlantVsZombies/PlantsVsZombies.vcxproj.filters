@@ -115,6 +115,9 @@
     <ClCompile Include="GameMonitor.cpp">
       <Filter>Code</Filter>
     </ClCompile>
+    <ClCompile Include="Game\AutoTest\TestDriver.cpp">
+      <Filter>Code\Game</Filter>
+    </ClCompile>
     <ClCompile Include="Game\CardComponent.cpp">
       <Filter>Code\Game</Filter>
     </ClCompile>
@@ -389,6 +392,9 @@
     </ClInclude>
     <ClInclude Include="GameMonitor.h">
       <Filter>Code</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\AutoTest\TestDriver.h">
+      <Filter>Code\Game</Filter>
     </ClInclude>
     <ClInclude Include="Game\Card.h">
       <Filter>Code\Game</Filter>

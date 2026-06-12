@@ -25,6 +25,7 @@
     <ClCompile Include="GameApp.cpp" />
     <ClCompile Include="GameInfoSaver.cpp" />
     <ClCompile Include="GameMonitor.cpp" />
+    <ClCompile Include="Game\AutoTest\TestDriver.cpp" />
     <ClCompile Include="Game\Zombie\PaperZombie.cpp" />
     <ClCompile Include="Game\Zombie\FastPaperZombie.cpp" />
     <ClCompile Include="Logger.cpp" />
@@ -107,6 +108,7 @@
     <ClInclude Include="GameApp.h" />
     <ClInclude Include="GameInfoSaver.h" />
     <ClInclude Include="GameMonitor.h" />
+    <ClInclude Include="Game\AutoTest\TestDriver.h" />
     <ClInclude Include="Game\Zombie\PaperZombie.h" />
     <ClInclude Include="Game\Zombie\FastPaperZombie.h" />
     <ClInclude Include="Logger.h" />

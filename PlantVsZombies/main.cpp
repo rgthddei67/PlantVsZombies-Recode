@@ -4,6 +4,7 @@
 #include "./GameAPP.h"
 #include "GameMonitor.h"
 #include "Logger.h"
+#include "./Game/AutoTest/TestDriver.h"
 #include <SDL2/SDL.h>
 #include <string>
 
@@ -48,7 +49,18 @@ int main(int argc, char** argv)
 		}
 	}
 
+	if (GameAPP::mAutoTestMode) {
+		if (!TestDriver::GetInstance().LoadScript(autoTestScript)) {
+			CrashHandler::Cleanup();
+			return 100;   // 脚本解析失败
+		}
+	}
+
 	int result = GameAPP::GetInstance().Run();
+
+	if (GameAPP::mAutoTestMode && result == 0) {
+		result = TestDriver::GetInstance().ExitCode();
+	}
 
 	CrashHandler::Cleanup();
 

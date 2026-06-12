@@ -20,6 +20,8 @@
 #include "./Game/Plant/GameDataManager.h"
 #include "./Game/RenderOrder.h"
 
+#include "./Game/AutoTest/TestDriver.h"
+
 #include "./Game/Zombie/Zombie.h"
 #include "./Game/Plant/Plant.h"
 
@@ -345,6 +347,9 @@ int GameAPP::Run()
 			CursorManager::GetInstance().ResetHoverCount();
 			sceneManager.Update();
 			CursorManager::GetInstance().Update();
+			if (TestDriver::GetInstance().IsActive()) {
+				TestDriver::GetInstance().Update();
+			}
 		}
 
 		// 渲染
