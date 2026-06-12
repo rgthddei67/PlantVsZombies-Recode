@@ -18,7 +18,7 @@ This is a Visual Studio 2026 C++ project (x64 Windows only).
   MSVC-Debug-MCP 的 `build_solution` / `build_project` / `clean_solution` 同样可用。
 - **Debug mode:** Run with `-Debug` flag to show collision hitboxes
 
-The server exposes three families of tools:
+The MSVC-Debug-MCP server exposes three families of tools — Build（用法见上文 Build & Run）、Debug、Operate：
 
 - **Debug (allowed):** `debugger_launch` (F5), `debugger_add_breakpoint`, then poll `debugger_status` until `Mode == "Break"`. While paused, read state via `debugger_get_callstack`, `debugger_get_locals`, and `debugger_evaluate` (Immediate-window expressions). Drive with `debugger_continue` / `step_*`, and always `debugger_stop` when done (a lingering Break freezes the game window).  
   - In a **Release** build, function locals are often optimized away (shown as "variable optimized away"), but **object members reached through `this` remain readable** — prefer breakpoints where `this` is in scope and evaluate members (e.g. `mRunning`, `mHaveCards.size()`) rather than bare locals.
