@@ -3,7 +3,74 @@
 #include "../../DeltaTime.h"
 #include "../../Logger.h"
 #include "../SceneManager.h"
+#include "../GameScene.h"
+#include "../ChooseCardUI.h"
+#include "../Board.h"
+#include "../Card.h"
+#include "../CardComponent.h"
+#include "../Plant/PlantType.h"
+#include "../Plant/Plant.h"
+#include "../Zombie/ZombieType.h"
+#include "../Zombie/Zombie.h"
 #include <filesystem>
+#include <algorithm>
+#include <unordered_map>
+
+namespace {
+#define PT(n) { #n, PlantType::n }
+	const std::unordered_map<std::string, PlantType> kPlantNames = {
+		PT(PLANT_PEASHOOTER), PT(PLANT_SUNFLOWER), PT(PLANT_CHERRYBOMB), PT(PLANT_WALLNUT),
+		PT(PLANT_POTATOMINE), PT(PLANT_SNOWPEA), PT(PLANT_CHOMPER), PT(PLANT_REPEATER),
+		PT(PLANT_PUFFSHROOM), PT(PLANT_SUNSHROOM), PT(PLANT_FUMESHROOM), PT(PLANT_GRAVEBUSTER),
+		PT(PLANT_HYPNOSHROOM), PT(PLANT_SCAREDYSHROOM), PT(PLANT_ICESHROOM), PT(PLANT_DOOMSHROOM),
+		PT(PLANT_LILYPAD), PT(PLANT_SQUASH), PT(PLANT_THREEPEATER), PT(PLANT_TANGLEKELP),
+		PT(PLANT_JALAPENO), PT(PLANT_SPIKEWEED), PT(PLANT_TORCHWOOD), PT(PLANT_TALLNUT),
+		PT(PLANT_SEASHROOM), PT(PLANT_PLANTERN), PT(PLANT_CACTUS), PT(PLANT_BLOVER),
+		PT(PLANT_SPLITPEA), PT(PLANT_STARFRUIT), PT(PLANT_PUMPKINSHELL), PT(PLANT_MAGNETSHROOM),
+		PT(PLANT_CABBAGEPULT), PT(PLANT_FLOWERPOT), PT(PLANT_KERNELPULT), PT(PLANT_INSTANT_COFFEE),
+		PT(PLANT_GARLIC), PT(PLANT_UMBRELLA), PT(PLANT_MARIGOLD), PT(PLANT_MELONPULT),
+		PT(PLANT_GATLINGPEA), PT(PLANT_TWINSUNFLOWER), PT(PLANT_GLOOMSHROOM), PT(PLANT_CATTAIL),
+		PT(PLANT_WINTERMELON), PT(PLANT_GOLD_MAGNET), PT(PLANT_SPIKEROCK), PT(PLANT_COBCANNON),
+		PT(PLANT_IMITATER), PT(PLANT_EXPLODE_O_NUT), PT(PLANT_GIANT_WALLNUT), PT(PLANT_SPROUT),
+		PT(PLANT_LEFTPEATER),
+	};
+#undef PT
+#define ZT(n) { #n, ZombieType::n }
+	const std::unordered_map<std::string, ZombieType> kZombieNames = {
+		ZT(ZOMBIE_NORMAL), ZT(ZOMBIE_TRAFFIC_CONE), ZT(ZOMBIE_POLEVAULTER), ZT(ZOMBIE_BUCKET),
+		ZT(ZOMBIE_FASTBUCKET), ZT(ZOMBIE_NEWSPAPER), ZT(ZOMBIE_FASTPAPER), ZT(ZOMBIE_DOOR),
+		ZT(ZOMBIE_FOOTBALL), ZT(ZOMBIE_DANCER), ZT(ZOMBIE_BACKUP_DANCER), ZT(ZOMBIE_DUCKY_TUBE),
+		ZT(ZOMBIE_SNORKEL), ZT(ZOMBIE_ZAMBONI), ZT(ZOMBIE_BOBSLED), ZT(ZOMBIE_DOLPHIN_RIDER),
+		ZT(ZOMBIE_JACK_IN_THE_BOX), ZT(ZOMBIE_BALLOON), ZT(ZOMBIE_DIGGER), ZT(ZOMBIE_POGO),
+		ZT(ZOMBIE_YETI), ZT(ZOMBIE_BUNGEE), ZT(ZOMBIE_LADDER), ZT(ZOMBIE_CATAPULT),
+		ZT(ZOMBIE_GARGANTUAR), ZT(ZOMBIE_IMP), ZT(ZOMBIE_BOSS), ZT(ZOMBIE_PEA_HEAD),
+		ZT(ZOMBIE_WALLNUT_HEAD), ZT(ZOMBIE_JALAPENO_HEAD), ZT(ZOMBIE_GATLING_HEAD),
+		ZT(ZOMBIE_SQUASH_HEAD), ZT(ZOMBIE_TALLNUT_HEAD), ZT(ZOMBIE_REDEYE_GARGANTUAR),
+	};
+#undef ZT
+	const std::unordered_map<std::string, BoardState> kBoardStateNames = {
+		{ "CHOOSE_CARD", BoardState::CHOOSE_CARD }, { "GAME", BoardState::GAME },
+		{ "LOSE_GAME", BoardState::LOSE_GAME }, { "WIN", BoardState::WIN },
+		{ "NONE", BoardState::NONE },
+	};
+
+	std::string PlantTypeName(PlantType t) {
+		for (const auto& [k, v] : kPlantNames) if (v == t) return k;
+		return "UNKNOWN_PLANT_" + std::to_string(static_cast<int>(t));
+	}
+	std::string ZombieTypeName(ZombieType t) {
+		for (const auto& [k, v] : kZombieNames) if (v == t) return k;
+		return "UNKNOWN_ZOMBIE_" + std::to_string(static_cast<int>(t));
+	}
+	std::string BoardStateName(BoardState s) {
+		for (const auto& [k, v] : kBoardStateNames) if (v == s) return k;
+		return "UNKNOWN";
+	}
+
+	GameScene* CurrentGameScene() {
+		return dynamic_cast<GameScene*>(SceneManager::GetInstance().GetCurrentScene());
+	}
+}
 
 TestDriver& TestDriver::GetInstance() {
 	static TestDriver instance;
@@ -122,6 +189,58 @@ bool TestDriver::ExecuteCurrent() {
 	}
 	if (op == "set_timescale") {
 		DeltaTime::SetTimeScale(cmd.value("value", 1.0f));
+		return true;
+	}
+	if (op == "choose_cards") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->IsChooseCardReady()) return false;   // 等开场动画铺完卡
+		ChooseCardUI* ui = gs->GetChooseCardUI();
+		for (const auto& nameJson : cmd.value("cards", nlohmann::json::array())) {
+			const std::string name = nameJson.get<std::string>();
+			auto it = kPlantNames.find(name);
+			if (it == kPlantNames.end()) { Fail("未知植物类型: " + name); return false; }
+			Card* card = ui->FindCardByType(it->second);
+			if (!card) {                       // 玩家未拥有该卡：AutoTest 直接补一张
+				ui->AddCard(it->second);
+				card = ui->FindCardByType(it->second);
+			}
+			if (!card) { Fail("选卡失败（AddCard 后仍找不到）: " + name); return false; }
+			if (!ui->IsCardSelected(card)) ui->ToggleCardSelection(card);
+		}
+		gs->ChooseCardComplete();
+		return true;
+	}
+	if (op == "wait_state") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) return false;
+		auto it = kBoardStateNames.find(cmd.value("state", ""));
+		if (it == kBoardStateNames.end()) { Fail("未知 BoardState: " + cmd.value("state", "")); return false; }
+		return gs->GetBoard()->mBoardState == it->second;
+	}
+	if (op == "set_sun") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) { Fail("set_sun: 不在 GameScene 或 Board 为空"); return false; }
+		gs->GetBoard()->mSun = std::min(cmd.value("value", 0), MAX_SUN);
+		return true;
+	}
+	if (op == "plant") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) { Fail("plant: 不在 GameScene 或 Board 为空"); return false; }
+		auto it = kPlantNames.find(cmd.value("type", ""));
+		if (it == kPlantNames.end()) { Fail("未知植物类型: " + cmd.value("type", "")); return false; }
+		Plant* p = gs->GetBoard()->CreatePlant(it->second,
+			cmd.value("row", 0), cmd.value("col", 0));
+		if (!p) { Fail("CreatePlant 返回空（格子非法或被占？）"); return false; }
+		return true;
+	}
+	if (op == "spawn_zombie") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) { Fail("spawn_zombie: 不在 GameScene 或 Board 为空"); return false; }
+		auto it = kZombieNames.find(cmd.value("type", ""));
+		if (it == kZombieNames.end()) { Fail("未知僵尸类型: " + cmd.value("type", "")); return false; }
+		Zombie* z = gs->GetBoard()->CreateZombie(it->second,
+			cmd.value("row", 0), cmd.value("x", 900.0f));
+		if (!z) { Fail("CreateZombie 返回空"); return false; }
 		return true;
 	}
 	if (op == "quit") {

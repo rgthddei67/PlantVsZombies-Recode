@@ -138,6 +138,15 @@ void ChooseCardUI::AddAllCard() {
 	}
 }
 
+Card* ChooseCardUI::FindCardByType(PlantType type) {
+	for (auto* card : mCards) {
+		if (!card) continue;
+		auto* comp = card->GetCardComponent();
+		if (comp && comp->GetPlantType() == type) return card;
+	}
+	return nullptr;
+}
+
 bool ChooseCardUI::ToggleCardSelection(Card* card) {
 	if (!card) return false;
 

@@ -54,6 +54,14 @@ public:
 
 	void ChooseCardComplete();  // 选卡完成
 
+	// ---- AutoTest 钩子（只读访问，不改变任何流程）----
+	Board* GetBoard() const { return mBoard.get(); }
+	ChooseCardUI* GetChooseCardUI() const { return mChooseCardUI; }
+	// 选卡界面是否就绪（卡牌已铺开、"一起摇滚吧"可点）
+	bool IsChooseCardReady() const {
+		return mCurrentStage == IntroStage::COMPLETE && mChooseCardUI != nullptr;
+	}
+
 	GameProgress* GetGameProgress() const;
 
 	void GameOver();

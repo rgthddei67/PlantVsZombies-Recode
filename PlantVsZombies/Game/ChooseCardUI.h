@@ -43,6 +43,8 @@ public:
 	void AddAllCard();
 	// 转换卡牌所有权给卡槽管理器
 	void TransferSelectedCardsTo(CardSlotManager* manager);
+	// 按植物类型查找选卡界面中的卡牌（AutoTest 程序化选卡用）；找不到返回 nullptr
+	Card* FindCardByType(PlantType type);
 
 private:
 	const Texture* mCardUITexture = nullptr;
