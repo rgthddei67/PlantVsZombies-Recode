@@ -39,7 +39,12 @@ int main(int argc, char** argv)
 		}
 		else if ((arg == "-Seed" || arg == "-seed") && i + 1 < argc)
 		{
-			GameRandom::SetSeed(std::stoull(argv[++i]));
+			try {
+				GameRandom::SetSeed(std::stoull(argv[++i]));
+			}
+			catch (const std::exception& e) {
+				LOG_WARN("Main") << "-Seed 参数无效，已忽略: " << e.what();
+			}
 		}
 	}
 

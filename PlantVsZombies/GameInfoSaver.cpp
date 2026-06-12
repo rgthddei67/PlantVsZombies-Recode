@@ -65,7 +65,7 @@ bool GameInfoSaver::LoadPlayerInfo()
 
 bool GameInfoSaver::SaveLevelData(Board* board, CardSlotManager* manager)
 {
-	if (GameAPP::mAutoTestMode) return true;
+	if (GameAPP::mAutoTestMode) return true;   // AutoTest：不写关卡存档
 	const bool stateOk = (board->mBoardState == BoardState::GAME) ||
 		(board->mIsSurvival && board->mBoardState == BoardState::CHOOSE_CARD);
 	if (!stateOk) return false;
