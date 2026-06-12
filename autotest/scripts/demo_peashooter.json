@@ -1,0 +1,18 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 1 },
+    { "op": "choose_cards", "cards": ["PLANT_PEASHOOTER", "PLANT_SUNFLOWER"], "timeout": 20 },
+    { "op": "wait_state", "state": "GAME" },
+    { "op": "set_sun", "value": 2000 },
+    { "op": "plant", "type": "PLANT_PEASHOOTER", "row": 2, "col": 1 },
+    { "op": "spawn_zombie", "type": "ZOMBIE_NORMAL", "row": 2, "x": 900 },
+    { "op": "wait_seconds", "value": 0.5 },
+    { "op": "screenshot", "name": "t1_planted.png" },
+    { "op": "wait_seconds", "value": 2.5 },
+    { "op": "screenshot", "name": "t2_shooting.png" },
+    { "op": "wait_seconds", "value": 3.0 },
+    { "op": "screenshot", "name": "t3_hit.png" },
+    { "op": "dump_state", "name": "state.json" },
+    { "op": "quit" }
+  ]
+}
