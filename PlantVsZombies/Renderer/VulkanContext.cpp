@@ -312,8 +312,11 @@ namespace pvz {
 		sci.imageColorSpace = chosen.colorSpace;
 		sci.imageExtent = mSwapchainExtent;
 		sci.imageArrayLayers = 1;
-		// TRANSFER_SRC：AutoTest 截图回读用（核心规范保证 color attachment 可加 transfer 用途）
-		sci.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+		// TRANSFER_SRC：AutoTest 截图回读用；规范不保证支持，按 supportedUsageFlags 能力位探测
+		sci.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+		mSwapchainTransferSrc = (caps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_SRC_BIT) != 0;
+		if (mSwapchainTransferSrc)
+			sci.imageUsage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 		sci.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		sci.preTransform = caps.currentTransform;
 		sci.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;

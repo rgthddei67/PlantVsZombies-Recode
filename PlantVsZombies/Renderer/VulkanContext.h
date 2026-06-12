@@ -44,6 +44,8 @@ namespace pvz {
 		VkExtent2D       SwapchainExtent() const { return mSwapchainExtent; }
 		const std::vector<VkImage>& SwapchainImages()     const { return mSwapchainImages; }
 		const std::vector<VkImageView>& SwapchainImageViews() const { return mSwapchainImageViews; }
+		// AutoTest 截图：交换链是否实际授予了 TRANSFER_SRC 用途（规范不保证，按 supportedUsageFlags 探测）
+		bool SwapchainSupportsTransferSrc() const { return mSwapchainTransferSrc; }
 
 	private:
 		bool CreateInstance(SDL_Window* window, bool enableValidation);
@@ -74,6 +76,7 @@ namespace pvz {
 		VkExtent2D                 mSwapchainExtent{ 0, 0 };
 		std::vector<VkImage>       mSwapchainImages;
 		std::vector<VkImageView>   mSwapchainImageViews;
+		bool                       mSwapchainTransferSrc = false;  // CreateSwapchain 按 caps 探测
 
 		VmaAllocator               mAllocator = VK_NULL_HANDLE;
 	};

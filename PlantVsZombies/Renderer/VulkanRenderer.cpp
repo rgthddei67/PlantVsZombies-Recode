@@ -227,6 +227,10 @@ namespace pvz {
 
 		// AutoTest 截图：present 之后图像归显示引擎所有，回读必须发生在 present 之前。
 		VulkanBuffer captureBuf;   // 函数内 RAII：submit 后等 fence 再读，函数尾析构
+		if (!mCapturePath.empty() && !mCtx->SwapchainSupportsTransferSrc()) {
+			LOG_ERROR("VulkanRenderer") << "交换链不支持 TRANSFER_SRC，截图不可用";
+			mCapturePath.clear();
+		}
 		const bool capturing = !mCapturePath.empty();
 		const VkExtent2D captureExt = mCtx->SwapchainExtent();
 		if (capturing) {
