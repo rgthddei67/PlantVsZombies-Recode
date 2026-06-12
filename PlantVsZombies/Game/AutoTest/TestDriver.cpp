@@ -256,6 +256,53 @@ bool TestDriver::ExecuteCurrent() {
 		mBreakFrame = true;
 		return true;
 	}
+	if (op == "dump_state") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) { Fail("dump_state: 不在 GameScene 或 Board 为空"); return false; }
+		Board* board = gs->GetBoard();
+		nlohmann::json out;
+		out["boardState"] = BoardStateName(board->mBoardState);
+		out["sun"] = board->mSun;
+		out["wave"] = board->mCurrentWave;
+		out["zombieNumber"] = board->mZombieNumber;
+
+		out["zombies"] = nlohmann::json::array();
+		for (int id : board->mEntityManager.GetAllZombieIDs()) {
+			Zombie* z = board->mEntityManager.GetZombie(id);
+			if (!z) continue;
+			const Vector pos = z->GetPosition();
+			out["zombies"].push_back({
+				{ "id", id },
+				{ "type", ZombieTypeName(z->mZombieType) },
+				{ "row", z->mRow },
+				{ "x", pos.x }, { "y", pos.y },
+				{ "bodyHealth", z->mBodyHealth }, { "bodyMaxHealth", z->mBodyMaxHealth },
+				{ "helmHealth", z->mHelmHealth }, { "shieldHealth", z->mShieldHealth },
+				{ "hasHead", z->HasHead() }, { "hasArm", z->HasArm() },
+				{ "slowCooldown", z->GetCooldownTimer() },
+				{ "track", z->GetCurrentTrackName() },
+			});
+		}
+
+		out["plants"] = nlohmann::json::array();
+		for (int id : board->mEntityManager.GetAllPlantIDs()) {
+			Plant* p = board->mEntityManager.GetPlant(id);
+			if (!p) continue;
+			out["plants"].push_back({
+				{ "id", id },
+				{ "type", PlantTypeName(p->mPlantType) },
+				{ "row", p->mRow }, { "col", p->mColumn },
+				{ "health", p->mPlantHealth }, { "maxHealth", p->mPlantMaxHealth },
+				{ "track", p->GetCurrentTrackName() },
+			});
+		}
+
+		const std::string name = cmd.value("name", "state.json");
+		std::ofstream of(mOutDir + "/" + name, std::ios::trunc);
+		if (!of) { Fail("dump_state: 无法写 " + name); return false; }
+		of << out.dump(2);
+		return true;
+	}
 	if (op == "quit") {
 		Log("done cmd#" + std::to_string(mIndex) + " (quit)");
 		Finish();
