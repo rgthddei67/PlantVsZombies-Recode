@@ -88,6 +88,7 @@ public:
 	inline static bool mDebugMode = false;        // 是否是调试模式
 	inline static bool mShowColliders = false;    // 显示碰撞框开关
 	inline static bool mDisableInstancePath = false;  // Task 7: -NoInstance 启动参数禁用 GPU instance path
+	inline static bool mAutoTestMode = false;         // -AutoTest 自动化测试模式：禁存档读写、由 TestDriver 驱动
 
 	static GameAPP& GetInstance();
 
