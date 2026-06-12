@@ -54,7 +54,9 @@ public:
 
 	void ChooseCardComplete();  // 选卡完成
 
-	// ---- AutoTest 钩子（只读访问，不改变任何流程）----
+	// ---- AutoTest 钩子 ----
+	// GetBoard / GetChooseCardUI / IsChooseCardReady 本身只读；
+	// AutoTest 经由它们配合 ChooseCardComplete()（与 UI 共用）驱动选卡流程。
 	Board* GetBoard() const { return mBoard.get(); }
 	ChooseCardUI* GetChooseCardUI() const { return mChooseCardUI; }
 	// 选卡界面是否就绪（卡牌已铺开、"一起摇滚吧"可点）

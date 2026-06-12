@@ -205,7 +205,10 @@ bool TestDriver::ExecuteCurrent() {
 				card = ui->FindCardByType(it->second);
 			}
 			if (!card) { Fail("选卡失败（AddCard 后仍找不到）: " + name); return false; }
-			if (!ui->IsCardSelected(card)) ui->ToggleCardSelection(card);
+			if (!ui->IsCardSelected(card) && !ui->ToggleCardSelection(card)) {
+				Fail("选卡失败（超出选卡上限？）: " + name);
+				return false;
+			}
 		}
 		gs->ChooseCardComplete();
 		return true;
