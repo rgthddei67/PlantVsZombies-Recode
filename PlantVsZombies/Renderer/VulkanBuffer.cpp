@@ -25,7 +25,8 @@ namespace pvz {
 	bool VulkanBuffer::Create(VulkanContext* ctx,
 		VkDeviceSize size,
 		VkBufferUsageFlags usage,
-		bool hostVisible) {
+		bool hostVisible,
+		bool hostReadback) {
 		mCtx = ctx;
 		mSize = size;
 
@@ -37,8 +38,12 @@ namespace pvz {
 		VmaAllocationCreateInfo aci{};
 		aci.usage = VMA_MEMORY_USAGE_AUTO;
 		if (hostVisible) {
-			aci.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT |
-				VMA_ALLOCATION_CREATE_MAPPED_BIT;
+			// hostReadback=true：GPU→CPU 回读路径，使用 HOST_ACCESS_RANDOM（可读）；
+			// 默认顺序写路径（staging / 顶点上传）使用 SEQUENTIAL_WRITE。
+			aci.flags = (hostReadback
+				? VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT
+				: VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT)
+				| VMA_ALLOCATION_CREATE_MAPPED_BIT;
 		}
 
 		VmaAllocationInfo info{};
@@ -49,6 +54,12 @@ namespace pvz {
 		}
 		mMappedPtr = info.pMappedData;
 		return true;
+	}
+
+	void VulkanBuffer::InvalidateMapped() {
+		if (mAlloc && mCtx && mCtx->Allocator()) {
+			vmaInvalidateAllocation(mCtx->Allocator(), mAlloc, 0, VK_WHOLE_SIZE);
+		}
 	}
 
 	void VulkanBuffer::Destroy() {

@@ -20,12 +20,19 @@ namespace pvz {
 		VulkanBuffer(VulkanBuffer&& other) noexcept { *this = std::move(other); }
 		VulkanBuffer& operator=(VulkanBuffer&& other) noexcept;
 
-		// hostVisible=true 时强制 SEQUENTIAL_WRITE + MAPPED；mappedPtr 可直接写。
+		// hostVisible=true 时 + MAPPED 持久映射：
+		//   hostReadback=false（默认）→ SEQUENTIAL_WRITE，适合 CPU→GPU staging/顶点上传；
+		//   hostReadback=true         → HOST_ACCESS_RANDOM，适合 GPU→CPU 回读（截图等）；
+		//   两种路径均通过 MappedPtr() 访问映射内存；回读路径在读取前须调用 InvalidateMapped()。
 		bool Create(VulkanContext* ctx,
 			VkDeviceSize size,
 			VkBufferUsageFlags usage,
-			bool hostVisible);
+			bool hostVisible,
+			bool hostReadback = false);
 		void Destroy();
+
+		// GPU 写完、CPU 读前调用；对 HOST_COHERENT 内存是 no-op，永远安全。
+		void InvalidateMapped();
 
 		VkBuffer        Handle()    const { return mBuffer; }
 		VkDeviceSize    Size()      const { return mSize; }

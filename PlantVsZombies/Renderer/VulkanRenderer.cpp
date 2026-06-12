@@ -238,7 +238,7 @@ namespace pvz {
 				VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
 			if (captureBuf.Create(mCtx,
 				VkDeviceSize(captureExt.width) * captureExt.height * 4,
-				VK_BUFFER_USAGE_TRANSFER_DST_BIT, /*hostVisible=*/true)) {
+				VK_BUFFER_USAGE_TRANSFER_DST_BIT, /*hostVisible=*/true, /*hostReadback=*/true)) {
 				VkBufferImageCopy region{};   // bufferRowLength=0 → 行紧密排列
 				region.imageSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
 				region.imageExtent = { captureExt.width, captureExt.height, 1 };
@@ -305,6 +305,9 @@ namespace pvz {
 			// 等本帧 GPU 完成（fence 不 reset —— BeginFrame 自己管理 wait+reset）
 			vkWaitForFences(mCtx->Device(), 1, &frame.inFlight, VK_TRUE, UINT64_MAX);
 			if (captureBuf.MappedPtr()) {
+				// GPU availability 已由 fence 保证；显式 invalidate 确保 CPU 可见性
+				// （对 HOST_COHERENT 内存是 no-op，对 non-coherent 刷新 CPU cache line）。
+				captureBuf.InvalidateMapped();
 				WriteCapturePng(captureBuf.MappedPtr(), captureExt.width, captureExt.height);
 			}
 			mCapturePath.clear();
