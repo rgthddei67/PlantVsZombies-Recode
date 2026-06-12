@@ -8,15 +8,17 @@ This is a Visual Studio 2026 C++ project (x64 Windows only).
 
 - **Build:** Open `PlantsVsZombies.sln` in Visual Studio 2026, press F7 (or Build Solution)
 - **Run:** F5 in Visual Studio, or run the compiled `x64\Debug\PlantsVsZombies.exe`
+- **Build (Claude 可自主执行):** 通过 MSBuild 命令行构建，全量约 30 秒，无需人工介入、无需核对产物时间戳：
+
+  ```powershell
+  $msbuild = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -requires Microsoft.Component.MSBuild -find MSBuild\**\Bin\MSBuild.exe | Select-Object -First 1
+  & $msbuild .\PlantsVsZombies.sln /p:Configuration=Release /p:Platform=x64 /m /v:m
+  ```
+
+  MSVC-Debug-MCP 的 `build_solution` / `build_project` / `clean_solution` 同样可用。
 - **Debug mode:** Run with `-Debug` flag to show collision hitboxes
 
-> **Important:** Do **not** use the MSVC-Debug-MCP server to build/compile/generate projects — that means **do not call** `build_solution`, `build_project`, or `clean_solution` unless I explicitly ask you to.  
-> However, you **may freely use** the debugging, code navigation, and document editing tools described below.
-
 The server exposes three families of tools:
-
-- **Build (disabled by default):** `build_solution` / `build_project` / `clean_solution` — do not invoke these unless I give explicit permission.  
-  *(Async note: `build_status` reflects the most recent VS build event and is shared between clean and build; a poll right after starting a build can return the previous `Done`. Cross-check with the output binary's timestamp before trusting completion.)*
 
 - **Debug (allowed):** `debugger_launch` (F5), `debugger_add_breakpoint`, then poll `debugger_status` until `Mode == "Break"`. While paused, read state via `debugger_get_callstack`, `debugger_get_locals`, and `debugger_evaluate` (Immediate-window expressions). Drive with `debugger_continue` / `step_*`, and always `debugger_stop` when done (a lingering Break freezes the game window).  
   - In a **Release** build, function locals are often optimized away (shown as "variable optimized away"), but **object members reached through `this` remain readable** — prefer breakpoints where `this` is in scope and evaluate members (e.g. `mRunning`, `mHaveCards.size()`) rather than bare locals.
@@ -26,6 +28,23 @@ The server exposes three families of tools:
 Dependencies: SDL2, SDL2_image, SDL2_ttf, SDL2_mixer, Vulkan 1.3, glm, nlohmann/json, plugxml
 
 Toolchain: C++17, `/utf-8` source encoding (required for the Chinese UI strings), Unicode character set, vcpkg static linking. Crash dialogs are produced by `CrashHandler` via a Windows Vectored Exception Handler — not visible on stderr in headless runs.
+
+## AutoTest 自动化测试套件
+
+`-AutoTest <script.json>` 启动参数让游戏按 JSON 脚本自动执行（进关/选卡/种植/出怪/截图/状态导出后退出），Claude 可独立完成「改代码→构建→跑脚本→Read 截图验证」闭环，无需人工游戏内截图。
+
+- **脚本位置:** `autotest/scripts/*.json`（纯数据，不进 vcxproj；改脚本无需重编译）
+- **运行（工作目录必须是 exe 目录）:**
+  ```powershell
+  Push-Location x64\Release
+  .\PlantsVsZombies.exe -AutoTest ..\..\autotest\scripts\demo_peashooter.json -Seed 42
+  $LASTEXITCODE   # 0=成功；1=命令失败/超时；100=脚本解析失败
+  Pop-Location
+  ```
+- **产物:** `x64\Release\autotest\out\<脚本名>\` 下的 PNG（用 Read 工具直接看）、`state.json`、`run.log`（每条命令的执行轨迹；Release 下 Logger INFO 被裁掉，run.log 是权威记录）
+- **命令集:** `goto_level` / `choose_cards` / `wait_state` / `set_sun` / `plant` / `spawn_zombie` / `wait_seconds` / `wait_frames` / `set_timescale` / `screenshot` / `dump_state` / `quit`。等待型命令支持 `timeout`（默认 15s）。植物/僵尸类型用枚举标识符原文（如 `PLANT_PEASHOOTER`、`ZOMBIE_FASTPAPER`），新类型须在 `Game/AutoTest/TestDriver.cpp` 的名表加一行。
+- **隔离性:** AutoTest 模式下存档读写全部短路（不读不写 `saves/`），每次进关都是确定性全新关卡；`-Seed N` 固定随机种子。
+- **范例:** `autotest/scripts/demo_peashooter.json`（验收脚本），`smoke_*.json`（各子系统冒烟）
 
 ## Architecture Overview
 
