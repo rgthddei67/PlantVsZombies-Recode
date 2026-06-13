@@ -201,6 +201,10 @@ void CardDisplayComponent::UpdateCardState() {
 
 	case CardState::Click:
 		break;
+
+	case CardState::Cooling:
+		// 冷却状态由 UpdateCooldown 单独处理，此处有意不处理
+		break;
 	}
 }
 

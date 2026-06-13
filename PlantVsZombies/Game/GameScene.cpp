@@ -278,12 +278,12 @@ void GameScene::OpenMenu()
 		this->mLendToAlmanacScene = true;
 	}, ResourceKeys::Textures::IMAGE_BUTTONBIG, true });
 
-	buttons.push_back({ u8"", Vector(455, 250),Vector(42, 39), 1,[this]() {
+	buttons.push_back({ u8"", Vector(455, 250),Vector(42, 39), 1,[]() {
 		auto& gameApp = GameAPP::GetInstance();
 		gameApp.mShowPlantHP = !gameApp.mShowPlantHP;
 	}, ResourceKeys::Textures::IMAGE_OPTIONS_CHECKBOX0 ,false });
 
-	buttons.push_back({ u8"", Vector(590, 250),Vector(42, 39), 1,[this]() {
+	buttons.push_back({ u8"", Vector(590, 250),Vector(42, 39), 1,[]() {
 		auto& gameApp = GameAPP::GetInstance();
 		gameApp.mShowZombieHP = !gameApp.mShowZombieHP;
 	}, ResourceKeys::Textures::IMAGE_OPTIONS_CHECKBOX0 ,false });
@@ -419,6 +419,9 @@ void GameScene::Update() {
 		float deltaTime = DeltaTime::GetDeltaTime();
 
 		switch (mCurrentStage) {
+		case IntroStage::FINISH:
+			// 入场动画已结束，无需处理
+			break;
 		case IntroStage::BACKGROUND_MOVE:
 		{
 			if (mBoard->mBoardState != BoardState::CHOOSE_CARD) break;
@@ -578,6 +581,9 @@ void GameScene::Update() {
 
 			switch (mPrompt.stage)
 			{
+			case PromptStage::NONE:
+				// 无激活提示，无需处理
+				break;
 			case PromptStage::APPEAR:
 			{
 				float t = std::min(mPrompt.timer / mPrompt.appearDuration, 1.0f);

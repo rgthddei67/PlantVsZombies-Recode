@@ -145,10 +145,6 @@ bool CursorManager::LoadCustomCursorFromSurface(const std::string& name,
 	// SDL_CreateCursor需要位图数据，这里简化处理
 	// 实际项目中可能需要转换表面格式
 
-	// 创建位图数据（简化示例）
-	int width = surface->w;
-	int height = surface->h;
-
 	// 将表面转换为单色位图（实际实现会更复杂）
 	// 这里只是示例，实际需要正确处理alpha通道和颜色键
 

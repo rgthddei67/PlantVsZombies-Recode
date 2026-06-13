@@ -79,11 +79,11 @@ struct EmitterConfig {
 	std::string name;
 
 	// 基础属性
-	ValueRange spawnMinActive;     // 支持 "[a b]"：每次发射器初始化时随机一个数量
-	ValueRange spawnMaxLaunched;   // 同上
-	int spawnRate;
+	ValueRange spawnMinActive = ValueRange(1.0f);     // 支持 "[a b]"：每次发射器初始化时随机一个数量
+	ValueRange spawnMaxLaunched = ValueRange(1.0f);   // 同上
+	int spawnRate = 0;
 	ValueRange particleDuration;
-	float systemDuration;  // -1表示无限
+	float systemDuration = -1.0f;  // -1表示无限
 
 	// 粒子外观
 	InterpolationTrack particleAlpha;
@@ -96,30 +96,30 @@ struct EmitterConfig {
 	InterpolationTrack systemAlpha;
 
 	// 发射器形状
-	EmitterType emitterType;
+	EmitterType emitterType = EmitterType::POINT;
 	ValueRange emitterBoxX;
 	ValueRange emitterBoxY;
 	ValueRange emitterRadius;
-	float emitterOffsetX;
-	float emitterOffsetY;
+	float emitterOffsetX = 0.0f;
+	float emitterOffsetY = 0.0f;
 
 	// 运动属性
 	ValueRange launchSpeed;
-	bool randomLaunchSpin;
+	bool randomLaunchSpin = false;
 	ValueRange particleSpinSpeed;
-	float particleGravity;
+	float particleGravity = 100.0f;
 
 	// 动画
 	std::vector<std::string> imageKeys;  // 支持逗号分隔的多个纹理
-	int imageFrames;
-	float animationRate;
+	int imageFrames = 1;
+	float animationRate = 12.0f;
 
 	// 场效果
 	std::vector<ParticleField> fields;
 	std::vector<ParticleField> systemFields;
 
 	// 特殊属性
-	bool fullScreen;
+	bool fullScreen = false;
 
 	EmitterConfig();
 };

@@ -59,20 +59,9 @@ float ValueRange::GetRandomValue() const {
 	return GameRandom::Range(minValue, maxValue);
 }
 
-EmitterConfig::EmitterConfig()
-	: spawnMinActive(ValueRange(1.0f))
-	, spawnMaxLaunched(ValueRange(1.0f))
-	, spawnRate(0)
-	, systemDuration(-1.0f)
-	, emitterType(EmitterType::POINT)
-	, emitterOffsetX(0.0f)
-	, emitterOffsetY(0.0f)
-	, randomLaunchSpin(false)
-	, imageFrames(1)
-	, animationRate(12.0f)
-	, fullScreen(false)
-	, particleGravity(100.0f) {
-	// 默认值
+EmitterConfig::EmitterConfig() {
+	// 标量/ValueRange 默认值已就近写在 ParticleXMLConfig.h 的成员声明处；
+	// 这里只设置需要逐字段赋值的 InterpolationTrack / ValueRange 复合默认值。
 	particleDuration = ValueRange(1.0f);
 
 	particleAlpha.isConstant = true;

@@ -23,7 +23,6 @@ private:
 
 	// 常量参数
 	Vector firstSlotPosition = Vector(64, -2); // 第一个卡牌槽的位置
-	float slotSpacing = CARD_WIDTH + 5; // 卡牌间距 = 卡牌宽度 + 5像素间隔
 
 	Board* mBoard = nullptr;
 	Cell* mHoveredCell = nullptr;     // 当前鼠标悬停的Cell（观察者）

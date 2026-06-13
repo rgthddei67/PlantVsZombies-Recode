@@ -53,8 +53,10 @@ public:
 	SDL_FRect cachedBounds{ 0, 0, 0, 0 };
 	Vector    cachedWorldPos;
 
-	ColliderComponent(const Vector& size, const Vector& offset = Vector(0, 0), ColliderType type = ColliderType::BOX)
-		: size(size), offset(offset), colliderType(type) {
+	ColliderComponent(const Vector& size, const Vector& offset = Vector(0, 0), ColliderType type = ColliderType::BOX) {
+		this->size = size;
+		this->offset = offset;
+		this->colliderType = type;
 	}
 
 	// 获取世界空间位置

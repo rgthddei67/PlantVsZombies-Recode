@@ -105,7 +105,7 @@ void MainMenuScene::BuildDrawCommands()
 		ResourceKeys::Textures::IMAGE_SELECTORSCREEN_QUIT2,
 		ResourceKeys::Textures::IMAGE_SELECTORSCREEN_QUIT2,
 		ResourceKeys::Textures::IMAGE_SELECTORSCREEN_QUIT2);
-	mExitButton->SetClickCallBack([this](bool) {
+	mExitButton->SetClickCallBack([](bool) {
 		GameAPP::GetInstance().SetRunning(false);
 		});
 	// 花
@@ -146,20 +146,20 @@ void MainMenuScene::OpenMenu()
 		DeltaTime::SetPaused(false);
 	}, ResourceKeys::Textures::IMAGE_OPTIONS_BACKTOGAMEBUTTON0 ,true });
 
-	buttons.push_back({ u8"", Vector(510, 250),Vector(42, 39), 1,[this]() {
+	buttons.push_back({ u8"", Vector(510, 250),Vector(42, 39), 1,[]() {
 		auto& gameApp = GameAPP::GetInstance();
 		gameApp.ApplyVsync(!gameApp.mVsync);
 	}, ResourceKeys::Textures::IMAGE_OPTIONS_CHECKBOX0 ,false });
 
-	buttons.push_back({ u8"", Vector(510, 290),Vector(42, 39), 1,[this]() {
+	buttons.push_back({ u8"", Vector(510, 290),Vector(42, 39), 1,[]() {
 		auto& gameApp = GameAPP::GetInstance();
 		gameApp.SetFullscreen(!gameApp.IsFullscreen());
 	}, ResourceKeys::Textures::IMAGE_OPTIONS_CHECKBOX0 ,false });
-	buttons.push_back({ u8"", Vector(510, 330),Vector(42, 39), 1,[this]() {
+	buttons.push_back({ u8"", Vector(510, 330),Vector(42, 39), 1,[]() {
 		auto& gameApp = GameAPP::GetInstance();
 		gameApp.mShowPlantHP = !gameApp.mShowPlantHP;
 	}, ResourceKeys::Textures::IMAGE_OPTIONS_CHECKBOX0 ,false });
-	buttons.push_back({ u8"", Vector(510, 370),Vector(42, 39), 1,[this]() {
+	buttons.push_back({ u8"", Vector(510, 370),Vector(42, 39), 1,[]() {
 		auto& gameApp = GameAPP::GetInstance();
 		gameApp.mShowZombieHP = !gameApp.mShowZombieHP;
 	}, ResourceKeys::Textures::IMAGE_OPTIONS_CHECKBOX0 ,false });

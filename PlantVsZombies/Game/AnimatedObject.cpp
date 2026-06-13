@@ -2,7 +2,7 @@
 #include "Board.h"
 #include "../DeltaTime.h"
 #include "../GameRandom.h"
-#include "../GameAPP.h"
+#include "../GameApp.h"
 #include "../Logger.h"
 
 AnimatedObject::AnimatedObject(ObjectType type,

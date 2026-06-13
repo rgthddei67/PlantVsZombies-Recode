@@ -1,6 +1,6 @@
 ﻿#include "GameMessageBox.h"
 #include "../ResourceManager.h"
-#include "../GameAPP.h"
+#include "../GameApp.h"
 #include "../Game/GameObjectManager.h"
 #include "InputHandler.h"
 #include "../ResourceKeys.h"
@@ -13,10 +13,8 @@ namespace {
 	const Vector DEFAULT_SIZE(SCENE_WIDTH / 2, SCENE_HEIGHT / 2);		// 默认位置
 	const int BASE_TITLE_FONT_SIZE = 20;	// Title大小
 	const int BASE_MESSAGE_FONT_SIZE = 18;
-	const int BUTTON_SPACING = 10;			// 按钮距离上面偏移
 	const Vector TITLE_OFFSET = Vector(-70, -65);	// Title偏移
 	const Vector MESSAGE_OFFSET = Vector(-190, -25);
-	const int BOTTOM_MARGIN = 10;
 }
 
 GameMessageBox::GameMessageBox(const Vector& pos,

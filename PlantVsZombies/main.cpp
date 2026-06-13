@@ -1,7 +1,7 @@
 #define SDL_MAIN_HANDLED
 #include "./CrashHandler.h"
 #include "./GameRandom.h"
-#include "./GameAPP.h"
+#include "./GameApp.h"
 #include "GameMonitor.h"
 #include "Logger.h"
 #include "./Game/AutoTest/TestDriver.h"

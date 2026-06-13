@@ -13,7 +13,6 @@
 class ThreadPool {
 public:
 	explicit ThreadPool(int numThreads)
-		: mShutdown(false), mWorkGen(0), mDoneCount(0), mNumActive(0), mTotalItems(0)
 	{
 		mWorkers.reserve(numThreads);
 		for (int i = 0; i < numThreads; i++)
@@ -80,14 +79,14 @@ private:
 
 	std::vector<std::thread> mWorkers;
 	std::function<void(int, int)> mWorkFunc;
-	int mTotalItems;
-	int mNumActive;
+	int mTotalItems = 0;
+	int mNumActive = 0;
 	std::mutex mMutex;
 	std::condition_variable mStartCV;
 	std::condition_variable mDoneCV;
-	std::atomic<int> mDoneCount;
-	bool mShutdown;
-	int mWorkGen;
+	std::atomic<int> mDoneCount{0};
+	bool mShutdown = false;
+	int mWorkGen = 0;
 };
 
 #endif

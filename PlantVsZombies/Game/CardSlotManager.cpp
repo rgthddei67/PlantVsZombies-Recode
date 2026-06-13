@@ -200,8 +200,6 @@ void CardSlotManager::CreateCellPlantPreview(PlantType plantType, Cell* cell) {
 	if (mBoard && cell) {
 		cellPlantPreview = mBoard->CreatePlant(plantType, 0, 0, true, true);
 		if (cellPlantPreview) {
-			GameDataManager& plantMgr = GameDataManager::GetInstance();
-
 			Vector centerPos = cell->GetCenterPosition();          // 世界坐标
 
 			cellPlantPreview->SetRenderOrder(LAYER_BACKGROUND + 100);
@@ -270,9 +268,7 @@ void CardSlotManager::UpdatePlantPreviewPosition(Graphics* g, const Vector& mous
 	}
 
 	if (cellPlantPreview && hoveredCell) {
-		if (auto cardComp = selected->GetComponent<CardComponent>()) {
-			GameDataManager& plantMgr = GameDataManager::GetInstance();
-
+		if (selected->GetComponent<CardComponent>()) {
 			Vector centerPos = hoveredCell->GetCenterPosition();               // 世界坐标
 
 			if (auto transform = cellPlantPreview->GetTransformComponent()) {
@@ -287,8 +283,6 @@ void CardSlotManager::UpdatePlantPreviewPosition(Graphics* g, const Vector& mous
 
 void CardSlotManager::UpdatePreviewToMouse(const Vector& mouseWorld) {
 	if (plantPreview) {
-		GameDataManager& plantMgr = GameDataManager::GetInstance();
-
 		if (auto transform = plantPreview->GetTransformComponent()) {
 			transform->SetPosition(mouseWorld);      // 世界坐标
 		}

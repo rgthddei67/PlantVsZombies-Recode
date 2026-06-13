@@ -40,7 +40,7 @@ void CardComponent::SetCardChooseClick(GameObject* gameObject, Card* card)
 	if (!gameObject || !card) return;
 	if (auto* clickable = gameObject->GetComponent<ClickableComponent>()) {
 		// ---------- 选卡界面点击逻辑 ----------
-		clickable->onClick = [this, card]() {
+		clickable->onClick = [card]() {
 			if (card->IsMoving()) return;
 
 			// 查找 ChooseCardUI

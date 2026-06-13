@@ -92,14 +92,14 @@ void CrashHandler::HandleStackOverflowMinimal(PEXCEPTION_POINTERS exceptionInfo)
 	printf("\a");
 	if (hFile != INVALID_HANDLE_VALUE) {
 		DWORD written;
-		WriteFile(hFile, errorMsg, strlen(errorMsg), &written, nullptr);
+		WriteFile(hFile, errorMsg, static_cast<DWORD>(strlen(errorMsg)), &written, nullptr);
 
 		if (exceptionInfo && exceptionInfo->ExceptionRecord) {
 			std::snprintf(buffer, sizeof(buffer),
 				"\n\nException Address: 0x%p\nRSP: 0x%p",
 				exceptionInfo->ExceptionRecord->ExceptionAddress,
-				exceptionInfo->ContextRecord->Rsp);
-			WriteFile(hFile, buffer, strlen(buffer), &written, nullptr);
+				reinterpret_cast<void*>(exceptionInfo->ContextRecord->Rsp));
+			WriteFile(hFile, buffer, static_cast<DWORD>(strlen(buffer)), &written, nullptr);
 		}
 
 		CloseHandle(hFile);
