@@ -24,7 +24,7 @@ This is a Visual Studio 2026 C++ project (x64 Windows only).
   cmake --build --preset msvc-release
   ```
 
-  产物在 `build\<preset>\PlantsVsZombies.exe`（只拷 Shader，不拷 resources）；运行/AutoTest 时工作目录用 `x64\Release`（资源在那里）：`Push-Location x64\Release; ..\..\build\msvc-release\PlantsVsZombies.exe -AutoTest ...`。新增源文件须同时加进 vcxproj 和 CMakeLists.txt 的 SOURCES。
+  产物在 `build\<preset>\PlantsVsZombies.exe`（只拷 Shader，不拷 resources）；运行/AutoTest 时工作目录用 `x64\Release`（资源在那里）：`Push-Location x64\Release; ..\..\build\msvc-release\PlantsVsZombies.exe -AutoTest ...`。源文件经 `GLOB_RECURSE CONFIGURE_DEPENDS` 自动收集（新增 .cpp 无需改 CMakeLists；不参与编译的文件加进 REMOVE_ITEM 排除名单），vcxproj 侧仍需手动添加。
 
 The MSVC-Debug-MCP server exposes three families of tools — Build（用法见上文 Build & Run）、Debug、Operate：
 
