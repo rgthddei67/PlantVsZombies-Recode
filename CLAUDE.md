@@ -26,13 +26,6 @@ This is a CMake + vcpkg(manifest) C++ project (x64 Windows only). The build syst
 - **Debug mode:** Run with `-Debug` flag to show collision hitboxes
 - **Source file management:** `GLOB_RECURSE CONFIGURE_DEPENDS` auto-collects sources — adding a new .cpp needs no build-file edits; files excluded from compilation go in the `REMOVE_ITEM` list in CMakeLists (current: `Reanimation/AttachmentSystem.cpp`).
 
-The MSVC-Debug-MCP server exposes three tool families — Build, Debug, Operate. Note: `build_solution` / `build_project` / `clean_solution` depend on .sln and are deprecated with the CMake migration; always build via the cmake command line above. The Debug/Operate families still work in VS "Open Folder" (CMake) mode:
-
-- **Debug (allowed):** `debugger_launch` (F5), `debugger_add_breakpoint`, then poll `debugger_status` until `Mode == "Break"`. While paused, read state via `debugger_get_callstack`, `debugger_get_locals`, and `debugger_evaluate` (Immediate-window expressions). Drive with `debugger_continue` / `step_*`, and always `debugger_stop` when done (a lingering Break freezes the game window).  
-  - In a **Release** build, function locals are often optimized away (shown as "variable optimized away"), but **object members reached through `this` remain readable** — prefer breakpoints where `this` is in scope and evaluate members (e.g. `mRunning`, `mHaveCards.size()`) rather than bare locals.
-
-- **Operate MSVC (allowed):** open/read/write/save documents, edit (`editor_find` / `editor_replace` / `editor_goto_line`), navigate code (`goto_definition`, `find_references`, `symbol_workspace`), and inspect projects (`project_list`, `solution_info`, `startup_project_set`).
-
 Dependencies: SDL2, SDL2_image, SDL2_ttf, SDL2_mixer, Vulkan 1.3, glm, nlohmann/json, plugxml
 
 Toolchain: C++17, `/utf-8` source encoding (required for the Chinese UI strings), Unicode character set, vcpkg static linking. Crash dialogs are produced by `CrashHandler` via a Windows Vectored Exception Handler — not visible on stderr in headless runs.
