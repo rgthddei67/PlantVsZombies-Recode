@@ -1,0 +1,21 @@
+{
+  "version": "0.2.1",
+  "defaults": {},
+  "configurations": [
+    {
+      "type": "default",
+      "project": "CMakeLists.txt",
+      "projectTarget": "PlantsVsZombies.exe",
+      "name": "PlantsVsZombies",
+      "currentDir": "${workspaceRoot}\\x64\\Release"
+    },
+    {
+      "type": "default",
+      "project": "CMakeLists.txt",
+      "projectTarget": "PlantsVsZombies.exe",
+      "name": "PlantsVsZombies (-Debug 碰撞框)",
+      "currentDir": "${workspaceRoot}\\x64\\Release",
+      "args": [ "-Debug" ]
+    }
+  ]
+}

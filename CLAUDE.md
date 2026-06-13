@@ -4,29 +4,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Build & Run
 
-This is a Visual Studio 2026 C++ project (x64 Windows only).
+This is a CMake + vcpkg(manifest) C++ project (x64 Windows only). 构建系统已于 2026-06-13 从 .sln/.vcxproj 统一迁移到 CMake（`CMakeLists.txt` + `CMakePresets.json` + `vcpkg.json`，triplet `x64-windows-static`）。
 
-- **Build:** Open `PlantsVsZombies.sln` in Visual Studio 2026, press F7 (or Build Solution)
-- **Run:** F5 in Visual Studio, or run the compiled `x64\Debug\PlantsVsZombies.exe`
-- **Build (Claude 可自主执行):** 通过 MSBuild 命令行构建，全量约 30 秒，无需人工介入、无需核对产物时间戳：
-
-  ```powershell
-  $msbuild = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -requires Microsoft.Component.MSBuild -find MSBuild\**\Bin\MSBuild.exe | Select-Object -First 1
-  & $msbuild .\PlantsVsZombies.sln /p:Configuration=Release /p:Platform=x64 /m /v:m
-  ```
-
-  MSVC-Debug-MCP 的 `build_solution` / `build_project` / `clean_solution` 同样可用。
-- **Debug mode:** Run with `-Debug` flag to show collision hitboxes
-- **CMake 构建（与 .sln 并行共存）:** `CMakeLists.txt` + `CMakePresets.json` + `vcpkg.json`（manifest 模式，triplet `x64-windows-static`）。需在 VS 开发者环境下执行（普通 shell 先导入 `VsDevCmd.bat -arch=x64`，且 vswhere 所在的 `...\Microsoft Visual Studio\Installer` 要在 PATH 上）：
+- **Build (Claude 可自主执行):** 需在 VS 开发者环境下执行（普通 shell 先导入 `VsDevCmd.bat -arch=x64`，且 vswhere 所在的 `...\Microsoft Visual Studio\Installer` 要在 PATH 上）：
 
   ```powershell
   cmake --preset msvc-release      # 或 msvc-debug / clang-release(-O3 -march=native -flto)
   cmake --build --preset msvc-release
   ```
 
-  产物在 `build\<preset>\PlantsVsZombies.exe`（只拷 Shader，不拷 resources）；运行/AutoTest 时工作目录用 `x64\Release`（资源在那里）：`Push-Location x64\Release; ..\..\build\msvc-release\PlantsVsZombies.exe -AutoTest ...`。源文件经 `GLOB_RECURSE CONFIGURE_DEPENDS` 自动收集（新增 .cpp 无需改 CMakeLists；不参与编译的文件加进 REMOVE_ITEM 排除名单），vcxproj 侧仍需手动添加。
+- **Run:** 产物在 `build\<preset>\PlantsVsZombies.exe`（只拷 Shader，不拷 resources）；运行/AutoTest 时工作目录用 `x64\Release`（resources/font 在那里）：`Push-Location x64\Release; ..\..\build\msvc-release\PlantsVsZombies.exe -AutoTest ...`
+- **VS 里开发:** Visual Studio「打开文件夹」指向项目根目录，自动识别 CMakePresets；F5 调试配置在根目录 `launch.vs.json`（已设好工作目录与 `-Debug` 变体）
+- **Debug mode:** Run with `-Debug` flag to show collision hitboxes
+- **源文件管理:** `GLOB_RECURSE CONFIGURE_DEPENDS` 自动收集——新增 .cpp 无需改任何构建文件；不参与编译的文件加进 CMakeLists 的 `REMOVE_ITEM` 排除名单（现有：`Reanimation/AttachmentSystem.cpp`）
 
-The MSVC-Debug-MCP server exposes three families of tools — Build（用法见上文 Build & Run）、Debug、Operate：
+The MSVC-Debug-MCP server exposes three families of tools — Build、Debug、Operate。注意：`build_solution` / `build_project` / `clean_solution` 依赖 .sln，已随 CMake 统一弃用，构建一律走上文的 cmake 命令行；Debug/Operate 两族在 VS「打开文件夹」(CMake) 模式下继续可用：
 
 - **Debug (allowed):** `debugger_launch` (F5), `debugger_add_breakpoint`, then poll `debugger_status` until `Mode == "Break"`. While paused, read state via `debugger_get_callstack`, `debugger_get_locals`, and `debugger_evaluate` (Immediate-window expressions). Drive with `debugger_continue` / `step_*`, and always `debugger_stop` when done (a lingering Break freezes the game window).  
   - In a **Release** build, function locals are often optimized away (shown as "variable optimized away"), but **object members reached through `this` remain readable** — prefer breakpoints where `this` is in scope and evaluate members (e.g. `mRunning`, `mHaveCards.size()`) rather than bare locals.
@@ -45,7 +37,7 @@ Toolchain: C++17, `/utf-8` source encoding (required for the Chinese UI strings)
 - **运行（工作目录必须是 exe 目录）:**
   ```powershell
   Push-Location x64\Release
-  .\PlantsVsZombies.exe -AutoTest ..\..\autotest\scripts\demo_peashooter.json -Seed 42
+  ..\..\build\msvc-release\PlantsVsZombies.exe -AutoTest ..\..\autotest\scripts\demo_peashooter.json -Seed 42
   $LASTEXITCODE   # 0=成功；1=命令失败/超时；100=脚本解析失败
   Pop-Location
   ```
