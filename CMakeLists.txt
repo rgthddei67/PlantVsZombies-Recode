@@ -21,89 +21,14 @@ find_package(Vulkan REQUIRED)
 
 set(SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/PlantVsZombies)
 
-set(SOURCES
-    CrashHandler.cpp
-    CursorManager.cpp
-    FileManager.cpp
-    GameApp.cpp
-    GameInfoSaver.cpp
-    GameMonitor.cpp
-    Logger.cpp
-    Graphics.cpp
-    main.cpp
-    ResourceManager.cpp
-    Game/AutoTest/TestDriver.cpp
-    Game/AlmanacScene.cpp
-    Game/AnimatedObject.cpp
-    Game/AudioSystem.cpp
-    Game/Board.cpp
-    Game/CursorObjectManager.cpp
-    Game/GameObjectManager.cpp
-    Game/LawnMower.cpp
-    Game/PlantAlmanacScene.cpp
-    Game/Shovel.cpp
-    Game/ShovelBank.cpp
-    Game/Card.cpp
-    Game/CardComponent.cpp
-    Game/CardDisplayComponent.cpp
-    Game/CardSlotManager.cpp
-    Game/ChooseCardUI.cpp
-    Game/ClickableComponent.cpp
-    Game/Coin.cpp
-    Game/ColliderComponent.cpp
-    Game/Component.cpp
-    Game/EntityManager.cpp
-    Game/FlagMeter.cpp
-    Game/GameObject.cpp
-    Game/GameProgress.cpp
-    Game/GameScene.cpp
-    Game/MainMenuScene.cpp
-    Game/Scene.cpp
-    Game/SceneManager.cpp
-    Game/ShadowComponent.cpp
-    Game/Trophy.cpp
-    Game/ZombieAlmanacScene.cpp
-    Game/Bullet/Bullet.cpp
-    Game/ObjectPool/BulletPool.cpp
-    Game/Plant/CherryBomb.cpp
-    Game/Plant/Chomper.cpp
-    Game/Plant/GameDataManager.cpp
-    Game/Plant/Plant.cpp
-    Game/Plant/PotatoMine.cpp
-    Game/Plant/PuffShroom.cpp
-    Game/Plant/Shooter.cpp
-    Game/Plant/Shroom.cpp
-    Game/Plant/WallNut.cpp
-    Game/Zombie/BucketZombie.cpp
-    Game/Zombie/ConeZombie.cpp
-    Game/Zombie/FastBucketZombie.cpp
-    Game/Zombie/FastPaperZombie.cpp
-    Game/Zombie/PaperZombie.cpp
-    Game/Zombie/Polevaulter.cpp
-    Game/Zombie/Zombie.cpp
-    ParticleSystem/Particle.cpp
-    ParticleSystem/ParticleConfig.cpp
-    ParticleSystem/ParticleEffect.cpp
-    ParticleSystem/ParticleEmitter.cpp
-    ParticleSystem/ParticleSystem.cpp
-    ParticleSystem/ParticleXMLConfig.cpp
-    ParticleSystem/ParticleXMLLoader.cpp
-    Reanimation/Animator.cpp
-    Reanimation/Reanimation.cpp
-    Renderer/VmaImpl.cpp
-    Renderer/VulkanBuffer.cpp
-    Renderer/VulkanContext.cpp
-    Renderer/VulkanPipeline.cpp
-    Renderer/VulkanRenderer.cpp
-    Renderer/VulkanTexturePool.cpp
-    UI/Button.cpp
-    UI/ButtonManager.cpp
-    UI/GameMessageBox.cpp
-    UI/InputHandler.cpp
-    UI/Slider.cpp
-    UI/SliderManager.cpp
+# 自动收集源文件：CONFIGURE_DEPENDS 让 Ninja 在每次构建前检查 glob 结果，
+# 新增/删除 .cpp 自动触发重新 configure，无需手动维护清单。
+# 代价：vcxproj 之外多出的"野" .cpp 也会被编进来，须在下方排除名单里登记。
+file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS ${SRC_DIR}/*.cpp)
+# 排除名单：在磁盘上但不参与编译的文件（与 vcxproj 保持一致）
+list(REMOVE_ITEM SOURCES
+    ${SRC_DIR}/Reanimation/AttachmentSystem.cpp
 )
-list(TRANSFORM SOURCES PREPEND ${SRC_DIR}/)
 
 add_executable(PlantsVsZombies ${SOURCES})
 
