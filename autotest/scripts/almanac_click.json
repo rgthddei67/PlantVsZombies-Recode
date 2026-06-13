@@ -1,0 +1,10 @@
+{
+  "commands": [
+    { "op": "wait_frames", "value": 30 },
+    { "op": "screenshot", "name": "01_menu.png" },
+    { "op": "click", "x": 570, "y": 490 },
+    { "op": "wait_frames", "value": 30 },
+    { "op": "screenshot", "name": "02_after_click.png" },
+    { "op": "quit" }
+  ]
+}
