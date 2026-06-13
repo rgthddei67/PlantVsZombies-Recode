@@ -19,6 +19,17 @@ constexpr int   ZOMBIE_V_SPACING = 4;
 constexpr float PREVIEW_ZOMBIE_X = 900.0f;
 constexpr float PREVIEW_ZOMBIE_Y = 280.0f;
 
+// 描述书写区（羊皮纸内沿，屏幕坐标）。卡片图 IMAGE_ALMANAC_ZOMBIECARD 绘于 (745,110)，
+// 324x497；僵尸预览窗更大，书写区比植物卡更靠下、更矮。
+constexpr float DESC_START_X    = 784.0f;        // 第一行起点（首行略缩进）
+constexpr float DESC_WRAP_X     = 774.0f;        // 后续行起点
+constexpr float DESC_MAX_X      = 1024.0f;       // 折行右界
+constexpr float DESC_START_Y    = 410.0f;        // 第一行顶部
+constexpr float DESC_BOTTOM_Y   = 580.0f;        // 书写区下沿（羊皮纸底边内留余量）
+constexpr int   DESC_FONT_MAX   = 17;            // 默认/最大字号
+constexpr int   DESC_FONT_MIN   = 10;            // 收缩下限（再小不可读）
+constexpr float DESC_LINE_RATIO = 22.0f / 17.0f; // 行高随字号等比（原 17 号配 22px）
+
 void ZombieAlmanacScene::BuildDrawCommands()
 {
 	Scene::BuildDrawCommands();
@@ -74,13 +85,13 @@ void ZombieAlmanacScene::BuildDrawCommands()
 				app.DrawText(mCurrentZombieName, Vector(mZombieNameX, 368.0f),
 					glm::vec4(221, 157, 42, 255), ResourceKeys::Fonts::FONT_FZJZ, 24);
 
-			float y = 410;
-			constexpr float LINE_HEIGHT = 22.0f;
+			float y = DESC_START_Y;
 			for (size_t i = 0; i < mDescriptionLines.size(); i++) {
-				float x = (i == 0) ? 784.0f : 774.0f;
+				float x = (i == 0) ? DESC_START_X : DESC_WRAP_X;
 				app.DrawText(mDescriptionLines[i], Vector(x, y),
-					glm::vec4(52, 51, 93, 255), ResourceKeys::Fonts::FONT_FZJZ, 17);
-				y += LINE_HEIGHT;
+					glm::vec4(52, 51, 93, 255),
+					ResourceKeys::Fonts::FONT_FZJZ, mDescriptionFontSize);
+				y += mDescriptionLineHeight;
 			}
 		},
 		LAYER_UI + 100);
@@ -262,8 +273,21 @@ void ZombieAlmanacScene::UpdateZombieInfo(ZombieType type)
 	auto descIt = mInfoMap.find(enumName + "_DESCRIPTION");
 	std::string description = (descIt != mInfoMap.end()) ? descIt->second : "";
 
-	mDescriptionLines = WrapText(description, 784.0f, 1024.0f, 774.0f,
-		ResourceKeys::Fonts::FONT_FZJZ, 17);
+	// 按书写区高度自动收缩字号：从最大字号往下试，直到整段折行后能装进 [START_Y, BOTTOM_Y]。
+	// 字号变小 → 行高变小 + 每行容字更多 → 总高单调下降，线性试探即可收敛。最小字号兜底。
+	mDescriptionLines.clear();
+	mDescriptionFontSize = DESC_FONT_MIN;
+	mDescriptionLineHeight = DESC_FONT_MIN * DESC_LINE_RATIO;
+	for (int fs = DESC_FONT_MAX; fs >= DESC_FONT_MIN; --fs) {
+		auto lines = WrapText(description, DESC_START_X, DESC_MAX_X, DESC_WRAP_X,
+			ResourceKeys::Fonts::FONT_FZJZ, fs);
+		float lineHeight = fs * DESC_LINE_RATIO;
+		mDescriptionLines = std::move(lines);
+		mDescriptionFontSize = fs;
+		mDescriptionLineHeight = lineHeight;
+		if (DESC_START_Y + mDescriptionLines.size() * lineHeight <= DESC_BOTTOM_Y)
+			break;
+	}
 }
 
 std::vector<std::string> ZombieAlmanacScene::WrapText(const std::string& text,

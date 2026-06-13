@@ -23,6 +23,8 @@ private:
 	std::string mCurrentPlantName;
 	float mPlantNameX = 0.0f;
 	std::vector<std::string> mDescriptionLines;
+	int   mDescriptionFontSize = 17;     // 自动收缩后的描述字号
+	float mDescriptionLineHeight = 22.0f; // 与字号等比的行高
 
 	void CreateAllCards();
 	void OnCardClicked(PlantType type);
