@@ -29,15 +29,6 @@
       }
     },
     {
-      "name": "msvc-release",
-      "displayName": "MSVC Release (/O2 AVX2 LTCG, 对应旧 Release|x64)",
-      "inherits": "base",
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release",
-        "CMAKE_CXX_COMPILER": "cl"
-      }
-    },
-    {
       "name": "clang-release",
       "displayName": "Clang Release (-O3 -march=native -flto, 对应旧 ClangRelease|x64)",
       "inherits": "base",
@@ -50,7 +41,6 @@
   ],
   "buildPresets": [
     { "name": "msvc-debug", "configurePreset": "msvc-debug" },
-    { "name": "msvc-release", "configurePreset": "msvc-release" },
     { "name": "clang-release", "configurePreset": "clang-release" }
   ]
 }

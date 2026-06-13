@@ -1,5 +1,5 @@
 # CMake 构建（与 PlantsVsZombies.sln 并行共存，旧 VS 工程零改动）
-# 用法见 CMakePresets.json：cmake --preset msvc-release && cmake --build --preset msvc-release
+# 用法见 CMakePresets.json：cmake --preset clang-release && cmake --build --preset clang-release
 cmake_minimum_required(VERSION 3.25)
 
 project(PlantsVsZombies LANGUAGES CXX)

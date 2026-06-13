@@ -15,13 +15,13 @@ This is a CMake + vcpkg(manifest) C++ project (x64 Windows only). The build syst
   cmd /c "`"$vs\Common7\Tools\VsDevCmd.bat`" -arch=x64 -no_logo && set" |
     ForEach-Object { if ($_ -match '^([^=]+)=(.*)$') { Set-Item "env:$($matches[1])" $matches[2] } }
 
-  # 2) Build (pick any preset)
-  cmake --preset msvc-release      # or msvc-debug / clang-release(-O3 -march=native -flto)
-  cmake --build --preset msvc-release
+  # 2) Build (pick a preset: clang-release for shipping/perf, msvc-debug for F5 + hitbox debugging)
+  cmake --preset clang-release      # -O3 -march=native -flto; or msvc-debug
+  cmake --build --preset clang-release
   ```
-  Note: **warning-zero verification can only be done with `clang-release`** — MSVC's default config does not report `-Wnonportable-include-path`/`-Wreorder-ctor`/`-Wunused-*`/`-Wswitch` and similar diagnostics.
+  Note: the MSVC Release preset was removed on 2026-06-13 — `clang-release` is now the sole release build (better optimization, and the only config that reports `-Wnonportable-include-path`/`-Wreorder-ctor`/`-Wunused-*`/`-Wswitch` and similar diagnostics, so warning-zero verification lives here).
 
-- **Run:** The binary is at `build\<preset>\PlantsVsZombies.exe`; CMake copies `font/resources/Shader` next to it — **use `build\<preset>\` itself as the working directory for Run/AutoTest**: `Push-Location build\msvc-release; .\PlantsVsZombies.exe -AutoTest <absolute-path>.json`. (⚠️ The root `x64\Release` is a stale artifact from the pre-CMake vcxproj — only .obj files, no Shader, **do not use**.)
+- **Run:** The binary is at `build\<preset>\PlantsVsZombies.exe`; CMake copies `font/resources/Shader` next to it — **use `build\<preset>\` itself as the working directory for Run/AutoTest**: `Push-Location build\clang-release; .\PlantsVsZombies.exe -AutoTest <absolute-path>.json`. (⚠️ The root `x64\Release` is a stale artifact from the pre-CMake vcxproj — only .obj files, no Shader, **do not use**.)
 - **Develop in VS:** Visual Studio "Open Folder" pointed at the project root auto-detects CMakePresets; the F5 debug config is in `launch.vs.json` at the root (working directory and `-Debug` variant already set).
 - **Debug mode:** Run with `-Debug` flag to show collision hitboxes
 - **Source file management:** `GLOB_RECURSE CONFIGURE_DEPENDS` auto-collects sources — adding a new .cpp needs no build-file edits; files excluded from compilation go in the `REMOVE_ITEM` list in CMakeLists (current: `Reanimation/AttachmentSystem.cpp`).
@@ -41,7 +41,7 @@ The `-AutoTest <script.json>` launch flag drives the game automatically from a J
 - **Script location:** `autotest/scripts/*.json` (pure data, not in vcxproj; editing scripts needs no recompile)
 - **Run (working dir = `build\<preset>\` where the exe lives):**
   ```powershell
-  Push-Location build\msvc-release   # or build\clang-release
+  Push-Location build\clang-release   # or build\msvc-debug
   .\PlantsVsZombies.exe -AutoTest ..\..\autotest\scripts\demo_peashooter.json -Seed 42
   $LASTEXITCODE   # 0=success; 1=command failed/timeout; 100=script parse failure
   Pop-Location
