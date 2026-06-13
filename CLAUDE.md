@@ -54,7 +54,10 @@ Toolchain: C++17, `/utf-8` source encoding (required for the Chinese UI strings)
   Pop-Location
   ```
 - **产物:** `build\<preset>\autotest\out\<脚本名>\` 下的 PNG（用 Read 工具直接看）、`state.json`、`run.log`（每条命令的执行轨迹；Release 下 Logger INFO 被裁掉，run.log 是权威记录）
-- **命令集:** `goto_level` / `choose_cards` / `wait_state` / `set_sun` / `plant` / `spawn_zombie` / `wait_seconds` / `wait_frames` / `set_timescale` / `screenshot` / `dump_state` / `quit`。等待型命令支持 `timeout`（默认 15s）。植物/僵尸类型用枚举标识符原文（如 `PLANT_PEASHOOTER`、`ZOMBIE_FASTPAPER`），新类型须在 `Game/AutoTest/TestDriver.cpp` 的名表加一行。
+- **命令集:** `goto_level` / `choose_cards` / `wait_state` / `set_sun` / `plant` / `spawn_zombie` / `wait_seconds` / `wait_frames` / `set_timescale` / `click` / `key` / `screenshot` / `dump_state` / `quit`。等待型命令支持 `timeout`（默认 15s）。植物/僵尸类型用枚举标识符原文（如 `PLANT_PEASHOOTER`、`ZOMBIE_FASTPAPER`），新类型须在 `Game/AutoTest/TestDriver.cpp` 的名表加一行。
+- **合成输入（任意场景的真实点击/按键链路）:** 现有 `plant`/`spawn_zombie` 等是直调游戏逻辑、只覆盖 GameScene；要驱动图鉴等非 GameScene 场景的 UI，用 `click`/`key`——它们经 `SDL_PushEvent` 注入合成事件，与真实用户输入同路径（下一帧 poll 消费、同样的 letterbox 坐标逆变换），对真实游戏零运行期影响（`TestDriver::Update` 非 AutoTest 即首行返回）。
+  - `click`：`{ "op":"click", "x":570, "y":490 }`，可选 `"button"`（`left`(默认)/`right`/`middle`）、`"hold_frames"`（默认 1，按下到松开保持的帧数）。`x,y` 是**逻辑坐标**（与 UI 布局/`dump_state` 的 x/y 同一坐标系）。点击跨帧完成（按下沿→保持→松开沿），脚本无需手动等待。
+  - `key`：`{ "op":"key", "name":"space" }`，可选 `"action"`（`press`(默认，按一下)/`down`(仅按下沿)/`up`(仅松开沿)）。`name` 是按键名串（`a`–`z`、`0`–`9`、`space`/`enter`/`escape`/`tab`/`backspace`/方向键 `up`/`down`/`left`/`right`/`f1`–`f12`…），新键在 `TestDriver.cpp` 的 `kKeyNames` 加一行。
 - **隔离性:** AutoTest 模式下存档读写全部短路（不读不写 `saves/`），每次进关都是确定性全新关卡；`-Seed N` 固定随机种子。
 - **范例:** `autotest/scripts/demo_peashooter.json`（验收脚本），`smoke_*.json`（各子系统冒烟）
 
