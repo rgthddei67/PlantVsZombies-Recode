@@ -1,0 +1,13 @@
+{
+  "name": "plantsvszombies",
+  "version": "1.0.0",
+  "dependencies": [
+    { "name": "sdl2", "features": ["vulkan"] },
+    { "name": "sdl2-image", "features": ["libjpeg-turbo"] },
+    "sdl2-ttf",
+    "sdl2-mixer",
+    "glm",
+    "nlohmann-json",
+    "pugixml"
+  ]
+}

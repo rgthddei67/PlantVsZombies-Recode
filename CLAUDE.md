@@ -17,6 +17,14 @@ This is a Visual Studio 2026 C++ project (x64 Windows only).
 
   MSVC-Debug-MCP 的 `build_solution` / `build_project` / `clean_solution` 同样可用。
 - **Debug mode:** Run with `-Debug` flag to show collision hitboxes
+- **CMake 构建（与 .sln 并行共存）:** `CMakeLists.txt` + `CMakePresets.json` + `vcpkg.json`（manifest 模式，triplet `x64-windows-static`）。需在 VS 开发者环境下执行（普通 shell 先导入 `VsDevCmd.bat -arch=x64`，且 vswhere 所在的 `...\Microsoft Visual Studio\Installer` 要在 PATH 上）：
+
+  ```powershell
+  cmake --preset msvc-release      # 或 msvc-debug / clang-release(-O3 -march=native -flto)
+  cmake --build --preset msvc-release
+  ```
+
+  产物在 `build\<preset>\PlantsVsZombies.exe`（只拷 Shader，不拷 resources）；运行/AutoTest 时工作目录用 `x64\Release`（资源在那里）：`Push-Location x64\Release; ..\..\build\msvc-release\PlantsVsZombies.exe -AutoTest ...`。新增源文件须同时加进 vcxproj 和 CMakeLists.txt 的 SOURCES。
 
 The MSVC-Debug-MCP server exposes three families of tools — Build（用法见上文 Build & Run）、Debug、Operate：
 

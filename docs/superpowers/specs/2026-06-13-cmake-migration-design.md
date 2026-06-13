@@ -24,7 +24,9 @@
 运行时库：`CMAKE_MSVC_RUNTIME_LIBRARY = MultiThreaded$<$<CONFIG:Debug>:Debug>`。
 
 ## 依赖
-vcpkg.json：sdl2、sdl2-image、sdl2-ttf、sdl2-mixer、glm、nlohmann-json、pugixml。
+vcpkg.json：sdl2[vulkan]、sdl2-image[libjpeg-turbo]、sdl2-ttf、sdl2-mixer、glm、nlohmann-json、pugixml。
+（vulkan/libjpeg-turbo 两个特性是实测补上的：默认特性集缺它们会导致
+SDL_Vulkan 窗口创建失败 / SDL_image JPEG 初始化失败。）
 Vulkan 用系统 SDK（`find_package(Vulkan)`，`VULKAN_SDK=D:\VulkanSDK`）。
 全部走 imported targets，淘汰旧 ClangRelease 手抄静态库名单。
 附加系统库：version setupapi imm32 winmm（+ legacy_stdio_definitions）。
