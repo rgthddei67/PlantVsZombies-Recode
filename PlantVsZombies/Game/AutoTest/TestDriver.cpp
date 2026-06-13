@@ -76,6 +76,8 @@ namespace {
 		{ "space", SDLK_SPACE }, { "enter", SDLK_RETURN }, { "return", SDLK_RETURN },
 		{ "escape", SDLK_ESCAPE }, { "esc", SDLK_ESCAPE }, { "tab", SDLK_TAB },
 		{ "backspace", SDLK_BACKSPACE },
+		// 方向键：这里的 "left"/"right" 是键盘方向键，与 kMouseButtonNames 的 "left"/"right"
+		// 是各自独立的表（key 命令查此表，click 命令查鼠标表），不冲突。
 		{ "up", SDLK_UP }, { "down", SDLK_DOWN }, { "left", SDLK_LEFT }, { "right", SDLK_RIGHT },
 		{ "f1", SDLK_F1 }, { "f2", SDLK_F2 }, { "f3", SDLK_F3 }, { "f4", SDLK_F4 },
 		{ "f5", SDLK_F5 }, { "f6", SDLK_F6 }, { "f7", SDLK_F7 }, { "f8", SDLK_F8 },
@@ -360,9 +362,9 @@ bool TestDriver::ExecuteCurrent() {
 		if (action == "down") { pushKey(SDL_KEYDOWN); return true; }
 		if (action == "up")   { pushKey(SDL_KEYUP);   return true; }
 		if (action == "press") {
-			// 跨帧：down 帧 → 下一帧 up，使场景读得到按下沿
-			if (mInputPhase < 0) { pushKey(SDL_KEYDOWN); mInputPhase = 1; return false; }
-			if (mInputPhase > 0) { --mInputPhase; return false; }
+			// 跨帧：down 帧推 KEYDOWN（下一帧 poll 置 PRESSED，场景读到按下沿），
+			// 下一帧推 KEYUP（再下一帧 poll 置 RELEASED）。mInputPhase=0 即"下帧收尾"。
+			if (mInputPhase < 0) { pushKey(SDL_KEYDOWN); mInputPhase = 0; return false; }
 			pushKey(SDL_KEYUP);
 			return true;
 		}
@@ -371,7 +373,9 @@ bool TestDriver::ExecuteCurrent() {
 	}
 
 	if (op == "click") {
-		if (!cmd.contains("x") || !cmd.contains("y")) { Fail("click 缺 x 或 y 字段"); return false; }
+		// 显式查在：缺字段时不静默回落到 (0,0) 点击，分别精确报错
+		if (!cmd.contains("x")) { Fail("click 缺 x 字段"); return false; }
+		if (!cmd.contains("y")) { Fail("click 缺 y 字段"); return false; }
 		const float x = cmd.value("x", 0.0f);
 		const float y = cmd.value("y", 0.0f);
 		const std::string btnName = cmd.value("button", "left");
