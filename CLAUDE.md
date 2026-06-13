@@ -4,29 +4,29 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Build & Run
 
-This is a CMake + vcpkg(manifest) C++ project (x64 Windows only). 构建系统已于 2026-06-13 从 .sln/.vcxproj 统一迁移到 CMake（`CMakeLists.txt` + `CMakePresets.json` + `vcpkg.json`，triplet `x64-windows-static`）。
+This is a CMake + vcpkg(manifest) C++ project (x64 Windows only). The build system was unified onto CMake on 2026-06-13, migrating away from .sln/.vcxproj (`CMakeLists.txt` + `CMakePresets.json` + `vcpkg.json`, triplet `x64-windows-static`).
 
-- **Build (Claude 可自主执行):** 需在 VS 开发者环境下执行。**关键顺序：先把 vswhere 所在的 Installer 目录加进 PATH，再导入 `VsDevCmd.bat`**——否则 VsDevCmd 内部调 vswhere 会吐 `'vswhere.exe' is not recognized`（构建仍能成功，但有噪音）。无噪音的一次性导入 + 构建：
+- **Build (Claude may run this autonomously):** Must run inside the VS developer environment. **Critical ordering: first add the Installer directory (where vswhere lives) to PATH, then import `VsDevCmd.bat`** — otherwise VsDevCmd's internal vswhere call emits `'vswhere.exe' is not recognized` (build still succeeds, but with noise). Noise-free one-shot import + build:
 
   ```powershell
-  # 1) 导入 VS 开发者环境（Installer 先进 PATH，消除 vswhere 噪音）
+  # 1) Import the VS dev environment (Installer onto PATH first to silence vswhere noise)
   $env:PATH = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer;" + $env:PATH
   $vs = & vswhere -latest -property installationPath
   cmd /c "`"$vs\Common7\Tools\VsDevCmd.bat`" -arch=x64 -no_logo && set" |
     ForEach-Object { if ($_ -match '^([^=]+)=(.*)$') { Set-Item "env:$($matches[1])" $matches[2] } }
 
-  # 2) 构建（preset 任选）
-  cmake --preset msvc-release      # 或 msvc-debug / clang-release(-O3 -march=native -flto)
+  # 2) Build (pick any preset)
+  cmake --preset msvc-release      # or msvc-debug / clang-release(-O3 -march=native -flto)
   cmake --build --preset msvc-release
   ```
-  注：**编译警告归零的验证只能用 `clang-release`**——MSVC 默认配置不报 `-Wnonportable-include-path`/`-Wreorder-ctor`/`-Wunused-*`/`-Wswitch` 等诊断。
+  Note: **warning-zero verification can only be done with `clang-release`** — MSVC's default config does not report `-Wnonportable-include-path`/`-Wreorder-ctor`/`-Wunused-*`/`-Wswitch` and similar diagnostics.
 
-- **Run:** 产物在 `build\<preset>\PlantsVsZombies.exe`，CMake 已把 `font/resources/Shader` 全拷到该目录旁——**运行/AutoTest 的工作目录就用 `build\<preset>\` 本身**：`Push-Location build\msvc-release; .\PlantsVsZombies.exe -AutoTest <绝对路径>.json`。（⚠️ 根目录的 `x64\Release` 是 CMake 迁移前 vcxproj 的陈旧产物，只剩 .obj、无 Shader，**勿用**。）
-- **VS 里开发:** Visual Studio「打开文件夹」指向项目根目录，自动识别 CMakePresets；F5 调试配置在根目录 `launch.vs.json`（已设好工作目录与 `-Debug` 变体）
+- **Run:** The binary is at `build\<preset>\PlantsVsZombies.exe`; CMake copies `font/resources/Shader` next to it — **use `build\<preset>\` itself as the working directory for Run/AutoTest**: `Push-Location build\msvc-release; .\PlantsVsZombies.exe -AutoTest <absolute-path>.json`. (⚠️ The root `x64\Release` is a stale artifact from the pre-CMake vcxproj — only .obj files, no Shader, **do not use**.)
+- **Develop in VS:** Visual Studio "Open Folder" pointed at the project root auto-detects CMakePresets; the F5 debug config is in `launch.vs.json` at the root (working directory and `-Debug` variant already set).
 - **Debug mode:** Run with `-Debug` flag to show collision hitboxes
-- **源文件管理:** `GLOB_RECURSE CONFIGURE_DEPENDS` 自动收集——新增 .cpp 无需改任何构建文件；不参与编译的文件加进 CMakeLists 的 `REMOVE_ITEM` 排除名单（现有：`Reanimation/AttachmentSystem.cpp`）
+- **Source file management:** `GLOB_RECURSE CONFIGURE_DEPENDS` auto-collects sources — adding a new .cpp needs no build-file edits; files excluded from compilation go in the `REMOVE_ITEM` list in CMakeLists (current: `Reanimation/AttachmentSystem.cpp`).
 
-The MSVC-Debug-MCP server exposes three families of tools — Build、Debug、Operate。注意：`build_solution` / `build_project` / `clean_solution` 依赖 .sln，已随 CMake 统一弃用，构建一律走上文的 cmake 命令行；Debug/Operate 两族在 VS「打开文件夹」(CMake) 模式下继续可用：
+The MSVC-Debug-MCP server exposes three tool families — Build, Debug, Operate. Note: `build_solution` / `build_project` / `clean_solution` depend on .sln and are deprecated with the CMake migration; always build via the cmake command line above. The Debug/Operate families still work in VS "Open Folder" (CMake) mode:
 
 - **Debug (allowed):** `debugger_launch` (F5), `debugger_add_breakpoint`, then poll `debugger_status` until `Mode == "Break"`. While paused, read state via `debugger_get_callstack`, `debugger_get_locals`, and `debugger_evaluate` (Immediate-window expressions). Drive with `debugger_continue` / `step_*`, and always `debugger_stop` when done (a lingering Break freezes the game window).  
   - In a **Release** build, function locals are often optimized away (shown as "variable optimized away"), but **object members reached through `this` remain readable** — prefer breakpoints where `this` is in scope and evaluate members (e.g. `mRunning`, `mHaveCards.size()`) rather than bare locals.
@@ -37,29 +37,29 @@ Dependencies: SDL2, SDL2_image, SDL2_ttf, SDL2_mixer, Vulkan 1.3, glm, nlohmann/
 
 Toolchain: C++17, `/utf-8` source encoding (required for the Chinese UI strings), Unicode character set, vcpkg static linking. Crash dialogs are produced by `CrashHandler` via a Windows Vectored Exception Handler — not visible on stderr in headless runs.
 
-## 版本控制（提交策略）
+## Version Control (commit policy)
 
-**提交分工：`git commit` 由 Claude 负责（任务完成并验证通过后即可提交）；`git push` 由主人自己来——Claude 默认不 `push`，除非主人在该次对话中明确指示要推送。**
+**Division of labor: `git commit` is Claude's job (commit once the task is done and verified); `git push` is the master's — Claude does not `push` by default unless the master explicitly says to push in that conversation.**
 
-## AutoTest 自动化测试套件
+## AutoTest Suite
 
-`-AutoTest <script.json>` 启动参数让游戏按 JSON 脚本自动执行（进关/选卡/种植/出怪/截图/状态导出后退出），Claude 可独立完成「改代码→构建→跑脚本→Read 截图验证」闭环，无需人工游戏内截图。
+The `-AutoTest <script.json>` launch flag drives the game automatically from a JSON script (enter level / choose cards / plant / spawn zombies / screenshot / dump state, then exit). Claude can complete the full "edit code → build → run script → Read screenshot to verify" loop independently, with no manual in-game screenshots.
 
-- **脚本位置:** `autotest/scripts/*.json`（纯数据，不进 vcxproj；改脚本无需重编译）
-- **运行（工作目录 = exe 所在的 `build\<preset>\`）:**
+- **Script location:** `autotest/scripts/*.json` (pure data, not in vcxproj; editing scripts needs no recompile)
+- **Run (working dir = `build\<preset>\` where the exe lives):**
   ```powershell
-  Push-Location build\msvc-release   # 或 build\clang-release
+  Push-Location build\msvc-release   # or build\clang-release
   .\PlantsVsZombies.exe -AutoTest ..\..\autotest\scripts\demo_peashooter.json -Seed 42
-  $LASTEXITCODE   # 0=成功；1=命令失败/超时；100=脚本解析失败
+  $LASTEXITCODE   # 0=success; 1=command failed/timeout; 100=script parse failure
   Pop-Location
   ```
-- **产物:** `build\<preset>\autotest\out\<脚本名>\` 下的 PNG（用 Read 工具直接看）、`state.json`、`run.log`（每条命令的执行轨迹；Release 下 Logger INFO 被裁掉，run.log 是权威记录）
-- **命令集:** `goto_level` / `choose_cards` / `wait_state` / `set_sun` / `plant` / `spawn_zombie` / `wait_seconds` / `wait_frames` / `set_timescale` / `click` / `key` / `screenshot` / `dump_state` / `quit`。等待型命令支持 `timeout`（默认 15s）。植物/僵尸类型用枚举标识符原文（如 `PLANT_PEASHOOTER`、`ZOMBIE_FASTPAPER`），新类型须在 `Game/AutoTest/TestDriver.cpp` 的名表加一行。
-- **合成输入（任意场景的真实点击/按键链路）:** 现有 `plant`/`spawn_zombie` 等是直调游戏逻辑、只覆盖 GameScene；要驱动图鉴等非 GameScene 场景的 UI，用 `click`/`key`——它们经 `SDL_PushEvent` 注入合成事件，与真实用户输入同路径（下一帧 poll 消费、同样的 letterbox 坐标逆变换），对真实游戏零运行期影响（`TestDriver::Update` 非 AutoTest 即首行返回）。
-  - `click`：`{ "op":"click", "x":570, "y":490 }`，可选 `"button"`（`left`(默认)/`right`/`middle`）、`"hold_frames"`（默认 1，按下到松开保持的帧数）。`x,y` 是**逻辑坐标**（与 UI 布局/`dump_state` 的 x/y 同一坐标系）。点击跨帧完成（按下沿→保持→松开沿），脚本无需手动等待。
-  - `key`：`{ "op":"key", "name":"space" }`，可选 `"action"`（`press`(默认，按一下)/`down`(仅按下沿)/`up`(仅松开沿)）。`name` 是按键名串（`a`–`z`、`0`–`9`、`space`/`enter`/`escape`/`tab`/`backspace`/方向键 `up`/`down`/`left`/`right`/`f1`–`f12`…），新键在 `TestDriver.cpp` 的 `kKeyNames` 加一行。
-- **隔离性:** AutoTest 模式下存档读写全部短路（不读不写 `saves/`），每次进关都是确定性全新关卡；`-Seed N` 固定随机种子。
-- **范例:** `autotest/scripts/demo_peashooter.json`（验收脚本），`smoke_*.json`（各子系统冒烟）
+- **Artifacts:** under `build\<preset>\autotest\out\<script-name>\` — PNGs (view directly with the Read tool), `state.json`, `run.log` (per-command execution trace; in Release, Logger INFO is stripped, so run.log is the authoritative record)
+- **Command set:** `goto_level` / `choose_cards` / `wait_state` / `set_sun` / `plant` / `spawn_zombie` / `wait_seconds` / `wait_frames` / `set_timescale` / `click` / `key` / `screenshot` / `dump_state` / `quit`. Wait-type commands accept `timeout` (default 15s). Plant/zombie types use the enum identifier verbatim (e.g. `PLANT_PEASHOOTER`, `ZOMBIE_FASTPAPER`); new types need a line added to the name table in `Game/AutoTest/TestDriver.cpp`.
+- **Synthetic input (real click/key path for any scene):** existing `plant`/`spawn_zombie` etc. call game logic directly and only cover GameScene; to drive UI in non-GameScene scenes (almanac, etc.) use `click`/`key` — they inject synthetic events via `SDL_PushEvent`, taking the same path as real user input (consumed at the next frame's poll, same letterbox coordinate inverse-transform), with zero runtime impact on the real game (`TestDriver::Update` returns on its first line when not in AutoTest).
+  - `click`: `{ "op":"click", "x":570, "y":490 }`, optional `"button"` (`left`(default)/`right`/`middle`), `"hold_frames"` (default 1, frames held between press and release). `x,y` are **logical coordinates** (same coordinate system as UI layout and `dump_state` x/y). A click completes across frames (press edge → hold → release edge); the script needs no manual waiting.
+  - `key`: `{ "op":"key", "name":"space" }`, optional `"action"` (`press`(default, a full tap)/`down`(press edge only)/`up`(release edge only)). `name` is a key-name string (`a`–`z`, `0`–`9`, `space`/`enter`/`escape`/`tab`/`backspace`/arrows `up`/`down`/`left`/`right`/`f1`–`f12`…); new keys need a line added to `kKeyNames` in `TestDriver.cpp`.
+- **Isolation:** in AutoTest mode all save reads/writes are short-circuited (no read/write of `saves/`); every level entry is a deterministic fresh level; `-Seed N` fixes the random seed.
+- **Examples:** `autotest/scripts/demo_peashooter.json` (acceptance script), `smoke_*.json` (per-subsystem smoke tests)
 
 ## Architecture Overview
 
@@ -157,7 +157,6 @@ When you need to **add a new classic plant, zombie, or bullet (projectile)**, it
 - **Free placement (display only):** `GameAPP::InstantiateZombieFree(type, board, x, y)` for preview/UI zombies that must sit at an arbitrary `y` not snapped to a row (card-selection preview scatter, `AlmanacScene` / `ZombieAlmanacScene`). It wraps `InstantiateZombie(..., row = -1, isPreview = true)`. When `board != nullptr`, such zombies count toward `mBoard->mZombieNumber` and are decremented in `Zombie::Die`, so keep that increment/decrement balanced.
 
 ## Coding Conventions
-- All game objects are managed as `shared_ptr`; use `weak_ptr` inside components (`mGameObjectWeak`) to avoid circular references
 - Visual offsets use `mVisualOffset` (separate from the logical grid position)
 - Row/column position (`mRow`, `mColumn`) is the gameplay grid cell; pixel position is in `TransformComponent`
 - Chinese (UTF-8) strings are used throughout the codebase for UI 
