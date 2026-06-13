@@ -6,14 +6,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a CMake + vcpkg(manifest) C++ project (x64 Windows only). 构建系统已于 2026-06-13 从 .sln/.vcxproj 统一迁移到 CMake（`CMakeLists.txt` + `CMakePresets.json` + `vcpkg.json`，triplet `x64-windows-static`）。
 
-- **Build (Claude 可自主执行):** 需在 VS 开发者环境下执行（普通 shell 先导入 `VsDevCmd.bat -arch=x64`，且 vswhere 所在的 `...\Microsoft Visual Studio\Installer` 要在 PATH 上）：
+- **Build (Claude 可自主执行):** 需在 VS 开发者环境下执行。**关键顺序：先把 vswhere 所在的 Installer 目录加进 PATH，再导入 `VsDevCmd.bat`**——否则 VsDevCmd 内部调 vswhere 会吐 `'vswhere.exe' is not recognized`（构建仍能成功，但有噪音）。无噪音的一次性导入 + 构建：
 
   ```powershell
+  # 1) 导入 VS 开发者环境（Installer 先进 PATH，消除 vswhere 噪音）
+  $env:PATH = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer;" + $env:PATH
+  $vs = & vswhere -latest -property installationPath
+  cmd /c "`"$vs\Common7\Tools\VsDevCmd.bat`" -arch=x64 -no_logo && set" |
+    ForEach-Object { if ($_ -match '^([^=]+)=(.*)$') { Set-Item "env:$($matches[1])" $matches[2] } }
+
+  # 2) 构建（preset 任选）
   cmake --preset msvc-release      # 或 msvc-debug / clang-release(-O3 -march=native -flto)
   cmake --build --preset msvc-release
   ```
+  注：**编译警告归零的验证只能用 `clang-release`**——MSVC 默认配置不报 `-Wnonportable-include-path`/`-Wreorder-ctor`/`-Wunused-*`/`-Wswitch` 等诊断。
 
-- **Run:** 产物在 `build\<preset>\PlantsVsZombies.exe`（只拷 Shader，不拷 resources）；运行/AutoTest 时工作目录用 `x64\Release`（resources/font 在那里）：`Push-Location x64\Release; ..\..\build\msvc-release\PlantsVsZombies.exe -AutoTest ...`
+- **Run:** 产物在 `build\<preset>\PlantsVsZombies.exe`，CMake 已把 `font/resources/Shader` 全拷到该目录旁——**运行/AutoTest 的工作目录就用 `build\<preset>\` 本身**：`Push-Location build\msvc-release; .\PlantsVsZombies.exe -AutoTest <绝对路径>.json`。（⚠️ 根目录的 `x64\Release` 是 CMake 迁移前 vcxproj 的陈旧产物，只剩 .obj、无 Shader，**勿用**。）
 - **VS 里开发:** Visual Studio「打开文件夹」指向项目根目录，自动识别 CMakePresets；F5 调试配置在根目录 `launch.vs.json`（已设好工作目录与 `-Debug` 变体）
 - **Debug mode:** Run with `-Debug` flag to show collision hitboxes
 - **源文件管理:** `GLOB_RECURSE CONFIGURE_DEPENDS` 自动收集——新增 .cpp 无需改任何构建文件；不参与编译的文件加进 CMakeLists 的 `REMOVE_ITEM` 排除名单（现有：`Reanimation/AttachmentSystem.cpp`）
@@ -29,19 +37,23 @@ Dependencies: SDL2, SDL2_image, SDL2_ttf, SDL2_mixer, Vulkan 1.3, glm, nlohmann/
 
 Toolchain: C++17, `/utf-8` source encoding (required for the Chinese UI strings), Unicode character set, vcpkg static linking. Crash dialogs are produced by `CrashHandler` via a Windows Vectored Exception Handler — not visible on stderr in headless runs.
 
+## 版本控制（提交策略）
+
+**提交分工：`git commit` 由 Claude 负责（任务完成并验证通过后即可提交）；`git push` 由主人自己来——Claude 默认不 `push`，除非主人在该次对话中明确指示要推送。**
+
 ## AutoTest 自动化测试套件
 
 `-AutoTest <script.json>` 启动参数让游戏按 JSON 脚本自动执行（进关/选卡/种植/出怪/截图/状态导出后退出），Claude 可独立完成「改代码→构建→跑脚本→Read 截图验证」闭环，无需人工游戏内截图。
 
 - **脚本位置:** `autotest/scripts/*.json`（纯数据，不进 vcxproj；改脚本无需重编译）
-- **运行（工作目录必须是 exe 目录）:**
+- **运行（工作目录 = exe 所在的 `build\<preset>\`）:**
   ```powershell
-  Push-Location x64\Release
-  ..\..\build\msvc-release\PlantsVsZombies.exe -AutoTest ..\..\autotest\scripts\demo_peashooter.json -Seed 42
+  Push-Location build\msvc-release   # 或 build\clang-release
+  .\PlantsVsZombies.exe -AutoTest ..\..\autotest\scripts\demo_peashooter.json -Seed 42
   $LASTEXITCODE   # 0=成功；1=命令失败/超时；100=脚本解析失败
   Pop-Location
   ```
-- **产物:** `x64\Release\autotest\out\<脚本名>\` 下的 PNG（用 Read 工具直接看）、`state.json`、`run.log`（每条命令的执行轨迹；Release 下 Logger INFO 被裁掉，run.log 是权威记录）
+- **产物:** `build\<preset>\autotest\out\<脚本名>\` 下的 PNG（用 Read 工具直接看）、`state.json`、`run.log`（每条命令的执行轨迹；Release 下 Logger INFO 被裁掉，run.log 是权威记录）
 - **命令集:** `goto_level` / `choose_cards` / `wait_state` / `set_sun` / `plant` / `spawn_zombie` / `wait_seconds` / `wait_frames` / `set_timescale` / `screenshot` / `dump_state` / `quit`。等待型命令支持 `timeout`（默认 15s）。植物/僵尸类型用枚举标识符原文（如 `PLANT_PEASHOOTER`、`ZOMBIE_FASTPAPER`），新类型须在 `Game/AutoTest/TestDriver.cpp` 的名表加一行。
 - **隔离性:** AutoTest 模式下存档读写全部短路（不读不写 `saves/`），每次进关都是确定性全新关卡；`-Seed N` 固定随机种子。
 - **范例:** `autotest/scripts/demo_peashooter.json`（验收脚本），`smoke_*.json`（各子系统冒烟）
