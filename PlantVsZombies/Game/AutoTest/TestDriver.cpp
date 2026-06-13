@@ -370,6 +370,45 @@ bool TestDriver::ExecuteCurrent() {
 		return false;
 	}
 
+	if (op == "click") {
+		if (!cmd.contains("x") || !cmd.contains("y")) { Fail("click 缺 x 或 y 字段"); return false; }
+		const float x = cmd.value("x", 0.0f);
+		const float y = cmd.value("y", 0.0f);
+		const std::string btnName = cmd.value("button", "left");
+		auto bit = kMouseButtonNames.find(btnName);
+		if (bit == kMouseButtonNames.end()) { Fail("未知鼠标按钮: " + btnName); return false; }
+		const Uint8 button = bit->second;
+		const int holdFrames = std::max(1, cmd.value("hold_frames", 1));
+
+		// 跨帧状态机：mInputPhase<0 推 移动+按下并置剩余保持帧；>0 递减保持；==0 推松开完成。
+		if (mInputPhase < 0) {
+			SDL_Event mv{};
+			mv.type = SDL_MOUSEMOTION;
+			mv.motion.x = static_cast<Sint32>(x);   // AutoTest 窗口 scale=1，逻辑坐标即屏幕像素
+			mv.motion.y = static_cast<Sint32>(y);
+			SDL_PushEvent(&mv);
+
+			SDL_Event down{};
+			down.type = SDL_MOUSEBUTTONDOWN;
+			down.button.button = button;
+			down.button.x = static_cast<Sint32>(x);
+			down.button.y = static_cast<Sint32>(y);
+			SDL_PushEvent(&down);
+
+			mInputPhase = holdFrames;
+			return false;
+		}
+		if (mInputPhase > 0) { --mInputPhase; return false; }
+
+		SDL_Event up{};
+		up.type = SDL_MOUSEBUTTONUP;
+		up.button.button = button;
+		up.button.x = static_cast<Sint32>(x);
+		up.button.y = static_cast<Sint32>(y);
+		SDL_PushEvent(&up);
+		return true;
+	}
+
 	Fail("未知命令 op=\"" + op + "\"");
 	return false;
 }
