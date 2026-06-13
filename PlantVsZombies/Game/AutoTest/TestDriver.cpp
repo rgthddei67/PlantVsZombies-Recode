@@ -343,6 +343,33 @@ bool TestDriver::ExecuteCurrent() {
 		return false;   // Finish 已停机，不再推进
 	}
 
+	if (op == "key") {
+		const std::string name = cmd.value("name", "");
+		auto it = kKeyNames.find(name);
+		if (it == kKeyNames.end()) { Fail("未知按键名: " + name); return false; }
+		const SDL_Keycode key = it->second;
+		const std::string action = cmd.value("action", "press");
+
+		auto pushKey = [&](Uint32 type) {
+			SDL_Event ev{};
+			ev.type = type;
+			ev.key.keysym.sym = key;
+			SDL_PushEvent(&ev);
+		};
+
+		if (action == "down") { pushKey(SDL_KEYDOWN); return true; }
+		if (action == "up")   { pushKey(SDL_KEYUP);   return true; }
+		if (action == "press") {
+			// 跨帧：down 帧 → 下一帧 up，使场景读得到按下沿
+			if (mInputPhase < 0) { pushKey(SDL_KEYDOWN); mInputPhase = 1; return false; }
+			if (mInputPhase > 0) { --mInputPhase; return false; }
+			pushKey(SDL_KEYUP);
+			return true;
+		}
+		Fail("未知 key action: " + action);
+		return false;
+	}
+
 	Fail("未知命令 op=\"" + op + "\"");
 	return false;
 }
