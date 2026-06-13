@@ -1,0 +1,13 @@
+{
+  "commands": [
+    { "op": "wait_frames", "value": 10 },
+    { "op": "click", "x": 400, "y": 300 },
+    { "op": "click", "x": 250, "y": 150, "button": "right" },
+    { "op": "click", "x": 300, "y": 400, "button": "middle", "hold_frames": 4 },
+    { "op": "key", "name": "escape" },
+    { "op": "key", "name": "enter", "action": "down" },
+    { "op": "key", "name": "enter", "action": "up" },
+    { "op": "wait_frames", "value": 5 },
+    { "op": "quit" }
+  ]
+}
