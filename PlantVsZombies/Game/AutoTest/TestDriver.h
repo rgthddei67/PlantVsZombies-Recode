@@ -46,6 +46,7 @@ private:
 	int   mFramesLeft = -1;      // wait_frames 剩余（-1 = 未初始化）
 	float mTimeoutAccum = 0.0f;  // 当前命令已耗时（未缩放，墙钟语义），超 timeout 判失败
 	bool  mBreakFrame = false;   // screenshot 等需要"本帧到此为止"的命令置位
+	int   mInputPhase = -1;      // click/key(press) 跨帧状态机阶段（-1 = 未初始化）
 };
 
 #endif

@@ -16,6 +16,7 @@
 #include <filesystem>
 #include <algorithm>
 #include <unordered_map>
+#include <SDL2/SDL.h>
 
 namespace {
 #define PT(n) { #n, PlantType::n }
@@ -53,6 +54,32 @@ namespace {
 		{ "CHOOSE_CARD", BoardState::CHOOSE_CARD }, { "GAME", BoardState::GAME },
 		{ "LOSE_GAME", BoardState::LOSE_GAME }, { "WIN", BoardState::WIN },
 		{ "NONE", BoardState::NONE },
+	};
+
+	const std::unordered_map<std::string, Uint8> kMouseButtonNames = {
+		{ "left", SDL_BUTTON_LEFT }, { "right", SDL_BUTTON_RIGHT },
+		{ "middle", SDL_BUTTON_MIDDLE },
+	};
+
+	// 按键名 → SDL_Keycode。初始覆盖常用集，按需加行（与植物/僵尸名表同惯例）。
+	const std::unordered_map<std::string, SDL_Keycode> kKeyNames = {
+		{ "a", SDLK_a }, { "b", SDLK_b }, { "c", SDLK_c }, { "d", SDLK_d },
+		{ "e", SDLK_e }, { "f", SDLK_f }, { "g", SDLK_g }, { "h", SDLK_h },
+		{ "i", SDLK_i }, { "j", SDLK_j }, { "k", SDLK_k }, { "l", SDLK_l },
+		{ "m", SDLK_m }, { "n", SDLK_n }, { "o", SDLK_o }, { "p", SDLK_p },
+		{ "q", SDLK_q }, { "r", SDLK_r }, { "s", SDLK_s }, { "t", SDLK_t },
+		{ "u", SDLK_u }, { "v", SDLK_v }, { "w", SDLK_w }, { "x", SDLK_x },
+		{ "y", SDLK_y }, { "z", SDLK_z },
+		{ "0", SDLK_0 }, { "1", SDLK_1 }, { "2", SDLK_2 }, { "3", SDLK_3 },
+		{ "4", SDLK_4 }, { "5", SDLK_5 }, { "6", SDLK_6 }, { "7", SDLK_7 },
+		{ "8", SDLK_8 }, { "9", SDLK_9 },
+		{ "space", SDLK_SPACE }, { "enter", SDLK_RETURN }, { "return", SDLK_RETURN },
+		{ "escape", SDLK_ESCAPE }, { "esc", SDLK_ESCAPE }, { "tab", SDLK_TAB },
+		{ "backspace", SDLK_BACKSPACE },
+		{ "up", SDLK_UP }, { "down", SDLK_DOWN }, { "left", SDLK_LEFT }, { "right", SDLK_RIGHT },
+		{ "f1", SDLK_F1 }, { "f2", SDLK_F2 }, { "f3", SDLK_F3 }, { "f4", SDLK_F4 },
+		{ "f5", SDLK_F5 }, { "f6", SDLK_F6 }, { "f7", SDLK_F7 }, { "f8", SDLK_F8 },
+		{ "f9", SDLK_F9 }, { "f10", SDLK_F10 }, { "f11", SDLK_F11 }, { "f12", SDLK_F12 },
 	};
 
 	std::string PlantTypeName(PlantType t) {
@@ -154,6 +181,7 @@ void TestDriver::Update() {
 		mWaitAccum = 0.0f;
 		mFramesLeft = -1;
 		mTimeoutAccum = 0.0f;
+		mInputPhase = -1;
 		if (++guard > 64) break;               // 单帧推进上限，防脚本自旋
 	}
 	if (mActive && mIndex >= mCommands.size()) Finish();
