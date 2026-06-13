@@ -45,7 +45,7 @@ target_compile_options(PlantsVsZombies PRIVATE /utf-8 /W3 /sdl /MP)
 if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     # 对应旧 ClangRelease|x64：-O3 -march=native -flto（LTO 走 lld-link，见 preset）
     target_compile_options(PlantsVsZombies PRIVATE
-        $<$<CONFIG:Release>:/clang:-O3 -march=native -flto>
+        $<$<CONFIG:Release>:/clang:-O3 -march=native -flto /fp:fast>
     )
     target_link_options(PlantsVsZombies PRIVATE $<$<CONFIG:Release>:-flto>)
 else()
