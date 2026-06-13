@@ -81,9 +81,9 @@ public:
 	int mCurrentWave = 0;			// 当前波
 	int mMaxWave = 10;		// 关卡总波数
 	float mZombieCountDown = 20.0f;		// 下一波僵尸倒计时
-	double mTotalZombieHP = 0;		// 在场全部僵尸血量
-	double mCurrectWaveZombieHP = 0;	// 本波僵尸血量
-	double mNextWaveSpawnZombieHP = 0;		// 下一波僵尸刷新血量
+	long long mTotalZombieHP = 0;		// 在场全部僵尸血量
+	long long mCurrectWaveZombieHP = 0;	// 本波僵尸血量
+	long long mNextWaveSpawnZombieHP = 0;		// 下一波僵尸刷新血量
 
 	int mZombieNumber = 0;
 	bool mTrophySpawned = false;  // 防止重复生成

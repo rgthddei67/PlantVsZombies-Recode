@@ -224,7 +224,7 @@ void GameDataManager::InitializeHardcodedData() {
 		AnimationType::ANIM_BUCKET_ZOMBIE,
 		ResourceKeys::Reanimations::REANIM_BUCKET_ZOMBIE,
 		Vector(-50, -85),
-		2500,
+		2700,
 		6,
 		1.0f, &MakeZombie<FastBucketZombie>
 	);

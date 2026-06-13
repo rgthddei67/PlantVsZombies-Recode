@@ -316,8 +316,8 @@ void Board::UpdateLevel()
 		TrySummonZombie();
 		UpdateZombieHP();
 
-		mNextWaveSpawnZombieHP = static_cast<double>
-			(GameRandom::Range(0.5f, 0.65f) * mCurrectWaveZombieHP);
+		mNextWaveSpawnZombieHP = static_cast<long long>
+			(GameRandom::Range(0.5f, 0.65f) * static_cast<double>(mCurrectWaveZombieHP));
 	}
 }
 
@@ -529,20 +529,27 @@ inline int Board::CalculateWaveZombiePoints() const
 		points *= 2.5f;
 	}
 
+	// 防溢出：float 超过 INT_MAX 时 static_cast<int> 是 UB(实测得 INT_MIN)，
+	// 会让本波 remainingPoints<=0 而一只僵尸都不刷。钳到 INT_MAX。
+	// 注意 (float)INT_MAX == 2147483648.0f(2^31,比 INT_MAX 大 1)，故用 >= 比较。
+	if (points >= static_cast<float>(INT_MAX))
+	{
+		return INT_MAX;
+	}
 	return static_cast<int>(points);
 }
 
 inline void Board::UpdateZombieHP()
 {
-	double TotalHP = 0, CurrectWaveHP = 0;
+	long long TotalHP = 0, CurrectWaveHP = 0;
 	for (auto zombieID : mEntityManager.GetAllZombieIDs())
 	{
 		if (auto zombie = mEntityManager.GetZombie(zombieID))
 		{
 			if (zombie->IsMindControlled()) continue;	// 判断是不是魅惑
 
-			double zombieHp = static_cast<double>(zombie->mBodyHealth +
-				zombie->mHelmHealth + zombie->mShieldHealth);
+			long long zombieHp = static_cast<long long>(zombie->mBodyHealth) +
+				zombie->mHelmHealth + zombie->mShieldHealth;
 
 			TotalHP += zombieHp;
 			if (zombie->mSpawnWave == this->mCurrentWave)

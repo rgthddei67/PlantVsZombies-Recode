@@ -299,9 +299,9 @@ bool GameInfoSaver::LoadLevelData(Board* board, CardSlotManager* manager)
 	board->mCurrentWave = j.value("currentWave", 0);
 	board->mMaxWave = j.value("maxWave", 10);
 	board->mZombieCountDown = j.value("zombieCountDown", 20.0f);
-	board->mTotalZombieHP = j.value("totalZombieHP", 0.0);
-	board->mCurrectWaveZombieHP = j.value("currentWaveZombieHP", 0.0);
-	board->mNextWaveSpawnZombieHP = j.value("nextWaveSpawnZombieHP", 0.0);
+	board->mTotalZombieHP = j.value("totalZombieHP", 0LL);
+	board->mCurrectWaveZombieHP = j.value("currentWaveZombieHP", 0LL);
+	board->mNextWaveSpawnZombieHP = j.value("nextWaveSpawnZombieHP", 0LL);
 
 	// 恢复 EntityManager 的 ID 计数器（向后兼容：旧存档没有则使用默认值）
 	board->mEntityManager.SetNextPlantID(j.value("nextPlantID", 1));

@@ -235,7 +235,11 @@ void Zombie::Update()
 
 		if (!mHasHead)
 		{
-			mBodyHealth--;
+			// 掉头后本体血量逐帧流失直至归零（无头僵尸流血而亡）。
+			// 钳在 0，避免每帧继续 mBodyHealth-- 跌成负数，
+			// 污染 Board 的僵尸总血量统计与刷波阈值。
+			if (mBodyHealth > 0)
+				mBodyHealth--;
 			if (mBodyHealth <= 35)
 			{
 				if (!mIsDying)
