@@ -246,7 +246,7 @@ void GameDataManager::InitializeHardcodedData() {
 		AnimationType::ANIM_PAPER_ZOMBIE,	// 复用读报僵尸 reanim，仅换报纸贴图
 		"PaperZombie",
 		Vector(-50, -85),
-		2800,	// 权重/点数成本：略高于快速铁桶(2500)，体现加强版
+		3000,	
 		6,		// 出现波次（无尽模式忽略此值，由 BuildSurvivalSpawnList 控制）
 		1.0f, &MakeZombie<FastPaperZombie>
 	);

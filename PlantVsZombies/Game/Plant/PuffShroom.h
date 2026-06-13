@@ -27,7 +27,7 @@ protected:
 
 	bool HasZombieInRow();		// 检测本行是否有僵尸
 
-	virtual void SetupPlant();
+	void SetupPlant() override;
 
 };
 

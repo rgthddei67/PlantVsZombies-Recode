@@ -28,9 +28,8 @@ Plant::Plant(Board* board, PlantType plantType, int row, int column,
 	mIsPreview = isPreview;
 
 	GameDataManager& plantMgr = GameDataManager::GetInstance();
-	Vector plantOffset = plantMgr.GetPlantOffset(plantType);
 
-	mVisualOffset = GameDataManager::GetInstance().GetPlantOffset(plantType);
+	mVisualOffset = plantMgr.GetPlantOffset(plantType);
 	auto shadowcomponent = AddComponent<ShadowComponent>
 		(ResourceManager::GetInstance().GetTexture
 		(ResourceKeys::Textures::IMAGE_PLANTSHADOW));

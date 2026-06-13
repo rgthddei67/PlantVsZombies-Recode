@@ -15,7 +15,8 @@
       "Bash(dir)",
       "Bash(xargs wc -l)",
       "Skill(superpowers:finishing-a-development-branch)",
-      "Bash(ls *)"
+      "Bash(ls *)",
+      "PowerShell(Get-ChildItem PlantVsZombies\\\\Shader -Recurse -Name; '---'; git log --oneline -3 -- x64 2>$null; git status --short x64)"
     ]
   },
   "outputStyle": "Explanatory"
