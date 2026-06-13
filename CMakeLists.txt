@@ -104,8 +104,9 @@ add_custom_target(CompileShaders DEPENDS ${SPV_OUTPUTS})
 add_dependencies(PlantsVsZombies CompileShaders)
 
 # 只拷 Shader 到输出目录（resources/font 不拷——运行时工作目录用 x64/Release）
+# 注意：copy_directory 拷的是"目录内容"，目标必须写全 Shader/spv（游戏按 Shader/spv/*.spv 加载）
 add_custom_command(TARGET PlantsVsZombies POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
-            ${SRC_DIR}/Shader/spv $<TARGET_FILE_DIR:PlantsVsZombies>/Shader
+            ${SRC_DIR}/Shader/spv $<TARGET_FILE_DIR:PlantsVsZombies>/Shader/spv
     COMMENT "Copying Shader spv to output directory"
 )
