@@ -105,6 +105,7 @@ private:
 	std::vector<ZombieType> mSpawnZombieList;	// 本关出怪表
 	float mHugeWaveCountDown = 0.0f;	// 一大波倒计时
 	float mUpdateHPCheckTimer = 0.0f;	// 僵尸血量检查计时器
+	float mPlantRegenTimer = 0.0f;	// 词条③：全场植物回血脉冲计时器
 	bool mHasHugeWaveSound = false;		// 有无放过一大波音乐
 	bool mIsLoadSave = false;	// 是否正在加载存档
 

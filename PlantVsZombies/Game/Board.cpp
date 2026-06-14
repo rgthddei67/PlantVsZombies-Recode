@@ -250,6 +250,29 @@ void Board::UpdateLevel()
 		UpdateZombieHP();
 	}
 
+	// 词条③：植物回血全局脉冲（生存专用；无词条→GetPlantRegenPerPulse()=0，整循环跳过，零开销）。
+	// O(n) 遍历只在脉冲触发的那一帧发生（每 5s 一次），非每帧扫描。
+	mPlantRegenTimer += deltaTime;
+	if (mPlantRegenTimer >= mPerkManager.GetPlantRegenInterval())
+	{
+		mPlantRegenTimer = 0.0f;
+		int heal = mPerkManager.GetPlantRegenPerPulse();
+		if (heal > 0)
+		{
+			for (int id : mEntityManager.GetAllPlantIDs())
+			{
+				Plant* p = mEntityManager.GetPlant(id);
+				if (!p || p->IsPreview()) continue;
+				int cap = mPerkManager.GetPlantRegenHpCap(p->mPlantMaxHealth);
+				if (p->mPlantHealth < cap)
+				{
+					int healed = p->mPlantHealth + heal;
+					p->mPlantHealth = (healed > cap) ? cap : healed;
+				}
+			}
+		}
+	}
+
 	if (mCurrentWave >= mMaxWave)
 	{
 		return;
