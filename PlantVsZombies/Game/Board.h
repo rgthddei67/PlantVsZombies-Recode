@@ -236,6 +236,7 @@ public:
 		double multiplier = 1.0;
 		if (mIsSurvival)
 			multiplier *= (1.0 + SURVIVAL_HP_GROWTH * static_cast<double>(mSurvivalRound - 1));
+		multiplier *= mPerkManager.GetZombieHealthMultiplier();   // 词条：僵尸血量（空时=1.0）
 		return multiplier;
 	}
 
