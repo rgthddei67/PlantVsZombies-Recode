@@ -1,0 +1,12 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 1 },
+    { "op": "choose_cards", "cards": ["PLANT_PEASHOOTER"] },
+    { "op": "wait_state", "state": "GAME" },
+    { "op": "add_perk", "type": "PLANT_REGEN", "count": 5 },
+    { "op": "plant", "type": "PLANT_PEASHOOTER", "row": 2, "col": 0 },
+    { "op": "wait_seconds", "value": 6.0 },
+    { "op": "dump_state", "name": "regen.json" },
+    { "op": "quit" }
+  ]
+}

@@ -93,6 +93,7 @@ void Zombie::ApplyHealthMultiplier(double multiplier)
 
 void Zombie::SaveProtectedData(nlohmann::json& j) const {
 	j["isMindControlled"] = mIsMindControlled;
+	j["freeHitsRemaining"] = mFreeHitsRemaining;
 	j["isEating"] = mIsEating;
 	j["eatPlantID"] = mEatPlantID;
 	j["hasHead"] = mHasHead;
@@ -107,6 +108,7 @@ void Zombie::SaveProtectedData(nlohmann::json& j) const {
 
 void Zombie::LoadProtectedData(const nlohmann::json& j) {
 	mIsMindControlled = j.value("isMindControlled", false);
+	mFreeHitsRemaining = j.value("freeHitsRemaining", 0);   // 旧档缺字段→0
 	mIsEating = j.value("isEating", false);
 	mEatPlantID = j.value("eatPlantID", NULL_PLANT_ID);
 	mHasHead = j.value("hasHead", true);
@@ -363,6 +365,10 @@ void Zombie::TakeDamage(int damage)
 {
 	if (damage <= 0) return;
 
+	// 词条②：僵尸前 N 次免伤（生存专用）。出生时由词条层数设定 mFreeHitsRemaining。
+	// 提前 return：完全吸收且不触发受击白光（SetGlowingTimer），0 伤害不应闪。
+	if (mFreeHitsRemaining > 0) { --mFreeHitsRemaining; return; }
+
 	// 词条：僵尸免伤（生存专用；空词条/非生存关倍率=1，无副作用）。单点覆盖一切伤害来源。
 	if (mBoard) damage = mBoard->GetPerkManager().ScaleDamageToZombie(damage);
 
@@ -457,7 +463,9 @@ void Zombie::EatTarget()
 	if (mEatPlantID != NULL_PLANT_ID && mHasHead)
 	{
 		if (auto* plant = mBoard->mEntityManager.GetPlant(mEatPlantID)) {
-			plant->TakeDamage(mAttackDamage);
+			// 词条①：僵尸对植物伤害（生存专用；空词条倍率=1）。使用时缩放，不写回 mAttackDamage——
+			// 否则存档 attackDamage 被污染，读档叠加重复放大。mBoard 在此路径恒非空（上一行已解引用）。
+			plant->TakeDamage(mBoard->GetPerkManager().ScaleZombieDamage(mAttackDamage));
 			if (plant->mPlantHealth <= 0)
 			{
 				AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_ZOMBIE_FINISHEAT, 0.2f);

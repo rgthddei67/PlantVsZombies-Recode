@@ -1,0 +1,11 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 1 },
+    { "op": "choose_cards", "cards": ["PLANT_PEASHOOTER"] },
+    { "op": "wait_state", "state": "GAME" },
+    { "op": "add_perk", "type": "ZOMBIE_INVULN_HITS", "count": 2 },
+    { "op": "spawn_zombie", "type": "ZOMBIE_NORMAL", "row": 2, "x": 900 },
+    { "op": "dump_state", "name": "invuln.json" },
+    { "op": "quit" }
+  ]
+}

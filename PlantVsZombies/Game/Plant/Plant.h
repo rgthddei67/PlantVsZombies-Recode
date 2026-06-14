@@ -56,6 +56,9 @@ public:
 	// 获取睡觉状态
 	bool GetSleepState() const { return this->mIsSleeping; }
 
+	// 是否为预览植物（选卡预览用，不参与对战逻辑）
+	bool IsPreview() const { return this->mIsPreview; }
+
 	// 设置睡觉状态
 	virtual void SetSleepState(bool sleep) { this->mIsSleeping = sleep; }
 

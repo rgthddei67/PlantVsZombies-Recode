@@ -1,0 +1,12 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 1 },
+    { "op": "choose_cards", "cards": ["PLANT_PEASHOOTER"] },
+    { "op": "wait_state", "state": "GAME" },
+    { "op": "add_perk", "type": "ZOMBIE_DAMAGE_UP", "count": 3 },
+    { "op": "add_perk", "type": "ZOMBIE_INVULN_HITS", "count": 2 },
+    { "op": "add_perk", "type": "PLANT_REGEN", "count": 5 },
+    { "op": "dump_state", "name": "perks_data.json" },
+    { "op": "quit" }
+  ]
+}

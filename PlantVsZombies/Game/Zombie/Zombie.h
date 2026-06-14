@@ -21,6 +21,7 @@ public:
 	int mRow = -1;
 
 	int mAttackDamage = 50;
+	int mFreeHitsRemaining = 0;	// 词条②：剩余免伤次数（出生时=10×层数，0=无效）
 
 	bool mNeedDropArm = true;
 	bool mNeedDropHead = true;
