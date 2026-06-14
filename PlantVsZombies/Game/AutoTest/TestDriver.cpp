@@ -50,6 +50,11 @@ namespace {
 		ZT(ZOMBIE_SQUASH_HEAD), ZT(ZOMBIE_TALLNUT_HEAD), ZT(ZOMBIE_REDEYE_GARGANTUAR),
 	};
 #undef ZT
+#define PK(n) { #n, PerkType::n }
+	const std::unordered_map<std::string, PerkType> kPerkNames = {
+		PK(PLANT_DAMAGE_UP), PK(ZOMBIE_HEALTH_UP), PK(ZOMBIE_DAMAGE_RESIST),
+	};
+#undef PK
 	const std::unordered_map<std::string, BoardState> kBoardStateNames = {
 		{ "CHOOSE_CARD", BoardState::CHOOSE_CARD }, { "GAME", BoardState::GAME },
 		{ "LOSE_GAME", BoardState::LOSE_GAME }, { "WIN", BoardState::WIN },
@@ -277,6 +282,15 @@ bool TestDriver::ExecuteCurrent() {
 		if (!z) { Fail("CreateZombie 返回空"); return false; }
 		return true;
 	}
+	if (op == "add_perk") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) { Fail("add_perk: 不在 GameScene 或 Board 为空"); return false; }
+		auto it = kPerkNames.find(cmd.value("type", ""));
+		if (it == kPerkNames.end()) { Fail("未知词条类型: " + cmd.value("type", "")); return false; }
+		int count = cmd.value("count", 1);
+		for (int i = 0; i < count; ++i) gs->GetBoard()->GetPerkManager().AddPerk(it->second);
+		return true;
+	}
 	if (op == "screenshot") {
 		const std::string name = cmd.value("name", "shot.png");
 		auto* renderer = GameAPP::GetInstance().GetVulkanRenderer();
@@ -325,6 +339,20 @@ bool TestDriver::ExecuteCurrent() {
 				{ "health", p->mPlantHealth }, { "maxHealth", p->mPlantMaxHealth },
 				{ "track", p->GetCurrentTrackName() },
 			});
+		}
+
+		{
+			SurvivalPerkManager& pm = board->GetPerkManager();
+			nlohmann::json stacks;
+			stacks["PLANT_DAMAGE_UP"]      = pm.GetStacks(PerkType::PLANT_DAMAGE_UP);
+			stacks["ZOMBIE_HEALTH_UP"]     = pm.GetStacks(PerkType::ZOMBIE_HEALTH_UP);
+			stacks["ZOMBIE_DAMAGE_RESIST"] = pm.GetStacks(PerkType::ZOMBIE_DAMAGE_RESIST);
+			nlohmann::json perks;
+			perks["stacks"]              = stacks;
+			perks["zombieHealthMult"]    = pm.GetZombieHealthMultiplier();
+			perks["plantDamageOn100"]    = pm.ScalePlantDamage(100);
+			perks["damageToZombieOn100"] = pm.ScaleDamageToZombie(100);
+			out["perks"] = perks;
 		}
 
 		const std::string name = cmd.value("name", "state.json");
