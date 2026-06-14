@@ -26,7 +26,7 @@ Bullet::Bullet(Board* board, BulletType bulletType, int row, const Vector& colli
 			auto* zombie = dynamic_cast<Zombie*>(otherGameObject);
 			if (zombie && zombie->mRow == this->mRow && !this->mHasHit) {
 				this->mHasHit = true;
-				zombie->TakeDamage(this->GetBulletDamage());
+				zombie->TakeDamage(mBoard->GetPerkManager().ScalePlantDamage(this->GetBulletDamage()));
 				this->BulletHitZombie(zombie);
 				this->Die();
 			}

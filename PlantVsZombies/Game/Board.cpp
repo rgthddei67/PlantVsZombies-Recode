@@ -75,6 +75,7 @@ void Board::InitializeCell(int rows, int cols)
 
 void Board::CreateBoom(const Vector& position, int damage)
 {
+	damage = mPerkManager.ScalePlantDamage(damage);   // 词条：全体植物伤害（含瞬时伤害；入口缩放使秒杀阈值与扣血一致）
 	g_particleSystem->EmitEffect("CherryBomb", position);
 	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_CHERRYBOMB, 0.4f);
 	std::vector<int> zombieIDs = mEntityManager.GetAllZombieIDs();
