@@ -53,6 +53,7 @@ namespace {
 #define PK(n) { #n, PerkType::n }
 	const std::unordered_map<std::string, PerkType> kPerkNames = {
 		PK(PLANT_DAMAGE_UP), PK(ZOMBIE_HEALTH_UP), PK(ZOMBIE_DAMAGE_RESIST),
+		PK(ZOMBIE_DAMAGE_UP), PK(ZOMBIE_INVULN_HITS), PK(PLANT_REGEN),
 	};
 #undef PK
 	const std::unordered_map<std::string, BoardState> kBoardStateNames = {
@@ -351,11 +352,19 @@ bool TestDriver::ExecuteCurrent() {
 			stacks["PLANT_DAMAGE_UP"]      = pm.GetStacks(PerkType::PLANT_DAMAGE_UP);
 			stacks["ZOMBIE_HEALTH_UP"]     = pm.GetStacks(PerkType::ZOMBIE_HEALTH_UP);
 			stacks["ZOMBIE_DAMAGE_RESIST"] = pm.GetStacks(PerkType::ZOMBIE_DAMAGE_RESIST);
+			stacks["ZOMBIE_DAMAGE_UP"]     = pm.GetStacks(PerkType::ZOMBIE_DAMAGE_UP);
+			stacks["ZOMBIE_INVULN_HITS"]   = pm.GetStacks(PerkType::ZOMBIE_INVULN_HITS);
+			stacks["PLANT_REGEN"]          = pm.GetStacks(PerkType::PLANT_REGEN);
 			nlohmann::json perks;
 			perks["stacks"]              = stacks;
 			perks["zombieHealthMult"]    = pm.GetZombieHealthMultiplier();
 			perks["plantDamageOn100"]    = pm.ScalePlantDamage(100);
 			perks["damageToZombieOn100"] = pm.ScaleDamageToZombie(100);
+			perks["zombieDamageMult"]    = pm.GetZombieDamageMultiplier();
+			perks["zombieDamageOn100"]   = pm.ScaleZombieDamage(100);
+			perks["zombieInvulnHits"]    = pm.GetZombieInvulnHits();
+			perks["plantRegenPerPulse"]  = pm.GetPlantRegenPerPulse();
+			perks["plantRegenCapOn300"]  = pm.GetPlantRegenHpCap(300);
 			out["perks"] = perks;
 		}
 
