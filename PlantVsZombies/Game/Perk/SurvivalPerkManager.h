@@ -18,6 +18,12 @@ public:
     int ScalePlantDamage(int base) const;          // round(base * 植物伤害倍率)，base>=1 时结果>=1
     int ScaleDamageToZombie(int base) const;       // round(base * 免伤倍率)，base>=1 时结果>=1
 
+    int   ScaleZombieDamage(int base) const;        // 词条①：round(base*(1+0.05*stacks))，base>=1→>=1
+    int   GetZombieInvulnHits() const;              // 词条②：10*stacks（无层→0）
+    float GetPlantRegenInterval() const;            // 词条③：固定 5.0 秒
+    int   GetPlantRegenPerPulse() const;            // 词条③：25*stacks（无层→0）
+    int   GetPlantRegenHpCap(int maxHealth) const;  // 词条③：满层→maxHealth*3，否则 maxHealth
+
     static const PerkInfo& GetInfo(PerkType type); // 静态元数据表（UI 用）
 
     void Save(nlohmann::json& j) const;            // 仅写 stacks>0 的项，按 key 字符串
