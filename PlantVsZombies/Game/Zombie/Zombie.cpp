@@ -93,6 +93,7 @@ void Zombie::ApplyHealthMultiplier(double multiplier)
 
 void Zombie::SaveProtectedData(nlohmann::json& j) const {
 	j["isMindControlled"] = mIsMindControlled;
+	j["freeHitsRemaining"] = mFreeHitsRemaining;
 	j["isEating"] = mIsEating;
 	j["eatPlantID"] = mEatPlantID;
 	j["hasHead"] = mHasHead;
@@ -107,6 +108,7 @@ void Zombie::SaveProtectedData(nlohmann::json& j) const {
 
 void Zombie::LoadProtectedData(const nlohmann::json& j) {
 	mIsMindControlled = j.value("isMindControlled", false);
+	mFreeHitsRemaining = j.value("freeHitsRemaining", 0);   // 旧档缺字段→0
 	mIsEating = j.value("isEating", false);
 	mEatPlantID = j.value("eatPlantID", NULL_PLANT_ID);
 	mHasHead = j.value("hasHead", true);
@@ -362,6 +364,10 @@ void Zombie::TakeBodyDamage(int damage)
 void Zombie::TakeDamage(int damage)
 {
 	if (damage <= 0) return;
+
+	// 词条②：僵尸前 N 次免伤（生存专用）。出生时由词条层数设定 mFreeHitsRemaining。
+	// 提前 return：完全吸收且不触发受击白光（SetGlowingTimer），0 伤害不应闪。
+	if (mFreeHitsRemaining > 0) { --mFreeHitsRemaining; return; }
 
 	// 词条：僵尸免伤（生存专用；空词条/非生存关倍率=1，无副作用）。单点覆盖一切伤害来源。
 	if (mBoard) damage = mBoard->GetPerkManager().ScaleDamageToZombie(damage);

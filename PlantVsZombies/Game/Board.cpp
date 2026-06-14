@@ -168,6 +168,9 @@ Zombie* Board::CreateZombie(ZombieType zombieType, int row, float x, bool skipse
 		// 按当前难度来源对整只僵尸血量施加全局倍率（默认 1，目前由生存模式按轮次提供）。
 		// 仅在此波次生成路径施加；读档走 CreateZombieWithID 直接还原已含倍率的存档血量，不重复缩放。
 		zombie->ApplyHealthMultiplier(GetZombieHpMultiplier());
+		// 词条②：按当前词条层数设定出生免伤次数（无词条→0）。读档走 CreateZombieWithID 不在此赋值，
+		// 由 LoadProtectedData 还原（与血量倍率同契约）。
+		zombie->mFreeHitsRemaining = GetPerkManager().GetZombieInvulnHits();
 	}
 	return zombie.get();
 }

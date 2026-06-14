@@ -330,6 +330,7 @@ bool TestDriver::ExecuteCurrent() {
 				{ "hasHead", z->HasHead() }, { "hasArm", z->HasArm() },
 				{ "slowCooldown", z->GetCooldownTimer() },
 				{ "track", z->GetCurrentTrackName() },
+				{ "freeHitsRemaining", z->mFreeHitsRemaining },
 			});
 		}
 
