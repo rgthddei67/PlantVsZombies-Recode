@@ -16,8 +16,12 @@
 #include "./Game/CardComponent.h"
 #include "./Game/TransformComponent.h"
 #include "./Game/GameObjectManager.h"
+#include "Logger.h"
 
-bool GameInfoSaver::SavePlayerInfo()
+// 存档/读档的实际逻辑放在下列 *Impl 成员函数中（须为成员：Board 仅 friend 本类，自由
+// 函数无私有成员访问权）；文件末尾的公有接口只做一层 try/catch 包裹（异常安全边界）。
+// 命名加 Impl 后缀避免与同名公有方法构成无限递归调用。
+bool GameInfoSaver::SavePlayerInfoImpl()
 {
 	if (GameAPP::mAutoTestMode) return true;   // AutoTest：不碰玩家存档
 	auto& gameApp = GameAPP::GetInstance();
@@ -39,7 +43,7 @@ bool GameInfoSaver::SavePlayerInfo()
 	return FileManager::SaveJsonFile("./saves/PlayerInfo.json", j);
 }
 
-bool GameInfoSaver::LoadPlayerInfo()
+bool GameInfoSaver::LoadPlayerInfoImpl()
 {
 	if (GameAPP::mAutoTestMode) return true;   // AutoTest：全默认状态，保证确定性
 	nlohmann::json j;
@@ -63,7 +67,7 @@ bool GameInfoSaver::LoadPlayerInfo()
 	return true;
 }
 
-bool GameInfoSaver::SaveLevelData(Board* board, CardSlotManager* manager)
+bool GameInfoSaver::SaveLevelDataImpl(Board* board, CardSlotManager* manager)
 {
 	if (GameAPP::mAutoTestMode) return true;   // AutoTest：不写关卡存档
 	const bool stateOk = (board->mBoardState == BoardState::GAME) ||
@@ -275,7 +279,7 @@ bool GameInfoSaver::SaveLevelData(Board* board, CardSlotManager* manager)
 	return FileManager::SaveJsonFile(filename, j);
 }
 
-bool GameInfoSaver::LoadLevelData(Board* board, CardSlotManager* manager)
+bool GameInfoSaver::LoadLevelDataImpl(Board* board, CardSlotManager* manager)
 {
 	if (GameAPP::mAutoTestMode) return true;   // AutoTest：永远全新关卡（不跳过选卡流程）
 	std::string filename = "./saves/level" + std::to_string(board->mLevel) + "_data.json";
@@ -549,4 +553,46 @@ bool GameInfoSaver::DeleteLevelData(Board* board)
 {
 	std::string filename = "./saves/level" + std::to_string(board->mLevel) + "_data.json";
 	return FileManager::DeleteFile(filename);
+}
+
+// ── 异常安全边界 ──────────────────────────────────────────────────────────────
+// 公有存档/读档接口统一包一层 try/catch：任何序列化异常（nlohmann 的 type_error/
+// parse_error、缺键、类型不符等，均派生自 std::exception）都转成返回 false（沿用既有
+// “失败”契约），不再逸出到 CrashHandler 直接崩坏整个游戏。
+// 注意：LoadLevelData 中途抛异常时 Board 可能已部分加载（mIsLoadSave/已建实体不会回滚），
+// 返回 false 仅保证“不崩”；调用方应把 false 视为读档失败、按全新关卡处理。
+bool GameInfoSaver::SavePlayerInfo()
+{
+	try { return SavePlayerInfoImpl(); }
+	catch (const std::exception& e) {
+		LOG_ERROR("GameInfoSaver") << "SavePlayerInfo 异常，已跳过保存: " << e.what();
+		return false;
+	}
+}
+
+bool GameInfoSaver::LoadPlayerInfo()
+{
+	try { return LoadPlayerInfoImpl(); }
+	catch (const std::exception& e) {
+		LOG_ERROR("GameInfoSaver") << "LoadPlayerInfo 异常，按默认设置继续: " << e.what();
+		return false;
+	}
+}
+
+bool GameInfoSaver::SaveLevelData(Board* board, CardSlotManager* manager)
+{
+	try { return SaveLevelDataImpl(board, manager); }
+	catch (const std::exception& e) {
+		LOG_ERROR("GameInfoSaver") << "SaveLevelData 异常，已跳过保存: " << e.what();
+		return false;
+	}
+}
+
+bool GameInfoSaver::LoadLevelData(Board* board, CardSlotManager* manager)
+{
+	try { return LoadLevelDataImpl(board, manager); }
+	catch (const std::exception& e) {
+		LOG_ERROR("GameInfoSaver") << "LoadLevelData 异常，已放弃读档（关卡将重新开始）: " << e.what();
+		return false;
+	}
 }
