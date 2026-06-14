@@ -291,6 +291,10 @@ bool TestDriver::ExecuteCurrent() {
 		for (int i = 0; i < count; ++i) gs->GetBoard()->GetPerkManager().AddPerk(it->second);
 		return true;
 	}
+	if (op == "show_zombie_hp") {
+		GameAPP::GetInstance().mShowZombieHP = cmd.value("on", true);   // 调试：游戏内绘制僵尸血量
+		return true;
+	}
 	if (op == "screenshot") {
 		const std::string name = cmd.value("name", "shot.png");
 		auto* renderer = GameAPP::GetInstance().GetVulkanRenderer();
