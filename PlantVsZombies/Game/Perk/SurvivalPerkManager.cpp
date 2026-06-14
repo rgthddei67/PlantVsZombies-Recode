@@ -83,14 +83,19 @@ void SurvivalPerkManager::Load(const nlohmann::json& j) {
     }
 }
 
+double SurvivalPerkManager::GetZombieDamageMultiplier() const {
+    return 1.0 + GetInfo(PerkType::ZOMBIE_DAMAGE_UP).perStack
+               * GetStacks(PerkType::ZOMBIE_DAMAGE_UP);
+}
+
 int SurvivalPerkManager::ScaleZombieDamage(int base) const {
-    return RoundScale(base, 1.0 + GetInfo(PerkType::ZOMBIE_DAMAGE_UP).perStack
-                                 * GetStacks(PerkType::ZOMBIE_DAMAGE_UP));
+    return RoundScale(base, GetZombieDamageMultiplier());
 }
 
 int SurvivalPerkManager::GetZombieInvulnHits() const {
-    return static_cast<int>(GetInfo(PerkType::ZOMBIE_INVULN_HITS).perStack
-                            * GetStacks(PerkType::ZOMBIE_INVULN_HITS) + 0.5f);
+    // perStack=10 是精确整数，直接整数乘（无小数需取整）
+    return static_cast<int>(GetInfo(PerkType::ZOMBIE_INVULN_HITS).perStack)
+           * GetStacks(PerkType::ZOMBIE_INVULN_HITS);
 }
 
 float SurvivalPerkManager::GetPlantRegenInterval() const {
@@ -98,8 +103,9 @@ float SurvivalPerkManager::GetPlantRegenInterval() const {
 }
 
 int SurvivalPerkManager::GetPlantRegenPerPulse() const {
-    return static_cast<int>(GetInfo(PerkType::PLANT_REGEN).perStack
-                            * GetStacks(PerkType::PLANT_REGEN) + 0.5f);
+    // perStack=25 是精确整数，直接整数乘
+    return static_cast<int>(GetInfo(PerkType::PLANT_REGEN).perStack)
+           * GetStacks(PerkType::PLANT_REGEN);
 }
 
 int SurvivalPerkManager::GetPlantRegenHpCap(int maxHealth) const {
