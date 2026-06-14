@@ -640,9 +640,9 @@ void Board::OnSurvivalRoundClear()
 	mTrophySpawned = false;
 	mHasHugeWaveSound = false;
 	mHugeWaveCountDown = 0.0f;
-	mNextWaveSpawnZombieHP = 0.0;
-	mCurrectWaveZombieHP = 0.0;
-	mTotalZombieHP = 0.0;
+	mNextWaveSpawnZombieHP = 0;
+	mCurrectWaveZombieHP = 0;
+	mTotalZombieHP = 0;
 
 	// 重算难度（解锁更强僵尸）+ 刷新关卡名
 	BuildSurvivalSpawnList(mSurvivalRound);
