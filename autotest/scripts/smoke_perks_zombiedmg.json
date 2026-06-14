@@ -1,0 +1,15 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 1 },
+    { "op": "choose_cards", "cards": ["PLANT_WALLNUT"] },
+    { "op": "wait_state", "state": "GAME" },
+    { "op": "add_perk", "type": "ZOMBIE_DAMAGE_UP", "count": 10 },
+    { "op": "show_zombie_hp", "on": true },
+    { "op": "plant", "type": "PLANT_WALLNUT", "row": 2, "col": 2 },
+    { "op": "spawn_zombie", "type": "ZOMBIE_NORMAL", "row": 2, "x": 470 },
+    { "op": "wait_seconds", "value": 12.0 },
+    { "op": "screenshot", "name": "zombiedmg.png" },
+    { "op": "dump_state", "name": "zombiedmg.json" },
+    { "op": "quit" }
+  ]
+}

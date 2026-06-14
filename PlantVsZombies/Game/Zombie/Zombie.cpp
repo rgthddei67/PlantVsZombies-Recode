@@ -457,7 +457,9 @@ void Zombie::EatTarget()
 	if (mEatPlantID != NULL_PLANT_ID && mHasHead)
 	{
 		if (auto* plant = mBoard->mEntityManager.GetPlant(mEatPlantID)) {
-			plant->TakeDamage(mAttackDamage);
+			// 词条①：僵尸对植物伤害（生存专用；空词条倍率=1）。使用时缩放，不写回 mAttackDamage——
+			// 否则存档 attackDamage 被污染，读档叠加重复放大。mBoard 在此路径恒非空（上一行已解引用）。
+			plant->TakeDamage(mBoard->GetPerkManager().ScaleZombieDamage(mAttackDamage));
 			if (plant->mPlantHealth <= 0)
 			{
 				AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_ZOMBIE_FINISHEAT, 0.2f);
