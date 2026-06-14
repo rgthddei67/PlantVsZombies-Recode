@@ -1,0 +1,14 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 1 },
+    { "op": "choose_cards", "cards": ["PLANT_PEASHOOTER"] },
+    { "op": "wait_state", "state": "GAME" },
+    { "op": "spawn_zombie", "type": "ZOMBIE_NORMAL", "row": 0, "x": 900 },
+    { "op": "add_perk", "type": "ZOMBIE_HEALTH_UP" },
+    { "op": "add_perk", "type": "PLANT_DAMAGE_UP", "count": 3 },
+    { "op": "add_perk", "type": "ZOMBIE_DAMAGE_RESIST", "count": 15 },
+    { "op": "spawn_zombie", "type": "ZOMBIE_NORMAL", "row": 1, "x": 900 },
+    { "op": "dump_state", "name": "perks.json" },
+    { "op": "quit" }
+  ]
+}
