@@ -112,7 +112,7 @@ public:
 
 	// 将本体/头盔/护盾的当前血量与上限整体按倍率缩放（与具体模式无关，由调用方决定倍率来源）。
 	// 倍率<=0 或 ==1 时不作处理；缩放后保持 current==max（同源同舍入）。
-	void ApplyHealthMultiplier(float multiplier);
+	void ApplyHealthMultiplier(double multiplier);
 
 protected:
 	virtual void ZombieMove(float scaledDelta, TransformComponent* transform);

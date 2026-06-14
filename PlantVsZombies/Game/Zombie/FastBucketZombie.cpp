@@ -31,7 +31,7 @@ void FastBucketZombie::HelmDrop()
 void FastBucketZombie::CheckHelmImage()
 {
 	if (mHelmType == HelmType::HELMTYPE_NONE) return;
-	if (mHelmStage == ArmorBrokenState::NO_BROKEN && mHelmHealth <= mHelmMaxHealth * 2 / 3) {
+	if (mHelmStage == ArmorBrokenState::NO_BROKEN && mHelmHealth <= static_cast<long long>(mHelmMaxHealth) * 2 / 3) {
 		mHelmStage = ArmorBrokenState::A_LITTLE_BROKEN;
 		mAnimator->SetTrackImage("anim_bucket", ResourceManager::GetInstance().
 			GetTexture("IMAGE_FASTZOMBIE_BUCKET2"));

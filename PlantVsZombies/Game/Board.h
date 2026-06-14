@@ -227,10 +227,10 @@ public:
 	// 目前唯一来源是生存模式（线性 1 + SURVIVAL_HP_GROWTH*(轮次-1)）；
 	// 未来其他模式（困难冒险、悬赏关等）若需血量倍率，在此处继续叠乘即可，调用方无需改动。
 	// 新波次僵尸生成时(CreateZombie)对其 body/头盔/护盾血量整体乘此系数；读档(CreateZombieWithID)不乘，避免二次叠加。
-	float GetZombieHpMultiplier() const {
-		float multiplier = 1.0f;
+	double GetZombieHpMultiplier() const {
+		double multiplier = 1.0;
 		if (mIsSurvival)
-			multiplier *= (1.0f + SURVIVAL_HP_GROWTH * static_cast<float>(mSurvivalRound - 1));
+			multiplier *= (1.0 + SURVIVAL_HP_GROWTH * static_cast<double>(mSurvivalRound - 1));
 		return multiplier;
 	}
 

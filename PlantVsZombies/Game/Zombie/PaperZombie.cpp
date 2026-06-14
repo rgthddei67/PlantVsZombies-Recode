@@ -52,7 +52,7 @@ void PaperZombie::CheckShieldImage()
 {
 	if (mShieldType == ShieldType::SHIELDTYPE_NONE) return;
 
-	if (mShieldStage == ArmorBrokenState::NO_BROKEN && mShieldHealth <= mShieldMaxHealth * 2 / 3) {
+	if (mShieldStage == ArmorBrokenState::NO_BROKEN && mShieldHealth <= static_cast<long long>(mShieldMaxHealth) * 2 / 3) {
 		mShieldStage = ArmorBrokenState::A_LITTLE_BROKEN;
 		mAnimator->SetTrackImage("Zombie_paper_paper", ResourceManager::GetInstance().
 			GetTexture("IMAGE_ZOMBIE_PAPER_PAPER2"));

@@ -74,12 +74,14 @@ void Zombie::SetupZombie()
 		this->PlayTrack("anim_walk2");
 }
 
-void Zombie::ApplyHealthMultiplier(float multiplier)
+void Zombie::ApplyHealthMultiplier(double multiplier)
 {
-	if (multiplier <= 0.0f || multiplier == 1.0f) return;
-	// 同一原值 × 同一倍率 → 同一舍入结果，故缩放后 current 仍等于 max。血量非负，四舍五入用 +0.5f。
+	if (multiplier <= 0.0 || multiplier == 1.0) return;
+	// 同一原值 × 同一倍率 → 同一舍入结果，故缩放后 current 仍等于 max。血量非负，四舍五入用 +0.5。
+	// 用 double 而非 float：float 尾数仅 24 位，血量 > 2^24(≈1677万) 时整数会丢精度；double 尾数 52 位，
+	// 整数精确到 ~9e15，远超 int 上限，故缩放链路上 float 是比 int 字段更先暴露的弱点（缩放仅出生时算一次，无热路径开销）。
 	auto scale = [multiplier](int v) {
-		return static_cast<int>(static_cast<float>(v) * multiplier + 0.5f);
+		return static_cast<int>(static_cast<double>(v) * multiplier + 0.5);
 	};
 	mBodyHealth = scale(mBodyHealth);
 	mBodyMaxHealth = scale(mBodyMaxHealth);
@@ -344,7 +346,8 @@ void Zombie::TakeBodyDamage(int damage)
 	if (mBodyHealth < 0)
 		mBodyHealth = 0;
 
-	if (mNeedDropArm && mHasArm && mBodyHealth <= mBodyMaxHealth * 2 / 3)
+	// 先乘后除：用 64 位算中间量，避免 mBodyMaxHealth 极大时 *2 在 int 内溢出（约 >10.7 亿即翻负）。
+	if (mNeedDropArm && mHasArm && mBodyHealth <= static_cast<long long>(mBodyMaxHealth) * 2 / 3)
 	{
 		ArmDrop();
 		mHasArm = false;

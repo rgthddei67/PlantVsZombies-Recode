@@ -29,7 +29,7 @@ void FastPaperZombie::CheckShieldImage()
 	// 与 PaperZombie::CheckShieldImage 完全同构，只把报纸破碎贴图换成 FastZombie 版本。
 	if (mShieldType == ShieldType::SHIELDTYPE_NONE) return;
 
-	if (mShieldStage == ArmorBrokenState::NO_BROKEN && mShieldHealth <= mShieldMaxHealth * 2 / 3) {
+	if (mShieldStage == ArmorBrokenState::NO_BROKEN && mShieldHealth <= static_cast<long long>(mShieldMaxHealth) * 2 / 3) {
 		mShieldStage = ArmorBrokenState::A_LITTLE_BROKEN;
 		mAnimator->SetTrackImage("Zombie_paper_paper", ResourceManager::GetInstance().
 			GetTexture("IMAGE_FASTZOMBIE_PAPER_PAPER2"));
