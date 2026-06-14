@@ -77,6 +77,7 @@ bool GameInfoSaver::SaveLevelData(Board* board, CardSlotManager* manager)
 	j["boardState"] = static_cast<int>(board->mBoardState);
 	j["isSurvival"] = board->mIsSurvival;
 	j["survivalRound"] = board->mSurvivalRound;
+	if (board->mIsSurvival) board->GetPerkManager().Save(j["perks"]);   // 词条随本局生存进度
 	j["sun"] = board->mSun;
 	j["currentWave"] = board->mCurrentWave;
 	j["maxWave"] = board->mMaxWave;
@@ -285,6 +286,7 @@ bool GameInfoSaver::LoadLevelData(Board* board, CardSlotManager* manager)
 	board->mIsSurvival = j.value("isSurvival", false);
 	board->mSurvivalRound = j.value("survivalRound", 1);
 	if (board->mIsSurvival) {
+		if (j.contains("perks")) board->GetPerkManager().Load(j["perks"]);   // 旧档无 perks 字段→天然兼容
 		board->BuildSurvivalSpawnList(board->mSurvivalRound);
 		board->UpdateSurvivalLevelName();
 		// 轮间（CHOOSE_CARD）读档：Board 构造时按第1轮建的预览僵尸阵容是错的，
