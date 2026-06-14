@@ -10,7 +10,7 @@
 |---|---|---|---|---|
 | `ZOMBIE_DAMAGE_UP`   | 僵尸伤害   | 僵尸对植物伤害 +5% | **不限**（实现为 9999） | 助"增难"，无状态倍率 |
 | `ZOMBIE_INVULN_HITS` | 僵尸前 N 次免伤 | 出生后前 10 次受击伤害 = 0 | **2**（最多前 20 次） | **per-zombie 状态** |
-| `PLANT_REGEN`        | 植物回血   | 每 5 秒回 25 HP | **5**（最高 125 HP/5s） | **全局脉冲**，封顶 maxHealth |
+| `PLANT_REGEN`        | 植物回血   | 每 5 秒回 25 HP | **5**（最高 125 HP/5s） | **全局脉冲**；1~4 层封顶 maxHealth，**满 5 层**解锁过量治疗封顶 maxHealth×3 |
 
 > 与第一批一致：系统对好/坏词条一视同仁，只是通用修正容器；层数/数值均为常量便于调参。
 
@@ -22,7 +22,7 @@
 | 每层每次 y | 25 HP | 多数植物 300 血；≈5 HP/s/层，挡不住被啃但恢复零散掉血 |
 | 可叠加 | 可，**线性**（n 层 = 每 5 秒 25n） | 与"每层"模型一致 |
 | 层数上限 | 5 层（最高 125 HP/5s） | 防回血碾压 |
-| 是否可超 maxHealth | **否**，封顶 `mPlantMaxHealth` | 标准治疗语义，可预测；不做过量治疗 |
+| 是否可超 maxHealth | 1~4 层**否**（封顶 `mPlantMaxHealth`）；**满 5 层**可，封顶 `mPlantMaxHealth × 3` | 满层作为"毕业"奖励解锁过量治疗，其余层标准封顶；满层后全场植物（含未受伤）会被逐步顶到 3× 血 |
 
 ## 2. 架构：两个词条打破"无状态聚合"假设
 
@@ -76,10 +76,12 @@ int    GetZombieInvulnHits() const;              // 10 * stacks（无层→0）
 // 词条③：植物回血脉冲参数（Board 全局计时器消费）
 float  GetPlantRegenInterval() const;            // 常量 5.0（恒定，便于 Board 取间隔）
 int    GetPlantRegenPerPulse() const;            // 25 * stacks（无层→0，Board 据此 skip）
+int    GetPlantRegenHpCap(int maxHealth) const;  // 满层→maxHealth*3 解锁过量治疗；否则 maxHealth
 ```
 
 - `ScaleZombieDamage` 复用现有 `RoundScale`（已 `+0.5` 四舍五入、`base>=1` 夹底 >=1）。此处是**增伤**（倍率>1），夹底无副作用。
 - `GetZombieInvulnHits` / `GetPlantRegenPerPulse` 在无层时返回 0 → 调用方天然 no-op。
+- `GetPlantRegenHpCap`：把"满层解锁过量治疗"规则封装进词条系统，Board 只取上限不知魔法数。判定用 `GetStacks(PLANT_REGEN) >= GetInfo(PLANT_REGEN).maxStacks`（"满层"线随 `maxStacks` 自动跟随，不硬写 `==5`），满足时返 `maxHealth * kPlantRegenOverhealMult`（具名常量 = 3），否则返 `maxHealth`。无层时 stacks=0 < maxStacks → 返 maxHealth（且 `GetPlantRegenPerPulse`=0 时 Board 根本不进循环，不影响）。
 - `kPerks` 表补 3 行，`static_assert` 强制与枚举一一对应（顺序须与枚举一致）。
 
 ## 4. 集成点（精确改法）
@@ -88,7 +90,7 @@ int    GetPlantRegenPerPulse() const;            // 25 * stacks（无层→0，B
 |---|---|---|
 | ① 僵尸伤害 +5% | `Zombie::EatTarget()` `Zombie.cpp:460`（全局唯一一处僵尸伤植物） | `plant->TakeDamage(mBoard->GetPerkManager().ScaleZombieDamage(mAttackDamage));`（`mBoard` 在 EatTarget 路径恒非空）。**在使用时缩放，不写回 `mAttackDamage`**——否则存档 `attackDamage`（`GameInfoSaver:164/409`）被污染，读档叠加重复放大。 |
 | ② 前 N 次免伤 | `Zombie::TakeDamage` 首行 `Zombie.cpp:364`（`if(damage<=0)return;` 之后、免伤倍率 `:367` 之前） | `if (mFreeHitsRemaining > 0) { --mFreeHitsRemaining; return; }`。一处覆盖所有伤害来源；提前 return → **不触发受击白光**（`SetGlowingTimer`），0 伤害不应闪。 |
-| ③ 植物回血 | `Board::Update`（阳光/出怪计时器同处）每帧累加 `mPlantRegenTimer += dt`；满 `GetPlantRegenInterval()` 触发一次脉冲 | 脉冲：`int heal = pm.GetPlantRegenPerPulse(); if (heal>0) for (id : GetAllPlantIDs()) { p=GetPlant(id); if(!p||p预览) continue; p->mPlantHealth = min(p->mPlantHealth+heal, p->mPlantMaxHealth);}` 仅 `mBoardState==GAME` 时跑（与选卡冻结一致）。 |
+| ③ 植物回血 | `Board::Update`（阳光/出怪计时器同处）每帧累加 `mPlantRegenTimer += dt`；满 `GetPlantRegenInterval()` 触发一次脉冲 | 脉冲：`int heal = pm.GetPlantRegenPerPulse(); if (heal>0) for (id : GetAllPlantIDs()) { p=GetPlant(id); if(!p||p预览) continue; int cap = pm.GetPlantRegenHpCap(p->mPlantMaxHealth); if (p->mPlantHealth < cap) p->mPlantHealth = min(p->mPlantHealth+heal, cap);}` 仅 `mBoardState==GAME` 时跑（与选卡冻结一致）。满 5 层时 cap=maxHealth×3，未受伤植物也会被逐步顶到 3×。 |
 
 ### 词条② 的 per-zombie 状态：初始化 + 存档
 
@@ -109,7 +111,7 @@ int    GetPlantRegenPerPulse() const;            // 25 * stacks（无层→0，B
 
 - 词条**层数**：第一批已做的 `SurvivalPerkManager::Save/Load`（`GameInfoSaver:80/289`）自动覆盖新增 3 项（按 key 字符串，新 key 旧档缺失 → 0 层），**无需改 GameInfoSaver 的词条段**。
 - 词条②**per-zombie 计数器**：经 `SaveProtectedData/LoadProtectedData`（见 §4），随每只僵尸存档。
-- 词条③**全局计时器**：不持久化（读档从 0 重计，见 §2 取舍）。
+- 词条③**全局计时器**：不持久化（读档从 0 重计，见 §2 取舍）。植物**过量治疗后的血量**则天然随存档保留——`mPlantHealth` 本就单独序列化（`GameInfoSaver:106`），读档原样恢复，无需特殊处理。
 - AutoTest 模式存档短路 → 不影响测试隔离。
 
 ## 6. 生命周期
@@ -125,7 +127,7 @@ int    GetPlantRegenPerPulse() const;            // 25 * stacks（无层→0，B
 - AutoTest 端到端（`TestDriver.cpp`）：
   - `add_perk` 名称表补 3 个新枚举（`ZOMBIE_DAMAGE_UP` / `ZOMBIE_INVULN_HITS` / `PLANT_REGEN`）。
   - `dump_state` 的 `perks` 块补字段：`zombieDamageOn100 = ScaleZombieDamage(100)`、`zombieInvulnHits = GetZombieInvulnHits()`、`plantRegenPerPulse = GetPlantRegenPerPulse()`。
-  - 新 smoke 脚本验证：① 加 N 层后僵尸啃食扣血 = round(50×(1+0.05N))；② 加 1~2 层后僵尸前 10/20 次受击血量不掉、第 11/21 次起正常掉；③ 加 K 层后等待 ≥5s，受损植物回血 = 25K（且不超 maxHealth）。
+  - 新 smoke 脚本验证：① 加 N 层后僵尸啃食扣血 = round(50×(1+0.05N))；② 加 1~2 层后僵尸前 10/20 次受击血量不掉、第 11/21 次起正常掉；③ 加 K(1~4) 层后等待 ≥5s，受损植物回血 = 25K 且**封顶 maxHealth**；④ 加满 5 层后等待数个脉冲，植物血量**超过 maxHealth 并逐步逼近 maxHealth×3** 后封顶不再涨。
 
 ## 8. 明确不做（YAGNI）
 
@@ -133,3 +135,4 @@ int    GetPlantRegenPerPulse() const;            // 25 * stacks（无层→0，B
 - 词条③回血间隔的可配置化 / 进 `PerkInfo`（仅一词条需要，用常量）。
 - 词条③全局计时器存档（损失 ≤5s，不值当）。
 - 词条②"哪些来源算一次受击"的细分（统一 = 一次 `TakeDamage` 调用 = 一次）。
+- 过量治疗时血量文字显示（如 "750/300"）的特殊处理——保留原样直接显示，是清晰的"过量治疗中"反馈，非 bug。
