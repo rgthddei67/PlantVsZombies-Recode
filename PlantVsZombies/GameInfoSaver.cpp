@@ -77,7 +77,11 @@ bool GameInfoSaver::SaveLevelData(Board* board, CardSlotManager* manager)
 	j["boardState"] = static_cast<int>(board->mBoardState);
 	j["isSurvival"] = board->mIsSurvival;
 	j["survivalRound"] = board->mSurvivalRound;
-	if (board->mIsSurvival) board->GetPerkManager().Save(j["perks"]);   // 词条随本局生存进度
+	if (board->mIsSurvival) {
+		nlohmann::json perks;                    // 不直接写 j["perks"]：operator[] 会先物化成 null
+		board->GetPerkManager().Save(perks);     // 零词条时 Save 不写任何键 → perks 仍为 null
+		if (!perks.is_null()) j["perks"] = perks;   // 仅有词条时才落盘；否则省略，等同旧档天然兼容
+	}
 	j["sun"] = board->mSun;
 	j["currentWave"] = board->mCurrentWave;
 	j["maxWave"] = board->mMaxWave;

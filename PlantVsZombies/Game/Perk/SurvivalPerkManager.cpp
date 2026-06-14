@@ -75,6 +75,7 @@ void SurvivalPerkManager::Save(nlohmann::json& j) const {
 }
 
 void SurvivalPerkManager::Load(const nlohmann::json& j) {
+    if (!j.is_object()) return;   // 容错：旧档可能写成 "perks": null（零词条时被 operator[] 物化）→ value() 会抛 type_error.306
     for (int i = 0; i < static_cast<int>(PerkType::COUNT); ++i) {
         int v = j.value(kPerks[i].key, 0);
         if (v < 0) v = 0;
