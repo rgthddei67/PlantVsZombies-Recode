@@ -39,6 +39,7 @@ Board::Board(GameScene* gameScene, Background background, int level)
 	if (mIsSurvival)
 	{
 		mSurvivalRound = 1;
+		mPerkManager.Clear();   // 新生存局：词条清零（读档时由 Load 覆盖）
 		mMaxWave = SURVIVAL_WAVES_PER_ROUND;
 		BuildSurvivalSpawnList(mSurvivalRound);
 		UpdateSurvivalLevelName();

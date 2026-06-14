@@ -9,6 +9,7 @@
 #include "./Bullet/BulletType.h"
 #include "EntityManager.h"
 #include "CursorObjectManager.h"
+#include "Perk/SurvivalPerkManager.h"
 #include <vector>
 #include <memory>
 
@@ -90,6 +91,7 @@ public:
 
 	bool mIsSurvival = false;     // 是否为生存模式（无尽）
 	int  mSurvivalRound = 1;      // 当前第几面旗（轮次，从 1 起）
+	SurvivalPerkManager mPerkManager;   // 生存模式词条（非生存关恒空）
 
 	Vector mSpawnZombiePos1 = Vector(1180, 85);			// 左上角坐标
 	Vector mSpawnZombiePos2 = Vector(1500, 581);		// 右下角坐标
@@ -227,6 +229,9 @@ public:
 	// 目前唯一来源是生存模式（线性 1 + SURVIVAL_HP_GROWTH*(轮次-1)）；
 	// 未来其他模式（困难冒险、悬赏关等）若需血量倍率，在此处继续叠乘即可，调用方无需改动。
 	// 新波次僵尸生成时(CreateZombie)对其 body/头盔/护盾血量整体乘此系数；读档(CreateZombieWithID)不乘，避免二次叠加。
+	SurvivalPerkManager&       GetPerkManager()       { return mPerkManager; }
+	const SurvivalPerkManager& GetPerkManager() const { return mPerkManager; }
+
 	double GetZombieHpMultiplier() const {
 		double multiplier = 1.0;
 		if (mIsSurvival)
