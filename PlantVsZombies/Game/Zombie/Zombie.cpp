@@ -363,6 +363,9 @@ void Zombie::TakeDamage(int damage)
 {
 	if (damage <= 0) return;
 
+	// 词条：僵尸免伤（生存专用；空词条/非生存关倍率=1，无副作用）。单点覆盖一切伤害来源。
+	if (mBoard) damage = mBoard->GetPerkManager().ScaleDamageToZombie(damage);
+
 	SetGlowingTimer(0.1f);
 
 	int remainingDamage = damage;
