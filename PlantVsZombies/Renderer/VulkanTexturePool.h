@@ -42,7 +42,14 @@ namespace pvz {
 
 		// 上传 RGBA8 数据创建一张纹理。返回的指针由 pool 拥有；调用 DestroyTexture 释放。
 		VulkanTexture* CreateTextureRGBA8(int width, int height, const void* pixels);
+
+		// 把纹理交给延迟删除队列：立即从可见集合移除，但 GPU 句柄 + bindless 槽位保留到
+		// 至少 FRAMES_IN_FLIGHT 帧后再回收，确保没有 in-flight 帧仍在引用。不再 vkDeviceWaitIdle。
 		void DestroyTexture(VulkanTexture* tex);
+
+		// 每帧调一次（Graphics::BeginFrame 中、renderer->BeginFrame 成功后）：推进帧计数，
+		// 回收"已过 FRAMES_IN_FLIGHT 帧"的延迟删除项。无活动帧/teardown 期不要调用。
+		void BeginFrameTick();
 
 		VkDescriptorSetLayout DescriptorSetLayout() const { return mLayout; }
 		VkDescriptorSet       DescriptorSet()       const { return mSet; }
@@ -59,6 +66,11 @@ namespace pvz {
 		bool UploadPixels(VulkanTexture& tex, const void* pixels, VkDeviceSize byteSize);
 		void WriteDescriptor(uint32_t bindlessIndex, VkImageView view);
 
+		// 真正销毁一项延迟删除：destroy view+image、归还 bindless 槽位。
+		void ReclaimDeletion(VulkanTexture& tex);
+		// teardown 用：无视帧龄，销毁队列里全部待删项（调用方须先 vkDeviceWaitIdle）。
+		void FlushAllDeletions();
+
 		VulkanContext* mCtx = nullptr;
 
 		VkSampler             mSampler = VK_NULL_HANDLE;
@@ -71,5 +83,14 @@ namespace pvz {
 		std::vector<std::unique_ptr<VulkanTexture>> mTextures;  // 由 bindlessIndex 索引
 		std::vector<uint32_t>                       mFreeList;
 		uint32_t                                    mNextIndex = 0;
+
+		// 延迟删除队列：DestroyTexture 把纹理移进来并打上当前帧号 tick；BeginFrameTick 在
+		// (mFrameTick - tick >= FRAMES_IN_FLIGHT) 时回收。GPU 句柄 + bindless 槽位随 unique_ptr 存活至回收。
+		struct PendingDeletion {
+			std::unique_ptr<VulkanTexture> tex;
+			uint64_t                       tick = 0;
+		};
+		std::vector<PendingDeletion> mPendingDeletions;
+		uint64_t                     mFrameTick = 0;  // 单调递增，BeginFrameTick 每帧 +1
 	};
 } // namespace pvz

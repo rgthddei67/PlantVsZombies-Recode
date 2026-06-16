@@ -478,6 +478,10 @@ bool Graphics::BeginFrame() {
 		return false;
 	}
 
+	// 延迟纹理删除：此刻本帧 slot 的 fence 已被 renderer->BeginFrame 等过，回收"已过
+	// FRAMES_IN_FLIGHT 帧"的待删纹理最安全。取代旧 DestroyTexture 里的 vkDeviceWaitIdle。
+	if (m_vk->texPool) m_vk->texPool->BeginFrameTick();
+
 	// Letterbox：renderer 已设铺满交换链的默认 viewport，这里覆盖成等比居中的矩形。
 	// 视口变换把所有几何体约束进该矩形，黑边区域无顶点 → 保持清屏色（黑）。
 	// 保留负高度 Y 翻转（沿用 GL 风格 top=0 正交矩阵）。窗口模式 scale=1/offset=0 时退化为原 viewport。

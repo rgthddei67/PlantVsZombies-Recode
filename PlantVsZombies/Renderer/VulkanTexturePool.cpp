@@ -1,9 +1,11 @@
 #include "VulkanTexturePool.h"
 #include "VulkanBuffer.h"
 #include "VulkanContext.h"
+#include "VulkanRenderer.h"   // FRAMES_IN_FLIGHT —— 延迟删除回收阈值的单一真相源
 #include "../Logger.h"
 
 #include <cstring>
+#include <utility>
 
 namespace pvz {
 	namespace {
@@ -308,20 +310,53 @@ namespace pvz {
 		const uint32_t idx = tex->bindlessIndex;
 		if (idx >= mTextures.size() || mTextures[idx].get() != tex) return;
 
-		// Phase 2b 简化处理：同步等设备空闲后销毁。后续 phase 走 deletion queue。
-		vkDeviceWaitIdle(mCtx->Device());
+		// 延迟回收：从可见集合移出（此刻起 mTextures[idx] 即为空，查不到），GPU 句柄 + bindless
+		// 槽位随 unique_ptr 进队列，等 BeginFrameTick 过了 FRAMES_IN_FLIGHT 帧再真正销毁。
+		// 槽位此时不归还——否则新纹理会 WriteDescriptor 覆盖仍被 in-flight 帧采样的 descriptor。
+		// 取代旧的 vkDeviceWaitIdle（整 GPU 停顿），消除每帧路径上的停顿隐患。
+		mPendingDeletions.push_back({ std::move(mTextures[idx]), mFrameTick });
+	}
 
-		if (tex->view)  vkDestroyImageView(mCtx->Device(), tex->view, nullptr);
-		if (tex->image) vmaDestroyImage(mCtx->Allocator(), tex->image, tex->alloc);
+	void VulkanTexturePool::ReclaimDeletion(VulkanTexture& tex) {
+		if (tex.view)  vkDestroyImageView(mCtx->Device(), tex.view, nullptr);
+		if (tex.image) vmaDestroyImage(mCtx->Allocator(), tex.image, tex.alloc);
+		FreeBindlessIndex(tex.bindlessIndex);   // 句柄销毁后才归还槽位
+	}
 
-		mTextures[idx].reset();
-		FreeBindlessIndex(idx);
+	void VulkanTexturePool::BeginFrameTick() {
+		if (!mCtx) return;
+		++mFrameTick;
+		// 回收"已过 FRAMES_IN_FLIGHT 帧"的项。swap-and-pop 原地压缩，免 erase 搬移；
+		// 最后一项不自移动，避免 unique_ptr 自移赋值。
+		constexpr uint64_t kFIF = VulkanRenderer::FRAMES_IN_FLIGHT;
+		for (size_t i = 0; i < mPendingDeletions.size();) {
+			PendingDeletion& pd = mPendingDeletions[i];
+			if (pd.tex && mFrameTick - pd.tick >= kFIF) {
+				ReclaimDeletion(*pd.tex);
+				if (i != mPendingDeletions.size() - 1) pd = std::move(mPendingDeletions.back());
+				mPendingDeletions.pop_back();
+			}
+			else {
+				++i;
+			}
+		}
+	}
+
+	void VulkanTexturePool::FlushAllDeletions() {
+		// teardown 专用：调用方须已 vkDeviceWaitIdle，这里无视帧龄一律回收。
+		for (auto& pd : mPendingDeletions) {
+			if (pd.tex) ReclaimDeletion(*pd.tex);
+		}
+		mPendingDeletions.clear();
 	}
 
 	void VulkanTexturePool::Shutdown() {
 		if (!mCtx) return;
 		VkDevice dev = mCtx->Device();
 		if (dev) vkDeviceWaitIdle(dev);
+
+		// GPU 已空闲：先把延迟删除队列里所有待删项无视帧龄回收干净，再销毁仍在册的纹理。
+		FlushAllDeletions();
 
 		for (auto& up : mTextures) {
 			if (!up) continue;
