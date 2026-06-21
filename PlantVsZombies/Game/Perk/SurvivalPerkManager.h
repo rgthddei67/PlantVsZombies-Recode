@@ -1,5 +1,6 @@
 #pragma once
 #include <array>
+#include <vector>
 #include <nlohmann/json_fwd.hpp>   // 仅前置声明 nlohmann::json，Save/Load 取引用参数足够
 #include "PerkType.h"
 
@@ -26,6 +27,8 @@ public:
     int    GetPlantRegenHpCap(int maxHealth) const; // 满层→maxHealth*3，否则 maxHealth
 
     static const PerkInfo& GetInfo(PerkType type); // 静态元数据表（UI 用）
+    PerkCategory GetCategory(PerkType type) const { return GetInfo(type).category; }
+    std::vector<PerkType> AvailablePerks(PerkCategory cat) const;  // 该类别下 stacks < maxStacks 的词条
 
     void Save(nlohmann::json& j) const;            // 仅写 stacks>0 的项，按 key 字符串
     void Load(const nlohmann::json& j);            // 缺 key→0；越界→夹回 [0,maxStacks]
@@ -33,3 +36,7 @@ public:
 private:
     std::array<int, static_cast<size_t>(PerkType::COUNT)> mStacks{};  // 全 0 初始
 };
+
+// 随机生成至多 count 个互不相同的 {植物增益, 僵尸增难} 配对，用 GameRandom（-Seed 可复现）。
+// 任一侧无可用词条 → 返回空；可用配对总数 < count → 返回全部。
+std::vector<PerkPairing> RollPerkPairings(const SurvivalPerkManager& mgr, int count);
