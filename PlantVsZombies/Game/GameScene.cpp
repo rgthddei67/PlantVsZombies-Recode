@@ -755,10 +755,11 @@ void GameScene::BeginSurvivalPerkSelect()
 		[this]() { this->ApplyPerkSelection(-1); },
 		ResourceKeys::Textures::IMAGE_BUTTONBIG, true });
 
-	// 背景尺寸由内容自动决定，以场景中心绘制
+	// 背景留空 + explicitSize → GameMessageBox 画纯色面板（尺寸由内容自动决定，
+	// 面板矩形与文字坐标严格对齐，避免墓碑纹理花边内缩导致文字溢出可视边框）
 	mPerkSelectBox = mUIManager.CreateMessageBox(
 		Vector(cx, cy), "", buttons, sliders, texts, "", 1.0f,
-		ResourceKeys::Textures::IMAGE_MESSAGEBOX, Vector(boxW, boxH));
+		"", Vector(boxW, boxH));
 }
 
 void GameScene::ApplyPerkSelection(int index)
