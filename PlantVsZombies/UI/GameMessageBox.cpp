@@ -24,10 +24,12 @@ GameMessageBox::GameMessageBox(const Vector& pos,
 	const std::vector<TextConfig>& texts,
 	const std::string& title,
 	const std::string& backgroundImageKey,
-	float scale)
+	float scale,
+	const Vector& explicitSize)
 	: GameObject(ObjectType::OBJECT_UI)
 	, m_position(pos)
 	, m_scale(scale)
+	, m_explicitSize(explicitSize)
 	, m_title(title)
 	, m_message(message)
 	, m_backgroundImageKey(backgroundImageKey)
@@ -38,7 +40,10 @@ GameMessageBox::GameMessageBox(const Vector& pos,
 	mIsUI = true;
 
 	Vector originalSize = GetBackgroundOriginalSize();
-	m_size = originalSize * scale;
+	if (explicitSize.x > 0.0f && explicitSize.y > 0.0f)
+		m_size = explicitSize;                 // 自动决定大小：直接用调用方算好的尺寸
+	else
+		m_size = originalSize * scale;
 	this->SetRenderOrder(LAYER_UI + 500000);
 }
 
@@ -134,10 +139,26 @@ void GameMessageBox::Draw(Graphics* g)
 {
 	if (!mActive) return;
 
-	if (!m_backgroundImageKey.empty()) {
+	const bool autoSized = (m_explicitSize.x > 0.0f && m_explicitSize.y > 0.0f);
+	if (m_backgroundImageKey.empty() && autoSized) {
+		// 自动尺寸 + 无纹理 → 画纯色面板：FillRect 与 DrawTexture 同坐标约定，
+		// 面板矩形恰为 [m_position±m_size/2]，与按内容算好的文字/按钮坐标严格对齐。
+		const float left = m_position.x - m_size.x / 2.0f;
+		const float top  = m_position.y - m_size.y / 2.0f;
+		const float bw   = 3.0f;   // 边框宽
+		Vector outer = g->LogicalToWorld(left, top);
+		Vector inner = g->LogicalToWorld(left + bw, top + bw);
+		g->FillRect(outer.x, outer.y, m_size.x, m_size.y, glm::vec4(150, 170, 110, 255));                       // 边框（暖石绿）
+		g->FillRect(inner.x, inner.y, m_size.x - bw * 2.0f, m_size.y - bw * 2.0f, glm::vec4(40, 42, 34, 236));   // 主体（深色半透明）
+	}
+	else if (!m_backgroundImageKey.empty()) {
 		auto& resMgr = ResourceManager::GetInstance();
 		const Texture* tex = resMgr.GetTexture(m_backgroundImageKey);
-		Vector pos = g->LogicalToWorld(m_position.x - 230, m_position.y - 180);
+		// 自动尺寸模式以 m_position 为中心绘制；否则沿用固定 (230,180) 偏移
+		Vector topLeft = autoSized
+			? Vector(m_position.x - m_size.x / 2.0f, m_position.y - m_size.y / 2.0f)
+			: Vector(m_position.x - 230, m_position.y - 180);
+		Vector pos = g->LogicalToWorld(topLeft.x, topLeft.y);
 		g->DrawTexture(tex, pos.x, pos.y, m_size.x, m_size.y);
 	}
 	else {

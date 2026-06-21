@@ -292,6 +292,21 @@ bool TestDriver::ExecuteCurrent() {
 		for (int i = 0; i < count; ++i) gs->GetBoard()->GetPerkManager().AddPerk(it->second);
 		return true;
 	}
+	if (op == "survival_perk_open") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) { Fail("survival_perk_open: 不在 GameScene 或 Board 为空"); return false; }
+		if (!gs->GetBoard()->mIsSurvival) { Fail("survival_perk_open: 非生存关"); return false; }
+		gs->BeginSurvivalPerkSelect();
+		return true;
+	}
+	if (op == "survival_perk_pick") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) { Fail("survival_perk_pick: 不在 GameScene 或 Board 为空"); return false; }
+		if (!gs->IsPerkSelectActive()) { Fail("survival_perk_pick: 当前无词条选择"); return false; }
+		int index = cmd.value("index", -1);   // -1 = 跳过
+		gs->ApplyPerkSelection(index);
+		return true;
+	}
 	if (op == "show_zombie_hp") {
 		GameAPP::GetInstance().mShowZombieHP = cmd.value("on", true);   // 调试：游戏内绘制僵尸血量
 		return true;
@@ -367,6 +382,20 @@ bool TestDriver::ExecuteCurrent() {
 			perks["plantRegenPerPulse"]  = pm.GetPlantRegenPerPulse();
 			perks["plantRegenCapOn300"]  = pm.GetPlantRegenHpCap(300);
 			out["perks"] = perks;
+		}
+
+		{
+			nlohmann::json psel;
+			psel["active"] = gs->IsPerkSelectActive();
+			nlohmann::json offers = nlohmann::json::array();
+			for (const PerkPairing& pr : gs->GetCurrentPerkOffer()) {
+				offers.push_back({
+					{ "plant",  SurvivalPerkManager::GetInfo(pr.plant).key },
+					{ "zombie", SurvivalPerkManager::GetInfo(pr.zombie).key },
+				});
+			}
+			psel["offers"] = offers;
+			out["perkSelect"] = psel;
 		}
 
 		const std::string name = cmd.value("name", "state.json");

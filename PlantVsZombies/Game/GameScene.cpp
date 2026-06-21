@@ -11,6 +11,7 @@
 #include "GameProgress.h"
 #include "ChooseCardUI.h"
 #include "../UI/GameMessageBox.h"
+#include "Perk/SurvivalPerkManager.h"
 #include "../GameApp.h"
 #include "../Graphics.h"
 #include "../Profiler.h"
@@ -252,6 +253,7 @@ void GameScene::OnExit() {
 void GameScene::OpenMenu()
 {
 	if (mOpenMenu) return;
+	if (mSurvivalPerkSelectActive) return;   // 选词条模态期间禁止打开暂停菜单（否则会在框下解除暂停）
 
 	mOpenMenu = true;
 	DeltaTime::SetPaused(true);
@@ -653,6 +655,129 @@ void GameScene::ShowSunCount()
 		LAYER_UI + 100000);
 	SortDrawCommands();
 	mSunCounterRegistered = true;
+}
+
+void GameScene::BeginSurvivalPerkSelect()
+{
+	if (!mBoard) return;
+
+	mCurrentPerkOffer = RollPerkPairings(mBoard->GetPerkManager(), 3);
+	mSurvivalPerkSelectActive = true;
+	DeltaTime::SetPaused(true);
+
+	auto& pm = mBoard->GetPerkManager();
+
+	// 与 DrawText 同字体同字号量出逻辑像素宽（取不到字体时按半宽兜底）
+	auto measureW = [](const std::string& s, int fontSize) -> float {
+		TTF_Font* f = ResourceManager::GetInstance().GetFont(ResourceKeys::Fonts::FONT_FZCQ, fontSize);
+		if (!f) return static_cast<float>(s.size()) * fontSize * 0.5f;
+		int w = 0, h = 0;
+		TTF_SizeUTF8(f, s.c_str(), &w, &h);
+		return static_cast<float>(w);
+	};
+
+	// 版面常量——盒子宽高完全由内容自动决定
+	const int   titleFont  = 22;
+	const int   rowFont    = 16;
+	const float padX       = 30.0f;
+	const float padY       = 22.0f;
+	const float titleLineH = 30.0f;
+	const float titleGap   = 16.0f;
+	const float lineH      = 22.0f;            // 单行文字行高
+	const float rowBlockH  = lineH * 2.0f;     // 每个配对两行（植物/僵尸）
+	const float rowGap     = 20.0f;            // 配对之间的间隔
+	const float gapTextBtn = 20.0f;            // 文字与「选择」按钮的间隔
+	const float skipGap    = 20.0f;            // 配对区与「跳过」按钮的间隔
+	const Vector selectBtnSize(100.0f, 40.0f);
+	const Vector skipBtnSize(160.0f, 44.0f);
+	const glm::vec4 green{ 53, 191, 61, 255 };
+	const glm::vec4 red  { 200, 60, 60, 255 };
+	const glm::vec4 titleColor{ 245, 214, 127, 255 };
+
+	const std::string title = std::string(u8"第 ") + std::to_string(mBoard->mSurvivalRound) + u8" 轮 · 选择强化";
+
+	// 预生成每个配对的两行文字并量宽，求内容最大宽度（descZh 已自带词条名，不再叠加 nameZh）
+	struct Row { std::string plant; std::string zombie; };
+	std::vector<Row> rows;
+	rows.reserve(mCurrentPerkOffer.size());
+	float maxRowW = 0.0f;
+	for (const PerkPairing& pr : mCurrentPerkOffer) {
+		const PerkInfo& bp = SurvivalPerkManager::GetInfo(pr.plant);
+		const PerkInfo& cz = SurvivalPerkManager::GetInfo(pr.zombie);
+		Row r;
+		r.plant  = std::string(u8"植物：") + bp.descZh + u8"（当前 " + std::to_string(pm.GetStacks(pr.plant)) + u8" 层）";
+		r.zombie = std::string(u8"僵尸：") + cz.descZh;
+		float wp = measureW(r.plant, rowFont);
+		float wz = measureW(r.zombie, rowFont);
+		float w = (wp > wz) ? wp : wz;
+		if (w > maxRowW) maxRowW = w;
+		rows.push_back(r);
+	}
+
+	const float titleW = measureW(title, titleFont);
+	float contentW = maxRowW + gapTextBtn + selectBtnSize.x;
+	if (titleW > contentW)        contentW = titleW;
+	if (skipBtnSize.x > contentW) contentW = skipBtnSize.x;
+
+	const int   N     = static_cast<int>(rows.size());
+	const float rowsH = (N > 0) ? (N * rowBlockH + (N - 1) * rowGap) : 0.0f;
+	const float boxW  = contentW + padX * 2.0f;
+	const float boxH  = padY + titleLineH + titleGap + rowsH + skipGap + skipBtnSize.y + padY;
+
+	const float cx = static_cast<float>(SCENE_WIDTH)  / 2.0f;   // 550
+	const float cy = static_cast<float>(SCENE_HEIGHT) / 2.0f;   // 300
+	const float boxLeft  = cx - boxW / 2.0f;
+	const float boxTop   = cy - boxH / 2.0f;
+	const float boxRight = cx + boxW / 2.0f;
+
+	std::vector<GameMessageBox::ButtonConfig> buttons;
+	std::vector<GameMessageBox::SliderConfig> sliders;
+	std::vector<GameMessageBox::TextConfig>   texts;
+
+	// 标题（顶部居中）
+	texts.push_back({ Vector(cx - titleW / 2.0f, boxTop + padY), static_cast<float>(titleFont), title, titleColor });
+
+	// 配对行：绿=植物增益、红=僵尸增难，右侧「选择」按钮
+	const float rowsTop = boxTop + padY + titleLineH + titleGap;
+	for (int i = 0; i < N; ++i) {
+		const float blockTop = rowsTop + i * (rowBlockH + rowGap);
+		texts.push_back({ Vector(boxLeft + padX, blockTop),         static_cast<float>(rowFont), rows[i].plant,  green });
+		texts.push_back({ Vector(boxLeft + padX, blockTop + lineH), static_cast<float>(rowFont), rows[i].zombie, red });
+
+		const float btnY = blockTop + (rowBlockH - selectBtnSize.y) / 2.0f;
+		buttons.push_back({ u8"选择", Vector(boxRight - padX - selectBtnSize.x, btnY), selectBtnSize, 16,
+			[this, i]() { this->ApplyPerkSelection(i); },
+			ResourceKeys::Textures::IMAGE_BUTTONSMALL, true });
+	}
+
+	// 跳过按钮（底部居中）
+	buttons.push_back({ u8"跳过本轮", Vector(cx - skipBtnSize.x / 2.0f, boxTop + boxH - padY - skipBtnSize.y), skipBtnSize, 20,
+		[this]() { this->ApplyPerkSelection(-1); },
+		ResourceKeys::Textures::IMAGE_BUTTONBIG, true });
+
+	// 背景留空 + explicitSize → GameMessageBox 画纯色面板（尺寸由内容自动决定，
+	// 面板矩形与文字坐标严格对齐，避免墓碑纹理花边内缩导致文字溢出可视边框）
+	mPerkSelectBox = mUIManager.CreateMessageBox(
+		Vector(cx, cy), "", buttons, sliders, texts, "", 1.0f,
+		"", Vector(boxW, boxH));
+}
+
+void GameScene::ApplyPerkSelection(int index)
+{
+	if (mBoard && index >= 0 && index < static_cast<int>(mCurrentPerkOffer.size())) {
+		const PerkPairing& pr = mCurrentPerkOffer[index];
+		auto& pm = mBoard->GetPerkManager();
+		pm.AddPerk(pr.plant);
+		pm.AddPerk(pr.zombie);
+	}
+
+	mSurvivalPerkSelectActive = false;
+	mCurrentPerkOffer.clear();
+	DeltaTime::SetPaused(false);
+
+	// 词条已写入 PerkManager；进选卡子流程，其内既有的延后存档天然包含新词条。
+	// 选择框由被点按钮的 autoClose=true 自行 Close（延后到帧末销毁，安全）。
+	BeginSurvivalCardSelect();
 }
 
 void GameScene::BeginSurvivalCardSelect()

@@ -3,8 +3,10 @@
 #define _GAMESCENE_H
 #include "Scene.h"
 #include "../Game/Board.h"
+#include "Perk/PerkType.h"
 #include <unordered_map>
 #include <utility>
+#include <vector>
 
 class ChooseCardUI;
 class CardSlotManager;
@@ -71,6 +73,12 @@ public:
 	// 生存模式：一轮清空后重新进入选卡子流程（同会话轮间，轻量路径）
 	void BeginSurvivalCardSelect();
 
+	void BeginSurvivalPerkSelect();          // 轮清后弹词条选择框（选卡之前）
+	void ApplyPerkSelection(int index);      // index<0 或越界 = 跳过；应用后链式进选卡
+	// AutoTest 内省接口（对真实游戏无副作用）
+	bool IsPerkSelectActive() const { return mSurvivalPerkSelectActive; }
+	const std::vector<PerkPairing>& GetCurrentPerkOffer() const { return mCurrentPerkOffer; }
+
 	void ShowSunCount();
 
 	// 显示红色大字指示
@@ -101,6 +109,9 @@ private:
 	std::weak_ptr<Button> mSpeedSettingsButton;
 	ShovelBank* mShovelUI = nullptr;   // 所有权在 GameObjectManager
 	std::weak_ptr<GameMessageBox> mMenu;
+	std::weak_ptr<GameMessageBox> mPerkSelectBox;
+	std::vector<PerkPairing>      mCurrentPerkOffer;        // 本轮展示的配对（AutoTest dump 用）
+	bool                          mSurvivalPerkSelectActive = false;
 	CardSlotManager* mCardSlotManager = nullptr;  // 由 CardUI GameObject 持有 unique_ptr，本字段仅缓存指针
 	ChooseCardUI* mChooseCardUI = nullptr;        // 所有权在 GameObjectManager
 	GameProgress* mGameProgress = nullptr;        // 所有权在 GameObjectManager

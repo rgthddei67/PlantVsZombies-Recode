@@ -651,9 +651,9 @@ void Board::OnSurvivalRoundClear()
 	// 回到选卡：暂停波次推进
 	mBoardState = BoardState::CHOOSE_CARD;
 
-	// 通知场景重新进入选卡子流程（植物/阳光保留）
+	// 通知场景：先弹词条选择（选卡之前）；玩家选定/跳过后由 ApplyPerkSelection 链式进选卡。
 	if (mGameScene)
-		mGameScene->BeginSurvivalCardSelect();
+		mGameScene->BeginSurvivalPerkSelect();
 }
 
 void Board::BuildSurvivalSpawnList(int round)

@@ -61,10 +61,11 @@ public:
 		const std::vector<GameMessageBox::TextConfig>& texts,
 		const std::string& title = "",
 		float scale = 1.0f,
-		const std::string& backgroundImageKey = ResourceKeys::Textures::IMAGE_MESSAGEBOX)
+		const std::string& backgroundImageKey = ResourceKeys::Textures::IMAGE_MESSAGEBOX,
+		const Vector& explicitSize = Vector(0.0f, 0.0f))
 	{
 		return GameObjectManager::GetInstance().CreateGameObjectImmediateAsShared<GameMessageBox>(
-			LAYER_UI, pos, message, buttons, sliders, texts, title, backgroundImageKey, scale);
+			LAYER_UI, pos, message, buttons, sliders, texts, title, backgroundImageKey, scale, explicitSize);
 	}
 
 	void RemoveSlider(std::shared_ptr<Slider> slider)

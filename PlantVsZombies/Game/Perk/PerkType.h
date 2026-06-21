@@ -12,10 +12,19 @@ enum class PerkType {
     COUNT
 };
 
+enum class PerkCategory { PLANT_BUFF, ZOMBIE_CURSE };
+
 struct PerkInfo {
-    const char* key;        // 存档稳定键名（不随 enum 顺序变）
-    const char* nameZh;     // 显示名（UI 用）
-    const char* descZh;     // 每层效果描述（UI 用）
-    float       perStack;   // 每层数值（0.10 / 0.20 / 0.05）
-    int         maxStacks;  // 每词条独立上限（=1 即一次性词条）
+    const char*  key;        // 存档稳定键名（不随 enum 顺序变）
+    const char*  nameZh;     // 显示名（UI 用）
+    const char*  descZh;     // 每层效果描述（UI 用）
+    float        perStack;   // 每层数值
+    int          maxStacks;  // 每词条独立上限（=1 即一次性词条）
+    PerkCategory category;   // 配对归属：植物增益 / 僵尸增难
+};
+
+// 一个可选项 = 1 植物增益 + 1 僵尸增难（成对权衡）
+struct PerkPairing {
+    PerkType plant;
+    PerkType zombie;
 };

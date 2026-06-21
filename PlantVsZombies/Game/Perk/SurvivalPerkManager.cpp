@@ -1,15 +1,16 @@
 #include "SurvivalPerkManager.h"
 #include <nlohmann/json.hpp>
+#include "../../GameRandom.h"
 
 namespace {
     // 顺序必须与 PerkType 枚举一一对应（static_assert 强制）
     const PerkInfo kPerks[] = {
-        { "PLANT_DAMAGE_UP",      u8"全体植物伤害", u8"每层使全体植物伤害 +10%",            0.10f, 10 },
-        { "ZOMBIE_HEALTH_UP",     u8"僵尸血量",     u8"每层使僵尸血量 +20%",                0.20f, 10 },
-        { "ZOMBIE_DAMAGE_RESIST", u8"僵尸免伤",     u8"每层使僵尸受到伤害 -5%（最高 50%）", 0.05f, 10 },
-        { "ZOMBIE_DAMAGE_UP",     u8"僵尸伤害",     u8"每层使僵尸对植物伤害 +5%（不限层）", 0.05f, 9999 },
-        { "ZOMBIE_INVULN_HITS",   u8"僵尸前N次免伤", u8"每层使僵尸出生后前 10 次受击免伤（最多 2 层）", 10.0f, 2 },
-        { "PLANT_REGEN",          u8"植物回血",     u8"每 5 秒回 25 HP；满 5 层解锁过量治疗至 3 倍上限", 25.0f, 5 },
+        { "PLANT_DAMAGE_UP",      u8"全体植物伤害", u8"每层使全体植物伤害 +10%",            0.10f, 10,   PerkCategory::PLANT_BUFF },
+        { "ZOMBIE_HEALTH_UP",     u8"僵尸血量",     u8"每层使僵尸血量 +20%",                0.20f, 10,   PerkCategory::ZOMBIE_CURSE },
+        { "ZOMBIE_DAMAGE_RESIST", u8"僵尸免伤",     u8"每层使僵尸受到伤害 -5%（最高 50%）", 0.05f, 10,   PerkCategory::ZOMBIE_CURSE },
+        { "ZOMBIE_DAMAGE_UP",     u8"僵尸伤害",     u8"每层使僵尸对植物伤害 +5%（不限层）", 0.05f, 9999, PerkCategory::ZOMBIE_CURSE },
+        { "ZOMBIE_INVULN_HITS",   u8"僵尸前N次免伤", u8"每层使僵尸出生后前 10 次受击免伤（最多 2 层）", 10.0f, 2, PerkCategory::ZOMBIE_CURSE },
+        { "PLANT_REGEN",          u8"植物回血",     u8"每 5 秒回 25 HP；满 5 层解锁过量治疗至 3 倍上限", 25.0f, 5, PerkCategory::PLANT_BUFF },
     };
     static_assert(sizeof(kPerks) / sizeof(kPerks[0]) == static_cast<size_t>(PerkType::COUNT),
                   "kPerks 必须与 PerkType 一一对应");
@@ -41,6 +42,17 @@ int SurvivalPerkManager::GetStacks(PerkType type) const {
 
 void SurvivalPerkManager::Clear() {
     mStacks.fill(0);
+}
+
+std::vector<PerkType> SurvivalPerkManager::AvailablePerks(PerkCategory cat) const {
+    std::vector<PerkType> out;
+    for (int i = 0; i < static_cast<int>(PerkType::COUNT); ++i) {
+        PerkType t = static_cast<PerkType>(i);
+        const PerkInfo& info = GetInfo(t);
+        if (info.category == cat && GetStacks(t) < info.maxStacks)
+            out.push_back(t);
+    }
+    return out;
 }
 
 double SurvivalPerkManager::GetPlantDamageMultiplier() const {
@@ -114,4 +126,19 @@ int SurvivalPerkManager::GetPlantRegenHpCap(int maxHealth) const {
     if (GetStacks(PerkType::PLANT_REGEN) >= GetInfo(PerkType::PLANT_REGEN).maxStacks)
         return maxHealth * kPlantRegenOverhealMult;
     return maxHealth;
+}
+
+std::vector<PerkPairing> RollPerkPairings(const SurvivalPerkManager& mgr, int count) {
+    std::vector<PerkType> plants  = mgr.AvailablePerks(PerkCategory::PLANT_BUFF);
+    std::vector<PerkType> zombies = mgr.AvailablePerks(PerkCategory::ZOMBIE_CURSE);
+
+    std::vector<PerkPairing> all;
+    for (PerkType p : plants)
+        for (PerkType z : zombies)
+            all.push_back(PerkPairing{ p, z });
+
+    GameRandom::Shuffle(all);                       // 笛卡尔积每项唯一，洗牌后截取即"互不相同"
+    if (static_cast<int>(all.size()) > count)
+        all.resize(count);
+    return all;
 }

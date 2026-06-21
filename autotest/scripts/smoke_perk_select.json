@@ -1,0 +1,13 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 1000 },
+    { "op": "choose_cards", "cards": ["PLANT_PEASHOOTER"] },
+    { "op": "wait_state", "state": "GAME" },
+    { "op": "survival_perk_open" },
+    { "op": "dump_state", "name": "perk_select_open.json" },
+    { "op": "screenshot", "name": "perk_select_open.png" },
+    { "op": "survival_perk_pick", "index": 0 },
+    { "op": "dump_state", "name": "perk_select_after.json" },
+    { "op": "quit" }
+  ]
+}

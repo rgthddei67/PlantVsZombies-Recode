@@ -51,7 +51,8 @@ public:
 		const std::vector<TextConfig>& texts,
 		const std::string& title = "",
 		const std::string& backgroundImageKey = "",
-		float scale = 1.0f);
+		float scale = 1.0f,
+		const Vector& explicitSize = Vector(0.0f, 0.0f));   // 非零=用此尺寸并以 pos 居中绘制背景（自动决定大小）
 
 	~GameMessageBox();
 
@@ -64,6 +65,7 @@ private:
 	Vector m_position;
 	float m_scale;
 	Vector m_size;
+	Vector m_explicitSize{ 0.0f, 0.0f };   // 非零时覆盖纹理尺寸，背景以 m_position 居中绘制
 	std::string m_title;
 	std::string m_message;
 	std::string m_backgroundImageKey = ResourceKeys::Textures::IMAGE_MESSAGEBOX;
