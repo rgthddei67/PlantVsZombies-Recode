@@ -11,6 +11,7 @@
 #include "GameProgress.h"
 #include "ChooseCardUI.h"
 #include "../UI/GameMessageBox.h"
+#include "Perk/SurvivalPerkManager.h"
 #include "../GameApp.h"
 #include "../Graphics.h"
 #include "../Profiler.h"
@@ -653,6 +654,74 @@ void GameScene::ShowSunCount()
 		LAYER_UI + 100000);
 	SortDrawCommands();
 	mSunCounterRegistered = true;
+}
+
+void GameScene::BeginSurvivalPerkSelect()
+{
+    if (!mBoard) return;
+
+    mCurrentPerkOffer = RollPerkPairings(mBoard->GetPerkManager(), 3);
+    mSurvivalPerkSelectActive = true;
+    DeltaTime::SetPaused(true);
+
+    auto& pm = mBoard->GetPerkManager();
+
+    std::vector<GameMessageBox::ButtonConfig> buttons;
+    std::vector<GameMessageBox::SliderConfig> sliders;
+    std::vector<GameMessageBox::TextConfig>   texts;
+
+    // —— 首版坐标，Task 4 截图后微调 ——（场景中心 550,300）
+    const float baseY = 250.0f;
+    const float rowH  = 80.0f;
+    const glm::vec4 green{ 53, 191, 61, 255 };
+    const glm::vec4 red  { 200, 60, 60, 255 };
+
+    for (size_t i = 0; i < mCurrentPerkOffer.size(); ++i) {
+        const PerkPairing& pr = mCurrentPerkOffer[i];
+        const PerkInfo& bp = SurvivalPerkManager::GetInfo(pr.plant);
+        const PerkInfo& cz = SurvivalPerkManager::GetInfo(pr.zombie);
+        float y = baseY + rowH * static_cast<float>(i);
+
+        std::string plantLine = std::string(u8"植物：") + bp.nameZh + u8"  " + bp.descZh
+            + u8"（当前 " + std::to_string(pm.GetStacks(pr.plant)) + u8" 层）";
+        std::string zombieLine = std::string(u8"僵尸：") + cz.nameZh + u8"  " + cz.descZh;
+
+        texts.push_back({ Vector(380, y - 16), 14, plantLine,  green });
+        texts.push_back({ Vector(380, y + 6),  14, zombieLine, red });
+
+        int idx = static_cast<int>(i);
+        buttons.push_back({ u8"选择", Vector(760, y - 6), Vector(125 * 0.8f, 52 * 0.8f), 16,
+            [this, idx]() { this->ApplyPerkSelection(idx); },
+            ResourceKeys::Textures::IMAGE_BUTTONSMALL, true });
+    }
+
+    buttons.push_back({ u8"跳过本轮", Vector(550, 500), Vector(213 * 0.9f, 50 * 0.9f), 20,
+        [this]() { this->ApplyPerkSelection(-1); },
+        ResourceKeys::Textures::IMAGE_BUTTONBIG, true });
+
+    std::string title = std::string(u8"第 ") + std::to_string(mBoard->mSurvivalRound) + u8" 轮 · 选择强化";
+
+    mPerkSelectBox = mUIManager.CreateMessageBox(
+        Vector(SCENE_WIDTH / 2, SCENE_HEIGHT / 2),
+        "", buttons, sliders, texts, title, 1.5f);
+}
+
+void GameScene::ApplyPerkSelection(int index)
+{
+    if (mBoard && index >= 0 && index < static_cast<int>(mCurrentPerkOffer.size())) {
+        const PerkPairing& pr = mCurrentPerkOffer[index];
+        auto& pm = mBoard->GetPerkManager();
+        pm.AddPerk(pr.plant);
+        pm.AddPerk(pr.zombie);
+    }
+
+    mSurvivalPerkSelectActive = false;
+    mCurrentPerkOffer.clear();
+    DeltaTime::SetPaused(false);
+
+    // 词条已写入 PerkManager；进选卡子流程，其内既有的延后存档天然包含新词条。
+    // 选择框由被点按钮的 autoClose=true 自行 Close（延后到帧末销毁，安全）。
+    BeginSurvivalCardSelect();
 }
 
 void GameScene::BeginSurvivalCardSelect()
