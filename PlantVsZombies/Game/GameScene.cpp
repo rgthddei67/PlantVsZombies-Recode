@@ -182,6 +182,19 @@ void GameScene::OnEnter() {
 		}
 		});
 
+	// 生存模式专属：右上角第三个按钮「词条」，点开已选词条查看面板（普通关卡不创建）
+	if (mBoard->mIsSurvival) {
+		auto button3 = mUIManager.CreateButton(Vector(990, 95), Vector(125 * 0.9f, 52 * 0.9f));
+		mPerkViewButton = button3;
+		button3->SetText(u8"词条");
+		button3->SetAsCheckbox(false);
+		button3->SetTextColor(glm::vec4{ 53, 191, 61, 255 });
+		button3->SetHoverTextColor(glm::vec4{ 53, 240, 61, 255 });
+		button3->SetImageKeys(ResourceKeys::Textures::IMAGE_BUTTONSMALL, ResourceKeys::Textures::IMAGE_BUTTONSMALL,
+			ResourceKeys::Textures::IMAGE_BUTTONSMALL, ResourceKeys::Textures::IMAGE_BUTTONSMALL);
+		button3->SetClickCallBack([this](bool) { this->OpenPerkView(); });
+	}
+
 	// 读档
 	GameAPP::GetInstance().mGameInfoSaver.LoadLevelData(mBoard.get(), mCardSlotManager);
 
@@ -245,6 +258,7 @@ void GameScene::OnExit() {
 	mBoard.reset();
 	mSpeedSettingsButton.reset();
 	mMainMenuButton.reset();
+	mPerkViewButton.reset();
 	mGameProgress = nullptr;
 	mCardSlotManager = nullptr;
 	mChooseCardUI = nullptr;
@@ -254,6 +268,7 @@ void GameScene::OpenMenu()
 {
 	if (mOpenMenu) return;
 	if (mSurvivalPerkSelectActive) return;   // 选词条模态期间禁止打开暂停菜单（否则会在框下解除暂停）
+	if (mPerkViewActive) return;             // 词条查看面板打开期间禁止叠开暂停菜单
 
 	mOpenMenu = true;
 	DeltaTime::SetPaused(true);
@@ -778,6 +793,120 @@ void GameScene::ApplyPerkSelection(int index)
 	// 词条已写入 PerkManager；进选卡子流程，其内既有的延后存档天然包含新词条。
 	// 选择框由被点按钮的 autoClose=true 自行 Close（延后到帧末销毁，安全）。
 	BeginSurvivalCardSelect();
+}
+
+void GameScene::OpenPerkView()
+{
+	if (!mBoard) return;
+	// 三向守卫：暂停菜单 / 轮间选词条模态 / 自身已开，均不叠开
+	if (mOpenMenu || mSurvivalPerkSelectActive || mPerkViewActive) return;
+
+	mPerkViewActive = true;
+	DeltaTime::SetPaused(true);
+
+	auto& pm = mBoard->GetPerkManager();
+
+	// 与 DrawText 同字体量逻辑像素宽（取不到字体时按半宽兜底）
+	auto measureW = [](const std::string& s, int fontSize) -> float {
+		TTF_Font* f = ResourceManager::GetInstance().GetFont(ResourceKeys::Fonts::FONT_FZCQ, fontSize);
+		if (!f) return static_cast<float>(s.size()) * fontSize * 0.5f;
+		int w = 0, h = 0;
+		TTF_SizeUTF8(f, s.c_str(), &w, &h);
+		return static_cast<float>(w);
+	};
+
+	const glm::vec4 green{ 53, 191, 61, 255 };
+	const glm::vec4 red  { 200, 60, 60, 255 };
+	const glm::vec4 titleColor{ 245, 214, 127, 255 };
+
+	// 收集已选词条（stacks>0），按 enum 顺序；descZh 已自带效果描述
+	struct Line { std::string text; glm::vec4 color; };
+	std::vector<Line> perkLines;
+	int distinct = 0, total = 0;
+	for (int i = 0; i < static_cast<int>(PerkType::COUNT); ++i) {
+		PerkType t = static_cast<PerkType>(i);
+		int n = pm.GetStacks(t);
+		if (n <= 0) continue;
+		const PerkInfo& info = SurvivalPerkManager::GetInfo(t);
+		++distinct;
+		total += n;
+		Line ln;
+		ln.text  = std::string(u8"· ") + info.descZh + u8"（已选 " + std::to_string(n) + u8" 次）";
+		ln.color = (info.category == PerkCategory::PLANT_BUFF) ? green : red;
+		perkLines.push_back(ln);
+	}
+
+	const std::string title = (distinct > 0)
+		? (std::string(u8"已强化：") + std::to_string(distinct) + u8" 种词条 · 累计 " + std::to_string(total) + u8" 层")
+		: std::string(u8"尚未选择任何强化词条");
+
+	// 固定面板（逻辑像素，居中于 550,300）
+	const float boxW = 560.0f, boxH = 420.0f;
+	const float padX = 30.0f, padY = 26.0f;
+	const Vector closeBtnSize(160.0f, 44.0f);
+	const float closeGap = 18.0f;
+	const float cx = static_cast<float>(SCENE_WIDTH)  / 2.0f;
+	const float cy = static_cast<float>(SCENE_HEIGHT) / 2.0f;
+	const float boxLeft = cx - boxW / 2.0f;
+	const float boxTop  = cy - boxH / 2.0f;
+	const float innerW  = boxW - 2.0f * padX;
+	const float availH  = boxH - 2.0f * padY - closeGap - closeBtnSize.y;
+	const int   N       = static_cast<int>(perkLines.size());
+
+	// 字号自动缩放：rowFont 18→10，titleFont=rowFont+4，挑「最大且能塞进固定面板」者；
+	// 一路不满足则落到 floor=10（容忍轻微挤压，仍优于溢出可视边框）
+	int   rowFont = 10, titleFont = 14;
+	float titleLineH = 0.0f, rowLineH = 0.0f, titleGap = 0.0f, rowGap = 0.0f, contentH = 0.0f;
+	for (int fnt = 18; fnt >= 10; --fnt) {
+		const int   tf  = fnt + 4;
+		const float tlh = tf  * 1.4f;
+		const float rlh = fnt * 1.4f;
+		const float tg  = fnt * 0.9f;
+		const float rg  = fnt * 0.5f;
+		const float ch  = tlh + (N > 0 ? (tg + N * rlh + (N - 1) * rg) : 0.0f);
+		float maxW = measureW(title, tf);
+		for (const Line& ln : perkLines) {
+			float w = measureW(ln.text, fnt);
+			if (w > maxW) maxW = w;
+		}
+		const bool fits = (ch <= availH) && (maxW <= innerW);
+		if (fits || fnt == 10) {
+			rowFont = fnt; titleFont = tf;
+			titleLineH = tlh; rowLineH = rlh; titleGap = tg; rowGap = rg; contentH = ch;
+			if (fits) break;   // 否则 fnt==10 兜底，循环自然结束
+		}
+	}
+
+	std::vector<GameMessageBox::ButtonConfig> buttons;
+	std::vector<GameMessageBox::SliderConfig> sliders;
+	std::vector<GameMessageBox::TextConfig>   texts;
+
+	// 内容块在 availH 区域内垂直居中，词条少时不孤悬顶部
+	const float blockTop = boxTop + padY + (availH - contentH) / 2.0f;
+	const float titleW   = measureW(title, titleFont);
+	texts.push_back({ Vector(cx - titleW / 2.0f, blockTop), static_cast<float>(titleFont), title, titleColor });
+
+	float y = blockTop + titleLineH + titleGap;
+	for (int i = 0; i < N; ++i) {
+		texts.push_back({ Vector(boxLeft + padX, y), static_cast<float>(rowFont), perkLines[i].text, perkLines[i].color });
+		y += rowLineH + rowGap;
+	}
+
+	// 关闭按钮（底部居中，autoClose 自行帧末销毁面板）
+	buttons.push_back({ u8"关闭", Vector(cx - closeBtnSize.x / 2.0f, boxTop + boxH - padY - closeBtnSize.y),
+		closeBtnSize, 20, [this]() { this->ClosePerkView(); },
+		ResourceKeys::Textures::IMAGE_BUTTONBIG, true });
+
+	// 背景留空 + explicitSize → 纯色面板（同选词条框，规避墓碑花边内缩导致文字溢出）
+	mPerkViewBox = mUIManager.CreateMessageBox(
+		Vector(cx, cy), "", buttons, sliders, texts, "", 1.0f, "", Vector(boxW, boxH));
+}
+
+void GameScene::ClosePerkView()
+{
+	mPerkViewActive = false;
+	DeltaTime::SetPaused(false);
+	// 面板由「关闭」按钮 autoClose=true 自行 Close（延后帧末安全销毁），同 ApplyPerkSelection。
 }
 
 void GameScene::BeginSurvivalCardSelect()
