@@ -27,7 +27,6 @@ public:
     int    GetPlantRegenHpCap(int maxHealth) const; // 满层→maxHealth*3，否则 maxHealth
 
     static const PerkInfo& GetInfo(PerkType type); // 静态元数据表（UI 用）
-    PerkCategory GetCategory(PerkType type) const { return GetInfo(type).category; }
     std::vector<PerkType> AvailablePerks(PerkCategory cat) const;  // 该类别下 stacks < maxStacks 的词条
 
     void Save(nlohmann::json& j) const;            // 仅写 stacks>0 的项，按 key 字符串
