@@ -1,0 +1,17 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 1000 },
+    { "op": "choose_cards", "cards": ["PLANT_PEASHOOTER"] },
+    { "op": "wait_state", "state": "GAME" },
+    { "op": "add_perk", "type": "PLANT_DAMAGE_UP", "count": 3 },
+    { "op": "add_perk", "type": "ZOMBIE_HEALTH_UP", "count": 2 },
+    { "op": "add_perk", "type": "ZOMBIE_DAMAGE_UP", "count": 1 },
+    { "op": "click", "x": 1046, "y": 118 },
+    { "op": "wait_frames", "value": 15 },
+    { "op": "screenshot", "name": "perk_view_open.png" },
+    { "op": "click", "x": 550, "y": 462 },
+    { "op": "wait_frames", "value": 15 },
+    { "op": "screenshot", "name": "perk_view_closed.png" },
+    { "op": "quit" }
+  ]
+}
