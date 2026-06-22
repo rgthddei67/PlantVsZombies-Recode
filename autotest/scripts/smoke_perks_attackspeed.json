@@ -1,0 +1,10 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 1 },
+    { "op": "choose_cards", "cards": ["PLANT_PEASHOOTER"] },
+    { "op": "wait_state", "state": "GAME" },
+    { "op": "add_perk", "type": "PLANT_ATTACK_SPEED", "count": 2 },
+    { "op": "dump_state", "name": "attackspeed.json" },
+    { "op": "quit" }
+  ]
+}

@@ -9,6 +9,7 @@ enum class PerkType {
     ZOMBIE_DAMAGE_UP,       // 僵尸对植物伤害 +5%/层（不限层）
     ZOMBIE_INVULN_HITS,     // 僵尸出生后前 10 次受击免伤/层（最多 2 层）
     PLANT_REGEN,            // 植物每 5 秒回 25 HP/层（最多 5 层，满层过量治疗至 3×）
+    PLANT_ATTACK_SPEED,    // 全体植物开火速度 +15%/层（最多 8 层）
     COUNT
 };
 

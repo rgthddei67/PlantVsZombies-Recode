@@ -21,13 +21,16 @@ void PuffShroom::SetupPlant()
 
 void PuffShroom::PlantUpdate()
 {
+	// 词条：植物攻速。mult>=1（非生存关/未获取恒为 1.0）。
+	float mult = mBoard ? static_cast<float>(mBoard->GetPerkManager().GetPlantAttackSpeedMultiplier()) : 1.0f;
 	this->mShootTimer += DeltaTime::GetDeltaTime();
-	if (this->mShootTimer >= this->mShootTime)
+	if (this->mShootTimer >= this->mShootTime / mult)
 	{
 		if (HasZombieInRow())
 		{
 			mShootTimer = 0;
-			PlayTrackOnce("anim_shooting", "anim_idle", 1.5f, 0.2f);
+			// 动画同比例加快：吐弹的第 28 帧 frame event 跟上更短间隔
+			PlayTrackOnce("anim_shooting", "anim_idle", 1.5f * mult, 0.2f);
 		}
 	}
 }

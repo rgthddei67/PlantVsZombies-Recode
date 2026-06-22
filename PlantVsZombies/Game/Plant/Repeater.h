@@ -10,19 +10,24 @@ public:
 	using Shooter::Shooter;
 
 	void PlantUpdate() override {
+		// 词条：植物攻速。mult>=1（非生存关/未获取恒为 1.0）。
+		float mult = mBoard ? static_cast<float>(mBoard->GetPerkManager().GetPlantAttackSpeedMultiplier()) : 1.0f;
+
 		if (mPendingSecondShot) {
 			mPendingSecondShot = false;
-			mHeadAnim->PlayTrackOnce("anim_shooting", "anim_head_idle", 2.0f, 0.1f);
+			// 补发（双发第二弹）：动画同样 * mult，与主发同步加快
+			mHeadAnim->PlayTrackOnce("anim_shooting", "anim_head_idle", 2.0f * mult, 0.1f);
 			return;
 		}
 
 		this->mShootTimer += DeltaTime::GetDeltaTime();
-		if (this->mShootTimer >= this->mShootTime)
+		if (this->mShootTimer >= this->mShootTime / mult)
 		{
 			if (HasZombieInRow())
 			{
 				mShootTimer = 0;
-				mHeadAnim->PlayTrackOnce("anim_shooting", "", 1.9f, 0.1f);
+				// 动画同比例加快：吐弹的 frame event 跟上更短间隔
+				mHeadAnim->PlayTrackOnce("anim_shooting", "", 1.9f * mult, 0.1f);
 			}
 		}
 	}

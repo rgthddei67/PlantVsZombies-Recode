@@ -11,6 +11,7 @@ namespace {
         { "ZOMBIE_DAMAGE_UP",     u8"僵尸伤害",     u8"每层使僵尸对植物伤害 +5%（不限层）", 0.05f, 9999, PerkCategory::ZOMBIE_CURSE },
         { "ZOMBIE_INVULN_HITS",   u8"僵尸前N次免伤", u8"每层使僵尸出生后前 10 次受击免伤（最多 2 层）", 10.0f, 2, PerkCategory::ZOMBIE_CURSE },
         { "PLANT_REGEN",          u8"植物回血",     u8"每层使植物 5 秒回 65 HP；满 5 层解锁过量治疗至 3 倍上限（最多 7 层数）", 65.0f, 7, PerkCategory::PLANT_BUFF },
+        { "PLANT_ATTACK_SPEED",   u8"植物攻速",     u8"每层使全体植物开火速度 +15%（最多 8 层）", 0.15f, 8, PerkCategory::PLANT_BUFF },
     };
     static_assert(sizeof(kPerks) / sizeof(kPerks[0]) == static_cast<size_t>(PerkType::COUNT),
                   "kPerks 必须与 PerkType 一一对应");
@@ -58,6 +59,11 @@ std::vector<PerkType> SurvivalPerkManager::AvailablePerks(PerkCategory cat) cons
 double SurvivalPerkManager::GetPlantDamageMultiplier() const {
     return 1.0 + GetInfo(PerkType::PLANT_DAMAGE_UP).perStack
                * GetStacks(PerkType::PLANT_DAMAGE_UP);
+}
+
+double SurvivalPerkManager::GetPlantAttackSpeedMultiplier() const {
+    return 1.0 + GetInfo(PerkType::PLANT_ATTACK_SPEED).perStack
+               * GetStacks(PerkType::PLANT_ATTACK_SPEED);
 }
 
 double SurvivalPerkManager::GetZombieHealthMultiplier() const {
