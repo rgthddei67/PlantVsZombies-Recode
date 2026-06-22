@@ -3,6 +3,7 @@
     { "op": "goto_level", "level": 1000 },
     { "op": "choose_cards", "cards": ["PLANT_PEASHOOTER"] },
     { "op": "wait_state", "state": "GAME" },
+    { "op": "wait_frames", "value": 30 },
     { "op": "add_perk", "type": "PLANT_DAMAGE_UP", "count": 3 },
     { "op": "add_perk", "type": "ZOMBIE_HEALTH_UP", "count": 2 },
     { "op": "add_perk", "type": "ZOMBIE_DAMAGE_UP", "count": 1 },
