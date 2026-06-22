@@ -803,7 +803,13 @@ void GameScene::OpenPerkView()
 
 	mPerkViewActive = true;
 	DeltaTime::SetPaused(true);
+	mPerkViewPage = 0;
+	RenderPerkViewPage();
+}
 
+void GameScene::RenderPerkViewPage()
+{
+	if (!mBoard) return;
 	auto& pm = mBoard->GetPerkManager();
 
 	// 与 DrawText 同字体量逻辑像素宽（取不到字体时按半宽兜底）
