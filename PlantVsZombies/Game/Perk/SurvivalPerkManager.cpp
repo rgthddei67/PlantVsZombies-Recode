@@ -10,7 +10,7 @@ namespace {
         { "ZOMBIE_DAMAGE_RESIST", u8"僵尸免伤",     u8"每层使僵尸受到伤害 -5%（最高 50%）", 0.05f, 10,   PerkCategory::ZOMBIE_CURSE },
         { "ZOMBIE_DAMAGE_UP",     u8"僵尸伤害",     u8"每层使僵尸对植物伤害 +5%（不限层）", 0.05f, 9999, PerkCategory::ZOMBIE_CURSE },
         { "ZOMBIE_INVULN_HITS",   u8"僵尸前N次免伤", u8"每层使僵尸出生后前 10 次受击免伤（最多 2 层）", 10.0f, 2, PerkCategory::ZOMBIE_CURSE },
-        { "PLANT_REGEN",          u8"植物回血",     u8"每 5 秒回 25 HP；满 5 层解锁过量治疗至 3 倍上限", 25.0f, 5, PerkCategory::PLANT_BUFF },
+        { "PLANT_REGEN",          u8"植物回血",     u8"每层使植物 5 秒回 65 HP；满 5 层解锁过量治疗至 3 倍上限（最多 7 层数）", 65.0f, 7, PerkCategory::PLANT_BUFF },
     };
     static_assert(sizeof(kPerks) / sizeof(kPerks[0]) == static_cast<size_t>(PerkType::COUNT),
                   "kPerks 必须与 PerkType 一一对应");
@@ -122,8 +122,8 @@ int SurvivalPerkManager::GetPlantRegenPerPulse() const {
 }
 
 int SurvivalPerkManager::GetPlantRegenHpCap(int maxHealth) const {
-    // 满层（stacks 达 maxStacks）解锁过量治疗；判定用 >=maxStacks 而非硬写 ==5，调参自动跟随。
-    if (GetStacks(PerkType::PLANT_REGEN) >= GetInfo(PerkType::PLANT_REGEN).maxStacks)
+    // 满层（stacks 达 maxStacks）解锁过量治疗；判定用 >=5，调参自动跟随。
+    if (GetStacks(PerkType::PLANT_REGEN) >= 5)
         return maxHealth * kPlantRegenOverhealMult;
     return maxHealth;
 }
