@@ -77,6 +77,7 @@ public:
 	void ApplyPerkSelection(int index);      // index<0 或越界 = 跳过；应用后链式进选卡
 	void OpenPerkView();                      // 生存模式：弹出已选词条查看面板（固定面板+字号自动缩放，打开即暂停）
 	void ClosePerkView();                     // 关闭词条查看面板并恢复
+	void RenderPerkViewPage();                // 按 mPerkViewPage 重建词条查看面板（分页；OpenPerkView 主体）
 	// AutoTest 内省接口（对真实游戏无副作用）
 	bool IsPerkSelectActive() const { return mSurvivalPerkSelectActive; }
 	const std::vector<PerkPairing>& GetCurrentPerkOffer() const { return mCurrentPerkOffer; }
@@ -117,6 +118,7 @@ private:
 	std::weak_ptr<Button>         mPerkViewButton;          // 生存模式右上角「词条」按钮（仅生存关创建）
 	std::weak_ptr<GameMessageBox> mPerkViewBox;             // 词条查看面板
 	bool                          mPerkViewActive = false;  // 面板打开中（守卫暂停叠态）
+	int                           mPerkViewPage   = 0;      // 词条查看面板当前页（0-based）
 	CardSlotManager* mCardSlotManager = nullptr;  // 由 CardUI GameObject 持有 unique_ptr，本字段仅缓存指针
 	ChooseCardUI* mChooseCardUI = nullptr;        // 所有权在 GameObjectManager
 	GameProgress* mGameProgress = nullptr;        // 所有权在 GameObjectManager
