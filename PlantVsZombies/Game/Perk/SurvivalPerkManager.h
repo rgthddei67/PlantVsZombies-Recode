@@ -13,6 +13,7 @@ public:
 
     // 聚合效果——空词条时为中性值（乘法单位元 / 原值），三处钟点自动 no-op
     double GetPlantDamageMultiplier() const;       // 1 + 0.10 * stacks
+    double GetPlantAttackSpeedMultiplier() const;  // 1 + 0.15 * stacks，0 层=1.0
     double GetZombieHealthMultiplier() const;      // 1 + 0.20 * stacks
     double GetZombieDamageTakenMultiplier() const; // 1 - 0.05 * stacks，夹底 0.5
 

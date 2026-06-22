@@ -54,6 +54,7 @@ namespace {
 	const std::unordered_map<std::string, PerkType> kPerkNames = {
 		PK(PLANT_DAMAGE_UP), PK(ZOMBIE_HEALTH_UP), PK(ZOMBIE_DAMAGE_RESIST),
 		PK(ZOMBIE_DAMAGE_UP), PK(ZOMBIE_INVULN_HITS), PK(PLANT_REGEN),
+		PK(PLANT_ATTACK_SPEED),
 	};
 #undef PK
 	const std::unordered_map<std::string, BoardState> kBoardStateNames = {
@@ -371,6 +372,7 @@ bool TestDriver::ExecuteCurrent() {
 			stacks["ZOMBIE_DAMAGE_UP"]     = pm.GetStacks(PerkType::ZOMBIE_DAMAGE_UP);
 			stacks["ZOMBIE_INVULN_HITS"]   = pm.GetStacks(PerkType::ZOMBIE_INVULN_HITS);
 			stacks["PLANT_REGEN"]          = pm.GetStacks(PerkType::PLANT_REGEN);
+			stacks["PLANT_ATTACK_SPEED"]   = pm.GetStacks(PerkType::PLANT_ATTACK_SPEED);
 			nlohmann::json perks;
 			perks["stacks"]              = stacks;
 			perks["zombieHealthMult"]    = pm.GetZombieHealthMultiplier();
@@ -381,6 +383,9 @@ bool TestDriver::ExecuteCurrent() {
 			perks["zombieInvulnHits"]    = pm.GetZombieInvulnHits();
 			perks["plantRegenPerPulse"]  = pm.GetPlantRegenPerPulse();
 			perks["plantRegenCapOn300"]  = pm.GetPlantRegenHpCap(300);
+			double asMult = pm.GetPlantAttackSpeedMultiplier();
+			perks["plantAttackSpeedMult"] = asMult;                                  // 原始倍率
+			perks["shootIntervalOn1500"]  = static_cast<int>(1500.0 / asMult + 0.5); // 整数化：1.5s 间隔被缩到多少 ms
 			out["perks"] = perks;
 		}
 
