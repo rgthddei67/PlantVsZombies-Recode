@@ -20,6 +20,7 @@
 #include "../Logger.h"
 #include <cmath>
 #include <cstdio>
+#include <algorithm>
 
 namespace {
 	// 右下角关卡名/轮数显示。
@@ -842,9 +843,19 @@ void GameScene::RenderPerkViewPage()
 		perkLines.push_back(ln);
 	}
 
-	const std::string title = (distinct > 0)
+	// 分页：每页最多 5 个 distinct 词条（distinct == perkLines.size()）
+	constexpr int kPerksPerPage = 5;
+	const int totalPages = (distinct > 0) ? ((distinct + kPerksPerPage - 1) / kPerksPerPage) : 1;
+	if (mPerkViewPage < 0) mPerkViewPage = 0;
+	if (mPerkViewPage > totalPages - 1) mPerkViewPage = totalPages - 1;
+	const int pageStart = mPerkViewPage * kPerksPerPage;
+	const int pageEnd   = std::min(distinct, pageStart + kPerksPerPage);
+
+	std::string title = (distinct > 0)
 		? (std::string(u8"已强化：") + std::to_string(distinct) + u8" 种词条 · 累计 " + std::to_string(total) + u8" 层")
 		: std::string(u8"尚未选择任何强化词条");
+	if (totalPages > 1)
+		title += std::string(u8"（第 ") + std::to_string(mPerkViewPage + 1) + u8"/" + std::to_string(totalPages) + u8" 页）";
 
 	// 固定面板（逻辑像素，居中于 550,300）
 	const float boxW = 560.0f, boxH = 420.0f;
@@ -857,7 +868,7 @@ void GameScene::RenderPerkViewPage()
 	const float boxTop  = cy - boxH / 2.0f;
 	const float innerW  = boxW - 2.0f * padX;
 	const float availH  = boxH - 2.0f * padY - closeGap - closeBtnSize.y;
-	const int   N       = static_cast<int>(perkLines.size());
+	const int   N       = pageEnd - pageStart;   // 本页行数（≤5）
 
 	// 字号自动缩放：rowFont 18→10，titleFont=rowFont+4，挑「最大且能塞进固定面板」者；
 	// 一路不满足则落到 floor=10（容忍轻微挤压，仍优于溢出可视边框）
@@ -871,8 +882,8 @@ void GameScene::RenderPerkViewPage()
 		const float rg  = fnt * 0.5f;
 		const float ch  = tlh + (N > 0 ? (tg + N * rlh + (N - 1) * rg) : 0.0f);
 		float maxW = measureW(title, tf);
-		for (const Line& ln : perkLines) {
-			float w = measureW(ln.text, fnt);
+		for (int li = pageStart; li < pageEnd; ++li) {
+			float w = measureW(perkLines[li].text, fnt);
 			if (w > maxW) maxW = w;
 		}
 		const bool fits = (ch <= availH) && (maxW <= innerW);
@@ -894,14 +905,30 @@ void GameScene::RenderPerkViewPage()
 
 	float y = blockTop + titleLineH + titleGap;
 	for (int i = 0; i < N; ++i) {
-		texts.push_back({ Vector(boxLeft + padX, y), static_cast<float>(rowFont), perkLines[i].text, perkLines[i].color });
+		const Line& ln = perkLines[pageStart + i];
+		texts.push_back({ Vector(boxLeft + padX, y), static_cast<float>(rowFont), ln.text, ln.color });
 		y += rowLineH + rowGap;
 	}
 
-	// 关闭按钮（底部居中，autoClose 自行帧末销毁面板）
-	buttons.push_back({ u8"关闭", Vector(cx - closeBtnSize.x / 2.0f, boxTop + boxH - padY - closeBtnSize.y),
+	// 底部一行三按钮：上一页（左·仅非首页）· 关闭（中·恒显）· 下一页（右·仅有下一页）
+	const float    boxRight   = cx + boxW / 2.0f;
+	const Vector   navBtnSize(110.0f, 44.0f);
+	const float    btnY       = boxTop + boxH - padY - closeBtnSize.y;
+
+	buttons.push_back({ u8"关闭", Vector(cx - closeBtnSize.x / 2.0f, btnY),
 		closeBtnSize, 20, [this]() { this->ClosePerkView(); },
 		ResourceKeys::Textures::IMAGE_BUTTONBIG, true });
+
+	if (mPerkViewPage > 0) {
+		buttons.push_back({ u8"上一页", Vector(boxLeft + padX, btnY), navBtnSize, 18,
+			[this]() { --mPerkViewPage; RenderPerkViewPage(); },
+			ResourceKeys::Textures::IMAGE_BUTTONSMALL, true });
+	}
+	if (mPerkViewPage < totalPages - 1) {
+		buttons.push_back({ u8"下一页", Vector(boxRight - padX - navBtnSize.x, btnY), navBtnSize, 18,
+			[this]() { ++mPerkViewPage; RenderPerkViewPage(); },
+			ResourceKeys::Textures::IMAGE_BUTTONSMALL, true });
+	}
 
 	// 背景留空 + explicitSize → 纯色面板（同选词条框，规避墓碑花边内缩导致文字溢出）
 	mPerkViewBox = mUIManager.CreateMessageBox(
