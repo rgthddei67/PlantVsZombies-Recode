@@ -709,7 +709,7 @@ void GameScene::BeginSurvivalPerkSelect()
 	const glm::vec4 red  { 200, 60, 60, 255 };
 	const glm::vec4 titleColor{ 245, 214, 127, 255 };
 
-	const std::string title = std::string(u8"第 ") + std::to_string(mBoard->mSurvivalRound) + u8" 轮 · 选择强化";
+	const std::string title = std::string(u8"第 ") + std::to_string(mBoard->mSurvivalRound - 1) + u8" 轮 · 选择强化";
 
 	// 预生成每个配对的两行文字并量宽，求内容最大宽度（descZh 已自带词条名，不再叠加 nameZh）
 	struct Row { std::string plant; std::string zombie; };
@@ -721,7 +721,7 @@ void GameScene::BeginSurvivalPerkSelect()
 		const PerkInfo& cz = SurvivalPerkManager::GetInfo(pr.zombie);
 		Row r;
 		r.plant  = std::string(u8"植物：") + bp.descZh + u8"（当前 " + std::to_string(pm.GetStacks(pr.plant)) + u8" 层）";
-		r.zombie = std::string(u8"僵尸：") + cz.descZh;
+		r.zombie = std::string(u8"僵尸：") + cz.descZh + u8"（当前 " + std::to_string(pm.GetStacks(pr.zombie)) + u8" 层）";
 		float wp = measureW(r.plant, rowFont);
 		float wz = measureW(r.zombie, rowFont);
 		float w = (wp > wz) ? wp : wz;

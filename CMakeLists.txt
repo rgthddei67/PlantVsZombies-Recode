@@ -41,12 +41,12 @@ target_compile_definitions(PlantsVsZombies PRIVATE
 
 # /utf-8 必须：源文件里有中文 UI 字符串（cl 与 clang-cl 都接受）
 # 注：不需要 /MP——那是 MSBuild 单进程多文件的旗标，Ninja 本身按翻译单元并行调度
-target_compile_options(PlantsVsZombies PRIVATE /utf-8 /W3 /sdl)
+target_compile_options(PlantsVsZombies PRIVATE /utf-8 /W3 /sdl /EHsc)
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    # 对应旧 ClangRelease|x64：-O3 -march=native -flto（LTO 走 lld-link，见 preset）
+    # 对应旧 ClangRelease|x64：-O2 -march=native -flto（LTO 走 lld-link，见 preset）
     target_compile_options(PlantsVsZombies PRIVATE
-        $<$<CONFIG:Release>:/clang:-O3 -march=native -flto /fp:fast>
+        $<$<CONFIG:Release>:/clang:-O2 -march=native -flto /fp:fast>
     )
     target_link_options(PlantsVsZombies PRIVATE $<$<CONFIG:Release>:-flto>)
 else()

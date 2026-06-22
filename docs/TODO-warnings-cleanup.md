@@ -31,4 +31,4 @@ clang 报但 MSVC 默认不报，故原评估遗漏。**警告归零验证必须
 - `-Wunused-but-set-variable` ×1：CardSlotManager `cardComp` → 改为不绑定的存在性判断 `if (selected->GetComponent<CardComponent>())`。
 - `-Wunused-private-field` ×1：CardSlotManager.h `slotSpacing`（全仓仅声明处出现）→ 删。
 
-改动共 17 文件，净 -13 行；未 commit（等主人）。
+改动共 17 文件，净 -13 行；已 commit。
