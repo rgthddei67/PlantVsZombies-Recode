@@ -27,16 +27,17 @@ void SunShroom::PlantUpdate()
 			SetGlowingTimer(0.75f);
 			mIsGlowingForProduction = true;
 			mProductionGlowStartTimer = mProduceTimer;  // 记录开始发光的时间点
-		} 
+			mGlowProducesGrownSun = mIsGrown;           // 发光启动时锁定大/小阳光，避免发光中途长大导致这一颗错付成熟值
+		}
 	}
 	else {
 		// 正在为生产而发光
 		if (mProduceTimer >= mProductionGlowStartTimer + 0.55f) {
-			// 2.5秒发光结束，生产阳光
+			// 发光 0.55s 结束，生产阳光
 			float offsetX = GameRandom::Range(-30.0f, 35.0f);
 			Vector position = GetPosition();
-			// 幼年产小阳光(15)，长大后产普通阳光(25)
-			if (mIsGrown) {
+			// 幼年产小阳光(15)，长大后产普通阳光(25)；成熟度按本轮发光"启动时"快照判定
+			if (mGlowProducesGrownSun) {
 				mBoard->CreateSun(position.x + offsetX, position.y, true);
 			}
 			else {

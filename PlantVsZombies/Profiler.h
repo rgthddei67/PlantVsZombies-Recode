@@ -95,16 +95,19 @@ private:
 class ScopedProfile {
 public:
 	explicit ScopedProfile(const char* name)
-		: mName(name), mStart(Profiler::Clock::now()) {
+		: mName(name) {
+		if (!g_ProfileEnabled) return;   // 禁用时连时钟都不读
+		mStart = Profiler::Clock::now();
 	}
 	~ScopedProfile() {
+		if (!g_ProfileEnabled) return;   // 禁用时零测量、零 std::string 临时构造（真正零开销）
 		double ms = std::chrono::duration<double, std::milli>(
 			Profiler::Clock::now() - mStart).count();
 		Profiler::Get().Add(mName, ms);
 	}
 private:
 	const char* mName;
-	Profiler::Clock::time_point mStart;
+	Profiler::Clock::time_point mStart{};
 };
 
 #define PROFILE_CONCAT_INNER(a, b) a##b
