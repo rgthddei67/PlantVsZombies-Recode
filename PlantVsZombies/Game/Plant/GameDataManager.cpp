@@ -17,6 +17,7 @@
 #include "Chomper.h"
 #include "Repeater.h"
 #include "PuffShroom.h"
+#include "SunShroom.h"
 
 #include "../Zombie/Zombie.h"
 #include "../Zombie/ConeZombie.h"
@@ -170,6 +171,17 @@ void GameDataManager::InitializeHardcodedData() {
 		"PuffShroom",
 		Vector(-37.6f, -28),
 		1.0f, &MakePlant<PuffShroom>
+	);
+
+	RegisterPlant(
+		PlantType::PLANT_SUNSHROOM,
+		25, 7.5f,
+		"PLANT_SUNSHROOM",
+		ResourceKeys::Textures::IMAGE_SUNSHROOM,
+		AnimationType::ANIM_SUNSHROOM,
+		"SunShroom",
+		Vector(-37.6f, -28),
+		1.0f, &MakePlant<SunShroom>
 	);
 
 	// ==================== 僵尸注册 ====================

@@ -217,6 +217,7 @@ bool GameInfoSaver::SaveLevelDataImpl(Board* board, CardSlotManager* manager)
 			s["y"] = sun->GetPosition().y;
 			s["animTrack"] = sun->GetCurrentTrackName();
 			s["animFrame"] = sun->GetCurrentFrame();
+			s["small"] = (dynamic_cast<SmallSun*>(coin) != nullptr);	// 区分大/小阳光
 			sunsArr.push_back(s);
 		}
 	}
@@ -471,13 +472,16 @@ bool GameInfoSaver::LoadLevelDataImpl(Board* board, CardSlotManager* manager)
 		float x = s["x"].get<float>();
 		float y = s["y"].get<float>();
 		int  id = s.value("id", NULL_COIN_ID);
+		bool small = s.value("small", false);	// 旧存档无此字段→普通阳光，向后兼容
 
 		Sun* sun = nullptr;
 		if (id != NULL_COIN_ID) {
-			sun = board->CreateSunWithID(Vector(x, y), false, id);
+			sun = small ? static_cast<Sun*>(board->CreateSmallSunWithID(Vector(x, y), false, id))
+						: board->CreateSunWithID(Vector(x, y), false, id);
 		}
 		else {
-			sun = board->CreateSun(Vector(x, y), false);
+			sun = small ? static_cast<Sun*>(board->CreateSmallSun(Vector(x, y), false))
+						: board->CreateSun(Vector(x, y), false);
 		}
 
 		if (sun) {

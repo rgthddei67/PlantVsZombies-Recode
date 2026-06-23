@@ -16,6 +16,7 @@
 class GameInfoSaver;
 class GameScene;
 class Sun;
+class SmallSun;
 class Coin;
 class Plant;
 class Zombie;
@@ -167,6 +168,10 @@ public:
 	// 创建太阳
 	Sun* CreateSun(float x, float y, bool needAnimation = false);
 
+	// 创建小阳光（阳光菇幼年产物：缩放 0.6 / 价值 15，行为同 Sun）
+	SmallSun* CreateSmallSun(const Vector& position, bool needAnimation = false);
+	SmallSun* CreateSmallSun(float x, float y, bool needAnimation = false);
+
 	// 创建奖杯
 	void CreateTrophy(const Vector& position);
 
@@ -190,6 +195,7 @@ public:
 	Zombie* CreateZombieWithID(ZombieType type, int row, float x, int id);
 	Bullet* CreateBulletWithID(BulletType type, int row, const Vector& pos, int id);
 	Sun* CreateSunWithID(const Vector& pos, bool fromSky, int id);
+	SmallSun* CreateSmallSunWithID(const Vector& pos, bool fromSky, int id);
 	Trophy* CreateTrophyWithID(const Vector& pos, int id);
 
 	// 更新关卡

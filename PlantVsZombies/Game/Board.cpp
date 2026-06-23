@@ -115,6 +115,22 @@ Sun* Board::CreateSun(float x, float y, bool needAnimation) {
 	return CreateSun(Vector(x, y), needAnimation);
 }
 
+SmallSun* Board::CreateSmallSun(const Vector& position, bool needAnimation)
+{
+	auto sun = GameObjectManager::GetInstance().CreateGameObjectAsShared<SmallSun>
+		(LAYER_GAME_COIN, this, position, 0.6f, "SmallSun",
+			needAnimation, true);
+	if (sun) {
+		mEntityManager.AddCoin(sun);
+	}
+
+	return sun.get();
+}
+
+SmallSun* Board::CreateSmallSun(float x, float y, bool needAnimation) {
+	return CreateSmallSun(Vector(x, y), needAnimation);
+}
+
 void Board::CreateTrophy(const Vector& position)
 {
 	if (mTrophySpawned) return;
@@ -758,6 +774,16 @@ Bullet* Board::CreateBulletWithID(BulletType type, int row, const Vector& pos, i
 Sun* Board::CreateSunWithID(const Vector& pos, bool fromSky, int id) {
 	auto sun = GameObjectManager::GetInstance().CreateGameObjectAsShared<Sun>
 		(LAYER_GAME_COIN, this, pos, 0.85f, "Sun",
+			fromSky, true);
+	if (sun) {
+		mEntityManager.AddCoinWithID(sun, id);
+	}
+	return sun.get();
+}
+
+SmallSun* Board::CreateSmallSunWithID(const Vector& pos, bool fromSky, int id) {
+	auto sun = GameObjectManager::GetInstance().CreateGameObjectAsShared<SmallSun>
+		(LAYER_GAME_COIN, this, pos, 0.6f, "SmallSun",
 			fromSky, true);
 	if (sun) {
 		mEntityManager.AddCoinWithID(sun, id);

@@ -1,0 +1,16 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 10 },
+    { "op": "choose_cards", "cards": ["PLANT_SUNSHROOM"] },
+    { "op": "wait_state", "state": "GAME" },
+    { "op": "set_sun", "value": 0 },
+    { "op": "plant", "type": "PLANT_SUNSHROOM", "row": 2, "col": 1 },
+    { "op": "set_timescale", "value": 6.0 },
+    { "op": "wait_seconds", "value": 7.0 },
+    { "op": "set_timescale", "value": 1.0 },
+    { "op": "wait_frames", "value": 2 },
+    { "op": "screenshot", "name": "small_sun.png" },
+    { "op": "dump_state", "name": "state.json" },
+    { "op": "quit" }
+  ]
+}
