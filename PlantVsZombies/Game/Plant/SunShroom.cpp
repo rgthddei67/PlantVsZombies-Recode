@@ -1,10 +1,20 @@
 #include "SunShroom.h"
 #include "../Board.h"
+#include "../ShadowComponent.h"
+
+void SunShroom::SetupPlant()
+{
+	auto shadow = GetComponent<ShadowComponent>();
+	shadow->SetScale(Vector(0.62f, 0.62f));
+	shadow->SetOffset(Vector(2, 32));
+	Shroom::SetupPlant();
+}
 
 void SunShroom::PlantUpdate()
 {
 	mGrowTimer += DeltaTime::GetDeltaTime();
 	if (mGrowTimer >= GROW_TIME && !mIsGrown) {
+		AudioSystem::PlaySound("SOUND_PLANTGROW", 0.3f);
 		mGrowTimer = 0.0f;
 		mIsGrown = true;
 		PlayTrackOnce("anim_grow", "anim_bigidle", 0.0f, 0.2f, 0.0f);
@@ -17,7 +27,7 @@ void SunShroom::PlantUpdate()
 			SetGlowingTimer(0.75f);
 			mIsGlowingForProduction = true;
 			mProductionGlowStartTimer = mProduceTimer;  // 记录开始发光的时间点
-		}
+		} 
 	}
 	else {
 		// 正在为生产而发光

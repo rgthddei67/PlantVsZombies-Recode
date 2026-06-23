@@ -799,6 +799,7 @@ void GameScene::ApplyPerkSelection(int index)
 void GameScene::OpenPerkView()
 {
 	if (!mBoard) return;
+	if (DeltaTime::IsPaused()) return;
 	// 三向守卫：暂停菜单 / 轮间选词条模态 / 自身已开，均不叠开
 	if (mOpenMenu || mSurvivalPerkSelectActive || mPerkViewActive) return;
 

@@ -18,6 +18,7 @@ public:
 	using Shroom::Shroom;
 
 	void PlantUpdate() override;
+	void SetupPlant() override;
 
 	void SaveExtraData(nlohmann::json& j) const override {
 		j["growTimer"] = mGrowTimer;
