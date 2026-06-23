@@ -4,6 +4,7 @@
 #include "./GameApp.h"
 #include "GameMonitor.h"
 #include "Logger.h"
+#include "./Profiler.h"
 #include "./Game/AutoTest/TestDriver.h"
 #include <SDL2/SDL.h>
 #include <string>
@@ -32,6 +33,11 @@ int main(int argc, char** argv)
 		{
 			GameAPP::mDisableInstancePath = true;
 			LOG_DEBUG("Main") << "GPU instance path 已禁用 (A/B baseline)";
+		}
+		else if (arg == "-Profile" || arg == "-profile")
+		{
+			g_ProfileEnabled = true;
+			LOG_DEBUG("Main") << "性能分析输出已启用 (-Profile)";
 		}
 		else if ((arg == "-AutoTest" || arg == "-autotest") && i + 1 < argc)
 		{

@@ -3,8 +3,9 @@
 #define _PROFILER_H
 
 // ============================================================
-//  临时性能埋点 —— 用于定位 4400 僵尸掉帧的瓶颈阶段。
-//  确认瓶颈后可整体删除本文件及其 #include / PROFILE_SCOPE 调用。
+//  性能埋点 —— 用于定位掉帧的瓶颈阶段。
+//  默认完全休眠：只有在启动参数里加 -Profile 时才会累加并打印 FRAME PROFILE。
+//  开关由 g_ProfileEnabled（定义在 Profiler.cpp，main.cpp 解析 -Profile 置位）控制。
 //  注意：所有 PROFILE_SCOPE / CountFlush 只能在主线程调用（非线程安全）。
 // ============================================================
 
@@ -12,6 +13,10 @@
 #include <map>
 #include <string>
 #include <cstdio>
+
+// 全局开关：false 时 Profiler 的所有累加/打印入口立即返回（零开销）。
+// 唯一定义在 Profiler.cpp，避免头文件被多个翻译单元 include 时的 ODR 重定义。
+extern bool g_ProfileEnabled;
 
 class Profiler {
 public:
@@ -23,17 +28,20 @@ public:
 	using Clock = std::chrono::steady_clock;
 
 	void Add(const std::string& name, double ms) {
+		if (!g_ProfileEnabled) return;
 		mAccum[name] += ms;
 	}
 
 	// 在 Graphics::FlushBatch 真正提交时调用，verts = 本次刷新的顶点数
 	void CountFlush(size_t verts) {
+		if (!g_ProfileEnabled) return;
 		mFlushCount++;
 		mFlushVerts += verts;
 	}
 
 	// 每帧调用一次（主循环末尾）。每 kReportFrames 帧打印一次平均值。
 	void EndFrame() {
+		if (!g_ProfileEnabled) return;
 		auto now = Clock::now();
 		if (mHasLastFrame) {
 			double frameMs = std::chrono::duration<double, std::milli>(now - mLastFrame).count();
