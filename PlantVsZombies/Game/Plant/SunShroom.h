@@ -1,7 +1,7 @@
 #include "Shroom.h"
 
 namespace {
-	float GROW_TIME = 30.0f; // 长大时间
+	float GROW_TIME = 50.0f; // 长大时间
 	float PRODUCE_TIME = 20.0f; // 生产阳光时间
 }
 
