@@ -153,6 +153,7 @@ When you need to **add a new classic plant, zombie, or bullet (projectile)**, it
 - Visual offsets use `mVisualOffset` (separate from the logical grid position)
 - Row/column position (`mRow`, `mColumn`) is the gameplay grid cell; pixel position is in `TransformComponent`
 - Chinese (UTF-8) strings are used throughout the codebase for UI 
+- **Header guards (every `.h`):** start each header with `#pragma once` (the existing convention also keeps the older `#pragma once` + `#ifndef _NAME_H` double form — either is accepted). Enforced automatically: `cmake --preset` configure installs a `.githooks/pre-commit` hook (`git config core.hooksPath .githooks`) that rejects any staged guard-less header, and the same configure step prints a WARNING listing any existing guard-less headers. The check is BOM-aware (matches the token anywhere in the first 512 bytes, not anchored to `^`, so a UTF-8 BOM prefix doesn't cause false positives). Rationale: since the `.sln` migration, VS's "Add New Item" template no longer auto-inserts the guard.
 
 ## Communication Style
 When responding to the user, always address them as **主人** (master) instead of using generic terms like "user" or "you". For example: "主人需要构建项目" rather than "你需要构建项目". This applies to all explanations, suggestions, and conversations within this repository context.

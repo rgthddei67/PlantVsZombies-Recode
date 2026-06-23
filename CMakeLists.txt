@@ -111,3 +111,33 @@ add_custom_command(TARGET PlantsVsZombies POST_BUILD
             ${SRC_DIR}/Shader/spv $<TARGET_FILE_DIR:PlantsVsZombies>/Shader/spv
     COMMENT "Copying Shader spv to output directory"
 )
+
+# ---- 头文件守卫：自动装 pre-commit 钩子 + configure 期 lint ----
+# 迁离 .sln 后 VS 模板不再自动塞 #pragma once，这里在提交关口兜底并即时反馈。
+# BOM-aware：只查 token 是否存在（不锚 ^），故 UTF-8 BOM 前缀不会误判。
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/.git")
+    find_program(GIT_EXECUTABLE git)
+    if(GIT_EXECUTABLE)
+        execute_process(
+            COMMAND ${GIT_EXECUTABLE} config core.hooksPath .githooks
+            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+            RESULT_VARIABLE _hookcfg OUTPUT_QUIET ERROR_QUIET
+        )
+        if(_hookcfg EQUAL 0)
+            message(STATUS "git core.hooksPath -> .githooks（头文件守卫 pre-commit 已启用）")
+        endif()
+    endif()
+endif()
+
+file(GLOB_RECURSE _ALL_HEADERS CONFIGURE_DEPENDS ${SRC_DIR}/*.h)
+set(_UNGUARDED "")
+foreach(_h IN LISTS _ALL_HEADERS)
+    file(READ "${_h}" _head LIMIT 512)
+    if(NOT _head MATCHES "#pragma once" AND NOT _head MATCHES "#ifndef")
+        list(APPEND _UNGUARDED "${_h}")
+    endif()
+endforeach()
+if(_UNGUARDED)
+    string(REPLACE ";" "\n    " _UNGUARDED_MSG "${_UNGUARDED}")
+    message(WARNING "以下头文件缺少守卫(#pragma once / #ifndef)，请补：\n    ${_UNGUARDED_MSG}")
+endif()
