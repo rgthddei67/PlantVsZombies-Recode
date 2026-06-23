@@ -38,6 +38,8 @@
 
 把现有产阳光调用按 `mIsGrown` 分支：未长大 → `CreateSmallSun(...)`，已长大 → `CreateSun(...)`。
 
+**附带修复（必需）：** `GameDataManager.cpp:183` 把 `PLANT_SUNSHROOM` 的工厂误写成 `&MakePlant<PuffShroom>`（从 PuffShroom 行复制），导致种下去的其实是 PuffShroom、`SunShroom::PlantUpdate` 永不执行。改为 `&MakePlant<SunShroom>` 并在文件顶部 `#include "SunShroom.h"`。不修则本接线为死代码、小阳光无法经游戏路径验证。
+
 ### 4. 存档适配（`GameInfoSaver`）— 关键点
 
 由于 `SmallSun` *is-a* `Sun`，存档序列化循环中现有的 `dynamic_cast<Sun*>(coin)` **已经**能捕获小阳光，它们与普通阳光同在 `"suns"` 数组里。因此：
