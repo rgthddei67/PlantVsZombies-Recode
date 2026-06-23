@@ -16,7 +16,55 @@
 #include "./Game/CardComponent.h"
 #include "./Game/TransformComponent.h"
 #include "./Game/GameObjectManager.h"
+#include "./Game/AnimatedObject.h"
 #include "Logger.h"
+
+namespace {
+	// ---- Animator 播放状态机的统一存读档 ----------------------------------------
+	// 历史上只持久化 animTrack(当前轨道) + animFrame(当前帧)，读档时一律 PlayTrack(track)。
+	// 但 PlayTrack 会把 mPlayingState 强制写成 PLAY_REPEAT，于是一只正在 PlayTrackOnce 的
+	// 单位(长大/起跳/射击/喘气…)读档后会把那条一次性轨道当循环永远播放，再也切不回目标轨道。
+	// 修复：把整台状态机(播放状态 + 目标轨道 + 回切速度 + 基础/clip 速度)都存下来，
+	// 读档时按状态用 PlayTrackOnce 重建一次性播放。旧存档无新字段 → 默认 PLAY_REPEAT，
+	// 行为与从前逐位一致(向后兼容)。Chomper/PaperZombie/PotatoMine 的 LoadExtraData 在本
+	// 函数之后运行，仍可按需覆盖(它们还负责帧事件等本层无法序列化的东西)。
+	void SaveAnimState(nlohmann::json& j, const AnimatedObject* obj) {
+		j["animTrack"] = obj->GetCurrentTrackName();
+		j["animFrame"] = obj->GetCurrentFrame();
+		j["animSpeed"] = obj->GetAnimationSpeed();        // 基础速度(base)
+		j["animClipSpeed"] = obj->GetClipSpeed();         // 当前轨道 clip 覆盖(0=回落 base)
+		j["animPlayState"] = static_cast<int>(obj->GetPlayingState());
+		j["animTargetTrack"] = obj->GetTargetTrack();     // PlayTrackOnce 播完后的回切轨道
+		j["animTargetTrackSpeed"] = obj->GetTargetTrackSpeed();
+	}
+
+	void RestoreAnimState(const nlohmann::json& j, AnimatedObject* obj) {
+		std::string track = j.value("animTrack", std::string{});
+		if (track.empty()) return;
+
+		float clipSpeed = j.value("animClipSpeed", 0.0f);   // 缺省 0 = 回落 base，与旧行为一致
+		PlayState state = static_cast<PlayState>(
+			j.value("animPlayState", static_cast<int>(PlayState::PLAY_REPEAT)));  // 旧存档→循环
+
+		if (state == PlayState::PLAY_ONCE_TO || state == PlayState::PLAY_ONCE) {
+			// 重建一次性播放：播完后切到目标轨道(PLAY_ONCE 时目标为空 = 播完即停)
+			obj->PlayTrackOnce(track,
+				j.value("animTargetTrack", std::string{}),
+				clipSpeed, 0.0f,
+				j.value("animTargetTrackSpeed", 0.0f));
+		}
+		else {
+			obj->PlayTrack(track, clipSpeed);
+		}
+
+		// 基础速度与 clip 正交，单独恢复；仅当存档含该字段时才覆盖(旧存档不动，保持历史行为)
+		if (j.contains("animSpeed")) {
+			obj->SetAnimationSpeed(j.value("animSpeed", 1.0f));
+		}
+		// PlayTrack/PlayTrackOnce 会把帧重置到轨道起点，最后再恢复保存时的帧进度
+		obj->SetCurrentFrame(j.value("animFrame", 0.0f));
+	}
+}
 
 // 存档/读档的实际逻辑放在下列 *Impl 成员函数中（须为成员：Board 仅 friend 本类，自由
 // 函数无私有成员访问权）；文件末尾的公有接口只做一层 try/catch 包裹（异常安全边界）。
@@ -114,8 +162,7 @@ bool GameInfoSaver::SaveLevelDataImpl(Board* board, CardSlotManager* manager)
 		p["health"] = plant->mPlantHealth;
 		p["maxHealth"] = plant->mPlantMaxHealth;
 		p["isSleeping"] = plant->GetSleepState();
-		p["animTrack"] = plant->GetCurrentTrackName();
-		p["animFrame"] = plant->GetCurrentFrame();
+		SaveAnimState(p, plant);
 
 		nlohmann::json extraData;
 		plant->SaveExtraData(extraData);
@@ -139,8 +186,7 @@ bool GameInfoSaver::SaveLevelDataImpl(Board* board, CardSlotManager* manager)
 		m["speed"] = mower->mSpeed;
 		m["x"] = mower->GetPosition().x;
 		m["y"] = mower->GetPosition().y;
-		m["animTrack"] = mower->GetCurrentTrackName();
-		m["animFrame"] = mower->GetCurrentFrame();
+		SaveAnimState(m, mower);
 		mowersArr.push_back(m);
 	}
 	j["mowers"] = mowersArr;
@@ -173,10 +219,7 @@ bool GameInfoSaver::SaveLevelDataImpl(Board* board, CardSlotManager* manager)
 		z["needDropArm"] = zombie->mNeedDropArm;
 		z["needDropHead"] = zombie->mNeedDropHead;
 		zombie->SaveProtectedData(z);
-		z["animTrack"] = zombie->GetCurrentTrackName();
-		z["animFrame"] = zombie->GetCurrentFrame();
-		z["animSpeed"] = zombie->GetAnimationSpeed();
-		z["animClipSpeed"] = zombie->GetClipSpeed();
+		SaveAnimState(z, zombie);
 		nlohmann::json extraData;
 		zombie->SaveExtraData(extraData);
 		if (!extraData.empty()) {
@@ -215,8 +258,7 @@ bool GameInfoSaver::SaveLevelDataImpl(Board* board, CardSlotManager* manager)
 			s["id"] = id;
 			s["x"] = sun->GetPosition().x;
 			s["y"] = sun->GetPosition().y;
-			s["animTrack"] = sun->GetCurrentTrackName();
-			s["animFrame"] = sun->GetCurrentFrame();
+			SaveAnimState(s, sun);
 			s["small"] = (dynamic_cast<SmallSun*>(coin) != nullptr);	// 区分大/小阳光
 			sunsArr.push_back(s);
 		}
@@ -352,11 +394,7 @@ bool GameInfoSaver::LoadLevelDataImpl(Board* board, CardSlotManager* manager)
 			plant->mPlantHealth = health;
 			plant->mPlantMaxHealth = maxHealth;
 			plant->SetSleepState(isSleeping);
-			std::string track = p.value("animTrack", "");
-			if (!track.empty()) {
-				plant->PlayTrack(track);
-				plant->SetCurrentFrame(p.value("animFrame", 0.0f));
-			}
+			RestoreAnimState(p, plant);
 			if (p.contains("extraData")) {
 				plant->LoadExtraData(p["extraData"]);
 			}
@@ -382,11 +420,7 @@ bool GameInfoSaver::LoadLevelDataImpl(Board* board, CardSlotManager* manager)
 		if (mower) {
 			mower->mState = static_cast<MowerState>(m.value("state", 0));
 			mower->mSpeed = m.value("speed", 300.0f);
-			std::string track = m.value("animTrack", "");
-			if (!track.empty()) {
-				mower->PlayTrack(track);
-				mower->SetCurrentFrame(m.value("animFrame", 0.0f));
-			}
+			RestoreAnimState(m, mower);
 		}
 	}
 
@@ -420,13 +454,7 @@ bool GameInfoSaver::LoadLevelDataImpl(Board* board, CardSlotManager* manager)
 			zombie->mNeedDropHead = z.value("needDropHead", true);
 
 			zombie->LoadProtectedData(z);
-			std::string track = z.value("animTrack", "");
-			if (!track.empty()) {
-				zombie->PlayTrack(track);                                  // 会把 clip 清零
-				zombie->SetCurrentFrame(z.value("animFrame", 0.0f));
-				zombie->SetAnimationSpeed(z.value("animSpeed", 1.0f));     // 恢复 base
-				zombie->SetClipSpeed(z.value("animClipSpeed", 0.0f));      // 再恢复轨道覆盖
-			}
+			RestoreAnimState(z, zombie);
 
 			if (z.contains("extraData")) {
 				zombie->LoadExtraData(z["extraData"]);
@@ -485,11 +513,7 @@ bool GameInfoSaver::LoadLevelDataImpl(Board* board, CardSlotManager* manager)
 		}
 
 		if (sun) {
-			std::string track = s.value("animTrack", "");
-			if (!track.empty()) {
-				sun->PlayTrack(track);
-				sun->SetCurrentFrame(s.value("animFrame", 0.0f));
-			}
+			RestoreAnimState(s, sun);
 		}
 	}
 

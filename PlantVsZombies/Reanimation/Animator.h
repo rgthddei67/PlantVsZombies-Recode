@@ -225,6 +225,23 @@ public:
 	const std::string& GetCurrentTrackName() const { return mCurrentTrackName; }
 
 	/**
+	 * @brief 获取当前播放状态 (循环 / 一次性 / 一次性后切换)。
+	 *        存档必须持久化它，否则读档统一走 PlayTrack 会把进行中的一次性轨道
+	 *        误当 PLAY_REPEAT 永远循环、无法切回目标轨道。
+	 */
+	PlayState GetPlayingState() const { return mPlayingState; }
+
+	/**
+	 * @brief 获取 PlayTrackOnce 播完后要切换到的目标轨道名 (空=播完即停，不切换)
+	 */
+	const std::string& GetTargetTrack() const { return mTargetTrack; }
+
+	/**
+	 * @brief 获取回切到目标轨道时使用的 clip 速度 (0=回落 base)
+	 */
+	float GetTargetTrackSpeed() const { return mTargetTrackSpeed; }
+
+	/**
 	 * @brief 直接设置当前帧索引 (用于存档恢复)
 	 */
 	void SetCurrentFrame(float frameIndex) { mFrameIndexNow = frameIndex; }

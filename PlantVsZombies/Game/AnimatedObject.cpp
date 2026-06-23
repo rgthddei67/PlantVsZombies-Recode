@@ -268,6 +268,18 @@ float AnimatedObject::GetCurrentFrame() const {
 	return mAnimator ? mAnimator->GetCurrentFrame() : 0.0f;
 }
 
+PlayState AnimatedObject::GetPlayingState() const {
+	return mAnimator ? mAnimator->GetPlayingState() : PlayState::PLAY_REPEAT;
+}
+
+std::string AnimatedObject::GetTargetTrack() const {
+	return mAnimator ? mAnimator->GetTargetTrack() : "";
+}
+
+float AnimatedObject::GetTargetTrackSpeed() const {
+	return mAnimator ? mAnimator->GetTargetTrackSpeed() : 0.0f;
+}
+
 void AnimatedObject::SetCurrentFrame(float frameIndex) {
 	if (mAnimator) {
 		mAnimator->SetCurrentFrame(frameIndex);

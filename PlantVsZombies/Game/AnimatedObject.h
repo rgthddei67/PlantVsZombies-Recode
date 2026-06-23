@@ -88,6 +88,11 @@ public:
 	float GetCurrentFrame() const;
 	void SetCurrentFrame(float frameIndex);
 
+	// 播放状态机 (供 GameInfoSaver 完整持久化 PlayTrackOnce，避免读档后一次性动画死循环)
+	PlayState GetPlayingState() const;
+	std::string GetTargetTrack() const;
+	float GetTargetTrackSpeed() const;
+
 	// 组件获取
 	TransformComponent* GetTransformComponent() const;
 	ColliderComponent* GetColliderComponent() const;
