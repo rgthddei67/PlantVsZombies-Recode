@@ -10,38 +10,38 @@ bool FileManager::FileExists(const std::string& path) {
 }
 
 std::string FileManager::LoadFileAsString(const std::string& path) {
-    // 复用二进制读取（同样走 SDL_RWops）；空文件与打开失败都返回 ""，与原 ifstream 行为一致。
-    std::vector<char> bytes = LoadFileAsBinary(path);
-    return std::string(bytes.begin(), bytes.end());
+	// 复用二进制读取（同样走 SDL_RWops）；空文件与打开失败都返回 ""，与原 ifstream 行为一致。
+	std::vector<char> bytes = LoadFileAsBinary(path);
+	return std::string(bytes.begin(), bytes.end());
 }
 
 std::vector<char> FileManager::LoadFileAsBinary(const std::string& path) {
-    // SDL_RWFromFile：相对路径在 Android 自动读 APK assets / 桌面读 CWD；绝对路径走真实文件系统。
-    SDL_RWops* rw = SDL_RWFromFile(path.c_str(), "rb");
-    if (!rw) {
-        LogError("Failed to open binary file: " + path);
-        return {};
-    }
+	// SDL_RWFromFile：相对路径在 Android 自动读 APK assets / 桌面读 CWD；绝对路径走真实文件系统。
+	SDL_RWops* rw = SDL_RWFromFile(path.c_str(), "rb");
+	if (!rw) {
+		LogError("Failed to open file: " + path);
+		return {};
+	}
 
-    Sint64 size = SDL_RWsize(rw);
-    if (size < 0) {
-        LogError("Failed to get size of binary file: " + path);
-        SDL_RWclose(rw);
-        return {};
-    }
+	Sint64 size = SDL_RWsize(rw);
+	if (size < 0) {
+		LogError("Failed to get file size: " + path);
+		SDL_RWclose(rw);
+		return {};
+	}
 
-    std::vector<char> buffer(static_cast<size_t>(size));
-    Sint64 readTotal = 0;
-    if (size > 0) {
-        readTotal = SDL_RWread(rw, buffer.data(), 1, static_cast<size_t>(size));
-    }
-    SDL_RWclose(rw);
+	std::vector<char> buffer(static_cast<size_t>(size));
+	Sint64 readTotal = 0;
+	if (size > 0) {
+		readTotal = SDL_RWread(rw, buffer.data(), 1, static_cast<size_t>(size));
+	}
+	SDL_RWclose(rw);
 
-    if (readTotal != size) {
-        LogError("Failed to read binary file: " + path);
-        return {};
-    }
-    return buffer;
+	if (readTotal != size) {
+		LogError("Failed to read file: " + path);
+		return {};
+	}
+	return buffer;
 }
 
 bool FileManager::SaveFile(const std::string& path, const std::string& content) {
