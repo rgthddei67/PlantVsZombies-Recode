@@ -2,6 +2,7 @@
 #include <SDL2/SDL.h>
 #include "Logger.h"
 #include <filesystem>
+#include <fstream>
 #include <sstream>
 
 bool FileManager::FileExists(const std::string& path) {
