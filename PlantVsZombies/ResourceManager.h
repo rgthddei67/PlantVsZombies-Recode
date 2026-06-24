@@ -74,8 +74,10 @@ public:
 
 	// 加载纹理，返回纹理信息指针，失败返回 nullptr
 	const Texture* LoadTexture(const std::string& filepath, const std::string& key = "");
-	// 获取已加载的纹理，不存在返回 nullptr
-	const Texture* GetTexture(const std::string& key) const;
+	// 获取已加载的纹理，不存在返回 nullptr。
+	// warnOnMiss=false 供"存在性探测"调用方使用（如 Reanimation 加载时先查后载），
+	// 这类 miss 是预期的正常路径，由调用方自行处理，不应记 WARN。
+	const Texture* GetTexture(const std::string& key, bool warnOnMiss = true) const;
 	// 卸载单个纹理
 	void UnloadTexture(const std::string& key);
 	// 检查纹理是否存在

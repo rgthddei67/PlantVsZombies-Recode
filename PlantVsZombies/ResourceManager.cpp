@@ -76,13 +76,16 @@ const Texture* ResourceManager::LoadTexture(const std::string& filepath, const s
 	return &mTextures[actualKey];
 }
 
-const Texture* ResourceManager::GetTexture(const std::string& key) const {
+const Texture* ResourceManager::GetTexture(const std::string& key, bool warnOnMiss) const {
 	auto it = mTextures.find(key);
 	if (it != mTextures.end()) {
 		return &it->second;
 	}
-	// 与 GetSound/GetMusic 一致：miss 不再静默返回 nullptr，否则裸键名拼错时会变成看不见的 bug。
-	LOG_WARN("ResourceManager") << "纹理未找到: " << key;
+	// 与 GetSound/GetMusic 一致：miss 默认记 WARN，否则裸键名拼错时会变成看不见的 bug。
+	// 但"存在性探测"调用方（warnOnMiss=false）的 miss 是预期路径，由其自身处理，不在此告警。
+	if (warnOnMiss) {
+		LOG_WARN("ResourceManager") << "纹理未找到: " << key;
+	}
 	return nullptr;
 }
 

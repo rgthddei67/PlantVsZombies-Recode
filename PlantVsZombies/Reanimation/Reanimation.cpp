@@ -96,9 +96,12 @@ bool Reanimation::LoadFromFile(const std::string& filePath) {
 							std::string imageName = prop.text().as_string();
 							if (!imageName.empty() && mResourceManager) {
 								// 自动加载相关图片
+								
 								if (imageName.find("IMAGE_REANIM_") == 0) {
 									std::string fileName = imageName.substr(13);
-									const Texture* tex = mResourceManager->GetTexture(fileName);
+									// 存在性探测：未缓存是首次加载的正常路径，紧接着由下方 LoadTexture 加载；
+									// 故关闭 miss 告警，真正"磁盘上找不到图片"的失败由 LoadTexture 分支单独提示。
+									const Texture* tex = mResourceManager->GetTexture(fileName, /*warnOnMiss=*/false);
 									if (!tex) {
 										std::string filePath = "./resources/image/reanim/" + fileName;
 
@@ -121,6 +124,7 @@ bool Reanimation::LoadFromFile(const std::string& filePath) {
 									}
 									frameTransform.image = tex;
 								}
+								
 							}
 						}
 					}
