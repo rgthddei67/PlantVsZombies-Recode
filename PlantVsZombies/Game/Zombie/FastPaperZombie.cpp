@@ -20,7 +20,7 @@ void FastPaperZombie::SetupZombie()
 	// 攻击更疼；狂暴前就略快——mExtraSpeed 乘在 EffectiveSpeed 最外层，腿部动画与地面位移一起缩放，不脱节。
 	// 狂暴(ShieldDrop)倍率沿用基类：mSpeed*=4.5 / mAttackDamage*=2 / mExtraSpeed*=2.0（最终 extra≈2.5，比普通读报更快）。
 	this->mAttackDamage = static_cast<int>(this->mAttackDamage * 1.5f);
-	mExtraSpeed = 1.35f;
+	mExtraSpeed = 1.5f;
 	mAnimator->SetExtraSpeedMultiplier(mExtraSpeed);
 }
 

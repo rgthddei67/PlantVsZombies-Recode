@@ -25,7 +25,7 @@ Mower::Mower(Board* board, MowerType type, AnimationType animType, float x, floa
 	collider->isTrigger = true;
 	collider->layerMask = CollisionLayer::MOWER;
 	collider->collisionMask = CollisionLayer::ZOMBIE;
-	collider->onTriggerEnter = [this](ColliderComponent* other) {
+	collider->onTriggerStay = [this](ColliderComponent* other) {
 		auto* go = other->GetGameObject();
 		if (!go || go->GetObjectType() != ObjectType::OBJECT_ZOMBIE) return;
 
@@ -34,9 +34,8 @@ Mower::Mower(Board* board, MowerType type, AnimationType animType, float x, floa
 			Trigger();
 		}
 
-		Zombie* zombie = dynamic_cast<Zombie*>(go);
-		int totalHP = zombie->mBodyHealth + zombie->mHelmHealth + zombie->mShieldHealth;
-		zombie->TakeDamage(totalHP);
+		dynamic_cast<Zombie*>(go)->TakeDamage(INT32_MAX);
+
 		};
 }
 
