@@ -5,8 +5,9 @@
 #include "ClickableComponent.h"
 #include "./Plant/GameDataManager.h"
 #include "GameObjectManager.h"
-#include <fstream>
+#include <sstream>
 #include <algorithm>
+#include "../FileManager.h"
 
 constexpr float CARD_INIT_POSITION_X = 70.0f;
 constexpr float CARD_INIT_POSITION_Y = 120.0f;
@@ -168,8 +169,9 @@ void PlantAlmanacScene::OnExit()
 void PlantAlmanacScene::LoadInfoFile()
 {
 	mInfoMap.clear();
-	std::ifstream file("./resources/info.txt");
-	if (!file.is_open()) return;
+	std::string content = FileManager::LoadFileAsString("./resources/info.txt");
+	if (content.empty()) return;
+	std::istringstream file(content);
 
 	std::string currentKey;
 	std::string currentValue;

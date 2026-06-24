@@ -2,7 +2,7 @@
 #include "VulkanContext.h"
 #include "../Logger.h"
 
-#include <fstream>
+#include "../FileManager.h"
 
 namespace pvz {
 	namespace {
@@ -20,19 +20,15 @@ namespace pvz {
 	VulkanPipeline::~VulkanPipeline() { Shutdown(); }
 
 	bool VulkanPipeline::LoadFile(const char* path, std::vector<char>& out) {
-		std::ifstream f(path, std::ios::binary | std::ios::ate);
-		if (!f) {
+		out = FileManager::LoadFileAsBinary(path);   // 底层走 SDL_RWops
+		if (out.empty()) {
 			LOG_ERROR("VulkanPipeline") << "Failed to open shader file: " << path;
 			return false;
 		}
-		const std::streamsize size = f.tellg();
-		if (size <= 0 || (size % 4) != 0) {
-			LOG_ERROR("VulkanPipeline") << "Bad SPIR-V file size (" << (long long)size << ") for " << path;
+		if ((out.size() % 4) != 0) {
+			LOG_ERROR("VulkanPipeline") << "Bad SPIR-V file size (" << out.size() << ") for " << path;
 			return false;
 		}
-		out.resize((size_t)size);
-		f.seekg(0);
-		f.read(out.data(), size);
 		return true;
 	}
 
