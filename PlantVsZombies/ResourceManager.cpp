@@ -39,7 +39,12 @@ const Texture* ResourceManager::LoadTexture(const std::string& filepath, const s
 	}
 
 	// 使用 SDL_image 加载表面
-	SDL_Surface* surface = IMG_Load(filepath.c_str());
+	SDL_RWops* rw = SDL_RWFromFile(filepath.c_str(), "rb");
+	if (!rw) {
+		LOG_ERROR("ResourceManager") << "LoadTexture 无法打开图片: " << filepath;
+		return nullptr;
+	}
+	SDL_Surface* surface = IMG_Load_RW(rw, 1);   // freesrc=1
 	if (!surface) {
 		LOG_ERROR("ResourceManager") << "LoadTexture 无法加载图片: " << filepath << " - " << IMG_GetError();
 		return nullptr;
@@ -106,7 +111,12 @@ bool ResourceManager::HasTexture(const std::string& key) const {
 
 bool ResourceManager::LoadTiledTextureGL(const TiledImageInfo& info, const std::string& prefix) {
 	// 加载原图到表面（用于分割）
-	SDL_Surface* loadedSurface = IMG_Load(info.path.c_str());
+	SDL_RWops* rw = SDL_RWFromFile(info.path.c_str(), "rb");
+	if (!rw) {
+		LOG_ERROR("ResourceManager") << "LoadTiledTexture 无法打开图片: " << info.path;
+		return false;
+	}
+	SDL_Surface* loadedSurface = IMG_Load_RW(rw, 1);
 	if (!loadedSurface) {
 		LOG_ERROR("ResourceManager") << "LoadTiledTexture 无法加载图片: " << info.path << " - " << IMG_GetError();
 		return false;
@@ -431,7 +441,12 @@ TTF_Font* ResourceManager::GetFont(const std::string& key, int size) {
 		fontPath = key;
 	}
 
-	TTF_Font* font = TTF_OpenFont(fontPath.c_str(), size);
+	SDL_RWops* fontRw = SDL_RWFromFile(fontPath.c_str(), "rb");
+	if (!fontRw) {
+		LOG_ERROR("ResourceManager") << "GetFont 无法打开字体: " << fontPath << " size: " << size;
+		return nullptr;
+	}
+	TTF_Font* font = TTF_OpenFontRW(fontRw, 1, size);   // freesrc=1
 	if (!font) {
 		LOG_ERROR("ResourceManager") << "GetFont 加载字体失败: " << fontPath << " size: " << size << " - " << TTF_GetError();
 		return nullptr;
@@ -508,7 +523,12 @@ Mix_Chunk* ResourceManager::LoadSound(const std::string& path, const std::string
 		return sounds[actualKey];
 	}
 
-	Mix_Chunk* sound = Mix_LoadWAV(path.c_str());
+	SDL_RWops* sndRw = SDL_RWFromFile(path.c_str(), "rb");
+	if (!sndRw) {
+		LOG_ERROR("ResourceManager") << "LoadSound 无法打开音效: " << path;
+		return nullptr;
+	}
+	Mix_Chunk* sound = Mix_LoadWAV_RW(sndRw, 1);   // freesrc=1
 	if (!sound) {
 		LOG_ERROR("ResourceManager") << "LoadSound 加载音效失败: " << path << " - " << Mix_GetError();
 		return nullptr;
@@ -546,7 +566,12 @@ Mix_Music* ResourceManager::LoadMusic(const std::string& path, const std::string
 		return music[actualKey];
 	}
 
-	Mix_Music* mus = Mix_LoadMUS(path.c_str());
+	SDL_RWops* musRw = SDL_RWFromFile(path.c_str(), "rb");
+	if (!musRw) {
+		LOG_ERROR("ResourceManager") << "LoadMusic 无法打开音乐: " << path;
+		return nullptr;
+	}
+	Mix_Music* mus = Mix_LoadMUS_RW(musRw, 1);   // freesrc=1
 	if (!mus) {
 		LOG_ERROR("ResourceManager") << "LoadMusic 加载音乐失败: " << path << " - " << Mix_GetError();
 		return nullptr;
