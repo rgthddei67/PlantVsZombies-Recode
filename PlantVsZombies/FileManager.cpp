@@ -1,4 +1,5 @@
 #include "FileManager.h"
+#include <SDL2/SDL.h>
 #include "Logger.h"
 #include <filesystem>
 #include <sstream>
@@ -9,34 +10,38 @@ bool FileManager::FileExists(const std::string& path) {
 }
 
 std::string FileManager::LoadFileAsString(const std::string& path) {
-	std::ifstream file(path);
-	if (!file.is_open()) {
-		LogError("Failed to open file: " + path);
-		return "";
-	}
-
-	std::stringstream buffer;
-	buffer << file.rdbuf();
-	return buffer.str();
+    // 复用二进制读取（同样走 SDL_RWops）；空文件与打开失败都返回 ""，与原 ifstream 行为一致。
+    std::vector<char> bytes = LoadFileAsBinary(path);
+    return std::string(bytes.begin(), bytes.end());
 }
 
 std::vector<char> FileManager::LoadFileAsBinary(const std::string& path) {
-	std::ifstream file(path, std::ios::binary | std::ios::ate);
-	if (!file.is_open()) {
-		LogError("Failed to open binary file: " + path);
-		return {};
-	}
+    // SDL_RWFromFile：相对路径在 Android 自动读 APK assets / 桌面读 CWD；绝对路径走真实文件系统。
+    SDL_RWops* rw = SDL_RWFromFile(path.c_str(), "rb");
+    if (!rw) {
+        LogError("Failed to open binary file: " + path);
+        return {};
+    }
 
-	std::streamsize size = file.tellg();
-	file.seekg(0, std::ios::beg);
+    Sint64 size = SDL_RWsize(rw);
+    if (size < 0) {
+        LogError("Failed to get size of binary file: " + path);
+        SDL_RWclose(rw);
+        return {};
+    }
 
-	std::vector<char> buffer(size);
-	if (file.read(buffer.data(), size)) {
-		return buffer;
-	}
+    std::vector<char> buffer(static_cast<size_t>(size));
+    Sint64 readTotal = 0;
+    if (size > 0) {
+        readTotal = SDL_RWread(rw, buffer.data(), 1, static_cast<size_t>(size));
+    }
+    SDL_RWclose(rw);
 
-	LogError("Failed to read binary file: " + path);
-	return {};
+    if (readTotal != size) {
+        LogError("Failed to read binary file: " + path);
+        return {};
+    }
+    return buffer;
 }
 
 bool FileManager::SaveFile(const std::string& path, const std::string& content) {
