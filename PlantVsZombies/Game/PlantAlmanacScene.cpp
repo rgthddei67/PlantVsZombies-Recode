@@ -10,7 +10,7 @@
 
 constexpr float CARD_INIT_POSITION_X = 70.0f;
 constexpr float CARD_INIT_POSITION_Y = 120.0f;
-constexpr int   ALMANAC_MAX_CARDS_PER_ROW = 14;
+constexpr int   ALMANAC_MAX_CARDS_PER_ROW = 12;
 constexpr int   ALMANAC_CARD_H_SPACING = 1;
 constexpr int   ALMANAC_CARD_V_SPACING = 4;
 
