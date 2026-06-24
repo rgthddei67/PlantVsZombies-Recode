@@ -25,6 +25,7 @@ private:
 
 	bool isDragging = false;
 	bool canDrag = true;
+	bool integerOnly = false;   // 为 true 时滑块只能停在整数刻度上
 	Vector dragStartPosition;
 	float dragStartValue;
 
@@ -45,6 +46,9 @@ public:
 	void SetSize(Vector size);
 	void SetValueRange(float min, float max);
 	void SetValue(float value);
+
+	// 仅整数模式：开启后拖动/点击都会把值吸附到最近的整数刻度
+	void SetIntegerOnly(bool enabled);
 
 	// 是否能拖动
 	void SetDrag(bool canDrag);

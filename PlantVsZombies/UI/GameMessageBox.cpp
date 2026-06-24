@@ -125,6 +125,8 @@ void GameMessageBox::Start()
 			CreateSlider
 			(config.pos, config.size * m_scale, config.min, config.max, config.initValue);
 
+		slider->SetIntegerOnly(config.integerOnly);
+
 		slider->SetChangeCallBack([config](float value) {
 			if (config.callback)
 				config.callback(value);

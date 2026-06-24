@@ -3,6 +3,7 @@
 #include "../CursorManager.h"
 #include "../Logger.h"
 #include <algorithm>
+#include <cmath>
 
 Slider::Slider(Vector createPosition, Vector sliderSize,
 	float minVal, float maxVal, float initialValue)
@@ -34,12 +35,23 @@ void Slider::SetValueRange(float min, float max)
 void Slider::SetValue(float value)
 {
 	float oldValue = this->currentValue;
-	this->currentValue = std::clamp(value, minValue, maxValue);
+	float newValue = std::clamp(value, minValue, maxValue);
+	if (integerOnly)
+		newValue = std::round(newValue);   // 吸附到最近的整数刻度
+	this->currentValue = newValue;
 
 	if (oldValue != this->currentValue && this->onChangeCallback)
 	{
 		this->onChangeCallback(this->currentValue);
 	}
+}
+
+void Slider::SetIntegerOnly(bool enabled)
+{
+	this->integerOnly = enabled;
+	// 立即把当前值吸附到整数刻度（纯配置，不触发回调）
+	if (this->integerOnly)
+		this->currentValue = std::round(std::clamp(this->currentValue, minValue, maxValue));
 }
 
 void Slider::SetDrag(bool canDrag)

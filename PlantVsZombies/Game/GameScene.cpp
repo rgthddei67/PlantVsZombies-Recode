@@ -319,7 +319,7 @@ void GameScene::OpenMenu()
 	sliders.push_back({ Vector(530, 225), Vector(135, 10),
 		1, 7, static_cast<float>(GameAPP::GetInstance().Difficulty), [](float value) {
 		GameAPP::GetInstance().Difficulty = static_cast<int>(value);
-	} });
+	}, true });
 
 	texts.push_back
 	({ Vector(480, 165), 22, u8"音乐" , glm::vec4{ 107, 109, 144, 255} });

@@ -34,6 +34,7 @@ public:
 		float max;
 		float initValue;    // 初始化的值
 		std::function<void(float)> callback;
+		bool integerOnly = false;   // true=滑块只能停在整数刻度上（省略则为普通连续滑块）
 	};
 
 	struct TextConfig {
