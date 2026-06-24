@@ -7,11 +7,17 @@
 
 // 插值轨迹点
 struct InterpolationPoint {
-	float value;
-	float time;  // 归一化时间 0-1
+	float value;    // 中点：GetValue 用，保持旧（确定性）行为
+	float time;     // 归一化时间 0-1
+	float valueLo;  // 关键帧 "[a b]" 随机区间下界（GetValueRandomized 用）
+	float valueHi;  // 上界；非区间关键帧时 lo==hi==value
 
-	InterpolationPoint() : value(0.0f), time(0.0f) {}
-	InterpolationPoint(float v, float t) : value(v), time(t) {}
+	InterpolationPoint() : value(0.0f), time(0.0f), valueLo(0.0f), valueHi(0.0f) {}
+	InterpolationPoint(float v, float t) : value(v), time(t), valueLo(v), valueHi(v) {}
+	InterpolationPoint(float v, float t, float lo, float hi) : value(v), time(t), valueLo(lo), valueHi(hi) {}
+
+	// 按逐粒子随机因子 f∈[0,1] 在本关键帧区间内取值；非区间时恒返回 value。
+	float Sample(float f) const { return valueLo + f * (valueHi - valueLo); }
 };
 
 // 插值轨迹（如 "1,90 0" 表示在90%时间值为1，结束时为0）
@@ -28,8 +34,12 @@ struct InterpolationTrack {
 		isRandomRange(false), randomMin(0.0f), randomMax(0.0f) {
 	}
 
-	// 根据归一化时间获取插值
+	// 根据归一化时间获取插值（确定性：同龄同值，全体粒子一致）
 	float GetValue(float normalizedTime) const;
+
+	// 同 GetValue，但每个 "[a b]" 关键帧区间用逐粒子随机因子 f∈[0,1] 取值，
+	// 实现"每粒子各自扩散"。Position 场专用——这正是横向铺开的瘴气云所依赖的随机性。
+	float GetValueRandomized(float normalizedTime, float randomFactor) const;
 
 	// spawn 时调用：随机范围 → 采样一次；常量/插值 → 起始值
 	float SampleConstant() const;

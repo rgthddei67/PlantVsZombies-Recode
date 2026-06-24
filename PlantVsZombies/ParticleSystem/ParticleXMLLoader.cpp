@@ -305,7 +305,9 @@ InterpolationTrack ParticleXMLLoader::ParseInterpolationTrack(const std::string&
 	track.isConstant = false;
 	track.isRandomRange = false;
 	for (const auto& r : raws) {
-		track.points.push_back(InterpolationPoint(r.val, r.time));
+		// 同时保留中点(r.val，供确定性 GetValue)与区间端点(rangeMin/Max，供逐粒子
+		// GetValueRandomized)。非区间关键帧 rangeMin==rangeMax==val，两条路径一致。
+		track.points.push_back(InterpolationPoint(r.val, r.time, r.rangeMin, r.rangeMax));
 	}
 	return track;
 }

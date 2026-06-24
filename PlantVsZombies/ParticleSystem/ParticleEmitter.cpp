@@ -100,14 +100,17 @@ void ParticleEmitter::Update() {
 			particle.colorMultiplier = glm::vec3(red, green, blue);
 
 			for (const ParticleField& field : activeFields) {
+				if (field.type == ParticleFieldType::POSITION) {
+					// 逐粒子采样：每颗粒子按自己的 fieldRandom 因子在区间内扩散
+					particle.fieldOffset.x = field.xTrack.GetValueRandomized(normalizedTime, particle.fieldRandomX);
+					particle.fieldOffset.y = field.yTrack.GetValueRandomized(normalizedTime, particle.fieldRandomY);
+					continue;
+				}
+
 				float xValue = field.xTrack.GetValue(normalizedTime);
 				float yValue = field.yTrack.GetValue(normalizedTime);
 
-				if (field.type == ParticleFieldType::POSITION) {
-					particle.fieldOffset.x = xValue;
-					particle.fieldOffset.y = yValue;
-				}
-				else if (field.type == ParticleFieldType::SHAKE) {
+				if (field.type == ParticleFieldType::SHAKE) {
 					particle.shakeOffset.x = GameRandom::Range(-xValue, xValue);
 					particle.shakeOffset.y = GameRandom::Range(-yValue, yValue);
 				}
@@ -191,11 +194,21 @@ void ParticleEmitter::EmitSingleParticle() {
 		? particle->baseScale
 		: xmlConfig.particleScale.GetValue(0.0f);
 
+	// Position 场逐粒子随机因子：每颗粒子各抽一次、整生命周期保持，
+	// 使其沿 X/Y 区间内的不同"轨道"扩散，瘴气云才会横向铺开而非堆成一坨。
+	particle->fieldRandomX = GameRandom::Range(0.0f, 1.0f);
+	particle->fieldRandomY = GameRandom::Range(0.0f, 1.0f);
+
 	particle->color = glm::vec4(255.0f);
 }
 
 Vector ParticleEmitter::GetSpawnPosition() const {
 	Vector spawnPos = position;
+
+	// 发射器基础偏移：瘴气云据此从植物前方 55px 起步（此前被解析却从未应用）。
+	// 对所有发射器形状生效，BOX/CIRCLE 的散布在此基础上叠加。
+	spawnPos.x += xmlConfig.emitterOffsetX;
+	spawnPos.y += xmlConfig.emitterOffsetY;
 
 	switch (xmlConfig.emitterType) {
 	case EmitterType::POINT:

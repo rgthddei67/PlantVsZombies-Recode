@@ -22,6 +22,8 @@ void Particle::Reset() {
 	brightness = 1.0f;
 	stretch = 1.0f;
 	baseScale = 1.0f;
+	fieldRandomX = 0.5f;  // 默认中点，等价于旧的确定性行为（EmitSingleParticle 会重抽）
+	fieldRandomY = 0.5f;
 	colorMultiplier = glm::vec3(1.0f);
 	currentFrame = 0;
 	animationTimer = 0.0f;

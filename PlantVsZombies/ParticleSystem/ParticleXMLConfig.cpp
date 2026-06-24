@@ -42,6 +42,45 @@ float InterpolationTrack::GetValue(float normalizedTime) const {
 	return points.back().value;
 }
 
+float InterpolationTrack::GetValueRandomized(float normalizedTime, float randomFactor) const {
+	// 单一区间："[a b]" → 用逐粒子因子在区间内取值（整生命周期保持，因子不变）
+	if (isRandomRange) {
+		return randomMin + randomFactor * (randomMax - randomMin);
+	}
+	if (isConstant) {
+		return constantValue;
+	}
+	if (points.empty()) {
+		return 0.0f;
+	}
+	if (points.size() == 1) {
+		return points[0].Sample(randomFactor);
+	}
+
+	normalizedTime = std::max(0.0f, std::min(1.0f, normalizedTime));
+
+	// 端点夹住，与 GetValue 语义一致，仅把"取值"换成逐粒子区间采样
+	if (normalizedTime <= points.front().time) {
+		return points.front().Sample(randomFactor);
+	}
+	if (normalizedTime >= points.back().time) {
+		return points.back().Sample(randomFactor);
+	}
+
+	for (size_t i = 0; i < points.size() - 1; i++) {
+		if (normalizedTime >= points[i].time && normalizedTime <= points[i + 1].time) {
+			float t = (normalizedTime - points[i].time) / (points[i + 1].time - points[i].time);
+			// 同一个 randomFactor 贯穿所有关键帧 → 粒子有一条稳定的扩散"轨道"，
+			// 既保留"从 0 随时间扩散出去"的动画，又让每粒子落点各不相同。
+			float v0 = points[i].Sample(randomFactor);
+			float v1 = points[i + 1].Sample(randomFactor);
+			return v0 + t * (v1 - v0);
+		}
+	}
+
+	return points.back().Sample(randomFactor);
+}
+
 float InterpolationTrack::SampleConstant() const {
 	if (isRandomRange) {
 		return GameRandom::Range(randomMin, randomMax);

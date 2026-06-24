@@ -30,12 +30,17 @@
     },
     {
       "name": "clang-release",
-      "displayName": "Clang Release (-O3 -march=native -flto, 对应旧 ClangRelease|x64)",
+      "displayName": "Clang Release (-O2 -march=native -flto, 对应旧 ClangRelease|x64)",
       "inherits": "base",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
         "CMAKE_CXX_COMPILER": "C:/Program Files/Microsoft Visual Studio/18/Community/VC/Tools/Llvm/x64/bin/clang-cl.exe",
         "CMAKE_LINKER_TYPE": "LLD"
+      },
+      "vendor": {
+        "microsoft.com/VisualStudioSettings/CMake/1.0": {
+            "intelliSenseMode": "clang-x64"
+        }
       }
     }
   ],
