@@ -1,4 +1,7 @@
 ﻿#include "GameInfoSaver.h"
+#if defined(__ANDROID__)
+#include <SDL2/SDL.h>
+#endif
 #include "GameApp.h"
 #include "./Game/Board.h"
 #include "./Game/GameScene.h"
@@ -20,6 +23,27 @@
 #include "Logger.h"
 
 namespace {
+	// ---- 存档根目录 -------------------------------------------------------------
+	// 桌面(Win/Linux)：沿用 "./saves"(相对 CWD，行为不变)。
+	// Android：CWD 不可写，改用 SDL 提供的应用私有可写目录。
+	const std::string& GetSaveRoot() {
+#if defined(__ANDROID__)
+		static const std::string root = []() -> std::string {
+			char* p = SDL_GetPrefPath("PvZ", "PlantsVsZombies");
+			if (!p) return "saves";                 // 极端兜底
+			std::string s(p);
+			SDL_free(p);
+			if (!s.empty() && (s.back() == '/' || s.back() == '\\'))
+				s.pop_back();                       // 去尾斜杠，拼接统一加 "/"
+			return s;
+		}();
+		return root;
+#else
+		static const std::string root = "./saves";
+		return root;
+#endif
+	}
+
 	// ---- Animator 播放状态机的统一存读档 ----------------------------------------
 	// 历史上只持久化 animTrack(当前轨道) + animFrame(当前帧)，读档时一律 PlayTrack(track)。
 	// 但 PlayTrack 会把 mPlayingState 强制写成 PLAY_REPEAT，于是一只正在 PlayTrackOnce 的
@@ -74,7 +98,7 @@ bool GameInfoSaver::SavePlayerInfoImpl()
 	if (GameAPP::mAutoTestMode) return true;   // AutoTest：不碰玩家存档
 	auto& gameApp = GameAPP::GetInstance();
 
-	FileManager::CreateDirectory("./saves");
+	FileManager::CreateDirectory(GetSaveRoot());
 
 	nlohmann::json j;
 	j["vsync"] = gameApp.mVsync;
@@ -88,14 +112,14 @@ bool GameInfoSaver::SavePlayerInfoImpl()
 	j["musicVolume"] = AudioSystem::GetMusicVolume();
 	j["havecards"] = gameApp.mHaveCards;
 
-	return FileManager::SaveJsonFile("./saves/PlayerInfo.json", j);
+	return FileManager::SaveJsonFile(GetSaveRoot() + "/PlayerInfo.json", j);
 }
 
 bool GameInfoSaver::LoadPlayerInfoImpl()
 {
 	if (GameAPP::mAutoTestMode) return true;   // AutoTest：全默认状态，保证确定性
 	nlohmann::json j;
-	if (!FileManager::LoadJsonFile("./saves/PlayerInfo.json", j))
+	if (!FileManager::LoadJsonFile(GetSaveRoot() + "/PlayerInfo.json", j))
 		return false;
 
 	auto& gameApp = GameAPP::GetInstance();
@@ -121,7 +145,7 @@ bool GameInfoSaver::SaveLevelDataImpl(Board* board, CardSlotManager* manager)
 	const bool stateOk = (board->mBoardState == BoardState::GAME) ||
 		(board->mIsSurvival && board->mBoardState == BoardState::CHOOSE_CARD);
 	if (!stateOk) return false;
-	FileManager::CreateDirectory("./saves");
+	FileManager::CreateDirectory(GetSaveRoot());
 
 	nlohmann::json j;
 
@@ -318,14 +342,14 @@ bool GameInfoSaver::SaveLevelDataImpl(Board* board, CardSlotManager* manager)
 		j["survivalCardCooldowns"] = cooldownArr;
 	}
 
-	std::string filename = "./saves/level" + std::to_string(board->mLevel) + "_data.json";
+	std::string filename = GetSaveRoot() + "/level" + std::to_string(board->mLevel) + "_data.json";
 	return FileManager::SaveJsonFile(filename, j);
 }
 
 bool GameInfoSaver::LoadLevelDataImpl(Board* board, CardSlotManager* manager)
 {
 	if (GameAPP::mAutoTestMode) return true;   // AutoTest：永远全新关卡（不跳过选卡流程）
-	std::string filename = "./saves/level" + std::to_string(board->mLevel) + "_data.json";
+	std::string filename = GetSaveRoot() + "/level" + std::to_string(board->mLevel) + "_data.json";
 	nlohmann::json j;
 	if (!FileManager::LoadJsonFile(filename, j))
 		return false;
@@ -579,7 +603,7 @@ bool GameInfoSaver::LoadLevelDataImpl(Board* board, CardSlotManager* manager)
 
 bool GameInfoSaver::DeleteLevelData(Board* board)
 {
-	std::string filename = "./saves/level" + std::to_string(board->mLevel) + "_data.json";
+	std::string filename = GetSaveRoot() + "/level" + std::to_string(board->mLevel) + "_data.json";
 	return FileManager::DeleteFile(filename);
 }
 
