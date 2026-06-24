@@ -11,8 +11,10 @@
 
 int main(int argc, char** argv)
 {
-	system("chcp 65001");
+#if defined(_WIN32)
+	system("chcp 65001");   // 设控制台 UTF-8 代码页：仅 Windows 需要
 	system("cls");
+#endif
 	CrashHandler::Initialize();
 	GameRandom::RandomizeSeed();
 

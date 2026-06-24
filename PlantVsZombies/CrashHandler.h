@@ -2,52 +2,38 @@
 #ifndef _CRASH_HANDLER_H
 #define _CRASH_HANDLER_H
 
+#include <string>
+
+#if defined(_WIN32)
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
 #include <windows.h>
-#include <string>
+#endif
 
 class CrashHandler {
+public:
+	// 初始化崩溃处理器(VEH)。非 Windows 平台为空操作。
+	static void Initialize();
+
+	// 清理崩溃处理器。非 Windows 平台为空操作。
+	static void Cleanup();
+
+#if defined(_WIN32)
 private:
 	static PVOID vehHandle;
 	static LONG64 lastUACTime;
 
-public:
-	// 初始化崩溃处理器(VEH)
-	static void Initialize();
-
-	// 清理崩溃处理器
-	static void Cleanup();
-
-private:
-	// VEH 异常处理函数
 	static LONG WINAPI VectoredExceptionHandler(PEXCEPTION_POINTERS exceptionInfo);
-
-	// 处理崩溃的主函数
 	static void HandleCrash(PEXCEPTION_POINTERS exceptionInfo);
-
-	// 处理栈溢出崩溃
 	static void HandleStackOverflowMinimal(PEXCEPTION_POINTERS exceptionInfo);
-
-	// 是不是崩溃异常
 	static bool IsCrashException(DWORD exceptionCode);
-
-	// 生成崩溃报告
 	static std::string GenerateCrashReport(PEXCEPTION_POINTERS exceptionInfo);
-
-	// 显示崩溃对话框
 	static void ShowCrashDialog(PEXCEPTION_POINTERS exceptionInfo, const std::string& reportPath);
-
-	// 获取异常代码的描述
 	static std::string GetExceptionCodeString(DWORD exceptionCode);
-
-	// 获取栈跟踪信息
 	static std::string GetStackTrace(PEXCEPTION_POINTERS exceptionInfo);
-
-	// 获取模块名称
 	static std::string GetModuleName(HMODULE module);
-
 	static bool IsUACByTimeWindow(PEXCEPTION_POINTERS exceptionInfo);
+#endif
 };
 
-#endif
+#endif // _CRASH_HANDLER_H

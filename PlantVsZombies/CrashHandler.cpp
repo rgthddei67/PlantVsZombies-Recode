@@ -1,4 +1,5 @@
 ﻿#include "CrashHandler.h"
+#if defined(_WIN32)
 #include "Logger.h"
 #include <fstream>
 #include <sstream>
@@ -465,3 +466,10 @@ bool CrashHandler::IsUACByTimeWindow(PEXCEPTION_POINTERS exceptionInfo) {
 
 	return false;
 }
+
+#else   // !_WIN32
+
+void CrashHandler::Initialize() {}
+void CrashHandler::Cleanup() {}
+
+#endif  // _WIN32
