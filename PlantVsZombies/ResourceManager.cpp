@@ -78,7 +78,12 @@ const Texture* ResourceManager::LoadTexture(const std::string& filepath, const s
 
 const Texture* ResourceManager::GetTexture(const std::string& key) const {
 	auto it = mTextures.find(key);
-	return (it != mTextures.end()) ? &it->second : nullptr;
+	if (it != mTextures.end()) {
+		return &it->second;
+	}
+	// 与 GetSound/GetMusic 一致：miss 不再静默返回 nullptr，否则裸键名拼错时会变成看不见的 bug。
+	LOG_WARN("ResourceManager") << "纹理未找到: " << key;
+	return nullptr;
 }
 
 void ResourceManager::UnloadTexture(const std::string& key) {
