@@ -27,10 +27,9 @@ bool ParticleXMLLoader::LoadFromDirectory(const std::string& directory) {
 
 bool ParticleXMLLoader::LoadFromFile(const std::string& filePath) {
 	pugi::xml_document doc;
-	pugi::xml_parse_result result = doc.load_file(filePath.c_str());
-
-	if (!result) {
-		LOG_ERROR("Particle") << "加载粒子XML文件失败: " << filePath << "，错误: " << result.description();
+	// 统一走 SDL_RWops(FileManager)，使粒子配置在 Android 也能从 APK assets 读取。
+	if (!FileManager::LoadXMLFile(filePath, doc)) {
+		LOG_ERROR("Particle") << "加载粒子XML文件失败: " << filePath;
 		return false;
 	}
 

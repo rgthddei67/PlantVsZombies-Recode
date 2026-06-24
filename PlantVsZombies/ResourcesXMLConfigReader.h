@@ -4,6 +4,7 @@
 
 #include "pugixml.hpp"
 #include "Logger.h"
+#include "FileManager.h"
 #include <vector>
 #include <string>
 #include <unordered_map>
@@ -31,11 +32,9 @@ public:
 
 	bool LoadConfig(const std::string& xmlPath) {
 		pugi::xml_document doc;
-		pugi::xml_parse_result result = doc.load_file(xmlPath.c_str());
-
-		if (!result) {
-			LOG_ERROR("ResourceXML") << "加载XML配置文件失败: " << xmlPath
-				<< "，错误: " << result.description();
+		// 统一走 SDL_RWops(FileManager)，使资源总清单在 Android 也能从 APK assets 读取。
+		if (!FileManager::LoadXMLFile(xmlPath, doc)) {
+			LOG_ERROR("ResourceXML") << "加载XML配置文件失败: " << xmlPath;
 			return false;
 		}
 
