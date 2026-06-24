@@ -116,7 +116,7 @@ bool ResourceManager::LoadTiledTextureGL(const TiledImageInfo& info, const std::
 		LOG_ERROR("ResourceManager") << "LoadTiledTexture 无法打开图片: " << info.path;
 		return false;
 	}
-	SDL_Surface* loadedSurface = IMG_Load_RW(rw, 1);
+	SDL_Surface* loadedSurface = IMG_Load_RW(rw, 1);   // freesrc=1
 	if (!loadedSurface) {
 		LOG_ERROR("ResourceManager") << "LoadTiledTexture 无法加载图片: " << info.path << " - " << IMG_GetError();
 		return false;
