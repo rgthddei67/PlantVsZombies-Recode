@@ -1,6 +1,11 @@
 #include "FumeShroom.h"
 #include "../Board.h"
 
+namespace {
+	constexpr int   kFumeDamage = 20;       // 每次喷射伤害（约一发豌豆，原版 DoRowAreaDamage(20, ...)）
+	constexpr float kFumeReach = 380.0f;    // 喷雾横向覆盖范围（约 4 格锥形；检测与命中共用同一距离）
+}
+
 void FumeShroom::SetupPlant()
 {
 	Shroom::SetupPlant();
@@ -11,6 +16,7 @@ void FumeShroom::SetupPlant()
 		if (!mBoard) return;
 		g_particleSystem->EmitEffect("FumeCloud", GetPosition());
 		AudioSystem::PlaySound("SOUND_FUME", 0.28f);
+		FumeAttack();   // 喷雾成形即攻击：对本行范围内全部僵尸造成穿透伤害
 		}, true);
 }
 
@@ -44,11 +50,26 @@ bool FumeShroom::HasZombieInRow()
 			mBoard->mEntityManager.ForEachZombieInRow(mRow, [&](Zombie* zombie) {
 				if (found) return;  // 已命中，跳过本行其余
 				float dx = zombie->GetPosition().x - thisX;
-				if (dx >= 0 && dx <= 380.0f)
+				if (dx >= 0 && dx <= kFumeReach)
 					found = true;
 				});
 			return found;
 		}
 	}
 	return false;
+}
+
+// 喷雾区域攻击：原版大喷菇不发射子弹，而是对本行锥形范围内的所有僵尸瞬时造成伤害，
+// 且穿透二类护盾（铁门/报纸）——护盾照常受损/掉落，但全额伤害同时透到头盔+本体。
+// 在第 27 帧（喷雾成形）由 frame event 触发，命中时重新扫描本行（僵尸已移动），与检测互不依赖。
+void FumeShroom::FumeAttack()
+{
+	if (!mBoard) return;
+
+	const float thisX = GetPosition().x;
+	mBoard->mEntityManager.ForEachZombieInRow(mRow, [&](Zombie* zombie) {
+		const float dx = zombie->GetPosition().x - thisX;
+		if (dx >= 0 && dx <= kFumeReach)
+			zombie->TakeDamage(kFumeDamage, /*penetrateShield=*/true);
+		});
 }

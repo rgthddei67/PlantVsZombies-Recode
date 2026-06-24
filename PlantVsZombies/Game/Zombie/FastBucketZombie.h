@@ -50,9 +50,9 @@ public:
 		mCooldownTimer = std::max(mCooldownTimer, timer);
 	}
 
-	void TakeDamage(int damage) override {
+	void TakeDamage(int damage, bool penetrateShield) override {
 		if (GameRandom::Range(1, 10) <= 2) return;
-		Zombie::TakeDamage(damage);
+		Zombie::TakeDamage(damage, penetrateShield);
 	}
 
 protected:

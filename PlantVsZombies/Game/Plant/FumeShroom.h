@@ -11,6 +11,7 @@ protected:
 	float mShootTimer = 1.0f;    // 射击计时器
 
 	bool HasZombieInRow();		// 检测本行是否有僵尸
+	void FumeAttack();			// 喷雾区域攻击：对本行锥形范围内全部僵尸瞬时穿透伤害
 
 	void SetupPlant() override;
 

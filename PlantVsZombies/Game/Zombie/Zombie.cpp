@@ -361,7 +361,7 @@ void Zombie::TakeBodyDamage(int damage)
 	}
 }
 
-void Zombie::TakeDamage(int damage)
+void Zombie::TakeDamage(int damage, bool penetrateShield)
 {
 	if (damage <= 0) return;
 
@@ -376,13 +376,16 @@ void Zombie::TakeDamage(int damage)
 
 	int remainingDamage = damage;
 
-	// 1. 优先扣除二类
+	// 1. 优先扣除二类护盾
 	if (mShieldType != ShieldType::SHIELDTYPE_NONE)
 	{
-		remainingDamage = TakeShieldDamage(remainingDamage);
+		int overflow = TakeShieldDamage(remainingDamage);
+		// 穿透（大喷菇）：护盾照常受损/掉落（触发报纸狂暴等），但全额伤害继续透到头盔+本体；
+		// 非穿透时维持原行为——只有击穿护盾后的溢出伤害才进入头盔/本体。
+		remainingDamage = penetrateShield ? damage : overflow;
 	}
 
-	// 2. 然后扣除头盔
+	// 2. 然后扣除头盔（穿透不绕过一类头盔，原版仅穿透二类护盾）
 	if (remainingDamage > 0 && mHelmType != HelmType::HELMTYPE_NONE)
 	{
 		remainingDamage = TakeHelmDamage(remainingDamage);

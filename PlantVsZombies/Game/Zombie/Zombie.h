@@ -70,7 +70,9 @@ public:
 	void Update() override;
 	void Draw(Graphics* g) override;	// 重写以叠加血量显示
 	virtual void ZombieUpdate(float scaledTime) {}		// 子类重写Update用这个
-	virtual void TakeDamage(int damage);
+	// penetrateShield=true：穿透二类护盾（大喷菇喷雾）——护盾照常受损/掉落，
+	// 但全额伤害继续透到头盔+本体（还原原版 DoRowAreaDamage(20, 2U) 的位标志语义）。
+	virtual void TakeDamage(int damage, bool penetrateShield = false);
 	virtual void SaveExtraData(nlohmann::json& j) const {}	// 保存额外数据
 	virtual void LoadExtraData(const nlohmann::json& j) {}	// 加载额外数据
 	virtual void ZombieItemUpdate() const; // 处理僵尸读档的时候的手臂、防具等处理

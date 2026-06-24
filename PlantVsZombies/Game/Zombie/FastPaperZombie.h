@@ -26,9 +26,10 @@ public:
 	}
 
 	// 加强：被攻击有概率完全免伤（更耐打），其余伤害分配（护盾/本体）沿用基类。
-	void TakeDamage(int damage) override {
+	// penetrateShield 透传：大喷菇穿透命中同样先过这层免伤判定。
+	void TakeDamage(int damage, bool penetrateShield) override {
 		if (GameRandom::Range(1, 10) <= 1) return;   // 10% 免伤
-		PaperZombie::TakeDamage(damage);
+		PaperZombie::TakeDamage(damage, penetrateShield);
 	}
 
 protected:
