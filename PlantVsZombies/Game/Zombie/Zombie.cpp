@@ -273,8 +273,7 @@ void Zombie::ZombieMove(float scaledDelta, TransformComponent* transform)
 
 		speed = (mGroundTrackIndex >= 0
 			? mAnimator->GetTrackVelocity(mGroundTrackIndex)
-			: mAnimator->GetTrackVelocity("_ground"))
-			+ mSpeed;
+			: mAnimator->GetTrackVelocity("_ground")) * mSpeed;
 		if (mIsMindControlled)
 		{
 			transform->Translate(speed * scaledDelta, 0);

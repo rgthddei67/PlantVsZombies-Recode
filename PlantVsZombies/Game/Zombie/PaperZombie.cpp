@@ -80,13 +80,13 @@ void PaperZombie::ShieldDrop()
 	mHasNewspaper = false;
 	mIsGasp = true;
 
-	// 掉报纸后进入狂奔：位移固定项 ×4；奔跑快慢主要由 anim_walk_nopaper 的 clip 决定（逐轨道控制）。
-	mSpeed *= 4.5f;
+	// 掉报纸后进入狂奔：位移固定项 ×1.8；奔跑快慢主要由 anim_walk_nopaper 的 clip 决定（逐轨道控制）。
+	mSpeed *= 1.35f;
 	mAttackDamage *= 2;
 
 	// 再叠一层轻微全局倍率，乘在 EffectiveSpeed 最外层（与逐轨道 clip 正交，啃食/gasp/走路一并 ×1.1）。
 	// 必须调用 SetExtraSpeedMultiplier 才会生效；带 cooldown 判断与减速逻辑保持一致。
-	mExtraSpeed *= 2.0f;
+	mExtraSpeed *= 1.4f;
 	mAnimator->SetExtraSpeedMultiplier(mExtraSpeed * (mCooldownTimer > 0.0f ? 0.6f : 1.0f));
 
 	// gasp 播完后的回切轨道：若狂暴前已在啃食则回到啃食，否则狂奔。

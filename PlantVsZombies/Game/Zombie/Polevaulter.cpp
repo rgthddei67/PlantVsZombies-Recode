@@ -42,7 +42,7 @@ void Polevaulter::SetupZombie()
 				};
 		}
 	}
-	this->mSpeed = GameRandom::Range(17.5f, 27.0f);
+	this->mSpeed = GameRandom::Range(15.0f, 18.0f);
 
 	this->mBodyMaxHealth = 500;
 	this->mBodyHealth = 500;
