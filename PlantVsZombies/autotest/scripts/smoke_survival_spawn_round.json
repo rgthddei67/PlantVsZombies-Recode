@@ -1,0 +1,21 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 1000 },
+    { "op": "choose_cards", "cards": ["PLANT_PEASHOOTER"] },
+    { "op": "wait_state", "state": "GAME" },
+    { "op": "wait_frames", "value": 30 },
+
+    { "op": "force_survival_round", "round": 1 },
+    { "op": "dump_state", "name": "round1.json" },
+    { "op": "force_survival_round", "round": 2 },
+    { "op": "dump_state", "name": "round2.json" },
+    { "op": "force_survival_round", "round": 3 },
+    { "op": "dump_state", "name": "round3.json" },
+    { "op": "force_survival_round", "round": 6 },
+    { "op": "dump_state", "name": "round6.json" },
+    { "op": "force_survival_round", "round": 13 },
+    { "op": "dump_state", "name": "round13.json" },
+
+    { "op": "quit" }
+  ]
+}
