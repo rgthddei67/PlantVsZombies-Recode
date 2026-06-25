@@ -55,6 +55,18 @@ constexpr int   SURVIVAL_ENDLESS_NIGHT_LEVEL = 1001; // 黑夜无尽专用 level
 constexpr int   SURVIVAL_WAVES_PER_ROUND = 10;   // 每轮（每面旗）波数，10 与"第10波=一大波"逻辑对齐
 constexpr float SURVIVAL_BUDGET_GROWTH = 0.55f;  // 每轮单波点数预算增长系数
 constexpr float SURVIVAL_HP_GROWTH     = 0.05f;  // 每轮僵尸全局血量倍率线性增长系数（可调）：mult = 1 + x*(轮次-1)
+// 生存模式出怪池子组装(见 BuildSurvivalSpawnList)
+constexpr int SURVIVAL_RANDOM_POOL_START_ROUND = 3;   // 第几轮起改为"普通+随机子集"
+constexpr int SURVIVAL_POOL_BASE_EXTRA         = 1;   // 第3轮的随机种类数(除普通外)
+constexpr int SURVIVAL_POOL_GROWTH_EVERY       = 2;   // 每多少轮 +1 种(缓慢增长)
+// 旗数递减(复刻原版 TodAnimateCurve(18,50,flags,0,15))：深局提前解锁强僵尸；
+// 当前阵容(survivalRound 最高6、18旗才起步)下休眠，为未来高 survivalRound 僵尸预留。
+constexpr int SURVIVAL_UNLOCK_REDUCE_START_FLAG = 18;
+constexpr int SURVIVAL_UNLOCK_REDUCE_END_FLAG   = 50;
+constexpr int SURVIVAL_UNLOCK_REDUCE_MAX        = 15;
+// 杂兵稀释(复刻原版 Normal→base/10、Cone→base/4，TodAnimateCurve(10,50,...))：仅作用于抽中权重。
+constexpr int SURVIVAL_DILUTE_START_FLAG = 10;
+constexpr int SURVIVAL_DILUTE_END_FLAG   = 50;
 
 enum class BoardState {
 	CHOOSE_CARD,
@@ -120,6 +132,8 @@ private:
 	inline ZombieType PickZombieType(int remainingPoints);
 	inline ZombieType GetWeightedRandomZombie();
 	inline ZombieType GetCheapestZombie();
+	// 生存模式"抽中权重"：对 NORMAL/CONE 随轮稀释(仅供 GetWeightedRandomZombie；成本侧仍用 GetZombieWeight)
+	int GetSurvivalPickWeight(ZombieType type) const;
 
 	float GetZombieSpawnY(int row) const;
 
@@ -147,6 +161,7 @@ public:
 	void SetZombieSpawnList(std::vector<ZombieType>& zombieTypeList) {
 		this->mSpawnZombieList = zombieTypeList;
 	}
+	const std::vector<ZombieType>& GetSpawnZombieList() const { return mSpawnZombieList; }
 
 	// 初始化格子 默认5行9列
 	void InitializeCell(int rows = 4, int cols = 8);

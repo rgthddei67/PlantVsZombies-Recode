@@ -17,6 +17,22 @@
 #include "../FileManager.h"
 #include <unordered_set>
 #include <climits>
+#include <algorithm>   // std::max, std::swap
+#include <cmath>       // std::lround
+
+// 复刻原版 TodCommon.TodAnimateCurve(..., TodCurves.Linear)：把 round 在 [startRound,endRound]
+// 归一化并钳到 [0,1]，在 [fromVal,toVal] 间线性插值，四舍五入取整。
+static int SurvivalCurveLerp(int startRound, int endRound, int round,
+                             int fromVal, int toVal)
+{
+	if (endRound <= startRound) return toVal;            // 防 0 除
+	float t = static_cast<float>(round - startRound)
+	        / static_cast<float>(endRound - startRound);
+	if (t < 0.0f) t = 0.0f;
+	if (t > 1.0f) t = 1.0f;
+	return static_cast<int>(std::lround(
+		static_cast<float>(fromVal) + t * static_cast<float>(toVal - fromVal)));
+}
 
 Board::Board(GameScene* gameScene, Background background, int level)
 {
@@ -472,20 +488,34 @@ inline int Board::SelectSpawnRow()
 	return mRows - 1;
 }
 
+int Board::GetSurvivalPickWeight(ZombieType type) const
+{
+	int base = GameDataManager::GetInstance().GetZombieWeight(type);
+	if (!mIsSurvival) return base;
+	int flags = mSurvivalRound - 1;   // 已完成轮数(对应原版 survivalFlagsCompleted)
+	if (type == ZombieType::ZOMBIE_NORMAL)
+		return SurvivalCurveLerp(SURVIVAL_DILUTE_START_FLAG, SURVIVAL_DILUTE_END_FLAG,
+		                         flags, base, base / 10);   // 原版 Normal: base → base/10
+	if (type == ZombieType::ZOMBIE_TRAFFIC_CONE)
+		return SurvivalCurveLerp(SURVIVAL_DILUTE_START_FLAG, SURVIVAL_DILUTE_END_FLAG,
+		                         flags, base, base / 4);     // 原版 Cone: base → base/4
+	return base;
+}
+
 inline ZombieType Board::GetWeightedRandomZombie()
 {
 	if (mSpawnZombieList.empty()) return ZombieType::ZOMBIE_NORMAL;
 
 	int totalWeight = 0;
 	for (ZombieType type : mSpawnZombieList)
-		totalWeight += GameDataManager::GetInstance().GetZombieWeight(type);
+		totalWeight += GetSurvivalPickWeight(type);
 
 	if (totalWeight <= 0) return mSpawnZombieList[0];
 
 	int randVal = GameRandom::Range(0, totalWeight - 1);
 	for (ZombieType type : mSpawnZombieList)
 	{
-		randVal -= GameDataManager::GetInstance().GetZombieWeight(type);
+		randVal -= GetSurvivalPickWeight(type);
 		if (randVal < 0) return type;
 	}
 	return mSpawnZombieList[0];
