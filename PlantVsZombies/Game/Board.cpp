@@ -689,10 +689,10 @@ void Board::BuildSurvivalSpawnList(int round)
 
 void Board::UpdateSurvivalLevelName()
 {
-	if (mLevel = 1000) {
+	if (mLevel == 1000) {
 		mLevelName = u8"生存模式：白天无尽 第" + std::to_string(mSurvivalRound) + u8"轮";
 	}
-	else if (mLevel = 1001) {
+	else if (mLevel == 1001) {
 		mLevelName = u8"生存模式：黑夜无尽 第" + std::to_string(mSurvivalRound) + u8"轮";
 	}
 	else {
