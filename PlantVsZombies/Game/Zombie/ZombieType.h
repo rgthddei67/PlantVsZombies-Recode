@@ -37,6 +37,10 @@ enum class ZombieType {
 	ZOMBIE_FASTBUCKET,
 	ZOMBIE_NEWSPAPER,
 	ZOMBIE_FASTPAPER,	// 加强版读报僵尸
+
+	// ↓ 哨兵：置于已实现僵尸(0~6)之后，使 [0,NUM_ZOMBIE_TYPES) 只覆盖已实现类型，
+	//   生存模式随机抽取据此绝不会抽到下方未实现僵尸。
+	NUM_ZOMBIE_TYPES,
 	ZOMBIE_DOOR,
 	ZOMBIE_FOOTBALL,
 	ZOMBIE_DANCER,
@@ -64,7 +68,6 @@ enum class ZombieType {
 	ZOMBIE_SQUASH_HEAD,
 	ZOMBIE_TALLNUT_HEAD,
 	ZOMBIE_REDEYE_GARGANTUAR,
-	NUM_ZOMBIE_TYPES,
 };
 
 #endif
