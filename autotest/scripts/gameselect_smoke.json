@@ -2,8 +2,12 @@
   "name": "gameselect_smoke",
   "commands": [
     { "op": "wait_frames", "value": 60 },
-    { "op": "screenshot", "name": "gameselect" },
-    { "op": "wait_frames", "value": 5 },
+    { "op": "click", "x": 689, "y": 400 },
+    { "op": "wait_frames", "value": 60 },
+    { "op": "screenshot", "name": "select" },
+    { "op": "click", "x": 321, "y": 207 },
+    { "op": "wait_frames", "value": 150 },
+    { "op": "screenshot", "name": "night_endless" },
     { "op": "quit" }
   ]
 }

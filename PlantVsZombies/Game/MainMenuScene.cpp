@@ -49,8 +49,8 @@ void MainMenuScene::Update()
 		auto& gameApp = GameAPP::GetInstance();
 		auto& SceneMgr = SceneManager::GetInstance();
 		gameApp.GetGraphics().SetCameraPosition(0, 0);
-		SceneMgr.SetGlobalData("EnterLevel", std::to_string(SURVIVAL_ENDLESS_LEVEL));
-		SceneMgr.SwitchTo("GameScene");
+		// 不再直进无尽关，先进「选择关卡」界面，由玩家选白天/黑夜无尽
+		SceneMgr.SwitchTo("GameSelectScene");
 		return;
 	}
 }

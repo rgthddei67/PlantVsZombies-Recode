@@ -12,8 +12,9 @@
 class GameSelectScene : public Scene {
 private:
 	std::shared_ptr<Button> mBackMenuButton;
-	std::vector<std::shared_ptr<Button>> mCards;   // 9 张占位关卡卡片
+	std::vector<std::shared_ptr<Button>> mCards;   // 当前启用的关卡卡片
 	bool mReadyToSwitchMainMenu = false;
+	int  mPendingEnterLevel = -1;                  // 待进入的关卡号(>=0 时 Update 进 GameScene)
 
 public:
 	void OnEnter() override;

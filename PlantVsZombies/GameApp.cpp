@@ -522,14 +522,17 @@ void GameAPP::DrawText(const std::string& text, const Vector& position,
 Background GameAPP::GetBackgroundID(int level) const
 {
 	// TODO: 新增地图改这里
-	if (level >= 1 && level <= 9) {
+	if (level == SURVIVAL_ENDLESS_NIGHT_LEVEL) {
+		return Background::GROUND_NIGHT; // 黑夜无尽
+	}
+	else if (level >= 1 && level <= 9) {
 		return Background::GROUND_DAY;   // 白天
 	}
 	else if (level >= 10 && level <= 19) {
 		return Background::GROUND_NIGHT; // 黑天
 	}
 	else {
-		return Background::GROUND_DAY;   // 默认白天
+		return Background::GROUND_DAY;   // 默认白天（含白天无尽 SURVIVAL_ENDLESS_LEVEL）
 	}
 }
 

@@ -50,7 +50,8 @@ constexpr float SPAWN_SUN_TIME = 15.0f;
 constexpr int MAX_ZOMBIES_PER_WAVE = 120;	// 普通模式一波最大僵尸数量
 
 // ===== 生存模式设置 =====
-constexpr int   SURVIVAL_ENDLESS_LEVEL = 1000;   // 生存模式专用 level 号（> 50，避开冒险关推进逻辑）
+constexpr int   SURVIVAL_ENDLESS_LEVEL = 1000;       // 白天无尽专用 level 号（> 50，避开冒险关推进逻辑）
+constexpr int   SURVIVAL_ENDLESS_NIGHT_LEVEL = 1001; // 黑夜无尽专用 level 号（背景走 GROUND_NIGHT，逻辑同 1000）
 constexpr int   SURVIVAL_WAVES_PER_ROUND = 10;   // 每轮（每面旗）波数，10 与"第10波=一大波"逻辑对齐
 constexpr float SURVIVAL_BUDGET_GROWTH = 0.55f;  // 每轮单波点数预算增长系数
 constexpr float SURVIVAL_HP_GROWTH     = 0.05f;  // 每轮僵尸全局血量倍率线性增长系数（可调）：mult = 1 + x*(轮次-1)

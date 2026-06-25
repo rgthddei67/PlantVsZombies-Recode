@@ -2,8 +2,10 @@
 #include "SceneManager.h"
 #include "../GameApp.h"
 #include "AudioSystem.h"
+#include "Board.h"
 #include "../Logger.h"
 #include <SDL2/SDL_ttf.h>
+#include <string>
 
 namespace {
 // 在以 (centerX,centerY) 为中心、最大宽度 maxWidth 的范围内绘制文字：
@@ -49,16 +51,17 @@ void GameSelectScene::BuildDrawCommands()
 		this->mReadyToSwitchMainMenu = true;
 		});
 
-	// ===== 9 张占位关卡卡片：第 1 行 6 张、第 2 行 3 张（复刻参考图） =====
+	// ===== 关卡卡片：卡1=白天无尽(level 1000)、卡2=黑夜无尽(level 1001)；其余暂注释 =====
 	const float kCardScale = 0.95f;           // Challenge_Window 原始 118x120
 	const float kPitchX = 150.0f;             // 列间距
 	const float kCol0X = 115.0f;              // 第一列左上角 x
 	const float kRow1Y = 150.0f;              // 第 1 行 y
-	const float kRow2Y = 320.0f;              // 第 2 行 y
+	// const float kRow2Y = 320.0f;           // 第 2 行 y（启用更多卡片时再用）
 	const float kCardW = 118.0f * kCardScale;
 	const float kCardH = 120.0f * kCardScale;
 
-	auto makeCard = [this, kCardW, kCardH](int index, float x, float y) {
+	// makeCard：点击置 mPendingEnterLevel(>=0)，由 Update 统一进 GameScene（不在回调内切场景）
+	auto makeCard = [this, kCardW, kCardH](float x, float y, int enterLevel) {
 		auto card = mUIManager.CreateButton(Vector(x, y), Vector(kCardW, kCardH));
 		card->SetAsCheckbox(false);
 		card->SetImageKeys(
@@ -66,41 +69,42 @@ void GameSelectScene::BuildDrawCommands()
 			ResourceKeys::Textures::IMAGE_CHALLENGE_WINDOW_HIGHLIGHT,
 			ResourceKeys::Textures::IMAGE_CHALLENGE_WINDOW_HIGHLIGHT,
 			ResourceKeys::Textures::IMAGE_CHALLENGE_WINDOW_HIGHLIGHT);
-		card->SetClickCallBack([index](bool) {
-			// 纯视觉脚手架：点击仅打日志，不跳转（Release 下 INFO 被裁，等同 no-op）
-			LOG_INFO("UI") << "GameSelectScene card " << index << " clicked";
+		card->SetClickCallBack([this, enterLevel](bool) {
+			mPendingEnterLevel = enterLevel;
 			});
 		mCards.push_back(card);
 	};
 
-	for (int i = 0; i < 6; ++i) {             // 第 1 行 6 张
-		makeCard(i, kCol0X + kPitchX * i, kRow1Y);
-	}
-	for (int i = 0; i < 3; ++i) {             // 第 2 行 3 张（左对齐前 3 列）
-		makeCard(6 + i, kCol0X + kPitchX * i, kRow2Y);
-	}
+	makeCard(kCol0X + kPitchX * 0, kRow1Y, SURVIVAL_ENDLESS_LEVEL);        // 卡1：白天无尽
+	makeCard(kCol0X + kPitchX * 1, kRow1Y, SURVIVAL_ENDLESS_NIGHT_LEVEL);  // 卡2：黑夜无尽
+
+	// 多余的关卡方框（暂注释，后续接入更多模式时再启用；启用时同步上方 kLabels 与 kRow2Y）：
+	// makeCard(kCol0X + kPitchX * 2, kRow1Y, /* level */ -1);
+	// makeCard(kCol0X + kPitchX * 3, kRow1Y, /* level */ -1);
+	// makeCard(kCol0X + kPitchX * 4, kRow1Y, /* level */ -1);
+	// makeCard(kCol0X + kPitchX * 5, kRow1Y, /* level */ -1);
+	// makeCard(kCol0X + kPitchX * 0, kRow2Y, /* level */ -1);
+	// makeCard(kCol0X + kPitchX * 1, kRow2Y, /* level */ -1);
+	// makeCard(kCol0X + kPitchX * 2, kRow2Y, /* level */ -1);
 
 	// ===== 顶部标题 + 9 个占位标签：TTF_SizeUTF8 真实测宽自适应居中（参考 PlantAlmanacScene） =====
 	RegisterDrawCommand("DrawSelectTexts",
-		[kCol0X, kPitchX, kRow1Y, kRow2Y, kCardW, kCardH](Graphics* g) {
+		[kCol0X, kPitchX, kRow1Y, kCardW, kCardH](Graphics* g) {
 			auto& gameApp = GameAPP::GetInstance();
 
 			// 顶部标题：居中于木牌中心 (551, 88)，木牌内宽约 560，自适应字号 42→24
 			DrawFittedCenteredText(gameApp, u8"选择关卡", 551.0f, 88.0f, 500.0f,
 				glm::vec4(248, 236, 122, 255), ResourceKeys::Fonts::FONT_FZJZ, 42, 24);
 
-			// 9 个占位标签：居中于各卡下方灰色标签条（卡高的 ~73% 处），自适应字号 16→9
-			static const char* kLabels[9] = {
-				u8"关卡一", u8"关卡二", u8"关卡三", u8"关卡四", u8"关卡五",
-				u8"关卡六", u8"关卡七", u8"关卡八", u8"关卡九" };
+			// 卡片标签：与上面 makeCard 顺序一致（卡1白天、卡2黑夜），居中于灰色标签条
+			static const char* kLabels[2] = { u8"白天无尽", u8"黑夜无尽" };
 			auto drawLabel = [&](int index, float x, float y) {
 				float cx = x + kCardW * 0.5f;
 				float cy = y + kCardH * 0.73f;
 				DrawFittedCenteredText(gameApp, kLabels[index], cx, cy, kCardW * 0.82f,
 					glm::vec4(70, 60, 40, 255), ResourceKeys::Fonts::FONT_FZJZ, 16, 9);
 			};
-			for (int i = 0; i < 6; ++i) drawLabel(i, kCol0X + kPitchX * i, kRow1Y);
-			for (int i = 0; i < 3; ++i) drawLabel(6 + i, kCol0X + kPitchX * i, kRow2Y);
+			for (int i = 0; i < 2; ++i) drawLabel(i, kCol0X + kPitchX * i, kRow1Y);
 		},
 		LAYER_UI + 100);
 
@@ -114,6 +118,16 @@ void GameSelectScene::Update()
 	if (mReadyToSwitchMainMenu) {
 		mReadyToSwitchMainMenu = false;
 		SceneManager::GetInstance().SwitchTo("MainMenuScene");
+		return;
+	}
+	if (mPendingEnterLevel >= 0) {
+		int enterLevel = mPendingEnterLevel;
+		mPendingEnterLevel = -1;
+		auto& gameApp = GameAPP::GetInstance();
+		auto& sceneMgr = SceneManager::GetInstance();
+		gameApp.GetGraphics().SetCameraPosition(0, 0);
+		sceneMgr.SetGlobalData("EnterLevel", std::to_string(enterLevel));
+		sceneMgr.SwitchTo("GameScene");
 		return;
 	}
 }

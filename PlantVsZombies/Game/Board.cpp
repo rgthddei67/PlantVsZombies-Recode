@@ -23,7 +23,7 @@ Board::Board(GameScene* gameScene, Background background, int level)
 	mGameScene = gameScene;
 	mLevel = level;
 	mBackGround = background;
-	mIsSurvival = (level == SURVIVAL_ENDLESS_LEVEL);
+	mIsSurvival = (level == SURVIVAL_ENDLESS_LEVEL || level == SURVIVAL_ENDLESS_NIGHT_LEVEL);
 
 	if (mLevel >= 1)
 	{
