@@ -70,7 +70,8 @@ void GameDataManager::InitializeHardcodedData() {
 	//      并在本文件顶部 #include "你的植物.h"
 	//   4. 加 Card 条目
 	// 【新增僵尸】同理：ZombieType.h 加枚举 → 写僵尸类 → 下方“僵尸注册”区加一行
-	//      RegisterZombie(..., scale, &MakeZombie<新类>) + 顶部 #include；Board 波次逻辑按需。
+	//      RegisterZombie(..., appearWave, survivalRound, scale, &MakeZombie<新类>) + 顶部 #include；
+	//      survivalRound = 生存模式最早出场轮(0=不进生存)；Board 波次逻辑按需。
 	// 配套常量：动画类型加在 Reanimation/AnimationTypes.h；资源键加在 ResourceKeys.h。
 	// ============================================================
 
