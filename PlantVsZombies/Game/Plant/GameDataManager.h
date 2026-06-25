@@ -55,6 +55,7 @@ struct ZombieInfo {
 	int weight;                  // 权重
 	int appearWave;              // 能出现的波数
 	float scale = 1.0f;          // 创建时的缩放
+	int survivalRound = 0;       // 生存模式最早出场轮(1起；0=不进生存，安全默认)
 	ZombieFactoryFn factory = nullptr;  // 具体类的构造工厂
 
 	ZombieInfo() : type(ZombieType::NUM_ZOMBIE_TYPES),
@@ -213,6 +214,7 @@ public:
 	 * @param zombieType 僵尸类型
 	 */
 	int GetZombieAppearWave(ZombieType zombieType) const;
+	int GetZombieSurvivalRound(ZombieType zombieType) const;
 
 	/**
 	 * @brief 将僵尸类型转换为对应的枚举名字符串
@@ -289,12 +291,14 @@ private:
 	 * @param offset 偏移量
 	 * @param weight 僵尸权重
 	 * @param appearWave 能刷新的波数
+	 * @param survivalRound 生存模式最早出场轮(1起；0=不进生存)
 	 */
 	void RegisterZombie(ZombieType type,
 		const std::string& enumName,
 		AnimationType animType,
 		const std::string& animName,
 		const Vector& offset, int weight, int appearWave,
+		int survivalRound,
 		float scale,
 		ZombieFactoryFn factory);
 

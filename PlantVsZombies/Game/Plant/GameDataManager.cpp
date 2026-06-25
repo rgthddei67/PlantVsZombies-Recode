@@ -206,6 +206,7 @@ void GameDataManager::InitializeHardcodedData() {
 		Vector(-50, -85),
 		1000,
 		1,
+		1,    // survivalRound: 普通
 		1.0f, &MakeZombie<Zombie>
 	);
 
@@ -217,6 +218,7 @@ void GameDataManager::InitializeHardcodedData() {
 		Vector(-50, -85),
 		1500,
 		3,
+		2,    // survivalRound: 路障
 		1.0f, &MakeZombie<ConeZombie>
 	);
 
@@ -228,6 +230,7 @@ void GameDataManager::InitializeHardcodedData() {
 		Vector(-50, -85),
 		1700,
 		5,
+		3,    // survivalRound: 撑杆
 		1.0f, &MakeZombie<Polevaulter>
 	);
 
@@ -239,6 +242,7 @@ void GameDataManager::InitializeHardcodedData() {
 		Vector(-50, -85),
 		2000,
 		5,
+		4,    // survivalRound: 铁桶
 		1.0f, &MakeZombie<BucketZombie>
 	);
 
@@ -250,6 +254,7 @@ void GameDataManager::InitializeHardcodedData() {
 		Vector(-50, -85),
 		2800,
 		6,
+		5,    // survivalRound: 快速铁桶
 		1.0f, &MakeZombie<FastBucketZombie>
 	);
 
@@ -261,6 +266,7 @@ void GameDataManager::InitializeHardcodedData() {
 		Vector(-50, -85),
 		2000,
 		2,
+		3,    // survivalRound: 读报
 		1.0f, &MakeZombie<PaperZombie>
 	);
 
@@ -270,8 +276,9 @@ void GameDataManager::InitializeHardcodedData() {
 		AnimationType::ANIM_PAPER_ZOMBIE,	// 复用读报僵尸 reanim，仅换报纸贴图
 		"PaperZombie",
 		Vector(-50, -85),
-		3000,	
+		3000,
 		6,		// 出现波次（无尽模式忽略此值，由 BuildSurvivalSpawnList 控制）
+		6,    // survivalRound: 加强读报
 		1.0f, &MakeZombie<FastPaperZombie>
 	);
 
@@ -316,11 +323,13 @@ void GameDataManager::RegisterZombie(ZombieType type,
 	AnimationType animType,
 	const std::string& animName,
 	const Vector& offset, int weight, int appearWave,
+	int survivalRound,
 	float scale,
 	ZombieFactoryFn factory) {
 	ZombieInfo info(type, enumName, animType, animName, offset, weight, appearWave);
 	info.scale = scale;
 	info.factory = factory;
+	info.survivalRound = survivalRound;
 	mZombieInfo[type] = info;
 
 	// 记录动画类型->资源名，以便通过 AnimationType 统一查询
@@ -500,6 +509,14 @@ int GameDataManager::GetZombieAppearWave(ZombieType zombieType) const
 	auto it = mZombieInfo.find(zombieType);
 	if (it != mZombieInfo.end())
 		return it->second.appearWave;
+	return 0;
+}
+
+int GameDataManager::GetZombieSurvivalRound(ZombieType zombieType) const
+{
+	auto it = mZombieInfo.find(zombieType);
+	if (it != mZombieInfo.end())
+		return it->second.survivalRound;
 	return 0;
 }
 
