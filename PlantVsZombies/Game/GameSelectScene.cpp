@@ -108,9 +108,12 @@ void GameSelectScene::BuildDrawCommands()
 		[kCol0X, kPitchX, kRow1Y, kCardW, kCardH](Graphics* g) {
 			auto& gameApp = GameAPP::GetInstance();
 
-			// 顶部标题：居中于木牌中心 (551, 88)，木牌内宽约 560，自适应字号 42→24
-			DrawFittedCenteredText(gameApp, u8"选择关卡", 551.0f, 88.0f, 500.0f,
-				glm::vec4(248, 236, 122, 255), ResourceKeys::Fonts::FONT_FZJZ, 42, 24);
+			// 绘制两行灰色阴影（偏下 2px）以增强可读性
+			DrawFittedCenteredText(gameApp, u8"选择关卡", 552.0f, 82.0f, 500.0f,
+				glm::vec4(0, 0, 0, 255), ResourceKeys::Fonts::FONT_FZJZ, 37, 24);
+			// 顶部标题：居中于木牌中心 (551, 88)，木牌内宽约 560，自适应字号 37→24
+			DrawFittedCenteredText(gameApp, u8"选择关卡", 550.0f, 80.0f, 500.0f,
+				glm::vec4(219, 219, 219, 219), ResourceKeys::Fonts::FONT_FZJZ, 37, 24);
 
 			// 卡片标签：与上面 makeCard 顺序一致（卡1白天、卡2黑夜），居中于灰色标签条
 			static const char* kLabels[2] = { u8"白天无尽", u8"黑夜无尽" };
@@ -118,7 +121,7 @@ void GameSelectScene::BuildDrawCommands()
 				float cx = x + kCardW * 0.5f;
 				float cy = y + kCardH * 0.73f;
 				DrawFittedCenteredText(gameApp, kLabels[index], cx, cy, kCardW * 0.82f,
-					glm::vec4(70, 60, 40, 255), ResourceKeys::Fonts::FONT_FZJZ, 16, 9);
+					glm::vec4(46, 46, 84, 255), ResourceKeys::Fonts::FONT_FZJZ, 16, 9);
 			};
 			for (int i = 0; i < 2; ++i) drawLabel(i, kCol0X + kPitchX * i, kRow1Y);
 		},
