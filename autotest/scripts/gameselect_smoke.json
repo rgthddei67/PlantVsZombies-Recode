@@ -1,0 +1,9 @@
+{
+  "name": "gameselect_smoke",
+  "commands": [
+    { "op": "wait_frames", "value": 60 },
+    { "op": "screenshot", "name": "gameselect" },
+    { "op": "wait_frames", "value": 5 },
+    { "op": "quit" }
+  ]
+}

@@ -3,6 +3,28 @@
 #include "../GameApp.h"
 #include "AudioSystem.h"
 #include "../Logger.h"
+#include <SDL2/SDL_ttf.h>
+
+namespace {
+// 在以 (centerX,centerY) 为中心、最大宽度 maxWidth 的范围内绘制文字：
+// 用 TTF_SizeUTF8 真实测量像素宽高，自最大字号往下试，直到放得下，再按真实宽高
+// 水平+垂直居中。复刻 PlantAlmanacScene 的「TTF 测宽 + 字号自适应」思路。
+void DrawFittedCenteredText(GameAPP& app, const std::string& text,
+	float centerX, float centerY, float maxWidth, const glm::vec4& color,
+	const std::string& fontKey, int maxSize, int minSize)
+{
+	int fs = minSize, tw = 0, th = 0;
+	for (int s = maxSize; s >= minSize; --s) {
+		TTF_Font* font = ResourceManager::GetInstance().GetFont(fontKey, s);
+		int w = 0, h = 0;
+		if (font) TTF_SizeUTF8(font, text.c_str(), &w, &h);
+		fs = s; tw = w; th = h;
+		if (w <= maxWidth) break;   // 当前字号已能装下 → 采用
+	}
+	app.DrawText(text, Vector(centerX - tw * 0.5f, centerY - th * 0.5f),
+		color, fontKey, fs);
+}
+} // namespace
 
 void GameSelectScene::BuildDrawCommands()
 {
@@ -58,26 +80,24 @@ void GameSelectScene::BuildDrawCommands()
 		makeCard(6 + i, kCol0X + kPitchX * i, kRow2Y);
 	}
 
-	// ===== 顶部标题 + 9 个占位标签（每帧绘制；坐标为起始值，按截图微调） =====
+	// ===== 顶部标题 + 9 个占位标签：TTF_SizeUTF8 真实测宽自适应居中（参考 PlantAlmanacScene） =====
 	RegisterDrawCommand("DrawSelectTexts",
 		[kCol0X, kPitchX, kRow1Y, kRow2Y, kCardW, kCardH](Graphics* g) {
 			auto& gameApp = GameAPP::GetInstance();
 
-			// 顶部标题：居中于背景横幅之上（x/y 起始值，截图后微调）
-			gameApp.DrawText(u8"选择关卡", Vector(470, 28),
-				glm::vec4(248, 236, 122, 255));
+			// 顶部标题：居中于木牌中心 (551, 88)，木牌内宽约 560，自适应字号 42→24
+			DrawFittedCenteredText(gameApp, u8"选择关卡", 551.0f, 88.0f, 500.0f,
+				glm::vec4(248, 236, 122, 255), ResourceKeys::Fonts::FONT_FZJZ, 42, 24);
 
-			// 9 个占位标签「关卡N」，画在每张卡下方小条中央
+			// 9 个占位标签：居中于各卡下方灰色标签条（卡高的 ~73% 处），自适应字号 16→9
 			static const char* kLabels[9] = {
 				u8"关卡一", u8"关卡二", u8"关卡三", u8"关卡四", u8"关卡五",
 				u8"关卡六", u8"关卡七", u8"关卡八", u8"关卡九" };
-			const float kLabelFontApproxW = 13.0f;   // 估算每个汉字宽度，用于水平居中
 			auto drawLabel = [&](int index, float x, float y) {
 				float cx = x + kCardW * 0.5f;
-				float cy = y + kCardH - 18.0f;        // 下方小条
-				float textW = 3 * kLabelFontApproxW;  // "关卡N" 3 字
-				gameApp.DrawText(kLabels[index], Vector(cx - textW * 0.5f, cy),
-					glm::vec4(70, 60, 40, 255));
+				float cy = y + kCardH * 0.73f;
+				DrawFittedCenteredText(gameApp, kLabels[index], cx, cy, kCardW * 0.82f,
+					glm::vec4(70, 60, 40, 255), ResourceKeys::Fonts::FONT_FZJZ, 16, 9);
 			};
 			for (int i = 0; i < 6; ++i) drawLabel(i, kCol0X + kPitchX * i, kRow1Y);
 			for (int i = 0; i < 3; ++i) drawLabel(6 + i, kCol0X + kPitchX * i, kRow2Y);
