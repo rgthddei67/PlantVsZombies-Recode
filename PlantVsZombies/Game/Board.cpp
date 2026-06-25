@@ -704,17 +704,44 @@ void Board::OnSurvivalRoundClear()
 
 void Board::BuildSurvivalSpawnList(int round)
 {
-	// 仅使用本作已实现的可生成僵尸类型（0~5）
 	mSpawnZombieList.clear();
-	mSpawnZombieList.push_back(ZombieType::ZOMBIE_NORMAL);                 // 普通
-	if (round >= 2) mSpawnZombieList.push_back(ZombieType::ZOMBIE_TRAFFIC_CONE); // 路障
-	if (round >= 3) {
-		mSpawnZombieList.push_back(ZombieType::ZOMBIE_POLEVAULTER);       // 撑杆
-		mSpawnZombieList.push_back(ZombieType::ZOMBIE_NEWSPAPER);         // 读报
+	mSpawnZombieList.push_back(ZombieType::ZOMBIE_NORMAL);   // 普通：每轮必有，先固定放入
+
+	// 1) 收集本轮合格候选(排除普通)。旗数递减下调每种僵尸的"有效最早轮次"。
+	int flagsCompleted = round - 1;
+	int reduction = SurvivalCurveLerp(SURVIVAL_UNLOCK_REDUCE_START_FLAG,
+	                                  SURVIVAL_UNLOCK_REDUCE_END_FLAG,
+	                                  flagsCompleted, 0, SURVIVAL_UNLOCK_REDUCE_MAX);
+	std::vector<ZombieType> candidates;
+	for (int i = 0; i < static_cast<int>(ZombieType::NUM_ZOMBIE_TYPES); ++i)
+	{
+		ZombieType t = static_cast<ZombieType>(i);
+		if (t == ZombieType::ZOMBIE_NORMAL) continue;
+		int base = GameDataManager::GetInstance().GetZombieSurvivalRound(t);
+		if (base < 1) continue;                              // 0 = 不进生存
+		int eff = std::max(base - reduction, 1);
+		if (eff <= round) candidates.push_back(t);
 	}
-	if (round >= 4) mSpawnZombieList.push_back(ZombieType::ZOMBIE_BUCKET);       // 铁桶
-	if (round >= 5) mSpawnZombieList.push_back(ZombieType::ZOMBIE_FASTBUCKET);   // 快速铁桶
-	if (round >= 6) mSpawnZombieList.push_back(ZombieType::ZOMBIE_FASTPAPER);    // 加强读报
+
+	// 2) 第 1~2 轮：候选全放(确定性)→ 自然得到 {普通} / {普通,路障}
+	if (round < SURVIVAL_RANDOM_POOL_START_ROUND)
+	{
+		for (ZombieType t : candidates) mSpawnZombieList.push_back(t);
+		return;
+	}
+
+	// 3) 第 3 轮起：随机抽 extra 种(无放回，部分 Fisher-Yates，绝不死循环)。
+	//    等价于"随机抽、抽到未解锁就重抽"，但先排除不合格者再无放回选取。
+	int extra = SURVIVAL_POOL_BASE_EXTRA
+	          + (round - SURVIVAL_RANDOM_POOL_START_ROUND) / SURVIVAL_POOL_GROWTH_EVERY;
+	if (extra > static_cast<int>(candidates.size()))
+		extra = static_cast<int>(candidates.size());
+	for (int k = 0; k < extra; ++k)
+	{
+		int j = GameRandom::Range(k, static_cast<int>(candidates.size()) - 1);
+		std::swap(candidates[k], candidates[j]);
+		mSpawnZombieList.push_back(candidates[k]);
+	}
 }
 
 void Board::UpdateSurvivalLevelName()
