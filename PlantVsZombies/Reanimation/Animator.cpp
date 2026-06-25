@@ -409,17 +409,11 @@ void Animator::DrawInternalInstanced(Graphics* g, float baseX, float baseY, floa
 		rec.colorRGBA8 = PackRGBA8(255, 255, 255, alpha8);
 		g->AppendReanimInstance(rec, BlendMode::Alpha);
 
-		// Glow (Add blend) — same geometry/UV, different color + BlendMode
-		if (mEnableExtraAdditiveDraw) {
-			InstanceRecord glow = rec;
-			glow.colorRGBA8 = PackRGBA8(mExtraAdditiveColor.r,
-				mExtraAdditiveColor.g,
-				mExtraAdditiveColor.b,
-				mExtraAdditiveColor.a);
-			g->AppendReanimInstance(glow, BlendMode::Add);
-		}
-
-		// Overlay (Alpha blend, color alpha scaled by baseAlpha to match slow path)
+		// Overlay (Alpha blend, color alpha scaled by baseAlpha to match slow path).
+		// MUST precede the additive glow below: a high-alpha overlay (e.g. the freeze
+		// tint at a=240) would otherwise alpha-blend over and occlude the glow. Original
+		// engine (Reanimation.cs) folds the tint into the base draw and emits the additive
+		// highlight last; emitting overlay→glow here preserves that "glow always on top".
 		if (mEnableExtraOverlayDraw) {
 			InstanceRecord ov = rec;
 			const uint8_t ovAlpha = static_cast<uint8_t>(mExtraOverlayColor.a * baseAlpha);
@@ -428,6 +422,17 @@ void Animator::DrawInternalInstanced(Graphics* g, float baseX, float baseY, floa
 				mExtraOverlayColor.b,
 				ovAlpha);
 			g->AppendReanimInstance(ov, BlendMode::Alpha);
+		}
+
+		// Glow (Add blend) — same geometry/UV, different color + BlendMode. Drawn last so
+		// additive brightening lands on top of any overlay tint (slowdown flash stays visible).
+		if (mEnableExtraAdditiveDraw) {
+			InstanceRecord glow = rec;
+			glow.colorRGBA8 = PackRGBA8(mExtraAdditiveColor.r,
+				mExtraAdditiveColor.g,
+				mExtraAdditiveColor.b,
+				mExtraAdditiveColor.a);
+			g->AppendReanimInstance(glow, BlendMode::Add);
 		}
 	}
 }
@@ -510,22 +515,25 @@ void Animator::DrawInternal(Graphics* g, float baseX, float baseY, float Scale) 
 			glm::vec4 baseColor(255.0f, 255.0f, 255.0f, baseAlpha * 255.0f);
 			g->DrawTextureMatrix(image, mat, 0.0f, 0.0f, baseColor, BlendMode::Alpha);
 
-			// 发光效果（叠加混合）
-			if (mEnableExtraAdditiveDraw) {
-				glm::vec4 glowColor(mExtraAdditiveColor.r,
-					mExtraAdditiveColor.g,
-					mExtraAdditiveColor.b,
-					mExtraAdditiveColor.a);
-				g->DrawTextureMatrix(image, mat, 0.0f, 0.0f, glowColor, BlendMode::Add);
-			}
-
-			// 覆盖层效果（Alpha 混合，颜色需乘以基础透明度）
+			// 覆盖层效果（Alpha 混合，颜色需乘以基础透明度）。
+			// 必须排在下面的发光之前：高 alpha 的覆盖层（如冰冻减速 a=240）若画在发光之后，
+			// 会以接近不透明的 Alpha 叠绘把发光盖死。原版引擎（Reanimation.cs）把色调揉进
+			// 正常绘制、additive 高亮永远最后一遍——此处“覆盖层→发光”的顺序即还原该语义。
 			if (mEnableExtraOverlayDraw) {
 				glm::vec4 overlayColor(mExtraOverlayColor.r,
 					mExtraOverlayColor.g,
 					mExtraOverlayColor.b,
 					mExtraOverlayColor.a * baseAlpha);
 				g->DrawTextureMatrix(image, mat, 0.0f, 0.0f, overlayColor, BlendMode::Alpha);
+			}
+
+			// 发光效果（叠加混合）——最后绘制，使加色提亮叠在覆盖层之上（减速白光保持可见）
+			if (mEnableExtraAdditiveDraw) {
+				glm::vec4 glowColor(mExtraAdditiveColor.r,
+					mExtraAdditiveColor.g,
+					mExtraAdditiveColor.b,
+					mExtraAdditiveColor.a);
+				g->DrawTextureMatrix(image, mat, 0.0f, 0.0f, glowColor, BlendMode::Add);
 			}
 		}
 
