@@ -243,7 +243,7 @@ void GameDataManager::InitializeHardcodedData() {
 		Vector(-50, -85),
 		2000,
 		5,
-		4,    // survivalRound: 铁桶
+		3,    // survivalRound: 铁桶
 		1.0f, &MakeZombie<BucketZombie>
 	);
 
@@ -255,7 +255,7 @@ void GameDataManager::InitializeHardcodedData() {
 		Vector(-50, -85),
 		2800,
 		6,
-		5,    // survivalRound: 快速铁桶
+		6,    // survivalRound: 快速铁桶
 		1.0f, &MakeZombie<FastBucketZombie>
 	);
 
@@ -267,7 +267,7 @@ void GameDataManager::InitializeHardcodedData() {
 		Vector(-50, -85),
 		2000,
 		2,
-		3,    // survivalRound: 读报
+		5,    // survivalRound: 读报
 		1.0f, &MakeZombie<PaperZombie>
 	);
 
@@ -279,7 +279,7 @@ void GameDataManager::InitializeHardcodedData() {
 		Vector(-50, -85),
 		3000,
 		6,		// 出现波次（无尽模式忽略此值，由 BuildSurvivalSpawnList 控制）
-		6,    // survivalRound: 加强读报
+		7,    // survivalRound: 加强读报
 		1.0f, &MakeZombie<FastPaperZombie>
 	);
 
