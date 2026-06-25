@@ -61,7 +61,21 @@ void GameSelectScene::BuildDrawCommands()
 	const float kCardH = 120.0f * kCardScale;
 
 	// makeCard：点击置 mPendingEnterLevel(>=0)，由 Update 统一进 GameScene（不在回调内切场景）
-	auto makeCard = [this, kCardW, kCardH](float x, float y, int enterLevel) {
+	// groundKey：垫在卡框图标开口下的地面预览图（白天/黑夜），最底层、被卡框挡住只露开口
+	auto makeCard = [this, kCardW, kCardH, kCardScale](float x, float y, int enterLevel,
+		const std::string& groundKey) {
+		// 底层地面图：填入卡框图标开口(native x[20..96] y[8..66] of 118x120)，
+		// drawOrder -900(在羊皮纸 -1000 之上、卡框 LAYER_UI 之下)，被卡框只露开口
+		if (const Texture* tex = ResourceManager::GetInstance().GetTexture(groundKey)) {
+			const float bleed = 2.0f;                  // 略外扩，边缘掖进卡框边框下
+			float ox = 20.0f * kCardScale - bleed;
+			float oy = 8.0f * kCardScale - bleed;
+			float ow = 77.0f * kCardScale + 2 * bleed;
+			float oh = 59.0f * kCardScale + 2 * bleed;
+			AddTexture(groundKey, x + ox, y + oy,
+				ow / tex->width, oh / tex->height, -900, false);
+		}
+
 		auto card = mUIManager.CreateButton(Vector(x, y), Vector(kCardW, kCardH));
 		card->SetAsCheckbox(false);
 		card->SetImageKeys(
@@ -75,8 +89,10 @@ void GameSelectScene::BuildDrawCommands()
 		mCards.push_back(card);
 	};
 
-	makeCard(kCol0X + kPitchX * 0, kRow1Y, SURVIVAL_ENDLESS_LEVEL);        // 卡1：白天无尽
-	makeCard(kCol0X + kPitchX * 1, kRow1Y, SURVIVAL_ENDLESS_NIGHT_LEVEL);  // 卡2：黑夜无尽
+	makeCard(kCol0X + kPitchX * 0, kRow1Y, SURVIVAL_ENDLESS_LEVEL,
+		"IMAGE_ALMANAC_GROUNDDAY");         // 卡1：白天无尽
+	makeCard(kCol0X + kPitchX * 1, kRow1Y, SURVIVAL_ENDLESS_NIGHT_LEVEL,
+		"IMAGE_ALMANAC_GROUNDNIGHT");       // 卡2：黑夜无尽
 
 	// 多余的关卡方框（暂注释，后续接入更多模式时再启用；启用时同步上方 kLabels 与 kRow2Y）：
 	// makeCard(kCol0X + kPitchX * 2, kRow1Y, /* level */ -1);
