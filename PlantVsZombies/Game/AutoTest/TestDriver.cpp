@@ -342,10 +342,11 @@ bool TestDriver::ExecuteCurrent() {
 		out["wave"] = board->mCurrentWave;
 		out["zombieNumber"] = board->mZombieNumber;
 
-		out["survivalRound"] = board->mSurvivalRound;
+		out["survivalRound"] = board->mIsSurvival ? board->mSurvivalRound : -1;
 		out["spawnList"] = nlohmann::json::array();
-		for (ZombieType t : board->GetSpawnZombieList())
-			out["spawnList"].push_back(ZombieTypeName(t));
+		if (board->mIsSurvival)
+			for (ZombieType t : board->GetSpawnZombieList())
+				out["spawnList"].push_back(ZombieTypeName(t));
 
 		out["zombies"] = nlohmann::json::array();
 		for (int id : board->mEntityManager.GetAllZombieIDs()) {

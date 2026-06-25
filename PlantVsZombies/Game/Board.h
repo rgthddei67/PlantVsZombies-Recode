@@ -133,7 +133,7 @@ private:
 	inline ZombieType GetWeightedRandomZombie();
 	inline ZombieType GetCheapestZombie();
 	// 生存模式"抽中权重"：对 NORMAL/CONE 随轮稀释(仅供 GetWeightedRandomZombie；成本侧仍用 GetZombieWeight)
-	int GetSurvivalPickWeight(ZombieType type) const;
+	inline int GetSurvivalPickWeight(ZombieType type) const;
 
 	float GetZombieSpawnY(int row) const;
 

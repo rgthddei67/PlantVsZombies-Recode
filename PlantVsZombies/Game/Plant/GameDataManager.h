@@ -214,6 +214,10 @@ public:
 	 * @param zombieType 僵尸类型
 	 */
 	int GetZombieAppearWave(ZombieType zombieType) const;
+	/**
+	 * @brief 获取僵尸的生存模式最早出场轮
+	 * @param zombieType 僵尸类型
+	 */
 	int GetZombieSurvivalRound(ZombieType zombieType) const;
 
 	/**

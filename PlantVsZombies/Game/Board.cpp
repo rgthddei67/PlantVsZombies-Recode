@@ -488,7 +488,7 @@ inline int Board::SelectSpawnRow()
 	return mRows - 1;
 }
 
-int Board::GetSurvivalPickWeight(ZombieType type) const
+inline int Board::GetSurvivalPickWeight(ZombieType type) const
 {
 	int base = GameDataManager::GetInstance().GetZombieWeight(type);
 	if (!mIsSurvival) return base;
@@ -730,8 +730,8 @@ void Board::BuildSurvivalSpawnList(int round)
 		return;
 	}
 
-	// 3) 第 3 轮起：随机抽 extra 种(无放回，部分 Fisher-Yates，绝不死循环)。
-	//    等价于"随机抽、抽到未解锁就重抽"，但先排除不合格者再无放回选取。
+	// 3) 第 3 轮起：从候选池均匀无放回抽 extra 种(部分 Fisher-Yates)。
+	//    预筛合格者再抽取，不用重抽循环，绝不死循环。
 	int extra = SURVIVAL_POOL_BASE_EXTRA
 	          + (round - SURVIVAL_RANDOM_POOL_START_ROUND) / SURVIVAL_POOL_GROWTH_EVERY;
 	if (extra > static_cast<int>(candidates.size()))
