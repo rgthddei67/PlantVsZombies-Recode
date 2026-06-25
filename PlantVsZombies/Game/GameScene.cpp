@@ -575,12 +575,14 @@ void GameScene::Update() {
 					if (mBoard) {
 						mBoard->DestroyPreviewZombies();   // 清掉选卡阶段的预览僵尸
 						mBoard->mBoardState = BoardState::GAME;
+
+						// 切回音乐
+						mBoard->PlayBackgroundMusic();
 					}
 					// 恢复铲子显示
 					if (mShovelUI) mShovelUI->SetActive(true);
 					if (auto shovel = mBoard->mShovel.lock()) shovel->SetActive(true);
-					// 切回战斗音乐（生存固定白天背景；与 Board::StartGame 的 GROUND_DAY 分支一致）
-					AudioSystem::PlayMusic(ResourceKeys::Music::MUSIC_DAY, -1);
+
 					RegisterSurvivalGameUiOnce();
 				}
 				else if (mBoard) {

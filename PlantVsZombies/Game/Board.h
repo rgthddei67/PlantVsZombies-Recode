@@ -161,6 +161,7 @@ public:
 	void SetZombieSpawnList(std::vector<ZombieType>& zombieTypeList) {
 		this->mSpawnZombieList = zombieTypeList;
 	}
+
 	const std::vector<ZombieType>& GetSpawnZombieList() const { return mSpawnZombieList; }
 
 	// 初始化格子 默认5行9列
@@ -238,6 +239,9 @@ public:
 
 	// 游戏结束
 	void GameOver();
+
+	// 根据场景播放音乐
+	void PlayBackgroundMusic();
 
 	// 生存模式：一轮（一面旗）清空后推进到下一轮并回到选卡
 	void OnSurvivalRoundClear();

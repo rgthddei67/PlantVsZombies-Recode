@@ -24,9 +24,9 @@ protected:
 			zombie->mHelmType == HelmType::HELMTYPE_FOOTBALL) {
 			int random = GameRandom::Range(1, 2);
 			if (random == 1)
-				AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_HITCONE, 0.15f);
+				AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_HITCONE, 0.2f);
 			else if (random == 2)
-				AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_HITCONE2, 0.15f);
+				AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_HITCONE2, 0.2f);
 		}
 		else if (zombie->mHelmType == HelmType::HELMTYPE_BUCKET ||
 			zombie->mShieldType == ShieldType::SHIELDTYPE_DOOR ||
@@ -34,18 +34,18 @@ protected:
 			zombie->mZombieType == ZombieType::ZOMBIE_ZAMBONI) {
 			int random = GameRandom::Range(1, 2);
 			if (random == 1)
-				AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_IRONHIT, 0.15f);
+				AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_IRONHIT, 0.2f);
 			else if (random == 2)
-				AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_IRONHIT2, 0.15f);
+				AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_IRONHIT2, 0.2f);
 		}
 		else {
 			int random = GameRandom::Range(1, 3);
 			if (random == 1)
-				AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_PEABULLET_HIT_BODY1, 0.19f);
+				AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_PEABULLET_HIT_BODY1, 0.2f);
 			else if (random == 2)
-				AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_PEABULLET_HIT_BODY2, 0.19f);
+				AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_PEABULLET_HIT_BODY2, 0.2f);
 			else
-				AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_PEABULLET_HIT_BODY3, 0.19f);
+				AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_PEABULLET_HIT_BODY3, 0.2f);
 		}
 	}
 };

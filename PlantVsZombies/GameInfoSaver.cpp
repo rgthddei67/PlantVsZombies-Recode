@@ -157,6 +157,14 @@ bool GameInfoSaver::SaveLevelDataImpl(Board* board, CardSlotManager* manager)
 		nlohmann::json perks;                    // 不直接写 j["perks"]：operator[] 会先物化成 null
 		board->GetPerkManager().Save(perks);     // 零词条时 Save 不写任何键 → perks 仍为 null
 		if (!perks.is_null()) j["perks"] = perks;   // 仅有词条时才落盘；否则省略，等同旧档天然兼容
+
+		// 冻结本轮已 roll 出的随机出怪池：持久化实际 mSpawnZombieList，读档直接还原而非
+		// 重 roll（见 Load 端）。否则退出重进/读档会重跑 BuildSurvivalSpawnList 刷新随机子集，
+		// 玩家可借此反复刷出怪池直到阵容有利（原版生存出怪恒定，不可刷）。
+		nlohmann::json spawnList = nlohmann::json::array();
+		for (ZombieType t : board->GetSpawnZombieList())
+			spawnList.push_back(static_cast<int>(t));
+		j["spawnList"] = spawnList;
 	}
 	j["sun"] = board->mSun;
 	j["currentWave"] = board->mCurrentWave;
@@ -362,7 +370,26 @@ bool GameInfoSaver::LoadLevelDataImpl(Board* board, CardSlotManager* manager)
 	board->mSurvivalRound = j.value("survivalRound", 1);
 	if (board->mIsSurvival) {
 		if (j.contains("perks")) board->GetPerkManager().Load(j["perks"]);   // 旧档无 perks 字段→天然兼容
-		board->BuildSurvivalSpawnList(board->mSurvivalRound);
+
+		// 还原冻结的出怪池（防刷怪）：存档若带 spawnList 字段则直接还原（校验+去重，镜像
+		// Board::LoadSpawnListFromJson 的健壮性，挡住手改/损坏档的越界 ZombieType）；旧档无此
+		// 字段→回退到按轮次重建（旧行为，天然兼容），重建后下次存档即写入字段冻结。
+		if (j.contains("spawnList") && j["spawnList"].is_array() && !j["spawnList"].empty()) {
+			std::vector<ZombieType> list;
+			for (auto& v : j["spawnList"]) {
+				int val = v.get<int>();
+				if (val < 0 || val >= static_cast<int>(ZombieType::NUM_ZOMBIE_TYPES)) continue;
+				bool dup = false;
+				for (ZombieType seen : list)
+					if (static_cast<int>(seen) == val) { dup = true; break; }
+				if (dup) continue;
+				list.push_back(static_cast<ZombieType>(val));
+			}
+			if (!list.empty()) board->SetZombieSpawnList(list);                   // 还原冻结池
+			else board->BuildSurvivalSpawnList(board->mSurvivalRound);            // 全损坏→兜底重建
+		} else {
+			board->BuildSurvivalSpawnList(board->mSurvivalRound);                // 旧档/无字段→旧行为
+		}
 		board->UpdateSurvivalLevelName();
 		// 轮间（CHOOSE_CARD）读档：Board 构造时按第1轮建的预览僵尸阵容是错的，
 		// 此刻 survivalRound/出怪表已恢复，销毁旧预览并按正确轮次重建。

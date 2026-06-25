@@ -653,6 +653,12 @@ void Board::StartGame()
 		InitializeMowers();
 	}
 	mBoardState = BoardState::GAME;
+
+	PlayBackgroundMusic();
+}
+
+void Board::PlayBackgroundMusic()
+{
 	if (mBackGround == Background::GROUND_DAY) {
 		AudioSystem::PlayMusic(ResourceKeys::Music::MUSIC_DAY, -1);
 	}
