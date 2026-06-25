@@ -27,7 +27,10 @@ struct Vector
 	Vector(const glm::vec2& vec) : x(vec.x), y(vec.y) {}
 	operator glm::vec2() const { return glm::vec2(x, y); }
 
-	Vector(const glm::vec4& vec) : x(vec.x), y(vec.y) {}
+	// explicit：从 4 维静默降到 2 维(只取 x,y)是 bug 温床——颜色/齐次坐标等 vec4
+	// 误赋给 Vector 会无声丢掉 z,w。需要时显式写 Vector(someVec4)。vec2 构造(上一行)
+	// 保持隐式,那是有意的 vec2↔Vector 互通。
+	explicit Vector(const glm::vec4& vec) : x(vec.x), y(vec.y) {}
 	SDL_FPoint ToSDL_FPoint() const {
 		return { x, y };
 	}
