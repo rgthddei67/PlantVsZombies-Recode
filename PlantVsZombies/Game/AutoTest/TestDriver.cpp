@@ -264,6 +264,17 @@ bool TestDriver::ExecuteCurrent() {
 		gs->GetBoard()->mSun = std::min(cmd.value("value", 0), MAX_SUN);
 		return true;
 	}
+	if (op == "force_survival_round") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) { Fail("force_survival_round: 不在 GameScene 或 Board 为空"); return false; }
+		Board* board = gs->GetBoard();
+		if (!board->mIsSurvival) { Fail("force_survival_round: 非生存模式关卡"); return false; }
+		int round = cmd.value("round", 1);
+		if (round < 1) round = 1;
+		board->mSurvivalRound = round;
+		board->BuildSurvivalSpawnList(round);   // 公有方法，直接按轮重建出怪池
+		return true;
+	}
 	if (op == "plant") {
 		GameScene* gs = CurrentGameScene();
 		if (!gs || !gs->GetBoard()) { Fail("plant: 不在 GameScene 或 Board 为空"); return false; }
@@ -330,6 +341,11 @@ bool TestDriver::ExecuteCurrent() {
 		out["sun"] = board->mSun;
 		out["wave"] = board->mCurrentWave;
 		out["zombieNumber"] = board->mZombieNumber;
+
+		out["survivalRound"] = board->mSurvivalRound;
+		out["spawnList"] = nlohmann::json::array();
+		for (ZombieType t : board->GetSpawnZombieList())
+			out["spawnList"].push_back(ZombieTypeName(t));
 
 		out["zombies"] = nlohmann::json::array();
 		for (int id : board->mEntityManager.GetAllZombieIDs()) {
