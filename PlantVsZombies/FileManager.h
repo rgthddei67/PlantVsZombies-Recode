@@ -59,6 +59,13 @@ public:
 	static std::vector<std::string> GetFilesInDirectory(const std::string& directory,
 		const std::string& extension = "");
 
+	// 获取资源文件列表（读构建期生成的 resources/manifest.txt，经 SDL_RWops，APK 可读）。
+	// 与 GetFilesInDirectory 同签名，但不走 std::filesystem，故 Android 上能列举 APK assets。
+	// 清单缺失时：桌面回退 std::filesystem；Android 返回空 + 报错。
+	// 详见 docs/superpowers/specs/2026-06-25-resource-manifest-enumeration-design.md
+	static std::vector<std::string> ListResourceFiles(const std::string& directory,
+		const std::string& extension = "");
+
 	// 删除文件
 	static bool DeleteFile(const std::string& path);
 

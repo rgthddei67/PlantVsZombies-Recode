@@ -112,6 +112,20 @@ add_custom_command(TARGET PlantsVsZombies POST_BUILD
     COMMENT "Copying Shader spv to output directory"
 )
 
+# ---- 生成资源清单 resources/manifest.txt（取代运行时 std::filesystem 目录枚举）----
+# 直接 glob 紧挨 exe 的真实资源目录（资源实体在 build/<preset>/resources，CMake 不经手拷贝），
+# 每次构建重生成 = 零过期窗口。运行时 FileManager::ListResourceFiles 经 SDL_RWops 读它，
+# 使资源目录列举在 Android(APK) 可用。详见
+# docs/superpowers/specs/2026-06-25-resource-manifest-enumeration-design.md
+add_custom_command(TARGET PlantsVsZombies POST_BUILD
+    COMMAND ${CMAKE_COMMAND}
+            -DRES_DIR=$<TARGET_FILE_DIR:PlantsVsZombies>/resources
+            -DRES_PARENT=$<TARGET_FILE_DIR:PlantsVsZombies>
+            -DOUT=$<TARGET_FILE_DIR:PlantsVsZombies>/resources/manifest.txt
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/gen_manifest.cmake
+    COMMENT "Generating resources/manifest.txt"
+)
+
 # ---- 头文件守卫：自动装 pre-commit 钩子 + configure 期 lint ----
 # 迁离 .sln 后 VS 模板不再自动塞 #pragma once，这里在提交关口兜底并即时反馈。
 # BOM-aware：只查 token 是否存在（不锚 ^），故 UTF-8 BOM 前缀不会误判。

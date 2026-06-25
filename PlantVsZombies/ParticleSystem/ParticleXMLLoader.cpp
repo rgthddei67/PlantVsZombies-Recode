@@ -6,8 +6,9 @@
 #include <cctype>
 
 bool ParticleXMLLoader::LoadFromDirectory(const std::string& directory) {
-	FileManager fileManager;
-	std::vector<std::string> xmlFiles = fileManager.GetFilesInDirectory(directory, ".xml");
+	// 经构建期烘焙的清单列举（FileManager::ListResourceFiles 经 SDL_RWops 读，APK 可读），
+	// 不再用 std::filesystem，使粒子配置目录在 Android 上也能列举 APK assets。
+	std::vector<std::string> xmlFiles = FileManager::ListResourceFiles(directory, ".xml");
 
 	if (xmlFiles.empty()) {
 		LOG_WARN("Particle") << "粒子配置目录为空: " << directory;

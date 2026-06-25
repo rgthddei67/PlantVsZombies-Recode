@@ -4,6 +4,8 @@
 #include <filesystem>
 #include <fstream>
 #include <sstream>
+#include <algorithm>
+#include <cctype>
 
 bool FileManager::FileExists(const std::string& path) {
 	std::ifstream file(path);
@@ -194,6 +196,71 @@ std::vector<std::string> FileManager::GetFilesInDirectory(const std::string& dir
 	}
 
 	return files;
+}
+
+std::vector<std::string> FileManager::ListResourceFiles(const std::string& directory,
+	const std::string& extension) {
+	// 读构建期烘焙的清单（经 LoadFileAsString = SDL_RWops，APK 可读）；
+	// 资源加载在启动期单线程，故首次解析后用函数局部 static 缓存整份清单
+	//（C++11 线程安全静态初始化）。每个进程读一次，永远与本次构建产物一致。
+	static const std::vector<std::string> manifest = []() {
+		std::vector<std::string> lines;
+		std::string content = LoadFileAsString("./resources/manifest.txt");
+		std::stringstream ss(content);
+		std::string line;
+		while (std::getline(ss, line)) {
+			// 去掉行尾的 \r（CRLF）与首尾空白
+			while (!line.empty() && (line.back() == '\r' || line.back() == '\n' ||
+				line.back() == ' ' || line.back() == '\t')) {
+				line.pop_back();
+			}
+			if (!line.empty()) {
+				lines.push_back(line);
+			}
+		}
+		return lines;
+	}();
+
+	// 归一查询目录：去尾部斜杠，使 "./a/b/" 与 "./a/b" 等价。
+	std::string dir = directory;
+	while (!dir.empty() && (dir.back() == '/' || dir.back() == '\\')) {
+		dir.pop_back();
+	}
+
+	// 小写化目标扩展名，便于大小写不敏感比较（空 = 不过滤）。
+	std::string extLower = extension;
+	std::transform(extLower.begin(), extLower.end(), extLower.begin(),
+		[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+
+	std::vector<std::string> files;
+
+	if (!manifest.empty()) {
+		for (const std::string& entry : manifest) {
+			// 非递归：父目录字符串须与 dir 精确相等（匹配 directory_iterator 语义）。
+			if (GetDirectory(entry) != dir) {
+				continue;
+			}
+			if (!extLower.empty()) {
+				std::string fileExt = GetFileExtension(entry);
+				std::transform(fileExt.begin(), fileExt.end(), fileExt.begin(),
+					[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+				if (fileExt != extLower) {
+					continue;
+				}
+			}
+			// 行内容即与 directory_iterator 逐字一致的全路径（如 ./resources/.../foo.png）。
+			files.push_back(entry);
+		}
+		return files;
+	}
+
+	// 清单缺失：桌面回退 std::filesystem（保证桌面永不退化）；Android 必须有清单。
+#if defined(__ANDROID__)
+	LogError("资源清单缺失且 Android 无文件系统回退: ./resources/manifest.txt");
+	return files;
+#else
+	return GetFilesInDirectory(directory, extension);
+#endif
 }
 
 bool FileManager::DeleteFile(const std::string& path) {

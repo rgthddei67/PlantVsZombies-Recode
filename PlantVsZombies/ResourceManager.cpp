@@ -2,13 +2,11 @@
 #include "./Game/Plant/GameDataManager.h"
 #include "./Renderer/VulkanTexturePool.h"
 #include "Logger.h"
-#include <filesystem>
+#include "FileManager.h"
 #include <algorithm>
 #include <cctype>
 #include <unordered_set>
 #include <vector>
-
-namespace fs = std::filesystem;
 
 ResourceManager* ResourceManager::instance = nullptr;
 
@@ -315,26 +313,24 @@ bool ResourceManager::LoadAllImagesFromPath(const std::string& directory) {
 	bool allSuccess = true;
 	int loadedCount = 0;
 
-	if (!fs::exists(directory) || !fs::is_directory(directory)) {
-		LOG_ERROR("ResourceManager") << "目录不存在: " << directory;
-		return false;
-	}
+	// 文件名来自构建期烘焙的清单（FileManager::ListResourceFiles 经 SDL_RWops 读，APK 可读），
+	// 不再用 std::filesystem 枚举，使该路径在 Android 上也能列举 APK assets。
+	// 返回的全路径与旧 directory_iterator 逐字一致，下游加载零差异。
+	std::vector<std::string> entries = FileManager::ListResourceFiles(directory);
 
-	for (const auto& entry : fs::directory_iterator(directory)) {
-		if (!entry.is_regular_file()) continue;
-
-		fs::path filepath = entry.path();
-		std::string ext = filepath.extension().string();
+	for (const std::string& fullPath : entries) {
+		std::string ext = FileManager::GetFileExtension(fullPath);
 		// 转换为小写以统一判断
 		std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
 
 		if (ext == ".jpg" || ext == ".jpeg" || ext == ".png") {
-			std::string key = filepath.stem().string();  // 不带扩展名的文件名
+			// stem = 文件名去扩展名（ext 已小写但长度不变，故可直接按长度裁剪）
+			std::string fileName = FileManager::GetFileName(fullPath);
+			std::string key = fileName.substr(0, fileName.size() - ext.size());
 			// 将 key 转换为大写
 			std::transform(key.begin(), key.end(), key.begin(), ::toupper);
 			// 添加前缀 "IMAGE_"
 			key = "IMAGE_" + key;
-			std::string fullPath = filepath.string();
 
 			if (LoadTexture(fullPath, key)) {
 				loadedCount++;
