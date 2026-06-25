@@ -8,6 +8,7 @@
 #include "./Game/SceneManager.h"
 #include "./Game/GameScene.h"
 #include "./Game/MainMenuScene.h"
+#include "./Game/GameSelectScene.h"
 #include "./Game/PlantAlmanacScene.h"
 #include "./Game/AlmanacScene.h"
 #include "./Game/ZombieAlmanacScene.h"
@@ -307,6 +308,7 @@ int GameAPP::Run()
 	auto& sceneManager = SceneManager::GetInstance();
 
 	sceneManager.RegisterScene<MainMenuScene>("MainMenuScene");
+	sceneManager.RegisterScene<GameSelectScene>("GameSelectScene");
 	sceneManager.RegisterScene<AlmanacScene>("AlmanacScene");
 	sceneManager.RegisterScene<GameScene>("GameScene");
 	sceneManager.RegisterScene<PlantAlmanacScene>("PlantAlmanacScene");
