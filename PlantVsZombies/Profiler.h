@@ -65,10 +65,6 @@ public:
 		for (auto& kv : mAccum) {
 			std::printf("  %-20s : %7.2f ms\n", kv.first.c_str(), kv.second * inv);
 		}
-		double avgFlush = mFlushCountAccum * inv;
-		double avgSprites = (mFlushVertsAccum * inv) / 6.0;
-		std::printf("  FlushBatch calls     : %7.1f /frame  (~%.0f sprites/frame)\n",
-			avgFlush, avgSprites);
 		std::printf("============================================\n");
 
 		mAccum.clear();

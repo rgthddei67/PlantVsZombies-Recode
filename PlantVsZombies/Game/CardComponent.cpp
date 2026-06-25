@@ -198,7 +198,7 @@ GameObject* CardComponent::FindCardSlotManagerHost() const {
 			}
 		}
 	}
-	LOG_WARN("CardComponent") << "No CardSlotManager found in scene!";
+	// LOG_WARN("CardComponent") << "No CardSlotManager found in scene!";
 	return nullptr;
 }
 

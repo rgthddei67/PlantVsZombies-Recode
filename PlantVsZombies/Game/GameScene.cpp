@@ -846,8 +846,8 @@ void GameScene::RenderPerkViewPage()
 		perkLines.push_back(ln);
 	}
 
-	// 分页：每页最多 5 个 distinct 词条（distinct == perkLines.size()）
-	constexpr int kPerksPerPage = 5;
+	// 分页：每页最多 6 个 distinct 词条（distinct == perkLines.size()）
+	constexpr int kPerksPerPage = 6;
 	const int totalPages = (distinct > 0) ? ((distinct + kPerksPerPage - 1) / kPerksPerPage) : 1;
 	if (mPerkViewPage < 0) mPerkViewPage = 0;
 	if (mPerkViewPage > totalPages - 1) mPerkViewPage = totalPages - 1;
@@ -871,7 +871,7 @@ void GameScene::RenderPerkViewPage()
 	const float boxTop  = cy - boxH / 2.0f;
 	const float innerW  = boxW - 2.0f * padX;
 	const float availH  = boxH - 2.0f * padY - closeGap - closeBtnSize.y;
-	const int   N       = pageEnd - pageStart;   // 本页行数（≤5）
+	const int   N       = pageEnd - pageStart;   // 本页行数（≤6）
 
 	// 字号自动缩放：rowFont 18→10，titleFont=rowFont+4，挑「最大且能塞进固定面板」者；
 	// 一路不满足则落到 floor=10（容忍轻微挤压，仍优于溢出可视边框）
@@ -893,7 +893,7 @@ void GameScene::RenderPerkViewPage()
 		if (fits || fnt == 10) {
 			rowFont = fnt; titleFont = tf;
 			titleLineH = tlh; rowLineH = rlh; titleGap = tg; rowGap = rg; contentH = ch;
-			if (fits) break;   // 否则 fnt==10 兜底，循环自然结束
+			if (fits) break;   // 否则 fnt==12 兜底，循环自然结束
 		}
 	}
 
