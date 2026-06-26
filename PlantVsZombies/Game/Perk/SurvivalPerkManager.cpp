@@ -74,8 +74,7 @@ double SurvivalPerkManager::GetZombieHealthMultiplier() const {
 double SurvivalPerkManager::GetZombieDamageTakenMultiplier() const {
 	double reduction = GetInfo(PerkType::ZOMBIE_DAMAGE_RESIST).perStack
 		* GetStacks(PerkType::ZOMBIE_DAMAGE_RESIST);
-	double mult = 1.0 - reduction;
-	return mult < 0.5 ? 0.5 : mult;   // maxStacks=10 → 恰好 0.5；夹底防越界
+	return (1.0 - reduction);
 }
 
 int SurvivalPerkManager::ScalePlantDamage(int base) const {
@@ -84,6 +83,10 @@ int SurvivalPerkManager::ScalePlantDamage(int base) const {
 
 int SurvivalPerkManager::ScaleDamageToZombie(int base) const {
 	return RoundScale(base, GetZombieDamageTakenMultiplier());
+}
+
+int SurvivalPerkManager::ScaleTotalDamageToZombie(int base) const {
+	return ScaleDamageToZombie(ScalePlantDamage(base));
 }
 
 void SurvivalPerkManager::Save(nlohmann::json& j) const {

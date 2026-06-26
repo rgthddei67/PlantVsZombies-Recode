@@ -2,6 +2,7 @@
 #include "Board.h"
 #include "Zombie/Zombie.h"
 #include "GameObjectManager.h"
+#include "ShadowComponent.h"
 #include "../DeltaTime.h"
 #include "../GameApp.h"
 

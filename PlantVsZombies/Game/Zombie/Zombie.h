@@ -57,6 +57,7 @@ protected:
 	bool mHasTongue = false;
 	bool mIsDying = false;	// 是否播放死亡动画 大概可以这么理解 这个时候不能走路
 	float mDyingTimer = 0.0f;	// mIsDying 持续时间，超过 10s 强制 Die 防止卡 BUG
+	bool mDbgAnomalyLogged = false;	// [DBG] 临时插桩：死亡期间轨道异常只记一次
 
 	float mSpeed = 10.0f;
 	int mGroundTrackIndex = -1;

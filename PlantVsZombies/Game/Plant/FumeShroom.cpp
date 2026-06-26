@@ -50,7 +50,7 @@ bool FumeShroom::HasZombieInRow()
 			mBoard->mEntityManager.ForEachZombieInRow(mRow, [&](Zombie* zombie) {
 				if (found) return;  // 已命中，跳过本行其余
 				float dx = zombie->GetPosition().x - thisX;
-				if (dx >= 0 && dx <= kFumeReach)
+				if (dx >= 0 && dx <= kFumeReach && zombie->HasHead())
 					found = true;
 				});
 			return found;
@@ -59,9 +59,6 @@ bool FumeShroom::HasZombieInRow()
 	return false;
 }
 
-// 喷雾区域攻击：原版大喷菇不发射子弹，而是对本行锥形范围内的所有僵尸瞬时造成伤害，
-// 且穿透二类护盾（铁门/报纸）——护盾照常受损/掉落，但全额伤害同时透到头盔+本体。
-// 在第 27 帧（喷雾成形）由 frame event 触发，命中时重新扫描本行（僵尸已移动），与检测互不依赖。
 void FumeShroom::FumeAttack()
 {
 	if (!mBoard) return;
@@ -69,7 +66,7 @@ void FumeShroom::FumeAttack()
 	const float thisX = GetPosition().x;
 	mBoard->mEntityManager.ForEachZombieInRow(mRow, [&](Zombie* zombie) {
 		const float dx = zombie->GetPosition().x - thisX;
-		if (dx >= 0 && dx <= kFumeReach)
+		if (dx >= 0 && dx <= kFumeReach && zombie->HasHead())
 			zombie->TakeDamage(kFumeDamage, /*penetrateShield=*/true);
 		});
 }

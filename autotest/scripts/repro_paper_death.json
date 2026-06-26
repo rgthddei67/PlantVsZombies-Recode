@@ -1,0 +1,54 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 1 },
+    { "op": "choose_cards", "cards": ["PLANT_PEASHOOTER", "PLANT_WALLNUT"], "timeout": 20 },
+    { "op": "wait_state", "state": "GAME" },
+    { "op": "set_sun", "value": 9990 },
+
+    { "op": "plant", "type": "PLANT_WALLNUT", "row": 1, "col": 6 },
+    { "op": "plant", "type": "PLANT_WALLNUT", "row": 2, "col": 6 },
+    { "op": "plant", "type": "PLANT_WALLNUT", "row": 3, "col": 6 },
+
+    { "op": "plant", "type": "PLANT_PEASHOOTER", "row": 1, "col": 0 },
+    { "op": "plant", "type": "PLANT_PEASHOOTER", "row": 1, "col": 1 },
+    { "op": "plant", "type": "PLANT_PEASHOOTER", "row": 2, "col": 0 },
+    { "op": "plant", "type": "PLANT_PEASHOOTER", "row": 2, "col": 1 },
+    { "op": "plant", "type": "PLANT_PEASHOOTER", "row": 3, "col": 0 },
+    { "op": "plant", "type": "PLANT_PEASHOOTER", "row": 3, "col": 1 },
+
+    { "op": "set_timescale", "value": 3.0 },
+
+    { "op": "spawn_zombie", "type": "ZOMBIE_NEWSPAPER", "row": 1, "x": 960 },
+    { "op": "spawn_zombie", "type": "ZOMBIE_NEWSPAPER", "row": 2, "x": 960 },
+    { "op": "spawn_zombie", "type": "ZOMBIE_NEWSPAPER", "row": 3, "x": 960 },
+    { "op": "wait_seconds", "value": 14 },
+    { "op": "dump_state", "name": "d1.json" },
+    { "op": "screenshot", "name": "s1_eating.png" },
+    { "op": "wait_seconds", "value": 18 },
+    { "op": "dump_state", "name": "d2.json" },
+
+    { "op": "spawn_zombie", "type": "ZOMBIE_NEWSPAPER", "row": 1, "x": 960 },
+    { "op": "spawn_zombie", "type": "ZOMBIE_NEWSPAPER", "row": 2, "x": 960 },
+    { "op": "spawn_zombie", "type": "ZOMBIE_NEWSPAPER", "row": 3, "x": 960 },
+    { "op": "wait_seconds", "value": 14 },
+    { "op": "dump_state", "name": "d3.json" },
+    { "op": "wait_seconds", "value": 18 },
+    { "op": "dump_state", "name": "d4.json" },
+
+    { "op": "spawn_zombie", "type": "ZOMBIE_NEWSPAPER", "row": 1, "x": 960 },
+    { "op": "spawn_zombie", "type": "ZOMBIE_NEWSPAPER", "row": 2, "x": 960 },
+    { "op": "spawn_zombie", "type": "ZOMBIE_NEWSPAPER", "row": 3, "x": 960 },
+    { "op": "wait_seconds", "value": 14 },
+    { "op": "dump_state", "name": "d5.json" },
+    { "op": "wait_seconds", "value": 18 },
+    { "op": "dump_state", "name": "d6.json" },
+
+    { "op": "spawn_zombie", "type": "ZOMBIE_NEWSPAPER", "row": 1, "x": 960 },
+    { "op": "spawn_zombie", "type": "ZOMBIE_NEWSPAPER", "row": 2, "x": 960 },
+    { "op": "spawn_zombie", "type": "ZOMBIE_NEWSPAPER", "row": 3, "x": 960 },
+    { "op": "wait_seconds", "value": 16 },
+    { "op": "dump_state", "name": "d7.json" },
+    { "op": "screenshot", "name": "s7.png" },
+    { "op": "quit" }
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 1 },
+    { "op": "choose_cards", "cards": ["PLANT_WALLNUT", "PLANT_CHERRYBOMB"], "timeout": 20 },
+    { "op": "wait_state", "state": "GAME" },
+    { "op": "set_sun", "value": 9990 },
+
+    { "op": "plant", "type": "PLANT_WALLNUT", "row": 1, "col": 6 },
+    { "op": "plant", "type": "PLANT_WALLNUT", "row": 2, "col": 6 },
+    { "op": "plant", "type": "PLANT_WALLNUT", "row": 3, "col": 6 },
+
+    { "op": "set_timescale", "value": 1.5 },
+
+    { "op": "spawn_zombie", "type": "ZOMBIE_NEWSPAPER", "row": 1, "x": 815 },
+    { "op": "spawn_zombie", "type": "ZOMBIE_NEWSPAPER", "row": 2, "x": 815 },
+    { "op": "spawn_zombie", "type": "ZOMBIE_NEWSPAPER", "row": 3, "x": 815 },
+
+    { "op": "wait_seconds", "value": 6 },
+    { "op": "dump_state", "name": "before_cherry.json" },
+    { "op": "screenshot", "name": "before_cherry.png" },
+
+    { "op": "plant", "type": "PLANT_CHERRYBOMB", "row": 1, "col": 7 },
+    { "op": "plant", "type": "PLANT_CHERRYBOMB", "row": 2, "col": 7 },
+    { "op": "plant", "type": "PLANT_CHERRYBOMB", "row": 3, "col": 7 },
+
+    { "op": "wait_seconds", "value": 3 },
+    { "op": "dump_state", "name": "after_boom.json" },
+    { "op": "screenshot", "name": "after_boom.png" },
+    { "op": "wait_seconds", "value": 8 },
+    { "op": "dump_state", "name": "late1.json" },
+    { "op": "screenshot", "name": "late1.png" },
+    { "op": "wait_seconds", "value": 8 },
+    { "op": "dump_state", "name": "late2.json" },
+    { "op": "quit" }
+  ]
+}

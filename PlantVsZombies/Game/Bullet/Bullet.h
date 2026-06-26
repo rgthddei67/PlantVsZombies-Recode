@@ -41,7 +41,7 @@ protected:
 	ColliderComponent* mCollider = nullptr;
 
 	// 子弹击中僵尸的效果
-	virtual void BulletHitZombie(Zombie* zombie) {}
+	virtual void BulletHitZombie(Zombie* zombie);
 
 public:
 	Bullet(Board* board, BulletType bulletType, int row, const Vector& colliderRadius,

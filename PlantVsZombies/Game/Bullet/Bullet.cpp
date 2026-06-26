@@ -26,7 +26,6 @@ Bullet::Bullet(Board* board, BulletType bulletType, int row, const Vector& colli
 			auto* zombie = dynamic_cast<Zombie*>(otherGameObject);
 			if (zombie && zombie->mRow == this->mRow && !this->mHasHit) {
 				this->mHasHit = true;
-				zombie->TakeDamage(mBoard->GetPerkManager().ScalePlantDamage(this->GetBulletDamage()));
 				this->BulletHitZombie(zombie);
 				this->Die();
 			}
@@ -97,4 +96,9 @@ void Bullet::Draw(Graphics* g)
 		g->DrawTexture(mTexture, position.x, position.y,
 			static_cast<float>(mTexture->width * mScale), static_cast<float>(mTexture->height) * mScale);
 	}
+}
+
+void Bullet::BulletHitZombie(Zombie* zombie)
+{
+	zombie->TakeDamage(this->GetBulletDamage());
 }

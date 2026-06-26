@@ -19,6 +19,7 @@ public:
 
     int ScalePlantDamage(int base) const;          // round(base * 植物伤害倍率)，base>=1 时结果>=1
     int ScaleDamageToZombie(int base) const;       // round(base * 免伤倍率)，base>=1 时结果>=1
+	int ScaleTotalDamageToZombie(int base) const;  // round(base * 植物伤害倍率 * 僵尸免伤倍率)，base>=1 时结果>=1
 
     double GetZombieDamageMultiplier() const;       // 1 + 0.05 * stacks（不限层）
     int    ScaleZombieDamage(int base) const;       // round(base * 僵尸伤害倍率)，base>=1 时结果>=1

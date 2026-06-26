@@ -82,7 +82,7 @@ void Zombie::ApplyHealthMultiplier(double multiplier)
 	// 整数精确到 ~9e15，远超 int 上限，故缩放链路上 float 是比 int 字段更先暴露的弱点（缩放仅出生时算一次，无热路径开销）。
 	auto scale = [multiplier](int v) {
 		return static_cast<int>(static_cast<double>(v) * multiplier + 0.5);
-	};
+		};
 	mBodyHealth = scale(mBodyHealth);
 	mBodyMaxHealth = scale(mBodyMaxHealth);
 	mHelmHealth = scale(mHelmHealth);
@@ -196,8 +196,17 @@ void Zombie::Update()
 		if (mIsDying)
 		{
 			mDyingTimer += deltaTime;
+			if (GetCurrentTrackName() != "anim_death" && !mDbgAnomalyLogged) {
+				mDbgAnomalyLogged = true;
+			}
 			if (mDyingTimer >= 10.0f)
 			{
+				LOG_WARN("DBG") << "WATCHDOG force-die type=" << static_cast<int>(mZombieType)
+					<< " track=" << GetCurrentTrackName()
+					<< " frame=" << GetCurrentFrame()
+					<< " target=" << GetTargetTrack()
+					<< " playState=" << static_cast<int>(GetPlayingState())
+					<< " hasHead=" << mHasHead << " isEating=" << mIsEating;
 				this->Die();
 				return;
 			}
@@ -362,14 +371,14 @@ void Zombie::TakeBodyDamage(int damage)
 
 void Zombie::TakeDamage(int damage, bool penetrateShield)
 {
-	if (damage <= 0) return;
+	if (damage <= 0 || !mBoard) return;
 
 	// 词条②：僵尸前 N 次免伤（生存专用）。出生时由词条层数设定 mFreeHitsRemaining。
 	// 提前 return：完全吸收且不触发受击白光（SetGlowingTimer），0 伤害不应闪。
 	if (mFreeHitsRemaining > 0) { --mFreeHitsRemaining; return; }
 
-	// 词条：僵尸免伤（生存专用；空词条/非生存关倍率=1，无副作用）。单点覆盖一切伤害来源。
-	if (mBoard) damage = mBoard->GetPerkManager().ScaleDamageToZombie(damage);
+	// 词条：植物增伤 僵尸免伤（生存专用；空词条/非生存关倍率=1，无副作用）。单点覆盖一切伤害来源。
+	damage = mBoard->GetPerkManager().ScaleTotalDamageToZombie(damage);
 
 	SetGlowingTimer(0.1f);
 
