@@ -22,7 +22,7 @@ std::vector<char> FileManager::LoadFileAsBinary(const std::string& path) {
 	// SDL_RWFromFile：相对路径在 Android 自动读 APK assets / 桌面读 CWD；绝对路径走真实文件系统。
 	SDL_RWops* rw = SDL_RWFromFile(path.c_str(), "rb");
 	if (!rw) {
-		LogError("Failed to open file: " + path);
+		// LogError("Failed to open file: " + path);
 		return {};
 	}
 

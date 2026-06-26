@@ -552,7 +552,7 @@ inline void Board::TrySummonZombie()
 
 	int remainingPoints = CalculateWaveZombiePoints();
 	int zombiesSpawned = 0;
-	float x = static_cast<float>(SCENE_WIDTH) + 30;
+	float x = static_cast<float>(SCENE_WIDTH) + 40;
 
 	while (remainingPoints > 0 && zombiesSpawned < MAX_ZOMBIES_PER_WAVE)
 	{

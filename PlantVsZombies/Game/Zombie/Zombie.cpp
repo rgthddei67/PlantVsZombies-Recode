@@ -240,7 +240,7 @@ void Zombie::Update()
 			{
 				mBoard->GameOver();
 			}
-			if (position.x > static_cast<float>(SCENE_WIDTH + 50) || position.x < -20.0f)
+			if (position.x > static_cast<float>(SCENE_WIDTH + 65) || position.x < -20.0f)
 			{
 				this->Die();
 			}
