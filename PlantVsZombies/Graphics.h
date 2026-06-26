@@ -765,7 +765,7 @@ private:
 	std::vector<uint32_t> m_batchTextures;        ///< 当前批次使用的 bindless 槽位列表
 	std::vector<glm::mat4> m_batchMatrices;     ///< 当前批次使用的变换矩阵列表
 	std::vector<InstanceRecord> m_batchInstances;   ///< 主线程串行 instance 缓冲（worker 走 slice 不经此处）
-	int m_batchInstancesLimit = 32768;              ///< 单次 flush 上限，~1.5 MB 一次 vkCmdDraw（仅切分 draw 段数，不影响总字节；cap = INST_BYTES_PER_FRAME/48 ≈ 699k，远未触及）
+	int m_batchInstancesLimit = 32768;              ///< 单次 flush 上限，~1.5 MB 一次 vkCmdDraw（仅切分 draw 段数，不影响总字节；逐帧 inst 缓冲 grow-on-demand，见 Graphics.cpp）
 	bool m_useInstancePath = true;   ///< Task 7: false强制走 slow path 做 A/B baseline
 
 	int m_maxTextureUnits = 32;                  ///< 最大纹理单元数（着色器限制）
