@@ -3,7 +3,7 @@
 
 namespace {
 	constexpr int   kFumeDamage = 20;       // 每次喷射伤害（约一发豌豆，原版 DoRowAreaDamage(20, ...)）
-	constexpr float kFumeReach = 380.0f;    // 喷雾横向覆盖范围（约 4 格锥形；检测与命中共用同一距离）
+	constexpr float kFumeReach = 400.0f;    // 喷雾横向覆盖范围（约 4 格锥形；检测与命中共用同一距离）
 }
 
 void FumeShroom::SetupPlant()
