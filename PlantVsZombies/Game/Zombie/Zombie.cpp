@@ -251,8 +251,14 @@ void Zombie::Update()
 			// 掉头后本体血量逐帧流失直至归零（无头僵尸流血而亡）。
 			// 钳在 0，避免每帧继续 mBodyHealth-- 跌成负数，
 			// 污染 Board 的僵尸总血量统计与刷波阈值。
-			if (mBodyHealth > 0)
-				mBodyHealth--;
+			mSubHealthTimer += scaledDelta;
+			if (mSubHealthTimer >= 0.01f)
+			{
+				mSubHealthTimer = 0.0f;
+				if (mBodyHealth > 0)
+					mBodyHealth--;
+			}
+
 			if (mBodyHealth <= 35)
 			{
 				if (!mIsDying)
@@ -357,7 +363,7 @@ void Zombie::TakeBodyDamage(int damage)
 		mBodyHealth = 0;
 
 	// 先乘后除：用 64 位算中间量，避免 mBodyMaxHealth 极大时 *2 在 int 内溢出（约 >10.7 亿即翻负）。
-	if (mNeedDropArm && mHasArm && mBodyHealth <= static_cast<long long>(mBodyMaxHealth) * 2 / 3)
+	if (mNeedDropArm && mHasArm && mBodyHealth <= static_cast<int64_t>(mBodyMaxHealth) * 2 / 3)
 	{
 		ArmDrop();
 		mHasArm = false;

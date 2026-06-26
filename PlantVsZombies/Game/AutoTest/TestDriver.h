@@ -39,7 +39,7 @@ private:
 	std::vector<nlohmann::json> mCommands;
 	std::string mOutDir;
 	std::ofstream mRunLog;
-	unsigned long long mFrame = 0;
+	uint64_t mFrame = 0;
 
 	// 等待型命令的逐命令状态（推进到下一条时清零）
 	float mWaitAccum = 0.0f;     // wait_seconds 已累计（缩放后游戏时间）

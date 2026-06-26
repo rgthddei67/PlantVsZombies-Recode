@@ -7,7 +7,7 @@ namespace {
 	const PerkInfo kPerks[] = {
 		{ "PLANT_DAMAGE_UP",      u8"全体植物伤害", u8"每层使全体植物伤害 +10%（不限层）",0.10f, 9999,   PerkCategory::PLANT_BUFF },
 		{ "ZOMBIE_HEALTH_UP",     u8"僵尸血量",     u8"每层使僵尸血量 +20%（不限层）",0.20f, 9999,   PerkCategory::ZOMBIE_CURSE },
-		{ "ZOMBIE_DAMAGE_RESIST", u8"僵尸免伤",     u8"每层使僵尸受到伤害 -5%（最多 10 层）", 0.05f, 10,   PerkCategory::ZOMBIE_CURSE },
+		{ "ZOMBIE_DAMAGE_RESIST", u8"僵尸免伤",     u8"每层使僵尸受到伤害 -5%（最多 18 层）", 0.05f, 18,   PerkCategory::ZOMBIE_CURSE },
 		{ "ZOMBIE_DAMAGE_UP",     u8"僵尸伤害",     u8"每层使僵尸对植物伤害 +5%（不限层）", 0.05f, 9999, PerkCategory::ZOMBIE_CURSE },
 		{ "ZOMBIE_INVULN_HITS",   u8"僵尸前N次免伤", u8"每层使僵尸出生后前 10 次受击免伤（最多 2 层）", 10.0f, 2, PerkCategory::ZOMBIE_CURSE },
 		{ "PLANT_REGEN",          u8"植物回血",     u8"每层使植物 5 秒回 65 HP. 满 5 层解锁过量治疗至 3 倍上限（最多 8 层数）", 65.0f, 8, PerkCategory::PLANT_BUFF },
