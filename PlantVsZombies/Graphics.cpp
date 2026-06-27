@@ -27,7 +27,7 @@ namespace {
 		{ /*location*/3, /*binding*/0, VK_FORMAT_R32G32B32A32_SFLOAT,  offsetof(BatchVertex, r)         },
 	};
 
-	// 每帧持久映射 host-visible 缓冲容量 —— grow-on-demand（见 GrowBufferIfNeeded / Graphics::BeginFrame）。
+	// 每帧持久映射 host-visible 缓冲容量 —— grow-on-demand（见 ResizeBufferIfNeeded / Graphics::BeginFrame）。
 	// 启动只分配 *_INIT 的小容量；某帧写入溢出（fr.overflowWarned）时 EndFrame 把目标容量翻倍（无上限），
 	// 下一次该帧 BeginFrame（fence 已等过、GPU 不再引用本帧缓冲）create-then-swap 重建到位。
 	// 无封顶：每帧绘制需求由玩法天然有界，×2 收敛到真实需求的 ≤2 倍；真 OOM 由 create-then-swap 兜底降级为 drop。
@@ -59,20 +59,39 @@ struct Graphics::VulkanGraphicsState {
 		VkDeviceSize                       vboCursor = 0;   // 当前写入字节偏移
 		VkDeviceSize                       ssboCursor = 0;
 		VkDeviceSize                       instCursor = 0;   // Task 3
-		VkDeviceSize                       vboCap = 0;   // 本帧缓冲实际容量（grow-on-demand，只增不减）
+		VkDeviceSize                       vboCap = 0;   // 本帧缓冲实际容量（grow-on-demand）
 		VkDeviceSize                       ssboCap = 0;
 		VkDeviceSize                       instCap = 0;
-		bool                               overflowWarned = false;  // 本帧已打过 overflow 警告？
+		bool                               overflowWarned = false;  // 本帧已打过 overflow 警告？（仅日志节流）
+		bool                               vboOverflow = false;     // 本帧各缓冲是否溢出 —— 按缓冲归因，
+		bool                               ssboOverflow = false;    // 驱动 EndFrame 只翻倍真正溢出的那个缓冲，
+		bool                               instOverflow = false;    // 不再因共用一旗而把三缓冲全部 ×2（过度分配）。
 	};
 	static constexpr uint32_t FRAMES = pvz::VulkanRenderer::FRAMES_IN_FLIGHT;
 	std::array<PerFrame, FRAMES> frames;
 	uint32_t frameIdx = 0;  // 与 VulkanRenderer 帧索引同步
 
-	// grow-on-demand 目标容量（全局高水位，只增不减）。EndFrame 在溢出时翻倍，
-	// 各帧 BeginFrame 把自己的缓冲增长到该值；普通场景从不溢出 → 恒为 *_INIT。
+	// grow-on-demand 目标容量（全局高水位）。EndFrame 溢出时增长、持续空闲时回收；
+	// 各帧 BeginFrame 把自己的缓冲 resize 到该值；普通场景从不溢出 → 恒为 *_INIT。
 	VkDeviceSize desiredVboCap  = VBO_BYTES_INIT;
 	VkDeviceSize desiredSsboCap = SSBO_BYTES_INIT;
 	VkDeviceSize desiredInstCap = INST_BYTES_INIT;
+
+	// 本帧各缓冲"真实需求"字节（含被容量拒绝的写入；并行区聚合 + 串行溢出点更新）。
+	// EndFrame 据此一步扩容到位，避免 ×2 逐帧爬升导致连续多帧丢绘制。每帧 BeginFrame 清零。
+	uint64_t frameVboDemand  = 0;
+	uint64_t frameSsboDemand = 0;
+	uint64_t frameInstDemand = 0;
+
+	// 空闲回收（#8）：连续 kShrinkIdleFrames 帧占用 < desired/4 且无溢出 → 缩到窗口峰值×2（地板 *_INIT）。
+	// 防止一次重场景把 host-visible 顶到几百 MB 后整个会话不回收，吞掉本次 grow-on-demand 的常驻收益。
+	static constexpr int kShrinkIdleFrames = 600;   // ~10s @60fps，迟滞防抖
+	VkDeviceSize idleVboPeak  = 0, idleSsboPeak  = 0, idleInstPeak  = 0;
+	int          idleVboFrames = 0, idleSsboFrames = 0, idleInstFrames = 0;
+
+	// OOM 节流（#9）：grow/shrink 分配失败只在"进入失败态"时报一次，成功后复位 —— 避免
+	// 持续 OOM 时每帧对 3 个缓冲各刷一条 WARN（Release 不裁 WARN）卡死主线程。
+	bool growFailWarned = false;
 
 	std::unique_ptr<pvz::VulkanPipeline> pipeBatchAlpha;
 	std::unique_ptr<pvz::VulkanPipeline> pipeBatchAdd;
@@ -482,21 +501,28 @@ void Graphics::ShutdownVulkan() {
 
 namespace {
 	// grow-on-demand：把单个持久映射 host-visible 缓冲增长到 desiredCap。
-	// 销毁旧缓冲、按新容量重建、（若 dstSet 非空）把 storage 描述符重写到新句柄。
+	// 把缓冲 resize 到 desiredCap（grow 或 shrink 均走此路）：销毁旧缓冲、按新容量重建、
+	// （若 dstSet 非空）把 storage 描述符重写到新句柄。
 	// 调用前提：该帧 fence 已被 renderer->BeginFrame 等过，GPU 不再引用此缓冲 → 销毁重建安全。
 	// vbo 走 dstSet=VK_NULL_HANDLE（顶点缓冲每帧 replay 现读 Handle()，无需描述符）。
-	void GrowBufferIfNeeded(pvz::VulkanContext* ctx,
+	// failWarned：sticky OOM 节流旗（成功复位）——持续失败时只在进入失败态报一次。
+	void ResizeBufferIfNeeded(pvz::VulkanContext* ctx,
 		std::unique_ptr<pvz::VulkanBuffer>& buf, VkDeviceSize& cap,
-		VkDeviceSize desiredCap, VkBufferUsageFlags usage, VkDescriptorSet dstSet) {
-		if (cap >= desiredCap) return;
+		VkDeviceSize desiredCap, VkBufferUsageFlags usage, VkDescriptorSet dstSet,
+		bool& failWarned) {
+		if (cap == desiredCap) return;   // 既处理 grow（cap<desired）也处理 shrink（cap>desired）
 		// 先建新的、成功后再换下旧的（create-then-swap）：grow 无上限，desiredCap 极大时
 		// vmaCreateBuffer 可能 OOM 失败——此时必须保留旧缓冲，让本帧走既有 drop 路径而不是崩。
 		auto fresh = std::make_unique<pvz::VulkanBuffer>();
 		if (!fresh->Create(ctx, desiredCap, usage, /*hostVisible*/true)) {
-			LOG_WARN("Graphics") << "grow-on-demand 分配失败，保留旧容量 " << cap
-				<< "（desired=" << desiredCap << "）— 本帧按 drop 处理";
+			if (!failWarned) {   // 仅"进入失败态"报一次，避免每帧×3缓冲刷屏卡主线程
+				LOG_WARN("Graphics") << "缓冲 resize 分配失败，保留旧容量 " << cap
+					<< "（desired=" << desiredCap << "）— 本帧按 drop 处理";
+				failWarned = true;
+			}
 			return;  // 旧 buf 完好，drop 路径兜底
 		}
+		failWarned = false;   // 成功 → 复位，下次再失败可再报
 		buf = std::move(fresh);   // 旧缓冲随 unique_ptr 析构 → vmaDestroyBuffer（fence 已等过，安全）
 		cap = desiredCap;
 		if (dstSet != VK_NULL_HANDLE) {
@@ -550,19 +576,21 @@ bool Graphics::BeginFrame() {
 	auto& fr = m_vk->frames[m_vk->frameIdx];
 
 	// grow-on-demand：此刻本帧 fence 已被 renderer->BeginFrame 等过，GPU 不再引用本帧缓冲，
-	// 可安全销毁重建到目标容量（只增不减）。ssbo/inst 是描述符绑定，重建后重写描述符；
+	// 可安全销毁重建到目标容量（grow 或 shrink）。ssbo/inst 是描述符绑定，重建后重写描述符；
 	// vbo 是顶点缓冲，每帧 replay 现读 Handle()，无需重写。
-	GrowBufferIfNeeded(m_vk->ctx, fr.vbo, fr.vboCap, m_vk->desiredVboCap,
-		VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_NULL_HANDLE);
-	GrowBufferIfNeeded(m_vk->ctx, fr.ssbo, fr.ssboCap, m_vk->desiredSsboCap,
-		VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, fr.matrixSet);
-	GrowBufferIfNeeded(m_vk->ctx, fr.instBuf, fr.instCap, m_vk->desiredInstCap,
-		VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, fr.instSet);
+	ResizeBufferIfNeeded(m_vk->ctx, fr.vbo, fr.vboCap, m_vk->desiredVboCap,
+		VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_NULL_HANDLE, m_vk->growFailWarned);
+	ResizeBufferIfNeeded(m_vk->ctx, fr.ssbo, fr.ssboCap, m_vk->desiredSsboCap,
+		VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, fr.matrixSet, m_vk->growFailWarned);
+	ResizeBufferIfNeeded(m_vk->ctx, fr.instBuf, fr.instCap, m_vk->desiredInstCap,
+		VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, fr.instSet, m_vk->growFailWarned);
 
 	fr.vboCursor = 0;
 	fr.ssboCursor = 0;
 	fr.instCursor = 0;  // Task 3
 	fr.overflowWarned = false;
+	fr.vboOverflow = fr.ssboOverflow = fr.instOverflow = false;
+	m_vk->frameVboDemand = m_vk->frameSsboDemand = m_vk->frameInstDemand = 0;
 	m_vk->frameOpen = true;
 	return true;
 }
@@ -572,17 +600,40 @@ bool Graphics::EndFrame() {
 	FlushBatch();
 	FlushInstances();
 
-	// grow-on-demand 需求测量：本帧若发生过缓冲溢出（serial 或 worker slice，共用 overflowWarned），
-	// 把目标容量翻倍（无上限——绘制需求由玩法天然有界，×2 收敛到真实需求的 ≤2 倍；
-	// 真 OOM 由 GrowBufferIfNeeded 的 create-then-swap 兜底降级为 drop）。
-	// 下一次各帧 BeginFrame 增长到位，1~2 帧内收敛。普通关卡/主菜单从不溢出 → desired 恒为 *_INIT → 永不增长。
+	// grow-on-demand 容量决策（按缓冲独立，#6/#7/#8）：
+	//  · 扩容：本帧某缓冲溢出 → 目标增长到 max(cap×2, 真实需求×1.25)。真实需求来自 worker 切片的
+	//    "想写"计数（含被拒绝的）+ 串行溢出点，故一个大尖峰能"一步到位"而非 ×2 逐帧爬升（避免连续丢帧）。
+	//    ×2 为地板（需求测不全时兜底）；真 OOM 由 ResizeBufferIfNeeded 的 create-then-swap 降级为 drop。
+	//  · 回收：连续 kShrinkIdleFrames 帧占用 < desired/4 且无溢出 → 缩到窗口峰值×2（地板 *_INIT），
+	//    防一次重场景把 host-visible 顶高后整个会话不回收。
+	// 普通关卡/主菜单从不溢出且占用恒低 → desired 恒为 *_INIT。
 	{
 		const auto& fr = m_vk->frames[m_vk->frameIdx];
-		if (fr.overflowWarned) {
-			m_vk->desiredVboCap  = std::max(m_vk->desiredVboCap,  fr.vboCap  * 2);
-			m_vk->desiredSsboCap = std::max(m_vk->desiredSsboCap, fr.ssboCap * 2);
-			m_vk->desiredInstCap = std::max(m_vk->desiredInstCap, fr.instCap * 2);
-		}
+		auto growTo = [](VkDeviceSize& desired, VkDeviceSize cap, uint64_t demand) {
+			const VkDeviceSize target = std::max<VkDeviceSize>(cap * 2, (VkDeviceSize)(demand + demand / 4));
+			desired = std::max(desired, target);
+		};
+		if (fr.vboOverflow)  growTo(m_vk->desiredVboCap,  fr.vboCap,  m_vk->frameVboDemand);
+		if (fr.ssboOverflow) growTo(m_vk->desiredSsboCap, fr.ssboCap, m_vk->frameSsboDemand);
+		if (fr.instOverflow) growTo(m_vk->desiredInstCap, fr.instCap, m_vk->frameInstDemand);
+
+		auto considerShrink = [](VkDeviceSize& desired, VkDeviceSize init, VkDeviceSize usage,
+			bool overflowed, VkDeviceSize& peak, int& frames) {
+				if (desired <= init) { frames = 0; peak = 0; return; }      // 已到地板，无可缩
+				if (overflowed || usage * 4 > desired) { frames = 0; peak = 0; return; }  // 忙 → 重置窗口
+				if (usage > peak) peak = usage;
+				if (++frames >= VulkanGraphicsState::kShrinkIdleFrames) {
+					const VkDeviceSize tgt = std::max(init, peak * 2);     // 留 2× 余量再缩
+					if (tgt < desired) desired = tgt;
+					frames = 0; peak = 0;
+				}
+			};
+		considerShrink(m_vk->desiredVboCap,  VBO_BYTES_INIT,  fr.vboCursor,  fr.vboOverflow,
+			m_vk->idleVboPeak,  m_vk->idleVboFrames);
+		considerShrink(m_vk->desiredSsboCap, SSBO_BYTES_INIT, fr.ssboCursor, fr.ssboOverflow,
+			m_vk->idleSsboPeak, m_vk->idleSsboFrames);
+		considerShrink(m_vk->desiredInstCap, INST_BYTES_INIT, fr.instCursor, fr.instOverflow,
+			m_vk->idleInstPeak, m_vk->idleInstFrames);
 	}
 
 	m_vk->frameOpen = false;
@@ -784,11 +835,15 @@ void Graphics::FlushBatch() {
 	const VkDeviceSize matBytes = matCount * sizeof(glm::mat4);
 	const VkDeviceSize vertBytes = vertCount * sizeof(BatchVertex);
 
-	if (fr.ssboCursor + matBytes > fr.ssboCap ||
-		fr.vboCursor + vertBytes > fr.vboCap) {
+	const bool ssboOver = fr.ssboCursor + matBytes > fr.ssboCap;
+	const bool vboOver  = fr.vboCursor + vertBytes > fr.vboCap;
+	if (ssboOver || vboOver) {
+		// 按缓冲归因（驱动 EndFrame 只翻倍溢出的缓冲）+ 记录串行真实需求（供一步扩容到位）。
+		if (ssboOver) { fr.ssboOverflow = true; m_vk->frameSsboDemand = std::max<uint64_t>(m_vk->frameSsboDemand, (uint64_t)fr.ssboCursor + matBytes); }
+		if (vboOver)  { fr.vboOverflow  = true; m_vk->frameVboDemand  = std::max<uint64_t>(m_vk->frameVboDemand,  (uint64_t)fr.vboCursor  + vertBytes); }
 		// 每帧只打一次警告——overflow 之后几乎每次 DrawXxx 都会再次 hit 这条路径，
 		// 同步写控制台会把主线程憋成死循环（PVZ 在大场景下能堆到 60k+ 次/帧）。
-		// （grow-on-demand：本帧溢出会在 EndFrame 触发目标容量翻倍，下帧增长到位。）
+		// （grow-on-demand：本帧溢出会在 EndFrame 触发目标容量增长，下帧到位。）
 		if (!fr.overflowWarned) {
 			LOG_WARN("Graphics") << "Frame buffer overflow — ssbo " << fr.ssboCursor << "+" << matBytes
 				<< "/" << fr.ssboCap << "  vbo " << fr.vboCursor << "+" << vertBytes
@@ -845,6 +900,8 @@ void Graphics::FlushInstances() {
 	auto& fr = m_vk->frames[m_vk->frameIdx];
 	const size_t needBytes = m_batchInstances.size() * sizeof(InstanceRecord);
 	if (fr.instCursor + needBytes > fr.instCap) {
+		fr.instOverflow = true;   // 按缓冲归因 + 记录串行真实需求
+		m_vk->frameInstDemand = std::max<uint64_t>(m_vk->frameInstDemand, (uint64_t)fr.instCursor + needBytes);
 		if (!fr.overflowWarned) {
 			LOG_WARN("Graphics") << "FlushInstances overflow ("
 				<< fr.instCursor << "+" << needBytes
@@ -1030,8 +1087,9 @@ void Graphics::AppendReanimInstance(const InstanceRecord& rec, BlendMode blendMo
 		WorkerRecord& r = *tl_record;
 		VkWorkerSlice& sl = r.slice;
 
+		sl.instDemand++;   // 计入"想写"的实例（含被容量拒绝的），供精确扩容 + 负载均衡权重
 		if (sl.instCount >= sl.instCap) {
-			sl.overflowed = true;
+			sl.instOverflowed = true;
 			return;
 		}
 
@@ -1739,8 +1797,11 @@ void Graphics::BeginParallelRecord(int numWorkers) {
 	const uint64_t equalSsboBytes = (ssboUsable / numWorkers / sizeof(glm::mat4)) * sizeof(glm::mat4);
 	const uint64_t equalInstBytes = (instUsable / numWorkers / sizeof(InstanceRecord)) * sizeof(InstanceRecord);
 	if (equalVboBytes == 0 || equalSsboBytes == 0 || equalInstBytes == 0) {
-		// 每帧只打一次警告（fr.overflowWarned 是 FlushBatch overflow 共用的旗，足够）。
-		if (!fr.overflowWarned) {
+		// 哪个缓冲连"每 worker 一个 stride 的等分"都放不下，就标哪个溢出（驱动 EndFrame 只翻倍它）。
+		if (equalVboBytes == 0)  fr.vboOverflow = true;
+		if (equalSsboBytes == 0) fr.ssboOverflow = true;
+		if (equalInstBytes == 0) fr.instOverflow = true;
+		if (!fr.overflowWarned) {   // 日志节流
 			LOG_WARN("Graphics") << "BeginParallelRecord: insufficient frame buffer capacity ("
 				<< "vbo " << baseVbo << "/" << fr.vboCap
 				<< ", ssbo " << baseSsbo << "/" << fr.ssboCap
@@ -1805,7 +1866,7 @@ void Graphics::BeginParallelRecord(int numWorkers) {
 		sl.vboCap = (uint32_t)(vboSlice[i] / VSTRIDE);
 		sl.ssboCap = (uint32_t)(ssboSlice[i] / MSTRIDE);
 		sl.instCap = (uint32_t)(instSlice[i] / ISTRIDE);                       // Task 3
-		// vboCount / ssboCount / instCount / overflowed 已经在上面 VkWorkerSlice{} 清零
+		// vboCount/ssboCount/instCount、*Demand、*Overflowed 已经在上面 VkWorkerSlice{} 清零
 		vOff += vboSlice[i];
 		mOff += ssboSlice[i];
 		iOff += instSlice[i];                                                       // Task 3
@@ -1950,7 +2011,10 @@ void Graphics::ReplayAndEndParallel() {
 		WorkerRecord& r = m_workerRecords[slot];
 		VkWorkerSlice& sl = r.slice;
 
-		if (sl.overflowed && !fr.overflowWarned) {
+		if (sl.vboOverflowed)  fr.vboOverflow  = true;   // 按缓冲归因聚合到帧级
+		if (sl.ssboOverflowed) fr.ssboOverflow = true;
+		if (sl.instOverflowed) fr.instOverflow = true;
+		if ((sl.vboOverflowed || sl.ssboOverflowed || sl.instOverflowed) && !fr.overflowWarned) {
 			LOG_WARN("Graphics") << "Worker slot " << slot
 				<< " overflowed slice (vbo " << sl.vboCount << "/" << sl.vboCap
 				<< ", ssbo " << sl.ssboCount << "/" << sl.ssboCap
@@ -2032,18 +2096,28 @@ void Graphics::ReplayAndEndParallel() {
 		emitUpTo(sl.vboBaseVert + sl.vboCount, sl.instBaseIdx + sl.instCount);
 	}
 
-	// 自适应负载均衡：采样本帧各 slot 的实际占用，作为下一并行帧的切片权重。
-	// 溢出 slot 的真实需求已被丢弃无法测量——记为 cap×1.5 放大估计，使其下帧
-	// 拿到更大切片（快 attack，1~2 帧内收敛）；非溢出 slot 直接用真实 count。
-	// 必须在 m_numActiveWorkers 清零前采，且 slice 计数此刻已最终化。
+	// 自适应负载均衡：采样本帧各 slot 的"真实需求"（sl.*Demand，含被容量拒绝的写入），
+	// 作为下一并行帧的切片权重 —— 比旧的"溢出→cap×1.5 估计"精确，溢出 slot 下帧直接拿到
+	// 够用的切片（快 attack）。同时把各 buffer 需求聚合成帧级真实需求字节，供 EndFrame 一步
+	// 扩容到位（避免 ×2 逐帧爬升时连续多帧丢绘制）。必须在 m_numActiveWorkers 清零前采。
 	if ((int)m_prevSliceVboDemand.size() != m_numActiveWorkers) m_prevSliceVboDemand.assign(m_numActiveWorkers, 0);
 	if ((int)m_prevSliceSsboDemand.size() != m_numActiveWorkers) m_prevSliceSsboDemand.assign(m_numActiveWorkers, 0);
 	if ((int)m_prevSliceInstDemand.size() != m_numActiveWorkers) m_prevSliceInstDemand.assign(m_numActiveWorkers, 0);   // Task 3
+	uint64_t vboDemandBytes = 0, ssboDemandBytes = 0, instDemandBytes = 0;
 	for (int slot = 0; slot < m_numActiveWorkers; ++slot) {
 		const VkWorkerSlice& sl = m_workerRecords[slot].slice;
-		m_prevSliceVboDemand[slot] = sl.overflowed ? (uint32_t)((uint64_t)sl.vboCap * 3u / 2u) : sl.vboCount;
-		m_prevSliceSsboDemand[slot] = sl.overflowed ? (uint32_t)((uint64_t)sl.ssboCap * 3u / 2u) : sl.ssboCount;
-		m_prevSliceInstDemand[slot] = sl.overflowed ? (uint32_t)((uint64_t)sl.instCap * 3u / 2u) : sl.instCount;       // Task 3
+		m_prevSliceVboDemand[slot]  = sl.vboDemand;
+		m_prevSliceSsboDemand[slot] = sl.ssboDemand;
+		m_prevSliceInstDemand[slot] = sl.instDemand;                                                                  // Task 3
+		vboDemandBytes  += (uint64_t)sl.vboDemand  * sizeof(BatchVertex);
+		ssboDemandBytes += (uint64_t)sl.ssboDemand * sizeof(glm::mat4);
+		instDemandBytes += (uint64_t)sl.instDemand * sizeof(InstanceRecord);
+	}
+	if (m_vk && m_vk->frameOpen) {
+		// 并行区真实需求 = 区前主线程已占用(base) + 各 slot 想写的总量。
+		m_vk->frameVboDemand  = std::max<uint64_t>(m_vk->frameVboDemand,  m_parallelBaseVbo  + vboDemandBytes);
+		m_vk->frameSsboDemand = std::max<uint64_t>(m_vk->frameSsboDemand, m_parallelBaseSsbo + ssboDemandBytes);
+		m_vk->frameInstDemand = std::max<uint64_t>(m_vk->frameInstDemand, m_parallelBaseInst + instDemandBytes);
 	}
 
 	// onTop=true 的 deferred text 在所有 slot 几何之后统一渲染 = 绝对顶层。
@@ -2073,11 +2147,12 @@ void Graphics::ReplayAndEndParallel() {
 namespace {
 	// 容量检查：6 顶点 + 1 mat4。返回 false 表示溢出（slot 标记 overflowed，调用方早退）。
 	inline bool SliceHasRoom(VkWorkerSlice& sl, uint32_t addVerts, uint32_t addMats) {
-		if (sl.vboCount + addVerts > sl.vboCap || sl.ssboCount + addMats > sl.ssboCap) {
-			sl.overflowed = true;
-			return false;
-		}
-		return true;
+		sl.vboDemand  += addVerts;   // 计入"想写"的量（含被容量拒绝的），供精确扩容 + 负载均衡权重
+		sl.ssboDemand += addMats;
+		bool fit = true;
+		if (sl.vboCount + addVerts > sl.vboCap)  { sl.vboOverflowed  = true; fit = false; }
+		if (sl.ssboCount + addMats > sl.ssboCap) { sl.ssboOverflowed = true; fit = false; }
+		return fit;
 	}
 
 	// 把一个矩阵推进切片 SSBO，返回它在整帧 SSBO 中的绝对下标。

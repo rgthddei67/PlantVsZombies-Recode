@@ -197,7 +197,12 @@ struct VkWorkerSlice {
 	uint32_t        vboCount = 0;        ///< 当前已写顶点数
 	uint32_t        ssboCount = 0;        ///< 当前已写矩阵数
 	uint32_t        instCount = 0;        ///< 当前已写 InstanceRecord 数（Task 3）
-	bool            overflowed = false;    ///< 写超容量时置 true，回放只画前 vboCount 个
+	uint32_t        vboDemand = 0;       ///< 本帧"想写"的顶点总数（含被容量拒绝的），供精确扩容 + 负载均衡权重
+	uint32_t        ssboDemand = 0;      ///< 本帧"想写"的矩阵总数（含被拒绝的）
+	uint32_t        instDemand = 0;      ///< 本帧"想写"的 InstanceRecord 总数（含被拒绝的）
+	bool            vboOverflowed = false;   ///< vbo 写超容量（回放只画前 vboCount 个）
+	bool            ssboOverflowed = false;  ///< ssbo 写超容量
+	bool            instOverflowed = false;  ///< inst 写超容量
 };
 
 /**

@@ -91,7 +91,10 @@ void Board::InitializeCell(int rows, int cols)
 
 void Board::CreateBoom(const Vector& position, int damage)
 {
-	damage = mPerkManager.ScalePlantDamage(damage);   // 词条：全体植物伤害（含瞬时伤害；入口缩放使秒杀阈值与扣血一致）
+	// 词条「全体植物伤害 / 僵尸免伤」由 Zombie::TakeDamage 统一缩放（单点覆盖一切伤害来源）。
+	// 这里仅预测 TakeDamage 实际造成的伤害，用于秒杀(Charred)阈值判定——保持判定与扣血一致，
+	// 且不在入口重复缩放（旧代码此处 ScalePlantDamage 一次、TakeDamage 又缩放一次 → 词条被算两遍）。
+	const int scaledDamage = mPerkManager.ScaleTotalDamageToZombie(damage);
 	g_particleSystem->EmitEffect("CherryBomb", position);
 	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_CHERRYBOMB, 0.4f);
 	std::vector<int> zombieIDs = mEntityManager.GetAllZombieIDs();
@@ -102,13 +105,13 @@ void Board::CreateBoom(const Vector& position, int damage)
 			if (std::abs(zombiePositon.x - position.x) <= 130.0f &&
 				std::abs(zombiePositon.y - position.y) <= 130.0f)
 			{
-				if (zombie->mBodyHealth <= damage)
+				if (zombie->mBodyHealth <= scaledDamage)
 				{
 					zombie->Charred();
 				}
 				else
 				{
-					zombie->TakeDamage(damage);
+					zombie->TakeDamage(damage);   // 传未缩放原值，TakeDamage 内部缩放一次
 				}
 			}
 		}

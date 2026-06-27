@@ -254,15 +254,19 @@ void Zombie::Update()
 
 		if (!mHasHead)
 		{
-			// 掉头后本体血量逐帧流失直至归零（无头僵尸流血而亡）。
-			// 钳在 0，避免每帧继续 mBodyHealth-- 跌成负数，
-			// 污染 Board 的僵尸总血量统计与刷波阈值。
-			mSubHealthTimer += scaledDelta;
+			// 掉头后本体血量按真实时间流失直至归零（无头僵尸流血而亡），固定 ~100 HP/秒。
+			// 用未减速的 deltaTime（非 scaledDelta）：流血而亡是确定性死亡机制，速率必须只与
+			// 真实时间挂钩——既与帧率无关（高刷不会掉得更快），也不被冰冻减速拖慢（否则高血量
+			// 僵尸被冰住时迟迟不死、继续逼近房子）。
+			// 累加器「减阈值」而非「归零」以保留亚阈值余量，并按经过时间一次补扣多点：低帧率 /
+			// set_timescale 快进下单帧可能跨过多个 0.01s 间隔，逐点补足才不丢血、速率才恒定。
+			mSubHealthTimer += deltaTime;
 			if (mSubHealthTimer >= 0.01f)
 			{
-				mSubHealthTimer = 0.0f;
-				if (mBodyHealth > 0)
-					mBodyHealth--;
+				int ticks = static_cast<int>(mSubHealthTimer / 0.01f);
+				mSubHealthTimer -= ticks * 0.01f;
+				mBodyHealth -= ticks;           // 钳在 0：避免跌成负数污染 Board 总血量统计与刷波阈值
+				if (mBodyHealth < 0) mBodyHealth = 0;
 			}
 
 			if (mBodyHealth <= 35)

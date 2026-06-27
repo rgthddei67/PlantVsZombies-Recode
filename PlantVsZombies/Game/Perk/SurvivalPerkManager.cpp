@@ -1,5 +1,6 @@
 #include "SurvivalPerkManager.h"
 #include <nlohmann/json.hpp>
+#include <cstdint>
 #include "../../GameRandom.h"
 
 namespace {
@@ -21,6 +22,10 @@ namespace {
 
 	int RoundScale(int base, double mult) {
 		if (base <= 0) return base;
+		// 秒杀哨兵（小推车 LawnMower::TakeDamage(INT32_MAX) 等）不参与缩放：base*mult 会溢出 int
+		// → UB（x86 上变 INT_MIN）→ 被下面 r<1?1 钳成 1，导致小推车只打 1 点伤害 → 推车失效 → 输。
+		// 任何真实伤害都远小于此阈值，故只拦截哨兵，不影响正常缩放。
+		if (base >= INT32_MAX / 2) return base;
 		int r = static_cast<int>(static_cast<double>(base) * mult + 0.5);
 		return r < 1 ? 1 : r;   // 防 50% 免伤把 1 点伤害抹成 0
 	}
