@@ -7,6 +7,7 @@
 #include "../Plant/GameDataManager.h"
 #include "../../ParticleSystem/ParticleSystem.h"
 #include "../../GameApp.h"
+#include <climits>
 
 Zombie::Zombie(Board* board, ZombieType zombieType, float x, float y, int row,
 	AnimationType animType, float scale, bool isPreview)
@@ -81,8 +82,13 @@ void Zombie::ApplyHealthMultiplier(double multiplier)
 	// 用 double 而非 float：float 尾数仅 24 位，血量 > 2^24(≈1677万) 时整数会丢精度；double 尾数 52 位，
 	// 整数精确到 ~9e15，远超 int 上限，故缩放链路上 float 是比 int 字段更先暴露的弱点（缩放仅出生时算一次，无热路径开销）。
 	auto scale = [multiplier](int v) {
-		return static_cast<int>(static_cast<double>(v) * multiplier + 0.5);
+		double scaled = static_cast<double>(v) * multiplier + 0.5;
+		// 防溢出：缩放后血量超过 INT_MAX 时 static_cast<int> 是 UB(实测得 INT_MIN)，钳到 INT_MAX。
+		// (double)INT_MAX == 2147483647.0 精确可表示(2^31-1 < 2^53)，故用 >= 比较即可。
+		if (scaled >= static_cast<double>(INT_MAX)) return INT_MAX;
+		return static_cast<int>(scaled);
 		};
+
 	mBodyHealth = scale(mBodyHealth);
 	mBodyMaxHealth = scale(mBodyMaxHealth);
 	mHelmHealth = scale(mHelmHealth);
