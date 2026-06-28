@@ -1563,8 +1563,8 @@ void Graphics::DrawTextOnTop(const std::string& text, const std::string& fontKey
 
 void Graphics::DrawGlyphRun(const std::string& text, const std::string& fontKey, int fontSize,
 	const glm::vec4& color, float x, float y, float scale) {
-	// worker：Task 1 暂走旧 DeferredText（整串光栅化）路径；Task 2 改为 RecordDrawGlyphRun。
-	if (tl_record) { RecordDrawText(*tl_record, text, fontKey, fontSize, color, x, y, scale, /*onTop*/false); return; }
+	// worker：defer 到主线程 replay 就地发射字形 quad（零光栅化，无 TTF/上传/LRU）；与对象同 z-order。
+	if (tl_record) { RecordDrawGlyphRun(*tl_record, text, fontKey, fontSize, color, x, y, scale); return; }
 	if (text.empty()) return;
 
 	// 1. 解码本串全部码点。
@@ -2288,6 +2288,16 @@ void Graphics::ReplayAndEndParallel() {
 				}
 				break;
 			}
+			case RecCmdType::DeferredGlyphRun: {
+				const DeferredGlyphRunCmd& t = r.glyphRunCmds[cmd.payloadIdx];
+				// 就地发射：emitUpTo 已把本对象 sprite emit 完，此处画字形 quad，夹在本对象与
+				// 后续对象之间 = 与对象同 z-order。DrawGlyphRun/FlushBatch 会重绑 pipeline/vbo，
+				// 画完清空 boundPipe 哨兵，强制下次 emitUpTo 重绑。
+				DrawGlyphRun(t.text, t.fontKey, t.fontSize, t.color, t.x, t.y, t.scale);
+				FlushBatch();
+				boundPipe = BoundPipe::None;
+				break;
+			}
 			}
 		}
 
@@ -2564,6 +2574,29 @@ void Graphics::RecordDrawText(WorkerRecord& r,
 	c.vertOffsetAtCmd = r.slice.vboCount;
 	c.instOffsetAtCmd = r.slice.instCount;   // Task 4
 	c.payloadIdx = (uint32_t)(r.textCmds.size() - 1);
+	r.cmds.push_back(c);
+}
+
+void Graphics::RecordDrawGlyphRun(WorkerRecord& r,
+	const std::string& text, const std::string& fontKey, int fontSize,
+	const glm::vec4& color, float x, float y, float scale)
+{
+	// 只打包参数；图集构建 + 字形 quad 发射全部 defer 到主线程 replay（就地、当前层 z-order）。
+	DeferredGlyphRunCmd t;
+	t.text = text;
+	t.fontKey = fontKey;
+	t.fontSize = fontSize;
+	t.color = color;
+	t.x = x;
+	t.y = y;
+	t.scale = scale;
+	r.glyphRunCmds.push_back(std::move(t));
+
+	RecordCmd c{};
+	c.type = RecCmdType::DeferredGlyphRun;
+	c.vertOffsetAtCmd = r.slice.vboCount;
+	c.instOffsetAtCmd = r.slice.instCount;
+	c.payloadIdx = (uint32_t)(r.glyphRunCmds.size() - 1);
 	r.cmds.push_back(c);
 }
 

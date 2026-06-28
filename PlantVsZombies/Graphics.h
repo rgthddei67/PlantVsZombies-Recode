@@ -170,7 +170,8 @@ enum class RecCmdType : uint8_t {
 	PushClip,       ///< 推入裁剪矩形（payloadIdx 指向 clips）
 	PopClip,        ///< 弹出裁剪矩形
 	SetBlend,       ///< 切换混合模式（payloadIdx 指向 blendModes）
-	DeferredText    ///< DrawText 延迟到主线程执行（payloadIdx 指向 textCmds）
+	DeferredText,   ///< DrawText 延迟到主线程执行（payloadIdx 指向 textCmds）
+	DeferredGlyphRun ///< DrawGlyphRun 延迟到主线程就地发射（payloadIdx 指向 glyphRunCmds）
 };
 
 /**
@@ -202,6 +203,20 @@ struct DeferredTextCmd {
 	float       y = 0.0f;
 	float       scale = 1.0f;
 	bool        onTop = false;  ///< true=回放末尾统一画(绝对顶层); false=就地交错画(对象同 z-order)
+};
+
+/**
+ * @brief 延迟执行的 DrawGlyphRun 参数。worker 只记此命令、不碰图集/纹理；主线程 replay 时
+ *        就地调 DrawGlyphRun 发射字形 quad（与对象同 z-order）。血量只需当前层，无 onTop 变体。
+ */
+struct DeferredGlyphRunCmd {
+	std::string text;
+	std::string fontKey;
+	int         fontSize = 0;
+	glm::vec4   color = glm::vec4(255.0f);
+	float       x = 0.0f;
+	float       y = 0.0f;
+	float       scale = 1.0f;
 };
 
 /**
@@ -243,6 +258,7 @@ struct WorkerRecord {
 	std::vector<ClipRect>        clips;          ///< PushClip 的 payload
 	std::vector<BlendMode>       blendModes;     ///< SetBlend 的 payload
 	std::vector<DeferredTextCmd> textCmds;       ///< DeferredText 的 payload
+	std::vector<DeferredGlyphRunCmd> glyphRunCmds;  ///< DeferredGlyphRun 的 payload
 
 	// 初始状态快照（BeginParallelRecord 时由主线程填充，SetWorkerSlot 时给 worker 用）
 	glm::mat4              initialTopTransform = glm::mat4(1.0f);
@@ -257,6 +273,7 @@ struct WorkerRecord {
 		clips.clear();
 		blendModes.clear();
 		textCmds.clear();
+		glyphRunCmds.clear();
 		initialClipStack.clear();
 	}
 };
