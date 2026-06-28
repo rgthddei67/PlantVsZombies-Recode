@@ -18,6 +18,7 @@
 #include <list>
 #include <memory>
 #include <cstdint>
+#include <set>
 
 #include "ResourceManager.h"
 
@@ -103,6 +104,32 @@ struct CachedText {
 	// 清 pinned 缓存会递增代际号，使所有持有旧副本的消费者（如 CardDisplayComponent）能
 	// 用 IsCachedTextStale 察觉自己手里的句柄已失效，避免读已销毁的 bindless 槽位。
 	uint32_t generation = 0;
+};
+
+/**
+ * @brief 图集内单个字形的 UV + 度量（物理像素口径）。
+ */
+struct GlyphInfo {
+	float u0 = 0, v0 = 0, u1 = 0, v1 = 0;  // 图集内归一化 UV（左上 u0,v0 / 右下 u1,v1）
+	int   pxW = 0, pxH = 0;                // 字形位图物理像素尺寸
+	int   advance = 0;                     // 笔触前进（物理像素）
+	int   bearingX = 0;                    // minx（物理像素）
+	int   bearingY = 0;                    // maxy 相对基线（物理像素）
+};
+
+/**
+ * @brief 一张 HUD 字形图集：单行打包的白色字形纹理（一个 bindless 槽），按 (字体,字号) 缓存。
+ *        白色烘焙 + 顶点色 tint → 一张图集服务所有颜色。physSize 变化（letterbox）时整张重建。
+ */
+struct GlyphAtlas {
+	pvz::VulkanTexture* vkTex = nullptr;     // 图集纹理句柄（ClearGlyphAtlases 负责还给 pool）
+	uint32_t            textureID = 0;       // vkTex->bindlessIndex；0 = 未建/建失败
+	int                 texW = 0, texH = 0;
+	int                 ascent = 0;          // physSize 字体的 TTF_FontAscent（物理像素）
+	int                 physSize = 0;        // 烘焙物理字号（= ComputeTextRasterSize 结果）
+	float               superSample = 1.0f;  // physSize / fontSize
+	std::unordered_map<uint32_t, GlyphInfo> glyphs;  // codepoint → 字形
+	std::set<uint32_t>  covered;             // 已纳入的码点全集（重建时的烘焙集合）
 };
 
 /**
@@ -402,6 +429,15 @@ public:
 	 * @note  color 是 0..255 范围，同 DrawText。
 	 */
 	void DrawTextOnTop(const std::string& text, const std::string& fontKey, int fontSize,
+		const glm::vec4& color, float x, float y, float scale = 1.0f);
+
+	/**
+	 * @brief 用 HUD 字形图集逐字形绘制一段文字（与对象同 z-order，等价 DrawText 的层序）。
+	 *        替代频繁变化的数字串（血量等）走的"整串→纹理"LRU 路径：字形只光栅化一次进图集，
+	 *        变化的数字成本≈0。worker 路径记轻量命令、零光栅化；图集只在主线程构建。
+	 * @note  color 是 **0..255** 范围，同 DrawText。建图集失败时自动 fallback 到 DrawText。
+	 */
+	void DrawGlyphRun(const std::string& text, const std::string& fontKey, int fontSize,
 		const glm::vec4& color, float x, float y, float scale = 1.0f);
 
 	/**
@@ -795,6 +831,7 @@ private:
 		std::pair<CachedText, std::list<std::string>::iterator>> m_textCache;  ///< 文字纹理 LRU 缓存
 	std::unordered_map<std::string, CachedText> m_pinnedTextCache;  ///< 常驻文字纹理缓存（AcquireTextTexture 使用，不淘汰）
 	uint32_t m_textGeneration = 0;  ///< pinned 缓存代际号；ClearPinnedTextCache 递增，用于失效持有方的旧句柄
+	std::unordered_map<std::string, GlyphAtlas> m_glyphAtlases;  ///< HUD 字形图集，键 = "fontKey|fontSize"
 
 	// ==================== 多线程录制状态 ====================
 	std::vector<WorkerRecord>      m_workerRecords;       ///< 每个 worker slot 一份的录制缓冲
@@ -894,6 +931,24 @@ private:
 		int fontSize, const glm::vec4& color, CachedText& out);
 
 	/**
+	 * @brief 取/建 (fontKey,fontSize) 的字形图集，并确保 needed 里的码点全部已烘入（当帧收敛）。
+	 *        physSize 变化（letterbox）或有新码点时整张重建。返回引用恒有效（unordered_map 引用稳定）。
+	 */
+	GlyphAtlas& GetOrBuildGlyphAtlas(const std::string& fontKey, int fontSize,
+		const std::vector<uint32_t>& needed);
+
+	/**
+	 * @brief 按 atlas.covered 全集（重新）烘焙图集：逐字形 TTF 度量+渲染→单行打包→上传一张纹理。
+	 *        旧纹理先还给 pool。失败时令 atlas.textureID=0（上层 fallback）。
+	 */
+	void BuildGlyphAtlas(const std::string& fontKey, int fontSize, GlyphAtlas& atlas);
+
+	/**
+	 * @brief 释放全部字形图集纹理（还给 pool），清空缓存。ShutdownVulkan / ClearTextCache 时调。
+	 */
+	void ClearGlyphAtlases();
+
+	/**
 	 * @brief 清空常驻文字纹理缓存（释放 GL 纹理）。析构时调用。
 	 */
 	void ClearPinnedTextCache();
@@ -930,6 +985,10 @@ private:
 	void RecordDrawText(WorkerRecord& r,
 		const std::string& text, const std::string& fontKey, int fontSize,
 		const glm::vec4& color, float x, float y, float scale, bool onTop);
+
+	void RecordDrawGlyphRun(WorkerRecord& r,
+		const std::string& text, const std::string& fontKey, int fontSize,
+		const glm::vec4& color, float x, float y, float scale);
 
 	void RecordFillRect(WorkerRecord& r,
 		float x, float y, float width, float height, const glm::vec4& color);

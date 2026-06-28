@@ -887,6 +887,9 @@ void Graphics::FlushBatch() {
 		m_vk->pipeBatchAlpha.get(), m_vk->pipeBatchAdd.get(),
 		sets, projView);
 
+	// 诊断：统计一次真实提交（含 replay 里逐行血量文字各自的 FlushBatch）。
+	Profiler::Get().CountFlush(vertCount);
+
 	clearCpu();
 }
 
@@ -1184,6 +1187,22 @@ void Graphics::DrawTextureRegion(const Texture* tex,
 	CheckBatch();
 }
 
+// UTF-8 解码：从 s[i] 起解一个码点，前进 i。非法字节返回 0xFFFD 并前进 1。
+// HP 字符集（数字/标点/CJK 本体一类二类）全在 BMP，但仍按通用 UTF-8 正确解多字节。
+static uint32_t DecodeUtf8(const std::string& s, size_t& i) {
+	const unsigned char c = (unsigned char)s[i];
+	uint32_t cp; int extra;
+	if (c < 0x80)             { cp = c;        extra = 0; }
+	else if ((c >> 5) == 0x6) { cp = c & 0x1F; extra = 1; }
+	else if ((c >> 4) == 0xE) { cp = c & 0x0F; extra = 2; }
+	else if ((c >> 3) == 0x1E){ cp = c & 0x07; extra = 3; }
+	else { ++i; return 0xFFFD; }
+	++i;
+	for (int k = 0; k < extra && i < s.size(); ++k, ++i)
+		cp = (cp << 6) | ((unsigned char)s[i] & 0x3F);
+	return cp;
+}
+
 // 文字超采样：letterbox 把整幅逻辑画面放大 letterboxScale 倍铺满全屏。文字若按逻辑
 // fontSize 光栅化再被 GPU 放大就会糊。改为按物理像素 physSize 光栅化，绘制时再按
 // superSample 除回逻辑尺寸——屏幕布局不变、像素密度匹配屏幕。窗口模式 scale=1 → 恒等。
@@ -1210,6 +1229,7 @@ uint32_t Graphics::GetOrCreateTextTexture(const std::string& text, const std::st
 	auto it = m_textCache.find(key);
 	if (it != m_textCache.end()) {
 		// 命中缓存：移到链表头部（最近使用）
+		Profiler::Get().CountText(/*miss*/false);
 		m_textCacheOrder.erase(it->second.second);
 		m_textCacheOrder.push_front(key);
 		it->second.second = m_textCacheOrder.begin();
@@ -1217,6 +1237,11 @@ uint32_t Graphics::GetOrCreateTextTexture(const std::string& text, const std::st
 		outHeight = it->second.first.height;
 		return it->second.first.textureID;
 	}
+
+	// 未命中：TTF 光栅化 + 格式转换 + GPU 上传（+ 满载时淘汰旧纹理）。这段是串行 replay 里
+	// 随"掉血节奏"放大的成本——单独计时(7a)+计数，验证血量数字 thrash 假设。
+	Profiler::Get().CountText(/*miss*/true);
+	PROFILE_SCOPE("7a.TextRaster_miss");
 
 	CachedText entry;
 	if (!RenderTextToVulkanTexture(text, fontKey, physSize, color, entry)) {
@@ -1294,6 +1319,121 @@ bool Graphics::RenderTextToVulkanTexture(const std::string& text, const std::str
 	out.height = h;
 	out.vkTex = vkt;
 	return true;
+}
+
+void Graphics::BuildGlyphAtlas(const std::string& fontKey, int fontSize, GlyphAtlas& atlas) {
+	atlas.glyphs.clear();
+	// 旧纹理先还给 pool（重建场景：新码点 / letterbox 变化）。
+	if (m_vk && m_vk->texPool && atlas.vkTex) {
+		m_vk->texPool->DestroyTexture(atlas.vkTex);
+		atlas.vkTex = nullptr;
+	}
+	atlas.textureID = 0;
+
+	if (!m_vk || !m_vk->texPool || atlas.covered.empty()) return;
+
+	float superSample;
+	const int physSize = ComputeTextRasterSize(fontSize, m_letterboxScale, superSample);
+	TTF_Font* font = ResourceManager::GetInstance().GetFont(fontKey, physSize);
+	if (!font) {
+		LOG_WARN("Graphics") << "BuildGlyphAtlas: 找不到字体 " << fontKey << " size=" << physSize;
+		return;  // textureID 保持 0 → 上层 fallback
+	}
+
+	const SDL_Color white{ 255, 255, 255, 255 };
+	const int pad = 1;
+
+	// 第一趟：渲染每个字形、量尺寸、算单行布局。
+	struct Pending { uint32_t cp; SDL_Surface* surf; int minx, maxy, advance; int x; };
+	std::vector<Pending> pend;
+	pend.reserve(atlas.covered.size());
+	int atlasW = pad, atlasH = 1;
+	for (uint32_t cp : atlas.covered) {
+		int minx, maxx, miny, maxy, adv;
+		if (TTF_GlyphMetrics(font, (Uint16)cp, &minx, &maxx, &miny, &maxy, &adv) != 0)
+			continue;  // 该字形不可用，跳过（绘制时缺字形会触发整串 fallback）
+		SDL_Surface* gs = TTF_RenderGlyph_Blended(font, (Uint16)cp, white);  // 空白字形可能返回 null
+		const int gw = gs ? gs->w : 0;
+		const int gh = gs ? gs->h : 0;
+		Pending p{ cp, gs, minx, maxy, adv, atlasW };
+		pend.push_back(p);
+		atlasW += gw + pad;
+		if (gh > atlasH) atlasH = gh;
+	}
+	if (pend.empty()) return;
+
+	// 目标图集 surface（ABGR8888，清零）。
+	SDL_Surface* atlasSurf = SDL_CreateRGBSurfaceWithFormat(0, atlasW, atlasH, 32, SDL_PIXELFORMAT_ABGR8888);
+	if (!atlasSurf) {
+		for (auto& p : pend) if (p.surf) SDL_FreeSurface(p.surf);
+		LOG_ERROR("Graphics") << "BuildGlyphAtlas: SDL_CreateRGBSurfaceWithFormat 失败: " << SDL_GetError();
+		return;
+	}
+	SDL_FillRect(atlasSurf, nullptr, SDL_MapRGBA(atlasSurf->format, 0, 0, 0, 0));
+
+	const int ascent = TTF_FontAscent(font);
+
+	// 第二趟：blit 进图集（NONE 混合=直接覆盖含 alpha），记录 GlyphInfo。
+	for (auto& p : pend) {
+		const int gw = p.surf ? p.surf->w : 0;
+		const int gh = p.surf ? p.surf->h : 0;
+		if (p.surf && gw > 0 && gh > 0) {
+			SDL_SetSurfaceBlendMode(p.surf, SDL_BLENDMODE_NONE);
+			SDL_Rect dst{ p.x, 0, gw, gh };
+			SDL_BlitSurface(p.surf, nullptr, atlasSurf, &dst);
+		}
+		GlyphInfo gi;
+		gi.u0 = (float)p.x / (float)atlasW;
+		gi.v0 = 0.0f;
+		gi.u1 = (float)(p.x + gw) / (float)atlasW;
+		gi.v1 = (float)gh / (float)atlasH;
+		gi.pxW = gw;
+		gi.pxH = gh;
+		gi.advance = p.advance;
+		gi.bearingX = p.minx;
+		gi.bearingY = p.maxy;
+		atlas.glyphs[p.cp] = gi;
+		if (p.surf) SDL_FreeSurface(p.surf);
+	}
+
+	pvz::VulkanTexture* vkt = m_vk->texPool->CreateTextureRGBA8(atlasW, atlasH, atlasSurf->pixels);
+	SDL_FreeSurface(atlasSurf);
+	if (!vkt) {
+		LOG_ERROR("Graphics") << "BuildGlyphAtlas: CreateTextureRGBA8 失败";
+		atlas.glyphs.clear();
+		return;
+	}
+	atlas.vkTex = vkt;
+	atlas.textureID = vkt->bindlessIndex;
+	atlas.texW = atlasW;
+	atlas.texH = atlasH;
+	atlas.ascent = ascent;
+	atlas.physSize = physSize;
+	atlas.superSample = superSample;
+}
+
+GlyphAtlas& Graphics::GetOrBuildGlyphAtlas(const std::string& fontKey, int fontSize,
+	const std::vector<uint32_t>& needed) {
+	const std::string key = fontKey + "|" + std::to_string(fontSize);
+	GlyphAtlas& atlas = m_glyphAtlases[key];
+
+	float ss;
+	const int curPhys = ComputeTextRasterSize(fontSize, m_letterboxScale, ss);
+	// physSize 变化（letterbox）或图集未建 → 需重建；有新码点 → 加入 covered 后重建。
+	bool needRebuild = (atlas.textureID == 0) || (atlas.physSize != curPhys);
+	for (uint32_t cp : needed)
+		if (atlas.covered.insert(cp).second) needRebuild = true;
+
+	if (needRebuild) BuildGlyphAtlas(fontKey, fontSize, atlas);
+	return atlas;
+}
+
+void Graphics::ClearGlyphAtlases() {
+	if (m_vk && m_vk->texPool) {
+		for (auto& kv : m_glyphAtlases)
+			if (kv.second.vkTex) m_vk->texPool->DestroyTexture(kv.second.vkTex);
+	}
+	m_glyphAtlases.clear();
 }
 
 CachedText Graphics::AcquireTextTexture(const std::string& text, const std::string& fontKey,
@@ -1421,6 +1561,64 @@ void Graphics::DrawTextOnTop(const std::string& text, const std::string& fontKey
 	DrawText(text, fontKey, fontSize, color, x, y, scale);
 }
 
+void Graphics::DrawGlyphRun(const std::string& text, const std::string& fontKey, int fontSize,
+	const glm::vec4& color, float x, float y, float scale) {
+	// worker：Task 1 暂走旧 DeferredText（整串光栅化）路径；Task 2 改为 RecordDrawGlyphRun。
+	if (tl_record) { RecordDrawText(*tl_record, text, fontKey, fontSize, color, x, y, scale, /*onTop*/false); return; }
+	if (text.empty()) return;
+
+	// 1. 解码本串全部码点。
+	std::vector<uint32_t> cps;
+	for (size_t i = 0; i < text.size(); ) {
+		uint32_t cp = DecodeUtf8(text, i);
+		if (cp) cps.push_back(cp);
+	}
+	if (cps.empty()) return;
+
+	// 2. 保 z-order（同 DrawText）：先 flush 已排队 instance，文字落在已画对象之上、后续对象之下。
+	FlushInstances();
+
+	// 3. 取/建图集（当帧把缺码点并入并重建 → 此后所有字形必在）。
+	GlyphAtlas& atlas = GetOrBuildGlyphAtlas(fontKey, fontSize, cps);
+	if (atlas.textureID == 0) {  // 建失败 → fallback 整串 DrawText，保证不消失
+		DrawText(text, fontKey, fontSize, color, x, y, scale);
+		return;
+	}
+
+	// 4. 逐字形拼 quad。度量是物理像素，× invSS 转逻辑尺寸。烘白 + 顶点色 tint（NormalizeColor）。
+	const int texIndex = BindTexture(atlas.textureID);
+	const glm::vec4 nc = NormalizeColor(color);
+	const float invSS = scale / atlas.superSample;
+	const float ascent = (float)atlas.ascent;
+	float penX = 0.0f;
+	for (uint32_t cp : cps) {
+		auto it = atlas.glyphs.find(cp);
+		if (it == atlas.glyphs.end()) continue;  // 理论不达（当帧已建全）；防御
+		const GlyphInfo& gi = it->second;
+		if (gi.pxW > 0 && gi.pxH > 0) {
+			const float gx = x + (penX + gi.bearingX) * invSS;
+			const float gy = y + (ascent - gi.bearingY) * invSS;
+			const float gw = gi.pxW * invSS;
+			const float gh = gi.pxH * invSS;
+			glm::mat4 local = glm::translate(glm::mat4(1.0f), glm::vec3(gx, gy, 0.0f));
+			local = glm::scale(local, glm::vec3(gw, gh, 1.0f));
+			const glm::mat4 finalMatrix = m_transformStack.back() * local;
+			const int matrixIndex = AddMatrix(finalMatrix);
+			const BatchVertex verts[6] = {
+				{0.0f, 1.0f, gi.u0, gi.v1, (uint32_t)texIndex, (uint32_t)matrixIndex, nc.r, nc.g, nc.b, nc.a, 0.0f},
+				{1.0f, 1.0f, gi.u1, gi.v1, (uint32_t)texIndex, (uint32_t)matrixIndex, nc.r, nc.g, nc.b, nc.a, 0.0f},
+				{1.0f, 0.0f, gi.u1, gi.v0, (uint32_t)texIndex, (uint32_t)matrixIndex, nc.r, nc.g, nc.b, nc.a, 0.0f},
+				{0.0f, 1.0f, gi.u0, gi.v1, (uint32_t)texIndex, (uint32_t)matrixIndex, nc.r, nc.g, nc.b, nc.a, 0.0f},
+				{0.0f, 0.0f, gi.u0, gi.v0, (uint32_t)texIndex, (uint32_t)matrixIndex, nc.r, nc.g, nc.b, nc.a, 0.0f},
+				{1.0f, 0.0f, gi.u1, gi.v0, (uint32_t)texIndex, (uint32_t)matrixIndex, nc.r, nc.g, nc.b, nc.a, 0.0f}
+			};
+			AddVertices(verts, 6);
+			CheckBatch();
+		}
+		penX += gi.advance;
+	}
+}
+
 void Graphics::ClearTextCache() {
 	// Phase 3c：把每条 LRU 文字纹理还给 pool。pool 不在了就直接 clear（构造/Shutdown 期都安全）。
 	if (m_vk && m_vk->texPool) {
@@ -1430,6 +1628,7 @@ void Graphics::ClearTextCache() {
 	}
 	m_textCache.clear();
 	m_textCacheOrder.clear();
+	ClearGlyphAtlases();
 }
 
 void Graphics::SetClearColor(float r, float g, float b, float a) {

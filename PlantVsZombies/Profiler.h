@@ -39,6 +39,14 @@ public:
 		mFlushVerts += verts;
 	}
 
+	// 诊断：每次 GetOrCreateTextTexture 调用记一次（miss=true 表示走了 TTF 光栅化+GPU 上传）。
+	// 用于把 7.Draw_replay 的串行成本拆成「整串→纹理缓存 thrash」与「逐行 draw call 地板」。
+	void CountText(bool miss) {
+		if (!g_ProfileEnabled) return;
+		mTextTotalAccum++;
+		if (miss) mTextMissAccum++;
+	}
+
 	// 每帧调用一次（主循环末尾）。每 kReportFrames 帧打印一次平均值。
 	void EndFrame() {
 		if (!g_ProfileEnabled) return;
@@ -65,12 +73,18 @@ public:
 		for (auto& kv : mAccum) {
 			std::printf("  %-20s : %7.2f ms\n", kv.first.c_str(), kv.second * inv);
 		}
+		// 诊断计数（每帧均值）：textRaster(miss) 高 → 缓存被击穿；flushBatch 高 → 逐行 draw call 地板。
+		std::printf("  %-20s : %7.1f /frame\n", "textDraw(lines)", mTextTotalAccum * inv);
+		std::printf("  %-20s : %7.1f /frame\n", "textRaster(miss)", mTextMissAccum * inv);
+		std::printf("  %-20s : %7.1f /frame\n", "flushBatch", static_cast<double>(mFlushCountAccum) * inv);
 		std::printf("============================================\n");
 
 		mAccum.clear();
 		mFrameAccum = 0.0;
 		mFlushCountAccum = 0;
 		mFlushVertsAccum = 0;
+		mTextMissAccum = 0;
+		mTextTotalAccum = 0;
 		mFrames = 0;
 	}
 
@@ -85,6 +99,8 @@ private:
 	size_t mFlushVerts = 0;
 	size_t mFlushCountAccum = 0;
 	size_t mFlushVertsAccum = 0;
+	size_t mTextMissAccum = 0;    // 诊断：窗口内文字缓存未命中(光栅化)总次数
+	size_t mTextTotalAccum = 0;   // 诊断：窗口内文字绘制(行)总次数
 };
 
 // RAII 计时：作用域结束时把耗时累加到对应名字
