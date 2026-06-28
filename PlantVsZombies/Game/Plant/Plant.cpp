@@ -141,5 +141,5 @@ void Plant::Draw(Graphics* g)
 	std::string text = std::to_string(mPlantHealth) + u8"/" + std::to_string(mPlantMaxHealth);
 	// 颜色是 0..255 范围（ToSDLColor 直接 static_cast，不乘 255），勿写成 0..1 否则全透明隐形
 	const glm::vec4 green(0.0f, 255.0f, 0.0f, 255.0f);
-	g->DrawText(text, ResourceKeys::Fonts::FONT_FZCQ, 17, green, pos.x, pos.y);
+	g->DrawGlyphRun(text, ResourceKeys::Fonts::FONT_FZCQ, 17, green, pos.x, pos.y);
 }

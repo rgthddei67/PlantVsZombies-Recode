@@ -581,7 +581,7 @@ void Zombie::Draw(Graphics* g)
 
 	float y = pos.y;
 	auto drawLine = [&](const std::string& text) {
-		g->DrawText(text, ResourceKeys::Fonts::FONT_FZJZ, fontSize, lightBlue, pos.x, y);
+		g->DrawGlyphRun(text, ResourceKeys::Fonts::FONT_FZJZ, fontSize, lightBlue, pos.x, y);
 		y += lineHeight;
 		};
 
