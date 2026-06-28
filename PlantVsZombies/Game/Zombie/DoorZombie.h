@@ -6,8 +6,6 @@
 
 class DoorZombie : public Zombie {
 protected:
-	bool mHasDoor = true;	// 是否有铁门
-
 	ArmorBrokenState mShieldStage = ArmorBrokenState::NO_BROKEN;
 
 	void SetupZombie() override;
@@ -16,8 +14,12 @@ protected:
 
 	void CheckShieldImage() override;
 
-	// 是否显示手臂 true等于设置成功，false等于设置失败（没有animator）
-	virtual bool ShowArm(bool show) const;
+	// 显示/隐藏全部手臂相关轨道（无 animator 时安全跳过）
+	void ShowArm(bool show) const;
+
+	// 断臂造型：内臂 + 外上臂(断裂贴图)可见，外手掌/外下臂隐藏。
+	// 掉头/死亡姿势复用——避免 ShowArm(true) 把 hand/lower 设可见后又被立刻覆盖隐藏。
+	void ShowBrokenArm() const;
 
 public:
 	using Zombie::Zombie;
@@ -29,12 +31,15 @@ public:
 	void HeadDrop() override;
 
 	void ZombieItemUpdate() const override {
-		if (mShieldStage == ArmorBrokenState::NONE || mShieldType == ShieldType::SHIELDTYPE_NONE) {
+		const bool shieldGone = (mShieldStage == ArmorBrokenState::NONE
+			|| mShieldType == ShieldType::SHIELDTYPE_NONE);
+
+		// —— 二类护盾（铁门）贴图/可见性 ——
+		if (shieldGone) {
 			mAnimator->SetTrackVisible("anim_screendoor", false);
 			mAnimator->SetTrackVisible("Zombie_innerarm_screendoor", false);
 			mAnimator->SetTrackVisible("Zombie_outerarm_screendoor", false);
 			mAnimator->SetTrackVisible("Zombie_innerarm_screendoor_hand", false);
-			this->ShowArm(true);
 		}
 		else if (mShieldStage == ArmorBrokenState::A_LITTLE_BROKEN) {
 			mAnimator->SetTrackImage("anim_screendoor", ResourceManager::GetInstance().
@@ -45,40 +50,29 @@ public:
 				GetTexture("IMAGE_ZOMBIE_SCREENDOOR3"));
 		}
 
-		if (!mHasArm) {
-			mAnimator->SetTrackVisible("Zombie_outerarm_hand", false);
-			mAnimator->SetTrackVisible("Zombie_outerarm_lower", false);
-			mAnimator->SetTrackImage("Zombie_outerarm_upper", ResourceManager::GetInstance().
-				GetTexture(ResourceKeys::Textures::IMAGE_ZOMBIE_OUTERARM_UPPER2));
+		// —— 手臂造型一次定状态（避免先 ShowArm 全开、再被逐条覆盖）——
+		if (!mHasArm || mIsDying) {
+			this->ShowBrokenArm();           // 断臂残端（掉手 / 死亡姿势）
 		}
+		else if (shieldGone || mIsEating) {
+			this->ShowArm(true);             // 门没了 / 啃食时露出整条手臂
+		}
+		// 否则：门还在、手还在、未啃食/死亡 → 手臂藏在门后（SetupZombie 已 ShowArm(false)）
+
 		if (!mHasHead) {
 			mAnimator->SetTrackVisible("anim_head1", false);
 			mAnimator->SetTrackVisible("anim_head2", false);
 			mAnimator->SetTrackVisible("anim_hair", false);
 		}
-
-
-		if (mIsEating && mShieldType != ShieldType::SHIELDTYPE_NONE) {
-			this->ShowArm(true);
-		}
-		if (mIsDying) {
-			this->ShowArm(true);
-			mAnimator->SetTrackVisible("Zombie_outerarm_hand", false);
-			mAnimator->SetTrackVisible("Zombie_outerarm_lower", false);
-			mAnimator->SetTrackImage("Zombie_outerarm_upper", ResourceManager::GetInstance().
-				GetTexture(ResourceKeys::Textures::IMAGE_ZOMBIE_OUTERARM_UPPER2));
-		}
 	}
 
 	void SaveExtraData(nlohmann::json& j) const override {
 		j["shieldStage"] = static_cast<int>(mShieldStage);
-		j["hasDoor"] = mHasDoor;
 	}
 
 	void LoadExtraData(const nlohmann::json& j) override {
 		mShieldStage = static_cast<ArmorBrokenState>(
 			j.value("shieldStage", static_cast<int>(ArmorBrokenState::NO_BROKEN)));
-		mHasDoor = j.value("hasDoor", true);
 	}
 
 	void TakeBodyDamage(int damage) override;

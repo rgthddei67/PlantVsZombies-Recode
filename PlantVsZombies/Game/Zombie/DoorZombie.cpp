@@ -90,20 +90,29 @@ void DoorZombie::ValidateEatingState(EntityManager& em)
 	}
 }
 
-bool DoorZombie::ShowArm(bool show) const
+void DoorZombie::ShowArm(bool show) const
 {
-	if (mAnimator) {
-		mAnimator->SetTrackVisible("Zombie_outerarm_hand", show);
-		mAnimator->SetTrackVisible("Zombie_outerarm_lower", show);
-		mAnimator->SetTrackVisible("Zombie_outerarm_upper", show);
-		mAnimator->SetTrackVisible("anim_innerarm1", show);
-		mAnimator->SetTrackVisible("anim_innerarm2", show);
-		mAnimator->SetTrackVisible("anim_innerarm3", show);
-		return true;
-	}
-	else {
-		return false;
-	}
+	if (!mAnimator) return;
+	mAnimator->SetTrackVisible("Zombie_outerarm_hand", show);
+	mAnimator->SetTrackVisible("Zombie_outerarm_lower", show);
+	mAnimator->SetTrackVisible("Zombie_outerarm_upper", show);
+	mAnimator->SetTrackVisible("anim_innerarm1", show);
+	mAnimator->SetTrackVisible("anim_innerarm2", show);
+	mAnimator->SetTrackVisible("anim_innerarm3", show);
+}
+
+void DoorZombie::ShowBrokenArm() const
+{
+	if (!mAnimator) return;
+	// 该亮的：内臂 + 外上臂；该灭的：外手掌 + 外下臂（断臂只剩上臂残端）。
+	mAnimator->SetTrackVisible("anim_innerarm1", true);
+	mAnimator->SetTrackVisible("anim_innerarm2", true);
+	mAnimator->SetTrackVisible("anim_innerarm3", true);
+	mAnimator->SetTrackVisible("Zombie_outerarm_upper", true);
+	mAnimator->SetTrackVisible("Zombie_outerarm_hand", false);
+	mAnimator->SetTrackVisible("Zombie_outerarm_lower", false);
+	mAnimator->SetTrackImage("Zombie_outerarm_upper", ResourceManager::GetInstance().
+		GetTexture(ResourceKeys::Textures::IMAGE_ZOMBIE_OUTERARM_UPPER2));
 }
 
 void DoorZombie::CheckShieldImage()
@@ -166,13 +175,9 @@ void DoorZombie::HeadDrop()
 {
 	if (!mHasHead) return;
 
-	// 显示手臂，并且让它为断裂的动画
+	// 显示手臂，并且让它为断裂的造型
 	if (mHasArm) {
-		this->ShowArm(true);
-		mAnimator->SetTrackVisible("Zombie_outerarm_hand", false);
-		mAnimator->SetTrackVisible("Zombie_outerarm_lower", false);
-		mAnimator->SetTrackImage("Zombie_outerarm_upper", ResourceManager::GetInstance().
-			GetTexture(ResourceKeys::Textures::IMAGE_ZOMBIE_OUTERARM_UPPER2));
+		this->ShowBrokenArm();
 	}
 
 	mAnimator->SetTrackVisible("anim_head1", false);
