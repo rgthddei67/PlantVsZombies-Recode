@@ -1979,13 +1979,15 @@ void Graphics::BeginParallelRecord(int numWorkers) {
 	const uint64_t ssboRemain = (fr.ssboCap > baseSsbo) ? (fr.ssboCap - baseSsbo) : 0;
 	const uint64_t instRemain = (fr.instCap > baseInst) ? (fr.instCap - baseInst) : 0;
 
-	// 给并行区域之后的主线程绘制留点余量：deferred text、post-parallel UI、debug overlay 之类。
-	// 之前出现过 slice 把整段 buffer 吃光、deferred text 再走 FlushBatch 时 1 字节没剩立刻 overflow
-	// 的情况。8MB VBO / 1MB SSBO 足够装一帧的 UI + text；占整段 64MB / 16MB 的 12.5% / 6.25%，
-	// 损失的并行写入容量可以忽略（4400 僵尸场景实测 ~17MB 顶点，并行区 56MB 仍然有 3× 余量）。
-	constexpr uint64_t POST_PARALLEL_RESERVE_VBO = 4u * 1024u * 1024u;
-	constexpr uint64_t POST_PARALLEL_RESERVE_SSBO = 1u * 1024u * 1024u;
-	constexpr uint64_t POST_PARALLEL_RESERVE_INST = 1u * 1024u * 1024u;
+	// 给并行区域之后的主线程绘制留余量：deferred text / DrawGlyphRun 血量 / post-parallel UI / overlay。
+	// 关键：预留必须随 buffer 容量按比例增长，不能用固定字节。血量改字形图集（DrawGlyphRun）后，
+	// replay 阶段每行血量从 1 个 quad 膨胀到逐字形十几个 quad，数百僵尸时 post-parallel 顶点可达
+	// 十几 MB。固定 4MB 预留会被撑爆，而 grow 只翻倍切片区、不增固定预留 → 每帧溢出→cap 翻倍→直到
+	// vmaCreateBuffer 分配 2GB 失败。改为按 remain 的 1/4 预留（带固定下限）：grow 时预留同步放大，
+	// 溢出能自愈，正反馈被打破，一两帧内收敛。inst 不受影响（血量不写 instance），维持固定。
+	const uint64_t POST_PARALLEL_RESERVE_VBO = std::max<uint64_t>(8u * 1024u * 1024u, vboRemain / 4);
+	const uint64_t POST_PARALLEL_RESERVE_SSBO = std::max<uint64_t>(2u * 1024u * 1024u, ssboRemain / 4);
+	const uint64_t POST_PARALLEL_RESERVE_INST = 1u * 1024u * 1024u;
 	const uint64_t vboUsable = (vboRemain > POST_PARALLEL_RESERVE_VBO) ? (vboRemain - POST_PARALLEL_RESERVE_VBO) : 0;
 	const uint64_t ssboUsable = (ssboRemain > POST_PARALLEL_RESERVE_SSBO) ? (ssboRemain - POST_PARALLEL_RESERVE_SSBO) : 0;
 	const uint64_t instUsable = (instRemain > POST_PARALLEL_RESERVE_INST) ? (instRemain - POST_PARALLEL_RESERVE_INST) : 0;
