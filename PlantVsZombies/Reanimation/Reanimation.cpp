@@ -224,14 +224,18 @@ void GetDeltaTransform(const TrackFrameTransform& tSrc, const TrackFrameTransfor
 	tOutput.sy = (tDst.sy - tSrc.sy) * tDelta + tSrc.sy;
 
 	if (useDestFrame) {
-		float kxDst = tDst.kx;
-		float kyDst = tDst.ky;
-		if (kxDst > tSrc.kx + 180.0f || kxDst < tSrc.kx - 180.0f)
-			kxDst = tSrc.kx;
-		if (kyDst > tSrc.ky + 180.0f || kyDst < tSrc.ky - 180.0f)
-			kyDst = tSrc.ky;
-		tOutput.kx = (kxDst - tSrc.kx) * tDelta + tSrc.kx;
-		tOutput.ky = (kyDst - tSrc.ky) * tDelta + tSrc.ky;
+		// 复刻原版 ReanimatorXnaHelpers.BlendTransform：blend 期间若某轴需转过 >180°，
+		// 不做平滑插值(否则像转半圈/穿过退化的扭曲态)，而是直接吸附到【当前帧 tDst】立即就位。
+		// 旧实现误把吸附目标写成 tSrc(blend 起始旧帧) → 该关节整段 blend 卡在旧朝向、
+		// 直到 blend 结束(走回最短弧分支)才弹回；当翻转编码在 ky(前后差 ~180°)时即"手反转"。
+		if (tDst.kx > tSrc.kx + 180.0f || tDst.kx < tSrc.kx - 180.0f)
+			tOutput.kx = tDst.kx;
+		else
+			tOutput.kx = (tDst.kx - tSrc.kx) * tDelta + tSrc.kx;
+		if (tDst.ky > tSrc.ky + 180.0f || tDst.ky < tSrc.ky - 180.0f)
+			tOutput.ky = tDst.ky;
+		else
+			tOutput.ky = (tDst.ky - tSrc.ky) * tDelta + tSrc.ky;
 	}
 	else {
 		float kxDiff = tDst.kx - tSrc.kx;
