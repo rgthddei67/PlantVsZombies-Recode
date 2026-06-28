@@ -82,9 +82,9 @@ public:
 	virtual void ZombieItemUpdate() const; // 处理僵尸读档的时候的手臂、防具等处理
 	virtual void Charred();	// 变成灰烬
 
-	int TakeShieldDamage(int damage);
-	int TakeHelmDamage(int damage);
-	void TakeBodyDamage(int damage);
+	virtual int TakeShieldDamage(int damage);
+	virtual int TakeHelmDamage(int damage);
+	virtual void TakeBodyDamage(int damage);
 
 	int GetSortingKey() const override { return this->mRow; }
 

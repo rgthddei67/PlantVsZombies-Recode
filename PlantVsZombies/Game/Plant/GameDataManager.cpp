@@ -27,6 +27,7 @@
 #include "../Zombie/FastBucketZombie.h"
 #include "../Zombie/PaperZombie.h"
 #include "../Zombie/FastPaperZombie.h"
+#include "../Zombie/DoorZombie.h"
 
 namespace {
 	template<typename T>
@@ -281,6 +282,18 @@ void GameDataManager::InitializeHardcodedData() {
 		6,		// 出现波次（无尽模式忽略此值，由 BuildSurvivalSpawnList 控制）
 		7,    // survivalRound: 加强读报
 		1.0f, &MakeZombie<FastPaperZombie>
+	);
+
+	RegisterZombie(
+		ZombieType::ZOMBIE_DOOR,
+		"ZOMBIE_DOOR",
+		AnimationType::ANIM_DOOR_ZOMBIE,	
+		"DoorZombie",
+		Vector(-50, -85),
+		2100,
+		1,		// 出现波次（无尽模式忽略此值，由 BuildSurvivalSpawnList 控制）
+		4, 
+		1.0f, &MakeZombie<DoorZombie>
 	);
 
 	// ==================== 非植物/僵尸动画映射 ====================

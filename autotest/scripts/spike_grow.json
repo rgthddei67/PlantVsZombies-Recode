@@ -1,0 +1,680 @@
+﻿{
+    "commands":  [
+                     {
+                         "level":  1,
+                         "op":  "goto_level"
+                     },
+                     {
+                         "op":  "choose_cards",
+                         "cards":  [
+                                       "PLANT_PEASHOOTER",
+                                       "PLANT_SUNFLOWER"
+                                   ]
+                     },
+                     {
+                         "state":  "GAME",
+                         "op":  "wait_state"
+                     },
+                     {
+                         "value":  5000,
+                         "op":  "set_sun"
+                     },
+                     {
+                         "row":  2,
+                         "op":  "plant",
+                         "col":  1,
+                         "type":  "PLANT_PEASHOOTER"
+                     },
+                     {
+                         "row":  0,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  800
+                     },
+                     {
+                         "row":  1,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  800
+                     },
+                     {
+                         "row":  2,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  800
+                     },
+                     {
+                         "row":  3,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  800
+                     },
+                     {
+                         "value":  1.5,
+                         "op":  "wait_seconds"
+                     },
+                     {
+                         "row":  0,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  720
+                     },
+                     {
+                         "row":  1,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  758
+                     },
+                     {
+                         "row":  2,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  796
+                     },
+                     {
+                         "row":  3,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  834
+                     },
+                     {
+                         "row":  4,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  872
+                     },
+                     {
+                         "row":  0,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  910
+                     },
+                     {
+                         "row":  1,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  948
+                     },
+                     {
+                         "row":  2,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  986
+                     },
+                     {
+                         "row":  3,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  1024
+                     },
+                     {
+                         "row":  4,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  1062
+                     },
+                     {
+                         "row":  0,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  720
+                     },
+                     {
+                         "row":  1,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  758
+                     },
+                     {
+                         "row":  2,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  796
+                     },
+                     {
+                         "row":  3,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  834
+                     },
+                     {
+                         "row":  4,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  872
+                     },
+                     {
+                         "row":  0,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  910
+                     },
+                     {
+                         "row":  1,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  948
+                     },
+                     {
+                         "row":  2,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  986
+                     },
+                     {
+                         "row":  3,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  1024
+                     },
+                     {
+                         "row":  4,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  1062
+                     },
+                     {
+                         "row":  0,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  720
+                     },
+                     {
+                         "row":  1,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  758
+                     },
+                     {
+                         "row":  2,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  796
+                     },
+                     {
+                         "row":  3,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  834
+                     },
+                     {
+                         "row":  4,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  872
+                     },
+                     {
+                         "row":  0,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  910
+                     },
+                     {
+                         "row":  1,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  948
+                     },
+                     {
+                         "row":  2,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  986
+                     },
+                     {
+                         "row":  3,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  1024
+                     },
+                     {
+                         "row":  4,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  1062
+                     },
+                     {
+                         "row":  0,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  720
+                     },
+                     {
+                         "row":  1,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  758
+                     },
+                     {
+                         "row":  2,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  796
+                     },
+                     {
+                         "row":  3,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  834
+                     },
+                     {
+                         "row":  4,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  872
+                     },
+                     {
+                         "row":  0,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  910
+                     },
+                     {
+                         "row":  1,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  948
+                     },
+                     {
+                         "row":  2,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  986
+                     },
+                     {
+                         "row":  3,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  1024
+                     },
+                     {
+                         "row":  4,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  1062
+                     },
+                     {
+                         "row":  0,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  720
+                     },
+                     {
+                         "row":  1,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  758
+                     },
+                     {
+                         "row":  2,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  796
+                     },
+                     {
+                         "row":  3,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  834
+                     },
+                     {
+                         "row":  4,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  872
+                     },
+                     {
+                         "row":  0,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  910
+                     },
+                     {
+                         "row":  1,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  948
+                     },
+                     {
+                         "row":  2,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  986
+                     },
+                     {
+                         "row":  3,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  1024
+                     },
+                     {
+                         "row":  4,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  1062
+                     },
+                     {
+                         "row":  0,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  720
+                     },
+                     {
+                         "row":  1,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  758
+                     },
+                     {
+                         "row":  2,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  796
+                     },
+                     {
+                         "row":  3,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  834
+                     },
+                     {
+                         "row":  4,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  872
+                     },
+                     {
+                         "row":  0,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  910
+                     },
+                     {
+                         "row":  1,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  948
+                     },
+                     {
+                         "row":  2,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  986
+                     },
+                     {
+                         "row":  3,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  1024
+                     },
+                     {
+                         "row":  4,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  1062
+                     },
+                     {
+                         "row":  0,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  720
+                     },
+                     {
+                         "row":  1,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  758
+                     },
+                     {
+                         "row":  2,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  796
+                     },
+                     {
+                         "row":  3,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  834
+                     },
+                     {
+                         "row":  4,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  872
+                     },
+                     {
+                         "row":  0,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  910
+                     },
+                     {
+                         "row":  1,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  948
+                     },
+                     {
+                         "row":  2,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  986
+                     },
+                     {
+                         "row":  3,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  1024
+                     },
+                     {
+                         "row":  4,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  1062
+                     },
+                     {
+                         "row":  0,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  720
+                     },
+                     {
+                         "row":  1,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  758
+                     },
+                     {
+                         "row":  2,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  796
+                     },
+                     {
+                         "row":  3,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  834
+                     },
+                     {
+                         "row":  4,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  872
+                     },
+                     {
+                         "row":  0,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  910
+                     },
+                     {
+                         "row":  1,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  948
+                     },
+                     {
+                         "row":  2,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  986
+                     },
+                     {
+                         "row":  3,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  1024
+                     },
+                     {
+                         "row":  4,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  1062
+                     },
+                     {
+                         "row":  0,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  720
+                     },
+                     {
+                         "row":  1,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  758
+                     },
+                     {
+                         "row":  2,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  796
+                     },
+                     {
+                         "row":  3,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  834
+                     },
+                     {
+                         "row":  4,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  872
+                     },
+                     {
+                         "row":  0,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  910
+                     },
+                     {
+                         "row":  1,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  948
+                     },
+                     {
+                         "row":  2,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  986
+                     },
+                     {
+                         "row":  3,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  1024
+                     },
+                     {
+                         "row":  4,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  1062
+                     },
+                     {
+                         "row":  0,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  720
+                     },
+                     {
+                         "row":  1,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  758
+                     },
+                     {
+                         "row":  2,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  796
+                     },
+                     {
+                         "row":  3,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  834
+                     },
+                     {
+                         "row":  4,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  872
+                     },
+                     {
+                         "row":  0,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  910
+                     },
+                     {
+                         "row":  1,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  948
+                     },
+                     {
+                         "row":  2,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  986
+                     },
+                     {
+                         "row":  3,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  1024
+                     },
+                     {
+                         "row":  4,
+                         "op":  "spawn_zombie",
+                         "type":  "ZOMBIE_NORMAL",
+                         "x":  1062
+                     },
+                     {
+                         "value":  2,
+                         "op":  "wait_seconds"
+                     },
+                     {
+                         "name":  "spike_grow.png",
+                         "op":  "screenshot"
+                     },
+                     {
+                         "name":  "spike_state.json",
+                         "op":  "dump_state"
+                     },
+                     {
+                         "value":  2,
+                         "op":  "wait_seconds"
+                     },
+                     {
+                         "name":  "spike_state2.json",
+                         "op":  "dump_state"
+                     },
+                     {
+                         "op":  "quit"
+                     }
+                 ]
+}
