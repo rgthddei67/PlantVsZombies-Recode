@@ -255,17 +255,18 @@ void Zombie::Update()
 		if (!mHasHead)
 		{
 			// 掉头后本体血量按真实时间流失直至归零（无头僵尸流血而亡）。
-			// 流血速率改为「百分比扣血」：取「固定地板 100 HP/秒」与「本体血量上限的 40%/秒」中较大者。
-			// 早期僵尸（mBodyMaxHealth=270~500）地板生效≈原来的 100 HP/秒，手感不变；后期生存高轮次 /
-			// 词条把 mBodyMaxHealth 放大数十倍后（ApplyHealthMultiplier），固定速率会让掉头后的本体
-			// 残血（≈上限/3）需几十秒才流尽、僵尸长时间逼近房子——故按上限比例同步加快流血，使掉血到
-			// 死亡阈值的耗时与放大倍数无关（恒定 ~0.5~0.8 秒），治本主人反馈的“后期临界血量太多、减血太慢”。
+			// 流血速率 = 本体血量上限的 10%/秒（纯百分比扣血）。掉头发生在血量降到 ≈上限/3，再流到
+			// 死亡阈值 35，故掉头到倒地耗时 ≈ (1/3)/10% ≈ 3 秒，且基本与僵尸血量大小无关：无论普通僵尸
+			// 还是后期被生存高轮次/词条（ApplyHealthMultiplier）放大数十倍的僵尸，流血倒地都≈ 2~3.3 秒。
+			// 不设固定 HP/秒地板：固定速率在放大后的血量上会让残血需几十秒才流尽（主人反馈“后期减血
+			// 太慢”），对普通僵尸又显得过快；纯百分比两头都自洽。下面 1.0f 仅为 mBodyMaxHealth 极小时
+			// 的除零兜底（bleedPerSec 当除数），正常僵尸（上限≥270）永不触发、非行为地板。
 			// 用未减速的 deltaTime（非 scaledDelta）：流血而亡是确定性死亡机制，速率必须只与
 			// 真实时间挂钩——既与帧率无关（高刷不会掉得更快），也不被冰冻减速拖慢（否则高血量
 			// 僵尸被冰住时迟迟不死、继续逼近房子）。
 			// 累加器保留亚阈值余量、并在长帧（低帧率 / set_timescale 快进）一次补扣多点，速率才恒定。
-			float bleedPerSec = mBodyMaxHealth * 0.40f;
-			if (bleedPerSec < 100.0f) bleedPerSec = 100.0f;
+			float bleedPerSec = mBodyMaxHealth * 0.10f;
+			if (bleedPerSec < 1.0f) bleedPerSec = 1.0f;   // 仅除零兜底，非行为地板
 
 			mSubHealthTimer += deltaTime;
 			float bleedAmount = mSubHealthTimer * bleedPerSec;
