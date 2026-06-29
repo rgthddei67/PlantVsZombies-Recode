@@ -1343,8 +1343,16 @@ void Graphics::BuildGlyphAtlas(const std::string& fontKey, int fontSize, GlyphAt
 	const SDL_Color white{ 255, 255, 255, 255 };
 	const int pad = 1;
 
-	// 第一趟：渲染每个字形、量尺寸、算单行布局。
-	struct Pending { uint32_t cp; SDL_Surface* surf; int minx, maxy, advance; int x; };
+	// ⚠ SDL 的 TTF_RenderGlyph_Blended 返回的是「整行高(=FontHeight)、字形已按基线摆放」的 surface
+	// （字形墨迹顶部留白 = ascent - maxy，所有字形基线统一落在第 ascent 行），并非紧致位图。
+	// 若整张入图集、把 surf_h 当字形高存，DrawGlyphRun 再叠加 (ascent - bearingY) 偏移，基线对齐量
+	// 就被算两遍（双重计算）：低 maxy 的字形（冒号）被多下推最多、汉字最少 → 同一行文字高低错落。
+	// 修法：入图集时按真实墨迹框 [minx, ascent-maxy, sz_width, sz_rows] 裁成紧致位图，GlyphInfo 即回到
+	// 紧致口径，DrawGlyphRun 那条为紧致字形写的基线公式无需改动、自动成立。裁剪框经探针逐字形核对。
+	const int ascent = TTF_FontAscent(font);
+
+	// 第一趟：渲染每个字形、裁紧致墨迹框、算单行布局。
+	struct Pending { uint32_t cp; SDL_Surface* surf; SDL_Rect src; int advance, bearingX, bearingY; int x; };
 	std::vector<Pending> pend;
 	pend.reserve(atlas.covered.size());
 	int atlasW = pad, atlasH = 1;
@@ -1353,12 +1361,21 @@ void Graphics::BuildGlyphAtlas(const std::string& fontKey, int fontSize, GlyphAt
 		if (TTF_GlyphMetrics(font, (Uint16)cp, &minx, &maxx, &miny, &maxy, &adv) != 0)
 			continue;  // 该字形不可用，跳过（绘制时缺字形会触发整串 fallback）
 		SDL_Surface* gs = TTF_RenderGlyph_Blended(font, (Uint16)cp, white);  // 空白字形可能返回 null
-		const int gw = gs ? gs->w : 0;
-		const int gh = gs ? gs->h : 0;
-		Pending p{ cp, gs, minx, maxy, adv, atlasW };
+		const int sw = gs ? gs->w : 0;
+		const int sh = gs ? gs->h : 0;
+		// 字形墨迹在整行 surface 内的位置：行 [ascent-maxy, ascent-miny)，宽高 sz_width=maxx-minx /
+		// sz_rows=maxy-miny。clamp 防越界（重音符等 maxy>ascent、负 minx 等极端字形；HUD 数字不触发）。
+		SDL_Rect src{ minx, ascent - maxy, maxx - minx, maxy - miny };
+		if (src.x < 0) { src.w += src.x; src.x = 0; }
+		if (src.y < 0) { src.h += src.y; src.y = 0; }
+		if (src.x + src.w > sw) src.w = sw - src.x;
+		if (src.y + src.h > sh) src.h = sh - src.y;
+		if (src.w < 0) src.w = 0;
+		if (src.h < 0) src.h = 0;
+		Pending p{ cp, gs, src, adv, minx, maxy, atlasW };
 		pend.push_back(p);
-		atlasW += gw + pad;
-		if (gh > atlasH) atlasH = gh;
+		atlasW += src.w + pad;
+		if (src.h > atlasH) atlasH = src.h;
 	}
 	if (pend.empty()) return;
 
@@ -1371,16 +1388,15 @@ void Graphics::BuildGlyphAtlas(const std::string& fontKey, int fontSize, GlyphAt
 	}
 	SDL_FillRect(atlasSurf, nullptr, SDL_MapRGBA(atlasSurf->format, 0, 0, 0, 0));
 
-	const int ascent = TTF_FontAscent(font);
-
-	// 第二趟：blit 进图集（NONE 混合=直接覆盖含 alpha），记录 GlyphInfo。
+	// 第二趟：blit 紧致墨迹框进图集（NONE 混合=直接覆盖含 alpha），记录 GlyphInfo（紧致口径）。
 	for (auto& p : pend) {
-		const int gw = p.surf ? p.surf->w : 0;
-		const int gh = p.surf ? p.surf->h : 0;
+		const int gw = p.src.w;
+		const int gh = p.src.h;
 		if (p.surf && gw > 0 && gh > 0) {
 			SDL_SetSurfaceBlendMode(p.surf, SDL_BLENDMODE_NONE);
+			SDL_Rect src = p.src;
 			SDL_Rect dst{ p.x, 0, gw, gh };
-			SDL_BlitSurface(p.surf, nullptr, atlasSurf, &dst);
+			SDL_BlitSurface(p.surf, &src, atlasSurf, &dst);
 		}
 		GlyphInfo gi;
 		gi.u0 = (float)p.x / (float)atlasW;
@@ -1390,8 +1406,8 @@ void Graphics::BuildGlyphAtlas(const std::string& fontKey, int fontSize, GlyphAt
 		gi.pxW = gw;
 		gi.pxH = gh;
 		gi.advance = p.advance;
-		gi.bearingX = p.minx;
-		gi.bearingY = p.maxy;
+		gi.bearingX = p.bearingX;
+		gi.bearingY = p.bearingY;
 		atlas.glyphs[p.cp] = gi;
 		if (p.surf) SDL_FreeSurface(p.surf);
 	}

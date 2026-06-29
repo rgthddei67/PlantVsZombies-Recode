@@ -134,6 +134,11 @@ void Zombie::LoadProtectedData(const nlohmann::json& j) {
 		mAnimator->SetExtraSpeedMultiplier(mExtraSpeed);   // 无减速：直接应用基准（狂暴 2.5 等）
 	}
 
+	// 如果播放死亡动画，禁用碰撞箱
+	if (mIsDying) {
+		GetColliderComponent()->mEnabled = false;
+	}
+
 	mDyingTimer = j.value("dyingTimer", 0.0f);
 	if (mDyingTimer >= 10.0f) {
 		this->Die();
