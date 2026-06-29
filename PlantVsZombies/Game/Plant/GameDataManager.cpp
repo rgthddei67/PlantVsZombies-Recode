@@ -291,8 +291,8 @@ void GameDataManager::InitializeHardcodedData() {
 		"DoorZombie",
 		Vector(-50, -85),
 		2100,
-		1,		// 出现波次（无尽模式忽略此值，由 BuildSurvivalSpawnList 控制）
-		4, 
+		3,		// 出现波次（无尽模式忽略此值，由 BuildSurvivalSpawnList 控制）
+		3, 
 		1.0f, &MakeZombie<DoorZombie>
 	);
 

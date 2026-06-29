@@ -47,7 +47,7 @@ struct RowInfo {
 constexpr int MAX_SUN = 9990;
 constexpr float NEXTWAVE_COUNT_MAX = 25.0f;
 constexpr float SPAWN_SUN_TIME = 15.0f;
-constexpr int MAX_ZOMBIES_PER_WAVE = 120;	// 普通模式一波最大僵尸数量
+constexpr int MAX_ZOMBIES_PER_WAVE = 200;	// 普通模式一波最大僵尸数量
 
 // ===== 生存模式设置 =====
 constexpr int   SURVIVAL_ENDLESS_LEVEL = 1000;       // 白天无尽专用 level 号（> 50，避开冒险关推进逻辑）
