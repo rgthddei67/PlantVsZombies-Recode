@@ -134,9 +134,9 @@ void Zombie::LoadProtectedData(const nlohmann::json& j) {
 		mAnimator->SetExtraSpeedMultiplier(mExtraSpeed);   // 无减速：直接应用基准（狂暴 2.5 等）
 	}
 
-	// 如果播放死亡动画，禁用碰撞箱
-	if (mIsDying) {
-		GetColliderComponent()->mEnabled = false;
+	// 如果播放死亡动画，禁用碰撞箱（判空与 Die/预览路径一致：预览僵尸已移除碰撞箱、mCollider=null）
+	if (mIsDying && mCollider) {
+		mCollider->mEnabled = false;
 	}
 
 	mDyingTimer = j.value("dyingTimer", 0.0f);
@@ -291,7 +291,7 @@ void Zombie::Update()
 				if (!mIsDying)
 				{
 					PlayTrack("anim_death", 1.3f, 0.3f);
-					GetColliderComponent()->mEnabled = false;
+					if (mCollider) mCollider->mEnabled = false;
 					mIsDying = true;
 				}
 				return;

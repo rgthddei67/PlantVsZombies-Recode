@@ -452,7 +452,10 @@ public:
 	 * @brief 用 HUD 字形图集逐字形绘制一段文字（与对象同 z-order，等价 DrawText 的层序）。
 	 *        替代频繁变化的数字串（血量等）走的"整串→纹理"LRU 路径：字形只光栅化一次进图集，
 	 *        变化的数字成本≈0。worker 路径记轻量命令、零光栅化；图集只在主线程构建。
-	 * @note  color 是 **0..255** 范围，同 DrawText。建图集失败时自动 fallback 到 DrawText。
+	 * @note  color 是 **0..255** 范围，同 DrawText。建图集失败 / 任一缺字形时自动 fallback 到 DrawText。
+	 * @warning 仅用于 **HUD 短串**（血量等小而固定的字符集）。图集是单行横排、covered 码点集只增不减：
+	 *          拿它画可变长文本（整句中文）会让 covered 膨胀、图集宽度超过最大纹理边长 → 建图集永久
+	 *          失败并退回 DrawText。任意 / 长文本请直接用 DrawText 或 DrawTextOnTop。
 	 */
 	void DrawGlyphRun(const std::string& text, const std::string& fontKey, int fontSize,
 		const glm::vec4& color, float x, float y, float scale = 1.0f);
@@ -820,7 +823,6 @@ private:
 
 	// 批处理数据缓冲区
 	std::vector<BatchVertex> m_batchVertices;   ///< 批处理顶点列表
-	std::vector<uint32_t> m_batchTextures;        ///< 当前批次使用的 bindless 槽位列表
 	std::vector<glm::mat4> m_batchMatrices;     ///< 当前批次使用的变换矩阵列表
 	std::vector<InstanceRecord> m_batchInstances;   ///< 主线程串行 instance 缓冲（worker 走 slice 不经此处）
 	int m_batchInstancesLimit = 32768;              ///< 单次 flush 上限，~1.5 MB 一次 vkCmdDraw（仅切分 draw 段数，不影响总字节；逐帧 inst 缓冲 grow-on-demand，见 Graphics.cpp）

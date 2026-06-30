@@ -193,7 +193,6 @@ Graphics::~Graphics() {
 	ShutdownVulkan();
 	m_batchVertices.clear();
 	m_batchMatrices.clear();
-	m_batchTextures.clear();
 }
 
 bool Graphics::Initialize(int windowWidth, int windowHeight) {
@@ -816,7 +815,6 @@ void Graphics::FlushBatch() {
 	auto clearCpu = [&]() {
 		m_batchVertices.clear();
 		m_batchMatrices.clear();
-		m_batchTextures.clear();
 		};
 
 	if (!m_vk || !m_vk->frameOpen || vertCount == 0) {
@@ -946,9 +944,6 @@ void Graphics::FlushInstances() {
 int Graphics::BindTexture(uint32_t textureID) {
 	// Phase 3b：textureID 现在就是 bindless 槽位索引（来自 VulkanTexturePool）。
 	// 没有 32 单元限制，也不需要"已注册纹理表"——直接返回 ID 让 shader 用它 index 进 bindless 数组。
-	// 留 m_batchTextures.push_back 是为了与原 push_back/clear 节奏兼容（CheckBatch 会读 size），
-	// 不再用做查找表。
-	m_batchTextures.push_back(textureID);
 	return (int)textureID;
 }
 
@@ -1357,9 +1352,13 @@ void Graphics::BuildGlyphAtlas(const std::string& fontKey, int fontSize, GlyphAt
 	pend.reserve(atlas.covered.size());
 	int atlasW = pad, atlasH = 1;
 	for (uint32_t cp : atlas.covered) {
+		// TTF_GlyphMetrics/RenderGlyph 是 Uint16 旧 API：非 BMP 码点（>0xFFFF）一旦 (Uint16) 截断会
+		// 别名到错误的 BMP 字形（U+10041→'A'）。显式跳过 → 上层缺字形整串回退 DrawText（其
+		// TTF_RenderUTF8 能正确渲染全 Unicode）。HUD 数字/CJK 全在 BMP，不触发。
+		if (cp > 0xFFFF) continue;
 		int minx, maxx, miny, maxy, adv;
 		if (TTF_GlyphMetrics(font, (Uint16)cp, &minx, &maxx, &miny, &maxy, &adv) != 0)
-			continue;  // 该字形不可用，跳过（绘制时缺字形会触发整串 fallback）
+			continue;  // 该字形不可用，跳过（缺字形会触发整串 fallback）
 		SDL_Surface* gs = TTF_RenderGlyph_Blended(font, (Uint16)cp, white);  // 空白字形可能返回 null
 		const int sw = gs ? gs->w : 0;
 		const int sh = gs ? gs->h : 0;
@@ -1599,6 +1598,16 @@ void Graphics::DrawGlyphRun(const std::string& text, const std::string& fontKey,
 	if (atlas.textureID == 0) {  // 建失败 → fallback 整串 DrawText，保证不消失
 		DrawText(text, fontKey, fontSize, color, x, y, scale);
 		return;
+	}
+
+	// 3b. 缺字形整串回退：某码点 TTF 度量失败（字体无此字形 / 非 BMP 被跳过）→ 它进了 covered 却
+	//     不在 glyphs。逐字形发射会把它静默吞掉、且不推进 penX（后续字挤位）。改为整串走 DrawText
+	//     （TTF_RenderUTF8 正确处理缺字形与全 Unicode），保证显示与间距正确。HUD 数字/CJK 不触发。
+	for (uint32_t cp : cps) {
+		if (atlas.glyphs.find(cp) == atlas.glyphs.end()) {
+			DrawText(text, fontKey, fontSize, color, x, y, scale);
+			return;
+		}
 	}
 
 	// 4. 逐字形拼 quad。度量是物理像素，× invSS 转逻辑尺寸。烘白 + 顶点色 tint（NormalizeColor）。
