@@ -195,62 +195,94 @@ public:
 		// ── 阶段3: 检测（sweep-and-prune + 层掩码） ──
 		int totalDynamic = 0;
 		for (int r = 0; r < MAX_ROWS; r++) {
-			if (!mRowBuckets[r].empty()) {
+			if (!mRowZombies[r].empty() || !mRowOthers[r].empty()) {
 				mActiveRowIndices.push_back(r);
-				totalDynamic += (int)mRowBuckets[r].size();
+				totalDynamic += (int)(mRowZombies[r].size() + mRowOthers[r].size());
 			}
 		}
 		int numRows = (int)mActiveRowIndices.size();
 
 		auto detectRow = [this](int row) {
-			auto& bucket = mRowBuckets[row];
+			auto& zb      = mRowZombies[row];   // 被动目标（僵尸），多
+			auto& other   = mRowOthers[row];    // seeker（子弹/割草机…），少
 			auto& results = mRowResults[row];
-			const bool prof = g_ProfileEnabled;   // 诊断：整行只读一次，内层分支高度可预测
+			const bool prof = g_ProfileEnabled;
 			uint64_t nIter = 0, nReject = 0, nCheck = 0, nHit = 0;
 
-			std::sort(bucket.begin(), bucket.end(),
+			// 僵尸按 x 升序，供二分
+			std::sort(zb.begin(), zb.end(),
 				[](const ColliderComponent* a, const ColliderComponent* b) {
 					return a->cachedBounds.x < b->cachedBounds.x;
 				});
+			const float maxW = mRowMaxZombieW[row];
 
-			for (size_t i = 0; i < bucket.size(); ++i) {
-				float rightEdge = bucket[i]->cachedBounds.x + bucket[i]->cachedBounds.w;
-				for (size_t j = i + 1; j < bucket.size(); ++j) {
-					if (bucket[j]->cachedBounds.x > rightEdge) break;
+			// 一个 seeker（other 或 静态植物）二分僵尸 x 窗口，测重叠并产 pair。
+			// pair 的 (a,b) 顺序无所谓：MakePairKey 按 id 排序、HandleCollisionEnter/Exit 对 a、b 双向触发。
+			auto sweepAgainstZombies = [&](ColliderComponent* s) {
+				const float left  = s->cachedBounds.x;
+				const float right = s->cachedBounds.x + s->cachedBounds.w;
+				// 下界：第一个 x >= left - maxW 的僵尸（maxW 保证不漏"起点更早但延伸进来"的宽僵尸）
+				size_t i = static_cast<size_t>(
+					std::lower_bound(zb.begin(), zb.end(), left - maxW,
+						[](const ColliderComponent* z, float v) { return z->cachedBounds.x < v; })
+					- zb.begin());
+				for (; i < zb.size() && zb[i]->cachedBounds.x <= right; ++i) {
 					if (prof) ++nIter;
-					if (!CanCollide(bucket[i], bucket[j])) { if (prof) ++nReject; continue; }
+					if (!CanCollide(s, zb[i])) { if (prof) ++nReject; continue; }
 					if (prof) ++nCheck;
-					if (CheckCollision(bucket[i], bucket[j])) {
-						auto* a = bucket[i]; auto* b = bucket[j];
-						uint64_t key = MakePairKey(a->colliderID, b->colliderID);
-						results.push_back({ a, b, key });
+					if (CheckCollision(s, zb[i])) {
+						uint64_t key = MakePairKey(s->colliderID, zb[i]->colliderID);
+						results.push_back({ s, zb[i], key });
+						if (prof) ++nHit;
+					}
+				}
+			};
+
+			// (1) other × zb（子弹/割草机 命中僵尸）
+			for (auto* o : other) sweepAgainstZombies(o);
+
+			// (2) 静态目标 × zb（僵尸啃植物）：本行植物 + 无行静态，都少，同样二分
+			for (auto* s : mStaticRowBuckets[row]) sweepAgainstZombies(s);
+			for (auto* s : mNoRowStatic)           sweepAgainstZombies(s);
+
+			// (2b) other × 静态目标：朴素双循环（两侧都少）。保留以对齐旧 dynamic×static 全集，
+			//      免去"子弹/硬币是否撞植物"的隐含假设——CanCollide 照常过滤。
+			for (auto* o : other) {
+				for (auto* s : mStaticRowBuckets[row]) {
+					if (prof) ++nIter;
+					if (!CanCollide(o, s)) { if (prof) ++nReject; continue; }
+					if (prof) ++nCheck;
+					if (CheckCollision(o, s)) {
+						results.push_back({ o, s, MakePairKey(o->colliderID, s->colliderID) });
+						if (prof) ++nHit;
+					}
+				}
+				for (auto* s : mNoRowStatic) {
+					if (prof) ++nIter;
+					if (!CanCollide(o, s)) { if (prof) ++nReject; continue; }
+					if (prof) ++nCheck;
+					if (CheckCollision(o, s)) {
+						results.push_back({ o, s, MakePairKey(o->colliderID, s->colliderID) });
 						if (prof) ++nHit;
 					}
 				}
 			}
 
-			auto& staticBucket = mStaticRowBuckets[row];
-			if (!staticBucket.empty()) {
-				for (auto* d : bucket) {
-					for (auto* s : staticBucket) {
-						if (!CanCollide(d, s)) continue;
-						if (CheckCollision(d, s)) {
-							uint64_t key = MakePairKey(d->colliderID, s->colliderID);
-							results.push_back({ d, s, key });
-						}
+			// (3) other × other（|other| 极小）
+			for (size_t a = 0; a < other.size(); ++a) {
+				for (size_t b = a + 1; b < other.size(); ++b) {
+					if (prof) ++nIter;
+					if (!CanCollide(other[a], other[b])) { if (prof) ++nReject; continue; }
+					if (prof) ++nCheck;
+					if (CheckCollision(other[a], other[b])) {
+						results.push_back({ other[a], other[b],
+							MakePairKey(other[a]->colliderID, other[b]->colliderID) });
+						if (prof) ++nHit;
 					}
 				}
 			}
 
-			for (auto* d : bucket) {
-				for (auto* s : mNoRowStatic) {
-					if (!CanCollide(d, s)) continue;
-					if (CheckCollision(d, s)) {
-						uint64_t key = MakePairKey(d->colliderID, s->colliderID);
-						results.push_back({ d, s, key });
-					}
-				}
-			}
+			// (4) zb × zb：彻底不扫 —— 干掉旧 SAP 的 9.6M 空转
 
 			if (prof) {
 				mRowIters[row]   = nIter;
