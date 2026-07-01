@@ -9,6 +9,10 @@
 #include "../../GameApp.h"
 #include <climits>
 
+namespace {
+	float GAMEOVER_X = 110.0f;	// 僵尸到达此横坐标即触发游戏失败
+}
+
 Zombie::Zombie(Board* board, ZombieType zombieType, float x, float y, int row,
 	AnimationType animType, float scale, bool isPreview)
 	: AnimatedObject(ObjectType::OBJECT_ZOMBIE, board,
@@ -247,7 +251,7 @@ void Zombie::Update()
 		{
 			mCheckPositionTimer = 0.0f;
 			Vector position = transform->GetPosition();
-			if (position.x < 110.0f && mBoard->mBoardState == BoardState::GAME)
+			if (position.x <= GAMEOVER_X && mBoard->mBoardState == BoardState::GAME)
 			{
 				mBoard->GameOver();
 			}

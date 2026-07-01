@@ -44,29 +44,31 @@ struct RowInfo {
 	int secondLastPicked = 0;
 };
 
-constexpr int MAX_SUN = 9990;
-constexpr float NEXTWAVE_COUNT_MAX = 25.0f;
-constexpr float SPAWN_SUN_TIME = 15.0f;
-constexpr int MAX_ZOMBIES_PER_WAVE = 200;	// 普通模式一波最大僵尸数量
+namespace {
+	constexpr int MAX_SUN = 9990;
+	constexpr float NEXTWAVE_COUNT_MAX = 25.0f;
+	constexpr float SPAWN_SUN_TIME = 15.0f;
+	constexpr int MAX_ZOMBIES_PER_WAVE = 250;	// 一波最大僵尸数量
 
-// ===== 生存模式设置 =====
-constexpr int   SURVIVAL_ENDLESS_LEVEL = 1000;       // 白天无尽专用 level 号（> 50，避开冒险关推进逻辑）
-constexpr int   SURVIVAL_ENDLESS_NIGHT_LEVEL = 1001; // 黑夜无尽专用 level 号（背景走 GROUND_NIGHT，逻辑同 1000）
-constexpr int   SURVIVAL_WAVES_PER_ROUND = 10;   // 每轮（每面旗）波数，10 与"第10波=一大波"逻辑对齐
-constexpr float SURVIVAL_BUDGET_GROWTH = 0.55f;  // 每轮单波点数预算增长系数
-constexpr float SURVIVAL_HP_GROWTH     = 0.05f;  // 每轮僵尸全局血量倍率线性增长系数（可调）：mult = 1 + x*(轮次-1)
-// 生存模式出怪池子组装(见 BuildSurvivalSpawnList)
-constexpr int SURVIVAL_RANDOM_POOL_START_ROUND = 3;   // 第几轮起改为"普通+随机子集"
-constexpr int SURVIVAL_POOL_BASE_EXTRA         = 1;   // 第3轮的随机种类数(除普通外)
-constexpr int SURVIVAL_POOL_GROWTH_EVERY       = 2;   // 每多少轮 +1 种(缓慢增长)
-// 旗数递减(复刻原版 TodAnimateCurve(18,50,flags,0,15))：深局提前解锁强僵尸；
-// 当前阵容(survivalRound 最高6、18旗才起步)下休眠，为未来高 survivalRound 僵尸预留。
-constexpr int SURVIVAL_UNLOCK_REDUCE_START_FLAG = 18;
-constexpr int SURVIVAL_UNLOCK_REDUCE_END_FLAG   = 50;
-constexpr int SURVIVAL_UNLOCK_REDUCE_MAX        = 15;
-// 杂兵稀释(复刻原版 Normal→base/10、Cone→base/4，TodAnimateCurve(10,50,...))：仅作用于抽中权重。
-constexpr int SURVIVAL_DILUTE_START_FLAG = 10;
-constexpr int SURVIVAL_DILUTE_END_FLAG   = 50;
+	// ===== 生存模式设置 =====
+	constexpr int   SURVIVAL_ENDLESS_LEVEL = 1000;       // 白天无尽专用 level 号（> 50，避开冒险关推进逻辑）
+	constexpr int   SURVIVAL_ENDLESS_NIGHT_LEVEL = 1001; // 黑夜无尽专用 level 号（背景走 GROUND_NIGHT，逻辑同 1000）
+	constexpr int   SURVIVAL_WAVES_PER_ROUND = 10;   // 每轮（每面旗）波数，10 与"第10波=一大波"逻辑对齐
+	constexpr float SURVIVAL_BUDGET_GROWTH = 0.55f;  // 每轮单波点数预算增长系数
+	constexpr float SURVIVAL_HP_GROWTH = 0.05f;  // 每轮僵尸全局血量倍率线性增长系数（可调）：mult = 1 + x*(轮次-1)
+	// 生存模式出怪池子组装(见 BuildSurvivalSpawnList)
+	constexpr int SURVIVAL_RANDOM_POOL_START_ROUND = 3;   // 第几轮起改为"普通+随机子集"
+	constexpr int SURVIVAL_POOL_BASE_EXTRA = 1;   // 第3轮的随机种类数(除普通外)
+	constexpr int SURVIVAL_POOL_GROWTH_EVERY = 2;   // 每多少轮 +1 种(缓慢增长)
+	// 旗数递减(复刻原版 TodAnimateCurve(18,50,flags,0,15))：深局提前解锁强僵尸；
+	// 当前阵容(survivalRound 最高6、18旗才起步)下休眠，为未来高 survivalRound 僵尸预留。
+	constexpr int SURVIVAL_UNLOCK_REDUCE_START_FLAG = 18;
+	constexpr int SURVIVAL_UNLOCK_REDUCE_END_FLAG = 50;
+	constexpr int SURVIVAL_UNLOCK_REDUCE_MAX = 15;
+	// 杂兵稀释(复刻原版 Normal→base/10、Cone→base/4，TodAnimateCurve(10,50,...))：仅作用于抽中权重。
+	constexpr int SURVIVAL_DILUTE_START_FLAG = 10;
+	constexpr int SURVIVAL_DILUTE_END_FLAG = 50;
+}
 
 enum class BoardState {
 	CHOOSE_CARD,

@@ -44,11 +44,21 @@ target_compile_definitions(PlantsVsZombies PRIVATE
 target_compile_options(PlantsVsZombies PRIVATE /utf-8 /W3 /sdl /EHsc)
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    # 对应旧 ClangRelease|x64：-O2 -march=native -flto（LTO 走 lld-link，见 preset）
+    # 对应旧 ClangRelease|x64：-O2 -mavx2 -flto（LTO 走 lld-link，见 preset）
     target_compile_options(PlantsVsZombies PRIVATE
-        $<$<CONFIG:Release>:/clang:-O2 -march=native -flto /fp:fast>
+        $<$<CONFIG:Release>:
+            /O2                     # MSVC 风格，clang-cl 原生识别，不加 /clang:
+            /arch:AVX2              # 同上
+            /fp:fast                # 同上，等价于 -ffast-math
+            /clang:-fvectorize      # 每个 clang 专属选项单独传递
+            /clang:-fomit-frame-pointer
+            -flto
+            /Zi
+        >
     )
-    target_link_options(PlantsVsZombies PRIVATE $<$<CONFIG:Release>:-flto>)
+    target_link_options(PlantsVsZombies PRIVATE
+    $<$<CONFIG:Release>:/DEBUG /OPT:REF /OPT:ICF>
+    )
 else()
     # 对应旧 Release|x64：MaxSpeed + AVX2 + fast-math + LTCG
     target_compile_options(PlantsVsZombies PRIVATE
