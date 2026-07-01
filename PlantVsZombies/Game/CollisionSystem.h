@@ -33,6 +33,10 @@ private:
 	std::vector<ColliderComponent*> mActiveColliders;
 	std::array<std::vector<ColliderComponent*>, MAX_ROWS> mRowBuckets;
 	std::array<std::vector<ColliderComponent*>, MAX_ROWS> mStaticRowBuckets;
+	// seeker/target 拆分：僵尸(被动目标) 与 其余动态(seeker：子弹/割草机…) 分开存，跨帧复用。
+	std::array<std::vector<ColliderComponent*>, MAX_ROWS> mRowZombies;
+	std::array<std::vector<ColliderComponent*>, MAX_ROWS> mRowOthers;
+	std::array<float, MAX_ROWS> mRowMaxZombieW{};   // 每行最大僵尸 AABB 宽，供二分下界
 	std::vector<ColliderComponent*> mNoRowDynamic;
 	std::vector<ColliderComponent*> mNoRowStatic;
 	std::array<std::vector<DetectedPair>, MAX_ROWS> mRowResults;
@@ -116,6 +120,9 @@ public:
 		mActiveColliders.clear();
 		for (auto& v : mRowBuckets)       v.clear();
 		for (auto& v : mStaticRowBuckets) v.clear();
+		for (auto& v : mRowZombies)       v.clear();
+		for (auto& v : mRowOthers)        v.clear();
+		mRowMaxZombieW.fill(0.0f);
 		mNoRowDynamic.clear();
 		mNoRowStatic.clear();
 		for (auto& v : mRowResults)       v.clear();
@@ -168,8 +175,20 @@ public:
 				else         mNoRowStatic.push_back(col);
 			}
 			else {
-				if (inRange) mRowBuckets[row].push_back(col);
-				else         mNoRowDynamic.push_back(col);
+				if (inRange) {
+					mRowBuckets[row].push_back(col);   // TODO(Task3): 双写过渡，Task3 删除
+					if (col->layerMask == CollisionLayer::ZOMBIE) {
+						mRowZombies[row].push_back(col);
+						const float w = col->cachedBounds.w;
+						if (w > mRowMaxZombieW[row]) mRowMaxZombieW[row] = w;
+					}
+					else {
+						mRowOthers[row].push_back(col);
+					}
+				}
+				else {
+					mNoRowDynamic.push_back(col);
+				}
 			}
 		}
 
