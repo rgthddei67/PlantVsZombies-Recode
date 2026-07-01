@@ -248,22 +248,15 @@ public:
 			// (2b) other × 静态目标：朴素双循环（两侧都少）。保留以对齐旧 dynamic×static 全集，
 			//      免去"子弹/硬币是否撞植物"的隐含假设——CanCollide 照常过滤。
 			for (auto* o : other) {
-				for (auto* s : mStaticRowBuckets[row]) {
-					if (prof) ++nIter;
-					if (!CanCollide(o, s)) { if (prof) ++nReject; continue; }
-					if (prof) ++nCheck;
-					if (CheckCollision(o, s)) {
-						results.push_back({ o, s, MakePairKey(o->colliderID, s->colliderID) });
-						if (prof) ++nHit;
-					}
-				}
-				for (auto* s : mNoRowStatic) {
-					if (prof) ++nIter;
-					if (!CanCollide(o, s)) { if (prof) ++nReject; continue; }
-					if (prof) ++nCheck;
-					if (CheckCollision(o, s)) {
-						results.push_back({ o, s, MakePairKey(o->colliderID, s->colliderID) });
-						if (prof) ++nHit;
+				for (auto* bucketPtr : { &mStaticRowBuckets[row], &mNoRowStatic }) {
+					for (auto* s : *bucketPtr) {
+						if (prof) ++nIter;
+						if (!CanCollide(o, s)) { if (prof) ++nReject; continue; }
+						if (prof) ++nCheck;
+						if (CheckCollision(o, s)) {
+							results.push_back({ o, s, MakePairKey(o->colliderID, s->colliderID) });
+							if (prof) ++nHit;
+						}
 					}
 				}
 			}
