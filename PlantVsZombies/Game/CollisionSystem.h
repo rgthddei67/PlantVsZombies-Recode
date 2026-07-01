@@ -214,7 +214,9 @@ public:
 			const float maxW = mRowMaxZombieW[row];
 
 			// 一个 seeker（other 或 静态植物）二分僵尸 x 窗口，测重叠并产 pair。
-			// pair 的 (a,b) 顺序无所谓：MakePairKey 按 id 排序、HandleCollisionEnter/Exit 对 a、b 双向触发。
+			// pair 顺序有讲究：key 与顺序无关，但 HandleCollisionEnter 先触发 a 再触发 b，回调有先后。
+			// 故僵尸恒放 a、seeker/目标放 b，复刻旧 {dynamic, static} 约定——例如 PotatoMine 接触即
+			// zombie->Die()，而 Die() 的 mEaterCount 清理依赖"先 StartEat(设 mIsEating) 后 Die"的旧次序。
 			auto sweepAgainstZombies = [&](ColliderComponent* s) {
 				const float left  = s->cachedBounds.x;
 				const float right = s->cachedBounds.x + s->cachedBounds.w;
@@ -229,7 +231,7 @@ public:
 					if (prof) ++nCheck;
 					if (CheckCollision(s, zb[i])) {
 						uint64_t key = MakePairKey(s->colliderID, zb[i]->colliderID);
-						results.push_back({ s, zb[i], key });
+						results.push_back({ zb[i], s, key });   // 僵尸放 a：见上方顺序说明
 						if (prof) ++nHit;
 					}
 				}
