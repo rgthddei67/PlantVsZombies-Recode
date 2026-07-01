@@ -31,7 +31,6 @@ private:
 
 	// 跨帧复用的临时容器：每帧 clear() 而非重新分配
 	std::vector<ColliderComponent*> mActiveColliders;
-	std::array<std::vector<ColliderComponent*>, MAX_ROWS> mRowBuckets;
 	std::array<std::vector<ColliderComponent*>, MAX_ROWS> mStaticRowBuckets;
 	// seeker/target 拆分：僵尸(被动目标) 与 其余动态(seeker：子弹/割草机…) 分开存，跨帧复用。
 	std::array<std::vector<ColliderComponent*>, MAX_ROWS> mRowZombies;
@@ -118,7 +117,6 @@ public:
 
 		// 清空跨帧复用容器（capacity 保留）
 		mActiveColliders.clear();
-		for (auto& v : mRowBuckets)       v.clear();
 		for (auto& v : mStaticRowBuckets) v.clear();
 		for (auto& v : mRowZombies)       v.clear();
 		for (auto& v : mRowOthers)        v.clear();
@@ -176,7 +174,6 @@ public:
 			}
 			else {
 				if (inRange) {
-					mRowBuckets[row].push_back(col);   // TODO(Task3): 双写过渡，Task3 删除
 					if (col->layerMask == CollisionLayer::ZOMBIE) {
 						mRowZombies[row].push_back(col);
 						const float w = col->cachedBounds.w;
@@ -318,7 +315,16 @@ public:
 					mNoRowResults.push_back({ a, b, key });
 				}
 			}
-			for (auto& bucket : mRowBuckets) {
+			for (auto& bucket : mRowZombies) {
+				for (auto* b : bucket) {
+					if (!CanCollide(a, b)) continue;
+					if (CheckCollision(a, b)) {
+						uint64_t key = MakePairKey(a->colliderID, b->colliderID);
+						mNoRowResults.push_back({ a, b, key });
+					}
+				}
+			}
+			for (auto& bucket : mRowOthers) {
 				for (auto* b : bucket) {
 					if (!CanCollide(a, b)) continue;
 					if (CheckCollision(a, b)) {
