@@ -47,6 +47,17 @@ public:
 		if (miss) mTextMissAccum++;
 	}
 
+	// 诊断：碰撞 sweep-and-prune 每帧统计。iter=行内层扫描总迭代次数（O(k²) 退化项），
+	// reject=被层掩码 CanCollide 拒绝（纯浪费的迭代），check=真正做了 AABB 检测，
+	// hit=检出的碰撞对。由 CollisionSystem::Update 在并行派发结束后于主线程调用一次。
+	void CountSweep(size_t iter, size_t reject, size_t check, size_t hit) {
+		if (!g_ProfileEnabled) return;
+		mSweepIterAccum += iter;
+		mSweepRejectAccum += reject;
+		mSweepCheckAccum += check;
+		mSweepHitAccum += hit;
+	}
+
 	// 每帧调用一次（主循环末尾）。每 kReportFrames 帧打印一次平均值。
 	void EndFrame() {
 		if (!g_ProfileEnabled) return;
@@ -77,6 +88,12 @@ public:
 		std::printf("  %-20s : %7.1f /frame\n", "textDraw(lines)", mTextTotalAccum * inv);
 		std::printf("  %-20s : %7.1f /frame\n", "textRaster(miss)", mTextMissAccum * inv);
 		std::printf("  %-20s : %7.1f /frame\n", "flushBatch", static_cast<double>(mFlushCountAccum) * inv);
+		// 碰撞 sweep 诊断：iter 巨大且 reject≈iter → SAP 在密集同行退化成 O(k²)，且几乎全是被层掩码
+		// 拒绝的僵尸×僵尸空转；check/hit 才是真正有用的工作量。
+		std::printf("  %-20s : %12.0f /frame\n", "sweepIter", static_cast<double>(mSweepIterAccum) * inv);
+		std::printf("  %-20s : %12.0f /frame\n", "sweepReject", static_cast<double>(mSweepRejectAccum) * inv);
+		std::printf("  %-20s : %12.0f /frame\n", "sweepCheck", static_cast<double>(mSweepCheckAccum) * inv);
+		std::printf("  %-20s : %12.0f /frame\n", "sweepHit", static_cast<double>(mSweepHitAccum) * inv);
 		std::printf("============================================\n");
 
 		mAccum.clear();
@@ -85,6 +102,10 @@ public:
 		mFlushVertsAccum = 0;
 		mTextMissAccum = 0;
 		mTextTotalAccum = 0;
+		mSweepIterAccum = 0;
+		mSweepRejectAccum = 0;
+		mSweepCheckAccum = 0;
+		mSweepHitAccum = 0;
 		mFrames = 0;
 	}
 
@@ -101,6 +122,10 @@ private:
 	size_t mFlushVertsAccum = 0;
 	size_t mTextMissAccum = 0;    // 诊断：窗口内文字缓存未命中(光栅化)总次数
 	size_t mTextTotalAccum = 0;   // 诊断：窗口内文字绘制(行)总次数
+	size_t mSweepIterAccum = 0;   // 诊断：窗口内碰撞 sweep 内层总迭代次数
+	size_t mSweepRejectAccum = 0; // 诊断：窗口内被 CanCollide 拒绝的迭代次数
+	size_t mSweepCheckAccum = 0;  // 诊断：窗口内真正做 AABB 检测的次数
+	size_t mSweepHitAccum = 0;    // 诊断：窗口内检出的碰撞对数
 };
 
 // RAII 计时：作用域结束时把耗时累加到对应名字

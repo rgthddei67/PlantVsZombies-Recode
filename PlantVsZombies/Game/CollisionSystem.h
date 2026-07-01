@@ -4,6 +4,7 @@
 
 #include "ColliderComponent.h"
 #include "ThreadPool.h"
+#include "../Profiler.h"   // 诊断：sweep 迭代/拒绝计数上报（-Profile 时才累加）
 #include <vector>
 #include <unordered_set>
 #include <unordered_map>
@@ -38,6 +39,13 @@ private:
 	std::vector<DetectedPair> mNoRowResults;
 	std::vector<int> mActiveRowIndices;
 	std::unordered_set<uint64_t> mNewCollisions;
+
+	// 诊断探针（仅 -Profile 时累加）：每行 sweep 内层迭代/拒绝/检测/命中计数。
+	// detectRow 只写自己那行的槽位 → 并行无数据竞争；派发结束后主线程汇总一次上报 Profiler。
+	std::array<uint64_t, MAX_ROWS> mRowIters{};
+	std::array<uint64_t, MAX_ROWS> mRowRejects{};
+	std::array<uint64_t, MAX_ROWS> mRowChecks{};
+	std::array<uint64_t, MAX_ROWS> mRowHits{};
 
 	static uint64_t MakePairKey(uint32_t idA, uint32_t idB) {
 		if (idA > idB) std::swap(idA, idB);
@@ -114,6 +122,10 @@ public:
 		mNoRowResults.clear();
 		mActiveRowIndices.clear();
 		mNewCollisions.clear();
+		mRowIters.fill(0);
+		mRowRejects.fill(0);
+		mRowChecks.fill(0);
+		mRowHits.fill(0);
 
 		// ── 阶段1: 缓存世界坐标和AABB + 构建活跃列表 ──
 		mActiveColliders.reserve(totalColliders);
@@ -174,6 +186,8 @@ public:
 		auto detectRow = [this](int row) {
 			auto& bucket = mRowBuckets[row];
 			auto& results = mRowResults[row];
+			const bool prof = g_ProfileEnabled;   // 诊断：整行只读一次，内层分支高度可预测
+			uint64_t nIter = 0, nReject = 0, nCheck = 0, nHit = 0;
 
 			std::sort(bucket.begin(), bucket.end(),
 				[](const ColliderComponent* a, const ColliderComponent* b) {
@@ -184,11 +198,14 @@ public:
 				float rightEdge = bucket[i]->cachedBounds.x + bucket[i]->cachedBounds.w;
 				for (size_t j = i + 1; j < bucket.size(); ++j) {
 					if (bucket[j]->cachedBounds.x > rightEdge) break;
-					if (!CanCollide(bucket[i], bucket[j])) continue;
+					if (prof) ++nIter;
+					if (!CanCollide(bucket[i], bucket[j])) { if (prof) ++nReject; continue; }
+					if (prof) ++nCheck;
 					if (CheckCollision(bucket[i], bucket[j])) {
 						auto* a = bucket[i]; auto* b = bucket[j];
 						uint64_t key = MakePairKey(a->colliderID, b->colliderID);
 						results.push_back({ a, b, key });
+						if (prof) ++nHit;
 					}
 				}
 			}
@@ -215,6 +232,13 @@ public:
 					}
 				}
 			}
+
+			if (prof) {
+				mRowIters[row]   = nIter;
+				mRowRejects[row] = nReject;
+				mRowChecks[row]  = nCheck;
+				mRowHits[row]    = nHit;
+			}
 			};
 
 		if (numRows > 1 && totalDynamic >= PARALLEL_THRESHOLD && mThreadPool) {
@@ -224,6 +248,19 @@ public:
 		}
 		else {
 			for (int ri = 0; ri < numRows; ri++) detectRow(mActiveRowIndices[ri]);
+		}
+
+		// 诊断：并行派发已结束（隐式屏障），主线程安全汇总各行 sweep 计数上报 Profiler。
+		if (g_ProfileEnabled) {
+			uint64_t sIter = 0, sReject = 0, sCheck = 0, sHit = 0;
+			for (int ri = 0; ri < numRows; ri++) {
+				int r = mActiveRowIndices[ri];
+				sIter += mRowIters[r];
+				sReject += mRowRejects[r];
+				sCheck += mRowChecks[r];
+				sHit += mRowHits[r];
+			}
+			Profiler::Get().CountSweep(sIter, sReject, sCheck, sHit);
 		}
 
 		// noRowDynamic 串行检测
