@@ -595,7 +595,7 @@ void Zombie::EatTarget()
 			if (plant->mPlantType == PlantType::PLANT_HYPNOSHROOM && !plant->GetSleepState())
 			{
 				plant->Die();
-				AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_ZOMBIE_FINISHEAT, 0.2f);
+				AudioSystem::PlaySound("SOUND_FLOOP", 0.25f);
 				StartMindControlled();
 				return;
 			}
