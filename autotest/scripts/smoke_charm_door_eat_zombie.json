@@ -1,0 +1,21 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 1 },
+    { "op": "choose_cards", "cards": ["PLANT_PEASHOOTER"] },
+    { "op": "wait_state", "state": "GAME" },
+    { "op": "set_timescale", "value": 4.0 },
+
+    { "op": "spawn_zombie", "type": "ZOMBIE_DOOR", "row": 0, "x": 500 },
+    { "op": "wait_frames", "value": 5 },
+    { "op": "charm_zombie", "row": 0, "index": 0 },
+
+    { "op": "spawn_zombie", "type": "ZOMBIE_NORMAL", "row": 0, "x": 760 },
+    { "op": "wait_seconds", "value": 5 },
+    { "op": "dump_state", "name": "state_eating_5s.json" },
+    { "op": "screenshot", "name": "door_charmed_eating_5s.png" },
+    { "op": "wait_seconds", "value": 3 },
+    { "op": "dump_state", "name": "state_eating_8s.json" },
+    { "op": "screenshot", "name": "door_charmed_eating_8s.png" },
+    { "op": "quit" }
+  ]
+}

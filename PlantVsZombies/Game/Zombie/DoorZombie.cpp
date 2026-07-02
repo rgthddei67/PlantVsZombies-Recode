@@ -27,7 +27,12 @@ void DoorZombie::StartEat(ColliderComponent* other)
 {
 	if (mIsPreview || mIsDying)	return;
 	if (other->GetGameObject()->GetObjectType() == ObjectType::OBJECT_ZOMBIE) {
+		const bool wasEating = mIsEating;
 		Zombie::StartEat(other);
+		// 魅惑后啃敌方僵尸也要像啃植物一样露出常规手臂（否则啃食时无手臂）。只在本次真正开吃
+		// （base 置了 mIsEating）且门还在时露臂，与植物分支 / ResumeWalkAfterEat 收尾对称。
+		if (!wasEating && mIsEating && mShieldType != ShieldType::SHIELDTYPE_NONE)
+			this->ShowArm(true);
 		return;
 	}
 	auto* gameObject = other->GetGameObject();
