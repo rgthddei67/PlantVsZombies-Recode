@@ -16,7 +16,7 @@ This is a CMake + vcpkg(manifest) C++ project (x64 Windows only). The build syst
     ForEach-Object { if ($_ -match '^([^=]+)=(.*)$') { Set-Item "env:$($matches[1])" $matches[2] } }
 
   # 2) Build (pick a preset: clang-release for shipping/perf, msvc-debug for F5 + hitbox debugging)
-  cmake --preset clang-release      # -O2 -march=native -flto; or msvc-debug
+  cmake --preset clang-release      # -O2 -mavx2 -flto; or msvc-debug
   cmake --build --preset clang-release
   ```
   Note: the MSVC Release preset was removed on 2026-06-13 — `clang-release` is now the sole release build (better optimization, and the only config that reports `-Wnonportable-include-path`/`-Wreorder-ctor`/`-Wunused-*`/`-Wswitch` and similar diagnostics, so warning-zero verification lives here).

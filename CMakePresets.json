@@ -30,7 +30,7 @@
     },
     {
       "name": "clang-release",
-      "displayName": "Clang Release (-O2 -march=native -flto, 对应旧 ClangRelease|x64)",
+      "displayName": "Clang Release (-O2 -mavx2 -flto, 对应旧 ClangRelease|x64)",
       "inherits": "base",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
