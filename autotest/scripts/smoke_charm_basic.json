@@ -1,0 +1,29 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 1 },
+    { "op": "choose_cards", "cards": ["PLANT_PEASHOOTER"] },
+    { "op": "wait_state", "state": "GAME" },
+    { "op": "set_sun", "value": 1000 },
+    { "op": "set_timescale", "value": 3.0 },
+
+    { "op": "spawn_zombie", "type": "ZOMBIE_NORMAL", "row": 0, "x": 500 },
+    { "op": "spawn_zombie", "type": "ZOMBIE_NORMAL", "row": 0, "x": 900 },
+    { "op": "wait_frames", "value": 5 },
+
+    { "op": "charm_zombie", "row": 0, "index": 0 },
+    { "op": "wait_frames", "value": 5 },
+    { "op": "dump_state", "name": "state_after_charm.json" },
+    { "op": "screenshot", "name": "charm_red.png" },
+
+    { "op": "plant", "type": "PLANT_PEASHOOTER", "row": 0, "col": 0 },
+    { "op": "wait_seconds", "value": 6 },
+    { "op": "dump_state", "name": "state_after_shots.json" },
+
+    { "op": "spawn_zombie", "type": "ZOMBIE_POLEVAULTER", "row": 2, "x": 900 },
+    { "op": "wait_frames", "value": 5 },
+    { "op": "charm_zombie", "row": 2, "index": 0 },
+    { "op": "wait_frames", "value": 5 },
+    { "op": "dump_state", "name": "state_polevaulter.json" },
+    { "op": "quit" }
+  ]
+}

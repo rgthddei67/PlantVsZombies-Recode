@@ -323,6 +323,25 @@ bool TestDriver::ExecuteCurrent() {
 		GameAPP::GetInstance().mShowZombieHP = cmd.value("on", true);   // 调试：游戏内绘制僵尸血量
 		return true;
 	}
+	if (op == "charm_zombie") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) { Fail("charm_zombie: 不在 GameScene 或 Board 为空"); return false; }
+		Board* board = gs->GetBoard();
+		const int row = cmd.value("row", -1);     // -1 = 不过滤行
+		const int index = cmd.value("index", 0);  // 行过滤后按 ID 升序第 index 只
+		int seen = 0;
+		for (int id : board->mEntityManager.GetAllZombieIDs()) {
+			Zombie* z = board->mEntityManager.GetZombie(id);
+			if (!z) continue;
+			if (row >= 0 && z->mRow != row) continue;
+			if (seen++ == index) {
+				z->StartMindControlled();   // 不可魅惑目标是 no-op：脚本用 dump_state 的 mindControlled 断言
+				return true;
+			}
+		}
+		Fail("charm_zombie: 未找到目标僵尸 (row=" + std::to_string(row) + ", index=" + std::to_string(index) + ")");
+		return false;
+	}
 	if (op == "screenshot") {
 		const std::string name = cmd.value("name", "shot.png");
 		auto* renderer = GameAPP::GetInstance().GetVulkanRenderer();
@@ -360,6 +379,7 @@ bool TestDriver::ExecuteCurrent() {
 				{ "x", pos.x }, { "y", pos.y },
 				{ "bodyHealth", z->mBodyHealth }, { "bodyMaxHealth", z->mBodyMaxHealth },
 				{ "helmHealth", z->mHelmHealth }, { "shieldHealth", z->mShieldHealth },
+				{ "mindControlled", z->IsMindControlled() },
 				{ "hasHead", z->HasHead() }, { "hasArm", z->HasArm() },
 				{ "slowCooldown", z->GetCooldownTimer() },
 				{ "track", z->GetCurrentTrackName() },
