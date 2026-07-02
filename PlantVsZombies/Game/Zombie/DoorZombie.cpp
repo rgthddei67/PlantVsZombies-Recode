@@ -141,6 +141,12 @@ void DoorZombie::ShowBrokenArm() const
 	mAnimator->SetTrackVisible("Zombie_outerarm_lower", false);
 	mAnimator->SetTrackImage("Zombie_outerarm_upper", ResourceManager::GetInstance().
 		GetTexture(ResourceKeys::Textures::IMAGE_ZOMBIE_OUTERARM_UPPER2));
+
+	// 断臂即抓不住门：把「持门手臂」一并隐藏。正常死亡时门先掉、ShieldDrop 已隐藏它们（此处无害 no-op）；
+	// 但大喷菇穿透会在门未掉时打死本体（掉头 HeadDrop 走到这里），若不隐藏就残留一条完好的持门手臂。
+	mAnimator->SetTrackVisible("Zombie_innerarm_screendoor", false);
+	mAnimator->SetTrackVisible("Zombie_outerarm_screendoor", false);
+	mAnimator->SetTrackVisible("Zombie_innerarm_screendoor_hand", false);
 }
 
 void DoorZombie::CheckShieldImage()

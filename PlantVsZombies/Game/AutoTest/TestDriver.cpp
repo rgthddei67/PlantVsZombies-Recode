@@ -373,6 +373,7 @@ bool TestDriver::ExecuteCurrent() {
 			Zombie* z = board->mEntityManager.GetZombie(id);
 			if (!z) continue;
 			const Vector pos = z->GetPosition();
+			const auto anim = z->GetAnimatorInternal();
 			out["zombies"].push_back({
 				{ "id", id },
 				{ "type", ZombieTypeName(z->mZombieType) },
@@ -387,7 +388,11 @@ bool TestDriver::ExecuteCurrent() {
 				{ "freeHitsRemaining", z->mFreeHitsRemaining },
 				// 铁门僵尸常规手臂（藏门后/啃食露出）当前可见性——手臂显隐类 bug 的断言抓手；
 				// 无此轨道的僵尸 GetTrackVisible 安全返回 false。
-				{ "armVisible", z->GetAnimatorInternal() && z->GetAnimatorInternal()->GetTrackVisible("Zombie_outerarm_hand") },
+				{ "armVisible", anim && anim->GetTrackVisible("Zombie_outerarm_hand") },
+				// 铁门僵尸「持门手臂」（Zombie_*_screendoor*）可见性：死亡/断臂时本应随门消失。
+				{ "doorArmVisible", anim && (anim->GetTrackVisible("Zombie_outerarm_screendoor")
+					|| anim->GetTrackVisible("Zombie_innerarm_screendoor")
+					|| anim->GetTrackVisible("Zombie_innerarm_screendoor_hand")) },
 			});
 		}
 

@@ -1,0 +1,29 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 10 },
+    { "op": "choose_cards", "cards": ["PLANT_FUMESHROOM", "PLANT_WALLNUT"] },
+    { "op": "wait_state", "state": "GAME" },
+    { "op": "set_sun", "value": 1000 },
+    { "op": "set_timescale", "value": 4.0 },
+
+    { "op": "plant", "type": "PLANT_FUMESHROOM", "row": 0, "col": 0 },
+    { "op": "plant", "type": "PLANT_WALLNUT", "row": 0, "col": 3 },
+    { "op": "spawn_zombie", "type": "ZOMBIE_DOOR", "row": 0, "x": 800 },
+
+    { "op": "wait_seconds", "value": 22 }, { "op": "dump_state", "name": "d00.json" },
+    { "op": "wait_seconds", "value": 2 }, { "op": "dump_state", "name": "d01.json" },
+    { "op": "wait_seconds", "value": 2 }, { "op": "dump_state", "name": "d02.json" },
+    { "op": "wait_seconds", "value": 2 }, { "op": "dump_state", "name": "d03.json" },
+    { "op": "wait_seconds", "value": 2 }, { "op": "dump_state", "name": "d04.json" },
+    { "op": "screenshot", "name": "door_broken_arm.png" },
+    { "op": "wait_seconds", "value": 2 }, { "op": "dump_state", "name": "d05.json" },
+    { "op": "wait_seconds", "value": 2 }, { "op": "dump_state", "name": "d06.json" },
+    { "op": "wait_seconds", "value": 2 }, { "op": "dump_state", "name": "d07.json" },
+    { "op": "wait_seconds", "value": 2 }, { "op": "dump_state", "name": "d08.json" },
+    { "op": "wait_seconds", "value": 2 }, { "op": "dump_state", "name": "d09.json" },
+    { "op": "wait_seconds", "value": 2 }, { "op": "dump_state", "name": "d10.json" },
+    { "op": "wait_seconds", "value": 2 }, { "op": "dump_state", "name": "d11.json" },
+    { "op": "wait_seconds", "value": 2 }, { "op": "dump_state", "name": "d12.json" },
+    { "op": "quit" }
+  ]
+}
