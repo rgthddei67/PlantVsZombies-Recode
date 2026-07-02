@@ -1,0 +1,21 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 1 },
+    { "op": "choose_cards", "cards": ["PLANT_PEASHOOTER"] },
+    { "op": "wait_state", "state": "GAME" },
+    { "op": "set_timescale", "value": 5.0 },
+
+    { "op": "spawn_zombie", "type": "ZOMBIE_NORMAL", "row": 0, "x": 500 },
+    { "op": "wait_frames", "value": 5 },
+    { "op": "charm_zombie", "row": 0, "index": 0 },
+
+    { "op": "spawn_zombie", "type": "ZOMBIE_POLEVAULTER", "row": 0, "x": 900 },
+    { "op": "wait_seconds", "value": 10 },
+    { "op": "dump_state", "name": "state_crossing.json" },
+    { "op": "screenshot", "name": "charm_polevaulter_cross.png" },
+
+    { "op": "wait_seconds", "value": 6 },
+    { "op": "dump_state", "name": "state_after_cross.json" },
+    { "op": "quit" }
+  ]
+}

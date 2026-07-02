@@ -384,6 +384,13 @@ void Zombie::StartMindControlled()
 		PlayTrack(WalkTrackAfterEat(), 0.0f, 0.2f);
 	}
 
+	// 正在啃僵尸也同样解除：魅惑瞬间双方变同阵营，残留一帧可能误伤（帧事件）
+	if (mIsEating && mEatZombieID != NULL_ZOMBIE_ID) {
+		mIsEating = false;
+		mEatZombieID = NULL_ZOMBIE_ID;
+		PlayTrack(WalkTrackAfterEat(), 0.0f, 0.2f);
+	}
+
 	// 清减速：把 overlay 让给红光；魅惑后子弹打不中，减速不会再来
 	if (mCooldownTimer > 0.0f) {
 		mCooldownTimer = 0.0f;

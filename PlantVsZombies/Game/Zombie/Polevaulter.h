@@ -18,6 +18,7 @@ public:
 	bool mHasVaulted = false;
 
 	void StopEat(ColliderComponent* other) override;
+	void StartEat(ColliderComponent* other) override;
 
 	void StartJump();
 	void EndJump();

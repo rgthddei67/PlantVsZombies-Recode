@@ -196,6 +196,17 @@ void Polevaulter::LoadExtraData(const nlohmann::json& j)
 	}
 }
 
+void Polevaulter::StartEat(ColliderComponent* other)
+{
+	// 持杆奔跑不停下啃僵尸：onTriggerEnter 的 lambda 有 RUNNING 守卫，但基类 onTriggerStay
+	// 也会调 StartEat（僵尸分支无跳跃状态概念），必须在 override 里同样拦住
+	if (other->GetGameObject()->GetObjectType() == ObjectType::OBJECT_ZOMBIE &&
+		mVaultState == VaultState::RUNNING) {
+		return;
+	}
+	Zombie::StartEat(other);
+}
+
 void Polevaulter::StopEat(ColliderComponent* other)
 {
 	if (mIsPreview || mIsDying)	return;
