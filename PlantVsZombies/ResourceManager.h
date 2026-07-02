@@ -15,6 +15,7 @@
 #include <memory>
 #include <iostream>
 #include <list>
+#include <vector>
 
 namespace pvz { class VulkanTexturePool; struct VulkanTexture; }
 
@@ -66,6 +67,16 @@ private:
 	// 把已解码的 ABGR8888 surface 上传 Vulkan 并插入 mTextures（接管 converted 所有权）。
 	// 仅主线程调用；上传失败仍按原语义插入空 Texture 并返回其指针。
 	const Texture* UploadDecodedTexture(SDL_Surface* converted, const std::string& key, const std::string& filepath);
+
+	// 并行图片加载：worker 做 打开+解码+转格式，主线程严格按 jobs 原顺序做 去重/上传/插入/日志，
+	// 与逐个调 LoadTexture 的串行语义逐位一致。failMsg 非空时该条目失败会额外记一行 ERROR。
+	// 返回成功条目数（含"key 已存在跳过"的条目）。
+	struct TextureJob {
+		std::string path;
+		std::string key;
+		std::string failMsg;
+	};
+	size_t ParallelDecodeAndUpload(const std::vector<TextureJob>& jobs);
 
 public:
 	static ResourceManager& GetInstance();

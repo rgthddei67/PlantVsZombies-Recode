@@ -4,7 +4,11 @@
 #include "Logger.h"
 #include "FileManager.h"
 #include <algorithm>
+#include <atomic>
 #include <cctype>
+#include <condition_variable>
+#include <mutex>
+#include <thread>
 #include <unordered_set>
 #include <vector>
 
@@ -95,6 +99,76 @@ const Texture* ResourceManager::UploadDecodedTexture(SDL_Surface* converted, con
 
 	mTextures[key] = tex;
 	return &mTextures[key];
+}
+
+size_t ResourceManager::ParallelDecodeAndUpload(const std::vector<TextureJob>& jobs) {
+	if (jobs.empty()) return 0;
+
+	const size_t n = jobs.size();
+	std::vector<DecodedImage> results(n);
+	std::vector<uint8_t> done(n, 0);
+	std::mutex doneMutex;
+	std::condition_variable doneCv;
+	std::atomic<size_t> nextJob{ 0 };
+
+	// hardware_concurrency 可能返回 0 且类型无符号，必须先转 int 再减 1，防回绕
+	const int hc = static_cast<int>(std::thread::hardware_concurrency());
+	const size_t threadCount = static_cast<size_t>(std::clamp(hc - 1, 2, 8));
+
+	auto workerFn = [&]() {
+		for (;;) {
+			const size_t i = nextJob.fetch_add(1, std::memory_order_relaxed);
+			if (i >= n) break;
+			DecodedImage decoded = DecodeImageFile(jobs[i].path);
+			{
+				std::lock_guard<std::mutex> lock(doneMutex);
+				results[i] = decoded;
+				done[i] = 1;
+			}
+			doneCv.notify_all();
+		}
+	};
+
+	std::vector<std::thread> workers;
+	const size_t spawn = std::min(threadCount, n);
+	workers.reserve(spawn);
+	for (size_t t = 0; t < spawn; ++t) {
+		workers.emplace_back(workerFn);
+	}
+
+	// 主线程严格按原列表顺序消费：key"先到先得"覆盖语义、日志顺序与串行版一致；
+	// 等第 i 槽期间 worker 已在解码后续项（流水线重叠），无"全解码完再上传"的峰值内存。
+	size_t successCount = 0;
+	for (size_t i = 0; i < n; ++i) {
+		DecodedImage decoded;
+		{
+			std::unique_lock<std::mutex> lock(doneMutex);
+			doneCv.wait(lock, [&] { return done[i] != 0; });
+			decoded = results[i];
+			results[i].surface = nullptr;
+		}
+
+		// 与串行 LoadTexture 相同的去重语义：已存在则跳过（仍算成功）
+		if (mTextures.find(jobs[i].key) != mTextures.end()) {
+			if (decoded.surface) SDL_FreeSurface(decoded.surface);
+			++successCount;
+			continue;
+		}
+
+		if (!decoded.surface) {
+			LOG_ERROR("ResourceManager") << decoded.error;
+			if (!jobs[i].failMsg.empty()) {
+				LOG_ERROR("ResourceManager") << jobs[i].failMsg;
+			}
+			continue;
+		}
+
+		UploadDecodedTexture(decoded.surface, jobs[i].key, jobs[i].path);
+		++successCount;
+	}
+
+	for (auto& w : workers) w.join();
+	return successCount;
 }
 
 const Texture* ResourceManager::GetTexture(const std::string& key, bool warnOnMiss) const {
@@ -213,22 +287,24 @@ bool ResourceManager::LoadTiledTextureGL(const TiledImageInfo& info, const std::
 bool ResourceManager::LoadAllGameImages() {
 	bool success = true;
 	const auto& infos = GetGameImageInfos();
+	std::vector<TextureJob> jobs;
+	jobs.reserve(infos.size());
 	for (const auto& info : infos) {
 		if (info.columns <= 1 && info.rows <= 1) {
-			// 普通图片
-			std::string key = GenerateStandardKey(info.path, "IMAGE_");
-			if (!LoadTexture(info.path, key)) {
-				LOG_ERROR("ResourceManager") << "加载游戏图片失败: " << info.path;
-				success = false;
-			}
+			// 普通图片：收集为并行任务（与分割贴图的 key 不相交，先后顺序互不影响）
+			jobs.push_back({ info.path, GenerateStandardKey(info.path, "IMAGE_"),
+			                 "加载游戏图片失败: " + info.path });
 		}
 		else {
-			// 分割贴图
+			// 分割贴图（个位数）：保持串行
 			if (!LoadTiledTextureGL(info, "IMAGE_")) {
 				LOG_ERROR("ResourceManager") << "加载分割贴图失败: " << info.path;
 				success = false;
 			}
 		}
+	}
+	if (ParallelDecodeAndUpload(jobs) != jobs.size()) {
+		success = false;
 	}
 	return success;
 }
@@ -236,13 +312,12 @@ bool ResourceManager::LoadAllGameImages() {
 bool ResourceManager::LoadAllParticleTextures() {
 	bool success = true;
 	const auto& infos = GetParticleTextureInfos();
+	std::vector<TextureJob> jobs;
+	jobs.reserve(infos.size());
 	for (const auto& info : infos) {
 		if (info.columns <= 1 && info.rows <= 1) {
-			std::string key = GenerateStandardKey(info.path, "PARTICLE_");
-			if (!LoadTexture(info.path, key)) {
-				LOG_ERROR("ResourceManager") << "加载粒子纹理失败: " << info.path;
-				success = false;
-			}
+			jobs.push_back({ info.path, GenerateStandardKey(info.path, "PARTICLE_"),
+			                 "加载粒子纹理失败: " + info.path });
 		}
 		else {
 			if (!LoadTiledTextureGL(info, "PARTICLE_")) {
@@ -250,6 +325,9 @@ bool ResourceManager::LoadAllParticleTextures() {
 				success = false;
 			}
 		}
+	}
+	if (ParallelDecodeAndUpload(jobs) != jobs.size()) {
+		success = false;
 	}
 	return success;
 }
@@ -328,14 +406,13 @@ void ResourceManager::BuildReanimAtlases() {
 }
 
 bool ResourceManager::LoadAllImagesFromPath(const std::string& directory) {
-	bool allSuccess = true;
-	int loadedCount = 0;
-
 	// 文件名来自构建期烘焙的清单（FileManager::ListResourceFiles 经 SDL_RWops 读，APK 可读），
 	// 不再用 std::filesystem 枚举，使该路径在 Android 上也能列举 APK assets。
 	// 返回的全路径与旧 directory_iterator 逐字一致，下游加载零差异。
 	std::vector<std::string> entries = FileManager::ListResourceFiles(directory);
 
+	std::vector<TextureJob> jobs;
+	jobs.reserve(entries.size());
 	for (const std::string& fullPath : entries) {
 		std::string ext = FileManager::GetFileExtension(fullPath);
 		// 转换为小写以统一判断
@@ -347,24 +424,18 @@ bool ResourceManager::LoadAllImagesFromPath(const std::string& directory) {
 			std::string key = fileName.substr(0, fileName.size() - ext.size());
 			// 将 key 转换为大写
 			std::transform(key.begin(), key.end(), key.begin(), ::toupper);
-			// 添加前缀 "IMAGE_"
-			key = "IMAGE_" + key;
-
-			if (LoadTexture(fullPath, key)) {
-				loadedCount++;
-			}
-			else {
-				allSuccess = false;
-			}
+			jobs.push_back({ fullPath, "IMAGE_" + key, std::string() });
 		}
 	}
+
+	const size_t loadedCount = ParallelDecodeAndUpload(jobs);
 
 	if (loadedCount == 0) {
 		LOG_ERROR("ResourceManager") << "在目录 " << directory << " 中没有找到任何 JPG/PNG 图片";
 		return false;
 	}
 
-	return allSuccess;
+	return loadedCount == jobs.size();
 }
 
 std::shared_ptr<Reanimation> ResourceManager::LoadReanimation(const std::string& key, const std::string& path) {
