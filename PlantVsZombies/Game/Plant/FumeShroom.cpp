@@ -3,7 +3,7 @@
 
 namespace {
 	constexpr int   kFumeDamage = 20;       // 每次喷射伤害（约一发豌豆，原版 DoRowAreaDamage(20, ...)）
-	constexpr float kFumeReach = 400.0f;    // 喷雾横向覆盖范围（约 4 格锥形；检测与命中共用同一距离）
+	constexpr float kFumeReach = 390.0f;    // 喷雾横向覆盖范围（约 4 格锥形；检测与命中共用同一距离）
 }
 
 void FumeShroom::SetupPlant()
@@ -51,7 +51,7 @@ bool FumeShroom::HasZombieInRow()
 				if (found) return;  // 已命中，跳过本行其余
 				float dx = zombie->GetPosition().x - thisX;
 				// 跳过魅惑僵尸：全行只剩魅惑时不触发喷射动画（与 Chomper/PotatoMine 索敌跳过魅惑同一惯例）
-				if (dx >= 0 && dx <= kFumeReach && zombie->HasHead() && !zombie->IsMindControlled())
+				if (!zombie->IsMindControlled() && dx >= 0 && dx <= kFumeReach && zombie->HasHead() && !zombie->IsMindControlled())
 					found = true;
 				});
 			return found;

@@ -49,7 +49,7 @@ bool PuffShroom::HasZombieInRow()
 			mBoard->mEntityManager.ForEachZombieInRow(mRow, [&](Zombie* zombie) {
 				if (found) return;  // 已命中，跳过本行其余
 				float dx = zombie->GetPosition().x - thisX;
-				if (dx >= 0 && dx <= 300.0f && zombie->HasHead())
+				if (!zombie->IsMindControlled() && dx >= 0 && dx <= 300.0f && zombie->HasHead())
 					found = true;
 			});
 			return found;
