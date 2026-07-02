@@ -370,6 +370,12 @@ void Zombie::ApplyCharmEffects()
 	}
 }
 
+void Zombie::ResumeWalkAfterEat(float blendTime)
+{
+	// clip 清零 → EffectiveSpeed 回落到 base 走速（普通僵尸的 anim_walk2 无需 clip）。
+	PlayTrack(WalkTrackAfterEat(), 0.0f, blendTime);
+}
+
 void Zombie::StartMindControlled()
 {
 	if (mIsMindControlled || mIsDying || !CanBeCharmed()) return;
@@ -381,14 +387,14 @@ void Zombie::StartMindControlled()
 		}
 		mIsEating = false;
 		mEatPlantID = NULL_PLANT_ID;
-		PlayTrack(WalkTrackAfterEat(), 0.0f, 0.2f);
+		ResumeWalkAfterEat(0.2f);
 	}
 
 	// 正在啃僵尸也同样解除：魅惑瞬间双方变同阵营，残留一帧可能误伤（帧事件）
 	if (mIsEating && mEatZombieID != NULL_ZOMBIE_ID) {
 		mIsEating = false;
 		mEatZombieID = NULL_ZOMBIE_ID;
-		PlayTrack(WalkTrackAfterEat(), 0.0f, 0.2f);
+		ResumeWalkAfterEat(0.2f);
 	}
 
 	// 清减速：把 overlay 让给红光；魅惑后子弹打不中，减速不会再来
@@ -568,7 +574,7 @@ void Zombie::EatTarget()
 			// 目标没了/垂死：正常由 onTriggerExit 收尾，这里兜底（含读档后目标失效）
 			mIsEating = false;
 			mEatZombieID = NULL_ZOMBIE_ID;
-			PlayTrack(WalkTrackAfterEat(), 0.0f, 0.2f);
+			ResumeWalkAfterEat(0.2f);
 			return;
 		}
 		// 互啃走 TakeDamage 正常链（护盾→头盔→本体）：免伤/减伤词条对啃咬同样生效（语义自洽）；
@@ -660,7 +666,7 @@ void Zombie::StopEat(ColliderComponent* other)
 		if (!target || target->mZombieID != mEatZombieID) return;
 
 		if (mIsEating) {
-			this->PlayTrack(WalkTrackAfterEat(), 0.0f, 0.2f);   // clip 清零，自动回落走速
+			this->ResumeWalkAfterEat(0.2f);   // 回落走路（子类可覆写选轨道+clip）
 		}
 		mIsEating = false;
 		mEatZombieID = NULL_ZOMBIE_ID;
@@ -742,6 +748,6 @@ void Zombie::ValidateEatingState(EntityManager& em)
 	else if (mIsEating) {
 		// mEatPlantID 为空却在啃：啃僵尸进行时存的档（mEatZombieID 不持久化）→ 回走路，碰撞下一帧重建互啃
 		mIsEating = false;
-		PlayTrack(WalkTrackAfterEat(), 0.0f, 0.3f);
+		ResumeWalkAfterEat(0.3f);
 	}
 }

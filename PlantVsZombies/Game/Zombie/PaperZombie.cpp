@@ -241,6 +241,16 @@ void PaperZombie::StopEat(ColliderComponent* other)
 	}
 }
 
+void PaperZombie::ResumeWalkAfterEat(float blendTime)
+{
+	// 基类默认会播 "anim_walk2"，而 PaperZombie.reanim 只有 anim_walk / anim_walk_nopaper。
+	// 与 StopEat / ValidateEatingState 的选轨道逻辑保持一致：狂暴态带 clip 速度，普通态 clip 清零。
+	if (mHasNewspaper)
+		PlayTrack("anim_walk", 0.0f, blendTime);
+	else
+		PlayTrack("anim_walk_nopaper", kNoPaperWalkClip, blendTime);
+}
+
 void PaperZombie::ZombieMove(float scaledDelta, TransformComponent* transform)
 {
 	if (!mIsGasp) {
