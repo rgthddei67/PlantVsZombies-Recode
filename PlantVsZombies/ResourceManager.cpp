@@ -137,7 +137,8 @@ size_t ResourceManager::ParallelDecodeAndUpload(const std::vector<TextureJob>& j
 	}
 
 	// 主线程严格按原列表顺序消费：key"先到先得"覆盖语义、日志顺序与串行版一致；
-	// 等第 i 槽期间 worker 已在解码后续项（流水线重叠），无"全解码完再上传"的峰值内存。
+	// 等第 i 槽期间 worker 已在解码后续项（流水线重叠）。注意 worker 无背压：若上传慢于解码，
+	// 已解码 surface 会在 results 中堆积，峰值受限于本批总解码体积（当前全部图片 ~30MB，无害）。
 	size_t successCount = 0;
 	for (size_t i = 0; i < n; ++i) {
 		DecodedImage decoded;
