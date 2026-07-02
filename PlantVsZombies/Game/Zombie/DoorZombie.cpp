@@ -103,6 +103,16 @@ void DoorZombie::ValidateEatingState(EntityManager& em)
 	}
 }
 
+void DoorZombie::ResumeWalkAfterEat(float blendTime)
+{
+	Zombie::ResumeWalkAfterEat(blendTime);   // 播 WalkTrackAfterEat()="anim_walk2"（铁门有该轨道）
+
+	// 啃食时 StartEat 露过常规手臂；回走路要藏回门后。门已掉（mShieldType==NONE）则手臂应保持
+	// 可见，故用与 StopEat / ValidateEatingState 相同的守卫。修复"铁门僵尸被魅惑后多一条手臂"。
+	if (mShieldType != ShieldType::SHIELDTYPE_NONE)
+		this->ShowArm(false);
+}
+
 void DoorZombie::ShowArm(bool show) const
 {
 	if (!mAnimator) return;

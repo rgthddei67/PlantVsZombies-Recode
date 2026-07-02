@@ -14,6 +14,10 @@ protected:
 
 	void CheckShieldImage() override;
 
+	// 被魅惑/啃僵尸结束等基类收尾路径（StartMindControlled/EatTarget/base StopEat）会绕过
+	// DoorZombie::StopEat，故须在此把啃食时露出的常规手臂重新藏回门后，否则出现"多一条手臂"。
+	void ResumeWalkAfterEat(float blendTime) override;
+
 	// 显示/隐藏全部手臂相关轨道（无 animator 时安全跳过）
 	void ShowArm(bool show) const;
 

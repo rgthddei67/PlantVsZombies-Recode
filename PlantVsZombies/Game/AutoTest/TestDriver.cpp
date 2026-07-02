@@ -13,6 +13,7 @@
 #include "../Plant/Plant.h"
 #include "../Zombie/ZombieType.h"
 #include "../Zombie/Zombie.h"
+#include "../../Reanimation/Animator.h"   // dump_state 查询轨道可见性（如铁门僵尸手臂）
 #include <filesystem>
 #include <algorithm>
 #include <unordered_map>
@@ -384,6 +385,9 @@ bool TestDriver::ExecuteCurrent() {
 				{ "slowCooldown", z->GetCooldownTimer() },
 				{ "track", z->GetCurrentTrackName() },
 				{ "freeHitsRemaining", z->mFreeHitsRemaining },
+				// 铁门僵尸常规手臂（藏门后/啃食露出）当前可见性——手臂显隐类 bug 的断言抓手；
+				// 无此轨道的僵尸 GetTrackVisible 安全返回 false。
+				{ "armVisible", z->GetAnimatorInternal() && z->GetAnimatorInternal()->GetTrackVisible("Zombie_outerarm_hand") },
 			});
 		}
 
