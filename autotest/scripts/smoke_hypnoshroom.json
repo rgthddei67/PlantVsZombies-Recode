@@ -1,0 +1,28 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 10 },
+    { "op": "choose_cards", "cards": ["PLANT_HYPNOSHROOM"] },
+    { "op": "wait_state", "state": "GAME" },
+    { "op": "set_sun", "value": 1000 },
+    { "op": "set_timescale", "value": 5.0 },
+
+    { "op": "plant", "type": "PLANT_HYPNOSHROOM", "row": 0, "col": 2 },
+    { "op": "spawn_zombie", "type": "ZOMBIE_NORMAL", "row": 0, "x": 420 },
+    { "op": "wait_seconds", "value": 14, "timeout": 30 },
+    { "op": "dump_state", "name": "state_night.json" },
+    { "op": "screenshot", "name": "hypno_night.png" },
+
+    { "op": "goto_level", "level": 1 },
+    { "op": "choose_cards", "cards": ["PLANT_HYPNOSHROOM"] },
+    { "op": "wait_state", "state": "GAME" },
+    { "op": "set_sun", "value": 1000 },
+    { "op": "set_timescale", "value": 5.0 },
+
+    { "op": "plant", "type": "PLANT_HYPNOSHROOM", "row": 0, "col": 2 },
+    { "op": "spawn_zombie", "type": "ZOMBIE_NORMAL", "row": 0, "x": 420 },
+    { "op": "wait_seconds", "value": 14, "timeout": 30 },
+    { "op": "dump_state", "name": "state_day.json" },
+
+    { "op": "quit" }
+  ]
+}
