@@ -63,6 +63,10 @@ private:
 	// 加载分割贴图
 	bool LoadTiledTextureGL(const TiledImageInfo& info, const std::string& prefix);
 
+	// 把已解码的 ABGR8888 surface 上传 Vulkan 并插入 mTextures（接管 converted 所有权）。
+	// 仅主线程调用；上传失败仍按原语义插入空 Texture 并返回其指针。
+	const Texture* UploadDecodedTexture(SDL_Surface* converted, const std::string& key, const std::string& filepath);
+
 public:
 	static ResourceManager& GetInstance();
 	static void ReleaseInstance();

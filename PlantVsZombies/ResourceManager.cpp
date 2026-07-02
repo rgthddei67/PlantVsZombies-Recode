@@ -10,6 +10,38 @@
 
 ResourceManager* ResourceManager::instance = nullptr;
 
+namespace {
+	// worker 线程可安全调用：只做 打开→解码→转 ABGR8888，不碰共享状态、不打日志。
+	// 失败时 surface==nullptr，error 携带与旧 LoadTexture 逐字一致的日志文案，由主线程统一输出。
+	struct DecodedImage {
+		SDL_Surface* surface = nullptr;
+		std::string error;
+	};
+
+	DecodedImage DecodeImageFile(const std::string& filepath) {
+		DecodedImage out;
+		SDL_RWops* rw = SDL_RWFromFile(filepath.c_str(), "rb");
+		if (!rw) {
+			out.error = "LoadTexture 无法打开图片: " + filepath;
+			return out;
+		}
+		SDL_Surface* surface = IMG_Load_RW(rw, 1);   // freesrc=1
+		if (!surface) {
+			out.error = "LoadTexture 无法加载图片: " + filepath + " - " + IMG_GetError();
+			return out;
+		}
+		// 统一转换为 RGBA，解决对齐与源格式不确定问题
+		SDL_Surface* converted = SDL_ConvertSurfaceFormat(surface, SDL_PIXELFORMAT_ABGR8888, 0);
+		SDL_FreeSurface(surface);
+		if (!converted) {
+			out.error = "LoadTexture 无法转换图片格式: " + filepath;
+			return out;
+		}
+		out.surface = converted;
+		return out;
+	}
+}
+
 ResourceManager& ResourceManager::GetInstance() {
 	if (!instance) {
 		instance = new ResourceManager();
@@ -36,35 +68,21 @@ const Texture* ResourceManager::LoadTexture(const std::string& filepath, const s
 		return &it->second;
 	}
 
-	// 使用 SDL_image 加载表面
-	SDL_RWops* rw = SDL_RWFromFile(filepath.c_str(), "rb");
-	if (!rw) {
-		LOG_ERROR("ResourceManager") << "LoadTexture 无法打开图片: " << filepath;
+	DecodedImage decoded = DecodeImageFile(filepath);
+	if (!decoded.surface) {
+		LOG_ERROR("ResourceManager") << decoded.error;
 		return nullptr;
 	}
-	SDL_Surface* surface = IMG_Load_RW(rw, 1);   // freesrc=1
-	if (!surface) {
-		LOG_ERROR("ResourceManager") << "LoadTexture 无法加载图片: " << filepath << " - " << IMG_GetError();
-		return nullptr;
-	}
+	return UploadDecodedTexture(decoded.surface, actualKey, filepath);
+}
 
-	// 统一转换为 RGBA，解决 GL_UNPACK_ALIGNMENT 对齐问题和格式不确定问题
-	SDL_Surface* converted = SDL_ConvertSurfaceFormat(surface, SDL_PIXELFORMAT_ABGR8888, 0);
-	SDL_FreeSurface(surface);
-	if (!converted) {
-		LOG_ERROR("ResourceManager") << "LoadTexture 无法转换图片格式: " << filepath;
-		return nullptr;
-	}
-
-	int w = converted->w;
-	int h = converted->h;
-
+const Texture* ResourceManager::UploadDecodedTexture(SDL_Surface* converted, const std::string& key, const std::string& filepath) {
 	Texture tex;
-	tex.width = w;
-	tex.height = h;
+	tex.width = converted->w;
+	tex.height = converted->h;
 
 	if (mTexturePool) {
-		pvz::VulkanTexture* vkt = mTexturePool->CreateTextureRGBA8(w, h, converted->pixels);
+		pvz::VulkanTexture* vkt = mTexturePool->CreateTextureRGBA8(converted->w, converted->h, converted->pixels);
 		if (vkt) {
 			tex.vkTex = vkt;
 			tex.id = vkt->bindlessIndex;
@@ -75,8 +93,8 @@ const Texture* ResourceManager::LoadTexture(const std::string& filepath, const s
 	}
 	SDL_FreeSurface(converted);
 
-	mTextures[actualKey] = tex;
-	return &mTextures[actualKey];
+	mTextures[key] = tex;
+	return &mTextures[key];
 }
 
 const Texture* ResourceManager::GetTexture(const std::string& key, bool warnOnMiss) const {
