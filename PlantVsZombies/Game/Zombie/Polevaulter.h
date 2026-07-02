@@ -29,11 +29,16 @@ public:
 	void ArmDrop() override;
 	void ZombieItemUpdate() const override;
 
+	// 撑杆跑/跳阶段不可魅惑（原版：跳过魅惑菇根本不吃它）；落地 WALKING 后可
+	bool CanBeCharmed() const override { return mVaultState == VaultState::WALKING; }
+
 protected:
 	void SaveExtraData(nlohmann::json& j) const override;
 	void LoadExtraData(const nlohmann::json& j) override;
 	void SetupZombie() override;
 	void ZombieMove(float scaledDelta, TransformComponent* transform) override;
+
+	const char* WalkTrackAfterEat() const override { return "anim_walk"; }
 };
 
 #endif

@@ -23,6 +23,7 @@ namespace CollisionLayer {
 	constexpr uint16_t BULLET = 1 << 2;
 	constexpr uint16_t MOWER = 1 << 3;
 	constexpr uint16_t COIN = 1 << 4;
+	constexpr uint16_t CHARMED = 1 << 5;   // 魅惑僵尸专用层：落入碰撞 seeker 桶（mRowOthers），见 CollisionSystem 拆分说明
 	constexpr uint16_t ALL = 0xFFFF;
 }
 

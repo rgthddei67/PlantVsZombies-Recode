@@ -118,6 +118,10 @@ void Zombie::SaveProtectedData(nlohmann::json& j) const {
 
 void Zombie::LoadProtectedData(const nlohmann::json& j) {
 	mIsMindControlled = j.value("isMindControlled", false);
+	// 魅惑是持久状态，掩码/红光是派生状态：读档按标志重建（存档只存布尔）
+	if (mIsMindControlled) {
+		ApplyCharmEffects();
+	}
 	mFreeHitsRemaining = j.value("freeHitsRemaining", 0);   // 旧档缺字段→0
 	mIsEating = j.value("isEating", false);
 	mEatPlantID = j.value("eatPlantID", NULL_PLANT_ID);
@@ -347,6 +351,46 @@ void Zombie::SetCooldown(float timer)
 
 	// 已在减速中则取 max，避免短射缩短减速
 	mCooldownTimer = std::max(mCooldownTimer, timer);
+}
+
+void Zombie::ApplyCharmEffects()
+{
+	// 碰撞：换 CHARMED 层 → 分桶自动落入 seeker 桶（mRowOthers），二分搜同行僵尸；
+	// collisionMask 只含 ZOMBIE：不含 PLANT（不误啃植物）、不含 BULLET（子弹判不中）。
+	// 植物/子弹/小推车的精确掩码与 CHARMED 两向都不相交 → 它们自动无视魅惑僵尸（CanCollide 是双向 OR）。
+	if (mCollider) {
+		mCollider->layerMask = CollisionLayer::CHARMED;
+		mCollider->collisionMask = CollisionLayer::ZOMBIE;
+	}
+	// 视觉：红光。overlay 与减速蓝光共用——调用方已保证减速被清、且魅惑后子弹打不中不会再有新减速。
+	if (mAnimator) {
+		mAnimator->EnableOverlayEffect(true);
+		mAnimator->SetOverlayColor(255, 64, 64, 160);
+	}
+}
+
+void Zombie::StartMindControlled()
+{
+	if (mIsMindControlled || mIsDying || !CanBeCharmed()) return;
+
+	// 正在啃植物：先解除（平衡 mEaterCount）。掩码换掉后与植物不再成对，onTriggerExit 不会补触发。
+	if (mIsEating && mEatPlantID != NULL_PLANT_ID && mBoard) {
+		if (auto* plant = mBoard->mEntityManager.GetPlant(mEatPlantID)) {
+			plant->mEaterCount--;
+		}
+		mIsEating = false;
+		mEatPlantID = NULL_PLANT_ID;
+		PlayTrack(WalkTrackAfterEat(), 0.0f, 0.2f);
+	}
+
+	// 清减速：把 overlay 让给红光；魅惑后子弹打不中，减速不会再来
+	if (mCooldownTimer > 0.0f) {
+		mCooldownTimer = 0.0f;
+		if (mAnimator) mAnimator->SetExtraSpeedMultiplier(mExtraSpeed);
+	}
+
+	mIsMindControlled = true;
+	ApplyCharmEffects();
 }
 
 int Zombie::TakeShieldDamage(int damage)

@@ -105,6 +105,10 @@ public:
 	void SetPosition(const Vector& position);
 
 	bool IsMindControlled() const { return this->mIsMindControlled; }
+	// 魅惑唯一入口：豁免(CanBeCharmed)/重复/垂死则 no-op。魅惑菇、AutoTest charm_zombie 都走这里。
+	void StartMindControlled();
+	// 子类豁免点：不可魅惑态（如撑杆 RUNNING/JUMPING）返回 false
+	virtual bool CanBeCharmed() const { return true; }
 	bool HasHead() const { return this->mHasHead; }
 	bool HasArm() const { return this->mHasArm; }
 	float GetCooldownTimer() const { return this->mCooldownTimer; }
@@ -129,6 +133,11 @@ protected:
 
 	virtual void CheckHelmImage() {}	// 检查是否应该更换一类防具图片
 	virtual void CheckShieldImage() {} 	// 检查是否应该更换二类防具图片
+
+	// 停止啃食后回落的走路轨道（基类随机双走路动画统一回 walk2；撑杆只有 anim_walk）
+	virtual const char* WalkTrackAfterEat() const { return "anim_walk2"; }
+	// 魅惑的派生状态（碰撞掩码+视觉）：StartMindControlled 与读档恢复共用
+	void ApplyCharmEffects();
 };
 
 #endif
