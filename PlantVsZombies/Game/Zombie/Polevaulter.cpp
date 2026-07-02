@@ -27,6 +27,11 @@ void Polevaulter::SetupZombie()
 				if (mIsPreview || mIsDying) return;
 
 				auto* gameObject = other->GetGameObject();
+				if (gameObject->GetObjectType() == ObjectType::OBJECT_ZOMBIE) {
+					// 持杆奔跑不停下啃（跳跃语义优先，径直跑过魅惑僵尸）；跳后 WALKING 才互啃
+					if (mVaultState != VaultState::RUNNING) StartEat(other);
+					return;
+				}
 				if (gameObject->GetObjectType() != ObjectType::OBJECT_PLANT) return;
 
 				auto* plant = dynamic_cast<Plant*>(gameObject);
@@ -160,6 +165,11 @@ void Polevaulter::ValidateEatingState(EntityManager& em)
 			plant->mEaterCount++;
 		}
 	}
+	else if (mIsEating) {
+		// mEatPlantID 为空却在啃：啃僵尸进行时存的档（mEatZombieID 不持久化）→ 回走路，碰撞下一帧重建互啃
+		mIsEating = false;
+		PlayTrack(WalkTrackAfterEat(), 0.0f, 0.2f);
+	}
 }
 
 void Polevaulter::SaveExtraData(nlohmann::json& j) const
@@ -189,6 +199,10 @@ void Polevaulter::LoadExtraData(const nlohmann::json& j)
 void Polevaulter::StopEat(ColliderComponent* other)
 {
 	if (mIsPreview || mIsDying)	return;
+	if (other->GetGameObject()->GetObjectType() == ObjectType::OBJECT_ZOMBIE) {
+		Zombie::StopEat(other);
+		return;
+	}
 	auto* gameObject = other->GetGameObject();
 	if (gameObject->GetObjectType() == ObjectType::OBJECT_PLANT)
 	{

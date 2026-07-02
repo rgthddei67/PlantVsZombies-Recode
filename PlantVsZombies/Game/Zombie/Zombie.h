@@ -50,6 +50,7 @@ protected:
 
 	bool mIsEating = false;
 	int mEatPlantID = NULL_PLANT_ID;
+	int mEatZombieID = NULL_ZOMBIE_ID;   // 互啃目标（魅惑↔普通）；不持久化——读档后由碰撞下一帧重建
 
 	bool mHasHead = true;
 	bool mHasArm = true;

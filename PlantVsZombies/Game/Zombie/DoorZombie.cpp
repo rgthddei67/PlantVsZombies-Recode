@@ -26,6 +26,10 @@ void DoorZombie::SetupZombie()
 void DoorZombie::StartEat(ColliderComponent* other)
 {
 	if (mIsPreview || mIsDying)	return;
+	if (other->GetGameObject()->GetObjectType() == ObjectType::OBJECT_ZOMBIE) {
+		Zombie::StartEat(other);
+		return;
+	}
 	auto* gameObject = other->GetGameObject();
 	if (gameObject->GetObjectType() == ObjectType::OBJECT_PLANT)
 	{
@@ -49,6 +53,10 @@ void DoorZombie::StartEat(ColliderComponent* other)
 void DoorZombie::StopEat(ColliderComponent* other)
 {
 	if (mIsPreview || mIsDying)	return;
+	if (other->GetGameObject()->GetObjectType() == ObjectType::OBJECT_ZOMBIE) {
+		Zombie::StopEat(other);
+		return;
+	}
 	auto* gameObject = other->GetGameObject();
 	if (gameObject->GetObjectType() == ObjectType::OBJECT_PLANT)
 	{
@@ -87,6 +95,11 @@ void DoorZombie::ValidateEatingState(EntityManager& em)
 		else {
 			plant->mEaterCount++;
 		}
+	}
+	else if (mIsEating) {
+		// mEatPlantID 为空却在啃：啃僵尸进行时存的档（mEatZombieID 不持久化）→ 回走路，碰撞下一帧重建互啃
+		mIsEating = false;
+		PlayTrack(WalkTrackAfterEat(), 0.0f, 0.3f);
 	}
 }
 

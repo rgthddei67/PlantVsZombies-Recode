@@ -1,0 +1,26 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 1 },
+    { "op": "choose_cards", "cards": ["PLANT_PEASHOOTER"] },
+    { "op": "wait_state", "state": "GAME" },
+    { "op": "set_timescale", "value": 5.0 },
+
+    { "op": "spawn_zombie", "type": "ZOMBIE_NORMAL", "row": 0, "x": 500 },
+    { "op": "spawn_zombie", "type": "ZOMBIE_NORMAL", "row": 0, "x": 700 },
+    { "op": "wait_frames", "value": 5 },
+    { "op": "charm_zombie", "row": 0, "index": 0 },
+
+    { "op": "wait_seconds", "value": 10 },
+    { "op": "dump_state", "name": "state_meet.json" },
+    { "op": "wait_seconds", "value": 5 },
+    { "op": "dump_state", "name": "state_biting.json" },
+    { "op": "screenshot", "name": "charm_bite.png" },
+
+    { "op": "spawn_zombie", "type": "ZOMBIE_NORMAL", "row": 4, "x": 1000 },
+    { "op": "wait_frames", "value": 5 },
+    { "op": "charm_zombie", "row": 4, "index": 0 },
+    { "op": "wait_seconds", "value": 25 },
+    { "op": "dump_state", "name": "state_edge.json" },
+    { "op": "quit" }
+  ]
+}

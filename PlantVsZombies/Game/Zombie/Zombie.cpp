@@ -533,6 +533,7 @@ void Zombie::Die()
 		mIsEating = false;
 		mEatPlantID = NULL_PLANT_ID;
 	}
+	mEatZombieID = NULL_ZOMBIE_ID;
 
 	if (mBoard) {
 		mBoard->mZombieNumber--;
@@ -552,6 +553,25 @@ Vector Zombie::GetVisualPosition() const {
 
 void Zombie::EatTarget()
 {
+	if (mEatZombieID != NULL_ZOMBIE_ID && mHasHead)
+	{
+		Zombie* target = mBoard ? mBoard->mEntityManager.GetZombie(mEatZombieID) : nullptr;
+		if (!target || target->mIsDying) {
+			// 目标没了/垂死：正常由 onTriggerExit 收尾，这里兜底（含读档后目标失效）
+			mIsEating = false;
+			mEatZombieID = NULL_ZOMBIE_ID;
+			PlayTrack(WalkTrackAfterEat(), 0.0f, 0.2f);
+			return;
+		}
+		// 互啃走 TakeDamage 正常链（护盾→头盔→本体）：免伤/减伤词条对啃咬同样生效（语义自洽）；
+		// 不过 ScaleZombieDamage——那是僵尸对植物的词条
+		target->TakeDamage(mAttackDamage);
+		if (GameRandom::Range(0, 1) == 0)
+			AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_ZOMBIE_EAT, 0.17f);
+		else
+			AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_ZOMBIE_EAT2, 0.17f);
+		return;
+	}
 	if (mEatPlantID != NULL_PLANT_ID && mHasHead)
 	{
 		if (auto* plant = mBoard->mEntityManager.GetPlant(mEatPlantID)) {
@@ -580,11 +600,27 @@ void Zombie::StartEat(ColliderComponent* other)
 {
 	if (mIsPreview || mIsDying)	return;
 	auto* gameObject = other->GetGameObject();
+	if (gameObject->GetObjectType() == ObjectType::OBJECT_ZOMBIE)
+	{
+		auto* target = dynamic_cast<Zombie*>(gameObject);
+		if (!target) return;
+		if (target->IsMindControlled() == mIsMindControlled) return;   // 同阵营不啃（魅惑×魅惑掩码本就不成对，此为语义兜底）
+		if (target->mIsDying) return;
+		if (target->mRow != this->mRow) return;
+		if (mEatPlantID != NULL_PLANT_ID || mEatZombieID != NULL_ZOMBIE_ID) return;   // 一次只啃一个目标
+
+		if (!mIsEating) {
+			this->PlayTrack("anim_eat", 2.1f, 0.2f);
+		}
+		mIsEating = true;
+		mEatZombieID = target->mZombieID;
+		return;
+	}
 	if (gameObject->GetObjectType() == ObjectType::OBJECT_PLANT)
 	{
 		if (auto* plant = dynamic_cast<Plant*>(gameObject))
 		{
-			if (mEatPlantID != NULL_PLANT_ID || plant->mRow != this->mRow) return;	// 正在吃一个植物，那么不吃别的植物
+			if (mEatPlantID != NULL_PLANT_ID || mEatZombieID != NULL_ZOMBIE_ID || plant->mRow != this->mRow) return;	// 正在吃一个目标，那么不吃别的
 
 			if (!mIsEating) {
 				this->PlayTrack("anim_eat", 2.1f, 0.2f);
@@ -600,6 +636,18 @@ void Zombie::StopEat(ColliderComponent* other)
 {
 	if (mIsPreview || mIsDying)	return;
 	auto* gameObject = other->GetGameObject();
+	if (gameObject->GetObjectType() == ObjectType::OBJECT_ZOMBIE)
+	{
+		auto* target = dynamic_cast<Zombie*>(gameObject);
+		if (!target || target->mZombieID != mEatZombieID) return;
+
+		if (mIsEating) {
+			this->PlayTrack(WalkTrackAfterEat(), 0.0f, 0.2f);   // clip 清零，自动回落走速
+		}
+		mIsEating = false;
+		mEatZombieID = NULL_ZOMBIE_ID;
+		return;
+	}
 	if (gameObject->GetObjectType() == ObjectType::OBJECT_PLANT)
 	{
 		if (auto* plant = dynamic_cast<Plant*>(gameObject))
@@ -672,5 +720,10 @@ void Zombie::ValidateEatingState(EntityManager& em)
 		else {
 			plant->mEaterCount++;
 		}
+	}
+	else if (mIsEating) {
+		// mEatPlantID 为空却在啃：啃僵尸进行时存的档（mEatZombieID 不持久化）→ 回走路，碰撞下一帧重建互啃
+		mIsEating = false;
+		PlayTrack(WalkTrackAfterEat(), 0.0f, 0.3f);
 	}
 }

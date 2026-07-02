@@ -176,11 +176,23 @@ void PaperZombie::ValidateEatingState(EntityManager& em)
 			plant->mEaterCount++;
 		}
 	}
+	else if (mIsEating) {
+		// mEatPlantID 为空却在啃：啃僵尸进行时存的档（mEatZombieID 不持久化）→ 回走路，碰撞下一帧重建互啃
+		mIsEating = false;
+		if (mHasNewspaper)
+			PlayTrack("anim_walk", 0.0f, 0.2f);
+		else
+			PlayTrack("anim_walk_nopaper", kNoPaperWalkClip, 0.2f);
+	}
 }
 
 void PaperZombie::StartEat(ColliderComponent* other)
 {
 	if (mIsPreview || mIsDying)	return;
+	if (other->GetGameObject()->GetObjectType() == ObjectType::OBJECT_ZOMBIE) {
+		Zombie::StartEat(other);
+		return;
+	}
 	if (mIsGasp) return;   // 狂怒喘气期间不开吃，避免新触发的啃食动画盖掉 gasp
 	auto* gameObject = other->GetGameObject();
 	if (gameObject->GetObjectType() == ObjectType::OBJECT_PLANT)
@@ -205,6 +217,10 @@ void PaperZombie::StartEat(ColliderComponent* other)
 void PaperZombie::StopEat(ColliderComponent* other)
 {
 	if (mIsPreview || mIsDying)	return;
+	if (other->GetGameObject()->GetObjectType() == ObjectType::OBJECT_ZOMBIE) {
+		Zombie::StopEat(other);
+		return;
+	}
 	auto* gameObject = other->GetGameObject();
 	if (gameObject->GetObjectType() == ObjectType::OBJECT_PLANT)
 	{
