@@ -32,6 +32,9 @@
 
 #include "Logger.h"
 
+#include <chrono>
+#include <cstdio>
+
 GameAPP::GameAPP()
 	: mInputHandler(nullptr)
 	, mWindow(nullptr)
@@ -194,13 +197,30 @@ bool GameAPP::LoadAllResources()
 	ResourceManager& resourceManager = ResourceManager::GetInstance();
 	bool resourcesLoaded = true;
 
-	resourcesLoaded &= resourceManager.LoadAllGameImages();
-	resourcesLoaded &= resourceManager.LoadAllImagesFromPath();
-	resourcesLoaded &= resourceManager.LoadAllParticleTextures();
-	resourcesLoaded &= resourceManager.LoadAllFonts();
-	resourcesLoaded &= resourceManager.LoadAllSounds();
-	resourcesLoaded &= resourceManager.LoadAllMusic();
-	resourcesLoaded &= resourceManager.LoadAllReanimations();
+	using Clock = std::chrono::steady_clock;
+	auto timedPhase = [](auto&& fn, double& outSec) {
+		const auto t0 = Clock::now();
+		const bool ok = fn();
+		outSec = std::chrono::duration<double>(Clock::now() - t0).count();
+		return ok;
+	};
+
+	double tImg = 0, tReanimImg = 0, tParticle = 0, tFont = 0, tSound = 0, tMusic = 0, tReanim = 0;
+	resourcesLoaded &= timedPhase([&] { return resourceManager.LoadAllGameImages(); }, tImg);
+	resourcesLoaded &= timedPhase([&] { return resourceManager.LoadAllImagesFromPath(); }, tReanimImg);
+	resourcesLoaded &= timedPhase([&] { return resourceManager.LoadAllParticleTextures(); }, tParticle);
+	resourcesLoaded &= timedPhase([&] { return resourceManager.LoadAllFonts(); }, tFont);
+	resourcesLoaded &= timedPhase([&] { return resourceManager.LoadAllSounds(); }, tSound);
+	resourcesLoaded &= timedPhase([&] { return resourceManager.LoadAllMusic(); }, tMusic);
+	resourcesLoaded &= timedPhase([&] { return resourceManager.LoadAllReanimations(); }, tReanim);
+
+	// Release 编译期裁掉 INFO 以下，这行是采集玩家冷启动耗时的唯一通道，故用 WARN。
+	const double total = tImg + tReanimImg + tParticle + tFont + tSound + tMusic + tReanim;
+	char summary[256];
+	std::snprintf(summary, sizeof(summary),
+		"资源加载 %.1fs: 图片 %.1f / reanim图 %.1f / 粒子 %.1f / 字体 %.1f / 音效 %.1f / 音乐 %.1f / 动画 %.1f",
+		total, tImg, tReanimImg, tParticle, tFont, tSound, tMusic, tReanim);
+	LOG_WARN("Startup") << summary;
 
 	if (!resourcesLoaded)
 	{
