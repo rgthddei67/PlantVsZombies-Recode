@@ -44,6 +44,8 @@ public:
 - 子弹掩码不动（只搜 ZOMBIE 层）→ 自家子弹自动打不到魅惑僵尸。已知副作用（接受）：小推车也压不到魅惑僵尸。
 - 天然性质：魅惑×魅惑同为 CHARMED 层、掩码互不含 CHARMED → 不互啃；普通×普通照旧不扫。
 
+**实现修订**：`CanCollide` 是双向 OR（`CollisionSystem.h:58`，`(a.layerMask & b.collisionMask) || (b.layerMask & a.collisionMask)`），魅惑侧 `collisionMask` 含 ZOMBIE 单边即可与普通僵尸成对；普通僵尸 `collisionMask` **无需**再加 CHARMED 位，上文第 3 条按此简化实现。
+
 ### 3. 双向互啃
 
 - `Zombie` 新增 `int mEatZombieID = NULL_ZOMBIE_ID;`（与 `mEatPlantID` 并列；同一时刻只啃一个目标）。
@@ -59,6 +61,8 @@ public:
 
 - 反向走已有（`ZombieMove` 按 `mIsMindControlled` 取速度正负）。
 - 新增：`Zombie::Update` 中 `mIsMindControlled && GetPosition().x > 950`（出屏阈值，实现时按棋盘常量微调）→ `Die()`。无奖励；`mZombieNumber--` 与 `CheckWin` 走正常链（魅惑僵尸被移除算"消灭"，可正常触发关卡胜利）。
+
+**实现修订**：右边界移除复用既有出屏清理（`Zombie.cpp:258` 的 `x > SCENE_WIDTH+65 → Die()`，普通僵尸反向出左边界同款逻辑对魅惑僵尸正向出右边界天然生效），未新增专门代码。
 
 ### 5. 视觉：红光 + 翻身
 
@@ -90,6 +94,12 @@ public:
   3. 魅惑者一路向右 → 验出右边界被移除（zombie 数归零）；
   4. 撑杆 RUNNING 态 `charm_zombie` → 验无效（仍向左、无红光）；跳跃落地 WALKING 后再魅惑 → 生效；
   5. 种豌豆射手 → 验子弹穿过魅惑僵尸打后方普通僵尸、豌豆不选魅惑为靶。
+
+### 范围伤害
+
+- 大喷菇锥形伤害（`FumeShroom::FumeAttack`）**豁免**魅惑僵尸：原版 `DoRowAreaDamage(20, 2U)` 的 `damageRangeFlags=2U` 不含 bit7，不炸魅惑目标。
+- 樱桃炸弹（`Board::CreateBoom`）**保留**能炸魅惑：原版爆炸 `damageRangeFlags=0xFF` 含 bit7，Jack 爆炸/樱桃对魅惑僵尸一视同仁，本次不改。
+- 魅惑音效：因无资产暂缺，随将来 HypnoShroom 魅惑菇本体一并补齐。
 
 ## 备选方案（已否决）
 

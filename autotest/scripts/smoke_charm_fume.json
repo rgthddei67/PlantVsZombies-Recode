@@ -1,0 +1,16 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 10 },
+    { "op": "choose_cards", "cards": ["PLANT_FUMESHROOM"] },
+    { "op": "wait_state", "state": "GAME" },
+    { "op": "set_sun", "value": 1000 },
+    { "op": "set_timescale", "value": 3.0 },
+    { "op": "plant", "type": "PLANT_FUMESHROOM", "row": 0, "col": 1 },
+    { "op": "spawn_zombie", "type": "ZOMBIE_NORMAL", "row": 0, "x": 450 },
+    { "op": "wait_frames", "value": 5 },
+    { "op": "charm_zombie", "row": 0, "index": 0 },
+    { "op": "wait_seconds", "value": 6 },
+    { "op": "dump_state", "name": "state_fume.json" },
+    { "op": "quit" }
+  ]
+}
