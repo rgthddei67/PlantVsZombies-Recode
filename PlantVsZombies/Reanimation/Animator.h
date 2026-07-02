@@ -425,6 +425,13 @@ public:
 	 */
 	void SetLocalRotation(float rotation);
 
+	/**
+	 * 水平镜像（仅渲染）：绕动画局部 x = pivotX 的竖直轴翻转。
+	 * 注意 SetLocalScale/mLocalScaleX 是历史死字段（绘制不读），翻转必须走本接口。
+	 * 不影响碰撞箱/影子/_ground 轨道速度/帧事件（魅惑僵尸的移动方向由 ZombieMove 按 mIsMindControlled 处理）。
+	 */
+	void SetFlipX(bool flip, float pivotX = 0.0f);
+
 private:
 	// 子动画相对于父轨道的本地变换
 	float mLocalPosX = 0.0f;
@@ -432,6 +439,9 @@ private:
 	float mLocalScaleX = 1.0f;
 	float mLocalScaleY = 1.0f;
 	float mLocalRotation = 0.0f;   // 角度制
+
+	bool  mFlipX = false;
+	float mFlipPivotX = 0.0f;
 
 private:
 	/**

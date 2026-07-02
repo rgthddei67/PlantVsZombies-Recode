@@ -394,6 +394,14 @@ void Animator::DrawInternalInstanced(Graphics* g, float baseX, float baseY, floa
 		rec.tx = baseX + tx * Scale;
 		rec.ty = baseY + ty * Scale;
 
+		// 水平镜像：世界 x' = 2*(baseX + pivot*Scale) - x → x 行取负、平移分量绕 pivot 反射。
+		// glow/overlay 复制 rec，翻转天然一并生效。
+		if (mFlipX) {
+			rec.tA = -rec.tA;
+			rec.tC = -rec.tC;
+			rec.tx = baseX + (2.0f * mFlipPivotX - tx) * Scale;
+		}
+
 		// Atlas UV resolution: if image is part of an atlas page, use the page's bindless
 		// slot id and the per-sprite atlas UV bbox; otherwise use image itself.
 		const Texture* bindTex = image->atlasPage ? image->atlasPage : image;
@@ -507,6 +515,12 @@ void Animator::DrawInternal(Graphics* g, float baseX, float baseY, float Scale) 
 				0.0f, 0.0f, 1.0f, 0.0f,
 				baseX + tx * Scale, baseY + ty * Scale, 0.0f, 1.0f
 			);
+
+			if (mFlipX) {
+				mat[0][0] = -mat[0][0];
+				mat[1][0] = -mat[1][0];
+				mat[3][0] = baseX + (2.0f * mFlipPivotX - tx) * Scale;
+			}
 
 			float combinedAlpha = transform.a * mAlpha;
 			float baseAlpha = std::clamp(combinedAlpha, 0.0f, 1.0f);
@@ -683,6 +697,11 @@ void Animator::SetLocalScale(float sx, float sy) {
 
 void Animator::SetLocalRotation(float rotation) {
 	mLocalRotation = rotation;
+}
+
+void Animator::SetFlipX(bool flip, float pivotX) {
+	mFlipX = flip;
+	mFlipPivotX = pivotX;
 }
 
 bool Animator::AttachAnimator(const std::string& trackName, std::shared_ptr<Animator> child) {

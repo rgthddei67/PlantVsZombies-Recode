@@ -366,6 +366,7 @@ void Zombie::ApplyCharmEffects()
 	if (mAnimator) {
 		mAnimator->EnableOverlayEffect(true);
 		mAnimator->SetOverlayColor(255, 64, 64, 160);
+		mAnimator->SetFlipX(true, 48.0f);   // 支点≈身体中线（动画局部坐标），截图目验后微调
 	}
 }
 
