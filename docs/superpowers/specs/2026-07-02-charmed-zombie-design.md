@@ -97,7 +97,7 @@ public:
 
 ### 范围伤害
 
-- 大喷菇锥形伤害（`FumeShroom::FumeAttack`）**豁免**魅惑僵尸：原版 `DoRowAreaDamage(20, 2U)` 的 `damageRangeFlags=2U` 不含 bit7，不炸魅惑目标。
+- 大喷菇锥形伤害（`FumeShroom::FumeAttack`）**豁免**魅惑僵尸：原版 `DoRowAreaDamage(20, 2U)` 的 `damageRangeFlags=2U` 不含 bit7，不炸魅惑目标；触发检测 `HasZombieInRow` 同样跳过魅惑（全行只剩魅惑时不空放喷射动画，与 Chomper/PotatoMine 索敌跳过同一惯例）。
 - 樱桃炸弹（`Board::CreateBoom`）**保留**能炸魅惑：原版爆炸 `damageRangeFlags=0xFF` 含 bit7，Jack 爆炸/樱桃对魅惑僵尸一视同仁，本次不改。
 - 魅惑音效：因无资产暂缺，随将来 HypnoShroom 魅惑菇本体一并补齐。
 
