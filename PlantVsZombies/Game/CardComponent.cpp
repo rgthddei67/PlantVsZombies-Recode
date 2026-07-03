@@ -9,6 +9,7 @@
 #include "../DeltaTime.h"
 #include "./ChooseCardUI.h"
 #include "AudioSystem.h"
+#include "../GameApp.h"
 
 CardComponent::CardComponent(PlantType type, int cost, float cooldown)
 	: mPlantType(type), mSunCost(cost), mCooldownTime(cooldown)
@@ -87,6 +88,13 @@ void CardComponent::Update() {
 	if (mIsInChooseCardUI) return;
 	// 更新冷却
 	if (mIsCooldown) {
+		// 开发者作弊：无冷却——已在冷却中的卡立即清零（双条件守卫，无 -develop 恒不生效）
+		if (GameAPP::mDevelopMode && GameAPP::mDevNoCooldown) {
+			mIsCooldown = false;
+			mCooldownTimer = 0;
+			ForceStateUpdate();
+			return;
+		}
 		mCooldownTimer -= DeltaTime::GetDeltaTime();
 		if (mCooldownTimer <= 0) {
 			mIsCooldown = false;
@@ -136,6 +144,7 @@ void CardComponent::RestoreCooldown(float timer, float time) {
 }
 
 void CardComponent::StartCooldown() {
+	if (GameAPP::mDevelopMode && GameAPP::mDevNoCooldown) return;   // 开发者作弊：不进入冷却
 	if (IsReady() && !mIsCooldown) {
 		mIsCooldown = true;
 		mCooldownTimer = mCooldownTime;

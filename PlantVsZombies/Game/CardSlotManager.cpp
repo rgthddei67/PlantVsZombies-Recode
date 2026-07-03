@@ -10,6 +10,7 @@
 #include "AudioSystem.h"
 #include "./Plant/Plant.h"
 #include "ShadowComponent.h"
+#include "../GameApp.h"
 
 CardSlotManager::CardSlotManager(Board* board)
 	: mBoard(board)
@@ -155,10 +156,20 @@ void CardSlotManager::DeselectCard() {
 	DestroyCellPlantPreview();
 }
 
+bool CardSlotManager::CanAfford(int cost) const {
+	if (GameAPP::mDevelopMode && GameAPP::mDevFreePlant) return true;   // 开发者作弊：无视阳光
+	return mBoard ? mBoard->GetSun() >= cost : false;
+}
+
 bool CardSlotManager::SpendSun(int cost) {
 	if (!mBoard) {
 		LOG_ERROR("CardSlotManager") << "No Board reference, cannot spend sun";
 		return false;
+	}
+
+	if (GameAPP::mDevelopMode && GameAPP::mDevFreePlant) {
+		UpdateAllCardsState();
+		return true;                                   // 开发者作弊：视为支付成功但不扣阳光
 	}
 
 	if (CanAfford(cost)) {

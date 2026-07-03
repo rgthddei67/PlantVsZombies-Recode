@@ -44,7 +44,7 @@ public:
 	void SelectCard(GameObject* card);
 	void DeselectCard();
 
-	bool CanAfford(int cost) const { return mBoard ? mBoard->GetSun() >= cost : false; }
+	bool CanAfford(int cost) const;   // 开发者作弊（无视阳光）守卫在 .cpp，避免头文件引 GameApp.h
 	bool SpendSun(int cost);
 
 	// 清理植物预览
