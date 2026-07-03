@@ -446,7 +446,28 @@ void GameScene::Update() {
 			else                      { OpenDevPanel(); }
 		}
 
-		if (mBoard->mBoardState != BoardState::LOSE_GAME && !this->mOpenRestartMenu && (input.IsKeyPressed(SDLK_SPACE) || input.IsKeyPressed(SDLK_ESCAPE))) {
+		// 开发者：召唤放置模式——独占 ESC 与左键（须在暂停菜单键处理之前）
+		bool devConsumedEsc = false;
+		if (mDevSpawnMode && !DeltaTime::IsPaused()) {
+			if (input.IsKeyPressed(SDLK_ESCAPE)) {
+				mDevSpawnMode = false;
+				devConsumedEsc = true;
+			}
+			else if (input.IsMouseButtonPressed(SDL_BUTTON_LEFT)) {
+				const Vector mp = input.GetMouseWorldPosition();
+				int bestRow = 0;
+				float bestDist = 1e9f;
+				for (int r = 0; r < mBoard->mRows; ++r) {
+					const float d = std::abs(mp.y - mBoard->GetZombieSpawnY(r));
+					if (d < bestDist) { bestDist = d; bestRow = r; }
+				}
+				mBoard->CreateZombie(kDevZombieTable[mDevZombieIndex].first, bestRow, mp.x);
+				LOG_DEBUG("DevMode") << "召唤 " << kDevZombieTable[mDevZombieIndex].second
+					<< " row=" << bestRow << " x=" << mp.x;
+			}
+		}
+
+		if (mBoard->mBoardState != BoardState::LOSE_GAME && !this->mOpenRestartMenu && !devConsumedEsc && (input.IsKeyPressed(SDLK_SPACE) || input.IsKeyPressed(SDLK_ESCAPE))) {
 			if (this->mOpenMenu) {
 				mOpenMenu = false;
 				DeltaTime::SetPaused(false);
@@ -1247,7 +1268,30 @@ void GameScene::RenderDevPanel()
 		Vector(cx, cy), "", buttons, sliders, texts, "", 1.0f, "", boxSize);
 }
 
-void GameScene::BeginDevSpawnMode() {}   // Task 4 实现
+void GameScene::BeginDevSpawnMode()
+{
+	mDevPanelActive = false;
+	DeltaTime::SetPaused(false);
+	mDevPanelBox.reset();          // 盒子由按钮 autoClose 帧末自毁
+	mDevSpawnMode = true;
+	if (mCardSlotManager) mCardSlotManager->DeselectCard();   // 防手持卡与召唤点击叠加种植
+
+	// 顶部提示（一次注册，靠 mDevSpawnMode 守卫显隐）
+	if (!mDevHintRegistered) {
+		RegisterDrawCommand("DevSpawnHint",
+			[this](Graphics* g) {
+				if (!mDevSpawnMode) return;
+				const std::string tip = std::string(u8"召唤模式：")
+					+ kDevZombieTable[mDevZombieIndex].second + u8"（左键放置，ESC 退出，D 回面板）";
+				GameAPP::GetInstance().DrawText(tip,
+					g->LogicalToWorld(300, 30), { 255, 90, 90, 255 },
+					ResourceKeys::Fonts::FONT_FZCQ, 18);
+			},
+			LAYER_UI + 100000);
+		SortDrawCommands();
+		mDevHintRegistered = true;
+	}
+}
 void GameScene::DevJumpToLevel() {}      // Task 5 实现
 void GameScene::DevTriggerNextWave() {}  // Task 5 实现
 
