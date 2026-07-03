@@ -1,0 +1,21 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 1 },
+    { "op": "choose_cards", "cards": ["PLANT_CHERRYBOMB"] },
+    { "op": "wait_state", "state": "GAME" },
+    { "op": "set_sun", "value": 500 },
+    { "op": "spawn_zombie", "type": "ZOMBIE_NORMAL", "row": 2, "x": 600 },
+    { "op": "wait_seconds", "value": 1 },
+    { "op": "plant", "type": "PLANT_CHERRYBOMB", "row": 2, "col": 5 },
+    { "op": "wait_seconds", "value": 1.2 },
+    { "op": "screenshot", "name": "explosion_world" },
+    { "op": "key", "name": "escape" },
+    { "op": "wait_frames", "value": 5 },
+    { "op": "screenshot", "name": "explosion_under_menu" },
+    { "op": "dump_state", "name": "state_menu" },
+    { "op": "key", "name": "escape" },
+    { "op": "wait_seconds", "value": 2 },
+    { "op": "screenshot", "name": "after_explosion" },
+    { "op": "quit" }
+  ]
+}
