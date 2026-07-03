@@ -9,6 +9,8 @@
 // 白天睡眠由 Shroom::SetupPlant 统一处理，睡着时按普通植物被啃、不触发魅惑。
 class HypnoShroom : public Shroom {
 public:
+	bool mIsEaten = false;	// 是否已被僵尸咬过（魅惑触发点）
+
 	using Shroom::Shroom;
 };
 

@@ -1,6 +1,7 @@
 ﻿#include "Zombie.h"
 #include "ZombieCharred.h"
 #include "../Plant/Plant.h"
+#include "../Plant/HypnoShroom.h"
 #include "../Board.h"
 #include "../ShadowComponent.h"
 #include "../GameObjectManager.h"
@@ -594,10 +595,15 @@ void Zombie::EatTarget()
 			// 有 CanBeCharmed 守卫，对不可魅惑者自动 no-op（蘑菇照样被吃掉，与原版一致）。
 			if (plant->mPlantType == PlantType::PLANT_HYPNOSHROOM && !plant->GetSleepState())
 			{
-				plant->Die();
-				AudioSystem::PlaySound("SOUND_FLOOP", 0.25f);
-				StartMindControlled();
-				return;
+				if (auto hypnoShroom = dynamic_cast<HypnoShroom*>(plant))
+				{
+					if (hypnoShroom->mIsEaten) return;
+					hypnoShroom->mIsEaten = true;
+					hypnoShroom->Die();
+					AudioSystem::PlaySound("SOUND_FLOOP", 0.25f);
+					this->StartMindControlled();
+					return;
+				}
 			}
 			// 词条①：僵尸对植物伤害（生存专用；空词条倍率=1）。使用时缩放，不写回 mAttackDamage——
 			// 否则存档 attackDamage 被污染，读档叠加重复放大。mBoard 在此路径恒非空（上一行已解引用）。

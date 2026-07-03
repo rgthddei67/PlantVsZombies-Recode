@@ -120,7 +120,7 @@ public:
 
 	void LoadProtectedData(const nlohmann::json& j);
 
-	virtual void ValidateEatingState(EntityManager& em);
+	void ValidateEatingState(EntityManager& em);
 
 	// 将本体/头盔/护盾的当前血量与上限整体按倍率缩放（与具体模式无关，由调用方决定倍率来源）。
 	// 倍率<=0 或 ==1 时不作处理；缩放后保持 current==max（同源同舍入）。
