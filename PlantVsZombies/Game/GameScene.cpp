@@ -694,6 +694,16 @@ void GameScene::Update() {
 		return;	// 避免场景已经弹出，变量错乱，执行后续代码
 	}
 
+	if (mDevPendingLevel >= 0) {
+		const int lv = mDevPendingLevel;
+		mDevPendingLevel = -1;
+		GameAPP::GetInstance().GetGraphics().SetCameraPosition(0, 0);
+		auto& sm = SceneManager::GetInstance();
+		sm.SetGlobalData("EnterLevel", std::to_string(lv));
+		sm.SwitchTo("GameScene");   // 重建 GameScene，不检查存档解锁
+		return;
+	}
+
 	if (mReadyToBackMenu) {
 		GameAPP::GetInstance().GetGraphics().SetCameraPosition(0, 0);
 		SceneManager::GetInstance().SwitchTo("MainMenuScene");
@@ -1292,8 +1302,26 @@ void GameScene::BeginDevSpawnMode()
 		mDevHintRegistered = true;
 	}
 }
-void GameScene::DevJumpToLevel() {}      // Task 5 实现
-void GameScene::DevTriggerNextWave() {}  // Task 5 实现
+void GameScene::DevJumpToLevel()
+{
+	// 不能在按钮回调（本帧 Update 中段）直接 SwitchTo 销毁自身——
+	// 与 mReadyToBackMenu 同理，置 pending 由 Update 尾部统一执行
+	mDevPanelActive = false;
+	DeltaTime::SetPaused(false);
+	mDevPanelBox.reset();
+	mDevPendingLevel = mDevLevelSel;
+}
+
+void GameScene::DevTriggerNextWave()
+{
+	if (mBoard && mBoard->mBoardState == BoardState::GAME
+		&& mBoard->mCurrentWave < mBoard->mMaxWave) {
+		mBoard->mZombieCountDown = 0.0f;   // 出波倒计时清零，Board::Update 下帧即发下一波
+	}
+	mDevPanelActive = false;
+	DeltaTime::SetPaused(false);
+	mDevPanelBox.reset();
+}
 
 void GameScene::ShowPrompt(const std::string& textureKey,
 	float appearDur,
