@@ -159,6 +159,9 @@ protected:
 	void ResumeWalkAfterEat(float blendTime) { OnStopEating(); PlayWalkAnimation(blendTime); }
 	// 魅惑的派生状态（碰撞掩码+视觉）：StartMindControlled 与读档恢复共用
 	void ApplyCharmEffects();
+
+private:
+	void WinGame() const;	// 植物胜利
 };
 
 #endif

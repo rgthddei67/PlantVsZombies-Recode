@@ -438,8 +438,8 @@ void GameScene::Update() {
 
 		auto& input = GameAPP::GetInstance().GetInputHandler();
 
-		// 开发者模式：D 键呼出/关闭面板（放置模式时按 D 回面板）
-		if (GameAPP::mDevelopMode && input.IsKeyPressed(SDLK_d)
+		// 开发者模式：RSHIFT 键呼出/关闭面板（放置模式时按 SDLK_RSHIFT 回面板）
+		if (GameAPP::mDevelopMode && input.IsKeyPressed(SDLK_RSHIFT)
 			&& !mOpenMenu && !mSurvivalPerkSelectActive && !mPerkViewActive) {
 			if (mDevSpawnMode)        { mDevSpawnMode = false; OpenDevPanel(); }
 			else if (mDevPanelActive) { CloseDevPanel(); }

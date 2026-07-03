@@ -29,22 +29,22 @@ int main(int argc, char** argv)
 		{
 			GameAPP::mDebugMode = true;
 			GameAPP::mShowColliders = true;
-			LOG_DEBUG("Main") << "Debug模式已启用";
+			LOG_WARN("Main") << "Debug模式已启用. 可能导致游戏不稳定等问题!";
 		}
 		else if (arg == "-NoInstance" || arg == "-noinstance")
 		{
 			GameAPP::mDisableInstancePath = true;
-			LOG_DEBUG("Main") << "GPU instance path 已禁用 (A/B baseline)";
+			LOG_WARN("Main") << "GPU Instance Path 已禁用 (A/B baseline). 可能会消除部分兼容性问题.";
 		}
 		else if (arg == "-Develop" || arg == "-develop")
 		{
 			GameAPP::mDevelopMode = true;
-			LOG_DEBUG("Main") << "开发者模式已启用 (-develop)";
+			LOG_WARN("Main") << "开发者模式已启用 (-develop). 你可以在游戏中按RSHIFT打开操作见面.";
 		}
 		else if (arg == "-Profile" || arg == "-profile")
 		{
 			g_ProfileEnabled = true;
-			LOG_DEBUG("Main") << "性能分析输出已启用 (-Profile)";
+			LOG_WARN("Main") << "性能分析输出已启用 (-profile). 可能导致游戏不稳定等问题!";
 		}
 		else if ((arg == "-AutoTest" || arg == "-autotest") && i + 1 < argc)
 		{

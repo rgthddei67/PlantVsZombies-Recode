@@ -197,10 +197,28 @@ void Zombie::CheckWin() const
 {
 	if (mBoard && mBoard->mCurrentWave >= mBoard->mMaxWave && mBoard->mZombieNumber <= 0)
 	{
-		if (mBoard->mIsSurvival)
-			mBoard->OnSurvivalRoundClear();   // 生存模式：进入下一轮，不出奖杯
-		else
-			mBoard->CreateTrophy(GetPosition());
+		WinGame();
+	}
+}
+
+void Zombie::WinGame() const
+{
+	if (mBoard->mIsSurvival)
+	{
+		mBoard->OnSurvivalRoundClear();   // 生存模式：进入下一轮，不出奖杯
+	}	
+	else
+	{
+		Vector trophyPos = GetPosition();
+		if (trophyPos.x > SCENE_WIDTH - 10)
+		{
+			trophyPos.x = SCENE_WIDTH - 10;
+		}
+		else if (trophyPos.x < 20.0f)
+		{
+			trophyPos.x = 20.0f;
+		}
+		mBoard->CreateTrophy(trophyPos);
 	}
 }
 
@@ -402,6 +420,12 @@ void Zombie::StartMindControlled()
 	if (mCooldownTimer > 0.0f) {
 		mCooldownTimer = 0.0f;
 		if (mAnimator) mAnimator->SetExtraSpeedMultiplier(mExtraSpeed);
+	}
+
+	// 如果是最后一波的最后一个僵尸，魅惑后就不会再有僵尸了，直接死亡
+	if (mBoard && mBoard->mCurrentWave == mBoard->mMaxWave && mBoard->mZombieNumber == 1)
+	{
+		this->Die();
 	}
 
 	mIsMindControlled = true;
