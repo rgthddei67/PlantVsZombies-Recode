@@ -1,0 +1,11 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 1 },
+    { "op": "wait_state", "state": "GAME", "timeout": 20 },
+    { "op": "set_sun", "value": 500 },
+    { "op": "plant", "type": "PLANT_PEASHOOTER", "row": 2, "col": 0 },
+    { "op": "wait_seconds", "value": 1.5 },
+    { "op": "screenshot", "name": "mower_shadow" },
+    { "op": "quit" }
+  ]
+}

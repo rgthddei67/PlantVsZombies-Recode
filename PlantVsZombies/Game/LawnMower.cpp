@@ -20,6 +20,13 @@ Mower::Mower(Board* board, MowerType type, AnimationType animType, float x, floa
 	this->mRow = row;
 	this->mMowerType = type;
 
+	auto shadowcomponent = AddComponent<ShadowComponent>
+		(ResourceManager::GetInstance().GetTexture
+		(ResourceKeys::Textures::IMAGE_PLANTSHADOW));
+	shadowcomponent->SetDrawOrder(-80);
+	shadowcomponent->SetOffset(Vector(40, 50));
+	shadowcomponent->SetScale(Vector(1.0f, 1.0f));
+
 	auto collider = GetColliderComponent();
 	if (!collider) return;
 
