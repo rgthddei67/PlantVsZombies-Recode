@@ -36,6 +36,11 @@ int main(int argc, char** argv)
 			GameAPP::mDisableInstancePath = true;
 			LOG_DEBUG("Main") << "GPU instance path 已禁用 (A/B baseline)";
 		}
+		else if (arg == "-Develop" || arg == "-develop")
+		{
+			GameAPP::mDevelopMode = true;
+			LOG_DEBUG("Main") << "开发者模式已启用 (-develop)";
+		}
 		else if (arg == "-Profile" || arg == "-profile")
 		{
 			g_ProfileEnabled = true;
