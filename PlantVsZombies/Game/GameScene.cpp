@@ -29,6 +29,21 @@ namespace {
 	// 右锚点取 1020：第1轮文本宽约 252px，drawX≈768，与原左对齐位置基本重合，故第1轮观感不变。
 	constexpr float kLevelNameRightAnchor = 865.0f;
 
+#define DEVZ(n) { ZombieType::n, #n }
+	// 开发者面板循环切换表；显示枚举标识符（简陋版足够）。与 TestDriver kZombieNames 同集合。
+	const std::vector<std::pair<ZombieType, const char*>> kDevZombieTable = {
+		DEVZ(ZOMBIE_NORMAL), DEVZ(ZOMBIE_TRAFFIC_CONE), DEVZ(ZOMBIE_POLEVAULTER), DEVZ(ZOMBIE_BUCKET),
+		DEVZ(ZOMBIE_FASTBUCKET), DEVZ(ZOMBIE_NEWSPAPER), DEVZ(ZOMBIE_FASTPAPER), DEVZ(ZOMBIE_DOOR),
+		DEVZ(ZOMBIE_FOOTBALL), DEVZ(ZOMBIE_DANCER), DEVZ(ZOMBIE_BACKUP_DANCER), DEVZ(ZOMBIE_DUCKY_TUBE),
+		DEVZ(ZOMBIE_SNORKEL), DEVZ(ZOMBIE_ZAMBONI), DEVZ(ZOMBIE_BOBSLED), DEVZ(ZOMBIE_DOLPHIN_RIDER),
+		DEVZ(ZOMBIE_JACK_IN_THE_BOX), DEVZ(ZOMBIE_BALLOON), DEVZ(ZOMBIE_DIGGER), DEVZ(ZOMBIE_POGO),
+		DEVZ(ZOMBIE_YETI), DEVZ(ZOMBIE_BUNGEE), DEVZ(ZOMBIE_LADDER), DEVZ(ZOMBIE_CATAPULT),
+		DEVZ(ZOMBIE_GARGANTUAR), DEVZ(ZOMBIE_IMP), DEVZ(ZOMBIE_BOSS), DEVZ(ZOMBIE_PEA_HEAD),
+		DEVZ(ZOMBIE_WALLNUT_HEAD), DEVZ(ZOMBIE_JALAPENO_HEAD), DEVZ(ZOMBIE_GATLING_HEAD),
+		DEVZ(ZOMBIE_SQUASH_HEAD), DEVZ(ZOMBIE_TALLNUT_HEAD), DEVZ(ZOMBIE_REDEYE_GARGANTUAR),
+	};
+#undef DEVZ
+
 	void DrawLevelName(GameAPP& gameApp, const std::string& name, bool rightAligned) {
 		if (rightAligned) {
 			float drawX = kLevelNameRightAnchor;   // 兜底：取不到字体时退化为右端起点
@@ -422,6 +437,15 @@ void GameScene::Update() {
 		}
 
 		auto& input = GameAPP::GetInstance().GetInputHandler();
+
+		// 开发者模式：D 键呼出/关闭面板（放置模式时按 D 回面板）
+		if (GameAPP::mDevelopMode && input.IsKeyPressed(SDLK_d)
+			&& !mOpenMenu && !mSurvivalPerkSelectActive && !mPerkViewActive) {
+			if (mDevSpawnMode)        { mDevSpawnMode = false; OpenDevPanel(); }
+			else if (mDevPanelActive) { CloseDevPanel(); }
+			else                      { OpenDevPanel(); }
+		}
+
 		if (mBoard->mBoardState != BoardState::LOSE_GAME && !this->mOpenRestartMenu && (input.IsKeyPressed(SDLK_SPACE) || input.IsKeyPressed(SDLK_ESCAPE))) {
 			if (this->mOpenMenu) {
 				mOpenMenu = false;
@@ -1125,6 +1149,107 @@ void GameScene::GameOver()
 	mUIManager.CreateMessageBox(Vector(SCENE_WIDTH / 2, SCENE_HEIGHT / 2),
 		u8"僵尸吃掉了你的脑子！", buttons, sliders, texts, u8"游戏结束", 1.5f);
 }
+
+// ============ 开发者模式（-develop，D 键面板） ============
+
+void GameScene::OpenDevPanel()
+{
+	if (!GameAPP::mDevelopMode || !mBoard) return;
+	if (DeltaTime::IsPaused()) return;
+	// 多向守卫：暂停菜单 / 词条选择 / 词条查看 / 自身已开，均不叠开
+	if (mOpenMenu || mSurvivalPerkSelectActive || mPerkViewActive || mDevPanelActive) return;
+
+	mDevPanelActive = true;
+	DeltaTime::SetPaused(true);
+	RenderDevPanel();
+}
+
+void GameScene::CloseDevPanel()
+{
+	if (auto box = mDevPanelBox.lock())
+		GameObjectManager::GetInstance().DestroyGameObject(box);
+	mDevPanelBox.reset();
+	mDevPanelActive = false;
+	DeltaTime::SetPaused(false);
+}
+
+void GameScene::RenderDevPanel()
+{
+	// 状态变化即整体重建：旧盒由被点按钮 autoClose=true 帧末自毁，这里只管建新盒
+	const float cx = static_cast<float>(SCENE_WIDTH) / 2.0f;    // 550
+	const float cy = static_cast<float>(SCENE_HEIGHT) / 2.0f;   // 300
+	const Vector boxSize(520.0f, 400.0f);
+	const glm::vec4 titleColor{ 245, 214, 127, 255 };
+	const glm::vec4 textColor { 230, 230, 230, 255 };
+
+	std::vector<GameMessageBox::ButtonConfig> buttons;
+	std::vector<GameMessageBox::SliderConfig> sliders;
+	std::vector<GameMessageBox::TextConfig>   texts;
+
+	texts.push_back({ Vector(cx - 70.0f, 110.0f), 22.0f, u8"开发者面板", titleColor });
+
+	auto toggleText = [](const char* name, bool on) {
+		return std::string(name) + (on ? u8"：开" : u8"：关");
+	};
+
+	// 作弊开关（点击翻转后重建面板刷新文字）
+	buttons.push_back({ toggleText(u8"无冷却种植", GameAPP::mDevNoCooldown),
+		Vector(340.0f, 160.0f), Vector(200.0f, 36.0f), 16,
+		[this]() { GameAPP::mDevNoCooldown = !GameAPP::mDevNoCooldown; RenderDevPanel(); },
+		ResourceKeys::Textures::IMAGE_BUTTONSMALL, true });
+	buttons.push_back({ toggleText(u8"无视阳光", GameAPP::mDevFreePlant),
+		Vector(340.0f, 206.0f), Vector(200.0f, 36.0f), 16,
+		[this]() { GameAPP::mDevFreePlant = !GameAPP::mDevFreePlant; RenderDevPanel(); },
+		ResourceKeys::Textures::IMAGE_BUTTONSMALL, true });
+
+	// 僵尸类型选择行
+	const int zn = static_cast<int>(kDevZombieTable.size());
+	buttons.push_back({ "<", Vector(340.0f, 252.0f), Vector(40.0f, 36.0f), 16,
+		[this, zn]() { mDevZombieIndex = (mDevZombieIndex + zn - 1) % zn; RenderDevPanel(); },
+		ResourceKeys::Textures::IMAGE_BUTTONSMALL, true });
+	texts.push_back({ Vector(395.0f, 260.0f), 14.0f,
+		kDevZombieTable[mDevZombieIndex].second, textColor });
+	buttons.push_back({ ">", Vector(560.0f, 252.0f), Vector(40.0f, 36.0f), 16,
+		[this, zn]() { mDevZombieIndex = (mDevZombieIndex + 1) % zn; RenderDevPanel(); },
+		ResourceKeys::Textures::IMAGE_BUTTONSMALL, true });
+	buttons.push_back({ u8"召唤", Vector(620.0f, 252.0f), Vector(90.0f, 36.0f), 16,
+		[this]() { this->BeginDevSpawnMode(); },
+		ResourceKeys::Textures::IMAGE_BUTTONSMALL, true });
+
+	// 关卡选择行
+	buttons.push_back({ u8"-", Vector(340.0f, 302.0f), Vector(40.0f, 36.0f), 16,
+		[this]() { if (mDevLevelSel > 1) --mDevLevelSel; RenderDevPanel(); },
+		ResourceKeys::Textures::IMAGE_BUTTONSMALL, true });
+	texts.push_back({ Vector(420.0f, 310.0f), 16.0f,
+		std::string(u8"关卡 ") + std::to_string(mDevLevelSel), textColor });
+	buttons.push_back({ u8"+", Vector(560.0f, 302.0f), Vector(40.0f, 36.0f), 16,
+		[this]() { ++mDevLevelSel; RenderDevPanel(); },
+		ResourceKeys::Textures::IMAGE_BUTTONSMALL, true });
+	buttons.push_back({ u8"进入", Vector(620.0f, 302.0f), Vector(90.0f, 36.0f), 16,
+		[this]() { this->DevJumpToLevel(); },
+		ResourceKeys::Textures::IMAGE_BUTTONSMALL, true });
+	buttons.push_back({ u8"无尽1000", Vector(340.0f, 348.0f), Vector(110.0f, 32.0f), 14,
+		[this]() { mDevLevelSel = 1000; RenderDevPanel(); },
+		ResourceKeys::Textures::IMAGE_BUTTONSMALL, true });
+	buttons.push_back({ u8"夜无尽1001", Vector(460.0f, 348.0f), Vector(130.0f, 32.0f), 14,
+		[this]() { mDevLevelSel = 1001; RenderDevPanel(); },
+		ResourceKeys::Textures::IMAGE_BUTTONSMALL, true });
+
+	// 底部：下一波 / 关闭
+	buttons.push_back({ u8"下一波", Vector(360.0f, 420.0f), Vector(120.0f, 40.0f), 18,
+		[this]() { this->DevTriggerNextWave(); },
+		ResourceKeys::Textures::IMAGE_BUTTONBIG, true });
+	buttons.push_back({ u8"关闭", Vector(600.0f, 420.0f), Vector(120.0f, 40.0f), 18,
+		[this]() { mDevPanelActive = false; DeltaTime::SetPaused(false); mDevPanelBox.reset(); },
+		ResourceKeys::Textures::IMAGE_BUTTONBIG, true });
+
+	mDevPanelBox = mUIManager.CreateMessageBox(
+		Vector(cx, cy), "", buttons, sliders, texts, "", 1.0f, "", boxSize);
+}
+
+void GameScene::BeginDevSpawnMode() {}   // Task 4 实现
+void GameScene::DevJumpToLevel() {}      // Task 5 实现
+void GameScene::DevTriggerNextWave() {}  // Task 5 实现
 
 void GameScene::ShowPrompt(const std::string& textureKey,
 	float appearDur,

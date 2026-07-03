@@ -119,6 +119,15 @@ private:
 	std::weak_ptr<GameMessageBox> mPerkViewBox;             // 词条查看面板
 	bool                          mPerkViewActive = false;  // 面板打开中（守卫暂停叠态）
 	int                           mPerkViewPage   = 0;      // 词条查看面板当前页（0-based）
+
+	// ---- 开发者模式（-develop，D 键面板）----
+	std::weak_ptr<GameMessageBox> mDevPanelBox;
+	bool mDevPanelActive    = false;  // 面板打开中（守卫暂停叠态）
+	bool mDevSpawnMode      = false;  // 召唤放置模式（选好类型后点草坪生成）
+	bool mDevHintRegistered = false;  // 放置模式提示绘制命令已注册
+	int  mDevZombieIndex    = 0;      // kDevZombieTable 下标
+	int  mDevLevelSel       = 1;      // 面板选中的关卡号
+	int  mDevPendingLevel   = -1;     // >=0 时 Update 尾部执行跳关（回调内不可 SwitchTo 销毁自身）
 	CardSlotManager* mCardSlotManager = nullptr;  // 由 CardUI GameObject 持有 unique_ptr，本字段仅缓存指针
 	ChooseCardUI* mChooseCardUI = nullptr;        // 所有权在 GameObjectManager
 	GameProgress* mGameProgress = nullptr;        // 所有权在 GameObjectManager
@@ -169,6 +178,14 @@ private:
 	void OpenMenu();
 	void OpenRestartMenu();
 	void OpenQuitMenu();
+
+	// ---- 开发者模式 ----
+	void OpenDevPanel();
+	void CloseDevPanel();
+	void RenderDevPanel();        // 状态变化即整体重建（autoClose 帧末自毁旧盒）
+	void BeginDevSpawnMode();     // 进入召唤放置模式
+	void DevJumpToLevel();        // 置 pending，Update 尾部切关
+	void DevTriggerNextWave();    // 出波倒计时清零
 	void RegisterSurvivalGameUiOnce();
 };
 
