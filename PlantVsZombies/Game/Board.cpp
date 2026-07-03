@@ -347,41 +347,48 @@ void Board::UpdateLevel()
 				return;
 			}
 		}
-		mZombieCountDown = NEXTWAVE_COUNT_MAX;
-		mCurrentWave++;
-		if (mCurrentWave == 1)
-		{
-			AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_FIRSTWAVE, 0.7f);
-			if (mGameScene) {
-				auto gameProgress = mGameScene->GetGameProgress();
-				gameProgress->SetActive(true);
-				auto& res = ResourceManager::GetInstance();
-				gameProgress->SetupFlags(res.GetTexture(ResourceKeys::Textures::IMAGE_FLAGMETER_PART_STICK)
-					, res.GetTexture(ResourceKeys::Textures::IMAGE_FLAGMETER_PART_FLAG)
-				);
-			}
-		}
-		if (mCurrentWave == mMaxWave)
-		{
-			AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_FINALWAVE, 0.7f);
-			if (mGameScene)
-				mGameScene->ShowPrompt(
-					ResourceKeys::Textures::IMAGE_FINAL_WAVE,
-					0.3f,
-					2.0f,
-					0.4f);
-		}
-		if (mCurrentWave % 10 == 0)
-		{
-			AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_AFTERHUGEWAVE, 0.7f);
-		}
-
-		TrySummonZombie();
-		UpdateZombieHP();
-
-		mNextWaveSpawnZombieHP = static_cast<int64_t>
-			(GameRandom::Range(0.5f, 0.65f) * static_cast<double>(mCurrectWaveZombieHP));
+		SummonNextWave();
 	}
+}
+
+// 推进并生成下一波（波次+1、首波/最后一波/大波音效提示、生成僵尸、波血量记账）。
+// 由 Update 出波倒计时归零调用；开发者面板「下一波」也直接调用（暂停中同样可出波）。
+void Board::SummonNextWave()
+{
+	mZombieCountDown = NEXTWAVE_COUNT_MAX;
+	mCurrentWave++;
+	if (mCurrentWave == 1)
+	{
+		AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_FIRSTWAVE, 0.7f);
+		if (mGameScene) {
+			auto gameProgress = mGameScene->GetGameProgress();
+			gameProgress->SetActive(true);
+			auto& res = ResourceManager::GetInstance();
+			gameProgress->SetupFlags(res.GetTexture(ResourceKeys::Textures::IMAGE_FLAGMETER_PART_STICK)
+				, res.GetTexture(ResourceKeys::Textures::IMAGE_FLAGMETER_PART_FLAG)
+			);
+		}
+	}
+	if (mCurrentWave == mMaxWave)
+	{
+		AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_FINALWAVE, 0.7f);
+		if (mGameScene)
+			mGameScene->ShowPrompt(
+				ResourceKeys::Textures::IMAGE_FINAL_WAVE,
+				0.3f,
+				2.0f,
+				0.4f);
+	}
+	if (mCurrentWave % 10 == 0)
+	{
+		AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_AFTERHUGEWAVE, 0.7f);
+	}
+
+	TrySummonZombie();
+	UpdateZombieHP();
+
+	mNextWaveSpawnZombieHP = static_cast<int64_t>
+		(GameRandom::Range(0.5f, 0.65f) * static_cast<double>(mCurrectWaveZombieHP));
 }
 
 void Board::CreatePreviewZombies()

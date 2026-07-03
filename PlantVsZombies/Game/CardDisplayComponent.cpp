@@ -180,21 +180,22 @@ void CardDisplayComponent::UpdateCardState() {
 		return;
 	}
 
-	// 获取当前阳光数量
-	int currentSun = cardSlotManager->GetCurrentSun();
+	// 阳光是否足够走 CanAfford（内含开发者"无视阳光"守卫），不可裸比阳光数，
+	// 否则作弊开启时卡片不发亮
+	const bool affordable = cardSlotManager->CanAfford(needSun);
 
 	// 根据条件更新状态（只处理非冷却状态）
 	switch (cardState) {
 	case CardState::Ready:
 		// 就绪状态，检查阳光是否不足
-		if (currentSun < needSun) {
+		if (!affordable) {
 			TranToWaitingSun();
 		}
 		break;
 
 	case CardState::WaitingSun:
 		// 等待阳光状态，检查阳光是否足够
-		if (currentSun >= needSun) {
+		if (affordable) {
 			TranToReady();
 		}
 		break;

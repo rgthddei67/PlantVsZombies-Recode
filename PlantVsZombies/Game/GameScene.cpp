@@ -1269,7 +1269,7 @@ void GameScene::RenderDevPanel()
 	// 底部：下一波 / 关闭
 	buttons.push_back({ u8"下一波", Vector(360.0f, 420.0f), Vector(120.0f, 40.0f), 18,
 		[this]() { this->DevTriggerNextWave(); },
-		ResourceKeys::Textures::IMAGE_BUTTONBIG, true });
+		ResourceKeys::Textures::IMAGE_BUTTONBIG, false });   // 不自动关面板，可连点
 	buttons.push_back({ u8"关闭", Vector(600.0f, 420.0f), Vector(120.0f, 40.0f), 18,
 		[this]() { mDevPanelActive = false; DeltaTime::SetPaused(false); mDevPanelBox.reset(); },
 		ResourceKeys::Textures::IMAGE_BUTTONBIG, true });
@@ -1314,13 +1314,11 @@ void GameScene::DevJumpToLevel()
 
 void GameScene::DevTriggerNextWave()
 {
+	// 面板不关闭（按钮 autoClose=false）：直接走出波入口，暂停中也立即生成，连点连出多波
 	if (mBoard && mBoard->mBoardState == BoardState::GAME
 		&& mBoard->mCurrentWave < mBoard->mMaxWave) {
-		mBoard->mZombieCountDown = 0.0f;   // 出波倒计时清零，Board::Update 下帧即发下一波
+		mBoard->SummonNextWave();
 	}
-	mDevPanelActive = false;
-	DeltaTime::SetPaused(false);
-	mDevPanelBox.reset();
 }
 
 void GameScene::ShowPrompt(const std::string& textureKey,

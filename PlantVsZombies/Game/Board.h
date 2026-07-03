@@ -236,6 +236,9 @@ public:
 	// 计算当前波的总点数
 	inline int CalculateWaveZombiePoints() const;
 
+	// 推进并生成下一波（Update 倒计时归零与开发者面板「下一波」共用入口）
+	void SummonNextWave();
+
 	// 选好卡，开始游戏
 	void StartGame();
 
