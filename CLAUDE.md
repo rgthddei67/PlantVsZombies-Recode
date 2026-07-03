@@ -143,7 +143,10 @@ When you need to **add a new classic plant, zombie, or bullet (projectile)**, it
 1. Subclass `Zombie` in `Game/Zombie/`
 2. Add entry to `ZombieType` enum (`Game/Zombie/ZombieType.h`)
 3. Override virtual methods: `ZombieUpdate()`, `TakeDamage()`, `SetupZombie()`,`HelmDrop()` / `ShieldDrop()`(etc.) as needed
-4. **(Reference)** Check the C# implementation under `Zombie/` for attack intervals, health, special abilities, etc.
+4. **Register the name in BOTH string tables** (they are intentionally independent — update both):
+   - `kZombieNames` in `Game/AutoTest/TestDriver.cpp` (AutoTest `spawn_zombie` / dump names)
+   - `kDevZombieTable` in `Game/GameScene.cpp` (developer panel `-develop` type cycler)
+5. **(Reference)** Check the C# implementation under `Zombie/` for attack intervals, health, special abilities, etc.
 
 ### Spawning zombies: two distinct paths
 - **Gameplay (grid-bound):** `Board::CreateZombie(type, row, x, ...)` / `CreateZombieWithID(...)`. Pass an arbitrary pixel `x`, but **`y` is always derived from `row`** via `GetZombieSpawnY(row)` — there is intentionally no `y` parameter. Use this for real zombies, wave spawns, and savegame restore (saves persist only `row + x`).
@@ -154,6 +157,12 @@ When you need to **add a new classic plant, zombie, or bullet (projectile)**, it
 - Row/column position (`mRow`, `mColumn`) is the gameplay grid cell; pixel position is in `TransformComponent`
 - Chinese (UTF-8) strings are used throughout the codebase for UI 
 - **Header guards (every `.h`):** start each header with `#pragma once` (the existing convention also keeps the older `#pragma once` + `#ifndef _NAME_H` double form — either is accepted). Enforced automatically: `cmake --preset` configure installs a `.githooks/pre-commit` hook (`git config core.hooksPath .githooks`) that rejects any staged guard-less header, and the same configure step prints a WARNING listing any existing guard-less headers. The check is BOM-aware (matches the token anywhere in the first 512 bytes, not anchored to `^`, so a UTF-8 BOM prefix doesn't cause false positives). Rationale: since the `.sln` migration, VS's "Add New Item" template no longer auto-inserts the guard.
+
+## Skill / Workflow Usage (Superpowers)
+When a superpowers skill offers a default/recommended option (e.g. "Subagent-Driven (recommended)" in execution handoff, or any built-in default choice), **do not adopt the skill's default recommendation as-is**. Instead:
+1. Evaluate the options against the actual task at hand (task coupling, shared context, file overlap, size).
+2. Form your own recommendation with a one-line justification grounded in this specific task.
+3. Ask the master with that reasoned recommendation, rather than presenting the skill's generic default.
 
 ## Communication Style
 When responding to the user, always address them as **主人** (master) instead of using generic terms like "user" or "you". For example: "主人需要构建项目" rather than "你需要构建项目". This applies to all explanations, suggestions, and conversations within this repository context.
