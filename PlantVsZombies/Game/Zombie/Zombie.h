@@ -136,11 +136,18 @@ protected:
 	virtual void CheckShieldImage() {} 	// 检查是否应该更换二类防具图片
 
 	// 停止啃食后回落的走路轨道（基类随机双走路动画统一回 walk2；撑杆只有 anim_walk）
+	// TODO(Task5): 收口后删除，职责并入 PlayWalkAnimation。
 	virtual const char* WalkTrackAfterEat() const { return "anim_walk2"; }
 	// 啃食结束后回切走路：默认播 WalkTrackAfterEat() 且 clip 清零（回落 base 走速）。
 	// 抽成虚函数是因为个别僵尸（如纸僵尸）的回切轨道依赖运行时状态、且狂暴态还需带 clip 速度，
 	// 单凭 WalkTrackAfterEat() 的 const char* 表达不了——它们覆写本函数即可。
 	virtual void ResumeWalkAfterEat(float blendTime);
+
+	// 稳态走路的唯一权威：播哪条走路轨道 + clip 速度（确定性，勿随机）。Task5 收口后内联 anim_walk2。
+	virtual void PlayWalkAnimation(float blendTime = 0.0f);
+	// 啃食视觉残留对称钩子：OnStartEating 开吃触发、OnStopEating 停吃触发，默认空操作。
+	virtual void OnStartEating() {}
+	virtual void OnStopEating()  {}
 	// 魅惑的派生状态（碰撞掩码+视觉）：StartMindControlled 与读档恢复共用
 	void ApplyCharmEffects();
 };

@@ -370,10 +370,17 @@ void Zombie::ApplyCharmEffects()
 	}
 }
 
+void Zombie::PlayWalkAnimation(float blendTime)
+{
+	// Task1 临时桥接：暂经 WalkTrackAfterEat() 保持子类行为不变；Task5 删 WalkTrackAfterEat 后改硬编码 "anim_walk2"。
+	PlayTrack(WalkTrackAfterEat(), 0.0f, blendTime);
+}
+
 void Zombie::ResumeWalkAfterEat(float blendTime)
 {
-	// clip 清零 → EffectiveSpeed 回落到 base 走速（普通僵尸的 anim_walk2 无需 clip）。
-	PlayTrack(WalkTrackAfterEat(), 0.0f, blendTime);
+	// 模板：先收尾（藏啃食露出的部件），再回走路。子类改 OnStopEating / PlayWalkAnimation，勿覆写本函数。
+	OnStopEating();
+	PlayWalkAnimation(blendTime);
 }
 
 void Zombie::StartMindControlled()
@@ -623,6 +630,7 @@ void Zombie::EatTarget()
 void Zombie::StartEat(ColliderComponent* other)
 {
 	if (mIsPreview || mIsDying)	return;
+	const bool wasEating = mIsEating;   // 仅"本次真开吃"（false→true）触发 OnStartEating，避免每帧 onTriggerStay 重复触发
 	auto* gameObject = other->GetGameObject();
 	if (gameObject->GetObjectType() == ObjectType::OBJECT_ZOMBIE)
 	{
@@ -638,6 +646,7 @@ void Zombie::StartEat(ColliderComponent* other)
 		}
 		mIsEating = true;
 		mEatZombieID = target->mZombieID;
+		if (!wasEating && mIsEating) OnStartEating();
 		return;
 	}
 	if (gameObject->GetObjectType() == ObjectType::OBJECT_PLANT)
@@ -652,6 +661,7 @@ void Zombie::StartEat(ColliderComponent* other)
 			mIsEating = true;
 			mEatPlantID = plant->mPlantID;
 			plant->mEaterCount++;
+			if (!wasEating && mIsEating) OnStartEating();
 		}
 	}
 }
@@ -679,7 +689,7 @@ void Zombie::StopEat(ColliderComponent* other)
 			if (mEatPlantID != plant->mPlantID || plant->mRow != this->mRow) return;
 
 			if (mIsEating) {
-				this->PlayTrack("anim_walk2", 0.0f, 0.2f);   // clip 清零，自动回落走速
+				this->ResumeWalkAfterEat(0.2f);   // 收尾+回走路（经模板方法，子类钩子自动生效）
 				plant->mEaterCount--;
 			}
 			mIsEating = false;
@@ -739,7 +749,7 @@ void Zombie::ValidateEatingState(EntityManager& em)
 		if (!plant) {
 			mIsEating = false;
 			mEatPlantID = NULL_PLANT_ID;
-			PlayTrack("anim_walk2", 0.0f, 0.3f);   // clip 清零，自动回落走速
+			ResumeWalkAfterEat(0.3f);   // 收尾+回走路（经模板方法，子类钩子自动生效）
 		}
 		else {
 			plant->mEaterCount++;
