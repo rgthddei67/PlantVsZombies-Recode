@@ -1,0 +1,41 @@
+{ "commands": [
+  { "op": "goto_level", "level": 1 },
+  { "op": "choose_cards", "cards": ["PLANT_PEASHOOTER"] },
+  { "op": "wait_state", "state": "GAME" },
+  { "op": "wait_frames", "value": 40 },
+
+  { "op": "key", "name": "d" },
+  { "op": "wait_frames", "value": 10 },
+  { "op": "screenshot", "name": "panel" },
+  { "op": "click", "x": 440, "y": 178 },
+  { "op": "wait_frames", "value": 5 },
+  { "op": "click", "x": 440, "y": 224 },
+  { "op": "wait_frames", "value": 5 },
+  { "op": "dump_state", "name": "toggles_on" },
+
+  { "op": "click", "x": 580, "y": 270 },
+  { "op": "wait_frames", "value": 5 },
+  { "op": "click", "x": 665, "y": 270 },
+  { "op": "wait_frames", "value": 10 },
+  { "op": "click", "x": 600, "y": 340 },
+  { "op": "wait_frames", "value": 10 },
+  { "op": "dump_state", "name": "spawned" },
+  { "op": "key", "name": "escape" },
+  { "op": "wait_frames", "value": 5 },
+
+  { "op": "key", "name": "d" },
+  { "op": "wait_frames", "value": 10 },
+  { "op": "click", "x": 420, "y": 440 },
+  { "op": "wait_seconds", "value": 2 },
+  { "op": "dump_state", "name": "next_wave" },
+
+  { "op": "key", "name": "d" },
+  { "op": "wait_frames", "value": 10 },
+  { "op": "click", "x": 525, "y": 364 },
+  { "op": "wait_frames", "value": 5 },
+  { "op": "click", "x": 665, "y": 320 },
+  { "op": "wait_frames", "value": 60 },
+  { "op": "screenshot", "name": "jumped_1001" },
+  { "op": "dump_state", "name": "jumped" },
+  { "op": "quit" }
+] }

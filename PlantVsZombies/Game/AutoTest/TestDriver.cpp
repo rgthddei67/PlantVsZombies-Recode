@@ -361,6 +361,8 @@ bool TestDriver::ExecuteCurrent() {
 		out["sun"] = board->mSun;
 		out["wave"] = board->mCurrentWave;
 		out["zombieNumber"] = board->mZombieNumber;
+		out["devNoCooldown"] = GameAPP::mDevNoCooldown;
+		out["devFreePlant"] = GameAPP::mDevFreePlant;
 
 		out["survivalRound"] = board->mIsSurvival ? board->mSurvivalRound : -1;
 		out["spawnList"] = nlohmann::json::array();
