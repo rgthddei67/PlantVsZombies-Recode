@@ -1,0 +1,21 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 1 },
+    { "op": "choose_cards", "cards": ["PLANT_WALLNUT"] },
+    { "op": "wait_state", "state": "GAME" },
+    { "op": "set_sun", "value": 1000 },
+    { "op": "set_timescale", "value": 5.0 },
+
+    { "op": "plant", "type": "PLANT_WALLNUT", "row": 0, "col": 4 },
+    { "op": "spawn_zombie", "type": "ZOMBIE_FASTPAPER", "row": 0, "x": 820 },
+
+    { "op": "wait_seconds", "value": 15 },
+    { "op": "dump_state", "name": "state_before_charm.json" },
+
+    { "op": "charm_zombie", "row": 0, "index": 0 },
+    { "op": "wait_frames", "value": 10 },
+    { "op": "dump_state", "name": "state_after_charm.json" },
+    { "op": "screenshot", "name": "fastpaper_charmed.png" },
+    { "op": "quit" }
+  ]
+}

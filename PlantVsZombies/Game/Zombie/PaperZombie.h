@@ -13,12 +13,10 @@ protected:
 
 	void SetupZombie() override;
 
-	void ValidateEatingState(EntityManager& em) override;
 	void StartEat(ColliderComponent* other) override;
-	void StopEat(ColliderComponent* other) override;
-	// 纸僵尸没有 anim_walk2：被魅惑/啃僵尸结束等基类收尾路径回走路时，按是否持报纸选
-	// anim_walk / anim_walk_nopaper，狂暴态还要带 clip 速度（与自身 StopEat 一致）。
-	void ResumeWalkAfterEat(float blendTime) override;
+	// 纸僵尸没有 anim_walk2：稳态走路按是否持报纸选 anim_walk / anim_walk_nopaper，
+	// 狂暴态还要带 clip 速度。基类模板方法在所有回走路路径经此。
+	void PlayWalkAnimation(float blendTime) override;
 	void HeadDrop() override;
 	void ArmDrop() override;
 	void ShieldDrop() override;

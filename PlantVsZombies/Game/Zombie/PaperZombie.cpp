@@ -122,7 +122,7 @@ void PaperZombie::LoadExtraData(const nlohmann::json& j)
 			if (mIsEating)
 				PlayTrack("anim_eat_nopaper", kNoPaperEatClip, 0.0f);
 			else
-				PlayTrack("anim_walk_nopaper", kNoPaperWalkClip, 0.0f);
+				PlayWalkAnimation(0.0f);   // 无报纸态经统一走路权威（等价 anim_walk_nopaper+clip）
 		}
 	}
 }
@@ -160,32 +160,6 @@ void PaperZombie::ArmDrop()
 	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_ARM_HEAD_DROP, 0.25f);
 }
 
-void PaperZombie::ValidateEatingState(EntityManager& em)
-{
-	if (mIsEating && mEatPlantID != NULL_PLANT_ID) {
-		auto plant = em.GetPlant(mEatPlantID);
-		if (!plant) {
-			mIsEating = false;
-			mEatPlantID = NULL_PLANT_ID;
-			if (mHasNewspaper)
-				PlayTrack("anim_walk", 0.0f, 0.2f);
-			else
-				PlayTrack("anim_walk_nopaper", kNoPaperWalkClip, 0.2f);
-		}
-		else {
-			plant->mEaterCount++;
-		}
-	}
-	else if (mIsEating) {
-		// mEatPlantID 为空却在啃：啃僵尸进行时存的档（mEatZombieID 不持久化）→ 回走路，碰撞下一帧重建互啃
-		mIsEating = false;
-		if (mHasNewspaper)
-			PlayTrack("anim_walk", 0.0f, 0.2f);
-		else
-			PlayTrack("anim_walk_nopaper", kNoPaperWalkClip, 0.2f);
-	}
-}
-
 void PaperZombie::StartEat(ColliderComponent* other)
 {
 	if (mIsPreview || mIsDying)	return;
@@ -206,6 +180,7 @@ void PaperZombie::StartEat(ColliderComponent* other)
 					this->PlayTrack("anim_eat", 2.1f, 0.2f);
 				else
 					this->PlayTrack("anim_eat_nopaper", kNoPaperEatClip, 0.2f);
+				OnStartEating();   // 契约：开吃即触发（纸僵尸自身 no-op，保钩子普适；植物分支不调基类故须显式补）
 			}
 			mIsEating = true;
 			mEatPlantID = plant->mPlantID;
@@ -214,37 +189,9 @@ void PaperZombie::StartEat(ColliderComponent* other)
 	}
 }
 
-void PaperZombie::StopEat(ColliderComponent* other)
+void PaperZombie::PlayWalkAnimation(float blendTime)
 {
-	if (mIsPreview || mIsDying)	return;
-	if (other->GetGameObject()->GetObjectType() == ObjectType::OBJECT_ZOMBIE) {
-		Zombie::StopEat(other);
-		return;
-	}
-	auto* gameObject = other->GetGameObject();
-	if (gameObject->GetObjectType() == ObjectType::OBJECT_PLANT)
-	{
-		if (auto* plant = dynamic_cast<Plant*>(gameObject))
-		{
-			if (mEatPlantID != plant->mPlantID || plant->mRow != this->mRow) return;
-
-			if (mIsEating) {
-				if (mHasNewspaper)
-					this->PlayTrack("anim_walk", 0.0f, 0.2f);
-				else
-					this->PlayTrack("anim_walk_nopaper", kNoPaperWalkClip, 0.2f);
-				plant->mEaterCount--;
-			}
-			mIsEating = false;
-			mEatPlantID = NULL_PLANT_ID;
-		}
-	}
-}
-
-void PaperZombie::ResumeWalkAfterEat(float blendTime)
-{
-	// 基类默认会播 "anim_walk2"，而 PaperZombie.reanim 只有 anim_walk / anim_walk_nopaper。
-	// 与 StopEat / ValidateEatingState 的选轨道逻辑保持一致：狂暴态带 clip 速度，普通态 clip 清零。
+	// PaperZombie.reanim 无 anim_walk2；有报纸走 anim_walk，狂暴无报纸走 anim_walk_nopaper 且带 clip 速度。
 	if (mHasNewspaper)
 		PlayTrack("anim_walk", 0.0f, blendTime);
 	else
