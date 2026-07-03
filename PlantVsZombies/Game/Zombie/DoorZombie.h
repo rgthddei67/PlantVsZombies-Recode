@@ -14,9 +14,10 @@ protected:
 
 	void CheckShieldImage() override;
 
-	// 被魅惑/啃僵尸结束等基类收尾路径（StartMindControlled/EatTarget/base StopEat）会绕过
-	// DoorZombie::StopEat，故须在此把啃食时露出的常规手臂重新藏回门后，否则出现"多一条手臂"。
-	void ResumeWalkAfterEat(float blendTime) override;
+	// 啃食视觉：开吃露常规手臂、停吃藏回门后（门还在才动）。一对对称钩子由基类模板方法在
+	// 所有开吃/停吃路径统一触发，修复历史门臂 bug（c0cb799 多臂 / 52bd86d 啃僵尸无臂）。
+	void OnStartEating() override;
+	void OnStopEating()  override;
 
 	// 显示/隐藏全部手臂相关轨道（无 animator 时安全跳过）
 	void ShowArm(bool show) const;
@@ -27,10 +28,6 @@ protected:
 
 public:
 	using Zombie::Zombie;
-
-	void ValidateEatingState(EntityManager& em) override;
-	void StartEat(ColliderComponent* other) override;
-	void StopEat(ColliderComponent* other) override;
 
 	void HeadDrop() override;
 

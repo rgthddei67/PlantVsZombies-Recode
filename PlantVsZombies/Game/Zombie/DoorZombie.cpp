@@ -23,97 +23,16 @@ void DoorZombie::SetupZombie()
 		this->PlayTrack("anim_walk2");
 }
 
-void DoorZombie::StartEat(ColliderComponent* other)
+void DoorZombie::OnStartEating()
 {
-	if (mIsPreview || mIsDying)	return;
-	if (other->GetGameObject()->GetObjectType() == ObjectType::OBJECT_ZOMBIE) {
-		const bool wasEating = mIsEating;
-		Zombie::StartEat(other);
-		// 魅惑后啃敌方僵尸也要像啃植物一样露出常规手臂（否则啃食时无手臂）。只在本次真正开吃
-		// （base 置了 mIsEating）且门还在时露臂，与植物分支 / ResumeWalkAfterEat 收尾对称。
-		if (!wasEating && mIsEating && mShieldType != ShieldType::SHIELDTYPE_NONE)
-			this->ShowArm(true);
-		return;
-	}
-	auto* gameObject = other->GetGameObject();
-	if (gameObject->GetObjectType() == ObjectType::OBJECT_PLANT)
-	{
-		if (auto* plant = dynamic_cast<Plant*>(gameObject))
-		{
-			if (mEatPlantID != NULL_PLANT_ID || plant->mRow != this->mRow) return;	// 正在吃一个植物，那么不吃别的植物
-
-			if (!mIsEating) {
-				this->PlayTrack("anim_eat", 2.1f, 0.2f);
-				if (this->mShieldType != ShieldType::SHIELDTYPE_NONE) {
-					this->ShowArm(true);
-				}
-			}
-			mIsEating = true;
-			mEatPlantID = plant->mPlantID;
-			plant->mEaterCount++;
-		}
-	}
+	// 啃食露出常规手臂（门还在才露）。与 OnStopEating 对称——修复"啃敌方僵尸时无手臂"(52bd86d)。
+	if (mShieldType != ShieldType::SHIELDTYPE_NONE)
+		this->ShowArm(true);
 }
 
-void DoorZombie::StopEat(ColliderComponent* other)
+void DoorZombie::OnStopEating()
 {
-	if (mIsPreview || mIsDying)	return;
-	if (other->GetGameObject()->GetObjectType() == ObjectType::OBJECT_ZOMBIE) {
-		Zombie::StopEat(other);
-		return;
-	}
-	auto* gameObject = other->GetGameObject();
-	if (gameObject->GetObjectType() == ObjectType::OBJECT_PLANT)
-	{
-		if (auto* plant = dynamic_cast<Plant*>(gameObject))
-		{
-			if (mEatPlantID != plant->mPlantID || plant->mRow != this->mRow) return;
-
-			if (mIsEating) {
-				this->PlayTrack("anim_walk2", 0.0f, 0.2f);   // clip 清零，自动回落走速
-
-				if (this->mShieldType != ShieldType::SHIELDTYPE_NONE) {
-					this->ShowArm(false);
-				}
-				plant->mEaterCount--;
-			}
-			mIsEating = false;
-			mEatPlantID = NULL_PLANT_ID;
-		}
-	}
-}
-
-void DoorZombie::ValidateEatingState(EntityManager& em)
-{
-	if (mIsEating && mEatPlantID != NULL_PLANT_ID) {
-		auto plant = em.GetPlant(mEatPlantID);
-		if (!plant) {
-			mIsEating = false;
-			mEatPlantID = NULL_PLANT_ID;
-
-			if (this->mShieldType != ShieldType::SHIELDTYPE_NONE) {
-				this->ShowArm(false);
-			}
-			
-			PlayTrack("anim_walk2", 0.0f, 0.3f);   // clip 清零，自动回落走速
-		}
-		else {
-			plant->mEaterCount++;
-		}
-	}
-	else if (mIsEating) {
-		// mEatPlantID 为空却在啃：啃僵尸进行时存的档（mEatZombieID 不持久化）→ 回走路，碰撞下一帧重建互啃
-		mIsEating = false;
-		PlayTrack(WalkTrackAfterEat(), 0.0f, 0.3f);
-	}
-}
-
-void DoorZombie::ResumeWalkAfterEat(float blendTime)
-{
-	Zombie::ResumeWalkAfterEat(blendTime);   // 播 WalkTrackAfterEat()="anim_walk2"（铁门有该轨道）
-
-	// 啃食时 StartEat 露过常规手臂；回走路要藏回门后。门已掉（mShieldType==NONE）则手臂应保持
-	// 可见，故用与 StopEat / ValidateEatingState 相同的守卫。修复"铁门僵尸被魅惑后多一条手臂"。
+	// 收尾把常规手臂藏回门后（门还在才藏）。与 OnStartEating 对称——修复"被魅惑后多一条手臂"(c0cb799)。
 	if (mShieldType != ShieldType::SHIELDTYPE_NONE)
 		this->ShowArm(false);
 }
