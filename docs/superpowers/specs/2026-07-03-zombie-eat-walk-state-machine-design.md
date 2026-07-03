@@ -48,7 +48,7 @@
 1. 把「这只僵尸此刻怎么走路」收敛成**唯一权威**，所有走路站点都调它——从结构上根除「漏一处就卡死」。
 2. 把「啃食视觉残留」（当前仅铁门的手臂）收敛成**一对对称钩子**，消灭主人已修 3 次的门臂 bug 的结构成因。
 3. 删掉三个子类各自复制的整段覆写（约 6 个函数）。
-4. 行为逐条等价（唯一有意变更见 §6）。
+4. 行为逐条等价（有意变更：读档恢复走路混合时间统一，见 §6）。
 5. 每个新虚函数带「用途 + 示例」注释，让未来扩展一目了然。
 
 非目标（YAGNI）：不引入 `PlayEatAnimation`（啃食动画轨道选择）——当前只有 PaperZombie 需要，且它 `StartEat` 还有 gasp 守卫必须保留，收益不足；不改碰撞/存档格式；不动 C 组「初始起步随机」站点。
@@ -131,7 +131,11 @@ void ResumeWalkAfterEat(float blendTime) { OnStopEating(); PlayWalkAnimation(ble
 
 ## 6. 行为兼容性（逐条自证等价）
 
-- **撑杆读档「植物已死」**：旧 `PlayTrack("anim_walk", 0.0f, 0.2f)` → 新 `ResumeWalkAfterEat(0.3f)` → `PlayWalkAnimation` → `anim_walk`。**唯一有意变更：混合时间 0.2 → 0.3**（读档瞬间多 0.1s 过渡，已获主人认可）。
+- **读档恢复走路（`ValidateEatingState` 路径）的混合时间统一：0.2 → 0.3**（有意决定，code-review 补正）。
+  基类 `ValidateEatingState` 本就用 `0.3f`（普通/路障/铁桶/铁门读档恢复一直是 0.3f）；被删的 `PaperZombie::ValidateEatingState` 与 `Polevaulter::ValidateEatingState` 曾在**各自的两条子路径**（植物已死 + 啃僵尸存档）用 `0.2f`。收敛到基类后，这 4 条子路径的读档过场淡入从 0.2s 变 0.3s。
+  - 性质：**纯视觉、仅读档时、0.1s 交叉淡化差异，肉眼不可辨**，非功能行为。
+  - 为何接受而非保 0.2f：0.3f 让**所有僵尸读档恢复一致**；保 0.2f 需给 Paper/Polevaulter 重新加回 `ValidateEatingState` 覆写（抵消本次重构目的），或改基类为 0.2f（反而改动更多僵尸类型）。按最小惊讶取 0.3f。
+  - 此路径 AutoTest 测不到（读档被短路），故仅编译 + 等价推理，无回归脚本。
 - **铁门各啃食结束路径**：`OnStopEating`(ShowArm false, 门在守卫) + `PlayWalkAnimation`(walk2) 与旧代码逐语句对齐；`ShowArm` 与 `PlayTrack` 触及不同轨道，先后顺序无影响。
 - **铁门 `OnStartEating`**：复刻旧 `StartEat` 两分支的 `ShowArm(true)`（门在守卫、仅真开吃一次），啃植物 / 啃僵尸都覆盖。
 - **纸僵尸 / 快纸僵尸**：`PlayWalkAnimation` 体 == 旧 `ResumeWalkAfterEat` 体，walk / walk_nopaper+clip 选择不变；`FastPaperZombie` 继承之，两级链一致。植物分支新增的 `OnStartEating()` 在纸僵尸为 no-op（无残留），行为不变。

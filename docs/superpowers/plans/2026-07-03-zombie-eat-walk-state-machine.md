@@ -34,7 +34,7 @@
   `smoke_gameplay`、`smoke_charm_basic`、`smoke_charm_bite`、`smoke_charm_door_eating`、`smoke_charm_door_eat_zombie`、`smoke_charm_paper_eating`、`smoke_charm_polevaulter`、`repro_paper_death`、`repro_paper_cherry`、`smoke_door_fume_death`。
 - **验证边界**：`ValidateEatingState` 仅读档执行，AutoTest 短路存档 → 该路径靠 spec §6 等价证明 + 编译验证，不 AutoTest。
 - **提交策略**：`git commit` 是本会话的活（每个任务末尾提交），`git push` 不做（主人的活）。
-- 行为**唯一有意变更**：撑杆读档植物已死路径混合时间 0.2→0.3（已获批准）。其余全部逐条等价。
+- 行为**有意变更（读档恢复走路混合时间统一 0.2→0.3）**：基类 `ValidateEatingState` 本用 0.3f；Paper/Polevaulter 被删覆写的植物已死+啃僵尸共 4 条子路径原用 0.2f，收敛后统一 0.3f。纯视觉、仅读档、0.1s 淡入差异、肉眼不可辨，取「与其余僵尸一致」。code-review 补正（原文档仅记撑杆一条）。其余全部逐条等价。
 
 ---
 
