@@ -372,15 +372,8 @@ void Zombie::ApplyCharmEffects()
 
 void Zombie::PlayWalkAnimation(float blendTime)
 {
-	// Task1 临时桥接：暂经 WalkTrackAfterEat() 保持子类行为不变；Task5 删 WalkTrackAfterEat 后改硬编码 "anim_walk2"。
-	PlayTrack(WalkTrackAfterEat(), 0.0f, blendTime);
-}
-
-void Zombie::ResumeWalkAfterEat(float blendTime)
-{
-	// 模板：先收尾（藏啃食露出的部件），再回走路。子类改 OnStopEating / PlayWalkAnimation，勿覆写本函数。
-	OnStopEating();
-	PlayWalkAnimation(blendTime);
+	// 基类稳态走路：anim_walk2、clip 清零（回落 base 走速）。reanim 无 anim_walk2 的子类覆写本函数。
+	PlayTrack("anim_walk2", 0.0f, blendTime);
 }
 
 void Zombie::StartMindControlled()

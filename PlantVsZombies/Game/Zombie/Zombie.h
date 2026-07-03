@@ -135,19 +135,28 @@ protected:
 	virtual void CheckHelmImage() {}	// 检查是否应该更换一类防具图片
 	virtual void CheckShieldImage() {} 	// 检查是否应该更换二类防具图片
 
-	// 停止啃食后回落的走路轨道（基类随机双走路动画统一回 walk2；撑杆只有 anim_walk）
-	// TODO(Task5): 收口后删除，职责并入 PlayWalkAnimation。
-	virtual const char* WalkTrackAfterEat() const { return "anim_walk2"; }
-	// 啃食结束后回切走路：默认播 WalkTrackAfterEat() 且 clip 清零（回落 base 走速）。
-	// 抽成虚函数是因为个别僵尸（如纸僵尸）的回切轨道依赖运行时状态、且狂暴态还需带 clip 速度，
-	// 单凭 WalkTrackAfterEat() 的 const char* 表达不了——它们覆写本函数即可。
-	virtual void ResumeWalkAfterEat(float blendTime);
+	// ═══ 啃食 → 走路 状态机：扩展新僵尸只需覆写下面带 ★ 的 virtual，永不碰 ResumeWalkAfterEat ═══
 
-	// 稳态走路的唯一权威：播哪条走路轨道 + clip 速度（确定性，勿随机）。Task5 收口后内联 anim_walk2。
+	// ★关注点A｜"我此刻怎么走路"的唯一权威：播哪条稳态走路轨道 + clip 速度（须确定性，勿随机）。
+	//   啃完回走路 / 撑杆落地 / 读档恢复 全经它，所以"改走路动画"永远只改这一处。
+	//   何时覆写：reanim 没有 anim_walk2，或走路轨道随状态变。
+	//   例（读报僵尸·狂暴撕报后换轨道并带 clip 速度）：
+	//     void PlayWalkAnimation(float blend) override {
+	//         if (mHasNewspaper) PlayTrack("anim_walk", 0.0f, blend);
+	//         else               PlayTrack("anim_walk_nopaper", kNoPaperWalkClip, blend);
+	//     }
 	virtual void PlayWalkAnimation(float blendTime = 0.0f);
-	// 啃食视觉残留对称钩子：OnStartEating 开吃触发、OnStopEating 停吃触发，默认空操作。
+
+	// ★关注点B｜啃食视觉残留（一对对称钩子，默认空操作，绝大多数僵尸不用管）：
+	//   OnStartEating 一开吃触发、OnStopEating 一停吃触发。在 StartEat 里改过的视觉状态，在这对里对称还原。
+	//   例（铁门僵尸·啃食露常规手臂、收尾藏回门后，门还在才动）：
+	//     void OnStartEating() override { if (mShieldType != ShieldType::SHIELDTYPE_NONE) ShowArm(true);  }
+	//     void OnStopEating()  override { if (mShieldType != ShieldType::SHIELDTYPE_NONE) ShowArm(false); }
 	virtual void OnStartEating() {}
 	virtual void OnStopEating()  {}
+
+	// 模板方法（非虚，勿覆写）：啃完回走路 = 先收尾、再走路。执行顺序由基类锁死。
+	void ResumeWalkAfterEat(float blendTime) { OnStopEating(); PlayWalkAnimation(blendTime); }
 	// 魅惑的派生状态（碰撞掩码+视觉）：StartMindControlled 与读档恢复共用
 	void ApplyCharmEffects();
 };
