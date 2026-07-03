@@ -20,9 +20,19 @@ void ParticleSystem::UpdateAll() {
 	}
 }
 
-void ParticleSystem::DrawAll() {
+void ParticleSystem::DrawBelow(int order) {
 	for (auto& effect : effects) {
-		effect->Draw();
+		if (effect->GetRenderOrder() < order) {
+			effect->Draw();
+		}
+	}
+}
+
+void ParticleSystem::DrawFrom(int order) {
+	for (auto& effect : effects) {
+		if (effect->GetRenderOrder() >= order) {
+			effect->Draw();
+		}
 	}
 }
 
@@ -34,7 +44,7 @@ bool ParticleSystem::LoadXMLConfigs(const std::string& directory) {
 	return configManager.LoadXMLConfigs(directory);
 }
 
-void ParticleSystem::EmitEffect(const std::string& effectName, const Vector& position) {
+void ParticleSystem::EmitEffect(const std::string& effectName, const Vector& position, int renderOrder) {
 	const ParticleEffectConfig* config = configManager.GetEffectConfig(effectName);
 	if (!config) {
 		LOG_ERROR("Particle") << "找不到粒子特效配置: " << effectName;
@@ -43,6 +53,7 @@ void ParticleSystem::EmitEffect(const std::string& effectName, const Vector& pos
 
 	auto effect = std::make_unique<ParticleEffect>();
 	effect->InitializeFromConfig(*config, m_graphics, position);
+	effect->SetRenderOrder(renderOrder);
 	effects.push_back(std::move(effect));
 }
 

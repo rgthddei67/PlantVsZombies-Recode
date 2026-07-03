@@ -9,6 +9,7 @@
 #include <map>
 #include <set>
 #include <thread>
+#include <functional>
 #include "GameObject.h"
 #include "ThreadPool.h"
 #include "ObjectPool/BulletPool.h"
@@ -33,6 +34,10 @@ private:
 
 	std::unique_ptr<ThreadPool> mThreadPool;
 	bool mSortDirty = true;
+
+	// 主体（< LAYER_UI）绘制完、overlay 绘制前的注入点（主线程串行调用）。
+	// 用于世界层粒子等"压主体、不压 UI"的外部绘制，避免依赖具体子系统头文件。
+	std::function<void()> mPreOverlayHook;
 
 	std::vector<std::vector<DeferredEvent>> mDeferredEventBuffers;  // size = numWorkers，跨帧 capacity 复用
 
@@ -98,6 +103,9 @@ public:
 
 	// 绘制所有GameObject对象
 	void DrawAll(Graphics* g);
+
+	// 设置主体与 overlay 之间的绘制注入点（世界层粒子）
+	void SetPreOverlayHook(std::function<void()> hook) { mPreOverlayHook = std::move(hook); }
 
 	// 查找在gameObjects中的符合条件游戏对象 (根据tag标签)
 	std::vector<std::shared_ptr<GameObject>> FindGameObjectsWithTag(const std::string& tag);

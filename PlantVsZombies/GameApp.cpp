@@ -325,6 +325,13 @@ int GameAPP::Run()
 		g_particleSystem->LoadXMLConfigs("./resources/particles/config");
 	}
 
+	// 世界层粒子注入 GameObjectManager：主体之上、UI overlay 之下
+	GameObjectManager::GetInstance().SetPreOverlayHook([] {
+		if (g_particleSystem) {
+			g_particleSystem->DrawBelow(LAYER_UI);
+		}
+	});
+
 	auto& sceneManager = SceneManager::GetInstance();
 
 	sceneManager.RegisterScene<MainMenuScene>("MainMenuScene");

@@ -18,13 +18,16 @@ enum RenderLayer {
 	// 游戏子弹层
 	LAYER_GAME_BULLET = 30000,
 
+	// 战场特效层（子弹之上、UI 之下；粒子默认层）
+	LAYER_EFFECTS_WORLD = 35000,
+
 	// UI层
 	LAYER_UI = 40000,
 
 	// 游戏物品层
 	LAYER_GAME_COIN = 50000,
 
-	// 效果层
+	// 顶层特效层（全部 UI 之上）
 	LAYER_EFFECTS = 80000,
 
 	// 调试层

@@ -24,7 +24,8 @@ void Scene::BuildDrawCommands() {
 	RegisterDrawCommand("ParticleSystem",
 		[](Graphics* g) {
 			if (g_particleSystem) {
-				g_particleSystem->DrawAll();
+				// 顶层特效（>= LAYER_UI）：世界层粒子由 GameObjectManager 的 pre-overlay hook 绘制
+				g_particleSystem->DrawFrom(LAYER_UI);
 			}
 		},
 		LAYER_EFFECTS);
@@ -54,6 +55,7 @@ void Scene::RegisterDrawCommand(const std::string& name,
 void Scene::Draw(Graphics* g) {
 	if (!mDrawCommandsBuilt) {
 		BuildDrawCommands();
+		SortDrawCommands();
 		mDrawCommandsBuilt = true;
 	}
 	for (auto& cmd : mDrawCommands) {

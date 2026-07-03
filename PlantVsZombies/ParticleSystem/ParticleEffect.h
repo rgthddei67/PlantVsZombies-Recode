@@ -16,6 +16,7 @@ private:
 	float systemTimer;
 	float systemDuration;
 	bool active;
+	int renderOrder = 0;
 
 public:
 	ParticleEffect();
@@ -29,6 +30,9 @@ public:
 
 	bool IsActive() const { return active; }
 	bool ShouldDestroy() const;
+
+	void SetRenderOrder(int order) { renderOrder = order; }
+	int GetRenderOrder() const { return renderOrder; }
 
 	void SetPosition(const Vector& pos);
 	Vector GetPosition() const { return position; }
