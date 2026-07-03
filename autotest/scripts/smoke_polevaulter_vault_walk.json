@@ -1,0 +1,18 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 1 },
+    { "op": "choose_cards", "cards": ["PLANT_WALLNUT"] },
+    { "op": "wait_state", "state": "GAME" },
+    { "op": "set_sun", "value": 1000 },
+    { "op": "set_timescale", "value": 5.0 },
+
+    { "op": "plant", "type": "PLANT_WALLNUT", "row": 0, "col": 5 },
+    { "op": "spawn_zombie", "type": "ZOMBIE_POLEVAULTER", "row": 0, "x": 820 },
+    { "op": "dump_state", "name": "state_running.json" },
+
+    { "op": "wait_seconds", "value": 12 },
+    { "op": "dump_state", "name": "state_after_vault.json" },
+    { "op": "screenshot", "name": "polevaulter_after_vault.png" },
+    { "op": "quit" }
+  ]
+}

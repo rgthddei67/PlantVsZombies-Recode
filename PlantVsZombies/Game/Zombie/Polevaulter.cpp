@@ -121,7 +121,7 @@ void Polevaulter::EndJump()
 
 	// 切换为走路动画和普通速度：跳跃后永久降速，写入动画 base（而非临时 clip）
 	SetAnimationSpeed(GameRandom::Range(0.9f, 1.7f));
-	PlayTrack("anim_walk");
+	PlayWalkAnimation(0.0f);
 	mSpeed = GameRandom::Range(7.0f, 13.0f);
 
 	// 恢复碰撞体
@@ -152,24 +152,9 @@ void Polevaulter::ZombieMove(float scaledDelta, TransformComponent* transform)
 	Zombie::ZombieMove(scaledDelta, transform);
 }
 
-void Polevaulter::ValidateEatingState(EntityManager& em)
+void Polevaulter::PlayWalkAnimation(float blendTime)
 {
-	if (mIsEating && mEatPlantID != NULL_PLANT_ID) {
-		auto plant = em.GetPlant(mEatPlantID);
-		if (!plant) {
-			mIsEating = false;
-			mEatPlantID = NULL_PLANT_ID;
-			PlayTrack("anim_walk", 0.0f, 0.2f);   // clip 清零，自动回落走速
-		}
-		else {
-			plant->mEaterCount++;
-		}
-	}
-	else if (mIsEating) {
-		// mEatPlantID 为空却在啃：啃僵尸进行时存的档（mEatZombieID 不持久化）→ 回走路，碰撞下一帧重建互啃
-		mIsEating = false;
-		PlayTrack(WalkTrackAfterEat(), 0.0f, 0.2f);
-	}
+	PlayTrack("anim_walk", 0.0f, blendTime);
 }
 
 void Polevaulter::SaveExtraData(nlohmann::json& j) const
@@ -188,7 +173,7 @@ void Polevaulter::LoadExtraData(const nlohmann::json& j)
 
 	// 恢复对应状态的动画
 	if (mVaultState == VaultState::WALKING) {
-		PlayTrack("anim_walk");
+		PlayWalkAnimation(0.0f);
 	}
 	else if (mVaultState == VaultState::JUMPING) {
 		// 读档时如果正在跳跃，直接完成跳跃
@@ -205,28 +190,4 @@ void Polevaulter::StartEat(ColliderComponent* other)
 		return;
 	}
 	Zombie::StartEat(other);
-}
-
-void Polevaulter::StopEat(ColliderComponent* other)
-{
-	if (mIsPreview || mIsDying)	return;
-	if (other->GetGameObject()->GetObjectType() == ObjectType::OBJECT_ZOMBIE) {
-		Zombie::StopEat(other);
-		return;
-	}
-	auto* gameObject = other->GetGameObject();
-	if (gameObject->GetObjectType() == ObjectType::OBJECT_PLANT)
-	{
-		if (auto* plant = dynamic_cast<Plant*>(gameObject))
-		{
-			if (mEatPlantID != plant->mPlantID || plant->mRow != this->mRow) return;
-
-			if (mIsEating) {
-				this->PlayTrack("anim_walk", 0.0f, 0.2f);   // clip 清零，自动回落走速
-				plant->mEaterCount--;
-			}
-			mIsEating = false;
-			mEatPlantID = NULL_PLANT_ID;
-		}
-	}
 }

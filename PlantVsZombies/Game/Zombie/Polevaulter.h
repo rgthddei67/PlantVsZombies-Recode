@@ -17,14 +17,11 @@ public:
 	VaultState mVaultState = VaultState::RUNNING;
 	bool mHasVaulted = false;
 
-	void StopEat(ColliderComponent* other) override;
 	void StartEat(ColliderComponent* other) override;
 
 	void StartJump();
 	void EndJump();
 	void JumpMove(float distance);  // 跳跃期间手动移动，传入本次移动距离
-
-	void ValidateEatingState(EntityManager& em) override;
 
 	void HeadDrop() override;
 	void ArmDrop() override;
@@ -39,7 +36,8 @@ protected:
 	void SetupZombie() override;
 	void ZombieMove(float scaledDelta, TransformComponent* transform) override;
 
-	const char* WalkTrackAfterEat() const override { return "anim_walk"; }
+	// Polevaulter.reanim 无 anim_walk2，走路统一 anim_walk（落地/读档/回走路全经此）。
+	void PlayWalkAnimation(float blendTime) override;
 };
 
 #endif
