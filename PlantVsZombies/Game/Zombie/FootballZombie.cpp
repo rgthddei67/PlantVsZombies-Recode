@@ -7,11 +7,11 @@ void FootballZombie::SetupZombie()
 	this->mHelmMaxHealth = 1100;
 	this->mHelmType = HelmType::HELMTYPE_FOOTBALL;
 
-	this->mSpeed *= 1.7f;
-	mExtraSpeed = 2.0f;
-	mAnimator->SetExtraSpeedMultiplier(mExtraSpeed);
-
 	if (!mIsPreview) {
+		this->mSpeed *= 1.7f;
+		mExtraSpeed = 1.8f;
+		mAnimator->SetExtraSpeedMultiplier(mExtraSpeed);
+
 		PlayTrack("anim_walk");
 
 		mAnimator->AddFrameEvent(63, [this]() {
