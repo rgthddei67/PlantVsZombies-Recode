@@ -83,7 +83,7 @@ namespace {
 		{ "8", SDLK_8 }, { "9", SDLK_9 },
 		{ "space", SDLK_SPACE }, { "enter", SDLK_RETURN }, { "return", SDLK_RETURN },
 		{ "escape", SDLK_ESCAPE }, { "esc", SDLK_ESCAPE }, { "tab", SDLK_TAB },
-		{ "backspace", SDLK_BACKSPACE },
+		{ "backspace", SDLK_BACKSPACE }, { "rshift", SDLK_RSHIFT },
 		// 方向键：这里的 "left"/"right" 是键盘方向键，与 kMouseButtonNames 的 "left"/"right"
 		// 是各自独立的表（key 命令查此表，click 命令查鼠标表），不冲突。
 		{ "up", SDLK_UP }, { "down", SDLK_DOWN }, { "left", SDLK_LEFT }, { "right", SDLK_RIGHT },

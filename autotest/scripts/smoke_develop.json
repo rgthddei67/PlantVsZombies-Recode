@@ -4,7 +4,7 @@
   { "op": "wait_state", "state": "GAME" },
   { "op": "wait_frames", "value": 40 },
 
-  { "op": "key", "name": "d" },
+  { "op": "key", "name": "rshift" },
   { "op": "wait_frames", "value": 10 },
   { "op": "screenshot", "name": "panel" },
   { "op": "click", "x": 440, "y": 178 },
@@ -27,7 +27,7 @@
   { "op": "wait_frames", "value": 10 },
   { "op": "screenshot", "name": "card_glow_sun0" },
 
-  { "op": "key", "name": "d" },
+  { "op": "key", "name": "rshift" },
   { "op": "wait_frames", "value": 10 },
   { "op": "click", "x": 420, "y": 440 },
   { "op": "wait_frames", "value": 5 },

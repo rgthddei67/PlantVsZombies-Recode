@@ -765,36 +765,32 @@ void GameScene::BeginSurvivalPerkSelect()
 	const float boxTop   = cy - boxH / 2.0f;
 	const float boxRight = cx + boxW / 2.0f;
 
-	std::vector<GameMessageBox::ButtonConfig> buttons;
-	std::vector<GameMessageBox::SliderConfig> sliders;
-	std::vector<GameMessageBox::TextConfig>   texts;
+	// 纯色面板：尺寸由内容自动决定，面板矩形与文字坐标严格对齐，
+	// 避免墓碑纹理花边内缩导致文字溢出可视边框
+	GameMessageBox::Builder builder{ Vector(cx, cy) };
+	builder.Panel(boxW, boxH);
 
 	// 标题（顶部居中）
-	texts.push_back({ Vector(cx - titleW / 2.0f, boxTop + padY), static_cast<float>(titleFont), title, titleColor });
+	builder.Text(Vector(cx - titleW / 2.0f, boxTop + padY), static_cast<float>(titleFont), title, titleColor);
 
 	// 配对行：绿=植物增益、红=僵尸增难，右侧「选择」按钮
 	const float rowsTop = boxTop + padY + titleLineH + titleGap;
 	for (int i = 0; i < N; ++i) {
 		const float blockTop = rowsTop + i * (rowBlockH + rowGap);
-		texts.push_back({ Vector(boxLeft + padX, blockTop),         static_cast<float>(rowFont), rows[i].plant,  green });
-		texts.push_back({ Vector(boxLeft + padX, blockTop + lineH), static_cast<float>(rowFont), rows[i].zombie, red });
+		builder.Text(Vector(boxLeft + padX, blockTop),         static_cast<float>(rowFont), rows[i].plant,  green);
+		builder.Text(Vector(boxLeft + padX, blockTop + lineH), static_cast<float>(rowFont), rows[i].zombie, red);
 
 		const float btnY = blockTop + (rowBlockH - selectBtnSize.y) / 2.0f;
-		buttons.push_back({ u8"选择", Vector(boxRight - padX - selectBtnSize.x, btnY), selectBtnSize, 16,
-			[this, i]() { this->ApplyPerkSelection(i); },
-			ResourceKeys::Textures::IMAGE_BUTTONSMALL, true });
+		builder.Button(u8"选择", Vector(boxRight - padX - selectBtnSize.x, btnY), selectBtnSize, 16,
+			[this, i]() { this->ApplyPerkSelection(i); });
 	}
 
 	// 跳过按钮（底部居中）
-	buttons.push_back({ u8"跳过本轮", Vector(cx - skipBtnSize.x / 2.0f, boxTop + boxH - padY - skipBtnSize.y), skipBtnSize, 20,
-		[this]() { this->ApplyPerkSelection(-1); },
-		ResourceKeys::Textures::IMAGE_BUTTONBIG, true });
+	builder.Button(u8"跳过本轮", Vector(cx - skipBtnSize.x / 2.0f, boxTop + boxH - padY - skipBtnSize.y),
+		skipBtnSize, 20, [this]() { this->ApplyPerkSelection(-1); },
+		ResourceKeys::Textures::IMAGE_BUTTONBIG);
 
-	// 背景留空 + explicitSize → GameMessageBox 画纯色面板（尺寸由内容自动决定，
-	// 面板矩形与文字坐标严格对齐，避免墓碑纹理花边内缩导致文字溢出可视边框）
-	mPerkSelectBox = mUIManager.CreateMessageBox(
-		Vector(cx, cy), "", buttons, sliders, texts, "", 1.0f,
-		"", Vector(boxW, boxH));
+	mPerkSelectBox = builder.Show();
 }
 
 void GameScene::ApplyPerkSelection(int index)
@@ -914,19 +910,19 @@ void GameScene::RenderPerkViewPage()
 		}
 	}
 
-	std::vector<GameMessageBox::ButtonConfig> buttons;
-	std::vector<GameMessageBox::SliderConfig> sliders;
-	std::vector<GameMessageBox::TextConfig>   texts;
+	// 纯色面板，同选词条框，规避墓碑花边内缩导致文字溢出
+	GameMessageBox::Builder builder{ Vector(cx, cy) };
+	builder.Panel(boxW, boxH);
 
 	// 内容块在 availH 区域内垂直居中，词条少时不孤悬顶部
 	const float blockTop = boxTop + padY + (availH - contentH) / 2.0f;
 	const float titleW   = measureW(title, titleFont);
-	texts.push_back({ Vector(cx - titleW / 2.0f, blockTop), static_cast<float>(titleFont), title, titleColor });
+	builder.Text(Vector(cx - titleW / 2.0f, blockTop), static_cast<float>(titleFont), title, titleColor);
 
 	float y = blockTop + titleLineH + titleGap;
 	for (int i = 0; i < N; ++i) {
 		const Line& ln = perkLines[pageStart + i];
-		texts.push_back({ Vector(boxLeft + padX, y), static_cast<float>(rowFont), ln.text, ln.color });
+		builder.Text(Vector(boxLeft + padX, y), static_cast<float>(rowFont), ln.text, ln.color);
 		y += rowLineH + rowGap;
 	}
 
@@ -935,24 +931,16 @@ void GameScene::RenderPerkViewPage()
 	const Vector   navBtnSize(110.0f, 44.0f);
 	const float    btnY       = boxTop + boxH - padY - closeBtnSize.y;
 
-	buttons.push_back({ u8"关闭", Vector(cx - closeBtnSize.x / 2.0f, btnY),
-		closeBtnSize, 20, [this]() { this->ClosePerkView(); },
-		ResourceKeys::Textures::IMAGE_BUTTONBIG, true });
+	builder.Button(u8"关闭", Vector(cx - closeBtnSize.x / 2.0f, btnY), closeBtnSize, 20,
+		[this]() { this->ClosePerkView(); }, ResourceKeys::Textures::IMAGE_BUTTONBIG);
+	if (mPerkViewPage > 0)
+		builder.Button(u8"上一页", Vector(boxLeft + padX, btnY), navBtnSize, 18,
+			[this]() { --mPerkViewPage; RenderPerkViewPage(); });
+	if (mPerkViewPage < totalPages - 1)
+		builder.Button(u8"下一页", Vector(boxRight - padX - navBtnSize.x, btnY), navBtnSize, 18,
+			[this]() { ++mPerkViewPage; RenderPerkViewPage(); });
 
-	if (mPerkViewPage > 0) {
-		buttons.push_back({ u8"上一页", Vector(boxLeft + padX, btnY), navBtnSize, 18,
-			[this]() { --mPerkViewPage; RenderPerkViewPage(); },
-			ResourceKeys::Textures::IMAGE_BUTTONSMALL, true });
-	}
-	if (mPerkViewPage < totalPages - 1) {
-		buttons.push_back({ u8"下一页", Vector(boxRight - padX - navBtnSize.x, btnY), navBtnSize, 18,
-			[this]() { ++mPerkViewPage; RenderPerkViewPage(); },
-			ResourceKeys::Textures::IMAGE_BUTTONSMALL, true });
-	}
-
-	// 背景留空 + explicitSize → 纯色面板（同选词条框，规避墓碑花边内缩导致文字溢出）
-	mPerkViewBox = mUIManager.CreateMessageBox(
-		Vector(cx, cy), "", buttons, sliders, texts, "", 1.0f, "", Vector(boxW, boxH));
+	mPerkViewBox = builder.Show();
 }
 
 void GameScene::ClosePerkView()
@@ -1126,21 +1114,19 @@ void GameScene::GameOver()
 		shovel->Die();
 	}
 
-	std::vector<GameMessageBox::ButtonConfig> buttons;
-	std::vector<GameMessageBox::SliderConfig> sliders;
-	std::vector<GameMessageBox::TextConfig> texts;
-
-	buttons.push_back({ u8"返回菜单", Vector(380, 380), Vector(125 * 0.8f, 52 * 0.8f),14, [this]() {
-		this->mReadyToBackMenu = true;
-		DeltaTime::SetPaused(false);
-	}, ResourceKeys::Textures::IMAGE_BUTTONSMALL, true });
-	buttons.push_back({ u8"重新开始", Vector(560, 380), Vector(125 * 0.8f, 52 * 0.8f),14, [this]() {
-		this->mReadyToRestart = true;
-		DeltaTime::SetPaused(false);
-	}, ResourceKeys::Textures::IMAGE_BUTTONSMALL, true });
-
-	mUIManager.CreateMessageBox(Vector(SCENE_WIDTH / 2, SCENE_HEIGHT / 2),
-		u8"僵尸吃掉了你的脑子！", buttons, sliders, texts, u8"游戏结束", 1.5f);
+	GameMessageBox::Builder(Vector(SCENE_WIDTH / 2, SCENE_HEIGHT / 2))
+		.Title(u8"游戏结束")
+		.Message(u8"僵尸吃掉了你的脑子！")
+		.Scale(1.5f)
+		.Button(u8"返回菜单", Vector(380, 380), Vector(125 * 0.8f, 52 * 0.8f), 14, [this]() {
+			this->mReadyToBackMenu = true;
+			DeltaTime::SetPaused(false);
+		})
+		.Button(u8"重新开始", Vector(560, 380), Vector(125 * 0.8f, 52 * 0.8f), 14, [this]() {
+			this->mReadyToRestart = true;
+			DeltaTime::SetPaused(false);
+		})
+		.Show();
 }
 
 // ============ 开发者模式（-develop，D 键面板） ============
@@ -1175,69 +1161,56 @@ void GameScene::RenderDevPanel()
 	const glm::vec4 titleColor{ 245, 214, 127, 255 };
 	const glm::vec4 textColor { 230, 230, 230, 255 };
 
-	std::vector<GameMessageBox::ButtonConfig> buttons;
-	std::vector<GameMessageBox::SliderConfig> sliders;
-	std::vector<GameMessageBox::TextConfig>   texts;
-
-	texts.push_back({ Vector(cx - 70.0f, 110.0f), 22.0f, u8"开发者面板", titleColor });
+	GameMessageBox::Builder builder{ Vector(cx, cy) };
+	builder.Panel(boxSize.x, boxSize.y);
+	builder.Text(Vector(cx - 70.0f, 110.0f), 22.0f, u8"开发者面板", titleColor);
 
 	auto toggleText = [](const char* name, bool on) {
 		return std::string(name) + (on ? u8"：开" : u8"：关");
 	};
 
 	// 作弊开关（点击翻转后重建面板刷新文字）
-	buttons.push_back({ toggleText(u8"无冷却种植", GameAPP::mDevNoCooldown),
+	builder.Button(toggleText(u8"无冷却种植", GameAPP::mDevNoCooldown),
 		Vector(340.0f, 160.0f), Vector(200.0f, 36.0f), 16,
-		[this]() { GameAPP::mDevNoCooldown = !GameAPP::mDevNoCooldown; RenderDevPanel(); },
-		ResourceKeys::Textures::IMAGE_BUTTONSMALL, true });
-	buttons.push_back({ toggleText(u8"无视阳光", GameAPP::mDevFreePlant),
+		[this]() { GameAPP::mDevNoCooldown = !GameAPP::mDevNoCooldown; RenderDevPanel(); });
+	builder.Button(toggleText(u8"无视阳光", GameAPP::mDevFreePlant),
 		Vector(340.0f, 206.0f), Vector(200.0f, 36.0f), 16,
-		[this]() { GameAPP::mDevFreePlant = !GameAPP::mDevFreePlant; RenderDevPanel(); },
-		ResourceKeys::Textures::IMAGE_BUTTONSMALL, true });
+		[this]() { GameAPP::mDevFreePlant = !GameAPP::mDevFreePlant; RenderDevPanel(); });
 
 	// 僵尸类型选择行
 	const int zn = static_cast<int>(kDevZombieTable.size());
-	buttons.push_back({ "<", Vector(340.0f, 252.0f), Vector(40.0f, 36.0f), 16,
-		[this, zn]() { mDevZombieIndex = (mDevZombieIndex + zn - 1) % zn; RenderDevPanel(); },
-		ResourceKeys::Textures::IMAGE_BUTTONSMALL, true });
-	texts.push_back({ Vector(395.0f, 260.0f), 14.0f,
-		kDevZombieTable[mDevZombieIndex].second, textColor });
-	buttons.push_back({ ">", Vector(560.0f, 252.0f), Vector(40.0f, 36.0f), 16,
-		[this, zn]() { mDevZombieIndex = (mDevZombieIndex + 1) % zn; RenderDevPanel(); },
-		ResourceKeys::Textures::IMAGE_BUTTONSMALL, true });
-	buttons.push_back({ u8"召唤", Vector(620.0f, 252.0f), Vector(90.0f, 36.0f), 16,
-		[this]() { this->BeginDevSpawnMode(); },
-		ResourceKeys::Textures::IMAGE_BUTTONSMALL, true });
+	builder.Button("<", Vector(340.0f, 252.0f), Vector(40.0f, 36.0f), 16,
+		[this, zn]() { mDevZombieIndex = (mDevZombieIndex + zn - 1) % zn; RenderDevPanel(); });
+	builder.Text(Vector(395.0f, 260.0f), 14.0f,
+		kDevZombieTable[mDevZombieIndex].second, textColor);
+	builder.Button(">", Vector(560.0f, 252.0f), Vector(40.0f, 36.0f), 16,
+		[this, zn]() { mDevZombieIndex = (mDevZombieIndex + 1) % zn; RenderDevPanel(); });
+	builder.Button(u8"召唤", Vector(620.0f, 252.0f), Vector(90.0f, 36.0f), 16,
+		[this]() { this->BeginDevSpawnMode(); });
 
 	// 关卡选择行
-	buttons.push_back({ u8"-", Vector(340.0f, 302.0f), Vector(40.0f, 36.0f), 16,
-		[this]() { if (mDevLevelSel > 1) --mDevLevelSel; RenderDevPanel(); },
-		ResourceKeys::Textures::IMAGE_BUTTONSMALL, true });
-	texts.push_back({ Vector(420.0f, 310.0f), 16.0f,
-		std::string(u8"关卡 ") + std::to_string(mDevLevelSel), textColor });
-	buttons.push_back({ u8"+", Vector(560.0f, 302.0f), Vector(40.0f, 36.0f), 16,
-		[this]() { ++mDevLevelSel; RenderDevPanel(); },
-		ResourceKeys::Textures::IMAGE_BUTTONSMALL, true });
-	buttons.push_back({ u8"进入", Vector(620.0f, 302.0f), Vector(90.0f, 36.0f), 16,
-		[this]() { this->DevJumpToLevel(); },
-		ResourceKeys::Textures::IMAGE_BUTTONSMALL, true });
-	buttons.push_back({ u8"无尽1000", Vector(340.0f, 348.0f), Vector(110.0f, 32.0f), 14,
-		[this]() { mDevLevelSel = 1000; RenderDevPanel(); },
-		ResourceKeys::Textures::IMAGE_BUTTONSMALL, true });
-	buttons.push_back({ u8"夜无尽1001", Vector(460.0f, 348.0f), Vector(130.0f, 32.0f), 14,
-		[this]() { mDevLevelSel = 1001; RenderDevPanel(); },
-		ResourceKeys::Textures::IMAGE_BUTTONSMALL, true });
+	builder.Button(u8"-", Vector(340.0f, 302.0f), Vector(40.0f, 36.0f), 16,
+		[this]() { if (mDevLevelSel > 1) --mDevLevelSel; RenderDevPanel(); });
+	builder.Text(Vector(420.0f, 310.0f), 16.0f,
+		std::string(u8"关卡 ") + std::to_string(mDevLevelSel), textColor);
+	builder.Button(u8"+", Vector(560.0f, 302.0f), Vector(40.0f, 36.0f), 16,
+		[this]() { ++mDevLevelSel; RenderDevPanel(); });
+	builder.Button(u8"进入", Vector(620.0f, 302.0f), Vector(90.0f, 36.0f), 16,
+		[this]() { this->DevJumpToLevel(); });
+	builder.Button(u8"无尽1000", Vector(340.0f, 348.0f), Vector(110.0f, 32.0f), 14,
+		[this]() { mDevLevelSel = 1000; RenderDevPanel(); });
+	builder.Button(u8"夜无尽1001", Vector(460.0f, 348.0f), Vector(130.0f, 32.0f), 14,
+		[this]() { mDevLevelSel = 1001; RenderDevPanel(); });
 
 	// 底部：下一波 / 关闭
-	buttons.push_back({ u8"下一波", Vector(360.0f, 420.0f), Vector(120.0f, 40.0f), 18,
+	builder.Button(u8"下一波", Vector(360.0f, 420.0f), Vector(120.0f, 40.0f), 18,
 		[this]() { this->DevTriggerNextWave(); },
-		ResourceKeys::Textures::IMAGE_BUTTONBIG, false });   // 不自动关面板，可连点
-	buttons.push_back({ u8"关闭", Vector(600.0f, 420.0f), Vector(120.0f, 40.0f), 18,
+		ResourceKeys::Textures::IMAGE_BUTTONBIG, false);   // 不自动关面板，可连点
+	builder.Button(u8"关闭", Vector(600.0f, 420.0f), Vector(120.0f, 40.0f), 18,
 		[this]() { mDevPanelActive = false; DeltaTime::SetPaused(false); mDevPanelBox.reset(); },
-		ResourceKeys::Textures::IMAGE_BUTTONBIG, true });
+		ResourceKeys::Textures::IMAGE_BUTTONBIG);
 
-	mDevPanelBox = mUIManager.CreateMessageBox(
-		Vector(cx, cy), "", buttons, sliders, texts, "", 1.0f, "", boxSize);
+	mDevPanelBox = builder.Show();
 }
 
 void GameScene::BeginDevSpawnMode()
