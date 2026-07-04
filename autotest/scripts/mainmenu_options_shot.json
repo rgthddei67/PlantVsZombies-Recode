@@ -1,0 +1,9 @@
+{
+  "commands": [
+    { "op": "wait_frames", "value": 60 },
+    { "op": "click", "x": 740, "y": 501 },
+    { "op": "wait_frames", "value": 40 },
+    { "op": "screenshot", "name": "options_menu" },
+    { "op": "quit" }
+  ]
+}

@@ -54,20 +54,6 @@ public:
 		return sliderManager.CreateSlider(pos, size, minVal, maxVal, initialValue);
 	}
 
-	std::shared_ptr<GameMessageBox> CreateMessageBox(const Vector& pos,
-		const std::string& message,
-		const std::vector<GameMessageBox::ButtonConfig>& buttons,
-		const std::vector<GameMessageBox::SliderConfig>& sliders,
-		const std::vector<GameMessageBox::TextConfig>& texts,
-		const std::string& title = "",
-		float scale = 1.0f,
-		const std::string& backgroundImageKey = ResourceKeys::Textures::IMAGE_MESSAGEBOX,
-		const Vector& explicitSize = Vector(0.0f, 0.0f))
-	{
-		return GameObjectManager::GetInstance().CreateGameObjectImmediateAsShared<GameMessageBox>(
-			LAYER_UI, pos, message, buttons, sliders, texts, title, backgroundImageKey, scale, explicitSize);
-	}
-
 	void RemoveSlider(std::shared_ptr<Slider> slider)
 	{
 		sliderManager.RemoveSlider(slider);

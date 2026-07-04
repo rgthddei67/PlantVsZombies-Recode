@@ -134,87 +134,48 @@ void MainMenuScene::OpenMenu()
 	if (mAlmanacButton) mAlmanacButton->SetEnabled(false);
 	if (mOpitionButton) mOpitionButton->SetEnabled(false);
 	if (mGameButton) mGameButton->SetEnabled(false);
-	std::vector<GameMessageBox::ButtonConfig> buttons;
-	std::vector<GameMessageBox::SliderConfig> sliders;
-	std::vector<GameMessageBox::TextConfig> texts;
-
-	buttons.push_back({ u8"返回游戏", Vector(400, 430),Vector(360, 100), 40,[this]() {
-		if (mAlmanacButton) mAlmanacButton->SetEnabled(true);
-		if (mOpitionButton) mOpitionButton->SetEnabled(true);
-		if (mGameButton) mGameButton->SetEnabled(true);
-		mOpenMenu = false;
-		DeltaTime::SetPaused(false);
-	}, ResourceKeys::Textures::IMAGE_OPTIONS_BACKTOGAMEBUTTON0 ,true });
-
-	buttons.push_back({ u8"", Vector(510, 250),Vector(42, 39), 1,[]() {
-		auto& gameApp = GameAPP::GetInstance();
-		gameApp.ApplyVsync(!gameApp.mVsync);
-	}, ResourceKeys::Textures::IMAGE_OPTIONS_CHECKBOX0 ,false });
-
-	buttons.push_back({ u8"", Vector(510, 290),Vector(42, 39), 1,[]() {
-		auto& gameApp = GameAPP::GetInstance();
-		gameApp.SetFullscreen(!gameApp.IsFullscreen());
-	}, ResourceKeys::Textures::IMAGE_OPTIONS_CHECKBOX0 ,false });
-	buttons.push_back({ u8"", Vector(510, 330),Vector(42, 39), 1,[]() {
-		auto& gameApp = GameAPP::GetInstance();
-		gameApp.mShowPlantHP = !gameApp.mShowPlantHP;
-	}, ResourceKeys::Textures::IMAGE_OPTIONS_CHECKBOX0 ,false });
-	buttons.push_back({ u8"", Vector(510, 370),Vector(42, 39), 1,[]() {
-		auto& gameApp = GameAPP::GetInstance();
-		gameApp.mShowZombieHP = !gameApp.mShowZombieHP;
-	}, ResourceKeys::Textures::IMAGE_OPTIONS_CHECKBOX0 ,false });
-
-	sliders.push_back({ Vector(530, 175), Vector(135, 10),
-		0.0f ,1.0f, AudioSystem::GetMusicVolume(),[](float value) {
-		AudioSystem::SetMusicVolume(value);
-	} });
-
-	sliders.push_back({ Vector(530, 200), Vector(135, 10),
-		0.0f ,1.0f, AudioSystem::GetSoundVolume(),[](float value) {
-		AudioSystem::SetSoundVolume(value);
-	} });
-
-	sliders.push_back({ Vector(530, 225), Vector(135, 10),
-		1, 7, static_cast<float>(GameAPP::GetInstance().Difficulty), [](float value) {
-		GameAPP::GetInstance().Difficulty = static_cast<int>(value);
-	}, true });
-
-	texts.push_back
-	({ Vector(480, 165), 22, u8"音乐" , glm::vec4{ 107, 109, 144, 255} });
-	texts.push_back
-	({ Vector(480, 190), 22, u8"音效" , glm::vec4{ 107, 109, 144, 255} });
-	texts.push_back
-	({ Vector(480, 215), 22, u8"难度" , glm::vec4{ 107, 109, 144, 255} });
-	texts.push_back
-	({ Vector(555, 254), 18, u8"垂直同步" , glm::vec4{ 107, 109, 144, 255} });
-	texts.push_back
-	({ Vector(555, 294), 18, u8"全屏" , glm::vec4{ 107, 109, 144, 255} });
-	texts.push_back
-	({ Vector(555, 334), 18, u8"植物血量显示" , glm::vec4{ 107, 109, 144, 255} });
-	texts.push_back
-	({ Vector(555, 374), 18, u8"僵尸血量显示" , glm::vec4{ 107, 109, 144, 255} });
-
-	mMenu = mUIManager.CreateMessageBox(Vector(SCENE_WIDTH / 2 + 50, SCENE_HEIGHT / 2 - 80.0f),
-		"", buttons, sliders, texts, "", 1.0f, ResourceKeys::Textures::IMAGE_OPTIONS_MENUBACK);
-
-	// 按已知槽位初始化两个复选框的勾选态。
-	// m_buttons 与上面 buttons.push_back 的顺序一一对应：
-	//   [0] 返回游戏（非 checkbox）  [1] 垂直同步  [2] 全屏
-	// 注意：不能用"循环找第一个 checkbox 就 break"——那样只会初始化垂直同步，
-	// 全屏框永远停在默认未勾选，与实际全屏状态不符（原 bug）。两个框的初始值来自
-	// 不同的状态变量（mVsync / IsFullscreen），必须分别按槽位赋值。
-	auto& buttonChecks = mMenu.lock()->m_buttons;
 	auto& gameApp = GameAPP::GetInstance();
-	if (buttonChecks.size() > 1 && buttonChecks[1]) {
-		buttonChecks[1]->SetChecked(gameApp.mVsync);
-	}
-	if (buttonChecks.size() > 2 && buttonChecks[2]) {
-		buttonChecks[2]->SetChecked(gameApp.IsFullscreen());
-	}
-	if (buttonChecks.size() > 3 && buttonChecks[3]) {
-		buttonChecks[3]->SetChecked(gameApp.mShowPlantHP);
-	}
-	if (buttonChecks.size() > 4 && buttonChecks[4]) {
-		buttonChecks[4]->SetChecked(gameApp.mShowZombieHP);
-	}
+	const glm::vec4 labelColor{ 107, 109, 144, 255 };
+	// 四个复选框初始态来自各自不同的状态变量（mVsync / IsFullscreen / mShowPlantHP /
+	// mShowZombieHP），Builder 写法按项绑定 initChecked，原"按槽位赋值错位"bug 类别不复存在
+	mMenu = GameMessageBox::Builder(Vector(SCENE_WIDTH / 2 + 50, SCENE_HEIGHT / 2 - 80.0f))
+		.Background(ResourceKeys::Textures::IMAGE_OPTIONS_MENUBACK)
+		.Button(u8"返回游戏", Vector(400, 430), Vector(360, 100), 40, [this]() {
+			if (mAlmanacButton) mAlmanacButton->SetEnabled(true);
+			if (mOpitionButton) mOpitionButton->SetEnabled(true);
+			if (mGameButton) mGameButton->SetEnabled(true);
+			mOpenMenu = false;
+			DeltaTime::SetPaused(false);
+		}, ResourceKeys::Textures::IMAGE_OPTIONS_BACKTOGAMEBUTTON0)
+		.Checkbox(Vector(510, 250), Vector(42, 39), []() {
+			auto& app = GameAPP::GetInstance();
+			app.ApplyVsync(!app.mVsync);
+		}, gameApp.mVsync)
+		.Checkbox(Vector(510, 290), Vector(42, 39), []() {
+			auto& app = GameAPP::GetInstance();
+			app.SetFullscreen(!app.IsFullscreen());
+		}, gameApp.IsFullscreen())
+		.Checkbox(Vector(510, 330), Vector(42, 39), []() {
+			auto& app = GameAPP::GetInstance();
+			app.mShowPlantHP = !app.mShowPlantHP;
+		}, gameApp.mShowPlantHP)
+		.Checkbox(Vector(510, 370), Vector(42, 39), []() {
+			auto& app = GameAPP::GetInstance();
+			app.mShowZombieHP = !app.mShowZombieHP;
+		}, gameApp.mShowZombieHP)
+		.Slider(Vector(530, 175), Vector(135, 10), 0.0f, 1.0f, AudioSystem::GetMusicVolume(),
+			[](float v) { AudioSystem::SetMusicVolume(v); })
+		.Slider(Vector(530, 200), Vector(135, 10), 0.0f, 1.0f, AudioSystem::GetSoundVolume(),
+			[](float v) { AudioSystem::SetSoundVolume(v); })
+		.Slider(Vector(530, 225), Vector(135, 10), 1, 7,
+			static_cast<float>(GameAPP::GetInstance().Difficulty),
+			[](float v) { GameAPP::GetInstance().Difficulty = static_cast<int>(v); }, true)
+		.Text(Vector(480, 165), 22, u8"音乐", labelColor)
+		.Text(Vector(480, 190), 22, u8"音效", labelColor)
+		.Text(Vector(480, 215), 22, u8"难度", labelColor)
+		.Text(Vector(555, 254), 18, u8"垂直同步", labelColor)
+		.Text(Vector(555, 294), 18, u8"全屏", labelColor)
+		.Text(Vector(555, 334), 18, u8"植物血量显示", labelColor)
+		.Text(Vector(555, 374), 18, u8"僵尸血量显示", labelColor)
+		.Show();
 }

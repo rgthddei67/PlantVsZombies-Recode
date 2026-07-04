@@ -14,9 +14,6 @@
 
 class GameMessageBox : public GameObject {
 public:
-	friend class MainMenuScene;
-	friend class GameScene;
-
 	class Builder;
 
 	struct ButtonConfig {
