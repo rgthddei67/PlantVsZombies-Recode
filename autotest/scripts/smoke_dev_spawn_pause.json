@@ -1,0 +1,28 @@
+{ "commands": [
+  { "op": "goto_level", "level": 1 },
+  { "op": "choose_cards", "cards": ["PLANT_PEASHOOTER"] },
+  { "op": "wait_state", "state": "GAME" },
+  { "op": "wait_frames", "value": 40 },
+  { "op": "screenshot", "name": "badge_on" },
+
+  { "op": "key", "name": "rshift" },
+  { "op": "wait_frames", "value": 10 },
+  { "op": "screenshot", "name": "panel" },
+  { "op": "click", "x": 680, "y": 178 },
+  { "op": "wait_frames", "value": 5 },
+  { "op": "dump_state", "name": "pause_on" },
+  { "op": "assert_state", "path": "devSpawnPaused", "equals": true },
+  { "op": "screenshot", "name": "panel_paused" },
+
+  { "op": "click", "x": 660, "y": 440 },
+  { "op": "wait_frames", "value": 10 },
+  { "op": "screenshot", "name": "badge_paused" },
+
+  { "op": "set_timescale", "value": 10 },
+  { "op": "wait_seconds", "value": 90 },
+  { "op": "set_timescale", "value": 1 },
+  { "op": "dump_state", "name": "after_wait" },
+  { "op": "assert_state", "path": "wave", "equals": 0 },
+  { "op": "assert_state", "path": "zombieNumber", "equals": 0 },
+  { "op": "quit" }
+] }

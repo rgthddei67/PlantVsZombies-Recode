@@ -502,6 +502,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["zombieNumber"] = board->mZombieNumber;
 	out["devNoCooldown"] = GameAPP::mDevNoCooldown;
 	out["devFreePlant"] = GameAPP::mDevFreePlant;
+	out["devSpawnPaused"] = GameAPP::mDevSpawnPaused;
 
 	out["survivalRound"] = board->mIsSurvival ? board->mSurvivalRound : -1;
 	out["spawnList"] = nlohmann::json::array();

@@ -90,6 +90,21 @@ void GameScene::BuildDrawCommands()
 			mStartX, mBackgroundY, 1.0f, 1.0f, LAYER_BACKGROUND, false);
 	}
 
+	// 开发者模式常驻角标（左上角小字；暂停刷怪时附加状态）
+	if (GameAPP::mDevelopMode) {
+		RegisterDrawCommand("DevModeBadge",
+			[](Graphics* g) {
+				std::string badge = u8"开发者模式";
+				if (GameAPP::mDevSpawnPaused) badge += u8"（刷怪已暂停）";
+				auto& gameApp = GameAPP::GetInstance();
+				gameApp.DrawText(badge, Vector(4, 4), { 0,0,0,255 },
+					ResourceKeys::Fonts::FONT_FZCQ, 14);
+				gameApp.DrawText(badge, Vector(5, 5), { 255, 90, 90, 255 },
+					ResourceKeys::Fonts::FONT_FZCQ, 14);
+			},
+			LAYER_UI + 100000);
+	}
+
 	if (mBoard) {
 		RegisterDrawCommand("Prompt",
 			[this](Graphics* g) {
@@ -1176,6 +1191,9 @@ void GameScene::RenderDevPanel()
 	builder.Button(toggleText(u8"无视阳光", GameAPP::mDevFreePlant),
 		Vector(340.0f, 206.0f), Vector(200.0f, 36.0f), 16,
 		[this]() { GameAPP::mDevFreePlant = !GameAPP::mDevFreePlant; RenderDevPanel(); });
+	builder.Button(toggleText(u8"暂停刷怪", GameAPP::mDevSpawnPaused),
+		Vector(580.0f, 160.0f), Vector(200.0f, 36.0f), 16,
+		[this]() { GameAPP::mDevSpawnPaused = !GameAPP::mDevSpawnPaused; RenderDevPanel(); });
 
 	// 僵尸类型选择行
 	const int zn = static_cast<int>(kDevZombieTable.size());

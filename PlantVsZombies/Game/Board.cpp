@@ -313,6 +313,12 @@ void Board::UpdateLevel()
 		return;
 	}
 
+	// 开发者面板「暂停刷怪」：冻结出波倒计时与本波清空提前出波，SummonNextWave 直调入口不受影响
+	if (GameAPP::mDevSpawnPaused)
+	{
+		return;
+	}
+
 	mZombieCountDown -= deltaTime;
 
 	if (mCurrentWave > 0 && mCurrectWaveZombieHP <= mNextWaveSpawnZombieHP)
