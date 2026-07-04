@@ -1227,7 +1227,7 @@ void GameScene::BeginDevSpawnMode()
 			[this](Graphics* g) {
 				if (!mDevSpawnMode) return;
 				const std::string tip = std::string(u8"召唤模式：")
-					+ kDevZombieTable[mDevZombieIndex].second + u8"（左键放置，ESC 退出，D 回面板）";
+					+ kDevZombieTable[mDevZombieIndex].second + u8"（左键放置，ESC 退出，RSHIFT 回面板）";
 				GameAPP::GetInstance().DrawText(tip,
 					g->LogicalToWorld(300, 30), { 255, 90, 90, 255 },
 					ResourceKeys::Fonts::FONT_FZCQ, 18);
