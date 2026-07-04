@@ -29,6 +29,7 @@
 #include "../Zombie/PaperZombie.h"
 #include "../Zombie/FastPaperZombie.h"
 #include "../Zombie/DoorZombie.h"
+#include "../Zombie/FootballZombie.h"
 
 namespace {
 	template<typename T>
@@ -306,6 +307,18 @@ void GameDataManager::InitializeHardcodedData() {
 		3,		// 出现波次（无尽模式忽略此值，由 BuildSurvivalSpawnList 控制）
 		3, 
 		1.0f, &MakeZombie<DoorZombie>
+	);
+
+	RegisterZombie(
+		ZombieType::ZOMBIE_FOOTBALL,
+		"ZOMBIE_FOOTBALL",
+		AnimationType::ANIM_FOOTBALL_ZOMBIE,
+		"FootballZombie",
+		Vector(-64, -94),
+		2100,
+		5,		// 出现波次（无尽模式忽略此值，由 BuildSurvivalSpawnList 控制）
+		5,
+		1.0f, &MakeZombie<FootballZombie>
 	);
 
 	// ==================== 非植物/僵尸动画映射 ====================

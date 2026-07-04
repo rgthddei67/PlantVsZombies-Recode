@@ -30,7 +30,7 @@ list(REMOVE_ITEM SOURCES
     ${SRC_DIR}/Reanimation/AttachmentSystem.cpp
 )
 
-add_executable(PlantsVsZombies ${SOURCES} "PlantVsZombies/Game/Zombie/DoorZombie.cpp" "PlantVsZombies/Game/Plant/HypnoShroom.h")
+add_executable(PlantsVsZombies ${SOURCES} "PlantVsZombies/Game/Zombie/DoorZombie.cpp" "PlantVsZombies/Game/Plant/HypnoShroom.h" "PlantVsZombies/Game/Zombie/FootballZombie.h" "PlantVsZombies/Game/Zombie/FootballZombie.cpp")
 
 target_include_directories(PlantsVsZombies PRIVATE ${SRC_DIR})
 

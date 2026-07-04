@@ -1,6 +1,6 @@
 ﻿#pragma once
-#ifndef _H_ZOMBIETYPE_H
-#define _H_ZOMBIETYPE_H
+#ifndef _ZOMBIE_TYPE_H_
+#define _ZOMBIE_TYPE_H_
 
 constexpr int NULL_ZOMBIE_ID = -1024;
 
@@ -38,13 +38,13 @@ enum class ZombieType {
 	ZOMBIE_NEWSPAPER,
 	ZOMBIE_FASTPAPER,	// 加强版读报僵尸
 	ZOMBIE_DOOR,
+	ZOMBIE_FOOTBALL,
 
 	// ↓ 哨兵：置于已实现僵尸(0~6)之后，使 [0,NUM_ZOMBIE_TYPES) 只覆盖已实现类型，
 	//   生存模式随机抽取据此绝不会抽到下方未实现僵尸。
 	//   注：Board::LoadSpawnListFromJson 亦以此为上界校验 JSON 僵尸ID，效果一致。
 	NUM_ZOMBIE_TYPES, 
 
-	ZOMBIE_FOOTBALL,
 	ZOMBIE_DANCER,
 	ZOMBIE_BACKUP_DANCER,
 	ZOMBIE_DUCKY_TUBE,

@@ -56,6 +56,7 @@ Zombie::Zombie(Board* board, ZombieType zombieType, float x, float y, int row,
 		};
 
 	mGroundTrackIndex = mAnimator->GetFirstTrackIndexByName("_ground");
+	mAnimator->SetTrackVisible("_ground", false);
 }
 
 void Zombie::SetupZombie()
