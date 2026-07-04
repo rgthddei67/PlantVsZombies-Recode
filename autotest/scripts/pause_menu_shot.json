@@ -1,0 +1,12 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 1 },
+    { "op": "choose_cards", "cards": ["PLANT_PEASHOOTER"] },
+    { "op": "wait_state", "state": "GAME", "timeout": 30 },
+    { "op": "wait_frames", "value": 40 },
+    { "op": "key", "name": "escape" },
+    { "op": "wait_frames", "value": 40 },
+    { "op": "screenshot", "name": "pause_menu" },
+    { "op": "quit" }
+  ]
+}

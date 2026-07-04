@@ -288,100 +288,65 @@ void GameScene::OpenMenu()
 
 	mOpenMenu = true;
 	DeltaTime::SetPaused(true);
-	std::vector<GameMessageBox::ButtonConfig> buttons;
-	std::vector<GameMessageBox::SliderConfig> sliders;
-	std::vector<GameMessageBox::TextConfig> texts;
-	buttons.push_back({ u8"返回游戏", Vector(400, 430),Vector(360, 100), 40,[this]() {
-		mOpenMenu = false;
-		DeltaTime::SetPaused(false);
-	}, ResourceKeys::Textures::IMAGE_OPTIONS_BACKTOGAMEBUTTON0 ,true });
-	buttons.push_back({ u8"重新开始", Vector(485, 330),Vector(213 * 0.9f, 50 * 0.9f),
-		21 ,[this]() {
-		this->OpenRestartMenu();
-	}, ResourceKeys::Textures::IMAGE_BUTTONBIG, true });	// 有能力了再改为false
-
-	buttons.push_back({ u8"主菜单", Vector(485, 371),Vector(213 * 0.9f, 50 * 0.9f),
-		21 ,[this]() {
-		this->OpenQuitMenu();
-	}, ResourceKeys::Textures::IMAGE_BUTTONBIG, true });
-
-	buttons.push_back({ u8"查看图鉴", Vector(485, 289),Vector(213 * 0.9f, 50 * 0.9f),
-	21 ,[this]() {
-		DeltaTime::SetPaused(false);
-		this->mLendToAlmanacScene = true;
-	}, ResourceKeys::Textures::IMAGE_BUTTONBIG, true });
-
-	buttons.push_back({ u8"", Vector(455, 250),Vector(42, 39), 1,[]() {
-		auto& gameApp = GameAPP::GetInstance();
-		gameApp.mShowPlantHP = !gameApp.mShowPlantHP;
-	}, ResourceKeys::Textures::IMAGE_OPTIONS_CHECKBOX0 ,false });
-
-	buttons.push_back({ u8"", Vector(590, 250),Vector(42, 39), 1,[]() {
-		auto& gameApp = GameAPP::GetInstance();
-		gameApp.mShowZombieHP = !gameApp.mShowZombieHP;
-	}, ResourceKeys::Textures::IMAGE_OPTIONS_CHECKBOX0 ,false });
-
-	sliders.push_back({ Vector(530, 175), Vector(135, 10),
-		0.0f ,1.0f, AudioSystem::GetMusicVolume(),[](float value) {
-		AudioSystem::SetMusicVolume(value);
-	} });
-
-	sliders.push_back({ Vector(530, 200), Vector(135, 10),
-		0.0f ,1.0f, AudioSystem::GetSoundVolume(),[](float value) {
-		AudioSystem::SetSoundVolume(value);
-	} });
-
-	sliders.push_back({ Vector(530, 225), Vector(135, 10),
-		1, 7, static_cast<float>(GameAPP::GetInstance().Difficulty), [](float value) {
-		GameAPP::GetInstance().Difficulty = static_cast<int>(value);
-	}, true });
-
-	texts.push_back
-	({ Vector(480, 165), 22, u8"音乐" , glm::vec4{ 107, 109, 144, 255} });
-	texts.push_back
-	({ Vector(480, 190), 22, u8"音效" , glm::vec4{ 107, 109, 144, 255} });
-	texts.push_back
-	({ Vector(480, 215), 22, u8"难度" , glm::vec4{ 107, 109, 144, 255} });
-	texts.push_back
-	({ Vector(498, 256), 14, u8"植物血量显示" , glm::vec4{ 107, 109, 144, 255} });
-	texts.push_back
-	({ Vector(634, 256), 14, u8"僵尸血量显示" , glm::vec4{ 107, 109, 144, 255} });
-
-	mMenu = mUIManager.CreateMessageBox(Vector(SCENE_WIDTH / 2 + 50, SCENE_HEIGHT / 2 - 80.0f),
-		"", buttons, sliders, texts, "", 1.0f, ResourceKeys::Textures::IMAGE_OPTIONS_MENUBACK);
-
-	auto& buttonChecks = mMenu.lock()->m_buttons;
 	auto& gameApp = GameAPP::GetInstance();
-	if (buttonChecks.size() > 4 && buttonChecks[4]) {
-		buttonChecks[4]->SetChecked(gameApp.mShowPlantHP);
-	}
-	if (buttonChecks.size() > 5 && buttonChecks[5]) {
-		buttonChecks[5]->SetChecked(gameApp.mShowZombieHP);
-	}
+	const glm::vec4 labelColor{ 107, 109, 144, 255 };
+	mMenu = GameMessageBox::Builder(Vector(SCENE_WIDTH / 2 + 50, SCENE_HEIGHT / 2 - 80.0f))
+		.Background(ResourceKeys::Textures::IMAGE_OPTIONS_MENUBACK)
+		.Button(u8"返回游戏", Vector(400, 430), Vector(360, 100), 40, [this]() {
+			mOpenMenu = false;
+			DeltaTime::SetPaused(false);
+		}, ResourceKeys::Textures::IMAGE_OPTIONS_BACKTOGAMEBUTTON0)
+		.Button(u8"重新开始", Vector(485, 330), Vector(213 * 0.9f, 50 * 0.9f), 21,
+			[this]() { this->OpenRestartMenu(); }, ResourceKeys::Textures::IMAGE_BUTTONBIG)
+		.Button(u8"主菜单", Vector(485, 371), Vector(213 * 0.9f, 50 * 0.9f), 21,
+			[this]() { this->OpenQuitMenu(); }, ResourceKeys::Textures::IMAGE_BUTTONBIG)
+		.Button(u8"查看图鉴", Vector(485, 289), Vector(213 * 0.9f, 50 * 0.9f), 21, [this]() {
+			DeltaTime::SetPaused(false);
+			this->mLendToAlmanacScene = true;
+		}, ResourceKeys::Textures::IMAGE_BUTTONBIG)
+		.Checkbox(Vector(455, 250), Vector(42, 39), []() {
+			auto& app = GameAPP::GetInstance();
+			app.mShowPlantHP = !app.mShowPlantHP;
+		}, gameApp.mShowPlantHP)
+		.Checkbox(Vector(590, 250), Vector(42, 39), []() {
+			auto& app = GameAPP::GetInstance();
+			app.mShowZombieHP = !app.mShowZombieHP;
+		}, gameApp.mShowZombieHP)
+		.Slider(Vector(530, 175), Vector(135, 10), 0.0f, 1.0f, AudioSystem::GetMusicVolume(),
+			[](float v) { AudioSystem::SetMusicVolume(v); })
+		.Slider(Vector(530, 200), Vector(135, 10), 0.0f, 1.0f, AudioSystem::GetSoundVolume(),
+			[](float v) { AudioSystem::SetSoundVolume(v); })
+		.Slider(Vector(530, 225), Vector(135, 10), 1, 7,
+			static_cast<float>(GameAPP::GetInstance().Difficulty),
+			[](float v) { GameAPP::GetInstance().Difficulty = static_cast<int>(v); }, true)
+		.Text(Vector(480, 165), 22, u8"音乐", labelColor)
+		.Text(Vector(480, 190), 22, u8"音效", labelColor)
+		.Text(Vector(480, 215), 22, u8"难度", labelColor)
+		.Text(Vector(498, 256), 14, u8"植物血量显示", labelColor)
+		.Text(Vector(634, 256), 14, u8"僵尸血量显示", labelColor)
+		.Show();
 }
 
 void GameScene::OpenRestartMenu()
 {
 	if (this->mOpenRestartMenu) return;
 	this->mOpenRestartMenu = true;
-	std::vector<GameMessageBox::ButtonConfig> buttons;
-	std::vector<GameMessageBox::SliderConfig> sliders;
-	std::vector<GameMessageBox::TextConfig> texts;
 
-	buttons.push_back({ u8"取消", Vector(380, 380), Vector(125 * 0.8f, 52 * 0.8f),14, [this]() {
-		this->mOpenMenu = false;
-		this->mOpenRestartMenu = false;
-		DeltaTime::SetPaused(false);
-	}, ResourceKeys::Textures::IMAGE_BUTTONSMALL, true });
-	buttons.push_back({ u8"确定", Vector(560, 380), Vector(125 * 0.8f, 52 * 0.8f),14, [this]() {
-		this->mReadyToRestart = true;
-		this->mOpenRestartMenu = false;
-		this->mOpenMenu = false;
-		DeltaTime::SetPaused(false);
-	}, ResourceKeys::Textures::IMAGE_BUTTONSMALL, true });
-
-	mUIManager.CreateMessageBox(Vector(SCENE_WIDTH / 2, SCENE_HEIGHT / 2),
-		u8"    确定重新开始游戏吗?", buttons, sliders, texts, "", 1.5f);
+	GameMessageBox::Builder(Vector(SCENE_WIDTH / 2, SCENE_HEIGHT / 2))
+		.Message(u8"    确定重新开始游戏吗?")
+		.Scale(1.5f)
+		.Button(u8"取消", Vector(380, 380), Vector(125 * 0.8f, 52 * 0.8f), 14, [this]() {
+			this->mOpenMenu = false;
+			this->mOpenRestartMenu = false;
+			DeltaTime::SetPaused(false);
+		})
+		.Button(u8"确定", Vector(560, 380), Vector(125 * 0.8f, 52 * 0.8f), 14, [this]() {
+			this->mReadyToRestart = true;
+			this->mOpenRestartMenu = false;
+			this->mOpenMenu = false;
+			DeltaTime::SetPaused(false);
+		})
+		.Show();
 }
 
 void GameScene::OpenQuitMenu()
@@ -389,24 +354,21 @@ void GameScene::OpenQuitMenu()
 	if (this->mOpenQuitMenu) return;
 	this->mOpenQuitMenu = true;
 
-	std::vector<GameMessageBox::ButtonConfig> buttons;
-	std::vector<GameMessageBox::SliderConfig> sliders;
-	std::vector<GameMessageBox::TextConfig> texts;
-
-	buttons.push_back({ u8"取消", Vector(380, 380), Vector(125 * 0.8f, 52 * 0.8f),14, [this]() {
-		this->mOpenMenu = false;
-		this->mOpenQuitMenu = false;
-		DeltaTime::SetPaused(false);
-	}, ResourceKeys::Textures::IMAGE_BUTTONSMALL, true });
-	buttons.push_back({ u8"确定", Vector(560, 380), Vector(125 * 0.8f, 52 * 0.8f),14, [this]() {
-		this->mReadyToBackMenu = true;
-		this->mOpenQuitMenu = false;
-		this->mOpenMenu = false;
-		DeltaTime::SetPaused(false);
-	}, ResourceKeys::Textures::IMAGE_BUTTONSMALL, true });
-
-	mUIManager.CreateMessageBox(Vector(SCENE_WIDTH / 2, SCENE_HEIGHT / 2),
-		u8"    确定退出这把游戏吗?", buttons, sliders, texts, "", 1.5f);
+	GameMessageBox::Builder(Vector(SCENE_WIDTH / 2, SCENE_HEIGHT / 2))
+		.Message(u8"    确定退出这把游戏吗?")
+		.Scale(1.5f)
+		.Button(u8"取消", Vector(380, 380), Vector(125 * 0.8f, 52 * 0.8f), 14, [this]() {
+			this->mOpenMenu = false;
+			this->mOpenQuitMenu = false;
+			DeltaTime::SetPaused(false);
+		})
+		.Button(u8"确定", Vector(560, 380), Vector(125 * 0.8f, 52 * 0.8f), 14, [this]() {
+			this->mReadyToBackMenu = true;
+			this->mOpenQuitMenu = false;
+			this->mOpenMenu = false;
+			DeltaTime::SetPaused(false);
+		})
+		.Show();
 }
 
 void GameScene::Update() {
