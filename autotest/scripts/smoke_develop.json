@@ -12,6 +12,8 @@
   { "op": "click", "x": 440, "y": 224 },
   { "op": "wait_frames", "value": 5 },
   { "op": "dump_state", "name": "toggles_on" },
+  { "op": "assert_state", "path": "devNoCooldown", "equals": true },
+  { "op": "assert_state", "path": "devFreePlant", "equals": true },
 
   { "op": "click", "x": 580, "y": 270 },
   { "op": "wait_frames", "value": 5 },
@@ -20,6 +22,8 @@
   { "op": "click", "x": 600, "y": 340 },
   { "op": "wait_frames", "value": 10 },
   { "op": "dump_state", "name": "spawned" },
+  { "op": "assert_state", "path": "zombieNumber", "equals": 1 },
+  { "op": "assert_state", "path": "zombies.0.type", "equals": "ZOMBIE_TRAFFIC_CONE" },
   { "op": "key", "name": "escape" },
   { "op": "wait_frames", "value": 5 },
 
@@ -34,6 +38,8 @@
   { "op": "click", "x": 420, "y": 440 },
   { "op": "wait_frames", "value": 5 },
   { "op": "dump_state", "name": "next_wave" },
+  { "op": "assert_state", "path": "wave", "equals": 2 },
+  { "op": "assert_state", "path": "zombieNumber", "equals": 3 },
 
   { "op": "click", "x": 525, "y": 364 },
   { "op": "wait_frames", "value": 5 },
@@ -41,5 +47,7 @@
   { "op": "wait_frames", "value": 60 },
   { "op": "screenshot", "name": "jumped_1001" },
   { "op": "dump_state", "name": "jumped" },
+  { "op": "assert_state", "path": "boardState", "equals": "CHOOSE_CARD" },
+  { "op": "assert_state", "path": "survivalRound", "equals": 1 },
   { "op": "quit" }
 ] }

@@ -30,6 +30,10 @@ private:
 	bool ExecuteCurrent();
 
 	void Fail(const std::string& reason);   // 记日志、退出码=1、结束游戏循环
+
+	// 采集当前 Board 完整状态（dump_state / assert_state 共用同一份序列化）。
+	// 不在 GameScene 或 Board 为空时 Fail（带 opName 前缀）并返回 false。
+	bool BuildStateJson(const std::string& opName, nlohmann::json& out);
 	void Finish();                          // 全部命令跑完，正常收尾
 	void Log(const std::string& msg);       // 写 run.log（带帧号）并 flush
 

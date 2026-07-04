@@ -353,104 +353,8 @@ bool TestDriver::ExecuteCurrent() {
 		return true;
 	}
 	if (op == "dump_state") {
-		GameScene* gs = CurrentGameScene();
-		if (!gs || !gs->GetBoard()) { Fail("dump_state: 不在 GameScene 或 Board 为空"); return false; }
-		Board* board = gs->GetBoard();
 		nlohmann::json out;
-		out["boardState"] = BoardStateName(board->mBoardState);
-		out["sun"] = board->mSun;
-		out["wave"] = board->mCurrentWave;
-		out["zombieNumber"] = board->mZombieNumber;
-		out["devNoCooldown"] = GameAPP::mDevNoCooldown;
-		out["devFreePlant"] = GameAPP::mDevFreePlant;
-
-		out["survivalRound"] = board->mIsSurvival ? board->mSurvivalRound : -1;
-		out["spawnList"] = nlohmann::json::array();
-		if (board->mIsSurvival)
-			for (ZombieType t : board->GetSpawnZombieList())
-				out["spawnList"].push_back(ZombieTypeName(t));
-
-		out["zombies"] = nlohmann::json::array();
-		for (int id : board->mEntityManager.GetAllZombieIDs()) {
-			Zombie* z = board->mEntityManager.GetZombie(id);
-			if (!z) continue;
-			const Vector pos = z->GetPosition();
-			const auto anim = z->GetAnimatorInternal();
-			out["zombies"].push_back({
-				{ "id", id },
-				{ "type", ZombieTypeName(z->mZombieType) },
-				{ "row", z->mRow },
-				{ "x", pos.x }, { "y", pos.y },
-				{ "bodyHealth", z->mBodyHealth }, { "bodyMaxHealth", z->mBodyMaxHealth },
-				{ "helmHealth", z->mHelmHealth }, { "shieldHealth", z->mShieldHealth },
-				{ "mindControlled", z->IsMindControlled() },
-				{ "hasHead", z->HasHead() }, { "hasArm", z->HasArm() },
-				{ "slowCooldown", z->GetCooldownTimer() },
-				{ "track", z->GetCurrentTrackName() },
-				{ "freeHitsRemaining", z->mFreeHitsRemaining },
-				// 铁门僵尸常规手臂（藏门后/啃食露出）当前可见性——手臂显隐类 bug 的断言抓手；
-				// 无此轨道的僵尸 GetTrackVisible 安全返回 false。
-				{ "armVisible", anim && anim->GetTrackVisible("Zombie_outerarm_hand") },
-				// 铁门僵尸「持门手臂」（Zombie_*_screendoor*）可见性：死亡/断臂时本应随门消失。
-				{ "doorArmVisible", anim && (anim->GetTrackVisible("Zombie_outerarm_screendoor")
-					|| anim->GetTrackVisible("Zombie_innerarm_screendoor")
-					|| anim->GetTrackVisible("Zombie_innerarm_screendoor_hand")) },
-			});
-		}
-
-		out["plants"] = nlohmann::json::array();
-		for (int id : board->mEntityManager.GetAllPlantIDs()) {
-			Plant* p = board->mEntityManager.GetPlant(id);
-			if (!p) continue;
-			out["plants"].push_back({
-				{ "id", id },
-				{ "type", PlantTypeName(p->mPlantType) },
-				{ "row", p->mRow }, { "col", p->mColumn },
-				{ "health", p->mPlantHealth }, { "maxHealth", p->mPlantMaxHealth },
-				{ "track", p->GetCurrentTrackName() },
-			});
-		}
-
-		{
-			SurvivalPerkManager& pm = board->GetPerkManager();
-			nlohmann::json stacks;
-			stacks["PLANT_DAMAGE_UP"]      = pm.GetStacks(PerkType::PLANT_DAMAGE_UP);
-			stacks["ZOMBIE_HEALTH_UP"]     = pm.GetStacks(PerkType::ZOMBIE_HEALTH_UP);
-			stacks["ZOMBIE_DAMAGE_RESIST"] = pm.GetStacks(PerkType::ZOMBIE_DAMAGE_RESIST);
-			stacks["ZOMBIE_DAMAGE_UP"]     = pm.GetStacks(PerkType::ZOMBIE_DAMAGE_UP);
-			stacks["ZOMBIE_INVULN_HITS"]   = pm.GetStacks(PerkType::ZOMBIE_INVULN_HITS);
-			stacks["PLANT_REGEN"]          = pm.GetStacks(PerkType::PLANT_REGEN);
-			stacks["PLANT_ATTACK_SPEED"]   = pm.GetStacks(PerkType::PLANT_ATTACK_SPEED);
-			nlohmann::json perks;
-			perks["stacks"]              = stacks;
-			perks["zombieHealthMult"]    = pm.GetZombieHealthMultiplier();
-			perks["plantDamageOn100"]    = pm.ScalePlantDamage(100);
-			perks["damageToZombieOn100"] = pm.ScaleDamageToZombie(100);
-			perks["zombieDamageMult"]    = pm.GetZombieDamageMultiplier();
-			perks["zombieDamageOn100"]   = pm.ScaleZombieDamage(100);
-			perks["zombieInvulnHits"]    = pm.GetZombieInvulnHits();
-			perks["plantRegenPerPulse"]  = pm.GetPlantRegenPerPulse();
-			perks["plantRegenCapOn300"]  = pm.GetPlantRegenHpCap(300);
-			double asMult = pm.GetPlantAttackSpeedMultiplier();
-			perks["plantAttackSpeedMult"] = asMult;                                  // 原始倍率
-			perks["shootIntervalOn1500"]  = static_cast<int>(1500.0 / asMult + 0.5); // 整数化：1.5s 间隔被缩到多少 ms
-			out["perks"] = perks;
-		}
-
-		{
-			nlohmann::json psel;
-			psel["active"] = gs->IsPerkSelectActive();
-			nlohmann::json offers = nlohmann::json::array();
-			for (const PerkPairing& pr : gs->GetCurrentPerkOffer()) {
-				offers.push_back({
-					{ "plant",  SurvivalPerkManager::GetInfo(pr.plant).key },
-					{ "zombie", SurvivalPerkManager::GetInfo(pr.zombie).key },
-				});
-			}
-			psel["offers"] = offers;
-			out["perkSelect"] = psel;
-		}
-
+		if (!BuildStateJson("dump_state", out)) return false;
 		const std::string name = cmd.value("name", "state.json");
 		std::ofstream of(mOutDir + "/" + name, std::ios::trunc);
 		if (!of) { Fail("dump_state: 无法写 " + name); return false; }
@@ -461,6 +365,51 @@ bool TestDriver::ExecuteCurrent() {
 			Fail("dump_state: JSON 序列化失败: " + std::string(e.what()));
 			return false;
 		}
+		return true;
+	}
+	if (op == "assert_state") {
+		// { "op":"assert_state", "path":"perks.stacks.PLANT_DAMAGE_UP", "equals":2 }
+		// path 点分嵌套，纯数字段视为数组下标（如 "zombies.0.mindControlled"）；
+		// equals 与实际值用 nlohmann::json operator== 严格比对，不匹配 Fail → exit 1。
+		nlohmann::json state;
+		if (!BuildStateJson("assert_state", state)) return false;
+		const std::string path = cmd.value("path", "");
+		if (path.empty()) { Fail("assert_state: 缺少 path"); return false; }
+		if (!cmd.contains("equals")) { Fail("assert_state: 缺少 equals (path=" + path + ")"); return false; }
+
+		const nlohmann::json* cur = &state;
+		size_t begin = 0;
+		while (begin <= path.size()) {
+			const size_t dot = path.find('.', begin);
+			const std::string seg = path.substr(begin, dot == std::string::npos ? std::string::npos : dot - begin);
+			if (cur->is_array() && !seg.empty()
+				&& seg.find_first_not_of("0123456789") == std::string::npos) {
+				const size_t idx = static_cast<size_t>(std::stoul(seg));
+				if (idx >= cur->size()) {
+					Fail("assert_state: 下标越界 \"" + seg + "\" (path=" + path
+						+ ", size=" + std::to_string(cur->size()) + ")");
+					return false;
+				}
+				cur = &(*cur)[idx];
+			}
+			else if (cur->is_object() && cur->contains(seg)) {
+				cur = &(*cur)[seg];
+			}
+			else {
+				Fail("assert_state: path 段不存在 \"" + seg + "\" (path=" + path + ")");
+				return false;
+			}
+			if (dot == std::string::npos) break;
+			begin = dot + 1;
+		}
+
+		const nlohmann::json& expected = cmd["equals"];
+		if (*cur != expected) {
+			Fail("assert_state: 断言失败 path=" + path
+				+ " 期望=" + expected.dump() + " 实际=" + cur->dump());
+			return false;
+		}
+		Log("assert_state OK: " + path + " == " + expected.dump());
 		return true;
 	}
 	if (op == "quit") {
@@ -539,4 +488,107 @@ bool TestDriver::ExecuteCurrent() {
 
 	Fail("未知命令 op=\"" + op + "\"");
 	return false;
+}
+
+bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
+{
+	GameScene* gs = CurrentGameScene();
+	if (!gs || !gs->GetBoard()) { Fail(opName + ": 不在 GameScene 或 Board 为空"); return false; }
+	Board* board = gs->GetBoard();
+
+	out["boardState"] = BoardStateName(board->mBoardState);
+	out["sun"] = board->mSun;
+	out["wave"] = board->mCurrentWave;
+	out["zombieNumber"] = board->mZombieNumber;
+	out["devNoCooldown"] = GameAPP::mDevNoCooldown;
+	out["devFreePlant"] = GameAPP::mDevFreePlant;
+
+	out["survivalRound"] = board->mIsSurvival ? board->mSurvivalRound : -1;
+	out["spawnList"] = nlohmann::json::array();
+	if (board->mIsSurvival)
+		for (ZombieType t : board->GetSpawnZombieList())
+			out["spawnList"].push_back(ZombieTypeName(t));
+
+	out["zombies"] = nlohmann::json::array();
+	for (int id : board->mEntityManager.GetAllZombieIDs()) {
+		Zombie* z = board->mEntityManager.GetZombie(id);
+		if (!z) continue;
+		const Vector pos = z->GetPosition();
+		const auto anim = z->GetAnimatorInternal();
+		out["zombies"].push_back({
+			{ "id", id },
+			{ "type", ZombieTypeName(z->mZombieType) },
+			{ "row", z->mRow },
+			{ "x", pos.x }, { "y", pos.y },
+			{ "bodyHealth", z->mBodyHealth }, { "bodyMaxHealth", z->mBodyMaxHealth },
+			{ "helmHealth", z->mHelmHealth }, { "shieldHealth", z->mShieldHealth },
+			{ "mindControlled", z->IsMindControlled() },
+			{ "hasHead", z->HasHead() }, { "hasArm", z->HasArm() },
+			{ "slowCooldown", z->GetCooldownTimer() },
+			{ "track", z->GetCurrentTrackName() },
+			{ "freeHitsRemaining", z->mFreeHitsRemaining },
+			// 铁门僵尸常规手臂（藏门后/啃食露出）当前可见性——手臂显隐类 bug 的断言抓手；
+			// 无此轨道的僵尸 GetTrackVisible 安全返回 false。
+			{ "armVisible", anim && anim->GetTrackVisible("Zombie_outerarm_hand") },
+			// 铁门僵尸「持门手臂」（Zombie_*_screendoor*）可见性：死亡/断臂时本应随门消失。
+			{ "doorArmVisible", anim && (anim->GetTrackVisible("Zombie_outerarm_screendoor")
+				|| anim->GetTrackVisible("Zombie_innerarm_screendoor")
+				|| anim->GetTrackVisible("Zombie_innerarm_screendoor_hand")) },
+		});
+	}
+
+	out["plants"] = nlohmann::json::array();
+	for (int id : board->mEntityManager.GetAllPlantIDs()) {
+		Plant* p = board->mEntityManager.GetPlant(id);
+		if (!p) continue;
+		out["plants"].push_back({
+			{ "id", id },
+			{ "type", PlantTypeName(p->mPlantType) },
+			{ "row", p->mRow }, { "col", p->mColumn },
+			{ "health", p->mPlantHealth }, { "maxHealth", p->mPlantMaxHealth },
+			{ "track", p->GetCurrentTrackName() },
+		});
+	}
+
+	{
+		SurvivalPerkManager& pm = board->GetPerkManager();
+		nlohmann::json stacks;
+		stacks["PLANT_DAMAGE_UP"]      = pm.GetStacks(PerkType::PLANT_DAMAGE_UP);
+		stacks["ZOMBIE_HEALTH_UP"]     = pm.GetStacks(PerkType::ZOMBIE_HEALTH_UP);
+		stacks["ZOMBIE_DAMAGE_RESIST"] = pm.GetStacks(PerkType::ZOMBIE_DAMAGE_RESIST);
+		stacks["ZOMBIE_DAMAGE_UP"]     = pm.GetStacks(PerkType::ZOMBIE_DAMAGE_UP);
+		stacks["ZOMBIE_INVULN_HITS"]   = pm.GetStacks(PerkType::ZOMBIE_INVULN_HITS);
+		stacks["PLANT_REGEN"]          = pm.GetStacks(PerkType::PLANT_REGEN);
+		stacks["PLANT_ATTACK_SPEED"]   = pm.GetStacks(PerkType::PLANT_ATTACK_SPEED);
+		nlohmann::json perks;
+		perks["stacks"]              = stacks;
+		perks["zombieHealthMult"]    = pm.GetZombieHealthMultiplier();
+		perks["plantDamageOn100"]    = pm.ScalePlantDamage(100);
+		perks["damageToZombieOn100"] = pm.ScaleDamageToZombie(100);
+		perks["zombieDamageMult"]    = pm.GetZombieDamageMultiplier();
+		perks["zombieDamageOn100"]   = pm.ScaleZombieDamage(100);
+		perks["zombieInvulnHits"]    = pm.GetZombieInvulnHits();
+		perks["plantRegenPerPulse"]  = pm.GetPlantRegenPerPulse();
+		perks["plantRegenCapOn300"]  = pm.GetPlantRegenHpCap(300);
+		double asMult = pm.GetPlantAttackSpeedMultiplier();
+		perks["plantAttackSpeedMult"] = asMult;                                  // 原始倍率
+		perks["shootIntervalOn1500"]  = static_cast<int>(1500.0 / asMult + 0.5); // 整数化：1.5s 间隔被缩到多少 ms
+		out["perks"] = perks;
+	}
+
+	{
+		nlohmann::json psel;
+		psel["active"] = gs->IsPerkSelectActive();
+		nlohmann::json offers = nlohmann::json::array();
+		for (const PerkPairing& pr : gs->GetCurrentPerkOffer()) {
+			offers.push_back({
+				{ "plant",  SurvivalPerkManager::GetInfo(pr.plant).key },
+				{ "zombie", SurvivalPerkManager::GetInfo(pr.zombie).key },
+			});
+		}
+		psel["offers"] = offers;
+		out["perkSelect"] = psel;
+	}
+
+	return true;
 }
