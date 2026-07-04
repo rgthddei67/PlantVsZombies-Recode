@@ -8,7 +8,7 @@
 #include "./TransformComponent.h"
 #include "../DeltaTime.h"
 #include "../ResourceManager.h"
-#include "../GameApp.h"
+#include "../GameAPP.h"
 #include "./CardSlotManager.h"
 #include "./Plant/GameDataManager.h"
 

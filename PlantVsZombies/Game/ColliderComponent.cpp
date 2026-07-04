@@ -1,8 +1,8 @@
-#include "ColliderComponent.h"
+﻿#include "ColliderComponent.h"
 #include "TransformComponent.h"
 #include "GameObject.h"
 #include "Component.h"
-#include "../GameApp.h"
+#include "../GameAPP.h"
 #include <memory>
 
 Vector ColliderComponent::GetWorldPosition() const {

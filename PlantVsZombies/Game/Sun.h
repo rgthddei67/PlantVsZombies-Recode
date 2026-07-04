@@ -1,10 +1,10 @@
-#pragma once
+﻿#pragma once
 #ifndef _SUN_H
 #define _SUN_H
 #include "../ResourceKeys.h"
 #include "../DeltaTime.h"
 #include "../GameRandom.h"
-#include "../GameApp.h"
+#include "../GameAPP.h"
 #include "Coin.h"
 #include "Board.h"
 

@@ -4,7 +4,7 @@
 #include "../GameObjectManager.h"
 #include "../ShadowComponent.h"
 #include "GameDataManager.h"
-#include "../../GameApp.h"	// GameAPP::mShowPlantHP / Graphics / DrawText
+#include "../../GameAPP.h"	// GameAPP::mShowPlantHP / Graphics / DrawText
 
 Plant::Plant(Board* board, PlantType plantType, int row, int column,
 	AnimationType animType, float scale, bool isPreview)

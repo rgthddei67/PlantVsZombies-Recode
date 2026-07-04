@@ -89,9 +89,10 @@ public:
 	inline static bool mShowColliders = false;    // 显示碰撞框开关
 	inline static bool mDisableInstancePath = false;  // Task 7: -NoInstance 启动参数禁用 GPU instance path
 	inline static bool mAutoTestMode = false;         // -AutoTest 自动化测试模式：禁存档读写、由 TestDriver 驱动
-	inline static bool mDevelopMode = false;          // -develop 开发者模式（D 键面板）
+	inline static bool mDevelopMode = false;          // -develop 开发者模式（RSHIFT 键面板）
 	inline static bool mDevNoCooldown = false;        // 开发者作弊：无冷却种植（面板内切换）
 	inline static bool mDevFreePlant = false;         // 开发者作弊：无视阳光种植（面板内切换）
+	inline static bool mDevSpawnPaused = false;       // 开发者作弊：暂停自然出波（面板内切换；面板「下一波」不受影响）
 
 	static GameAPP& GetInstance();
 

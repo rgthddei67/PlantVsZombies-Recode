@@ -1,4 +1,4 @@
-#include "CardComponent.h"
+﻿#include "CardComponent.h"
 #include "../Logger.h"
 #include "../ResourceKeys.h"
 #include "CardDisplayComponent.h"
@@ -9,7 +9,7 @@
 #include "../DeltaTime.h"
 #include "./ChooseCardUI.h"
 #include "AudioSystem.h"
-#include "../GameApp.h"
+#include "../GameAPP.h"
 
 CardComponent::CardComponent(PlantType type, int cost, float cooldown)
 	: mPlantType(type), mSunCost(cost), mCooldownTime(cooldown)

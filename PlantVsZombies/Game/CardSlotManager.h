@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #ifndef _CARD_SLOT_MANAGER_H
 #define _CARD_SLOT_MANAGER_H
 
@@ -44,7 +44,7 @@ public:
 	void SelectCard(GameObject* card);
 	void DeselectCard();
 
-	bool CanAfford(int cost) const;   // 开发者作弊（无视阳光）守卫在 .cpp，避免头文件引 GameApp.h
+	bool CanAfford(int cost) const;   // 开发者作弊（无视阳光）守卫在 .cpp，避免头文件引 GameAPP.h
 	bool SpendSun(int cost);
 
 	// 清理植物预览

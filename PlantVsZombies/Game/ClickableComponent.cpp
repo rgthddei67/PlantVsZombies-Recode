@@ -1,8 +1,8 @@
-#include "ClickableComponent.h"
+﻿#include "ClickableComponent.h"
 #include "ColliderComponent.h"
 #include "GameObjectManager.h"
 #include "../UI/InputHandler.h"
-#include "../GameApp.h"
+#include "../GameAPP.h"
 #include "GameObject.h"
 #include "../CursorManager.h"
 #include <algorithm>

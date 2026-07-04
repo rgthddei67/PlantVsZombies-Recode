@@ -1,10 +1,10 @@
-#pragma once
+﻿#pragma once
 #ifndef _TRANSFORM_COMPONENT_H
 #define _TRANSFORM_COMPONENT_H
 
 #include "Component.h"
 #include "GameObject.h"
-#include "../GameApp.h"
+#include "../GameAPP.h"
 
 class TransformComponent : public Component {
 private:

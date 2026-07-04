@@ -4,7 +4,7 @@
 #include "GameObjectManager.h"
 #include "ShadowComponent.h"
 #include "../DeltaTime.h"
-#include "../GameApp.h"
+#include "../GameAPP.h"
 
 Mower::Mower(Board* board, MowerType type, AnimationType animType, float x, float y, int row, float scale)
 	: AnimatedObject(ObjectType::OBJECT_LAWNMOWER, board,

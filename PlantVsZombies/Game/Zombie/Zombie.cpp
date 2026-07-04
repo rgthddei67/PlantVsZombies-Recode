@@ -7,7 +7,7 @@
 #include "../GameObjectManager.h"
 #include "../Plant/GameDataManager.h"
 #include "../../ParticleSystem/ParticleSystem.h"
-#include "../../GameApp.h"
+#include "../../GameAPP.h"
 #include <climits>
 
 namespace {

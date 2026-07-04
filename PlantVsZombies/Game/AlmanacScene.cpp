@@ -1,6 +1,6 @@
-#include "AlmanacScene.h"
+﻿#include "AlmanacScene.h"
 #include "SceneManager.h"
-#include "../GameApp.h"
+#include "../GameAPP.h"
 #include "Plant/Plant.h"
 
 void AlmanacScene::BuildDrawCommands()

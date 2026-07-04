@@ -13,7 +13,7 @@
 #include "GameScene.h"
 #include "./Plant/GameDataManager.h"
 #include "./GameProgress.h"
-#include "../GameApp.h"
+#include "../GameAPP.h"
 #include "../FileManager.h"
 #include <unordered_set>
 #include <climits>
@@ -101,6 +101,7 @@ void Board::CreateBoom(const Vector& position, int damage)
 	for (auto zombieID : zombieIDs)
 	{
 		if (auto zombie = mEntityManager.GetZombie(zombieID)) {
+			if (zombie->IsMindControlled()) continue;
 			Vector zombiePositon = zombie->GetPosition();
 			if (std::abs(zombiePositon.x - position.x) <= 130.0f &&
 				std::abs(zombiePositon.y - position.y) <= 130.0f)

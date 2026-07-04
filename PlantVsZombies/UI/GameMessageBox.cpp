@@ -1,6 +1,6 @@
 ﻿#include "GameMessageBox.h"
 #include "../ResourceManager.h"
-#include "../GameApp.h"
+#include "../GameAPP.h"
 #include "../Game/GameObjectManager.h"
 #include "InputHandler.h"
 #include "../ResourceKeys.h"

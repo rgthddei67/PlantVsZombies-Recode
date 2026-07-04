@@ -3,7 +3,7 @@
 #include "Bullet.h"
 #include "../GameObjectManager.h"
 #include "../ObjectPool/BulletPool.h"
-#include "../../GameApp.h"
+#include "../../GameAPP.h"
 
 Bullet::Bullet(Board* board, BulletType bulletType, int row, const Vector& colliderRadius,
 	const Vector& position) : GameObject(ObjectType::OBJECT_BULLET)

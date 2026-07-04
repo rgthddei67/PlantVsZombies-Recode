@@ -10,7 +10,7 @@
 #include "AudioSystem.h"
 #include "./Plant/Plant.h"
 #include "ShadowComponent.h"
-#include "../GameApp.h"
+#include "../GameAPP.h"
 
 CardSlotManager::CardSlotManager(Board* board)
 	: mBoard(board)

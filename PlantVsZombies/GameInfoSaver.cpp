@@ -2,7 +2,7 @@
 #if defined(__ANDROID__)
 #include <SDL2/SDL.h>
 #endif
-#include "GameApp.h"
+#include "GameAPP.h"
 #include "./Game/Board.h"
 #include "./Game/GameScene.h"
 #include "./Game/AudioSystem.h"

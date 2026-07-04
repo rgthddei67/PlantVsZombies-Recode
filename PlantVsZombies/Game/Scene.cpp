@@ -3,7 +3,7 @@
 #include "CollisionSystem.h"
 #include "../ResourceManager.h"
 #include "ClickableComponent.h"
-#include "../GameApp.h"
+#include "../GameAPP.h"
 #include "../Profiler.h"
 #include "../Logger.h"
 

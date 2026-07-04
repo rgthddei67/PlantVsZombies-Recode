@@ -1,8 +1,8 @@
-#include "AnimatedObject.h"
+﻿#include "AnimatedObject.h"
 #include "Board.h"
 #include "../DeltaTime.h"
 #include "../GameRandom.h"
-#include "../GameApp.h"
+#include "../GameAPP.h"
 #include "../Logger.h"
 
 AnimatedObject::AnimatedObject(ObjectType type,

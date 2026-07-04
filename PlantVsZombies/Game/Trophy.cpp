@@ -1,6 +1,6 @@
 ﻿#include "Trophy.h"
 #include "Board.h"
-#include "../GameApp.h"
+#include "../GameAPP.h"
 #include "GameScene.h"
 #include "../DeltaTime.h"
 #include "GameObjectManager.h"
