@@ -98,6 +98,7 @@ void GameMessageBox::Start()
 			button->SetImageKeys
 			(config.texture, config.texture, config.texture,
 				ResourceKeys::Textures::IMAGE_OPTIONS_CHECKBOX1);
+			button->SetChecked(config.initChecked);
 		}
 		else {
 			button->SetTextColor(m_titleColor);
@@ -205,4 +206,11 @@ void GameMessageBox::Draw(Graphics* g)
 void GameMessageBox::Close()
 {
 	GameObjectManager::GetInstance().DestroyGameObject(this);
+}
+
+std::shared_ptr<GameMessageBox> GameMessageBox::Builder::Show()
+{
+	return GameObjectManager::GetInstance().CreateGameObjectImmediateAsShared<GameMessageBox>(
+		LAYER_UI, m_pos, m_message, m_buttons, m_sliders, m_texts,
+		m_title, m_bgKey, m_scale, m_explicitSize);
 }
