@@ -315,7 +315,7 @@ void GameDataManager::InitializeHardcodedData() {
 		AnimationType::ANIM_FOOTBALL_ZOMBIE,
 		"FootballZombie",
 		Vector(-64, -94),
-		2100,
+		2500,
 		5,		// 出现波次（无尽模式忽略此值，由 BuildSurvivalSpawnList 控制）
 		5,
 		1.0f, &MakeZombie<FootballZombie>
