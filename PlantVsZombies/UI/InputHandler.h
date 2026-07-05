@@ -31,9 +31,9 @@ private:
 
 	Vector m_mouseDelta;
 
-	KeyState m_mouseButtons[5];
+	KeyState m_mouseButtons[5] = { KeyState::UP, KeyState::UP, KeyState::UP, KeyState::UP, KeyState::UP };
 
-	KeyState m_prevMouseButtons[5];
+	KeyState m_prevMouseButtons[5] = { KeyState::UP, KeyState::UP, KeyState::UP, KeyState::UP, KeyState::UP };
 
 	InputHandler(const InputHandler&) = delete;
 	InputHandler& operator=(const InputHandler&) = delete;

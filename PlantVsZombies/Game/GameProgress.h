@@ -29,8 +29,8 @@ public:
 	void LowerAllFlags(float duration);
 
 private:
-	Board* mBoard;
-	GameScene* mGameScene;
+	Board* mBoard = nullptr;
+	GameScene* mGameScene = nullptr;
 	float mUpdateTimer = 0.0f;
 
 	float mCurrentSliderValue = 1.0f;   // 当前显示进度

@@ -9,14 +9,6 @@
 
 ParticleEmitter::ParticleEmitter(Graphics* g)
 	: m_graphics(g)
-	, active(false)
-	, spawnTimer(0.0f)
-	, spawnRate(0)
-	, maxParticles(0)
-	, isOneShot(false)
-	, particlesToEmit(0)
-	, particlesEmitted(0)
-	, systemTimer(0.0f)
 {
 }
 

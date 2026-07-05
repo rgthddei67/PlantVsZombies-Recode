@@ -7,12 +7,12 @@
 
 // 插值轨迹点
 struct InterpolationPoint {
-	float value;    // 中点：GetValue 用，保持旧（确定性）行为
-	float time;     // 归一化时间 0-1
-	float valueLo;  // 关键帧 "[a b]" 随机区间下界（GetValueRandomized 用）
-	float valueHi;  // 上界；非区间关键帧时 lo==hi==value
+	float value = 0.0f;    // 中点：GetValue 用，保持旧（确定性）行为
+	float time = 0.0f;     // 归一化时间 0-1
+	float valueLo = 0.0f;  // 关键帧 "[a b]" 随机区间下界（GetValueRandomized 用）
+	float valueHi = 0.0f;  // 上界；非区间关键帧时 lo==hi==value
 
-	InterpolationPoint() : value(0.0f), time(0.0f), valueLo(0.0f), valueHi(0.0f) {}
+	InterpolationPoint() = default;
 	InterpolationPoint(float v, float t) : value(v), time(t), valueLo(v), valueHi(v) {}
 	InterpolationPoint(float v, float t, float lo, float hi) : value(v), time(t), valueLo(lo), valueHi(hi) {}
 
@@ -23,16 +23,13 @@ struct InterpolationPoint {
 // 插值轨迹（如 "1,90 0" 表示在90%时间值为1，结束时为0）
 struct InterpolationTrack {
 	std::vector<InterpolationPoint> points;
-	bool isConstant;
-	float constantValue;
-	bool isRandomRange;   // "[a b]" 语义：每粒子在生成时随机一次，整生命周期保持
-	float randomMin;
-	float randomMax;
+	bool isConstant = true;
+	float constantValue = 1.0f;
+	bool isRandomRange = false;   // "[a b]" 语义：每粒子在生成时随机一次，整生命周期保持
+	float randomMin = 0.0f;
+	float randomMax = 0.0f;
 
-	InterpolationTrack()
-		: isConstant(true), constantValue(1.0f),
-		isRandomRange(false), randomMin(0.0f), randomMax(0.0f) {
-	}
+	InterpolationTrack() = default;
 
 	// 根据归一化时间获取插值（确定性：同龄同值，全体粒子一致）
 	float GetValue(float normalizedTime) const;
@@ -47,11 +44,11 @@ struct InterpolationTrack {
 
 // 值范围（如 "[0.3 0.6]" 表示随机范围，或单个值 "1.5"）
 struct ValueRange {
-	float minValue;
-	float maxValue;
-	bool isRange;
+	float minValue = 0.0f;
+	float maxValue = 0.0f;
+	bool isRange = false;
 
-	ValueRange() : minValue(0.0f), maxValue(0.0f), isRange(false) {}
+	ValueRange() = default;
 	ValueRange(float value) : minValue(value), maxValue(value), isRange(false) {}
 	ValueRange(float min, float max) : minValue(min), maxValue(max), isRange(true) {}
 
@@ -70,11 +67,11 @@ enum class ParticleFieldType {
 
 // 场效果
 struct ParticleField {
-	ParticleFieldType type;
+	ParticleFieldType type = ParticleFieldType::POSITION;
 	InterpolationTrack xTrack;
 	InterpolationTrack yTrack;
 
-	ParticleField() : type(ParticleFieldType::POSITION) {}
+	ParticleField() = default;
 };
 
 // 发射器形状类型

@@ -2,7 +2,7 @@
 #include "../DeltaTime.h"
 #include <cmath>
 
-Particle::Particle() : active(false) {
+Particle::Particle() {
 	Reset();
 }
 

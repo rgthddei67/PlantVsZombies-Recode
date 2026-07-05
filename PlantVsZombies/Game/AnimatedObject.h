@@ -22,10 +22,10 @@ protected:
 	ColliderComponent* mCollider = nullptr;
 	std::shared_ptr<Animator> mAnimator;
 
-	AnimationType mAnimType;
-	bool mIsPlaying;
-	PlayState mLoopType;
-	bool mAutoDestroy;
+	AnimationType mAnimType = AnimationType::ANIM_NONE;
+	bool mIsPlaying = false;
+	PlayState mLoopType = PlayState::PLAY_REPEAT;
+	bool mAutoDestroy = true;
 	bool mAdvancedInParallel = false;   // 阶段二：本帧 animator 是否已在并行段推进过
 
 public:

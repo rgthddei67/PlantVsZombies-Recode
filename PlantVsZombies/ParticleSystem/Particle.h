@@ -11,25 +11,25 @@ struct Particle {
 	Vector position;
 	Vector velocity;
 	glm::vec4 color;
-	float lifetime;
-	float maxLifetime;
-	float size;
-	float rotation;
-	float rotationSpeed;
-	float gravity;
-	bool active;
-	const Texture* texture;
+	float lifetime = 0.0f;
+	float maxLifetime = 60.0f;
+	float size = 1.0f;
+	float rotation = 0.0f;
+	float rotationSpeed = 0.0f;
+	float gravity = 0.0f;
+	bool active = false;
+	const Texture* texture = nullptr;
 
-	float brightness;
-	float stretch;
-	float baseScale;   // 随机范围 ParticleScale 的 spawn 采样（每粒子保持）
-	float fieldRandomX;  // Position 场 X 的逐粒子随机因子∈[0,1]（spawn 采样，整生命周期不变）
-	float fieldRandomY;  // Position 场 Y 同上——这对因子让每粒子各自扩散，云才铺得开
+	float brightness = 1.0f;
+	float stretch = 1.0f;
+	float baseScale = 1.0f;   // 随机范围 ParticleScale 的 spawn 采样（每粒子保持）
+	float fieldRandomX = 0.5f;  // Position 场 X 的逐粒子随机因子∈[0,1]（spawn 采样，整生命周期不变）
+	float fieldRandomY = 0.5f;  // Position 场 Y 同上——这对因子让每粒子各自扩散，云才铺得开
 	glm::vec3 colorMultiplier;
-	int currentFrame;
-	float animationTimer;
-	int totalFrames;
-	float frameRate;
+	int currentFrame = 0;
+	float animationTimer = 0.0f;
+	int totalFrames = 1;
+	float frameRate = 12.0f;
 	Vector fieldOffset;
 	Vector shakeOffset;
 

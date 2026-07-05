@@ -18,10 +18,9 @@ AnimatedObject::AnimatedObject(ObjectType type,
 	: GameObject(type)
 	, mBoard(board)
 	, mAnimType(animType)
-	, mIsPlaying(false)
-	, mLoopType(PlayState::PLAY_REPEAT)
 	, mAutoDestroy(autoDestroy)
 {
+	// mIsPlaying(false) / mLoopType(PLAY_REPEAT) 均由头文件就地初始化
 	SetTag(tag);
 
 	auto* transform = AddComponent<TransformComponent>();

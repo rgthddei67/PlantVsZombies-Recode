@@ -20,11 +20,9 @@ std::string Button::GetDefaultFontPath()
 }
 
 Button::Button(Vector createPosition, Vector btnSize)
-	: position(createPosition), size(btnSize), isHovered(false), isPressed(false),
-	isChecked(false), isCheckbox(false), fontName(s_defaultFontPath), fontSize(17),
-	m_mousePressedThisFrame(false),
-	m_mouseReleasedThisFrame(false), m_wasMouseDown(false)
+	: position(createPosition), size(btnSize), fontName(s_defaultFontPath)
 {
+	// 其余成员（isHovered/isPressed/fontSize/m_mouse* 等）均由头文件就地初始化
 }
 
 void Button::SetPosition(Vector pos)

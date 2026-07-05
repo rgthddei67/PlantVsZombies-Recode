@@ -64,7 +64,7 @@ public:
 
 private:
 	Vector m_position;
-	float m_scale;
+	float m_scale = 1.0f;
 	Vector m_size;
 	Vector m_explicitSize{ 0.0f, 0.0f };   // 非零时覆盖纹理尺寸，背景以 m_position 居中绘制
 	std::string m_title;

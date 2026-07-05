@@ -5,14 +5,7 @@
 InputHandler::InputHandler(Graphics* graphics)
 {
 	mGraphics = graphics;
-	for (int i = 0; i < 5; i++)
-	{
-		m_mouseButtons[i] = KeyState::UP;
-		m_prevMouseButtons[i] = KeyState::UP;
-	}
-
-	m_mousePosition = Vector::zero();
-	m_mouseDelta = Vector::zero();
+	// m_mouseButtons/m_prevMouseButtons/m_mousePosition/m_mouseDelta 由头文件就地初始化
 }
 
 void InputHandler::ProcessEvent(SDL_Event* event)

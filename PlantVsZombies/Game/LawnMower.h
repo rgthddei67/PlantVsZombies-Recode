@@ -20,9 +20,9 @@ enum class MowerState {
 
 class Mower : public AnimatedObject {
 public:
-	int mRow;
+	int mRow = 0;
 	int mMowerID = NULL_MOWER_ID;
-	MowerType mMowerType;
+	MowerType mMowerType = MowerType::LAWN;
 	MowerState mState = MowerState::IDLE;
 	float mSpeed = 230.0f;
 

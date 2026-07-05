@@ -18,7 +18,7 @@ class Board;
 
 class Plant : public AnimatedObject {
 public:
-	Board* mBoard;
+	Board* mBoard = nullptr;
 	PlantType mPlantType = PlantType::NUM_PLANT_TYPES;
 
 	int mRow = 0;

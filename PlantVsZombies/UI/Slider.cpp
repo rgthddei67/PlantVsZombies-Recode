@@ -8,10 +8,9 @@
 Slider::Slider(Vector createPosition, Vector sliderSize,
 	float minVal, float maxVal, float initialValue)
 	: position(createPosition), size(sliderSize),
-	minValue(minVal), maxValue(maxVal), currentValue(initialValue),
-	isDragging(false), dragStartPosition(Vector::zero()), dragStartValue(0.0f),
-	SliderSizeX(22), SliderSizeY(29)
+	minValue(minVal), maxValue(maxVal), currentValue(initialValue)
 {
+	// isDragging/dragStartPosition/dragStartValue/SliderSizeX/SliderSizeY 由头文件就地初始化
 	currentValue = std::clamp(currentValue, minValue, maxValue);
 }
 

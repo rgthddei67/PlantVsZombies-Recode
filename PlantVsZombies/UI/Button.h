@@ -34,9 +34,9 @@ private:
 
 	std::function<void(bool isChecked)> onClickCallback = nullptr;
 	static std::string s_defaultFontPath;
-	bool m_mousePressedThisFrame;
-	bool m_mouseReleasedThisFrame;
-	bool m_wasMouseDown;
+	bool m_mousePressedThisFrame = false;
+	bool m_mouseReleasedThisFrame = false;
+	bool m_wasMouseDown = false;
 
 	bool mEnabled = true;
 	bool m_skipDraw = false;

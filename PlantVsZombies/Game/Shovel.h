@@ -33,7 +33,7 @@ private:
 	const Texture* mTexture = nullptr;
 	Vector           mPosition;
 	Vector           mHomePosition;
-	ShovelState      mState;
+	ShovelState      mState = ShovelState::IDLE;
 	Plant* mPlant = nullptr;	// 选中的植物
 };
 

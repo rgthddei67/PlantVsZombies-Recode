@@ -27,7 +27,7 @@ private:
 	bool canDrag = true;
 	bool integerOnly = false;   // 为 true 时滑块只能停在整数刻度上
 	Vector dragStartPosition;
-	float dragStartValue;
+	float dragStartValue = 0.0f;
 
 	int SliderSizeX = 22;
 	int SliderSizeY = 29;

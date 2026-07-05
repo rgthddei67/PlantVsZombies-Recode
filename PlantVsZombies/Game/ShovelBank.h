@@ -14,8 +14,8 @@ public:
 	void Draw(Graphics* g) override;
 
 private:
-	Board* mBoard;
-	const Texture* mTexture;
+	Board* mBoard = nullptr;
+	const Texture* mTexture = nullptr;
 	bool mWasShovelActive = false;
 };
 

@@ -1,12 +1,6 @@
 ﻿#include "ParticleEffect.h"
 #include "../DeltaTime.h"
 
-ParticleEffect::ParticleEffect()
-	: systemTimer(0.0f)
-	, systemDuration(-1.0f)
-	, active(false) {
-}
-
 void ParticleEffect::InitializeFromConfig(const ParticleEffectConfig& config, Graphics* graphics, const Vector& pos) {
 	position = pos;
 	systemTimer = 0.0f;

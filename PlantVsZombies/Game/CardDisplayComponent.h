@@ -33,7 +33,7 @@ private:
 
 	// 状态相关
 	CardState cardState = CardState::Cooling;
-	PlantType plantType;
+	PlantType plantType = PlantType::NUM_PLANT_TYPES;
 	int needSun = 0;
 	float cooldownTime = 0;
 	float currentCooldown = 0;

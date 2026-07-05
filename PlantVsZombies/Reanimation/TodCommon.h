@@ -34,9 +34,9 @@ inline float m_sqrtf(float x) {
 
 // 棰滆壊宸ュ叿
 struct Color {
-	Uint8 r, g, b, a;
+	Uint8 r = 255, g = 255, b = 255, a = 255;
 
-	Color() : r(255), g(255), b(255), a(255) {}
+	Color() = default;
 	Color(Uint8 red, Uint8 green, Uint8 blue, Uint8 alpha = 255)
 		: r(red), g(green), b(blue), a(alpha) {
 	}

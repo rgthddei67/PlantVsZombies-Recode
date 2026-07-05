@@ -11,7 +11,7 @@
 
 class ParticleConfigManager {
 private:
-	Graphics* m_graphics;
+	Graphics* m_graphics = nullptr;
 
 	// XML配置支持
 	std::unique_ptr<ParticleXMLLoader> xmlLoader;

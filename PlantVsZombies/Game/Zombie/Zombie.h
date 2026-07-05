@@ -15,7 +15,7 @@ class Plant;
 
 class Zombie : public AnimatedObject {
 public:
-	Board* mBoard;
+	Board* mBoard = nullptr;
 	ZombieType mZombieType = ZombieType::NUM_ZOMBIE_TYPES;
 
 	int mRow = -1;

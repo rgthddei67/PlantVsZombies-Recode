@@ -21,21 +21,18 @@ using ZombieFactoryFn = std::shared_ptr<Zombie>(*)(Board*, ZombieType, float, fl
 
 // 植物信息
 struct PlantInfo {
-	PlantType type;             // 植物类型
+	PlantType type = PlantType::NUM_PLANT_TYPES;   // 植物类型
 	int SunCost = 0;                 // 阳光
 	float Cooldown = 7.5f;                // 冷却时间（单位：秒）
 	std::string enumName;       // 枚举名（字符串形式）
 	std::string textureKey;      // 纹理资源键（用于静态图片）
-	AnimationType animType;      // 动画类型
+	AnimationType animType = AnimationType::ANIM_NONE;   // 动画类型
 	std::string animName;        // 动画资源名称（如 Reanim 名称）
-	Vector offset;               // 绘制偏移量
+	Vector offset{ 0, 0 };       // 绘制偏移量
 	float scale = 1.0f;          // 创建时的缩放（仅 PotatoMine=0.8，其余=1.0）
 	PlantFactoryFn factory = nullptr;  // 具体类的构造工厂
 
-	PlantInfo() : type(PlantType::NUM_PLANT_TYPES),
-		animType(AnimationType::ANIM_NONE),
-		offset(0, 0) {
-	}
+	PlantInfo() = default;
 
 	PlantInfo(PlantType t, int sunCost, float cooldown, const std::string& enumN,
 		const std::string& tex, AnimationType animT,
@@ -47,21 +44,18 @@ struct PlantInfo {
 
 // 僵尸信息
 struct ZombieInfo {
-	ZombieType type;            // 僵尸类型
+	ZombieType type = ZombieType::NUM_ZOMBIE_TYPES;   // 僵尸类型
 	std::string enumName;       // 枚举名（字符串形式）
-	AnimationType animType;      // 动画类型
+	AnimationType animType = AnimationType::ANIM_NONE;   // 动画类型
 	std::string animName;        // 动画资源名称
-	Vector offset;               // 绘制偏移量
-	int weight;                  // 权重
-	int appearWave;              // 能出现的波数
+	Vector offset{ 0, 0 };       // 绘制偏移量
+	int weight = 0;              // 权重
+	int appearWave = 0;          // 能出现的波数
 	float scale = 1.0f;          // 创建时的缩放
 	int survivalRound = 0;       // 生存模式最早出场轮(1起；0=不进生存，安全默认)
 	ZombieFactoryFn factory = nullptr;  // 具体类的构造工厂
 
-	ZombieInfo() : type(ZombieType::NUM_ZOMBIE_TYPES),
-		animType(AnimationType::ANIM_NONE),
-		offset(0, 0), weight(0), appearWave(0) {
-	}
+	ZombieInfo() = default;
 
 	ZombieInfo(ZombieType t, const std::string& enumN,
 		AnimationType animT, const std::string& animN, const Vector& off, int w, int appear)

@@ -22,10 +22,8 @@ Plant::Plant(Board* board, PlantType plantType, int row, int column,
 	mPlantType = plantType;
 	mRow = row;
 	mColumn = column;
-	mIsSleeping = false;
-	mPlantHealth = 300;
-	mPlantMaxHealth = 300;
 	mIsPreview = isPreview;
+	// mIsSleeping / mPlantHealth / mPlantMaxHealth 由头文件就地初始化（false / 300 / 300）
 
 	GameDataManager& plantMgr = GameDataManager::GetInstance();
 

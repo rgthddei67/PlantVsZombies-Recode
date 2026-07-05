@@ -25,10 +25,10 @@ private:
 	std::vector<std::string> musicPaths;
 	std::unordered_map<std::string, std::string> reanimationPaths;
 
-	bool isLoaded;
+	bool isLoaded = false;
 
 public:
-	ResourcesXMLConfigReader() : isLoaded(false) {}
+	ResourcesXMLConfigReader() = default;
 
 	bool LoadConfig(const std::string& xmlPath) {
 		pugi::xml_document doc;

@@ -9,22 +9,22 @@
 
 class ParticleEmitter {
 private:
-	Graphics* m_graphics;
+	Graphics* m_graphics = nullptr;
 	std::vector<Particle> particles;
 
 	Vector position;
-	bool active;
-	float spawnTimer;
-	int spawnRate;
-	int maxParticles;
+	bool active = false;
+	float spawnTimer = 0.0f;
+	int spawnRate = 0;
+	int maxParticles = 0;
 
-	bool isOneShot;
-	int particlesToEmit;
-	int particlesEmitted;
+	bool isOneShot = false;
+	int particlesToEmit = 0;
+	int particlesEmitted = 0;
 
 	EmitterConfig xmlConfig;
 	std::vector<ParticleField> activeFields;
-	float systemTimer;
+	float systemTimer = 0.0f;
 
 public:
 	ParticleEmitter(Graphics* g = nullptr);

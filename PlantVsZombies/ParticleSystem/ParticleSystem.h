@@ -13,7 +13,7 @@
 class ParticleSystem {
 private:
 	std::vector<std::unique_ptr<ParticleEffect>> effects;
-	Graphics* m_graphics;
+	Graphics* m_graphics = nullptr;
 	ParticleConfigManager configManager;
 
 public:

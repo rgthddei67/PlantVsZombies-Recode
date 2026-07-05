@@ -13,13 +13,13 @@ class ParticleEffect {
 private:
 	std::vector<std::unique_ptr<ParticleEmitter>> emitters;
 	Vector position;
-	float systemTimer;
-	float systemDuration;
-	bool active;
+	float systemTimer = 0.0f;
+	float systemDuration = -1.0f;
+	bool active = false;
 	int renderOrder = 0;
 
 public:
-	ParticleEffect();
+	ParticleEffect() = default;
 	~ParticleEffect() = default;
 
 	// 从XML配置初始化

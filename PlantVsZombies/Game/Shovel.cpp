@@ -10,10 +10,8 @@
 
 Shovel::Shovel(Board* board)
 	: mBoard(board)
-	, mPosition(0.0f, 0.0f)
-	, mHomePosition(0.0f, 0.0f)
-	, mState(ShovelState::IDLE)
 {
+	// mPosition/mHomePosition(默认 Vector 即 0,0) 与 mState(IDLE) 均由头文件就地初始化
 	mTexture = ResourceManager::GetInstance()
 		.GetTexture(ResourceKeys::Textures::IMAGE_SHOVEL);
 	this->mIsUI = true;
