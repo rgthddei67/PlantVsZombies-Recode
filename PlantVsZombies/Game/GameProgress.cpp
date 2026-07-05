@@ -10,9 +10,9 @@
 #include <cmath>
 
 GameProgress::GameProgress(Board* board, GameScene* gameScene)
-	: mBoard(board), mGameScene(gameScene),
-	mCurrentSliderValue(1.0f), mTargetSliderValue(1.0f), mLerpSpeed(1.1f)
+	: mBoard(board), mGameScene(gameScene)
 {
+	// mCurrentSliderValue/mTargetSliderValue/mLerpSpeed 均由头文件就地初始化
 	if (!board || !gameScene) {
 		LOG_ERROR("GameProgress") << "初始化失败，board或者gameScene为nullptr！";
 		return;

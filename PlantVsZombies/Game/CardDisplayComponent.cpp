@@ -14,9 +14,7 @@
 
 CardDisplayComponent::CardDisplayComponent(PlantType type, int sunCost, float cooldown)
 	: plantType(type), needSun(sunCost), cooldownTime(cooldown) {
-	cardState = CardState::Ready;
-	showMask = false;
-	maskFillAmount = 0.0f;
+	// cardState(Ready)/showMask(false)/maskFillAmount(0.0f) 均由头文件就地初始化
 	currentCooldown = cooldownTime; // 设置为满冷却，表示不需要冷却
 }
 

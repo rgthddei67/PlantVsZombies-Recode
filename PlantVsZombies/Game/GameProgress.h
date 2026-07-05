@@ -35,7 +35,7 @@ private:
 
 	float mCurrentSliderValue = 1.0f;   // 当前显示进度
 	float mTargetSliderValue = 1.0f;    // 目标进度
-	float mLerpSpeed = 0.001f;             // 插值速度
+	float mLerpSpeed = 1.1f;             // 插值速度（就地初始化=运行时真实生效值）
 
 	int m_lastWave = 0;               // 上一帧波数，用于检测波次变化
 	int m_flagCount = 0;              // 旗子总数

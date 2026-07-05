@@ -32,7 +32,7 @@ private:
 	mutable TransformComponent* mTransformComponent = nullptr;
 
 	// 状态相关
-	CardState cardState = CardState::Cooling;
+	CardState cardState = CardState::Ready;
 	PlantType plantType = PlantType::NUM_PLANT_TYPES;
 	int needSun = 0;
 	float cooldownTime = 0;
@@ -40,8 +40,8 @@ private:
 	bool isSelected = false;
 
 	// 冷却遮罩相关
-	float maskFillAmount = 1.0f;
-	bool showMask = true;
+	float maskFillAmount = 0.0f;
+	bool showMask = false;
 
 	// 颜色状态（改为 glm::vec4，0~255范围）
 	glm::vec4 readyColor = glm::vec4(255.0f);               // 白色
