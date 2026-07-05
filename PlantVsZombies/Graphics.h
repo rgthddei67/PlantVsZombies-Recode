@@ -828,8 +828,6 @@ private:
 	int m_batchInstancesLimit = 32768;              ///< 单次 flush 上限，~1.5 MB 一次 vkCmdDraw（仅切分 draw 段数，不影响总字节；逐帧 inst 缓冲 grow-on-demand，见 Graphics.cpp）
 	bool m_useInstancePath = true;   ///< Task 7: false强制走 slow path 做 A/B baseline
 
-	int m_maxTextureUnits = 32;                  ///< 最大纹理单元数（着色器限制）
-
 	size_t m_batchBufferCapacity = 0;             ///< 当前 VBO 容量（顶点个数）
 
 	bool m_batchMode = true;                      ///< 是否启用批处理模式

@@ -21,7 +21,7 @@ namespace pvz { class VulkanTexturePool; struct VulkanTexture; }
 
 // 纹理信息：id = bindless slot 索引；vkTex 为拥有的底层 VulkanTexture（Unload 时回收槽位 + 销毁 image）
 struct Texture {
-	uint32_t id = 0;           // Phase 3b: bindlessIndex（4096 槽位之一）
+	uint32_t id = 0;           // Phase 3b: bindlessIndex（8192 槽位之一）
 	int width = 0;
 	int height = 0;
 	// Phase 3b: 拥有的 VulkanTexture* —— 用于 Unload 时回收 bindless 槽位 + 销毁 image

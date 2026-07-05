@@ -22,14 +22,14 @@ namespace pvz {
 	};
 
 	// Phase 2b — bindless 纹理系统：
-	//   - 单个 descriptor set (set=0)，binding=1 为 sampler2D[4096] 数组
+	//   - 单个 descriptor set (set=0)，binding=1 为 sampler2D[8192] 数组
 	//   - PARTIALLY_BOUND + UPDATE_AFTER_BIND + VARIABLE_DESCRIPTOR_COUNT
 	//   - 共享一个 immutable LINEAR/CLAMP 采样器
 	//   - 通过 free-list 管理 bindless 索引
 	//   - CreateTextureRGBA8 走 staging buffer → vkCmdCopyBufferToImage → 屏障到 SHADER_READ_ONLY
 	class VulkanTexturePool {
 	public:
-		static constexpr uint32_t MAX_TEXTURES = 4096;
+		static constexpr uint32_t MAX_TEXTURES = 8192;
 
 		VulkanTexturePool();
 		~VulkanTexturePool();
