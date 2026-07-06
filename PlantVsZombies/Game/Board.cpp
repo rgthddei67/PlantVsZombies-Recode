@@ -157,9 +157,7 @@ void Board::CreateTrophy(const Vector& position)
 	mTrophySpawned = true;
 	auto trophy = GameObjectManager::GetInstance().CreateGameObjectAsShared<Trophy>(
 		LAYER_GAME_COIN, this, position);
-	if (trophy) {
-		mEntityManager.AddCoin(trophy);
-	}
+	mTrophy = trophy;
 }
 
 Plant* Board::CreatePlant(PlantType plantType, int row, int column, bool skipsettings, bool isPreview)
@@ -707,6 +705,7 @@ void Board::OnSurvivalRoundClear()
 	mMaxWave = SURVIVAL_WAVES_PER_ROUND;
 	mZombieCountDown = 10.0f;
 	mTrophySpawned = false;
+	mTrophy.reset();
 	mHasHugeWaveSound = false;
 	mHugeWaveCountDown = 0.0f;
 	mNextWaveSpawnZombieHP = 0;
@@ -877,17 +876,6 @@ SmallSun* Board::CreateSmallSunWithID(const Vector& pos, bool fromSky, int id) {
 		mEntityManager.AddCoinWithID(sun, id);
 	}
 	return sun.get();
-}
-
-Trophy* Board::CreateTrophyWithID(const Vector& pos, int id) {
-	if (mTrophySpawned) return nullptr;
-	mTrophySpawned = true;
-	auto trophy = GameObjectManager::GetInstance().CreateGameObjectAsShared<Trophy>(
-		LAYER_GAME_COIN, this, pos);
-	if (trophy) {
-		mEntityManager.AddCoinWithID(trophy, id);
-	}
-	return trophy.get();
 }
 
 std::weak_ptr<Shovel> Board::CreateShovel() {

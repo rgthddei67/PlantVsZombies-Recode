@@ -6,7 +6,6 @@ constexpr int NULL_COIN_ID = -1024;
 
 enum class CoinType {
 	COIN_NONE,
-	COIN_TROPHY,
 	COIN_SILVER,
 	COIN_GOLD,
 	COIN_DIAMOND,

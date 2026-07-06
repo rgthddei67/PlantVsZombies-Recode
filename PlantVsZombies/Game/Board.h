@@ -104,6 +104,7 @@ public:
 
 	int mZombieNumber = 0;
 	bool mTrophySpawned = false;  // 防止重复生成
+	std::weak_ptr<Trophy> mTrophy;  // 每关至多一个；所有权在 GameObjectManager，此处仅供存档定位
 
 	bool mIsSurvival = false;     // 是否为生存模式（无尽）
 	int  mSurvivalRound = 1;      // 当前第几面旗（轮次，从 1 起）
@@ -215,7 +216,6 @@ public:
 	Bullet* CreateBulletWithID(BulletType type, int row, const Vector& pos, int id);
 	Sun* CreateSunWithID(const Vector& pos, bool fromSky, int id);
 	SmallSun* CreateSmallSunWithID(const Vector& pos, bool fromSky, int id);
-	Trophy* CreateTrophyWithID(const Vector& pos, int id);
 
 	// 更新关卡
 	void UpdateLevel();

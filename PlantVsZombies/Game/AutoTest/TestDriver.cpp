@@ -13,6 +13,7 @@
 #include "../Plant/Plant.h"
 #include "../Zombie/ZombieType.h"
 #include "../Zombie/Zombie.h"
+#include "../Trophy.h"   // dump_state 输出奖杯坐标
 #include "../../Reanimation/Animator.h"   // dump_state 查询轨道可见性（如铁门僵尸手臂）
 #include <filesystem>
 #include <algorithm>
@@ -503,6 +504,14 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["devNoCooldown"] = GameAPP::mDevNoCooldown;
 	out["devFreePlant"] = GameAPP::mDevFreePlant;
 	out["devSpawnPaused"] = GameAPP::mDevSpawnPaused;
+
+	// 奖杯（在场时给坐标，否则 null）——胜利路径冒烟测试的断言抓手
+	if (auto trophy = board->mTrophy.lock()) {
+		out["trophy"] = { { "x", trophy->GetPosition().x }, { "y", trophy->GetPosition().y } };
+	}
+	else {
+		out["trophy"] = nullptr;
+	}
 
 	out["survivalRound"] = board->mIsSurvival ? board->mSurvivalRound : -1;
 	out["spawnList"] = nlohmann::json::array();

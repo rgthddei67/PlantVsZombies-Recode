@@ -297,19 +297,13 @@ bool GameInfoSaver::SaveLevelDataImpl(Board* board, CardSlotManager* manager)
 	}
 	j["suns"] = sunsArr;
 
-	// 奖杯
+	// 奖杯（每关至多一个，Board 直接持有引用，不走金币表）
 	nlohmann::json trophiesArr = nlohmann::json::array();
-	for (int id : board->mEntityManager.GetAllCoinIDs()) {
-		auto* coin = board->mEntityManager.GetCoin(id);
-		if (!coin) continue;
-		auto* trophy = dynamic_cast<Trophy*>(coin);
-		if (trophy) {
-			nlohmann::json t;
-			t["id"] = id;
-			t["x"] = trophy->GetPosition().x;
-			t["y"] = trophy->GetPosition().y;
-			trophiesArr.push_back(t);
-		}
+	if (auto trophy = board->mTrophy.lock()) {
+		nlohmann::json t;
+		t["x"] = trophy->GetPosition().x;
+		t["y"] = trophy->GetPosition().y;
+		trophiesArr.push_back(t);
 	}
 	j["trophies"] = trophiesArr;
 
@@ -568,15 +562,11 @@ bool GameInfoSaver::LoadLevelDataImpl(Board* board, CardSlotManager* manager)
 		}
 	}
 
-	// 恢复奖杯
+	// 恢复奖杯（旧存档带 "id" 字段，已不再使用，直接忽略）
 	for (auto& t : j.value("trophies", nlohmann::json::array())) {
 		float x = t["x"].get<float>();
 		float y = t["y"].get<float>();
-		int id = t.value("id", NULL_COIN_ID);
-
-		if (id != NULL_COIN_ID) {
-			board->CreateTrophyWithID(Vector(x, y), id);
-		}
+		board->CreateTrophy(Vector(x, y));
 	}
 
 	// 恢复卡牌

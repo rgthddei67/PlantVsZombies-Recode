@@ -1,4 +1,4 @@
-﻿#include "Trophy.h"
+#include "Trophy.h"
 #include "Board.h"
 #include "../GameAPP.h"
 #include "GameScene.h"
@@ -9,19 +9,21 @@
 #include "../Graphics.h"
 
 Trophy::Trophy(Board* board, const Vector& position)
-	: Coin(board, AnimationType::ANIM_NONE, position,
-		Vector(60, 60), Vector(0, 0),
-		999.0f,
-		BASE_SCALE, "Trophy", true, false)
+	: AnimatedObject(ObjectType::OBJECT_NONE, board, position, AnimationType::ANIM_NONE,
+		ColliderType::CIRCLE, Vector(60, 60), Vector(0, 0),
+		BASE_SCALE, "Trophy", false)
 {
-	mCoinType = CoinType::COIN_TROPHY;
-	mStartScale = 0.2f;  // 出现动画从0.2开始
+	// 碰撞体仅供 ClickableComponent 做点击命中，不参与碰撞系统
+	if (auto collider = GetColliderComponent()) {
+		collider->layerMask = CollisionLayer::NONE;
+		collider->collisionMask = CollisionLayer::NONE;
+	}
 }
 
 void Trophy::Start()
 {
 	AnimatedObject::Start();
-	SetScale(mStartScale);  // 出现时从缩放起始值开始
+	SetScale(APPEAR_START_SCALE);  // 出现时从缩放起始值开始
 
 	// 注册点击组件
 	auto clickComponent = AddComponent<ClickableComponent>();
@@ -65,7 +67,8 @@ void Trophy::SetOnClickBack(ClickableComponent* click)
 void Trophy::Update()
 {
 	if (!mIsGrowing) {
-		Coin::Update();
+		UpdateAppearScale();
+		AnimatedObject::Update();
 		return;
 	}
 	AnimatedObject::Update();
@@ -87,6 +90,20 @@ void Trophy::Update()
 			mBoard->mGameScene->SetReadyToBackMenu();
 		GameObjectManager::GetInstance().DestroyGameObject(this);
 	}
+}
+
+void Trophy::UpdateAppearScale()
+{
+	if (!mAppearing) return;
+
+	mAppearTimer += DeltaTime::GetDeltaTime();
+	float t = mAppearTimer / APPEAR_DURATION;
+	t = t * t * t; // 立方缓入，开始慢，结束快
+	if (t >= 1.0f) {
+		t = 1.0f;
+		mAppearing = false;
+	}
+	SetScale(APPEAR_START_SCALE + (BASE_SCALE - APPEAR_START_SCALE) * t);
 }
 
 void Trophy::Draw(Graphics* g)
@@ -123,5 +140,27 @@ void Trophy::Draw(Graphics* g)
 		float w = tex->width * scale;
 		float h = tex->height * scale;
 		g->DrawTexture(tex, pos.x - w * 0.5f, pos.y - h * 0.5f, w, h);
+	}
+}
+
+Vector Trophy::GetPosition() const
+{
+	if (mTransform) {
+		return mTransform->GetPosition();
+	}
+	return Vector::zero();
+}
+
+void Trophy::SetPosition(const Vector& newPos)
+{
+	if (mTransform) {
+		mTransform->SetPosition(newPos);
+	}
+}
+
+void Trophy::SetScale(float scale)
+{
+	if (mTransform) {
+		mTransform->SetScale(scale);
 	}
 }
