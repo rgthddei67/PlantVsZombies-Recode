@@ -108,6 +108,9 @@ void EntityManager::EnsureZombieRowIndex() {
 	for (auto& bucket : mZombiesByRow) bucket.clear();
 	for (const auto& pair : mZombies) {
 		if (auto z = pair.second.lock()) {
+			// 只收"可作为目标"的僵尸：已 Die() 失活（待移除/泄漏）或垂死播死亡动画的都排除，
+			// 否则射手/大嘴花等索敌方会朝隐形尸体或尸体持续开火（原版也不索敌垂死僵尸）。
+			if (!z->IsActive() || z->IsDying()) continue;
 			int row = z->mRow;  // 唯一真相源：换行只改这里，下一帧重建即归位
 			if (row >= 0 && row < kMaxRows)
 				mZombiesByRow[row].push_back(z.get());

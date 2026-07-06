@@ -565,6 +565,11 @@ void Zombie::HelmDrop()
 
 void Zombie::Die()
 {
+	// 防重入：同帧内可能被调用两次（如自身死亡动画第 216 帧事件 + 大嘴花咬杀帧同帧命中，
+	// 此刻 weak_ptr 尚未过期）。重复执行会把 mZombieNumber 多扣一次，导致计数提前归零。
+	if (mIsDead) return;
+	mIsDead = true;
+
 	// 若死亡时仍在啃食植物，手动清理啃食状态（防止 mEaterCount 无法归零）
 	if (mIsEating && mEatPlantID != NULL_PLANT_ID && mBoard) {
 		if (auto* plant = mBoard->mEntityManager.GetPlant(mEatPlantID)) {

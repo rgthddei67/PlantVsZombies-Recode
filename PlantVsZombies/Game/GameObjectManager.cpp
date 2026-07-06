@@ -41,6 +41,10 @@ void GameObjectManager::DestroyGameObject(GameObject* raw) {
 			return;
 		}
 	}
+	// 两个列表都没找到：对象不会被销毁，shared_ptr 泄漏 → 失活的隐形对象（如僵尸）
+	// 会残留在 EntityManager 索引里被持续索敌。静默失败极难排查，必须留痕。
+	LOG_WARN("GOM") << "DestroyGameObject(raw) 未找到对象，销毁被跳过（疑似泄漏）: layer="
+		<< raw->GetLayer() << " renderOrder=" << raw->GetRenderOrder();
 }
 
 void GameObjectManager::DestroyAllGameObjects() {

@@ -56,6 +56,8 @@ protected:
 	bool mHasArm = true;
 	bool mHasTongue = false;
 	bool mIsDying = false;	// 是否播放死亡动画 大概可以这么理解 这个时候不能走路
+	bool mIsDead = false;	// Die() 防重入：外部（大嘴花/土豆雷/清场）与帧事件可能同帧重复调 Die，
+							// 第二次进入会把 mZombieNumber 多扣一次导致计数提前归零
 	bool mDbgAnomalyLogged = false;	// [DBG] 临时插桩：死亡期间轨道异常只记一次
 
 	float mSpeed = 10.0f;
@@ -111,6 +113,7 @@ public:
 	// 子类豁免点：不可魅惑态（如撑杆 RUNNING/JUMPING）返回 false
 	virtual bool CanBeCharmed() const { return true; }
 	bool HasHead() const { return this->mHasHead; }
+	bool IsDying() const { return this->mIsDying; }
 	bool HasArm() const { return this->mHasArm; }
 	float GetCooldownTimer() const { return this->mCooldownTimer; }
 
