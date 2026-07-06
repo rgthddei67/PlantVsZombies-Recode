@@ -25,7 +25,7 @@
     { "op": "set_timescale", "value": 1 },
     { "op": "screenshot", "name": "t1_trophy_spawned.png" },
     { "op": "dump_state", "name": "state.json" },
-    { "op": "click", "x": 991, "y": 440 },
+    { "op": "click", "target": "trophy" },
     { "op": "wait_seconds", "value": 0.5 },
     { "op": "assert_state", "path": "boardState", "equals": "WIN" },
     { "op": "screenshot", "name": "t2_trophy_growing.png" },

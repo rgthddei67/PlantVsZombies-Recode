@@ -2,13 +2,20 @@
 #ifndef _TROPHY_H
 #define _TROPHY_H
 
-#include "AnimatedObject.h"
+#include "GameObject.h"
+#include "TransformComponent.h"
+#include "ColliderComponent.h"
 #include "ClickableComponent.h"
 
+class Board;
+
 // 关卡奖杯：一张可点击的静态图片（无动画、不参与碰撞、不被收集），
-// 点击后触发胜利结算。不是金币，不进 EntityManager 金币表。
-class Trophy : public AnimatedObject {
+// 点击后触发胜利结算。不是金币也没有动画，故直接继承 GameObject。
+class Trophy : public GameObject {
 private:
+	Board* mBoard = nullptr;
+	TransformComponent* mTransform = nullptr;
+
 	// 入场缩放动画（三次缓入 APPEAR_START_SCALE → BASE_SCALE）
 	bool mAppearing = true;
 	float mAppearTimer = 0.0f;

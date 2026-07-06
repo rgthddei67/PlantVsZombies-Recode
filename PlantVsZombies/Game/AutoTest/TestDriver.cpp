@@ -447,11 +447,27 @@ bool TestDriver::ExecuteCurrent() {
 	}
 
 	if (op == "click") {
-		// 显式查在：缺字段时不静默回落到 (0,0) 点击，分别精确报错
-		if (!cmd.contains("x")) { Fail("click 缺 x 字段"); return false; }
-		if (!cmd.contains("y")) { Fail("click 缺 y 字段"); return false; }
-		const float x = cmd.value("x", 0.0f);
-		const float y = cmd.value("y", 0.0f);
+		float x = 0.0f, y = 0.0f;
+		// "target":"trophy"：执行时从 Board 实时解析奖杯坐标（僵尸死亡位置受帧时序影响，
+		// 静态写死坐标会漂移脱靶）；仍走下方 SDL_PushEvent 合成输入路径。
+		const std::string target = cmd.value("target", "");
+		if (target == "trophy") {
+			GameScene* gs = CurrentGameScene();
+			if (!gs || !gs->GetBoard()) { Fail("click target=trophy: 不在 GameScene 或 Board 为空"); return false; }
+			auto trophy = gs->GetBoard()->mTrophy.lock();
+			if (!trophy) { Fail("click target=trophy: 场上没有奖杯"); return false; }
+			const Vector pos = trophy->GetPosition();
+			x = pos.x;
+			y = pos.y;
+		}
+		else if (!target.empty()) { Fail("未知 click target: " + target); return false; }
+		else {
+			// 显式查在：缺字段时不静默回落到 (0,0) 点击，分别精确报错
+			if (!cmd.contains("x")) { Fail("click 缺 x 字段"); return false; }
+			if (!cmd.contains("y")) { Fail("click 缺 y 字段"); return false; }
+			x = cmd.value("x", 0.0f);
+			y = cmd.value("y", 0.0f);
+		}
 		const std::string btnName = cmd.value("button", "left");
 		auto bit = kMouseButtonNames.find(btnName);
 		if (bit == kMouseButtonNames.end()) { Fail("未知鼠标按钮: " + btnName); return false; }

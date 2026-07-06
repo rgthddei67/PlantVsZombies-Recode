@@ -1,5 +1,6 @@
 #include "Trophy.h"
 #include "Board.h"
+#include "AudioSystem.h"
 #include "../GameAPP.h"
 #include "GameScene.h"
 #include "../DeltaTime.h"
@@ -9,20 +10,24 @@
 #include "../Graphics.h"
 
 Trophy::Trophy(Board* board, const Vector& position)
-	: AnimatedObject(ObjectType::OBJECT_NONE, board, position, AnimationType::ANIM_NONE,
-		ColliderType::CIRCLE, Vector(60, 60), Vector(0, 0),
-		BASE_SCALE, "Trophy", false)
+	: GameObject(ObjectType::OBJECT_NONE)
+	, mBoard(board)
 {
+	SetTag("Trophy");
+
+	mTransform = AddComponent<TransformComponent>();
+	mTransform->SetPosition(position);
+	SetScale(BASE_SCALE);
+
 	// 碰撞体仅供 ClickableComponent 做点击命中，不参与碰撞系统
-	if (auto collider = GetColliderComponent()) {
-		collider->layerMask = CollisionLayer::NONE;
-		collider->collisionMask = CollisionLayer::NONE;
-	}
+	auto* collider = AddComponent<ColliderComponent>(Vector(60, 60), Vector(0, 0), ColliderType::CIRCLE);
+	collider->layerMask = CollisionLayer::NONE;
+	collider->collisionMask = CollisionLayer::NONE;
 }
 
 void Trophy::Start()
 {
-	AnimatedObject::Start();
+	GameObject::Start();
 	SetScale(APPEAR_START_SCALE);  // 出现时从缩放起始值开始
 
 	// 注册点击组件
@@ -68,10 +73,10 @@ void Trophy::Update()
 {
 	if (!mIsGrowing) {
 		UpdateAppearScale();
-		AnimatedObject::Update();
+		GameObject::Update();
 		return;
 	}
-	AnimatedObject::Update();
+	GameObject::Update();
 
 	mGrowTimer += DeltaTime::GetDeltaTime();
 	float t = mGrowTimer / GROW_DURATION;
