@@ -52,8 +52,10 @@ public:
 		}
 
 		// —— 手臂造型一次定状态（避免先 ShowArm 全开、再被逐条覆盖）——
-		if (!mHasArm || mIsDying) {
-			this->ShowBrokenArm();           // 断臂残端（掉手 / 死亡姿势）
+		// !mHasHead：穿透可在门未掉时掉头（HeadDrop→ShowBrokenArm，mHasArm 仍 true），
+		// 判据须与 OnStart/OnStopEating 的残端优先守卫一致，否则读档后残端被藏回门后。
+		if (!mHasArm || !mHasHead || mIsDying) {
+			this->ShowBrokenArm();           // 断臂残端（掉手 / 掉头 / 死亡姿势）
 		}
 		else if (shieldGone || mIsEating) {
 			this->ShowArm(true);             // 门没了 / 啃食时露出整条手臂
