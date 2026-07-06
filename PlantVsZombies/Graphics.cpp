@@ -886,7 +886,7 @@ void Graphics::FlushBatch() {
 		sets, projView);
 
 	// 诊断：统计一次真实提交（含 replay 里逐行血量文字各自的 FlushBatch）。
-	Profiler::Get().CountFlush(vertCount);
+	// Profiler::Get().CountFlush(vertCount);
 
 	clearCpu();
 }
