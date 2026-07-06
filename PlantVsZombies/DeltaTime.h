@@ -3,21 +3,27 @@
 #define _DELTATIME_H
 
 #include <SDL2/SDL.h>
-#include <algorithm>
 
+// 固定步长时钟（2026-07-06 由变步长迁移）。
+// BeginFrame 只累积墙钟时间，折算出本渲染帧应执行的逻辑步数（封顶 kMaxCatchUpSteps，
+// 超出的欠账直接丢弃——过载时表现为整体慢动作，而不是单步大位移/子弹穿隧）；
+// 每个逻辑步由 BeginStep 装填 deltaTime = kFixedStep * timeScale，
+// 因此全仓库所有 GetDeltaTime() 调用点无需感知这次迁移。
+// 收益：同 -Seed 下逻辑帧序列与墙钟解耦，AutoTest 可精确复现。
 class DeltaTime {
 private:
+	static constexpr float kFixedStep = 1.0f / 60.0f;
+	static constexpr int kMaxCatchUpSteps = 3;
+
 	inline static Uint64 lastTime = 0;
-	inline static float unscaledDeltaTime = 0.016f;
-	inline static float deltaTime = 0.016f;
-	inline static float maxDeltaTime = 0.1f;
+	// 尚未折算成逻辑步的墙钟余量（秒）
+	inline static float accumulator = 0.0f;
+	inline static float unscaledDeltaTime = kFixedStep;
+	inline static float deltaTime = kFixedStep;
 	inline static bool isPaused = false;
 	inline static float timeScale = 1.0f;
 	// 暂停前保存的时间缩放系数，恢复时还原（避免暂停后丢失用户选择的速度）
 	inline static float savedTimeScale = 1.0f;
-
-	// 最小时间限制，防止调试时暂停导致的时间异常
-	inline static float minDeltaTime = 0.0001f;
 
 	// 游戏总时间统计
 	inline static double totalGameTime = 0.0;
@@ -28,39 +34,47 @@ private:
 	DeltaTime& operator=(const DeltaTime&) = delete;
 
 public:
-	// 开始新的一帧，计算时间增量
-	static void BeginFrame() {
+	// 渲染帧开头调用一次：返回本帧应执行的逻辑步数（0..kMaxCatchUpSteps）。
+	// 暂停不冻结步进——菜单/UI 仍需 Update 消费点击，只是每步 dt 为 0（见 BeginStep）。
+	static int BeginFrame() {
+		Uint64 currentTime = SDL_GetTicks64();
+		if (lastTime > 0) {
+			accumulator += (currentTime - lastTime) / 1000.0f;
+		}
+		lastTime = currentTime;
+
+		int steps = static_cast<int>(accumulator / kFixedStep);
+		if (steps > kMaxCatchUpSteps) {
+			steps = kMaxCatchUpSteps;
+			accumulator = 0.0f;   // 丢债：追不上的逻辑时间不再补
+		}
+		else {
+			accumulator -= steps * kFixedStep;
+		}
+		return steps;
+	}
+
+	// 每个逻辑步开头调用：装填本步的 deltaTime / unscaledDeltaTime。
+	static void BeginStep() {
 		if (isPaused) {
 			unscaledDeltaTime = 0.0f;
 			deltaTime = 0.0f;
-			// 更新 lastTime 避免恢复时产生巨大时间差
-			lastTime = SDL_GetTicks64();
 			return;
 		}
-
-		Uint64 currentTime = SDL_GetTicks64();
-		if (lastTime > 0) {
-			// 计算时间差（毫秒转换为秒）
-			unscaledDeltaTime = (currentTime - lastTime) / 1000.0f;
-
-			// 限制时间范围
-			unscaledDeltaTime = std::clamp(unscaledDeltaTime, minDeltaTime, maxDeltaTime);
-
-			// 应用时间缩放
-			deltaTime = unscaledDeltaTime * timeScale;
-
-			// 更新游戏总时间
-			totalGameTime += static_cast<double>(deltaTime);
-			unscaledTotalTime += static_cast<double>(unscaledDeltaTime);
-		}
-		lastTime = currentTime;
+		unscaledDeltaTime = kFixedStep;
+		deltaTime = kFixedStep * timeScale;
+		totalGameTime += static_cast<double>(deltaTime);
+		unscaledTotalTime += static_cast<double>(unscaledDeltaTime);
 	}
 
 	// 获取缩放后的DeltaTime
 	static float GetDeltaTime() { return deltaTime; }
 
-	// 获取未缩放的DeltaTime（原始帧时间）
+	// 获取未缩放的DeltaTime（固定步长；暂停时为 0）
 	static float GetUnscaledDeltaTime() { return unscaledDeltaTime; }
+
+	// 逻辑步长常量（秒）
+	static constexpr float GetFixedStep() { return kFixedStep; }
 
 	// 设置时间缩放系数
 	static void SetTimeScale(float scale) {
@@ -90,27 +104,6 @@ public:
 	// 检查是否暂停
 	static bool IsPaused() { return isPaused; }
 
-	// 设置最大时间增量
-	static void SetMaxDeltaTime(float max) {
-		// 确保最大值有效
-		if (max < minDeltaTime) max = minDeltaTime;
-		if (max > 1.0f) max = 1.0f;
-		maxDeltaTime = max;
-	}
-
-	// 获取最大时间增量
-	static float GetMaxDeltaTime() { return maxDeltaTime; }
-
-	// 设置最小时间增量
-	static void SetMinDeltaTime(float min) {
-		if (min < 0.000001f) min = 0.000001f;
-		if (min > maxDeltaTime) min = maxDeltaTime;
-		minDeltaTime = min;
-	}
-
-	// 获取最小时间增量
-	static float GetMinDeltaTime() { return minDeltaTime; }
-
 	// 获取游戏总时间（缩放后）
 	static double GetTotalTime() { return totalGameTime; }
 
@@ -120,8 +113,9 @@ public:
 	// 重置
 	static void Reset() {
 		lastTime = 0;
-		unscaledDeltaTime = 0.016f;
-		deltaTime = 0.016f;
+		accumulator = 0.0f;
+		unscaledDeltaTime = kFixedStep;
+		deltaTime = kFixedStep;
 		timeScale = 1.0f;
 		savedTimeScale = 1.0f;
 		isPaused = false;

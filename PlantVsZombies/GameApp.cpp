@@ -356,9 +356,11 @@ int GameAPP::Run()
 
 	while (mRunning && !sceneManager.IsEmpty())
 	{
-		DeltaTime::BeginFrame();
-		// 处理事件
-		{
+		// 固定步长：BeginFrame 折算本渲染帧应执行的逻辑步数（0..3，超出丢债=慢动作退化）
+		const int logicSteps = DeltaTime::BeginFrame();
+
+		// 处理事件（每渲染帧至少轮询一次，保证 0 步帧窗口消息也被泵送）
+		auto pollEvents = [&]() {
 			PROFILE_SCOPE("A.InputPoll");
 			while (SDL_PollEvent(&event))
 			{
@@ -368,15 +370,28 @@ int GameAPP::Run()
 				}
 				mInputHandler->ProcessEvent(&event);
 			}
-		}
+		};
+		pollEvents();
 
-		// 更新
+		// 更新：每逻辑步 dt 恒为 1/60 × timeScale（暂停为 0）
 		{
 			PROFILE_SCOPE("B.SceneUpdate_total");
-			CursorManager::GetInstance().ResetHoverCount();
-			sceneManager.Update();
-			CursorManager::GetInstance().Update();
-			TestDriver::GetInstance().Update();   // 非 AutoTest 模式下首行 !mActive 即返回
+			for (int i = 0; i < logicSteps && mRunning && !sceneManager.IsEmpty(); ++i)
+			{
+				// 不变量：每个逻辑步之前都有一次 poll。追帧的第 2/3 步前补一次轮询，
+				// 否则上一步内推送的合成输入（TestDriver key/click 跨步状态机）会与
+				// 其收尾事件挤进下帧同一批 poll，按下沿未被任何逻辑步观察就被改写湮灭
+				if (i > 0) pollEvents();
+				DeltaTime::BeginStep();
+				CursorManager::GetInstance().ResetHoverCount();
+				sceneManager.Update();
+				CursorManager::GetInstance().Update();
+				TestDriver::GetInstance().Update();   // 非 AutoTest 模式下首行 !mActive 即返回
+				// 边沿衰减（PRESSED→DOWN 等）每逻辑步一次：保证一次点击恰好被一个
+				// 逻辑步消费——追帧补 2~3 步时不会把同一次点击种成两棵植物；
+				// 本帧 0 步时边沿保留到下一步，点击不会丢
+				mInputHandler->Update();
+			}
 		}
 
 		// 渲染
@@ -393,8 +408,6 @@ int GameAPP::Run()
 			LOG_TRACE("GameApp") << "Mouse Screen Position: " << mInputHandler->GetMousePosition().x << ", "
 				<< mInputHandler->GetMousePosition().y;
 		}
-
-		mInputHandler->Update();
 
 		Profiler::Get().EndFrame();
 	}
