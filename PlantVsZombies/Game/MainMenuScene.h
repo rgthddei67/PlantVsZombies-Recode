@@ -54,7 +54,7 @@ public:
 	void Start() override
 	{
 		GameObject::Start();
-		auto adventure = mUIManager->CreateButton(Vector(565, 85), Vector(330 * 0.95f, 120 * 0.95f));
+		auto adventure = mUIManager->CreateButton(Vector(573, 90), Vector(330 * 0.90f, 120 * 0.90f));
 		mAdventure = adventure;
 		adventure->SetAsCheckbox(false);
 		adventure->SetSkipDraw(true);
@@ -67,7 +67,7 @@ public:
 			mMainMenuScene->mReadyToSwitchAdventureLevel = true;
 			});
 
-		auto minigames = mUIManager->CreateButton(Vector(565, 172), Vector(313 * 0.95f, 123 * 0.95f));
+		auto minigames = mUIManager->CreateButton(Vector(573, 172), Vector(313 * 0.90f, 123 * 0.90f));
 		mMiniGames = minigames;
 		minigames->SetAsCheckbox(false);
 		minigames->SetSkipDraw(true);
@@ -75,7 +75,7 @@ public:
 			ResourceKeys::Textures::IMAGE_SELECTORSCREEN_GAME,
 			ResourceKeys::Textures::IMAGE_SELECTORSCREEN_GAME,
 			ResourceKeys::Textures::IMAGE_SELECTORSCREEN_GAME);
-		auto pizzle = mUIManager->CreateButton(Vector(565, 248), Vector(286 * 0.95f, 122 * 0.95f));
+		auto pizzle = mUIManager->CreateButton(Vector(573, 244), Vector(286 * 0.90f, 122 * 0.90f));
 		mPizzle = pizzle;
 		pizzle->SetAsCheckbox(false);
 		pizzle->SetSkipDraw(true);
@@ -83,7 +83,7 @@ public:
 			ResourceKeys::Textures::IMAGE_SELECTORSCREEN_CHALLENGES_HIGHLIGHT,
 			ResourceKeys::Textures::IMAGE_SELECTORSCREEN_CHALLENGES_HIGHLIGHT,
 			ResourceKeys::Textures::IMAGE_SELECTORSCREEN_CHALLENGES_HIGHLIGHT);
-		auto survival = mUIManager->CreateButton(Vector(565, 320), Vector(266 * 0.95f, 123 * 0.95f));
+		auto survival = mUIManager->CreateButton(Vector(573, 312), Vector(266 * 0.90f, 123 * 0.90f));
 		mSurvival = survival;
 		survival->SetAsCheckbox(false);
 		survival->SetSkipDraw(true);

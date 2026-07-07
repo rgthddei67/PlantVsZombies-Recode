@@ -5,7 +5,7 @@
     { "op": "click", "x": 710, "y": 190 },
     { "op": "wait_frames", "value": 60 },
     { "op": "screenshot", "name": "after_overlap_click_still_menu" },
-    { "op": "click", "x": 721, "y": 142 },
+    { "op": "click", "x": 721, "y": 144 },
     { "op": "wait_state", "state": "CHOOSE_CARD", "timeout": 15 },
     { "op": "screenshot", "name": "entered_adventure" },
     { "op": "quit" }
