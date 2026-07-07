@@ -2,10 +2,10 @@
   "commands": [
     { "op": "wait_frames", "value": 60 },
     { "op": "screenshot", "name": "menu_compact" },
-    { "op": "click", "x": 712, "y": 196 },
+    { "op": "click", "x": 699, "y": 196 },
     { "op": "wait_frames", "value": 60 },
     { "op": "screenshot", "name": "after_overlap_click_still_menu" },
-    { "op": "click", "x": 723, "y": 145 },
+    { "op": "click", "x": 710, "y": 145 },
     { "op": "wait_state", "state": "CHOOSE_CARD", "timeout": 15 },
     { "op": "screenshot", "name": "entered_adventure" },
     { "op": "quit" }
