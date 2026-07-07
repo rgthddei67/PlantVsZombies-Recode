@@ -33,13 +33,6 @@ struct PlantInfo {
 	PlantFactoryFn factory = nullptr;  // 具体类的构造工厂
 
 	PlantInfo() = default;
-
-	PlantInfo(PlantType t, int sunCost, float cooldown, const std::string& enumN,
-		const std::string& tex, AnimationType animT,
-		const std::string& animN, const Vector& off)
-		: type(t), SunCost(sunCost), Cooldown(cooldown), enumName(enumN), textureKey(tex),
-		animType(animT), animName(animN), offset(off) {
-	}
 };
 
 // 僵尸信息
@@ -56,12 +49,6 @@ struct ZombieInfo {
 	ZombieFactoryFn factory = nullptr;  // 具体类的构造工厂
 
 	ZombieInfo() = default;
-
-	ZombieInfo(ZombieType t, const std::string& enumN,
-		AnimationType animT, const std::string& animN, const Vector& off, int w, int appear)
-		: type(t), enumName(enumN), animType(animT), animName(animN),
-		offset(off), weight(w), appearWave(appear) {
-	}
 };
 
 class GameDataManager {
@@ -75,9 +62,10 @@ public:
 	GameDataManager& operator=(const GameDataManager&) = delete;
 
 	/**
-	 * @brief 初始化数据管理器，加载硬编码数据
+	 * @brief 初始化：注册身份数据（硬编码）+ 从 resources/gamedata.json 加载数值
+	 * @return false = JSON 缺失/解析失败/缺条目/缺字段（调用方须中止启动）
 	 */
-	void Initialize();
+	bool Initialize();
 
 	/**
 	 * @brief 获取植物对应的纹理资源键
@@ -255,49 +243,37 @@ private:
 	GameDataManager();
 
 	/**
-	 * @brief 硬编码初始化所有植物和僵尸数据
+	 * @brief 硬编码初始化所有植物和僵尸的身份数据（数值一律来自 gamedata.json）
 	 */
 	void InitializeHardcodedData();
 
 	/**
-	 * @brief 注册一种植物（内部使用）
-	 * @param type 植物类型
-	 * @param sunCost 阳光消耗
-	 * @param cooldown 冷却时间（单位：秒）
-	 * @param enumName 枚举名字符串
-	 * @param textureKey 纹理键
-	 * @param animType 动画类型
-	 * @param animName 动画资源名
-	 * @param offset 偏移量
+	 * @brief 从 ./resources/gamedata.json 回填全部数值字段（JSON 是数值唯一来源）。
+	 *        严格校验：文件缺失/解析失败/任一已注册类型缺条目/条目缺任一字段/类型错
+	 *        → 收集全部错误统一 LOG_ERROR + 弹窗（AutoTest 模式不弹），返回 false。
+	 *        JSON 中未注册的多余键仅 LOG_WARN 不阻断。
+	 */
+	bool LoadNumbersFromJson();
+
+	/**
+	 * @brief 注册一种植物的身份数据（内部使用）。数值（cost/cooldown/offset/scale）
+	 *        一律来自 resources/gamedata.json，由 LoadNumbersFromJson 回填。
 	 */
 	void RegisterPlant(PlantType type,
-		int sunCost, float cooldown,
 		const std::string& enumName,
 		const std::string& textureKey,
 		AnimationType animType,
 		const std::string& animName,
-		const Vector& offset,
-		float scale,
 		PlantFactoryFn factory);
 
 	/**
-	 * @brief 注册一种僵尸（内部使用）
-	 * @param type 僵尸类型
-	 * @param enumName 枚举名字符串
-	 * @param animType 动画类型
-	 * @param animName 动画资源名
-	 * @param offset 偏移量
-	 * @param weight 僵尸权重
-	 * @param appearWave 能刷新的波数
-	 * @param survivalRound 生存模式最早出场轮(1起；0=不进生存)
+	 * @brief 注册一种僵尸的身份数据（内部使用）。数值（weight/appearWave/
+	 *        survivalRound/offset/scale）一律来自 resources/gamedata.json。
 	 */
 	void RegisterZombie(ZombieType type,
 		const std::string& enumName,
 		AnimationType animType,
 		const std::string& animName,
-		const Vector& offset, int weight, int appearWave,
-		int survivalRound,
-		float scale,
 		ZombieFactoryFn factory);
 
 	// ==================== 数据成员 ====================

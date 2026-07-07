@@ -1,8 +1,12 @@
 ﻿#include "GameDataManager.h"
 #include "../../ResourceKeys.h"
 #include "../../Logger.h"
+#include "../../FileManager.h"
+#include "../AutoTest/TestDriver.h"
+#include <SDL2/SDL.h>
 #include <algorithm>
 #include <vector>
+#include <unordered_set>
 
 #include "../GameObjectManager.h"
 #include "../RenderOrder.h"
@@ -48,7 +52,7 @@ namespace {
 
 GameDataManager::GameDataManager() {}
 
-void GameDataManager::Initialize() {
+bool GameDataManager::Initialize() {
 	// 清空现有数据
 	mPlantInfo.clear();
 	mZombieInfo.clear();
@@ -58,268 +62,131 @@ void GameDataManager::Initialize() {
 	mAnimNameToType.clear();
 
 	InitializeHardcodedData();
+	if (!LoadNumbersFromJson()) return false;
+
 	LOG_INFO("GameData") << "初始化完成，共注册 "
 		<< mPlantInfo.size() << " 种植物，"
-		<< mZombieInfo.size() << " 种僵尸";
+		<< mZombieInfo.size() << " 种僵尸（数值来自 gamedata.json）";
+	return true;
 }
 
 void GameDataManager::InitializeHardcodedData() {
 	// ============================================================
-	// 【新增植物】共 4 步（不再需要改 GameApp 的 switch —— 已用注册式工厂取代）：
+	// 本函数只注册【身份数据】：枚举名/纹理键/动画/构造工厂。
+	// 全部【数值】（cost/cooldown/weight/appearWave/survivalRound/offset/scale）
+	// 住在 resources/gamedata.json（数值唯一来源，改数值不用重编译）。
+	// 【新增植物】共 5 步（不再需要改 GameApp 的 switch —— 已用注册式工厂取代）：
 	//   1. PlantType.h    加枚举项
 	//   2. Game/Plant/    写植物类（纯头文件即可，构造经 using 继承 Plant/Shooter）
-	//   3. 本文件          在下方“植物注册”区加一行 RegisterPlant(..., scale, &MakePlant<新类>)
-	//                      —— 含全部数据（cost/cooldown/纹理/动画/偏移/缩放）与构造工厂
+	//   3. 本文件          在下方“植物注册”区加一行 RegisterPlant(..., &MakePlant<新类>)
 	//      并在本文件顶部 #include "你的植物.h"
-	//   4. 加 Card 条目
+	//   4. resources/gamedata.json 的 "plants" 加同枚举名条目（漏了 → 启动时报错退出，
+	//      注意资源目录在 build/<preset>/resources/，两个 preset 都要加）
+	//   5. 加 Card 条目
 	// 【新增僵尸】同理：ZombieType.h 加枚举 → 写僵尸类 → 下方“僵尸注册”区加一行
-	//      RegisterZombie(..., appearWave, survivalRound, scale, &MakeZombie<新类>) + 顶部 #include；
-	//      survivalRound = 生存模式最早出场轮(0=不进生存)；Board 波次逻辑按需。
+	//      RegisterZombie(..., &MakeZombie<新类>) + 顶部 #include
+	//      + gamedata.json 的 "zombies" 加条目（weight/appearWave/survivalRound 都在 JSON）。
 	// 配套常量：动画类型加在 Reanimation/AnimationTypes.h；资源键加在 ResourceKeys.h。
 	// ============================================================
 
-	// ==================== 植物注册 ====================
-	RegisterPlant(
-		PlantType::PLANT_SUNFLOWER,
-		50, 7.5f,
-		"PLANT_SUNFLOWER",
+	// ==================== 植物注册（仅身份，数值见 gamedata.json） ====================
+	RegisterPlant(PlantType::PLANT_SUNFLOWER, "PLANT_SUNFLOWER",
 		ResourceKeys::Textures::IMAGE_SUNFLOWER,
 		AnimationType::ANIM_SUNFLOWER,
-		ResourceKeys::Reanimations::REANIM_SUNFLOWER,
-		Vector(-37.6f, -44),
-		1.0f, &MakePlant<SunFlower>
-	);
+		ResourceKeys::Reanimations::REANIM_SUNFLOWER, &MakePlant<SunFlower>);
 
-	RegisterPlant(
-		PlantType::PLANT_PEASHOOTER,
-		100, 7.5f,
-		"PLANT_PEASHOOTER",
+	RegisterPlant(PlantType::PLANT_PEASHOOTER, "PLANT_PEASHOOTER",
 		ResourceKeys::Textures::IMAGE_PEASHOOTER,
 		AnimationType::ANIM_PEASHOOTER,
-		ResourceKeys::Reanimations::REANIM_PEASHOOTER,
-		Vector(-37.6f, -44),
-		1.0f, &MakePlant<PeaShooter>
-	);
+		ResourceKeys::Reanimations::REANIM_PEASHOOTER, &MakePlant<PeaShooter>);
 
-	RegisterPlant(
-		PlantType::PLANT_CHERRYBOMB,
-		150, 50.0f,
-		"PLANT_CHERRYBOMB",
+	RegisterPlant(PlantType::PLANT_CHERRYBOMB, "PLANT_CHERRYBOMB",
 		ResourceKeys::Textures::IMAGE_CHERRYBOMB,
 		AnimationType::ANIM_CHERRYBOMB,
-		ResourceKeys::Reanimations::REANIM_CHERRYBOMB,
-		Vector(-37.6f, -44),
-		1.0f, &MakePlant<CherryBomb>
-	);
+		ResourceKeys::Reanimations::REANIM_CHERRYBOMB, &MakePlant<CherryBomb>);
 
-	RegisterPlant(
-		PlantType::PLANT_WALLNUT,
-		50, 25.0f,
-		"PLANT_WALLNUT",
+	RegisterPlant(PlantType::PLANT_WALLNUT, "PLANT_WALLNUT",
 		ResourceKeys::Textures::IMAGE_WALLNUT,
 		AnimationType::ANIM_WALLNUT,
-		ResourceKeys::Reanimations::REANIM_WALLNUT,
-		Vector(-37.6f, -44),
-		1.0f, &MakePlant<WallNut>
-	);
+		ResourceKeys::Reanimations::REANIM_WALLNUT, &MakePlant<WallNut>);
 
-	RegisterPlant(
-		PlantType::PLANT_POTATOMINE,
-		25, 20.0f,
-		"PLANT_POTATOMINE",
+	RegisterPlant(PlantType::PLANT_POTATOMINE, "PLANT_POTATOMINE",
 		ResourceKeys::Textures::IMAGE_POTATOMINE,
 		AnimationType::ANIM_POTATOMINE,
-		ResourceKeys::Reanimations::REANIM_POTATOMINE,
-		Vector(-30.0f, -35.2f),
-		0.8f, &MakePlant<PotatoMine>
-	);
+		ResourceKeys::Reanimations::REANIM_POTATOMINE, &MakePlant<PotatoMine>);
 
-	RegisterPlant(
-		PlantType::PLANT_SNOWPEA,
-		175, 7.5f,
-		"PLANT_SNOWPEASHOOTER",
+	RegisterPlant(PlantType::PLANT_SNOWPEA, "PLANT_SNOWPEASHOOTER",
 		ResourceKeys::Textures::IMAGE_SNOWPEASHOOTER,
 		AnimationType::ANIM_SNOWPEASHOOTER,
-		ResourceKeys::Reanimations::REANIM_SNOWPEASHOOTER,
-		Vector(-37.6f, -44),
-		1.0f, &MakePlant<SnowPeaShooter>
-	);
+		ResourceKeys::Reanimations::REANIM_SNOWPEASHOOTER, &MakePlant<SnowPeaShooter>);
 
-	RegisterPlant(
-		PlantType::PLANT_CHOMPER,
-		150, 7.5f,
-		"PLANT_CHOMPER",
+	RegisterPlant(PlantType::PLANT_CHOMPER, "PLANT_CHOMPER",
 		ResourceKeys::Textures::IMAGE_CHOMPER,
 		AnimationType::ANIM_CHOMPER,
-		"Chomper",
-		Vector(-37.6f, -44),
-		1.0f, &MakePlant<Chomper>
-	);
+		"Chomper", &MakePlant<Chomper>);
 
-	RegisterPlant(
-		PlantType::PLANT_REPEATER,
-		200, 7.5f,
-		"PLANT_REPEATER",
+	RegisterPlant(PlantType::PLANT_REPEATER, "PLANT_REPEATER",
 		ResourceKeys::Textures::IMAGE_REPEATER,
 		AnimationType::ANIM_REPEAT,
-		"Repeater",
-		Vector(-37.6f, -44),
-		1.0f, &MakePlant<Repeater>
-	);
+		"Repeater", &MakePlant<Repeater>);
 
-	RegisterPlant(
-		PlantType::PLANT_PUFFSHROOM,
-		0, 7.5f,
-		"PLANT_PUFFSHROOM",
+	RegisterPlant(PlantType::PLANT_PUFFSHROOM, "PLANT_PUFFSHROOM",
 		ResourceKeys::Textures::IMAGE_PUFFSHROOM,
 		AnimationType::ANIM_PUFFSHROOM,
-		"PuffShroom",
-		Vector(-37.6f, -28),
-		1.0f, &MakePlant<PuffShroom>
-	);
+		"PuffShroom", &MakePlant<PuffShroom>);
 
-	RegisterPlant(
-		PlantType::PLANT_SUNSHROOM,
-		25, 7.5f,
-		"PLANT_SUNSHROOM",
+	RegisterPlant(PlantType::PLANT_SUNSHROOM, "PLANT_SUNSHROOM",
 		ResourceKeys::Textures::IMAGE_SUNSHROOM,
 		AnimationType::ANIM_SUNSHROOM,
-		"SunShroom",
-		Vector(-37.6f, -28),
-		1.0f, &MakePlant<SunShroom>
-	);
+		"SunShroom", &MakePlant<SunShroom>);
 
-	RegisterPlant(
-		PlantType::PLANT_FUMESHROOM,
-		100, 7.5f,
-		"PLANT_FUMESHROOM",
+	RegisterPlant(PlantType::PLANT_FUMESHROOM, "PLANT_FUMESHROOM",
 		ResourceKeys::Textures::IMAGE_FUMESHROOM,
 		AnimationType::ANIM_FUMESHROOM,
-		"FumeShroom",
-		Vector(-37.6f, -36),
-		0.92f, &MakePlant<FumeShroom>
-	);
+		"FumeShroom", &MakePlant<FumeShroom>);
 
-	RegisterPlant(
-		PlantType::PLANT_HYPNOSHROOM,
-		75, 25.0f,
-		"PLANT_HYPNOSHROOM",
+	RegisterPlant(PlantType::PLANT_HYPNOSHROOM, "PLANT_HYPNOSHROOM",
 		ResourceKeys::Textures::IMAGE_HYPNOSHROOM,
 		AnimationType::ANIM_HYPER,
-		"HypnoShroom",
-		Vector(-37.6f, -36),
-		0.92f, &MakePlant<HypnoShroom>
-	);
+		"HypnoShroom", &MakePlant<HypnoShroom>);
 
-	// ==================== 僵尸注册 ====================
-	// 普通僵尸
-	RegisterZombie(
-		ZombieType::ZOMBIE_NORMAL,
-		"ZOMBIE_NORMAL",
+	// ==================== 僵尸注册（仅身份，数值见 gamedata.json） ====================
+	RegisterZombie(ZombieType::ZOMBIE_NORMAL, "ZOMBIE_NORMAL",
 		AnimationType::ANIM_NORMAL_ZOMBIE,
-		ResourceKeys::Reanimations::REANIM_NORMAL_ZOMBIE,
-		Vector(-50, -85),
-		1000,
-		1,
-		1,    // survivalRound: 普通
-		1.0f, &MakeZombie<Zombie>
-	);
+		ResourceKeys::Reanimations::REANIM_NORMAL_ZOMBIE, &MakeZombie<Zombie>);
 
-	RegisterZombie(
-		ZombieType::ZOMBIE_TRAFFIC_CONE,
-		"ZOMBIE_TRAFFIC_CONE",
+	RegisterZombie(ZombieType::ZOMBIE_TRAFFIC_CONE, "ZOMBIE_TRAFFIC_CONE",
 		AnimationType::ANIM_CONE_ZOMBIE,
-		ResourceKeys::Reanimations::REANIM_CONE_ZOMBIE,
-		Vector(-50, -85),
-		1500,
-		3,
-		2,    // survivalRound: 路障
-		1.0f, &MakeZombie<ConeZombie>
-	);
+		ResourceKeys::Reanimations::REANIM_CONE_ZOMBIE, &MakeZombie<ConeZombie>);
 
-	RegisterZombie(
-		ZombieType::ZOMBIE_POLEVAULTER,
-		"ZOMBIE_POLEVAULTER",
+	RegisterZombie(ZombieType::ZOMBIE_POLEVAULTER, "ZOMBIE_POLEVAULTER",
 		AnimationType::ANIM_POLEVAULTER_ZOMBIE,
-		ResourceKeys::Reanimations::REANIM_POLEVAULTER_ZOMBIE,
-		Vector(-50, -85),
-		1700,
-		5,
-		3,    // survivalRound: 撑杆
-		1.0f, &MakeZombie<Polevaulter>
-	);
+		ResourceKeys::Reanimations::REANIM_POLEVAULTER_ZOMBIE, &MakeZombie<Polevaulter>);
 
-	RegisterZombie(
-		ZombieType::ZOMBIE_BUCKET,
-		"ZOMBIE_BUCKET",
+	RegisterZombie(ZombieType::ZOMBIE_BUCKET, "ZOMBIE_BUCKET",
 		AnimationType::ANIM_BUCKET_ZOMBIE,
-		ResourceKeys::Reanimations::REANIM_BUCKET_ZOMBIE,
-		Vector(-50, -85),
-		2000,
-		5,
-		3,    // survivalRound: 铁桶
-		1.0f, &MakeZombie<BucketZombie>
-	);
+		ResourceKeys::Reanimations::REANIM_BUCKET_ZOMBIE, &MakeZombie<BucketZombie>);
 
-	RegisterZombie(
-		ZombieType::ZOMBIE_FASTBUCKET,
-		"ZOMBIE_FASTBUCKET",
+	RegisterZombie(ZombieType::ZOMBIE_FASTBUCKET, "ZOMBIE_FASTBUCKET",
 		AnimationType::ANIM_BUCKET_ZOMBIE,
-		ResourceKeys::Reanimations::REANIM_BUCKET_ZOMBIE,
-		Vector(-50, -85),
-		2800,
-		6,
-		6,    // survivalRound: 快速铁桶
-		1.0f, &MakeZombie<FastBucketZombie>
-	);
+		ResourceKeys::Reanimations::REANIM_BUCKET_ZOMBIE, &MakeZombie<FastBucketZombie>);
 
-	RegisterZombie(
-		ZombieType::ZOMBIE_NEWSPAPER,
-		"ZOMBIE_NEWSPAPER",
+	RegisterZombie(ZombieType::ZOMBIE_NEWSPAPER, "ZOMBIE_NEWSPAPER",
 		AnimationType::ANIM_PAPER_ZOMBIE,
-		"PaperZombie",
-		Vector(-50, -85),
-		2000,
-		2,
-		5,    // survivalRound: 读报
-		1.0f, &MakeZombie<PaperZombie>
-	);
+		"PaperZombie", &MakeZombie<PaperZombie>);
 
-	RegisterZombie(
-		ZombieType::ZOMBIE_FASTPAPER,
-		"ZOMBIE_FASTPAPER",
-		AnimationType::ANIM_PAPER_ZOMBIE,	// 复用读报僵尸 reanim，仅换报纸贴图
-		"PaperZombie",
-		Vector(-50, -85),
-		3000,
-		6,		// 出现波次（无尽模式忽略此值，由 BuildSurvivalSpawnList 控制）
-		7,    // survivalRound: 加强读报
-		1.0f, &MakeZombie<FastPaperZombie>
-	);
+	// 复用读报僵尸 reanim，仅换报纸贴图
+	RegisterZombie(ZombieType::ZOMBIE_FASTPAPER, "ZOMBIE_FASTPAPER",
+		AnimationType::ANIM_PAPER_ZOMBIE,
+		"PaperZombie", &MakeZombie<FastPaperZombie>);
 
-	RegisterZombie(
-		ZombieType::ZOMBIE_DOOR,
-		"ZOMBIE_DOOR",
-		AnimationType::ANIM_DOOR_ZOMBIE,	
-		"DoorZombie",
-		Vector(-50, -85),
-		2100,
-		3,		// 出现波次（无尽模式忽略此值，由 BuildSurvivalSpawnList 控制）
-		3, 
-		1.0f, &MakeZombie<DoorZombie>
-	);
+	RegisterZombie(ZombieType::ZOMBIE_DOOR, "ZOMBIE_DOOR",
+		AnimationType::ANIM_DOOR_ZOMBIE,
+		"DoorZombie", &MakeZombie<DoorZombie>);
 
-	RegisterZombie(
-		ZombieType::ZOMBIE_FOOTBALL,
-		"ZOMBIE_FOOTBALL",
+	RegisterZombie(ZombieType::ZOMBIE_FOOTBALL, "ZOMBIE_FOOTBALL",
 		AnimationType::ANIM_FOOTBALL_ZOMBIE,
-		"FootballZombie",
-		Vector(-64, -94),
-		2500,
-		5,		// 出现波次（无尽模式忽略此值，由 BuildSurvivalSpawnList 控制）
-		5,
-		1.0f, &MakeZombie<FootballZombie>
-	);
+		"FootballZombie", &MakeZombie<FootballZombie>);
 
 	// ==================== 非植物/僵尸动画映射 ====================
 	mAnimToString[AnimationType::ANIM_SUN] = ResourceKeys::Reanimations::REANIM_SUN;
@@ -334,48 +201,144 @@ void GameDataManager::InitializeHardcodedData() {
 }
 
 void GameDataManager::RegisterPlant(PlantType type,
-	int sunCost, float cooldown,
 	const std::string& enumName,
 	const std::string& textureKey,
 	AnimationType animType,
 	const std::string& animName,
-	const Vector& offset,
-	float scale,
 	PlantFactoryFn factory) {
-	PlantInfo info(type, sunCost, cooldown, enumName, textureKey, animType, animName, offset);
-	info.scale = scale;
+	PlantInfo info;
+	info.type = type;
+	info.enumName = enumName;
+	info.textureKey = textureKey;
+	info.animType = animType;
+	info.animName = animName;
 	info.factory = factory;
 	mPlantInfo[type] = info;
 
 	mEnumNameToType[enumName] = type;
 	mTextureKeyToType[textureKey] = type;
 	mAnimNameToType[animName] = type;
-
 	mAnimToString[animType] = animName;
 
-	LOG_DEBUG("GameData") << "注册植物: " << animName
-		<< " (偏移: " << offset.x << ", " << offset.y << ")";
+	LOG_DEBUG("GameData") << "注册植物身份: " << enumName;
 }
 
 void GameDataManager::RegisterZombie(ZombieType type,
 	const std::string& enumName,
 	AnimationType animType,
 	const std::string& animName,
-	const Vector& offset, int weight, int appearWave,
-	int survivalRound,
-	float scale,
 	ZombieFactoryFn factory) {
-	ZombieInfo info(type, enumName, animType, animName, offset, weight, appearWave);
-	info.scale = scale;
+	ZombieInfo info;
+	info.type = type;
+	info.enumName = enumName;
+	info.animType = animType;
+	info.animName = animName;
 	info.factory = factory;
-	info.survivalRound = survivalRound;
 	mZombieInfo[type] = info;
 
 	// 记录动画类型->资源名，以便通过 AnimationType 统一查询
 	mAnimToString[animType] = animName;
 
-	LOG_DEBUG("GameData") << "注册僵尸: " << animName
-		<< " (偏移: " << offset.x << ", " << offset.y << ")";
+	LOG_DEBUG("GameData") << "注册僵尸身份: " << enumName;
+}
+
+bool GameDataManager::LoadNumbersFromJson() {
+	std::vector<std::string> errors;
+	nlohmann::json data;
+	if (!FileManager::LoadJsonFile("./resources/gamedata.json", data)) {
+		errors.push_back("resources/gamedata.json 缺失或解析失败");
+	}
+	else {
+		// 单字段读取器：缺失/类型不符记错（不中断，攒齐所有错误一次报告）
+		auto readInt = [&errors](const nlohmann::json& e, const char* field,
+			const std::string& who, int& out) {
+			if (!e.contains(field) || !e[field].is_number_integer()) {
+				errors.push_back(who + " 缺字段 \"" + field + "\"（须为整数）");
+				return;
+			}
+			out = e[field].get<int>();
+		};
+		auto readFloat = [&errors](const nlohmann::json& e, const char* field,
+			const std::string& who, float& out) {
+			if (!e.contains(field) || !e[field].is_number()) {
+				errors.push_back(who + " 缺字段 \"" + field + "\"（须为数字）");
+				return;
+			}
+			out = e[field].get<float>();
+		};
+		auto readOffset = [&errors](const nlohmann::json& e,
+			const std::string& who, Vector& out) {
+			if (!e.contains("offset") || !e["offset"].is_array() || e["offset"].size() != 2
+				|| !e["offset"][0].is_number() || !e["offset"][1].is_number()) {
+				errors.push_back(who + " 缺字段 \"offset\"（须为双元素数字数组）");
+				return;
+			}
+			out = Vector(e["offset"][0].get<float>(), e["offset"][1].get<float>());
+		};
+
+		const bool hasPlants = data.contains("plants") && data["plants"].is_object();
+		const bool hasZombies = data.contains("zombies") && data["zombies"].is_object();
+		if (!hasPlants) errors.push_back("缺 \"plants\" 对象");
+		if (!hasZombies) errors.push_back("缺 \"zombies\" 对象");
+
+		if (hasPlants) {
+			const nlohmann::json& plants = data["plants"];
+			for (auto& pair : mPlantInfo) {
+				PlantInfo& info = pair.second;
+				if (!plants.contains(info.enumName)) {
+					errors.push_back("缺 " + info.enumName + " 的条目");
+					continue;
+				}
+				const nlohmann::json& e = plants[info.enumName];
+				readInt(e, "cost", info.enumName, info.SunCost);
+				readFloat(e, "cooldown", info.enumName, info.Cooldown);
+				readOffset(e, info.enumName, info.offset);
+				readFloat(e, "scale", info.enumName, info.scale);
+			}
+			for (auto& item : plants.items()) {
+				if (mEnumNameToType.find(item.key()) == mEnumNameToType.end())
+					LOG_WARN("GameData") << "gamedata.json 有未注册的植物键: " << item.key();
+			}
+		}
+
+		if (hasZombies) {
+			const nlohmann::json& zombies = data["zombies"];
+			std::unordered_set<std::string> registeredNames;
+			for (auto& pair : mZombieInfo) {
+				ZombieInfo& info = pair.second;
+				registeredNames.insert(info.enumName);
+				if (!zombies.contains(info.enumName)) {
+					errors.push_back("缺 " + info.enumName + " 的条目");
+					continue;
+				}
+				const nlohmann::json& e = zombies[info.enumName];
+				readInt(e, "weight", info.enumName, info.weight);
+				readInt(e, "appearWave", info.enumName, info.appearWave);
+				readInt(e, "survivalRound", info.enumName, info.survivalRound);
+				readOffset(e, info.enumName, info.offset);
+				readFloat(e, "scale", info.enumName, info.scale);
+			}
+			for (auto& item : zombies.items()) {
+				if (registeredNames.find(item.key()) == registeredNames.end())
+					LOG_WARN("GameData") << "gamedata.json 有未注册的僵尸键: " << item.key();
+			}
+		}
+	}
+
+	if (errors.empty()) return true;
+
+	std::string all;
+	for (const auto& msg : errors) {
+		LOG_ERROR("GameData") << "gamedata.json: " << msg;
+		all += msg;
+		all += "\n";
+	}
+	// AutoTest/无头运行不弹模态框（否则负向测试卡死拿不到退出码）
+	if (!TestDriver::GetInstance().IsActive()) {
+		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR,
+			"gamedata.json 配置错误", all.c_str(), nullptr);
+	}
+	return false;
 }
 
 std::shared_ptr<Plant> GameDataManager::CreatePlant(PlantType type, Board* board, int row, int col, bool isPreview) const {
@@ -578,11 +541,13 @@ bool GameDataManager::HasZombie(ZombieType type) const {
 }
 
 void GameDataManager::DebugPrintAll() const {
-	LOG_DEBUG("GameData") << "========== GameDataManager 硬编码数据 ==========";
+	LOG_DEBUG("GameData") << "========== GameDataManager 数据（数值来自 gamedata.json） ==========";
 	LOG_DEBUG("GameData") << "植物总数: " << mPlantInfo.size();
 	for (const auto& pair : mPlantInfo) {
 		const PlantInfo& info = pair.second;
 		LOG_DEBUG("GameData") << "植物: " << info.animName << " (" << info.enumName << ")";
+		LOG_DEBUG("GameData") << "  阳光: " << info.SunCost << "  冷却: " << info.Cooldown
+			<< "s  缩放: " << info.scale;
 		LOG_DEBUG("GameData") << "  纹理键: " << info.textureKey;
 		LOG_DEBUG("GameData") << "  动画类型: " << static_cast<int>(info.animType);
 		LOG_DEBUG("GameData") << "  偏移量: (" << info.offset.x << ", " << info.offset.y << ")";
@@ -592,6 +557,8 @@ void GameDataManager::DebugPrintAll() const {
 	for (const auto& pair : mZombieInfo) {
 		const ZombieInfo& info = pair.second;
 		LOG_DEBUG("GameData") << "僵尸: " << info.animName << " (" << info.enumName << ")";
+		LOG_DEBUG("GameData") << "  权重: " << info.weight << "  出现波: " << info.appearWave
+			<< "  生存轮: " << info.survivalRound << "  缩放: " << info.scale;
 		LOG_DEBUG("GameData") << "  动画类型: " << static_cast<int>(info.animType);
 		LOG_DEBUG("GameData") << "  偏移量: (" << info.offset.x << ", " << info.offset.y << ")";
 	}
