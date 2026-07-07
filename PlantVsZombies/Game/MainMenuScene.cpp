@@ -64,9 +64,10 @@ void MainMenuScene::BuildDrawCommands()
 			auto& gameApp = GameAPP::GetInstance();
 			int mBigLevel = (gameApp.mAdventureLevel - 1) / 9 + 1;
 			int mSmallLevel = (gameApp.mAdventureLevel - 1) % 9 + 1;
-			gameApp.DrawText(std::to_string(mBigLevel), Vector(703, 158),
+			// 坐标与冒险按钮 (565,85) 缩放 0.95 绑定：石碑贴图内角标的相对位置换算而来
+			gameApp.DrawText(std::to_string(mBigLevel), Vector(707, 164),
 				glm::vec4(255.0f, 255.0f, 255.0f, 255.0f));
-			gameApp.DrawText(std::to_string(mSmallLevel), Vector(722, 160),
+			gameApp.DrawText(std::to_string(mSmallLevel), Vector(730, 166),
 				glm::vec4(255.0f, 255.0f, 255.0f, 255.0f));
 		},
 		LAYER_UI + 10000);

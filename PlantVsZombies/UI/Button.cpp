@@ -96,12 +96,12 @@ void Button::ResetFrameState()
 	m_mouseReleasedThisFrame = false;
 }
 
-void Button::Update(InputHandler* input)
+void Button::Update(InputHandler* input, bool hitAllowed)
 {
 	if (!input || !mEnabled) return;
 
 	Vector mousePos = input->GetMousePosition();
-	this->isHovered = this->ContainsPoint(mousePos);
+	this->isHovered = hitAllowed && this->ContainsPoint(mousePos);
 
 	// 鼠标变化
 	if (this->isHovered) {

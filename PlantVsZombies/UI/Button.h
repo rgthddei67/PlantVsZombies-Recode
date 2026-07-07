@@ -68,8 +68,13 @@ public:
 
 	void SetClickCallBack(std::function<void(bool)> callback);
 
-	void Update(InputHandler* input);
+	// hitAllowed=false 表示本帧命中仲裁判给了别的按钮：不 hover、不响应按下/释放
+	void Update(InputHandler* input, bool hitAllowed = true);
 	void Draw(Graphics* g) const;
+
+	// 命中仲裁用：可点击且判定框包含该点
+	bool CanReceiveHit(Vector point) const { return mEnabled && canClick && ContainsPoint(point); }
+	Vector GetCenter() const { return Vector(position.x + size.x * 0.5f, position.y + size.y * 0.5f); }
 
 	bool IsHovered() const;
 	bool IsPressed() const;
