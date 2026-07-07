@@ -177,7 +177,10 @@ bool GameAPP::InitializeResourceManager()
 	CursorManager::GetInstance().SetDefaultCursor();
 
 	GameDataManager& plantMgr = GameDataManager::GetInstance();
-	plantMgr.Initialize();
+	if (!plantMgr.Initialize()) {
+		LOG_ERROR("GameApp") << "GameDataManager 初始化失败：gamedata.json 缺失或校验未通过";
+		return false;
+	}
 
 	ResourceManager& resourceManager = ResourceManager::GetInstance();
 
