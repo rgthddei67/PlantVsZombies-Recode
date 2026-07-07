@@ -18,7 +18,7 @@
 
 ## JSON 文件
 
-- 路径：`resources/gamedata.json`（与 `spawnlists.json` 同级；CMake 既有 copy 规则自动带到 `build/<preset>/resources/`，AutoTest 零改动）。
+- 路径：运行时 `./resources/gamedata.json`（与 `spawnlists.json` 同级）。**注意资源目录不在 git、CMake 也不经手拷贝**（只拷 Shader）：资源实体直接住在 `build/<preset>/resources/`，因此该文件需在 `build/clang-release/resources/` 与 `build/msvc-debug/resources/` 各放一份（与 spawnlists.json 现状一致）；`manifest.txt` 会在下次构建时自动重生成收录它。
 - 结构：按**枚举名字符串**做键的对象（非数组）——天然去重、O(1) 查找、diff 可读：
 
 ```json
