@@ -47,6 +47,28 @@ public:
 		if (miss) mTextMissAccum++;
 	}
 
+	// 诊断：BuildGlyphAtlas 每次全量重建记一次。正常应为 0/frame（图集建好后永久命中）；
+	// 持续 >0 = 重建循环（建失败 textureID 保持 0 → 每次 DrawGlyphRun 都重建，TTF 全字集
+	// 光栅化 + 建/销毁 GPU 纹理，约 1ms/次，是 Draw_replay 串行尖峰的头号嫌疑）。
+	void CountGlyphBuild() {
+		if (!g_ProfileEnabled) return;
+		mGlyphBuildAccum++;
+	}
+
+	// 诊断：DrawGlyphRun 整串回退 DrawText 记一次（buildFail=true 表示图集建失败回退，
+	// false 表示图集健在但缺字形回退）。回退行会再被 textDraw(lines) 计数。
+	void CountGlyphFallback(bool buildFail) {
+		if (!g_ProfileEnabled) return;
+		if (buildFail) mGlyphFbBuildAccum++; else mGlyphFbMissAccum++;
+	}
+
+	// 诊断：DrawGlyphRun 快路径每绘制一行记一次（textDraw(lines) 只计整串 DrawText，不含此路径）。
+	// 血量显示的真实行数看这里——它决定 replay 里 inline flush/重绑的次数。
+	void CountGlyphLine() {
+		if (!g_ProfileEnabled) return;
+		mGlyphLineAccum++;
+	}
+
 	// 诊断：碰撞 sweep-and-prune 每帧统计。iter=行内层扫描总迭代次数（O(k²) 退化项），
 	// reject=被层掩码 CanCollide 拒绝（纯浪费的迭代），check=真正做了 AABB 检测，
 	// hit=检出的碰撞对。由 CollisionSystem::Update 在并行派发结束后于主线程调用一次。
@@ -88,6 +110,12 @@ public:
 		std::printf("  %-20s : %7.1f /frame\n", "textDraw(lines)", mTextTotalAccum * inv);
 		std::printf("  %-20s : %7.1f /frame\n", "textRaster(miss)", mTextMissAccum * inv);
 		std::printf("  %-20s : %7.1f /frame\n", "flushBatch", static_cast<double>(mFlushCountAccum) * inv);
+		// 字形图集诊断：glyphAtlasBuild>0 = 图集每帧重建循环；glyphFb(build)>0 = 建失败回退整串
+		// DrawText；glyphFb(missing)>0 = 图集健在但缺字形回退。三者全 0 才说明血量走的是图集快路径。
+		std::printf("  %-20s : %7.1f /frame\n", "glyphRun(lines)", static_cast<double>(mGlyphLineAccum) * inv);
+		std::printf("  %-20s : %7.1f /frame\n", "glyphAtlasBuild", static_cast<double>(mGlyphBuildAccum) * inv);
+		std::printf("  %-20s : %7.1f /frame\n", "glyphFb(build)", static_cast<double>(mGlyphFbBuildAccum) * inv);
+		std::printf("  %-20s : %7.1f /frame\n", "glyphFb(missing)", static_cast<double>(mGlyphFbMissAccum) * inv);
 		// 碰撞 sweep 诊断：iter 巨大且 reject≈iter → SAP 在密集同行退化成 O(k²)，且几乎全是被层掩码
 		// 拒绝的僵尸×僵尸空转；check/hit 才是真正有用的工作量。
 		std::printf("  %-20s : %12.0f /frame\n", "sweepIter", static_cast<double>(mSweepIterAccum) * inv);
@@ -102,6 +130,10 @@ public:
 		mFlushVertsAccum = 0;
 		mTextMissAccum = 0;
 		mTextTotalAccum = 0;
+		mGlyphLineAccum = 0;
+		mGlyphBuildAccum = 0;
+		mGlyphFbBuildAccum = 0;
+		mGlyphFbMissAccum = 0;
 		mSweepIterAccum = 0;
 		mSweepRejectAccum = 0;
 		mSweepCheckAccum = 0;
@@ -122,6 +154,10 @@ private:
 	size_t mFlushVertsAccum = 0;
 	size_t mTextMissAccum = 0;    // 诊断：窗口内文字缓存未命中(光栅化)总次数
 	size_t mTextTotalAccum = 0;   // 诊断：窗口内文字绘制(行)总次数
+	size_t mGlyphLineAccum = 0;   // 诊断：窗口内 DrawGlyphRun 快路径绘制行数
+	size_t mGlyphBuildAccum = 0;  // 诊断：窗口内 BuildGlyphAtlas 全量重建次数
+	size_t mGlyphFbBuildAccum = 0;// 诊断：窗口内 DrawGlyphRun 因图集建失败回退 DrawText 次数
+	size_t mGlyphFbMissAccum = 0; // 诊断：窗口内 DrawGlyphRun 因缺字形回退 DrawText 次数
 	size_t mSweepIterAccum = 0;   // 诊断：窗口内碰撞 sweep 内层总迭代次数
 	size_t mSweepRejectAccum = 0; // 诊断：窗口内被 CanCollide 拒绝的迭代次数
 	size_t mSweepCheckAccum = 0;  // 诊断：窗口内真正做 AABB 检测的次数

@@ -855,18 +855,21 @@ void Graphics::FlushBatch() {
 	// 1) 矩阵：本次 FlushBatch 的矩阵会从 ssboCursor 处开始写入；记下该位置对应的 mat4 下标，
 	//    后面把它加到每条顶点的 matrixIndex 上，让 shader 看到的是 SSBO 内的绝对槽位。
 	const uint32_t matrixBase = (uint32_t)(fr.ssboCursor / sizeof(glm::mat4));
-	if (matCount > 0) {
-		std::memcpy(static_cast<char*>(fr.ssbo->MappedPtr()) + fr.ssboCursor,
-			m_batchMatrices.data(), (size_t)matBytes);
-	}
+	{
+		PROFILE_SCOPE("FBa.copy");
+		if (matCount > 0) {
+			std::memcpy(static_cast<char*>(fr.ssbo->MappedPtr()) + fr.ssboCursor,
+				m_batchMatrices.data(), (size_t)matBytes);
+		}
 
-	// 2) 顶点：matrixIndex += matrixBase，然后 memcpy 进 VBO
-	for (auto& v : m_batchVertices) {
-		v.matrixIndex += matrixBase;
+		// 2) 顶点：matrixIndex += matrixBase，然后 memcpy 进 VBO
+		for (auto& v : m_batchVertices) {
+			v.matrixIndex += matrixBase;
+		}
+		std::memcpy(static_cast<char*>(fr.vbo->MappedPtr()) + fr.vboCursor,
+			m_batchVertices.data(), (size_t)vertBytes);
 	}
 	const uint32_t firstVertex = (uint32_t)(fr.vboCursor / sizeof(BatchVertex));
-	std::memcpy(static_cast<char*>(fr.vbo->MappedPtr()) + fr.vboCursor,
-		m_batchVertices.data(), (size_t)vertBytes);
 
 	fr.ssboCursor += matBytes;
 	fr.vboCursor += vertBytes;
@@ -880,10 +883,13 @@ void Graphics::FlushBatch() {
 
 	// Phase 5：分段 + vkCmdDraw 抽进静态 helper EmitDrawRange（同文件末尾），并行回放路径复用。
 	// 这里直接从主线程 CPU 缓冲 m_batchVertices 读 blendMode（顺序遍历，cache 友好）。
-	EmitDrawRange(cb, firstVertex, (uint32_t)vertCount,
-		m_batchVertices.data(),
-		m_vk->pipeBatchAlpha.get(), m_vk->pipeBatchAdd.get(),
-		sets, projView);
+	{
+		PROFILE_SCOPE("FBb.emit");
+		EmitDrawRange(cb, firstVertex, (uint32_t)vertCount,
+			m_batchVertices.data(),
+			m_vk->pipeBatchAlpha.get(), m_vk->pipeBatchAdd.get(),
+			sets, projView);
+	}
 
 	// 诊断：统计一次真实提交（含 replay 里逐行血量文字各自的 FlushBatch）。
 	// Profiler::Get().CountFlush(vertCount);
@@ -1317,6 +1323,7 @@ bool Graphics::RenderTextToVulkanTexture(const std::string& text, const std::str
 }
 
 void Graphics::BuildGlyphAtlas(const std::string& fontKey, int fontSize, GlyphAtlas& atlas) {
+	Profiler::Get().CountGlyphBuild();
 	atlas.glyphs.clear();
 	// 旧纹理先还给 pool（重建场景：新码点 / letterbox 变化）。
 	if (m_vk && m_vk->texPool && atlas.vkTex) {
@@ -1594,8 +1601,10 @@ void Graphics::DrawGlyphRun(const std::string& text, const std::string& fontKey,
 	FlushInstances();
 
 	// 3. 取/建图集（当帧把缺码点并入并重建 → 此后所有字形必在）。
+	PROFILE_SCOPE("7b0.glyph_body");
 	GlyphAtlas& atlas = GetOrBuildGlyphAtlas(fontKey, fontSize, cps);
 	if (atlas.textureID == 0) {  // 建失败 → fallback 整串 DrawText，保证不消失
+		Profiler::Get().CountGlyphFallback(true);
 		DrawText(text, fontKey, fontSize, color, x, y, scale);
 		return;
 	}
@@ -1605,12 +1614,14 @@ void Graphics::DrawGlyphRun(const std::string& text, const std::string& fontKey,
 	//     （TTF_RenderUTF8 正确处理缺字形与全 Unicode），保证显示与间距正确。HUD 数字/CJK 不触发。
 	for (uint32_t cp : cps) {
 		if (atlas.glyphs.find(cp) == atlas.glyphs.end()) {
+			Profiler::Get().CountGlyphFallback(false);
 			DrawText(text, fontKey, fontSize, color, x, y, scale);
 			return;
 		}
 	}
 
 	// 4. 逐字形拼 quad。度量是物理像素，× invSS 转逻辑尺寸。烘白 + 顶点色 tint（NormalizeColor）。
+	Profiler::Get().CountGlyphLine();
 	const int texIndex = BindTexture(atlas.textureID);
 	const glm::vec4 nc = NormalizeColor(color);
 	const float invSS = scale / atlas.superSample;
@@ -2309,6 +2320,7 @@ void Graphics::ReplayAndEndParallel() {
 					// 文字便夹在"本对象 sprite"与"后续对象"之间 = 与对象同 z-order。
 					// DrawText/FlushBatch 会重绑 pipeline/descriptor/vbo，画完清空 boundPipe 哨兵，
 					// 强制下一次 emitUpTo 重新绑定，避免后续几何沿用文字管线。
+					PROFILE_SCOPE("7a.replay_inlineText");
 					DrawText(t.text, t.fontKey, t.fontSize, t.color, t.x, t.y, t.scale);
 					FlushBatch();
 					boundPipe = BoundPipe::None;
@@ -2320,8 +2332,14 @@ void Graphics::ReplayAndEndParallel() {
 				// 就地发射：emitUpTo 已把本对象 sprite emit 完，此处画字形 quad，夹在本对象与
 				// 后续对象之间 = 与对象同 z-order。DrawGlyphRun/FlushBatch 会重绑 pipeline/vbo，
 				// 画完清空 boundPipe 哨兵，强制下次 emitUpTo 重绑。
-				DrawGlyphRun(t.text, t.fontKey, t.fontSize, t.color, t.x, t.y, t.scale);
-				FlushBatch();
+				{
+					PROFILE_SCOPE("7b.replay_inlineGlyph");
+					DrawGlyphRun(t.text, t.fontKey, t.fontSize, t.color, t.x, t.y, t.scale);
+				}
+				{
+					PROFILE_SCOPE("7c.replay_inlineGlyphFlush");
+					FlushBatch();
+				}
 				boundPipe = BoundPipe::None;
 				break;
 			}
@@ -2360,6 +2378,7 @@ void Graphics::ReplayAndEndParallel() {
 	// （帧游标已在 slot 循环前推到 post-parallel 预留区，onTop=false 的内联文字也已从该区累加写入；
 	//   后续 overlay 串行绘制继续从当前游标累加。）
 	if (!pendingTopText.empty()) {
+		PROFILE_SCOPE("7d.replay_topText");
 		for (const DeferredTextCmd* t : pendingTopText) {
 			DrawText(t->text, t->fontKey, t->fontSize, t->color, t->x, t->y, t->scale);
 		}
@@ -2608,7 +2627,104 @@ void Graphics::RecordDrawGlyphRun(WorkerRecord& r,
 	const std::string& text, const std::string& fontKey, int fontSize,
 	const glm::vec4& color, float x, float y, float scale)
 {
-	// 只打包参数；图集构建 + 字形 quad 发射全部 defer 到主线程 replay（就地、当前层 z-order）。
+	// 快路径：图集已就绪时，worker 就地把字形拼成 InstanceRecord 写进本 slot 切片——与
+	// reanim 精灵同一条 instancing 管线。避免 defer 到串行 replay 逐行 FlushBatch/重绑/打断
+	// instancing（20000 可见血量行时 replay 从 0.04ms 涨到 ~25ms 的根因）。记录顺序即绘制
+	// 顺序，z-order 与旧的就地交错完全一致。
+	// 线程安全前提：并行录制期主线程不绘制、不触碰 m_glyphAtlases（只读并发 find 安全）；
+	// 图集缺失/缺码点/letterbox 变化走下面的 defer 慢路径，由主线程在 replay 中构建，下帧
+	// 起自动回到快路径。
+	do {
+		const auto itA = m_glyphAtlases.find(fontKey + "|" + std::to_string(fontSize));
+		if (itA == m_glyphAtlases.end()) break;
+		const GlyphAtlas& atlas = itA->second;
+		if (atlas.textureID == 0) break;
+		float ss;
+		if (atlas.physSize != ComputeTextRasterSize(fontSize, m_letterboxScale, ss)) break;
+
+		// 解码进栈上小缓冲（此路径每帧可被调用上万次，避免堆分配）；超长串走慢路径。
+		uint32_t cps[64];
+		int n = 0;
+		bool tooLong = false;
+		for (size_t i = 0; i < text.size(); ) {
+			uint32_t cp = DecodeUtf8(text, i);
+			if (!cp) continue;
+			if (n >= 64) { tooLong = true; break; }
+			cps[n++] = cp;
+		}
+		if (tooLong) break;
+		if (n == 0) return;
+
+		// 全部码点必须已在图集（缺任何一个 → 慢路径整串处理：并入 covered 重建或回退 DrawText）。
+		const GlyphInfo* gis[64];
+		bool missing = false;
+		for (int i = 0; i < n; ++i) {
+			auto itG = atlas.glyphs.find(cps[i]);
+			if (itG == atlas.glyphs.end()) { missing = true; break; }
+			gis[i] = &itG->second;
+		}
+		if (missing) break;
+
+		VkWorkerSlice& sl = r.slice;
+		// 字形走 Alpha 混合；与 AppendReanimInstance 相同的 SetBlend 包夹 + 恢复模式，
+		// 防止污染同 slot 后续记录的 bm。
+		const BlendMode savedBlend = tl_blend;
+		const bool needSwitch = (savedBlend == BlendMode::Add);
+		if (needSwitch) RecordSetBlendMode(r, BlendMode::Alpha);
+
+		// r=lsb, a=msb，同 reanim_inst.vert.glsl 的解包约定（颜色是 0..255 约定）。
+		auto pack8 = [](float v) -> uint32_t {
+			return (uint32_t)std::clamp((int)(v + 0.5f), 0, 255);
+			};
+		const uint32_t colorRGBA8 = pack8(color.r) | (pack8(color.g) << 8)
+			| (pack8(color.b) << 16) | (pack8(color.a) << 24);
+
+		const glm::mat4& top = tl_transformStack->back();
+		const bool topIsId = tl_transformIsIdentity->back() != 0;
+		const float invSS = scale / atlas.superSample;
+		const float ascent = (float)atlas.ascent;
+		float penX = 0.0f;
+		for (int i = 0; i < n; ++i) {
+			const GlyphInfo& gi = *gis[i];
+			if (gi.pxW > 0 && gi.pxH > 0) {
+				sl.instDemand++;   // 计入"想写"的实例（含被容量拒绝的），供扩容 + 负载均衡
+				if (sl.instCount >= sl.instCap) {
+					sl.instOverflowed = true;
+				}
+				else {
+					const float gx = x + (penX + gi.bearingX) * invSS;
+					const float gy = y + (ascent - gi.bearingY) * invSS;
+					const float gw = gi.pxW * invSS;
+					const float gh = gi.pxH * invSS;
+					InstanceRecord rec;
+					if (topIsId) {
+						rec.tA = gw; rec.tB = 0.0f; rec.tC = 0.0f; rec.tD = gh;
+						rec.tx = gx; rec.ty = gy;
+					}
+					else {
+						// final = top * T(gx,gy) * S(gw,gh)：线性部分 = top 前两列各乘 gw/gh，
+						// 平移 = top 作用于 (gx,gy)。
+						rec.tA = top[0].x * gw; rec.tB = top[0].y * gw;
+						rec.tC = top[1].x * gh; rec.tD = top[1].y * gh;
+						rec.tx = top[0].x * gx + top[1].x * gy + top[3].x;
+						rec.ty = top[0].y * gx + top[1].y * gy + top[3].y;
+					}
+					rec.u0 = gi.u0; rec.v0 = gi.v0;
+					rec.u1 = gi.u1; rec.v1 = gi.v1;
+					rec.texSlot = atlas.textureID;
+					rec.colorRGBA8 = colorRGBA8;
+					sl.instPtr[sl.instCount++] = rec;
+				}
+			}
+			penX += gi.advance;
+		}
+
+		if (needSwitch) RecordSetBlendMode(r, savedBlend);
+		return;
+	} while (false);
+
+	// 慢路径（首帧图集未建 / 新码点 / 建失败 / letterbox 变化 / 超长串）：只打包参数，
+	// 图集构建 + 字形 quad 发射 defer 到主线程 replay（就地、当前层 z-order）。
 	DeferredGlyphRunCmd t;
 	t.text = text;
 	t.fontKey = fontKey;

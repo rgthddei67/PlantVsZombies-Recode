@@ -1,0 +1,14 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 1 },
+    { "op": "choose_cards", "cards": ["PLANT_PEASHOOTER"] },
+    { "op": "wait_state", "state": "GAME" },
+    { "op": "show_zombie_hp", "on": true },
+    { "op": "spawn_zombie", "type": "ZOMBIE_NORMAL", "row": 1, "x": 500 },
+    { "op": "spawn_zombie", "type": "ZOMBIE_TRAFFIC_CONE", "row": 2, "x": 600 },
+    { "op": "spawn_zombie", "type": "ZOMBIE_BUCKET", "row": 3, "x": 700 },
+    { "op": "wait_frames", "value": 90 },
+    { "op": "screenshot", "name": "hp_glyph_on" },
+    { "op": "quit" }
+  ]
+}
