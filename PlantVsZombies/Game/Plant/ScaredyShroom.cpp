@@ -5,7 +5,7 @@ void ScaredyShroom::SetupPlant()
 {
 	auto shadow = GetComponent<ShadowComponent>();
 	shadow->SetScale(Vector(0.6f, 0.6f));
-	shadow->SetOffset(Vector(3, 30));
+	shadow->SetOffset(Vector(-4, 30));
 
 	Shroom::SetupPlant();
 
