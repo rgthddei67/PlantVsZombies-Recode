@@ -34,7 +34,9 @@ protected:
 	float mCheckZombieTimer = 0.0f;
 	float mShootTime = 1.5f;     // 射击间隔时间
 	float mShootTimer = 1.0f;    // 射击计时器
-	float mFearCheckTimer = 0.0f;
+	// 初始即到期：首帧必须真算，不能吃 mScaredCached 的初始 false——
+	// 否则读档恢复 SCARED 态的第一帧会误判"僵尸走了"，先伸头再缩回去
+	float mFearCheckTimer = 1.0f;
 	bool mScaredCached = false;  // 害怕判定节流缓存（0.1s 重算一次）
 
 	bool HasZombieInRow();       // 索敌：本行前方全行射程（不像小喷菇限 300px）
