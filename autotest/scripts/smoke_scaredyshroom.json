@@ -1,0 +1,44 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 10 },
+    { "op": "choose_cards", "cards": ["PLANT_SCAREDYSHROOM"] },
+    { "op": "wait_state", "state": "GAME" },
+    { "op": "set_sun", "value": 1000 },
+    { "op": "set_timescale", "value": 5.0 },
+    { "op": "plant", "type": "PLANT_SCAREDYSHROOM", "row": 2, "col": 1 },
+    { "op": "spawn_zombie", "type": "ZOMBIE_NORMAL", "row": 2, "x": 900 },
+    { "op": "wait_seconds", "value": 6, "timeout": 30 },
+    { "op": "screenshot", "name": "shoot.png" },
+    { "op": "dump_state", "name": "d1_shoot.json" },
+
+    { "op": "goto_level", "level": 10 },
+    { "op": "choose_cards", "cards": ["PLANT_SCAREDYSHROOM"] },
+    { "op": "wait_state", "state": "GAME" },
+    { "op": "set_sun", "value": 1000 },
+    { "op": "set_timescale", "value": 5.0 },
+    { "op": "plant", "type": "PLANT_SCAREDYSHROOM", "row": 2, "col": 1 },
+    { "op": "spawn_zombie", "type": "ZOMBIE_NORMAL", "row": 3, "x": 380 },
+    { "op": "wait_seconds", "value": 3, "timeout": 30 },
+    { "op": "screenshot", "name": "scared.png" },
+    { "op": "dump_state", "name": "d2_scared.json" },
+    { "op": "assert_state", "path": "plants.0.track", "equals": "anim_scaredidle" },
+
+    { "op": "charm_zombie", "row": 3, "index": 0 },
+    { "op": "wait_seconds", "value": 7, "timeout": 40 },
+    { "op": "screenshot", "name": "raised.png" },
+    { "op": "dump_state", "name": "d3_raised.json" },
+    { "op": "assert_state", "path": "plants.0.track", "equals": "anim_idle" },
+
+    { "op": "goto_level", "level": 1 },
+    { "op": "choose_cards", "cards": ["PLANT_SCAREDYSHROOM"] },
+    { "op": "wait_state", "state": "GAME" },
+    { "op": "set_sun", "value": 1000 },
+    { "op": "plant", "type": "PLANT_SCAREDYSHROOM", "row": 2, "col": 1 },
+    { "op": "wait_seconds", "value": 1, "timeout": 15 },
+    { "op": "screenshot", "name": "sleep.png" },
+    { "op": "dump_state", "name": "d4_sleep.json" },
+    { "op": "assert_state", "path": "plants.0.track", "equals": "anim_sleep" },
+
+    { "op": "quit" }
+  ]
+}

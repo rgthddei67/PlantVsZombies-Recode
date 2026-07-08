@@ -24,6 +24,7 @@
 #include "SunShroom.h"
 #include "FumeShroom.h"
 #include "HypnoShroom.h"
+#include "ScaredyShroom.h"
 
 #include "../Zombie/Zombie.h"
 #include "../Zombie/ConeZombie.h"
@@ -149,6 +150,11 @@ void GameDataManager::InitializeHardcodedData() {
 		ResourceKeys::Textures::IMAGE_HYPNOSHROOM,
 		AnimationType::ANIM_HYPER,
 		"HypnoShroom", &MakePlant<HypnoShroom>);
+
+	RegisterPlant(PlantType::PLANT_SCAREDYSHROOM, "PLANT_SCAREDYSHROOM",
+		ResourceKeys::Textures::IMAGE_SCAREDYSHROOM,
+		AnimationType::ANIM_SCAREDYSHROOM,
+		"ScaredyShroom", &MakePlant<ScaredyShroom>);
 
 	// ==================== 僵尸注册（仅身份，数值见 gamedata.json） ====================
 	RegisterZombie(ZombieType::ZOMBIE_NORMAL, "ZOMBIE_NORMAL",
