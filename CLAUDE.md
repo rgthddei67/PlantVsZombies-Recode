@@ -133,12 +133,7 @@ When you need to **add a new classic plant, zombie, or bullet (projectile)**, it
     If your new plant or zombie needs frame events, please ask me first.
 
 ## Adding a New Plant
-1. Subclass `Plant` (or `Shooter` for shooting plants) in `Game/Plant/`
-2. Add entry to `PlantType` enum (`Game/Plant/PlantType.h`)
-3. Register data (cost, cooldown, etc.) in `GameDataManager`
-4. Load textures/animations via `ResourceManager` using a key in `ResourceKeys.h`
-5. Add a corresponding `Card` entry
-6. **(Reference)** For classic plants, consult the C# code or web resources mentioned in the "Reference & Implementation Guidance" section above.
+Use the `adding-plant` skill (`.claude/skills/adding-plant/SKILL.md`) — it supersedes the checklist that used to live here.
 
 ## Adding a New Zombie
 1. Subclass `Zombie` in `Game/Zombie/`
