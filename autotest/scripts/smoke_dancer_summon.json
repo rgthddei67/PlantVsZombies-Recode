@@ -1,0 +1,19 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 1 },
+    { "op": "choose_cards", "cards": ["PLANT_PEASHOOTER"] },
+    { "op": "wait_state", "state": "GAME" },
+    { "op": "spawn_zombie", "type": "ZOMBIE_DANCER", "row": 2, "x": 600 },
+    { "op": "wait_frames", "value": 30 },
+    { "op": "screenshot", "name": "moonwalk_in" },
+    { "op": "assert_state", "path": "zombies.0.type", "equals": "ZOMBIE_DANCER" },
+    { "op": "wait_seconds", "value": 3 },
+    { "op": "screenshot", "name": "after_snap" },
+    { "op": "dump_state", "name": "troupe.json" },
+    { "op": "assert_state", "path": "zombies.4.type", "equals": "ZOMBIE_BACKUP_DANCER" },
+    { "op": "wait_seconds", "value": 4 },
+    { "op": "screenshot", "name": "troupe_dancing" },
+    { "op": "dump_state", "name": "troupe_late.json" },
+    { "op": "quit" }
+  ]
+}

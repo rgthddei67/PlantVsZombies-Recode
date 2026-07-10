@@ -35,6 +35,7 @@
 #include "../Zombie/FastPaperZombie.h"
 #include "../Zombie/DoorZombie.h"
 #include "../Zombie/FootballZombie.h"
+#include "../Zombie/DancerZombie.h"
 #include "../Zombie/BackupDancerZombie.h"
 
 namespace {
@@ -194,6 +195,11 @@ void GameDataManager::InitializeHardcodedData() {
 	RegisterZombie(ZombieType::ZOMBIE_FOOTBALL, "ZOMBIE_FOOTBALL",
 		AnimationType::ANIM_FOOTBALL_ZOMBIE,
 		"FootballZombie", &MakeZombie<FootballZombie>);
+
+	// 舞王僵尸（MJ版）：入场后打响指召唤十字 4 伴舞，死伴舞按节拍补位
+	RegisterZombie(ZombieType::ZOMBIE_DANCER, "ZOMBIE_DANCER",
+		AnimationType::ANIM_DANCE_ZOMBIE,
+		"ZombieJackson", &MakeZombie<DancerZombie>);
 
 	// 伴舞僵尸：gamedata weight=0，只能被舞王召唤（或 AutoTest spawn_zombie 直造）
 	RegisterZombie(ZombieType::ZOMBIE_BACKUP_DANCER, "ZOMBIE_BACKUP_DANCER",

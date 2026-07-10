@@ -1,0 +1,47 @@
+#pragma once
+#ifndef _DANCERZOMBIE_H_
+#define _DANCERZOMBIE_H_
+
+#include "Zombie.h"
+
+// 舞王僵尸(MJ版)：月球漫步入场 → 打响指(anim_point)召唤十字 4 伴舞 → 定身跳舞 2s →
+// 随全局节拍齐舞前进；伴舞阵亡后在节拍==12 时重新打响指补位（有头且未越过 kDanceLimitX 才补）。
+class DancerZombie : public Zombie {
+public:
+	using Zombie::Zombie;
+
+	enum class DancerPhase {
+		DANCING_IN,	// 入场月球漫步（计时；开吃会提前结束）
+		SNAPPING,	// 播 anim_point，第 36 帧事件触发召唤
+		HOLD,		// 召唤后定身跳舞 2s（不移动）
+		DANCING		// 节拍齐舞 + 前进 + 缺位补召
+	};
+
+	void ZombieUpdate(float scaledTime) override;
+	void StartEat(ColliderComponent* other) override;
+	void HeadDrop() override;
+	void ArmDrop() override;
+	void ZombieItemUpdate() const override;
+
+	void SaveExtraData(nlohmann::json& j) const override;
+	void LoadExtraData(const nlohmann::json& j) override;
+
+protected:
+	void SetupZombie() override;
+	void ZombieMove(float scaledDelta, TransformComponent* transform) override;
+	// Zombie_Jackson.reanim 无 anim_walk2：稳态“走路”按阶段选 moonwalk/point/节拍舞
+	void PlayWalkAnimation(float blendTime) override;
+
+private:
+	void SummonBackupDancers();
+	bool NeedsMoreBackupDancers() const;
+	void UpdateDanceTrack(float blendTime);
+
+	DancerPhase mPhase = DancerPhase::DANCING_IN;
+	float mPhaseTimer = 0.0f;
+	int mFollowerID[4] = { NULL_ZOMBIE_ID, NULL_ZOMBIE_ID, NULL_ZOMBIE_ID, NULL_ZOMBIE_ID };
+	int mLastBeatBucket = -1;	// 0=walk 1=armraise，-1=强制刷新
+	bool mCharmHandled = false;	// 魅惑边沿标志：置位时清空 mFollowerID（放弃旧伴舞，原版行为）
+};
+
+#endif
