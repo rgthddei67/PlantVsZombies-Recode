@@ -136,13 +136,7 @@ When you need to **add a new classic plant, zombie, or bullet (projectile)**, it
 Use the `adding-plant` skill (`.claude/skills/adding-plant/SKILL.md`) — it supersedes the checklist that used to live here.
 
 ## Adding a New Zombie
-1. Subclass `Zombie` in `Game/Zombie/`
-2. Add entry to `ZombieType` enum (`Game/Zombie/ZombieType.h`)
-3. Override virtual methods: `ZombieUpdate()`, `TakeDamage()`, `SetupZombie()`,`HelmDrop()` / `ShieldDrop()`(etc.) as needed
-4. **Register the name in BOTH string tables** (they are intentionally independent — update both):
-   - `kZombieNames` in `Game/AutoTest/TestDriver.cpp` (AutoTest `spawn_zombie` / dump names)
-   - `kDevZombieTable` in `Game/GameScene.cpp` (developer panel `-develop` type cycler)
-5. **(Reference)** Check the C# implementation under `Zombie/` for attack intervals, health, special abilities, etc.
+Use the `adding-zombie` skill (`.claude/skills/adding-zombie/SKILL.md`) — it supersedes the checklist that used to live here (proven on DancerZombie 舞王+伴舞; covers 断肢断头/召唤编队/出土裁剪/魅惑交互/帧事件陷阱/调参量交付).
 
 ### Spawning zombies: two distinct paths
 - **Gameplay (grid-bound):** `Board::CreateZombie(type, row, x, ...)` / `CreateZombieWithID(...)`. Pass an arbitrary pixel `x`, but **`y` is always derived from `row`** via `GetZombieSpawnY(row)` — there is intentionally no `y` parameter. Use this for real zombies, wave spawns, and savegame restore (saves persist only `row + x`).
