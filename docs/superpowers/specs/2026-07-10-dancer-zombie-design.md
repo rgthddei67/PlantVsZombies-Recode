@@ -58,7 +58,7 @@ Zombie_dancer（时间线 0–101，12fps）：
 数值：HP `mBodyHealth = 270`，速度同普通僵尸，无防具。gamedata.json `weight = 0` → 永不被波次抽中，只能被召唤（AutoTest `spawn_zombie` 仍可直接生成）。
 
 状态机 `enum class BackupPhase { RISING, DANCING }`：
-- **RISING**（出生）：`mVisualOffset.y = +145` 起（沉入地下），2.5 秒线性升到 0。期间动画定格（AnimRate 0 或不播）、不移动、不主动啃食。**无出土粒子、无音效**（主人已定）。穿模不裁剪，主人看效果后再议。
+- **RISING**（出生）：`mVisualOffset.y = +145` 起（沉入地下），2.5 秒线性升到 0。期间不移动、不主动啃食；**动画不定格、照常随节拍跳舞**（实现修订：原版是定格姿势升起，但本引擎暂停骨架后若升起中被打死/断头会卡冻结帧无法播 anim_death，跳着舞升起是安全方案；视觉观感由主人验收裁决）。**无出土粒子、无音效**（主人已定）。穿模不裁剪，主人看效果后再议。
 - **DANCING**：与舞王共用节拍映射，正常向左推进、可啃食。
 - 帧事件：`EatTarget` @ **46、59**（repeating）；`Die()` @ **100**。（帧号主人指定）
 
