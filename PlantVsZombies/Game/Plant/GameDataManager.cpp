@@ -35,6 +35,7 @@
 #include "../Zombie/FastPaperZombie.h"
 #include "../Zombie/DoorZombie.h"
 #include "../Zombie/FootballZombie.h"
+#include "../Zombie/BackupDancerZombie.h"
 
 namespace {
 	template<typename T>
@@ -193,6 +194,11 @@ void GameDataManager::InitializeHardcodedData() {
 	RegisterZombie(ZombieType::ZOMBIE_FOOTBALL, "ZOMBIE_FOOTBALL",
 		AnimationType::ANIM_FOOTBALL_ZOMBIE,
 		"FootballZombie", &MakeZombie<FootballZombie>);
+
+	// 伴舞僵尸：gamedata weight=0，只能被舞王召唤（或 AutoTest spawn_zombie 直造）
+	RegisterZombie(ZombieType::ZOMBIE_BACKUP_DANCER, "ZOMBIE_BACKUP_DANCER",
+		AnimationType::ANIM_DANCERWITH_ZOMBIE,
+		"ZombieDancer", &MakeZombie<BackupDancerZombie>);
 
 	// ==================== 非植物/僵尸动画映射 ====================
 	mAnimToString[AnimationType::ANIM_SUN] = ResourceKeys::Reanimations::REANIM_SUN;

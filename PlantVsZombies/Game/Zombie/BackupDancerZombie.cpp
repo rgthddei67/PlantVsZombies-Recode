@@ -1,0 +1,144 @@
+#include "BackupDancerZombie.h"
+#include "../Board.h"
+#include "../../ParticleSystem/ParticleSystem.h"
+
+namespace {
+	constexpr float kRiseDuration = 2.5f;    // 出土升起耗时（原版 150cs）
+	constexpr float kRiseDepth = 145.0f;     // 出生下沉深度（原版 altitude -145）
+	constexpr float kDanceAnimSpeed = 1.2f;  // 全队统一动画速度：覆盖 Start() 的随机 1.1~1.4，否则齐舞散拍
+	constexpr float kArmraiseClip = 1.8f;    // 举手段 clip（原版 rate18；按截图手感可微调）
+}
+
+void BackupDancerZombie::SetupZombie()
+{
+	mBodyHealth = 270;
+	mBodyMaxHealth = 270;
+	SetAnimationSpeed(kDanceAnimSpeed);
+
+	if (mIsPreview) { PlayTrack("anim_walk"); return; }
+
+	// 帧号为主人指定：Die@100（anim_death 65~101 内），EatTarget@46/59（anim_eat 32~64 内）
+	mAnimator->AddFrameEvent(100, [this]() { this->Die(); });
+	mAnimator->AddFrameEvent(46, [this]() { this->EatTarget(); }, true);
+	mAnimator->AddFrameEvent(59, [this]() { this->EatTarget(); }, true);
+
+	// 出生沉入地下，升起期间照常随节拍跳舞（引擎无“暂停骨架”安全路径：
+	// 若定格动画，升起中被打死/断头会卡在冻结帧无法播 anim_death）。
+	mBaseOffsetY = mVisualOffset.y;
+	mVisualOffset.y = mBaseOffsetY + kRiseDepth;
+	mPhase = BackupPhase::RISING;
+	UpdateDanceTrack(0.0f);
+}
+
+void BackupDancerZombie::ZombieUpdate(float scaledTime)
+{
+	// 魅惑边沿：脱离领队（领队随后检测到空位会补人）。基类 StartMindControlled 非虚，故在此检测。
+	if (mIsMindControlled && !mCharmHandled) {
+		mCharmHandled = true;
+		mLeaderID = NULL_ZOMBIE_ID;
+	}
+
+	if (mPhase == BackupPhase::RISING) {
+		mRiseTimer += scaledTime;
+		const float t = mRiseTimer / kRiseDuration;
+		if (t >= 1.0f) {
+			mVisualOffset.y = mBaseOffsetY;
+			mPhase = BackupPhase::DANCING;
+		}
+		else {
+			mVisualOffset.y = mBaseOffsetY + kRiseDepth * (1.0f - t);
+		}
+	}
+
+	UpdateDanceTrack(0.3f);
+}
+
+void BackupDancerZombie::UpdateDanceTrack(float blendTime)
+{
+	if (!mBoard || mIsDying) return;
+	const int bucket = (mBoard->GetDanceBeatFrame() >= 12) ? 1 : 0;
+	if (bucket == mLastBeatBucket) return;
+	mLastBeatBucket = bucket;
+	if (bucket == 1)
+		PlayTrack("anim_armraise", kArmraiseClip, blendTime);
+	else
+		PlayTrack("anim_walk", 0.0f, blendTime);
+}
+
+void BackupDancerZombie::ZombieMove(float scaledDelta, TransformComponent* transform)
+{
+	if (mPhase == BackupPhase::RISING) return;	// 升起中不推进
+	Zombie::ZombieMove(scaledDelta, transform);
+}
+
+void BackupDancerZombie::PlayWalkAnimation(float blendTime)
+{
+	// 啃完回走路/读档恢复的统一入口：回到当前节拍对应的舞蹈轨道
+	mLastBeatBucket = -1;
+	if (mBoard && mBoard->GetDanceBeatFrame() >= 12)
+		PlayTrack("anim_armraise", kArmraiseClip, blendTime);
+	else
+		PlayTrack("anim_walk", 0.0f, blendTime);
+}
+
+void BackupDancerZombie::StartEat(ColliderComponent* other)
+{
+	if (mPhase == BackupPhase::RISING) return;	// 升起中不啃食
+	Zombie::StartEat(other);
+}
+
+void BackupDancerZombie::HeadDrop()
+{
+	if (!mHasHead) return;
+	mAnimator->SetTrackVisible("anim_head1", false);
+	mAnimator->SetTrackVisible("anim_head2", false);
+	mAnimator->SetTrackVisible("anim_hair", false);
+	mAnimator->SetTrackVisible("anim_earing", false);	// 耳环挂在头上，随头走
+	if (g_particleSystem) {
+		g_particleSystem->EmitEffect("ZombieBackupDancerHeadOff", GetPosition());
+	}
+	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_ARM_HEAD_DROP, 0.25f);
+}
+
+void BackupDancerZombie::ArmDrop()
+{
+	if (!mHasArm) return;
+	// MJ 版 reanim 无残肢轨道：只藏小臂+手，大臂原样保留当残端；无材质替换、无粒子（主人指定）
+	mAnimator->SetTrackVisible("Zombie_outerarm_lower", false);
+	mAnimator->SetTrackVisible("Zombie_outerarm_hand", false);
+	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_ARM_HEAD_DROP, 0.25f);
+}
+
+void BackupDancerZombie::ZombieItemUpdate() const
+{
+	if (!mHasArm) {
+		mAnimator->SetTrackVisible("Zombie_outerarm_lower", false);
+		mAnimator->SetTrackVisible("Zombie_outerarm_hand", false);
+	}
+	if (!mHasHead) {
+		mAnimator->SetTrackVisible("anim_head1", false);
+		mAnimator->SetTrackVisible("anim_head2", false);
+		mAnimator->SetTrackVisible("anim_hair", false);
+		mAnimator->SetTrackVisible("anim_earing", false);
+	}
+}
+
+void BackupDancerZombie::SaveExtraData(nlohmann::json& j) const
+{
+	j["phase"] = static_cast<int>(mPhase);
+	j["riseTimer"] = mRiseTimer;
+	j["leaderID"] = mLeaderID;
+	j["charmHandled"] = mCharmHandled;
+}
+
+void BackupDancerZombie::LoadExtraData(const nlohmann::json& j)
+{
+	mPhase = static_cast<BackupPhase>(j.value("phase", 0));
+	mRiseTimer = j.value("riseTimer", 0.0f);
+	mLeaderID = j.value("leaderID", NULL_ZOMBIE_ID);
+	mCharmHandled = j.value("charmHandled", false);
+	// RISING 的 mVisualOffset.y 由 ZombieUpdate 每帧按 mRiseTimer 重算；mBaseOffsetY 在
+	// SetupZombie（读档新建僵尸同样走过）已正确记录，无需恢复。
+	if (mIsEating) return;
+	mLastBeatBucket = -1;	// 下帧按当前节拍重刷轨道（覆盖 RestoreAnimState 的帧位=重新入拍，预期行为）
+}

@@ -1,0 +1,28 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 1 },
+    { "op": "choose_cards", "cards": ["PLANT_PEASHOOTER"] },
+    { "op": "wait_state", "state": "GAME" },
+    { "op": "set_sun", "value": 1000 },
+    { "op": "spawn_zombie", "type": "ZOMBIE_BACKUP_DANCER", "row": 2, "x": 750 },
+    { "op": "wait_frames", "value": 30 },
+    { "op": "screenshot", "name": "rising_mid" },
+    { "op": "assert_state", "path": "zombies.0.type", "equals": "ZOMBIE_BACKUP_DANCER" },
+    { "op": "wait_seconds", "value": 3 },
+    { "op": "screenshot", "name": "dancing" },
+    { "op": "plant", "type": "PLANT_PEASHOOTER", "row": 2, "col": 0 },
+    { "op": "plant", "type": "PLANT_PEASHOOTER", "row": 2, "col": 1 },
+    { "op": "set_timescale", "value": 3.0 },
+    { "op": "wait_seconds", "value": 7 },
+    { "op": "dump_state", "name": "after_arm.json" },
+    { "op": "screenshot", "name": "arm_off" },
+    { "op": "assert_state", "path": "zombies.0.hasArm", "equals": false },
+    { "op": "assert_state", "path": "zombies.0.armVisible", "equals": false },
+    { "op": "wait_seconds", "value": 6 },
+    { "op": "screenshot", "name": "head_off" },
+    { "op": "assert_state", "path": "zombies.0.hasHead", "equals": false },
+    { "op": "wait_seconds", "value": 8 },
+    { "op": "dump_state", "name": "final.json" },
+    { "op": "quit" }
+  ]
+}
