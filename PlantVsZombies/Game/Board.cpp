@@ -654,6 +654,7 @@ inline void Board::UpdateZombieHP()
 
 void Board::Update()
 {
+	mBoardFrame++;
 	CleanupExpiredObjects();
 	UpdateLevel();
 }

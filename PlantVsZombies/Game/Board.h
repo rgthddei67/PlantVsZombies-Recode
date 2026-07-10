@@ -103,6 +103,15 @@ public:
 	int64_t mNextWaveSpawnZombieHP = 0;		// 下一波僵尸刷新血量
 
 	int mZombieNumber = 0;
+
+	// 全局逻辑帧计数（固定步长 60Hz，每逻辑步 +1，入存档）。
+	// 用途：舞王/伴舞全队共舞节拍源——所有舞者从同一计数推导动作，不互相通信也能整齐划一。
+	int mBoardFrame = 0;
+
+	// 舞蹈节拍帧 0~22 循环，每拍 12 逻辑步(0.2s)，等价原版 100Hz 的 20cs/拍、23 拍一循环。
+	// 0~11 = 舞步段(anim_walk)，12~22 = 举手段(anim_armraise)；补充召唤只在节拍==12 触发。
+	int GetDanceBeatFrame() const { return mBoardFrame % (12 * 23) / 12; }
+
 	bool mTrophySpawned = false;  // 防止重复生成
 	std::weak_ptr<Trophy> mTrophy;  // 每关至多一个；所有权在 GameObjectManager，此处仅供存档定位
 

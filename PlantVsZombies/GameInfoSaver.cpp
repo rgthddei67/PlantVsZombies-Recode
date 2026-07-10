@@ -168,6 +168,7 @@ bool GameInfoSaver::SaveLevelDataImpl(Board* board, CardSlotManager* manager)
 	}
 	j["sun"] = board->mSun;
 	j["currentWave"] = board->mCurrentWave;
+	j["boardFrame"] = board->mBoardFrame;   // 舞王全队齐舞的节拍源，读档保节拍连续
 	j["maxWave"] = board->mMaxWave;
 	j["zombieCountDown"] = board->mZombieCountDown;
 	j["totalZombieHP"] = board->mTotalZombieHP;
@@ -395,6 +396,7 @@ bool GameInfoSaver::LoadLevelDataImpl(Board* board, CardSlotManager* manager)
 	}
 	board->mSun = j.value("sun", 50);
 	board->mCurrentWave = j.value("currentWave", 0);
+	board->mBoardFrame = j.value("boardFrame", 0);
 	board->mMaxWave = j.value("maxWave", 10);
 	board->mZombieCountDown = j.value("zombieCountDown", 20.0f);
 	board->mTotalZombieHP = j.value("totalZombieHP", 0LL);
