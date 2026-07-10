@@ -139,7 +139,10 @@ void DancerZombie::SummonBackupDancers()
 		{ mRow,     x + kSummonSideDist },    // 同行后方
 	};
 	for (int i = 0; i < 4; ++i) {
-		if (mBoard->mEntityManager.GetZombie(mFollowerID[i])) continue;	// 该位还活着
+		// 槽位有效 = 活着且与领队同阵营（伴舞被魅惑后不清领队侧槽位，只能在此按阵营判失效）
+		if (Zombie* f = mBoard->mEntityManager.GetZombie(mFollowerID[i])) {
+			if (f->IsMindControlled() == mIsMindControlled) continue;
+		}
 		mFollowerID[i] = NULL_ZOMBIE_ID;
 		if (slots[i].row < 0 || slots[i].row >= mBoard->mRows) continue;
 		if (i == 2 && x < kSummonFrontMinX) continue;
@@ -163,7 +166,9 @@ bool DancerZombie::NeedsMoreBackupDancers() const
 		if (i == 0 && mRow - 1 < 0) continue;
 		if (i == 1 && mRow + 1 >= mBoard->mRows) continue;
 		if (i == 2 && GetPosition().x < kSummonFrontMinX) continue;
-		if (mBoard->mEntityManager.GetZombie(mFollowerID[i]) == nullptr) return true;
+		Zombie* follower = mBoard->mEntityManager.GetZombie(mFollowerID[i]);
+		// 死亡或阵营不同（被魅惑脱队）都算缺人
+		if (!follower || follower->IsMindControlled() != mIsMindControlled) return true;
 	}
 	return false;
 }

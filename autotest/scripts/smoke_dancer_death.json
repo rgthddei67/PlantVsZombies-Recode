@@ -1,0 +1,20 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 1 },
+    { "op": "choose_cards", "cards": ["PLANT_PEASHOOTER"] },
+    { "op": "wait_state", "state": "GAME" },
+    { "op": "set_sun", "value": 9000 },
+    { "op": "spawn_zombie", "type": "ZOMBIE_DANCER", "row": 4, "x": 900 },
+    { "op": "plant", "type": "PLANT_PEASHOOTER", "row": 4, "col": 0 },
+    { "op": "plant", "type": "PLANT_PEASHOOTER", "row": 4, "col": 1 },
+    { "op": "plant", "type": "PLANT_PEASHOOTER", "row": 4, "col": 2 },
+    { "op": "plant", "type": "PLANT_PEASHOOTER", "row": 4, "col": 3 },
+    { "op": "set_timescale", "value": 5.0 },
+    { "op": "wait_seconds", "value": 18 },
+    { "op": "dump_state", "name": "mid.json" },
+    { "op": "wait_seconds", "value": 18 },
+    { "op": "dump_state", "name": "final.json" },
+    { "op": "screenshot", "name": "aftermath" },
+    { "op": "quit" }
+  ]
+}

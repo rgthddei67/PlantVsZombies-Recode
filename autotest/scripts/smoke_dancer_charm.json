@@ -1,0 +1,23 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 1 },
+    { "op": "choose_cards", "cards": ["PLANT_PEASHOOTER"] },
+    { "op": "wait_state", "state": "GAME" },
+    { "op": "spawn_zombie", "type": "ZOMBIE_DANCER", "row": 2, "x": 600 },
+    { "op": "wait_seconds", "value": 4 },
+    { "op": "dump_state", "name": "before_charm.json" },
+
+    { "op": "charm_zombie", "row": 1, "index": 0 },
+    { "op": "wait_frames", "value": 10 },
+    { "op": "dump_state", "name": "after_charm_backup.json" },
+    { "op": "wait_seconds", "value": 6 },
+    { "op": "dump_state", "name": "after_refill.json" },
+    { "op": "assert_state", "path": "zombies.5.type", "equals": "ZOMBIE_BACKUP_DANCER" },
+
+    { "op": "charm_zombie", "row": 2, "index": 0 },
+    { "op": "wait_seconds", "value": 8 },
+    { "op": "dump_state", "name": "after_charm_leader.json" },
+    { "op": "screenshot", "name": "charmed_troupe" },
+    { "op": "quit" }
+  ]
+}
