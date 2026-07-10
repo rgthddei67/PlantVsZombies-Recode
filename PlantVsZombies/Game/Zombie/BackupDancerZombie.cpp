@@ -7,6 +7,7 @@ namespace {
 	constexpr float kRiseDepth = 145.0f;     // 出生下沉深度（原版 altitude -145）
 	constexpr float kDanceAnimSpeed = 1.2f;  // 全队统一动画速度：覆盖 Start() 的随机 1.1~1.4，否则齐舞散拍
 	constexpr float kArmraiseClip = 1.8f;    // 举手段 clip（原版 rate18；按截图手感可微调）
+	constexpr int   kGroundClipMargin = 8;   // 地面线裁剪底边 = 逻辑位置 y + 此余量（截图目验微调）
 }
 
 void BackupDancerZombie::SetupZombie()
@@ -17,16 +18,21 @@ void BackupDancerZombie::SetupZombie()
 
 	if (mIsPreview) { PlayTrack("anim_walk"); return; }
 
-	// 帧号为主人指定：Die@100（anim_death 65~101 内），EatTarget@46/59（anim_eat 32~64 内）
-	mAnimator->AddFrameEvent(100, [this]() { this->Die(); });
+	// 帧号为主人指定：Die@99（anim_death 65~101 内；100 实测播不到——死亡动画停在末帧前，
+	// 事件永不触发，僵尸血 0 却不消失，靠 10s 看门狗兜底），EatTarget@46/59（anim_eat 32~64 内）
+	mAnimator->AddFrameEvent(99, [this]() { this->Die(); });
 	mAnimator->AddFrameEvent(46, [this]() { this->EatTarget(); }, true);
 	mAnimator->AddFrameEvent(59, [this]() { this->EatTarget(); }, true);
 
-	// 出生沉入地下，升起期间照常随节拍跳舞（引擎无“暂停骨架”安全路径：
-	// 若定格动画，升起中被打死/断头会卡在冻结帧无法播 anim_death）。
+	// 出生沉入地下，升起期间照常随节拍跳舞（若定格动画，升起中被打死/断头会卡冻结帧无法播 anim_death）。
 	mBaseOffsetY = mVisualOffset.y;
 	mVisualOffset.y = mBaseOffsetY + kRiseDepth;
 	mPhase = BackupPhase::RISING;
+	// 地面线以下不可见：复用逐对象裁剪（图鉴僵尸窗同款），升起完成后 ClearClipRect 恢复。
+	// 底边用“行地面线”GetZombieSpawnY(row) 而非自身坐标——换新地图/行高自动适配（主人指示）。
+	const float groundY = mBoard ? mBoard->GetZombieSpawnY(mRow) : GetPosition().y;
+	SetClipRect(0, 0, SCENE_WIDTH,
+		static_cast<int>(groundY) + kGroundClipMargin);
 	UpdateDanceTrack(0.0f);
 }
 
@@ -44,6 +50,7 @@ void BackupDancerZombie::ZombieUpdate(float scaledTime)
 		if (t >= 1.0f) {
 			mVisualOffset.y = mBaseOffsetY;
 			mPhase = BackupPhase::DANCING;
+			ClearClipRect();	// 完全出土，解除地面线裁剪
 		}
 		else {
 			mVisualOffset.y = mBaseOffsetY + kRiseDepth * (1.0f - t);
@@ -137,8 +144,12 @@ void BackupDancerZombie::LoadExtraData(const nlohmann::json& j)
 	mRiseTimer = j.value("riseTimer", 0.0f);
 	mLeaderID = j.value("leaderID", NULL_ZOMBIE_ID);
 	mCharmHandled = j.value("charmHandled", false);
-	// RISING 的 mVisualOffset.y 由 ZombieUpdate 每帧按 mRiseTimer 重算；mBaseOffsetY 在
-	// SetupZombie（读档新建僵尸同样走过）已正确记录，无需恢复。
+	// SetupZombie（读档新建僵尸同样走过）默认按 RISING 预设了下沉+地面线裁剪；
+	// 若存档已是 DANCING，需在此撤销。RISING 存档则无需处理：offset 由 ZombieUpdate 按 mRiseTimer 重算。
+	if (mPhase == BackupPhase::DANCING) {
+		mVisualOffset.y = mBaseOffsetY;
+		ClearClipRect();
+	}
 	if (mIsEating) return;
 	mLastBeatBucket = -1;	// 下帧按当前节拍重刷轨道（覆盖 RestoreAnimState 的帧位=重新入拍，预期行为）
 }

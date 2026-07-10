@@ -147,9 +147,11 @@ private:
 	// 生存模式"抽中权重"：对 NORMAL/CONE 随轮稀释(仅供 GetWeightedRandomZombie；成本侧仍用 GetZombieWeight)
 	inline int GetSurvivalPickWeight(ZombieType type) const;
 
+public:
+	// 该行僵尸的落脚 y（由地图行几何派生）。公开原因：伴舞出土裁剪要用“行地面线”而非
+	// 僵尸自身坐标定裁剪底边——换新地图/行高时自动适配（主人指示）。
 	float GetZombieSpawnY(int row) const;
 
-public:
 	Board(GameScene* gameScene, Background background, int level);
 
 	inline void AddSun(int amount)
