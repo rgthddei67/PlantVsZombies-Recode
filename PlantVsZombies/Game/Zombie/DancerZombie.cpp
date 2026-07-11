@@ -1,11 +1,12 @@
 #include "DancerZombie.h"
 #include "BackupDancerZombie.h"
 #include "../Board.h"
+#include "../Plant/Plant.h"
 #include "../../ParticleSystem/ParticleSystem.h"
 
 namespace {
 	constexpr float kDancingInDuration = 2.0f;	// 入场月球漫步基础时长（原版 200cs），另加 0~0.12s 随机
-	constexpr float kHoldDuration = 2.5f;		// 响指后保持举手姿势的时长——**须同改**：与伴舞 kRiseDuration 一致（举手定格到伴舞出土完成）
+	constexpr float kHoldDuration = 1.2f;		// 响指后保持举手姿势的时长——**须同改**：与伴舞 kRiseDuration 一致（举手定格到伴舞出土完成）
 	constexpr float kDanceLimitX = 700.0f;		// 越过此 x 不再补充召唤（原版 dance limit）
 	constexpr float kMoonwalkClip = 2.0f;		// 原版 rate24（12fps 的 2 倍）；截图手感可微调
 	constexpr float kPointClip = 2.0f;
@@ -70,7 +71,8 @@ void DancerZombie::ZombieUpdate(float scaledTime)
 	case DancerPhase::DANCING:
 		UpdateDanceTrack(0.3f);
 		// 补位：只在节拍 12（walk→armraise 切拍点，原版编排）、有头、未越界、确实缺人时再打响指
-		if (mHasHead && mBoard && mBoard->GetDanceBeatFrame() == 12
+		// scaledTime>0：暂停时不触发（此检查不依赖 dt，恰停在节拍 12 会让暂停画面瞬间切举手）
+		if (mHasHead && scaledTime > 0.0f && mBoard && mBoard->GetDanceBeatFrame() == 12
 			&& GetPosition().x < kDanceLimitX && NeedsMoreBackupDancers()) {
 			mPhase = DancerPhase::SNAPPING;
 			mAnimator->PlayTrackOnce("anim_point", "", kPointClip, 0.3f);
@@ -119,11 +121,28 @@ void DancerZombie::PlayWalkAnimation(float blendTime)
 
 void DancerZombie::StartEat(ColliderComponent* other)
 {
+	// 响指/定身期间不开吃——召唤动作要播完；碰撞 onTriggerStay 每帧重试 StartEat，
+	// 进入 DANCING 后自然（续）啃。月球漫步中碰到植物则照常开吃，由 EatTarget 覆写
+	// 在首口结算后中断转召唤（先啃一口，后召唤，主人指定）。
+	if (mHasHead && (mPhase == DancerPhase::SNAPPING || mPhase == DancerPhase::HOLD)) return;
 	Zombie::StartEat(other);
-	// 原版：入场月球漫步中被迫开吃 → 啃完立即打响指（计时清零；啃食期间状态机本就暂停）
-	if (mIsEating && mPhase == DancerPhase::DANCING_IN) {
-		mPhaseTimer = 0.0f;
+}
+
+void DancerZombie::EatTarget()
+{
+	Zombie::EatTarget();
+	// 月球漫步中被迫开吃：首口伤害结算完立即中断啃食，转打响指召唤。
+	// 强停啃食复刻 StartMindControlled 的规范：平衡 mEaterCount → 清目标 → 模板方法收尾。
+	if (mPhase != DancerPhase::DANCING_IN || !mHasHead || mIsDying) return;
+	if (mIsEating && mEatPlantID != NULL_PLANT_ID && mBoard) {
+		if (auto* plant = mBoard->mEntityManager.GetPlant(mEatPlantID)) plant->mEaterCount--;
 	}
+	mEatPlantID = NULL_PLANT_ID;
+	mEatZombieID = NULL_ZOMBIE_ID;
+	mIsEating = false;
+	// 先切阶段再收尾：PlayWalkAnimation 的 SNAPPING 分支播 anim_point（播完定格，SNAPPING 轮询收尾召唤）
+	mPhase = DancerPhase::SNAPPING;
+	ResumeWalkAfterEat(0.3f);
 }
 
 void DancerZombie::SummonBackupDancers()

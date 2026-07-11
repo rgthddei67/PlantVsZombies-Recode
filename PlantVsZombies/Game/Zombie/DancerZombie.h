@@ -11,7 +11,7 @@ public:
 	using Zombie::Zombie;
 
 	enum class DancerPhase {
-		DANCING_IN,	// 入场月球漫步（计时；开吃会提前结束）
+		DANCING_IN,	// 入场月球漫步（计时；碰到植物啃一口后转 SNAPPING 召唤）
 		SNAPPING,	// 播 anim_point，第 36 帧事件触发召唤
 		HOLD,		// 召唤后定身跳舞 2s（不移动）
 		DANCING		// 节拍齐舞 + 前进 + 缺位补召
@@ -19,6 +19,7 @@ public:
 
 	void ZombieUpdate(float scaledTime) override;
 	void StartEat(ColliderComponent* other) override;
+	void EatTarget() override;	// 月球漫步首口后中断→召唤
 	void HeadDrop() override;
 	void ArmDrop() override;
 	void ZombieItemUpdate() const override;

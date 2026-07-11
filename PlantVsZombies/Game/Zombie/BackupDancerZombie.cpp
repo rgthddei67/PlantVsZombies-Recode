@@ -4,7 +4,7 @@
 #include "../../ParticleSystem/ParticleSystem.h"
 
 namespace {
-	constexpr float kRiseDuration = 2.5f;    // 出土升起耗时（原版 150cs）
+	constexpr float kRiseDuration = 1.2f;    // 出土升起耗时（原版 150cs）与DancerZombie kHoldDuration相同
 	constexpr float kRiseDepth = 145.0f;     // 出生下沉深度（原版 altitude -145）
 	constexpr float kDanceAnimSpeed = 1.2f;  // 全队统一动画速度：覆盖 Start() 的随机 1.1~1.4，否则齐舞散拍
 	constexpr float kArmraiseClip = 1.8f;    // 举手段 clip（原版 rate18；按截图手感可微调）
