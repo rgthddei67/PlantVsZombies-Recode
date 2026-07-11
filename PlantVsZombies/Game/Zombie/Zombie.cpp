@@ -33,7 +33,9 @@ Zombie::Zombie(Board* board, ZombieType zombieType, float x, float y, int row,
 
 	mVisualOffset = GameDataManager::GetInstance().GetZombieOffset(zombieType);
 
-	if (isPreview)
+	mAnimator->SetTrackVisible("_ground", false);
+
+	if (isPreview && mAnimator->HasTrack("anim_idle"))
 	{
 		this->PlayTrack("anim_idle");
 		return;
@@ -56,7 +58,6 @@ Zombie::Zombie(Board* board, ZombieType zombieType, float x, float y, int row,
 		};
 
 	mGroundTrackIndex = mAnimator->GetFirstTrackIndexByName("_ground");
-	mAnimator->SetTrackVisible("_ground", false);
 }
 
 void Zombie::SetupZombie()

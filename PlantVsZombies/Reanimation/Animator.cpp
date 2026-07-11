@@ -952,6 +952,10 @@ int Animator::GetFirstTrackIndexByName(const std::string& trackName) const {
 	return (it != mTrackIndicesMap.end()) ? it->second : -1;
 }
 
+bool Animator::HasTrack(const std::string& trackName) const {
+	return GetFirstTrackIndexByName(trackName) >= 0;
+}
+
 // 颜色混合函数
 int ColorComponentMultiply(int theColor1, int theColor2) {
 	return std::clamp(theColor1 * theColor2 / 255, 0, 255);

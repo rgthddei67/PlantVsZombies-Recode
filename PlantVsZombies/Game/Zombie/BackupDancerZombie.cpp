@@ -1,5 +1,6 @@
 #include "BackupDancerZombie.h"
 #include "../Board.h"
+#include "../ShadowComponent.h"
 #include "../../ParticleSystem/ParticleSystem.h"
 
 namespace {
@@ -7,7 +8,7 @@ namespace {
 	constexpr float kRiseDepth = 145.0f;     // 出生下沉深度（原版 altitude -145）
 	constexpr float kDanceAnimSpeed = 1.2f;  // 全队统一动画速度：覆盖 Start() 的随机 1.1~1.4，否则齐舞散拍
 	constexpr float kArmraiseClip = 1.8f;    // 举手段 clip（原版 rate18；按截图手感可微调）
-	constexpr int   kGroundClipMargin = 8;   // 地面线裁剪底边 = 逻辑位置 y + 此余量（截图目验微调）
+	constexpr int   kGroundClipMargin = 38;   // 地面线裁剪底边 = 逻辑位置 y + 此余量（截图目验微调）
 }
 
 void BackupDancerZombie::SetupZombie()
@@ -33,6 +34,8 @@ void BackupDancerZombie::SetupZombie()
 	const float groundY = mBoard ? mBoard->GetZombieSpawnY(mRow) : GetPosition().y;
 	SetClipRect(0, 0, SCENE_WIDTH,
 		static_cast<int>(groundY) + kGroundClipMargin);
+	// 人还在土里，地面不该有影子；出土完成后恢复（影子组件在 Zombie::Start 中先于本函数挂上）
+	if (auto shadow = GetComponent<ShadowComponent>()) shadow->SetVisible(false);
 	UpdateDanceTrack(0.0f);
 }
 
@@ -51,6 +54,7 @@ void BackupDancerZombie::ZombieUpdate(float scaledTime)
 			mVisualOffset.y = mBaseOffsetY;
 			mPhase = BackupPhase::DANCING;
 			ClearClipRect();	// 完全出土，解除地面线裁剪
+			if (auto shadow = GetComponent<ShadowComponent>()) shadow->SetVisible(true);
 		}
 		else {
 			mVisualOffset.y = mBaseOffsetY + kRiseDepth * (1.0f - t);
@@ -144,11 +148,12 @@ void BackupDancerZombie::LoadExtraData(const nlohmann::json& j)
 	mRiseTimer = j.value("riseTimer", 0.0f);
 	mLeaderID = j.value("leaderID", NULL_ZOMBIE_ID);
 	mCharmHandled = j.value("charmHandled", false);
-	// SetupZombie（读档新建僵尸同样走过）默认按 RISING 预设了下沉+地面线裁剪；
+	// SetupZombie（读档新建僵尸同样走过）默认按 RISING 预设了下沉+地面线裁剪+影子隐藏；
 	// 若存档已是 DANCING，需在此撤销。RISING 存档则无需处理：offset 由 ZombieUpdate 按 mRiseTimer 重算。
 	if (mPhase == BackupPhase::DANCING) {
 		mVisualOffset.y = mBaseOffsetY;
 		ClearClipRect();
+		if (auto shadow = GetComponent<ShadowComponent>()) shadow->SetVisible(true);
 	}
 	if (mIsEating) return;
 	mLastBeatBucket = -1;	// 下帧按当前节拍重刷轨道（覆盖 RestoreAnimState 的帧位=重新入拍，预期行为）

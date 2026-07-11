@@ -308,6 +308,13 @@ public:
 	 */
 	int GetFirstTrackIndexByName(const std::string& trackName) const;
 
+	/**
+	 * @brief 通过轨道名字获取一个track存不存在
+	 * @param trackName 轨道名字
+	 * @return 是否存在某个track，true=存在，false=不存在
+	 */
+	bool HasTrack(const std::string& trackName) const;
+
 	// ---------- 透明度和颜色控制 ----------
 	/**
 	 * @brief 设置整体透明度

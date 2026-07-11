@@ -27,6 +27,8 @@ void ShadowComponent::Start() {
 }
 
 void ShadowComponent::Draw(Graphics* g) {
+	if (!mVisible) return;
+
 	auto gameObject = GetGameObject();
 	if (!gameObject) return;
 

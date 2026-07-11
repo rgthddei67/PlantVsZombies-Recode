@@ -5,7 +5,7 @@
 
 namespace {
 	constexpr float kDancingInDuration = 2.0f;	// 入场月球漫步基础时长（原版 200cs），另加 0~0.12s 随机
-	constexpr float kHoldDuration = 2.0f;		// 响指后定身跳舞时长（原版 200cs）
+	constexpr float kHoldDuration = 2.5f;		// 响指后保持举手姿势的时长——**须同改**：与伴舞 kRiseDuration 一致（举手定格到伴舞出土完成）
 	constexpr float kDanceLimitX = 700.0f;		// 越过此 x 不再补充召唤（原版 dance limit）
 	constexpr float kMoonwalkClip = 2.0f;		// 原版 rate24（12fps 的 2 倍）；截图手感可微调
 	constexpr float kPointClip = 2.0f;
@@ -13,7 +13,6 @@ namespace {
 	constexpr float kDanceAnimSpeed = 1.2f;		// 与伴舞 kDanceAnimSpeed 保持一致
 	constexpr float kSummonFrontMinX = 130.0f;	// 舞王 x<130 时不放前方位（原版防出左屏）
 	constexpr float kSummonSideDist = 100.0f;	// 同行前/后伴舞与舞王的 x 距离
-	constexpr int   kPointDoneFrame = 36;		// anim_point 段(27~36)末帧：响指完成点
 }
 
 void DancerZombie::SetupZombie()
@@ -28,16 +27,6 @@ void DancerZombie::SetupZombie()
 	mAnimator->AddFrameEvent(146, [this]() { this->Die(); });
 	mAnimator->AddFrameEvent(90, [this]() { this->EatTarget(); }, true);
 	mAnimator->AddFrameEvent(99, [this]() { this->EatTarget(); }, true);
-
-	// anim_point 播毕 → 召唤 + 进 HOLD。帧 36 只存在于 point 段内，其他轨道不会经过；
-	// repeating=true + phase 守卫：补位召唤会多次经过此帧。
-	mAnimator->AddFrameEvent(kPointDoneFrame, [this]() {
-		if (mPhase != DancerPhase::SNAPPING) return;
-		SummonBackupDancers();
-		mPhase = DancerPhase::HOLD;
-		mPhaseTimer = kHoldDuration;
-		mLastBeatBucket = -1;
-	}, true);
 
 	mPhase = DancerPhase::DANCING_IN;
 	mPhaseTimer = kDancingInDuration + GameRandom::Range(0, 12) * 0.01f;
@@ -57,15 +46,23 @@ void DancerZombie::ZombieUpdate(float scaledTime)
 		mPhaseTimer -= scaledTime;
 		if (mPhaseTimer <= 0.0f && mHasHead) {
 			mPhase = DancerPhase::SNAPPING;
-			PlayTrack("anim_point", kPointClip, 0.3f);
+			// 空回切轨 = 原版 PlayOnceAndHold：播完定格在举手末帧，由 HOLD 阶段维持姿势
+			mAnimator->PlayTrackOnce("anim_point", "", kPointClip, 0.3f);
 		}
 		break;
 	case DancerPhase::SNAPPING:
-		// 等 anim_point 第 36 帧事件收尾
+		// 用 IsPlaying 轮询收尾（同原版查 mLoopCount）而非末帧帧事件——36 帧=point 段末帧，
+		// 定格 clamp 时帧事件不保证触发（末-1 帧陷阱）。被迫啃食时 anim_eat 循环播放，不会误判。
+		if (!mAnimator->IsPlaying()) {
+			SummonBackupDancers();
+			mPhase = DancerPhase::HOLD;
+			mPhaseTimer = kHoldDuration;
+			mLastBeatBucket = -1;
+		}
 		break;
 	case DancerPhase::HOLD:
+		// 保持举手定格（不切舞蹈轨道），直到伴舞出土完成
 		mPhaseTimer -= scaledTime;
-		UpdateDanceTrack(0.3f);
 		if (mPhaseTimer <= 0.0f) {
 			mPhase = DancerPhase::DANCING;
 		}
@@ -76,7 +73,7 @@ void DancerZombie::ZombieUpdate(float scaledTime)
 		if (mHasHead && mBoard && mBoard->GetDanceBeatFrame() == 12
 			&& GetPosition().x < kDanceLimitX && NeedsMoreBackupDancers()) {
 			mPhase = DancerPhase::SNAPPING;
-			PlayTrack("anim_point", kPointClip, 0.3f);
+			mAnimator->PlayTrackOnce("anim_point", "", kPointClip, 0.3f);
 		}
 		break;
 	}
@@ -108,7 +105,8 @@ void DancerZombie::PlayWalkAnimation(float blendTime)
 		PlayTrack("anim_moonwalk", kMoonwalkClip, blendTime);
 		return;
 	case DancerPhase::SNAPPING:
-		PlayTrack("anim_point", kPointClip, blendTime);
+		// 啃食打断后重播举手（播完定格，SNAPPING 轮询会再次收尾召唤）
+		mAnimator->PlayTrackOnce("anim_point", "", kPointClip, blendTime);
 		return;
 	default:
 		mLastBeatBucket = -1;
