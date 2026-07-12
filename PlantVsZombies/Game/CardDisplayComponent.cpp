@@ -120,10 +120,10 @@ void CardDisplayComponent::DrawCardBackground(Graphics* g, const Vector& positio
 void CardDisplayComponent::DrawPlantImage(Graphics* g, const Vector& position, const glm::vec4& color) {
 	if (!plantTexture) return;
 
-	float drawX = position.x - 12;
-	float drawY = position.y - 8;
-	float drawW = plantTexture->width * 0.59f;
-	float drawH = plantTexture->height * 0.59f;
+	float drawX = position.x - 13;
+	float drawY = position.y - 9;
+	float drawW = plantTexture->width * 0.64f;
+	float drawH = plantTexture->height * 0.64f;
 
 	g->DrawTexture(plantTexture, drawX, drawY, drawW, drawH, 0.0f, color);
 }
@@ -141,7 +141,7 @@ void CardDisplayComponent::DrawCooldownMask(Graphics* g, const Vector& position)
 void CardDisplayComponent::DrawSunCost(Graphics* g, const Vector& position) {
 	// 纹理的创建/重建已移到主线程 Update()（worker 线程不能建纹理）；这里只负责绘制。
 	// 句柄若过期，DrawCachedText 内部会安全丢弃，等下一帧 Update 重建。
-	g->DrawCachedText(mSunTextCache, position.x + 5, position.y + 46, kSunTextDrawScale);
+	g->DrawCachedText(mSunTextCache, position.x + 5, position.y + 51, kSunTextDrawScale);
 }
 
 void CardDisplayComponent::DrawSelectionHighlight(Graphics* g, const Vector& position) {
