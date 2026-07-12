@@ -8,7 +8,7 @@
 #include "ClickableComponent.h"
 #include "TransformComponent.h"
 
-constexpr float CARD_SCALE = 0.55f; // 卡牌缩放比例
+constexpr float CARD_SCALE = 0.46f; // 卡牌缩放比例
 constexpr int CARD_WIDTH = static_cast<int>(100 * CARD_SCALE); // 宽度
 constexpr int CARD_HEIGHT = static_cast<int>(140 * CARD_SCALE); // 高度
 

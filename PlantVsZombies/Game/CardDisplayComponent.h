@@ -50,6 +50,10 @@ private:
 	glm::vec4 clickColor = glm::vec4(160.0f, 160.0f, 160.0f, 255.0f); // 灰色
 
 	// 阳光数字文本缓存（避免每帧走 DrawText 的 key 构造与 LRU 维护）
+	// 2× 超采样：按 kSunTextRasterSize 光栅化、kSunTextDrawScale 缩回，屏幕字号不变但更锐
+	// （letterboxScale=1 时 14px 直接光栅化发虚）。两处 AcquireTextTexture 必须用同一字号常量。
+	static constexpr int   kSunTextRasterSize = 28;
+	static constexpr float kSunTextDrawScale = 0.5f;
 	CachedText mSunTextCache{};
 	int mCachedSunValue = -1;
 
