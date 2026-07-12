@@ -59,10 +59,10 @@ private:
 	static constexpr int MAX_SELECTED = 11;              // 最大选择数量
 	static constexpr float SLOT_START_X = 195;                  // 槽位起始 X 屏幕坐标
 	static constexpr float SLOT_START_Y = -1;                    // 槽位起始 Y 屏幕坐标
-	static constexpr int SLOT_SPACING = CARD_WIDTH + 1;       // 槽位间距
+	static constexpr int SLOT_SPACING = CARD_WIDTH + 3;       // 槽位间距
 
 	static constexpr int MAX_CARDS_PER_ROW = 8;      // 每行最多8张
-	static constexpr int CARD_HORIZONTAL_SPACING = 1; // 水平间距
+	static constexpr int CARD_HORIZONTAL_SPACING = 3; // 水平间距
 	static constexpr int CARD_VERTICAL_SPACING = 4;   // 垂直间距（
 	static constexpr float START_X = 210;                 // 第一张卡牌的起始X坐标 屏幕坐标
 	static constexpr float START_Y = 115;                // 第一行起始Y坐标  屏幕坐标
