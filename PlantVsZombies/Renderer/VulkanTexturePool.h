@@ -18,6 +18,7 @@ namespace pvz {
 		int             width = 0;
 		int             height = 0;
 		uint32_t        bindlessIndex = 0;
+		uint32_t        mipLevels = 1;   // 完整 mip 链级数（不支持 blit 时回退 1）
 		// 后续 phase 会补 atlasPage + a{U,V}{0,1}
 	};
 
@@ -72,6 +73,10 @@ namespace pvz {
 		void FlushAllDeletions();
 
 		VulkanContext* mCtx = nullptr;
+
+		// R8G8B8A8_UNORM 是否支持 linear blit（optimal tiling）：Initialize 时查询一次。
+		// 桌面 GPU 全支持；万一驱动缺失则所有纹理回退单级 mip（糊但不黑屏）。
+		bool mMipmapCapable = false;
 
 		VkSampler             mSampler = VK_NULL_HANDLE;
 		VkDescriptorSetLayout mLayout = VK_NULL_HANDLE;

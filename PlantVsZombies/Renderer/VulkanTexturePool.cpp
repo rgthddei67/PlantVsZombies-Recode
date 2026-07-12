@@ -24,6 +24,23 @@ namespace pvz {
 
 	bool VulkanTexturePool::Initialize(VulkanContext* ctx) {
 		mCtx = ctx;
+
+		// mipmap 能力：生成 mip 链要求 R8G8B8A8_UNORM 在 optimal tiling 下支持
+		// blit 源/目标 + linear 过滤采样。查询一次，不支持则全部纹理回退单级。
+		{
+			VkFormatProperties fp{};
+			vkGetPhysicalDeviceFormatProperties(mCtx->PhysicalDevice(),
+				VK_FORMAT_R8G8B8A8_UNORM, &fp);
+			constexpr VkFormatFeatureFlags kNeeded =
+				VK_FORMAT_FEATURE_BLIT_SRC_BIT |
+				VK_FORMAT_FEATURE_BLIT_DST_BIT |
+				VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT;
+			mMipmapCapable = (fp.optimalTilingFeatures & kNeeded) == kNeeded;
+			if (!mMipmapCapable) {
+				LOG_WARN("VulkanTexturePool") << "RGBA8 不支持 linear blit，mipmap 关闭（缩小绘制将欠采样）";
+			}
+		}
+
 		if (!CreateSampler())            return false;
 		if (!CreateLayout())             return false;
 		if (!CreatePoolAndSet())         return false;
@@ -181,16 +198,17 @@ namespace pvz {
 		bi.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 		VK_CHECK(vkBeginCommandBuffer(cb, &bi));
 
-		// 3) 屏障：UNDEFINED → TRANSFER_DST_OPTIMAL
+		// 3) 屏障：UNDEFINED → TRANSFER_DST_OPTIMAL（覆盖全部 mip 级；copy 只写 level 0，
+		//    其余级随后由 blit 链写入，同样需要 TRANSFER_DST 布局）
 		{
 			VkImageMemoryBarrier2 b{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2 };
 			b.srcStageMask = VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT;
-			b.dstStageMask = VK_PIPELINE_STAGE_2_COPY_BIT;
+			b.dstStageMask = VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT;
 			b.dstAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
 			b.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 			b.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 			b.image = tex.image;
-			b.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+			b.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, tex.mipLevels, 0, 1 };
 			VkDependencyInfo dep{ VK_STRUCTURE_TYPE_DEPENDENCY_INFO };
 			dep.imageMemoryBarrierCount = 1;
 			dep.pImageMemoryBarriers = &b;
@@ -204,21 +222,67 @@ namespace pvz {
 		vkCmdCopyBufferToImage(cb, staging.Handle(), tex.image,
 			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
-		// 5) 屏障：TRANSFER_DST_OPTIMAL → SHADER_READ_ONLY_OPTIMAL
+		// 5) 生成 mip 链：逐级 blit(linear)，level i-1 缩一半写入 level i。
+		//    源像素已预乘 alpha，线性平均即正确降采样（不会把透明区隐藏色渗进 mip）。
+		//    每级完成后立即转 SHADER_READ；mipLevels==1 时循环不执行，等价旧路径。
 		{
-			VkImageMemoryBarrier2 b{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2 };
-			b.srcStageMask = VK_PIPELINE_STAGE_2_COPY_BIT;
-			b.srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
-			b.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
-			b.dstAccessMask = VK_ACCESS_2_SHADER_SAMPLED_READ_BIT;
-			b.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-			b.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-			b.image = tex.image;
-			b.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
-			VkDependencyInfo dep{ VK_STRUCTURE_TYPE_DEPENDENCY_INFO };
-			dep.imageMemoryBarrierCount = 1;
-			dep.pImageMemoryBarriers = &b;
-			vkCmdPipelineBarrier2(cb, &dep);
+			auto barrier = [&](uint32_t level,
+				VkPipelineStageFlags2 srcStage, VkAccessFlags2 srcAccess, VkImageLayout oldLayout,
+				VkPipelineStageFlags2 dstStage, VkAccessFlags2 dstAccess, VkImageLayout newLayout) {
+					VkImageMemoryBarrier2 b{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2 };
+					b.srcStageMask = srcStage;
+					b.srcAccessMask = srcAccess;
+					b.dstStageMask = dstStage;
+					b.dstAccessMask = dstAccess;
+					b.oldLayout = oldLayout;
+					b.newLayout = newLayout;
+					b.image = tex.image;
+					b.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, level, 1, 0, 1 };
+					VkDependencyInfo dep{ VK_STRUCTURE_TYPE_DEPENDENCY_INFO };
+					dep.imageMemoryBarrierCount = 1;
+					dep.pImageMemoryBarriers = &b;
+					vkCmdPipelineBarrier2(cb, &dep);
+				};
+
+			int32_t mipW = tex.width, mipH = tex.height;
+			for (uint32_t i = 1; i < tex.mipLevels; ++i) {
+				const int32_t nextW = mipW > 1 ? mipW / 2 : 1;
+				const int32_t nextH = mipH > 1 ? mipH / 2 : 1;
+
+				// level i-1：TRANSFER_DST → TRANSFER_SRC（等 copy/上一次 blit 写完）
+				barrier(i - 1,
+					VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT,
+					VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+					VK_PIPELINE_STAGE_2_BLIT_BIT, VK_ACCESS_2_TRANSFER_READ_BIT,
+					VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+
+				VkImageBlit blit{};
+				blit.srcSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, i - 1, 0, 1 };
+				blit.srcOffsets[1] = { mipW, mipH, 1 };
+				blit.dstSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, i, 0, 1 };
+				blit.dstOffsets[1] = { nextW, nextH, 1 };
+				vkCmdBlitImage(cb,
+					tex.image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+					tex.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+					1, &blit, VK_FILTER_LINEAR);
+
+				// level i-1：TRANSFER_SRC → SHADER_READ_ONLY（用完即放行给采样）
+				barrier(i - 1,
+					VK_PIPELINE_STAGE_2_BLIT_BIT, VK_ACCESS_2_TRANSFER_READ_BIT,
+					VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+					VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_SAMPLED_READ_BIT,
+					VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+				mipW = nextW;
+				mipH = nextH;
+			}
+
+			// 最后一级（无 mip 时即 level 0）：TRANSFER_DST → SHADER_READ_ONLY
+			barrier(tex.mipLevels - 1,
+				VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT,
+				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+				VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_SAMPLED_READ_BIT,
+				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 		}
 
 		VK_CHECK(vkEndCommandBuffer(cb));
@@ -254,15 +318,23 @@ namespace pvz {
 		t->height = height;
 		t->bindlessIndex = idx;
 
+		// 完整 mip 链（到 1x1）。采样器早已是 LINEAR mipmapMode + LOD_CLAMP_NONE，
+		// 图像有了链后自动按缩放比选级，缩小超过 2:1 不再欠采样发糊。
+		if (mMipmapCapable) {
+			uint32_t m = (uint32_t)(width > height ? width : height);
+			while (m > 1) { m >>= 1; ++t->mipLevels; }
+		}
+
 		VkImageCreateInfo ici{ VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
 		ici.imageType = VK_IMAGE_TYPE_2D;
 		ici.format = VK_FORMAT_R8G8B8A8_UNORM;
 		ici.extent = { (uint32_t)width, (uint32_t)height, 1 };
-		ici.mipLevels = 1;
+		ici.mipLevels = t->mipLevels;
 		ici.arrayLayers = 1;
 		ici.samples = VK_SAMPLE_COUNT_1_BIT;
 		ici.tiling = VK_IMAGE_TILING_OPTIMAL;
-		ici.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+		// TRANSFER_SRC：生成 mip 链时上一级作为 blit 源
+		ici.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 		ici.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		ici.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
@@ -279,7 +351,7 @@ namespace pvz {
 		vci.image = t->image;
 		vci.viewType = VK_IMAGE_VIEW_TYPE_2D;
 		vci.format = VK_FORMAT_R8G8B8A8_UNORM;
-		vci.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+		vci.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, t->mipLevels, 0, 1 };
 		r = vkCreateImageView(mCtx->Device(), &vci, nullptr, &t->view);
 		if (r != VK_SUCCESS) {
 			LOG_ERROR("VulkanTexturePool") << "vkCreateImageView failed (" << (int)r << ")";
