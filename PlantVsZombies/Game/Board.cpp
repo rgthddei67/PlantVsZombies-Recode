@@ -813,6 +813,14 @@ void Board::LoadSpawnListFromJson()
 			if (waves > 0)
 				mMaxWave = waves;
 		}
+		// 可选：每关初始阳光（如黑夜收官关 19 给 1500）。只在开新关生效——
+		// 读档路径在本函数之后由 GameInfoSaver 还原存档里的 mSun，天然覆盖。
+		if (entry.contains("sun"))
+		{
+			int sun = entry["sun"].get<int>();
+			if (sun > 0)
+				mSun = sun;
+		}
 		return;
 	}
 	// 没找到对应关卡配置，保持默认 ZOMBIE_NORMAL（不清空）

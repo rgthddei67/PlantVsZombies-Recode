@@ -15,8 +15,8 @@ void IceShroom::SetupPlant()
 	// 预览/图鉴绝不结算（主人特别叮嘱：图鉴里也会走到这里）
 	if (mIsPreview) return;
 
-	// 第 16 帧全场冻结（主人指定；anim_idle 活跃区间 0..16 的末帧，一次性事件）。
-	// 存档在触发前：SetupPlant 读档时重新注册，RestoreAnimState 恢复的帧 <16，穿过时照常触发。
+	// 第 16 帧全场冻结（主人指定，帧号已按代码口径 = 预览帧号-1，直接使用）。
+	// 存档在触发前：SetupPlant 读档时重新注册，RestoreAnimState 恢复的帧在其前，穿过时照常触发。
 	mAnimator->AddFrameEvent(16, [this]() {
 		if (!mBoard) return;
 		AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_FROZEN, 0.5f);
