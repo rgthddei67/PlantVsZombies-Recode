@@ -19,6 +19,11 @@ public:
 
 	void ZombieUpdate(float scaledTime) override;
 	void StartEat(ColliderComponent* other) override;
+
+	// 出土升起中免疫寒冰（原版 CanBeChilled 排除 DancerRising）：升起靠计时+动画推进，停格会卡土里
+	bool CanBeChilled() const override {
+		return mPhase != BackupPhase::RISING && Zombie::CanBeChilled();
+	}
 	void HeadDrop() override;
 	void ArmDrop() override;
 	void ZombieItemUpdate() const override;

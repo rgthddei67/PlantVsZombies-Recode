@@ -90,6 +90,9 @@ public:
 		float holdDur = 3.0f,
 		float fadeDur = 1.0f);
 
+	// 全屏白闪（寒冰菇全场冻结的瞬间反馈）：alpha 从峰值线性衰减到 0
+	void ShowScreenFlash(float duration = 0.5f);
+
 	void SetReadyToBackMenu() { mReadyToBackMenu = true; }
 
 	void ShowShovel();
@@ -174,6 +177,10 @@ private:
 	Vector mReadyStartPos;
 
 	PromptAnimation mPrompt;
+
+	// 全屏白闪剩余/总时长（秒）；timer<=0 即不激活、不注册额外状态
+	float mScreenFlashTimer = 0.0f;
+	float mScreenFlashDuration = 0.5f;
 
 	void OpenMenu();
 	void OpenRestartMenu();

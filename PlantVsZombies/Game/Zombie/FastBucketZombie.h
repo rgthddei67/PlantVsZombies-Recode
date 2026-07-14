@@ -37,18 +37,8 @@ public:
 		}
 	}
 
-	void SetCooldown(float timer) override {
-		if (!mAnimator || mShieldType != ShieldType::SHIELDTYPE_NONE) return;
-
-		if (mCooldownTimer <= 0.0f)
-		{
-			mAnimator->SetExtraSpeedMultiplier(mExtraSpeed * 0.8f);
-			mAnimator->EnableOverlayEffect(true);
-			mAnimator->SetOverlayColor(80, 80, 255, 240);
-		}
-
-		mCooldownTimer = std::max(mCooldownTimer, timer);
-	}
+	// 减速动画只降到 0.8x（快速僵尸减速后仍偏快的手感）；其余逻辑沿用基类 SetCooldown/UpdateAnimSpeed
+	float GetSlowAnimFactor() const override { return 0.8f; }
 
 	void TakeDamage(int damage, bool penetrateShield) override {
 		if (GameRandom::Range(1, 10) <= 2) return;

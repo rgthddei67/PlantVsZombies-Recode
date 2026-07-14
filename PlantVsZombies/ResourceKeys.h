@@ -127,6 +127,7 @@ namespace ResourceKeys
 		RKEY(IMAGE_HYPNOSHROOM);
 		RKEY(IMAGE_SCAREDYSHROOM);
 		RKEY(IMAGE_ICESHROOM);
+		RKEY(IMAGE_ICETRAP);		// 冻结僵尸脚底冰晶（image 根目录 icetrap.png）
 		RKEY(IMAGE_DOOMSHROOM);
 		RKEY(IMAGE_SQUASH);
 		RKEY(IMAGE_THREEPEATER);
@@ -189,6 +190,7 @@ namespace ResourceKeys
 		inline const std::string SOUND_ZOMBIE_FINISHEAT = "SOUND_FINISHEATING";
 		RKEY(SOUND_HUGEWAVE);
 		RKEY(SOUND_ARM_HEAD_DROP);
+		RKEY(SOUND_FROZEN);		// 寒冰菇全场冻结（原版 frozen.ogg）
 		inline const std::string SOUND_POLEVAULT_JUMP = "SOUND_POLEVAULT";
 
 		RKEY(SOUND_CLICKSEED);

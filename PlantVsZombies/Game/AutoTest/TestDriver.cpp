@@ -551,6 +551,9 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "mindControlled", z->IsMindControlled() },
 			{ "hasHead", z->HasHead() }, { "hasArm", z->HasArm() },
 			{ "slowCooldown", z->GetCooldownTimer() },
+			// frozen 供 assert_state（bool 可 equals）；frozenTimer 浮点仅供肉眼核对勿断言
+			{ "frozen", z->IsFrozen() },
+			{ "frozenTimer", z->GetFrozenTimer() },
 			{ "track", z->GetCurrentTrackName() },
 			{ "freeHitsRemaining", z->mFreeHitsRemaining },
 			// 铁门僵尸常规手臂（藏门后/啃食露出）当前可见性——手臂显隐类 bug 的断言抓手；

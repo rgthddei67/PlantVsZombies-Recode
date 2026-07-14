@@ -85,9 +85,9 @@ void PaperZombie::ShieldDrop()
 	mAttackDamage *= 2;
 
 	// 再叠一层轻微全局倍率，乘在 EffectiveSpeed 最外层（与逐轨道 clip 正交，啃食/gasp/走路一并 ×1.1）。
-	// 必须调用 SetExtraSpeedMultiplier 才会生效；带 cooldown 判断与减速逻辑保持一致。
+	// 经 UpdateAnimSpeed 收敛：减速因子照算，冻结中狂暴不解除停格（解冻后新倍率自然生效）。
 	mExtraSpeed *= 1.4f;
-	mAnimator->SetExtraSpeedMultiplier(mExtraSpeed * (mCooldownTimer > 0.0f ? 0.6f : 1.0f));
+	UpdateAnimSpeed();
 
 	// gasp 播完后的回切轨道：若狂暴前已在啃食则回到啃食，否则狂奔。
 	// （修复"愤怒前已接触植物 → 愤怒后站着走路不吃"：StartEat 的 mEatPlantID 守卫会让它再也补不回啃食动画，

@@ -12,7 +12,8 @@
     "PLANT_SUNSHROOM":       { "cost": 25,  "cooldown": 7.5,  "offset": [-37.6, -28.0], "scale": 1.0 },
     "PLANT_FUMESHROOM":      { "cost": 100, "cooldown": 7.5,  "offset": [-37.6, -36.0], "scale": 0.92 },
     "PLANT_HYPNOSHROOM":     { "cost": 75,  "cooldown": 25.0, "offset": [-37.6, -36.0], "scale": 0.92 },
-    "PLANT_SCAREDYSHROOM":   { "cost": 25,  "cooldown": 7.5,  "offset": [-37.6, -42.0], "scale": 1.0 }
+    "PLANT_SCAREDYSHROOM":   { "cost": 25,  "cooldown": 7.5,  "offset": [-37.6, -42.0], "scale": 1.0 },
+    "PLANT_ICESHROOM":       { "cost": 75,  "cooldown": 50.0, "offset": [-37.6, -42.0], "scale": 1.0 }
   },
   "zombies": {
     "ZOMBIE_NORMAL":       { "weight": 1000, "appearWave": 1, "survivalRound": 1, "offset": [-50.0, -85.0], "scale": 1.0 },

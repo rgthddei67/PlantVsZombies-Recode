@@ -125,6 +125,18 @@ void GameScene::BuildDrawCommands()
 			},
 			LAYER_UI + 1000);
 
+		// 全屏白闪（寒冰菇）：盖过场景与 Prompt，但在开发者角标（+100000）之下
+		RegisterDrawCommand("ScreenFlash",
+			[this](Graphics* g) {
+				if (mScreenFlashTimer <= 0.0f) return;
+				// 峰值不打满 255：纯白满屏一帧过于刺眼，200 起步线性衰减
+				const float t = mScreenFlashTimer / mScreenFlashDuration;
+				glm::vec4 color(255.0f, 255.0f, 255.0f, 200.0f * t);
+				g->FillRect(0.0f, 0.0f,
+					static_cast<float>(SCENE_WIDTH), static_cast<float>(SCENE_HEIGHT), color);
+			},
+			LAYER_UI + 2000);
+
 		// 读档恢复时，board 已处于 GAME 状态，需在此重新注册 UI 文字命令
 		if (mBoard->mBoardState == BoardState::GAME) {
 			RegisterDrawCommand("ZombieNumber",
@@ -615,6 +627,13 @@ void GameScene::Update() {
 			break;
 		}
 		}
+		// 全屏白闪衰减
+		if (mScreenFlashTimer > 0.0f)
+		{
+			mScreenFlashTimer -= DeltaTime::GetDeltaTime();
+			if (mScreenFlashTimer < 0.0f) mScreenFlashTimer = 0.0f;
+		}
+
 		// 处理提示动画
 		if (mPrompt.active)
 		{
@@ -1272,6 +1291,13 @@ void GameScene::DevTriggerNextWave()
 		&& mBoard->mCurrentWave < mBoard->mMaxWave) {
 		mBoard->SummonNextWave();
 	}
+}
+
+void GameScene::ShowScreenFlash(float duration)
+{
+	if (duration <= 0.0f) return;
+	mScreenFlashDuration = duration;
+	mScreenFlashTimer = duration;
 }
 
 void GameScene::ShowPrompt(const std::string& textureKey,

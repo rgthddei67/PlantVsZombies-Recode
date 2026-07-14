@@ -45,6 +45,7 @@ protected:
 	float mExtraSpeed = 1.0f;
 
 	float mCooldownTimer = 0.0f;	// 僵尸减速倒计时时间
+	float mFrozenTimer = 0.0f;		// 冻结剩余秒数（寒冰菇完全定身），0=未冻结
 
 	bool mIsMindControlled = false;	//有没有被魅惑
 
@@ -116,6 +117,17 @@ public:
 	bool IsDying() const { return this->mIsDying; }
 	bool HasArm() const { return this->mHasArm; }
 	float GetCooldownTimer() const { return this->mCooldownTimer; }
+	bool IsFrozen() const { return this->mFrozenTimer > 0.0f; }
+	float GetFrozenTimer() const { return this->mFrozenTimer; }
+
+	// 冻结唯一入口（寒冰菇）：先上 20s 减速尾巴（SetCooldown，其持盾守卫保留——持盾照冻不吃减速），
+	// 再完全定身（首冻 4~6s / 已减速或已冻再冻 3~4s，原版 HitIceTrap 语义）。伤害由调用方另行结算。
+	// 返回 true=进入冻结；豁免（魅惑/濒死/预览/CanBeFrozen 覆写）返回 false。
+	bool StartFrozen();
+	// 行为守卫放虚函数（skill 教训：勿放 lambda）。Chilled=减速+冻结的总闸（魅惑免疫在基类）；
+	// Frozen=仅豁免定身、减速尾巴照上（如撑杆跳跃中，原版 CanBeFrozen 语义）。
+	virtual bool CanBeChilled() const;
+	virtual bool CanBeFrozen() const { return true; }
 
 	virtual void SetCooldown(float timer);		// 设置僵尸减速状态
 
@@ -130,6 +142,15 @@ public:
 	void ApplyHealthMultiplier(double multiplier);
 
 protected:
+	// 统一重算动画 extra 速度层：冻结(0) > 减速(mExtraSpeed×因子) > 常速(mExtraSpeed)。
+	// 所有改 mExtraSpeed/减速/冻结状态的运行期路径都必须经此收敛（原版 UpdateAnimSpeed 等价物），
+	// 直调 SetExtraSpeedMultiplier 会把冻结停格顶掉（出生 Setup 除外——彼时不可能已冻结）。
+	void UpdateAnimSpeed();
+	// 减速时动画降速因子（快速铁桶 0.8 覆写；位移减半由 Update 的 scaledDelta 承担，与此正交）
+	virtual float GetSlowAnimFactor() const { return 0.6f; }
+	// 解除冻结并恢复动画速度；蓝色 overlay 仅在无减速尾巴时清除（持盾僵尸没有尾巴→立即褪色）
+	void ClearFrozen();
+
 	virtual void ZombieMove(float scaledDelta, TransformComponent* transform);
 
 	// 这才是设置僵尸

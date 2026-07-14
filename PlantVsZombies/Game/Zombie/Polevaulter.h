@@ -30,6 +30,9 @@ public:
 	// 撑杆跑/跳阶段不可魅惑（原版：跳过魅惑菇根本不吃它）；落地 WALKING 后可
 	bool CanBeCharmed() const override { return mVaultState == VaultState::WALKING; }
 
+	// 跳跃中不可定身（原版 CanBeFrozen 排除 PolevaulterInVault）；减速尾巴照吃（CanBeChilled 不拦）
+	bool CanBeFrozen() const override { return mVaultState != VaultState::JUMPING; }
+
 protected:
 	void SaveExtraData(nlohmann::json& j) const override;
 	void LoadExtraData(const nlohmann::json& j) override;

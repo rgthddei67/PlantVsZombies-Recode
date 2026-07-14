@@ -116,6 +116,7 @@ void Zombie::SaveProtectedData(nlohmann::json& j) const {
 	j["speed"] = mSpeed;
 	j["extraSpeed"] = mExtraSpeed;   // extra 速度层基准（如狂暴报纸僵尸 2.5、铁桶快僵随机值）
 	j["cooldownTimer"] = mCooldownTimer;
+	j["frozenTimer"] = mFrozenTimer;
 	j["dyingTimer"] = mDyingTimer;
 }
 
@@ -143,6 +144,15 @@ void Zombie::LoadProtectedData(const nlohmann::json& j) {
 	}
 	else if (mAnimator) {
 		mAnimator->SetExtraSpeedMultiplier(mExtraSpeed);   // 无减速：直接应用基准（狂暴 2.5 等）
+	}
+
+	// 冻结还原：必须在减速恢复之后——UpdateAnimSpeed 里冻结优先，把 extra 覆盖回 0（停格）。
+	mFrozenTimer = j.value("frozenTimer", 0.0f);
+	if (mFrozenTimer > 0.0f && mAnimator) {
+		UpdateAnimSpeed();
+		// 冻结自带蓝光：持盾僵尸吃不到上面 SetCooldown 那份（它直接 no-op），这里补上
+		mAnimator->EnableOverlayEffect(true);
+		mAnimator->SetOverlayColor(80, 80, 255, 240);
 	}
 
 	// 如果播放死亡动画，禁用碰撞箱（判空与 Die/预览路径一致：预览僵尸已移除碰撞箱、mCollider=null）
@@ -235,6 +245,8 @@ void Zombie::Update()
 
 		if (mIsDying)
 		{
+			// 冻结兜底解除：任何转入死亡的路径都不得停格——死亡动画靠帧事件 Die()，停格即卡尸
+			if (mFrozenTimer > 0.0f) ClearFrozen();
 			mDyingTimer += deltaTime;
 			if (GetCurrentTrackName() != "anim_death" && !mDbgAnomalyLogged) {
 				mDbgAnomalyLogged = true;
@@ -259,11 +271,18 @@ void Zombie::Update()
 			if (mCooldownTimer <= 0.0f)
 			{
 				mCooldownTimer = 0.0f;
-				if (mAnimator)
-				{
-					mAnimator->SetExtraSpeedMultiplier(mExtraSpeed);
-					mAnimator->EnableOverlayEffect(false);
-				}
+				UpdateAnimSpeed();
+				if (mAnimator) mAnimator->EnableOverlayEffect(false);
+			}
+		}
+
+		// —— 冻结滴答（同样用真实 deltaTime：定身时长不被减速自身拖慢） ——
+		if (mFrozenTimer > 0.0f)
+		{
+			mFrozenTimer -= deltaTime;
+			if (mFrozenTimer <= 0.0f)
+			{
+				ClearFrozen();   // 解冻：减速尾巴未尽则回 0.6x（蓝光归尾巴管），否则回常速+褪色
 			}
 		}
 
@@ -319,6 +338,8 @@ void Zombie::Update()
 			{
 				if (!mIsDying)
 				{
+					// 冻着也要能倒：先解停格再播死亡动画（帧事件 Die 依赖动画前进）
+					if (mFrozenTimer > 0.0f) ClearFrozen();
 					PlayTrack("anim_death", 1.3f, 0.3f);
 					if (mCollider) mCollider->mEnabled = false;
 					mIsDying = true;
@@ -326,6 +347,10 @@ void Zombie::Update()
 				return;
 			}
 		}
+
+		// 冻结定身：移动/啃食推进/子类逻辑全停（上方的无头流血、减速与冻结滴答照走）。
+		// 啃食帧事件因动画停格（extra=0）自然不触发，mIsEating 状态保留，解冻续啃。
+		if (mFrozenTimer > 0.0f) return;
 
 		if (mIsEating) return;
 
@@ -360,18 +385,73 @@ void Zombie::SetCooldown(float timer)
 {
 	if (!mAnimator || mShieldType != ShieldType::SHIELDTYPE_NONE) return;
 
-	// 首次进入减速：启用独立的 0.6x 速度倍率 + 蓝色 overlay。
-	// 用 mExtraSpeedMultiplier 而非 SetSpeed，这样后续 PlayTrack / SetSpeed
-	// （例如切换啃食、死亡动画）不会覆盖减速效果。
+	// 首次进入减速：蓝色 overlay。速度经 UpdateAnimSpeed 统一收敛（extra 层，
+	// 后续 PlayTrack / SetSpeed 不会覆盖；冻结中保持停格不被顶掉）。
 	if (mCooldownTimer <= 0.0f)
 	{
-		mAnimator->SetExtraSpeedMultiplier(mExtraSpeed * 0.6f);
 		mAnimator->EnableOverlayEffect(true);
 		mAnimator->SetOverlayColor(80, 80, 255, 240);
 	}
 
 	// 已在减速中则取 max，避免短射缩短减速
 	mCooldownTimer = std::max(mCooldownTimer, timer);
+	UpdateAnimSpeed();
+}
+
+void Zombie::UpdateAnimSpeed()
+{
+	if (!mAnimator) return;
+	if (mFrozenTimer > 0.0f)
+	{
+		mAnimator->SetExtraSpeedMultiplier(0.0f);   // 冻结停格（同 WallNut 被啃暂停：状态层，不动 base）
+		return;
+	}
+	mAnimator->SetExtraSpeedMultiplier(
+		mExtraSpeed * (mCooldownTimer > 0.0f ? GetSlowAnimFactor() : 1.0f));
+}
+
+bool Zombie::CanBeChilled() const
+{
+	// 魅惑免疫（原版 CanBeChilled 排除 mMindControlled）；预览/垂死/已死不结算
+	return !mIsPreview && !mIsDead && !mIsDying && !mIsMindControlled;
+}
+
+bool Zombie::StartFrozen()
+{
+	if (!CanBeChilled()) return false;
+
+	const bool wasSlowedOrFrozen = (mCooldownTimer > 0.0f || mFrozenTimer > 0.0f);
+	SetCooldown(20.0f);               // 减速尾巴（原版 ApplyChill 2000cs）；持盾守卫在其内部
+	if (!CanBeFrozen()) return false; // 撑杆跳跃中等：只吃减速不定身
+
+	mFrozenTimer = wasSlowedOrFrozen
+		? GameRandom::Range(3.0f, 4.0f)    // 已减速/已冻再冻缩短（原版 300~400cs，防连放无限定身）
+		: GameRandom::Range(4.0f, 6.0f);   // 首冻（原版 400~600cs）
+	UpdateAnimSpeed();
+
+	// 冻结自带蓝色 overlay（与减速共用同色）：持盾僵尸吃不到 SetCooldown 的那份，也要变蓝
+	if (mAnimator)
+	{
+		mAnimator->EnableOverlayEffect(true);
+		mAnimator->SetOverlayColor(80, 80, 255, 240);
+	}
+
+	// 附带 20 点伤害（原版 HitIceTrap 固定值，在免疫判定之后——魅惑/跳跃中撑杆不掉血）。
+	// 走 TakeDamage 正常链（护盾→头盔→本体）；先停格再结算：报纸狂暴等
+	// 连锁里的 UpdateAnimSpeed 看到冻结态，不会把停格顶掉。
+	TakeDamage(20);
+	return true;
+}
+
+void Zombie::ClearFrozen()
+{
+	mFrozenTimer = 0.0f;
+	UpdateAnimSpeed();
+	// 减速尾巴仍在则蓝光归它管（到期自清）；没有尾巴（持盾）立即褪色
+	if (mCooldownTimer <= 0.0f && mAnimator)
+	{
+		mAnimator->EnableOverlayEffect(false);
+	}
 }
 
 void Zombie::ApplyCharmEffects()
@@ -418,10 +498,11 @@ void Zombie::StartMindControlled()
 		ResumeWalkAfterEat(0.2f);
 	}
 
-	// 清减速：把 overlay 让给红光；魅惑后子弹打不中，减速不会再来
-	if (mCooldownTimer > 0.0f) {
+	// 清减速+冻结：把 overlay 让给红光；魅惑免疫寒冰效果（原版），动画立即恢复
+	if (mCooldownTimer > 0.0f || mFrozenTimer > 0.0f) {
 		mCooldownTimer = 0.0f;
-		if (mAnimator) mAnimator->SetExtraSpeedMultiplier(mExtraSpeed);
+		mFrozenTimer = 0.0f;
+		UpdateAnimSpeed();
 	}
 
 	// 如果是最后一波的最后一个僵尸，魅惑后就不会再有僵尸了，直接死亡
@@ -659,7 +740,8 @@ void Zombie::EatTarget()
 
 void Zombie::StartEat(ColliderComponent* other)
 {
-	if (mIsPreview || mIsDying)	return;
+	// 冻结中不进入啃食态（碰撞 onTriggerStay 每帧重试，解冻后自然补上）
+	if (mIsPreview || mIsDying || mFrozenTimer > 0.0f)	return;
 	const bool wasEating = mIsEating;   // 仅"本次真开吃"（false→true）触发 OnStartEating，避免每帧 onTriggerStay 重复触发
 	auto* gameObject = other->GetGameObject();
 	if (gameObject->GetObjectType() == ObjectType::OBJECT_ZOMBIE)
@@ -741,6 +823,21 @@ void Zombie::SetPosition(const Vector& position)
 void Zombie::Draw(Graphics* g)
 {
 	AnimatedObject::Draw(g);	// 先画本体动画
+
+	// 冻结冰晶（icetrap.png）：画在本体之后=前景，垫在僵尸脚底
+	// （原版分前后两张 ICETRAP/ICETRAP2，本项目单图取前层简化）
+	if (g && mFrozenTimer > 0.0f && !mIsPreview)
+	{
+		if (auto* tex = ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_ICETRAP))
+		{
+			const Vector pos = GetPosition();
+			const float w = static_cast<float>(tex->width);
+			const float h = static_cast<float>(tex->height);
+			// 僵尸判定矩形底边 ≈ y+35：冰晶底边压在脚底线上（站位截图后微调）
+			g->DrawTexture(tex, pos.x - w * 0.5f, pos.y + 35.0f - h, w, h);
+		}
+	}
 
 	if (!g || mIsPreview || !GameAPP::GetInstance().mShowZombieHP) return;
 	// 视口剔除：屏外僵尸不画血量文字。11000 压测下绝大多数僵尸堆在屏幕外，
