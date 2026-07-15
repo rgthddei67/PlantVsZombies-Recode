@@ -22,7 +22,7 @@ description: Use when adding a new zombie (新增僵尸) to PvZ — 含防具僵
 3. **枚举移动 + 空工厂窗口**：把枚举移到哨兵前的**同一提交**必须补齐两份 gamedata.json 条目（缺字段拒启动 exit -6）；若工厂注册在后续提交，**weight 先填 0**（哨兵前+非零权重+无工厂=生存随机抽中即空指针），注册后再解封。
 4. **注册**：`GameDataManager.cpp` `#include` + `RegisterZombie(type, "ZOMBIE_X", ANIM_X, "ReanimName", &MakeZombie<T>)`——animName 必须与 resources.xml 的 `<Reanimation name>` 一致。
 5. **gamedata.json ×2 preset**：`{weight, appearWave, survivalRound, offset, scale}` 五字段缺一不可；只能被召唤的僵尸 `weight: 0`（永不被抽中，AutoTest spawn_zombie 仍可直造）。注意 weight 一物两用=抽中权重+生存点数成本。
-6. **粒子**：照抄 `ZombieHeadOff.xml` 改 `<Name>`+`<Image>`（图键=贴图文件名的标准派生键，如 `ZombieDancerHead.png`→`PARTICLE_ZOMBIEDANCERHEAD`），放 `particles/config/` 整目录自动加载，×2 preset。
+6. **粒子**：照抄 `ZombieHeadOff.xml` 改 `<Name>`+`<Image>`（图键=贴图文件名的标准派生键，如 `ZombieDancerHead.png`→`PARTICLE_ZOMBIEDANCERHEAD`），放 `particles/config/` 整目录自动加载，×2 preset。XML 标签全参考/foot-guns 见 **adding-particle skill**（勿再读 ParticleSystem 源码）。
 7. **⚠️ build/ 下资源提交必须 `git add -f`**——被 .gitignore 静默挡下，`git commit` 照样"成功"但文件没进去。提交后 `git show --stat` 核对文件数。
 
 ## 断肢 / 断头（每个 reanim 单独定案，先问主人）
