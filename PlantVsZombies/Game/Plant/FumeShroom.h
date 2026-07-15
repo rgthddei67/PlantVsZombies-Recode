@@ -4,11 +4,19 @@
 
 #include "Shroom.h"
 
+class Zombie;
+
 class FumeShroom : public Shroom {
 protected:
 	float mCheckZombieTimer = 0.0f;
 	float mShootTime = 1.5f;     // 射击间隔时间
 	float mShootTimer = 1.0f;    // 射击计时器
+	int   mFumeDamage = 20;      // 每次喷射伤害（约一发豌豆，原版 DoRowAreaDamage(20, ...)）
+	float mFumeReach = 390.0f;   // 喷雾横向覆盖范围（约 4 格锥形；检测与命中共用同一距离）
+
+	// 变种覆写点（寒冰大喷菇）：孢子云粒子名 / 命中每个僵尸后的追加效果
+	virtual const char* FumeParticleName() const { return "FumeCloud"; }
+	virtual void OnFumeHit(Zombie* zombie) {}
 
 	bool HasZombieInRow();		// 检测本行是否有僵尸
 	void FumeAttack();			// 喷雾区域攻击：对本行锥形范围内全部僵尸瞬时穿透伤害

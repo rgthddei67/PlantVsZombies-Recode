@@ -1,0 +1,60 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 10 },
+    { "op": "choose_cards", "cards": ["PLANT_ICEFUMESHROOM"] },
+    { "op": "wait_state", "state": "GAME" },
+    { "op": "set_sun", "value": 1000 },
+    { "op": "plant", "type": "PLANT_ICEFUMESHROOM", "row": 2, "col": 2 },
+    { "op": "wait_seconds", "value": 1, "timeout": 15 },
+    { "op": "screenshot", "name": "a0_idle_blue.png" },
+    { "op": "dump_state", "name": "a0_idle.json" },
+    { "op": "assert_state", "path": "plants.0.type", "equals": "PLANT_ICEFUMESHROOM" },
+
+    { "op": "spawn_zombie", "type": "ZOMBIE_NORMAL", "row": 2, "x": 550 },
+    { "op": "wait_seconds", "value": 3, "timeout": 20 },
+    { "op": "screenshot", "name": "a1_spray_slow.png" },
+    { "op": "dump_state", "name": "a1_hit.json" },
+    { "op": "assert_state", "path": "zombies.0.slowed", "equals": true },
+    { "op": "assert_state", "path": "zombies.0.frozen", "equals": false },
+
+    { "op": "charm_zombie", "row": 2, "index": 0 },
+    { "op": "wait_seconds", "value": 3.5, "timeout": 20 },
+    { "op": "dump_state", "name": "a2_slow_expired.json" },
+    { "op": "assert_state", "path": "zombies.0.mindControlled", "equals": true },
+    { "op": "assert_state", "path": "zombies.0.slowed", "equals": false },
+
+    { "op": "goto_level", "level": 10 },
+    { "op": "choose_cards", "cards": ["PLANT_ICEFUMESHROOM"] },
+    { "op": "wait_state", "state": "GAME" },
+    { "op": "set_sun", "value": 1000 },
+    { "op": "plant", "type": "PLANT_ICEFUMESHROOM", "row": 2, "col": 2 },
+    { "op": "spawn_zombie", "type": "ZOMBIE_DOOR", "row": 2, "x": 550 },
+    { "op": "wait_seconds", "value": 3.5, "timeout": 20 },
+    { "op": "screenshot", "name": "b1_door_no_slow.png" },
+    { "op": "dump_state", "name": "b1_door.json" },
+    { "op": "assert_state", "path": "zombies.0.slowed", "equals": false },
+    { "op": "assert_state", "path": "zombies.0.frozen", "equals": false },
+
+    { "op": "goto_level", "level": 1 },
+    { "op": "choose_cards", "cards": ["PLANT_ICEFUMESHROOM"] },
+    { "op": "wait_state", "state": "GAME" },
+    { "op": "set_sun", "value": 1000 },
+    { "op": "plant", "type": "PLANT_ICEFUMESHROOM", "row": 2, "col": 2 },
+    { "op": "wait_seconds", "value": 2, "timeout": 15 },
+    { "op": "screenshot", "name": "c1_day_sleep.png" },
+    { "op": "dump_state", "name": "c1_sleep.json" },
+    { "op": "assert_state", "path": "plants.0.track", "equals": "anim_sleep" },
+
+    { "op": "goto_level", "level": 10 },
+    { "op": "choose_cards", "cards": ["PLANT_FUMESHROOM", "PLANT_ICEFUMESHROOM"] },
+    { "op": "wait_state", "state": "GAME" },
+    { "op": "set_sun", "value": 1000 },
+    { "op": "plant", "type": "PLANT_FUMESHROOM", "row": 2, "col": 2 },
+    { "op": "plant", "type": "PLANT_ICEFUMESHROOM", "row": 2, "col": 4 },
+    { "op": "spawn_zombie", "type": "ZOMBIE_NORMAL", "row": 2, "x": 800 },
+    { "op": "wait_seconds", "value": 2.5, "timeout": 20 },
+    { "op": "screenshot", "name": "d1_side_by_side.png" },
+
+    { "op": "quit" }
+  ]
+}

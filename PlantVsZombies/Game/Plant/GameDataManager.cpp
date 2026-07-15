@@ -23,6 +23,7 @@
 #include "PuffShroom.h"
 #include "SunShroom.h"
 #include "FumeShroom.h"
+#include "IceFumeShroom.h"
 #include "HypnoShroom.h"
 #include "ScaredyShroom.h"
 #include "IceShroom.h"
@@ -163,6 +164,12 @@ void GameDataManager::InitializeHardcodedData() {
 		ResourceKeys::Textures::IMAGE_ICESHROOM,
 		AnimationType::ANIM_ICE_SHROOM,
 		"IceShroom", &MakePlant<IceShroom>);
+
+	// 寒冰大喷菇：复用大喷菇 reanim（蓝色靠 overlay），仅卡图独立
+	RegisterPlant(PlantType::PLANT_ICEFUMESHROOM, "PLANT_ICEFUMESHROOM",
+		ResourceKeys::Textures::IMAGE_ICEFUMESHROOM,
+		AnimationType::ANIM_ICEFUMESHROOM,
+		"FumeShroom", &MakePlant<IceFumeShroom>);
 
 	// ==================== 僵尸注册（仅身份，数值见 gamedata.json） ====================
 	RegisterZombie(ZombieType::ZOMBIE_NORMAL, "ZOMBIE_NORMAL",

@@ -26,7 +26,8 @@ namespace {
 		PT(PLANT_PEASHOOTER), PT(PLANT_SUNFLOWER), PT(PLANT_CHERRYBOMB), PT(PLANT_WALLNUT),
 		PT(PLANT_POTATOMINE), PT(PLANT_SNOWPEA), PT(PLANT_CHOMPER), PT(PLANT_REPEATER),
 		PT(PLANT_PUFFSHROOM), PT(PLANT_SUNSHROOM), PT(PLANT_FUMESHROOM),
-		PT(PLANT_HYPNOSHROOM), PT(PLANT_SCAREDYSHROOM), PT(PLANT_ICESHROOM), PT(PLANT_DOOMSHROOM),
+		PT(PLANT_HYPNOSHROOM), PT(PLANT_SCAREDYSHROOM), PT(PLANT_ICESHROOM), PT(PLANT_ICEFUMESHROOM),
+		PT(PLANT_DOOMSHROOM),
 		PT(PLANT_LILYPAD), PT(PLANT_SQUASH), PT(PLANT_THREEPEATER), PT(PLANT_TANGLEKELP),
 		PT(PLANT_JALAPENO), PT(PLANT_SPIKEWEED), PT(PLANT_TORCHWOOD), PT(PLANT_TALLNUT),
 		PT(PLANT_SEASHROOM), PT(PLANT_PLANTERN), PT(PLANT_CACTUS), PT(PLANT_BLOVER),
@@ -551,6 +552,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "mindControlled", z->IsMindControlled() },
 			{ "hasHead", z->HasHead() }, { "hasArm", z->HasArm() },
 			{ "slowCooldown", z->GetCooldownTimer() },
+			// slowed 供 assert_state（bool 可 equals）；slowCooldown 浮点仅供肉眼核对勿断言
+			{ "slowed", z->GetCooldownTimer() > 0.0f },
 			// frozen 供 assert_state（bool 可 equals）；frozenTimer 浮点仅供肉眼核对勿断言
 			{ "frozen", z->IsFrozen() },
 			{ "frozenTimer", z->GetFrozenTimer() },
