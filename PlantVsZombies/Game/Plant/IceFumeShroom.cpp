@@ -2,13 +2,17 @@
 #include "../Board.h"
 
 namespace {
-	constexpr float kIceSlowSeconds = 2.5f;   // 命中减速时长；重复命中取 max 不叠加（Zombie::SetCooldown）
+	// 减速时长 2.0 < 攻击间隔 2.5：刻意留 0.5s 恢复空窗（覆盖率 80%），
+	// 否则圈内=永久 0.6 速、整行输出 ×1.67 超模（2026-07-15 主人裁定中档）。
+	// 重复命中取 max 不叠加（Zombie::SetCooldown）。
+	constexpr float kIceSlowSeconds = 2.0f;
 }
 
 void IceFumeShroom::SetupPlant()
 {
 	mFumeDamage = 10;
 	mFumeReach = 360.0f;   // 大喷菇 390 − 30
+	mShootTime = 2.5f;     // 大喷菇 1.5s；控制型放慢节奏，配合减速时长制造空窗
 	FumeShroom::SetupPlant();
 
 	// 蓝色覆盖 = 僵尸减速同色（Zombie::SetCooldown 的 80,80,255,240）。

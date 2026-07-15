@@ -29,7 +29,7 @@
     { "op": "set_sun", "value": 1000 },
     { "op": "plant", "type": "PLANT_ICEFUMESHROOM", "row": 2, "col": 2 },
     { "op": "spawn_zombie", "type": "ZOMBIE_DOOR", "row": 2, "x": 550 },
-    { "op": "wait_seconds", "value": 3.5, "timeout": 20 },
+    { "op": "wait_seconds", "value": 4.5, "timeout": 25 },
     { "op": "screenshot", "name": "b1_door_no_slow.png" },
     { "op": "dump_state", "name": "b1_door.json" },
     { "op": "assert_state", "path": "zombies.0.slowed", "equals": false },
@@ -52,7 +52,7 @@
     { "op": "plant", "type": "PLANT_FUMESHROOM", "row": 2, "col": 2 },
     { "op": "plant", "type": "PLANT_ICEFUMESHROOM", "row": 2, "col": 4 },
     { "op": "spawn_zombie", "type": "ZOMBIE_NORMAL", "row": 2, "x": 800 },
-    { "op": "wait_seconds", "value": 2.5, "timeout": 20 },
+    { "op": "wait_seconds", "value": 4.2, "timeout": 25 },
     { "op": "screenshot", "name": "d1_side_by_side.png" },
 
     { "op": "quit" }
