@@ -53,8 +53,8 @@ public:
 	void OnEnter() override;
 	void OnExit() override;
 	void Update() override;
-	// 覆写以支持屏幕抖动：在整套绘制命令外围 push 一个平移（worker 并行录制在
-	// BeginParallelRecord 快照主线程变换栈顶，故并行路径同样继承该偏移）
+	// 覆写以支持屏幕抖动：抖动经相机（projView）作用于全部绘制管线，
+	// 含不消费变换栈的 reanim/字形 GPU instancing 快路径（详见 .cpp 实现注释）
 	void Draw(Graphics* g) override;
 
 	void ChooseCardComplete();  // 选卡完成
@@ -184,6 +184,10 @@ private:
 	// 全屏白闪剩余/总时长（秒）；timer<=0 即不激活、不注册额外状态
 	float mScreenFlashTimer = 0.0f;
 	float mScreenFlashDuration = 0.5f;
+
+	// 屏幕抖动上一帧是否占用了相机（true 时抖动归零后须把相机复位一次；
+	// 平时不触碰相机，避免与开场动画的 SetCameraPosition(camX,0) 打架）
+	bool mShakeCameraApplied = false;
 
 	void OpenMenu();
 	void OpenRestartMenu();

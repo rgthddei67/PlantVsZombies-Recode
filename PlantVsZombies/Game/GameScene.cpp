@@ -76,19 +76,26 @@ GameScene::~GameScene() {
 
 void GameScene::Draw(Graphics* g)
 {
-	// 屏幕抖动：把整套绘制命令（背景/物件/粒子/UI）平移 Board 给出的偏移。
-	// push 必须发生在 GameObjectManager 的 BeginParallelRecord 之前（就在这里）——
-	// worker 以主线程栈顶为初始基线，偏移才会被并行录制的几何继承。
+	// 屏幕抖动走相机（m_viewMatrix → projView push constant）而非变换栈：
+	// reanim/血量字形的 GPU instancing 快路径不消费变换栈（InstanceRecord 直写世界坐标，
+	// 见 Animator::DrawInternalInstanced / AppendReanimInstance），栈方案只能平移 batch
+	// 路径的背景与 UI，植物/僵尸留在原位；projView 是全部管线（batch/instance/字形/
+	// 延迟文字）的公共出口，相机平移一次覆盖，且视口剔除与 LogicalToWorld 自动一致。
+	// 注意：不能每帧无条件写相机——开场动画的背景平移也在用 SetCameraPosition（本文件
+	// Update 内 camX 路径）。抖动只发生在 GAME 状态（此时相机基线恒为 0），故只在
+	// 抖动中覆写、结束后归零一次。相机设定须在 Scene::Draw 之前完成，保证本帧所有
+	// flush（含 mid-frame blend 切换触发的）读到同一个 projView。
 	const Vector shake = mBoard ? mBoard->GetShakeOffset() : Vector(0.0f, 0.0f);
 	const bool shaking = (shake.x != 0.0f || shake.y != 0.0f);
 	if (shaking) {
-		g->PushTransform();
-		g->Translate(shake.x, shake.y);
+		g->SetCameraPosition(-shake.x, -shake.y);   // view 平移 = -cameraPos，场景整体移 +shake
+		mShakeCameraApplied = true;
+	}
+	else if (mShakeCameraApplied) {
+		g->SetCameraPosition(0.0f, 0.0f);
+		mShakeCameraApplied = false;
 	}
 	Scene::Draw(g);
-	if (shaking) {
-		g->PopTransform();
-	}
 }
 
 void GameScene::BuildDrawCommands()
