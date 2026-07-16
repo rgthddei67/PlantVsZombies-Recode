@@ -5,7 +5,8 @@ description: Use when adding or tuning ANY particle effect (粒子特效) in PvZ
 
 # 给 PvZ 写粒子特效（XML 配置全参考）
 
-本文件每个标签的语义都是 2026-07-15 从 `ParticleSystem/` 源码逐行实证的（IceFumeCloud 蓝色孢子云实战）。
+本文件每个标签的语义都是 2026-07-15 从 `ParticleSystem/` 源码逐行实证的（IceFumeCloud 蓝色孢子云实战），
+2026-07-16 随毁灭菇 Doom.xml 移植更新（ImageFrames 序列帧实装 + 原版 XML 移植口径）。
 **改了引擎消费端（ParticleEmitter/ParticleXMLLoader）要回来同步本文档。**
 
 ## 心智模型
@@ -15,6 +16,8 @@ description: Use when adding or tuning ANY particle effect (粒子特效) in PvZ
 - 目录：`build/<preset>/resources/particles/config/`，启动时全目录加载——**双 preset 都要放**；纯数据改配置**不用重编译，但要重启游戏**。
 - 触发：`g_particleSystem->EmitEffect("Name", GetPosition());`（第三参 renderOrder 可选）。名字打错启动不报错，**发射时** run.log 出 `ERROR 找不到粒子特效配置`。
 - 贴图：`<Image>` 填资源键（`IMAGE_*`/`PARTICLE_*`，即 resources.xml 里那些）；**没有独立粒子贴图格式**，任何已加载纹理都能当粒子。
+- **键前缀由 resources.xml 段落决定**：`<GameImages>` 里的 → `IMAGE_*`，`<ParticleTextures>` 里的 → `PARTICLE_*`（粒子专用图放后者）。写错前缀=粒子静默不生成（foot-gun ③）。
+- **分份贴图**：`<Texture Column="4" Row="1">` 会把图切成独立纹理 `PARTICLE_XXX_PART_0..3`（`基础键_PART_序号`，行优先）——逗号列出来即"每粒子随机一张"（splats 碎屑的原理）。**序列帧动画别用它**，用 `ImageFrames`（整图不切，见标签表）。
 
 ## 数值语法（三种，核心）
 
@@ -51,6 +54,8 @@ description: Use when adding or tuning ANY particle effect (粒子特效) in PvZ
 | `ParticleSpinSpeed` | 范围(**度**/s) | 0 | 贴图自旋（DrawTexture 走 glm::radians，配置里是度：碎屑 ±130、掉头 ±5） |
 | `ParticleGravity` | float(px/s²) | **0** | 每帧 `vy += g*dt`；头文件成员默认写 100 是幌子，loader 无标签时 as_float(0) 覆盖 |
 | `Image` | 资源键 | 无 | **必填**：没有它粒子直接不生成（静默）；逗号分隔多个=每粒子随机选一张（碎片直接复用 splats 系列） |
+| `ImageFrames` | int | 1 | **序列帧动画**（2026-07-16 实装）：贴图为**横排帧条**，帧宽=图宽/N（毁灭菇爆炸底座 471×85=3 帧翻滚蘑菇云）。绘制取当前帧列，>1 才生效 |
+| `AnimationRate` | float(帧/s) | 12 | 序列帧推进速度，到尾**循环**；仅在 ImageFrames>1 时有意义 |
 
 ### Field 场（每个 `<Field>` 一个 `<FieldType>` + 可选 `<X>`/`<Y>` 轨迹）
 
@@ -63,8 +68,9 @@ description: Use when adding or tuning ANY particle effect (粒子特效) in PvZ
 
 ### 解析了但引擎不消费（写了无效，勿浪费时间调）
 
-`ImageFrames`/`AnimationRate`（帧计数在推进但 Draw 不切帧——序列帧动画未实装）、
-`<SystemField>`、`FieldType=SystemPosition`、`<FullScreen>`。
+`<SystemField>`、`FieldType=SystemPosition`（移动整个发射器——移植原版 XML 时把它的常量偏移**折算进 EmitterOffset 并减半**，见移植口径）、
+`<FullScreen>`（全屏绘制——等效替代：`ParticleScale 4000` 的 WhitePixel 巨quad，Doom 紫闪实证）。
+（`ImageFrames`/`AnimationRate` 已于 2026-07-16 实装，移入上方标签表。）
 
 ## 生命周期与渲染层
 
@@ -81,6 +87,8 @@ description: Use when adding or tuning ANY particle effect (粒子特效) in PvZ
 5. `RandomLaunchSpin` 不写时初速度**恒向右**——掉落物（头/手臂）必须写 `1`，否则一律向右飞。
 6. Position 场是**绝对偏移**：想让粒子"随时间飘远"，轨迹要从小值渐变到大值（`0 [20 300],60 ...`），写常量它就钉在那不动。
 7. 双 preset 都要放 XML；改完**重启**游戏才生效（启动时一次性加载）。
+8. **负数随机区间写升序** `[-300 -200]`：原版 XML 里的 `[-200 -300]` 直接照抄会把 min/max 反着喂给 GameRandom::Range，行为未定义。
+9. **移植原版 XML 前先 Compare 两 preset 的 resources.xml**：msvc-debug 的历史上整体陈旧过（缺 12 个文件条目），只 append 新行会漏掉旧账——发现漂移直接整文件覆盖 + 补拷缺失资源。
 
 ## 配方（照抄改数）
 
@@ -89,6 +97,15 @@ description: Use when adding or tuning ANY particle effect (粒子特效) in PvZ
 **掉落物**（ZombieHeadOff）：`SpawnMinActive 1` + `LaunchSpeed [60 100]` + `RandomLaunchSpin 1` + `ParticleGravity 140` + `ParticleSpinSpeed [-5 5]` + Position 场常量（出生点修正 -10,-50）。
 
 **命中飞溅**（PeaBulletHit，双发射器）：主溅斑（1颗、`ParticleScale 1.2 0.4` 缩小消失）+ 碎屑环（`EmitterType Circle` + `LaunchSpeed [65]` + `Friction 0.0,10 0.1` 先快后刹 + `Acceleration Y=5` 微下坠）。
+
+**原版 XML 移植口径**（Doom.xml→10 发射器大特效实证，逐条机械换算）：
+1. 时间字段全部**厘秒→秒（÷100）**：ParticleDuration 150→1.5；SystemDuration 别照抄 400→4（原版仅回收判定），取"最长粒子寿命+余量"即可（→1.6）。
+2. **EmitterOffsetX/Y 减半**（本引擎双倍生效，foot-gun ②）：原版 -75 → 写 -37.5。
+3. **SystemField/SystemPosition 折算进 EmitterOffset**（本引擎不消费）：原版 SysPos(-90,-120) → EmitterOffset(-45,-60)（折算后同样减半）。
+4. `FullScreen` 闪光 → `ParticleScale 4000` + WhitePixel（1×1 白图，键 PARTICLE_WHITEPIXEL），RGB/Alpha 轨迹原样保留。
+5. `AnimationRate`/`ImageFrames` **原值照抄**（单位本就是帧/秒）；对应贴图整图入库**不加 Column 属性**（切开就不是帧条了）。
+6. 负数区间改升序（foot-gun ⑧）；`Image` 键按素材入库段落改前缀（IMAGE_/PARTICLE_）。
+7. **特效名=第一个 Emitter 的 Name**：把首发射器 Name 改成 EmitEffect 要用的名字（Doom.xml 首发射器 DoomStem→"Doom"）。
 
 ## 验证
 
