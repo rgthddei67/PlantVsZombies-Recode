@@ -17,6 +17,10 @@ public:
 protected:
 	void SetupPlant() override;
 
+public:
+	// 充能（引爆倒计时）期间无敌，参考樱桃炸弹；白天睡觉时仍正常掉血
+	void TakeDamage(int damage) override;
+
 private:
 	void Explode();
 };

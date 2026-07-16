@@ -28,6 +28,16 @@ void DoomShroom::SetupPlant()
 	}
 }
 
+void DoomShroom::TakeDamage(int damage)
+{
+	// 充能期间无敌（参考樱桃炸弹：只闪光不掉血）；白天睡觉=普通蘑菇，照常被啃
+	if (!mIsSleeping) {
+		this->SetGlowingTimer(0.1f);
+		return;
+	}
+	Plant::TakeDamage(damage);
+}
+
 void DoomShroom::Explode()
 {
 	if (!mBoard) return;

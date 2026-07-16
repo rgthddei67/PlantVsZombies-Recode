@@ -260,6 +260,10 @@ void CardSlotManager::UpdatePlantPreviewPosition(Graphics* g, const Vector& mous
 	if (hoveredCell && hoveredCell->GetPlantID() != NULL_PLANT_ID) {
 		isOverCellWithPlant = true;
 	}
+	// 弹坑格视同已种格：不显示落点预览（与 CanPlaceInCell 的阻种闸门保持一致）
+	if (hoveredCell && mBoard && mBoard->HasCraterAt(hoveredCell->mRow, hoveredCell->mColumn)) {
+		isOverCellWithPlant = true;
+	}
 
 	if (isOverCellWithPlant) {
 		DestroyCellPlantPreview();
