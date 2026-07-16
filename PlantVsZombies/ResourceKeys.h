@@ -129,6 +129,10 @@ namespace ResourceKeys
 		RKEY(IMAGE_ICESHROOM);
 		RKEY(IMAGE_ICEFUMESHROOM);
 		RKEY(IMAGE_ICETRAP);		// 冻结僵尸脚底冰晶（image 根目录 icetrap.png）
+		RKEY(IMAGE_CRATER_PART_0);		// 毁灭菇弹坑（crater.png 1行2列分份：0=白天）
+		RKEY(IMAGE_CRATER_PART_1);		// 1=黑夜
+		RKEY(IMAGE_CRATER_FADING_PART_0);	// 弹坑后半程消退版（同 0=白天/1=黑夜）
+		RKEY(IMAGE_CRATER_FADING_PART_1);
 		RKEY(IMAGE_DOOMSHROOM);
 		RKEY(IMAGE_SQUASH);
 		RKEY(IMAGE_THREEPEATER);
@@ -204,6 +208,8 @@ namespace ResourceKeys
 		inline const std::string SOUND_SHOOTER_SHOOT = "SOUND_THROW";
 		inline const std::string SOUND_SHOOTER_SHOOT2 = "SOUND_THROW2";
 		RKEY(SOUND_CHERRYBOMB);
+		RKEY(SOUND_DOOMSHROOM);				// 毁灭菇爆炸（原版 doomshroom.ogg）
+		RKEY(SOUND_REVERSE_EXPLOSION);		// 毁灭菇引爆前吸气充能声（原版 reverse_explosion.ogg）
 
 		// 子弹击中僵尸
 		RKEY(SOUND_SNOW_PEA_SPARKLES);

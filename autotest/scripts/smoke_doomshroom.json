@@ -1,0 +1,56 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 10 },
+    { "op": "choose_cards", "cards": ["PLANT_DOOMSHROOM", "PLANT_PUFFSHROOM"] },
+    { "op": "wait_state", "state": "GAME" },
+    { "op": "set_sun", "value": 1000 },
+
+    { "op": "spawn_zombie", "type": "ZOMBIE_NORMAL", "row": 2, "x": 700 },
+    { "op": "spawn_zombie", "type": "ZOMBIE_BUCKET", "row": 3, "x": 750 },
+    { "op": "spawn_zombie", "type": "ZOMBIE_NORMAL", "row": 0, "x": 1100 },
+    { "op": "plant", "type": "PLANT_DOOMSHROOM", "row": 2, "col": 4 },
+    { "op": "wait_seconds", "value": 0.6 },
+    { "op": "screenshot", "name": "a0_charging.png" },
+    { "op": "dump_state", "name": "a0_charging.json" },
+    { "op": "assert_state", "path": "plants.0.track", "equals": "anim_explode" },
+
+    { "op": "wait_seconds", "value": 1.1 },
+    { "op": "screenshot", "name": "a1_explosion.png" },
+    { "op": "wait_seconds", "value": 0.5 },
+    { "op": "screenshot", "name": "a2_explosion_late.png" },
+
+    { "op": "wait_seconds", "value": 3.0 },
+    { "op": "screenshot", "name": "a3_crater.png" },
+    { "op": "dump_state", "name": "a3_after.json" },
+    { "op": "assert_state", "path": "craters.0.row", "equals": 2 },
+    { "op": "assert_state", "path": "craters.0.col", "equals": 4 },
+    { "op": "assert_state", "path": "zombieNumber", "equals": 1 },
+    { "op": "assert_state", "path": "zombies.0.row", "equals": 0 },
+
+    { "op": "click", "x": 255, "y": 35 },
+    { "op": "click", "x": 602, "y": 338 },
+    { "op": "wait_frames", "value": 10 },
+    { "op": "dump_state", "name": "a4_crater_block.json" },
+    { "op": "assert_state", "path": "plants", "equals": [] },
+
+    { "op": "click", "x": 682, "y": 338 },
+    { "op": "wait_frames", "value": 10 },
+    { "op": "screenshot", "name": "a5_adjacent_ok.png" },
+    { "op": "dump_state", "name": "a5_adjacent.json" },
+    { "op": "assert_state", "path": "plants.0.type", "equals": "PLANT_PUFFSHROOM" },
+    { "op": "assert_state", "path": "plants.0.col", "equals": 5 },
+
+    { "op": "goto_level", "level": 1 },
+    { "op": "choose_cards", "cards": ["PLANT_DOOMSHROOM"] },
+    { "op": "wait_state", "state": "GAME" },
+    { "op": "set_sun", "value": 1000 },
+    { "op": "plant", "type": "PLANT_DOOMSHROOM", "row": 2, "col": 4 },
+    { "op": "wait_seconds", "value": 3 },
+    { "op": "screenshot", "name": "c1_day_sleep.png" },
+    { "op": "dump_state", "name": "c1_sleep.json" },
+    { "op": "assert_state", "path": "plants.0.track", "equals": "anim_sleep" },
+    { "op": "assert_state", "path": "craters", "equals": [] },
+
+    { "op": "quit" }
+  ]
+}

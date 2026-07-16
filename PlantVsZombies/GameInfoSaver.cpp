@@ -13,6 +13,7 @@
 #include "./Game/GameProgress.h"
 #include "./Game/Sun.h"
 #include "./Game/Trophy.h"
+#include "./Game/Crater.h"
 #include "./Game/Bullet/BulletType.h"
 #include "./Game/CardSlotManager.h"
 #include "./Game/Card.h"
@@ -308,6 +309,19 @@ bool GameInfoSaver::SaveLevelDataImpl(Board* board, CardSlotManager* manager)
 	}
 	j["trophies"] = trophiesArr;
 
+	// 弹坑（毁灭菇）：row/col/剩余秒数即可完整还原；无弹坑时省略字段，旧档天然兼容
+	nlohmann::json cratersArr = nlohmann::json::array();
+	for (auto& weak : board->mCraters) {
+		auto crater = weak.lock();
+		if (!crater || !crater->IsActive()) continue;
+		cratersArr.push_back({
+			{ "row", crater->mRow },
+			{ "column", crater->mColumn },
+			{ "timeLeft", crater->mTimeLeft },
+		});
+	}
+	if (!cratersArr.empty()) j["craters"] = cratersArr;
+
 	// 卡牌
 	nlohmann::json cardsArr = nlohmann::json::array();
 	if (manager) {
@@ -569,6 +583,12 @@ bool GameInfoSaver::LoadLevelDataImpl(Board* board, CardSlotManager* manager)
 		float x = t["x"].get<float>();
 		float y = t["y"].get<float>();
 		board->CreateTrophy(Vector(x, y));
+	}
+
+	// 恢复弹坑（毁灭菇）；旧档无 craters 字段 → 空数组，天然兼容
+	for (auto& c : j.value("craters", nlohmann::json::array())) {
+		board->AddCrater(c.value("row", 0), c.value("column", 0),
+			c.value("timeLeft", Crater::CRATER_DURATION));
 	}
 
 	// 恢复卡牌

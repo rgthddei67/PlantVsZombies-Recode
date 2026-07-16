@@ -27,6 +27,7 @@
 #include "HypnoShroom.h"
 #include "ScaredyShroom.h"
 #include "IceShroom.h"
+#include "DoomShroom.h"
 
 #include "../Zombie/Zombie.h"
 #include "../Zombie/ConeZombie.h"
@@ -164,6 +165,11 @@ void GameDataManager::InitializeHardcodedData() {
 		ResourceKeys::Textures::IMAGE_ICESHROOM,
 		AnimationType::ANIM_ICE_SHROOM,
 		"IceShroom", &MakePlant<IceShroom>);
+
+	RegisterPlant(PlantType::PLANT_DOOMSHROOM, "PLANT_DOOMSHROOM",
+		ResourceKeys::Textures::IMAGE_DOOMSHROOM,
+		AnimationType::ANIM_DOOM_SHROOM,
+		"DoomShroom", &MakePlant<DoomShroom>);
 
 	// 寒冰大喷菇：复用大喷菇 reanim（蓝色靠 overlay），仅卡图独立
 	RegisterPlant(PlantType::PLANT_ICEFUMESHROOM, "PLANT_ICEFUMESHROOM",

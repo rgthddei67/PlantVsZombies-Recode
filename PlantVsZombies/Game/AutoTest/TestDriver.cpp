@@ -14,6 +14,7 @@
 #include "../Zombie/ZombieType.h"
 #include "../Zombie/Zombie.h"
 #include "../Trophy.h"   // dump_state 输出奖杯坐标
+#include "../Crater.h"   // dump_state 输出毁灭菇弹坑
 #include "../../Reanimation/Animator.h"   // dump_state 查询轨道可见性（如铁门僵尸手臂）
 #include <filesystem>
 #include <algorithm>
@@ -528,6 +529,17 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	}
 	else {
 		out["trophy"] = nullptr;
+	}
+
+	// 弹坑（毁灭菇）——阻种/消退冒烟的断言抓手；timeLeftInt 整数投影供 equals，浮点勿断言
+	out["craters"] = nlohmann::json::array();
+	for (auto& weak : board->mCraters) {
+		auto crater = weak.lock();
+		if (!crater || !crater->IsActive()) continue;
+		out["craters"].push_back({
+			{ "row", crater->mRow }, { "col", crater->mColumn },
+			{ "timeLeftInt", static_cast<int>(crater->mTimeLeft) },
+		});
 	}
 
 	out["survivalRound"] = board->mIsSurvival ? board->mSurvivalRound : -1;

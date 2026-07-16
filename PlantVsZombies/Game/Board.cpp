@@ -4,6 +4,7 @@
 #include "Shovel.h"
 #include "Sun.h"
 #include "Trophy.h"
+#include "Crater.h"
 #include "../GameRandom.h"
 #include "./Plant/Plant.h"
 #include "./Zombie/Zombie.h"
@@ -117,6 +118,63 @@ void Board::CreateBoom(const Vector& position, int damage)
 			}
 		}
 	}
+}
+
+void Board::CreateDoomBoom(const Vector& position, int damage)
+{
+	// 与 CreateBoom 同一套 Charred 阈值预测（词条缩放单点在 TakeDamage，勿在入口重复缩放）
+	const int scaledDamage = mPerkManager.ScaleTotalDamageToZombie(damage);
+	g_particleSystem->EmitEffect("Doom", position);
+	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_DOOMSHROOM, 0.5f);
+	std::vector<int> zombieIDs = mEntityManager.GetAllZombieIDs();
+	for (auto zombieID : zombieIDs)
+	{
+		if (auto zombie = mEntityManager.GetZombie(zombieID)) {
+			if (zombie->IsMindControlled()) continue;
+			// 圆(半径 250) vs 僵尸判定矩形 [x±25]×[y-65,y+35]，镜像原版 GetCircleRectOverlap；
+			// 250 纵向天然覆盖 ±2 行有余，无需再按行数过滤
+			Vector zombiePosition = zombie->GetPosition();
+			float nearestX = std::clamp(position.x, zombiePosition.x - 25.0f, zombiePosition.x + 25.0f);
+			float nearestY = std::clamp(position.y, zombiePosition.y - 65.0f, zombiePosition.y + 35.0f);
+			float dx = position.x - nearestX;
+			float dy = position.y - nearestY;
+			if (dx * dx + dy * dy <= 250.0f * 250.0f)
+			{
+				if (zombie->mBodyHealth <= scaledDamage)
+				{
+					zombie->Charred();
+				}
+				else
+				{
+					zombie->TakeDamage(damage);   // 传未缩放原值，TakeDamage 内部缩放一次
+				}
+			}
+		}
+	}
+}
+
+Crater* Board::AddCrater(int row, int column, float timeLeft)
+{
+	auto crater = GameObjectManager::GetInstance().CreateGameObjectAsShared<Crater>(
+		LAYER_GAME_OBJECT, this, row, column, timeLeft);
+	if (crater) {
+		mCraters.push_back(crater);
+	}
+	return crater.get();
+}
+
+bool Board::HasCraterAt(int row, int column)
+{
+	bool found = false;
+	// 弹坑到时在自身 Update 里自毁，这里顺带收缩失效的 weak_ptr
+	mCraters.erase(std::remove_if(mCraters.begin(), mCraters.end(),
+		[&](const std::weak_ptr<Crater>& weak) {
+			auto crater = weak.lock();
+			if (!crater || !crater->IsActive()) return true;
+			if (crater->mRow == row && crater->mColumn == column) found = true;
+			return false;
+		}), mCraters.end());
+	return found;
 }
 
 Sun* Board::CreateSun(const Vector& position, bool needAnimation)

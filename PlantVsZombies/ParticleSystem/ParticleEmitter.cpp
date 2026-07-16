@@ -242,8 +242,13 @@ void ParticleEmitter::Draw() {
 			if (!particle.texture) {
 				continue;
 			}
-			float srcW = static_cast<float>(particle.texture->width);
+			// ImageFrames 序列帧：贴图为横向帧条（如毁灭菇爆炸底座 471x85 = 3 帧 157x85），
+			// UpdateAnimation 按 AnimationRate 循环推进 currentFrame，这里取对应列。
+			// totalFrames<=1 时 frameW 即整图宽，走同一条 DrawTextureRegion 路径。
+			int frameCount = std::max(1, particle.totalFrames);
+			float srcW = static_cast<float>(particle.texture->width) / frameCount;
 			float srcH = static_cast<float>(particle.texture->height);
+			float srcX = srcW * (particle.currentFrame % frameCount);
 			float destW = srcW * particle.size;
 			float destH = srcH * particle.size * particle.stretch;
 
@@ -255,8 +260,9 @@ void ParticleEmitter::Draw() {
 			finalColor.g *= particle.brightness * particle.colorMultiplier.g;
 			finalColor.b *= particle.brightness * particle.colorMultiplier.b;
 
-			m_graphics->DrawTexture(
+			m_graphics->DrawTextureRegion(
 				particle.texture,
+				srcX, 0.0f, srcW, srcH,
 				x, y, destW, destH,
 				particle.rotation,
 				finalColor

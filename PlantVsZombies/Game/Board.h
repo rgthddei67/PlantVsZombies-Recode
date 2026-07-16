@@ -22,6 +22,7 @@ class Plant;
 class Zombie;
 class Bullet;
 class Trophy;
+class Crater;
 class Shovel;
 class Mower;
 enum class MowerType;
@@ -115,6 +116,9 @@ public:
 
 	bool mTrophySpawned = false;  // 防止重复生成
 	std::weak_ptr<Trophy> mTrophy;  // 每关至多一个；所有权在 GameObjectManager，此处仅供存档定位
+
+	// 毁灭菇弹坑：所有权在 GameObjectManager（到时自毁），此处 weak_ptr 仅供寻址/存档
+	std::vector<std::weak_ptr<Crater>> mCraters;
 
 	bool mIsSurvival = false;     // 是否为生存模式（无尽）
 	int  mSurvivalRound = 1;      // 当前第几面旗（轮次，从 1 起）
@@ -221,6 +225,13 @@ public:
 
 	// 创建樱桃爆炸效果
 	void CreateBoom(const Vector& position, int damage = 1800);
+
+	// 毁灭菇爆炸：半径 250 圆形判定、波及全部行、跳过魅惑僵尸；Charred 阈值逻辑同 CreateBoom
+	void CreateDoomBoom(const Vector& position, int damage = 1800);
+
+	// 添加/查询弹坑（毁灭菇）。AddCrater 由爆炸与读档共用；timeLeft 读档时传剩余值
+	Crater* AddCrater(int row, int column, float timeLeft);
+	bool HasCraterAt(int row, int column);   // 顺带惰性清理已消散的 weak_ptr
 
 	// 带指定 ID 创建实体（用于读档）
 	Plant* CreatePlantWithID(PlantType type, int row, int col, int id);

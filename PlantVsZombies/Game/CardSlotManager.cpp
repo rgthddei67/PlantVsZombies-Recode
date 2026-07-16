@@ -331,6 +331,11 @@ bool CardSlotManager::CanPlaceInCell(Cell* cell) const {
 		return false;
 	}
 
+	// 毁灭菇弹坑占格期间不可种植
+	if (mBoard && mBoard->HasCraterAt(cell->mRow, cell->mColumn)) {
+		return false;
+	}
+
 	// 检查阳光是否足够
 	if (auto cardComp = selectedCard->GetComponent<CardComponent>()) {
 		if (!CanAfford(cardComp->GetSunCost())) {
