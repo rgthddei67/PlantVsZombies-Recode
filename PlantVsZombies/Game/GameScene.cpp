@@ -74,6 +74,23 @@ GameScene::GameScene() {
 GameScene::~GameScene() {
 }
 
+void GameScene::Draw(Graphics* g)
+{
+	// 屏幕抖动：把整套绘制命令（背景/物件/粒子/UI）平移 Board 给出的偏移。
+	// push 必须发生在 GameObjectManager 的 BeginParallelRecord 之前（就在这里）——
+	// worker 以主线程栈顶为初始基线，偏移才会被并行录制的几何继承。
+	const Vector shake = mBoard ? mBoard->GetShakeOffset() : Vector(0.0f, 0.0f);
+	const bool shaking = (shake.x != 0.0f || shake.y != 0.0f);
+	if (shaking) {
+		g->PushTransform();
+		g->Translate(shake.x, shake.y);
+	}
+	Scene::Draw(g);
+	if (shaking) {
+		g->PopTransform();
+	}
+}
+
 void GameScene::BuildDrawCommands()
 {
 	Scene::BuildDrawCommands();

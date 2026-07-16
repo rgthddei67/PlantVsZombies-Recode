@@ -53,6 +53,9 @@ public:
 	void OnEnter() override;
 	void OnExit() override;
 	void Update() override;
+	// 覆写以支持屏幕抖动：在整套绘制命令外围 push 一个平移（worker 并行录制在
+	// BeginParallelRecord 快照主线程变换栈顶，故并行路径同样继承该偏移）
+	void Draw(Graphics* g) override;
 
 	void ChooseCardComplete();  // 选卡完成
 

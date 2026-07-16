@@ -98,6 +98,7 @@ void Board::CreateBoom(const Vector& position, int damage)
 	const int scaledDamage = mPerkManager.ScaleTotalDamageToZombie(damage);
 	g_particleSystem->EmitEffect("CherryBomb", position);
 	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_CHERRYBOMB, 0.4f);
+	ShakeBoard(3.0f, -4.0f);   // 原版 ShakeBoard(3,-4)：0.12s 单次弹跳
 	std::vector<int> zombieIDs = mEntityManager.GetAllZombieIDs();
 	for (auto zombieID : zombieIDs)
 	{
@@ -126,6 +127,8 @@ void Board::CreateDoomBoom(const Vector& position, int damage)
 	const int scaledDamage = mPerkManager.ScaleTotalDamageToZombie(damage);
 	g_particleSystem->EmitEffect("Doom", position);
 	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_DOOMSHROOM, 0.5f);
+	// 比樱桃更剧烈：双倍振幅 + 0.5s 衰减正弦来回甩 5 个半周期（原版两者同为 3,-4，主人要求毁灭菇加强）
+	ShakeBoard(6.0f, -9.0f, 0.5f, 5);
 	std::vector<int> zombieIDs = mEntityManager.GetAllZombieIDs();
 	for (auto zombieID : zombieIDs)
 	{
@@ -151,6 +154,32 @@ void Board::CreateDoomBoom(const Vector& position, int damage)
 			}
 		}
 	}
+}
+
+void Board::ShakeBoard(float amountX, float amountY, float durationSeconds, int oscillations)
+{
+	mShakeDuration = (durationSeconds > 0.0f) ? durationSeconds : 0.12f;
+	mShakeTimer = mShakeDuration;
+	mShakeAmountX = amountX;
+	mShakeAmountY = amountY;
+	mShakeOscillations = (oscillations > 0) ? oscillations : 1;
+}
+
+Vector Board::GetShakeOffset() const
+{
+	if (mShakeTimer <= 0.0f) return Vector(0.0f, 0.0f);
+	float t = 1.0f - mShakeTimer / mShakeDuration;   // 0→1
+	float wave;
+	if (mShakeOscillations <= 1) {
+		// 原版 TodCurves.Bounce：三角波 0→1→0（峰值在半程）
+		wave = 1.0f - std::abs(1.0f - t * 2.0f);
+	}
+	else {
+		// 衰减正弦：sin 每半周期变号=方向来回甩，(1-t) 包络收敛回原位
+		wave = std::sin(t * 3.14159265f * static_cast<float>(mShakeOscillations)) * (1.0f - t);
+	}
+	// 原版符号：mX = base - amountX*wave（正 amountX 向左）、mY = 0 + amountY*wave
+	return Vector(-mShakeAmountX * wave, mShakeAmountY * wave);
 }
 
 Crater* Board::AddCrater(int row, int column, float timeLeft)
@@ -718,6 +747,10 @@ void Board::Update()
 	while (mBoardFrameAccum >= 1.0f) {
 		mBoardFrameAccum -= 1.0f;
 		mBoardFrame++;
+	}
+	// 屏幕抖动倒计时：乘 dt 口径（暂停 dt=0 冻结，倍速等比加速），与弹坑计时一致
+	if (mShakeTimer > 0.0f) {
+		mShakeTimer -= DeltaTime::GetDeltaTime();
 	}
 	CleanupExpiredObjects();
 	UpdateLevel();

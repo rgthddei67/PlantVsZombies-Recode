@@ -143,6 +143,13 @@ private:
 	std::vector<RowInfo> mRowInfos;
 	static constexpr float ROW_WEIGHT_THRESHOLD = 1e-6f;
 
+	// 屏幕抖动状态（见 ShakeBoard）。timer 递减到 0 即结束；重复触发直接覆盖重置
+	float mShakeTimer = 0.0f;         // 剩余秒数，<=0 = 未抖动
+	float mShakeDuration = 0.12f;     // 本次抖动总时长（秒）
+	float mShakeAmountX = 0.0f;       // 峰值位移（原版符号约定）
+	float mShakeAmountY = 0.0f;
+	int   mShakeOscillations = 1;     // 1=原版三角弹跳；>1=衰减正弦来回甩
+
 	void LoadSpawnListFromJson();
 	void InitializeRows();
 	inline int SelectSpawnRow();
@@ -232,6 +239,14 @@ public:
 	// 添加/查询弹坑（毁灭菇）。AddCrater 由爆炸与读档共用；timeLeft 读档时传剩余值
 	Crater* AddCrater(int row, int column, float timeLeft);
 	bool HasCraterAt(int row, int column);   // 顺带惰性清理已消散的 weak_ptr
+
+	// 屏幕抖动（移植原版 Board::ShakeBoard）。amountX/amountY 为峰值位移（像素，
+	// 符号约定同原版：正 amountX 向左、正 amountY 向下）；oscillations=1 时为原版
+	// 单次三角弹跳（0→满幅→0），>1 时改为衰减正弦来回甩（毁灭菇用）。
+	// 计时随 dt 推进（暂停冻结）；纯视觉瞬态，不入存档。
+	void ShakeBoard(float amountX, float amountY, float durationSeconds = 0.12f, int oscillations = 1);
+	// 当前帧的抖动位移，GameScene::Draw 用它整体平移全部绘制命令；未抖动时恒 (0,0)
+	Vector GetShakeOffset() const;
 
 	// 带指定 ID 创建实体（用于读档）
 	Plant* CreatePlantWithID(PlantType type, int row, int col, int id);

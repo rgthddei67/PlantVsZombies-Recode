@@ -542,6 +542,15 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		});
 	}
 
+	// 屏幕抖动：shakeOn 整数投影供 equals（1=抖动中）；offset 浮点仅供人工排查，勿断言
+	{
+		const Vector shake = board->GetShakeOffset();
+		out["shake"] = {
+			{ "shakeOn", (shake.x != 0.0f || shake.y != 0.0f) ? 1 : 0 },
+			{ "offsetX", shake.x }, { "offsetY", shake.y },
+		};
+	}
+
 	out["survivalRound"] = board->mIsSurvival ? board->mSurvivalRound : -1;
 	// 出怪池不分模式都 dump：冒险关卡验证 spawnlists.json 也要抓手（原先只在生存模式导出）
 	out["spawnList"] = nlohmann::json::array();

@@ -1,0 +1,46 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 10 },
+    { "op": "choose_cards", "cards": ["PLANT_CHERRYBOMB", "PLANT_DOOMSHROOM"] },
+    { "op": "wait_state", "state": "GAME" },
+    { "op": "set_sun", "value": 1000 },
+
+    { "op": "dump_state", "name": "r0_rest.json" },
+    { "op": "assert_state", "path": "shake.shakeOn", "equals": 0 },
+    { "op": "screenshot", "name": "r0_rest.png" },
+
+    { "op": "plant", "type": "PLANT_CHERRYBOMB", "row": 2, "col": 4 },
+    { "op": "wait_seconds", "value": 1.0 },
+    { "op": "wait_frames", "value": 16 },
+    { "op": "dump_state", "name": "c0_before.json" },
+    { "op": "assert_state", "path": "shake.shakeOn", "equals": 0 },
+    { "op": "wait_frames", "value": 4 },
+    { "op": "dump_state", "name": "c1_shaking.json" },
+    { "op": "assert_state", "path": "shake.shakeOn", "equals": 1 },
+    { "op": "screenshot", "name": "c1_cherry_shake.png" },
+    { "op": "wait_frames", "value": 20 },
+    { "op": "dump_state", "name": "c2_after.json" },
+    { "op": "assert_state", "path": "shake.shakeOn", "equals": 0 },
+
+    { "op": "plant", "type": "PLANT_DOOMSHROOM", "row": 2, "col": 6 },
+    { "op": "wait_seconds", "value": 1.2 },
+    { "op": "wait_frames", "value": 12 },
+    { "op": "dump_state", "name": "d0_before.json" },
+    { "op": "assert_state", "path": "shake.shakeOn", "equals": 0 },
+    { "op": "wait_frames", "value": 8 },
+    { "op": "dump_state", "name": "d1_peak.json" },
+    { "op": "assert_state", "path": "shake.shakeOn", "equals": 1 },
+    { "op": "screenshot", "name": "d1_doom_peak.png" },
+    { "op": "wait_frames", "value": 8 },
+    { "op": "dump_state", "name": "d2_opposite.json" },
+    { "op": "assert_state", "path": "shake.shakeOn", "equals": 1 },
+    { "op": "screenshot", "name": "d2_doom_opposite.png" },
+    { "op": "wait_frames", "value": 32 },
+    { "op": "dump_state", "name": "d3_rest.json" },
+    { "op": "assert_state", "path": "shake.shakeOn", "equals": 0 },
+    { "op": "assert_state", "path": "craters.0.col", "equals": 6 },
+    { "op": "screenshot", "name": "d3_rest.png" },
+
+    { "op": "quit" }
+  ]
+}
