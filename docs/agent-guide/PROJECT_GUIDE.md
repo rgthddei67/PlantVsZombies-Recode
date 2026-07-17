@@ -1,162 +1,182 @@
-# PlantVsZombies Project Guide
+# PlantVsZombies 项目指南
 
-This is the detailed, on-demand reference for Codex work in this repository. The root `AGENTS.md` contains only always-on rules and task-routing pointers; it overrides this guide if the two ever conflict.
+本文件是 Codex 在本仓库中工作的详细按需参考。根目录 `AGENTS.md` 只保留始终生效的规则和任务路由；两者如有冲突，以根目录 `AGENTS.md` 为准。
 
-## Project Memory
+## 项目记忆
 
-The project memory migrated from Claude Code is stored in `docs/agent-memory/` and is now maintained as Codex-facing project documentation.
+从 Claude Code 迁移而来的项目记忆保存在 `docs/agent-memory/`，现作为面向 Codex 的项目文档维护。
 
-- Use `docs/agent-memory/MEMORY.md` as the routing index. Before diagnosing or changing an existing subsystem, search the index for the topic and read only the relevant linked memory files.
-- Treat memory as historical engineering context, not as proof of the current repository state. Verify dated branch, commit, push, line-number, build, and test claims against Git and the current code before relying on them.
-- Explicit task instructions, this `AGENTS.md`, current source code, and current test/build evidence override conflicting memory notes.
-- After materially changing a documented subsystem, update its topic file and the corresponding one-line entry in `MEMORY.md`; add a new focused topic file when no existing one fits.
-- Do not depend on the legacy `~/.claude` copy. The repository copy is the canonical project memory for future Codex work.
+- 使用 `docs/agent-memory/MEMORY.md` 作为路由索引。诊断或修改现有子系统前，先按主题搜索索引，只读取相关的记忆文件。
+- 记忆属于历史工程上下文，并非当前仓库状态的证明。依赖其中带日期的分支、提交、push、行号、构建和测试结论前，必须根据 Git 与当前代码重新核实。
+- 明确的任务指令、根目录 `AGENTS.md`、当前源码以及当前测试/构建证据优先于冲突的记忆记录。
+- 对已记录的子系统做出实质修改后，更新对应主题文件和 `MEMORY.md` 中的一行摘要；没有合适主题时，新建范围集中的主题文件。
+- 不要依赖旧的 `~/.claude` 副本。仓库内副本是后续 Codex 工作的权威项目记忆。
 
-## Build & Run
+## 构建与运行
 
-This is a CMake + vcpkg(manifest) C++ project (x64 Windows only). The build system was unified onto CMake on 2026-06-13, migrating away from .sln/.vcxproj (`CMakeLists.txt` + `CMakePresets.json` + `vcpkg.json`, triplet `x64-windows-static`).
+这是一个使用 CMake + vcpkg（manifest 模式）的 C++ 项目，仅支持 x64 Windows。构建系统已于 2026-06-13 统一迁移到 CMake，不再使用 `.sln/.vcxproj`（`CMakeLists.txt` + `CMakePresets.json` + `vcpkg.json`，triplet 为 `x64-windows-static`）。
 
-- **Build (Codex may run this autonomously):** Must run inside the VS developer environment. **Critical ordering: first add the Installer directory (where vswhere lives) to PATH, then import `VsDevCmd.bat`** — otherwise VsDevCmd's internal vswhere call emits `'vswhere.exe' is not recognized` (build still succeeds, but with noise). Noise-free one-shot import + build:
+- **构建（Codex 可自主运行）：** 必须在 VS 开发者环境中运行。**关键顺序：先把 `vswhere` 所在的 Installer 目录加入 `PATH`，再导入 `VsDevCmd.bat`**；否则 VsDevCmd 内部调用 vswhere 时会输出 `'vswhere.exe' is not recognized`（构建仍能成功，但会产生噪声）。无噪声的一次性环境导入与构建命令：
 
   ```powershell
-  # 1) Import the VS dev environment (Installer onto PATH first to silence vswhere noise)
+  # 1) 导入 VS 开发者环境（先把 Installer 加入 PATH，避免 vswhere 噪声）
   $env:PATH = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer;" + $env:PATH
   $vs = & vswhere -latest -property installationPath
   cmd /c "`"$vs\Common7\Tools\VsDevCmd.bat`" -arch=x64 -no_logo && set" |
     ForEach-Object { if ($_ -match '^([^=]+)=(.*)$') { Set-Item "env:$($matches[1])" $matches[2] } }
 
-  # 2) Build (pick a preset: clang-release for shipping/perf, msvc-debug for F5 + hitbox debugging)
-  cmake --preset clang-release      # /O2 /arch:AVX2 /fp:fast -fvectorize -fomit-frame-pointer -flto; or msvc-debug
+  # 2) 构建（发布/性能使用 clang-release；F5 与碰撞框调试使用 msvc-debug）
+  cmake --preset clang-release      # /O2 /arch:AVX2 /fp:fast -fvectorize -fomit-frame-pointer -flto；或 msvc-debug
   cmake --build --preset clang-release
   ```
-  Note: the MSVC Release preset was removed on 2026-06-13 — `clang-release` is now the sole release build (better optimization, and the only config that reports `-Wnonportable-include-path`/`-Wreorder-ctor`/`-Wunused-*`/`-Wswitch` and similar diagnostics, so warning-zero verification lives here).
 
-- **Run:** The binary is at `build\<preset>\PlantsVsZombies.exe`; CMake copies `font/resources/Shader` next to it — **use `build\<preset>\` itself as the working directory for Run/AutoTest**: `Push-Location build\clang-release; .\PlantsVsZombies.exe -AutoTest <absolute-path>.json`. (⚠️ The root `x64\Release` is a stale artifact from the pre-CMake vcxproj — only .obj files, no Shader, **do not use**.)
-- **Develop in VS:** Visual Studio "Open Folder" pointed at the project root auto-detects CMakePresets; the F5 debug config is in `launch.vs.json` at the root (working directory and `-Debug` variant already set).
-- **Debug mode:** Run with `-Debug` flag to show collision hitboxes
-- **Source file management:** `GLOB_RECURSE CONFIGURE_DEPENDS` auto-collects sources — adding a new .cpp needs no build-file edits; files excluded from compilation go in the `REMOVE_ITEM` list in CMakeLists (current: `Reanimation/AttachmentSystem.cpp`).
+  注意：MSVC Release 预设已于 2026-06-13 删除；`clang-release` 现在是唯一的 Release 构建。它优化更强，也是唯一会报告 `-Wnonportable-include-path`、`-Wreorder-ctor`、`-Wunused-*`、`-Wswitch` 等诊断的配置，因此零警告验证以它为准。
 
-Dependencies: SDL2, SDL2_image, SDL2_ttf, SDL2_mixer, Vulkan 1.3, glm, nlohmann/json, plugxml
+- **运行：** 可执行文件位于 `build\<preset>\PlantsVsZombies.exe`；CMake 会把 `font/resources/Shader` 复制到旁边。运行游戏或 AutoTest 时，**必须以 `build\<preset>\` 本身作为工作目录**：`Push-Location build\clang-release; .\PlantsVsZombies.exe -AutoTest <absolute-path>.json`。（⚠️ 根目录的 `x64\Release` 是迁移 CMake 前 vcxproj 留下的陈旧产物，只有 `.obj`、没有 Shader，**禁止使用**。）
+- **在 VS 中开发：** 用 Visual Studio 的“打开文件夹”打开项目根目录，VS 会自动识别 CMakePresets。根目录 `launch.vs.json` 已包含 F5 调试配置、工作目录和 `-Debug` 变体。
+- **调试模式：** 使用 `-Debug` 参数运行可显示碰撞框。
+- **源文件管理：** `GLOB_RECURSE CONFIGURE_DEPENDS` 会自动收集源文件，新增 `.cpp` 无需修改构建文件；不参与编译的文件放入 `CMakeLists.txt` 的 `REMOVE_ITEM` 列表（当前为 `Reanimation/AttachmentSystem.cpp`）。
 
-Toolchain: C++17, `/utf-8` source encoding (required for the Chinese UI strings), Unicode character set, vcpkg static linking. Crash dialogs are produced by `CrashHandler` via a Windows Vectored Exception Handler — not visible on stderr in headless runs.
+依赖：SDL2、SDL2_image、SDL2_ttf、SDL2_mixer、Vulkan 1.3、glm、nlohmann/json、plugxml。
 
-## Version Control (commit policy)
+工具链：C++17；源码使用 `/utf-8` 编码（中文 UI 字符串所必需）；Unicode 字符集；vcpkg 静态链接。无头运行时，`CrashHandler` 通过 Windows Vectored Exception Handler 生成的崩溃对话框不会出现在 stderr。
 
-**Division of labor: `git commit` is Codex's job (commit once the task is done and verified); `git push` is the master's — Codex does not `push` by default unless the master explicitly says to push in that conversation.**
+## 版本控制
 
-## AutoTest Suite
+- Codex 负责提交已完成且验证通过的工作，然后根据当前风险和仓库状态决定是否 push。
+- 工作已完成并验证、改动范围与任务一致、目标上游明确，且可常规 fast-forward 时执行 push；否则保留本地提交并说明原因。
+- 未经明确批准，不得 force-push、改写已发布历史，或发布无关/敏感改动。主人的明确指令始终优先。
 
-The `-AutoTest <script.json>` launch flag drives the game automatically from a JSON script (enter level / choose cards / plant / spawn zombies / screenshot / dump state, then exit). Codex can complete the full "edit code → build → run script → Read screenshot to verify" loop independently, with no manual in-game screenshots.
+## AutoTest 测试套件
 
-- **Script location:** `autotest/scripts/*.json` (pure data, not in vcxproj; editing scripts needs no recompile)
-- **Run (working dir = `build\<preset>\` where the exe lives):**
+启动参数 `-AutoTest <script.json>` 会通过 JSON 脚本自动驱动游戏（进入关卡、选卡、种植、生成僵尸、截图、导出状态，然后退出）。Codex 可以独立完成“修改代码 → 构建 → 运行脚本 → 读取截图验证”的完整闭环，无需主人手动提供游戏截图。
+
+- **脚本位置：** `autotest/scripts/*.json`（纯数据，不属于编译目标；修改脚本无需重新编译）。
+- **运行方式（工作目录必须是 exe 所在的 `build\<preset>\`）：**
+
   ```powershell
-  Push-Location build\clang-release   # or build\msvc-debug
+  Push-Location build\clang-release   # 或 build\msvc-debug
   .\PlantsVsZombies.exe -AutoTest ..\..\autotest\scripts\demo_peashooter.json -Seed 42
-  $LASTEXITCODE   # 0=success; 1=command failed/timeout; 100=script parse failure
+  $LASTEXITCODE   # 0=成功；1=命令失败/超时；100=脚本解析失败
   Pop-Location
   ```
-- **Artifacts:** under `build\<preset>\autotest\out\<script-name>\` — PNGs (view directly with the Read tool), `state.json`, `run.log` (per-command execution trace; in Release, Logger INFO is stripped, so run.log is the authoritative record)
-- **Command set:** `goto_level` / `choose_cards` / `wait_state` / `set_sun` / `plant` / `spawn_zombie` / `wait_seconds` / `wait_frames` / `set_timescale` / `charm_zombie` / `click` / `key` / `screenshot` / `dump_state` / `assert_state` / `quit`. Wait-type commands accept `timeout` (default 15s). Plant/zombie types use the enum identifier verbatim (e.g. `PLANT_PEASHOOTER`, `ZOMBIE_FASTPAPER`); new types need a line added to the name table in `Game/AutoTest/TestDriver.cpp`.
-- **Synthetic input (real click/key path for any scene):** existing `plant`/`spawn_zombie` etc. call game logic directly and only cover GameScene; to drive UI in non-GameScene scenes (almanac, etc.) use `click`/`key` — they inject synthetic events via `SDL_PushEvent`, taking the same path as real user input (consumed at the next frame's poll, same letterbox coordinate inverse-transform), with zero runtime impact on the real game (`TestDriver::Update` returns on its first line when not in AutoTest).
-  - `click`: `{ "op":"click", "x":570, "y":490 }`, optional `"button"` (`left`(default)/`right`/`middle`), `"hold_frames"` (default 1, frames held between press and release). `x,y` are **logical coordinates** (same coordinate system as UI layout and `dump_state` x/y). A click completes across frames (press edge → hold → release edge); the script needs no manual waiting.
-  - `assert_state`: `{ "op":"assert_state", "path":"perks.stacks.PLANT_DAMAGE_UP", "equals":3 }` — asserts on the same state JSON that `dump_state` writes. `path` is dot-separated; a purely numeric segment indexes into an array (`zombies.0.type`). Mismatch or missing path → Fail (exit 1). Don't assert on float fields (e.g. `zombieHealthMult`) — `equals` uses exact JSON comparison; assert the integer-projected fields (`plantDamageOn100` etc.) instead.
-  - `key`: `{ "op":"key", "name":"space" }`, optional `"action"` (`press`(default, a full tap)/`down`(press edge only)/`up`(release edge only)). `name` is a key-name string (`a`–`z`, `0`–`9`, `space`/`enter`/`escape`/`tab`/`backspace`/arrows `up`/`down`/`left`/`right`/`f1`–`f12`…); new keys need a line added to `kKeyNames` in `TestDriver.cpp`.
-- **Isolation:** in AutoTest mode all save reads/writes are short-circuited (no read/write of `saves/`); every level entry is a deterministic fresh level; `-Seed N` fixes the random seed.
-- **Examples:** `autotest/scripts/demo_peashooter.json` (acceptance script), `smoke_*.json` (per-subsystem smoke tests)
 
-## Architecture Overview
+- **产物：** 位于 `build\<preset>\autotest\out\<script-name>\`，包括 PNG、`state.json` 和 `run.log`。Release 会裁掉 Logger INFO，因此 `run.log` 是权威命令执行记录。
+- **命令集：** `goto_level` / `choose_cards` / `wait_state` / `set_sun` / `plant` / `spawn_zombie` / `wait_seconds` / `wait_frames` / `set_timescale` / `charm_zombie` / `click` / `key` / `screenshot` / `dump_state` / `assert_state` / `quit`。等待类命令接受 `timeout`（默认 15 秒）。植物/僵尸类型直接使用枚举标识符（例如 `PLANT_PEASHOOTER`、`ZOMBIE_FASTPAPER`）；新增类型需要在 `Game/AutoTest/TestDriver.cpp` 的名称表中添加一行。
+- **合成输入（所有场景共用真实 click/key 路径）：** 现有 `plant`、`spawn_zombie` 等操作直接调用游戏逻辑，只覆盖 GameScene。驱动图鉴等非 GameScene UI 时使用 `click` / `key`；它们通过 `SDL_PushEvent` 注入合成事件，走与真实输入相同的路径（在下一帧 poll 时消费，并使用同一套 letterbox 坐标逆变换）。正常游戏没有运行时开销，因为非 AutoTest 模式下 `TestDriver::Update` 第一行就会返回。
+  - `click`：`{ "op":"click", "x":570, "y":490 }`，可选 `"button"`（`left`，默认 / `right` / `middle`）和 `"hold_frames"`（默认 1，即按下到释放之间保持的帧数）。`x,y` 是**逻辑坐标**，与 UI 布局和 `dump_state` 的 x/y 使用同一坐标系。一次 click 会跨帧完成（按下沿 → 保持 → 释放沿），脚本无需手动等待。
+  - `assert_state`：`{ "op":"assert_state", "path":"perks.stacks.PLANT_DAMAGE_UP", "equals":3 }`，断言对象与 `dump_state` 写出的状态 JSON 相同。`path` 使用点分段；纯数字段用于索引数组（如 `zombies.0.type`）。不匹配或路径缺失会失败并返回 exit 1。不要对浮点字段（如 `zombieHealthMult`）使用 `equals`，因为它执行 JSON 精确比较；应断言整数投影字段（如 `plantDamageOn100`）。
+  - `key`：`{ "op":"key", "name":"space" }`，可选 `"action"`（`press`，默认，完整点击 / `down`，仅按下沿 / `up`，仅释放沿）。`name` 是键名字符串：`a`–`z`、`0`–`9`、`space` / `enter` / `escape` / `tab` / `backspace`、方向键 `up` / `down` / `left` / `right`、`f1`–`f12` 等；新增键名需要在 `TestDriver.cpp` 的 `kKeyNames` 中添加一行。
+- **隔离性：** AutoTest 模式会短路所有存档读写（不读取或写入 `saves/`）；每次进入关卡都是确定性的全新关卡；`-Seed N` 固定随机种子。
+- **示例：** `autotest/scripts/demo_peashooter.json`（验收脚本）以及各子系统的 `smoke_*.json`。
 
-### Object Hierarchy
-```
-GameObject (base: component system, render order, active state)
-└── AnimatedObject (adds Animator for sprite animation)
+## 架构概览
+
+### 对象层次
+
+```text
+GameObject（基类：组件系统、渲染顺序、激活状态）
+└── AnimatedObject（增加 Animator 精灵动画）
     ├── Plant → Shooter → PeaShooter
-    │          SunFlower, WallNut, CherryBomb...
-    ├── Zombie → ConeZombie, Polevaulter...
-    └── Coin (collectibles)
-Bullet (separate; uses object pooling via BulletPool)
+    │          SunFlower、WallNut、CherryBomb……
+    ├── Zombie → ConeZombie、Polevaulter……
+    └── Coin（可收集物）
+Bullet（独立类型；通过 BulletPool 使用对象池）
 ```
 
-### Component System
-`GameObject` stores components in `std::unordered_map<std::type_index, shared_ptr<Component>>`. Standard components:
-- `TransformComponent` — position (x, y), rotation, scale
-- `ColliderComponent` — hitbox with `onTriggerEnter/Stay/Exit` and `onCollisionEnter/Exit` callbacks
-- `ClickableComponent` — mouse interaction
-- `ShadowComponent` — drop shadow rendering
+### 组件系统
 
-Add/get components via `AddComponent<T>(args...)` and `GetComponent<T>()`.
+`GameObject` 使用 `std::unordered_map<std::type_index, shared_ptr<Component>>` 保存组件。标准组件包括：
 
-### Key System Classes
-| Class | File | Role |
+- `TransformComponent`：位置（x、y）、旋转、缩放。
+- `ColliderComponent`：碰撞框，以及 `onTriggerEnter/Stay/Exit`、`onCollisionEnter/Exit` 回调。
+- `ClickableComponent`：鼠标交互。
+- `ShadowComponent`：阴影渲染。
+
+通过 `AddComponent<T>(args...)` 添加组件，通过 `GetComponent<T>()` 获取组件。
+
+### 关键系统类
+
+| 类 | 文件 | 职责 |
 |---|---|---|
-| `Board` | `Game/Board.cpp` | Level manager: zombie waves, sun spawning, win/lose logic |
-| `GameObjectManager` | `Game/GameObjectManager` | Create/destroy objects, render order, thread pool |
-| `CollisionSystem` | `Game/CollisionSystem` | Per-frame collision checks, callbacks |
-| `EntityManager` | `Game/EntityManager` | ID-based entity tracking (used by save system) |
-| `SceneManager` | `Game/SceneManager` | Switches between scenes (`MainMenuScene`, `AlmanacScene`, `GameScene`, `PlantAlmanacScene`, `ZombieAlmanacScene`) — registered in `GameApp.cpp` |
-| `ResourceManager` | `ResourceManager` | Asset loading/caching; keys in `ResourceKeys.h` |
-| `Graphics` | `Graphics.cpp` | Custom Vulkan wrapper with transform stack and batch rendering |
-| `Animator` | `Reanimation/Animator` | Named track system; `PlayTrack()`, `PlayTrackOnce()`, frame events |
-| `ParticleSystem` | `ParticleSystem/` | XML-configured particle effects (`resources/particles/`) |
-| `AudioSystem` | `Game/AudioSystem.h` | SDL2_mixer wrapper for SFX + music; channel management |
-| `InputHandler` | `UI/InputHandler.{h,cpp}` | SDL event → mouse/keyboard state queried during Update |
+| `Board` | `Game/Board.cpp` | 关卡管理：僵尸波次、阳光生成、胜负逻辑 |
+| `GameObjectManager` | `Game/GameObjectManager` | 创建/销毁对象、渲染顺序、线程池 |
+| `CollisionSystem` | `Game/CollisionSystem` | 每帧碰撞检测与回调 |
+| `EntityManager` | `Game/EntityManager` | 按 ID 跟踪实体（存档系统使用） |
+| `SceneManager` | `Game/SceneManager` | 在 `MainMenuScene`、`AlmanacScene`、`GameScene`、`PlantAlmanacScene`、`ZombieAlmanacScene` 间切换；场景在 `GameApp.cpp` 注册 |
+| `ResourceManager` | `ResourceManager` | 加载/缓存资源；资源键定义在 `ResourceKeys.h` |
+| `Graphics` | `Graphics.cpp` | 自定义 Vulkan 封装，含变换栈与批渲染 |
+| `Animator` | `Reanimation/Animator` | 命名轨道动画系统；提供 `PlayTrack()`、`PlayTrackOnce()` 和帧事件 |
+| `ParticleSystem` | `ParticleSystem/` | 由 `resources/particles/` 下 XML 配置驱动的粒子系统 |
+| `AudioSystem` | `Game/AudioSystem.h` | SDL2_mixer 音效与音乐封装，管理声道 |
+| `InputHandler` | `UI/InputHandler.{h,cpp}` | 将 SDL 事件转换成 Update 阶段查询的鼠标/键盘状态 |
 
-### Game Loop (GameApp::Run)
-1. **Input** — SDL events → `InputHandler`
-2. **Update** — `SceneManager` → `Board::Update()` + `GameObjectManager::Update()` (spawning, AI, collision)
-3. **Render** — `Draw()` walks objects in render order; internally calls `PrepareForDraw()` per object via the thread pool to parallel-prepare batch data, then records/submits Vulkan commands and `Graphics::FlushBatch()`
+### 游戏循环（`GameApp::Run`）
 
-### Board Grid
-The board is a `vector<vector<shared_ptr<Cell>>>` grid. Plants are placed at `(row, column)`. Zombies travel by row. `Board` manages zombie waves and game state transitions via the `BoardState` enum: `CHOOSE_CARD → GAME → WIN` or `LOSE_GAME` (`NONE` is the uninitialized state).
+1. **输入：** SDL 事件 → `InputHandler`。
+2. **更新：** `SceneManager` → `Board::Update()` + `GameObjectManager::Update()`，处理生成、AI 和碰撞。
+3. **渲染：** `Draw()` 按渲染顺序遍历对象；内部通过线程池对每个对象调用 `PrepareForDraw()` 并行准备批数据，然后录制/提交 Vulkan 命令并调用 `Graphics::FlushBatch()`。
 
-### Save System
-JSON serialization via nlohmann/json (`GameInfoSaver`). Plants/zombies implement `SaveExtraData(json&)` and `LoadExtraData(const json&)` virtual methods for custom state. Save files live in `./saves/` (`PlayerInfo.json` for global state, `level{N}_data.json` per level); the directory is created on demand.
+### Board 网格
 
-### Resources & Assets
-- Asset keys are hand-written string constants in `ResourceKeys.h`, named `PREFIX_UPPERCASE` (e.g., `IMAGE_PEASHOOTER`, `SOUND_CHERRYBOMB`, `MUSIC_DAY`, `PARTICLE_EXPLOSIONCLOUD`). The constants are a typo-safe mirror of the keys that `ResourceManager::GenerateStandardKey` actually derives from filenames at load time (strip dir/ext → uppercase → non-alnum → `_` → prefix). When key == its own name, declare it with the `RKEY(X)` macro (expands to `inline const std::string X = "X"`) so the name isn't repeated; when key ≠ name (a real alias like `IMAGE_HUGE_WAVE_APPROACHING = "IMAGE_APPROACHING"`, `SOUND_SHOOTER_SHOOT = "SOUND_THROW"`, the `REANIM_*` CamelCase values, or font paths) write it explicitly.
-- Asset roots: images in `./resources/image/`, particle XML configs in `./resources/particles/config/`, reanim files in `./resources/reanim/`, fonts in `./font/`.
-- **Reanimation** (`Reanimation/`) is a custom skeletal-animation system, not a sprite-sheet player. It loads `.reanim` XML files and exposes named tracks (e.g. `anim_walk`) via `Animator::PlayTrack()`. Frame events register one-shot callbacks at specific frames.
-- **Particle effects** are XML-configured under `./resources/particles/config/` (`<Emitter>` root with `<Image>`, `<LaunchSpeed>`, `<Field>`, etc.). `ParticleXMLLoader` caches by name.
+棋盘是 `vector<vector<shared_ptr<Cell>>>` 网格。植物放置在 `(row, column)`，僵尸按行移动。`Board` 管理僵尸波次以及 `BoardState` 状态转换：`CHOOSE_CARD → GAME → WIN` 或 `LOSE_GAME`；`NONE` 表示尚未初始化。
 
-## Reference & Implementation Guidance
+### 存档系统
 
-When you need to **add a new classic plant, zombie, or bullet (projectile)**, it is recommended to refer to the original game's behavior and stats using the following approaches:
+使用 nlohmann/json 进行 JSON 序列化（`GameInfoSaver`）。植物和僵尸通过 `SaveExtraData(json&)`、`LoadExtraData(const json&)` 保存和恢复自定义状态。存档位于 `./saves/`：`PlayerInfo.json` 保存全局状态，`level{N}_data.json` 保存各关卡状态；目录按需创建。
 
-1. **Search the web**
-   Consult the *Plants vs. Zombies* community wiki, modding documentation, or open-source recreations to understand the attack patterns, health, speed, and special abilities of classic units (Pea Shooter, Wall-Nut, Basic Zombie, etc.).
+### 资源与资产
 
-2. **Consult the C# reference code (strongly recommended)**
-   This project was originally inspired by the Lawn engine's C# implementation. The complete code is located at:
+- 资源键是在 `ResourceKeys.h` 中手写的字符串常量，命名为 `PREFIX_UPPERCASE`（如 `IMAGE_PEASHOOTER`、`SOUND_CHERRYBOMB`、`MUSIC_DAY`、`PARTICLE_EXPLOSIONCLOUD`）。它们是 `ResourceManager::GenerateStandardKey` 根据文件名生成的实际键的防拼写错误镜像：去掉目录和扩展名 → 转大写 → 非字母数字转 `_` → 添加前缀。键值与常量名相同时，用 `RKEY(X)` 宏（展开为 `inline const std::string X = "X"`），避免重复书写；键值与名称不同时（例如 `IMAGE_HUGE_WAVE_APPROACHING = "IMAGE_APPROACHING"`、`SOUND_SHOOTER_SHOOT = "SOUND_THROW"`、值为 CamelCase 的 `REANIM_*`、字体路径），必须显式声明。
+- 资产根目录：图片在 `./resources/image/`，粒子 XML 在 `./resources/particles/config/`，reanim 文件在 `./resources/reanim/`，字体在 `./font/`。
+- **Reanimation：** `Reanimation/` 是自定义骨骼动画系统，不是精灵表播放器。它加载 `.reanim` XML 文件，通过 `Animator::PlayTrack()` 播放命名轨道（如 `anim_walk`）。帧事件可在指定帧注册一次性回调。
+- **粒子特效：** 粒子效果通过 `./resources/particles/config/` 下 XML 配置（根标签为 `<Emitter>`，包含 `<Image>`、`<LaunchSpeed>`、`<Field>` 等）；`ParticleXMLLoader` 按名称缓存。
+
+## 参考与实现指引
+
+新增**经典植物、僵尸或子弹（projectile）**时，建议通过以下方式核对原版行为与数值：
+
+1. **搜索网络**
+   查阅 *Plants vs. Zombies* 社区 Wiki、Mod 文档或开源复刻，确认经典单位的攻击方式、生命值、速度和特殊能力。
+
+2. **查阅 C# 参考代码（强烈建议）**
+   本项目最初参考 Lawn 引擎的 C# 实现，完整代码位于：
    `D:\PVZ\PlantsVsZombies.NET-master\Lawn_Shared\Lawn`
-   The directory contains:
-   - `Plant/` – logic for all plants (shooting, sun production, defense, etc.)
-   - `Zombie/` – behavior for all zombies (movement, attack, helmet drop, etc.)
-   - `Projectile/` – properties and collision logic for bullets (pea, ice pea, fireball, etc.)
 
-   When implementing a new `Plant`, `Zombie` or `Bullet` subclass, **first consult the corresponding C# implementation** to ensure consistent stats and behavior with the original game.
+   目录包括：
 
-3. **Animation troubleshooting**
-    If you encounter animation-related problems (e.g., a zombie fails to play a certain animation), first check the `./resources/reanim/` directory for the corresponding `.reanim` file – read its track names and frame data. Cross-reference with the C# reference code (`D:\PVZ\PlantsVsZombies.NET-master\Lawn_Shared\Lawn`) to understand the expected animation sequence and timing. (the animation file is almost the same.)
+   - `Plant/`：全部植物逻辑（射击、产阳光、防御等）。
+   - `Zombie/`：僵尸行为（移动、攻击、头盔掉落等）。
+   - `Projectile/`：子弹属性与碰撞逻辑（豌豆、寒冰豌豆、火球等）。
 
-4. **Frame event note:**
-    If your new plant or zombie needs frame events, please ask me first.
+   实现新的 `Plant`、`Zombie` 或 `Bullet` 子类前，**先查阅对应 C# 实现**，确保数值和行为与原版一致。
 
-## Adding a New Plant
-Use the `adding-plant` skill (`.agents/skills/adding-plant/SKILL.md`) — it supersedes the checklist that used to live here.
+3. **动画故障排查**
+   新植物或僵尸无法播放某段动画时，先检查 `./resources/reanim/` 中对应 `.reanim` 文件的轨道名称和帧数据，再对照 C# 参考代码确认预期动画序列与时序（动画文件基本一致）。
 
-## Adding a New Zombie
-Use the `adding-zombie` skill (`.agents/skills/adding-zombie/SKILL.md`) — it supersedes the checklist that used to live here (proven on DancerZombie 舞王+伴舞; covers 断肢断头/召唤编队/出土裁剪/魅惑交互/帧事件陷阱/调参量交付).
+4. **帧事件要求**
+   新植物或僵尸需要帧事件时，必须先询问主人。
 
-### Spawning zombies: two distinct paths
-- **Gameplay (grid-bound):** `Board::CreateZombie(type, row, x, ...)` / `CreateZombieWithID(...)`. Pass an arbitrary pixel `x`, but **`y` is always derived from `row`** via `GetZombieSpawnY(row)` — there is intentionally no `y` parameter. Use this for real zombies, wave spawns, and savegame restore (saves persist only `row + x`).
-- **Free placement (display only):** `GameAPP::InstantiateZombieFree(type, board, x, y)` for preview/UI zombies that must sit at an arbitrary `y` not snapped to a row (card-selection preview scatter, `AlmanacScene` / `ZombieAlmanacScene`). It wraps `InstantiateZombie(..., row = -1, isPreview = true)`. When `board != nullptr`, such zombies count toward `mBoard->mZombieNumber` and are decremented in `Zombie::Die`, so keep that increment/decrement balanced.
+## 新增植物
 
-## Coding Conventions
-- Visual offsets use `mVisualOffset` (separate from the logical grid position)
-- Row/column position (`mRow`, `mColumn`) is the gameplay grid cell; pixel position is in `TransformComponent`
-- Chinese (UTF-8) strings are used throughout the codebase for UI
-- **Header guards (every `.h`):** start each header with `#pragma once` (the existing convention also keeps the older `#pragma once` + `#ifndef _NAME_H` double form — either is accepted). Enforced automatically: `cmake --preset` configure installs a `.githooks/pre-commit` hook (`git config core.hooksPath .githooks`) that rejects any staged guard-less header, and the same configure step prints a WARNING listing any existing guard-less headers. The check is BOM-aware (matches the token anywhere in the first 512 bytes, not anchored to `^`, so a UTF-8 BOM prefix doesn't cause false positives). Rationale: since the `.sln` migration, VS's "Add New Item" template no longer auto-inserts the guard.
+使用 `adding-plant` 技能（`.agents/skills/adding-plant/SKILL.md`）；它取代了原先放在本文件中的检查清单。
 
-## Communication Style
-When responding to the user, always address them as **主人** (master) instead of using generic terms like "user" or "you". For example: "主人需要构建项目" rather than "你需要构建项目". This applies to all explanations, suggestions, and conversations within this repository context.
+## 新增僵尸
+
+使用 `adding-zombie` 技能（`.agents/skills/adding-zombie/SKILL.md`）；它取代了原先放在本文件中的检查清单。该技能已在舞王僵尸 + 伴舞僵尸上验证，覆盖断肢断头、召唤编队、出土裁剪、魅惑交互、帧事件陷阱和调参量交付。
+
+### 生成僵尸的两条不同路径
+
+- **游戏逻辑路径（绑定网格）：** `Board::CreateZombie(type, row, x, ...)` / `CreateZombieWithID(...)`。可以传任意像素 `x`，但 **`y` 始终通过 `GetZombieSpawnY(row)` 由 `row` 推导**，有意不提供 `y` 参数。真实僵尸、波次生成和存档恢复都使用此路径；存档只持久化 `row + x`。
+- **自由放置路径（仅展示）：** `GameAPP::InstantiateZombieFree(type, board, x, y)` 用于必须放在任意 `y`、不能吸附到行的预览/UI 僵尸（选卡预览散布、`AlmanacScene` / `ZombieAlmanacScene`）。它封装 `InstantiateZombie(..., row = -1, isPreview = true)`。当 `board != nullptr` 时，这类僵尸会计入 `mBoard->mZombieNumber`，并在 `Zombie::Die` 中递减，因此必须保持增减平衡。
+
+## 编码约定
+
+- 视觉偏移使用 `mVisualOffset`，与逻辑网格位置分离。
+- `mRow`、`mColumn` 表示游戏网格单元；像素位置存放在 `TransformComponent`。
+- 代码库中的中文 UI 字符串使用 UTF-8。
+- **头文件保护（每个 `.h`）：** 每个头文件必须以 `#pragma once` 开头。旧有的 `#pragma once` + `#ifndef _NAME_H` 双重形式也可接受。运行 `cmake --preset` 时会安装 `.githooks/pre-commit` hook（`git config core.hooksPath .githooks`），拒绝暂存区中缺少保护的头文件；同一配置步骤也会用 WARNING 列出仓库里已有的无保护头文件。检查支持 BOM：在前 512 字节内匹配 token，而不是锚定 `^`，因此 UTF-8 BOM 不会造成误报。原因是迁移掉 `.sln` 后，VS 的“添加新项”模板不再自动插入保护。
+
+## 沟通风格
+
+回复时始终称呼用户为 **主人**，不要使用泛化的“用户”或“你”。例如使用“主人需要构建项目”。本规则适用于本仓库上下文中的所有解释、建议和对话。
