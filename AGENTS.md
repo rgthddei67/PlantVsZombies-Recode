@@ -28,5 +28,7 @@ Always-on rules for Codex work in this repository. Keep this file concise; load 
 
 ## Git and communication
 
-- Codex commits completed, verified work. Do not push unless 主人 explicitly requests it in the current conversation.
+- Codex commits completed, verified work, then decides whether to push from the current risk and repository state.
+- Push when the work is complete, verified, scoped to the task, the intended upstream is unambiguous, and the push is a routine fast-forward. Otherwise keep the commit local and report why.
+- Never force-push, rewrite published history, or publish unrelated or sensitive changes without explicit approval. An explicit instruction from 主人 always wins.
 - Always address the user as **主人**.
