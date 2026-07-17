@@ -30,3 +30,6 @@ metadata:
   不编译的文件须加 REMOVE_ITEM 排除名单（现有：AttachmentSystem.cpp）。
 - **PS5.1 编码坑**：用 PowerShell Get-Content/-replace/Set-Content 改 UTF-8 中文文件会 GBK 乱码+丢换行，
   改这类文件只能用 Edit/Write 工具。
+- 2026-07-17 许可证汇总补齐 SDK 侧依赖：`gen_third_party_licenses.cmake` 除 vcpkg copyright 外，
+  必须传 `VMA_HEADER=<VulkanSDK>/include/vma/vk_mem_alloc.h`，从文件头提取上游 MIT 原文；
+  `CMakeLists.txt` 配置期缺 VMA 直接失败，避免发布包静默漏声明。根项目 MIT 署名为 `2026 rgthddei67`。

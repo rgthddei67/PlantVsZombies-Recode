@@ -20,6 +20,11 @@ find_package(nlohmann_json CONFIG REQUIRED)
 find_package(pugixml CONFIG REQUIRED)
 find_package(Vulkan REQUIRED)
 
+set(VMA_HEADER "${Vulkan_INCLUDE_DIR}/vma/vk_mem_alloc.h")
+if(NOT EXISTS "${VMA_HEADER}")
+    message(FATAL_ERROR "Vulkan SDK 缺少 VMA 头文件: ${VMA_HEADER}")
+endif()
+
 set(SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/PlantVsZombies)
 
 # 自动收集源文件：CONFIGURE_DEPENDS 让 Ninja 在每次构建前检查 glob 结果，
@@ -140,12 +145,14 @@ add_custom_command(TARGET PlantsVsZombies POST_BUILD
 
 # ---- 生成第三方许可证汇总 THIRD-PARTY-LICENSES.txt（紧挨 exe，随发布包分发）----
 # 全树静态链接库均为 zlib/BSD/MIT 宽松证（零 copyleft），合规义务仅"随二进制分发物
-# 附上版权与许可证声明"——本文件即满足。直接归集 vcpkg 的 <triplet>/share/*/copyright
-# （逐字节，非手敲），每次构建重生成 = 零过期窗口。仓库根另有一份提交快照供 GitHub 浏览；
+# 附上版权与许可证声明"——本文件即满足。直接归集 vcpkg 的 <triplet>/share/*/copyright，
+# 并从 Vulkan SDK 的 VMA 头文件提取原始 MIT 声明，每次构建重生成 = 零过期窗口。
+# 仓库根另有一份提交快照供 GitHub 浏览；
 # 依赖变动时本产物自动反映，根快照需重跑生成器刷新（见 cmake/gen_third_party_licenses.cmake）。
 add_custom_command(TARGET PlantsVsZombies POST_BUILD
     COMMAND ${CMAKE_COMMAND}
             -DSHARE_DIR=${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/share
+            -DVMA_HEADER=${VMA_HEADER}
             -DOUT=$<TARGET_FILE_DIR:PlantsVsZombies>/THIRD-PARTY-LICENSES.txt
             -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/gen_third_party_licenses.cmake
     COMMENT "Generating THIRD-PARTY-LICENSES.txt"

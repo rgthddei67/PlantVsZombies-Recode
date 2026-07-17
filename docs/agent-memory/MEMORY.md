@@ -45,7 +45,7 @@
 - [大佬GS/compute渲染建议裁决](project_pvz_dalao_geometry_compute_suggestion.md) — 2026-06-17 ②目标早达成但用gl_VertexIndex顶点拉取+实例化非GS/①矩阵已并行写SSBO不值搬compute;再提同类渲染优化引此
 - [Gemini Vulkan审查](project_pvz_gemini_vulkan_review.md) — 2026-06-16 6条:4误判2休眠;**①DestroyTexture改帧计数延迟删除队列已push(0b14016)**;教训=GPU生命周期改动必开validation
 - [编译警告清零 ✅](project_pvz_warnings_cleanup.md) — 2026-06-13 clang-release 0warn;验证须用clang(msvc默认不报)、reorder改类内初始化、-Wswitch补显式case
-- [CMake迁移 ✅统一](project_pvz_cmake_migration.md) — 2026-06-13(a14a26c).sln/.vcxproj删,CMake+vcpkg唯一;坑=sdl2[vulkan]特性/copy_directory拷内容/NAME_WE撞名
+- [CMake迁移 ✅统一](project_pvz_cmake_migration.md) — 2026-06-13(a14a26c).sln/.vcxproj删,CMake+vcpkg唯一;坑=sdl2[vulkan]特性/copy_directory拷内容/NAME_WE撞名；2026-07-17许可证生成器除vcpkg外须传VMA_HEADER提取SDK头文件MIT原文
 - [Build permission](feedback_build_permission_msbuild.md) — 主人解除构建限制:可直接命令行编译,不必F7不必核对时间戳(现用cmake preset)
 - [AutoTest套件 ✅](project_pvz_autotest_suite.md) — 2026-06-13完成;用法权威在CLAUDE.md AutoTest节(-AutoTest脚本+截图+dump_state闭环,-Seed确定性)
 - [perf optimization](project_pvz_perf_optimization.md) — 最新2026-06-24:11000z@168.5FPS/5.94ms完全CPU-bound(Present0.14/replay0.03);**STOP停在此**;编译**O2非O3**;若重启ROI序=par-record视口剔除>2d串行地板(Amdahl)>collision;GPU instancing已落地(388a845)
