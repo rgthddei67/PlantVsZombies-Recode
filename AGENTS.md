@@ -1,162 +1,32 @@
 # AGENTS.md
 
-This file provides guidance to Codex (Codex.ai/code) when working with code in this repository.
+Always-on rules for Codex work in this repository. Keep this file concise; load detailed guidance only through the routes below.
 
-## Project Memory
+## Task routing
 
-The project memory migrated from Claude Code is stored in `docs/agent-memory/` and is now maintained as Codex-facing project documentation.
+- Before building, running, using AutoTest, or changing architecture/resources/save behavior, read the relevant section of `docs/agent-guide/PROJECT_GUIDE.md`.
+- For an existing subsystem or prior decision, search `docs/agent-memory/MEMORY.md` and read only the linked topic files that match the task. Memory is historical context: verify dated status, paths, commits, and tests against the current repository.
+- For any plant, particle effect, survival perk, or zombie work, use the matching skill under `.agents/skills/` and follow its `SKILL.md` completely.
+- For a new classic plant, zombie, or projectile, consult `D:\PVZ\PlantsVsZombies.NET-master\Lawn_Shared\Lawn` before implementation. For animation problems, inspect the matching `resources/reanim/` file and the C# reference.
+- If new work needs animation frame events, ask 主人 before adding them.
 
-- Use `docs/agent-memory/MEMORY.md` as the routing index. Before diagnosing or changing an existing subsystem, search the index for the topic and read only the relevant linked memory files.
-- Treat memory as historical engineering context, not as proof of the current repository state. Verify dated branch, commit, push, line-number, build, and test claims against Git and the current code before relying on them.
-- Explicit task instructions, this `AGENTS.md`, current source code, and current test/build evidence override conflicting memory notes.
-- After materially changing a documented subsystem, update its topic file and the corresponding one-line entry in `MEMORY.md`; add a new focused topic file when no existing one fits.
-- Do not depend on the legacy `~/.claude` copy. The repository copy is the canonical project memory for future Codex work.
+## Build and verification
 
-## Build & Run
+- This is an x64-Windows C++17 CMake/vcpkg project. Codex may build autonomously.
+- Before CMake, add the Visual Studio Installer directory to `PATH`, locate VS with `vswhere`, then import `VsDevCmd.bat -arch=x64 -no_logo`; the exact PowerShell sequence is in the project guide.
+- Release verification uses `cmake --preset clang-release` then `cmake --build --preset clang-release`. Use `msvc-debug` for debug/F5 work; there is no MSVC Release preset.
+- Run from `build\<preset>\`; the executable is `build\<preset>\PlantsVsZombies.exe`. Never use the stale root `x64\Release` artifacts.
+- For gameplay changes, run the narrowest relevant `-AutoTest` script from the build directory and inspect its `run.log`, state, and screenshots as appropriate. Documentation-only changes do not require a game build.
 
-This is a CMake + vcpkg(manifest) C++ project (x64 Windows only). The build system was unified onto CMake on 2026-06-13, migrating away from .sln/.vcxproj (`CMakeLists.txt` + `CMakePresets.json` + `vcpkg.json`, triplet `x64-windows-static`).
+## Repository rules
 
-- **Build (Codex may run this autonomously):** Must run inside the VS developer environment. **Critical ordering: first add the Installer directory (where vswhere lives) to PATH, then import `VsDevCmd.bat`** — otherwise VsDevCmd's internal vswhere call emits `'vswhere.exe' is not recognized` (build still succeeds, but with noise). Noise-free one-shot import + build:
+- `GLOB_RECURSE CONFIGURE_DEPENDS` collects sources; new `.cpp` files need no manual build-list edit.
+- Every new `.h` must start with `#pragma once`; the pre-commit hook enforces this.
+- Keep Chinese text UTF-8. Keep logical grid position separate from visual offsets (`mVisualOffset`).
+- Current task instructions, current source/Git state, and current build/test evidence override historical memory notes.
+- After materially changing a documented subsystem, update its topic file and the corresponding entry in `docs/agent-memory/MEMORY.md`.
 
-  ```powershell
-  # 1) Import the VS dev environment (Installer onto PATH first to silence vswhere noise)
-  $env:PATH = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer;" + $env:PATH
-  $vs = & vswhere -latest -property installationPath
-  cmd /c "`"$vs\Common7\Tools\VsDevCmd.bat`" -arch=x64 -no_logo && set" |
-    ForEach-Object { if ($_ -match '^([^=]+)=(.*)$') { Set-Item "env:$($matches[1])" $matches[2] } }
+## Git and communication
 
-  # 2) Build (pick a preset: clang-release for shipping/perf, msvc-debug for F5 + hitbox debugging)
-  cmake --preset clang-release      # /O2 /arch:AVX2 /fp:fast -fvectorize -fomit-frame-pointer -flto; or msvc-debug
-  cmake --build --preset clang-release
-  ```
-  Note: the MSVC Release preset was removed on 2026-06-13 — `clang-release` is now the sole release build (better optimization, and the only config that reports `-Wnonportable-include-path`/`-Wreorder-ctor`/`-Wunused-*`/`-Wswitch` and similar diagnostics, so warning-zero verification lives here).
-
-- **Run:** The binary is at `build\<preset>\PlantsVsZombies.exe`; CMake copies `font/resources/Shader` next to it — **use `build\<preset>\` itself as the working directory for Run/AutoTest**: `Push-Location build\clang-release; .\PlantsVsZombies.exe -AutoTest <absolute-path>.json`. (⚠️ The root `x64\Release` is a stale artifact from the pre-CMake vcxproj — only .obj files, no Shader, **do not use**.)
-- **Develop in VS:** Visual Studio "Open Folder" pointed at the project root auto-detects CMakePresets; the F5 debug config is in `launch.vs.json` at the root (working directory and `-Debug` variant already set).
-- **Debug mode:** Run with `-Debug` flag to show collision hitboxes
-- **Source file management:** `GLOB_RECURSE CONFIGURE_DEPENDS` auto-collects sources — adding a new .cpp needs no build-file edits; files excluded from compilation go in the `REMOVE_ITEM` list in CMakeLists (current: `Reanimation/AttachmentSystem.cpp`).
-
-Dependencies: SDL2, SDL2_image, SDL2_ttf, SDL2_mixer, Vulkan 1.3, glm, nlohmann/json, plugxml
-
-Toolchain: C++17, `/utf-8` source encoding (required for the Chinese UI strings), Unicode character set, vcpkg static linking. Crash dialogs are produced by `CrashHandler` via a Windows Vectored Exception Handler — not visible on stderr in headless runs.
-
-## Version Control (commit policy)
-
-**Division of labor: `git commit` is Codex's job (commit once the task is done and verified); `git push` is the master's — Codex does not `push` by default unless the master explicitly says to push in that conversation.**
-
-## AutoTest Suite
-
-The `-AutoTest <script.json>` launch flag drives the game automatically from a JSON script (enter level / choose cards / plant / spawn zombies / screenshot / dump state, then exit). Codex can complete the full "edit code → build → run script → Read screenshot to verify" loop independently, with no manual in-game screenshots.
-
-- **Script location:** `autotest/scripts/*.json` (pure data, not in vcxproj; editing scripts needs no recompile)
-- **Run (working dir = `build\<preset>\` where the exe lives):**
-  ```powershell
-  Push-Location build\clang-release   # or build\msvc-debug
-  .\PlantsVsZombies.exe -AutoTest ..\..\autotest\scripts\demo_peashooter.json -Seed 42
-  $LASTEXITCODE   # 0=success; 1=command failed/timeout; 100=script parse failure
-  Pop-Location
-  ```
-- **Artifacts:** under `build\<preset>\autotest\out\<script-name>\` — PNGs (view directly with the Read tool), `state.json`, `run.log` (per-command execution trace; in Release, Logger INFO is stripped, so run.log is the authoritative record)
-- **Command set:** `goto_level` / `choose_cards` / `wait_state` / `set_sun` / `plant` / `spawn_zombie` / `wait_seconds` / `wait_frames` / `set_timescale` / `charm_zombie` / `click` / `key` / `screenshot` / `dump_state` / `assert_state` / `quit`. Wait-type commands accept `timeout` (default 15s). Plant/zombie types use the enum identifier verbatim (e.g. `PLANT_PEASHOOTER`, `ZOMBIE_FASTPAPER`); new types need a line added to the name table in `Game/AutoTest/TestDriver.cpp`.
-- **Synthetic input (real click/key path for any scene):** existing `plant`/`spawn_zombie` etc. call game logic directly and only cover GameScene; to drive UI in non-GameScene scenes (almanac, etc.) use `click`/`key` — they inject synthetic events via `SDL_PushEvent`, taking the same path as real user input (consumed at the next frame's poll, same letterbox coordinate inverse-transform), with zero runtime impact on the real game (`TestDriver::Update` returns on its first line when not in AutoTest).
-  - `click`: `{ "op":"click", "x":570, "y":490 }`, optional `"button"` (`left`(default)/`right`/`middle`), `"hold_frames"` (default 1, frames held between press and release). `x,y` are **logical coordinates** (same coordinate system as UI layout and `dump_state` x/y). A click completes across frames (press edge → hold → release edge); the script needs no manual waiting.
-  - `assert_state`: `{ "op":"assert_state", "path":"perks.stacks.PLANT_DAMAGE_UP", "equals":3 }` — asserts on the same state JSON that `dump_state` writes. `path` is dot-separated; a purely numeric segment indexes into an array (`zombies.0.type`). Mismatch or missing path → Fail (exit 1). Don't assert on float fields (e.g. `zombieHealthMult`) — `equals` uses exact JSON comparison; assert the integer-projected fields (`plantDamageOn100` etc.) instead.
-  - `key`: `{ "op":"key", "name":"space" }`, optional `"action"` (`press`(default, a full tap)/`down`(press edge only)/`up`(release edge only)). `name` is a key-name string (`a`–`z`, `0`–`9`, `space`/`enter`/`escape`/`tab`/`backspace`/arrows `up`/`down`/`left`/`right`/`f1`–`f12`…); new keys need a line added to `kKeyNames` in `TestDriver.cpp`.
-- **Isolation:** in AutoTest mode all save reads/writes are short-circuited (no read/write of `saves/`); every level entry is a deterministic fresh level; `-Seed N` fixes the random seed.
-- **Examples:** `autotest/scripts/demo_peashooter.json` (acceptance script), `smoke_*.json` (per-subsystem smoke tests)
-
-## Architecture Overview
-
-### Object Hierarchy
-```
-GameObject (base: component system, render order, active state)
-└── AnimatedObject (adds Animator for sprite animation)
-    ├── Plant → Shooter → PeaShooter
-    │          SunFlower, WallNut, CherryBomb...
-    ├── Zombie → ConeZombie, Polevaulter...
-    └── Coin (collectibles)
-Bullet (separate; uses object pooling via BulletPool)
-```
-
-### Component System
-`GameObject` stores components in `std::unordered_map<std::type_index, shared_ptr<Component>>`. Standard components:
-- `TransformComponent` — position (x, y), rotation, scale
-- `ColliderComponent` — hitbox with `onTriggerEnter/Stay/Exit` and `onCollisionEnter/Exit` callbacks
-- `ClickableComponent` — mouse interaction
-- `ShadowComponent` — drop shadow rendering
-
-Add/get components via `AddComponent<T>(args...)` and `GetComponent<T>()`.
-
-### Key System Classes
-| Class | File | Role |
-|---|---|---|
-| `Board` | `Game/Board.cpp` | Level manager: zombie waves, sun spawning, win/lose logic |
-| `GameObjectManager` | `Game/GameObjectManager` | Create/destroy objects, render order, thread pool |
-| `CollisionSystem` | `Game/CollisionSystem` | Per-frame collision checks, callbacks |
-| `EntityManager` | `Game/EntityManager` | ID-based entity tracking (used by save system) |
-| `SceneManager` | `Game/SceneManager` | Switches between scenes (`MainMenuScene`, `AlmanacScene`, `GameScene`, `PlantAlmanacScene`, `ZombieAlmanacScene`) — registered in `GameApp.cpp` |
-| `ResourceManager` | `ResourceManager` | Asset loading/caching; keys in `ResourceKeys.h` |
-| `Graphics` | `Graphics.cpp` | Custom Vulkan wrapper with transform stack and batch rendering |
-| `Animator` | `Reanimation/Animator` | Named track system; `PlayTrack()`, `PlayTrackOnce()`, frame events |
-| `ParticleSystem` | `ParticleSystem/` | XML-configured particle effects (`resources/particles/`) |
-| `AudioSystem` | `Game/AudioSystem.h` | SDL2_mixer wrapper for SFX + music; channel management |
-| `InputHandler` | `UI/InputHandler.{h,cpp}` | SDL event → mouse/keyboard state queried during Update |
-
-### Game Loop (GameApp::Run)
-1. **Input** — SDL events → `InputHandler`
-2. **Update** — `SceneManager` → `Board::Update()` + `GameObjectManager::Update()` (spawning, AI, collision)
-3. **Render** — `Draw()` walks objects in render order; internally calls `PrepareForDraw()` per object via the thread pool to parallel-prepare batch data, then records/submits Vulkan commands and `Graphics::FlushBatch()`
-
-### Board Grid
-The board is a `vector<vector<shared_ptr<Cell>>>` grid. Plants are placed at `(row, column)`. Zombies travel by row. `Board` manages zombie waves and game state transitions via the `BoardState` enum: `CHOOSE_CARD → GAME → WIN` or `LOSE_GAME` (`NONE` is the uninitialized state).
-
-### Save System
-JSON serialization via nlohmann/json (`GameInfoSaver`). Plants/zombies implement `SaveExtraData(json&)` and `LoadExtraData(const json&)` virtual methods for custom state. Save files live in `./saves/` (`PlayerInfo.json` for global state, `level{N}_data.json` per level); the directory is created on demand.
-
-### Resources & Assets
-- Asset keys are hand-written string constants in `ResourceKeys.h`, named `PREFIX_UPPERCASE` (e.g., `IMAGE_PEASHOOTER`, `SOUND_CHERRYBOMB`, `MUSIC_DAY`, `PARTICLE_EXPLOSIONCLOUD`). The constants are a typo-safe mirror of the keys that `ResourceManager::GenerateStandardKey` actually derives from filenames at load time (strip dir/ext → uppercase → non-alnum → `_` → prefix). When key == its own name, declare it with the `RKEY(X)` macro (expands to `inline const std::string X = "X"`) so the name isn't repeated; when key ≠ name (a real alias like `IMAGE_HUGE_WAVE_APPROACHING = "IMAGE_APPROACHING"`, `SOUND_SHOOTER_SHOOT = "SOUND_THROW"`, the `REANIM_*` CamelCase values, or font paths) write it explicitly.
-- Asset roots: images in `./resources/image/`, particle XML configs in `./resources/particles/config/`, reanim files in `./resources/reanim/`, fonts in `./font/`.
-- **Reanimation** (`Reanimation/`) is a custom skeletal-animation system, not a sprite-sheet player. It loads `.reanim` XML files and exposes named tracks (e.g. `anim_walk`) via `Animator::PlayTrack()`. Frame events register one-shot callbacks at specific frames.
-- **Particle effects** are XML-configured under `./resources/particles/config/` (`<Emitter>` root with `<Image>`, `<LaunchSpeed>`, `<Field>`, etc.). `ParticleXMLLoader` caches by name.
-
-## Reference & Implementation Guidance
-
-When you need to **add a new classic plant, zombie, or bullet (projectile)**, it is recommended to refer to the original game's behavior and stats using the following approaches:
-
-1. **Search the web**  
-   Consult the *Plants vs. Zombies* community wiki, modding documentation, or open-source recreations to understand the attack patterns, health, speed, and special abilities of classic units (Pea Shooter, Wall-Nut, Basic Zombie, etc.).
-
-2. **Consult the C# reference code (strongly recommended)**  
-   This project was originally inspired by the Lawn engine's C# implementation. The complete code is located at:  
-   `D:\PVZ\PlantsVsZombies.NET-master\Lawn_Shared\Lawn`  
-   The directory contains:
-   - `Plant/` – logic for all plants (shooting, sun production, defense, etc.)
-   - `Zombie/` – behavior for all zombies (movement, attack, helmet drop, etc.)
-   - `Projectile/` – properties and collision logic for bullets (pea, ice pea, fireball, etc.)
-
-   When implementing a new `Plant`, `Zombie` or `Bullet` subclass, **first consult the corresponding C# implementation** to ensure consistent stats and behavior with the original game.
-
-3. **Animation troubleshooting** 
-    If you encounter animation-related problems (e.g., a zombie fails to play a certain animation), first check the `./resources/reanim/` directory for the corresponding `.reanim` file – read its track names and frame data. Cross-reference with the C# reference code (`D:\PVZ\PlantsVsZombies.NET-master\Lawn_Shared\Lawn`) to understand the expected animation sequence and timing. (the animation file is almost the same.)
-
-4. **Frame event note:** 
-    If your new plant or zombie needs frame events, please ask me first.
-
-## Adding a New Plant
-Use the `adding-plant` skill (`.agents/skills/adding-plant/SKILL.md`) — it supersedes the checklist that used to live here.
-
-## Adding a New Zombie
-Use the `adding-zombie` skill (`.agents/skills/adding-zombie/SKILL.md`) — it supersedes the checklist that used to live here (proven on DancerZombie 舞王+伴舞; covers 断肢断头/召唤编队/出土裁剪/魅惑交互/帧事件陷阱/调参量交付).
-
-### Spawning zombies: two distinct paths
-- **Gameplay (grid-bound):** `Board::CreateZombie(type, row, x, ...)` / `CreateZombieWithID(...)`. Pass an arbitrary pixel `x`, but **`y` is always derived from `row`** via `GetZombieSpawnY(row)` — there is intentionally no `y` parameter. Use this for real zombies, wave spawns, and savegame restore (saves persist only `row + x`).
-- **Free placement (display only):** `GameAPP::InstantiateZombieFree(type, board, x, y)` for preview/UI zombies that must sit at an arbitrary `y` not snapped to a row (card-selection preview scatter, `AlmanacScene` / `ZombieAlmanacScene`). It wraps `InstantiateZombie(..., row = -1, isPreview = true)`. When `board != nullptr`, such zombies count toward `mBoard->mZombieNumber` and are decremented in `Zombie::Die`, so keep that increment/decrement balanced.
-
-## Coding Conventions
-- Visual offsets use `mVisualOffset` (separate from the logical grid position)
-- Row/column position (`mRow`, `mColumn`) is the gameplay grid cell; pixel position is in `TransformComponent`
-- Chinese (UTF-8) strings are used throughout the codebase for UI 
-- **Header guards (every `.h`):** start each header with `#pragma once` (the existing convention also keeps the older `#pragma once` + `#ifndef _NAME_H` double form — either is accepted). Enforced automatically: `cmake --preset` configure installs a `.githooks/pre-commit` hook (`git config core.hooksPath .githooks`) that rejects any staged guard-less header, and the same configure step prints a WARNING listing any existing guard-less headers. The check is BOM-aware (matches the token anywhere in the first 512 bytes, not anchored to `^`, so a UTF-8 BOM prefix doesn't cause false positives). Rationale: since the `.sln` migration, VS's "Add New Item" template no longer auto-inserts the guard.
-
-## Communication Style
-When responding to the user, always address them as **主人** (master) instead of using generic terms like "user" or "you". For example: "主人需要构建项目" rather than "你需要构建项目". This applies to all explanations, suggestions, and conversations within this repository context.
+- Codex commits completed, verified work. Do not push unless 主人 explicitly requests it in the current conversation.
+- Always address the user as **主人**.
