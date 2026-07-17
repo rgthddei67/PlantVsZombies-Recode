@@ -1,0 +1,73 @@
+# Memory Index
+
+- [屏幕抖动ShakeBoard ✅commit未push](project_pvz_screen_shake.md) — 2026-07-16(f3e87b4+修复f09abb3) **全屏视觉效果必须走相机SetCameraPosition(projView)而非变换栈——reanim/字形instancing快路径不消费栈,栈方案下植物僵尸全体不动(主人抓出)**；相机勿每帧无条件写(开场平移也用它)；樱桃(3,-4)原版单跳/毁灭菇(6,-9)0.5s衰减正弦5半周期；SAD验证须分管线选区对测(初版全测batch区假绿,紫闪帧不可光学测)；**附带发现smoke_doomshroom在master基线cmd#32确定性失败(旁格click种植失效,疑3918192预览改动后没复跑)待查**
+- [毁灭菇+弹坑 ✅验收完未push](project_pvz_doomshroom_crater.md) — 2026-07-16(3a79e9e..db73b07) 帧51引爆+Crater轻量GameObject+充能无敌(睡觉放行)+粒子ImageFrames实装+Doom.xml移植口径(厘秒→秒/Offset减半/SystemPosition折算)；**占格判定两处独立口径**=CanPlaceInCell+UpdatePlantPreviewPosition(预览漏改主人抓出)、plant op绕过闸门须click测；两个skill已同步；msvc-debug resources.xml曾整体陈旧12文件
+- [寒冰大喷菇 ✅commit未push](project_pvz_icefumeshroom.md) — 2026-07-15(a70506b+de5e528削弱) FumeShroom模板方法化+蓝overlay/蓝粒子/染色卡图；**数值主人已裁定中档=150阳光/间隔2.5s/10伤/减速2.0s**(AOE减速=乘法光环,减速时长必须<攻击间隔留空窗,力度不按来源削)；Trophy按枚举值=关卡号解锁→插枚举必须占位(14=下一关)；穿透=护盾照掉血且全额透体；msvc-debug的info.txt曾整体陈旧；另产出adding-particle skill(1012711)
+- [帧事件帧号口径](feedback_frame_event_numbering.md) — 主人定死：AddFrameEvent真实帧号=预览帧号-1；**主人报的帧号默认已-1过，直接用不许再减**；已写进两个skill
+- [寒冰菇+黑夜spawnlists ✅完成](project_pvz_iceshroom_freeze.md) — 2026-07-14(bea4fa2..21227e2) StartFrozen+UpdateAnimSpeed单点收敛extra层(加新速度状态先grep它)；读档主人已验证；spawnlists补全10-18(9关一大关,2-9=18收官全阵容30波+sun1500字段)；foot-gun=视觉勿耦合别的效果(蓝光绑减速→持盾冻结不变蓝)、豁免连伤害不吃(原版伤害在免疫判定后)、resources.xml双preset加音效、原版素材库D:\PVZ\中文年度加强版完整版\Test按TodFoley捞音效
+- [纹理池mipmap ✅已落地](reference_pvz_texture_minification_no_mipmap.md) — 2026-07-12(a5b3184)建图全量mip链+级联blit,缩小任意倍数不糊(此前>2:1欠采样,卡牌0.46实证/定稿0.5)；前提=预乘alpha勿破坏、再动必开validation；小字号文字锐化=2×光栅化+DrawCachedText scale0.5；resources不在git覆盖前必备份
+- [舞王+伴舞僵尸+adding-zombie skill ✅已push](project_pvz_dancer_zombie.md) — 2026-07-10~11(d14a526..536c424) Board节拍时钟齐舞+十字召唤补位+SetClipRect出土裁剪+出土隐影+举手PlayTrackOnce空回切定格；536c424=月球漫步啃一口再召唤(EatTarget覆写强停啃食)+节拍钟按dt折算(暂停冻结/倍速同拍)；foot-gun=帧事件末-1帧不触发须逐reanim实测、齐舞须锁SetAnimationSpeed、魅惑脱队按阵营判槽位、**暂停≠逻辑停:不乘dt的帧计数/轮询暂停时照样演化**
+- [胆小菇+adding-plant skill ✅已push](project_pvz_scaredyshroom_and_adding_plant_skill.md) — 2026-07-08(2d53f00..894fe5a) 新增植物流程已固化为.claude/skills/adding-plant(CLAUDE.md植物节已删指向skill,僵尸节保留)；foot-gun=帧事件帧号必问主人、站位/影子两套offset分居gamedata.json与代码、状态机消费的节流缓存读档首帧必须真算(AutoTest存档短路测不到)
+- [主菜单石碑排版+命中仲裁 ✅已push](project_pvz_mainmenu_button_arbitration.md) — 2026-07-07(e65d869..43241cf) 石碑紧贴后判定框重叠=ButtonManager::UpdateAll两遍仲裁(hover/click只判给中心最近者,Button::Update加hitAllowed默认参数其余调用点不变)；定稿缩放1.0/x=545/y=85,175,252,325；foot-gun=LEVEL数字坐标与冒险按钮pos/scale硬绑定须按贴图内相对坐标换算、smoke重叠带点击有假绿风险须Read中间截图
+- [血量字形worker侧instance化 ✅已push](project_pvz_glyph_run_worker_instancing.md) — 2026-07-07(db5c3e6) 20000可见血量行defer到串行replay逐行flush=N×ε聚合致死(51.9→9.7ms/19→103FPS)；修=RecordDrawGlyphRun快路径直写InstanceRecord切片(与reanim同管线,z-order不变)；foot-gun=textDraw(lines)计数器不覆盖字形路径(盲区误导两轮,已加glyphRun等-Profile探针)、glyphAtlasBuild失败无negative cache会每帧重建循环
+- [gamedata.json 数值外置 ✅已push](project_pvz_gamedata_json.md) — 2026-07-07(9f3e3ca+0b37e9f) JSON唯一数值来源+缺任一字段即拒启动(-6)+AutoTest不弹窗守卫；新增植物/僵尸改5步(两preset的resources都要加条目)；foot-gun=文件名GameApp.cpp非GameAPP.cpp(git add静默漏stage)、msvc-debug陈旧树跑新资源假崩溃HEAP CORRUPTION+LNK1168锁exe(治=reconfigure+clean全量重建,勿删build目录)、后台PowerShell不继承VS环境
+- [幽灵僵尸射手空射修复 ✅已push](project_pvz_ghost_zombie_shooter_fix.md) — 2026-07-06(b1cec54) 行索引过滤IsActive/IsDying+Die()防重入(同帧双Die双扣计数)+DestroyGameObject(raw)静默失败留WARN；再见"计数0仍开火"先查GOM WARN
+- [固定步长主循环 ✅已push](project_pvz_fixed_timestep.md) — 2026-07-06(729356e) 逻辑60Hz+封顶3步丢债；AutoTest同Seed全产物逐字节复现；foot-gun=追帧第2/3步前必须补poll否则合成输入按下沿湮灭、wait_frames语义变逻辑步、验证防空对空假阳性
+
+- [Trophy下沉到GameObject ✅已push](project_pvz_trophy_decouple_coin.md) — 2026-07-06 两步Coin→AnimatedObject→GameObject+Board持weak_ptr供存档+click新增target:trophy；foot-gun=静态click坐标会脱靶(-Seed不固定帧时序)、SetScale(float&)吃不了constexpr、PS5.1提交信息英文双引号拆参数
+
+- [AutoTest assert_state 命令 ✅已push](project_pvz_autotest_assert_state_todo.md) — 2026-07-04 dump字段断言(path点分+数字段=数组下标,equals严格==,不匹配exit1)；BuildStateJson抽取两op共用；smoke_develop/smoke_perks已补断言,不带-develop假绿已根治；foot-gun=浮点字段勿equals用整数投影字段
+
+- [GameMessageBox Builder 化简 ✅已push](project_pvz_messagebox_builder.md) — 2026-07-04 流式Builder替9参构造/.Panel/.Checkbox(initChecked)灭friend槽位戳,7调用点迁完删UIManager::CreateMessageBox；foot-gun=Builder默认背景须IMAGE_MESSAGEBOX非空串、smoke_develop须-develop且热键已是rshift(不带也exit 0假绿)
+
+- [粒子按RenderOrder分层 ✅已push](project_pvz_particle_render_layer.md) — 2026-07-03 世界层粒子走GameObjectManager pre-overlay hook(非场景槽,因MessageBox在GameObjects命令内部)；EmitEffect默认LAYER_EFFECTS_WORLD=35000；DrawAll已删拆DrawBelow/DrawFrom；Scene基类命令真正排序
+
+- [开发者模式(-develop) ✅已push](project_pvz_developer_mode.md) — 2026-07-03 D键面板/收费点双条件守卫/点草坪召唤取最近行/跳关走pending延迟SwitchTo；15e109d修卡片显示层裸比阳光绕过CanAfford+下一波提取SummonNextWave可连点；foot-gun=FZCQ无◀▶字形用ASCII、AutoTest截图无.png扩展名、放置模式ESC与菜单ESC同帧用devConsumedEsc挡
+
+- [资源加载并行化 ✅达标已push](project_pvz_parallel_resource_loading.md) — 2026-07-03 方案A达标结算；冷启动10s=2600次open固定成本(Defender+NTFS冷缓存)非带宽(资源36MB)；计时WARN行留回归探针；foot-gun=PS5.1 `1>`重定向UTF-16 grep搜不到中文/subagent断流先查git再SendMessage原agent
+- [魅惑僵尸+魅惑菇全套 ✅已push](project_pvz_charmed_zombie_feature.md) — 2026-07-02 StartMindControlled/CanBeCharmed(撑杆仅WALKING)/双向互啃/SetFlipX翻身(支点48,须在overlay/glow复制前)/魅惑菇EatTarget判HYPNOSHROOM&&!睡眠→不结算这口(75阳光25sCD)；foot-gun=①行为守卫放虚函数不放lambda(onTriggerStay绕过) ②Edit撞形近行+单僵尸假阴性 ③脚本须{"commands":[]}；含 d83bab0 纸僵卡anim_eat修复起源(抽virtual ResumeWalkAfterEat)→已被 [project_pvz_zombie_eat_walk_state_machine](project_pvz_zombie_eat_walk_state_machine.md) 收口
+- [僵尸啃食→走路状态机重构 ✅已push](project_pvz_zombie_eat_walk_state_machine.md) — 2026-07-03 治设计臃肿：根因=基类682/742硬编码PlayTrack("anim_walk2")没走虚函数→reanim无walk2僵尸被迫整段复制StopEat/ValidateEatingState。终态=PlayWalkAnimation(走路唯一权威)+OnStart/OnStopEating(啃食视觉对称钩子)+非虚inline ResumeWalkAfterEat(模板方法);删WalkTrackAfterEat,三子类卸~6覆写;门臂3 bug结构性根除+FastPaper两级继承dump验;foot-gun=①C++默认实参不随override继承(EndJump调PlayWalkAnimation()编译失败→显式0.0f) ②AutoTest盲区(撑杆没种植物从不起跳→补smoke_polevaulter_vault_walk) ③ValidateEatingState读档AutoTest测不到 ④blend 0.2→0.3统一(code-review补正,保0.3与其余一致)；关联 [project_pvz_charmed_zombie_feature](project_pvz_charmed_zombie_feature.md)/[project_pvz_doorzombie_arm_bugs](project_pvz_doorzombie_arm_bugs.md)
+- [铁门僵尸手臂显隐状态机+3门臂bug](project_pvz_doorzombie_arm_bugs.md) — "铁门bug贼多"专档：两套手臂(常规ShowArm/持门screendoor)+门本体入口清单;已修3个都是入口漏同步(c0cb799魅惑多臂/52bd86d魅惑啃僵尸无臂/8f9ada6大喷菇穿透残留持门臂);dump抓armVisible+doorArmVisible;详见 [project_pvz_charmed_zombie_feature](project_pvz_charmed_zombie_feature.md)/[project_pvz_fumeshroom_attack](project_pvz_fumeshroom_attack.md)/[project_pvz_zombie_eat_walk_state_machine](project_pvz_zombie_eat_walk_state_machine.md)
+- [魅惑僵尸啃普通:碰撞侧seeker/target钩子](project_pvz_charmed_zombie_collision_hook.md) — CHARMED层设计(不改碰撞算法/不引O(k²)):被魅惑改layerMask=CHARMED+collisionMask含ZOMBIE→落mRowOthers二分搜mRowZombies;pair僵尸恒放a;源见 [project_pvz_collision_seeker_target_fix](project_pvz_collision_seeker_target_fix.md) spec §4
+- [碰撞O(k²)僵尸×僵尸空转修复 ✅已push](project_pvz_collision_seeker_target_fix.md) — 2026-07-01(7e2ae95..045704b) 20000僵尸Collision5.07→2.17ms(73.8→106.9FPS);根因=每行SAP堆叠退化+僵尸mask不含ZOMBIE 100%空转;修=拆mRowZombies/mRowOthers;**foot-gun=HandleCollisionEnter先a后b,僵尸×植物必僵尸放a否则PotatoMine清理次序错**;探针-Profile四行;更新 [project_pvz_perf_optimization](project_pvz_perf_optimization.md)
+- [Animator trig上GPU/LUT建议裁决(都否)](project_pvz_trig_lut_gpu_suggestion_verdict.md) — 2026-07-01 trig非瓶颈(Animator.cpp:368注释:6ms CPU-sum@165k跨worker总和,GPU win非来自moving trig);LUT致斜切抖动+冲刷L1L2;再提直接引;同 [project_pvz_gemini_perf_report_verdict](project_pvz_gemini_perf_report_verdict.md)/[project_pvz_dalao_geometry_compute_suggestion](project_pvz_dalao_geometry_compute_suggestion.md)
+- [Gemini性能报告逐条裁决(整份不动)](project_pvz_gemini_perf_report_verdict.md) — 2026-06-30 读3文件未profiler;"GPU带宽瓶颈"被实测present0.14/replay0.03 CPU-bound证伪;pipeline切换❌/batch2×3⚠️/纹理压缩⚠️/multimap⚠️/Early-Z❌;教训=瓶颈归因靠profiler非读代码;再提纹理压缩/Early-Z/pipeline合并引此
+- [僵尸血量文字thrash→HUD字形图集 ✅完成](project_pvz_zombie_hp_text_thrash.md) — 2026-07-02主人真机验证尖峰消失(已push,feature已删);GlyphAtlas单行白字形+DrawGlyphRun逐字形quad;**关键bug=BeginParallelRecord预留固定4MB被字形×13撑爆→vbo翻倍2GB(b8ab956比例化max(8MB,remain/4))**;+字形基线double-count修(BuildGlyphAtlas按真实墨迹框裁紧致);坑=overflow warning在stdout非run.log
+- [host-visible缓冲grow-on-demand ✅已push](project_pvz_host_visible_buffer_grow_on_demand.md) — 2026-06-26(17c3a1d)修启动890MB:三持久映射逐帧缓冲×2帧=448MB常驻(纹理仅54MB);改grow启动56MB,891→476MB;坑=安全增长点唯一/先建后换防OOM;+code-review修4缺陷(按缓冲独立翻倍/EndFrame一步扩容/空闲回收/OOM sticky)
+- [生存刷怪轮次表+随机子集池 ✅已push](project_pvz_survival_spawn_round_table.md) — 2026-06-25(2ac099c..d655609) BuildSurvivalSpawnList数据化(survivalRound表);round1/2确定round3+随机子集;**核心foot-gun=weight一物两用(抽中权重+点数成本)→杂兵稀释走新GetSurvivalPickWeight**;坑=脚本在仓库根autotest/scripts
+- [GameSelectScene+黑夜无尽 ✅已push](project_pvz_gameselect_scene_night_endless.md) — 2026-06-25(64535c1+3aba327)挑战风格选关场景+黑夜无尽(SURVIVAL_ENDLESS_NIGHT_LEVEL=1001,mIsSurvival==1000||1001一行覆盖);生存按钮改进GameSelectScene
+- [大喷菇攻击补全+护盾穿透 ✅已push](project_pvz_fumeshroom_attack.md) — 2026-06-24(e443375)FumeAttack第27帧对本行[0,380]锥形20伤害;**Zombie::TakeDamage加penetrateShield还原穿透二类护盾(铁门/报纸不穿头盔)**;仅FastPaper/FastBucket透传;Gloom升级可复用
+- [小阳光/SunShroom/存档审查](project_pvz_smallsun_sunshroom_review.md) — 2026-06-23(53657f2..133a9f1)无严重bug;真实发现都是cleanup/注释/极小边界(SunShroom.h缺guard等)
+- [Animator播放状态机存读档修复 ✅已push](project_pvz_animator_playstate_save_fix.md) — 2026-06-23(8aee406)修PlayTrackOnce进行中存档→读档当PLAY_REPEAT永循环;根因=只存状态机输出没存状态机本身;暴露3getter+统一SaveAnimState/RestoreAnimState;save/load reconciliation同族见 [project_pvz_zombie_eat_walk_state_machine](project_pvz_zombie_eat_walk_state_machine.md)
+- [大佬GS/compute渲染建议裁决](project_pvz_dalao_geometry_compute_suggestion.md) — 2026-06-17 ②目标早达成但用gl_VertexIndex顶点拉取+实例化非GS/①矩阵已并行写SSBO不值搬compute;再提同类渲染优化引此
+- [Gemini Vulkan审查](project_pvz_gemini_vulkan_review.md) — 2026-06-16 6条:4误判2休眠;**①DestroyTexture改帧计数延迟删除队列已push(0b14016)**;教训=GPU生命周期改动必开validation
+- [编译警告清零 ✅](project_pvz_warnings_cleanup.md) — 2026-06-13 clang-release 0warn;验证须用clang(msvc默认不报)、reorder改类内初始化、-Wswitch补显式case
+- [CMake迁移 ✅统一](project_pvz_cmake_migration.md) — 2026-06-13(a14a26c).sln/.vcxproj删,CMake+vcpkg唯一;坑=sdl2[vulkan]特性/copy_directory拷内容/NAME_WE撞名
+- [Build permission](feedback_build_permission_msbuild.md) — 主人解除构建限制:可直接命令行编译,不必F7不必核对时间戳(现用cmake preset)
+- [AutoTest套件 ✅](project_pvz_autotest_suite.md) — 2026-06-13完成;用法权威在CLAUDE.md AutoTest节(-AutoTest脚本+截图+dump_state闭环,-Seed确定性)
+- [perf optimization](project_pvz_perf_optimization.md) — 最新2026-06-24:11000z@168.5FPS/5.94ms完全CPU-bound(Present0.14/replay0.03);**STOP停在此**;编译**O2非O3**;若重启ROI序=par-record视口剔除>2d串行地板(Amdahl)>collision;GPU instancing已落地(388a845)
+- [Collaboration style](feedback_collaboration_style.md) — measure-first, steady-state numbers, honest framing, user builds in VS, responds in Chinese
+- [Phase6 OpenGL cleanup ✅](project_pvz_phase6_opengl_cleanup.md) — 7Task全过;执行期修预存LNK2019(geom-batch死子系统);commits user-driven
+- [并行Update phase-1 已REVERT](project_pvz_parallel_update_phase1.md) — Animator帧推进仅占Update12%(plan误判80%),dispatch0.05ms非瓶颈
+- [并行Update phase-2 ✅](project_pvz_parallel_update_phase2.md) — 292f68e 整Animator::Update并行+deferred events;-3.44ms/69.3→91FPS
+- [phase-3 component-update skipping ✅](project_pvz_phase3_component_update_skipping.md) — c435a57 NeedsUpdate virtual+mUpdatableComponents视图;FPS91→100;PROFILE_SCOPE自污染~4.6ms
+- [预计算动画(放弃)](project_pvz_precomputed_animation.md) — 2026-05-23 TrackInfo::mFrames已密集per-frame,关键帧搜索不存在,ROI不足
+- [GPU instancing reanim ✅](project_pvz_gpu_instancing_reanim.md) — 2026-05-24(388a845)reanim→InstanceRecord;-1.39ms/98.4→114FPS;postscript修glow(m_currentBlendMode过载→分离)+Z-order(cross-flush保序)
+- [Clickable优化 ✅](project_pvz_clickable_optimization.md) — 2026-05-24 自注册表替换全场扫描;1.22→0.01ms(-122×);**GetAllGameObjects() per-frame scan是本仓库foot-gun**
+- [Dual-queue保序foot-gun](feedback_dual_queue_order_preservation.md) — dual-queue加新队列时serial fallback跨队列保序必审;worker replay有emitUpTo兜底serial没有
+- [预乘alpha管线](project_pvz_premultiplied_alpha.md) — 2026-05-30修白边:契约跨三层(UploadPixels rgb*=a/混合srcColor=ONE/frag预乘vColor.a);加纹理/混合模式必守;glslc重编spv拷Debug+Release
+- [颜色0..255约定](reference_pvz_color_0_255_convention.md) — 绘制glm::vec4 color是0..255非0..1(ToSDLColor直接cast);写0..1→alpha≈全透明隐身
+- [Draw视图+HP文字剔除](project_pvz_draw_view_hp_text_cull.md) — 2026-05-31 GameObject::Draw加mDrawableComponents视图+HP文字IsWorldPointVisible视口剔除修128MB VBO溢出;文本爆降真因=整串→纹理256-LRU thrashing
+- [glyph atlas后续](project_pvz_glyph_atlas_text_followup.md) — 旧候选,已由 [project_pvz_zombie_hp_text_thrash](project_pvz_zombie_hp_text_thrash.md) 实现;约束清单(双队列z-order/超采样/worker建纹理/tint/度量)
+- [batch/instance z-order](reference_pvz_batch_instance_zorder.md) — sprite=instance/文字=batch两队列,cross-flush压batch到instance下;DrawText=当前层(血量)/DrawTextOnTop=顶层(HUD);内联渲染vboCursor推预留区提前到slot循环前
+- [改进backlog](project_pvz_improvement_backlog.md) — 2026-05-31剩#2数值JSON化#3 RAII#5测试#6魔法数字#8 inline误用;#1工厂✅#4日志✅#7 Vector加explicit✅(Vector=位置词汇类型602处不全改vec2)
+- [统一日志系统 ✅#4](project_pvz_logging_system.md) — 2026-06-06 Logger.h/.cpp流式带级别宏;Debug五级/Release裁到WARN+ERROR;迁~193 cout+29 fprintf;扩展只改Logger.cpp::Write
+- [注册式工厂 ✅#1](project_pvz_factory_registry.md) — 2026-05-31消除两Instantiate switch→GameDataManager数据驱动(函数指针factory字段);函数指针非std::function/集中注册;指引在InitializeHardcodedData顶部
+- [僵尸按行索引 ✅](project_pvz_zombie_row_index.md) — 2026-06-06 EntityManager加ForEachZombieInRow替GetAllZombieIDs全表扫;惰性每帧重建(CleanupExpired标脏);foot-gun=取全集再过滤
+- [vcpkg缓存删除代价](feedback_vcpkg_cache_deletion.md) — vcpkg-master整目录不能删(toolchainFile指向);"可再生"≠"删了免费"(重装全量联网);清缓存前确认不reconfigure
+- [生存词条系统](project_pvz_perk_system.md) — 7词条(3植4僵)已全部push(第一批577b35b);轮间选择UI(ec82abe)+查看面板(5a68fe1)+分页(6383b17)均merge;存档perks=null崩溃修(3d3b5fd)+GameInfoSaver try/catch(c547409);第7攻速**间隔/动画耦合坑**(须两改阈值+射击动画clip-speed);spec在docs/superpowers/
+- [资产/worktree/AutoTest坑](reference_pvz_assets_worktree_autotest_gotchas.md) — ①resources/font不在git(在build/<preset>旁exe,CLAUDE.md"拷resources"错只拷Shader)新worktree须拷否则exit-6 ②AutoTest wait字段名是"value"非frames ③状态切换后settle>30帧 ④蘑菇夜测goto 10-19 ⑤产阳光验证看dump sun字段(小阳光15/普通25),wait_seconds游戏秒/看门狗墙钟15s
+- [Animator三层速度模型 ✅push](project_pvz_animator_clip_speed.md) — 2026-06-07(e74bc76)EffectiveSpeed=(clip!=0?clip:base)*extra;clip绝对覆盖(非乘数)/0回落base;删mOriginalSpeed两步舞;存档animClipSpeed
+- [跨平台phase-1审查 ✅push](project_pvz_xplat_phase1_review.md) — 2026-06-25 FF合master(b3ff1da);load_file×2收编走FileManager;**目录枚举×2留phase-3(SDL/AAssetManager无列举API)**
+- [跨平台phase-3资源清单 ✅已push](project_pvz_xplat_phase3_manifest.md) — 2026-06-25(c50db1e)构建期gen_manifest.cmake glob生成manifest.txt+FileManager::ListResourceFiles经SDL_RWops读;**裁决:迁SDL3拿APK列目录是陷阱→清单方案库无关,SDL2栈即可用**
+- [blend手翻转修复 ✅已push](project_pvz_blend_transform_hand_flip_fix.md) — 2026-06-28(1bf662a)修僵尸blend时右手翻转;根因=GetDeltaTransform blend分支">180°吸附"目标写反(tSrc旧帧→应tDst当前帧);肢体翻转编码ky=kx+180°;**指纹=只blendTime>0现(=0走最短弧无碍)**;验证repro_blend_hand.json逐像素diff

@@ -1,12 +1,22 @@
-# CLAUDE.md
+# AGENTS.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Codex (Codex.ai/code) when working with code in this repository.
+
+## Project Memory
+
+The project memory migrated from Claude Code is stored in `docs/agent-memory/` and is now maintained as Codex-facing project documentation.
+
+- Use `docs/agent-memory/MEMORY.md` as the routing index. Before diagnosing or changing an existing subsystem, search the index for the topic and read only the relevant linked memory files.
+- Treat memory as historical engineering context, not as proof of the current repository state. Verify dated branch, commit, push, line-number, build, and test claims against Git and the current code before relying on them.
+- Explicit task instructions, this `AGENTS.md`, current source code, and current test/build evidence override conflicting memory notes.
+- After materially changing a documented subsystem, update its topic file and the corresponding one-line entry in `MEMORY.md`; add a new focused topic file when no existing one fits.
+- Do not depend on the legacy `~/.claude` copy. The repository copy is the canonical project memory for future Codex work.
 
 ## Build & Run
 
 This is a CMake + vcpkg(manifest) C++ project (x64 Windows only). The build system was unified onto CMake on 2026-06-13, migrating away from .sln/.vcxproj (`CMakeLists.txt` + `CMakePresets.json` + `vcpkg.json`, triplet `x64-windows-static`).
 
-- **Build (Claude may run this autonomously):** Must run inside the VS developer environment. **Critical ordering: first add the Installer directory (where vswhere lives) to PATH, then import `VsDevCmd.bat`** — otherwise VsDevCmd's internal vswhere call emits `'vswhere.exe' is not recognized` (build still succeeds, but with noise). Noise-free one-shot import + build:
+- **Build (Codex may run this autonomously):** Must run inside the VS developer environment. **Critical ordering: first add the Installer directory (where vswhere lives) to PATH, then import `VsDevCmd.bat`** — otherwise VsDevCmd's internal vswhere call emits `'vswhere.exe' is not recognized` (build still succeeds, but with noise). Noise-free one-shot import + build:
 
   ```powershell
   # 1) Import the VS dev environment (Installer onto PATH first to silence vswhere noise)
@@ -32,11 +42,11 @@ Toolchain: C++17, `/utf-8` source encoding (required for the Chinese UI strings)
 
 ## Version Control (commit policy)
 
-**Division of labor: `git commit` is Claude's job (commit once the task is done and verified); `git push` is the master's — Claude does not `push` by default unless the master explicitly says to push in that conversation.**
+**Division of labor: `git commit` is Codex's job (commit once the task is done and verified); `git push` is the master's — Codex does not `push` by default unless the master explicitly says to push in that conversation.**
 
 ## AutoTest Suite
 
-The `-AutoTest <script.json>` launch flag drives the game automatically from a JSON script (enter level / choose cards / plant / spawn zombies / screenshot / dump state, then exit). Claude can complete the full "edit code → build → run script → Read screenshot to verify" loop independently, with no manual in-game screenshots.
+The `-AutoTest <script.json>` launch flag drives the game automatically from a JSON script (enter level / choose cards / plant / spawn zombies / screenshot / dump state, then exit). Codex can complete the full "edit code → build → run script → Read screenshot to verify" loop independently, with no manual in-game screenshots.
 
 - **Script location:** `autotest/scripts/*.json` (pure data, not in vcxproj; editing scripts needs no recompile)
 - **Run (working dir = `build\<preset>\` where the exe lives):**
@@ -133,10 +143,10 @@ When you need to **add a new classic plant, zombie, or bullet (projectile)**, it
     If your new plant or zombie needs frame events, please ask me first.
 
 ## Adding a New Plant
-Use the `adding-plant` skill (`.claude/skills/adding-plant/SKILL.md`) — it supersedes the checklist that used to live here.
+Use the `adding-plant` skill (`.agents/skills/adding-plant/SKILL.md`) — it supersedes the checklist that used to live here.
 
 ## Adding a New Zombie
-Use the `adding-zombie` skill (`.claude/skills/adding-zombie/SKILL.md`) — it supersedes the checklist that used to live here (proven on DancerZombie 舞王+伴舞; covers 断肢断头/召唤编队/出土裁剪/魅惑交互/帧事件陷阱/调参量交付).
+Use the `adding-zombie` skill (`.agents/skills/adding-zombie/SKILL.md`) — it supersedes the checklist that used to live here (proven on DancerZombie 舞王+伴舞; covers 断肢断头/召唤编队/出土裁剪/魅惑交互/帧事件陷阱/调参量交付).
 
 ### Spawning zombies: two distinct paths
 - **Gameplay (grid-bound):** `Board::CreateZombie(type, row, x, ...)` / `CreateZombieWithID(...)`. Pass an arbitrary pixel `x`, but **`y` is always derived from `row`** via `GetZombieSpawnY(row)` — there is intentionally no `y` parameter. Use this for real zombies, wave spawns, and savegame restore (saves persist only `row + x`).

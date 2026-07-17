@@ -62,7 +62,7 @@ description: Use when adding a new zombie (新增僵尸) to PvZ — 含防具僵
 
 ## 流程
 
-复杂僵尸（状态机/召唤/新机制）走完整 brainstorm（关键决策逐项问主人：帧号、断肢方案、召唤细节、魅惑交互）→spec→writing-plans；换皮/纯防具类可简短 spec 直实现。模板：`docs/superpowers/specs+plans/2026-07-10-dancer-zombie*.md`。commit 由 Claude 做、push 等主人发话。
+复杂僵尸（状态机/召唤/新机制）走完整 brainstorm（关键决策逐项问主人：帧号、断肢方案、召唤细节、魅惑交互）→spec→writing-plans；换皮/纯防具类可简短 spec 直实现。模板：`docs/superpowers/specs+plans/2026-07-10-dancer-zombie*.md`。commit 由 Codex 做、push 等主人发话。
 
 ## 关联记忆
 
