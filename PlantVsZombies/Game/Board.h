@@ -138,6 +138,7 @@ private:
 	float mUpdateHPCheckTimer = 0.0f;	// 僵尸血量检查计时器
 	float mPlantRegenTimer = 0.0f;	// 词条③：全场植物回血脉冲计时器
 	bool mHasHugeWaveSound = false;		// 有无放过一大波音乐
+	bool mHasHugeWaveMusicBurst = false;	// 本次一大波警告是否已强制加入鼓组
 	bool mIsLoadSave = false;	// 是否正在加载存档
 
 	std::vector<RowInfo> mRowInfos;
@@ -156,6 +157,7 @@ private:
 	inline ZombieType PickZombieType(int remainingPoints);
 	inline ZombieType GetWeightedRandomZombie();
 	inline ZombieType GetCheapestZombie();
+	int CountHostileZombiesForMusic() const;
 	// 生存模式"抽中权重"：对 NORMAL/CONE 随轮稀释(仅供 GetWeightedRandomZombie；成本侧仍用 GetZombieWeight)
 	inline int GetSurvivalPickWeight(ZombieType type) const;
 

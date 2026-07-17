@@ -51,6 +51,8 @@ public:
 	static void StopMusic();
 	static void PauseMusic();
 	static void ResumeMusic();
+	static void UpdateAdaptiveMusic(float deltaTime, int hostileZombieCount);
+	static void StartMusicBurst();
 
 	// 工具方法
 	static bool IsAudioAvailable();

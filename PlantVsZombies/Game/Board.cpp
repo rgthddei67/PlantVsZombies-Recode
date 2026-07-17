@@ -429,10 +429,19 @@ void Board::UpdateLevel()
 						4.0f,
 						0.3f);
 			}
+			// 原版在一大波警告期间强制进入 burst。黑夜曲的鼓轨是独立段落，
+			// 更早切入；其余场景等警告牌展示一段时间后再在小节边界加入鼓组。
+			const float burstDelay = (mBackGround == Background::GROUND_NIGHT) ? 0.5f : 3.5f;
+			if (!mHasHugeWaveMusicBurst && mHugeWaveCountDown >= burstDelay)
+			{
+				mHasHugeWaveMusicBurst = true;
+				AudioSystem::StartMusicBurst();
+			}
 			if (mHugeWaveCountDown >= 7.5f)
 			{
 				mHugeWaveCountDown = 0.0f;
 				mHasHugeWaveSound = false;
+				mHasHugeWaveMusicBurst = false;
 			}
 			else
 			{
@@ -754,6 +763,20 @@ void Board::Update()
 	}
 	CleanupExpiredObjects();
 	UpdateLevel();
+	AudioSystem::UpdateAdaptiveMusic(DeltaTime::GetDeltaTime(), CountHostileZombiesForMusic());
+}
+
+int Board::CountHostileZombiesForMusic() const
+{
+	int count = 0;
+	for (int zombieID : mEntityManager.GetAllZombieIDs())
+	{
+		Zombie* zombie = mEntityManager.GetZombie(zombieID);
+		if (!zombie || zombie->IsDying() || !zombie->HasHead() ||
+			zombie->IsMindControlled()) continue;
+		++count;
+	}
+	return count;
 }
 
 void Board::StartGame()
@@ -772,14 +795,24 @@ void Board::StartGame()
 
 void Board::PlayBackgroundMusic()
 {
-	if (mBackGround == Background::GROUND_DAY) {
+	switch (mBackGround)
+	{
+	case Background::GROUND_DAY:
 		AudioSystem::PlayMusic(ResourceKeys::Music::MUSIC_DAY, -1);
-	}
-	else if (mBackGround == Background::GROUND_NIGHT) {
+		break;
+	case Background::GROUND_NIGHT:
 		AudioSystem::PlayMusic(ResourceKeys::Music::MUSIC_NIGHT, -1);
-	}
-	else {
-		AudioSystem::PlayMusic(ResourceKeys::Music::MUSIC_DAY, -1);
+		break;
+	case Background::WATER_POOL:
+		AudioSystem::PlayMusic(ResourceKeys::Music::MUSIC_POOL, -1);
+		break;
+	case Background::NIGHT_WATER_POOL:
+		AudioSystem::PlayMusic(ResourceKeys::Music::MUSIC_FOG, -1);
+		break;
+	case Background::ROOF:
+	case Background::NIGHT_ROOF:
+		AudioSystem::PlayMusic(ResourceKeys::Music::MUSIC_ROOF, -1);
+		break;
 	}
 }
 
@@ -805,6 +838,7 @@ void Board::OnSurvivalRoundClear()
 	mTrophySpawned = false;
 	mTrophy.reset();
 	mHasHugeWaveSound = false;
+	mHasHugeWaveMusicBurst = false;
 	mHugeWaveCountDown = 0.0f;
 	mNextWaveSpawnZombieHP = 0;
 	mCurrectWaveZombieHP = 0;

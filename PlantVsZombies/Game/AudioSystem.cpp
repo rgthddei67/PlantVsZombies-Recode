@@ -1,7 +1,21 @@
 ﻿#include "../Game/AudioSystem.h"
+#include "../Game/AdaptiveMusicPlayer.h"
 #include "../ResourceManager.h"
 #include "../Logger.h"
 #include <algorithm>
+
+namespace
+{
+	AdaptiveMusicTune GetAdaptiveTune(const std::string& musicKey)
+	{
+		if (musicKey == ResourceKeys::Music::MUSIC_DAY) return AdaptiveMusicTune::DAY;
+		if (musicKey == ResourceKeys::Music::MUSIC_NIGHT) return AdaptiveMusicTune::NIGHT;
+		if (musicKey == ResourceKeys::Music::MUSIC_POOL) return AdaptiveMusicTune::POOL;
+		if (musicKey == ResourceKeys::Music::MUSIC_FOG) return AdaptiveMusicTune::FOG;
+		if (musicKey == ResourceKeys::Music::MUSIC_ROOF) return AdaptiveMusicTune::ROOF;
+		return AdaptiveMusicTune::NONE;
+	}
+}
 
 float AudioSystem::masterVolume = 1.0f;
 float AudioSystem::soundVolume = 0.5f;
@@ -21,6 +35,7 @@ bool AudioSystem::Initialize()
 }
 
 void AudioSystem::Shutdown() {
+	AdaptiveMusicPlayer::GetInstance().Stop();
 	Mix_HaltChannel(-1);
 	Mix_HaltMusic();
 
@@ -149,6 +164,17 @@ void AudioSystem::PlayMusic(const std::string& musicKey, int loops)
 {
 	if (!IsAudioAvailable()) return;
 
+	auto& adaptiveMusic = AdaptiveMusicPlayer::GetInstance();
+	const AdaptiveMusicTune tune = GetAdaptiveTune(musicKey);
+	if (tune != AdaptiveMusicTune::NONE)
+	{
+		adaptiveMusic.SetVolume(masterVolume * musicVolume);
+		if (adaptiveMusic.Play(tune)) return;
+	}
+
+	// 非关卡音乐和 MO3 加载失败都继续使用现有 OGG 播放路径。
+	adaptiveMusic.Stop();
+
 	Mix_Music* music = ResourceManager::GetInstance().GetMusic(musicKey);
 	if (music)
 	{
@@ -164,6 +190,7 @@ void AudioSystem::StopMusic()
 {
 	if (IsAudioAvailable())
 	{
+		AdaptiveMusicPlayer::GetInstance().Stop();
 		Mix_HaltMusic();
 	}
 }
@@ -172,7 +199,9 @@ void AudioSystem::PauseMusic()
 {
 	if (IsAudioAvailable())
 	{
-		Mix_PauseMusic();
+		auto& adaptiveMusic = AdaptiveMusicPlayer::GetInstance();
+		if (adaptiveMusic.IsPlaying()) adaptiveMusic.Pause(true);
+		else Mix_PauseMusic();
 	}
 }
 
@@ -180,8 +209,20 @@ void AudioSystem::ResumeMusic()
 {
 	if (IsAudioAvailable())
 	{
-		Mix_ResumeMusic();
+		auto& adaptiveMusic = AdaptiveMusicPlayer::GetInstance();
+		if (adaptiveMusic.IsPlaying()) adaptiveMusic.Pause(false);
+		else Mix_ResumeMusic();
 	}
+}
+
+void AudioSystem::UpdateAdaptiveMusic(float deltaTime, int hostileZombieCount)
+{
+	AdaptiveMusicPlayer::GetInstance().Update(deltaTime, hostileZombieCount);
+}
+
+void AudioSystem::StartMusicBurst()
+{
+	AdaptiveMusicPlayer::GetInstance().StartBurst();
 }
 
 void AudioSystem::UpdateVolume()
@@ -191,6 +232,7 @@ void AudioSystem::UpdateVolume()
 	// 更新音乐音量
 	int musicVol = static_cast<int>(MIX_MAX_VOLUME * masterVolume * musicVolume);
 	Mix_VolumeMusic(musicVol);
+	AdaptiveMusicPlayer::GetInstance().SetVolume(masterVolume * musicVolume);
 }
 
 bool AudioSystem::IsAudioAvailable()
