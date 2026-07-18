@@ -51,6 +51,10 @@ int main(int argc, char** argv)
 			autoTestScript = argv[++i];
 			GameAPP::mAutoTestMode = true;
 		}
+		else if (arg == "-AutoTestLoadSave" || arg == "-autotestloadsave")
+		{
+			GameAPP::mAutoTestLoadSave = true;
+		}
 		else if ((arg == "-Seed" || arg == "-seed") && i + 1 < argc)
 		{
 			try {
@@ -60,6 +64,10 @@ int main(int argc, char** argv)
 				LOG_WARN("Main") << "-Seed 参数无效，已忽略: " << e.what();
 			}
 		}
+	}
+	if (GameAPP::mAutoTestLoadSave && !GameAPP::mAutoTestMode) {
+		LOG_WARN("Main") << "-AutoTestLoadSave 仅在 -AutoTest 模式生效，已忽略。";
+		GameAPP::mAutoTestLoadSave = false;
 	}
 
 	if (GameAPP::mAutoTestMode) {

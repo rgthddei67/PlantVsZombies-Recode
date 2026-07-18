@@ -365,7 +365,9 @@ bool GameInfoSaver::SaveLevelDataImpl(Board* board, CardSlotManager* manager)
 
 bool GameInfoSaver::LoadLevelDataImpl(Board* board, CardSlotManager* manager)
 {
-	if (GameAPP::mAutoTestMode) return true;   // AutoTest：永远全新关卡（不跳过选卡流程）
+	// AutoTest 默认仍是确定性的全新关卡；仅显式 -AutoTestLoadSave 时读取当前 CWD 下的
+	// 关卡存档。写入和删除入口始终短路，因此问题存档在测试后保持逐字节不变。
+	if (GameAPP::mAutoTestMode && !GameAPP::mAutoTestLoadSave) return true;
 	std::string filename = GetSaveRoot() + "/level" + std::to_string(board->mLevel) + "_data.json";
 	nlohmann::json j;
 	if (!FileManager::LoadJsonFile(filename, j))
@@ -642,6 +644,7 @@ bool GameInfoSaver::LoadLevelDataImpl(Board* board, CardSlotManager* manager)
 
 bool GameInfoSaver::DeleteLevelData(Board* board)
 {
+	if (GameAPP::mAutoTestMode) return true;   // AutoTest（包括读档复现模式）绝不删除真实存档
 	std::string filename = GetSaveRoot() + "/level" + std::to_string(board->mLevel) + "_data.json";
 	return FileManager::DeleteFile(filename);
 }

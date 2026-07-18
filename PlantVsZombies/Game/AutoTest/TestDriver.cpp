@@ -11,6 +11,7 @@
 #include "../CardComponent.h"
 #include "../Plant/PlantType.h"
 #include "../Plant/Plant.h"
+#include "../Plant/Shooter.h"
 #include "../Zombie/ZombieType.h"
 #include "../Zombie/Zombie.h"
 #include "../Trophy.h"   // dump_state 输出奖杯坐标
@@ -108,6 +109,15 @@ namespace {
 		for (const auto& [k, v] : kBoardStateNames) if (v == s) return k;
 		return "UNKNOWN";
 	}
+	std::string PlayStateName(PlayState s) {
+		switch (s) {
+		case PlayState::PLAY_NONE:    return "PLAY_NONE";
+		case PlayState::PLAY_REPEAT:  return "PLAY_REPEAT";
+		case PlayState::PLAY_ONCE:    return "PLAY_ONCE";
+		case PlayState::PLAY_ONCE_TO: return "PLAY_ONCE_TO";
+		}
+		return "UNKNOWN";
+	}
 	std::string BackgroundName(Background background) {
 		switch (background) {
 		case Background::GROUND_DAY:       return "GROUND_DAY";
@@ -166,6 +176,8 @@ bool TestDriver::LoadScript(const std::string& path) {
 
 	mActive = true;
 	Log("script loaded: " + path + " (" + std::to_string(mCommands.size()) + " commands)");
+	if (GameAPP::mAutoTestLoadSave)
+		Log("level save loading enabled (read-only): ./saves");
 	return true;
 }
 
@@ -652,17 +664,33 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	}
 
 	out["plants"] = nlohmann::json::array();
+	int repeatingShootingHeadCount = 0;
 	for (int id : board->mEntityManager.GetAllPlantIDs()) {
 		Plant* p = board->mEntityManager.GetPlant(id);
 		if (!p) continue;
-		out["plants"].push_back({
+		nlohmann::json plantState = {
 			{ "id", id },
 			{ "type", PlantTypeName(p->mPlantType) },
 			{ "row", p->mRow }, { "col", p->mColumn },
 			{ "health", p->mPlantHealth }, { "maxHealth", p->mPlantMaxHealth },
 			{ "track", p->GetCurrentTrackName() },
-		});
+		};
+		if (auto* shooter = dynamic_cast<Shooter*>(p)) {
+			if (const Animator* head = shooter->GetHeadAnimator()) {
+				plantState["headTrack"] = head->GetCurrentTrackName();
+				plantState["headAnimPlaying"] = head->IsPlaying();
+				plantState["headAnimPlayState"] = PlayStateName(head->GetPlayingState());
+				if (head->IsPlaying() && head->GetPlayingState() == PlayState::PLAY_REPEAT
+					&& head->GetCurrentTrackName() == "anim_shooting") {
+					++repeatingShootingHeadCount;
+				}
+			}
+		}
+		out["plants"].push_back(std::move(plantState));
 	}
+	out["plantCount"] = static_cast<int>(out["plants"].size());
+	out["bulletCount"] = static_cast<int>(board->mEntityManager.GetAllBulletIDs().size());
+	out["repeatingShootingHeadCount"] = repeatingShootingHeadCount;
 
 	{
 		SurvivalPerkManager& pm = board->GetPerkManager();

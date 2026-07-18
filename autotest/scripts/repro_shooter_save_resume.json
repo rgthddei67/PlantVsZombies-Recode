@@ -1,0 +1,16 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 1001 },
+    { "op": "wait_state", "state": "CHOOSE_CARD", "timeout": 10 },
+    { "op": "wait_seconds", "value": 3.0, "timeout": 10 },
+    { "op": "screenshot", "name": "after_single_resumed_volley.png" },
+    { "op": "wait_seconds", "value": 5.0, "timeout": 10 },
+    { "op": "screenshot", "name": "after_shooters_settled.png" },
+    { "op": "dump_state", "name": "state.json" },
+    { "op": "assert_state", "path": "survivalRound", "equals": 11 },
+    { "op": "assert_state", "path": "plantCount", "equals": 44 },
+    { "op": "assert_state", "path": "bulletCount", "equals": 0 },
+    { "op": "assert_state", "path": "repeatingShootingHeadCount", "equals": 0 },
+    { "op": "quit" }
+  ]
+}

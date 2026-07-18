@@ -44,6 +44,7 @@
 - [大喷菇攻击补全+护盾穿透 ✅已push](project_pvz_fumeshroom_attack.md) — 2026-06-24(e443375)FumeAttack第27帧对本行[0,380]锥形20伤害;**Zombie::TakeDamage加penetrateShield还原穿透二类护盾(铁门/报纸不穿头盔)**;仅FastPaper/FastBucket透传;Gloom升级可复用
 - [小阳光/SunShroom/存档审查](project_pvz_smallsun_sunshroom_review.md) — 2026-06-23(53657f2..133a9f1)无严重bug;真实发现都是cleanup/注释/极小边界(SunShroom.h缺guard等)
 - [Animator播放状态机存读档修复 ✅已push](project_pvz_animator_playstate_save_fix.md) — 2026-06-23(8aee406)修PlayTrackOnce进行中存档→读档当PLAY_REPEAT永循环;根因=只存状态机输出没存状态机本身;暴露3getter+统一SaveAnimState/RestoreAnimState;save/load reconciliation同族见 [project_pvz_zombie_eat_walk_state_machine](project_pvz_zombie_eat_walk_state_machine.md)
+- [Shooter头部动画存档+AutoTest只读读档](project_pvz_shooter_head_anim_save_autotest_load.md) — 2026-07-18 修子Animator只存轨道/帧导致射击永久PLAY_REPEAT；完整保存头部播放状态+双发两发间瞬态，旧档shooting按一次性恢复；`-AutoTestLoadSave`仅放行关卡读档、保存/删除仍短路，真实level1001 RED(循环3)→GREEN(循环0/子弹0/哈希不变)
 - [大佬GS/compute渲染建议裁决](project_pvz_dalao_geometry_compute_suggestion.md) — 2026-06-17 ②目标早达成但用gl_VertexIndex顶点拉取+实例化非GS/①矩阵已并行写SSBO不值搬compute;再提同类渲染优化引此
 - [Gemini Vulkan审查](project_pvz_gemini_vulkan_review.md) — 2026-06-16 6条:4误判2休眠;**①DestroyTexture改帧计数延迟删除队列已push(0b14016)**;教训=GPU生命周期改动必开validation
 - [编译警告清零 ✅](project_pvz_warnings_cleanup.md) — 2026-06-13 clang-release 0warn;验证须用clang(msvc默认不报)、reorder改类内初始化、-Wswitch补显式case

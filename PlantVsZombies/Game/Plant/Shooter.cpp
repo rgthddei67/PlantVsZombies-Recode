@@ -37,6 +37,63 @@ void Shooter::SetupPlant() {
 		}, true);
 }
 
+void Shooter::SaveExtraData(nlohmann::json& j) const
+{
+	j["shootTimer"] = mShootTimer;
+	if (!mHeadAnim) return;
+
+	// 头部 Animator 不属于 AnimatedObject 的主 Animator，必须在额外数据里独立保存整台
+	// 播放状态机；只保存轨道/帧会令 PlayTrackOnce 射击在读档后退化为永久循环。
+	j["headAnimTrack"] = mHeadAnim->GetCurrentTrackName();
+	j["headAnimFrame"] = mHeadAnim->GetCurrentFrame();
+	j["headAnimSpeed"] = mHeadAnim->GetSpeed();
+	j["headAnimClipSpeed"] = mHeadAnim->GetClipSpeed();
+	j["headAnimPlayState"] = static_cast<int>(mHeadAnim->GetPlayingState());
+	j["headAnimTargetTrack"] = mHeadAnim->GetTargetTrack();
+	j["headAnimTargetTrackSpeed"] = mHeadAnim->GetTargetTrackSpeed();
+	j["headAnimPlaying"] = mHeadAnim->IsPlaying();
+}
+
+void Shooter::LoadExtraData(const nlohmann::json& j)
+{
+	mShootTimer = j.value("shootTimer", 1.0f);
+	if (!mHeadAnim) return;
+
+	const std::string track = j.value("headAnimTrack", std::string{});
+	if (track.empty()) return;
+
+	const float clipSpeed = j.value("headAnimClipSpeed", 0.0f);
+	if (j.contains("headAnimPlayState")) {
+		const int rawState = j.value("headAnimPlayState", static_cast<int>(PlayState::PLAY_REPEAT));
+		const PlayState state = (rawState >= static_cast<int>(PlayState::PLAY_NONE)
+			&& rawState <= static_cast<int>(PlayState::PLAY_ONCE_TO))
+			? static_cast<PlayState>(rawState) : PlayState::PLAY_REPEAT;
+
+		if (state == PlayState::PLAY_ONCE || state == PlayState::PLAY_ONCE_TO) {
+			mHeadAnim->PlayTrackOnce(track,
+				j.value("headAnimTargetTrack", std::string{}), clipSpeed, 0.0f,
+				j.value("headAnimTargetTrackSpeed", 0.0f));
+		}
+		else {
+			mHeadAnim->PlayTrack(track, clipSpeed);
+		}
+	}
+	else if (track == "anim_shooting") {
+		// 旧 Shooter 存档没有播放状态。射击轨道在所有 Shooter 中都只应播放一次；宁可
+		// 回到 idle，也不能沿用旧逻辑的 PlayTrack() 把持久帧事件变成无限吐弹。
+		mHeadAnim->PlayTrackOnce(track, "anim_head_idle", clipSpeed);
+	}
+	else {
+		mHeadAnim->PlayTrack(track, clipSpeed);
+	}
+
+	if (j.contains("headAnimSpeed"))
+		mHeadAnim->SetSpeed(j.value("headAnimSpeed", 1.0f));
+	mHeadAnim->SetCurrentFrame(j.value("headAnimFrame", 0.0f));
+	if (j.contains("headAnimPlaying") && !j.value("headAnimPlaying", true))
+		mHeadAnim->Pause();
+}
+
 void Shooter::PlantUpdate()
 {
 	// 词条：植物攻速。mult>=1（非生存关/未获取恒为 1.0，自动 no-op）。

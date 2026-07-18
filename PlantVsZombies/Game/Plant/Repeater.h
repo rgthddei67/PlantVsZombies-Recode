@@ -9,6 +9,20 @@ class Repeater : public Shooter {
 public:
 	using Shooter::Shooter;
 
+	/** 保存双发射手两发之间的瞬态，使读档后能准确续完当前连发。 */
+	void SaveExtraData(nlohmann::json& j) const override {
+		Shooter::SaveExtraData(j);
+		j["pendingSecondShot"] = mPendingSecondShot;
+		j["isSecondShot"] = mIsSecondShot;
+	}
+
+	/** 恢复连发瞬态；旧存档缺字段时按尚未发出第一颗豌豆处理。 */
+	void LoadExtraData(const nlohmann::json& j) override {
+		Shooter::LoadExtraData(j);
+		mPendingSecondShot = j.value("pendingSecondShot", false);
+		mIsSecondShot = j.value("isSecondShot", false);
+	}
+
 	void PlantUpdate() override {
 		// 词条：植物攻速。mult>=1（非生存关/未获取恒为 1.0）。
 		float mult = mBoard ? static_cast<float>(mBoard->GetPerkManager().GetPlantAttackSpeedMultiplier()) : 1.0f;

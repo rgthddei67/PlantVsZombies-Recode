@@ -18,29 +18,12 @@ protected:
 
 public:
 	using Plant::Plant;
+	const Animator* GetHeadAnimator() const { return mHeadAnim.get(); }
 
-	void SaveExtraData(nlohmann::json& j) const override {
-		j["shootTimer"] = mShootTimer;
-
-		// 像主 Animator 一样保存头部动画器的当前轨道与帧
-		if (mHeadAnim) {
-			j["headAnimTrack"] = mHeadAnim->GetCurrentTrackName();
-			j["headAnimFrame"] = mHeadAnim->GetCurrentFrame();
-		}
-	}
-
-	void LoadExtraData(const nlohmann::json& j) override {
-		mShootTimer = j.value("shootTimer", 1.0f);
-
-		// 恢复头部动画器（mHeadAnim 已在 SetupPlant 中创建）
-		if (mHeadAnim) {
-			std::string headTrack = j.value("headAnimTrack", "");
-			if (!headTrack.empty()) {
-				mHeadAnim->PlayTrack(headTrack);
-				mHeadAnim->SetCurrentFrame(j.value("headAnimFrame", 0.0f));
-			}
-		}
-	}
+	/** 保存射击计时器及头部 Animator 的完整播放状态机。 */
+	void SaveExtraData(nlohmann::json& j) const override;
+	/** 恢复射击计时器及头部 Animator，并兼容只保存轨道/帧的旧存档。 */
+	void LoadExtraData(const nlohmann::json& j) override;
 
 	void PlantUpdate() override;
 };
