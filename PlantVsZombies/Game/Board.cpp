@@ -876,6 +876,7 @@ void Board::BuildSurvivalSpawnList(int round)
 		if (t == ZombieType::ZOMBIE_NORMAL) continue;
 		int base = GameDataManager::GetInstance().GetZombieSurvivalRound(t);
 		if (base < 1) continue;                              // 0 = 不进生存
+		if (GameDataManager::GetInstance().GetZombieWeight(t) <= 0) continue; // 伴舞等召唤单位不独立占池位
 		int eff = std::max(base - reduction, 1);
 		if (eff <= round) candidates.push_back(t);
 	}
@@ -887,12 +888,20 @@ void Board::BuildSurvivalSpawnList(int round)
 		return;
 	}
 
-	// 3) 第 3 轮起：从候选池均匀无放回抽 extra 种(部分 Fisher-Yates)。
-	//    预筛合格者再抽取，不用重抽循环，绝不死循环。
-	int extra = SURVIVAL_POOL_BASE_EXTRA
-	          + (round - SURVIVAL_RANDOM_POOL_START_ROUND) / SURVIVAL_POOL_GROWTH_EVERY;
-	if (extra > static_cast<int>(candidates.size()))
-		extra = static_cast<int>(candidates.size());
+	// 3) 第 3 轮起：基础总种类缓慢增长并先钳到 8，再随机 ±1~2 种。
+	//    深轮正波动留在上限，负波动形成 6~7 种，避免所有已实现类型每轮固定全上。
+	const int baseExtra = SURVIVAL_POOL_BASE_EXTRA
+		+ (round - SURVIVAL_RANDOM_POOL_START_ROUND) / SURVIVAL_POOL_GROWTH_EVERY;
+	const int maxTypes = std::min(SURVIVAL_POOL_MAX_TYPES,
+		static_cast<int>(candidates.size()) + 1);
+	const int baseTypes = std::min(1 + baseExtra, maxTypes);
+	const int jitterMagnitude = GameRandom::Range(SURVIVAL_POOL_JITTER_MIN, SURVIVAL_POOL_JITTER_MAX);
+	const int jitter = GameRandom::Range(0, 1) == 0 ? -jitterMagnitude : jitterMagnitude;
+	const int minTypes = std::min(2, maxTypes); // 第3轮起有候选时至少保留普通+1种
+	const int targetTypes = std::clamp(baseTypes + jitter, minTypes, maxTypes);
+	const int extra = targetTypes - 1;
+
+	// 预筛合格者后做部分 Fisher-Yates，无放回且无需重抽循环。
 	for (int k = 0; k < extra; ++k)
 	{
 		int j = GameRandom::Range(k, static_cast<int>(candidates.size()) - 1);

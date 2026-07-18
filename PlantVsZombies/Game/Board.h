@@ -61,8 +61,11 @@ namespace {
 	constexpr int SURVIVAL_RANDOM_POOL_START_ROUND = 3;   // 第几轮起改为"普通+随机子集"
 	constexpr int SURVIVAL_POOL_BASE_EXTRA = 1;   // 第3轮的随机种类数(除普通外)
 	constexpr int SURVIVAL_POOL_GROWTH_EVERY = 2;   // 每多少轮 +1 种(缓慢增长)
+	constexpr int SURVIVAL_POOL_MAX_TYPES = 8;   // 最终池子上限（包含必出的普通僵尸）
+	constexpr int SURVIVAL_POOL_JITTER_MIN = 1;  // 基础种类数的随机波动幅度
+	constexpr int SURVIVAL_POOL_JITTER_MAX = 2;
 	// 旗数递减(复刻原版 TodAnimateCurve(18,50,flags,0,15))：深局提前解锁强僵尸；
-	// 当前阵容(survivalRound 最高6、18旗才起步)下休眠，为未来高 survivalRound 僵尸预留。
+	// 当前阵容(survivalRound 最高7、18旗才起步)下休眠，为未来高 survivalRound 僵尸预留。
 	constexpr int SURVIVAL_UNLOCK_REDUCE_START_FLAG = 18;
 	constexpr int SURVIVAL_UNLOCK_REDUCE_END_FLAG = 50;
 	constexpr int SURVIVAL_UNLOCK_REDUCE_MAX = 15;
@@ -170,13 +173,14 @@ public:
 
 	inline void AddSun(int amount)
 	{
-		int temp = mSun + amount;
-		if (temp > MAX_SUN)
+		// 只缩放正常收益入口；开局阳光、AutoTest set_sun 与花费均不走这里。
+		const int scaledAmount = mPerkManager.ScaleSunIncome(amount);
+		if (scaledAmount > MAX_SUN - mSun)
 		{
 			mSun = MAX_SUN;
 			return;
 		}
-		mSun += amount;
+		mSun += scaledAmount;
 	}
 
 	inline void SubSun(int amount)

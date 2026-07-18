@@ -16,8 +16,8 @@
     { "op": "assert_state", "path": "perks.stacks.ZOMBIE_HEALTH_UP", "equals": 1 },
     { "op": "assert_state", "path": "perks.stacks.PLANT_DAMAGE_UP", "equals": 3 },
     { "op": "assert_state", "path": "perks.stacks.ZOMBIE_DAMAGE_RESIST", "equals": 15 },
-    { "op": "assert_state", "path": "perks.plantDamageOn100", "equals": 130 },
-    { "op": "assert_state", "path": "perks.damageToZombieOn100", "equals": 25 },
+    { "op": "assert_state", "path": "perks.plantDamageOn100", "equals": 136 },
+    { "op": "assert_state", "path": "perks.damageToZombieOn100", "equals": 55 },
     { "op": "assert_state", "path": "zombies.0.type", "equals": "ZOMBIE_NORMAL" },
     { "op": "quit" }
   ]

@@ -38,7 +38,7 @@
 - [Gemini性能报告逐条裁决(整份不动)](project_pvz_gemini_perf_report_verdict.md) — 2026-06-30 读3文件未profiler;"GPU带宽瓶颈"被实测present0.14/replay0.03 CPU-bound证伪;pipeline切换❌/batch2×3⚠️/纹理压缩⚠️/multimap⚠️/Early-Z❌;教训=瓶颈归因靠profiler非读代码;再提纹理压缩/Early-Z/pipeline合并引此
 - [僵尸血量文字thrash→HUD字形图集 ✅完成](project_pvz_zombie_hp_text_thrash.md) — 2026-07-02主人真机验证尖峰消失(已push,feature已删);GlyphAtlas单行白字形+DrawGlyphRun逐字形quad;**关键bug=BeginParallelRecord预留固定4MB被字形×13撑爆→vbo翻倍2GB(b8ab956比例化max(8MB,remain/4))**;+字形基线double-count修(BuildGlyphAtlas按真实墨迹框裁紧致);坑=overflow warning在stdout非run.log
 - [host-visible缓冲grow-on-demand ✅已push](project_pvz_host_visible_buffer_grow_on_demand.md) — 2026-06-26(17c3a1d)修启动890MB:三持久映射逐帧缓冲×2帧=448MB常驻(纹理仅54MB);改grow启动56MB,891→476MB;坑=安全增长点唯一/先建后换防OOM;+code-review修4缺陷(按缓冲独立翻倍/EndFrame一步扩容/空闲回收/OOM sticky)
-- [生存刷怪轮次表+随机子集池 ✅已push](project_pvz_survival_spawn_round_table.md) — 2026-06-25(2ac099c..d655609) BuildSurvivalSpawnList数据化(survivalRound表);round1/2确定round3+随机子集;**核心foot-gun=weight一物两用(抽中权重+点数成本)→杂兵稀释走新GetSurvivalPickWeight**;坑=脚本在仓库根autotest/scripts
+- [生存刷怪轮次表+随机子集池](project_pvz_survival_spawn_round_table.md) — 2026-07-18 在原数据化轮次表上新增最终最多8种(含普通)+基础数量随机±1~2；排除weight<=0召唤单位避免占池位；固定Seed验第3/6/13/40轮为4/2/8/6种；**weight仍一物两用，抽中调制与点数成本严禁混用**
 - [GameSelectScene+黑夜无尽 ✅已push](project_pvz_gameselect_scene_night_endless.md) — 2026-06-25(64535c1+3aba327)挑战风格选关场景+黑夜无尽(SURVIVAL_ENDLESS_NIGHT_LEVEL=1001,mIsSurvival==1000||1001一行覆盖);生存按钮改进GameSelectScene
 - [大喷菇攻击补全+护盾穿透 ✅已push](project_pvz_fumeshroom_attack.md) — 2026-06-24(e443375)FumeAttack第27帧对本行[0,380]锥形20伤害;**Zombie::TakeDamage加penetrateShield还原穿透二类护盾(铁门/报纸不穿头盔)**;仅FastPaper/FastBucket透传;Gloom升级可复用
 - [小阳光/SunShroom/存档审查](project_pvz_smallsun_sunshroom_review.md) — 2026-06-23(53657f2..133a9f1)无严重bug;真实发现都是cleanup/注释/极小边界(SunShroom.h缺guard等)
@@ -69,7 +69,7 @@
 - [注册式工厂 ✅#1](project_pvz_factory_registry.md) — 2026-05-31消除两Instantiate switch→GameDataManager数据驱动(函数指针factory字段);函数指针非std::function/集中注册;指引在InitializeHardcodedData顶部
 - [僵尸按行索引 ✅](project_pvz_zombie_row_index.md) — 2026-06-06 EntityManager加ForEachZombieInRow替GetAllZombieIDs全表扫;惰性每帧重建(CleanupExpired标脏);foot-gun=取全集再过滤
 - [vcpkg缓存删除代价](feedback_vcpkg_cache_deletion.md) — vcpkg-master整目录不能删(toolchainFile指向);"可再生"≠"删了免费"(重装全量联网);清缓存前确认不reconfigure
-- [生存词条系统](project_pvz_perk_system.md) — 7词条(3植4僵)已全部push(第一批577b35b);轮间选择UI(ec82abe)+查看面板(5a68fe1)+分页(6383b17)均merge;存档perks=null崩溃修(3d3b5fd)+GameInfoSaver try/catch(c547409);第7攻速**间隔/动画耦合坑**(须两改阈值+射击动画clip-speed);spec在docs/superpowers/
+- [生存词条系统](project_pvz_perk_system.md) — 2026-07-18 共10词条(6植4僵)：新增植物韧性/阳光增产/卡片加速；植物伤害与僵尸血量同调为+12%，僵尸免伤收敛到-3%×15、出生免伤4次×2；轮间仍1植物+1僵尸随机配对；中性getter、字符串key存档、攻速动画耦合等契约不变
 - [资产/worktree/AutoTest坑](reference_pvz_assets_worktree_autotest_gotchas.md) — ①resources/font不在git(在build/<preset>旁exe,CLAUDE.md"拷resources"错只拷Shader)新worktree须拷否则exit-6 ②AutoTest wait字段名是"value"非frames ③状态切换后settle>30帧 ④蘑菇夜测goto 10-18 ⑤产阳光验证看dump sun字段(小阳光15/普通25),wait_seconds游戏秒/看门狗墙钟15s
 - [Animator三层速度模型 ✅push](project_pvz_animator_clip_speed.md) — 2026-06-07(e74bc76)EffectiveSpeed=(clip!=0?clip:base)*extra;clip绝对覆盖(非乘数)/0回落base;删mOriginalSpeed两步舞;存档animClipSpeed
 - [跨平台phase-1审查 ✅push](project_pvz_xplat_phase1_review.md) — 2026-06-25 FF合master(b3ff1da);load_file×2收编走FileManager;**目录枚举×2留phase-3(SDL/AAssetManager无列举API)**

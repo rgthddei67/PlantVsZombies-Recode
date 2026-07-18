@@ -95,7 +95,13 @@ void CardComponent::Update() {
 			ForceStateUpdate();
 			return;
 		}
-		mCooldownTimer -= DeltaTime::GetDeltaTime();
+		// 卡片加速只改变倒计时推进速度，不改写基础冷却或读档中的剩余秒数。
+		double rechargeMultiplier = 1.0;
+		if (auto* manager = GetCardSlotManager()) {
+			if (auto* board = manager->GetBoard())
+				rechargeMultiplier = board->GetPerkManager().GetPlantCardRechargeMultiplier();
+		}
+		mCooldownTimer -= static_cast<float>(DeltaTime::GetDeltaTime() * rechargeMultiplier);
 		if (mCooldownTimer <= 0) {
 			mIsCooldown = false;
 			mCooldownTimer = 0;

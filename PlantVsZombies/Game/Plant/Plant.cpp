@@ -70,7 +70,9 @@ void Plant::Start()
 
 void Plant::TakeDamage(int damage) {
 	if (mIsPreview) return;
-	mPlantHealth -= damage;
+	// 植物韧性在所有调用基类的受伤路径统一结算；0 层倍率为 1，不影响普通关卡。
+	const int scaledDamage = mBoard ? mBoard->GetPerkManager().ScaleDamageToPlant(damage) : damage;
+	mPlantHealth -= scaledDamage;
 	SetGlowingTimer(0.1f);
 	if (mPlantHealth <= 0) {
 		Die();

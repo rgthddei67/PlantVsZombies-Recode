@@ -62,6 +62,7 @@ public:
 	// 获取卡牌信息
 	GameObject* GetSelectedCard() const { return selectedCard; }
 	int GetCurrentSun() const { return mBoard ? mBoard->GetSun() : 0; }
+	Board* GetBoard() const { return mBoard; }
 	const std::vector<Card*>& GetCards() const { return cards; }
 
 private:

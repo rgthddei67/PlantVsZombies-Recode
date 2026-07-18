@@ -6,6 +6,8 @@
     { "op": "add_perk", "type": "ZOMBIE_INVULN_HITS", "count": 2 },
     { "op": "spawn_zombie", "type": "ZOMBIE_NORMAL", "row": 2, "x": 900 },
     { "op": "dump_state", "name": "invuln.json" },
+    { "op": "assert_state", "path": "perks.zombieInvulnHits", "equals": 8 },
+    { "op": "assert_state", "path": "zombies.0.freeHitsRemaining", "equals": 8 },
     { "op": "quit" }
   ]
 }

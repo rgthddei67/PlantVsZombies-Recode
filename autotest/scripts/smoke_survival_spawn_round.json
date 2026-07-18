@@ -7,14 +7,26 @@
 
     { "op": "force_survival_round", "round": 1 },
     { "op": "dump_state", "name": "round1.json" },
+    { "op": "assert_state", "path": "spawnTypeCount", "equals": 1 },
     { "op": "force_survival_round", "round": 2 },
     { "op": "dump_state", "name": "round2.json" },
+    { "op": "assert_state", "path": "spawnTypeCount", "equals": 2 },
     { "op": "force_survival_round", "round": 3 },
     { "op": "dump_state", "name": "round3.json" },
+    { "op": "assert_state", "path": "spawnTypeCount", "equals": 4 },
+    { "op": "assert_state", "path": "spawnList.0", "equals": "ZOMBIE_NORMAL" },
     { "op": "force_survival_round", "round": 6 },
     { "op": "dump_state", "name": "round6.json" },
+    { "op": "assert_state", "path": "spawnTypeCount", "equals": 2 },
+    { "op": "assert_state", "path": "spawnList.0", "equals": "ZOMBIE_NORMAL" },
     { "op": "force_survival_round", "round": 13 },
     { "op": "dump_state", "name": "round13.json" },
+    { "op": "assert_state", "path": "spawnTypeCount", "equals": 8 },
+    { "op": "assert_state", "path": "spawnList.0", "equals": "ZOMBIE_NORMAL" },
+    { "op": "force_survival_round", "round": 40 },
+    { "op": "dump_state", "name": "round40.json" },
+    { "op": "assert_state", "path": "spawnTypeCount", "equals": 6 },
+    { "op": "assert_state", "path": "spawnList.0", "equals": "ZOMBIE_NORMAL" },
 
     { "op": "quit" }
   ]

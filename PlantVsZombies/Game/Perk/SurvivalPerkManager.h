@@ -11,22 +11,27 @@ public:
     int  GetStacks(PerkType type) const;
     void Clear();                         // 进新生存局时清空
 
-    // 聚合效果——空词条时为中性值（乘法单位元 / 原值），三处钟点自动 no-op
-    double GetPlantDamageMultiplier() const;       // 1 + 0.10 * stacks
+    // 聚合效果——空词条时为中性值（乘法单位元 / 原值），各钟点自动 no-op
+    double GetPlantDamageMultiplier() const;       // 1 + 0.12 * stacks
     double GetPlantAttackSpeedMultiplier() const;  // 1 + 0.15 * stacks，0 层=1.0
-    double GetZombieHealthMultiplier() const;      // 1 + 0.20 * stacks
-    double GetZombieDamageTakenMultiplier() const; // 1 - 0.05 * stacks，夹底 0.5
+    double GetPlantDamageTakenMultiplier() const;  // 1 - 0.03 * stacks，夹底 0.55
+    double GetSunIncomeMultiplier() const;         // 1 + 0.15 * stacks
+    double GetPlantCardRechargeMultiplier() const; // 1 + 0.12 * stacks
+    double GetZombieHealthMultiplier() const;      // 1 + 0.12 * stacks
+    double GetZombieDamageTakenMultiplier() const; // 1 - 0.03 * stacks，夹底 0.55
 
     int ScalePlantDamage(int base) const;          // round(base * 植物伤害倍率)，base>=1 时结果>=1
     int ScaleDamageToZombie(int base) const;       // round(base * 免伤倍率)，base>=1 时结果>=1
-	int ScaleTotalDamageToZombie(int base) const;  // round(base * 植物伤害倍率 * 僵尸免伤倍率)，base>=1 时结果>=1
+    int ScaleTotalDamageToZombie(int base) const;  // round(base * 植物伤害倍率 * 僵尸免伤倍率)，base>=1 时结果>=1
+    int ScaleDamageToPlant(int base) const;        // round(base * 植物承伤倍率)，base>=1 时结果>=1
+    int ScaleSunIncome(int base) const;            // round(base * 阳光收益倍率)，base>=1 时结果>=1
 
     double GetZombieDamageMultiplier() const;       // 1 + 0.05 * stacks（不限层）
     int    ScaleZombieDamage(int base) const;       // round(base * 僵尸伤害倍率)，base>=1 时结果>=1
-    int    GetZombieInvulnHits() const;             // 10 * stacks（无层→0）
+    int    GetZombieInvulnHits() const;             // 4 * stacks（无层→0）
     float  GetPlantRegenInterval() const;           // 固定 5.0 秒（恒定；调用方以 GetPlantRegenPerPulse()>0 判定是否生效）
-    int    GetPlantRegenPerPulse() const;           // 25 * stacks（无层→0）
-    int    GetPlantRegenHpCap(int maxHealth) const; // 满层→maxHealth*3，否则 maxHealth
+    int    GetPlantRegenPerPulse() const;           // 65 * stacks（无层→0）
+    int    GetPlantRegenHpCap(int maxHealth) const; // 5 层起→maxHealth*3，否则 maxHealth
 
     static const PerkInfo& GetInfo(PerkType type); // 静态元数据表（UI 用）
     std::vector<PerkType> AvailablePerks(PerkCategory cat) const;  // 该类别下 stacks < maxStacks 的词条

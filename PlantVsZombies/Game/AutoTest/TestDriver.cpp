@@ -58,7 +58,8 @@ namespace {
 	const std::unordered_map<std::string, PerkType> kPerkNames = {
 		PK(PLANT_DAMAGE_UP), PK(ZOMBIE_HEALTH_UP), PK(ZOMBIE_DAMAGE_RESIST),
 		PK(ZOMBIE_DAMAGE_UP), PK(ZOMBIE_INVULN_HITS), PK(PLANT_REGEN),
-		PK(PLANT_ATTACK_SPEED),
+		PK(PLANT_ATTACK_SPEED), PK(PLANT_DAMAGE_REDUCTION), PK(PLANT_SUN_BONUS),
+		PK(PLANT_CARD_RECHARGE),
 	};
 #undef PK
 	const std::unordered_map<std::string, BoardState> kBoardStateNames = {
@@ -590,6 +591,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["spawnList"] = nlohmann::json::array();
 	for (ZombieType t : board->GetSpawnZombieList())
 		out["spawnList"].push_back(ZombieTypeName(t));
+	out["spawnTypeCount"] = static_cast<int>(board->GetSpawnZombieList().size());
 
 	out["zombies"] = nlohmann::json::array();
 	for (int id : board->mEntityManager.GetAllZombieIDs()) {
@@ -647,11 +649,17 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		stacks["ZOMBIE_INVULN_HITS"]   = pm.GetStacks(PerkType::ZOMBIE_INVULN_HITS);
 		stacks["PLANT_REGEN"]          = pm.GetStacks(PerkType::PLANT_REGEN);
 		stacks["PLANT_ATTACK_SPEED"]   = pm.GetStacks(PerkType::PLANT_ATTACK_SPEED);
+		stacks["PLANT_DAMAGE_REDUCTION"] = pm.GetStacks(PerkType::PLANT_DAMAGE_REDUCTION);
+		stacks["PLANT_SUN_BONUS"]        = pm.GetStacks(PerkType::PLANT_SUN_BONUS);
+		stacks["PLANT_CARD_RECHARGE"]    = pm.GetStacks(PerkType::PLANT_CARD_RECHARGE);
 		nlohmann::json perks;
 		perks["stacks"]              = stacks;
 		perks["zombieHealthMult"]    = pm.GetZombieHealthMultiplier();
+		perks["zombieHealthOn100"]   = static_cast<int>(100.0 * pm.GetZombieHealthMultiplier() + 0.5);
 		perks["plantDamageOn100"]    = pm.ScalePlantDamage(100);
 		perks["damageToZombieOn100"] = pm.ScaleDamageToZombie(100);
+		perks["damageToPlantOn100"]  = pm.ScaleDamageToPlant(100);
+		perks["sunIncomeOn100"]      = pm.ScaleSunIncome(100);
 		perks["zombieDamageMult"]    = pm.GetZombieDamageMultiplier();
 		perks["zombieDamageOn100"]   = pm.ScaleZombieDamage(100);
 		perks["zombieInvulnHits"]    = pm.GetZombieInvulnHits();
@@ -660,6 +668,9 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		double asMult = pm.GetPlantAttackSpeedMultiplier();
 		perks["plantAttackSpeedMult"] = asMult;                                  // 原始倍率
 		perks["shootIntervalOn1500"]  = static_cast<int>(1500.0 / asMult + 0.5); // 整数化：1.5s 间隔被缩到多少 ms
+		double rechargeMult = pm.GetPlantCardRechargeMultiplier();
+		perks["plantCardRechargeMult"] = rechargeMult;
+		perks["cardRechargeOn1000"] = static_cast<int>(1000.0 / rechargeMult + 0.5);
 		out["perks"] = perks;
 	}
 

@@ -1,6 +1,6 @@
 ---
 name: project_pvz_survival_spawn_round_table
-description: "2026-06-25 生存模式 BuildSurvivalSpawnList 数据化重写(轮次解锁表+随机子集池+原版调制),已合并master未push"
+description: "生存模式 BuildSurvivalSpawnList：轮次解锁表+随机子集池+原版调制；2026-07-18 增加最多8种与基础数量随机±1~2，并排除零权重召唤单位"
 metadata:
   node_type: memory
   type: project
@@ -24,3 +24,9 @@ metadata:
 **坑**：① AutoTest 脚本实体在**仓库根 `autotest/scripts/`** 不在 `PlantVsZombies/autotest/scripts/`(plan 误写多套一层源码目录,导致 canonical `..\..\autotest\scripts\` 找不到,已 16765a7 修;见 [reference_pvz_assets_worktree_autotest_gotchas](reference_pvz_assets_worktree_autotest_gotchas.md))；② 主人自己编译时 `ninja: no work to do` 是因 obj/exe mtime 已新于源(确属已编译),非未编译。
 
 [adding-survival-perk](../../.agents/skills/adding-survival-perk/SKILL.md) 同族生存系统;升级 Gloom-shroom 等可复用此数据化范式。
+
+**2026-07-18 种类上限与随机波动**：主人指出深轮候选持续增长、已实现僵尸又有限，最终会每轮固定同一整套阵容。保持第1~2轮确定性；第3轮起先按原公式算基础总种类，再夹到 **8种（含普通）**，随后随机取非零 `±1` 或 `±2`，最终夹到 `[2,min(8,候选+普通)]`。因此深轮正波动停在8，负波动落到6~7，不再固定全员出场。
+
+候选新增 `GetZombieWeight(t)>0` 过滤：`ZOMBIE_BACKUP_DANCER` 是舞王召唤单位且 weight=0，过去会占 Fisher-Yates 名额却永远无法被加权抽中，造成“池子计数有它、实际出怪没有它”的假多样性。普通仍必出，无放回抽样、旗数解锁递减、抽中权重调制、点数成本和预算均不动。
+
+AutoTest `dump_state.spawnTypeCount` + `smoke_survival_spawn_round.json` 固定 Seed42：round1/2 为1/2种，round3=4、round6=2、round13=8（上限）、round40=6（深轮负波动），每次 `spawnList[0]` 都是普通僵尸。构建与权限说明同 [project_pvz_perk_system](project_pvz_perk_system.md) 的 2026-07-18 段。

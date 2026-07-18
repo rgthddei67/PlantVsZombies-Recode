@@ -1,0 +1,26 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 1 },
+    { "op": "choose_cards", "cards": ["PLANT_PEASHOOTER"] },
+    { "op": "wait_state", "state": "GAME" },
+    { "op": "add_perk", "type": "PLANT_DAMAGE_UP", "count": 3 },
+    { "op": "add_perk", "type": "ZOMBIE_HEALTH_UP", "count": 1 },
+    { "op": "add_perk", "type": "ZOMBIE_DAMAGE_RESIST", "count": 15 },
+    { "op": "add_perk", "type": "ZOMBIE_INVULN_HITS", "count": 2 },
+    { "op": "add_perk", "type": "PLANT_DAMAGE_REDUCTION", "count": 15 },
+    { "op": "add_perk", "type": "PLANT_SUN_BONUS", "count": 2 },
+    { "op": "add_perk", "type": "PLANT_CARD_RECHARGE", "count": 2 },
+    { "op": "dump_state", "name": "perks_balance.json" },
+    { "op": "assert_state", "path": "perks.stacks.PLANT_DAMAGE_REDUCTION", "equals": 15 },
+    { "op": "assert_state", "path": "perks.stacks.PLANT_SUN_BONUS", "equals": 2 },
+    { "op": "assert_state", "path": "perks.stacks.PLANT_CARD_RECHARGE", "equals": 2 },
+    { "op": "assert_state", "path": "perks.plantDamageOn100", "equals": 136 },
+    { "op": "assert_state", "path": "perks.zombieHealthOn100", "equals": 112 },
+    { "op": "assert_state", "path": "perks.damageToZombieOn100", "equals": 55 },
+    { "op": "assert_state", "path": "perks.zombieInvulnHits", "equals": 8 },
+    { "op": "assert_state", "path": "perks.damageToPlantOn100", "equals": 55 },
+    { "op": "assert_state", "path": "perks.sunIncomeOn100", "equals": 130 },
+    { "op": "assert_state", "path": "perks.cardRechargeOn1000", "equals": 806 },
+    { "op": "quit" }
+  ]
+}
