@@ -39,7 +39,7 @@ description: Use when adding a new zombie (新增僵尸) to PvZ — 含防具僵
 - **编队齐舞/同步动作**：动画速度必须 `SetAnimationSpeed(固定值)` 锁死——基类 `Start()` 给每僵尸随机 1.1~1.4，不锁必散拍。全队同步时钟用现成的 `Board::mBoardFrame`+`GetDanceBeatFrame()`（0~22 拍，12 逻辑步/拍，入存档），按拍映射轨道、缓存上次段位防每帧重播。
 - **召唤僵尸**：`mBoard->CreateZombie(type, row, x)`（y 恒由 row 派生）；关联用 EntityManager 整型 ID（死亡自动失效）；**槽位有效性 = `GetZombie(id)` 非空 且 `IsMindControlled()` 与本体一致**——只判空则被魅惑的随从永远占位、补召失灵；行越界/永久不可用的槽要豁免，否则无限重触发召唤动作。
 - **魅惑交互**：`StartMindControlled` 非虚——子类反应放 `ZombieUpdate` 里的边沿检测（`mIsMindControlled && !mCharmHandled`）；魅惑领队后新召唤单位补调 `StartMindControlled()` 继承阵营；魅惑者互啃敌方是引擎既有行为，编队混战减员属正常。
-- **出土/升起**：垂直位移用 `mVisualOffset.y`（存基准值，按计时线性还原）；地面遮挡用现成 `SetClipRect(0,0,SCENE_WIDTH, groundY+margin)`，**底边取 `Board::GetZombieSpawnY(row)` 行地面线**（换地图自适应，主人指示），完成后 `ClearClipRect`；升起期不移动不啃食（覆写 StartEat 早退）；**升起期动画不要定格**——定格中被打死会卡冻结帧永远播不了 anim_death。
+- **出土/升起**：垂直位移用 `mVisualOffset.y`（存基准值，按计时线性还原）；地面遮挡用现成 `SetClipRect(0,0,SCENE_WIDTH, groundY+margin)`，**底边取 `Board::GetZombieSpawnY(row)` 行地面线**（换地图自适应，主人指示），完成后 `ClearClipRect`；升起期不移动不啃食（覆写 StartEat 早退）。默认让动画继续播放；若主人明确要求静态出土，**只能 `Animator::Pause()` 播放头，不得把 base/extra 速度层写成 0**——后续 `PlayTrack(anim_death)` 会自动恢复 playing，RISING 读档在 `RestoreAnimState` 后须重新 Pause，并必须专项实测升起中死亡不会卡帧。
 
 ## 存读档心智清单（AutoTest 短路存档=盲区，只能脑内过+主人真机验）
 

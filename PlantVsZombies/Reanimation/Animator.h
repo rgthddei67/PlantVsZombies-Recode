@@ -438,6 +438,7 @@ public:
 	 * 不影响碰撞箱/影子/_ground 轨道速度/帧事件（魅惑僵尸的移动方向由 ZombieMove 按 mIsMindControlled 处理）。
 	 */
 	void SetFlipX(bool flip, float pivotX = 0.0f);
+	bool GetFlipX() const { return mFlipX; }
 
 private:
 	// 子动画相对于父轨道的本地变换

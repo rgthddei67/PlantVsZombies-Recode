@@ -9,6 +9,7 @@ namespace {
 	constexpr float kDanceAnimSpeed = 1.2f;  // 全队统一动画速度：覆盖 Start() 的随机 1.1~1.4，否则齐舞散拍
 	constexpr float kArmraiseClip = 1.8f;    // 举手段 clip（原版 rate18；按截图手感可微调）
 	constexpr int   kGroundClipMargin = 38;   // 地面线裁剪底边 = 逻辑位置 y + 此余量（截图目验微调）
+	constexpr float kDancerFlipPivotX = 45.0f; // C# UpdateReanim 翻面时补 90px，等价于绕局部 x=45 翻转
 }
 
 void BackupDancerZombie::SetupZombie()
@@ -25,7 +26,7 @@ void BackupDancerZombie::SetupZombie()
 	mAnimator->AddFrameEvent(46, [this]() { this->EatTarget(); }, true);
 	mAnimator->AddFrameEvent(59, [this]() { this->EatTarget(); }, true);
 
-	// 出生沉入地下，升起期间照常随节拍跳舞（若定格动画，升起中被打死/断头会卡冻结帧无法播 anim_death）。
+	// 出生沉入地下；主人要求升起期间完全静止，出土完成后才加入全局舞拍。
 	mBaseOffsetY = mVisualOffset.y;
 	mVisualOffset.y = mBaseOffsetY + kRiseDepth;
 	mPhase = BackupPhase::RISING;
@@ -36,7 +37,11 @@ void BackupDancerZombie::SetupZombie()
 		static_cast<int>(groundY) + kGroundClipMargin);
 	// 人还在土里，地面不该有影子；出土完成后恢复（影子组件在 Zombie::Start 中先于本函数挂上）
 	if (auto shadow = GetComponent<ShadowComponent>()) shadow->SetVisible(false);
-	UpdateDanceTrack(0.0f);
+	// 只暂停 Animator 播放头，不把基础/extra 速度写成 0：若升起时死亡，PlayTrack(anim_death)
+	// 会自动把 Animator 重新置为 playing，死亡帧事件仍可正常越过。
+	PlayTrack("anim_armraise", kArmraiseClip);
+	mAnimator->Pause();
+	UpdateDanceFacing();
 }
 
 void BackupDancerZombie::ZombieUpdate(float scaledTime)
@@ -58,10 +63,13 @@ void BackupDancerZombie::ZombieUpdate(float scaledTime)
 		}
 		else {
 			mVisualOffset.y = mBaseOffsetY + kRiseDepth * (1.0f - t);
+			UpdateDanceFacing();
+			return;
 		}
 	}
 
 	UpdateDanceTrack(0.3f);
+	UpdateDanceFacing();
 }
 
 void BackupDancerZombie::UpdateDanceTrack(float blendTime)
@@ -90,6 +98,31 @@ void BackupDancerZombie::PlayWalkAnimation(float blendTime)
 		PlayTrack("anim_armraise", kArmraiseClip, blendTime);
 	else
 		PlayTrack("anim_walk", 0.0f, blendTime);
+}
+
+void BackupDancerZombie::OnStartEating()
+{
+	UpdateDanceFacing();
+}
+
+void BackupDancerZombie::OnStopEating()
+{
+	UpdateDanceFacing();
+}
+
+void BackupDancerZombie::UpdateDanceFacing()
+{
+	if (!mAnimator || mIsPreview) return;
+
+	// C# GetDancerPhase：13~15、19~21 是两段朝右举手；其余拍朝左。
+	// 升起阶段按主人要求保持静态，不跟随节拍翻面。
+	bool flip = false;
+	if (!mIsEating && mPhase == BackupPhase::DANCING && mBoard) {
+		const int beat = mBoard->GetDanceBeatFrame();
+		flip = (beat >= 13 && beat <= 15) || (beat >= 19 && beat <= 21);
+	}
+	if (mIsMindControlled) flip = !flip;
+	mAnimator->SetFlipX(flip, kDancerFlipPivotX);
 }
 
 void BackupDancerZombie::StartEat(ColliderComponent* other)
@@ -155,6 +188,11 @@ void BackupDancerZombie::LoadExtraData(const nlohmann::json& j)
 		ClearClipRect();
 		if (auto shadow = GetComponent<ShadowComponent>()) shadow->SetVisible(true);
 	}
+	else {
+		// RestoreAnimState 会恢复播放状态；RISING 存档必须重新暂停，维持出土静态姿势。
+		mAnimator->Pause();
+	}
+	UpdateDanceFacing();
 	if (mIsEating) return;
 	mLastBeatBucket = -1;	// 下帧按当前节拍重刷轨道（覆盖 RestoreAnimState 的帧位=重新入拍，预期行为）
 }

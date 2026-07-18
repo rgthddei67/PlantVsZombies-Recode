@@ -1,0 +1,17 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 1 },
+    { "op": "choose_cards", "cards": ["PLANT_PEASHOOTER"] },
+    { "op": "wait_state", "state": "GAME" },
+    { "op": "spawn_zombie", "type": "ZOMBIE_BACKUP_DANCER", "row": 2, "x": 750 },
+    { "op": "wait_frames", "value": 10 },
+    { "op": "assert_state", "path": "zombies.0.animPlaying", "equals": false },
+    { "op": "damage_zombie", "row": 2, "index": 0, "damage": 1000 },
+    { "op": "wait_frames", "value": 2 },
+    { "op": "assert_state", "path": "zombies.0.track", "equals": "anim_death" },
+    { "op": "assert_state", "path": "zombies.0.animPlaying", "equals": true },
+    { "op": "wait_seconds", "value": 5 },
+    { "op": "assert_state", "path": "zombieNumber", "equals": 0 },
+    { "op": "quit" }
+  ]
+}

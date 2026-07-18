@@ -13,14 +13,16 @@ metadata:
 
 2026-07-11打磨(4b114ed)：①伴舞出土隐影=ShadowComponent新增SetVisible(Draw首行early-return)，SetupZombie藏/升完+读档DANCING恢复(影子组件在Zombie::Start先于SetupZombie挂上,可直接GetComponent)；②舞王举手改`PlayTrackOnce(track,"")`=原版PlayOnceAndHold(播完mFrameIndexNow=end+mIsPlaying=false定格末帧,后续任意PlayTrack自动复活,不踩定格卡死)；③**召唤触发弃36帧帧事件改SNAPPING轮询`!mAnimator->IsPlaying()`**(同C#查mLoopCount)——末帧定格clamp时帧事件不保证触发；啃食中ZombieUpdate整个不跑(Zombie.cpp mIsEating早退)故轮询无误触发。
 
+2026-07-18 舞步朝向与出土静态补全：对照 C# `UpdateReanim`，舞王入场月球步及节拍 13~15/19~21 的右举手段翻面，伴舞在相同右举手拍翻面；魅惑时整套朝向取反，啃食时回阵营默认朝向。C# `UpdateZombieWalking` 还会让未魅惑的 `DancerDancingIn` 实际向右，但主人可见 AutoTest 后明确本项目只要**视觉反向**，逻辑 X 仍向房子推进（30 帧 600→575.33）。伴舞 RISING 期间不再随拍跳舞：`PlayTrack(anim_armraise)` 后只 `Animator::Pause()`，完全出土再 `PlayTrack` 入拍；死亡轨 `PlayTrack(anim_death)` 会自动恢复 playing，避免速度层置 0 导致卡死，RISING 读档须重新 Pause。AutoTest 新增 `flipX/animPlaying` 状态抓手与通用 `damage_zombie` 正式受伤链；可见窗口跑 `smoke_dancer_summon/backupdancer/charm/death/backupdancer_rising_death` 全绿（专项确认 Pause→anim_death 自动唤醒→5 秒内 zombieNumber=0、无 WATCHDOG），clang-release 全量构建 0 warning。
+
 **Foot-guns（写skill时要收录）：**
 - **帧事件"末-1帧"不触发**：伴舞anim_death 65~101，主人先给100(=末-1)实测播不到→僵尸血0卡anim_death不消失(靠10s看门狗)；主人改99才触发。但Jackson死亡146(=末-1)却正常触发——**逐reanim实测，不能推公式**。
 - **齐舞散拍源**：基类`Start()`给每僵尸随机动画速度1.1~1.4，舞队必须`SetAnimationSpeed`锁同值(现1.2)。
 - **魅惑脱队不清领队侧槽位**：伴舞被魅惑只清自己mLeaderID，领队mFollowerID仍指活僵尸→判空补位失灵；修=槽位有效性判"活着且IsMindControlled与领队一致"。
 - **出土遮挡现成方案**：`GameObject::SetClipRect`逐对象裁剪(图鉴僵尸窗同款)，底边用`Board::GetZombieSpawnY(row)`(主人指示,已挪public)而非自身坐标——换地图自适应；DANCING态读档要撤销下沉+裁剪。
-- **升起期动画不定格**：定格骨架则升起中被打死卡冻结帧无法播anim_death（偏离原版，主人验收观感）。
+- **升起期静态只能 Pause 播放头**：不要把基础/extra 速度写成 0；`Animator::Pause()` 可被后续 `PlayTrack(anim_death)` 自动唤醒，RISING 读档在 RestoreAnimState 后必须重新 Pause。
 - **`git add build/资源`被.gitignore静默挡**：gamedata.json/粒子XML须`git add -f`，首次commit后警惕"提交成功但文件没进去"。
 - **枚举进哨兵前的空工厂窗口**：weight两段式(先0,注册工厂后升1200)。
 - **暂停≠逻辑停**：本引擎暂停时逻辑步照跑只把dt置0(UI要消费点击)，任何不乘dt的状态源(帧计数++、轮询条件)暂停时照样演化——mBoardFrame无条件++曾致暂停中舞队随节拍翻转瞬间切轨(536c424修)。新加"每N帧做X"类逻辑必须挂dt。
 
-主人待验收点：出土穿模观感(kGroundClipMargin=8)、齐舞节奏、断手视觉(藏小臂+手保大臂无粒子)、真机存读档(AutoTest短路测不到)。调参表在 docs/superpowers/plans/2026-07-10-dancer-zombie.md 末尾。原版C#对照=disco版(断手有_bone残肢轨道,MJ版没有)；spec/plan在 docs/superpowers/{specs,plans}/2026-07-10-*。关联 [project_pvz_charmed_zombie_feature](project_pvz_charmed_zombie_feature.md) [project_pvz_zombie_eat_walk_state_machine](project_pvz_zombie_eat_walk_state_machine.md)
+主人待验收点：齐舞节奏、断手视觉(藏小臂+手保大臂无粒子)、真机存读档(AutoTest短路测不到)。出土裁剪当前 `kGroundClipMargin=38`，2026-07-18 可见 AutoTest 已确认中段静态姿势。调参表在 docs/superpowers/plans/2026-07-10-dancer-zombie.md 末尾。原版C#对照=disco版(断手有_bone残肢轨道,MJ版没有)；spec/plan在 docs/superpowers/{specs,plans}/2026-07-10-*。关联 [project_pvz_charmed_zombie_feature](project_pvz_charmed_zombie_feature.md) [project_pvz_zombie_eat_walk_state_machine](project_pvz_zombie_eat_walk_state_machine.md)

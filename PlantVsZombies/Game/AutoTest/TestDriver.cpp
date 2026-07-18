@@ -325,6 +325,29 @@ bool TestDriver::ExecuteCurrent() {
 		if (!z) { Fail("CreateZombie 返回空"); return false; }
 		return true;
 	}
+	if (op == "damage_zombie") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) { Fail("damage_zombie: 不在 GameScene 或 Board 为空"); return false; }
+		Board* board = gs->GetBoard();
+		const int row = cmd.value("row", -1);     // -1 = 不过滤行
+		const int index = cmd.value("index", 0);  // 行过滤后按 ID 升序第 index 只
+		const int damage = cmd.value("damage", 0);
+		if (damage <= 0) { Fail("damage_zombie: damage 必须大于 0"); return false; }
+		int seen = 0;
+		for (int id : board->mEntityManager.GetAllZombieIDs()) {
+			Zombie* z = board->mEntityManager.GetZombie(id);
+			if (!z) continue;
+			if (row >= 0 && z->mRow != row) continue;
+			if (seen++ == index) {
+				// 走正式受伤链（护盾/头盔/断肢断头/免伤），用于验证死亡动画而非直接 Die。
+				z->TakeDamage(damage, cmd.value("penetrateShield", false));
+				return true;
+			}
+		}
+		Fail("damage_zombie: 未找到目标僵尸 (row=" + std::to_string(row)
+			+ ", index=" + std::to_string(index) + ")");
+		return false;
+	}
 	if (op == "add_perk") {
 		GameScene* gs = CurrentGameScene();
 		if (!gs || !gs->GetBoard()) { Fail("add_perk: 不在 GameScene 或 Board 为空"); return false; }
@@ -615,6 +638,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "frozen", z->IsFrozen() },
 			{ "frozenTimer", z->GetFrozenTimer() },
 			{ "track", z->GetCurrentTrackName() },
+			{ "flipX", anim && anim->GetFlipX() },
+			{ "animPlaying", anim && anim->IsPlaying() },
 			{ "freeHitsRemaining", z->mFreeHitsRemaining },
 			// 铁门僵尸常规手臂（藏门后/啃食露出）当前可见性——手臂显隐类 bug 的断言抓手；
 			// 无此轨道的僵尸 GetTrackVisible 安全返回 false。

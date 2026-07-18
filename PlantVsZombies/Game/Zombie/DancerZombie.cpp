@@ -14,6 +14,7 @@ namespace {
 	constexpr float kDanceAnimSpeed = 1.2f;		// 与伴舞 kDanceAnimSpeed 保持一致
 	constexpr float kSummonFrontMinX = 130.0f;	// 舞王 x<130 时不放前方位（原版防出左屏）
 	constexpr float kSummonSideDist = 100.0f;	// 同行前/后伴舞与舞王的 x 距离
+	constexpr float kDancerFlipPivotX = 45.0f;	// C# UpdateReanim 翻面时补 90px，等价于绕局部 x=45 翻转
 }
 
 void DancerZombie::SetupZombie()
@@ -32,6 +33,7 @@ void DancerZombie::SetupZombie()
 	mPhase = DancerPhase::DANCING_IN;
 	mPhaseTimer = kDancingInDuration + GameRandom::Range(0, 12) * 0.01f;
 	PlayTrack("anim_moonwalk", kMoonwalkClip);
+	UpdateDanceFacing();
 }
 
 void DancerZombie::ZombieUpdate(float scaledTime)
@@ -79,6 +81,7 @@ void DancerZombie::ZombieUpdate(float scaledTime)
 		}
 		break;
 	}
+	UpdateDanceFacing();
 }
 
 void DancerZombie::UpdateDanceTrack(float blendTime)
@@ -95,8 +98,10 @@ void DancerZombie::UpdateDanceTrack(float blendTime)
 
 void DancerZombie::ZombieMove(float scaledDelta, TransformComponent* transform)
 {
-	// 打响指/定身跳舞阶段不移动；入场(moonwalk)与齐舞阶段按轨道 _ground 速度正常推进
+	// 打响指/定身跳舞阶段不移动；其余阶段始终沿阵营方向推进。
 	if (mPhase == DancerPhase::SNAPPING || mPhase == DancerPhase::HOLD) return;
+	// C# 的 DancerDancingIn 会让未魅惑舞王实际向右；主人现场确认这里只要视觉月球步反向，
+	// 逻辑位置仍应朝房子推进。因此保留 UpdateDanceFacing 的入场翻面，不复制 C# 的 X 反向。
 	Zombie::ZombieMove(scaledDelta, transform);
 }
 
@@ -117,6 +122,37 @@ void DancerZombie::PlayWalkAnimation(float blendTime)
 		else
 			PlayTrack("anim_walk", 0.0f, blendTime);
 	}
+}
+
+void DancerZombie::OnStartEating()
+{
+	UpdateDanceFacing();
+}
+
+void DancerZombie::OnStopEating()
+{
+	UpdateDanceFacing();
+}
+
+void DancerZombie::UpdateDanceFacing()
+{
+	if (!mAnimator || mIsPreview) return;
+
+	// C# GetDancerPhase：13~15、19~21 是两段朝右举手；入场月球步也朝右。
+	// 啃食时不使用舞步翻面，而是回到所属阵营的默认朝向。
+	bool flip = false;
+	if (!mIsEating) {
+		if (mPhase == DancerPhase::DANCING_IN) {
+			flip = true;
+		}
+		else if (mPhase == DancerPhase::DANCING && mBoard) {
+			const int beat = mBoard->GetDanceBeatFrame();
+			flip = (beat >= 13 && beat <= 15) || (beat >= 19 && beat <= 21);
+		}
+	}
+	// 原版舞王/伴舞在魅惑后把整套舞步朝向取反，而非始终固定朝右。
+	if (mIsMindControlled) flip = !flip;
+	mAnimator->SetFlipX(flip, kDancerFlipPivotX);
 }
 
 void DancerZombie::StartEat(ColliderComponent* other)
@@ -245,6 +281,7 @@ void DancerZombie::LoadExtraData(const nlohmann::json& j)
 		}
 	}
 	// 读档僵尸 ID 经 CreateZombieWithID 保值，followers 交叉引用安全（死者 GetZombie 返回 null 即空位）
+	UpdateDanceFacing();
 	if (mIsEating) return;
 	if (mPhase == DancerPhase::DANCING_IN || mPhase == DancerPhase::SNAPPING) return;
 	// HOLD/DANCING：下帧按节拍重刷轨道（RestoreAnimState 的帧位被重新入拍覆盖，预期行为）

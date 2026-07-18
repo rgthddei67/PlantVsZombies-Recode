@@ -20,7 +20,7 @@ public:
 	void ZombieUpdate(float scaledTime) override;
 	void StartEat(ColliderComponent* other) override;
 
-	// 出土升起中免疫寒冰（原版 CanBeChilled 排除 DancerRising）：升起靠计时+动画推进，停格会卡土里
+	// 出土升起中免疫寒冰（原版 CanBeChilled 排除 DancerRising）：冻结会阻断升起计时，令伴舞卡在土里
 	bool CanBeChilled() const override {
 		return mPhase != BackupPhase::RISING && Zombie::CanBeChilled();
 	}
@@ -36,8 +36,12 @@ protected:
 	void ZombieMove(float scaledDelta, TransformComponent* transform) override;
 	// Zombie_dancer.reanim 无 anim_walk2：稳态“走路”=按全局节拍选 anim_walk/anim_armraise
 	void PlayWalkAnimation(float blendTime) override;
+	void OnStartEating() override;
+	void OnStopEating() override;
 
 	void UpdateDanceTrack(float blendTime);
+	// 按 C# 的舞步阶段与阵营重算模型朝向；升起结束后才随全局节拍翻面。
+	void UpdateDanceFacing();
 
 	BackupPhase mPhase = BackupPhase::RISING;
 	float mRiseTimer = 0.0f;		// 已升起时长，达 kRiseDuration 落地
