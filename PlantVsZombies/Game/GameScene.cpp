@@ -755,8 +755,12 @@ void GameScene::BeginSurvivalPerkSelect()
 	if (!mBoard) return;
 
 	// 重新进入流程前先收掉可能残留的测试/旧 UI，确保一轮只有一个活动选择框。
-	if (auto box = mPerkSelectBox.lock()) box->Close();
+	if (auto box = mPerkSelectBox.lock()) {
+		box->SetActive(false);
+		box->Close();
+	}
 	mPerkSelectBox.reset();
+	mSurvivalPerkStepsCompleted = 0;
 	mSurvivalPerkPicksCompleted = 0;
 	mSurvivalPerkSelectActive = true;
 	DeltaTime::SetPaused(true);
@@ -791,7 +795,7 @@ void GameScene::RenderSurvivalPerkSelectStep()
 	const float rowBlockH  = lineH * 2.0f;     // 每个配对两行（植物/僵尸）
 	const float rowGap     = 20.0f;            // 配对之间的间隔
 	const float gapTextBtn = 20.0f;            // 文字与「选择」按钮的间隔
-	const float skipGap    = 20.0f;            // 配对区与「跳过」按钮的间隔
+	const float skipGap    = 20.0f;            // 配对区与「放弃本次」按钮的间隔
 	const Vector selectBtnSize(100.0f, 40.0f);
 	const Vector skipBtnSize(160.0f, 44.0f);
 	const glm::vec4 green{ 53, 191, 61, 255 };
@@ -799,7 +803,7 @@ void GameScene::RenderSurvivalPerkSelectStep()
 	const glm::vec4 titleColor{ 245, 214, 127, 255 };
 
 	const std::string title = std::string(u8"第 ") + std::to_string(mBoard->mSurvivalRound - 1)
-		+ u8" 轮 · 选择强化（第 " + std::to_string(mSurvivalPerkPicksCompleted + 1)
+		+ u8" 轮 · 选择强化（第 " + std::to_string(mSurvivalPerkStepsCompleted + 1)
 		+ u8"/" + std::to_string(SURVIVAL_PERK_PICKS_PER_ROUND) + u8" 次）";
 
 	// 预生成每个配对的两行文字并量宽，求内容最大宽度（descZh 已自带词条名，不再叠加 nameZh）
@@ -856,8 +860,8 @@ void GameScene::RenderSurvivalPerkSelectStep()
 			[this, i]() { this->ApplyPerkSelection(i); }, ResourceKeys::Textures::IMAGE_BUTTONSMALL, false);
 	}
 
-	// 结束按钮（底部居中）：可以在第 1/2 次主动放弃本轮剩余选择。
-	builder.Button(u8"结束选择", Vector(cx - skipBtnSize.x / 2.0f, boxTop + boxH - padY - skipBtnSize.y),
+	// 放弃按钮（底部居中）：只消耗当前机会；第 1 次放弃后仍会进入第 2 次。
+	builder.Button(u8"放弃本次", Vector(cx - skipBtnSize.x / 2.0f, boxTop + boxH - padY - skipBtnSize.y),
 		skipBtnSize, 20, [this]() { this->ApplyPerkSelection(-1); },
 		ResourceKeys::Textures::IMAGE_BUTTONBIG, false);
 
@@ -874,12 +878,17 @@ void GameScene::ApplyPerkSelection(int index)
 		pm.AddPerk(pr.zombie);
 		++mSurvivalPerkPicksCompleted;
 	}
+	// 选择与放弃都会消耗当前机会；步骤进度不能再由实际获得的词条数推导。
+	++mSurvivalPerkStepsCompleted;
 
-	// 关闭权统一放在这里：真实按钮与 AutoTest 直接调用都先关旧框，再决定刷新或结束。
-	if (auto box = mPerkSelectBox.lock()) box->Close();
+	// 先失活可避免延迟销毁期间与下一步新框重叠一帧；真实按钮与 AutoTest 共用此生命周期。
+	if (auto box = mPerkSelectBox.lock()) {
+		box->SetActive(false);
+		box->Close();
+	}
 	mPerkSelectBox.reset();
 
-	if (picked && mSurvivalPerkPicksCompleted < SURVIVAL_PERK_PICKS_PER_ROUND) {
+	if (mSurvivalPerkStepsCompleted < SURVIVAL_PERK_PICKS_PER_ROUND) {
 		RenderSurvivalPerkSelectStep();
 		return;
 	}
@@ -888,7 +897,7 @@ void GameScene::ApplyPerkSelection(int index)
 	mCurrentPerkOffer.clear();
 	DeltaTime::SetPaused(false);
 
-	// 最多两对词条已写入 manager；进选卡子流程，其内既有的延后存档一次保存最终层数。
+	// 两次机会均已结算，最多两对词条已写入 manager；选卡子流程会延后保存最终层数。
 	BeginSurvivalCardSelect();
 }
 

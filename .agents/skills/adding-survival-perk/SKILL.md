@@ -76,15 +76,16 @@ description: Use when adding or tuning any 生存模式词条 (survival perk) in
 当前流程定义在 `GameScene`：
 
 - `SURVIVAL_PERK_PICKS_PER_ROUND = 2`。
-- `BeginSurvivalPerkSelect()` 把已完成次数归零、暂停游戏，并调用 `RenderSurvivalPerkSelectStep()`。
-- 每一步重新 roll 3 个候选，标题显示“第 X/2 次”。首次合法选择后立即关闭旧框、重新 roll 并显示第二步。
-- 第二次合法选择后进入 `BeginSurvivalCardSelect()`。
-- 任一步点击“结束选择”都会调用 `ApplyPerkSelection(-1)`，放弃本轮剩余次数；因此一轮实际可选 0、1 或 2 对。
+- `BeginSurvivalPerkSelect()` 把已消耗机会数和实际选择数都归零、暂停游戏，并调用 `RenderSurvivalPerkSelectStep()`。
+- `mSurvivalPerkStepsCompleted` 表示已经结算的机会数；选择或放弃都会 +1。`mSurvivalPerkPicksCompleted` 只表示实际获得的配对数；只有合法选择才 +1。不要再用 picks 推导当前第几次。
+- 每一步重新 roll 3 个候选，标题显示“第 X/2 次”。第 1 次无论选择或放弃，都会关闭旧框、重新 roll 并显示第 2 次。
+- 第 2 次结算后进入 `BeginSurvivalCardSelect()`。
+- 点击“放弃本次”会调用 `ApplyPerkSelection(-1)`，只消耗当前机会；两次都放弃时本轮获得 0 对，先放弃后选择时获得 1 对。
 - 选择进度是轮间临时 UI 状态，不新增存档字段。最终词条层数由既有 manager 存档随之后的选卡流程一次保存。
 
 ### 消息框生命周期
 
-词条候选按钮和“结束选择”按钮的 `autoClose` 必须为 `false`；**关闭权统一由 `ApplyPerkSelection` 持有**。它先关闭 `mPerkSelectBox`，再刷新下一步或结束流程。这样真实点击与 AutoTest 直接调用 `ApplyPerkSelection` 走同一生命周期，不会出现旧框残留或双重关闭。
+词条候选按钮和“放弃本次”按钮的 `autoClose` 必须为 `false`；**关闭权统一由 `ApplyPerkSelection` 持有**。它先结算当前机会，把旧 `mPerkSelectBox` 设为 inactive 后再 `Close()`，然后刷新下一步或结束流程。立即失活用于消除延迟销毁期间的一帧双框残影；真实点击与 AutoTest 直接调用走同一生命周期。
 
 若修改选择次数、候选数或按钮语义，必须同步 `GameScene` 常量/计数/标题、`TestDriver.cpp` 的 `perkSelect` dump、两个选择脚本、本技能和项目记忆。
 
@@ -101,15 +102,16 @@ description: Use when adding or tuning any 生存模式词条 (survival perk) in
 
 - `add_perk {"type":"...","count":N}`：UI 前唯一词条注入入口。
 - `survival_perk_open`：打开轮间选择。
-- `survival_perk_pick {"index":0}`：选择候选；`index:-1` 结束剩余选择。
+- `survival_perk_pick {"index":0}`：选择候选；`index:-1` 只放弃当前一次机会。
 - `dump_state.perks`：词条层数与聚合数值。
-- `dump_state.perkSelect`：`active`、`offerCount`、`currentPick`、`completedPicks`、`maxPicks`、`offers`。
+- `dump_state.perkSelect`：`active`、`offerCount`、`currentPick`、`completedSteps`、`completedPicks`、`maxPicks`、`offers`。steps 是已结算机会数，picks 是实际获得数。
 
 选择 UI 至少覆盖：
 
-1. `smoke_perk_select.json`：第 1 次选择后仍 active、候选刷新、`currentPick=2`；第 2 次后 inactive，`completedPicks=2`。
-2. `smoke_perk_select_end_early.json`：选择 1 次后 `index=-1`，最终 inactive 且 `completedPicks=1`。
-3. `smoke_perk_view.json`：查看面板仍能显示和分页。
+1. `smoke_perk_select.json`：两次都选，最终 `completedSteps=2`、`completedPicks=2`。
+2. `smoke_perk_select_skip_all.json`：第 1 次放弃后仍 active 且进入第 2 次；再次放弃后 steps=2、picks=0。
+3. `smoke_perk_select_skip_then_pick.json`：第 1 次放弃、第 2 次选择，最终 steps=2、picks=1。
+4. `smoke_perk_view.json`：查看面板仍能显示和分页。
 
 数值改动至少跑对应专项脚本、`smoke_perks_balance.json` 和 `smoke_perks.json`。UI 改动要检查截图，不能只看退出码；同时检查对应 `run.log` 含 `script finished OK`。
 

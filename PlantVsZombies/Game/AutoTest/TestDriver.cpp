@@ -345,7 +345,7 @@ bool TestDriver::ExecuteCurrent() {
 		GameScene* gs = CurrentGameScene();
 		if (!gs || !gs->GetBoard()) { Fail("survival_perk_pick: 不在 GameScene 或 Board 为空"); return false; }
 		if (!gs->IsPerkSelectActive()) { Fail("survival_perk_pick: 当前无词条选择"); return false; }
-		int index = cmd.value("index", -1);   // -1 = 结束本轮剩余选择
+		int index = cmd.value("index", -1);   // -1 = 放弃当前一次机会
 		gs->ApplyPerkSelection(index);
 		return true;
 	}
@@ -679,6 +679,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		psel["active"] = gs->IsPerkSelectActive();
 		psel["offerCount"] = static_cast<int>(gs->GetCurrentPerkOffer().size());
 		psel["currentPick"] = gs->GetPerkCurrentPick();
+		psel["completedSteps"] = gs->GetPerkStepsCompleted();
 		psel["completedPicks"] = gs->GetPerkPicksCompleted();
 		psel["maxPicks"] = GameScene::SURVIVAL_PERK_PICKS_PER_ROUND;
 		nlohmann::json offers = nlohmann::json::array();

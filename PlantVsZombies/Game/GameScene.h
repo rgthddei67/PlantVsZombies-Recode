@@ -78,13 +78,14 @@ public:
 
 	static constexpr int SURVIVAL_PERK_PICKS_PER_ROUND = 2;
 	void BeginSurvivalPerkSelect();          // 轮清后开始最多两次成对词条选择（选卡之前）
-	void ApplyPerkSelection(int index);      // 合法 index 应用一对；负数/越界立即结束剩余选择
+	void ApplyPerkSelection(int index);      // 合法 index 应用一对；负数/越界只放弃当前一次机会
 	void OpenPerkView();                      // 生存模式：弹出已选词条查看面板（固定面板+字号自动缩放，打开即暂停）
 	void ClosePerkView();                     // 关闭词条查看面板并恢复
 	void RenderPerkViewPage();                // 按 mPerkViewPage 重建词条查看面板（分页；OpenPerkView 主体）
 	// AutoTest 内省接口（对真实游戏无副作用）
 	bool IsPerkSelectActive() const { return mSurvivalPerkSelectActive; }
-	int GetPerkCurrentPick() const { return mSurvivalPerkSelectActive ? mSurvivalPerkPicksCompleted + 1 : 0; }
+	int GetPerkCurrentPick() const { return mSurvivalPerkSelectActive ? mSurvivalPerkStepsCompleted + 1 : 0; }
+	int GetPerkStepsCompleted() const { return mSurvivalPerkStepsCompleted; }
 	int GetPerkPicksCompleted() const { return mSurvivalPerkPicksCompleted; }
 	const std::vector<PerkPairing>& GetCurrentPerkOffer() const { return mCurrentPerkOffer; }
 
@@ -116,7 +117,7 @@ protected:
 	void BuildDrawCommands() override;
 
 private:
-	// 按当前 mSurvivalPerkPicksCompleted 重新 roll 并构建第 N/2 次选择框。
+	// 按当前 mSurvivalPerkStepsCompleted 重新 roll 并构建第 N/2 次选择框。
 	void RenderSurvivalPerkSelectStep();
 
 	std::unique_ptr<Board> mBoard = nullptr;
@@ -127,6 +128,7 @@ private:
 	std::weak_ptr<GameMessageBox> mPerkSelectBox;
 	std::vector<PerkPairing>      mCurrentPerkOffer;        // 本轮展示的配对（AutoTest dump 用）
 	bool                          mSurvivalPerkSelectActive = false;
+	int                           mSurvivalPerkStepsCompleted = 0; // 本轮已消耗的选择机会数（选择或放弃均 +1）
 	int                           mSurvivalPerkPicksCompleted = 0; // 本轮已成功选择的正负配对数（0~2）
 	std::weak_ptr<Button>         mPerkViewButton;          // 生存模式右上角「词条」按钮（仅生存关创建）
 	std::weak_ptr<GameMessageBox> mPerkViewBox;             // 词条查看面板

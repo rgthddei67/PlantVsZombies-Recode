@@ -1,6 +1,6 @@
 ---
 name: project_pvz_perk_system
-description: 生存模式统一 SurvivalPerkManager；2026-07-18 共10词条(6植物增益+4僵尸诅咒)，每轮最多选择2次随机正负配对；查看面板、字符串key存档和AutoTest均已接入
+description: 生存模式统一 SurvivalPerkManager；2026-07-18 共10词条(6植物增益+4僵尸诅咒)，每轮有2次独立随机正负配对机会且每次可选择或放弃；查看面板、字符串key存档和AutoTest均已接入
 metadata:
   node_type: memory
   type: project
@@ -56,10 +56,11 @@ metadata:
 - AutoTest：新 `smoke_perks_balance.json` 闭合断言 136/112/55/8/55/130/806；更新 `smoke_perks.json` 与 invuln 实体断言。旧词条、regen、attack speed、zombie damage、perk select/view 全回归通过；选择 UI 截图确认新描述未溢出。
 - 验证环境 gotcha：VS 18 自带 CMake 未在 shell PATH，需用 `$vs/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/bin/cmake.exe`；标准 configure 因 sandbox 不允许写 `D:\PVZ\vcpkg-master\buildtrees` 未完成。本次改用已配置 Ninja 图重编全部95个 C++ 翻译单元（0 warning）并用同图对象/库经 lld-link 完整链接，随后跑上述 AutoTest。
 
-**2026-07-18 每轮最多两次成对选择**：主人考虑到十个词条和长期生存层数，将轮间上限从 1 对改为最多 2 对；每次仍同时获得 1 个植物增益和 1 个僵尸诅咒。spec/plan：`docs/superpowers/{specs,plans}/2026-07-18-survival-perk-double-pick*`。
+**2026-07-18 每轮两次独立成对选择机会**：主人考虑到十个词条和长期生存层数，将轮间上限从 1 对改为 2 次独立机会；每次可选择 1 个植物增益+1 个僵尸诅咒，或只放弃当前一次。基础 spec/plan：`docs/superpowers/{specs,plans}/2026-07-18-survival-perk-double-pick*`；放弃语义修订：`docs/superpowers/{specs,plans}/2026-07-18-survival-perk-skip-one*`。
 
-- `GameScene::SURVIVAL_PERK_PICKS_PER_ROUND = 2`；`BeginSurvivalPerkSelect` 把 `mSurvivalPerkPicksCompleted` 归零，`RenderSurvivalPerkSelectStep` 每一步重新 roll 3 个配对，标题显示第 X/2 次。第一次合法选择后立即刷新第二组；第二次后进入选卡。
-- “跳过”改为“结束选择”。任一步 `ApplyPerkSelection(-1)` 都放弃剩余次数，所以一轮可实际选择 0/1/2 对。选择进度仅是轮间 UI 状态，不新增存档字段；结束后沿既有选卡延后存档保存最终词条层数。
-- 消息框关闭权从按钮自动关闭改为 `ApplyPerkSelection` 统一持有：候选和结束按钮均 `autoClose=false`，方法先关闭当前 `mPerkSelectBox`，再刷新或结束。这样真实点击和 AutoTest 直接调方法走同一生命周期，避免旧框残留或双关。
-- `dump_state.perkSelect` 新增 `offerCount/currentPick/completedPicks/maxPicks`。`smoke_perk_select.json` 覆盖选满两次，新增 `smoke_perk_select_end_early.json` 覆盖选一次后结束；两条均通过，首/次选择截图确认布局。`smoke_perk_view.json`、`smoke_perks_balance.json`、`smoke_perks.json` 回归通过。
-- `.agents/skills/adding-survival-perk/SKILL.md` 已按当前十词条、五类攻速植物、两次选择生命周期、现行存档和 AutoTest dump 重写，删去“6词条/每轮1次/固定旧流程”等过时指导。
+- `GameScene::SURVIVAL_PERK_PICKS_PER_ROUND = 2`；`BeginSurvivalPerkSelect` 同时把 `mSurvivalPerkStepsCompleted`（已结算机会）和 `mSurvivalPerkPicksCompleted`（实际获得配对）归零。标题和流程结束条件只由 steps 驱动，选择或放弃都会消耗一次机会；只有合法选择才增加 picks。
+- 底部按钮定稿为“放弃本次”。第一次 `ApplyPerkSelection(-1)` 会重新 roll 并进入第 2/2 次；第二次再放弃才结束，所以最终可获得 0/1/2 对。两个计数都是轮间临时 UI 状态，不新增存档字段；两次结算后沿既有选卡延后存档保存最终词条层数。
+- 消息框关闭权由 `ApplyPerkSelection` 统一持有：候选和放弃按钮均 `autoClose=false`，方法先结算机会，把旧框设为 inactive 后再延迟 `Close()`，再刷新或结束。立即失活消除了第二步出现时的一帧双框残影；真实点击和 AutoTest 直接调方法走同一生命周期。
+- `dump_state.perkSelect` 包含 `offerCount/currentPick/completedSteps/completedPicks/maxPicks`。`smoke_perk_select.json` 覆盖两次都选；`smoke_perk_select_skip_all.json` 覆盖两次都放弃；`smoke_perk_select_skip_then_pick.json` 覆盖先放弃后选择。首/次选择均保留截图和日志验证。
+- 标准 `cmake --preset clang-release` + `cmake --build --preset clang-release` 获权通过；上述三条选择测试及 `smoke_perk_view/smoke_perks_balance/smoke_perks` 均以主人桌面可见窗口运行并 `script finished OK`。截图复核发现并修掉旧框延迟销毁造成的一帧双框残影。
+- `.agents/skills/adding-survival-perk/SKILL.md` 已按当前十词条、五类攻速植物、两次独立机会、选择/放弃双计数、现行存档和 AutoTest dump 更新。
