@@ -1,54 +1,129 @@
 ---
 name: adding-survival-perk
-description: Use when adding a new 生存模式词条 (survival perk) to PvZ — covers the 3 perk archetypes, their chokepoints, save contract, and AutoTest verification pattern proven across 6 perks.
+description: Use when adding or tuning any 生存模式词条 (survival perk) in PvZ — covers the current catalog, paired-selection flow, effect chokepoints, save contract, UI lifecycle, and AutoTest verification.
 ---
 
-# 给生存模式加词条 (Survival Perk)
+# 给生存模式添加或调整词条
 
-统一管理器 `SurvivalPerkManager`（`Game/Perk/`，`Board` 值成员）。核心 = **中性默认即自动失效**：0 层时 getter 返回单位元，钟点对非生存关/未获取词条自动 no-op，**永远不要**散写 `if(mIsSurvival)`。
+当前实现以 `PlantVsZombies/Game/Perk/SurvivalPerkManager` 为唯一词条数据层，`Board` 以值成员持有它。核心契约是：**0 层 getter 必须返回中性值**，让非生存关和未获得词条的路径自然 no-op；不要在各效果钟点散写 `if (mIsSurvival)`。
 
-## 第一步：先归类到 3 种原型之一
+开始前先读仓库根目录 `AGENTS.md`，并按任务范围阅读 `docs/agent-guide/PROJECT_GUIDE.md`。涉及既有设计时搜索 `docs/agent-memory/MEMORY.md`，当前源码和测试证据优先于历史记录。
 
-| 原型 | 状态在哪 | 例子 | 钟点 |
+## 当前词条目录（2026-07-18）
+
+| 枚举 | 类别 | 当前效果 | 上限 | 主要钟点 |
+|---|---|---:|---:|---|
+| `PLANT_DAMAGE_UP` | 植物 | 伤害 +12%/层 | 9999（不限层） | `Zombie::TakeDamage` 统一缩放；爆炸 Charred 阈值用相同聚合值预测 |
+| `ZOMBIE_HEALTH_UP` | 僵尸 | 血量 +12%/层 | 9999（不限层） | `Board::GetZombieHpMultiplier` / `CreateZombie` 出生路径 |
+| `ZOMBIE_DAMAGE_RESIST` | 僵尸 | 承伤 -3%/层 | 15，最低承伤 55% | `Zombie::TakeDamage` |
+| `ZOMBIE_DAMAGE_UP` | 僵尸 | 对植物伤害 +5%/层 | 9999（不限层） | `Zombie::EatTarget`，使用时缩放，不写回 `mAttackDamage` |
+| `ZOMBIE_INVULN_HITS` | 僵尸 | 出生后前 4 次受击免伤/层 | 2 | `Zombie::TakeDamage` 消耗；`Board::CreateZombie` 初始化；僵尸存档持久化 |
+| `PLANT_REGEN` | 植物 | 每 5 秒回复 65 HP/层 | 8；第 5 层起允许到 3 倍最大生命 | `Board::UpdateLevel` 全局脉冲 |
+| `PLANT_ATTACK_SPEED` | 植物 | 开火速度 +15%/层 | 8 | `Shooter`、`Repeater`、`PuffShroom`、`FumeShroom`、`ScaredyShroom` 的射击间隔与动画速度 |
+| `PLANT_DAMAGE_REDUCTION` | 植物 | 承伤 -3%/层 | 15，最低承伤 55% | `Plant::TakeDamage` |
+| `PLANT_SUN_BONUS` | 植物 | 收集阳光 +15%/层 | 10 | `Board::AddSun`；不缩放 `set_sun`、开局值和消费 |
+| `PLANT_CARD_RECHARGE` | 植物 | 卡片冷却速度 +12%/层 | 10 | `CardComponent::Update`，经 `CardSlotManager::GetBoard()` 取 manager |
+
+数值以 `SurvivalPerkManager.cpp` 的 `kPerks[]` 和聚合 getter 为准；表格若与源码不同，先更新本技能再继续。
+
+## 先判断效果原型
+
+| 原型 | 状态归属 | 适用例 | 必做事项 |
 |---|---|---|---|
-| **A. 无状态倍率** | 仅 manager 层数 | 植物伤害、僵尸伤害、僵尸血量、僵尸免伤 | 在伤害/血量计算点读 getter |
-| **B. per-entity 状态** | 实体上加字段 + 存档 | 僵尸前 N 次免伤 | 实体方法首行消费 + 出生初始化 + Save/LoadProtectedData |
-| **C. Board 全局脉冲** | Board 计时器（不存档） | 植物回血 | `Board::UpdateLevel` 累加计时器，触发时遍历 |
+| A. 无状态倍率/数值 | 仅 manager 层数 | 增伤、承伤、血量、阳光、冷却 | 在唯一计算钟点读取聚合 getter；0 层返回单位元 |
+| B. per-entity 状态 | 每个实体字段 | 僵尸出生前 N 次免伤 | 实体字段 + 出生初始化 + 消耗顺序 + Save/Load |
+| C. Board 全局脉冲 | `Board` 计时器 | 全场植物回血 | `Board::UpdateLevel` 定时触发；无词条时跳过实体遍历 |
 
-选 A 永远优先（最简）；只有"每个实体各自计数"才用 B；"全场周期性一起发生"才用 C。
+优先选 A。只有“每个实体各自计数”才选 B；全场同频发生的周期效果才选 C。
 
-## 通用步骤（所有原型）
+## 通用实现步骤
 
-1. **`PerkType.h`**：枚举 `COUNT` 前加项。
-2. **`SurvivalPerkManager.cpp` `kPerks[]`**：对应位置加一行 `{key, nameZh, descZh, perStack, maxStacks}`（顺序必须与枚举一致，`static_assert` 强制）。不限层用 `maxStacks=9999`。
-3. **`SurvivalPerkManager.{h,cpp}`**：加聚合 getter。倍率型镜像现有 `GetXxxMultiplier()` + `ScaleXxx()`（走 `RoundScale`，已四舍五入+夹底≥1）。**计数型用纯整数乘 `(int)perStack * stacks`，绝不写 `static_cast<int>(x+0.5f)`——那是截断不是取整，是误导死代码**（perStack 是精确整数才碰巧对）。
-4. **存档**：层数走现有 `SurvivalPerkManager::Save/Load`（按 key 字符串，新 key 旧档缺失→0），**无需改 GameInfoSaver 的词条段**。
-5. **AutoTest 接入**（UI 前唯一注入手段）：
-   - `TestDriver.cpp` `kPerkNames` 加 `PK(NEW_TYPE)`。
-   - `dump_state` 的 `perks` 块加 `stacks[...]` + getter 暴露值。
-   - 写 `autotest/scripts/smoke_perks_<name>.json`，**用数学闭合断言**（如 `ScaleX(100)==115`），不赌时序。
-6. **构建**：`clang-release` 必须 0 warning/0 error（唯一报全量警告的配置）。
-7. **回归**：跑既有 `smoke_perks.json`，确认旧词条 dump 值**逐位不变**（中性默认的证明）。
+1. 在 `Game/Perk/PerkType.h` 的 `COUNT` 前加入枚举项，并确定 `PerkCategory::PLANT_BUFF` 或 `ZOMBIE_CURSE`。
+2. 在 `SurvivalPerkManager.cpp::kPerks[]` 的对应位置加入 `{key, nameZh, descZh, perStack, maxStacks, category}`。顺序必须与枚举一致，`static_assert` 会检查数量。
+3. 给 manager 增加聚合 getter/缩放函数。倍率使用 `RoundScale`；精确整数计数直接做整数乘法，不写伪四舍五入的 `static_cast<int>(x + 0.5f)`。
+4. 把效果接到覆盖面最完整的唯一钟点。接入前用 `rg` 核实所有实际路径，尤其是新植物、新僵尸或旁路伤害。
+5. 在 `TestDriver.cpp` 的 `kPerkNames` 加 `PK(NEW_TYPE)`，并在 `dump_state.perks` 暴露层数和可精确断言的聚合结果。
+6. 新增范围最小的 `autotest/scripts/smoke_perks_<name>.json`，用数学闭合值断言；再跑既有词条与选择 UI 回归。
+7. 更新 `docs/agent-memory/project_pvz_perk_system.md` 和 `docs/agent-memory/MEMORY.md` 当前摘要。
 
-## 原型 B 专属（per-zombie 状态）
+## 三类原型的关键约束
 
-- 字段加在 `Zombie.h`（如 `int mFreeHitsRemaining = 0;`，默认值=中性）。
-- 消费放 `Zombie::TakeDamage` **首行**（`damage<=0` 后、免伤倍率 + `SetGlowingTimer` 之前——吸收的伤害不该闪白光）。
-- 出生初始化只在 `Board::CreateZombie` 的 `!isPreview && !skipsettings` 块（波次生成路径），**绝不**在 `CreateZombieWithID`（读档路径，由 Load 还原，否则覆盖存档值）。
-- 存档进 `Zombie::Save/LoadProtectedData`（基类无条件调用，不受子类 `SaveExtraData` 覆盖；旧档 `j.value(key,0)`）。**存档会在 GAME 状态带场上实体落盘**，所以 per-entity 状态必须持久化。
+### A. 无状态倍率
 
-## 原型 C 专属（Board 全局脉冲）
+- 0 层必须返回 `1.0` 或原值，避免调用方额外判断模式。
+- 伤害缩放走现有 `RoundScale`，其会保留 `INT32_MAX` 一类秒杀哨兵，并保证正常正伤害至少为 1。
+- 植物增伤与僵尸免伤统一在 `Zombie::TakeDamage` 用 `ScaleTotalDamageToZombie` 计算。`Board::CreateBoom/CreateDoomBoom` 只能预测 Charred 阈值，传给 `TakeDamage` 的仍是未缩放原伤害，不能重复放大。
+- 攻速必须同时缩短射击间隔并提高射击动画 clip speed；否则高层时动画会在吐弹帧前被重启。新增射击植物时必须把它纳入攻速词条审计。
+- 卡片加速只改变每帧冷却推进速度，不修改基础 cooldown 或已存的剩余进度。
 
-- 计时器加 `Board.h`（如 `float mPlantRegenTimer = 0.0f;`），仿 `mUpdateHPCheckTimer` 范式。
-- 脉冲逻辑放 `Board::UpdateLevel`，**在 `if(mCurrentWave>=mMaxWave)return` 之前**（否则出怪完就停），`mBoardState==GAME` 守卫之后。
-- `timer += dt; if(timer>=interval){timer=0; int amt=GetXxx(); if(amt>0){遍历...}}`——`amt>0` 守卫让无词条时整个 O(n) 循环跳过，零开销。O(n) 只在脉冲帧发生（非每帧），与 memory 记的"每帧 `GetAllGameObjects` foot-gun"不同量级。
-- 计时器**不存档**（读档从 0 重计，损失≤一个周期，换零存档改动）；但脉冲产生的实体状态（如过量治疗的血量）天然随实体字段存档。
-- 读 `Plant` 的 protected 成员需加公有 getter（`Board` 非 `Plant` 友元）。
+### B. per-entity 状态
 
-## 流程
+- 字段默认值必须中性，例如 `int mFreeHitsRemaining = 0;`。
+- 免伤次数在 `Zombie::TakeDamage` 的 `damage <= 0` 守卫后、倍率缩放和 `SetGlowingTimer` 前消耗；完全吸收的攻击不应闪白。
+- 波次出生只在 `Board::CreateZombie` 的 `!isPreview && !skipsettings` 路径初始化。不要在 `CreateZombieWithID` 读档路径重新赋值，否则会覆盖存档状态。
+- 字段写入 `Zombie::Save/LoadProtectedData`，旧档用默认值 0；不要依赖可能被子类覆盖的额外存档钩子。
 
-走 brainstorm→spec→plan→subagent-driven 全流程；数值/策略类决策（间隔、上限、是否过量治疗）先和主人确认。第二批 spec/plan 在 `docs/superpowers/{specs,plans}/2026-06-14-perk-batch2*`，可作模板。
+### C. Board 全局脉冲
+
+- 计时器放在 `Board`，在 `Board::UpdateLevel` 的 GAME 状态内推进。
+- 回血脉冲必须位于 `if (mCurrentWave >= mMaxWave) return` 之前，否则最后一只怪生成后会停止回血。
+- 先取 `amount`，只有 `amount > 0` 才遍历实体。计时器无需存档；脉冲产生的生命值由实体既有存档自然保存。
+
+## 每轮最多两次的成对选择契约
+
+一项候选始终是 `PerkPairing { plant, zombie }`，选择一次会同时给植物增益和僵尸诅咒各加 1 层。配对不是固定绑定：`RollPerkPairings` 构造当前可用植物与僵尸词条的笛卡尔积，用 `GameRandom::Shuffle` 洗牌后截取 3 项，所以 `-Seed` 可复现。
+
+当前流程定义在 `GameScene`：
+
+- `SURVIVAL_PERK_PICKS_PER_ROUND = 2`。
+- `BeginSurvivalPerkSelect()` 把已完成次数归零、暂停游戏，并调用 `RenderSurvivalPerkSelectStep()`。
+- 每一步重新 roll 3 个候选，标题显示“第 X/2 次”。首次合法选择后立即关闭旧框、重新 roll 并显示第二步。
+- 第二次合法选择后进入 `BeginSurvivalCardSelect()`。
+- 任一步点击“结束选择”都会调用 `ApplyPerkSelection(-1)`，放弃本轮剩余次数；因此一轮实际可选 0、1 或 2 对。
+- 选择进度是轮间临时 UI 状态，不新增存档字段。最终词条层数由既有 manager 存档随之后的选卡流程一次保存。
+
+### 消息框生命周期
+
+词条候选按钮和“结束选择”按钮的 `autoClose` 必须为 `false`；**关闭权统一由 `ApplyPerkSelection` 持有**。它先关闭 `mPerkSelectBox`，再刷新下一步或结束流程。这样真实点击与 AutoTest 直接调用 `ApplyPerkSelection` 走同一生命周期，不会出现旧框残留或双重关闭。
+
+若修改选择次数、候选数或按钮语义，必须同步 `GameScene` 常量/计数/标题、`TestDriver.cpp` 的 `perkSelect` dump、两个选择脚本、本技能和项目记忆。
+
+## 存档契约
+
+- manager 层数按稳定字符串 `PerkInfo::key` 保存，不能依赖 enum 序号；新增 key 缺失时自然加载为 0。
+- `Load` 必须把层数夹到 `[0, maxStacks]`，因此调整上限会在读旧档时自动收敛。
+- 零词条时不要用 `Save(j["perks"])` 直接物化 null。先保存到局部 json，非 null 才写入；读端保留 `j.is_object()` 守卫，兼容历史上的 `"perks": null`。
+- 原型 A/C 通常不增加独立存档；原型 B 必须持久化实体状态。
+
+## AutoTest 验证
+
+基础命令：
+
+- `add_perk {"type":"...","count":N}`：UI 前唯一词条注入入口。
+- `survival_perk_open`：打开轮间选择。
+- `survival_perk_pick {"index":0}`：选择候选；`index:-1` 结束剩余选择。
+- `dump_state.perks`：词条层数与聚合数值。
+- `dump_state.perkSelect`：`active`、`offerCount`、`currentPick`、`completedPicks`、`maxPicks`、`offers`。
+
+选择 UI 至少覆盖：
+
+1. `smoke_perk_select.json`：第 1 次选择后仍 active、候选刷新、`currentPick=2`；第 2 次后 inactive，`completedPicks=2`。
+2. `smoke_perk_select_end_early.json`：选择 1 次后 `index=-1`，最终 inactive 且 `completedPicks=1`。
+3. `smoke_perk_view.json`：查看面板仍能显示和分页。
+
+数值改动至少跑对应专项脚本、`smoke_perks_balance.json` 和 `smoke_perks.json`。UI 改动要检查截图，不能只看退出码；同时检查对应 `run.log` 含 `script finished OK`。
+
+## 构建与交付
+
+- 按 `docs/agent-guide/PROJECT_GUIDE.md` 导入 x64 Visual Studio 环境。
+- Release 验证依次运行 `cmake --preset clang-release`、`cmake --build --preset clang-release`。
+- 从 `build/clang-release/` 运行 `PlantsVsZombies.exe -AutoTest ...`，不要使用根目录旧的 `x64/Release` 产物。
+- 若 sandbox 阻止 vcpkg 写外部 `buildtrees`，先报告真实阻塞；只有已有且可信的 Ninja 图时，才可把按图全量重编和链接作为当前工作区验证补充，不能把它写成标准构建方式。
+- 功能、测试、技能和项目记忆一起复核后再提交。
 
 ## 关联记忆
 
-`[[project_pvz_perk_system]]`（6 词条全清单 + 钟点 + UI 下次任务的配对规则）、`[[project_pvz_autotest_suite]]`。
+- `docs/agent-memory/project_pvz_perk_system.md`
+- `docs/agent-memory/project_pvz_autotest_suite.md`
+- `docs/agent-memory/project_pvz_animator_clip_speed.md`
+- `docs/agent-memory/reference_pvz_assets_worktree_autotest_gotchas.md`
