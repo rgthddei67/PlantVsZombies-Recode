@@ -810,8 +810,10 @@ void Board::PlayBackgroundMusic()
 		AudioSystem::PlayMusic(ResourceKeys::Music::MUSIC_FOG, -1);
 		break;
 	case Background::ROOF:
-	case Background::NIGHT_ROOF:
 		AudioSystem::PlayMusic(ResourceKeys::Music::MUSIC_ROOF, -1);
+		break;
+	case Background::NIGHT_ROOF:
+		AudioSystem::PlayMusic(ResourceKeys::Music::MUSIC_NIGHT, -1);
 		break;
 	}
 }
