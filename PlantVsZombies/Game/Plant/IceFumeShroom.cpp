@@ -2,10 +2,10 @@
 #include "../Board.h"
 
 namespace {
-	// 减速时长 2.0 < 攻击间隔 2.5：刻意留 0.5s 恢复空窗（覆盖率 80%），
+	// 减速时长 2.0 < 攻击间隔 2.5：刻意留 0.3s 恢复空窗，
 	// 否则圈内=永久 0.6 速、整行输出 ×1.67 超模（2026-07-15 主人裁定中档）。
 	// 重复命中取 max 不叠加（Zombie::SetCooldown）。
-	constexpr float kIceSlowSeconds = 2.0f;
+	constexpr float kIceSlowSeconds = 2.2f;
 }
 
 void IceFumeShroom::SetupPlant()
