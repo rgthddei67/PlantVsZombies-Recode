@@ -5,6 +5,7 @@
 #include "Sun.h"
 #include "Trophy.h"
 #include "Crater.h"
+#include "AdventureProgression.h"
 #include "../GameRandom.h"
 #include "./Plant/Plant.h"
 #include "./Zombie/Zombie.h"
@@ -45,8 +46,8 @@ Board::Board(GameScene* gameScene, Background background, int level)
 	if (mLevel >= 1)
 	{
 		mLevelName.clear();
-		int mBigLevel = (mLevel - 1) / 9 + 1;
-		int mSmallLevel = (mLevel - 1) % 9 + 1;
+		int mBigLevel = AdventureProgression::GetAreaNumber(mLevel);
+		int mSmallLevel = AdventureProgression::GetLevelNumberInArea(mLevel);
 		mLevelName = u8"关卡 " + std::to_string(mBigLevel) + u8"-" + std::to_string(mSmallLevel);
 	}
 	mSpawnZombieList.reserve(32);

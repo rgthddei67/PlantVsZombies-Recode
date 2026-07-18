@@ -44,6 +44,8 @@ public:
 
 private:
 	void SetOnClickBack(ClickableComponent* click);
+	/** 首次通关时推进冒险关卡，并按显式奖励表解锁植物。 */
+	void AdvanceAdventureProgress();
 	void SetPosition(const Vector& newPos);
 	void SetScale(float scale);
 	void UpdateAppearScale();

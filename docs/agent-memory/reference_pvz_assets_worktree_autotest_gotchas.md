@@ -1,6 +1,6 @@
 ---
 name: reference_pvz_assets_worktree_autotest_gotchas
-description: "PvZ 跑 AutoTest 的非显然坑——resources/font 不在 git(在 build/<preset>/)新 worktree 须先拷否则 ResourceManager 初始化失败；wait_frames/wait_seconds 字段名是 \"value\" 不是 \"frames\"；状态切换后/点击前 settle 帧要 >30；④蘑菇白天睡(level 1-9)夜晚醒(level 10-19)→测蘑菇产出须 goto_level 10+；⑤AutoTest 自动收集阳光→产阳光植物的数值验证看 dump_state 的 sun 字段(不是 suns 数组)；wait_seconds 是游戏秒(scaled)、超时看门狗是墙钟"
+description: "PvZ 跑 AutoTest 的非显然坑——resources/font 不在 git(在 build/<preset>/)新 worktree须先拷否则ResourceManager初始化失败；wait字段名是value；切换后settle要大于30帧；蘑菇夜测用九关制10-18；产阳光看dump sun字段"
 metadata:
   node_type: memory
   type: reference
@@ -27,7 +27,7 @@ metadata:
 
 **④ 蘑菇类植物（Shroom 子类）白天睡觉、夜晚才醒——测蘑菇产出/行为必须用夜晚关卡。**（2026-06-23 做小阳光/SunShroom 时踩到）
 - `Shroom::SetupPlant`：`GetBackgroundIsNight(mBoard->mBackGround)` 为真才 `SetSleepState(false)`，否则 `SetSleepState(true)+PlayTrack("anim_sleep")`，睡着不跑产出逻辑。
-- 关卡→背景：`GameApp::GetBackgroundID` level 1-9=GROUND_DAY、**10-19=GROUND_NIGHT**、其余 DAY。所以 AutoTest 测蘑菇要 `{"op":"goto_level","level":10}`，白天 level 1 种下去 SunShroom 直接睡、永不产阳光。
+- 关卡→背景：`GameApp::GetBackgroundID` 统一按每大关 9 小关分段：level 1-9=GROUND_DAY、**10-18=GROUND_NIGHT**、19-27=WATER_POOL。所以 AutoTest 测蘑菇要 `{"op":"goto_level","level":10}`，白天 level 1 种下去 SunShroom 直接睡、永不产阳光。
 - `plant` op 直调 `Board::CreatePlant`（绕过选卡/费用），`choose_cards` 对未拥有的卡会自动 `AddCard`，所以任意关卡都能种任意植物起局——但**睡眠是按背景判的**，绕不过，只能选夜晚关。
 
 **⑤ AutoTest 模式自动收集阳光——产阳光植物的数值验证看 `dump_state` 的 `sun` 字段，不是 `suns` 数组。**

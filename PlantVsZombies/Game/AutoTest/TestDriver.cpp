@@ -107,6 +107,17 @@ namespace {
 		for (const auto& [k, v] : kBoardStateNames) if (v == s) return k;
 		return "UNKNOWN";
 	}
+	std::string BackgroundName(Background background) {
+		switch (background) {
+		case Background::GROUND_DAY:       return "GROUND_DAY";
+		case Background::GROUND_NIGHT:     return "GROUND_NIGHT";
+		case Background::WATER_POOL:       return "WATER_POOL";
+		case Background::NIGHT_WATER_POOL: return "NIGHT_WATER_POOL";
+		case Background::ROOF:             return "ROOF";
+		case Background::NIGHT_ROOF:       return "NIGHT_ROOF";
+		}
+		return "UNKNOWN";
+	}
 
 	GameScene* CurrentGameScene() {
 		return dynamic_cast<GameScene*>(SceneManager::GetInstance().GetCurrentScene());
@@ -266,6 +277,20 @@ bool TestDriver::ExecuteCurrent() {
 		GameScene* gs = CurrentGameScene();
 		if (!gs || !gs->GetBoard()) { Fail("set_sun: 不在 GameScene 或 Board 为空"); return false; }
 		gs->GetBoard()->mSun = std::min(cmd.value("value", 0), MAX_SUN);
+		return true;
+	}
+	if (op == "set_adventure_level") {
+		const int level = cmd.value("level", 1);
+		if (level < 1) { Fail("set_adventure_level: level 必须为正数"); return false; }
+		GameAPP::GetInstance().mAdventureLevel = level;
+		return true;
+	}
+	if (op == "force_trophy") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) { Fail("force_trophy: 不在 GameScene 或 Board 为空"); return false; }
+		Board* board = gs->GetBoard();
+		if (board->mBoardState != BoardState::GAME) { Fail("force_trophy: Board 尚未进入 GAME"); return false; }
+		board->CreateTrophy(Vector(cmd.value("x", 500.0f), cmd.value("y", 300.0f)));
 		return true;
 	}
 	if (op == "force_survival_round") {
@@ -514,14 +539,23 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	GameScene* gs = CurrentGameScene();
 	if (!gs || !gs->GetBoard()) { Fail(opName + ": 不在 GameScene 或 Board 为空"); return false; }
 	Board* board = gs->GetBoard();
+	auto& gameApp = GameAPP::GetInstance();
 
 	out["boardState"] = BoardStateName(board->mBoardState);
+	out["level"] = board->mLevel;
+	out["levelName"] = board->mLevelName;
+	out["background"] = BackgroundName(board->mBackGround);
 	out["sun"] = board->mSun;
 	out["wave"] = board->mCurrentWave;
 	out["zombieNumber"] = board->mZombieNumber;
 	out["devNoCooldown"] = GameAPP::mDevNoCooldown;
 	out["devFreePlant"] = GameAPP::mDevFreePlant;
 	out["devSpawnPaused"] = GameAPP::mDevSpawnPaused;
+	out["adventureLevel"] = gameApp.mAdventureLevel;
+	out["haveCardCount"] = static_cast<int>(gameApp.mHaveCards.size());
+	out["haveCards"] = nlohmann::json::array();
+	for (PlantType type : gameApp.mHaveCards)
+		out["haveCards"].push_back(PlantTypeName(type));
 
 	// 奖杯（在场时给坐标，否则 null）——胜利路径冒烟测试的断言抓手
 	if (auto trophy = board->mTrophy.lock()) {

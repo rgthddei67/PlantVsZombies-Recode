@@ -1,6 +1,7 @@
 #include "Trophy.h"
 #include "Board.h"
 #include "AudioSystem.h"
+#include "AdventureProgression.h"
 #include "../GameAPP.h"
 #include "GameScene.h"
 #include "../DeltaTime.h"
@@ -8,6 +9,8 @@
 #include "../ResourceManager.h"
 #include "../ResourceKeys.h"
 #include "../Graphics.h"
+
+#include <algorithm>
 
 Trophy::Trophy(Board* board, const Vector& position)
 	: GameObject(ObjectType::OBJECT_NONE)
@@ -55,18 +58,35 @@ void Trophy::SetOnClickBack(ClickableComponent* click)
 		AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_WINMUSIC, 0.5f);
 		auto& gameApp = GameAPP::GetInstance();
 		gameApp.mGameInfoSaver.DeleteLevelData(mBoard);
-		// 判断是否是冒险模式
-		// TODO: 若以后增加小游戏，就改这里
-		if (mBoard->mLevel <= 50 && gameApp.mAdventureLevel == mBoard->mLevel) {
-			gameApp.mAdventureLevel++;
-			gameApp.mHaveCards.push_back(static_cast<PlantType>(mBoard->mLevel));
-		}
+		AdvanceAdventureProgress();
 		gameApp.mGameInfoSaver.SavePlayerInfo();
 
 		// 禁用点击，防止重复触发
 		if (auto c = GetComponent<ClickableComponent>())
 			c->IsClickable = false;
 		};
+}
+
+void Trophy::AdvanceAdventureProgress()
+{
+	if (!mBoard) return;
+
+	auto& gameApp = GameAPP::GetInstance();
+	const int completedLevel = mBoard->mLevel;
+	if (!AdventureProgression::IsAdventureLevel(completedLevel) ||
+		gameApp.mAdventureLevel != completedLevel) {
+		return;
+	}
+
+	// 无植物奖励的关卡也必须推进；植物解锁则完全由表决定，不再依赖枚举整数值。
+	++gameApp.mAdventureLevel;
+	const PlantType reward = AdventureProgression::GetPlantReward(completedLevel);
+	if (reward == AdventureProgression::NO_PLANT_REWARD) return;
+
+	if (std::find(gameApp.mHaveCards.begin(), gameApp.mHaveCards.end(), reward) ==
+		gameApp.mHaveCards.end()) {
+		gameApp.mHaveCards.push_back(reward);
+	}
 }
 
 void Trophy::Update()

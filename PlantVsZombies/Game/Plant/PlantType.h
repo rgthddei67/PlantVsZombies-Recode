@@ -21,7 +21,7 @@ enum class PlantType
 	PLANT_HYPNOSHROOM,
 	PLANT_SCAREDYSHROOM,
 	PLANT_ICESHROOM,
-	PLANT_ICEFUMESHROOM,	// 寒冰大喷菇（自创变种）；Trophy 按枚举值=关卡号解锁，此位=寒冰菇后下一关
+	PLANT_ICEFUMESHROOM,	// 寒冰大喷菇（自创变种）；冒险解锁顺序由 AdventureProgression 奖励表决定
 	PLANT_DOOMSHROOM,
 	PLANT_LILYPAD,
 	PLANT_SQUASH,

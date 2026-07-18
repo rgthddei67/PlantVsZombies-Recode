@@ -27,6 +27,7 @@
 #include "./Game/Plant/Plant.h"
 
 #include "./Game/Board.h"
+#include "./Game/AdventureProgression.h"
 
 #include "./Profiler.h"
 
@@ -564,33 +565,31 @@ void GameAPP::DrawText(const std::string& text, const Vector& position,
 
 Background GameAPP::GetBackgroundID(int level) const
 {
-	// TODO: 新增地图改这里
+	// 生存模式使用独立关卡号，不参与九关制冒险分段。
 	if (level == SURVIVAL_ENDLESS_LEVEL) {
 		return Background::GROUND_DAY;   // 白天无尽
 	}
 	else if (level == SURVIVAL_ENDLESS_NIGHT_LEVEL) {
 		return Background::GROUND_NIGHT; // 黑夜无尽
 	}
-	else if (level >= 1 && level <= 9) {
-		return Background::GROUND_DAY;   // 白天
-	}
-	else if (level >= 10 && level <= 19) {
-		return Background::GROUND_NIGHT; // 黑天
-	}
-	else if (level >= 20 && level <= 29) {
-		return Background::WATER_POOL; // 泳池
-	}
-	else if (level >= 30 && level <= 39) {
-		return Background::NIGHT_WATER_POOL; // 黑夜泳池
-	}
-	else if (level >= 40 && level <= 48) {
-		return Background::ROOF; // 屋顶
-	}
-	else if (level >= 49 && level <= 59) {		// 5-9是BOSS关
-		return Background::NIGHT_ROOF; // 黑夜屋顶
-	}
-	else {
-		return Background::GROUND_DAY;   // 默认白天
+
+	const int area = AdventureProgression::GetAreaNumber(level);
+	switch (area) {
+	case 1:
+		return Background::GROUND_DAY;
+	case 2:
+		return Background::GROUND_NIGHT;
+	case 3:
+		return Background::WATER_POOL;
+	case 4:
+		return Background::NIGHT_WATER_POOL;
+	case 5:
+		// 5-9 是最终 Boss 关，单独使用黑夜屋顶。
+		return AdventureProgression::GetLevelNumberInArea(level) == 9
+			? Background::NIGHT_ROOF
+			: Background::ROOF;
+	default:
+		return Background::GROUND_DAY;
 	}
 }
 

@@ -28,6 +28,9 @@
     { "op": "click", "target": "trophy" },
     { "op": "wait_seconds", "value": 0.5 },
     { "op": "assert_state", "path": "boardState", "equals": "WIN" },
+    { "op": "assert_state", "path": "adventureLevel", "equals": 2 },
+    { "op": "assert_state", "path": "haveCardCount", "equals": 2 },
+    { "op": "assert_state", "path": "haveCards.1", "equals": "PLANT_SUNFLOWER" },
     { "op": "screenshot", "name": "t2_trophy_growing.png" },
     { "op": "quit" }
   ]

@@ -5,6 +5,7 @@
 #include "GameObjectManager.h"
 #include "../UI/GameMessageBox.h"
 #include "Board.h"
+#include "AdventureProgression.h"
 
 void MainMenuScene::OnEnter()
 {
@@ -62,8 +63,8 @@ void MainMenuScene::BuildDrawCommands()
 		[this](Graphics* g) {
 			if (this->mOpenMenu) return;
 			auto& gameApp = GameAPP::GetInstance();
-			int mBigLevel = (gameApp.mAdventureLevel - 1) / 9 + 1;
-			int mSmallLevel = (gameApp.mAdventureLevel - 1) % 9 + 1;
+			int mBigLevel = AdventureProgression::GetAreaNumber(gameApp.mAdventureLevel);
+			int mSmallLevel = AdventureProgression::GetLevelNumberInArea(gameApp.mAdventureLevel);
 			// 坐标与冒险按钮 (545,85) 缩放 1.00 绑定：石碑贴图内角标的相对位置换算而来
 			gameApp.DrawText(std::to_string(mBigLevel), Vector(695, 168),
 				glm::vec4(255.0f, 255.0f, 255.0f, 255.0f));
