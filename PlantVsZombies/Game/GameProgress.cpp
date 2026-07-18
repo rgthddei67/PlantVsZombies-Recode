@@ -6,8 +6,15 @@
 #include "../ResourceManager.h"
 #include "../ResourceKeys.h"
 #include "../Logger.h"
+#include <algorithm>
 #include <memory>
 #include <cmath>
+
+namespace {
+	constexpr int WAVES_PER_FLAG = 10;
+	constexpr float FLAG_RAISE_HEIGHT = -10.0f;
+	constexpr float FLAG_RAISE_DURATION = 1.5f;
+}
 
 GameProgress::GameProgress(Board* board, GameScene* gameScene)
 	: mBoard(board), mGameScene(gameScene)
@@ -71,13 +78,11 @@ void GameProgress::Update()
 	// 检测波次变化，触发旗子升起
 	if (mBoard) {
 		int currentWave = mBoard->mCurrentWave;
-		if (currentWave != m_lastWave && currentWave % 10 == 0 && currentWave != 0) {
-			int flagIndex = currentWave / 10 - 1;                     // 逻辑索引（0对应10波）
-			int reverseIndex = m_flagCount - 1 - flagIndex;          // 从右向左
-			if (reverseIndex >= 0 && reverseIndex < m_flagCount) {
-				const float RAISE_HEIGHT = -10.0f;   // 升起高度（像素）
-				const float RAISE_DURATION = 1.5f;  // 动画时长（秒）
-				m_flagMeter->RaiseFlag(reverseIndex, RAISE_HEIGHT, RAISE_DURATION);
+		if (currentWave != m_lastWave && currentWave > 0 && currentWave % WAVES_PER_FLAG == 0) {
+			// SetupFlags 按第10、20……波的顺序保存旗子，所以波号可直接映射到索引。
+			int flagIndex = currentWave / WAVES_PER_FLAG - 1;
+			if (flagIndex >= 0 && flagIndex < m_flagCount) {
+				m_flagMeter->RaiseFlag(flagIndex, FLAG_RAISE_HEIGHT, FLAG_RAISE_DURATION);
 			}
 		}
 		m_lastWave = currentWave;
@@ -96,26 +101,29 @@ void GameProgress::SetupFlags(const Texture* stickTex, const Texture* flagTex)
 	if (!m_flagMeter) return;
 
 	m_flagMeter->ClearFlags();
+	m_flagCount = 0;
+	if (!mBoard) return;
 
-	int maxWave = mBoard->mMaxWave;
-	int flagCount = maxWave / 10;
-	m_flagCount = flagCount;
-	if (flagCount <= 0) return;
+	const int maxWave = mBoard->mMaxWave;
+	if (maxWave <= 0) return;
 
-	for (int i = 0; i < flagCount; ++i)
+	m_flagCount = maxWave / WAVES_PER_FLAG;
+	for (int flagNumber = 1; flagNumber <= m_flagCount; ++flagNumber)
 	{
-		float pos = static_cast<float>(i * 10) / maxWave;
+		// 原版从进度条右端向左映射实际旗帜波：15波时第10波在1/3处，
+		// 25波时第10/20波分别在3/5、1/5处，不能按旗子数量等距摆放。
+		const int flagWave = flagNumber * WAVES_PER_FLAG;
+		const float pos = 1.0f - static_cast<float>(flagWave) / static_cast<float>(maxWave);
 		m_flagMeter->AddFlag(stickTex, flagTex, pos);
 	}
 }
 
 void GameProgress::InitializeRaisedFlags(float raiseY)
 {
-	if (!m_flagMeter) return;
-	int raisedCount = mBoard->mCurrentWave / 10;  // 已经历的10的倍数波次数
-	for (int i = 0; i < raisedCount && i < m_flagCount; ++i) {
-		int reverseIndex = m_flagCount - 1 - i;   // 从右向左
-		m_flagMeter->SetFlagRaiseImmediate(reverseIndex, raiseY);
+	if (!m_flagMeter || !mBoard) return;
+	const int raisedCount = std::min(mBoard->mCurrentWave / WAVES_PER_FLAG, m_flagCount);
+	for (int i = 0; i < raisedCount; ++i) {
+		m_flagMeter->SetFlagRaiseImmediate(i, raiseY);
 	}
 }
 
