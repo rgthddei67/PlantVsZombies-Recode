@@ -25,6 +25,11 @@ void Crater::Update()
 {
 	GameObject::Update();
 
+	// 选卡期间 GameObjectManager 仍会更新场上对象；弹坑寿命只消耗实际战斗时间。
+	if (!mBoard || mBoard->mBoardState != BoardState::GAME) {
+		return;
+	}
+
 	// 乘 dt：暂停冻结、倍速等比缩放（与原版 GridItemCounter 随游戏更新递减一致）
 	mTimeLeft -= DeltaTime::GetDeltaTime();
 	if (mTimeLeft <= 0.0f) {

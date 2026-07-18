@@ -317,6 +317,16 @@ bool TestDriver::ExecuteCurrent() {
 		board->BuildSurvivalSpawnList(round);   // 公有方法，直接按轮重建出怪池
 		return true;
 	}
+	if (op == "force_survival_round_clear") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) { Fail("force_survival_round_clear: 不在 GameScene 或 Board 为空"); return false; }
+		Board* board = gs->GetBoard();
+		if (!board->mIsSurvival) { Fail("force_survival_round_clear: 非生存模式关卡"); return false; }
+		if (board->mBoardState != BoardState::GAME) { Fail("force_survival_round_clear: Board 尚未进入 GAME"); return false; }
+		// 走正式轮清入口，覆盖词条选择、选卡过场及场上对象保留行为。
+		board->OnSurvivalRoundClear();
+		return true;
+	}
 	if (op == "plant") {
 		GameScene* gs = CurrentGameScene();
 		if (!gs || !gs->GetBoard()) { Fail("plant: 不在 GameScene 或 Board 为空"); return false; }

@@ -1,0 +1,40 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 1001 },
+    { "op": "choose_cards", "cards": ["PLANT_DOOMSHROOM", "PLANT_PUFFSHROOM"] },
+    { "op": "wait_state", "state": "GAME" },
+    { "op": "set_sun", "value": 1000 },
+    { "op": "plant", "type": "PLANT_DOOMSHROOM", "row": 2, "col": 4 },
+    { "op": "wait_seconds", "value": 3.0 },
+    { "op": "assert_state", "path": "craters.0.row", "equals": 2 },
+    { "op": "assert_state", "path": "craters.0.col", "equals": 4 },
+    { "op": "assert_state", "path": "craters.0.timeLeftInt", "equals": 178 },
+
+    { "op": "force_survival_round_clear" },
+    { "op": "assert_state", "path": "boardState", "equals": "CHOOSE_CARD" },
+    { "op": "survival_perk_pick", "index": -1 },
+    { "op": "survival_perk_pick", "index": -1 },
+    { "op": "set_timescale", "value": 60.0 },
+    { "op": "wait_seconds", "value": 200.0 },
+    { "op": "assert_state", "path": "boardState", "equals": "CHOOSE_CARD" },
+    { "op": "assert_state", "path": "craters.0.row", "equals": 2 },
+    { "op": "assert_state", "path": "craters.0.col", "equals": 4 },
+    { "op": "assert_state", "path": "craters.0.timeLeftInt", "equals": 178 },
+
+    { "op": "choose_cards", "cards": ["PLANT_PUFFSHROOM"] },
+    { "op": "wait_state", "state": "GAME" },
+    { "op": "set_timescale", "value": 1.0 },
+    { "op": "screenshot", "name": "crater_after_card_select.png" },
+    { "op": "dump_state", "name": "crater_after_card_select.json" },
+    { "op": "assert_state", "path": "craters.0.row", "equals": 2 },
+    { "op": "assert_state", "path": "craters.0.col", "equals": 4 },
+    { "op": "assert_state", "path": "craters.0.timeLeftInt", "equals": 178 },
+
+    { "op": "set_timescale", "value": 10.0 },
+    { "op": "wait_seconds", "value": 5.0 },
+    { "op": "set_timescale", "value": 1.0 },
+    { "op": "dump_state", "name": "crater_after_resume.json" },
+    { "op": "assert_state", "path": "craters.0.timeLeftInt", "equals": 173 },
+    { "op": "quit" }
+  ]
+}

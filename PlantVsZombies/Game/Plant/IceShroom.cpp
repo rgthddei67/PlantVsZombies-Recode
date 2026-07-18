@@ -26,6 +26,16 @@ void IceShroom::SetupPlant()
 		});
 }
 
+void IceShroom::TakeDamage(int damage)
+{
+	// 充能期间无敌（参考樱桃炸弹：只闪光不掉血）；白天睡觉=普通蘑菇，照常被啃
+	if (!mIsSleeping) {
+		this->SetGlowingTimer(0.1f);
+		return;
+	}
+	Plant::TakeDamage(damage);
+}
+
 void IceShroom::FreezeAllZombies()
 {
 	// "全场" = 0..mRows-1 逐行行桶（无整场 API；行索引已排除失活/濒死）。
