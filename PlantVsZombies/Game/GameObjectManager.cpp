@@ -186,6 +186,10 @@ void GameObjectManager::DrawAll(Graphics* g) {
 		}
 	}
 
+	// 子弹阴影是地面投影，不能跟随 Bullet 对象留在 LAYER_GAME_BULLET，否则会压住植物。
+	// 先统一绘制；并行路径随后在 BeginParallelRecord 中 Flush，可保持这批阴影严格在主体之前。
+	if (mBulletPool) mBulletPool->DrawShadows(g);
+
 	const int total = static_cast<int>(mGameObjects.size());
 
 	// ---- 绘制阶段：小对象数走原串行；大场景走并行 record + 主线程 replay ----

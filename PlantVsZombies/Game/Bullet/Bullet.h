@@ -18,6 +18,7 @@
 
 class Board;
 class BulletPool;
+class ShadowComponent;
 
 class Bullet : public GameObject
 {
@@ -39,9 +40,13 @@ protected:
 
 	TransformComponent* mTransform = nullptr;
 	ColliderComponent* mCollider = nullptr;
+	ShadowComponent* mShadow = nullptr;
 
 	// 子弹击中僵尸的效果
 	virtual void BulletHitZombie(Zombie* zombie);
+
+	// 按 C# Projectile.DrawShadow 的类型尺寸与棋盘行位置刷新阴影布局。
+	void UpdateShadowLayout(const Vector& position);
 
 public:
 	Bullet(Board* board, BulletType bulletType, int row, const Vector& colliderRadius,
@@ -60,6 +65,8 @@ public:
 
 	void Update() override;
 	void Draw(Graphics* g) override;
+	// 由 BulletPool 的全局地面阴影阶段调用，保证阴影绘制在植物层之前。
+	void DrawShadow(Graphics* g);
 
 	int GetBulletDamage() { return mDamage; }
 	void SetBulletDamage(int damage) { this->mDamage = damage; }

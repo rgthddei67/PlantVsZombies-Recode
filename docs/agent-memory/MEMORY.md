@@ -2,6 +2,7 @@
 
 > Codex routing: required always-on rules live in `../../AGENTS.md`; detailed build, AutoTest, architecture, resource, and implementation guidance lives in `../agent-guide/PROJECT_GUIDE.md`. The entries below are historical subsystem context and should be read only when relevant.
 
+- [Bullet 地面阴影与跨对象绘制顺序](project_pvz_bullet_shadow.md) — 2026-07-19 对齐 C#：Pea 单格21×9、Snowpea 1.3×、Puff无影；对象池复用时按row/position重算；阴影由 BulletPool 在 GOM 主体前统一提交，不能靠 Component::SetDrawOrder 跨越植物/Bullet对象层；主人校对 Y 与同排豌豆射手影子一致；可见 `smoke_bullet_shadow.json` 验普通/寒冰子弹穿过坚果时本体在上、影子在下
 - [九关制冒险进度+显式植物奖励表](project_pvz_adventure_progression.md) — 2026-07-18 `AdventureProgression.h` 统一每大关9小关、关卡显示/背景/奖励同源；奖励表显式写每关植物或 `NO_PLANT_REWARD`，1-8无植物、1-9小喷菇；禁止再用关卡号强转PlantType（旧存档按整数保存枚举）；AutoTest `smoke_adventure_progression.json` 覆盖全部背景边界与8/9关奖励
 - [非整十波旗帜进度条](project_pvz_flag_meter_non_multiple_waves.md) — 2026-07-18 对齐 C# `DrawProgressMeter`：旗数=`总波数/10` 向下取整，第 k 面旗横向位置=`1-k*10/总波数`；旗子按第10/20/30波顺序存储，实时升旗和读档恢复均直接使用同一索引；可见 AutoTest 已覆盖15/25/35波布局与25波第10波升旗
 - [原版 MO3 动态分轨音乐 ✅Release 已编译](project_pvz_adaptive_mo3_music.md) — 2026-07-17 `AdaptiveMusicPlayer` 用 libopenmpt interactive API 并行解码主旋律/鼓组/踩镲，按原版 order+channel 表切分 DAY/NIGHT/POOL/FOG/ROOF；敌对存活僵尸≥10或一大波警告触发 burst，持续8s后<4淡出；**许可证方案不用 stock vcpkg 的 mpg123(LGPL)，overlay 编入 libopenmpt 自带 minimp3(CC0)+stb_vorbis(MIT)+zlib**；MO3 来自本机原版素材库，放 build/<preset>/resources/music（不入 git）；主人要求不跑 AutoTest，已过 clang-release

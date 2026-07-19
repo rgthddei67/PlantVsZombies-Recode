@@ -138,6 +138,15 @@ void BulletPool::Clear() {
 	mMissCount = 0;
 }
 
+void BulletPool::DrawShadows(Graphics* g) const {
+	for (const auto& pooled : mPool) {
+		if (!pooled.active) continue;
+		if (auto bullet = pooled.bullet.lock()) {
+			bullet->DrawShadow(g);
+		}
+	}
+}
+
 void BulletPool::PrintStats() const {
 	LOG_DEBUG("BulletPool") << "=== BulletPool 统计信息 ===";
 	LOG_DEBUG("BulletPool") << "池大小: " << mPool.size() << " (初始容量: " << mInitialCapacity

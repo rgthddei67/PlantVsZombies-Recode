@@ -43,11 +43,11 @@ void ShadowComponent::Draw(Graphics* g) {
 	Vector objPos = transform->GetPosition();
 
 	if (type == ObjectType::OBJECT_PLANT || type == ObjectType::OBJECT_ZOMBIE
-		|| type == ObjectType::OBJECT_LAWNMOWER) {
+		|| type == ObjectType::OBJECT_LAWNMOWER || type == ObjectType::OBJECT_BULLET) {
 		shadowPos = objPos + mOffset;
 	}
 	else {
-		LOG_WARN("ShadowComponent") << "GameObject is not Plant, Zombie or Mower.";
+		LOG_WARN("ShadowComponent") << "GameObject is not Plant, Zombie, Mower or Bullet.";
 		return;
 	}
 

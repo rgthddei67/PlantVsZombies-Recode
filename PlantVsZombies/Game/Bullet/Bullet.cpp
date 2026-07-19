@@ -3,6 +3,8 @@
 #include "Bullet.h"
 #include "../GameObjectManager.h"
 #include "../ObjectPool/BulletPool.h"
+#include "../ShadowComponent.h"
+#include "../Cell.h"
 #include "../../GameAPP.h"
 
 Bullet::Bullet(Board* board, BulletType bulletType, int row, const Vector& colliderRadius,
@@ -16,6 +18,15 @@ Bullet::Bullet(Board* board, BulletType bulletType, int row, const Vector& colli
 	mTransform = AddComponent<TransformComponent>(position);
 	mCollider = AddComponent<ColliderComponent>
 		(colliderRadius, Vector(0, 0), ColliderType::CIRCLE);
+
+	// C# Projectile.DrawShadow 明确让 Puff 直接返回；其余现有子弹使用豌豆阴影，
+	// Snowpea 再按原版放大到 1.3 倍。实际提交由 BulletPool 的地面阴影阶段负责。
+	if (mBulletType != BulletType::BULLET_PUFF) {
+		mShadow = AddComponent<ShadowComponent>(ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_PLANTSHADOW));
+		UpdateShadowLayout(position);
+	}
+
 	auto* collider = GetColliderComponent();
 	collider->isTrigger = true;	// 设置为触发器
 	collider->layerMask = CollisionLayer::BULLET;
@@ -46,6 +57,7 @@ void Bullet::Reset(Board* board, int row,
 	if (mTransform) {
 		mTransform->SetPosition(position);
 	}
+	UpdateShadowLayout(position);
 
 	// 重置 Collider
 	if (mCollider) {
@@ -96,6 +108,43 @@ void Bullet::Draw(Graphics* g)
 		g->DrawTexture(mTexture, position.x, position.y,
 			static_cast<float>(mTexture->width * mScale), static_cast<float>(mTexture->height) * mScale);
 	}
+}
+
+void Bullet::DrawShadow(Graphics* g)
+{
+	if (mShadow && mShadow->mEnabled) {
+		mShadow->Draw(g);
+	}
+}
+
+void Bullet::UpdateShadowLayout(const Vector& position)
+{
+	if (!mShadow) return;
+
+	// 原分辨率 IMAGE_PEA_SHADOWS 是 42x9 的日/夜两格图，因此单格为 21x9；
+	// C# Snowpea 分支把两轴统一放大 1.3 倍。
+	constexpr float kPeaShadowWidth = 21.0f;
+	constexpr float kPeaShadowHeight = 9.0f;
+	const float typeScale = mBulletType == BulletType::BULLET_SNOWPEA ? 1.3f : 1.0f;
+	const float shadowWidth = kPeaShadowWidth * typeScale;
+	const float shadowHeight = kPeaShadowHeight * typeScale;
+
+	const Texture* shadowTexture = ResourceManager::GetInstance().GetTexture(
+		ResourceKeys::Textures::IMAGE_PLANTSHADOW);
+	if (shadowTexture && shadowTexture->width > 0 && shadowTexture->height > 0) {
+		mShadow->SetScale(Vector(
+			shadowWidth / static_cast<float>(shadowTexture->width),
+			shadowHeight / static_cast<float>(shadowTexture->height)));
+	}
+
+	// 主人校对：Y 与同一行豌豆射手的默认阴影中心一致，即格子中心 + 28。
+	// X 偏移沿用 C#：Pea +3，Snowpea -1。
+	const float shadowLeftOffset = mBulletType == BulletType::BULLET_SNOWPEA ? -1.0f : 3.0f;
+	const float shadowCenterY = CELL_INITALIZE_POS_Y
+		+ static_cast<float>(mRow) * CELL_COLLIDER_SIZE_Y + CELL_COLLIDER_SIZE_Y * 0.5f + 28.0f;
+	mShadow->SetOffset(Vector(
+		shadowLeftOffset + shadowWidth * 0.5f,
+		shadowCenterY - position.y));
 }
 
 void Bullet::BulletHitZombie(Zombie* zombie)

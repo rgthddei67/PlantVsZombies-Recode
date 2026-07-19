@@ -51,6 +51,9 @@ public:
 	// 清空对象池
 	void Clear();
 
+	// 在植物等世界对象之前统一绘制所有活跃子弹的地面阴影。
+	void DrawShadows(Graphics* g) const;
+
 	// 获取统计信息
 	int GetActiveCount() const { return mActiveCount; }
 	int GetPeakCount() const { return mPeakCount; }
