@@ -928,11 +928,6 @@ TrackFrameTransform Animator::GetInterpolatedTransform(int trackIndex, float ble
 		}
 	}
 
-	// 设置纹理指针：取前一帧的纹理
-	if (frameBefore >= 0 && frameBefore < static_cast<int>(track->mFrames.size())) {
-		result.image = track->mFrames[frameBefore].image;
-	}
-
 	return result;
 }
 

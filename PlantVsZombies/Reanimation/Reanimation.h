@@ -33,6 +33,10 @@ public:
 	int GetTotalFrames() const;
 };
 
+/**
+ * @brief 插值连续变换，并按播放模式选择不可插值的显示帧属性。
+ * @param useDestFrame true 表示 blend，离散属性取 tDst；false 表示普通帧间插值，取 tSrc。
+ */
 void GetDeltaTransform(const TrackFrameTransform& tSrc, const TrackFrameTransform& tDst,
 	float tDelta, TrackFrameTransform& tOutput, bool useDestFrame = false);
 

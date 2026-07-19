@@ -236,6 +236,10 @@ void GetDeltaTransform(const TrackFrameTransform& tSrc, const TrackFrameTransfor
 			tOutput.ky = tDst.ky;
 		else
 			tOutput.ky = (tDst.ky - tSrc.ky) * tDelta + tSrc.ky;
+
+		// blend 的离散属性必须跟随新轨道当前帧，不能继承 blend 起点的旧图。
+		tOutput.f = tDst.f;
+		tOutput.image = tDst.image;
 	}
 	else {
 		float kxDiff = tDst.kx - tSrc.kx;
@@ -247,12 +251,9 @@ void GetDeltaTransform(const TrackFrameTransform& tSrc, const TrackFrameTransfor
 		while (kyDiff > 180.0f) kyDiff -= 360.0f;
 		while (kyDiff < -180.0f) kyDiff += 360.0f;
 		tOutput.ky = tSrc.ky + kyDiff * tDelta;
-	}
 
-	if (useDestFrame)
-		tOutput.f = tDst.f;
-	else
+		// 普通帧间插值在跨帧期间保持前一帧的离散属性。
 		tOutput.f = tSrc.f;
-
-	tOutput.image = tSrc.image;
+		tOutput.image = tSrc.image;
+	}
 }

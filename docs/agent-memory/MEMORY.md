@@ -77,4 +77,4 @@
 - [Animator三层速度模型 ✅push](project_pvz_animator_clip_speed.md) — 2026-06-07(e74bc76)EffectiveSpeed=(clip!=0?clip:base)*extra;clip绝对覆盖(非乘数)/0回落base;删mOriginalSpeed两步舞;存档animClipSpeed
 - [跨平台phase-1审查 ✅push](project_pvz_xplat_phase1_review.md) — 2026-06-25 FF合master(b3ff1da);load_file×2收编走FileManager;**目录枚举×2留phase-3(SDL/AAssetManager无列举API)**
 - [跨平台phase-3资源清单 ✅已push](project_pvz_xplat_phase3_manifest.md) — 2026-06-25(c50db1e)构建期gen_manifest.cmake glob生成manifest.txt+FileManager::ListResourceFiles经SDL_RWops读;**裁决:迁SDL3拿APK列目录是陷阱→清单方案库无关,SDL2栈即可用**
-- [blend手翻转修复 ✅已push](project_pvz_blend_transform_hand_flip_fix.md) — 2026-06-28(1bf662a)修僵尸blend时右手翻转;根因=GetDeltaTransform blend分支">180°吸附"目标写反(tSrc旧帧→应tDst当前帧);肢体翻转编码ky=kx+180°;**指纹=只blendTime>0现(=0走最短弧无碍)**;验证repro_blend_hand.json逐像素diff
+- [blend手翻转+离散帧属性修复 ✅](project_pvz_blend_transform_hand_flip_fix.md) — 2026-06-28(1bf662a)修`>180°`吸附目标tSrc→tDst；2026-07-19收口`GetDeltaTransform` blend取`tDst.f/image`、普通取`tSrc.f/image`，复用已有策略分支+删Animator补写，不反转普通插值参数追求“统一after”；clang-release+契约程序+可见repro_blend_hand通过
