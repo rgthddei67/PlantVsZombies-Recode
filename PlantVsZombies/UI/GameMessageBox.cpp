@@ -116,6 +116,7 @@ void GameMessageBox::Start()
 				Close();
 			}
 			});
+		button->SetEnabled(config.enabled);
 
 		m_buttons.push_back(button);
 		button->SetSkipDraw(true);

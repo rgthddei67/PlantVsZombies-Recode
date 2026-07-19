@@ -7,6 +7,8 @@
     { "op": "assert_state", "path": "perkSelect.currentPick", "equals": 1 },
     { "op": "assert_state", "path": "perkSelect.completedSteps", "equals": 0 },
     { "op": "assert_state", "path": "perkSelect.completedPicks", "equals": 0 },
+    { "op": "assert_state", "path": "perkSelect.refreshesRemaining", "equals": 3 },
+    { "op": "assert_state", "path": "perkSelect.maxRefreshes", "equals": 3 },
     { "op": "survival_perk_pick", "index": -1 },
     { "op": "dump_state", "name": "perk_select_skip_first.json" },
     { "op": "assert_state", "path": "perkSelect.active", "equals": true },
@@ -14,6 +16,8 @@
     { "op": "assert_state", "path": "perkSelect.currentPick", "equals": 2 },
     { "op": "assert_state", "path": "perkSelect.completedSteps", "equals": 1 },
     { "op": "assert_state", "path": "perkSelect.completedPicks", "equals": 0 },
+    { "op": "assert_state", "path": "perkSelect.refreshesRemaining", "equals": 3 },
+    { "op": "wait_frames", "value": 30 },
     { "op": "screenshot", "name": "perk_select_after_first_skip.png" },
     { "op": "survival_perk_pick", "index": -1 },
     { "op": "dump_state", "name": "perk_select_skip_all.json" },
@@ -22,6 +26,7 @@
     { "op": "assert_state", "path": "perkSelect.currentPick", "equals": 0 },
     { "op": "assert_state", "path": "perkSelect.completedSteps", "equals": 2 },
     { "op": "assert_state", "path": "perkSelect.completedPicks", "equals": 0 },
+    { "op": "assert_state", "path": "perkSelect.refreshesRemaining", "equals": 3 },
     { "op": "quit" }
   ]
 }

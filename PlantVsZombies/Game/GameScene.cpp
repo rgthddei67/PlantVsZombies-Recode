@@ -755,16 +755,22 @@ void GameScene::BeginSurvivalPerkSelect()
 	if (!mBoard) return;
 
 	// 重新进入流程前先收掉可能残留的测试/旧 UI，确保一轮只有一个活动选择框。
+	CloseSurvivalPerkSelectBox();
+	mSurvivalPerkStepsCompleted = 0;
+	mSurvivalPerkPicksCompleted = 0;
+	mSurvivalPerkRefreshesRemaining = SURVIVAL_PERK_REFRESHES_PER_ROUND;
+	mSurvivalPerkSelectActive = true;
+	DeltaTime::SetPaused(true);
+	RenderSurvivalPerkSelectStep();
+}
+
+void GameScene::CloseSurvivalPerkSelectBox()
+{
 	if (auto box = mPerkSelectBox.lock()) {
 		box->SetActive(false);
 		box->Close();
 	}
 	mPerkSelectBox.reset();
-	mSurvivalPerkStepsCompleted = 0;
-	mSurvivalPerkPicksCompleted = 0;
-	mSurvivalPerkSelectActive = true;
-	DeltaTime::SetPaused(true);
-	RenderSurvivalPerkSelectStep();
 }
 
 void GameScene::RenderSurvivalPerkSelectStep()
@@ -795,8 +801,10 @@ void GameScene::RenderSurvivalPerkSelectStep()
 	const float rowBlockH  = lineH * 2.0f;     // 每个配对两行（植物/僵尸）
 	const float rowGap     = 20.0f;            // 配对之间的间隔
 	const float gapTextBtn = 20.0f;            // 文字与「选择」按钮的间隔
-	const float skipGap    = 20.0f;            // 配对区与「放弃本次」按钮的间隔
+	const float actionGap  = 20.0f;            // 配对区与底部操作按钮的间隔
+	const float buttonGap  = 20.0f;            // 「刷新」与「放弃本次」之间的间隔
 	const Vector selectBtnSize(100.0f, 40.0f);
+	const Vector refreshBtnSize(210.0f, 44.0f);
 	const Vector skipBtnSize(160.0f, 44.0f);
 	const glm::vec4 green{ 53, 191, 61, 255 };
 	const glm::vec4 red  { 200, 60, 60, 255 };
@@ -827,12 +835,13 @@ void GameScene::RenderSurvivalPerkSelectStep()
 	const float titleW = measureW(title, titleFont);
 	float contentW = maxRowW + gapTextBtn + selectBtnSize.x;
 	if (titleW > contentW)        contentW = titleW;
-	if (skipBtnSize.x > contentW) contentW = skipBtnSize.x;
+	const float actionButtonsW = refreshBtnSize.x + buttonGap + skipBtnSize.x;
+	if (actionButtonsW > contentW) contentW = actionButtonsW;
 
 	const int   N     = static_cast<int>(rows.size());
 	const float rowsH = (N > 0) ? (N * rowBlockH + (N - 1) * rowGap) : 0.0f;
 	const float boxW  = contentW + padX * 2.0f;
-	const float boxH  = padY + titleLineH + titleGap + rowsH + skipGap + skipBtnSize.y + padY;
+	const float boxH  = padY + titleLineH + titleGap + rowsH + actionGap + skipBtnSize.y + padY;
 
 	const float cx = static_cast<float>(SCENE_WIDTH)  / 2.0f;   // 550
 	const float cy = static_cast<float>(SCENE_HEIGHT) / 2.0f;   // 300
@@ -860,12 +869,35 @@ void GameScene::RenderSurvivalPerkSelectStep()
 			[this, i]() { this->ApplyPerkSelection(i); }, ResourceKeys::Textures::IMAGE_BUTTONSMALL, false);
 	}
 
-	// 放弃按钮（底部居中）：只消耗当前机会；第 1 次放弃后仍会进入第 2 次。
-	builder.Button(u8"放弃本次", Vector(cx - skipBtnSize.x / 2.0f, boxTop + boxH - padY - skipBtnSize.y),
+	// 两次选择共享同一轮的刷新额度；刷新只重抽当前候选，不结算当前选择机会。
+	const bool canRefresh = mSurvivalPerkRefreshesRemaining > 0;
+	const std::string refreshText = canRefresh
+		? std::string(u8"刷新（剩余 ") + std::to_string(mSurvivalPerkRefreshesRemaining) + u8" 次）"
+		: std::string(u8"刷新（已用完）");
+	const float actionsLeft = cx - actionButtonsW / 2.0f;
+	const float actionsY = boxTop + boxH - padY - skipBtnSize.y;
+	builder.Button(refreshText, Vector(actionsLeft, actionsY), refreshBtnSize, 18,
+		[this]() { this->RefreshSurvivalPerkSelection(); },
+		ResourceKeys::Textures::IMAGE_BUTTONBIG, false, canRefresh);
+
+	// 放弃只消耗当前选择机会；第 1 次放弃后仍会进入第 2 次并保留刷新余额。
+	builder.Button(u8"放弃本次", Vector(actionsLeft + refreshBtnSize.x + buttonGap, actionsY),
 		skipBtnSize, 20, [this]() { this->ApplyPerkSelection(-1); },
 		ResourceKeys::Textures::IMAGE_BUTTONBIG, false);
 
 	mPerkSelectBox = builder.Show();
+}
+
+bool GameScene::RefreshSurvivalPerkSelection()
+{
+	if (!mBoard || !mSurvivalPerkSelectActive || mSurvivalPerkRefreshesRemaining <= 0)
+		return false;
+
+	// 先扣额度再重建，保证新框立即展示本轮准确的剩余次数。
+	--mSurvivalPerkRefreshesRemaining;
+	CloseSurvivalPerkSelectBox();
+	RenderSurvivalPerkSelectStep();
+	return true;
 }
 
 void GameScene::ApplyPerkSelection(int index)
@@ -882,11 +914,7 @@ void GameScene::ApplyPerkSelection(int index)
 	++mSurvivalPerkStepsCompleted;
 
 	// 先失活可避免延迟销毁期间与下一步新框重叠一帧；真实按钮与 AutoTest 共用此生命周期。
-	if (auto box = mPerkSelectBox.lock()) {
-		box->SetActive(false);
-		box->Close();
-	}
-	mPerkSelectBox.reset();
+	CloseSurvivalPerkSelectBox();
 
 	if (mSurvivalPerkStepsCompleted < SURVIVAL_PERK_PICKS_PER_ROUND) {
 		RenderSurvivalPerkSelectStep();

@@ -394,6 +394,13 @@ bool TestDriver::ExecuteCurrent() {
 		gs->ApplyPerkSelection(index);
 		return true;
 	}
+	if (op == "survival_perk_refresh") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) { Fail("survival_perk_refresh: 不在 GameScene 或 Board 为空"); return false; }
+		if (!gs->IsPerkSelectActive()) { Fail("survival_perk_refresh: 当前无词条选择"); return false; }
+		if (!gs->RefreshSurvivalPerkSelection()) { Fail("survival_perk_refresh: 本轮刷新次数已用完"); return false; }
+		return true;
+	}
 	if (op == "show_zombie_hp") {
 		GameAPP::GetInstance().mShowZombieHP = cmd.value("on", true);   // 调试：游戏内绘制僵尸血量
 		return true;
@@ -745,6 +752,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		psel["completedSteps"] = gs->GetPerkStepsCompleted();
 		psel["completedPicks"] = gs->GetPerkPicksCompleted();
 		psel["maxPicks"] = GameScene::SURVIVAL_PERK_PICKS_PER_ROUND;
+		psel["refreshesRemaining"] = gs->GetPerkRefreshesRemaining();
+		psel["maxRefreshes"] = GameScene::SURVIVAL_PERK_REFRESHES_PER_ROUND;
 		nlohmann::json offers = nlohmann::json::array();
 		for (const PerkPairing& pr : gs->GetCurrentPerkOffer()) {
 			offers.push_back({

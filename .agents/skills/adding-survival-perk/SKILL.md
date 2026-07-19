@@ -81,11 +81,13 @@ description: Use when adding or tuning any 生存模式词条 (survival perk) in
 - 每一步重新 roll 3 个候选，标题显示“第 X/2 次”。第 1 次无论选择或放弃，都会关闭旧框、重新 roll 并显示第 2 次。
 - 第 2 次结算后进入 `BeginSurvivalCardSelect()`。
 - 点击“放弃本次”会调用 `ApplyPerkSelection(-1)`，只消耗当前机会；两次都放弃时本轮获得 0 对，先放弃后选择时获得 1 对。
+- 每轮另有 `SURVIVAL_PERK_REFRESHES_PER_ROUND = 3` 次共享刷新额度。`BeginSurvivalPerkSelect()` 只在整轮开始时把 `mSurvivalPerkRefreshesRemaining` 重置为 3；第 1 次选择使用的刷新会从第 2 次选择可用额度中扣除。
+- `RefreshSurvivalPerkSelection()` 每次只消耗 1 次刷新额度、关闭旧框、重新 roll 当前全部 3 项并重建同一步选择框；它不增加 steps/picks，也不应用任何词条。额度为 0 时按钮保留为不可点击的“刷新（已用完）”。
 - 选择进度是轮间临时 UI 状态，不新增存档字段。最终词条层数由既有 manager 存档随之后的选卡流程一次保存。
 
 ### 消息框生命周期
 
-词条候选按钮和“放弃本次”按钮的 `autoClose` 必须为 `false`；**关闭权统一由 `ApplyPerkSelection` 持有**。它先结算当前机会，把旧 `mPerkSelectBox` 设为 inactive 后再 `Close()`，然后刷新下一步或结束流程。立即失活用于消除延迟销毁期间的一帧双框残影；真实点击与 AutoTest 直接调用走同一生命周期。
+词条候选、“刷新”和“放弃本次”按钮的 `autoClose` 必须为 `false`；**关闭权统一由 `GameScene` 的选择流程持有**。`ApplyPerkSelection()` 和 `RefreshSurvivalPerkSelection()` 都通过 `CloseSurvivalPerkSelectBox()` 先把旧框设为 inactive 后再 `Close()`，然后刷新下一步、重抽当前步或结束流程。立即失活用于消除延迟销毁期间的一帧双框残影；真实点击与 AutoTest 直接调用走同一生命周期。
 
 若修改选择次数、候选数或按钮语义，必须同步 `GameScene` 常量/计数/标题、`TestDriver.cpp` 的 `perkSelect` dump、两个选择脚本、本技能和项目记忆。
 
@@ -103,12 +105,13 @@ description: Use when adding or tuning any 生存模式词条 (survival perk) in
 - `add_perk {"type":"...","count":N}`：UI 前唯一词条注入入口。
 - `survival_perk_open`：打开轮间选择。
 - `survival_perk_pick {"index":0}`：选择候选；`index:-1` 只放弃当前一次机会。
+- `survival_perk_refresh`：消耗本轮共享的一次刷新额度，重抽当前全部候选。
 - `dump_state.perks`：词条层数与聚合数值。
-- `dump_state.perkSelect`：`active`、`offerCount`、`currentPick`、`completedSteps`、`completedPicks`、`maxPicks`、`offers`。steps 是已结算机会数，picks 是实际获得数。
+- `dump_state.perkSelect`：`active`、`offerCount`、`currentPick`、`completedSteps`、`completedPicks`、`maxPicks`、`refreshesRemaining`、`maxRefreshes`、`offers`。steps 是已结算机会数，picks 是实际获得数；刷新不改变二者。
 
 选择 UI 至少覆盖：
 
-1. `smoke_perk_select.json`：两次都选，最终 `completedSteps=2`、`completedPicks=2`。
+1. `smoke_perk_select.json`：两次都选；第 1 次刷新 1 次后第 2 次只剩 2 次，并在第 2 次耗尽，总计恰好 3 次；最终 `completedSteps=2`、`completedPicks=2`。
 2. `smoke_perk_select_skip_all.json`：第 1 次放弃后仍 active 且进入第 2 次；再次放弃后 steps=2、picks=0。
 3. `smoke_perk_select_skip_then_pick.json`：第 1 次放弃、第 2 次选择，最终 steps=2、picks=1。
 4. `smoke_perk_view.json`：查看面板仍能显示和分页。

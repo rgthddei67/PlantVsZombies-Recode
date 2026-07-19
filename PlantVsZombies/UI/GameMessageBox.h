@@ -24,6 +24,7 @@ public:
 		std::function<void()> callback;
 		std::string texture;
 		bool autoClose = true;             // 是否自动关闭
+		bool enabled = true;               // false 时保留按钮外观，但不参与命中与点击
 		bool initChecked = false;          // 仅 checkbox 有效：创建时的初始勾选态
 	};
 
@@ -112,15 +113,15 @@ public:
 	Builder& Button(const std::string& text, const Vector& pos, const Vector& size,
 		float fontSize, std::function<void()> cb,
 		const std::string& texture = ResourceKeys::Textures::IMAGE_BUTTONSMALL,
-		bool autoClose = true) {
-		m_buttons.push_back({ text, pos, size, fontSize, std::move(cb), texture, autoClose, false });
+		bool autoClose = true, bool enabled = true) {
+		m_buttons.push_back({ text, pos, size, fontSize, std::move(cb), texture, autoClose, enabled, false });
 		return *this;
 	}
 
 	Builder& Checkbox(const Vector& pos, const Vector& size,
 		std::function<void()> cb, bool initChecked = false) {
 		m_buttons.push_back({ "", pos, size, 1.0f, std::move(cb),
-			ResourceKeys::Textures::IMAGE_OPTIONS_CHECKBOX0, false, initChecked });
+			ResourceKeys::Textures::IMAGE_OPTIONS_CHECKBOX0, false, true, initChecked });
 		return *this;
 	}
 

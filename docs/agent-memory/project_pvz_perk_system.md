@@ -64,3 +64,5 @@ metadata:
 - `dump_state.perkSelect` 包含 `offerCount/currentPick/completedSteps/completedPicks/maxPicks`。`smoke_perk_select.json` 覆盖两次都选；`smoke_perk_select_skip_all.json` 覆盖两次都放弃；`smoke_perk_select_skip_then_pick.json` 覆盖先放弃后选择。首/次选择均保留截图和日志验证。
 - 标准 `cmake --preset clang-release` + `cmake --build --preset clang-release` 获权通过；上述三条选择测试及 `smoke_perk_view/smoke_perks_balance/smoke_perks` 均以主人桌面可见窗口运行并 `script finished OK`。截图复核发现并修掉旧框延迟销毁造成的一帧双框残影。
 - `.agents/skills/adding-survival-perk/SKILL.md` 已按当前十词条、五类攻速植物、两次独立机会、选择/放弃双计数、现行存档和 AutoTest dump 更新。
+
+**2026-07-19 每轮共享 3 次词条刷新**：轮间两次成对选择共享 `SURVIVAL_PERK_REFRESHES_PER_ROUND = 3` 次刷新额度；`BeginSurvivalPerkSelect()` 在整轮开始时把 `mSurvivalPerkRefreshesRemaining` 重置为 3，选择/放弃进入第 2 次时不重置。`RefreshSurvivalPerkSelection()` 每次扣 1、关闭旧框并重抽当前全部 3 项，不推进 steps/picks、不应用词条；按钮显示剩余次数，归零后显示“刷新（已用完）”并禁用。`GameMessageBox::Builder::Button` 新增 `enabled` 配置以保留禁用按钮的可见说明。AutoTest 新增 `survival_perk_refresh`，`perkSelect` dump 新增 `refreshesRemaining/maxRefreshes`；`smoke_perk_select.json` 验证第 1 次刷新 1 次后第 2 次仅剩 2 次，并在整轮内累计耗尽 3 次。
