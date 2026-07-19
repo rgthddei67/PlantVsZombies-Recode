@@ -754,6 +754,20 @@ void GameScene::BeginSurvivalPerkSelect()
 {
 	if (!mBoard) return;
 
+	// Board 已切到 CHOOSE_CARD，退出场景会立即保存；实际清空卡槽虽在词条结算后执行，
+	// 但冷却快照必须现在就独立出来，保证词条界面点 X 后仍能恢复上一轮未完成的冷却。
+	mSurvivalCardCooldowns.clear();
+	if (mCardSlotManager) {
+		for (auto* card : mCardSlotManager->GetCards()) {
+			if (!card) continue;
+			auto comp = card->GetComponent<CardComponent>();
+			if (comp && comp->IsCooldown()) {
+				mSurvivalCardCooldowns[comp->GetPlantType()] =
+					{ comp->GetCooldownTimer(), comp->GetCooldownTime() };
+			}
+		}
+	}
+
 	// 重新进入流程前先收掉可能残留的测试/旧 UI，确保一轮只有一个活动选择框。
 	CloseSurvivalPerkSelectBox();
 	mSurvivalPerkStepsCompleted = 0;
@@ -1076,20 +1090,7 @@ void GameScene::BeginSurvivalCardSelect()
 	// 滑块归位由 GameProgress::Update 依据 mCurrentWave(已被 OnSurvivalRoundClear 归 0)自动完成。
 	if (mGameProgress) mGameProgress->LowerAllFlags(1.0f);
 
-	// 清空卡槽前，快照仍在冷却中的卡牌冷却进度，供选完后还原（避免轮末冷却被清空丢失）
-	mSurvivalCardCooldowns.clear();
-	if (mCardSlotManager) {
-		for (auto* card : mCardSlotManager->GetCards()) {
-			if (!card) continue;
-			auto comp = card->GetComponent<CardComponent>();
-			if (comp && comp->IsCooldown()) {
-				mSurvivalCardCooldowns[comp->GetPlantType()] =
-					{ comp->GetCooldownTimer(), comp->GetCooldownTime() };
-			}
-		}
-	}
-
-	// 清空上一轮的卡槽（空槽重选），场上植物保留
+	// 冷却快照已在进入词条页时提前完成；现在清空上一轮卡槽，让下一轮从空槽重新选择。
 	if (mCardSlotManager)
 		mCardSlotManager->ClearAllCards();
 

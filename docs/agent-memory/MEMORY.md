@@ -72,7 +72,7 @@
 - [注册式工厂 ✅#1](project_pvz_factory_registry.md) — 2026-05-31消除两Instantiate switch→GameDataManager数据驱动(函数指针factory字段);函数指针非std::function/集中注册;指引在InitializeHardcodedData顶部
 - [僵尸按行索引 ✅](project_pvz_zombie_row_index.md) — 2026-06-06 EntityManager加ForEachZombieInRow替GetAllZombieIDs全表扫;惰性每帧重建(CleanupExpired标脏);foot-gun=取全集再过滤
 - [vcpkg缓存删除代价](feedback_vcpkg_cache_deletion.md) — vcpkg-master整目录不能删(toolchainFile指向);"可再生"≠"删了免费"(重装全量联网);清缓存前确认不reconfigure
-- [生存词条系统](project_pvz_perk_system.md) — 2026-07-19 共10词条(6植4僵)：每轮2次独立选择，共享3次整批刷新；每次可选随机的1植物增益+1僵尸诅咒或只放弃本次；steps记已结算机会、picks记实际获得，刷新不推进二者；植物伤害与僵尸血量+12%，僵尸免伤-3%×15、出生免伤4次×2
+- [生存词条系统](project_pvz_perk_system.md) — 2026-07-19 共10词条(6植4僵)：每轮2次独立选择，共享3次整批刷新；词条页退出存档只保冷却快照、不保存上一轮卡槽，读旧问题档也忽略误存卡牌，避免重进选卡叠出两套卡牌
 - [资产/worktree/AutoTest坑](reference_pvz_assets_worktree_autotest_gotchas.md) — ①resources/font不在git(在build/<preset>旁exe,CLAUDE.md"拷resources"错只拷Shader)新worktree须拷否则exit-6 ②AutoTest wait字段名是"value"非frames ③状态切换后settle>30帧 ④蘑菇夜测goto 10-18 ⑤产阳光验证看dump sun字段(小阳光15/普通25),wait_seconds游戏秒/看门狗墙钟15s
 - [Animator三层速度模型 ✅push](project_pvz_animator_clip_speed.md) — 2026-06-07(e74bc76)EffectiveSpeed=(clip!=0?clip:base)*extra;clip绝对覆盖(非乘数)/0回落base;删mOriginalSpeed两步舞;存档animClipSpeed
 - [跨平台phase-1审查 ✅push](project_pvz_xplat_phase1_review.md) — 2026-06-25 FF合master(b3ff1da);load_file×2收编走FileManager;**目录枚举×2留phase-3(SDL/AAssetManager无列举API)**

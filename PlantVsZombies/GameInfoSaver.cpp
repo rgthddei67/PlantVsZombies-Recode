@@ -322,9 +322,10 @@ bool GameInfoSaver::SaveLevelDataImpl(Board* board, CardSlotManager* manager)
 	}
 	if (!cratersArr.empty()) j["craters"] = cratersArr;
 
-	// 卡牌
+	// 卡牌只在 GAME 中代表已提交卡组。CHOOSE_CARD 中的卡槽必须为空；即便未来流程意外留下
+	// 旧卡，也不能把它序列化成下一轮已提交卡组，否则读档后再次选卡会叠出两套卡牌。
 	nlohmann::json cardsArr = nlohmann::json::array();
-	if (manager) {
+	if (manager && board->mBoardState == BoardState::GAME) {
 		for (auto* card : manager->GetCards()) {
 			if (!card) continue;
 			auto comp = card->GetComponent<CardComponent>();
@@ -593,9 +594,22 @@ bool GameInfoSaver::LoadLevelDataImpl(Board* board, CardSlotManager* manager)
 			c.value("timeLeft", Crater::CRATER_DURATION));
 	}
 
-	// 恢复卡牌
-	if (manager) {
-		for (auto& c : j.value("cards", nlohmann::json::array())) {
+	// CHOOSE_CARD 存档中的 cards 来自旧版词条选择退出 bug：它们是上一轮卡组，不是下一轮
+	// 已提交选择。此时禁止恢复到卡槽；若显式冷却快照为空，则只迁移其中仍在冷却的进度。
+	const bool isSurvivalCardSelect = board->mIsSurvival
+		&& board->mBoardState == BoardState::CHOOSE_CARD;
+	std::unordered_map<PlantType, std::pair<float, float>> legacyCardCooldowns;
+	for (auto& c : j.value("cards", nlohmann::json::array())) {
+		if (isSurvivalCardSelect) {
+			if (c.value("isCooldown", false)) {
+				PlantType type = static_cast<PlantType>(c["plantType"].get<int>());
+				legacyCardCooldowns[type] = {
+					c.value("cooldownTimer", 0.0f), c.value("cooldownTime", 0.0f)
+				};
+			}
+			continue;
+		}
+		if (manager) {
 			PlantType plantType = static_cast<PlantType>(c["plantType"].get<int>());
 			float posX = c["posX"].get<float>();
 			float posY = c["posY"].get<float>();
@@ -621,13 +635,18 @@ bool GameInfoSaver::LoadLevelDataImpl(Board* board, CardSlotManager* manager)
 	}
 
 	// 恢复生存轮间冷却快照（见 SaveLevelData 同名字段注释）。必须在 ChooseCardComplete 还原冷却之前就位，
-	// 而本函数在 OnEnter 选卡分支之前执行，时序成立。普通模式无此字段，contains 为假直接跳过。
-	if (board->mIsSurvival && board->mGameScene && j.contains("survivalCardCooldowns")) {
+	// 而本函数在 OnEnter 选卡分支之前执行，时序成立。旧版问题档的显式快照为空时，从被丢弃的
+	// 上一轮 cards 迁移冷却数据，既阻止重复卡牌，也不损失原本仍在冷却的进度。
+	if (board->mIsSurvival && board->mGameScene) {
 		std::unordered_map<PlantType, std::pair<float, float>> cooldowns;
-		for (auto& c : j["survivalCardCooldowns"]) {
-			PlantType type = static_cast<PlantType>(c["plantType"].get<int>());
-			cooldowns[type] = { c.value("cooldownTimer", 0.0f), c.value("cooldownTime", 0.0f) };
+		if (j.contains("survivalCardCooldowns") && j["survivalCardCooldowns"].is_array()) {
+			for (auto& c : j["survivalCardCooldowns"]) {
+				PlantType type = static_cast<PlantType>(c["plantType"].get<int>());
+				cooldowns[type] = { c.value("cooldownTimer", 0.0f), c.value("cooldownTime", 0.0f) };
+			}
 		}
+		if (cooldowns.empty() && isSurvivalCardSelect)
+			cooldowns = std::move(legacyCardCooldowns);
 		board->mGameScene->SetSurvivalCardCooldowns(std::move(cooldowns));
 	}
 

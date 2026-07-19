@@ -84,6 +84,7 @@ description: Use when adding or tuning any 生存模式词条 (survival perk) in
 - 每轮另有 `SURVIVAL_PERK_REFRESHES_PER_ROUND = 3` 次共享刷新额度。`BeginSurvivalPerkSelect()` 只在整轮开始时把 `mSurvivalPerkRefreshesRemaining` 重置为 3；第 1 次选择使用的刷新会从第 2 次选择可用额度中扣除。
 - `RefreshSurvivalPerkSelection()` 每次只消耗 1 次刷新额度、关闭旧框、重新 roll 当前全部 3 项并重建同一步选择框；它不增加 steps/picks，也不应用任何词条。额度为 0 时按钮保留为不可点击的“刷新（已用完）”。
 - 选择进度是轮间临时 UI 状态，不新增存档字段。最终词条层数由既有 manager 存档随之后的选卡流程一次保存。
+- `BeginSurvivalPerkSelect()` 必须提前快照上一轮仍在冷却的卡牌，实际卡槽在词条结算后的 `BeginSurvivalCardSelect()` 清空。玩家若在词条页点 X，`CHOOSE_CARD` 存档只保存冷却快照，绝不能把上一轮卡槽当成下一轮已提交卡组落盘。
 
 ### 消息框生命周期
 
@@ -96,6 +97,7 @@ description: Use when adding or tuning any 生存模式词条 (survival perk) in
 - manager 层数按稳定字符串 `PerkInfo::key` 保存，不能依赖 enum 序号；新增 key 缺失时自然加载为 0。
 - `Load` 必须把层数夹到 `[0, maxStacks]`，因此调整上限会在读旧档时自动收敛。
 - 零词条时不要用 `Save(j["perks"])` 直接物化 null。先保存到局部 json，非 null 才写入；读端保留 `j.is_object()` 守卫，兼容历史上的 `"perks": null`。
+- 卡槽只在 `BoardState::GAME` 表示已提交卡组；`CHOOSE_CARD` 保存时必须写空卡组，读取时也不得恢复旧 `cards`。为兼容历史问题档，可把其中仍在冷却的旧卡迁移到 `survivalCardCooldowns`，但不能加入 `CardSlotManager`。
 - 原型 A/C 通常不增加独立存档；原型 B 必须持久化实体状态。
 
 ## AutoTest 验证
