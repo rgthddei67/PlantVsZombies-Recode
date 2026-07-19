@@ -1,0 +1,17 @@
+{
+  "commands": [
+    { "op": "wait_frames", "value": 30 },
+    { "op": "click", "x": 570, "y": 490 },
+    { "op": "wait_frames", "value": 30 },
+    { "op": "click", "x": 740, "y": 393 },
+    { "op": "wait_frames", "value": 30 },
+    { "op": "screenshot", "name": "01_zombie_grid.png" },
+    { "op": "click", "x": 190, "y": 240 },
+    { "op": "wait_frames", "value": 30 },
+    { "op": "screenshot", "name": "02_dancer_entry.png" },
+    { "op": "click", "x": 270, "y": 240 },
+    { "op": "wait_frames", "value": 30 },
+    { "op": "screenshot", "name": "03_backup_dancer_entry.png" },
+    { "op": "quit" }
+  ]
+}

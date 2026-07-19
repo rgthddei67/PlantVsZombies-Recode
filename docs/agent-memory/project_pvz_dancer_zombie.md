@@ -15,6 +15,8 @@ metadata:
 
 2026-07-18 舞步朝向与出土静态补全：对照 C# `UpdateReanim`，舞王入场月球步及节拍 13~15/19~21 的右举手段翻面，伴舞在相同右举手拍翻面；魅惑时整套朝向取反，啃食时回阵营默认朝向。C# `UpdateZombieWalking` 还会让未魅惑的 `DancerDancingIn` 实际向右，但主人可见 AutoTest 后明确本项目只要**视觉反向**，逻辑 X 仍向房子推进（30 帧 600→575.33）。伴舞 RISING 期间不再随拍跳舞：`PlayTrack(anim_armraise)` 后只 `Animator::Pause()`，完全出土再 `PlayTrack` 入拍；死亡轨 `PlayTrack(anim_death)` 会自动恢复 playing，避免速度层置 0 导致卡死，RISING 读档须重新 Pause。AutoTest 新增 `flipX/animPlaying` 状态抓手与通用 `damage_zombie` 正式受伤链；可见窗口跑 `smoke_dancer_summon/backupdancer/charm/death/backupdancer_rising_death` 全绿（专项确认 Pause→anim_death 自动唤醒→5 秒内 zombieNumber=0、无 WATCHDOG），clang-release 全量构建 0 warning。
 
+2026-07-19 图鉴补全：两个 preset 的 `resources/info.txt` 均新增 `ZOMBIE_DANCER` / `ZOMBIE_BACKUP_DANCER` 名称与描述；文案采用“先讲机制、再由僵尸本人一本正经歪解”的宝开式结构。新增可见 UI 回归 `autotest/scripts/smoke_dancer_almanac.json`，从主菜单进入僵尸图鉴后依次截图网格、舞王正文与伴舞正文；clang-release 实跑 exit 0、run.log finished OK，截图确认标题居中、17号正文各5行且无溢出。
+
 **Foot-guns（写skill时要收录）：**
 - **帧事件"末-1帧"不触发**：伴舞anim_death 65~101，主人先给100(=末-1)实测播不到→僵尸血0卡anim_death不消失(靠10s看门狗)；主人改99才触发。但Jackson死亡146(=末-1)却正常触发——**逐reanim实测，不能推公式**。
 - **齐舞散拍源**：基类`Start()`给每僵尸随机动画速度1.1~1.4，舞队必须`SetAnimationSpeed`锁同值(现1.2)。
