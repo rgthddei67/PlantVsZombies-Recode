@@ -64,8 +64,8 @@ namespace {
 	constexpr float kLightSplashDelayMax = 0.24f;         // 小雨两次地面水花的最长间隔（秒，约每秒 5 次）
 	constexpr float kMediumSplashDelayMin = 0.08f;        // 中雨两次地面水花的最短间隔（秒，约每秒 10 次）
 	constexpr float kMediumSplashDelayMax = 0.12f;        // 中雨两次地面水花的最长间隔（秒，约每秒 10 次）
-	constexpr float kHeavySplashDelayMin = 0.04f;         // 大雨两次地面水花的最短间隔（秒，约每秒 20 次）
-	constexpr float kHeavySplashDelayMax = 0.06f;         // 大雨两次地面水花的最长间隔（秒，约每秒 20 次）
+	constexpr float kHeavySplashDelayMin = 0.02f;         // 大雨两次地面水花的最短间隔（秒，约每秒 20多 次）
+	constexpr float kHeavySplashDelayMax = 0.04f;         // 大雨两次地面水花的最长间隔（秒，约每秒 20多 次）
 	constexpr float kRainSplashEdgePadding = 18.0f;       // 水花中心距草地网格边缘的安全距离（像素）
 	constexpr float kLightningDelayMin = 3.5f;           // 大雨开始后首次闪电的最短等待时间（秒）
 	constexpr float kLightningDelayMax = 7.0f;           // 大雨开始后首次闪电的最长等待时间（秒）
