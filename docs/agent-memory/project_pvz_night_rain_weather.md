@@ -14,6 +14,7 @@
 
 ## 资源与验证
 
+- 后续新增雨天专属能力、精英僵尸雨势强化、雨天变异/条件生成或继续修改天气状态机时，先使用 `.agents/skills/adding-rain-weather/SKILL.md`；新僵尸、植物、粒子或生存词条同时叠加各自技能。
 - 雨 XML 与 `rain.ogg` 都在忽略的 build 资源树，提交时必须 `git add -f` 两个 preset；`resources.xml` 两份需保持一致。
 - `adding-particle` skill 已补 `ParticleRotation` 标签语义；再改 loader/emitter 消费端要同步技能。
 - `smoke_night_rain.json` 用 `set_weather`/`advance_weather_phase`/`trigger_lightning` 固定状态，断言三档倍率、暗幕、雨声启停、词条组合、减速、冻结优先级、大雨闪电及“小→大→中→小→晴”完整链，并产出七张截图；另用 0.2 秒真实天气倒计时验证尾端小雨自动复位倍率并停止声音，用第 28 秒截图验证长雨段仍持续发射粒子。

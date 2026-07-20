@@ -1,0 +1,4 @@
+interface:
+  display_name: "扩展雨天天气机制"
+  short_description: "添加雨天专属能力、僵尸变异、条件生成和天气状态联动"
+  default_prompt: "使用 $adding-rain-weather 为精英僵尸添加仅在雨天生效的强化，并补齐存档与 AutoTest。"
