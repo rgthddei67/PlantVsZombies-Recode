@@ -11,7 +11,7 @@ namespace {
 	constexpr int kHelmetHealth = 900;
 	constexpr int kNormalBiteDamage = 40;
 	constexpr int kFirstPlantStrikeDamage = 400;
-	constexpr int kHelmetBreakDamage = 25;
+	constexpr int kHelmetBreakDamage = 50;
 	constexpr float kFootballMoveSpeedMultiplier = 1.7f;
 	constexpr float kMoveSpeedMultiplier = 1.85f;
 	constexpr float kAnimationSpeedMultiplier = 1.95f;
