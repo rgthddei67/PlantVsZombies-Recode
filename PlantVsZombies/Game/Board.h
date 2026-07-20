@@ -154,13 +154,16 @@ private:
 
 	// 黑夜随机天气。weatherTimer 在 CLEAR 时表示距下一场雨，在下雨时表示本场剩余时间。
 	RainIntensity mRainIntensity = RainIntensity::CLEAR;
+	RainIntensity mPreviousRainIntensity = RainIntensity::CLEAR; // 两秒平滑过渡开始前的雨势
 	RainIntensity mForecastRainIntensity = RainIntensity::CLEAR; // 已发布预警对应的下一天气
 	RainIntensity mActualForecastRainIntensity = RainIntensity::CLEAR; // 预警发布时锁定的真实下一天气
 	float mWeatherTimer = 0.0f;
+	float mWeatherTransitionTimer = 0.0f; // 当前天气过渡的剩余时间（秒，随游戏速度缩放）
 	float mLightningTimer = 0.0f;
 	float mRainSplashTimer = 0.0f;       // 距下一次地面水花的秒数；瞬态视觉无需写入存档
 	bool mWeatherInitialized = false;   // 旧档缺天气字段时由 StartGame 首次初始化
 	bool mRainCanIntensify = false;     // 仅初始小雨可增强；首次切档后永久转入衰减链
+	bool mRainCanHold = false;          // 新雨首段为中/大雨时允许一次同档续期，避免无限维持
 	bool mWeatherForecastReady = false; // true 表示公开预报与真实下一天气均已锁定、等待揭晓
 	bool mRainVisualActive = false;     // 纯运行期标记，防读档/生存轮间重复发射同一场雨
 
@@ -183,10 +186,17 @@ private:
 	int CountHostileZombiesForMusic() const;
 	void InitializeWeather();
 	void UpdateWeather(float deltaTime);
+	float GetWeatherLateGameFactor() const;
+	float GetWeatherTransitionProgress() const;
+	float GetRainAudioVolume() const;
+	void BeginWeatherTransition(RainIntensity target);
+	void UpdateWeatherTransition(float deltaTime);
+	void FinishWeatherTransitionImmediately();
+	void RestoreWeatherTransition(RainIntensity previous, float remaining);
 	RainIntensity RollNextWeather();
 	void PrepareWeatherForecast();
 	void ConsumeWeatherForecast();
-	void BeginRain(RainIntensity intensity, float duration, bool canIntensify);
+	void BeginRain(RainIntensity intensity, float duration, bool canIntensify, bool canHold);
 	// 结束当前雨段：按固定权重落点决定放晴或进入一个不可再增强的尾雨段。
 	void FinishRainPhase(int transitionRoll);
 	void EndRain();
@@ -240,12 +250,18 @@ public:
 	/** 世界层蓝灰暗幕的 alpha（0..255）；UI 在暗幕之后绘制，不受影响。 */
 	float GetRainOverlayAlpha() const;
 	RainIntensity GetRainIntensity() const { return mRainIntensity; }
+	RainIntensity GetPreviousRainIntensity() const { return mPreviousRainIntensity; }
 	float GetWeatherTimer() const { return mWeatherTimer; }
+	float GetWeatherTransitionTimer() const { return mWeatherTransitionTimer; }
+	bool IsWeatherTransitionActive() const { return mWeatherTransitionTimer > 0.0f; }
 	float GetLightningTimer() const { return mLightningTimer; }
 	bool IsWeatherInitialized() const { return mWeatherInitialized; }
 	bool CanRainIntensify() const { return mRainCanIntensify; }
+	bool CanRainHold() const { return mRainCanHold; }
 	bool HasWeatherForecast() const { return mWeatherForecastReady; }
 	RainIntensity GetForecastRainIntensity() const { return mForecastRainIntensity; }
+	/** 当前公开预报是否属于此天气阶段真实允许出现的下一档。 */
+	bool IsWeatherForecastPlausible() const;
 	/** 当前雨势对应的粒子发射器是否仍在工作。 */
 	bool IsRainEffectEmitting() const;
 

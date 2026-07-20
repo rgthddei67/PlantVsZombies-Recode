@@ -58,6 +58,11 @@
     { "op": "assert_state", "path": "weather.rainSoundPlaying", "equals": true },
     { "op": "wait_seconds", "value": 0.3, "timeout": 2 },
     { "op": "assert_state", "path": "weather.intensity", "equals": "CLEAR" },
+    { "op": "assert_state", "path": "weather.previousIntensity", "equals": "LIGHT" },
+    { "op": "assert_state", "path": "weather.transitionOn", "equals": true },
+    { "op": "assert_state", "path": "weather.rainSoundPlaying", "equals": true },
+    { "op": "wait_seconds", "value": 2.1, "timeout": 4 },
+    { "op": "assert_state", "path": "weather.transitionOn", "equals": false },
     { "op": "assert_state", "path": "weather.zombieSpeedPct", "equals": 100 },
     { "op": "assert_state", "path": "weather.rainSoundPlaying", "equals": false },
 

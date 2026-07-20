@@ -21,6 +21,7 @@
 #include "../ParticleSystem/ParticleSystem.h"
 #include <unordered_set>
 #include <climits>
+#include <array>
 #include <algorithm>   // std::max, std::swap
 #include <cmath>       // std::lround
 
@@ -35,21 +36,32 @@ namespace {
 	constexpr float kRainTailDurationMax = 80.0f;        // 雨势切档后尾雨段的最长持续时间（秒）
 	constexpr float kWeatherForecastLeadTime = 15.0f;    // 阶段结束前多少秒预抽取并展示下一天气
 	constexpr int kWeatherForecastAccuracyPercent = 75;  // 天气预警准确率（0～100；失败时故意显示另一种天气）
+	constexpr float kWeatherTransitionDuration = 2.0f;   // 雨势切换时倍率、暗幕与雨声音量的平滑过渡时长（游戏秒）
+	constexpr float kLateWeatherRampStart = 0.40f;       // 普通关波次进度超过该比例后开始增强后期天气（0～1）
+	constexpr int kSurvivalLateWeatherFullRound = 8;     // 黑夜无尽到该轮起按完整后期天气权重计算
 	constexpr int kLightRainWeight = 45;                 // 小雨相对权重；数值越大越容易抽中
 	constexpr int kMediumRainWeight = 40;                // 中雨相对权重；数值越大越容易抽中
 	constexpr int kHeavyRainWeight = 32;                 // 大雨相对权重；数值越大越容易抽中
-	constexpr int kRainWeightTotal = kLightRainWeight + kMediumRainWeight + kHeavyRainWeight; // 雨势总权重，单档改动后概率自动归一化
+	constexpr int kLateLightRainWeight = 34;             // 后期小雨目标权重；随波次从基础值平滑下降
+	constexpr int kLateHeavyRainWeight = 52;             // 后期大雨目标权重；随波次从基础值平滑上升
+	constexpr int kClearHoldWeight = 18;                 // 前期晴天阶段结束后继续晴天的相对权重
+	constexpr int kLateClearHoldWeight = 10;             // 后期继续晴天的目标权重，让强天气仍更常出现
 	constexpr int kLightToMediumWeight = 30;             // 初始小雨结束时增强为中雨的相对权重
 	constexpr int kLightToHeavyWeight = 20;              // 初始小雨结束时骤增为大雨的相对权重
 	constexpr int kLightToClearWeight = 45;              // 初始小雨结束时直接放晴的相对权重
 	constexpr int kLightTransitionWeightTotal = kLightToMediumWeight + kLightToHeavyWeight + kLightToClearWeight; // 初始小雨转档总权重
 	constexpr int kMediumToLightWeight = 35;             // 中雨结束时衰减为小雨的相对权重
 	constexpr int kMediumToClearWeight = 65;             // 中雨结束时直接放晴的相对权重
-	constexpr int kMediumTransitionWeightTotal = kMediumToLightWeight + kMediumToClearWeight; // 中雨转档总权重
+	constexpr int kLateMediumToLightWeight = 15;         // 后期中雨衰减为小雨的目标权重，减少乏味的小雨尾段
+	constexpr int kLateMediumToClearWeight = 85;         // 后期中雨直接放晴的目标权重
+	constexpr int kMediumHoldWeight = 15;                // 每场中雨至多一次同档续期的相对权重
 	constexpr int kHeavyToMediumWeight = 45;             // 大雨结束时衰减为中雨的相对权重
 	constexpr int kHeavyToLightWeight = 20;              // 大雨结束时直接衰减为小雨的相对权重
 	constexpr int kHeavyToClearWeight = 35;              // 大雨结束时直接放晴的相对权重
-	constexpr int kHeavyTransitionWeightTotal = kHeavyToMediumWeight + kHeavyToLightWeight + kHeavyToClearWeight; // 大雨转档总权重
+	constexpr int kLateHeavyToMediumWeight = 55;         // 后期大雨衰减为中雨的目标权重
+	constexpr int kLateHeavyToLightWeight = 5;           // 后期大雨直接衰减为小雨的目标权重
+	constexpr int kLateHeavyToClearWeight = 40;          // 后期大雨直接放晴的目标权重
+	constexpr int kHeavyHoldWeight = 12;                 // 每场大雨至多一次同档续期的相对权重
 	constexpr float kLightZombieSpeed = 1.15f;           // 小雨僵尸动作与移动速度倍率
 	constexpr float kMediumZombieSpeed = 1.25f;          // 中雨僵尸动作与移动速度倍率
 	constexpr float kHeavyZombieSpeed = 1.40f;           // 大雨僵尸动作与移动速度倍率
@@ -87,6 +99,61 @@ namespace {
 		return "";
 	}
 
+	/** 在两档调参权重间插值并四舍五入，保证后期变化连续而非跨波次突跳。 */
+	int LerpWeatherWeight(int earlyWeight, int lateWeight, float lateFactor)
+	{
+		return static_cast<int>(std::lround(static_cast<float>(earlyWeight)
+			+ static_cast<float>(lateWeight - earlyWeight) * lateFactor));
+	}
+
+	/** 返回指定雨势的僵尸速度倍率，供过渡插值复用。 */
+	float ZombieSpeedForRain(RainIntensity intensity)
+	{
+		switch (intensity) {
+		case RainIntensity::LIGHT:  return kLightZombieSpeed;
+		case RainIntensity::MEDIUM: return kMediumZombieSpeed;
+		case RainIntensity::HEAVY:  return kHeavyZombieSpeed;
+		case RainIntensity::CLEAR:  return 1.0f;
+		}
+		return 1.0f;
+	}
+
+	/** 返回指定雨势的植物行动倍率，供过渡插值复用。 */
+	float PlantSpeedForRain(RainIntensity intensity)
+	{
+		switch (intensity) {
+		case RainIntensity::LIGHT:  return kLightPlantActionSpeed;
+		case RainIntensity::MEDIUM: return kMediumPlantActionSpeed;
+		case RainIntensity::HEAVY:  return kHeavyPlantActionSpeed;
+		case RainIntensity::CLEAR:  return 1.0f;
+		}
+		return 1.0f;
+	}
+
+	/** 返回指定雨势的世界暗幕 alpha，供过渡插值复用。 */
+	float OverlayAlphaForRain(RainIntensity intensity)
+	{
+		switch (intensity) {
+		case RainIntensity::LIGHT:  return kLightOverlayAlpha;
+		case RainIntensity::MEDIUM: return kMediumOverlayAlpha;
+		case RainIntensity::HEAVY:  return kHeavyOverlayAlpha;
+		case RainIntensity::CLEAR:  return 0.0f;
+		}
+		return 0.0f;
+	}
+
+	/** 返回指定雨势的雨声请求音量，晴天为 0。 */
+	float RainVolumeForIntensity(RainIntensity intensity)
+	{
+		switch (intensity) {
+		case RainIntensity::LIGHT:  return kLightRainVolume;
+		case RainIntensity::MEDIUM: return kMediumRainVolume;
+		case RainIntensity::HEAVY:  return kHeavyRainVolume;
+		case RainIntensity::CLEAR:  return 0.0f;
+		}
+		return 0.0f;
+	}
+
 	/** 按当前雨势抽取下一次地面水花间隔；雨越大，水花越频繁。 */
 	float RandomRainSplashDelay(RainIntensity intensity)
 	{
@@ -103,19 +170,28 @@ namespace {
 		return 0.0f;
 	}
 
-	int RainTransitionWeightTotal(RainIntensity intensity, bool canIntensify)
+	int RainTransitionWeightTotal(RainIntensity intensity, bool canIntensify,
+		bool canHold, float lateFactor)
 	{
 		switch (intensity) {
 		case RainIntensity::LIGHT:  return canIntensify ? kLightTransitionWeightTotal : 0;
-		case RainIntensity::MEDIUM: return kMediumTransitionWeightTotal;
-		case RainIntensity::HEAVY:  return kHeavyTransitionWeightTotal;
+		case RainIntensity::MEDIUM:
+			return LerpWeatherWeight(kMediumToLightWeight, kLateMediumToLightWeight, lateFactor)
+				+ LerpWeatherWeight(kMediumToClearWeight, kLateMediumToClearWeight, lateFactor)
+				+ (canHold ? kMediumHoldWeight : 0);
+		case RainIntensity::HEAVY:
+			return LerpWeatherWeight(kHeavyToMediumWeight, kLateHeavyToMediumWeight, lateFactor)
+				+ LerpWeatherWeight(kHeavyToLightWeight, kLateHeavyToLightWeight, lateFactor)
+				+ LerpWeatherWeight(kHeavyToClearWeight, kLateHeavyToClearWeight, lateFactor)
+				+ (canHold ? kHeavyHoldWeight : 0);
 		case RainIntensity::CLEAR:  return 0;
 		}
 		return 0;
 	}
 
-	// 把一次权重落点解析为下一雨势。只有一场雨最初的小雨能增强；切档后只会继续衰减。
-	RainIntensity RainTransitionForRoll(RainIntensity intensity, bool canIntensify, int roll)
+	/** 解析动态权重落点；初始小雨可增强，切档后只会继续衰减。 */
+	RainIntensity RainTransitionForRoll(RainIntensity intensity, bool canIntensify,
+		bool canHold, float lateFactor, int roll)
 	{
 		switch (intensity) {
 		case RainIntensity::LIGHT:
@@ -123,16 +199,60 @@ namespace {
 			if (roll <= kLightToMediumWeight) return RainIntensity::MEDIUM;
 			if (roll <= kLightToMediumWeight + kLightToHeavyWeight) return RainIntensity::HEAVY;
 			return RainIntensity::CLEAR;
-		case RainIntensity::MEDIUM:
-			return roll <= kMediumToLightWeight ? RainIntensity::LIGHT : RainIntensity::CLEAR;
-		case RainIntensity::HEAVY:
-			if (roll <= kHeavyToMediumWeight) return RainIntensity::MEDIUM;
-			if (roll <= kHeavyToMediumWeight + kHeavyToLightWeight) return RainIntensity::LIGHT;
-			return RainIntensity::CLEAR;
+		case RainIntensity::MEDIUM: {
+			const int toLight = LerpWeatherWeight(
+				kMediumToLightWeight, kLateMediumToLightWeight, lateFactor);
+			const int toClear = LerpWeatherWeight(
+				kMediumToClearWeight, kLateMediumToClearWeight, lateFactor);
+			if (roll <= toLight) return RainIntensity::LIGHT;
+			if (roll <= toLight + toClear) return RainIntensity::CLEAR;
+			return canHold ? RainIntensity::MEDIUM : RainIntensity::CLEAR;
+		}
+		case RainIntensity::HEAVY: {
+			const int toMedium = LerpWeatherWeight(
+				kHeavyToMediumWeight, kLateHeavyToMediumWeight, lateFactor);
+			const int toLight = LerpWeatherWeight(
+				kHeavyToLightWeight, kLateHeavyToLightWeight, lateFactor);
+			const int toClear = LerpWeatherWeight(
+				kHeavyToClearWeight, kLateHeavyToClearWeight, lateFactor);
+			if (roll <= toMedium) return RainIntensity::MEDIUM;
+			if (roll <= toMedium + toLight) return RainIntensity::LIGHT;
+			if (roll <= toMedium + toLight + toClear) return RainIntensity::CLEAR;
+			return canHold ? RainIntensity::HEAVY : RainIntensity::CLEAR;
+		}
 		case RainIntensity::CLEAR:
 			return RainIntensity::CLEAR;
 		}
 		return RainIntensity::CLEAR;
+	}
+
+	/** 枚举当前状态机真正允许的下一天气，错误预报只能从这些候选中选择。 */
+	int BuildPlausibleForecasts(RainIntensity current, bool canIntensify, bool canHold,
+		std::array<RainIntensity, 4>& forecasts)
+	{
+		switch (current) {
+		case RainIntensity::CLEAR:
+			forecasts = { RainIntensity::CLEAR, RainIntensity::LIGHT,
+				RainIntensity::MEDIUM, RainIntensity::HEAVY };
+			return 4;
+		case RainIntensity::LIGHT:
+			if (!canIntensify) {
+				forecasts[0] = RainIntensity::CLEAR;
+				return 1;
+			}
+			forecasts = { RainIntensity::MEDIUM, RainIntensity::HEAVY, RainIntensity::CLEAR };
+			return 3;
+		case RainIntensity::MEDIUM:
+			forecasts[0] = RainIntensity::LIGHT;
+			forecasts[1] = RainIntensity::CLEAR;
+			if (canHold) forecasts[2] = RainIntensity::MEDIUM;
+			return canHold ? 3 : 2;
+		case RainIntensity::HEAVY:
+			forecasts = { RainIntensity::MEDIUM, RainIntensity::LIGHT,
+				RainIntensity::CLEAR, RainIntensity::HEAVY };
+			return canHold ? 4 : 3;
+		}
+		return 0;
 	}
 }
 
@@ -194,35 +314,108 @@ Board::~Board()
 
 float Board::GetZombieRainSpeedMultiplier() const
 {
-	switch (mRainIntensity) {
-	case RainIntensity::LIGHT:  return kLightZombieSpeed;
-	case RainIntensity::MEDIUM: return kMediumZombieSpeed;
-	case RainIntensity::HEAVY:  return kHeavyZombieSpeed;
-	case RainIntensity::CLEAR:  return 1.0f;
-	}
-	return 1.0f;
+	const float progress = GetWeatherTransitionProgress();
+	const float previous = ZombieSpeedForRain(mPreviousRainIntensity);
+	return previous + (ZombieSpeedForRain(mRainIntensity) - previous) * progress;
 }
 
 float Board::GetPlantRainActionSpeedMultiplier() const
 {
-	switch (mRainIntensity) {
-	case RainIntensity::LIGHT:  return kLightPlantActionSpeed;
-	case RainIntensity::MEDIUM: return kMediumPlantActionSpeed;
-	case RainIntensity::HEAVY:  return kHeavyPlantActionSpeed;
-	case RainIntensity::CLEAR:  return 1.0f;
-	}
-	return 1.0f;
+	const float progress = GetWeatherTransitionProgress();
+	const float previous = PlantSpeedForRain(mPreviousRainIntensity);
+	return previous + (PlantSpeedForRain(mRainIntensity) - previous) * progress;
 }
 
 float Board::GetRainOverlayAlpha() const
 {
-	switch (mRainIntensity) {
-	case RainIntensity::LIGHT:  return kLightOverlayAlpha;
-	case RainIntensity::MEDIUM: return kMediumOverlayAlpha;
-	case RainIntensity::HEAVY:  return kHeavyOverlayAlpha;
-	case RainIntensity::CLEAR:  return 0.0f;
+	const float progress = GetWeatherTransitionProgress();
+	const float previous = OverlayAlphaForRain(mPreviousRainIntensity);
+	return previous + (OverlayAlphaForRain(mRainIntensity) - previous) * progress;
+}
+
+/** 后期强度按波次推进；无尽模式额外按轮次抬高下限，防止新一轮又退回早期天气。 */
+float Board::GetWeatherLateGameFactor() const
+{
+	const float waveProgress = mMaxWave > 0
+		? std::clamp(static_cast<float>(mCurrentWave) / static_cast<float>(mMaxWave), 0.0f, 1.0f)
+		: 0.0f;
+	float overallProgress = waveProgress;
+	if (mIsSurvival && kSurvivalLateWeatherFullRound > 1) {
+		const float roundProgress = std::clamp(
+			static_cast<float>(mSurvivalRound - 1)
+				/ static_cast<float>(kSurvivalLateWeatherFullRound - 1), 0.0f, 1.0f);
+		overallProgress = std::max(overallProgress, roundProgress);
 	}
-	return 0.0f;
+
+	const float linear = std::clamp((overallProgress - kLateWeatherRampStart)
+		/ (1.0f - kLateWeatherRampStart), 0.0f, 1.0f);
+	return linear * linear * (3.0f - 2.0f * linear);
+}
+
+/** 返回当前两秒天气过渡的平滑进度；无过渡时视为已经到达目标雨势。 */
+float Board::GetWeatherTransitionProgress() const
+{
+	if (mWeatherTransitionTimer <= 0.0f) return 1.0f;
+	const float linear = std::clamp(1.0f
+		- mWeatherTransitionTimer / kWeatherTransitionDuration, 0.0f, 1.0f);
+	return linear * linear * (3.0f - 2.0f * linear);
+}
+
+/** 雨声音量与暗幕、玩法倍率共用同一平滑进度。 */
+float Board::GetRainAudioVolume() const
+{
+	const float progress = GetWeatherTransitionProgress();
+	const float previous = RainVolumeForIntensity(mPreviousRainIntensity);
+	return previous + (RainVolumeForIntensity(mRainIntensity) - previous) * progress;
+}
+
+/** 立即把天气枚举切到目标，同时保留旧雨势供后续两秒插值。 */
+void Board::BeginWeatherTransition(RainIntensity target)
+{
+	mPreviousRainIntensity = mRainIntensity;
+	mRainIntensity = target;
+	mWeatherTransitionTimer = mPreviousRainIntensity == target
+		? 0.0f : kWeatherTransitionDuration;
+}
+
+/** 从存档恢复过渡；旧档、同雨势或归零状态直接按目标天气稳定显示。 */
+void Board::RestoreWeatherTransition(RainIntensity previous, float remaining)
+{
+	mPreviousRainIntensity = previous;
+	mWeatherTransitionTimer = std::clamp(remaining, 0.0f, kWeatherTransitionDuration);
+	if (mWeatherTransitionTimer <= 0.0f || mPreviousRainIntensity == mRainIntensity) {
+		mPreviousRainIntensity = mRainIntensity;
+		mWeatherTransitionTimer = 0.0f;
+	}
+}
+
+/** 推进倍率、暗幕和雨声的统一过渡；结束放晴过渡后才真正停止循环雨声。 */
+void Board::UpdateWeatherTransition(float deltaTime)
+{
+	if (mWeatherTransitionTimer <= 0.0f) return;
+	mWeatherTransitionTimer = std::max(0.0f, mWeatherTransitionTimer - deltaTime);
+	RefreshZombieWeatherSpeeds();
+
+	if (mRainIntensity != RainIntensity::CLEAR
+		|| mPreviousRainIntensity != RainIntensity::CLEAR) {
+		StartRainAudio();
+	}
+	if (mWeatherTransitionTimer <= 0.0f) {
+		mPreviousRainIntensity = mRainIntensity;
+		RefreshZombieWeatherSpeeds();
+		if (mRainIntensity == RainIntensity::CLEAR) StopRainAudio();
+		else StartRainAudio();
+	}
+}
+
+/** AutoTest 固定状态使用：跳过视觉过渡并立即应用目标天气的最终倍率与声音。 */
+void Board::FinishWeatherTransitionImmediately()
+{
+	mPreviousRainIntensity = mRainIntensity;
+	mWeatherTransitionTimer = 0.0f;
+	RefreshZombieWeatherSpeeds();
+	if (mRainIntensity == RainIntensity::CLEAR) StopRainAudio();
+	else StartRainAudio();
 }
 
 void Board::InitializeWeather()
@@ -233,11 +426,14 @@ void Board::InitializeWeather()
 	// 白天把倒计时保持为 0，并由 UpdateWeather 直接跳过。
 	mWeatherInitialized = true;
 	mRainIntensity = RainIntensity::CLEAR;
+	mPreviousRainIntensity = RainIntensity::CLEAR;
 	mForecastRainIntensity = RainIntensity::CLEAR;
 	mActualForecastRainIntensity = RainIntensity::CLEAR;
 	mLightningTimer = 0.0f;
 	mRainSplashTimer = 0.0f;
 	mRainCanIntensify = false;
+	mRainCanHold = false;
+	mWeatherTransitionTimer = 0.0f;
 	mWeatherForecastReady = false;
 	mRainVisualActive = false;
 	mWeatherTimer = GameAPP::GetInstance().GetBackgroundIsNight(mBackGround)
@@ -302,15 +498,11 @@ bool Board::IsRainEffectEmitting() const
 
 void Board::StartRainAudio()
 {
-	float volume = kLightRainVolume;
-	switch (mRainIntensity) {
-	case RainIntensity::LIGHT:  volume = kLightRainVolume; break;
-	case RainIntensity::MEDIUM: volume = kMediumRainVolume; break;
-	case RainIntensity::HEAVY:  volume = kHeavyRainVolume; break;
-	case RainIntensity::CLEAR:  return;
-	}
+	if (mRainIntensity == RainIntensity::CLEAR
+		&& (mWeatherTransitionTimer <= 0.0f
+			|| mPreviousRainIntensity == RainIntensity::CLEAR)) return;
 	// 原版 FoleyType.Rain 绑定 SOUND_RAIN 且带 Loop 标志；这里只把音量按雨势分层。
-	AudioSystem::PlayLoopingSound(ResourceKeys::Sounds::SOUND_RAIN, volume);
+	AudioSystem::PlayLoopingSound(ResourceKeys::Sounds::SOUND_RAIN, GetRainAudioVolume());
 }
 
 void Board::StopRainAudio()
@@ -321,34 +513,64 @@ void Board::StopRainAudio()
 /** 按当前阶段规则抽取下一天气；只由预警准备阶段调用一次。 */
 RainIntensity Board::RollNextWeather()
 {
+	const float lateFactor = GetWeatherLateGameFactor();
 	if (mRainIntensity == RainIntensity::CLEAR) {
-		const int roll = GameRandom::Range(1, kRainWeightTotal);
-		if (roll <= kLightRainWeight) return RainIntensity::LIGHT;
-		if (roll <= kLightRainWeight + kMediumRainWeight) return RainIntensity::MEDIUM;
+		const int holdWeight = LerpWeatherWeight(
+			kClearHoldWeight, kLateClearHoldWeight, lateFactor);
+		const int lightWeight = LerpWeatherWeight(
+			kLightRainWeight, kLateLightRainWeight, lateFactor);
+		const int heavyWeight = LerpWeatherWeight(
+			kHeavyRainWeight, kLateHeavyRainWeight, lateFactor);
+		const int total = holdWeight + lightWeight + kMediumRainWeight + heavyWeight;
+		const int roll = GameRandom::Range(1, total);
+		if (roll <= holdWeight) return RainIntensity::CLEAR;
+		if (roll <= holdWeight + lightWeight) return RainIntensity::LIGHT;
+		if (roll <= holdWeight + lightWeight + kMediumRainWeight) return RainIntensity::MEDIUM;
 		return RainIntensity::HEAVY;
 	}
 
-	const int total = RainTransitionWeightTotal(mRainIntensity, mRainCanIntensify);
+	const int total = RainTransitionWeightTotal(
+		mRainIntensity, mRainCanIntensify, mRainCanHold, lateFactor);
 	if (total <= 0) return RainIntensity::CLEAR;
-	return RainTransitionForRoll(mRainIntensity, mRainCanIntensify,
+	return RainTransitionForRoll(mRainIntensity, mRainCanIntensify, mRainCanHold, lateFactor,
 		GameRandom::Range(1, total));
 }
 
-/** 在阶段结束前锁定真实天气，并以 75% 准确率生成玩家看到的公开预报。 */
+/** 锁定真实天气，并在存在其他合法候选时以 75% 准确率生成公开预报。 */
 void Board::PrepareWeatherForecast()
 {
 	if (mWeatherForecastReady) return;
 	mActualForecastRainIntensity = RollNextWeather();
 	mForecastRainIntensity = mActualForecastRainIntensity;
 
-	// 失败预报从其余三种天气中等概率选择，确保失败时一定能在揭晓瞬间被看出来。
+	// 错误预报仍须符合当前状态机：晴天不会预报晴天，确定性尾段小雨则强制报准。
 	if (GameRandom::Range(1, 100) > kWeatherForecastAccuracyPercent) {
-		int wrongWeather = GameRandom::Range(0, 2);
-		const int actualWeather = static_cast<int>(mActualForecastRainIntensity);
-		if (wrongWeather >= actualWeather) ++wrongWeather;
-		mForecastRainIntensity = static_cast<RainIntensity>(wrongWeather);
+		std::array<RainIntensity, 4> plausible{};
+		const int plausibleCount = BuildPlausibleForecasts(
+			mRainIntensity, mRainCanIntensify, mRainCanHold, plausible);
+		std::array<RainIntensity, 4> wrongForecasts{};
+		int wrongCount = 0;
+		for (int i = 0; i < plausibleCount; ++i) {
+			if (plausible[i] != mActualForecastRainIntensity) {
+				wrongForecasts[wrongCount++] = plausible[i];
+			}
+		}
+		if (wrongCount > 0) {
+			mForecastRainIntensity = wrongForecasts[GameRandom::Range(0, wrongCount - 1)];
+		}
 	}
 	mWeatherForecastReady = true;
+}
+
+/** 检查公开预报是否落在当前状态机的合法候选中，供界面诊断与 AutoTest 使用。 */
+bool Board::IsWeatherForecastPlausible() const
+{
+	if (!mWeatherForecastReady) return true;
+	std::array<RainIntensity, 4> plausible{};
+	const int plausibleCount = BuildPlausibleForecasts(
+		mRainIntensity, mRainCanIntensify, mRainCanHold, plausible);
+	return std::find(plausible.begin(), plausible.begin() + plausibleCount,
+		mForecastRainIntensity) != plausible.begin() + plausibleCount;
 }
 
 /** 揭晓锁定的真实天气；预报错误时通知场景显示非模态失败提示。 */
@@ -371,7 +593,7 @@ void Board::ConsumeWeatherForecast()
 			return;
 		}
 		BeginRain(next, GameRandom::Range(kRainDurationMin, kRainDurationMax),
-			next == RainIntensity::LIGHT);
+			next == RainIntensity::LIGHT, true);
 		return;
 	}
 
@@ -379,18 +601,19 @@ void Board::ConsumeWeatherForecast()
 		EndRain();
 		return;
 	}
-	// 任意一次切档都会关闭增强资格，后续只走有界衰减链。
-	BeginRain(next, GameRandom::Range(kRainTailDurationMin, kRainTailDurationMax), false);
+	// 同档续期或真正切档都会消费本场唯一续期资格，后续只走有界衰减链。
+	BeginRain(next, GameRandom::Range(kRainTailDurationMin, kRainTailDurationMax), false, false);
 }
 
-void Board::BeginRain(RainIntensity intensity, float duration, bool canIntensify)
+void Board::BeginRain(RainIntensity intensity, float duration, bool canIntensify, bool canHold)
 {
 	if (intensity == RainIntensity::CLEAR || duration <= 0.0f) return;
-	mRainIntensity = intensity;
+	BeginWeatherTransition(intensity);
 	mForecastRainIntensity = RainIntensity::CLEAR;
 	mActualForecastRainIntensity = RainIntensity::CLEAR;
 	mWeatherTimer = duration;
 	mRainCanIntensify = canIntensify && intensity == RainIntensity::LIGHT;
+	mRainCanHold = canHold && intensity != RainIntensity::LIGHT;
 	mWeatherForecastReady = false;
 	mRainSplashTimer = RandomRainSplashDelay(intensity);
 	mLightningTimer = (intensity == RainIntensity::HEAVY)
@@ -398,6 +621,7 @@ void Board::BeginRain(RainIntensity intensity, float duration, bool canIntensify
 		: 0.0f;
 	mRainVisualActive = false;
 	RefreshZombieWeatherSpeeds();
+	// 同档续期也新建发射器，让旧雨丝自然收尾并与新雨段无缝衔接。
 	EmitRainEffect(duration);
 	StartRainAudio();
 	if (mGameScene) mGameScene->ShowCurrentWeatherNotice();
@@ -406,29 +630,32 @@ void Board::BeginRain(RainIntensity intensity, float duration, bool canIntensify
 void Board::FinishRainPhase(int transitionRoll)
 {
 	const RainIntensity next = RainTransitionForRoll(
-		mRainIntensity, mRainCanIntensify, transitionRoll);
+		mRainIntensity, mRainCanIntensify, mRainCanHold,
+		GetWeatherLateGameFactor(), transitionRoll);
 	if (next == RainIntensity::CLEAR) {
 		EndRain();
 		return;
 	}
 
-	// 切档后的雨段统一进入衰减链，不再拥有增强资格，因此状态转移必然在有限步内放晴。
-	BeginRain(next, GameRandom::Range(kRainTailDurationMin, kRainTailDurationMax), false);
+	// 同档续期或切档后统一进入衰减链，不再拥有增强或继续维持资格。
+	BeginRain(next, GameRandom::Range(kRainTailDurationMin, kRainTailDurationMax), false, false);
 }
 
 void Board::EndRain()
 {
-	StopRainAudio();
-	mRainIntensity = RainIntensity::CLEAR;
+	BeginWeatherTransition(RainIntensity::CLEAR);
 	mForecastRainIntensity = RainIntensity::CLEAR;
 	mActualForecastRainIntensity = RainIntensity::CLEAR;
 	mWeatherTimer = GameRandom::Range(kClearWeatherDelayMin, kClearWeatherDelayMax);
 	mLightningTimer = 0.0f;
 	mRainSplashTimer = 0.0f;
 	mRainCanIntensify = false;
+	mRainCanHold = false;
 	mWeatherForecastReady = false;
 	mRainVisualActive = false;
 	RefreshZombieWeatherSpeeds();
+	if (mWeatherTransitionTimer > 0.0f) StartRainAudio();
+	else StopRainAudio();
 	if (mGameScene) mGameScene->ShowCurrentWeatherNotice();
 }
 
@@ -443,9 +670,10 @@ void Board::UpdateWeather(float deltaTime)
 {
 	if (!mWeatherInitialized || deltaTime <= 0.0f ||
 		!GameAPP::GetInstance().GetBackgroundIsNight(mBackGround)) return;
+	UpdateWeatherTransition(deltaTime);
 
-	// 每帧只推进当前阶段的倒计时。雨中归零会按当前强度决定增强、衰减或放晴；
-	// CLEAR 阶段归零则抽取一场新雨，形成有界的 CLEAR→RAIN(可多段)→CLEAR 循环。
+	// 每帧只推进当前阶段的倒计时。雨中归零会按当前强度决定续期、增强、衰减或放晴；
+	// CLEAR 阶段归零可继续晴天或进入新雨，雨链本身仍按资格形成有界循环。
 	mWeatherTimer -= deltaTime;
 	if (mWeatherTimer <= kWeatherForecastLeadTime && !mWeatherForecastReady) {
 		PrepareWeatherForecast();
@@ -477,6 +705,8 @@ void Board::SetRainForTesting(RainIntensity intensity, float duration, bool canI
 	if (g_particleSystem) g_particleSystem->ClearAll();
 	StopRainAudio();
 	mWeatherInitialized = true;
+	mPreviousRainIntensity = mRainIntensity;
+	mWeatherTransitionTimer = 0.0f;
 	mForecastRainIntensity = RainIntensity::CLEAR;
 	mActualForecastRainIntensity = RainIntensity::CLEAR;
 	mWeatherForecastReady = false;
@@ -484,15 +714,18 @@ void Board::SetRainForTesting(RainIntensity intensity, float duration, bool canI
 
 	if (intensity == RainIntensity::CLEAR) {
 		mRainIntensity = RainIntensity::CLEAR;
+		mPreviousRainIntensity = RainIntensity::CLEAR;
 		mWeatherTimer = std::max(duration, 0.1f);
 		mLightningTimer = 0.0f;
 		mRainSplashTimer = 0.0f;
 		mRainCanIntensify = false;
-		RefreshZombieWeatherSpeeds();
+		mRainCanHold = false;
+		FinishWeatherTransitionImmediately();
 		if (mGameScene) mGameScene->ShowCurrentWeatherNotice();
 		return;
 	}
-	BeginRain(intensity, std::max(duration, 0.1f), canIntensify);
+	BeginRain(intensity, std::max(duration, 0.1f), canIntensify, true);
+	FinishWeatherTransitionImmediately();
 }
 
 bool Board::SetWeatherForecastForTesting(RainIntensity forecast, RainIntensity actual, float revealIn)
@@ -510,7 +743,9 @@ bool Board::SetWeatherForecastForTesting(RainIntensity forecast, RainIntensity a
 bool Board::AdvanceRainPhaseForTesting(int transitionRoll)
 {
 	if (mRainIntensity == RainIntensity::CLEAR) return false;
-	const int total = RainTransitionWeightTotal(mRainIntensity, mRainCanIntensify);
+	const float lateFactor = GetWeatherLateGameFactor();
+	const int total = RainTransitionWeightTotal(
+		mRainIntensity, mRainCanIntensify, mRainCanHold, lateFactor);
 	if (total > 0 && (transitionRoll < 1 || transitionRoll > total)) return false;
 
 	// 测试会在雨段尚未自然到期时强制切档；先清旧雨丝，模拟生产路径中旧发射器已到期。
@@ -518,6 +753,7 @@ bool Board::AdvanceRainPhaseForTesting(int transitionRoll)
 	mRainVisualActive = false;
 	if (total > 0) FinishRainPhase(transitionRoll);
 	else EndRain();
+	FinishWeatherTransitionImmediately();
 	return true;
 }
 
@@ -1253,8 +1489,14 @@ void Board::StartGame()
 	if (mRainIntensity != RainIntensity::CLEAR && !mRainVisualActive)
 	{
 		EmitRainEffect(mWeatherTimer);
+	}
+	// 雨转晴途中读档时目标枚举已经是 CLEAR，但旧雨声仍应按剩余过渡时间淡出。
+	if (mRainIntensity != RainIntensity::CLEAR
+		|| (mWeatherTransitionTimer > 0.0f
+			&& mPreviousRainIntensity != RainIntensity::CLEAR)) {
 		StartRainAudio();
 	}
+	RefreshZombieWeatherSpeeds();
 
 	PlayBackgroundMusic();
 }

@@ -2,7 +2,7 @@
 
 > Codex routing: required always-on rules live in `../../AGENTS.md`; detailed build, AutoTest, architecture, resource, and implementation guidance lives in `../agent-guide/PROJECT_GUIDE.md`. The entries below are historical subsystem context and should be read only when relevant.
 
-- [黑夜随机雨势天气](project_pvz_night_rain_weather.md) — 2026-07-20 小/中/大雨替代黑夜墓碑：主人 `5239d44` 定稿长雨段与倍率；固定循环雨池+Board 自愈，原版水花与分档 SOUND_RAIN；阶段结束前 15 秒预警，公开预报 75% 准确，错误时非模态揭晓提示；公开/真实结果、5 秒展板余时及失败提示余时/内容均随天气存档，读档不重播已消失 UI
+- [黑夜随机雨势天气](project_pvz_night_rain_weather.md) — 2026-07-20 小/中/大雨替代黑夜墓碑：后期按波次/生存轮次提高大雨并压低小雨尾段；晴天可续晴、中/大雨每场最多续一次，预报同档显示“持续”；切档用 2 秒同步渐变倍率、暗幕和雨声且过渡可存档；75% 预报失败时只选状态机合法候选；展板与失败提示续播状态随天气存档
 - [土豆地雷出土触发与范围爆炸](project_pvz_potato_mine_trigger_blast.md) — 2026-07-20 修复埋地时已被啃导致出土后不爆：出土跃迁若 `mEaterCount>0` 主动补触发；爆炸按原版同排半径60圆×僵尸矩形一次结算全部非魅惑目标，不再只杀碰撞触发者；可见 `smoke_potatomine.json` 独立覆盖先啃后出土与已出土双目标范围爆炸
 - [Bullet 地面阴影与跨对象绘制顺序](project_pvz_bullet_shadow.md) — 2026-07-19 对齐 C#：Pea 单格21×9、Snowpea 1.3×、Puff无影；对象池复用时按row/position重算；阴影由 BulletPool 在 GOM 主体前统一提交，不能靠 Component::SetDrawOrder 跨越植物/Bullet对象层；主人校对 Y 与同排豌豆射手影子一致；可见 `smoke_bullet_shadow.json` 验普通/寒冰子弹穿过坚果时本体在上、影子在下
 - [九关制冒险进度+显式植物奖励表](project_pvz_adventure_progression.md) — 2026-07-18 `AdventureProgression.h` 统一每大关9小关、关卡显示/背景/奖励同源；奖励表显式写每关植物或 `NO_PLANT_REWARD`，1-8无植物、1-9小喷菇；禁止再用关卡号强转PlantType（旧存档按整数保存枚举）；AutoTest `smoke_adventure_progression.json` 覆盖全部背景边界与8/9关奖励

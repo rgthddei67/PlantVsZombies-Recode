@@ -172,11 +172,14 @@ bool GameInfoSaver::SaveLevelDataImpl(Board* board, CardSlotManager* manager)
 	j["boardFrame"] = board->mBoardFrame;   // 舞王全队齐舞的节拍源，读档保节拍连续
 	j["weatherInitialized"] = board->mWeatherInitialized;
 	j["rainIntensity"] = static_cast<int>(board->mRainIntensity);
+	j["previousRainIntensity"] = static_cast<int>(board->mPreviousRainIntensity);
 	j["forecastRainIntensity"] = static_cast<int>(board->mForecastRainIntensity);
 	j["actualForecastRainIntensity"] = static_cast<int>(board->mActualForecastRainIntensity);
 	j["weatherTimer"] = board->mWeatherTimer;
+	j["weatherTransitionTimer"] = board->mWeatherTransitionTimer;
 	j["lightningTimer"] = board->mLightningTimer;
 	j["rainCanIntensify"] = board->mRainCanIntensify;
+	j["rainCanHold"] = board->mRainCanHold;
 	j["weatherForecastReady"] = board->mWeatherForecastReady;
 	j["currentWeatherNoticeTimer"] = board->mGameScene
 		? board->mGameScene->GetCurrentWeatherNoticeTimer() : 0.0f;
@@ -437,6 +440,13 @@ bool GameInfoSaver::LoadLevelDataImpl(Board* board, CardSlotManager* manager)
 	board->mRainIntensity = (rainValue >= static_cast<int>(RainIntensity::CLEAR)
 		&& rainValue <= static_cast<int>(RainIntensity::HEAVY))
 		? static_cast<RainIntensity>(rainValue) : RainIntensity::CLEAR;
+	const int previousRainValue = j.value("previousRainIntensity", rainValue);
+	const bool validPreviousRain = previousRainValue >= static_cast<int>(RainIntensity::CLEAR)
+		&& previousRainValue <= static_cast<int>(RainIntensity::HEAVY);
+	// 旧档没有过渡字段时直接落在目标天气；损坏枚举也按目标天气稳定恢复。
+	board->RestoreWeatherTransition(
+		validPreviousRain ? static_cast<RainIntensity>(previousRainValue) : board->mRainIntensity,
+		validPreviousRain ? j.value("weatherTransitionTimer", 0.0f) : 0.0f);
 	const int forecastRainValue = j.value("forecastRainIntensity",
 		static_cast<int>(RainIntensity::CLEAR));
 	const bool validForecastRain = forecastRainValue >= static_cast<int>(RainIntensity::CLEAR)
@@ -477,6 +487,10 @@ bool GameInfoSaver::LoadLevelDataImpl(Board* board, CardSlotManager* manager)
 	// 旧版天气存档没有该字段时按 false：少一次增强机会比读档后凭空再增强更稳妥。
 	board->mRainCanIntensify = board->mRainIntensity == RainIntensity::LIGHT
 		&& j.value("rainCanIntensify", false);
+	// 旧档没有续期字段时按已消费处理；小雨永远不开放同档续期。
+	board->mRainCanHold = (board->mRainIntensity == RainIntensity::MEDIUM
+		|| board->mRainIntensity == RainIntensity::HEAVY)
+		&& j.value("rainCanHold", false);
 	board->mRainVisualActive = false;   // 粒子不入存档，StartGame 按剩余时间重建
 	board->mMaxWave = j.value("maxWave", 10);
 	board->mZombieCountDown = j.value("zombieCountDown", 20.0f);

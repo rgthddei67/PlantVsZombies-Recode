@@ -198,6 +198,9 @@ void GameScene::DrawWeatherPanel(Graphics* g) const
 		const int seconds = std::max(0, static_cast<int>(std::ceil(mBoard->GetWeatherTimer())));
 		forecastLine = std::string(u8"天气预警（") + std::to_string(seconds)
 			+ u8"秒）：" + RainIntensityDisplayName(mBoard->GetForecastRainIntensity());
+		if (mBoard->GetForecastRainIntensity() == mBoard->GetRainIntensity()) {
+			forecastLine += u8"（持续）";
+		}
 		forecastColor = RainIntensityTextColor(mBoard->GetForecastRainIntensity(), alpha);
 	}
 

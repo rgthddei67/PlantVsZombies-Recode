@@ -739,10 +739,15 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			board->GetPerkManager().GetPlantAttackSpeedMultiplier());
 		out["weather"] = {
 			{ "intensity", RainIntensityName(board->GetRainIntensity()) },
+			{ "previousIntensity", RainIntensityName(board->GetPreviousRainIntensity()) },
 			{ "initialized", board->IsWeatherInitialized() },
+			{ "transitionOn", board->IsWeatherTransitionActive() },
+			{ "transitionRemaining", board->GetWeatherTransitionTimer() },
 			{ "canIntensify", board->CanRainIntensify() },
+			{ "canHold", board->CanRainHold() },
 			{ "forecastReady", board->HasWeatherForecast() },
 			{ "forecastIntensity", RainIntensityName(board->GetForecastRainIntensity()) },
+			{ "forecastPlausible", board->IsWeatherForecastPlausible() },
 			{ "remaining", board->GetWeatherTimer() },
 			{ "lightningRemaining", board->GetLightningTimer() },
 			{ "zombieSpeedPct", static_cast<int>(std::lround(zombieRain * 100.0f)) },
