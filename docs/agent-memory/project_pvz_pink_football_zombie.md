@@ -14,4 +14,4 @@ metadata:
 
 验证：clang-release 增量构建成功（C++ 编译/链接无 warning；vcpkg applocal 仍有环境既知的 objdump 缺失诊断但 exit 0）。主人当前桌面可见运行 `smoke_pink_football_helmet` 与 `smoke_pink_football_bite`，两者 exit 0、`run.log` 均 `script finished OK`；精确断言覆盖夜晚 spawn、220/900、掉盔后核桃 4000→3980、首口 4000→3600、后续 3600→3560、死亡后 zombieCount=0，逐张截图确认站立/啃食/掉盔贴图无错位。
 
-主人查收后的经验回写：①普通 shell 的 `Start-Process -WindowStyle Normal` 仍可能处于隔离会话，可靠可见启动必须同时满足 `build/<preset>` 工作目录和 `require_escalated` 桌面权限；已同步到 `PROJECT_GUIDE.md` 与 adding-zombie 验证章。②同构变体直接调用父类 `SetupZombie()` 复用既有帧事件，再按目标倍率/父类倍率补速度差，避免重复注册事件；已改写 adding-zombie 原先“一律不调基类”的过度规则。③adding-particle 已完整覆盖本次掉盔/断臂粒子，没有新增粒子语义，故不做重复修改。
+主人查收后的经验回写：①普通 shell 的 `Start-Process -WindowStyle Normal` 仍可能处于隔离会话，可靠可见启动必须同时满足 `build/<preset>` 工作目录和 `require_escalated` 桌面权限；已同步到常驻 `AGENTS.md`、`PROJECT_GUIDE.md` 与 adding-zombie 验证章。②同构变体直接调用父类 `SetupZombie()` 复用既有帧事件，再按目标倍率/父类倍率补速度差，避免重复注册事件；已改写 adding-zombie 原先“一律不调基类”的过度规则。③adding-particle 已完整覆盖本次掉盔/断臂粒子，没有新增粒子语义，故不做重复修改。
