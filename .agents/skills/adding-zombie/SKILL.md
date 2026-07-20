@@ -1,6 +1,6 @@
 ---
 name: adding-zombie
-description: Use when adding a new zombie (新增僵尸) to PvZ — 含防具僵尸、召唤/编队僵尸(舞王式)、出土/入地、断肢断头、掉装备粒子、与魅惑交互的僵尸 — proven on DancerZombie+BackupDancerZombie (舞王+伴舞).
+description: Use when adding a new zombie (新增僵尸) to PvZ — 含防具/换皮数值变体、召唤/编队僵尸(舞王式)、出土/入地、断肢断头、掉装备粒子、与魅惑交互的僵尸 — proven on DancerZombie+BackupDancerZombie and PinkFootballZombie.
 ---
 
 # 给 PvZ 新增僵尸
@@ -18,7 +18,9 @@ description: Use when adding a new zombie (新增僵尸) to PvZ — 含防具僵
 ## 实现清单
 
 1. **类**：`Game/Zombie/<Name>.h/.cpp`，抄最像的现有僵尸（护盾换图=PaperZombie；状态机+覆写碰撞=Polevaulter；手臂显隐对称钩子=DoorZombie；召唤/编队=DancerZombie+BackupDancerZombie）。HP/速度硬编码在 `SetupZombie()`（不在 gamedata.json）。
-2. **SetupZombie 覆写不调基类** → 基类的三件事自己接管：帧事件注册（Die 一次性 + EatTarget `repeating=true`，帧号=全时间线绝对帧，只在所属剪辑段播放时经过）、走路起播、`mIsPreview` 分支（预览只 PlayTrack 不注册事件）。
+2. **SetupZombie 先判定“复用父类”还是“完全接管”**：
+   - **同一套 reanim/轨道/事件时序的换皮或数值变体**，优先调用最近父类的 `SetupZombie()`，再覆盖 HP、攻击和速度差额；这样直接复用已经验证过的 Die/EatTarget 事件，禁止重复 `AddFrameEvent`。父类已经乘过移速时，用“目标倍率 / 父类倍率”补差（粉色橄榄球 1.85/1.7 实证），不要再乘完整目标倍率。
+   - **新 reanim、事件时序不同或状态机需要替换父类初始化**，才不调基类并自己接管三件事：帧事件注册（Die 一次性 + EatTarget `repeating=true`，帧号=全时间线绝对帧，只在所属剪辑段播放时经过）、走路起播、`mIsPreview` 分支（预览只 PlayTrack 不注册事件）。任何新增帧号仍必须先问主人。
 3. **枚举移动 + 空工厂窗口**：把枚举移到哨兵前的**同一提交**必须补齐两份 gamedata.json 条目（缺字段拒启动 exit -6）；若工厂注册在后续提交，**weight 先填 0**（哨兵前+非零权重+无工厂=生存随机抽中即空指针），注册后再解封。
 4. **注册**：`GameDataManager.cpp` `#include` + `RegisterZombie(type, "ZOMBIE_X", ANIM_X, "ReanimName", &MakeZombie<T>)`——animName 必须与 resources.xml 的 `<Reanimation name>` 一致。
 5. **gamedata.json ×2 preset**：`{weight, appearWave, survivalRound, offset, scale}` 五字段缺一不可；只能被召唤的僵尸 `weight: 0`（永不被抽中，AutoTest spawn_zombie 仍可直造）。注意 weight 一物两用=抽中权重+生存点数成本。
@@ -51,7 +53,7 @@ description: Use when adding a new zombie (新增僵尸) to PvZ — 含防具僵
 ## 验证（缺一不可）
 
 1. `clang-release` 构建 0 warning；新 .cpp 未被编译先 `cmake --preset clang-release` reconfigure。
-2. **AutoTest 冒烟**：`autotest/scripts/smoke_<name>.json`。断言抓手：`zombies.N.type/hasArm/armVisible/hasHead/track/mindControlled`（type 是字符串枚举名）。**exit 0 ≠ 通过**：逐张 Read 截图（断肢前后、编队站位、出土中段——注意升起初期整体在地面线下被裁掉是正确的，截图要卡升起 60% 时点）。
+2. **AutoTest 冒烟**：`autotest/scripts/smoke_<name>.json`。默认按 `PROJECT_GUIDE.md` 的“当前桌面可见启动”方案运行：从 `build/<preset>/` 工作目录，用提升权限的 `Start-Process -WindowStyle Normal -PassThru` 启动并等待退出；普通沙箱 shell 即使写了 `WindowStyle Normal` 也可能落在隔离会话，主人桌面完全看不到。断言抓手：`zombies.N.type/hasArm/armVisible/hasHead/track/mindControlled`（type 是字符串枚举名）。**exit 0 ≠ 通过**：逐张 Read 截图（断肢前后、编队站位、出土中段——注意升起初期整体在地面线下被裁掉是正确的，截图要卡升起 60% 时点）。
 3. **死亡消失必须专门测**（末-1 帧陷阱专项）：豌豆打死→dump 确认该 type 消失+run.log 无 WATCHDOG。炸弹类走 Die() 直杀路径，**测不到**死亡帧事件。
 4. 时序：`wait_seconds` 是游戏秒；关卡 20 秒起第一波普通僵尸会混入 dump，别断言"场上为空"。
 5. 站位/影子不对 → 本体调 gamedata offset（免编译）、影子调代码 `ShadowComponent`。
@@ -64,6 +66,8 @@ description: Use when adding a new zombie (新增僵尸) to PvZ — 含防具僵
 
 复杂僵尸（状态机/召唤/新机制）走完整 brainstorm（关键决策逐项问主人：帧号、断肢方案、召唤细节、魅惑交互）→spec→writing-plans；换皮/纯防具类可简短 spec 直实现。模板：`docs/superpowers/specs+plans/2026-07-10-dancer-zombie*.md`。commit 由 Codex 做、push 等主人发话。
 
+**主人确认查收后必须做一次经验复盘**：检查本次是否出现可推广的新契约、foot-gun 或验证手法；若有，更新本次实际使用的 skill（以及需要统一遵守的 `PROJECT_GUIDE.md` / 项目记忆），若没有则明确判断“无需更新”，不要为了留痕重复旧规则。该复盘是每个新僵尸的收尾步骤。
+
 ## 关联记忆
 
-`[[project_pvz_dancer_zombie]]`（本 skill 起源+全部 foot-gun 现场）、`[[project_pvz_zombie_eat_walk_state_machine]]`（走路权威/啃食钩子）、`[[project_pvz_charmed_zombie_feature]]`（魅惑契约）、`[[project_pvz_gamedata_json]]`（双 preset）。
+`[[project_pvz_dancer_zombie]]`（本 skill 起源+全部 foot-gun 现场）、`[[project_pvz_pink_football_zombie]]`（同构父类初始化复用+可见桌面测试）、`[[project_pvz_zombie_eat_walk_state_machine]]`（走路权威/啃食钩子）、`[[project_pvz_charmed_zombie_feature]]`（魅惑契约）、`[[project_pvz_gamedata_json]]`（双 preset）。

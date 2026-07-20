@@ -52,14 +52,22 @@
 启动参数 `-AutoTest <script.json>` 会通过 JSON 脚本自动驱动游戏（进入关卡、选卡、种植、生成僵尸、截图、导出状态，然后退出）。Codex 可以独立完成“修改代码 → 构建 → 运行脚本 → 读取截图验证”的完整闭环，无需主人手动提供游戏截图。
 
 - **脚本位置：** `autotest/scripts/*.json`（纯数据，不属于编译目标；修改脚本无需重新编译）。
-- **运行方式（工作目录必须是 exe 所在的 `build\<preset>\`）：**
+- **运行方式（工作目录必须是 exe 所在的 `build\<preset>\`）：** Codex 默认必须让窗口显示在主人当前桌面。GUI 启动属于沙箱外桌面操作，调用 shell 时使用 `sandbox_permissions="require_escalated"`；仅写 `-WindowStyle Normal` 而不提升权限，进程仍可能落入隔离会话、主人看不到。推荐命令：
 
   ```powershell
-  Push-Location build\clang-release   # 或 build\msvc-debug
-  .\PlantsVsZombies.exe -AutoTest ..\..\autotest\scripts\demo_peashooter.json -Seed 42
-  $LASTEXITCODE   # 0=成功；1=命令失败/超时；100=脚本解析失败
+  Push-Location build\clang-release   # 或 build\msvc-debug；必须作为 WorkingDirectory
+  $exe = (Resolve-Path '.\PlantsVsZombies.exe').Path
+  $script = (Resolve-Path '..\..\autotest\scripts\demo_peashooter.json').Path
+  $process = Start-Process -FilePath $exe `
+    -ArgumentList @('-AutoTest', "`"$script`"", '-Seed', '42') `
+    -WorkingDirectory (Get-Location).Path -WindowStyle Normal -PassThru
+  $process.WaitForExit()
+  $exitCode = $process.ExitCode   # 0=成功；1=命令失败/超时；100=脚本解析失败
   Pop-Location
+  exit $exitCode
   ```
+
+  启动后可用桌面窗口枚举确认出现 `PlantsVsZombies.exe` / “植物大战僵尸中文版”；主人报告未显示时，先核对提升权限和工作目录，不要重复普通 shell 启动。AutoTest 自动退出；需要主人亲自操作时改为同方案启动不带 `-AutoTest` 的普通游戏，或在测试脚本中加入明确观察停留时间。
 
 - **产物：** 位于 `build\<preset>\autotest\out\<script-name>\`，包括 PNG、`state.json` 和 `run.log`。Release 会裁掉 Logger INFO，因此 `run.log` 是权威命令执行记录。
 - **命令集：** `goto_level` / `choose_cards` / `wait_state` / `set_sun` / `set_adventure_level` / `force_trophy` / `force_survival_round_clear` / `plant` / `spawn_zombie` / `damage_plant` / `damage_zombie` / `add_perk` / `survival_perk_open` / `survival_perk_pick` / `survival_perk_refresh` / `wait_seconds` / `wait_frames` / `set_timescale` / `charm_zombie` / `click` / `key` / `screenshot` / `dump_state` / `assert_state` / `quit`。等待类命令接受 `timeout`（默认 15 秒）。`damage_plant` 按 `row/col/index`、`damage_zombie` 按 `row/index` 选目标并走正式 `TakeDamage` 链；两者的 `source` 可取 `PLANT/ZOMBIE/OTHER`（默认 `OTHER`），后者另可选 `penetrateShield`，用于来源词条、护盾、断肢和死亡动画测试。`set_adventure_level` 与 `force_trophy` 仅用于冒险进度结算测试；`force_survival_round_clear` 仅用于生存模式，走正式轮清入口以验证词条选择、选卡过场及场上对象保留；`survival_perk_refresh` 消耗本轮共享的一次刷新额度并重抽当前全部词条候选。植物/僵尸类型直接使用枚举标识符（例如 `PLANT_PEASHOOTER`、`ZOMBIE_FASTPAPER`），新增类型需要在 `Game/AutoTest/TestDriver.cpp` 的名称表中添加一行。
