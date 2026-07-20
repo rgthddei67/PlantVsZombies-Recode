@@ -25,16 +25,34 @@
 #include <cmath>       // std::lround
 
 namespace {
-	constexpr float kFirstRainDelayMin = 20.0f;
-	constexpr float kFirstRainDelayMax = 35.0f;
-	constexpr float kClearWeatherDelayMin = 35.0f;
-	constexpr float kClearWeatherDelayMax = 55.0f;
-	constexpr float kRainDurationMin = 20.0f;
-	constexpr float kRainDurationMax = 25.0f;
-	constexpr float kLightningDelayMin = 3.5f;
-	constexpr float kLightningDelayMax = 7.0f;
-	constexpr float kLightningRepeatMin = 5.0f;
-	constexpr float kLightningRepeatMax = 10.0f;
+	constexpr float kFirstRainDelayMin = 20.0f;          // 开局到首场雨的最短等待时间（秒）
+	constexpr float kFirstRainDelayMax = 35.0f;          // 开局到首场雨的最长等待时间（秒）
+	constexpr float kClearWeatherDelayMin = 35.0f;       // 两场雨之间的最短晴空间隔（秒）
+	constexpr float kClearWeatherDelayMax = 55.0f;       // 两场雨之间的最长晴空间隔（秒）
+	constexpr float kRainDurationMin = 20.0f;            // 单场雨的最短持续时间（秒）
+	constexpr float kRainDurationMax = 25.0f;            // 单场雨的最长持续时间（秒）
+	constexpr int kLightRainWeight = 50;                 // 小雨相对权重；数值越大越容易抽中
+	constexpr int kMediumRainWeight = 35;                // 中雨相对权重；数值越大越容易抽中
+	constexpr int kHeavyRainWeight = 15;                 // 大雨相对权重；数值越大越容易抽中
+	constexpr int kRainWeightTotal = kLightRainWeight + kMediumRainWeight + kHeavyRainWeight; // 雨势总权重，单档改动后概率自动归一化
+	constexpr float kLightZombieSpeed = 1.05f;           // 小雨僵尸动作与移动速度倍率
+	constexpr float kMediumZombieSpeed = 1.10f;          // 中雨僵尸动作与移动速度倍率
+	constexpr float kHeavyZombieSpeed = 1.15f;           // 大雨僵尸动作与移动速度倍率
+	constexpr float kLightPlantActionSpeed = 1.03f;      // 小雨植物攻击、生产、成长与恢复速度倍率
+	constexpr float kMediumPlantActionSpeed = 1.06f;     // 中雨植物攻击、生产、成长与恢复速度倍率
+	constexpr float kHeavyPlantActionSpeed = 1.09f;      // 大雨植物攻击、生产、成长与恢复速度倍率
+	constexpr float kLightOverlayAlpha = 20.0f;          // 小雨世界蓝灰暗幕透明度（0～255）
+	constexpr float kMediumOverlayAlpha = 32.0f;         // 中雨世界蓝灰暗幕透明度（0～255）
+	constexpr float kHeavyOverlayAlpha = 44.0f;          // 大雨世界蓝灰暗幕透明度（0～255）
+	constexpr float kLightRainVolume = 0.18f;            // 小雨循环音效基础音量（0～1，仍受全局音量控制）
+	constexpr float kMediumRainVolume = 0.28f;           // 中雨循环音效基础音量（0～1，仍受全局音量控制）
+	constexpr float kHeavyRainVolume = 0.45f;            // 大雨循环音效基础音量（0～1，仍受全局音量控制）
+	constexpr float kLightningDelayMin = 3.5f;           // 大雨开始后首次闪电的最短等待时间（秒）
+	constexpr float kLightningDelayMax = 7.0f;           // 大雨开始后首次闪电的最长等待时间（秒）
+	constexpr float kLightningRepeatMin = 5.0f;          // 大雨中两次闪电的最短间隔（秒）
+	constexpr float kLightningRepeatMax = 10.0f;         // 大雨中两次闪电的最长间隔（秒）
+	constexpr float kLightningFlashDuration = 0.18f;     // 单次闪电白闪持续时间（秒）
+	constexpr float kLightningFlashPeakAlpha = 105.0f;   // 单次闪电白闪峰值透明度（0～255）
 
 	const char* RainEffectName(RainIntensity intensity)
 	{
@@ -107,9 +125,9 @@ Board::~Board()
 float Board::GetZombieRainSpeedMultiplier() const
 {
 	switch (mRainIntensity) {
-	case RainIntensity::LIGHT:  return 1.05f;
-	case RainIntensity::MEDIUM: return 1.10f;
-	case RainIntensity::HEAVY:  return 1.15f;
+	case RainIntensity::LIGHT:  return kLightZombieSpeed;
+	case RainIntensity::MEDIUM: return kMediumZombieSpeed;
+	case RainIntensity::HEAVY:  return kHeavyZombieSpeed;
 	case RainIntensity::CLEAR:  return 1.0f;
 	}
 	return 1.0f;
@@ -118,9 +136,9 @@ float Board::GetZombieRainSpeedMultiplier() const
 float Board::GetPlantRainActionSpeedMultiplier() const
 {
 	switch (mRainIntensity) {
-	case RainIntensity::LIGHT:  return 1.03f;
-	case RainIntensity::MEDIUM: return 1.06f;
-	case RainIntensity::HEAVY:  return 1.09f;
+	case RainIntensity::LIGHT:  return kLightPlantActionSpeed;
+	case RainIntensity::MEDIUM: return kMediumPlantActionSpeed;
+	case RainIntensity::HEAVY:  return kHeavyPlantActionSpeed;
 	case RainIntensity::CLEAR:  return 1.0f;
 	}
 	return 1.0f;
@@ -129,9 +147,9 @@ float Board::GetPlantRainActionSpeedMultiplier() const
 float Board::GetRainOverlayAlpha() const
 {
 	switch (mRainIntensity) {
-	case RainIntensity::LIGHT:  return 20.0f;
-	case RainIntensity::MEDIUM: return 32.0f;
-	case RainIntensity::HEAVY:  return 44.0f;
+	case RainIntensity::LIGHT:  return kLightOverlayAlpha;
+	case RainIntensity::MEDIUM: return kMediumOverlayAlpha;
+	case RainIntensity::HEAVY:  return kHeavyOverlayAlpha;
 	case RainIntensity::CLEAR:  return 0.0f;
 	}
 	return 0.0f;
@@ -140,6 +158,8 @@ float Board::GetRainOverlayAlpha() const
 void Board::InitializeWeather()
 {
 	if (mWeatherInitialized) return;
+	// 状态机只需“当前雨势 + 一个复用倒计时”：CLEAR 时倒计时代表距首场雨/下一场雨，
+	// 下雨时则代表本场雨的剩余时间。白天把倒计时保持为 0，并由 UpdateWeather 直接跳过。
 	mWeatherInitialized = true;
 	mRainIntensity = RainIntensity::CLEAR;
 	mLightningTimer = 0.0f;
@@ -170,11 +190,11 @@ void Board::EmitRainEffect(float duration)
 
 void Board::StartRainAudio()
 {
-	float volume = 0.18f;
+	float volume = kLightRainVolume;
 	switch (mRainIntensity) {
-	case RainIntensity::LIGHT:  volume = 0.18f; break;
-	case RainIntensity::MEDIUM: volume = 0.28f; break;
-	case RainIntensity::HEAVY:  volume = 0.45f; break;
+	case RainIntensity::LIGHT:  volume = kLightRainVolume; break;
+	case RainIntensity::MEDIUM: volume = kMediumRainVolume; break;
+	case RainIntensity::HEAVY:  volume = kHeavyRainVolume; break;
 	case RainIntensity::CLEAR:  return;
 	}
 	// 原版 FoleyType.Rain 绑定 SOUND_RAIN 且带 Loop 标志；这里只把音量按雨势分层。
@@ -214,7 +234,7 @@ void Board::TriggerLightning()
 {
 	if (mRainIntensity != RainIntensity::HEAVY || !mGameScene) return;
 	// 仅做短促低峰值白闪；不启用动态光源、阴影或材质高光。
-	mGameScene->ShowScreenFlash(0.18f, 105.0f);
+	mGameScene->ShowScreenFlash(kLightningFlashDuration, kLightningFlashPeakAlpha);
 }
 
 void Board::UpdateWeather(float deltaTime)
@@ -222,6 +242,8 @@ void Board::UpdateWeather(float deltaTime)
 	if (!mWeatherInitialized || deltaTime <= 0.0f ||
 		!GameAPP::GetInstance().GetBackgroundIsNight(mBackGround)) return;
 
+	// 每帧只推进当前阶段的倒计时。雨中归零就 EndRain() 并随机安排晴空间隔；
+	// CLEAR 阶段归零则抽取下一档雨势和持续时间，形成 CLEAR→RAIN→CLEAR 的循环。
 	mWeatherTimer -= deltaTime;
 	if (mRainIntensity == RainIntensity::HEAVY) {
 		mLightningTimer -= deltaTime;
@@ -237,10 +259,12 @@ void Board::UpdateWeather(float deltaTime)
 		return;
 	}
 
-	// 小/中/大雨权重 50/35/15；强度在一场雨内固定，玩家能从视觉直接判断倍率。
-	const int roll = GameRandom::Range(1, 100);
-	const RainIntensity next = (roll <= 50) ? RainIntensity::LIGHT
-		: (roll <= 85) ? RainIntensity::MEDIUM : RainIntensity::HEAVY;
+	// 在总权重内掷一次整数骰子：依次落入小雨、中雨、大雨各自的权重区间。
+	// 雨势选定后整场保持不变，因此视觉密度、速度倍率和声音不会在雨中突然跳档。
+	const int roll = GameRandom::Range(1, kRainWeightTotal);
+	const RainIntensity next = (roll <= kLightRainWeight) ? RainIntensity::LIGHT
+		: (roll <= kLightRainWeight + kMediumRainWeight) ? RainIntensity::MEDIUM
+		: RainIntensity::HEAVY;
 	BeginRain(next, GameRandom::Range(kRainDurationMin, kRainDurationMax));
 }
 
