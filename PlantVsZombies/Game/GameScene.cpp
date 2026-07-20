@@ -1553,9 +1553,21 @@ void GameScene::ShowScreenFlash(float duration, float peakAlpha)
 
 void GameScene::ShowWeatherForecastFailure(RainIntensity forecast, RainIntensity actual)
 {
+	RestoreWeatherForecastFailure(kForecastFailureDuration, forecast, actual);
+}
+
+void GameScene::RestoreWeatherForecastFailure(float remaining,
+	RainIntensity forecast, RainIntensity actual)
+{
+	mWeatherForecastFailureTimer = std::clamp(remaining, 0.0f,
+		kForecastFailureDuration);
+	if (mWeatherForecastFailureTimer <= 0.0f) {
+		mFailedForecastRainIntensity = RainIntensity::CLEAR;
+		mActualForecastRainIntensity = RainIntensity::CLEAR;
+		return;
+	}
 	mFailedForecastRainIntensity = forecast;
 	mActualForecastRainIntensity = actual;
-	mWeatherForecastFailureTimer = kForecastFailureDuration;
 }
 
 void GameScene::ShowCurrentWeatherNotice()

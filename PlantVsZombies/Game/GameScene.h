@@ -107,6 +107,9 @@ public:
 	float GetScreenFlashPeakAlpha() const { return mScreenFlashPeakAlpha; }
 	/** 天气阶段揭晓与公开预报不一致时，显示一个不会暂停战斗的失败提示。 */
 	void ShowWeatherForecastFailure(RainIntensity forecast, RainIntensity actual);
+	/** 从关卡存档恢复失败提示的剩余时间及预报/实际天气。 */
+	void RestoreWeatherForecastFailure(float remaining,
+		RainIntensity forecast, RainIntensity actual);
 	/** 天气发生变化后短暂显示当前结果，持续时间由天气 UI 常量统一控制。 */
 	void ShowCurrentWeatherNotice();
 	/** 从关卡存档恢复当前天气展板的剩余显示时间；异常值会限制到 0～5 秒。 */
@@ -115,6 +118,7 @@ public:
 	float GetCurrentWeatherNoticeTimer() const { return mCurrentWeatherNoticeTimer; }
 	bool IsCurrentWeatherNoticeActive() const { return mCurrentWeatherNoticeTimer > 0.0f; }
 	bool IsWeatherForecastFailureActive() const { return mWeatherForecastFailureTimer > 0.0f; }
+	float GetWeatherForecastFailureTimer() const { return mWeatherForecastFailureTimer; }
 	RainIntensity GetFailedForecastRainIntensity() const { return mFailedForecastRainIntensity; }
 	RainIntensity GetActualForecastRainIntensity() const { return mActualForecastRainIntensity; }
 

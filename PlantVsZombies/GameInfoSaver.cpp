@@ -180,6 +180,14 @@ bool GameInfoSaver::SaveLevelDataImpl(Board* board, CardSlotManager* manager)
 	j["weatherForecastReady"] = board->mWeatherForecastReady;
 	j["currentWeatherNoticeTimer"] = board->mGameScene
 		? board->mGameScene->GetCurrentWeatherNoticeTimer() : 0.0f;
+	j["weatherForecastFailureTimer"] = board->mGameScene
+		? board->mGameScene->GetWeatherForecastFailureTimer() : 0.0f;
+	j["failedForecastRainIntensity"] = board->mGameScene
+		? static_cast<int>(board->mGameScene->GetFailedForecastRainIntensity())
+		: static_cast<int>(RainIntensity::CLEAR);
+	j["weatherForecastFailureActualIntensity"] = board->mGameScene
+		? static_cast<int>(board->mGameScene->GetActualForecastRainIntensity())
+		: static_cast<int>(RainIntensity::CLEAR);
 	j["maxWave"] = board->mMaxWave;
 	j["zombieCountDown"] = board->mZombieCountDown;
 	j["totalZombieHP"] = board->mTotalZombieHP;
@@ -448,6 +456,21 @@ bool GameInfoSaver::LoadLevelDataImpl(Board* board, CardSlotManager* manager)
 		// 缺字段的旧档按 0 秒恢复，避免读入雨中存档时把已消失的展板重新显示 5 秒。
 		board->mGameScene->RestoreCurrentWeatherNotice(
 			j.value("currentWeatherNoticeTimer", 0.0f));
+
+		const int failedForecastRainValue = j.value("failedForecastRainIntensity",
+			static_cast<int>(RainIntensity::CLEAR));
+		const int failureActualRainValue = j.value("weatherForecastFailureActualIntensity",
+			static_cast<int>(RainIntensity::CLEAR));
+		const bool validFailedForecastRain = failedForecastRainValue >= static_cast<int>(RainIntensity::CLEAR)
+			&& failedForecastRainValue <= static_cast<int>(RainIntensity::HEAVY);
+		const bool validFailureActualRain = failureActualRainValue >= static_cast<int>(RainIntensity::CLEAR)
+			&& failureActualRainValue <= static_cast<int>(RainIntensity::HEAVY);
+		// 旧档或损坏字段按 0 秒恢复，已经消失的失败提示不会在读档后重播。
+		board->mGameScene->RestoreWeatherForecastFailure(
+			validFailedForecastRain && validFailureActualRain
+				? j.value("weatherForecastFailureTimer", 0.0f) : 0.0f,
+			validFailedForecastRain ? static_cast<RainIntensity>(failedForecastRainValue) : RainIntensity::CLEAR,
+			validFailureActualRain ? static_cast<RainIntensity>(failureActualRainValue) : RainIntensity::CLEAR);
 	}
 	board->mWeatherTimer = std::max(0.0f, j.value("weatherTimer", 0.0f));
 	board->mLightningTimer = std::max(0.0f, j.value("lightningTimer", 0.0f));

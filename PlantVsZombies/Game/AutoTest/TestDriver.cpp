@@ -758,6 +758,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "currentNoticeRemainingMs", static_cast<int>(std::lround(
 				gs->GetCurrentWeatherNoticeTimer() * 1000.0f)) },
 			{ "forecastFailureOn", gs->IsWeatherForecastFailureActive() },
+			{ "forecastFailureRemainingMs", static_cast<int>(std::lround(
+				gs->GetWeatherForecastFailureTimer() * 1000.0f)) },
 			{ "failedForecastIntensity", RainIntensityName(gs->GetFailedForecastRainIntensity()) },
 			{ "actualForecastIntensity", RainIntensityName(gs->GetActualForecastRainIntensity()) },
 		};
