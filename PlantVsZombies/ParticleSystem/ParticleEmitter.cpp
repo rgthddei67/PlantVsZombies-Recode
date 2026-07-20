@@ -170,6 +170,9 @@ void ParticleEmitter::EmitSingleParticle() {
 	}
 	particle->velocity = Vector(cosf(angle) * speed, sinf(angle) * speed);
 
+	// 初始角度与自旋速度分开采样：前者适合斜雨丝等静态朝向，
+	// 后者只负责生命周期内持续旋转，避免用自旋伪装朝向时每帧漂移。
+	particle->rotation = xmlConfig.particleRotation.GetRandomValue();
 	particle->rotationSpeed = xmlConfig.particleSpinSpeed.GetRandomValue();
 
 	particle->gravity = xmlConfig.particleGravity;
@@ -260,13 +263,31 @@ void ParticleEmitter::Draw() {
 			finalColor.g *= particle.brightness * particle.colorMultiplier.g;
 			finalColor.b *= particle.brightness * particle.colorMultiplier.b;
 
-			m_graphics->DrawTextureRegion(
-				particle.texture,
-				srcX, 0.0f, srcW, srcH,
-				x, y, destW, destH,
-				particle.rotation,
-				finalColor
-			);
+			if (xmlConfig.hasParticleRotation) {
+				// DrawTextureRegion 的兼容旋转路径会先非等比缩放再旋转，使细长贴图的角度
+				// 被长宽比压扁。显式初始朝向改为围绕世界中心先旋转、再绘制拉伸矩形，
+				// 让配置角度就是屏幕上实际角度；未使用新标签的旧特效保持原样。
+				m_graphics->PushTransform();
+				m_graphics->Translate(x + destW * 0.5f, y + destH * 0.5f);
+				m_graphics->Rotate(particle.rotation, 0.0f, 0.0f, 1.0f);
+				m_graphics->DrawTextureRegion(
+					particle.texture,
+					srcX, 0.0f, srcW, srcH,
+					-destW * 0.5f, -destH * 0.5f, destW, destH,
+					0.0f,
+					finalColor
+				);
+				m_graphics->PopTransform();
+			}
+			else {
+				m_graphics->DrawTextureRegion(
+					particle.texture,
+					srcX, 0.0f, srcW, srcH,
+					x, y, destW, destH,
+					particle.rotation,
+					finalColor
+				);
+			}
 		}
 	}
 }

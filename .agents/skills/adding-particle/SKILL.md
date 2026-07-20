@@ -6,7 +6,8 @@ description: Use when adding or tuning ANY particle effect (粒子特效) in PvZ
 # 给 PvZ 写粒子特效（XML 配置全参考）
 
 本文件每个标签的语义都是 2026-07-15 从 `ParticleSystem/` 源码逐行实证的（IceFumeCloud 蓝色孢子云实战），
-2026-07-16 随毁灭菇 Doom.xml 移植更新（ImageFrames 序列帧实装 + 原版 XML 移植口径）。
+2026-07-16 随毁灭菇 Doom.xml 移植更新（ImageFrames 序列帧实装 + 原版 XML 移植口径），
+2026-07-20 随雨天特效补充 ParticleRotation 初始朝向。
 **改了引擎消费端（ParticleEmitter/ParticleXMLLoader）要回来同步本文档。**
 
 ## 心智模型
@@ -51,6 +52,7 @@ description: Use when adding or tuning ANY particle effect (粒子特效) in PvZ
 | `EmitterOffsetX/Y` | float | 0 | 出生点相对 EmitEffect 坐标的偏移。**见 foot-gun ②：实际生效两倍** |
 | `LaunchSpeed` | 范围(px/s) | 0 | 初速度大小 |
 | `RandomLaunchSpin` | bool | false | true=初速度方向 360° 随机；**false=一律沿 +X（向右）** |
+| `ParticleRotation` | 范围(**度**) | 0 | 贴图生成时的初始朝向，每粒子采样一次；显式配置时走“围绕世界中心先旋转、再拉伸”的路径，所以非等比 `ParticleStretch` 也不会压扁角度，适合斜雨丝 |
 | `ParticleSpinSpeed` | 范围(**度**/s) | 0 | 贴图自旋（DrawTexture 走 glm::radians，配置里是度：碎屑 ±130、掉头 ±5） |
 | `ParticleGravity` | float(px/s²) | **0** | 每帧 `vy += g*dt`；头文件成员默认写 100 是幌子，loader 无标签时 as_float(0) 覆盖 |
 | `Image` | 资源键 | 无 | **必填**：没有它粒子直接不生成（静默）；逗号分隔多个=每粒子随机选一张（碎片直接复用 splats 系列） |

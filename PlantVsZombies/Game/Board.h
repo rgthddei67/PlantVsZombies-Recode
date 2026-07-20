@@ -36,6 +36,14 @@ enum class Background {
 	NIGHT_ROOF
 };
 
+/** 黑夜天气强度；CLEAR 是所有倍率与视觉效果的单位元。 */
+enum class RainIntensity {
+	CLEAR,
+	LIGHT,
+	MEDIUM,
+	HEAVY
+};
+
 struct RowInfo {
 	int rowIndex = 0;
 	float weight = 1.0f;
@@ -144,6 +152,13 @@ private:
 	bool mHasHugeWaveMusicBurst = false;	// 本次一大波警告是否已强制加入鼓组
 	bool mIsLoadSave = false;	// 是否正在加载存档
 
+	// 黑夜随机天气。weatherTimer 在 CLEAR 时表示距下一场雨，在下雨时表示本场剩余时间。
+	RainIntensity mRainIntensity = RainIntensity::CLEAR;
+	float mWeatherTimer = 0.0f;
+	float mLightningTimer = 0.0f;
+	bool mWeatherInitialized = false;   // 旧档缺天气字段时由 StartGame 首次初始化
+	bool mRainVisualActive = false;     // 纯运行期标记，防读档/生存轮间重复发射同一场雨
+
 	std::vector<RowInfo> mRowInfos;
 	static constexpr float ROW_WEIGHT_THRESHOLD = 1e-6f;
 
@@ -161,6 +176,15 @@ private:
 	inline ZombieType GetWeightedRandomZombie();
 	inline ZombieType GetCheapestZombie();
 	int CountHostileZombiesForMusic() const;
+	void InitializeWeather();
+	void UpdateWeather(float deltaTime);
+	void BeginRain(RainIntensity intensity, float duration);
+	void EndRain();
+	void EmitRainEffect(float duration);
+	void StartRainAudio();
+	void StopRainAudio();
+	void RefreshZombieWeatherSpeeds();
+	void TriggerLightning();
 	// 生存模式"抽中权重"：对 NORMAL/CONE 随轮稀释(仅供 GetWeightedRandomZombie；成本侧仍用 GetZombieWeight)
 	inline int GetSurvivalPickWeight(ZombieType type) const;
 
@@ -170,6 +194,7 @@ public:
 	float GetZombieSpawnY(int row) const;
 
 	Board(GameScene* gameScene, Background background, int level);
+	~Board();
 
 	inline void AddSun(int amount)
 	{
@@ -195,6 +220,22 @@ public:
 	}
 
 	const std::vector<ZombieType>& GetSpawnZombieList() const { return mSpawnZombieList; }
+
+	/** 当前雨势对僵尸 Animator extra 层的倍率。 */
+	float GetZombieRainSpeedMultiplier() const;
+	/** 当前雨势对植物攻击、生产、成长和恢复计时的倍率。 */
+	float GetPlantRainActionSpeedMultiplier() const;
+	/** 世界层蓝灰暗幕的 alpha（0..255）；UI 在暗幕之后绘制，不受影响。 */
+	float GetRainOverlayAlpha() const;
+	RainIntensity GetRainIntensity() const { return mRainIntensity; }
+	float GetWeatherTimer() const { return mWeatherTimer; }
+	float GetLightningTimer() const { return mLightningTimer; }
+	bool IsWeatherInitialized() const { return mWeatherInitialized; }
+
+	// AutoTest 专用：固定雨势并重启对应粒子，真实游戏只走随机天气状态机。
+	void SetRainForTesting(RainIntensity intensity, float duration = 30.0f);
+	// AutoTest 专用：仅大雨允许触发，返回是否真正闪电。
+	bool TriggerLightningForTesting();
 
 	// 初始化格子 默认5行9列
 	void InitializeCell(int rows = 4, int cols = 8);

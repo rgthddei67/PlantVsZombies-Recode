@@ -21,8 +21,8 @@ void PuffShroom::SetupPlant()
 
 void PuffShroom::PlantUpdate()
 {
-	// 词条：植物攻速。mult>=1（非生存关/未获取恒为 1.0）。
-	float mult = mBoard ? static_cast<float>(mBoard->GetPerkManager().GetPlantAttackSpeedMultiplier()) : 1.0f;
+	// 生存攻速词条 × 雨势行动倍率；吐弹帧与攻击间隔同步缩短。
+	float mult = GetAttackSpeedMultiplier();
 	this->mShootTimer += (DeltaTime::GetDeltaTime() * mult);
 	if (this->mShootTimer >= this->mShootTime)
 	{

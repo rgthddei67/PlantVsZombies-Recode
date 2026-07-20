@@ -21,6 +21,7 @@ float AudioSystem::masterVolume = 1.0f;
 float AudioSystem::soundVolume = 0.5f;
 float AudioSystem::musicVolume = 0.5f;
 std::unordered_map<std::string, float> AudioSystem::soundVolumes;
+std::unordered_map<std::string, AudioSystem::LoopingSoundState> AudioSystem::loopingSounds;
 
 bool AudioSystem::Initialize()
 {
@@ -45,6 +46,7 @@ void AudioSystem::Shutdown() {
 	}
 
 	soundVolumes.clear();
+	loopingSounds.clear();
 	Mix_CloseAudio();
 }
 
@@ -215,6 +217,50 @@ void AudioSystem::ResumeMusic()
 	}
 }
 
+void AudioSystem::PlayLoopingSound(const std::string& soundKey, float volume)
+{
+	if (!IsAudioAvailable()) return;
+
+	Mix_Chunk* sound = ResourceManager::GetInstance().GetSound(soundKey);
+	if (!sound) return;
+
+	volume = std::clamp(volume, 0.0f, 1.0f);
+	const int finalVolume = static_cast<int>(
+		MIX_MAX_VOLUME * masterVolume * soundVolume * volume);
+
+	auto existing = loopingSounds.find(soundKey);
+	if (existing != loopingSounds.end()) {
+		if (Mix_Playing(existing->second.channel)) {
+			existing->second.volume = volume;
+			Mix_Volume(existing->second.channel, finalVolume);
+			return;
+		}
+		loopingSounds.erase(existing);
+	}
+
+	// SDL_mixer 用 loops=-1 表示无限循环；保存实际分配的声道，结束天气时只停雨声，
+	// 不会误伤同一时刻的植物、僵尸和 UI 音效。
+	const int channel = Mix_PlayChannel(-1, sound, -1);
+	if (channel >= 0) {
+		Mix_Volume(channel, finalVolume);
+		loopingSounds[soundKey] = { channel, volume };
+	}
+}
+
+void AudioSystem::StopLoopingSound(const std::string& soundKey)
+{
+	auto it = loopingSounds.find(soundKey);
+	if (it == loopingSounds.end()) return;
+	if (IsAudioAvailable()) Mix_HaltChannel(it->second.channel);
+	loopingSounds.erase(it);
+}
+
+bool AudioSystem::IsLoopingSoundPlaying(const std::string& soundKey)
+{
+	auto it = loopingSounds.find(soundKey);
+	return IsAudioAvailable() && it != loopingSounds.end() && Mix_Playing(it->second.channel) != 0;
+}
+
 void AudioSystem::UpdateAdaptiveMusic(float deltaTime, int hostileZombieCount)
 {
 	AdaptiveMusicPlayer::GetInstance().Update(deltaTime, hostileZombieCount);
@@ -233,6 +279,19 @@ void AudioSystem::UpdateVolume()
 	int musicVol = static_cast<int>(MIX_MAX_VOLUME * masterVolume * musicVolume);
 	Mix_VolumeMusic(musicVol);
 	AdaptiveMusicPlayer::GetInstance().SetVolume(masterVolume * musicVolume);
+
+	// 循环环境音会跨越设置面板中的音量调整，需按各自请求音量同步声道；
+	// 一次性音效播放完即回收，不在这里追踪。
+	for (auto it = loopingSounds.begin(); it != loopingSounds.end();) {
+		if (!Mix_Playing(it->second.channel)) {
+			it = loopingSounds.erase(it);
+			continue;
+		}
+		const int loopVolume = static_cast<int>(MIX_MAX_VOLUME * masterVolume * soundVolume
+			* it->second.volume);
+		Mix_Volume(it->second.channel, loopVolume);
+		++it;
+	}
 }
 
 bool AudioSystem::IsAudioAvailable()

@@ -33,6 +33,8 @@ public:
 
 	void SetRenderOrder(int order) { renderOrder = order; }
 	int GetRenderOrder() const { return renderOrder; }
+	// 天气等持续特效可用运行期时长覆盖 XML 默认值；<=0 保留配置值。
+	void SetSystemDuration(float duration) { if (duration > 0.0f) systemDuration = duration; }
 
 	void SetPosition(const Vector& pos);
 	Vector GetPosition() const { return position; }

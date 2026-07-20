@@ -56,6 +56,7 @@ public:
 	// 覆写以支持屏幕抖动：抖动经相机（projView）作用于全部绘制管线，
 	// 含不消费变换栈的 reanim/字形 GPU instancing 快路径（详见 .cpp 实现注释）
 	void Draw(Graphics* g) override;
+	void DrawWorldOverlay(Graphics* g) override;
 
 	void ChooseCardComplete();  // 选卡完成
 
@@ -101,7 +102,9 @@ public:
 		float fadeDur = 1.0f);
 
 	// 全屏白闪（寒冰菇全场冻结的瞬间反馈）：alpha 从峰值线性衰减到 0
-	void ShowScreenFlash(float duration = 0.5f);
+	void ShowScreenFlash(float duration = 0.5f, float peakAlpha = 200.0f);
+	bool IsScreenFlashActive() const { return mScreenFlashTimer > 0.0f; }
+	float GetScreenFlashPeakAlpha() const { return mScreenFlashPeakAlpha; }
 
 	void SetReadyToBackMenu() { mReadyToBackMenu = true; }
 
@@ -199,6 +202,7 @@ private:
 	// 全屏白闪剩余/总时长（秒）；timer<=0 即不激活、不注册额外状态
 	float mScreenFlashTimer = 0.0f;
 	float mScreenFlashDuration = 0.5f;
+	float mScreenFlashPeakAlpha = 200.0f;
 
 	// 屏幕抖动上一帧是否占用了相机（true 时抖动归零后须把相机复位一次；
 	// 平时不触碰相机，避免与开场动画的 SetCameraPosition(camX,0) 打架）

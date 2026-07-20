@@ -131,6 +131,8 @@ public:
 	virtual bool CanBeFrozen() const { return true; }
 
 	virtual void SetCooldown(float timer);		// 设置僵尸减速状态
+	// Board 天气切换时调用，统一重算 extra 层；不会覆盖 PlayTrack 的 clip 速度。
+	void RefreshAnimSpeedForWeather() { UpdateAnimSpeed(); }
 
 	void SaveProtectedData(nlohmann::json& j) const;
 

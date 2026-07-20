@@ -127,6 +127,7 @@ EmitterConfig::EmitterConfig() {
 	systemAlpha.constantValue = 1.0f;
 
 	launchSpeed = ValueRange(0.0f);
+	particleRotation = ValueRange(0.0f);
 	particleSpinSpeed = ValueRange(0.0f);
 	emitterBoxX = ValueRange(0.0f);
 	emitterBoxY = ValueRange(0.0f);

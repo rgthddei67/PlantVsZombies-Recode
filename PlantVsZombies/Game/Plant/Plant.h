@@ -65,6 +65,13 @@ public:
 	virtual void SetSleepState(bool sleep) { this->mIsSleeping = sleep; }
 
 protected:
+	/** 雨势对正向植物行动的倍率；不包含生存攻速词条。 */
+	float GetWeatherActionSpeedMultiplier() const;
+	/** 仅供攻击/生产/成长/恢复计时使用，禁止替代整个 Plant::Update 的 deltaTime。 */
+	float GetWeatherActionDeltaTime() const;
+	/** 攻击专用组合倍率 = 生存攻速词条 × 雨势行动倍率。 */
+	float GetAttackSpeedMultiplier() const;
+
 	// 注意： 需要判断mIsPreview，所有植物都执行
 	virtual void SetupPlant();
 };

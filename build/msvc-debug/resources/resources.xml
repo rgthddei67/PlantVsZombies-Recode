@@ -182,6 +182,7 @@
     <Sound>./resources/sounds/lostgame.ogg</Sound>
     <Sound>./resources/sounds/pool_cleaner.ogg</Sound>
     <Sound>./resources/sounds/readysetplant.ogg</Sound>
+    <Sound>./resources/sounds/rain.ogg</Sound>
     <Sound>./resources/sounds/winmusic.ogg</Sound>
     <Sound>./resources/sounds/Zombie/chomp.ogg</Sound>
     <Sound>./resources/sounds/Zombie/chomp2.ogg</Sound>

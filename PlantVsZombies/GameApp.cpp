@@ -330,7 +330,9 @@ int GameAPP::Run()
 	}
 
 	// 世界层粒子注入 GameObjectManager：主体之上、UI overlay 之下
-	GameObjectManager::GetInstance().SetPreOverlayHook([] {
+	GameObjectManager::GetInstance().SetPreOverlayHook([this] {
+		// 先压暗战场，再画雨丝等世界粒子，保证雨线在暗背景上仍清晰；两者都不会压住 UI。
+		SceneManager::GetInstance().DrawWorldOverlay(m_graphics.get());
 		if (g_particleSystem) {
 			g_particleSystem->DrawBelow(LAYER_UI);
 		}

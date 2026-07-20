@@ -113,6 +113,8 @@ struct EmitterConfig {
 	// 运动属性
 	ValueRange launchSpeed;
 	bool randomLaunchSpin = false;
+	ValueRange particleRotation;  // 生成时采样的初始角度（度）
+	bool hasParticleRotation = false;  // 显式配置时使用不受非等比缩放扭曲的朝向路径
 	ValueRange particleSpinSpeed;
 	float particleGravity = 100.0f;
 

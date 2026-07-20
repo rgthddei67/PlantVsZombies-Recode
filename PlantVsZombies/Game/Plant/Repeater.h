@@ -24,8 +24,8 @@ public:
 	}
 
 	void PlantUpdate() override {
-		// 词条：植物攻速。mult>=1（非生存关/未获取恒为 1.0）。
-		float mult = mBoard ? static_cast<float>(mBoard->GetPerkManager().GetPlantAttackSpeedMultiplier()) : 1.0f;
+		// 生存攻速词条 × 雨势行动倍率；双发的主发、补发和间隔共用同一倍率。
+		float mult = GetAttackSpeedMultiplier();
 
 		if (mPendingSecondShot) {
 			mPendingSecondShot = false;

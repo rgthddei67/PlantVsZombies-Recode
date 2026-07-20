@@ -170,6 +170,10 @@ bool GameInfoSaver::SaveLevelDataImpl(Board* board, CardSlotManager* manager)
 	j["sun"] = board->mSun;
 	j["currentWave"] = board->mCurrentWave;
 	j["boardFrame"] = board->mBoardFrame;   // 舞王全队齐舞的节拍源，读档保节拍连续
+	j["weatherInitialized"] = board->mWeatherInitialized;
+	j["rainIntensity"] = static_cast<int>(board->mRainIntensity);
+	j["weatherTimer"] = board->mWeatherTimer;
+	j["lightningTimer"] = board->mLightningTimer;
 	j["maxWave"] = board->mMaxWave;
 	j["zombieCountDown"] = board->mZombieCountDown;
 	j["totalZombieHP"] = board->mTotalZombieHP;
@@ -414,6 +418,14 @@ bool GameInfoSaver::LoadLevelDataImpl(Board* board, CardSlotManager* manager)
 	board->mSun = j.value("sun", 50);
 	board->mCurrentWave = j.value("currentWave", 0);
 	board->mBoardFrame = j.value("boardFrame", 0);
+	board->mWeatherInitialized = j.value("weatherInitialized", j.contains("rainIntensity"));
+	const int rainValue = j.value("rainIntensity", static_cast<int>(RainIntensity::CLEAR));
+	board->mRainIntensity = (rainValue >= static_cast<int>(RainIntensity::CLEAR)
+		&& rainValue <= static_cast<int>(RainIntensity::HEAVY))
+		? static_cast<RainIntensity>(rainValue) : RainIntensity::CLEAR;
+	board->mWeatherTimer = std::max(0.0f, j.value("weatherTimer", 0.0f));
+	board->mLightningTimer = std::max(0.0f, j.value("lightningTimer", 0.0f));
+	board->mRainVisualActive = false;   // 粒子不入存档，StartGame 按剩余时间重建
 	board->mMaxWave = j.value("maxWave", 10);
 	board->mZombieCountDown = j.value("zombieCountDown", 20.0f);
 	board->mTotalZombieHP = j.value("totalZombieHP", 0LL);

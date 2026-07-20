@@ -32,7 +32,7 @@ public:
 
 	bool LoadXMLConfigs(const std::string& directory);
 	void EmitEffect(const std::string& effectName, const Vector& position,
-		int renderOrder = LAYER_EFFECTS_WORLD);
+		int renderOrder = LAYER_EFFECTS_WORLD, float durationOverride = -1.0f);
 
 private:
 	void CleanupInactiveEffects();

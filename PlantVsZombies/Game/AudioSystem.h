@@ -14,10 +14,17 @@
 class AudioSystem
 {
 private:
+	struct LoopingSoundState
+	{
+		int channel = -1;
+		float volume = 1.0f;
+	};
+
 	static float masterVolume;        // 总音量 0.0 - 1.0
 	static float soundVolume;         // 音效音量 0.0 - 1.0
 	static float musicVolume;         // 音乐音量 0.0 - 1.0
 	static std::unordered_map<std::string, float> soundVolumes; // 单独音效音量
+	static std::unordered_map<std::string, LoopingSoundState> loopingSounds;
 
 public:
 	// 初始化
@@ -46,6 +53,13 @@ public:
 	static void PlaySound(const std::string& soundKey, float volume, int loops = 0);
 	// 可以指定播放时的音量和声道
 	static void PlaySound(const std::string& soundKey, float volume, int loops, int channel);
+
+	/** 按资源键启动唯一的循环环境音；重复调用只更新该循环的音量。 */
+	static void PlayLoopingSound(const std::string& soundKey, float volume = 1.0f);
+	/** 停止指定资源键启动的循环环境音。 */
+	static void StopLoopingSound(const std::string& soundKey);
+	/** 查询指定循环环境音当前是否仍占用并播放其 SDL_mixer 声道。 */
+	static bool IsLoopingSoundPlaying(const std::string& soundKey);
 
 	static void PlayMusic(const std::string& musicKey, int loops = -1);
 	static void StopMusic();

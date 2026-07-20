@@ -76,6 +76,12 @@ public:
 
 	virtual void Draw(Graphics* g);
 
+	/**
+	 * @brief 绘制战场主体之上、UI overlay 之下的全屏世界覆盖层。
+	 * @details GameObjectManager 的 pre-overlay 接缝调用；普通场景默认无覆盖层。
+	 */
+	virtual void DrawWorldOverlay(Graphics*) {}
+
 	// 注册自定义绘制命令
 	void RegisterDrawCommand(const std::string& name,
 		std::function<void(Graphics*)> drawFunc,

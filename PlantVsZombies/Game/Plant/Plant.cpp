@@ -122,6 +122,24 @@ void Plant::PlantUpdate()
 {
 }
 
+float Plant::GetWeatherActionSpeedMultiplier() const
+{
+	return mBoard ? mBoard->GetPlantRainActionSpeedMultiplier() : 1.0f;
+}
+
+float Plant::GetWeatherActionDeltaTime() const
+{
+	return DeltaTime::GetDeltaTime() * GetWeatherActionSpeedMultiplier();
+}
+
+float Plant::GetAttackSpeedMultiplier() const
+{
+	const float perkMultiplier = mBoard
+		? static_cast<float>(mBoard->GetPerkManager().GetPlantAttackSpeedMultiplier())
+		: 1.0f;
+	return perkMultiplier * GetWeatherActionSpeedMultiplier();
+}
+
 Vector Plant::GetPosition() const
 {
 	return GetTransformComponent()->GetPosition();

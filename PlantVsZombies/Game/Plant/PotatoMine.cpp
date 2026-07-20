@@ -33,7 +33,8 @@ void PotatoMine::SetupPlant()
 void PotatoMine::PlantUpdate()
 {
 	float deltaTime = DeltaTime::GetDeltaTime();
-	mReadyTimer += deltaTime;
+	// 雨水只加速准备成长；爆炸后的销毁清理仍按真实游戏时间。
+	mReadyTimer += GetWeatherActionDeltaTime();
 	if (mReadyTimer >= 20.0f && !mIsRise) {
 		mIsRise = true;
 		Ready(false);

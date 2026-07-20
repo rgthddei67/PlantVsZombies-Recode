@@ -7,6 +7,7 @@
 #include "../GameScene.h"
 #include "../ChooseCardUI.h"
 #include "../Board.h"
+#include "../AudioSystem.h"
 #include "../Card.h"
 #include "../CardComponent.h"
 #include "../Plant/PlantType.h"
@@ -19,6 +20,7 @@
 #include "../../Reanimation/Animator.h"   // dump_state 查询轨道可见性（如铁门僵尸手臂）
 #include <filesystem>
 #include <algorithm>
+#include <cmath>
 #include <unordered_map>
 #include <SDL2/SDL.h>
 
@@ -73,6 +75,10 @@ namespace {
 		{ "PLANT", DamageSource::PLANT }, { "ZOMBIE", DamageSource::ZOMBIE },
 		{ "OTHER", DamageSource::OTHER },
 	};
+	const std::unordered_map<std::string, RainIntensity> kRainIntensityNames = {
+		{ "CLEAR", RainIntensity::CLEAR }, { "LIGHT", RainIntensity::LIGHT },
+		{ "MEDIUM", RainIntensity::MEDIUM }, { "HEAVY", RainIntensity::HEAVY },
+	};
 
 	const std::unordered_map<std::string, Uint8> kMouseButtonNames = {
 		{ "left", SDL_BUTTON_LEFT }, { "right", SDL_BUTTON_RIGHT },
@@ -112,6 +118,10 @@ namespace {
 	}
 	std::string BoardStateName(BoardState s) {
 		for (const auto& [k, v] : kBoardStateNames) if (v == s) return k;
+		return "UNKNOWN";
+	}
+	std::string RainIntensityName(RainIntensity intensity) {
+		for (const auto& [k, v] : kRainIntensityNames) if (v == intensity) return k;
 		return "UNKNOWN";
 	}
 	std::string PlayStateName(PlayState s) {
@@ -295,6 +305,30 @@ bool TestDriver::ExecuteCurrent() {
 		GameScene* gs = CurrentGameScene();
 		if (!gs || !gs->GetBoard()) { Fail("set_sun: 不在 GameScene 或 Board 为空"); return false; }
 		gs->GetBoard()->mSun = std::min(cmd.value("value", 0), MAX_SUN);
+		return true;
+	}
+	if (op == "set_weather") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) { Fail("set_weather: 不在 GameScene 或 Board 为空"); return false; }
+		auto it = kRainIntensityNames.find(cmd.value("intensity", ""));
+		if (it == kRainIntensityNames.end()) {
+			Fail("set_weather: intensity 必须是 CLEAR/LIGHT/MEDIUM/HEAVY");
+			return false;
+		}
+		gs->GetBoard()->SetRainForTesting(it->second, cmd.value("duration", 30.0f));
+		if (gs->GetBoard()->GetRainIntensity() != it->second) {
+			Fail("set_weather: 当前背景不是黑夜，天气未生效");
+			return false;
+		}
+		return true;
+	}
+	if (op == "trigger_lightning") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) { Fail("trigger_lightning: 不在 GameScene 或 Board 为空"); return false; }
+		if (!gs->GetBoard()->TriggerLightningForTesting()) {
+			Fail("trigger_lightning: 只有大雨允许闪电");
+			return false;
+		}
 		return true;
 	}
 	if (op == "set_adventure_level") {
@@ -671,6 +705,28 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		};
 	}
 
+	// 黑夜天气：倍率与 alpha 另给整数投影，避免 AutoTest 对浮点做严格 equals。
+	{
+		const float zombieRain = board->GetZombieRainSpeedMultiplier();
+		const float plantRain = board->GetPlantRainActionSpeedMultiplier();
+		const float perkAttack = static_cast<float>(
+			board->GetPerkManager().GetPlantAttackSpeedMultiplier());
+		out["weather"] = {
+			{ "intensity", RainIntensityName(board->GetRainIntensity()) },
+			{ "initialized", board->IsWeatherInitialized() },
+			{ "remaining", board->GetWeatherTimer() },
+			{ "lightningRemaining", board->GetLightningTimer() },
+			{ "zombieSpeedPct", static_cast<int>(std::lround(zombieRain * 100.0f)) },
+			{ "plantActionSpeedPct", static_cast<int>(std::lround(plantRain * 100.0f)) },
+			{ "overlayAlpha", static_cast<int>(std::lround(board->GetRainOverlayAlpha())) },
+			{ "rainSoundPlaying", AudioSystem::IsLoopingSoundPlaying(ResourceKeys::Sounds::SOUND_RAIN) },
+			{ "combinedAttackIntervalOn1500",
+				static_cast<int>(1500.0f / (plantRain * perkAttack) + 0.5f) },
+			{ "screenFlashOn", gs->IsScreenFlashActive() },
+			{ "screenFlashPeakAlpha", static_cast<int>(std::lround(gs->GetScreenFlashPeakAlpha())) },
+		};
+	}
+
 	out["survivalRound"] = board->mIsSurvival ? board->mSurvivalRound : -1;
 	// 出怪池不分模式都 dump：冒险关卡验证 spawnlists.json 也要抓手（原先只在生存模式导出）
 	out["spawnList"] = nlohmann::json::array();
@@ -702,6 +758,9 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "track", z->GetCurrentTrackName() },
 			{ "flipX", anim && anim->GetFlipX() },
 			{ "animPlaying", anim && anim->IsPlaying() },
+			{ "animExtraSpeedPct", anim
+				? static_cast<int>(std::lround(anim->GetExtraSpeedMultiplier() * 100.0f)) : 0 },
+			{ "effectiveAnimSpeed", anim ? anim->EffectiveSpeed() : 0.0f },
 			{ "freeHitsRemaining", z->mFreeHitsRemaining },
 			// 铁门僵尸常规手臂（藏门后/啃食露出）当前可见性——手臂显隐类 bug 的断言抓手；
 			// 无此轨道的僵尸 GetTrackVisible 安全返回 false。

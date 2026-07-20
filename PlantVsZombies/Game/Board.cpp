@@ -13,14 +13,40 @@
 #include "EntityManager.h"
 #include "RenderOrder.h"
 #include "GameScene.h"
+#include "AudioSystem.h"
 #include "./Plant/GameDataManager.h"
 #include "./GameProgress.h"
 #include "../GameAPP.h"
 #include "../FileManager.h"
+#include "../ParticleSystem/ParticleSystem.h"
 #include <unordered_set>
 #include <climits>
 #include <algorithm>   // std::max, std::swap
 #include <cmath>       // std::lround
+
+namespace {
+	constexpr float kFirstRainDelayMin = 20.0f;
+	constexpr float kFirstRainDelayMax = 35.0f;
+	constexpr float kClearWeatherDelayMin = 35.0f;
+	constexpr float kClearWeatherDelayMax = 55.0f;
+	constexpr float kRainDurationMin = 20.0f;
+	constexpr float kRainDurationMax = 25.0f;
+	constexpr float kLightningDelayMin = 3.5f;
+	constexpr float kLightningDelayMax = 7.0f;
+	constexpr float kLightningRepeatMin = 5.0f;
+	constexpr float kLightningRepeatMax = 10.0f;
+
+	const char* RainEffectName(RainIntensity intensity)
+	{
+		switch (intensity) {
+		case RainIntensity::LIGHT:  return "RainLight";
+		case RainIntensity::MEDIUM: return "RainMedium";
+		case RainIntensity::HEAVY:  return "RainHeavy";
+		case RainIntensity::CLEAR:  break;
+		}
+		return "";
+	}
+}
 
 // 复刻原版 TodCommon.TodAnimateCurve(..., TodCurves.Linear)：把 round 在 [startRound,endRound]
 // 归一化并钳到 [0,1]，在 [fromVal,toVal] 间线性插值，四舍五入取整。
@@ -70,6 +96,177 @@ Board::Board(GameScene* gameScene, Background background, int level)
 	CreatePreviewZombies();
 	InitializeCell();
 	InitializeRows();
+}
+
+Board::~Board()
+{
+	// 原版 Board.DisposeBoard 无条件 StopFoley(Rain)；离开关卡时同样保证循环声不泄漏到菜单。
+	StopRainAudio();
+}
+
+float Board::GetZombieRainSpeedMultiplier() const
+{
+	switch (mRainIntensity) {
+	case RainIntensity::LIGHT:  return 1.05f;
+	case RainIntensity::MEDIUM: return 1.10f;
+	case RainIntensity::HEAVY:  return 1.15f;
+	case RainIntensity::CLEAR:  return 1.0f;
+	}
+	return 1.0f;
+}
+
+float Board::GetPlantRainActionSpeedMultiplier() const
+{
+	switch (mRainIntensity) {
+	case RainIntensity::LIGHT:  return 1.03f;
+	case RainIntensity::MEDIUM: return 1.06f;
+	case RainIntensity::HEAVY:  return 1.09f;
+	case RainIntensity::CLEAR:  return 1.0f;
+	}
+	return 1.0f;
+}
+
+float Board::GetRainOverlayAlpha() const
+{
+	switch (mRainIntensity) {
+	case RainIntensity::LIGHT:  return 20.0f;
+	case RainIntensity::MEDIUM: return 32.0f;
+	case RainIntensity::HEAVY:  return 44.0f;
+	case RainIntensity::CLEAR:  return 0.0f;
+	}
+	return 0.0f;
+}
+
+void Board::InitializeWeather()
+{
+	if (mWeatherInitialized) return;
+	mWeatherInitialized = true;
+	mRainIntensity = RainIntensity::CLEAR;
+	mLightningTimer = 0.0f;
+	mRainVisualActive = false;
+	mWeatherTimer = GameAPP::GetInstance().GetBackgroundIsNight(mBackGround)
+		? GameRandom::Range(kFirstRainDelayMin, kFirstRainDelayMax)
+		: 0.0f;
+}
+
+void Board::RefreshZombieWeatherSpeeds()
+{
+	for (int id : mEntityManager.GetAllZombieIDs()) {
+		Zombie* zombie = mEntityManager.GetZombie(id);
+		if (zombie) zombie->RefreshAnimSpeedForWeather();
+	}
+}
+
+void Board::EmitRainEffect(float duration)
+{
+	if (!g_particleSystem || mRainIntensity == RainIntensity::CLEAR || duration <= 0.0f) return;
+	// Box 发射器以屏幕上沿中央为基准铺满逻辑画面；运行期时长覆盖 XML 上限，
+	// 使随机雨长与读档剩余时间都能和玩法倍率同步结束。
+	g_particleSystem->EmitEffect(RainEffectName(mRainIntensity),
+		Vector(static_cast<float>(SCENE_WIDTH) * 0.5f, -60.0f),
+		LAYER_EFFECTS_WORLD, duration);
+	mRainVisualActive = true;
+}
+
+void Board::StartRainAudio()
+{
+	float volume = 0.18f;
+	switch (mRainIntensity) {
+	case RainIntensity::LIGHT:  volume = 0.18f; break;
+	case RainIntensity::MEDIUM: volume = 0.28f; break;
+	case RainIntensity::HEAVY:  volume = 0.45f; break;
+	case RainIntensity::CLEAR:  return;
+	}
+	// 原版 FoleyType.Rain 绑定 SOUND_RAIN 且带 Loop 标志；这里只把音量按雨势分层。
+	AudioSystem::PlayLoopingSound(ResourceKeys::Sounds::SOUND_RAIN, volume);
+}
+
+void Board::StopRainAudio()
+{
+	AudioSystem::StopLoopingSound(ResourceKeys::Sounds::SOUND_RAIN);
+}
+
+void Board::BeginRain(RainIntensity intensity, float duration)
+{
+	if (intensity == RainIntensity::CLEAR || duration <= 0.0f) return;
+	mRainIntensity = intensity;
+	mWeatherTimer = duration;
+	mLightningTimer = (intensity == RainIntensity::HEAVY)
+		? GameRandom::Range(kLightningDelayMin, kLightningDelayMax)
+		: 0.0f;
+	mRainVisualActive = false;
+	RefreshZombieWeatherSpeeds();
+	EmitRainEffect(duration);
+	StartRainAudio();
+}
+
+void Board::EndRain()
+{
+	StopRainAudio();
+	mRainIntensity = RainIntensity::CLEAR;
+	mWeatherTimer = GameRandom::Range(kClearWeatherDelayMin, kClearWeatherDelayMax);
+	mLightningTimer = 0.0f;
+	mRainVisualActive = false;
+	RefreshZombieWeatherSpeeds();
+}
+
+void Board::TriggerLightning()
+{
+	if (mRainIntensity != RainIntensity::HEAVY || !mGameScene) return;
+	// 仅做短促低峰值白闪；不启用动态光源、阴影或材质高光。
+	mGameScene->ShowScreenFlash(0.18f, 105.0f);
+}
+
+void Board::UpdateWeather(float deltaTime)
+{
+	if (!mWeatherInitialized || deltaTime <= 0.0f ||
+		!GameAPP::GetInstance().GetBackgroundIsNight(mBackGround)) return;
+
+	mWeatherTimer -= deltaTime;
+	if (mRainIntensity == RainIntensity::HEAVY) {
+		mLightningTimer -= deltaTime;
+		if (mLightningTimer <= 0.0f) {
+			TriggerLightning();
+			mLightningTimer = GameRandom::Range(kLightningRepeatMin, kLightningRepeatMax);
+		}
+	}
+
+	if (mWeatherTimer > 0.0f) return;
+	if (mRainIntensity != RainIntensity::CLEAR) {
+		EndRain();
+		return;
+	}
+
+	// 小/中/大雨权重 50/35/15；强度在一场雨内固定，玩家能从视觉直接判断倍率。
+	const int roll = GameRandom::Range(1, 100);
+	const RainIntensity next = (roll <= 50) ? RainIntensity::LIGHT
+		: (roll <= 85) ? RainIntensity::MEDIUM : RainIntensity::HEAVY;
+	BeginRain(next, GameRandom::Range(kRainDurationMin, kRainDurationMax));
+}
+
+void Board::SetRainForTesting(RainIntensity intensity, float duration)
+{
+	if (!GameAPP::GetInstance().GetBackgroundIsNight(mBackGround)) return;
+	if (g_particleSystem) g_particleSystem->ClearAll();
+	StopRainAudio();
+	mWeatherInitialized = true;
+	mRainVisualActive = false;
+
+	if (intensity == RainIntensity::CLEAR) {
+		mRainIntensity = RainIntensity::CLEAR;
+		mWeatherTimer = std::max(duration, 0.1f);
+		mLightningTimer = 0.0f;
+		RefreshZombieWeatherSpeeds();
+		return;
+	}
+	BeginRain(intensity, std::max(duration, 0.1f));
+}
+
+bool Board::TriggerLightningForTesting()
+{
+	if (mRainIntensity != RainIntensity::HEAVY) return false;
+	TriggerLightning();
+	return true;
 }
 
 void Board::InitializeCell(int rows, int cols)
@@ -762,6 +959,8 @@ void Board::Update()
 	if (mShakeTimer > 0.0f) {
 		mShakeTimer -= DeltaTime::GetDeltaTime();
 	}
+	// 天气属于整片场景而非波次逻辑：生存轮间也自然推进；暂停时 dt=0 与粒子同步冻结。
+	UpdateWeather(DeltaTime::GetDeltaTime());
 	CleanupExpiredObjects();
 	UpdateLevel();
 	AudioSystem::UpdateAdaptiveMusic(DeltaTime::GetDeltaTime(), CountHostileZombiesForMusic());
@@ -790,6 +989,13 @@ void Board::StartGame()
 		InitializeMowers();
 	}
 	mBoardState = BoardState::GAME;
+	InitializeWeather();
+	// 读档恢复到一场雨中时，玩法状态已经由存档还原；粒子是瞬态资源，需按剩余时间重建一次。
+	if (mRainIntensity != RainIntensity::CLEAR && !mRainVisualActive)
+	{
+		EmitRainEffect(mWeatherTimer);
+		StartRainAudio();
+	}
 
 	PlayBackgroundMusic();
 }

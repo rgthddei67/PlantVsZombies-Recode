@@ -73,6 +73,12 @@ void SceneManager::Draw(Graphics* g) {
 	}
 }
 
+void SceneManager::DrawWorldOverlay(Graphics* g) {
+	if (!sceneStack_.empty()) {
+		sceneStack_.top()->DrawWorldOverlay(g);
+	}
+}
+
 Scene* SceneManager::GetCurrentScene() const {
 	return sceneStack_.empty() ? nullptr : sceneStack_.top().get();
 }

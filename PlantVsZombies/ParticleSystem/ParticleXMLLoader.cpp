@@ -150,6 +150,10 @@ EmitterConfig ParticleXMLLoader::ParseEmitter(const pugi::xml_node& emitterNode)
 		config.launchSpeed = ParseValueRange(emitterNode.child_value("LaunchSpeed"));
 	}
 	config.randomLaunchSpin = emitterNode.child("RandomLaunchSpin").text().as_bool(false);
+	if (emitterNode.child("ParticleRotation")) {
+		config.particleRotation = ParseValueRange(emitterNode.child_value("ParticleRotation"));
+		config.hasParticleRotation = true;
+	}
 	if (emitterNode.child("ParticleSpinSpeed")) {
 		config.particleSpinSpeed = ParseValueRange(emitterNode.child_value("ParticleSpinSpeed"));
 	}

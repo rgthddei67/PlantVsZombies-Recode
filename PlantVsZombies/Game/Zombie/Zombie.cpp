@@ -143,7 +143,7 @@ void Zombie::LoadProtectedData(const nlohmann::json& j) {
 		this->SetCooldown(cooldown);                       // 用已恢复的 mExtraSpeed，正确得到 base*0.6
 	}
 	else if (mAnimator) {
-		mAnimator->SetExtraSpeedMultiplier(mExtraSpeed);   // 无减速：直接应用基准（狂暴 2.5 等）
+		UpdateAnimSpeed();   // 无减速也要恢复僵尸基准 × 当前雨势倍率
 	}
 
 	// 冻结还原：必须在减速恢复之后——UpdateAnimSpeed 里冻结优先，把 extra 覆盖回 0（停格）。
@@ -203,6 +203,8 @@ void Zombie::Start()
 	}
 	SetAnimationSpeed(GameRandom::Range(1.1f, 1.4f));
 	SetupZombie();
+	// SetupZombie 可设置品种基准 mExtraSpeed；最后统一叠加减速/冻结/雨势，且跨 PlayTrack 存活。
+	if (!mIsPreview) UpdateAnimSpeed();
 }
 
 void Zombie::CheckWin() const
@@ -406,8 +408,9 @@ void Zombie::UpdateAnimSpeed()
 		mAnimator->SetExtraSpeedMultiplier(0.0f);   // 冻结停格（同 WallNut 被啃暂停：状态层，不动 base）
 		return;
 	}
+	const float rainMultiplier = mBoard ? mBoard->GetZombieRainSpeedMultiplier() : 1.0f;
 	mAnimator->SetExtraSpeedMultiplier(
-		mExtraSpeed * (mCooldownTimer > 0.0f ? GetSlowAnimFactor() : 1.0f));
+		mExtraSpeed * (mCooldownTimer > 0.0f ? GetSlowAnimFactor() : 1.0f) * rainMultiplier);
 }
 
 bool Zombie::CanBeChilled() const

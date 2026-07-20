@@ -199,6 +199,7 @@ namespace ResourceKeys
 		RKEY(SOUND_HUGEWAVE);
 		RKEY(SOUND_ARM_HEAD_DROP);
 		RKEY(SOUND_FROZEN);		// 寒冰菇全场冻结（原版 frozen.ogg）
+		RKEY(SOUND_RAIN);			// 原版暴风雨夜循环环境音（rain.ogg）
 		inline const std::string SOUND_POLEVAULT_JUMP = "SOUND_POLEVAULT";
 
 		RKEY(SOUND_CLICKSEED);

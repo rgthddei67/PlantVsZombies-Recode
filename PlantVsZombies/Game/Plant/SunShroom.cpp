@@ -12,7 +12,8 @@ void SunShroom::SetupPlant()
 
 void SunShroom::PlantUpdate()
 {
-	mGrowTimer += DeltaTime::GetDeltaTime();
+	const float actionDelta = GetWeatherActionDeltaTime();
+	mGrowTimer += actionDelta;
 	if (mGrowTimer >= GROW_TIME && !mIsGrown) {
 		AudioSystem::PlaySound("SOUND_PLANTGROW", 0.3f);
 		mGrowTimer = 0.0f;
@@ -22,7 +23,7 @@ void SunShroom::PlantUpdate()
 
 	if (!mIsGlowingForProduction) {
 		// 正常计时生产
-		mProduceTimer += DeltaTime::GetDeltaTime();
+		mProduceTimer += actionDelta;
 		if (mProduceTimer >= PRODUCE_TIME) {
 			SetGlowingTimer(0.75f);
 			mIsGlowingForProduction = true;

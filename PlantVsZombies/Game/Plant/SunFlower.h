@@ -33,7 +33,7 @@ public:
 	{
 		if (!mIsGlowingForProduction) {
 			// 正常计时生产
-			mProduceTimer += DeltaTime::GetDeltaTime();
+			mProduceTimer += GetWeatherActionDeltaTime();
 			if (mProduceTimer >= mProduceTime) {
 				SetGlowingTimer(0.75f);
 				mIsGlowingForProduction = true;

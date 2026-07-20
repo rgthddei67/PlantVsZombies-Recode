@@ -99,6 +99,19 @@ void GameScene::Draw(Graphics* g)
 	Scene::Draw(g);
 }
 
+void GameScene::DrawWorldOverlay(Graphics* g)
+{
+	if (!g || !mBoard) return;
+	const float alpha = mBoard->GetRainOverlayAlpha();
+	if (alpha <= 0.0f) return;
+
+	// 低成本雨天环境光：只做蓝灰半透明暗幕。该钩子位于战场主体之后、UI overlay 之前，
+	// 因而植物/僵尸/背景一起变暗，但卡片、按钮和文字保持清晰。
+	g->FillRect(0.0f, 0.0f,
+		static_cast<float>(SCENE_WIDTH), static_cast<float>(SCENE_HEIGHT),
+		glm::vec4(36.0f, 52.0f, 78.0f, alpha));
+}
+
 void GameScene::BuildDrawCommands()
 {
 	Scene::BuildDrawCommands();
@@ -154,9 +167,9 @@ void GameScene::BuildDrawCommands()
 		RegisterDrawCommand("ScreenFlash",
 			[this](Graphics* g) {
 				if (mScreenFlashTimer <= 0.0f) return;
-				// 峰值不打满 255：纯白满屏一帧过于刺眼，200 起步线性衰减
+				// 峰值可由调用方控制：寒冰菇沿用 200，大雨闪电使用更柔和的短闪。
 				const float t = mScreenFlashTimer / mScreenFlashDuration;
-				glm::vec4 color(255.0f, 255.0f, 255.0f, 200.0f * t);
+				glm::vec4 color(255.0f, 255.0f, 255.0f, mScreenFlashPeakAlpha * t);
 				g->FillRect(0.0f, 0.0f,
 					static_cast<float>(SCENE_WIDTH), static_cast<float>(SCENE_HEIGHT), color);
 			},
@@ -1379,11 +1392,12 @@ void GameScene::DevTriggerNextWave()
 	}
 }
 
-void GameScene::ShowScreenFlash(float duration)
+void GameScene::ShowScreenFlash(float duration, float peakAlpha)
 {
 	if (duration <= 0.0f) return;
 	mScreenFlashDuration = duration;
 	mScreenFlashTimer = duration;
+	mScreenFlashPeakAlpha = std::clamp(peakAlpha, 0.0f, 255.0f);
 }
 
 void GameScene::ShowPrompt(const std::string& textureKey,

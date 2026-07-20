@@ -46,6 +46,7 @@ public:
 
 	void Update();
 	void Draw(Graphics* g);
+	void DrawWorldOverlay(Graphics* g);
 
 	// 获取当前场景的指针
 	Scene* GetCurrentScene() const;

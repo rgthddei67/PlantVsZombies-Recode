@@ -55,8 +55,8 @@ void ScaredyShroom::PlantUpdate()
 		return;
 	}
 
-	// 词条：植物攻速。mult>=1（非生存关/未获取恒为 1.0）。
-	float mult = mBoard ? static_cast<float>(mBoard->GetPerkManager().GetPlantAttackSpeedMultiplier()) : 1.0f;
+	// 生存攻速词条 × 雨势行动倍率；害怕状态机与索敌轮询仍使用真实 deltaTime。
+	float mult = GetAttackSpeedMultiplier();
 	this->mShootTimer += (DeltaTime::GetDeltaTime() * mult);
 	if (this->mShootTimer >= this->mShootTime)
 	{
