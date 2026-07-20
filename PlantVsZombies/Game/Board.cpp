@@ -25,16 +25,29 @@
 #include <cmath>       // std::lround
 
 namespace {
-	constexpr float kFirstRainDelayMin = 20.0f;          // 开局到首场雨的最短等待时间（秒）
-	constexpr float kFirstRainDelayMax = 35.0f;          // 开局到首场雨的最长等待时间（秒）
+	constexpr float kFirstRainDelayMin = 35.0f;          // 开局到首场雨的最短等待时间（秒）
+	constexpr float kFirstRainDelayMax = 50.0f;          // 开局到首场雨的最长等待时间（秒）
 	constexpr float kClearWeatherDelayMin = 35.0f;       // 两场雨之间的最短晴空间隔（秒）
 	constexpr float kClearWeatherDelayMax = 55.0f;       // 两场雨之间的最长晴空间隔（秒）
-	constexpr float kRainDurationMin = 20.0f;            // 单场雨的最短持续时间（秒）
-	constexpr float kRainDurationMax = 25.0f;            // 单场雨的最长持续时间（秒）
+	constexpr float kRainDurationMin = 30.0f;            // 一场新雨第一个雨段的最短持续时间（秒）
+	constexpr float kRainDurationMax = 45.0f;            // 一场新雨第一个雨段的最长持续时间（秒）
+	constexpr float kRainTailDurationMin = 12.0f;        // 雨势切档后尾雨段的最短持续时间（秒）
+	constexpr float kRainTailDurationMax = 22.0f;        // 雨势切档后尾雨段的最长持续时间（秒）
 	constexpr int kLightRainWeight = 50;                 // 小雨相对权重；数值越大越容易抽中
 	constexpr int kMediumRainWeight = 35;                // 中雨相对权重；数值越大越容易抽中
 	constexpr int kHeavyRainWeight = 15;                 // 大雨相对权重；数值越大越容易抽中
 	constexpr int kRainWeightTotal = kLightRainWeight + kMediumRainWeight + kHeavyRainWeight; // 雨势总权重，单档改动后概率自动归一化
+	constexpr int kLightToMediumWeight = 30;             // 初始小雨结束时增强为中雨的相对权重
+	constexpr int kLightToHeavyWeight = 15;              // 初始小雨结束时骤增为大雨的相对权重
+	constexpr int kLightToClearWeight = 55;              // 初始小雨结束时直接放晴的相对权重
+	constexpr int kLightTransitionWeightTotal = kLightToMediumWeight + kLightToHeavyWeight + kLightToClearWeight; // 初始小雨转档总权重
+	constexpr int kMediumToLightWeight = 35;             // 中雨结束时衰减为小雨的相对权重
+	constexpr int kMediumToClearWeight = 65;             // 中雨结束时直接放晴的相对权重
+	constexpr int kMediumTransitionWeightTotal = kMediumToLightWeight + kMediumToClearWeight; // 中雨转档总权重
+	constexpr int kHeavyToMediumWeight = 45;             // 大雨结束时衰减为中雨的相对权重
+	constexpr int kHeavyToLightWeight = 20;              // 大雨结束时直接衰减为小雨的相对权重
+	constexpr int kHeavyToClearWeight = 35;              // 大雨结束时直接放晴的相对权重
+	constexpr int kHeavyTransitionWeightTotal = kHeavyToMediumWeight + kHeavyToLightWeight + kHeavyToClearWeight; // 大雨转档总权重
 	constexpr float kLightZombieSpeed = 1.05f;           // 小雨僵尸动作与移动速度倍率
 	constexpr float kMediumZombieSpeed = 1.10f;          // 中雨僵尸动作与移动速度倍率
 	constexpr float kHeavyZombieSpeed = 1.15f;           // 大雨僵尸动作与移动速度倍率
@@ -63,6 +76,38 @@ namespace {
 		case RainIntensity::CLEAR:  break;
 		}
 		return "";
+	}
+
+	int RainTransitionWeightTotal(RainIntensity intensity, bool canIntensify)
+	{
+		switch (intensity) {
+		case RainIntensity::LIGHT:  return canIntensify ? kLightTransitionWeightTotal : 0;
+		case RainIntensity::MEDIUM: return kMediumTransitionWeightTotal;
+		case RainIntensity::HEAVY:  return kHeavyTransitionWeightTotal;
+		case RainIntensity::CLEAR:  return 0;
+		}
+		return 0;
+	}
+
+	// 把一次权重落点解析为下一雨势。只有一场雨最初的小雨能增强；切档后只会继续衰减。
+	RainIntensity RainTransitionForRoll(RainIntensity intensity, bool canIntensify, int roll)
+	{
+		switch (intensity) {
+		case RainIntensity::LIGHT:
+			if (!canIntensify) return RainIntensity::CLEAR;
+			if (roll <= kLightToMediumWeight) return RainIntensity::MEDIUM;
+			if (roll <= kLightToMediumWeight + kLightToHeavyWeight) return RainIntensity::HEAVY;
+			return RainIntensity::CLEAR;
+		case RainIntensity::MEDIUM:
+			return roll <= kMediumToLightWeight ? RainIntensity::LIGHT : RainIntensity::CLEAR;
+		case RainIntensity::HEAVY:
+			if (roll <= kHeavyToMediumWeight) return RainIntensity::MEDIUM;
+			if (roll <= kHeavyToMediumWeight + kHeavyToLightWeight) return RainIntensity::LIGHT;
+			return RainIntensity::CLEAR;
+		case RainIntensity::CLEAR:
+			return RainIntensity::CLEAR;
+		}
+		return RainIntensity::CLEAR;
 	}
 }
 
@@ -158,11 +203,13 @@ float Board::GetRainOverlayAlpha() const
 void Board::InitializeWeather()
 {
 	if (mWeatherInitialized) return;
-	// 状态机只需“当前雨势 + 一个复用倒计时”：CLEAR 时倒计时代表距首场雨/下一场雨，
-	// 下雨时则代表本场雨的剩余时间。白天把倒计时保持为 0，并由 UpdateWeather 直接跳过。
+	// 主进度由“当前雨势 + 一个复用倒计时”驱动：CLEAR 时倒计时代表距首场雨/下一场雨，
+	// 下雨时则代表当前雨段剩余时间；另用布尔值记录初始小雨是否还拥有一次增强资格。
+	// 白天把倒计时保持为 0，并由 UpdateWeather 直接跳过。
 	mWeatherInitialized = true;
 	mRainIntensity = RainIntensity::CLEAR;
 	mLightningTimer = 0.0f;
+	mRainCanIntensify = false;
 	mRainVisualActive = false;
 	mWeatherTimer = GameAPP::GetInstance().GetBackgroundIsNight(mBackGround)
 		? GameRandom::Range(kFirstRainDelayMin, kFirstRainDelayMax)
@@ -206,11 +253,12 @@ void Board::StopRainAudio()
 	AudioSystem::StopLoopingSound(ResourceKeys::Sounds::SOUND_RAIN);
 }
 
-void Board::BeginRain(RainIntensity intensity, float duration)
+void Board::BeginRain(RainIntensity intensity, float duration, bool canIntensify)
 {
 	if (intensity == RainIntensity::CLEAR || duration <= 0.0f) return;
 	mRainIntensity = intensity;
 	mWeatherTimer = duration;
+	mRainCanIntensify = canIntensify && intensity == RainIntensity::LIGHT;
 	mLightningTimer = (intensity == RainIntensity::HEAVY)
 		? GameRandom::Range(kLightningDelayMin, kLightningDelayMax)
 		: 0.0f;
@@ -220,12 +268,26 @@ void Board::BeginRain(RainIntensity intensity, float duration)
 	StartRainAudio();
 }
 
+void Board::FinishRainPhase(int transitionRoll)
+{
+	const RainIntensity next = RainTransitionForRoll(
+		mRainIntensity, mRainCanIntensify, transitionRoll);
+	if (next == RainIntensity::CLEAR) {
+		EndRain();
+		return;
+	}
+
+	// 切档后的雨段统一进入衰减链，不再拥有增强资格，因此状态转移必然在有限步内放晴。
+	BeginRain(next, GameRandom::Range(kRainTailDurationMin, kRainTailDurationMax), false);
+}
+
 void Board::EndRain()
 {
 	StopRainAudio();
 	mRainIntensity = RainIntensity::CLEAR;
 	mWeatherTimer = GameRandom::Range(kClearWeatherDelayMin, kClearWeatherDelayMax);
 	mLightningTimer = 0.0f;
+	mRainCanIntensify = false;
 	mRainVisualActive = false;
 	RefreshZombieWeatherSpeeds();
 }
@@ -242,8 +304,8 @@ void Board::UpdateWeather(float deltaTime)
 	if (!mWeatherInitialized || deltaTime <= 0.0f ||
 		!GameAPP::GetInstance().GetBackgroundIsNight(mBackGround)) return;
 
-	// 每帧只推进当前阶段的倒计时。雨中归零就 EndRain() 并随机安排晴空间隔；
-	// CLEAR 阶段归零则抽取下一档雨势和持续时间，形成 CLEAR→RAIN→CLEAR 的循环。
+	// 每帧只推进当前阶段的倒计时。雨中归零会按当前强度决定增强、衰减或放晴；
+	// CLEAR 阶段归零则抽取一场新雨，形成有界的 CLEAR→RAIN(可多段)→CLEAR 循环。
 	mWeatherTimer -= deltaTime;
 	if (mRainIntensity == RainIntensity::HEAVY) {
 		mLightningTimer -= deltaTime;
@@ -255,20 +317,22 @@ void Board::UpdateWeather(float deltaTime)
 
 	if (mWeatherTimer > 0.0f) return;
 	if (mRainIntensity != RainIntensity::CLEAR) {
-		EndRain();
+		const int total = RainTransitionWeightTotal(mRainIntensity, mRainCanIntensify);
+		if (total > 0) FinishRainPhase(GameRandom::Range(1, total));
+		else EndRain();
 		return;
 	}
 
 	// 在总权重内掷一次整数骰子：依次落入小雨、中雨、大雨各自的权重区间。
-	// 雨势选定后整场保持不变，因此视觉密度、速度倍率和声音不会在雨中突然跳档。
+	// 初始小雨可能增强；初始中/大雨及所有切档后的雨段只会衰减，避免无限来回循环。
 	const int roll = GameRandom::Range(1, kRainWeightTotal);
 	const RainIntensity next = (roll <= kLightRainWeight) ? RainIntensity::LIGHT
 		: (roll <= kLightRainWeight + kMediumRainWeight) ? RainIntensity::MEDIUM
 		: RainIntensity::HEAVY;
-	BeginRain(next, GameRandom::Range(kRainDurationMin, kRainDurationMax));
+	BeginRain(next, GameRandom::Range(kRainDurationMin, kRainDurationMax), next == RainIntensity::LIGHT);
 }
 
-void Board::SetRainForTesting(RainIntensity intensity, float duration)
+void Board::SetRainForTesting(RainIntensity intensity, float duration, bool canIntensify)
 {
 	if (!GameAPP::GetInstance().GetBackgroundIsNight(mBackGround)) return;
 	if (g_particleSystem) g_particleSystem->ClearAll();
@@ -280,10 +344,25 @@ void Board::SetRainForTesting(RainIntensity intensity, float duration)
 		mRainIntensity = RainIntensity::CLEAR;
 		mWeatherTimer = std::max(duration, 0.1f);
 		mLightningTimer = 0.0f;
+		mRainCanIntensify = false;
 		RefreshZombieWeatherSpeeds();
 		return;
 	}
-	BeginRain(intensity, std::max(duration, 0.1f));
+	BeginRain(intensity, std::max(duration, 0.1f), canIntensify);
+}
+
+bool Board::AdvanceRainPhaseForTesting(int transitionRoll)
+{
+	if (mRainIntensity == RainIntensity::CLEAR) return false;
+	const int total = RainTransitionWeightTotal(mRainIntensity, mRainCanIntensify);
+	if (total > 0 && (transitionRoll < 1 || transitionRoll > total)) return false;
+
+	// 测试会在雨段尚未自然到期时强制切档；先清旧雨丝，模拟生产路径中旧发射器已到期。
+	if (g_particleSystem) g_particleSystem->ClearAll();
+	mRainVisualActive = false;
+	if (total > 0) FinishRainPhase(transitionRoll);
+	else EndRain();
+	return true;
 }
 
 bool Board::TriggerLightningForTesting()

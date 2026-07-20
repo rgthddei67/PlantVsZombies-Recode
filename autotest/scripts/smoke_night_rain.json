@@ -60,6 +60,21 @@
     { "op": "assert_state", "path": "weather.intensity", "equals": "CLEAR" },
     { "op": "assert_state", "path": "weather.zombieSpeedPct", "equals": 100 },
     { "op": "assert_state", "path": "weather.rainSoundPlaying", "equals": false },
+
+    { "op": "set_weather", "intensity": "LIGHT", "duration": 60, "canIntensify": true },
+    { "op": "assert_state", "path": "weather.canIntensify", "equals": true },
+    { "op": "advance_weather_phase", "roll": 31 },
+    { "op": "assert_state", "path": "weather.intensity", "equals": "HEAVY" },
+    { "op": "assert_state", "path": "weather.canIntensify", "equals": false },
+    { "op": "assert_state", "path": "weather.rainSoundPlaying", "equals": true },
+    { "op": "advance_weather_phase", "roll": 1 },
+    { "op": "assert_state", "path": "weather.intensity", "equals": "MEDIUM" },
+    { "op": "advance_weather_phase", "roll": 1 },
+    { "op": "assert_state", "path": "weather.intensity", "equals": "LIGHT" },
+    { "op": "assert_state", "path": "weather.canIntensify", "equals": false },
+    { "op": "advance_weather_phase", "roll": 1 },
+    { "op": "assert_state", "path": "weather.intensity", "equals": "CLEAR" },
+    { "op": "assert_state", "path": "weather.rainSoundPlaying", "equals": false },
     { "op": "quit" }
   ]
 }

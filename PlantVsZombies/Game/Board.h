@@ -157,6 +157,7 @@ private:
 	float mWeatherTimer = 0.0f;
 	float mLightningTimer = 0.0f;
 	bool mWeatherInitialized = false;   // 旧档缺天气字段时由 StartGame 首次初始化
+	bool mRainCanIntensify = false;     // 仅初始小雨可增强；首次切档后永久转入衰减链
 	bool mRainVisualActive = false;     // 纯运行期标记，防读档/生存轮间重复发射同一场雨
 
 	std::vector<RowInfo> mRowInfos;
@@ -178,7 +179,9 @@ private:
 	int CountHostileZombiesForMusic() const;
 	void InitializeWeather();
 	void UpdateWeather(float deltaTime);
-	void BeginRain(RainIntensity intensity, float duration);
+	void BeginRain(RainIntensity intensity, float duration, bool canIntensify);
+	// 结束当前雨段：按固定权重落点决定放晴或进入一个不可再增强的尾雨段。
+	void FinishRainPhase(int transitionRoll);
 	void EndRain();
 	void EmitRainEffect(float duration);
 	void StartRainAudio();
@@ -231,9 +234,12 @@ public:
 	float GetWeatherTimer() const { return mWeatherTimer; }
 	float GetLightningTimer() const { return mLightningTimer; }
 	bool IsWeatherInitialized() const { return mWeatherInitialized; }
+	bool CanRainIntensify() const { return mRainCanIntensify; }
 
 	// AutoTest 专用：固定雨势并重启对应粒子，真实游戏只走随机天气状态机。
-	void SetRainForTesting(RainIntensity intensity, float duration = 30.0f);
+	void SetRainForTesting(RainIntensity intensity, float duration = 30.0f, bool canIntensify = false);
+	// AutoTest 专用：用固定权重落点结束当前雨段，覆盖增强、衰减和放晴分支。
+	bool AdvanceRainPhaseForTesting(int transitionRoll);
 	// AutoTest 专用：仅大雨允许触发，返回是否真正闪电。
 	bool TriggerLightningForTesting();
 

@@ -315,9 +315,19 @@ bool TestDriver::ExecuteCurrent() {
 			Fail("set_weather: intensity 必须是 CLEAR/LIGHT/MEDIUM/HEAVY");
 			return false;
 		}
-		gs->GetBoard()->SetRainForTesting(it->second, cmd.value("duration", 30.0f));
+		gs->GetBoard()->SetRainForTesting(it->second, cmd.value("duration", 30.0f),
+			cmd.value("canIntensify", false));
 		if (gs->GetBoard()->GetRainIntensity() != it->second) {
 			Fail("set_weather: 当前背景不是黑夜，天气未生效");
+			return false;
+		}
+		return true;
+	}
+	if (op == "advance_weather_phase") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) { Fail("advance_weather_phase: 不在 GameScene 或 Board 为空"); return false; }
+		if (!gs->GetBoard()->AdvanceRainPhaseForTesting(cmd.value("roll", 1))) {
+			Fail("advance_weather_phase: 当前无雨，或 roll 超出当前转档总权重");
 			return false;
 		}
 		return true;
@@ -714,6 +724,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		out["weather"] = {
 			{ "intensity", RainIntensityName(board->GetRainIntensity()) },
 			{ "initialized", board->IsWeatherInitialized() },
+			{ "canIntensify", board->CanRainIntensify() },
 			{ "remaining", board->GetWeatherTimer() },
 			{ "lightningRemaining", board->GetLightningTimer() },
 			{ "zombieSpeedPct", static_cast<int>(std::lround(zombieRain * 100.0f)) },

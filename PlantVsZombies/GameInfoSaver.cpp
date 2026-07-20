@@ -174,6 +174,7 @@ bool GameInfoSaver::SaveLevelDataImpl(Board* board, CardSlotManager* manager)
 	j["rainIntensity"] = static_cast<int>(board->mRainIntensity);
 	j["weatherTimer"] = board->mWeatherTimer;
 	j["lightningTimer"] = board->mLightningTimer;
+	j["rainCanIntensify"] = board->mRainCanIntensify;
 	j["maxWave"] = board->mMaxWave;
 	j["zombieCountDown"] = board->mZombieCountDown;
 	j["totalZombieHP"] = board->mTotalZombieHP;
@@ -425,6 +426,9 @@ bool GameInfoSaver::LoadLevelDataImpl(Board* board, CardSlotManager* manager)
 		? static_cast<RainIntensity>(rainValue) : RainIntensity::CLEAR;
 	board->mWeatherTimer = std::max(0.0f, j.value("weatherTimer", 0.0f));
 	board->mLightningTimer = std::max(0.0f, j.value("lightningTimer", 0.0f));
+	// 旧版天气存档没有该字段时按 false：少一次增强机会比读档后凭空再增强更稳妥。
+	board->mRainCanIntensify = board->mRainIntensity == RainIntensity::LIGHT
+		&& j.value("rainCanIntensify", false);
 	board->mRainVisualActive = false;   // 粒子不入存档，StartGame 按剩余时间重建
 	board->mMaxWave = j.value("maxWave", 10);
 	board->mZombieCountDown = j.value("zombieCountDown", 20.0f);
