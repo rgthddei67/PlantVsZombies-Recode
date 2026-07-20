@@ -23,6 +23,12 @@ public:
 protected:
 	void SetupPlant() override;
 
+	/** 进入压扁态并按原版半径一次结算同排范围内的僵尸。 */
+	void Detonate();
+
+	/** 清除爆炸圆与僵尸判定矩形相交的所有非魅惑目标。 */
+	void KillZombiesInBlastRadius();
+
 	void Ready(bool quick);
 };
 
