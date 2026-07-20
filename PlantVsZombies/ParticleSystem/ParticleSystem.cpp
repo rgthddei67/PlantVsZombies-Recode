@@ -54,9 +54,25 @@ void ParticleSystem::EmitEffect(const std::string& effectName, const Vector& pos
 
 	auto effect = std::make_unique<ParticleEffect>();
 	effect->InitializeFromConfig(*config, m_graphics, position);
+	effect->SetName(effectName);
 	effect->SetRenderOrder(renderOrder);
 	effect->SetSystemDuration(durationOverride);
 	effects.push_back(std::move(effect));
+}
+
+bool ParticleSystem::IsEffectEmitting(const std::string& effectName) const {
+	for (const auto& effect : effects) {
+		if (effect->GetName() == effectName && effect->IsEmitting()) return true;
+	}
+	return false;
+}
+
+int ParticleSystem::GetEffectActiveParticleCount(const std::string& effectName) const {
+	int count = 0;
+	for (const auto& effect : effects) {
+		if (effect->GetName() == effectName) count += effect->GetActiveParticleCount();
+	}
+	return count;
 }
 
 void ParticleSystem::CleanupInactiveEffects() {

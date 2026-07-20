@@ -7,6 +7,7 @@
 #include "../Game/Definit.h"
 #include <vector>
 #include <memory>
+#include <string>
 
 // 多发射器粒子特效管理器
 class ParticleEffect {
@@ -17,6 +18,7 @@ private:
 	float systemDuration = -1.0f;
 	bool active = false;
 	int renderOrder = 0;
+	std::string effectName;
 
 public:
 	ParticleEffect() = default;
@@ -29,12 +31,22 @@ public:
 	void Draw();
 
 	bool IsActive() const { return active; }
+	/** 特效计时器有效且至少一个发射器仍在持续发射。 */
+	bool IsEmitting() const;
+	/** 返回所有发射器当前存活粒子数，供状态诊断使用。 */
+	int GetActiveParticleCount() const;
 	bool ShouldDestroy() const;
 
 	void SetRenderOrder(int order) { renderOrder = order; }
 	int GetRenderOrder() const { return renderOrder; }
-	// 天气等持续特效可用运行期时长覆盖 XML 默认值；<=0 保留配置值。
-	void SetSystemDuration(float duration) { if (duration > 0.0f) systemDuration = duration; }
+	/**
+	 * 天气等持续特效可用运行期时长覆盖 XML 默认值；<=0 保留配置值。
+	 * 正时长覆盖会让发射器循环复用粒子池，直到特效计时器统一停止。
+	 */
+	void SetSystemDuration(float duration);
+
+	void SetName(const std::string& name) { effectName = name; }
+	const std::string& GetName() const { return effectName; }
 
 	void SetPosition(const Vector& pos);
 	Vector GetPosition() const { return position; }

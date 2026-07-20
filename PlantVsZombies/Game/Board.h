@@ -235,6 +235,8 @@ public:
 	float GetLightningTimer() const { return mLightningTimer; }
 	bool IsWeatherInitialized() const { return mWeatherInitialized; }
 	bool CanRainIntensify() const { return mRainCanIntensify; }
+	/** 当前雨势对应的粒子发射器是否仍在工作。 */
+	bool IsRainEffectEmitting() const;
 
 	// AutoTest 专用：固定雨势并重启对应粒子，真实游戏只走随机天气状态机。
 	void SetRainForTesting(RainIntensity intensity, float duration = 30.0f, bool canIntensify = false);

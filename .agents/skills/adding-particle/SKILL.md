@@ -37,7 +37,7 @@ description: Use when adding or tuning ANY particle effect (粒子特效) in PvZ
 |---|---|---|---|
 | `Name` | 字符串 | 必填 | EmitEffect 用的特效名（取第一个 Emitter 的） |
 | `SpawnMinActive` | 范围 | 1 | **初始化瞬间爆发**的粒子数；**不计入 MaxLaunched 配额** |
-| `SpawnMaxLaunched` | 范围 | 1 | `SpawnRate` 涓流的总配额（爆发型用不到，照抄 ≥MinActive 即可） |
+| `SpawnMaxLaunched` | 范围 | 1 | 默认是 `SpawnRate` 涓流的总配额；若 `EmitEffect` 传入正的运行期时长，则发射器改为循环模式，此值变为可复用粒子池容量，应略高于峰值同时存活数 |
 | `SpawnRate` | int/秒 | 0 | 持续每秒生成 N 颗；0=只有初始爆发 |
 | `ParticleDuration` | 范围(秒) | 1.0 | 单粒子寿命；所有插值轨迹按它归一化 |
 | `SystemDuration` | float(秒) | -1 | 到时停止发射（已有粒子自然消亡）+ SystemAlpha 的归一化基准。**见 foot-gun ①** |
@@ -76,7 +76,7 @@ description: Use when adding or tuning ANY particle effect (粒子特效) in PvZ
 
 ## 生命周期与渲染层
 
-- 回收条件：发射停止（SystemDuration 到时 或 涓流配额打满）**且**存活粒子归零 → 特效对象自动销毁。
+- 回收条件：发射停止（SystemDuration 到时 或 涓流配额打满）**且**存活粒子归零 → 特效对象自动销毁。`EmitEffect(..., durationOverride > 0)` 会让发射器持续复用池，直到覆盖时长到期再停止。
 - `EmitEffect` 第三参默认 `LAYER_EFFECTS_WORLD`(35000)=世界层（植物/僵尸之上、UI 之下，GameAPP `DrawBelow(LAYER_UI)`）；传 `>= LAYER_UI` 的值则画在 UI 之上（Scene `DrawFrom(LAYER_UI)`）。
 - 粒子更新吃 DeltaTime：暂停/倍速/timescale 自动正确。
 
@@ -89,8 +89,9 @@ description: Use when adding or tuning ANY particle effect (粒子特效) in PvZ
 5. `RandomLaunchSpin` 不写时初速度**恒向右**——掉落物（头/手臂）必须写 `1`，否则一律向右飞。
 6. Position 场是**绝对偏移**：想让粒子"随时间飘远"，轨迹要从小值渐变到大值（`0 [20 300],60 ...`），写常量它就钉在那不动。
 7. 双 preset 都要放 XML；改完**重启**游戏才生效（启动时一次性加载）。
-8. **负数随机区间写升序** `[-300 -200]`：原版 XML 里的 `[-200 -300]` 直接照抄会把 min/max 反着喂给 GameRandom::Range，行为未定义。
-9. **移植原版 XML 前先 Compare 两 preset 的 resources.xml**：msvc-debug 的历史上整体陈旧过（缺 12 个文件条目），只 append 新行会漏掉旧账——发现漂移直接整文件覆盖 + 补拷缺失资源。
+8. **长持续天气不要用总配额硬撑时长**：调用 `EmitEffect` 时传正的 `durationOverride`，引擎会把发射器切成循环池；`SpawnMaxLaunched` 按 `SpawnMinActive + SpawnRate × ParticleDuration` 的峰值并留余量即可。否则巨大配额会让每帧遍历成千上万个空粒子。
+9. **负数随机区间写升序** `[-300 -200]`：原版 XML 里的 `[-200 -300]` 直接照抄会把 min/max 反着喂给 GameRandom::Range，行为未定义。
+10. **移植原版 XML 前先 Compare 两 preset 的 resources.xml**：msvc-debug 的历史上整体陈旧过（缺 12 个文件条目），只 append 新行会漏掉旧账——发现漂移直接整文件覆盖 + 补拷缺失资源。
 
 ## 配方（照抄改数）
 

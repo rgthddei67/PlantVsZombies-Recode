@@ -2,12 +2,12 @@
   <Name>RainHeavy</Name>
   <SpawnMinActive>56</SpawnMinActive>
   <SpawnRate>70</SpawnRate>
-  <SpawnMaxLaunched>4200</SpawnMaxLaunched>
+  <SpawnMaxLaunched>160</SpawnMaxLaunched>
   <ParticleDuration>[0.55 0.70]</ParticleDuration>
-  <ParticleAlpha>0,0 .22,8 .18,84 0,100</ParticleAlpha>
+  <ParticleAlpha>0,0 .28,8 .23,84 0,100</ParticleAlpha>
   <ParticleScale>[0.75 1.05]</ParticleScale>
   <ParticleStretch>20</ParticleStretch>
-  <ParticleBrightness>[.70 .95]</ParticleBrightness>
+  <ParticleBrightness>[.78 1.0]</ParticleBrightness>
   <ParticleRed>.50</ParticleRed>
   <ParticleGreen>.76</ParticleGreen>
   <ParticleBlue>1</ParticleBlue>
@@ -27,12 +27,12 @@
   <Name>RainHeavyForeground</Name>
   <SpawnMinActive>24</SpawnMinActive>
   <SpawnRate>34</SpawnRate>
-  <SpawnMaxLaunched>2040</SpawnMaxLaunched>
+  <SpawnMaxLaunched>96</SpawnMaxLaunched>
   <ParticleDuration>[0.38 0.50]</ParticleDuration>
-  <ParticleAlpha>0,0 .28,6 .22,86 0,100</ParticleAlpha>
+  <ParticleAlpha>0,0 .34,6 .27,86 0,100</ParticleAlpha>
   <ParticleScale>[0.85 1.15]</ParticleScale>
   <ParticleStretch>22</ParticleStretch>
-  <ParticleBrightness>[.75 1.0]</ParticleBrightness>
+  <ParticleBrightness>[.82 1.0]</ParticleBrightness>
   <ParticleRed>.58</ParticleRed>
   <ParticleGreen>.82</ParticleGreen>
   <ParticleBlue>1</ParticleBlue>

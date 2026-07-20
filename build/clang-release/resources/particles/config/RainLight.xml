@@ -1,13 +1,13 @@
 <Emitter>
   <Name>RainLight</Name>
-  <SpawnMinActive>34</SpawnMinActive>
-  <SpawnRate>40</SpawnRate>
-  <SpawnMaxLaunched>2400</SpawnMaxLaunched>
+  <SpawnMinActive>72</SpawnMinActive>
+  <SpawnRate>80</SpawnRate>
+  <SpawnMaxLaunched>192</SpawnMaxLaunched>
   <ParticleDuration>[0.95 1.10]</ParticleDuration>
-  <ParticleAlpha>0,0 .16,12 .13,78 0,100</ParticleAlpha>
-  <ParticleScale>[0.60 0.85]</ParticleScale>
-  <ParticleStretch>15</ParticleStretch>
-  <ParticleBrightness>[.65 .90]</ParticleBrightness>
+  <ParticleAlpha>0,0 .25,12 .21,78 0,100</ParticleAlpha>
+  <ParticleScale>[0.65 0.95]</ParticleScale>
+  <ParticleStretch>16</ParticleStretch>
+  <ParticleBrightness>[.80 1.0]</ParticleBrightness>
   <ParticleRed>.38</ParticleRed>
   <ParticleGreen>.65</ParticleGreen>
   <ParticleBlue>1</ParticleBlue>

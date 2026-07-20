@@ -235,6 +235,12 @@ void Board::EmitRainEffect(float duration)
 	mRainVisualActive = true;
 }
 
+bool Board::IsRainEffectEmitting() const
+{
+	return g_particleSystem && mRainIntensity != RainIntensity::CLEAR
+		&& g_particleSystem->IsEffectEmitting(RainEffectName(mRainIntensity));
+}
+
 void Board::StartRainAudio()
 {
 	float volume = kLightRainVolume;
@@ -307,6 +313,12 @@ void Board::UpdateWeather(float deltaTime)
 	// 每帧只推进当前阶段的倒计时。雨中归零会按当前强度决定增强、衰减或放晴；
 	// CLEAR 阶段归零则抽取一场新雨，形成有界的 CLEAR→RAIN(可多段)→CLEAR 循环。
 	mWeatherTimer -= deltaTime;
+	if (mRainIntensity != RainIntensity::CLEAR && mWeatherTimer > 0.0f
+		&& !IsRainEffectEmitting()) {
+		// 粒子系统若因场景清理或异常耗尽而与天气状态脱节，用剩余时长自动补发。
+		mRainVisualActive = false;
+		EmitRainEffect(mWeatherTimer);
+	}
 	if (mRainIntensity == RainIntensity::HEAVY) {
 		mLightningTimer -= deltaTime;
 		if (mLightningTimer <= 0.0f) {

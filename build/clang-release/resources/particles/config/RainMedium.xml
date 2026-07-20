@@ -1,13 +1,13 @@
 <Emitter>
   <Name>RainMedium</Name>
-  <SpawnMinActive>38</SpawnMinActive>
-  <SpawnRate>46</SpawnRate>
-  <SpawnMaxLaunched>2760</SpawnMaxLaunched>
+  <SpawnMinActive>52</SpawnMinActive>
+  <SpawnRate>60</SpawnRate>
+  <SpawnMaxLaunched>160</SpawnMaxLaunched>
   <ParticleDuration>[0.72 0.90]</ParticleDuration>
-  <ParticleAlpha>0,0 .17,10 .14,82 0,100</ParticleAlpha>
-  <ParticleScale>[0.65 0.95]</ParticleScale>
-  <ParticleStretch>18</ParticleStretch>
-  <ParticleBrightness>[.65 .90]</ParticleBrightness>
+  <ParticleAlpha>0,0 .25,10 .21,82 0,100</ParticleAlpha>
+  <ParticleScale>[0.72 1.02]</ParticleScale>
+  <ParticleStretch>19</ParticleStretch>
+  <ParticleBrightness>[.75 1.0]</ParticleBrightness>
   <ParticleRed>.44</ParticleRed>
   <ParticleGreen>.70</ParticleGreen>
   <ParticleBlue>1</ParticleBlue>

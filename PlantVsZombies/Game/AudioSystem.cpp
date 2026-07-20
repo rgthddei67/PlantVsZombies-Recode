@@ -6,6 +6,27 @@
 
 namespace
 {
+	/** 判断声道当前播放的资源是否仍是预期循环，避免仅凭声道编号操作已复用的音效。 */
+	bool ChannelOwnsChunk(int channel, Mix_Chunk* chunk)
+	{
+		return channel >= 0 && chunk && Mix_Playing(channel) != 0
+			&& Mix_GetChunk(channel) == chunk;
+	}
+
+	/** SDL_mixer 会跨播放保留声道音量；回收低音量环境声道时必须恢复默认值。 */
+	void ResetChannelVolume(int channel)
+	{
+		if (channel >= 0) Mix_Volume(channel, MIX_MAX_VOLUME);
+	}
+
+	/** 仅在旧循环声道已释放或仍属于旧资源时复位，不能覆盖刚复用该编号的新循环音量。 */
+	void ResetReleasedLoopChannelVolume(int channel, Mix_Chunk* expectedChunk)
+	{
+		if (channel >= 0 && (Mix_Playing(channel) == 0 || Mix_GetChunk(channel) == expectedChunk)) {
+			ResetChannelVolume(channel);
+		}
+	}
+
 	AdaptiveMusicTune GetAdaptiveTune(const std::string& musicKey)
 	{
 		if (musicKey == ResourceKeys::Music::MUSIC_DAY) return AdaptiveMusicTune::DAY;
@@ -118,7 +139,9 @@ void AudioSystem::PlaySound(const std::string& soundKey, int loops)
 		int finalVolume = static_cast<int>(MIX_MAX_VOLUME * masterVolume * soundVolume * individualVolume);
 
 		Mix_VolumeChunk(sound, finalVolume);
-		Mix_PlayChannel(-1, sound, loops);
+		const int channel = Mix_PlayChannel(-1, sound, loops);
+		// 普通音效可能复用过低音量循环声道；Chunk 音量之外还要清掉声道级残留。
+		ResetChannelVolume(channel);
 	}
 }
 
@@ -135,7 +158,8 @@ void AudioSystem::PlaySound(const std::string& soundKey, float volume, int loops
 		int finalVolume = static_cast<int>(MIX_MAX_VOLUME * masterVolume * soundVolume * volume);
 
 		Mix_VolumeChunk(sound, finalVolume);
-		Mix_PlayChannel(-1, sound, loops);
+		const int channel = Mix_PlayChannel(-1, sound, loops);
+		ResetChannelVolume(channel);
 	}
 }
 
@@ -152,12 +176,8 @@ void AudioSystem::PlaySound(const std::string& soundKey, float volume, int loops
 
 		Mix_VolumeChunk(sound, finalVolume);
 
-		if (channel >= 0) {
-			Mix_PlayChannel(channel, sound, loops);
-		}
-		else {
-			Mix_PlayChannel(-1, sound, loops);
-		}
+		const int playedChannel = Mix_PlayChannel(channel, sound, loops);
+		ResetChannelVolume(playedChannel);
 	}
 }
 
@@ -230,11 +250,13 @@ void AudioSystem::PlayLoopingSound(const std::string& soundKey, float volume)
 
 	auto existing = loopingSounds.find(soundKey);
 	if (existing != loopingSounds.end()) {
-		if (Mix_Playing(existing->second.channel)) {
+		if (ChannelOwnsChunk(existing->second.channel, existing->second.chunk)) {
 			existing->second.volume = volume;
 			Mix_Volume(existing->second.channel, finalVolume);
 			return;
 		}
+		// 声道可能已停止或被 SDL_mixer 复用；绝不能误停新资源，但要清除旧雨声音量。
+		ResetReleasedLoopChannelVolume(existing->second.channel, existing->second.chunk);
 		loopingSounds.erase(existing);
 	}
 
@@ -243,7 +265,7 @@ void AudioSystem::PlayLoopingSound(const std::string& soundKey, float volume)
 	const int channel = Mix_PlayChannel(-1, sound, -1);
 	if (channel >= 0) {
 		Mix_Volume(channel, finalVolume);
-		loopingSounds[soundKey] = { channel, volume };
+		loopingSounds[soundKey] = { channel, volume, sound };
 	}
 }
 
@@ -251,14 +273,21 @@ void AudioSystem::StopLoopingSound(const std::string& soundKey)
 {
 	auto it = loopingSounds.find(soundKey);
 	if (it == loopingSounds.end()) return;
-	if (IsAudioAvailable()) Mix_HaltChannel(it->second.channel);
+	if (IsAudioAvailable()) {
+		// 只有声道仍播放本循环资源时才停止；编号被复用后不可误伤普通音效。
+		if (ChannelOwnsChunk(it->second.channel, it->second.chunk)) {
+			Mix_HaltChannel(it->second.channel);
+		}
+		ResetReleasedLoopChannelVolume(it->second.channel, it->second.chunk);
+	}
 	loopingSounds.erase(it);
 }
 
 bool AudioSystem::IsLoopingSoundPlaying(const std::string& soundKey)
 {
 	auto it = loopingSounds.find(soundKey);
-	return IsAudioAvailable() && it != loopingSounds.end() && Mix_Playing(it->second.channel) != 0;
+	return IsAudioAvailable() && it != loopingSounds.end()
+		&& ChannelOwnsChunk(it->second.channel, it->second.chunk);
 }
 
 void AudioSystem::UpdateAdaptiveMusic(float deltaTime, int hostileZombieCount)
@@ -283,7 +312,8 @@ void AudioSystem::UpdateVolume()
 	// 循环环境音会跨越设置面板中的音量调整，需按各自请求音量同步声道；
 	// 一次性音效播放完即回收，不在这里追踪。
 	for (auto it = loopingSounds.begin(); it != loopingSounds.end();) {
-		if (!Mix_Playing(it->second.channel)) {
+		if (!ChannelOwnsChunk(it->second.channel, it->second.chunk)) {
+			ResetReleasedLoopChannelVolume(it->second.channel, it->second.chunk);
 			it = loopingSounds.erase(it);
 			continue;
 		}

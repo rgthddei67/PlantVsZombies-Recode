@@ -18,6 +18,7 @@ private:
 	{
 		int channel = -1;
 		float volume = 1.0f;
+		Mix_Chunk* chunk = nullptr; // 校验声道仍属于该循环，防止复用后误停或误调其他音效
 	};
 
 	static float masterVolume;        // 总音量 0.0 - 1.0

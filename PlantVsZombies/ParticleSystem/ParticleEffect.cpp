@@ -54,6 +54,33 @@ void ParticleEffect::Draw() {
 	}
 }
 
+void ParticleEffect::SetSystemDuration(float duration) {
+	if (duration <= 0.0f) return;
+	systemDuration = duration;
+
+	// 有明确运行期时长的天气特效应由总计时器收尾，而不是把 SpawnMaxLaunched
+	// 当成整段雨的累计配额；循环模式会在固定池内复用已消亡粒子。
+	for (auto& emitter : emitters) {
+		emitter->SetOneShot(false);
+	}
+}
+
+bool ParticleEffect::IsEmitting() const {
+	if (!active) return false;
+	for (const auto& emitter : emitters) {
+		if (emitter->IsActive()) return true;
+	}
+	return false;
+}
+
+int ParticleEffect::GetActiveParticleCount() const {
+	int count = 0;
+	for (const auto& emitter : emitters) {
+		count += emitter->GetActiveParticleCount();
+	}
+	return count;
+}
+
 bool ParticleEffect::ShouldDestroy() const {
 	if (!active) {
 		// 检查所有发射器是否都应该销毁
