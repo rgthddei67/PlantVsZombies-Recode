@@ -14,6 +14,8 @@ namespace AdventureProgression
 	// NUM_PLANT_TYPES 在奖励表中表示“该关正常推进，但不解锁植物”。
 	inline constexpr PlantType NO_PLANT_REWARD = PlantType::NUM_PLANT_TYPES;
 
+	// TODO: 修改每关获得植物改这里
+
 	// 下标 0 对应内部关卡 1（显示为 1-1）。修改关卡奖励只需编辑此表；
 	// 不要为调整解锁顺序而插入 PlantType 枚举，否则旧存档中的整数植物 ID 会错位。
 	inline constexpr std::array<PlantType, LAST_ADVENTURE_LEVEL> PLANT_REWARD_BY_LEVEL = {
