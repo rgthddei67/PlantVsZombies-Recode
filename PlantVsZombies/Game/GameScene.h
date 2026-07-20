@@ -105,6 +105,18 @@ public:
 	void ShowScreenFlash(float duration = 0.5f, float peakAlpha = 200.0f);
 	bool IsScreenFlashActive() const { return mScreenFlashTimer > 0.0f; }
 	float GetScreenFlashPeakAlpha() const { return mScreenFlashPeakAlpha; }
+	/** 天气阶段揭晓与公开预报不一致时，显示一个不会暂停战斗的失败提示。 */
+	void ShowWeatherForecastFailure(RainIntensity forecast, RainIntensity actual);
+	/** 天气发生变化后短暂显示当前结果，持续时间由天气 UI 常量统一控制。 */
+	void ShowCurrentWeatherNotice();
+	/** 从关卡存档恢复当前天气展板的剩余显示时间；异常值会限制到 0～5 秒。 */
+	void RestoreCurrentWeatherNotice(float remaining);
+	float GetWeatherPanelSlide() const { return mWeatherPanelSlide; }
+	float GetCurrentWeatherNoticeTimer() const { return mCurrentWeatherNoticeTimer; }
+	bool IsCurrentWeatherNoticeActive() const { return mCurrentWeatherNoticeTimer > 0.0f; }
+	bool IsWeatherForecastFailureActive() const { return mWeatherForecastFailureTimer > 0.0f; }
+	RainIntensity GetFailedForecastRainIntensity() const { return mFailedForecastRainIntensity; }
+	RainIntensity GetActualForecastRainIntensity() const { return mActualForecastRainIntensity; }
 
 	void SetReadyToBackMenu() { mReadyToBackMenu = true; }
 
@@ -123,6 +135,9 @@ protected:
 	void BuildDrawCommands() override;
 
 private:
+	void UpdateWeatherUi(float deltaTime);
+	void DrawWeatherPanel(Graphics* g) const;
+	void DrawWeatherForecastFailure(Graphics* g) const;
 	// 按当前 mSurvivalPerkStepsCompleted 重新 roll 并构建第 N/2 次选择框。
 	void RenderSurvivalPerkSelectStep();
 	// 立即停用并延迟销毁当前选择框，避免刷新或进入下一步时出现一帧双框。
@@ -165,6 +180,11 @@ private:
 	bool mSurvivalRoundTransition = false;  // true=正处于同会话轮间转场（ChooseCardComplete 走轻量路径）
 	bool mGameUiRegistered = false;         // 防止 ZombieNumber/LevelName/Difficulty 绘制命令重复注册
 	bool mPendingSurvivalSave = false;      // 轮清后延后一帧存档（避开濒死僵尸尚未被清理而被误序列化）
+	float mWeatherPanelSlide = 0.0f;        // 天气面板滑入进度（0=隐藏，1=完全显示）
+	float mCurrentWeatherNoticeTimer = 0.0f; // 天气揭晓后“当前天气”面板的剩余显示时间（秒，未缩放）
+	float mWeatherForecastFailureTimer = 0.0f; // 错误预报揭晓提示的剩余显示时间（秒，未缩放）
+	RainIntensity mFailedForecastRainIntensity = RainIntensity::CLEAR; // 最近一次错误的公开预报
+	RainIntensity mActualForecastRainIntensity = RainIntensity::CLEAR; // 最近一次错误预报对应的真实天气
 	// 轮间空槽重选时，快照冷却中卡牌的 {植物类型 → (已计时, 总时长)}，选完后还原到重选回的同种卡
 	std::unordered_map<PlantType, std::pair<float, float>> mSurvivalCardCooldowns;
 	bool mLendToAlmanacScene = false;

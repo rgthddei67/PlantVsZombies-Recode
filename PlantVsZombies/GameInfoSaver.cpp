@@ -172,9 +172,14 @@ bool GameInfoSaver::SaveLevelDataImpl(Board* board, CardSlotManager* manager)
 	j["boardFrame"] = board->mBoardFrame;   // 舞王全队齐舞的节拍源，读档保节拍连续
 	j["weatherInitialized"] = board->mWeatherInitialized;
 	j["rainIntensity"] = static_cast<int>(board->mRainIntensity);
+	j["forecastRainIntensity"] = static_cast<int>(board->mForecastRainIntensity);
+	j["actualForecastRainIntensity"] = static_cast<int>(board->mActualForecastRainIntensity);
 	j["weatherTimer"] = board->mWeatherTimer;
 	j["lightningTimer"] = board->mLightningTimer;
 	j["rainCanIntensify"] = board->mRainCanIntensify;
+	j["weatherForecastReady"] = board->mWeatherForecastReady;
+	j["currentWeatherNoticeTimer"] = board->mGameScene
+		? board->mGameScene->GetCurrentWeatherNoticeTimer() : 0.0f;
 	j["maxWave"] = board->mMaxWave;
 	j["zombieCountDown"] = board->mZombieCountDown;
 	j["totalZombieHP"] = board->mTotalZombieHP;
@@ -424,6 +429,26 @@ bool GameInfoSaver::LoadLevelDataImpl(Board* board, CardSlotManager* manager)
 	board->mRainIntensity = (rainValue >= static_cast<int>(RainIntensity::CLEAR)
 		&& rainValue <= static_cast<int>(RainIntensity::HEAVY))
 		? static_cast<RainIntensity>(rainValue) : RainIntensity::CLEAR;
+	const int forecastRainValue = j.value("forecastRainIntensity",
+		static_cast<int>(RainIntensity::CLEAR));
+	const bool validForecastRain = forecastRainValue >= static_cast<int>(RainIntensity::CLEAR)
+		&& forecastRainValue <= static_cast<int>(RainIntensity::HEAVY);
+	const int actualForecastRainValue = j.value("actualForecastRainIntensity",
+		static_cast<int>(RainIntensity::CLEAR));
+	const bool validActualForecastRain = actualForecastRainValue >= static_cast<int>(RainIntensity::CLEAR)
+		&& actualForecastRainValue <= static_cast<int>(RainIntensity::HEAVY);
+	board->mWeatherForecastReady = j.value("weatherForecastReady", false)
+		&& j.contains("actualForecastRainIntensity")
+		&& validForecastRain && validActualForecastRain;
+	board->mForecastRainIntensity = board->mWeatherForecastReady
+		? static_cast<RainIntensity>(forecastRainValue) : RainIntensity::CLEAR;
+	board->mActualForecastRainIntensity = board->mWeatherForecastReady
+		? static_cast<RainIntensity>(actualForecastRainValue) : RainIntensity::CLEAR;
+	if (board->mGameScene) {
+		// 缺字段的旧档按 0 秒恢复，避免读入雨中存档时把已消失的展板重新显示 5 秒。
+		board->mGameScene->RestoreCurrentWeatherNotice(
+			j.value("currentWeatherNoticeTimer", 0.0f));
+	}
 	board->mWeatherTimer = std::max(0.0f, j.value("weatherTimer", 0.0f));
 	board->mLightningTimer = std::max(0.0f, j.value("lightningTimer", 0.0f));
 	// 旧版天气存档没有该字段时按 false：少一次增强机会比读档后凭空再增强更稳妥。

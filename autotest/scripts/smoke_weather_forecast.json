@@ -1,0 +1,43 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 10 },
+    { "op": "choose_cards", "cards": ["PLANT_PEASHOOTER"] },
+    { "op": "wait_state", "state": "GAME", "timeout": 15 },
+
+    { "op": "set_weather", "intensity": "LIGHT", "duration": 15.3, "canIntensify": true },
+    { "op": "assert_state", "path": "weather.forecastReady", "equals": false },
+    { "op": "wait_seconds", "value": 0.5, "timeout": 2 },
+    { "op": "assert_state", "path": "weather.forecastReady", "equals": true },
+    { "op": "assert_state", "path": "weather.panelSlidePct", "equals": 100 },
+    { "op": "screenshot", "name": "weather_forecast_panel.png" },
+
+    { "op": "set_weather_forecast", "forecast": "MEDIUM", "actual": "HEAVY", "revealIn": 0.6 },
+    { "op": "assert_state", "path": "weather.forecastIntensity", "equals": "MEDIUM" },
+    { "op": "wait_seconds", "value": 0.8, "timeout": 3 },
+    { "op": "assert_state", "path": "weather.intensity", "equals": "HEAVY" },
+    { "op": "assert_state", "path": "weather.forecastReady", "equals": false },
+    { "op": "assert_state", "path": "weather.forecastFailureOn", "equals": true },
+    { "op": "assert_state", "path": "weather.failedForecastIntensity", "equals": "MEDIUM" },
+    { "op": "assert_state", "path": "weather.actualForecastIntensity", "equals": "HEAVY" },
+    { "op": "screenshot", "name": "weather_forecast_failed.png" },
+
+    { "op": "wait_seconds", "value": 3.3, "timeout": 5 },
+    { "op": "assert_state", "path": "weather.forecastFailureOn", "equals": false },
+    { "op": "set_weather", "intensity": "LIGHT", "duration": 5.0, "canIntensify": true },
+    { "op": "set_weather_forecast", "forecast": "MEDIUM", "actual": "MEDIUM", "revealIn": 0.2 },
+    { "op": "wait_seconds", "value": 0.4, "timeout": 2 },
+    { "op": "assert_state", "path": "weather.intensity", "equals": "MEDIUM" },
+    { "op": "assert_state", "path": "weather.forecastFailureOn", "equals": false },
+	{ "op": "assert_state", "path": "weather.currentNoticeOn", "equals": true },
+
+    { "op": "set_weather", "intensity": "CLEAR", "duration": 60.0 },
+    { "op": "wait_seconds", "value": 0.5, "timeout": 2 },
+	{ "op": "assert_state", "path": "weather.currentNoticeOn", "equals": true },
+	{ "op": "assert_state", "path": "weather.panelSlidePct", "equals": 100 },
+	{ "op": "wait_seconds", "value": 5.6, "timeout": 8 },
+	{ "op": "assert_state", "path": "weather.currentNoticeOn", "equals": false },
+    { "op": "assert_state", "path": "weather.panelSlidePct", "equals": 0 },
+    { "op": "dump_state", "name": "state.json" },
+    { "op": "quit" }
+  ]
+}

@@ -154,11 +154,14 @@ private:
 
 	// 黑夜随机天气。weatherTimer 在 CLEAR 时表示距下一场雨，在下雨时表示本场剩余时间。
 	RainIntensity mRainIntensity = RainIntensity::CLEAR;
+	RainIntensity mForecastRainIntensity = RainIntensity::CLEAR; // 已发布预警对应的下一天气
+	RainIntensity mActualForecastRainIntensity = RainIntensity::CLEAR; // 预警发布时锁定的真实下一天气
 	float mWeatherTimer = 0.0f;
 	float mLightningTimer = 0.0f;
 	float mRainSplashTimer = 0.0f;       // 距下一次地面水花的秒数；瞬态视觉无需写入存档
 	bool mWeatherInitialized = false;   // 旧档缺天气字段时由 StartGame 首次初始化
 	bool mRainCanIntensify = false;     // 仅初始小雨可增强；首次切档后永久转入衰减链
+	bool mWeatherForecastReady = false; // true 表示公开预报与真实下一天气均已锁定、等待揭晓
 	bool mRainVisualActive = false;     // 纯运行期标记，防读档/生存轮间重复发射同一场雨
 
 	std::vector<RowInfo> mRowInfos;
@@ -180,6 +183,9 @@ private:
 	int CountHostileZombiesForMusic() const;
 	void InitializeWeather();
 	void UpdateWeather(float deltaTime);
+	RainIntensity RollNextWeather();
+	void PrepareWeatherForecast();
+	void ConsumeWeatherForecast();
 	void BeginRain(RainIntensity intensity, float duration, bool canIntensify);
 	// 结束当前雨段：按固定权重落点决定放晴或进入一个不可再增强的尾雨段。
 	void FinishRainPhase(int transitionRoll);
@@ -238,11 +244,15 @@ public:
 	float GetLightningTimer() const { return mLightningTimer; }
 	bool IsWeatherInitialized() const { return mWeatherInitialized; }
 	bool CanRainIntensify() const { return mRainCanIntensify; }
+	bool HasWeatherForecast() const { return mWeatherForecastReady; }
+	RainIntensity GetForecastRainIntensity() const { return mForecastRainIntensity; }
 	/** 当前雨势对应的粒子发射器是否仍在工作。 */
 	bool IsRainEffectEmitting() const;
 
 	// AutoTest 专用：固定雨势并重启对应粒子，真实游戏只走随机天气状态机。
 	void SetRainForTesting(RainIntensity intensity, float duration = 30.0f, bool canIntensify = false);
+	// AutoTest 专用：固定公开预报与真实天气，并把当前阶段倒计时改为指定揭晓时间。
+	bool SetWeatherForecastForTesting(RainIntensity forecast, RainIntensity actual, float revealIn = 1.0f);
 	// AutoTest 专用：用固定权重落点结束当前雨段，覆盖增强、衰减和放晴分支。
 	bool AdvanceRainPhaseForTesting(int transitionRoll);
 	// AutoTest 专用：仅大雨允许触发，返回是否真正闪电。

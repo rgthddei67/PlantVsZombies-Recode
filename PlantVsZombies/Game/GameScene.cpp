@@ -28,6 +28,22 @@ namespace {
 	// 生存模式：右对齐——右端锚点固定，文字越长越向左延伸，避免"第10面旗"等长文本撞到右侧"难度"文字。
 	// 右锚点取 1020：第1轮文本宽约 252px，drawX≈768，与原左对齐位置基本重合，故第1轮观感不变。
 	constexpr float kLevelNameRightAnchor = 865.0f;
+	constexpr float kWeatherPanelWidth = 286.0f;          // 天气面板宽度（逻辑像素）
+	constexpr float kWeatherPanelHeight = 72.0f;          // 天气面板高度（逻辑像素）
+	constexpr float kWeatherPanelVisibleX = 12.0f;        // 完全滑入后的左边距（逻辑像素）
+	constexpr float kWeatherPanelY = 76.0f;               // 面板顶部位置，避开上方种子槽（逻辑像素）
+	constexpr float kWeatherPanelSlideDuration = 0.32f;   // 完整滑入或滑出的动画时长（秒，未缩放）
+	constexpr float kCurrentWeatherNoticeDuration = 5.0f; // 天气揭晓后继续展示“当前天气”的时长（秒，未缩放）
+	constexpr int kWeatherCurrentFontSize = 18;           // 第一行“当前天气”字号
+	constexpr int kWeatherForecastFontSize = 16;          // 第二行“天气预警”字号
+	constexpr float kForecastFailureWidth = 286.0f;       // 预报失败提示宽度（逻辑像素）
+	constexpr float kForecastFailureHeight = 58.0f;       // 预报失败提示高度（逻辑像素）
+	constexpr float kForecastFailureY = 154.0f;           // 失败提示顶部位置，显示在天气面板下方（逻辑像素）
+	constexpr float kForecastFailureDuration = 3.2f;      // 失败提示从出现到完全消失的总时长（秒，未缩放）
+	constexpr float kForecastFailureAppearDuration = 0.25f; // 失败提示滑入动画时长（秒，未缩放）
+	constexpr float kForecastFailureFadeDuration = 0.45f; // 失败提示末尾淡出时长（秒，未缩放）
+	constexpr int kForecastFailureTitleFontSize = 17;     // “天气预报失败”标题字号
+	constexpr int kForecastFailureDetailFontSize = 15;    // 预报与实际天气对照行字号
 
 #define DEVZ(n) { ZombieType::n, #n }
 	// 开发者面板循环切换表；显示枚举标识符（简陋版足够）。与 TestDriver kZombieNames 同集合。
@@ -66,6 +82,28 @@ namespace {
 			gameApp.DrawText(name, Vector(768, 576), { 223,186,98,255 },
 				ResourceKeys::Fonts::FONT_FZCQ, 21);
 		}
+	}
+
+	/** 把内部雨势枚举转换为面板使用的简短中文名称。 */
+	const char* RainIntensityDisplayName(RainIntensity intensity) {
+		switch (intensity) {
+		case RainIntensity::CLEAR:  return u8"晴天";
+		case RainIntensity::LIGHT:  return u8"小雨";
+		case RainIntensity::MEDIUM: return u8"中雨";
+		case RainIntensity::HEAVY:  return u8"大雨";
+		}
+		return u8"未知";
+	}
+
+	/** 返回各档天气在面板上的强调色，并保留调用方提供的透明度。 */
+	glm::vec4 RainIntensityTextColor(RainIntensity intensity, float alpha) {
+		switch (intensity) {
+		case RainIntensity::CLEAR:  return glm::vec4(164.0f, 224.0f, 145.0f, alpha);
+		case RainIntensity::LIGHT:  return glm::vec4(154.0f, 214.0f, 255.0f, alpha);
+		case RainIntensity::MEDIUM: return glm::vec4(92.0f, 169.0f, 255.0f, alpha);
+		case RainIntensity::HEAVY:  return glm::vec4(255.0f, 166.0f, 116.0f, alpha);
+		}
+		return glm::vec4(230.0f, 230.0f, 230.0f, alpha);
 	}
 }
 
@@ -112,6 +150,111 @@ void GameScene::DrawWorldOverlay(Graphics* g)
 		glm::vec4(36.0f, 52.0f, 78.0f, alpha));
 }
 
+/** 用未缩放时间推进天气面板与失败提示，使游戏倍速不改变 UI 动画观感。 */
+void GameScene::UpdateWeatherUi(float deltaTime)
+{
+	const bool shouldShow = mBoard && mBoard->mBoardState == BoardState::GAME
+		&& (mBoard->HasWeatherForecast() || mCurrentWeatherNoticeTimer > 0.0f);
+	const float direction = shouldShow ? 1.0f : -1.0f;
+	mWeatherPanelSlide = std::clamp(mWeatherPanelSlide
+		+ direction * deltaTime / kWeatherPanelSlideDuration, 0.0f, 1.0f);
+	if (mCurrentWeatherNoticeTimer > 0.0f) {
+		mCurrentWeatherNoticeTimer = std::max(0.0f,
+			mCurrentWeatherNoticeTimer - deltaTime);
+	}
+	if (mWeatherForecastFailureTimer > 0.0f) {
+		mWeatherForecastFailureTimer = std::max(0.0f,
+			mWeatherForecastFailureTimer - deltaTime);
+	}
+}
+
+/** 在左上角绘制当前天气与已锁定的下一天气预警。 */
+void GameScene::DrawWeatherPanel(Graphics* g) const
+{
+	if (!g || !mBoard || mWeatherPanelSlide <= 0.0f) return;
+
+	const float eased = mWeatherPanelSlide * mWeatherPanelSlide
+		* (3.0f - 2.0f * mWeatherPanelSlide);
+	const float x = -kWeatherPanelWidth
+		+ (kWeatherPanelWidth + kWeatherPanelVisibleX) * eased;
+	const float alpha = 255.0f * eased;
+
+	// 深蓝半透明底板配强度色边条；矩形方案不新增贴图，分辨率和全屏模式都保持锐利。
+	g->FillRect(x + 3.0f, kWeatherPanelY + 3.0f,
+		kWeatherPanelWidth, kWeatherPanelHeight,
+		glm::vec4(0.0f, 0.0f, 0.0f, 92.0f * eased));
+	g->FillRect(x, kWeatherPanelY, kWeatherPanelWidth, kWeatherPanelHeight,
+		glm::vec4(18.0f, 28.0f, 48.0f, 218.0f * eased));
+	g->DrawRect(x, kWeatherPanelY, kWeatherPanelWidth, kWeatherPanelHeight,
+		glm::vec4(111.0f, 151.0f, 196.0f, 180.0f * eased));
+	g->FillRect(x, kWeatherPanelY, 5.0f, kWeatherPanelHeight,
+		RainIntensityTextColor(mBoard->GetRainIntensity(), alpha));
+
+	const std::string currentLine = std::string(u8"当前天气：")
+		+ RainIntensityDisplayName(mBoard->GetRainIntensity());
+	std::string forecastLine = u8"天气预警：暂无";
+	glm::vec4 forecastColor(166.0f, 178.0f, 196.0f, alpha);
+	if (mBoard->HasWeatherForecast()) {
+		const int seconds = std::max(0, static_cast<int>(std::ceil(mBoard->GetWeatherTimer())));
+		forecastLine = std::string(u8"天气预警（") + std::to_string(seconds)
+			+ u8"秒）：" + RainIntensityDisplayName(mBoard->GetForecastRainIntensity());
+		forecastColor = RainIntensityTextColor(mBoard->GetForecastRainIntensity(), alpha);
+	}
+
+	const float textX = x + 18.0f;
+	const glm::vec4 shadow(0.0f, 0.0f, 0.0f, 185.0f * eased);
+	g->DrawText(currentLine, ResourceKeys::Fonts::FONT_FZCQ, kWeatherCurrentFontSize,
+		shadow, textX + 1.0f, kWeatherPanelY + 10.0f);
+	g->DrawText(currentLine, ResourceKeys::Fonts::FONT_FZCQ, kWeatherCurrentFontSize,
+		RainIntensityTextColor(mBoard->GetRainIntensity(), alpha), textX, kWeatherPanelY + 9.0f);
+	g->DrawText(forecastLine, ResourceKeys::Fonts::FONT_FZCQ, kWeatherForecastFontSize,
+		shadow, textX + 1.0f, kWeatherPanelY + 42.0f);
+	g->DrawText(forecastLine, ResourceKeys::Fonts::FONT_FZCQ, kWeatherForecastFontSize,
+		forecastColor, textX, kWeatherPanelY + 41.0f);
+}
+
+/** 在天气面板下方绘制错误揭晓提示；它只提示结果，不抢输入也不暂停游戏。 */
+void GameScene::DrawWeatherForecastFailure(Graphics* g) const
+{
+	if (!g || mWeatherForecastFailureTimer <= 0.0f) return;
+
+	const float elapsed = kForecastFailureDuration - mWeatherForecastFailureTimer;
+	const float appear = std::clamp(elapsed / kForecastFailureAppearDuration, 0.0f, 1.0f);
+	const float fade = std::clamp(mWeatherForecastFailureTimer
+		/ kForecastFailureFadeDuration, 0.0f, 1.0f);
+	const float visibility = std::min(appear, fade);
+	const float eased = appear * appear * (3.0f - 2.0f * appear);
+	const float x = -kForecastFailureWidth
+		+ (kForecastFailureWidth + kWeatherPanelVisibleX) * eased;
+	const float alpha = 255.0f * visibility;
+
+	// 暖红色与上方天气面板的冷色区分开，玩家无需读完文字也能识别“预报失准”。
+	g->FillRect(x + 3.0f, kForecastFailureY + 3.0f,
+		kForecastFailureWidth, kForecastFailureHeight,
+		glm::vec4(0.0f, 0.0f, 0.0f, 88.0f * visibility));
+	g->FillRect(x, kForecastFailureY, kForecastFailureWidth, kForecastFailureHeight,
+		glm::vec4(58.0f, 25.0f, 29.0f, 224.0f * visibility));
+	g->DrawRect(x, kForecastFailureY, kForecastFailureWidth, kForecastFailureHeight,
+		glm::vec4(255.0f, 135.0f, 121.0f, 205.0f * visibility));
+	g->FillRect(x, kForecastFailureY, 5.0f, kForecastFailureHeight,
+		glm::vec4(255.0f, 105.0f, 91.0f, alpha));
+
+	const std::string title = u8"天气预报失败！";
+	const std::string detail = std::string(u8"预报：")
+		+ RainIntensityDisplayName(mFailedForecastRainIntensity)
+		+ u8"  →  实际：" + RainIntensityDisplayName(mActualForecastRainIntensity);
+	const float textX = x + 18.0f;
+	const glm::vec4 shadow(0.0f, 0.0f, 0.0f, 185.0f * visibility);
+	g->DrawText(title, ResourceKeys::Fonts::FONT_FZCQ, kForecastFailureTitleFontSize,
+		shadow, textX + 1.0f, kForecastFailureY + 7.0f);
+	g->DrawText(title, ResourceKeys::Fonts::FONT_FZCQ, kForecastFailureTitleFontSize,
+		glm::vec4(255.0f, 181.0f, 169.0f, alpha), textX, kForecastFailureY + 6.0f);
+	g->DrawText(detail, ResourceKeys::Fonts::FONT_FZCQ, kForecastFailureDetailFontSize,
+		shadow, textX + 1.0f, kForecastFailureY + 34.0f);
+	g->DrawText(detail, ResourceKeys::Fonts::FONT_FZCQ, kForecastFailureDetailFontSize,
+		glm::vec4(242.0f, 229.0f, 220.0f, alpha), textX, kForecastFailureY + 33.0f);
+}
+
 void GameScene::BuildDrawCommands()
 {
 	Scene::BuildDrawCommands();
@@ -144,6 +287,13 @@ void GameScene::BuildDrawCommands()
 	}
 
 	if (mBoard) {
+		RegisterDrawCommand("WeatherPanel",
+			[this](Graphics* g) { DrawWeatherPanel(g); },
+			LAYER_UI + 500);
+		RegisterDrawCommand("WeatherForecastFailure",
+			[this](Graphics* g) { DrawWeatherForecastFailure(g); },
+			LAYER_UI + 600);
+
 		RegisterDrawCommand("Prompt",
 			[this](Graphics* g) {
 				if (!mPrompt.active) return;
@@ -455,6 +605,7 @@ void GameScene::Update() {
 			PROFILE_SCOPE("2a.Board_Update");
 			mBoard->Update();
 		}
+		UpdateWeatherUi(DeltaTime::GetUnscaledDeltaTime());
 
 		// 轮清后存档：BeginSurvivalCardSelect 置位，在 Board::Update 返回后（已脱离 Die() 调用栈）执行。
 		// 触发轮清的那只濒死僵尸此刻仍在 EntityManager 中，由 SaveLevelData 内的 IsActive() 过滤排除。
@@ -1398,6 +1549,24 @@ void GameScene::ShowScreenFlash(float duration, float peakAlpha)
 	mScreenFlashDuration = duration;
 	mScreenFlashTimer = duration;
 	mScreenFlashPeakAlpha = std::clamp(peakAlpha, 0.0f, 255.0f);
+}
+
+void GameScene::ShowWeatherForecastFailure(RainIntensity forecast, RainIntensity actual)
+{
+	mFailedForecastRainIntensity = forecast;
+	mActualForecastRainIntensity = actual;
+	mWeatherForecastFailureTimer = kForecastFailureDuration;
+}
+
+void GameScene::ShowCurrentWeatherNotice()
+{
+	mCurrentWeatherNoticeTimer = kCurrentWeatherNoticeDuration;
+}
+
+void GameScene::RestoreCurrentWeatherNotice(float remaining)
+{
+	mCurrentWeatherNoticeTimer = std::clamp(remaining, 0.0f,
+		kCurrentWeatherNoticeDuration);
 }
 
 void GameScene::ShowPrompt(const std::string& textureKey,

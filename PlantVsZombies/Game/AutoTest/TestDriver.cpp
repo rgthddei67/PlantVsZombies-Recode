@@ -323,6 +323,22 @@ bool TestDriver::ExecuteCurrent() {
 		}
 		return true;
 	}
+	if (op == "set_weather_forecast") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) { Fail("set_weather_forecast: 不在 GameScene 或 Board 为空"); return false; }
+		auto forecastIt = kRainIntensityNames.find(cmd.value("forecast", ""));
+		auto actualIt = kRainIntensityNames.find(cmd.value("actual", ""));
+		if (forecastIt == kRainIntensityNames.end() || actualIt == kRainIntensityNames.end()) {
+			Fail("set_weather_forecast: forecast/actual 必须是 CLEAR/LIGHT/MEDIUM/HEAVY");
+			return false;
+		}
+		if (!gs->GetBoard()->SetWeatherForecastForTesting(forecastIt->second, actualIt->second,
+			cmd.value("revealIn", 1.0f))) {
+			Fail("set_weather_forecast: 当前背景不是黑夜，或天气尚未初始化");
+			return false;
+		}
+		return true;
+	}
 	if (op == "advance_weather_phase") {
 		GameScene* gs = CurrentGameScene();
 		if (!gs || !gs->GetBoard()) { Fail("advance_weather_phase: 不在 GameScene 或 Board 为空"); return false; }
@@ -725,6 +741,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "intensity", RainIntensityName(board->GetRainIntensity()) },
 			{ "initialized", board->IsWeatherInitialized() },
 			{ "canIntensify", board->CanRainIntensify() },
+			{ "forecastReady", board->HasWeatherForecast() },
+			{ "forecastIntensity", RainIntensityName(board->GetForecastRainIntensity()) },
 			{ "remaining", board->GetWeatherTimer() },
 			{ "lightningRemaining", board->GetLightningTimer() },
 			{ "zombieSpeedPct", static_cast<int>(std::lround(zombieRain * 100.0f)) },
@@ -735,6 +753,13 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				static_cast<int>(1500.0f / (plantRain * perkAttack) + 0.5f) },
 			{ "screenFlashOn", gs->IsScreenFlashActive() },
 			{ "screenFlashPeakAlpha", static_cast<int>(std::lround(gs->GetScreenFlashPeakAlpha())) },
+			{ "panelSlidePct", static_cast<int>(std::lround(gs->GetWeatherPanelSlide() * 100.0f)) },
+			{ "currentNoticeOn", gs->IsCurrentWeatherNoticeActive() },
+			{ "currentNoticeRemainingMs", static_cast<int>(std::lround(
+				gs->GetCurrentWeatherNoticeTimer() * 1000.0f)) },
+			{ "forecastFailureOn", gs->IsWeatherForecastFailureActive() },
+			{ "failedForecastIntensity", RainIntensityName(gs->GetFailedForecastRainIntensity()) },
+			{ "actualForecastIntensity", RainIntensityName(gs->GetActualForecastRainIntensity()) },
 		};
 	}
 

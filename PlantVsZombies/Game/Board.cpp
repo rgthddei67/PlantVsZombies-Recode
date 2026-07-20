@@ -33,6 +33,8 @@ namespace {
 	constexpr float kRainDurationMax = 150.0f;            // 一场新雨第一个雨段的最长持续时间（秒）
 	constexpr float kRainTailDurationMin = 45.0f;        // 雨势切档后尾雨段的最短持续时间（秒）
 	constexpr float kRainTailDurationMax = 80.0f;        // 雨势切档后尾雨段的最长持续时间（秒）
+	constexpr float kWeatherForecastLeadTime = 15.0f;    // 阶段结束前多少秒预抽取并展示下一天气
+	constexpr int kWeatherForecastAccuracyPercent = 75;  // 天气预警准确率（0～100；失败时故意显示另一种天气）
 	constexpr int kLightRainWeight = 45;                 // 小雨相对权重；数值越大越容易抽中
 	constexpr int kMediumRainWeight = 40;                // 中雨相对权重；数值越大越容易抽中
 	constexpr int kHeavyRainWeight = 32;                 // 大雨相对权重；数值越大越容易抽中
@@ -231,9 +233,12 @@ void Board::InitializeWeather()
 	// 白天把倒计时保持为 0，并由 UpdateWeather 直接跳过。
 	mWeatherInitialized = true;
 	mRainIntensity = RainIntensity::CLEAR;
+	mForecastRainIntensity = RainIntensity::CLEAR;
+	mActualForecastRainIntensity = RainIntensity::CLEAR;
 	mLightningTimer = 0.0f;
 	mRainSplashTimer = 0.0f;
 	mRainCanIntensify = false;
+	mWeatherForecastReady = false;
 	mRainVisualActive = false;
 	mWeatherTimer = GameAPP::GetInstance().GetBackgroundIsNight(mBackGround)
 		? GameRandom::Range(kFirstRainDelayMin, kFirstRainDelayMax)
@@ -313,12 +318,80 @@ void Board::StopRainAudio()
 	AudioSystem::StopLoopingSound(ResourceKeys::Sounds::SOUND_RAIN);
 }
 
+/** 按当前阶段规则抽取下一天气；只由预警准备阶段调用一次。 */
+RainIntensity Board::RollNextWeather()
+{
+	if (mRainIntensity == RainIntensity::CLEAR) {
+		const int roll = GameRandom::Range(1, kRainWeightTotal);
+		if (roll <= kLightRainWeight) return RainIntensity::LIGHT;
+		if (roll <= kLightRainWeight + kMediumRainWeight) return RainIntensity::MEDIUM;
+		return RainIntensity::HEAVY;
+	}
+
+	const int total = RainTransitionWeightTotal(mRainIntensity, mRainCanIntensify);
+	if (total <= 0) return RainIntensity::CLEAR;
+	return RainTransitionForRoll(mRainIntensity, mRainCanIntensify,
+		GameRandom::Range(1, total));
+}
+
+/** 在阶段结束前锁定真实天气，并以 75% 准确率生成玩家看到的公开预报。 */
+void Board::PrepareWeatherForecast()
+{
+	if (mWeatherForecastReady) return;
+	mActualForecastRainIntensity = RollNextWeather();
+	mForecastRainIntensity = mActualForecastRainIntensity;
+
+	// 失败预报从其余三种天气中等概率选择，确保失败时一定能在揭晓瞬间被看出来。
+	if (GameRandom::Range(1, 100) > kWeatherForecastAccuracyPercent) {
+		int wrongWeather = GameRandom::Range(0, 2);
+		const int actualWeather = static_cast<int>(mActualForecastRainIntensity);
+		if (wrongWeather >= actualWeather) ++wrongWeather;
+		mForecastRainIntensity = static_cast<RainIntensity>(wrongWeather);
+	}
+	mWeatherForecastReady = true;
+}
+
+/** 揭晓锁定的真实天气；预报错误时通知场景显示非模态失败提示。 */
+void Board::ConsumeWeatherForecast()
+{
+	if (!mWeatherForecastReady) PrepareWeatherForecast();
+	const RainIntensity forecast = mForecastRainIntensity;
+	const RainIntensity next = mActualForecastRainIntensity;
+	if (forecast != next && mGameScene) {
+		mGameScene->ShowWeatherForecastFailure(forecast, next);
+	}
+	mWeatherForecastReady = false;
+	mForecastRainIntensity = RainIntensity::CLEAR;
+	mActualForecastRainIntensity = RainIntensity::CLEAR;
+
+	if (mRainIntensity == RainIntensity::CLEAR) {
+		if (next == RainIntensity::CLEAR) {
+			// 损坏存档或未知枚举的保守兜底：重新进入晴空间隔，避免空雨段循环。
+			EndRain();
+			return;
+		}
+		BeginRain(next, GameRandom::Range(kRainDurationMin, kRainDurationMax),
+			next == RainIntensity::LIGHT);
+		return;
+	}
+
+	if (next == RainIntensity::CLEAR) {
+		EndRain();
+		return;
+	}
+	// 任意一次切档都会关闭增强资格，后续只走有界衰减链。
+	BeginRain(next, GameRandom::Range(kRainTailDurationMin, kRainTailDurationMax), false);
+}
+
 void Board::BeginRain(RainIntensity intensity, float duration, bool canIntensify)
 {
 	if (intensity == RainIntensity::CLEAR || duration <= 0.0f) return;
 	mRainIntensity = intensity;
+	mForecastRainIntensity = RainIntensity::CLEAR;
+	mActualForecastRainIntensity = RainIntensity::CLEAR;
 	mWeatherTimer = duration;
 	mRainCanIntensify = canIntensify && intensity == RainIntensity::LIGHT;
+	mWeatherForecastReady = false;
 	mRainSplashTimer = RandomRainSplashDelay(intensity);
 	mLightningTimer = (intensity == RainIntensity::HEAVY)
 		? GameRandom::Range(kLightningDelayMin, kLightningDelayMax)
@@ -327,6 +400,7 @@ void Board::BeginRain(RainIntensity intensity, float duration, bool canIntensify
 	RefreshZombieWeatherSpeeds();
 	EmitRainEffect(duration);
 	StartRainAudio();
+	if (mGameScene) mGameScene->ShowCurrentWeatherNotice();
 }
 
 void Board::FinishRainPhase(int transitionRoll)
@@ -346,12 +420,16 @@ void Board::EndRain()
 {
 	StopRainAudio();
 	mRainIntensity = RainIntensity::CLEAR;
+	mForecastRainIntensity = RainIntensity::CLEAR;
+	mActualForecastRainIntensity = RainIntensity::CLEAR;
 	mWeatherTimer = GameRandom::Range(kClearWeatherDelayMin, kClearWeatherDelayMax);
 	mLightningTimer = 0.0f;
 	mRainSplashTimer = 0.0f;
 	mRainCanIntensify = false;
+	mWeatherForecastReady = false;
 	mRainVisualActive = false;
 	RefreshZombieWeatherSpeeds();
+	if (mGameScene) mGameScene->ShowCurrentWeatherNotice();
 }
 
 void Board::TriggerLightning()
@@ -369,6 +447,9 @@ void Board::UpdateWeather(float deltaTime)
 	// 每帧只推进当前阶段的倒计时。雨中归零会按当前强度决定增强、衰减或放晴；
 	// CLEAR 阶段归零则抽取一场新雨，形成有界的 CLEAR→RAIN(可多段)→CLEAR 循环。
 	mWeatherTimer -= deltaTime;
+	if (mWeatherTimer <= kWeatherForecastLeadTime && !mWeatherForecastReady) {
+		PrepareWeatherForecast();
+	}
 	if (mRainIntensity != RainIntensity::CLEAR && mWeatherTimer > 0.0f
 		&& !IsRainEffectEmitting()) {
 		// 粒子系统若因场景清理或异常耗尽而与天气状态脱节，用剩余时长自动补发。
@@ -387,20 +468,7 @@ void Board::UpdateWeather(float deltaTime)
 	}
 
 	if (mWeatherTimer > 0.0f) return;
-	if (mRainIntensity != RainIntensity::CLEAR) {
-		const int total = RainTransitionWeightTotal(mRainIntensity, mRainCanIntensify);
-		if (total > 0) FinishRainPhase(GameRandom::Range(1, total));
-		else EndRain();
-		return;
-	}
-
-	// 在总权重内掷一次整数骰子：依次落入小雨、中雨、大雨各自的权重区间。
-	// 初始小雨可能增强；初始中/大雨及所有切档后的雨段只会衰减，避免无限来回循环。
-	const int roll = GameRandom::Range(1, kRainWeightTotal);
-	const RainIntensity next = (roll <= kLightRainWeight) ? RainIntensity::LIGHT
-		: (roll <= kLightRainWeight + kMediumRainWeight) ? RainIntensity::MEDIUM
-		: RainIntensity::HEAVY;
-	BeginRain(next, GameRandom::Range(kRainDurationMin, kRainDurationMax), next == RainIntensity::LIGHT);
+	ConsumeWeatherForecast();
 }
 
 void Board::SetRainForTesting(RainIntensity intensity, float duration, bool canIntensify)
@@ -409,6 +477,9 @@ void Board::SetRainForTesting(RainIntensity intensity, float duration, bool canI
 	if (g_particleSystem) g_particleSystem->ClearAll();
 	StopRainAudio();
 	mWeatherInitialized = true;
+	mForecastRainIntensity = RainIntensity::CLEAR;
+	mActualForecastRainIntensity = RainIntensity::CLEAR;
+	mWeatherForecastReady = false;
 	mRainVisualActive = false;
 
 	if (intensity == RainIntensity::CLEAR) {
@@ -418,9 +489,22 @@ void Board::SetRainForTesting(RainIntensity intensity, float duration, bool canI
 		mRainSplashTimer = 0.0f;
 		mRainCanIntensify = false;
 		RefreshZombieWeatherSpeeds();
+		if (mGameScene) mGameScene->ShowCurrentWeatherNotice();
 		return;
 	}
 	BeginRain(intensity, std::max(duration, 0.1f), canIntensify);
+}
+
+bool Board::SetWeatherForecastForTesting(RainIntensity forecast, RainIntensity actual, float revealIn)
+{
+	if (!GameAPP::GetInstance().GetBackgroundIsNight(mBackGround) || !mWeatherInitialized) {
+		return false;
+	}
+	mForecastRainIntensity = forecast;
+	mActualForecastRainIntensity = actual;
+	mWeatherForecastReady = true;
+	mWeatherTimer = std::max(revealIn, 0.1f);
+	return true;
 }
 
 bool Board::AdvanceRainPhaseForTesting(int transitionRoll)
