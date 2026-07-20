@@ -1,0 +1,26 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 17 },
+    { "op": "choose_cards", "cards": ["PLANT_WALLNUT"] },
+    { "op": "wait_state", "state": "GAME" },
+    { "op": "assert_state", "path": "background", "equals": "GROUND_NIGHT" },
+    { "op": "assert_state", "path": "spawnList.5", "equals": "ZOMBIE_PINK_FOOTBALL" },
+    { "op": "plant", "type": "PLANT_WALLNUT", "row": 2, "col": 5 },
+    { "op": "spawn_zombie", "type": "ZOMBIE_PINK_FOOTBALL", "row": 2, "x": 700 },
+    { "op": "dump_state", "name": "01_spawn.json" },
+    { "op": "assert_state", "path": "zombies.0.bodyHealth", "equals": 220 },
+    { "op": "assert_state", "path": "zombies.0.helmHealth", "equals": 900 },
+    { "op": "screenshot", "name": "01_spawn.png" },
+    { "op": "damage_zombie", "row": 2, "index": 0, "damage": 900, "source": "PLANT" },
+    { "op": "assert_state", "path": "plants.0.health", "equals": 3980 },
+    { "op": "assert_state", "path": "zombies.0.helmHealth", "equals": 0 },
+    { "op": "wait_frames", "value": 6 },
+    { "op": "screenshot", "name": "02_helmet_break.png" },
+    { "op": "dump_state", "name": "02_helmet_break.json" },
+    { "op": "damage_zombie", "row": 2, "index": 0, "damage": 220, "source": "PLANT" },
+    { "op": "wait_seconds", "value": 3.0 },
+    { "op": "dump_state", "name": "03_death.json" },
+    { "op": "assert_state", "path": "zombieCount", "equals": 0 },
+    { "op": "quit" }
+  ]
+}

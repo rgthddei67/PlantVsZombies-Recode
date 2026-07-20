@@ -874,6 +874,9 @@ void Board::BuildSurvivalSpawnList(int round)
 	{
 		ZombieType t = static_cast<ZombieType>(i);
 		if (t == ZombieType::ZOMBIE_NORMAL) continue;
+		// 粉色橄榄球是黑夜专属变体；冒险关由 spawnlists.json 控制，这里只隔离两种无尽模式。
+		if (t == ZombieType::ZOMBIE_PINK_FOOTBALL
+			&& mLevel != SURVIVAL_ENDLESS_NIGHT_LEVEL) continue;
 		int base = GameDataManager::GetInstance().GetZombieSurvivalRound(t);
 		if (base < 1) continue;                              // 0 = 不进生存
 		if (GameDataManager::GetInstance().GetZombieWeight(t) <= 0) continue; // 伴舞等召唤单位不独立占池位

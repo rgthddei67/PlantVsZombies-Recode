@@ -1,0 +1,276 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Resources>
+  <!-- 游戏图片资源 -->
+  <GameImages>
+    <Image>./resources/image/kid.jpg</Image>
+    <Image>./resources/image/AwardGlow.png</Image>
+    <Image>./resources/image/trophy_hi_res.png</Image>
+    <Image>./resources/image/icetrap.png</Image>
+
+    <Image Column="5" Row="4">./resources/image/Tombstones.jpg</Image>
+    <Image Column="5" Row="4">./resources/image/Tombstone_mounds.png</Image>
+
+    <Image>./resources/image/UI/options_checkbox0.png</Image>
+    <Image>./resources/image/UI/options_checkbox1.png</Image>
+    <Image>./resources/image/UI/SeedChooser_Button2.png</Image>
+    <Image>./resources/image/UI/SeedChooser_Button2_Glow.png</Image>
+    <Image>./resources/image/UI/options_sliderknob2.png</Image>
+    <Image>./resources/image/UI/options_sliderslot.png</Image>
+    <Image>./resources/image/UI/SelectorScreen_Adventure_button.png</Image>
+    <Image>./resources/image/UI/SelectorScreen_Adventure_highlight.png</Image>
+    <Image>./resources/image/UI/SelectorScreen_Almanac.png</Image>
+    <Image>./resources/image/UI/SelectorScreen_AlmanacHighlight.png</Image>
+    <Image>./resources/image/UI/SelectorScreen_BG.png</Image>
+    <Image>./resources/image/UI/SelectorScreen_BG_Center.png</Image>
+    <Image>./resources/image/UI/SelectorScreen_BG_Left.png</Image>
+    <Image>./resources/image/UI/SelectorScreen_BG_Right.png</Image>
+    <Image>./resources/image/UI/SelectorScreen_Challenges_button.png</Image>
+    <Image>./resources/image/UI/SelectorScreen_Challenges_highlight.png</Image>
+    <Image>./resources/image/UI/SelectorScreen_Flower1.png</Image>
+    <Image>./resources/image/UI/SelectorScreen_Flower2.png</Image>
+    <Image>./resources/image/UI/SelectorScreen_Flower3.png</Image>
+    <Image>./resources/image/UI/SelectorScreen_Game.png</Image>
+    <Image>./resources/image/UI/SelectorScreen_Game_Shadow.png</Image>
+    <Image>./resources/image/UI/SelectorScreen_Help1.png</Image>
+    <Image>./resources/image/UI/SelectorScreen_Help2.png</Image>
+    <Image>./resources/image/UI/SelectorScreen_Options1.png</Image>
+    <Image>./resources/image/UI/SelectorScreen_Options2.png</Image>
+    <Image>./resources/image/UI/SelectorScreen_Quit1.png</Image>
+    <Image>./resources/image/UI/SelectorScreen_Quit2.png</Image>
+    <Image>./resources/image/UI/SelectorScreen_StartAdventure_Button1.png</Image>
+    <Image>./resources/image/UI/SelectorScreen_StartAdventure_Highlight.png</Image>
+    <Image>./resources/image/UI/SelectorScreen_Store.png</Image>
+    <Image>./resources/image/UI/SelectorScreen_StoreHighlight.png</Image>
+    <Image>./resources/image/UI/SelectorScreen_Surival.png</Image>
+    <Image>./resources/image/UI/SelectorScreen_Surival_Shadow.png</Image>
+    <Image>./resources/image/UI/card_bk.jpg</Image>
+    <Image>./resources/image/UI/SeedBank_Long.png</Image>
+    <Image>./resources/image/UI/SeedChooser_Background.png</Image>
+    <Image>./resources/image/UI/SeedChooser_Button.png</Image>
+    <Image>./resources/image/UI/SeedChooser_Button_Disabled.png</Image>
+    <Image>./resources/image/UI/SeedPacketNormal.png</Image>
+    <Image>./resources/image/UI/Challenge_Background.png</Image>
+    <Image>./resources/image/UI/Challenge_Window.png</Image>
+    <Image>./resources/image/UI/Challenge_Window_Highlight.png</Image>
+    <Image>./resources/image/UI/MiniGame_trophy.png</Image>
+
+    <Image>./resources/image/background_day.jpg</Image>
+    <Image>./resources/image/background_night.jpg</Image>
+    <Image>./resources/image/UI/ShovelBank.png</Image>
+    <Image>./resources/image/UI/options_menuback.png</Image>
+    <Image>./resources/image/UI/buttonbig.png</Image>
+    <Image>./resources/image/UI/buttonsmall.png</Image>
+    <Image>./resources/image/UI/MessageBox.png</Image>
+    <Image>./resources/image/UI/options_backtogamebutton0.png</Image>
+    <Image>./resources/image/UI/options_backtogamebutton_light.png</Image>
+    <Image Column="1" Row="2">./resources/image/UI/FlagMeter.png</Image>
+    <Image Column="3" Row="1">./resources/image/UI/FlagMeterParts.png</Image>
+    <Image>./resources/image/UI/FlagMeterLevelProgress.png</Image>
+
+    <Image>./resources/image/UI/Almanac/Almanac_GroundDay.png</Image>
+    <Image>./resources/image/UI/Almanac/Almanac_GroundNight.jpg</Image>
+    <Image>./resources/image/UI/Almanac/Almanac_GroundNightPool.jpg</Image>
+    <Image>./resources/image/UI/Almanac/Almanac_GroundPool.jpg</Image>
+    <Image>./resources/image/UI/Almanac/Almanac_GroundRoof.jpg</Image>
+    <Image>./resources/image/UI/Almanac/Almanac_IndexBack.jpg</Image>
+    <Image>./resources/image/UI/Almanac/Almanac_IndexButton.png</Image>
+    <Image>./resources/image/UI/Almanac/Almanac_IndexButtonHighlight.png</Image>
+    <Image>./resources/image/UI/Almanac/Almanac_PlantBack.jpg</Image>
+    <Image>./resources/image/UI/Almanac/Almanac_PlantCard.png</Image>
+    <Image>./resources/image/UI/Almanac/Almanac_ZombieBack.jpg</Image>
+    <Image>./resources/image/UI/Almanac/Almanac_ZombieBlank.png</Image>
+    <Image>./resources/image/UI/Almanac/Almanac_ZombieCard.png</Image>
+    <Image>./resources/image/UI/Almanac/Almanac_ZombieWindow.png</Image>
+    <Image>./resources/image/UI/Almanac/Almanac_ZombieWindow2.png</Image>
+    <Image>./resources/image/UI/Almanac/SelectorScreen_Almanac.png</Image>
+
+    <Image>./resources/image/Shovel.png</Image>
+    <Image>./resources/image/APPROACHING.png</Image>
+    <Image>./resources/image/FINALWAVE.png</Image>
+    <Image>./resources/image/PlantImage/plantshadow.png</Image>
+    <Image>./resources/image/PlantImage/plantshadow2.png</Image>
+    <Image>./resources/image/PlantImage/PeaShooter.png</Image>
+    <Image>./resources/image/PlantImage/SunFlower.png</Image>
+    <Image>./resources/image/PlantImage/CherryBomb.png</Image>
+    <Image>./resources/image/PlantImage/WallNut.png</Image>
+    <Image>./resources/image/PlantImage/PotatoMine.png</Image>
+    <Image>./resources/image/PlantImage/SnowPeaShooter.png</Image>
+    <Image>./resources/image/PlantImage/Chomper.png</Image>
+    <Image>./resources/image/PlantImage/Repeater.png</Image>
+    <Image>./resources/image/PlantImage/PuffShroom.png</Image>
+    <Image>./resources/image/PlantImage/SunShroom.png</Image>
+    <Image>./resources/image/PlantImage/FumeShroom.png</Image>
+    <Image>./resources/image/PlantImage/GraveBuster.png</Image>
+    <Image>./resources/image/PlantImage/HypnoShroom.png</Image>
+    <Image>./resources/image/PlantImage/ScaredyShroom.png</Image>
+    <Image>./resources/image/PlantImage/IceShroom.png</Image>
+    <Image>./resources/image/PlantImage/IceFumeShroom.png</Image>
+    <Image>./resources/image/PlantImage/DoomShroom.png</Image>
+    <Image>./resources/image/PlantImage/Squash.png</Image>
+    <Image>./resources/image/PlantImage/Threepeater.png</Image>
+    <Image>./resources/image/PlantImage/TangleKelp.png</Image>
+    <Image>./resources/image/PlantImage/Jalapeno.png</Image>
+    <Image>./resources/image/PlantImage/TorchWood.png</Image>
+    <Image>./resources/image/ProjectileCactus.png</Image>
+    <Image>./resources/image/ProjectilePea.png</Image>
+    <Image>./resources/image/ProjectileSnowPea.png</Image>
+    <Image>./resources/image/Projectile_star.png</Image>
+    <Image>./resources/image/PuffShroom_puff1.png</Image>
+    <Image>./resources/image/PuffShroom_puff2.png</Image>
+    <Image Column="2" Row="1">./resources/image/crater.png</Image>
+    <Image Column="2" Row="1">./resources/image/crater_fading.png</Image>
+
+  </GameImages>
+
+  <!-- 粒子纹理 -->
+  <ParticleTextures>
+    <Texture Column="4" Row="1">./resources/particles/pea_splats.png</Texture>
+    <Texture Column="3" Row="1">./resources/particles/pea_particles.png</Texture>
+    <Texture Column="4" Row="1">./resources/particles/snowpea_splats.png</Texture>
+    <Texture Column="3" Row="1">./resources/particles/snowpea_particles.png</Texture>
+    <Texture>./resources/particles/ExplosionCloud.png</Texture>
+    <Texture>./resources/particles/ExplosionSpudow.png</Texture>
+    <Texture>./resources/particles/ZombieBackupDancerHead.png</Texture>
+    <Texture>./resources/particles/ZombieBackupDancerHead_disco.png</Texture>
+    <Texture>./resources/particles/ZombieBobsledHead.png</Texture>
+    <Texture>./resources/particles/ZombieDancerHead.png</Texture>
+    <Texture>./resources/particles/ZombieDancerHead_disco.png</Texture>
+    <Texture>./resources/particles/ZombieDiggerArm.png</Texture>
+    <Texture>./resources/particles/ZombieDiggerHead.png</Texture>
+    <Texture>./resources/particles/ZombieDolphinRiderHead.png</Texture>
+    <Texture>./resources/particles/ZombieFootballHead.png</Texture>
+    <Texture>./resources/particles/ZombieHead.png</Texture>
+    <Texture>./resources/particles/ZombieImpHead.png</Texture>
+    <Texture>./resources/particles/ZombieLadderHead.png</Texture>
+    <Texture>./resources/particles/ZombiePogoHead.png</Texture>
+    <Texture>./resources/particles/ZombiePoleVaulterHead.png</Texture>
+    <Texture>./resources/particles/ZombieYetiHead.png</Texture>
+    <Texture>./resources/particles/ZombieArm.png</Texture>
+    <Texture>./resources/particles/DoomShroom_Explosion_Stem.png</Texture>
+    <Texture>./resources/particles/DoomShroom_Explosion_Base.png</Texture>
+    <Texture>./resources/particles/DoomShroom_Explosion_Top.png</Texture>
+    <Texture>./resources/particles/Doom.png</Texture>
+    <Texture>./resources/particles/WhitePixel.png</Texture>
+
+  </ParticleTextures>
+
+  <!-- 字体文件 -->
+  <Fonts>
+    <Font>./font/fzcq.ttf</Font>
+    <Font>./font/fzjz.ttf</Font>
+    <Font>./font/ContinuumBold.ttf</Font>
+  </Fonts>
+
+  <!-- 音效文件 -->
+  <Sounds>
+    <Sound>./resources/sounds/UI/bleep.ogg</Sound>
+    <Sound>./resources/sounds/UI/buttonclick.ogg</Sound>
+    <Sound>./resources/sounds/UI/ceramic.ogg</Sound>
+    <Sound>./resources/sounds/UI/chooseplant1.ogg</Sound>
+    <Sound>./resources/sounds/UI/chooseplant2.ogg</Sound>
+    <Sound>./resources/sounds/UI/gravebutton.ogg</Sound>
+    <Sound>./resources/sounds/UI/mainmenu.ogg</Sound>
+    <Sound>./resources/sounds/UI/pause.ogg</Sound>
+    <Sound>./resources/sounds/UI/shovel.ogg</Sound>
+    <Sound>./resources/sounds/collectsun.ogg</Sound>
+    <Sound>./resources/sounds/UI/clickfailed.ogg</Sound>
+    <Sound>./resources/sounds/Afterhugewave.ogg</Sound>
+    <Sound>./resources/sounds/hugewave.ogg</Sound>
+    <Sound>./resources/sounds/finalwave.ogg</Sound>
+    <Sound>./resources/sounds/firstwave.ogg</Sound>
+    <Sound>./resources/sounds/lawnmower.ogg</Sound>
+    <Sound>./resources/sounds/lostgame.ogg</Sound>
+    <Sound>./resources/sounds/pool_cleaner.ogg</Sound>
+    <Sound>./resources/sounds/readysetplant.ogg</Sound>
+    <Sound>./resources/sounds/winmusic.ogg</Sound>
+    <Sound>./resources/sounds/Zombie/chomp.ogg</Sound>
+    <Sound>./resources/sounds/Zombie/chomp2.ogg</Sound>
+    <Sound>./resources/sounds/Zombie/finisheating.ogg</Sound>
+    <Sound>./resources/sounds/Zombie/arm_head_drop.ogg</Sound>
+    <Sound>./resources/sounds/Zombie/polevault.ogg</Sound>
+    <Sound>./resources/sounds/Zombie/newspaper_rip.ogg</Sound>
+    <Sound>./resources/sounds/Zombie/newspaper_rarrgh.ogg</Sound>
+    <Sound>./resources/sounds/Zombie/newspaper_rarrgh2.ogg</Sound>
+    <Sound>./resources/sounds/Zombie/floop.ogg</Sound>
+
+    <Sound>./resources/sounds/Plant/ClickSeed.ogg</Sound>
+    <Sound>./resources/sounds/Plant/deleteplant.ogg</Sound>
+    <Sound>./resources/sounds/Plant/plant.ogg</Sound>
+    <Sound>./resources/sounds/Plant/plant_onwater.ogg</Sound>
+    <Sound>./resources/sounds/Plant/potato_mine.ogg</Sound>
+    <Sound>./resources/sounds/Plant/frozen.ogg</Sound>
+<Sound>./resources/sounds/Plant/snow_pea_sparkles.ogg</Sound>
+    <Sound>./resources/sounds/Plant/squash_hmm.ogg</Sound>
+    <Sound>./resources/sounds/Plant/squash_hmm2.ogg</Sound>
+    <Sound>./resources/sounds/Plant/PlantShoot/throw.ogg</Sound>
+    <Sound>./resources/sounds/Plant/PlantShoot/throw2.ogg</Sound>
+    <Sound>./resources/sounds/Plant/cherrybomb.ogg</Sound>
+    <Sound>./resources/sounds/Plant/doomshroom.ogg</Sound>
+    <Sound>./resources/sounds/Plant/reverse_explosion.ogg</Sound>
+    <Sound>./resources/sounds/Plant/CHOMPPLANT.ogg</Sound>
+    <Sound>./resources/sounds/Plant/plantgrow.ogg</Sound>
+    <Sound>./resources/sounds/Plant/fume.ogg</Sound>
+
+    <Sound>./resources/sounds/Bullet/HitCone.ogg</Sound>
+    <Sound>./resources/sounds/Bullet/HitCone2.ogg</Sound>
+    <Sound>./resources/sounds/Bullet/IronHit.ogg</Sound>
+    <Sound>./resources/sounds/Bullet/IronHit2.ogg</Sound>
+    <Sound>./resources/sounds/Bullet/splat.ogg</Sound>
+    <Sound>./resources/sounds/Bullet/splat2.ogg</Sound>
+    <Sound>./resources/sounds/Bullet/splat3.ogg</Sound>
+    <Sound>./resources/sounds/Bullet/puff.ogg</Sound>
+
+    <Sound>./resources/sounds/Bullet/cooldownZombie.ogg</Sound>
+
+  </Sounds>
+
+  <!-- 音乐文件 -->
+  <Music>
+    <Track>./resources/music/MainMenu.ogg</Track>
+    <Track>./resources/music/chooseyourseeds.ogg</Track>
+    <Track>./resources/music/day.ogg</Track>
+    <Track>./resources/music/fog.ogg</Track>
+    <Track>./resources/music/loonboon.ogg</Track>
+    <Track>./resources/music/night.ogg</Track>
+    <Track>./resources/music/pool.ogg</Track>
+    <Track>./resources/music/roof.ogg</Track>
+    <Track>./resources/music/zengarden.ogg</Track>
+  </Music>
+
+  <!-- 动画资源 此处的name要与ResourceKey里面的一样-->
+  <Reanimations>
+    <Reanimation name="Sun">./resources/reanim/Sun.reanim</Reanimation>
+
+    <Reanimation name="SunFlower">./resources/reanim/SunFlower.reanim</Reanimation>
+    <Reanimation name="PeaShooter">./resources/reanim/PeaShooter.reanim</Reanimation>
+    <Reanimation name="CherryBomb">./resources/reanim/CherryBomb.reanim</Reanimation>
+    <Reanimation name="Wallnut">./resources/reanim/Wallnut.reanim</Reanimation>
+    <Reanimation name="PotatoMine">./resources/reanim/PotatoMine.reanim</Reanimation>
+    <Reanimation name="SnowPeaShooter">./resources/reanim/SnowPeaShooter.reanim</Reanimation>
+    <Reanimation name="Chomper">./resources/reanim/Chomper.reanim</Reanimation>
+    <Reanimation name="Repeater">./resources/reanim/Repeater.reanim</Reanimation>
+    <Reanimation name="PuffShroom">./resources/reanim/PuffShroom.reanim</Reanimation>
+    <Reanimation name="SunShroom">./resources/reanim/SunShroom.reanim</Reanimation>
+    <Reanimation name="FumeShroom">./resources/reanim/FumeShroom.reanim</Reanimation>
+    <Reanimation name="HypnoShroom">./resources/reanim/HypnoShroom.reanim</Reanimation>
+    <Reanimation name="ScaredyShroom">./resources/reanim/ScaredyShroom.reanim</Reanimation>
+    <Reanimation name="IceShroom">./resources/reanim/IceShroom.reanim</Reanimation>
+    <Reanimation name="DoomShroom">./resources/reanim/DoomShroom.reanim</Reanimation>
+
+    <Reanimation name="NormalZombie">./resources/reanim/NormalZombie.reanim</Reanimation>
+    <Reanimation name="ConeZombie">./resources/reanim/ConeZombie.reanim</Reanimation>
+    <Reanimation name="PolevaulterZombie">./resources/reanim/Polevaulter.reanim</Reanimation>
+    <Reanimation name="BucketZombie">./resources/reanim/BucketZombie.reanim</Reanimation>
+    <Reanimation name="PaperZombie">./resources/reanim/PaperZombie.reanim</Reanimation>
+    <Reanimation name="DoorZombie">./resources/reanim/DoorZombie.reanim</Reanimation>
+    <Reanimation name="FootballZombie">./resources/reanim/FootballZombie.reanim</Reanimation>
+    <Reanimation name="PinkFootballZombie">./resources/reanim/PinkFootballZombie.reanim</Reanimation>
+    <Reanimation name="ZombieJackson">./resources/reanim/Zombie_Jackson.reanim</Reanimation>
+    <Reanimation name="ZombieDancer">./resources/reanim/Zombie_dancer.reanim</Reanimation>
+
+    <Reanimation name="Zombie_Charred">./resources/reanim/Zombie_Charred.reanim</Reanimation>
+
+    <Reanimation name="LawnMower">./resources/reanim/LawnMower.reanim</Reanimation>
+
+  </Reanimations>
+</Resources>

@@ -41,8 +41,9 @@ enum class ZombieType {
 	ZOMBIE_FOOTBALL,
 	ZOMBIE_DANCER,
 	ZOMBIE_BACKUP_DANCER,
+	ZOMBIE_PINK_FOOTBALL,
 
-	// ↓ 哨兵：置于已实现僵尸(0~6)之后，使 [0,NUM_ZOMBIE_TYPES) 只覆盖已实现类型，
+	// ↓ 哨兵：置于全部已实现僵尸之后，使 [0,NUM_ZOMBIE_TYPES) 只覆盖已实现类型，
 	//   生存模式随机抽取据此绝不会抽到下方未实现僵尸。
 	//   注：Board::LoadSpawnListFromJson 亦以此为上界校验 JSON 僵尸ID，效果一致。
 	NUM_ZOMBIE_TYPES,

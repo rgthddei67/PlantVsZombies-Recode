@@ -35,6 +35,7 @@ enum class AnimationType
 	ANIM_PAPER_ZOMBIE,    // 报纸僵尸
 	ANIM_DOOR_ZOMBIE,      // 铁门僵尸
 	ANIM_FOOTBALL_ZOMBIE,  // 橄榄僵尸
+	ANIM_PINK_FOOTBALL_ZOMBIE, // 粉色橄榄球僵尸
 	ANIM_DANCE_ZOMBIE,     // 舞王僵尸
 	ANIM_DANCERWITH_ZOMBIE, // 伴舞僵尸
 

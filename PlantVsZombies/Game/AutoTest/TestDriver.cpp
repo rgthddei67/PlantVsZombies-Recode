@@ -46,7 +46,8 @@ namespace {
 	const std::unordered_map<std::string, ZombieType> kZombieNames = {
 		ZT(ZOMBIE_NORMAL), ZT(ZOMBIE_TRAFFIC_CONE), ZT(ZOMBIE_POLEVAULTER), ZT(ZOMBIE_BUCKET),
 		ZT(ZOMBIE_FASTBUCKET), ZT(ZOMBIE_NEWSPAPER), ZT(ZOMBIE_FASTPAPER), ZT(ZOMBIE_DOOR),
-		ZT(ZOMBIE_FOOTBALL), ZT(ZOMBIE_DANCER), ZT(ZOMBIE_BACKUP_DANCER), ZT(ZOMBIE_DUCKY_TUBE),
+		ZT(ZOMBIE_FOOTBALL), ZT(ZOMBIE_DANCER), ZT(ZOMBIE_BACKUP_DANCER), ZT(ZOMBIE_PINK_FOOTBALL),
+		ZT(ZOMBIE_DUCKY_TUBE),
 		ZT(ZOMBIE_SNORKEL), ZT(ZOMBIE_ZAMBONI), ZT(ZOMBIE_BOBSLED), ZT(ZOMBIE_DOLPHIN_RIDER),
 		ZT(ZOMBIE_JACK_IN_THE_BOX), ZT(ZOMBIE_BALLOON), ZT(ZOMBIE_DIGGER), ZT(ZOMBIE_POGO),
 		ZT(ZOMBIE_YETI), ZT(ZOMBIE_BUNGEE), ZT(ZOMBIE_LADDER), ZT(ZOMBIE_CATAPULT),
@@ -711,6 +712,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				|| anim->GetTrackVisible("Zombie_innerarm_screendoor_hand")) },
 		});
 	}
+	out["zombieCount"] = static_cast<int>(out["zombies"].size());
 
 	out["plants"] = nlohmann::json::array();
 	int repeatingShootingHeadCount = 0;
