@@ -42,7 +42,7 @@ Mower::Mower(Board* board, MowerType type, AnimationType animType, float x, floa
 			Trigger();
 		}
 
-		dynamic_cast<Zombie*>(go)->TakeDamage(INT32_MAX);
+		dynamic_cast<Zombie*>(go)->TakeDamage(INT32_MAX, DamageSource::OTHER);
 
 		};
 }

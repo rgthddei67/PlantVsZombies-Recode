@@ -10,7 +10,7 @@ public:
 
 	void SetupPlant() override;
 
-	void TakeDamage(int damage) override;
+	void TakeDamage(int damage, DamageSource source) override;
 };
 
 #endif

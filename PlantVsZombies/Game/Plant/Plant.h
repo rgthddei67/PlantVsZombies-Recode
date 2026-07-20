@@ -13,6 +13,7 @@
 #include "../../GameRandom.h"
 #include "../../DeltaTime.h"
 #include "../EntityManager.h"
+#include "../DamageSource.h"
 
 class Board;
 
@@ -46,7 +47,8 @@ public:
 	int GetSortingKey() const override { return this->mRow; }
 
 	virtual void PlantUpdate();		// 子类重写Update用这个
-	virtual void TakeDamage(int damage);
+	// 统一结算植物承伤；source 必填，使僵尸增伤只作用于僵尸来源。
+	virtual void TakeDamage(int damage, DamageSource source);
 	virtual void SaveExtraData(nlohmann::json& j) const {}
 	virtual void LoadExtraData(const nlohmann::json& j) {}
 	void Die();

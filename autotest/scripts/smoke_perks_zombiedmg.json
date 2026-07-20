@@ -10,6 +10,7 @@
     { "op": "wait_seconds", "value": 12.0 },
     { "op": "screenshot", "name": "zombiedmg.png" },
     { "op": "dump_state", "name": "zombiedmg.json" },
+    { "op": "assert_state", "path": "plants.0.health", "equals": 2875 },
     { "op": "quit" }
   ]
 }

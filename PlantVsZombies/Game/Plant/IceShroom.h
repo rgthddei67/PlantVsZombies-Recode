@@ -13,7 +13,7 @@ class IceShroom : public Shroom
 public:
 	using Shroom::Shroom;
 
-	void TakeDamage(int damage) override;
+	void TakeDamage(int damage, DamageSource source) override;
 
 protected:
 	void SetupPlant() override;

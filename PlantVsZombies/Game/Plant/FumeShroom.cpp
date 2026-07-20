@@ -65,7 +65,7 @@ void FumeShroom::FumeAttack()
 		// 豁免魅惑僵尸：原版 DoRowAreaDamage(20, 2U) 的 damageRangeFlags 不含 bit7（不炸魅惑目标）
 		if (dx >= 0 && dx <= mFumeReach && zombie->HasHead() && !zombie->IsMindControlled())
 		{
-			zombie->TakeDamage(mFumeDamage, /*penetrateShield=*/true);
+			zombie->TakeDamage(mFumeDamage, DamageSource::PLANT, /*penetrateShield=*/true);
 			OnFumeHit(zombie);
 		}
 		});

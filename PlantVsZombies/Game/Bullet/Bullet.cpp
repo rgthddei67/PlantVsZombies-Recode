@@ -149,5 +149,5 @@ void Bullet::UpdateShadowLayout(const Vector& position)
 
 void Bullet::BulletHitZombie(Zombie* zombie)
 {
-	zombie->TakeDamage(this->GetBulletDamage());
+	zombie->TakeDamage(this->GetBulletDamage(), DamageSource::PLANT);
 }

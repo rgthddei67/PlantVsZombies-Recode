@@ -1,0 +1,28 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 1 },
+    { "op": "choose_cards", "cards": ["PLANT_WALLNUT"] },
+    { "op": "wait_state", "state": "GAME" },
+    { "op": "add_perk", "type": "ZOMBIE_DAMAGE_UP", "count": 10 },
+    { "op": "add_perk", "type": "PLANT_DAMAGE_UP", "count": 3 },
+    { "op": "plant", "type": "PLANT_WALLNUT", "row": 2, "col": 2 },
+    { "op": "spawn_zombie", "type": "ZOMBIE_NORMAL", "row": 2, "x": 880 },
+    { "op": "spawn_zombie", "type": "ZOMBIE_NORMAL", "row": 3, "x": 880 },
+
+    { "op": "damage_plant", "row": 2, "col": 2, "damage": 100, "source": "OTHER" },
+    { "op": "dump_state", "name": "after_other_to_plant.json" },
+    { "op": "assert_state", "path": "plants.0.health", "equals": 3900 },
+    { "op": "damage_plant", "row": 2, "col": 2, "damage": 100, "source": "ZOMBIE" },
+    { "op": "dump_state", "name": "after_zombie_to_plant.json" },
+    { "op": "assert_state", "path": "plants.0.health", "equals": 3750 },
+
+    { "op": "damage_zombie", "row": 2, "damage": 100, "source": "OTHER" },
+    { "op": "dump_state", "name": "after_other_to_zombie.json" },
+    { "op": "assert_state", "path": "zombies.0.bodyHealth", "equals": 170 },
+    { "op": "damage_zombie", "row": 3, "damage": 100, "source": "PLANT" },
+    { "op": "dump_state", "name": "after_plant_to_zombie.json" },
+    { "op": "assert_state", "path": "zombies.1.bodyHealth", "equals": 134 },
+    { "op": "screenshot", "name": "damage_sources.png" },
+    { "op": "quit" }
+  ]
+}

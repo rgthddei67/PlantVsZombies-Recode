@@ -439,7 +439,7 @@ bool Zombie::StartFrozen()
 	// 附带 20 点伤害（原版 HitIceTrap 固定值，在免疫判定之后——魅惑/跳跃中撑杆不掉血）。
 	// 走 TakeDamage 正常链（护盾→头盔→本体）；先停格再结算：报纸狂暴等
 	// 连锁里的 UpdateAnimSpeed 看到冻结态，不会把停格顶掉。
-	TakeDamage(20);
+	TakeDamage(20, DamageSource::PLANT);
 	return true;
 }
 
@@ -572,7 +572,7 @@ void Zombie::TakeBodyDamage(int damage)
 	}
 }
 
-void Zombie::TakeDamage(int damage, bool penetrateShield)
+void Zombie::TakeDamage(int damage, DamageSource source, bool penetrateShield)
 {
 	if (damage <= 0 || !mBoard) return;
 
@@ -580,8 +580,11 @@ void Zombie::TakeDamage(int damage, bool penetrateShield)
 	// 提前 return：完全吸收且不触发受击白光（SetGlowingTimer），0 伤害不应闪。
 	if (mFreeHitsRemaining > 0) { --mFreeHitsRemaining; return; }
 
-	// 词条：植物增伤 僵尸免伤（生存专用；空词条/非生存关倍率=1，无副作用）。单点覆盖一切伤害来源。
-	damage = mBoard->GetPerkManager().ScaleTotalDamageToZombie(damage);
+	// 植物增伤只放大植物来源；僵尸免伤则对所有实际承伤生效。两者均在 0 层返回单位元。
+	if (source == DamageSource::PLANT) {
+		damage = mBoard->GetPerkManager().ScalePlantDamage(damage);
+	}
+	damage = mBoard->GetPerkManager().ScaleDamageToZombie(damage);
 
 	SetGlowingTimer(0.1f);
 
@@ -692,7 +695,7 @@ void Zombie::EatTarget()
 		}
 		// 互啃走 TakeDamage 正常链（护盾→头盔→本体）：免伤/减伤词条对啃咬同样生效（语义自洽）；
 		// 不过 ScaleZombieDamage——那是僵尸对植物的词条
-		target->TakeDamage(mAttackDamage);
+		target->TakeDamage(mAttackDamage, DamageSource::ZOMBIE);
 		if (GameRandom::Range(0, 1) == 0)
 			AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_ZOMBIE_EAT, 0.17f);
 		else
@@ -717,9 +720,8 @@ void Zombie::EatTarget()
 					return;
 				}
 			}
-			// 词条①：僵尸对植物伤害（生存专用；空词条倍率=1）。使用时缩放，不写回 mAttackDamage——
-			// 否则存档 attackDamage 被污染，读档叠加重复放大。mBoard 在此路径恒非空（上一行已解引用）。
-			plant->TakeDamage(mBoard->GetPerkManager().ScaleZombieDamage(mAttackDamage));
+			// 原始攻击力交给植物受伤入口按来源统一结算；不写回 mAttackDamage，避免污染存档。
+			plant->TakeDamage(mAttackDamage, DamageSource::ZOMBIE);
 			if (plant->mPlantHealth <= 0)
 			{
 				AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_ZOMBIE_FINISHEAT, 0.2f);

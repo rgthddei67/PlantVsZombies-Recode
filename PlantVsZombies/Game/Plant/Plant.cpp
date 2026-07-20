@@ -68,10 +68,16 @@ void Plant::Start()
 	this->SetupPlant();
 }
 
-void Plant::TakeDamage(int damage) {
+void Plant::TakeDamage(int damage, DamageSource source) {
 	if (mIsPreview) return;
-	// 植物韧性在所有调用基类的受伤路径统一结算；0 层倍率为 1，不影响普通关卡。
-	const int scaledDamage = mBoard ? mBoard->GetPerkManager().ScaleDamageToPlant(damage) : damage;
+	// 僵尸增伤只放大僵尸来源；植物韧性则对所有实际承伤生效。两者均在 0 层返回单位元。
+	int scaledDamage = damage;
+	if (mBoard) {
+		if (source == DamageSource::ZOMBIE) {
+			scaledDamage = mBoard->GetPerkManager().ScaleZombieDamage(scaledDamage);
+		}
+		scaledDamage = mBoard->GetPerkManager().ScaleDamageToPlant(scaledDamage);
+	}
 	mPlantHealth -= scaledDamage;
 	SetGlowingTimer(0.1f);
 	if (mPlantHealth <= 0) {

@@ -9,14 +9,14 @@ description: Use when adding or tuning any 生存模式词条 (survival perk) in
 
 开始前先读仓库根目录 `AGENTS.md`，并按任务范围阅读 `docs/agent-guide/PROJECT_GUIDE.md`。涉及既有设计时搜索 `docs/agent-memory/MEMORY.md`，当前源码和测试证据优先于历史记录。
 
-## 当前词条目录（2026-07-18）
+## 当前词条目录（2026-07-20）
 
 | 枚举 | 类别 | 当前效果 | 上限 | 主要钟点 |
 |---|---|---:|---:|---|
-| `PLANT_DAMAGE_UP` | 植物 | 伤害 +12%/层 | 9999（不限层） | `Zombie::TakeDamage` 统一缩放；爆炸 Charred 阈值用相同聚合值预测 |
+| `PLANT_DAMAGE_UP` | 植物 | 伤害 +12%/层 | 9999（不限层） | `Zombie::TakeDamage` 仅对 `DamageSource::PLANT` 缩放；爆炸 Charred 阈值用相同聚合值预测 |
 | `ZOMBIE_HEALTH_UP` | 僵尸 | 血量 +12%/层 | 9999（不限层） | `Board::GetZombieHpMultiplier` / `CreateZombie` 出生路径 |
 | `ZOMBIE_DAMAGE_RESIST` | 僵尸 | 承伤 -3%/层 | 15，最低承伤 55% | `Zombie::TakeDamage` |
-| `ZOMBIE_DAMAGE_UP` | 僵尸 | 对植物伤害 +5%/层 | 9999（不限层） | `Zombie::EatTarget`，使用时缩放，不写回 `mAttackDamage` |
+| `ZOMBIE_DAMAGE_UP` | 僵尸 | 对植物伤害 +5%/层 | 9999（不限层） | `Plant::TakeDamage` 仅对 `DamageSource::ZOMBIE` 缩放；攻击方传原始伤害 |
 | `ZOMBIE_INVULN_HITS` | 僵尸 | 出生后前 4 次受击免伤/层 | 2 | `Zombie::TakeDamage` 消耗；`Board::CreateZombie` 初始化；僵尸存档持久化 |
 | `PLANT_REGEN` | 植物 | 每 5 秒回复 65 HP/层 | 8；第 5 层起允许到 3 倍最大生命 | `Board::UpdateLevel` 全局脉冲 |
 | `PLANT_ATTACK_SPEED` | 植物 | 开火速度 +15%/层 | 8 | `Shooter`、`Repeater`、`PuffShroom`、`FumeShroom`、`ScaredyShroom` 的射击间隔与动画速度 |
@@ -41,7 +41,7 @@ description: Use when adding or tuning any 生存模式词条 (survival perk) in
 1. 在 `Game/Perk/PerkType.h` 的 `COUNT` 前加入枚举项，并确定 `PerkCategory::PLANT_BUFF` 或 `ZOMBIE_CURSE`。
 2. 在 `SurvivalPerkManager.cpp::kPerks[]` 的对应位置加入 `{key, nameZh, descZh, perStack, maxStacks, category}`。顺序必须与枚举一致，`static_assert` 会检查数量。
 3. 给 manager 增加聚合 getter/缩放函数。倍率使用 `RoundScale`；精确整数计数直接做整数乘法，不写伪四舍五入的 `static_cast<int>(x + 0.5f)`。
-4. 把效果接到覆盖面最完整的唯一钟点。接入前用 `rg` 核实所有实际路径，尤其是新植物、新僵尸或旁路伤害。
+4. 把效果接到覆盖面最完整的唯一钟点。接入前用 `rg` 核实所有实际路径，尤其是新植物、新僵尸或旁路伤害。伤害调用必须显式传 `DamageSource`，不可增加默认来源来绕过编译器审计。
 5. 在 `TestDriver.cpp` 的 `kPerkNames` 加 `PK(NEW_TYPE)`，并在 `dump_state.perks` 暴露层数和可精确断言的聚合结果。
 6. 新增范围最小的 `autotest/scripts/smoke_perks_<name>.json`，用数学闭合值断言；再跑既有词条与选择 UI 回归。
 7. 更新 `docs/agent-memory/project_pvz_perk_system.md` 和 `docs/agent-memory/MEMORY.md` 当前摘要。
@@ -52,7 +52,9 @@ description: Use when adding or tuning any 生存模式词条 (survival perk) in
 
 - 0 层必须返回 `1.0` 或原值，避免调用方额外判断模式。
 - 伤害缩放走现有 `RoundScale`，其会保留 `INT32_MAX` 一类秒杀哨兵，并保证正常正伤害至少为 1。
-- 植物增伤与僵尸免伤统一在 `Zombie::TakeDamage` 用 `ScaleTotalDamageToZombie` 计算。`Board::CreateBoom/CreateDoomBoom` 只能预测 Charred 阈值，传给 `TakeDamage` 的仍是未缩放原伤害，不能重复放大。
+- `DamageSource` 是所有植物/僵尸受伤调用的必填参数：植物子弹、爆炸、寒冰菇为 `PLANT`，僵尸啃食/互啃为 `ZOMBIE`，小推车和无阵营直伤为 `OTHER`。新增攻击不标来源应直接编译失败，不能给参数补默认值。
+- `Zombie::TakeDamage` 只对 `DamageSource::PLANT` 应用植物增伤，再对所有来源应用僵尸免伤。`Board::CreateBoom/CreateDoomBoom` 只能用 `ScaleTotalDamageToZombie` 预测植物爆炸的 Charred 阈值，传给 `TakeDamage` 的仍是未缩放原伤害，不能重复放大。
+- `Plant::TakeDamage` 只对 `DamageSource::ZOMBIE` 应用僵尸增伤，再对所有来源应用植物韧性。僵尸攻击方传原始 `mAttackDamage`，不得自行调用 `ScaleZombieDamage` 或写回攻击字段。
 - 攻速必须同时缩短射击间隔并提高射击动画 clip speed；否则高层时动画会在吐弹帧前被重启。新增射击植物时必须把它纳入攻速词条审计。
 - 卡片加速只改变每帧冷却推进速度，不修改基础 cooldown 或已存的剩余进度。
 
@@ -105,6 +107,7 @@ description: Use when adding or tuning any 生存模式词条 (survival perk) in
 基础命令：
 
 - `add_perk {"type":"...","count":N}`：UI 前唯一词条注入入口。
+- `damage_plant` / `damage_zombie`：走正式受伤链；`source` 可取 `PLANT/ZOMBIE/OTHER`（默认 `OTHER`），用于精确验证阵营增伤隔离。
 - `survival_perk_open`：打开轮间选择。
 - `survival_perk_pick {"index":0}`：选择候选；`index:-1` 只放弃当前一次机会。
 - `survival_perk_refresh`：消耗本轮共享的一次刷新额度，重抽当前全部候选。
@@ -118,7 +121,7 @@ description: Use when adding or tuning any 生存模式词条 (survival perk) in
 3. `smoke_perk_select_skip_then_pick.json`：第 1 次放弃、第 2 次选择，最终 steps=2、picks=1。
 4. `smoke_perk_view.json`：查看面板仍能显示和分页。
 
-数值改动至少跑对应专项脚本、`smoke_perks_balance.json` 和 `smoke_perks.json`。UI 改动要检查截图，不能只看退出码；同时检查对应 `run.log` 含 `script finished OK`。
+数值或伤害钟点改动至少跑对应专项脚本、`smoke_perks_damage_sources.json`、`smoke_perks_balance.json` 和 `smoke_perks.json`。UI 改动要检查截图，不能只看退出码；同时检查对应 `run.log` 含 `script finished OK`。
 
 ## 构建与交付
 

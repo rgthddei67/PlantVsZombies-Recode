@@ -22,7 +22,7 @@ public:
 
     int ScalePlantDamage(int base) const;          // round(base * 植物伤害倍率)，base>=1 时结果>=1
     int ScaleDamageToZombie(int base) const;       // round(base * 免伤倍率)，base>=1 时结果>=1
-    int ScaleTotalDamageToZombie(int base) const;  // round(base * 植物伤害倍率 * 僵尸免伤倍率)，base>=1 时结果>=1
+    int ScaleTotalDamageToZombie(int base) const;  // 植物来源专用：依次应用植物增伤与僵尸免伤，base>=1 时结果>=1
     int ScaleDamageToPlant(int base) const;        // round(base * 植物承伤倍率)，base>=1 时结果>=1
     int ScaleSunIncome(int base) const;            // round(base * 阳光收益倍率)，base>=1 时结果>=1
 

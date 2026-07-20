@@ -68,6 +68,10 @@ namespace {
 		{ "LOSE_GAME", BoardState::LOSE_GAME }, { "WIN", BoardState::WIN },
 		{ "NONE", BoardState::NONE },
 	};
+	const std::unordered_map<std::string, DamageSource> kDamageSourceNames = {
+		{ "PLANT", DamageSource::PLANT }, { "ZOMBIE", DamageSource::ZOMBIE },
+		{ "OTHER", DamageSource::OTHER },
+	};
 
 	const std::unordered_map<std::string, Uint8> kMouseButtonNames = {
 		{ "left", SDL_BUTTON_LEFT }, { "right", SDL_BUTTON_RIGHT },
@@ -355,19 +359,47 @@ bool TestDriver::ExecuteCurrent() {
 		const int index = cmd.value("index", 0);  // 行过滤后按 ID 升序第 index 只
 		const int damage = cmd.value("damage", 0);
 		if (damage <= 0) { Fail("damage_zombie: damage 必须大于 0"); return false; }
+		auto sourceIt = kDamageSourceNames.find(cmd.value("source", "OTHER"));
+		if (sourceIt == kDamageSourceNames.end()) { Fail("damage_zombie: source 必须是 PLANT/ZOMBIE/OTHER"); return false; }
 		int seen = 0;
 		for (int id : board->mEntityManager.GetAllZombieIDs()) {
 			Zombie* z = board->mEntityManager.GetZombie(id);
 			if (!z) continue;
 			if (row >= 0 && z->mRow != row) continue;
 			if (seen++ == index) {
-				// 走正式受伤链（护盾/头盔/断肢断头/免伤），用于验证死亡动画而非直接 Die。
-				z->TakeDamage(damage, cmd.value("penetrateShield", false));
+				// 走正式受伤链（来源词条/护盾/头盔/断肢断头/免伤），用于验证而非直接 Die。
+				z->TakeDamage(damage, sourceIt->second, cmd.value("penetrateShield", false));
 				return true;
 			}
 		}
 		Fail("damage_zombie: 未找到目标僵尸 (row=" + std::to_string(row)
 			+ ", index=" + std::to_string(index) + ")");
+		return false;
+	}
+	if (op == "damage_plant") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) { Fail("damage_plant: 不在 GameScene 或 Board 为空"); return false; }
+		Board* board = gs->GetBoard();
+		const int row = cmd.value("row", -1);     // -1 = 不过滤行
+		const int col = cmd.value("col", -1);     // -1 = 不过滤列
+		const int index = cmd.value("index", 0);  // 过滤后按 ID 升序第 index 株
+		const int damage = cmd.value("damage", 0);
+		if (damage <= 0) { Fail("damage_plant: damage 必须大于 0"); return false; }
+		auto sourceIt = kDamageSourceNames.find(cmd.value("source", "OTHER"));
+		if (sourceIt == kDamageSourceNames.end()) { Fail("damage_plant: source 必须是 PLANT/ZOMBIE/OTHER"); return false; }
+		int seen = 0;
+		for (int id : board->mEntityManager.GetAllPlantIDs()) {
+			Plant* p = board->mEntityManager.GetPlant(id);
+			if (!p) continue;
+			if (row >= 0 && p->mRow != row) continue;
+			if (col >= 0 && p->mColumn != col) continue;
+			if (seen++ == index) {
+				p->TakeDamage(damage, sourceIt->second);
+				return true;
+			}
+		}
+		Fail("damage_plant: 未找到目标植物 (row=" + std::to_string(row)
+			+ ", col=" + std::to_string(col) + ", index=" + std::to_string(index) + ")");
 		return false;
 	}
 	if (op == "add_perk") {

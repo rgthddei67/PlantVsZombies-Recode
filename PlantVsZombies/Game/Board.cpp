@@ -93,7 +93,7 @@ void Board::InitializeCell(int rows, int cols)
 
 void Board::CreateBoom(const Vector& position, int damage)
 {
-	// 词条「全体植物伤害 / 僵尸免伤」由 Zombie::TakeDamage 统一缩放（单点覆盖一切伤害来源）。
+	// 植物爆炸明确标记为 PLANT；Zombie::TakeDamage 只对该来源应用植物增伤，再统一应用僵尸免伤。
 	// 这里仅预测 TakeDamage 实际造成的伤害，用于秒杀(Charred)阈值判定——保持判定与扣血一致，
 	// 且不在入口重复缩放（旧代码此处 ScalePlantDamage 一次、TakeDamage 又缩放一次 → 词条被算两遍）。
 	const int scaledDamage = mPerkManager.ScaleTotalDamageToZombie(damage);
@@ -115,7 +115,7 @@ void Board::CreateBoom(const Vector& position, int damage)
 				}
 				else
 				{
-					zombie->TakeDamage(damage);   // 传未缩放原值，TakeDamage 内部缩放一次
+					zombie->TakeDamage(damage, DamageSource::PLANT);   // 传未缩放原值，TakeDamage 内部缩放一次
 				}
 			}
 		}
@@ -150,7 +150,7 @@ void Board::CreateDoomBoom(const Vector& position, int damage)
 				}
 				else
 				{
-					zombie->TakeDamage(damage);   // 传未缩放原值，TakeDamage 内部缩放一次
+					zombie->TakeDamage(damage, DamageSource::PLANT);   // 传未缩放原值，TakeDamage 内部缩放一次
 				}
 			}
 		}

@@ -11,7 +11,7 @@ void CherryBomb::SetupPlant()
 		});
 }
 
-void CherryBomb::TakeDamage(int damage)
+void CherryBomb::TakeDamage(int /*damage*/, DamageSource /*source*/)
 {
 	this->SetGlowingTimer(0.1f);
 	return;
