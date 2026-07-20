@@ -55,8 +55,8 @@ namespace {
 	constexpr float kMediumPlantActionSpeed = 1.06f;     // 中雨植物攻击、生产、成长与恢复速度倍率
 	constexpr float kHeavyPlantActionSpeed = 1.09f;      // 大雨植物攻击、生产、成长与恢复速度倍率
 	constexpr float kLightOverlayAlpha = 20.0f;          // 小雨世界蓝灰暗幕透明度（0～255）
-	constexpr float kMediumOverlayAlpha = 32.0f;         // 中雨世界蓝灰暗幕透明度（0～255）
-	constexpr float kHeavyOverlayAlpha = 44.0f;          // 大雨世界蓝灰暗幕透明度（0～255）
+	constexpr float kMediumOverlayAlpha = 40.0f;         // 中雨世界蓝灰暗幕透明度（0～255）
+	constexpr float kHeavyOverlayAlpha = 56.0f;          // 大雨世界蓝灰暗幕透明度（0～255）
 	constexpr float kLightRainVolume = 0.18f;            // 小雨循环音效基础音量（0～1，仍受全局音量控制）
 	constexpr float kMediumRainVolume = 0.28f;           // 中雨循环音效基础音量（0～1，仍受全局音量控制）
 	constexpr float kHeavyRainVolume = 0.45f;            // 大雨循环音效基础音量（0～1，仍受全局音量控制）

@@ -19,7 +19,7 @@
     { "op": "assert_state", "path": "weather.intensity", "equals": "MEDIUM" },
     { "op": "assert_state", "path": "weather.zombieSpeedPct", "equals": 110 },
     { "op": "assert_state", "path": "weather.plantActionSpeedPct", "equals": 106 },
-    { "op": "assert_state", "path": "weather.overlayAlpha", "equals": 32 },
+    { "op": "assert_state", "path": "weather.overlayAlpha", "equals": 40 },
     { "op": "assert_state", "path": "weather.rainSoundPlaying", "equals": true },
     { "op": "screenshot", "name": "rain_medium.png" },
 
@@ -28,7 +28,7 @@
     { "op": "assert_state", "path": "weather.intensity", "equals": "HEAVY" },
     { "op": "assert_state", "path": "weather.zombieSpeedPct", "equals": 115 },
     { "op": "assert_state", "path": "weather.plantActionSpeedPct", "equals": 109 },
-    { "op": "assert_state", "path": "weather.overlayAlpha", "equals": 44 },
+    { "op": "assert_state", "path": "weather.overlayAlpha", "equals": 56 },
     { "op": "assert_state", "path": "weather.rainSoundPlaying", "equals": true },
     { "op": "assert_state", "path": "weather.combinedAttackIntervalOn1500", "equals": 1376 },
     { "op": "screenshot", "name": "rain_heavy.png" },
@@ -75,6 +75,14 @@
     { "op": "advance_weather_phase", "roll": 1 },
     { "op": "assert_state", "path": "weather.intensity", "equals": "CLEAR" },
     { "op": "assert_state", "path": "weather.rainSoundPlaying", "equals": false },
+
+    { "op": "set_weather", "intensity": "LIGHT", "duration": 60 },
+    { "op": "set_timescale", "value": 5.0 },
+    { "op": "wait_seconds", "value": 28.0, "timeout": 10 },
+    { "op": "assert_state", "path": "weather.intensity", "equals": "LIGHT" },
+    { "op": "assert_state", "path": "weather.rainSoundPlaying", "equals": true },
+    { "op": "screenshot", "name": "rain_light_after_28s.png" },
+    { "op": "set_timescale", "value": 1.0 },
     { "op": "quit" }
   ]
 }

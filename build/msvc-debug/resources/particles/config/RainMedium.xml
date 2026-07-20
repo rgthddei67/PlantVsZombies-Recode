@@ -2,7 +2,7 @@
   <Name>RainMedium</Name>
   <SpawnMinActive>38</SpawnMinActive>
   <SpawnRate>46</SpawnRate>
-  <SpawnMaxLaunched>1196</SpawnMaxLaunched>
+  <SpawnMaxLaunched>2760</SpawnMaxLaunched>
   <ParticleDuration>[0.72 0.90]</ParticleDuration>
   <ParticleAlpha>0,0 .17,10 .14,82 0,100</ParticleAlpha>
   <ParticleScale>[0.65 0.95]</ParticleScale>
@@ -15,7 +15,7 @@
   <EmitterBoxX>[-600 600]</EmitterBoxX>
   <EmitterBoxY>[-18 18]</EmitterBoxY>
   <ParticleRotation>[18.0 23.0]</ParticleRotation>
-  <SystemDuration>26</SystemDuration>
+  <SystemDuration>60</SystemDuration>
   <Image>PARTICLE_WHITEPIXEL</Image>
   <Field>
     <FieldType>Position</FieldType>

@@ -2,7 +2,7 @@
   <Name>RainHeavy</Name>
   <SpawnMinActive>56</SpawnMinActive>
   <SpawnRate>70</SpawnRate>
-  <SpawnMaxLaunched>1820</SpawnMaxLaunched>
+  <SpawnMaxLaunched>4200</SpawnMaxLaunched>
   <ParticleDuration>[0.55 0.70]</ParticleDuration>
   <ParticleAlpha>0,0 .22,8 .18,84 0,100</ParticleAlpha>
   <ParticleScale>[0.75 1.05]</ParticleScale>
@@ -15,7 +15,7 @@
   <EmitterBoxX>[-600 600]</EmitterBoxX>
   <EmitterBoxY>[-20 20]</EmitterBoxY>
   <ParticleRotation>[21.0 26.0]</ParticleRotation>
-  <SystemDuration>26</SystemDuration>
+  <SystemDuration>60</SystemDuration>
   <Image>PARTICLE_WHITEPIXEL</Image>
   <Field>
     <FieldType>Position</FieldType>
@@ -27,7 +27,7 @@
   <Name>RainHeavyForeground</Name>
   <SpawnMinActive>24</SpawnMinActive>
   <SpawnRate>34</SpawnRate>
-  <SpawnMaxLaunched>884</SpawnMaxLaunched>
+  <SpawnMaxLaunched>2040</SpawnMaxLaunched>
   <ParticleDuration>[0.38 0.50]</ParticleDuration>
   <ParticleAlpha>0,0 .28,6 .22,86 0,100</ParticleAlpha>
   <ParticleScale>[0.85 1.15]</ParticleScale>
@@ -40,7 +40,7 @@
   <EmitterBoxX>[-620 620]</EmitterBoxX>
   <EmitterBoxY>[-25 25]</EmitterBoxY>
   <ParticleRotation>[24.0 29.0]</ParticleRotation>
-  <SystemDuration>26</SystemDuration>
+  <SystemDuration>60</SystemDuration>
   <Image>PARTICLE_WHITEPIXEL</Image>
   <Field>
     <FieldType>Position</FieldType>
