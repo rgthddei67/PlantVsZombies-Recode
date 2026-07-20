@@ -13,7 +13,7 @@ protected:
 private:
 	bool mFirstPlantStrikeUsed = false;
 
-	/** @brief 对以本体为中心的 130x130 像素方框内植物结算头盔破碎伤害。 */
+	/** @brief 对以本体为圆心、半径 120 像素内的植物结算头盔破碎伤害。 */
 	void DamagePlantsNearBrokenHelmet();
 
 public:

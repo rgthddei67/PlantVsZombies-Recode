@@ -5,19 +5,17 @@
 #include "../Plant/Plant.h"
 #include "../../ParticleSystem/ParticleSystem.h"
 
-#include <cmath>
-
 namespace {
 	// 自定义夜晚变体；普通橄榄球僵尸当前为本体 270、头盔 1100、速度层 1.7/1.8。
 	constexpr int kBodyHealth = 220;
 	constexpr int kHelmetHealth = 900;
 	constexpr int kNormalBiteDamage = 40;
 	constexpr int kFirstPlantStrikeDamage = 400;
-	constexpr int kHelmetBreakDamage = 20;
+	constexpr int kHelmetBreakDamage = 25;
 	constexpr float kFootballMoveSpeedMultiplier = 1.7f;
 	constexpr float kMoveSpeedMultiplier = 1.85f;
 	constexpr float kAnimationSpeedMultiplier = 1.95f;
-	constexpr float kHelmetBreakHalfExtent = 65.0f;
+	constexpr float kHelmetBreakRadius = 120.0f;
 }
 
 /**
@@ -86,7 +84,7 @@ void PinkFootballZombie::CheckHelmImage()
 }
 
 /**
- * @brief 头盔破碎后发射粉色掉落物，并对 130x130 像素近邻植物造成一次范围伤害。
+ * @brief 头盔破碎后发射粉色掉落物，并对半径 120 像素内植物造成一次范围伤害。
  */
 void PinkFootballZombie::HelmDrop()
 {
@@ -128,8 +126,9 @@ void PinkFootballZombie::DamagePlantsNearBrokenHelmet()
 		if (!plant) continue;
 
 		const Vector plantPosition = plant->GetPosition();
-		if (std::abs(plantPosition.x - center.x) <= kHelmetBreakHalfExtent
-			&& std::abs(plantPosition.y - center.y) <= kHelmetBreakHalfExtent) {
+		const float deltaX = plantPosition.x - center.x;
+		const float deltaY = plantPosition.y - center.y;
+		if (deltaX * deltaX + deltaY * deltaY <= kHelmetBreakRadius * kHelmetBreakRadius) {
 			plant->TakeDamage(kHelmetBreakDamage, DamageSource::ZOMBIE);
 		}
 	}
