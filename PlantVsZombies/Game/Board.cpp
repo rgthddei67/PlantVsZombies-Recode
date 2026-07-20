@@ -60,6 +60,13 @@ namespace {
 	constexpr float kLightRainVolume = 0.20f;            // 小雨循环音效基础音量（0～1，仍受全局音量控制）
 	constexpr float kMediumRainVolume = 0.28f;           // 中雨循环音效基础音量（0～1，仍受全局音量控制）
 	constexpr float kHeavyRainVolume = 0.48f;            // 大雨循环音效基础音量（0～1，仍受全局音量控制）
+	constexpr float kLightSplashDelayMin = 0.16f;         // 小雨两次地面水花的最短间隔（秒，约每秒 5 次）
+	constexpr float kLightSplashDelayMax = 0.24f;         // 小雨两次地面水花的最长间隔（秒，约每秒 5 次）
+	constexpr float kMediumSplashDelayMin = 0.08f;        // 中雨两次地面水花的最短间隔（秒，约每秒 10 次）
+	constexpr float kMediumSplashDelayMax = 0.12f;        // 中雨两次地面水花的最长间隔（秒，约每秒 10 次）
+	constexpr float kHeavySplashDelayMin = 0.04f;         // 大雨两次地面水花的最短间隔（秒，约每秒 20 次）
+	constexpr float kHeavySplashDelayMax = 0.06f;         // 大雨两次地面水花的最长间隔（秒，约每秒 20 次）
+	constexpr float kRainSplashEdgePadding = 18.0f;       // 水花中心距草地网格边缘的安全距离（像素）
 	constexpr float kLightningDelayMin = 3.5f;           // 大雨开始后首次闪电的最短等待时间（秒）
 	constexpr float kLightningDelayMax = 7.0f;           // 大雨开始后首次闪电的最长等待时间（秒）
 	constexpr float kLightningRepeatMin = 5.0f;          // 大雨中两次闪电的最短间隔（秒）
@@ -76,6 +83,22 @@ namespace {
 		case RainIntensity::CLEAR:  break;
 		}
 		return "";
+	}
+
+	/** 按当前雨势抽取下一次地面水花间隔；雨越大，水花越频繁。 */
+	float RandomRainSplashDelay(RainIntensity intensity)
+	{
+		switch (intensity) {
+		case RainIntensity::LIGHT:
+			return GameRandom::Range(kLightSplashDelayMin, kLightSplashDelayMax);
+		case RainIntensity::MEDIUM:
+			return GameRandom::Range(kMediumSplashDelayMin, kMediumSplashDelayMax);
+		case RainIntensity::HEAVY:
+			return GameRandom::Range(kHeavySplashDelayMin, kHeavySplashDelayMax);
+		case RainIntensity::CLEAR:
+			return 0.0f;
+		}
+		return 0.0f;
 	}
 
 	int RainTransitionWeightTotal(RainIntensity intensity, bool canIntensify)
@@ -209,6 +232,7 @@ void Board::InitializeWeather()
 	mWeatherInitialized = true;
 	mRainIntensity = RainIntensity::CLEAR;
 	mLightningTimer = 0.0f;
+	mRainSplashTimer = 0.0f;
 	mRainCanIntensify = false;
 	mRainVisualActive = false;
 	mWeatherTimer = GameAPP::GetInstance().GetBackgroundIsNight(mBackGround)
@@ -233,6 +257,36 @@ void Board::EmitRainEffect(float duration)
 		Vector(static_cast<float>(SCENE_WIDTH) * 0.5f, -60.0f),
 		LAYER_EFFECTS_WORLD, duration);
 	mRainVisualActive = true;
+}
+
+/** 在草地逻辑网格内随机选择落点，播放短促的原版雨滴水花与扩散圆圈。 */
+void Board::TriggerRainGroundSplash()
+{
+	if (!g_particleSystem || mRows <= 0 || mColumns <= 0) return;
+
+	// 用完整网格边界而非窗口随机值，既覆盖战场又给 33px 水花留下屏内余量。
+	const float minX = CELL_INITALIZE_POS_X + kRainSplashEdgePadding;
+	const float maxX = CELL_INITALIZE_POS_X + mColumns * CELL_COLLIDER_SIZE_X
+		- kRainSplashEdgePadding;
+	const float minY = CELL_INITALIZE_POS_Y + kRainSplashEdgePadding;
+	const float maxY = CELL_INITALIZE_POS_Y + mRows * CELL_COLLIDER_SIZE_Y
+		- kRainSplashEdgePadding;
+	if (maxX <= minX || maxY <= minY) return;
+
+	g_particleSystem->EmitEffect("RainGroundSplash",
+		Vector(GameRandom::Range(minX, maxX), GameRandom::Range(minY, maxY)),
+		LAYER_EFFECTS_WORLD);
+}
+
+/** 推进地面水花节奏；计时器是纯视觉状态，雨势切换和读档后都会重新起拍。 */
+void Board::UpdateRainGroundSplash(float deltaTime)
+{
+	if (mRainIntensity == RainIntensity::CLEAR) return;
+	mRainSplashTimer -= deltaTime;
+	if (mRainSplashTimer > 0.0f) return;
+
+	TriggerRainGroundSplash();
+	mRainSplashTimer = RandomRainSplashDelay(mRainIntensity);
 }
 
 bool Board::IsRainEffectEmitting() const
@@ -265,6 +319,7 @@ void Board::BeginRain(RainIntensity intensity, float duration, bool canIntensify
 	mRainIntensity = intensity;
 	mWeatherTimer = duration;
 	mRainCanIntensify = canIntensify && intensity == RainIntensity::LIGHT;
+	mRainSplashTimer = RandomRainSplashDelay(intensity);
 	mLightningTimer = (intensity == RainIntensity::HEAVY)
 		? GameRandom::Range(kLightningDelayMin, kLightningDelayMax)
 		: 0.0f;
@@ -293,6 +348,7 @@ void Board::EndRain()
 	mRainIntensity = RainIntensity::CLEAR;
 	mWeatherTimer = GameRandom::Range(kClearWeatherDelayMin, kClearWeatherDelayMax);
 	mLightningTimer = 0.0f;
+	mRainSplashTimer = 0.0f;
 	mRainCanIntensify = false;
 	mRainVisualActive = false;
 	RefreshZombieWeatherSpeeds();
@@ -318,6 +374,9 @@ void Board::UpdateWeather(float deltaTime)
 		// 粒子系统若因场景清理或异常耗尽而与天气状态脱节，用剩余时长自动补发。
 		mRainVisualActive = false;
 		EmitRainEffect(mWeatherTimer);
+	}
+	if (mRainIntensity != RainIntensity::CLEAR && mWeatherTimer > 0.0f) {
+		UpdateRainGroundSplash(deltaTime);
 	}
 	if (mRainIntensity == RainIntensity::HEAVY) {
 		mLightningTimer -= deltaTime;
@@ -356,6 +415,7 @@ void Board::SetRainForTesting(RainIntensity intensity, float duration, bool canI
 		mRainIntensity = RainIntensity::CLEAR;
 		mWeatherTimer = std::max(duration, 0.1f);
 		mLightningTimer = 0.0f;
+		mRainSplashTimer = 0.0f;
 		mRainCanIntensify = false;
 		RefreshZombieWeatherSpeeds();
 		return;

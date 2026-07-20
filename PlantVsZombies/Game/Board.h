@@ -156,6 +156,7 @@ private:
 	RainIntensity mRainIntensity = RainIntensity::CLEAR;
 	float mWeatherTimer = 0.0f;
 	float mLightningTimer = 0.0f;
+	float mRainSplashTimer = 0.0f;       // 距下一次地面水花的秒数；瞬态视觉无需写入存档
 	bool mWeatherInitialized = false;   // 旧档缺天气字段时由 StartGame 首次初始化
 	bool mRainCanIntensify = false;     // 仅初始小雨可增强；首次切档后永久转入衰减链
 	bool mRainVisualActive = false;     // 纯运行期标记，防读档/生存轮间重复发射同一场雨
@@ -184,6 +185,8 @@ private:
 	void FinishRainPhase(int transitionRoll);
 	void EndRain();
 	void EmitRainEffect(float duration);
+	void UpdateRainGroundSplash(float deltaTime);
+	void TriggerRainGroundSplash();
 	void StartRainAudio();
 	void StopRainAudio();
 	void RefreshZombieWeatherSpeeds();

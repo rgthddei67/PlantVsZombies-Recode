@@ -1,0 +1,29 @@
+<Emitter>
+  <Name>RainGroundSplash</Name>
+  <SpawnMinActive>1</SpawnMinActive>
+  <SpawnMaxLaunched>1</SpawnMaxLaunched>
+  <ParticleDuration>0.28</ParticleDuration>
+  <ParticleAlpha>0,0 .65,8 .48,55 0,100</ParticleAlpha>
+  <ParticleScale>[.65 .90]</ParticleScale>
+  <ParticleBrightness>[.80 1.0]</ParticleBrightness>
+  <ParticleRed>.65</ParticleRed>
+  <ParticleGreen>.85</ParticleGreen>
+  <ParticleBlue>1</ParticleBlue>
+  <SystemDuration>0.34</SystemDuration>
+  <Image>PARTICLE_RAIN_SPLASH1,PARTICLE_RAIN_SPLASH2,PARTICLE_RAIN_SPLASH3,PARTICLE_RAIN_SPLASH4</Image>
+</Emitter>
+
+<Emitter>
+  <Name>RainGroundRipple</Name>
+  <SpawnMinActive>1</SpawnMinActive>
+  <SpawnMaxLaunched>1</SpawnMaxLaunched>
+  <ParticleDuration>0.30</ParticleDuration>
+  <ParticleAlpha>0,0 .32,8 0,100</ParticleAlpha>
+  <ParticleScale>.45 1.0</ParticleScale>
+  <ParticleBrightness>[.75 .95]</ParticleBrightness>
+  <ParticleRed>.58</ParticleRed>
+  <ParticleGreen>.80</ParticleGreen>
+  <ParticleBlue>1</ParticleBlue>
+  <SystemDuration>0.34</SystemDuration>
+  <Image>PARTICLE_RAIN_CIRCLE</Image>
+</Emitter>

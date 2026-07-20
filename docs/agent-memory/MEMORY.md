@@ -2,7 +2,7 @@
 
 > Codex routing: required always-on rules live in `../../AGENTS.md`; detailed build, AutoTest, architecture, resource, and implementation guidance lives in `../agent-guide/PROJECT_GUIDE.md`. The entries below are historical subsystem context and should be read only when relevant.
 
-- [黑夜随机雨势天气](project_pvz_night_rain_weather.md) — 2026-07-20 小/中/大雨替代黑夜墓碑：僵尸×1.05/1.10/1.15，植物行动×1.03/1.06/1.09；初始小雨可增强，随后有界衰减；雨粒子使用固定循环池并由 Board 自愈补发，小雨三次实玩后定为72初始/80每秒/.25峰值；SOUND_RAIN 分档循环，回收时复位声道音量并校验 Chunk 所有权，修复无雨期随机吞音效；天气状态随存档
+- [黑夜随机雨势天气](project_pvz_night_rain_weather.md) — 2026-07-20 小/中/大雨替代黑夜墓碑：主人 `5239d44` 定稿长雨段与倍率（僵尸×1.15/1.25/1.40，植物×1.10/1.15/1.20）；雨粒子使用固定循环池并由 Board 自愈补发，原版 Rain_splash/Rain_circle 在草地内按雨势随机溅水；SOUND_RAIN 分档循环，回收时复位声道音量并校验 Chunk 所有权；天气状态随存档，水花为运行期瞬态
 - [Bullet 地面阴影与跨对象绘制顺序](project_pvz_bullet_shadow.md) — 2026-07-19 对齐 C#：Pea 单格21×9、Snowpea 1.3×、Puff无影；对象池复用时按row/position重算；阴影由 BulletPool 在 GOM 主体前统一提交，不能靠 Component::SetDrawOrder 跨越植物/Bullet对象层；主人校对 Y 与同排豌豆射手影子一致；可见 `smoke_bullet_shadow.json` 验普通/寒冰子弹穿过坚果时本体在上、影子在下
 - [九关制冒险进度+显式植物奖励表](project_pvz_adventure_progression.md) — 2026-07-18 `AdventureProgression.h` 统一每大关9小关、关卡显示/背景/奖励同源；奖励表显式写每关植物或 `NO_PLANT_REWARD`，1-8无植物、1-9小喷菇；禁止再用关卡号强转PlantType（旧存档按整数保存枚举）；AutoTest `smoke_adventure_progression.json` 覆盖全部背景边界与8/9关奖励
 - [非整十波旗帜进度条](project_pvz_flag_meter_non_multiple_waves.md) — 2026-07-18 对齐 C# `DrawProgressMeter`：旗数=`总波数/10` 向下取整，第 k 面旗横向位置=`1-k*10/总波数`；旗子按第10/20/30波顺序存储，实时升旗和读档恢复均直接使用同一索引；可见 AutoTest 已覆盖15/25/35波布局与25波第10波升旗
