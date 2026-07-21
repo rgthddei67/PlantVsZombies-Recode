@@ -29,6 +29,7 @@
     "ZOMBIE_FOOTBALL":     { "weight": 2500, "appearWave": 5, "survivalRound": 5, "offset": [-64.0, -94.0], "scale": 1.0 },
     "ZOMBIE_DANCER":        { "weight": 1200, "appearWave": 8, "survivalRound": 4, "offset": [-50.0, -85.0], "scale": 1.0 },
     "ZOMBIE_BACKUP_DANCER": { "weight": 0,    "appearWave": 8, "survivalRound": 4, "offset": [-50.0, -85.0], "scale": 1.0 },
+    "ZOMBIE_ELITE_DANCER":  { "weight": 0,    "appearWave": 8, "survivalRound": 4, "offset": [-50.0, -85.0], "scale": 1.0 },
     "ZOMBIE_PINK_FOOTBALL": { "weight": 2900, "appearWave": 8, "survivalRound": 6, "offset": [-64.0, -94.0], "scale": 1.0 }
   }
 }

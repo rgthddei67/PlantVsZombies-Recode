@@ -272,6 +272,7 @@
     <Reanimation name="FootballZombie">./resources/reanim/FootballZombie.reanim</Reanimation>
     <Reanimation name="PinkFootballZombie">./resources/reanim/PinkFootballZombie.reanim</Reanimation>
     <Reanimation name="ZombieJackson">./resources/reanim/Zombie_Jackson.reanim</Reanimation>
+    <Reanimation name="ZombieEliteJackson">./resources/reanim/Zombie_EliteJackson.reanim</Reanimation>
     <Reanimation name="ZombieDancer">./resources/reanim/Zombie_dancer.reanim</Reanimation>
 
     <Reanimation name="Zombie_Charred">./resources/reanim/Zombie_Charred.reanim</Reanimation>

@@ -16,6 +16,7 @@
 #include "../Bullet/Bullet.h"
 #include "../Zombie/ZombieType.h"
 #include "../Zombie/Zombie.h"
+#include "../Zombie/EliteDancerZombie.h"
 #include "../Trophy.h"   // dump_state 输出奖杯坐标
 #include "../Crater.h"   // dump_state 输出毁灭菇弹坑
 #include "../../Reanimation/Animator.h"   // dump_state 查询轨道可见性（如铁门僵尸手臂）
@@ -54,7 +55,7 @@ namespace {
 	const std::unordered_map<std::string, ZombieType> kZombieNames = {
 		ZT(ZOMBIE_NORMAL), ZT(ZOMBIE_TRAFFIC_CONE), ZT(ZOMBIE_POLEVAULTER), ZT(ZOMBIE_BUCKET),
 		ZT(ZOMBIE_FASTBUCKET), ZT(ZOMBIE_NEWSPAPER), ZT(ZOMBIE_FASTPAPER), ZT(ZOMBIE_DOOR),
-		ZT(ZOMBIE_FOOTBALL), ZT(ZOMBIE_DANCER), ZT(ZOMBIE_BACKUP_DANCER), ZT(ZOMBIE_PINK_FOOTBALL),
+		ZT(ZOMBIE_FOOTBALL), ZT(ZOMBIE_DANCER), ZT(ZOMBIE_BACKUP_DANCER), ZT(ZOMBIE_ELITE_DANCER), ZT(ZOMBIE_PINK_FOOTBALL),
 		ZT(ZOMBIE_DUCKY_TUBE),
 		ZT(ZOMBIE_SNORKEL), ZT(ZOMBIE_ZAMBONI), ZT(ZOMBIE_BOBSLED), ZT(ZOMBIE_DOLPHIN_RIDER),
 		ZT(ZOMBIE_JACK_IN_THE_BOX), ZT(ZOMBIE_BALLOON), ZT(ZOMBIE_DIGGER), ZT(ZOMBIE_POGO),
@@ -486,8 +487,26 @@ bool TestDriver::ExecuteCurrent() {
 		Zombie* z = gs->GetBoard()->CreateZombie(it->second,
 			cmd.value("row", 0), cmd.value("x", 900.0f));
 		if (!z) { Fail("CreateZombie 返回空"); return false; }
+		if (cmd.value("slowed", false)) {
+			z->SetCooldown(cmd.value("slowDuration", 20.0f));
+		}
 		if (cmd.value("frozen", false) && !z->StartFrozen()) {
 			Fail("spawn_zombie: frozen=true 但目标不能进入冻结");
+			return false;
+		}
+		return true;
+	}
+	if (op == "spawn_wave_zombie") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) { Fail("spawn_wave_zombie: 不在 GameScene 或 Board 为空"); return false; }
+		auto it = kZombieNames.find(cmd.value("type", ""));
+		if (it == kZombieNames.end()) { Fail("spawn_wave_zombie: 未知僵尸类型"); return false; }
+		const int roll = cmd.value("mutationRoll", 0);
+		if (roll < 1 || roll > 100) { Fail("spawn_wave_zombie: mutationRoll 必须为 1..100"); return false; }
+		Board* board = gs->GetBoard();
+		const ZombieType actual = board->ResolveRainMutationType(it->second, roll);
+		if (!board->CreateZombie(actual, cmd.value("row", 0), cmd.value("x", 900.0f))) {
+			Fail("spawn_wave_zombie: CreateZombie 返回空");
 			return false;
 		}
 		return true;
@@ -802,6 +821,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["sun"] = board->mSun;
 	out["wave"] = board->mCurrentWave;
 	out["zombieNumber"] = board->mZombieNumber;
+	out["mowerCount"] = static_cast<int>(board->mEntityManager.GetAllMowerIDs().size());
 	out["devNoCooldown"] = GameAPP::mDevNoCooldown;
 	out["devFreePlant"] = GameAPP::mDevFreePlant;
 	out["devSpawnPaused"] = GameAPP::mDevSpawnPaused;
@@ -865,6 +885,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "typhoonStrength", TyphoonStrengthName(board->GetTyphoonStrength()) },
 			{ "typhoonChancePct", board->GetCurrentTyphoonChancePercent() },
 			{ "heavyPhasesWithoutTyphoon", board->GetHeavyPhasesWithoutTyphoon() },
+			{ "eliteDancerSpawnedThisTyphoon", board->HasEliteDancerSpawnedThisTyphoon() },
 			{ "typhoonDecayRemaining", board->GetTyphoonStrengthTimer() },
 			{ "windDirection", WindDirectionName(board->GetWindDirection()) },
 			{ "windDirectionRemaining", board->GetWindDirectionTimer() },
@@ -918,7 +939,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		if (!z) continue;
 		const Vector pos = z->GetPosition();
 		const auto anim = z->GetAnimatorInternal();
-		out["zombies"].push_back({
+		nlohmann::json zombieState = {
 			{ "id", id },
 			{ "type", ZombieTypeName(z->mZombieType) },
 			{ "row", z->mRow },
@@ -927,6 +948,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "bodyHealth", z->mBodyHealth }, { "bodyMaxHealth", z->mBodyMaxHealth },
 			{ "helmHealth", z->mHelmHealth }, { "shieldHealth", z->mShieldHealth },
 			{ "mindControlled", z->IsMindControlled() },
+			{ "isEating", z->IsEating() },
 			{ "hasHead", z->HasHead() }, { "hasArm", z->HasArm() },
 			{ "slowCooldown", z->GetCooldownTimer() },
 			// slowed 供 assert_state（bool 可 equals）；slowCooldown 浮点仅供肉眼核对勿断言
@@ -948,7 +970,15 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "doorArmVisible", anim && (anim->GetTrackVisible("Zombie_outerarm_screendoor")
 				|| anim->GetTrackVisible("Zombie_innerarm_screendoor")
 				|| anim->GetTrackVisible("Zombie_innerarm_screendoor_hand")) },
-		});
+		};
+		if (auto* elite = dynamic_cast<EliteDancerZombie*>(z)) {
+			zombieState["eliteBackupCount"] = elite->GetActiveBackupCount();
+			zombieState["eliteSummonRemainingMs"] = static_cast<int>(std::lround(
+				elite->GetSummonTimer() * 1000.0f));
+			zombieState["eliteTyphoonSpeedPct"] = static_cast<int>(std::lround(
+				elite->GetTyphoonAbilitySpeedMultiplier() * 100.0f));
+		}
+		out["zombies"].push_back(std::move(zombieState));
 	}
 	out["zombieCount"] = static_cast<int>(out["zombies"].size());
 

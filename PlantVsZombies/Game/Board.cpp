@@ -36,6 +36,7 @@ namespace {
 	constexpr float kRainTailDurationMax = 80.0f;        // 雨势切档后尾雨段的最长持续时间（秒）
 	constexpr float kWeatherForecastLeadTime = 15.0f;    // 阶段结束前多少秒预抽取并展示下一天气
 	constexpr int kWeatherForecastAccuracyPercent = 75;  // 天气预警准确率（0～100；失败时故意显示另一种天气）
+	constexpr int kEliteDancerMutationChancePercent = 25; // 强台风以上普通舞王变异为精英舞王的概率（百分比）
 	constexpr float kWeatherTransitionDuration = 2.0f;   // 雨势切换时倍率、暗幕与雨声音量的平滑过渡时长（游戏秒）
 	constexpr float kLateWeatherRampStart = 0.40f;       // 普通关波次进度超过该比例后开始增强后期天气（0～1）
 	constexpr int kSurvivalLateWeatherFullRound = 8;     // 黑夜无尽到该轮起按完整后期天气权重计算
@@ -921,6 +922,7 @@ void Board::StartTyphoonForHeavyPhase(int chanceRoll, int strengthRoll,
 	mTyphoonGustsRemaining = TyphoonMaxGusts(mTyphoonStrength);
 	mWindGustTimer = mTyphoonGustsRemaining > 0
 		? RandomTyphoonGustInterval(mTyphoonStrength) : 0.0f;
+	RefreshZombieWeatherSpeeds();
 }
 
 /** 夹紧并恢复会影响下次台风随机判定的连续落空次数。 */
@@ -949,6 +951,8 @@ void Board::StopTyphoon()
 	mActiveGustPlantMoved = false;
 	mLastTyphoonMovedPlants = 0;
 	mLastTyphoonLostPlants = 0;
+	mEliteDancerSpawnedThisTyphoon = false;
+	RefreshZombieWeatherSpeeds();
 }
 
 /** 从存档恢复已经判定过的台风结果；无效组合只会安全退化为无台风，不重新随机。 */
@@ -968,6 +972,7 @@ void Board::RestoreTyphoonState(TyphoonStrength strength, WindDirection directio
 	mWindGustTimer = std::max(0.0f, gustTimer);
 	mWindDirectionTimer = std::max(0.0f, directionTimer);
 	mTyphoonGustsRemaining = std::clamp(gustsRemaining, 0, TyphoonMaxGusts(strength));
+	RefreshZombieWeatherSpeeds();
 }
 
 /**
@@ -1018,7 +1023,29 @@ void Board::WeakenTyphoon()
 	mWindGustTimer = mTyphoonGustsRemaining > 0
 		? RandomTyphoonGustInterval(next) : 0.0f;
 	mWindParticleTimer = 0.0f;
+	RefreshZombieWeatherSpeeds();
 	if (mGameScene) mGameScene->ShowCurrentWeatherNotice();
+}
+
+/**
+ * 将正式波次选中的普通舞王按当前黑夜强天气变异为精英舞王。
+ * 一个台风阶段至多成功一次；失败点数不消费上限，天气减弱后既有精英仍保留。
+ */
+ZombieType Board::ResolveRainMutationType(ZombieType selected, int mutationRoll)
+{
+	if (selected != ZombieType::ZOMBIE_DANCER
+		|| !GameAPP::GetInstance().GetBackgroundIsNight(mBackGround)
+		|| mRainIntensity != RainIntensity::HEAVY
+		|| (mTyphoonStrength != TyphoonStrength::SEVERE
+			&& mTyphoonStrength != TyphoonStrength::SUPER)
+		|| mEliteDancerSpawnedThisTyphoon) {
+		return selected;
+	}
+
+	const int roll = mutationRoll > 0 ? mutationRoll : GameRandom::Range(1, 100);
+	if (roll < 1 || roll > 100 || roll > kEliteDancerMutationChancePercent) return selected;
+	mEliteDancerSpawnedThisTyphoon = true;
+	return ZombieType::ZOMBIE_ELITE_DANCER;
 }
 
 /** 风向按台风过境分段翻转；不在每次阵风临时重抽，保证玩家可据实况提前应对。 */
@@ -2012,7 +2039,8 @@ inline void Board::TrySummonZombie()
 		mRowInfos[row].secondLastPicked = mRowInfos[row].lastPicked;
 		mRowInfos[row].lastPicked = 0;
 
-		auto zombie = CreateZombie(selected, row, x);
+		const ZombieType actualType = ResolveRainMutationType(selected);
+		auto zombie = CreateZombie(actualType, row, x);
 		if (zombie)
 		{
 			zombiesSpawned++;
@@ -2422,6 +2450,18 @@ void Board::InitializeMowers()
 {
 	for (int row = 0; row < mRows; row++) {
 		CreateMower(MowerType::LAWN, row);
+	}
+}
+
+/** 复制 ID 后逐一销毁，避免 Die() 延迟回收期间修改遍历来源。 */
+void Board::RemoveAllMowersWithoutTrigger()
+{
+	const std::vector<int> mowerIDs = mEntityManager.GetAllMowerIDs();
+	for (int id : mowerIDs) {
+		Mower* mower = mEntityManager.GetMower(id);
+		if (!mower) continue;
+		SetRowLoseMower(mower->mRow);
+		mower->Die();
 	}
 }
 

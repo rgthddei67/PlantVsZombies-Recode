@@ -196,6 +196,7 @@ private:
 	float mActiveGustPlantMoveTimer = 0.0f; // 距本次阵风植物整格结算的游戏秒数
 	bool mActiveGustPlantMoved = false; // 本次阵风是否已结算植物，防读档后重复移动
 	int mHeavyPhasesWithoutTyphoon = 0; // 连续未命中台风的新大雨阶段数；用于保底并进入存档
+	bool mEliteDancerSpawnedThisTyphoon = false; // 当前台风阶段是否已生成过精英舞王；用于单阶段上限并进入存档
 	int mLastTyphoonMovedPlants = 0;    // 最近一次阵风移动的植物数，仅供观测和测试
 	int mLastTyphoonLostPlants = 0;     // 最近一次阵风吹出棋盘的植物数，仅供观测和测试
 
@@ -336,6 +337,7 @@ public:
 	/** 返回僵尸被阵风吹向前线时的最大世界横坐标，避免越过既有出生侧清理线。 */
 	float GetZombieGustFrontLimit() const;
 	int GetHeavyPhasesWithoutTyphoon() const { return mHeavyPhasesWithoutTyphoon; }
+	bool HasEliteDancerSpawnedThisTyphoon() const { return mEliteDancerSpawnedThisTyphoon; }
 	int GetLastTyphoonMovedPlants() const { return mLastTyphoonMovedPlants; }
 	int GetLastTyphoonLostPlants() const { return mLastTyphoonLostPlants; }
 	bool IsTyphoonGustWarning() const;
@@ -360,6 +362,8 @@ public:
 	bool RollTyphoonForTesting(int chanceRoll, int strengthRoll, WindDirection direction);
 	// AutoTest 专用：启动一次当前强度的阵风，不消费自动预算；可固定植物结算时刻。
 	bool TriggerTyphoonGustForTesting(float plantMoveIn = 0.0f);
+	/** 正式波次与 AutoTest 共用的天气变异入口；mutationRoll=0 时使用随机百分位。 */
+	ZombieType ResolveRainMutationType(ZombieType selected, int mutationRoll = 0);
 
 	// 初始化格子 默认5行9列
 	void InitializeCell(int rows = 4, int cols = 8);
@@ -496,5 +500,7 @@ public:
 	Mower* CreateMower(MowerType type, int row);
 	Mower* CreateMowerWithID(MowerType type, int row, float x, float y, int id);
 	void InitializeMowers();
+	/** 静默移除全场现存小推车，不播放启动动画或音效。 */
+	void RemoveAllMowersWithoutTrigger();
 };
 #endif

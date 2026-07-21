@@ -34,14 +34,13 @@ protected:
 	void PlayWalkAnimation(float blendTime) override;
 	void OnStartEating() override;
 	void OnStopEating() override;
+	// 按舞步阶段与魅惑阵营刷新镜像；精英舞王复用月球漫步朝向。
+	void UpdateDanceFacing();
 
 private:
 	void SummonBackupDancers();
 	bool NeedsMoreBackupDancers() const;
 	void UpdateDanceTrack(float blendTime);
-	// 按 C# 的舞步阶段与阵营重算模型朝向；朝向只影响视觉，不改变碰撞矩形。
-	void UpdateDanceFacing();
-
 	DancerPhase mPhase = DancerPhase::DANCING_IN;
 	float mPhaseTimer = 0.0f;
 	int mFollowerID[4] = { NULL_ZOMBIE_ID, NULL_ZOMBIE_ID, NULL_ZOMBIE_ID, NULL_ZOMBIE_ID };

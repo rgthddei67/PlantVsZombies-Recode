@@ -104,6 +104,8 @@ public:
 	virtual void StartEat(ColliderComponent* other);
 	virtual void StopEat(ColliderComponent* other);
 	virtual void EatTarget();	// 吃东西掉血的函数
+	/** 与小推车接触时是否静默吞掉全场小推车；默认僵尸维持原版碰撞结算。 */
+	virtual bool ConsumesAllMowersOnContact() const { return false; }
 
 	Vector GetVisualPosition() const override;
 	Vector GetPosition() const;
@@ -116,6 +118,7 @@ public:
 	virtual bool CanBeCharmed() const { return true; }
 	bool HasHead() const { return this->mHasHead; }
 	bool IsDying() const { return this->mIsDying; }
+	bool IsEating() const { return this->mIsEating; }
 	bool HasArm() const { return this->mHasArm; }
 	float GetCooldownTimer() const { return this->mCooldownTimer; }
 	bool IsFrozen() const { return this->mFrozenTimer > 0.0f; }
@@ -151,6 +154,8 @@ protected:
 	void UpdateAnimSpeed();
 	// 减速时动画降速因子（快速铁桶 0.8 覆写；位移减半由 Update 的 scaledDelta 承担，与此正交）
 	virtual float GetSlowAnimFactor() const { return 0.6f; }
+	// 品种能力层动画倍率；天气等外部状态变化后由 Board 统一触发重算。
+	virtual float GetAbilityAnimSpeedMultiplier() const { return 1.0f; }
 	// 解除冻结并恢复动画速度；蓝色 overlay 仅在无减速尾巴时清除（持盾僵尸没有尾巴→立即褪色）
 	void ClearFrozen();
 

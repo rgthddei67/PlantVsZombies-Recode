@@ -36,13 +36,21 @@ Mower::Mower(Board* board, MowerType type, AnimationType animType, float x, floa
 	collider->onTriggerStay = [this](ColliderComponent* other) {
 		auto* go = other->GetGameObject();
 		if (!go || go->GetObjectType() != ObjectType::OBJECT_ZOMBIE) return;
+		auto* zombie = dynamic_cast<Zombie*>(go);
+		if (!zombie) return;
+
+		// 精英吞车能力在触发小推车之前结算：全场静默消失，精英自身不受伤。
+		if (zombie->ConsumesAllMowersOnContact() && mBoard) {
+			mBoard->RemoveAllMowersWithoutTrigger();
+			return;
+		}
 
 		// 首次碰撞触发移动
 		if (mState == MowerState::IDLE) {
 			Trigger();
 		}
 
-		dynamic_cast<Zombie*>(go)->TakeDamage(INT32_MAX, DamageSource::OTHER);
+		zombie->TakeDamage(INT32_MAX, DamageSource::OTHER);
 
 		};
 }

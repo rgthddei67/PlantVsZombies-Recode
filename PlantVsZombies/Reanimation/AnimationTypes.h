@@ -38,6 +38,7 @@ enum class AnimationType
 	ANIM_PINK_FOOTBALL_ZOMBIE, // 粉色橄榄球僵尸
 	ANIM_DANCE_ZOMBIE,     // 舞王僵尸
 	ANIM_DANCERWITH_ZOMBIE, // 伴舞僵尸
+	ANIM_ELITE_DANCE_ZOMBIE, // 精英舞王僵尸
 
 	ANIM_ZOMBIE_CHARRED,
 

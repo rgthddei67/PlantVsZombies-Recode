@@ -257,6 +257,7 @@ namespace ResourceKeys
 		inline const std::string REANIM_CONE_ZOMBIE = "ConeZombie";
 		inline const std::string REANIM_POLEVAULTER_ZOMBIE = "PolevaulterZombie";
 		inline const std::string REANIM_BUCKET_ZOMBIE = "BucketZombie";
+		inline const std::string REANIM_ZOMBIE_ELITE_JACKSON = "ZombieEliteJackson";
 
 		inline const std::string REANIM_ZOMBIE_CHARRED = "Zombie_Charred";
 

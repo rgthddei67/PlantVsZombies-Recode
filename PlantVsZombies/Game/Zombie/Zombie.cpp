@@ -437,7 +437,8 @@ void Zombie::UpdateAnimSpeed()
 	}
 	const float rainMultiplier = mBoard ? mBoard->GetZombieRainSpeedMultiplier() : 1.0f;
 	mAnimator->SetExtraSpeedMultiplier(
-		mExtraSpeed * (mCooldownTimer > 0.0f ? GetSlowAnimFactor() : 1.0f) * rainMultiplier);
+		mExtraSpeed * GetAbilityAnimSpeedMultiplier()
+		* (mCooldownTimer > 0.0f ? GetSlowAnimFactor() : 1.0f) * rainMultiplier);
 }
 
 bool Zombie::CanBeChilled() const

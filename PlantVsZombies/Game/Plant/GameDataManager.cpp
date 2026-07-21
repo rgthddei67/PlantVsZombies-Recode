@@ -41,6 +41,7 @@
 #include "../Zombie/PinkFootballZombie.h"
 #include "../Zombie/DancerZombie.h"
 #include "../Zombie/BackupDancerZombie.h"
+#include "../Zombie/EliteDancerZombie.h"
 
 namespace {
 	template<typename T>
@@ -229,6 +230,12 @@ void GameDataManager::InitializeHardcodedData() {
 	RegisterZombie(ZombieType::ZOMBIE_BACKUP_DANCER, "ZOMBIE_BACKUP_DANCER",
 		AnimationType::ANIM_DANCERWITH_ZOMBIE,
 		"ZombieDancer", &MakeZombie<BackupDancerZombie>);
+
+	// 精英舞王：正式波次仅由强台风以上天气把普通舞王变异为该类型。
+	RegisterZombie(ZombieType::ZOMBIE_ELITE_DANCER, "ZOMBIE_ELITE_DANCER",
+		AnimationType::ANIM_ELITE_DANCE_ZOMBIE,
+		ResourceKeys::Reanimations::REANIM_ZOMBIE_ELITE_JACKSON,
+		&MakeZombie<EliteDancerZombie>);
 
 	// ==================== 非植物/僵尸动画映射 ====================
 	mAnimToString[AnimationType::ANIM_SUN] = ResourceKeys::Reanimations::REANIM_SUN;

@@ -1,0 +1,29 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 10 },
+    { "op": "choose_cards", "cards": ["PLANT_PEASHOOTER"] },
+    { "op": "wait_state", "state": "GAME", "timeout": 15 },
+    { "op": "set_weather", "intensity": "HEAVY", "duration": 90 },
+    { "op": "set_typhoon", "strength": "TYPHOON", "direction": "HOUSE", "gustIn": 30, "directionIn": 30, "gustsRemaining": 0, "decayIn": 60 },
+    { "op": "spawn_wave_zombie", "type": "ZOMBIE_DANCER", "mutationRoll": 1, "row": 3, "x": 900 },
+    { "op": "assert_state", "path": "zombies.0.type", "equals": "ZOMBIE_DANCER" },
+    { "op": "assert_state", "path": "weather.eliteDancerSpawnedThisTyphoon", "equals": false },
+    { "op": "set_typhoon", "strength": "SEVERE", "direction": "HOUSE", "gustIn": 30, "directionIn": 30, "gustsRemaining": 0, "decayIn": 60 },
+    { "op": "spawn_wave_zombie", "type": "ZOMBIE_DANCER", "mutationRoll": 26, "row": 0, "x": 900 },
+    { "op": "assert_state", "path": "zombies.1.type", "equals": "ZOMBIE_DANCER" },
+    { "op": "assert_state", "path": "weather.eliteDancerSpawnedThisTyphoon", "equals": false },
+    { "op": "spawn_wave_zombie", "type": "ZOMBIE_DANCER", "mutationRoll": 25, "row": 2, "x": 900 },
+    { "op": "assert_state", "path": "zombies.2.type", "equals": "ZOMBIE_ELITE_DANCER" },
+    { "op": "assert_state", "path": "weather.eliteDancerSpawnedThisTyphoon", "equals": true },
+    { "op": "spawn_wave_zombie", "type": "ZOMBIE_DANCER", "mutationRoll": 1, "row": 4, "x": 900 },
+    { "op": "assert_state", "path": "zombies.3.type", "equals": "ZOMBIE_DANCER" },
+    { "op": "set_weather", "intensity": "MEDIUM", "duration": 30 },
+    { "op": "assert_state", "path": "weather.eliteDancerSpawnedThisTyphoon", "equals": false },
+    { "op": "set_weather", "intensity": "HEAVY", "duration": 90 },
+    { "op": "set_typhoon", "strength": "SUPER", "direction": "FRONT", "gustIn": 30, "directionIn": 30, "gustsRemaining": 0, "decayIn": 60 },
+    { "op": "spawn_wave_zombie", "type": "ZOMBIE_DANCER", "mutationRoll": 1, "row": 1, "x": 900 },
+    { "op": "assert_state", "path": "zombies.4.type", "equals": "ZOMBIE_ELITE_DANCER" },
+    { "op": "dump_state", "name": "state.json" },
+    { "op": "quit" }
+  ]
+}

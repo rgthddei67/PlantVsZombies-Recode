@@ -2,7 +2,8 @@
 
 > Codex routing: required always-on rules live in `../../AGENTS.md`; detailed build, AutoTest, architecture, resource, and implementation guidance lives in `../agent-guide/PROJECT_GUIDE.md`. The entries below are historical subsystem context and should be read only when relevant.
 
-- [黑夜随机雨势天气](project_pvz_night_rain_weather.md) — 2026-07-21 小/中/大雨替代黑夜墓碑；新大雨附加台风基础概率为前期 25%～后期 50%，每次落空 +15、封顶 85% 并持久化，普通/强/超强权重 50/35/15；普通台风不产生阵风位移，强/超强使用可存档活动阵风，植物在预抽时刻整格结算，存活僵尸按平滑风速包络连续漂移；僵尸顺逆风倍率相对雨天叠乘；豌豆/寒冰豌豆等轻型植物子弹按实时风向派生速度与伤害，新增 `BulletType` 必须显式选择响应档案；实时风向、分档风线粒子、加宽预警 UI、逻辑格优先的平滑位移与完整存档契约均已接入；后续雨天能力、变异和条件生成统一使用 `adding-rain-weather` 技能
+- [黑夜随机雨势天气](project_pvz_night_rain_weather.md) — 2026-07-21 当前源码台风基础概率为前期 35%～后期 60%，每次落空 +20、封顶 95%，普通/强/超强权重 40/45/40；普通台风不产生植物位移，强/超强使用可存档活动阵风；僵尸与轻型植物子弹按实时风向派生倍率；天气能力统一通过 Board 状态派生并使用 `adding-rain-weather` 技能
+- [精英舞王僵尸](project_pvz_elite_dancer_zombie.md) — 2026-07-21 黑夜强/超强台风把普通舞王以 25% 概率变异、单台风最多 1 只；800 HP、紫衣、无视植物、每 0.5 秒补普通伴舞至 8 只、SUPER 额外 1.70 倍；触车静默清空全场 mower 而精英继续推进；PowerShell 保明暗染色与可见 AutoTest 已闭环
 - [土豆地雷出土触发与范围爆炸](project_pvz_potato_mine_trigger_blast.md) — 2026-07-20 修复埋地时已被啃导致出土后不爆：出土跃迁若 `mEaterCount>0` 主动补触发；爆炸按原版同排半径60圆×僵尸矩形一次结算全部非魅惑目标，不再只杀碰撞触发者；可见 `smoke_potatomine.json` 独立覆盖先啃后出土与已出土双目标范围爆炸
 - [Bullet 地面阴影与跨对象绘制顺序](project_pvz_bullet_shadow.md) — 2026-07-19 对齐 C#：Pea 单格21×9、Snowpea 1.3×、Puff无影；对象池复用时按row/position重算；阴影由 BulletPool 在 GOM 主体前统一提交，不能靠 Component::SetDrawOrder 跨越植物/Bullet对象层；主人校对 Y 与同排豌豆射手影子一致；可见 `smoke_bullet_shadow.json` 验普通/寒冰子弹穿过坚果时本体在上、影子在下
 - [九关制冒险进度+显式植物奖励表](project_pvz_adventure_progression.md) — 2026-07-18 `AdventureProgression.h` 统一每大关9小关、关卡显示/背景/奖励同源；奖励表显式写每关植物或 `NO_PLANT_REWARD`，1-8无植物、1-9小喷菇；禁止再用关卡号强转PlantType（旧存档按整数保存枚举）；AutoTest `smoke_adventure_progression.json` 覆盖全部背景边界与8/9关奖励
