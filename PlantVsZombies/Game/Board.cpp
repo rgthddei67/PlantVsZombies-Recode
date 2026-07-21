@@ -109,12 +109,19 @@ namespace {
 	constexpr float kWindParticleOriginPadding = 40.0f;  // 风线从逻辑画面左右边缘外生成的距离（像素）
 	constexpr float kTyphoonGustWarningTime = 4.0f;      // 阵风前常驻实况进入警示色的秒数
 	constexpr float kTyphoonPlantSlideDuration = 0.45f;  // 植物逻辑换格后画面平滑追赶的游戏秒数
+	constexpr float kSevereGustDuration = 1.80f;         // 强台风单次阵风持续时间（游戏秒）
+	constexpr float kSuperGustDuration = 2.40f;          // 超强台风单次阵风持续时间（游戏秒）
+	constexpr float kGustPlantMoveProgressMin = 0.25f;   // 植物最早在阵风进度 25% 时结算，避免开始瞬移
+	constexpr float kGustPlantMoveProgressMax = 0.75f;   // 植物最晚在阵风进度 75% 时结算，保留受力过程
+	constexpr float kSevereGustZombiePeakSpeed = 18.0f;  // 强台风阵风吹动僵尸的峰值速度（像素/游戏秒）
+	constexpr float kSuperGustZombiePeakSpeed = 32.0f;   // 超强台风阵风吹动僵尸的峰值速度（像素/游戏秒）
+	constexpr float kGustZombieFrontLimitPadding = 60.0f; // 僵尸被吹向前线时距画面右缘的最大余量（像素）
 	constexpr float kTyphoonGustIntervalMin = 28.0f;     // 普通台风阵风最短间隔（游戏秒）
 	constexpr float kTyphoonGustIntervalMax = 36.0f;     // 普通台风阵风最长间隔（游戏秒）
-	constexpr float kSevereGustIntervalMin = 18.0f;      // 强台风阵风最短间隔（游戏秒）
-	constexpr float kSevereGustIntervalMax = 24.0f;      // 强台风阵风最长间隔（游戏秒）
-	constexpr float kSuperGustIntervalMin = 24.0f;       // 超强台风阵风最短间隔；位移更远，故不再同时提到最高频
-	constexpr float kSuperGustIntervalMax = 30.0f;       // 超强台风阵风最长间隔（游戏秒）
+	constexpr float kSevereGustIntervalMin = 12.0f;      // 强台风阵风最短间隔（游戏秒），阶段内通常触发 1～2 次
+	constexpr float kSevereGustIntervalMax = 16.0f;      // 强台风阵风最长间隔；短于最短衰减时间以保证至少一次
+	constexpr float kSuperGustIntervalMin = 14.0f;       // 超强台风阵风最短间隔；位移更远，频率略低于强台风
+	constexpr float kSuperGustIntervalMax = 17.0f;       // 超强台风阵风最长间隔；短于最短衰减时间以保证至少一次
 	constexpr int kTyphoonGustDistance = 0;              // 普通台风吹不动植物，仅保留顺逆风僵尸倍率
 	constexpr int kSevereGustDistance = 1;               // 强台风每次吹动的整数格数
 	constexpr int kSuperGustDistance = 2;                // 超强台风每次吹动的整数格数
@@ -191,6 +198,30 @@ namespace {
 		case TyphoonStrength::NONE:    return 0;
 		}
 		return 0;
+	}
+
+	/** 返回强度对应的一次阵风持续时间；普通台风没有可产生位移的阵风。 */
+	float TyphoonGustDuration(TyphoonStrength strength)
+	{
+		switch (strength) {
+		case TyphoonStrength::SEVERE:  return kSevereGustDuration;
+		case TyphoonStrength::SUPER:   return kSuperGustDuration;
+		case TyphoonStrength::TYPHOON:
+		case TyphoonStrength::NONE:    return 0.0f;
+		}
+		return 0.0f;
+	}
+
+	/** 返回阵风吹动僵尸的峰值速度；实际速度还会乘平滑起落包络。 */
+	float TyphoonGustZombiePeakSpeed(TyphoonStrength strength)
+	{
+		switch (strength) {
+		case TyphoonStrength::SEVERE:  return kSevereGustZombiePeakSpeed;
+		case TyphoonStrength::SUPER:   return kSuperGustZombiePeakSpeed;
+		case TyphoonStrength::TYPHOON:
+		case TyphoonStrength::NONE:    return 0.0f;
+		}
+		return 0.0f;
 	}
 
 	/** 按台风强度抽取下一次阵风间隔。 */
@@ -539,8 +570,28 @@ float Board::GetPlantBulletWindDamageMultiplier(bool movingTowardFront) const
 
 bool Board::IsTyphoonGustWarning() const
 {
-	return HasTyphoon() && mTyphoonGustsRemaining > 0
+	return HasTyphoon() && !mTyphoonGustActive && mTyphoonGustsRemaining > 0
 		&& mWindGustTimer > 0.0f && mWindGustTimer <= kTyphoonGustWarningTime;
+}
+
+/**
+ * 阵风速度采用 4p(1-p) 包络从零升至峰值再回落；魅惑只改变自主行走方向，
+ * 不改变空气对物体施加的物理方向，因此敌对与魅惑僵尸共用同一有符号漂移。
+ */
+float Board::GetZombieGustDriftVelocity() const
+{
+	if (!mTyphoonGustActive || mRainIntensity != RainIntensity::HEAVY
+		|| mActiveGustDuration <= 0.0f) return 0.0f;
+	const float progress = std::clamp(
+		1.0f - mActiveGustTimer / mActiveGustDuration, 0.0f, 1.0f);
+	const float envelope = 4.0f * progress * (1.0f - progress);
+	const float speed = TyphoonGustZombiePeakSpeed(mActiveGustStrength) * envelope;
+	return mActiveGustDirection == WindDirection::TOWARD_FRONT ? speed : -speed;
+}
+
+float Board::GetZombieGustFrontLimit() const
+{
+	return static_cast<float>(SCENE_WIDTH) + kGustZombieFrontLimitPadding;
 }
 
 float Board::GetPlantRainActionSpeedMultiplier() const
@@ -889,6 +940,13 @@ void Board::StopTyphoon()
 	mWindDirectionTimer = 0.0f;
 	mWindGustTimer = 0.0f;
 	mTyphoonGustsRemaining = 0;
+	mTyphoonGustActive = false;
+	mActiveGustStrength = TyphoonStrength::NONE;
+	mActiveGustDirection = WindDirection::NONE;
+	mActiveGustDuration = 0.0f;
+	mActiveGustTimer = 0.0f;
+	mActiveGustPlantMoveTimer = 0.0f;
+	mActiveGustPlantMoved = false;
 	mLastTyphoonMovedPlants = 0;
 	mLastTyphoonLostPlants = 0;
 }
@@ -910,6 +968,28 @@ void Board::RestoreTyphoonState(TyphoonStrength strength, WindDirection directio
 	mWindGustTimer = std::max(0.0f, gustTimer);
 	mWindDirectionTimer = std::max(0.0f, directionTimer);
 	mTyphoonGustsRemaining = std::clamp(gustsRemaining, 0, TyphoonMaxGusts(strength));
+}
+
+/**
+ * 恢复一场已经开始的阵风。锁定值必须与当前台风一致；旧档和损坏组合保持非阵风状态，
+ * 未结算植物的剩余时刻夹在阵风余时内，保证读档后至多结算一次。
+ */
+void Board::RestoreActiveTyphoonGust(bool active, TyphoonStrength strength,
+	WindDirection direction, float duration, float remaining,
+	float plantMoveRemaining, bool plantMoved)
+{
+	if (!active || !HasTyphoon() || strength != mTyphoonStrength
+		|| direction != mWindDirection || TyphoonGustDistance(strength) <= 0
+		|| duration <= 0.0f || remaining <= 0.0f) return;
+	mTyphoonGustActive = true;
+	mActiveGustStrength = strength;
+	mActiveGustDirection = direction;
+	mActiveGustDuration = duration;
+	mActiveGustTimer = std::clamp(remaining, 0.0f, duration);
+	mActiveGustPlantMoved = plantMoved;
+	mActiveGustPlantMoveTimer = plantMoved ? 0.0f
+		: std::clamp(plantMoveRemaining, 0.0f, mActiveGustTimer);
+	mWindGustTimer = 0.0f;
 }
 
 /**
@@ -971,7 +1051,10 @@ void Board::UpdateTyphoonWindVisual(float deltaTime)
 	mWindParticleTimer = TyphoonWindParticleInterval(mTyphoonStrength);
 }
 
-/** 推进台风风向与阵风计时；阵风预算耗尽后持续风仍会影响僵尸移动。 */
+/**
+ * 推进台风风向、阵风等待与活动阶段。活动阵风锁定强度和风向，因而衰减/转向计时暂缓；
+ * 阵风预算耗尽后持续风仍会影响僵尸自主移动与轻型子弹。
+ */
 void Board::UpdateTyphoon(float deltaTime)
 {
 	if (!HasTyphoon()) return;
@@ -979,10 +1062,14 @@ void Board::UpdateTyphoon(float deltaTime)
 		StopTyphoon();
 		return;
 	}
+	UpdateTyphoonWindVisual(deltaTime);
+	if (mTyphoonGustActive) {
+		UpdateActiveTyphoonGust(deltaTime);
+		return;
+	}
 	mTyphoonStrengthTimer -= deltaTime;
 	if (mTyphoonStrengthTimer <= 0.0f) WeakenTyphoon();
 	if (!HasTyphoon()) return;
-	UpdateTyphoonWindVisual(deltaTime);
 
 	mWindDirectionTimer -= deltaTime;
 	if (mWindDirectionTimer <= 0.0f) ChangeWindDirection();
@@ -993,26 +1080,87 @@ void Board::UpdateTyphoon(float deltaTime)
 
 	mWindGustTimer -= deltaTime;
 	if (mWindGustTimer > 0.0f) return;
-	TriggerTyphoonGust();
-	--mTyphoonGustsRemaining;
+	BeginTyphoonGust(true);
+}
+
+/**
+ * 启动一次短阵风并一次性抽好植物受力时刻。每帧只推进确定的计时，不重复掷概率，
+ * 因而不同帧率和存读档都不会改变本次阵风是否/何时移动植物。
+ */
+bool Board::BeginTyphoonGust(bool consumeBudget, float forcedPlantMoveIn)
+{
+	if (!HasTyphoon() || mRainIntensity != RainIntensity::HEAVY
+		|| mWindDirection == WindDirection::NONE || mTyphoonGustActive) return false;
+	mLastTyphoonMovedPlants = 0;
+	mLastTyphoonLostPlants = 0;
+	const float duration = TyphoonGustDuration(mTyphoonStrength);
+	if (duration <= 0.0f) return true;
+	if (consumeBudget) {
+		if (mTyphoonGustsRemaining <= 0) return false;
+		--mTyphoonGustsRemaining;
+	}
+
+	mTyphoonGustActive = true;
+	mActiveGustStrength = mTyphoonStrength;
+	mActiveGustDirection = mWindDirection;
+	mActiveGustDuration = duration;
+	mActiveGustTimer = duration;
+	mActiveGustPlantMoveTimer = forcedPlantMoveIn >= 0.0f
+		? std::clamp(forcedPlantMoveIn, 0.0f, duration)
+		: duration * GameRandom::Range(kGustPlantMoveProgressMin, kGustPlantMoveProgressMax);
+	mActiveGustPlantMoved = false;
+	mWindGustTimer = 0.0f;
+	if (mActiveGustPlantMoveTimer <= 0.0f) {
+		TriggerTyphoonPlantMove(mActiveGustStrength, mActiveGustDirection);
+		mActiveGustPlantMoved = true;
+	}
+	return true;
+}
+
+/** 推进活动阵风；先跨越并结算随机植物时刻，再结束阵风，避免长帧漏掉整格位移。 */
+void Board::UpdateActiveTyphoonGust(float deltaTime)
+{
+	if (!mTyphoonGustActive) return;
+	if (!mActiveGustPlantMoved) {
+		mActiveGustPlantMoveTimer = std::max(0.0f,
+			mActiveGustPlantMoveTimer - deltaTime);
+		if (mActiveGustPlantMoveTimer <= 0.0f) {
+			TriggerTyphoonPlantMove(mActiveGustStrength, mActiveGustDirection);
+			mActiveGustPlantMoved = true;
+		}
+	}
+	mActiveGustTimer = std::max(0.0f, mActiveGustTimer - deltaTime);
+	if (mActiveGustTimer <= 0.0f) EndTyphoonGust();
+}
+
+/** 结束活动阵风并按当前衰减档位安排下一次；预算耗尽则只保留持续风。 */
+void Board::EndTyphoonGust()
+{
+	mTyphoonGustActive = false;
+	mActiveGustStrength = TyphoonStrength::NONE;
+	mActiveGustDirection = WindDirection::NONE;
+	mActiveGustDuration = 0.0f;
+	mActiveGustTimer = 0.0f;
+	mActiveGustPlantMoveTimer = 0.0f;
+	mActiveGustPlantMoved = false;
 	mWindGustTimer = mTyphoonGustsRemaining > 0
 		? RandomTyphoonGustInterval(mTyphoonStrength) : 0.0f;
 }
 
 /**
- * 同一阵风按吹向逐格、从前缘到后缘结算全部植物。
+ * 同一阵风按已锁定吹向逐格、从前缘到后缘结算全部植物。
  * 每次换格先更新 Cell、row/column 与碰撞箱，再让植物画面用瞬态偏移追赶；
  * 因此滑动中保存只会记录目标格，读档不会恢复半格状态或重复位移。
  */
-void Board::TriggerTyphoonGust()
+void Board::TriggerTyphoonPlantMove(TyphoonStrength strength, WindDirection direction)
 {
 	mLastTyphoonMovedPlants = 0;
 	mLastTyphoonLostPlants = 0;
 	if (!HasTyphoon() || mRainIntensity != RainIntensity::HEAVY
-		|| mWindDirection == WindDirection::NONE) return;
+		|| direction == WindDirection::NONE) return;
 
-	const int columnDelta = mWindDirection == WindDirection::TOWARD_FRONT ? 1 : -1;
-	const int distance = TyphoonGustDistance(mTyphoonStrength);
+	const int columnDelta = direction == WindDirection::TOWARD_FRONT ? 1 : -1;
+	const int distance = TyphoonGustDistance(strength);
 	std::unordered_set<int> movedPlantIDs;
 	std::unordered_set<int> lostPlantIDs;
 	for (int step = 0; step < distance; ++step) {
@@ -1244,11 +1392,10 @@ bool Board::RollTyphoonForTesting(int chanceRoll, int strengthRoll, WindDirectio
 	return true;
 }
 
-bool Board::TriggerTyphoonGustForTesting()
+bool Board::TriggerTyphoonGustForTesting(float plantMoveIn)
 {
 	if (!HasTyphoon() || mRainIntensity != RainIntensity::HEAVY) return false;
-	TriggerTyphoonGust();
-	return true;
+	return BeginTyphoonGust(false, plantMoveIn);
 }
 
 void Board::InitializeCell(int rows, int cols)

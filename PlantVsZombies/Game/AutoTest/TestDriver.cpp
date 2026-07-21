@@ -365,7 +365,7 @@ bool TestDriver::ExecuteCurrent() {
 	if (op == "trigger_typhoon_gust") {
 		GameScene* gs = CurrentGameScene();
 		if (!gs || !gs->GetBoard()) { Fail("trigger_typhoon_gust: 不在 GameScene 或 Board 为空"); return false; }
-		if (!gs->GetBoard()->TriggerTyphoonGustForTesting()) {
+		if (!gs->GetBoard()->TriggerTyphoonGustForTesting(cmd.value("plantMoveIn", 0.0f))) {
 			Fail("trigger_typhoon_gust: 当前不是带台风的大雨");
 			return false;
 		}
@@ -486,6 +486,10 @@ bool TestDriver::ExecuteCurrent() {
 		Zombie* z = gs->GetBoard()->CreateZombie(it->second,
 			cmd.value("row", 0), cmd.value("x", 900.0f));
 		if (!z) { Fail("CreateZombie 返回空"); return false; }
+		if (cmd.value("frozen", false) && !z->StartFrozen()) {
+			Fail("spawn_zombie: frozen=true 但目标不能进入冻结");
+			return false;
+		}
 		return true;
 	}
 	if (op == "damage_zombie") {
@@ -625,7 +629,13 @@ bool TestDriver::ExecuteCurrent() {
 		if (!BuildStateJson("assert_state", state)) return false;
 		const std::string path = cmd.value("path", "");
 		if (path.empty()) { Fail("assert_state: 缺少 path"); return false; }
-		if (!cmd.contains("equals")) { Fail("assert_state: 缺少 equals (path=" + path + ")"); return false; }
+		const bool hasEquals = cmd.contains("equals");
+		const bool hasAtLeast = cmd.contains("atLeast");
+		const bool hasAtMost = cmd.contains("atMost");
+		if (!hasEquals && !hasAtLeast && !hasAtMost) {
+			Fail("assert_state: 缺少 equals/atLeast/atMost (path=" + path + ")");
+			return false;
+		}
 
 		const nlohmann::json* cur = &state;
 		size_t begin = 0;
@@ -653,13 +663,35 @@ bool TestDriver::ExecuteCurrent() {
 			begin = dot + 1;
 		}
 
-		const nlohmann::json& expected = cmd["equals"];
-		if (*cur != expected) {
-			Fail("assert_state: 断言失败 path=" + path
-				+ " 期望=" + expected.dump() + " 实际=" + cur->dump());
-			return false;
+		if (hasEquals) {
+			const nlohmann::json& expected = cmd["equals"];
+			if (*cur != expected) {
+				Fail("assert_state: 断言失败 path=" + path
+					+ " 期望=" + expected.dump() + " 实际=" + cur->dump());
+				return false;
+			}
+			Log("assert_state OK: " + path + " == " + expected.dump());
 		}
-		Log("assert_state OK: " + path + " == " + expected.dump());
+		if (hasAtLeast || hasAtMost) {
+			if (!cur->is_number()
+				|| (hasAtLeast && !cmd["atLeast"].is_number())
+				|| (hasAtMost && !cmd["atMost"].is_number())) {
+				Fail("assert_state: atLeast/atMost 只支持数值 (path=" + path + ")");
+				return false;
+			}
+			const double actual = cur->get<double>();
+			if (hasAtLeast && actual < cmd["atLeast"].get<double>()) {
+				Fail("assert_state: 断言失败 path=" + path + " 实际=" + cur->dump()
+					+ " 小于下限=" + cmd["atLeast"].dump());
+				return false;
+			}
+			if (hasAtMost && actual > cmd["atMost"].get<double>()) {
+				Fail("assert_state: 断言失败 path=" + path + " 实际=" + cur->dump()
+					+ " 大于上限=" + cmd["atMost"].dump());
+				return false;
+			}
+			Log("assert_state OK: " + path + " in numeric bounds");
+		}
 		return true;
 	}
 	if (op == "quit") {
@@ -812,6 +844,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		const float zombieRain = board->GetZombieRainSpeedMultiplier();
 		const float hostileWind = board->GetZombieWindMoveMultiplier(false);
 		const float charmedWind = board->GetZombieWindMoveMultiplier(true);
+		const float gustDrift = board->GetZombieGustDriftVelocity();
 		const float plantRain = board->GetPlantRainActionSpeedMultiplier();
 		const float perkAttack = static_cast<float>(
 			board->GetPerkManager().GetPlantAttackSpeedMultiplier());
@@ -837,6 +870,15 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "windDirectionRemaining", board->GetWindDirectionTimer() },
 			{ "windGustRemaining", board->GetWindGustTimer() },
 			{ "gustsRemaining", board->GetTyphoonGustsRemaining() },
+			{ "gustActive", board->IsTyphoonGustActive() },
+			{ "activeGustStrength", TyphoonStrengthName(board->GetActiveGustStrength()) },
+			{ "activeGustDirection", WindDirectionName(board->GetActiveGustDirection()) },
+			{ "activeGustRemainingMs", static_cast<int>(std::lround(
+				board->GetActiveGustTimer() * 1000.0f)) },
+			{ "activeGustPlantMoveRemainingMs", static_cast<int>(std::lround(
+				board->GetActiveGustPlantMoveTimer() * 1000.0f)) },
+			{ "activeGustPlantMoved", board->HasActiveGustMovedPlants() },
+			{ "zombieGustDriftSpeed", static_cast<int>(std::lround(gustDrift)) },
 			{ "gustWarning", board->IsTyphoonGustWarning() },
 			{ "lastGustMovedPlants", board->GetLastTyphoonMovedPlants() },
 			{ "lastGustLostPlants", board->GetLastTyphoonLostPlants() },
@@ -881,6 +923,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "type", ZombieTypeName(z->mZombieType) },
 			{ "row", z->mRow },
 			{ "x", pos.x }, { "y", pos.y },
+			{ "xInt", static_cast<int>(std::lround(pos.x)) },
 			{ "bodyHealth", z->mBodyHealth }, { "bodyMaxHealth", z->mBodyMaxHealth },
 			{ "helmHealth", z->mHelmHealth }, { "shieldHealth", z->mShieldHealth },
 			{ "mindControlled", z->IsMindControlled() },

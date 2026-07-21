@@ -154,6 +154,8 @@ protected:
 	// 解除冻结并恢复动画速度；蓝色 overlay 仅在无减速尾巴时清除（持盾僵尸没有尾巴→立即褪色）
 	void ClearFrozen();
 
+	/** 叠加活动阵风的物理漂移；不依赖自主行走、啃食、冻结或魅惑方向。 */
+	void ApplyTyphoonGustDrift(float deltaTime, TransformComponent* transform);
 	virtual void ZombieMove(float scaledDelta, TransformComponent* transform);
 
 	// 这才是设置僵尸

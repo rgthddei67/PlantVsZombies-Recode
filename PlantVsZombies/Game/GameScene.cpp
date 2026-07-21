@@ -250,17 +250,21 @@ void GameScene::DrawWeatherPanel(Graphics* g) const
 			+ WindDirectionDisplayName(mBoard->GetWindDirection());
 		if (mBoard->GetTyphoonStrength() == TyphoonStrength::TYPHOON) {
 			// 普通台风只有持续风和僵尸移速影响，不显示从未发生过的植物位移阵风已经结束。
-			windLine += u8"｜持续风（无位移）";
+			windLine += u8"｜持续风（无阵风位移）";
+		}
+		else if (mBoard->IsTyphoonGustActive()) {
+			windLine += u8"｜阵风中";
 		}
 		else if (mBoard->GetTyphoonGustsRemaining() > 0) {
 			const int gustSeconds = std::max(0,
 				static_cast<int>(std::ceil(mBoard->GetWindGustTimer())));
-			windLine += std::string(u8"｜阵风 ") + std::to_string(gustSeconds) + u8"秒";
+			windLine += std::string(u8"｜距阵风 ") + std::to_string(gustSeconds) + u8"秒";
 		}
 		else {
 			windLine += u8"｜本阶段阵风结束";
 		}
-		const glm::vec4 windColor = mBoard->IsTyphoonGustWarning()
+		const glm::vec4 windColor = (mBoard->IsTyphoonGustActive()
+			|| mBoard->IsTyphoonGustWarning())
 			? glm::vec4(255.0f, 179.0f, 92.0f, alpha)
 			: glm::vec4(190.0f, 223.0f, 255.0f, alpha);
 		g->DrawText(windLine, ResourceKeys::Fonts::FONT_FZCQ, kWeatherWindFontSize,

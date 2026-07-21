@@ -186,8 +186,15 @@ private:
 	WindDirection mWindDirection = WindDirection::NONE;       // 当前风实际吹向，台风期间分段翻转
 	float mTyphoonStrengthTimer = 0.0f; // 当前台风强度距下一档衰减的游戏秒数
 	float mWindDirectionTimer = 0.0f;   // 距下一次风向改变的游戏秒数
-	float mWindGustTimer = 0.0f;        // 距下一次阵风吹动植物的游戏秒数
+	float mWindGustTimer = 0.0f;        // 非阵风期间距下一次阵风开始的游戏秒数
 	int mTyphoonGustsRemaining = 0;     // 本次台风阶段尚可触发的阵风次数
+	bool mTyphoonGustActive = false;    // true 时锁定本次阵风强度/风向并连续吹动僵尸
+	TyphoonStrength mActiveGustStrength = TyphoonStrength::NONE; // 阵风开始时锁定的强度，避免中途衰减突变
+	WindDirection mActiveGustDirection = WindDirection::NONE;    // 阵风开始时锁定的吹向，避免中途翻转
+	float mActiveGustDuration = 0.0f;   // 当前阵风完整持续时间（游戏秒）
+	float mActiveGustTimer = 0.0f;      // 当前阵风剩余时间（游戏秒）
+	float mActiveGustPlantMoveTimer = 0.0f; // 距本次阵风植物整格结算的游戏秒数
+	bool mActiveGustPlantMoved = false; // 本次阵风是否已结算植物，防读档后重复移动
 	int mHeavyPhasesWithoutTyphoon = 0; // 连续未命中台风的新大雨阶段数；用于保底并进入存档
 	int mLastTyphoonMovedPlants = 0;    // 最近一次阵风移动的植物数，仅供观测和测试
 	int mLastTyphoonLostPlants = 0;     // 最近一次阵风吹出棋盘的植物数，仅供观测和测试
@@ -232,11 +239,17 @@ private:
 	void RestoreTyphoonPity(int missedHeavyPhases);
 	void RestoreTyphoonState(TyphoonStrength strength, WindDirection direction,
 		float strengthTimer, float gustTimer, float directionTimer, int gustsRemaining);
+	void RestoreActiveTyphoonGust(bool active, TyphoonStrength strength,
+		WindDirection direction, float duration, float remaining,
+		float plantMoveRemaining, bool plantMoved);
 	void UpdateTyphoon(float deltaTime);
 	void UpdateTyphoonWindVisual(float deltaTime);
 	void WeakenTyphoon();
 	void ChangeWindDirection();
-	void TriggerTyphoonGust();
+	bool BeginTyphoonGust(bool consumeBudget, float forcedPlantMoveIn = -1.0f);
+	void UpdateActiveTyphoonGust(float deltaTime);
+	void EndTyphoonGust();
+	void TriggerTyphoonPlantMove(TyphoonStrength strength, WindDirection direction);
 	void EmitRainEffect(float duration);
 	void UpdateRainGroundSplash(float deltaTime);
 	void TriggerRainGroundSplash();
@@ -311,6 +324,17 @@ public:
 	float GetWindDirectionTimer() const { return mWindDirectionTimer; }
 	float GetWindGustTimer() const { return mWindGustTimer; }
 	int GetTyphoonGustsRemaining() const { return mTyphoonGustsRemaining; }
+	bool IsTyphoonGustActive() const { return mTyphoonGustActive; }
+	TyphoonStrength GetActiveGustStrength() const { return mActiveGustStrength; }
+	WindDirection GetActiveGustDirection() const { return mActiveGustDirection; }
+	float GetActiveGustDuration() const { return mActiveGustDuration; }
+	float GetActiveGustTimer() const { return mActiveGustTimer; }
+	float GetActiveGustPlantMoveTimer() const { return mActiveGustPlantMoveTimer; }
+	bool HasActiveGustMovedPlants() const { return mActiveGustPlantMoved; }
+	/** 返回当前阵风施加给全部存活僵尸的有符号水平漂移速度，正值吹向前线（像素/游戏秒）。 */
+	float GetZombieGustDriftVelocity() const;
+	/** 返回僵尸被阵风吹向前线时的最大世界横坐标，避免越过既有出生侧清理线。 */
+	float GetZombieGustFrontLimit() const;
 	int GetHeavyPhasesWithoutTyphoon() const { return mHeavyPhasesWithoutTyphoon; }
 	int GetLastTyphoonMovedPlants() const { return mLastTyphoonMovedPlants; }
 	int GetLastTyphoonLostPlants() const { return mLastTyphoonLostPlants; }
@@ -334,8 +358,8 @@ public:
 		float decayIn = 30.0f);
 	// AutoTest 专用：用固定概率点数和强度点数走正式台风判定，覆盖连续落空保底。
 	bool RollTyphoonForTesting(int chanceRoll, int strengthRoll, WindDirection direction);
-	// AutoTest 专用：立即触发一次当前强度的阵风，不消费自动阵风计时。
-	bool TriggerTyphoonGustForTesting();
+	// AutoTest 专用：启动一次当前强度的阵风，不消费自动预算；可固定植物结算时刻。
+	bool TriggerTyphoonGustForTesting(float plantMoveIn = 0.0f);
 
 	// 初始化格子 默认5行9列
 	void InitializeCell(int rows = 4, int cols = 8);

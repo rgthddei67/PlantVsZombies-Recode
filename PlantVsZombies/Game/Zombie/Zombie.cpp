@@ -8,6 +8,7 @@
 #include "../Plant/GameDataManager.h"
 #include "../../ParticleSystem/ParticleSystem.h"
 #include "../../GameAPP.h"
+#include <algorithm>
 #include <climits>
 
 namespace {
@@ -243,7 +244,7 @@ void Zombie::Update()
 		float deltaTime = DeltaTime::GetDeltaTime();
 		auto* transform = this->GetTransformComponent();
 
-		if (!transform && !mBoard) return;
+		if (!transform || !mBoard) return;
 
 		if (mIsDying)
 		{
@@ -307,6 +308,10 @@ void Zombie::Update()
 			}
 		}
 
+		// 阵风是空气施加的独立位移：在冻结/啃食的早退前结算，使碰撞箱随 Transform 同帧移动。
+		// 若被吹离啃食目标，碰撞退出回调会按正常链路停止啃食，不需另造状态分支。
+		ApplyTyphoonGustDrift(deltaTime, transform);
+
 		if (!mHasHead)
 		{
 			// 掉头后本体血量按真实时间流失直至归零（无头僵尸流血而亡）。
@@ -359,6 +364,25 @@ void Zombie::Update()
 		ZombieMove(scaledDelta, transform);
 		ZombieUpdate(scaledDelta);
 	}
+}
+
+/**
+ * 将 Board 给出的有符号阵风速度直接叠加到世界坐标。吹向前线时在出生边界内钳位，
+ * 避免阵风把刚生成的僵尸推过现有清理线；吹向房屋则保留其真实危险性。
+ */
+void Zombie::ApplyTyphoonGustDrift(float deltaTime, TransformComponent* transform)
+{
+	if (!transform || !mBoard || mIsDying || deltaTime <= 0.0f) return;
+	const float velocity = mBoard->GetZombieGustDriftVelocity();
+	if (velocity == 0.0f) return;
+	float displacement = velocity * deltaTime;
+	if (velocity > 0.0f) {
+		const float limit = mBoard->GetZombieGustFrontLimit();
+		const float x = transform->GetPosition().x;
+		if (x >= limit) return;
+		displacement = std::min(displacement, limit - x);
+	}
+	transform->Translate(displacement, 0.0f);
 }
 
 void Zombie::ZombieMove(float scaledDelta, TransformComponent* transform)
