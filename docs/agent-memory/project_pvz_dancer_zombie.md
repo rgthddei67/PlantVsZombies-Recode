@@ -17,7 +17,7 @@ metadata:
 
 2026-07-19 图鉴补全：两个 preset 的 `resources/info.txt` 均新增 `ZOMBIE_DANCER` / `ZOMBIE_BACKUP_DANCER` 名称与描述；文案采用“先讲机制、再由僵尸本人一本正经歪解”的宝开式结构。新增可见 UI 回归 `autotest/scripts/smoke_dancer_almanac.json`，从主菜单进入僵尸图鉴后依次截图网格、舞王正文与伴舞正文；clang-release 实跑 exit 0、run.log finished OK，截图确认标题居中、17号正文各5行且无溢出。
 
-2026-07-21 新增继承型 `EliteDancerZombie`，父类 `SetupZombie()` 继续作为 Jackson 帧事件、断肢断头与月球漫步契约来源；派生类绕过普通舞王四阶段状态机，持续推进并用独立 vector 维护最多 8 只直属普通伴舞。详情与调参见 [project_pvz_elite_dancer_zombie](project_pvz_elite_dancer_zombie.md)。
+2026-07-21 新增继承型 `EliteDancerZombie`，父类 `SetupZombie()` 继续作为 Jackson 帧事件、断肢断头与月球漫步契约来源；派生类绕过普通舞王四阶段状态机，持续推进并用独立 vector 维护最多 8 只直属普通伴舞。详情与调参见 [project_pvz_elite_dancer_zombie](project_pvz_elite_dancer_zombie.md)。同日冒险出怪重排后，普通舞王只进入 2-7 的独立教学池与 2-9 综合池，避免和两种橄榄球在 2-8 同时首次出现；见 [project_pvz_night_spawnlist_pacing](project_pvz_night_spawnlist_pacing.md)。
 
 **Foot-guns（写skill时要收录）：**
 - **帧事件"末-1帧"不触发**：伴舞anim_death 65~101，主人先给100(=末-1)实测播不到→僵尸血0卡anim_death不消失(靠10s看门狗)；主人改99才触发。但Jackson死亡146(=末-1)却正常触发——**逐reanim实测，不能推公式**。

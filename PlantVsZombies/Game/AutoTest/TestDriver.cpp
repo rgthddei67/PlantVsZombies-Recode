@@ -822,11 +822,13 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	auto& gameApp = GameAPP::GetInstance();
 
 	out["boardState"] = BoardStateName(board->mBoardState);
+	out["chooseCardReady"] = gs->IsChooseCardReady();
 	out["level"] = board->mLevel;
 	out["levelName"] = board->mLevelName;
 	out["background"] = BackgroundName(board->mBackGround);
 	out["sun"] = board->mSun;
 	out["wave"] = board->mCurrentWave;
+	out["maxWave"] = board->mMaxWave;
 	out["zombieNumber"] = board->mZombieNumber;
 	out["mowerCount"] = static_cast<int>(board->mEntityManager.GetAllMowerIDs().size());
 	int movingMowerCount = 0;

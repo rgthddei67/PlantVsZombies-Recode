@@ -52,17 +52,17 @@
   },
   {
     "level": 11,
-    "waves": 20,
+    "waves": 15,
     "zombies": [0, 1, 5]
   },
   {
     "level": 12,
-    "waves": 20,
+    "waves": 15,
     "zombies": [0, 1, 2, 4, 5]
   },
   {
     "level": 13,
-    "waves": 10,
+    "waves": 15,
     "zombies": [0, 1, 3, 5, 6]
   },
   {
@@ -72,23 +72,23 @@
   },
   {
     "level": 15,
-    "waves": 25,
-    "zombies": [0, 1, 3, 5, 6]
+    "waves": 20,
+    "zombies": [0, 1, 3, 5, 8]
   },
   {
     "level": 16,
     "waves": 20,
-    "zombies": [0, 1, 2, 6, 7]
+    "zombies": [0, 1, 5, 7, 9]
   },
   {
     "level": 17,
-    "waves": 25,
-    "zombies": [0, 1, 5, 8, 9, 11]
+    "waves": 20,
+    "zombies": [0, 1, 3, 4, 8, 11]
   },
   {
     "level": 18,
-    "waves": 35,
+    "waves": 30,
     "sun": 1500,
-    "zombies": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 11]
+    "zombies": [0, 1, 3, 6, 7, 8, 9, 11]
   }
 ]

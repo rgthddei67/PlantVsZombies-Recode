@@ -2330,7 +2330,7 @@ void Board::LoadSpawnListFromJson()
 			if (waves > 0)
 				mMaxWave = waves;
 		}
-		// 可选：每关初始阳光（如黑夜收官关 19 给 1500）。只在开新关生效——
+		// 可选：每关初始阳光（如黑夜收官关 18 给 1500）。只在开新关生效——
 		// 读档路径在本函数之后由 GameInfoSaver 还原存档里的 mSun，天然覆盖。
 		if (entry.contains("sun"))
 		{
