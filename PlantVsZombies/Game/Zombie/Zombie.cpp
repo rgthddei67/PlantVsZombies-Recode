@@ -372,6 +372,9 @@ void Zombie::ZombieMove(float scaledDelta, TransformComponent* transform)
 		speed = (mGroundTrackIndex >= 0
 			? mAnimator->GetTrackVelocity(mGroundTrackIndex)
 			: mAnimator->GetTrackVelocity("_ground")) * mSpeed;
+		// 台风只缩放水平位移，不改 Animator extra：雨天、减速和冻结仍由 UpdateAnimSpeed
+		// 统一组合，啃食、召唤与其他技能不会被顺风误加速。魅惑僵尸按实际向右移动判定顺逆风。
+		if (mBoard) speed *= mBoard->GetZombieWindMoveMultiplier(mIsMindControlled);
 		if (mIsMindControlled)
 		{
 			transform->Translate(speed * scaledDelta, 0);

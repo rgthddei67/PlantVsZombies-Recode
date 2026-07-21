@@ -106,6 +106,7 @@ void Plant::Die() {
 void Plant::Update()
 {
 	AnimatedObject::Update();   // 待机动画照常推进，让植物在选卡阶段仍"活着"
+	UpdateGridMoveVisual();
 	// 仅在对战进行中(GAME)才跑行为逻辑：生存轮间选卡(CHOOSE_CARD)时场上保留的植物应冻结，
 	// 否则向日葵会继续产阳光、射手继续计时等。WIN/LOSE 同理不再行动。
 	if (!mIsPreview && !mIsSleeping &&
@@ -115,7 +116,7 @@ void Plant::Update()
 }
 
 Vector Plant::GetVisualPosition() const {
-	return GetTransformComponent()->GetPosition() + mVisualOffset;
+	return GetTransformComponent()->GetPosition() + mVisualOffset + mGridMoveVisualOffset;
 }
 
 void Plant::PlantUpdate()
@@ -150,6 +151,42 @@ void Plant::SetPosition(const Vector& position)
 	this->GetTransformComponent()->SetPosition(position);
 }
 
+void Plant::MoveToGridCell(int row, int column, float visualDuration)
+{
+	// 逻辑格和碰撞箱必须在同一帧落到目标格；旧画面位置只作为瞬态绘制偏移保留。
+	const Vector currentVisualBase = GetPosition() + mGridMoveVisualOffset;
+	const Vector target(
+		CELL_INITALIZE_POS_X + column * CELL_COLLIDER_SIZE_X + CELL_COLLIDER_SIZE_X / 2,
+		CELL_INITALIZE_POS_Y + row * CELL_COLLIDER_SIZE_Y + CELL_COLLIDER_SIZE_Y / 2);
+	mRow = row;
+	mColumn = column;
+	SetPosition(target);
+
+	mGridMoveVisualStart = currentVisualBase - target;
+	mGridMoveVisualOffset = mGridMoveVisualStart;
+	mGridMoveVisualDuration = std::max(0.0f, visualDuration);
+	mGridMoveVisualTimer = mGridMoveVisualDuration;
+	if (mGridMoveVisualDuration <= 0.0f) {
+		mGridMoveVisualStart = Vector(0.0f, 0.0f);
+		mGridMoveVisualOffset = Vector(0.0f, 0.0f);
+	}
+}
+
+void Plant::UpdateGridMoveVisual()
+{
+	if (mGridMoveVisualTimer <= 0.0f || mGridMoveVisualDuration <= 0.0f) return;
+	mGridMoveVisualTimer = std::max(0.0f,
+		mGridMoveVisualTimer - DeltaTime::GetDeltaTime());
+	const float linear = std::clamp(1.0f
+		- mGridMoveVisualTimer / mGridMoveVisualDuration, 0.0f, 1.0f);
+	const float eased = linear * linear * (3.0f - 2.0f * linear);
+	mGridMoveVisualOffset = mGridMoveVisualStart * (1.0f - eased);
+	if (mGridMoveVisualTimer <= 0.0f) {
+		mGridMoveVisualStart = Vector(0.0f, 0.0f);
+		mGridMoveVisualOffset = Vector(0.0f, 0.0f);
+	}
+}
+
 void Plant::Draw(Graphics* g)
 {
 	AnimatedObject::Draw(g);	// 先画本体动画
@@ -160,7 +197,8 @@ void Plant::Draw(Graphics* g)
 
 	// 直接用逻辑坐标：DrawText 与 Animator 的 DrawTextureMatrix 共享同一 projView，
 	// Animator 画 sprite 时就是用裸逻辑坐标，文字必须同坐标系才能叠在对象上（勿转 World）
-	Vector pos = GetPosition() + Vector(-21, -11);
+	// 血条属于画面反馈，随台风平滑位移；碰撞箱仍使用已经落在目标格的 Transform。
+	Vector pos = GetGridVisualPosition() + Vector(-21, -11);
 
 	std::string text = std::to_string(mPlantHealth) + u8"/" + std::to_string(mPlantMaxHealth);
 	// 颜色是 0..255 范围（ToSDLColor 直接 static_cast，不乘 255），勿写成 0..1 否则全透明隐形

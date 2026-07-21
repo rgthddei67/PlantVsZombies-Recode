@@ -181,6 +181,12 @@ bool GameInfoSaver::SaveLevelDataImpl(Board* board, CardSlotManager* manager)
 	j["rainCanIntensify"] = board->mRainCanIntensify;
 	j["rainCanHold"] = board->mRainCanHold;
 	j["weatherForecastReady"] = board->mWeatherForecastReady;
+	j["typhoonStrength"] = static_cast<int>(board->mTyphoonStrength);
+	j["windDirection"] = static_cast<int>(board->mWindDirection);
+	j["typhoonStrengthTimer"] = board->mTyphoonStrengthTimer;
+	j["windDirectionTimer"] = board->mWindDirectionTimer;
+	j["windGustTimer"] = board->mWindGustTimer;
+	j["typhoonGustsRemaining"] = board->mTyphoonGustsRemaining;
 	j["currentWeatherNoticeTimer"] = board->mGameScene
 		? board->mGameScene->GetCurrentWeatherNoticeTimer() : 0.0f;
 	j["weatherForecastFailureTimer"] = board->mGameScene
@@ -212,6 +218,7 @@ bool GameInfoSaver::SaveLevelDataImpl(Board* board, CardSlotManager* manager)
 		nlohmann::json p;
 		p["id"] = id;
 		p["type"] = static_cast<int>(plant->mPlantType);
+		// 阵风触发时 row/column 已先落到目标格；纯视觉追赶偏移不保存，读档稳定吸附目标格。
 		p["row"] = plant->mRow;
 		p["column"] = plant->mColumn;
 		p["health"] = plant->mPlantHealth;
@@ -491,6 +498,21 @@ bool GameInfoSaver::LoadLevelDataImpl(Board* board, CardSlotManager* manager)
 	board->mRainCanHold = (board->mRainIntensity == RainIntensity::MEDIUM
 		|| board->mRainIntensity == RainIntensity::HEAVY)
 		&& j.value("rainCanHold", false);
+	const int typhoonValue = j.value("typhoonStrength",
+		static_cast<int>(TyphoonStrength::NONE));
+	const int windDirectionValue = j.value("windDirection",
+		static_cast<int>(WindDirection::NONE));
+	const TyphoonStrength typhoonStrength = typhoonValue >= static_cast<int>(TyphoonStrength::NONE)
+		&& typhoonValue <= static_cast<int>(TyphoonStrength::SUPER)
+		? static_cast<TyphoonStrength>(typhoonValue) : TyphoonStrength::NONE;
+	const WindDirection windDirection = windDirectionValue >= static_cast<int>(WindDirection::NONE)
+		&& windDirectionValue <= static_cast<int>(WindDirection::TOWARD_FRONT)
+		? static_cast<WindDirection>(windDirectionValue) : WindDirection::NONE;
+	// 台风强度、风向和计时都是已经判定过的结果；旧档或损坏组合只退化为无台风，绝不重 roll。
+	board->RestoreTyphoonState(typhoonStrength, windDirection,
+		j.value("typhoonStrengthTimer", 0.0f), j.value("windGustTimer", 0.0f),
+		j.value("windDirectionTimer", 0.0f),
+		j.value("typhoonGustsRemaining", 0));
 	board->mRainVisualActive = false;   // 粒子不入存档，StartGame 按剩余时间重建
 	board->mMaxWave = j.value("maxWave", 10);
 	board->mZombieCountDown = j.value("zombieCountDown", 20.0f);

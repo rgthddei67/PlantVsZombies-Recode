@@ -1,0 +1,25 @@
+<Emitter>
+  <Name>WindTowardFront</Name>
+  <SpawnMinActive>10</SpawnMinActive>
+  <SpawnRate>0</SpawnRate>
+  <SpawnMaxLaunched>10</SpawnMaxLaunched>
+  <ParticleDuration>[0.80 1.15]</ParticleDuration>
+  <ParticleAlpha>0,0 .16,10 .12,82 0,100</ParticleAlpha>
+  <ParticleScale>[0.45 0.85]</ParticleScale>
+  <ParticleStretch>[8 15]</ParticleStretch>
+  <ParticleBrightness>[.80 1.0]</ParticleBrightness>
+  <ParticleRed>.72</ParticleRed>
+  <ParticleGreen>.86</ParticleGreen>
+  <ParticleBlue>1</ParticleBlue>
+  <EmitterType>Box</EmitterType>
+  <EmitterBoxX>[-20 20]</EmitterBoxX>
+  <EmitterBoxY>[-285 285]</EmitterBoxY>
+  <ParticleRotation>90</ParticleRotation>
+  <SystemDuration>1.25</SystemDuration>
+  <Image>PARTICLE_WHITEPIXEL</Image>
+  <Field>
+    <FieldType>Position</FieldType>
+    <X>0 1280</X>
+    <Y>0 [-18 18]</Y>
+  </Field>
+</Emitter>

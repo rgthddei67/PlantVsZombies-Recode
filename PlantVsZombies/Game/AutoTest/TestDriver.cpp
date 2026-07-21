@@ -79,6 +79,14 @@ namespace {
 		{ "CLEAR", RainIntensity::CLEAR }, { "LIGHT", RainIntensity::LIGHT },
 		{ "MEDIUM", RainIntensity::MEDIUM }, { "HEAVY", RainIntensity::HEAVY },
 	};
+	const std::unordered_map<std::string, TyphoonStrength> kTyphoonStrengthNames = {
+		{ "NONE", TyphoonStrength::NONE }, { "TYPHOON", TyphoonStrength::TYPHOON },
+		{ "SEVERE", TyphoonStrength::SEVERE }, { "SUPER", TyphoonStrength::SUPER },
+	};
+	const std::unordered_map<std::string, WindDirection> kWindDirectionNames = {
+		{ "NONE", WindDirection::NONE }, { "HOUSE", WindDirection::TOWARD_HOUSE },
+		{ "FRONT", WindDirection::TOWARD_FRONT },
+	};
 
 	const std::unordered_map<std::string, Uint8> kMouseButtonNames = {
 		{ "left", SDL_BUTTON_LEFT }, { "right", SDL_BUTTON_RIGHT },
@@ -122,6 +130,14 @@ namespace {
 	}
 	std::string RainIntensityName(RainIntensity intensity) {
 		for (const auto& [k, v] : kRainIntensityNames) if (v == intensity) return k;
+		return "UNKNOWN";
+	}
+	std::string TyphoonStrengthName(TyphoonStrength strength) {
+		for (const auto& [k, v] : kTyphoonStrengthNames) if (v == strength) return k;
+		return "UNKNOWN";
+	}
+	std::string WindDirectionName(WindDirection direction) {
+		for (const auto& [k, v] : kWindDirectionNames) if (v == direction) return k;
 		return "UNKNOWN";
 	}
 	std::string PlayStateName(PlayState s) {
@@ -319,6 +335,32 @@ bool TestDriver::ExecuteCurrent() {
 			cmd.value("canIntensify", false));
 		if (gs->GetBoard()->GetRainIntensity() != it->second) {
 			Fail("set_weather: 当前背景不是黑夜，天气未生效");
+			return false;
+		}
+		return true;
+	}
+	if (op == "set_typhoon") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) { Fail("set_typhoon: 不在 GameScene 或 Board 为空"); return false; }
+		auto strengthIt = kTyphoonStrengthNames.find(cmd.value("strength", ""));
+		auto directionIt = kWindDirectionNames.find(cmd.value("direction", "NONE"));
+		if (strengthIt == kTyphoonStrengthNames.end() || directionIt == kWindDirectionNames.end()) {
+			Fail("set_typhoon: strength 必须是 NONE/TYPHOON/SEVERE/SUPER，direction 必须是 NONE/HOUSE/FRONT");
+			return false;
+		}
+		if (!gs->GetBoard()->SetTyphoonForTesting(strengthIt->second, directionIt->second,
+			cmd.value("gustIn", 30.0f), cmd.value("directionIn", 30.0f),
+			cmd.value("gustsRemaining", 1), cmd.value("decayIn", 30.0f))) {
+			Fail("set_typhoon: 只有大雨允许设置台风，且启用台风时必须提供 HOUSE/FRONT 风向");
+			return false;
+		}
+		return true;
+	}
+	if (op == "trigger_typhoon_gust") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) { Fail("trigger_typhoon_gust: 不在 GameScene 或 Board 为空"); return false; }
+		if (!gs->GetBoard()->TriggerTyphoonGustForTesting()) {
+			Fail("trigger_typhoon_gust: 当前不是带台风的大雨");
 			return false;
 		}
 		return true;
@@ -734,6 +776,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	// 黑夜天气：倍率与 alpha 另给整数投影，避免 AutoTest 对浮点做严格 equals。
 	{
 		const float zombieRain = board->GetZombieRainSpeedMultiplier();
+		const float hostileWind = board->GetZombieWindMoveMultiplier(false);
+		const float charmedWind = board->GetZombieWindMoveMultiplier(true);
 		const float plantRain = board->GetPlantRainActionSpeedMultiplier();
 		const float perkAttack = static_cast<float>(
 			board->GetPerkManager().GetPlantAttackSpeedMultiplier());
@@ -751,6 +795,19 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "remaining", board->GetWeatherTimer() },
 			{ "lightningRemaining", board->GetLightningTimer() },
 			{ "zombieSpeedPct", static_cast<int>(std::lround(zombieRain * 100.0f)) },
+			{ "typhoonStrength", TyphoonStrengthName(board->GetTyphoonStrength()) },
+			{ "typhoonDecayRemaining", board->GetTyphoonStrengthTimer() },
+			{ "windDirection", WindDirectionName(board->GetWindDirection()) },
+			{ "windDirectionRemaining", board->GetWindDirectionTimer() },
+			{ "windGustRemaining", board->GetWindGustTimer() },
+			{ "gustsRemaining", board->GetTyphoonGustsRemaining() },
+			{ "gustWarning", board->IsTyphoonGustWarning() },
+			{ "lastGustMovedPlants", board->GetLastTyphoonMovedPlants() },
+			{ "lastGustLostPlants", board->GetLastTyphoonLostPlants() },
+			{ "hostileWindMovePct", static_cast<int>(std::lround(hostileWind * 100.0f)) },
+			{ "charmedWindMovePct", static_cast<int>(std::lround(charmedWind * 100.0f)) },
+			{ "hostileCombinedMovePct", static_cast<int>(std::lround(zombieRain * hostileWind * 100.0f)) },
+			{ "charmedCombinedMovePct", static_cast<int>(std::lround(zombieRain * charmedWind * 100.0f)) },
 			{ "plantActionSpeedPct", static_cast<int>(std::lround(plantRain * 100.0f)) },
 			{ "overlayAlpha", static_cast<int>(std::lround(board->GetRainOverlayAlpha())) },
 			{ "rainSoundPlaying", AudioSystem::IsLoopingSoundPlaying(ResourceKeys::Sounds::SOUND_RAIN) },

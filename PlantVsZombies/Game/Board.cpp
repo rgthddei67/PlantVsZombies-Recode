@@ -87,6 +87,43 @@ namespace {
 	constexpr float kLightningRepeatMax = 10.0f;         // 大雨中两次闪电的最长间隔（秒）
 	constexpr float kLightningFlashDuration = 0.18f;     // 单次闪电白闪持续时间（秒）
 	constexpr float kLightningFlashPeakAlpha = 105.0f;   // 单次闪电白闪峰值透明度（0～255）
+	constexpr int kTyphoonChanceEarlyPercent = 8;        // 新大雨阶段附加台风的前期概率（百分比）
+	constexpr int kTyphoonChanceLatePercent = 20;        // 新大雨阶段附加台风的后期目标概率（百分比）
+	constexpr int kTyphoonWeight = 70;                   // 命中台风后普通台风的相对权重
+	constexpr int kSevereTyphoonWeight = 25;             // 命中台风后强台风的相对权重
+	constexpr int kSuperTyphoonWeight = 5;               // 命中台风后超强台风的相对权重
+	constexpr float kWindDirectionDurationMin = 18.0f;   // 同一风向至少维持的游戏秒数
+	constexpr float kWindDirectionDurationMax = 26.0f;   // 同一风向至多维持的游戏秒数
+	constexpr float kSuperTyphoonDecayMin = 18.0f;       // 超强台风衰减为强台风前的最短持续时间（游戏秒）
+	constexpr float kSuperTyphoonDecayMax = 24.0f;       // 超强台风衰减为强台风前的最长持续时间（游戏秒）
+	constexpr float kSevereTyphoonDecayMin = 22.0f;      // 强台风衰减为普通台风前的最短持续时间（游戏秒）
+	constexpr float kSevereTyphoonDecayMax = 30.0f;      // 强台风衰减为普通台风前的最长持续时间（游戏秒）
+	constexpr float kTyphoonDecayMin = 28.0f;            // 普通台风完全消散前的最短持续时间（游戏秒）
+	constexpr float kTyphoonDecayMax = 38.0f;            // 普通台风完全消散前的最长持续时间（游戏秒）
+	constexpr float kTyphoonWindParticleInterval = 0.70f; // 普通台风风线发射间隔；越大视觉浓度越低（游戏秒）
+	constexpr float kSevereWindParticleInterval = 0.40f; // 强台风风线发射间隔；用浓度表达强度（游戏秒）
+	constexpr float kSuperWindParticleInterval = 0.22f;  // 超强台风风线发射间隔；三档中视觉浓度最高（游戏秒）
+	constexpr float kWindParticleOriginPadding = 40.0f;  // 风线从逻辑画面左右边缘外生成的距离（像素）
+	constexpr float kTyphoonGustWarningTime = 4.0f;      // 阵风前常驻实况进入警示色的秒数
+	constexpr float kTyphoonPlantSlideDuration = 0.45f;  // 植物逻辑换格后画面平滑追赶的游戏秒数
+	constexpr float kTyphoonGustIntervalMin = 28.0f;     // 普通台风阵风最短间隔（游戏秒）
+	constexpr float kTyphoonGustIntervalMax = 36.0f;     // 普通台风阵风最长间隔（游戏秒）
+	constexpr float kSevereGustIntervalMin = 18.0f;      // 强台风阵风最短间隔（游戏秒）
+	constexpr float kSevereGustIntervalMax = 24.0f;      // 强台风阵风最长间隔（游戏秒）
+	constexpr float kSuperGustIntervalMin = 24.0f;       // 超强台风阵风最短间隔；位移更远，故不再同时提到最高频
+	constexpr float kSuperGustIntervalMax = 30.0f;       // 超强台风阵风最长间隔（游戏秒）
+	constexpr int kTyphoonGustDistance = 0;              // 普通台风吹不动植物，仅保留顺逆风僵尸倍率
+	constexpr int kSevereGustDistance = 1;               // 强台风每次吹动的整数格数
+	constexpr int kSuperGustDistance = 2;                // 超强台风每次吹动的整数格数
+	constexpr int kTyphoonMaxGusts = 0;                  // 普通台风不触发植物位移阵风，降低首次遇见的压迫感
+	constexpr int kSevereMaxGusts = 3;                   // 强台风单个大雨阶段最多阵风次数
+	constexpr int kSuperMaxGusts = 2;                    // 超强台风单个大雨阶段最多阵风次数
+	constexpr float kTyphoonTailwindZombieMove = 1.08f;  // 普通台风顺风僵尸水平移动倍率（相对当前雨天）
+	constexpr float kTyphoonHeadwindZombieMove = 0.92f;  // 普通台风逆风僵尸水平移动倍率（相对当前雨天）
+	constexpr float kSevereTailwindZombieMove = 1.14f;   // 强台风顺风僵尸水平移动倍率（相对当前雨天）
+	constexpr float kSevereHeadwindZombieMove = 0.86f;   // 强台风逆风僵尸水平移动倍率（相对当前雨天）
+	constexpr float kSuperTailwindZombieMove = 1.20f;    // 超强台风顺风僵尸水平移动倍率（相对当前雨天）
+	constexpr float kSuperHeadwindZombieMove = 0.80f;    // 超强台风逆风僵尸水平移动倍率（相对当前雨天）
 
 	const char* RainEffectName(RainIntensity intensity)
 	{
@@ -99,11 +136,106 @@ namespace {
 		return "";
 	}
 
+	/** 返回实时吹向对应的横向风线粒子名；名字必须匹配 XML 首个 Emitter。 */
+	const char* WindEffectName(WindDirection direction)
+	{
+		switch (direction) {
+		case WindDirection::TOWARD_HOUSE: return "WindTowardHouse";
+		case WindDirection::TOWARD_FRONT: return "WindTowardFront";
+		case WindDirection::NONE:         return "";
+		}
+		return "";
+	}
+
 	/** 在两档调参权重间插值并四舍五入，保证后期变化连续而非跨波次突跳。 */
 	int LerpWeatherWeight(int earlyWeight, int lateWeight, float lateFactor)
 	{
 		return static_cast<int>(std::lround(static_cast<float>(earlyWeight)
 			+ static_cast<float>(lateWeight - earlyWeight) * lateFactor));
+	}
+
+	/** 返回台风强度对应的单次阵风位移格数。 */
+	int TyphoonGustDistance(TyphoonStrength strength)
+	{
+		switch (strength) {
+		case TyphoonStrength::TYPHOON: return kTyphoonGustDistance;
+		case TyphoonStrength::SEVERE:  return kSevereGustDistance;
+		case TyphoonStrength::SUPER:   return kSuperGustDistance;
+		case TyphoonStrength::NONE:    return 0;
+		}
+		return 0;
+	}
+
+	/** 返回台风强度对应的阶段阵风次数上限。 */
+	int TyphoonMaxGusts(TyphoonStrength strength)
+	{
+		switch (strength) {
+		case TyphoonStrength::TYPHOON: return kTyphoonMaxGusts;
+		case TyphoonStrength::SEVERE:  return kSevereMaxGusts;
+		case TyphoonStrength::SUPER:   return kSuperMaxGusts;
+		case TyphoonStrength::NONE:    return 0;
+		}
+		return 0;
+	}
+
+	/** 按台风强度抽取下一次阵风间隔。 */
+	float RandomTyphoonGustInterval(TyphoonStrength strength)
+	{
+		switch (strength) {
+		case TyphoonStrength::TYPHOON:
+			return GameRandom::Range(kTyphoonGustIntervalMin, kTyphoonGustIntervalMax);
+		case TyphoonStrength::SEVERE:
+			return GameRandom::Range(kSevereGustIntervalMin, kSevereGustIntervalMax);
+		case TyphoonStrength::SUPER:
+			return GameRandom::Range(kSuperGustIntervalMin, kSuperGustIntervalMax);
+		case TyphoonStrength::NONE:
+			return 0.0f;
+		}
+		return 0.0f;
+	}
+
+	/** 以发射频率而不是另做贴图区分台风强度，保证视觉浓度只需在此集中调参。 */
+	float TyphoonWindParticleInterval(TyphoonStrength strength)
+	{
+		switch (strength) {
+		case TyphoonStrength::TYPHOON: return kTyphoonWindParticleInterval;
+		case TyphoonStrength::SEVERE:  return kSevereWindParticleInterval;
+		case TyphoonStrength::SUPER:   return kSuperWindParticleInterval;
+		case TyphoonStrength::NONE:    return 0.0f;
+		}
+		return 0.0f;
+	}
+
+	/** 按当前强度抽取单向衰减阶段时长；台风不会在同一场大雨中反向增强。 */
+	float RandomTyphoonStrengthDuration(TyphoonStrength strength)
+	{
+		switch (strength) {
+		case TyphoonStrength::TYPHOON:
+			return GameRandom::Range(kTyphoonDecayMin, kTyphoonDecayMax);
+		case TyphoonStrength::SEVERE:
+			return GameRandom::Range(kSevereTyphoonDecayMin, kSevereTyphoonDecayMax);
+		case TyphoonStrength::SUPER:
+			return GameRandom::Range(kSuperTyphoonDecayMin, kSuperTyphoonDecayMax);
+		case TyphoonStrength::NONE:
+			return 0.0f;
+		}
+		return 0.0f;
+	}
+
+	/** 返回台风强度对应的顺风/逆风僵尸水平移动倍率。 */
+	float TyphoonZombieMoveMultiplier(TyphoonStrength strength, bool tailwind)
+	{
+		switch (strength) {
+		case TyphoonStrength::TYPHOON:
+			return tailwind ? kTyphoonTailwindZombieMove : kTyphoonHeadwindZombieMove;
+		case TyphoonStrength::SEVERE:
+			return tailwind ? kSevereTailwindZombieMove : kSevereHeadwindZombieMove;
+		case TyphoonStrength::SUPER:
+			return tailwind ? kSuperTailwindZombieMove : kSuperHeadwindZombieMove;
+		case TyphoonStrength::NONE:
+			return 1.0f;
+		}
+		return 1.0f;
 	}
 
 	/** 返回指定雨势的僵尸速度倍率，供过渡插值复用。 */
@@ -319,6 +451,22 @@ float Board::GetZombieRainSpeedMultiplier() const
 	return previous + (ZombieSpeedForRain(mRainIntensity) - previous) * progress;
 }
 
+float Board::GetZombieWindMoveMultiplier(bool movingTowardFront) const
+{
+	if (!HasTyphoon() || mRainIntensity != RainIntensity::HEAVY
+		|| mWindDirection == WindDirection::NONE) return 1.0f;
+	const bool tailwind = (movingTowardFront
+		&& mWindDirection == WindDirection::TOWARD_FRONT)
+		|| (!movingTowardFront && mWindDirection == WindDirection::TOWARD_HOUSE);
+	return TyphoonZombieMoveMultiplier(mTyphoonStrength, tailwind);
+}
+
+bool Board::IsTyphoonGustWarning() const
+{
+	return HasTyphoon() && mTyphoonGustsRemaining > 0
+		&& mWindGustTimer > 0.0f && mWindGustTimer <= kTyphoonGustWarningTime;
+}
+
 float Board::GetPlantRainActionSpeedMultiplier() const
 {
 	const float progress = GetWeatherTransitionProgress();
@@ -436,6 +584,7 @@ void Board::InitializeWeather()
 	mWeatherTransitionTimer = 0.0f;
 	mWeatherForecastReady = false;
 	mRainVisualActive = false;
+	StopTyphoon();
 	mWeatherTimer = GameAPP::GetInstance().GetBackgroundIsNight(mBackGround)
 		? GameRandom::Range(kFirstRainDelayMin, kFirstRainDelayMax)
 		: 0.0f;
@@ -605,10 +754,218 @@ void Board::ConsumeWeatherForecast()
 	BeginRain(next, GameRandom::Range(kRainTailDurationMin, kRainTailDurationMax), false, false);
 }
 
-void Board::BeginRain(RainIntensity intensity, float duration, bool canIntensify, bool canHold)
+/** 新大雨阶段只判定一次是否附加台风，并锁定强度、初始方向和本阶段阵风预算。 */
+void Board::StartTyphoonForHeavyPhase()
+{
+	StopTyphoon();
+	const int chance = LerpWeatherWeight(kTyphoonChanceEarlyPercent,
+		kTyphoonChanceLatePercent, GetWeatherLateGameFactor());
+	if (GameRandom::Range(1, 100) > chance) return;
+
+	const int totalWeight = kTyphoonWeight + kSevereTyphoonWeight + kSuperTyphoonWeight;
+	const int roll = GameRandom::Range(1, totalWeight);
+	if (roll <= kTyphoonWeight) {
+		mTyphoonStrength = TyphoonStrength::TYPHOON;
+	}
+	else if (roll <= kTyphoonWeight + kSevereTyphoonWeight) {
+		mTyphoonStrength = TyphoonStrength::SEVERE;
+	}
+	else {
+		mTyphoonStrength = TyphoonStrength::SUPER;
+	}
+	mWindDirection = GameRandom::Range(0, 1) == 0
+		? WindDirection::TOWARD_HOUSE : WindDirection::TOWARD_FRONT;
+	mTyphoonStrengthTimer = RandomTyphoonStrengthDuration(mTyphoonStrength);
+	mWindDirectionTimer = GameRandom::Range(
+		kWindDirectionDurationMin, kWindDirectionDurationMax);
+	mTyphoonGustsRemaining = TyphoonMaxGusts(mTyphoonStrength);
+	mWindGustTimer = mTyphoonGustsRemaining > 0
+		? RandomTyphoonGustInterval(mTyphoonStrength) : 0.0f;
+}
+
+/** 清空全部台风派生状态；中雨、小雨、晴天和旧档默认都以此为单位元。 */
+void Board::StopTyphoon()
+{
+	mWindParticleTimer = 0.0f;
+	mTyphoonStrength = TyphoonStrength::NONE;
+	mWindDirection = WindDirection::NONE;
+	mTyphoonStrengthTimer = 0.0f;
+	mWindDirectionTimer = 0.0f;
+	mWindGustTimer = 0.0f;
+	mTyphoonGustsRemaining = 0;
+	mLastTyphoonMovedPlants = 0;
+	mLastTyphoonLostPlants = 0;
+}
+
+/** 从存档恢复已经判定过的台风结果；无效组合只会安全退化为无台风，不重新随机。 */
+void Board::RestoreTyphoonState(TyphoonStrength strength, WindDirection direction,
+	float strengthTimer, float gustTimer, float directionTimer, int gustsRemaining)
+{
+	StopTyphoon();
+	const bool validStrength = strength == TyphoonStrength::TYPHOON
+		|| strength == TyphoonStrength::SEVERE || strength == TyphoonStrength::SUPER;
+	const bool validDirection = direction == WindDirection::TOWARD_HOUSE
+		|| direction == WindDirection::TOWARD_FRONT;
+	if (mRainIntensity != RainIntensity::HEAVY || !validStrength || !validDirection) return;
+
+	mTyphoonStrength = strength;
+	mWindDirection = direction;
+	mTyphoonStrengthTimer = std::max(0.0f, strengthTimer);
+	mWindGustTimer = std::max(0.0f, gustTimer);
+	mWindDirectionTimer = std::max(0.0f, directionTimer);
+	mTyphoonGustsRemaining = std::clamp(gustsRemaining, 0, TyphoonMaxGusts(strength));
+}
+
+/**
+ * 台风只沿 SUPER→SEVERE→TYPHOON→NONE 衰减。风向保持不变，阵风预算只会被新上限截断而不补充，
+ * 避免衰减反而给玩家追加惩罚；倍率与风线浓度从下一帧起自动采用新强度。
+ */
+void Board::WeakenTyphoon()
+{
+	if (!HasTyphoon()) return;
+	TyphoonStrength next = TyphoonStrength::NONE;
+	switch (mTyphoonStrength) {
+	case TyphoonStrength::SUPER:    next = TyphoonStrength::SEVERE; break;
+	case TyphoonStrength::SEVERE:   next = TyphoonStrength::TYPHOON; break;
+	case TyphoonStrength::TYPHOON:
+	case TyphoonStrength::NONE:     next = TyphoonStrength::NONE; break;
+	}
+
+	if (next == TyphoonStrength::NONE) {
+		StopTyphoon();
+		if (mGameScene) mGameScene->ShowCurrentWeatherNotice();
+		return;
+	}
+	mTyphoonStrength = next;
+	mTyphoonStrengthTimer = RandomTyphoonStrengthDuration(next);
+	mTyphoonGustsRemaining = std::min(mTyphoonGustsRemaining, TyphoonMaxGusts(next));
+	mWindGustTimer = mTyphoonGustsRemaining > 0
+		? RandomTyphoonGustInterval(next) : 0.0f;
+	mWindParticleTimer = 0.0f;
+	if (mGameScene) mGameScene->ShowCurrentWeatherNotice();
+}
+
+/** 风向按台风过境分段翻转；不在每次阵风临时重抽，保证玩家可据实况提前应对。 */
+void Board::ChangeWindDirection()
+{
+	if (!HasTyphoon()) return;
+	mWindDirection = mWindDirection == WindDirection::TOWARD_HOUSE
+		? WindDirection::TOWARD_FRONT : WindDirection::TOWARD_HOUSE;
+	mWindDirectionTimer = GameRandom::Range(
+		kWindDirectionDurationMin, kWindDirectionDurationMax);
+	// 下一帧立即发射新方向的风线；旧方向粒子会在自身不足 1.25 秒的寿命内自然淡出。
+	mWindParticleTimer = 0.0f;
+}
+
+/**
+ * 周期性发射覆盖画面的横向风线。三档共用同一粒子资源，只用发射间隔表达浓度；
+ * 该计时器是纯视觉瞬态，读档后从零开始即可按已恢复的强度与方向重建。
+ */
+void Board::UpdateTyphoonWindVisual(float deltaTime)
+{
+	if (!g_particleSystem || !HasTyphoon() || mWindDirection == WindDirection::NONE) return;
+	mWindParticleTimer -= deltaTime;
+	if (mWindParticleTimer > 0.0f) return;
+
+	const float originX = mWindDirection == WindDirection::TOWARD_FRONT
+		? -kWindParticleOriginPadding
+		: static_cast<float>(SCENE_WIDTH) + kWindParticleOriginPadding;
+	g_particleSystem->EmitEffect(WindEffectName(mWindDirection),
+		Vector(originX, static_cast<float>(SCENE_HEIGHT) * 0.5f), LAYER_EFFECTS_WORLD);
+	mWindParticleTimer = TyphoonWindParticleInterval(mTyphoonStrength);
+}
+
+/** 推进台风风向与阵风计时；阵风预算耗尽后持续风仍会影响僵尸移动。 */
+void Board::UpdateTyphoon(float deltaTime)
+{
+	if (!HasTyphoon()) return;
+	if (mRainIntensity != RainIntensity::HEAVY) {
+		StopTyphoon();
+		return;
+	}
+	mTyphoonStrengthTimer -= deltaTime;
+	if (mTyphoonStrengthTimer <= 0.0f) WeakenTyphoon();
+	if (!HasTyphoon()) return;
+	UpdateTyphoonWindVisual(deltaTime);
+
+	mWindDirectionTimer -= deltaTime;
+	if (mWindDirectionTimer <= 0.0f) ChangeWindDirection();
+	if (mTyphoonGustsRemaining <= 0) {
+		mWindGustTimer = 0.0f;
+		return;
+	}
+
+	mWindGustTimer -= deltaTime;
+	if (mWindGustTimer > 0.0f) return;
+	TriggerTyphoonGust();
+	--mTyphoonGustsRemaining;
+	mWindGustTimer = mTyphoonGustsRemaining > 0
+		? RandomTyphoonGustInterval(mTyphoonStrength) : 0.0f;
+}
+
+/**
+ * 同一阵风按吹向逐格、从前缘到后缘结算全部植物。
+ * 每次换格先更新 Cell、row/column 与碰撞箱，再让植物画面用瞬态偏移追赶；
+ * 因此滑动中保存只会记录目标格，读档不会恢复半格状态或重复位移。
+ */
+void Board::TriggerTyphoonGust()
+{
+	mLastTyphoonMovedPlants = 0;
+	mLastTyphoonLostPlants = 0;
+	if (!HasTyphoon() || mRainIntensity != RainIntensity::HEAVY
+		|| mWindDirection == WindDirection::NONE) return;
+
+	const int columnDelta = mWindDirection == WindDirection::TOWARD_FRONT ? 1 : -1;
+	const int distance = TyphoonGustDistance(mTyphoonStrength);
+	std::unordered_set<int> movedPlantIDs;
+	std::unordered_set<int> lostPlantIDs;
+	for (int step = 0; step < distance; ++step) {
+		for (int row = 0; row < mRows; ++row) {
+			const int firstColumn = columnDelta > 0 ? mColumns - 1 : 0;
+			const int endColumn = columnDelta > 0 ? -1 : mColumns;
+			for (int column = firstColumn; column != endColumn; column -= columnDelta) {
+				Cell* source = GetCell(row, column);
+				if (!source || source->IsEmpty()) continue;
+				const int plantID = source->GetPlantID();
+				Plant* plant = mEntityManager.GetPlant(plantID);
+				if (!plant || !plant->IsActive()) {
+					source->ClearPlantID();
+					continue;
+				}
+
+				const int targetColumn = column + columnDelta;
+				if (targetColumn < 0 || targetColumn >= mColumns) {
+					lostPlantIDs.insert(plantID);
+					plant->Die();
+					continue;
+				}
+
+				Cell* target = GetCell(row, targetColumn);
+				if (!target || !target->IsEmpty() || HasCraterAt(row, targetColumn)) continue;
+				source->ClearPlantID();
+				target->SetPlantID(plantID);
+				plant->MoveToGridCell(row, targetColumn, kTyphoonPlantSlideDuration);
+				movedPlantIDs.insert(plantID);
+			}
+		}
+	}
+	mLastTyphoonMovedPlants = static_cast<int>(movedPlantIDs.size());
+	mLastTyphoonLostPlants = static_cast<int>(lostPlantIDs.size());
+}
+
+void Board::BeginRain(RainIntensity intensity, float duration, bool canIntensify, bool canHold,
+	bool allowTyphoonRoll)
 {
 	if (intensity == RainIntensity::CLEAR || duration <= 0.0f) return;
+	const bool wasHeavy = mRainIntensity == RainIntensity::HEAVY;
 	BeginWeatherTransition(intensity);
+	if (intensity != RainIntensity::HEAVY) {
+		StopTyphoon();
+	}
+	else if (!wasHeavy) {
+		if (allowTyphoonRoll) StartTyphoonForHeavyPhase();
+		else StopTyphoon();
+	}
 	mForecastRainIntensity = RainIntensity::CLEAR;
 	mActualForecastRainIntensity = RainIntensity::CLEAR;
 	mWeatherTimer = duration;
@@ -643,6 +1000,7 @@ void Board::FinishRainPhase(int transitionRoll)
 
 void Board::EndRain()
 {
+	StopTyphoon();
 	BeginWeatherTransition(RainIntensity::CLEAR);
 	mForecastRainIntensity = RainIntensity::CLEAR;
 	mActualForecastRainIntensity = RainIntensity::CLEAR;
@@ -687,7 +1045,8 @@ void Board::UpdateWeather(float deltaTime)
 	if (mRainIntensity != RainIntensity::CLEAR && mWeatherTimer > 0.0f) {
 		UpdateRainGroundSplash(deltaTime);
 	}
-	if (mRainIntensity == RainIntensity::HEAVY) {
+	if (mRainIntensity == RainIntensity::HEAVY && mWeatherTimer > 0.0f) {
+		UpdateTyphoon(deltaTime);
 		mLightningTimer -= deltaTime;
 		if (mLightningTimer <= 0.0f) {
 			TriggerLightning();
@@ -711,6 +1070,7 @@ void Board::SetRainForTesting(RainIntensity intensity, float duration, bool canI
 	mActualForecastRainIntensity = RainIntensity::CLEAR;
 	mWeatherForecastReady = false;
 	mRainVisualActive = false;
+	StopTyphoon();
 
 	if (intensity == RainIntensity::CLEAR) {
 		mRainIntensity = RainIntensity::CLEAR;
@@ -724,7 +1084,7 @@ void Board::SetRainForTesting(RainIntensity intensity, float duration, bool canI
 		if (mGameScene) mGameScene->ShowCurrentWeatherNotice();
 		return;
 	}
-	BeginRain(intensity, std::max(duration, 0.1f), canIntensify, true);
+	BeginRain(intensity, std::max(duration, 0.1f), canIntensify, true, false);
 	FinishWeatherTransitionImmediately();
 }
 
@@ -761,6 +1121,25 @@ bool Board::TriggerLightningForTesting()
 {
 	if (mRainIntensity != RainIntensity::HEAVY) return false;
 	TriggerLightning();
+	return true;
+}
+
+bool Board::SetTyphoonForTesting(TyphoonStrength strength, WindDirection direction,
+	float gustIn, float directionIn, int gustsRemaining, float decayIn)
+{
+	if (mRainIntensity != RainIntensity::HEAVY) return false;
+	if (strength == TyphoonStrength::NONE) {
+		StopTyphoon();
+		return true;
+	}
+	RestoreTyphoonState(strength, direction, decayIn, gustIn, directionIn, gustsRemaining);
+	return HasTyphoon();
+}
+
+bool Board::TriggerTyphoonGustForTesting()
+{
+	if (!HasTyphoon() || mRainIntensity != RainIntensity::HEAVY) return false;
+	TriggerTyphoonGust();
 	return true;
 }
 

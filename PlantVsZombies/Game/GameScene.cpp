@@ -28,15 +28,17 @@ namespace {
 	// 生存模式：右对齐——右端锚点固定，文字越长越向左延伸，避免"第10面旗"等长文本撞到右侧"难度"文字。
 	// 右锚点取 1020：第1轮文本宽约 252px，drawX≈768，与原左对齐位置基本重合，故第1轮观感不变。
 	constexpr float kLevelNameRightAnchor = 865.0f;
-	constexpr float kWeatherPanelWidth = 286.0f;          // 天气面板宽度（逻辑像素）
+	constexpr float kWeatherPanelWidth = 350.0f;          // 天气面板宽度；为最长风向与阵风中文实况预留安全边距（逻辑像素）
 	constexpr float kWeatherPanelHeight = 72.0f;          // 天气面板高度（逻辑像素）
+	constexpr float kTyphoonWeatherPanelHeight = 102.0f;  // 台风期间增加风向实况行后的面板高度（逻辑像素）
 	constexpr float kWeatherPanelVisibleX = 12.0f;        // 完全滑入后的左边距（逻辑像素）
 	constexpr float kWeatherPanelY = 76.0f;               // 面板顶部位置，避开上方种子槽（逻辑像素）
 	constexpr float kWeatherPanelSlideDuration = 0.32f;   // 完整滑入或滑出的动画时长（秒，未缩放）
 	constexpr float kCurrentWeatherNoticeDuration = 5.0f; // 天气揭晓后继续展示“当前天气”的时长（秒，未缩放）
 	constexpr int kWeatherCurrentFontSize = 18;           // 第一行“当前天气”字号
 	constexpr int kWeatherForecastFontSize = 16;          // 第二行“天气预警”字号
-	constexpr float kForecastFailureWidth = 286.0f;       // 预报失败提示宽度（逻辑像素）
+	constexpr int kWeatherWindFontSize = 15;              // 台风期间第三行“风向实况”字号
+	constexpr float kForecastFailureWidth = 350.0f;       // 预报失败提示与加宽后的天气面板对齐（逻辑像素）
 	constexpr float kForecastFailureHeight = 58.0f;       // 预报失败提示高度（逻辑像素）
 	constexpr float kForecastFailureY = 154.0f;           // 失败提示顶部位置，显示在天气面板下方（逻辑像素）
 	constexpr float kForecastFailureDuration = 3.2f;      // 失败提示从出现到完全消失的总时长（秒，未缩放）
@@ -91,6 +93,27 @@ namespace {
 		case RainIntensity::LIGHT:  return u8"小雨";
 		case RainIntensity::MEDIUM: return u8"中雨";
 		case RainIntensity::HEAVY:  return u8"大雨";
+		}
+		return u8"未知";
+	}
+
+	/** 把台风强度转换为当前天气行使用的正式等级名称。 */
+	const char* TyphoonStrengthDisplayName(TyphoonStrength strength) {
+		switch (strength) {
+		case TyphoonStrength::NONE:     return u8"";
+		case TyphoonStrength::TYPHOON:  return u8"台风";
+		case TyphoonStrength::SEVERE:   return u8"强台风";
+		case TyphoonStrength::SUPER:    return u8"超强台风";
+		}
+		return u8"未知台风";
+	}
+
+	/** 风向使用“吹向”而不是气象来向，箭头与植物实际位移方向始终一致。 */
+	const char* WindDirectionDisplayName(WindDirection direction) {
+		switch (direction) {
+		case WindDirection::TOWARD_HOUSE: return u8"← 吹向屋后";
+		case WindDirection::TOWARD_FRONT: return u8"→ 吹向前线";
+		case WindDirection::NONE:         return u8"无";
 		}
 		return u8"未知";
 	}
@@ -154,7 +177,8 @@ void GameScene::DrawWorldOverlay(Graphics* g)
 void GameScene::UpdateWeatherUi(float deltaTime)
 {
 	const bool shouldShow = mBoard && mBoard->mBoardState == BoardState::GAME
-		&& (mBoard->HasWeatherForecast() || mCurrentWeatherNoticeTimer > 0.0f);
+		&& (mBoard->HasWeatherForecast() || mCurrentWeatherNoticeTimer > 0.0f
+			|| mBoard->HasTyphoon());
 	const float direction = shouldShow ? 1.0f : -1.0f;
 	mWeatherPanelSlide = std::clamp(mWeatherPanelSlide
 		+ direction * deltaTime / kWeatherPanelSlideDuration, 0.0f, 1.0f);
@@ -178,20 +202,26 @@ void GameScene::DrawWeatherPanel(Graphics* g) const
 	const float x = -kWeatherPanelWidth
 		+ (kWeatherPanelWidth + kWeatherPanelVisibleX) * eased;
 	const float alpha = 255.0f * eased;
+	const float panelHeight = mBoard->HasTyphoon()
+		? kTyphoonWeatherPanelHeight : kWeatherPanelHeight;
 
 	// 深蓝半透明底板配强度色边条；矩形方案不新增贴图，分辨率和全屏模式都保持锐利。
 	g->FillRect(x + 3.0f, kWeatherPanelY + 3.0f,
-		kWeatherPanelWidth, kWeatherPanelHeight,
+		kWeatherPanelWidth, panelHeight,
 		glm::vec4(0.0f, 0.0f, 0.0f, 92.0f * eased));
-	g->FillRect(x, kWeatherPanelY, kWeatherPanelWidth, kWeatherPanelHeight,
+	g->FillRect(x, kWeatherPanelY, kWeatherPanelWidth, panelHeight,
 		glm::vec4(18.0f, 28.0f, 48.0f, 218.0f * eased));
-	g->DrawRect(x, kWeatherPanelY, kWeatherPanelWidth, kWeatherPanelHeight,
+	g->DrawRect(x, kWeatherPanelY, kWeatherPanelWidth, panelHeight,
 		glm::vec4(111.0f, 151.0f, 196.0f, 180.0f * eased));
-	g->FillRect(x, kWeatherPanelY, 5.0f, kWeatherPanelHeight,
+	g->FillRect(x, kWeatherPanelY, 5.0f, panelHeight,
 		RainIntensityTextColor(mBoard->GetRainIntensity(), alpha));
 
-	const std::string currentLine = std::string(u8"当前天气：")
+	std::string currentLine = std::string(u8"当前天气：")
 		+ RainIntensityDisplayName(mBoard->GetRainIntensity());
+	if (mBoard->HasTyphoon()) {
+		currentLine += std::string(u8" · ")
+			+ TyphoonStrengthDisplayName(mBoard->GetTyphoonStrength());
+	}
 	std::string forecastLine = u8"天气预警：暂无";
 	glm::vec4 forecastColor(166.0f, 178.0f, 196.0f, alpha);
 	if (mBoard->HasWeatherForecast()) {
@@ -214,12 +244,34 @@ void GameScene::DrawWeatherPanel(Graphics* g) const
 		shadow, textX + 1.0f, kWeatherPanelY + 42.0f);
 	g->DrawText(forecastLine, ResourceKeys::Fonts::FONT_FZCQ, kWeatherForecastFontSize,
 		forecastColor, textX, kWeatherPanelY + 41.0f);
+
+	if (mBoard->HasTyphoon()) {
+		std::string windLine = std::string(u8"风向实况：")
+			+ WindDirectionDisplayName(mBoard->GetWindDirection());
+		if (mBoard->GetTyphoonGustsRemaining() > 0) {
+			const int gustSeconds = std::max(0,
+				static_cast<int>(std::ceil(mBoard->GetWindGustTimer())));
+			windLine += std::string(u8"｜阵风 ") + std::to_string(gustSeconds) + u8"秒";
+		}
+		else {
+			windLine += u8"｜本阶段阵风结束";
+		}
+		const glm::vec4 windColor = mBoard->IsTyphoonGustWarning()
+			? glm::vec4(255.0f, 179.0f, 92.0f, alpha)
+			: glm::vec4(190.0f, 223.0f, 255.0f, alpha);
+		g->DrawText(windLine, ResourceKeys::Fonts::FONT_FZCQ, kWeatherWindFontSize,
+			shadow, textX + 1.0f, kWeatherPanelY + 70.0f);
+		g->DrawText(windLine, ResourceKeys::Fonts::FONT_FZCQ, kWeatherWindFontSize,
+			windColor, textX, kWeatherPanelY + 69.0f);
+	}
 }
 
 /** 在天气面板下方绘制错误揭晓提示；它只提示结果，不抢输入也不暂停游戏。 */
 void GameScene::DrawWeatherForecastFailure(Graphics* g) const
 {
 	if (!g || mWeatherForecastFailureTimer <= 0.0f) return;
+	const float failureY = mBoard && mBoard->HasTyphoon()
+		? kWeatherPanelY + kTyphoonWeatherPanelHeight + 6.0f : kForecastFailureY;
 
 	const float elapsed = kForecastFailureDuration - mWeatherForecastFailureTimer;
 	const float appear = std::clamp(elapsed / kForecastFailureAppearDuration, 0.0f, 1.0f);
@@ -232,14 +284,14 @@ void GameScene::DrawWeatherForecastFailure(Graphics* g) const
 	const float alpha = 255.0f * visibility;
 
 	// 暖红色与上方天气面板的冷色区分开，玩家无需读完文字也能识别“预报失准”。
-	g->FillRect(x + 3.0f, kForecastFailureY + 3.0f,
+	g->FillRect(x + 3.0f, failureY + 3.0f,
 		kForecastFailureWidth, kForecastFailureHeight,
 		glm::vec4(0.0f, 0.0f, 0.0f, 88.0f * visibility));
-	g->FillRect(x, kForecastFailureY, kForecastFailureWidth, kForecastFailureHeight,
+	g->FillRect(x, failureY, kForecastFailureWidth, kForecastFailureHeight,
 		glm::vec4(58.0f, 25.0f, 29.0f, 224.0f * visibility));
-	g->DrawRect(x, kForecastFailureY, kForecastFailureWidth, kForecastFailureHeight,
+	g->DrawRect(x, failureY, kForecastFailureWidth, kForecastFailureHeight,
 		glm::vec4(255.0f, 135.0f, 121.0f, 205.0f * visibility));
-	g->FillRect(x, kForecastFailureY, 5.0f, kForecastFailureHeight,
+	g->FillRect(x, failureY, 5.0f, kForecastFailureHeight,
 		glm::vec4(255.0f, 105.0f, 91.0f, alpha));
 
 	const std::string title = u8"天气预报失败！";
@@ -249,13 +301,13 @@ void GameScene::DrawWeatherForecastFailure(Graphics* g) const
 	const float textX = x + 18.0f;
 	const glm::vec4 shadow(0.0f, 0.0f, 0.0f, 185.0f * visibility);
 	g->DrawText(title, ResourceKeys::Fonts::FONT_FZCQ, kForecastFailureTitleFontSize,
-		shadow, textX + 1.0f, kForecastFailureY + 7.0f);
+		shadow, textX + 1.0f, failureY + 7.0f);
 	g->DrawText(title, ResourceKeys::Fonts::FONT_FZCQ, kForecastFailureTitleFontSize,
-		glm::vec4(255.0f, 181.0f, 169.0f, alpha), textX, kForecastFailureY + 6.0f);
+		glm::vec4(255.0f, 181.0f, 169.0f, alpha), textX, failureY + 6.0f);
 	g->DrawText(detail, ResourceKeys::Fonts::FONT_FZCQ, kForecastFailureDetailFontSize,
-		shadow, textX + 1.0f, kForecastFailureY + 34.0f);
+		shadow, textX + 1.0f, failureY + 34.0f);
 	g->DrawText(detail, ResourceKeys::Fonts::FONT_FZCQ, kForecastFailureDetailFontSize,
-		glm::vec4(242.0f, 229.0f, 220.0f, alpha), textX, kForecastFailureY + 33.0f);
+		glm::vec4(242.0f, 229.0f, 220.0f, alpha), textX, failureY + 33.0f);
 }
 
 void GameScene::BuildDrawCommands()

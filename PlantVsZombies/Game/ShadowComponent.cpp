@@ -41,6 +41,12 @@ void ShadowComponent::Draw(Graphics* g) {
 		return;
 	}
 	Vector objPos = transform->GetPosition();
+	if (type == ObjectType::OBJECT_PLANT) {
+		// 阵风换格时碰撞箱已在目标格，植物本体与阴影共同使用纯视觉偏移追赶。
+		if (auto* plant = dynamic_cast<Plant*>(gameObject)) {
+			objPos = plant->GetGridVisualPosition();
+		}
+	}
 
 	if (type == ObjectType::OBJECT_PLANT || type == ObjectType::OBJECT_ZOMBIE
 		|| type == ObjectType::OBJECT_LAWNMOWER || type == ObjectType::OBJECT_BULLET) {

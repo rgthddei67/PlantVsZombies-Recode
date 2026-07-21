@@ -33,6 +33,10 @@ protected:
 	bool mIsSleeping = false;	// 
 	bool mIsPreview = false;
 	Vector mVisualOffset;	// 视觉显示偏移
+	Vector mGridMoveVisualOffset; // 阵风换格后的瞬态画面偏移；逻辑格与碰撞箱已在目标格
+	Vector mGridMoveVisualStart;  // 本次平滑位移的起始偏移，用于无漂移插值
+	float mGridMoveVisualTimer = 0.0f;
+	float mGridMoveVisualDuration = 0.0f;
 
 public:
 	Plant(Board* board, PlantType plantType, int row, int column,
@@ -53,7 +57,14 @@ public:
 	virtual void LoadExtraData(const nlohmann::json& j) {}
 	void Die();
 	Vector GetPosition() const;
+	/** 逻辑格中心叠加阵风瞬态偏移，供阴影与其他非本体视觉同步滑动。 */
+	Vector GetGridVisualPosition() const { return GetPosition() + mGridMoveVisualOffset; }
 	void SetPosition(const Vector& position);
+	/**
+	 * 立即把逻辑格与碰撞箱切到目标格，再用纯视觉偏移平滑追赶。
+	 * 视觉偏移不入存档；滑动中读档会稳定落在已经结算的目标格。
+	 */
+	void MoveToGridCell(int row, int column, float visualDuration);
 
 	// 获取睡觉状态
 	bool GetSleepState() const { return this->mIsSleeping; }
@@ -65,6 +76,8 @@ public:
 	virtual void SetSleepState(bool sleep) { this->mIsSleeping = sleep; }
 
 protected:
+	/** 推进阵风换格的纯视觉插值；暂停时 DeltaTime 为 0，逻辑占格不受影响。 */
+	void UpdateGridMoveVisual();
 	/** 雨势对正向植物行动的倍率；不包含生存攻速词条。 */
 	float GetWeatherActionSpeedMultiplier() const;
 	/** 仅供攻击/生产/成长/恢复计时使用，禁止替代整个 Plant::Update 的 deltaTime。 */

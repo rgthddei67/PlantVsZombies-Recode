@@ -44,6 +44,21 @@ enum class RainIntensity {
 	HEAVY
 };
 
+/** 仅在大雨阶段存在的台风强度；NONE 表示没有附加台风。 */
+enum class TyphoonStrength {
+	NONE,
+	TYPHOON,
+	SEVERE,
+	SUPER
+};
+
+/** 风实际吹向的棋盘方向；使用“吹向”口径，避免与气象学来向混淆。 */
+enum class WindDirection {
+	NONE,
+	TOWARD_HOUSE,
+	TOWARD_FRONT
+};
+
 struct RowInfo {
 	int rowIndex = 0;
 	float weight = 1.0f;
@@ -166,6 +181,15 @@ private:
 	bool mRainCanHold = false;          // 新雨首段为中/大雨时允许一次同档续期，避免无限维持
 	bool mWeatherForecastReady = false; // true 表示公开预报与真实下一天气均已锁定、等待揭晓
 	bool mRainVisualActive = false;     // 纯运行期标记，防读档/生存轮间重复发射同一场雨
+	float mWindParticleTimer = 0.0f;    // 距下一批风线粒子的游戏秒数；瞬态视觉不入存档
+	TyphoonStrength mTyphoonStrength = TyphoonStrength::NONE; // 大雨附加台风；离开大雨立即清空
+	WindDirection mWindDirection = WindDirection::NONE;       // 当前风实际吹向，台风期间分段翻转
+	float mTyphoonStrengthTimer = 0.0f; // 当前台风强度距下一档衰减的游戏秒数
+	float mWindDirectionTimer = 0.0f;   // 距下一次风向改变的游戏秒数
+	float mWindGustTimer = 0.0f;        // 距下一次阵风吹动植物的游戏秒数
+	int mTyphoonGustsRemaining = 0;     // 本次台风阶段尚可触发的阵风次数
+	int mLastTyphoonMovedPlants = 0;    // 最近一次阵风移动的植物数，仅供观测和测试
+	int mLastTyphoonLostPlants = 0;     // 最近一次阵风吹出棋盘的植物数，仅供观测和测试
 
 	std::vector<RowInfo> mRowInfos;
 	static constexpr float ROW_WEIGHT_THRESHOLD = 1e-6f;
@@ -196,10 +220,20 @@ private:
 	RainIntensity RollNextWeather();
 	void PrepareWeatherForecast();
 	void ConsumeWeatherForecast();
-	void BeginRain(RainIntensity intensity, float duration, bool canIntensify, bool canHold);
+	void BeginRain(RainIntensity intensity, float duration, bool canIntensify, bool canHold,
+		bool allowTyphoonRoll = true);
 	// 结束当前雨段：按固定权重落点决定放晴或进入一个不可再增强的尾雨段。
 	void FinishRainPhase(int transitionRoll);
 	void EndRain();
+	void StartTyphoonForHeavyPhase();
+	void StopTyphoon();
+	void RestoreTyphoonState(TyphoonStrength strength, WindDirection direction,
+		float strengthTimer, float gustTimer, float directionTimer, int gustsRemaining);
+	void UpdateTyphoon(float deltaTime);
+	void UpdateTyphoonWindVisual(float deltaTime);
+	void WeakenTyphoon();
+	void ChangeWindDirection();
+	void TriggerTyphoonGust();
 	void EmitRainEffect(float duration);
 	void UpdateRainGroundSplash(float deltaTime);
 	void TriggerRainGroundSplash();
@@ -245,6 +279,8 @@ public:
 
 	/** 当前雨势对僵尸 Animator extra 层的倍率。 */
 	float GetZombieRainSpeedMultiplier() const;
+	/** 台风对僵尸水平移动的额外倍率；返回值以当前雨天速度为 1。 */
+	float GetZombieWindMoveMultiplier(bool movingTowardFront) const;
 	/** 当前雨势对植物攻击、生产、成长和恢复计时的倍率。 */
 	float GetPlantRainActionSpeedMultiplier() const;
 	/** 世界层蓝灰暗幕的 alpha（0..255）；UI 在暗幕之后绘制，不受影响。 */
@@ -260,6 +296,16 @@ public:
 	bool CanRainHold() const { return mRainCanHold; }
 	bool HasWeatherForecast() const { return mWeatherForecastReady; }
 	RainIntensity GetForecastRainIntensity() const { return mForecastRainIntensity; }
+	bool HasTyphoon() const { return mTyphoonStrength != TyphoonStrength::NONE; }
+	TyphoonStrength GetTyphoonStrength() const { return mTyphoonStrength; }
+	WindDirection GetWindDirection() const { return mWindDirection; }
+	float GetTyphoonStrengthTimer() const { return mTyphoonStrengthTimer; }
+	float GetWindDirectionTimer() const { return mWindDirectionTimer; }
+	float GetWindGustTimer() const { return mWindGustTimer; }
+	int GetTyphoonGustsRemaining() const { return mTyphoonGustsRemaining; }
+	int GetLastTyphoonMovedPlants() const { return mLastTyphoonMovedPlants; }
+	int GetLastTyphoonLostPlants() const { return mLastTyphoonLostPlants; }
+	bool IsTyphoonGustWarning() const;
 	/** 当前公开预报是否属于此天气阶段真实允许出现的下一档。 */
 	bool IsWeatherForecastPlausible() const;
 	/** 当前雨势对应的粒子发射器是否仍在工作。 */
@@ -273,6 +319,12 @@ public:
 	bool AdvanceRainPhaseForTesting(int transitionRoll);
 	// AutoTest 专用：仅大雨允许触发，返回是否真正闪电。
 	bool TriggerLightningForTesting();
+	// AutoTest 专用：固定大雨附加台风、风向和计时，真实游戏只走阶段开始时的一次随机判定。
+	bool SetTyphoonForTesting(TyphoonStrength strength, WindDirection direction,
+		float gustIn = 30.0f, float directionIn = 30.0f, int gustsRemaining = 1,
+		float decayIn = 30.0f);
+	// AutoTest 专用：立即触发一次当前强度的阵风，不消费自动阵风计时。
+	bool TriggerTyphoonGustForTesting();
 
 	// 初始化格子 默认5行9列
 	void InitializeCell(int rows = 4, int cols = 8);
