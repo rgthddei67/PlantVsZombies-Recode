@@ -7,7 +7,7 @@
 namespace {
 	constexpr int kEliteDancerHealth = 800;                 // 精英舞王本体血量。
 	constexpr int kMaxActiveBackupDancers = 8;              // 同时维持的直属伴舞上限。
-	constexpr float kBackupSummonInterval = 0.4f;           // 每次补充一只伴舞的游戏时间间隔（秒）。
+	constexpr float kBackupSummonInterval = 0.3f;           // 每次补充一只伴舞的游戏时间间隔（秒）。
 	constexpr float kSuperTyphoonSpeedMultiplier = 1.70f;   // 超强台风下额外动作与移动速度倍率。
 	constexpr float kSummonSideDistance = 100.0f;           // 伴舞相对舞王的前后横向距离（像素）。
 	constexpr float kSummonFrontMinX = 130.0f;              // 低于此横坐标时不在舞王前方生成伴舞（像素）。
