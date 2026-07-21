@@ -34,11 +34,7 @@ void ParticleEffect::Update() {
 
 		// 检查系统持续时间
 		if (systemDuration > 0.0f && systemTimer >= systemDuration) {
-			active = false;
-			// 停止所有发射器（不再生成新粒子）
-			for (auto& emitter : emitters) {
-				emitter->Stop();
-			}
+			Stop();
 		}
 	}
 
@@ -51,6 +47,14 @@ void ParticleEffect::Update() {
 void ParticleEffect::Draw() {
 	for (auto& emitter : emitters) {
 		emitter->Draw();
+	}
+}
+
+void ParticleEffect::Stop() {
+	if (!active) return;
+	active = false;
+	for (auto& emitter : emitters) {
+		emitter->Stop();
 	}
 }
 

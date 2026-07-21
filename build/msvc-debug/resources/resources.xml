@@ -151,6 +151,7 @@
     <Texture>./resources/particles/DoomShroom_Explosion_Top.png</Texture>
     <Texture>./resources/particles/Doom.png</Texture>
     <Texture>./resources/particles/WhitePixel.png</Texture>
+    <Texture>./resources/particles/WindStreak.png</Texture>
     <Texture>./resources/image/reanim/Rain_circle.png</Texture>
     <Texture>./resources/image/reanim/Rain_splash1.png</Texture>
     <Texture>./resources/image/reanim/Rain_splash2.png</Texture>

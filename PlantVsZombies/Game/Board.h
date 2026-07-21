@@ -12,6 +12,7 @@
 #include "Perk/SurvivalPerkManager.h"
 #include <vector>
 #include <memory>
+#include <string>
 
 class GameInfoSaver;
 class GameScene;
@@ -181,6 +182,7 @@ private:
 	bool mRainCanHold = false;          // 新雨首段为中/大雨时允许一次同档续期，避免无限维持
 	bool mWeatherForecastReady = false; // true 表示公开预报与真实下一天气均已锁定、等待揭晓
 	bool mRainVisualActive = false;     // 纯运行期标记，防读档/生存轮间重复发射同一场雨
+	std::string mRainVisualEffectName;  // 当前雨丝特效名；风向切换时只停止旧雨而不清空其他粒子
 	float mWindParticleTimer = 0.0f;    // 距下一批风线粒子的游戏秒数；瞬态视觉不入存档
 	TyphoonStrength mTyphoonStrength = TyphoonStrength::NONE; // 大雨附加台风；离开大雨立即清空
 	WindDirection mWindDirection = WindDirection::NONE;       // 当前风实际吹向，台风期间分段翻转
@@ -253,6 +255,7 @@ private:
 	void EndTyphoonGust();
 	void TriggerTyphoonPlantMove(TyphoonStrength strength, WindDirection direction);
 	void EmitRainEffect(float duration);
+	void RestartRainVisualForWindChange();
 	void UpdateRainGroundSplash(float deltaTime);
 	void TriggerRainGroundSplash();
 	void StartRainAudio();
@@ -346,6 +349,8 @@ public:
 	bool IsWeatherForecastPlausible() const;
 	/** 当前雨势对应的粒子发射器是否仍在工作。 */
 	bool IsRainEffectEmitting() const;
+	/** 当前实际发射的雨丝配置名，供 AutoTest 精确断言风向切换。 */
+	const std::string& GetRainVisualEffectName() const { return mRainVisualEffectName; }
 
 	// AutoTest 专用：固定雨势并重启对应粒子，真实游戏只走随机天气状态机。
 	void SetRainForTesting(RainIntensity intensity, float duration = 30.0f, bool canIntensify = false);

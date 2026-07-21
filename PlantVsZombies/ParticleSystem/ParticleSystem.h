@@ -33,6 +33,8 @@ public:
 	bool LoadXMLConfigs(const std::string& directory);
 	void EmitEffect(const std::string& effectName, const Vector& position,
 		int renderOrder = LAYER_EFFECTS_WORLD, float durationOverride = -1.0f);
+	/** 停止全部同名特效继续发射；已生成粒子仍按各自寿命自然收尾。 */
+	void StopEffect(const std::string& effectName);
 	/** 查询同名特效是否至少有一个发射器仍在工作。 */
 	bool IsEffectEmitting(const std::string& effectName) const;
 	/** 返回全部同名特效当前存活粒子总数，供 AutoTest 和问题诊断使用。 */

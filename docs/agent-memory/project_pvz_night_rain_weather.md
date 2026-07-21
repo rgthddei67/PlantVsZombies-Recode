@@ -18,16 +18,16 @@
 
 倍率口径：僵尸为 1.15/1.25/1.40，统一进入 `Zombie::UpdateAnimSpeed()` 的 extra 层，组合式为 `mExtraSpeed × slowFactor × rain`，冻结优先置 0，因 `_ground` 位移读有效动画速度而不会滑步。植物为 1.10/1.15/1.20，只通过 `Plant` 辅助方法加速攻击、生产、成长和恢复；不改全局 delta，也不加速索敌、受伤、死亡、爆炸清理或卡片冷却。攻击速度与生存词条相乘，动画 clip 和计时阈值一起缩放。
 
-视觉：`RainLight/Medium/Heavy.xml` 位于两个 `build/<preset>/resources/particles/config/`，复用 WhitePixel，使用细、低透明、冷蓝、逐滴亮度不同的斜雨丝。小雨为初始 72 粒、每秒 80 粒、alpha 峰值 .25；中雨为 52/60/.25，但通过更粗、更长、更快及更暗的幕保持强度差异，大雨为双层发射器。天气通过正的运行期时长把发射器切成循环模式，`SpawnMaxLaunched` 只作为可复用池容量，不再用累计总配额硬撑整场雨；`Board` 每帧核对当前雨势发射器，若被清理或异常停止会按剩余时间自动补发。地面水花沿用原版 `Rain_splash1～4` 与 `Rain_circle` 贴图，每次在 9×5 草地网格内随机落点播放约 0.3 秒的水花与扩散圆圈；按较大游戏窗口定稿为小/中/大雨平均约每秒 5/10/20+ 次（间隔 0.16～0.24、0.08～0.12、0.02～0.04 秒），落点距网格边缘保留 18px，避免素材跑出屏幕。`ParticleRotation` 显式使用时走“世界中心旋转后再拉伸”的矩阵路径，避免细长贴图角度被压回竖直。暗幕只覆盖世界层，不压 UI，alpha 小/中/大为 30/50/80；仅大雨有短促低峰值白闪，无动态灯光/反射。
+视觉：`RainLight/Medium/Heavy.xml` 位于两个 `build/<preset>/resources/particles/config/`，复用 WhitePixel，使用细、低透明、冷蓝、逐滴亮度不同的斜雨丝。小雨为初始 72 粒、每秒 80 粒、alpha 峰值 .25；中雨为 52/60/.25，但通过更粗、更长、更快及更暗的幕保持强度差异，大雨为双层发射器。台风期间大雨改用 `RainHeavyTowardHouse/Front.xml`：吹向屋后以 X=-430/-480、正 28°～37° 形成左斜雨，吹向前线以对称正 X 与负角度形成右斜雨；翻向时 `ParticleSystem::StopEffect` 只停止旧雨继续发射，在途雨丝自然淡出，新方向按剩余雨时立即接管，不能用 `ClearAll()` 误杀爆炸和水花。天气通过正的运行期时长把发射器切成循环模式，`SpawnMaxLaunched` 只作为可复用池容量，不再用累计总配额硬撑整场雨；`Board` 每帧核对当前雨势发射器，若被清理或异常停止会按剩余时间自动补发。地面水花沿用原版 `Rain_splash1～4` 与 `Rain_circle` 贴图，每次在 9×5 草地网格内随机落点播放约 0.3 秒的水花与扩散圆圈；按较大游戏窗口定稿为小/中/大雨平均约每秒 5/10/20+ 次（间隔 0.16～0.24、0.08～0.12、0.02～0.04 秒），落点距网格边缘保留 18px，避免素材跑出屏幕。`ParticleRotation` 显式使用时走“世界中心旋转后再拉伸”的矩阵路径，避免细长贴图角度被压回竖直。暗幕只覆盖世界层，不压 UI，当前 alpha 小/中/大为 34/55/110；仅大雨有短促低峰值白闪，无动态灯光/反射。
 
-风线视觉：两个 preset 都有 `WindTowardHouse.xml` 与 `WindTowardFront.xml`，共用冷蓝低透明 WhitePixel 横线，分别从画面右/左边缘外横穿逻辑画面。每批仍为 10 粒，单线通过 `ParticleScale [.65 .95]` 与 `ParticleStretch [38 70]` 形成约 25～67px 长、不到 1px 粗的短风痕，峰值 alpha .14，并用 RGB (.50/.72/1.0) 与亮度 [.65/.85] 压住 WhitePixel 的硬白感。三档强度只由 `Board.cpp` 顶部发射间隔 0.30/0.20/0.10 秒控制，因而普通最疏、强台风居中、超强台风最密；风向翻转时立即发射新方向，旧方向粒子在最长 1.15 秒寿命内自然淡出。粒子对象不进存档。
+风线视觉：两个 preset 都有 `WindTowardHouse.xml` 与 `WindTowardFront.xml`，共用原创 `WindStreak.png`，分别从画面右/左边缘外横穿逻辑画面。该 32×256 RGBA 纹理由内置 `imagegen` 在纯品红背景生成单根冷蓝风痕，再按技能流程去色键、验证透明角与半透明边缘后缩图入库；尖端、亮芯和柔和光晕让它在复杂草坪上可见而不再呈硬白直线。每批仍为 10 粒，`ParticleScale [.32 .50]` 与 `ParticleStretch [.75 1.10]` 形成约 61～141px 的随机长度，峰值 alpha .22。三档强度只由 `Board.cpp` 顶部发射间隔 0.30/0.20/0.10 秒控制，因而普通最疏、强台风居中、超强台风最密；风向翻转时立即发射新方向，旧方向粒子在最长 1.15 秒寿命内自然淡出。粒子对象不进存档。
 
 声音：对照 C# 原版 `Challenge.InitLevel()` 的 `PlayFoley(FoleyType.Rain)`、`TodFoley` 中 `SOUND_RAIN` 的 flags=5（Loop + MuteOnPause）以及 `Board.DisposeBoard()` 的 `StopFoley(Rain)`。复用原版 `rain.ogg`，本实现通过 `AudioSystem::PlayLoopingSound/StopLoopingSound` 按资源键唯一追踪循环声道；小/中/大请求音量为 0.20/0.28/0.48，仍乘主音量与音效音量。切档时僵尸倍率、植物倍率、暗幕 alpha 与雨声音量共用 2 游戏秒 smoothstep 过渡，旧雨丝自然收尾并与新发射器短暂重叠；雨转晴时等淡出结束才停止循环声。SDL_mixer 的声道音量会跨播放保留，因此循环状态同时保存 `Mix_Chunk*`：停止、查询和调音前校验声道仍属于该资源，回收后恢复 `MIX_MAX_VOLUME`；普通音效播放也主动复位取得的声道，避免复用低音量雨声声道后随机“吞音效”。
 
 ## 资源与验证
 
 - 后续新增雨天专属能力、精英僵尸雨势强化、雨天变异/条件生成或继续修改天气状态机时，先使用 `.agents/skills/adding-rain-weather/SKILL.md`；新僵尸、植物、粒子或生存词条同时叠加各自技能。
-- 雨 XML 与 `rain.ogg` 都在忽略的 build 资源树，提交时必须 `git add -f` 两个 preset；`resources.xml` 两份需保持一致。
+- 雨 XML、`WindStreak.png` 与 `rain.ogg` 都在忽略的 build 资源树，提交时必须 `git add -f` 两个 preset；`resources.xml` 两份需保持一致。
 - `adding-particle` skill 已补 `ParticleRotation` 标签语义；再改 loader/emitter 消费端要同步技能。
 - `smoke_night_rain.json` 用 `set_weather`/`advance_weather_phase`/`trigger_lightning` 固定状态，断言三档倍率、暗幕、雨声启停、词条组合、减速、冻结优先级、大雨闪电及“小→大→中→小→晴”完整链，并产出七张截图；另用 0.2 秒真实天气倒计时验证尾端小雨自动复位倍率并停止声音，用第 28 秒截图验证长雨段仍持续发射粒子。
 - 2026-07-20 `clang-release` 零警告；可见 `smoke_night_rain` 76 命令通过；既有白天 `smoke_perks_attackspeed` 通过且天气倍率保持 1.0。
@@ -43,6 +43,7 @@
 - 2026-07-21 轻型植物子弹接入台风顺逆风速度与伤害后，完整 `clang-release` 配置/构建退出码为 0；当前桌面可见运行 `smoke_typhoon_bullets` 39 命令和更新后的 `smoke_typhoon` 86 命令均通过，窗口标题确认且退出码均为 0。前者的实际碰撞、放晴还原、状态 JSON 与两张截图均已检查，后者同时补验此前尚未运行的概率保底断言以及普通台风“持续风（无位移）”UI。
 - 2026-07-21 阵风改为强 1.8 秒/超强 2.4 秒的可存档活动阶段，植物在 25%～75% 进度内预抽一次结算时刻，僵尸按强 18/超强 32 像素每秒峰值平滑漂移；强/超强等待同步调为 12～16/14～17 秒，消除衰减早于首阵风的矛盾。完整 `clang-release` 配置/构建退出码为 0；当前桌面可见 `smoke_typhoon` 108 命令和 `smoke_typhoon_bullets` 39 命令均通过、窗口标题确认、退出码 0，截图确认“阵风中”和普通台风“持续风（无阵风位移）”均未越界。
 - 2026-07-21 按主人实玩反馈把原先仅约 4～13px、几乎看不见的风线放大后再收敛，最终采用约 25～67px 的低透明冷蓝短风痕；两个 preset 的左右风向 XML 完全一致。当前桌面可见临时视觉脚本依次固定普通/强/超强台风，15 条命令通过、窗口标题确认、退出码 0，三张截图人工检查后确认普通档不抢雨幕、强度随密度递增且不再呈硬白长条。既有 `smoke_typhoon` 在粒子检查前即因旧平衡断言仍期望 25%、当前源码实际 35% 而退出 1，与本次纯 XML 调参无关。
+- 2026-07-21 复杂场景仍吞没低透明 WhitePixel 后，改用内置 `imagegen` 生成并去色键的原创 `WindStreak.png`，同时让台风大雨随实时风向切换左右斜率；定向停止旧雨的接口保留在途粒子自然收尾。完整 `clang-release` 配置/构建退出码 0；当前桌面可见 `smoke_typhoon` 117 条与 `smoke_night_rain` 84 条命令均通过、窗口标题确认、退出码 0，状态断言覆盖 `RainHeavy → RainHeavyTowardHouse → RainHeavyTowardFront → RainHeavy → RainMedium`，人工检查普通/强/超强截图确认风痕在复杂草坪可读、屋后左斜雨与前线右斜雨方向正确。两份旧平衡脚本断言同步校准到当前源码。
 
 详细设计见 `docs/superpowers/specs/2026-07-20-night-rain-weather-design.md`。
 

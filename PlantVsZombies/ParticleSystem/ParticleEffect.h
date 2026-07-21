@@ -29,6 +29,8 @@ public:
 
 	void Update();
 	void Draw();
+	/** 停止继续发射，但保留现有粒子更新到自然消亡。 */
+	void Stop();
 
 	bool IsActive() const { return active; }
 	/** 特效计时器有效且至少一个发射器仍在持续发射。 */

@@ -149,12 +149,16 @@ namespace {
 	constexpr float kSuperTailwindBulletDamage = 1.20f;   // 超强台风顺风轻型植物子弹命中伤害倍率
 	constexpr float kSuperHeadwindBulletDamage = 0.80f;   // 超强台风逆风轻型植物子弹命中伤害倍率
 
-	const char* RainEffectName(RainIntensity intensity)
+	/** 返回雨势与实时风向共同决定的雨丝特效名；台风只存在于大雨。 */
+	const char* RainEffectName(RainIntensity intensity, WindDirection direction)
 	{
 		switch (intensity) {
 		case RainIntensity::LIGHT:  return "RainLight";
 		case RainIntensity::MEDIUM: return "RainMedium";
-		case RainIntensity::HEAVY:  return "RainHeavy";
+		case RainIntensity::HEAVY:
+			if (direction == WindDirection::TOWARD_HOUSE) return "RainHeavyTowardHouse";
+			if (direction == WindDirection::TOWARD_FRONT) return "RainHeavyTowardFront";
+			return "RainHeavy";
 		case RainIntensity::CLEAR:  break;
 		}
 		return "";
@@ -713,6 +717,7 @@ void Board::InitializeWeather()
 	mWeatherTransitionTimer = 0.0f;
 	mWeatherForecastReady = false;
 	mRainVisualActive = false;
+	mRainVisualEffectName.clear();
 	mHeavyPhasesWithoutTyphoon = 0;
 	StopTyphoon();
 	mWeatherTimer = GameAPP::GetInstance().GetBackgroundIsNight(mBackGround)
@@ -731,12 +736,27 @@ void Board::RefreshZombieWeatherSpeeds()
 void Board::EmitRainEffect(float duration)
 {
 	if (!g_particleSystem || mRainIntensity == RainIntensity::CLEAR || duration <= 0.0f) return;
+	const std::string effectName = RainEffectName(mRainIntensity, mWindDirection);
+	if (effectName.empty()) return;
+	if (!mRainVisualEffectName.empty() && mRainVisualEffectName != effectName) {
+		// 风向或雨势切换时只停旧雨的发射器；在途雨丝保留到自然淡出。
+		g_particleSystem->StopEffect(mRainVisualEffectName);
+	}
 	// Box 发射器以屏幕上沿中央为基准铺满逻辑画面；运行期时长覆盖 XML 上限，
 	// 使随机雨长与读档剩余时间都能和玩法倍率同步结束。
-	g_particleSystem->EmitEffect(RainEffectName(mRainIntensity),
+	g_particleSystem->EmitEffect(effectName,
 		Vector(static_cast<float>(SCENE_WIDTH) * 0.5f, -60.0f),
 		LAYER_EFFECTS_WORLD, duration);
 	mRainVisualActive = true;
+	mRainVisualEffectName = effectName;
+}
+
+/** 台风开始、结束或翻向后按剩余雨时无缝切换定向雨丝。 */
+void Board::RestartRainVisualForWindChange()
+{
+	if (mRainIntensity != RainIntensity::HEAVY || mWeatherTimer <= 0.0f) return;
+	mRainVisualActive = false;
+	EmitRainEffect(mWeatherTimer);
 }
 
 /** 在草地逻辑网格内随机选择落点，播放短促的原版雨滴水花与扩散圆圈。 */
@@ -772,7 +792,8 @@ void Board::UpdateRainGroundSplash(float deltaTime)
 bool Board::IsRainEffectEmitting() const
 {
 	return g_particleSystem && mRainIntensity != RainIntensity::CLEAR
-		&& g_particleSystem->IsEffectEmitting(RainEffectName(mRainIntensity));
+		&& g_particleSystem->IsEffectEmitting(
+			RainEffectName(mRainIntensity, mWindDirection));
 }
 
 void Board::StartRainAudio()
@@ -1020,6 +1041,7 @@ void Board::WeakenTyphoon()
 
 	if (next == TyphoonStrength::NONE) {
 		StopTyphoon();
+		RestartRainVisualForWindChange();
 		if (mGameScene) mGameScene->ShowCurrentWeatherNotice();
 		return;
 	}
@@ -1064,6 +1086,7 @@ void Board::ChangeWindDirection()
 		kWindDirectionDurationMin, kWindDirectionDurationMax);
 	// 下一帧立即发射新方向的风线；旧方向粒子会在自身不足 1.25 秒的寿命内自然淡出。
 	mWindParticleTimer = 0.0f;
+	RestartRainVisualForWindChange();
 }
 
 /**
@@ -1288,6 +1311,7 @@ void Board::EndRain()
 	mRainCanHold = false;
 	mWeatherForecastReady = false;
 	mRainVisualActive = false;
+	mRainVisualEffectName.clear();
 	RefreshZombieWeatherSpeeds();
 	if (mWeatherTransitionTimer > 0.0f) StartRainAudio();
 	else StopRainAudio();
@@ -1347,6 +1371,7 @@ void Board::SetRainForTesting(RainIntensity intensity, float duration, bool canI
 	mActualForecastRainIntensity = RainIntensity::CLEAR;
 	mWeatherForecastReady = false;
 	mRainVisualActive = false;
+	mRainVisualEffectName.clear();
 	mHeavyPhasesWithoutTyphoon = 0;
 	StopTyphoon();
 
@@ -1389,6 +1414,7 @@ bool Board::AdvanceRainPhaseForTesting(int transitionRoll)
 	// 测试会在雨段尚未自然到期时强制切档；先清旧雨丝，模拟生产路径中旧发射器已到期。
 	if (g_particleSystem) g_particleSystem->ClearAll();
 	mRainVisualActive = false;
+	mRainVisualEffectName.clear();
 	if (total > 0) FinishRainPhase(transitionRoll);
 	else EndRain();
 	FinishWeatherTransitionImmediately();
@@ -1408,9 +1434,11 @@ bool Board::SetTyphoonForTesting(TyphoonStrength strength, WindDirection directi
 	if (mRainIntensity != RainIntensity::HEAVY) return false;
 	if (strength == TyphoonStrength::NONE) {
 		StopTyphoon();
+		RestartRainVisualForWindChange();
 		return true;
 	}
 	RestoreTyphoonState(strength, direction, decayIn, gustIn, directionIn, gustsRemaining);
+	RestartRainVisualForWindChange();
 	return HasTyphoon();
 }
 
@@ -1422,6 +1450,7 @@ bool Board::RollTyphoonForTesting(int chanceRoll, int strengthRoll, WindDirectio
 	if (mRainIntensity != RainIntensity::HEAVY || chanceRoll < 1 || chanceRoll > 100
 		|| strengthRoll < 1 || strengthRoll > totalWeight || !validDirection) return false;
 	StartTyphoonForHeavyPhase(chanceRoll, strengthRoll, direction);
+	RestartRainVisualForWindChange();
 	return true;
 }
 

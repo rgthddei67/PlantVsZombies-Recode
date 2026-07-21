@@ -60,6 +60,12 @@ void ParticleSystem::EmitEffect(const std::string& effectName, const Vector& pos
 	effects.push_back(std::move(effect));
 }
 
+void ParticleSystem::StopEffect(const std::string& effectName) {
+	for (auto& effect : effects) {
+		if (effect->GetName() == effectName) effect->Stop();
+	}
+}
+
 bool ParticleSystem::IsEffectEmitting(const std::string& effectName) const {
 	for (const auto& effect : effects) {
 		if (effect->GetName() == effectName && effect->IsEmitting()) return true;
