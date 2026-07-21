@@ -31,11 +31,20 @@ namespace {
 	constexpr float kClearWeatherDelayMin = 15.0f;       // 两场雨之间的最短晴空间隔（秒）
 	constexpr float kClearWeatherDelayMax = 40.0f;       // 两场雨之间的最长晴空间隔（秒）
 	constexpr float kRainDurationMin = 85.0f;            // 一场新雨第一个雨段的最短持续时间（秒）
-	constexpr float kRainDurationMax = 150.0f;            // 一场新雨第一个雨段的最长持续时间（秒）
+	constexpr float kRainDurationMax = 150.0f;           // 一场新雨第一个雨段的最长持续时间（秒）
 	constexpr float kRainTailDurationMin = 45.0f;        // 雨势切档后尾雨段的最短持续时间（秒）
 	constexpr float kRainTailDurationMax = 80.0f;        // 雨势切档后尾雨段的最长持续时间（秒）
+	constexpr float kLateLightRainDurationMin = 45.0f;   // 满压力下新小雨最短持续时间（秒），加快低威胁天气周转
+	constexpr float kLateLightRainDurationMax = 70.0f;   // 满压力下新小雨最长持续时间（秒）
+	constexpr float kLateMediumRainDurationMin = 60.0f;  // 满压力下新中雨最短持续时间（秒）
+	constexpr float kLateMediumRainDurationMax = 95.0f;  // 满压力下新中雨最长持续时间（秒）
+	constexpr float kLateLightRainTailMin = 20.0f;       // 满压力下尾段小雨最短持续时间（秒）
+	constexpr float kLateLightRainTailMax = 35.0f;       // 满压力下尾段小雨最长持续时间（秒）
+	constexpr float kLateMediumRainTailMin = 30.0f;      // 满压力下尾段中雨最短持续时间（秒）
+	constexpr float kLateMediumRainTailMax = 50.0f;      // 满压力下尾段中雨最长持续时间（秒）
 	constexpr float kWeatherForecastLeadTime = 15.0f;    // 阶段结束前多少秒预抽取并展示下一天气
-	constexpr int kWeatherForecastAccuracyPercent = 75;  // 天气预警准确率（0～100；失败时故意显示另一种天气）
+	constexpr int kWeatherForecastAccuracyPercent = 75;  // 前期天气预警准确率（百分比）
+	constexpr int kLateWeatherForecastAccuracyPercent = 90; // 满压力天气预警准确率上限（百分比）
 	constexpr int kEliteDancerMutationChancePercent = 60; // 台风以上普通舞王变异为精英舞王的概率（百分比）
 	constexpr int kEliteDancerMaxPerWave = 4;             // 每波最多允许生成的精英舞王数量。
 	constexpr float kWeatherTransitionDuration = 2.0f;   // 雨势切换时倍率、暗幕与雨声音量的平滑过渡时长（游戏秒）
@@ -47,10 +56,13 @@ namespace {
 	constexpr int kLightRainWeight = 40;                 // 小雨相对权重；数值越大越容易抽中
 	constexpr int kMediumRainWeight = 40;                // 中雨相对权重；数值越大越容易抽中
 	constexpr int kHeavyRainWeight = 50;                 // 大雨相对权重；数值越大越容易抽中
-	constexpr int kLateLightRainWeight = 15;             // 后期小雨目标权重；随波次从基础值平滑下降
-	constexpr int kLateHeavyRainWeight = 60;             // 后期大雨目标权重；随波次从基础值平滑上升
+	constexpr int kLateLightRainWeight = 10;             // 满压力小雨目标权重，保留少量天气层次
+	constexpr int kLateMediumRainWeight = 25;            // 满压力中雨目标权重，避免长时间低威胁天气
+	constexpr int kLateHeavyRainWeight = 65;             // 满压力大雨目标权重，不含弱天气保底
 	constexpr int kClearHoldWeight = 15;                 // 前期晴天阶段结束后继续晴天的相对权重
-	constexpr int kLateClearHoldWeight = 8;             // 后期继续晴天的目标权重，让强天气仍更常出现
+	constexpr int kLateClearHoldWeight = 0;              // 满压力不连续续晴；每场雨后的晴空间隔仍保留
+	constexpr float kWeakWeatherPityStart = 0.75f;       // 天气导演达到该强度后，一次弱天气便触发下轮大雨保底
+	constexpr int kWeakWeatherPityMax = 1;               // 连续弱天气计数上限，保证后期最多间隔一轮弱天气
 	constexpr int kLightToMediumWeight = 30;             // 初始小雨结束时增强为中雨的相对权重
 	constexpr int kLightToHeavyWeight = 45;              // 初始小雨结束时骤增为大雨的相对权重
 	constexpr int kLightToClearWeight = 30;              // 初始小雨结束时直接放晴的相对权重
@@ -76,6 +88,9 @@ namespace {
 	constexpr float kLightPlantActionSpeed = 1.10f;      // 小雨植物攻击、生产、成长与恢复速度倍率
 	constexpr float kMediumPlantActionSpeed = 1.15f;     // 中雨植物攻击、生产、成长与恢复速度倍率
 	constexpr float kHeavyPlantActionSpeed = 1.20f;      // 大雨植物攻击、生产、成长与恢复速度倍率
+	constexpr float kPressuredLightPlantActionSpeed = 1.00f;  // 满压力小雨植物行动倍率，收回前期增益但不惩罚
+	constexpr float kPressuredMediumPlantActionSpeed = 0.97f; // 满压力中雨植物行动倍率，提供温和输出压制
+	constexpr float kPressuredHeavyPlantActionSpeed = 0.93f;  // 满压力大雨植物行动倍率，避免成熟阵容无视天气
 	constexpr float kLightOverlayAlpha = 34.0f;          // 小雨世界蓝灰暗幕透明度（0～255）
 	constexpr float kMediumOverlayAlpha = 55.0f;         // 中雨世界蓝灰暗幕透明度（0～255）
 	constexpr float kHeavyOverlayAlpha = 110.0f;          // 大雨世界蓝灰暗幕透明度（0～255）
@@ -96,13 +111,16 @@ namespace {
 	constexpr float kLightningFlashDuration = 0.18f;     // 单次闪电白闪持续时间（秒）
 	constexpr float kLightningFlashPeakAlpha = 105.0f;   // 单次闪电白闪峰值透明度（0～255）
 	constexpr int kTyphoonChanceEarlyPercent = 75;       // 新大雨阶段附加台风的前期基础概率（百分比）
-	constexpr int kTyphoonChanceLatePercent = 90;        // 新大雨阶段附加台风的后期基础概率（百分比）
+	constexpr int kTyphoonChanceLatePercent = 95;        // 满压力新大雨附加台风的基础概率（百分比）
 	constexpr int kTyphoonPityPerMissPercent = 20;       // 每连续落空一个新大雨阶段，下次台风概率增加的百分点
-	constexpr int kTyphoonChanceMaxPercent = 95;         // 连续落空保底抬升后的台风概率上限（百分比）
+	constexpr int kTyphoonChanceMaxPercent = 100;        // 满压力大雨落空一次后，下次台风必定命中
 	constexpr int kTyphoonPityMaxMisses = 4;             // 记入概率计算的最大连续落空次数，避免损坏存档放大整数
 	constexpr int kTyphoonWeight = 40;                   // 命中台风后普通台风的相对权重
 	constexpr int kSevereTyphoonWeight = 45;             // 命中台风后强台风的相对权重
 	constexpr int kSuperTyphoonWeight = 45;              // 命中台风后超强台风的相对权重
+	constexpr int kLateTyphoonWeight = 15;               // 满压力普通台风目标权重，仍保留少量温和结果
+	constexpr int kLateSevereTyphoonWeight = 45;         // 满压力强台风目标权重
+	constexpr int kLateSuperTyphoonWeight = 40;          // 满压力超强台风目标权重，明显增压但仍不过半
 	constexpr float kWindDirectionDurationMin = 15.0f;   // 同一风向至少维持的游戏秒数
 	constexpr float kWindDirectionDurationMax = 25.0f;   // 同一风向至多维持的游戏秒数
 	constexpr float kSuperTyphoonDecayMin = 55.0f;       // 超强台风衰减为强台风前的最短持续时间（游戏秒）
@@ -193,6 +211,82 @@ namespace {
 	{
 		return static_cast<int>(std::lround(static_cast<float>(earlyWeight)
 			+ static_cast<float>(lateWeight - earlyWeight) * lateFactor));
+	}
+
+	/** 在线性调参端点间插值；调用方负责提供已经夹紧的天气导演强度。 */
+	float LerpWeatherValue(float earlyValue, float lateValue, float directorFactor)
+	{
+		return earlyValue + (lateValue - earlyValue) * directorFactor;
+	}
+
+	struct NewWeatherWeights {
+		int clear = 0;
+		int light = 0;
+		int medium = 0;
+		int heavy = 0;
+
+		int Total() const { return clear + light + medium + heavy; }
+	};
+
+	/** 返回新天气前沿的动态权重；满压力仍保留小/中雨，但不再连续续晴。 */
+	NewWeatherWeights BuildNewWeatherWeights(float directorFactor)
+	{
+		return {
+			LerpWeatherWeight(kClearHoldWeight, kLateClearHoldWeight, directorFactor),
+			LerpWeatherWeight(kLightRainWeight, kLateLightRainWeight, directorFactor),
+			LerpWeatherWeight(kMediumRainWeight, kLateMediumRainWeight, directorFactor),
+			LerpWeatherWeight(kHeavyRainWeight, kLateHeavyRainWeight, directorFactor),
+		};
+	}
+
+	struct TyphoonWeights {
+		int normal = 0;
+		int severe = 0;
+		int super = 0;
+
+		int Total() const { return normal + severe + super; }
+	};
+
+	/** 返回台风强度的动态权重；满压力强/超强合计 85%，避免只见无位移普通风。 */
+	TyphoonWeights BuildTyphoonWeights(float directorFactor)
+	{
+		return {
+			LerpWeatherWeight(kTyphoonWeight, kLateTyphoonWeight, directorFactor),
+			LerpWeatherWeight(kSevereTyphoonWeight, kLateSevereTyphoonWeight, directorFactor),
+			LerpWeatherWeight(kSuperTyphoonWeight, kLateSuperTyphoonWeight, directorFactor),
+		};
+	}
+
+	/** 按雨势与导演强度缩短低威胁新雨；大雨保持原持续时间。 */
+	float RandomNewRainDuration(RainIntensity intensity, float directorFactor)
+	{
+		float minimum = kRainDurationMin;
+		float maximum = kRainDurationMax;
+		if (intensity == RainIntensity::LIGHT) {
+			minimum = LerpWeatherValue(kRainDurationMin, kLateLightRainDurationMin, directorFactor);
+			maximum = LerpWeatherValue(kRainDurationMax, kLateLightRainDurationMax, directorFactor);
+		}
+		else if (intensity == RainIntensity::MEDIUM) {
+			minimum = LerpWeatherValue(kRainDurationMin, kLateMediumRainDurationMin, directorFactor);
+			maximum = LerpWeatherValue(kRainDurationMax, kLateMediumRainDurationMax, directorFactor);
+		}
+		return GameRandom::Range(minimum, maximum);
+	}
+
+	/** 按雨势与导演强度缩短低威胁尾雨；大雨续期仍使用原区间。 */
+	float RandomTailRainDuration(RainIntensity intensity, float directorFactor)
+	{
+		float minimum = kRainTailDurationMin;
+		float maximum = kRainTailDurationMax;
+		if (intensity == RainIntensity::LIGHT) {
+			minimum = LerpWeatherValue(kRainTailDurationMin, kLateLightRainTailMin, directorFactor);
+			maximum = LerpWeatherValue(kRainTailDurationMax, kLateLightRainTailMax, directorFactor);
+		}
+		else if (intensity == RainIntensity::MEDIUM) {
+			minimum = LerpWeatherValue(kRainTailDurationMin, kLateMediumRainTailMin, directorFactor);
+			maximum = LerpWeatherValue(kRainTailDurationMax, kLateMediumRainTailMax, directorFactor);
+		}
+		return GameRandom::Range(minimum, maximum);
 	}
 
 	/** 返回台风强度对应的单次阵风位移格数。 */
@@ -360,16 +454,29 @@ namespace {
 		return baseSpeed + (pressuredSpeed - baseSpeed) * pressure;
 	}
 
-	/** 返回指定雨势的植物行动倍率，供过渡插值复用。 */
-	float PlantSpeedForRain(RainIntensity intensity)
+	/** 返回指定雨势在当前压力下的植物行动倍率，供天气过渡插值复用。 */
+	float PlantSpeedForRain(RainIntensity intensity, float pressureFactor)
 	{
+		float baseSpeed = 1.0f;
+		float pressuredSpeed = 1.0f;
 		switch (intensity) {
-		case RainIntensity::LIGHT:  return kLightPlantActionSpeed;
-		case RainIntensity::MEDIUM: return kMediumPlantActionSpeed;
-		case RainIntensity::HEAVY:  return kHeavyPlantActionSpeed;
-		case RainIntensity::CLEAR:  return 1.0f;
+		case RainIntensity::LIGHT:
+			baseSpeed = kLightPlantActionSpeed;
+			pressuredSpeed = kPressuredLightPlantActionSpeed;
+			break;
+		case RainIntensity::MEDIUM:
+			baseSpeed = kMediumPlantActionSpeed;
+			pressuredSpeed = kPressuredMediumPlantActionSpeed;
+			break;
+		case RainIntensity::HEAVY:
+			baseSpeed = kHeavyPlantActionSpeed;
+			pressuredSpeed = kPressuredHeavyPlantActionSpeed;
+			break;
+		case RainIntensity::CLEAR:
+			break;
 		}
-		return 1.0f;
+		const float pressure = std::clamp(pressureFactor, 0.0f, 1.0f);
+		return baseSpeed + (pressuredSpeed - baseSpeed) * pressure;
 	}
 
 	/** 返回指定雨势的世界暗幕 alpha，供过渡插值复用。 */
@@ -468,15 +575,24 @@ namespace {
 		return RainIntensity::CLEAR;
 	}
 
-	/** 枚举当前状态机真正允许的下一天气，错误预报只能从这些候选中选择。 */
+	/** 枚举当前动态权重真正允许的下一天气，错误预报只能从这些候选中选择。 */
 	int BuildPlausibleForecasts(RainIntensity current, bool canIntensify, bool canHold,
-		std::array<RainIntensity, 4>& forecasts)
+		float directorFactor, bool forceHeavy, std::array<RainIntensity, 4>& forecasts)
 	{
+		int count = 0;
 		switch (current) {
-		case RainIntensity::CLEAR:
-			forecasts = { RainIntensity::CLEAR, RainIntensity::LIGHT,
-				RainIntensity::MEDIUM, RainIntensity::HEAVY };
-			return 4;
+		case RainIntensity::CLEAR: {
+			if (forceHeavy) {
+				forecasts[0] = RainIntensity::HEAVY;
+				return 1;
+			}
+			const NewWeatherWeights weights = BuildNewWeatherWeights(directorFactor);
+			if (weights.clear > 0) forecasts[count++] = RainIntensity::CLEAR;
+			if (weights.light > 0) forecasts[count++] = RainIntensity::LIGHT;
+			if (weights.medium > 0) forecasts[count++] = RainIntensity::MEDIUM;
+			if (weights.heavy > 0) forecasts[count++] = RainIntensity::HEAVY;
+			return count;
+		}
 		case RainIntensity::LIGHT:
 			if (!canIntensify) {
 				forecasts[0] = RainIntensity::CLEAR;
@@ -484,15 +600,29 @@ namespace {
 			}
 			forecasts = { RainIntensity::MEDIUM, RainIntensity::HEAVY, RainIntensity::CLEAR };
 			return 3;
-		case RainIntensity::MEDIUM:
-			forecasts[0] = RainIntensity::LIGHT;
-			forecasts[1] = RainIntensity::CLEAR;
-			if (canHold) forecasts[2] = RainIntensity::MEDIUM;
-			return canHold ? 3 : 2;
-		case RainIntensity::HEAVY:
-			forecasts = { RainIntensity::MEDIUM, RainIntensity::LIGHT,
-				RainIntensity::CLEAR, RainIntensity::HEAVY };
-			return canHold ? 4 : 3;
+		case RainIntensity::MEDIUM: {
+			const int toLight = LerpWeatherWeight(
+				kMediumToLightWeight, kLateMediumToLightWeight, directorFactor);
+			const int toClear = LerpWeatherWeight(
+				kMediumToClearWeight, kLateMediumToClearWeight, directorFactor);
+			if (toLight > 0) forecasts[count++] = RainIntensity::LIGHT;
+			if (toClear > 0) forecasts[count++] = RainIntensity::CLEAR;
+			if (canHold && kMediumHoldWeight > 0) forecasts[count++] = RainIntensity::MEDIUM;
+			return count;
+		}
+		case RainIntensity::HEAVY: {
+			const int toMedium = LerpWeatherWeight(
+				kHeavyToMediumWeight, kLateHeavyToMediumWeight, directorFactor);
+			const int toLight = LerpWeatherWeight(
+				kHeavyToLightWeight, kLateHeavyToLightWeight, directorFactor);
+			const int toClear = LerpWeatherWeight(
+				kHeavyToClearWeight, kLateHeavyToClearWeight, directorFactor);
+			if (toMedium > 0) forecasts[count++] = RainIntensity::MEDIUM;
+			if (toLight > 0) forecasts[count++] = RainIntensity::LIGHT;
+			if (toClear > 0) forecasts[count++] = RainIntensity::CLEAR;
+			if (canHold && kHeavyHoldWeight > 0) forecasts[count++] = RainIntensity::HEAVY;
+			return count;
+		}
 		}
 		return 0;
 	}
@@ -566,7 +696,7 @@ float Board::GetZombieRainSpeedMultiplier() const
 int Board::GetCurrentTyphoonChancePercent() const
 {
 	const int baseChance = LerpWeatherWeight(kTyphoonChanceEarlyPercent,
-		kTyphoonChanceLatePercent, GetWeatherLateGameFactor());
+		kTyphoonChanceLatePercent, GetWeatherDirectorFactor());
 	return std::min(kTyphoonChanceMaxPercent,
 		baseChance + mHeavyPhasesWithoutTyphoon * kTyphoonPityPerMissPercent);
 }
@@ -630,8 +760,9 @@ float Board::GetZombieGustFrontLimit() const
 float Board::GetPlantRainActionSpeedMultiplier() const
 {
 	const float progress = GetWeatherTransitionProgress();
-	const float previous = PlantSpeedForRain(mPreviousRainIntensity);
-	return previous + (PlantSpeedForRain(mRainIntensity) - previous) * progress;
+	const float pressure = GetWeatherPressureFactor();
+	const float previous = PlantSpeedForRain(mPreviousRainIntensity, pressure);
+	return previous + (PlantSpeedForRain(mRainIntensity, pressure) - previous) * progress;
 }
 
 float Board::GetRainOverlayAlpha() const
@@ -661,7 +792,7 @@ float Board::GetWeatherLateGameFactor() const
 }
 
 /**
- * 返回只控制天气实际威胁、不会改变天气出现率的独立压力曲线。
+ * 返回独立天气压力曲线；玩法倍率直接使用，天气导演再与既有场次成长取较大值。
  * 普通关从 40% 波次进度起成长、75% 时达到完整压力；黑夜无尽从第 8 轮平滑成长到第 20 轮。
  * 该值完全由已持久化的波次/轮次派生，不需要新增存档字段。
  */
@@ -684,6 +815,64 @@ float Board::GetWeatherPressureFactor() const
 			/ static_cast<float>(kSurvivalPressureFullRound - kSurvivalPressureStartRound),
 		0.0f, 1.0f);
 	return linear * linear * (3.0f - 2.0f * linear);
+}
+
+/** 天气导演取既有出现场次成长与独立压力曲线的较大值，避免任何旧后期关卡倒退。 */
+float Board::GetWeatherDirectorFactor() const
+{
+	return std::max(GetWeatherLateGameFactor(), GetWeatherPressureFactor());
+}
+
+/** 后期更可靠但仍保留误报；主人的平衡上限固定为 90%。 */
+int Board::GetCurrentWeatherForecastAccuracyPercent() const
+{
+	return LerpWeatherWeight(kWeatherForecastAccuracyPercent,
+		kLateWeatherForecastAccuracyPercent, GetWeatherDirectorFactor());
+}
+
+int Board::GetCurrentNewWeatherWeight(RainIntensity intensity) const
+{
+	const NewWeatherWeights weights = BuildNewWeatherWeights(GetWeatherDirectorFactor());
+	switch (intensity) {
+	case RainIntensity::CLEAR:  return weights.clear;
+	case RainIntensity::LIGHT:  return weights.light;
+	case RainIntensity::MEDIUM: return weights.medium;
+	case RainIntensity::HEAVY:  return weights.heavy;
+	}
+	return 0;
+}
+
+/** 满足导演阈值且上一轮为弱天气时，下一次晴天出发的天气前沿强制为大雨。 */
+bool Board::ShouldForceHeavyWeather() const
+{
+	return mRainIntensity == RainIntensity::CLEAR
+		&& GetWeatherDirectorFactor() >= kWeakWeatherPityStart
+		&& mWeakWeatherPhasesSinceHeavy >= kWeakWeatherPityMax;
+}
+
+int Board::GetNextWeatherRollTotal() const
+{
+	if (mRainIntensity == RainIntensity::CLEAR) {
+		if (ShouldForceHeavyWeather()) return 1;
+		return BuildNewWeatherWeights(GetWeatherDirectorFactor()).Total();
+	}
+	return RainTransitionWeightTotal(mRainIntensity, mRainCanIntensify, mRainCanHold,
+		GetWeatherDirectorFactor());
+}
+
+/** 只在晴天揭晓一个新天气前沿时记账；前期结果不会预存成后期保底。 */
+void Board::RecordNewWeatherOutcome(RainIntensity next)
+{
+	if (GetWeatherDirectorFactor() < kWeakWeatherPityStart) {
+		mWeakWeatherPhasesSinceHeavy = 0;
+		return;
+	}
+	if (next == RainIntensity::HEAVY) {
+		mWeakWeatherPhasesSinceHeavy = 0;
+		return;
+	}
+	mWeakWeatherPhasesSinceHeavy = std::min(
+		mWeakWeatherPhasesSinceHeavy + 1, kWeakWeatherPityMax);
 }
 
 /** 返回当前两秒天气过渡的平滑进度；无过渡时视为已经到达目标雨势。 */
@@ -771,6 +960,7 @@ void Board::InitializeWeather()
 	mWeatherForecastReady = false;
 	mRainVisualActive = false;
 	mRainVisualEffectName.clear();
+	mWeakWeatherPhasesSinceHeavy = 0;
 	mHeavyPhasesWithoutTyphoon = 0;
 	StopTyphoon();
 	mWeatherTimer = GameAPP::GetInstance().GetBackgroundIsNight(mBackGround)
@@ -864,43 +1054,43 @@ void Board::StopRainAudio()
 }
 
 /** 按当前阶段规则抽取下一天气；只由预警准备阶段调用一次。 */
-RainIntensity Board::RollNextWeather()
+RainIntensity Board::RollNextWeather(int forcedRoll)
 {
-	const float lateFactor = GetWeatherLateGameFactor();
+	const float directorFactor = GetWeatherDirectorFactor();
 	if (mRainIntensity == RainIntensity::CLEAR) {
-		const int holdWeight = LerpWeatherWeight(
-			kClearHoldWeight, kLateClearHoldWeight, lateFactor);
-		const int lightWeight = LerpWeatherWeight(
-			kLightRainWeight, kLateLightRainWeight, lateFactor);
-		const int heavyWeight = LerpWeatherWeight(
-			kHeavyRainWeight, kLateHeavyRainWeight, lateFactor);
-		const int total = holdWeight + lightWeight + kMediumRainWeight + heavyWeight;
-		const int roll = GameRandom::Range(1, total);
-		if (roll <= holdWeight) return RainIntensity::CLEAR;
-		if (roll <= holdWeight + lightWeight) return RainIntensity::LIGHT;
-		if (roll <= holdWeight + lightWeight + kMediumRainWeight) return RainIntensity::MEDIUM;
+		if (ShouldForceHeavyWeather()) return RainIntensity::HEAVY;
+		const NewWeatherWeights weights = BuildNewWeatherWeights(directorFactor);
+		const int total = weights.Total();
+		const int roll = forcedRoll > 0 ? std::clamp(forcedRoll, 1, total)
+			: GameRandom::Range(1, total);
+		if (roll <= weights.clear) return RainIntensity::CLEAR;
+		if (roll <= weights.clear + weights.light) return RainIntensity::LIGHT;
+		if (roll <= weights.clear + weights.light + weights.medium) return RainIntensity::MEDIUM;
 		return RainIntensity::HEAVY;
 	}
 
 	const int total = RainTransitionWeightTotal(
-		mRainIntensity, mRainCanIntensify, mRainCanHold, lateFactor);
+		mRainIntensity, mRainCanIntensify, mRainCanHold, directorFactor);
 	if (total <= 0) return RainIntensity::CLEAR;
-	return RainTransitionForRoll(mRainIntensity, mRainCanIntensify, mRainCanHold, lateFactor,
-		GameRandom::Range(1, total));
+	const int roll = forcedRoll > 0 ? std::clamp(forcedRoll, 1, total)
+		: GameRandom::Range(1, total);
+	return RainTransitionForRoll(
+		mRainIntensity, mRainCanIntensify, mRainCanHold, directorFactor, roll);
 }
 
-/** 锁定真实天气，并在存在其他合法候选时以 75% 准确率生成公开预报。 */
-void Board::PrepareWeatherForecast()
+/** 锁定真实天气，并按 75%～90% 动态准确率生成公开预报。 */
+void Board::PrepareWeatherForecast(int weatherRoll)
 {
 	if (mWeatherForecastReady) return;
-	mActualForecastRainIntensity = RollNextWeather();
+	mActualForecastRainIntensity = RollNextWeather(weatherRoll);
 	mForecastRainIntensity = mActualForecastRainIntensity;
 
-	// 错误预报仍须符合当前状态机：晴天不会预报晴天，确定性尾段小雨则强制报准。
-	if (GameRandom::Range(1, 100) > kWeatherForecastAccuracyPercent) {
+	// 错误预报仍须来自当前非零权重候选；弱天气保底或确定性尾段没有错误候选时强制报准。
+	if (GameRandom::Range(1, 100) > GetCurrentWeatherForecastAccuracyPercent()) {
 		std::array<RainIntensity, 4> plausible{};
 		const int plausibleCount = BuildPlausibleForecasts(
-			mRainIntensity, mRainCanIntensify, mRainCanHold, plausible);
+			mRainIntensity, mRainCanIntensify, mRainCanHold,
+			GetWeatherDirectorFactor(), ShouldForceHeavyWeather(), plausible);
 		std::array<RainIntensity, 4> wrongForecasts{};
 		int wrongCount = 0;
 		for (int i = 0; i < plausibleCount; ++i) {
@@ -921,7 +1111,8 @@ bool Board::IsWeatherForecastPlausible() const
 	if (!mWeatherForecastReady) return true;
 	std::array<RainIntensity, 4> plausible{};
 	const int plausibleCount = BuildPlausibleForecasts(
-		mRainIntensity, mRainCanIntensify, mRainCanHold, plausible);
+		mRainIntensity, mRainCanIntensify, mRainCanHold,
+		GetWeatherDirectorFactor(), ShouldForceHeavyWeather(), plausible);
 	return std::find(plausible.begin(), plausible.begin() + plausibleCount,
 		mForecastRainIntensity) != plausible.begin() + plausibleCount;
 }
@@ -940,12 +1131,13 @@ void Board::ConsumeWeatherForecast()
 	mActualForecastRainIntensity = RainIntensity::CLEAR;
 
 	if (mRainIntensity == RainIntensity::CLEAR) {
+		RecordNewWeatherOutcome(next);
 		if (next == RainIntensity::CLEAR) {
 			// 损坏存档或未知枚举的保守兜底：重新进入晴空间隔，避免空雨段循环。
 			EndRain();
 			return;
 		}
-		BeginRain(next, GameRandom::Range(kRainDurationMin, kRainDurationMax),
+		BeginRain(next, RandomNewRainDuration(next, GetWeatherDirectorFactor()),
 			next == RainIntensity::LIGHT, true);
 		return;
 	}
@@ -955,7 +1147,7 @@ void Board::ConsumeWeatherForecast()
 		return;
 	}
 	// 同档续期或真正切档都会消费本场唯一续期资格，后续只走有界衰减链。
-	BeginRain(next, GameRandom::Range(kRainTailDurationMin, kRainTailDurationMax), false, false);
+	BeginRain(next, RandomTailRainDuration(next, GetWeatherDirectorFactor()), false, false);
 }
 
 /**
@@ -975,12 +1167,13 @@ void Board::StartTyphoonForHeavyPhase(int chanceRoll, int strengthRoll,
 	}
 	mHeavyPhasesWithoutTyphoon = 0;
 
-	const int totalWeight = kTyphoonWeight + kSevereTyphoonWeight + kSuperTyphoonWeight;
+	const TyphoonWeights weights = BuildTyphoonWeights(GetWeatherDirectorFactor());
+	const int totalWeight = weights.Total();
 	const int roll = strengthRoll > 0 ? strengthRoll : GameRandom::Range(1, totalWeight);
-	if (roll <= kTyphoonWeight) {
+	if (roll <= weights.normal) {
 		mTyphoonStrength = TyphoonStrength::TYPHOON;
 	}
-	else if (roll <= kTyphoonWeight + kSevereTyphoonWeight) {
+	else if (roll <= weights.normal + weights.severe) {
 		mTyphoonStrength = TyphoonStrength::SEVERE;
 	}
 	else {
@@ -996,6 +1189,13 @@ void Board::StartTyphoonForHeavyPhase(int chanceRoll, int strengthRoll,
 	mWindGustTimer = mTyphoonGustsRemaining > 0
 		? RandomTyphoonGustInterval(mTyphoonStrength) : 0.0f;
 	RefreshZombieWeatherSpeeds();
+}
+
+/** 夹紧并恢复会决定下一轮是否强制大雨的连续弱天气次数。 */
+void Board::RestoreWeakWeatherPity(int weakWeatherPhases)
+{
+	mWeakWeatherPhasesSinceHeavy = std::clamp(
+		weakWeatherPhases, 0, kWeakWeatherPityMax);
 }
 
 /** 夹紧并恢复会影响下次台风随机判定的连续落空次数。 */
@@ -1323,6 +1523,8 @@ void Board::BeginRain(RainIntensity intensity, float duration, bool canIntensify
 		StopTyphoon();
 	}
 	else if (!wasHeavy) {
+		// 小雨后续若已增强为大雨，本轮已经兑现压力，不再把它算作弱天气欠账。
+		mWeakWeatherPhasesSinceHeavy = 0;
 		if (allowTyphoonRoll) StartTyphoonForHeavyPhase();
 		else StopTyphoon();
 	}
@@ -1346,16 +1548,17 @@ void Board::BeginRain(RainIntensity intensity, float duration, bool canIntensify
 
 void Board::FinishRainPhase(int transitionRoll)
 {
+	const float directorFactor = GetWeatherDirectorFactor();
 	const RainIntensity next = RainTransitionForRoll(
 		mRainIntensity, mRainCanIntensify, mRainCanHold,
-		GetWeatherLateGameFactor(), transitionRoll);
+		directorFactor, transitionRoll);
 	if (next == RainIntensity::CLEAR) {
 		EndRain();
 		return;
 	}
 
 	// 同档续期或切档后统一进入衰减链，不再拥有增强或继续维持资格。
-	BeginRain(next, GameRandom::Range(kRainTailDurationMin, kRainTailDurationMax), false, false);
+	BeginRain(next, RandomTailRainDuration(next, directorFactor), false, false);
 }
 
 void Board::EndRain()
@@ -1463,12 +1666,26 @@ bool Board::SetWeatherForecastForTesting(RainIntensity forecast, RainIntensity a
 	return true;
 }
 
+/** 用固定权重落点准备真实新天气；公开预报强制等于实际结果，避免测试再依赖第二次随机。 */
+bool Board::PrepareWeatherForecastForTesting(int weatherRoll, float revealIn)
+{
+	if (!GameAPP::GetInstance().GetBackgroundIsNight(mBackGround)
+		|| !mWeatherInitialized || mRainIntensity != RainIntensity::CLEAR
+		|| mWeatherForecastReady) return false;
+	const int total = GetNextWeatherRollTotal();
+	if (weatherRoll < 1 || weatherRoll > total) return false;
+	PrepareWeatherForecast(weatherRoll);
+	mForecastRainIntensity = mActualForecastRainIntensity;
+	mWeatherTimer = std::max(revealIn, 0.1f);
+	return true;
+}
+
 bool Board::AdvanceRainPhaseForTesting(int transitionRoll)
 {
 	if (mRainIntensity == RainIntensity::CLEAR) return false;
-	const float lateFactor = GetWeatherLateGameFactor();
+	const float directorFactor = GetWeatherDirectorFactor();
 	const int total = RainTransitionWeightTotal(
-		mRainIntensity, mRainCanIntensify, mRainCanHold, lateFactor);
+		mRainIntensity, mRainCanIntensify, mRainCanHold, directorFactor);
 	if (total > 0 && (transitionRoll < 1 || transitionRoll > total)) return false;
 
 	// 测试会在雨段尚未自然到期时强制切档；先清旧雨丝，模拟生产路径中旧发射器已到期。
@@ -1511,7 +1728,7 @@ bool Board::RerollWindDirectionForTesting(int directionRoll)
 
 bool Board::RollTyphoonForTesting(int chanceRoll, int strengthRoll, WindDirection direction)
 {
-	const int totalWeight = kTyphoonWeight + kSevereTyphoonWeight + kSuperTyphoonWeight;
+	const int totalWeight = BuildTyphoonWeights(GetWeatherDirectorFactor()).Total();
 	const bool validDirection = direction == WindDirection::TOWARD_HOUSE
 		|| direction == WindDirection::TOWARD_FRONT;
 	if (mRainIntensity != RainIntensity::HEAVY || chanceRoll < 1 || chanceRoll > 100

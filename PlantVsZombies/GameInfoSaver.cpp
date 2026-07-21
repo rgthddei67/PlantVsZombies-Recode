@@ -275,6 +275,7 @@ bool GameInfoSaver::SaveLevelDataImpl(Board* board, CardSlotManager* manager)
 	j["activeGustTimer"] = board->mActiveGustTimer;
 	j["activeGustPlantMoveTimer"] = board->mActiveGustPlantMoveTimer;
 	j["activeGustPlantMoved"] = board->mActiveGustPlantMoved;
+	j["weakWeatherPhasesSinceHeavy"] = board->mWeakWeatherPhasesSinceHeavy;
 	j["heavyPhasesWithoutTyphoon"] = board->mHeavyPhasesWithoutTyphoon;
 	j["eliteDancersSpawnedThisWave"] = board->mEliteDancersSpawnedThisWave;
 	j["currentWeatherNoticeTimer"] = board->mGameScene
@@ -623,7 +624,9 @@ bool GameInfoSaver::LoadLevelDataImpl(Board* board, CardSlotManager* manager)
 		j.value("activeGustDuration", 0.0f), j.value("activeGustTimer", 0.0f),
 		j.value("activeGustPlantMoveTimer", 0.0f),
 		j.value("activeGustPlantMoved", false));
-	// 保底计数影响下一次大雨的概率，必须随档恢复；旧档默认从零开始。
+	// 弱天气计数决定下一轮是否强制大雨；旧档从零开始，不凭空制造高压天气。
+	board->RestoreWeakWeatherPity(j.value("weakWeatherPhasesSinceHeavy", 0));
+	// 台风保底计数影响下一次大雨的概率，必须随档恢复；旧档默认从零开始。
 	board->RestoreTyphoonPity(j.value("heavyPhasesWithoutTyphoon", 0));
 	// 每波生成计数必须随当前波恢复；旧版单台风布尔字段按已生成 1 只迁移。
 	const int legacyEliteDancerCount = j.value("eliteDancerSpawnedThisTyphoon", false) ? 1 : 0;

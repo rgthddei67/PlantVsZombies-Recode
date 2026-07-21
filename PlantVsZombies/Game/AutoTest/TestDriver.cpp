@@ -410,6 +410,16 @@ bool TestDriver::ExecuteCurrent() {
 		}
 		return true;
 	}
+	if (op == "roll_weather_forecast") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) { Fail("roll_weather_forecast: 不在 GameScene 或 Board 为空"); return false; }
+		if (!gs->GetBoard()->PrepareWeatherForecastForTesting(
+			cmd.value("weatherRoll", 0), cmd.value("revealIn", 0.1f))) {
+			Fail("roll_weather_forecast: 只允许已初始化的晴天，weatherRoll 必须落在当前权重总和内");
+			return false;
+		}
+		return true;
+	}
 	if (op == "advance_weather_phase") {
 		GameScene* gs = CurrentGameScene();
 		if (!gs || !gs->GetBoard()) { Fail("advance_weather_phase: 不在 GameScene 或 Board 为空"); return false; }
@@ -915,7 +925,15 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "canHold", board->CanRainHold() },
 			{ "forecastReady", board->HasWeatherForecast() },
 			{ "forecastIntensity", RainIntensityName(board->GetForecastRainIntensity()) },
+			{ "lockedActualIntensity", RainIntensityName(board->GetActualForecastRainIntensity()) },
 			{ "forecastPlausible", board->IsWeatherForecastPlausible() },
+			{ "forecastAccuracyPct", board->GetCurrentWeatherForecastAccuracyPercent() },
+			{ "weakWeatherPhasesSinceHeavy", board->GetWeakWeatherPhasesSinceHeavy() },
+			{ "heavyWeatherForced", board->IsHeavyWeatherForced() },
+			{ "newClearWeight", board->GetCurrentNewWeatherWeight(RainIntensity::CLEAR) },
+			{ "newLightWeight", board->GetCurrentNewWeatherWeight(RainIntensity::LIGHT) },
+			{ "newMediumWeight", board->GetCurrentNewWeatherWeight(RainIntensity::MEDIUM) },
+			{ "newHeavyWeight", board->GetCurrentNewWeatherWeight(RainIntensity::HEAVY) },
 			{ "remaining", board->GetWeatherTimer() },
 			{ "lightningRemaining", board->GetLightningTimer() },
 			{ "pressurePct", static_cast<int>(std::lround(weatherPressure * 100.0f)) },

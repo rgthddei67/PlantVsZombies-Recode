@@ -197,6 +197,7 @@ private:
 	float mActiveGustTimer = 0.0f;      // 当前阵风剩余时间（游戏秒）
 	float mActiveGustPlantMoveTimer = 0.0f; // 距本次阵风植物整格结算的游戏秒数
 	bool mActiveGustPlantMoved = false; // 本次阵风是否已结算植物，防读档后重复移动
+	int mWeakWeatherPhasesSinceHeavy = 0; // 后期连续非大雨新天气数；达到上限后下轮保底大雨并进入存档
 	int mHeavyPhasesWithoutTyphoon = 0; // 连续未命中台风的新大雨阶段数；用于保底并进入存档
 	int mEliteDancersSpawnedThisWave = 0; // 当前波已生成的精英舞王数量；用于每波上限并进入存档
 	int mLastTyphoonMovedPlants = 0;    // 最近一次阵风移动的植物数，仅供观测和测试
@@ -222,14 +223,18 @@ private:
 	void InitializeWeather();
 	void UpdateWeather(float deltaTime);
 	float GetWeatherLateGameFactor() const;
+	float GetWeatherDirectorFactor() const;
 	float GetWeatherTransitionProgress() const;
 	float GetRainAudioVolume() const;
 	void BeginWeatherTransition(RainIntensity target);
 	void UpdateWeatherTransition(float deltaTime);
 	void FinishWeatherTransitionImmediately();
 	void RestoreWeatherTransition(RainIntensity previous, float remaining);
-	RainIntensity RollNextWeather();
-	void PrepareWeatherForecast();
+	int GetNextWeatherRollTotal() const;
+	bool ShouldForceHeavyWeather() const;
+	void RecordNewWeatherOutcome(RainIntensity next);
+	RainIntensity RollNextWeather(int forcedRoll = 0);
+	void PrepareWeatherForecast(int weatherRoll = 0);
 	void ConsumeWeatherForecast();
 	void BeginRain(RainIntensity intensity, float duration, bool canIntensify, bool canHold,
 		bool allowTyphoonRoll = true);
@@ -239,6 +244,7 @@ private:
 	void StartTyphoonForHeavyPhase(int chanceRoll = 0, int strengthRoll = 0,
 		WindDirection forcedDirection = WindDirection::NONE);
 	void StopTyphoon();
+	void RestoreWeakWeatherPity(int weakWeatherPhases);
 	void RestoreTyphoonPity(int missedHeavyPhases);
 	void RestoreEliteDancerWaveSpawnCount(int count);
 	void RestoreTyphoonState(TyphoonStrength strength, WindDirection direction,
@@ -301,7 +307,7 @@ public:
 
 	/** 当前雨势对僵尸 Animator extra 层的倍率。 */
 	float GetZombieRainSpeedMultiplier() const;
-	/** 独立天气压力进度（0～1）；只放大后期雨势威胁，不改变天气出现率。 */
+	/** 独立天气压力进度（0～1）；供后期玩法倍率与天气导演共同使用。 */
 	float GetWeatherPressureFactor() const;
 	/** 台风对僵尸水平移动的额外倍率；返回值以当前雨天速度为 1。 */
 	float GetZombieWindMoveMultiplier(bool movingTowardFront) const;
@@ -324,6 +330,15 @@ public:
 	bool CanRainHold() const { return mRainCanHold; }
 	bool HasWeatherForecast() const { return mWeatherForecastReady; }
 	RainIntensity GetForecastRainIntensity() const { return mForecastRainIntensity; }
+	RainIntensity GetActualForecastRainIntensity() const { return mActualForecastRainIntensity; }
+	/** 当前天气预报准确率（百分比）；随导演强度成长但最高不超过 90%。 */
+	int GetCurrentWeatherForecastAccuracyPercent() const;
+	/** 当前连续非大雨新天气次数；只在后期天气导演启用时累计。 */
+	int GetWeakWeatherPhasesSinceHeavy() const { return mWeakWeatherPhasesSinceHeavy; }
+	/** 后期弱天气保底是否已经要求下一轮新天气为大雨。 */
+	bool IsHeavyWeatherForced() const { return ShouldForceHeavyWeather(); }
+	/** 当前天气导演下新天气的原始相对权重，不含弱天气保底覆盖。 */
+	int GetCurrentNewWeatherWeight(RainIntensity intensity) const;
 	bool HasTyphoon() const { return mTyphoonStrength != TyphoonStrength::NONE; }
 	int GetCurrentTyphoonChancePercent() const;
 	TyphoonStrength GetTyphoonStrength() const { return mTyphoonStrength; }
@@ -361,6 +376,8 @@ public:
 	bool SetSurvivalRoundForTesting(int round);
 	// AutoTest 专用：固定公开预报与真实天气，并把当前阶段倒计时改为指定揭晓时间。
 	bool SetWeatherForecastForTesting(RainIntensity forecast, RainIntensity actual, float revealIn = 1.0f);
+	// AutoTest 专用：在晴天用固定权重落点走正式新天气抽取，并发布必定准确的锁定预报。
+	bool PrepareWeatherForecastForTesting(int weatherRoll, float revealIn = 0.1f);
 	// AutoTest 专用：用固定权重落点结束当前雨段，覆盖增强、衰减和放晴分支。
 	bool AdvanceRainPhaseForTesting(int transitionRoll);
 	// AutoTest 专用：仅大雨允许触发，返回是否真正闪电。
