@@ -5,13 +5,14 @@
 #include <algorithm>
 
 namespace {
-	constexpr int kEliteDancerHealth = 900;                 // 精英舞王本体血量。
-	constexpr int kMaxActiveBackupDancers = 20;              // 同时维持的直属伴舞上限。
+	constexpr int kEliteDancerHealth = 950;                 // 精英舞王本体血量。
+	constexpr int kMaxActiveBackupDancers = 36;              // 同时维持的直属伴舞上限。
+	constexpr float kEliteDancerSpeed = 1.25f;              // 精英舞王基础移动倍率。
 	constexpr float kBackupSummonInterval = 0.2f;           // 每次补充一只伴舞的游戏时间间隔（秒）。
-	constexpr float kSevereTyphoonSpeedMultiplier = 1.50f;   // 超强台风下额外动作与移动速度倍率。
-	constexpr float kSuperTyphoonSpeedMultiplier = 1.95f;   // 强台风下额外动作与移动速度倍率。
+	constexpr float kSevereTyphoonSpeedMultiplier = 1.60f;   // 超强台风下额外动作与移动速度倍率。
+	constexpr float kSuperTyphoonSpeedMultiplier = 2.05f;   // 强台风下额外动作与移动速度倍率。
 	constexpr float kSummonSideDistance = 100.0f;           // 伴舞相对舞王的前后横向距离（像素）。
-	constexpr float kSummonFrontMinX = 140.0f;              // 低于此横坐标时不在舞王前方生成伴舞（像素）。
+	constexpr float kSummonFrontMinX = 150.0f;              // 低于此横坐标时不在舞王前方生成伴舞（像素）。
 
 	struct FormationOffset {
 		int row;
@@ -87,18 +88,18 @@ void EliteDancerZombie::ZombieMove(float scaledDelta, TransformComponent* transf
 
 float EliteDancerZombie::GetAbilityAnimSpeedMultiplier() const
 {
-	if (!mBoard) return;
+	if (!mBoard) return kEliteDancerSpeed;
 
 	if (mBoard->GetTyphoonStrength() == TyphoonStrength::SEVERE) 
 	{
-		return kSevereTyphoonSpeedMultiplier;
+		return kSevereTyphoonSpeedMultiplier * kEliteDancerSpeed;
 	}
 	else if (mBoard->GetTyphoonStrength() == TyphoonStrength::SUPER)
 	{
-		return kSuperTyphoonSpeedMultiplier;
+		return kSuperTyphoonSpeedMultiplier * kEliteDancerSpeed;
 	}
 	else {
-		return 1.2f;	// 默认值1.2
+		return kEliteDancerSpeed;
 	}
 }
 
