@@ -37,6 +37,7 @@ description: Use when adding or tuning ANY rain-weather-dependent feature in PvZ
 3. 保持天气源唯一：离散条件读取目标雨势；平滑效果读取插值倍率。不要直接读取私有过渡计时器或复制整套天气状态机。
 4. 处理组合关系：冻结仍优先停格，减速与雨天倍率继续乘算，`PlayTrack` clip speed 不得覆盖天气 extra 层；帧事件能力已经随动画加速，不要再把同一倍率乘到逻辑计时器。
 5. 处理持久化：纯派生效果不存；一次性 roll、剩余次数、可逆形态必须存。读档只恢复结果，不能重新随机或再次叠加。
+   - 若限制语义是“每波最多 N 次”，计数只在正式 `Board::SummonNextWave()` 推进到新波时清零；`StopTyphoon()`、放晴或重新起台风都不得返还同一波额度。计数进入 Board 存档，旧字段按保守已消费量迁移。
 6. 增加 AutoTest 可观测字段与最小脚本，覆盖晴天、目标雨势、放晴、减速/冻结组合，以及随机变异的固定种子结果。
 7. 更新 `docs/agent-memory/project_pvz_night_rain_weather.md`、对应僵尸/植物主题和 `docs/agent-memory/MEMORY.md`。
 8. 按项目指南完成 `clang-release` 与范围最小的可见 AutoTest；仅改技能文档时无需构建游戏。

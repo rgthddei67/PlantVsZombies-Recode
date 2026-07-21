@@ -196,7 +196,7 @@ private:
 	float mActiveGustPlantMoveTimer = 0.0f; // 距本次阵风植物整格结算的游戏秒数
 	bool mActiveGustPlantMoved = false; // 本次阵风是否已结算植物，防读档后重复移动
 	int mHeavyPhasesWithoutTyphoon = 0; // 连续未命中台风的新大雨阶段数；用于保底并进入存档
-	bool mEliteDancerSpawnedThisTyphoon = false; // 当前台风阶段是否已生成过精英舞王；用于单阶段上限并进入存档
+	int mEliteDancersSpawnedThisWave = 0; // 当前波已生成的精英舞王数量；用于每波上限并进入存档
 	int mLastTyphoonMovedPlants = 0;    // 最近一次阵风移动的植物数，仅供观测和测试
 	int mLastTyphoonLostPlants = 0;     // 最近一次阵风吹出棋盘的植物数，仅供观测和测试
 
@@ -238,6 +238,7 @@ private:
 		WindDirection forcedDirection = WindDirection::NONE);
 	void StopTyphoon();
 	void RestoreTyphoonPity(int missedHeavyPhases);
+	void RestoreEliteDancerWaveSpawnCount(int count);
 	void RestoreTyphoonState(TyphoonStrength strength, WindDirection direction,
 		float strengthTimer, float gustTimer, float directionTimer, int gustsRemaining);
 	void RestoreActiveTyphoonGust(bool active, TyphoonStrength strength,
@@ -337,7 +338,7 @@ public:
 	/** 返回僵尸被阵风吹向前线时的最大世界横坐标，避免越过既有出生侧清理线。 */
 	float GetZombieGustFrontLimit() const;
 	int GetHeavyPhasesWithoutTyphoon() const { return mHeavyPhasesWithoutTyphoon; }
-	bool HasEliteDancerSpawnedThisTyphoon() const { return mEliteDancerSpawnedThisTyphoon; }
+	int GetEliteDancersSpawnedThisWave() const { return mEliteDancersSpawnedThisWave; }
 	int GetLastTyphoonMovedPlants() const { return mLastTyphoonMovedPlants; }
 	int GetLastTyphoonLostPlants() const { return mLastTyphoonLostPlants; }
 	bool IsTyphoonGustWarning() const;

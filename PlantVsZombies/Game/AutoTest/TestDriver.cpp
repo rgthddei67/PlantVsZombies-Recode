@@ -511,6 +511,12 @@ bool TestDriver::ExecuteCurrent() {
 		}
 		return true;
 	}
+	if (op == "summon_next_wave") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) { Fail("summon_next_wave: 不在 GameScene 或 Board 为空"); return false; }
+		gs->GetBoard()->SummonNextWave();
+		return true;
+	}
 	if (op == "damage_zombie") {
 		GameScene* gs = CurrentGameScene();
 		if (!gs || !gs->GetBoard()) { Fail("damage_zombie: 不在 GameScene 或 Board 为空"); return false; }
@@ -885,7 +891,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "typhoonStrength", TyphoonStrengthName(board->GetTyphoonStrength()) },
 			{ "typhoonChancePct", board->GetCurrentTyphoonChancePercent() },
 			{ "heavyPhasesWithoutTyphoon", board->GetHeavyPhasesWithoutTyphoon() },
-			{ "eliteDancerSpawnedThisTyphoon", board->HasEliteDancerSpawnedThisTyphoon() },
+			{ "eliteDancersSpawnedThisWave", board->GetEliteDancersSpawnedThisWave() },
 			{ "typhoonDecayRemaining", board->GetTyphoonStrengthTimer() },
 			{ "windDirection", WindDirectionName(board->GetWindDirection()) },
 			{ "windDirectionRemaining", board->GetWindDirectionTimer() },
