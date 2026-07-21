@@ -22,3 +22,5 @@ metadata:
 **其它**：`FileManager::FileExists`/`GetFileSize` 仍用 `std::ifstream`,但都是死代码(零调用方),且 spec 明列 `GetFileSize` 本次不动,故未改;`FileExists` 是 APK 隐患(ifstream 看不到 APK assets),phase-3 若有人拿它 gate 资源加载会在 Android 误判 false。`SDL_LoadBMP`(CursorManager) 是虚惊——SDL2 里它本就是 `SDL_LoadBMP_RW(SDL_RWFromFile(...),1)` 宏,APK 安全。
 
 资源/AutoTest 坑见 [reference_pvz_assets_worktree_autotest_gotchas](reference_pvz_assets_worktree_autotest_gotchas.md)；构建系统见 [project_pvz_cmake_migration](project_pvz_cmake_migration.md)。
+
+**2026-07-21 后续变更**：Windows 桌面不再沿用 `./saves`，已改为系统 `FOLDERID_SavedGames/PlantsVsZombies/saves` 并加入旧档安全迁移；Linux 与 Android 口径不变，AutoTest 仍固定使用构建目录。详见 [project_pvz_save_location_migration](project_pvz_save_location_migration.md)。

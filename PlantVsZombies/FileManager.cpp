@@ -7,8 +7,15 @@
 #include <algorithm>
 #include <cctype>
 
+namespace {
+	/** 将 FileManager 约定的 UTF-8 路径转换为本机 filesystem 路径，兼容非 ASCII 用户名。 */
+	std::filesystem::path Utf8Path(const std::string& path) {
+		return std::filesystem::u8path(path);
+	}
+}
+
 bool FileManager::FileExists(const std::string& path) {
-	std::ifstream file(path);
+	std::ifstream file(Utf8Path(path));
 	return file.good();
 }
 
@@ -48,7 +55,7 @@ std::vector<char> FileManager::LoadFileAsBinary(const std::string& path) {
 }
 
 bool FileManager::SaveFile(const std::string& path, const std::string& content) {
-	std::ofstream file(path);
+	std::ofstream file(Utf8Path(path));
 	if (!file.is_open()) {
 		LogError("Failed to create file: " + path);
 		return false;
@@ -59,7 +66,7 @@ bool FileManager::SaveFile(const std::string& path, const std::string& content) 
 }
 
 bool FileManager::SaveBinaryFile(const std::string& path, const void* data, size_t size) {
-	std::ofstream file(path, std::ios::binary);
+	std::ofstream file(Utf8Path(path), std::ios::binary);
 	if (!file.is_open()) {
 		LogError("Failed to create binary file: " + path);
 		return false;
@@ -70,7 +77,7 @@ bool FileManager::SaveBinaryFile(const std::string& path, const void* data, size
 }
 
 bool FileManager::AppendToFile(const std::string& path, const std::string& content) {
-	std::ofstream file(path, std::ios::app);
+	std::ofstream file(Utf8Path(path), std::ios::app);
 	if (!file.is_open()) {
 		LogError("Failed to open file for appending: " + path);
 		return false;
@@ -147,7 +154,7 @@ bool FileManager::SaveJsonFile(const std::string& path, const nlohmann::json& js
 }
 
 size_t FileManager::GetFileSize(const std::string& path) {
-	std::ifstream file(path, std::ios::binary | std::ios::ate);
+	std::ifstream file(Utf8Path(path), std::ios::binary | std::ios::ate);
 	if (!file.is_open()) {
 		return 0;
 	}
@@ -156,7 +163,7 @@ size_t FileManager::GetFileSize(const std::string& path) {
 
 bool FileManager::CreateDirectory(const std::string& path) {
 	try {
-		if (std::filesystem::create_directories(path)) {
+		if (std::filesystem::create_directories(Utf8Path(path))) {
 			return true;
 		}
 	}
@@ -168,7 +175,7 @@ bool FileManager::CreateDirectory(const std::string& path) {
 
 bool FileManager::IsDirectory(const std::string& path) {
 	try {
-		return std::filesystem::is_directory(path);
+		return std::filesystem::is_directory(Utf8Path(path));
 	}
 	catch (const std::filesystem::filesystem_error&) {
 		return false;
@@ -180,9 +187,9 @@ std::vector<std::string> FileManager::GetFilesInDirectory(const std::string& dir
 	std::vector<std::string> files;
 
 	try {
-		for (const auto& entry : std::filesystem::directory_iterator(directory)) {
+		for (const auto& entry : std::filesystem::directory_iterator(Utf8Path(directory))) {
 			if (entry.is_regular_file()) {
-				std::string filename = entry.path().string();
+				std::string filename = entry.path().u8string();
 
 				// 如果指定了扩展名，则只添加匹配扩展名的文件
 				if (extension.empty() || GetFileExtension(filename) == extension) {
@@ -265,7 +272,7 @@ std::vector<std::string> FileManager::ListResourceFiles(const std::string& direc
 
 bool FileManager::DeleteFile(const std::string& path) {
 	try {
-		return std::filesystem::remove(path);
+		return std::filesystem::remove(Utf8Path(path));
 	}
 	catch (const std::filesystem::filesystem_error& e) {
 		LogError("Failed to delete file: " + path + ", error: " + e.what());

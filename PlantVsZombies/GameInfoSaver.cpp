@@ -1,7 +1,7 @@
 ﻿#include "GameInfoSaver.h"
-#if defined(__ANDROID__)
-#include <SDL2/SDL.h>
-#endif
+#include "SaveLocation.h"
+#include "SaveMigration.h"
+#include <filesystem>
 #include "GameAPP.h"
 #include "./Game/Board.h"
 #include "./Game/GameScene.h"
@@ -25,24 +25,104 @@
 
 namespace {
 	// ---- 存档根目录 -------------------------------------------------------------
-	// 桌面(Win/Linux)：沿用 "./saves"(相对 CWD，行为不变)。
-	// Android：CWD 不可写，改用 SDL 提供的应用私有可写目录。
-	const std::string& GetSaveRoot() {
-#if defined(__ANDROID__)
-		static const std::string root = []() -> std::string {
-			char* p = SDL_GetPrefPath("PvZ", "PlantsVsZombies");
-			if (!p) return "saves";                 // 极端兜底
-			std::string s(p);
-			SDL_free(p);
-			if (!s.empty() && (s.back() == '/' || s.back() == '\\'))
-				s.pop_back();                       // 去尾斜杠，拼接统一加 "/"
-			return s;
-		}();
-		return root;
-#else
+	// Windows 使用系统“保存的游戏”目录；Linux 暂沿用相对目录；Android 使用应用私有目录。
+	// AutoTest（包括 -AutoTestLoadSave）固定返回旧相对目录，确保只触碰构建目录里的测试档。
+	const std::string& GetLegacySaveRoot() {
 		static const std::string root = "./saves";
 		return root;
+	}
+
+	/** 获取平台推荐的持久化目录；失败时回退旧目录，保证玩家仍可正常存档。 */
+	std::string DiscoverPreferredSaveRoot() {
+		const std::string root = SaveLocation::DiscoverPreferredRoot(GetLegacySaveRoot());
+#if defined(_WIN32) && !defined(__ANDROID__)
+		if (root == GetLegacySaveRoot()) {
+			LOG_WARN("GameInfoSaver") << "无法获取 Windows 保存的游戏目录，继续使用旧存档目录 ./saves";
+		}
 #endif
+		return root;
+	}
+
+	struct SaveRootState {
+		std::string root;
+	};
+
+	/** 首次真实存档访问时创建中央目录并迁移旧档；目标不可用才整体回退旧目录。 */
+	const SaveRootState& GetSaveRootState() {
+		static const SaveRootState state = []() {
+			SaveRootState result{ DiscoverPreferredSaveRoot() };
+			if (result.root == GetLegacySaveRoot()) {
+				return result;
+			}
+
+			std::error_code directoryError;
+			const auto destination = std::filesystem::u8path(result.root);
+			std::filesystem::create_directories(destination, directoryError);
+			if (directoryError || !std::filesystem::is_directory(destination, directoryError) ||
+				directoryError) {
+				LOG_WARN("GameInfoSaver") << "中央存档目录不可用，继续使用旧目录 ./saves";
+				result.root = GetLegacySaveRoot();
+				return result;
+			}
+
+			const auto migration = SaveMigration::MigrateDirectory(
+				std::filesystem::u8path(GetLegacySaveRoot()), destination);
+			if (migration.migratedFileCount > 0 || migration.duplicateFileCount > 0) {
+				LOG_INFO("GameInfoSaver") << "旧存档迁移完成: 新迁移 "
+					<< migration.migratedFileCount << " 个，清理重复 "
+					<< migration.duplicateFileCount << " 个";
+			}
+			if (migration.conflictFileCount > 0) {
+				LOG_WARN("GameInfoSaver") << "发现 " << migration.conflictFileCount
+					<< " 个同名但内容不同的旧存档；中央存档优先，冲突旧档已保留在 ./saves";
+			}
+			if (migration.errorCount > 0) {
+				LOG_WARN("GameInfoSaver") << "旧存档迁移有 " << migration.errorCount
+					<< " 项失败；源文件已保留，缺失存档将从 ./saves 回退读取";
+			}
+			return result;
+		}();
+		return state;
+	}
+
+	/** 返回本次运行的写入根目录；AutoTest 永远使用构建目录下的隔离路径。 */
+	const std::string& GetSaveRoot() {
+		if (GameAPP::mAutoTestMode) {
+			return GetLegacySaveRoot();
+		}
+		return GetSaveRootState().root;
+	}
+
+	/** 优先读取中央存档；迁移失败且中央文件缺失时，逐文件回退旧目录。 */
+	std::string GetSaveFileForRead(const std::string& fileName) {
+		const std::string primary = FileManager::CombinePath(GetSaveRoot(), fileName);
+		if (GameAPP::mAutoTestMode || GetSaveRoot() == GetLegacySaveRoot() ||
+			FileManager::FileExists(primary)) {
+			return primary;
+		}
+
+		const std::string legacy = FileManager::CombinePath(GetLegacySaveRoot(), fileName);
+		return FileManager::FileExists(legacy) ? legacy : primary;
+	}
+
+	/** 删除中央及遗留目录中的同名关卡档，避免回退机制让已删除的旧档再次出现。 */
+	bool DeleteSaveFile(const std::string& fileName) {
+		bool found = false;
+		bool deletedAll = true;
+		const std::string primary = FileManager::CombinePath(GetSaveRoot(), fileName);
+		if (FileManager::FileExists(primary)) {
+			found = true;
+			deletedAll = FileManager::DeleteFile(primary) && deletedAll;
+		}
+
+		if (!GameAPP::mAutoTestMode && GetSaveRoot() != GetLegacySaveRoot()) {
+			const std::string legacy = FileManager::CombinePath(GetLegacySaveRoot(), fileName);
+			if (FileManager::FileExists(legacy)) {
+				found = true;
+				deletedAll = FileManager::DeleteFile(legacy) && deletedAll;
+			}
+		}
+		return found && deletedAll;
 	}
 
 	// ---- Animator 播放状态机的统一存读档 ----------------------------------------
@@ -113,14 +193,15 @@ bool GameInfoSaver::SavePlayerInfoImpl()
 	j["musicVolume"] = AudioSystem::GetMusicVolume();
 	j["havecards"] = gameApp.mHaveCards;
 
-	return FileManager::SaveJsonFile(GetSaveRoot() + "/PlayerInfo.json", j);
+	return FileManager::SaveJsonFile(
+		FileManager::CombinePath(GetSaveRoot(), "PlayerInfo.json"), j);
 }
 
 bool GameInfoSaver::LoadPlayerInfoImpl()
 {
 	if (GameAPP::mAutoTestMode) return true;   // AutoTest：全默认状态，保证确定性
 	nlohmann::json j;
-	if (!FileManager::LoadJsonFile(GetSaveRoot() + "/PlayerInfo.json", j))
+	if (!FileManager::LoadJsonFile(GetSaveFileForRead("PlayerInfo.json"), j))
 		return false;
 
 	auto& gameApp = GameAPP::GetInstance();
@@ -397,7 +478,8 @@ bool GameInfoSaver::SaveLevelDataImpl(Board* board, CardSlotManager* manager)
 		j["survivalCardCooldowns"] = cooldownArr;
 	}
 
-	std::string filename = GetSaveRoot() + "/level" + std::to_string(board->mLevel) + "_data.json";
+	std::string filename = FileManager::CombinePath(GetSaveRoot(),
+		"level" + std::to_string(board->mLevel) + "_data.json");
 	return FileManager::SaveJsonFile(filename, j);
 }
 
@@ -406,7 +488,8 @@ bool GameInfoSaver::LoadLevelDataImpl(Board* board, CardSlotManager* manager)
 	// AutoTest 默认仍是确定性的全新关卡；仅显式 -AutoTestLoadSave 时读取当前 CWD 下的
 	// 关卡存档。写入和删除入口始终短路，因此问题存档在测试后保持逐字节不变。
 	if (GameAPP::mAutoTestMode && !GameAPP::mAutoTestLoadSave) return true;
-	std::string filename = GetSaveRoot() + "/level" + std::to_string(board->mLevel) + "_data.json";
+	std::string filename = GetSaveFileForRead(
+		"level" + std::to_string(board->mLevel) + "_data.json");
 	nlohmann::json j;
 	if (!FileManager::LoadJsonFile(filename, j))
 		return false;
@@ -797,8 +880,7 @@ bool GameInfoSaver::LoadLevelDataImpl(Board* board, CardSlotManager* manager)
 bool GameInfoSaver::DeleteLevelData(Board* board)
 {
 	if (GameAPP::mAutoTestMode) return true;   // AutoTest（包括读档复现模式）绝不删除真实存档
-	std::string filename = GetSaveRoot() + "/level" + std::to_string(board->mLevel) + "_data.json";
-	return FileManager::DeleteFile(filename);
+	return DeleteSaveFile("level" + std::to_string(board->mLevel) + "_data.json");
 }
 
 // ── 异常安全边界 ──────────────────────────────────────────────────────────────

@@ -85,8 +85,20 @@ target_link_libraries(PlantsVsZombies PRIVATE
     nlohmann_json::nlohmann_json
     pugixml::pugixml
     Vulkan::Vulkan
-    version setupapi imm32 winmm legacy_stdio_definitions
+    version setupapi imm32 winmm shell32 ole32 legacy_stdio_definitions
 )
+
+# 存档迁移是纯文件系统逻辑，单独目标可在不启动游戏、不接触真实玩家目录的情况下验证。
+include(CTest)
+if(BUILD_TESTING)
+    add_executable(SaveMigrationTests
+        tests/SaveMigrationTests.cpp
+        PlantVsZombies/SaveMigration.cpp
+    )
+    target_include_directories(SaveMigrationTests PRIVATE ${SRC_DIR})
+    target_compile_options(SaveMigrationTests PRIVATE /utf-8 /W3 /sdl /EHsc)
+    add_test(NAME save-migration COMMAND SaveMigrationTests)
+endif()
 
 # ---- GLSL → SPIR-V（复刻 vcxproj 的 CompileShaders Target，增量编译）----
 find_program(GLSLC glslc HINTS $ENV{VULKAN_SDK}/Bin REQUIRED)
