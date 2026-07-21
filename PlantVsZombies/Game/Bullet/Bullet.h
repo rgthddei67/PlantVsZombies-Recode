@@ -67,6 +67,12 @@ public:
 	void Draw(Graphics* g) override;
 	// 由 BulletPool 的全局地面阴影阶段调用，保证阴影绘制在植物层之前。
 	void DrawShadow(Graphics* g);
+	/** 当前类型是否属于会响应台风的轻型植物子弹。 */
+	bool IsTyphoonWindAffected() const;
+	/** 返回按当前实时风向派生的水平速度；基础速度及存档值保持不变。 */
+	float GetWindAdjustedVelocityX() const;
+	/** 返回按当前实时风向派生的命中伤害；随后仍由受击入口叠加生存词条。 */
+	int GetWindAdjustedDamage() const;
 
 	int GetBulletDamage() { return mDamage; }
 	void SetBulletDamage(int damage) { this->mDamage = damage; }

@@ -6,6 +6,61 @@
 #include "../ShadowComponent.h"
 #include "../Cell.h"
 #include "../../GameAPP.h"
+#include <algorithm>
+#include <cmath>
+#include <cstddef>
+
+namespace {
+	enum class BulletWindResponse {
+		NONE,
+		LIGHT_PROJECTILE
+	};
+
+	struct BulletWindProfile {
+		BulletType type;
+		BulletWindResponse response;
+	};
+
+	// 与 BulletType 枚举保持同序；新增或重排类型而未明确选择风力响应时编译直接失败。
+	constexpr BulletWindProfile kBulletWindProfiles[] = {
+		{ BulletType::BULLET_PEA,        BulletWindResponse::LIGHT_PROJECTILE },
+		{ BulletType::BULLET_SNOWPEA,    BulletWindResponse::LIGHT_PROJECTILE },
+		{ BulletType::BULLET_CABBAGE,    BulletWindResponse::NONE },
+		{ BulletType::BULLET_MELON,      BulletWindResponse::NONE },
+		{ BulletType::BULLET_PUFF,       BulletWindResponse::NONE },
+		{ BulletType::BULLET_WINTERMELON, BulletWindResponse::NONE },
+		{ BulletType::BULLET_FIREBALL,   BulletWindResponse::LIGHT_PROJECTILE },
+		{ BulletType::BULLET_STAR,       BulletWindResponse::NONE },
+		{ BulletType::BULLET_SPIKE,      BulletWindResponse::NONE },
+		{ BulletType::BULLET_BASKETBALL, BulletWindResponse::NONE },
+		{ BulletType::BULLET_KERNEL,     BulletWindResponse::NONE },
+		{ BulletType::BULLET_COBBIG,     BulletWindResponse::NONE },
+		{ BulletType::BULLET_BUTTER,     BulletWindResponse::NONE },
+		{ BulletType::BULLET_ZOMBIE_PEA, BulletWindResponse::NONE },
+	};
+
+	constexpr bool BulletWindProfilesCoverEveryType()
+	{
+		constexpr std::size_t profileCount = sizeof(kBulletWindProfiles) / sizeof(kBulletWindProfiles[0]);
+		if (profileCount != static_cast<std::size_t>(BulletType::NUM_BULLETS)) return false;
+		for (std::size_t i = 0; i < profileCount; ++i) {
+			if (kBulletWindProfiles[i].type != static_cast<BulletType>(i)) return false;
+		}
+		return true;
+	}
+
+	static_assert(BulletWindProfilesCoverEveryType(),
+		"Every BulletType must explicitly select a typhoon wind response");
+
+	BulletWindResponse WindResponseForBullet(BulletType type)
+	{
+		const int index = static_cast<int>(type);
+		if (index < 0 || index >= static_cast<int>(BulletType::NUM_BULLETS)) {
+			return BulletWindResponse::NONE;
+		}
+		return kBulletWindProfiles[index].response;
+	}
+}
 
 Bullet::Bullet(Board* board, BulletType bulletType, int row, const Vector& colliderRadius,
 	const Vector& position) : GameObject(ObjectType::OBJECT_BULLET)
@@ -97,7 +152,7 @@ void Bullet::Update()
 				this->Die();
 			}
 		}
-		transform->Translate(mVelocityX * deltaTime, mVelocityY * deltaTime);
+		transform->Translate(GetWindAdjustedVelocityX() * deltaTime, mVelocityY * deltaTime);
 	}
 }
 
@@ -149,5 +204,24 @@ void Bullet::UpdateShadowLayout(const Vector& position)
 
 void Bullet::BulletHitZombie(Zombie* zombie)
 {
-	zombie->TakeDamage(this->GetBulletDamage(), DamageSource::PLANT);
+	// 风力先修正本发子弹的基础伤害，生存词条仍在 Zombie::TakeDamage 中统一且只缩放一次。
+	zombie->TakeDamage(GetWindAdjustedDamage(), DamageSource::PLANT);
+}
+
+bool Bullet::IsTyphoonWindAffected() const
+{
+	return WindResponseForBullet(mBulletType) == BulletWindResponse::LIGHT_PROJECTILE;
+}
+
+float Bullet::GetWindAdjustedVelocityX() const
+{
+	if (!IsTyphoonWindAffected() || !mBoard || mVelocityX == 0.0f) return mVelocityX;
+	return mVelocityX * mBoard->GetPlantBulletWindSpeedMultiplier(mVelocityX > 0.0f);
+}
+
+int Bullet::GetWindAdjustedDamage() const
+{
+	if (!IsTyphoonWindAffected() || !mBoard || mDamage <= 0 || mVelocityX == 0.0f) return mDamage;
+	const float multiplier = mBoard->GetPlantBulletWindDamageMultiplier(mVelocityX > 0.0f);
+	return std::max(1, static_cast<int>(std::lround(static_cast<float>(mDamage) * multiplier)));
 }

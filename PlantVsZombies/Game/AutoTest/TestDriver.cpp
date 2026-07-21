@@ -13,6 +13,7 @@
 #include "../Plant/PlantType.h"
 #include "../Plant/Plant.h"
 #include "../Plant/Shooter.h"
+#include "../Bullet/Bullet.h"
 #include "../Zombie/ZombieType.h"
 #include "../Zombie/Zombie.h"
 #include "../Trophy.h"   // dump_state 输出奖杯坐标
@@ -44,6 +45,11 @@ namespace {
 		PT(PLANT_LEFTPEATER),
 	};
 #undef PT
+#define BT(n) { #n, BulletType::n }
+	const std::unordered_map<std::string, BulletType> kBulletNames = {
+		BT(BULLET_PEA), BT(BULLET_SNOWPEA), BT(BULLET_PUFF),
+	};
+#undef BT
 #define ZT(n) { #n, ZombieType::n }
 	const std::unordered_map<std::string, ZombieType> kZombieNames = {
 		ZT(ZOMBIE_NORMAL), ZT(ZOMBIE_TRAFFIC_CONE), ZT(ZOMBIE_POLEVAULTER), ZT(ZOMBIE_BUCKET),
@@ -454,6 +460,22 @@ bool TestDriver::ExecuteCurrent() {
 		Plant* p = gs->GetBoard()->CreatePlant(it->second,
 			cmd.value("row", 0), cmd.value("col", 0));
 		if (!p) { Fail("CreatePlant 返回空（格子非法或被占？）"); return false; }
+		return true;
+	}
+	if (op == "spawn_bullet") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) { Fail("spawn_bullet: 不在 GameScene 或 Board 为空"); return false; }
+		auto it = kBulletNames.find(cmd.value("type", ""));
+		if (it == kBulletNames.end()) {
+			Fail("spawn_bullet: type 必须是 BULLET_PEA/BULLET_SNOWPEA/BULLET_PUFF");
+			return false;
+		}
+		Bullet* bullet = gs->GetBoard()->CreateBullet(it->second, cmd.value("row", 0),
+			Vector(cmd.value("x", 100.0f), cmd.value("y", 300.0f)));
+		if (!bullet) { Fail("spawn_bullet: CreateBullet 返回空"); return false; }
+		bullet->SetVelocityX(cmd.value("velocityX", 290.0f));
+		bullet->SetVelocityY(cmd.value("velocityY", 0.0f));
+		bullet->SetBulletDamage(cmd.value("damage", 20));
 		return true;
 	}
 	if (op == "spawn_zombie") {
@@ -913,7 +935,24 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		out["plants"].push_back(std::move(plantState));
 	}
 	out["plantCount"] = static_cast<int>(out["plants"].size());
-	out["bulletCount"] = static_cast<int>(board->mEntityManager.GetAllBulletIDs().size());
+	out["bullets"] = nlohmann::json::array();
+	for (int id : board->mEntityManager.GetAllBulletIDs()) {
+		Bullet* bullet = board->mEntityManager.GetBullet(id);
+		if (!bullet) continue;
+		const Vector pos = bullet->GetPosition();
+		out["bullets"].push_back({
+			{ "id", id },
+			{ "type", static_cast<int>(bullet->mBulletType) },
+			{ "row", bullet->mRow },
+			{ "x", pos.x }, { "y", pos.y },
+			{ "windAffected", bullet->IsTyphoonWindAffected() },
+			{ "baseVelocityX", static_cast<int>(std::lround(bullet->GetVelocityX())) },
+			{ "windVelocityX", static_cast<int>(std::lround(bullet->GetWindAdjustedVelocityX())) },
+			{ "baseDamage", bullet->GetBulletDamage() },
+			{ "windDamage", bullet->GetWindAdjustedDamage() },
+		});
+	}
+	out["bulletCount"] = static_cast<int>(out["bullets"].size());
 	out["repeatingShootingHeadCount"] = repeatingShootingHeadCount;
 
 	{

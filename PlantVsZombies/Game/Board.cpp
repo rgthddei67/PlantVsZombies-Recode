@@ -127,6 +127,18 @@ namespace {
 	constexpr float kSevereHeadwindZombieMove = 0.86f;   // 强台风逆风僵尸水平移动倍率（相对当前雨天）
 	constexpr float kSuperTailwindZombieMove = 1.20f;    // 超强台风顺风僵尸水平移动倍率（相对当前雨天）
 	constexpr float kSuperHeadwindZombieMove = 0.80f;    // 超强台风逆风僵尸水平移动倍率（相对当前雨天）
+	constexpr float kTyphoonTailwindBulletSpeed = 1.05f; // 普通台风顺风轻型植物子弹水平速度倍率
+	constexpr float kTyphoonHeadwindBulletSpeed = 0.95f; // 普通台风逆风轻型植物子弹水平速度倍率
+	constexpr float kSevereTailwindBulletSpeed = 1.10f;  // 强台风顺风轻型植物子弹水平速度倍率
+	constexpr float kSevereHeadwindBulletSpeed = 0.90f;  // 强台风逆风轻型植物子弹水平速度倍率
+	constexpr float kSuperTailwindBulletSpeed = 1.15f;   // 超强台风顺风轻型植物子弹水平速度倍率
+	constexpr float kSuperHeadwindBulletSpeed = 0.85f;   // 超强台风逆风轻型植物子弹水平速度倍率
+	constexpr float kTyphoonTailwindBulletDamage = 1.05f; // 普通台风顺风轻型植物子弹命中伤害倍率
+	constexpr float kTyphoonHeadwindBulletDamage = 0.95f; // 普通台风逆风轻型植物子弹命中伤害倍率
+	constexpr float kSevereTailwindBulletDamage = 1.08f;  // 强台风顺风轻型植物子弹命中伤害倍率
+	constexpr float kSevereHeadwindBulletDamage = 0.92f;  // 强台风逆风轻型植物子弹命中伤害倍率
+	constexpr float kSuperTailwindBulletDamage = 1.12f;   // 超强台风顺风轻型植物子弹命中伤害倍率
+	constexpr float kSuperHeadwindBulletDamage = 0.88f;   // 超强台风逆风轻型植物子弹命中伤害倍率
 
 	const char* RainEffectName(RainIntensity intensity)
 	{
@@ -235,6 +247,38 @@ namespace {
 			return tailwind ? kSevereTailwindZombieMove : kSevereHeadwindZombieMove;
 		case TyphoonStrength::SUPER:
 			return tailwind ? kSuperTailwindZombieMove : kSuperHeadwindZombieMove;
+		case TyphoonStrength::NONE:
+			return 1.0f;
+		}
+		return 1.0f;
+	}
+
+	/** 返回台风强度对应的顺风/逆风轻型植物子弹水平速度倍率。 */
+	float TyphoonPlantBulletSpeedMultiplier(TyphoonStrength strength, bool tailwind)
+	{
+		switch (strength) {
+		case TyphoonStrength::TYPHOON:
+			return tailwind ? kTyphoonTailwindBulletSpeed : kTyphoonHeadwindBulletSpeed;
+		case TyphoonStrength::SEVERE:
+			return tailwind ? kSevereTailwindBulletSpeed : kSevereHeadwindBulletSpeed;
+		case TyphoonStrength::SUPER:
+			return tailwind ? kSuperTailwindBulletSpeed : kSuperHeadwindBulletSpeed;
+		case TyphoonStrength::NONE:
+			return 1.0f;
+		}
+		return 1.0f;
+	}
+
+	/** 返回台风强度对应的顺风/逆风轻型植物子弹命中伤害倍率。 */
+	float TyphoonPlantBulletDamageMultiplier(TyphoonStrength strength, bool tailwind)
+	{
+		switch (strength) {
+		case TyphoonStrength::TYPHOON:
+			return tailwind ? kTyphoonTailwindBulletDamage : kTyphoonHeadwindBulletDamage;
+		case TyphoonStrength::SEVERE:
+			return tailwind ? kSevereTailwindBulletDamage : kSevereHeadwindBulletDamage;
+		case TyphoonStrength::SUPER:
+			return tailwind ? kSuperTailwindBulletDamage : kSuperHeadwindBulletDamage;
 		case TyphoonStrength::NONE:
 			return 1.0f;
 		}
@@ -471,6 +515,26 @@ float Board::GetZombieWindMoveMultiplier(bool movingTowardFront) const
 		&& mWindDirection == WindDirection::TOWARD_FRONT)
 		|| (!movingTowardFront && mWindDirection == WindDirection::TOWARD_HOUSE);
 	return TyphoonZombieMoveMultiplier(mTyphoonStrength, tailwind);
+}
+
+float Board::GetPlantBulletWindSpeedMultiplier(bool movingTowardFront) const
+{
+	if (!HasTyphoon() || mRainIntensity != RainIntensity::HEAVY
+		|| mWindDirection == WindDirection::NONE) return 1.0f;
+	const bool tailwind = (movingTowardFront
+		&& mWindDirection == WindDirection::TOWARD_FRONT)
+		|| (!movingTowardFront && mWindDirection == WindDirection::TOWARD_HOUSE);
+	return TyphoonPlantBulletSpeedMultiplier(mTyphoonStrength, tailwind);
+}
+
+float Board::GetPlantBulletWindDamageMultiplier(bool movingTowardFront) const
+{
+	if (!HasTyphoon() || mRainIntensity != RainIntensity::HEAVY
+		|| mWindDirection == WindDirection::NONE) return 1.0f;
+	const bool tailwind = (movingTowardFront
+		&& mWindDirection == WindDirection::TOWARD_FRONT)
+		|| (!movingTowardFront && mWindDirection == WindDirection::TOWARD_HOUSE);
+	return TyphoonPlantBulletDamageMultiplier(mTyphoonStrength, tailwind);
 }
 
 bool Board::IsTyphoonGustWarning() const

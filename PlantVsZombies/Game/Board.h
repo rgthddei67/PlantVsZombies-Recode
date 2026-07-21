@@ -284,6 +284,10 @@ public:
 	float GetZombieRainSpeedMultiplier() const;
 	/** 台风对僵尸水平移动的额外倍率；返回值以当前雨天速度为 1。 */
 	float GetZombieWindMoveMultiplier(bool movingTowardFront) const;
+	/** 台风对轻型植物子弹水平速度的派生倍率；不修改子弹基础速度。 */
+	float GetPlantBulletWindSpeedMultiplier(bool movingTowardFront) const;
+	/** 台风对轻型植物子弹命中伤害的派生倍率；不修改子弹基础伤害。 */
+	float GetPlantBulletWindDamageMultiplier(bool movingTowardFront) const;
 	/** 当前雨势对植物攻击、生产、成长和恢复计时的倍率。 */
 	float GetPlantRainActionSpeedMultiplier() const;
 	/** 世界层蓝灰暗幕的 alpha（0..255）；UI 在暗幕之后绘制，不受影响。 */
