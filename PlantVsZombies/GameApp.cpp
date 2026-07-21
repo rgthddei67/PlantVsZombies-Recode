@@ -329,13 +329,13 @@ int GameAPP::Run()
 		g_particleSystem->LoadXMLConfigs("./resources/particles/config");
 	}
 
-	// 世界层粒子注入 GameObjectManager：主体之上、UI overlay 之下
+	// 世界层粒子与天气暗幕注入 GameObjectManager：主体之上、UI overlay 之下
 	GameObjectManager::GetInstance().SetPreOverlayHook([this] {
-		// 先压暗战场，再画雨丝等世界粒子，保证雨线在暗背景上仍清晰；两者都不会压住 UI。
-		SceneManager::GetInstance().DrawWorldOverlay(m_graphics.get());
+		// 世界粒子先参与战场合成，再由天气暗幕统一压暗；随后绘制的 UI 保持清晰。
 		if (g_particleSystem) {
 			g_particleSystem->DrawBelow(LAYER_UI);
 		}
+		SceneManager::GetInstance().DrawWorldOverlay(m_graphics.get());
 	});
 
 	auto& sceneManager = SceneManager::GetInstance();

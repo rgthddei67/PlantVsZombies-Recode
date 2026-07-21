@@ -166,8 +166,8 @@ void GameScene::DrawWorldOverlay(Graphics* g)
 	const float alpha = mBoard->GetRainOverlayAlpha();
 	if (alpha <= 0.0f) return;
 
-	// 低成本雨天环境光：只做蓝灰半透明暗幕。该钩子位于战场主体之后、UI overlay 之前，
-	// 因而植物/僵尸/背景一起变暗，但卡片、按钮和文字保持清晰。
+	// 低成本雨天环境光：只做蓝灰半透明暗幕。该钩子在战场主体与世界粒子之后、UI overlay
+	// 之前调用，因而背景、实体和世界特效统一变暗，但卡片、按钮和文字保持清晰。
 	g->FillRect(-20.0f, 0.0f,
 		static_cast<float>(SCENE_WIDTH + 500), static_cast<float>(SCENE_HEIGHT),
 		glm::vec4(36.0f, 52.0f, 78.0f, alpha));		// -20 500的预留空间

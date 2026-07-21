@@ -2,7 +2,7 @@
 
 > Codex routing: required always-on rules live in `../../AGENTS.md`; detailed build, AutoTest, architecture, resource, and implementation guidance lives in `../agent-guide/PROJECT_GUIDE.md`. The entries below are historical subsystem context and should be read only when relevant.
 
-- [黑夜随机雨势天气](project_pvz_night_rain_weather.md) — 2026-07-21 当前源码台风基础概率为前期 35%～后期 60%，每次落空 +20、封顶 95%，普通/强/超强权重 40/45/40；普通台风不产生植物位移，强/超强使用可存档活动阵风；风线使用原创透明渐变纹理，大雨斜率会随实时风向左右翻转；僵尸与轻型植物子弹按实时风向派生倍率；天气能力统一通过 Board 状态派生并使用 `adding-rain-weather` 技能
+- [黑夜随机雨势天气](project_pvz_night_rain_weather.md) — 2026-07-21 当前源码台风基础概率为前期 35%～后期 60%，每次落空 +20、封顶 95%，普通/强/超强权重 40/45/40；普通台风不产生植物位移，强/超强使用可存档活动阵风；风线使用原创透明渐变纹理，大雨斜率会随实时风向左右翻转；暗幕在世界粒子后、UI 前合成；天气能力统一通过 Board 状态派生并使用 `adding-rain-weather` 技能
 - [精英舞王僵尸](project_pvz_elite_dancer_zombie.md) — 2026-07-21 黑夜强/超强台风把普通舞王以 25% 概率变异、每波最多 2 只；800 HP、紫衣、无视植物、每 0.4 秒补普通伴舞至 8 只、SUPER 额外 1.70 倍；触车时本行 mower 正常启动并消灭精英、其余行静默失车；PowerShell 保明暗染色与可见 AutoTest 已闭环
 - [黑夜第二大关出怪节奏](project_pvz_night_spawnlist_pacing.md) — 2026-07-21 冒险 2-1～2-9 重排为单主题教学：2-6 普通橄榄球、2-7 舞王（进关时尚无毁灭菇）、2-8 普通+粉色橄榄球且撤下舞王、2-9 才综合；末关由 11 种全塞收敛为 8 种重点池，双 preset 统一；`smoke_night_spawnlists` 可见回归逐关断言并截图
 - [土豆地雷出土触发与范围爆炸](project_pvz_potato_mine_trigger_blast.md) — 2026-07-20 修复埋地时已被啃导致出土后不爆：出土跃迁若 `mEaterCount>0` 主动补触发；爆炸按原版同排半径60圆×僵尸矩形一次结算全部非魅惑目标，不再只杀碰撞触发者；可见 `smoke_potatomine.json` 独立覆盖先啃后出土与已出土双目标范围爆炸
@@ -31,7 +31,7 @@
 
 - [GameMessageBox Builder 化简 ✅已push](project_pvz_messagebox_builder.md) — 2026-07-04 流式Builder替9参构造/.Panel/.Checkbox(initChecked)灭friend槽位戳,7调用点迁完删UIManager::CreateMessageBox；foot-gun=Builder默认背景须IMAGE_MESSAGEBOX非空串、smoke_develop须-develop且热键已是rshift(不带也exit 0假绿)
 
-- [粒子按RenderOrder分层 ✅已push](project_pvz_particle_render_layer.md) — 2026-07-03 世界层粒子走GameObjectManager pre-overlay hook(非场景槽,因MessageBox在GameObjects命令内部)；EmitEffect默认LAYER_EFFECTS_WORLD=35000；DrawAll已删拆DrawBelow/DrawFrom；Scene基类命令真正排序
+- [粒子按RenderOrder分层](project_pvz_particle_render_layer.md) — 世界层粒子走 GameObjectManager pre-overlay hook（非场景槽，因 MessageBox 在 GameObjects 命令内部）；2026-07-21 雨天改为“世界粒子 → 暗幕 → UI”；EmitEffect 默认 LAYER_EFFECTS_WORLD=35000，显式顶层粒子仍走 DrawFrom
 
 - [开发者模式(-develop) ✅已push](project_pvz_developer_mode.md) — 2026-07-03 D键面板/收费点双条件守卫/点草坪召唤取最近行/跳关走pending延迟SwitchTo；15e109d修卡片显示层裸比阳光绕过CanAfford+下一波提取SummonNextWave可连点；foot-gun=FZCQ无◀▶字形用ASCII、AutoTest截图无.png扩展名、放置模式ESC与菜单ESC同帧用devConsumedEsc挡
 
