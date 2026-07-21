@@ -248,7 +248,11 @@ void GameScene::DrawWeatherPanel(Graphics* g) const
 	if (mBoard->HasTyphoon()) {
 		std::string windLine = std::string(u8"风向实况：")
 			+ WindDirectionDisplayName(mBoard->GetWindDirection());
-		if (mBoard->GetTyphoonGustsRemaining() > 0) {
+		if (mBoard->GetTyphoonStrength() == TyphoonStrength::TYPHOON) {
+			// 普通台风只有持续风和僵尸移速影响，不显示从未发生过的植物位移阵风已经结束。
+			windLine += u8"｜持续风（无位移）";
+		}
+		else if (mBoard->GetTyphoonGustsRemaining() > 0) {
 			const int gustSeconds = std::max(0,
 				static_cast<int>(std::ceil(mBoard->GetWindGustTimer())));
 			windLine += std::string(u8"｜阵风 ") + std::to_string(gustSeconds) + u8"秒";
