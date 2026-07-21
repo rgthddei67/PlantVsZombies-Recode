@@ -222,11 +222,11 @@ void GameScene::DrawWeatherPanel(Graphics* g) const
 		currentLine += std::string(u8" · ")
 			+ TyphoonStrengthDisplayName(mBoard->GetTyphoonStrength());
 	}
-	std::string forecastLine = u8"天气预警：暂无";
+	std::string forecastLine = u8"天气预报：暂无";
 	glm::vec4 forecastColor(166.0f, 178.0f, 196.0f, alpha);
 	if (mBoard->HasWeatherForecast()) {
 		const int seconds = std::max(0, static_cast<int>(std::ceil(mBoard->GetWeatherTimer())));
-		forecastLine = std::string(u8"天气预警（") + std::to_string(seconds)
+		forecastLine = std::string(u8"天气预报（") + std::to_string(seconds)
 			+ u8"秒）：" + RainIntensityDisplayName(mBoard->GetForecastRainIntensity());
 		if (mBoard->GetForecastRainIntensity() == mBoard->GetRainIntensity()) {
 			forecastLine += u8"（持续）";
@@ -386,7 +386,7 @@ void GameScene::BuildDrawCommands()
 				g->FillRect(0.0f, 0.0f,
 					static_cast<float>(SCENE_WIDTH), static_cast<float>(SCENE_HEIGHT), color);
 			},
-			LAYER_UI + 2000);
+			LAYER_UI + 10000);
 
 		// 读档恢复时，board 已处于 GAME 状态，需在此重新注册 UI 文字命令
 		if (mBoard->mBoardState == BoardState::GAME) {
