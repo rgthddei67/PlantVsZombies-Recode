@@ -365,6 +365,18 @@ bool TestDriver::ExecuteCurrent() {
 		}
 		return true;
 	}
+	if (op == "roll_typhoon") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) { Fail("roll_typhoon: 不在 GameScene 或 Board 为空"); return false; }
+		auto directionIt = kWindDirectionNames.find(cmd.value("direction", ""));
+		if (directionIt == kWindDirectionNames.end()
+			|| !gs->GetBoard()->RollTyphoonForTesting(cmd.value("chanceRoll", 0),
+				cmd.value("strengthRoll", 0), directionIt->second)) {
+			Fail("roll_typhoon: 只允许大雨，chanceRoll 必须为 1..100，strengthRoll 必须落在当前权重总和内，direction 必须为 HOUSE/FRONT");
+			return false;
+		}
+		return true;
+	}
 	if (op == "set_weather_forecast") {
 		GameScene* gs = CurrentGameScene();
 		if (!gs || !gs->GetBoard()) { Fail("set_weather_forecast: 不在 GameScene 或 Board 为空"); return false; }
@@ -796,6 +808,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "lightningRemaining", board->GetLightningTimer() },
 			{ "zombieSpeedPct", static_cast<int>(std::lround(zombieRain * 100.0f)) },
 			{ "typhoonStrength", TyphoonStrengthName(board->GetTyphoonStrength()) },
+			{ "typhoonChancePct", board->GetCurrentTyphoonChancePercent() },
+			{ "heavyPhasesWithoutTyphoon", board->GetHeavyPhasesWithoutTyphoon() },
 			{ "typhoonDecayRemaining", board->GetTyphoonStrengthTimer() },
 			{ "windDirection", WindDirectionName(board->GetWindDirection()) },
 			{ "windDirectionRemaining", board->GetWindDirectionTimer() },

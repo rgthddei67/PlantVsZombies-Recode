@@ -188,6 +188,7 @@ private:
 	float mWindDirectionTimer = 0.0f;   // 距下一次风向改变的游戏秒数
 	float mWindGustTimer = 0.0f;        // 距下一次阵风吹动植物的游戏秒数
 	int mTyphoonGustsRemaining = 0;     // 本次台风阶段尚可触发的阵风次数
+	int mHeavyPhasesWithoutTyphoon = 0; // 连续未命中台风的新大雨阶段数；用于保底并进入存档
 	int mLastTyphoonMovedPlants = 0;    // 最近一次阵风移动的植物数，仅供观测和测试
 	int mLastTyphoonLostPlants = 0;     // 最近一次阵风吹出棋盘的植物数，仅供观测和测试
 
@@ -225,8 +226,10 @@ private:
 	// 结束当前雨段：按固定权重落点决定放晴或进入一个不可再增强的尾雨段。
 	void FinishRainPhase(int transitionRoll);
 	void EndRain();
-	void StartTyphoonForHeavyPhase();
+	void StartTyphoonForHeavyPhase(int chanceRoll = 0, int strengthRoll = 0,
+		WindDirection forcedDirection = WindDirection::NONE);
 	void StopTyphoon();
+	void RestoreTyphoonPity(int missedHeavyPhases);
 	void RestoreTyphoonState(TyphoonStrength strength, WindDirection direction,
 		float strengthTimer, float gustTimer, float directionTimer, int gustsRemaining);
 	void UpdateTyphoon(float deltaTime);
@@ -297,12 +300,14 @@ public:
 	bool HasWeatherForecast() const { return mWeatherForecastReady; }
 	RainIntensity GetForecastRainIntensity() const { return mForecastRainIntensity; }
 	bool HasTyphoon() const { return mTyphoonStrength != TyphoonStrength::NONE; }
+	int GetCurrentTyphoonChancePercent() const;
 	TyphoonStrength GetTyphoonStrength() const { return mTyphoonStrength; }
 	WindDirection GetWindDirection() const { return mWindDirection; }
 	float GetTyphoonStrengthTimer() const { return mTyphoonStrengthTimer; }
 	float GetWindDirectionTimer() const { return mWindDirectionTimer; }
 	float GetWindGustTimer() const { return mWindGustTimer; }
 	int GetTyphoonGustsRemaining() const { return mTyphoonGustsRemaining; }
+	int GetHeavyPhasesWithoutTyphoon() const { return mHeavyPhasesWithoutTyphoon; }
 	int GetLastTyphoonMovedPlants() const { return mLastTyphoonMovedPlants; }
 	int GetLastTyphoonLostPlants() const { return mLastTyphoonLostPlants; }
 	bool IsTyphoonGustWarning() const;
@@ -323,6 +328,8 @@ public:
 	bool SetTyphoonForTesting(TyphoonStrength strength, WindDirection direction,
 		float gustIn = 30.0f, float directionIn = 30.0f, int gustsRemaining = 1,
 		float decayIn = 30.0f);
+	// AutoTest 专用：用固定概率点数和强度点数走正式台风判定，覆盖连续落空保底。
+	bool RollTyphoonForTesting(int chanceRoll, int strengthRoll, WindDirection direction);
 	// AutoTest 专用：立即触发一次当前强度的阵风，不消费自动阵风计时。
 	bool TriggerTyphoonGustForTesting();
 

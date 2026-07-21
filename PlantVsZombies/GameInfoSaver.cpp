@@ -187,6 +187,7 @@ bool GameInfoSaver::SaveLevelDataImpl(Board* board, CardSlotManager* manager)
 	j["windDirectionTimer"] = board->mWindDirectionTimer;
 	j["windGustTimer"] = board->mWindGustTimer;
 	j["typhoonGustsRemaining"] = board->mTyphoonGustsRemaining;
+	j["heavyPhasesWithoutTyphoon"] = board->mHeavyPhasesWithoutTyphoon;
 	j["currentWeatherNoticeTimer"] = board->mGameScene
 		? board->mGameScene->GetCurrentWeatherNoticeTimer() : 0.0f;
 	j["weatherForecastFailureTimer"] = board->mGameScene
@@ -513,6 +514,8 @@ bool GameInfoSaver::LoadLevelDataImpl(Board* board, CardSlotManager* manager)
 		j.value("typhoonStrengthTimer", 0.0f), j.value("windGustTimer", 0.0f),
 		j.value("windDirectionTimer", 0.0f),
 		j.value("typhoonGustsRemaining", 0));
+	// 保底计数影响下一次大雨的概率，必须随档恢复；旧档默认从零开始。
+	board->RestoreTyphoonPity(j.value("heavyPhasesWithoutTyphoon", 0));
 	board->mRainVisualActive = false;   // 粒子不入存档，StartGame 按剩余时间重建
 	board->mMaxWave = j.value("maxWave", 10);
 	board->mZombieCountDown = j.value("zombieCountDown", 20.0f);

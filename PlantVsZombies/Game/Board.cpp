@@ -87,11 +87,14 @@ namespace {
 	constexpr float kLightningRepeatMax = 10.0f;         // 大雨中两次闪电的最长间隔（秒）
 	constexpr float kLightningFlashDuration = 0.18f;     // 单次闪电白闪持续时间（秒）
 	constexpr float kLightningFlashPeakAlpha = 105.0f;   // 单次闪电白闪峰值透明度（0～255）
-	constexpr int kTyphoonChanceEarlyPercent = 8;        // 新大雨阶段附加台风的前期概率（百分比）
-	constexpr int kTyphoonChanceLatePercent = 20;        // 新大雨阶段附加台风的后期目标概率（百分比）
-	constexpr int kTyphoonWeight = 70;                   // 命中台风后普通台风的相对权重
-	constexpr int kSevereTyphoonWeight = 25;             // 命中台风后强台风的相对权重
-	constexpr int kSuperTyphoonWeight = 5;               // 命中台风后超强台风的相对权重
+	constexpr int kTyphoonChanceEarlyPercent = 25;       // 新大雨阶段附加台风的前期基础概率（百分比）
+	constexpr int kTyphoonChanceLatePercent = 50;        // 新大雨阶段附加台风的后期基础概率（百分比）
+	constexpr int kTyphoonPityPerMissPercent = 15;       // 每连续落空一个新大雨阶段，下次台风概率增加的百分点
+	constexpr int kTyphoonChanceMaxPercent = 85;         // 连续落空保底抬升后的台风概率上限（百分比）
+	constexpr int kTyphoonPityMaxMisses = 4;             // 记入概率计算的最大连续落空次数，避免损坏存档放大整数
+	constexpr int kTyphoonWeight = 50;                   // 命中台风后普通台风的相对权重
+	constexpr int kSevereTyphoonWeight = 35;             // 命中台风后强台风的相对权重
+	constexpr int kSuperTyphoonWeight = 15;              // 命中台风后超强台风的相对权重
 	constexpr float kWindDirectionDurationMin = 18.0f;   // 同一风向至少维持的游戏秒数
 	constexpr float kWindDirectionDurationMax = 26.0f;   // 同一风向至多维持的游戏秒数
 	constexpr float kSuperTyphoonDecayMin = 18.0f;       // 超强台风衰减为强台风前的最短持续时间（游戏秒）
@@ -451,6 +454,15 @@ float Board::GetZombieRainSpeedMultiplier() const
 	return previous + (ZombieSpeedForRain(mRainIntensity) - previous) * progress;
 }
 
+/** 当前新大雨若进行台风判定时的实际概率，包含波次成长与连续落空保底。 */
+int Board::GetCurrentTyphoonChancePercent() const
+{
+	const int baseChance = LerpWeatherWeight(kTyphoonChanceEarlyPercent,
+		kTyphoonChanceLatePercent, GetWeatherLateGameFactor());
+	return std::min(kTyphoonChanceMaxPercent,
+		baseChance + mHeavyPhasesWithoutTyphoon * kTyphoonPityPerMissPercent);
+}
+
 float Board::GetZombieWindMoveMultiplier(bool movingTowardFront) const
 {
 	if (!HasTyphoon() || mRainIntensity != RainIntensity::HEAVY
@@ -584,6 +596,7 @@ void Board::InitializeWeather()
 	mWeatherTransitionTimer = 0.0f;
 	mWeatherForecastReady = false;
 	mRainVisualActive = false;
+	mHeavyPhasesWithoutTyphoon = 0;
 	StopTyphoon();
 	mWeatherTimer = GameAPP::GetInstance().GetBackgroundIsNight(mBackGround)
 		? GameRandom::Range(kFirstRainDelayMin, kFirstRainDelayMax)
@@ -754,16 +767,25 @@ void Board::ConsumeWeatherForecast()
 	BeginRain(next, GameRandom::Range(kRainTailDurationMin, kRainTailDurationMax), false, false);
 }
 
-/** 新大雨阶段只判定一次是否附加台风，并锁定强度、初始方向和本阶段阵风预算。 */
-void Board::StartTyphoonForHeavyPhase()
+/**
+ * 新大雨阶段只判定一次是否附加台风，并锁定强度、初始方向和本阶段阵风预算。
+ * 正式流程传 0 使用随机点数；AutoTest 可传 1-based 固定点数验证概率、保底和强度边界。
+ */
+void Board::StartTyphoonForHeavyPhase(int chanceRoll, int strengthRoll,
+	WindDirection forcedDirection)
 {
 	StopTyphoon();
-	const int chance = LerpWeatherWeight(kTyphoonChanceEarlyPercent,
-		kTyphoonChanceLatePercent, GetWeatherLateGameFactor());
-	if (GameRandom::Range(1, 100) > chance) return;
+	const int chance = GetCurrentTyphoonChancePercent();
+	if (chanceRoll <= 0) chanceRoll = GameRandom::Range(1, 100);
+	if (chanceRoll > chance) {
+		mHeavyPhasesWithoutTyphoon = std::min(
+			mHeavyPhasesWithoutTyphoon + 1, kTyphoonPityMaxMisses);
+		return;
+	}
+	mHeavyPhasesWithoutTyphoon = 0;
 
 	const int totalWeight = kTyphoonWeight + kSevereTyphoonWeight + kSuperTyphoonWeight;
-	const int roll = GameRandom::Range(1, totalWeight);
+	const int roll = strengthRoll > 0 ? strengthRoll : GameRandom::Range(1, totalWeight);
 	if (roll <= kTyphoonWeight) {
 		mTyphoonStrength = TyphoonStrength::TYPHOON;
 	}
@@ -773,14 +795,24 @@ void Board::StartTyphoonForHeavyPhase()
 	else {
 		mTyphoonStrength = TyphoonStrength::SUPER;
 	}
-	mWindDirection = GameRandom::Range(0, 1) == 0
-		? WindDirection::TOWARD_HOUSE : WindDirection::TOWARD_FRONT;
+	const bool validForcedDirection = forcedDirection == WindDirection::TOWARD_HOUSE
+		|| forcedDirection == WindDirection::TOWARD_FRONT;
+	mWindDirection = validForcedDirection ? forcedDirection
+		: (GameRandom::Range(0, 1) == 0
+			? WindDirection::TOWARD_HOUSE : WindDirection::TOWARD_FRONT);
 	mTyphoonStrengthTimer = RandomTyphoonStrengthDuration(mTyphoonStrength);
 	mWindDirectionTimer = GameRandom::Range(
 		kWindDirectionDurationMin, kWindDirectionDurationMax);
 	mTyphoonGustsRemaining = TyphoonMaxGusts(mTyphoonStrength);
 	mWindGustTimer = mTyphoonGustsRemaining > 0
 		? RandomTyphoonGustInterval(mTyphoonStrength) : 0.0f;
+}
+
+/** 夹紧并恢复会影响下次台风随机判定的连续落空次数。 */
+void Board::RestoreTyphoonPity(int missedHeavyPhases)
+{
+	mHeavyPhasesWithoutTyphoon = std::clamp(
+		missedHeavyPhases, 0, kTyphoonPityMaxMisses);
 }
 
 /** 清空全部台风派生状态；中雨、小雨、晴天和旧档默认都以此为单位元。 */
@@ -1070,6 +1102,7 @@ void Board::SetRainForTesting(RainIntensity intensity, float duration, bool canI
 	mActualForecastRainIntensity = RainIntensity::CLEAR;
 	mWeatherForecastReady = false;
 	mRainVisualActive = false;
+	mHeavyPhasesWithoutTyphoon = 0;
 	StopTyphoon();
 
 	if (intensity == RainIntensity::CLEAR) {
@@ -1134,6 +1167,17 @@ bool Board::SetTyphoonForTesting(TyphoonStrength strength, WindDirection directi
 	}
 	RestoreTyphoonState(strength, direction, decayIn, gustIn, directionIn, gustsRemaining);
 	return HasTyphoon();
+}
+
+bool Board::RollTyphoonForTesting(int chanceRoll, int strengthRoll, WindDirection direction)
+{
+	const int totalWeight = kTyphoonWeight + kSevereTyphoonWeight + kSuperTyphoonWeight;
+	const bool validDirection = direction == WindDirection::TOWARD_HOUSE
+		|| direction == WindDirection::TOWARD_FRONT;
+	if (mRainIntensity != RainIntensity::HEAVY || chanceRoll < 1 || chanceRoll > 100
+		|| strengthRoll < 1 || strengthRoll > totalWeight || !validDirection) return false;
+	StartTyphoonForHeavyPhase(chanceRoll, strengthRoll, direction);
+	return true;
 }
 
 bool Board::TriggerTyphoonGustForTesting()

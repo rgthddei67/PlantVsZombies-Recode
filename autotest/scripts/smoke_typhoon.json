@@ -6,6 +6,16 @@
     { "op": "set_sun", "value": 1000 },
     { "op": "set_weather", "intensity": "HEAVY", "duration": 90 },
 
+    { "op": "assert_state", "path": "weather.typhoonChancePct", "equals": 25 },
+    { "op": "roll_typhoon", "chanceRoll": 26, "strengthRoll": 51, "direction": "HOUSE" },
+    { "op": "assert_state", "path": "weather.typhoonStrength", "equals": "NONE" },
+    { "op": "assert_state", "path": "weather.heavyPhasesWithoutTyphoon", "equals": 1 },
+    { "op": "assert_state", "path": "weather.typhoonChancePct", "equals": 40 },
+    { "op": "roll_typhoon", "chanceRoll": 26, "strengthRoll": 51, "direction": "HOUSE" },
+    { "op": "assert_state", "path": "weather.typhoonStrength", "equals": "SEVERE" },
+    { "op": "assert_state", "path": "weather.heavyPhasesWithoutTyphoon", "equals": 0 },
+    { "op": "assert_state", "path": "weather.typhoonChancePct", "equals": 25 },
+
     { "op": "plant", "type": "PLANT_PEASHOOTER", "row": 0, "col": 0 },
     { "op": "plant", "type": "PLANT_PEASHOOTER", "row": 1, "col": 4 },
     { "op": "set_typhoon", "strength": "TYPHOON", "direction": "HOUSE", "gustIn": 30, "directionIn": 30, "gustsRemaining": 2, "decayIn": 60 },
