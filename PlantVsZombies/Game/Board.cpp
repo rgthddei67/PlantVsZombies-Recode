@@ -175,6 +175,13 @@ namespace {
 		return "";
 	}
 
+	/** 按独立二选一结果返回风实际吹向；固定点数仅供 AutoTest 覆盖同向与换向分支。 */
+	WindDirection WindDirectionForRoll(int directionRoll)
+	{
+		const int roll = directionRoll > 0 ? directionRoll : GameRandom::Range(1, 2);
+		return roll == 1 ? WindDirection::TOWARD_HOUSE : WindDirection::TOWARD_FRONT;
+	}
+
 	/** 在两档调参权重间插值并四舍五入，保证后期变化连续而非跨波次突跳。 */
 	int LerpWeatherWeight(int earlyWeight, int lateWeight, float lateFactor)
 	{
@@ -935,9 +942,7 @@ void Board::StartTyphoonForHeavyPhase(int chanceRoll, int strengthRoll,
 	}
 	const bool validForcedDirection = forcedDirection == WindDirection::TOWARD_HOUSE
 		|| forcedDirection == WindDirection::TOWARD_FRONT;
-	mWindDirection = validForcedDirection ? forcedDirection
-		: (GameRandom::Range(0, 1) == 0
-			? WindDirection::TOWARD_HOUSE : WindDirection::TOWARD_FRONT);
+	mWindDirection = validForcedDirection ? forcedDirection : WindDirectionForRoll(0);
 	mTyphoonStrengthTimer = RandomTyphoonStrengthDuration(mTyphoonStrength);
 	mWindDirectionTimer = GameRandom::Range(
 		kWindDirectionDurationMin, kWindDirectionDurationMax);
@@ -1076,14 +1081,18 @@ ZombieType Board::ResolveRainMutationType(ZombieType selected, int mutationRoll)
 	return ZombieType::ZOMBIE_ELITE_DANCER;
 }
 
-/** 风向按台风过境分段翻转；不在每次阵风临时重抽，保证玩家可据实况提前应对。 */
-void Board::ChangeWindDirection()
+/**
+ * 风向维持一段时间后独立重抽；允许继续吹向当前方向，避免固定左右交替被玩家预测。
+ * 不在每次阵风临时重抽，玩家仍可根据面板中的实时方向应对当前阵风。
+ */
+void Board::RerollWindDirection(int directionRoll)
 {
 	if (!HasTyphoon()) return;
-	mWindDirection = mWindDirection == WindDirection::TOWARD_HOUSE
-		? WindDirection::TOWARD_FRONT : WindDirection::TOWARD_HOUSE;
+	const WindDirection previousDirection = mWindDirection;
+	mWindDirection = WindDirectionForRoll(directionRoll);
 	mWindDirectionTimer = GameRandom::Range(
 		kWindDirectionDurationMin, kWindDirectionDurationMax);
+	if (mWindDirection == previousDirection) return;
 	// 下一帧立即发射新方向的风线；旧方向粒子会在自身不足 1.25 秒的寿命内自然淡出。
 	mWindParticleTimer = 0.0f;
 	RestartRainVisualForWindChange();
@@ -1128,7 +1137,7 @@ void Board::UpdateTyphoon(float deltaTime)
 	if (!HasTyphoon()) return;
 
 	mWindDirectionTimer -= deltaTime;
-	if (mWindDirectionTimer <= 0.0f) ChangeWindDirection();
+	if (mWindDirectionTimer <= 0.0f) RerollWindDirection();
 	if (mTyphoonGustsRemaining <= 0) {
 		mWindGustTimer = 0.0f;
 		return;
@@ -1440,6 +1449,13 @@ bool Board::SetTyphoonForTesting(TyphoonStrength strength, WindDirection directi
 	RestoreTyphoonState(strength, direction, decayIn, gustIn, directionIn, gustsRemaining);
 	RestartRainVisualForWindChange();
 	return HasTyphoon();
+}
+
+bool Board::RerollWindDirectionForTesting(int directionRoll)
+{
+	if (!HasTyphoon() || directionRoll < 1 || directionRoll > 2) return false;
+	RerollWindDirection(directionRoll);
+	return true;
 }
 
 bool Board::RollTyphoonForTesting(int chanceRoll, int strengthRoll, WindDirection direction)

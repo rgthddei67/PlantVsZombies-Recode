@@ -18,6 +18,13 @@
     { "op": "assert_state", "path": "weather.heavyPhasesWithoutTyphoon", "equals": 0 },
     { "op": "assert_state", "path": "weather.typhoonChancePct", "equals": 35 },
 
+    { "op": "reroll_typhoon_direction", "directionRoll": 1 },
+    { "op": "assert_state", "path": "weather.windDirection", "equals": "HOUSE" },
+    { "op": "assert_state", "path": "weather.rainEffect", "equals": "RainHeavyTowardHouse" },
+    { "op": "reroll_typhoon_direction", "directionRoll": 2 },
+    { "op": "assert_state", "path": "weather.windDirection", "equals": "FRONT" },
+    { "op": "assert_state", "path": "weather.rainEffect", "equals": "RainHeavyTowardFront" },
+
     { "op": "plant", "type": "PLANT_PEASHOOTER", "row": 0, "col": 0 },
     { "op": "plant", "type": "PLANT_PEASHOOTER", "row": 1, "col": 4 },
     { "op": "set_typhoon", "strength": "TYPHOON", "direction": "HOUSE", "gustIn": 30, "directionIn": 30, "gustsRemaining": 2, "decayIn": 60 },

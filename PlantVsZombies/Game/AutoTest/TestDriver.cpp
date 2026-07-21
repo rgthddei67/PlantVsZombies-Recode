@@ -364,6 +364,15 @@ bool TestDriver::ExecuteCurrent() {
 		}
 		return true;
 	}
+	if (op == "reroll_typhoon_direction") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) { Fail("reroll_typhoon_direction: 不在 GameScene 或 Board 为空"); return false; }
+		if (!gs->GetBoard()->RerollWindDirectionForTesting(cmd.value("directionRoll", 0))) {
+			Fail("reroll_typhoon_direction: 当前必须有台风，directionRoll 必须为 1..2");
+			return false;
+		}
+		return true;
+	}
 	if (op == "trigger_typhoon_gust") {
 		GameScene* gs = CurrentGameScene();
 		if (!gs || !gs->GetBoard()) { Fail("trigger_typhoon_gust: 不在 GameScene 或 Board 为空"); return false; }

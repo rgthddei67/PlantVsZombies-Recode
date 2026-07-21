@@ -185,9 +185,9 @@ private:
 	std::string mRainVisualEffectName;  // 当前雨丝特效名；风向切换时只停止旧雨而不清空其他粒子
 	float mWindParticleTimer = 0.0f;    // 距下一批风线粒子的游戏秒数；瞬态视觉不入存档
 	TyphoonStrength mTyphoonStrength = TyphoonStrength::NONE; // 大雨附加台风；离开大雨立即清空
-	WindDirection mWindDirection = WindDirection::NONE;       // 当前风实际吹向，台风期间分段翻转
+	WindDirection mWindDirection = WindDirection::NONE;       // 当前风实际吹向，台风期间分段独立重抽
 	float mTyphoonStrengthTimer = 0.0f; // 当前台风强度距下一档衰减的游戏秒数
-	float mWindDirectionTimer = 0.0f;   // 距下一次风向改变的游戏秒数
+	float mWindDirectionTimer = 0.0f;   // 距下一次风向独立重抽的游戏秒数
 	float mWindGustTimer = 0.0f;        // 非阵风期间距下一次阵风开始的游戏秒数
 	int mTyphoonGustsRemaining = 0;     // 本次台风阶段尚可触发的阵风次数
 	bool mTyphoonGustActive = false;    // true 时锁定本次阵风强度/风向并连续吹动僵尸
@@ -249,7 +249,8 @@ private:
 	void UpdateTyphoon(float deltaTime);
 	void UpdateTyphoonWindVisual(float deltaTime);
 	void WeakenTyphoon();
-	void ChangeWindDirection();
+	/** 到达维持时限后独立重抽风向；directionRoll=0 使用正式随机，1/2 供确定性测试。 */
+	void RerollWindDirection(int directionRoll = 0);
 	bool BeginTyphoonGust(bool consumeBudget, float forcedPlantMoveIn = -1.0f);
 	void UpdateActiveTyphoonGust(float deltaTime);
 	void EndTyphoonGust();
@@ -364,6 +365,8 @@ public:
 	bool SetTyphoonForTesting(TyphoonStrength strength, WindDirection direction,
 		float gustIn = 30.0f, float directionIn = 30.0f, int gustsRemaining = 1,
 		float decayIn = 30.0f);
+	// AutoTest 专用：用固定二选一点数走正式风向重抽，覆盖保持同向与切换方向。
+	bool RerollWindDirectionForTesting(int directionRoll);
 	// AutoTest 专用：用固定概率点数和强度点数走正式台风判定，覆盖连续落空保底。
 	bool RollTyphoonForTesting(int chanceRoll, int strengthRoll, WindDirection direction);
 	// AutoTest 专用：启动一次当前强度的阵风，不消费自动预算；可固定植物结算时刻。
