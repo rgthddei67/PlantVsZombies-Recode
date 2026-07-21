@@ -501,7 +501,7 @@ public:
 	Mower* CreateMower(MowerType type, int row);
 	Mower* CreateMowerWithID(MowerType type, int row, float x, float y, int id);
 	void InitializeMowers();
-	/** 静默移除全场现存小推车，不播放启动动画或音效。 */
-	void RemoveAllMowersWithoutTrigger();
+	/** 保留指定小推车，静默移除其他现存小推车，不播放其启动动画或音效。 */
+	void RemoveOtherMowersWithoutTrigger(int preservedMowerID);
 };
 #endif

@@ -39,15 +39,14 @@ Mower::Mower(Board* board, MowerType type, AnimationType animType, float x, floa
 		auto* zombie = dynamic_cast<Zombie*>(go);
 		if (!zombie) return;
 
-		// 精英吞车能力在触发小推车之前结算：全场静默消失，精英自身不受伤。
-		if (zombie->ConsumesAllMowersOnContact() && mBoard) {
-			mBoard->RemoveAllMowersWithoutTrigger();
-			return;
-		}
-
 		// 首次碰撞触发移动
 		if (mState == MowerState::IDLE) {
 			Trigger();
+		}
+
+		// 精英所在行保留正常启动和秒杀；其余行只失去小推车，不播放启动效果。
+		if (zombie->ConsumesOtherMowersOnContact() && mBoard) {
+			mBoard->RemoveOtherMowersWithoutTrigger(mMowerID);
 		}
 
 		zombie->TakeDamage(INT32_MAX, DamageSource::OTHER);

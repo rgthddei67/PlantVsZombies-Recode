@@ -7,6 +7,7 @@
 #include "../GameScene.h"
 #include "../ChooseCardUI.h"
 #include "../Board.h"
+#include "../LawnMower.h"
 #include "../AudioSystem.h"
 #include "../Card.h"
 #include "../CardComponent.h"
@@ -828,6 +829,20 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["wave"] = board->mCurrentWave;
 	out["zombieNumber"] = board->mZombieNumber;
 	out["mowerCount"] = static_cast<int>(board->mEntityManager.GetAllMowerIDs().size());
+	int movingMowerCount = 0;
+	out["mowers"] = nlohmann::json::array();
+	for (int id : board->mEntityManager.GetAllMowerIDs()) {
+		Mower* mower = board->mEntityManager.GetMower(id);
+		if (!mower) continue;
+		const bool moving = mower->mState == MowerState::MOVING;
+		if (moving) ++movingMowerCount;
+		out["mowers"].push_back({
+			{ "id", id }, { "row", mower->mRow },
+			{ "state", moving ? "MOVING" : "IDLE" },
+			{ "xInt", static_cast<int>(std::lround(mower->GetPosition().x)) },
+		});
+	}
+	out["movingMowerCount"] = movingMowerCount;
 	out["devNoCooldown"] = GameAPP::mDevNoCooldown;
 	out["devFreePlant"] = GameAPP::mDevFreePlant;
 	out["devSpawnPaused"] = GameAPP::mDevSpawnPaused;

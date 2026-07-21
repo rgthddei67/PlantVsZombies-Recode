@@ -13,7 +13,7 @@ public:
 	void ZombieUpdate(float scaledTime) override;
 	void StartEat(ColliderComponent* other) override;
 	void EatTarget() override;
-	bool ConsumesAllMowersOnContact() const override { return true; }
+	bool ConsumesOtherMowersOnContact() const override { return true; }
 
 	void SaveExtraData(nlohmann::json& j) const override;
 	void LoadExtraData(const nlohmann::json& j) override;

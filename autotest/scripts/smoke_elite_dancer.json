@@ -25,11 +25,20 @@
     { "op": "assert_state", "path": "zombies.0.eliteTyphoonSpeedPct", "equals": 170 },
     { "op": "assert_state", "path": "zombies.0.animExtraSpeedPct", "equals": 238 },
     { "op": "screenshot", "name": "elite_dancer_purple_troupe.png" },
+
+    { "op": "goto_level", "level": 10 },
+    { "op": "choose_cards", "cards": ["PLANT_PEASHOOTER"] },
+    { "op": "wait_state", "state": "GAME", "timeout": 15 },
     { "op": "spawn_zombie", "type": "ZOMBIE_ELITE_DANCER", "row": 4, "x": 220 },
     { "op": "wait_frames", "value": 8 },
-    { "op": "assert_state", "path": "mowerCount", "equals": 0 },
-    { "op": "assert_state", "path": "zombieCount", "atLeast": 10 },
-    { "op": "screenshot", "name": "elite_dancer_after_mowers.png" },
+    { "op": "assert_state", "path": "mowerCount", "equals": 1 },
+    { "op": "assert_state", "path": "movingMowerCount", "equals": 1 },
+    { "op": "assert_state", "path": "mowers.0.row", "equals": 4 },
+    { "op": "assert_state", "path": "mowers.0.state", "equals": "MOVING" },
+    { "op": "assert_state", "path": "zombies.0.bodyHealth", "equals": 0 },
+    { "op": "screenshot", "name": "elite_dancer_triggered_lane_mower.png" },
+    { "op": "wait_seconds", "value": 4.0, "timeout": 6 },
+    { "op": "assert_state", "path": "zombieCount", "equals": 0 },
     { "op": "dump_state", "name": "state.json" },
     { "op": "quit" }
   ]

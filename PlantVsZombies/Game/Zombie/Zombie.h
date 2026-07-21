@@ -104,8 +104,8 @@ public:
 	virtual void StartEat(ColliderComponent* other);
 	virtual void StopEat(ColliderComponent* other);
 	virtual void EatTarget();	// 吃东西掉血的函数
-	/** 与小推车接触时是否静默吞掉全场小推车；默认僵尸维持原版碰撞结算。 */
-	virtual bool ConsumesAllMowersOnContact() const { return false; }
+	/** 与小推车接触时是否静默吞掉其他行小推车；当前行仍维持原版碰撞结算。 */
+	virtual bool ConsumesOtherMowersOnContact() const { return false; }
 
 	Vector GetVisualPosition() const override;
 	Vector GetPosition() const;

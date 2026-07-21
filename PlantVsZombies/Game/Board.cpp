@@ -2461,11 +2461,12 @@ void Board::InitializeMowers()
 	}
 }
 
-/** 复制 ID 后逐一销毁，避免 Die() 延迟回收期间修改遍历来源。 */
-void Board::RemoveAllMowersWithoutTrigger()
+/** 复制 ID 后逐一销毁其他小推车，避免 Die() 延迟回收期间修改遍历来源。 */
+void Board::RemoveOtherMowersWithoutTrigger(int preservedMowerID)
 {
 	const std::vector<int> mowerIDs = mEntityManager.GetAllMowerIDs();
 	for (int id : mowerIDs) {
+		if (id == preservedMowerID) continue;
 		Mower* mower = mEntityManager.GetMower(id);
 		if (!mower) continue;
 		SetRowLoseMower(mower->mRow);
