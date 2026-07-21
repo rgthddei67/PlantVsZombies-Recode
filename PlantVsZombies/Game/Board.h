@@ -200,7 +200,7 @@ private:
 	int mHeavyPhasesWithoutTyphoon = 0; // 连续未命中台风的新大雨阶段数；用于保底并进入存档
 	int mEliteDancersSpawnedThisWave = 0; // 当前波已生成的精英舞王数量；用于每波上限并进入存档
 	int mLastTyphoonMovedPlants = 0;    // 最近一次阵风移动的植物数，仅供观测和测试
-	int mLastTyphoonLostPlants = 0;     // 最近一次阵风吹出棋盘的植物数，仅供观测和测试
+	int mLastTyphoonLostPlants = 0;     // 最近一次阵风吹出棋盘或吹入弹坑的植物数，仅供观测和测试
 
 	std::vector<RowInfo> mRowInfos;
 	static constexpr float ROW_WEIGHT_THRESHOLD = 1e-6f;

@@ -3,7 +3,7 @@
 > Codex routing: required always-on rules live in `../../AGENTS.md`; detailed build, AutoTest, architecture, resource, and implementation guidance lives in `../agent-guide/PROJECT_GUIDE.md`. The entries below are historical subsystem context and should be read only when relevant.
 
 - [Windows 中央存档目录与旧档安全迁移](project_pvz_save_location_migration.md) — 2026-07-21 Windows 正式存档改到 `FOLDERID_SavedGames/PlantsVsZombies/saves`；首次访问旧 `./saves` 时复制、逐字节校验、再删源文件，冲突不覆盖、失败逐文件回退；AutoTest/`-AutoTestLoadSave` 继续隔离在构建目录
-- [黑夜随机雨势天气](project_pvz_night_rain_weather.md) — 2026-07-21 当前源码台风基础概率为前期 35%～后期 60%，每次落空 +20、封顶 95%，普通/强/超强权重 40/45/40；普通台风不产生植物位移，强/超强使用可存档活动阵风；风向每 15～25 游戏秒独立二选一重抽并允许维持同向，风线与大雨斜率只在真正换向时切换；暗幕在世界粒子后、UI 前合成；天气能力统一通过 Board 状态派生并使用 `adding-rain-weather` 技能
+- [黑夜随机雨势天气](project_pvz_night_rain_weather.md) — 2026-07-21 当前源码台风基础概率为前期 35%～后期 60%，每次落空 +20、封顶 95%，普通/强/超强权重 40/45/40；普通台风不产生植物位移，强/超强使用可存档活动阵风，植物吹入弹坑或越界死亡、弹坑不再充当挡风墙；风向每 15～25 游戏秒独立二选一重抽并允许维持同向，风线与大雨斜率只在真正换向时切换；暗幕在世界粒子后、UI 前合成；天气能力统一通过 Board 状态派生并使用 `adding-rain-weather` 技能
 - [精英舞王僵尸](project_pvz_elite_dancer_zombie.md) — 2026-07-21 黑夜强/超强台风把普通舞王以 25% 概率变异、每波最多 2 只；800 HP、紫衣、无视植物、每 0.4 秒补普通伴舞至 8 只、SUPER 额外 1.70 倍；触车时本行 mower 正常启动并消灭精英、其余行静默失车；PowerShell 保明暗染色与可见 AutoTest 已闭环
 - [黑夜第二大关出怪节奏](project_pvz_night_spawnlist_pacing.md) — 2026-07-21 冒险 2-1～2-9 重排为单主题教学：2-6 普通橄榄球、2-7 舞王（进关时尚无毁灭菇）、2-8 普通+粉色橄榄球且撤下舞王、2-9 才综合；末关由 11 种全塞收敛为 8 种重点池，双 preset 统一；`smoke_night_spawnlists` 可见回归逐关断言并截图
 - [土豆地雷出土触发与范围爆炸](project_pvz_potato_mine_trigger_blast.md) — 2026-07-20 修复埋地时已被啃导致出土后不爆：出土跃迁若 `mEaterCount>0` 主动补触发；爆炸按原版同排半径60圆×僵尸矩形一次结算全部非魅惑目标，不再只杀碰撞触发者；可见 `smoke_potatomine.json` 独立覆盖先啃后出土与已出土双目标范围爆炸

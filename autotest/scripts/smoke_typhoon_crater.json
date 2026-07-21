@@ -1,0 +1,33 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 10 },
+    { "op": "choose_cards", "cards": ["PLANT_DOOMSHROOM", "PLANT_PEASHOOTER"] },
+    { "op": "wait_state", "state": "GAME", "timeout": 15 },
+    { "op": "set_sun", "value": 1000 },
+    { "op": "set_weather", "intensity": "HEAVY", "duration": 90 },
+
+    { "op": "plant", "type": "PLANT_DOOMSHROOM", "row": 2, "col": 4 },
+    { "op": "wait_seconds", "value": 2.0, "timeout": 4 },
+    { "op": "assert_state", "path": "plantCount", "equals": 0 },
+    { "op": "assert_state", "path": "craters.0.row", "equals": 2 },
+    { "op": "assert_state", "path": "craters.0.col", "equals": 4 },
+    { "op": "wait_seconds", "value": 3.0, "timeout": 5 },
+
+    { "op": "plant", "type": "PLANT_PEASHOOTER", "row": 2, "col": 5 },
+    { "op": "plant", "type": "PLANT_PEASHOOTER", "row": 2, "col": 6 },
+    { "op": "assert_state", "path": "plantCount", "equals": 2 },
+    { "op": "set_typhoon", "strength": "SEVERE", "direction": "HOUSE", "gustIn": 30, "directionIn": 30, "gustsRemaining": 1, "decayIn": 60 },
+    { "op": "trigger_typhoon_gust" },
+    { "op": "wait_frames", "value": 2 },
+    { "op": "assert_state", "path": "plantCount", "equals": 1 },
+    { "op": "assert_state", "path": "plants.0.col", "equals": 5 },
+    { "op": "assert_state", "path": "weather.lastGustMovedPlants", "equals": 1 },
+    { "op": "assert_state", "path": "weather.lastGustLostPlants", "equals": 1 },
+    { "op": "assert_state", "path": "craters.0.row", "equals": 2 },
+    { "op": "assert_state", "path": "craters.0.col", "equals": 4 },
+    { "op": "wait_seconds", "value": 0.6, "timeout": 3 },
+    { "op": "screenshot", "name": "plant_lost_in_crater.png" },
+    { "op": "dump_state", "name": "state.json" },
+    { "op": "quit" }
+  ]
+}

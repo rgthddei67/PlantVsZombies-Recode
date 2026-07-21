@@ -1212,7 +1212,8 @@ void Board::EndTyphoonGust()
 }
 
 /**
- * 同一阵风按已锁定吹向逐格、从前缘到后缘结算全部植物。
+ * 同一阵风按已锁定吹向逐格、从前缘到后缘结算全部植物；
+ * 植物被吹出棋盘或吹入弹坑时死亡，弹坑不能反直觉地充当挡风墙。
  * 每次换格先更新 Cell、row/column 与碰撞箱，再让植物画面用瞬态偏移追赶；
  * 因此滑动中保存只会记录目标格，读档不会恢复半格状态或重复位移。
  */
@@ -1249,7 +1250,12 @@ void Board::TriggerTyphoonPlantMove(TyphoonStrength strength, WindDirection dire
 				}
 
 				Cell* target = GetCell(row, targetColumn);
-				if (!target || !target->IsEmpty() || HasCraterAt(row, targetColumn)) continue;
+				if (!target || !target->IsEmpty()) continue;
+				if (HasCraterAt(row, targetColumn)) {
+					lostPlantIDs.insert(plantID);
+					plant->Die();
+					continue;
+				}
 				source->ClearPlantID();
 				target->SetPlantID(plantID);
 				plant->MoveToGridCell(row, targetColumn, kTyphoonPlantSlideDuration);
