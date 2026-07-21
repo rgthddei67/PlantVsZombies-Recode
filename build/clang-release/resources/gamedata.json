@@ -8,7 +8,7 @@
     "PLANT_SNOWPEASHOOTER":  { "cost": 175, "cooldown": 7.5,  "offset": [-37.6, -44.0], "scale": 1.0 },
     "PLANT_CHOMPER":         { "cost": 150, "cooldown": 7.5,  "offset": [-37.6, -44.0], "scale": 1.0 },
     "PLANT_REPEATER":        { "cost": 200, "cooldown": 7.5,  "offset": [-37.6, -44.0], "scale": 1.0 },
-    "PLANT_PUFFSHROOM":      { "cost": 0,   "cooldown": 7.5,  "offset": [-37.6, -28.0], "scale": 1.0 },
+    "PLANT_PUFFSHROOM":      { "cost": 5,   "cooldown": 7.5,  "offset": [-37.6, -28.0], "scale": 1.0 },
     "PLANT_SUNSHROOM":       { "cost": 25,  "cooldown": 7.5,  "offset": [-37.6, -28.0], "scale": 1.0 },
     "PLANT_FUMESHROOM":      { "cost": 100, "cooldown": 7.5,  "offset": [-37.6, -36.0], "scale": 0.92 },
     "PLANT_HYPNOSHROOM":     { "cost": 75,  "cooldown": 25.0, "offset": [-37.6, -36.0], "scale": 0.92 },

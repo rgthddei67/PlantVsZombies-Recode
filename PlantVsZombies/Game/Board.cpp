@@ -36,14 +36,14 @@ namespace {
 	constexpr float kRainTailDurationMax = 80.0f;        // 雨势切档后尾雨段的最长持续时间（秒）
 	constexpr float kWeatherForecastLeadTime = 15.0f;    // 阶段结束前多少秒预抽取并展示下一天气
 	constexpr int kWeatherForecastAccuracyPercent = 75;  // 天气预警准确率（0～100；失败时故意显示另一种天气）
-	constexpr int kEliteDancerMutationChancePercent = 25; // 强台风以上普通舞王变异为精英舞王的概率（百分比）
+	constexpr int kEliteDancerMutationChancePercent = 35; // 强台风以上普通舞王变异为精英舞王的概率（百分比）
 	constexpr int kEliteDancerMaxPerWave = 2;             // 每波最多允许生成的精英舞王数量。
 	constexpr float kWeatherTransitionDuration = 2.0f;   // 雨势切换时倍率、暗幕与雨声音量的平滑过渡时长（游戏秒）
 	constexpr float kLateWeatherRampStart = 0.40f;       // 普通关波次进度超过该比例后开始增强后期天气（0～1）
 	constexpr int kSurvivalLateWeatherFullRound = 8;     // 黑夜无尽到该轮起按完整后期天气权重计算
 	constexpr int kLightRainWeight = 40;                 // 小雨相对权重；数值越大越容易抽中
 	constexpr int kMediumRainWeight = 40;                // 中雨相对权重；数值越大越容易抽中
-	constexpr int kHeavyRainWeight = 35;                 // 大雨相对权重；数值越大越容易抽中
+	constexpr int kHeavyRainWeight = 45;                 // 大雨相对权重；数值越大越容易抽中
 	constexpr int kLateLightRainWeight = 15;             // 后期小雨目标权重；随波次从基础值平滑下降
 	constexpr int kLateHeavyRainWeight = 60;             // 后期大雨目标权重；随波次从基础值平滑上升
 	constexpr int kClearHoldWeight = 15;                 // 前期晴天阶段结束后继续晴天的相对权重
@@ -89,8 +89,8 @@ namespace {
 	constexpr float kLightningRepeatMax = 10.0f;         // 大雨中两次闪电的最长间隔（秒）
 	constexpr float kLightningFlashDuration = 0.18f;     // 单次闪电白闪持续时间（秒）
 	constexpr float kLightningFlashPeakAlpha = 105.0f;   // 单次闪电白闪峰值透明度（0～255）
-	constexpr int kTyphoonChanceEarlyPercent = 35;       // 新大雨阶段附加台风的前期基础概率（百分比）
-	constexpr int kTyphoonChanceLatePercent = 60;        // 新大雨阶段附加台风的后期基础概率（百分比）
+	constexpr int kTyphoonChanceEarlyPercent = 60;       // 新大雨阶段附加台风的前期基础概率（百分比）
+	constexpr int kTyphoonChanceLatePercent = 75;        // 新大雨阶段附加台风的后期基础概率（百分比）
 	constexpr int kTyphoonPityPerMissPercent = 20;       // 每连续落空一个新大雨阶段，下次台风概率增加的百分点
 	constexpr int kTyphoonChanceMaxPercent = 95;         // 连续落空保底抬升后的台风概率上限（百分比）
 	constexpr int kTyphoonPityMaxMisses = 4;             // 记入概率计算的最大连续落空次数，避免损坏存档放大整数
@@ -1069,8 +1069,7 @@ ZombieType Board::ResolveRainMutationType(ZombieType selected, int mutationRoll)
 	if (selected != ZombieType::ZOMBIE_DANCER
 		|| !GameAPP::GetInstance().GetBackgroundIsNight(mBackGround)
 		|| mRainIntensity != RainIntensity::HEAVY
-		|| (mTyphoonStrength != TyphoonStrength::SEVERE
-			&& mTyphoonStrength != TyphoonStrength::SUPER)
+		|| mTyphoonStrength == TyphoonStrength::NONE        
 		|| mEliteDancersSpawnedThisWave >= kEliteDancerMaxPerWave) {
 		return selected;
 	}
