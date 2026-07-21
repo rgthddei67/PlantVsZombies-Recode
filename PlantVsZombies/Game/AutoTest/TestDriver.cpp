@@ -448,9 +448,10 @@ bool TestDriver::ExecuteCurrent() {
 		Board* board = gs->GetBoard();
 		if (!board->mIsSurvival) { Fail("force_survival_round: 非生存模式关卡"); return false; }
 		int round = cmd.value("round", 1);
-		if (round < 1) round = 1;
-		board->mSurvivalRound = round;
-		board->BuildSurvivalSpawnList(round);   // 公有方法，直接按轮重建出怪池
+		if (!board->SetSurvivalRoundForTesting(round)) {
+			Fail("force_survival_round: round 必须为正数");
+			return false;
+		}
 		return true;
 	}
 	if (op == "force_survival_round_clear") {
@@ -524,7 +525,9 @@ bool TestDriver::ExecuteCurrent() {
 	if (op == "summon_next_wave") {
 		GameScene* gs = CurrentGameScene();
 		if (!gs || !gs->GetBoard()) { Fail("summon_next_wave: 不在 GameScene 或 Board 为空"); return false; }
-		gs->GetBoard()->SummonNextWave();
+		const int count = cmd.value("count", 1);
+		if (count < 1 || count > 100) { Fail("summon_next_wave: count 必须在 1～100"); return false; }
+		for (int i = 0; i < count; ++i) gs->GetBoard()->SummonNextWave();
 		return true;
 	}
 	if (op == "damage_zombie") {
@@ -898,6 +901,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		const float charmedWind = board->GetZombieWindMoveMultiplier(true);
 		const float gustDrift = board->GetZombieGustDriftVelocity();
 		const float plantRain = board->GetPlantRainActionSpeedMultiplier();
+		const float weatherPressure = board->GetWeatherPressureFactor();
 		const float perkAttack = static_cast<float>(
 			board->GetPerkManager().GetPlantAttackSpeedMultiplier());
 		out["weather"] = {
@@ -914,6 +918,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "forecastPlausible", board->IsWeatherForecastPlausible() },
 			{ "remaining", board->GetWeatherTimer() },
 			{ "lightningRemaining", board->GetLightningTimer() },
+			{ "pressurePct", static_cast<int>(std::lround(weatherPressure * 100.0f)) },
 			{ "zombieSpeedPct", static_cast<int>(std::lround(zombieRain * 100.0f)) },
 			{ "typhoonStrength", TyphoonStrengthName(board->GetTyphoonStrength()) },
 			{ "typhoonChancePct", board->GetCurrentTyphoonChancePercent() },

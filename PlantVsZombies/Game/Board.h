@@ -301,6 +301,8 @@ public:
 
 	/** 当前雨势对僵尸 Animator extra 层的倍率。 */
 	float GetZombieRainSpeedMultiplier() const;
+	/** 独立天气压力进度（0～1）；只放大后期雨势威胁，不改变天气出现率。 */
+	float GetWeatherPressureFactor() const;
 	/** 台风对僵尸水平移动的额外倍率；返回值以当前雨天速度为 1。 */
 	float GetZombieWindMoveMultiplier(bool movingTowardFront) const;
 	/** 台风对轻型植物子弹水平速度的派生倍率；不修改子弹基础速度。 */
@@ -355,6 +357,8 @@ public:
 
 	// AutoTest 专用：固定雨势并重启对应粒子，真实游戏只走随机天气状态机。
 	void SetRainForTesting(RainIntensity intensity, float duration = 30.0f, bool canIntensify = false);
+	// AutoTest 专用：定位黑夜无尽轮次，并刷新所有由轮次派生的天气速度状态。
+	bool SetSurvivalRoundForTesting(int round);
 	// AutoTest 专用：固定公开预报与真实天气，并把当前阶段倒计时改为指定揭晓时间。
 	bool SetWeatherForecastForTesting(RainIntensity forecast, RainIntensity actual, float revealIn = 1.0f);
 	// AutoTest 专用：用固定权重落点结束当前雨段，覆盖增强、衰减和放晴分支。

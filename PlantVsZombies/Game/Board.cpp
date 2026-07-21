@@ -40,7 +40,10 @@ namespace {
 	constexpr int kEliteDancerMaxPerWave = 4;             // 每波最多允许生成的精英舞王数量。
 	constexpr float kWeatherTransitionDuration = 2.0f;   // 雨势切换时倍率、暗幕与雨声音量的平滑过渡时长（游戏秒）
 	constexpr float kLateWeatherRampStart = 0.40f;       // 普通关波次进度超过该比例后开始增强后期天气（0～1）
+	constexpr float kAdventurePressureFullProgress = 0.75f; // 普通关到该波次进度时达到完整天气压力（0～1）
 	constexpr int kSurvivalLateWeatherFullRound = 8;     // 黑夜无尽到该轮起按完整后期天气权重计算
+	constexpr int kSurvivalPressureStartRound = 8;       // 黑夜无尽从该轮起在基础雨势之上继续增加天气压力
+	constexpr int kSurvivalPressureFullRound = 20;       // 黑夜无尽到该轮达到完整天气压力，之后不再继续放大
 	constexpr int kLightRainWeight = 40;                 // 小雨相对权重；数值越大越容易抽中
 	constexpr int kMediumRainWeight = 40;                // 中雨相对权重；数值越大越容易抽中
 	constexpr int kHeavyRainWeight = 50;                 // 大雨相对权重；数值越大越容易抽中
@@ -67,6 +70,9 @@ namespace {
 	constexpr float kLightZombieSpeed = 1.15f;           // 小雨僵尸动作与移动速度倍率
 	constexpr float kMediumZombieSpeed = 1.25f;          // 中雨僵尸动作与移动速度倍率
 	constexpr float kHeavyZombieSpeed = 1.40f;           // 大雨僵尸动作与移动速度倍率
+	constexpr float kPressuredLightZombieSpeed = 1.20f;  // 完整后期压力下小雨僵尸动作与移动速度倍率
+	constexpr float kPressuredMediumZombieSpeed = 1.35f; // 完整后期压力下中雨僵尸动作与移动速度倍率
+	constexpr float kPressuredHeavyZombieSpeed = 1.55f;  // 完整后期压力下大雨僵尸动作与移动速度倍率
 	constexpr float kLightPlantActionSpeed = 1.10f;      // 小雨植物攻击、生产、成长与恢复速度倍率
 	constexpr float kMediumPlantActionSpeed = 1.15f;     // 中雨植物攻击、生产、成长与恢复速度倍率
 	constexpr float kHeavyPlantActionSpeed = 1.20f;      // 大雨植物攻击、生产、成长与恢复速度倍率
@@ -329,16 +335,29 @@ namespace {
 		return 1.0f;
 	}
 
-	/** 返回指定雨势的僵尸速度倍率，供过渡插值复用。 */
-	float ZombieSpeedForRain(RainIntensity intensity)
+	/** 返回指定雨势在当前后期压力下的僵尸速度倍率，供天气过渡插值复用。 */
+	float ZombieSpeedForRain(RainIntensity intensity, float pressureFactor)
 	{
+		float baseSpeed = 1.0f;
+		float pressuredSpeed = 1.0f;
 		switch (intensity) {
-		case RainIntensity::LIGHT:  return kLightZombieSpeed;
-		case RainIntensity::MEDIUM: return kMediumZombieSpeed;
-		case RainIntensity::HEAVY:  return kHeavyZombieSpeed;
-		case RainIntensity::CLEAR:  return 1.0f;
+		case RainIntensity::LIGHT:
+			baseSpeed = kLightZombieSpeed;
+			pressuredSpeed = kPressuredLightZombieSpeed;
+			break;
+		case RainIntensity::MEDIUM:
+			baseSpeed = kMediumZombieSpeed;
+			pressuredSpeed = kPressuredMediumZombieSpeed;
+			break;
+		case RainIntensity::HEAVY:
+			baseSpeed = kHeavyZombieSpeed;
+			pressuredSpeed = kPressuredHeavyZombieSpeed;
+			break;
+		case RainIntensity::CLEAR:
+			break;
 		}
-		return 1.0f;
+		const float pressure = std::clamp(pressureFactor, 0.0f, 1.0f);
+		return baseSpeed + (pressuredSpeed - baseSpeed) * pressure;
 	}
 
 	/** 返回指定雨势的植物行动倍率，供过渡插值复用。 */
@@ -538,8 +557,9 @@ Board::~Board()
 float Board::GetZombieRainSpeedMultiplier() const
 {
 	const float progress = GetWeatherTransitionProgress();
-	const float previous = ZombieSpeedForRain(mPreviousRainIntensity);
-	return previous + (ZombieSpeedForRain(mRainIntensity) - previous) * progress;
+	const float pressure = GetWeatherPressureFactor();
+	const float previous = ZombieSpeedForRain(mPreviousRainIntensity, pressure);
+	return previous + (ZombieSpeedForRain(mRainIntensity, pressure) - previous) * progress;
 }
 
 /** 当前新大雨若进行台风判定时的实际概率，包含波次成长与连续落空保底。 */
@@ -637,6 +657,32 @@ float Board::GetWeatherLateGameFactor() const
 
 	const float linear = std::clamp((overallProgress - kLateWeatherRampStart)
 		/ (1.0f - kLateWeatherRampStart), 0.0f, 1.0f);
+	return linear * linear * (3.0f - 2.0f * linear);
+}
+
+/**
+ * 返回只控制天气实际威胁、不会改变天气出现率的独立压力曲线。
+ * 普通关从 40% 波次进度起成长、75% 时达到完整压力；黑夜无尽从第 8 轮平滑成长到第 20 轮。
+ * 该值完全由已持久化的波次/轮次派生，不需要新增存档字段。
+ */
+float Board::GetWeatherPressureFactor() const
+{
+	if (!mIsSurvival) {
+		if (kAdventurePressureFullProgress <= kLateWeatherRampStart) return 1.0f;
+		const float waveProgress = mMaxWave > 0
+			? std::clamp(static_cast<float>(mCurrentWave) / static_cast<float>(mMaxWave),
+				0.0f, 1.0f)
+			: 0.0f;
+		const float linear = std::clamp((waveProgress - kLateWeatherRampStart)
+			/ (kAdventurePressureFullProgress - kLateWeatherRampStart), 0.0f, 1.0f);
+		return linear * linear * (3.0f - 2.0f * linear);
+	}
+	if (kSurvivalPressureFullRound <= kSurvivalPressureStartRound) return 1.0f;
+
+	const float linear = std::clamp(
+		static_cast<float>(mSurvivalRound - kSurvivalPressureStartRound)
+			/ static_cast<float>(kSurvivalPressureFullRound - kSurvivalPressureStartRound),
+		0.0f, 1.0f);
 	return linear * linear * (3.0f - 2.0f * linear);
 }
 
@@ -1868,6 +1914,8 @@ void Board::SummonNextWave()
 {
 	mZombieCountDown = NEXTWAVE_COUNT_MAX;
 	mCurrentWave++;
+	// 普通关压力随波次推进；先刷新存活僵尸，再生成使用同一新倍率的本波僵尸。
+	RefreshZombieWeatherSpeeds();
 	mEliteDancersSpawnedThisWave = 0;
 	if (mCurrentWave == 1)
 	{
@@ -2273,6 +2321,7 @@ void Board::OnSurvivalRoundClear()
 	mCurrectWaveZombieHP = 0;
 	mTotalZombieHP = 0;
 	mEliteDancersSpawnedThisWave = 0;
+	RefreshZombieWeatherSpeeds();
 
 	// 重算难度（解锁更强僵尸）+ 刷新关卡名
 	BuildSurvivalSpawnList(mSurvivalRound);
@@ -2284,6 +2333,17 @@ void Board::OnSurvivalRoundClear()
 	// 通知场景：先结算两次成对词条机会（每次可选或放弃），然后再链式进入选卡。
 	if (mGameScene)
 		mGameScene->BeginSurvivalPerkSelect();
+}
+
+/** AutoTest 直接定位无尽轮次，并同步所有由轮次派生的天气速度状态。 */
+bool Board::SetSurvivalRoundForTesting(int round)
+{
+	if (!mIsSurvival || round < 1) return false;
+	mSurvivalRound = round;
+	BuildSurvivalSpawnList(round);
+	UpdateSurvivalLevelName();
+	RefreshZombieWeatherSpeeds();
+	return true;
 }
 
 void Board::BuildSurvivalSpawnList(int round)
