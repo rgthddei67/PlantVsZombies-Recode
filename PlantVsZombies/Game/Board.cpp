@@ -36,8 +36,8 @@ namespace {
 	constexpr float kRainTailDurationMax = 80.0f;        // 雨势切档后尾雨段的最长持续时间（秒）
 	constexpr float kWeatherForecastLeadTime = 15.0f;    // 阶段结束前多少秒预抽取并展示下一天气
 	constexpr int kWeatherForecastAccuracyPercent = 75;  // 天气预警准确率（0～100；失败时故意显示另一种天气）
-	constexpr int kEliteDancerMutationChancePercent = 35; // 强台风以上普通舞王变异为精英舞王的概率（百分比）
-	constexpr int kEliteDancerMaxPerWave = 2;             // 每波最多允许生成的精英舞王数量。
+	constexpr int kEliteDancerMutationChancePercent = 60; // 台风以上普通舞王变异为精英舞王的概率（百分比）
+	constexpr int kEliteDancerMaxPerWave = 4;             // 每波最多允许生成的精英舞王数量。
 	constexpr float kWeatherTransitionDuration = 2.0f;   // 雨势切换时倍率、暗幕与雨声音量的平滑过渡时长（游戏秒）
 	constexpr float kLateWeatherRampStart = 0.40f;       // 普通关波次进度超过该比例后开始增强后期天气（0～1）
 	constexpr int kSurvivalLateWeatherFullRound = 8;     // 黑夜无尽到该轮起按完整后期天气权重计算
