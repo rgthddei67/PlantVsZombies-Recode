@@ -27,7 +27,7 @@ namespace {
 		{ BulletType::BULLET_SNOWPEA,    BulletWindResponse::LIGHT_PROJECTILE },
 		{ BulletType::BULLET_CABBAGE,    BulletWindResponse::NONE },
 		{ BulletType::BULLET_MELON,      BulletWindResponse::NONE },
-		{ BulletType::BULLET_PUFF,       BulletWindResponse::NONE },
+		{ BulletType::BULLET_PUFF,       BulletWindResponse::LIGHT_PROJECTILE },
 		{ BulletType::BULLET_WINTERMELON, BulletWindResponse::NONE },
 		{ BulletType::BULLET_FIREBALL,   BulletWindResponse::LIGHT_PROJECTILE },
 		{ BulletType::BULLET_STAR,       BulletWindResponse::NONE },
