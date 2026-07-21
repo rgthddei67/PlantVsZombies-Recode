@@ -594,7 +594,7 @@ void GameScene::OpenMenu()
 			[](float v) { AudioSystem::SetMusicVolume(v); })
 		.Slider(Vector(530, 200), Vector(135, 10), 0.0f, 1.0f, AudioSystem::GetSoundVolume(),
 			[](float v) { AudioSystem::SetSoundVolume(v); })
-		.Slider(Vector(530, 225), Vector(135, 10), 1, 7,
+		.Slider(Vector(530, 225), Vector(135, 10), 1, 4,
 			static_cast<float>(GameAPP::GetInstance().Difficulty),
 			[](float v) { GameAPP::GetInstance().Difficulty = static_cast<int>(v); }, true)
 		.Text(Vector(480, 165), 22, u8"音乐", labelColor)
