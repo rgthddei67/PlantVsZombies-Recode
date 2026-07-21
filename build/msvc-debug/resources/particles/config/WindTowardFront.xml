@@ -4,12 +4,12 @@
   <SpawnRate>0</SpawnRate>
   <SpawnMaxLaunched>10</SpawnMaxLaunched>
   <ParticleDuration>[0.80 1.15]</ParticleDuration>
-  <ParticleAlpha>0,0 .16,10 .12,82 0,100</ParticleAlpha>
-  <ParticleScale>[0.45 0.85]</ParticleScale>
-  <ParticleStretch>[8 15]</ParticleStretch>
-  <ParticleBrightness>[.80 1.0]</ParticleBrightness>
-  <ParticleRed>.72</ParticleRed>
-  <ParticleGreen>.86</ParticleGreen>
+  <ParticleAlpha>0,0 .14,12 .09,78 0,100</ParticleAlpha>
+  <ParticleScale>[.65 .95]</ParticleScale>
+  <ParticleStretch>[38 70]</ParticleStretch>
+  <ParticleBrightness>[.65 .85]</ParticleBrightness>
+  <ParticleRed>.50</ParticleRed>
+  <ParticleGreen>.72</ParticleGreen>
   <ParticleBlue>1</ParticleBlue>
   <EmitterType>Box</EmitterType>
   <EmitterBoxX>[-20 20]</EmitterBoxX>
