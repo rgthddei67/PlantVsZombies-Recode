@@ -5,7 +5,7 @@
 - [Windows 中央存档目录与旧档安全迁移](project_pvz_save_location_migration.md) — 2026-07-21 Windows 正式存档改到 `FOLDERID_SavedGames/PlantsVsZombies/saves`；首次访问旧 `./saves` 时复制、逐字节校验、再删源文件，冲突不覆盖、失败逐文件回退；AutoTest/`-AutoTestLoadSave` 继续隔离在构建目录
 - [黑夜随机雨势天气](project_pvz_night_rain_weather.md) — 2026-07-21 后期天气导演取既有场次成长与独立压力的较大值：满压力新天气晴/小/中/大权重 0/10/25/65，一次弱天气后下轮保底大雨并持久化；小/中雨随压力缩短，植物行动倍率平滑到 1.00/0.97/0.93，预报最高 90%；台风基础概率 75%～95%、落空后封顶 100%，普通/强/超强满压力权重 15/45/40；天气能力统一通过 Board 状态派生并使用 `adding-rain-weather` 技能
 - [精英舞王僵尸](project_pvz_elite_dancer_zombie.md) — 2026-07-21 黑夜强/超强台风把普通舞王以 25% 概率变异、每波最多 2 只；800 HP、紫衣、无视植物、每 0.4 秒补普通伴舞至 8 只、SUPER 额外 1.70 倍；触车时本行 mower 正常启动并消灭精英、其余行静默失车；PowerShell 保明暗染色与可见 AutoTest 已闭环
-- [黑夜第二大关出怪节奏](project_pvz_night_spawnlist_pacing.md) — 2026-07-21 冒险 2-1～2-9 重排为单主题教学：2-6 普通橄榄球、2-7 舞王（进关时尚无毁灭菇）、2-8 普通+粉色橄榄球且撤下舞王、2-9 才综合；末关由 11 种全塞收敛为 8 种重点池，双 preset 统一；`smoke_night_spawnlists` 可见回归逐关断言并截图
+- [黑夜第二大关出怪节奏](project_pvz_night_spawnlist_pacing.md) — 2026-07-22 冒险 2-1～2-9 单主题节奏：2-6 普通橄榄球、2-7 舞王、2-8 普通铁门+加固铁门（玩家已取得毁灭菇）、2-9 八种重点机制综合并必含加固铁门；双 preset 统一，`smoke_night_spawnlists` 逐关断言并截图
 - [土豆地雷出土触发与范围爆炸](project_pvz_potato_mine_trigger_blast.md) — 2026-07-20 修复埋地时已被啃导致出土后不爆：出土跃迁若 `mEaterCount>0` 主动补触发；爆炸按原版同排半径60圆×僵尸矩形一次结算全部非魅惑目标，不再只杀碰撞触发者；可见 `smoke_potatomine.json` 独立覆盖先啃后出土与已出土双目标范围爆炸
 - [加固铁门僵尸](project_pvz_reinforced_door_zombie.md) — 2026-07-22 新增 500 本体/1000 门青绿色铁门变种；持门植物单次伤害最多15、灰烬最多100且免化灰/植物直杀，大喷双伤并截断后续判定与孢子显示；正式波次最多2只，三项专测与喷雾/原铁门回归闭环
 - [Bullet 地面阴影与跨对象绘制顺序](project_pvz_bullet_shadow.md) — 2026-07-19 对齐 C#：Pea 单格21×9、Snowpea 1.3×、Puff无影；对象池复用时按row/position重算；阴影由 BulletPool 在 GOM 主体前统一提交，不能靠 Component::SetDrawOrder 跨越植物/Bullet对象层；主人校对 Y 与同排豌豆射手影子一致；可见 `smoke_bullet_shadow.json` 验普通/寒冰子弹穿过坚果时本体在上、影子在下

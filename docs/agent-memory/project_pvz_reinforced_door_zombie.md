@@ -15,11 +15,12 @@ metadata:
 - 灰烬统一走 `Zombie::TakePlantAshDamage` 和 `DamageSource::PLANT_ASH`。本类型 `CanBeCharred=false`，每次灰烬最终最多 100；樱桃、毁灭菇、土豆雷都不能化灰或秒杀它。大嘴花等植物直杀统一走 `TakePlantInstantKill`，本类型降级为 15 点普通植物伤害。小推车仍以 `OTHER + INT32_MAX` 正常秒杀。
 - 持门时 `BlocksFumePiercing=true`。FumeShroom 按 X 由近到远结算，命中它后停止；粒子用同一 collider 左沿作为 `clipRightX`，不改 FumeCloud XML 长度。
 - 正式波次生成通过 `Board::ResolveWaveZombieType` 计数；每波前两只保留本类型，第三只起回退同成本普通铁门。计数在新波/生存轮清时归零并进入存档。开发/AutoTest 的 `spawn_zombie` 直接生成不占正式波次配额。
-- 生存池配置：`weight=2100, appearWave=6, survivalRound=6`；未修改冒险 `spawnlists.json`，避免擅自重排教学节奏。
+- 生存池配置：`weight=2100, appearWave=6, survivalRound=6`。冒险模式在 2-8 用“普通铁门 + 加固铁门”做独立家族教学（玩家刚取得毁灭菇，能直接观察灰烬抗性），2-9 作为 8 种重点机制综合池必定包含本类型；末关撤下泛用铁桶维持原池大小。
 
 ## 验证
 
 - `smoke_reinforced_door.json`：500/1000、普通伤害 15、门前截断、掉门后大喷 40 对普通 20、门在/掉门灰烬各 100、免大嘴花直杀、小推车击杀。
 - `smoke_reinforced_door_wave_cap.json`：同波第 1/2 只为加固门、第 3 只回退普通门，新波计数清零。
 - `smoke_reinforced_door_potatomine.json`：土豆雷后本体 500、门 900。
+- `smoke_night_spawnlists.json`：逐关验证黑夜出怪节奏；2-8/2-9 均含本类型，2-9 仍为 8 种池。
 - 回归：`smoke_potatomine`、`smoke_icefumeshroom`、`smoke_door_fume_death` 均通过；`smoke_doomshroom` 与伤害相关断言通过，旧鼠标点击相邻弹坑格步骤仍未种下植物，独立失败需另案处理。
