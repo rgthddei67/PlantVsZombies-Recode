@@ -141,6 +141,9 @@ public:
 	// 0~11 = 舞步段(anim_walk)，12~22 = 举手段(anim_armraise)；补充召唤只在节拍==12 触发。
 	int GetDanceBeatFrame() const { return mBoardFrame % (12 * 23) / 12; }
 
+	/** 返回最近一次僵尸指标采样得到的敌对、有头、未垂死僵尸数，供动态音乐与 AutoTest 使用。 */
+	int GetHostileZombieCountForMusic() const { return mHostileZombieCountForMusic; }
+
 	bool mTrophySpawned = false;  // 防止重复生成
 	std::weak_ptr<Trophy> mTrophy;  // 每关至多一个；所有权在 GameObjectManager，此处仅供存档定位
 
@@ -162,7 +165,8 @@ public:
 private:
 	std::vector<ZombieType> mSpawnZombieList;	// 本关出怪表
 	float mHugeWaveCountDown = 0.0f;	// 一大波倒计时
-	float mUpdateHPCheckTimer = 0.0f;	// 僵尸血量检查计时器
+	float mUpdateZombieMetricsTimer = 0.0f;	// 僵尸血量与音乐敌对数的合并采样计时器
+	int mHostileZombieCountForMusic = 0;	// 每 0.5 游戏秒刷新，避免动态音乐每帧重复扫描全部僵尸
 	float mPlantRegenTimer = 0.0f;	// 词条③：全场植物回血脉冲计时器
 	bool mHasHugeWaveSound = false;		// 有无放过一大波音乐
 	bool mHasHugeWaveMusicBurst = false;	// 本次一大波警告是否已强制加入鼓组
@@ -219,7 +223,6 @@ private:
 	inline ZombieType PickZombieType(int remainingPoints);
 	inline ZombieType GetWeightedRandomZombie();
 	inline ZombieType GetCheapestZombie();
-	int CountHostileZombiesForMusic() const;
 	void InitializeWeather();
 	void UpdateWeather(float deltaTime);
 	float GetWeatherLateGameFactor() const;
@@ -471,7 +474,8 @@ public:
 
 	inline void UpdateSunFalling(float deltaTime);
 
-	inline void UpdateZombieHP();
+	/** 一次遍历刷新僵尸血量汇总与动态音乐所需的敌对僵尸数。 */
+	inline void UpdateZombieMetrics();
 
 	// 尝试生成本波僵尸
 	inline void TrySummonZombie();

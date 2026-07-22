@@ -1,0 +1,21 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 1 },
+    { "op": "choose_cards", "cards": ["PLANT_PEASHOOTER"] },
+    { "op": "wait_state", "state": "GAME" },
+
+    { "op": "spawn_zombie", "type": "ZOMBIE_NORMAL", "row": 0, "x": 500 },
+    { "op": "spawn_zombie", "type": "ZOMBIE_NORMAL", "row": 1, "x": 600 },
+    { "op": "spawn_zombie", "type": "ZOMBIE_NORMAL", "row": 2, "x": 700 },
+    { "op": "wait_seconds", "value": 0.6 },
+    { "op": "assert_state", "path": "hostileZombieCountForMusic", "equals": 3 },
+
+    { "op": "charm_zombie", "row": 0, "index": 0 },
+    { "op": "damage_zombie", "row": 1, "index": 0, "damage": 190, "source": "PLANT" },
+    { "op": "wait_seconds", "value": 0.6 },
+    { "op": "assert_state", "path": "hostileZombieCountForMusic", "equals": 1 },
+    { "op": "dump_state", "name": "hostile_count.json" },
+    { "op": "screenshot", "name": "hostile_count.png" },
+    { "op": "quit" }
+  ]
+}

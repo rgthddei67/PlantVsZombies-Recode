@@ -2037,13 +2037,6 @@ void Board::UpdateLevel()
 		UpdateSunFalling(deltaTime);
 	}
 
-	mUpdateHPCheckTimer += deltaTime;
-	if (mUpdateHPCheckTimer >= 0.5f)
-	{
-		mUpdateHPCheckTimer = 0.0f;
-		UpdateZombieHP();
-	}
-
 	// 词条③：植物回血全局脉冲（生存专用；无词条→GetPlantRegenPerPulse()=0，整循环跳过，零开销）。
 	// O(n) 遍历只在脉冲触发的那一帧发生（每 5s 一次），非每帧扫描。
 	mPlantRegenTimer += deltaTime;
@@ -2162,7 +2155,7 @@ void Board::SummonNextWave()
 	}
 
 	TrySummonZombie();
-	UpdateZombieHP();
+	UpdateZombieMetrics();
 
 	mNextWaveSpawnZombieHP = static_cast<int64_t>
 		(GameRandom::Range(0.5f, 0.65f) * static_cast<double>(mCurrectWaveZombieHP));
@@ -2401,14 +2394,19 @@ inline int Board::CalculateWaveZombiePoints() const
 	return static_cast<int>(points);
 }
 
-inline void Board::UpdateZombieHP()
+inline void Board::UpdateZombieMetrics()
 {
 	int64_t TotalHP = 0, CurrectWaveHP = 0;
+	int hostileZombieCountForMusic = 0;
 	for (auto zombieID : mEntityManager.GetAllZombieIDs())
 	{
 		if (auto zombie = mEntityManager.GetZombie(zombieID))
 		{
 			if (zombie->IsMindControlled()) continue;	// 判断是不是魅惑
+			if (!zombie->IsDying() && zombie->HasHead())
+			{
+				++hostileZombieCountForMusic;
+			}
 
 			int64_t zombieHp = static_cast<int64_t>(zombie->mBodyHealth) +
 				static_cast<int64_t>(zombie->mHelmHealth) + static_cast<int64_t>(zombie->mShieldHealth);
@@ -2423,6 +2421,7 @@ inline void Board::UpdateZombieHP()
 
 	mTotalZombieHP = TotalHP;
 	mCurrectWaveZombieHP = CurrectWaveHP;
+	mHostileZombieCountForMusic = hostileZombieCountForMusic;
 }
 
 void Board::Update()
@@ -2441,21 +2440,14 @@ void Board::Update()
 	// 天气属于整片场景而非波次逻辑：生存轮间也自然推进；暂停时 dt=0 与粒子同步冻结。
 	UpdateWeather(DeltaTime::GetDeltaTime());
 	CleanupExpiredObjects();
-	UpdateLevel();
-	AudioSystem::UpdateAdaptiveMusic(DeltaTime::GetDeltaTime(), CountHostileZombiesForMusic());
-}
-
-int Board::CountHostileZombiesForMusic() const
-{
-	int count = 0;
-	for (int zombieID : mEntityManager.GetAllZombieIDs())
+	mUpdateZombieMetricsTimer += DeltaTime::GetDeltaTime();
+	if (mUpdateZombieMetricsTimer >= 0.5f)
 	{
-		Zombie* zombie = mEntityManager.GetZombie(zombieID);
-		if (!zombie || zombie->IsDying() || !zombie->HasHead() ||
-			zombie->IsMindControlled()) continue;
-		++count;
+		mUpdateZombieMetricsTimer = 0.0f;
+		UpdateZombieMetrics();
 	}
-	return count;
+	UpdateLevel();
+	AudioSystem::UpdateAdaptiveMusic(DeltaTime::GetDeltaTime(), mHostileZombieCountForMusic);
 }
 
 void Board::StartGame()

@@ -29,6 +29,6 @@ metadata:
 
 - `AudioSystem::PlayMusic` 只把五类关卡 key 路由到 MO3；菜单、选卡、图鉴等继续走 SDL_mixer OGG。Stop/Pause/Resume/音量/Shutdown 两条路径都要同步处理，尤其 Shutdown 必须先卸 `Mix_HookMusic` 再 `Mix_CloseAudio`。
 - `Board::PlayBackgroundMusic` 映射：DAY、NIGHT、POOL、FOG、ROOF；NIGHT_ROOF 暂用 ROOF。
-- `CountHostileZombiesForMusic` 语义对齐原版 `CountZombiesOnScreen`：有头、未垂死、未魅惑；本项目预览僵尸不注册 EntityManager，因此无需额外 preview 标志。
+- 音乐敌对数语义对齐原版 `CountZombiesOnScreen`：有头、未垂死、未魅惑；由 `Board::UpdateZombieMetrics` 每 0.5 游戏秒与血量汇总同遍历刷新缓存，避免动态音乐每帧额外 O(n) 扫描。本项目预览僵尸不注册 EntityManager，因此无需额外 preview 标志。
 - 音频回调禁止每块新建大缓冲：`Playback::mixedBuffer` 与各 Layer renderBuffer 要复用 capacity。
 - 修改 overlay port 后 Ninja 会触发 vcpkg 全局 buildtree 写入，沙箱下需提升构建权限；不要因权限错误误判为依赖编译失败。

@@ -852,6 +852,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["wave"] = board->mCurrentWave;
 	out["maxWave"] = board->mMaxWave;
 	out["zombieNumber"] = board->mZombieNumber;
+	out["hostileZombieCountForMusic"] = board->GetHostileZombieCountForMusic();
 	out["mowerCount"] = static_cast<int>(board->mEntityManager.GetAllMowerIDs().size());
 	int movingMowerCount = 0;
 	out["mowers"] = nlohmann::json::array();
