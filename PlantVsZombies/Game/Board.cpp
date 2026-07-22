@@ -139,8 +139,8 @@ namespace {
 	constexpr float kSuperGustDuration = 2.50f;          // 超强台风单次阵风持续时间（游戏秒）
 	constexpr float kGustPlantMoveProgressMin = 0.25f;   // 植物最早在阵风进度 25% 时结算，避免开始瞬移
 	constexpr float kGustPlantMoveProgressMax = 0.75f;   // 植物最晚在阵风进度 75% 时结算，保留受力过程
-	constexpr float kSevereGustZombiePeakSpeed = 60.0f;  // 强台风阵风吹动僵尸的峰值速度（像素/游戏秒）
-	constexpr float kSuperGustZombiePeakSpeed = 90.0f;   // 超强台风阵风吹动僵尸的峰值速度（像素/游戏秒）
+	constexpr float kSevereGustZombiePeakSpeed = 80.0f;  // 强台风阵风吹动僵尸的峰值速度（像素/游戏秒）
+	constexpr float kSuperGustZombiePeakSpeed = 120.0f;   // 超强台风阵风吹动僵尸的峰值速度（像素/游戏秒）
 	constexpr float kGustZombieFrontLimitPadding = 60.0f; // 僵尸被吹向前线时距画面右缘的最大余量（像素）
 	constexpr float kTyphoonGustIntervalMin = 15.0f;     // 普通台风阵风最短间隔（游戏秒）
 	constexpr float kTyphoonGustIntervalMax = 30.0f;     // 普通台风阵风最长间隔（游戏秒）
@@ -152,8 +152,8 @@ namespace {
 	constexpr int kSevereGustDistance = 1;               // 强台风每次吹动的整数格数
 	constexpr int kSuperGustDistance = 2;                // 超强台风每次吹动的整数格数
 	constexpr int kTyphoonMaxGusts = 0;                  // 普通台风不触发植物位移阵风，降低首次遇见的压迫感
-	constexpr int kSevereMaxGusts = 6;                   // 强台风单个大雨阶段最多阵风次数
-	constexpr int kSuperMaxGusts = 6;                    // 超强台风单个大雨阶段最多阵风次数
+	constexpr int kSevereMaxGusts = 3;                   // 强台风单个大雨阶段最多阵风次数
+	constexpr int kSuperMaxGusts = 3;                    // 超强台风单个大雨阶段最多阵风次数
 	constexpr float kTyphoonTailwindZombieMove = 1.10f;  // 普通台风顺风僵尸水平移动倍率（相对当前雨天）
 	constexpr float kTyphoonHeadwindZombieMove = 0.90f;  // 普通台风逆风僵尸水平移动倍率（相对当前雨天）
 	constexpr float kSevereTailwindZombieMove = 1.20f;   // 强台风顺风僵尸水平移动倍率（相对当前雨天）
