@@ -2,12 +2,12 @@
 #include <algorithm>
 
 namespace {
-	constexpr int kBodyHealth = 270;                    // 本体生命值
-	constexpr int kShieldHealth = 1230;                 // 加固铁门生命值
+	constexpr int kBodyHealth = 300;                    // 本体生命值
+	constexpr int kShieldHealth = 920;                 // 加固铁门生命值
 	constexpr int kShieldedNormalDamageCap = 10;         // 持门时植物普通伤害的最终单次上限
-	constexpr int kAshDamageCap = 280;                  // 灰烬/爆炸伤害的最终单次上限
+	constexpr int kAshDamageCap = 320;                  // 灰烬/爆炸伤害的最终单次上限
 	constexpr int kFumeDamageMultiplier = 2;            // 大喷菇与寒冰大喷菇基础伤害倍率
-	constexpr int kPlantInstantKillFallbackDamage = 20; // 大嘴花等植物直杀失败后结算的普通伤害（最终也是10）
+	constexpr int kPlantInstantKillFallbackDamage = 10; // 大嘴花等植物直杀失败后结算的普通伤害（最终也是10）
 }
 
 void ReinforcedDoorZombie::SetupZombie()
@@ -45,8 +45,7 @@ int ReinforcedDoorZombie::AdjustIncomingDamage(
 	{
 		return std::min(damage, kAshDamageCap);
 	}
-	if ((source == DamageSource::PLANT || source == DamageSource::ZOMBIE) &&
-		mShieldType != ShieldType::SHIELDTYPE_NONE) {
+	if (source == DamageSource::PLANT && mShieldType != ShieldType::SHIELDTYPE_NONE) {
 		return std::min(damage, kShieldedNormalDamageCap);
 	}
 	return damage;
