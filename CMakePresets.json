@@ -39,7 +39,7 @@
       },
       "vendor": {
         "microsoft.com/VisualStudioSettings/CMake/1.0": {
-            "intelliSenseMode": "clang-x64"
+            "intelliSenseMode": "windows-clangcl-x64"
         }
       }
     }

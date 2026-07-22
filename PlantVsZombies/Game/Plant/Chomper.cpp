@@ -61,7 +61,7 @@ void Chomper::OnBiteKillFrame()
 	mState = State::IDLE;
 	mDigestTimer = 0.0f;
 	mDetectionTimer = 0.0f;
-	PlayTrack("anim_idle", 0.0f, 0.05f);
+	PlayTrack("anim_idle", 0.0f, 0.30f);
 }
 
 void Chomper::EndDigest()
