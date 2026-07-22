@@ -527,6 +527,8 @@ bool TestDriver::ExecuteCurrent() {
 		if (roll < 1 || roll > 100) { Fail("spawn_wave_zombie: mutationRoll 必须为 1..100"); return false; }
 		Board* board = gs->GetBoard();
 		const ZombieType actual = board->ResolveWaveZombieType(it->second, roll);
+		// 与正式 TrySummonZombie 一致：超过每波上限的候选被跳过，不生成回退类型。
+		if (actual == ZombieType::NUM_ZOMBIE_TYPES) return true;
 		if (!board->CreateZombie(actual, cmd.value("row", 0), cmd.value("x", 900.0f))) {
 			Fail("spawn_wave_zombie: CreateZombie 返回空");
 			return false;

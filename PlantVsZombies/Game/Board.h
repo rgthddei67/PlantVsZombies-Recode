@@ -398,9 +398,9 @@ public:
 	bool RollTyphoonForTesting(int chanceRoll, int strengthRoll, WindDirection direction);
 	// AutoTest 专用：启动一次当前强度的阵风，不消费自动预算；可固定植物结算时刻。
 	bool TriggerTyphoonGustForTesting(float plantMoveIn = 0.0f);
-	/** 正式波次与 AutoTest 共用的天气变异入口；mutationRoll=0 时使用随机百分位。 */
+	/** 正式波次与 AutoTest 共用的天气变异入口；mutationRoll=0 时随机，超额成功变异返回 NUM_ZOMBIE_TYPES。 */
 	ZombieType ResolveRainMutationType(ZombieType selected, int mutationRoll = 0);
-	/** 正式波次总解析入口：先执行每波类型上限，再执行天气变异。 */
+	/** 正式波次总解析入口；超过类型上限返回 NUM_ZOMBIE_TYPES，调用方必须跳过候选。 */
 	ZombieType ResolveWaveZombieType(ZombieType selected, int mutationRoll = 0);
 
 	// 初始化格子 默认5行9列

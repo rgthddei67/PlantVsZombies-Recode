@@ -46,8 +46,9 @@ namespace {
 	constexpr int kWeatherForecastAccuracyPercent = 75;  // 前期天气预警准确率（百分比）
 	constexpr int kLateWeatherForecastAccuracyPercent = 95; // 满压力天气预警准确率上限（百分比）
 	constexpr int kEliteDancerMutationChancePercent = 60; // 台风以上普通舞王变异为精英舞王的概率（百分比）
-	constexpr int kEliteDancerMaxPerWave = 3;             // 每波最多允许生成的精英舞王数量。
-	constexpr int kReinforcedDoorMaxPerWave = 2;          // 每波最多正式生成的加固铁门数量；超额回退普通铁门
+	constexpr int kEliteDancerMaxPerWave = 3;             // 每波最多允许生成的精英舞王数量
+	constexpr int kReinforcedDoorMaxPerWave = 2;          // 每波最多正式生成的加固铁门数量；超额候选直接跳过
+	constexpr int kWaveCandidateAttemptLimit = MAX_ZOMBIES_PER_WAVE * 10; // 单波候选尝试上限，防止仅剩受限类型时死循环
 	constexpr float kWeatherTransitionDuration = 2.0f;   // 雨势切换时倍率、暗幕与雨声音量的平滑过渡时长（游戏秒）
 	constexpr float kLateWeatherRampStart = 0.40f;       // 普通关波次进度超过该比例后开始增强后期天气（0～1）
 	constexpr float kAdventurePressureFullProgress = 0.68f; // 普通关到该波次进度时达到完整天气压力（0～1）
@@ -1315,36 +1316,37 @@ void Board::WeakenTyphoon()
 
 /**
  * 将正式波次选中的普通舞王按当前黑夜强天气变异为精英舞王。
- * 每波至多成功两次；失败点数不消费上限，天气减弱后既有精英仍保留。
+ * 每波至多成功三次；失败点数不消费上限，天气减弱后既有精英仍保留。
  */
 ZombieType Board::ResolveRainMutationType(ZombieType selected, int mutationRoll)
 {
 	if (selected != ZombieType::ZOMBIE_DANCER
 		|| !GameAPP::GetInstance().GetBackgroundIsNight(mBackGround)
 		|| mRainIntensity != RainIntensity::HEAVY
-		|| mTyphoonStrength == TyphoonStrength::NONE        
-		|| mEliteDancersSpawnedThisWave >= kEliteDancerMaxPerWave) {
+		|| mTyphoonStrength == TyphoonStrength::NONE) {
 		return selected;
 	}
 
 	const int roll = mutationRoll > 0 ? mutationRoll : GameRandom::Range(1, 100);
 	if (roll < 1 || roll > 100 || roll > kEliteDancerMutationChancePercent) return selected;
+	// 已达上限的成功变异候选直接作废，由正式挑选循环继续抽取；不能退回普通舞王占掉本次刷新。
+	if (mEliteDancersSpawnedThisWave >= kEliteDancerMaxPerWave) {
+		return ZombieType::NUM_ZOMBIE_TYPES;
+	}
 	++mEliteDancersSpawnedThisWave;
 	return ZombieType::ZOMBIE_ELITE_DANCER;
 }
 
 /**
- * 解析正式波次候选。加固铁门第三次起回退为同成本的普通铁门，随后再进入既有天气变异流程。
+ * 解析正式波次候选。超过每波上限时返回 NUM_ZOMBIE_TYPES，调用方继续挑选且不消耗预算。
  */
 ZombieType Board::ResolveWaveZombieType(ZombieType selected, int mutationRoll)
 {
 	if (selected == ZombieType::ZOMBIE_REINFORCED_DOOR) {
 		if (mReinforcedDoorsSpawnedThisWave >= kReinforcedDoorMaxPerWave) {
-			selected = ZombieType::ZOMBIE_DOOR;
+			return ZombieType::NUM_ZOMBIE_TYPES;
 		}
-		else {
-			++mReinforcedDoorsSpawnedThisWave;
-		}
+		++mReinforcedDoorsSpawnedThisWave;
 	}
 	return ResolveRainMutationType(selected, mutationRoll);
 }
@@ -2337,13 +2339,20 @@ inline void Board::TrySummonZombie()
 
 	int remainingPoints = CalculateWaveZombiePoints();
 	int zombiesSpawned = 0;
+	int candidatesExamined = 0;
 	float x = static_cast<float>(SCENE_WIDTH) + 40;
 
-	while (remainingPoints > 0 && zombiesSpawned < MAX_ZOMBIES_PER_WAVE)
+	while (remainingPoints > 0 && zombiesSpawned < MAX_ZOMBIES_PER_WAVE
+		&& candidatesExamined < kWaveCandidateAttemptLimit)
 	{
+		++candidatesExamined;
 		ZombieType selected = PickZombieType(remainingPoints);
 		int cost = GameDataManager::GetInstance().GetZombieWeight(selected);
 		if (cost <= 0) break;
+
+		// 每波受限类型在源头拒绝：不选行、不扣预算，也不替换成会干扰出怪池的普通类型。
+		const ZombieType actualType = ResolveWaveZombieType(selected);
+		if (actualType == ZombieType::NUM_ZOMBIE_TYPES) continue;
 
 		int row = SelectSpawnRow();
 
@@ -2359,7 +2368,6 @@ inline void Board::TrySummonZombie()
 		mRowInfos[row].secondLastPicked = mRowInfos[row].lastPicked;
 		mRowInfos[row].lastPicked = 0;
 
-		const ZombieType actualType = ResolveWaveZombieType(selected);
 		auto zombie = CreateZombie(actualType, row, x);
 		if (zombie)
 		{

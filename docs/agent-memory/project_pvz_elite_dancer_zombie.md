@@ -9,16 +9,16 @@ metadata:
 
 # 精英舞王僵尸（2026-07-21）
 
-`ZOMBIE_ELITE_DANCER` 是黑夜强天气条件变异：正式波次选中普通舞王后，仅在大雨且台风强度为 `SEVERE` / `SUPER` 时按 25% 变异；同一波至多成功两次。`Board::ResolveRainMutationType` 是正式刷怪与 AutoTest 共用的唯一解析入口，失败不消费波次上限，类型创建后不会因天气减弱而回退。当前波成功生成数量进入 `GameInfoSaver`，`SummonNextWave()` 进入新波时清零，天气与台风切换不清零；旧版单台风布尔字段按已生成一只迁移。新枚举追加在全部既有已实现僵尸之后、`NUM_ZOMBIE_TYPES` 之前，不能插入旧类型中间破坏存档数值 ID。
+`ZOMBIE_ELITE_DANCER` 是黑夜台风天气条件变异：正式波次选中普通舞王后，在大雨且任意非 `NONE` 台风中按 60% 变异；同一波至多成功三次。`Board::ResolveRainMutationType` 是正式刷怪与 AutoTest 共用的唯一解析入口；达到上限后的成功变异返回 `NUM_ZOMBIE_TYPES`，由 `TrySummonZombie` 直接继续挑选，不再退回普通舞王占用本次刷新。未命中 60% 的候选仍生成普通舞王。当前波计数进入 `GameInfoSaver`，新波清零，天气与台风切换不清零；旧版单台风布尔字段按已生成一只迁移。
 
-精英类继承 `DancerZombie` 并调用父类 `SetupZombie()`，复用 Jackson 的 Die@146、EatTarget@90/99、断头/断臂和月球漫步轨道，不新增帧事件。数值与行为：本体 800；无视植物碰撞、始终调用 `Zombie::ZombieMove` 向终点推进；每 0.4 游戏秒补一只普通 `BackupDancerZombie`，最多维持 8 只。`kMaxActiveBackupDancers` 与 `kBackupSummonInterval` 集中在 `EliteDancerZombie.cpp` 匿名命名空间；冻结暂停召唤，既有减速的 scaled delta 会自然拖慢计时，雨势与精英动画倍率不重复加速召唤。魅惑时放弃旧阵营关联，新伴舞继承领队阵营；ID、计时、编队游标与魅惑边沿状态均入派生类存档。
+精英类继承 `DancerZombie` 并调用父类 `SetupZombie()`，复用 Jackson 的 Die@146、EatTarget@90/99、断头/断臂和月球漫步轨道，不新增帧事件。当前数值与行为：本体 720、基础移动倍率 1.25；无视植物碰撞并持续推进；每 0.2 游戏秒补一只普通 `BackupDancerZombie`，最多维持 36 只。冻结暂停召唤，减速的 scaled delta 自然拖慢计时；魅惑时放弃旧阵营关联，新伴舞继承领队阵营。
 
-超强台风额外 1.70 倍通过 `Zombie::GetAbilityAnimSpeedMultiplier()` 接入统一 extra 速度链；`Board` 在台风开始、恢复、衰减和停止时调用 `RefreshZombieWeatherSpeeds()`，所以既有精英会立即在 1.70 / 1.00 间切换。大雨 1.40 下状态字段 `animExtraSpeedPct` 为 238；Jackson 的 1.2 是 clip 基速，不应重复计入 extra 层断言。
+天气能力通过 `Zombie::GetAbilityAnimSpeedMultiplier()` 接入统一 extra 速度链：普通台风保持基础 1.25，强台风为 `1.25×1.45`，超强台风为 `1.25×1.75`；再与雨势、减速或冻结层统一组合。`Board` 在台风开始、恢复、衰减和停止时刷新既有僵尸速度。
 
 小推车碰撞先正常触发当前车，再查询 `Zombie::ConsumesOtherMowersOnContact()`。精英命中后，当前行 mower 走原 `Trigger()`、音效和 `INT32_MAX` 秒杀链；`Board::RemoveOtherMowersWithoutTrigger(currentID)` 复制 mower ID，只对其他行记 loseMower 并直接 `Die()`，不触发它们。这样精英不能借吞车能力直接进家，同时仍让其余行永久失车。
 
 紫衣不使用 overlay。`scripts/recolor_elite_dancer.ps1` 以 System.Drawing 仅筛选 Jackson 11 张衣物 PNG 中的红色布料，固定转到 282° 紫色相并保留原亮度、alpha、白手套、皮肤、鞋和描边；两个 preset 生成一致哈希。派生 reanim 只替换 11 个衣物 image key，头、发、手、脚与全部 track 名继续复用原 Jackson 契约。
 
-验证：`clang-release` 全量构建零警告。当前桌面可见 `smoke_elite_dancer` 验证 800 HP、0.4 秒补充、8 上限、植物无视、SUPER 1.70、当前行 mower 独存并进入 `MOVING`、精英血量归零、其他四辆静默消失且精英随后正常退场；`smoke_elite_dancer_mutation` 覆盖普通台风不变异、25/26 边界、每波两只上限、天气切换不重置与新波复位；`smoke_elite_dancer_summon_steps` 按 0.5 秒安全采样确认伴舞数 1→2→3；`smoke_elite_dancer_lifecycle` 覆盖非爆炸死亡、魅惑后 8 同阵营伴舞、冻结时 0 召唤及减速后约 0.8 秒才补出第一只；既有 `smoke_dancer_summon` 回归通过。视觉截图确认紫衣保留阴影和高光。
+2026-07-22 当前刷新验证：`clang-release` 零警告；桌面可见 `smoke_elite_dancer_mutation` 覆盖 60/61 边界、前三个成功变异、第四个成功变异候选完全跳过、上限后未命中变异仍生成普通舞王、天气切换不重置与新波复位，退出 0。其他脚本中的旧 800/0.4/8/1.70 数值断言属于此前平衡快照，运行前须同步当前数值。
 
 关联：[舞王与伴舞](project_pvz_dancer_zombie.md)、[黑夜雨势与台风](project_pvz_night_rain_weather.md)、设计与调参表 `docs/superpowers/specs/2026-07-21-elite-dancer-zombie-design.md`。
