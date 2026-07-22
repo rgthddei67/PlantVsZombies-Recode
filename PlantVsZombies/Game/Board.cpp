@@ -45,11 +45,11 @@ namespace {
 	constexpr float kWeatherForecastLeadTime = 15.0f;    // 阶段结束前多少秒预抽取并展示下一天气
 	constexpr int kWeatherForecastAccuracyPercent = 75;  // 前期天气预警准确率（百分比）
 	constexpr int kLateWeatherForecastAccuracyPercent = 95; // 满压力天气预警准确率上限（百分比）
-	constexpr int kEliteDancerMutationChancePercent = 45; // 台风以上普通舞王变异为精英舞王的概率（百分比）
+	constexpr int kEliteDancerMutationChancePercent = 60; // 台风以上普通舞王变异为精英舞王的概率（百分比）
 	constexpr int kEliteDancerMaxPerWave = 3;             // 每波最多允许生成的精英舞王数量。
 	constexpr float kWeatherTransitionDuration = 2.0f;   // 雨势切换时倍率、暗幕与雨声音量的平滑过渡时长（游戏秒）
 	constexpr float kLateWeatherRampStart = 0.40f;       // 普通关波次进度超过该比例后开始增强后期天气（0～1）
-	constexpr float kAdventurePressureFullProgress = 0.75f; // 普通关到该波次进度时达到完整天气压力（0～1）
+	constexpr float kAdventurePressureFullProgress = 0.68f; // 普通关到该波次进度时达到完整天气压力（0～1）
 	constexpr int kSurvivalLateWeatherFullRound = 8;     // 黑夜无尽到该轮起按完整后期天气权重计算
 	constexpr int kSurvivalPressureStartRound = 8;       // 黑夜无尽从该轮起在基础雨势之上继续增加天气压力
 	constexpr int kSurvivalPressureFullRound = 20;       // 黑夜无尽到该轮达到完整天气压力，之后不再继续放大
