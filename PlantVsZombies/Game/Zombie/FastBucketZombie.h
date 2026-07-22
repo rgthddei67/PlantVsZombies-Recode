@@ -37,9 +37,10 @@ public:
 		}
 	}
 
-	void TakeDamage(int damage, DamageSource source, bool penetrateShield) override {
+	void TakeDamage(int damage, DamageSource source, bool penetrateShield,
+		bool discardShieldOverflow = false) override {
 		if (GameRandom::Range(1, 10) <= 2) return;
-		Zombie::TakeDamage(damage, source, penetrateShield);
+		Zombie::TakeDamage(damage, source, penetrateShield, discardShieldOverflow);
 	}
 
 protected:

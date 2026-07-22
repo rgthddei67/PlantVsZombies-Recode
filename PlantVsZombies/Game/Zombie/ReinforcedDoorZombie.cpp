@@ -55,8 +55,9 @@ int ReinforcedDoorZombie::ModifyFumeDamage(int damage) const
 	return damage * kFumeDamageMultiplier;
 }
 
-void ReinforcedDoorZombie::TakePlantInstantKill()
+bool ReinforcedDoorZombie::TakePlantInstantKill()
 {
-	// 直杀不能绕过耐久；持门时仍由最终伤害钩子确保不超过 20。
+	// 直杀不能绕过耐久；持门时最终只结算 10 点，且明确告知大嘴花本次没有吞掉目标。
 	TakeDamage(kPlantInstantKillFallbackDamage, DamageSource::PLANT);
+	return false;
 }

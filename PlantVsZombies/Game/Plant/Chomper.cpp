@@ -41,17 +41,27 @@ void Chomper::StartBite(int zombieID)
 
 void Chomper::OnBiteKillFrame()
 {
+	bool swallowedTarget = false;
 	if (mBoard) {
 		if (auto* z = mBoard->mEntityManager.GetZombie(mTargetZombieID)) {
-			// 直杀统一走僵尸入口：普通目标保持原行为，特殊目标可把这次咬杀降级为数值伤害。
-			z->TakePlantInstantKill();
+			// 直杀统一走僵尸入口：特殊目标可把咬杀降级为数值伤害，并拒绝进入消化状态。
+			swallowedTarget = z->TakePlantInstantKill();
 		}
 	}
 	mTargetZombieID = NULL_ZOMBIE_ID;
 	AudioSystem::PlaySound("SOUND_CHOMPPLANT", 0.6f);
 
-	mState = State::DIGESTING;
+	if (swallowedTarget) {
+		mState = State::DIGESTING;
+		mDigestTimer = 0.0f;
+		return;
+	}
+
+	// 原版面对无法吞掉的巨型目标会按 bite-missed 收尾；这里直接回待机，0.2s 后即可重新索敌啃咬。
+	mState = State::IDLE;
 	mDigestTimer = 0.0f;
+	mDetectionTimer = 0.0f;
+	PlayTrack("anim_idle", 0.0f, 0.05f);
 }
 
 void Chomper::EndDigest()

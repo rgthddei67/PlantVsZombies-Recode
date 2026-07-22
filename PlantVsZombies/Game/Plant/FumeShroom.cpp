@@ -81,7 +81,9 @@ float FumeShroom::FumeAttack()
 		// 命中开始时取阻断状态：即使这一击恰好打掉门，本次喷雾仍应在门前截止。
 		const bool blocksFume = zombie->BlocksFumePiercing();
 		const int damage = zombie->ModifyFumeDamage(mFumeDamage);
-		zombie->TakeDamage(damage, DamageSource::PLANT, /*penetrateShield=*/true);
+		// 阻断门只承受门伤且吸收破门溢出；普通目标保持原版喷雾穿透二类护盾的语义。
+		zombie->TakeDamage(damage, DamageSource::PLANT,
+			/*penetrateShield=*/!blocksFume, /*discardShieldOverflow=*/blocksFume);
 		OnFumeHit(zombie);
 
 		if (blocksFume) {

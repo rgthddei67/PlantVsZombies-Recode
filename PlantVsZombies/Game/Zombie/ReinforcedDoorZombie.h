@@ -16,9 +16,10 @@ public:
 	using DoorZombie::DoorZombie;
 
 	bool CanBeCharred() const override { return false; }
+	bool CanBeCharmed() const override { return false; }
 	bool BlocksFumePiercing() const override {
 		return mShieldType != ShieldType::SHIELDTYPE_NONE;
 	}
 	int ModifyFumeDamage(int damage) const override;
-	void TakePlantInstantKill() override;
+	bool TakePlantInstantKill() override;
 };

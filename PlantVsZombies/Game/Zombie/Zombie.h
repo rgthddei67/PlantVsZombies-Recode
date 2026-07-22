@@ -81,11 +81,13 @@ public:
 	virtual void ZombieUpdate(float scaledTime) {}		// 子类重写Update用这个
 	// source 必填，使植物增伤只作用于植物来源。penetrateShield=true：穿透二类护盾（大喷菇喷雾）——护盾照常受损/掉落，
 	// 但全额伤害继续透到头盔+本体（还原原版 DoRowAreaDamage(20, 2U) 的位标志语义）。
-	virtual void TakeDamage(int damage, DamageSource source, bool penetrateShield = false);
+	// discardShieldOverflow=true：若命中开始时存在二类护盾，则本击止于护盾，破盾溢出也不进入头盔/本体。
+	virtual void TakeDamage(int damage, DamageSource source, bool penetrateShield = false,
+		bool discardShieldOverflow = false);
 	/** 植物爆炸的统一入口：默认按原版阈值化灰，否则走带 PLANT_ASH 分类的普通扣血链。 */
 	virtual void TakePlantAshDamage(int damage);
-	/** 大嘴花等植物直杀的统一入口；默认保持既有直接退场行为。 */
-	virtual void TakePlantInstantKill();
+	/** 大嘴花等植物直杀的统一入口；返回是否确实吞掉目标，以决定是否进入消化状态。 */
+	virtual bool TakePlantInstantKill();
 	virtual void SaveExtraData(nlohmann::json& j) const {}	// 保存额外数据
 	virtual void LoadExtraData(const nlohmann::json& j) {}	// 加载额外数据
 	virtual void ZombieItemUpdate() const; // 处理僵尸读档的时候的手臂、防具等处理
