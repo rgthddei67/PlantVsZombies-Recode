@@ -37,15 +37,15 @@ public:
 		}
 	}
 
-	// 减速动画只降到 0.8x（快速僵尸减速后仍偏快的手感）；其余逻辑沿用基类 SetCooldown/UpdateAnimSpeed
-	float GetSlowAnimFactor() const override { return 0.8f; }
-
 	void TakeDamage(int damage, DamageSource source, bool penetrateShield) override {
 		if (GameRandom::Range(1, 10) <= 2) return;
 		Zombie::TakeDamage(damage, source, penetrateShield);
 	}
 
 protected:
+	// 减速动画只降到 0.8x（快速僵尸减速后仍偏快的手感）；其余逻辑沿用基类 SetCooldown/UpdateAnimSpeed
+	float GetSlowAnimFactor() const override { return 0.8f; }
+
 	void SetupZombie() override;
 	void CheckHelmImage() override;
 };

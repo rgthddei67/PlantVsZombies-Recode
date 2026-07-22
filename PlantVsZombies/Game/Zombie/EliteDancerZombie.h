@@ -28,6 +28,9 @@ protected:
 	void ZombieMove(float scaledDelta, TransformComponent* transform) override;
 	float GetAbilityAnimSpeedMultiplier() const override;
 
+	// 保留70%动画速度
+	float GetSlowAnimFactor() const override { return 0.70f; }
+
 private:
 	void CleanupFollowers();
 	bool SummonOneBackupDancer();
