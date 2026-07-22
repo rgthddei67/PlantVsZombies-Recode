@@ -3,11 +3,11 @@
 
 namespace {
 	constexpr int kBodyHealth = 500;                    // 本体生命值
-	constexpr int kShieldHealth = 1000;                 // 加固铁门生命值
-	constexpr int kShieldedPlantDamageCap = 15;         // 持门时植物普通伤害的最终单次上限
+	constexpr int kShieldHealth = 1100;                 // 加固铁门生命值
+	constexpr int kShieldedPlantDamageCap = 10;         // 持门时植物普通伤害的最终单次上限
 	constexpr int kAshDamageCap = 100;                  // 灰烬/爆炸伤害的最终单次上限
 	constexpr int kFumeDamageMultiplier = 2;            // 大喷菇与寒冰大喷菇基础伤害倍率
-	constexpr int kPlantInstantKillFallbackDamage = 15; // 大嘴花等植物直杀失败后结算的普通伤害
+	constexpr int kPlantInstantKillFallbackDamage = 20; // 大嘴花等植物直杀失败后结算的普通伤害
 }
 
 void ReinforcedDoorZombie::SetupZombie()
@@ -57,6 +57,6 @@ int ReinforcedDoorZombie::ModifyFumeDamage(int damage) const
 
 void ReinforcedDoorZombie::TakePlantInstantKill()
 {
-	// 直杀不能绕过耐久；持门时仍由最终伤害钩子确保不超过 15。
+	// 直杀不能绕过耐久；持门时仍由最终伤害钩子确保不超过 20。
 	TakeDamage(kPlantInstantKillFallbackDamage, DamageSource::PLANT);
 }
