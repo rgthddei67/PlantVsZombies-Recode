@@ -5,7 +5,7 @@ namespace {
 	constexpr int kBodyHealth = 270;                    // 本体生命值
 	constexpr int kShieldHealth = 1230;                 // 加固铁门生命值
 	constexpr int kShieldedNormalDamageCap = 10;         // 持门时植物普通伤害的最终单次上限
-	constexpr int kAshDamageCap = 100;                  // 灰烬/爆炸伤害的最终单次上限
+	constexpr int kAshDamageCap = 280;                  // 灰烬/爆炸伤害的最终单次上限
 	constexpr int kFumeDamageMultiplier = 2;            // 大喷菇与寒冰大喷菇基础伤害倍率
 	constexpr int kPlantInstantKillFallbackDamage = 20; // 大嘴花等植物直杀失败后结算的普通伤害（最终也是10）
 }
