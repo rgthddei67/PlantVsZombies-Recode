@@ -7,14 +7,14 @@
       "project": "CMakeLists.txt",
       "projectTarget": "PlantsVsZombies.exe",
       "name": "PlantsVsZombies",
-      "currentDir": "${workspaceRoot}\\x64\\Release"
+      "currentDir": "${cmake.binaryDir}"
     },
     {
       "type": "default",
       "project": "CMakeLists.txt",
       "projectTarget": "PlantsVsZombies.exe",
       "name": "PlantsVsZombies (-Debug 碰撞框)",
-      "currentDir": "${workspaceRoot}\\x64\\Release",
+      "currentDir": "${cmake.binaryDir}",
       "args": [ "-Debug" ]
     }
   ]

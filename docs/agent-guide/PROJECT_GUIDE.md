@@ -25,14 +25,18 @@
   cmd /c "`"$vs\Common7\Tools\VsDevCmd.bat`" -arch=x64 -no_logo && set" |
     ForEach-Object { if ($_ -match '^([^=]+)=(.*)$') { Set-Item "env:$($matches[1])" $matches[2] } }
 
-  # 2) 构建（发布/性能使用 clang-release；F5 与碰撞框调试使用 msvc-debug）
-  cmake --preset clang-release      # /O2 /arch:AVX2 /fp:fast -fvectorize -fomit-frame-pointer -flto；或 msvc-debug
+  # 2) 日常构建：Release 级运行性能 + PDB，但不做 LTO
+  cmake --preset clang-playtest
+  cmake --build --preset clang-playtest
+
+  # 正式发布验证：相同优化再加 LTO，不生成 PDB
+  cmake --preset clang-release
   cmake --build --preset clang-release
   ```
 
-  注意：MSVC Release 预设已于 2026-06-13 删除；`clang-release` 现在是唯一的 Release 构建。它优化更强，也是唯一会报告 `-Wnonportable-include-path`、`-Wreorder-ctor`、`-Wunused-*`、`-Wswitch` 等诊断的配置，因此零警告验证以它为准。
+  三个预设各司其职：`clang-playtest` 用于日常编译和流畅试玩（`/O2`、AVX2、fast-math、PDB、无 LTO）；`clang-release` 只用于正式发布（额外 `-flto`、无 PDB）；`msvc-debug` 只在确实需要 Debug CRT/断点语义时使用。两个 Clang 预设都会报告 `-Wnonportable-include-path`、`-Wreorder-ctor`、`-Wunused-*`、`-Wswitch` 等诊断；日常零警告检查可用 playtest，只有正式发布、明确要求的发布验证或构建系统发布配置验收才运行 clang-release。
 
-- **运行：** 可执行文件位于 `build\<preset>\PlantsVsZombies.exe`；CMake 会把 `font/resources/Shader` 复制到旁边。运行游戏或 AutoTest 时，**必须以 `build\<preset>\` 本身作为工作目录**：`Push-Location build\clang-release; .\PlantsVsZombies.exe -AutoTest <absolute-path>.json`。（⚠️ 根目录的 `x64\Release` 是迁移 CMake 前 vcxproj 留下的陈旧产物，只有 `.obj`、没有 Shader，**禁止使用**。）
+- **运行：** 可执行文件位于 `build\<preset>\PlantsVsZombies.exe`。`build\clang-release\resources` 与同级 `font` 是唯一实体目录；`clang-playtest`、`msvc-debug` 在首次配置时只创建 NTFS 目录联接，不复制资源。Shader、存档与 AutoTest 输出仍由各预设独立持有。运行游戏或 AutoTest 时，**必须以 exe 所在的 `build\<preset>\` 本身作为工作目录**：`Push-Location build\clang-playtest; .\PlantsVsZombies.exe -AutoTest <absolute-path>.json`。（⚠️ 根目录的 `x64\Release` 是陈旧产物，**禁止使用**。）
 - **在 VS 中开发：** 用 Visual Studio 的“打开文件夹”打开项目根目录，VS 会自动识别 CMakePresets。根目录 `launch.vs.json` 已包含 F5 调试配置、工作目录和 `-Debug` 变体。
 - **调试模式：** 使用 `-Debug` 参数运行可显示碰撞框。
 - **源文件管理：** `GLOB_RECURSE CONFIGURE_DEPENDS` 会自动收集源文件，新增 `.cpp` 无需修改构建文件；不参与编译的文件放入 `CMakeLists.txt` 的 `REMOVE_ITEM` 列表（当前为 `Reanimation/AttachmentSystem.cpp`）。
@@ -55,7 +59,7 @@
 - **运行方式（工作目录必须是 exe 所在的 `build\<preset>\`）：** Codex 默认必须让窗口显示在主人当前桌面。GUI 启动属于沙箱外桌面操作，调用 shell 时使用 `sandbox_permissions="require_escalated"`；仅写 `-WindowStyle Normal` 而不提升权限，进程仍可能落入隔离会话、主人看不到。推荐命令：
 
   ```powershell
-  Push-Location build\clang-release   # 或 build\msvc-debug；必须作为 WorkingDirectory
+  Push-Location build\clang-playtest   # 发布验证可用 clang-release；必须作为 WorkingDirectory
   $exe = (Resolve-Path '.\PlantsVsZombies.exe').Path
   $script = (Resolve-Path '..\..\autotest\scripts\demo_peashooter.json').Path
   $process = Start-Process -FilePath $exe `

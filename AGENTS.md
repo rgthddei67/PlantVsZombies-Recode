@@ -16,7 +16,7 @@
 - 本项目是面向 x64 Windows 的 C++17 CMake/vcpkg 项目。Codex 可以自主构建。
 - 主人已长期授权本项目正常构建所需的 vcpkg 依赖安装、CMake 配置/生成和编译；若沙箱阻止写入工作区外的 vcpkg 目录，直接申请提升权限执行，无需再次询问是否允许构建。该授权不包含删除 vcpkg、清空缓存或其他破坏性操作。
 - CMake 已加入系统 `PATH`，直接使用 `cmake` 命令，不要再定位或硬编码 Visual Studio 自带的 `cmake.exe`。运行 CMake 前仍需先把 Visual Studio Installer 目录加入 `PATH`，用 `vswhere` 定位 VS，再导入 `VsDevCmd.bat -arch=x64 -no_logo`；准确的 PowerShell 步骤见项目指南。
-- Release 验证依次运行 `cmake --preset clang-release` 和 `cmake --build --preset clang-release`。调试/F5 使用 `msvc-debug`；不存在 MSVC Release 预设。
+- 日常编译、逻辑验证、AutoTest 与 F5 默认依次运行 `cmake --preset clang-playtest` 和 `cmake --build --preset clang-playtest`；它保持 Release 级优化并生成 PDB，但不启用 LTO。`clang-release` 只用于正式发布、明确要求的发布验证或构建系统发布配置验收；它启用 LTO 且不生成 PDB。`msvc-debug` 仅在确实需要 Debug CRT/Debug 语义时使用；不存在 MSVC Release 预设。
 - 必须从 `build\<preset>\` 运行；可执行文件为 `build\<preset>\PlantsVsZombies.exe`。禁止使用根目录下陈旧的 `x64\Release` 产物。
 - Codex 启动任何需要主人看到的游戏或 AutoTest 窗口时，必须以 `build\<preset>\` 为工作目录，通过申请 `sandbox_permissions="require_escalated"` 的 shell 使用 `Start-Process -WindowStyle Normal -PassThru` 启动到主人当前桌面；普通沙箱 shell 即使指定 Normal 也不算可见运行。完整命令见项目指南。
 - 修改游戏逻辑后，从构建目录运行范围最小且相关的 `-AutoTest` 脚本。AutoTest 默认用主人当前桌面可见的游戏窗口依次运行（不得默认隐藏或仅后台执行），并同时检查退出码、`run.log`、状态文件和截图；只有主人明确要求后台运行或执行环境确实无法显示窗口时才可例外，并须说明。仅修改文档时无需构建游戏。
@@ -25,6 +25,7 @@
 
 - 源文件由 `GLOB_RECURSE CONFIGURE_DEPENDS` 自动收集；新增 `.cpp` 无需手动修改构建列表。
 - 每个新 `.h` 必须以 `#pragma once` 开头；pre-commit hook 会自动检查。
+- `build\clang-release\resources` 与同级 `font` 是唯一实体运行资产；`clang-playtest`、`msvc-debug` 通过 NTFS 目录联接共享。资源只修改权威目录，禁止复制或维护其他 preset 的资源副本。
 - 中文文本保持 UTF-8。逻辑网格位置与视觉偏移（`mVisualOffset`）必须分离。
 - 当前任务指令、当前源码/Git 状态和当前构建/测试证据优先于历史记忆。
 - 对已记录的子系统做出实质修改后，更新对应主题文件及 `docs/agent-memory/MEMORY.md` 中的条目。

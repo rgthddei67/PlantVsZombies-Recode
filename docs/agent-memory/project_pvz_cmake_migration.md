@@ -1,11 +1,17 @@
 ---
 name: pvz-cmake-migration
-description: 2026-06-13 CMake+vcpkg(manifest) 迁移并已统一（.sln/.vcxproj 已删，CMake 唯一构建系统）；坑=vcpkg 特性集/构建环境/copy_directory
+description: CMake+vcpkg 唯一构建系统；2026-07-22 增加 clang-playtest 并用目录联接共享单份运行资源
 metadata:
   node_type: memory
   type: project
   originSessionId: 83b50c95-5f75-4a56-8bd0-5051666fb921
 ---
+
+**2026-07-22 当前构建契约（取代下方迁移初期的 preset/运行目录描述）：**
+- `clang-playtest` 是日常预设：Clang `/O2` + AVX2 + fast-math + PDB，关闭 LTO，兼顾流畅试玩与可调试性。
+- `clang-release` 是发布预设：相同优化再加 `-flto`，不生成 PDB；最终交付验证仍用它。
+- `msvc-debug` 仅保留给 Debug CRT/特殊调试。`clang-playtest` 与 `msvc-debug` 的 `resources`/`font` 是指向 `build/clang-release/` 同名实体目录的 NTFS Junction；配置只创建一次联接，不复制资产。Shader、存档与 AutoTest 输出仍按 preset 隔离。
+- Visual Studio `launch.vs.json` 使用 `${cmake.binaryDir}` 作为工作目录；所有运行仍从 exe 自己的 `build/<preset>/` 启动。
 
 2026-06-13 完成（4edb6c8 接入 → **a14a26c 统一**，主人主动要求"搞2套太乱"）：
 .sln/.vcxproj/.filters 已删，**CMake 是唯一构建系统**。

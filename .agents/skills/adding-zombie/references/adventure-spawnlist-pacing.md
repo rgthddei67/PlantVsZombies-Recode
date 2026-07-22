@@ -8,7 +8,7 @@
 2. 把目标大关每关的 `waves`、`sun`、僵尸 ID 数组和类型名列成表；同时列出每种僵尸的 `weight`、`appearWave`、是否为召唤/变异单位。
 3. 区分“通关本关后获得”的植物与“进入本关时已经拥有”的植物。安排克制关系时只按后者计算。
 4. 标记重点威胁：新机制、快速突进、高护甲、召唤、天气变异、破坏小推车等；普通/路障等基础怪不算独立教学主题。
-5. 检查同一份资源在 `build/clang-release/resources/` 与 `build/msvc-debug/resources/` 是否已经漂移，先决定统一目标再同时编辑。
+5. 确认只编辑 `build/clang-release/resources/spawnlists.json` 权威文件；其他 preset 必须是通过 Junction 看到同一内容。
 
 ## 编排规则
 
@@ -25,9 +25,9 @@
 
 修改后逐项确认：
 
-1. 两个 preset 的 JSON 均可解析，目标关卡各出现一次，`zombies` 非空且内部无重复。
+1. 权威 `spawnlists.json` 可解析，目标关卡各出现一次，`zombies` 非空且内部无重复。
 2. 每个 ID 都落在 `[0, NUM_ZOMBIE_TYPES)`，并能映射到已注册工厂；池中不存在 `weight <= 0` 类型。
-3. 两个 `spawnlists.json` 解析后的规范化 JSON 完全一致；不要用工作树原始 SHA-256 误判 CRLF/LF 差异。它们位于默认忽略目录，提交时使用 `git add -f` 并检查 staged diff。
+3. `clang-playtest`/`msvc-debug` 的 `resources` 路径必须是指向 clang-release 权威目录的 Junction，不再比较或提交副本。权威 JSON 位于默认忽略目录，提交时使用 `git add -f` 并检查 staged diff。
 4. 输出一张“关卡｜波数｜首次主题｜完整池｜进入时可用关键植物”的最终表，人工检查首次登场与综合间距。
 
 ## AutoTest 与可见验收

@@ -1,6 +1,6 @@
 ---
 name: reference_pvz_assets_worktree_autotest_gotchas
-description: "PvZ 跑 AutoTest 的非显然坑——resources/font 不在 git(在 build/<preset>/)新 worktree须先拷否则ResourceManager初始化失败；wait字段名是value；切换后settle要大于30帧；蘑菇夜测用九关制10-18；产阳光看dump sun字段"
+description: "PvZ 运行资产与 AutoTest 非显然坑——clang-release 持有单份 resources/font，其他 preset 用 Junction；wait字段名是value；切换后settle要大于30帧；蘑菇夜测用九关制10-18；产阳光看dump sun字段"
 metadata:
   node_type: memory
   type: reference
@@ -9,11 +9,10 @@ metadata:
 
 2026-06-22 在 git worktree 里做生存词条查看面板、跑 AutoTest 验证时踩到的两个坑（都耗了时间，且第一个直接和 CLAUDE.md 写的相矛盾）：
 
-**① `resources/` 和 `font/` 不在 git 里，实体在各 `build/<preset>/` 下、紧挨 exe。**
-- `git ls-files resources/ font/` = 0（未跟踪）。仓库根**没有** `resources/`/`font/` 目录；资产被直接放进了 `build/clang-release/resources`、`build/msvc-debug/resources`（和同级 `font/`），这才是运行时 `./resources/resources.xml` 的来源。
-- CMakeLists 第 107 行注释明说"**只拷 Shader**到输出目录，resources/font 不拷"——所以 **CLAUDE.md 里"CMake copies font/resources/Shader next to it"是错的/误导**：只有 Shader/spv 由 POST_BUILD 拷，resources/font 是预先人工放进 build 目录的，CMake 不管。
-- **后果**：开一个**新 git worktree** 时，它的 `build/<preset>/` 是全新的，只有 CMake 产物 + Shader，**没有 resources/font** → 跑 exe 报 `加载XML配置文件失败: ./resources/resources.xml，File was not found` → `ResourceManager 初始化失败` → exit -6/250，AutoTest 一步都跑不了。
-- **解法**：从主仓库的 `build/<preset>/` 把 `resources` 和 `font` 整个拷进 worktree 的同名 build 目录即可（`robocopy <主>\build\clang-release\resources <worktree>\build\clang-release\resources /E`，font 同理；robocopy exit<8 都是成功）。build/ 被 gitignore，拷进去不会污染 git status。
+**① 运行资产只有一份实体：`build/clang-release/resources` 与 `font`。**
+- 2026-07-22 起，`clang-playtest`、`msvc-debug` 首次 configure 会自动创建指向上述实体目录的 NTFS Junction；后续构建不会复制 40MB 资源。每个 preset 的 Shader、存档和 AutoTest 输出仍独立。
+- 新增或修改 `gamedata.json`、`spawnlists.json`、`info.txt`、粒子配置、贴图等，只改 clang-release 的权威资源。不要再维护或提交 `build/msvc-debug/resources` 副本。
+- 新 worktree 仍没有原版未跟踪资产：先把主仓库的 `build/clang-release/resources` 与 `font` 各复制一次到新 worktree 的 `build/clang-release/`，随后 configure 其他 preset 会自动建立联接。缺资产时仍会在初始化阶段 exit -6/250。
 
 **② AutoTest `wait_frames` 的 JSON 字段名是 `"value"` 不是 `"frames"`。**
 - `TestDriver.cpp` 里 `if(op=="wait_frames"){ mFramesLeft = cmd.value("value", 0); ...}`——读 `"value"`。写成 `{"op":"wait_frames","frames":15}` 会 `value("value",0)` 取默认 **0** → "立即完成"，**静默当没等**（不报错）。`wait_seconds` 同理用 `"value"`。

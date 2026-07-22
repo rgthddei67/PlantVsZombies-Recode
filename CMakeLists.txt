@@ -1,8 +1,34 @@
-# CMake 构建（与 PlantsVsZombies.sln 并行共存，旧 VS 工程零改动）
-# 用法见 CMakePresets.json：cmake --preset clang-release && cmake --build --preset clang-release
-cmake_minimum_required(VERSION 3.25)
+# CMake 是本项目唯一构建系统。
+# 日常构建见 CMakePresets.json：cmake --preset clang-playtest && cmake --build --preset clang-playtest
+cmake_minimum_required(VERSION 3.29)
 
 project(PlantsVsZombies LANGUAGES CXX)
+
+option(PVZ_ENABLE_LTO "为发布构建启用 Clang LTO" OFF)
+set(PVZ_SHARED_RUNTIME_ROOT "" CACHE PATH
+    "共享 resources/font 的权威运行目录；留空表示当前构建持有实体目录")
+
+# 非发布预设通过 NTFS 目录联接复用发布版的 resources/font。联接只在首次配置时创建，
+# 不复制资源；Shader、存档与 AutoTest 输出仍保留在各自 build/<preset>/ 中。
+if(PVZ_SHARED_RUNTIME_ROOT)
+    execute_process(
+        COMMAND powershell.exe -NoProfile -ExecutionPolicy Bypass
+                -File ${CMAKE_CURRENT_SOURCE_DIR}/cmake/ensure_runtime_asset_links.ps1
+                -CanonicalRoot ${PVZ_SHARED_RUNTIME_ROOT}
+                -BuildRoot ${CMAKE_BINARY_DIR}
+        RESULT_VARIABLE _asset_link_result
+        OUTPUT_VARIABLE _asset_link_output
+        ERROR_VARIABLE _asset_link_error
+    )
+    if(NOT _asset_link_result EQUAL 0)
+        message(FATAL_ERROR
+            "共享运行资源联接失败:\n${_asset_link_output}${_asset_link_error}")
+    endif()
+    string(STRIP "${_asset_link_output}" _asset_link_output)
+    if(_asset_link_output)
+        message(STATUS "${_asset_link_output}")
+    endif()
+endif()
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -42,7 +68,8 @@ target_include_directories(PlantsVsZombies PRIVATE ${SRC_DIR})
 
 target_compile_definitions(PlantsVsZombies PRIVATE
     _CONSOLE
-    $<$<CONFIG:Release>:_HAS_ITERATOR_DEBUGGING=0 _SCL_SECURE_NO_WARNINGS>
+    $<$<OR:$<CONFIG:Release>,$<CONFIG:RelWithDebInfo>>:
+        _HAS_ITERATOR_DEBUGGING=0 _SCL_SECURE_NO_WARNINGS>
 )
 
 # /utf-8 必须：源文件里有中文 UI 字符串（cl 与 clang-cl 都接受）
@@ -50,20 +77,21 @@ target_compile_definitions(PlantsVsZombies PRIVATE
 target_compile_options(PlantsVsZombies PRIVATE /utf-8 /W3 /sdl /EHsc)
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    # 对应旧 ClangRelease|x64：-O2 -mavx2 -flto（LTO 走 lld-link，见 preset）
+    # Release 与 Playtest 使用相同的运行期优化；只有正式发布预设额外启用 LTO。
     target_compile_options(PlantsVsZombies PRIVATE
-        $<$<CONFIG:Release>:
+        $<$<OR:$<CONFIG:Release>,$<CONFIG:RelWithDebInfo>>:
             /O2                     # MSVC 风格，clang-cl 原生识别，不加 /clang:
             /arch:AVX2              # 同上
             /fp:fast                # 同上，等价于 -ffast-math
             /clang:-fvectorize      # 每个 clang 专属选项单独传递
             /clang:-fomit-frame-pointer
-            -flto
-            /Zi
         >
     )
+    if(PVZ_ENABLE_LTO)
+        target_compile_options(PlantsVsZombies PRIVATE $<$<CONFIG:Release>:-flto>)
+    endif()
     target_link_options(PlantsVsZombies PRIVATE
-    $<$<CONFIG:Release>:/DEBUG /OPT:REF /OPT:ICF>
+        $<$<OR:$<CONFIG:Release>,$<CONFIG:RelWithDebInfo>>:/OPT:REF /OPT:ICF>
     )
 else()
     # 对应旧 Release|x64：MaxSpeed + AVX2 + fast-math + LTCG
@@ -133,16 +161,16 @@ endforeach()
 add_custom_target(CompileShaders DEPENDS ${SPV_OUTPUTS})
 add_dependencies(PlantsVsZombies CompileShaders)
 
-# 只拷 Shader 到输出目录（resources/font 不拷——运行时工作目录用 x64/Release）
+# 只拷 Shader 到输出目录；resources/font 由 clang-release 持有，其他预设通过目录联接共享。
 # 注意：copy_directory 拷的是"目录内容"，目标必须写全 Shader/spv（游戏按 Shader/spv/*.spv 加载）
 add_custom_command(TARGET PlantsVsZombies POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different
             ${SRC_DIR}/Shader/spv $<TARGET_FILE_DIR:PlantsVsZombies>/Shader/spv
     COMMENT "Copying Shader spv to output directory"
 )
 
 # ---- 生成资源清单 resources/manifest.txt（取代运行时 std::filesystem 目录枚举）----
-# 直接 glob 紧挨 exe 的真实资源目录（资源实体在 build/<preset>/resources，CMake 不经手拷贝），
+# 直接 glob 紧挨 exe 的真实资源目录（非发布预设会经目录联接看到同一份实体资源），
 # 每次构建重生成 = 零过期窗口。运行时 FileManager::ListResourceFiles 经 SDL_RWops 读它，
 # 使资源目录列举在 Android(APK) 可用。详见
 # docs/superpowers/specs/2026-06-25-resource-manifest-enumeration-design.md

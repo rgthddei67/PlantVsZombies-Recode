@@ -14,7 +14,7 @@ description: Use when adding or tuning ANY particle effect (粒子特效) in PvZ
 
 - **一个 XML 文件 = 一个特效**，可含多个 `<Emitter>`（同时全部点燃，如 PeaBulletHit=飞溅+碎屑两发射器）。
 - **特效名 = 第一个 `<Emitter>` 的 `<Name>`，不是文件名**（文件名只是惯例上取一致）。
-- 目录：`build/<preset>/resources/particles/config/`，启动时全目录加载——**双 preset 都要放**；纯数据改配置**不用重编译，但要重启游戏**。
+- 目录：权威资源 `build/clang-release/resources/particles/config/`，启动时全目录加载；其他 preset 通过 Junction 共享，纯数据改配置**不用重编译，但要重启游戏**。
 - 触发：`g_particleSystem->EmitEffect("Name", GetPosition());`；完整可选参数依次为 `renderOrder, durationOverride, clipRightX`。名字打错启动不报错，**发射时** run.log 出 `ERROR 找不到粒子特效配置`。
 - 贴图：`<Image>` 填资源键（`IMAGE_*`/`PARTICLE_*`，即 resources.xml 里那些）；**没有独立粒子贴图格式**，任何已加载纹理都能当粒子。
 - **键前缀由 resources.xml 段落决定**：`<GameImages>` 里的 → `IMAGE_*`，`<ParticleTextures>` 里的 → `PARTICLE_*`（粒子专用图放后者）。写错前缀=粒子静默不生成（foot-gun ③）。
@@ -89,10 +89,10 @@ description: Use when adding or tuning ANY particle effect (粒子特效) in PvZ
 4. 染色走 `ParticleRed/Green/Blue`（0..1 乘法），等价心算：目标 overlay 色 (80,80,255)/255 ≈ (.31,.31,1)。**别去做染色贴图**。
 5. `RandomLaunchSpin` 不写时初速度**恒向右**——掉落物（头/手臂）必须写 `1`，否则一律向右飞。
 6. Position 场是**绝对偏移**：想让粒子"随时间飘远"，轨迹要从小值渐变到大值（`0 [20 300],60 ...`），写常量它就钉在那不动。
-7. 双 preset 都要放 XML；改完**重启**游戏才生效（启动时一次性加载）。
+7. XML 只放权威 `build/clang-release/resources/particles/config/`；改完**重启**游戏才生效（启动时一次性加载）。
 8. **长持续天气不要用总配额硬撑时长**：调用 `EmitEffect` 时传正的 `durationOverride`，引擎会把发射器切成循环池；`SpawnMaxLaunched` 按 `SpawnMinActive + SpawnRate × ParticleDuration` 的峰值并留余量即可。否则巨大配额会让每帧遍历成千上万个空粒子。
 9. **负数随机区间写升序** `[-300 -200]`：原版 XML 里的 `[-200 -300]` 直接照抄会把 min/max 反着喂给 GameRandom::Range，行为未定义。
-10. **移植原版 XML 前先 Compare 两 preset 的 resources.xml**：msvc-debug 的历史上整体陈旧过（缺 12 个文件条目），只 append 新行会漏掉旧账——发现漂移直接整文件覆盖 + 补拷缺失资源。
+10. **移植原版 XML 只改权威资源**：贴图和 `resources.xml` 都放 `build/clang-release/resources/`，禁止再创建 msvc-debug 副本；配置其他 preset 后用 Junction 属性确认共享即可。
 
 ## 配方（照抄改数）
 

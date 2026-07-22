@@ -22,11 +22,11 @@ description: Use when adding or tuning any PvZ zombie, or integrating zombies in
 2. **SetupZombie 先判定“复用父类”还是“完全接管”**：
    - **同一套 reanim/轨道/事件时序的换皮或数值变体**，优先调用最近父类的 `SetupZombie()`，再覆盖 HP、攻击和速度差额；这样直接复用已经验证过的 Die/EatTarget 事件，禁止重复 `AddFrameEvent`。父类已经乘过移速时，用“目标倍率 / 父类倍率”补差（粉色橄榄球 1.85/1.7 实证），不要再乘完整目标倍率。
    - **新 reanim、事件时序不同或状态机需要替换父类初始化**，才不调基类并自己接管三件事：帧事件注册（Die 一次性 + EatTarget `repeating=true`，帧号=全时间线绝对帧，只在所属剪辑段播放时经过）、走路起播、`mIsPreview` 分支（预览只 PlayTrack 不注册事件）。任何新增帧号仍必须先问主人。
-3. **枚举移动 + 空工厂窗口**：新类型必须**追加在全部既有已实现类型之后、`NUM_ZOMBIE_TYPES` 哨兵之前**；禁止插进旧类型中间，否则存档里的整数僵尸 ID 会错位。把枚举移到哨兵前的**同一提交**必须补齐两份 gamedata.json 条目（缺字段拒启动 exit -6）；若工厂注册在后续提交，**weight 先填 0**（哨兵前+非零权重+无工厂=生存随机抽中即空指针），注册后再解封。
+3. **枚举移动 + 空工厂窗口**：新类型必须**追加在全部既有已实现类型之后、`NUM_ZOMBIE_TYPES` 哨兵之前**；禁止插进旧类型中间，否则存档里的整数僵尸 ID 会错位。把枚举移到哨兵前的**同一提交**必须补齐权威 `gamedata.json` 条目（缺字段拒启动 exit -6）；若工厂注册在后续提交，**weight 先填 0**（哨兵前+非零权重+无工厂=生存随机抽中即空指针），注册后再解封。
 4. **注册**：`GameDataManager.cpp` `#include` + `RegisterZombie(type, "ZOMBIE_X", ANIM_X, "ReanimName", &MakeZombie<T>)`——animName 必须与 resources.xml 的 `<Reanimation name>` 一致。
-5. **gamedata.json ×2 preset**：`{weight, appearWave, survivalRound, offset, scale}` 五字段缺一不可；只能被召唤的僵尸 `weight: 0`（永不被抽中，AutoTest spawn_zombie 仍可直造）。注意 weight 一物两用=抽中权重+生存点数成本。
-6. **粒子**：照抄 `ZombieHeadOff.xml` 改 `<Name>`+`<Image>`（图键=贴图文件名的标准派生键，如 `ZombieDancerHead.png`→`PARTICLE_ZOMBIEDANCERHEAD`），放 `particles/config/` 整目录自动加载，×2 preset。XML 标签全参考/foot-guns 见 **adding-particle skill**（勿再读 ParticleSystem 源码）。
-7. **换色变体资源**：优先用仓库内 PowerShell + `System.Drawing` 脚本按 HSV/亮度映射目标材质，保留原 Alpha、阴影、高光、描边和非目标部件；不要对整张图平涂或只靠 overlay。脚本是可复现源，两个 preset 必须从同一脚本生成并逐文件比 SHA-256。
+5. **gamedata.json**：只改 `build/clang-release/resources/gamedata.json`，`{weight, appearWave, survivalRound, offset, scale}` 五字段缺一不可；只能被召唤的僵尸 `weight: 0`（永不被抽中，AutoTest spawn_zombie 仍可直造）。注意 weight 一物两用=抽中权重+生存点数成本。
+6. **粒子**：照抄 `ZombieHeadOff.xml` 改 `<Name>`+`<Image>`（图键=贴图文件名的标准派生键，如 `ZombieDancerHead.png`→`PARTICLE_ZOMBIEDANCERHEAD`），放权威 `build/clang-release/resources/particles/config/`，其他 preset 自动共享。XML 标签全参考/foot-guns 见 **adding-particle skill**（勿再读 ParticleSystem 源码）。
+7. **换色变体资源**：优先用仓库内 PowerShell + `System.Drawing` 脚本按 HSV/亮度映射目标材质，保留原 Alpha、阴影、高光、描边和非目标部件；不要对整张图平涂或只靠 overlay。脚本是可复现源，只向 clang-release 权威资源生成一次并逐文件比预期 SHA-256。
 8. **⚠️ build/ 下资源提交必须 `git add -f`**——被 .gitignore 静默挡下，`git commit` 照样"成功"但文件没进去。提交后 `git show --stat` 核对文件数。
 
 ## 冒险出怪编排
@@ -60,7 +60,7 @@ description: Use when adding or tuning any PvZ zombie, or integrating zombies in
 
 ## 验证（缺一不可）
 
-1. `clang-release` 构建 0 warning；新 .cpp 未被编译先 `cmake --preset clang-release` reconfigure。
+1. 日常迭代用 `clang-playtest` 构建 0 warning；新 .cpp 未被编译先 `cmake --preset clang-playtest` reconfigure。完成后再用 `clang-release` 做 LTO 发布验证。
 2. **AutoTest 冒烟**：`autotest/scripts/smoke_<name>.json`。默认按 `PROJECT_GUIDE.md` 的“当前桌面可见启动”方案运行：从 `build/<preset>/` 工作目录，用提升权限的 `Start-Process -WindowStyle Normal -PassThru` 启动并等待退出；普通沙箱 shell 即使写了 `WindowStyle Normal` 也可能落在隔离会话，主人桌面完全看不到。断言抓手：`zombies.N.type/hasArm/armVisible/hasHead/track/mindControlled`（type 是字符串枚举名）。**exit 0 ≠ 通过**：逐张 Read 截图（断肢前后、编队站位、出土中段——注意升起初期整体在地面线下被裁掉是正确的，截图要卡升起 60% 时点）。
 3. **死亡消失必须专门测**（末-1 帧陷阱专项）：豌豆打死→dump 确认该 type 消失+run.log 无 WATCHDOG。炸弹类走 Die() 直杀路径，**测不到**死亡帧事件。
 4. 时序：`wait_seconds` 是游戏秒；关卡 20 秒起第一波普通僵尸会混入 dump，别断言"场上为空"。
@@ -78,4 +78,4 @@ description: Use when adding or tuning any PvZ zombie, or integrating zombies in
 
 ## 关联记忆
 
-`[[project_pvz_dancer_zombie]]`（本 skill 起源+全部 foot-gun 现场）、`[[project_pvz_pink_football_zombie]]`（同构父类初始化复用+可见桌面测试）、`[[project_pvz_zombie_eat_walk_state_machine]]`（走路权威/啃食钩子）、`[[project_pvz_charmed_zombie_feature]]`（魅惑契约）、`[[project_pvz_gamedata_json]]`（双 preset）。
+`[[project_pvz_dancer_zombie]]`（本 skill 起源+全部 foot-gun 现场）、`[[project_pvz_pink_football_zombie]]`（同构父类初始化复用+可见桌面测试）、`[[project_pvz_zombie_eat_walk_state_machine]]`（走路权威/啃食钩子）、`[[project_pvz_charmed_zombie_feature]]`（魅惑契约）、`[[project_pvz_gamedata_json]]`（权威单份资源）。

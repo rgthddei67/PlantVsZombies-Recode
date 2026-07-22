@@ -25,15 +25,15 @@
       "inherits": "base",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "CMAKE_CXX_COMPILER": "cl"
+        "CMAKE_CXX_COMPILER": "cl",
+        "PVZ_SHARED_RUNTIME_ROOT": "${sourceDir}/build/clang-release"
       }
     },
     {
-      "name": "clang-release",
-      "displayName": "Clang Release (/O2 /arch:AVX2 /fp:fast -fvectorize -fomit-frame-pointer -flto, 对应旧 ClangRelease|x64)",
+      "name": "clang-base",
+      "hidden": true,
       "inherits": "base",
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release",
         "CMAKE_CXX_COMPILER": "C:/Program Files/Microsoft Visual Studio/18/Community/VC/Tools/Llvm/x64/bin/clang-cl.exe",
         "CMAKE_LINKER_TYPE": "LLD"
       },
@@ -42,10 +42,30 @@
             "intelliSenseMode": "windows-clangcl-x64"
         }
       }
+    },
+    {
+      "name": "clang-release",
+      "displayName": "Clang Release（发布：/O2 + AVX2 + fast-math + LTO，无 PDB）",
+      "inherits": "clang-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "PVZ_ENABLE_LTO": "ON"
+      }
+    },
+    {
+      "name": "clang-playtest",
+      "displayName": "Clang Playtest（日常：/O2 + AVX2 + fast-math + PDB，无 LTO）",
+      "inherits": "clang-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "PVZ_ENABLE_LTO": "OFF",
+        "PVZ_SHARED_RUNTIME_ROOT": "${sourceDir}/build/clang-release"
+      }
     }
   ],
   "buildPresets": [
     { "name": "msvc-debug", "configurePreset": "msvc-debug" },
-    { "name": "clang-release", "configurePreset": "clang-release" }
+    { "name": "clang-release", "configurePreset": "clang-release" },
+    { "name": "clang-playtest", "configurePreset": "clang-playtest" }
   ]
 }

@@ -23,7 +23,7 @@
 - [胆小菇+adding-plant skill ✅已push](project_pvz_scaredyshroom_and_adding_plant_skill.md) — 2026-07-08(2d53f00..894fe5a) 新增植物流程已固化为.claude/skills/adding-plant(CLAUDE.md植物节已删指向skill,僵尸节保留)；foot-gun=帧事件帧号必问主人、站位/影子两套offset分居gamedata.json与代码、状态机消费的节流缓存读档首帧必须真算(AutoTest存档短路测不到)
 - [主菜单石碑排版+命中仲裁 ✅已push](project_pvz_mainmenu_button_arbitration.md) — 2026-07-07(e65d869..43241cf) 石碑紧贴后判定框重叠=ButtonManager::UpdateAll两遍仲裁(hover/click只判给中心最近者,Button::Update加hitAllowed默认参数其余调用点不变)；定稿缩放1.0/x=545/y=85,175,252,325；foot-gun=LEVEL数字坐标与冒险按钮pos/scale硬绑定须按贴图内相对坐标换算、smoke重叠带点击有假绿风险须Read中间截图
 - [血量字形worker侧instance化 ✅已push](project_pvz_glyph_run_worker_instancing.md) — 2026-07-07(db5c3e6) 20000可见血量行defer到串行replay逐行flush=N×ε聚合致死(51.9→9.7ms/19→103FPS)；修=RecordDrawGlyphRun快路径直写InstanceRecord切片(与reanim同管线,z-order不变)；foot-gun=textDraw(lines)计数器不覆盖字形路径(盲区误导两轮,已加glyphRun等-Profile探针)、glyphAtlasBuild失败无negative cache会每帧重建循环
-- [gamedata.json 数值外置 ✅已push](project_pvz_gamedata_json.md) — 2026-07-07(9f3e3ca+0b37e9f) JSON唯一数值来源+缺任一字段即拒启动(-6)+AutoTest不弹窗守卫；新增植物/僵尸改5步(两preset的resources都要加条目)；foot-gun=文件名GameApp.cpp非GameAPP.cpp(git add静默漏stage)、msvc-debug陈旧树跑新资源假崩溃HEAP CORRUPTION+LNK1168锁exe(治=reconfigure+clean全量重建,勿删build目录)、后台PowerShell不继承VS环境
+- [gamedata.json 数值外置 ✅已push](project_pvz_gamedata_json.md) — 2026-07-07(9f3e3ca+0b37e9f) JSON唯一数值来源+缺任一字段即拒启动(-6)+AutoTest不弹窗守卫；新增植物/僵尸改5步；2026-07-22 起只改 clang-release 权威资源，其他 preset 用 Junction 共享；foot-gun=文件名GameApp.cpp非GameAPP.cpp、后台PowerShell不继承VS环境
 - [幽灵僵尸射手空射修复 ✅已push](project_pvz_ghost_zombie_shooter_fix.md) — 2026-07-06(b1cec54) 行索引过滤IsActive/IsDying+Die()防重入(同帧双Die双扣计数)+DestroyGameObject(raw)静默失败留WARN；再见"计数0仍开火"先查GOM WARN
 - [固定步长主循环 ✅已push](project_pvz_fixed_timestep.md) — 2026-07-06(729356e) 逻辑60Hz+封顶3步丢债；AutoTest同Seed全产物逐字节复现；foot-gun=追帧第2/3步前必须补poll否则合成输入按下沿湮灭、wait_frames语义变逻辑步、验证防空对空假阳性
 
@@ -56,7 +56,7 @@
 - [大佬GS/compute渲染建议裁决](project_pvz_dalao_geometry_compute_suggestion.md) — 2026-06-17 ②目标早达成但用gl_VertexIndex顶点拉取+实例化非GS/①矩阵已并行写SSBO不值搬compute;再提同类渲染优化引此
 - [Gemini Vulkan审查](project_pvz_gemini_vulkan_review.md) — 2026-06-16 6条:4误判2休眠;**①DestroyTexture改帧计数延迟删除队列已push(0b14016)**;教训=GPU生命周期改动必开validation
 - [编译警告清零 ✅](project_pvz_warnings_cleanup.md) — 2026-06-13 clang-release 0warn;验证须用clang(msvc默认不报)、reorder改类内初始化、-Wswitch补显式case
-- [CMake迁移 ✅统一](project_pvz_cmake_migration.md) — 2026-06-13(a14a26c).sln/.vcxproj删,CMake+vcpkg唯一;坑=sdl2[vulkan]特性/copy_directory拷内容/NAME_WE撞名；2026-07-17许可证生成器除vcpkg外须传VMA_HEADER提取SDK头文件MIT原文
+- [CMake构建配置 ✅统一](project_pvz_cmake_migration.md) — CMake+vcpkg唯一；2026-07-22 `clang-playtest`=/O2+PDB无LTO供日常、`clang-release`=LTO无PDB供发布，非发布 preset 用 NTFS Junction 共享 clang-release 单份 resources/font；Shader/存档/AutoTest输出仍隔离
 - [Build permission](feedback_build_permission_msbuild.md) — 主人解除构建限制:可直接命令行编译,不必F7不必核对时间戳(现用cmake preset)
 - [AutoTest套件 ✅](project_pvz_autotest_suite.md) — 2026-06-13完成;用法权威在CLAUDE.md AutoTest节(-AutoTest脚本+截图+dump_state闭环,-Seed确定性)
 - [perf optimization](project_pvz_perf_optimization.md) — 最新2026-06-24:11000z@168.5FPS/5.94ms完全CPU-bound(Present0.14/replay0.03);**STOP停在此**;编译**O2非O3**;若重启ROI序=par-record视口剔除>2d串行地板(Amdahl)>collision;GPU instancing已落地(388a845)
@@ -80,7 +80,7 @@
 - [僵尸按行索引 ✅](project_pvz_zombie_row_index.md) — 2026-06-06 EntityManager加ForEachZombieInRow替GetAllZombieIDs全表扫;惰性每帧重建(CleanupExpired标脏);foot-gun=取全集再过滤
 - [vcpkg缓存删除代价](feedback_vcpkg_cache_deletion.md) — vcpkg-master整目录不能删(toolchainFile指向);"可再生"≠"删了免费"(重装全量联网);清缓存前确认不reconfigure
 - [生存词条系统](project_pvz_perk_system.md) — 2026-07-20 共10词条(6植4僵)：阵营增伤由必填 `DamageSource` 在双方 `TakeDamage` 按来源结算，承伤词条仍覆盖所有来源；每轮2次独立选择，共享3次整批刷新；词条页退出存档避免重进叠卡
-- [资产/worktree/AutoTest坑](reference_pvz_assets_worktree_autotest_gotchas.md) — ①resources/font不在git(在build/<preset>旁exe,CLAUDE.md"拷resources"错只拷Shader)新worktree须拷否则exit-6 ②AutoTest wait字段名是"value"非frames ③状态切换后settle>30帧 ④蘑菇夜测goto 10-18 ⑤产阳光验证看dump sun字段(小阳光15/普通25),wait_seconds游戏秒/看门狗墙钟15s
+- [资产/worktree/AutoTest坑](reference_pvz_assets_worktree_autotest_gotchas.md) — ①clang-release持有单份resources/font，playtest/debug用Junction；新worktree只需补一次权威原版资产 ②AutoTest wait字段名是"value"非frames ③状态切换后settle>30帧 ④蘑菇夜测goto 10-18 ⑤产阳光验证看dump sun字段
 - [Animator三层速度模型 ✅push](project_pvz_animator_clip_speed.md) — 2026-06-07(e74bc76)EffectiveSpeed=(clip!=0?clip:base)*extra;clip绝对覆盖(非乘数)/0回落base;删mOriginalSpeed两步舞;存档animClipSpeed
 - [跨平台phase-1审查 ✅push](project_pvz_xplat_phase1_review.md) — 2026-06-25 FF合master(b3ff1da);load_file×2收编走FileManager;**目录枚举×2留phase-3(SDL/AAssetManager无列举API)**
 - [跨平台phase-3资源清单 ✅已push](project_pvz_xplat_phase3_manifest.md) — 2026-06-25(c50db1e)构建期gen_manifest.cmake glob生成manifest.txt+FileManager::ListResourceFiles经SDL_RWops读;**裁决:迁SDL3拿APK列目录是陷阱→清单方案库无关,SDL2栈即可用**

@@ -90,7 +90,7 @@ void GameDataManager::InitializeHardcodedData() {
 	//   3. 本文件          在下方“植物注册”区加一行 RegisterPlant(..., &MakePlant<新类>)
 	//      并在本文件顶部 #include "你的植物.h"
 	//   4. resources/gamedata.json 的 "plants" 加同枚举名条目（漏了 → 启动时报错退出，
-	//      注意资源目录在 build/<preset>/resources/，两个 preset 都要加）
+	//      只改 build/clang-release/resources/；其他预设通过目录联接共享同一份资源）
 	//   5. 加 Card 条目
 	// 【新增僵尸】同理：ZombieType.h 加枚举 → 写僵尸类 → 下方“僵尸注册”区加一行
 	//      RegisterZombie(..., &MakeZombie<新类>) + 顶部 #include
