@@ -43,7 +43,8 @@ void Chomper::OnBiteKillFrame()
 {
 	if (mBoard) {
 		if (auto* z = mBoard->mEntityManager.GetZombie(mTargetZombieID)) {
-			z->Die();
+			// 直杀统一走僵尸入口：普通目标保持原行为，特殊目标可把这次咬杀降级为数值伤害。
+			z->TakePlantInstantKill();
 		}
 	}
 	mTargetZombieID = NULL_ZOMBIE_ID;

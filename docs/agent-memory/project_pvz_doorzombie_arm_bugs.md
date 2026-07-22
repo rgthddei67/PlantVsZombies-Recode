@@ -35,3 +35,7 @@ metadata:
 
 ## 尚未审计（主人已同意方向，未展开）
 建议出"入口×状态(门在/掉·有头/断头·魅惑/非魅惑·啃植物/啃僵尸/走路/死亡)"矩阵逐格用 armVisible/doorArmVisible 验一遍找剩余缺口。可疑未验点：断手 ArmDrop 与魅惑/穿透组合、读档(ZombieItemUpdate)各状态(AutoTest 短路存档测不了)、FastBucket/其它二类护盾僵尸是否有类似"持armor臂"结构。
+
+## 2026-07-22 换色派生钩子
+
+加固铁门复用完整 DoorZombie 手臂/进食/掉门/死亡状态机。DoorZombie 将原先散落的三阶段硬编码贴图收口为 `GetDoorImageKey(stage)` + `ApplyDoorImage()`，掉落粒子收口为 `GetDoorDropParticleName()`；派生类只覆写资源键，不复制任何手臂逻辑。`smoke_door_fume_death` 可见回归通过，确认原版铁门生命周期未受影响。

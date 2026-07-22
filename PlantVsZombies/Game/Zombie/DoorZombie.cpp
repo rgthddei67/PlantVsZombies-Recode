@@ -14,6 +14,7 @@ void DoorZombie::SetupZombie()
 	this->mShieldHealth = 1100;
 	this->mShieldMaxHealth = 1100;
 	this->mShieldType = ShieldType::SHIELDTYPE_DOOR;
+	ApplyDoorImage();
 
 	mSpeed += GameRandom::Range(-3, 3);
 
@@ -21,6 +22,31 @@ void DoorZombie::SetupZombie()
 		this->PlayTrack("anim_walk");
 	else
 		this->PlayTrack("anim_walk2");
+}
+
+const char* DoorZombie::GetDoorImageKey(ArmorBrokenState stage) const
+{
+	switch (stage) {
+	case ArmorBrokenState::NO_BROKEN:
+		return "IMAGE_ZOMBIE_SCREENDOOR1";
+	case ArmorBrokenState::A_LITTLE_BROKEN:
+		return "IMAGE_ZOMBIE_SCREENDOOR2";
+	case ArmorBrokenState::REALLY_BROKEN:
+		return "IMAGE_ZOMBIE_SCREENDOOR3";
+	default:
+		return nullptr;
+	}
+}
+
+void DoorZombie::ApplyDoorImage() const
+{
+	// 预览对象没有运行期 shieldType，但仍要按默认 NO_BROKEN 阶段显示门；真正掉门后 stage=NONE。
+	if (!mAnimator || mShieldStage == ArmorBrokenState::NONE) return;
+	const char* imageKey = GetDoorImageKey(mShieldStage);
+	if (!imageKey) return;
+	if (const Texture* texture = ResourceManager::GetInstance().GetTexture(imageKey)) {
+		mAnimator->SetTrackImage("anim_screendoor", texture);
+	}
 }
 
 void DoorZombie::OnStartEating()
@@ -80,17 +106,12 @@ void DoorZombie::CheckShieldImage()
 
 	if (mShieldStage == ArmorBrokenState::NO_BROKEN && mShieldHealth <= static_cast<int64_t>(mShieldMaxHealth) * 2 / 3) {
 		mShieldStage = ArmorBrokenState::A_LITTLE_BROKEN;
-
-		mAnimator->SetTrackImage("anim_screendoor", ResourceManager::GetInstance().
-			GetTexture("IMAGE_ZOMBIE_SCREENDOOR2"));
 	}
 	if (mShieldStage == ArmorBrokenState::A_LITTLE_BROKEN &&
 		mShieldHealth <= mShieldMaxHealth / 3) {
 		mShieldStage = ArmorBrokenState::REALLY_BROKEN;
-
-		mAnimator->SetTrackImage("anim_screendoor", ResourceManager::GetInstance().
-			GetTexture("IMAGE_ZOMBIE_SCREENDOOR3"));
 	}
+	ApplyDoorImage();
 }
 
 void DoorZombie::ShieldDrop()
@@ -105,7 +126,7 @@ void DoorZombie::ShieldDrop()
 	
 	this->ShowArm(true);
 	if (g_particleSystem) {
-		g_particleSystem->EmitEffect("ZombieDoorOff",
+		g_particleSystem->EmitEffect(GetDoorDropParticleName(),
 			GetPosition());
 	}
 } 

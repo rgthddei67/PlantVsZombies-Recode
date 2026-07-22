@@ -9,6 +9,12 @@ protected:
 	ArmorBrokenState mShieldStage = ArmorBrokenState::NO_BROKEN;
 
 	void SetupZombie() override;
+	/** 返回当前破损阶段使用的门贴图键；换色派生类只需覆写此映射。 */
+	virtual const char* GetDoorImageKey(ArmorBrokenState stage) const;
+	/** 返回掉门粒子名；保证换色门掉落后仍使用同色贴图。 */
+	virtual const char* GetDoorDropParticleName() const { return "ZombieDoorOff"; }
+	/** 把当前破损阶段贴图应用到门轨道；无门/无动画时安全跳过。 */
+	void ApplyDoorImage() const;
 
 	void ShieldDrop() override;
 
@@ -42,13 +48,8 @@ public:
 			mAnimator->SetTrackVisible("Zombie_outerarm_screendoor", false);
 			mAnimator->SetTrackVisible("Zombie_innerarm_screendoor_hand", false);
 		}
-		else if (mShieldStage == ArmorBrokenState::A_LITTLE_BROKEN) {
-			mAnimator->SetTrackImage("anim_screendoor", ResourceManager::GetInstance().
-				GetTexture("IMAGE_ZOMBIE_SCREENDOOR2"));
-		}
-		else if (mShieldStage == ArmorBrokenState::REALLY_BROKEN) {
-			mAnimator->SetTrackImage("anim_screendoor", ResourceManager::GetInstance().
-				GetTexture("IMAGE_ZOMBIE_SCREENDOOR3"));
+		else {
+			ApplyDoorImage();
 		}
 
 		// —— 手臂造型一次定状态（避免先 ShowArm 全开、再被逐条覆盖）——

@@ -19,7 +19,7 @@ protected:
 	virtual void OnFumeHit(Zombie* zombie) {}
 
 	bool HasZombieInRow();		// 检测本行是否有僵尸
-	void FumeAttack();			// 喷雾区域攻击：对本行锥形范围内全部僵尸瞬时穿透伤害
+	float FumeAttack();			// 按近到远结算喷雾；返回阻断点世界 X，负值表示未被阻断
 
 	void SetupPlant() override;
 

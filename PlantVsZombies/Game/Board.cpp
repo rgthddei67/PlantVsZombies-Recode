@@ -47,6 +47,7 @@ namespace {
 	constexpr int kLateWeatherForecastAccuracyPercent = 95; // 满压力天气预警准确率上限（百分比）
 	constexpr int kEliteDancerMutationChancePercent = 60; // 台风以上普通舞王变异为精英舞王的概率（百分比）
 	constexpr int kEliteDancerMaxPerWave = 3;             // 每波最多允许生成的精英舞王数量。
+	constexpr int kReinforcedDoorMaxPerWave = 2;          // 每波最多正式生成的加固铁门数量；超额回退普通铁门
 	constexpr float kWeatherTransitionDuration = 2.0f;   // 雨势切换时倍率、暗幕与雨声音量的平滑过渡时长（游戏秒）
 	constexpr float kLateWeatherRampStart = 0.40f;       // 普通关波次进度超过该比例后开始增强后期天气（0～1）
 	constexpr float kAdventurePressureFullProgress = 0.68f; // 普通关到该波次进度时达到完整天气压力（0～1）
@@ -1211,6 +1212,12 @@ void Board::RestoreEliteDancerWaveSpawnCount(int count)
 	mEliteDancersSpawnedThisWave = std::clamp(count, 0, kEliteDancerMaxPerWave);
 }
 
+/** 夹紧并恢复当前波已经正式生成的加固铁门数量。 */
+void Board::RestoreReinforcedDoorWaveSpawnCount(int count)
+{
+	mReinforcedDoorsSpawnedThisWave = std::clamp(count, 0, kReinforcedDoorMaxPerWave);
+}
+
 /** 清空全部台风派生状态；中雨、小雨、晴天和旧档默认都以此为单位元。 */
 void Board::StopTyphoon()
 {
@@ -1324,6 +1331,22 @@ ZombieType Board::ResolveRainMutationType(ZombieType selected, int mutationRoll)
 	if (roll < 1 || roll > 100 || roll > kEliteDancerMutationChancePercent) return selected;
 	++mEliteDancersSpawnedThisWave;
 	return ZombieType::ZOMBIE_ELITE_DANCER;
+}
+
+/**
+ * 解析正式波次候选。加固铁门第三次起回退为同成本的普通铁门，随后再进入既有天气变异流程。
+ */
+ZombieType Board::ResolveWaveZombieType(ZombieType selected, int mutationRoll)
+{
+	if (selected == ZombieType::ZOMBIE_REINFORCED_DOOR) {
+		if (mReinforcedDoorsSpawnedThisWave >= kReinforcedDoorMaxPerWave) {
+			selected = ZombieType::ZOMBIE_DOOR;
+		}
+		else {
+			++mReinforcedDoorsSpawnedThisWave;
+		}
+	}
+	return ResolveRainMutationType(selected, mutationRoll);
 }
 
 /**
@@ -1765,10 +1788,6 @@ void Board::InitializeCell(int rows, int cols)
 
 void Board::CreateBoom(const Vector& position, int damage)
 {
-	// 植物爆炸明确标记为 PLANT；Zombie::TakeDamage 只对该来源应用植物增伤，再统一应用僵尸免伤。
-	// 这里仅预测 TakeDamage 实际造成的伤害，用于秒杀(Charred)阈值判定——保持判定与扣血一致，
-	// 且不在入口重复缩放（旧代码此处 ScalePlantDamage 一次、TakeDamage 又缩放一次 → 词条被算两遍）。
-	const int scaledDamage = mPerkManager.ScaleTotalDamageToZombie(damage);
 	g_particleSystem->EmitEffect("CherryBomb", position);
 	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_CHERRYBOMB, 0.4f);
 	ShakeBoard(3.0f, -4.0f);   // 原版 ShakeBoard(3,-4)：0.12s 单次弹跳
@@ -1781,14 +1800,8 @@ void Board::CreateBoom(const Vector& position, int damage)
 			if (std::abs(zombiePositon.x - position.x) <= 130.0f &&
 				std::abs(zombiePositon.y - position.y) <= 130.0f)
 			{
-				if (zombie->mBodyHealth <= scaledDamage)
-				{
-					zombie->Charred();
-				}
-				else
-				{
-					zombie->TakeDamage(damage, DamageSource::PLANT);   // 传未缩放原值，TakeDamage 内部缩放一次
-				}
+				// 统一灰烬入口内部决定化灰或数值扣血；特殊僵尸可拒绝化灰并限制每次灰烬伤害。
+				zombie->TakePlantAshDamage(damage);
 			}
 		}
 	}
@@ -1796,8 +1809,6 @@ void Board::CreateBoom(const Vector& position, int damage)
 
 void Board::CreateDoomBoom(const Vector& position, int damage)
 {
-	// 与 CreateBoom 同一套 Charred 阈值预测（词条缩放单点在 TakeDamage，勿在入口重复缩放）
-	const int scaledDamage = mPerkManager.ScaleTotalDamageToZombie(damage);
 	g_particleSystem->EmitEffect("Doom", position);
 	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_DOOMSHROOM, 0.5f);
 	// 比樱桃更剧烈：双倍振幅 + 0.5s 衰减正弦来回甩 5 个半周期（原版两者同为 3,-4，主人要求毁灭菇加强）
@@ -1816,14 +1827,7 @@ void Board::CreateDoomBoom(const Vector& position, int damage)
 			float dy = position.y - nearestY;
 			if (dx * dx + dy * dy <= 250.0f * 250.0f)
 			{
-				if (zombie->mBodyHealth <= scaledDamage)
-				{
-					zombie->Charred();
-				}
-				else
-				{
-					zombie->TakeDamage(damage, DamageSource::PLANT);   // 传未缩放原值，TakeDamage 内部缩放一次
-				}
+				zombie->TakePlantAshDamage(damage);
 			}
 		}
 	}
@@ -2127,6 +2131,7 @@ void Board::SummonNextWave()
 	// 普通关压力随波次推进；先刷新存活僵尸，再生成使用同一新倍率的本波僵尸。
 	RefreshZombieWeatherSpeeds();
 	mEliteDancersSpawnedThisWave = 0;
+	mReinforcedDoorsSpawnedThisWave = 0;
 	if (mCurrentWave == 1)
 	{
 		AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_FIRSTWAVE, 0.7f);
@@ -2354,7 +2359,7 @@ inline void Board::TrySummonZombie()
 		mRowInfos[row].secondLastPicked = mRowInfos[row].lastPicked;
 		mRowInfos[row].lastPicked = 0;
 
-		const ZombieType actualType = ResolveRainMutationType(selected);
+		const ZombieType actualType = ResolveWaveZombieType(selected);
 		auto zombie = CreateZombie(actualType, row, x);
 		if (zombie)
 		{
@@ -2530,6 +2535,7 @@ void Board::OnSurvivalRoundClear()
 	mCurrectWaveZombieHP = 0;
 	mTotalZombieHP = 0;
 	mEliteDancersSpawnedThisWave = 0;
+	mReinforcedDoorsSpawnedThisWave = 0;
 	RefreshZombieWeatherSpeeds();
 
 	// 重算难度（解锁更强僵尸）+ 刷新关卡名

@@ -42,6 +42,7 @@
 #include "../Zombie/DancerZombie.h"
 #include "../Zombie/BackupDancerZombie.h"
 #include "../Zombie/EliteDancerZombie.h"
+#include "../Zombie/ReinforcedDoorZombie.h"
 
 namespace {
 	template<typename T>
@@ -236,6 +237,11 @@ void GameDataManager::InitializeHardcodedData() {
 		AnimationType::ANIM_ELITE_DANCE_ZOMBIE,
 		ResourceKeys::Reanimations::REANIM_ZOMBIE_ELITE_JACKSON,
 		&MakeZombie<EliteDancerZombie>);
+
+	// 加固铁门：复用铁门动画，派生类在 SetupZombie 内替换门材质并覆盖耐久规则。
+	RegisterZombie(ZombieType::ZOMBIE_REINFORCED_DOOR, "ZOMBIE_REINFORCED_DOOR",
+		AnimationType::ANIM_DOOR_ZOMBIE,
+		"DoorZombie", &MakeZombie<ReinforcedDoorZombie>);
 
 	// ==================== 非植物/僵尸动画映射 ====================
 	mAnimToString[AnimationType::ANIM_SUN] = ResourceKeys::Reanimations::REANIM_SUN;

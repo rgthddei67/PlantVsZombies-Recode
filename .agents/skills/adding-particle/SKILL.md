@@ -15,7 +15,7 @@ description: Use when adding or tuning ANY particle effect (粒子特效) in PvZ
 - **一个 XML 文件 = 一个特效**，可含多个 `<Emitter>`（同时全部点燃，如 PeaBulletHit=飞溅+碎屑两发射器）。
 - **特效名 = 第一个 `<Emitter>` 的 `<Name>`，不是文件名**（文件名只是惯例上取一致）。
 - 目录：`build/<preset>/resources/particles/config/`，启动时全目录加载——**双 preset 都要放**；纯数据改配置**不用重编译，但要重启游戏**。
-- 触发：`g_particleSystem->EmitEffect("Name", GetPosition());`（第三参 renderOrder 可选）。名字打错启动不报错，**发射时** run.log 出 `ERROR 找不到粒子特效配置`。
+- 触发：`g_particleSystem->EmitEffect("Name", GetPosition());`；完整可选参数依次为 `renderOrder, durationOverride, clipRightX`。名字打错启动不报错，**发射时** run.log 出 `ERROR 找不到粒子特效配置`。
 - 贴图：`<Image>` 填资源键（`IMAGE_*`/`PARTICLE_*`，即 resources.xml 里那些）；**没有独立粒子贴图格式**，任何已加载纹理都能当粒子。
 - **键前缀由 resources.xml 段落决定**：`<GameImages>` 里的 → `IMAGE_*`，`<ParticleTextures>` 里的 → `PARTICLE_*`（粒子专用图放后者）。写错前缀=粒子静默不生成（foot-gun ③）。
 - **分份贴图**：`<Texture Column="4" Row="1">` 会把图切成独立纹理 `PARTICLE_XXX_PART_0..3`（`基础键_PART_序号`，行优先）——逗号列出来即"每粒子随机一张"（splats 碎屑的原理）。**序列帧动画别用它**，用 `ImageFrames`（整图不切，见标签表）。
@@ -78,6 +78,7 @@ description: Use when adding or tuning ANY particle effect (粒子特效) in PvZ
 
 - 回收条件：发射停止（SystemDuration 到时 或 涓流配额打满）**且**存活粒子归零 → 特效对象自动销毁。`EmitEffect(..., durationOverride > 0)` 会让发射器持续复用池，直到覆盖时长到期再停止。
 - `EmitEffect` 第三参默认 `LAYER_EFFECTS_WORLD`(35000)=世界层（植物/僵尸之上、UI 之下，GameAPP `DrawBelow(LAYER_UI)`）；传 `>= LAYER_UI` 的值则画在 UI 之上（Scene `DrawFrom(LAYER_UI)`）。
+- `EmitEffect` 第五参 `clipRightX` 默认 -1（不裁剪）；传非负世界 X 后，本特效会与现有裁剪栈相交并仅绘制 `x<=clipRightX`。横向喷雾遇实体阻断时，先按传播顺序结算并取阻断者 collider 左沿，再把同一 X 传给粒子；**不要**改 Position 轨迹或维护多份长度 XML。
 - 粒子更新吃 DeltaTime：暂停/倍速/timescale 自动正确。
 
 ## Foot-guns（血泪汇总）
@@ -95,7 +96,7 @@ description: Use when adding or tuning ANY particle effect (粒子特效) in PvZ
 
 ## 配方（照抄改数）
 
-**一次性爆发云**（FumeCloud/IceFumeCloud）：`SpawnMinActive [16 32]` + `ParticleAlpha .9,80 0` + Position 场区间轨迹铺开 + `Shake 1` + `SystemDuration 1.25`。染色版只加三行 RGB。
+**一次性爆发云**（FumeCloud/IceFumeCloud）：`SpawnMinActive [16 32]` + `ParticleAlpha .9,80 0` + Position 场区间轨迹铺开 + `Shake 1` + `SystemDuration 1.25`。染色版只加三行 RGB；实体阻断长度走 `clipRightX`，XML 保持完整射程。
 
 **掉落物**（ZombieHeadOff）：`SpawnMinActive 1` + `LaunchSpeed [60 100]` + `RandomLaunchSpin 1` + `ParticleGravity 140` + `ParticleSpinSpeed [-5 5]` + Position 场常量（出生点修正 -10,-50）。
 

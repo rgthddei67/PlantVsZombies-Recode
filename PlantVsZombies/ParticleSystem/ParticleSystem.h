@@ -31,8 +31,12 @@ public:
 	void ClearAll();
 
 	bool LoadXMLConfigs(const std::string& directory);
+	/**
+	 * 发射粒子；clipRightX>=0 时把该特效裁到世界坐标右边界，适合会被实体阻断的横向喷雾。
+	 */
 	void EmitEffect(const std::string& effectName, const Vector& position,
-		int renderOrder = LAYER_EFFECTS_WORLD, float durationOverride = -1.0f);
+		int renderOrder = LAYER_EFFECTS_WORLD, float durationOverride = -1.0f,
+		float clipRightX = -1.0f);
 	/** 停止全部同名特效继续发射；已生成粒子仍按各自寿命自然收尾。 */
 	void StopEffect(const std::string& effectName);
 	/** 查询同名特效是否至少有一个发射器仍在工作。 */

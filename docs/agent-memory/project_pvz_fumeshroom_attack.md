@@ -19,3 +19,10 @@ metadata:
 **验证**（AutoTest，-Seed 42，**夜间关 level 10**（蘑菇白天睡）；temp 脚本走 scratchpad 不污染 repo）：普通僵尸每发 -20 本体；报纸僵尸**护盾仍 440/500 时本体已 240/300** → 标准 shield→body 模型下护盾未破本体不可能掉血，穿透铁证。每发恰好 -20 双扣。
 
 **前瞻**：未来 Gloom-shroom（大喷菇升级，喷三行）直接复用此穿透路径——对 `mRow±1` 三行调 `TakeDamage(dmg, true)` 即可，无需再碰 Zombie 伤害代码。参见 [reference_pvz_assets_worktree_autotest_gotchas](reference_pvz_assets_worktree_autotest_gotchas.md)（蘑菇夜间关/AutoTest 字段坑）、[project_pvz_zombie_row_index](project_pvz_zombie_row_index.md)（ForEachZombieInRow 按行索引）。
+
+## 2026-07-22 加固铁门阻断扩展
+
+- `FumeAttack()` 现在先收集本行目标并按世界 X 由近到远排序；目标的 `BlocksFumePiercing()` 为真时，仍结算该目标，但本次喷雾不再继续命中其后目标。
+- 伤害先过目标的 `ModifyFumeDamage()`；加固铁门在此返回 2 倍基础伤害，随后持门 15 点最终单次上限仍会生效。
+- `FumeAttack()` 返回阻断者 collider 左沿世界 X，帧事件把它作为 `EmitEffect(..., clipRightX)` 传给 FumeCloud/IceFumeCloud，判定与画面共用同一个阻断点。无需计算 XML Position 轨迹长度，也无需准备多档喷雾 XML。
+- 可见 `smoke_reinforced_door.json` 实证一次喷射：前方普通僵尸 270→250，加固门本体/护盾 500/1000→485/985，门后普通僵尸保持 270；掉门后同喷加固本体 -40、普通目标 -20。

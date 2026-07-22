@@ -1,0 +1,19 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 1 },
+    { "op": "choose_cards", "cards": ["PLANT_POTATOMINE"] },
+    { "op": "wait_state", "state": "GAME", "timeout": 15 },
+    { "op": "set_timescale", "value": 4.0 },
+    { "op": "plant", "type": "PLANT_POTATOMINE", "row": 2, "col": 4 },
+    { "op": "wait_seconds", "value": 20.5, "timeout": 15 },
+    { "op": "spawn_zombie", "type": "ZOMBIE_REINFORCED_DOOR", "row": 2, "x": 640 },
+    { "op": "wait_seconds", "value": 0.5, "timeout": 10 },
+    { "op": "assert_state", "path": "plants.0.track", "equals": "anim_mashed" },
+    { "op": "assert_state", "path": "zombies.1.type", "equals": "ZOMBIE_REINFORCED_DOOR" },
+    { "op": "assert_state", "path": "zombies.1.bodyHealth", "equals": 500 },
+    { "op": "assert_state", "path": "zombies.1.shieldHealth", "equals": 900 },
+    { "op": "dump_state", "name": "potatomine_resisted.json" },
+    { "op": "screenshot", "name": "potatomine_resisted.png" },
+    { "op": "quit" }
+  ]
+}

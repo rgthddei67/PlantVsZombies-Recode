@@ -3,6 +3,7 @@
 #include "../ShadowComponent.h"
 #include "../Zombie/Zombie.h"
 #include <algorithm>
+#include <climits>
 
 namespace {
 	constexpr float kReadyDurationSeconds = 20.0f;	// 地雷从埋下到开始出土所需的基础游戏时间
@@ -88,7 +89,8 @@ void PotatoMine::KillZombiesInBlastRadius()
 		const float dx = blastCenter.x - nearestX;
 		const float dy = blastCenter.y - nearestY;
 		if (dx * dx + dy * dy <= radiusSquared) {
-			zombie->Die();
+			// 土豆雷仍对普通目标一击化灰；特殊目标可拒绝直杀并承受受限灰烬伤害。
+			zombie->TakePlantAshDamage(INT32_MAX);
 		}
 		});
 }

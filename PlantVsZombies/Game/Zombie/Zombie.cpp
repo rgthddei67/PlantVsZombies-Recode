@@ -191,6 +191,25 @@ void Zombie::Charred()
 	Die();
 }
 
+void Zombie::TakePlantAshDamage(int damage)
+{
+	if (damage <= 0 || !mBoard) return;
+
+	// 化灰阈值必须与 TakeDamage 的最终词条倍率一致；这里只预测是否走表现，真正扣血仍由
+	// TakeDamage 单点缩放，避免植物增伤被重复应用。
+	const int scaledDamage = mBoard->GetPerkManager().ScaleTotalDamageToZombie(damage);
+	if (CanBeCharred() && mBodyHealth <= scaledDamage) {
+		Charred();
+		return;
+	}
+	TakeDamage(damage, DamageSource::PLANT_ASH);
+}
+
+void Zombie::TakePlantInstantKill()
+{
+	Die();
+}
+
 void Zombie::Start()
 {
 	AnimatedObject::Start();
@@ -611,11 +630,13 @@ void Zombie::TakeDamage(int damage, DamageSource source, bool penetrateShield)
 	// 提前 return：完全吸收且不触发受击白光（SetGlowingTimer），0 伤害不应闪。
 	if (mFreeHitsRemaining > 0) { --mFreeHitsRemaining; return; }
 
-	// 植物增伤只放大植物来源；僵尸免伤则对所有实际承伤生效。两者均在 0 层返回单位元。
-	if (source == DamageSource::PLANT) {
+	// 植物增伤只放大植物来源（普通/灰烬）；僵尸免伤则对所有实际承伤生效。两者均在 0 层返回单位元。
+	if (source == DamageSource::PLANT || source == DamageSource::PLANT_ASH) {
 		damage = mBoard->GetPerkManager().ScalePlantDamage(damage);
 	}
 	damage = mBoard->GetPerkManager().ScaleDamageToZombie(damage);
+	damage = AdjustIncomingDamage(damage, source, penetrateShield);
+	if (damage <= 0) return;
 
 	SetGlowingTimer(0.1f);
 

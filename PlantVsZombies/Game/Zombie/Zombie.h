@@ -82,14 +82,28 @@ public:
 	// source 必填，使植物增伤只作用于植物来源。penetrateShield=true：穿透二类护盾（大喷菇喷雾）——护盾照常受损/掉落，
 	// 但全额伤害继续透到头盔+本体（还原原版 DoRowAreaDamage(20, 2U) 的位标志语义）。
 	virtual void TakeDamage(int damage, DamageSource source, bool penetrateShield = false);
+	/** 植物爆炸的统一入口：默认按原版阈值化灰，否则走带 PLANT_ASH 分类的普通扣血链。 */
+	virtual void TakePlantAshDamage(int damage);
+	/** 大嘴花等植物直杀的统一入口；默认保持既有直接退场行为。 */
+	virtual void TakePlantInstantKill();
 	virtual void SaveExtraData(nlohmann::json& j) const {}	// 保存额外数据
 	virtual void LoadExtraData(const nlohmann::json& j) {}	// 加载额外数据
 	virtual void ZombieItemUpdate() const; // 处理僵尸读档的时候的手臂、防具等处理
 	virtual void Charred();	// 变成灰烬
+	/** 是否允许灰烬攻击进入化灰表现；特殊僵尸可覆写为 false 并承受数值伤害。 */
+	virtual bool CanBeCharred() const { return true; }
+	/** 是否在当前状态截断大喷菇区域攻击；调用方必须在本次伤害结算前取值。 */
+	virtual bool BlocksFumePiercing() const { return false; }
+	/** 调整大喷菇对本体的基础伤害；返回值随后统一进入词条与防具结算。 */
+	virtual int ModifyFumeDamage(int damage) const { return damage; }
 
 	virtual int TakeShieldDamage(int damage);
 	virtual int TakeHelmDamage(int damage);
 	virtual void TakeBodyDamage(int damage);
+	/** 词条缩放后的最终伤害修正点；用于按来源和当前防具状态实施每击上限。 */
+	virtual int AdjustIncomingDamage(int damage, DamageSource source, bool penetrateShield) const {
+		return damage;
+	}
 
 	int GetSortingKey() const override { return this->mRow; }
 

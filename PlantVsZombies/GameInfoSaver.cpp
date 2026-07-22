@@ -278,6 +278,7 @@ bool GameInfoSaver::SaveLevelDataImpl(Board* board, CardSlotManager* manager)
 	j["weakWeatherPhasesSinceHeavy"] = board->mWeakWeatherPhasesSinceHeavy;
 	j["heavyPhasesWithoutTyphoon"] = board->mHeavyPhasesWithoutTyphoon;
 	j["eliteDancersSpawnedThisWave"] = board->mEliteDancersSpawnedThisWave;
+	j["reinforcedDoorsSpawnedThisWave"] = board->mReinforcedDoorsSpawnedThisWave;
 	j["currentWeatherNoticeTimer"] = board->mGameScene
 		? board->mGameScene->GetCurrentWeatherNoticeTimer() : 0.0f;
 	j["weatherForecastFailureTimer"] = board->mGameScene
@@ -632,6 +633,8 @@ bool GameInfoSaver::LoadLevelDataImpl(Board* board, CardSlotManager* manager)
 	const int legacyEliteDancerCount = j.value("eliteDancerSpawnedThisTyphoon", false) ? 1 : 0;
 	board->RestoreEliteDancerWaveSpawnCount(
 		j.value("eliteDancersSpawnedThisWave", legacyEliteDancerCount));
+	board->RestoreReinforcedDoorWaveSpawnCount(
+		j.value("reinforcedDoorsSpawnedThisWave", 0));
 	board->mRainVisualActive = false;   // 粒子不入存档，StartGame 按剩余时间重建
 	board->mMaxWave = j.value("maxWave", 10);
 	board->mZombieCountDown = j.value("zombieCountDown", 20.0f);

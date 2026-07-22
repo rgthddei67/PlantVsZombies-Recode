@@ -45,7 +45,7 @@ bool ParticleSystem::LoadXMLConfigs(const std::string& directory) {
 }
 
 void ParticleSystem::EmitEffect(const std::string& effectName, const Vector& position,
-	int renderOrder, float durationOverride) {
+	int renderOrder, float durationOverride, float clipRightX) {
 	const ParticleEffectConfig* config = configManager.GetEffectConfig(effectName);
 	if (!config) {
 		LOG_ERROR("Particle") << "找不到粒子特效配置: " << effectName;
@@ -57,6 +57,7 @@ void ParticleSystem::EmitEffect(const std::string& effectName, const Vector& pos
 	effect->SetName(effectName);
 	effect->SetRenderOrder(renderOrder);
 	effect->SetSystemDuration(durationOverride);
+	effect->SetClipRightX(clipRightX);
 	effects.push_back(std::move(effect));
 }
 

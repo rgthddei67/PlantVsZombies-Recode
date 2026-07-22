@@ -204,6 +204,7 @@ private:
 	int mWeakWeatherPhasesSinceHeavy = 0; // 后期连续非大雨新天气数；达到上限后下轮保底大雨并进入存档
 	int mHeavyPhasesWithoutTyphoon = 0; // 连续未命中台风的新大雨阶段数；用于保底并进入存档
 	int mEliteDancersSpawnedThisWave = 0; // 当前波已生成的精英舞王数量；用于每波上限并进入存档
+	int mReinforcedDoorsSpawnedThisWave = 0; // 当前波正式生成的加固铁门数量；上限计数并进入存档
 	int mLastTyphoonMovedPlants = 0;    // 最近一次阵风移动的植物数，仅供观测和测试
 	int mLastTyphoonLostPlants = 0;     // 最近一次阵风吹出棋盘或吹入弹坑的植物数，仅供观测和测试
 
@@ -250,6 +251,7 @@ private:
 	void RestoreWeakWeatherPity(int weakWeatherPhases);
 	void RestoreTyphoonPity(int missedHeavyPhases);
 	void RestoreEliteDancerWaveSpawnCount(int count);
+	void RestoreReinforcedDoorWaveSpawnCount(int count);
 	void RestoreTyphoonState(TyphoonStrength strength, WindDirection direction,
 		float strengthTimer, float gustTimer, float directionTimer, int gustsRemaining);
 	void RestoreActiveTyphoonGust(bool active, TyphoonStrength strength,
@@ -363,6 +365,7 @@ public:
 	float GetZombieGustFrontLimit() const;
 	int GetHeavyPhasesWithoutTyphoon() const { return mHeavyPhasesWithoutTyphoon; }
 	int GetEliteDancersSpawnedThisWave() const { return mEliteDancersSpawnedThisWave; }
+	int GetReinforcedDoorsSpawnedThisWave() const { return mReinforcedDoorsSpawnedThisWave; }
 	int GetLastTyphoonMovedPlants() const { return mLastTyphoonMovedPlants; }
 	int GetLastTyphoonLostPlants() const { return mLastTyphoonLostPlants; }
 	bool IsTyphoonGustWarning() const;
@@ -397,6 +400,8 @@ public:
 	bool TriggerTyphoonGustForTesting(float plantMoveIn = 0.0f);
 	/** 正式波次与 AutoTest 共用的天气变异入口；mutationRoll=0 时使用随机百分位。 */
 	ZombieType ResolveRainMutationType(ZombieType selected, int mutationRoll = 0);
+	/** 正式波次总解析入口：先执行每波类型上限，再执行天气变异。 */
+	ZombieType ResolveWaveZombieType(ZombieType selected, int mutationRoll = 0);
 
 	// 初始化格子 默认5行9列
 	void InitializeCell(int rows = 4, int cols = 8);

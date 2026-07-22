@@ -57,6 +57,7 @@ namespace {
 		ZT(ZOMBIE_NORMAL), ZT(ZOMBIE_TRAFFIC_CONE), ZT(ZOMBIE_POLEVAULTER), ZT(ZOMBIE_BUCKET),
 		ZT(ZOMBIE_FASTBUCKET), ZT(ZOMBIE_NEWSPAPER), ZT(ZOMBIE_FASTPAPER), ZT(ZOMBIE_DOOR),
 		ZT(ZOMBIE_FOOTBALL), ZT(ZOMBIE_DANCER), ZT(ZOMBIE_BACKUP_DANCER), ZT(ZOMBIE_ELITE_DANCER), ZT(ZOMBIE_PINK_FOOTBALL),
+		ZT(ZOMBIE_REINFORCED_DOOR),
 		ZT(ZOMBIE_DUCKY_TUBE),
 		ZT(ZOMBIE_SNORKEL), ZT(ZOMBIE_ZAMBONI), ZT(ZOMBIE_BOBSLED), ZT(ZOMBIE_DOLPHIN_RIDER),
 		ZT(ZOMBIE_JACK_IN_THE_BOX), ZT(ZOMBIE_BALLOON), ZT(ZOMBIE_DIGGER), ZT(ZOMBIE_POGO),
@@ -525,7 +526,7 @@ bool TestDriver::ExecuteCurrent() {
 		const int roll = cmd.value("mutationRoll", 0);
 		if (roll < 1 || roll > 100) { Fail("spawn_wave_zombie: mutationRoll 必须为 1..100"); return false; }
 		Board* board = gs->GetBoard();
-		const ZombieType actual = board->ResolveRainMutationType(it->second, roll);
+		const ZombieType actual = board->ResolveWaveZombieType(it->second, roll);
 		if (!board->CreateZombie(actual, cmd.value("row", 0), cmd.value("x", 900.0f))) {
 			Fail("spawn_wave_zombie: CreateZombie 返回空");
 			return false;
@@ -943,6 +944,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "typhoonChancePct", board->GetCurrentTyphoonChancePercent() },
 			{ "heavyPhasesWithoutTyphoon", board->GetHeavyPhasesWithoutTyphoon() },
 			{ "eliteDancersSpawnedThisWave", board->GetEliteDancersSpawnedThisWave() },
+			{ "reinforcedDoorsSpawnedThisWave", board->GetReinforcedDoorsSpawnedThisWave() },
 			{ "typhoonDecayRemaining", board->GetTyphoonStrengthTimer() },
 			{ "windDirection", WindDirectionName(board->GetWindDirection()) },
 			{ "windDirectionRemaining", board->GetWindDirectionTimer() },

@@ -13,12 +13,14 @@
 class ParticleEffect {
 private:
 	std::vector<std::unique_ptr<ParticleEmitter>> emitters;
+	Graphics* graphics = nullptr;
 	Vector position;
 	float systemTimer = 0.0f;
 	float systemDuration = -1.0f;
 	bool active = false;
 	int renderOrder = 0;
 	std::string effectName;
+	float clipRightX = -1.0f;
 
 public:
 	ParticleEffect() = default;
@@ -49,6 +51,8 @@ public:
 
 	void SetName(const std::string& name) { effectName = name; }
 	const std::string& GetName() const { return effectName; }
+	/** 负值关闭裁剪；非负值把本特效绘制限制在世界坐标 x<=clipRightX。 */
+	void SetClipRightX(float x) { clipRightX = x; }
 
 	void SetPosition(const Vector& pos);
 	Vector GetPosition() const { return position; }

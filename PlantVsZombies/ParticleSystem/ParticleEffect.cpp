@@ -1,7 +1,11 @@
 ﻿#include "ParticleEffect.h"
 #include "../DeltaTime.h"
+#include "../GameAPP.h"
+#include <algorithm>
+#include <cmath>
 
 void ParticleEffect::InitializeFromConfig(const ParticleEffectConfig& config, Graphics* graphics, const Vector& pos) {
+	this->graphics = graphics;
 	position = pos;
 	systemTimer = 0.0f;
 	active = true;
@@ -45,8 +49,16 @@ void ParticleEffect::Update() {
 }
 
 void ParticleEffect::Draw() {
+	if (graphics && clipRightX >= 0.0f) {
+		// 粒子在世界层使用逻辑坐标；裁剪栈会继续与场景现有裁剪相交，Pop 后不影响其他特效。
+		const int right = std::max(0, static_cast<int>(std::ceil(clipRightX)));
+		graphics->PushClipRect(0, 0, right, SCENE_HEIGHT);
+	}
 	for (auto& emitter : emitters) {
 		emitter->Draw();
+	}
+	if (graphics && clipRightX >= 0.0f) {
+		graphics->PopClipRect();
 	}
 }
 

@@ -1,5 +1,7 @@
 #include "FumeShroom.h"
 #include "../Board.h"
+#include <algorithm>
+#include <vector>
 
 void FumeShroom::SetupPlant()
 {
@@ -9,9 +11,11 @@ void FumeShroom::SetupPlant()
 
 	mAnimator->AddFrameEvent(27, [this]() {
 		if (!mBoard) return;
-		g_particleSystem->EmitEffect(FumeParticleName(), GetPosition());
 		AudioSystem::PlaySound("SOUND_FUME", 0.28f);
-		FumeAttack();   // 喷雾成形即攻击：对本行范围内全部僵尸造成穿透伤害
+		// 先确定本次阻断点，再用同一结果裁剪孢子云，保证伤害范围与视觉长度一致。
+		const float clipRightX = FumeAttack();
+		g_particleSystem->EmitEffect(FumeParticleName(), GetPosition(),
+			LAYER_EFFECTS_WORLD, -1.0f, clipRightX);
 		}, true);
 }
 
@@ -55,18 +59,37 @@ bool FumeShroom::HasZombieInRow()
 	return false;
 }
 
-void FumeShroom::FumeAttack()
+float FumeShroom::FumeAttack()
 {
-	if (!mBoard) return;
+	if (!mBoard) return -1.0f;
 
 	const float thisX = GetPosition().x;
+	std::vector<Zombie*> targets;
 	mBoard->mEntityManager.ForEachZombieInRow(mRow, [&](Zombie* zombie) {
 		const float dx = zombie->GetPosition().x - thisX;
 		// 豁免魅惑僵尸：原版 DoRowAreaDamage(20, 2U) 的 damageRangeFlags 不含 bit7（不炸魅惑目标）
 		if (dx >= 0 && dx <= mFumeReach && zombie->HasHead() && !zombie->IsMindControlled())
-		{
-			zombie->TakeDamage(mFumeDamage, DamageSource::PLANT, /*penetrateShield=*/true);
-			OnFumeHit(zombie);
-		}
+			targets.push_back(zombie);
 		});
+
+	// 行桶不保证世界位置顺序；阻断语义必须按孢子从植物向右传播的顺序结算。
+	std::sort(targets.begin(), targets.end(), [](Zombie* lhs, Zombie* rhs) {
+		return lhs->GetPosition().x < rhs->GetPosition().x;
+		});
+
+	for (Zombie* zombie : targets) {
+		// 命中开始时取阻断状态：即使这一击恰好打掉门，本次喷雾仍应在门前截止。
+		const bool blocksFume = zombie->BlocksFumePiercing();
+		const int damage = zombie->ModifyFumeDamage(mFumeDamage);
+		zombie->TakeDamage(damage, DamageSource::PLANT, /*penetrateShield=*/true);
+		OnFumeHit(zombie);
+
+		if (blocksFume) {
+			if (auto* collider = zombie->GetColliderComponent()) {
+				return collider->GetBoundingBox().x; // 门的迎击面，视觉不穿过判定矩形前沿
+			}
+			return zombie->GetPosition().x;
+		}
+	}
+	return -1.0f;
 }
