@@ -26,6 +26,7 @@
 #include "IceFumeShroom.h"
 #include "HypnoShroom.h"
 #include "ScaredyShroom.h"
+#include "EliteScaredyShroom.h"
 #include "IceShroom.h"
 #include "DoomShroom.h"
 #include "LilyPad.h"
@@ -167,6 +168,12 @@ void GameDataManager::InitializeHardcodedData() {
 		ResourceKeys::Textures::IMAGE_SCAREDYSHROOM,
 		AnimationType::ANIM_SCAREDYSHROOM,
 		"ScaredyShroom", &MakePlant<ScaredyShroom>);
+
+	// 精英胆小菇复用原版动画，紫色身份由实例 overlay 与独立卡图表达。
+	RegisterPlant(PlantType::PLANT_ELITE_SCAREDYSHROOM, "PLANT_ELITE_SCAREDYSHROOM",
+		ResourceKeys::Textures::IMAGE_ELITESCAREDYSHROOM,
+		AnimationType::ANIM_ELITE_SCAREDYSHROOM,
+		"ScaredyShroom", &MakePlant<EliteScaredyShroom>);
 
 	RegisterPlant(PlantType::PLANT_ICESHROOM, "PLANT_ICESHROOM",
 		ResourceKeys::Textures::IMAGE_ICESHROOM,

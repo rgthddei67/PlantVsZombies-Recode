@@ -13,6 +13,7 @@
     "PLANT_FUMESHROOM":      { "cost": 100, "cooldown": 7.5,  "offset": [-37.6, -36.0], "scale": 0.92 },
     "PLANT_HYPNOSHROOM":     { "cost": 75,  "cooldown": 25.0, "offset": [-37.6, -36.0], "scale": 0.92 },
     "PLANT_SCAREDYSHROOM":   { "cost": 25,  "cooldown": 7.5,  "offset": [-37.6, -42.0], "scale": 1.0 },
+    "PLANT_ELITE_SCAREDYSHROOM": { "cost": 225, "cooldown": 20.0, "offset": [-37.6, -42.0], "scale": 1.0 },
     "PLANT_ICESHROOM":       { "cost": 75,  "cooldown": 50.0, "offset": [-37.6, -42.0], "scale": 1.0 },
     "PLANT_ICEFUMESHROOM":   { "cost": 150, "cooldown": 7.5,  "offset": [-37.6, -36.0], "scale": 0.92 },
     "PLANT_DOOMSHROOM":      { "cost": 150, "cooldown": 50.0, "offset": [-37.6, -42.0], "scale": 1.0 },

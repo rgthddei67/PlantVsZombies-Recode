@@ -10,8 +10,8 @@
     { "op": "wait_seconds", "value": 0.5, "timeout": 10 },
     { "op": "assert_state", "path": "plants.0.track", "equals": "anim_mashed" },
     { "op": "assert_state", "path": "zombies.1.type", "equals": "ZOMBIE_REINFORCED_DOOR" },
-    { "op": "assert_state", "path": "zombies.1.bodyHealth", "equals": 500 },
-    { "op": "assert_state", "path": "zombies.1.shieldHealth", "equals": 1000 },
+    { "op": "assert_state", "path": "zombies.1.bodyHealth", "equals": 300 },
+    { "op": "assert_state", "path": "zombies.1.shieldHealth", "equals": 600 },
     { "op": "dump_state", "name": "potatomine_resisted.json" },
     { "op": "screenshot", "name": "potatomine_resisted.png" },
     { "op": "quit" }

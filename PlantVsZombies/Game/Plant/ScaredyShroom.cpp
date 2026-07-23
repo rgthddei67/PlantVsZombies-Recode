@@ -1,5 +1,12 @@
 #include "ScaredyShroom.h"
+#include "../Bullet/Bullet.h"
 #include "../ShadowComponent.h"
+
+namespace {
+	constexpr float kTargetCheckIntervalSeconds = 0.1f; // 本行索敌缓存刷新间隔（秒），须短于精英最快射击间隔
+	constexpr float kBaseShootAnimationSpeed = 1.5f;    // 普通胆小菇既有射击动画速度
+	constexpr float kShootWindupAtUnitSpeed = 0.75f;    // anim_shooting 16→25 帧在 12fps、1倍速下的吐弹前摇（秒）
+}
 
 void ScaredyShroom::SetupPlant()
 {
@@ -13,23 +20,32 @@ void ScaredyShroom::SetupPlant()
 
 	// 第 25 帧吐孢子（主人按动画预览指定；anim_shooting 活跃区间为全局 16..30 帧）
 	mAnimator->AddFrameEvent(25, [this]() {
+		mShotPending = false;
 		if (!mBoard) return;
 		AudioSystem::PlaySound("SOUND_PUFF", 0.28f);
 		Vector bulletPosition = GetPosition() + Vector(2, -6);
-		mBoard->CreateBullet(BulletType::BULLET_PUFF, mRow, bulletPosition);
+		Bullet* bullet = mBoard->CreateBullet(BulletType::BULLET_PUFF, mRow, bulletPosition);
+		if (!bullet) return;
+		bullet->SetBulletDamage(GetPuffDamage());
+		OnPuffFired();
 		}, true);
 }
 
 void ScaredyShroom::PlantUpdate()
 {
-	// 射击动画进行中不进害怕流程（原版 mShootingCounter>0 时 return 的等价守卫），
-	// 否则缩头会把吐孢子动画拦腰打断。
+	// 吐弹帧之前不进害怕流程，避免把本发孢子拦腰打断；帧事件已经结算后立即允许受惊。
+	// 不能守卫整段 anim_shooting：精英在 0.2s 档会连续重启该轨道，从而永久免疫害怕。
 	const std::string curTrack = GetCurrentTrackName();
-	if (curTrack != "anim_shooting") {
+	if (mShotPending && curTrack != "anim_shooting") {
+		// 理论上第 25 帧会先清掉 pending；若动画被外部切轨，则放开下一轮重试，避免永久哑火。
+		mShotPending = false;
+	}
+	if (curTrack != "anim_shooting" || !mShotPending) {
 		const bool scared = HasZombieNearby();
 		switch (mFearState) {
 		case FearState::READY:
 			if (scared) {
+				OnFearStarted();
 				mFearState = FearState::LOWERING;
 				PlayTrackOnce("anim_scared", "anim_scaredidle", 0.0f, 0.2f);
 			}
@@ -55,41 +71,45 @@ void ScaredyShroom::PlantUpdate()
 		return;
 	}
 
+	// 目标缓存必须独立于射击计时刷新；否则 0.2s 阈值到达后才开始累计索敌节流，
+	// 每发会额外平白等待 0.1s，最快射速就无法兑现。
+	const bool hasTarget = HasZombieInRow();
+
 	// 生存攻速词条 × 雨势行动倍率；害怕状态机与索敌轮询仍使用真实 deltaTime。
 	float mult = GetAttackSpeedMultiplier();
 	this->mShootTimer += (DeltaTime::GetDeltaTime() * mult);
-	if (this->mShootTimer >= this->mShootTime)
+	const float shootInterval = GetShootInterval();
+	if (!mShotPending && this->mShootTimer >= shootInterval)
 	{
-		if (HasZombieInRow())
+		if (hasTarget)
 		{
 			mShootTimer = 0;
-			// 动画同比例加快：吐弹的第 25 帧 frame event 跟上更短间隔
-			PlayTrackOnce("anim_shooting", "anim_idle", 1.5f * mult, 0.2f);
+			// pending 保护保证下一轮不能在吐弹帧之前重播；高速阶段允许吐弹后立即从前摇重启。
+			mShotPending = PlayTrackOnce("anim_shooting", "anim_idle",
+				GetShootAnimationSpeed(mult), 0.2f);
 		}
 	}
 }
 
 bool ScaredyShroom::HasZombieInRow()
 {
-	if (mBoard)
-	{
-		mCheckZombieTimer += DeltaTime::GetDeltaTime();
-		if (mCheckZombieTimer >= 0.6f)
-		{
-			mCheckZombieTimer = 0.0f;
-			// 按行索引：只遍历本行僵尸。全行射程，不设 300px 上限（与小喷菇的差异点）
-			const float thisX = GetPosition().x;
-			bool found = false;
-			mBoard->mEntityManager.ForEachZombieInRow(mRow, [&](Zombie* zombie) {
-				if (found) return;  // 已命中，跳过本行其余
-				float dx = zombie->GetPosition().x - thisX;
-				if (!zombie->IsMindControlled() && dx >= 0 && zombie->HasHead())
-					found = true;
-			});
-			return found;
-		}
-	}
-	return false;
+	if (!mBoard) return false;
+
+	mCheckZombieTimer += DeltaTime::GetDeltaTime();
+	if (mCheckZombieTimer < kTargetCheckIntervalSeconds) return mTargetCached;
+	mCheckZombieTimer = 0.0f;
+
+	// 按行索引：只遍历本行僵尸。全行射程，不设 300px 上限（与小喷菇的差异点）。
+	const float thisX = GetPosition().x;
+	bool found = false;
+	mBoard->mEntityManager.ForEachZombieInRow(mRow, [&](Zombie* zombie) {
+		if (found) return;
+		const float dx = zombie->GetPosition().x - thisX;
+		if (!zombie->IsMindControlled() && dx >= 0 && zombie->HasHead())
+			found = true;
+	});
+	mTargetCached = found;
+	return mTargetCached;
 }
 
 bool ScaredyShroom::HasZombieNearby()
@@ -127,4 +147,13 @@ bool ScaredyShroom::HasZombieNearby()
 	}
 	mScaredCached = found;
 	return found;
+}
+
+float ScaredyShroom::GetShootAnimationSpeed(float attackSpeedMultiplier) const
+{
+	// 只把“起播到第 25 帧吐弹”的 0.75s 前摇压进当前射击间隔；不按整段 1.5s 基准
+	// 成倍放大，否则后期会快到肉眼看不见，并在重播边界丢失孢子。
+	const float interval = std::max(GetShootInterval(), 0.001f);
+	const float speedForWindup = kShootWindupAtUnitSpeed / interval;
+	return attackSpeedMultiplier * std::max(kBaseShootAnimationSpeed, speedForWindup);
 }

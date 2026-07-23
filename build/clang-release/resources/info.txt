@@ -50,6 +50,10 @@
 胆小菇
 [PLANT_SCAREDYSHROOM_DESCRIPTION]
 胆小菇很胆小
+[PLANT_ELITE_SCAREDYSHROOM]
+精英胆小菇
+[PLANT_ELITE_SCAREDYSHROOM_DESCRIPTION]
+精英胆小菇会在持续作战中越打越快：初始孢子伤害10，每5发发射间隔缩短15%，最快0.2秒一发；每10发伤害提高1，最高15。受惊会失去全部成长。白天不会睡觉，但成长速度降低40%。“勇气是可以练出来的——只要别突然靠太近。”
 [PLANT_ICESHROOM]
 寒冰菇
 [PLANT_ICESHROOM_DESCRIPTION]

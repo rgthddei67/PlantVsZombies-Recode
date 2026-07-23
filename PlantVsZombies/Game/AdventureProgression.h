@@ -38,7 +38,7 @@ namespace AdventureProgression
 		PlantType::PLANT_ICESHROOM,
 		PlantType::PLANT_ICEFUMESHROOM,
 		PlantType::PLANT_DOOMSHROOM,
-		NO_PLANT_REWARD,
+		PlantType::PLANT_ELITE_SCAREDYSHROOM,
 		PlantType::PLANT_LILYPAD,
 
 		// 3-1 ... 3-9（泳池）
@@ -104,6 +104,7 @@ namespace AdventureProgression
 	static_assert(GetPlantReward(1) == PlantType::PLANT_SUNFLOWER);
 	static_assert(GetPlantReward(8) == NO_PLANT_REWARD);
 	static_assert(GetPlantReward(9) == PlantType::PLANT_PUFFSHROOM);
+	static_assert(GetPlantReward(17) == PlantType::PLANT_ELITE_SCAREDYSHROOM);
 	static_assert(GetAreaNumber(18) == 2 && GetLevelNumberInArea(18) == 9);
 	static_assert(GetAreaNumber(19) == 3 && GetLevelNumberInArea(19) == 1);
 }

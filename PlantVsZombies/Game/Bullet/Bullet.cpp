@@ -107,6 +107,10 @@ void Bullet::Reset(Board* board, int row,
 	mCheckPositionTimer = 0.0f;
 	mBulletID = NULL_BULLET_ID;
 	mFromPool = true;  // 标记为来自对象池
+	// 自定义伤害/速度只属于上一位对象池使用者；不复位会污染后续普通豌豆或孢子。
+	mDamage = 20;
+	mVelocityX = 290.0f;
+	mVelocityY = 0.0f;
 
 	// 重置 Transform
 	if (mTransform) {

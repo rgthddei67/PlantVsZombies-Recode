@@ -47,6 +47,7 @@ enum class AnimationType
 	ANIM_POOL_CONE_ZOMBIE,
 	ANIM_POOL_BUCKET_ZOMBIE,
 	ANIM_POOL_CLEANER,
+	ANIM_ELITE_SCAREDYSHROOM, // 复用 ScaredyShroom reanim；追加在末尾避免旧动画枚举值错位
 };
 
 #endif

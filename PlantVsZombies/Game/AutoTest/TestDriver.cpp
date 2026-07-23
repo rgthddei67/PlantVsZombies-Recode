@@ -16,6 +16,7 @@
 #include "../Plant/Plant.h"
 #include "../Plant/LilyPad.h"
 #include "../Plant/Shooter.h"
+#include "../Plant/EliteScaredyShroom.h"
 #include "../Bullet/Bullet.h"
 #include "../Zombie/ZombieType.h"
 #include "../Zombie/Zombie.h"
@@ -48,7 +49,7 @@ namespace {
 		PT(PLANT_GATLINGPEA), PT(PLANT_TWINSUNFLOWER), PT(PLANT_GLOOMSHROOM), PT(PLANT_CATTAIL),
 		PT(PLANT_WINTERMELON), PT(PLANT_GOLD_MAGNET), PT(PLANT_SPIKEROCK), PT(PLANT_COBCANNON),
 		PT(PLANT_IMITATER), PT(PLANT_EXPLODE_O_NUT), PT(PLANT_GIANT_WALLNUT), PT(PLANT_SPROUT),
-		PT(PLANT_LEFTPEATER),
+		PT(PLANT_LEFTPEATER), PT(PLANT_ELITE_SCAREDYSHROOM),
 	};
 #undef PT
 #define BT(n) { #n, BulletType::n }
@@ -318,6 +319,11 @@ bool TestDriver::ExecuteCurrent() {
 		DeltaTime::SetTimeScale(cmd.value("value", 1.0f));
 		return true;
 	}
+	if (op == "set_spawn_paused") {
+		// 只暂停 Board 的自然出波；spawn_zombie / summon_next_wave 等显式测试命令不受影响。
+		GameAPP::mDevSpawnPaused = cmd.value("value", true);
+		return true;
+	}
 	if (op == "choose_cards") {
 		GameScene* gs = CurrentGameScene();
 		if (!gs || !gs->IsChooseCardReady()) return false;   // 等开场动画铺完卡
@@ -573,6 +579,10 @@ bool TestDriver::ExecuteCurrent() {
 		Zombie* z = gs->GetBoard()->CreateZombie(it->second,
 			cmd.value("row", 0), cmd.value("x", 900.0f));
 		if (!z) { Fail("CreateZombie 返回空"); return false; }
+		if (cmd.value("stationary", false)) {
+			// 测试靶只停基础 Animator；不伪造冻结/减速状态，也不改变受击链。
+			z->SetAnimationSpeed(0.0f);
+		}
 		if (cmd.value("slowed", false)) {
 			z->SetCooldown(cmd.value("slowDuration", 20.0f));
 		}
@@ -1187,6 +1197,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "row", p->mRow }, { "col", p->mColumn },
 			{ "health", p->mPlantHealth }, { "maxHealth", p->mPlantMaxHealth },
 			{ "eaterCount", p->mEaterCount },
+			{ "sleeping", p->GetSleepState() },
 			{ "track", p->GetCurrentTrackName() },
 			{ "logicalY", p->GetPosition().y },
 			{ "visualY", p->GetVisualPosition().y },
@@ -1204,6 +1215,14 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		}
 		if (auto* lilyPad = dynamic_cast<LilyPad*>(p)) {
 			plantState["biteProtected"] = lilyPad->IsBiteProtected();
+		}
+		if (auto* eliteScaredy = dynamic_cast<EliteScaredyShroom*>(p)) {
+			plantState["growthShots"] = eliteScaredy->GetGrowthShotCount();
+			plantState["attackSpeedStage"] = eliteScaredy->GetAttackSpeedStage();
+			plantState["puffDamage"] = eliteScaredy->GetCurrentPuffDamage();
+			plantState["shootIntervalMs"] = eliteScaredy->GetShootIntervalMilliseconds();
+			plantState["growthRatePct"] = eliteScaredy->GetGrowthRatePercent();
+			plantState["growthProgressTenths"] = eliteScaredy->GetGrowthProgressTenths();
 		}
 		out["plants"].push_back(std::move(plantState));
 	}

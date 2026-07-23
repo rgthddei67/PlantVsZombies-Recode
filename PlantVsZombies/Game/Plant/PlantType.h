@@ -60,6 +60,7 @@ enum class PlantType
 	PLANT_GIANT_WALLNUT,
 	PLANT_SPROUT,
 	PLANT_LEFTPEATER,
+	PLANT_ELITE_SCAREDYSHROOM,	// 精英胆小菇；追加在末尾以保持旧存档植物整数 ID
 	NUM_PLANT_TYPES,
 };
 

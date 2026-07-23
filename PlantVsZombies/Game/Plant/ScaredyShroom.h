@@ -25,6 +25,7 @@ public:
 		int state = j.value("fearState", 0);
 		if (state < 0 || state > static_cast<int>(FearState::RAISING)) state = 0;
 		mFearState = static_cast<FearState>(state);
+		mShotPending = GetCurrentTrackName() == "anim_shooting";
 	}
 
 	void PlantUpdate() override;
@@ -38,9 +39,22 @@ protected:
 	// 否则读档恢复 SCARED 态的第一帧会误判"僵尸走了"，先伸头再缩回去
 	float mFearCheckTimer = 1.0f;
 	bool mScaredCached = false;  // 害怕判定节流缓存（0.1s 重算一次）
+	bool mTargetCached = false;  // 本行索敌节流缓存（0.1s 重算一次，支持最快 0.2s 连射）
+	bool mShotPending = false;   // 射击动画已起播但第 25 帧孢子事件尚未结算
 
 	bool HasZombieInRow();       // 索敌：本行前方全行射程（不像小喷菇限 300px）
 	bool HasZombieNearby();      // 害怕判定：圆半径 120 与僵尸碰撞矩形相交，查本行±1行
+
+	/** 返回本轮发射所用的射击间隔；精英变体按成长阶段覆写。 */
+	virtual float GetShootInterval() const { return mShootTime; }
+	/** 返回当前射击动画速度，使吐弹帧事件始终早于下一轮射击。 */
+	virtual float GetShootAnimationSpeed(float attackSpeedMultiplier) const;
+	/** 返回本轮孢子基础伤害；生存词条仍由僵尸受击入口统一缩放。 */
+	virtual int GetPuffDamage() const { return 20; }
+	/** 一发孢子成功创建后的扩展入口。 */
+	virtual void OnPuffFired() {}
+	/** 从 READY 首次进入害怕状态时的扩展入口。 */
+	virtual void OnFearStarted() {}
 
 	void SetupPlant() override;
 };
