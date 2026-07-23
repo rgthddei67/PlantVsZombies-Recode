@@ -765,6 +765,12 @@ void Zombie::EatTarget()
 	if (mEatPlantID != NULL_PLANT_ID && mHasHead)
 	{
 		if (auto* plant = mBoard->mEntityManager.GetPlant(mEatPlantID)) {
+			// C# 原版在每次啃食伤害前重新 FindPlantTarget；这里在伤害帧兜底检查同格顶层，
+			// 避免上层植物刚种下、碰撞 stay 尚未处理时仍有一口伤害落到荷叶。
+			if (Plant* topPlant = mBoard->GetTopPlantAt(plant->mRow, plant->mColumn);
+				topPlant && topPlant != plant && RetargetPlantIfHigherPriority(topPlant)) {
+				plant = topPlant;
+			}
 			// 魅惑菇：醒着被咬一口即触发——蘑菇立即消失、啃它的僵尸被魅惑（原版 AnimateChewSound：
 			// 不结算这口伤害）。睡着（白天）不触发，走下面普通被啃路径。StartMindControlled 内部
 			// 有 CanBeCharmed 守卫，对不可魅惑者自动 no-op（蘑菇照样被吃掉，与原版一致）。
@@ -828,7 +834,11 @@ void Zombie::StartEat(ColliderComponent* other)
 		if (auto* plant = dynamic_cast<Plant*>(gameObject))
 		{
 			if (!IsPlantValidEatTarget(plant)) return;
-			if (mEatPlantID != NULL_PLANT_ID || mEatZombieID != NULL_ZOMBIE_ID || plant->mRow != this->mRow) return;	// 正在吃一个目标，那么不吃别的
+			if (mEatZombieID != NULL_ZOMBIE_ID || plant->mRow != this->mRow) return;
+			if (mEatPlantID != NULL_PLANT_ID) {
+				RetargetPlantIfHigherPriority(plant);
+				return;
+			}
 
 			if (!mIsEating) {
 				this->PlayTrack("anim_eat", 2.1f, 0.2f);
@@ -845,6 +855,26 @@ bool Zombie::IsPlantValidEatTarget(Plant* plant) const
 {
 	if (!plant || !plant->CanBeEaten() || plant->mRow != mRow) return false;
 	return !mBoard || mBoard->GetTopPlantAt(plant->mRow, plant->mColumn) == plant;
+}
+
+bool Zombie::RetargetPlantIfHigherPriority(Plant* plant)
+{
+	if (!mBoard || !mIsEating || mEatPlantID == NULL_PLANT_ID
+		|| !IsPlantValidEatTarget(plant)) {
+		return false;
+	}
+
+	Plant* current = mBoard->mEntityManager.GetPlant(mEatPlantID);
+	if (!current || current == plant
+		|| current->mRow != plant->mRow || current->mColumn != plant->mColumn) {
+		return false;
+	}
+
+	// 目标切换不重播啃食动画，只迁移引用计数；旧荷叶的 exit 回调因 ID 不匹配也不会误停吃。
+	if (current->mEaterCount > 0) --current->mEaterCount;
+	++plant->mEaterCount;
+	mEatPlantID = plant->mPlantID;
+	return true;
 }
 
 void Zombie::StopEat(ColliderComponent* other)

@@ -18,6 +18,7 @@
 #include "../Bullet/Bullet.h"
 #include "../Zombie/ZombieType.h"
 #include "../Zombie/Zombie.h"
+#include "../Zombie/ZombieCharred.h"
 #include "../Zombie/EliteDancerZombie.h"
 #include "../Zombie/PoolNormalZombie.h"
 #include "../Trophy.h"   // dump_state 输出奖杯坐标
@@ -1047,6 +1048,14 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		out["spawnList"].push_back(ZombieTypeName(t));
 	out["spawnTypeCount"] = static_cast<int>(board->GetSpawnZombieList().size());
 
+	int charredZombieCount = 0;
+	for (const auto& object : GameObjectManager::GetInstance().GetAllGameObjects()) {
+		if (object && object->IsActive() && dynamic_cast<ZombieCharred*>(object.get())) {
+			++charredZombieCount;
+		}
+	}
+	out["charredZombieCount"] = charredZombieCount;
+
 	out["zombies"] = nlohmann::json::array();
 	for (int id : board->mEntityManager.GetAllZombieIDs()) {
 		Zombie* z = board->mEntityManager.GetZombie(id);
@@ -1117,6 +1126,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "type", PlantTypeName(p->mPlantType) },
 			{ "row", p->mRow }, { "col", p->mColumn },
 			{ "health", p->mPlantHealth }, { "maxHealth", p->mPlantMaxHealth },
+			{ "eaterCount", p->mEaterCount },
 			{ "track", p->GetCurrentTrackName() },
 			{ "logicalY", p->GetPosition().y },
 			{ "visualY", p->GetVisualPosition().y },

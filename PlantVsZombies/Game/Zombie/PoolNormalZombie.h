@@ -13,6 +13,8 @@ public:
 	using Zombie::Zombie;
 
 	bool IsInPool() const { return mInPool; }
+	/** 原版水中僵尸遇到爆炸直接死亡，不创建烧焦残影；岸上阶段仍保留常规化灰表现。 */
+	bool CanBeCharred() const override { return !mInPool; }
 
 	void Start() override;
 	void ZombieUpdate(float scaledTime) override;

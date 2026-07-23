@@ -210,6 +210,8 @@ protected:
 	virtual void OnStopEating()  {}
 	/** 双层水面种植下只允许选中格子的最上层植物，并尊重植物自己的短期啃食保护。 */
 	bool IsPlantValidEatTarget(Plant* plant) const;
+	/** 把同格啃食目标迁移到新出现的上层植物，并保持双方 mEaterCount 平衡。 */
+	bool RetargetPlantIfHigherPriority(Plant* plant);
 
 	// 模板方法（非虚，勿覆写）：啃完回走路 = 先收尾、再走路。执行顺序由基类锁死。
 	void ResumeWalkAfterEat(float blendTime) { OnStopEating(); PlayWalkAnimation(blendTime); }
