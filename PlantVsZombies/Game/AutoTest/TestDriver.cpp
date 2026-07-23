@@ -911,6 +911,11 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	}
 	out["poolBlockedZombieTypeCount"] =
 		static_cast<int>(out["poolBlockedZombieTypes"].size());
+	Graphics& graphics = gameApp.GetGraphics();
+	out["graphics"] = {
+		{ "lastFrameDrawCalls", graphics.GetLastFrameDrawCallCount() },
+		{ "lastFrameScissorChanges", graphics.GetLastFrameScissorChangeCount() },
+	};
 	out["sun"] = board->mSun;
 	out["wave"] = board->mCurrentWave;
 	out["maxWave"] = board->mMaxWave;

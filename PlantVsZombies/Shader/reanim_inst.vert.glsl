@@ -24,6 +24,7 @@ struct InstanceRecord {
     float u1, v1;
     uint  texSlot;
     uint  colorRGBA8;
+    float clipBottomY;
 };
 
 layout(set = 0, binding = 0) readonly buffer InstanceBlock {
@@ -37,6 +38,8 @@ layout(push_constant) uniform PC {
 layout(location = 0) out vec2      vUV;
 layout(location = 1) out vec4      vColor;
 layout(location = 2) flat out uint vTex;
+layout(location = 3) out float      vLogicalY;
+layout(location = 4) flat out float vClipBottomY;
 
 void main() {
     InstanceRecord r = instances.inst[gl_InstanceIndex];
@@ -64,6 +67,8 @@ void main() {
 
     vUV  = uv;
     vTex = r.texSlot;
+    vLogicalY = local.y;
+    vClipBottomY = r.clipBottomY;
     // Unpack RGBA8 (r=lsb, a=msb) — matches CPU pack convention to be added in Task 5.
     vColor = vec4(
         float((r.colorRGBA8      ) & 0xFFu) / 255.0,

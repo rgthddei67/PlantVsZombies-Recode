@@ -15,16 +15,18 @@
 
 namespace {
 	// Phase 3b — BatchVertex 顶点输入描述（与 Graphics.h struct BatchVertex 对齐）
-	// stride=44B：vec2 pos(8) + vec2 uv(8) + uvec2 indices(8) + vec4 color(16) + float blendMode(4)
-	// blendMode 字段仅 CPU 侧分段使用，shader 不读，故不暴露为 attribute。
+	// stride=48B：vec2 pos(8) + vec2 uv(8) + uvec2 indices(8) + vec4 color(16)
+	//             + float blendMode(4) + float clipBottomY(4)。
+	// blendMode 仅 CPU 侧分段使用；clipBottomY 作为 location=4 送入 shader。
 	constexpr VkVertexInputBindingDescription kBatchVertexBinding = {
 		/*binding*/0, /*stride*/sizeof(BatchVertex), VK_VERTEX_INPUT_RATE_VERTEX
 	};
-	constexpr VkVertexInputAttributeDescription kBatchVertexAttrs[4] = {
+	constexpr VkVertexInputAttributeDescription kBatchVertexAttrs[5] = {
 		{ /*location*/0, /*binding*/0, VK_FORMAT_R32G32_SFLOAT,        offsetof(BatchVertex, x)         },
 		{ /*location*/1, /*binding*/0, VK_FORMAT_R32G32_SFLOAT,        offsetof(BatchVertex, u)         },
 		{ /*location*/2, /*binding*/0, VK_FORMAT_R32G32_UINT,          offsetof(BatchVertex, texIndex)  },
 		{ /*location*/3, /*binding*/0, VK_FORMAT_R32G32B32A32_SFLOAT,  offsetof(BatchVertex, r)         },
+		{ /*location*/4, /*binding*/0, VK_FORMAT_R32_SFLOAT,            offsetof(BatchVertex, clipBottomY) },
 	};
 
 	// 每帧持久映射 host-visible 缓冲容量 —— grow-on-demand（见 ResizeBufferIfNeeded / Graphics::BeginFrame）。
@@ -126,6 +128,7 @@ namespace {
 	thread_local std::vector<glm::mat4>* tl_transformStack = nullptr;
 	thread_local std::vector<char>* tl_transformIsIdentity = nullptr;
 	thread_local std::vector<ClipRect>* tl_clipStack = nullptr;
+	thread_local std::vector<float>*    tl_clipBottomStack = nullptr;
 	thread_local BlendMode               tl_blend = BlendMode::None;
 
 	// Phase 5：worker 直接把绝对 bindless 槽位写进 BatchVertex.texIndex、把
@@ -146,7 +149,8 @@ namespace {
 		const BatchVertex* scan,
 		pvz::VulkanPipeline* pipeAlpha, pvz::VulkanPipeline* pipeAdd,
 		const VkDescriptorSet sets[2],
-		const glm::mat4& projView)
+		const glm::mat4& projView,
+		uint32_t* drawCallCount)
 	{
 		if (vertCount == 0 || !scan) return;
 		// 严格按 6 顶点 stride 分段；尾部余数（不可能正常出现）丢弃，避免越界。
@@ -162,6 +166,7 @@ namespace {
 			vkCmdPushConstants(cb, pipe->Layout(), VK_SHADER_STAGE_VERTEX_BIT,
 				0, sizeof(glm::mat4), &projView);
 			vkCmdDraw(cb, segEnd - segStart, 1, firstVert + segStart, 0);
+			if (drawCallCount) ++(*drawCallCount);
 			};
 
 		uint32_t segStart = 0;
@@ -573,6 +578,8 @@ bool Graphics::BeginFrame() {
 
 	m_vk->frameIdx = m_vk->renderer->CurrentFrameIdx();
 	auto& fr = m_vk->frames[m_vk->frameIdx];
+	m_frameDrawCallCount = 0;
+	m_frameScissorChangeCount = 0;
 
 	// grow-on-demand：此刻本帧 fence 已被 renderer->BeginFrame 等过，GPU 不再引用本帧缓冲，
 	// 可安全销毁重建到目标容量（grow 或 shrink）。ssbo/inst 是描述符绑定，重建后重写描述符；
@@ -635,6 +642,8 @@ bool Graphics::EndFrame() {
 			m_vk->idleInstPeak, m_vk->idleInstFrames);
 	}
 
+	m_lastFrameDrawCallCount = m_frameDrawCallCount;
+	m_lastFrameScissorChangeCount = m_frameScissorChangeCount;
 	m_vk->frameOpen = false;
 	return m_vk->renderer->EndFrame();
 }
@@ -773,6 +782,7 @@ void Graphics::ApplyTopClipRectToGL() {
 		rect.extent = { w, h };
 	}
 	vkCmdSetScissor(cb, 0, 1, &rect);
+	++m_frameScissorChangeCount;
 }
 
 void Graphics::PushClipRect(int x, int y, int w, int h) {
@@ -802,6 +812,28 @@ void Graphics::PopClipRect() {
 	m_clipStack.pop_back();
 	// 栈空时也要把 scissor 重置回全屏，否则上一条 scissor 会继续影响后续画的内容。
 	ApplyTopClipRectToGL();
+}
+
+void Graphics::PushClipBottom(float bottomY) {
+	std::vector<float>& stack = tl_clipBottomStack ? *tl_clipBottomStack : m_clipBottomStack;
+	if (!stack.empty()) {
+		bottomY = std::min(bottomY, stack.back());
+	}
+	stack.push_back(bottomY);
+}
+
+void Graphics::PopClipBottom() {
+	std::vector<float>& stack = tl_clipBottomStack ? *tl_clipBottomStack : m_clipBottomStack;
+	if (stack.empty()) {
+		LOG_WARN("Graphics") << "PopClipBottom failed: stack underflow.";
+		return;
+	}
+	stack.pop_back();
+}
+
+float Graphics::CurrentClipBottom() const {
+	const std::vector<float>& stack = tl_clipBottomStack ? *tl_clipBottomStack : m_clipBottomStack;
+	return stack.empty() ? DRAW_CLIP_BOTTOM_DISABLED : stack.back();
 }
 
 void Graphics::FlushBatch() {
@@ -888,7 +920,7 @@ void Graphics::FlushBatch() {
 		EmitDrawRange(cb, firstVertex, (uint32_t)vertCount,
 			m_batchVertices.data(),
 			m_vk->pipeBatchAlpha.get(), m_vk->pipeBatchAdd.get(),
-			sets, projView);
+			sets, projView, &m_frameDrawCallCount);
 	}
 
 	// 诊断：统计一次真实提交（含 replay 里逐行血量文字各自的 FlushBatch）。
@@ -943,6 +975,7 @@ void Graphics::FlushInstances() {
 	vkCmdPushConstants(cb, pipe->Layout(), VK_SHADER_STAGE_VERTEX_BIT,
 		0, sizeof(glm::mat4), &projView);
 	vkCmdDraw(cb, 6, (uint32_t)m_batchInstances.size(), 0, baseInstAbs);
+	++m_frameDrawCallCount;
 
 	m_batchInstances.clear();
 }
@@ -971,8 +1004,11 @@ void Graphics::AddVertices(const BatchVertex* vertices, int count) {
 	if (!m_batchInstances.empty()) {
 		FlushInstances();
 	}
+	const float clipBottomY = CurrentClipBottom();
 	for (int i = 0; i < count; ++i) {
-		m_batchVertices.push_back(vertices[i]);
+		BatchVertex vertex = vertices[i];
+		vertex.clipBottomY = clipBottomY;
+		m_batchVertices.push_back(vertex);
 	}
 }
 
@@ -991,7 +1027,7 @@ void Graphics::CheckBatch() {
 		vboLeft = (fr.vboCursor < fr.vboCap) ? (fr.vboCap - fr.vboCursor) : 0;
 		ssboLeft = (fr.ssboCursor < fr.ssboCap) ? (fr.ssboCap - fr.ssboCursor) : 0;
 	}
-	constexpr VkDeviceSize kRoom = 6 * sizeof(BatchVertex) + sizeof(glm::mat4); // ~328 B
+	constexpr VkDeviceSize kRoom = 6 * sizeof(BatchVertex) + sizeof(glm::mat4); // ~352 B
 	if (vertBytes + kRoom >= vboLeft || matBytes + kRoom >= ssboLeft) {
 		FlushBatch();
 	}
@@ -1086,6 +1122,9 @@ void Graphics::DrawTextureMatrix(const Texture* tex, const glm::mat4& transform,
 }
 
 void Graphics::AppendReanimInstance(const InstanceRecord& rec, BlendMode blendMode) {
+	InstanceRecord clippedRec = rec;
+	clippedRec.clipBottomY = CurrentClipBottom();
+
 	// Worker thread path: write into slot's slice
 	if (tl_record) {
 		WorkerRecord& r = *tl_record;
@@ -1108,7 +1147,7 @@ void Graphics::AppendReanimInstance(const InstanceRecord& rec, BlendMode blendMo
 			RecordSetBlendMode(r, blendMode);
 		}
 
-		sl.instPtr[sl.instCount++] = rec;
+		sl.instPtr[sl.instCount++] = clippedRec;
 
 		if (needSwitch) {
 			RecordSetBlendMode(r, savedBlend);
@@ -1141,7 +1180,7 @@ void Graphics::AppendReanimInstance(const InstanceRecord& rec, BlendMode blendMo
 	if ((int)m_batchInstances.size() >= m_batchInstancesLimit) {
 		FlushInstances();
 	}
-	m_batchInstances.push_back(rec);
+	m_batchInstances.push_back(clippedRec);
 }
 
 void Graphics::DrawTextureRegion(const Texture* tex,
@@ -1693,6 +1732,11 @@ void Graphics::Clear() {
 			<< m_clipStack.size() << " entries left); resetting.";
 		m_clipStack.clear();
 	}
+	if (!m_clipBottomStack.empty()) {
+		LOG_WARN("Graphics") << "Unbalanced PushClipBottom/PopClipBottom across frames ("
+			<< m_clipBottomStack.size() << " entries left); resetting.";
+		m_clipBottomStack.clear();
+	}
 }
 
 void Graphics::UpdateViewMatrix() {
@@ -1997,6 +2041,7 @@ void Graphics::BeginParallelRecord(int numWorkers) {
 		r.initialTopTransform = curTop;
 		r.initialTopIsIdentity = curId;
 		r.initialClipStack = m_clipStack;
+		r.initialClipBottomStack = m_clipBottomStack;
 		r.initialBlend = m_currentBlendMode;
 	}
 	m_parallelBaseVbo = m_parallelBaseSsbo = m_parallelBaseInst = 0;
@@ -2131,14 +2176,17 @@ void Graphics::SetWorkerSlot(int slot) {
 	s.transformStack.clear();
 	s.transformIsIdentity.clear();
 	s.clipStack.clear();
+	s.clipBottomStack.clear();
 	s.transformStack.push_back(r.initialTopTransform);
 	s.transformIsIdentity.push_back(r.initialTopIsIdentity ? 1 : 0);
 	s.clipStack = r.initialClipStack;
+	s.clipBottomStack = r.initialClipBottomStack;
 
 	tl_record = &r;
 	tl_transformStack = &s.transformStack;
 	tl_transformIsIdentity = &s.transformIsIdentity;
 	tl_clipStack = &s.clipStack;
+	tl_clipBottomStack = &s.clipBottomStack;
 	tl_blend = r.initialBlend;
 }
 
@@ -2152,6 +2200,12 @@ void Graphics::ClearWorkerSlot() {
 			<< tl_clipStack->size() << " vs initial "
 			<< tl_record->initialClipStack.size() << ")";
 	}
+	if (tl_record && tl_clipBottomStack &&
+		tl_clipBottomStack->size() != tl_record->initialClipBottomStack.size()) {
+		LOG_WARN("Graphics") << "ClearWorkerSlot: clip-bottom stack imbalanced ("
+			<< tl_clipBottomStack->size() << " vs initial "
+			<< tl_record->initialClipBottomStack.size() << ")";
+	}
 	if (tl_transformStack && tl_transformStack->size() != 1) {
 		LOG_WARN("Graphics") << "ClearWorkerSlot: transform stack imbalanced ("
 			<< tl_transformStack->size() << ", expected 1)";
@@ -2161,6 +2215,7 @@ void Graphics::ClearWorkerSlot() {
 	tl_transformStack = nullptr;
 	tl_transformIsIdentity = nullptr;
 	tl_clipStack = nullptr;
+	tl_clipBottomStack = nullptr;
 	tl_blend = BlendMode::None;
 }
 
@@ -2273,6 +2328,7 @@ void Graphics::ReplayAndEndParallel() {
 			if (absVbo > drawStart) {
 				bindBatchForBlend(curBlend);
 				vkCmdDraw(cb, absVbo - drawStart, 1, drawStart, 0);
+				++m_frameDrawCallCount;
 				drawStart = absVbo;
 			}
 			if (absInst > instStart) {
@@ -2280,6 +2336,7 @@ void Graphics::ReplayAndEndParallel() {
 				// 6 vertices per instance, instanceCount = (absInst - instStart),
 				// firstInstance = instStart (absolute index into fr.instBuf).
 				vkCmdDraw(cb, 6, absInst - instStart, 0, instStart);
+				++m_frameDrawCallCount;
 				instStart = absInst;
 			}
 			};
@@ -2425,13 +2482,16 @@ namespace {
 		uint32_t texIdx, uint32_t matAbs,
 		float r, float g, float b, float a, float bm)
 	{
+		const float clipBottomY = (tl_clipBottomStack && !tl_clipBottomStack->empty())
+			? tl_clipBottomStack->back()
+			: DRAW_CLIP_BOTTOM_DISABLED;
 		BatchVertex* v = sl.vboPtr + sl.vboCount;
-		v[0] = { 0.0f, 1.0f, u0, v1, texIdx, matAbs, r, g, b, a, bm };
-		v[1] = { 1.0f, 1.0f, u1, v1, texIdx, matAbs, r, g, b, a, bm };
-		v[2] = { 1.0f, 0.0f, u1, v0, texIdx, matAbs, r, g, b, a, bm };
-		v[3] = { 0.0f, 1.0f, u0, v1, texIdx, matAbs, r, g, b, a, bm };
-		v[4] = { 0.0f, 0.0f, u0, v0, texIdx, matAbs, r, g, b, a, bm };
-		v[5] = { 1.0f, 0.0f, u1, v0, texIdx, matAbs, r, g, b, a, bm };
+		v[0] = { 0.0f, 1.0f, u0, v1, texIdx, matAbs, r, g, b, a, bm, clipBottomY };
+		v[1] = { 1.0f, 1.0f, u1, v1, texIdx, matAbs, r, g, b, a, bm, clipBottomY };
+		v[2] = { 1.0f, 0.0f, u1, v0, texIdx, matAbs, r, g, b, a, bm, clipBottomY };
+		v[3] = { 0.0f, 1.0f, u0, v1, texIdx, matAbs, r, g, b, a, bm, clipBottomY };
+		v[4] = { 0.0f, 0.0f, u0, v0, texIdx, matAbs, r, g, b, a, bm, clipBottomY };
+		v[5] = { 1.0f, 0.0f, u1, v0, texIdx, matAbs, r, g, b, a, bm, clipBottomY };
 		sl.vboCount += 6;
 	}
 
@@ -2448,13 +2508,16 @@ namespace {
 		if (len < 0.001f) return;
 		const float nx = -edy / len * 0.5f, ny = edx / len * 0.5f;
 
+		const float clipBottomY = (tl_clipBottomStack && !tl_clipBottomStack->empty())
+			? tl_clipBottomStack->back()
+			: DRAW_CLIP_BOTTOM_DISABLED;
 		BatchVertex* v = sl.vboPtr + sl.vboCount;
-		v[0] = { ax + nx, ay + ny, 0.5f, 0.5f, texIdx, matAbs, rr, gg, bb, aa, bm };
-		v[1] = { ax - nx, ay - ny, 0.5f, 0.5f, texIdx, matAbs, rr, gg, bb, aa, bm };
-		v[2] = { bx - nx, by - ny, 0.5f, 0.5f, texIdx, matAbs, rr, gg, bb, aa, bm };
-		v[3] = { ax + nx, ay + ny, 0.5f, 0.5f, texIdx, matAbs, rr, gg, bb, aa, bm };
-		v[4] = { bx - nx, by - ny, 0.5f, 0.5f, texIdx, matAbs, rr, gg, bb, aa, bm };
-		v[5] = { bx + nx, by + ny, 0.5f, 0.5f, texIdx, matAbs, rr, gg, bb, aa, bm };
+		v[0] = { ax + nx, ay + ny, 0.5f, 0.5f, texIdx, matAbs, rr, gg, bb, aa, bm, clipBottomY };
+		v[1] = { ax - nx, ay - ny, 0.5f, 0.5f, texIdx, matAbs, rr, gg, bb, aa, bm, clipBottomY };
+		v[2] = { bx - nx, by - ny, 0.5f, 0.5f, texIdx, matAbs, rr, gg, bb, aa, bm, clipBottomY };
+		v[3] = { ax + nx, ay + ny, 0.5f, 0.5f, texIdx, matAbs, rr, gg, bb, aa, bm, clipBottomY };
+		v[4] = { bx - nx, by - ny, 0.5f, 0.5f, texIdx, matAbs, rr, gg, bb, aa, bm, clipBottomY };
+		v[5] = { bx + nx, by + ny, 0.5f, 0.5f, texIdx, matAbs, rr, gg, bb, aa, bm, clipBottomY };
 		sl.vboCount += 6;
 	}
 } // anonymous
@@ -2713,6 +2776,7 @@ void Graphics::RecordDrawGlyphRun(WorkerRecord& r,
 					rec.u1 = gi.u1; rec.v1 = gi.v1;
 					rec.texSlot = atlas.textureID;
 					rec.colorRGBA8 = colorRGBA8;
+					rec.clipBottomY = CurrentClipBottom();
 					sl.instPtr[sl.instCount++] = rec;
 				}
 			}
@@ -2843,6 +2907,7 @@ void Graphics::RecordFillCircle(WorkerRecord& r,
 	const uint32_t matAbs = PushSliceMatrix(sl, glm::mat4(1.0f));
 	const glm::vec4 nc = NormalizeColor(color);
 	const float bm = (tl_blend == BlendMode::Add) ? 1.0f : 0.0f;
+	const float clipBottomY = CurrentClipBottom();
 
 	for (int i = 0; i < segments; ++i) {
 		const float a0 = 2.0f * glm::pi<float>() * i / segments;
@@ -2851,9 +2916,9 @@ void Graphics::RecordFillCircle(WorkerRecord& r,
 		const glm::vec4 p1 = transform * glm::vec4(cx + radius * std::cos(a1), cy + radius * std::sin(a1), 0.0f, 1.0f);
 
 		BatchVertex* v = sl.vboPtr + sl.vboCount;
-		v[0] = { center.x, center.y, 0.5f, 0.5f, m_whiteTexture, matAbs, nc.r, nc.g, nc.b, nc.a, bm };
-		v[1] = { p0.x,     p0.y,     0.5f, 0.5f, m_whiteTexture, matAbs, nc.r, nc.g, nc.b, nc.a, bm };
-		v[2] = { p1.x,     p1.y,     0.5f, 0.5f, m_whiteTexture, matAbs, nc.r, nc.g, nc.b, nc.a, bm };
+		v[0] = { center.x, center.y, 0.5f, 0.5f, m_whiteTexture, matAbs, nc.r, nc.g, nc.b, nc.a, bm, clipBottomY };
+		v[1] = { p0.x,     p0.y,     0.5f, 0.5f, m_whiteTexture, matAbs, nc.r, nc.g, nc.b, nc.a, bm, clipBottomY };
+		v[2] = { p1.x,     p1.y,     0.5f, 0.5f, m_whiteTexture, matAbs, nc.r, nc.g, nc.b, nc.a, bm, clipBottomY };
 		sl.vboCount += 3;
 	}
 }

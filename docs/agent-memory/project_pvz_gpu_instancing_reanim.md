@@ -15,6 +15,8 @@ metadata:
 
 **How to apply:** 工作已完成且 merged 到 working tree。`m_useInstancePath` toggle + slow-path fallback **保留**作 future A/B re-test 与 safety net。**不要主动重新评估这个方向**——除非未来 reanim 资源结构改变（更多子动画 / 帧索引变非均匀 / 等）或 perf 需求显著上移（144 FPS+ / 20000+ 僵尸）。
 
+**2026-07-23 当前结构更新：** `InstanceRecord` 由 48 B 增至 52 B，新增逐实例 `clipBottomY`；batch 顶点也携带同名字段。水中僵尸用无 flush 的 `PushClipBottom/PopClipBottom`，vertex shader 传出逻辑 Y、fragment shader 在水线下 discard，替代逐僵尸 `PushClipRect/PopClipRect`。同场景 2 只水中僵尸从 `21 draw + 4 scissor` 降为 `19 draw + 0 scissor`，避免水中僵尸数量线性制造实例 draw 分段；默认实例路径与 `-NoInstance` slow path 均由可见 AutoTest 验证。代价是每实例/每 batch 顶点多 4 B 与一个一致性很高的片元比较，远小于大量状态切分。
+
 ---
 
 ## 最终实测结果（11000-zombie warmed stress test, same-session A/B）
@@ -53,7 +55,7 @@ metadata:
 
 | 组件 | 文件 | 作用 |
 |---|---|---|
-| `InstanceRecord` struct (48 B) | Graphics.h | per-sprite 数据：tA-tD pre-multiplied affine + tx/ty + atlas UV + texSlot + colorRGBA8 |
+| `InstanceRecord` struct (52 B) | Graphics.h | per-sprite 数据：tA-tD pre-multiplied affine + tx/ty + atlas UV + texSlot + colorRGBA8 + clipBottomY |
 | `reanim_inst.{vert,frag}.glsl` | Shader/ | GPU instance pipeline shaders。vert 用 `gl_VertexIndex 0..5` 展开 6 顶点 + `gl_InstanceIndex` 读 SSBO |
 | `pipeInstAlpha` / `pipeInstAdd` | Graphics.cpp PIMPL | instance pipelines，独立 set=0=`instanceSetLayout`（InstanceRecord SSBO），共用 set=1=bindless textures |
 | `instanceSetLayout` + `instancePool` | Graphics.cpp | 独立 descriptor set layout 与 pool（不污染 batch 的 matrix layout） |

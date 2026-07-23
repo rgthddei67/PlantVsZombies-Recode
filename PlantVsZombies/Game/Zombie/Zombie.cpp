@@ -971,10 +971,10 @@ void Zombie::Draw(Graphics* g)
 {
 	const bool clipAtWaterline = g && mInPool && !mIsPreview;
 	if (clipAtWaterline) {
-		// Draw 内嵌套裁剪，不占用 GameObject 的单一 ClipRect；可与伴舞出土等对象裁剪安全求交。
+		// 水线随顶点/实例送入 shader，不生成 scissor 状态命令，因此不会把逐僵尸绘制拆成独立 draw。
 		const int clipBottom = static_cast<int>(
 			std::lround(GetPosition().y + kPoolClipBottomOffsetY));
-		g->PushClipRect(0, 0, SCENE_WIDTH, clipBottom);
+		g->PushClipBottom(static_cast<float>(clipBottom));
 	}
 
 	AnimatedObject::Draw(g);	// 先画本体动画
@@ -995,7 +995,7 @@ void Zombie::Draw(Graphics* g)
 	}
 
 	if (clipAtWaterline) {
-		g->PopClipRect();
+		g->PopClipBottom();
 	}
 
 	if (!g || mIsPreview || !GameAPP::GetInstance().mShowZombieHP) return;

@@ -29,6 +29,7 @@
     { "op": "assert_state", "path": "zombies.2.inPool", "equals": true },
     { "op": "screenshot", "name": "generic_zombie_clipped_in_water.png" },
     { "op": "wait_frames", "value": 2 },
+    { "op": "assert_state", "path": "graphics.lastFrameScissorChanges", "equals": 0 },
     { "op": "dump_state", "name": "pool_zombie_visuals_state.json" },
 
     { "op": "goto_level", "level": 1 },

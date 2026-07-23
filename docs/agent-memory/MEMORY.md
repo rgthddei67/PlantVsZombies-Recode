@@ -3,7 +3,7 @@
 > Codex routing: required always-on rules live in `../../AGENTS.md`; detailed build, AutoTest, architecture, resource, and implementation guidance lives in `../agent-guide/PROJECT_GUIDE.md`. The entries below are historical subsystem context and should be read only when relevant.
 
 - [Windows 中央存档目录与旧档安全迁移](project_pvz_save_location_migration.md) — 2026-07-21 Windows 正式存档改到 `FOLDERID_SavedGames/PlantsVsZombies/saves`；首次访问旧 `./saves` 时复制、逐字节校验、再删源文件，冲突不覆盖、失败逐文件回退；AutoTest/`-AutoTestLoadSave` 继续隔离在构建目录
-- [第三大关泳池基础系统](project_pvz_pool_basics.md) — 2026-07-23 当前范围仅 3-1/3-2：`WATER_POOL` 恢复通用背景 Y、日/夜泳池共用六行网格基线与水路独立僵尸 Y 偏移、`Zombie` 基类统一入水双探针/存档/阴影与嵌套水面 Clip、所有现有僵尸可进水且 `CanZombieTypeSpawnInPool` 预留集中禁水名单、普通/路障/铁桶在水路转换专用版本、专用泳池僵尸保留 swim/水中死亡/涟漪泳圈、水中爆炸不产烧焦残影、补种上层植物时从睡莲迁移啃食目标、双层占格、PoolCleaner 水中稳态上移 13px 与旧档边界；3-3 新僵尸和后续出怪表未实现
+- [第三大关泳池基础系统](project_pvz_pool_basics.md) — 2026-07-23 当前范围仅 3-1/3-2：`WATER_POOL` 恢复通用背景 Y、日/夜泳池共用六行网格基线与水路独立僵尸 Y 偏移、`Zombie` 基类统一入水双探针/存档/阴影与无 flush 的 shader 水线裁剪（同场景 2 水中僵尸 21 draw+4 scissor→19+0）、所有现有僵尸可进水且 `CanZombieTypeSpawnInPool` 预留集中禁水名单、普通/路障/铁桶在水路转换专用版本、专用泳池僵尸保留 swim/水中死亡/涟漪泳圈、水中爆炸不产烧焦残影、补种上层植物时从睡莲迁移啃食目标、双层占格、PoolCleaner 水中稳态上移 13px 与旧档边界；3-3 新僵尸和后续出怪表未实现
 - [冒险第二大关起雨势天气](project_pvz_night_rain_weather.md) — 2026-07-23 天气从冒险 2-1 起按 `Board::SupportsWeather` 启用，包括日间泳池；后期导演与台风平衡保持，满压力新天气权重 0/10/25/65，台风权重 15/45/40；天气能力统一使用 `adding-rain-weather` 技能
 - [精英舞王僵尸](project_pvz_elite_dancer_zombie.md) — 2026-07-22 当前为黑夜大雨任意台风 60% 变异、每波最多 3 只；超额成功变异候选源头跳过、不回退普通舞王，未命中变异仍正常刷新；720 HP、基础1.25、每0.2秒补伴舞至36只，强/超强台风再乘1.45/1.75；专项可见 AutoTest 通过
 - [黑夜第二大关出怪节奏](project_pvz_night_spawnlist_pacing.md) — 2026-07-22 冒险 2-1～2-9 单主题节奏：2-6 普通橄榄球、2-7 舞王、2-8 普通铁门+加固铁门（玩家已取得毁灭菇）、2-9 八种重点机制综合并必含加固铁门；双 preset 统一，`smoke_night_spawnlists` 逐关断言并截图
@@ -67,7 +67,7 @@
 - [并行Update phase-2 ✅](project_pvz_parallel_update_phase2.md) — 292f68e 整Animator::Update并行+deferred events;-3.44ms/69.3→91FPS
 - [phase-3 component-update skipping ✅](project_pvz_phase3_component_update_skipping.md) — c435a57 NeedsUpdate virtual+mUpdatableComponents视图;FPS91→100;PROFILE_SCOPE自污染~4.6ms
 - [预计算动画(放弃)](project_pvz_precomputed_animation.md) — 2026-05-23 TrackInfo::mFrames已密集per-frame,关键帧搜索不存在,ROI不足
-- [GPU instancing reanim ✅](project_pvz_gpu_instancing_reanim.md) — 2026-05-24(388a845)reanim→InstanceRecord;-1.39ms/98.4→114FPS;postscript修glow(m_currentBlendMode过载→分离)+Z-order(cross-flush保序)
+- [GPU instancing reanim ✅](project_pvz_gpu_instancing_reanim.md) — 2026-05-24(388a845)reanim→InstanceRecord;-1.39ms/98.4→114FPS;postscript修glow(m_currentBlendMode过载→分离)+Z-order(cross-flush保序)；2026-07-23 InstanceRecord 52B 加逐实例 clipBottomY，水路裁剪不再切实例批次
 - [Clickable优化 ✅](project_pvz_clickable_optimization.md) — 2026-05-24 自注册表替换全场扫描;1.22→0.01ms(-122×);**GetAllGameObjects() per-frame scan是本仓库foot-gun**
 - [Dual-queue保序foot-gun](feedback_dual_queue_order_preservation.md) — dual-queue加新队列时serial fallback跨队列保序必审;worker replay有emitUpTo兜底serial没有
 - [预乘alpha管线](project_pvz_premultiplied_alpha.md) — 2026-05-30修白边:契约跨三层(UploadPixels rgb*=a/混合srcColor=ONE/frag预乘vColor.a);加纹理/混合模式必守;glslc重编spv拷Debug+Release
