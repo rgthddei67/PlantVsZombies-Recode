@@ -24,7 +24,7 @@
 #include "Logger.h"
 
 namespace {
-	constexpr int kPoolGridSaveVersion = 1; // 第三大关六行+双植物槽存档结构版本
+	constexpr int kPoolGridSaveVersion = 2; // 第三大关六行+双植物槽及统一背景纵坐标的存档结构版本
 	// ---- 存档根目录 -------------------------------------------------------------
 	// Windows 使用系统“保存的游戏”目录；Linux 暂沿用相对目录；Android 使用应用私有目录。
 	// AutoTest（包括 -AutoTestLoadSave）固定返回旧相对目录，确保只触碰构建目录里的测试档。
@@ -501,10 +501,11 @@ bool GameInfoSaver::LoadLevelDataImpl(Board* board, CardSlotManager* manager)
 	nlohmann::json j;
 	if (!FileManager::LoadJsonFile(filename, j))
 		return false;
-	// 旧 3-1~3-9 存档仍是五行、单植物槽；保留文件但拒绝加载，让场景按新规则重新开局。
+	// 旧 3-1~3-9 存档使用五行或上移 40px 的泳池坐标；保留文件但拒绝加载，
+	// 避免绝对 Y 入档的清洁车、子弹等对象与新网格错层。
 	if (board->mLevel >= 19 && board->mLevel <= 27
 		&& j.value("poolGridVersion", 0) != kPoolGridSaveVersion) {
-		LOG_WARN("Save") << "忽略旧版五行泳池存档: " << filename;
+		LOG_WARN("Save") << "忽略旧版泳池坐标存档: " << filename;
 		return false;
 	}
 

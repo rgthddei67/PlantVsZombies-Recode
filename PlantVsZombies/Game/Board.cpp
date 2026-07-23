@@ -26,8 +26,7 @@
 #include <cmath>       // std::lround
 
 namespace {
-	constexpr float kThirdAreaPoolCellInitialY = 45.0f;   // 第三大关背景上移 40px 后的六行网格首行顶部世界坐标（像素）
-	constexpr float kDefaultPoolCellInitialY = 85.0f;     // 其他泳池地图沿用既有六行网格首行顶部世界坐标（像素）
+	constexpr float kPoolCellInitialY = 85.0f;            // 泳池背景共用的六行网格首行顶部世界坐标（像素）
 	constexpr float kPoolCellHeight = 85.0f;              // 泳池六行的逻辑格高（像素）；列宽仍保持 80
 	constexpr float kZombieSpawnBaseOffsetY = 2.0f;       // 第一、二大关已确认正确的僵尸行中心统一基线（像素）
 	constexpr float kPoolBackgroundZombieSpawnYOffset = 0.0f; // 所有泳池背景、所有行共用的僵尸额外基线，单位：像素
@@ -1847,9 +1846,7 @@ void Board::InitializeCell(int rows, int cols)
 	mRows = rows + 1;
 	mColumns = cols + 1;
 	mCellInitialY = IsPoolBackground()
-		? (mBackGround == Background::WATER_POOL
-			? kThirdAreaPoolCellInitialY
-			: kDefaultPoolCellInitialY)
+		? kPoolCellInitialY
 		: CELL_INITALIZE_POS_Y;
 	mCellHeight = IsPoolBackground() ? kPoolCellHeight : CELL_COLLIDER_SIZE_Y;
 	mCells.resize(mRows);

@@ -35,7 +35,6 @@ namespace {
 	constexpr float kWeatherPanelY = 76.0f;               // 面板顶部位置，避开上方种子槽（逻辑像素）
 	constexpr float kWeatherPanelSlideDuration = 0.32f;   // 完整滑入或滑出的动画时长（秒，未缩放）
 	constexpr float kCurrentWeatherNoticeDuration = 5.0f; // 天气揭晓后继续展示“当前天气”的时长（秒，未缩放）
-	constexpr float kThirdAreaPoolBackgroundYOffset = -40.0f; // 第三大关泳池背景额外上移量；六行网格同向调整（逻辑像素）
 	constexpr int kWeatherCurrentFontSize = 18;           // 第一行“当前天气”字号
 	constexpr int kWeatherForecastFontSize = 16;          // 第二行“天气预警”字号
 	constexpr int kWeatherWindFontSize = 15;              // 台风期间第三行“风向实况”字号
@@ -338,8 +337,7 @@ void GameScene::BuildDrawCommands()
 	}
 	else if (background == Background::WATER_POOL) {
 		AddTexture(ResourceKeys::Textures::IMAGE_BACKGROUND_POOL,
-			mStartX, mBackgroundY + kThirdAreaPoolBackgroundYOffset,
-			1.0f, 1.0f, LAYER_BACKGROUND, false);
+			mStartX, mBackgroundY, 1.0f, 1.0f, LAYER_BACKGROUND, false);
 	}
 	else if (background == Background::NIGHT_WATER_POOL) {
 		AddTexture(ResourceKeys::Textures::IMAGE_BACKGROUND_NIGHTPOOL,
