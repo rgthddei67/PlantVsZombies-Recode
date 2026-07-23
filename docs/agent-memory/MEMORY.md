@@ -3,7 +3,7 @@
 > Codex routing: required always-on rules live in `../../AGENTS.md`; detailed build, AutoTest, architecture, resource, and implementation guidance lives in `../agent-guide/PROJECT_GUIDE.md`. The entries below are historical subsystem context and should be read only when relevant.
 
 - [Windows 中央存档目录与旧档安全迁移](project_pvz_save_location_migration.md) — 2026-07-21 Windows 正式存档改到 `FOLDERID_SavedGames/PlantsVsZombies/saves`；首次访问旧 `./saves` 时复制、逐字节校验、再删源文件，冲突不覆盖、失败逐文件回退；AutoTest/`-AutoTestLoadSave` 继续隔离在构建目录
-- [第三大关泳池基础系统](project_pvz_pool_basics.md) — 2026-07-23 当前范围仅 3-1/3-2：`WATER_POOL` 六行坐标与水路独立 Y 偏移、入水点右移 70px、水中啃食藏腿并保留涟漪、水中爆炸不产烧焦残影、补种上层植物时从睡莲迁移啃食目标、双层占格、水路基础僵尸替换、PoolCleaner 与旧档边界；3-3 新僵尸和后续出怪表未实现
+- [第三大关泳池基础系统](project_pvz_pool_basics.md) — 2026-07-23 当前范围仅 3-1/3-2：`WATER_POOL` 六行坐标与水路独立 Y 偏移、入水点右移 70px、水中啃食藏腿并保留涟漪、水中爆炸不产烧焦残影、补种上层植物时从睡莲迁移啃食目标、双层占格、水路基础僵尸替换、PoolCleaner 水中稳态上移 13px 与旧档边界；3-3 新僵尸和后续出怪表未实现
 - [冒险第二大关起雨势天气](project_pvz_night_rain_weather.md) — 2026-07-23 天气从冒险 2-1 起按 `Board::SupportsWeather` 启用，包括日间泳池；后期导演与台风平衡保持，满压力新天气权重 0/10/25/65，台风权重 15/45/40；天气能力统一使用 `adding-rain-weather` 技能
 - [精英舞王僵尸](project_pvz_elite_dancer_zombie.md) — 2026-07-22 当前为黑夜大雨任意台风 60% 变异、每波最多 3 只；超额成功变异候选源头跳过、不回退普通舞王，未命中变异仍正常刷新；720 HP、基础1.25、每0.2秒补伴舞至36只，强/超强台风再乘1.45/1.75；专项可见 AutoTest 通过
 - [黑夜第二大关出怪节奏](project_pvz_night_spawnlist_pacing.md) — 2026-07-22 冒险 2-1～2-9 单主题节奏：2-6 普通橄榄球、2-7 舞王、2-8 普通铁门+加固铁门（玩家已取得毁灭菇）、2-9 八种重点机制综合并必含加固铁门；双 preset 统一，`smoke_night_spawnlists` 逐关断言并截图

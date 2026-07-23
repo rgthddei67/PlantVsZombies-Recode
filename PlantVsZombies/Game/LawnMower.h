@@ -34,7 +34,7 @@ public:
 	MowerState mState = MowerState::IDLE;
 	MowerHeight mMowerHeight = MowerHeight::LAND; // 水位阶段，供存档原样恢复
 	float mSpeed = 230.0f;
-	float mPoolVisualOffsetY = 0.0f;              // 仅绘制使用的向下偏移，单位：像素
+	float mPoolVisualOffsetY = 0.0f;              // 原始入水下沉深度，绘制时另叠加水中上移校正，单位：像素
 
 	Mower(Board* board, MowerType type, AnimationType animType,
 		float x, float y, int row, float scale = 0.85f);

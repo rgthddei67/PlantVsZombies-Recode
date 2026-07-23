@@ -17,6 +17,7 @@
     { "op": "wait_seconds", "value": 0.7, "timeout": 3 },
     { "op": "assert_state", "path": "mowers.2.height", "equals": "IN_POOL" },
     { "op": "assert_state", "path": "mowers.2.track", "equals": "anim_water" },
+    { "op": "assert_state", "path": "mowers.2.visualY", "atLeast": 269.4, "atMost": 269.6 },
     { "op": "screenshot", "name": "pool_cleaner_in_water.png" },
     { "op": "wait_seconds", "value": 3.7, "timeout": 6 },
     { "op": "assert_state", "path": "mowers.2.height", "equals": "EXITING" },
@@ -24,6 +25,7 @@
     { "op": "wait_seconds", "value": 0.3, "timeout": 3 },
     { "op": "assert_state", "path": "mowers.2.height", "equals": "LAND" },
     { "op": "assert_state", "path": "mowers.2.track", "equals": "anim_land" },
+    { "op": "assert_state", "path": "mowers.2.visualY", "atLeast": 254.4, "atMost": 254.6 },
     { "op": "dump_state", "name": "pool_cleaner_state.json" },
     { "op": "quit" }
   ]

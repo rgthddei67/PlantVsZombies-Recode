@@ -25,10 +25,10 @@ metadata:
 - `anim_eat` 会重新显露双腿并把 `Zombie_duckytube` 换回无水面接触纹理的普通贴图；泳池僵尸在水中进入啃食态后必须隐藏 inner/outer leg 的 upper/lower/foot 六条轨道，并把泳圈覆盖为 `IMAGE_REANIM_ZOMBIE_DUCKYTUBE_INWATER` 保留涟漪，停止啃食和读档恢复时对称重建/撤销覆盖。
 - 僵尸已锁定睡莲后若同格新种上层植物，必须把啃食目标和 `mEaterCount` 从睡莲迁移到新顶层植物，且不重播啃食动画；`StartEat` 的碰撞 stay 主动迁移，`EatTarget` 在每个伤害帧前再兜底检查一次，避免碰撞更新顺序让一口伤害误落到睡莲。该规则按同格顶层通用实现，不把坚果或睡莲类型写死。
 - 台风对同格睡莲+上层植物必须整叠搬运/丢失，不允许拆叠。
-- `PoolCleaner` 使用 `LAND/ENTERING/IN_POOL/EXITING` 高度状态；只改绘制偏移，不改行与碰撞。陆地/水中吞噬分别用 `anim_landsuck/anim_suck`，稳态用 `anim_land/anim_water`，运动速度按 C# 水车:草车 `2.5:3.33` 换算。
+- `PoolCleaner` 使用 `LAND/ENTERING/IN_POOL/EXITING` 高度状态；只改绘制偏移，不改行与碰撞。水中稳态相对原 28px 下沉位置向上校正 13px，入水/出水阶段按当前浸入比例渐进叠加该校正以避免跳变，原始深度仍照常存档。陆地/水中吞噬分别用 `anim_landsuck/anim_suck`，稳态用 `anim_land/anim_water`，运动速度按 C# 水车:草车 `2.5:3.33` 换算。
 - level 19～27 存档写入 `poolGridVersion=1`。缺字段的旧五行/单植物槽存档保留文件但拒绝读取，让关卡重新开始。
 - 3-1 为 10 波 `{normal, cone}`；3-2 为 15 波 `{normal, cone, bucket}`。水路替换在选行后发生，成本/权重仍使用出怪表中的基础类型。
 
 ## 验证
 
-`smoke_pool_basics.json` 覆盖 3-1/3-2 背景、六行、出怪表、睡莲分层/保护/禁种、天气、台风整叠搬运、地形僵尸替换与水中死亡。`smoke_pool_cleaner.json` 覆盖待机、启动、入水、水中、出水和回到陆地。`smoke_pool_zombie_visuals.json` 在 x=930 断言向右校正后的入水切换，并同时锁定第三大关水路 Y≈295、陆地行 Y≈100、第一/二大关 Y≈340；水中 `anim_eat` 时六条腿部轨道全隐藏且保留涟漪。`smoke_pool_zombie_interactions.json` 用陆地化灰作对照，断言水中爆炸 `charredZombieCount=0`，并现场验证补种上层植物后睡莲/坚果 `eaterCount` 从 `1/0` 迁移为 `0/1`。2026-07-23 新交互脚本和既有视觉脚本均在 `clang-playtest` 当前桌面可见运行退出 0，`clang-playtest` 与 `clang-release` 构建通过；此前三脚本、`smoke_night_rain` 与 `save-migration` CTest 证据继续有效。
+`smoke_pool_basics.json` 覆盖 3-1/3-2 背景、六行、出怪表、睡莲分层/保护/禁种、天气、台风整叠搬运、地形僵尸替换与水中死亡。`smoke_pool_cleaner.json` 覆盖待机、启动、入水、水中、出水和回到陆地，并已加入水中上移 13px 后 `visualY≈269.5`、回到陆地仍为 `visualY≈254.5` 的断言；本次按主人要求只完成 `clang-playtest` 构建，未执行该 AutoTest。`smoke_pool_zombie_visuals.json` 在 x=930 断言向右校正后的入水切换，并同时锁定第三大关水路 Y≈295、陆地行 Y≈100、第一/二大关 Y≈340；水中 `anim_eat` 时六条腿部轨道全隐藏且保留涟漪。`smoke_pool_zombie_interactions.json` 用陆地化灰作对照，断言水中爆炸 `charredZombieCount=0`，并现场验证补种上层植物后睡莲/坚果 `eaterCount` 从 `1/0` 迁移为 `0/1`。2026-07-23 新交互脚本和既有视觉脚本均在 `clang-playtest` 当前桌面可见运行退出 0，`clang-playtest` 与 `clang-release` 构建通过；此前三脚本、`smoke_night_rain` 与 `save-migration` CTest 证据继续有效。

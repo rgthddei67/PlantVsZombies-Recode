@@ -11,6 +11,7 @@ namespace {
 	constexpr float kPoolCleanerClipSpeed = 35.0f / 12.0f; // 原版 35 FPS；本引擎参数是相对资源 12 FPS 的倍率
 	constexpr float kPoolCleanerMoveSpeed = 230.0f * 2.5f / 3.33f; // 按原版水车/草车 2.5:3.33 的速度比换算
 	constexpr float kPoolTransitionDepth = 28.0f;           // 入水阶段最大视觉下沉距离，单位：像素
+	constexpr float kPoolCleanerInWaterLiftY = 13.0f;       // 水中稳态相对原下沉位置向上校正的像素数
 	constexpr float kPoolTransitionSpeedRatio = 0.8f;       // 原版每横移 2.5 像素下沉/上浮 2 像素
 	constexpr float kPoolMowBlendTime = 0.1f;               // 吞噬轨道切换混合时间，单位：秒
 }
@@ -140,7 +141,16 @@ void Mower::SetPosition(const Vector& position)
 
 Vector Mower::GetVisualPosition() const
 {
-	return AnimatedObject::GetVisualPosition() + Vector(0.0f, mPoolVisualOffsetY);
+	float waterLiftY = 0.0f;
+	if (mMowerType == MowerType::WATER && mMowerHeight != MowerHeight::LAND) {
+		// 上移校正按当前入水深度渐进，避免 ENTERING/IN_POOL/EXITING 切换时画面跳变；
+		// 逻辑位置、碰撞和存档中的原始入水深度均保持不变。
+		const float immersion = std::clamp(
+			mPoolVisualOffsetY / kPoolTransitionDepth, 0.0f, 1.0f);
+		waterLiftY = kPoolCleanerInWaterLiftY * immersion;
+	}
+	return AnimatedObject::GetVisualPosition()
+		+ Vector(0.0f, mPoolVisualOffsetY - waterLiftY);
 }
 
 void Mower::RestorePoolVisualState(MowerHeight height, float visualOffsetY)
