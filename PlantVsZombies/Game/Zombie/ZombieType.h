@@ -53,7 +53,6 @@ enum class ZombieType {
 	//   注：Board::LoadSpawnListFromJson 亦以此为上界校验 JSON 僵尸ID，效果一致。
 	NUM_ZOMBIE_TYPES,
 
-	ZOMBIE_DUCKY_TUBE,
 	ZOMBIE_SNORKEL,
 	ZOMBIE_ZAMBONI,		// 冰车
 	ZOMBIE_BOBSLED,		// 小队
