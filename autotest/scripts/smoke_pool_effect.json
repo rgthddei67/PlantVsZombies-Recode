@@ -1,0 +1,25 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 19 },
+    { "op": "assert_state", "path": "background", "equals": "WATER_POOL" },
+    { "op": "choose_cards", "cards": ["PLANT_LILYPAD"] },
+    { "op": "wait_state", "state": "GAME", "timeout": 15 },
+    { "op": "set_spawn_paused", "value": true },
+    { "op": "wait_frames", "value": 2 },
+    { "op": "assert_state", "path": "poolEffectCounter", "atLeast": 2 },
+    { "op": "screenshot", "name": "pool_effect_phase_a.png" },
+    { "op": "wait_frames", "value": 45 },
+    { "op": "assert_state", "path": "poolEffectCounter", "atLeast": 47 },
+    { "op": "assert_state", "path": "graphics.lastFrameScissorChanges", "equals": 0 },
+    { "op": "screenshot", "name": "pool_effect_phase_b.png" },
+    { "op": "dump_state", "name": "pool_effect_state.json" },
+
+    { "op": "goto_level", "level": 28 },
+    { "op": "assert_state", "path": "background", "equals": "NIGHT_WATER_POOL" },
+    { "op": "wait_frames", "value": 2 },
+    { "op": "assert_state", "path": "poolEffectCounter", "atLeast": 1 },
+    { "op": "assert_state", "path": "graphics.lastFrameScissorChanges", "equals": 0 },
+    { "op": "screenshot", "name": "pool_effect_night.png" },
+    { "op": "quit" }
+  ]
+}

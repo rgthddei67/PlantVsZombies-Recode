@@ -29,6 +29,23 @@ namespace {
 		{ /*location*/4, /*binding*/0, VK_FORMAT_R32G32_UINT,           offsetof(BatchVertex, clipMinXY) },
 	};
 
+	struct PoolPushConstants {
+		glm::mat4 projView;
+		float poolLayer;
+		float poolCounter;
+		float padding[2];
+	};
+	static_assert(sizeof(PoolPushConstants) == 80, "PoolPushConstants must match pool shaders");
+
+	constexpr int kPoolGridColumns = 15;                   // 原版水面横向网格数
+	constexpr int kPoolGridRows = 5;                       // 原版水面纵向网格数
+	constexpr int kPoolVerticesPerLayer = 450;             // 15x5 格、每格两个三角形的顶点数
+	constexpr int kPoolLayerCount = 3;                     // 底图、阴影、焦散三层
+	constexpr float kPoolBaseWidth = 720.0f;               // 底图/阴影网格世界宽度（逻辑像素）
+	constexpr float kPoolBaseHeight = 159.0f;              // 底图/阴影网格世界高度（逻辑像素）
+	constexpr float kPoolCausticWidth = 704.0f;            // 焦散层世界宽度（逻辑像素）
+	constexpr float kPoolCausticCellHeight = 30.0f;        // 焦散层单格高度（逻辑像素）
+
 	// 每帧持久映射 host-visible 缓冲容量 —— grow-on-demand（见 ResizeBufferIfNeeded / Graphics::BeginFrame）。
 	// 启动只分配 *_INIT 的小容量；某帧写入溢出（fr.overflowWarned）时 EndFrame 把目标容量翻倍（无上限），
 	// 下一次该帧 BeginFrame（fence 已等过、GPU 不再引用本帧缓冲）create-then-swap 重建到位。
@@ -97,6 +114,7 @@ struct Graphics::VulkanGraphicsState {
 
 	std::unique_ptr<pvz::VulkanPipeline> pipeBatchAlpha;
 	std::unique_ptr<pvz::VulkanPipeline> pipeBatchAdd;
+	std::unique_ptr<pvz::VulkanPipeline> pipePool;
 
 	// Phase 4 — instance pipelines for reanim sprites (consumed by Task 5).
 	// Independent set=0 descriptor layout: binding=0 = InstanceRecord SSBO.
@@ -403,6 +421,20 @@ bool Graphics::InitializeVulkan(pvz::VulkanContext* ctx,
 		desc.additiveBlend = true;
 		state->pipeBatchAdd = std::make_unique<pvz::VulkanPipeline>();
 		if (!state->pipeBatchAdd->Initialize(ctx, desc)) return false;
+
+		// PoolEffect 复用 BatchVertex 与同一组 matrix/bindless descriptors，但由专用
+		// shader 在 GPU 上计算三层水波和焦散，避免逐帧生成、上传动态纹理。
+		desc.vertSpvPath = "Shader/spv/pool.vert.spv";
+		desc.fragSpvPath = "Shader/spv/pool.frag.spv";
+		desc.pushConstantSize = sizeof(PoolPushConstants);
+		desc.pushConstantStages = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+		desc.alphaBlend = true;
+		desc.additiveBlend = false;
+		state->pipePool = std::make_unique<pvz::VulkanPipeline>();
+		if (!state->pipePool->Initialize(ctx, desc)) {
+			LOG_ERROR("Graphics") << "pipePool 创建失败";
+			return false;
+		}
 	}
 
 	// 4b) 两条 instance pipeline（alpha / additive）。
@@ -479,6 +511,7 @@ void Graphics::ShutdownVulkan() {
 
 	m_vk->pipeBatchAlpha.reset();
 	m_vk->pipeBatchAdd.reset();
+	m_vk->pipePool.reset();
 	m_vk->pipeInstAlpha.reset();
 	m_vk->pipeInstAdd.reset();
 
@@ -1057,6 +1090,141 @@ void Graphics::DrawTexture(const Texture* tex, float x, float y, float width, fl
 	};
 	AddVertices(vertices, 6);
 	CheckBatch();
+}
+
+/**
+ * 直接向当前帧持久映射 VBO 写入三层规则网格，并用专用 pipeline 保序提交。
+ * 水波和焦散都留在 shader 内计算，CPU 每帧只更新一个动画计数器。
+ */
+bool Graphics::DrawPoolEffect(const Texture* baseTex, const Texture* shadingTex,
+	const Texture* causticTex, float offsetX, float offsetY,
+	int poolCounter, bool isNight) {
+	if (tl_record || !m_vk || !m_vk->frameOpen || !m_vk->pipePool) return false;
+
+	const std::array<const Texture*, kPoolLayerCount> textures = {
+		baseTex, shadingTex, causticTex
+	};
+	for (const Texture* texture : textures) {
+		// PoolEffect 资源是独立 GameImage；若以后被收入图集，必须同时增加 UV region 支持。
+		if (!texture || !texture->vkTex || texture->atlasPage) return false;
+	}
+
+	// 专用 draw 必须排在此前普通背景之后、随后游戏对象之前。
+	FlushBatch();
+	FlushInstances();
+
+	auto& fr = m_vk->frames[m_vk->frameIdx];
+	constexpr size_t kVertexCount = kPoolVerticesPerLayer * kPoolLayerCount;
+	const VkDeviceSize vertexBytes = kVertexCount * sizeof(BatchVertex);
+	const VkDeviceSize matrixBytes = sizeof(glm::mat4);
+	const bool vboOver = fr.vboCursor + vertexBytes > fr.vboCap;
+	const bool ssboOver = fr.ssboCursor + matrixBytes > fr.ssboCap;
+	if (vboOver || ssboOver) {
+		if (vboOver) {
+			fr.vboOverflow = true;
+			m_vk->frameVboDemand = std::max<uint64_t>(
+				m_vk->frameVboDemand, static_cast<uint64_t>(fr.vboCursor + vertexBytes));
+		}
+		if (ssboOver) {
+			fr.ssboOverflow = true;
+			m_vk->frameSsboDemand = std::max<uint64_t>(
+				m_vk->frameSsboDemand, static_cast<uint64_t>(fr.ssboCursor + matrixBytes));
+		}
+		if (!fr.overflowWarned) {
+			LOG_WARN("Graphics") << "DrawPoolEffect frame buffer overflow — dropping pool layers";
+			fr.overflowWarned = true;
+		}
+		return false;
+	}
+
+	const uint32_t matrixIndex =
+		static_cast<uint32_t>(fr.ssboCursor / sizeof(glm::mat4));
+	std::memcpy(static_cast<char*>(fr.ssbo->MappedPtr()) + fr.ssboCursor,
+		&m_transformStack.back(), matrixBytes);
+
+	const uint32_t firstVertex =
+		static_cast<uint32_t>(fr.vboCursor / sizeof(BatchVertex));
+	auto* vertices = reinterpret_cast<BatchVertex*>(
+		static_cast<char*>(fr.vbo->MappedPtr()) + fr.vboCursor);
+	const PackedClipRect clip = CurrentPackedClipRect();
+	constexpr int kIndexOffsetX[6] = { 0, 0, 1, 0, 1, 1 };
+	constexpr int kIndexOffsetY[6] = { 0, 1, 1, 0, 1, 0 };
+
+	for (int layer = 0; layer < kPoolLayerCount; ++layer) {
+		size_t layerVertex = 0;
+		for (int x = 0; x < kPoolGridColumns; ++x) {
+			for (int y = 0; y < kPoolGridRows; ++y) {
+				for (int i = 0; i < 6; ++i) {
+					const int gridX = x + kIndexOffsetX[i];
+					const int gridY = y + kIndexOffsetY[i];
+					const bool caustic = layer == 2;
+					const float drawX = caustic
+						? (kPoolCausticWidth / kPoolGridColumns) * gridX + 45.0f + offsetX
+						: (kPoolBaseWidth / kPoolGridColumns) * gridX + 35.0f + offsetX;
+					const float drawY = caustic
+						? kPoolCausticCellHeight * gridY + 288.0f + offsetY
+						: (kPoolBaseHeight / kPoolGridRows) * gridY + 279.0f + offsetY;
+
+					float color = 1.0f;
+					if (caustic) {
+						if (gridX == 0 || gridX == kPoolGridColumns || gridY == 0) {
+							color = 32.0f / 255.0f;
+						}
+						else if (isNight) {
+							color = 48.0f / 255.0f;
+						}
+						else {
+							color = gridX <= 7 ? 192.0f / 255.0f : 128.0f / 255.0f;
+						}
+					}
+
+					vertices[layer * kPoolVerticesPerLayer + layerVertex++] = {
+						drawX,
+						drawY,
+						gridX / static_cast<float>(kPoolGridColumns),
+						gridY / static_cast<float>(kPoolGridRows),
+						textures[layer]->id,
+						matrixIndex,
+						color, color, color, color,
+						0.0f,
+						clip.minXY,
+						clip.maxXY
+					};
+				}
+			}
+		}
+	}
+
+	fr.ssboCursor += matrixBytes;
+	fr.vboCursor += vertexBytes;
+
+	VkCommandBuffer cb = m_vk->renderer->CurrentCmdBuffer();
+	if (cb == VK_NULL_HANDLE) return false;
+
+	VkBuffer vbo = fr.vbo->Handle();
+	const VkDeviceSize vboOffset = 0;
+	vkCmdBindVertexBuffers(cb, 0, 1, &vbo, &vboOffset);
+	vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_vk->pipePool->Handle());
+	const VkDescriptorSet sets[2] = {
+		fr.matrixSet,
+		m_vk->texPool->DescriptorSet()
+	};
+	vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS,
+		m_vk->pipePool->Layout(), 0, 2, sets, 0, nullptr);
+
+	PoolPushConstants constants{};
+	constants.projView = m_projection * m_viewMatrix;
+	constants.poolCounter = static_cast<float>(poolCounter);
+	for (int layer = 0; layer < kPoolLayerCount; ++layer) {
+		constants.poolLayer = static_cast<float>(layer);
+		vkCmdPushConstants(cb, m_vk->pipePool->Layout(),
+			VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+			0, sizeof(constants), &constants);
+		vkCmdDraw(cb, kPoolVerticesPerLayer, 1,
+			firstVertex + layer * kPoolVerticesPerLayer, 0);
+		++m_frameDrawCallCount;
+	}
+	return true;
 }
 
 void Graphics::DrawTextureMatrix(const Texture* tex, const glm::mat4& transform,

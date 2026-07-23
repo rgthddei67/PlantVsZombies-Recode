@@ -459,6 +459,21 @@ public:
 		float rotation = 0.0f, const glm::vec4& tint = glm::vec4(255.0f));
 
 	/**
+	 * @brief 用原版三层网格绘制动态泳池水面；底图、阴影与焦散分别占一个 draw call。
+	 * @param baseTex      当前昼夜使用的水面底图
+	 * @param shadingTex   当前昼夜使用的水面阴影图
+	 * @param causticTex   256x256 原版灰度焦散源图
+	 * @param offsetX      相对原版水面坐标的世界 X 偏移（逻辑像素）
+	 * @param offsetY      相对原版水面坐标的世界 Y 偏移（逻辑像素）
+	 * @param poolCounter  原版逐 Update 动画计数器
+	 * @param isNight      夜间焦散使用更低亮度
+	 * @return 三层均提交成功返回 true；资源或帧状态无效时返回 false
+	 */
+	bool DrawPoolEffect(const Texture* baseTex, const Texture* shadingTex,
+		const Texture* causticTex, float offsetX, float offsetY,
+		int poolCounter, bool isNight);
+
+	/**
 	 * @brief 绘制文字（**当前层**：与调用处的绘制顺序同 z-order）。
 	 *        在对象 Draw 循环内调用时，文字落在本对象之上、后续对象之下——参与正常 z-order。
 	 *        若要文字盖住一切（HUD/调试 overlay），改用 DrawTextOnTop。

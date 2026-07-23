@@ -58,6 +58,11 @@
     <Image>./resources/image/background_night.jpg</Image>
     <Image>./resources/image/background_pool.jpg</Image>
     <Image>./resources/image/background_nightpool.jpg</Image>
+    <Image>./resources/image/pool_base.png</Image>
+    <Image>./resources/image/pool_base_night.png</Image>
+    <Image>./resources/image/pool_shading.png</Image>
+    <Image>./resources/image/pool_shading_night.png</Image>
+    <Image>./resources/image/pool_caustic_effect.jpg</Image>
     <Image>./resources/image/background_roof.jpg</Image>
     <Image>./resources/image/background_nightroof.jpg</Image>
 

@@ -138,6 +138,7 @@ public:
 	float GetWeatherForecastFailureTimer() const { return mWeatherForecastFailureTimer; }
 	RainIntensity GetFailedForecastRainIntensity() const { return mFailedForecastRainIntensity; }
 	RainIntensity GetActualForecastRainIntensity() const { return mActualForecastRainIntensity; }
+	int GetPoolEffectCounter() const { return mPoolEffectCounter; }
 
 	void SetReadyToBackMenu() { mReadyToBackMenu = true; }
 
@@ -250,6 +251,7 @@ private:
 	// 屏幕抖动上一帧是否占用了相机（true 时抖动归零后须把相机复位一次；
 	// 平时不触碰相机，避免与开场动画的 SetCameraPosition(camX,0) 打架）
 	bool mShakeCameraApplied = false;
+	int mPoolEffectCounter = 0;        // 原版水面按 Update 递增的动画相位；不受游戏倍速影响
 
 	void OpenMenu();
 	void OpenRestartMenu();

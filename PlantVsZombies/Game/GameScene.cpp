@@ -54,6 +54,8 @@ namespace {
 	constexpr float kHeavyRainPromptHoldDuration = 3.85f; // 大雨警报完全可读的停留时长（游戏秒）
 	constexpr float kHeavyRainPromptFadeDuration = 0.55f; // 大雨警报放大淡出的时长（游戏秒）
 	constexpr int kHeavyRainPromptFontSize = 42;          // 大雨分级警报字号
+	constexpr float kPoolEffectOffsetX = 209.0f;          // 原版水面坐标对齐当前 1880px 泳池背景的世界 X 偏移（像素）
+	constexpr float kPoolEffectOffsetY = 12.0f;           // 原版水面坐标对齐当前泳池内框的世界 Y 偏移（像素）
 
 #define DEVZ(n) { ZombieType::n, #n }
 	// 开发者面板循环切换表；显示枚举标识符（简陋版足够）。与 TestDriver kZombieNames 同集合。
@@ -349,6 +351,27 @@ void GameScene::BuildDrawCommands()
 	else if (background == Background::NIGHT_WATER_POOL) {
 		AddTexture(ResourceKeys::Textures::IMAGE_BACKGROUND_NIGHTPOOL,
 			mStartX, mBackgroundY, 1.0f, 1.0f, LAYER_BACKGROUND, false);
+	}
+
+	if (background == Background::WATER_POOL
+		|| background == Background::NIGHT_WATER_POOL) {
+		const bool isNight = background == Background::NIGHT_WATER_POOL;
+		RegisterDrawCommand("PoolEffect",
+			[this, isNight](Graphics* g) {
+				auto& resources = ResourceManager::GetInstance();
+				const Texture* base = resources.GetTexture(
+					isNight ? ResourceKeys::Textures::IMAGE_POOL_BASE_NIGHT
+						: ResourceKeys::Textures::IMAGE_POOL_BASE, false);
+				const Texture* shading = resources.GetTexture(
+					isNight ? ResourceKeys::Textures::IMAGE_POOL_SHADING_NIGHT
+						: ResourceKeys::Textures::IMAGE_POOL_SHADING, false);
+				const Texture* caustic = resources.GetTexture(
+					ResourceKeys::Textures::IMAGE_POOL_CAUSTIC_EFFECT, false);
+				g->DrawPoolEffect(base, shading, caustic,
+					kPoolEffectOffsetX, kPoolEffectOffsetY,
+					mPoolEffectCounter, isNight);
+			},
+			LAYER_BACKGROUND + 1);
 	}
 
 	// 开发者模式常驻角标（左上角小字；暂停刷怪时附加状态）
@@ -653,6 +676,11 @@ void GameScene::OpenQuitMenu()
 
 void GameScene::Update() {
 	Scene::Update();
+
+	// 水面沿用原版逐 Update 计数器，保持与游戏倍速和天气 DeltaTime 解耦。
+	if (mBoard && mBoard->IsPoolBackground()) {
+		++mPoolEffectCounter;
+	}
 
 	// 同步速度按钮文字与当前时间缩放（仅在非暂停时；暂停期间 timeScale=0，保持上一次显示）
 	// 这样 F3 切换 5x、菜单暂停后恢复用户速度，按钮文字都能保持一致

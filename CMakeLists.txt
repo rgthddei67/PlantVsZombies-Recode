@@ -134,6 +134,8 @@ find_program(GLSLC glslc HINTS $ENV{VULKAN_SDK}/Bin REQUIRED)
 set(SHADER_SOURCES
     batch.vert.glsl:vert
     batch.frag.glsl:frag
+    pool.vert.glsl:vert
+    pool.frag.glsl:frag
     reanim_inst.vert.glsl:vert
     reanim_inst.frag.glsl:frag
 )

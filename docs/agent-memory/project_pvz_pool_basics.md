@@ -12,11 +12,12 @@ metadata:
 
 只开放冒险 3-1（level 19）和 3-2（level 20）的基础系统与出怪表。3-3 才引入的新僵尸、3-3～3-9 出怪表、其他泳池植物均未实现，后续必须逐关推进，不得将本基础当作整个第三大关已完成。
 
-资源由主人提供：泳池地图、睡莲/三种水路僵尸动画、`PoolCleaner` 已在 `resources.xml` 注册。实现不新增原版入水水花或水面闪光，PoolCleaner reanim 自带轨道不在此限制内。
+资源由主人提供：泳池地图、睡莲/三种水路僵尸动画、`PoolCleaner` 已在 `resources.xml` 注册。2026-07-23 后续任务又从 `D:\PVZ\原！版！Test\images` 导入原版水面底图、AlphaGrid 阴影蒙版和焦散源图，增加动态水面；仍未新增通用入水水花或额外泳池粒子，PoolCleaner reanim 自带轨道不在此限制内。
 
 ## 核心契约
 
 - `Background::WATER_POOL` 与其他背景共用 `mBackgroundY`，不再额外上移；日间/夜间泳池的六行网格首行顶部均为 Y=85。泳池使用 6 行、85px 行高，0-based 第 2/3 行是水路，列宽仍为 80px。网格派生位置必须通过 `Board::GetCellCenterPosition/GetCellHeight`。
+- `GameScene` 在静态泳池背景之后、游戏对象之前调用 `Graphics::DrawPoolEffect`。专用 Vulkan pipeline 每帧绘制原版 `15×5` 规则网格的底图/阴影/焦散三层（每层 450 顶点、共 3 draw call）；`pool.vert` 用原版五组相位在 GPU 扭曲三层 UV，`pool.frag` 从静态 `256×256` 灰度源图复刻双线性焦散与字节阈值，不创建或上传逐帧动态纹理。日间/夜间分别使用原版 base/shading，夜间焦散按原版降亮；水面复用 matrix/bindless descriptors、相机 `projView` 和逐顶点 shader ClipRect，保持屏幕抖动一致且不增加动态 scissor。
 - `Cell` 有 `under/normal` 两个植物槽。睡莲只能放在空水格的 under 层；普通植物只能放在已有睡莲且 normal 层为空的水格；土豆雷仍禁止下水。铲子、僵尸啃咬与 UI 预览都以 top 层为准。
 - 水格已有睡莲时，卡片悬停生成的半透明落点预览必须取当前 top 植物的 `renderOrder + 1`，保证待种植物显示在睡莲上方；空格预览使用 `LAYER_GAME_PLANT`。
 - 睡莲种下后 1 秒只免疫啃咬，计时器进存档；水面植物只做±2px 绘制浮动，Transform/碰撞与存档仍固定在逻辑格。
@@ -34,5 +35,7 @@ metadata:
 ## 验证
 
 `smoke_pool_basics.json` 覆盖 3-1/3-2 背景、六行、出怪表、睡莲分层/保护/禁种、天气、台风整叠搬运、地形僵尸替换与水中死亡。`smoke_pool_cleaner.json` 覆盖待机、启动、入水、水中、出水和回到陆地，并锁定水中上移 13px 后 `visualY≈309.5`、回到陆地为 `visualY≈294.5`。`smoke_pool_zombie_visuals.json` 在 x=930 断言向右校正后的入水切换，并同时锁定恢复通用背景基线后第三大关水路 Y≈335、陆地行 Y≈140、第一/二大关仍为 Y≈340；水中 `anim_eat` 保持腿部轨道激活但画面由 shader 水线裁掉，额外生成报纸僵尸验证非专用类型也能进入水路，并断言 `poolBlockedZombieTypeCount=0` 与 `graphics.lastFrameScissorChanges=0`。`smoke_pool_zombie_interactions.json` 用陆地化灰作对照，断言水中爆炸 `charredZombieCount=0`，并现场验证补种上层植物后睡莲/坚果 `eaterCount` 从 `1/0` 迁移为 `0/1`。2026-07-23 同场景同种子实测逐僵尸矩形 Clip 为 `21 draw + 4 scissor`，改成 shader 水线后为 `19 draw + 0 scissor`（2 只水中僵尸）；通用化后默认实例路径与 `-NoInstance` 回退路径再次可见运行 exit 0、截图正确。完整通用 Clip 契约见 [project_pvz_shader_clip_rect](project_pvz_shader_clip_rect.md)。
+
+`smoke_pool_effect.json` 固定白天战斗视角截取相隔 45 帧的水面，并补验夜间泳池资源分支、动画计数与 `graphics.lastFrameScissorChanges=0`。2026-07-23 `clang-playtest` 可见运行 exit 0；白天内框 ROI 有 `107434/108724` 像素变化，上方草坪对照 ROI 为 0，证明动画只作用于水面。随后 `smoke_pool_zombie_visuals.json` 可见回归 exit 0，实体层序、水线裁剪与跨关卡坐标断言全部保持通过。
 
 `smoke_pool_visual_fixes.json` 用真实卡片点击与 `move_mouse` 悬停覆盖睡莲上方预览层级，并在 3-1/3-2 各连续推进前四波断言 `earlyWavePoolZombieCount=0`。本次实现已通过 `clang-playtest` 编译；专项脚本首次可见运行在旧卡片边界坐标处未拿起卡片，修正坐标后主人明确取消后续 AutoTest，因此不记录运行通过结论。

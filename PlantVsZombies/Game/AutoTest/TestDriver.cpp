@@ -969,6 +969,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["level"] = board->mLevel;
 	out["levelName"] = board->mLevelName;
 	out["background"] = BackgroundName(board->mBackGround);
+	out["poolEffectCounter"] = gs->GetPoolEffectCounter();
 	out["rows"] = board->mRows;
 	out["columns"] = board->mColumns;
 	out["supportsWeather"] = board->SupportsWeather();
