@@ -57,6 +57,7 @@ namespace {
 	constexpr int kEliteDancerMutationChancePercent = 50; // 台风以上普通舞王变异为精英舞王的概率（百分比）
 	constexpr int kEliteDancerMaxPerWave = 2;             // 每波最多允许生成的精英舞王数量；超额候选直接跳过
 	constexpr int kReinforcedDoorMaxPerWave = 2;          // 每波最多正式生成的加固铁门数量；超额候选直接跳过
+	constexpr int kEliteScaredyShroomPlantLimit = 3;      // 每个关卡累计最多种植的精英胆小菇数量
 	constexpr int kWaveCandidateAttemptLimit = MAX_ZOMBIES_PER_WAVE * 10; // 单波候选尝试上限，防止仅剩受限类型时死循环
 	constexpr float kWeatherTransitionDuration = 2.0f;   // 雨势切换时倍率、暗幕与雨声音量的平滑过渡时长（游戏秒）
 	constexpr float kLateWeatherRampStart = 0.40f;       // 普通关波次进度超过该比例后开始增强后期天气（0～1）
@@ -2190,6 +2191,8 @@ void Board::CreateTrophy(const Vector& position)
 
 bool Board::CanPlantAt(PlantType type, int row, int col)
 {
+	if (!HasPlantingQuota(type)) return false;
+
 	Cell* cell = GetCell(row, col);
 	if (!cell || HasCraterAt(row, col)) return false;
 
@@ -2205,6 +2208,17 @@ bool Board::CanPlantAt(PlantType type, int row, int col)
 	}
 	return cell->GetNormalPlantID() == NULL_PLANT_ID
 		&& cell->GetUnderPlantID() == NULL_PLANT_ID;
+}
+
+bool Board::HasPlantingQuota(PlantType type) const
+{
+	return type != PlantType::PLANT_ELITE_SCAREDYSHROOM
+		|| mEliteScaredyShroomsPlanted < kEliteScaredyShroomPlantLimit;
+}
+
+int Board::GetEliteScaredyShroomPlantLimit() const
+{
+	return kEliteScaredyShroomPlantLimit;
 }
 
 Plant* Board::GetTopPlantAt(int row, int col) const
@@ -2235,6 +2249,13 @@ Plant* Board::CreatePlant(PlantType plantType, int row, int column, bool skipset
 		return nullptr;
 	}
 
+	// 正式创建入口也执行累计次数闸门，覆盖 AutoTest/develop 等绕过 CanPlantAt 的调用者。
+	// 读档实体恢复由已保存的累计计数约束，不能在逐株重建时重复消耗次数。
+	const bool consumesPlantingQuota = !isPreview && !skipsettings && !mIsLoadSave;
+	if (consumesPlantingQuota && !HasPlantingQuota(plantType)) {
+		return nullptr;
+	}
+
 	// 根据植物类型创建对应的植物
 	std::shared_ptr<Plant> plant = GameAPP::GetInstance().InstantiatePlant(plantType, this, row, column, isPreview);
 
@@ -2253,6 +2274,9 @@ Plant* Board::CreatePlant(PlantType plantType, int row, int column, bool skipset
 		if (isUnderPlant) cell->SetUnderPlantID(plant->mPlantID);
 		else cell->SetNormalPlantID(plant->mPlantID);
 		RefreshPlantStackRenderOrder(cell);
+		if (plantType == PlantType::PLANT_ELITE_SCAREDYSHROOM && consumesPlantingQuota) {
+			++mEliteScaredyShroomsPlanted;
+		}
 	}
 
 	return plant.get();

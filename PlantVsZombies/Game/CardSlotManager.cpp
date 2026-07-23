@@ -115,8 +115,8 @@ void CardSlotManager::SelectCard(GameObject* card) {
 		return;
 	}
 
-	// 检查阳光是否足够
-	if (!CanAfford(cardComp->GetSunCost())) {
+	// 数量用尽时与阳光不足一样禁止选中，避免拿起一张全场都无法落下的卡。
+	if (!CanUsePlant(cardComp->GetPlantType(), cardComp->GetSunCost())) {
 		return;
 	}
 
@@ -159,6 +159,10 @@ void CardSlotManager::DeselectCard() {
 bool CardSlotManager::CanAfford(int cost) const {
 	if (GameAPP::mDevelopMode && GameAPP::mDevFreePlant) return true;   // 开发者作弊：无视阳光
 	return mBoard ? mBoard->GetSun() >= cost : false;
+}
+
+bool CardSlotManager::CanUsePlant(PlantType type, int cost) const {
+	return mBoard && CanAfford(cost) && mBoard->HasPlantingQuota(type);
 }
 
 bool CardSlotManager::SpendSun(int cost) {

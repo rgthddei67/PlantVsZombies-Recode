@@ -74,7 +74,7 @@ void CardComponent::SetCardGameClick(GameObject* gameObject)
 		clickable->onClick = [this]() {
 			// 通知卡槽管理器这个卡牌被点击了
 			auto* manager = GetCardSlotManager();
-			if (!IsReady() || !manager || !manager->CanAfford(mSunCost)) {
+			if (!IsReady() || !manager || !manager->CanUsePlant(mPlantType, mSunCost)) {
 				AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_CLICKFAILED, 0.5f);
 				return;
 			}
@@ -126,8 +126,9 @@ void CardComponent::ForceStateUpdate() {
 			display->SetCooldownProgress(progress);
 		}
 		else {
-			// 不在冷却状态时，才根据阳光条件更新状态
-			if (GetCardSlotManager()->CanAfford(mSunCost)) {
+			// 不在冷却状态时，同时根据阳光与本关累计种植次数更新状态。
+			auto* manager = GetCardSlotManager();
+			if (manager && manager->CanUsePlant(mPlantType, mSunCost)) {
 				display->TranToReady();
 			}
 			else {

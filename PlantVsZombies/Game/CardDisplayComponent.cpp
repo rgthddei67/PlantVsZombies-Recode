@@ -167,8 +167,8 @@ void CardDisplayComponent::UpdateCardState() {
 			maskFillAmount = progress;
 		}
 		else {
-			// 冷却结束，根据阳光条件转换状态
-			if (cardSlotManager->CanAfford(needSun)) {
+			// 冷却结束，同时检查阳光与植物的本关累计种植次数。
+			if (cardSlotManager->CanUsePlant(plantType, needSun)) {
 				TranToReady();
 			}
 			else {
@@ -178,22 +178,22 @@ void CardDisplayComponent::UpdateCardState() {
 		return;
 	}
 
-	// 阳光是否足够走 CanAfford（内含开发者"无视阳光"守卫），不可裸比阳光数，
-	// 否则作弊开启时卡片不发亮
-	const bool affordable = cardSlotManager->CanAfford(needSun);
+	// 阳光与植物次数统一走 CanUsePlant；其中阳光判断仍包含开发者“无视阳光”守卫，
+	// 但每关数量上限不会被开发者免费种植绕过。
+	const bool usable = cardSlotManager->CanUsePlant(plantType, needSun);
 
 	// 根据条件更新状态（只处理非冷却状态）
 	switch (cardState) {
 	case CardState::Ready:
-		// 就绪状态，检查阳光是否不足
-		if (!affordable) {
+		// 就绪状态，检查阳光或本关种植次数是否不足。
+		if (!usable) {
 			TranToWaitingSun();
 		}
 		break;
 
 	case CardState::WaitingSun:
-		// 等待阳光状态，检查阳光是否足够
-		if (affordable) {
+		// 灰态复用既有 WaitingSun 视觉；阳光和次数任一恢复即可重新判断。
+		if (usable) {
 			TranToReady();
 		}
 		break;

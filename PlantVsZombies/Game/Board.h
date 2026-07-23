@@ -214,6 +214,7 @@ private:
 	int mHeavyPhasesWithoutTyphoon = 0; // 连续未命中台风的新大雨阶段数；用于保底并进入存档
 	int mEliteDancersSpawnedThisWave = 0; // 当前波已生成的精英舞王数量；用于每波上限并进入存档
 	int mReinforcedDoorsSpawnedThisWave = 0; // 当前波正式生成的加固铁门数量；上限计数并进入存档
+	int mEliteScaredyShroomsPlanted = 0; // 本关累计种下的精英胆小菇数量；死亡或铲除不返还次数
 	int mLastTyphoonMovedPlants = 0;    // 最近一次阵风移动的植物数，仅供观测和测试
 	int mLastTyphoonLostPlants = 0;     // 最近一次阵风吹出棋盘或吹入弹坑的植物数，仅供观测和测试
 
@@ -445,6 +446,9 @@ public:
 
 	/** UI 与测试共用的正式种植判定，不含阳光与卡片冷却。 */
 	bool CanPlantAt(PlantType type, int row, int col);
+	/** 返回该植物是否仍有本关种植次数；无限制的植物恒为 true。 */
+	bool HasPlantingQuota(PlantType type) const;
+	int GetEliteScaredyShroomPlantLimit() const;
 	/** 返回格子最上层可被铲除或啃食的植物：普通层优先于承载层。 */
 	Plant* GetTopPlantAt(int row, int col) const;
 	/** 将基础僵尸按所选行解析为泳池表现变体；不改变波次成本。 */

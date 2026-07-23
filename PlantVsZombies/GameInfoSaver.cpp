@@ -1,6 +1,7 @@
 ﻿#include "GameInfoSaver.h"
 #include "SaveLocation.h"
 #include "SaveMigration.h"
+#include <algorithm>
 #include <filesystem>
 #include "GameAPP.h"
 #include "./Game/Board.h"
@@ -255,6 +256,7 @@ bool GameInfoSaver::SaveLevelDataImpl(Board* board, CardSlotManager* manager)
 	j["sun"] = board->mSun;
 	j["currentWave"] = board->mCurrentWave;
 	j["boardFrame"] = board->mBoardFrame;   // 舞王全队齐舞的节拍源，读档保节拍连续
+	j["eliteScaredyShroomsPlanted"] = board->mEliteScaredyShroomsPlanted;
 	j["weatherInitialized"] = board->mWeatherInitialized;
 	j["rainIntensity"] = static_cast<int>(board->mRainIntensity);
 	j["previousRainIntensity"] = static_cast<int>(board->mPreviousRainIntensity);
@@ -557,6 +559,23 @@ bool GameInfoSaver::LoadLevelDataImpl(Board* board, CardSlotManager* manager)
 	board->mSun = j.value("sun", 50);
 	board->mCurrentWave = j.value("currentWave", 0);
 	board->mBoardFrame = j.value("boardFrame", 0);
+	if (j.contains("eliteScaredyShroomsPlanted")) {
+		board->mEliteScaredyShroomsPlanted = std::clamp(
+			j.value("eliteScaredyShroomsPlanted", 0),
+			0, board->GetEliteScaredyShroomPlantLimit());
+	}
+	else {
+		// 旧档没有累计字段，只能以仍存活的精英胆小菇数作保守下界，避免读档后凭空清零。
+		int legacyCount = 0;
+		for (const auto& plantData : j.value("plants", nlohmann::json::array())) {
+			if (plantData.value("type", -1)
+				== static_cast<int>(PlantType::PLANT_ELITE_SCAREDYSHROOM)) {
+				++legacyCount;
+			}
+		}
+		board->mEliteScaredyShroomsPlanted = std::min(
+			legacyCount, board->GetEliteScaredyShroomPlantLimit());
+	}
 	board->mWeatherInitialized = j.value("weatherInitialized", j.contains("rainIntensity"));
 	const int rainValue = j.value("rainIntensity", static_cast<int>(RainIntensity::CLEAR));
 	board->mRainIntensity = (rainValue >= static_cast<int>(RainIntensity::CLEAR)

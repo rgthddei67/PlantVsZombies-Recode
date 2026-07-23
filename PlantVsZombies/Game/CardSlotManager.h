@@ -45,6 +45,8 @@ public:
 	void DeselectCard();
 
 	bool CanAfford(int cost) const;   // 开发者作弊（无视阳光）守卫在 .cpp，避免头文件引 GameAPP.h
+	/** 同时检查阳光与该植物的本关累计种植次数。 */
+	bool CanUsePlant(PlantType type, int cost) const;
 	bool SpendSun(int cost);
 
 	// 清理植物预览
