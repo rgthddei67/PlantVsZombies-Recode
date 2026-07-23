@@ -406,13 +406,16 @@ int GameAPP::Run()
 			Draw();
 		}
 
-		static int MousePoint = 0;
-		if (MousePoint++ % 40 == 0)
+		if (GameAPP::GetInstance().mDevelopMode || GameAPP::GetInstance().mDebugMode)
 		{
-			Vector mousePos = mInputHandler->GetMouseWorldPosition();
-			LOG_TRACE("GameApp") << "Mouse World Position: " << mousePos.x << "，" << mousePos.y;
-			LOG_TRACE("GameApp") << "Mouse Screen Position: " << mInputHandler->GetMousePosition().x << ", "
-				<< mInputHandler->GetMousePosition().y;
+			static int MousePoint = 0;
+			if (MousePoint++ % 40 == 0)
+			{
+				Vector mousePos = mInputHandler->GetMouseWorldPosition();
+				LOG_WARN("GameApp") << "Mouse World Position: " << mousePos.x << "，" << mousePos.y;
+				LOG_WARN("GameApp") << "Mouse Screen Position: " << mInputHandler->GetMousePosition().x << ", "
+					<< mInputHandler->GetMousePosition().y;
+			}
 		}
 
 		Profiler::Get().EndFrame();

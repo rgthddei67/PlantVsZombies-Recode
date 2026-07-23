@@ -6,7 +6,7 @@
   <SystemDuration>0.6</SystemDuration>
   <ParticleAlpha>1,90 0</ParticleAlpha>
   <ParticleStretch>.1 .8 .5</ParticleStretch>
-  <ParticleScale>1.5</ParticleScale>
+  <ParticleScale>1.6</ParticleScale>
   <Image>PARTICLE_WATERPARTICLE_PART_0,PARTICLE_WATERPARTICLE_PART_1,PARTICLE_WATERPARTICLE_PART_2,PARTICLE_WATERPARTICLE_PART_3,PARTICLE_WATERPARTICLE_PART_4,PARTICLE_WATERPARTICLE_PART_5</Image>
   <Field>
     <FieldType>Position</FieldType>

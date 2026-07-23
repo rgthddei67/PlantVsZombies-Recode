@@ -30,8 +30,8 @@ namespace {
 	constexpr int kSquashDamage = 1800;               // 原版倭瓜单次普通伤害
 	constexpr float kLookAndJumpUpSpeed = 2.0f;       // 24fps / Squash.reanim 基础 12fps
 	constexpr float kJumpDownSpeed = 5.0f;            // 60fps / Squash.reanim 基础 12fps
-	constexpr float kShadowOffsetX = 0.0f;            // 倭瓜阴影相对落点的水平偏移，单位：像素
-	constexpr float kShadowOffsetY = 23.0f;           // 倭瓜站立时阴影相对格子中心的垂直偏移，单位：像素
+	constexpr float kShadowOffsetX = 3.0f;            // 倭瓜阴影相对落点的水平偏移，单位：像素
+	constexpr float kShadowOffsetY = 25.0f;           // 倭瓜站立时阴影相对格子中心的垂直偏移，单位：像素
 
 	float HorizontalOverlap(const SDL_FRect& a, const SDL_FRect& b)
 	{
@@ -52,6 +52,7 @@ void Squash::SetupPlant()
 	SetAnimationSpeed(GameRandom::Range(10.0f / 12.0f, 15.0f / 12.0f));
 	if (auto* shadow = GetComponent<ShadowComponent>()) {
 		shadow->SetOffset(Vector(kShadowOffsetX, kShadowOffsetY));
+		shadow->SetScale(Vector(1.3f, 1.3f));
 	}
 	mTargetX = GetPosition().x;
 }
@@ -221,7 +222,7 @@ void Squash::FinishFalling()
 	SetPosition(Vector(mTargetX, GetLandingY()));
 	UpdateShadowOffset();
 
-	if (mBoard && mBoard->IsPoolSquare(mRow, GetLandingColumn())) {
+	if (mBoard && mBoard->IsPoolSquare(mRow, GetLandingColumn()) && GetPosition().x <= 965) {
 		if (g_particleSystem) {
 			g_particleSystem->EmitEffect("SquashPoolSplash", GetPosition() + Vector(0.0f, 25.0f));
 		}
