@@ -2,6 +2,7 @@
 
 > Codex routing: required always-on rules live in `../../AGENTS.md`; detailed build, AutoTest, architecture, resource, and implementation guidance lives in `../agent-guide/PROJECT_GUIDE.md`. The entries below are historical subsystem context and should be read only when relevant.
 
+- [三线射手](project_pvz_threepeater.md) — 2026-07-23 新增经典三头索敌与 29/73/111 发射帧、指数衰减斜向豌豆；C# 附件须逐头补 `inverse(basePose)`，中头锚点为(35.4,35.0)；主人定制顶/底越界弹折回本行且以 360/290px/s 差速，每轮始终三发；可见 AutoTest 与双 Clang 预设通过
 - [植物压扁与复合 Animator 世界缩放](project_pvz_plant_squish.md) — 2026-07-23 `Plant::Squish()` 统一冻结位置/动画、释放占格、纵向 0.5 底边锚定、5 秒残影与末 1 秒渐隐；默认绘制已递归实例化根与任意深度附件，`SetRenderScale` 同时覆盖 `InstanceRecord` 与 `-NoInstance` 矩阵兜底；可见 `smoke_plant_squish` 验证根/子停帧、缩放、渐隐和销毁，三类僵尸调用方未实现
 - [Windows 中央存档目录与旧档安全迁移](project_pvz_save_location_migration.md) — 2026-07-21 Windows 正式存档改到 `FOLDERID_SavedGames/PlantsVsZombies/saves`；首次访问旧 `./saves` 时复制、逐字节校验、再删源文件，冲突不覆盖、失败逐文件回退；AutoTest/`-AutoTestLoadSave` 继续隔离在构建目录
 - [第三大关泳池基础系统](project_pvz_pool_basics.md) — 2026-07-23 当前范围仅 3-1/3-2：`WATER_POOL` 六行网格、原版 15×5 三层 GPU 动态水面、睡莲双层占格/上层啃食迁移/悬停预览置顶、前 4 波仅陆路、`Zombie` 通用入水/阴影/shader 水线裁剪、普通/路障/铁桶水路版本、水中爆炸无烧焦残影、PoolCleaner 与旧档边界；3-3 新僵尸和后续出怪表未实现

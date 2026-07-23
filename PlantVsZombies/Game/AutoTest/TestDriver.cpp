@@ -16,6 +16,7 @@
 #include "../Plant/Plant.h"
 #include "../Plant/LilyPad.h"
 #include "../Plant/Squash.h"
+#include "../Plant/ThreePeater.h"
 #include "../Plant/Shooter.h"
 #include "../Plant/EliteScaredyShroom.h"
 #include "../Bullet/Bullet.h"
@@ -1300,6 +1301,20 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			plantState["squashTargetZombieID"] = squash->GetTargetZombieID();
 			plantState["squashDamageApplied"] = squash->HasAppliedDamage();
 		}
+		if (auto* threePeater = dynamic_cast<ThreePeater*>(p)) {
+			if (const Animator* head1 = threePeater->GetHeadAnimator()) {
+				plantState["head1Track"] = head1->GetCurrentTrackName();
+				plantState["head1Frame"] = head1->GetCurrentFrame();
+			}
+			if (const Animator* head2 = threePeater->GetHeadAnimator2()) {
+				plantState["head2Track"] = head2->GetCurrentTrackName();
+				plantState["head2Frame"] = head2->GetCurrentFrame();
+			}
+			if (const Animator* head3 = threePeater->GetHeadAnimator3()) {
+				plantState["head3Track"] = head3->GetCurrentTrackName();
+				plantState["head3Frame"] = head3->GetCurrentFrame();
+			}
+		}
 		if (auto* eliteScaredy = dynamic_cast<EliteScaredyShroom*>(p)) {
 			plantState["growthShots"] = eliteScaredy->GetGrowthShotCount();
 			plantState["attackSpeedStage"] = eliteScaredy->GetAttackSpeedStage();
@@ -1339,9 +1354,11 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "x", pos.x }, { "y", pos.y },
 			{ "windAffected", bullet->IsTyphoonWindAffected() },
 			{ "baseVelocityX", static_cast<int>(std::lround(bullet->GetVelocityX())) },
+			{ "baseVelocityY", static_cast<int>(std::lround(bullet->GetVelocityY())) },
 			{ "windVelocityX", static_cast<int>(std::lround(bullet->GetWindAdjustedVelocityX())) },
 			{ "baseDamage", bullet->GetBulletDamage() },
 			{ "windDamage", bullet->GetWindAdjustedDamage() },
+			{ "threepeaterMotion", bullet->IsThreepeaterMotion() },
 		});
 	}
 	out["bulletCount"] = static_cast<int>(out["bullets"].size());

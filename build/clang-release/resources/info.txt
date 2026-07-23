@@ -77,6 +77,11 @@
 [PLANT_SQUASH_DESCRIPTION]
 倭瓜会压扁第一个接近它的僵尸。伤害极高，范围覆盖落点附近，一次性使用。“我准备好了！”倭瓜大吼道，“干吧！算我一份！没人比我厉害！我就是你要的人！”
 
+[PLANT_THREEPEATER]
+三线射手
+[PLANT_THREEPEATER_DESCRIPTION]
+三线射手可以同时向三条线路发射豌豆。“我擅长团队合作，”三线射手说，“准确地说，我们三个就是一支团队。”
+
 [ZOMBIE_NORMAL]
 僵尸
 [ZOMBIE_NORMAL_DESCRIPTION]

@@ -267,6 +267,7 @@ namespace ResourceKeys
 		inline const std::string REANIM_SNOWPEASHOOTER = "SnowPeaShooter";
 		inline const std::string REANIM_LILYPAD = "LilyPad";
 		inline const std::string REANIM_SQUASH = "Squash";
+		inline const std::string REANIM_THREEPEATER = "ThreePeater";
 
 		inline const std::string REANIM_NORMAL_ZOMBIE = "NormalZombie";
 		inline const std::string REANIM_CONE_ZOMBIE = "ConeZombie";

@@ -281,6 +281,7 @@
     <Reanimation name="DoomShroom">./resources/reanim/DoomShroom.reanim</Reanimation>
     <Reanimation name="LilyPad">./resources/reanim/LilyPad.reanim</Reanimation>
     <Reanimation name="Squash">./resources/reanim/Squash.reanim</Reanimation>
+    <Reanimation name="ThreePeater">./resources/reanim/ThreePeater.reanim</Reanimation>
 
     <Reanimation name="NormalZombie">./resources/reanim/NormalZombie.reanim</Reanimation>
     <Reanimation name="ConeZombie">./resources/reanim/ConeZombie.reanim</Reanimation>

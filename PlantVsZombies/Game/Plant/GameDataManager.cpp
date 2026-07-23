@@ -31,6 +31,7 @@
 #include "DoomShroom.h"
 #include "LilyPad.h"
 #include "Squash.h"
+#include "ThreePeater.h"
 
 #include "../Zombie/Zombie.h"
 #include "../Zombie/ConeZombie.h"
@@ -195,6 +196,11 @@ void GameDataManager::InitializeHardcodedData() {
 		ResourceKeys::Textures::IMAGE_SQUASH,
 		AnimationType::ANIM_SQUASH,
 		ResourceKeys::Reanimations::REANIM_SQUASH, &MakePlant<Squash>);
+
+	RegisterPlant(PlantType::PLANT_THREEPEATER, "PLANT_THREEPEATER",
+		ResourceKeys::Textures::IMAGE_THREEPEATER,
+		AnimationType::ANIM_THREEPEATER,
+		ResourceKeys::Reanimations::REANIM_THREEPEATER, &MakePlant<ThreePeater>);
 
 	// 寒冰大喷菇：复用大喷菇 reanim（蓝色靠 overlay），仅卡图独立
 	RegisterPlant(PlantType::PLANT_ICEFUMESHROOM, "PLANT_ICEFUMESHROOM",

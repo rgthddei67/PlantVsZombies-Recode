@@ -37,6 +37,7 @@ protected:
 	int mDamage = 20;			// 子弹伤害
 	float mVelocityX = 290.0f;	// 子弹X轴动量
 	float mVelocityY = 0.0f;	// 子弹Y轴动量
+	bool mThreepeaterMotion = false; // 三线射手斜向豌豆按原版逐步衰减纵向速度
 
 	TransformComponent* mTransform = nullptr;
 	ColliderComponent* mCollider = nullptr;
@@ -80,6 +81,12 @@ public:
 	void SetVelocityX(float x) { this->mVelocityX = x; }
 	float GetVelocityY() { return mVelocityY; }
 	void SetVelocityY(float y) { this->mVelocityY = y; }
+	/**
+	 * 启用三线射手斜向轨迹；target row 已由本子弹的 mRow 表示。
+	 * @param sourceRow 发射植物所在行，用于确定初始纵向方向。
+	 */
+	void EnableThreepeaterMotion(int sourceRow);
+	bool IsThreepeaterMotion() const { return mThreepeaterMotion; }
 
 	int GetSortingKey() const override { return this->mRow; }
 	TransformComponent* GetTransformComponent() const { return mTransform; }

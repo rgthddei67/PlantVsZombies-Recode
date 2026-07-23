@@ -11,6 +11,11 @@
 #include <cstddef>
 
 namespace {
+	constexpr float kThreepeaterVerticalSpeed = 300.0f; // C# 每 10ms 移动 3px，换算为每秒像素
+	constexpr float kThreepeaterDampingPerTick = 0.97f; // C# 每个 10ms 更新对纵向速度的衰减
+	constexpr float kOriginalTickSeconds = 0.01f;       // 原版 Projectile 更新步长，单位：秒
+	constexpr float kThreepeaterShadowOffsetY = 68.0f;  // 斜向豌豆从格心上方 40px 到地面影子的相对距离
+
 	enum class BulletWindResponse {
 		NONE,
 		LIGHT_PROJECTILE
@@ -111,6 +116,7 @@ void Bullet::Reset(Board* board, int row,
 	mDamage = 20;
 	mVelocityX = 290.0f;
 	mVelocityY = 0.0f;
+	mThreepeaterMotion = false;
 
 	// 重置 Transform
 	if (mTransform) {
@@ -157,6 +163,11 @@ void Bullet::Update()
 			}
 		}
 		transform->Translate(GetWindAdjustedVelocityX() * deltaTime, mVelocityY * deltaTime);
+		if (mThreepeaterMotion) {
+			// 用指数折算保持不同固定步长下与 C# “每 10ms ×0.97”相同的弧线。
+			mVelocityY *= std::pow(
+				kThreepeaterDampingPerTick, deltaTime / kOriginalTickSeconds);
+		}
 	}
 }
 
@@ -199,13 +210,28 @@ void Bullet::UpdateShadowLayout(const Vector& position)
 	// 主人校对：Y 与同一行豌豆射手的默认阴影中心一致，即格子中心 + 28。
 	// X 偏移沿用 C#：Pea +3，Snowpea -1。
 	const float shadowLeftOffset = mBulletType == BulletType::BULLET_SNOWPEA ? -1.0f : 3.0f;
-	const float shadowCenterY = (mBoard
-		? mBoard->GetCellCenterPosition(mRow, 0).y
-		: CELL_INITALIZE_POS_Y + static_cast<float>(mRow) * CELL_COLLIDER_SIZE_Y
-			+ CELL_COLLIDER_SIZE_Y * 0.5f) + 28.0f;
+	// 斜向豌豆从发射行地面起步并随本体一起汇入目标行；其发射点固定为格心上方 40px，
+	// 因而相对偏移恒为 68px。普通子弹仍直接锚定其碰撞行地面。
+	const float shadowOffsetY = mThreepeaterMotion
+		? kThreepeaterShadowOffsetY
+		: (mBoard
+			? mBoard->GetCellCenterPosition(mRow, 0).y
+			: CELL_INITALIZE_POS_Y + static_cast<float>(mRow) * CELL_COLLIDER_SIZE_Y
+				+ CELL_COLLIDER_SIZE_Y * 0.5f) + 28.0f - position.y;
 	mShadow->SetOffset(Vector(
 		shadowLeftOffset + shadowWidth * 0.5f,
-		shadowCenterY - position.y));
+		shadowOffsetY));
+}
+
+void Bullet::EnableThreepeaterMotion(int sourceRow)
+{
+	if (sourceRow == mRow) return;
+	mThreepeaterMotion = true;
+	mVelocityY = mRow < sourceRow
+		? -kThreepeaterVerticalSpeed : kThreepeaterVerticalSpeed;
+	if (mTransform) {
+		UpdateShadowLayout(mTransform->GetPosition());
+	}
 }
 
 void Bullet::BulletHitZombie(Zombie* zombie)
