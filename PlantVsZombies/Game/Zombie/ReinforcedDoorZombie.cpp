@@ -2,8 +2,8 @@
 #include <algorithm>
 
 namespace {
-	constexpr int kBodyHealth = 300;                    // 本体生命值
-	constexpr int kShieldHealth = 920;                 // 加固铁门生命值
+	constexpr int kBodyHealth = 270;                    // 本体生命值
+	constexpr int kShieldHealth = 1030;                 // 加固铁门生命值
 	constexpr int kShieldedNormalDamageCap = 10;         // 持门时植物普通伤害的最终单次上限
 	constexpr int kAshDamageCap = 320;                  // 灰烬/爆炸伤害的最终单次上限
 	constexpr int kFumeDamageMultiplier = 2;            // 大喷菇与寒冰大喷菇基础伤害倍率

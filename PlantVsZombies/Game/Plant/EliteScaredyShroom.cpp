@@ -13,10 +13,10 @@ namespace {
 	constexpr int kDamageGrowthShots = 10;                   // c：每累计多少成长发数提高伤害
 	constexpr int kDamagePerStage = 1;                       // d：每个伤害阶段增加的伤害
 	constexpr float kBaseShootIntervalSeconds = 1.5f;        // 初始射击间隔（秒）
-	constexpr float kMinimumShootIntervalSeconds = 0.2f;     // 最快射击间隔（秒）
+	constexpr float kMinimumShootIntervalSeconds = 0.28f;     // 最快射击间隔（秒）
 	constexpr int kSpeedGrowthShots = 5;                     // n：每累计多少成长发数提高攻速
 	constexpr float kSpeedFactorPerStage = 0.85f;            // b：每阶段发射间隔缩短 15%
-	constexpr int kMaximumSpeedStages = 13;                  // 第 13 阶开始触及 0.2 秒硬上限
+	constexpr int kMaximumSpeedStages = 11;                  // 第 11 阶开始触及 0.28 秒硬上限
 	constexpr float kDayGrowthFactor = 0.6f;                 // e：白天成长慢 40%
 	constexpr float kNightGrowthFactor = 1.0f;               // 夜间每发获得完整成长
 	constexpr SDL_Color kElitePurpleOverlay{165, 70, 255, 176}; // 精英紫覆盖色，保留原贴图明暗
