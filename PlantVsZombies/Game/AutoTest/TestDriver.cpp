@@ -1059,6 +1059,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "row", z->mRow },
 			{ "x", pos.x }, { "y", pos.y },
 			{ "xInt", static_cast<int>(std::lround(pos.x)) },
+			{ "yInt", static_cast<int>(std::lround(pos.y)) },
 			{ "bodyHealth", z->mBodyHealth }, { "bodyMaxHealth", z->mBodyMaxHealth },
 			{ "helmHealth", z->mHelmHealth }, { "shieldHealth", z->mShieldHealth },
 			{ "mindControlled", z->IsMindControlled() },
@@ -1094,6 +1095,13 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		}
 		if (auto* pool = dynamic_cast<PoolNormalZombie*>(z)) {
 			zombieState["inPool"] = pool->IsInPool();
+			zombieState["poolLegsVisible"] = anim && (
+				anim->GetTrackVisible("Zombie_innerleg_upper")
+				|| anim->GetTrackVisible("Zombie_innerleg_lower")
+				|| anim->GetTrackVisible("Zombie_innerleg_foot")
+				|| anim->GetTrackVisible("Zombie_outerleg_upper")
+				|| anim->GetTrackVisible("Zombie_outerleg_lower")
+				|| anim->GetTrackVisible("Zombie_outerleg_foot"));
 		}
 		out["zombies"].push_back(std::move(zombieState));
 	}

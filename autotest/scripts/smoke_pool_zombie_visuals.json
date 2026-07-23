@@ -1,0 +1,39 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 19 },
+    { "op": "choose_cards", "cards": ["PLANT_LILYPAD", "PLANT_WALLNUT"] },
+    { "op": "wait_state", "state": "GAME", "timeout": 15 },
+    { "op": "set_sun", "value": 9000 },
+    { "op": "set_timescale", "value": 4.0 },
+    { "op": "plant", "type": "PLANT_LILYPAD", "row": 2, "col": 7 },
+    { "op": "plant", "type": "PLANT_WALLNUT", "row": 2, "col": 7 },
+
+    { "op": "spawn_zombie", "type": "ZOMBIE_POOL_NORMAL", "row": 2, "x": 930 },
+    { "op": "wait_frames", "value": 2 },
+    { "op": "assert_state", "path": "zombies.0.inPool", "equals": true },
+    { "op": "assert_state", "path": "zombies.0.track", "equals": "anim_swim" },
+    { "op": "assert_state", "path": "zombies.0.yInt", "equals": 300 },
+
+    { "op": "wait_seconds", "value": 5.0, "timeout": 8 },
+    { "op": "assert_state", "path": "zombies.0.isEating", "equals": true },
+    { "op": "assert_state", "path": "zombies.0.track", "equals": "anim_eat" },
+    { "op": "assert_state", "path": "zombies.0.poolLegsVisible", "equals": false },
+    { "op": "screenshot", "name": "pool_zombie_eating_hidden_legs.png" },
+    { "op": "dump_state", "name": "pool_zombie_visuals_state.json" },
+
+    { "op": "goto_level", "level": 1 },
+    { "op": "choose_cards", "cards": ["PLANT_PEASHOOTER"] },
+    { "op": "wait_state", "state": "GAME", "timeout": 15 },
+    { "op": "spawn_zombie", "type": "ZOMBIE_NORMAL", "row": 2, "x": 850 },
+    { "op": "wait_frames", "value": 2 },
+    { "op": "assert_state", "path": "zombies.0.yInt", "equals": 340 },
+
+    { "op": "goto_level", "level": 10 },
+    { "op": "choose_cards", "cards": ["PLANT_PUFFSHROOM"] },
+    { "op": "wait_state", "state": "GAME", "timeout": 15 },
+    { "op": "spawn_zombie", "type": "ZOMBIE_NORMAL", "row": 2, "x": 850 },
+    { "op": "wait_frames", "value": 2 },
+    { "op": "assert_state", "path": "zombies.0.yInt", "equals": 340 },
+    { "op": "quit" }
+  ]
+}

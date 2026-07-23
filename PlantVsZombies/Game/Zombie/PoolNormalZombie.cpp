@@ -13,7 +13,16 @@ namespace {
 	constexpr int POOL_SECOND_BITE_FRAME = 168;    // 泳池 reanim 第二次啃食命中帧
 	constexpr float POOL_FRONT_PROBE_X = 75.0f;    // 身体前侧入水检测点相对世界 X 偏移
 	constexpr float POOL_REAR_PROBE_X = 45.0f;     // 身体后侧入水检测点相对世界 X 偏移
+	constexpr float POOL_TRANSITION_RIGHT_SHIFT_X = 70.0f; // 适配本项目泳池图，把下水/出水切换位置向右校正的像素数
 	constexpr float POOL_TRANSITION_BLEND = 0.2f;  // 入水、离水切换稳态动画的混合秒数
+	constexpr const char* POOL_LEG_TRACKS[] = {    // 啃食时需藏到水线下的六条腿部轨道
+		"Zombie_innerleg_upper",
+		"Zombie_innerleg_lower",
+		"Zombie_innerleg_foot",
+		"Zombie_outerleg_upper",
+		"Zombie_outerleg_lower",
+		"Zombie_outerleg_foot",
+	};
 }
 
 /** 缓存基类创建的阴影组件，供入水状态和读档恢复统一控制。 */
@@ -47,15 +56,18 @@ void PoolNormalZombie::ZombieUpdate(float scaledTime)
 	if (!mIsDying) UpdatePoolState();
 }
 
-/** 仅当身体前后探针都落入水域时视为入水，避免在池沿来回抖动。 */
+/** 仅当校正后的身体前后探针都落入水域时视为入水，避免在池沿来回抖动。 */
 void PoolNormalZombie::UpdatePoolState()
 {
 	if (!mBoard || mIsPreview || mRow < 0) return;
 
 	const float x = GetPosition().x;
+	// 探针相对僵尸左移，会让僵尸自身到达更靠右的位置时切换，匹配本项目泳池图的池沿。
 	const bool shouldBeInPool =
-		mBoard->IsPoolWorldPosition(mRow, x + POOL_FRONT_PROBE_X) &&
-		mBoard->IsPoolWorldPosition(mRow, x + POOL_REAR_PROBE_X);
+		mBoard->IsPoolWorldPosition(mRow,
+			x + POOL_FRONT_PROBE_X - POOL_TRANSITION_RIGHT_SHIFT_X) &&
+		mBoard->IsPoolWorldPosition(mRow,
+			x + POOL_REAR_PROBE_X - POOL_TRANSITION_RIGHT_SHIFT_X);
 	if (shouldBeInPool == mInPool) return;
 
 	mInPool = shouldBeInPool;
@@ -67,6 +79,18 @@ void PoolNormalZombie::UpdatePoolState()
 void PoolNormalZombie::PlayWalkAnimation(float blendTime)
 {
 	PlayTrack(mInPool ? "anim_swim" : "anim_walk2", 0.0f, blendTime);
+}
+
+/** 水中啃食轨道会重现双腿并换回无涟漪泳圈；切轨后统一恢复水中表现。 */
+void PoolNormalZombie::OnStartEating()
+{
+	SetPoolEatingVisuals(mInPool);
+}
+
+/** 停止啃食后撤销视觉覆盖，让 walk2/swim 轨道继续按自身帧数据控制。 */
+void PoolNormalZombie::OnStopEating()
+{
+	SetPoolEatingVisuals(false);
 }
 
 /** 掉头流血致死时按当前介质选择对应死亡轨道。 */
@@ -133,10 +157,32 @@ void PoolNormalZombie::ZombieItemUpdate() const
 	UpdatePoolVisualState();
 }
 
-/** 水中由 reanim 自带水线表达接触面，因此隐藏地面投影。 */
+/** 水中隐藏地面投影；读档处于啃食态时同时重建双腿和涟漪泳圈。 */
 void PoolNormalZombie::UpdatePoolVisualState() const
 {
 	if (mPoolShadow) {
 		mPoolShadow->SetVisible(!mInPool);
+	}
+	SetPoolEatingVisuals(mInPool && mIsEating);
+}
+
+/** 只在水中啃食期间覆盖泳圈贴图，既保留涟漪又不污染其他动画片段。 */
+void PoolNormalZombie::SetPoolEatingVisuals(bool active) const
+{
+	if (!mAnimator) return;
+	SetPoolLegsVisible(!active);
+	const Texture* tubeImage = active
+		? ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_REANIM_ZOMBIE_DUCKYTUBE_INWATER)
+		: nullptr;
+	mAnimator->SetTrackImage("Zombie_duckytube", tubeImage);
+}
+
+/** 批量设置泳池 reanim 的六条腿部轨道，避免各状态分支遗漏其中一条。 */
+void PoolNormalZombie::SetPoolLegsVisible(bool visible) const
+{
+	if (!mAnimator) return;
+	for (const char* track : POOL_LEG_TRACKS) {
+		mAnimator->SetTrackVisible(track, visible);
 	}
 }
