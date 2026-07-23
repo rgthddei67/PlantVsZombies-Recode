@@ -217,7 +217,11 @@ void CardSlotManager::CreateCellPlantPreview(PlantType plantType, Cell* cell) {
 		if (cellPlantPreview) {
 			Vector centerPos = cell->GetCenterPosition();          // 世界坐标
 
-			cellPlantPreview->SetRenderOrder(LAYER_BACKGROUND + 100);
+			// 落点幽灵必须盖在该格已有承载植物之上，否则睡莲会遮住待种植物。
+			Plant* topPlant = mBoard->GetTopPlantAt(cell->mRow, cell->mColumn);
+			const int previewRenderOrder = topPlant
+				? topPlant->GetRenderOrder() + 1 : LAYER_GAME_PLANT;
+			cellPlantPreview->SetRenderOrder(previewRenderOrder);
 
 			if (auto transform = cellPlantPreview->GetTransformComponent()) {
 				transform->SetPosition(centerPos);             // 设置为世界坐标

@@ -34,6 +34,7 @@ namespace {
 	constexpr float kPoolRowZombieSpawnYOffset = 25.0f;   // 仅水路行僵尸额外下移量，不影响同地图陆地行，单位：像素
 	constexpr int kPoolFirstRow = 2;                      // 泳池第一条水路的 0-based 行号
 	constexpr int kPoolLastRow = 3;                       // 泳池最后一条水路的 0-based 行号
+	constexpr int kPoolFirstWaterSpawnWave = 5;           // 泳池自然波次从第几波起允许选择水路
 	constexpr float kFirstRainDelayMin = 90.0f;          // 开局到首场雨的最短等待时间（秒）
 	constexpr float kFirstRainDelayMax = 110.0f;          // 开局到首场雨的最长等待时间（秒）
 	constexpr float kClearWeatherDelayMin = 15.0f;       // 两场雨之间的最短晴空间隔（秒）
@@ -2576,6 +2577,13 @@ bool Board::IsSpawnRowCompatible(ZombieType type, int row) const
 	}
 }
 
+// 自然波次选行在静态地形兼容性之上，再应用泳池开局四波的水路保护期。
+bool Board::IsNaturalWaveSpawnRowCompatible(ZombieType type, int row) const
+{
+	if (!IsSpawnRowCompatible(type, row)) return false;
+	return !IsPoolBackground() || mCurrentWave >= kPoolFirstWaterSpawnWave || !IsPoolRow(row);
+}
+
 ZombieType Board::ResolveTerrainZombieType(ZombieType selected, int row) const
 {
 	if (!IsPoolRow(row)) return selected;
@@ -2599,7 +2607,7 @@ inline int Board::SelectSpawnRow(ZombieType type)
 	float totalWeight = 0.0f;
 	for (int i = 0; i < mRows; i++)
 	{
-		if (!IsSpawnRowCompatible(type, i)) {
+		if (!IsNaturalWaveSpawnRowCompatible(type, i)) {
 			mRowInfos[i].weight = 0.0f;
 			continue;
 		}
@@ -2614,7 +2622,7 @@ inline int Board::SelectSpawnRow(ZombieType type)
 	float smoothTotal = 0.0f;
 	for (int i = 0; i < mRows; i++)
 	{
-		if (!IsSpawnRowCompatible(type, i)) {
+		if (!IsNaturalWaveSpawnRowCompatible(type, i)) {
 			mRowInfos[i].smoothWeight = 0.0f;
 			continue;
 		}
@@ -2640,7 +2648,7 @@ inline int Board::SelectSpawnRow(ZombieType type)
 	// 第三步：加权随机选行
 	if (smoothTotal <= 0.0f) {
 		for (int i = 0; i < mRows; ++i)
-			if (IsSpawnRowCompatible(type, i)) return i;
+			if (IsNaturalWaveSpawnRowCompatible(type, i)) return i;
 		return 0;
 	}
 
@@ -2649,7 +2657,7 @@ inline int Board::SelectSpawnRow(ZombieType type)
 	int lastCompatibleRow = 0;
 	for (int i = 0; i < mRows; i++)
 	{
-		if (!IsSpawnRowCompatible(type, i)) continue;
+		if (!IsNaturalWaveSpawnRowCompatible(type, i)) continue;
 		lastCompatibleRow = i;
 		cumulative += mRowInfos[i].smoothWeight;
 		if (cumulative >= randNum) return i;

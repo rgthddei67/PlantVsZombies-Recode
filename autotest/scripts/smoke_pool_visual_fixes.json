@@ -1,0 +1,38 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 19 },
+    { "op": "choose_cards", "cards": ["PLANT_LILYPAD", "PLANT_PEASHOOTER"] },
+    { "op": "wait_state", "state": "GAME", "timeout": 15 },
+    { "op": "set_spawn_paused", "value": true },
+    { "op": "set_sun", "value": 9000 },
+
+    { "op": "plant", "type": "PLANT_LILYPAD", "row": 2, "col": 2 },
+    { "op": "click", "x": 255, "y": 25 },
+    { "op": "move_mouse", "x": 442, "y": 298 },
+    { "op": "wait_frames", "value": 3 },
+    { "op": "dump_state", "name": "preview_state.json" },
+    { "op": "assert_state", "path": "cellPlantPreviewCount", "equals": 1 },
+    { "op": "assert_state", "path": "cellPlantPreview.type", "equals": "PLANT_PEASHOOTER" },
+    { "op": "assert_state", "path": "cellPlantPreview.renderOrder", "equals": 10001 },
+    { "op": "assert_state", "path": "cellPlantPreview.xInt", "equals": 442 },
+    { "op": "assert_state", "path": "cellPlantPreview.yInt", "equals": 298 },
+    { "op": "screenshot", "name": "peashooter_preview_above_lilypad.png" },
+    { "op": "click", "x": 100, "y": 100, "button": "right" },
+
+    { "op": "summon_next_wave", "count": 4 },
+    { "op": "assert_state", "path": "wave", "equals": 4 },
+    { "op": "assert_state", "path": "earlyWavePoolZombieCount", "equals": 0 },
+    { "op": "screenshot", "name": "level_3_1_first_four_waves_land_only.png" },
+
+    { "op": "goto_level", "level": 20 },
+    { "op": "choose_cards", "cards": ["PLANT_LILYPAD"] },
+    { "op": "wait_state", "state": "GAME", "timeout": 15 },
+    { "op": "set_spawn_paused", "value": true },
+    { "op": "summon_next_wave", "count": 4 },
+    { "op": "assert_state", "path": "wave", "equals": 4 },
+    { "op": "assert_state", "path": "earlyWavePoolZombieCount", "equals": 0 },
+    { "op": "screenshot", "name": "level_3_2_first_four_waves_land_only.png" },
+    { "op": "dump_state", "name": "pool_visual_fixes_state.json" },
+    { "op": "quit" }
+  ]
+}

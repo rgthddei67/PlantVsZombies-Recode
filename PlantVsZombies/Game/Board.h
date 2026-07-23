@@ -235,6 +235,7 @@ private:
 	void InitializeRows();
 	inline int SelectSpawnRow(ZombieType type);
 	bool IsSpawnRowCompatible(ZombieType type, int row) const;
+	bool IsNaturalWaveSpawnRowCompatible(ZombieType type, int row) const;
 	inline ZombieType PickZombieType(int remainingPoints);
 	inline ZombieType GetWeightedRandomZombie();
 	inline ZombieType GetCheapestZombie();

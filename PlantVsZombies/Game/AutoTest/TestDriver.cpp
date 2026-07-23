@@ -858,6 +858,18 @@ bool TestDriver::ExecuteCurrent() {
 		return false;
 	}
 
+	if (op == "move_mouse") {
+		if (!cmd.contains("x")) { Fail("move_mouse 缺 x 字段"); return false; }
+		if (!cmd.contains("y")) { Fail("move_mouse 缺 y 字段"); return false; }
+
+		SDL_Event move{};
+		move.type = SDL_MOUSEMOTION;
+		move.motion.x = static_cast<Sint32>(cmd.value("x", 0.0f));
+		move.motion.y = static_cast<Sint32>(cmd.value("y", 0.0f));
+		SDL_PushEvent(&move);
+		return true;
+	}
+
 	if (op == "click") {
 		float x = 0.0f, y = 0.0f;
 		// "target":"trophy"：执行时从 Board 实时解析奖杯坐标（僵尸死亡位置受帧时序影响，
@@ -1126,10 +1138,36 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	}
 	out["charredZombieCount"] = charredZombieCount;
 
+	// 半透明植物预览来自落点幽灵；鼠标跟随预览保持不透明，故不会混入此抓手。
+	int cellPlantPreviewCount = 0;
+	out["cellPlantPreview"] = nullptr;
+	for (const auto& object : GameObjectManager::GetInstance().GetAllGameObjects()) {
+		auto* preview = object ? dynamic_cast<Plant*>(object.get()) : nullptr;
+		if (!preview || !preview->IsActive() || !preview->IsPreview()
+			|| preview->GetAlpha() >= 0.5f) continue;
+		++cellPlantPreviewCount;
+		const Vector pos = preview->GetPosition();
+		out["cellPlantPreview"] = {
+			{ "type", PlantTypeName(preview->mPlantType) },
+			{ "renderOrder", preview->GetRenderOrder() },
+			{ "xInt", static_cast<int>(std::lround(pos.x)) },
+			{ "yInt", static_cast<int>(std::lround(pos.y)) },
+		};
+	}
+	out["cellPlantPreviewCount"] = cellPlantPreviewCount;
+
 	out["zombies"] = nlohmann::json::array();
+	int poolRowZombieCount = 0;
+	int earlyWavePoolZombieCount = 0;
 	for (int id : board->mEntityManager.GetAllZombieIDs()) {
 		Zombie* z = board->mEntityManager.GetZombie(id);
 		if (!z) continue;
+		if (board->IsPoolRow(z->mRow)) {
+			++poolRowZombieCount;
+			if (z->mSpawnWave >= 1 && z->mSpawnWave <= 4) {
+				++earlyWavePoolZombieCount;
+			}
+		}
 		const Vector pos = z->GetPosition();
 		const auto anim = z->GetAnimatorInternal();
 		nlohmann::json zombieState = {
@@ -1185,6 +1223,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		out["zombies"].push_back(std::move(zombieState));
 	}
 	out["zombieCount"] = static_cast<int>(out["zombies"].size());
+	out["poolRowZombieCount"] = poolRowZombieCount;
+	out["earlyWavePoolZombieCount"] = earlyWavePoolZombieCount;
 
 	out["plants"] = nlohmann::json::array();
 	int repeatingShootingHeadCount = 0;

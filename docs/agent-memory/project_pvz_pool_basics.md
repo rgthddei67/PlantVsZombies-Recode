@@ -18,6 +18,7 @@ metadata:
 
 - `Background::WATER_POOL` 与其他背景共用 `mBackgroundY`，不再额外上移；日间/夜间泳池的六行网格首行顶部均为 Y=85。泳池使用 6 行、85px 行高，0-based 第 2/3 行是水路，列宽仍为 80px。网格派生位置必须通过 `Board::GetCellCenterPosition/GetCellHeight`。
 - `Cell` 有 `under/normal` 两个植物槽。睡莲只能放在空水格的 under 层；普通植物只能放在已有睡莲且 normal 层为空的水格；土豆雷仍禁止下水。铲子、僵尸啃咬与 UI 预览都以 top 层为准。
+- 水格已有睡莲时，卡片悬停生成的半透明落点预览必须取当前 top 植物的 `renderOrder + 1`，保证待种植物显示在睡莲上方；空格预览使用 `LAYER_GAME_PLANT`。
 - 睡莲种下后 1 秒只免疫啃咬，计时器进存档；水面植物只做±2px 绘制浮动，Transform/碰撞与存档仍固定在逻辑格。
 - 普通/路障/铁桶僵尸在水路由正式波次入口替换为 `ZOMBIE_POOL_*`，而非为出怪表添加独立权重；这三种专用类型仍只允许水路，陆地版本不会实际创建在水中。其他僵尸可直接抽到水路并保留自身类型与行为。`Board::CanZombieTypeSpawnInPool` 是集中禁水扩展点，当前所有有效僵尸类型均允许；未来只在此追加禁水类型。`Zombie` 基类用前/后双探针统一维护 `mInPool`，本项目将下水/出水切换位置相对原探针向右校正 70px；水中统一隐藏陆地阴影，并在 `Zombie::Draw` 内用 `PushClipBottom/PopClipBottom` 把水面以下裁掉。该接口现为通用 shader `PushClipRect` 的全宽别名，不触发批处理 flush 或 `vkCmdSetScissor`，并自动与伴舞出土等既有矩形 Clip 取交集。专用泳池僵尸仍保留 swim、水中死亡和泳圈贴图；水中断头/断臂不生成悬浮的陆地碎片。
 - 泳池僵尸仅在 `mInPool=true` 时拒绝化灰：植物爆炸仍走正式伤害与水中死亡轨道，但不创建 `ZombieCharred` 烧焦残影；尚未下水或已经离水时继续沿用陆地化灰表现。这与 C# `ApplyBurn` 的 `mInPool -> DieWithLoot` 分支一致。
@@ -28,7 +29,10 @@ metadata:
 - `PoolCleaner` 使用 `LAND/ENTERING/IN_POOL/EXITING` 高度状态；只改绘制偏移，不改行与碰撞。水中稳态相对原 28px 下沉位置向上校正 13px，入水/出水阶段按当前浸入比例渐进叠加该校正以避免跳变，原始深度仍照常存档。陆地/水中吞噬分别用 `anim_landsuck/anim_suck`，稳态用 `anim_land/anim_water`，运动速度按 C# 水车:草车 `2.5:3.33` 换算。
 - level 19～27 存档写入 `poolGridVersion=2`。缺字段、旧五行/单植物槽或旧版上移 40px 坐标存档均保留文件但拒绝读取，让关卡按当前坐标重新开始。
 - 3-1 为 10 波 `{normal, cone}`；3-2 为 15 波 `{normal, cone, bucket}`。水路替换在选行后发生，成本/权重仍使用出怪表中的基础类型。
+- 所有泳池背景的自然波次选行在第 1～4 波只允许陆地行，第 5 波起才开放水路。该门槛只属于自然波次选行；AutoTest/开发者显式指定行的造怪仍按静态地形兼容性执行，便于独立验证水路表现。
 
 ## 验证
 
 `smoke_pool_basics.json` 覆盖 3-1/3-2 背景、六行、出怪表、睡莲分层/保护/禁种、天气、台风整叠搬运、地形僵尸替换与水中死亡。`smoke_pool_cleaner.json` 覆盖待机、启动、入水、水中、出水和回到陆地，并锁定水中上移 13px 后 `visualY≈309.5`、回到陆地为 `visualY≈294.5`。`smoke_pool_zombie_visuals.json` 在 x=930 断言向右校正后的入水切换，并同时锁定恢复通用背景基线后第三大关水路 Y≈335、陆地行 Y≈140、第一/二大关仍为 Y≈340；水中 `anim_eat` 保持腿部轨道激活但画面由 shader 水线裁掉，额外生成报纸僵尸验证非专用类型也能进入水路，并断言 `poolBlockedZombieTypeCount=0` 与 `graphics.lastFrameScissorChanges=0`。`smoke_pool_zombie_interactions.json` 用陆地化灰作对照，断言水中爆炸 `charredZombieCount=0`，并现场验证补种上层植物后睡莲/坚果 `eaterCount` 从 `1/0` 迁移为 `0/1`。2026-07-23 同场景同种子实测逐僵尸矩形 Clip 为 `21 draw + 4 scissor`，改成 shader 水线后为 `19 draw + 0 scissor`（2 只水中僵尸）；通用化后默认实例路径与 `-NoInstance` 回退路径再次可见运行 exit 0、截图正确。完整通用 Clip 契约见 [project_pvz_shader_clip_rect](project_pvz_shader_clip_rect.md)。
+
+`smoke_pool_visual_fixes.json` 用真实卡片点击与 `move_mouse` 悬停覆盖睡莲上方预览层级，并在 3-1/3-2 各连续推进前四波断言 `earlyWavePoolZombieCount=0`。本次实现已通过 `clang-playtest` 编译；专项脚本首次可见运行在旧卡片边界坐标处未拿起卡片，修正坐标后主人明确取消后续 AutoTest，因此不记录运行通过结论。
