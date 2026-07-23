@@ -266,6 +266,14 @@ bool GameInfoSaver::SaveLevelDataImpl(Board* board, CardSlotManager* manager)
 	j["rainCanIntensify"] = board->mRainCanIntensify;
 	j["rainCanHold"] = board->mRainCanHold;
 	j["weatherForecastReady"] = board->mWeatherForecastReady;
+	j["pendingHeavyTyphoonPrepared"] = board->mPendingHeavyTyphoonPrepared;
+	j["pendingHeavyTyphoonStrength"] = static_cast<int>(board->mPendingHeavyTyphoonStrength);
+	j["pendingHeavyWindDirection"] = static_cast<int>(board->mPendingHeavyWindDirection);
+	j["pendingHeavyTyphoonStrengthTimer"] = board->mPendingHeavyTyphoonStrengthTimer;
+	j["pendingHeavyWindDirectionTimer"] = board->mPendingHeavyWindDirectionTimer;
+	j["pendingHeavyWindGustTimer"] = board->mPendingHeavyWindGustTimer;
+	j["pendingHeavyTyphoonGustsRemaining"] = board->mPendingHeavyTyphoonGustsRemaining;
+	j["pendingHeavyRainPromptVariant"] = board->mPendingHeavyRainPromptVariant;
 	j["typhoonStrength"] = static_cast<int>(board->mTyphoonStrength);
 	j["windDirection"] = static_cast<int>(board->mWindDirection);
 	j["typhoonStrengthTimer"] = board->mTyphoonStrengthTimer;
@@ -605,6 +613,27 @@ bool GameInfoSaver::LoadLevelDataImpl(Board* board, CardSlotManager* manager)
 	board->mRainCanHold = (board->mRainIntensity == RainIntensity::MEDIUM
 		|| board->mRainIntensity == RainIntensity::HEAVY)
 		&& j.value("rainCanHold", false);
+	const int pendingTyphoonValue = j.value("pendingHeavyTyphoonStrength",
+		static_cast<int>(TyphoonStrength::NONE));
+	const int pendingWindValue = j.value("pendingHeavyWindDirection",
+		static_cast<int>(WindDirection::NONE));
+	const TyphoonStrength pendingTyphoonStrength =
+		pendingTyphoonValue >= static_cast<int>(TyphoonStrength::NONE)
+		&& pendingTyphoonValue <= static_cast<int>(TyphoonStrength::SUPER)
+		? static_cast<TyphoonStrength>(pendingTyphoonValue) : TyphoonStrength::NONE;
+	const WindDirection pendingWindDirection =
+		pendingWindValue >= static_cast<int>(WindDirection::NONE)
+		&& pendingWindValue <= static_cast<int>(WindDirection::TOWARD_FRONT)
+		? static_cast<WindDirection>(pendingWindValue) : WindDirection::NONE;
+	// 预警期已经抽出的完整台风初态必须原样恢复；旧档缺字段时保持未准备，由后续 Update 补抽一次。
+	board->RestorePendingHeavyTyphoon(
+		j.value("pendingHeavyTyphoonPrepared", false),
+		pendingTyphoonStrength, pendingWindDirection,
+		j.value("pendingHeavyTyphoonStrengthTimer", 0.0f),
+		j.value("pendingHeavyWindGustTimer", 0.0f),
+		j.value("pendingHeavyWindDirectionTimer", 0.0f),
+		j.value("pendingHeavyTyphoonGustsRemaining", 0),
+		j.value("pendingHeavyRainPromptVariant", 0));
 	const int typhoonValue = j.value("typhoonStrength",
 		static_cast<int>(TyphoonStrength::NONE));
 	const int windDirectionValue = j.value("windDirection",

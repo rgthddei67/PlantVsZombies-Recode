@@ -51,6 +51,7 @@ namespace {
 	constexpr float kLateMediumRainTailMin = 30.0f;      // 满压力下尾段中雨最短持续时间（秒）
 	constexpr float kLateMediumRainTailMax = 50.0f;      // 满压力下尾段中雨最长持续时间（秒）
 	constexpr float kWeatherForecastLeadTime = 15.0f;    // 阶段结束前多少秒预抽取并展示下一天气
+	constexpr float kHeavyRainPromptLeadTime = 5.0f;     // 真正进入新大雨前弹出分级文字警报的提前量（游戏秒）
 	constexpr int kWeatherForecastAccuracyPercent = 75;  // 前期天气预警准确率（百分比）
 	constexpr int kLateWeatherForecastAccuracyPercent = 95; // 满压力天气预警准确率上限（百分比）
 	constexpr int kEliteDancerMutationChancePercent = 50; // 台风以上普通舞王变异为精英舞王的概率（百分比）
@@ -968,6 +969,7 @@ void Board::InitializeWeather()
 	mRainCanHold = false;
 	mWeatherTransitionTimer = 0.0f;
 	mWeatherForecastReady = false;
+	ClearPendingHeavyRainWarning();
 	mRainVisualActive = false;
 	mRainVisualEffectName.clear();
 	mWeakWeatherPhasesSinceHeavy = 0;
@@ -1092,6 +1094,7 @@ RainIntensity Board::RollNextWeather(int forcedRoll)
 void Board::PrepareWeatherForecast(int weatherRoll)
 {
 	if (mWeatherForecastReady) return;
+	ClearPendingHeavyRainWarning();
 	mActualForecastRainIntensity = RollNextWeather(weatherRoll);
 	mForecastRainIntensity = mActualForecastRainIntensity;
 
@@ -1113,6 +1116,83 @@ void Board::PrepareWeatherForecast(int weatherRoll)
 		}
 	}
 	mWeatherForecastReady = true;
+	PreparePendingHeavyTyphoon();
+}
+
+/**
+ * 在公开预报锁定后提前锁定下一场大雨的完整台风初始状态。
+ * 这里只消费随机数，不提前改变当前天气、台风保底或玩法倍率；真正切档时才兑现结果。
+ */
+void Board::PreparePendingHeavyTyphoon(int chanceRoll, int strengthRoll)
+{
+	if (mPendingHeavyTyphoonPrepared || !mWeatherForecastReady
+		|| mActualForecastRainIntensity != RainIntensity::HEAVY
+		|| mRainIntensity == RainIntensity::HEAVY) return;
+
+	mPendingHeavyTyphoonPrepared = true;
+	mPendingHeavyTyphoonStrength = TyphoonStrength::NONE;
+	mPendingHeavyWindDirection = WindDirection::NONE;
+	mPendingHeavyTyphoonStrengthTimer = 0.0f;
+	mPendingHeavyWindDirectionTimer = 0.0f;
+	mPendingHeavyWindGustTimer = 0.0f;
+	mPendingHeavyTyphoonGustsRemaining = 0;
+	mPendingHeavyRainPromptVariant = GameRandom::Range(0, 2);
+
+	const int chance = GetCurrentTyphoonChancePercent();
+	if (chanceRoll <= 0) chanceRoll = GameRandom::Range(1, 100);
+	if (chanceRoll > chance) return;
+
+	const TyphoonWeights weights = BuildTyphoonWeights(GetWeatherDirectorFactor());
+	const int totalWeight = weights.Total();
+	const int roll = strengthRoll > 0
+		? std::clamp(strengthRoll, 1, totalWeight)
+		: GameRandom::Range(1, totalWeight);
+	if (roll <= weights.normal) {
+		mPendingHeavyTyphoonStrength = TyphoonStrength::TYPHOON;
+	}
+	else if (roll <= weights.normal + weights.severe) {
+		mPendingHeavyTyphoonStrength = TyphoonStrength::SEVERE;
+	}
+	else {
+		mPendingHeavyTyphoonStrength = TyphoonStrength::SUPER;
+	}
+	mPendingHeavyWindDirection = WindDirectionForRoll(0);
+	mPendingHeavyTyphoonStrengthTimer =
+		RandomTyphoonStrengthDuration(mPendingHeavyTyphoonStrength);
+	mPendingHeavyWindDirectionTimer = GameRandom::Range(
+		kWindDirectionDurationMin, kWindDirectionDurationMax);
+	mPendingHeavyTyphoonGustsRemaining =
+		TyphoonMaxGusts(mPendingHeavyTyphoonStrength);
+	mPendingHeavyWindGustTimer = mPendingHeavyTyphoonGustsRemaining > 0
+		? RandomTyphoonGustInterval(mPendingHeavyTyphoonStrength) : 0.0f;
+}
+
+/** 清除上一份大雨预警及其待生效台风状态，避免后续天气误消费旧结果。 */
+void Board::ClearPendingHeavyRainWarning()
+{
+	mPendingHeavyTyphoonPrepared = false;
+	mPendingHeavyTyphoonStrength = TyphoonStrength::NONE;
+	mPendingHeavyWindDirection = WindDirection::NONE;
+	mPendingHeavyTyphoonStrengthTimer = 0.0f;
+	mPendingHeavyWindDirectionTimer = 0.0f;
+	mPendingHeavyWindGustTimer = 0.0f;
+	mPendingHeavyTyphoonGustsRemaining = 0;
+	mPendingHeavyRainPromptVariant = 0;
+	mHeavyRainPromptShown = false;
+}
+
+/** 在倒计时进入最后 5 个游戏秒时显示一次已锁定等级的风暴警报。 */
+void Board::MaybeShowHeavyRainPrompt()
+{
+	if (mHeavyRainPromptShown || !mWeatherForecastReady
+		|| mActualForecastRainIntensity != RainIntensity::HEAVY
+		|| mRainIntensity == RainIntensity::HEAVY
+		|| mWeatherTimer > kHeavyRainPromptLeadTime || !mGameScene) return;
+	if (!mPendingHeavyTyphoonPrepared) PreparePendingHeavyTyphoon();
+	if (!mPendingHeavyTyphoonPrepared) return;
+	mGameScene->ShowHeavyRainWarning(
+		mPendingHeavyTyphoonStrength, mPendingHeavyRainPromptVariant);
+	mHeavyRainPromptShown = true;
 }
 
 /** 检查公开预报是否落在当前状态机的合法候选中，供界面诊断与 AutoTest 使用。 */
@@ -1201,6 +1281,35 @@ void Board::StartTyphoonForHeavyPhase(int chanceRoll, int strengthRoll,
 	RefreshZombieWeatherSpeeds();
 }
 
+/**
+ * 把预警期锁定的台风完整状态兑现到刚开始的大雨。
+ * 台风保底只在此处更新，因此退出或读档不会把尚未来临的大雨提前计入结果。
+ */
+void Board::ConsumePendingHeavyTyphoon()
+{
+	if (!mPendingHeavyTyphoonPrepared) {
+		StartTyphoonForHeavyPhase();
+		return;
+	}
+	const TyphoonStrength strength = mPendingHeavyTyphoonStrength;
+	const WindDirection direction = mPendingHeavyWindDirection;
+	const float strengthTimer = mPendingHeavyTyphoonStrengthTimer;
+	const float gustTimer = mPendingHeavyWindGustTimer;
+	const float directionTimer = mPendingHeavyWindDirectionTimer;
+	const int gustsRemaining = mPendingHeavyTyphoonGustsRemaining;
+	ClearPendingHeavyRainWarning();
+
+	if (strength == TyphoonStrength::NONE) {
+		StopTyphoon();
+		mHeavyPhasesWithoutTyphoon = std::min(
+			mHeavyPhasesWithoutTyphoon + 1, kTyphoonPityMaxMisses);
+		return;
+	}
+	mHeavyPhasesWithoutTyphoon = 0;
+	RestoreTyphoonState(strength, direction,
+		strengthTimer, gustTimer, directionTimer, gustsRemaining);
+}
+
 /** 夹紧并恢复会决定下一轮是否强制大雨的连续弱天气次数。 */
 void Board::RestoreWeakWeatherPity(int weakWeatherPhases)
 {
@@ -1213,6 +1322,37 @@ void Board::RestoreTyphoonPity(int missedHeavyPhases)
 {
 	mHeavyPhasesWithoutTyphoon = std::clamp(
 		missedHeavyPhases, 0, kTyphoonPityMaxMisses);
+}
+
+/** 从存档恢复尚未生效的大雨台风结果；损坏组合只清空，不会在读档阶段重 roll。 */
+void Board::RestorePendingHeavyTyphoon(bool prepared, TyphoonStrength strength,
+	WindDirection direction, float strengthTimer, float gustTimer,
+	float directionTimer, int gustsRemaining, int promptVariant)
+{
+	ClearPendingHeavyRainWarning();
+	if (!prepared || !mWeatherForecastReady
+		|| mActualForecastRainIntensity != RainIntensity::HEAVY
+		|| mRainIntensity == RainIntensity::HEAVY) return;
+	const bool validStrength = strength >= TyphoonStrength::NONE
+		&& strength <= TyphoonStrength::SUPER;
+	const bool validDirection = strength == TyphoonStrength::NONE
+		? direction == WindDirection::NONE
+		: (direction == WindDirection::TOWARD_HOUSE
+			|| direction == WindDirection::TOWARD_FRONT);
+	if (!validStrength || !validDirection) return;
+
+	mPendingHeavyTyphoonPrepared = true;
+	mPendingHeavyTyphoonStrength = strength;
+	mPendingHeavyWindDirection = direction;
+	mPendingHeavyTyphoonStrengthTimer = strength == TyphoonStrength::NONE
+		? 0.0f : std::max(0.0f, strengthTimer);
+	mPendingHeavyWindDirectionTimer = strength == TyphoonStrength::NONE
+		? 0.0f : std::max(0.0f, directionTimer);
+	mPendingHeavyTyphoonGustsRemaining = strength == TyphoonStrength::NONE
+		? 0 : std::clamp(gustsRemaining, 0, TyphoonMaxGusts(strength));
+	mPendingHeavyWindGustTimer = mPendingHeavyTyphoonGustsRemaining > 0
+		? std::max(0.0f, gustTimer) : 0.0f;
+	mPendingHeavyRainPromptVariant = std::clamp(promptVariant, 0, 2);
 }
 
 /** 夹紧并恢复当前波已经成功生成的精英舞王数量。 */
@@ -1581,13 +1721,20 @@ void Board::BeginRain(RainIntensity intensity, float duration, bool canIntensify
 	const bool wasHeavy = mRainIntensity == RainIntensity::HEAVY;
 	BeginWeatherTransition(intensity);
 	if (intensity != RainIntensity::HEAVY) {
+		ClearPendingHeavyRainWarning();
 		StopTyphoon();
 	}
 	else if (!wasHeavy) {
 		// 小雨后续若已增强为大雨，本轮已经兑现压力，不再把它算作弱天气欠账。
 		mWeakWeatherPhasesSinceHeavy = 0;
-		if (allowTyphoonRoll) StartTyphoonForHeavyPhase();
-		else StopTyphoon();
+		if (allowTyphoonRoll) ConsumePendingHeavyTyphoon();
+		else {
+			ClearPendingHeavyRainWarning();
+			StopTyphoon();
+		}
+	}
+	else {
+		ClearPendingHeavyRainWarning();
 	}
 	mForecastRainIntensity = RainIntensity::CLEAR;
 	mActualForecastRainIntensity = RainIntensity::CLEAR;
@@ -1624,6 +1771,7 @@ void Board::FinishRainPhase(int transitionRoll)
 
 void Board::EndRain()
 {
+	ClearPendingHeavyRainWarning();
 	StopTyphoon();
 	BeginWeatherTransition(RainIntensity::CLEAR);
 	mForecastRainIntensity = RainIntensity::CLEAR;
@@ -1660,6 +1808,7 @@ void Board::UpdateWeather(float deltaTime)
 	if (mWeatherTimer <= kWeatherForecastLeadTime && !mWeatherForecastReady) {
 		PrepareWeatherForecast();
 	}
+	MaybeShowHeavyRainPrompt();
 	if (mRainIntensity != RainIntensity::CLEAR && mWeatherTimer > 0.0f
 		&& !IsRainEffectEmitting()) {
 		// 粒子系统若因场景清理或异常耗尽而与天气状态脱节，用剩余时长自动补发。
@@ -1690,6 +1839,7 @@ void Board::SetRainForTesting(RainIntensity intensity, float duration, bool canI
 	mWeatherInitialized = true;
 	mPreviousRainIntensity = mRainIntensity;
 	mWeatherTransitionTimer = 0.0f;
+	ClearPendingHeavyRainWarning();
 	mForecastRainIntensity = RainIntensity::CLEAR;
 	mActualForecastRainIntensity = RainIntensity::CLEAR;
 	mWeatherForecastReady = false;
@@ -1719,10 +1869,34 @@ bool Board::SetWeatherForecastForTesting(RainIntensity forecast, RainIntensity a
 	if (!SupportsWeather() || !mWeatherInitialized) {
 		return false;
 	}
+	ClearPendingHeavyRainWarning();
 	mForecastRainIntensity = forecast;
 	mActualForecastRainIntensity = actual;
 	mWeatherForecastReady = true;
 	mWeatherTimer = std::max(revealIn, 0.1f);
+	PreparePendingHeavyTyphoon();
+	return true;
+}
+
+/** 用确定性台风初态覆盖测试预报；NONE 同样表示已经锁定，而不是尚未抽取。 */
+bool Board::SetPendingHeavyTyphoonForTesting(TyphoonStrength strength, int promptVariant)
+{
+	if (!mWeatherForecastReady || mActualForecastRainIntensity != RainIntensity::HEAVY
+		|| mRainIntensity == RainIntensity::HEAVY
+		|| strength < TyphoonStrength::NONE || strength > TyphoonStrength::SUPER
+		|| promptVariant < -1 || promptVariant > 2) {
+		return false;
+	}
+	mPendingHeavyTyphoonPrepared = true;
+	mPendingHeavyTyphoonStrength = strength;
+	mPendingHeavyWindDirection = strength == TyphoonStrength::NONE
+		? WindDirection::NONE : WindDirection::TOWARD_HOUSE;
+	mPendingHeavyTyphoonStrengthTimer = strength == TyphoonStrength::NONE ? 0.0f : 60.0f;
+	mPendingHeavyWindDirectionTimer = strength == TyphoonStrength::NONE ? 0.0f : 20.0f;
+	mPendingHeavyTyphoonGustsRemaining = TyphoonMaxGusts(strength);
+	mPendingHeavyWindGustTimer = mPendingHeavyTyphoonGustsRemaining > 0 ? 15.0f : 0.0f;
+	if (promptVariant >= 0) mPendingHeavyRainPromptVariant = promptVariant;
+	mHeavyRainPromptShown = false;
 	return true;
 }
 

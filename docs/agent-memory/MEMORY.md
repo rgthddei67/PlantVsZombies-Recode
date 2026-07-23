@@ -5,7 +5,7 @@
 - [Windows 中央存档目录与旧档安全迁移](project_pvz_save_location_migration.md) — 2026-07-21 Windows 正式存档改到 `FOLDERID_SavedGames/PlantsVsZombies/saves`；首次访问旧 `./saves` 时复制、逐字节校验、再删源文件，冲突不覆盖、失败逐文件回退；AutoTest/`-AutoTestLoadSave` 继续隔离在构建目录
 - [第三大关泳池基础系统](project_pvz_pool_basics.md) — 2026-07-23 当前范围仅 3-1/3-2：`WATER_POOL` 恢复通用背景 Y、日/夜泳池共用六行网格基线与水路独立僵尸 Y 偏移、`Zombie` 基类统一入水双探针/存档/阴影与通用 shader 水线裁剪（同场景 2 水中僵尸 21 draw+4 scissor→19+0）、所有现有僵尸可进水且 `CanZombieTypeSpawnInPool` 预留集中禁水名单、普通/路障/铁桶在水路转换专用版本、专用泳池僵尸保留 swim/水中死亡/涟漪泳圈、水中爆炸不产烧焦残影、补种上层植物时从睡莲迁移啃食目标、双层占格、PoolCleaner 水中稳态上移 13px 与旧档边界；3-3 新僵尸和后续出怪表未实现
 - [通用 shader ClipRect](project_pvz_shader_clip_rect.md) — 2026-07-23 `PushClipRect/PopClipRect` 全部改为逐顶点/逐实例 framebuffer 矩形裁剪；不再 flush、切 draw、录 worker 状态命令或动态改 scissor；覆盖水路、伴舞出土、图鉴格窗、粒子阻断，含延迟文字继承与无裁剪片元快路径
-- [冒险第二大关起雨势天气](project_pvz_night_rain_weather.md) — 2026-07-23 天气从冒险 2-1 起按 `Board::SupportsWeather` 启用，包括日间泳池；后期导演与台风平衡保持，满压力新天气权重 0/10/25/65，台风权重 15/45/40；天气能力统一使用 `adding-rain-weather` 技能
+- [冒险第二大关起雨势天气](project_pvz_night_rain_weather.md) — 2026-07-23 天气从冒险 2-1 起按 `Board::SupportsWeather` 启用，包括日间泳池；大雨前 5 秒按待生效台风等级显示四档古风文字警报，每档 3 句随机且与图片提示并存，待生效初态/文案编号随档保存；后期导演满压力天气权重 0/10/25/65、台风权重 15/45/40
 - [精英舞王僵尸](project_pvz_elite_dancer_zombie.md) — 2026-07-22 当前为黑夜大雨任意台风 60% 变异、每波最多 3 只；超额成功变异候选源头跳过、不回退普通舞王，未命中变异仍正常刷新；720 HP、基础1.25、每0.2秒补伴舞至36只，强/超强台风再乘1.45/1.75；专项可见 AutoTest 通过
 - [黑夜第二大关出怪节奏](project_pvz_night_spawnlist_pacing.md) — 2026-07-22 冒险 2-1～2-9 单主题节奏：2-6 普通橄榄球、2-7 舞王、2-8 普通铁门+加固铁门（玩家已取得毁灭菇）、2-9 八种重点机制综合并必含加固铁门；双 preset 统一，`smoke_night_spawnlists` 逐关断言并截图
 - [土豆地雷出土触发与范围爆炸](project_pvz_potato_mine_trigger_blast.md) — 2026-07-20 修复埋地时已被啃导致出土后不爆：出土跃迁若 `mEaterCount>0` 主动补触发；爆炸按原版同排半径60圆×僵尸矩形一次结算全部非魅惑目标，不再只杀碰撞触发者；可见 `smoke_potatomine.json` 独立覆盖先啃后出土与已出土双目标范围爆炸

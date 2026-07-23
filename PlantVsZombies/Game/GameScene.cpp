@@ -46,6 +46,14 @@ namespace {
 	constexpr float kForecastFailureFadeDuration = 0.45f; // 失败提示末尾淡出时长（秒，未缩放）
 	constexpr int kForecastFailureTitleFontSize = 17;     // “天气预报失败”标题字号
 	constexpr int kForecastFailureDetailFontSize = 15;    // 预报与实际天气对照行字号
+	constexpr float kPromptBandHeight = 96.0f;            // 紧急文字提示的暗色横幅高度（逻辑像素）
+	constexpr float kPromptBandHorizontalInset = 58.0f;   // 横幅左右留白，避免贴住画面边缘（逻辑像素）
+	constexpr float kPromptTextHoldPulse = 0.015f;        // 文字停留阶段的呼吸缩放幅度
+	constexpr float kPromptTextHoldPulseSpeed = 12.0f;    // 文字停留阶段的呼吸频率（弧度/游戏秒）
+	constexpr float kHeavyRainPromptAppearDuration = 0.28f; // 大雨警报压入画面的时长（游戏秒）
+	constexpr float kHeavyRainPromptHoldDuration = 3.85f; // 大雨警报完全可读的停留时长（游戏秒）
+	constexpr float kHeavyRainPromptFadeDuration = 0.55f; // 大雨警报放大淡出的时长（游戏秒）
+	constexpr int kHeavyRainPromptFontSize = 42;          // 大雨分级警报字号
 
 #define DEVZ(n) { ZombieType::n, #n }
 	// 开发者面板循环切换表；显示枚举标识符（简陋版足够）。与 TestDriver kZombieNames 同集合。
@@ -366,23 +374,8 @@ void GameScene::BuildDrawCommands()
 			[this](Graphics* g) { DrawWeatherForecastFailure(g); },
 			LAYER_UI + 600);
 
-		RegisterDrawCommand("Prompt",
-			[this](Graphics* g) {
-				if (!mPrompt.active) return;
-
-				auto texture = ResourceManager::GetInstance().GetTexture(mPrompt.textureKey);
-				if (!texture) return;
-
-				float w = static_cast<float>(texture->width) * mPrompt.scale;
-				float h = static_cast<float>(texture->height) * mPrompt.scale;
-				float centerX = SCENE_WIDTH / 2.0f;
-				float centerY = SCENE_HEIGHT / 2.0f;
-				float drawX = centerX - w / 2;
-				float drawY = centerY - h / 2;
-
-				glm::vec4 tint(255.0f, 255.0f, 255.0f, mPrompt.alpha);
-				g->DrawTexture(texture, drawX, drawY, w, h, 0.0f, tint);
-			},
+		RegisterDrawCommand("Prompts",
+			[this](Graphics* g) { DrawPrompts(g); },
 			LAYER_UI + 1000);
 
 		// 全屏白闪（寒冰菇）：盖过场景与 Prompt，但在开发者角标（+100000）之下
@@ -895,52 +888,7 @@ void GameScene::Update() {
 			if (mScreenFlashTimer < 0.0f) mScreenFlashTimer = 0.0f;
 		}
 
-		// 处理提示动画
-		if (mPrompt.active)
-		{
-			float delta = DeltaTime::GetDeltaTime();
-			mPrompt.timer += delta;
-
-			switch (mPrompt.stage)
-			{
-			case PromptStage::NONE:
-				// 无激活提示，无需处理
-				break;
-			case PromptStage::APPEAR:
-			{
-				float t = std::min(mPrompt.timer / mPrompt.appearDuration, 1.0f);
-				mPrompt.scale = 1.5f - 0.5f * t;          // 1.5 → 1.0
-				mPrompt.alpha = static_cast<Uint8>(255 * t); // 0 → 255
-				if (mPrompt.timer >= mPrompt.appearDuration)
-				{
-					mPrompt.stage = PromptStage::HOLD;
-					mPrompt.timer = 0.0f;
-				}
-				break;
-			}
-			case PromptStage::HOLD:
-			{
-				if (mPrompt.timer >= mPrompt.holdDuration)
-				{
-					mPrompt.stage = PromptStage::FADE_OUT;
-					mPrompt.timer = 0.0f;
-				}
-				break;
-			}
-			case PromptStage::FADE_OUT:
-			{
-				float t = std::min(mPrompt.timer / mPrompt.fadeDuration, 1.0f);
-				mPrompt.alpha = static_cast<Uint8>(255 * (1.0f - t));
-				mPrompt.scale = 1.0f + 0.2f * t;       // 放大
-				if (mPrompt.timer >= mPrompt.fadeDuration)
-				{
-					mPrompt.active = false;
-					mPrompt.stage = PromptStage::NONE;
-				}
-				break;
-			}
-			}
-		}
+		UpdatePrompts(DeltaTime::GetDeltaTime());
 	}
 
 	if (mReadyToRestart) {
@@ -1653,19 +1601,208 @@ void GameScene::RestoreCurrentWeatherNotice(float remaining)
 		kCurrentWeatherNoticeDuration);
 }
 
+/**
+ * 推进所有并存提示的缩放与透明度，并在动画结束后统一移除。
+ * 保留 vector 的插入顺序，使后来出现的提示在绘制时自然覆盖较早提示。
+ */
+void GameScene::UpdatePrompts(float deltaTime)
+{
+	if (deltaTime <= 0.0f || mPrompts.empty()) return;
+	for (PromptAnimation& prompt : mPrompts) {
+		if (!prompt.active) continue;
+		prompt.timer += deltaTime;
+		switch (prompt.stage) {
+		case PromptStage::NONE:
+			prompt.active = false;
+			break;
+		case PromptStage::APPEAR:
+		{
+			const float t = std::min(prompt.timer / prompt.appearDuration, 1.0f);
+			prompt.scale = 1.5f - 0.5f * t;
+			prompt.alpha = static_cast<Uint8>(255.0f * t);
+			if (prompt.timer >= prompt.appearDuration) {
+				prompt.stage = PromptStage::HOLD;
+				prompt.timer = 0.0f;
+				prompt.scale = 1.0f;
+				prompt.alpha = 255;
+			}
+			break;
+		}
+		case PromptStage::HOLD:
+			if (prompt.timer >= prompt.holdDuration) {
+				prompt.stage = PromptStage::FADE_OUT;
+				prompt.timer = 0.0f;
+			}
+			break;
+		case PromptStage::FADE_OUT:
+		{
+			const float t = std::min(prompt.timer / prompt.fadeDuration, 1.0f);
+			prompt.alpha = static_cast<Uint8>(255.0f * (1.0f - t));
+			prompt.scale = 1.0f + 0.2f * t;
+			if (prompt.timer >= prompt.fadeDuration) {
+				prompt.active = false;
+				prompt.stage = PromptStage::NONE;
+			}
+			break;
+		}
+		}
+	}
+	mPrompts.erase(std::remove_if(mPrompts.begin(), mPrompts.end(),
+		[](const PromptAnimation& prompt) { return !prompt.active; }),
+		mPrompts.end());
+}
+
+/** 绘制图片或紧急文字提示；顺序遍历保证 vector 尾部的最新提示处于最上层。 */
+void GameScene::DrawPrompts(Graphics* g) const
+{
+	if (!g) return;
+	for (const PromptAnimation& prompt : mPrompts) {
+		if (!prompt.active) continue;
+		if (prompt.contentType == PromptContentType::IMAGE) {
+			auto texture = ResourceManager::GetInstance().GetTexture(prompt.content);
+			if (!texture) continue;
+			const float w = static_cast<float>(texture->width) * prompt.scale;
+			const float h = static_cast<float>(texture->height) * prompt.scale;
+			const float drawX = (static_cast<float>(SCENE_WIDTH) - w) * 0.5f;
+			const float drawY = (static_cast<float>(SCENE_HEIGHT) - h) * 0.5f;
+			g->DrawTexture(texture, drawX, drawY, w, h, 0.0f,
+				glm::vec4(255.0f, 255.0f, 255.0f, prompt.alpha));
+			continue;
+		}
+
+		float textScale = prompt.scale;
+		if (prompt.stage == PromptStage::HOLD) {
+			textScale *= 1.0f + kPromptTextHoldPulse
+				* std::sin(prompt.timer * kPromptTextHoldPulseSpeed);
+		}
+		int textWidth = static_cast<int>(prompt.content.size()) * prompt.fontSize / 2;
+		int textHeight = prompt.fontSize;
+		if (TTF_Font* font = ResourceManager::GetInstance().GetFont(
+			ResourceKeys::Fonts::FONT_FZCQ, prompt.fontSize)) {
+			TTF_SizeUTF8(font, prompt.content.c_str(), &textWidth, &textHeight);
+		}
+		const float scaledWidth = static_cast<float>(textWidth) * textScale;
+		const float scaledHeight = static_cast<float>(textHeight) * textScale;
+		const float textX = (static_cast<float>(SCENE_WIDTH) - scaledWidth) * 0.5f;
+		const float textY = (static_cast<float>(SCENE_HEIGHT) - scaledHeight) * 0.5f;
+		const float visibility = static_cast<float>(prompt.alpha) / 255.0f;
+		const float bandY = (static_cast<float>(SCENE_HEIGHT) - kPromptBandHeight) * 0.5f;
+		const float bandWidth = static_cast<float>(SCENE_WIDTH)
+			- kPromptBandHorizontalInset * 2.0f;
+		glm::vec4 accent = prompt.textColor;
+		accent.a *= visibility;
+
+		// 暗幕与上下警戒线把文本从复杂战场中分离；双层辉光加强风暴压迫感。
+		g->FillRect(kPromptBandHorizontalInset, bandY, bandWidth, kPromptBandHeight,
+			glm::vec4(4.0f, 8.0f, 18.0f, 235.0f * visibility));
+		g->FillRect(kPromptBandHorizontalInset, bandY, bandWidth, 3.0f,
+			glm::vec4(accent.r, accent.g, accent.b, 210.0f * visibility));
+		g->FillRect(kPromptBandHorizontalInset, bandY + kPromptBandHeight - 3.0f,
+			bandWidth, 3.0f,
+			glm::vec4(accent.r, accent.g, accent.b, 210.0f * visibility));
+		const glm::vec4 glow(accent.r, accent.g, accent.b, 58.0f * visibility);
+		g->DrawText(prompt.content, ResourceKeys::Fonts::FONT_FZCQ, prompt.fontSize,
+			glow, textX - 2.0f, textY, textScale);
+		g->DrawText(prompt.content, ResourceKeys::Fonts::FONT_FZCQ, prompt.fontSize,
+			glow, textX + 2.0f, textY, textScale);
+		g->DrawText(prompt.content, ResourceKeys::Fonts::FONT_FZCQ, prompt.fontSize,
+			glm::vec4(0.0f, 0.0f, 0.0f, 230.0f * visibility),
+			textX + 3.0f, textY + 3.0f, textScale);
+		g->DrawText(prompt.content, ResourceKeys::Fonts::FONT_FZCQ, prompt.fontSize,
+			accent, textX, textY, textScale);
+	}
+}
+
 void GameScene::ShowPrompt(const std::string& textureKey,
 	float appearDur,
 	float holdDur,
 	float fadeDur)
 {
-	// 如果已有动画正在播放 直接覆盖
-	mPrompt.active = true;
-	mPrompt.stage = PromptStage::APPEAR;
-	mPrompt.timer = 0.0f;
-	mPrompt.scale = 1.5f;               // 起始放大
-	mPrompt.alpha = 0;                   // 起始透明
-	mPrompt.textureKey = textureKey;
-	mPrompt.appearDuration = appearDur;
-	mPrompt.holdDuration = holdDur;
-	mPrompt.fadeDuration = fadeDur;
+	PromptAnimation prompt;
+	prompt.active = true;
+	prompt.stage = PromptStage::APPEAR;
+	prompt.contentType = PromptContentType::IMAGE;
+	prompt.scale = 1.5f;
+	prompt.alpha = 0;
+	prompt.content = textureKey;
+	prompt.appearDuration = std::max(appearDur, 0.01f);
+	prompt.holdDuration = std::max(holdDur, 0.01f);
+	prompt.fadeDuration = std::max(fadeDur, 0.01f);
+	mPrompts.push_back(std::move(prompt));
+}
+
+void GameScene::ShowTextPrompt(const std::string& text, const glm::vec4& color,
+	int fontSize, float appearDur, float holdDur, float fadeDur)
+{
+	if (text.empty()) return;
+	PromptAnimation prompt;
+	prompt.active = true;
+	prompt.stage = PromptStage::APPEAR;
+	prompt.contentType = PromptContentType::TEXT;
+	prompt.scale = 1.5f;
+	prompt.alpha = 0;
+	prompt.content = text;
+	prompt.textColor = glm::clamp(color, glm::vec4(0.0f), glm::vec4(255.0f));
+	prompt.fontSize = std::max(fontSize, 1);
+	prompt.appearDuration = std::max(appearDur, 0.01f);
+	prompt.holdDuration = std::max(holdDur, 0.01f);
+	prompt.fadeDuration = std::max(fadeDur, 0.01f);
+	mPrompts.push_back(std::move(prompt));
+}
+
+void GameScene::ShowHeavyRainWarning(TyphoonStrength strength, int variant)
+{
+	const int selected = std::clamp(variant, 0, 2);
+	const char* text = nullptr;
+	glm::vec4 color(112.0f, 210.0f, 255.0f, 255.0f);
+	switch (strength) {
+	case TyphoonStrength::NONE:
+	{
+		constexpr const char* kLines[] = {
+			u8"玄云压城雾不开，银河倒泻雨声来",
+			u8"雷隐千峰云覆台，雨倾万壑浪奔来",
+			"THE HEAVENS WEEP — THE FLOOD DESCENDS",
+		};
+		text = kLines[selected];
+		break;
+	}
+	case TyphoonStrength::TYPHOON:
+	{
+		constexpr const char* kLines[] = {
+			u8"长风卷叶穿孤城，疏雨敲窗万木鸣",
+			u8"云旗猎猎遮危城，夜雨萧萧动客旌",
+			"THE WIND HUNTS — BAR THE GATES",
+		};
+		text = kLines[selected];
+		color = glm::vec4(255.0f, 205.0f, 88.0f, 255.0f);
+		break;
+	}
+	case TyphoonStrength::SEVERE:
+	{
+		constexpr const char* kLines[] = {
+			u8"罡风裂野撼孤城，怒雨翻江万壑鸣",
+			u8"狂澜撼岳群山惊，飞石穿云万谷鸣",
+			"THE GALE ROARS — KNEEL OR BREAK",
+		};
+		text = kLines[selected];
+		color = glm::vec4(255.0f, 126.0f, 66.0f, 255.0f);
+		break;
+	}
+	case TyphoonStrength::SUPER:
+	{
+		constexpr const char* kLines[] = {
+			u8"天地无光山岳倾，九霄雷坠鬼神惊",
+			u8"乾坤倒转星河坠，万里山川一怒摧",
+			"THE END DESCENDS — ALL SHALL BREAK",
+		};
+		text = kLines[selected];
+		color = glm::vec4(255.0f, 60.0f, 82.0f, 255.0f);
+		break;
+	}
+	}
+	if (!text) return;
+	ShowTextPrompt(text, color, kHeavyRainPromptFontSize,
+		kHeavyRainPromptAppearDuration,
+		kHeavyRainPromptHoldDuration,
+		kHeavyRainPromptFadeDuration);
 }

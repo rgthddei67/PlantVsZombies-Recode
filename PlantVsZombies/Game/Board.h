@@ -185,6 +185,15 @@ private:
 	bool mRainCanIntensify = false;     // 仅初始小雨可增强；首次切档后永久转入衰减链
 	bool mRainCanHold = false;          // 新雨首段为中/大雨时允许一次同档续期，避免无限维持
 	bool mWeatherForecastReady = false; // true 表示公开预报与真实下一天气均已锁定、等待揭晓
+	bool mPendingHeavyTyphoonPrepared = false; // 大雨预警期已锁定台风等级，切档时消费而不重 roll
+	TyphoonStrength mPendingHeavyTyphoonStrength = TyphoonStrength::NONE; // 下一场大雨的待生效台风等级
+	WindDirection mPendingHeavyWindDirection = WindDirection::NONE; // 待生效台风初始吹向；与等级一并锁定
+	float mPendingHeavyTyphoonStrengthTimer = 0.0f; // 待生效台风首档维持时长（游戏秒）
+	float mPendingHeavyWindDirectionTimer = 0.0f; // 待生效台风首次重抽风向倒计时（游戏秒）
+	float mPendingHeavyWindGustTimer = 0.0f; // 待生效台风首次阵风倒计时（游戏秒）
+	int mPendingHeavyTyphoonGustsRemaining = 0; // 待生效台风首档阵风预算
+	int mPendingHeavyRainPromptVariant = 0; // 同等级三句古风警报中的锁定编号（0～2）
+	bool mHeavyRainPromptShown = false; // 当前锁定预报是否已经弹出过提前 5 秒的大雨警报
 	bool mRainVisualActive = false;     // 纯运行期标记，防读档/生存轮间重复发射同一场雨
 	std::string mRainVisualEffectName;  // 当前雨丝特效名；风向切换时只停止旧雨而不清空其他粒子
 	float mWindParticleTimer = 0.0f;    // 距下一批风线粒子的游戏秒数；瞬态视觉不入存档
@@ -244,6 +253,9 @@ private:
 	RainIntensity RollNextWeather(int forcedRoll = 0);
 	void PrepareWeatherForecast(int weatherRoll = 0);
 	void ConsumeWeatherForecast();
+	void PreparePendingHeavyTyphoon(int chanceRoll = 0, int strengthRoll = 0);
+	void ClearPendingHeavyRainWarning();
+	void MaybeShowHeavyRainPrompt();
 	void BeginRain(RainIntensity intensity, float duration, bool canIntensify, bool canHold,
 		bool allowTyphoonRoll = true);
 	// 结束当前雨段：按固定权重落点决定放晴或进入一个不可再增强的尾雨段。
@@ -251,9 +263,13 @@ private:
 	void EndRain();
 	void StartTyphoonForHeavyPhase(int chanceRoll = 0, int strengthRoll = 0,
 		WindDirection forcedDirection = WindDirection::NONE);
+	void ConsumePendingHeavyTyphoon();
 	void StopTyphoon();
 	void RestoreWeakWeatherPity(int weakWeatherPhases);
 	void RestoreTyphoonPity(int missedHeavyPhases);
+	void RestorePendingHeavyTyphoon(bool prepared, TyphoonStrength strength,
+		WindDirection direction, float strengthTimer, float gustTimer,
+		float directionTimer, int gustsRemaining, int promptVariant);
 	void RestoreEliteDancerWaveSpawnCount(int count);
 	void RestoreReinforcedDoorWaveSpawnCount(int count);
 	void RestoreTyphoonState(TyphoonStrength strength, WindDirection direction,
@@ -340,6 +356,10 @@ public:
 	bool HasWeatherForecast() const { return mWeatherForecastReady; }
 	RainIntensity GetForecastRainIntensity() const { return mForecastRainIntensity; }
 	RainIntensity GetActualForecastRainIntensity() const { return mActualForecastRainIntensity; }
+	bool HasPendingHeavyTyphoon() const { return mPendingHeavyTyphoonPrepared; }
+	TyphoonStrength GetPendingHeavyTyphoonStrength() const { return mPendingHeavyTyphoonStrength; }
+	int GetPendingHeavyRainPromptVariant() const { return mPendingHeavyRainPromptVariant; }
+	bool HasShownHeavyRainPrompt() const { return mHeavyRainPromptShown; }
 	/** 当前天气预报准确率（百分比）；随导演强度成长但最高不超过 90%。 */
 	int GetCurrentWeatherForecastAccuracyPercent() const;
 	/** 当前连续非大雨新天气次数；只在后期天气导演启用时累计。 */
@@ -386,6 +406,8 @@ public:
 	bool SetSurvivalRoundForTesting(int round);
 	// AutoTest 专用：固定公开预报与真实天气，并把当前阶段倒计时改为指定揭晓时间。
 	bool SetWeatherForecastForTesting(RainIntensity forecast, RainIntensity actual, float revealIn = 1.0f);
+	// AutoTest 专用：覆盖已锁定大雨的待生效台风等级，验证四档预警文案与切档消费。
+	bool SetPendingHeavyTyphoonForTesting(TyphoonStrength strength, int promptVariant = -1);
 	// AutoTest 专用：在晴天用固定权重落点走正式新天气抽取，并发布必定准确的锁定预报。
 	bool PrepareWeatherForecastForTesting(int weatherRoll, float revealIn = 0.1f);
 	// AutoTest 专用：用固定权重落点结束当前雨段，覆盖增强、衰减和放晴分支。

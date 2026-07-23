@@ -15,12 +15,17 @@ class ShovelBank;
 
 constexpr float mBackgroundY = -50;
 
-// 一大波、最后一波
+// 一大波、最后一波与天气警报共用的提示动画阶段
 enum class PromptStage {
 	NONE,
 	APPEAR,
 	HOLD,
 	FADE_OUT
+};
+
+enum class PromptContentType {
+	IMAGE,
+	TEXT
 };
 
 // 开场动画阶段
@@ -32,14 +37,17 @@ enum class IntroStage {
 	FINISH              // 最终完成
 };
 
-// 提示动画数据
+// 提示动画数据；vector 中越晚加入的条目越晚绘制，因而视觉优先级越高。
 struct PromptAnimation {
 	bool active = false;
 	PromptStage stage = PromptStage::NONE;
+	PromptContentType contentType = PromptContentType::IMAGE;
 	float timer = 0.0f;
 	float scale = 1.0f;
 	Uint8 alpha = 255;
-	std::string textureKey;      // 纹理的资源键
+	std::string content;         // 图片资源键或 UTF-8 文本
+	glm::vec4 textColor{ 255.0f, 255.0f, 255.0f, 255.0f };
+	int fontSize = 40;
 	float appearDuration = 1.0f; // 出现阶段时长
 	float holdDuration = 3.0f;    // 停留阶段时长
 	float fadeDuration = 1.0f;    // 消失阶段时长
@@ -95,11 +103,20 @@ public:
 
 	void ShowSunCount();
 
-	// 显示红色大字指示
+	/** 添加图片提示；不会覆盖正在播放的其他提示。 */
 	void ShowPrompt(const std::string& textureKey,
 		float appearDur = 1.0f,
 		float holdDur = 3.0f,
 		float fadeDur = 1.0f);
+	/** 添加居中的紧急文字提示；同帧内越晚添加的提示绘制优先级越高。 */
+	void ShowTextPrompt(const std::string& text, const glm::vec4& color,
+		int fontSize = 40,
+		float appearDur = 0.3f,
+		float holdDur = 3.8f,
+		float fadeDur = 0.6f);
+	/** 根据已锁定的台风等级与同级文案编号显示大雨来临警报。 */
+	void ShowHeavyRainWarning(TyphoonStrength strength, int variant);
+	const std::vector<PromptAnimation>& GetPromptsForTesting() const { return mPrompts; }
 
 	// 全屏白闪（寒冰菇全场冻结的瞬间反馈）：alpha 从峰值线性衰减到 0
 	void ShowScreenFlash(float duration = 0.5f, float peakAlpha = 200.0f);
@@ -142,6 +159,8 @@ private:
 	void UpdateWeatherUi(float deltaTime);
 	void DrawWeatherPanel(Graphics* g) const;
 	void DrawWeatherForecastFailure(Graphics* g) const;
+	void UpdatePrompts(float deltaTime);
+	void DrawPrompts(Graphics* g) const;
 	// 按当前 mSurvivalPerkStepsCompleted 重新 roll 并构建第 N/2 次选择框。
 	void RenderSurvivalPerkSelectStep();
 	// 立即停用并延迟销毁当前选择框，避免刷新或进入下一步时出现一帧双框。
@@ -221,7 +240,7 @@ private:
 	float mReadyAnimElapsed = 0.0f;
 	Vector mReadyStartPos;
 
-	PromptAnimation mPrompt;
+	std::vector<PromptAnimation> mPrompts;
 
 	// 全屏白闪剩余/总时长（秒）；timer<=0 即不激活、不注册额外状态
 	float mScreenFlashTimer = 0.0f;

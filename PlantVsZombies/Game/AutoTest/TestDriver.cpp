@@ -3,6 +3,7 @@
 #include "../../Renderer/VulkanRenderer.h"
 #include "../../DeltaTime.h"
 #include "../../Logger.h"
+#include "../../ResourceKeys.h"
 #include "../SceneManager.h"
 #include "../GameScene.h"
 #include "../ChooseCardUI.h"
@@ -427,6 +428,33 @@ bool TestDriver::ExecuteCurrent() {
 		if (!gs->GetBoard()->SetWeatherForecastForTesting(forecastIt->second, actualIt->second,
 			cmd.value("revealIn", 1.0f))) {
 			Fail("set_weather_forecast: 当前关卡不支持天气，或天气尚未初始化");
+			return false;
+		}
+		if (cmd.contains("typhoonStrength")) {
+			auto typhoonIt = kTyphoonStrengthNames.find(cmd.value("typhoonStrength", ""));
+			if (typhoonIt == kTyphoonStrengthNames.end()
+				|| !gs->GetBoard()->SetPendingHeavyTyphoonForTesting(
+					typhoonIt->second, cmd.value("promptVariant", -1))) {
+				Fail("set_weather_forecast: typhoonStrength 仅允许在待揭晓大雨中使用 NONE/TYPHOON/SEVERE/SUPER，promptVariant 必须为 0..2");
+				return false;
+			}
+		}
+		return true;
+	}
+	if (op == "show_image_prompt") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs) { Fail("show_image_prompt: 不在 GameScene"); return false; }
+		const std::string image = cmd.value("image", "");
+		if (image == "HUGE_WAVE") {
+			gs->ShowPrompt(ResourceKeys::Textures::IMAGE_HUGE_WAVE_APPROACHING,
+				cmd.value("appear", 0.4f), cmd.value("hold", 4.0f), cmd.value("fade", 0.3f));
+		}
+		else if (image == "FINAL_WAVE") {
+			gs->ShowPrompt(ResourceKeys::Textures::IMAGE_FINAL_WAVE,
+				cmd.value("appear", 0.3f), cmd.value("hold", 2.0f), cmd.value("fade", 0.4f));
+		}
+		else {
+			Fail("show_image_prompt: image 必须是 HUGE_WAVE 或 FINAL_WAVE");
 			return false;
 		}
 		return true;
@@ -1000,6 +1028,10 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "lockedActualIntensity", RainIntensityName(board->GetActualForecastRainIntensity()) },
 			{ "forecastPlausible", board->IsWeatherForecastPlausible() },
 			{ "forecastAccuracyPct", board->GetCurrentWeatherForecastAccuracyPercent() },
+			{ "pendingTyphoonPrepared", board->HasPendingHeavyTyphoon() },
+			{ "pendingTyphoonStrength", TyphoonStrengthName(board->GetPendingHeavyTyphoonStrength()) },
+			{ "pendingPromptVariant", board->GetPendingHeavyRainPromptVariant() },
+			{ "heavyRainPromptShown", board->HasShownHeavyRainPrompt() },
 			{ "weakWeatherPhasesSinceHeavy", board->GetWeakWeatherPhasesSinceHeavy() },
 			{ "heavyWeatherForced", board->IsHeavyWeatherForced() },
 			{ "newClearWeight", board->GetCurrentNewWeatherWeight(RainIntensity::CLEAR) },
@@ -1053,6 +1085,20 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "failedForecastIntensity", RainIntensityName(gs->GetFailedForecastRainIntensity()) },
 			{ "actualForecastIntensity", RainIntensityName(gs->GetActualForecastRainIntensity()) },
 		};
+	}
+	out["prompts"] = {
+		{ "activeCount", static_cast<int>(gs->GetPromptsForTesting().size()) },
+		{ "entries", nlohmann::json::array() },
+	};
+	for (const PromptAnimation& prompt : gs->GetPromptsForTesting()) {
+		out["prompts"]["entries"].push_back({
+			{ "kind", prompt.contentType == PromptContentType::IMAGE ? "IMAGE" : "TEXT" },
+			{ "content", prompt.content },
+			{ "fontSize", prompt.fontSize },
+			{ "colorR", static_cast<int>(std::lround(prompt.textColor.r)) },
+			{ "colorG", static_cast<int>(std::lround(prompt.textColor.g)) },
+			{ "colorB", static_cast<int>(std::lround(prompt.textColor.b)) },
+		});
 	}
 
 	out["survivalRound"] = board->mIsSurvival ? board->mSurvivalRound : -1;
