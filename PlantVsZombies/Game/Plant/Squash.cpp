@@ -269,10 +269,18 @@ void Squash::ApplySquashDamage()
 		if (overlap > requiredOverlap) {
 			// C# 使用 TakeDamage(1800, 18U)：普通体量会走 bit4 的立即死亡，
 			// 只有本体耐久超过 1800 的重型目标才保留并承受伤害；bit1 同时穿透二类护盾。
-			if (zombie->mBodyHealth <= kSquashDamage) {
+			if (zombie->mZombieType == ZombieType::ZOMBIE_REINFORCED_DOOR)
+			{
+				zombie->TakeDamage(kSquashDamage, DamageSource::PLANT_ASH, false);
+				return;
+			}
+
+			if (zombie->mBodyHealth <= kSquashDamage) 
+			{
 				zombie->Die();
 			}
-			else {
+			else 
+			{
 				zombie->TakeDamage(kSquashDamage, DamageSource::PLANT, true);
 			}
 		}
