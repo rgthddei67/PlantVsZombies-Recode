@@ -1,0 +1,45 @@
+<Emitter>
+  <Name>DustSquash</Name>
+  <SpawnMinActive>12</SpawnMinActive>
+  <SpawnMaxLaunched>12</SpawnMaxLaunched>
+  <ParticleDuration>0.3</ParticleDuration>
+  <SystemDuration>0.35</SystemDuration>
+  <ParticleAlpha>[.3 .8],20 0</ParticleAlpha>
+  <ParticleScale>[.2 .3] [.6 .8],70</ParticleScale>
+  <EmitterType>Box</EmitterType>
+  <EmitterBoxX>[-5 35]</EmitterBoxX>
+  <EmitterBoxY>[0 4]</EmitterBoxY>
+  <Image>PARTICLE_DUST_PUFFS</Image>
+  <ImageFrames>3</ImageFrames>
+  <AnimationRate>12</AnimationRate>
+  <Field>
+    <FieldType>Position</FieldType>
+    <Y>0,20 [-10 0]</Y>
+    <X>0 [10 40]</X>
+  </Field>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <ParticleSpinSpeed>[-200 200]</ParticleSpinSpeed>
+</Emitter>
+
+<Emitter>
+  <Name>DustSquashLeft</Name>
+  <SpawnMinActive>12</SpawnMinActive>
+  <SpawnMaxLaunched>12</SpawnMaxLaunched>
+  <ParticleDuration>0.3</ParticleDuration>
+  <SystemDuration>0.35</SystemDuration>
+  <ParticleAlpha>[.3 .8],20 0</ParticleAlpha>
+  <ParticleScale>[.2 .3] [.6 .8],70</ParticleScale>
+  <EmitterType>Box</EmitterType>
+  <EmitterBoxX>[-35 5]</EmitterBoxX>
+  <EmitterBoxY>[0 4]</EmitterBoxY>
+  <Image>PARTICLE_DUST_PUFFS</Image>
+  <ImageFrames>3</ImageFrames>
+  <AnimationRate>12</AnimationRate>
+  <Field>
+    <FieldType>Position</FieldType>
+    <Y>0,20 [-10 0]</Y>
+    <X>0 [-40 -10]</X>
+  </Field>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <ParticleSpinSpeed>[-200 200]</ParticleSpinSpeed>
+</Emitter>

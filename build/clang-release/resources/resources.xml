@@ -158,6 +158,8 @@
     <Texture>./resources/particles/DoomShroom_Explosion_Top.png</Texture>
     <Texture>./resources/particles/Doom.png</Texture>
     <Texture>./resources/particles/WhitePixel.png</Texture>
+    <Texture>./resources/particles/Dust_puffs.png</Texture>
+    <Texture Column="6" Row="1">./resources/particles/waterparticle.png</Texture>
     <Texture>./resources/particles/WindStreak.png</Texture>
     <Texture>./resources/image/reanim/Rain_circle.png</Texture>
     <Texture>./resources/image/reanim/Rain_splash1.png</Texture>
@@ -216,6 +218,8 @@
 <Sound>./resources/sounds/Plant/snow_pea_sparkles.ogg</Sound>
     <Sound>./resources/sounds/Plant/squash_hmm.ogg</Sound>
     <Sound>./resources/sounds/Plant/squash_hmm2.ogg</Sound>
+    <Sound>./resources/sounds/Zombie/gargantuar_thump.ogg</Sound>
+    <Sound>./resources/sounds/Zombie/zombiesplash.ogg</Sound>
     <Sound>./resources/sounds/Plant/PlantShoot/throw.ogg</Sound>
     <Sound>./resources/sounds/Plant/PlantShoot/throw2.ogg</Sound>
     <Sound>./resources/sounds/Plant/cherrybomb.ogg</Sound>
@@ -271,6 +275,7 @@
     <Reanimation name="IceShroom">./resources/reanim/IceShroom.reanim</Reanimation>
     <Reanimation name="DoomShroom">./resources/reanim/DoomShroom.reanim</Reanimation>
     <Reanimation name="LilyPad">./resources/reanim/LilyPad.reanim</Reanimation>
+    <Reanimation name="Squash">./resources/reanim/Squash.reanim</Reanimation>
 
     <Reanimation name="NormalZombie">./resources/reanim/NormalZombie.reanim</Reanimation>
     <Reanimation name="ConeZombie">./resources/reanim/ConeZombie.reanim</Reanimation>

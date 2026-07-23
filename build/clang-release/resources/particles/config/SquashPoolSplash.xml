@@ -1,0 +1,15 @@
+<Emitter>
+  <Name>SquashPoolSplash</Name>
+  <SpawnMinActive>6</SpawnMinActive>
+  <SpawnMaxLaunched>6</SpawnMaxLaunched>
+  <ParticleDuration>0.5</ParticleDuration>
+  <SystemDuration>0.6</SystemDuration>
+  <ParticleAlpha>1,90 0</ParticleAlpha>
+  <ParticleStretch>.1 .8 .5</ParticleStretch>
+  <ParticleScale>1.5</ParticleScale>
+  <Image>PARTICLE_WATERPARTICLE_PART_0,PARTICLE_WATERPARTICLE_PART_1,PARTICLE_WATERPARTICLE_PART_2,PARTICLE_WATERPARTICLE_PART_3,PARTICLE_WATERPARTICLE_PART_4,PARTICLE_WATERPARTICLE_PART_5</Image>
+  <Field>
+    <FieldType>Position</FieldType>
+    <Y>6 -20 -5</Y>
+  </Field>
+</Emitter>

@@ -30,6 +30,7 @@
 #include "IceShroom.h"
 #include "DoomShroom.h"
 #include "LilyPad.h"
+#include "Squash.h"
 
 #include "../Zombie/Zombie.h"
 #include "../Zombie/ConeZombie.h"
@@ -189,6 +190,11 @@ void GameDataManager::InitializeHardcodedData() {
 		ResourceKeys::Textures::IMAGE_LILYPAD,
 		AnimationType::ANIM_LILYPAD,
 		ResourceKeys::Reanimations::REANIM_LILYPAD, &MakePlant<LilyPad>);
+
+	RegisterPlant(PlantType::PLANT_SQUASH, "PLANT_SQUASH",
+		ResourceKeys::Textures::IMAGE_SQUASH,
+		AnimationType::ANIM_SQUASH,
+		ResourceKeys::Reanimations::REANIM_SQUASH, &MakePlant<Squash>);
 
 	// 寒冰大喷菇：复用大喷菇 reanim（蓝色靠 overlay），仅卡图独立
 	RegisterPlant(PlantType::PLANT_ICEFUMESHROOM, "PLANT_ICEFUMESHROOM",

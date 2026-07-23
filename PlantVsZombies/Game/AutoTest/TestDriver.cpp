@@ -15,6 +15,7 @@
 #include "../Plant/PlantType.h"
 #include "../Plant/Plant.h"
 #include "../Plant/LilyPad.h"
+#include "../Plant/Squash.h"
 #include "../Plant/Shooter.h"
 #include "../Plant/EliteScaredyShroom.h"
 #include "../Bullet/Bullet.h"
@@ -1239,7 +1240,9 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "eaterCount", p->mEaterCount },
 			{ "sleeping", p->GetSleepState() },
 			{ "track", p->GetCurrentTrackName() },
+			{ "logicalX", p->GetPosition().x },
 			{ "logicalY", p->GetPosition().y },
+			{ "visualX", p->GetVisualPosition().x },
 			{ "visualY", p->GetVisualPosition().y },
 		};
 		if (auto* shooter = dynamic_cast<Shooter*>(p)) {
@@ -1255,6 +1258,11 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		}
 		if (auto* lilyPad = dynamic_cast<LilyPad*>(p)) {
 			plantState["biteProtected"] = lilyPad->IsBiteProtected();
+		}
+		if (auto* squash = dynamic_cast<Squash*>(p)) {
+			plantState["squashState"] = squash->GetSquashStateName();
+			plantState["squashTargetZombieID"] = squash->GetTargetZombieID();
+			plantState["squashDamageApplied"] = squash->HasAppliedDamage();
 		}
 		if (auto* eliteScaredy = dynamic_cast<EliteScaredyShroom*>(p)) {
 			plantState["growthShots"] = eliteScaredy->GetGrowthShotCount();

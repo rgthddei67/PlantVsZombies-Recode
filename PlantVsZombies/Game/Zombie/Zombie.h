@@ -129,6 +129,8 @@ public:
 	Vector GetVisualPosition() const override;
 	Vector GetPosition() const;
 	void SetPosition(const Vector& position);
+	/** 按当前碰撞矩形中心与实际行走速度预测水平落点，供倭瓜复刻 ZombieTargetLeadX。 */
+	float GetTargetLeadX(float seconds) const;
 
 	bool IsMindControlled() const { return this->mIsMindControlled; }
 	// 魅惑唯一入口：豁免(CanBeCharmed)/重复/垂死则 no-op。魅惑菇、AutoTest charm_zombie 都走这里。

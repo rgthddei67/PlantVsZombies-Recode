@@ -215,6 +215,8 @@ namespace ResourceKeys
 		RKEY(SOUND_POTATO_MINE);
 		RKEY(SOUND_SQUASH_HMM);
 		RKEY(SOUND_SQUASH_HMM2);
+		RKEY(SOUND_GARGANTUAR_THUMP);
+		RKEY(SOUND_ZOMBIESPLASH);
 		inline const std::string SOUND_SHOOTER_SHOOT = "SOUND_THROW";
 		inline const std::string SOUND_SHOOTER_SHOOT2 = "SOUND_THROW2";
 		RKEY(SOUND_CHERRYBOMB);
@@ -259,6 +261,7 @@ namespace ResourceKeys
 		inline const std::string REANIM_POTATOMINE = "PotatoMine";
 		inline const std::string REANIM_SNOWPEASHOOTER = "SnowPeaShooter";
 		inline const std::string REANIM_LILYPAD = "LilyPad";
+		inline const std::string REANIM_SQUASH = "Squash";
 
 		inline const std::string REANIM_NORMAL_ZOMBIE = "NormalZombie";
 		inline const std::string REANIM_CONE_ZOMBIE = "ConeZombie";

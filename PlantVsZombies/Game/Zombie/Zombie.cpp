@@ -967,6 +967,27 @@ void Zombie::SetPosition(const Vector& position)
 	this->GetTransformComponent()->SetPosition(position);
 }
 
+float Zombie::GetTargetLeadX(float seconds) const
+{
+	float centerX = GetPosition().x;
+	if (mCollider) {
+		const SDL_FRect bounds = mCollider->GetBoundingBox();
+		centerX = bounds.x + bounds.w * 0.5f;
+	}
+	if (seconds <= 0.0f || mIsEating || mIsDying || mIsDead || !mHasHead
+		|| mFrozenTimer > 0.0f || !mAnimator) {
+		return centerX;
+	}
+
+	const float trackSpeed = mGroundTrackIndex >= 0
+		? mAnimator->GetTrackVelocity(mGroundTrackIndex)
+		: mAnimator->GetTrackVelocity("_ground");
+	float velocity = trackSpeed * mSpeed;
+	if (mCooldownTimer > 0.0f) velocity *= 0.5f;
+	if (mBoard) velocity *= mBoard->GetZombieWindMoveMultiplier(mIsMindControlled);
+	return centerX + (mIsMindControlled ? velocity : -velocity) * seconds;
+}
+
 void Zombie::Draw(Graphics* g)
 {
 	const bool clipAtWaterline = g && mInPool && !mIsPreview;

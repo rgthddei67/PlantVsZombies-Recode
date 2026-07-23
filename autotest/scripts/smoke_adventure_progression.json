@@ -59,6 +59,20 @@
     { "op": "assert_state", "path": "adventureLevel", "equals": 18 },
     { "op": "assert_state", "path": "haveCardCount", "equals": 3 },
     { "op": "assert_state", "path": "haveCards.2", "equals": "PLANT_ELITE_SCAREDYSHROOM" },
+
+    { "op": "set_adventure_level", "level": 19 },
+    { "op": "goto_level", "level": 19 },
+    { "op": "choose_cards", "cards": [], "timeout": 20 },
+    { "op": "wait_state", "state": "GAME" },
+    { "op": "force_trophy" },
+    { "op": "wait_frames", "value": 2 },
+    { "op": "screenshot", "name": "reward_squash_3_1.png" },
+    { "op": "click", "target": "trophy" },
+    { "op": "wait_frames", "value": 3 },
+    { "op": "assert_state", "path": "boardState", "equals": "WIN" },
+    { "op": "assert_state", "path": "adventureLevel", "equals": 20 },
+    { "op": "assert_state", "path": "haveCardCount", "equals": 4 },
+    { "op": "assert_state", "path": "haveCards.3", "equals": "PLANT_SQUASH" },
     { "op": "quit" }
   ]
 }

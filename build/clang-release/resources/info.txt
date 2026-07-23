@@ -72,6 +72,11 @@
 [PLANT_LILYPAD_DESCRIPTION]
 睡莲可以种在水面上，让大多数陆生植物在水路安家。刚刚入水时，它还会短暂避开僵尸的第一口。
 
+[PLANT_SQUASH]
+倭瓜
+[PLANT_SQUASH_DESCRIPTION]
+倭瓜会压扁第一个接近它的僵尸。伤害极高，范围覆盖落点附近，一次性使用。“我准备好了！”倭瓜大吼道，“干吧！算我一份！没人比我厉害！我就是你要的人！”
+
 [ZOMBIE_NORMAL]
 僵尸
 [ZOMBIE_NORMAL_DESCRIPTION]
