@@ -12,7 +12,10 @@
     { "op": "wait_frames", "value": 2 },
     { "op": "assert_state", "path": "zombies.0.inPool", "equals": true },
     { "op": "assert_state", "path": "zombies.0.track", "equals": "anim_swim" },
-    { "op": "assert_state", "path": "zombies.0.yInt", "equals": 300 },
+    { "op": "assert_state", "path": "zombies.0.yInt", "equals": 295 },
+    { "op": "spawn_zombie", "type": "ZOMBIE_NORMAL", "row": 0, "x": 930 },
+    { "op": "wait_frames", "value": 2 },
+    { "op": "assert_state", "path": "zombies.1.yInt", "equals": 100 },
 
     { "op": "wait_seconds", "value": 5.0, "timeout": 8 },
     { "op": "assert_state", "path": "zombies.0.isEating", "equals": true },

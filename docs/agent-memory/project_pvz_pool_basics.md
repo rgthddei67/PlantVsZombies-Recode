@@ -20,7 +20,7 @@ metadata:
 - `Cell` 有 `under/normal` 两个植物槽。睡莲只能放在空水格的 under 层；普通植物只能放在已有睡莲且 normal 层为空的水格；土豆雷仍禁止下水。铲子、僵尸啃咬与 UI 预览都以 top 层为准。
 - 睡莲种下后 1 秒只免疫啃咬，计时器进存档；水面植物只做±2px 绘制浮动，Transform/碰撞与存档仍固定在逻辑格。
 - 普通/路障/铁桶僵尸在水路由正式波次入口替换为 `ZOMBIE_POOL_*`，而非为出怪表添加独立权重。特殊陆地僵尸不进水路。水路僵尸使用前/后双探针进水；本项目将下水/出水切换位置相对原探针向右校正 70px。水中断头/断臂不生成悬浮的陆地碎片，死亡轨道分陆地/水中。
-- 所有僵尸生成 Y 由网格行中心派生。第一、二大关继续使用已确认正确的 `kZombieSpawnBaseOffsetY=+2px`；泳池动画叠加主人目测确认的 `kPoolZombieSpawnYOffset=50px`，只有第三大关再应用 `kThirdAreaZombieAlignmentOffsetY=-10px`，不影响旧地图或后续泳池地图。三者均集中在 `Board.cpp` 顶部，第三大关网格整体移动时生成 Y 会自动随行中心移动。
+- 所有僵尸生成 Y 由网格行中心派生。第一、二大关继续使用已确认正确的 `kZombieSpawnBaseOffsetY=+2px`；主人实测后的泳池背景公共偏移为 `kPoolBackgroundZombieSpawnYOffset=0px`，第三大关所有行再应用 `kThirdAreaZombieAlignmentOffsetY=+10px`。水路必须与同地图陆地行分开，`IsPoolRow(row)` 额外应用 `kPoolRowZombieSpawnYOffset=+25px`，因此只下移第 3/4 行水中僵尸，不影响陆地行。四者均集中在 `Board.cpp` 顶部；旧名 `kPoolZombieSpawnYOffset` 因容易误解为水路专属而弃用。
 - `anim_eat` 会重新显露双腿并把 `Zombie_duckytube` 换回无水面接触纹理的普通贴图；泳池僵尸在水中进入啃食态后必须隐藏 inner/outer leg 的 upper/lower/foot 六条轨道，并把泳圈覆盖为 `IMAGE_REANIM_ZOMBIE_DUCKYTUBE_INWATER` 保留涟漪，停止啃食和读档恢复时对称重建/撤销覆盖。
 - 台风对同格睡莲+上层植物必须整叠搬运/丢失，不允许拆叠。
 - `PoolCleaner` 使用 `LAND/ENTERING/IN_POOL/EXITING` 高度状态；只改绘制偏移，不改行与碰撞。陆地/水中吞噬分别用 `anim_landsuck/anim_suck`，稳态用 `anim_land/anim_water`，运动速度按 C# 水车:草车 `2.5:3.33` 换算。
@@ -29,4 +29,4 @@ metadata:
 
 ## 验证
 
-`smoke_pool_basics.json` 覆盖 3-1/3-2 背景、六行、出怪表、睡莲分层/保护/禁种、天气、台风整叠搬运、地形僵尸替换与水中死亡。`smoke_pool_cleaner.json` 覆盖待机、启动、入水、水中、出水和回到陆地。`smoke_pool_zombie_visuals.json` 在 x=930 断言向右校正后的入水切换、泳池第 3 行生成 Y≈300，并断言水中 `anim_eat` 时六条腿部轨道全隐藏，同时输出背景/网格/僵尸 Y 对齐截图。2026-07-23 三脚本在 `clang-playtest` 当前桌面可见运行均退出 0，`smoke_night_rain` 回归与 `save-migration` CTest 同样通过。
+`smoke_pool_basics.json` 覆盖 3-1/3-2 背景、六行、出怪表、睡莲分层/保护/禁种、天气、台风整叠搬运、地形僵尸替换与水中死亡。`smoke_pool_cleaner.json` 覆盖待机、启动、入水、水中、出水和回到陆地。`smoke_pool_zombie_visuals.json` 在 x=930 断言向右校正后的入水切换，并同时锁定第三大关水路 Y≈295、陆地行 Y≈100、第一/二大关 Y≈340；水中 `anim_eat` 时六条腿部轨道全隐藏且保留涟漪。2026-07-23 三脚本在 `clang-playtest` 当前桌面可见运行均退出 0，`smoke_night_rain` 回归与 `save-migration` CTest 同样通过。

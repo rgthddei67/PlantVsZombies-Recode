@@ -30,8 +30,9 @@ namespace {
 	constexpr float kDefaultPoolCellInitialY = 85.0f;     // 其他泳池地图沿用既有六行网格首行顶部世界坐标（像素）
 	constexpr float kPoolCellHeight = 85.0f;              // 泳池六行的逻辑格高（像素）；列宽仍保持 80
 	constexpr float kZombieSpawnBaseOffsetY = 2.0f;       // 第一、二大关已确认正确的僵尸行中心统一基线（像素）
-	constexpr float kPoolZombieSpawnYOffset = 50.0f;      // 适配本项目缩放后的六行僵尸额外基线，单位：像素
-	constexpr float kThirdAreaZombieAlignmentOffsetY = -10.0f; // 仅第三大关修正僵尸略偏下的问题，单位：像素
+	constexpr float kPoolBackgroundZombieSpawnYOffset = 0.0f; // 所有泳池背景、所有行共用的僵尸额外基线，单位：像素
+	constexpr float kThirdAreaZombieAlignmentOffsetY = 10.0f; // 仅第三大关所有行使用的地图对齐基线，单位：像素
+	constexpr float kPoolRowZombieSpawnYOffset = 25.0f;   // 仅水路行僵尸额外下移量，不影响同地图陆地行，单位：像素
 	constexpr int kPoolFirstRow = 2;                      // 泳池第一条水路的 0-based 行号
 	constexpr int kPoolLastRow = 3;                       // 泳池最后一条水路的 0-based 行号
 	constexpr float kFirstRainDelayMin = 90.0f;          // 开局到首场雨的最短等待时间（秒）
@@ -3001,8 +3002,12 @@ float Board::GetZombieSpawnY(int row) const {
 	const float mapAlignmentOffset = mBackGround == Background::WATER_POOL
 		? kThirdAreaZombieAlignmentOffsetY
 		: 0.0f;
+	const float poolRowOffset = IsPoolRow(row)
+		? kPoolRowZombieSpawnYOffset
+		: 0.0f;
 	return GetCellCenterPosition(row, 0).y + kZombieSpawnBaseOffsetY + mapAlignmentOffset
 		+ (IsPoolBackground()
-			? kPoolZombieSpawnYOffset
-			: 0.0f);
+			? kPoolBackgroundZombieSpawnYOffset
+			: 0.0f)
+		+ poolRowOffset;
 }
