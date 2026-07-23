@@ -330,6 +330,13 @@ bool GameInfoSaver::SaveLevelDataImpl(Board* board, CardSlotManager* manager)
 		p["health"] = plant->mPlantHealth;
 		p["maxHealth"] = plant->mPlantMaxHealth;
 		p["isSleeping"] = plant->GetSleepState();
+		p["isSquished"] = plant->IsSquished();
+		if (plant->IsSquished()) {
+			const Vector squishVisual = plant->GetSquishVisualPosition();
+			p["squishTimer"] = plant->GetSquishTimeRemaining();
+			p["squishVisualX"] = squishVisual.x;
+			p["squishVisualY"] = squishVisual.y;
+		}
 		SaveAnimState(p, plant);
 
 		nlohmann::json extraData;
@@ -719,8 +726,10 @@ bool GameInfoSaver::LoadLevelDataImpl(Board* board, CardSlotManager* manager)
 			, res.GetTexture(ResourceKeys::Textures::IMAGE_FLAGMETER_PART_FLAG));
 	}
 
-	// 恢复植物
-	for (auto& p : j.value("plants", nlohmann::json::array())) {
+	// 压扁残影与后来补种的植物可以同格共存。先恢复并释放残影占格，再恢复正常植物，
+	// 避免无序存档数组令残影的创建过程覆盖同格新植物 ID。
+	const auto savedPlants = j.value("plants", nlohmann::json::array());
+	auto restorePlant = [&](const nlohmann::json& p) {
 		PlantType type = static_cast<PlantType>(p["type"].get<int>());
 		int row = p["row"].get<int>();
 		int col = p["column"].get<int>();
@@ -744,6 +753,21 @@ bool GameInfoSaver::LoadLevelDataImpl(Board* board, CardSlotManager* manager)
 			RestoreAnimState(p, plant);
 			if (p.contains("extraData")) {
 				plant->LoadExtraData(p["extraData"]);
+			}
+			// 派生类读档可能重播专属轨道；最后恢复压扁态，确保终态仍暂停且不占格。
+			if (p.value("isSquished", false)) {
+				const Vector fallbackVisual = plant->GetVisualPosition();
+				plant->RestoreSquishState(
+					p.value("squishTimer", 0.0f),
+					Vector(p.value("squishVisualX", fallbackVisual.x),
+						p.value("squishVisualY", fallbackVisual.y)));
+			}
+		}
+	};
+	for (const bool squishedPass : { true, false }) {
+		for (const auto& p : savedPlants) {
+			if (p.value("isSquished", false) == squishedPass) {
+				restorePlant(p);
 			}
 		}
 	}

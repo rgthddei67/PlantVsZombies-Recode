@@ -118,6 +118,17 @@ void Animator::Pause() {
 	mIsPlaying = false;
 }
 
+void Animator::PauseSubtree() {
+	Pause();
+	for (auto& extra : mExtraInfos) {
+		for (auto& weakChild : extra.mAttachedReanims) {
+			if (auto child = weakChild.lock()) {
+				child->PauseSubtree();
+			}
+		}
+	}
+}
+
 void Animator::Stop() {
 	mIsPlaying = false;
 	mFrameIndexNow = mFrameIndexBegin;
@@ -401,6 +412,7 @@ void Animator::DrawInternalInstanced(Graphics* g, float baseX, float baseY, floa
 			rec.tC = -rec.tC;
 			rec.tx = baseX + (2.0f * mFlipPivotX - tx) * Scale;
 		}
+		ApplyRenderScale(rec);
 
 		// Atlas UV resolution: if image is part of an atlas page, use the page's bindless
 		// slot id and the per-sprite atlas UV bbox; otherwise use image itself.
@@ -521,6 +533,7 @@ void Animator::DrawInternal(Graphics* g, float baseX, float baseY, float Scale) 
 				mat[1][0] = -mat[1][0];
 				mat[3][0] = baseX + (2.0f * mFlipPivotX - tx) * Scale;
 			}
+			ApplyRenderScale(mat);
 
 			float combinedAlpha = transform.a * mAlpha;
 			float baseAlpha = std::clamp(combinedAlpha, 0.0f, 1.0f);
@@ -695,6 +708,42 @@ void Animator::SetLocalScale(float sx, float sy) {
 	mLocalScaleY = sy;
 }
 
+void Animator::SetRenderScale(float scaleX, float scaleY, float pivotX, float pivotY) {
+	mRenderScaleX = scaleX;
+	mRenderScaleY = scaleY;
+	mRenderPivotX = pivotX;
+	mRenderPivotY = pivotY;
+
+	// 子 Animator 可能继续拥有自己的附件；递归同步后所有层级走同一世界锚点。
+	for (auto& extra : mExtraInfos) {
+		for (auto& weakChild : extra.mAttachedReanims) {
+			if (auto child = weakChild.lock()) {
+				child->SetRenderScale(scaleX, scaleY, pivotX, pivotY);
+			}
+		}
+	}
+}
+
+void Animator::ApplyRenderScale(InstanceRecord& record) const {
+	record.tA *= mRenderScaleX;
+	record.tC *= mRenderScaleX;
+	record.tx = mRenderPivotX + (record.tx - mRenderPivotX) * mRenderScaleX;
+
+	record.tB *= mRenderScaleY;
+	record.tD *= mRenderScaleY;
+	record.ty = mRenderPivotY + (record.ty - mRenderPivotY) * mRenderScaleY;
+}
+
+void Animator::ApplyRenderScale(glm::mat4& matrix) const {
+	matrix[0][0] *= mRenderScaleX;
+	matrix[1][0] *= mRenderScaleX;
+	matrix[3][0] = mRenderPivotX + (matrix[3][0] - mRenderPivotX) * mRenderScaleX;
+
+	matrix[0][1] *= mRenderScaleY;
+	matrix[1][1] *= mRenderScaleY;
+	matrix[3][1] = mRenderPivotY + (matrix[3][1] - mRenderPivotY) * mRenderScaleY;
+}
+
 void Animator::SetLocalRotation(float rotation) {
 	mLocalRotation = rotation;
 }
@@ -729,6 +778,8 @@ bool Animator::AttachAnimator(const std::string& trackName, std::shared_ptr<Anim
 			extra->mAttachedReanims.push_back(child);
 		}
 	}
+	// 若父 Animator 已处于压扁等世界绘制变换，新挂件从第一帧起继承，避免短暂弹回原形。
+	child->SetRenderScale(mRenderScaleX, mRenderScaleY, mRenderPivotX, mRenderPivotY);
 	return true;
 }
 

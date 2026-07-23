@@ -2,6 +2,7 @@
 
 > Codex routing: required always-on rules live in `../../AGENTS.md`; detailed build, AutoTest, architecture, resource, and implementation guidance lives in `../agent-guide/PROJECT_GUIDE.md`. The entries below are historical subsystem context and should be read only when relevant.
 
+- [植物压扁与复合 Animator 世界缩放](project_pvz_plant_squish.md) — 2026-07-23 `Plant::Squish()` 统一冻结位置/动画、释放占格、纵向 0.5 底边锚定、5 秒残影与末 1 秒渐隐；`Animator::SetRenderScale` 同时烘入慢路径矩阵和 GPU `InstanceRecord` 并递归覆盖射手头部等任意附件；可见 `smoke_plant_squish` 验证根/子停帧、缩放、渐隐和销毁，三类僵尸调用方未实现
 - [Windows 中央存档目录与旧档安全迁移](project_pvz_save_location_migration.md) — 2026-07-21 Windows 正式存档改到 `FOLDERID_SavedGames/PlantsVsZombies/saves`；首次访问旧 `./saves` 时复制、逐字节校验、再删源文件，冲突不覆盖、失败逐文件回退；AutoTest/`-AutoTestLoadSave` 继续隔离在构建目录
 - [第三大关泳池基础系统](project_pvz_pool_basics.md) — 2026-07-23 当前范围仅 3-1/3-2：`WATER_POOL` 六行网格与水路独立僵尸 Y 偏移、睡莲双层占格/上层啃食迁移/悬停预览置顶、自然波次前 4 波仅陆路且第 5 波开放水路、`Zombie` 基类统一入水双探针/存档/阴影与通用 shader 水线裁剪（同场景 2 水中僵尸 21 draw+4 scissor→19+0）、所有现有僵尸可进水且 `CanZombieTypeSpawnInPool` 预留集中禁水名单、普通/路障/铁桶水路专用版本、水中爆炸不产烧焦残影、PoolCleaner 水中稳态上移 13px 与旧档边界；3-3 新僵尸和后续出怪表未实现
 - [通用 shader ClipRect](project_pvz_shader_clip_rect.md) — 2026-07-23 `PushClipRect/PopClipRect` 全部改为逐顶点/逐实例 framebuffer 矩形裁剪；不再 flush、切 draw、录 worker 状态命令或动态改 scissor；覆盖水路、伴舞出土、图鉴格窗、粒子阻断，含延迟文字继承与无裁剪片元快路径

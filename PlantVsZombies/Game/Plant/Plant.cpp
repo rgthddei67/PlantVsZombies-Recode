@@ -12,6 +12,10 @@ namespace {
 	constexpr float kPoolBobRadiansPerFrame = 3.14159265f / 60.0f; // 60Hz 下两秒一个周期
 	constexpr float kPoolBobRowPhase = 3.14159265f;        // 相邻行交错半个周期
 	constexpr float kPoolBobColumnPhase = 3.14159265f / 4.0f; // 相邻列相差八分之一周期
+	constexpr float kSquishScaleY = 0.5f;                  // C# ratioSquished：纵向压到一半，横向保持原宽
+	constexpr float kSquishDurationSeconds = 5.0f;         // 主人调短的压扁残影总保留时间，单位：秒
+	constexpr float kSquishFadeSeconds = 1.0f;             // 保持 C# 末段占总时长 20% 的线性渐隐比例
+	constexpr float kDefaultSquishPivotOffsetY = 100.0f;   // 无 Board 的预防性回退；正式关卡使用当前地图格高
 }
 
 Plant::Plant(Board* board, PlantType plantType, int row, int column,
@@ -77,7 +81,7 @@ void Plant::Start()
 }
 
 void Plant::TakeDamage(int damage, DamageSource source) {
-	if (mIsPreview) return;
+	if (mIsPreview || mIsSquished) return;
 	// 僵尸增伤只放大僵尸来源；植物韧性则对所有实际承伤生效。两者均在 0 层返回单位元。
 	int scaledDamage = damage;
 	if (mBoard) {
@@ -101,22 +105,19 @@ void Plant::Die() {
 		mCollider->mEnabled = false;
 	}
 
-	// 清理植物在Cell上的ID
-	if (mBoard) {
-		auto cell = mBoard->GetCell(mRow, mColumn);
-		if (cell && cell->GetUnderPlantID() == mPlantID) {
-			cell->ClearUnderPlantID();
-		}
-		if (cell && cell->GetNormalPlantID() == mPlantID) {
-			cell->ClearNormalPlantID();
-		}
-	}
+	ReleaseGridSlot();
 	GameObjectManager::GetInstance().DestroyGameObject(this);
 }
 
 void Plant::Update()
 {
 	AnimatedObject::Update();   // 待机动画照常推进，让植物在选卡阶段仍"活着"
+	if (mIsSquished) {
+		if (!mIsPreview && mBoard && mBoard->mBoardState == BoardState::GAME) {
+			UpdateSquish();
+		}
+		return;
+	}
 	UpdateGridMoveVisual();
 	// 仅在对战进行中(GAME)才跑行为逻辑：生存轮间选卡(CHOOSE_CARD)时场上保留的植物应冻结，
 	// 否则向日葵会继续产阳光、射手继续计时等。WIN/LOSE 同理不再行动。
@@ -127,6 +128,8 @@ void Plant::Update()
 }
 
 Vector Plant::GetVisualPosition() const {
+	if (mIsSquished) return mSquishVisualPosition;
+
 	Vector visual = GetTransformComponent()->GetPosition() + mVisualOffset + mGridMoveVisualOffset;
 	if (!mIsPreview && mBoard && mBoard->IsPoolRow(mRow)) {
 		const float phase = static_cast<float>(mBoard->mBoardFrame) * kPoolBobRadiansPerFrame
@@ -139,6 +142,80 @@ Vector Plant::GetVisualPosition() const {
 
 void Plant::PlantUpdate()
 {
+}
+
+void Plant::Squish()
+{
+	if (mIsPreview || mIsSquished) return;
+
+	// 必须在置位前采样；GetVisualPosition() 在压扁态会直接返回冻结坐标。
+	mSquishVisualPosition = GetVisualPosition();
+	mIsSquished = true;
+	mSquishTimer = kSquishDurationSeconds;
+	ApplySquishedPresentation();
+
+	// C# FoleyType.Squish 在 SOUND_CHOMP / SOUND_CHOMP2 中随机选一个。
+	AudioSystem::PlaySound(GameRandom::Chance()
+		? ResourceKeys::Sounds::SOUND_ZOMBIE_EAT
+		: ResourceKeys::Sounds::SOUND_ZOMBIE_EAT2, 0.3f);
+}
+
+void Plant::RestoreSquishState(float remainingSeconds, const Vector& visualPosition)
+{
+	if (mIsPreview) return;
+	mIsSquished = true;
+	mSquishTimer = std::max(0.0f, remainingSeconds);
+	mSquishVisualPosition = visualPosition;
+	ApplySquishedPresentation();
+	if (mSquishTimer <= 0.0f) {
+		Die();
+	}
+}
+
+void Plant::ApplySquishedPresentation()
+{
+	PauseAnimation();
+	const float pivotOffsetY = mBoard ? mBoard->GetCellHeight() : kDefaultSquishPivotOffsetY;
+	if (mAnimator) {
+		// 根暂停已经能阻止子树更新；显式递归暂停还会同步每个子 Animator 的播放状态。
+		mAnimator->PauseSubtree();
+		mAnimator->SetRenderScale(1.0f, kSquishScaleY,
+			mSquishVisualPosition.x, mSquishVisualPosition.y + pivotOffsetY);
+	}
+	if (mCollider) {
+		mCollider->mEnabled = false;
+	}
+	if (auto* shadow = GetComponent<ShadowComponent>()) {
+		shadow->SetVisible(false);
+	}
+	ReleaseGridSlot();
+
+	const float alpha = kSquishFadeSeconds > 0.0f
+		? std::clamp(mSquishTimer / kSquishFadeSeconds, 0.0f, 1.0f)
+		: 1.0f;
+	SetAlpha(alpha);
+}
+
+void Plant::ReleaseGridSlot()
+{
+	if (!mBoard) return;
+	auto cell = mBoard->GetCell(mRow, mColumn);
+	if (cell && cell->GetUnderPlantID() == mPlantID) {
+		cell->ClearUnderPlantID();
+	}
+	if (cell && cell->GetNormalPlantID() == mPlantID) {
+		cell->ClearNormalPlantID();
+	}
+}
+
+void Plant::UpdateSquish()
+{
+	mSquishTimer = std::max(0.0f, mSquishTimer - DeltaTime::GetDeltaTime());
+	if (mSquishTimer <= 0.0f) {
+		Die();
+		return;
+	}
+	SetAlpha(std::clamp(mSquishTimer / kSquishFadeSeconds, 0.0f, 1.0f));
 }
 
 float Plant::GetWeatherActionSpeedMultiplier() const
@@ -208,6 +285,12 @@ void Plant::UpdateGridMoveVisual()
 
 void Plant::Draw(Graphics* g)
 {
+	if (mIsSquished) {
+		// 非等比缩放已烘进 Animator 的快/慢绘制路径；这里只抑制压扁态血量文字。
+		AnimatedObject::Draw(g);
+		return;
+	}
+
 	AnimatedObject::Draw(g);	// 先画本体动画
 
 	if (!g || mIsPreview || !GameAPP::GetInstance().mShowPlantHP) return;

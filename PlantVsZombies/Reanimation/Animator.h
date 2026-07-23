@@ -42,6 +42,10 @@ private:
 	float mClipSpeed = 0.0f;                  ///< 当前轨道的绝对速度覆盖；0 = 回落到 mSpeed。每次 PlayTrack 重设，随轨道作用域
 	float mExtraSpeedMultiplier = 1.0f;       ///< 额外速度倍率 (正交状态层，减速/冻结，跨 PlayTrack 存活)
 	float mAlpha = 1.0f;                      ///< 整体透明度
+	float mRenderScaleX = 1.0f;               ///< 最终世界绘制矩阵的 X 缩放，不影响逻辑坐标/动画推进
+	float mRenderScaleY = 1.0f;               ///< 最终世界绘制矩阵的 Y 缩放
+	float mRenderPivotX = 0.0f;               ///< 最终世界绘制缩放的 X 锚点
+	float mRenderPivotY = 0.0f;               ///< 最终世界绘制缩放的 Y 锚点
 
 	// 过渡动画相关
 	float mReanimBlendCounter = -1.0f;        ///< 混合计数器，>0 时进行混合
@@ -109,6 +113,8 @@ public:
 	 * @brief 暂停播放
 	 */
 	void Pause();
+	/** 暂停自身及当前全部附加 Animator；适用于不会恢复播放的终态表现。 */
+	void PauseSubtree();
 
 	/**
 	 * @brief 停止播放，并将当前帧重置为起始帧
@@ -374,6 +380,14 @@ public:
 	void Draw(Graphics* g, float baseX, float baseY, float Scale = 1.0f);
 
 	/**
+	 * 对最终世界绘制矩阵施加非等比缩放，并递归同步当前及以后附加的子 Animator。
+	 * 与 Graphics 变换栈无关，因此 GPU 实例化快路径和任意层级子动画都保持一致。
+	 */
+	void SetRenderScale(float scaleX, float scaleY, float pivotX, float pivotY);
+	float GetRenderScaleX() const { return mRenderScaleX; }
+	float GetRenderScaleY() const { return mRenderScaleY; }
+
+	/**
 	 * @brief 获取底层 Reanimation 对象
 	 */
 	std::shared_ptr<Reanimation> GetReanimation() const { return mReanim; }
@@ -482,6 +496,10 @@ private:
 	 *        Mat is pre-multiplied 2x3 with sprite (w*Scale, h*Scale) baked into tA..tD.
 	 */
 	void DrawInternalInstanced(Graphics* g, float baseX, float baseY, float Scale) const;
+	/** 把世界绘制缩放烘进实例化快路径的 2x3 仿射记录。 */
+	void ApplyRenderScale(InstanceRecord& record) const;
+	/** 把世界绘制缩放烘进慢路径的 4x4 仿射矩阵。 */
+	void ApplyRenderScale(glm::mat4& matrix) const;
 };
 
 #endif

@@ -19,7 +19,7 @@ void LilyPad::PlantUpdate()
 
 bool LilyPad::CanBeEaten() const
 {
-	return mBiteProtectionTimer <= 0.0f;
+	return Plant::CanBeEaten() && mBiteProtectionTimer <= 0.0f;
 }
 
 void LilyPad::SaveExtraData(nlohmann::json& j) const

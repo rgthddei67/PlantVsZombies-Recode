@@ -675,6 +675,31 @@ bool TestDriver::ExecuteCurrent() {
 			+ ", col=" + std::to_string(col) + ", index=" + std::to_string(index) + ")");
 		return false;
 	}
+	if (op == "squish_plant") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) { Fail("squish_plant: 不在 GameScene 或 Board 为空"); return false; }
+		Board* board = gs->GetBoard();
+		const int row = cmd.value("row", -1);     // -1 = 不过滤行
+		const int col = cmd.value("col", -1);     // -1 = 不过滤列
+		const int index = cmd.value("index", 0);  // 过滤后按 ID 升序第 index 株
+		int seen = 0;
+		auto plantIDs = board->mEntityManager.GetAllPlantIDs();
+		std::sort(plantIDs.begin(), plantIDs.end());
+		for (int id : plantIDs) {
+			Plant* p = board->mEntityManager.GetPlant(id);
+			if (!p) continue;
+			if (row >= 0 && p->mRow != row) continue;
+			if (col >= 0 && p->mColumn != col) continue;
+			if (seen++ == index) {
+				// 直接走正式 Plant 入口；三类未来僵尸只负责决定何时、对哪格调用它。
+				p->Squish();
+				return true;
+			}
+		}
+		Fail("squish_plant: 未找到目标植物 (row=" + std::to_string(row)
+			+ ", col=" + std::to_string(col) + ", index=" + std::to_string(index) + ")");
+		return false;
+	}
 	if (op == "add_perk") {
 		GameScene* gs = CurrentGameScene();
 		if (!gs || !gs->GetBoard()) { Fail("add_perk: 不在 GameScene 或 Board 为空"); return false; }
@@ -1239,7 +1264,14 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "health", p->mPlantHealth }, { "maxHealth", p->mPlantMaxHealth },
 			{ "eaterCount", p->mEaterCount },
 			{ "sleeping", p->GetSleepState() },
+			{ "squished", p->IsSquished() },
+			{ "squishTimeMs", static_cast<int>(p->GetSquishTimeRemaining() * 1000.0f + 0.5f) },
 			{ "track", p->GetCurrentTrackName() },
+			{ "animFrame", p->GetCurrentFrame() },
+			{ "animPlaying", p->IsAnimationPlaying() },
+			{ "alphaPct", static_cast<int>(p->GetAlpha() * 100.0f + 0.5f) },
+			{ "renderScaleYPct",
+				static_cast<int>(p->GetSquishRenderScaleY() * 100.0f + 0.5f) },
 			{ "logicalX", p->GetPosition().x },
 			{ "logicalY", p->GetPosition().y },
 			{ "visualX", p->GetVisualPosition().x },
@@ -1249,7 +1281,10 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			if (const Animator* head = shooter->GetHeadAnimator()) {
 				plantState["headTrack"] = head->GetCurrentTrackName();
 				plantState["headAnimPlaying"] = head->IsPlaying();
+				plantState["headAnimFrame"] = head->GetCurrentFrame();
 				plantState["headAnimPlayState"] = PlayStateName(head->GetPlayingState());
+				plantState["headRenderScaleYPct"] =
+					static_cast<int>(head->GetRenderScaleY() * 100.0f + 0.5f);
 				if (head->IsPlaying() && head->GetPlayingState() == PlayState::PLAY_REPEAT
 					&& head->GetCurrentTrackName() == "anim_shooting") {
 					++repeatingShootingHeadCount;

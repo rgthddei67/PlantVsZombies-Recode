@@ -1,0 +1,37 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 1 },
+    { "op": "choose_cards", "cards": ["PLANT_PEASHOOTER", "PLANT_SUNFLOWER"] },
+    { "op": "wait_state", "state": "GAME" },
+    { "op": "set_spawn_paused", "value": true },
+    { "op": "set_sun", "value": 1000 },
+    { "op": "plant", "type": "PLANT_PEASHOOTER", "row": 2, "col": 4 },
+    { "op": "wait_seconds", "value": 0.5 },
+    { "op": "screenshot", "name": "before_squish.png" },
+    { "op": "dump_state", "name": "before_squish.json" },
+
+    { "op": "squish_plant", "row": 2, "col": 4 },
+    { "op": "wait_frames", "value": 2 },
+    { "op": "assert_state", "path": "plantCount", "equals": 1 },
+    { "op": "assert_state", "path": "plants.0.squished", "equals": true },
+    { "op": "assert_state", "path": "plants.0.animPlaying", "equals": false },
+    { "op": "assert_state", "path": "plants.0.headAnimPlaying", "equals": false },
+    { "op": "assert_state", "path": "plants.0.alphaPct", "equals": 100 },
+    { "op": "assert_state", "path": "plants.0.renderScaleYPct", "equals": 50 },
+    { "op": "assert_state", "path": "plants.0.headRenderScaleYPct", "equals": 50 },
+    { "op": "assert_can_plant", "type": "PLANT_SUNFLOWER", "row": 2, "col": 4, "expected": true },
+    { "op": "screenshot", "name": "squished.png" },
+    { "op": "dump_state", "name": "squished.json" },
+
+    { "op": "wait_seconds", "value": 4.5 },
+    { "op": "assert_state", "path": "plants.0.squished", "equals": true },
+    { "op": "assert_state", "path": "plants.0.alphaPct", "atLeast": 20, "atMost": 70 },
+    { "op": "screenshot", "name": "squished_fading.png" },
+    { "op": "dump_state", "name": "squished_fading.json" },
+
+    { "op": "wait_seconds", "value": 0.7 },
+    { "op": "assert_state", "path": "plantCount", "equals": 0 },
+    { "op": "dump_state", "name": "after_cleanup.json" },
+    { "op": "quit" }
+  ]
+}
