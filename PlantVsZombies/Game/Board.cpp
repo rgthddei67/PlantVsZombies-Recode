@@ -1834,6 +1834,17 @@ bool Board::IsPoolWorldPosition(int row, float x) const
 	return IsPoolRow(row) && x >= CELL_INITALIZE_POS_X && x < poolRight;
 }
 
+/** 返回指定类型能否被正式选行逻辑放进水路；未来禁水类型只需集中追加到此。 */
+bool Board::CanZombieTypeSpawnInPool(ZombieType type) const
+{
+	switch (type) {
+	case ZombieType::NUM_ZOMBIE_TYPES:
+		return false;
+	default:
+		return true;
+	}
+}
+
 Vector Board::GetCellCenterPosition(int row, int col) const
 {
 	return Vector(CELL_INITALIZE_POS_X + static_cast<float>(col) * CELL_COLLIDER_SIZE_X
@@ -2351,17 +2362,19 @@ bool Board::IsSpawnRowCompatible(ZombieType type, int row) const
 {
 	if (!IsPoolBackground()) return row >= 0 && row < mRows;
 	if (row < 0 || row >= mRows) return false;
+	if (IsPoolRow(row)) {
+		// 普通/路障/铁桶会在选行后由 ResolveTerrainZombieType 换成专用泳池版本；
+		// 其余允许类型保持原类型，并复用 Zombie 基类的通用入水与裁剪。
+		return CanZombieTypeSpawnInPool(type);
+	}
+
 	switch (type) {
 	case ZombieType::ZOMBIE_POOL_NORMAL:
 	case ZombieType::ZOMBIE_POOL_CONE:
 	case ZombieType::ZOMBIE_POOL_BUCKET:
-		return IsPoolRow(row);
-	case ZombieType::ZOMBIE_NORMAL:
-	case ZombieType::ZOMBIE_TRAFFIC_CONE:
-	case ZombieType::ZOMBIE_BUCKET:
-		return true;
+		return false;
 	default:
-		return !IsPoolRow(row);
+		return true;
 	}
 }
 

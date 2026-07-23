@@ -13,6 +13,7 @@
 
 class Board;
 class Plant;
+class ShadowComponent;
 
 class Zombie : public AnimatedObject {
 public:
@@ -49,6 +50,7 @@ protected:
 	float mFrozenTimer = 0.0f;		// 冻结剩余秒数（寒冰菇完全定身），0=未冻结
 
 	bool mIsMindControlled = false;	//有没有被魅惑
+	bool mInPool = false;	// 水路介质状态；由基类双探针统一维护，所有僵尸共享
 
 	bool mIsEating = false;
 	int mEatPlantID = NULL_PLANT_ID;
@@ -64,6 +66,7 @@ protected:
 
 	float mSpeed = 10.0f;
 	int mGroundTrackIndex = -1;
+	ShadowComponent* mPoolShadow = nullptr;	// Start 创建的非所有权阴影缓存，入水时统一隐藏
 
 private:
 	float mCheckPositionTimer = 0.0f;
@@ -92,8 +95,8 @@ public:
 	virtual void LoadExtraData(const nlohmann::json& j) {}	// 加载额外数据
 	virtual void ZombieItemUpdate() const; // 处理僵尸读档的时候的手臂、防具等处理
 	virtual void Charred();	// 变成灰烬
-	/** 是否允许灰烬攻击进入化灰表现；特殊僵尸可覆写为 false 并承受数值伤害。 */
-	virtual bool CanBeCharred() const { return true; }
+	/** 水中僵尸不生成陆地烧焦残影；特殊品种仍可进一步收紧。 */
+	virtual bool CanBeCharred() const { return !mInPool; }
 	/** 是否在当前状态截断大喷菇区域攻击；调用方必须在本次伤害结算前取值。 */
 	virtual bool BlocksFumePiercing() const { return false; }
 	/** 调整大喷菇对本体的基础伤害；返回值随后统一进入词条与防具结算。 */
@@ -135,6 +138,7 @@ public:
 	bool HasHead() const { return this->mHasHead; }
 	bool IsDying() const { return this->mIsDying; }
 	bool IsEating() const { return this->mIsEating; }
+	bool IsInPool() const { return this->mInPool; }
 	bool HasArm() const { return this->mHasArm; }
 	float GetCooldownTimer() const { return this->mCooldownTimer; }
 	bool IsFrozen() const { return this->mFrozenTimer > 0.0f; }
@@ -177,6 +181,10 @@ protected:
 
 	/** 叠加活动阵风的物理漂移；不依赖自主行走、啃食、冻结或魅惑方向。 */
 	void ApplyTyphoonGustDrift(float deltaTime, TransformComponent* transform);
+	/** 用前后双探针维护通用入水状态；切换介质时同步视觉并恢复当前稳态走路轨道。 */
+	void UpdatePoolState();
+	/** 按通用入水状态隐藏陆地阴影；水面以下裁剪在 Draw 内与其他 Clip 嵌套。 */
+	void UpdatePoolVisualState() const;
 	virtual void ZombieMove(float scaledDelta, TransformComponent* transform);
 
 	// 这才是设置僵尸

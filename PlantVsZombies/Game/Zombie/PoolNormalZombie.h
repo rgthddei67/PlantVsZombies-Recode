@@ -2,22 +2,14 @@
 
 #include "Zombie.h"
 
-class ShadowComponent;
-
 /**
- * 泳池普通僵尸：根据身体前后两个探针切换陆地 walk2 与水中 swim，
- * 并为泳池 reanim 使用独立的啃食及死亡帧事件。
+ * 泳池普通僵尸：复用基类通用入水与裁剪，只补充泳池 reanim 的
+ * swim、泳圈贴图以及独立啃食/死亡帧事件。
  */
 class PoolNormalZombie : public Zombie {
 public:
 	using Zombie::Zombie;
 
-	bool IsInPool() const { return mInPool; }
-	/** 原版水中僵尸遇到爆炸直接死亡，不创建烧焦残影；岸上阶段仍保留常规化灰表现。 */
-	bool CanBeCharred() const override { return !mInPool; }
-
-	void Start() override;
-	void ZombieUpdate(float scaledTime) override;
 	void HeadDrop() override;
 	void ArmDrop() override;
 	void SaveExtraData(nlohmann::json& j) const override;
@@ -33,15 +25,6 @@ protected:
 	void OnStopEating() override;
 
 private:
-	/** 按当前位置同步入水状态；只有状态切换时才换轨道。 */
-	void UpdatePoolState();
-	/** 同步由入水与啃食状态派生的阴影、腿部和水面泳圈贴图。 */
-	void UpdatePoolVisualState() const;
-	/** 水中啃食时隐藏双腿并保留带涟漪的泳圈贴图。 */
-	void SetPoolEatingVisuals(bool active) const;
-	/** 统一设置泳池 reanim 的六条腿部轨道。 */
-	void SetPoolLegsVisible(bool visible) const;
-
-	bool mInPool = false;
-	ShadowComponent* mPoolShadow = nullptr;  // 基类 Start 创建的非所有权组件缓存，用于入水时隐藏阴影
+	/** 水中啃食轨道使用无涟漪泳圈时，覆盖回带水面接触纹理。 */
+	void SetPoolEatingTubeVisual(bool active) const;
 };

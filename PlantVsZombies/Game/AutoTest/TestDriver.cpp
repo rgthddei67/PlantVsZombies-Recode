@@ -901,6 +901,16 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	for (int row = 0; row < board->mRows; ++row) {
 		if (board->IsPoolRow(row)) out["poolRows"].push_back(row);
 	}
+	// 锁定集中禁水名单：当前应为空；未来新增禁水类型时测试与设计需同步显式更新。
+	out["poolBlockedZombieTypes"] = nlohmann::json::array();
+	for (int i = 0; i < static_cast<int>(ZombieType::NUM_ZOMBIE_TYPES); ++i) {
+		const auto type = static_cast<ZombieType>(i);
+		if (!board->CanZombieTypeSpawnInPool(type)) {
+			out["poolBlockedZombieTypes"].push_back(ZombieTypeName(type));
+		}
+	}
+	out["poolBlockedZombieTypeCount"] =
+		static_cast<int>(out["poolBlockedZombieTypes"].size());
 	out["sun"] = board->mSun;
 	out["wave"] = board->mCurrentWave;
 	out["maxWave"] = board->mMaxWave;
@@ -1072,6 +1082,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "bodyHealth", z->mBodyHealth }, { "bodyMaxHealth", z->mBodyMaxHealth },
 			{ "helmHealth", z->mHelmHealth }, { "shieldHealth", z->mShieldHealth },
 			{ "mindControlled", z->IsMindControlled() },
+			{ "inPool", z->IsInPool() },
 			{ "isEating", z->IsEating() },
 			{ "hasHead", z->HasHead() }, { "hasArm", z->HasArm() },
 			{ "slowCooldown", z->GetCooldownTimer() },
@@ -1102,8 +1113,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			zombieState["eliteTyphoonSpeedPct"] = static_cast<int>(std::lround(
 				elite->GetTyphoonAbilitySpeedMultiplier() * 100.0f));
 		}
-		if (auto* pool = dynamic_cast<PoolNormalZombie*>(z)) {
-			zombieState["inPool"] = pool->IsInPool();
+		if (dynamic_cast<PoolNormalZombie*>(z)) {
 			zombieState["poolLegsVisible"] = anim && (
 				anim->GetTrackVisible("Zombie_innerleg_upper")
 				|| anim->GetTrackVisible("Zombie_innerleg_lower")

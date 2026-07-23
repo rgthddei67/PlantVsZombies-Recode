@@ -416,6 +416,8 @@ public:
 	bool IsPoolRow(int row) const;
 	bool IsPoolSquare(int row, int col) const;
 	bool IsPoolWorldPosition(int row, float x) const;
+	/** 水路出怪扩展点：集中列出禁水类型；当前所有有效僵尸类型都允许进入水路。 */
+	bool CanZombieTypeSpawnInPool(ZombieType type) const;
 	Vector GetCellCenterPosition(int row, int col) const;
 	float GetCellHeight() const { return mCellHeight; }
 

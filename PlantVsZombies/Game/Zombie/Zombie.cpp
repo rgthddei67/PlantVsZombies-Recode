@@ -10,9 +10,15 @@
 #include "../../GameAPP.h"
 #include <algorithm>
 #include <climits>
+#include <cmath>
 
 namespace {
 	float GAMEOVER_X = 110.0f;	// 僵尸到达此横坐标即触发游戏失败
+	constexpr float kPoolFrontProbeX = 75.0f;              // 身体前侧入水探针相对世界 X 偏移，单位：像素
+	constexpr float kPoolRearProbeX = 45.0f;               // 身体后侧入水探针相对世界 X 偏移，单位：像素
+	constexpr float kPoolTransitionRightShiftX = 70.0f;    // 适配当前泳池图，把进出水边界向右校正的像素数
+	constexpr float kPoolTransitionBlend = 0.2f;           // 进出水后恢复稳态走路轨道的混合秒数
+	constexpr float kPoolClipBottomOffsetY = 0.0f;         // 水面裁剪底边相对行逻辑 Y 的偏移，单位：像素
 }
 
 Zombie::Zombie(Board* board, ZombieType zombieType, float x, float y, int row,
@@ -120,6 +126,7 @@ void Zombie::SaveProtectedData(nlohmann::json& j) const {
 	j["hasArm"] = mHasArm;
 	j["hasTongue"] = mHasTongue;
 	j["isDying"] = mIsDying;
+	j["inPool"] = mInPool;
 	j["speed"] = mSpeed;
 	j["extraSpeed"] = mExtraSpeed;   // extra 速度层基准（如狂暴报纸僵尸 2.5、铁桶快僵随机值）
 	j["cooldownTimer"] = mCooldownTimer;
@@ -140,6 +147,7 @@ void Zombie::LoadProtectedData(const nlohmann::json& j) {
 	mHasArm = j.value("hasArm", true);
 	mHasTongue = j.value("hasTongue", false);
 	mIsDying = j.value("isDying", false);
+	mInPool = j.value("inPool", false);
 	mSpeed = j.value("speed", 10.0f);
 
 	// 必须在 SetCooldown 之前恢复：SetCooldown 内部用 mExtraSpeed*0.6 设置减速倍率，
@@ -188,6 +196,7 @@ void Zombie::ZombieItemUpdate() const
 		mAnimator->SetTrackVisible("anim_hair", false);
 	}
 	mAnimator->SetTrackVisible("anim_tongue", mHasTongue);
+	UpdatePoolVisualState();
 }
 
 void Zombie::Charred()
@@ -223,6 +232,7 @@ void Zombie::Start()
 	auto shadowcomponent = AddComponent<ShadowComponent>
 		(ResourceManager::GetInstance().GetTexture
 		(ResourceKeys::Textures::IMAGE_PLANTSHADOW));
+	mPoolShadow = shadowcomponent;
 	shadowcomponent->SetDrawOrder(-80);
 	if (this->mIsPreview) {
 		RemoveComponent<ColliderComponent>();
@@ -232,6 +242,8 @@ void Zombie::Start()
 	SetupZombie();
 	// SetupZombie 可设置品种基准 mExtraSpeed；最后统一叠加减速/冻结/雨势，且跨 PlayTrack 存活。
 	if (!mIsPreview) UpdateAnimSpeed();
+	// 直接生成在水域内部时首帧就应进入水中，避免等待移动一帧后才裁剪。
+	UpdatePoolState();
 }
 
 void Zombie::CheckWin() const
@@ -337,6 +349,8 @@ void Zombie::Update()
 		// 阵风是空气施加的独立位移：在冻结/啃食的早退前结算，使碰撞箱随 Transform 同帧移动。
 		// 若被吹离啃食目标，碰撞退出回调会按正常链路停止啃食，不需另造状态分支。
 		ApplyTyphoonGustDrift(deltaTime, transform);
+		// 入水状态是通用介质状态：冻结或啃食期间也要跟随阵风后的实际位置更新。
+		if (!mIsDying) UpdatePoolState();
 
 		if (!mHasHead)
 		{
@@ -409,6 +423,35 @@ void Zombie::ApplyTyphoonGustDrift(float deltaTime, TransformComponent* transfor
 		displacement = std::min(displacement, limit - x);
 	}
 	transform->Translate(displacement, 0.0f);
+}
+
+/** 双探针同时落入泳池才切入水中，避免僵尸横跨池沿时来回闪动。 */
+void Zombie::UpdatePoolState()
+{
+	if (!mBoard || mIsPreview || mRow < 0) return;
+
+	const float x = GetPosition().x;
+	const bool shouldBeInPool =
+		mBoard->IsPoolWorldPosition(mRow,
+			x + kPoolFrontProbeX - kPoolTransitionRightShiftX) &&
+		mBoard->IsPoolWorldPosition(mRow,
+			x + kPoolRearProbeX - kPoolTransitionRightShiftX);
+	if (shouldBeInPool == mInPool) return;
+
+	mInPool = shouldBeInPool;
+	UpdatePoolVisualState();
+	// 啃食轨道结束时会经 ResumeWalkAfterEat 读取最新介质；此处不抢占正在播放的啃食。
+	if (!mIsEating && !mIsDying) {
+		PlayWalkAnimation(kPoolTransitionBlend);
+	}
+}
+
+/** 水中不绘制陆地投影；实际水面裁剪在 Draw 内压入 Graphics 裁剪栈。 */
+void Zombie::UpdatePoolVisualState() const
+{
+	if (mPoolShadow) {
+		mPoolShadow->SetVisible(!mInPool);
+	}
 }
 
 void Zombie::ZombieMove(float scaledDelta, TransformComponent* transform)
@@ -530,7 +573,12 @@ void Zombie::ApplyCharmEffects()
 
 void Zombie::PlayWalkAnimation(float blendTime)
 {
-	// 基类稳态走路：anim_walk2、clip 清零（回落 base 走速）。reanim 无 anim_walk2 的子类覆写本函数。
+	// 有通用 swim 轨道的僵尸入水后自动使用；其余品种保留各自陆地走路轨道并由水面统一裁剪。
+	if (mInPool && mAnimator && mAnimator->HasTrack("anim_swim")) {
+		PlayTrack("anim_swim", 0.0f, blendTime);
+		return;
+	}
+	// 基类陆地稳态走路：anim_walk2、clip 清零（回落 base 走速）。无此轨道的子类覆写本函数。
 	PlayTrack("anim_walk2", 0.0f, blendTime);
 }
 
@@ -921,6 +969,14 @@ void Zombie::SetPosition(const Vector& position)
 
 void Zombie::Draw(Graphics* g)
 {
+	const bool clipAtWaterline = g && mInPool && !mIsPreview;
+	if (clipAtWaterline) {
+		// Draw 内嵌套裁剪，不占用 GameObject 的单一 ClipRect；可与伴舞出土等对象裁剪安全求交。
+		const int clipBottom = static_cast<int>(
+			std::lround(GetPosition().y + kPoolClipBottomOffsetY));
+		g->PushClipRect(0, 0, SCENE_WIDTH, clipBottom);
+	}
+
 	AnimatedObject::Draw(g);	// 先画本体动画
 
 	// 冻结冰晶（icetrap.png）：画在本体之后=前景，垫在僵尸脚底
@@ -936,6 +992,10 @@ void Zombie::Draw(Graphics* g)
 			// 僵尸判定矩形底边 ≈ y+35：冰晶底边压在脚底线上（站位截图后微调）
 			g->DrawTexture(tex, pos.x - w * 0.5f, pos.y + 35.0f - h, w, h);
 		}
+	}
+
+	if (clipAtWaterline) {
+		g->PopClipRect();
 	}
 
 	if (!g || mIsPreview || !GameAPP::GetInstance().mShowZombieHP) return;
