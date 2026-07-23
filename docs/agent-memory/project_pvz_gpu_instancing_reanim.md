@@ -17,6 +17,8 @@ metadata:
 
 **2026-07-23 当前结构更新：** `InstanceRecord` 由原始 48 B 增至 56 B，新增打包的逐实例矩形 `clipMinXY/clipMaxXY`；`BatchVertex` 为 52 B，携带相同字段。所有 `PushClipRect/PopClipRect` 均无 flush，fragment shader 用 `gl_FragCoord` 裁剪，水路 `PushClipBottom` 只是全宽矩形别名。同场景 2 只水中僵尸从 `21 draw + 4 scissor` 降为 `19 draw + 0 scissor`；伴舞出土、图鉴窗和粒子区域 Clip 也不再切实例批次。无裁剪哨兵走片元快路径，默认实例与 `-NoInstance` 均由可见 AutoTest 验证。详见 [project_pvz_shader_clip_rect](project_pvz_shader_clip_rect.md)。
 
+**2026-07-23 复合 Animator 收口：** 默认 `DrawInternalInstanced` 已按“父轨道本体→overlay→glow→该轨道附件”递归整棵附件树；不可见父轨道仍可作为附件锚点，隐藏且无附件的轨道继续在 trig 前早退。`hasChildren` 不再令射手身体等父 Animator 回退逐顶点路径，任意深度附件都写入同一实例流；CPU 仍负责动画插值与附件定位。矩阵慢路径只由 `-NoInstance` 显式启用，继续作为 A/B 与 safety net。`smoke_animator_recursive_instancing` 可见验证根/子同步 glow 与轨道状态，`smoke_plant_squish` 默认/`-NoInstance` 双跑验证递归缩放、渐隐及兜底；静止/压扁图两路径最大通道差 1，来自 RGBA8 量化。
+
 ---
 
 ## 最终实测结果（11000-zombie warmed stress test, same-session A/B）
@@ -65,10 +67,10 @@ metadata:
 | `RecordCmd::instOffsetAtCmd` (12 → 16 B) | Graphics.h | SetBlend/DeferredText/DeferredGlyphRun 同时记 vbo + inst 边界；ClipRect 不再进入命令流 |
 | `AppendReanimInstance` + `FlushInstances` | Graphics.cpp | 主线程串行 path + worker tl_record path |
 | `EmitInstanceDrawRange` + `bindInstForBlend` | Graphics.cpp ReplayAndEndParallel | replay 时 emit instance segments；batch-first-then-instance ordering（PvZ z-order shadow→reanim 天然契合）|
-| `DrawInternalInstanced` | Animator.cpp | fast path：无子动画时构 InstanceRecord，trig 仍 CPU（GATE A 教训 — 不搬 GPU） |
+| `DrawInternalInstanced` | Animator.cpp | 默认递归整棵附件树构 InstanceRecord；父子按轨道原序交错，trig 与附件定位仍在 CPU |
 | `m_useInstancePath` toggle + `-NoInstance` flag | Graphics + main.cpp + GameApp | A/B switch 保留 |
 
-**slow-path（原 `DrawInternal` 走 `DrawTextureMatrix`）完整保留** — `hasChildren=true`（~50 个豌豆系射手）走 slow path；`m_useInstancePath=false`（启动 `-NoInstance` flag）强制全 slow path 做 A/B baseline。
+**slow-path（原 `DrawInternal` 走 `DrawTextureMatrix`）完整保留** — 仅 `m_useInstancePath=false`（启动 `-NoInstance` flag）时强制整棵附件树走 slow path 做 A/B baseline；默认路径不再因 `hasChildren=true` 回退。
 
 ---
 

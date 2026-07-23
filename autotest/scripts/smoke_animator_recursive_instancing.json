@@ -1,0 +1,26 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 1 },
+    { "op": "choose_cards", "cards": ["PLANT_PEASHOOTER"] },
+    { "op": "wait_state", "state": "GAME" },
+    { "op": "set_spawn_paused", "value": true },
+    { "op": "set_sun", "value": 1000 },
+    { "op": "plant", "type": "PLANT_PEASHOOTER", "row": 2, "col": 4 },
+    { "op": "wait_seconds", "value": 0.5 },
+    { "op": "screenshot", "name": "baseline.png" },
+
+    { "op": "set_timescale", "value": 0.2 },
+    { "op": "damage_plant", "row": 2, "col": 4, "damage": 1, "source": "OTHER" },
+    { "op": "wait_frames", "value": 1 },
+    { "op": "screenshot", "name": "root_and_child_glow.png" },
+
+    { "op": "set_timescale", "value": 1.0 },
+    { "op": "wait_seconds", "value": 0.2 },
+    { "op": "assert_state", "path": "plantCount", "equals": 1 },
+    { "op": "assert_state", "path": "plants.0.track", "equals": "anim_idle" },
+    { "op": "assert_state", "path": "plants.0.headTrack", "equals": "anim_head_idle" },
+    { "op": "screenshot", "name": "glow_finished.png" },
+    { "op": "dump_state", "name": "state.json" },
+    { "op": "quit" }
+  ]
+}

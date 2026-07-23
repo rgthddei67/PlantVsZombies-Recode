@@ -8,11 +8,11 @@
 - 主人将总保留时间从约 8.33 秒调整为 5 秒，末段仍占 20%，即最后 1 秒线性渐隐。计时只在 `BoardState::GAME` 推进。
 - 存档保存压扁标记、剩余秒数和冻结坐标；恢复顺序位于派生类额外状态之后，确保终态暂停与透明度不被覆盖。
 
-## 复合 Animator 陷阱
+## 复合 Animator 绘制契约
 
-`Animator::DrawInternal` 遇到附件时，根 Animator 为保持父轨道变换和交错绘制顺序会走慢路径；递归进入无附件的子 Animator 后仍会走 GPU 实例化快路径。因此外层 `Graphics` 变换只会改变射手身体，不会改变头部。
+2026-07-23 起，默认 `Animator::DrawInternal` 会按父轨道原顺序递归实例化根与任意深度附件；`-NoInstance` 才让整棵附件树走矩阵慢路径。外层 `Graphics` 变换栈仍不被默认实例路径消费，因此不能用变换栈实现整株世界缩放。
 
-通用修复是 `Animator::SetRenderScale`：同一世界锚点缩放同时烘入慢路径 `glm::mat4` 和快路径 `InstanceRecord`，递归同步全部现有附件；`AttachAnimator` 让以后动态附加的子级立即继承。不要在 `Shooter` 或各植物子类逐一特判。
+通用入口仍是 `Animator::SetRenderScale`：同一世界锚点缩放同时烘入 `InstanceRecord` 与 `-NoInstance` 的 `glm::mat4`，递归同步全部现有附件；`AttachAnimator` 让以后动态附加的子级立即继承。不要在 `Shooter` 或各植物子类逐一特判。
 
 ## 验证证据
 
@@ -22,3 +22,5 @@
 - 压扁前后及 4.5 秒渐隐观察点，根帧固定在约 7.365、头部帧固定在约 32.365。
 - 进入状态后原格可立即重新种植；剩余约 0.47 秒时 alpha 约 47%，5 秒后植物数量归零。
 - `before_squish.png`、`squished.png`、`squished_fading.png` 已逐张检查，头、茎、叶整体以底边锚点同步压扁。
+
+递归实例化收口后同脚本默认与 `-NoInstance` 均可见退出 0；默认截图逐张检查通过，静止/压扁图与慢路径最大通道差 1。`smoke_animator_recursive_instancing.json` 另行验证父身体与子头部同步 glow、恢复后轨道仍为 `anim_idle` / `anim_head_idle`。

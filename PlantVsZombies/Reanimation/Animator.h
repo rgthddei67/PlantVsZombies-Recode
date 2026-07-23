@@ -481,7 +481,7 @@ private:
 	std::vector<TrackExtraInfo*> GetTrackExtrasByName(const std::string& trackName);
 
 	/**
-	 * @brief Draw 的内部递归实现：不 push/pop 根矩阵，纯计算并直接提交 g->DrawTextureMatrix
+	 * @brief Draw 的内部递归分派：默认走实例化附件树，-NoInstance 时走矩阵慢路径。
 	 * @param g Graphics 对象
 	 * @param baseX 基准 X
 	 * @param baseY 基准 Y
@@ -490,10 +490,11 @@ private:
 	void DrawInternal(Graphics* g, float baseX, float baseY, float Scale) const;
 
 	/**
-	 * @brief Task 5: fast path of DrawInternal for animators WITHOUT child sub-animators.
-	 *        Builds one InstanceRecord per visible track (plus glow/overlay copies) and
-	 *        emits via g->AppendReanimInstance — no per-call mat4 ctor, no DrawTextureMatrix.
-	 *        Mat is pre-multiplied 2x3 with sprite (w*Scale, h*Scale) baked into tA..tD.
+	 * @brief 递归实例化当前 Animator 及全部附件。
+	 *
+	 * 每个可见轨道生成一个 InstanceRecord，并在该轨道之后立即递归附件，保持父子与
+	 * 轨道间遮挡顺序；overlay/glow 仍紧跟本体。CPU 负责动画插值与附件定位，GPU 只展开
+	 * 单位四边形，2x3 仿射已预乘图像尺寸和 Scale。
 	 */
 	void DrawInternalInstanced(Graphics* g, float baseX, float baseY, float Scale) const;
 	/** 把世界绘制缩放烘进实例化快路径的 2x3 仿射记录。 */
