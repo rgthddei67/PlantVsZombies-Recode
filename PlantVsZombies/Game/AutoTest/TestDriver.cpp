@@ -1343,10 +1343,21 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		out["cells"].push_back(std::move(rowState));
 	}
 	out["bullets"] = nlohmann::json::array();
+	bool hasBulletX = false;
+	float minBulletX = 0.0f;
+	float maxBulletX = 0.0f;
 	for (int id : board->mEntityManager.GetAllBulletIDs()) {
 		Bullet* bullet = board->mEntityManager.GetBullet(id);
 		if (!bullet) continue;
 		const Vector pos = bullet->GetPosition();
+		if (!hasBulletX) {
+			minBulletX = maxBulletX = pos.x;
+			hasBulletX = true;
+		}
+		else {
+			minBulletX = std::min(minBulletX, pos.x);
+			maxBulletX = std::max(maxBulletX, pos.x);
+		}
 		out["bullets"].push_back({
 			{ "id", id },
 			{ "type", static_cast<int>(bullet->mBulletType) },
@@ -1362,6 +1373,9 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		});
 	}
 	out["bulletCount"] = static_cast<int>(out["bullets"].size());
+	// 绝对 X 会随测试取证时点变化；整数化相对跨度用于稳定断言同帧同速弹丸。
+	out["bulletXSpreadMilli"] = hasBulletX
+		? static_cast<int>(std::lround((maxBulletX - minBulletX) * 1000.0f)) : 0;
 	out["repeatingShootingHeadCount"] = repeatingShootingHeadCount;
 
 	{

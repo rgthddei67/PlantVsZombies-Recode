@@ -7,9 +7,7 @@
 #include <string>
 
 namespace {
-	constexpr int kHead1FireFrame = 29;              // 下路头真实发射帧；主人已按 AddFrameEvent 口径确认
-	constexpr int kHead3FireFrame = 73;              // 上路头真实发射帧；主人已按 AddFrameEvent 口径确认
-	constexpr int kHead2FireFrame = 111;             // 中路头真实发射帧；主人已按 AddFrameEvent 口径确认
+	constexpr int kSynchronizedVolleyFireFrame = 73; // 上头真实发射帧；作为 C# 三弹同步结算的唯一帧事件
 	constexpr float kReanimFramesPerSecond = 12.0f;  // ThreePeater.reanim 的基础帧率
 	constexpr float kShootFramesPerSecond = 20.0f;   // C# 三个头进入射击态时使用的动画帧率
 	constexpr float kIdleFramesPerSecondMin = 15.0f; // C# 三线射手待机随机帧率下限
@@ -101,18 +99,26 @@ void ThreePeater::SetupPlant()
 	// C# 将三个头分别附着在根动画的三个头部锚点，身体与每个头可独立循环。
 	mHeadAnim = CreateHeadAnimator(
 		"anim_head_idle1", "anim_head1",
-		kHead1BasePoseX, kHead1BasePoseY, kHead1FireFrame, 1);
+		kHead1BasePoseX, kHead1BasePoseY);
 	mHeadAnim2 = CreateHeadAnimator(
 		"anim_head_idle2", "anim_head2",
-		kHead2BasePoseX, kHead2BasePoseY, kHead2FireFrame, 0);
+		kHead2BasePoseX, kHead2BasePoseY);
 	mHeadAnim3 = CreateHeadAnimator(
 		"anim_head_idle3", "anim_head3",
-		kHead3BasePoseX, kHead3BasePoseY, kHead3FireFrame, -1);
+		kHead3BasePoseX, kHead3BasePoseY);
+
+	// C# 在同一个 mShootingCounter tick 创建三颗弹。上头的轨内第 7 帧与该
+	// 约 0.35 秒结算点一致，因此只保留这一处帧事件，避免三个视觉帧错开出弹。
+	if (mHeadAnim3) {
+		mHeadAnim3->AddFrameEvent(kSynchronizedVolleyFireFrame, [this]() {
+			ShootBullet();
+		}, true);
+	}
 }
 
 std::shared_ptr<Animator> ThreePeater::CreateHeadAnimator(
 	const char* idleTrack, const char* attachTrack,
-	float basePoseX, float basePoseY, int fireFrame, int targetRowOffset)
+	float basePoseX, float basePoseY)
 {
 	auto reanim = mAnimator ? mAnimator->GetReanimation() : nullptr;
 	if (!reanim) return nullptr;
@@ -125,15 +131,6 @@ std::shared_ptr<Animator> ThreePeater::CreateHeadAnimator(
 	head->SetLocalPosition(-basePoseX, -basePoseY);
 	if (!mAnimator->AttachAnimator(attachTrack, head)) return nullptr;
 
-	head->AddFrameEvent(fireFrame, [this, targetRowOffset]() {
-		if (GameRandom::Chance()) {
-			AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_SHOOTER_SHOOT, 0.3f);
-		}
-		else {
-			AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_SHOOTER_SHOOT2, 0.3f);
-		}
-		FireRow(mRow + targetRowOffset);
-		}, true);
 	return head;
 }
 
@@ -201,7 +198,16 @@ void ThreePeater::StartVolley(float attackSpeedMultiplier)
 
 void ThreePeater::ShootBullet()
 {
-	FireRow(mRow);
+	// C# 的 Fire 会为三颗弹各播放一次 Throw；保持相同调用次数并在同一逻辑帧结算。
+	for (int rowOffset = 1; rowOffset >= -1; --rowOffset) {
+		if (GameRandom::Chance()) {
+			AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_SHOOTER_SHOOT, 0.3f);
+		}
+		else {
+			AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_SHOOTER_SHOOT2, 0.3f);
+		}
+		FireRow(mRow + rowOffset);
+	}
 }
 
 void ThreePeater::FireRow(int targetRow)

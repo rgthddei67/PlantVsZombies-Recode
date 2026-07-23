@@ -24,6 +24,7 @@
     { "op": "screenshot", "name": "threepeater_three_heads_shooting.png" },
     { "op": "wait_seconds", "value": 0.35 },
     { "op": "assert_state", "path": "bulletCount", "equals": 3 },
+    { "op": "assert_state", "path": "bulletXSpreadMilli", "equals": 0 },
     { "op": "screenshot", "name": "threepeater_three_rows_flying.png" },
     { "op": "dump_state", "name": "threepeater_three_rows.json" },
     { "op": "wait_seconds", "value": 0.9 },

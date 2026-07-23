@@ -20,6 +20,7 @@
 - 必须从 `build\<preset>\` 运行；可执行文件为 `build\<preset>\PlantsVsZombies.exe`。禁止使用根目录下陈旧的 `x64\Release` 产物。
 - Codex 启动任何需要主人看到的游戏或 AutoTest 窗口时，必须以 `build\<preset>\` 为工作目录，通过申请 `sandbox_permissions="require_escalated"` 的 shell 使用 `Start-Process -WindowStyle Normal -PassThru` 启动到主人当前桌面；普通沙箱 shell 即使指定 Normal 也不算可见运行。完整命令见项目指南。
 - 修改游戏逻辑后，从构建目录运行范围最小且相关的 `-AutoTest` 脚本。AutoTest 默认用主人当前桌面可见的游戏窗口依次运行（不得默认隐藏或仅后台执行），并同时检查退出码、`run.log`、状态文件和截图；只有主人明确要求后台运行或执行环境确实无法显示窗口时才可例外，并须说明。仅修改文档时无需构建游戏。
+- AutoTest 在 `wait_seconds` 后取得的运动对象绝对 X/Y 会受当前倍速、逻辑步落点和实际取证时点影响，不得作为稳定断言。验证同步或相对运动时，优先导出同一状态下的相对量（例如 `round((maxX-minX)*1000)` 的整数投影）并断言跨度、次序或其他相对关系。
 
 ## 仓库规则
 

@@ -17,8 +17,9 @@ public:
 	void PlantUpdate() override;
 
 protected:
-	/** 创建三个附着头部，并按主人确认的全局帧注册发射事件。 */
+	/** 创建三个附着头部，并在上头帧 73 注册整轮同步发射事件。 */
 	void SetupPlant() override;
+	/** 在同一逻辑帧按下路、本行、上路顺序创建整轮三颗豌豆。 */
 	void ShootBullet() override;
 
 private:
@@ -27,7 +28,7 @@ private:
 
 	std::shared_ptr<Animator> CreateHeadAnimator(
 		const char* idleTrack, const char* attachTrack,
-		float basePoseX, float basePoseY, int fireFrame, int targetRowOffset);
+		float basePoseX, float basePoseY);
 	/** 判断指定有效行前方是否存在可攻击僵尸。 */
 	bool HasTargetInRow(int row) const;
 	/** 按 C# 规则检查本行及相邻两行，只需任一行命中即可启动整轮。 */
