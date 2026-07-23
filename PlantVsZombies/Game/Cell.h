@@ -19,22 +19,25 @@ private:
 	std::function<void(int, int)> OnCellClicked;
 	ColliderComponent* mCollider = nullptr;
 	TransformComponent* mTransform = nullptr;
-	int mPlantID = NULL_PLANT_ID;
+	Vector mColliderSize = Vector(CELL_COLLIDER_SIZE_X, CELL_COLLIDER_SIZE_Y);
+	int mUnderPlantID = NULL_PLANT_ID;
+	int mNormalPlantID = NULL_PLANT_ID;
 
 public:
 	int mRow = 0;		// 行
 	int mColumn = 0;	// 列
 
-	Cell(int row, int column, const Vector& position, const std::string& tag = "Cell")
-		: mRow(row), mColumn(column)
+	Cell(int row, int column, const Vector& position,
+		const Vector& colliderSize = Vector(CELL_COLLIDER_SIZE_X, CELL_COLLIDER_SIZE_Y),
+		const std::string& tag = "Cell")
+		: mColliderSize(colliderSize), mRow(row), mColumn(column)
 	{
 		this->mObjectType = ObjectType::OBJECT_NONE;
 		SetTag(tag);
 		SetName("Cell_" + std::to_string(row) + "_" + std::to_string(column));
 
 		mTransform = this->AddComponent<TransformComponent>(position);
-		mCollider = this->AddComponent<ColliderComponent>(
-			Vector(CELL_COLLIDER_SIZE_X, CELL_COLLIDER_SIZE_Y));
+		mCollider = this->AddComponent<ColliderComponent>(mColliderSize);
 		mCollider->isTrigger = true;
 		mCollider->isStatic = true;
 		mCollider->layerMask = CollisionLayer::NONE;
@@ -67,33 +70,31 @@ public:
 	{
 		Vector worldPos = GetWorldPosition();
 		return Vector(
-			worldPos.x + CELL_COLLIDER_SIZE_X / 2,
-			worldPos.y + CELL_COLLIDER_SIZE_Y / 2
+			worldPos.x + mColliderSize.x / 2,
+			worldPos.y + mColliderSize.y / 2
 		);
 	}
 
 	// 设置植物ID
-	void SetPlantID(int plantID)
-	{
-		mPlantID = plantID;
-	}
+	/** 水面承载层（当前仅睡莲）与普通植物层分开存储，避免叠种时互相覆盖。 */
+	void SetUnderPlantID(int plantID) { mUnderPlantID = plantID; }
+	void SetNormalPlantID(int plantID) { mNormalPlantID = plantID; }
 
 	// 获取植物ID
-	int GetPlantID() const
-	{
-		return mPlantID;
+	int GetUnderPlantID() const { return mUnderPlantID; }
+	int GetNormalPlantID() const { return mNormalPlantID; }
+	int GetTopPlantID() const {
+		return mNormalPlantID != NULL_PLANT_ID ? mNormalPlantID : mUnderPlantID;
 	}
 
 	// 清除植物ID
-	void ClearPlantID()
-	{
-		mPlantID = NULL_PLANT_ID;
-	}
+	void ClearUnderPlantID() { mUnderPlantID = NULL_PLANT_ID; }
+	void ClearNormalPlantID() { mNormalPlantID = NULL_PLANT_ID; }
 
 	// 检查格子是否为空
 	bool IsEmpty() const
 	{
-		return mPlantID == NULL_PLANT_ID;
+		return mUnderPlantID == NULL_PLANT_ID && mNormalPlantID == NULL_PLANT_ID;
 	}
 
 	// 检查点是否在格子内

@@ -53,6 +53,8 @@ public:
 	virtual void PlantUpdate();		// 子类重写Update用这个
 	// 统一结算植物承伤；source 必填，使僵尸增伤只作用于僵尸来源。
 	virtual void TakeDamage(int damage, DamageSource source);
+	/** 当前是否能被僵尸选为啃食目标；睡莲用它实现种下后的短暂无咬保护。 */
+	virtual bool CanBeEaten() const { return true; }
 	virtual void SaveExtraData(nlohmann::json& j) const {}
 	virtual void LoadExtraData(const nlohmann::json& j) {}
 	void Die();

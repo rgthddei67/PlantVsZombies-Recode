@@ -210,6 +210,8 @@ private:
 
 	std::vector<RowInfo> mRowInfos;
 	static constexpr float ROW_WEIGHT_THRESHOLD = 1e-6f;
+	float mCellInitialY = CELL_INITALIZE_POS_Y;
+	float mCellHeight = CELL_COLLIDER_SIZE_Y;
 
 	// 屏幕抖动状态（见 ShakeBoard）。timer 递减到 0 即结束；重复触发直接覆盖重置
 	float mShakeTimer = 0.0f;         // 剩余秒数，<=0 = 未抖动
@@ -219,8 +221,10 @@ private:
 	int   mShakeOscillations = 1;     // 1=原版三角弹跳；>1=衰减正弦来回甩
 
 	void LoadSpawnListFromJson();
+	void RefreshPlantStackRenderOrder(Cell* cell);
 	void InitializeRows();
-	inline int SelectSpawnRow();
+	inline int SelectSpawnRow(ZombieType type);
+	bool IsSpawnRowCompatible(ZombieType type, int row) const;
 	inline ZombieType PickZombieType(int remainingPoints);
 	inline ZombieType GetWeightedRandomZombie();
 	inline ZombieType GetCheapestZombie();
@@ -405,6 +409,25 @@ public:
 
 	// 初始化格子 默认5行9列
 	void InitializeCell(int rows = 4, int cols = 8);
+	/** 当前地图是否使用泳池地形与六行网格。 */
+	bool IsPoolBackground() const;
+	/** 天气从第二大关起启用；白天泳池同样受天气系统影响。 */
+	bool SupportsWeather() const;
+	bool IsPoolRow(int row) const;
+	bool IsPoolSquare(int row, int col) const;
+	bool IsPoolWorldPosition(int row, float x) const;
+	Vector GetCellCenterPosition(int row, int col) const;
+	float GetCellHeight() const { return mCellHeight; }
+
+	/** UI 与测试共用的正式种植判定，不含阳光与卡片冷却。 */
+	bool CanPlantAt(PlantType type, int row, int col);
+	/** 返回格子最上层可被铲除或啃食的植物：普通层优先于承载层。 */
+	Plant* GetTopPlantAt(int row, int col) const;
+	/** 将基础僵尸按所选行解析为泳池表现变体；不改变波次成本。 */
+	ZombieType ResolveTerrainZombieType(ZombieType selected, int row) const;
+	bool CanSpawnZombieInRow(ZombieType type, int row) const {
+		return IsSpawnRowCompatible(type, row);
+	}
 
 	// 获取格子。返回原始指针：Cell 所有权在 GameObjectManager，调用方仅做非所有 view
 	Cell* GetCell(int row, int col) {

@@ -13,11 +13,13 @@
 #include "../CardComponent.h"
 #include "../Plant/PlantType.h"
 #include "../Plant/Plant.h"
+#include "../Plant/LilyPad.h"
 #include "../Plant/Shooter.h"
 #include "../Bullet/Bullet.h"
 #include "../Zombie/ZombieType.h"
 #include "../Zombie/Zombie.h"
 #include "../Zombie/EliteDancerZombie.h"
+#include "../Zombie/PoolNormalZombie.h"
 #include "../Trophy.h"   // dump_state 输出奖杯坐标
 #include "../Crater.h"   // dump_state 输出毁灭菇弹坑
 #include "../../Reanimation/Animator.h"   // dump_state 查询轨道可见性（如铁门僵尸手臂）
@@ -58,6 +60,7 @@ namespace {
 		ZT(ZOMBIE_FASTBUCKET), ZT(ZOMBIE_NEWSPAPER), ZT(ZOMBIE_FASTPAPER), ZT(ZOMBIE_DOOR),
 		ZT(ZOMBIE_FOOTBALL), ZT(ZOMBIE_DANCER), ZT(ZOMBIE_BACKUP_DANCER), ZT(ZOMBIE_ELITE_DANCER), ZT(ZOMBIE_PINK_FOOTBALL),
 		ZT(ZOMBIE_REINFORCED_DOOR),
+		ZT(ZOMBIE_POOL_NORMAL), ZT(ZOMBIE_POOL_CONE), ZT(ZOMBIE_POOL_BUCKET),
 		ZT(ZOMBIE_DUCKY_TUBE),
 		ZT(ZOMBIE_SNORKEL), ZT(ZOMBIE_ZAMBONI), ZT(ZOMBIE_BOBSLED), ZT(ZOMBIE_DOLPHIN_RIDER),
 		ZT(ZOMBIE_JACK_IN_THE_BOX), ZT(ZOMBIE_BALLOON), ZT(ZOMBIE_DIGGER), ZT(ZOMBIE_POGO),
@@ -166,6 +169,23 @@ namespace {
 		case Background::NIGHT_WATER_POOL: return "NIGHT_WATER_POOL";
 		case Background::ROOF:             return "ROOF";
 		case Background::NIGHT_ROOF:       return "NIGHT_ROOF";
+		}
+		return "UNKNOWN";
+	}
+	const char* MowerTypeName(MowerType type) {
+		switch (type) {
+		case MowerType::LAWN:  return "LAWN";
+		case MowerType::WATER: return "WATER";
+		case MowerType::ROOF:  return "ROOF";
+		}
+		return "UNKNOWN";
+	}
+	const char* MowerHeightName(MowerHeight height) {
+		switch (height) {
+		case MowerHeight::LAND:     return "LAND";
+		case MowerHeight::ENTERING: return "ENTERING";
+		case MowerHeight::IN_POOL:  return "IN_POOL";
+		case MowerHeight::EXITING:  return "EXITING";
 		}
 		return "UNKNOWN";
 	}
@@ -343,7 +363,7 @@ bool TestDriver::ExecuteCurrent() {
 		gs->GetBoard()->SetRainForTesting(it->second, cmd.value("duration", 30.0f),
 			cmd.value("canIntensify", false));
 		if (gs->GetBoard()->GetRainIntensity() != it->second) {
-			Fail("set_weather: 当前背景不是黑夜，天气未生效");
+			Fail("set_weather: 当前关卡不支持天气，天气未生效");
 			return false;
 		}
 		return true;
@@ -406,7 +426,7 @@ bool TestDriver::ExecuteCurrent() {
 		}
 		if (!gs->GetBoard()->SetWeatherForecastForTesting(forecastIt->second, actualIt->second,
 			cmd.value("revealIn", 1.0f))) {
-			Fail("set_weather_forecast: 当前背景不是黑夜，或天气尚未初始化");
+			Fail("set_weather_forecast: 当前关卡不支持天气，或天气尚未初始化");
 			return false;
 		}
 		return true;
@@ -485,6 +505,22 @@ bool TestDriver::ExecuteCurrent() {
 		if (!p) { Fail("CreatePlant 返回空（格子非法或被占？）"); return false; }
 		return true;
 	}
+	if (op == "assert_can_plant") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) { Fail("assert_can_plant: 不在 GameScene 或 Board 为空"); return false; }
+		auto it = kPlantNames.find(cmd.value("type", ""));
+		if (it == kPlantNames.end()) { Fail("assert_can_plant: 未知植物类型"); return false; }
+		const int row = cmd.value("row", 0);
+		const int col = cmd.value("col", 0);
+		const bool expected = cmd.value("expected", true);
+		const bool actual = gs->GetBoard()->CanPlantAt(it->second, row, col);
+		if (actual != expected) {
+			Fail("assert_can_plant: 判定不符 row=" + std::to_string(row)
+				+ " col=" + std::to_string(col));
+			return false;
+		}
+		return true;
+	}
 	if (op == "spawn_bullet") {
 		GameScene* gs = CurrentGameScene();
 		if (!gs || !gs->GetBoard()) { Fail("spawn_bullet: 不在 GameScene 或 Board 为空"); return false; }
@@ -529,7 +565,13 @@ bool TestDriver::ExecuteCurrent() {
 		const ZombieType actual = board->ResolveWaveZombieType(it->second, roll);
 		// 与正式 TrySummonZombie 一致：超过每波上限的候选被跳过，不生成回退类型。
 		if (actual == ZombieType::NUM_ZOMBIE_TYPES) return true;
-		if (!board->CreateZombie(actual, cmd.value("row", 0), cmd.value("x", 900.0f))) {
+		const int row = cmd.value("row", 0);
+		if (!board->CanSpawnZombieInRow(actual, row)) {
+			Fail("spawn_wave_zombie: 目标行与正式地形规则不兼容");
+			return false;
+		}
+		const ZombieType terrainType = board->ResolveTerrainZombieType(actual, row);
+		if (!board->CreateZombie(terrainType, row, cmd.value("x", 900.0f))) {
 			Fail("spawn_wave_zombie: CreateZombie 返回空");
 			return false;
 		}
@@ -851,6 +893,13 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["level"] = board->mLevel;
 	out["levelName"] = board->mLevelName;
 	out["background"] = BackgroundName(board->mBackGround);
+	out["rows"] = board->mRows;
+	out["columns"] = board->mColumns;
+	out["supportsWeather"] = board->SupportsWeather();
+	out["poolRows"] = nlohmann::json::array();
+	for (int row = 0; row < board->mRows; ++row) {
+		if (board->IsPoolRow(row)) out["poolRows"].push_back(row);
+	}
 	out["sun"] = board->mSun;
 	out["wave"] = board->mCurrentWave;
 	out["maxWave"] = board->mMaxWave;
@@ -866,7 +915,11 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		if (moving) ++movingMowerCount;
 		out["mowers"].push_back({
 			{ "id", id }, { "row", mower->mRow },
+			{ "type", MowerTypeName(mower->mMowerType) },
 			{ "state", moving ? "MOVING" : "IDLE" },
+			{ "height", MowerHeightName(mower->mMowerHeight) },
+			{ "track", mower->GetCurrentTrackName() },
+			{ "visualY", mower->GetVisualPosition().y },
 			{ "xInt", static_cast<int>(std::lround(mower->GetPosition().x)) },
 		});
 	}
@@ -1039,6 +1092,9 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			zombieState["eliteTyphoonSpeedPct"] = static_cast<int>(std::lround(
 				elite->GetTyphoonAbilitySpeedMultiplier() * 100.0f));
 		}
+		if (auto* pool = dynamic_cast<PoolNormalZombie*>(z)) {
+			zombieState["inPool"] = pool->IsInPool();
+		}
 		out["zombies"].push_back(std::move(zombieState));
 	}
 	out["zombieCount"] = static_cast<int>(out["zombies"].size());
@@ -1054,6 +1110,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "row", p->mRow }, { "col", p->mColumn },
 			{ "health", p->mPlantHealth }, { "maxHealth", p->mPlantMaxHealth },
 			{ "track", p->GetCurrentTrackName() },
+			{ "logicalY", p->GetPosition().y },
+			{ "visualY", p->GetVisualPosition().y },
 		};
 		if (auto* shooter = dynamic_cast<Shooter*>(p)) {
 			if (const Animator* head = shooter->GetHeadAnimator()) {
@@ -1066,9 +1124,28 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				}
 			}
 		}
+		if (auto* lilyPad = dynamic_cast<LilyPad*>(p)) {
+			plantState["biteProtected"] = lilyPad->IsBiteProtected();
+		}
 		out["plants"].push_back(std::move(plantState));
 	}
 	out["plantCount"] = static_cast<int>(out["plants"].size());
+	out["cells"] = nlohmann::json::array();
+	for (int row = 0; row < board->mRows; ++row) {
+		nlohmann::json rowState = nlohmann::json::array();
+		for (int col = 0; col < board->mColumns; ++col) {
+			Cell* cell = board->GetCell(row, col);
+			Plant* under = cell ? board->mEntityManager.GetPlant(cell->GetUnderPlantID()) : nullptr;
+			Plant* normal = cell ? board->mEntityManager.GetPlant(cell->GetNormalPlantID()) : nullptr;
+			rowState.push_back({
+				{ "under", under ? PlantTypeName(under->mPlantType) : "NONE" },
+				{ "normal", normal ? PlantTypeName(normal->mPlantType) : "NONE" },
+				{ "top", normal ? PlantTypeName(normal->mPlantType)
+					: (under ? PlantTypeName(under->mPlantType) : "NONE") },
+			});
+		}
+		out["cells"].push_back(std::move(rowState));
+	}
 	out["bullets"] = nlohmann::json::array();
 	for (int id : board->mEntityManager.GetAllBulletIDs()) {
 		Bullet* bullet = board->mEntityManager.GetBullet(id);

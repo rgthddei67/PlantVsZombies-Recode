@@ -64,6 +64,8 @@ namespace ResourceKeys
 		RKEY(IMAGE_SEEDPACKETNORMAL);
 		RKEY(IMAGE_BACKGROUND_DAY);
 		RKEY(IMAGE_BACKGROUND_NIGHT);
+		RKEY(IMAGE_BACKGROUND_POOL);
+		RKEY(IMAGE_BACKGROUND_NIGHTPOOL);
 		RKEY(IMAGE_SHOVELBANK);
 		RKEY(IMAGE_OPTIONS_MENUBACK);
 		RKEY(IMAGE_BUTTONBIG);
@@ -86,6 +88,7 @@ namespace ResourceKeys
 
 		RKEY(IMAGE_PLANTSHADOW);
 		RKEY(IMAGE_PLANTSHADOW2);
+		RKEY(IMAGE_LILYPAD);
 
 		RKEY(IMAGE_ZOMBIE_BACKUP_OUTERARM_UPPER_BONE);
 		RKEY(IMAGE_ZOMBIE_BALLOON_OUTERARM_UPPER2);
@@ -253,16 +256,21 @@ namespace ResourceKeys
 		inline const std::string REANIM_WALLNUT = "Wallnut";
 		inline const std::string REANIM_POTATOMINE = "PotatoMine";
 		inline const std::string REANIM_SNOWPEASHOOTER = "SnowPeaShooter";
+		inline const std::string REANIM_LILYPAD = "LilyPad";
 
 		inline const std::string REANIM_NORMAL_ZOMBIE = "NormalZombie";
 		inline const std::string REANIM_CONE_ZOMBIE = "ConeZombie";
 		inline const std::string REANIM_POLEVAULTER_ZOMBIE = "PolevaulterZombie";
 		inline const std::string REANIM_BUCKET_ZOMBIE = "BucketZombie";
 		inline const std::string REANIM_ZOMBIE_ELITE_JACKSON = "ZombieEliteJackson";
+		inline const std::string REANIM_POOL_NORMAL_ZOMBIE = "PoolNormalZombie";
+		inline const std::string REANIM_POOL_CONE_ZOMBIE = "PoolConeZombie";
+		inline const std::string REANIM_POOL_BUCKET_ZOMBIE = "PoolBucketZombie";
 
 		inline const std::string REANIM_ZOMBIE_CHARRED = "Zombie_Charred";
 
 		inline const std::string REANIM_LAWNMOWER = "LawnMower";
+		inline const std::string REANIM_POOL_CLEANER = "PoolCleaner";
 	}
 }
 

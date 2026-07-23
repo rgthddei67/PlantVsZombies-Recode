@@ -90,5 +90,15 @@
     "waves": 30,
     "sun": 1500,
     "zombies": [0, 1, 6, 7, 8, 9, 11, 13]
+  },
+  {
+    "level": 19,
+    "waves": 10,
+    "zombies": [0, 1]
+  },
+  {
+    "level": 20,
+    "waves": 15,
+    "zombies": [0, 1, 3]
   }
 ]

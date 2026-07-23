@@ -5,6 +5,14 @@
 #include "../ShadowComponent.h"
 #include "GameDataManager.h"
 #include "../../GameAPP.h"	// GameAPP::mShowPlantHP / Graphics / DrawText
+#include <cmath>
+
+namespace {
+	constexpr float kPoolBobAmplitude = 2.0f;              // 水面植物上下浮动振幅（像素）
+	constexpr float kPoolBobRadiansPerFrame = 3.14159265f / 60.0f; // 60Hz 下两秒一个周期
+	constexpr float kPoolBobRowPhase = 3.14159265f;        // 相邻行交错半个周期
+	constexpr float kPoolBobColumnPhase = 3.14159265f / 4.0f; // 相邻列相差八分之一周期
+}
 
 Plant::Plant(Board* board, PlantType plantType, int row, int column,
 	AnimationType animType, float scale, bool isPreview)
@@ -41,10 +49,10 @@ Plant::Plant(Board* board, PlantType plantType, int row, int column,
 			collider->collisionMask = CollisionLayer::ZOMBIE;
 		}
 
-		Vector cellCenterPosition(
-			CELL_INITALIZE_POS_X + column * CELL_COLLIDER_SIZE_X + CELL_COLLIDER_SIZE_X / 2,
-			CELL_INITALIZE_POS_Y + row * CELL_COLLIDER_SIZE_Y + CELL_COLLIDER_SIZE_Y / 2
-		);
+		Vector cellCenterPosition = mBoard
+			? mBoard->GetCellCenterPosition(row, column)
+			: Vector(CELL_INITALIZE_POS_X + column * CELL_COLLIDER_SIZE_X + CELL_COLLIDER_SIZE_X / 2,
+				CELL_INITALIZE_POS_Y + row * CELL_COLLIDER_SIZE_Y + CELL_COLLIDER_SIZE_Y / 2);
 		SetPosition(cellCenterPosition);  // 逻辑位置
 	}
 	else {
@@ -96,8 +104,11 @@ void Plant::Die() {
 	// 清理植物在Cell上的ID
 	if (mBoard) {
 		auto cell = mBoard->GetCell(mRow, mColumn);
-		if (cell && cell->GetPlantID() == mPlantID) {
-			cell->ClearPlantID();
+		if (cell && cell->GetUnderPlantID() == mPlantID) {
+			cell->ClearUnderPlantID();
+		}
+		if (cell && cell->GetNormalPlantID() == mPlantID) {
+			cell->ClearNormalPlantID();
 		}
 	}
 	GameObjectManager::GetInstance().DestroyGameObject(this);
@@ -116,7 +127,14 @@ void Plant::Update()
 }
 
 Vector Plant::GetVisualPosition() const {
-	return GetTransformComponent()->GetPosition() + mVisualOffset + mGridMoveVisualOffset;
+	Vector visual = GetTransformComponent()->GetPosition() + mVisualOffset + mGridMoveVisualOffset;
+	if (!mIsPreview && mBoard && mBoard->IsPoolRow(mRow)) {
+		const float phase = static_cast<float>(mBoard->mBoardFrame) * kPoolBobRadiansPerFrame
+			+ static_cast<float>(mRow) * kPoolBobRowPhase
+			+ static_cast<float>(mColumn) * kPoolBobColumnPhase;
+		visual.y += std::sin(phase) * kPoolBobAmplitude;
+	}
+	return visual;
 }
 
 void Plant::PlantUpdate()
@@ -155,9 +173,10 @@ void Plant::MoveToGridCell(int row, int column, float visualDuration)
 {
 	// 逻辑格和碰撞箱必须在同一帧落到目标格；旧画面位置只作为瞬态绘制偏移保留。
 	const Vector currentVisualBase = GetPosition() + mGridMoveVisualOffset;
-	const Vector target(
-		CELL_INITALIZE_POS_X + column * CELL_COLLIDER_SIZE_X + CELL_COLLIDER_SIZE_X / 2,
-		CELL_INITALIZE_POS_Y + row * CELL_COLLIDER_SIZE_Y + CELL_COLLIDER_SIZE_Y / 2);
+	const Vector target = mBoard
+		? mBoard->GetCellCenterPosition(row, column)
+		: Vector(CELL_INITALIZE_POS_X + column * CELL_COLLIDER_SIZE_X + CELL_COLLIDER_SIZE_X / 2,
+			CELL_INITALIZE_POS_Y + row * CELL_COLLIDER_SIZE_Y + CELL_COLLIDER_SIZE_Y / 2);
 	mRow = row;
 	mColumn = column;
 	SetPosition(target);

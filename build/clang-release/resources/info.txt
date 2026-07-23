@@ -63,6 +63,11 @@
 [PLANT_DOOMSHROOM_DESCRIPTION]
 毁灭菇会在巨大范围内引发毁灭性爆炸，但也会在原地留下一个久久无法种植的弹坑。"我不想伤害任何蘑菇，"他叹了口气，"可我一激动，方圆三行就没了。"
 
+[PLANT_LILYPAD]
+睡莲
+[PLANT_LILYPAD_DESCRIPTION]
+睡莲可以种在水面上，让大多数陆生植物在水路安家。刚刚入水时，它还会短暂避开僵尸的第一口。
+
 [ZOMBIE_NORMAL]
 僵尸
 [ZOMBIE_NORMAL_DESCRIPTION]
@@ -122,3 +127,15 @@
 加固铁门僵尸
 [ZOMBIE_REINFORCED_DOOR_DESCRIPTION]
 青绿色加固门会截断两种大喷菇的孢子。门未掉落时，每次普通植物伤害最多 10 点，灰烬伤害最多 300 点；在门掉落前，它不会被烧成灰，也不会被除小推车外的手段直接秒杀。不过大喷菇对它造成双倍伤害。每波最多出现 2 只。
+[ZOMBIE_POOL_NORMAL]
+泳圈僵尸
+[ZOMBIE_POOL_NORMAL_DESCRIPTION]
+普通僵尸进入水路后会套上泳圈游过泳池，离开水面时重新步行。
+[ZOMBIE_POOL_CONE]
+泳圈路障僵尸
+[ZOMBIE_POOL_CONE_DESCRIPTION]
+路障僵尸进入水路后的泳圈形态，保留路障的全部耐久。
+[ZOMBIE_POOL_BUCKET]
+泳圈铁桶僵尸
+[ZOMBIE_POOL_BUCKET_DESCRIPTION]
+铁桶僵尸进入水路后的泳圈形态，保留铁桶的全部耐久。

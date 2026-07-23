@@ -78,9 +78,11 @@ void Shovel::CheckPlant()
 	for (auto& rowCells : mBoard->mCells) {
 		for (auto& cell : rowCells) {
 			if (cell && cell->ContainsPoint(mPosition) && !cell->IsEmpty()) {
-				mPlant = mBoard->mEntityManager.GetPlant(cell->GetPlantID());
-				mPlant->SetGlowingTimer(0.1f);
-				return;
+				mPlant = mBoard->GetTopPlantAt(cell->mRow, cell->mColumn);
+				if (mPlant) {
+					mPlant->SetGlowingTimer(0.1f);
+					return;
+				}
 			}
 		}
 	}

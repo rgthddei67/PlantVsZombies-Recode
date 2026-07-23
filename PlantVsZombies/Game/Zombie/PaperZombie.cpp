@@ -173,6 +173,7 @@ void PaperZombie::StartEat(ColliderComponent* other)
 	{
 		if (auto* plant = dynamic_cast<Plant*>(gameObject))
 		{
+			if (!IsPlantValidEatTarget(plant)) return;
 			if (mEatPlantID != NULL_PLANT_ID || plant->mRow != this->mRow) return;	// 正在吃一个植物，那么不吃别的植物
 
 			if (!mIsEating) {

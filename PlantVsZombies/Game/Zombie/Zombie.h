@@ -181,6 +181,10 @@ protected:
 
 	// 这才是设置僵尸
 	virtual void SetupZombie();
+	/** 注册当前 reanim 时间轴上的死亡与啃食帧事件；帧布局不同的品种在此替换。 */
+	virtual void RegisterFrameEvents();
+	/** 返回掉头流血结束后应播放的死亡轨道名。 */
+	virtual const char* GetDeathTrackName() const { return "anim_death"; }
 
 	virtual void CheckHelmImage() {}	// 检查是否应该更换一类防具图片
 	virtual void CheckShieldImage() {} 	// 检查是否应该更换二类防具图片
@@ -204,6 +208,8 @@ protected:
 	//     void OnStopEating()  override { if (mShieldType != ShieldType::SHIELDTYPE_NONE) ShowArm(false); }
 	virtual void OnStartEating() {}
 	virtual void OnStopEating()  {}
+	/** 双层水面种植下只允许选中格子的最上层植物，并尊重植物自己的短期啃食保护。 */
+	bool IsPlantValidEatTarget(Plant* plant) const;
 
 	// 模板方法（非虚，勿覆写）：啃完回走路 = 先收尾、再走路。执行顺序由基类锁死。
 	void ResumeWalkAfterEat(float blendTime) { OnStopEating(); PlayWalkAnimation(blendTime); }

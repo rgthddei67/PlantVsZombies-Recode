@@ -1,0 +1,30 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 19 },
+    { "op": "choose_cards", "cards": ["PLANT_LILYPAD"] },
+    { "op": "wait_state", "state": "GAME", "timeout": 15 },
+    { "op": "assert_state", "path": "mowerCount", "equals": 6 },
+    { "op": "assert_state", "path": "mowers.2.type", "equals": "WATER" },
+    { "op": "assert_state", "path": "mowers.2.state", "equals": "IDLE" },
+    { "op": "assert_state", "path": "mowers.2.height", "equals": "LAND" },
+    { "op": "assert_state", "path": "mowers.2.track", "equals": "anim_land" },
+
+    { "op": "spawn_zombie", "type": "ZOMBIE_POOL_NORMAL", "row": 2, "x": 220 },
+    { "op": "spawn_zombie", "type": "ZOMBIE_POOL_NORMAL", "row": 2, "x": 420 },
+    { "op": "wait_frames", "value": 8 },
+    { "op": "assert_state", "path": "mowers.2.state", "equals": "MOVING" },
+    { "op": "assert_state", "path": "zombies.0.bodyHealth", "equals": 0 },
+    { "op": "wait_seconds", "value": 0.7, "timeout": 3 },
+    { "op": "assert_state", "path": "mowers.2.height", "equals": "IN_POOL" },
+    { "op": "assert_state", "path": "mowers.2.track", "equals": "anim_water" },
+    { "op": "screenshot", "name": "pool_cleaner_in_water.png" },
+    { "op": "wait_seconds", "value": 3.7, "timeout": 6 },
+    { "op": "assert_state", "path": "mowers.2.height", "equals": "EXITING" },
+    { "op": "screenshot", "name": "pool_cleaner_leaving_water.png" },
+    { "op": "wait_seconds", "value": 0.3, "timeout": 3 },
+    { "op": "assert_state", "path": "mowers.2.height", "equals": "LAND" },
+    { "op": "assert_state", "path": "mowers.2.track", "equals": "anim_land" },
+    { "op": "dump_state", "name": "pool_cleaner_state.json" },
+    { "op": "quit" }
+  ]
+}

@@ -28,6 +28,7 @@
 #include "ScaredyShroom.h"
 #include "IceShroom.h"
 #include "DoomShroom.h"
+#include "LilyPad.h"
 
 #include "../Zombie/Zombie.h"
 #include "../Zombie/ConeZombie.h"
@@ -43,6 +44,9 @@
 #include "../Zombie/BackupDancerZombie.h"
 #include "../Zombie/EliteDancerZombie.h"
 #include "../Zombie/ReinforcedDoorZombie.h"
+#include "../Zombie/PoolNormalZombie.h"
+#include "../Zombie/PoolConeZombie.h"
+#include "../Zombie/PoolBucketZombie.h"
 
 namespace {
 	template<typename T>
@@ -174,6 +178,11 @@ void GameDataManager::InitializeHardcodedData() {
 		AnimationType::ANIM_DOOM_SHROOM,
 		"DoomShroom", &MakePlant<DoomShroom>);
 
+	RegisterPlant(PlantType::PLANT_LILYPAD, "PLANT_LILYPAD",
+		ResourceKeys::Textures::IMAGE_LILYPAD,
+		AnimationType::ANIM_LILYPAD,
+		ResourceKeys::Reanimations::REANIM_LILYPAD, &MakePlant<LilyPad>);
+
 	// 寒冰大喷菇：复用大喷菇 reanim（蓝色靠 overlay），仅卡图独立
 	RegisterPlant(PlantType::PLANT_ICEFUMESHROOM, "PLANT_ICEFUMESHROOM",
 		ResourceKeys::Textures::IMAGE_ICEFUMESHROOM,
@@ -243,6 +252,17 @@ void GameDataManager::InitializeHardcodedData() {
 		AnimationType::ANIM_DOOR_ZOMBIE,
 		"DoorZombie", &MakeZombie<ReinforcedDoorZombie>);
 
+	// 泳池三种地形变体不独立进权重池，由 Board 在选中水路后把基础类型解析为对应变体。
+	RegisterZombie(ZombieType::ZOMBIE_POOL_NORMAL, "ZOMBIE_POOL_NORMAL",
+		AnimationType::ANIM_POOL_NORMAL_ZOMBIE,
+		ResourceKeys::Reanimations::REANIM_POOL_NORMAL_ZOMBIE, &MakeZombie<PoolNormalZombie>);
+	RegisterZombie(ZombieType::ZOMBIE_POOL_CONE, "ZOMBIE_POOL_CONE",
+		AnimationType::ANIM_POOL_CONE_ZOMBIE,
+		ResourceKeys::Reanimations::REANIM_POOL_CONE_ZOMBIE, &MakeZombie<PoolConeZombie>);
+	RegisterZombie(ZombieType::ZOMBIE_POOL_BUCKET, "ZOMBIE_POOL_BUCKET",
+		AnimationType::ANIM_POOL_BUCKET_ZOMBIE,
+		ResourceKeys::Reanimations::REANIM_POOL_BUCKET_ZOMBIE, &MakeZombie<PoolBucketZombie>);
+
 	// ==================== 非植物/僵尸动画映射 ====================
 	mAnimToString[AnimationType::ANIM_SUN] = ResourceKeys::Reanimations::REANIM_SUN;
 
@@ -251,6 +271,8 @@ void GameDataManager::InitializeHardcodedData() {
 
 	mAnimToString[AnimationType::ANIM_LAWNMOWER] =
 		ResourceKeys::Reanimations::REANIM_LAWNMOWER;
+	mAnimToString[AnimationType::ANIM_POOL_CLEANER] =
+		ResourceKeys::Reanimations::REANIM_POOL_CLEANER;
 
 	mAnimToString[AnimationType::ANIM_NONE] = "Unknown";
 }

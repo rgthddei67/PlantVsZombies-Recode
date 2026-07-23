@@ -56,6 +56,8 @@
 
     <Image>./resources/image/background_day.jpg</Image>
     <Image>./resources/image/background_night.jpg</Image>
+    <Image>./resources/image/background_pool.jpg</Image>
+
     <Image>./resources/image/UI/ShovelBank.png</Image>
     <Image>./resources/image/UI/options_menuback.png</Image>
     <Image>./resources/image/UI/buttonbig.png</Image>
@@ -106,6 +108,7 @@
     <Image>./resources/image/PlantImage/IceShroom.png</Image>
     <Image>./resources/image/PlantImage/IceFumeShroom.png</Image>
     <Image>./resources/image/PlantImage/DoomShroom.png</Image>
+    <Image>./resources/image/PlantImage/LilyPad.png</Image>
     <Image>./resources/image/PlantImage/Squash.png</Image>
     <Image>./resources/image/PlantImage/Threepeater.png</Image>
     <Image>./resources/image/PlantImage/TangleKelp.png</Image>
@@ -263,11 +266,13 @@
     <Reanimation name="ScaredyShroom">./resources/reanim/ScaredyShroom.reanim</Reanimation>
     <Reanimation name="IceShroom">./resources/reanim/IceShroom.reanim</Reanimation>
     <Reanimation name="DoomShroom">./resources/reanim/DoomShroom.reanim</Reanimation>
+    <Reanimation name="LilyPad">./resources/reanim/LilyPad.reanim</Reanimation>
 
     <Reanimation name="NormalZombie">./resources/reanim/NormalZombie.reanim</Reanimation>
     <Reanimation name="ConeZombie">./resources/reanim/ConeZombie.reanim</Reanimation>
     <Reanimation name="PolevaulterZombie">./resources/reanim/Polevaulter.reanim</Reanimation>
     <Reanimation name="BucketZombie">./resources/reanim/BucketZombie.reanim</Reanimation>
+
     <Reanimation name="PaperZombie">./resources/reanim/PaperZombie.reanim</Reanimation>
     <Reanimation name="DoorZombie">./resources/reanim/DoorZombie.reanim</Reanimation>
     <Reanimation name="FootballZombie">./resources/reanim/FootballZombie.reanim</Reanimation>
@@ -276,9 +281,14 @@
     <Reanimation name="ZombieEliteJackson">./resources/reanim/Zombie_EliteJackson.reanim</Reanimation>
     <Reanimation name="ZombieDancer">./resources/reanim/Zombie_dancer.reanim</Reanimation>
 
+    <Reanimation name="PoolNormalZombie">./resources/reanim/PoolNormalZombie.reanim</Reanimation>
+    <Reanimation name="PoolConeZombie">./resources/reanim/PoolConeZombie.reanim</Reanimation>
+    <Reanimation name="PoolBucketZombie">./resources/reanim/PoolBucketZombie.reanim</Reanimation>
+
     <Reanimation name="Zombie_Charred">./resources/reanim/Zombie_Charred.reanim</Reanimation>
 
     <Reanimation name="LawnMower">./resources/reanim/LawnMower.reanim</Reanimation>
+    <Reanimation name="PoolCleaner">./resources/reanim/PoolCleaner.reanim</Reanimation>
 
   </Reanimations>
 </Resources>

@@ -44,6 +44,9 @@ enum class ZombieType {
 	ZOMBIE_PINK_FOOTBALL,
 	ZOMBIE_ELITE_DANCER,
 	ZOMBIE_REINFORCED_DOOR,
+	ZOMBIE_POOL_NORMAL,
+	ZOMBIE_POOL_CONE,
+	ZOMBIE_POOL_BUCKET,
 
 	// ↓ 哨兵：置于全部已实现僵尸之后，使 [0,NUM_ZOMBIE_TYPES) 只覆盖已实现类型，
 	//   生存模式随机抽取据此绝不会抽到下方未实现僵尸。

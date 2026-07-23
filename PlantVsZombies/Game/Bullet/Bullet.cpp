@@ -195,8 +195,10 @@ void Bullet::UpdateShadowLayout(const Vector& position)
 	// 主人校对：Y 与同一行豌豆射手的默认阴影中心一致，即格子中心 + 28。
 	// X 偏移沿用 C#：Pea +3，Snowpea -1。
 	const float shadowLeftOffset = mBulletType == BulletType::BULLET_SNOWPEA ? -1.0f : 3.0f;
-	const float shadowCenterY = CELL_INITALIZE_POS_Y
-		+ static_cast<float>(mRow) * CELL_COLLIDER_SIZE_Y + CELL_COLLIDER_SIZE_Y * 0.5f + 28.0f;
+	const float shadowCenterY = (mBoard
+		? mBoard->GetCellCenterPosition(mRow, 0).y
+		: CELL_INITALIZE_POS_Y + static_cast<float>(mRow) * CELL_COLLIDER_SIZE_Y
+			+ CELL_COLLIDER_SIZE_Y * 0.5f) + 28.0f;
 	mShadow->SetOffset(Vector(
 		shadowLeftOffset + shadowWidth * 0.5f,
 		shadowCenterY - position.y));

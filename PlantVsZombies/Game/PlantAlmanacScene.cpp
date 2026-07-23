@@ -79,6 +79,7 @@ void PlantAlmanacScene::CreateAllCards()
 
 	int cardCount = 0;
 	for (const auto& plantType : haveCards) {
+		if (!gameMgr.HasPlant(plantType)) continue;
 		int row = cardCount / ALMANAC_MAX_CARDS_PER_ROW;
 		int col = cardCount % ALMANAC_MAX_CARDS_PER_ROW;
 

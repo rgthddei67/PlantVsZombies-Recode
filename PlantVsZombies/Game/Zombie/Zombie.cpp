@@ -63,9 +63,7 @@ Zombie::Zombie(Board* board, ZombieType zombieType, float x, float y, int row,
 
 void Zombie::SetupZombie()
 {
-	mAnimator->AddFrameEvent(216, [this]() { this->Die(); });
-	mAnimator->AddFrameEvent(152, [this]() { this->EatTarget(); }, true);
-	mAnimator->AddFrameEvent(171, [this]() { this->EatTarget(); }, true);
+	RegisterFrameEvents();
 
 	mHasTongue = static_cast<bool>(GameRandom::Range(0, 1));
 
@@ -81,6 +79,14 @@ void Zombie::SetupZombie()
 		this->PlayTrack("anim_walk");
 	else
 		this->PlayTrack("anim_walk2");
+}
+
+/** 注册普通僵尸 reanim 的死亡终点与两次啃食命中帧。 */
+void Zombie::RegisterFrameEvents()
+{
+	mAnimator->AddFrameEvent(216, [this]() { this->Die(); });
+	mAnimator->AddFrameEvent(152, [this]() { this->EatTarget(); }, true);
+	mAnimator->AddFrameEvent(171, [this]() { this->EatTarget(); }, true);
 }
 
 void Zombie::ApplyHealthMultiplier(double multiplier)
@@ -271,7 +277,7 @@ void Zombie::Update()
 			// 冻结兜底解除：任何转入死亡的路径都不得停格——死亡动画靠帧事件 Die()，停格即卡尸
 			if (mFrozenTimer > 0.0f) ClearFrozen();
 			mDyingTimer += deltaTime;
-			if (GetCurrentTrackName() != "anim_death" && !mDbgAnomalyLogged) {
+			if (GetCurrentTrackName() != GetDeathTrackName() && !mDbgAnomalyLogged) {
 				mDbgAnomalyLogged = true;
 			}
 			if (mDyingTimer >= 10.0f)
@@ -367,7 +373,7 @@ void Zombie::Update()
 				{
 					// 冻着也要能倒：先解停格再播死亡动画（帧事件 Die 依赖动画前进）
 					if (mFrozenTimer > 0.0f) ClearFrozen();
-					PlayTrack("anim_death", 1.3f, 0.3f);
+					PlayTrack(GetDeathTrackName(), 1.3f, 0.3f);
 					if (mCollider) mCollider->mEnabled = false;
 					mIsDying = true;
 				}
@@ -821,6 +827,7 @@ void Zombie::StartEat(ColliderComponent* other)
 	{
 		if (auto* plant = dynamic_cast<Plant*>(gameObject))
 		{
+			if (!IsPlantValidEatTarget(plant)) return;
 			if (mEatPlantID != NULL_PLANT_ID || mEatZombieID != NULL_ZOMBIE_ID || plant->mRow != this->mRow) return;	// 正在吃一个目标，那么不吃别的
 
 			if (!mIsEating) {
@@ -832,6 +839,12 @@ void Zombie::StartEat(ColliderComponent* other)
 			if (!wasEating && mIsEating) OnStartEating();
 		}
 	}
+}
+
+bool Zombie::IsPlantValidEatTarget(Plant* plant) const
+{
+	if (!plant || !plant->CanBeEaten() || plant->mRow != mRow) return false;
+	return !mBoard || mBoard->GetTopPlantAt(plant->mRow, plant->mColumn) == plant;
 }
 
 void Zombie::StopEat(ColliderComponent* other)

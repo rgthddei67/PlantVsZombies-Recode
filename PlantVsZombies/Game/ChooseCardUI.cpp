@@ -133,7 +133,10 @@ void ChooseCardUI::RemoveCard(Card* card)
 
 void ChooseCardUI::AddAllCard() {
 	const auto& haveCards = GameAPP::GetInstance().mHaveCards;
+	auto& gameData = GameDataManager::GetInstance();
 	for (const auto& card : haveCards) {
+		// 冒险进度可以先记录后续关卡奖励；对应植物尚未实装时先不把空工厂卡放进选卡界面。
+		if (!gameData.HasPlant(card)) continue;
 		AddCard(card);
 	}
 }

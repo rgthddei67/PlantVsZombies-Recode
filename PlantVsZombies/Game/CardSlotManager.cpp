@@ -257,12 +257,11 @@ void CardSlotManager::UpdatePlantPreviewPosition(Graphics* g, const Vector& mous
 	}
 
 	bool isOverCellWithPlant = false;
-	if (hoveredCell && hoveredCell->GetPlantID() != NULL_PLANT_ID) {
-		isOverCellWithPlant = true;
-	}
-	// 弹坑格视同已种格：不显示落点预览（与 CanPlaceInCell 的阻种闸门保持一致）
-	if (hoveredCell && mBoard && mBoard->HasCraterAt(hoveredCell->mRow, hoveredCell->mColumn)) {
-		isOverCellWithPlant = true;
+	if (hoveredCell && mBoard) {
+		if (auto cardComp = selected->GetComponent<CardComponent>()) {
+			isOverCellWithPlant = !mBoard->CanPlantAt(cardComp->GetPlantType(),
+				hoveredCell->mRow, hoveredCell->mColumn);
+		}
 	}
 
 	if (isOverCellWithPlant) {
@@ -330,18 +329,10 @@ void CardSlotManager::HandleCellClick(int row, int col) {
 bool CardSlotManager::CanPlaceInCell(Cell* cell) const {
 	if (!selectedCard || !cell) return false;
 
-	// 检查格子是否已有植物
-	if (!cell->IsEmpty()) {
-		return false;
-	}
-
-	// 毁灭菇弹坑占格期间不可种植
-	if (mBoard && mBoard->HasCraterAt(cell->mRow, cell->mColumn)) {
-		return false;
-	}
-
 	// 检查阳光是否足够
 	if (auto cardComp = selectedCard->GetComponent<CardComponent>()) {
+		if (!mBoard || !mBoard->CanPlantAt(cardComp->GetPlantType(),
+			cell->mRow, cell->mColumn)) return false;
 		if (!CanAfford(cardComp->GetSunCost())) {
 			return false;
 		}
@@ -365,7 +356,9 @@ void CardSlotManager::PlacePlantInCell(int row, int col) {
 
 	DestroyPlantPreview();
 	DestroyCellPlantPreview();
-	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_PLANT, 0.5f);
+	AudioSystem::PlaySound(mBoard->IsPoolSquare(row, col)
+		? ResourceKeys::Sounds::SOUND_PLANT_ONWATER
+		: ResourceKeys::Sounds::SOUND_PLANT, 0.5f);
 
 	// 创建植物
 	Plant* plant = mBoard->CreatePlant(cardComp->GetPlantType(), row, col);

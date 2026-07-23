@@ -26,6 +26,11 @@
 #include <cmath>       // std::lround
 
 namespace {
+	constexpr float kPoolCellInitialY = 85.0f;            // 泳池六行网格首行顶部世界坐标（像素）
+	constexpr float kPoolCellHeight = 85.0f;              // 泳池六行的逻辑格高（像素）；列宽仍保持 80
+	constexpr float kPoolZombieSpawnYOffset = 20.0f;      // 适配本项目缩放后的六行僵尸基线，单位：像素
+	constexpr int kPoolFirstRow = 2;                      // 泳池第一条水路的 0-based 行号
+	constexpr int kPoolLastRow = 3;                       // 泳池最后一条水路的 0-based 行号
 	constexpr float kFirstRainDelayMin = 90.0f;          // 开局到首场雨的最短等待时间（秒）
 	constexpr float kFirstRainDelayMax = 110.0f;          // 开局到首场雨的最长等待时间（秒）
 	constexpr float kClearWeatherDelayMin = 15.0f;       // 两场雨之间的最短晴空间隔（秒）
@@ -676,7 +681,7 @@ Board::Board(GameScene* gameScene, Background background, int level)
 	}
 
 	CreatePreviewZombies();
-	InitializeCell();
+	InitializeCell(IsPoolBackground() ? 5 : 4, 8);
 	InitializeRows();
 }
 
@@ -948,7 +953,7 @@ void Board::InitializeWeather()
 	if (mWeatherInitialized) return;
 	// 主进度由“当前雨势 + 一个复用倒计时”驱动：CLEAR 时倒计时代表距首场雨/下一场雨，
 	// 下雨时则代表当前雨段剩余时间；另用布尔值记录初始小雨是否还拥有一次增强资格。
-	// 白天把倒计时保持为 0，并由 UpdateWeather 直接跳过。
+	// 第一大关与白天无尽把倒计时保持为 0；冒险第二大关起均启用天气。
 	mWeatherInitialized = true;
 	mRainIntensity = RainIntensity::CLEAR;
 	mPreviousRainIntensity = RainIntensity::CLEAR;
@@ -965,7 +970,7 @@ void Board::InitializeWeather()
 	mWeakWeatherPhasesSinceHeavy = 0;
 	mHeavyPhasesWithoutTyphoon = 0;
 	StopTyphoon();
-	mWeatherTimer = GameAPP::GetInstance().GetBackgroundIsNight(mBackGround)
+	mWeatherTimer = SupportsWeather()
 		? GameRandom::Range(kFirstRainDelayMin, kFirstRainDelayMax)
 		: 0.0f;
 }
@@ -1013,8 +1018,8 @@ void Board::TriggerRainGroundSplash()
 	const float minX = CELL_INITALIZE_POS_X + kRainSplashEdgePadding;
 	const float maxX = CELL_INITALIZE_POS_X + mColumns * CELL_COLLIDER_SIZE_X
 		- kRainSplashEdgePadding;
-	const float minY = CELL_INITALIZE_POS_Y + kRainSplashEdgePadding;
-	const float maxY = CELL_INITALIZE_POS_Y + mRows * CELL_COLLIDER_SIZE_Y
+	const float minY = mCellInitialY + kRainSplashEdgePadding;
+	const float maxY = mCellInitialY + mRows * mCellHeight
 		- kRainSplashEdgePadding;
 	if (maxX <= minX || maxY <= minY) return;
 
@@ -1506,31 +1511,59 @@ void Board::TriggerTyphoonPlantMove(TyphoonStrength strength, WindDirection dire
 			for (int column = firstColumn; column != endColumn; column -= columnDelta) {
 				Cell* source = GetCell(row, column);
 				if (!source || source->IsEmpty()) continue;
-				const int plantID = source->GetPlantID();
-				Plant* plant = mEntityManager.GetPlant(plantID);
-				if (!plant || !plant->IsActive()) {
-					source->ClearPlantID();
-					continue;
+				const int underID = source->GetUnderPlantID();
+				const int normalID = source->GetNormalPlantID();
+				Plant* under = mEntityManager.GetPlant(underID);
+				Plant* normal = mEntityManager.GetPlant(normalID);
+				if (!under || !under->IsActive()) {
+					source->ClearUnderPlantID();
+					under = nullptr;
 				}
+				if (!normal || !normal->IsActive()) {
+					source->ClearNormalPlantID();
+					normal = nullptr;
+				}
+				if (!under && !normal) continue;
 
 				const int targetColumn = column + columnDelta;
 				if (targetColumn < 0 || targetColumn >= mColumns) {
-					lostPlantIDs.insert(plantID);
-					plant->Die();
+					if (under) {
+						lostPlantIDs.insert(underID);
+						under->Die();
+					}
+					if (normal) {
+						lostPlantIDs.insert(normalID);
+						normal->Die();
+					}
 					continue;
 				}
 
 				Cell* target = GetCell(row, targetColumn);
 				if (!target || !target->IsEmpty()) continue;
 				if (HasCraterAt(row, targetColumn)) {
-					lostPlantIDs.insert(plantID);
-					plant->Die();
+					if (under) {
+						lostPlantIDs.insert(underID);
+						under->Die();
+					}
+					if (normal) {
+						lostPlantIDs.insert(normalID);
+						normal->Die();
+					}
 					continue;
 				}
-				source->ClearPlantID();
-				target->SetPlantID(plantID);
-				plant->MoveToGridCell(row, targetColumn, kTyphoonPlantSlideDuration);
-				movedPlantIDs.insert(plantID);
+				source->ClearUnderPlantID();
+				source->ClearNormalPlantID();
+				if (under) {
+					target->SetUnderPlantID(underID);
+					under->MoveToGridCell(row, targetColumn, kTyphoonPlantSlideDuration);
+					movedPlantIDs.insert(underID);
+				}
+				if (normal) {
+					target->SetNormalPlantID(normalID);
+					normal->MoveToGridCell(row, targetColumn, kTyphoonPlantSlideDuration);
+					movedPlantIDs.insert(normalID);
+				}
+				RefreshPlantStackRenderOrder(target);
 			}
 		}
 	}
@@ -1615,8 +1648,7 @@ void Board::TriggerLightning()
 
 void Board::UpdateWeather(float deltaTime)
 {
-	if (!mWeatherInitialized || deltaTime <= 0.0f ||
-		!GameAPP::GetInstance().GetBackgroundIsNight(mBackGround)) return;
+	if (!mWeatherInitialized || deltaTime <= 0.0f || !SupportsWeather()) return;
 	UpdateWeatherTransition(deltaTime);
 
 	// 每帧只推进当前阶段的倒计时。雨中归零会按当前强度决定续期、增强、衰减或放晴；
@@ -1649,7 +1681,7 @@ void Board::UpdateWeather(float deltaTime)
 
 void Board::SetRainForTesting(RainIntensity intensity, float duration, bool canIntensify)
 {
-	if (!GameAPP::GetInstance().GetBackgroundIsNight(mBackGround)) return;
+	if (!SupportsWeather()) return;
 	if (g_particleSystem) g_particleSystem->ClearAll();
 	StopRainAudio();
 	mWeatherInitialized = true;
@@ -1681,7 +1713,7 @@ void Board::SetRainForTesting(RainIntensity intensity, float duration, bool canI
 
 bool Board::SetWeatherForecastForTesting(RainIntensity forecast, RainIntensity actual, float revealIn)
 {
-	if (!GameAPP::GetInstance().GetBackgroundIsNight(mBackGround) || !mWeatherInitialized) {
+	if (!SupportsWeather() || !mWeatherInitialized) {
 		return false;
 	}
 	mForecastRainIntensity = forecast;
@@ -1694,7 +1726,7 @@ bool Board::SetWeatherForecastForTesting(RainIntensity forecast, RainIntensity a
 /** 用固定权重落点准备真实新天气；公开预报强制等于实际结果，避免测试再依赖第二次随机。 */
 bool Board::PrepareWeatherForecastForTesting(int weatherRoll, float revealIn)
 {
-	if (!GameAPP::GetInstance().GetBackgroundIsNight(mBackGround)
+	if (!SupportsWeather()
 		|| !mWeatherInitialized || mRainIntensity != RainIntensity::CLEAR
 		|| mWeatherForecastReady) return false;
 	const int total = GetNextWeatherRollTotal();
@@ -1769,10 +1801,49 @@ bool Board::TriggerTyphoonGustForTesting(float plantMoveIn)
 	return BeginTyphoonGust(false, plantMoveIn);
 }
 
+bool Board::IsPoolBackground() const
+{
+	return mBackGround == Background::WATER_POOL
+		|| mBackGround == Background::NIGHT_WATER_POOL;
+}
+
+bool Board::SupportsWeather() const
+{
+	if (mLevel == SURVIVAL_ENDLESS_NIGHT_LEVEL) return true;
+	return AdventureProgression::IsAdventureLevel(mLevel)
+		&& AdventureProgression::GetAreaNumber(mLevel) >= 2;
+}
+
+bool Board::IsPoolRow(int row) const
+{
+	return IsPoolBackground() && row >= kPoolFirstRow && row <= kPoolLastRow;
+}
+
+bool Board::IsPoolSquare(int row, int col) const
+{
+	return IsPoolRow(row) && col >= 0 && col < mColumns;
+}
+
+bool Board::IsPoolWorldPosition(int row, float x) const
+{
+	const float poolRight = CELL_INITALIZE_POS_X
+		+ static_cast<float>(mColumns) * CELL_COLLIDER_SIZE_X;
+	return IsPoolRow(row) && x >= CELL_INITALIZE_POS_X && x < poolRight;
+}
+
+Vector Board::GetCellCenterPosition(int row, int col) const
+{
+	return Vector(CELL_INITALIZE_POS_X + static_cast<float>(col) * CELL_COLLIDER_SIZE_X
+		+ CELL_COLLIDER_SIZE_X * 0.5f,
+		mCellInitialY + static_cast<float>(row) * mCellHeight + mCellHeight * 0.5f);
+}
+
 void Board::InitializeCell(int rows, int cols)
 {
 	mRows = rows + 1;
 	mColumns = cols + 1;
+	mCellInitialY = IsPoolBackground() ? kPoolCellInitialY : CELL_INITALIZE_POS_Y;
+	mCellHeight = IsPoolBackground() ? kPoolCellHeight : CELL_COLLIDER_SIZE_Y;
 	mCells.resize(mRows);
 	for (int i = 0; i < mRows; i++)
 	{
@@ -1780,9 +1851,10 @@ void Board::InitializeCell(int rows, int cols)
 		for (int j = 0; j < mColumns; j++)
 		{
 			Vector position(CELL_INITALIZE_POS_X + j * CELL_COLLIDER_SIZE_X,
-				CELL_INITALIZE_POS_Y + i * CELL_COLLIDER_SIZE_Y);
+				mCellInitialY + i * mCellHeight);
 			Cell* cell = GameObjectManager::GetInstance().CreateGameObject<Cell>(
-				LAYER_BACKGROUND, i, j, position);
+				LAYER_BACKGROUND, i, j, position,
+				Vector(CELL_COLLIDER_SIZE_X, mCellHeight));
 			mCells[i][j] = cell;
 		}
 	}
@@ -1926,6 +1998,45 @@ void Board::CreateTrophy(const Vector& position)
 	mTrophy = trophy;
 }
 
+bool Board::CanPlantAt(PlantType type, int row, int col)
+{
+	Cell* cell = GetCell(row, col);
+	if (!cell || HasCraterAt(row, col)) return false;
+
+	const bool isWater = IsPoolSquare(row, col);
+	if (type == PlantType::PLANT_LILYPAD) {
+		return isWater && cell->IsEmpty();
+	}
+	if (isWater) {
+		// 土豆雷没有水面形态；即使已有睡莲也不能落在水路。
+		if (type == PlantType::PLANT_POTATOMINE) return false;
+		return cell->GetUnderPlantID() != NULL_PLANT_ID
+			&& cell->GetNormalPlantID() == NULL_PLANT_ID;
+	}
+	return cell->GetNormalPlantID() == NULL_PLANT_ID
+		&& cell->GetUnderPlantID() == NULL_PLANT_ID;
+}
+
+Plant* Board::GetTopPlantAt(int row, int col) const
+{
+	if (row < 0 || row >= mRows || col < 0 || col >= mColumns) return nullptr;
+	Cell* cell = mCells[row][col];
+	return cell ? mEntityManager.GetPlant(cell->GetTopPlantID()) : nullptr;
+}
+
+void Board::RefreshPlantStackRenderOrder(Cell* cell)
+{
+	if (!cell) return;
+	Plant* under = mEntityManager.GetPlant(cell->GetUnderPlantID());
+	Plant* normal = mEntityManager.GetPlant(cell->GetNormalPlantID());
+	if (!under || !normal) return;
+	const int underOrder = under->GetRenderOrder();
+	const int normalOrder = normal->GetRenderOrder();
+	if (underOrder < normalOrder) return;
+	under->SetRenderOrder(normalOrder);
+	normal->SetRenderOrder(underOrder == normalOrder ? normalOrder + 1 : underOrder);
+}
+
 Plant* Board::CreatePlant(PlantType plantType, int row, int column, bool skipsettings, bool isPreview)
 {
 	// 检查行列是否有效
@@ -1938,14 +2049,20 @@ Plant* Board::CreatePlant(PlantType plantType, int row, int column, bool skipset
 	std::shared_ptr<Plant> plant = GameAPP::GetInstance().InstantiatePlant(plantType, this, row, column, isPreview);
 
 	if (plant && !isPreview && !skipsettings) {
+		Cell* cell = GetCell(row, column);
+		const bool isUnderPlant = plantType == PlantType::PLANT_LILYPAD;
+		const int occupiedID = isUnderPlant
+			? cell->GetUnderPlantID() : cell->GetNormalPlantID();
+		if (occupiedID != NULL_PLANT_ID) {
+			plant->Die();
+			return nullptr;
+		}
 		mEntityManager.AddPlant(plant);
 
 		// 将植物与格子关联
-		Cell* cell = GetCell(row, column);
-		if (cell)
-		{
-			cell->SetPlantID(plant->mPlantID);
-		}
+		if (isUnderPlant) cell->SetUnderPlantID(plant->mPlantID);
+		else cell->SetNormalPlantID(plant->mPlantID);
+		RefreshPlantStackRenderOrder(cell);
 	}
 
 	return plant.get();
@@ -2011,9 +2128,10 @@ inline void Board::CleanPlantFromCells(int plantID)
 {
 	for (size_t i = 0; i < mCells.size(); i++) {
 		for (size_t j = 0; j < mCells[i].size(); j++) {
-			if (mCells[i][j]->GetPlantID() == plantID) {
-				mCells[i][j]->ClearPlantID();
-			}
+			if (mCells[i][j]->GetUnderPlantID() == plantID)
+				mCells[i][j]->ClearUnderPlantID();
+			if (mCells[i][j]->GetNormalPlantID() == plantID)
+				mCells[i][j]->ClearNormalPlantID();
 		}
 	}
 }
@@ -2224,7 +2342,40 @@ void Board::SetRowLoseMower(int row)
 	mRowInfos[row].loseMower = mCurrentWave;
 }
 
-inline int Board::SelectSpawnRow()
+bool Board::IsSpawnRowCompatible(ZombieType type, int row) const
+{
+	if (!IsPoolBackground()) return row >= 0 && row < mRows;
+	if (row < 0 || row >= mRows) return false;
+	switch (type) {
+	case ZombieType::ZOMBIE_POOL_NORMAL:
+	case ZombieType::ZOMBIE_POOL_CONE:
+	case ZombieType::ZOMBIE_POOL_BUCKET:
+		return IsPoolRow(row);
+	case ZombieType::ZOMBIE_NORMAL:
+	case ZombieType::ZOMBIE_TRAFFIC_CONE:
+	case ZombieType::ZOMBIE_BUCKET:
+		return true;
+	default:
+		return !IsPoolRow(row);
+	}
+}
+
+ZombieType Board::ResolveTerrainZombieType(ZombieType selected, int row) const
+{
+	if (!IsPoolRow(row)) return selected;
+	switch (selected) {
+	case ZombieType::ZOMBIE_NORMAL:
+		return ZombieType::ZOMBIE_POOL_NORMAL;
+	case ZombieType::ZOMBIE_TRAFFIC_CONE:
+		return ZombieType::ZOMBIE_POOL_CONE;
+	case ZombieType::ZOMBIE_BUCKET:
+		return ZombieType::ZOMBIE_POOL_BUCKET;
+	default:
+		return selected;
+	}
+}
+
+inline int Board::SelectSpawnRow(ZombieType type)
 {
 	if (mRowInfos.empty()) InitializeRows();
 
@@ -2232,6 +2383,10 @@ inline int Board::SelectSpawnRow()
 	float totalWeight = 0.0f;
 	for (int i = 0; i < mRows; i++)
 	{
+		if (!IsSpawnRowCompatible(type, i)) {
+			mRowInfos[i].weight = 0.0f;
+			continue;
+		}
 		int mowerTest = mCurrentWave - mRowInfos[i].loseMower;
 		if (mowerTest <= 1)       mRowInfos[i].weight = 0.01f;
 		else if (mowerTest <= 2)  mRowInfos[i].weight = 0.5f;
@@ -2243,6 +2398,10 @@ inline int Board::SelectSpawnRow()
 	float smoothTotal = 0.0f;
 	for (int i = 0; i < mRows; i++)
 	{
+		if (!IsSpawnRowCompatible(type, i)) {
+			mRowInfos[i].smoothWeight = 0.0f;
+			continue;
+		}
 		float wp = (totalWeight > 0.0f) ? (mRowInfos[i].weight / totalWeight) : 0.0f;
 		if (wp >= ROW_WEIGHT_THRESHOLD)
 		{
@@ -2263,16 +2422,23 @@ inline int Board::SelectSpawnRow()
 	}
 
 	// 第三步：加权随机选行
-	if (smoothTotal <= 0.0f) return mRows - 1;
+	if (smoothTotal <= 0.0f) {
+		for (int i = 0; i < mRows; ++i)
+			if (IsSpawnRowCompatible(type, i)) return i;
+		return 0;
+	}
 
 	float randNum = GameRandom::Range(0.0f, smoothTotal);
 	float cumulative = 0.0f;
-	for (int i = 0; i < mRows - 1; i++)
+	int lastCompatibleRow = 0;
+	for (int i = 0; i < mRows; i++)
 	{
+		if (!IsSpawnRowCompatible(type, i)) continue;
+		lastCompatibleRow = i;
 		cumulative += mRowInfos[i].smoothWeight;
 		if (cumulative >= randNum) return i;
 	}
-	return mRows - 1;
+	return lastCompatibleRow;
 }
 
 inline int Board::GetSurvivalPickWeight(ZombieType type) const
@@ -2354,7 +2520,8 @@ inline void Board::TrySummonZombie()
 		const ZombieType actualType = ResolveWaveZombieType(selected);
 		if (actualType == ZombieType::NUM_ZOMBIE_TYPES) continue;
 
-		int row = SelectSpawnRow();
+		int row = SelectSpawnRow(actualType);
+		const ZombieType terrainType = ResolveTerrainZombieType(actualType, row);
 
 		// 更新行追踪计数器
 		for (int i = 0; i < mRows; i++)
@@ -2368,7 +2535,7 @@ inline void Board::TrySummonZombie()
 		mRowInfos[row].secondLastPicked = mRowInfos[row].lastPicked;
 		mRowInfos[row].lastPicked = 0;
 
-		auto zombie = CreateZombie(actualType, row, x);
+		auto zombie = CreateZombie(terrainType, row, x);
 		if (zombie)
 		{
 			zombiesSpawned++;
@@ -2678,7 +2845,9 @@ void Board::LoadSpawnListFromJson()
 
 Plant* Board::CreatePlantWithID(PlantType type, int row, int col, int id) {
 	Cell* cell = GetCell(row, col);
-	if (cell && cell->GetPlantID() != NULL_PLANT_ID) {
+	const bool isUnderPlant = type == PlantType::PLANT_LILYPAD;
+	if (cell && (isUnderPlant
+		? cell->GetUnderPlantID() : cell->GetNormalPlantID()) != NULL_PLANT_ID) {
 		return nullptr;
 	}
 	// 走 GameApp 工厂拿 shared_ptr 用于 EntityManager 注册
@@ -2690,7 +2859,9 @@ Plant* Board::CreatePlantWithID(PlantType type, int row, int col, int id) {
 	if (plant) {
 		mEntityManager.AddPlantWithID(plant, id);
 		if (cell) {
-			cell->SetPlantID(id);
+			if (isUnderPlant) cell->SetUnderPlantID(id);
+			else cell->SetNormalPlantID(id);
+			RefreshPlantStackRenderOrder(cell);
 		}
 	}
 	return plant.get();
@@ -2765,10 +2936,13 @@ void Board::ActivateShovel()
 Mower* Board::CreateMower(MowerType type, int row)
 {
 	float x = 160.0f;
-	float y = 135.0f + row * 100.0f;
+	float y = GetCellCenterPosition(row, 0).y - 3.0f;
+	const AnimationType animType = type == MowerType::WATER
+		? AnimationType::ANIM_POOL_CLEANER : AnimationType::ANIM_LAWNMOWER;
+	const float scale = type == MowerType::WATER ? 0.8f : 0.85f;
 
 	auto mower = GameObjectManager::GetInstance().CreateGameObjectImmediateAsShared<Mower>(
-		LAYER_GAME_OBJECT, this, type, AnimationType::ANIM_LAWNMOWER, x, y, row);
+		LAYER_GAME_OBJECT, this, type, animType, x, y, row, scale);
 
 	if (mower) {
 		mEntityManager.AddMower(mower);
@@ -2778,8 +2952,11 @@ Mower* Board::CreateMower(MowerType type, int row)
 
 Mower* Board::CreateMowerWithID(MowerType type, int row, float x, float y, int id)
 {
+	const AnimationType animType = type == MowerType::WATER
+		? AnimationType::ANIM_POOL_CLEANER : AnimationType::ANIM_LAWNMOWER;
+	const float scale = type == MowerType::WATER ? 0.8f : 0.85f;
 	auto mower = GameObjectManager::GetInstance().CreateGameObjectImmediateAsShared<Mower>(
-		LAYER_GAME_OBJECT, this, type, AnimationType::ANIM_LAWNMOWER, x, y, row);
+		LAYER_GAME_OBJECT, this, type, animType, x, y, row, scale);
 
 	if (mower) {
 		mEntityManager.AddMowerWithID(mower, id);
@@ -2790,7 +2967,7 @@ Mower* Board::CreateMowerWithID(MowerType type, int row, float x, float y, int i
 void Board::InitializeMowers()
 {
 	for (int row = 0; row < mRows; row++) {
-		CreateMower(MowerType::LAWN, row);
+		CreateMower(IsPoolRow(row) ? MowerType::WATER : MowerType::LAWN, row);
 	}
 }
 
@@ -2813,12 +2990,7 @@ float Board::GetZombieSpawnY(int row) const {
 		return -1.0f;
 	}
 
-	if (this->mBackGround == Background::GROUND_DAY ||
-		this->mBackGround == Background::GROUND_NIGHT)
-	{
-		return static_cast<float>(140 + row * 100);
-	}
-	else {
-		return 0.0f;
-	}
+	// 泳池保留 85px 行距；额外偏移经本项目实际动画缩放目测校准。
+	return GetCellCenterPosition(row, 0).y + 2.0f
+		+ (IsPoolBackground() ? kPoolZombieSpawnYOffset : 0.0f);
 }

@@ -16,9 +16,13 @@ Crater::Crater(Board* board, int row, int column, float timeLeft)
 	SetName("Crater_" + std::to_string(row) + "_" + std::to_string(column));
 
 	// 绘制锚点 = 格子左上 + (-8, +40)，镜像原版 GridItem::DrawCrater 的偏移
-	mTransform = AddComponent<TransformComponent>(Vector(
-		CELL_INITALIZE_POS_X + column * CELL_COLLIDER_SIZE_X - 8.0f,
-		CELL_INITALIZE_POS_Y + row * CELL_COLLIDER_SIZE_Y + 40.0f));
+	const Vector center = mBoard
+		? mBoard->GetCellCenterPosition(row, column)
+		: Vector(CELL_INITALIZE_POS_X + column * CELL_COLLIDER_SIZE_X + 40.0f,
+			CELL_INITALIZE_POS_Y + row * CELL_COLLIDER_SIZE_Y + 50.0f);
+	const float cellHeight = mBoard ? mBoard->GetCellHeight() : CELL_COLLIDER_SIZE_Y;
+	mTransform = AddComponent<TransformComponent>(
+		Vector(center.x - 48.0f, center.y - cellHeight * 0.5f + 40.0f));
 }
 
 void Crater::Update()
