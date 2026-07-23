@@ -31,7 +31,7 @@ metadata:
 - 项目内无 glad 源文件，`#include <glad/glad.h>` 仅在 `Graphics.h:5`、`ResourceManager.h:12`（死 include）。
 - **死 GL 机器（Graphics.h，零 .cpp 引用，删声明）：** m_currentVAO, BindVAO, m_spriteVAO/VBO/EBO, m_batchVAO/VBO, m_matrixBuffer, **m_useSSBO（确认零引用，非行为风险——曾误判，已纠正）**, m_geomVAO/VBO, m_geomBatchMode=GL_TRIANGLES, InitSpriteRenderer, InitGeomRenderer, DrawGeomImmediate。
 - **活跃但 GL 类型（改 uint32_t，勿删）：** BatchVertex::texIndex/matrixIndex, Graphics.h:84 textureID, m_whiteTexture, m_batchTextures, BindTexture(GLuint), GetOrCreateTextTexture()→GLuint, Graphics.cpp ~50 处 (GLuint) 强转, Graphics.cpp:941 局部 GLuint texID。`GLuint`≡`uint32_t`（Win64），改型零行为变更。
-- **名字含 GL 但活跃、勿动：** ApplyTopClipRectToGL（def Graphics.cpp:466，call 507/521）。⚠️ 原列的 FlushGeomBatch/m_geomBatchVertices/m_geomBatchCapacity 实为**死**（无定义/无使用），已删，见上方状态节——勿再当活跃保留。
+- **历史状态（已被 2026-07-23 取代）：** 当时 `ApplyTopClipRectToGL` 仍活跃；现已由通用逐顶点/逐实例 shader ClipRect 取代并删除，见 [project_pvz_shader_clip_rect](project_pvz_shader_clip_rect.md)。原列的 FlushGeomBatch/m_geomBatchVertices/m_geomBatchCapacity 实为**死**（无定义/无使用），已删，见上方状态节。
 - **保留的活跃 Vulkan 着色器：** Shader/batch.vert.glsl、batch.frag.glsl（+spv，在 vcxproj ShaderSource）。删的是旧 GL：batch_vertex/batch_fragment/geom_vertex/geom_fragment/sprite_vertex/sprite_fragment.glsl（仅 None，不参与 glslc）。
 - **冒烟专用、仅 main.cpp 调用：** VulkanRenderer 的 DrawFrame/SetTrianglePipeline/SetTexturedQuad/ClearTexturedQuad + 成员 mTrianglePipeline/mQuadPipeline/mQuadDescSet/mQuadPC + QuadPushConsts；triangle/quad 着色器。游戏主路径用 BeginFrame/EndFrame/CurrentCmdBuffer（保留）。
 - `GLTexture` 改名面：89 处 / 27 文件（plan Task 6 已列全 27 文件清单）。

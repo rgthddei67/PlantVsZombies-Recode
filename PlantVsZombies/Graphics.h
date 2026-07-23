@@ -53,7 +53,17 @@ inline glm::vec4 NormalizeColor(const glm::vec4& color) {
 		color.b / 255.0f, color.a / 255.0f);
 }
 
-inline constexpr float DRAW_CLIP_BOTTOM_DISABLED = 1.0e30f;  ///< 水平 shader 裁剪关闭值（逻辑像素 Y）
+inline constexpr uint32_t DRAW_CLIP_MIN_DISABLED = 0u;          ///< 无裁剪时打包的左/上边界
+inline constexpr uint32_t DRAW_CLIP_MAX_DISABLED = 0xFFFFFFFFu; ///< 无裁剪时打包的右/下边界（各占 16 bit）
+
+/**
+ * @brief 送入 shader 的帧缓冲像素裁剪框；两个 uint 分别打包 left/top 与 right/bottom。
+ */
+struct PackedClipRect {
+	uint32_t minXY = DRAW_CLIP_MIN_DISABLED;
+	uint32_t maxXY = DRAW_CLIP_MAX_DISABLED;
+};
+static_assert(sizeof(PackedClipRect) == 8, "PackedClipRect must be 8 bytes");
 
 /**
  * @brief 批处理顶点格式（包含纹理坐标、纹理索引、矩阵索引和颜色）。
@@ -65,8 +75,10 @@ struct BatchVertex {
 	uint32_t matrixIndex;  // 变换矩阵索引（SSBO 槽位）
 	float r, g, b, a;    // 顶点颜色（预乘色调）
 	float blendMode;     // 混合模式（0.0 = Alpha, 1.0 = Additive），仅 CPU 侧分段使用
-	float clipBottomY = DRAW_CLIP_BOTTOM_DISABLED;  // 逻辑坐标中保留 y <= 此值；大值表示不裁剪
+	uint32_t clipMinXY = DRAW_CLIP_MIN_DISABLED;  // 帧缓冲 left/top，各占 16 bit
+	uint32_t clipMaxXY = DRAW_CLIP_MAX_DISABLED;  // 帧缓冲 right/bottom，各占 16 bit
 };
+static_assert(sizeof(BatchVertex) == 52, "BatchVertex must be 52 bytes");
 
 /**
  * @brief Per-sprite instance record consumed by reanim_inst.vert.glsl.
@@ -78,7 +90,7 @@ struct BatchVertex {
  *        CPU side (Task 5) must pre-multiply tA..tD by (sprite_width × Scale) and
  *        (sprite_height × Scale) so the shader's `corner` is a unit quad.
  *
- *        Stride 52 B under std430 scalar layout.
+ *        Stride 56 B under std430 scalar layout.
  */
 struct InstanceRecord {
 	float tA, tB, tC, tD;   // 16 B — pre-multiplied 2x2: cols (tA,tB) and (tC,tD)
@@ -87,9 +99,10 @@ struct InstanceRecord {
 	float u1, v1;           // 8 B  — atlas UV bottom-right
 	uint32_t texSlot;       // 4 B  — bindless texture index
 	uint32_t colorRGBA8;    // 4 B  — packed RGBA8 (r=lsb, a=msb), pre-tinted
-	float clipBottomY = DRAW_CLIP_BOTTOM_DISABLED;  // 4 B — 逐实例水平裁剪线，避免切断实例批次
+	uint32_t clipMinXY = DRAW_CLIP_MIN_DISABLED;  // 4 B — 帧缓冲 left/top，各占 16 bit
+	uint32_t clipMaxXY = DRAW_CLIP_MAX_DISABLED;  // 4 B — 帧缓冲 right/bottom，各占 16 bit
 };
-static_assert(sizeof(InstanceRecord) == 52, "InstanceRecord must be 52 bytes");
+static_assert(sizeof(InstanceRecord) == 56, "InstanceRecord must be 56 bytes");
 
 /**
  * @brief 文字缓存条目，存储已生成的文字纹理及其尺寸。
@@ -171,8 +184,6 @@ enum class BlendMode {
  *        持久映射 VBO/SSBO 切片，cmds 仅用于记录状态变更点（让回放知道在哪里切 vkCmdDraw）。
  */
 enum class RecCmdType : uint8_t {
-	PushClip,       ///< 推入裁剪矩形（payloadIdx 指向 clips）
-	PopClip,        ///< 弹出裁剪矩形
 	SetBlend,       ///< 切换混合模式（payloadIdx 指向 blendModes）
 	DeferredText,   ///< DrawText 延迟到主线程执行（payloadIdx 指向 textCmds）
 	DeferredGlyphRun ///< DrawGlyphRun 延迟到主线程就地发射（payloadIdx 指向 glyphRunCmds）
@@ -190,7 +201,7 @@ struct RecordCmd {
 	uint16_t   pad1 = 0;         ///< 2 B  对齐填充
 	uint32_t   vertOffsetAtCmd;  ///< 4 B  命令插入时 slice.vboCount
 	uint32_t   instOffsetAtCmd;  ///< 4 B  命令插入时 slice.instCount（Task 4）
-	uint32_t   payloadIdx;       ///< 4 B  clips/blendModes/textCmds 下标
+	uint32_t   payloadIdx;       ///< 4 B  blendModes/textCmds/glyphRunCmds 下标
 };
 static_assert(sizeof(RecordCmd) == 16, "RecordCmd should pack to 16 bytes");
 
@@ -207,6 +218,8 @@ struct DeferredTextCmd {
 	float       y = 0.0f;
 	float       scale = 1.0f;
 	bool        onTop = false;  ///< true=回放末尾统一画(绝对顶层); false=就地交错画(对象同 z-order)
+	bool        hasClipRect = false;  ///< 当前层文字是否继承 worker 录制点的裁剪框
+	ClipRect    clipRect;             ///< hasClipRect=true 时为已与父级相交的逻辑坐标矩形
 };
 
 /**
@@ -221,6 +234,8 @@ struct DeferredGlyphRunCmd {
 	float       x = 0.0f;
 	float       y = 0.0f;
 	float       scale = 1.0f;
+	bool        hasClipRect = false;  ///< 慢路径字形是否继承 worker 录制点的裁剪框
+	ClipRect    clipRect;             ///< hasClipRect=true 时为已与父级相交的逻辑坐标矩形
 };
 
 /**
@@ -253,13 +268,12 @@ struct VkWorkerSlice {
 
 /**
  * @brief 每个 worker slot 一份的录制缓冲。Phase 5 起 verts/texList/matList 已删除——
- *        顶点和矩阵走 slice 直写 VBO/SSBO；cmds 只记录状态变更（clip/blend/text）。
+ *        顶点和矩阵走 slice 直写 VBO/SSBO；cmds 只记录 blend 与延迟文字边界。
  *        析构无 GL 资源，Reset 仅 clear()，capacity 跨帧复用以避免 realloc。
  */
 struct WorkerRecord {
 	VkWorkerSlice                slice;          ///< Phase 5：本帧的 VBO/SSBO 切片
 	std::vector<RecordCmd>       cmds;           ///< 仅状态变更命令流
-	std::vector<ClipRect>        clips;          ///< PushClip 的 payload
 	std::vector<BlendMode>       blendModes;     ///< SetBlend 的 payload
 	std::vector<DeferredTextCmd> textCmds;       ///< DeferredText 的 payload
 	std::vector<DeferredGlyphRunCmd> glyphRunCmds;  ///< DeferredGlyphRun 的 payload
@@ -268,19 +282,18 @@ struct WorkerRecord {
 	glm::mat4              initialTopTransform = glm::mat4(1.0f);
 	bool                   initialTopIsIdentity = true;
 	std::vector<ClipRect>  initialClipStack;
-	std::vector<float>     initialClipBottomStack;
+	std::vector<PackedClipRect> initialPackedClipStack;
 	BlendMode              initialBlend = BlendMode::None;
 
 	// 清空所有命令，但保留 vector capacity，下帧复用避免 realloc。
 	// slice 不在这里重置——由 BeginParallelRecord 每帧重新切分并写入。
 	void Reset() {
 		cmds.clear();
-		clips.clear();
 		blendModes.clear();
 		textCmds.clear();
 		glyphRunCmds.clear();
 		initialClipStack.clear();
-		initialClipBottomStack.clear();
+		initialPackedClipStack.clear();
 	}
 };
 
@@ -292,7 +305,7 @@ struct WorkerThreadState {
 	std::vector<glm::mat4> transformStack;
 	std::vector<char>      transformIsIdentity;
 	std::vector<ClipRect>  clipStack;
-	std::vector<float>     clipBottomStack;
+	std::vector<PackedClipRect> packedClipStack;
 };
 
 /**
@@ -336,7 +349,7 @@ public:
 	/// 上一完整帧实际录入 command buffer 的 vkCmdDraw 次数，供性能回归测试使用。
 	uint32_t GetLastFrameDrawCallCount() const { return m_lastFrameDrawCallCount; }
 
-	/// 上一完整帧由 ClipRect 栈触发的 vkCmdSetScissor 次数，不含帧首默认 scissor。
+	/// 上一完整帧动态 vkCmdSetScissor 次数；通用 shader ClipRect 路径下应恒为 0。
 	uint32_t GetLastFrameScissorChangeCount() const { return m_lastFrameScissorChangeCount; }
 
 	/**
@@ -401,8 +414,8 @@ public:
 	 * @brief 压入一个屏幕像素矩形作为当前裁剪区域；区域外的像素不会被绘制。
 	 *        坐标采用屏幕左上原点（与 DrawTexture 等接口一致），不被 Transform 栈或摄像机影响。
 	 *        嵌套调用时与父矩形取交集 —— 子裁剪不能"暴露"父裁剪遮住的内容。
-	 *        会强制刷新当前批处理（否则之前累积的顶点会被新 scissor 一起裁剪），所以应当
-	 *        粗粒度使用（在一组绘制外面 push 一次），不要在每个 GameObject 周围 push/pop。
+	 *        裁剪框随 BatchVertex / InstanceRecord 进入 shader，不刷新批处理，也不生成
+	 *        vkCmdSetScissor；可安全用于每个 GameObject 周围的细粒度裁剪。
 	 * @param x 矩形左上角 X（屏幕像素）
 	 * @param y 矩形左上角 Y（屏幕像素）
 	 * @param w 矩形宽度（屏幕像素）
@@ -411,21 +424,19 @@ public:
 	void PushClipRect(int x, int y, int w, int h);
 
 	/**
-	 * @brief 弹出栈顶裁剪矩形，恢复到父矩形（若栈空则禁用 scissor test）。
-	 *        会强制刷新当前批处理。栈空时调用会输出错误并直接返回。
+	 * @brief 弹出栈顶裁剪矩形，恢复到父矩形。不会刷新批处理；栈空时输出警告并返回。
 	 */
 	void PopClipRect();
 
 	/**
-	 * @brief 压入一条水平裁剪线，只保留逻辑坐标 y <= bottomY 的像素。
-	 *        裁剪值随 BatchVertex / InstanceRecord 送入 shader，不刷新批处理，也不生成
-	 *        vkCmdSetScissor；适合在大量独立对象（如水中僵尸）周围细粒度使用。
-	 *        嵌套时取更小的 bottomY。
+	 * @brief 压入一条水平裁剪线，只保留逻辑坐标 y < bottomY 的像素。
+	 *        这是 PushClipRect(0, 0, logicalWidth, bottomY) 的便捷别名，继承通用 shader
+	 *        裁剪的嵌套交集与无 flush 语义。
 	 */
 	void PushClipBottom(float bottomY);
 
 	/**
-	 * @brief 弹出水平 shader 裁剪线；不会刷新批处理。
+	 * @brief 弹出水平 shader 裁剪线；等价于 PopClipRect()。
 	 */
 	void PopClipBottom();
 
@@ -746,7 +757,7 @@ public:
 	// 逻辑分辨率恒为 1100×600（m_windowWidth/Height）。全屏时真实交换链尺寸变大，
 	// 这里算出统一缩放比 + 居中黑边偏移，供三处共用：
 	//   1) VulkanRenderer 默认 viewport（画面等比居中，黑边区域不画）
-	//   2) ApplyTopClipRectToGL 的 scissor（逻辑裁剪框 → 帧缓冲像素）
+	//   2) PackClipRect 的 shader 裁剪边界（逻辑裁剪框 → 帧缓冲像素）
 	//   3) InputHandler 鼠标坐标（帧缓冲像素 → 逻辑坐标）
 	// 窗口模式（真实尺寸==逻辑尺寸）时 scale=1、offset=0，退化为原行为。
 
@@ -765,7 +776,7 @@ public:
 		return { m_windowWidth * m_letterboxScale, m_windowHeight * m_letterboxScale };
 	}
 
-	/// 把逻辑坐标裁剪框换算为帧缓冲像素裁剪框（scissor 用，不经过 viewport 变换）。
+	/// 把逻辑坐标裁剪框换算为帧缓冲像素裁剪框（shader 裁剪用，不经过 viewport 变换）。
 	void LogicalRectToFramebuffer(int lx, int ly, int lw, int lh,
 		int32_t& outX, int32_t& outY, uint32_t& outW, uint32_t& outH) const;
 
@@ -846,13 +857,13 @@ private:
 	std::vector<char>      m_transformIsIdentity; ///< 与 m_transformStack 平行：该层是否为单位阵（用于跳过冗余 mat4 乘法）
 
 	std::vector<ClipRect> m_clipStack;          ///< 裁剪矩形栈（屏幕像素，已经过嵌套交集）
-	std::vector<float> m_clipBottomStack;       ///< 不打断批处理的水平 shader 裁剪栈（逻辑像素 Y）
+	std::vector<PackedClipRect> m_packedClipStack; ///< 与 m_clipStack 平行的帧缓冲像素 shader 数据
 
 	// 批处理数据缓冲区
 	std::vector<BatchVertex> m_batchVertices;   ///< 批处理顶点列表
 	std::vector<glm::mat4> m_batchMatrices;     ///< 当前批次使用的变换矩阵列表
 	std::vector<InstanceRecord> m_batchInstances;   ///< 主线程串行 instance 缓冲（worker 走 slice 不经此处）
-	int m_batchInstancesLimit = 32768;              ///< 单次 flush 上限，~1.7 MB 一次 vkCmdDraw（仅切分 draw 段数，不影响总字节；逐帧 inst 缓冲 grow-on-demand，见 Graphics.cpp）
+	int m_batchInstancesLimit = 32768;              ///< 单次 flush 上限，~1.8 MB 一次 vkCmdDraw（仅切分 draw 段数，不影响总字节；逐帧 inst 缓冲 grow-on-demand，见 Graphics.cpp）
 	bool m_useInstancePath = true;   ///< Task 7: false强制走 slow path 做 A/B baseline
 
 	size_t m_batchBufferCapacity = 0;             ///< 当前 VBO 容量（顶点个数）
@@ -860,8 +871,8 @@ private:
 	bool m_batchMode = true;                      ///< 是否启用批处理模式
 	uint32_t m_frameDrawCallCount = 0;             ///< 当前帧实际 vkCmdDraw 次数
 	uint32_t m_lastFrameDrawCallCount = 0;         ///< 上一完整帧实际 vkCmdDraw 次数
-	uint32_t m_frameScissorChangeCount = 0;        ///< 当前帧由 ClipRect 栈触发的 scissor 变更次数
-	uint32_t m_lastFrameScissorChangeCount = 0;    ///< 上一完整帧由 ClipRect 栈触发的 scissor 变更次数
+	uint32_t m_frameScissorChangeCount = 0;        ///< ClipRect 动态 scissor 回归计数（shader 裁剪下应恒为 0）
+	uint32_t m_lastFrameScissorChangeCount = 0;    ///< 上一完整帧的动态 scissor 回归计数
 
 	uint32_t m_whiteTexture = 0;   ///< 1×1 纯白纹理 bindless 槽位，用于 FillRect 批处理
 
@@ -920,20 +931,19 @@ private:
 	void UpdateViewMatrix();
 
 	/**
-	 * @brief 把裁剪栈栈顶矩形写入 OpenGL（启用 GL_SCISSOR_TEST 并调用 glScissor）。
-	 *        要求栈非空。负责 y 轴翻转（GL 用左下原点）和退化矩形处理。
-	 */
-	void ApplyTopClipRectToGL();
-
-	/**
 	 * @brief 求两个屏幕像素矩形的交集（左上原点）。无交集时返回 w/h 为 0 的退化矩形。
 	 */
 	static ClipRect IntersectClip(const ClipRect& a, const ClipRect& b);
 
 	/**
-	 * @brief 返回当前线程生效的水平 shader 裁剪线；无裁剪时返回关闭值。
+	 * @brief 把逻辑裁剪框换算并打包为 shader 使用的帧缓冲像素边界。
 	 */
-	float CurrentClipBottom() const;
+	PackedClipRect PackClipRect(const ClipRect& rect) const;
+
+	/**
+	 * @brief 返回当前线程生效的 shader 裁剪框；无裁剪时返回关闭值。
+	 */
+	PackedClipRect CurrentPackedClipRect() const;
 
 	/**
 	 * @brief 将纹理 ID 绑定到批处理纹理列表，返回纹理单元索引。
@@ -1058,13 +1068,11 @@ private:
 	void RecordFillCircle(WorkerRecord& r,
 		float cx, float cy, float radius, const glm::vec4& color, int segments);
 
-	void RecordPushClipRect(WorkerRecord& r, int x, int y, int w, int h);
-	void RecordPopClipRect(WorkerRecord& r);
 	void RecordSetBlendMode(WorkerRecord& r, BlendMode mode);
 
 	/**
 	 * @brief Flush m_batchInstances to fr.instBuf, emit one vkCmdDraw using current m_currentBlendMode.
-	 *        Called on BlendMode change, chunk overflow, end of frame, or before clip changes.
+	 *        Called on BlendMode change, chunk overflow, or end of frame.
 	 */
 	void FlushInstances();
 };

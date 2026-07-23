@@ -15,17 +15,19 @@
 InstanceRecord r = instances.inst[gl_InstanceIndex];   // set=0 binding=0 storage buffer
 ```
 
-每个 sprite 的「2×3 仿射 + UV + 纹理槽 + 颜色」打包成一条 48B 的 `InstanceRecord`。每帧任务 = 把这帧全部 N 条记录填进这块 SSBO。"搬到 SSBO" 指的就是这个填充动作。
+每个 sprite 的「2×3 仿射 + UV + 纹理槽 + 颜色 + shader 裁剪框」打包成一条 56B 的 `InstanceRecord`。每帧任务 = 把这帧全部 N 条记录填进这块 SSBO。"搬到 SSBO" 指的就是这个填充动作。
 
 `InstanceRecord` 布局（`reanim_inst.vert.glsl:20`，与 C++ 端逐字段对齐）：
 
 ```
-struct InstanceRecord {           // 48 B
+struct InstanceRecord {           // 56 B
     float tA, tB, tC, tD;         // 2×3 仿射的旋转/缩放部分（w*Scale / h*Scale 已烘进列）
     float tx, ty;                 // 平移
     float u0, v0, u1, v1;         // atlas UV bbox
     uint  texSlot;                // bindless 纹理槽
     uint  colorRGBA8;             // 打包颜色（含 alpha / glow tint）
+    uint  clipMinXY;              // 帧缓冲 left/top，各占 16 bit
+    uint  clipMaxXY;              // 帧缓冲 right/bottom，各占 16 bit
 };
 ```
 
@@ -34,9 +36,11 @@ struct InstanceRecord {           // 48 B
 ## 2. 地基：一块 CPU 直接写、GPU 直接读的缓冲
 
 ```
-fr.instBuf = VulkanBuffer::Create(64MB, STORAGE_BUFFER_BIT, hostVisible=true)
+fr.instBuf = VulkanBuffer::Create(8MB initial, STORAGE_BUFFER_BIT, hostVisible=true)
              └─ HOST_VISIBLE | HOST_COHERENT | 持久映射(MappedPtr 全程稳定)
 ```
+
+容量采用 grow-on-demand：某帧需求溢出后，等该帧 fence 安全回收时按真实需求扩容；不再为普通场景常驻旧的 64MB/帧。
 
 | 属性 | 含义 | 带来的好处 |
 |---|---|---|
@@ -92,7 +96,7 @@ GameObjectManager::DrawAll
 `BeginParallelRecord` 用前缀和偏移 `iOff` 把缓冲切成 N 段连续、**互不重叠**的私有区：
 
 ```
-instBuf 映射内存:  [baseInst ............................ 64MB - reserve][reserve 1MB]
+instBuf 映射内存:  [baseInst ......................... capacity - reserve][proportional reserve]
                     │                                    │              │
        切片(前缀和) ▼                                    ▼              ▼
        ┌──────────┬─────────────┬──────────┬───────────────┐  ┌──主线程留给──┐

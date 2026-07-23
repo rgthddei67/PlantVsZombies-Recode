@@ -23,7 +23,7 @@ metadata:
 - **帧事件"末-1帧"不触发**：伴舞anim_death 65~101，主人先给100(=末-1)实测播不到→僵尸血0卡anim_death不消失(靠10s看门狗)；主人改99才触发。但Jackson死亡146(=末-1)却正常触发——**逐reanim实测，不能推公式**。
 - **齐舞散拍源**：基类`Start()`给每僵尸随机动画速度1.1~1.4，舞队必须`SetAnimationSpeed`锁同值(现1.2)。
 - **魅惑脱队不清领队侧槽位**：伴舞被魅惑只清自己mLeaderID，领队mFollowerID仍指活僵尸→判空补位失灵；修=槽位有效性判"活着且IsMindControlled与领队一致"。
-- **出土遮挡现成方案**：`GameObject::SetClipRect`逐对象裁剪(图鉴僵尸窗同款)，底边用`Board::GetZombieSpawnY(row)`(主人指示,已挪public)而非自身坐标——换地图自适应；DANCING态读档要撤销下沉+裁剪。
+- **出土遮挡现成方案**：`GameObject::SetClipRect`逐对象裁剪(图鉴僵尸窗同款)，底边用`Board::GetZombieSpawnY(row)`(主人指示,已挪public)而非自身坐标——换地图自适应；DANCING态读档要撤销下沉+裁剪。2026-07-23 起该通用 Clip 随顶点/实例进入 shader，不再逐对象 flush 或改 scissor。
 - **升起期静态只能 Pause 播放头**：不要把基础/extra 速度写成 0；`Animator::Pause()` 可被后续 `PlayTrack(anim_death)` 自动唤醒，RISING 读档在 RestoreAnimState 后必须重新 Pause。
 - **`git add build/资源`被.gitignore静默挡**：gamedata.json/粒子XML须`git add -f`，首次commit后警惕"提交成功但文件没进去"。
 - **枚举进哨兵前的空工厂窗口**：weight两段式(先0,注册工厂后升1200)。

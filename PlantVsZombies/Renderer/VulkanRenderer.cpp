@@ -196,7 +196,7 @@ namespace pvz {
 		ri.pColorAttachments = &color;
 		vkCmdBeginRendering(frame.cmdBuffer, &ri);
 
-		// 默认 viewport / scissor（PushClipRect 路径会在帧内 vkCmdSetScissor 改写）
+		// 默认 viewport / scissor 固定整帧；对象级 ClipRect 随顶点/实例进入 fragment shader。
 		// 负高度 viewport：Vulkan 1.1+ 支持，效果是把 clip-space Y 翻转，让 PVZ 沿用
 		// 的 GL 风格正交矩阵 (top=0, bottom=h) 渲染到 framebuffer 时方向正确。
 		// y 偏到 height，height 取负，等价于绕屏幕水平线翻转。

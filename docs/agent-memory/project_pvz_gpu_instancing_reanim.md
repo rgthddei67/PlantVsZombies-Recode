@@ -15,7 +15,7 @@ metadata:
 
 **How to apply:** 工作已完成且 merged 到 working tree。`m_useInstancePath` toggle + slow-path fallback **保留**作 future A/B re-test 与 safety net。**不要主动重新评估这个方向**——除非未来 reanim 资源结构改变（更多子动画 / 帧索引变非均匀 / 等）或 perf 需求显著上移（144 FPS+ / 20000+ 僵尸）。
 
-**2026-07-23 当前结构更新：** `InstanceRecord` 由 48 B 增至 52 B，新增逐实例 `clipBottomY`；batch 顶点也携带同名字段。水中僵尸用无 flush 的 `PushClipBottom/PopClipBottom`，vertex shader 传出逻辑 Y、fragment shader 在水线下 discard，替代逐僵尸 `PushClipRect/PopClipRect`。同场景 2 只水中僵尸从 `21 draw + 4 scissor` 降为 `19 draw + 0 scissor`，避免水中僵尸数量线性制造实例 draw 分段；默认实例路径与 `-NoInstance` slow path 均由可见 AutoTest 验证。代价是每实例/每 batch 顶点多 4 B 与一个一致性很高的片元比较，远小于大量状态切分。
+**2026-07-23 当前结构更新：** `InstanceRecord` 由原始 48 B 增至 56 B，新增打包的逐实例矩形 `clipMinXY/clipMaxXY`；`BatchVertex` 为 52 B，携带相同字段。所有 `PushClipRect/PopClipRect` 均无 flush，fragment shader 用 `gl_FragCoord` 裁剪，水路 `PushClipBottom` 只是全宽矩形别名。同场景 2 只水中僵尸从 `21 draw + 4 scissor` 降为 `19 draw + 0 scissor`；伴舞出土、图鉴窗和粒子区域 Clip 也不再切实例批次。无裁剪哨兵走片元快路径，默认实例与 `-NoInstance` 均由可见 AutoTest 验证。详见 [project_pvz_shader_clip_rect](project_pvz_shader_clip_rect.md)。
 
 ---
 
@@ -55,14 +55,14 @@ metadata:
 
 | 组件 | 文件 | 作用 |
 |---|---|---|
-| `InstanceRecord` struct (52 B) | Graphics.h | per-sprite 数据：tA-tD pre-multiplied affine + tx/ty + atlas UV + texSlot + colorRGBA8 + clipBottomY |
+| `InstanceRecord` struct (56 B) | Graphics.h | per-sprite 数据：tA-tD pre-multiplied affine + tx/ty + atlas UV + texSlot + colorRGBA8 + packed ClipRect |
 | `reanim_inst.{vert,frag}.glsl` | Shader/ | GPU instance pipeline shaders。vert 用 `gl_VertexIndex 0..5` 展开 6 顶点 + `gl_InstanceIndex` 读 SSBO |
 | `pipeInstAlpha` / `pipeInstAdd` | Graphics.cpp PIMPL | instance pipelines，独立 set=0=`instanceSetLayout`（InstanceRecord SSBO），共用 set=1=bindless textures |
 | `instanceSetLayout` + `instancePool` | Graphics.cpp | 独立 descriptor set layout 与 pool（不污染 batch 的 matrix layout） |
-| `PerFrame::instBuf` + `instSet` + `instCursor` | Graphics.cpp | 32 MB 持久映射 host-visible buffer + descriptor set |
+| `PerFrame::instBuf` + `instSet` + `instCursor` | Graphics.cpp | 8 MB 初始、grow-on-demand 的持久映射 host-visible buffer + descriptor set |
 | `VkWorkerSlice::instPtr/instBaseIdx/instCap/instCount` | Graphics.h | worker slice 加 instance 字段 |
 | `m_prevSliceInstDemand` + 加权切片 | Graphics.cpp BeginParallelRecord | 复用现有 vbo/ssbo 加权切片算法，三路独立切 |
-| `RecordCmd::instOffsetAtCmd` (12 → 16 B) | Graphics.h | SetBlend/PushClip/PopClip/DeferredText 同时记 vbo + inst 边界 |
+| `RecordCmd::instOffsetAtCmd` (12 → 16 B) | Graphics.h | SetBlend/DeferredText/DeferredGlyphRun 同时记 vbo + inst 边界；ClipRect 不再进入命令流 |
 | `AppendReanimInstance` + `FlushInstances` | Graphics.cpp | 主线程串行 path + worker tl_record path |
 | `EmitInstanceDrawRange` + `bindInstForBlend` | Graphics.cpp ReplayAndEndParallel | replay 时 emit instance segments；batch-first-then-instance ordering（PvZ z-order shadow→reanim 天然契合）|
 | `DrawInternalInstanced` | Animator.cpp | fast path：无子动画时构 InstanceRecord，trig 仍 CPU（GATE A 教训 — 不搬 GPU） |

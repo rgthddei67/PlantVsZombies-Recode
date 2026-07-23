@@ -50,7 +50,7 @@ void ParticleEffect::Update() {
 
 void ParticleEffect::Draw() {
 	if (graphics && clipRightX >= 0.0f) {
-		// 粒子在世界层使用逻辑坐标；裁剪栈会继续与场景现有裁剪相交，Pop 后不影响其他特效。
+		// 粒子在世界层使用逻辑坐标；通用 shader 裁剪会与父框相交，且不会切断粒子 batch。
 		const int right = std::max(0, static_cast<int>(std::ceil(clipRightX)));
 		graphics->PushClipRect(0, 0, right, SCENE_HEIGHT);
 	}

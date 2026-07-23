@@ -15,9 +15,9 @@
 
 namespace {
 	// Phase 3b — BatchVertex 顶点输入描述（与 Graphics.h struct BatchVertex 对齐）
-	// stride=48B：vec2 pos(8) + vec2 uv(8) + uvec2 indices(8) + vec4 color(16)
-	//             + float blendMode(4) + float clipBottomY(4)。
-	// blendMode 仅 CPU 侧分段使用；clipBottomY 作为 location=4 送入 shader。
+	// stride=52B：vec2 pos(8) + vec2 uv(8) + uvec2 indices(8) + vec4 color(16)
+	//             + float blendMode(4) + uvec2 packedClip(8)。
+	// blendMode 仅 CPU 侧分段使用；packedClip 作为 location=4 送入 shader。
 	constexpr VkVertexInputBindingDescription kBatchVertexBinding = {
 		/*binding*/0, /*stride*/sizeof(BatchVertex), VK_VERTEX_INPUT_RATE_VERTEX
 	};
@@ -26,7 +26,7 @@ namespace {
 		{ /*location*/1, /*binding*/0, VK_FORMAT_R32G32_SFLOAT,        offsetof(BatchVertex, u)         },
 		{ /*location*/2, /*binding*/0, VK_FORMAT_R32G32_UINT,          offsetof(BatchVertex, texIndex)  },
 		{ /*location*/3, /*binding*/0, VK_FORMAT_R32G32B32A32_SFLOAT,  offsetof(BatchVertex, r)         },
-		{ /*location*/4, /*binding*/0, VK_FORMAT_R32_SFLOAT,            offsetof(BatchVertex, clipBottomY) },
+		{ /*location*/4, /*binding*/0, VK_FORMAT_R32G32_UINT,           offsetof(BatchVertex, clipMinXY) },
 	};
 
 	// 每帧持久映射 host-visible 缓冲容量 —— grow-on-demand（见 ResizeBufferIfNeeded / Graphics::BeginFrame）。
@@ -35,7 +35,7 @@ namespace {
 	// 无封顶：每帧绘制需求由玩法天然有界，×2 收敛到真实需求的 ≤2 倍；真 OOM 由 create-then-swap 兜底降级为 drop。
 	// 收益：常驻 host-visible 从旧固定 (128+32+64)×2帧=448MB 降到 (16+4+8)×2帧=56MB（普通游玩省 ~392MB），
 	// 重场景再按需长到够用（旧固定容量参考：VBO 128MB≈3M 顶点 / SSBO 32MB≈2×262144 mat4 /
-	// INST 64MB≈1.4M，11000 僵尸 ×~15 track ×3 ≈ 500k 实例）。
+	// INST 64MB≈1.2M（56 B/实例），11000 僵尸 ×~15 track ×3 ≈ 500k 实例）。
 	constexpr VkDeviceSize VBO_BYTES_INIT  = 16u * 1024u * 1024u;
 	constexpr VkDeviceSize SSBO_BYTES_INIT =  4u * 1024u * 1024u;
 	constexpr VkDeviceSize INST_BYTES_INIT =  8u * 1024u * 1024u;
@@ -128,7 +128,7 @@ namespace {
 	thread_local std::vector<glm::mat4>* tl_transformStack = nullptr;
 	thread_local std::vector<char>* tl_transformIsIdentity = nullptr;
 	thread_local std::vector<ClipRect>* tl_clipStack = nullptr;
-	thread_local std::vector<float>*    tl_clipBottomStack = nullptr;
+	thread_local std::vector<PackedClipRect>* tl_packedClipStack = nullptr;
 	thread_local BlendMode               tl_blend = BlendMode::None;
 
 	// Phase 5：worker 直接把绝对 bindless 槽位写进 BatchVertex.texIndex、把
@@ -751,89 +751,75 @@ ClipRect Graphics::IntersectClip(const ClipRect& a, const ClipRect& b) {
 	return r;
 }
 
-void Graphics::ApplyTopClipRectToGL() {
-	// Phase 3b：把当前裁剪栈顶（或空栈对应的全屏）写成 vkCmdSetScissor。
-	// 没活动帧时早退（构造期 / shutdown 期 / -Debug 切场景瞬间都可能命中）。
-	if (!m_vk || !m_vk->frameOpen) return;
-	VkCommandBuffer cb = m_vk->renderer->CurrentCmdBuffer();
-	if (cb == VK_NULL_HANDLE) return;
+PackedClipRect Graphics::PackClipRect(const ClipRect& rect) const {
+	// ClipRect 保持屏幕逻辑坐标语义；片元阶段改用 gl_FragCoord 后，须在 push 时一次性
+	// 换算到帧缓冲像素。16-bit 打包覆盖 Vulkan 的常见最大视口尺寸，同时把逐实例开销压到 8 B。
+	int32_t x = 0, y = 0;
+	uint32_t w = 0, h = 0;
+	LogicalRectToFramebuffer(rect.x, rect.y, rect.w, rect.h, x, y, w, h);
 
-	VkExtent2D sce = m_vk->ctx->SwapchainExtent();
-	VkRect2D rect{};
-	if (m_clipStack.empty()) {
-		// 空栈 = 全逻辑画面。letterbox 下应限制到画面矩形（offset..offset+logical*scale），
-		// 否则黑边区域可能被后续绘制写入。窗口模式 scale=1/offset=0 时即整个交换链。
-		LogicalRectToFramebuffer(0, 0, m_windowWidth, m_windowHeight,
-			rect.offset.x, rect.offset.y, rect.extent.width, rect.extent.height);
+	uint32_t framebufferW = 0xFFFFu;
+	uint32_t framebufferH = 0xFFFFu;
+	if (m_vk && m_vk->ctx) {
+		const VkExtent2D extent = m_vk->ctx->SwapchainExtent();
+		framebufferW = std::min(extent.width, 0xFFFFu);
+		framebufferH = std::min(extent.height, 0xFFFFu);
 	}
-	else {
-		const ClipRect& cr = m_clipStack.back();
-		// 逻辑坐标裁剪框 → 帧缓冲像素（scissor 不经 viewport 变换，必须手动套 letterbox）。
-		int32_t  x; int32_t  y; uint32_t w; uint32_t h;
-		LogicalRectToFramebuffer(cr.x, cr.y, cr.w, cr.h, x, y, w, h);
-		if (x < 0) { if ((int32_t)w > -x) w += x; else w = 0; x = 0; }
-		if (y < 0) { if ((int32_t)h > -y) h += y; else h = 0; y = 0; }
-		// clamp to swapchain bounds
-		if ((uint32_t)x > sce.width)  x = (int32_t)sce.width;
-		if ((uint32_t)y > sce.height) y = (int32_t)sce.height;
-		if (x + w > sce.width)  w = sce.width - x;
-		if (y + h > sce.height) h = sce.height - y;
-		rect.offset = { x, y };
-		rect.extent = { w, h };
-	}
-	vkCmdSetScissor(cb, 0, 1, &rect);
-	++m_frameScissorChangeCount;
+
+	const int64_t rawRight = static_cast<int64_t>(x) + w;
+	const int64_t rawBottom = static_cast<int64_t>(y) + h;
+	const uint32_t left = static_cast<uint32_t>(
+		std::clamp<int64_t>(x, 0, framebufferW));
+	const uint32_t top = static_cast<uint32_t>(
+		std::clamp<int64_t>(y, 0, framebufferH));
+	const uint32_t right = static_cast<uint32_t>(
+		std::clamp<int64_t>(rawRight, 0, framebufferW));
+	const uint32_t bottom = static_cast<uint32_t>(
+		std::clamp<int64_t>(rawBottom, 0, framebufferH));
+
+	PackedClipRect packed;
+	packed.minXY = left | (top << 16);
+	packed.maxXY = right | (bottom << 16);
+	return packed;
 }
 
 void Graphics::PushClipRect(int x, int y, int w, int h) {
-	if (tl_record) { RecordPushClipRect(*tl_record, x, y, w, h); return; }
-	// 必须先把已积累的顶点刷出去，否则 push 之前 batched 的内容会被新的 scissor 一起裁剪。
-	FlushBatch();
-	FlushInstances();
+	std::vector<ClipRect>& clipStack = tl_clipStack ? *tl_clipStack : m_clipStack;
+	std::vector<PackedClipRect>& packedStack =
+		tl_packedClipStack ? *tl_packedClipStack : m_packedClipStack;
 
-	ClipRect rect;
-	rect.x = x; rect.y = y; rect.w = w; rect.h = h;
-	if (!m_clipStack.empty()) {
-		rect = IntersectClip(m_clipStack.back(), rect);  // 嵌套取交集
+	ClipRect rect{ x, y, w, h };
+	if (!clipStack.empty()) {
+		rect = IntersectClip(clipStack.back(), rect);  // 嵌套取交集
 	}
-	m_clipStack.push_back(rect);
-	ApplyTopClipRectToGL();
+	clipStack.push_back(rect);
+	packedStack.push_back(PackClipRect(rect));
 }
 
 void Graphics::PopClipRect() {
-	if (tl_record) { RecordPopClipRect(*tl_record); return; }
-	if (m_clipStack.empty()) {
+	std::vector<ClipRect>& clipStack = tl_clipStack ? *tl_clipStack : m_clipStack;
+	std::vector<PackedClipRect>& packedStack =
+		tl_packedClipStack ? *tl_packedClipStack : m_packedClipStack;
+	if (clipStack.empty() || packedStack.empty()) {
 		LOG_WARN("Graphics") << "PopClipRect failed: stack underflow.";
 		return;
 	}
-	// 在切换 scissor 状态之前先 flush，把当前 rect 下的顶点全部提交。
-	FlushBatch();
-	FlushInstances();
-	m_clipStack.pop_back();
-	// 栈空时也要把 scissor 重置回全屏，否则上一条 scissor 会继续影响后续画的内容。
-	ApplyTopClipRectToGL();
+	clipStack.pop_back();
+	packedStack.pop_back();
 }
 
 void Graphics::PushClipBottom(float bottomY) {
-	std::vector<float>& stack = tl_clipBottomStack ? *tl_clipBottomStack : m_clipBottomStack;
-	if (!stack.empty()) {
-		bottomY = std::min(bottomY, stack.back());
-	}
-	stack.push_back(bottomY);
+	PushClipRect(0, 0, m_windowWidth, static_cast<int>(std::ceil(bottomY)));
 }
 
 void Graphics::PopClipBottom() {
-	std::vector<float>& stack = tl_clipBottomStack ? *tl_clipBottomStack : m_clipBottomStack;
-	if (stack.empty()) {
-		LOG_WARN("Graphics") << "PopClipBottom failed: stack underflow.";
-		return;
-	}
-	stack.pop_back();
+	PopClipRect();
 }
 
-float Graphics::CurrentClipBottom() const {
-	const std::vector<float>& stack = tl_clipBottomStack ? *tl_clipBottomStack : m_clipBottomStack;
-	return stack.empty() ? DRAW_CLIP_BOTTOM_DISABLED : stack.back();
+PackedClipRect Graphics::CurrentPackedClipRect() const {
+	const std::vector<PackedClipRect>& stack =
+		tl_packedClipStack ? *tl_packedClipStack : m_packedClipStack;
+	return stack.empty() ? PackedClipRect{} : stack.back();
 }
 
 void Graphics::FlushBatch() {
@@ -988,7 +974,7 @@ int Graphics::BindTexture(uint32_t textureID) {
 
 int Graphics::AddMatrix(const glm::mat4& matrix) {
 	// Phase 3b：SSBO 容量足以装下整帧的矩阵，因此不再因为阈值触发 mid-frame flush。
-	// 真正的 flush 边界由 PushClipRect / SetBlendMode / EndFrame 触发。
+	// 真正的 flush 边界由跨队列保序、容量、SetBlendMode / EndFrame 触发。
 	m_batchMatrices.push_back(matrix);
 	return (int)(m_batchMatrices.size() - 1);
 }
@@ -1004,10 +990,11 @@ void Graphics::AddVertices(const BatchVertex* vertices, int count) {
 	if (!m_batchInstances.empty()) {
 		FlushInstances();
 	}
-	const float clipBottomY = CurrentClipBottom();
+	const PackedClipRect clip = CurrentPackedClipRect();
 	for (int i = 0; i < count; ++i) {
 		BatchVertex vertex = vertices[i];
-		vertex.clipBottomY = clipBottomY;
+		vertex.clipMinXY = clip.minXY;
+		vertex.clipMaxXY = clip.maxXY;
 		m_batchVertices.push_back(vertex);
 	}
 }
@@ -1027,7 +1014,7 @@ void Graphics::CheckBatch() {
 		vboLeft = (fr.vboCursor < fr.vboCap) ? (fr.vboCap - fr.vboCursor) : 0;
 		ssboLeft = (fr.ssboCursor < fr.ssboCap) ? (fr.ssboCap - fr.ssboCursor) : 0;
 	}
-	constexpr VkDeviceSize kRoom = 6 * sizeof(BatchVertex) + sizeof(glm::mat4); // ~352 B
+	constexpr VkDeviceSize kRoom = 6 * sizeof(BatchVertex) + sizeof(glm::mat4); // ~376 B
 	if (vertBytes + kRoom >= vboLeft || matBytes + kRoom >= ssboLeft) {
 		FlushBatch();
 	}
@@ -1123,7 +1110,9 @@ void Graphics::DrawTextureMatrix(const Texture* tex, const glm::mat4& transform,
 
 void Graphics::AppendReanimInstance(const InstanceRecord& rec, BlendMode blendMode) {
 	InstanceRecord clippedRec = rec;
-	clippedRec.clipBottomY = CurrentClipBottom();
+	const PackedClipRect clip = CurrentPackedClipRect();
+	clippedRec.clipMinXY = clip.minXY;
+	clippedRec.clipMaxXY = clip.maxXY;
 
 	// Worker thread path: write into slot's slice
 	if (tl_record) {
@@ -1727,15 +1716,11 @@ void Graphics::SetBlendMode(BlendMode mode) {
 
 void Graphics::Clear() {
 	// Phase 3a：真正的清屏由 VulkanRenderer::BeginFrame 完成；这里只做 CPU 侧的卫生检查。
-	if (!m_clipStack.empty()) {
+	if (!m_clipStack.empty() || !m_packedClipStack.empty()) {
 		LOG_WARN("Graphics") << "Unbalanced PushClipRect/PopClipRect across frames ("
 			<< m_clipStack.size() << " entries left); resetting.";
 		m_clipStack.clear();
-	}
-	if (!m_clipBottomStack.empty()) {
-		LOG_WARN("Graphics") << "Unbalanced PushClipBottom/PopClipBottom across frames ("
-			<< m_clipBottomStack.size() << " entries left); resetting.";
-		m_clipBottomStack.clear();
+		m_packedClipStack.clear();
 	}
 }
 
@@ -1801,7 +1786,7 @@ void Graphics::RecomputeLetterbox() {
 
 void Graphics::LogicalRectToFramebuffer(int lx, int ly, int lw, int lh,
 	int32_t& outX, int32_t& outY, uint32_t& outW, uint32_t& outH) const {
-	// scissor 走帧缓冲像素、不经 viewport 变换，所以这里必须手动套 letterbox 缩放+偏移。
+	// shader 用 gl_FragCoord 比较帧缓冲像素、不经 viewport 变换，必须手动套 letterbox 缩放+偏移。
 	outX = (int32_t)std::lround(lx * m_letterboxScale + m_letterboxOffsetX);
 	outY = (int32_t)std::lround(ly * m_letterboxScale + m_letterboxOffsetY);
 	outW = (uint32_t)std::max(0L, std::lround(lw * m_letterboxScale));
@@ -2033,7 +2018,6 @@ void Graphics::BeginParallelRecord(int numWorkers) {
 		r.Reset();
 		if (r.cmds.capacity() == 0) {
 			r.cmds.reserve(16 * 1024);
-			r.clips.reserve(8);
 			r.blendModes.reserve(16);
 			r.textCmds.reserve(64);
 		}
@@ -2041,7 +2025,7 @@ void Graphics::BeginParallelRecord(int numWorkers) {
 		r.initialTopTransform = curTop;
 		r.initialTopIsIdentity = curId;
 		r.initialClipStack = m_clipStack;
-		r.initialClipBottomStack = m_clipBottomStack;
+		r.initialPackedClipStack = m_packedClipStack;
 		r.initialBlend = m_currentBlendMode;
 	}
 	m_parallelBaseVbo = m_parallelBaseSsbo = m_parallelBaseInst = 0;
@@ -2176,17 +2160,17 @@ void Graphics::SetWorkerSlot(int slot) {
 	s.transformStack.clear();
 	s.transformIsIdentity.clear();
 	s.clipStack.clear();
-	s.clipBottomStack.clear();
+	s.packedClipStack.clear();
 	s.transformStack.push_back(r.initialTopTransform);
 	s.transformIsIdentity.push_back(r.initialTopIsIdentity ? 1 : 0);
 	s.clipStack = r.initialClipStack;
-	s.clipBottomStack = r.initialClipBottomStack;
+	s.packedClipStack = r.initialPackedClipStack;
 
 	tl_record = &r;
 	tl_transformStack = &s.transformStack;
 	tl_transformIsIdentity = &s.transformIsIdentity;
 	tl_clipStack = &s.clipStack;
-	tl_clipBottomStack = &s.clipBottomStack;
+	tl_packedClipStack = &s.packedClipStack;
 	tl_blend = r.initialBlend;
 }
 
@@ -2200,11 +2184,11 @@ void Graphics::ClearWorkerSlot() {
 			<< tl_clipStack->size() << " vs initial "
 			<< tl_record->initialClipStack.size() << ")";
 	}
-	if (tl_record && tl_clipBottomStack &&
-		tl_clipBottomStack->size() != tl_record->initialClipBottomStack.size()) {
-		LOG_WARN("Graphics") << "ClearWorkerSlot: clip-bottom stack imbalanced ("
-			<< tl_clipBottomStack->size() << " vs initial "
-			<< tl_record->initialClipBottomStack.size() << ")";
+	if (tl_record && tl_packedClipStack &&
+		tl_packedClipStack->size() != tl_record->initialPackedClipStack.size()) {
+		LOG_WARN("Graphics") << "ClearWorkerSlot: packed clip stack imbalanced ("
+			<< tl_packedClipStack->size() << " vs initial "
+			<< tl_record->initialPackedClipStack.size() << ")";
 	}
 	if (tl_transformStack && tl_transformStack->size() != 1) {
 		LOG_WARN("Graphics") << "ClearWorkerSlot: transform stack imbalanced ("
@@ -2215,13 +2199,14 @@ void Graphics::ClearWorkerSlot() {
 	tl_transformStack = nullptr;
 	tl_transformIsIdentity = nullptr;
 	tl_clipStack = nullptr;
-	tl_clipBottomStack = nullptr;
+	tl_packedClipStack = nullptr;
 	tl_blend = BlendMode::None;
 }
 
 void Graphics::ReplayAndEndParallel() {
 	// Phase 5（cmd-based blend）：worker 已经把顶点和矩阵直写进每帧 mapped VBO/SSBO 切片，
-	// r.cmds 里只剩状态变更命令（PushClip / PopClip / SetBlend / DeferredText）。
+	// r.cmds 里只剩会切 draw 顺序的命令（SetBlend / DeferredText / DeferredGlyphRun）；
+	// ClipRect 已逐顶点/逐实例携带，不进入命令流。
 	//
 	// 关键：blend 分段走 cmd 流而非扫 per-vertex blendMode 字段。
 	// 原因：mapped host-coherent 内存读取比 cache 内存慢 ~100×（write-combined），4400 僵尸
@@ -2348,17 +2333,6 @@ void Graphics::ReplayAndEndParallel() {
 			emitUpTo(cmdAbsVert, cmdAbsInst);
 
 			switch (cmd.type) {
-			case RecCmdType::PushClip: {
-				const ClipRect& cr = r.clips[cmd.payloadIdx];
-				// PushClipRect 内部会 FlushBatch（此时 m_batchVertices 为空，no-op），
-				// 然后压栈 + vkCmdSetScissor。
-				PushClipRect(cr.x, cr.y, cr.w, cr.h);
-				break;
-			}
-			case RecCmdType::PopClip: {
-				PopClipRect();
-				break;
-			}
 			case RecCmdType::SetBlend: {
 				curBlend = r.blendModes[cmd.payloadIdx];
 				m_currentBlendMode = curBlend;
@@ -2378,8 +2352,14 @@ void Graphics::ReplayAndEndParallel() {
 					// DrawText/FlushBatch 会重绑 pipeline/descriptor/vbo，画完清空 boundPipe 哨兵，
 					// 强制下一次 emitUpTo 重新绑定，避免后续几何沿用文字管线。
 					PROFILE_SCOPE("7a.replay_inlineText");
+					if (t.hasClipRect) {
+						PushClipRect(t.clipRect.x, t.clipRect.y, t.clipRect.w, t.clipRect.h);
+					}
 					DrawText(t.text, t.fontKey, t.fontSize, t.color, t.x, t.y, t.scale);
 					FlushBatch();
+					if (t.hasClipRect) {
+						PopClipRect();
+					}
 					boundPipe = BoundPipe::None;
 				}
 				break;
@@ -2391,11 +2371,17 @@ void Graphics::ReplayAndEndParallel() {
 				// 画完清空 boundPipe 哨兵，强制下次 emitUpTo 重绑。
 				{
 					PROFILE_SCOPE("7b.replay_inlineGlyph");
+					if (t.hasClipRect) {
+						PushClipRect(t.clipRect.x, t.clipRect.y, t.clipRect.w, t.clipRect.h);
+					}
 					DrawGlyphRun(t.text, t.fontKey, t.fontSize, t.color, t.x, t.y, t.scale);
 				}
 				{
 					PROFILE_SCOPE("7c.replay_inlineGlyphFlush");
 					FlushBatch();
+				}
+				if (t.hasClipRect) {
+					PopClipRect();
 				}
 				boundPipe = BoundPipe::None;
 				break;
@@ -2482,16 +2468,16 @@ namespace {
 		uint32_t texIdx, uint32_t matAbs,
 		float r, float g, float b, float a, float bm)
 	{
-		const float clipBottomY = (tl_clipBottomStack && !tl_clipBottomStack->empty())
-			? tl_clipBottomStack->back()
-			: DRAW_CLIP_BOTTOM_DISABLED;
+		const PackedClipRect clip = (tl_packedClipStack && !tl_packedClipStack->empty())
+			? tl_packedClipStack->back()
+			: PackedClipRect{};
 		BatchVertex* v = sl.vboPtr + sl.vboCount;
-		v[0] = { 0.0f, 1.0f, u0, v1, texIdx, matAbs, r, g, b, a, bm, clipBottomY };
-		v[1] = { 1.0f, 1.0f, u1, v1, texIdx, matAbs, r, g, b, a, bm, clipBottomY };
-		v[2] = { 1.0f, 0.0f, u1, v0, texIdx, matAbs, r, g, b, a, bm, clipBottomY };
-		v[3] = { 0.0f, 1.0f, u0, v1, texIdx, matAbs, r, g, b, a, bm, clipBottomY };
-		v[4] = { 0.0f, 0.0f, u0, v0, texIdx, matAbs, r, g, b, a, bm, clipBottomY };
-		v[5] = { 1.0f, 0.0f, u1, v0, texIdx, matAbs, r, g, b, a, bm, clipBottomY };
+		v[0] = { 0.0f, 1.0f, u0, v1, texIdx, matAbs, r, g, b, a, bm, clip.minXY, clip.maxXY };
+		v[1] = { 1.0f, 1.0f, u1, v1, texIdx, matAbs, r, g, b, a, bm, clip.minXY, clip.maxXY };
+		v[2] = { 1.0f, 0.0f, u1, v0, texIdx, matAbs, r, g, b, a, bm, clip.minXY, clip.maxXY };
+		v[3] = { 0.0f, 1.0f, u0, v1, texIdx, matAbs, r, g, b, a, bm, clip.minXY, clip.maxXY };
+		v[4] = { 0.0f, 0.0f, u0, v0, texIdx, matAbs, r, g, b, a, bm, clip.minXY, clip.maxXY };
+		v[5] = { 1.0f, 0.0f, u1, v0, texIdx, matAbs, r, g, b, a, bm, clip.minXY, clip.maxXY };
 		sl.vboCount += 6;
 	}
 
@@ -2508,16 +2494,16 @@ namespace {
 		if (len < 0.001f) return;
 		const float nx = -edy / len * 0.5f, ny = edx / len * 0.5f;
 
-		const float clipBottomY = (tl_clipBottomStack && !tl_clipBottomStack->empty())
-			? tl_clipBottomStack->back()
-			: DRAW_CLIP_BOTTOM_DISABLED;
+		const PackedClipRect clip = (tl_packedClipStack && !tl_packedClipStack->empty())
+			? tl_packedClipStack->back()
+			: PackedClipRect{};
 		BatchVertex* v = sl.vboPtr + sl.vboCount;
-		v[0] = { ax + nx, ay + ny, 0.5f, 0.5f, texIdx, matAbs, rr, gg, bb, aa, bm, clipBottomY };
-		v[1] = { ax - nx, ay - ny, 0.5f, 0.5f, texIdx, matAbs, rr, gg, bb, aa, bm, clipBottomY };
-		v[2] = { bx - nx, by - ny, 0.5f, 0.5f, texIdx, matAbs, rr, gg, bb, aa, bm, clipBottomY };
-		v[3] = { ax + nx, ay + ny, 0.5f, 0.5f, texIdx, matAbs, rr, gg, bb, aa, bm, clipBottomY };
-		v[4] = { bx - nx, by - ny, 0.5f, 0.5f, texIdx, matAbs, rr, gg, bb, aa, bm, clipBottomY };
-		v[5] = { bx + nx, by + ny, 0.5f, 0.5f, texIdx, matAbs, rr, gg, bb, aa, bm, clipBottomY };
+		v[0] = { ax + nx, ay + ny, 0.5f, 0.5f, texIdx, matAbs, rr, gg, bb, aa, bm, clip.minXY, clip.maxXY };
+		v[1] = { ax - nx, ay - ny, 0.5f, 0.5f, texIdx, matAbs, rr, gg, bb, aa, bm, clip.minXY, clip.maxXY };
+		v[2] = { bx - nx, by - ny, 0.5f, 0.5f, texIdx, matAbs, rr, gg, bb, aa, bm, clip.minXY, clip.maxXY };
+		v[3] = { ax + nx, ay + ny, 0.5f, 0.5f, texIdx, matAbs, rr, gg, bb, aa, bm, clip.minXY, clip.maxXY };
+		v[4] = { bx - nx, by - ny, 0.5f, 0.5f, texIdx, matAbs, rr, gg, bb, aa, bm, clip.minXY, clip.maxXY };
+		v[5] = { bx + nx, by + ny, 0.5f, 0.5f, texIdx, matAbs, rr, gg, bb, aa, bm, clip.minXY, clip.maxXY };
 		sl.vboCount += 6;
 	}
 } // anonymous
@@ -2676,6 +2662,10 @@ void Graphics::RecordDrawText(WorkerRecord& r,
 	t.y = y;
 	t.scale = scale;
 	t.onTop = onTop;
+	if (!onTop && tl_clipStack && !tl_clipStack->empty()) {
+		t.hasClipRect = true;
+		t.clipRect = tl_clipStack->back();
+	}
 	r.textCmds.push_back(std::move(t));
 
 	RecordCmd c{};
@@ -2776,7 +2766,9 @@ void Graphics::RecordDrawGlyphRun(WorkerRecord& r,
 					rec.u1 = gi.u1; rec.v1 = gi.v1;
 					rec.texSlot = atlas.textureID;
 					rec.colorRGBA8 = colorRGBA8;
-					rec.clipBottomY = CurrentClipBottom();
+					const PackedClipRect clip = CurrentPackedClipRect();
+					rec.clipMinXY = clip.minXY;
+					rec.clipMaxXY = clip.maxXY;
 					sl.instPtr[sl.instCount++] = rec;
 				}
 			}
@@ -2797,6 +2789,10 @@ void Graphics::RecordDrawGlyphRun(WorkerRecord& r,
 	t.x = x;
 	t.y = y;
 	t.scale = scale;
+	if (tl_clipStack && !tl_clipStack->empty()) {
+		t.hasClipRect = true;
+		t.clipRect = tl_clipStack->back();
+	}
 	r.glyphRunCmds.push_back(std::move(t));
 
 	RecordCmd c{};
@@ -2907,7 +2903,7 @@ void Graphics::RecordFillCircle(WorkerRecord& r,
 	const uint32_t matAbs = PushSliceMatrix(sl, glm::mat4(1.0f));
 	const glm::vec4 nc = NormalizeColor(color);
 	const float bm = (tl_blend == BlendMode::Add) ? 1.0f : 0.0f;
-	const float clipBottomY = CurrentClipBottom();
+	const PackedClipRect clip = CurrentPackedClipRect();
 
 	for (int i = 0; i < segments; ++i) {
 		const float a0 = 2.0f * glm::pi<float>() * i / segments;
@@ -2916,44 +2912,11 @@ void Graphics::RecordFillCircle(WorkerRecord& r,
 		const glm::vec4 p1 = transform * glm::vec4(cx + radius * std::cos(a1), cy + radius * std::sin(a1), 0.0f, 1.0f);
 
 		BatchVertex* v = sl.vboPtr + sl.vboCount;
-		v[0] = { center.x, center.y, 0.5f, 0.5f, m_whiteTexture, matAbs, nc.r, nc.g, nc.b, nc.a, bm, clipBottomY };
-		v[1] = { p0.x,     p0.y,     0.5f, 0.5f, m_whiteTexture, matAbs, nc.r, nc.g, nc.b, nc.a, bm, clipBottomY };
-		v[2] = { p1.x,     p1.y,     0.5f, 0.5f, m_whiteTexture, matAbs, nc.r, nc.g, nc.b, nc.a, bm, clipBottomY };
+		v[0] = { center.x, center.y, 0.5f, 0.5f, m_whiteTexture, matAbs, nc.r, nc.g, nc.b, nc.a, bm, clip.minXY, clip.maxXY };
+		v[1] = { p0.x,     p0.y,     0.5f, 0.5f, m_whiteTexture, matAbs, nc.r, nc.g, nc.b, nc.a, bm, clip.minXY, clip.maxXY };
+		v[2] = { p1.x,     p1.y,     0.5f, 0.5f, m_whiteTexture, matAbs, nc.r, nc.g, nc.b, nc.a, bm, clip.minXY, clip.maxXY };
 		sl.vboCount += 3;
 	}
-}
-
-void Graphics::RecordPushClipRect(WorkerRecord& r, int x, int y, int w, int h) {
-	// 在 worker 本地 clipStack 上做嵌套交集，replay 时再调真实 PushClipRect 触发 vkCmdSetScissor。
-	// 本地维护是为了让 worker 内后续的 Push 能正确计算交集。
-	ClipRect rect = { x, y, w, h };
-	if (!tl_clipStack->empty()) {
-		rect = IntersectClip(tl_clipStack->back(), rect);
-	}
-	tl_clipStack->push_back(rect);
-
-	r.clips.push_back(rect);
-	RecordCmd c{};
-	c.type = RecCmdType::PushClip;
-	c.vertOffsetAtCmd = r.slice.vboCount;
-	c.instOffsetAtCmd = r.slice.instCount;   // Task 4
-	c.payloadIdx = (uint32_t)(r.clips.size() - 1);
-	r.cmds.push_back(c);
-}
-
-void Graphics::RecordPopClipRect(WorkerRecord& r) {
-	if (tl_clipStack->empty()) {
-		LOG_WARN("Graphics") << "RecordPopClipRect: worker clip stack underflow";
-		return;
-	}
-	tl_clipStack->pop_back();
-
-	RecordCmd c{};
-	c.type = RecCmdType::PopClip;
-	c.vertOffsetAtCmd = r.slice.vboCount;
-	c.instOffsetAtCmd = r.slice.instCount;   // Task 4
-	c.payloadIdx = 0;
-	r.cmds.push_back(c);
 }
 
 void Graphics::RecordSetBlendMode(WorkerRecord& r, BlendMode mode) {

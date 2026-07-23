@@ -971,7 +971,7 @@ void Zombie::Draw(Graphics* g)
 {
 	const bool clipAtWaterline = g && mInPool && !mIsPreview;
 	if (clipAtWaterline) {
-		// 水线随顶点/实例送入 shader，不生成 scissor 状态命令，因此不会把逐僵尸绘制拆成独立 draw。
+		// 水线复用通用 shader ClipRect，不生成 scissor 状态命令，因此不会把逐僵尸绘制拆成独立 draw。
 		const int clipBottom = static_cast<int>(
 			std::lround(GetPosition().y + kPoolClipBottomOffsetY));
 		g->PushClipBottom(static_cast<float>(clipBottom));
