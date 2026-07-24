@@ -1098,6 +1098,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "heavyPhasesWithoutTyphoon", board->GetHeavyPhasesWithoutTyphoon() },
 			{ "eliteDancersSpawnedThisWave", board->GetEliteDancersSpawnedThisWave() },
 			{ "reinforcedDoorsSpawnedThisWave", board->GetReinforcedDoorsSpawnedThisWave() },
+			{ "elitePolevaultersSpawnedThisWave", board->GetElitePolevaultersSpawnedThisWave() },
 			{ "typhoonDecayRemaining", board->GetTyphoonStrengthTimer() },
 			{ "windDirection", WindDirectionName(board->GetWindDirection()) },
 			{ "windDirectionRemaining", board->GetWindDirectionTimer() },

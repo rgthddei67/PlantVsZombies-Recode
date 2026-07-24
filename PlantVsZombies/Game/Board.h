@@ -214,6 +214,7 @@ private:
 	int mHeavyPhasesWithoutTyphoon = 0; // 连续未命中台风的新大雨阶段数；用于保底并进入存档
 	int mEliteDancersSpawnedThisWave = 0; // 当前波已生成的精英舞王数量；用于每波上限并进入存档
 	int mReinforcedDoorsSpawnedThisWave = 0; // 当前波正式生成的加固铁门数量；上限计数并进入存档
+	int mElitePolevaultersSpawnedThisWave = 0; // 当前波正式生成的精英撑杆数量；上限计数并进入存档
 	int mEliteScaredyShroomsPlanted = 0; // 本关累计种下的精英胆小菇数量；死亡或铲除不返还次数
 	int mLastTyphoonMovedPlants = 0;    // 最近一次阵风移动的植物数，仅供观测和测试
 	int mLastTyphoonLostPlants = 0;     // 最近一次阵风吹出棋盘或吹入弹坑的植物数，仅供观测和测试
@@ -274,6 +275,7 @@ private:
 		float directionTimer, int gustsRemaining, int promptVariant);
 	void RestoreEliteDancerWaveSpawnCount(int count);
 	void RestoreReinforcedDoorWaveSpawnCount(int count);
+	void RestoreElitePolevaulterWaveSpawnCount(int count);
 	void RestoreTyphoonState(TyphoonStrength strength, WindDirection direction,
 		float strengthTimer, float gustTimer, float directionTimer, int gustsRemaining);
 	void RestoreActiveTyphoonGust(bool active, TyphoonStrength strength,
@@ -392,6 +394,7 @@ public:
 	int GetHeavyPhasesWithoutTyphoon() const { return mHeavyPhasesWithoutTyphoon; }
 	int GetEliteDancersSpawnedThisWave() const { return mEliteDancersSpawnedThisWave; }
 	int GetReinforcedDoorsSpawnedThisWave() const { return mReinforcedDoorsSpawnedThisWave; }
+	int GetElitePolevaultersSpawnedThisWave() const { return mElitePolevaultersSpawnedThisWave; }
 	int GetLastTyphoonMovedPlants() const { return mLastTyphoonMovedPlants; }
 	int GetLastTyphoonLostPlants() const { return mLastTyphoonLostPlants; }
 	bool IsTyphoonGustWarning() const;

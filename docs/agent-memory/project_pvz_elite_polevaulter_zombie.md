@@ -20,6 +20,9 @@ metadata:
 - 精英只在一次真实落地时召唤。跳跃中读档继续沿父类路径完成落地并召唤；落地后两只僵尸各自正常存档。
   跳跃存档同时记录已应用的额外距离，读档结算不会重复移动。
   持杆/跳跃阶段沿用普通撑杆的不可魅惑契约，因此不会出现魅惑精英生成敌对单位的中间态。
+- 正式波次经 `Board::ResolveWaveZombieType` 计数，每波最多生成 2 只精英撑杆；第三只起返回
+  `NUM_ZOMBIE_TYPES`，由挑选循环继续抽取且不扣预算。计数随存档恢复，只在新波或生存轮清时归零；
+  开发者模式和 AutoTest 的 `spawn_zombie` 直造不占配额。
 
 ## 资源与注册
 
@@ -45,8 +48,10 @@ metadata:
 - `smoke_pool_spawnlists_3_1_to_3_4.json`：退出码 0；逐关断言波数/出怪池，3-4 同时包含粉色橄榄球与精英撑杆。
 - `smoke_polevaulter_vault_walk.json`：退出码 0；普通撑杆父类回归保持通过。专项状态中的召唤普通撑杆
   记录跳距投影 150000，精英记录 300000。
+- `smoke_elite_polevaulter_wave_cap.json` 已补回归脚本：断言同波仅前 2 只精英撑杆生成、第三个候选被跳过，
+  普通候选不受影响且新波归零后可再次生成；主人本次明确要求不运行 AutoTest，因此仅完成 JSON 解析检查。
 
-三份 `run.log` 均以 `script finished OK` 结束且无 `ERROR/FAIL/WATCHDOG`；证据位于
+此前三份 `run.log` 均以 `script finished OK` 结束且无 `ERROR/FAIL/WATCHDOG`；证据位于
 `build/clang-playtest/autotest/out/<脚本名>/`。
 
 平滑跳跃修复后重新完成 `clang-playtest` 构建，并可见运行一次 `smoke_elite_polevaulter.json`：

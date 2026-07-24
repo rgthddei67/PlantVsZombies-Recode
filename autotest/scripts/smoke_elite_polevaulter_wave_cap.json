@@ -1,0 +1,27 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 1 },
+    { "op": "choose_cards", "cards": ["PLANT_PEASHOOTER"] },
+    { "op": "wait_state", "state": "GAME", "timeout": 15 },
+
+    { "op": "spawn_wave_zombie", "type": "ZOMBIE_ELITE_POLEVAULTER", "mutationRoll": 50, "row": 0, "x": 900 },
+    { "op": "spawn_wave_zombie", "type": "ZOMBIE_ELITE_POLEVAULTER", "mutationRoll": 50, "row": 1, "x": 900 },
+    { "op": "spawn_wave_zombie", "type": "ZOMBIE_ELITE_POLEVAULTER", "mutationRoll": 50, "row": 2, "x": 900 },
+    { "op": "assert_state", "path": "zombies.0.type", "equals": "ZOMBIE_ELITE_POLEVAULTER" },
+    { "op": "assert_state", "path": "zombies.1.type", "equals": "ZOMBIE_ELITE_POLEVAULTER" },
+    { "op": "assert_state", "path": "zombieCount", "equals": 2 },
+    { "op": "assert_state", "path": "weather.elitePolevaultersSpawnedThisWave", "equals": 2 },
+    { "op": "spawn_wave_zombie", "type": "ZOMBIE_NORMAL", "mutationRoll": 50, "row": 2, "x": 900 },
+    { "op": "assert_state", "path": "zombies.2.type", "equals": "ZOMBIE_NORMAL" },
+    { "op": "assert_state", "path": "weather.elitePolevaultersSpawnedThisWave", "equals": 2 },
+
+    { "op": "summon_next_wave" },
+    { "op": "assert_state", "path": "wave", "equals": 1 },
+    { "op": "assert_state", "path": "weather.elitePolevaultersSpawnedThisWave", "equals": 0 },
+    { "op": "spawn_wave_zombie", "type": "ZOMBIE_ELITE_POLEVAULTER", "mutationRoll": 50, "row": 3, "x": 900 },
+    { "op": "assert_state", "path": "weather.elitePolevaultersSpawnedThisWave", "equals": 1 },
+    { "op": "screenshot", "name": "wave_cap.png" },
+    { "op": "dump_state", "name": "wave_cap.json" },
+    { "op": "quit" }
+  ]
+}
