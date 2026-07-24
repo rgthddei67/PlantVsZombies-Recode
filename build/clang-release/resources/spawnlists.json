@@ -98,17 +98,17 @@
   },
   {
     "level": 20,
-    "waves": 15,
+    "waves": 20,
     "zombies": [0, 1, 3]
   },
   {
     "level": 21,
-    "waves": 15,
+    "waves": 20,
     "zombies": [0, 1, 17]
   },
   {
     "level": 22,
-    "waves": 20,
+    "waves": 30,
     "zombies": [0, 1, 2, 3, 11, 17]
   }
 ]
