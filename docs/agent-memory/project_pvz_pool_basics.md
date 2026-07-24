@@ -30,6 +30,10 @@ metadata:
 - `anim_eat` 会重新显露双腿并把 `Zombie_duckytube` 换回无水面接触纹理的普通贴图；腿部不再逐轨道隐藏，而由基类 shader 水线对所有僵尸统一裁剪。专用泳池僵尸只在啃食期间把泳圈覆盖为 `IMAGE_REANIM_ZOMBIE_DUCKYTUBE_INWATER` 保留涟漪，停止啃食和读档恢复时对称撤销/重建覆盖。
 - 僵尸已锁定睡莲后若同格新种上层植物，必须把啃食目标和 `mEaterCount` 从睡莲迁移到新顶层植物，且不重播啃食动画；`StartEat` 的碰撞 stay 主动迁移，`EatTarget` 在每个伤害帧前再兜底检查一次，避免碰撞更新顺序让一口伤害误落到睡莲。该规则按同格顶层通用实现，不把坚果或睡莲类型写死。
 - `CollisionSystem::Update` 会先收集本帧全部碰撞 pair，再在主线程依次派发回调；回调中关闭碰撞体不能取消同批次已经收集的第二个回调。睡莲+上层植物因此会同时命中撑杆：首个回调进入 `JUMPING`，旧实现的第二回调又误进 `StartEat`，随后 exit 回调把轨道切到 `anim_walk`，落地帧事件永远不到；读档又因 `LoadExtraData` 对 `JUMPING` 直接 `EndJump()` 而表现为“重进后已跳过”。`Polevaulter::StartEat` 现以虚函数入口统一限制为仅 `WALKING` 可啃食，lambda 也只在 `WALKING` 转发，不能只依赖关闭碰撞体或单个回调守卫。
+- 精英撑杆另有一条同症状路径：其超出动画内置 150px 的额外 100px 会在 `JUMPING` 中逐帧写入
+  Transform，最右列睡莲能让它先起跳再跨入泳池边界；通用 `UpdatePoolState` 随即恢复走路轨道，
+  把 `anim_jump` 抢成 `anim_walk`，第 92 帧落地事件再也到不了。`Polevaulter::PlayWalkAnimation`
+  现于 `JUMPING` 早退；介质标志、阴影与水线仍更新，但一次性能力动画不再被介质切换覆盖。
 - 台风对同格睡莲+上层植物必须整叠搬运/丢失，不允许拆叠。
 - `PoolCleaner` 使用 `LAND/ENTERING/IN_POOL/EXITING` 高度状态；只改绘制偏移，不改行与碰撞。水中稳态相对原 28px 下沉位置向上校正 13px，入水/出水阶段按当前浸入比例渐进叠加该校正以避免跳变，原始深度仍照常存档。陆地/水中吞噬分别用 `anim_landsuck/anim_suck`，稳态用 `anim_land/anim_water`，运动速度按 C# 水车:草车 `2.5:3.33` 换算。
 - 日间天降普通阳光间隔由 15 秒缩短到 14 秒；`WATER_POOL` 另有独立的 13 秒倒计时，在随机水路内侧列生成一颗 15 点 `SmallSun`，用现有缩放动画出现在水面内部。该补偿不占卡槽，不在草地、夜间泳池或屋顶额外生成；两套倒计时均写入存档，旧档分别以 5 秒和 13 秒初始化。
@@ -65,6 +69,13 @@ metadata:
 可见运行稳定失败于 `JUMPING` 但实际轨道 `anim_walk`；修复后同预设 LTO 编译通过，专项脚本和
 既有 `smoke_polevaulter_vault_walk.json` 均在主人当前桌面可见运行 exit 0，日志无
 `ERROR/FAIL/WATCHDOG`，跳跃中段、泳池落地和陆地回归截图均正常。
+
+`smoke_pool_elite_polevaulter_lilypad_edge.json` 固定 `row=2,col=8` 仅有睡莲，并从 x=1000
+复现精英先起跳、后跨入水界的时序。修复前 1.5 秒后稳定卡在
+`JUMPING/anim_walk/hasVaulted=false`，额外距离投影已达 100000 且未生成普通撑杆；修复后
+`clang-playtest` 可见运行 exit 0，最终为 `WALKING/anim_walk`、250000 总跳距、100000 额外距离，
+并生成 `ZOMBIE_POLEVAULTER`。既有普通组合植物专项同时可见回归 exit 0，两份日志均无
+`ERROR/FAIL/WATCHDOG`，截图确认中段腾空和水中落地正常。
 
 `smoke_day_pool_sun_economy.json` 暂停自然出波后锁定两套经济节奏：3-1 在第 13 游戏秒前没有
 小阳光，越过边界后仅水面出现一颗 `SmallSun` 且独立倒计时重置；1-1 不推进泳池倒计时，

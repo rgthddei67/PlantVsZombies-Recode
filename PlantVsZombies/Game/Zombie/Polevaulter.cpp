@@ -192,6 +192,11 @@ void Polevaulter::ZombieMove(float scaledDelta, TransformComponent* transform)
 
 void Polevaulter::PlayWalkAnimation(float blendTime)
 {
+	if (mVaultState == VaultState::JUMPING) {
+		// 入水切换只更新介质视觉；跳跃轨道承载落地帧事件，不能被稳态走路动画抢占。
+		return;
+	}
+
 	PlayTrack("anim_walk", 0.0f, blendTime);
 }
 

@@ -48,7 +48,7 @@ protected:
 	void SetupZombie() override;
 	void ZombieMove(float scaledDelta, TransformComponent* transform) override;
 
-	// Polevaulter.reanim 无 anim_walk2，走路统一 anim_walk（落地/读档/回走路全经此）。
+	/** @brief 恢复稳态 anim_walk；跳跃中拒绝介质切换抢占 anim_jump。 */
 	void PlayWalkAnimation(float blendTime) override;
 
 	/** @brief 返回本品种一次落地应推进的逻辑距离，单位为像素。 */
