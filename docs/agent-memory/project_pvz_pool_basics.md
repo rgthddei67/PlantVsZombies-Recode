@@ -25,7 +25,7 @@ metadata:
 - 睡莲种下后 1 秒只免疫啃咬，计时器进存档；水面植物只做±2px 绘制浮动，Transform/碰撞与存档仍固定在逻辑格。
 - 普通/路障/铁桶僵尸在水路由正式波次入口替换为 `ZOMBIE_POOL_*`，而非为出怪表添加独立权重；这三种专用类型仍只允许水路，陆地版本不会实际创建在水中。其他僵尸可直接抽到水路并保留自身类型与行为。`Board::CanZombieTypeSpawnInPool` 是集中禁水扩展点，当前所有有效僵尸类型均允许；未来只在此追加禁水类型。`Zombie` 基类用前/后双探针统一维护 `mInPool`，本项目将下水/出水切换位置相对原探针向右校正 70px；水中统一隐藏陆地阴影，并在 `Zombie::Draw` 内用 `PushClipBottom/PopClipBottom` 把水面以下裁掉。该接口现为通用 shader `PushClipRect` 的全宽别名，不触发批处理 flush 或 `vkCmdSetScissor`，并自动与伴舞出土等既有矩形 Clip 取交集。专用泳池僵尸仍保留 swim、水中死亡和泳圈贴图；水中断头/断臂不生成悬浮的陆地碎片。
 - 泳池僵尸仅在 `mInPool=true` 时拒绝化灰：植物爆炸仍走正式伤害与水中死亡轨道，但不创建 `ZombieCharred` 烧焦残影；尚未下水或已经离水时继续沿用陆地化灰表现。这与 C# `ApplyBurn` 的 `mInPool -> DieWithLoot` 分支一致。
-- 所有僵尸生成 Y 由网格行中心派生。第一、二大关继续使用已确认正确的 `kZombieSpawnBaseOffsetY=+2px`；主人实测后的泳池背景公共偏移为 `kPoolBackgroundZombieSpawnYOffset=0px`，第三大关所有行再应用 `kThirdAreaZombieAlignmentOffsetY=+10px`。水路必须与同地图陆地行分开，`IsPoolRow(row)` 额外应用 `kPoolRowZombieSpawnYOffset=+25px`，因此只下移第 3/4 行水中僵尸，不影响陆地行。四者均集中在 `Board.cpp` 顶部；旧名 `kPoolZombieSpawnYOffset` 因容易误解为水路专属而弃用。
+- 所有僵尸生成 Y 由网格行中心派生。第一、二大关继续使用已确认正确的 `kZombieSpawnBaseOffsetY=+2px`；主人实测后的泳池背景公共偏移为 `kPoolBackgroundZombieSpawnYOffset=0px`，第三大关所有行再应用 `kThirdAreaZombieAlignmentOffsetY=+10px`。水路必须与同地图陆地行分开，`GetZombieSpawnY` 对 `IsPoolRow(row)` 额外应用 `kPoolRowZombieSpawnYOffset=+25px`，因此只下移第 3/4 行水中僵尸的 Transform 与画面，不影响陆地行；`GetZombieCollisionY` 不包含这段美术下沉，`Zombie` 基础碰撞框在构造时反向抵消差值并锚定逻辑行，避免同排子弹漏判。不要通过放大子弹或僵尸碰撞箱补偿视觉偏移。四个可调偏移均集中在 `Board.cpp` 顶部；旧名 `kPoolZombieSpawnYOffset` 因容易误解为水路专属而弃用。
 - `anim_eat` 会重新显露双腿并把 `Zombie_duckytube` 换回无水面接触纹理的普通贴图；腿部不再逐轨道隐藏，而由基类 shader 水线对所有僵尸统一裁剪。专用泳池僵尸只在啃食期间把泳圈覆盖为 `IMAGE_REANIM_ZOMBIE_DUCKYTUBE_INWATER` 保留涟漪，停止啃食和读档恢复时对称撤销/重建覆盖。
 - 僵尸已锁定睡莲后若同格新种上层植物，必须把啃食目标和 `mEaterCount` 从睡莲迁移到新顶层植物，且不重播啃食动画；`StartEat` 的碰撞 stay 主动迁移，`EatTarget` 在每个伤害帧前再兜底检查一次，避免碰撞更新顺序让一口伤害误落到睡莲。该规则按同格顶层通用实现，不把坚果或睡莲类型写死。
 - `CollisionSystem::Update` 会先收集本帧全部碰撞 pair，再在主线程依次派发回调；回调中关闭碰撞体不能取消同批次已经收集的第二个回调。睡莲+上层植物因此会同时命中撑杆：首个回调进入 `JUMPING`，旧实现的第二回调又误进 `StartEat`，随后 exit 回调把轨道切到 `anim_walk`，落地帧事件永远不到；读档又因 `LoadExtraData` 对 `JUMPING` 直接 `EndJump()` 而表现为“重进后已跳过”。`Polevaulter::StartEat` 现以虚函数入口统一限制为仅 `WALKING` 可啃食，lambda 也只在 `WALKING` 转发，不能只依赖关闭碰撞体或单个回调守卫。
@@ -57,3 +57,5 @@ metadata:
 可见运行稳定失败于 `JUMPING` 但实际轨道 `anim_walk`；修复后同预设 LTO 编译通过，专项脚本和
 既有 `smoke_polevaulter_vault_walk.json` 均在主人当前桌面可见运行 exit 0，日志无
 `ERROR/FAIL/WATCHDOG`，跳跃中段、泳池落地和陆地回归截图均正常。
+
+2026-07-24 将水路 `+25px` 美术下沉与逻辑碰撞基线分离，并把三线射手斜向初速按泳池 85px 行高缩放后，`clang-playtest` 重新配置并完整编译通过。主人要求本项不跑 AutoTest、改由实战验收，因此不记录自动化命中结论。

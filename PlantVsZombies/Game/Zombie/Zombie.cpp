@@ -57,6 +57,11 @@ Zombie::Zombie(Board* board, ZombieType zombieType, float x, float y, int row,
 	if (!mBoard) return;
 
 	auto collider = GetColliderComponent();
+	const float collisionY = mBoard->GetZombieCollisionY(row);
+	if (collisionY >= 0.0f) {
+		// 水路僵尸的 Transform 保留美术下沉，碰撞框反向抵消该差值并回到逻辑行基线。
+		collider->offset.y += collisionY - y;
+	}
 	collider->isTrigger = true;
 	collider->layerMask = CollisionLayer::ZOMBIE;
 	collider->collisionMask = CollisionLayer::PLANT | CollisionLayer::BULLET | CollisionLayer::MOWER;

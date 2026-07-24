@@ -11,7 +11,7 @@
 #include <cstddef>
 
 namespace {
-	constexpr float kThreepeaterVerticalSpeed = 300.0f; // C# 每 10ms 移动 3px，换算为每秒像素
+	constexpr float kThreepeaterVerticalSpeed = 300.0f; // C# 在 100px 草地行高下每 10ms 移动 3px，换算为每秒像素
 	constexpr float kThreepeaterDampingPerTick = 0.97f; // C# 每个 10ms 更新对纵向速度的衰减
 	constexpr float kOriginalTickSeconds = 0.01f;       // 原版 Projectile 更新步长，单位：秒
 	constexpr float kThreepeaterShadowOffsetY = 68.0f;  // 斜向豌豆从格心上方 40px 到地面影子的相对距离
@@ -227,8 +227,12 @@ void Bullet::EnableThreepeaterMotion(int sourceRow)
 {
 	if (sourceRow == mRow) return;
 	mThreepeaterMotion = true;
-	mVelocityY = mRow < sourceRow
-		? -kThreepeaterVerticalSpeed : kThreepeaterVerticalSpeed;
+	// 原版 300px/s 的衰减总位移约等于一格 100px；泳池行高为 85px，必须同比缩放，
+	// 否则相邻行豌豆会越过目标行的视觉与碰撞基线。
+	const float rowHeight = mBoard ? mBoard->GetCellHeight() : CELL_COLLIDER_SIZE_Y;
+	const float verticalSpeed =
+		kThreepeaterVerticalSpeed * rowHeight / CELL_COLLIDER_SIZE_Y;
+	mVelocityY = mRow < sourceRow ? -verticalSpeed : verticalSpeed;
 	if (mTransform) {
 		UpdateShadowLayout(mTransform->GetPosition());
 	}

@@ -82,7 +82,7 @@ public:
 	float GetVelocityY() { return mVelocityY; }
 	void SetVelocityY(float y) { this->mVelocityY = y; }
 	/**
-	 * 启用三线射手斜向轨迹；target row 已由本子弹的 mRow 表示。
+	 * 启用三线射手斜向轨迹；target row 已由本子弹的 mRow 表示，纵向速度按当前地图行高缩放。
 	 * @param sourceRow 发射植物所在行，用于确定初始纵向方向。
 	 */
 	void EnableThreepeaterMotion(int sourceRow);

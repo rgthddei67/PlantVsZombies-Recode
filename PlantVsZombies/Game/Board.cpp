@@ -31,7 +31,7 @@ namespace {
 	constexpr float kZombieSpawnBaseOffsetY = 2.0f;       // 第一、二大关已确认正确的僵尸行中心统一基线（像素）
 	constexpr float kPoolBackgroundZombieSpawnYOffset = 0.0f; // 所有泳池背景、所有行共用的僵尸额外基线，单位：像素
 	constexpr float kThirdAreaZombieAlignmentOffsetY = 10.0f; // 仅第三大关所有行使用的地图对齐基线，单位：像素
-	constexpr float kPoolRowZombieSpawnYOffset = 25.0f;   // 仅水路行僵尸额外下移量，不影响同地图陆地行，单位：像素
+	constexpr float kPoolRowZombieSpawnYOffset = 25.0f;   // 仅水路行僵尸的美术下沉量；碰撞基线不含此值，单位：像素
 	constexpr int kPoolFirstRow = 2;                      // 泳池第一条水路的 0-based 行号
 	constexpr int kPoolLastRow = 3;                       // 泳池最后一条水路的 0-based 行号
 	constexpr int kPoolFirstWaterSpawnWave = 5;           // 泳池自然波次从第几波起允许选择水路
@@ -3225,22 +3225,28 @@ void Board::RemoveOtherMowersWithoutTrigger(int preservedMowerID)
 	}
 }
 
-float Board::GetZombieSpawnY(int row) const {
+float Board::GetZombieCollisionY(int row) const
+{
 	if (row < 0 || row >= mRows) {
-		LOG_ERROR("Board") << "GetZombieSpawnY: 无效的行索引: " << row;
+		LOG_ERROR("Board") << "GetZombieCollisionY: 无效的行索引: " << row;
 		return -1.0f;
 	}
 
-	// 第一、二大关保持既有基线；第三大关再做地图专属的纵向修正。
+	// 碰撞始终锚定网格逻辑行；第三大关公共地图修正仍属于整张棋盘的基线。
 	const float mapAlignmentOffset = mBackGround == Background::WATER_POOL
 		? kThirdAreaZombieAlignmentOffsetY
-		: 0.0f;
-	const float poolRowOffset = IsPoolRow(row)
-		? kPoolRowZombieSpawnYOffset
 		: 0.0f;
 	return GetCellCenterPosition(row, 0).y + kZombieSpawnBaseOffsetY + mapAlignmentOffset
 		+ (IsPoolBackground()
 			? kPoolBackgroundZombieSpawnYOffset
-			: 0.0f)
-		+ poolRowOffset;
+			: 0.0f);
+}
+
+float Board::GetZombieSpawnY(int row) const
+{
+	const float collisionY = GetZombieCollisionY(row);
+	if (collisionY < 0.0f) return collisionY;
+
+	// 水路身体需要继续保持主人校对过的下沉画面，但该偏移只影响生成/绘制基准。
+	return collisionY + (IsPoolRow(row) ? kPoolRowZombieSpawnYOffset : 0.0f);
 }

@@ -302,9 +302,14 @@ private:
 	inline int GetSurvivalPickWeight(ZombieType type) const;
 
 public:
-	// 该行僵尸的落脚 y（由地图行几何派生）。公开原因：伴舞出土裁剪要用“行地面线”而非
-	// 僵尸自身坐标定裁剪底边——换新地图/行高时自动适配（主人指示）。
+	// 该行僵尸的视觉落脚 y（由地图行几何与地形美术偏移派生）。公开原因：伴舞出土裁剪要用
+	// “行地面线”而非僵尸自身动态坐标定裁剪底边——换新地图/行高时自动适配（主人指示）。
 	float GetZombieSpawnY(int row) const;
+	/**
+	 * 返回该行僵尸参与碰撞的逻辑基线 Y。
+	 * 水路美术下沉不进入此坐标，避免子弹、植物和小推车判定随贴图对齐量漂移。
+	 */
+	float GetZombieCollisionY(int row) const;
 
 	Board(GameScene* gameScene, Background background, int level);
 	~Board();
