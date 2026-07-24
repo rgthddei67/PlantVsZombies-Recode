@@ -27,11 +27,19 @@ metadata:
   `Zombie::Draw` 中夹住僵尸本体，通用附着偏移为 `(-13, 15)`。
 
 水草锁定关系由 Zombie 保存 `tangleKelpPlantID`、拖沉标志、下沉偏移和抓取动画帧；
-植物保存状态、剩余时间和目标 ID。旧档缺字段时保持中立，抓取中的读档会重建两份
+植物保存状态、剩余时间、目标 ID 和抗拖沉标志。旧档缺字段时保持中立，抓取中的读档会重建两份
 `anim_grab`，失去植物的孤儿锁定会在下一帧清理。
 
 撑杆僵尸仅 `JUMPING` 阶段不可抓，伴舞僵尸仅 `RISING` 阶段不可抓。大嘴花不会争抢
 已经被水草锁定的目标；土豆雷不会由该目标主动触发，但由其他目标引爆的范围伤害仍可波及。
+
+2026-07-24 增加加固铁门扩展：`ReinforcedDoorZombie::ResistsTangleKelpDrowning()` 在门仍存在时
+返回 `true`。水草锁定后立即结束目标啃食并将其锚定在原地，继续显示前后层 `anim_grab`，
+按不受雨势行动倍率影响的真实游戏时间束缚 5 秒；不触发 51cs 拖沉与 21cs 末段水花，
+到时解除关系与抓取视觉，仅水草死亡。若水草中途被摧毁，同样释放目标而不是直杀；
+门已掉落的加固铁门仍走普通 99cs 拖沉。锁定会阻止自主移动、阵风位移与品种逻辑，
+但动画、状态计时和无头流血继续。新存档保存 `targetResistsDrowning` 与剩余时间；
+旧档首次发现仍持门的加固铁门时重建完整 5 秒，并清掉冲突的啃食状态。
 
 ## 验证证据
 
@@ -49,3 +57,6 @@ metadata:
 `tanglekelp_drag_under.png` 和 `tanglekelp_heavy_rain_frozen_drag.png` 已人工检查：
 待机水位、包裹层次、同步下沉及大雨冻结叠加表现均正常。
 设计文档为 `docs/superpowers/specs/2026-07-24-tanglekelp-design.md`。
+
+加固铁门 5 秒束缚扩展按主人要求未新增或运行 AutoTest；本次 `clang-playtest` 与启用 LTO 的
+`clang-release` 均零警告编译通过。

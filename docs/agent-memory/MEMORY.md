@@ -3,7 +3,7 @@
 > Codex routing: required always-on rules live in `../../AGENTS.md`; detailed build, AutoTest, architecture, resource, and implementation guidance lives in `../agent-guide/PROJECT_GUIDE.md`. The entries below are historical subsystem context and should be read only when relevant.
 
 - [三线射手](project_pvz_threepeater.md) — 2026-07-23 三头视觉帧29/73/111，但按 C# 集中计数器只在帧73同帧创建三弹，修复上路晚0.15秒的假慢；逐头补 `inverse(basePose)`，中头锚点(35.4,35.0)；顶/底越界弹折回本行且360/290px/s差速；同步版playtest编译通过，最终相对X跨度断言按主人要求未重跑
-- [缠绕水草](project_pvz_tanglekelp.md) — 2026-07-24 仅空水格直种且占普通层，25阳光/30秒冷却；按 C# 99→51→21→0cs 独立倒计时抓取、停吃拖沉、水花、同归于尽，`anim_grab` 无帧事件并拆前后两层包住僵尸；一对一锁定、特殊阶段过滤、雨势行动倍率与双方存档字段已接入，可见专项 AutoTest 74 条全绿
+- [缠绕水草](project_pvz_tanglekelp.md) — 2026-07-24 仅空水格直种且占普通层，25阳光/30秒冷却；普通目标按 C# 99→51→21→0cs 抓取拖沉；持门加固铁门改为原地保持 `anim_grab` 5秒后获释且仅水草死亡，掉门后恢复普通规则；一对一锁定、抗性扩展点与存档迁移已接入，首版专项 AutoTest 74 条全绿，本次扩展按主人要求仅双 preset 编译
 - [植物压扁与复合 Animator 世界缩放](project_pvz_plant_squish.md) — 2026-07-23 `Plant::Squish()` 统一冻结位置/动画、释放占格、纵向 0.5 底边锚定、5 秒残影与末 1 秒渐隐；默认绘制已递归实例化根与任意深度附件，`SetRenderScale` 同时覆盖 `InstanceRecord` 与 `-NoInstance` 矩阵兜底；可见 `smoke_plant_squish` 验证根/子停帧、缩放、渐隐和销毁，三类僵尸调用方未实现
 - [Windows 中央存档目录与旧档安全迁移](project_pvz_save_location_migration.md) — 2026-07-21 Windows 正式存档改到 `FOLDERID_SavedGames/PlantsVsZombies/saves`；首次访问旧 `./saves` 时复制、逐字节校验、再删源文件，冲突不覆盖、失败逐文件回退；AutoTest/`-AutoTestLoadSave` 继续隔离在构建目录
 - [第三大关泳池基础系统](project_pvz_pool_basics.md) — 2026-07-24 当前范围 3-1～3-4：`WATER_POOL` 六行网格、原版 15×5 三层 GPU 动态水面、睡莲双层占格/上层啃食迁移/悬停预览置顶、前 4 波仅陆路、`Zombie` 通用入水/阴影/shader 水线裁剪、普通/路障/铁桶水路版本、水中爆炸无烧焦残影、PoolCleaner 与旧档边界；3-3 引入精英撑杆，3-4 加入普通撑杆/铁桶/粉色橄榄球/精英撑杆
@@ -15,7 +15,7 @@
 - [倭瓜](project_pvz_squash.md) — 2026-07-23 3-1 奖励植物：C# 0.8观察→0.3预备→0.5上升→0.1下砸；本体耐久≤1800直接Die，更高则穿透二类护盾造成1800；草地尘土停留1秒、水路溅水即消失；仅需5条轨道且无帧事件；双Clang预设已过，最终AutoTest按主人要求未重跑
 - [精英胆小菇](project_pvz_elite_scaredyshroom.md) — 2026-07-23 冒险 2-8 紫色奖励植物：500生命、10伤起步，每5发间隔乘0.85、每10发伤害+1，最终15伤/0.2秒；受惊全清，白天每发只长0.6；每关累计最多种3株且损失不返还，高速吐弹用pending防重播吞弹
 - [土豆地雷出土触发与范围爆炸](project_pvz_potato_mine_trigger_blast.md) — 2026-07-20 修复埋地时已被啃导致出土后不爆：出土跃迁若 `mEaterCount>0` 主动补触发；爆炸按原版同排半径60圆×僵尸矩形一次结算全部非魅惑目标，不再只杀碰撞触发者；可见 `smoke_potatomine.json` 独立覆盖先啃后出土与已出土双目标范围爆炸
-- [加固铁门僵尸](project_pvz_reinforced_door_zombie.md) — 2026-07-23 当前源码为300本体/920门；持门植物普通伤害最多10、灰烬最多320且免化灰/直杀，掉门后恢复普通规则；免疫魅惑，大喷双伤只扣门并截断判定/孢子；数值可由主人直接调整，使用前必须重读源码
+- [加固铁门僵尸](project_pvz_reinforced_door_zombie.md) — 2026-07-24 当前源码为300本体/920门；持门植物普通伤害最多10、灰烬最多320且免化灰/直杀，水草改为原地缠绕5秒后只死水草；掉门后恢复普通规则；免疫魅惑，大喷双伤只扣门并截断判定/孢子；数值可由主人直接调整，使用前必须重读源码
 - [Bullet 地面阴影与跨对象绘制顺序](project_pvz_bullet_shadow.md) — 2026-07-19 对齐 C#：Pea 单格21×9、Snowpea 1.3×、Puff无影；对象池复用时按row/position重算；阴影由 BulletPool 在 GOM 主体前统一提交，不能靠 Component::SetDrawOrder 跨越植物/Bullet对象层；主人校对 Y 与同排豌豆射手影子一致；可见 `smoke_bullet_shadow.json` 验普通/寒冰子弹穿过坚果时本体在上、影子在下
 - [九关制冒险进度+显式植物奖励表](project_pvz_adventure_progression.md) — 2026-07-18 `AdventureProgression.h` 统一每大关9小关、关卡显示/背景/奖励同源；奖励表显式写每关植物或 `NO_PLANT_REWARD`，1-8无植物、1-9小喷菇；禁止再用关卡号强转PlantType（旧存档按整数保存枚举）；AutoTest `smoke_adventure_progression.json` 覆盖全部背景边界与8/9关奖励
 - [非整十波旗帜进度条](project_pvz_flag_meter_non_multiple_waves.md) — 2026-07-18 对齐 C# `DrawProgressMeter`：旗数=`总波数/10` 向下取整，第 k 面旗横向位置=`1-k*10/总波数`；旗子按第10/20/30波顺序存储，实时升旗和读档恢复均直接使用同一索引；可见 AutoTest 已覆盖15/25/35波布局与25波第10波升旗

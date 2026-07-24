@@ -375,7 +375,10 @@ void Zombie::Update()
 
 		// 阵风是空气施加的独立位移：在冻结/啃食的早退前结算，使碰撞箱随 Transform 同帧移动。
 		// 若被吹离啃食目标，碰撞退出回调会按正常链路停止啃食，不需另造状态分支。
-		ApplyTyphoonGustDrift(deltaTime, transform);
+		// 水草关系同时充当水底锚点，束缚期间不允许阵风改变僵尸的位置。
+		if (mTangleKelpPlantID == NULL_PLANT_ID) {
+			ApplyTyphoonGustDrift(deltaTime, transform);
+		}
 		// 入水状态是通用介质状态：冻结或啃食期间也要跟随阵风后的实际位置更新。
 		if (!mIsDying) UpdatePoolState();
 
@@ -421,6 +424,9 @@ void Zombie::Update()
 				return;
 			}
 		}
+
+		// 水草束缚只停移动、碰撞行为和品种逻辑；上方的动画、状态计时与无头流血仍继续。
+		if (mTangleKelpPlantID != NULL_PLANT_ID) return;
 
 		// 冻结定身：移动/啃食推进/子类逻辑全停（上方的无头流血、减速与冻结滴答照走）。
 		// 啃食帧事件因动画停格（extra=0）自然不触发，mIsEating 状态保留，解冻续啃。
@@ -831,6 +837,9 @@ bool Zombie::StartTangleKelpGrab(int plantID)
 		if (!mTangleKelpGrabBack || !mTangleKelpGrabFront) {
 			CreateTangleKelpGrabAnimators();
 		}
+		if (ResistsTangleKelpDrowning()) {
+			StopEatingForTangleKelp();
+		}
 		return true;
 	}
 	if (!CanBeTargetedByTangleKelp()) return false;
@@ -839,6 +848,9 @@ bool Zombie::StartTangleKelpGrab(int plantID)
 	mDraggedUnderByTangleKelp = false;
 	mTangleKelpSinkOffset = 0.0f;
 	CreateTangleKelpGrabAnimators();
+	if (ResistsTangleKelpDrowning()) {
+		StopEatingForTangleKelp();
+	}
 	return true;
 }
 
@@ -846,7 +858,17 @@ void Zombie::DragUnderByTangleKelp(int plantID)
 {
 	if (mTangleKelpPlantID != plantID || mDraggedUnderByTangleKelp) return;
 	mDraggedUnderByTangleKelp = true;
+	StopEatingForTangleKelp();
+}
 
+void Zombie::ReleaseTangleKelpGrab(int plantID)
+{
+	if (mTangleKelpPlantID != plantID) return;
+	ClearOrphanedTangleKelpGrab();
+}
+
+void Zombie::StopEatingForTangleKelp()
+{
 	if (mIsEating) {
 		if (mEatPlantID != NULL_PLANT_ID && mBoard) {
 			if (Plant* plant = mBoard->mEntityManager.GetPlant(mEatPlantID);
@@ -1081,6 +1103,7 @@ float Zombie::GetTargetLeadX(float seconds) const
 		centerX = bounds.x + bounds.w * 0.5f;
 	}
 	if (seconds <= 0.0f || mIsEating || mIsDying || mIsDead || !mHasHead
+		|| mTangleKelpPlantID != NULL_PLANT_ID
 		|| mFrozenTimer > 0.0f || !mAnimator) {
 		return centerX;
 	}
@@ -1168,6 +1191,12 @@ void Zombie::Draw(Graphics* g)
 
 void Zombie::ValidateEatingState(EntityManager& em)
 {
+	// 旧档可能把“正在啃食”与加固铁门的水草束缚同时保存；关系恢复后必须立即结束啃食。
+	if (mTangleKelpPlantID != NULL_PLANT_ID && ResistsTangleKelpDrowning()) {
+		StopEatingForTangleKelp();
+		return;
+	}
+
 	if (mIsEating && mEatPlantID != NULL_PLANT_ID) {
 		auto plant = em.GetPlant(mEatPlantID);
 		if (!plant) {

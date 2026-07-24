@@ -154,10 +154,14 @@ public:
 	bool CanBeTargetedByTangleKelp() const;
 	/** 品种特殊阶段过滤点；撑杆跳跃和伴舞出土等状态可覆写。 */
 	virtual bool CanBeGrabbedByTangleKelp() const { return true; }
+	/** 持盾等品种状态是否把水草的拖沉改为限时束缚。 */
+	virtual bool ResistsTangleKelpDrowning() const { return false; }
 	/** 原子建立一对一抓取关系并创建包裹僵尸的前后层 anim_grab。 */
 	bool StartTangleKelpGrab(int plantID);
 	/** 到达 51cs 节点后停止当前啃食，并让僵尸按原版速率沉入水下。 */
 	void DragUnderByTangleKelp(int plantID);
+	/** 抗拖沉束缚结束时解除一对一关系与 anim_grab，不伤害僵尸。 */
+	void ReleaseTangleKelpGrab(int plantID);
 	bool IsTangleKelpTarget() const { return mTangleKelpPlantID != NULL_PLANT_ID; }
 	bool IsTangleKelpTargetOf(int plantID) const { return mTangleKelpPlantID == plantID; }
 	int GetTangleKelpPlantID() const { return mTangleKelpPlantID; }
@@ -243,7 +247,9 @@ protected:
 	bool RetargetPlantIfHigherPriority(Plant* plant);
 	/** 创建两份水草抓取动画，并分别隐藏前层或后层，以便包裹僵尸本体。 */
 	void CreateTangleKelpGrabAnimators(float savedFrame = 22.0f);
-	/** 清理失效的一对一关系与附着视觉；正常结束由水草先杀死僵尸，不走此恢复路径。 */
+	/** 停止当前啃食并平衡目标计数；抗拖沉目标在抓取开始时调用，普通目标在拖沉节点调用。 */
+	void StopEatingForTangleKelp();
+	/** 清理失效或已释放的一对一关系与附着视觉。 */
 	void ClearOrphanedTangleKelpGrab();
 
 	// 模板方法（非虚，勿覆写）：啃完回走路 = 先收尾、再走路。执行顺序由基类锁死。

@@ -8,7 +8,7 @@ class Zombie;
  * @brief 只能直接种在水中的一次性植物：锁定近身僵尸后将双方拖入水底。
  *
  * 抓取流程按 C# 原版的 99/51/21/0cs 倒计时推进；anim_grab 仅是附着在僵尸上的视觉，
- * 不依赖新增动画帧事件。
+ * 不依赖新增动画帧事件。抗拖沉目标会保持缠绕一段时间，结束时仅水草死亡。
  */
 class TangleKelp : public Plant {
 public:
@@ -37,13 +37,14 @@ private:
 	State mState = State::IDLE;
 	float mGrabTimer = 0.0f;
 	int mTargetZombieID = NULL_ZOMBIE_ID;
+	bool mTargetResistsDrowning = false;
 	bool mDeathHandled = false;
 
 	/** 选择同一泳池行内与 80x80 近身矩形相交、且最靠近房屋的合法目标。 */
 	Zombie* FindTargetZombie() const;
-	/** 建立一对一锁定、播放入水反馈并开始 99cs 的抓取倒计时。 */
+	/** 建立一对一锁定、播放入水反馈，并按目标抗性开始抓取或束缚倒计时。 */
 	void StartGrab(Zombie* target);
-	/** 在倒计时跨过原版节点时依次触发拖沉、末段水花和同归于尽。 */
+	/** 普通目标按原版节点拖沉；抗拖沉目标保持缠绕，到时只释放目标并让水草死亡。 */
 	void UpdateGrab();
 	/** 在目标位置生成现有的泳池水花配方。 */
 	void EmitSplashAt(const Vector& position) const;

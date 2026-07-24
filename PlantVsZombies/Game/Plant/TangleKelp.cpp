@@ -9,6 +9,7 @@
 
 namespace {
 	constexpr float kGrabDurationSeconds = 0.99f;       // 原版抓取总时长，单位：秒
+	constexpr float kResistantHoldDurationSeconds = 5.0f; // 加固铁门抗拖沉后被原地束缚的时长，单位：秒
 	constexpr float kDragThresholdSeconds = 0.51f;      // 跨过此剩余时间时停止啃食并开始下沉，单位：秒
 	constexpr float kFinalSplashThresholdSeconds = 0.21f; // 跨过此剩余时间时播放末段水花与入水声，单位：秒
 	constexpr float kAttackRectLeft = -40.0f;           // 近身检测矩形左边相对格中心的偏移，单位：像素
@@ -77,7 +78,10 @@ void TangleKelp::StartGrab(Zombie* target)
 	if (!target || !target->StartTangleKelpGrab(mPlantID)) return;
 
 	mState = State::GRABBING;
-	mGrabTimer = kGrabDurationSeconds;
+	mTargetResistsDrowning = target->ResistsTangleKelpDrowning();
+	mGrabTimer = mTargetResistsDrowning
+		? kResistantHoldDurationSeconds
+		: kGrabDurationSeconds;
 	mTargetZombieID = target->mZombieID;
 	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_FLOOP, 0.25f);
 	EmitSplashAt(target->GetPosition());
@@ -97,8 +101,24 @@ void TangleKelp::UpdateGrab()
 		return;
 	}
 
+	// 兼容旧存档：旧版抓取中的加固铁门没有抗性字段，读档后从僵尸当前持门状态重建完整束缚。
+	if (!mTargetResistsDrowning && target->ResistsTangleKelpDrowning()) {
+		mTargetResistsDrowning = true;
+		mGrabTimer = kResistantHoldDurationSeconds;
+	}
+
 	const float previous = mGrabTimer;
-	mGrabTimer = std::max(0.0f, mGrabTimer - GetWeatherActionDeltaTime());
+	const float deltaTime = mTargetResistsDrowning
+		? DeltaTime::GetDeltaTime()
+		: GetWeatherActionDeltaTime();
+	mGrabTimer = std::max(0.0f, mGrabTimer - deltaTime);
+	if (mTargetResistsDrowning) {
+		if (mGrabTimer <= 0.0f) {
+			Die();
+		}
+		return;
+	}
+
 	if (previous > kDragThresholdSeconds && mGrabTimer <= kDragThresholdSeconds) {
 		target->DragUnderByTangleKelp(mPlantID);
 		EmitSplashAt(target->GetPosition());
@@ -131,9 +151,15 @@ void TangleKelp::Die()
 	if (mBoard && targetID != NULL_ZOMBIE_ID) {
 		if (Zombie* target = mBoard->mEntityManager.GetZombie(targetID);
 			target && target->IsTangleKelpTargetOf(mPlantID)) {
-			target->Die();
+			if (mTargetResistsDrowning || target->ResistsTangleKelpDrowning()) {
+				target->ReleaseTangleKelpGrab(mPlantID);
+			}
+			else {
+				target->Die();
+			}
 		}
 	}
+	mTargetResistsDrowning = false;
 	Plant::Die();
 }
 
@@ -142,6 +168,7 @@ void TangleKelp::SaveExtraData(nlohmann::json& j) const
 	j["state"] = static_cast<int>(mState);
 	j["grabTimer"] = mGrabTimer;
 	j["targetZombieID"] = mTargetZombieID;
+	j["targetResistsDrowning"] = mTargetResistsDrowning;
 }
 
 void TangleKelp::LoadExtraData(const nlohmann::json& j)
@@ -150,12 +177,17 @@ void TangleKelp::LoadExtraData(const nlohmann::json& j)
 	mState = state == static_cast<int>(State::GRABBING)
 		? State::GRABBING
 		: State::IDLE;
-	mGrabTimer = std::clamp(j.value("grabTimer", 0.0f), 0.0f, kGrabDurationSeconds);
+	mTargetResistsDrowning = j.value("targetResistsDrowning", false);
+	const float maxGrabDuration = mTargetResistsDrowning
+		? kResistantHoldDurationSeconds
+		: kGrabDurationSeconds;
+	mGrabTimer = std::clamp(j.value("grabTimer", 0.0f), 0.0f, maxGrabDuration);
 	mTargetZombieID = j.value("targetZombieID", NULL_ZOMBIE_ID);
 	mDeathHandled = false;
 	if (mState == State::IDLE) {
 		mGrabTimer = 0.0f;
 		mTargetZombieID = NULL_ZOMBIE_ID;
+		mTargetResistsDrowning = false;
 	}
 }
 

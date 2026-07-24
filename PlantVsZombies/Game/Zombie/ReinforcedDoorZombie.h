@@ -17,6 +17,9 @@ public:
 
 	bool CanBeCharred() const override;
 	bool CanBeCharmed() const override { return false; }
+	bool ResistsTangleKelpDrowning() const override {
+		return mShieldType != ShieldType::SHIELDTYPE_NONE;
+	}
 	bool BlocksFumePiercing() const override {
 		return mShieldType != ShieldType::SHIELDTYPE_NONE;
 	}
