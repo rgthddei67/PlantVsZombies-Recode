@@ -159,3 +159,38 @@ ship 后 2 天 user 报 GlowingTimer>0 时严重渲染 bug：other plants 跟着
 - 改动文件：`Graphics.h`（加成员）+ `Graphics.cpp`（4 处编辑，全在 main thread 和 worker 路径，不动 replay）。
 - 未提交 commit — user 在 VS 验证后会自己决定何时 commit。
 - **未来在本仓库设计 dual-queue / mid-frame flush 时要警觉**：任何与已有队列的相对顺序敏感的新路径，serial fallback 必须显式 cross-flush（worker 模式有 emitUpTo 兜底，但 serial 没有等价机制）。这条作为 **[feedback-dual-queue-order-preservation](feedback_dual_queue_order_preservation.md)** 记入。
+
+---
+
+## 2026-07-24：泳池叠层植物影子被睡莲反盖
+
+### 症状与根因
+
+level 19 在总游戏对象达到 `GameObjectManager::DrawAll` 的 200 对象并行阈值后，水路上层植物影子会随
+worker 分片边界时隐时现；创建无影子的透明落点预览仍会改变分片，使少量影子暂时恢复；`-NoInstance`
+完全不复现。并行 replay 的 `emitUpTo` 在同一 blend 段固定先发全部 batch、再发全部 instance：
+
+`睡莲 body(instance) → 上层植物 shadow(batch) → 上层植物 body(instance)`
+
+因此被重排为：
+
+`上层植物 shadow(batch) → 睡莲 body(instance) → 上层植物 body(instance)`
+
+影子没有丢失，而是被睡莲本体反盖。陆地单层植物不需要让“前一对象 body”位于“后一对象 shadow”
+之下，所以同一缺陷主要只在睡莲双层占格中暴露；`PoolEffect` 在所有 GameObject 之前独立提交并先
+flush 两队列，不是根因。
+
+### 修复契约
+
+- `Graphics::DrawTextureInstanced` 把普通纹理矩形、当前变换、图集 UV、RGBA8 tint 与 shader ClipRect
+  转换为 `InstanceRecord`，复用现有 sprite instance pipeline。
+- `ShadowComponent` 在默认实例路径中使用该接口，使影子和 reanim 本体按原对象顺序进入同一
+  instance 流；不增加逐对象 geometry fence，也不牺牲并行批处理。
+- `-NoInstance` 继续调用 `DrawTexture`，保留原 batch 慢路径作为视觉 A/B 和故障兜底。
+
+### 验证
+
+新增 `smoke_pool_instanced_shadows.json`：level 19 放置 8 组睡莲+豌豆射手，并生成 140 只屏外静止
+陆地僵尸稳定跨过并行阈值。修复前默认路径截图 8 个影子全部被盖；修复后默认与 `-NoInstance` 均显示
+全部 8 个影子，两个可见运行均 exit 0，`plantCount=16`、`zombieCount=140`、draw call 14、
+scissor change 0，日志无 ERROR/FAIL/WATCHDOG。

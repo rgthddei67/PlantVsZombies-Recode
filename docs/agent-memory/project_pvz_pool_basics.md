@@ -51,6 +51,12 @@ metadata:
 并对 3-3/3-4 选卡预览留图。2026-07-24 `clang-playtest` 可见运行退出码 0；3-4 状态明确包含
 `ZOMBIE_PINK_FOOTBALL` 与 `ZOMBIE_ELITE_POLEVAULTER`，日志 `script finished OK`。
 
+`smoke_pool_instanced_shadows.json` 用 8 组睡莲+豌豆射手和 140 只屏外静止陆地僵尸稳定跨过 200
+对象并行绘制阈值。旧路径把同一 worker blend 段的 batch 影子整体提前到 instance 睡莲之前，导致
+上层植物影子被睡莲反盖；透明预览只因改变 worker 分片而让少量影子暂时恢复。`ShadowComponent`
+现于默认路径将影子写入同一 instance 流，`-NoInstance` 保留 batch 兜底；修复后两路径可见运行
+均 exit 0，截图显示全部 8 个影子，状态为 16 株植物、140 只僵尸、14 draw、0 scissor。
+
 `smoke_pool_polevaulter_stacked_plant.json` 固定 level 19 水路同格 `LILYPAD` under +
 `WALLNUT` normal，先断言双层格成立，再断言撑杆中段保持 `JUMPING/anim_jump/isEating=false`，
 最终落地为 `WALKING` 且跳距整数投影 `150000`。2026-07-24 修复前的现有 `clang-release`

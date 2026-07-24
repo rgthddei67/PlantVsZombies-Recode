@@ -1093,6 +1093,54 @@ void Graphics::DrawTexture(const Texture* tex, float x, float y, float width, fl
 }
 
 /**
+ * 把普通纹理矩形转换为 InstanceRecord，使跨对象的影子与 reanim 本体共享同一有序队列。
+ */
+void Graphics::DrawTextureInstanced(const Texture* tex, float x, float y, float width, float height,
+	float rotation, const glm::vec4& tint) {
+	if (!tex) {
+		LOG_WARN("Graphics") << "DrawTextureInstanced: null texture pointer";
+		return;
+	}
+
+	// 与 DrawTexture 使用完全相同的局部变换，随后把最终 2D 仿射矩阵压缩进 InstanceRecord。
+	glm::mat4 local = glm::mat4(1.0f);
+	local = glm::translate(local, glm::vec3(x, y, 0.0f));
+	local = glm::scale(local, glm::vec3(width, height, 1.0f));
+	if (rotation != 0.0f) {
+		local = glm::translate(local, glm::vec3(0.5f, 0.5f, 0.0f));
+		local = glm::rotate(local, glm::radians(rotation), glm::vec3(0.0f, 0.0f, 1.0f));
+		local = glm::translate(local, glm::vec3(-0.5f, -0.5f, 0.0f));
+	}
+	const glm::mat4& currentTransform = tl_record
+		? tl_transformStack->back() : m_transformStack.back();
+	const glm::mat4 finalMatrix = currentTransform * local;
+
+	InstanceRecord rec{};
+	rec.tA = finalMatrix[0][0];
+	rec.tB = finalMatrix[0][1];
+	rec.tC = finalMatrix[1][0];
+	rec.tD = finalMatrix[1][1];
+	rec.tx = finalMatrix[3][0];
+	rec.ty = finalMatrix[3][1];
+
+	const Texture* bindTex = tex->atlasPage ? tex->atlasPage : tex;
+	rec.u0 = tex->aU0;
+	rec.v0 = tex->aV0;
+	rec.u1 = tex->aU1;
+	rec.v1 = tex->aV1;
+	rec.texSlot = bindTex->id;
+
+	// InstanceRecord 使用 RGBA8；按现有字形实例路径四舍五入并钳制 0..255 颜色约定。
+	const auto pack8 = [](float value) {
+		return static_cast<uint32_t>(std::clamp(static_cast<int>(value + 0.5f), 0, 255));
+		};
+	rec.colorRGBA8 = pack8(tint.r) | (pack8(tint.g) << 8)
+		| (pack8(tint.b) << 16) | (pack8(tint.a) << 24);
+
+	AppendReanimInstance(rec, BlendMode::Alpha);
+}
+
+/**
  * 直接向当前帧持久映射 VBO 写入三层规则网格，并用专用 pipeline 保序提交。
  * 水波和焦散都留在 shader 内计算，CPU 每帧只更新一个动画计数器。
  */

@@ -459,6 +459,13 @@ public:
 		float rotation = 0.0f, const glm::vec4& tint = glm::vec4(255.0f));
 
 	/**
+	 * @brief 将普通纹理矩形写入 GPU sprite instance 队列，保持它与 reanim 本体的提交顺序。
+	 *        调用方负责仅在实例路径启用时使用；禁用时应继续调用 DrawTexture。
+	 */
+	void DrawTextureInstanced(const Texture* tex, float x, float y, float width, float height,
+		float rotation = 0.0f, const glm::vec4& tint = glm::vec4(255.0f));
+
+	/**
 	 * @brief 用原版三层网格绘制动态泳池水面；底图、阴影与焦散分别占一个 draw call。
 	 * @param baseTex      当前昼夜使用的水面底图
 	 * @param shadingTex   当前昼夜使用的水面阴影图

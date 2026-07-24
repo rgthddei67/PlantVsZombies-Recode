@@ -6,7 +6,7 @@
 - [缠绕水草](project_pvz_tanglekelp.md) — 2026-07-24 仅空水格直种且占普通层，25阳光/30秒冷却；普通目标按 C# 99→51→21→0cs 抓取拖沉；持门加固铁门改为原地保持 `anim_grab` 5秒后获释且仅水草死亡，掉门后恢复普通规则；一对一锁定、抗性扩展点与存档迁移已接入，首版专项 AutoTest 74 条全绿，本次扩展按主人要求仅双 preset 编译
 - [植物压扁与复合 Animator 世界缩放](project_pvz_plant_squish.md) — 2026-07-23 `Plant::Squish()` 统一冻结位置/动画、释放占格、纵向 0.5 底边锚定、5 秒残影与末 1 秒渐隐；默认绘制已递归实例化根与任意深度附件，`SetRenderScale` 同时覆盖 `InstanceRecord` 与 `-NoInstance` 矩阵兜底；可见 `smoke_plant_squish` 验证根/子停帧、缩放、渐隐和销毁，三类僵尸调用方未实现
 - [Windows 中央存档目录与旧档安全迁移](project_pvz_save_location_migration.md) — 2026-07-21 Windows 正式存档改到 `FOLDERID_SavedGames/PlantsVsZombies/saves`；首次访问旧 `./saves` 时复制、逐字节校验、再删源文件，冲突不覆盖、失败逐文件回退；AutoTest/`-AutoTestLoadSave` 继续隔离在构建目录
-- [第三大关泳池基础系统](project_pvz_pool_basics.md) — 2026-07-24 当前范围 3-1～3-4：`WATER_POOL` 六行网格、原版 15×5 三层 GPU 动态水面、睡莲双层占格、前 4 波仅陆路、`Zombie` 通用入水/阴影/shader 水线裁剪、普通/路障/铁桶水路版本、水中爆炸无烧焦残影、PoolCleaner 与旧档边界；水路 Transform 保留+25px美术下沉，基础碰撞框通过 `GetZombieCollisionY` 回归逻辑行；3-3 引入精英撑杆，3-4 加入普通撑杆/铁桶/粉色橄榄球/精英撑杆
+- [第三大关泳池基础系统](project_pvz_pool_basics.md) — 2026-07-24 当前范围 3-1～3-4：`WATER_POOL` 六行网格、原版 15×5 三层 GPU 动态水面、睡莲双层占格、前 4 波仅陆路、`Zombie` 通用入水/阴影/shader 水线裁剪、普通/路障/铁桶水路版本、水中爆炸无烧焦残影、PoolCleaner 与旧档边界；水路 Transform 保留+25px美术下沉，基础碰撞框通过 `GetZombieCollisionY` 回归逻辑行；水路叠层影子已与 reanim 共用 instance 队列，避免并行 batch-first 回放被睡莲反盖
 - [通用 shader ClipRect](project_pvz_shader_clip_rect.md) — 2026-07-23 `PushClipRect/PopClipRect` 全部改为逐顶点/逐实例 framebuffer 矩形裁剪；不再 flush、切 draw、录 worker 状态命令或动态改 scissor；覆盖水路、伴舞出土、图鉴格窗、粒子阻断，含延迟文字继承与无裁剪片元快路径
 - [冒险第二大关起雨势天气](project_pvz_night_rain_weather.md) — 2026-07-24 天气从冒险 2-1 起按 `Board::SupportsWeather` 启用，包括日间泳池；大雨前 5 秒按待生效台风等级显示四档古风文字警报，每档 3 句随机且与图片提示并存，待生效初态/文案编号随档保存；后期导演满压力天气权重 0/10/25/65、台风权重 15/45/40；水草抓取倒计时复用植物行动倍率而下沉保持真实速度
 - [精英舞王僵尸](project_pvz_elite_dancer_zombie.md) — 2026-07-22 当前为黑夜大雨任意台风 60% 变异、每波最多 3 只；超额成功变异候选源头跳过、不回退普通舞王，未命中变异仍正常刷新；720 HP、基础1.25、每0.2秒补伴舞至36只，强/超强台风再乘1.45/1.75；专项可见 AutoTest 通过
@@ -74,7 +74,7 @@
 - [并行Update phase-2 ✅](project_pvz_parallel_update_phase2.md) — 292f68e 整Animator::Update并行+deferred events;-3.44ms/69.3→91FPS
 - [phase-3 component-update skipping ✅](project_pvz_phase3_component_update_skipping.md) — c435a57 NeedsUpdate virtual+mUpdatableComponents视图;FPS91→100;PROFILE_SCOPE自污染~4.6ms
 - [预计算动画(放弃)](project_pvz_precomputed_animation.md) — 2026-05-23 TrackInfo::mFrames已密集per-frame,关键帧搜索不存在,ROI不足
-- [GPU instancing reanim ✅](project_pvz_gpu_instancing_reanim.md) — 2026-05-24(388a845)reanim→InstanceRecord;-1.39ms/98.4→114FPS；postscript修glow状态污染+双队列Z-order；2026-07-23 InstanceRecord 56B 携带 packed ClipRect，且默认按父轨道顺序递归实例化整棵 Animator 附件树，`-NoInstance` 独占矩阵兜底
+- [GPU instancing reanim ✅](project_pvz_gpu_instancing_reanim.md) — 2026-05-24(388a845)reanim→InstanceRecord;-1.39ms/98.4→114FPS；postscript修glow状态污染+双队列Z-order；2026-07-24 `ShadowComponent` 默认也写 instance 队列，修复并行阈值后“睡莲本体反盖上层植物影子”，`-NoInstance` 仍走 batch 兜底
 - [Clickable优化 ✅](project_pvz_clickable_optimization.md) — 2026-05-24 自注册表替换全场扫描;1.22→0.01ms(-122×);**GetAllGameObjects() per-frame scan是本仓库foot-gun**
 - [Dual-queue保序foot-gun](feedback_dual_queue_order_preservation.md) — dual-queue加新队列时serial fallback跨队列保序必审;worker replay有emitUpTo兜底serial没有
 - [预乘alpha管线](project_pvz_premultiplied_alpha.md) — 2026-05-30修白边:契约跨三层(UploadPixels rgb*=a/混合srcColor=ONE/frag预乘vColor.a);加纹理/混合模式必守;glslc重编spv拷Debug+Release

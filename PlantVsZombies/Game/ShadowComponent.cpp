@@ -71,5 +71,13 @@ void ShadowComponent::Draw(Graphics* g) {
 
 	// 绘制阴影，使用 tint 的 alpha 控制透明度
 	glm::vec4 tint(255.0f, 255.0f, 255.0f, mAlpha * 255.0f);
-	g->DrawTexture(mShadowTexture, drawX, drawY, drawW, drawH, 0.0f, tint);
+	if (g->IsInstancePathEnabled()) {
+		// 影子与 reanim 本体必须留在同一实例队列。否则并行 replay 会把同段所有 batch
+		// 提前到 instance 之前，水路上层植物的影子便会被先前绘制的睡莲本体反盖。
+		g->DrawTextureInstanced(mShadowTexture, drawX, drawY, drawW, drawH, 0.0f, tint);
+	}
+	else {
+		// -NoInstance 继续使用原普通批次路径，保持故障兜底与视觉 A/B 能力。
+		g->DrawTexture(mShadowTexture, drawX, drawY, drawW, drawH, 0.0f, tint);
+	}
 }
