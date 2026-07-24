@@ -97,32 +97,60 @@
     <Image>./resources/image/Shovel.png</Image>
     <Image>./resources/image/APPROACHING.png</Image>
     <Image>./resources/image/FINALWAVE.png</Image>
+
+    <Image>./resources/image/PlantImage/Blover.png</Image>
+    <Image>./resources/image/PlantImage/Cabbagepult.png</Image>
+    <Image>./resources/image/PlantImage/Cactus.png</Image>
+    <Image>./resources/image/PlantImage/Caltrop.png</Image>
+    <Image>./resources/image/PlantImage/Cattail.png</Image>
+    <Image>./resources/image/PlantImage/CherryBomb.png</Image>
+    <Image>./resources/image/PlantImage/Chomper.png</Image>
+    <Image>./resources/image/PlantImage/CobCannon.png</Image>
+    <Image>./resources/image/PlantImage/Coffeebean.png</Image>
+    <Image>./resources/image/PlantImage/Cornpult.png</Image>
+    <Image>./resources/image/PlantImage/DoomShroom.png</Image>
+    <Image>./resources/image/PlantImage/EliteScaredyShroom.png</Image>
+    <Image>./resources/image/PlantImage/FlowerPot.png</Image>
+    <Image>./resources/image/PlantImage/FumeShroom.png</Image>
+    <Image>./resources/image/PlantImage/Garlic.png</Image>
+    <Image>./resources/image/PlantImage/GatlingPea.png</Image>
+    <Image>./resources/image/PlantImage/GloomShroom.png</Image>
+    <Image>./resources/image/PlantImage/GoldMagnet.png</Image>
+    <Image>./resources/image/PlantImage/HypnoShroom.png</Image>
+    <Image>./resources/image/PlantImage/IceFumeShroom.png</Image>
+    <Image>./resources/image/PlantImage/IceShroom.png</Image>
+    <Image>./resources/image/PlantImage/Imitater.png</Image>
+    <Image>./resources/image/PlantImage/Jalapeno.png</Image>
+    <Image>./resources/image/PlantImage/LilyPad.png</Image>
+    <Image>./resources/image/PlantImage/Magnetshroom.png</Image>
+    <Image>./resources/image/PlantImage/Marigold.png</Image>
+    <Image>./resources/image/PlantImage/Melonpult.png</Image>
+    <Image>./resources/image/PlantImage/PeaShooter.png</Image>
+    <Image>./resources/image/PlantImage/Plantern.png</Image>
     <Image>./resources/image/PlantImage/plantshadow.png</Image>
     <Image>./resources/image/PlantImage/plantshadow2.png</Image>
-    <Image>./resources/image/PlantImage/PeaShooter.png</Image>
-    <Image>./resources/image/PlantImage/SunFlower.png</Image>
-    <Image>./resources/image/PlantImage/CherryBomb.png</Image>
-    <Image>./resources/image/PlantImage/WallNut.png</Image>
     <Image>./resources/image/PlantImage/PotatoMine.png</Image>
-    <Image>./resources/image/PlantImage/SnowPeaShooter.png</Image>
-    <Image>./resources/image/PlantImage/Chomper.png</Image>
-    <Image>./resources/image/PlantImage/Repeater.png</Image>
     <Image>./resources/image/PlantImage/PuffShroom.png</Image>
-    <Image>./resources/image/PlantImage/SunShroom.png</Image>
-    <Image>./resources/image/PlantImage/FumeShroom.png</Image>
-    <Image>./resources/image/PlantImage/GraveBuster.png</Image>
-    <Image>./resources/image/PlantImage/HypnoShroom.png</Image>
+    <Image>./resources/image/PlantImage/Pumpkin.png</Image>
+    <Image>./resources/image/PlantImage/Repeater.png</Image>
     <Image>./resources/image/PlantImage/ScaredyShroom.png</Image>
-    <Image>./resources/image/PlantImage/EliteScaredyShroom.png</Image>
-    <Image>./resources/image/PlantImage/IceShroom.png</Image>
-    <Image>./resources/image/PlantImage/IceFumeShroom.png</Image>
-    <Image>./resources/image/PlantImage/DoomShroom.png</Image>
-    <Image>./resources/image/PlantImage/LilyPad.png</Image>
+    <Image>./resources/image/PlantImage/SeaShroom.png</Image>
+    <Image>./resources/image/PlantImage/SnowPeaShooter.png</Image>
+    <Image>./resources/image/PlantImage/SpikeRock.png</Image>
+    <Image>./resources/image/PlantImage/SplitPea.png</Image>
     <Image>./resources/image/PlantImage/Squash.png</Image>
+    <Image>./resources/image/PlantImage/Starfruit.png</Image>
+    <Image>./resources/image/PlantImage/SunFlower.png</Image>
+    <Image>./resources/image/PlantImage/SunShroom.png</Image>
+    <Image>./resources/image/PlantImage/Tallnut.png</Image>
+    <Image>./resources/image/PlantImage/Tanglekelp.png</Image>
     <Image>./resources/image/PlantImage/Threepeater.png</Image>
-    <Image>./resources/image/PlantImage/TangleKelp.png</Image>
-    <Image>./resources/image/PlantImage/Jalapeno.png</Image>
     <Image>./resources/image/PlantImage/TorchWood.png</Image>
+    <Image>./resources/image/PlantImage/TwinSunflower.png</Image>
+    <Image>./resources/image/PlantImage/Umbrellaleaf.png</Image>
+    <Image>./resources/image/PlantImage/WallNut.png</Image>
+    <Image>./resources/image/PlantImage/WinterMelon.png</Image>
+
     <Image>./resources/image/ProjectileCactus.png</Image>
     <Image>./resources/image/ProjectilePea.png</Image>
     <Image>./resources/image/ProjectileSnowPea.png</Image>
@@ -283,6 +311,7 @@
     <Reanimation name="LilyPad">./resources/reanim/LilyPad.reanim</Reanimation>
     <Reanimation name="Squash">./resources/reanim/Squash.reanim</Reanimation>
     <Reanimation name="ThreePeater">./resources/reanim/ThreePeater.reanim</Reanimation>
+    <Reanimation name="Tanglekelp">./resources/reanim/Tanglekelp.reanim</Reanimation>
 
     <Reanimation name="NormalZombie">./resources/reanim/NormalZombie.reanim</Reanimation>
     <Reanimation name="ConeZombie">./resources/reanim/ConeZombie.reanim</Reanimation>
