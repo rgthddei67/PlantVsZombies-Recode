@@ -5,9 +5,9 @@
 #include "../../ParticleSystem/ParticleSystem.h"
 
 namespace {
-	constexpr int kElitePolevaulterHealth = 600;  // 精英撑杆本体基础血量
-	constexpr float kEliteVaultDistance = 300.0f;  // 精英撑杆每次落地的逻辑推进距离，单位 px
-	constexpr float kEliteAnimationSpeedMultiplier = 1.2f;  // 相对普通撑杆的统一动画速度倍率
+	constexpr int kElitePolevaulterHealth = 450;  // 精英撑杆本体基础血量
+	constexpr float kEliteVaultDistance = 250.0f;  // 精英撑杆每次落地的逻辑推进距离，单位 px
+	constexpr float kEliteAnimationSpeedMultiplier = 1.1f;  // 相对普通撑杆的统一动画速度倍率
 }
 
 /**
