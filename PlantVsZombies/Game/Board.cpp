@@ -31,7 +31,7 @@ namespace {
 	constexpr float kZombieSpawnBaseOffsetY = 2.0f;       // 第一、二大关已确认正确的僵尸行中心统一基线（像素）
 	constexpr float kPoolBackgroundZombieSpawnYOffset = 0.0f; // 所有泳池背景、所有行共用的僵尸额外基线，单位：像素
 	constexpr float kThirdAreaZombieAlignmentOffsetY = 10.0f; // 仅第三大关所有行使用的地图对齐基线，单位：像素
-	constexpr float kPoolRowZombieSpawnYOffset = 25.0f;   // 仅水路行僵尸的美术下沉量；碰撞基线不含此值，单位：像素
+	constexpr float kPoolRowZombieSpawnYOffset = 30.0f;   // 仅水路行僵尸的画面下沉量；碰撞基线不含此值，单位：像素
 	constexpr int kPoolFirstRow = 2;                      // 泳池第一条水路的 0-based 行号
 	constexpr int kPoolLastRow = 3;                       // 泳池最后一条水路的 0-based 行号
 	constexpr int kPoolFirstWaterSpawnWave = 5;           // 泳池自然波次从第几波起允许选择水路
