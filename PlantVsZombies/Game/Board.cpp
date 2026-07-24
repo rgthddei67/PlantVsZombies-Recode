@@ -2386,10 +2386,10 @@ inline void Board::UpdatePoolSunFalling(float deltaTime)
 
 	mPoolSunCountDown = POOL_SUN_SPAWN_TIME;
 	const int row = GameRandom::Range(2, 3);
-	const int column = GameRandom::Range(1, mColumns - 2);
+	const int column = GameRandom::Range(0, mColumns - 1);
 	Vector sunPos = GetCellCenterPosition(row, column);
 	sunPos.x += GameRandom::Range(-20.0f, 20.0f);
-	sunPos.y += 30.0f;
+	sunPos.y -= 20.0f;
 	CreateSmallSun(sunPos, true);
 }
 
@@ -3243,7 +3243,7 @@ void Board::RemoveOtherMowersWithoutTrigger(int preservedMowerID)
 float Board::GetZombieCollisionY(int row) const
 {
 	if (row < 0 || row >= mRows) {
-		LOG_ERROR("Board") << "GetZombieCollisionY: 无效的行索引: " << row;
+		LOG_INFO("Board") << "GetZombieCollisionY: 无效的行索引: " << row;
 		return -1.0f;
 	}
 

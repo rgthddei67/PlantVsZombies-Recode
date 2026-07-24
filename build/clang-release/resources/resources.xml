@@ -312,6 +312,7 @@
     <Reanimation name="Squash">./resources/reanim/Squash.reanim</Reanimation>
     <Reanimation name="ThreePeater">./resources/reanim/ThreePeater.reanim</Reanimation>
     <Reanimation name="Tanglekelp">./resources/reanim/Tanglekelp.reanim</Reanimation>
+    <Reanimation name="Jalapeno">./resources/reanim/Jalapeno.reanim</Reanimation>
 
     <Reanimation name="NormalZombie">./resources/reanim/NormalZombie.reanim</Reanimation>
     <Reanimation name="ConeZombie">./resources/reanim/ConeZombie.reanim</Reanimation>
@@ -332,6 +333,8 @@
     <Reanimation name="PoolBucketZombie">./resources/reanim/PoolBucketZombie.reanim</Reanimation>
 
     <Reanimation name="Zombie_Charred">./resources/reanim/Zombie_Charred.reanim</Reanimation>
+
+    <Reanimation name="Fire">./resources/reanim/Fire.reanim</Reanimation>
 
     <Reanimation name="LawnMower">./resources/reanim/LawnMower.reanim</Reanimation>
     <Reanimation name="PoolCleaner">./resources/reanim/PoolCleaner.reanim</Reanimation>

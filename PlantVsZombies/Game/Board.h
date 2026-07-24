@@ -72,7 +72,7 @@ struct RowInfo {
 namespace {
 	constexpr int MAX_SUN = 9990;
 	constexpr float NEXTWAVE_COUNT_MAX = 25.0f;
-	constexpr float SPAWN_SUN_TIME = 14.0f;       // 日间天降普通阳光的生成间隔，单位：游戏秒
+	constexpr float SPAWN_SUN_TIME = 10.0f;       // 日间天降普通阳光的生成间隔，单位：游戏秒
 	constexpr float POOL_SUN_SPAWN_TIME = 13.0f;  // 日间泳池水面小阳光的生成间隔，单位：游戏秒
 	constexpr int MAX_ZOMBIES_PER_WAVE = 250;	// 一波最大僵尸数量
 
