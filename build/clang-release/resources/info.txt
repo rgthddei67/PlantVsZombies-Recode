@@ -82,6 +82,11 @@
 [PLANT_THREEPEATER_DESCRIPTION]
 三线射手可以同时向三条线路发射豌豆。“我擅长团队合作，”三线射手说，“准确地说，我们三个就是一支团队。”
 
+[PLANT_TANGLEKELP]
+缠绕水草
+[PLANT_TANGLEKELP_DESCRIPTION]
+缠绕水草只能种在水中。它会抓住靠近的僵尸，把自己和猎物一同拖入水底。“我不是来交朋友的，”缠绕水草说，“我是来拉人下水的。”
+
 [ZOMBIE_NORMAL]
 僵尸
 [ZOMBIE_NORMAL_DESCRIPTION]

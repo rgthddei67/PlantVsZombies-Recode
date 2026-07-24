@@ -60,7 +60,7 @@ public:
 	virtual bool CanBeEaten() const { return !mIsSquished; }
 	virtual void SaveExtraData(nlohmann::json& j) const {}
 	virtual void LoadExtraData(const nlohmann::json& j) {}
-	void Die();
+	virtual void Die();
 	/**
 	 * 把植物变为原版压扁残影：冻结当前位置和动画、释放占格，并在渐隐后销毁。
 	 * 未来巨人、冰车和投篮车只需在各自命中结算中调用本入口。

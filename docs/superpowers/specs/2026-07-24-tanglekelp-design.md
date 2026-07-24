@@ -1,0 +1,109 @@
+# 缠绕水草（Tangle Kelp）设计 spec
+
+日期：2026-07-24｜状态：按主人要求忠实参考 C# 原版实现
+
+## 目标
+
+实现经典水生植物 `PLANT_TANGLEKELP`：只能直接种在空水格，自动锁定贴近自身且已经入水的第一只有效敌方僵尸，播放缠绕表现并把目标拖入水下，约一秒后与目标一同消失。
+
+行为与数值以 C# 参考实现为准：
+
+- `Plant.cs::UpdateTanglekelp`
+- `Plant.cs::FindTargetZombie`
+- `Zombie.cs::DragUnder` / `IsTangleKelpTarget`
+- `Board.cs::CanPlantAt`
+- `GameConstants.cs` 的 `PlantDefinition(SeedType.Tanglekelp, ..., 25, 3000, ...)`
+
+## 已就位基础设施
+
+- `PlantType::PLANT_TANGLEKELP`
+- `TestDriver.cpp` 植物名称表
+- `ResourceKeys::Textures::IMAGE_TANGLEKELP`
+- 卡片图、`Tanglekelp.reanim` 与全部部件图
+- `resources.xml` 的卡图、reanim、`floop.ogg` 和 `zombiesplash.ogg`
+- `AdventureProgression.h` 的经典植物奖励顺序
+
+仍需补充植物类、动画枚举、reanim 键、工厂注册、运行时数值与图鉴文案。
+
+## 动画与时序
+
+`Tanglekelp.reanim` 基础 12fps：
+
+- `anim_idle`：全局帧 0–21，棋盘待机。
+- `anim_grab`：全局帧 22–26，绑在目标僵尸身上的一次性抓取动画；C# 以 24fps 播放并停在末帧。
+- `anim_idle_aquarium`：全局帧 27–48，仅水族馆待机，本次不使用。
+- `Layer 29` / `Layer 32`：`anim_grab` 的后层与前层水草图。
+
+C# 不使用动画帧事件，而用 100 厘秒倒计时：
+
+| 剩余时间 | 行为 |
+|---:|---|
+| 99cs | 锁定目标、播放 `Floop`、目标处溅水、附加 24fps `anim_grab` |
+| 51cs | 目标停止啃食并开始下沉 |
+| 21cs | 水草格再次溅水并播放入水声 |
+| 0cs | 水草与目标一同消失 |
+
+因此本功能不新增 `AddFrameEvent`，无需主人提供帧号。C++ 用阈值穿越而非浮点相等，保证低帧率和倍速下也不漏掉 51cs/21cs 事件。
+该倒计时属于植物正向行动，复用 `GetWeatherActionDeltaTime()`：雨势只平滑推进水草自身流程，
+不会改变全局时间；51cs 后的僵尸视觉下沉仍按真实游戏时间保持 100px/s。
+
+## 状态与索敌
+
+`TangleKelp : Plant` 只有 `IDLE` / `GRABBING` 两态。
+
+- 待机时仅通过 `EntityManager::ForEachZombieInRow` 检查本行。
+- 攻击矩形为 C# `mX/mY/mWidth/mHeight = 80×80`，换算成本项目格子中心坐标后是 `[-40,+40]×[-50,+30]`。
+- 目标必须仍存活、非濒死、有头、非魅惑、已进入泳池、未被其他水草锁定，且当前特殊阶段允许被水草抓取。
+- 同一帧多个候选按 C# 规则选择最靠左（离房子最近）的有效僵尸。
+- 水草永远不可被僵尸啃食；锁定中的目标不能开始新的啃食。
+
+## 僵尸交互
+
+基础 `Zombie` 增加可持久化的水草关系与下沉表现：
+
+- `mTangleKelpPlantID`：锁定它的水草 ID；用于防止多株水草重复锁定。
+- `mDraggedUnderByTangleKelp`：51cs 后进入下沉阶段。
+- `mTangleKelpSinkOffset`：按 C# `mAltitude--` 等价为每秒向下 100px，叠加到纯视觉位置，不改逻辑行与水平位置。
+- 抓取动画拆成后层/前层两个 Animator；在 `Zombie::Draw` 中分别画在僵尸本体前后，二者共享帧进度并跟随水面裁剪。
+- 下沉入口对当前啃食关系做对称清理，保持植物 `mEaterCount` 正确。
+- 僵尸若提前被其他伤害杀死，附着表现随僵尸销毁；水草下一次更新发现关系失效后立即自行清理。
+- 水草若被外部销毁，覆写 `Die()` 立即直杀已经锁定的目标，再走植物基类清理；直杀忽略头盔/护盾和普通伤害词条，匹配 C# `DieWithLoot()`。
+
+当前已实现特殊阶段矩阵：
+
+| 目标状态 | 结果 |
+|---|---|
+| 普通/路障/铁桶/报纸/铁门/橄榄球/泳圈变体 | 已入水且满足矩形时可抓 |
+| 魅惑、濒死、无头 | 不可抓 |
+| 撑杆跳跃中 | 不可抓；持杆奔跑或落地步行可抓 |
+| 伴舞出土中 | 不可抓；出土完成后可抓 |
+| 已被另一株水草锁定 | 不可重复抓 |
+| 冻结/减速 | 仍可抓；下沉与水草结算计时不会因目标自身停格而中断 |
+
+## 水格与资源注册
+
+- `Board::CanPlantAt` 把水草与睡莲归为“水生直种”：只允许空水格，不能种在陆地，也不能叠在睡莲或其他植物上。
+- 水草占普通层；水格无需睡莲。
+- `gamedata.json`：`cost=25`、`cooldown=30.0`，offset/scale 先按原版水面高度换算，最终以可见截图校正。
+- 水草不绘制陆地阴影。
+- 使用现有 `SquashPoolSplash` 和 `SOUND_ZOMBIESPLASH` 表示两次水花，不新增粒子配方。
+
+## 存读档
+
+- 植物额外保存 `state/grabTimer/targetZombieID`。
+- 僵尸保护数据保存水草植物 ID、是否已下沉、视觉下沉量与抓取动画帧。
+- 读档时植物不提前验证目标 ID；僵尸恢复后重建抓取 Animator。
+- 水草 `PlantUpdate` 验证双方关系；损坏档若只有单侧目标 ID，会安全清理水草，避免留下永久锁定。
+
+## AutoTest
+
+新增 `smoke_tanglekelp.json`，每个场景只种一棵水草：
+
+1. 泳池关断言陆地禁种、空水格可种、有睡莲水格不可种。
+2. 断言水草直接占水格普通层且不可被啃。
+3. 近身水中僵尸触发抓取，断言植物 `GRABBING`、双方目标 ID 对齐、僵尸带抓取动画。
+4. 经过 51cs 后断言僵尸进入下沉、视觉下沉量增加且不再啃食。
+5. 经过完整 99cs 后断言水草与目标都消失。
+6. 额外覆盖魅惑目标不触发，以及水草被外部伤害摧毁时目标立即死亡。
+7. 大雨下验证植物行动倍率缩短流程，而冻结目标仍能按节点被拖沉。
+8. 可见截图检查待机站位、前后层缠绕、下沉水线与最终水花；同时检查退出码、`run.log`、状态 JSON 和断言。

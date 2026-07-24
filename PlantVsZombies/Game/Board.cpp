@@ -2211,7 +2211,9 @@ bool Board::CanPlantAt(PlantType type, int row, int col)
 	if (!cell || HasCraterAt(row, col)) return false;
 
 	const bool isWater = IsPoolSquare(row, col);
-	if (type == PlantType::PLANT_LILYPAD) {
+	if (type == PlantType::PLANT_LILYPAD
+		|| type == PlantType::PLANT_TANGLEKELP) {
+		// 水草与睡莲都是直接落水的植物；水草占普通层，因此空格判断也同时禁止叠在睡莲上。
 		return isWater && cell->IsEmpty();
 	}
 	if (isWater) {

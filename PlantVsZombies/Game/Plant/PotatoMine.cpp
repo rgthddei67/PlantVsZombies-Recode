@@ -30,7 +30,8 @@ void PotatoMine::SetupPlant()
 		{
 			if (auto zombie = dynamic_cast<Zombie*>(gameObject))
 			{
-				if (!this->mIsBoom && !zombie->IsMindControlled() && zombie->HasHead()) {
+				if (!this->mIsBoom && !zombie->IsMindControlled() && zombie->HasHead()
+					&& !zombie->IsTangleKelpTarget()) {
 					Detonate();
 				}
 			}

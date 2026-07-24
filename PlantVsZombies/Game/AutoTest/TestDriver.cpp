@@ -17,6 +17,7 @@
 #include "../Plant/LilyPad.h"
 #include "../Plant/Squash.h"
 #include "../Plant/ThreePeater.h"
+#include "../Plant/TangleKelp.h"
 #include "../Plant/Shooter.h"
 #include "../Plant/EliteScaredyShroom.h"
 #include "../Bullet/Bullet.h"
@@ -1226,6 +1227,13 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				? static_cast<int>(std::lround(anim->GetExtraSpeedMultiplier() * 100.0f)) : 0 },
 			{ "effectiveAnimSpeed", anim ? anim->EffectiveSpeed() : 0.0f },
 			{ "freeHitsRemaining", z->mFreeHitsRemaining },
+			{ "tangleKelpTarget", z->IsTangleKelpTarget() },
+			{ "tangleKelpPlantID", z->GetTangleKelpPlantID() },
+			{ "draggedUnderByTangleKelp", z->IsDraggedUnderByTangleKelp() },
+			{ "tangleKelpSinkOffsetOn1000", static_cast<int>(std::lround(
+				z->GetTangleKelpSinkOffset() * 1000.0f)) },
+			{ "tangleKelpGrabFrameOn1000", static_cast<int>(std::lround(
+				z->GetTangleKelpGrabFrame() * 1000.0f)) },
 			// 铁门僵尸常规手臂（藏门后/啃食露出）当前可见性——手臂显隐类 bug 的断言抓手；
 			// 无此轨道的僵尸 GetTrackVisible 安全返回 false。
 			{ "armVisible", anim && anim->GetTrackVisible("Zombie_outerarm_hand") },
@@ -1317,6 +1325,12 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			plantState["squashState"] = squash->GetSquashStateName();
 			plantState["squashTargetZombieID"] = squash->GetTargetZombieID();
 			plantState["squashDamageApplied"] = squash->HasAppliedDamage();
+		}
+		if (auto* tangleKelp = dynamic_cast<TangleKelp*>(p)) {
+			plantState["tangleKelpState"] = tangleKelp->GetTangleKelpStateName();
+			plantState["tangleKelpTargetZombieID"] = tangleKelp->GetTargetZombieID();
+			plantState["tangleKelpGrabRemainingMs"] =
+				tangleKelp->GetGrabTimeRemainingMs();
 		}
 		if (auto* threePeater = dynamic_cast<ThreePeater*>(p)) {
 			if (const Animator* head1 = threePeater->GetHeadAnimator()) {

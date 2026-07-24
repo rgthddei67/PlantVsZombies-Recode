@@ -67,6 +67,11 @@ protected:
 	float mSpeed = 10.0f;
 	int mGroundTrackIndex = -1;
 	ShadowComponent* mPoolShadow = nullptr;	// Start 创建的非所有权阴影缓存，入水时统一隐藏
+	int mTangleKelpPlantID = NULL_PLANT_ID;	// 正在抓住本僵尸的水草 ID；保证一只僵尸只能被一株水草锁定
+	bool mDraggedUnderByTangleKelp = false;	// 51cs 节点后置位，停止啃食并开始下沉
+	float mTangleKelpSinkOffset = 0.0f;		// 拖沉阶段叠加到视觉 Y 的位移，单位：像素
+	std::shared_ptr<Animator> mTangleKelpGrabBack;	// anim_grab 后层，绘制在僵尸本体之后
+	std::shared_ptr<Animator> mTangleKelpGrabFront;	// anim_grab 前层，绘制在僵尸本体之前
 
 private:
 	float mCheckPositionTimer = 0.0f;
@@ -145,6 +150,20 @@ public:
 	float GetCooldownTimer() const { return this->mCooldownTimer; }
 	bool IsFrozen() const { return this->mFrozenTimer > 0.0f; }
 	float GetFrozenTimer() const { return this->mFrozenTimer; }
+	/** 当前状态是否满足原版水草的近身锁定条件。 */
+	bool CanBeTargetedByTangleKelp() const;
+	/** 品种特殊阶段过滤点；撑杆跳跃和伴舞出土等状态可覆写。 */
+	virtual bool CanBeGrabbedByTangleKelp() const { return true; }
+	/** 原子建立一对一抓取关系并创建包裹僵尸的前后层 anim_grab。 */
+	bool StartTangleKelpGrab(int plantID);
+	/** 到达 51cs 节点后停止当前啃食，并让僵尸按原版速率沉入水下。 */
+	void DragUnderByTangleKelp(int plantID);
+	bool IsTangleKelpTarget() const { return mTangleKelpPlantID != NULL_PLANT_ID; }
+	bool IsTangleKelpTargetOf(int plantID) const { return mTangleKelpPlantID == plantID; }
+	int GetTangleKelpPlantID() const { return mTangleKelpPlantID; }
+	bool IsDraggedUnderByTangleKelp() const { return mDraggedUnderByTangleKelp; }
+	float GetTangleKelpSinkOffset() const { return mTangleKelpSinkOffset; }
+	float GetTangleKelpGrabFrame() const;
 
 	// 冻结唯一入口（寒冰菇）：先上 20s 减速尾巴（SetCooldown，其持盾守卫保留——持盾照冻不吃减速），
 	// 再完全定身（首冻 4~6s / 已减速或已冻再冻 3~4s，原版 HitIceTrap 语义）。伤害由调用方另行结算。
@@ -222,6 +241,10 @@ protected:
 	bool IsPlantValidEatTarget(Plant* plant) const;
 	/** 把同格啃食目标迁移到新出现的上层植物，并保持双方 mEaterCount 平衡。 */
 	bool RetargetPlantIfHigherPriority(Plant* plant);
+	/** 创建两份水草抓取动画，并分别隐藏前层或后层，以便包裹僵尸本体。 */
+	void CreateTangleKelpGrabAnimators(float savedFrame = 22.0f);
+	/** 清理失效的一对一关系与附着视觉；正常结束由水草先杀死僵尸，不走此恢复路径。 */
+	void ClearOrphanedTangleKelpGrab();
 
 	// 模板方法（非虚，勿覆写）：啃完回走路 = 先收尾、再走路。执行顺序由基类锁死。
 	void ResumeWalkAfterEat(float blendTime) { OnStopEating(); PlayWalkAnimation(blendTime); }

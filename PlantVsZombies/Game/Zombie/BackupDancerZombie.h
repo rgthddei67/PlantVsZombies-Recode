@@ -24,6 +24,10 @@ public:
 	bool CanBeChilled() const override {
 		return mPhase != BackupPhase::RISING && Zombie::CanBeChilled();
 	}
+	// 出土中的伴舞尚不在地表命中层；升起后可按普通泳池僵尸被水草拖走。
+	bool CanBeGrabbedByTangleKelp() const override {
+		return mPhase != BackupPhase::RISING;
+	}
 	void HeadDrop() override;
 	void ArmDrop() override;
 	void ZombieItemUpdate() const override;

@@ -19,6 +19,12 @@ namespace {
 	constexpr float kPoolTransitionRightShiftX = 70.0f;    // 适配当前泳池图，把进出水边界向右校正的像素数
 	constexpr float kPoolTransitionBlend = 0.2f;           // 进出水后恢复稳态走路轨道的混合秒数
 	constexpr float kPoolClipBottomOffsetY = 0.0f;         // 水面裁剪底边相对行逻辑 Y 的偏移，单位：像素
+	constexpr float kTangleKelpSinkSpeed = 100.0f;         // 原版拖沉速度，单位：像素/秒
+	constexpr float kTangleKelpGrabOffsetX = -13.0f;       // 原版通用僵尸 anim_grab 附着点水平偏移，单位：像素
+	constexpr float kTangleKelpGrabOffsetY = 15.0f;        // 原版通用僵尸 anim_grab 附着点垂直偏移，单位：像素
+	constexpr float kTangleKelpGrabSpeed = 2.0f;           // 资源 12fps 播放为原版 24fps 的速度倍率
+	constexpr float kTangleKelpGrabStartFrame = 22.0f;     // anim_grab 轨道在 Tanglekelp.reanim 中的首帧
+	constexpr float kTangleKelpGrabEndFrame = 26.0f;       // anim_grab 轨道末帧；读档帧钳位避免损坏值越界
 }
 
 Zombie::Zombie(Board* board, ZombieType zombieType, float x, float y, int row,
@@ -132,6 +138,10 @@ void Zombie::SaveProtectedData(nlohmann::json& j) const {
 	j["cooldownTimer"] = mCooldownTimer;
 	j["frozenTimer"] = mFrozenTimer;
 	j["dyingTimer"] = mDyingTimer;
+	j["tangleKelpPlantID"] = mTangleKelpPlantID;
+	j["draggedUnderByTangleKelp"] = mDraggedUnderByTangleKelp;
+	j["tangleKelpSinkOffset"] = mTangleKelpSinkOffset;
+	j["tangleKelpGrabFrame"] = GetTangleKelpGrabFrame();
 }
 
 void Zombie::LoadProtectedData(const nlohmann::json& j) {
@@ -176,6 +186,13 @@ void Zombie::LoadProtectedData(const nlohmann::json& j) {
 	}
 
 	mDyingTimer = j.value("dyingTimer", 0.0f);
+	mTangleKelpPlantID = j.value("tangleKelpPlantID", NULL_PLANT_ID);
+	mDraggedUnderByTangleKelp = j.value("draggedUnderByTangleKelp", false);
+	mTangleKelpSinkOffset = std::max(0.0f, j.value("tangleKelpSinkOffset", 0.0f));
+	if (mTangleKelpPlantID != NULL_PLANT_ID) {
+		CreateTangleKelpGrabAnimators(
+			j.value("tangleKelpGrabFrame", kTangleKelpGrabStartFrame));
+	}
 	if (mDyingTimer >= 10.0f) {
 		this->Die();
 	}
@@ -278,11 +295,21 @@ void Zombie::WinGame() const
 void Zombie::Update()
 {
 	AnimatedObject::Update();
+	if (mTangleKelpGrabBack) mTangleKelpGrabBack->Update();
+	if (mTangleKelpGrabFront) mTangleKelpGrabFront->Update();
 	if (!mIsPreview) {
 		float deltaTime = DeltaTime::GetDeltaTime();
 		auto* transform = this->GetTransformComponent();
 
 		if (!transform || !mBoard) return;
+
+		if (mTangleKelpPlantID != NULL_PLANT_ID
+			&& !mBoard->mEntityManager.GetPlant(mTangleKelpPlantID)) {
+			ClearOrphanedTangleKelpGrab();
+		}
+		if (mDraggedUnderByTangleKelp) {
+			mTangleKelpSinkOffset += kTangleKelpSinkSpeed * deltaTime;
+		}
 
 		if (mIsDying)
 		{
@@ -786,7 +813,85 @@ void Zombie::Die()
 }
 
 Vector Zombie::GetVisualPosition() const {
-	return GetTransformComponent()->GetPosition() + mVisualOffset;
+	return GetTransformComponent()->GetPosition()
+		+ mVisualOffset + Vector(0.0f, mTangleKelpSinkOffset);
+}
+
+bool Zombie::CanBeTargetedByTangleKelp() const
+{
+	return !mIsPreview && !mIsDead && !mIsDying && !mIsMindControlled
+		&& mHasHead && mInPool && mTangleKelpPlantID == NULL_PLANT_ID
+		&& mCollider && mCollider->mEnabled && CanBeGrabbedByTangleKelp();
+}
+
+bool Zombie::StartTangleKelpGrab(int plantID)
+{
+	if (plantID == NULL_PLANT_ID) return false;
+	if (mTangleKelpPlantID == plantID) {
+		if (!mTangleKelpGrabBack || !mTangleKelpGrabFront) {
+			CreateTangleKelpGrabAnimators();
+		}
+		return true;
+	}
+	if (!CanBeTargetedByTangleKelp()) return false;
+
+	mTangleKelpPlantID = plantID;
+	mDraggedUnderByTangleKelp = false;
+	mTangleKelpSinkOffset = 0.0f;
+	CreateTangleKelpGrabAnimators();
+	return true;
+}
+
+void Zombie::DragUnderByTangleKelp(int plantID)
+{
+	if (mTangleKelpPlantID != plantID || mDraggedUnderByTangleKelp) return;
+	mDraggedUnderByTangleKelp = true;
+
+	if (mIsEating) {
+		if (mEatPlantID != NULL_PLANT_ID && mBoard) {
+			if (Plant* plant = mBoard->mEntityManager.GetPlant(mEatPlantID);
+			plant && plant->mEaterCount > 0) {
+				--plant->mEaterCount;
+			}
+		}
+		mIsEating = false;
+		mEatPlantID = NULL_PLANT_ID;
+		mEatZombieID = NULL_ZOMBIE_ID;
+		ResumeWalkAfterEat(0.2f);
+	}
+}
+
+void Zombie::CreateTangleKelpGrabAnimators(float savedFrame)
+{
+	auto reanim = ResourceManager::GetInstance().GetReanimation(
+		ResourceKeys::Reanimations::REANIM_TANGLEKELP);
+	if (!reanim) return;
+
+	mTangleKelpGrabBack = std::make_shared<Animator>(reanim);
+	mTangleKelpGrabFront = std::make_shared<Animator>(reanim);
+	for (const auto& animator : { mTangleKelpGrabBack, mTangleKelpGrabFront }) {
+		animator->PlayTrackOnce("anim_grab", "", kTangleKelpGrabSpeed);
+		animator->SetCurrentFrame(std::clamp(
+			savedFrame, kTangleKelpGrabStartFrame, kTangleKelpGrabEndFrame));
+	}
+	mTangleKelpGrabBack->SetTrackVisible("Layer 32", false);
+	mTangleKelpGrabFront->SetTrackVisible("Layer 29", false);
+}
+
+void Zombie::ClearOrphanedTangleKelpGrab()
+{
+	mTangleKelpPlantID = NULL_PLANT_ID;
+	mDraggedUnderByTangleKelp = false;
+	mTangleKelpSinkOffset = 0.0f;
+	mTangleKelpGrabBack.reset();
+	mTangleKelpGrabFront.reset();
+}
+
+float Zombie::GetTangleKelpGrabFrame() const
+{
+	return mTangleKelpGrabFront
+		? mTangleKelpGrabFront->GetCurrentFrame()
+		: kTangleKelpGrabStartFrame;
 }
 
 void Zombie::EatTarget()
@@ -857,7 +962,8 @@ void Zombie::EatTarget()
 void Zombie::StartEat(ColliderComponent* other)
 {
 	// 冻结中不进入啃食态（碰撞 onTriggerStay 每帧重试，解冻后自然补上）
-	if (mIsPreview || mIsDying || mFrozenTimer > 0.0f)	return;
+	if (mIsPreview || mIsDying || mFrozenTimer > 0.0f
+		|| mTangleKelpPlantID != NULL_PLANT_ID) return;
 	const bool wasEating = mIsEating;   // 仅"本次真开吃"（false→true）触发 OnStartEating，避免每帧 onTriggerStay 重复触发
 	auto* gameObject = other->GetGameObject();
 	if (gameObject->GetObjectType() == ObjectType::OBJECT_ZOMBIE)
@@ -998,7 +1104,18 @@ void Zombie::Draw(Graphics* g)
 		g->PushClipBottom(static_cast<float>(clipBottom));
 	}
 
-	AnimatedObject::Draw(g);	// 先画本体动画
+	const Vector grabPosition = GetVisualPosition()
+		+ Vector(kTangleKelpGrabOffsetX, kTangleKelpGrabOffsetY);
+	const float scale = GetTransformComponent()
+		? GetTransformComponent()->GetScale()
+		: 1.0f;
+	if (mTangleKelpGrabBack) {
+		mTangleKelpGrabBack->Draw(g, grabPosition.x, grabPosition.y, scale);
+	}
+	AnimatedObject::Draw(g);	// 水草后层之后画僵尸本体
+	if (mTangleKelpGrabFront) {
+		mTangleKelpGrabFront->Draw(g, grabPosition.x, grabPosition.y, scale);
+	}
 
 	// 冻结冰晶（icetrap.png）：画在本体之后=前景，垫在僵尸脚底
 	// （原版分前后两张 ICETRAP/ICETRAP2，本项目单图取前层简化）
