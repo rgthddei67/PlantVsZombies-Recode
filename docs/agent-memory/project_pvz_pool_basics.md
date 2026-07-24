@@ -1,6 +1,6 @@
 ---
 name: project_pvz_pool_basics
-description: 2026-07-23 第三大关泳池基础；当前只实现 3-1/3-2，含六行、睡莲双层占格、地形僵尸替换、PoolCleaner 和旧档边界
+description: 2026-07-24 第三大关泳池基础与 3-1 至 3-4 出怪；含六行、睡莲双层占格、地形僵尸替换、PoolCleaner 和旧档边界
 metadata:
   node_type: memory
   type: project
@@ -8,9 +8,11 @@ metadata:
 
 # 第三大关泳池基础系统
 
-## 当前范围（2026-07-23）
+## 当前范围（2026-07-24）
 
-只开放冒险 3-1（level 19）和 3-2（level 20）的基础系统与出怪表。3-3 才引入的新僵尸、3-3～3-9 出怪表、其他泳池植物均未实现，后续必须逐关推进，不得将本基础当作整个第三大关已完成。
+已开放冒险 3-1（level 19）至 3-4（level 22）的基础系统与出怪表。3-3 引入绿色精英撑杆，
+3-4 加入普通撑杆、铁桶、粉色橄榄球与精英撑杆组合压力；3-5～3-9 出怪表和其他泳池植物仍未实现，
+后续必须逐关推进，不得将本基础当作整个第三大关已完成。
 
 资源由主人提供：泳池地图、睡莲/三种水路僵尸动画、`PoolCleaner` 已在 `resources.xml` 注册。2026-07-23 后续任务又从 `D:\PVZ\原！版！Test\images` 导入原版水面底图、AlphaGrid 阴影蒙版和焦散源图，增加动态水面；仍未新增通用入水水花或额外泳池粒子，PoolCleaner reanim 自带轨道不在此限制内。
 
@@ -29,7 +31,11 @@ metadata:
 - 台风对同格睡莲+上层植物必须整叠搬运/丢失，不允许拆叠。
 - `PoolCleaner` 使用 `LAND/ENTERING/IN_POOL/EXITING` 高度状态；只改绘制偏移，不改行与碰撞。水中稳态相对原 28px 下沉位置向上校正 13px，入水/出水阶段按当前浸入比例渐进叠加该校正以避免跳变，原始深度仍照常存档。陆地/水中吞噬分别用 `anim_landsuck/anim_suck`，稳态用 `anim_land/anim_water`，运动速度按 C# 水车:草车 `2.5:3.33` 换算。
 - level 19～27 存档写入 `poolGridVersion=2`。缺字段、旧五行/单植物槽或旧版上移 40px 坐标存档均保留文件但拒绝读取，让关卡按当前坐标重新开始。
-- 3-1 为 10 波 `{normal, cone}`；3-2 为 15 波 `{normal, cone, bucket}`。水路替换在选行后发生，成本/权重仍使用出怪表中的基础类型。
+- 3-1 为 10 波 `{normal, cone}`；3-2 为 15 波 `{normal, cone, bucket}`；3-3 为 15 波
+  `{normal, cone, elite polevaulter}`；3-4 为 20 波
+  `{normal, cone, polevaulter, bucket, pink football, elite polevaulter}`。水路替换在选行后发生，
+  成本/权重仍使用出怪表中的基础类型。精英撑杆详细契约见
+  [project_pvz_elite_polevaulter_zombie](project_pvz_elite_polevaulter_zombie.md)。
 - 所有泳池背景的自然波次选行在第 1～4 波只允许陆地行，第 5 波起才开放水路。该门槛只属于自然波次选行；AutoTest/开发者显式指定行的造怪仍按静态地形兼容性执行，便于独立验证水路表现。
 
 ## 验证
@@ -39,3 +45,7 @@ metadata:
 `smoke_pool_effect.json` 固定白天战斗视角截取相隔 45 帧的水面，并补验夜间泳池资源分支、动画计数与 `graphics.lastFrameScissorChanges=0`。2026-07-23 `clang-playtest` 可见运行 exit 0；白天内框 ROI 有 `107434/108724` 像素变化，上方草坪对照 ROI 为 0，证明动画只作用于水面。随后 `smoke_pool_zombie_visuals.json` 可见回归 exit 0，实体层序、水线裁剪与跨关卡坐标断言全部保持通过。
 
 `smoke_pool_visual_fixes.json` 用真实卡片点击与 `move_mouse` 悬停覆盖睡莲上方预览层级，并在 3-1/3-2 各连续推进前四波断言 `earlyWavePoolZombieCount=0`。本次实现已通过 `clang-playtest` 编译；专项脚本首次可见运行在旧卡片边界坐标处未拿起卡片，修正坐标后主人明确取消后续 AutoTest，因此不记录运行通过结论。
+
+`smoke_pool_spawnlists_3_1_to_3_4.json` 逐关锁定 3-1～3-4 的背景、波数和完整出怪数组，
+并对 3-3/3-4 选卡预览留图。2026-07-24 `clang-playtest` 可见运行退出码 0；3-4 状态明确包含
+`ZOMBIE_PINK_FOOTBALL` 与 `ZOMBIE_ELITE_POLEVAULTER`，日志 `script finished OK`。

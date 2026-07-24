@@ -19,9 +19,12 @@ public:
 
 	void StartEat(ColliderComponent* other) override;
 
+	/** @brief 开始撑杆跳跃并暂时关闭碰撞与阴影。 */
 	void StartJump();
+	/** @brief 按品种跳距完成落地，恢复走路状态并调用落地扩展钩子。 */
 	void EndJump();
 	void JumpMove(float distance);  // 跳跃期间手动移动，传入本次移动距离
+	float GetLastVaultDistance() const { return mLastVaultDistance; }
 
 	void HeadDrop() override;
 	void ArmDrop() override;
@@ -41,6 +44,14 @@ protected:
 
 	// Polevaulter.reanim 无 anim_walk2，走路统一 anim_walk（落地/读档/回走路全经此）。
 	void PlayWalkAnimation(float blendTime) override;
+
+	/** @brief 返回本品种一次落地应推进的逻辑距离，单位为像素。 */
+	virtual float GetVaultDistance() const;
+	/** @brief 落地位移与基础状态恢复完成后的派生行为入口。 */
+	virtual void OnVaultLanded() {}
+
+private:
+	float mLastVaultDistance = 0.0f;  // 最近一次实际落地位移；仅供稳定测试取证
 };
 
 #endif

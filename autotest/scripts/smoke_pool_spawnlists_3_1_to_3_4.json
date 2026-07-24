@@ -1,0 +1,46 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 19 },
+    { "op": "wait_state", "state": "CHOOSE_CARD", "timeout": 10 },
+    { "op": "assert_state", "path": "level", "equals": 19 },
+    { "op": "assert_state", "path": "background", "equals": "WATER_POOL" },
+    { "op": "assert_state", "path": "maxWave", "equals": 10 },
+    { "op": "assert_state", "path": "spawnTypeCount", "equals": 2 },
+    { "op": "assert_state", "path": "spawnList", "equals": ["ZOMBIE_NORMAL", "ZOMBIE_TRAFFIC_CONE"] },
+    { "op": "dump_state", "name": "pool_spawn_3_1.json" },
+
+    { "op": "goto_level", "level": 20 },
+    { "op": "wait_state", "state": "CHOOSE_CARD", "timeout": 10 },
+    { "op": "assert_state", "path": "level", "equals": 20 },
+    { "op": "assert_state", "path": "background", "equals": "WATER_POOL" },
+    { "op": "assert_state", "path": "maxWave", "equals": 15 },
+    { "op": "assert_state", "path": "spawnTypeCount", "equals": 3 },
+    { "op": "assert_state", "path": "spawnList", "equals": ["ZOMBIE_NORMAL", "ZOMBIE_TRAFFIC_CONE", "ZOMBIE_BUCKET"] },
+    { "op": "dump_state", "name": "pool_spawn_3_2.json" },
+
+    { "op": "goto_level", "level": 21 },
+    { "op": "wait_state", "state": "CHOOSE_CARD", "timeout": 10 },
+    { "op": "assert_state", "path": "level", "equals": 21 },
+    { "op": "assert_state", "path": "background", "equals": "WATER_POOL" },
+    { "op": "assert_state", "path": "maxWave", "equals": 15 },
+    { "op": "assert_state", "path": "spawnTypeCount", "equals": 3 },
+    { "op": "assert_state", "path": "spawnList", "equals": ["ZOMBIE_NORMAL", "ZOMBIE_TRAFFIC_CONE", "ZOMBIE_ELITE_POLEVAULTER"] },
+    { "op": "wait_seconds", "value": 4.2, "timeout": 10 },
+    { "op": "assert_state", "path": "chooseCardReady", "equals": true },
+    { "op": "screenshot", "name": "pool_spawn_3_3_elite_polevaulter.png" },
+    { "op": "dump_state", "name": "pool_spawn_3_3.json" },
+
+    { "op": "goto_level", "level": 22 },
+    { "op": "wait_state", "state": "CHOOSE_CARD", "timeout": 10 },
+    { "op": "assert_state", "path": "level", "equals": 22 },
+    { "op": "assert_state", "path": "background", "equals": "WATER_POOL" },
+    { "op": "assert_state", "path": "maxWave", "equals": 20 },
+    { "op": "assert_state", "path": "spawnTypeCount", "equals": 6 },
+    { "op": "assert_state", "path": "spawnList", "equals": ["ZOMBIE_NORMAL", "ZOMBIE_TRAFFIC_CONE", "ZOMBIE_POLEVAULTER", "ZOMBIE_BUCKET", "ZOMBIE_PINK_FOOTBALL", "ZOMBIE_ELITE_POLEVAULTER"] },
+    { "op": "wait_seconds", "value": 4.2, "timeout": 10 },
+    { "op": "assert_state", "path": "chooseCardReady", "equals": true },
+    { "op": "screenshot", "name": "pool_spawn_3_4_pressure.png" },
+    { "op": "dump_state", "name": "pool_spawn_3_4.json" },
+    { "op": "quit" }
+  ]
+}

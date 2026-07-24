@@ -50,6 +50,7 @@ enum class AnimationType
 	ANIM_ELITE_SCAREDYSHROOM, // 复用 ScaredyShroom reanim；追加在末尾避免旧动画枚举值错位
 	ANIM_SQUASH, // 经典倭瓜；追加在末尾避免旧动画枚举值错位
 	ANIM_THREEPEATER, // 经典三线射手；追加在末尾避免旧动画枚举值错位
+	ANIM_ELITE_POLEVAULTER_ZOMBIE, // 绿色精英撑杆；追加在末尾避免旧动画枚举值错位
 };
 
 #endif

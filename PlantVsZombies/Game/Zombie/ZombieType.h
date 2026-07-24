@@ -47,13 +47,13 @@ enum class ZombieType {
 	ZOMBIE_POOL_NORMAL,
 	ZOMBIE_POOL_CONE,
 	ZOMBIE_POOL_BUCKET,
+	ZOMBIE_ELITE_POLEVAULTER,
 
 	// ↓ 哨兵：置于全部已实现僵尸之后，使 [0,NUM_ZOMBIE_TYPES) 只覆盖已实现类型，
 	//   生存模式随机抽取据此绝不会抽到下方未实现僵尸。
 	//   注：Board::LoadSpawnListFromJson 亦以此为上界校验 JSON 僵尸ID，效果一致。
 	NUM_ZOMBIE_TYPES,
 
-	ZOMBIE_SNORKEL,
 	ZOMBIE_ZAMBONI,		// 冰车
 	ZOMBIE_BOBSLED,		// 小队
 	ZOMBIE_DOLPHIN_RIDER,

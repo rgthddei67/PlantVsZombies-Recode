@@ -5,10 +5,11 @@
 - [三线射手](project_pvz_threepeater.md) — 2026-07-23 三头视觉帧29/73/111，但按 C# 集中计数器只在帧73同帧创建三弹，修复上路晚0.15秒的假慢；逐头补 `inverse(basePose)`，中头锚点(35.4,35.0)；顶/底越界弹折回本行且360/290px/s差速；同步版playtest编译通过，最终相对X跨度断言按主人要求未重跑
 - [植物压扁与复合 Animator 世界缩放](project_pvz_plant_squish.md) — 2026-07-23 `Plant::Squish()` 统一冻结位置/动画、释放占格、纵向 0.5 底边锚定、5 秒残影与末 1 秒渐隐；默认绘制已递归实例化根与任意深度附件，`SetRenderScale` 同时覆盖 `InstanceRecord` 与 `-NoInstance` 矩阵兜底；可见 `smoke_plant_squish` 验证根/子停帧、缩放、渐隐和销毁，三类僵尸调用方未实现
 - [Windows 中央存档目录与旧档安全迁移](project_pvz_save_location_migration.md) — 2026-07-21 Windows 正式存档改到 `FOLDERID_SavedGames/PlantsVsZombies/saves`；首次访问旧 `./saves` 时复制、逐字节校验、再删源文件，冲突不覆盖、失败逐文件回退；AutoTest/`-AutoTestLoadSave` 继续隔离在构建目录
-- [第三大关泳池基础系统](project_pvz_pool_basics.md) — 2026-07-23 当前范围仅 3-1/3-2：`WATER_POOL` 六行网格、原版 15×5 三层 GPU 动态水面、睡莲双层占格/上层啃食迁移/悬停预览置顶、前 4 波仅陆路、`Zombie` 通用入水/阴影/shader 水线裁剪、普通/路障/铁桶水路版本、水中爆炸无烧焦残影、PoolCleaner 与旧档边界；3-3 新僵尸和后续出怪表未实现
+- [第三大关泳池基础系统](project_pvz_pool_basics.md) — 2026-07-24 当前范围 3-1～3-4：`WATER_POOL` 六行网格、原版 15×5 三层 GPU 动态水面、睡莲双层占格/上层啃食迁移/悬停预览置顶、前 4 波仅陆路、`Zombie` 通用入水/阴影/shader 水线裁剪、普通/路障/铁桶水路版本、水中爆炸无烧焦残影、PoolCleaner 与旧档边界；3-3 引入精英撑杆，3-4 加入普通撑杆/铁桶/粉色橄榄球/精英撑杆
 - [通用 shader ClipRect](project_pvz_shader_clip_rect.md) — 2026-07-23 `PushClipRect/PopClipRect` 全部改为逐顶点/逐实例 framebuffer 矩形裁剪；不再 flush、切 draw、录 worker 状态命令或动态改 scissor；覆盖水路、伴舞出土、图鉴格窗、粒子阻断，含延迟文字继承与无裁剪片元快路径
 - [冒险第二大关起雨势天气](project_pvz_night_rain_weather.md) — 2026-07-23 天气从冒险 2-1 起按 `Board::SupportsWeather` 启用，包括日间泳池；大雨前 5 秒按待生效台风等级显示四档古风文字警报，每档 3 句随机且与图片提示并存，待生效初态/文案编号随档保存；后期导演满压力天气权重 0/10/25/65、台风权重 15/45/40
 - [精英舞王僵尸](project_pvz_elite_dancer_zombie.md) — 2026-07-22 当前为黑夜大雨任意台风 60% 变异、每波最多 3 只；超额成功变异候选源头跳过、不回退普通舞王，未命中变异仍正常刷新；720 HP、基础1.25、每0.2秒补伴舞至36只，强/超强台风再乘1.45/1.75；专项可见 AutoTest 通过
+- [绿色精英撑杆僵尸](project_pvz_elite_polevaulter_zombie.md) — 2026-07-24 红蓝运动服统一换绿、600 HP、动画能力层 1.2、300px 双倍跳距，落地同排同 X 生成普通撑杆；3-3 独立教学，3-4 与普通撑杆/铁桶/粉色橄榄球组成压力池；专项、关卡池与普通撑杆回归可见 AutoTest 均退出码 0
 - [黑夜第二大关出怪节奏](project_pvz_night_spawnlist_pacing.md) — 2026-07-22 冒险 2-1～2-9 单主题节奏：2-6 普通橄榄球、2-7 舞王、2-8 普通铁门+加固铁门（玩家已取得毁灭菇）、2-9 八种重点机制综合并必含加固铁门；双 preset 统一，`smoke_night_spawnlists` 逐关断言并截图
 - [倭瓜](project_pvz_squash.md) — 2026-07-23 3-1 奖励植物：C# 0.8观察→0.3预备→0.5上升→0.1下砸；本体耐久≤1800直接Die，更高则穿透二类护盾造成1800；草地尘土停留1秒、水路溅水即消失；仅需5条轨道且无帧事件；双Clang预设已过，最终AutoTest按主人要求未重跑
 - [精英胆小菇](project_pvz_elite_scaredyshroom.md) — 2026-07-23 冒险 2-8 紫色奖励植物：500生命、10伤起步，每5发间隔乘0.85、每10发伤害+1，最终15伤/0.2秒；受惊全清，白天每发只长0.6；每关累计最多种3株且损失不返还，高速吐弹用pending防重播吞弹

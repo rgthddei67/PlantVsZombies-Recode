@@ -50,6 +50,7 @@
 #include "../Zombie/PoolNormalZombie.h"
 #include "../Zombie/PoolConeZombie.h"
 #include "../Zombie/PoolBucketZombie.h"
+#include "../Zombie/ElitePolevaulterZombie.h"
 
 namespace {
 	template<typename T>
@@ -281,6 +282,12 @@ void GameDataManager::InitializeHardcodedData() {
 	RegisterZombie(ZombieType::ZOMBIE_POOL_BUCKET, "ZOMBIE_POOL_BUCKET",
 		AnimationType::ANIM_POOL_BUCKET_ZOMBIE,
 		ResourceKeys::Reanimations::REANIM_POOL_BUCKET_ZOMBIE, &MakeZombie<PoolBucketZombie>);
+
+	// 精英撑杆：复用普通撑杆时间线，独立 reanim 只替换红蓝运动服材质。
+	RegisterZombie(ZombieType::ZOMBIE_ELITE_POLEVAULTER, "ZOMBIE_ELITE_POLEVAULTER",
+		AnimationType::ANIM_ELITE_POLEVAULTER_ZOMBIE,
+		ResourceKeys::Reanimations::REANIM_ELITE_POLEVAULTER_ZOMBIE,
+		&MakeZombie<ElitePolevaulterZombie>);
 
 	// ==================== 非植物/僵尸动画映射 ====================
 	mAnimToString[AnimationType::ANIM_SUN] = ResourceKeys::Reanimations::REANIM_SUN;

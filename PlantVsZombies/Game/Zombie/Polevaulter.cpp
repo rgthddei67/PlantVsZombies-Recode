@@ -2,6 +2,10 @@
 #include "../ShadowComponent.h"
 #include "../Plant/Plant.h"
 
+namespace {
+	constexpr float kNormalVaultDistance = 150.0f;  // 普通撑杆每次落地的逻辑推进距离，单位 px
+}
+
 void Polevaulter::SetupZombie()
 {
 	if (!mIsPreview) {
@@ -117,7 +121,9 @@ void Polevaulter::EndJump()
 	mVaultState = VaultState::WALKING;
 	mHasVaulted = true;
 
-	JumpMove(150.0f);
+	const float vaultDistance = GetVaultDistance();
+	JumpMove(vaultDistance);
+	mLastVaultDistance = vaultDistance;
 
 	// 切换为走路动画和普通速度：跳跃后永久降速，写入动画 base（而非临时 clip）
 	SetAnimationSpeed(GameRandom::Range(0.9f, 1.7f));
@@ -131,6 +137,9 @@ void Polevaulter::EndJump()
 	if (auto shadow = GetComponent<ShadowComponent>()) {
 		shadow->mEnabled = true;
 	}
+
+	// 派生能力必须看到最终落点与已恢复的碰撞状态。
+	OnVaultLanded();
 }
 
 void Polevaulter::JumpMove(float distance)
@@ -144,6 +153,11 @@ void Polevaulter::JumpMove(float distance)
 	else {
 		transform->Translate(-distance, 0);
 	}
+}
+
+float Polevaulter::GetVaultDistance() const
+{
+	return kNormalVaultDistance;
 }
 
 void Polevaulter::ZombieMove(float scaledDelta, TransformComponent* transform)

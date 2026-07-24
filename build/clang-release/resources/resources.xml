@@ -156,6 +156,7 @@
     <Texture>./resources/particles/ZombieLadderHead.png</Texture>
     <Texture>./resources/particles/ZombiePogoHead.png</Texture>
     <Texture>./resources/particles/ZombiePoleVaulterHead.png</Texture>
+    <Texture>./resources/particles/ZombieElitePoleVaulterHead.png</Texture>
     <Texture>./resources/particles/ZombieYetiHead.png</Texture>
     <Texture>./resources/particles/ZombieArm.png</Texture>
     <Texture>./resources/particles/DoomShroom_Explosion_Stem.png</Texture>
@@ -286,6 +287,7 @@
     <Reanimation name="NormalZombie">./resources/reanim/NormalZombie.reanim</Reanimation>
     <Reanimation name="ConeZombie">./resources/reanim/ConeZombie.reanim</Reanimation>
     <Reanimation name="PolevaulterZombie">./resources/reanim/Polevaulter.reanim</Reanimation>
+    <Reanimation name="ElitePolevaulterZombie">./resources/reanim/ElitePolevaulter.reanim</Reanimation>
     <Reanimation name="BucketZombie">./resources/reanim/BucketZombie.reanim</Reanimation>
 
     <Reanimation name="PaperZombie">./resources/reanim/PaperZombie.reanim</Reanimation>

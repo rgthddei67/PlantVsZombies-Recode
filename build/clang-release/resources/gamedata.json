@@ -38,6 +38,7 @@
     "ZOMBIE_REINFORCED_DOOR": { "weight": 2100, "appearWave": 6, "survivalRound": 6, "offset": [-50.0, -85.0], "scale": 1.0 },
     "ZOMBIE_POOL_NORMAL":     { "weight": 0, "appearWave": 1, "survivalRound": 1, "offset": [-50.0, -85.0], "scale": 1.0 },
     "ZOMBIE_POOL_CONE":       { "weight": 0, "appearWave": 3, "survivalRound": 2, "offset": [-50.0, -85.0], "scale": 1.0 },
-    "ZOMBIE_POOL_BUCKET":     { "weight": 0, "appearWave": 5, "survivalRound": 3, "offset": [-50.0, -85.0], "scale": 1.0 }
+    "ZOMBIE_POOL_BUCKET":     { "weight": 0, "appearWave": 5, "survivalRound": 3, "offset": [-50.0, -85.0], "scale": 1.0 },
+    "ZOMBIE_ELITE_POLEVAULTER": { "weight": 2300, "appearWave": 5, "survivalRound": 5, "offset": [-50.0, -85.0], "scale": 1.0 }
   }
 }

@@ -24,6 +24,7 @@
 #include "../Zombie/Zombie.h"
 #include "../Zombie/ZombieCharred.h"
 #include "../Zombie/EliteDancerZombie.h"
+#include "../Zombie/Polevaulter.h"
 #include "../Zombie/PoolNormalZombie.h"
 #include "../Trophy.h"   // dump_state 输出奖杯坐标
 #include "../Crater.h"   // dump_state 输出毁灭菇弹坑
@@ -61,12 +62,12 @@ namespace {
 #undef BT
 #define ZT(n) { #n, ZombieType::n }
 	const std::unordered_map<std::string, ZombieType> kZombieNames = {
-		ZT(ZOMBIE_NORMAL), ZT(ZOMBIE_TRAFFIC_CONE), ZT(ZOMBIE_POLEVAULTER), ZT(ZOMBIE_BUCKET),
+		ZT(ZOMBIE_NORMAL), ZT(ZOMBIE_TRAFFIC_CONE), ZT(ZOMBIE_POLEVAULTER), ZT(ZOMBIE_ELITE_POLEVAULTER), ZT(ZOMBIE_BUCKET),
 		ZT(ZOMBIE_FASTBUCKET), ZT(ZOMBIE_NEWSPAPER), ZT(ZOMBIE_FASTPAPER), ZT(ZOMBIE_DOOR),
 		ZT(ZOMBIE_FOOTBALL), ZT(ZOMBIE_DANCER), ZT(ZOMBIE_BACKUP_DANCER), ZT(ZOMBIE_ELITE_DANCER), ZT(ZOMBIE_PINK_FOOTBALL),
 		ZT(ZOMBIE_REINFORCED_DOOR),
 		ZT(ZOMBIE_POOL_NORMAL), ZT(ZOMBIE_POOL_CONE), ZT(ZOMBIE_POOL_BUCKET),
-		ZT(ZOMBIE_SNORKEL), ZT(ZOMBIE_ZAMBONI), ZT(ZOMBIE_BOBSLED), ZT(ZOMBIE_DOLPHIN_RIDER),
+		ZT(ZOMBIE_ZAMBONI), ZT(ZOMBIE_BOBSLED), ZT(ZOMBIE_DOLPHIN_RIDER),
 		ZT(ZOMBIE_JACK_IN_THE_BOX), ZT(ZOMBIE_BALLOON), ZT(ZOMBIE_DIGGER), ZT(ZOMBIE_POGO),
 		ZT(ZOMBIE_YETI), ZT(ZOMBIE_BUNGEE), ZT(ZOMBIE_LADDER), ZT(ZOMBIE_CATAPULT),
 		ZT(ZOMBIE_GARGANTUAR), ZT(ZOMBIE_IMP), ZT(ZOMBIE_BOSS), ZT(ZOMBIE_PEA_HEAD),
@@ -1238,6 +1239,19 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				elite->GetSummonTimer() * 1000.0f));
 			zombieState["eliteTyphoonSpeedPct"] = static_cast<int>(std::lround(
 				elite->GetTyphoonAbilitySpeedMultiplier() * 100.0f));
+		}
+		if (auto* polevaulter = dynamic_cast<Polevaulter*>(z)) {
+			const char* vaultState = "RUNNING";
+			if (polevaulter->mVaultState == Polevaulter::VaultState::JUMPING) {
+				vaultState = "JUMPING";
+			}
+			else if (polevaulter->mVaultState == Polevaulter::VaultState::WALKING) {
+				vaultState = "WALKING";
+			}
+			zombieState["vaultState"] = vaultState;
+			zombieState["hasVaulted"] = polevaulter->mHasVaulted;
+			zombieState["lastVaultDistanceOn1000"] = static_cast<int>(std::lround(
+				polevaulter->GetLastVaultDistance() * 1000.0f));
 		}
 		if (dynamic_cast<PoolNormalZombie*>(z)) {
 			zombieState["poolLegsVisible"] = anim && (

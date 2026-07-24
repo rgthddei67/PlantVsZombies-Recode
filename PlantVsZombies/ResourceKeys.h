@@ -172,6 +172,7 @@ namespace ResourceKeys
 		inline const std::string PARTICLE_ZOMBIE_LADDERHEAD = "PARTICLE_ZOMBIELADDERHEAD";
 		inline const std::string PARTICLE_ZOMBIE_POGOHEAD = "PARTICLE_ZOMBIEPOGOHEAD";
 		inline const std::string PARTICLE_ZOMBIE_POLEVAULTERHEAD = "PARTICLE_ZOMBIEPOLEVAULTERHEAD";
+		inline const std::string PARTICLE_ZOMBIE_ELITEPOLEVAULTERHEAD = "PARTICLE_ZOMBIEELITEPOLEVAULTERHEAD";
 		inline const std::string PARTICLE_ZOMBIE_YETIHEAD = "PARTICLE_ZOMBIEYETIHEAD";
 		RKEY(PARTICLE_ZOMBIEARM);
 	}
@@ -272,6 +273,7 @@ namespace ResourceKeys
 		inline const std::string REANIM_NORMAL_ZOMBIE = "NormalZombie";
 		inline const std::string REANIM_CONE_ZOMBIE = "ConeZombie";
 		inline const std::string REANIM_POLEVAULTER_ZOMBIE = "PolevaulterZombie";
+		inline const std::string REANIM_ELITE_POLEVAULTER_ZOMBIE = "ElitePolevaulterZombie";
 		inline const std::string REANIM_BUCKET_ZOMBIE = "BucketZombie";
 		inline const std::string REANIM_ZOMBIE_ELITE_JACKSON = "ZombieEliteJackson";
 		inline const std::string REANIM_POOL_NORMAL_ZOMBIE = "PoolNormalZombie";
