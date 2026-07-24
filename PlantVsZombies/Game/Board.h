@@ -72,7 +72,8 @@ struct RowInfo {
 namespace {
 	constexpr int MAX_SUN = 9990;
 	constexpr float NEXTWAVE_COUNT_MAX = 25.0f;
-	constexpr float SPAWN_SUN_TIME = 15.0f;
+	constexpr float SPAWN_SUN_TIME = 14.0f;       // 日间天降普通阳光的生成间隔，单位：游戏秒
+	constexpr float POOL_SUN_SPAWN_TIME = 13.0f;  // 日间泳池水面小阳光的生成间隔，单位：游戏秒
 	constexpr int MAX_ZOMBIES_PER_WAVE = 250;	// 一波最大僵尸数量
 
 	// ===== 生存模式设置 =====
@@ -122,6 +123,7 @@ public:
 	CursorObjectManager mCursorObjectManager;
 	int mSun = 50;
 	float mSunCountDown = 5.0f;
+	float mPoolSunCountDown = POOL_SUN_SPAWN_TIME;
 	EntityManager mEntityManager;
 	int mCurrentWave = 0;			// 当前波
 	int mMaxWave = 10;		// 关卡总波数
@@ -538,6 +540,8 @@ public:
 	inline void CleanPlantFromCells(int plantID);
 
 	inline void UpdateSunFalling(float deltaTime);
+	/** 仅日间泳池调用：按独立节奏在随机水路位置生成 15 点小阳光。 */
+	inline void UpdatePoolSunFalling(float deltaTime);
 
 	/** 一次遍历刷新僵尸血量汇总与动态音乐所需的敌对僵尸数。 */
 	inline void UpdateZombieMetrics();

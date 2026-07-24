@@ -254,6 +254,8 @@ bool GameInfoSaver::SaveLevelDataImpl(Board* board, CardSlotManager* manager)
 		j["spawnList"] = spawnList;
 	}
 	j["sun"] = board->mSun;
+	j["sunCountDown"] = board->mSunCountDown;
+	j["poolSunCountDown"] = board->mPoolSunCountDown;
 	j["currentWave"] = board->mCurrentWave;
 	j["boardFrame"] = board->mBoardFrame;   // 舞王全队齐舞的节拍源，读档保节拍连续
 	j["eliteScaredyShroomsPlanted"] = board->mEliteScaredyShroomsPlanted;
@@ -566,6 +568,11 @@ bool GameInfoSaver::LoadLevelDataImpl(Board* board, CardSlotManager* manager)
 		}
 	}
 	board->mSun = j.value("sun", 50);
+	board->mSunCountDown = std::clamp(
+		j.value("sunCountDown", 5.0f), 0.0f, SPAWN_SUN_TIME);
+	board->mPoolSunCountDown = std::clamp(
+		j.value("poolSunCountDown", POOL_SUN_SPAWN_TIME),
+		0.0f, POOL_SUN_SPAWN_TIME);
 	board->mCurrentWave = j.value("currentWave", 0);
 	board->mBoardFrame = j.value("boardFrame", 0);
 	if (j.contains("eliteScaredyShroomsPlanted")) {

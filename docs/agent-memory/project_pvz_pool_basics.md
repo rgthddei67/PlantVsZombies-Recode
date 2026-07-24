@@ -32,6 +32,7 @@ metadata:
 - `CollisionSystem::Update` 会先收集本帧全部碰撞 pair，再在主线程依次派发回调；回调中关闭碰撞体不能取消同批次已经收集的第二个回调。睡莲+上层植物因此会同时命中撑杆：首个回调进入 `JUMPING`，旧实现的第二回调又误进 `StartEat`，随后 exit 回调把轨道切到 `anim_walk`，落地帧事件永远不到；读档又因 `LoadExtraData` 对 `JUMPING` 直接 `EndJump()` 而表现为“重进后已跳过”。`Polevaulter::StartEat` 现以虚函数入口统一限制为仅 `WALKING` 可啃食，lambda 也只在 `WALKING` 转发，不能只依赖关闭碰撞体或单个回调守卫。
 - 台风对同格睡莲+上层植物必须整叠搬运/丢失，不允许拆叠。
 - `PoolCleaner` 使用 `LAND/ENTERING/IN_POOL/EXITING` 高度状态；只改绘制偏移，不改行与碰撞。水中稳态相对原 28px 下沉位置向上校正 13px，入水/出水阶段按当前浸入比例渐进叠加该校正以避免跳变，原始深度仍照常存档。陆地/水中吞噬分别用 `anim_landsuck/anim_suck`，稳态用 `anim_land/anim_water`，运动速度按 C# 水车:草车 `2.5:3.33` 换算。
+- 日间天降普通阳光间隔由 15 秒缩短到 14 秒；`WATER_POOL` 另有独立的 13 秒倒计时，在随机水路内侧列生成一颗 15 点 `SmallSun`，用现有缩放动画出现在水面内部。该补偿不占卡槽，不在草地、夜间泳池或屋顶额外生成；两套倒计时均写入存档，旧档分别以 5 秒和 13 秒初始化。
 - level 19～27 存档写入 `poolGridVersion=2`。缺字段、旧五行/单植物槽或旧版上移 40px 坐标存档均保留文件但拒绝读取，让关卡按当前坐标重新开始。
 - 3-1 为 10 波 `{normal, cone}`；3-2 为 15 波 `{normal, cone, bucket}`；3-3 为 15 波
   `{normal, cone, elite polevaulter}`；3-4 为 20 波
@@ -64,5 +65,11 @@ metadata:
 可见运行稳定失败于 `JUMPING` 但实际轨道 `anim_walk`；修复后同预设 LTO 编译通过，专项脚本和
 既有 `smoke_polevaulter_vault_walk.json` 均在主人当前桌面可见运行 exit 0，日志无
 `ERROR/FAIL/WATCHDOG`，跳跃中段、泳池落地和陆地回归截图均正常。
+
+`smoke_day_pool_sun_economy.json` 暂停自然出波后锁定两套经济节奏：3-1 在第 13 游戏秒前没有
+小阳光，越过边界后仅水面出现一颗 `SmallSun` 且独立倒计时重置；1-1 不推进泳池倒计时，
+首颗天降普通阳光出现后倒计时按 14 秒重置。2026-07-24 `clang-playtest` 零警告编译，
+主人当前桌面可见运行 exit 0，日志 37 条命令全部完成且无 `ERROR/FAIL/WATCHDOG`；
+截图确认小阳光位于水面内部、普通阳光从白天画面顶部落下。
 
 2026-07-24 将水路 `+25px` 美术下沉与逻辑碰撞基线分离，并把三线射手斜向初速按泳池 85px 行高缩放后，`clang-playtest` 重新配置并完整编译通过。主人要求本项不跑 AutoTest、改由实战验收，因此不记录自动化命中结论。

@@ -8,6 +8,7 @@
 #include "../GameScene.h"
 #include "../ChooseCardUI.h"
 #include "../Board.h"
+#include "../Sun.h"
 #include "../LawnMower.h"
 #include "../AudioSystem.h"
 #include "../Card.h"
@@ -996,6 +997,29 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		{ "lastFrameScissorChanges", graphics.GetLastFrameScissorChangeCount() },
 	};
 	out["sun"] = board->mSun;
+	out["skySunCountdownMs"] =
+		static_cast<int>(std::lround(board->mSunCountDown * 1000.0f));
+	out["poolSunCountdownMs"] =
+		static_cast<int>(std::lround(board->mPoolSunCountDown * 1000.0f));
+	int normalSunCount = 0;
+	int smallSunCount = 0;
+	out["suns"] = nlohmann::json::array();
+	for (int id : board->mEntityManager.GetAllCoinIDs()) {
+		Coin* coin = board->mEntityManager.GetCoin(id);
+		auto* sun = dynamic_cast<Sun*>(coin);
+		if (!sun) continue;
+		const bool isSmall = dynamic_cast<SmallSun*>(sun) != nullptr;
+		if (isSmall) ++smallSunCount;
+		else ++normalSunCount;
+		out["suns"].push_back({
+			{ "id", id },
+			{ "small", isSmall },
+			{ "xInt", static_cast<int>(std::lround(sun->GetPosition().x)) },
+			{ "yInt", static_cast<int>(std::lround(sun->GetPosition().y)) },
+		});
+	}
+	out["normalSunCount"] = normalSunCount;
+	out["smallSunCount"] = smallSunCount;
 	out["wave"] = board->mCurrentWave;
 	out["maxWave"] = board->mMaxWave;
 	out["zombieNumber"] = board->mZombieNumber;

@@ -2378,6 +2378,21 @@ inline void Board::UpdateSunFalling(float deltaTime)
 	}
 }
 
+/** 用环境小阳光补偿泳池六路防线与睡莲成本，不占用玩家卡槽。 */
+inline void Board::UpdatePoolSunFalling(float deltaTime)
+{
+	mPoolSunCountDown -= deltaTime;
+	if (mPoolSunCountDown > 0.0f) return;
+
+	mPoolSunCountDown = POOL_SUN_SPAWN_TIME;
+	const int row = GameRandom::Range(2, 3);
+	const int column = GameRandom::Range(1, mColumns - 2);
+	Vector sunPos = GetCellCenterPosition(row, column);
+	sunPos.x += GameRandom::Range(-20.0f, 20.0f);
+	sunPos.y += 30.0f;
+	CreateSmallSun(sunPos, true);
+}
+
 void Board::UpdateLevel()
 {
 	if (mBoardState != BoardState::GAME) return;
@@ -2386,6 +2401,9 @@ void Board::UpdateLevel()
 	if (mBackGround == Background::GROUND_DAY || mBackGround == Background::WATER_POOL ||
 		mBackGround == Background::ROOF) {
 		UpdateSunFalling(deltaTime);
+	}
+	if (mBackGround == Background::WATER_POOL) {
+		UpdatePoolSunFalling(deltaTime);
 	}
 
 	// 词条③：植物回血全局脉冲（生存专用；无词条→GetPlantRegenPerPulse()=0，整循环跳过，零开销）。
