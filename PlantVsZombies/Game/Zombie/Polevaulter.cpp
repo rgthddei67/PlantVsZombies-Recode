@@ -35,7 +35,7 @@ void Polevaulter::SetupZombie()
 				auto* gameObject = other->GetGameObject();
 				if (gameObject->GetObjectType() == ObjectType::OBJECT_ZOMBIE) {
 					// 持杆奔跑不停下啃（跳跃语义优先，径直跑过魅惑僵尸）；跳后 WALKING 才互啃
-					if (mVaultState != VaultState::RUNNING) StartEat(other);
+					if (mVaultState == VaultState::WALKING) StartEat(other);
 					return;
 				}
 				if (gameObject->GetObjectType() != ObjectType::OBJECT_PLANT) return;
@@ -43,10 +43,10 @@ void Polevaulter::SetupZombie()
 				auto* plant = dynamic_cast<Plant*>(gameObject);
 				if (!plant || plant->mRow != this->mRow) return;
 
-				if (!mHasVaulted && mVaultState == VaultState::RUNNING) {
+				if (mVaultState == VaultState::RUNNING && !mHasVaulted) {
 					StartJump();
 				}
-				else {
+				else if (mVaultState == VaultState::WALKING) {
 					// 跳跃后走基类吃植物逻辑
 					StartEat(other);
 				}
@@ -227,11 +227,8 @@ void Polevaulter::LoadExtraData(const nlohmann::json& j)
 
 void Polevaulter::StartEat(ColliderComponent* other)
 {
-	// 持杆奔跑不停下啃僵尸：onTriggerEnter 的 lambda 有 RUNNING 守卫，但基类 onTriggerStay
-	// 也会调 StartEat（僵尸分支无跳跃状态概念），必须在 override 里同样拦住
-	if (other->GetGameObject()->GetObjectType() == ObjectType::OBJECT_ZOMBIE &&
-		mVaultState == VaultState::RUNNING) {
-		return;
-	}
+	// 碰撞对在本帧回调前已经收集完：组合植物的第二个回调即使看到碰撞体已关闭也仍会到达。
+	// 状态机入口统一守卫，避免 RUNNING/JUMPING 被任何植物或僵尸碰撞旁路切成啃食动画。
+	if (mVaultState != VaultState::WALKING) return;
 	Zombie::StartEat(other);
 }

@@ -17,6 +17,7 @@ public:
 	VaultState mVaultState = VaultState::RUNNING;
 	bool mHasVaulted = false;
 
+	/** @brief 仅落地后的 WALKING 状态允许啃食，避免起跳碰撞批次覆盖跳跃动画。 */
 	void StartEat(ColliderComponent* other) override;
 
 	/** @brief 开始撑杆跳跃并暂时关闭碰撞与阴影。 */

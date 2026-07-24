@@ -1,0 +1,35 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 19 },
+    { "op": "choose_cards", "cards": ["PLANT_LILYPAD", "PLANT_WALLNUT"] },
+    { "op": "wait_state", "state": "GAME", "timeout": 15 },
+    { "op": "set_spawn_paused", "value": true },
+    { "op": "set_sun", "value": 9000 },
+    { "op": "set_timescale", "value": 1.0 },
+
+    { "op": "plant", "type": "PLANT_LILYPAD", "row": 2, "col": 7 },
+    { "op": "plant", "type": "PLANT_WALLNUT", "row": 2, "col": 7 },
+    { "op": "assert_state", "path": "cells.2.7.under", "equals": "PLANT_LILYPAD" },
+    { "op": "assert_state", "path": "cells.2.7.normal", "equals": "PLANT_WALLNUT" },
+    { "op": "assert_state", "path": "cells.2.7.top", "equals": "PLANT_WALLNUT" },
+    { "op": "spawn_zombie", "type": "ZOMBIE_POLEVAULTER", "row": 2, "x": 920 },
+
+    { "op": "wait_seconds", "value": 0.55, "timeout": 3 },
+    { "op": "assert_state", "path": "zombies.0.vaultState", "equals": "JUMPING" },
+    { "op": "assert_state", "path": "zombies.0.track", "equals": "anim_jump" },
+    { "op": "assert_state", "path": "zombies.0.isEating", "equals": false },
+    { "op": "screenshot", "name": "pool_polevaulter_mid_vault.png" },
+    { "op": "dump_state", "name": "pool_polevaulter_mid_vault.json" },
+
+    { "op": "set_timescale", "value": 5.0 },
+    { "op": "wait_seconds", "value": 10.5, "timeout": 15 },
+    { "op": "assert_state", "path": "zombies.0.vaultState", "equals": "WALKING" },
+    { "op": "assert_state", "path": "zombies.0.hasVaulted", "equals": true },
+    { "op": "assert_state", "path": "zombies.0.lastVaultDistanceOn1000", "equals": 150000 },
+    { "op": "screenshot", "name": "pool_polevaulter_after_vault.png" },
+    { "op": "dump_state", "name": "pool_polevaulter_after_vault.json" },
+
+    { "op": "set_spawn_paused", "value": false },
+    { "op": "quit" }
+  ]
+}

@@ -28,6 +28,7 @@ metadata:
 - 所有僵尸生成 Y 由网格行中心派生。第一、二大关继续使用已确认正确的 `kZombieSpawnBaseOffsetY=+2px`；主人实测后的泳池背景公共偏移为 `kPoolBackgroundZombieSpawnYOffset=0px`，第三大关所有行再应用 `kThirdAreaZombieAlignmentOffsetY=+10px`。水路必须与同地图陆地行分开，`IsPoolRow(row)` 额外应用 `kPoolRowZombieSpawnYOffset=+25px`，因此只下移第 3/4 行水中僵尸，不影响陆地行。四者均集中在 `Board.cpp` 顶部；旧名 `kPoolZombieSpawnYOffset` 因容易误解为水路专属而弃用。
 - `anim_eat` 会重新显露双腿并把 `Zombie_duckytube` 换回无水面接触纹理的普通贴图；腿部不再逐轨道隐藏，而由基类 shader 水线对所有僵尸统一裁剪。专用泳池僵尸只在啃食期间把泳圈覆盖为 `IMAGE_REANIM_ZOMBIE_DUCKYTUBE_INWATER` 保留涟漪，停止啃食和读档恢复时对称撤销/重建覆盖。
 - 僵尸已锁定睡莲后若同格新种上层植物，必须把啃食目标和 `mEaterCount` 从睡莲迁移到新顶层植物，且不重播啃食动画；`StartEat` 的碰撞 stay 主动迁移，`EatTarget` 在每个伤害帧前再兜底检查一次，避免碰撞更新顺序让一口伤害误落到睡莲。该规则按同格顶层通用实现，不把坚果或睡莲类型写死。
+- `CollisionSystem::Update` 会先收集本帧全部碰撞 pair，再在主线程依次派发回调；回调中关闭碰撞体不能取消同批次已经收集的第二个回调。睡莲+上层植物因此会同时命中撑杆：首个回调进入 `JUMPING`，旧实现的第二回调又误进 `StartEat`，随后 exit 回调把轨道切到 `anim_walk`，落地帧事件永远不到；读档又因 `LoadExtraData` 对 `JUMPING` 直接 `EndJump()` 而表现为“重进后已跳过”。`Polevaulter::StartEat` 现以虚函数入口统一限制为仅 `WALKING` 可啃食，lambda 也只在 `WALKING` 转发，不能只依赖关闭碰撞体或单个回调守卫。
 - 台风对同格睡莲+上层植物必须整叠搬运/丢失，不允许拆叠。
 - `PoolCleaner` 使用 `LAND/ENTERING/IN_POOL/EXITING` 高度状态；只改绘制偏移，不改行与碰撞。水中稳态相对原 28px 下沉位置向上校正 13px，入水/出水阶段按当前浸入比例渐进叠加该校正以避免跳变，原始深度仍照常存档。陆地/水中吞噬分别用 `anim_landsuck/anim_suck`，稳态用 `anim_land/anim_water`，运动速度按 C# 水车:草车 `2.5:3.33` 换算。
 - level 19～27 存档写入 `poolGridVersion=2`。缺字段、旧五行/单植物槽或旧版上移 40px 坐标存档均保留文件但拒绝读取，让关卡按当前坐标重新开始。
@@ -49,3 +50,10 @@ metadata:
 `smoke_pool_spawnlists_3_1_to_3_4.json` 逐关锁定 3-1～3-4 的背景、波数和完整出怪数组，
 并对 3-3/3-4 选卡预览留图。2026-07-24 `clang-playtest` 可见运行退出码 0；3-4 状态明确包含
 `ZOMBIE_PINK_FOOTBALL` 与 `ZOMBIE_ELITE_POLEVAULTER`，日志 `script finished OK`。
+
+`smoke_pool_polevaulter_stacked_plant.json` 固定 level 19 水路同格 `LILYPAD` under +
+`WALLNUT` normal，先断言双层格成立，再断言撑杆中段保持 `JUMPING/anim_jump/isEating=false`，
+最终落地为 `WALKING` 且跳距整数投影 `150000`。2026-07-24 修复前的现有 `clang-release`
+可见运行稳定失败于 `JUMPING` 但实际轨道 `anim_walk`；修复后同预设 LTO 编译通过，专项脚本和
+既有 `smoke_polevaulter_vault_walk.json` 均在主人当前桌面可见运行 exit 0，日志无
+`ERROR/FAIL/WATCHDOG`，跳跃中段、泳池落地和陆地回归截图均正常。
