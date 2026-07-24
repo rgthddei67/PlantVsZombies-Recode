@@ -503,8 +503,8 @@ public:
 	// 创建子弹
 	Bullet* CreateBullet(BulletType plantType, int row, const Vector& position, bool skipsettings = false);
 
-	// 创建樱桃爆炸效果
-	void CreateBoom(const Vector& position, int damage = 1800);
+	// 创建樱桃爆炸效果；纵向范围按植物逻辑行覆盖相邻三行，避免泳池美术下沉干扰命中。
+	void CreateBoom(const Vector& position, int plantRow, int damage = 1800);
 
 	// 毁灭菇爆炸：半径 250 圆形判定、波及全部行、跳过魅惑僵尸；Charred 阈值逻辑同 CreateBoom
 	void CreateDoomBoom(const Vector& position, int damage = 1800);

@@ -6,7 +6,7 @@ void CherryBomb::SetupPlant()
 	if (mIsPreview) return;
 	this->PlayTrack("anim_explode", GameRandom::Range(0.34f, 0.45f), 0);
 	mAnimator->AddFrameEvent(13, [this]() {
-		mBoard->CreateBoom(GetPosition());
+		mBoard->CreateBoom(GetPosition(), mRow);
 		Die();
 		});
 }

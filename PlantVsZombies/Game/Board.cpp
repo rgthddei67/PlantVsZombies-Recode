@@ -2065,24 +2065,21 @@ void Board::InitializeCell(int rows, int cols)
 	}
 }
 
-void Board::CreateBoom(const Vector& position, int damage)
+void Board::CreateBoom(const Vector& position, int plantRow, int damage)
 {
 	g_particleSystem->EmitEffect("CherryBomb", position);
 	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_CHERRYBOMB, 0.4f);
 	ShakeBoard(3.0f, -4.0f);   // 原版 ShakeBoard(3,-4)：0.12s 单次弹跳
-	std::vector<int> zombieIDs = mEntityManager.GetAllZombieIDs();
-	for (auto zombieID : zombieIDs)
-	{
-		if (auto zombie = mEntityManager.GetZombie(zombieID)) {
-			if (zombie->IsMindControlled()) continue;
-			Vector zombiePositon = zombie->GetPosition();
-			if (std::abs(zombiePositon.x - position.x) <= 130.0f &&
-				std::abs(zombiePositon.y - position.y) <= 130.0f)
-			{
+
+	// 水路僵尸的 Transform 含美术下沉，纵向命中必须使用僵尸与植物的逻辑行。
+	for (int row = plantRow - 1; row <= plantRow + 1; ++row) {
+		mEntityManager.ForEachZombieInRow(row, [&](Zombie* zombie) {
+			if (zombie->IsMindControlled()) return;
+			if (std::abs(zombie->GetPosition().x - position.x) <= 130.0f) {
 				// 统一灰烬入口内部决定化灰或数值扣血；特殊僵尸可拒绝化灰并限制每次灰烬伤害。
 				zombie->TakePlantAshDamage(damage);
 			}
-		}
+		});
 	}
 }
 
