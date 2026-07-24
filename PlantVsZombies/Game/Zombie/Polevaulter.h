@@ -25,6 +25,7 @@ public:
 	void EndJump();
 	void JumpMove(float distance);  // 跳跃期间手动移动，传入本次移动距离
 	float GetLastVaultDistance() const { return mLastVaultDistance; }
+	float GetVaultExtraDistanceApplied() const { return mVaultExtraDistanceApplied; }
 
 	void HeadDrop() override;
 	void ArmDrop() override;
@@ -52,6 +53,7 @@ protected:
 
 private:
 	float mLastVaultDistance = 0.0f;  // 最近一次实际落地位移；仅供稳定测试取证
+	float mVaultExtraDistanceApplied = 0.0f;  // 本次跳跃已随动画进度补偿的额外逻辑位移，单位 px
 };
 
 #endif

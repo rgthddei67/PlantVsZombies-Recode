@@ -11,6 +11,9 @@
     { "op": "dump_state", "name": "state_running.json" },
 
     { "op": "wait_seconds", "value": 12 },
+    { "op": "assert_state", "path": "zombies.0.vaultState", "equals": "WALKING" },
+    { "op": "assert_state", "path": "zombies.0.lastVaultDistanceOn1000", "equals": 150000 },
+    { "op": "assert_state", "path": "zombies.0.vaultExtraDistanceAppliedOn1000", "equals": 0 },
     { "op": "dump_state", "name": "state_after_vault.json" },
     { "op": "screenshot", "name": "polevaulter_after_vault.png" },
     { "op": "quit" }

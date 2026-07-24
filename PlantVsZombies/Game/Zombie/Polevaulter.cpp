@@ -2,8 +2,10 @@
 #include "../ShadowComponent.h"
 #include "../Plant/Plant.h"
 
+#include <algorithm>
+
 namespace {
-	constexpr float kNormalVaultDistance = 150.0f;  // 普通撑杆每次落地的逻辑推进距离，单位 px
+	constexpr float kBakedVaultDistance = 150.0f;  // anim_jump 轨道内置的水平视觉位移，单位 px
 }
 
 void Polevaulter::SetupZombie()
@@ -102,6 +104,8 @@ void Polevaulter::ZombieItemUpdate() const
 void Polevaulter::StartJump()
 {
 	mVaultState = VaultState::JUMPING;
+	mLastVaultDistance = 0.0f;
+	mVaultExtraDistanceApplied = 0.0f;
 
 	// 播放跳跃动画
 	PlayTrackOnce("anim_jump", "anim_walk", 2.3f);
@@ -122,7 +126,12 @@ void Polevaulter::EndJump()
 	mHasVaulted = true;
 
 	const float vaultDistance = GetVaultDistance();
-	JumpMove(vaultDistance);
+	const float targetExtraDistance = vaultDistance - kBakedVaultDistance;
+	const float remainingExtraDistance = targetExtraDistance - mVaultExtraDistanceApplied;
+
+	// 动画自身已经把身体部件向前带了 150 px；这里只提交该根运动以及尚未消费的额外位移。
+	JumpMove(kBakedVaultDistance + remainingExtraDistance);
+	mVaultExtraDistanceApplied = targetExtraDistance;
 	mLastVaultDistance = vaultDistance;
 
 	// 切换为走路动画和普通速度：跳跃后永久降速，写入动画 base（而非临时 clip）
@@ -157,12 +166,27 @@ void Polevaulter::JumpMove(float distance)
 
 float Polevaulter::GetVaultDistance() const
 {
-	return kNormalVaultDistance;
+	return kBakedVaultDistance;
 }
 
 void Polevaulter::ZombieMove(float scaledDelta, TransformComponent* transform)
 {
-	if (this->mVaultState == VaultState::JUMPING) return;
+	if (mVaultState == VaultState::JUMPING) {
+		const auto [jumpBeginFrame, jumpEndFrame] = mAnimator->GetTrackRange("anim_jump");
+		const float jumpFrameCount = static_cast<float>(jumpEndFrame - jumpBeginFrame);
+		if (jumpFrameCount > 0.0f) {
+			const float jumpProgress = std::clamp(
+				(GetCurrentFrame() - static_cast<float>(jumpBeginFrame)) / jumpFrameCount,
+				0.0f, 1.0f);
+			const float targetExtraDistance =
+				(GetVaultDistance() - kBakedVaultDistance) * jumpProgress;
+
+			// 只把超出动画内置 150 px 的部分按实际动画进度逐帧补上，避免落地瞬移。
+			JumpMove(targetExtraDistance - mVaultExtraDistanceApplied);
+			mVaultExtraDistanceApplied = targetExtraDistance;
+		}
+		return;
+	}
 	Zombie::ZombieMove(scaledDelta, transform);
 }
 
@@ -175,12 +199,18 @@ void Polevaulter::SaveExtraData(nlohmann::json& j) const
 {
 	j["vaultState"] = static_cast<int>(mVaultState);
 	j["hasVaulted"] = mHasVaulted;
+	j["vaultExtraDistanceApplied"] = mVaultExtraDistanceApplied;
 }
 
 void Polevaulter::LoadExtraData(const nlohmann::json& j)
 {
 	mVaultState = static_cast<VaultState>(j.value("vaultState", 0));
 	mHasVaulted = j.value("hasVaulted", false);
+	const float targetExtraDistance = GetVaultDistance() - kBakedVaultDistance;
+	mVaultExtraDistanceApplied = std::clamp(
+		j.value("vaultExtraDistanceApplied", 0.0f),
+		std::min(0.0f, targetExtraDistance),
+		std::max(0.0f, targetExtraDistance));
 
 	// 如果正在啃食，不覆盖已恢复的啃食动画
 	if (mIsEating) return;

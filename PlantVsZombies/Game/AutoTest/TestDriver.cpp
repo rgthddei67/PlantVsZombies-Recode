@@ -1252,6 +1252,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			zombieState["hasVaulted"] = polevaulter->mHasVaulted;
 			zombieState["lastVaultDistanceOn1000"] = static_cast<int>(std::lround(
 				polevaulter->GetLastVaultDistance() * 1000.0f));
+			zombieState["vaultExtraDistanceAppliedOn1000"] = static_cast<int>(std::lround(
+				polevaulter->GetVaultExtraDistanceApplied() * 1000.0f));
 		}
 		if (dynamic_cast<PoolNormalZombie*>(z)) {
 			zombieState["poolLegsVisible"] = anim && (

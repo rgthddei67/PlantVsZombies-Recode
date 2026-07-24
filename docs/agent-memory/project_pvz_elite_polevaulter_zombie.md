@@ -12,9 +12,13 @@ metadata:
 
 - `ElitePolevaulterZombie` 继承 `Polevaulter`，复用普通撑杆帧事件与状态机；基础血量 600，
   `GetAbilityAnimSpeedMultiplier()` 返回 1.2，因此会与冻结、减速、雨势速度层正确组合。
+- `Polevaulter.reanim` 的 `anim_jump` 自带约 150px 水平视觉位移。普通撑杆不再额外移动 Transform；
+  精英把超出这 150px 的额外 150px 按 `anim_jump` 的实际帧进度逐帧补到 Transform，动画提速、减速或暂停时
+  位移会自然同步。`EndJump()` 只结算动画内置 150px 与未消费尾差，不再在落地端点瞬移。
 - `Polevaulter::EndJump()` 通过虚函数取得逻辑跳距：普通为 150px，精英为 300px。位移、碰撞与阴影
   恢复后调用落地钩子；精英用最终 Transform 的 X 在同排创建一名独立的普通撑杆。
 - 精英只在一次真实落地时召唤。跳跃中读档继续沿父类路径完成落地并召唤；落地后两只僵尸各自正常存档。
+  跳跃存档同时记录已应用的额外距离，读档结算不会重复移动。
   持杆/跳跃阶段沿用普通撑杆的不可魅惑契约，因此不会出现魅惑精英生成敌对单位的中间态。
 
 ## 资源与注册
@@ -44,3 +48,11 @@ metadata:
 
 三份 `run.log` 均以 `script finished OK` 结束且无 `ERROR/FAIL/WATCHDOG`；证据位于
 `build/clang-playtest/autotest/out/<脚本名>/`。
+
+平滑跳跃修复后重新完成 `clang-playtest` 构建，并可见运行一次 `smoke_elite_polevaulter.json`：
+
+- 退出码 0，窗口标题为“植物大战僵尸中文版”。
+- 跳跃中段保持 `JUMPING`，已应用额外距离投影为 19714（约 19.7px）；落地后为 150000，
+  总跳距投影仍为 300000，普通撑杆正常生成。
+- 中段截图为 `elite_polevaulter_mid_vault.png`。主人随后要求停止继续运行 AutoTest，并改由已启动的
+  普通 `clang-playtest` 游戏窗口手动检查，因此平滑修复后的普通撑杆专项未重跑。
