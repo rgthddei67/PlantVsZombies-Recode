@@ -10,7 +10,7 @@ class SunFlower : public Plant
 {
 private:
 	float mProduceTimer = 15.0f;
-	float mProduceTime = 20.0f;
+	float mProduceTime = 18.0f;
 	bool mIsGlowingForProduction = false;  // 标记是否正在为生产发光
 	float mProductionGlowStartTimer = 0.0f;  // 发光开始时间
 
