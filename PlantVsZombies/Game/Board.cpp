@@ -697,9 +697,7 @@ Board::Board(GameScene* gameScene, Background background, int level)
 
 	CreatePreviewZombies();
 	InitializeCell(IsPoolBackground() ? 5 : 4, 8);
-	const float boardRight = CELL_INITALIZE_POS_X
-		+ static_cast<float>(mColumns) * CELL_COLLIDER_SIZE_X;
-	mIceMinX.fill(boardRight);
+	mIceMinX.fill(GetIceTrailRightX());
 	mIceTimer.fill(0.0f);
 	InitializeRows();
 }
@@ -2097,16 +2095,19 @@ float Board::GetIceTrailTimeRemaining(int row) const
 		? mIceTimer[row] : 0.0f;
 }
 
+float Board::GetIceTrailRightX() const
+{
+	return static_cast<float>(SCENE_WIDTH);
+}
+
 void Board::UpdateIceTrails(float deltaTime)
 {
 	if (deltaTime <= 0.0f || mBoardState != BoardState::GAME) return;
-	const float boardRight = CELL_INITALIZE_POS_X
-		+ static_cast<float>(mColumns) * CELL_COLLIDER_SIZE_X;
 	for (int row = 0; row < mRows && row < static_cast<int>(mIceTimer.size()); ++row) {
 		if (mIceTimer[row] <= 0.0f) continue;
 		mIceTimer[row] = std::max(0.0f, mIceTimer[row] - deltaTime);
 		if (mIceTimer[row] <= 0.0f) {
-			mIceMinX[row] = boardRight;
+			mIceMinX[row] = GetIceTrailRightX();
 		}
 	}
 }
@@ -2119,8 +2120,7 @@ void Board::DrawIceTrails(Graphics* g) const
 	const Texture* cap = resources.GetTexture(ResourceKeys::Textures::IMAGE_ICE_CAP, false);
 	if (!body || !cap || body->width <= 0 || body->height <= 0) return;
 
-	const float boardRight = CELL_INITALIZE_POS_X
-		+ static_cast<float>(mColumns) * CELL_COLLIDER_SIZE_X;
+	const float boardRight = GetIceTrailRightX();
 	for (int row = 0; row < mRows && row < static_cast<int>(mIceTimer.size()); ++row) {
 		const float remaining = mIceTimer[row];
 		if (remaining <= 0.0f) continue;

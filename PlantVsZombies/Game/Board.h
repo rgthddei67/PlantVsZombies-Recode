@@ -466,6 +466,8 @@ public:
 	bool IsIceAt(int row, int col) const;
 	float GetIceTrailMinX(int row) const;
 	float GetIceTrailTimeRemaining(int row) const;
+	/** 返回冰道主体的固定右边界；冰道从车辆处一直铺到逻辑屏幕最右端。 */
+	float GetIceTrailRightX() const;
 	/** 在背景和游戏对象之间绘制全部活动冰道。 */
 	void DrawIceTrails(Graphics* g) const;
 

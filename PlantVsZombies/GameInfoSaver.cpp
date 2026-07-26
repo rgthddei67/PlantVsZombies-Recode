@@ -584,9 +584,8 @@ bool GameInfoSaver::LoadLevelDataImpl(Board* board, CardSlotManager* manager)
 	board->mCurrentWave = j.value("currentWave", 0);
 	board->mBoardFrame = j.value("boardFrame", 0);
 	{
-		const float boardRight = CELL_INITALIZE_POS_X
-			+ static_cast<float>(board->mColumns) * CELL_COLLIDER_SIZE_X;
-		board->mIceMinX.fill(boardRight);
+		const float iceRight = board->GetIceTrailRightX();
+		board->mIceMinX.fill(iceRight);
 		board->mIceTimer.fill(0.0f);
 		const auto& trails = j.value("iceTrails", nlohmann::json::array());
 		for (int row = 0; row < board->mRows
@@ -596,8 +595,8 @@ bool GameInfoSaver::LoadLevelDataImpl(Board* board, CardSlotManager* manager)
 			board->mIceTimer[row] = std::clamp(
 				trails[row].value("timer", 0.0f), 0.0f, 30.0f);
 			board->mIceMinX[row] = board->mIceTimer[row] > 0.0f
-				? std::clamp(trails[row].value("minX", boardRight), 25.0f, boardRight)
-				: boardRight;
+				? std::clamp(trails[row].value("minX", iceRight), 25.0f, iceRight)
+				: iceRight;
 		}
 	}
 	if (j.contains("eliteScaredyShroomsPlanted")) {

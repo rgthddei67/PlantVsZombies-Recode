@@ -23,9 +23,11 @@ namespace {
 	constexpr float kDriveCurveLeftX = 300.0f;           // 原版线性减速曲线左端世界 X
 	constexpr float kDriveCurveRightX = 700.0f;          // 原版线性减速曲线右端世界 X
 	constexpr float kDriveCurveStopX = 400.0f;           // 越过该位置后不再重算速度
-	constexpr float kIceFrontOffsetX = 118.0f;           // 冰道前缘相对车辆逻辑 X 的偏移，单位 px
-	constexpr float kAttackOffsetX = 10.0f;              // 原版车辆攻击矩形左偏移，单位 px
-	constexpr float kAttackOffsetY = -13.0f;             // 原版车辆攻击矩形上偏移，单位 px
+	constexpr float kColliderFromVisualX = -68.0f;       // 原版碰撞框左缘相对车辆稳定视觉原点的 X，单位 px
+	constexpr float kColliderFromVisualY = 10.0f;        // 原版碰撞框上缘相对车辆稳定视觉原点的 Y，单位 px
+	constexpr float kIceFrontFromVisualX = 50.0f;        // 冰道左端相对车辆稳定视觉原点的 X，单位 px
+	constexpr float kAttackFromVisualX = -58.0f;         // 原版攻击框左缘相对车辆稳定视觉原点的 X，单位 px
+	constexpr float kAttackFromVisualY = 10.0f;          // 原版攻击框上缘相对车辆稳定视觉原点的 Y，单位 px
 	constexpr float kAttackWidth = 133.0f;                // 原版车辆攻击矩形宽度，单位 px
 	constexpr float kAttackHeight = 140.0f;               // 原版车辆攻击矩形高度，单位 px
 	constexpr float kRequiredPlantOverlap = 20.0f;        // 至少覆盖该水平像素数才判定碾压
@@ -60,7 +62,10 @@ void ZamboniZombie::SetupZombie()
 	}
 	if (mCollider) {
 		mCollider->size = Vector(153.0f, 140.0f);
-		mCollider->offset = Vector(0.0f, -13.0f);
+		// C# 的车辆矩形相对其 +68/-23 绘制原点定义；换算到本项目的 mVisualOffset，
+		// 保持车身、子弹碰撞与调试框重合，同时不让低血量画面抖动带着物理框漂移。
+		mCollider->offset = mVisualOffset
+			+ Vector(kColliderFromVisualX, kColliderFromVisualY);
 		// 冰车不进入啃食状态；碾压由 ZombieUpdate 的原版攻击矩形统一结算。
 		mCollider->onTriggerEnter = [this](ColliderComponent* other) { StartEat(other); };
 		mCollider->onTriggerStay = [this](ColliderComponent* other) { StartEat(other); };
@@ -102,7 +107,8 @@ void ZamboniZombie::ZombieUpdate(float scaledTime)
 	if (!mBoard || mIsPreview || mIsDead) return;
 
 	const Vector position = GetPosition();
-	mBoard->ExtendIceTrail(mRow, position.x + kIceFrontOffsetX);
+	const Vector stableVisualOrigin = position + mVisualOffset;
+	mBoard->ExtendIceTrail(mRow, stableVisualOrigin.x + kIceFrontFromVisualX);
 	CrushPlants();
 
 	if (GetDamageStage() >= 2) {
@@ -190,10 +196,10 @@ bool ZamboniZombie::CanCrushPlant(const Plant* plant) const
 
 void ZamboniZombie::CrushPlants()
 {
-	const Vector position = GetPosition();
+	const Vector stableVisualOrigin = GetPosition() + mVisualOffset;
 	const SDL_FRect attackRect{
-		position.x + kAttackOffsetX,
-		position.y + kAttackOffsetY,
+		stableVisualOrigin.x + kAttackFromVisualX,
+		stableVisualOrigin.y + kAttackFromVisualY,
 		kAttackWidth,
 		kAttackHeight,
 	};

@@ -1223,6 +1223,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "row", row },
 			{ "active", board->GetIceTrailTimeRemaining(row) > 0.0f },
 			{ "minXInt", static_cast<int>(std::lround(board->GetIceTrailMinX(row))) },
+			{ "rightXInt", static_cast<int>(std::lround(board->GetIceTrailRightX())) },
 			{ "remainingMs", static_cast<int>(std::lround(
 				board->GetIceTrailTimeRemaining(row) * 1000.0f)) },
 			{ "startCol", startCol },
@@ -1330,6 +1331,21 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			zombieState["zamboniDamageStage"] = zamboni->GetDamageStage();
 			zombieState["zamboniDriveSpeedOn1000"] = static_cast<int>(std::lround(
 				zamboni->GetDriveSpeed() * 1000.0f));
+			const Vector visualPosition = zamboni->GetVisualPosition();
+			if (const auto* collider = zamboni->GetColliderComponent()) {
+				const SDL_FRect bounds = collider->GetBoundingBox();
+				// 同一状态下导出相对视觉原点的整数投影，避免倍速与取证帧导致绝对坐标漂移。
+				zombieState["zamboniColliderFromVisualXOn1000"] =
+					static_cast<int>(std::lround((bounds.x - visualPosition.x) * 1000.0f));
+				zombieState["zamboniColliderFromVisualYOn1000"] =
+					static_cast<int>(std::lround((bounds.y - visualPosition.y) * 1000.0f));
+				zombieState["zamboniColliderWidthInt"] =
+					static_cast<int>(std::lround(bounds.w));
+				zombieState["zamboniColliderHeightInt"] =
+					static_cast<int>(std::lround(bounds.h));
+			}
+			zombieState["zamboniIceFromVisualXOn1000"] = static_cast<int>(std::lround(
+				(board->GetIceTrailMinX(z->mRow) - visualPosition.x) * 1000.0f));
 		}
 		if (dynamic_cast<PoolNormalZombie*>(z)) {
 			zombieState["poolLegsVisible"] = anim && (
