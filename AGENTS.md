@@ -9,6 +9,7 @@
 - 涉及任何植物、粒子特效、生存模式词条或僵尸时，必须使用 `.agents/skills/` 下对应的技能，并完整遵循其 `SKILL.md`。
 - 涉及雨天天气本身，或任何按小/中/大雨生效的能力、变异、条件生成与系统联动时，必须使用 `.agents/skills/adding-rain-weather/SKILL.md`。
 - 新增经典植物、僵尸或子弹前，先查阅 `D:\PVZ\PlantsVsZombies.NET-master\Lawn_Shared\Lawn`。动画出问题时，同时检查对应的 `resources/reanim/` 文件和 C# 参考实现。
+- C# 原版逻辑场景为 800×600，本项目为 `SCENE_WIDTH=1100`、`SCENE_HEIGHT=600`；原版绝对坐标、偏移、碰撞框与粒子触发点不得直接照抄，必须换算到当前场景、Board 网格或对象稳定视觉原点并用相对量与可见截图验证。
 - 新工作需要添加动画帧事件时，必须先询问主人。
 
 ## 构建与验证

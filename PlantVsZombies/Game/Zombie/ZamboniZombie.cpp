@@ -32,11 +32,14 @@ namespace {
 	constexpr float kAttackHeight = 140.0f;               // 原版车辆攻击矩形高度，单位 px
 	constexpr float kRequiredPlantOverlap = 20.0f;        // 至少覆盖该水平像素数才判定碾压
 	constexpr float kSmokeInterval = 0.25f;               // 二段损坏烟雾补发间隔，单位秒
+	constexpr float kSmokeFromVisualX = -41.0f;           // C# 800×600 冒烟点换算到稳定视觉原点后的 X，单位 px
+	constexpr float kSmokeFromVisualY = 95.0f;            // C# 800×600 冒烟点换算到稳定视觉原点后的 Y，单位 px
 	constexpr int kCriticalHealth = 200;                  // 低于该血量时车辆持续抖动并自损
+	constexpr float kCriticalShakeAmplitude = 0.35f;      // 低血量故障抖动幅度，单位 px；避免整车每帧 1px 跳变过强
 	constexpr int kCriticalSelfDamage = 3;                // 原版高血量车辆每次自损值
 	constexpr int kCriticalDamageRollMax = 4;             // 每次更新 1/5 概率自损
-	constexpr float kDeathEffectOffsetX = 80.0f;          // 爆炸粒子相对车辆逻辑 X，单位 px
-	constexpr float kDeathEffectOffsetY = 60.0f;          // 爆炸粒子相对车辆逻辑 Y，单位 px
+	constexpr float kDeathEffectFromVisualX = 12.0f;      // C# 爆炸点换算到车辆稳定视觉原点后的 X，单位 px
+	constexpr float kDeathEffectFromVisualY = 73.0f;      // C# 换算值 83px 再按主人要求上移 10px 后的 Y
 	constexpr float kCharredScale = 0.9f;                 // 主人指定的冰车专属灰烬缩放
 	constexpr float kCharredScaleAnchorOffsetY = 18.0f;   // 0.9 缩放后补回轮胎落地点，单位 px
 
@@ -117,7 +120,7 @@ void ZamboniZombie::ZombieUpdate(float scaledTime)
 			mSmokeTimer += kSmokeInterval;
 			if (g_particleSystem) {
 				g_particleSystem->EmitEffect("ZamboniSmoke",
-					position + Vector(27.0f, 72.0f));
+					stableVisualOrigin + Vector(kSmokeFromVisualX, kSmokeFromVisualY));
 			}
 		}
 	}
@@ -127,8 +130,8 @@ void ZamboniZombie::ZombieUpdate(float scaledTime)
 
 	if (mBodyHealth < kCriticalHealth) {
 		mDamageShakeOffset = Vector(
-			GameRandom::Range(-1.0f, 1.0f),
-			GameRandom::Range(-1.0f, 1.0f));
+			GameRandom::Range(-kCriticalShakeAmplitude, kCriticalShakeAmplitude),
+			GameRandom::Range(-kCriticalShakeAmplitude, kCriticalShakeAmplitude));
 		if (GameRandom::Range(0, kCriticalDamageRollMax) == 0) {
 			TakeBodyDamage(kCriticalSelfDamage);
 		}
@@ -222,8 +225,10 @@ void ZamboniZombie::Die()
 	if (!mSuppressDeathEffects && !mIsPreview && !mDeathEffectsEmitted) {
 		mDeathEffectsEmitted = true;
 		if (g_particleSystem) {
+			const Vector stableVisualOrigin = GetPosition() + mVisualOffset;
 			g_particleSystem->EmitEffect("ZamboniExplosion",
-				GetPosition() + Vector(kDeathEffectOffsetX, kDeathEffectOffsetY));
+				stableVisualOrigin
+				+ Vector(kDeathEffectFromVisualX, kDeathEffectFromVisualY));
 		}
 		AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_EXPLOSION, 0.55f);
 	}

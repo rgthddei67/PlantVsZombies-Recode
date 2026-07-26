@@ -1331,6 +1331,11 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			zombieState["zamboniDamageStage"] = zamboni->GetDamageStage();
 			zombieState["zamboniDriveSpeedOn1000"] = static_cast<int>(std::lround(
 				zamboni->GetDriveSpeed() * 1000.0f));
+			const Vector shakeOffset = zamboni->GetDamageShakeOffset();
+			zombieState["zamboniShakeXOn1000"] =
+				static_cast<int>(std::lround(shakeOffset.x * 1000.0f));
+			zombieState["zamboniShakeYOn1000"] =
+				static_cast<int>(std::lround(shakeOffset.y * 1000.0f));
 			const Vector visualPosition = zamboni->GetVisualPosition();
 			if (const auto* collider = zamboni->GetColliderComponent()) {
 				const SDL_FRect bounds = collider->GetBoundingBox();

@@ -20,6 +20,15 @@ description: Use when adding or tuning ANY particle effect (粒子特效) in PvZ
 - **键前缀由 resources.xml 段落决定**：`<GameImages>` 里的 → `IMAGE_*`，`<ParticleTextures>` 里的 → `PARTICLE_*`（粒子专用图放后者）。写错前缀=粒子静默不生成（foot-gun ③）。
 - **分份贴图**：`<Texture Column="4" Row="1">` 会把图切成独立纹理 `PARTICLE_XXX_PART_0..3`（`基础键_PART_序号`，行优先）——逗号列出来即"每粒子随机一张"（splats 碎屑的原理）。**序列帧动画别用它**，用 `ImageFrames`（整图不切，见标签表）。
 
+## 坐标换算铁律
+
+**C# 原版逻辑场景是 800×600，本项目是 `SCENE_WIDTH=1100`、`SCENE_HEIGHT=600`。原版粒子发射坐标、Emitter/SystemPosition 偏移、全屏边界和裁剪值都只能当语义参考，禁止直接抄数值。**
+
+- 先确定特效应锚定当前对象的稳定视觉原点、Board 网格点还是当前场景边界，再把 C# 点位换算成相对该锚点的局部差值。
+- `EmitEffect` 的传入世界坐标优先由 `Transform + mVisualOffset`、植物视觉基点、`GetCellCenterPosition` 或 `SCENE_WIDTH/HEIGHT` 派生；受伤抖动等临时绘制偏移默认不进入粒子物理位置。
+- XML 的 `EmitterOffsetX/Y` 仍有“双倍生效”陷阱，但“除以 2”只能用于**完成坐标系换算后的局部偏移**，不能把 800×600 原值直接减半搬入。
+- 用可见截图核对粒子相对施法者/死亡前实体的位置；需要自动断言时导出相对锚点的整数投影，不断言运动对象的瞬时绝对 X/Y。
+
 ## 数值语法（三种，核心）
 
 1. **标量**：`1.5`。
@@ -104,8 +113,8 @@ description: Use when adding or tuning ANY particle effect (粒子特效) in PvZ
 
 **原版 XML 移植口径**（Doom.xml→10 发射器大特效实证，逐条机械换算）：
 1. 时间字段全部**厘秒→秒（÷100）**：ParticleDuration 150→1.5；SystemDuration 别照抄 400→4（原版仅回收判定），取"最长粒子寿命+余量"即可（→1.6）。
-2. **EmitterOffsetX/Y 减半**（本引擎双倍生效，foot-gun ②）：原版 -75 → 写 -37.5。
-3. **SystemField/SystemPosition 折算进 EmitterOffset**（本引擎不消费）：原版 SysPos(-90,-120) → EmitterOffset(-45,-60)（折算后同样减半）。
+2. **EmitterOffsetX/Y 在坐标系换算后减半**（本引擎双倍生效，foot-gun ②）：先求相对当前稳定锚点的目标局部偏移，再把该局部值除以 2；禁止机械套用原版绝对数值。
+3. **SystemField/SystemPosition 折算进 EmitterOffset**（本引擎不消费）：先把原版 SystemPosition 的视觉语义换算到当前 1100×600 场景/对象锚点，再与局部 EmitterOffset 合并并按双倍生效规则减半。
 4. `FullScreen` 闪光 → `ParticleScale 4000` + WhitePixel（1×1 白图，键 PARTICLE_WHITEPIXEL），RGB/Alpha 轨迹原样保留。
 5. `AnimationRate`/`ImageFrames` **原值照抄**（单位本就是帧/秒）；对应贴图整图入库**不加 Column 属性**（切开就不是帧条了）。
 6. 负数区间改升序（foot-gun ⑧）；`Image` 键按素材入库段落改前缀（IMAGE_/PARTICLE_）。
@@ -114,6 +123,8 @@ description: Use when adding or tuning ANY particle effect (粒子特效) in PvZ
 ## 验证
 
 粒子寿命都是亚秒级，AutoTest 截图要卡时机：帧事件/命中发生后 `wait_frames` 5~20 再 `screenshot`（多截几张挑）。逐张 Read 核对：颜色、铺开范围、方向、有没有"看不见"（foot-gun ③）。改数值免编译，跑脚本前重启即可。
+
+**每次完成并验证任何粒子新增、配置调参或触发点实质修改后，必须在提交前完善本 skill**：把本次实际暴露的新坐标换算、XML 语义、生命周期 foot-gun 或截图取证方法浓缩进相关章节；已有规则则合并强化，不堆一次性配方日志。任务同时修改植物、僵尸或天气时，也同步完善本次实际使用的对应 skill。更新后运行 skill-creator 的 `quick_validate.py` 校验全部改动过的 skill。
 
 ## 关联
 

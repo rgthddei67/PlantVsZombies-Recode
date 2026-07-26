@@ -39,7 +39,6 @@ namespace {
 	constexpr float kIceTrailDuration = 30.0f;            // 冰车进入战场后每次延伸刷新冰道的寿命，单位秒
 	constexpr float kIceTrailFadeDuration = 0.1f;         // 冰道最后渐隐时长，单位秒
 	constexpr float kIceTrailLeftLimit = 25.0f;           // 原版非屋顶冰道左缘最小 X，单位 px
-	constexpr float kIceTrailActivationFrontX = 860.0f;   // 车头进入该 X 后才开始刷新冰道寿命
 	constexpr float kIceTrailCapBodyOverlap = 8.0f;       // 端盖与主体纹理的水平咬合量，单位 px
 	constexpr float kIceTrailGridProbeOffset = 12.0f;     // 原版由冰道左缘推导首个禁种格的采样偏移，单位 px
 	constexpr float kIceTrailTopOffset = 20.0f;           // 冰道相对逻辑行顶的绘制偏移，单位 px
@@ -2059,9 +2058,8 @@ void Board::ExtendIceTrail(int row, float frontX)
 
 	const float clampedFront = std::max(frontX, kIceTrailLeftLimit);
 	mIceMinX[row] = std::min(mIceMinX[row], clampedFront);
-	if (clampedFront < kIceTrailActivationFrontX) {
-		mIceTimer[row] = kIceTrailDuration;
-	}
+	// 车辆还在屏幕右侧入场时就激活冰道；左缘钳在屏幕右边界，进入画面后自然连续增长。
+	mIceTimer[row] = kIceTrailDuration;
 }
 
 void Board::ShortenIceTrail(int row, float maxRemainingSeconds)

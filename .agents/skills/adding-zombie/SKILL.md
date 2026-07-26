@@ -9,6 +9,15 @@ description: Use when adding or tuning any PvZ zombie, or integrating zombies in
 
 **帧号即便主人给了也必须实测触发**——"末-1 帧"陷阱：帧事件靠播放头**越过**帧号触发，死亡动画实际停帧因 reanim 而异（伴舞 anim_death 65~101，帧 100 永不触发、99 才行；舞王 146 却正常）。**症状指纹：僵尸血 0 卡在 anim_death 不消失，10 秒后 run.log 出现 `WATCHDOG force-die`**。见到即帧号问题，回报主人调小。
 
+## 坐标换算铁律
+
+**C# 原版逻辑场景是 800×600，本项目是 `SCENE_WIDTH=1100`、`SCENE_HEIGHT=600`。原版任何绝对 X/Y、碰撞框偏移、绘制偏移、粒子触发点和屏幕边界都只能当语义参考，禁止直接抄入代码。**
+
+- 场景绝对坐标改由 `SCENE_WIDTH/SCENE_HEIGHT`、Board 网格与当前背景几何重新派生；不要把 800 宽地图的右边界、出生点或阈值原样搬来。
+- 僵尸局部坐标先求“原值相对 C# 绘制原点”的差，再锚到本项目稳定视觉原点 `Transform + mVisualOffset`；物理框、攻击框和粒子通常不得跟受伤抖动等临时绘制偏移移动。
+- 网格位置与画面偏移继续分离；优先使用 `GetCellCenterPosition`、`GetCellHeight`、`GetZombieCollisionY/GetZombieSpawnY`。
+- 验证必须同时包含同一状态下的相对量整数投影和可见截图；绝对 X/Y 会受逻辑步落点影响，不作稳定断言。
+
 ## 第 0 步：勘察（动手前全部做完）
 
 1. **读 reanim**：`build/clang-release/resources/reanim/<Name>.reanim`，Grep `<name>` 提取全部 track；`anim_*` 是剪辑轨（`<f>0/-1</f>` 定活跃帧区间），其余是部件轨。重点记下：头部组（`anim_head1`=头、`anim_head2`=下巴、`anim_hair`，可能有 tongue/earing 等挂件）、外臂三段（`*_outerarm_upper/lower/hand`，注意前缀可能不统一）、有无残肢轨（`_bone`/`upper2`）、`_ground` 轨（位移速度来源）。
@@ -74,7 +83,7 @@ description: Use when adding or tuning any PvZ zombie, or integrating zombies in
 
 复杂僵尸（状态机/召唤/新机制）走完整 brainstorm（关键决策逐项问主人：帧号、断肢方案、召唤细节、魅惑交互）→spec→writing-plans；换皮/纯防具类可简短 spec 直实现。模板：`docs/superpowers/specs+plans/2026-07-10-dancer-zombie*.md`。完成且验证通过后由 Codex 提交；是否 push 服从当前 `AGENTS.md` 与主人本次指令，不在 skill 内写死。
 
-**主人确认查收后必须做一次经验复盘**：检查本次是否出现可推广的新契约、foot-gun 或验证手法；若有，更新本次实际使用的 skill（以及需要统一遵守的 `PROJECT_GUIDE.md` / 项目记忆），若没有则明确判断“无需更新”，不要为了留痕重复旧规则。该复盘是每个新僵尸的收尾步骤。
+**每次完成并验证任何僵尸新增或实质修改后，必须在提交前完善本 skill**：把本次实际暴露的新坐标换算、生命周期契约、foot-gun 或验证手法浓缩进现有章节；已有规则则合并强化，不堆一次性日志。任务同时修改粒子、植物或天气时，也同步完善本次实际使用的对应 skill。更新后运行 skill-creator 的 `quick_validate.py` 校验全部改动过的 skill，不再等待主人确认查收才复盘。
 
 ## 关联记忆
 

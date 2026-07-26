@@ -7,6 +7,15 @@ description: Use when adding ANY new plant (新增植物) to PvZ — 射手/生�
 
 **最高原则：不确定的事立刻问主人，不要自行推断。** 已知必问项：①**帧事件的帧号**（主人会看动画预览，他有准确答案；从 reanim 活跃区间推断会错——胆小菇实测 25，区间末段推法给 28）②数值/行为想偏离原版时。**帧号口径（主人 2026-07-14 定死）：`AddFrameEvent` 真实帧号 = 动画预览帧号 − 1；主人报给你的帧号默认已经 −1 过，代码直接用、不许再减**。只有自己从预览工具读数时才需要手动 −1。
 
+## 坐标换算铁律
+
+**C# 原版逻辑场景是 800×600，本项目是 `SCENE_WIDTH=1100`、`SCENE_HEIGHT=600`。原版任何绝对 X/Y、范围端点、绘制偏移、碰撞框和粒子触发点都只能当语义参考，禁止直接抄入代码。**
+
+- 场景范围由 `SCENE_WIDTH/SCENE_HEIGHT` 和 Board 当前背景几何重算；格子范围由 `GetCellCenterPosition`、`GetCellHeight` 与 `CELL_COLLIDER_SIZE_X` 派生。
+- 植物局部点位先换算到本项目以格子中心为 `GetPosition()` 的口径，再叠加当前 gamedata 视觉偏移；逻辑格位置与 `mVisualOffset` 永远分开。
+- 发射点、范围边界和附加 Animator 基点优先表达成“相对稳定视觉原点/父轨基准姿态”的差值，不把 C# 的世界坐标塞进局部偏移。
+- AutoTest 用同一状态下的相对量整数投影验证几何关系，并逐张检查可见截图；运动对象的绝对坐标不作稳定断言。
+
 ## 第 0 步：勘察（动手前全部做完）
 
 1. **读 reanim**：`build/clang-release/resources/reanim/<Name>.reanim`，用 Grep `<name>` 提取全部 track 名，`anim_xxx` 即可用动画（具体可以询问主人，有些anim_xxx并不是可用动画，而是一个track）；`<f>-1/0</f>` 对定位 anim 轨活跃帧区间。
@@ -76,6 +85,8 @@ AutoTest 模式存档读写被短路 = **盲区**；写完必须逐条自查，�
 ## 流程与模板
 
 纯植物侧的小套路：brainstorm 问清关键项→简短 spec 存 `docs/superpowers/specs/`→直接实现（不必单独 writing-plans）。模板：`2026-07-08-scaredyshroom-design.md`。commit 由 Codex 做、push 等主人发话。
+
+**每次完成并验证任何植物新增或实质修改后，必须在提交前完善本 skill**：把本次实际暴露的新坐标换算、交互契约、foot-gun 或验证手法浓缩进相关章节；已有规则则合并强化，不堆一次性日志。任务同时修改粒子、僵尸或天气时，也同步完善本次实际使用的对应 skill。更新后运行 skill-creator 的 `quick_validate.py` 校验全部改动过的 skill。
 
 ## 关联记忆
 

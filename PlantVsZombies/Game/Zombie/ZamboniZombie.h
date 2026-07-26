@@ -25,6 +25,7 @@ public:
 
 	int GetDamageStage() const;
 	float GetDriveSpeed() const { return mDriveSpeed; }
+	Vector GetDamageShakeOffset() const { return mDamageShakeOffset; }
 	Vector GetVisualPosition() const override;
 
 protected:
