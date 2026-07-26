@@ -107,26 +107,18 @@ float GildedZamboniZombie::GetBaseDriveSpeedMultiplier() const
 
 float GildedZamboniZombie::GetAbilityAnimSpeedMultiplier() const
 {
-	const float targetMultiplier = GetAccelerationMultiplier();
-	if (mGoldenIceEffectStacks <= 0) return targetMultiplier;
+	return static_cast<float>(1 << std::clamp(mAccelerationStage, 0, 3));
+}
 
-	float effectScale = 1.0f;
-	for (int stack = 0; stack < mGoldenIceEffectStacks; ++stack) {
-		effectScale *= 2.0f;
-	}
-	// 返回叠层放大前的逆变换值；统一速度层展开后恰好得到目标倍率且不突破 x8。
-	return 1.0f + (targetMultiplier - 1.0f) / effectScale;
+float GildedZamboniZombie::GetAmplifiedAbilitySpeedMultiplier() const
+{
+	return GetAccelerationMultiplier();
 }
 
 float GildedZamboniZombie::GetAccelerationMultiplier() const
 {
-	const float baseMultiplier =
-		static_cast<float>(1 << std::clamp(mAccelerationStage, 0, 3));
-	float extraEffect = baseMultiplier - 1.0f;
-	for (int stack = 1; stack < mGoldenIceEffectStacks; ++stack) {
-		extraEffect *= 2.0f;
-	}
-	return std::min(8.0f, 1.0f + extraEffect);
+	return std::min(8.0f,
+		AmplifySpeedMultiplierForGoldenIce(GetAbilityAnimSpeedMultiplier()));
 }
 
 bool GildedZamboniZombie::ProvidesGoldenIceEffectAt(

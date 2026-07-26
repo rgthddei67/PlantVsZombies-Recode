@@ -48,6 +48,13 @@
 - [x] 新增鎏金车盖、车轮、滚刷碎片与金黄色爆炸云配置。
 - [x] 按主人要求不运行 AutoTest；以构建和粒子 XML/资源键静态校验交付给主人复验。
 
+## 任务 7：速度场增强
+
+- [x] 单层从“相对 1 放大幅度”改为加速倍率乘二、减速倍率除二，中性倍率保持 1。
+- [x] 保持能力、寒冰、雨势、台风逐因子组合和多来源逐层叠加。
+- [x] 鎏金冰车无伤能力继续最终封顶 `x8`，同步专项脚本精确断言。
+- [x] 双 Clang 预设零警告构建；可见 `smoke_gilded_zamboni.json` 退出码 0，日志与关键截图验收通过。
+
 ## 最终调参表
 
 | 位置 | 参数 | 值 | 含义 |
@@ -60,7 +67,7 @@
 | `GildedZamboniZombie.cpp` | `kMutualInfluenceLeftPadding` | 80 px | 活车车身互相进入速度场的距离 |
 | `Board.cpp` | `kGoldenIceTrailDuration` | 30 秒 | 黄色冰道刷新寿命 |
 | `Board.cpp` | `kGildedZamboniMaxPerWave` | 1 | 正式波次生成上限 |
-| `Zombie.cpp` | 单层效果放大 | `1 + 2(m-1)` | 围绕单位元放大加减速幅度 |
+| `Zombie.cpp` | 单层效果放大 | `m>1 ? 2m : m<1 ? m/2 : 1` | 加速倍率乘二、减速倍率除二，中性不变 |
 | `Zombie.cpp` | `kMaxGoldenIceEffectStacks` | 8 | 极端调试生成安全上限 |
 | `gamedata.json` | `weight / appearWave / survivalRound` | `3200 / 8 / 8` | 抽取权重兼成本、最早波次、生存轮次 |
 | `spawnlists.json` | 3-6 | `20 / [普通,路障,铁桶,普通冰车,鎏金冰车]` | 高级冰车综合教学 |

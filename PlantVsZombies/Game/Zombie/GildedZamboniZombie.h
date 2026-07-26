@@ -35,6 +35,7 @@ protected:
 	}
 	float GetBaseDriveSpeedMultiplier() const override;
 	float GetAbilityAnimSpeedMultiplier() const override;
+	float GetAmplifiedAbilitySpeedMultiplier() const override;
 	bool IsAlwaysAffectedByGoldenIce() const override { return true; }
 	const char* GetDeathParticleEffectName() const override {
 		return "GildedZamboniExplosion";

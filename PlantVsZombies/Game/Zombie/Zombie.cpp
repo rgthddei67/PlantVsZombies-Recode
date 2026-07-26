@@ -553,18 +553,24 @@ void Zombie::UpdateAnimSpeed()
 	const float rainMultiplier = mBoard ? mBoard->GetZombieRainSpeedMultiplier() : 1.0f;
 	mAnimator->SetExtraSpeedMultiplier(
 		AmplifySpeedMultiplierForGoldenIce(mExtraSpeed)
-		* AmplifySpeedMultiplierForGoldenIce(GetAbilityAnimSpeedMultiplier())
+		* GetAmplifiedAbilitySpeedMultiplier()
 		* AmplifySpeedMultiplierForGoldenIce(
 			mCooldownTimer > 0.0f ? GetSlowAnimFactor() : 1.0f)
 		* AmplifySpeedMultiplierForGoldenIce(rainMultiplier));
 }
 
+float Zombie::GetAmplifiedAbilitySpeedMultiplier() const
+{
+	return AmplifySpeedMultiplierForGoldenIce(GetAbilityAnimSpeedMultiplier());
+}
+
 float Zombie::AmplifySpeedMultiplierForGoldenIce(float multiplier) const
 {
-	float amplified = multiplier;
+	float amplified = std::max(0.0f, multiplier);
 	for (int stack = 0; stack < mGoldenIceEffectStacks; ++stack) {
-		// 围绕单位元逐层放大：一层 1.4→1.8、0.6→0.2；最低钳到 0，避免强减速反向播放。
-		amplified = std::max(0.0f, 1.0f + (amplified - 1.0f) * 2.0f);
+		// 中性倍率不变；每个来源让加速项直接乘二、减速项直接减半。
+		if (amplified > 1.0f) amplified *= 2.0f;
+		else if (amplified < 1.0f) amplified *= 0.5f;
 	}
 	return amplified;
 }

@@ -111,7 +111,7 @@ void ZamboniZombie::ZombieMove(float scaledDelta, TransformComponent* transform)
 	}
 
 	float speed = mDriveSpeed;
-	speed *= AmplifySpeedMultiplierForGoldenIce(GetAbilityAnimSpeedMultiplier());
+	speed *= GetAmplifiedAbilitySpeedMultiplier();
 	if (mBoard) {
 		speed *= AmplifySpeedMultiplierForGoldenIce(
 			mBoard->GetZombieRainSpeedMultiplier());

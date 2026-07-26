@@ -206,11 +206,13 @@ protected:
 	virtual float GetSlowAnimFactor() const { return 0.6f; }
 	// 品种能力层动画倍率；天气等外部状态变化后由 Board 统一触发重算。
 	virtual float GetAbilityAnimSpeedMultiplier() const { return 1.0f; }
+	/** 返回经过黄色冰道叠层后的能力速度倍率；品种可覆写以施加自身上限。 */
+	virtual float GetAmplifiedAbilitySpeedMultiplier() const;
 	/** 品种是否无条件承受黄色冰道速度场；铺路者自身不依赖几何覆盖。 */
 	virtual bool IsAlwaysAffectedByGoldenIce() const { return false; }
 	/** 统计当前点由多少辆仍存活的鎏金冰车覆盖；仅剩持久冰道时至少返回一层。 */
 	int ComputeGoldenIceEffectStacks() const;
-	/** 每层黄色冰道都把倍率相对 1.0 的加速或减速幅度放大两倍。 */
+	/** 每层黄色冰道把加速倍率乘二、减速倍率除二；中性倍率 1.0 保持不变。 */
 	float AmplifySpeedMultiplierForGoldenIce(float multiplier) const;
 	/** 在跨入、离开、叠层变化或冰道消失的边沿刷新 Animator 速度组合。 */
 	void RefreshGoldenIceSpeedState();
