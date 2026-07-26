@@ -258,6 +258,14 @@ bool GameInfoSaver::SaveLevelDataImpl(Board* board, CardSlotManager* manager)
 	j["poolSunCountDown"] = board->mPoolSunCountDown;
 	j["currentWave"] = board->mCurrentWave;
 	j["boardFrame"] = board->mBoardFrame;   // 舞王全队齐舞的节拍源，读档保节拍连续
+	j["iceTrails"] = nlohmann::json::array();
+	for (int row = 0; row < board->mRows
+		&& row < static_cast<int>(board->mIceTimer.size()); ++row) {
+		j["iceTrails"].push_back({
+			{ "minX", board->mIceMinX[row] },
+			{ "timer", board->mIceTimer[row] },
+		});
+	}
 	j["eliteScaredyShroomsPlanted"] = board->mEliteScaredyShroomsPlanted;
 	j["weatherInitialized"] = board->mWeatherInitialized;
 	j["rainIntensity"] = static_cast<int>(board->mRainIntensity);
@@ -575,6 +583,23 @@ bool GameInfoSaver::LoadLevelDataImpl(Board* board, CardSlotManager* manager)
 		0.0f, POOL_SUN_SPAWN_TIME);
 	board->mCurrentWave = j.value("currentWave", 0);
 	board->mBoardFrame = j.value("boardFrame", 0);
+	{
+		const float boardRight = CELL_INITALIZE_POS_X
+			+ static_cast<float>(board->mColumns) * CELL_COLLIDER_SIZE_X;
+		board->mIceMinX.fill(boardRight);
+		board->mIceTimer.fill(0.0f);
+		const auto& trails = j.value("iceTrails", nlohmann::json::array());
+		for (int row = 0; row < board->mRows
+			&& row < static_cast<int>(board->mIceTimer.size())
+			&& row < static_cast<int>(trails.size()); ++row) {
+			if (!trails[row].is_object()) continue;
+			board->mIceTimer[row] = std::clamp(
+				trails[row].value("timer", 0.0f), 0.0f, 30.0f);
+			board->mIceMinX[row] = board->mIceTimer[row] > 0.0f
+				? std::clamp(trails[row].value("minX", boardRight), 25.0f, boardRight)
+				: boardRight;
+		}
+	}
 	if (j.contains("eliteScaredyShroomsPlanted")) {
 		board->mEliteScaredyShroomsPlanted = std::clamp(
 			j.value("eliteScaredyShroomsPlanted", 0),

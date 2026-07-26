@@ -1,0 +1,108 @@
+<Emitter>
+  <Name>ZamboniExplosion</Name>
+  <SpawnMinActive>10</SpawnMinActive>
+  <SpawnMaxLaunched>10</SpawnMaxLaunched>
+  <ParticleAlpha>1,70 0</ParticleAlpha>
+  <ParticleRed>.5 .25 0</ParticleRed>
+  <ParticleGreen>.8 .4 0</ParticleGreen>
+  <ParticleBlue>1 .75 0</ParticleBlue>
+  <ParticleScale>[.45 .65],60 0</ParticleScale>
+  <EmitterType>Circle</EmitterType>
+  <EmitterRadius>[10 50]</EmitterRadius>
+  <LaunchSpeed>[45 80]</LaunchSpeed>
+  <ParticleDuration>[.4 .6]</ParticleDuration>
+  <SystemDuration>.8</SystemDuration>
+  <Image>PARTICLE_EXPLOSIONCLOUD</Image>
+  <Field>
+    <FieldType>Friction</FieldType>
+    <X>.15,40 1</X>
+    <Y>.18,40 1</Y>
+  </Field>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <ParticleSpinSpeed>[-200 200]</ParticleSpinSpeed>
+</Emitter>
+<Emitter>
+  <Name>ZamboniHood</Name>
+  <SpawnMinActive>1</SpawnMinActive>
+  <SpawnMaxLaunched>1</SpawnMaxLaunched>
+  <ParticleDuration>.8</ParticleDuration>
+  <ParticleAlpha>1,90 0</ParticleAlpha>
+  <ParticleScale>.8</ParticleScale>
+  <LaunchSpeed>[65 95]</LaunchSpeed>
+  <ParticleGravity>140</ParticleGravity>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <ParticleSpinSpeed>[-720 720]</ParticleSpinSpeed>
+  <SystemDuration>.9</SystemDuration>
+  <Image>IMAGE_ZOMBIE_ZAMBONI_1_DAMAGE1</Image>
+</Emitter>
+<Emitter>
+  <Name>ZamboniParts</Name>
+  <SpawnMinActive>5</SpawnMinActive>
+  <SpawnMaxLaunched>5</SpawnMaxLaunched>
+  <EmitterType>Box</EmitterType>
+  <EmitterBoxX>[-35 35]</EmitterBoxX>
+  <EmitterBoxY>30</EmitterBoxY>
+  <ParticleDuration>.8</ParticleDuration>
+  <ParticleAlpha>1,90 0</ParticleAlpha>
+  <ParticleScale>[.4 .6]</ParticleScale>
+  <LaunchSpeed>[60 90]</LaunchSpeed>
+  <ParticleGravity>140</ParticleGravity>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <ParticleSpinSpeed>[-720 720]</ParticleSpinSpeed>
+  <SystemDuration>.9</SystemDuration>
+  <Image>PARTICLE_ZOMBOSS_PARTICLES_PART_0,PARTICLE_ZOMBOSS_PARTICLES_PART_1,PARTICLE_ZOMBOSS_PARTICLES_PART_2,PARTICLE_ZOMBOSS_PARTICLES_PART_3,PARTICLE_ZOMBOSS_PARTICLES_PART_4</Image>
+</Emitter>
+<Emitter>
+  <Name>ZamboniWheels</Name>
+  <SpawnMinActive>2</SpawnMinActive>
+  <SpawnMaxLaunched>2</SpawnMaxLaunched>
+  <EmitterType>Box</EmitterType>
+  <EmitterBoxX>[-35 35]</EmitterBoxX>
+  <EmitterBoxY>30</EmitterBoxY>
+  <ParticleDuration>.8</ParticleDuration>
+  <ParticleAlpha>1,90 0</ParticleAlpha>
+  <ParticleScale>.8</ParticleScale>
+  <LaunchSpeed>[70 100]</LaunchSpeed>
+  <ParticleGravity>140</ParticleGravity>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <ParticleSpinSpeed>[-720 720]</ParticleSpinSpeed>
+  <SystemDuration>.9</SystemDuration>
+  <Image>IMAGE_REANIM_ZOMBIE_ZAMBONI_WHEEL</Image>
+</Emitter>
+<Emitter>
+  <Name>ZamboniBrush</Name>
+  <SpawnMinActive>1</SpawnMinActive>
+  <SpawnMaxLaunched>1</SpawnMaxLaunched>
+  <ParticleDuration>.8</ParticleDuration>
+  <ParticleAlpha>1,90 0</ParticleAlpha>
+  <ParticleScale>.8</ParticleScale>
+  <LaunchSpeed>[70 100]</LaunchSpeed>
+  <ParticleGravity>140</ParticleGravity>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <ParticleSpinSpeed>[-720 720]</ParticleSpinSpeed>
+  <SystemDuration>.9</SystemDuration>
+  <Image>IMAGE_REANIM_ZOMBIE_ZAMBONI_BRUSH</Image>
+</Emitter>
+<Emitter>
+  <Name>ZamboniBigClouds</Name>
+  <SpawnMinActive>8</SpawnMinActive>
+  <SpawnMaxLaunched>8</SpawnMaxLaunched>
+  <ParticleAlpha>1,70 0</ParticleAlpha>
+  <ParticleRed>.5 .25 0</ParticleRed>
+  <ParticleGreen>.8 .4 0</ParticleGreen>
+  <ParticleBlue>1 .75 0</ParticleBlue>
+  <ParticleScale>[1.2 1.6],60 0</ParticleScale>
+  <EmitterType>Circle</EmitterType>
+  <EmitterRadius>[10 50]</EmitterRadius>
+  <LaunchSpeed>[20 55]</LaunchSpeed>
+  <ParticleDuration>[.4 .6]</ParticleDuration>
+  <SystemDuration>.8</SystemDuration>
+  <Image>PARTICLE_EXPLOSIONCLOUD</Image>
+  <Field>
+    <FieldType>Friction</FieldType>
+    <X>.12,40 1</X>
+    <Y>.18,40 1</Y>
+  </Field>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <ParticleSpinSpeed>[-200 200]</ParticleSpinSpeed>
+</Emitter>

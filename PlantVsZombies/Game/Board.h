@@ -13,9 +13,11 @@
 #include <vector>
 #include <memory>
 #include <string>
+#include <array>
 
 class GameInfoSaver;
 class GameScene;
+class Graphics;
 class Sun;
 class SmallSun;
 class Coin;
@@ -163,6 +165,8 @@ public:
 
 	// 外层表示行（rows） 内层columns。Cell 所有权在 GameObjectManager；这里仅做格子寻址
 	std::vector<std::vector<Cell*>> mCells;
+	std::array<float, 8> mIceMinX{};      // 每行冰道最靠房屋的世界 X；最多覆盖当前六行地图
+	std::array<float, 8> mIceTimer{};     // 每行冰道剩余寿命，单位秒
 
 private:
 	std::vector<ZombieType> mSpawnZombieList;	// 本关出怪表
@@ -454,6 +458,16 @@ public:
 	bool CanZombieTypeSpawnInPool(ZombieType type) const;
 	Vector GetCellCenterPosition(int row, int col) const;
 	float GetCellHeight() const { return mCellHeight; }
+	/** 冰车用车辆前缘把指定行冰道向房屋方向延伸，并刷新原版 30 秒寿命。 */
+	void ExtendIceTrail(int row, float frontX);
+	/** 火爆辣椒等效果把指定行冰道剩余时间压到给定上限，单位秒。 */
+	void ShortenIceTrail(int row, float maxRemainingSeconds);
+	/** 返回指定格当前是否被冰道覆盖；覆盖格禁止种植。 */
+	bool IsIceAt(int row, int col) const;
+	float GetIceTrailMinX(int row) const;
+	float GetIceTrailTimeRemaining(int row) const;
+	/** 在背景和游戏对象之间绘制全部活动冰道。 */
+	void DrawIceTrails(Graphics* g) const;
 
 	/** UI 与测试共用的正式种植判定，不含阳光与卡片冷却。 */
 	bool CanPlantAt(PlantType type, int row, int col);
@@ -545,6 +559,8 @@ public:
 
 	/** 一次遍历刷新僵尸血量汇总与动态音乐所需的敌对僵尸数。 */
 	inline void UpdateZombieMetrics();
+	/** 推进逐行冰道寿命并在到期后恢复空状态。 */
+	void UpdateIceTrails(float deltaTime);
 
 	// 尝试生成本波僵尸
 	inline void TrySummonZombie();

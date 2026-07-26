@@ -98,6 +98,7 @@ void Jalapeno::IgniteRow()
 		zombie->RemoveColdEffects();
 		zombie->TakePlantAshDamage(kJalapenoDamage);
 		});
-	// TODO: 冰车/冰道系统合入后，在这里把本行冰道剩余时间压到原版的短暂消退值。
+	// 原版辣椒把本行冰道计时压到 20cs；本项目统一使用秒。
+	mBoard->ShortenIceTrail(mRow, 0.2f);
 	Die();
 }

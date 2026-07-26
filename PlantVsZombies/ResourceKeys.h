@@ -142,6 +142,8 @@ namespace ResourceKeys
 		RKEY(IMAGE_ICESHROOM);
 		RKEY(IMAGE_ICEFUMESHROOM);
 		RKEY(IMAGE_ICETRAP);		// 冻结僵尸脚底冰晶（image 根目录 icetrap.png）
+		RKEY(IMAGE_ICE);			// 冰车铺设的可平铺冰道
+		RKEY(IMAGE_ICE_CAP);		// 冰道左端盖
 		RKEY(IMAGE_CRATER_PART_0);		// 毁灭菇弹坑（crater.png 1行2列分份：0=白天）
 		RKEY(IMAGE_CRATER_PART_1);		// 1=黑夜
 		RKEY(IMAGE_CRATER_FADING_PART_0);	// 弹坑后半程消退版（同 0=白天/1=黑夜）
@@ -159,6 +161,12 @@ namespace ResourceKeys
 		RKEY(PARTICLE_WINDSTREAK);
 		inline const std::string PARTICLE_ZOMBIE_HEAD = "PARTICLE_ZOMBIEHEAD";
 		RKEY(PARTICLE_EXPLOSIONCLOUD);
+		RKEY(PARTICLE_ZAMBONISMOKE);
+		RKEY(PARTICLE_ZOMBOSS_PARTICLES_PART_0);
+		RKEY(PARTICLE_ZOMBOSS_PARTICLES_PART_1);
+		RKEY(PARTICLE_ZOMBOSS_PARTICLES_PART_2);
+		RKEY(PARTICLE_ZOMBOSS_PARTICLES_PART_3);
+		RKEY(PARTICLE_ZOMBOSS_PARTICLES_PART_4);
 		inline const std::string PARTICLE_ZOMBIE_BACKUPDANCERHEAD = "PARTICLE_ZOMBIEBACKUPDANCERHEAD";
 		inline const std::string PARTICLE_ZOMBIE_BACKUPDANCERHEAD_DISCO = "PARTICLE_ZOMBIEBACKUPDANCERHEAD_DISCO";
 		inline const std::string PARTICLE_ZOMBIE_BOBSLEDHEAD = "PARTICLE_ZOMBIEBOBSLEDHEAD";
@@ -231,6 +239,8 @@ namespace ResourceKeys
 		RKEY(SOUND_REVERSE_EXPLOSION);		// 毁灭菇引爆前吸气充能声（原版 reverse_explosion.ogg）
 		RKEY(SOUND_JALAPENO);				// 火爆辣椒点燃整行（原版 jalapeno.ogg）
 		RKEY(SOUND_JUICY);					// 一次性植物爆发时的汁液声（原版 juicy.ogg）
+		RKEY(SOUND_ZAMBONI);				// 冰车驾驶声
+		RKEY(SOUND_EXPLOSION);				// 冰车爆炸声
 
 		// 子弹击中僵尸
 		RKEY(SOUND_SNOW_PEA_SPARKLES);
@@ -285,6 +295,8 @@ namespace ResourceKeys
 		inline const std::string REANIM_POOL_NORMAL_ZOMBIE = "PoolNormalZombie";
 		inline const std::string REANIM_POOL_CONE_ZOMBIE = "PoolConeZombie";
 		inline const std::string REANIM_POOL_BUCKET_ZOMBIE = "PoolBucketZombie";
+		inline const std::string REANIM_ZAMBONI_ZOMBIE = "Zamboni";
+		inline const std::string REANIM_ZAMBONI_CHARRED = "Zamboni_Charred";
 
 		inline const std::string REANIM_ZOMBIE_CHARRED = "Zombie_Charred";
 

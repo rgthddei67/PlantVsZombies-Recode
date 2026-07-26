@@ -53,6 +53,7 @@
 #include "../Zombie/PoolConeZombie.h"
 #include "../Zombie/PoolBucketZombie.h"
 #include "../Zombie/ElitePolevaulterZombie.h"
+#include "../Zombie/ZamboniZombie.h"
 
 namespace {
 	template<typename T>
@@ -301,11 +302,19 @@ void GameDataManager::InitializeHardcodedData() {
 		ResourceKeys::Reanimations::REANIM_ELITE_POLEVAULTER_ZOMBIE,
 		&MakeZombie<ElitePolevaulterZombie>);
 
+	// 冰车使用车辆专属状态机，不复用普通僵尸的走路/死亡帧事件。
+	RegisterZombie(ZombieType::ZOMBIE_ZAMBONI, "ZOMBIE_ZAMBONI",
+		AnimationType::ANIM_ZAMBONI_ZOMBIE,
+		ResourceKeys::Reanimations::REANIM_ZAMBONI_ZOMBIE,
+		&MakeZombie<ZamboniZombie>);
+
 	// ==================== 非植物/僵尸动画映射 ====================
 	mAnimToString[AnimationType::ANIM_SUN] = ResourceKeys::Reanimations::REANIM_SUN;
 
 	mAnimToString[AnimationType::ANIM_ZOMBIE_CHARRED] =
 		ResourceKeys::Reanimations::REANIM_ZOMBIE_CHARRED;
+	mAnimToString[AnimationType::ANIM_ZAMBONI_CHARRED] =
+		ResourceKeys::Reanimations::REANIM_ZAMBONI_CHARRED;
 
 	mAnimToString[AnimationType::ANIM_LAWNMOWER] =
 		ResourceKeys::Reanimations::REANIM_LAWNMOWER;

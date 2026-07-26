@@ -9,6 +9,8 @@
 
     <Image Column="5" Row="4">./resources/image/Tombstones.jpg</Image>
     <Image Column="5" Row="4">./resources/image/Tombstone_mounds.png</Image>
+    <Image>./resources/image/ice.png</Image>
+    <Image>./resources/image/ice_cap.png</Image>
 
     <Image>./resources/image/UI/options_checkbox0.png</Image>
     <Image>./resources/image/UI/options_checkbox1.png</Image>
@@ -170,6 +172,8 @@
     <Texture Column="3" Row="1">./resources/particles/snowpea_particles.png</Texture>
     <Texture>./resources/particles/ExplosionCloud.png</Texture>
     <Texture>./resources/particles/ExplosionSpudow.png</Texture>
+    <Texture Column="3" Row="1">./resources/particles/ZamboniSmoke.png</Texture>
+    <Texture Column="5" Row="1">./resources/particles/Zomboss_particles.png</Texture>
     <Texture>./resources/particles/ZombieBackupDancerHead.png</Texture>
     <Texture>./resources/particles/ZombieBackupDancerHead_disco.png</Texture>
     <Texture>./resources/particles/ZombieBobsledHead.png</Texture>
@@ -242,6 +246,8 @@
     <Sound>./resources/sounds/Zombie/newspaper_rarrgh.ogg</Sound>
     <Sound>./resources/sounds/Zombie/newspaper_rarrgh2.ogg</Sound>
     <Sound>./resources/sounds/Zombie/floop.ogg</Sound>
+    <Sound>./resources/sounds/Zombie/zamboni.ogg</Sound>
+    <Sound>./resources/sounds/Zombie/explosion.ogg</Sound>
 
     <Sound>./resources/sounds/Plant/ClickSeed.ogg</Sound>
     <Sound>./resources/sounds/Plant/deleteplant.ogg</Sound>
@@ -333,8 +339,10 @@
     <Reanimation name="PoolNormalZombie">./resources/reanim/PoolNormalZombie.reanim</Reanimation>
     <Reanimation name="PoolConeZombie">./resources/reanim/PoolConeZombie.reanim</Reanimation>
     <Reanimation name="PoolBucketZombie">./resources/reanim/PoolBucketZombie.reanim</Reanimation>
+    <Reanimation name="Zamboni">./resources/reanim/Zombie_zamboni.reanim</Reanimation>
 
     <Reanimation name="Zombie_Charred">./resources/reanim/Zombie_Charred.reanim</Reanimation>
+    <Reanimation name="Zamboni_Charred">./resources/reanim/Zombie_charred_zamboni.reanim</Reanimation>
 
     <Reanimation name="Fire">./resources/reanim/Fire.reanim</Reanimation>
 

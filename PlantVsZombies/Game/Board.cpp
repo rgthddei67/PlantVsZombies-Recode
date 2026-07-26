@@ -19,6 +19,7 @@
 #include "../GameAPP.h"
 #include "../FileManager.h"
 #include "../ParticleSystem/ParticleSystem.h"
+#include "../Graphics.h"
 #include <unordered_set>
 #include <climits>
 #include <array>
@@ -35,6 +36,13 @@ namespace {
 	constexpr int kPoolFirstRow = 2;                      // 泳池第一条水路的 0-based 行号
 	constexpr int kPoolLastRow = 3;                       // 泳池最后一条水路的 0-based 行号
 	constexpr int kPoolFirstWaterSpawnWave = 5;           // 泳池自然波次从第几波起允许选择水路
+	constexpr float kIceTrailDuration = 30.0f;            // 冰车进入战场后每次延伸刷新冰道的寿命，单位秒
+	constexpr float kIceTrailFadeDuration = 0.1f;         // 冰道最后渐隐时长，单位秒
+	constexpr float kIceTrailLeftLimit = 25.0f;           // 原版非屋顶冰道左缘最小 X，单位 px
+	constexpr float kIceTrailActivationFrontX = 860.0f;   // 车头进入该 X 后才开始刷新冰道寿命
+	constexpr float kIceTrailCapBodyOverlap = 8.0f;       // 端盖与主体纹理的水平咬合量，单位 px
+	constexpr float kIceTrailGridProbeOffset = 12.0f;     // 原版由冰道左缘推导首个禁种格的采样偏移，单位 px
+	constexpr float kIceTrailTopOffset = 20.0f;           // 冰道相对逻辑行顶的绘制偏移，单位 px
 	constexpr float kFirstRainDelayMin = 90.0f;          // 开局到首场雨的最短等待时间（秒）
 	constexpr float kFirstRainDelayMax = 105.0f;          // 开局到首场雨的最长等待时间（秒）
 	constexpr float kClearWeatherDelayMin = 15.0f;       // 两场雨之间的最短晴空间隔（秒）
@@ -689,6 +697,10 @@ Board::Board(GameScene* gameScene, Background background, int level)
 
 	CreatePreviewZombies();
 	InitializeCell(IsPoolBackground() ? 5 : 4, 8);
+	const float boardRight = CELL_INITALIZE_POS_X
+		+ static_cast<float>(mColumns) * CELL_COLLIDER_SIZE_X;
+	mIceMinX.fill(boardRight);
+	mIceTimer.fill(0.0f);
 	InitializeRows();
 }
 
@@ -2027,6 +2039,7 @@ bool Board::IsPoolWorldPosition(int row, float x) const
 bool Board::CanZombieTypeSpawnInPool(ZombieType type) const
 {
 	switch (type) {
+	case ZombieType::ZOMBIE_ZAMBONI:
 	case ZombieType::NUM_ZOMBIE_TYPES:
 		return false;
 	default:
@@ -2039,6 +2052,107 @@ Vector Board::GetCellCenterPosition(int row, int col) const
 	return Vector(CELL_INITALIZE_POS_X + static_cast<float>(col) * CELL_COLLIDER_SIZE_X
 		+ CELL_COLLIDER_SIZE_X * 0.5f,
 		mCellInitialY + static_cast<float>(row) * mCellHeight + mCellHeight * 0.5f);
+}
+
+void Board::ExtendIceTrail(int row, float frontX)
+{
+	if (row < 0 || row >= mRows || row >= static_cast<int>(mIceTimer.size())
+		|| IsPoolRow(row)) return;
+
+	const float clampedFront = std::max(frontX, kIceTrailLeftLimit);
+	mIceMinX[row] = std::min(mIceMinX[row], clampedFront);
+	if (clampedFront < kIceTrailActivationFrontX) {
+		mIceTimer[row] = kIceTrailDuration;
+	}
+}
+
+void Board::ShortenIceTrail(int row, float maxRemainingSeconds)
+{
+	if (row < 0 || row >= mRows || row >= static_cast<int>(mIceTimer.size())
+		|| mIceTimer[row] <= 0.0f) return;
+	mIceTimer[row] = std::min(mIceTimer[row], std::max(0.0f, maxRemainingSeconds));
+}
+
+bool Board::IsIceAt(int row, int col) const
+{
+	if (row < 0 || row >= mRows || col < 0 || col >= mColumns
+		|| row >= static_cast<int>(mIceTimer.size()) || mIceTimer[row] <= 0.0f) {
+		return false;
+	}
+	const int startCol = std::clamp(static_cast<int>(std::floor(
+		(mIceMinX[row] + kIceTrailGridProbeOffset - CELL_INITALIZE_POS_X)
+		/ CELL_COLLIDER_SIZE_X)), 0, mColumns - 1);
+	return col >= startCol;
+}
+
+float Board::GetIceTrailMinX(int row) const
+{
+	return row >= 0 && row < mRows && row < static_cast<int>(mIceMinX.size())
+		? mIceMinX[row] : 0.0f;
+}
+
+float Board::GetIceTrailTimeRemaining(int row) const
+{
+	return row >= 0 && row < mRows && row < static_cast<int>(mIceTimer.size())
+		? mIceTimer[row] : 0.0f;
+}
+
+void Board::UpdateIceTrails(float deltaTime)
+{
+	if (deltaTime <= 0.0f || mBoardState != BoardState::GAME) return;
+	const float boardRight = CELL_INITALIZE_POS_X
+		+ static_cast<float>(mColumns) * CELL_COLLIDER_SIZE_X;
+	for (int row = 0; row < mRows && row < static_cast<int>(mIceTimer.size()); ++row) {
+		if (mIceTimer[row] <= 0.0f) continue;
+		mIceTimer[row] = std::max(0.0f, mIceTimer[row] - deltaTime);
+		if (mIceTimer[row] <= 0.0f) {
+			mIceMinX[row] = boardRight;
+		}
+	}
+}
+
+void Board::DrawIceTrails(Graphics* g) const
+{
+	if (!g) return;
+	auto& resources = ResourceManager::GetInstance();
+	const Texture* body = resources.GetTexture(ResourceKeys::Textures::IMAGE_ICE, false);
+	const Texture* cap = resources.GetTexture(ResourceKeys::Textures::IMAGE_ICE_CAP, false);
+	if (!body || !cap || body->width <= 0 || body->height <= 0) return;
+
+	const float boardRight = CELL_INITALIZE_POS_X
+		+ static_cast<float>(mColumns) * CELL_COLLIDER_SIZE_X;
+	for (int row = 0; row < mRows && row < static_cast<int>(mIceTimer.size()); ++row) {
+		const float remaining = mIceTimer[row];
+		if (remaining <= 0.0f) continue;
+
+		const float alpha = 255.0f * std::clamp(
+			remaining / kIceTrailFadeDuration, 0.0f, 1.0f);
+		const glm::vec4 tint(255.0f, 255.0f, 255.0f, alpha);
+		const float drawY = GetCellCenterPosition(row, 0).y
+			- mCellHeight * 0.5f + kIceTrailTopOffset;
+		const float bodyStart = mIceMinX[row] + kIceTrailCapBodyOverlap;
+		const float length = std::max(0.0f, boardRight - bodyStart);
+		float drawX = bodyStart;
+		float firstWidth = std::fmod(length, static_cast<float>(body->width));
+		if (firstWidth > 0.01f) {
+			g->DrawTextureRegion(body,
+				static_cast<float>(body->width) - firstWidth, 0.0f,
+				firstWidth, static_cast<float>(body->height),
+				drawX, drawY, firstWidth, static_cast<float>(body->height),
+				0.0f, tint);
+			drawX += firstWidth;
+		}
+		while (drawX < boardRight - 0.01f) {
+			const float width = std::min(static_cast<float>(body->width), boardRight - drawX);
+			g->DrawTextureRegion(body, 0.0f, 0.0f, width,
+				static_cast<float>(body->height), drawX, drawY, width,
+				static_cast<float>(body->height), 0.0f, tint);
+			drawX += width;
+		}
+		g->DrawTexture(cap, mIceMinX[row], drawY,
+			static_cast<float>(cap->width), static_cast<float>(cap->height),
+			0.0f, tint);
+	}
 }
 
 void Board::InitializeCell(int rows, int cols)
@@ -2203,6 +2317,7 @@ void Board::CreateTrophy(const Vector& position)
 bool Board::CanPlantAt(PlantType type, int row, int col)
 {
 	if (!HasPlantingQuota(type)) return false;
+	if (IsIceAt(row, col)) return false;
 
 	Cell* cell = GetCell(row, col);
 	if (!cell || HasCraterAt(row, col)) return false;
@@ -2590,6 +2705,8 @@ void Board::SetRowLoseMower(int row)
 
 bool Board::IsSpawnRowCompatible(ZombieType type, int row) const
 {
+	if ((mBackGround == Background::ROOF || mBackGround == Background::NIGHT_ROOF)
+		&& type == ZombieType::ZOMBIE_ZAMBONI) return false;
 	if (!IsPoolBackground()) return row >= 0 && row < mRows;
 	if (row < 0 || row >= mRows) return false;
 	if (IsPoolRow(row)) {
@@ -2874,6 +2991,7 @@ void Board::Update()
 	}
 	// 天气属于整片场景而非波次逻辑：生存轮间也自然推进；暂停时 dt=0 与粒子同步冻结。
 	UpdateWeather(DeltaTime::GetDeltaTime());
+	UpdateIceTrails(DeltaTime::GetDeltaTime());
 	CleanupExpiredObjects();
 	mUpdateZombieMetricsTimer += DeltaTime::GetDeltaTime();
 	if (mUpdateZombieMetricsTimer >= 0.5f)

@@ -1,6 +1,6 @@
 ---
 name: project-pvz-jalapeno
-description: "2026-07-26 火爆辣椒：主人指定本体第19帧引爆、火焰第12帧消失、整行灰烬与冰道 TODO"
+description: "2026-07-26 火爆辣椒：主人指定本体第19帧引爆、火焰第12帧消失、整行灰烬并把冰道缩短到0.2秒"
 metadata:
   node_type: memory
   type: project
@@ -24,8 +24,8 @@ metadata:
   `CELL_INITALIZE_POS_X` 起在 750px 内等距横铺；每段随机 0.7..1.3 倍速、
   0.9..1.1 缩放和水平翻面，并按主人指定在全局第 12 帧回收。
 - 水路僵尸沿用统一灰烬入口，因此切入 `anim_waterdeath`，不会生成陆地烧焦残影；下层睡莲保留。
-- 当前仓库尚无冰车冰道系统。`Jalapeno::IgniteRow()` 只留 TODO，等冰车功能从另一个任务合入后，
-  再把本行冰道剩余时间压到原版的短暂消退值；不要提前自建一套冰道状态。
+- 冰车系统合入后，`Jalapeno::IgniteRow()` 会调用 `Board::ShortenIceTrail(mRow, 0.2f)`，
+  把同行现有冰道的剩余寿命压到 0.2 秒；没有冰道时保持无副作用。
 
 `Zombie::RemoveColdEffects()` 是本次补充的公共入口，同时清空减速和冻结计时，
 重新计算动画速度并撤掉非魅惑僵尸的寒冷 overlay。
@@ -40,5 +40,7 @@ metadata:
 - 同行普通僵尸化灰，异行僵尸不受影响。
 - 冻结加固铁门先解除寒冷状态，再按其灰烬伤害上限扣除护盾。
 - 泳池僵尸进入 `anim_waterdeath`、不生成烧焦残影，且睡莲仍占下层。
+- 冰车专项 `smoke_zamboni.json` 另行断言辣椒点燃后同行冰道寿命不超过 200ms，
+  随后冰道消失且该格恢复可种植。
 
 全部最终截图已人工检查；主人明确确认从 `CELL_INITALIZE_POS_X` 开始的火焰位置正确。

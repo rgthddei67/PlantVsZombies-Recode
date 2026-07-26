@@ -25,12 +25,15 @@
 #include "../Zombie/ZombieType.h"
 #include "../Zombie/Zombie.h"
 #include "../Zombie/ZombieCharred.h"
+#include "../Zombie/ZamboniCharred.h"
+#include "../Zombie/ZamboniZombie.h"
 #include "../Zombie/EliteDancerZombie.h"
 #include "../Zombie/Polevaulter.h"
 #include "../Zombie/PoolNormalZombie.h"
 #include "../Trophy.h"   // dump_state 输出奖杯坐标
 #include "../Crater.h"   // dump_state 输出毁灭菇弹坑
 #include "../../Reanimation/Animator.h"   // dump_state 查询轨道可见性（如铁门僵尸手臂）
+#include "../../ParticleSystem/ParticleSystem.h"
 #include <filesystem>
 #include <algorithm>
 #include <cmath>
@@ -69,7 +72,7 @@ namespace {
 		ZT(ZOMBIE_FOOTBALL), ZT(ZOMBIE_DANCER), ZT(ZOMBIE_BACKUP_DANCER), ZT(ZOMBIE_ELITE_DANCER), ZT(ZOMBIE_PINK_FOOTBALL),
 		ZT(ZOMBIE_REINFORCED_DOOR),
 		ZT(ZOMBIE_POOL_NORMAL), ZT(ZOMBIE_POOL_CONE), ZT(ZOMBIE_POOL_BUCKET),
-		ZT(ZOMBIE_ZAMBONI), ZT(ZOMBIE_BOBSLED), ZT(ZOMBIE_DOLPHIN_RIDER),
+		ZT(ZOMBIE_ZAMBONI), ZT(ZOMBIE_DOLPHIN_RIDER),
 		ZT(ZOMBIE_JACK_IN_THE_BOX), ZT(ZOMBIE_BALLOON), ZT(ZOMBIE_DIGGER), ZT(ZOMBIE_POGO),
 		ZT(ZOMBIE_YETI), ZT(ZOMBIE_BUNGEE), ZT(ZOMBIE_LADDER), ZT(ZOMBIE_CATAPULT),
 		ZT(ZOMBIE_GARGANTUAR), ZT(ZOMBIE_IMP), ZT(ZOMBIE_BOSS), ZT(ZOMBIE_PEA_HEAD),
@@ -1186,17 +1189,45 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["spawnTypeCount"] = static_cast<int>(board->GetSpawnZombieList().size());
 
 	int charredZombieCount = 0;
+	int zamboniCharredCount = 0;
 	int jalapenoFireCount = 0;
 	for (const auto& object : GameObjectManager::GetInstance().GetAllGameObjects()) {
 		if (object && object->IsActive() && dynamic_cast<ZombieCharred*>(object.get())) {
 			++charredZombieCount;
+		}
+		if (object && object->IsActive() && dynamic_cast<ZamboniCharred*>(object.get())) {
+			++zamboniCharredCount;
 		}
 		if (object && object->IsActive() && object->GetTag() == "JalapenoFire") {
 			++jalapenoFireCount;
 		}
 	}
 	out["charredZombieCount"] = charredZombieCount;
+	out["zamboniCharredCount"] = zamboniCharredCount;
 	out["jalapenoFireCount"] = jalapenoFireCount;
+	out["zamboniExplosionParticleCount"] = g_particleSystem
+		? g_particleSystem->GetEffectActiveParticleCount("ZamboniExplosion") : 0;
+	out["zamboniSmokeParticleCount"] = g_particleSystem
+		? g_particleSystem->GetEffectActiveParticleCount("ZamboniSmoke") : 0;
+
+	out["iceTrails"] = nlohmann::json::array();
+	for (int row = 0; row < board->mRows; ++row) {
+		int startCol = -1;
+		for (int col = 0; col < board->mColumns; ++col) {
+			if (board->IsIceAt(row, col)) {
+				startCol = col;
+				break;
+			}
+		}
+		out["iceTrails"].push_back({
+			{ "row", row },
+			{ "active", board->GetIceTrailTimeRemaining(row) > 0.0f },
+			{ "minXInt", static_cast<int>(std::lround(board->GetIceTrailMinX(row))) },
+			{ "remainingMs", static_cast<int>(std::lround(
+				board->GetIceTrailTimeRemaining(row) * 1000.0f)) },
+			{ "startCol", startCol },
+		});
+	}
 
 	// 半透明植物预览来自落点幽灵；鼠标跟随预览保持不透明，故不会混入此抓手。
 	int cellPlantPreviewCount = 0;
@@ -1221,7 +1252,9 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	int earlyWavePoolZombieCount = 0;
 	for (int id : board->mEntityManager.GetAllZombieIDs()) {
 		Zombie* z = board->mEntityManager.GetZombie(id);
-		if (!z) continue;
+		// Die() 会立即把对象标为 inactive，EntityManager 的 weak 引用到下一次清理才过期；
+		// 状态快照只导出画面上仍存在的实体，才能验证冰车等“本帧直接消失”的死亡契约。
+		if (!z || !z->IsActive()) continue;
 		if (board->IsPoolRow(z->mRow)) {
 			++poolRowZombieCount;
 			if (z->mSpawnWave >= 1 && z->mSpawnWave <= 4) {
@@ -1292,6 +1325,11 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				polevaulter->GetLastVaultDistance() * 1000.0f));
 			zombieState["vaultExtraDistanceAppliedOn1000"] = static_cast<int>(std::lround(
 				polevaulter->GetVaultExtraDistanceApplied() * 1000.0f));
+		}
+		if (auto* zamboni = dynamic_cast<ZamboniZombie*>(z)) {
+			zombieState["zamboniDamageStage"] = zamboni->GetDamageStage();
+			zombieState["zamboniDriveSpeedOn1000"] = static_cast<int>(std::lround(
+				zamboni->GetDriveSpeed() * 1000.0f));
 		}
 		if (dynamic_cast<PoolNormalZombie*>(z)) {
 			zombieState["poolLegsVisible"] = anim && (

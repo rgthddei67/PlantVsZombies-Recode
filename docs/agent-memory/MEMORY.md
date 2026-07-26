@@ -2,12 +2,13 @@
 
 > Codex routing: required always-on rules live in `../../AGENTS.md`; detailed build, AutoTest, architecture, resource, and implementation guidance lives in `../agent-guide/PROJECT_GUIDE.md`. The entries below are historical subsystem context and should be read only when relevant.
 
+- [冰车僵尸与冰道](project_pvz_zamboni_zombie.md) — 2026-07-26 原版冰车 1350 HP、右侧高速入场后减速、碾压植物、两段破损与二段烟雾；冰道从最右边向左延伸、禁种、30秒寿命并入档，辣椒缩短为0.2秒；普通死亡本体立即消失并生成专属粒子，灰烬专属残影缩放0.9且在第53帧移除；地刺只留TODO、雪橇小队枚举已删除；3-5 出怪表已接入并通过可见专项 AutoTest
 - [三线射手](project_pvz_threepeater.md) — 2026-07-24 三头视觉帧29/73/111，但按 C# 集中计数器只在帧73同帧创建三弹；逐头补 `inverse(basePose)`；顶/底越界弹折回本行且360/290px/s差速；斜向初速按地图行高缩放（草地300、泳池255px/s），水路僵尸碰撞框脱离+25px美术下沉；本次按主人要求只编译、不跑AutoTest
-- [火爆辣椒](project_pvz_jalapeno.md) — 2026-07-26 使用主人裁剪的0..19帧本体，第19帧引爆；12段火焰从`CELL_INITALIZE_POS_X`横铺750px并在第12帧消失；整行非魅惑目标先解冻/解减速再走1800灰烬伤害，水路保持水中死亡且睡莲不受影响；冰道只留TODO等待冰车任务合入；双Clang预设及可见专项AutoTest通过
+- [火爆辣椒](project_pvz_jalapeno.md) — 2026-07-26 使用主人裁剪的0..19帧本体，第19帧引爆；12段火焰从`CELL_INITALIZE_POS_X`横铺750px并在第12帧消失；整行非魅惑目标先解冻/解减速再走1800灰烬伤害，水路保持水中死亡且睡莲不受影响；冰车合入后会把同行冰道剩余寿命压到0.2秒；双Clang预设及可见专项AutoTest通过
 - [缠绕水草](project_pvz_tanglekelp.md) — 2026-07-24 仅空水格直种且占普通层，25阳光/30秒冷却；普通目标按 C# 99→51→21→0cs 抓取拖沉；持门加固铁门改为原地保持 `anim_grab` 5秒后获释且仅水草死亡，掉门后恢复普通规则；一对一锁定、抗性扩展点与存档迁移已接入，首版专项 AutoTest 74 条全绿，本次扩展按主人要求仅双 preset 编译
-- [植物压扁与复合 Animator 世界缩放](project_pvz_plant_squish.md) — 2026-07-23 `Plant::Squish()` 统一冻结位置/动画、释放占格、纵向 0.5 底边锚定、5 秒残影与末 1 秒渐隐；默认绘制已递归实例化根与任意深度附件，`SetRenderScale` 同时覆盖 `InstanceRecord` 与 `-NoInstance` 矩阵兜底；可见 `smoke_plant_squish` 验证根/子停帧、缩放、渐隐和销毁，三类僵尸调用方未实现
+- [植物压扁与复合 Animator 世界缩放](project_pvz_plant_squish.md) — 2026-07-26 `Plant::Squish()` 统一冻结位置/动画、释放占格、纵向 0.5 底边锚定、5 秒残影与末 1 秒渐隐；默认绘制已递归实例化根与任意深度附件，`SetRenderScale` 同时覆盖 `InstanceRecord` 与 `-NoInstance` 矩阵兜底；冰车已成为首个正式调用方，巨人和投篮车仍未实现
 - [Windows 中央存档目录与旧档安全迁移](project_pvz_save_location_migration.md) — 2026-07-21 Windows 正式存档改到 `FOLDERID_SavedGames/PlantsVsZombies/saves`；首次访问旧 `./saves` 时复制、逐字节校验、再删源文件，冲突不覆盖、失败逐文件回退；AutoTest/`-AutoTestLoadSave` 继续隔离在构建目录
-- [第三大关泳池基础系统](project_pvz_pool_basics.md) — 2026-07-24 当前范围 3-1～3-4：`WATER_POOL` 六行网格、原版 15×5 三层 GPU 动态水面、睡莲双层占格、前 4 波仅陆路、`Zombie` 通用入水/阴影/shader 水线裁剪、普通/路障/铁桶水路版本、水中爆炸无烧焦残影、PoolCleaner 与旧档边界；日间天降普通阳光改为14秒，泳池另每13秒在水面生成15点小阳光且两套倒计时入档；水路 Transform 保留+25px美术下沉，基础碰撞框通过 `GetZombieCollisionY` 回归逻辑行，樱桃爆炸纵向命中也按植物±1逻辑行非视觉Y；普通/精英撑杆的一次性跳跃均防组合回调或入水切换抢占轨道
+- [第三大关泳池基础系统](project_pvz_pool_basics.md) — 2026-07-26 当前范围 3-1～3-5：`WATER_POOL` 六行网格、原版 15×5 三层 GPU 动态水面、睡莲双层占格、前 4 波仅陆路、`Zombie` 通用入水/阴影/shader 水线裁剪、普通/路障/铁桶水路版本、水中爆炸无烧焦残影、PoolCleaner 与旧档边界；3-5 引入仅陆路生成的冰车，出怪表为普通/路障/铁桶/冰车；日间天降普通阳光14秒，泳池另每13秒在水面生成15点小阳光；水路 Transform 保留+30px美术下沉，碰撞仍回归逻辑行
 - [通用 shader ClipRect](project_pvz_shader_clip_rect.md) — 2026-07-23 `PushClipRect/PopClipRect` 全部改为逐顶点/逐实例 framebuffer 矩形裁剪；不再 flush、切 draw、录 worker 状态命令或动态改 scissor；覆盖水路、伴舞出土、图鉴格窗、粒子阻断，含延迟文字继承与无裁剪片元快路径
 - [冒险第二大关起雨势天气](project_pvz_night_rain_weather.md) — 2026-07-24 天气从冒险 2-1 起按 `Board::SupportsWeather` 启用，包括日间泳池；大雨前 5 秒按待生效台风等级显示四档古风文字警报，每档 3 句随机且与图片提示并存，待生效初态/文案编号随档保存；后期导演满压力天气权重 0/10/25/65、台风权重 15/45/40；水草抓取倒计时复用植物行动倍率而下沉保持真实速度
 - [精英舞王僵尸](project_pvz_elite_dancer_zombie.md) — 2026-07-22 当前为黑夜大雨任意台风 60% 变异、每波最多 3 只；超额成功变异候选源头跳过、不回退普通舞王，未命中变异仍正常刷新；720 HP、基础1.25、每0.2秒补伴舞至36只，强/超强台风再乘1.45/1.75；专项可见 AutoTest 通过
