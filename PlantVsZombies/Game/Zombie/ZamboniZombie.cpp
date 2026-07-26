@@ -16,10 +16,9 @@
 
 namespace {
 	constexpr int kZamboniHealth = 1350;                 // 原版冰车本体血量
-	constexpr float kZamboniAnimationSpeed = 12.0f;      // anim_drive 的原版播放速度
-	constexpr float kFastDriveSpeed = 25.0f;             // 出生区冰车最高前进速度，单位 px/s
-	constexpr float kSlowDriveSpeed = 5.0f;              // 速度曲线在地图基准后 300px 处的理论下限，单位 px/s
-	constexpr float kInnerDriveSpeed = 10.0f;            // 进入地图基准后 x<=400 区域的固定速度，单位 px/s
+	constexpr float kFastDriveSpeed = 28.0f;             // 出生区冰车最高前进速度，单位 px/s
+	constexpr float kSlowDriveSpeed = 10.0f;              // 速度曲线在地图基准后 300px 处的理论下限，单位 px/s
+	constexpr float kInnerDriveSpeed = 15.0f;            // 进入地图基准后 x<=400 区域的固定速度，单位 px/s
 	constexpr float kDriveCurveLeftFromBaseX = 300.0f;   // 线性速度曲线左端相对当前地图坐标基准的 X
 	constexpr float kDriveCurveRightFromBaseX = 700.0f;  // 线性速度曲线右端相对当前地图坐标基准的 X
 	constexpr float kDriveCurveStopFromBaseX = 400.0f;   // 越过该相对位置后不再重算速度
@@ -41,7 +40,7 @@ namespace {
 	constexpr int kCriticalDamageRollMax = 4;             // 每次更新 1/5 概率自损
 	constexpr float kDeathEffectFromVisualX = 12.0f;      // C# 爆炸点换算到车辆稳定视觉原点后的 X，单位 px
 	constexpr float kDeathEffectFromVisualY = 73.0f;      // C# 换算值 83px 再按主人要求上移 10px 后的 Y
-	constexpr float kCharredScale = 0.9f;                 // 主人指定的冰车专属灰烬缩放
+	constexpr float kCharredScale = 0.94f;                 // 冰车专属灰烬缩放
 	constexpr float kCharredScaleAnchorOffsetY = 18.0f;   // 0.9 缩放后补回轮胎落地点，单位 px
 
 	float HorizontalOverlap(const SDL_FRect& a, const SDL_FRect& b)
@@ -61,7 +60,7 @@ void ZamboniZombie::SetupZombie()
 	mHasHead = true;
 
 	if (mAnimator) {
-		SetAnimationSpeed(kZamboniAnimationSpeed);
+		SetAnimationSpeed(GameRandom::Range(0.7f, 0.9f));
 		PlayTrack("anim_drive");
 	}
 	if (mCollider) {

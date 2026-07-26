@@ -99,7 +99,7 @@
   {
     "level": 20,
     "waves": 15,
-    "zombies": [0, 1, 4, 3, 9]
+    "zombies": [0, 1, 4, 3]
   },
   {
     "level": 21,

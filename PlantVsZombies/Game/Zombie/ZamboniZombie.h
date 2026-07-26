@@ -17,7 +17,6 @@ public:
 	void StartEat(ColliderComponent* other) override;
 	void SetCooldown(float timer) override {}
 
-	bool TakePlantInstantKill() override { return false; }
 	bool CanBeCharmed() const override { return false; }
 	bool CanBeChilled() const override { return false; }
 	bool CanBeFrozen() const override { return false; }
