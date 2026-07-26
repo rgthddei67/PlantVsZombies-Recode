@@ -73,6 +73,7 @@ private:
 	/** @brief 恢复地刺爆胎后的扁胎与碰撞终态。 */
 	void ApplyCaltropPuncturePresentation() const;
 
+	float mSelfBrokenTimer = 0.0f;	// 自损时间判定计时器
 	float mSmokeTimer = 0.0f;
 	Vector mDamageShakeOffset;
 	bool mSuppressDeathEffects = false;

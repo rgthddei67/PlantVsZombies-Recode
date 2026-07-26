@@ -36,6 +36,7 @@ namespace {
 	constexpr float kSmokeFromVisualX = -41.0f;           // C# 800×600 冒烟点换算到稳定视觉原点后的 X，单位 px
 	constexpr float kSmokeFromVisualY = 95.0f;            // C# 800×600 冒烟点换算到稳定视觉原点后的 Y，单位 px
 	constexpr int kCriticalHealth = 200;                  // 低于该血量时车辆持续抖动并自损
+	constexpr float kCriticalBrokenTime = 0.1f;			 // 低血量自损判定间隔，单位秒
 	constexpr float kCriticalShakeAmplitude = 0.35f;      // 低血量故障抖动幅度，单位 px；避免整车每帧 1px 跳变过强
 	constexpr int kCriticalSelfDamage = 3;                // 原版高血量车辆每次自损值
 	constexpr int kCriticalDamageRollMax = 4;             // 每次更新 1/5 概率自损
@@ -164,12 +165,18 @@ void ZamboniZombie::ZombieUpdate(float scaledTime)
 		return;
 	}
 
-	if (mBodyHealth < kCriticalHealth) {
-		mDamageShakeOffset = Vector(
-			GameRandom::Range(-kCriticalShakeAmplitude, kCriticalShakeAmplitude),
-			GameRandom::Range(-kCriticalShakeAmplitude, kCriticalShakeAmplitude));
-		if (GameRandom::Range(0, kCriticalDamageRollMax) == 0) {
-			TakeBodyDamage(kCriticalSelfDamage);
+	if (mBodyHealth < kCriticalHealth) 
+	{
+		mSelfBrokenTimer += scaledTime;
+		if (mSelfBrokenTimer >= kCriticalBrokenTime)
+		{
+			mSelfBrokenTimer = 0.0f;
+			mDamageShakeOffset = Vector(
+				GameRandom::Range(-kCriticalShakeAmplitude, kCriticalShakeAmplitude),
+				GameRandom::Range(-kCriticalShakeAmplitude, kCriticalShakeAmplitude));
+			if (GameRandom::Range(0, kCriticalDamageRollMax) == 0) {
+				TakeBodyDamage(kCriticalSelfDamage);
+			}
 		}
 	}
 	else {
