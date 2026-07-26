@@ -1,0 +1,38 @@
+<Emitter>
+  <Name>ZamboniTire</Name>
+  <SpawnMinActive>10</SpawnMinActive>
+  <SpawnMaxLaunched>10</SpawnMaxLaunched>
+  <ParticleDuration>[.3 .4]</ParticleDuration>
+  <ParticleAlpha>1,70 0</ParticleAlpha>
+  <ParticleScale>[.5 .6]</ParticleScale>
+  <EmitterType>Circle</EmitterType>
+  <EmitterRadius>[0 10]</EmitterRadius>
+  <LaunchSpeed>[50 200]</LaunchSpeed>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <ParticleSpinSpeed>[-720 720]</ParticleSpinSpeed>
+  <SystemDuration>.45</SystemDuration>
+  <Image>PARTICLE_DIRTSMALL_PART_0,PARTICLE_DIRTSMALL_PART_1,PARTICLE_DIRTSMALL_PART_2,PARTICLE_DIRTSMALL_PART_3,PARTICLE_DIRTSMALL_PART_4,PARTICLE_DIRTSMALL_PART_5,PARTICLE_DIRTSMALL_PART_6,PARTICLE_DIRTSMALL_PART_7,PARTICLE_DIRTSMALL_PART_8,PARTICLE_DIRTSMALL_PART_9,PARTICLE_DIRTSMALL_PART_10,PARTICLE_DIRTSMALL_PART_11,PARTICLE_DIRTSMALL_PART_12,PARTICLE_DIRTSMALL_PART_13,PARTICLE_DIRTSMALL_PART_14,PARTICLE_DIRTSMALL_PART_15</Image>
+  <Field>
+    <FieldType>Acceleration</FieldType>
+    <Y>5</Y>
+  </Field>
+</Emitter>
+<Emitter>
+  <Name>ZamboniTireSmoke</Name>
+  <SpawnMinActive>[6 10]</SpawnMinActive>
+  <SpawnMaxLaunched>10</SpawnMaxLaunched>
+  <ParticleDuration>[.4 .6]</ParticleDuration>
+  <ParticleAlpha>1,50 0</ParticleAlpha>
+  <ParticleScale>0 [.8 1.2],20 [.6 1.0],65 0,100</ParticleScale>
+  <EmitterType>Circle</EmitterType>
+  <EmitterRadius>[0 10]</EmitterRadius>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <ParticleSpinSpeed>[-100 100]</ParticleSpinSpeed>
+  <SystemDuration>.65</SystemDuration>
+  <Image>PARTICLE_ZAMBONISMOKE_PART_0,PARTICLE_ZAMBONISMOKE_PART_1,PARTICLE_ZAMBONISMOKE_PART_2</Image>
+  <Field>
+    <FieldType>Position</FieldType>
+    <X>0 [20 80]</X>
+    <Y>0 [-10 30]</Y>
+  </Field>
+</Emitter>

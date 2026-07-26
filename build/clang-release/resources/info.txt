@@ -92,6 +92,11 @@
 [PLANT_JALAPENO_DESCRIPTION]
 火爆辣椒可以摧毁一整条线上的僵尸。伤害极高，一次性使用。“嘎嘎嘎嘎嘎嘎嘎！！！”火爆辣椒说。他现在不会爆炸，因为还不到时候，不过快了，喔~，快了快了，快到了。是的，他感受到了，他一生都在等待这个时刻！
 
+[PLANT_SPIKEWEED]
+地刺
+[PLANT_SPIKEWEED_DESCRIPTION]
+地刺会伤害所有踩到他的僵尸，普通僵尸无法啃食他。冰车碾过地刺时会被扎破轮胎，但地刺也会随之消失。“交通安全，”地刺说，“要从检查轮胎开始。”
+
 [ZOMBIE_NORMAL]
 僵尸
 [ZOMBIE_NORMAL_DESCRIPTION]

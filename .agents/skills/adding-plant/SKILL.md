@@ -35,6 +35,7 @@ description: Use when adding ANY new plant (新增植物) to PvZ — 射手/生�
 8. **帧事件是全局帧号、跨轨道通用**（`Animator::mFrameEvents` 只按 int 帧号，不分轨道）：定下触发帧后必须核对**其他 anim 轨的活跃窗口扫不到它**（毁灭菇 51=explode(19..51) 末帧，sleep(52..76)/idle(0..19) 都够不着才安全；末帧触发安全——普通前进与循环回绕分支都覆盖）。原版动画速率≠reanim 基础 fps 时，用 `PlayTrack(track, 原版fps/reanim fps)` 折算（毁灭菇 23/12≈1.92）。
 9. **整株世界变换必须覆盖复合 Animator 的两条 A/B 路径**：默认路径会把根 Animator 与任意深度附件按轨道顺序递归写入 GPU `InstanceRecord`，`-NoInstance` 才整棵走矩阵慢路径；外层 `Graphics` 变换栈不会覆盖默认实例路径。应在 `Animator` 最终矩阵/`InstanceRecord` 两处统一实现世界变换，并递归同步现有与以后附加的子 Animator；AutoTest 同时断言根/子变换，默认与 `-NoInstance` 都要逐张检查截图。
 10. **C# 复合头附件要补 `inverse(basePose)`**：C# `AttachToAnotherReanimation` 的附件矩阵是父轨道当前姿态乘基准姿态逆矩阵，而本项目 `AttachAnimator` 目前只直接乘父轨道当前姿态。子 reanim 仍使用整株绝对坐标时，必须从根返回/待机轨首帧读取每条附件轨各自的基准姿态并在子 Animator 局部变换中抵消；基准旋转/缩放为单位时就是 `SetLocalPosition(-baseX, -baseY)`。不能给多个头套同一个 `gamedata` 偏移，否则某个头会与茎错位；默认和射击轨都要可见截图校对。
+11. **不可啃食植物覆写 `CanBeEaten()`，不要在僵尸索敌处堆类型表**：植物自己声明契约，普通啃食路径会统一跳过；AutoTest 同时断言植物 `canBeEaten=false`、`eaterCount=0`、僵尸 `isEating=false` 和植物生命不变，防止只有视觉没播啃食但伤害仍在结算。
 
 ## 存读档心智清单（AutoTest 测不到，只能靠脑内过一遍）
 
@@ -65,6 +66,7 @@ AutoTest 模式存档读写被短路 = **盲区**；写完必须逐条自查，�
 | **新粒子特效/染色变种** | IceFumeCloud（寒冰大喷菇） | XML 标签全参考在 **adding-particle skill**，勿再读 ParticleSystem 源码 |
 | **TakeDamage 类钩子** | FumeShroom 的 `penetrateShield` 参数 | 穿透只对二类护盾（门/报纸），不穿头盔；改签名先看全部调用点 |
 | **即时/范围结算** | CherryBomb/大喷菇锥形 | 帧事件触发结算帧（帧号问主人），范围判定用行桶不全扫 |
+| **目标类型拥有特殊受击语义** | Caltrop → `ZamboniZombie::HandleCaltropHit` | 植物只负责命中与派发，目标基类拥有虚事件并处理消耗植物/动画/存活；精英变体覆写目标方法，禁止在植物攻击函数里继续堆具体精英类型分支 |
 
 **僵尸新状态效果专属清单**（血泪教训浓缩）：
 

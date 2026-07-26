@@ -108,6 +108,7 @@ namespace ResourceKeys
 		RKEY(IMAGE_ZOMBIE_PINKFOOTBALL_LEFTARM_UPPER2);
 		RKEY(IMAGE_ZOMBIE_PINKFOOTBALL_HELMET2);
 		RKEY(IMAGE_ZOMBIE_PINKFOOTBALL_HELMET3);
+		RKEY(IMAGE_ZOMBIE_ZAMBONI_WHEEL_FLAT);
 		RKEY(IMAGE_ZOMBIE_JACKSON_OUTERARM_UPPER2);
 		RKEY(IMAGE_ZOMBIE_LADDER_OUTERARM_UPPER2);
 		RKEY(IMAGE_ZOMBIE_OUTERARM_UPPER2);
@@ -153,6 +154,7 @@ namespace ResourceKeys
 		RKEY(IMAGE_THREEPEATER);
 		RKEY(IMAGE_TANGLEKELP);
 		RKEY(IMAGE_JALAPENO);
+		RKEY(IMAGE_CALTROP);
 		RKEY(IMAGE_TORCHWOOD);
 	}
 
@@ -162,6 +164,7 @@ namespace ResourceKeys
 		inline const std::string PARTICLE_ZOMBIE_HEAD = "PARTICLE_ZOMBIEHEAD";
 		RKEY(PARTICLE_EXPLOSIONCLOUD);
 		RKEY(PARTICLE_ZAMBONISMOKE);
+		RKEY(PARTICLE_DIRTSMALL);
 		RKEY(PARTICLE_ZOMBOSS_PARTICLES_PART_0);
 		RKEY(PARTICLE_ZOMBOSS_PARTICLES_PART_1);
 		RKEY(PARTICLE_ZOMBOSS_PARTICLES_PART_2);
@@ -241,6 +244,7 @@ namespace ResourceKeys
 		RKEY(SOUND_JALAPENO);				// 火爆辣椒点燃整行（原版 jalapeno.ogg）
 		RKEY(SOUND_JUICY);					// 一次性植物爆发时的汁液声（原版 juicy.ogg）
 		RKEY(SOUND_ZAMBONI);				// 冰车驾驶声
+		RKEY(SOUND_BALLOON_POP);				// 原版 TirePop Foley 使用的车辆爆胎声
 		RKEY(SOUND_EXPLOSION);				// 冰车爆炸声
 
 		// 子弹击中僵尸
@@ -286,6 +290,7 @@ namespace ResourceKeys
 		inline const std::string REANIM_TANGLEKELP = "Tanglekelp";
 		inline const std::string REANIM_JALAPENO = "Jalapeno";
 		inline const std::string REANIM_JALAPENO_FIRE = "Fire";
+		inline const std::string REANIM_CALTROP = "Caltrop";
 
 		inline const std::string REANIM_NORMAL_ZOMBIE = "NormalZombie";
 		inline const std::string REANIM_CONE_ZOMBIE = "ConeZombie";

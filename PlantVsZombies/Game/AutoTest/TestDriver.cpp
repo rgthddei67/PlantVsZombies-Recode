@@ -19,6 +19,7 @@
 #include "../Plant/Squash.h"
 #include "../Plant/ThreePeater.h"
 #include "../Plant/TangleKelp.h"
+#include "../Plant/Caltrop.h"
 #include "../Plant/Shooter.h"
 #include "../Plant/EliteScaredyShroom.h"
 #include "../Bullet/Bullet.h"
@@ -1209,8 +1210,12 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		? g_particleSystem->GetEffectActiveParticleCount("ZamboniExplosion") : 0;
 	out["zamboniSmokeParticleCount"] = g_particleSystem
 		? g_particleSystem->GetEffectActiveParticleCount("ZamboniSmoke") : 0;
+	out["zamboniTireParticleCount"] = g_particleSystem
+		? g_particleSystem->GetEffectActiveParticleCount("ZamboniTire") : 0;
 	out["cooldownZombieSoundRequestCount"] =
 		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_COOLDOWNZOMBIE);
+	out["caltropTirePopSoundRequestCount"] =
+		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_BALLOON_POP);
 
 	out["iceTrails"] = nlohmann::json::array();
 	for (int row = 0; row < board->mRows; ++row) {
@@ -1331,6 +1336,9 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		}
 		if (auto* zamboni = dynamic_cast<ZamboniZombie*>(z)) {
 			zombieState["zamboniDamageStage"] = zamboni->GetDamageStage();
+			zombieState["zamboniPuncturedByCaltrop"] = zamboni->IsPuncturedByCaltrop();
+			zombieState["zamboniCaltropDeathRemainingMs"] = static_cast<int>(std::lround(
+				zamboni->GetCaltropDeathTimer() * 1000.0f));
 			zombieState["zamboniDriveSpeedOn1000"] = static_cast<int>(std::lround(
 				zamboni->GetDriveSpeed() * 1000.0f));
 			zombieState["zamboniDriveCoordinateBaseXInt"] = static_cast<int>(std::lround(
@@ -1423,6 +1431,11 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			plantState["tangleKelpTargetZombieID"] = tangleKelp->GetTargetZombieID();
 			plantState["tangleKelpGrabRemainingMs"] =
 				tangleKelp->GetGrabTimeRemainingMs();
+		}
+		if (auto* caltrop = dynamic_cast<Caltrop*>(p)) {
+			plantState["caltropAttackCooldownMs"] = static_cast<int>(std::lround(
+				caltrop->GetAttackCooldown() * 1000.0f));
+			plantState["canBeEaten"] = caltrop->CanBeEaten();
 		}
 		if (auto* threePeater = dynamic_cast<ThreePeater*>(p)) {
 			if (const Animator* head1 = threePeater->GetHeadAnimator()) {

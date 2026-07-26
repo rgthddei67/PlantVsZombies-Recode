@@ -8,6 +8,7 @@
 #include "../Board.h"
 #include "../GameObjectManager.h"
 #include "../ShadowComponent.h"
+#include "../Plant/Caltrop.h"
 #include "../Plant/Plant.h"
 #include "ZamboniCharred.h"
 
@@ -42,6 +43,13 @@ namespace {
 	constexpr float kDeathEffectFromVisualY = 73.0f;      // C# 换算值 83px 再按主人要求上移 10px 后的 Y
 	constexpr float kCharredScale = 0.94f;                 // 冰车专属灰烬缩放
 	constexpr float kCharredScaleAnchorOffsetY = 18.0f;   // 0.9 缩放后补回轮胎落地点，单位 px
+	constexpr float kCaltropDeathDelaySeconds = 2.8f;     // C# mPhaseCounter=280：爆胎后延迟爆炸时间，单位秒
+	constexpr float kWheelie1AnimationSpeed = 0.4f;       // C# 12fps / 冰车 reanim 30fps
+	constexpr float kWheelie2AnimationSpeed = 1.0f / 3.0f; // C# 10fps / 冰车 reanim 30fps
+	constexpr float kWheelie2MaxFromBaseX = 600.0f;       // C# 稀有 wheelie2 仅在基准后 600px 内抽取
+	constexpr int kWheelie2RollMax = 3;                   // 0..3 命中 0，即原版 1/4 概率
+	constexpr float kTireEffectFromVisualX = 29.0f;       // 爆胎碎屑相对车辆稳定视觉原点的 X，单位 px
+	constexpr float kTireEffectFromVisualY = 114.0f;      // 爆胎碎屑相对车辆稳定视觉原点的 Y，单位 px
 
 	float HorizontalOverlap(const SDL_FRect& a, const SDL_FRect& b)
 	{
@@ -84,7 +92,7 @@ void ZamboniZombie::SetupZombie()
 
 void ZamboniZombie::ZombieMove(float scaledDelta, TransformComponent* transform)
 {
-	if (!transform || scaledDelta <= 0.0f) return;
+	if (!transform || scaledDelta <= 0.0f || mPuncturedByCaltrop) return;
 
 	const float x = transform->GetPosition().x;
 	const float coordinateBaseX = GetDriveCoordinateBaseX();
@@ -125,8 +133,10 @@ void ZamboniZombie::ZombieUpdate(float scaledTime)
 
 	const Vector position = GetPosition();
 	const Vector stableVisualOrigin = position + mVisualOffset;
-	mBoard->ExtendIceTrail(mRow, stableVisualOrigin.x + kIceFrontFromVisualX);
-	CrushPlants();
+	if (!mPuncturedByCaltrop) {
+		mBoard->ExtendIceTrail(mRow, stableVisualOrigin.x + kIceFrontFromVisualX);
+		CrushPlants();
+	}
 
 	if (GetDamageStage() >= 2) {
 		mSmokeTimer -= scaledTime;
@@ -140,6 +150,14 @@ void ZamboniZombie::ZombieUpdate(float scaledTime)
 	}
 	else {
 		mSmokeTimer = 0.0f;
+	}
+
+	if (mPuncturedByCaltrop) {
+		mCaltropDeathTimer = std::max(0.0f, mCaltropDeathTimer - scaledTime);
+		if (mCaltropDeathTimer <= 0.0f) {
+			Die();
+		}
+		return;
 	}
 
 	if (mBodyHealth < kCriticalHealth) {
@@ -157,7 +175,7 @@ void ZamboniZombie::ZombieUpdate(float scaledTime)
 
 void ZamboniZombie::TakeBodyDamage(int damage)
 {
-	if (damage <= 0 || mIsDead) return;
+	if (damage <= 0 || mIsDead || mPuncturedByCaltrop) return;
 	mBodyHealth = std::max(0, mBodyHealth - damage);
 	ApplyDamageVisuals();
 	if (mBodyHealth <= 0) {
@@ -186,9 +204,24 @@ void ZamboniZombie::ApplyDamageVisuals() const
 		std::string("IMAGE_ZOMBIE_ZAMBONI_2_") + suffix));
 }
 
+void ZamboniZombie::ApplyCaltropPuncturePresentation() const
+{
+	if (!mAnimator) return;
+	const Texture* flatWheel = ResourceManager::GetInstance().GetTexture(
+		ResourceKeys::Textures::IMAGE_ZOMBIE_ZAMBONI_WHEEL_FLAT);
+	mAnimator->SetTrackImage("Zombie_zamboni_wheel1", flatWheel);
+	mAnimator->SetTrackImage("Zombie_zamboni_wheel2", flatWheel);
+	if (mCollider) {
+		mCollider->mEnabled = false;
+	}
+}
+
 void ZamboniZombie::ZombieItemUpdate() const
 {
 	ApplyDamageVisuals();
+	if (mPuncturedByCaltrop) {
+		ApplyCaltropPuncturePresentation();
+	}
 }
 
 bool ZamboniZombie::CanCrushPlant(const Plant* plant) const
@@ -204,7 +237,6 @@ bool ZamboniZombie::CanCrushPlant(const Plant* plant) const
 		return plant->GetSleepState();
 	case PlantType::PLANT_SPIKEWEED:
 	case PlantType::PLANT_SPIKEROCK:
-		// TODO: 地刺草/地刺王实现后，在这里接入原版爆胎、轮胎粒子与延迟死亡流程。
 		return false;
 	default:
 		return true;
@@ -231,6 +263,34 @@ void ZamboniZombie::CrushPlants()
 			plant->Squish();
 		}
 	}
+}
+
+void ZamboniZombie::HandleCaltropHit(Caltrop& caltrop)
+{
+	if (mIsDead || mPuncturedByCaltrop) return;
+
+	// C# 的 bit5 地刺伤害由车辆拥有：普通地刺先消失，车辆再进入专属爆胎阶段。
+	caltrop.Die();
+	mPuncturedByCaltrop = true;
+	mCaltropDeathTimer = kCaltropDeathDelaySeconds;
+	mBodyHealth = 0;
+	mDriveSpeed = 0.0f;
+	mDamageShakeOffset = Vector::zero();
+	ApplyDamageVisuals();
+	ApplyCaltropPuncturePresentation();
+	// 原版 TirePop Foley 实际复用 balloon_pop；只在首次成功爆胎时播放。
+	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_BALLOON_POP, 0.5f);
+	if (g_particleSystem) {
+		const Vector stableVisualOrigin = GetPosition() + mVisualOffset;
+		g_particleSystem->EmitEffect("ZamboniTire",
+			stableVisualOrigin + Vector(kTireEffectFromVisualX, kTireEffectFromVisualY));
+	}
+
+	const bool useWheelie2 = GetPosition().x
+		< GetDriveCoordinateBaseX() + kWheelie2MaxFromBaseX
+		&& GameRandom::Range(0, kWheelie2RollMax) == 0;
+	PlayTrackOnce(useWheelie2 ? "anim_wheelie2" : "anim_wheelie1", "",
+		useWheelie2 ? kWheelie2AnimationSpeed : kWheelie1AnimationSpeed, 0.1f);
 }
 
 void ZamboniZombie::Die()
@@ -277,10 +337,20 @@ Vector ZamboniZombie::GetVisualPosition() const
 void ZamboniZombie::SaveExtraData(nlohmann::json& j) const
 {
 	j["smokeTimer"] = mSmokeTimer;
+	j["puncturedByCaltrop"] = mPuncturedByCaltrop;
+	j["caltropDeathTimer"] = mCaltropDeathTimer;
 }
 
 void ZamboniZombie::LoadExtraData(const nlohmann::json& j)
 {
 	mSmokeTimer = std::clamp(j.value("smokeTimer", 0.0f), 0.0f, kSmokeInterval);
+	mPuncturedByCaltrop = j.value("puncturedByCaltrop", false);
+	mCaltropDeathTimer = std::clamp(
+		j.value("caltropDeathTimer", 0.0f), 0.0f, kCaltropDeathDelaySeconds);
 	ApplyDamageVisuals();
+	if (mPuncturedByCaltrop) {
+		mDriveSpeed = 0.0f;
+		mDamageShakeOffset = Vector::zero();
+		ApplyCaltropPuncturePresentation();
+	}
 }

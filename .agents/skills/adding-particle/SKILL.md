@@ -116,7 +116,7 @@ description: Use when adding or tuning ANY particle effect (粒子特效) in PvZ
 2. **EmitterOffsetX/Y 在坐标系换算后减半**（本引擎双倍生效，foot-gun ②）：先求相对当前稳定锚点的目标局部偏移，再把该局部值除以 2；禁止机械套用原版绝对数值。
 3. **SystemField/SystemPosition 折算进 EmitterOffset**（本引擎不消费）：先把原版 SystemPosition 的视觉语义换算到当前 1100×600 场景/对象锚点，再与局部 EmitterOffset 合并并按双倍生效规则减半。
 4. `FullScreen` 闪光 → `ParticleScale 4000` + WhitePixel（1×1 白图，键 PARTICLE_WHITEPIXEL），RGB/Alpha 轨迹原样保留。
-5. `AnimationRate`/`ImageFrames` **原值照抄**（单位本就是帧/秒）；对应贴图整图入库**不加 Column 属性**（切开就不是帧条了）。
+5. `AnimationRate`/`ImageFrames` 仅对**单行横排帧条**原值照抄（单位本就是帧/秒），对应贴图整图入库不加 Column 属性。若原版另带 `ImageRow` 或贴图实际为多行帧表，本引擎 `ImageFrames` 没有选行能力；需要静态随机碎片时改用 `<Texture Column="帧数" Row="行数">` 并枚举所需 `PARTICLE_*_PART_n`，需要逐帧动画则先产出单行权威贴图，禁止把多行整图直接交给 `ImageFrames`。
 6. 负数区间改升序（foot-gun ⑧）；`Image` 键按素材入库段落改前缀（IMAGE_/PARTICLE_）。
 7. **特效名=第一个 Emitter 的 Name**：把首发射器 Name 改成 EmitEffect 要用的名字（Doom.xml 首发射器 DoomStem→"Doom"）。
 

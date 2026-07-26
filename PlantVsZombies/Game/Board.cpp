@@ -27,6 +27,19 @@
 #include <cmath>       // std::lround
 
 namespace {
+	/** 集中保留地刺系的背景地形规则；未实装的最后地形当前仍按普通地面处理。 */
+	bool IsSpikeweedTerrainRestricted(Background background)
+	{
+		switch (background) {
+		case Background::ROOF:
+		case Background::NIGHT_ROOF:
+			// 预留给最后地形：资源和玩法落地后只需在这里启用对应限制。
+			return false;
+		default:
+			return false;
+		}
+	}
+
 	constexpr float kPoolCellInitialY = 85.0f;            // 泳池背景共用的六行网格首行顶部世界坐标（像素）
 	constexpr float kPoolCellHeight = 85.0f;              // 泳池六行的逻辑格高（像素）；列宽仍保持 80
 	constexpr float kZombieSpawnBaseOffsetY = 2.0f;       // 第一、二大关已确认正确的僵尸行中心统一基线（像素）
@@ -2321,6 +2334,13 @@ bool Board::CanPlantAt(PlantType type, int row, int col)
 	if (!cell || HasCraterAt(row, col)) return false;
 
 	const bool isWater = IsPoolSquare(row, col);
+	if ((type == PlantType::PLANT_SPIKEWEED
+		|| type == PlantType::PLANT_SPIKEROCK)
+		&& (isWater || IsSpikeweedTerrainRestricted(mBackGround))) {
+		// 当前已实现地形里只收紧水路：地刺系不能隔着睡莲直接扎水面。
+		// 最后一类地形的入口保留在 IsSpikeweedTerrainRestricted，现阶段继续按普通地面处理。
+		return false;
+	}
 	if (type == PlantType::PLANT_LILYPAD
 		|| type == PlantType::PLANT_TANGLEKELP) {
 		// 水草与睡莲都是直接落水的植物；水草占普通层，因此空格判断也同时禁止叠在睡莲上。

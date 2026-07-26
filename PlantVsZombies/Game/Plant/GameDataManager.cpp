@@ -34,6 +34,7 @@
 #include "ThreePeater.h"
 #include "TangleKelp.h"
 #include "Jalapeno.h"
+#include "Caltrop.h"
 
 #include "../Zombie/Zombie.h"
 #include "../Zombie/ConeZombie.h"
@@ -215,6 +216,11 @@ void GameDataManager::InitializeHardcodedData() {
 		ResourceKeys::Textures::IMAGE_JALAPENO,
 		AnimationType::ANIM_JALAPENO,
 		ResourceKeys::Reanimations::REANIM_JALAPENO, &MakePlant<Jalapeno>);
+
+	RegisterPlant(PlantType::PLANT_SPIKEWEED, "PLANT_SPIKEWEED",
+		ResourceKeys::Textures::IMAGE_CALTROP,
+		AnimationType::ANIM_CALTROP,
+		ResourceKeys::Reanimations::REANIM_CALTROP, &MakePlant<Caltrop>);
 
 	// 寒冰大喷菇：复用大喷菇 reanim（蓝色靠 overlay），仅卡图独立
 	RegisterPlant(PlantType::PLANT_ICEFUMESHROOM, "PLANT_ICEFUMESHROOM",

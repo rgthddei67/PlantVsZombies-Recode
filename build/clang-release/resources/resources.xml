@@ -172,6 +172,7 @@
     <Texture Column="3" Row="1">./resources/particles/snowpea_particles.png</Texture>
     <Texture>./resources/particles/ExplosionCloud.png</Texture>
     <Texture>./resources/particles/ExplosionSpudow.png</Texture>
+    <Texture Column="8" Row="2">./resources/particles/DirtSmall.png</Texture>
     <Texture Column="3" Row="1">./resources/particles/ZamboniSmoke.png</Texture>
     <Texture Column="5" Row="1">./resources/particles/Zomboss_particles.png</Texture>
     <Texture>./resources/particles/ZombieBackupDancerHead.png</Texture>
@@ -247,6 +248,7 @@
     <Sound>./resources/sounds/Zombie/newspaper_rarrgh2.ogg</Sound>
     <Sound>./resources/sounds/Zombie/floop.ogg</Sound>
     <Sound>./resources/sounds/Zombie/zamboni.ogg</Sound>
+    <Sound>./resources/sounds/Zombie/balloon_pop.ogg</Sound>
     <Sound>./resources/sounds/Zombie/explosion.ogg</Sound>
 
     <Sound>./resources/sounds/Plant/ClickSeed.ogg</Sound>
@@ -321,6 +323,7 @@
     <Reanimation name="ThreePeater">./resources/reanim/ThreePeater.reanim</Reanimation>
     <Reanimation name="Tanglekelp">./resources/reanim/Tanglekelp.reanim</Reanimation>
     <Reanimation name="Jalapeno">./resources/reanim/Jalapeno.reanim</Reanimation>
+    <Reanimation name="Caltrop">./resources/reanim/Caltrop.reanim</Reanimation>
 
     <Reanimation name="NormalZombie">./resources/reanim/NormalZombie.reanim</Reanimation>
     <Reanimation name="ConeZombie">./resources/reanim/ConeZombie.reanim</Reanimation>

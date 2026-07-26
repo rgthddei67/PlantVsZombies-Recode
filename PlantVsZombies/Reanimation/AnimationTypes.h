@@ -56,6 +56,7 @@ enum class AnimationType
 	ANIM_JALAPENO_FIRE, // 火爆辣椒整行火焰；非实体瞬时动画
 	ANIM_ZAMBONI_ZOMBIE, // 经典冰车僵尸；追加在末尾避免旧动画枚举值错位
 	ANIM_ZAMBONI_CHARRED, // 冰车专属灰烬残骸；第 53 帧回收
+	ANIM_CALTROP, // 经典地刺；追加在末尾避免旧动画枚举值错位
 };
 
 #endif
