@@ -98,22 +98,22 @@
   },
   {
     "level": 20,
-    "waves": 15,
-    "zombies": [0, 1, 4, 3]
+    "waves": 20,
+    "zombies": [0, 1, 3, 4]
   },
   {
     "level": 21,
     "waves": 20,
-    "zombies": [0, 1, 2, 7, 6, 17]
+    "zombies": [0, 1, 2, 7, 6, 17, 9]
   },
   {
     "level": 22,
     "waves": 30,
-    "zombies": [0, 1, 2, 3, 11, 13, 17]
+    "zombies": [0, 1, 3, 11, 13, 17]
   },
   {
     "level": 23,
     "waves": 20,
-    "zombies": [0, 1, 3, 18]
+    "zombies": [0, 1, 3, 8, 18]
   }
 ]
