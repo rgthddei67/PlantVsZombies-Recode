@@ -150,6 +150,8 @@ public:
 	float GetCooldownTimer() const { return this->mCooldownTimer; }
 	bool IsFrozen() const { return this->mFrozenTimer > 0.0f; }
 	float GetFrozenTimer() const { return this->mFrozenTimer; }
+	/** 同时清除减速与冻结，并恢复当前天气/能力组合后的动画速度。 */
+	void RemoveColdEffects();
 	/** 当前状态是否满足原版水草的近身锁定条件。 */
 	bool CanBeTargetedByTangleKelp() const;
 	/** 品种特殊阶段过滤点；撑杆跳跃和伴舞出土等状态可覆写。 */

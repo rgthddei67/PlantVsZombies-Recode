@@ -87,6 +87,11 @@
 [PLANT_TANGLEKELP_DESCRIPTION]
 缠绕水草只能种在水中。它会抓住靠近的僵尸，把自己和猎物一同拖入水底。“我不是来交朋友的，”缠绕水草说，“我是来拉人下水的。”
 
+[PLANT_JALAPENO]
+火爆辣椒
+[PLANT_JALAPENO_DESCRIPTION]
+火爆辣椒可以摧毁一整条线上的僵尸。伤害极高，一次性使用。“嘎嘎嘎嘎嘎嘎嘎！！！”火爆辣椒说。他现在不会爆炸，因为还不到时候，不过快了，喔~，快了快了，快到了。是的，他感受到了，他一生都在等待这个时刻！
+
 [ZOMBIE_NORMAL]
 僵尸
 [ZOMBIE_NORMAL_DESCRIPTION]

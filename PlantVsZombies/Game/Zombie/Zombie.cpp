@@ -592,6 +592,18 @@ void Zombie::ClearFrozen()
 	}
 }
 
+void Zombie::RemoveColdEffects()
+{
+	if (mCooldownTimer <= 0.0f && mFrozenTimer <= 0.0f) return;
+
+	mCooldownTimer = 0.0f;
+	mFrozenTimer = 0.0f;
+	UpdateAnimSpeed();
+	if (mAnimator && !mIsMindControlled) {
+		mAnimator->EnableOverlayEffect(false);
+	}
+}
+
 void Zombie::ApplyCharmEffects()
 {
 	// 碰撞：换 CHARMED 层 → 分桶自动落入 seeker 桶（mRowOthers），二分搜同行僵尸；

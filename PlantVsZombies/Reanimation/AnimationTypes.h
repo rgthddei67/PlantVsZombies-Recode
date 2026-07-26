@@ -52,6 +52,8 @@ enum class AnimationType
 	ANIM_THREEPEATER, // 经典三线射手；追加在末尾避免旧动画枚举值错位
 	ANIM_ELITE_POLEVAULTER_ZOMBIE, // 绿色精英撑杆；追加在末尾避免旧动画枚举值错位
 	ANIM_TANGLEKELP, // 经典缠绕水草；追加在末尾避免旧动画枚举值错位
+	ANIM_JALAPENO, // 经典火爆辣椒；追加在末尾避免旧动画枚举值错位
+	ANIM_JALAPENO_FIRE, // 火爆辣椒整行火焰；非实体瞬时动画
 };
 
 #endif

@@ -259,6 +259,8 @@
     <Sound>./resources/sounds/Plant/cherrybomb.ogg</Sound>
     <Sound>./resources/sounds/Plant/doomshroom.ogg</Sound>
     <Sound>./resources/sounds/Plant/reverse_explosion.ogg</Sound>
+    <Sound>./resources/sounds/Plant/jalapeno.ogg</Sound>
+    <Sound>./resources/sounds/Plant/juicy.ogg</Sound>
     <Sound>./resources/sounds/Plant/CHOMPPLANT.ogg</Sound>
     <Sound>./resources/sounds/Plant/plantgrow.ogg</Sound>
     <Sound>./resources/sounds/Plant/fume.ogg</Sound>

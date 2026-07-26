@@ -229,6 +229,8 @@ namespace ResourceKeys
 		RKEY(SOUND_CHERRYBOMB);
 		RKEY(SOUND_DOOMSHROOM);				// 毁灭菇爆炸（原版 doomshroom.ogg）
 		RKEY(SOUND_REVERSE_EXPLOSION);		// 毁灭菇引爆前吸气充能声（原版 reverse_explosion.ogg）
+		RKEY(SOUND_JALAPENO);				// 火爆辣椒点燃整行（原版 jalapeno.ogg）
+		RKEY(SOUND_JUICY);					// 一次性植物爆发时的汁液声（原版 juicy.ogg）
 
 		// 子弹击中僵尸
 		RKEY(SOUND_SNOW_PEA_SPARKLES);
@@ -271,6 +273,8 @@ namespace ResourceKeys
 		inline const std::string REANIM_SQUASH = "Squash";
 		inline const std::string REANIM_THREEPEATER = "ThreePeater";
 		inline const std::string REANIM_TANGLEKELP = "Tanglekelp";
+		inline const std::string REANIM_JALAPENO = "Jalapeno";
+		inline const std::string REANIM_JALAPENO_FIRE = "Fire";
 
 		inline const std::string REANIM_NORMAL_ZOMBIE = "NormalZombie";
 		inline const std::string REANIM_CONE_ZOMBIE = "ConeZombie";

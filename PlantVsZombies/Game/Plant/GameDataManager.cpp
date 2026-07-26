@@ -33,6 +33,7 @@
 #include "Squash.h"
 #include "ThreePeater.h"
 #include "TangleKelp.h"
+#include "Jalapeno.h"
 
 #include "../Zombie/Zombie.h"
 #include "../Zombie/ConeZombie.h"
@@ -209,6 +210,11 @@ void GameDataManager::InitializeHardcodedData() {
 		AnimationType::ANIM_TANGLEKELP,
 		ResourceKeys::Reanimations::REANIM_TANGLEKELP, &MakePlant<TangleKelp>);
 
+	RegisterPlant(PlantType::PLANT_JALAPENO, "PLANT_JALAPENO",
+		ResourceKeys::Textures::IMAGE_JALAPENO,
+		AnimationType::ANIM_JALAPENO,
+		ResourceKeys::Reanimations::REANIM_JALAPENO, &MakePlant<Jalapeno>);
+
 	// 寒冰大喷菇：复用大喷菇 reanim（蓝色靠 overlay），仅卡图独立
 	RegisterPlant(PlantType::PLANT_ICEFUMESHROOM, "PLANT_ICEFUMESHROOM",
 		ResourceKeys::Textures::IMAGE_ICEFUMESHROOM,
@@ -305,6 +311,8 @@ void GameDataManager::InitializeHardcodedData() {
 		ResourceKeys::Reanimations::REANIM_LAWNMOWER;
 	mAnimToString[AnimationType::ANIM_POOL_CLEANER] =
 		ResourceKeys::Reanimations::REANIM_POOL_CLEANER;
+	mAnimToString[AnimationType::ANIM_JALAPENO_FIRE] =
+		ResourceKeys::Reanimations::REANIM_JALAPENO_FIRE;
 
 	mAnimToString[AnimationType::ANIM_NONE] = "Unknown";
 }

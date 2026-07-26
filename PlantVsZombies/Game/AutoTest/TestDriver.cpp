@@ -1186,12 +1186,17 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["spawnTypeCount"] = static_cast<int>(board->GetSpawnZombieList().size());
 
 	int charredZombieCount = 0;
+	int jalapenoFireCount = 0;
 	for (const auto& object : GameObjectManager::GetInstance().GetAllGameObjects()) {
 		if (object && object->IsActive() && dynamic_cast<ZombieCharred*>(object.get())) {
 			++charredZombieCount;
 		}
+		if (object && object->IsActive() && object->GetTag() == "JalapenoFire") {
+			++jalapenoFireCount;
+		}
 	}
 	out["charredZombieCount"] = charredZombieCount;
+	out["jalapenoFireCount"] = jalapenoFireCount;
 
 	// 半透明植物预览来自落点幽灵；鼠标跟随预览保持不透明，故不会混入此抓手。
 	int cellPlantPreviewCount = 0;
