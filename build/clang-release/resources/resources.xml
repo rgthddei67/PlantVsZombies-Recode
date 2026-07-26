@@ -11,6 +11,8 @@
     <Image Column="5" Row="4">./resources/image/Tombstone_mounds.png</Image>
     <Image>./resources/image/ice.png</Image>
     <Image>./resources/image/ice_cap.png</Image>
+    <Image>./resources/image/golden_ice.png</Image>
+    <Image>./resources/image/golden_ice_cap.png</Image>
 
     <Image>./resources/image/UI/options_checkbox0.png</Image>
     <Image>./resources/image/UI/options_checkbox1.png</Image>
@@ -343,6 +345,7 @@
     <Reanimation name="PoolConeZombie">./resources/reanim/PoolConeZombie.reanim</Reanimation>
     <Reanimation name="PoolBucketZombie">./resources/reanim/PoolBucketZombie.reanim</Reanimation>
     <Reanimation name="Zamboni">./resources/reanim/Zombie_zamboni.reanim</Reanimation>
+    <Reanimation name="GildedZamboni">./resources/reanim/GildedZamboni.reanim</Reanimation>
 
     <Reanimation name="Zombie_Charred">./resources/reanim/Zombie_Charred.reanim</Reanimation>
     <Reanimation name="Zamboni_Charred">./resources/reanim/Zombie_charred_zamboni.reanim</Reanimation>

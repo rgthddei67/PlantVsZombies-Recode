@@ -44,17 +44,31 @@ protected:
 	void SaveExtraData(nlohmann::json& j) const override;
 	void LoadExtraData(const nlohmann::json& j) override;
 
-private:
+	/** @brief 铺设本品种对应的冰道；普通冰车只处理当前行。 */
+	virtual void LayIceTrails(const Vector& stableVisualOrigin);
+	/** @brief 返回车辆稳定视觉原点对应的冰道前缘世界 X。 */
+	float GetIceTrailFrontX(const Vector& stableVisualOrigin) const;
 	/** @brief 按当前血量恢复两段车辆损坏贴图。 */
-	void ApplyDamageVisuals() const;
-	/** @brief 恢复地刺爆胎后的扁胎与碰撞终态。 */
-	void ApplyCaltropPuncturePresentation() const;
-	/** @brief 检查同排车辆攻击矩形并压扁允许被碾过的植物。 */
-	void CrushPlants();
+	virtual void ApplyDamageVisuals() const;
+	/** @brief 返回两段损坏贴图使用的资源键前缀。 */
+	virtual const char* GetDamageTexturePrefix() const {
+		return "IMAGE_ZOMBIE_ZAMBONI_";
+	}
+	/** @brief 返回车辆速度曲线的品种基础倍率。 */
+	virtual float GetBaseDriveSpeedMultiplier() const { return 1.0f; }
+	/** @brief 判断指定行是否属于本车辆的碾压范围。 */
+	virtual bool CanCrushRow(int row) const { return row == mRow; }
 	/** @brief 判断植物是否属于原版不可被冰车直接碾压的例外。 */
-	bool CanCrushPlant(const Plant* plant) const;
+	virtual bool CanCrushPlant(const Plant* plant) const;
+	/** @brief 检查车辆攻击矩形并压扁所有允许碾过的植物。 */
+	void CrushPlants();
 
 	float mDriveSpeed = 25.0f;
+
+private:
+	/** @brief 恢复地刺爆胎后的扁胎与碰撞终态。 */
+	void ApplyCaltropPuncturePresentation() const;
+
 	float mSmokeTimer = 0.0f;
 	Vector mDamageShakeOffset;
 	bool mSuppressDeathEffects = false;

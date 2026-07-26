@@ -49,6 +49,7 @@ enum class ZombieType {
 	ZOMBIE_POOL_BUCKET,
 	ZOMBIE_ELITE_POLEVAULTER,
 	ZOMBIE_ZAMBONI,		// 冰车
+	ZOMBIE_GILDED_ZAMBONI,	// 鎏金冰车：黄色三路冰道与无伤害阶梯加速
 
 	// ↓ 哨兵：置于全部已实现僵尸之后，使 [0,NUM_ZOMBIE_TYPES) 只覆盖已实现类型，
 	//   生存模式随机抽取据此绝不会抽到下方未实现僵尸。

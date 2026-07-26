@@ -55,6 +55,7 @@
 #include "../Zombie/PoolBucketZombie.h"
 #include "../Zombie/ElitePolevaulterZombie.h"
 #include "../Zombie/ZamboniZombie.h"
+#include "../Zombie/GildedZamboniZombie.h"
 
 namespace {
 	template<typename T>
@@ -313,6 +314,12 @@ void GameDataManager::InitializeHardcodedData() {
 		AnimationType::ANIM_ZAMBONI_ZOMBIE,
 		ResourceKeys::Reanimations::REANIM_ZAMBONI_ZOMBIE,
 		&MakeZombie<ZamboniZombie>);
+
+	// 鎏金冰车复用车辆时间线，以独立 reanim 键替换黄色材质并保留普通冰车资源。
+	RegisterZombie(ZombieType::ZOMBIE_GILDED_ZAMBONI, "ZOMBIE_GILDED_ZAMBONI",
+		AnimationType::ANIM_GILDED_ZAMBONI_ZOMBIE,
+		ResourceKeys::Reanimations::REANIM_GILDED_ZAMBONI_ZOMBIE,
+		&MakeZombie<GildedZamboniZombie>);
 
 	// ==================== 非植物/僵尸动画映射 ====================
 	mAnimToString[AnimationType::ANIM_SUN] = ResourceKeys::Reanimations::REANIM_SUN;

@@ -103,16 +103,20 @@ void ZamboniZombie::ZombieMove(float scaledDelta, TransformComponent* transform)
 		const float t = std::clamp(
 			(x - curveLeftX) / (curveRightX - curveLeftX),
 			0.0f, 1.0f);
-		mDriveSpeed = kSlowDriveSpeed + (kFastDriveSpeed - kSlowDriveSpeed) * t;
+		mDriveSpeed = (kSlowDriveSpeed + (kFastDriveSpeed - kSlowDriveSpeed) * t)
+			* GetBaseDriveSpeedMultiplier();
 	}
 	else {
-		mDriveSpeed = kInnerDriveSpeed;
+		mDriveSpeed = kInnerDriveSpeed * GetBaseDriveSpeedMultiplier();
 	}
 
 	float speed = mDriveSpeed;
+	speed *= AmplifySpeedMultiplierForGoldenIce(GetAbilityAnimSpeedMultiplier());
 	if (mBoard) {
-		speed *= mBoard->GetZombieRainSpeedMultiplier();
-		speed *= mBoard->GetZombieWindMoveMultiplier(false);
+		speed *= AmplifySpeedMultiplierForGoldenIce(
+			mBoard->GetZombieRainSpeedMultiplier());
+		speed *= AmplifySpeedMultiplierForGoldenIce(
+			mBoard->GetZombieWindMoveMultiplier(false));
 	}
 	transform->Translate(-speed * scaledDelta, 0.0f);
 }
@@ -134,7 +138,7 @@ void ZamboniZombie::ZombieUpdate(float scaledTime)
 	const Vector position = GetPosition();
 	const Vector stableVisualOrigin = position + mVisualOffset;
 	if (!mPuncturedByCaltrop) {
-		mBoard->ExtendIceTrail(mRow, stableVisualOrigin.x + kIceFrontFromVisualX);
+		LayIceTrails(stableVisualOrigin);
 		CrushPlants();
 	}
 
@@ -199,9 +203,9 @@ void ZamboniZombie::ApplyDamageVisuals() const
 	auto& resources = ResourceManager::GetInstance();
 	const char* suffix = stage == 1 ? "DAMAGE1" : "DAMAGE2";
 	mAnimator->SetTrackImage("Zombie_zamboni_1", resources.GetTexture(
-		std::string("IMAGE_ZOMBIE_ZAMBONI_1_") + suffix));
+		std::string(GetDamageTexturePrefix()) + "1_" + suffix));
 	mAnimator->SetTrackImage("Zombie_zamboni_2", resources.GetTexture(
-		std::string("IMAGE_ZOMBIE_ZAMBONI_2_") + suffix));
+		std::string(GetDamageTexturePrefix()) + "2_" + suffix));
 }
 
 void ZamboniZombie::ApplyCaltropPuncturePresentation() const
@@ -226,7 +230,7 @@ void ZamboniZombie::ZombieItemUpdate() const
 
 bool ZamboniZombie::CanCrushPlant(const Plant* plant) const
 {
-	if (!plant || plant->IsSquished() || plant->mRow != mRow) return false;
+	if (!plant || plant->IsSquished() || !CanCrushRow(plant->mRow)) return false;
 	switch (plant->mPlantType) {
 	case PlantType::PLANT_CHERRYBOMB:
 	case PlantType::PLANT_JALAPENO:
@@ -241,6 +245,17 @@ bool ZamboniZombie::CanCrushPlant(const Plant* plant) const
 	default:
 		return true;
 	}
+}
+
+void ZamboniZombie::LayIceTrails(const Vector& stableVisualOrigin)
+{
+	if (!mBoard) return;
+	mBoard->ExtendIceTrail(mRow, GetIceTrailFrontX(stableVisualOrigin));
+}
+
+float ZamboniZombie::GetIceTrailFrontX(const Vector& stableVisualOrigin) const
+{
+	return stableVisualOrigin.x + kIceFrontFromVisualX;
 }
 
 void ZamboniZombie::CrushPlants()

@@ -1,5 +1,6 @@
 ﻿#include "Zombie.h"
 #include "ZombieCharred.h"
+#include "GildedZamboniZombie.h"
 #include "../Plant/Plant.h"
 #include "../Plant/HypnoShroom.h"
 #include "../Board.h"
@@ -25,6 +26,7 @@ namespace {
 	constexpr float kTangleKelpGrabSpeed = 2.0f;           // 资源 12fps 播放为原版 24fps 的速度倍率
 	constexpr float kTangleKelpGrabStartFrame = 22.0f;     // anim_grab 轨道在 Tanglekelp.reanim 中的首帧
 	constexpr float kTangleKelpGrabEndFrame = 26.0f;       // anim_grab 轨道末帧；读档帧钳位避免损坏值越界
+	constexpr int kMaxGoldenIceEffectStacks = 8;           // 独立黄色冰道来源计层的安全上限，防止极端调试生成导致倍率溢出
 }
 
 Zombie::Zombie(Board* board, ZombieType zombieType, float x, float y, int row,
@@ -262,6 +264,7 @@ void Zombie::Start()
 	}
 	SetAnimationSpeed(GameRandom::Range(1.1f, 1.4f));
 	SetupZombie();
+	mGoldenIceEffectStacks = ComputeGoldenIceEffectStacks();
 	// SetupZombie 可设置品种基准 mExtraSpeed；最后统一叠加减速/冻结/雨势，且跨 PlayTrack 存活。
 	if (!mIsPreview) UpdateAnimSpeed();
 	// 直接生成在水域内部时首帧就应进入水中，避免等待移动一帧后才裁剪。
@@ -386,6 +389,8 @@ void Zombie::Update()
 		}
 		// 入水状态是通用介质状态：冻结或啃食期间也要跟随阵风后的实际位置更新。
 		if (!mIsDying) UpdatePoolState();
+		// 黄色冰道可能在本帧延伸、消失，或被阵风跨越；在冻结/啃食早退前刷新速度场边沿。
+		RefreshGoldenIceSpeedState();
 
 		if (!mHasHead)
 		{
@@ -505,7 +510,10 @@ void Zombie::ZombieMove(float scaledDelta, TransformComponent* transform)
 			: mAnimator->GetTrackVelocity("_ground")) * mSpeed;
 		// 台风只缩放水平位移，不改 Animator extra：雨天、减速和冻结仍由 UpdateAnimSpeed
 		// 统一组合，啃食、召唤与其他技能不会被顺风误加速。魅惑僵尸按实际向右移动判定顺逆风。
-		if (mBoard) speed *= mBoard->GetZombieWindMoveMultiplier(mIsMindControlled);
+		if (mBoard) {
+			speed *= AmplifySpeedMultiplierForGoldenIce(
+				mBoard->GetZombieWindMoveMultiplier(mIsMindControlled));
+		}
 		if (mIsMindControlled)
 		{
 			transform->Translate(speed * scaledDelta, 0);
@@ -544,8 +552,56 @@ void Zombie::UpdateAnimSpeed()
 	}
 	const float rainMultiplier = mBoard ? mBoard->GetZombieRainSpeedMultiplier() : 1.0f;
 	mAnimator->SetExtraSpeedMultiplier(
-		mExtraSpeed * GetAbilityAnimSpeedMultiplier()
-		* (mCooldownTimer > 0.0f ? GetSlowAnimFactor() : 1.0f) * rainMultiplier);
+		AmplifySpeedMultiplierForGoldenIce(mExtraSpeed)
+		* AmplifySpeedMultiplierForGoldenIce(GetAbilityAnimSpeedMultiplier())
+		* AmplifySpeedMultiplierForGoldenIce(
+			mCooldownTimer > 0.0f ? GetSlowAnimFactor() : 1.0f)
+		* AmplifySpeedMultiplierForGoldenIce(rainMultiplier));
+}
+
+float Zombie::AmplifySpeedMultiplierForGoldenIce(float multiplier) const
+{
+	float amplified = multiplier;
+	for (int stack = 0; stack < mGoldenIceEffectStacks; ++stack) {
+		// 围绕单位元逐层放大：一层 1.4→1.8、0.6→0.2；最低钳到 0，避免强减速反向播放。
+		amplified = std::max(0.0f, 1.0f + (amplified - 1.0f) * 2.0f);
+	}
+	return amplified;
+}
+
+int Zombie::ComputeGoldenIceEffectStacks() const
+{
+	if (!mBoard || mIsPreview || mIsDead) return IsAlwaysAffectedByGoldenIce() ? 1 : 0;
+
+	int stacks = 0;
+	const bool targetIsGilded = dynamic_cast<const GildedZamboniZombie*>(this) != nullptr;
+	for (int sourceRow = std::max(0, mRow - 1);
+		sourceRow <= std::min(mBoard->mRows - 1, mRow + 1); ++sourceRow) {
+		mBoard->mEntityManager.ForEachZombieInRow(sourceRow, [&](Zombie* candidate) {
+			auto* gilded = dynamic_cast<GildedZamboniZombie*>(candidate);
+			if (!gilded || !gilded->IsActive() || gilded->IsDying()) return;
+			if (gilded->ProvidesGoldenIceEffectAt(
+				mRow, GetPosition().x, targetIsGilded)) {
+				++stacks;
+			}
+		});
+	}
+
+	// 车辆死亡后黄色冰道仍保留 30 秒；失去来源身份后继续作为一层非叠加速度场。
+	if (stacks == 0 && (IsAlwaysAffectedByGoldenIce()
+		|| mBoard->IsGoldenIceAtWorld(mRow, GetPosition().x))) {
+		stacks = 1;
+	}
+	return std::min(stacks, kMaxGoldenIceEffectStacks);
+}
+
+void Zombie::RefreshGoldenIceSpeedState()
+{
+	if (!mBoard || mIsPreview || mIsDead) return;
+	const int stacks = ComputeGoldenIceEffectStacks();
+	if (stacks == mGoldenIceEffectStacks) return;
+	mGoldenIceEffectStacks = stacks;
+	UpdateAnimSpeed();
 }
 
 bool Zombie::CanBeChilled() const

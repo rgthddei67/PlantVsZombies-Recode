@@ -1,6 +1,6 @@
 ---
 name: project_pvz_pool_basics
-description: 2026-07-26 第三大关泳池基础与 3-1 至 3-5 出怪；含六行、睡莲双层占格、地形僵尸替换、PoolCleaner、冰车和旧档边界
+description: 2026-07-26 第三大关泳池基础与 3-1 至 3-6 出怪；含六行、睡莲双层占格、地形僵尸替换、PoolCleaner、冰车和旧档边界
 metadata:
   node_type: memory
   type: project
@@ -10,9 +10,9 @@ metadata:
 
 ## 当前范围（2026-07-26）
 
-已开放冒险 3-1（level 19）至 3-5（level 23）的基础系统与出怪表。3-3 引入绿色精英撑杆，
+已开放冒险 3-1（level 19）至 3-6（level 24）的基础系统与出怪表。3-3 引入绿色精英撑杆，
 3-4 加入普通撑杆、铁桶、粉色橄榄球、加固铁门与精英撑杆组合压力；3-5 引入冰车；
-3-6～3-9 出怪表和其他泳池植物仍未实现，
+3-6 用普通/路障/铁桶/普通冰车/鎏金冰车形成首次综合压力。3-7～3-9 出怪表和其他泳池植物仍未实现，
 后续必须逐关推进，不得将本基础当作整个第三大关已完成。
 
 资源由主人提供：泳池地图、睡莲/三种水路僵尸动画、`PoolCleaner` 已在 `resources.xml` 注册。2026-07-23 后续任务又从 `D:\PVZ\原！版！Test\images` 导入原版水面底图、AlphaGrid 阴影蒙版和焦散源图，增加动态水面；仍未新增通用入水水花或额外泳池粒子，PoolCleaner reanim 自带轨道不在此限制内。
@@ -24,7 +24,7 @@ metadata:
 - `Cell` 有 `under/normal` 两个植物槽。睡莲只能放在空水格的 under 层；普通植物只能放在已有睡莲且 normal 层为空的水格；土豆雷仍禁止下水。铲子、僵尸啃咬与 UI 预览都以 top 层为准。
 - 水格已有睡莲时，卡片悬停生成的半透明落点预览必须取当前 top 植物的 `renderOrder + 1`，保证待种植物显示在睡莲上方；空格预览使用 `LAYER_GAME_PLANT`。
 - 睡莲种下后 1 秒只免疫啃咬，计时器进存档；水面植物只做±2px 绘制浮动，Transform/碰撞与存档仍固定在逻辑格。
-- 普通/路障/铁桶僵尸在水路由正式波次入口替换为 `ZOMBIE_POOL_*`，而非为出怪表添加独立权重；这三种专用类型仍只允许水路，陆地版本不会实际创建在水中。其他僵尸可直接抽到水路并保留自身类型与行为。`Board::CanZombieTypeSpawnInPool` 是集中禁水扩展点；冰车是当前唯一禁水类型，只能在泳池陆路生成。`Zombie` 基类用前/后双探针统一维护 `mInPool`，本项目将下水/出水切换位置相对原探针向右校正 70px；水中统一隐藏陆地阴影，并在 `Zombie::Draw` 内用 `PushClipBottom/PopClipBottom` 把水面以下裁掉。该接口现为通用 shader `PushClipRect` 的全宽别名，不触发批处理 flush 或 `vkCmdSetScissor`，并自动与伴舞出土等既有矩形 Clip 取交集。专用泳池僵尸仍保留 swim、水中死亡和泳圈贴图；水中断头/断臂不生成悬浮的陆地碎片。
+- 普通/路障/铁桶僵尸在水路由正式波次入口替换为 `ZOMBIE_POOL_*`，而非为出怪表添加独立权重；这三种专用类型仍只允许水路，陆地版本不会实际创建在水中。其他僵尸可直接抽到水路并保留自身类型与行为。`Board::CanZombieTypeSpawnInPool` 是集中禁水扩展点；普通与鎏金冰车均禁水，只能在泳池陆路生成。鎏金冰车可碾压相邻水路植物，但 Board 不在水路留下黄色冰道。`Zombie` 基类用前/后双探针统一维护 `mInPool`，本项目将下水/出水切换位置相对原探针向右校正 70px；水中统一隐藏陆地阴影，并在 `Zombie::Draw` 内用 `PushClipBottom/PopClipBottom` 把水面以下裁掉。该接口现为通用 shader `PushClipRect` 的全宽别名，不触发批处理 flush 或 `vkCmdSetScissor`，并自动与伴舞出土等既有矩形 Clip 取交集。专用泳池僵尸仍保留 swim、水中死亡和泳圈贴图；水中断头/断臂不生成悬浮的陆地碎片。
 - 泳池僵尸仅在 `mInPool=true` 时拒绝化灰：植物爆炸仍走正式伤害与水中死亡轨道，但不创建 `ZombieCharred` 烧焦残影；尚未下水或已经离水时继续沿用陆地化灰表现。这与 C# `ApplyBurn` 的 `mInPool -> DieWithLoot` 分支一致。
 - 所有僵尸生成 Y 由网格行中心派生。第一、二大关继续使用已确认正确的 `kZombieSpawnBaseOffsetY=+2px`；主人实测后的泳池背景公共偏移为 `kPoolBackgroundZombieSpawnYOffset=0px`，第三大关所有行再应用 `kThirdAreaZombieAlignmentOffsetY=+10px`。水路必须与同地图陆地行分开，`GetZombieSpawnY` 对 `IsPoolRow(row)` 额外应用 `kPoolRowZombieSpawnYOffset=+30px`，因此只下移第 3/4 行水中僵尸的 Transform 与画面，不影响陆地行；`GetZombieCollisionY` 不包含这段美术下沉，`Zombie` 基础碰撞框在构造时反向抵消差值并锚定逻辑行，避免同排子弹漏判。不要通过放大子弹或僵尸碰撞箱补偿视觉偏移。四个可调偏移均集中在 `Board.cpp` 顶部；旧名 `kPoolZombieSpawnYOffset` 因容易误解为水路专属而弃用。
 - 樱桃炸弹的纵向爆区按 `plantRow-1..plantRow+1` 三个逻辑行桶结算，X 轴仍使用爆心±130px；`CreateBoom` 必须显式接收植物行，禁止再用植物/僵尸 Transform 的 Y 差判断，否则水路额外美术下沉会让相邻行命中依赖像素阈值。
@@ -43,7 +43,8 @@ metadata:
   `{normal, cone, fast bucket, bucket, dancer}`；3-3 为 20 波
   `{normal, cone, polevaulter, door, fast paper, elite polevaulter}`；3-4 为 30 波
   `{normal, cone, polevaulter, bucket, pink football, reinforced door, elite polevaulter}`；
-  3-5 为 20 波 `{normal, cone, bucket, zamboni}`。水路替换在选行后发生，
+  3-5 为 20 波 `{normal, cone, bucket, zamboni}`，3-6 为 20 波
+  `{normal, cone, bucket, zamboni, gilded zamboni}`。水路替换在选行后发生，
   成本/权重仍使用出怪表中的基础类型。精英撑杆详细契约见
   [project_pvz_elite_polevaulter_zombie](project_pvz_elite_polevaulter_zombie.md)。
 - 所有泳池背景的自然波次选行在第 1～4 波只允许陆地行，第 5 波起才开放水路。该门槛只属于自然波次选行；AutoTest/开发者显式指定行的造怪仍按静态地形兼容性执行，便于独立验证水路表现。
@@ -61,6 +62,9 @@ metadata:
 `smoke_pool_spawnlists_3_1_to_3_5.json` 继续锁定 3-5 的 20 波
 `{normal, cone, bucket, zamboni}`；`clang-playtest` 在主人当前桌面可见运行，窗口标题正确、
 退出码 0，日志 `script finished OK`，截图确认冰车在选卡预览区正常显示。
+`smoke_pool_spawnlist_3_6_gilded_zamboni.json` 锁定 3-6 的 20 波五类型阵容并确认鎏金冰车
+出现在正式预览池；当前桌面可见运行窗口标题正确、退出码 0、日志 `script finished OK`。
+它与专项脚本共同验证水路不铺黄冰、相邻水路仍可被碾压。
 
 `smoke_pool_instanced_shadows.json` 用 8 组睡莲+豌豆射手和 140 只屏外静止陆地僵尸稳定跨过 200
 对象并行绘制阈值。旧路径把同一 worker blend 段的 batch 影子整体提前到 instance 睡莲之前，导致

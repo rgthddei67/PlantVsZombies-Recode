@@ -50,6 +50,7 @@ namespace {
 	constexpr int kPoolLastRow = 3;                       // 泳池最后一条水路的 0-based 行号
 	constexpr int kPoolFirstWaterSpawnWave = 5;           // 泳池自然波次从第几波起允许选择水路
 	constexpr float kIceTrailDuration = 30.0f;            // 冰车进入战场后每次延伸刷新冰道的寿命，单位秒
+	constexpr float kGoldenIceTrailDuration = 30.0f;      // 黄色冰道每次延伸刷新的寿命，单位秒
 	constexpr float kIceTrailFadeDuration = 0.1f;         // 冰道最后渐隐时长，单位秒
 	constexpr float kIceTrailLeftLimit = 25.0f;           // 原版非屋顶冰道左缘最小 X，单位 px
 	constexpr float kIceTrailCapBodyOverlap = 8.0f;       // 端盖与主体纹理的水平咬合量，单位 px
@@ -79,6 +80,7 @@ namespace {
 	constexpr int kEliteDancerMaxPerWave = 2;             // 每波最多允许生成的精英舞王数量；超额候选直接跳过
 	constexpr int kReinforcedDoorMaxPerWave = 2;          // 每波最多正式生成的加固铁门数量；超额候选直接跳过
 	constexpr int kElitePolevaulterMaxPerWave = 2;        // 每波最多正式生成的精英撑杆数量；超额候选直接跳过
+	constexpr int kGildedZamboniMaxPerWave = 1;           // 每波最多正式生成的鎏金冰车数量；超额候选直接跳过
 	constexpr int kEliteScaredyShroomPlantLimit = 3;      // 每个关卡累计最多种植的精英胆小菇数量
 	constexpr int kWaveCandidateAttemptLimit = MAX_ZOMBIES_PER_WAVE * 10; // 单波候选尝试上限，防止仅剩受限类型时死循环
 	constexpr float kWeatherTransitionDuration = 2.0f;   // 雨势切换时倍率、暗幕与雨声音量的平滑过渡时长（游戏秒）
@@ -711,6 +713,8 @@ Board::Board(GameScene* gameScene, Background background, int level)
 	InitializeCell(IsPoolBackground() ? 5 : 4, 8);
 	mIceMinX.fill(GetIceTrailRightX());
 	mIceTimer.fill(0.0f);
+	mGoldenIceMinX.fill(GetIceTrailRightX());
+	mGoldenIceTimer.fill(0.0f);
 	InitializeRows();
 }
 
@@ -1398,6 +1402,12 @@ void Board::RestoreElitePolevaulterWaveSpawnCount(int count)
 	mElitePolevaultersSpawnedThisWave = std::clamp(count, 0, kElitePolevaulterMaxPerWave);
 }
 
+/** 夹紧并恢复当前波已经正式生成的鎏金冰车数量。 */
+void Board::RestoreGildedZamboniWaveSpawnCount(int count)
+{
+	mGildedZambonisSpawnedThisWave = std::clamp(count, 0, kGildedZamboniMaxPerWave);
+}
+
 /** 清空全部台风派生状态；中雨、小雨、晴天和旧档默认都以此为单位元。 */
 void Board::StopTyphoon()
 {
@@ -1532,6 +1542,12 @@ ZombieType Board::ResolveWaveZombieType(ZombieType selected, int mutationRoll)
 			return ZombieType::NUM_ZOMBIE_TYPES;
 		}
 		++mElitePolevaultersSpawnedThisWave;
+	}
+	if (selected == ZombieType::ZOMBIE_GILDED_ZAMBONI) {
+		if (mGildedZambonisSpawnedThisWave >= kGildedZamboniMaxPerWave) {
+			return ZombieType::NUM_ZOMBIE_TYPES;
+		}
+		++mGildedZambonisSpawnedThisWave;
 	}
 	return ResolveRainMutationType(selected, mutationRoll);
 }
@@ -2050,6 +2066,7 @@ bool Board::CanZombieTypeSpawnInPool(ZombieType type) const
 {
 	switch (type) {
 	case ZombieType::ZOMBIE_ZAMBONI:
+	case ZombieType::ZOMBIE_GILDED_ZAMBONI:
 	case ZombieType::NUM_ZOMBIE_TYPES:
 		return false;
 	default:
@@ -2075,23 +2092,50 @@ void Board::ExtendIceTrail(int row, float frontX)
 	mIceTimer[row] = kIceTrailDuration;
 }
 
+void Board::ExtendGoldenIceTrail(int row, float frontX)
+{
+	if (row < 0 || row >= mRows || row >= static_cast<int>(mGoldenIceTimer.size())
+		|| IsPoolRow(row)) return;
+
+	const float clampedFront = std::max(frontX, kIceTrailLeftLimit);
+	mGoldenIceMinX[row] = std::min(mGoldenIceMinX[row], clampedFront);
+	mGoldenIceTimer[row] = kGoldenIceTrailDuration;
+}
+
 void Board::ShortenIceTrail(int row, float maxRemainingSeconds)
 {
 	if (row < 0 || row >= mRows || row >= static_cast<int>(mIceTimer.size())
-		|| mIceTimer[row] <= 0.0f) return;
-	mIceTimer[row] = std::min(mIceTimer[row], std::max(0.0f, maxRemainingSeconds));
+		|| row >= static_cast<int>(mGoldenIceTimer.size())) return;
+	const float limit = std::max(0.0f, maxRemainingSeconds);
+	if (mIceTimer[row] > 0.0f) {
+		mIceTimer[row] = std::min(mIceTimer[row], limit);
+	}
+	if (mGoldenIceTimer[row] > 0.0f) {
+		mGoldenIceTimer[row] = std::min(mGoldenIceTimer[row], limit);
+	}
 }
 
 bool Board::IsIceAt(int row, int col) const
 {
 	if (row < 0 || row >= mRows || col < 0 || col >= mColumns
-		|| row >= static_cast<int>(mIceTimer.size()) || mIceTimer[row] <= 0.0f) {
-		return false;
-	}
-	const int startCol = std::clamp(static_cast<int>(std::floor(
-		(mIceMinX[row] + kIceTrailGridProbeOffset - CELL_INITALIZE_POS_X)
-		/ CELL_COLLIDER_SIZE_X)), 0, mColumns - 1);
-	return col >= startCol;
+		|| row >= static_cast<int>(mIceTimer.size())
+		|| row >= static_cast<int>(mGoldenIceTimer.size())) return false;
+	auto trailCovers = [this, col](float minX, float timer) {
+		if (timer <= 0.0f) return false;
+		const int startCol = std::clamp(static_cast<int>(std::floor(
+			(minX + kIceTrailGridProbeOffset - CELL_INITALIZE_POS_X)
+			/ CELL_COLLIDER_SIZE_X)), 0, mColumns - 1);
+		return col >= startCol;
+	};
+	return trailCovers(mIceMinX[row], mIceTimer[row])
+		|| trailCovers(mGoldenIceMinX[row], mGoldenIceTimer[row]);
+}
+
+bool Board::IsGoldenIceAtWorld(int row, float worldX) const
+{
+	if (row < 0 || row >= mRows || row >= static_cast<int>(mGoldenIceTimer.size())
+		|| mGoldenIceTimer[row] <= 0.0f) return false;
+	return worldX >= mGoldenIceMinX[row] && worldX <= GetIceTrailRightX();
 }
 
 float Board::GetIceTrailMinX(int row) const
@@ -2106,6 +2150,18 @@ float Board::GetIceTrailTimeRemaining(int row) const
 		? mIceTimer[row] : 0.0f;
 }
 
+float Board::GetGoldenIceTrailMinX(int row) const
+{
+	return row >= 0 && row < mRows && row < static_cast<int>(mGoldenIceMinX.size())
+		? mGoldenIceMinX[row] : 0.0f;
+}
+
+float Board::GetGoldenIceTrailTimeRemaining(int row) const
+{
+	return row >= 0 && row < mRows && row < static_cast<int>(mGoldenIceTimer.size())
+		? mGoldenIceTimer[row] : 0.0f;
+}
+
 float Board::GetIceTrailRightX() const
 {
 	return static_cast<float>(SCENE_WIDTH);
@@ -2115,10 +2171,17 @@ void Board::UpdateIceTrails(float deltaTime)
 {
 	if (deltaTime <= 0.0f || mBoardState != BoardState::GAME) return;
 	for (int row = 0; row < mRows && row < static_cast<int>(mIceTimer.size()); ++row) {
-		if (mIceTimer[row] <= 0.0f) continue;
-		mIceTimer[row] = std::max(0.0f, mIceTimer[row] - deltaTime);
+		if (mIceTimer[row] > 0.0f) {
+			mIceTimer[row] = std::max(0.0f, mIceTimer[row] - deltaTime);
+		}
 		if (mIceTimer[row] <= 0.0f) {
 			mIceMinX[row] = GetIceTrailRightX();
+		}
+		if (mGoldenIceTimer[row] > 0.0f) {
+			mGoldenIceTimer[row] = std::max(0.0f, mGoldenIceTimer[row] - deltaTime);
+		}
+		if (mGoldenIceTimer[row] <= 0.0f) {
+			mGoldenIceMinX[row] = GetIceTrailRightX();
 		}
 	}
 }
@@ -2127,22 +2190,25 @@ void Board::DrawIceTrails(Graphics* g) const
 {
 	if (!g) return;
 	auto& resources = ResourceManager::GetInstance();
-	const Texture* body = resources.GetTexture(ResourceKeys::Textures::IMAGE_ICE, false);
-	const Texture* cap = resources.GetTexture(ResourceKeys::Textures::IMAGE_ICE_CAP, false);
-	if (!body || !cap || body->width <= 0 || body->height <= 0) return;
+	const Texture* iceBody = resources.GetTexture(ResourceKeys::Textures::IMAGE_ICE, false);
+	const Texture* iceCap = resources.GetTexture(ResourceKeys::Textures::IMAGE_ICE_CAP, false);
+	const Texture* goldenBody = resources.GetTexture(
+		ResourceKeys::Textures::IMAGE_GOLDEN_ICE, false);
+	const Texture* goldenCap = resources.GetTexture(
+		ResourceKeys::Textures::IMAGE_GOLDEN_ICE_CAP, false);
 
 	const float boardRight = GetIceTrailRightX();
-	for (int row = 0; row < mRows && row < static_cast<int>(mIceTimer.size()); ++row) {
-		const float remaining = mIceTimer[row];
-		if (remaining <= 0.0f) continue;
-
+	auto drawTrail = [this, g](int row, float minX, float remaining, float rightX,
+		const Texture* body, const Texture* cap) {
+		if (remaining <= 0.0f || rightX <= minX + 0.01f || !body || !cap
+			|| body->width <= 0 || body->height <= 0) return;
 		const float alpha = 255.0f * std::clamp(
 			remaining / kIceTrailFadeDuration, 0.0f, 1.0f);
 		const glm::vec4 tint(255.0f, 255.0f, 255.0f, alpha);
 		const float drawY = GetCellCenterPosition(row, 0).y
 			- mCellHeight * 0.5f + kIceTrailTopOffset;
-		const float bodyStart = mIceMinX[row] + kIceTrailCapBodyOverlap;
-		const float length = std::max(0.0f, boardRight - bodyStart);
+		const float bodyStart = minX + kIceTrailCapBodyOverlap;
+		const float length = std::max(0.0f, rightX - bodyStart);
 		float drawX = bodyStart;
 		float firstWidth = std::fmod(length, static_cast<float>(body->width));
 		if (firstWidth > 0.01f) {
@@ -2153,16 +2219,27 @@ void Board::DrawIceTrails(Graphics* g) const
 				0.0f, tint);
 			drawX += firstWidth;
 		}
-		while (drawX < boardRight - 0.01f) {
-			const float width = std::min(static_cast<float>(body->width), boardRight - drawX);
+		while (drawX < rightX - 0.01f) {
+			const float width = std::min(static_cast<float>(body->width), rightX - drawX);
 			g->DrawTextureRegion(body, 0.0f, 0.0f, width,
 				static_cast<float>(body->height), drawX, drawY, width,
 				static_cast<float>(body->height), 0.0f, tint);
 			drawX += width;
 		}
-		g->DrawTexture(cap, mIceMinX[row], drawY,
+		g->DrawTexture(cap, minX, drawY,
 			static_cast<float>(cap->width), static_cast<float>(cap->height),
 			0.0f, tint);
+	};
+
+	for (int row = 0; row < mRows && row < static_cast<int>(mIceTimer.size()); ++row) {
+		const bool goldenActive = mGoldenIceTimer[row] > 0.0f;
+		// 普通冰道只画到黄色冰道左缘；重叠段完全交给黄色材质，避免半透明蓝底串色。
+		const float ordinaryRight = goldenActive
+			? std::clamp(mGoldenIceMinX[row], mIceMinX[row], boardRight)
+			: boardRight;
+		drawTrail(row, mIceMinX[row], mIceTimer[row], ordinaryRight, iceBody, iceCap);
+		drawTrail(row, mGoldenIceMinX[row], mGoldenIceTimer[row],
+			boardRight, goldenBody, goldenCap);
 	}
 }
 
@@ -2631,6 +2708,7 @@ void Board::SummonNextWave()
 	mEliteDancersSpawnedThisWave = 0;
 	mReinforcedDoorsSpawnedThisWave = 0;
 	mElitePolevaultersSpawnedThisWave = 0;
+	mGildedZambonisSpawnedThisWave = 0;
 	if (mCurrentWave == 1)
 	{
 		AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_FIRSTWAVE, 0.7f);
@@ -2724,7 +2802,8 @@ void Board::SetRowLoseMower(int row)
 bool Board::IsSpawnRowCompatible(ZombieType type, int row) const
 {
 	if ((mBackGround == Background::ROOF || mBackGround == Background::NIGHT_ROOF)
-		&& type == ZombieType::ZOMBIE_ZAMBONI) return false;
+		&& (type == ZombieType::ZOMBIE_ZAMBONI
+			|| type == ZombieType::ZOMBIE_GILDED_ZAMBONI)) return false;
 	if (!IsPoolBackground()) return row >= 0 && row < mRows;
 	if (row < 0 || row >= mRows) return false;
 	if (IsPoolRow(row)) {
@@ -3103,6 +3182,7 @@ void Board::OnSurvivalRoundClear()
 	mEliteDancersSpawnedThisWave = 0;
 	mReinforcedDoorsSpawnedThisWave = 0;
 	mElitePolevaultersSpawnedThisWave = 0;
+	mGildedZambonisSpawnedThisWave = 0;
 	RefreshZombieWeatherSpeeds();
 
 	// 重算难度（解锁更强僵尸）+ 刷新关卡名

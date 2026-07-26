@@ -94,6 +94,8 @@ namespace ResourceKeys
 		RKEY(IMAGE_PLANTSHADOW);
 		RKEY(IMAGE_PLANTSHADOW2);
 		RKEY(IMAGE_LILYPAD);
+		RKEY(IMAGE_GOLDEN_ICE);
+		RKEY(IMAGE_GOLDEN_ICE_CAP);
 
 		RKEY(IMAGE_ZOMBIE_BACKUP_OUTERARM_UPPER_BONE);
 		RKEY(IMAGE_ZOMBIE_BALLOON_OUTERARM_UPPER2);
@@ -302,6 +304,7 @@ namespace ResourceKeys
 		inline const std::string REANIM_POOL_CONE_ZOMBIE = "PoolConeZombie";
 		inline const std::string REANIM_POOL_BUCKET_ZOMBIE = "PoolBucketZombie";
 		inline const std::string REANIM_ZAMBONI_ZOMBIE = "Zamboni";
+		inline const std::string REANIM_GILDED_ZAMBONI_ZOMBIE = "GildedZamboni";
 		inline const std::string REANIM_ZAMBONI_CHARRED = "Zamboni_Charred";
 
 		inline const std::string REANIM_ZOMBIE_CHARRED = "Zombie_Charred";

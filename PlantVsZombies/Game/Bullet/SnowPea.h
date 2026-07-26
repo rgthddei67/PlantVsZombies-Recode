@@ -44,7 +44,8 @@ protected:
 		else if (zombie->mHelmType == HelmType::HELMTYPE_BUCKET ||
 			zombie->mShieldType == ShieldType::SHIELDTYPE_DOOR ||
 			zombie->mShieldType == ShieldType::SHIELDTYPE_LADDER ||
-			zombie->mZombieType == ZombieType::ZOMBIE_ZAMBONI) {
+			zombie->mZombieType == ZombieType::ZOMBIE_ZAMBONI ||
+			zombie->mZombieType == ZombieType::ZOMBIE_GILDED_ZAMBONI) {
 			int random = GameRandom::Range(1, 2);
 			if (random == 1)
 				AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_IRONHIT, 0.2f);

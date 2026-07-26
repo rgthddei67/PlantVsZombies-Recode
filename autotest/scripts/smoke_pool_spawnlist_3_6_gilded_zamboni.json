@@ -1,0 +1,17 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 24 },
+    { "op": "set_timescale", "value": 1.0 },
+    { "op": "wait_state", "state": "CHOOSE_CARD", "timeout": 10 },
+    { "op": "assert_state", "path": "level", "equals": 24 },
+    { "op": "assert_state", "path": "background", "equals": "WATER_POOL" },
+    { "op": "assert_state", "path": "maxWave", "equals": 20 },
+    { "op": "assert_state", "path": "spawnTypeCount", "equals": 5 },
+    { "op": "assert_state", "path": "spawnList", "equals": ["ZOMBIE_NORMAL", "ZOMBIE_TRAFFIC_CONE", "ZOMBIE_BUCKET", "ZOMBIE_ZAMBONI", "ZOMBIE_GILDED_ZAMBONI"] },
+    { "op": "wait_seconds", "value": 4.2, "timeout": 10 },
+    { "op": "assert_state", "path": "chooseCardReady", "equals": true },
+    { "op": "screenshot", "name": "pool_spawn_3_6_gilded_zamboni.png" },
+    { "op": "dump_state", "name": "pool_spawn_3_6_gilded_zamboni.json" },
+    { "op": "quit" }
+  ]
+}

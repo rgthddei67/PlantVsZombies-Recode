@@ -28,6 +28,7 @@
 #include "../Zombie/ZombieCharred.h"
 #include "../Zombie/ZamboniCharred.h"
 #include "../Zombie/ZamboniZombie.h"
+#include "../Zombie/GildedZamboniZombie.h"
 #include "../Zombie/EliteDancerZombie.h"
 #include "../Zombie/Polevaulter.h"
 #include "../Zombie/PoolNormalZombie.h"
@@ -73,7 +74,7 @@ namespace {
 		ZT(ZOMBIE_FOOTBALL), ZT(ZOMBIE_DANCER), ZT(ZOMBIE_BACKUP_DANCER), ZT(ZOMBIE_ELITE_DANCER), ZT(ZOMBIE_PINK_FOOTBALL),
 		ZT(ZOMBIE_REINFORCED_DOOR),
 		ZT(ZOMBIE_POOL_NORMAL), ZT(ZOMBIE_POOL_CONE), ZT(ZOMBIE_POOL_BUCKET),
-		ZT(ZOMBIE_ZAMBONI), ZT(ZOMBIE_DOLPHIN_RIDER),
+		ZT(ZOMBIE_ZAMBONI), ZT(ZOMBIE_GILDED_ZAMBONI), ZT(ZOMBIE_DOLPHIN_RIDER),
 		ZT(ZOMBIE_JACK_IN_THE_BOX), ZT(ZOMBIE_BALLOON), ZT(ZOMBIE_DIGGER), ZT(ZOMBIE_POGO),
 		ZT(ZOMBIE_YETI), ZT(ZOMBIE_BUNGEE), ZT(ZOMBIE_LADDER), ZT(ZOMBIE_CATAPULT),
 		ZT(ZOMBIE_GARGANTUAR), ZT(ZOMBIE_IMP), ZT(ZOMBIE_BOSS), ZT(ZOMBIE_PEA_HEAD),
@@ -1128,6 +1129,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "eliteDancersSpawnedThisWave", board->GetEliteDancersSpawnedThisWave() },
 			{ "reinforcedDoorsSpawnedThisWave", board->GetReinforcedDoorsSpawnedThisWave() },
 			{ "elitePolevaultersSpawnedThisWave", board->GetElitePolevaultersSpawnedThisWave() },
+			{ "gildedZambonisSpawnedThisWave", board->GetGildedZambonisSpawnedThisWave() },
 			{ "typhoonDecayRemaining", board->GetTyphoonStrengthTimer() },
 			{ "windDirection", WindDirectionName(board->GetWindDirection()) },
 			{ "windDirectionRemaining", board->GetWindDirectionTimer() },
@@ -1218,11 +1220,18 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_BALLOON_POP);
 
 	out["iceTrails"] = nlohmann::json::array();
+	out["goldenIceTrails"] = nlohmann::json::array();
 	for (int row = 0; row < board->mRows; ++row) {
 		int startCol = -1;
+		int goldenStartCol = -1;
 		for (int col = 0; col < board->mColumns; ++col) {
 			if (board->IsIceAt(row, col)) {
 				startCol = col;
+			}
+			if (board->IsGoldenIceAtWorld(row, board->GetCellCenterPosition(row, col).x)) {
+				goldenStartCol = col;
+			}
+			if (startCol >= 0 && goldenStartCol >= 0) {
 				break;
 			}
 		}
@@ -1234,6 +1243,15 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "remainingMs", static_cast<int>(std::lround(
 				board->GetIceTrailTimeRemaining(row) * 1000.0f)) },
 			{ "startCol", startCol },
+		});
+		out["goldenIceTrails"].push_back({
+			{ "row", row },
+			{ "active", board->GetGoldenIceTrailTimeRemaining(row) > 0.0f },
+			{ "minXInt", static_cast<int>(std::lround(board->GetGoldenIceTrailMinX(row))) },
+			{ "rightXInt", static_cast<int>(std::lround(board->GetIceTrailRightX())) },
+			{ "remainingMs", static_cast<int>(std::lround(
+				board->GetGoldenIceTrailTimeRemaining(row) * 1000.0f)) },
+			{ "startCol", goldenStartCol },
 		});
 	}
 
@@ -1258,6 +1276,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["zombies"] = nlohmann::json::array();
 	int poolRowZombieCount = 0;
 	int earlyWavePoolZombieCount = 0;
+	int gildedZamboniCount = 0;
 	for (int id : board->mEntityManager.GetAllZombieIDs()) {
 		Zombie* z = board->mEntityManager.GetZombie(id);
 		// Die() 会立即把对象标为 inactive，EntityManager 的 weak 引用到下一次清理才过期；
@@ -1268,6 +1287,9 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			if (z->mSpawnWave >= 1 && z->mSpawnWave <= 4) {
 				++earlyWavePoolZombieCount;
 			}
+		}
+		if (z->mZombieType == ZombieType::ZOMBIE_GILDED_ZAMBONI) {
+			++gildedZamboniCount;
 		}
 		const Vector pos = z->GetPosition();
 		const auto anim = z->GetAnimatorInternal();
@@ -1296,6 +1318,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "animExtraSpeedPct", anim
 				? static_cast<int>(std::lround(anim->GetExtraSpeedMultiplier() * 100.0f)) : 0 },
 			{ "effectiveAnimSpeed", anim ? anim->EffectiveSpeed() : 0.0f },
+			{ "goldenIceSpeedActive", z->IsGoldenIceSpeedActive() },
+			{ "goldenIceEffectStacks", z->GetGoldenIceEffectStacks() },
 			{ "freeHitsRemaining", z->mFreeHitsRemaining },
 			{ "tangleKelpTarget", z->IsTangleKelpTarget() },
 			{ "tangleKelpPlantID", z->GetTangleKelpPlantID() },
@@ -1361,8 +1385,18 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				zombieState["zamboniColliderHeightInt"] =
 					static_cast<int>(std::lround(bounds.h));
 			}
+			const float trailMinX = z->mZombieType == ZombieType::ZOMBIE_GILDED_ZAMBONI
+				? board->GetGoldenIceTrailMinX(z->mRow)
+				: board->GetIceTrailMinX(z->mRow);
 			zombieState["zamboniIceFromVisualXOn1000"] = static_cast<int>(std::lround(
-				(board->GetIceTrailMinX(z->mRow) - visualPosition.x) * 1000.0f));
+				(trailMinX - visualPosition.x) * 1000.0f));
+		}
+		if (auto* gilded = dynamic_cast<GildedZamboniZombie*>(z)) {
+			zombieState["gildedUndamagedMs"] = static_cast<int>(std::lround(
+				gilded->GetUndamagedTime() * 1000.0f));
+			zombieState["gildedAccelerationStage"] = gilded->GetAccelerationStage();
+			zombieState["gildedAccelerationMultiplierPct"] = static_cast<int>(std::lround(
+				gilded->GetAccelerationMultiplier() * 100.0f));
 		}
 		if (dynamic_cast<PoolNormalZombie*>(z)) {
 			zombieState["poolLegsVisible"] = anim && (
@@ -1376,6 +1410,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		out["zombies"].push_back(std::move(zombieState));
 	}
 	out["zombieCount"] = static_cast<int>(out["zombies"].size());
+	out["gildedZamboniCount"] = gildedZamboniCount;
 	out["poolRowZombieCount"] = poolRowZombieCount;
 	out["earlyWavePoolZombieCount"] = earlyWavePoolZombieCount;
 

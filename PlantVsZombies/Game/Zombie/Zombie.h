@@ -45,6 +45,7 @@ protected:
 	bool mIsPreview = false;
 
 	float mExtraSpeed = 1.0f;
+	int mGoldenIceEffectStacks = 0;	// 当前黄色冰道速度场层数；由仍存活的铺路者与持久冰道实时派生，不入存档
 
 	float mCooldownTimer = 0.0f;	// 僵尸减速倒计时时间
 	float mFrozenTimer = 0.0f;		// 冻结剩余秒数（寒冰菇完全定身），0=未冻结
@@ -150,6 +151,8 @@ public:
 	float GetCooldownTimer() const { return this->mCooldownTimer; }
 	bool IsFrozen() const { return this->mFrozenTimer > 0.0f; }
 	float GetFrozenTimer() const { return this->mFrozenTimer; }
+	bool IsGoldenIceSpeedActive() const { return mGoldenIceEffectStacks > 0; }
+	int GetGoldenIceEffectStacks() const { return mGoldenIceEffectStacks; }
 	/** 同时清除减速与冻结，并恢复当前天气/能力组合后的动画速度。 */
 	void RemoveColdEffects();
 	/** 当前状态是否满足原版水草的近身锁定条件。 */
@@ -203,6 +206,14 @@ protected:
 	virtual float GetSlowAnimFactor() const { return 0.6f; }
 	// 品种能力层动画倍率；天气等外部状态变化后由 Board 统一触发重算。
 	virtual float GetAbilityAnimSpeedMultiplier() const { return 1.0f; }
+	/** 品种是否无条件承受黄色冰道速度场；铺路者自身不依赖几何覆盖。 */
+	virtual bool IsAlwaysAffectedByGoldenIce() const { return false; }
+	/** 统计当前点由多少辆仍存活的鎏金冰车覆盖；仅剩持久冰道时至少返回一层。 */
+	int ComputeGoldenIceEffectStacks() const;
+	/** 每层黄色冰道都把倍率相对 1.0 的加速或减速幅度放大两倍。 */
+	float AmplifySpeedMultiplierForGoldenIce(float multiplier) const;
+	/** 在跨入、离开、叠层变化或冰道消失的边沿刷新 Animator 速度组合。 */
+	void RefreshGoldenIceSpeedState();
 	// 解除冻结并恢复动画速度；蓝色 overlay 仅在无减速尾巴时清除（持盾僵尸没有尾巴→立即褪色）
 	void ClearFrozen();
 

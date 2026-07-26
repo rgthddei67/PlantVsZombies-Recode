@@ -167,6 +167,8 @@ public:
 	std::vector<std::vector<Cell*>> mCells;
 	std::array<float, 8> mIceMinX{};      // 每行冰道最靠房屋的世界 X；最多覆盖当前六行地图
 	std::array<float, 8> mIceTimer{};     // 每行冰道剩余寿命，单位秒
+	std::array<float, 8> mGoldenIceMinX{}; // 每行黄色冰道最靠房屋的世界 X；与普通冰道独立共存
+	std::array<float, 8> mGoldenIceTimer{}; // 每行黄色冰道剩余寿命，单位秒
 
 private:
 	std::vector<ZombieType> mSpawnZombieList;	// 本关出怪表
@@ -221,6 +223,7 @@ private:
 	int mEliteDancersSpawnedThisWave = 0; // 当前波已生成的精英舞王数量；用于每波上限并进入存档
 	int mReinforcedDoorsSpawnedThisWave = 0; // 当前波正式生成的加固铁门数量；上限计数并进入存档
 	int mElitePolevaultersSpawnedThisWave = 0; // 当前波正式生成的精英撑杆数量；上限计数并进入存档
+	int mGildedZambonisSpawnedThisWave = 0; // 当前波正式生成的鎏金冰车数量；每波至多一只并进入存档
 	int mEliteScaredyShroomsPlanted = 0; // 本关累计种下的精英胆小菇数量；死亡或铲除不返还次数
 	int mLastTyphoonMovedPlants = 0;    // 最近一次阵风移动的植物数，仅供观测和测试
 	int mLastTyphoonLostPlants = 0;     // 最近一次阵风吹出棋盘或吹入弹坑的植物数，仅供观测和测试
@@ -282,6 +285,7 @@ private:
 	void RestoreEliteDancerWaveSpawnCount(int count);
 	void RestoreReinforcedDoorWaveSpawnCount(int count);
 	void RestoreElitePolevaulterWaveSpawnCount(int count);
+	void RestoreGildedZamboniWaveSpawnCount(int count);
 	void RestoreTyphoonState(TyphoonStrength strength, WindDirection direction,
 		float strengthTimer, float gustTimer, float directionTimer, int gustsRemaining);
 	void RestoreActiveTyphoonGust(bool active, TyphoonStrength strength,
@@ -406,6 +410,7 @@ public:
 	int GetEliteDancersSpawnedThisWave() const { return mEliteDancersSpawnedThisWave; }
 	int GetReinforcedDoorsSpawnedThisWave() const { return mReinforcedDoorsSpawnedThisWave; }
 	int GetElitePolevaultersSpawnedThisWave() const { return mElitePolevaultersSpawnedThisWave; }
+	int GetGildedZambonisSpawnedThisWave() const { return mGildedZambonisSpawnedThisWave; }
 	int GetLastTyphoonMovedPlants() const { return mLastTyphoonMovedPlants; }
 	int GetLastTyphoonLostPlants() const { return mLastTyphoonLostPlants; }
 	bool IsTyphoonGustWarning() const;
@@ -454,21 +459,27 @@ public:
 	bool IsPoolRow(int row) const;
 	bool IsPoolSquare(int row, int col) const;
 	bool IsPoolWorldPosition(int row, float x) const;
-	/** 水路出怪扩展点：集中列出禁水类型；当前所有有效僵尸类型都允许进入水路。 */
+	/** 水路出怪扩展点：集中列出冰车等禁水类型。 */
 	bool CanZombieTypeSpawnInPool(ZombieType type) const;
 	Vector GetCellCenterPosition(int row, int col) const;
 	float GetCellHeight() const { return mCellHeight; }
 	/** 冰车用车辆前缘把指定行冰道向房屋方向延伸，并刷新原版 30 秒寿命。 */
 	void ExtendIceTrail(int row, float frontX);
-	/** 火爆辣椒等效果把指定行冰道剩余时间压到给定上限，单位秒。 */
+	/** 鎏金冰车把指定陆地行黄色冰道向房屋方向延伸；水路拒绝铺设。 */
+	void ExtendGoldenIceTrail(int row, float frontX);
+	/** 火爆辣椒等效果把指定行普通与黄色冰道剩余时间压到给定上限，单位秒。 */
 	void ShortenIceTrail(int row, float maxRemainingSeconds);
-	/** 返回指定格当前是否被冰道覆盖；覆盖格禁止种植。 */
+	/** 返回指定格当前是否被任一冰道覆盖；覆盖格禁止种植。 */
 	bool IsIceAt(int row, int col) const;
+	/** 返回指定世界点是否处在活动黄色冰道上，供僵尸速度层边沿检测。 */
+	bool IsGoldenIceAtWorld(int row, float worldX) const;
 	float GetIceTrailMinX(int row) const;
 	float GetIceTrailTimeRemaining(int row) const;
+	float GetGoldenIceTrailMinX(int row) const;
+	float GetGoldenIceTrailTimeRemaining(int row) const;
 	/** 返回冰道主体的固定右边界；冰道从车辆处一直铺到逻辑屏幕最右端。 */
 	float GetIceTrailRightX() const;
-	/** 在背景和游戏对象之间绘制全部活动冰道。 */
+	/** 在背景和游戏对象之间绘制全部活动冰道；重叠区黄色冰道覆盖普通冰道。 */
 	void DrawIceTrails(Graphics* g) const;
 
 	/** UI 与测试共用的正式种植判定，不含阳光与卡片冷却。 */

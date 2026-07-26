@@ -266,6 +266,14 @@ bool GameInfoSaver::SaveLevelDataImpl(Board* board, CardSlotManager* manager)
 			{ "timer", board->mIceTimer[row] },
 		});
 	}
+	j["goldenIceTrails"] = nlohmann::json::array();
+	for (int row = 0; row < board->mRows
+		&& row < static_cast<int>(board->mGoldenIceTimer.size()); ++row) {
+		j["goldenIceTrails"].push_back({
+			{ "minX", board->mGoldenIceMinX[row] },
+			{ "timer", board->mGoldenIceTimer[row] },
+		});
+	}
 	j["eliteScaredyShroomsPlanted"] = board->mEliteScaredyShroomsPlanted;
 	j["weatherInitialized"] = board->mWeatherInitialized;
 	j["rainIntensity"] = static_cast<int>(board->mRainIntensity);
@@ -304,6 +312,7 @@ bool GameInfoSaver::SaveLevelDataImpl(Board* board, CardSlotManager* manager)
 	j["eliteDancersSpawnedThisWave"] = board->mEliteDancersSpawnedThisWave;
 	j["reinforcedDoorsSpawnedThisWave"] = board->mReinforcedDoorsSpawnedThisWave;
 	j["elitePolevaultersSpawnedThisWave"] = board->mElitePolevaultersSpawnedThisWave;
+	j["gildedZambonisSpawnedThisWave"] = board->mGildedZambonisSpawnedThisWave;
 	j["currentWeatherNoticeTimer"] = board->mGameScene
 		? board->mGameScene->GetCurrentWeatherNoticeTimer() : 0.0f;
 	j["weatherForecastFailureTimer"] = board->mGameScene
@@ -598,6 +607,19 @@ bool GameInfoSaver::LoadLevelDataImpl(Board* board, CardSlotManager* manager)
 				? std::clamp(trails[row].value("minX", iceRight), 25.0f, iceRight)
 				: iceRight;
 		}
+		board->mGoldenIceMinX.fill(iceRight);
+		board->mGoldenIceTimer.fill(0.0f);
+		const auto& goldenTrails = j.value("goldenIceTrails", nlohmann::json::array());
+		for (int row = 0; row < board->mRows
+			&& row < static_cast<int>(board->mGoldenIceTimer.size())
+			&& row < static_cast<int>(goldenTrails.size()); ++row) {
+			if (!goldenTrails[row].is_object()) continue;
+			board->mGoldenIceTimer[row] = std::clamp(
+				goldenTrails[row].value("timer", 0.0f), 0.0f, 30.0f);
+			board->mGoldenIceMinX[row] = board->mGoldenIceTimer[row] > 0.0f
+				? std::clamp(goldenTrails[row].value("minX", iceRight), 25.0f, iceRight)
+				: iceRight;
+		}
 	}
 	if (j.contains("eliteScaredyShroomsPlanted")) {
 		board->mEliteScaredyShroomsPlanted = std::clamp(
@@ -738,6 +760,8 @@ bool GameInfoSaver::LoadLevelDataImpl(Board* board, CardSlotManager* manager)
 		j.value("reinforcedDoorsSpawnedThisWave", 0));
 	board->RestoreElitePolevaulterWaveSpawnCount(
 		j.value("elitePolevaultersSpawnedThisWave", 0));
+	board->RestoreGildedZamboniWaveSpawnCount(
+		j.value("gildedZambonisSpawnedThisWave", 0));
 	board->mRainVisualActive = false;   // 粒子不入存档，StartGame 按剩余时间重建
 	board->mMaxWave = j.value("maxWave", 10);
 	board->mZombieCountDown = j.value("zombieCountDown", 20.0f);

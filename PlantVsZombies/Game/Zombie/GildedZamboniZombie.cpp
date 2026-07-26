@@ -1,0 +1,164 @@
+#include "GildedZamboniZombie.h"
+
+#include "../../DeltaTime.h"
+#include "../../GameRandom.h"
+#include "../Board.h"
+
+#include <algorithm>
+
+namespace {
+	constexpr int kGildedZamboniHealth = 2200;             // 鎏金冰车本体血量
+	constexpr float kGildedBaseDriveMultiplier = 0.72f;   // 相对普通冰车速度曲线的基础移速倍率
+	constexpr float kFirstAccelerationTime = 6.0f;        // 首次无伤害加速门槛，单位秒
+	constexpr float kSecondAccelerationTime = 10.0f;      // 第二次加速门槛；满足主人 10 秒为 x4 的示例
+	constexpr float kThirdAccelerationTime = 14.0f;       // 第三次加速门槛；最终速度封顶 x8
+	constexpr int kCaltropHitDamage = 100;                 // 地刺每次扎中鎏金冰车造成的固定基础伤害
+	constexpr int kChomperBiteDamage = 50;                 // 大嘴花每次咬中但无法吞食时造成的固定基础伤害
+	constexpr float kPreviewDriveAnimSpeedMin = 0.50f;    // 慢速车辆驾驶动画最小基础倍率
+	constexpr float kPreviewDriveAnimSpeedMax = 0.65f;    // 慢速车辆驾驶动画最大基础倍率
+	constexpr float kMutualInfluenceLeftPadding = 80.0f;  // 活车速度场向车辆左侧包住车身的距离，单位 px；允许近邻冰车互相覆盖
+}
+
+void GildedZamboniZombie::SetupZombie()
+{
+	// 完整复用普通冰车的车辆碰撞、死亡、破损和既有动画时间线，不注册新帧事件。
+	ZamboniZombie::SetupZombie();
+	mBodyMaxHealth = kGildedZamboniHealth;
+	mBodyHealth = kGildedZamboniHealth;
+	mGoldenTrailMinX = mBoard ? mBoard->GetIceTrailRightX() : 0.0f;
+	SetAnimationSpeed(GameRandom::Range(
+		kPreviewDriveAnimSpeedMin, kPreviewDriveAnimSpeedMax));
+}
+
+void GildedZamboniZombie::Update()
+{
+	ZamboniZombie::Update();
+	if (mIsPreview || mIsDead) return;
+	UpdateAcceleration(DeltaTime::GetDeltaTime());
+}
+
+void GildedZamboniZombie::UpdateAcceleration(float deltaTime)
+{
+	if (deltaTime <= 0.0f || mAccelerationStage >= 3) return;
+	mUndamagedTime = std::min(kThirdAccelerationTime, mUndamagedTime + deltaTime);
+
+	int nextStage = 0;
+	if (mUndamagedTime >= kThirdAccelerationTime) nextStage = 3;
+	else if (mUndamagedTime >= kSecondAccelerationTime) nextStage = 2;
+	else if (mUndamagedTime >= kFirstAccelerationTime) nextStage = 1;
+	if (nextStage == mAccelerationStage) return;
+
+	mAccelerationStage = nextStage;
+	UpdateAnimSpeed();
+}
+
+void GildedZamboniZombie::ResetAcceleration()
+{
+	const bool hadAcceleration = mAccelerationStage > 0;
+	mUndamagedTime = 0.0f;
+	mAccelerationStage = 0;
+	if (hadAcceleration) {
+		UpdateAnimSpeed();
+	}
+}
+
+void GildedZamboniZombie::TakeBodyDamage(int damage)
+{
+	if (damage <= 0 || mIsDead) return;
+	ResetAcceleration();
+	ZamboniZombie::TakeBodyDamage(damage);
+}
+
+bool GildedZamboniZombie::TakePlantInstantKill()
+{
+	// 大嘴花完成咬合，但车辆不会被吞下，也不会让大嘴花进入消化状态。
+	TakeDamage(kChomperBiteDamage, DamageSource::PLANT);
+	return false;
+}
+
+void GildedZamboniZombie::HandleCaltropHit(Caltrop& /*caltrop*/)
+{
+	if (mIsDead) return;
+	// 地刺保留在场并按自身攻击周期继续扎刺；车辆不会爆胎或进入延迟死亡。
+	TakeDamage(kCaltropHitDamage, DamageSource::PLANT);
+}
+
+void GildedZamboniZombie::LayIceTrails(const Vector& stableVisualOrigin)
+{
+	if (!mBoard) return;
+	const float frontX = GetIceTrailFrontX(stableVisualOrigin);
+	mGoldenTrailMinX = mGoldenTrailMinX > 0.0f
+		? std::min(mGoldenTrailMinX, frontX) : frontX;
+	for (int row = mRow - 1; row <= mRow + 1; ++row) {
+		// Board 集中拒绝越界与水路；因此相邻水路只参与碾压，不留下黄色冰道。
+		mBoard->ExtendGoldenIceTrail(row, frontX);
+	}
+}
+
+bool GildedZamboniZombie::CanCrushRow(int row) const
+{
+	return row >= mRow - 1 && row <= mRow + 1;
+}
+
+float GildedZamboniZombie::GetBaseDriveSpeedMultiplier() const
+{
+	return kGildedBaseDriveMultiplier;
+}
+
+float GildedZamboniZombie::GetAbilityAnimSpeedMultiplier() const
+{
+	const float targetMultiplier = GetAccelerationMultiplier();
+	if (mGoldenIceEffectStacks <= 0) return targetMultiplier;
+
+	float effectScale = 1.0f;
+	for (int stack = 0; stack < mGoldenIceEffectStacks; ++stack) {
+		effectScale *= 2.0f;
+	}
+	// 返回叠层放大前的逆变换值；统一速度层展开后恰好得到目标倍率且不突破 x8。
+	return 1.0f + (targetMultiplier - 1.0f) / effectScale;
+}
+
+float GildedZamboniZombie::GetAccelerationMultiplier() const
+{
+	const float baseMultiplier =
+		static_cast<float>(1 << std::clamp(mAccelerationStage, 0, 3));
+	float extraEffect = baseMultiplier - 1.0f;
+	for (int stack = 1; stack < mGoldenIceEffectStacks; ++stack) {
+		extraEffect *= 2.0f;
+	}
+	return std::min(8.0f, 1.0f + extraEffect);
+}
+
+bool GildedZamboniZombie::ProvidesGoldenIceEffectAt(
+	int row, float worldX, bool includeVehicleBody) const
+{
+	if (!mBoard || mIsPreview || mIsDead || std::abs(row - mRow) > 1
+		|| mBoard->IsPoolRow(row)) return false;
+
+	const float leftX = includeVehicleBody
+		? std::min(mGoldenTrailMinX, GetPosition().x - kMutualInfluenceLeftPadding)
+		: mGoldenTrailMinX;
+	return worldX >= leftX && worldX <= mBoard->GetIceTrailRightX();
+}
+
+void GildedZamboniZombie::SaveExtraData(nlohmann::json& j) const
+{
+	ZamboniZombie::SaveExtraData(j);
+	j["undamagedTime"] = mUndamagedTime;
+	j["goldenTrailMinX"] = mGoldenTrailMinX;
+}
+
+void GildedZamboniZombie::LoadExtraData(const nlohmann::json& j)
+{
+	ZamboniZombie::LoadExtraData(j);
+	mUndamagedTime = std::clamp(
+		j.value("undamagedTime", 0.0f), 0.0f, kThirdAccelerationTime);
+	if (mUndamagedTime >= kThirdAccelerationTime) mAccelerationStage = 3;
+	else if (mUndamagedTime >= kSecondAccelerationTime) mAccelerationStage = 2;
+	else if (mUndamagedTime >= kFirstAccelerationTime) mAccelerationStage = 1;
+	else mAccelerationStage = 0;
+	const float trailRight = mBoard ? mBoard->GetIceTrailRightX() : mGoldenTrailMinX;
+	mGoldenTrailMinX = std::clamp(
+		j.value("goldenTrailMinX", trailRight), 25.0f, trailRight);
+	UpdateAnimSpeed();
+}
