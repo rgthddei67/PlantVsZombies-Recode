@@ -25,6 +25,8 @@ public:
 
 	int GetDamageStage() const;
 	float GetDriveSpeed() const { return mDriveSpeed; }
+	/** 返回当前地图供冰车速度曲线使用的水平坐标基准。 */
+	float GetDriveCoordinateBaseX() const;
 	Vector GetDamageShakeOffset() const { return mDamageShakeOffset; }
 	Vector GetVisualPosition() const override;
 

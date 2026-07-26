@@ -17,14 +17,20 @@ public:
 protected:
 	void BulletHitZombie(Zombie* zombie) override
 	{
+		// C# 在扣血前进入 ApplyChill；先缓存资格，避免致死寒冰弹因随后进入垂死态而漏掉正常音效。
+		const bool canBeChilled = zombie->CanBeChilled();
 		Bullet::BulletHitZombie(zombie);
 
-		if (zombie->GetCooldownTimer() <= 0.0f && zombie->mHelmType == HelmType::HELMTYPE_NONE
-			&& zombie->mShieldType == ShieldType::SHIELDTYPE_NONE) {
-			AudioSystem::PlaySound("SOUND_COOLDOWNZOMBIE", 0.22f);
+		// 原版 ApplyChill 先过 CanBeChilled 总闸；免疫目标既不上状态，也不播放减速音效。
+		if (canBeChilled) {
+			if (zombie->GetCooldownTimer() <= 0.0f
+				&& zombie->mHelmType == HelmType::HELMTYPE_NONE
+				&& zombie->mShieldType == ShieldType::SHIELDTYPE_NONE) {
+				AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_COOLDOWNZOMBIE, 0.22f);
+			}
+			zombie->SetCooldown(7.5f);
 		}
 
-		zombie->SetCooldown(7.5f);
 		g_particleSystem->EmitEffect("SnowPeaBulletHit", GetPosition());
 
 		if (zombie->mHelmType == HelmType::HELMTYPE_TRAFFIC_CONE ||

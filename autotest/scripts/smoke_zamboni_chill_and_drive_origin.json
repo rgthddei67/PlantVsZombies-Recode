@@ -1,0 +1,29 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 1 },
+    { "op": "choose_cards", "cards": ["PLANT_PEASHOOTER"] },
+    { "op": "wait_state", "state": "GAME", "timeout": 15 },
+    { "op": "set_spawn_paused", "value": true },
+    { "op": "set_timescale", "value": 1.0 },
+    { "op": "assert_state", "path": "cooldownZombieSoundRequestCount", "equals": 0 },
+
+    { "op": "spawn_zombie", "type": "ZOMBIE_ZAMBONI", "row": 2, "x": 850 },
+    { "op": "assert_state", "path": "zombies.0.zamboniDriveCoordinateBaseXInt", "equals": 242 },
+    { "op": "spawn_bullet", "type": "BULLET_SNOWPEA", "row": 2, "x": 830, "y": 270, "velocityX": 0, "damage": 20 },
+    { "op": "wait_frames", "value": 2 },
+    { "op": "assert_state", "path": "zombies.0.bodyHealth", "equals": 1330 },
+    { "op": "assert_state", "path": "zombies.0.slowed", "equals": false },
+    { "op": "assert_state", "path": "zombies.0.zamboniDriveSpeedOn1000", "atLeast": 20000, "atMost": 21000 },
+    { "op": "assert_state", "path": "cooldownZombieSoundRequestCount", "equals": 0 },
+    { "op": "screenshot", "name": "zamboni_ignores_snowpea_chill.png" },
+    { "op": "wait_frames", "value": 4 },
+
+    { "op": "spawn_zombie", "type": "ZOMBIE_NORMAL", "row": 1, "x": 700, "stationary": true },
+    { "op": "spawn_bullet", "type": "BULLET_SNOWPEA", "row": 1, "x": 700, "y": 250, "velocityX": 0, "damage": 20 },
+    { "op": "wait_frames", "value": 2 },
+    { "op": "assert_state", "path": "zombies.1.slowed", "equals": true },
+    { "op": "assert_state", "path": "cooldownZombieSoundRequestCount", "equals": 1 },
+    { "op": "dump_state", "name": "zamboni_chill_and_drive_origin.json" },
+    { "op": "quit" }
+  ]
+}

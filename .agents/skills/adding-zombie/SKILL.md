@@ -14,6 +14,7 @@ description: Use when adding or tuning any PvZ zombie, or integrating zombies in
 **C# 原版逻辑场景是 800×600，本项目是 `SCENE_WIDTH=1100`、`SCENE_HEIGHT=600`。原版任何绝对 X/Y、碰撞框偏移、绘制偏移、粒子触发点和屏幕边界都只能当语义参考，禁止直接抄入代码。**
 
 - 场景绝对坐标改由 `SCENE_WIDTH/SCENE_HEIGHT`、Board 网格与当前背景几何重新派生；不要把 800 宽地图的右边界、出生点或阈值原样搬来。
+- 原版按世界 X 分段的速度/状态阈值写成“当前地图坐标基准 + 原版相对距离”；平地可从 `CELL_INITALIZE_POS_X` 派生，屋顶因斜坡几何必须保留独立基准入口并在实测后填写，禁止先假定与平地相同。
 - 僵尸局部坐标先求“原值相对 C# 绘制原点”的差，再锚到本项目稳定视觉原点 `Transform + mVisualOffset`；物理框、攻击框和粒子通常不得跟受伤抖动等临时绘制偏移移动。
 - 网格位置与画面偏移继续分离；优先使用 `GetCellCenterPosition`、`GetCellHeight`、`GetZombieCollisionY/GetZombieSpawnY`。
 - 验证必须同时包含同一状态下的相对量整数投影和可见截图；绝对 X/Y 会受逻辑步落点影响，不作稳定断言。
@@ -56,6 +57,7 @@ description: Use when adding or tuning any PvZ zombie, or integrating zombies in
 - **编队齐舞/同步动作**：动画速度必须 `SetAnimationSpeed(固定值)` 锁死——基类 `Start()` 给每僵尸随机 1.1~1.4，不锁必散拍。全队同步时钟用现成的 `Board::mBoardFrame`+`GetDanceBeatFrame()`（0~22 拍，12 逻辑步/拍，入存档），按拍映射轨道、缓存上次段位防每帧重播。
 - **召唤僵尸**：`mBoard->CreateZombie(type, row, x)`（y 恒由 row 派生）；关联用 EntityManager 整型 ID（死亡自动失效）；**槽位有效性 = `GetZombie(id)` 非空 且 `IsMindControlled()` 与本体一致**——只判空则被魅惑的随从永远占位、补召失灵；行越界/永久不可用的槽要豁免，否则无限重触发召唤动作。持续补召必须把“最多维持数量”和“补召间隔”集中为匿名 namespace 可调常量，并明确计时使用哪种 delta：精英舞王实证为冻结暂停、减速按 scaled delta 拖慢，天气动画倍率不得重复加速召唤逻辑。
 - **魅惑交互**：`StartMindControlled` 非虚——子类反应放 `ZombieUpdate` 里的边沿检测（`mIsMindControlled && !mCharmHandled`）；魅惑领队后新召唤单位补调 `StartMindControlled()` 继承阵营；魅惑者互啃敌方是引擎既有行为，编队混战减员属正常。
+- **寒冰免疫**：`CanBeChilled()` 是减速状态、蓝色覆色和减速音效的共同前置总闸；寒冰子弹必须先检查它，再调用 `SetCooldown` 或播放 `SOUND_COOLDOWNZOMBIE`。只在免疫僵尸里把 `SetCooldown` 写成 no-op 不够，调用方若提前播音仍会产生“没减速却有减速声”的假反馈。AutoTest 同时断言状态未变化和音效请求计数未增加，并用普通僵尸对照证明计数抓手有效。
 - **天气条件变异**：同时使用 `adding-rain-weather`。`spawnlists.json` 与波次点数预算只放基础类型，正式生成路径在扣点前经唯一 resolver 决定实际变异类型；`CreateZombie`/`spawn_zombie` 保持直造确定性。每波上限只在推进新波时清零，不能被天气切换重置；已生成数必须入存档，`weight: 0` 的变异体不得独立进入随机池。
 - **小推车特殊交互**：若能力只应吞掉“其他行”小推车，当前碰撞车必须先走原版 `Trigger()`，Board 副作用按当前 mower ID 排除它，最后仍对碰撞僵尸结算 `INT32_MAX`；不要在全场清理分支提前 return，否则精英会绕过本行最后防线直接进家。AutoTest 把吞车验证放在新场景，前序编队/动画长等待可能让移动僵尸提前撞到别行 mower，造成断言对象漂移。
 - **出土/升起**：垂直位移用 `mVisualOffset.y`（存基准值，按计时线性还原）；地面遮挡用现成 `SetClipRect(0,0,SCENE_WIDTH, groundY+margin)`，**底边取 `Board::GetZombieSpawnY(row)` 行地面线**（换地图自适应，主人指示），完成后 `ClearClipRect`；升起期不移动不啃食（覆写 StartEat 早退）。默认让动画继续播放；若主人明确要求静态出土，**只能 `Animator::Pause()` 播放头，不得把 base/extra 速度层写成 0**——后续 `PlayTrack(anim_death)` 会自动恢复 playing，RISING 读档在 `RestoreAnimState` 后须重新 Pause，并必须专项实测升起中死亡不会卡帧。

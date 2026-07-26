@@ -18,11 +18,12 @@ namespace {
 	constexpr int kZamboniHealth = 1350;                 // 原版冰车本体血量
 	constexpr float kZamboniAnimationSpeed = 12.0f;      // anim_drive 的原版播放速度
 	constexpr float kFastDriveSpeed = 25.0f;             // 出生区冰车最高前进速度，单位 px/s
-	constexpr float kSlowDriveSpeed = 5.0f;              // 原版速度曲线在 300px 处的理论下限，单位 px/s
-	constexpr float kInnerDriveSpeed = 10.0f;            // 进入 x<=400 后保持的前进速度，单位 px/s
-	constexpr float kDriveCurveLeftX = 300.0f;           // 原版线性减速曲线左端世界 X
-	constexpr float kDriveCurveRightX = 700.0f;          // 原版线性减速曲线右端世界 X
-	constexpr float kDriveCurveStopX = 400.0f;           // 越过该位置后不再重算速度
+	constexpr float kSlowDriveSpeed = 5.0f;              // 速度曲线在地图基准后 300px 处的理论下限，单位 px/s
+	constexpr float kInnerDriveSpeed = 10.0f;            // 进入地图基准后 x<=400 区域的固定速度，单位 px/s
+	constexpr float kDriveCurveLeftFromBaseX = 300.0f;   // 线性速度曲线左端相对当前地图坐标基准的 X
+	constexpr float kDriveCurveRightFromBaseX = 700.0f;  // 线性速度曲线右端相对当前地图坐标基准的 X
+	constexpr float kDriveCurveStopFromBaseX = 400.0f;   // 越过该相对位置后不再重算速度
+	constexpr float kRoofDriveCoordinateBaseX = 0.0f;    // TODO：屋顶冰车解禁前按斜坡实测并独立填写，不能套用草坪基准
 	constexpr float kColliderFromVisualX = -68.0f;       // 原版碰撞框左缘相对车辆稳定视觉原点的 X，单位 px
 	constexpr float kColliderFromVisualY = 10.0f;        // 原版碰撞框上缘相对车辆稳定视觉原点的 Y，单位 px
 	constexpr float kIceFrontFromVisualX = 50.0f;        // 冰道左端相对车辆稳定视觉原点的 X，单位 px
@@ -87,9 +88,13 @@ void ZamboniZombie::ZombieMove(float scaledDelta, TransformComponent* transform)
 	if (!transform || scaledDelta <= 0.0f) return;
 
 	const float x = transform->GetPosition().x;
-	if (x > kDriveCurveStopX) {
+	const float coordinateBaseX = GetDriveCoordinateBaseX();
+	const float curveLeftX = coordinateBaseX + kDriveCurveLeftFromBaseX;
+	const float curveRightX = coordinateBaseX + kDriveCurveRightFromBaseX;
+	const float curveStopX = coordinateBaseX + kDriveCurveStopFromBaseX;
+	if (x > curveStopX) {
 		const float t = std::clamp(
-			(x - kDriveCurveLeftX) / (kDriveCurveRightX - kDriveCurveLeftX),
+			(x - curveLeftX) / (curveRightX - curveLeftX),
 			0.0f, 1.0f);
 		mDriveSpeed = kSlowDriveSpeed + (kFastDriveSpeed - kSlowDriveSpeed) * t;
 	}
@@ -103,6 +108,16 @@ void ZamboniZombie::ZombieMove(float scaledDelta, TransformComponent* transform)
 		speed *= mBoard->GetZombieWindMoveMultiplier(false);
 	}
 	transform->Translate(-speed * scaledDelta, 0.0f);
+}
+
+float ZamboniZombie::GetDriveCoordinateBaseX() const
+{
+	if (mBoard && (mBoard->mBackGround == Background::ROOF
+		|| mBoard->mBackGround == Background::NIGHT_ROOF)) {
+		// 屋顶当前禁止生成冰车；先保留独立入口，未来必须按斜坡坐标实测后再解禁。
+		return kRoofDriveCoordinateBaseX;
+	}
+	return CELL_INITALIZE_POS_X;
 }
 
 void ZamboniZombie::ZombieUpdate(float scaledTime)

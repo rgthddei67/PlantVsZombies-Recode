@@ -2,7 +2,7 @@
 
 > Codex routing: required always-on rules live in `../../AGENTS.md`; detailed build, AutoTest, architecture, resource, and implementation guidance lives in `../agent-guide/PROJECT_GUIDE.md`. The entries below are historical subsystem context and should be read only when relevant.
 
-- [冰车僵尸与冰道](project_pvz_zamboni_zombie.md) — 2026-07-26 原版冰车 1350 HP、右侧高速入场后减速、碾压植物、两段破损与二段烟雾；碰撞/碾压/冰道统一锚定稳定视觉原点，子弹可命中实际车身，低血量抖动收敛到±0.35px，重伤烟雾换算为相对视觉原点(-41,+95)；冰道出生即激活并从车尾铺到1100px屏幕右缘、禁种、30秒寿命入档，辣椒缩短为0.2秒；普通死亡本体立即消失并在换算后的视觉原点上移位置生成专属粒子，灰烬缩放0.9且第53帧移除；地刺只留TODO、雪橇小队枚举已删除；3-5 出怪表已接入并通过双Clang构建与可见专项 AutoTest
+- [冰车僵尸与冰道](project_pvz_zamboni_zombie.md) — 2026-07-26 原版冰车 1350 HP、右侧高速入场后减速、碾压植物、两段破损与二段烟雾；速度曲线以普通场景 `CELL_INITALIZE_POS_X` 为基准，屋顶留独立未核实入口；免疫寒冰且不会误播减速音效；碰撞/碾压/冰道统一锚定稳定视觉原点，低血量抖动±0.35px，烟雾相对视觉原点(-41,+95)；冰道出生即激活并铺到1100px右缘；普通死亡生成专属粒子，灰烬0.9且第53帧移除；地刺只留TODO、雪橇小队枚举已删除；3-5 已接入并通过双Clang构建与可见专项 AutoTest
 - [三线射手](project_pvz_threepeater.md) — 2026-07-24 三头视觉帧29/73/111，但按 C# 集中计数器只在帧73同帧创建三弹；逐头补 `inverse(basePose)`；顶/底越界弹折回本行且360/290px/s差速；斜向初速按地图行高缩放（草地300、泳池255px/s），水路僵尸碰撞框脱离+25px美术下沉；本次按主人要求只编译、不跑AutoTest
 - [火爆辣椒](project_pvz_jalapeno.md) — 2026-07-26 使用主人裁剪的0..19帧本体，第19帧引爆；12段火焰从`CELL_INITALIZE_POS_X`横铺750px并在第12帧消失；整行非魅惑目标先解冻/解减速再走1800灰烬伤害，水路保持水中死亡且睡莲不受影响；冰车合入后会把同行冰道剩余寿命压到0.2秒；双Clang预设及可见专项AutoTest通过
 - [缠绕水草](project_pvz_tanglekelp.md) — 2026-07-24 仅空水格直种且占普通层，25阳光/30秒冷却；普通目标按 C# 99→51→21→0cs 抓取拖沉；持门加固铁门改为原地保持 `anim_grab` 5秒后获释且仅水草死亡，掉门后恢复普通规则；一对一锁定、抗性扩展点与存档迁移已接入，首版专项 AutoTest 74 条全绿，本次扩展按主人要求仅双 preset 编译

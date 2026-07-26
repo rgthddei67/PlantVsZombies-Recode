@@ -6,6 +6,8 @@
 
 namespace
 {
+	std::unordered_map<std::string, int> gSoundPlayRequestCounts;
+
 	/** 判断声道当前播放的资源是否仍是预期循环，避免仅凭声道编号操作已复用的音效。 */
 	bool ChannelOwnsChunk(int channel, Mix_Chunk* chunk)
 	{
@@ -46,6 +48,7 @@ std::unordered_map<std::string, AudioSystem::LoopingSoundState> AudioSystem::loo
 
 bool AudioSystem::Initialize()
 {
+	gSoundPlayRequestCounts.clear();
 	if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0)
 	{
 		LOG_ERROR("AudioSystem") << "音频初始化失败: " << Mix_GetError();
@@ -68,6 +71,7 @@ void AudioSystem::Shutdown() {
 
 	soundVolumes.clear();
 	loopingSounds.clear();
+	gSoundPlayRequestCounts.clear();
 	Mix_CloseAudio();
 }
 
@@ -129,6 +133,7 @@ float AudioSystem::GetSoundVolume(const std::string& soundKey)
 // 播放音效
 void AudioSystem::PlaySound(const std::string& soundKey, int loops)
 {
+	++gSoundPlayRequestCounts[soundKey];
 	if (!IsAudioAvailable()) return;
 
 	Mix_Chunk* sound = ResourceManager::GetInstance().GetSound(soundKey);
@@ -148,6 +153,7 @@ void AudioSystem::PlaySound(const std::string& soundKey, int loops)
 // 指定播放音量
 void AudioSystem::PlaySound(const std::string& soundKey, float volume, int loops)
 {
+	++gSoundPlayRequestCounts[soundKey];
 	if (!IsAudioAvailable()) return;
 
 	Mix_Chunk* sound = ResourceManager::GetInstance().GetSound(soundKey);
@@ -166,6 +172,7 @@ void AudioSystem::PlaySound(const std::string& soundKey, float volume, int loops
 // 指定播放音量和声道
 void AudioSystem::PlaySound(const std::string& soundKey, float volume, int loops, int channel)
 {
+	++gSoundPlayRequestCounts[soundKey];
 	if (!IsAudioAvailable()) return;
 
 	Mix_Chunk* sound = ResourceManager::GetInstance().GetSound(soundKey);
@@ -235,6 +242,12 @@ void AudioSystem::ResumeMusic()
 		if (adaptiveMusic.IsPlaying()) adaptiveMusic.Pause(false);
 		else Mix_ResumeMusic();
 	}
+}
+
+int AudioSystem::GetSoundPlayRequestCount(const std::string& soundKey)
+{
+	const auto it = gSoundPlayRequestCounts.find(soundKey);
+	return it == gSoundPlayRequestCounts.end() ? 0 : it->second;
 }
 
 void AudioSystem::PlayLoopingSound(const std::string& soundKey, float volume)

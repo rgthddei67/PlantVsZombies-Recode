@@ -1209,6 +1209,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		? g_particleSystem->GetEffectActiveParticleCount("ZamboniExplosion") : 0;
 	out["zamboniSmokeParticleCount"] = g_particleSystem
 		? g_particleSystem->GetEffectActiveParticleCount("ZamboniSmoke") : 0;
+	out["cooldownZombieSoundRequestCount"] =
+		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_COOLDOWNZOMBIE);
 
 	out["iceTrails"] = nlohmann::json::array();
 	for (int row = 0; row < board->mRows; ++row) {
@@ -1331,6 +1333,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			zombieState["zamboniDamageStage"] = zamboni->GetDamageStage();
 			zombieState["zamboniDriveSpeedOn1000"] = static_cast<int>(std::lround(
 				zamboni->GetDriveSpeed() * 1000.0f));
+			zombieState["zamboniDriveCoordinateBaseXInt"] = static_cast<int>(std::lround(
+				zamboni->GetDriveCoordinateBaseX()));
 			const Vector shakeOffset = zamboni->GetDamageShakeOffset();
 			zombieState["zamboniShakeXOn1000"] =
 				static_cast<int>(std::lround(shakeOffset.x * 1000.0f));
