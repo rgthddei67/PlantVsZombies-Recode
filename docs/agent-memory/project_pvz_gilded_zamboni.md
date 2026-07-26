@@ -41,4 +41,8 @@ Board 分行保存黄色左缘/寿命，旧档缺字段为空；黄色与普通�
 `script finished OK` 结束。普通冰车、`smoke_night_rain` 和 3-6 出怪表可见回归也均为
 正确窗口、退出码 0；`clang-playtest` 与 `clang-release` 构建通过且无编译器警告。
 
+2026-07-26 补齐 `resources/info.txt` 的 `ZOMBIE_GILDED_ZAMBONI` 名称与描述；正文覆盖
+三行碾压、黄色冰道、来源叠层/双车互助、无伤提速与特殊植物抗性，并保留宝开式自述。
+主人明确本次不跑 AutoTest，图鉴排版由其自行验收。
+
 详细设计见 `docs/superpowers/specs/2026-07-26-gilded-zamboni-design.md`。

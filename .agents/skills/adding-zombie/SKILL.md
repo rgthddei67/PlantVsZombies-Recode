@@ -38,6 +38,7 @@ description: Use when adding or tuning any PvZ zombie, or integrating zombies in
 6. **粒子**：照抄 `ZombieHeadOff.xml` 改 `<Name>`+`<Image>`（图键=贴图文件名的标准派生键，如 `ZombieDancerHead.png`→`PARTICLE_ZOMBIEDANCERHEAD`），放权威 `build/clang-release/resources/particles/config/`，其他 preset 自动共享。XML 标签全参考/foot-guns 见 **adding-particle skill**（勿再读 ParticleSystem 源码）。
 7. **换色变体资源**：优先用仓库内 PowerShell + `System.Drawing` 脚本按 HSV/亮度映射目标材质，保留原 Alpha、阴影、高光、描边和非目标部件；不要对整张图平涂或只靠 overlay。脚本是可复现源，只向 clang-release 权威资源生成一次并逐文件比预期 SHA-256。
 8. **⚠️ build/ 下资源提交必须 `git add -f`**——被 .gitignore 静默挡下，`git commit` 照样"成功"但文件没进去。提交后 `git show --stat` 核对文件数。
+9. **图鉴**：在权威 `build/clang-release/resources/info.txt` 同时添加 `[ZOMBIE_X]` 与 `[ZOMBIE_X_DESCRIPTION]`。`ZombieAlmanacScene` 会自动枚举已注册类型，缺键不会构建失败，只会留下有图无标题/正文的空白条目；因此静态检查每个新增枚举名的两枚 key 均存在且唯一。
 
 ## 冒险出怪编排
 
