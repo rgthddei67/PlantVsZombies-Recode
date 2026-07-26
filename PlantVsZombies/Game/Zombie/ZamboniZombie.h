@@ -56,6 +56,10 @@ protected:
 	}
 	/** @brief 返回车辆速度曲线的品种基础倍率。 */
 	virtual float GetBaseDriveSpeedMultiplier() const { return 1.0f; }
+	/** @brief 返回本品种死亡时触发的车辆爆炸粒子名。 */
+	virtual const char* GetDeathParticleEffectName() const {
+		return "ZamboniExplosion";
+	}
 	/** @brief 判断指定行是否属于本车辆的碾压范围。 */
 	virtual bool CanCrushRow(int row) const { return row == mRow; }
 	/** @brief 判断植物是否属于原版不可被冰车直接碾压的例外。 */

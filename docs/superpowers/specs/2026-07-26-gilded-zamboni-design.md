@@ -1,6 +1,6 @@
 # 鎏金冰车僵尸设计 spec
 
-日期：2026-07-26｜状态：已实现并通过可见专项验证
+日期：2026-07-26｜状态：已实现；死亡粒子修复已构建，视觉由主人复验
 
 ## 目标
 
@@ -36,6 +36,7 @@
 - 新枚举追加在普通冰车之后、`NUM_ZOMBIE_TYPES` 之前，不移动旧类型整数 ID。
 - 独立 `GildedZamboni.reanim` 复用普通冰车时间线；`scripts/recolor_gilded_zamboni.ps1` 将车体、司机衣料和帽子映射为金黄色，保留肤色、头发、黑色描边与明暗层次。
 - 独立 `golden_ice.png/golden_ice_cap.png` 提供浅黄色冰面标记；资源只生成到 `build/clang-release/resources` 权威目录。
+- 独立 `GildedZamboniExplosion` 死亡粒子引用鎏金车盖、车轮和滚刷贴图，并把两层爆炸云改成金黄色；普通冰车继续使用蓝色 `ZamboniExplosion`。
 - `gamedata.json` 使用 `weight=3200`、`appearWave=8`、`survivalRound=8`、`offset=[18,-108]`、`scale=1.0`。
 
 ## 波次上限与冒险 3-6
@@ -51,3 +52,4 @@
 - `smoke_gilded_zamboni.json` 覆盖：2200 HP、0.72 基础车速、三路铺冰、水路不铺冰但跨路碾压、普通/黄色冰道覆盖、雨势与寒冰幅度翻倍、双车互相叠层、6/10/14 秒阶梯及受伤重置、地刺 100、大嘴花 50、每波上限与跨波重置。
 - `smoke_pool_spawnlist_3_6_gilded_zamboni.json` 覆盖 level 24 背景、20 波、五种完整阵容和选卡预览。
 - 两份脚本均从 `build/clang-playtest` 在主人当前桌面可见窗口运行，退出码 0；主脚本 `run.log` 以 `script finished OK` 结束。双车大雨状态中两辆鎏金冰车与重叠区普通僵尸均导出 `goldenIceEffectStacks=2`、`animExtraSpeedPct=260`。
+- 2026-07-26 主人试玩发现普通 `ZamboniExplosion` 会让鎏金冰车死亡时飞出蓝色车辆部件；修复为由车辆品种选择死亡粒子，并新增全套鎏金车辆碎片配置。本次依主人要求不运行 AutoTest，完成构建与 XML/资源键静态校验后由主人复验视觉。

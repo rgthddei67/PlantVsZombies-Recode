@@ -36,6 +36,9 @@ protected:
 	float GetBaseDriveSpeedMultiplier() const override;
 	float GetAbilityAnimSpeedMultiplier() const override;
 	bool IsAlwaysAffectedByGoldenIce() const override { return true; }
+	const char* GetDeathParticleEffectName() const override {
+		return "GildedZamboniExplosion";
+	}
 
 private:
 	/** @brief 依据无伤害时间推进 6/10/14 秒三个加速门槛。 */

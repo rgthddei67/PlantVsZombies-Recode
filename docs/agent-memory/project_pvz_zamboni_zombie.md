@@ -97,3 +97,7 @@ X=850 时速度样本为 `20.315px/s`；寒冰豌豆命中后仍扣 20 HP，但 
 `ZOMBIE_GILDED_ZAMBONI` 复用同一 reanim 时序而不新增帧事件。载具动画和手动 X 位移现在
 消费同一组能力、寒冰、雨势与台风倍率，避免只看起来加速而实际车速不变。详细数值、黄色
 冰道来源叠层和 3-6 接入见 [project_pvz_gilded_zamboni](project_pvz_gilded_zamboni.md)。
+
+试玩反馈后，普通死亡入口也改为通过 `GetDeathParticleEffectName()` 虚扩展点选择粒子：
+基类仍返回 `ZamboniExplosion`，鎏金变体返回独立 `GildedZamboniExplosion`，防止换色车辆
+死亡时复用普通蓝色车盖、车轮和滚刷。

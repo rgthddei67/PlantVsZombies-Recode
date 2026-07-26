@@ -315,9 +315,9 @@ void ZamboniZombie::Die()
 		mDeathEffectsEmitted = true;
 		if (g_particleSystem) {
 			const Vector stableVisualOrigin = GetPosition() + mVisualOffset;
-			g_particleSystem->EmitEffect("ZamboniExplosion",
+			g_particleSystem->EmitEffect(GetDeathParticleEffectName(),
 				stableVisualOrigin
-				+ Vector(kDeathEffectFromVisualX, kDeathEffectFromVisualY));
+					+ Vector(kDeathEffectFromVisualX, kDeathEffectFromVisualY));
 		}
 		AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_EXPLOSION, 0.55f);
 	}

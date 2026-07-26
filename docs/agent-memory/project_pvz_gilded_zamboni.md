@@ -45,4 +45,10 @@ Board 分行保存黄色左缘/寿命，旧档缺字段为空；黄色与普通�
 三行碾压、黄色冰道、来源叠层/双车互助、无伤提速与特殊植物抗性，并保留宝开式自述。
 主人明确本次不跑 AutoTest，图鉴排版由其自行验收。
 
+同日主人试玩发现死亡入口仍固定触发普通 `ZamboniExplosion`，导致爆炸上方飞出的车体部件
+保持蓝色。现在 `ZamboniZombie` 通过虚拟粒子名选择品种效果，鎏金变体使用独立
+`GildedZamboniExplosion`：车盖、车轮和滚刷全部引用鎏金 reanim 贴图，两层爆炸云也改为
+金黄色；普通冰车继续保持原蓝色效果。本次仍按主人要求不运行 AutoTest，只做构建与
+XML/资源键静态校验，最终视觉由主人复验。
+
 详细设计见 `docs/superpowers/specs/2026-07-26-gilded-zamboni-design.md`。
