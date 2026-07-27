@@ -38,9 +38,9 @@ description: Use when adding ANY new plant (新增植物) to PvZ — 射手/生�
 11. **不可啃食植物覆写 `CanBeEaten()`，不要在僵尸索敌处堆类型表**：植物自己声明契约，普通啃食路径会统一跳过；AutoTest 同时断言植物 `canBeEaten=false`、`eaterCount=0`、僵尸 `isEating=false` 和植物生命不变，防止只有视觉没播啃食但伤害仍在结算。
 12. **只有完整时间轴、没有 `anim_*` 包装轨的循环 reanim**（如 `FirePea.reanim`）用 `SetFrameRangeToDefault()` + `Play(PLAY_REPEAT)`，不要捏造轨道名或帧事件。非等比 `SetRenderScale` 的 pivot 是**世界坐标**；命中特效应传自身绘制基点，传 `(0,0)` 会把整个特效按比例拉向屏幕左上角。
 
-## 存读档心智清单（AutoTest 测不到，只能靠脑内过一遍）
+## 存读档心智清单
 
-AutoTest 模式存档读写被短路 = **盲区**；写完必须逐条自查，最后请主人手动"退出重进"验证：
+普通 AutoTest 仍会短路玩家 `saves/`，但可用 `save_level_snapshot` → 主动改局面 → `reload_level_snapshot` 在脚本输出目录内验证“正式序列化 → 销毁旧 GameScene → 新场景正式反序列化”。这能覆盖实体与 Animator 的进程内往返；中央存档路径、跨进程退出重进和迁移行为仍需按任务风险另行验证。禁止临时关闭 `GameAPP::mAutoTestMode` 绕过保护。
 
 - 自定义状态（状态机枚举、计时器）→ `SaveExtraData/LoadExtraData`。
 - 动画轨道/PlayTrackOnce 进行态：`GameInfoSaver::RestoreAnimState` 已统一恢复，**不用自己存**；`LoadExtraData` 在其后运行可放心覆盖。
@@ -87,7 +87,7 @@ AutoTest 模式存档读写被短路 = **盲区**；写完必须逐条自查，�
 
 1. 对象池槽位保留不可变的“分配类型”，另存可变的“当前类型”；`Reset()` 必须恢复类型、基础伤害、转换防重标记、纹理/Animator、速度和阴影。否则点燃过的 Pea 槽位会以 Fireball 身份污染下一发。
 2. Animator 组合要镜像 `AnimatedObject` 的并行推进握手：`UpdateParallelDeferred` 成功后串行 `Update` 只清标记，没走并行时才回退 `Animator::Update()`；Draw 直接走 Animator，默认实例化与 `-NoInstance` 都要截图。
-3. 存档保存“当前类型”和会影响后续转换的防重字段；读档仍由 `BulletPool::AcquireShared` 创建，**不得把 `mFromPool` 改回 false**，否则死亡后池槽仍标 active 且无法复用。
+3. 存档同时保存不可变 `poolType`、可变“当前类型”和会影响后续转换的防重字段；读档按 `poolType` 走 `BulletPool::AcquireShared`，再恢复当前表现，**不得把 `mFromPool` 改回 false**。专项快照断言 bullet 的 `fromPool=true`、`poolType` 和转换列，防止动画变种读回错误池槽。
 4. 同帧 AutoTest 可能先构建行索引再 `spawn_zombie`；`EntityManager::AddZombie/AddZombieWithID` 必须置 `mRowIndexDirty=true`，否则随后同帧的范围弹只看见旧桶。
 5. `dump_state` 为类型数量、动画表现和防重状态加聚合整数抓手；不要依赖 `unordered_map` 导出的 `bullets.N` 顺序。运动弹仍断言相对量，不断言绝对 X/Y。
 

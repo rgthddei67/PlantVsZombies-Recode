@@ -18,7 +18,7 @@
     { "op": "assert_state", "path": "animatedBulletCount", "equals": 1 },
     { "op": "assert_state", "path": "snowPeaBulletCount", "equals": 0 },
     { "op": "assert_state", "path": "peaBulletCount", "equals": 1 },
-    { "op": "assert_state", "path": "torchwoodProtectedPeaCount", "equals": 1 },
+    { "op": "assert_state", "path": "torchwoodProtectedPeaCount", "equals": 2 },
     { "op": "assert_state", "path": "firePeaSoundRequestCount", "atLeast": 1 },
     { "op": "screenshot", "name": "a0_torchwood_firepea_and_melted_snowpea.png" },
     { "op": "wait_seconds", "value": 0.6 },
@@ -32,7 +32,7 @@
     { "op": "assert_state", "path": "fireballBulletCount", "equals": 1 },
     { "op": "assert_state", "path": "peaBulletCount", "equals": 1 },
     { "op": "assert_state", "path": "animatedBulletCount", "equals": 1 },
-    { "op": "assert_state", "path": "torchwoodProtectedPeaCount", "equals": 0 },
+    { "op": "assert_state", "path": "torchwoodProtectedPeaCount", "equals": 1 },
     { "op": "screenshot", "name": "a1_second_torchwood_ignites_melted_pea.png" },
     { "op": "dump_state", "name": "a1_conversion_and_pool_reset.json" },
 

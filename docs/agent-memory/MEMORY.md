@@ -44,6 +44,7 @@
 - [Trophy下沉到GameObject ✅已push](project_pvz_trophy_decouple_coin.md) — 2026-07-06 两步Coin→AnimatedObject→GameObject+Board持weak_ptr供存档+click新增target:trophy；foot-gun=静态click坐标会脱靶(-Seed不固定帧时序)、SetScale(float&)吃不了constexpr、PS5.1提交信息英文双引号拆参数
 
 - [AutoTest assert_state 命令 ✅已push](project_pvz_autotest_assert_state_todo.md) — 2026-07-04 dump字段断言(path点分+数字段=数组下标,equals严格==,不匹配exit1)；BuildStateJson抽取两op共用；smoke_develop/smoke_perks已补断言,不带-develop假绿已根治；foot-gun=浮点字段勿equals用整数投影字段
+- [AutoTest 同步截图、状态复位与隔离快照](project_pvz_autotest_harness_enhancements.md) — 2026-07-27 截图 ticket 仅在 PNG 成功落盘后完成；显式 `reset_test_state` / `goto_level.resetTestState`；脚本输出目录内复用正式 GameInfoSaver 做新 GameScene 往返，禁止关闭 AutoTest 模式绕过保护；动画子弹存档保留 poolType
 
 - [GameMessageBox Builder 化简 ✅已push](project_pvz_messagebox_builder.md) — 2026-07-04 流式Builder替9参构造/.Panel/.Checkbox(initChecked)灭friend槽位戳,7调用点迁完删UIManager::CreateMessageBox；foot-gun=Builder默认背景须IMAGE_MESSAGEBOX非空串、smoke_develop须-develop且热键已是rshift(不带也exit 0假绿)
 

@@ -500,6 +500,16 @@ void Bullet::PlayStandardImpactSound(const Zombie* zombie) const
 	}
 }
 
+void Bullet::RestoreSavedPresentationState(BulletType currentType, int hitTorchwoodColumn)
+{
+	mBulletType = currentType;
+	mHitTorchwoodColumn = hitTorchwoodColumn;
+	ConfigurePresentation();
+	if (mTransform) {
+		UpdateShadowLayout(mTransform->GetPosition());
+	}
+}
+
 void Bullet::HitFireballZombie(Zombie* zombie)
 {
 	const int directDamage = GetWindAdjustedDamage();

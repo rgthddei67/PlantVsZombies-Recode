@@ -1,6 +1,7 @@
 #pragma once
 #ifndef _TESTDRIVER_H
 #define _TESTDRIVER_H
+#include <cstdint>
 #include <string>
 #include <vector>
 #include <fstream>
@@ -30,6 +31,8 @@ private:
 	bool ExecuteCurrent();
 
 	void Fail(const std::string& reason);   // 记日志、退出码=1、结束游戏循环
+	/** 恢复会跨场景保留的 AutoTest/开发者覆盖状态。 */
+	void ResetTestState();
 
 	// 采集当前场景状态（GameScene 导出完整 Board，受支持的 UI 场景导出专属字段）。
 	// 当前场景不支持状态导出时 Fail（带 opName 前缀）并返回 false。
@@ -51,6 +54,7 @@ private:
 	float mTimeoutAccum = 0.0f;  // 当前命令已耗时（未缩放，墙钟语义），超 timeout 判失败
 	bool  mBreakFrame = false;   // screenshot 等需要"本帧到此为止"的命令置位
 	int   mInputPhase = -1;      // click/key(press) 跨帧状态机阶段（-1 = 未初始化）
+	std::uint64_t mCaptureTicket = 0; // 当前 screenshot 等待的渲染器 ticket（0 = 未提交）
 };
 
 #endif

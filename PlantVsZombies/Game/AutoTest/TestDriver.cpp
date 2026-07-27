@@ -1,5 +1,6 @@
 #include "TestDriver.h"
 #include "../../GameAPP.h"
+#include "../../GameInfoSaver.h"
 #include "../../Renderer/VulkanRenderer.h"
 #include "../../DeltaTime.h"
 #include "../../Logger.h"
@@ -149,6 +150,10 @@ namespace {
 		for (const auto& [k, v] : kZombieNames) if (v == t) return k;
 		return "UNKNOWN_ZOMBIE_" + std::to_string(static_cast<int>(t));
 	}
+	std::string BulletTypeName(BulletType t) {
+		for (const auto& [k, v] : kBulletNames) if (v == t) return k;
+		return "UNKNOWN_BULLET_" + std::to_string(static_cast<int>(t));
+	}
 	std::string BoardStateName(BoardState s) {
 		for (const auto& [k, v] : kBoardStateNames) if (v == s) return k;
 		return "UNKNOWN";
@@ -205,6 +210,23 @@ namespace {
 
 	GameScene* CurrentGameScene() {
 		return dynamic_cast<GameScene*>(SceneManager::GetInstance().GetCurrentScene());
+	}
+
+	// 只接受不含路径语义的短名，确保快照始终落在 TestDriver 构造的 snapshots 目录。
+	bool IsSafeSnapshotName(const std::string& name) {
+		if (name.empty()) return false;
+		return std::all_of(name.begin(), name.end(), [](unsigned char c) {
+			return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')
+				|| (c >= '0' && c <= '9') || c == '_' || c == '-';
+			});
+	}
+
+	// 用 error_code 完成最终落盘校验，避免文件系统异常越过 AutoTest 的 Fail 契约。
+	bool IsNonEmptyRegularFile(const std::filesystem::path& path) {
+		std::error_code ec;
+		if (!std::filesystem::is_regular_file(path, ec) || ec) return false;
+		const auto size = std::filesystem::file_size(path, ec);
+		return !ec && size > 0;
 	}
 }
 
@@ -278,6 +300,13 @@ void TestDriver::Finish() {
 	GameAPP::GetInstance().SetRunning(false);
 }
 
+void TestDriver::ResetTestState() {
+	DeltaTime::SetTimeScale(1.0f);
+	GameAPP::mDevNoCooldown = false;
+	GameAPP::mDevFreePlant = false;
+	GameAPP::mDevSpawnPaused = false;
+}
+
 void TestDriver::Update() {
 	if (!mActive) return;
 	++mFrame;
@@ -292,6 +321,7 @@ void TestDriver::Update() {
 		mFramesLeft = -1;
 		mTimeoutAccum = 0.0f;
 		mInputPhase = -1;
+		mCaptureTicket = 0;
 		if (++guard > 64) break;               // 单帧推进上限，防脚本自旋
 	}
 	if (mActive && mIndex >= mCommands.size()) Finish();
@@ -321,6 +351,7 @@ bool TestDriver::ExecuteCurrent() {
 	}
 	if (op == "goto_level") {
 		if (!cmd.contains("level")) { Fail("goto_level 缺 level 字段"); return false; }
+		if (cmd.value("resetTestState", false)) ResetTestState();
 		auto& sm = SceneManager::GetInstance();
 		sm.SetGlobalData("EnterLevel", std::to_string(cmd["level"].get<int>()));
 		if (!sm.SwitchTo("GameScene")) { Fail("SwitchTo(GameScene) 失败"); return false; }
@@ -328,6 +359,10 @@ bool TestDriver::ExecuteCurrent() {
 	}
 	if (op == "set_timescale") {
 		DeltaTime::SetTimeScale(cmd.value("value", 1.0f));
+		return true;
+	}
+	if (op == "reset_test_state") {
+		ResetTestState();
 		return true;
 	}
 	if (op == "set_spawn_paused") {
@@ -763,13 +798,106 @@ bool TestDriver::ExecuteCurrent() {
 		Fail("charm_zombie: 未找到目标僵尸 (row=" + std::to_string(row) + ", index=" + std::to_string(index) + ")");
 		return false;
 	}
+	if (op == "save_level_snapshot") {
+		const std::string name = cmd.value("name", "");
+		if (!IsSafeSnapshotName(name)) {
+			Fail("save_level_snapshot: name 只允许 ASCII 字母、数字、_、-，且不能为空");
+			return false;
+		}
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard() || !gs->GetCardSlotManager()) {
+			Fail("save_level_snapshot: GameScene、Board 或 CardSlotManager 无效");
+			return false;
+		}
+		const std::string path = (std::filesystem::path(mOutDir) / "snapshots"
+			/ (name + ".json")).string();
+		auto& saver = GameAPP::GetInstance().mGameInfoSaver;
+		if (!saver.SaveAutoTestLevelSnapshot(
+			gs->GetBoard(), gs->GetCardSlotManager(), path)) {
+			Fail("save_level_snapshot: 正式序列化或写盘失败");
+			return false;
+		}
+		if (!IsNonEmptyRegularFile(std::filesystem::u8path(path))) {
+			Fail("save_level_snapshot: 快照不存在或为空");
+			return false;
+		}
+		Log("snapshot saved: " + path);
+		return true;
+	}
+	if (op == "reload_level_snapshot") {
+		const std::string name = cmd.value("name", "");
+		if (!IsSafeSnapshotName(name)) {
+			Fail("reload_level_snapshot: name 只允许 ASCII 字母、数字、_、-，且不能为空");
+			return false;
+		}
+		GameScene* oldScene = CurrentGameScene();
+		if (!oldScene || !oldScene->GetBoard() || !oldScene->GetCardSlotManager()) {
+			Fail("reload_level_snapshot: GameScene、Board 或 CardSlotManager 无效");
+			return false;
+		}
+		const std::string path = (std::filesystem::path(mOutDir) / "snapshots"
+			/ (name + ".json")).string();
+		nlohmann::json snapshot;
+		if (!FileManager::LoadJsonFile(path, snapshot)) {
+			Fail("reload_level_snapshot: 快照缺失、为空或 JSON 损坏");
+			return false;
+		}
+
+		const int level = oldScene->GetBoard()->mLevel;
+		auto& saver = GameAPP::GetInstance().mGameInfoSaver;
+		if (!saver.QueueAutoTestLevelSnapshotLoad(path)) {
+			Fail("reload_level_snapshot: 无法登记一次性加载路径");
+			return false;
+		}
+		auto& sm = SceneManager::GetInstance();
+		sm.SetGlobalData("EnterLevel", std::to_string(level));
+		if (!sm.SwitchTo("GameScene")) {
+			saver.CancelAutoTestLevelSnapshotLoad();
+			Fail("reload_level_snapshot: SwitchTo(GameScene) 失败");
+			return false;
+		}
+		std::string loadError;
+		if (!saver.ConsumeAutoTestLevelSnapshotLoadResult(loadError)) {
+			Fail("reload_level_snapshot: " + loadError);
+			return false;
+		}
+		GameScene* newScene = CurrentGameScene();
+		if (!newScene || !newScene->GetBoard() || !newScene->GetCardSlotManager()
+			|| newScene->GetBoard()->mLevel != level) {
+			Fail("reload_level_snapshot: 新 GameScene 未确认加载同一关卡");
+			return false;
+		}
+		Log("snapshot reloaded into fresh GameScene: " + path);
+		return true;
+	}
 	if (op == "screenshot") {
 		const std::string name = cmd.value("name", "shot.png");
 		auto* renderer = GameAPP::GetInstance().GetVulkanRenderer();
 		if (!renderer) { Fail("screenshot: renderer 为空"); return false; }
-		renderer->RequestCapture(mOutDir + "/" + name);
-		// 本帧到此为止：截图在本帧 EndFrame 落盘，避免同帧第二个 screenshot 覆盖请求
-		mBreakFrame = true;
+		if (mCaptureTicket == 0) {
+			mCaptureTicket = renderer->RequestCapture(mOutDir + "/" + name);
+			if (renderer->GetCaptureStatus(mCaptureTicket) == pvz::CaptureStatus::Failed) {
+				Fail("screenshot: " + renderer->GetCaptureError(mCaptureTicket));
+				return false;
+			}
+			// 本帧到此为止并保持当前命令；EndFrame 才能回读、写 PNG 并发布 ticket 完成。
+			mBreakFrame = true;
+			return false;
+		}
+
+		const auto status = renderer->GetCaptureStatus(mCaptureTicket);
+		if (status == pvz::CaptureStatus::Pending) return false;
+		if (status == pvz::CaptureStatus::Failed || status == pvz::CaptureStatus::Unknown) {
+			Fail("screenshot: " + renderer->GetCaptureError(mCaptureTicket));
+			return false;
+		}
+		const auto path = std::filesystem::u8path(mOutDir + "/" + name);
+		if (!IsNonEmptyRegularFile(path)) {
+			Fail("screenshot: 渲染器报告成功，但 PNG 不存在或为空");
+			return false;
+		}
+		Log("capture ticket " + std::to_string(mCaptureTicket)
+			+ " persisted: " + path.u8string());
 		return true;
 	}
 	if (op == "dump_state") {
@@ -1075,6 +1203,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["devNoCooldown"] = GameAPP::mDevNoCooldown;
 	out["devFreePlant"] = GameAPP::mDevFreePlant;
 	out["devSpawnPaused"] = GameAPP::mDevSpawnPaused;
+	out["timeScaleOn1000"] =
+		static_cast<int>(std::lround(DeltaTime::GetTimeScale() * 1000.0f));
 	out["adventureLevel"] = gameApp.mAdventureLevel;
 	out["haveCardCount"] = static_cast<int>(gameApp.mHaveCards.size());
 	out["haveCards"] = nlohmann::json::array();
@@ -1575,10 +1705,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			minBulletX = std::min(minBulletX, pos.x);
 			maxBulletX = std::max(maxBulletX, pos.x);
 		}
-		if (bullet->mBulletType == BulletType::BULLET_PEA) {
-			++peaBulletCount;
-			if (bullet->GetHitTorchwoodColumn() >= 0) ++torchwoodProtectedPeaCount;
-		}
+		if (bullet->GetHitTorchwoodColumn() >= 0) ++torchwoodProtectedPeaCount;
+		if (bullet->mBulletType == BulletType::BULLET_PEA) ++peaBulletCount;
 		else if (bullet->mBulletType == BulletType::BULLET_SNOWPEA) ++snowPeaBulletCount;
 		else if (bullet->mBulletType == BulletType::BULLET_FIREBALL) ++fireballBulletCount;
 		if (bullet->HasAnimatedPresentation()) ++animatedBulletCount;
@@ -1596,6 +1724,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "threepeaterMotion", bullet->IsThreepeaterMotion() },
 			{ "hitTorchwoodColumn", bullet->GetHitTorchwoodColumn() },
 			{ "animatedPresentation", bullet->HasAnimatedPresentation() },
+			{ "fromPool", bullet->IsFromPool() },
+			{ "poolType", BulletTypeName(bullet->GetPoolType()) },
 		});
 	}
 	out["bulletCount"] = static_cast<int>(out["bullets"].size());

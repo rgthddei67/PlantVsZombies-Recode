@@ -225,13 +225,12 @@ bool GameInfoSaver::LoadPlayerInfoImpl()
 	return true;
 }
 
-bool GameInfoSaver::SaveLevelDataImpl(Board* board, CardSlotManager* manager)
+bool GameInfoSaver::SerializeLevelDataToPath(Board* board, CardSlotManager* manager,
+	const std::string& filename)
 {
-	if (GameAPP::mAutoTestMode) return true;   // AutoTest：不写关卡存档
 	const bool stateOk = (board->mBoardState == BoardState::GAME) ||
 		(board->mIsSurvival && board->mBoardState == BoardState::CHOOSE_CARD);
 	if (!stateOk) return false;
-	FileManager::CreateDirectory(GetSaveRoot());
 
 	nlohmann::json j;
 
@@ -435,6 +434,7 @@ bool GameInfoSaver::SaveLevelDataImpl(Board* board, CardSlotManager* manager)
 		if (!bullet) continue;
 		nlohmann::json b;
 		b["type"] = static_cast<int>(bullet->mBulletType);
+		b["poolType"] = static_cast<int>(bullet->GetPoolType());
 		b["id"] = id;
 		b["row"] = bullet->mRow;
 		b["x"] = bullet->GetPosition().x;
@@ -527,18 +527,21 @@ bool GameInfoSaver::SaveLevelDataImpl(Board* board, CardSlotManager* manager)
 		j["survivalCardCooldowns"] = cooldownArr;
 	}
 
-	std::string filename = FileManager::CombinePath(GetSaveRoot(),
-		"level" + std::to_string(board->mLevel) + "_data.json");
 	return FileManager::SaveJsonFile(filename, j);
 }
 
-bool GameInfoSaver::LoadLevelDataImpl(Board* board, CardSlotManager* manager)
+bool GameInfoSaver::SaveLevelDataImpl(Board* board, CardSlotManager* manager)
 {
-	// AutoTest 默认仍是确定性的全新关卡；仅显式 -AutoTestLoadSave 时读取当前 CWD 下的
-	// 关卡存档。写入和删除入口始终短路，因此问题存档在测试后保持逐字节不变。
-	if (GameAPP::mAutoTestMode && !GameAPP::mAutoTestLoadSave) return true;
-	std::string filename = GetSaveFileForRead(
+	if (GameAPP::mAutoTestMode) return true;   // AutoTest：不写关卡存档
+	FileManager::CreateDirectory(GetSaveRoot());
+	const std::string filename = FileManager::CombinePath(GetSaveRoot(),
 		"level" + std::to_string(board->mLevel) + "_data.json");
+	return SerializeLevelDataToPath(board, manager, filename);
+}
+
+bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* manager,
+	const std::string& filename)
+{
 	nlohmann::json j;
 	if (!FileManager::LoadJsonFile(filename, j))
 		return false;
@@ -911,7 +914,9 @@ bool GameInfoSaver::LoadLevelDataImpl(Board* board, CardSlotManager* manager)
 
 	// 恢复子弹
 	for (auto& b : j.value("bullets", nlohmann::json::array())) {
-		BulletType type = static_cast<BulletType>(b["type"].get<int>());
+		const BulletType type = static_cast<BulletType>(b["type"].get<int>());
+		const BulletType poolType = static_cast<BulletType>(
+			b.value("poolType", static_cast<int>(type)));
 		int   row = b["row"].get<int>();
 		float x = b["x"].get<float>();
 		float y = b["y"].get<float>();
@@ -919,17 +924,18 @@ bool GameInfoSaver::LoadLevelDataImpl(Board* board, CardSlotManager* manager)
 
 		Bullet* bullet = nullptr;
 		if (id != NULL_BULLET_ID) {
-			bullet = board->CreateBulletWithID(type, row, Vector(x, y), id);
+			bullet = board->CreateBulletWithID(poolType, row, Vector(x, y), id);
 		}
 		else {
-			bullet = board->CreateBullet(type, row, Vector(x, y));
+			bullet = board->CreateBullet(poolType, row, Vector(x, y));
 		}
 
 		if (bullet) {
+			bullet->RestoreSavedPresentationState(
+				type, b.value("hitTorchwoodColumn", -1));
 			bullet->SetBulletDamage(b["damage"].get<int>());
 			bullet->SetVelocityX(b["velocityX"].get<float>());
 			bullet->SetVelocityY(b["velocityY"].get<float>());
-			bullet->SetHitTorchwoodColumn(b.value("hitTorchwoodColumn", -1));
 			if (b.value("threepeaterMotion", false)) {
 				// 先恢复运动类型以重建阴影布局，再用存档速度覆盖初始值继续衰减。
 				const float savedVelocityY = bullet->GetVelocityY();
@@ -1042,6 +1048,36 @@ bool GameInfoSaver::LoadLevelDataImpl(Board* board, CardSlotManager* manager)
 	return true;
 }
 
+bool GameInfoSaver::LoadLevelDataImpl(Board* board, CardSlotManager* manager)
+{
+	// 显式快照覆盖只消费一次：先清路径再解析，任何返回或异常都不会污染后续场景。
+	if (GameAPP::mAutoTestMode && !mAutoTestSnapshotLoadPath.empty()) {
+		const std::string filename = mAutoTestSnapshotLoadPath;
+		mAutoTestSnapshotLoadPath.clear();
+		mAutoTestSnapshotLoadAttempted = true;
+		mAutoTestSnapshotLoadSucceeded = false;
+		mAutoTestSnapshotLoadError.clear();
+		try {
+			mAutoTestSnapshotLoadSucceeded =
+				DeserializeLevelDataFromPath(board, manager, filename);
+			if (!mAutoTestSnapshotLoadSucceeded) {
+				mAutoTestSnapshotLoadError = "正式反序列化返回失败";
+			}
+		}
+		catch (const std::exception& e) {
+			mAutoTestSnapshotLoadError = e.what();
+		}
+		return mAutoTestSnapshotLoadSucceeded;
+	}
+
+	// AutoTest 默认仍是确定性的全新关卡；仅显式 -AutoTestLoadSave 时读取当前 CWD 下的
+	// 关卡存档。写入和删除入口始终短路，因此问题存档在测试后保持逐字节不变。
+	if (GameAPP::mAutoTestMode && !GameAPP::mAutoTestLoadSave) return true;
+	const std::string filename = GetSaveFileForRead(
+		"level" + std::to_string(board->mLevel) + "_data.json");
+	return DeserializeLevelDataFromPath(board, manager, filename);
+}
+
 bool GameInfoSaver::DeleteLevelData(Board* board)
 {
 	if (GameAPP::mAutoTestMode) return true;   // AutoTest（包括读档复现模式）绝不删除真实存档
@@ -1088,4 +1124,59 @@ bool GameInfoSaver::LoadLevelData(Board* board, CardSlotManager* manager)
 		LOG_ERROR("GameInfoSaver") << "LoadLevelData 异常，已放弃读档（关卡将重新开始）: " << e.what();
 		return false;
 	}
+}
+
+bool GameInfoSaver::SaveAutoTestLevelSnapshot(Board* board, CardSlotManager* manager,
+	const std::string& filename)
+{
+	if (!GameAPP::mAutoTestMode || !board || !manager || filename.empty()) return false;
+	try {
+		std::error_code ec;
+		const auto parent = std::filesystem::u8path(filename).parent_path();
+		if (!parent.empty()) {
+			std::filesystem::create_directories(parent, ec);
+			if (ec) return false;
+		}
+		return SerializeLevelDataToPath(board, manager, filename);
+	}
+	catch (const std::exception& e) {
+		LOG_ERROR("GameInfoSaver") << "AutoTest 快照保存失败: " << e.what();
+		return false;
+	}
+}
+
+bool GameInfoSaver::QueueAutoTestLevelSnapshotLoad(const std::string& filename)
+{
+	if (!GameAPP::mAutoTestMode || filename.empty() || !mAutoTestSnapshotLoadPath.empty()
+		|| mAutoTestSnapshotLoadAttempted) {
+		return false;
+	}
+	mAutoTestSnapshotLoadPath = filename;
+	mAutoTestSnapshotLoadAttempted = false;
+	mAutoTestSnapshotLoadSucceeded = false;
+	mAutoTestSnapshotLoadError.clear();
+	return true;
+}
+
+bool GameInfoSaver::ConsumeAutoTestLevelSnapshotLoadResult(std::string& error)
+{
+	if (!mAutoTestSnapshotLoadAttempted) {
+		mAutoTestSnapshotLoadPath.clear();
+		error = "新 GameScene 未尝试加载快照";
+		return false;
+	}
+	const bool succeeded = mAutoTestSnapshotLoadSucceeded;
+	error = mAutoTestSnapshotLoadError;
+	mAutoTestSnapshotLoadAttempted = false;
+	mAutoTestSnapshotLoadSucceeded = false;
+	mAutoTestSnapshotLoadError.clear();
+	return succeeded;
+}
+
+void GameInfoSaver::CancelAutoTestLevelSnapshotLoad()
+{
+	mAutoTestSnapshotLoadPath.clear();
+	mAutoTestSnapshotLoadAttempted = false;
+	mAutoTestSnapshotLoadSucceeded = false;
+	mAutoTestSnapshotLoadError.clear();
 }

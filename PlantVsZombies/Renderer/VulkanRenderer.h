@@ -5,11 +5,21 @@
 #include <array>
 #include <cstdint>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace pvz {
 	class VulkanContext;
 	class VulkanPipeline;
+
+	using CaptureTicket = std::uint64_t;
+
+	enum class CaptureStatus {
+		Unknown,
+		Pending,
+		Succeeded,
+		Failed,
+	};
 
 	// Phase 1.5 — 持有命令池、命令缓冲、同步原语，跑 acquire→record→submit→present 循环。
 	// Phase 2a — 可选挂一个 pipeline，每帧画 3 个顶点的三角形。
@@ -37,9 +47,13 @@ namespace pvz {
 		bool BeginFrame(float r, float g, float b, float a);
 		bool EndFrame();
 
-		// AutoTest 截图：登记后下一次 EndFrame 在 present 之前把 swapchain 图像回读并写 PNG。
-		// 截图帧会同步等待本帧 fence（约十几 ms 停顿），仅用于测试场景。
-		void RequestCapture(const std::string& pngPath) { mCapturePath = pngPath; }
+		/**
+		 * @brief 登记一次 AutoTest 截图，并返回可查询的单调递增 ticket。
+		 * @details 下一次 EndFrame 在 present 前回读并写 PNG；同一时刻只接受一个未完成请求。
+		 */
+		CaptureTicket RequestCapture(const std::string& pngPath);
+		CaptureStatus GetCaptureStatus(CaptureTicket ticket) const;
+		std::string GetCaptureError(CaptureTicket ticket) const;
 
 		VkCommandBuffer CurrentCmdBuffer() const;
 		uint32_t        CurrentFrameIdx() const { return mFrameIdx; }
@@ -72,7 +86,19 @@ namespace pvz {
 		uint32_t mFrameIdx = 0;
 		bool     mSwapchainNeedsRebuild = false;
 
+		struct CaptureRecord {
+			CaptureStatus status = CaptureStatus::Pending;
+			std::string error;
+		};
+
+		CaptureTicket mNextCaptureTicket = 1;
+		CaptureTicket mPendingCaptureTicket = 0;
+		std::unordered_map<CaptureTicket, CaptureRecord> mCaptureRecords;
 		std::string mCapturePath;   // 非空 = 本帧 EndFrame 执行回读
-		void WriteCapturePng(const void* bgraPixels, uint32_t w, uint32_t h);
+
+		// 原子发布当前待处理 ticket 的最终状态，并释放单请求槽位。
+		void CompleteCapture(bool succeeded, const std::string& error = {});
+		bool WriteCapturePng(const void* bgraPixels, uint32_t w, uint32_t h,
+			std::string& error);
 	};
 } // namespace pvz

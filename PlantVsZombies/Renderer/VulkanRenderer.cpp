@@ -59,6 +59,44 @@ namespace pvz {
 	VulkanRenderer::VulkanRenderer() = default;
 	VulkanRenderer::~VulkanRenderer() { Shutdown(); }
 
+	CaptureTicket VulkanRenderer::RequestCapture(const std::string& pngPath) {
+		const CaptureTicket ticket = mNextCaptureTicket++;
+		auto& record = mCaptureRecords[ticket];
+		if (pngPath.empty()) {
+			record.status = CaptureStatus::Failed;
+			record.error = "截图路径为空";
+			return ticket;
+		}
+		if (mPendingCaptureTicket != 0) {
+			record.status = CaptureStatus::Failed;
+			record.error = "已有未完成截图请求";
+			return ticket;
+		}
+
+		mPendingCaptureTicket = ticket;
+		mCapturePath = pngPath;
+		return ticket;
+	}
+
+	CaptureStatus VulkanRenderer::GetCaptureStatus(CaptureTicket ticket) const {
+		const auto it = mCaptureRecords.find(ticket);
+		return it == mCaptureRecords.end() ? CaptureStatus::Unknown : it->second.status;
+	}
+
+	std::string VulkanRenderer::GetCaptureError(CaptureTicket ticket) const {
+		const auto it = mCaptureRecords.find(ticket);
+		return it == mCaptureRecords.end() ? "未知截图 ticket" : it->second.error;
+	}
+
+	void VulkanRenderer::CompleteCapture(bool succeeded, const std::string& error) {
+		if (mPendingCaptureTicket == 0) return;
+		auto& record = mCaptureRecords[mPendingCaptureTicket];
+		record.status = succeeded ? CaptureStatus::Succeeded : CaptureStatus::Failed;
+		record.error = succeeded ? std::string{} : error;
+		mPendingCaptureTicket = 0;
+		mCapturePath.clear();
+	}
+
 	bool VulkanRenderer::Initialize(VulkanContext* ctx) {
 		mCtx = ctx;
 		return CreateFrameResources();
@@ -229,7 +267,7 @@ namespace pvz {
 		VulkanBuffer captureBuf;   // 函数内 RAII：submit 后等 fence 再读，函数尾析构
 		if (!mCapturePath.empty() && !mCtx->SwapchainSupportsTransferSrc()) {
 			LOG_ERROR("VulkanRenderer") << "交换链不支持 TRANSFER_SRC，截图不可用";
-			mCapturePath.clear();
+			CompleteCapture(false, "交换链不支持 TRANSFER_SRC");
 		}
 		const bool capturing = !mCapturePath.empty();
 		const VkExtent2D captureExt = mCtx->SwapchainExtent();
@@ -251,6 +289,7 @@ namespace pvz {
 			}
 			else {
 				LOG_ERROR("VulkanRenderer") << "截图 buffer 创建失败，本次截图跳过";
+				CompleteCapture(false, "截图回读 buffer 创建失败");
 			}
 			ImageBarrier2(frame.cmdBuffer, swapImage,
 				VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_READ_BIT,
@@ -267,7 +306,17 @@ namespace pvz {
 				VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 		}
 
-		VK_CHECK(vkEndCommandBuffer(frame.cmdBuffer));
+		const VkResult endCommandResult = vkEndCommandBuffer(frame.cmdBuffer);
+		if (endCommandResult != VK_SUCCESS) {
+			LOG_ERROR("VulkanRenderer") << "vkEndCommandBuffer failed (VkResult="
+				<< static_cast<int>(endCommandResult) << ")";
+			if (capturing) {
+				CompleteCapture(false, "vkEndCommandBuffer 失败 ("
+					+ std::to_string(static_cast<int>(endCommandResult)) + ")");
+			}
+			mFrameActive = false;
+			return false;
+		}
 
 		VkSemaphoreSubmitInfo waitSem{ VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO };
 		waitSem.semaphore = frame.imageAvailable;
@@ -285,7 +334,18 @@ namespace pvz {
 		si2.commandBufferInfoCount = 1; si2.pCommandBufferInfos = &cbSi;
 		si2.signalSemaphoreInfoCount = 1; si2.pSignalSemaphoreInfos = &signalSem;
 
-		VK_CHECK(vkQueueSubmit2(mCtx->GraphicsQueue(), 1, &si2, frame.inFlight));
+		const VkResult submitResult =
+			vkQueueSubmit2(mCtx->GraphicsQueue(), 1, &si2, frame.inFlight);
+		if (submitResult != VK_SUCCESS) {
+			LOG_ERROR("VulkanRenderer") << "vkQueueSubmit2 failed (VkResult="
+				<< static_cast<int>(submitResult) << ")";
+			if (capturing) {
+				CompleteCapture(false, "vkQueueSubmit2 失败 ("
+					+ std::to_string(static_cast<int>(submitResult)) + ")");
+			}
+			mFrameActive = false;
+			return false;
+		}
 
 		VkSwapchainKHR sc = mCtx->Swapchain();
 		VkPresentInfoKHR pi{ VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
@@ -301,6 +361,10 @@ namespace pvz {
 		}
 		else if (presentResult != VK_SUCCESS) {
 			LOG_ERROR("VulkanRenderer") << "vkQueuePresentKHR failed (" << (int)presentResult << ")";
+			if (capturing) {
+				CompleteCapture(false,
+					"vkQueuePresentKHR 失败 (" + std::to_string(static_cast<int>(presentResult)) + ")");
+			}
 			mFrameActive = false;
 			return false;
 		}
@@ -312,9 +376,14 @@ namespace pvz {
 				// GPU availability 已由 fence 保证；显式 invalidate 确保 CPU 可见性
 				// （对 HOST_COHERENT 内存是 no-op，对 non-coherent 刷新 CPU cache line）。
 				captureBuf.InvalidateMapped();
-				WriteCapturePng(captureBuf.MappedPtr(), captureExt.width, captureExt.height);
+				std::string error;
+				const bool saved = WriteCapturePng(
+					captureBuf.MappedPtr(), captureExt.width, captureExt.height, error);
+				CompleteCapture(saved, error);
 			}
-			mCapturePath.clear();
+			else if (mPendingCaptureTicket != 0) {
+				CompleteCapture(false, "截图回读 buffer 未映射");
+			}
 		}
 
 		mFrameActive = false;
@@ -328,7 +397,8 @@ namespace pvz {
 		return mFrames[mFrameIdx].cmdBuffer;
 	}
 
-	void VulkanRenderer::WriteCapturePng(const void* bgraPixels, uint32_t w, uint32_t h) {
+	bool VulkanRenderer::WriteCapturePng(const void* bgraPixels, uint32_t w, uint32_t h,
+		std::string& error) {
 		// swapchain alpha 不参与合成、值不可靠：强制 255，避免 PNG 透明
 		std::vector<uint8_t> pixels(size_t(w) * h * 4);
 		std::memcpy(pixels.data(), bgraPixels, pixels.size());
@@ -338,15 +408,18 @@ namespace pvz {
 		SDL_Surface* surf = SDL_CreateRGBSurfaceWithFormatFrom(
 			pixels.data(), (int)w, (int)h, 32, (int)w * 4, SDL_PIXELFORMAT_ARGB8888);
 		if (!surf) {
-			LOG_ERROR("VulkanRenderer") << "截图 surface 创建失败: " << SDL_GetError();
-			return;
+			error = "截图 surface 创建失败: " + std::string(SDL_GetError());
+			LOG_ERROR("VulkanRenderer") << error;
+			return false;
 		}
 		if (IMG_SavePNG(surf, mCapturePath.c_str()) != 0) {
-			LOG_ERROR("VulkanRenderer") << "IMG_SavePNG 失败: " << IMG_GetError();
+			error = "IMG_SavePNG 失败: " + std::string(IMG_GetError());
+			LOG_ERROR("VulkanRenderer") << error;
+			SDL_FreeSurface(surf);
+			return false;
 		}
-		else {
-			LOG_INFO("VulkanRenderer") << "截图已保存: " << mCapturePath;
-		}
+		LOG_INFO("VulkanRenderer") << "截图已保存: " << mCapturePath;
 		SDL_FreeSurface(surf);
+		return true;
 	}
 } // namespace pvz

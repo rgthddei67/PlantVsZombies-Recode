@@ -69,6 +69,7 @@ public:
 	// 设置是否来自对象池
 	void SetFromPool(bool fromPool) { mFromPool = fromPool; }
 	bool IsFromPool() const { return mFromPool; }
+	BulletType GetPoolType() const { return mPoolType; }
 
 	// 子弹消失
 	void Die();
@@ -96,6 +97,10 @@ public:
 	void ConvertToFireball(int torchwoodColumn);
 	/** 寒冰豌豆穿过火炬树桩后退化为普通豌豆；同列不会再被点燃。 */
 	void ConvertSnowPeaToPea(int torchwoodColumn);
+	/**
+	 * @brief 按存档恢复可变子弹类型与火炬树桩防重状态，不改变对象池槽位类型。
+	 */
+	void RestoreSavedPresentationState(BulletType currentType, int hitTorchwoodColumn);
 	int GetHitTorchwoodColumn() const { return mHitTorchwoodColumn; }
 	void SetHitTorchwoodColumn(int column) { mHitTorchwoodColumn = column; }
 	bool HasAnimatedPresentation() const { return mProjectileAnimator != nullptr; }

@@ -73,6 +73,7 @@ public:
 	// AutoTest 经由它们配合 ChooseCardComplete()（与 UI 共用）驱动选卡流程。
 	Board* GetBoard() const { return mBoard.get(); }
 	ChooseCardUI* GetChooseCardUI() const { return mChooseCardUI; }
+	CardSlotManager* GetCardSlotManager() const { return mCardSlotManager; }
 	// 选卡界面是否就绪（卡牌已铺开、"一起摇滚吧"可点）
 	bool IsChooseCardReady() const {
 		return mCurrentStage == IntroStage::COMPLETE && mChooseCardUI != nullptr;
