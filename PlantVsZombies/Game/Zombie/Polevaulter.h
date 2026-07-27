@@ -4,6 +4,8 @@
 
 #include "Zombie.h"
 
+class Plant;
+
 class Polevaulter : public Zombie {
 public:
 	using Zombie::Zombie;
@@ -20,13 +22,16 @@ public:
 	/** @brief 仅落地后的 WALKING 状态允许啃食，避免起跳碰撞批次覆盖跳跃动画。 */
 	void StartEat(ColliderComponent* other) override;
 
-	/** @brief 开始撑杆跳跃并暂时关闭碰撞与阴影。 */
-	void StartJump();
+	/** @brief 锁定当前植物并开始撑杆跳跃，阻拦判定延后到原版动画进度节点。 */
+	void StartJump(Plant* target);
 	/** @brief 按品种跳距完成落地，恢复走路状态并调用落地扩展钩子。 */
 	void EndJump();
 	void JumpMove(float distance);  // 跳跃期间手动移动，传入本次移动距离
 	float GetLastVaultDistance() const { return mLastVaultDistance; }
 	float GetVaultExtraDistanceApplied() const { return mVaultExtraDistanceApplied; }
+	float GetVaultProgress() const;
+	bool HasCheckedVaultBlock() const { return mVaultBlockChecked; }
+	bool HasVaultTarget() const { return mVaultTargetPlantID != NULL_PLANT_ID; }
 
 	void HeadDrop() override;
 	void ArmDrop() override;
@@ -46,6 +51,7 @@ protected:
 	void SaveExtraData(nlohmann::json& j) const override;
 	void LoadExtraData(const nlohmann::json& j) override;
 	void SetupZombie() override;
+	void ZombieUpdate(float scaledTime) override;
 	void ZombieMove(float scaledDelta, TransformComponent* transform) override;
 
 	/** @brief 恢复稳态 anim_walk；跳跃中拒绝介质切换抢占 anim_jump。 */
@@ -55,12 +61,17 @@ protected:
 	virtual float GetVaultDistance() const;
 	/** @brief 落地位移与基础状态恢复完成后的派生行为入口。 */
 	virtual void OnVaultLanded() {}
-	/** @brief 撑杆被阻拦、弃杆状态恢复后的派生行为入口。 */
-	virtual void OnVaultBlocked() {}
+	/** @brief 撑杆在动画阻拦节点被挡、弃杆状态恢复后的派生行为入口。 */
+	virtual void OnVaultBlocked(Plant&) {}
 
 private:
+	/** @brief 在原版 60% 跳跃节点撤回额外位移、恢复碰撞并开始啃食阻拦植物。 */
+	void FinishBlockedVault(Plant& blockingPlant);
+
 	float mLastVaultDistance = 0.0f;  // 最近一次实际落地位移；仅供稳定测试取证
 	float mVaultExtraDistanceApplied = 0.0f;  // 本次跳跃已随动画进度补偿的额外逻辑位移，单位 px
+	int mVaultTargetPlantID = NULL_PLANT_ID;  // 起跳时锁定的顶层植物 ID，供动画中段阻拦与快照恢复
+	bool mVaultBlockChecked = false;  // 本次跳跃是否已越过唯一阻拦检查节点
 };
 
 #endif

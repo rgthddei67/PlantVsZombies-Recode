@@ -1,4 +1,5 @@
 ﻿#include "Polevaulter.h"
+#include "../Board.h"
 #include "../ShadowComponent.h"
 #include "../Plant/Plant.h"
 
@@ -6,6 +7,7 @@
 
 namespace {
 	constexpr float kBakedVaultDistance = 150.0f;  // anim_jump 轨道内置的水平视觉位移，单位 px
+	constexpr float kVaultBlockProgress = 0.60f;  // C# 原版在 anim_jump 进度 0.6~0.7 检查高坚果
 }
 
 void Polevaulter::SetupZombie()
@@ -44,21 +46,8 @@ void Polevaulter::SetupZombie()
 				if (!plant || plant->mRow != this->mRow) return;
 
 				if (mVaultState == VaultState::RUNNING && !mHasVaulted) {
-					if (plant->BlocksZombieJump(ZombieJumpType::POLEVAULT)) {
-						// 阻拦植物让撑杆在其右侧弃杆；状态先转 WALKING，StartEat 才能走统一啃食链。
-						mVaultState = VaultState::WALKING;
-						mHasVaulted = true;
-						SetAnimationSpeed(GameRandom::Range(0.9f, 1.7f));
-						mSpeed = GameRandom::Range(7.0f, 13.0f);
-						PlayWalkAnimation(0.0f);
-						plant->OnZombieJumpBlocked(ZombieJumpType::POLEVAULT);
-						StartEat(other);
-						// 派生阻拦代价最后结算，避免致死伤害后又被 StartEat 覆盖死亡动画。
-						OnVaultBlocked();
-					}
-					else {
-						StartJump();
-					}
+					// 原版先起跳，再在 anim_jump 60% 处检查 Tallnut；接触回调只锁定目标并开播。
+					StartJump(plant);
 				}
 				else if (mVaultState == VaultState::WALKING) {
 					// 跳跃后走基类吃植物逻辑
@@ -115,11 +104,20 @@ void Polevaulter::ZombieItemUpdate() const
 	}
 }
 
-void Polevaulter::StartJump()
+void Polevaulter::StartJump(Plant* target)
 {
 	mVaultState = VaultState::JUMPING;
 	mLastVaultDistance = 0.0f;
 	mVaultExtraDistanceApplied = 0.0f;
+	mVaultBlockChecked = false;
+
+	// 组合植物以当前格顶层为跳跃目标，避免先收到睡莲碰撞便跳过上层高坚果。
+	if (target && mBoard) {
+		if (Plant* topPlant = mBoard->GetTopPlantAt(target->mRow, target->mColumn)) {
+			target = topPlant;
+		}
+	}
+	mVaultTargetPlantID = target ? target->mPlantID : NULL_PLANT_ID;
 
 	// 播放跳跃动画
 	PlayTrackOnce("anim_jump", "anim_walk", 2.3f);
@@ -138,6 +136,8 @@ void Polevaulter::EndJump()
 {
 	mVaultState = VaultState::WALKING;
 	mHasVaulted = true;
+	mVaultBlockChecked = true;
+	mVaultTargetPlantID = NULL_PLANT_ID;
 
 	const float vaultDistance = GetVaultDistance();
 	const float targetExtraDistance = vaultDistance - kBakedVaultDistance;
@@ -165,6 +165,19 @@ void Polevaulter::EndJump()
 	OnVaultLanded();
 }
 
+float Polevaulter::GetVaultProgress() const
+{
+	if (mVaultState != VaultState::JUMPING || !mAnimator) return 0.0f;
+
+	const auto [jumpBeginFrame, jumpEndFrame] = mAnimator->GetTrackRange("anim_jump");
+	const float jumpFrameCount = static_cast<float>(jumpEndFrame - jumpBeginFrame);
+	if (jumpFrameCount <= 0.0f) return 0.0f;
+
+	return std::clamp(
+		(GetCurrentFrame() - static_cast<float>(jumpBeginFrame)) / jumpFrameCount,
+		0.0f, 1.0f);
+}
+
 void Polevaulter::JumpMove(float distance)
 {
 	auto transform = GetTransformComponent();
@@ -183,22 +196,76 @@ float Polevaulter::GetVaultDistance() const
 	return kBakedVaultDistance;
 }
 
+void Polevaulter::ZombieUpdate(float)
+{
+	if (mVaultState != VaultState::JUMPING
+		|| mVaultBlockChecked
+		|| GetVaultProgress() < kVaultBlockProgress) {
+		return;
+	}
+
+	// 与原版 ShouldTriggerTimedEvent 一样，每次跳跃只在中段查询一次；目标消失则正常完成翻越。
+	mVaultBlockChecked = true;
+	Plant* target = mBoard
+		? mBoard->mEntityManager.GetPlant(mVaultTargetPlantID)
+		: nullptr;
+	if (target && mBoard) {
+		if (Plant* topPlant = mBoard->GetTopPlantAt(target->mRow, target->mColumn)) {
+			target = topPlant;
+		}
+	}
+	if (!target
+		|| target->mRow != mRow
+		|| !target->BlocksZombieJump(ZombieJumpType::POLEVAULT)) {
+		mVaultTargetPlantID = NULL_PLANT_ID;
+		return;
+	}
+
+	FinishBlockedVault(*target);
+}
+
+void Polevaulter::FinishBlockedVault(Plant& blockingPlant)
+{
+	if (mVaultState != VaultState::JUMPING) return;
+
+	// 精英逐帧补过的额外 100px 必须撤回；动画内置位移会在换回走路轨时自然消失。
+	if (mVaultExtraDistanceApplied != 0.0f) {
+		JumpMove(-mVaultExtraDistanceApplied);
+		mVaultExtraDistanceApplied = 0.0f;
+	}
+	mLastVaultDistance = 0.0f;
+	mVaultState = VaultState::WALKING;
+	mHasVaulted = true;
+
+	SetAnimationSpeed(GameRandom::Range(0.9f, 1.7f));
+	mSpeed = GameRandom::Range(7.0f, 13.0f);
+	PlayWalkAnimation(0.0f);
+
+	if (mCollider) {
+		mCollider->mEnabled = true;
+	}
+	if (auto* shadow = GetComponent<ShadowComponent>()) {
+		shadow->mEnabled = true;
+	}
+
+	blockingPlant.OnZombieJumpBlocked(ZombieJumpType::POLEVAULT);
+	if (auto* plantCollider = blockingPlant.GetColliderComponent()) {
+		StartEat(plantCollider);
+	}
+	// 派生效果在通用阻拦状态恢复后结算；精英会先召唤普通撑杆，再伤害阻拦植物。
+	OnVaultBlocked(blockingPlant);
+	mVaultTargetPlantID = NULL_PLANT_ID;
+}
+
 void Polevaulter::ZombieMove(float scaledDelta, TransformComponent* transform)
 {
 	if (mVaultState == VaultState::JUMPING) {
-		const auto [jumpBeginFrame, jumpEndFrame] = mAnimator->GetTrackRange("anim_jump");
-		const float jumpFrameCount = static_cast<float>(jumpEndFrame - jumpBeginFrame);
-		if (jumpFrameCount > 0.0f) {
-			const float jumpProgress = std::clamp(
-				(GetCurrentFrame() - static_cast<float>(jumpBeginFrame)) / jumpFrameCount,
-				0.0f, 1.0f);
-			const float targetExtraDistance =
-				(GetVaultDistance() - kBakedVaultDistance) * jumpProgress;
+		const float targetExtraDistance =
+			(GetVaultDistance() - kBakedVaultDistance) * GetVaultProgress();
 
-			// 只把超出动画内置 150 px 的部分按实际动画进度逐帧补上，避免落地瞬移。
-			JumpMove(targetExtraDistance - mVaultExtraDistanceApplied);
-			mVaultExtraDistanceApplied = targetExtraDistance;
-		}
+		// 只把超出动画内置 150 px 的部分按实际动画进度逐帧补上，避免落地瞬移。
+		JumpMove(targetExtraDistance - mVaultExtraDistanceApplied);
+		mVaultExtraDistanceApplied = targetExtraDistance;
 		return;
 	}
 	Zombie::ZombieMove(scaledDelta, transform);
@@ -219,6 +286,8 @@ void Polevaulter::SaveExtraData(nlohmann::json& j) const
 	j["vaultState"] = static_cast<int>(mVaultState);
 	j["hasVaulted"] = mHasVaulted;
 	j["vaultExtraDistanceApplied"] = mVaultExtraDistanceApplied;
+	j["vaultTargetPlantID"] = mVaultTargetPlantID;
+	j["vaultBlockChecked"] = mVaultBlockChecked;
 }
 
 void Polevaulter::LoadExtraData(const nlohmann::json& j)
@@ -230,6 +299,8 @@ void Polevaulter::LoadExtraData(const nlohmann::json& j)
 		j.value("vaultExtraDistanceApplied", 0.0f),
 		std::min(0.0f, targetExtraDistance),
 		std::max(0.0f, targetExtraDistance));
+	mVaultTargetPlantID = j.value("vaultTargetPlantID", NULL_PLANT_ID);
+	mVaultBlockChecked = j.value("vaultBlockChecked", false);
 
 	// 如果正在啃食，不覆盖已恢复的啃食动画
 	if (mIsEating) return;
@@ -239,8 +310,11 @@ void Polevaulter::LoadExtraData(const nlohmann::json& j)
 		PlayWalkAnimation(0.0f);
 	}
 	else if (mVaultState == VaultState::JUMPING) {
-		// 读档时如果正在跳跃，直接完成跳跃
-		EndJump();
+		// Animator 已恢复原跳跃帧；继续推进到 60% 阻拦节点，不能读档后直接越过高坚果。
+		if (mCollider) mCollider->mEnabled = false;
+		if (auto* shadow = GetComponent<ShadowComponent>()) {
+			shadow->mEnabled = false;
+		}
 	}
 }
 

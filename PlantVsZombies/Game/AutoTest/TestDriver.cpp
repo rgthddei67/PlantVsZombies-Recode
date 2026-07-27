@@ -1588,6 +1588,10 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				polevaulter->GetLastVaultDistance() * 1000.0f));
 			zombieState["vaultExtraDistanceAppliedOn1000"] = static_cast<int>(std::lround(
 				polevaulter->GetVaultExtraDistanceApplied() * 1000.0f));
+			zombieState["vaultProgressOn1000"] = static_cast<int>(std::lround(
+				polevaulter->GetVaultProgress() * 1000.0f));
+			zombieState["vaultBlockChecked"] = polevaulter->HasCheckedVaultBlock();
+			zombieState["vaultHasTarget"] = polevaulter->HasVaultTarget();
 		}
 		if (auto* dolphin = dynamic_cast<DolphinRiderZombie*>(z)) {
 			const char* phase = "APPROACHING";

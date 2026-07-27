@@ -38,6 +38,7 @@ description: Use when adding ANY new plant (新增植物) to PvZ — 射手/生�
 10. **C# 复合头附件要补 `inverse(basePose)`**：C# `AttachToAnotherReanimation` 的附件矩阵是父轨道当前姿态乘基准姿态逆矩阵，而本项目 `AttachAnimator` 目前只直接乘父轨道当前姿态。子 reanim 仍使用整株绝对坐标时，必须从根返回/待机轨首帧读取每条附件轨各自的基准姿态并在子 Animator 局部变换中抵消；基准旋转/缩放为单位时就是 `SetLocalPosition(-baseX, -baseY)`。不能给多个头套同一个 `gamedata` 偏移，否则某个头会与茎错位；默认和射击轨都要可见截图校对。
 11. **不可啃食植物覆写 `CanBeEaten()`，不要在僵尸索敌处堆类型表**：植物自己声明契约，普通啃食路径会统一跳过；AutoTest 同时断言植物 `canBeEaten=false`、`eaterCount=0`、僵尸 `isEating=false` 和植物生命不变，防止只有视觉没播啃食但伤害仍在结算。
 12. **只有完整时间轴、没有 `anim_*` 包装轨的循环 reanim**（如 `FirePea.reanim`）用 `SetFrameRangeToDefault()` + `Play(PLAY_REPEAT)`，不要捏造轨道名或帧事件。非等比 `SetRenderScale` 的 pivot 是**世界坐标**；命中特效应传自身绘制基点，传 `(0,0)` 会把整个特效按比例拉向屏幕左上角。
+13. **跳跃阻拦植物只声明能力和反馈，不决定僵尸动画时序**：`BlocksZombieJump`/`OnZombieJumpBlocked` 由跳跃者在原版动画进度节点调用，接触植物时不得提前 Bonk、喷粒子或扣血。组合植物的跳跃目标取当前格顶层，避免先碰到底层睡莲/花盆便漏掉上层阻拦体。特殊僵尸若撞伤阻拦植物，应把植物引用传入品种钩子并走带正确 `DamageSource` 的正式承伤链；先确认规格中的受伤者，不能把“植物损失 N 血”误实现成僵尸自身扣血。
 
 ## 存读档心智清单
 

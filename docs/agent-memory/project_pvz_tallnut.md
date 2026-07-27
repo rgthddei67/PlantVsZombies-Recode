@@ -31,10 +31,14 @@ metadata:
 高坚果通过 `BlocksZombieJump` 阻挡 `POLEVAULT` 与 `DOLPHIN_RIDER`，每次确实阻拦时由植物侧
 统一播放 `SOUND_BONK` 并喷出 `TallNutBlock` 星星。
 
-- 普通撑杆在接触高坚果时弃杆、进入 `WALKING` 并开始啃食，实际跳距保持 0。
-- 精英撑杆仍先在同排同 X 召唤普通撑杆，再承受绕过僵尸减伤与免伤次数的固定 800 本体伤害。当前基础
-  生命 450，因此会进入 `anim_death`；派生阻拦代价必须在 `StartEat` 之后结算，防止死亡动画
-  被啃食轨道覆盖。召唤在伤害前完成，保证致死也不吞掉普通撑杆。
+- 普通与精英撑杆在接触植物时都先锁定当前格顶层目标并播放 `anim_jump`，到 C# 原版的 60%
+  动画进度节点才检查一次高坚果。阻拦前保持 `JUMPING/anim_jump`，不得提前 Bonk、喷星星或扣血；
+  阻拦后撤回精英已逐帧补过的额外距离，弃杆进入 `WALKING` 并开始啃食，实际跳距保持 0。
+- 起跳目标 ID 与是否已检查进入快照；读档恢复原 `anim_jump` 帧并继续到 60% 节点，不能像旧实现那样
+  直接 `EndJump()` 绕过高坚果。组合植物在起跳和检查时均解析当前格顶层，避免睡莲先收到碰撞导致漏挡。
+- 精英撑杆自身保持 450 生命；被挡时先在同排同 X 召唤普通撑杆，再对高坚果调用
+  `TakeDamage(800, DamageSource::ZOMBIE)`。普通关高坚果从 8000 降至 7200，生存模式仍统一消费
+  僵尸增伤与植物韧性词条。
 - 海豚在跳跃进度 30% 的既有唯一判定点被挡，弃豚回到 `SWIMMING`；Bonk 从原来的僵尸内部
   分支收敛到植物反馈入口，避免两处重复播放。
 
@@ -44,10 +48,10 @@ metadata:
 当前桌面的“植物大战僵尸中文版”可见窗口运行，退出码 0，`run.log` 以
 `script finished OK` 结束：
 
-- `smoke_tallnut.json`：8000 生命、两档裂纹与大碎屑、快照恢复不重放、普通撑杆零跳距、
-  Bonk/星星、啃食小碎屑。
-- `smoke_tallnut_elite_pole.json`：叠满僵尸减伤并赋予 8 次免伤后，精英被挡仍生命归零并进入
-  `anim_death`，8 次免伤未被消费，普通撑杆仍存在。
+- `smoke_tallnut.json`：8000 生命、两档裂纹与大碎屑、裂纹快照恢复不重放、普通撑杆阻拦前
+  `JUMPING/anim_jump` 且 Bonk 为 0、跳跃快照继续、阻拦后零跳距、Bonk/星星和啃食小碎屑。
+- `smoke_tallnut_elite_pole.json`：阻拦前精英为 `JUMPING/anim_jump` 且双方未受伤；阻拦后
+  精英仍为 450 生命并啃食，高坚果为 7200，普通撑杆仍存在。
 - `smoke_tallnut_dolphin.json`：海豚由 `JUMPING` 被挡回 `SWIMMING`，弃豚，Bonk 与星星各一次。
 - `smoke_wallnut_chew_particles.json`：普通坚果受一次 50 伤，啃食者计数 1，小碎屑有实际
   render quad 且与坚果/僵尸碰撞区相交。

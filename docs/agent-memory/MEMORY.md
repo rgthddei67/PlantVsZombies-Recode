@@ -4,7 +4,7 @@
 
 - [最终绘制坐标语义取证](project_pvz_render_coordinate_evidence.md) — 2026-07-27 AutoTest 从当前项目实际渲染路径导出植物/僵尸/动画特效的 Animator 世界包围盒，以及粒子最终矩形；断言使用相对视觉原点、发射点和最近实体 collider 的整数投影，默认实例化与 `-NoInstance` 可做同用例一致性核对，C# 800×600 绝对坐标只作行为语义参考
 - [经典火炬树桩与动画火豌豆](project_pvz_torchwood_firepea.md) — 2026-07-27 `PLANT_TORCHWOOD` 按原版把同排 Pea 点燃为 40 伤 Fireball、Snowpea 融化为 Pea，并用列守卫允许后续树桩再点火；FirePea 是 50～80fps 完整时间轴循环 Animator 子弹，运行时换型与对象池不可变槽位类型分离，覆盖并行推进、存档所有权与阴影重排；火焰直击解冻、同行 100px 穿盾溅射、门板/梯子/冰车抗火、冒险奖励及图鉴均有可见专项验证
-- [经典高坚果与坚果啃食碎屑](project_pvz_tallnut.md) — 2026-07-27 `PLANT_TALLNUT`：8000 生命、125 阳光、30 秒冷却，两档裂纹与快照恢复不重放碎屑；普通/精英撑杆和海豚跳跃统一由植物声明式阻拦并播放 Bonk/星星，精英仍召唤普通撑杆后固定受 800 伤；普通坚果与高坚果每次有效啃食均喷出静态随机小碎屑
+- [经典高坚果与坚果啃食碎屑](project_pvz_tallnut.md) — 2026-07-27 `PLANT_TALLNUT`：8000 生命、125 阳光、30 秒冷却，两档裂纹与快照恢复不重放碎屑；撑杆先播跳跃并在60%进度、海豚在30%进度由植物声明式阻拦并播放 Bonk/星星，精英仍召唤普通撑杆且改由高坚果承受800伤害；普通坚果与高坚果每次有效啃食均喷出静态随机小碎屑
 - [僵尸自身整体动画能力倍率](project_pvz_zombie_ability_anim_speed.md) — 2026-07-27 删除 `Zombie::mExtraSpeed`，自身整体动画倍率统一经 `GetAbilityAnimSpeedMultiplier()`；固定、阶段和实例随机值分别由类型、状态与派生存档提供，旧根字段只为快速铁桶保留只读迁移；天气、寒冰和黄色冰道回归通过
 - [海豚僵尸](project_pvz_dolphin_rider_zombie.md) — 2026-07-27 `ZOMBIE_DOLPHIN_RIDER`：500 HP、带豚陆地约42px/s、弃豚约14px/s，根运动按12FPS时间基准与2.25/0.75 clip同步防滑行；首次入水、骑乘、越过首株植物、弃豚游泳与无目标骑出泳池状态机/快照恢复已实现；3-7 限水路接入，182/201啃食、288死亡；水中断头断臂零粒子，陆地海豚头粒子锚逻辑原点；正式刷新只播`DolphinAppears`一次，实际起跳另播`DolphinBeforeJumping`+`PlantWater`；高坚果会在跳跃进度30%的唯一判定点将其挡回`SWIMMING`，Bonk/星星由植物侧统一反馈
 - [僵尸图鉴随冒险进度解锁](project_pvz_zombie_almanac_progression.md) — 2026-07-27 图鉴累计 `mAdventureLevel - 1` 之前已通关关卡的 `spawnlists.json` 并按首次遭遇排序，当前关不提前泄露；舞王显式带出 `weight: 0` 伴舞；概率变异精英舞王只在正式实体创建成功后写 PlayerInfo 永久遭遇标记并额外解锁，直造/预览/读档不误记
@@ -20,7 +20,7 @@
 - [通用 shader ClipRect](project_pvz_shader_clip_rect.md) — 2026-07-23 `PushClipRect/PopClipRect` 全部改为逐顶点/逐实例 framebuffer 矩形裁剪；不再 flush、切 draw、录 worker 状态命令或动态改 scissor；覆盖水路、伴舞出土、图鉴格窗、粒子阻断，含延迟文字继承与无裁剪片元快路径
 - [冒险第二大关起雨势天气](project_pvz_night_rain_weather.md) — 2026-07-24 天气从冒险 2-1 起按 `Board::SupportsWeather` 启用，包括日间泳池；大雨前 5 秒按待生效台风等级显示四档古风文字警报，每档 3 句随机且与图片提示并存，待生效初态/文案编号随档保存；后期导演满压力天气权重 0/10/25/65、台风权重 15/45/40；水草抓取倒计时复用植物行动倍率而下沉保持真实速度
 - [精英舞王僵尸](project_pvz_elite_dancer_zombie.md) — 2026-07-27 当前为黑夜大雨任意台风 50% 变异、每波最多 2 只；超额成功变异候选源头跳过，实体创建成功后写 PlayerInfo 永久遭遇供图鉴解锁；720 HP、基础1.25、每0.2秒补伴舞至36只，强/超强台风再乘1.45/1.75；变异与图鉴专项可见 AutoTest 通过
-- [绿色精英撑杆僵尸](project_pvz_elite_polevaulter_zombie.md) — 2026-07-27 红蓝运动服统一换绿、450 HP、动画能力层 1.1、250px 跳距，正常落地同排同 X 生成普通撑杆；被高坚果阻拦时仍先召唤普通撑杆，再固定承受 800 伤并进入死亡；正式波次每波最多 2 只且计数入档；额外 100px 按 `anim_jump` 帧进度平滑补偿并随动画变速
+- [绿色精英撑杆僵尸](project_pvz_elite_polevaulter_zombie.md) — 2026-07-27 红蓝运动服统一换绿、450 HP、动画能力层 1.1、250px 跳距，正常落地同排同 X 生成普通撑杆；接触高坚果后先播放跳跃、在60%进度被挡，仍先召唤普通撑杆，再由高坚果承受800僵尸来源伤害，精英自身不扣血；正式波次每波最多 2 只且计数入档；额外 100px 按 `anim_jump` 帧进度平滑补偿并随动画变速
 - [黑夜第二大关出怪节奏](project_pvz_night_spawnlist_pacing.md) — 2026-07-22 冒险 2-1～2-9 单主题节奏：2-6 普通橄榄球、2-7 舞王、2-8 普通铁门+加固铁门（玩家已取得毁灭菇）、2-9 八种重点机制综合并必含加固铁门；双 preset 统一，`smoke_night_spawnlists` 逐关断言并截图
 - [倭瓜](project_pvz_squash.md) — 2026-07-23 3-1 奖励植物：C# 0.8观察→0.3预备→0.5上升→0.1下砸；本体耐久≤1800直接Die，更高则穿透二类护盾造成1800；草地尘土停留1秒、水路溅水即消失；仅需5条轨道且无帧事件；双Clang预设已过，最终AutoTest按主人要求未重跑
 - [精英胆小菇](project_pvz_elite_scaredyshroom.md) — 2026-07-23 冒险 2-8 紫色奖励植物：500生命、10伤起步，每5发间隔乘0.85、每10发伤害+1，最终15伤/0.2秒；受惊全清，白天每发只长0.6；每关累计最多种3株且损失不返还，高速吐弹用pending防重播吞弹
