@@ -31,6 +31,23 @@ int ColorComponentMultiply(int theColor1, int theColor2);
  */
 SDL_Color ColorsMultiply(const SDL_Color& theColor1, const SDL_Color& theColor2);
 
+/**
+ * Animator 最近一次实际绘制提交的世界空间几何快照。
+ * 包围盒由默认实例化和 -NoInstance 慢路径共同使用的最终仿射四边形计算，不包含 shader 裁剪。
+ */
+struct AnimatorRenderProbe {
+	bool hasGeometry = false;
+	bool usedInstancePath = false;
+	int quadCount = 0;
+	float baseX = 0.0f;
+	float baseY = 0.0f;
+	float objectScale = 1.0f;
+	float minX = 0.0f;
+	float minY = 0.0f;
+	float maxX = 0.0f;
+	float maxY = 0.0f;
+};
+
 class Animator {
 private:
 	std::shared_ptr<Reanimation> mReanim;   ///< 关联的 Reanimation 数据
@@ -46,6 +63,7 @@ private:
 	float mRenderScaleY = 1.0f;               ///< 最终世界绘制矩阵的 Y 缩放
 	float mRenderPivotX = 0.0f;               ///< 最终世界绘制缩放的 X 锚点
 	float mRenderPivotY = 0.0f;               ///< 最终世界绘制缩放的 Y 锚点
+	AnimatorRenderProbe mLastRenderProbe;      ///< 最近一次根 Draw 的最终世界几何，供 AutoTest 只读取证
 
 	// 过渡动画相关
 	float mReanimBlendCounter = -1.0f;        ///< 混合计数器，>0 时进行混合
@@ -386,6 +404,9 @@ public:
 	void SetRenderScale(float scaleX, float scaleY, float pivotX, float pivotY);
 	float GetRenderScaleX() const { return mRenderScaleX; }
 	float GetRenderScaleY() const { return mRenderScaleY; }
+	float GetRenderPivotX() const { return mRenderPivotX; }
+	float GetRenderPivotY() const { return mRenderPivotY; }
+	const AnimatorRenderProbe& GetLastRenderProbe() const { return mLastRenderProbe; }
 
 	/**
 	 * @brief 获取底层 Reanimation 对象

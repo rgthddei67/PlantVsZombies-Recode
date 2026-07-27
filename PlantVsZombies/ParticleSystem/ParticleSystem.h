@@ -43,6 +43,10 @@ public:
 	bool IsEffectEmitting(const std::string& effectName) const;
 	/** 返回全部同名特效当前存活粒子总数，供 AutoTest 和问题诊断使用。 */
 	int GetEffectActiveParticleCount(const std::string& effectName) const;
+	/** 只读暴露当前特效实例，供 AutoTest 导出最终绘制语义。 */
+	const std::vector<std::unique_ptr<ParticleEffect>>& GetEffectsForTesting() const {
+		return effects;
+	}
 
 private:
 	void CleanupInactiveEffects();

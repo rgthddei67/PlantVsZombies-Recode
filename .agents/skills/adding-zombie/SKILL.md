@@ -17,7 +17,8 @@ description: Use when adding or tuning any PvZ zombie, or integrating zombies in
 - 原版按世界 X 分段的速度/状态阈值写成“当前地图坐标基准 + 原版相对距离”；平地可从 `CELL_INITALIZE_POS_X` 派生，屋顶因斜坡几何必须保留独立基准入口并在实测后填写，禁止先假定与平地相同。
 - 僵尸局部坐标先求“原值相对 C# 绘制原点”的差，再锚到本项目稳定视觉原点 `Transform + mVisualOffset`；物理框、攻击框和粒子通常不得跟受伤抖动等临时绘制偏移移动。
 - 网格位置与画面偏移继续分离；优先使用 `GetCellCenterPosition`、`GetCellHeight`、`GetZombieCollisionY/GetZombieSpawnY`。
-- 验证必须同时包含同一状态下的相对量整数投影和可见截图；绝对 X/Y 会受逻辑步落点影响，不作稳定断言。
+- 验证先执行同步 `screenshot`，再用 `animatedObjectsByTag.Zombie` 的 `renderProbeReady/worldBounds/visualToRenderCenterD*Int/nearestZombie` 验证本项目最终绘制几何相对自身 collider、同排植物或攻击目标的关系；每阶段只保留一个目标僵尸以稳定数组索引。
+- 修改出生 offset、受伤偏移、附件、翻转或整身变换时，默认实例化与 `-NoInstance` 各跑同一静止用例并比较整数 `worldBounds`；运动对象瞬时绝对 X/Y 只供诊断，不作稳定断言。
 
 ## 第 0 步：勘察（动手前全部做完）
 
@@ -75,7 +76,7 @@ description: Use when adding or tuning any PvZ zombie, or integrating zombies in
 ## 验证（缺一不可）
 
 1. 日常迭代用 `clang-playtest` 构建 0 warning；新 .cpp 未被编译先 `cmake --preset clang-playtest` reconfigure。完成后再用 `clang-release` 做 LTO 发布验证。
-2. **AutoTest 冒烟**：`autotest/scripts/smoke_<name>.json`。默认按 `PROJECT_GUIDE.md` 的“当前桌面可见启动”方案运行：从 `build/<preset>/` 工作目录，用提升权限的 `Start-Process -WindowStyle Normal -PassThru` 启动并等待退出；普通沙箱 shell 即使写了 `WindowStyle Normal` 也可能落在隔离会话，主人桌面完全看不到。断言抓手：`zombies.N.type/hasArm/armVisible/hasHead/track/mindControlled`（type 是字符串枚举名）。**exit 0 ≠ 通过**：逐张 Read 截图（断肢前后、编队站位、出土中段——注意升起初期整体在地面线下被裁掉是正确的，截图要卡升起 60% 时点）。
+2. **AutoTest 冒烟**：`autotest/scripts/smoke_<name>.json`。默认按 `PROJECT_GUIDE.md` 的“当前桌面可见启动”方案运行：从 `build/<preset>/` 工作目录，用提升权限的 `Start-Process -WindowStyle Normal -PassThru` 启动并等待退出；普通沙箱 shell 即使写了 `WindowStyle Normal` 也可能落在隔离会话，主人桌面完全看不到。状态断言用 `zombies.N.type/hasArm/armVisible/hasHead/track/mindControlled`；几何断言用 `animatedObjectsByTag.Zombie.N` 的最终世界包围盒及相对 collider 投影，禁止把 C# 绝对坐标写成期望值。**exit 0 ≠ 通过**：逐张 Read 同步截图（断肢前后、编队站位、出土中段——注意升起初期整体在地面线下被裁掉是正确的，截图要卡升起 60% 时点）。
 3. **死亡消失必须专门测**（末-1 帧陷阱专项）：豌豆打死→dump 确认该 type 消失+run.log 无 WATCHDOG。炸弹类走 Die() 直杀路径，**测不到**死亡帧事件。
 4. 时序：`wait_seconds` 是游戏秒；关卡 20 秒起第一波普通僵尸会混入 dump，别断言"场上为空"。
 5. 站位/影子不对 → 本体调 gamedata offset（免编译）、影子调代码 `ShadowComponent`。

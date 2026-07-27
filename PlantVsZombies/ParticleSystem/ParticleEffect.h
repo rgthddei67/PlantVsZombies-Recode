@@ -39,6 +39,8 @@ public:
 	bool IsEmitting() const;
 	/** 返回所有发射器当前存活粒子数，供状态诊断使用。 */
 	int GetActiveParticleCount() const;
+	/** 聚合最近一帧各发射器实际提交的粒子世界包围盒，供 AutoTest 坐标取证。 */
+	ParticleRenderProbe GetLastRenderProbe() const;
 	bool ShouldDestroy() const;
 
 	void SetRenderOrder(int order) { renderOrder = order; }
@@ -53,6 +55,7 @@ public:
 	const std::string& GetName() const { return effectName; }
 	/** 负值关闭裁剪；非负值把本特效绘制限制在世界坐标 x<=clipRightX。 */
 	void SetClipRightX(float x) { clipRightX = x; }
+	float GetClipRightX() const { return clipRightX; }
 
 	void SetPosition(const Vector& pos);
 	Vector GetPosition() const { return position; }

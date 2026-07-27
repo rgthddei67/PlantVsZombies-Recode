@@ -1,0 +1,23 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 1, "resetTestState": true },
+    { "op": "choose_cards", "cards": [] },
+    { "op": "wait_state", "state": "GAME" },
+    { "op": "set_spawn_paused", "value": true },
+    { "op": "spawn_zombie", "type": "ZOMBIE_NORMAL", "row": 2, "x": 700, "stationary": true },
+    { "op": "spawn_bullet", "type": "BULLET_PEA", "row": 2, "x": 700, "y": 308, "velocityX": 0 },
+    { "op": "wait_frames", "value": 2 },
+    { "op": "screenshot", "name": "pea_hit_particle_probe.png" },
+    { "op": "assert_state", "path": "particleEffectNameCounts.PeaBulletHit", "equals": 1 },
+    { "op": "assert_state", "path": "particleEffectsByName.PeaBulletHit.0.renderProbeReady", "equals": true },
+    { "op": "assert_state", "path": "particleEffectsByName.PeaBulletHit.0.renderQuadCount", "atLeast": 2 },
+    { "op": "assert_state", "path": "particleEffectsByName.PeaBulletHit.0.activeParticleCount", "atLeast": 2 },
+    { "op": "assert_state", "path": "particleEffectsByName.PeaBulletHit.0.worldBounds.widthInt", "atLeast": 1 },
+    { "op": "assert_state", "path": "particleEffectsByName.PeaBulletHit.0.worldBounds.heightInt", "atLeast": 1 },
+    { "op": "assert_state", "path": "particleEffectsByName.PeaBulletHit.0.originToRenderCenterDxInt", "atLeast": -40, "atMost": 40 },
+    { "op": "assert_state", "path": "particleEffectsByName.PeaBulletHit.0.originToRenderCenterDyInt", "atLeast": -40, "atMost": 40 },
+    { "op": "assert_state", "path": "particleEffectsByName.PeaBulletHit.0.nearestZombie.boundsIntersect", "equals": true },
+    { "op": "dump_state", "name": "pea_hit_particle_probe.json" },
+    { "op": "quit" }
+  ]
+}

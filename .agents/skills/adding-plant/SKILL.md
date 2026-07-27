@@ -14,7 +14,8 @@ description: Use when adding ANY new plant (新增植物) to PvZ — 射手/生�
 - 场景范围由 `SCENE_WIDTH/SCENE_HEIGHT` 和 Board 当前背景几何重算；格子范围由 `GetCellCenterPosition`、`GetCellHeight` 与 `CELL_COLLIDER_SIZE_X` 派生。
 - 植物局部点位先换算到本项目以格子中心为 `GetPosition()` 的口径，再叠加当前 gamedata 视觉偏移；逻辑格位置与 `mVisualOffset` 永远分开。
 - 发射点、范围边界和附加 Animator 基点优先表达成“相对稳定视觉原点/父轨基准姿态”的差值，不把 C# 的世界坐标塞进局部偏移。
-- AutoTest 用同一状态下的相对量整数投影验证几何关系，并逐张检查可见截图；运动对象的绝对坐标不作稳定断言。
+- AutoTest 先执行同步 `screenshot`，再用 `animatedObjectsByTag.Plant` 的 `renderProbeReady/worldBounds/visualToRenderCenterD*Int/nearestPlant` 验证本项目最终绘制几何相对格子与植物 collider 的关系；每阶段只保留一株目标植物以稳定数组索引。
+- 修改 gamedata offset、附件、整株变换或 `SetRenderScale` 时，默认实例化与 `-NoInstance` 各跑同一静止用例并比较整数 `worldBounds`；截图负责肉眼基线，运动对象瞬时绝对 X/Y 只供诊断、不作稳定断言。
 
 ## 第 0 步：勘察（动手前全部做完）
 
@@ -50,7 +51,7 @@ description: Use when adding ANY new plant (新增植物) to PvZ — 射手/生�
 
 1. 日常迭代用 `clang-playtest` 构建 0 warning；完成后再用 `clang-release` 做 LTO 发布验证。两个 Clang 预设报告同一套全量警告。
 2. **站位+影子截图校对**（写完必做，别等主人指出）：临时脚本把新植物与小喷菇/向日葵种同一行，截图比脚底基线。两套独立坐标：**本体 = gamedata.json 的 offset**（改无需重编译）；**影子 = 代码里 `ShadowComponent::SetOffset`**（改要重编译）。抄同类植物的值大概率不准。
-3. **AutoTest 冒烟**：`autotest/scripts/smoke_<name>.json`，每阶段**只种一棵**（plants dump 顺序来自 unordered_map，多棵时下标不可靠），断言 `plants.0.track`；时序估算用僵尸判定矩形 `[x±25]×[y-65,y+35]`、步速 23~45px/s。**exit 0 ≠ 通过**：必须逐张 Read 截图 + dump 数值核对（防假绿）。
+3. **AutoTest 冒烟**：`autotest/scripts/smoke_<name>.json`，每阶段**只种一棵**（plants dump 顺序来自 unordered_map，多棵时下标不可靠），断言 `plants.0.track`；几何验收用 `animatedObjectsByTag.Plant.0` 的最终世界包围盒与相对 collider 投影，禁止把 C# 绝对坐标写成期望值。时序估算用僵尸判定矩形 `[x±25]×[y-65,y+35]`、步速 23~45px/s。**exit 0 ≠ 通过**：必须逐张 Read 同步截图 + dump 数值核对（防假绿）。
 4. 蘑菇夜测用 level 10-18（九关制的 2-1..2-9）；白天睡觉断言 `anim_sleep`；魅惑僵尸清场用 `charm_zombie`（不触发输局）。
 
 ## 特性侵入其他系统时（寒冰菇冻结、魅惑、穿透这类）

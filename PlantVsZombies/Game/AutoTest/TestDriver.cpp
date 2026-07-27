@@ -7,6 +7,7 @@
 #include "../../ResourceKeys.h"
 #include "../SceneManager.h"
 #include "../GameScene.h"
+#include "../AnimatedObject.h"
 #include "../ZombieAlmanacScene.h"
 #include "../ChooseCardUI.h"
 #include "../Board.h"
@@ -37,14 +38,36 @@
 #include "../Trophy.h"   // dump_state 输出奖杯坐标
 #include "../Crater.h"   // dump_state 输出毁灭菇弹坑
 #include "../../Reanimation/Animator.h"   // dump_state 查询轨道可见性（如铁门僵尸手臂）
+#include "../../ResourceManager.h"
 #include "../../ParticleSystem/ParticleSystem.h"
 #include <filesystem>
 #include <algorithm>
 #include <cmath>
+#include <limits>
 #include <unordered_map>
 #include <SDL2/SDL.h>
 
 namespace {
+	const char* ObjectTypeName(ObjectType type)
+	{
+		switch (type) {
+		case ObjectType::OBJECT_UI: return "UI";
+		case ObjectType::OBJECT_PLANT: return "PLANT";
+		case ObjectType::OBJECT_ZOMBIE: return "ZOMBIE";
+		case ObjectType::OBJECT_BULLET: return "BULLET";
+		case ObjectType::OBJECT_COIN: return "COIN";
+		case ObjectType::OBJECT_LAWNMOWER: return "LAWNMOWER";
+		case ObjectType::OBJECT_PARTICLE: return "PARTICLE";
+		default: return "NONE";
+		}
+	}
+
+	bool BoundsIntersect(const SDL_FRect& a, const SDL_FRect& b)
+	{
+		return a.x <= b.x + b.w && a.x + a.w >= b.x
+			&& a.y <= b.y + b.h && a.y + a.h >= b.y;
+	}
+
 #define PT(n) { #n, PlantType::n }
 	const std::unordered_map<std::string, PlantType> kPlantNames = {
 		PT(PLANT_PEASHOOTER), PT(PLANT_SUNFLOWER), PT(PLANT_CHERRYBOMB), PT(PLANT_WALLNUT),
@@ -1668,6 +1691,267 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		out["plants"].push_back(std::move(plantState));
 	}
 	out["plantCount"] = static_cast<int>(out["plants"].size());
+
+	// 粒子坐标取证从本项目 DrawTextureRegion 的最终粒子矩形聚合，C# 800x600
+	// 只保留行为语义；稳定断言优先使用相对发射原点或最近实体碰撞框的整数投影。
+	out["particleEffects"] = nlohmann::json::array();
+	out["particleEffectsByName"] = nlohmann::json::object();
+	out["particleEffectNameCounts"] = nlohmann::json::object();
+	if (g_particleSystem) {
+		for (const auto& effect : g_particleSystem->GetEffectsForTesting()) {
+			if (!effect) continue;
+			const Vector origin = effect->GetPosition();
+			const ParticleRenderProbe probe = effect->GetLastRenderProbe();
+			nlohmann::json state = {
+				{ "name", effect->GetName() },
+				{ "originXInt", static_cast<int>(std::lround(origin.x)) },
+				{ "originYInt", static_cast<int>(std::lround(origin.y)) },
+				{ "renderOrder", effect->GetRenderOrder() },
+				{ "emitting", effect->IsEmitting() },
+				{ "activeParticleCount", effect->GetActiveParticleCount() },
+				{ "renderProbeReady", probe.hasGeometry },
+				{ "renderQuadCount", probe.quadCount },
+			};
+			state["clipRightXInt"] = effect->GetClipRightX() >= 0.0f
+				? nlohmann::json(static_cast<int>(std::lround(effect->GetClipRightX())))
+				: nlohmann::json(nullptr);
+
+			if (probe.hasGeometry) {
+				const SDL_FRect bounds = {
+					probe.minX,
+					probe.minY,
+					probe.maxX - probe.minX,
+					probe.maxY - probe.minY,
+				};
+				const float centerX = bounds.x + bounds.w * 0.5f;
+				const float centerY = bounds.y + bounds.h * 0.5f;
+				state["worldBounds"] = {
+					{ "leftInt", static_cast<int>(std::lround(bounds.x)) },
+					{ "topInt", static_cast<int>(std::lround(bounds.y)) },
+					{ "rightInt", static_cast<int>(std::lround(bounds.x + bounds.w)) },
+					{ "bottomInt", static_cast<int>(std::lround(bounds.y + bounds.h)) },
+					{ "widthInt", static_cast<int>(std::lround(bounds.w)) },
+					{ "heightInt", static_cast<int>(std::lround(bounds.h)) },
+					{ "centerXInt", static_cast<int>(std::lround(centerX)) },
+					{ "centerYInt", static_cast<int>(std::lround(centerY)) },
+				};
+				state["originToRenderCenterDxInt"] =
+					static_cast<int>(std::lround(centerX - origin.x));
+				state["originToRenderCenterDyInt"] =
+					static_cast<int>(std::lround(centerY - origin.y));
+
+				float nearestZombieDistanceSq = std::numeric_limits<float>::max();
+				nlohmann::json nearestZombie = nullptr;
+				for (int id : board->mEntityManager.GetAllZombieIDs()) {
+					Zombie* zombie = board->mEntityManager.GetZombie(id);
+					if (!zombie || !zombie->IsActive() || zombie->IsDying()) continue;
+					const ColliderComponent* collider = zombie->GetColliderComponent();
+					if (!collider) continue;
+					const SDL_FRect candidateBounds = collider->GetBoundingBox();
+					const float candidateX = candidateBounds.x + candidateBounds.w * 0.5f;
+					const float candidateY = candidateBounds.y + candidateBounds.h * 0.5f;
+					const float dx = centerX - candidateX;
+					const float dy = centerY - candidateY;
+					const float distanceSq = dx * dx + dy * dy;
+					if (distanceSq >= nearestZombieDistanceSq) continue;
+					nearestZombieDistanceSq = distanceSq;
+					nearestZombie = {
+						{ "id", id },
+						{ "row", zombie->mRow },
+						{ "type", ZombieTypeName(zombie->mZombieType) },
+						{ "centerDxInt", static_cast<int>(std::lround(dx)) },
+						{ "centerDyInt", static_cast<int>(std::lround(dy)) },
+						{ "boundsIntersect", BoundsIntersect(bounds, candidateBounds) },
+					};
+				}
+				state["nearestZombie"] = std::move(nearestZombie);
+
+				float nearestPlantDistanceSq = std::numeric_limits<float>::max();
+				nlohmann::json nearestPlant = nullptr;
+				for (int id : board->mEntityManager.GetAllPlantIDs()) {
+					Plant* plant = board->mEntityManager.GetPlant(id);
+					if (!plant || !plant->IsActive()) continue;
+					const ColliderComponent* collider = plant->GetColliderComponent();
+					if (!collider) continue;
+					const SDL_FRect candidateBounds = collider->GetBoundingBox();
+					const float candidateX = candidateBounds.x + candidateBounds.w * 0.5f;
+					const float candidateY = candidateBounds.y + candidateBounds.h * 0.5f;
+					const float dx = centerX - candidateX;
+					const float dy = centerY - candidateY;
+					const float distanceSq = dx * dx + dy * dy;
+					if (distanceSq >= nearestPlantDistanceSq) continue;
+					nearestPlantDistanceSq = distanceSq;
+					nearestPlant = {
+						{ "id", id },
+						{ "row", plant->mRow },
+						{ "col", plant->mColumn },
+						{ "type", PlantTypeName(plant->mPlantType) },
+						{ "centerDxInt", static_cast<int>(std::lround(dx)) },
+						{ "centerDyInt", static_cast<int>(std::lround(dy)) },
+						{ "boundsIntersect", BoundsIntersect(bounds, candidateBounds) },
+					};
+				}
+				state["nearestPlant"] = std::move(nearestPlant);
+			}
+			else {
+				state["worldBounds"] = nullptr;
+				state["nearestZombie"] = nullptr;
+				state["nearestPlant"] = nullptr;
+			}
+
+			const std::string name = effect->GetName();
+			out["particleEffects"].push_back(state);
+			out["particleEffectsByName"][name].push_back(state);
+			out["particleEffectNameCounts"][name] =
+				out["particleEffectsByName"][name].size();
+		}
+	}
+	out["particleEffectCount"] = static_cast<int>(out["particleEffects"].size());
+
+	// AnimatedObject 语义取证使用 Animator 最近一次实际提交的最终世界四边形，而不是
+	// C# 800x600 的绝对坐标或对象逻辑点。默认实例化与 -NoInstance 都写同一份探针。
+	out["animatedObjects"] = nlohmann::json::array();
+	out["animatedObjectsByTag"] = nlohmann::json::object();
+	out["animatedObjectTagCounts"] = nlohmann::json::object();
+	for (const auto& object : GameObjectManager::GetInstance().GetAllGameObjects()) {
+		auto* animated = object && object->IsActive()
+			? dynamic_cast<AnimatedObject*>(object.get()) : nullptr;
+		if (!animated) continue;
+		const auto animator = animated->GetAnimatorInternal();
+		if (!animator) continue;
+
+		const Vector logical = animated->GetAnimationPosition();
+		const Vector visual = animated->GetVisualPosition();
+		const AnimatorRenderProbe& probe = animator->GetLastRenderProbe();
+		const std::string tag = animated->GetTag();
+		const std::string animation = ResourceManager::GetInstance().AnimationTypeToString(
+			animated->GetAnimationType());
+
+		nlohmann::json state = {
+			{ "name", animated->GetName() },
+			{ "tag", tag },
+			{ "objectType", ObjectTypeName(animated->GetObjectType()) },
+			{ "animation", animation },
+			{ "renderOrder", animated->GetRenderOrder() },
+			{ "logicalXInt", static_cast<int>(std::lround(logical.x)) },
+			{ "logicalYInt", static_cast<int>(std::lround(logical.y)) },
+			{ "visualXInt", static_cast<int>(std::lround(visual.x)) },
+			{ "visualYInt", static_cast<int>(std::lround(visual.y)) },
+			{ "track", animator->GetCurrentTrackName() },
+			{ "playing", animator->IsPlaying() },
+			{ "renderProbeReady", probe.hasGeometry },
+			{ "renderPath", probe.usedInstancePath ? "INSTANCE" : "NO_INSTANCE" },
+			{ "renderQuadCount", probe.quadCount },
+			{ "renderBaseXInt", static_cast<int>(std::lround(probe.baseX)) },
+			{ "renderBaseYInt", static_cast<int>(std::lround(probe.baseY)) },
+			{ "objectScaleOn1000", static_cast<int>(std::lround(
+				probe.objectScale * 1000.0f)) },
+			{ "renderScaleXOn1000", static_cast<int>(std::lround(
+				animator->GetRenderScaleX() * 1000.0f)) },
+			{ "renderScaleYOn1000", static_cast<int>(std::lround(
+				animator->GetRenderScaleY() * 1000.0f)) },
+			{ "renderPivotXInt", static_cast<int>(std::lround(
+				animator->GetRenderPivotX())) },
+			{ "renderPivotYInt", static_cast<int>(std::lround(
+				animator->GetRenderPivotY())) },
+			{ "renderBaseMatchesVisualPosition",
+				std::abs(probe.baseX - visual.x) < 0.5f
+				&& std::abs(probe.baseY - visual.y) < 0.5f },
+			{ "renderPivotMatchesVisualBase",
+				std::abs(animator->GetRenderPivotX() - probe.baseX) < 0.5f
+				&& std::abs(animator->GetRenderPivotY() - probe.baseY) < 0.5f },
+		};
+
+		if (probe.hasGeometry) {
+			const SDL_FRect bounds = {
+				probe.minX,
+				probe.minY,
+				probe.maxX - probe.minX,
+				probe.maxY - probe.minY,
+			};
+			const float centerX = bounds.x + bounds.w * 0.5f;
+			const float centerY = bounds.y + bounds.h * 0.5f;
+			state["worldBounds"] = {
+				{ "leftInt", static_cast<int>(std::lround(bounds.x)) },
+				{ "topInt", static_cast<int>(std::lround(bounds.y)) },
+				{ "rightInt", static_cast<int>(std::lround(bounds.x + bounds.w)) },
+				{ "bottomInt", static_cast<int>(std::lround(bounds.y + bounds.h)) },
+				{ "widthInt", static_cast<int>(std::lround(bounds.w)) },
+				{ "heightInt", static_cast<int>(std::lround(bounds.h)) },
+				{ "centerXInt", static_cast<int>(std::lround(centerX)) },
+				{ "centerYInt", static_cast<int>(std::lround(centerY)) },
+			};
+			state["visualToRenderCenterDxInt"] =
+				static_cast<int>(std::lround(centerX - visual.x));
+			state["visualToRenderCenterDyInt"] =
+				static_cast<int>(std::lround(centerY - visual.y));
+
+			float nearestZombieDistanceSq = std::numeric_limits<float>::max();
+			nlohmann::json nearestZombie = nullptr;
+			for (int id : board->mEntityManager.GetAllZombieIDs()) {
+				Zombie* zombie = board->mEntityManager.GetZombie(id);
+				if (!zombie || !zombie->IsActive() || zombie->IsDying()) continue;
+				const ColliderComponent* collider = zombie->GetColliderComponent();
+				if (!collider) continue;
+				const SDL_FRect candidateBounds = collider->GetBoundingBox();
+				const float candidateX = candidateBounds.x + candidateBounds.w * 0.5f;
+				const float candidateY = candidateBounds.y + candidateBounds.h * 0.5f;
+				const float dx = centerX - candidateX;
+				const float dy = centerY - candidateY;
+				const float distanceSq = dx * dx + dy * dy;
+				if (distanceSq >= nearestZombieDistanceSq) continue;
+				nearestZombieDistanceSq = distanceSq;
+				nearestZombie = {
+					{ "id", id },
+					{ "row", zombie->mRow },
+					{ "type", ZombieTypeName(zombie->mZombieType) },
+					{ "centerDxInt", static_cast<int>(std::lround(dx)) },
+					{ "centerDyInt", static_cast<int>(std::lround(dy)) },
+					{ "boundsIntersect", BoundsIntersect(bounds, candidateBounds) },
+				};
+			}
+			state["nearestZombie"] = std::move(nearestZombie);
+
+			float nearestPlantDistanceSq = std::numeric_limits<float>::max();
+			nlohmann::json nearestPlant = nullptr;
+			for (int id : board->mEntityManager.GetAllPlantIDs()) {
+				Plant* plant = board->mEntityManager.GetPlant(id);
+				if (!plant || !plant->IsActive()) continue;
+				const ColliderComponent* collider = plant->GetColliderComponent();
+				if (!collider) continue;
+				const SDL_FRect candidateBounds = collider->GetBoundingBox();
+				const float candidateX = candidateBounds.x + candidateBounds.w * 0.5f;
+				const float candidateY = candidateBounds.y + candidateBounds.h * 0.5f;
+				const float dx = centerX - candidateX;
+				const float dy = centerY - candidateY;
+				const float distanceSq = dx * dx + dy * dy;
+				if (distanceSq >= nearestPlantDistanceSq) continue;
+				nearestPlantDistanceSq = distanceSq;
+				nearestPlant = {
+					{ "id", id },
+					{ "row", plant->mRow },
+					{ "col", plant->mColumn },
+					{ "type", PlantTypeName(plant->mPlantType) },
+					{ "centerDxInt", static_cast<int>(std::lround(dx)) },
+					{ "centerDyInt", static_cast<int>(std::lround(dy)) },
+					{ "boundsIntersect", BoundsIntersect(bounds, candidateBounds) },
+				};
+			}
+			state["nearestPlant"] = std::move(nearestPlant);
+		}
+		else {
+			state["worldBounds"] = nullptr;
+			state["nearestZombie"] = nullptr;
+			state["nearestPlant"] = nullptr;
+		}
+
+		out["animatedObjects"].push_back(state);
+		out["animatedObjectsByTag"][tag].push_back(state);
+		out["animatedObjectTagCounts"][tag] =
+			out["animatedObjectsByTag"][tag].size();
+	}
+	out["animatedObjectCount"] = static_cast<int>(out["animatedObjects"].size());
+
 	out["cells"] = nlohmann::json::array();
 	for (int row = 0; row < board->mRows; ++row) {
 		nlohmann::json rowState = nlohmann::json::array();

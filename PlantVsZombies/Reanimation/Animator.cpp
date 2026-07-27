@@ -1,11 +1,37 @@
 ﻿#include "Animator.h"
 #include "../DeltaTime.h"
+#include "../GameAPP.h"
 #include "../ResourceManager.h"
 #include "../Logger.h"
 #include <algorithm>
 #include <cmath>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+
+namespace {
+	thread_local AnimatorRenderProbe* gActiveRenderProbe = nullptr;
+
+	/** 把最终 2x3 仿射单位四边形并入当前根 Animator 的世界包围盒。 */
+	void RecordRenderQuad(float tA, float tB, float tC, float tD, float tx, float ty)
+	{
+		if (!gActiveRenderProbe) return;
+
+		const float xs[4] = { tx, tx + tA, tx + tC, tx + tA + tC };
+		const float ys[4] = { ty, ty + tB, ty + tD, ty + tB + tD };
+		if (!gActiveRenderProbe->hasGeometry) {
+			gActiveRenderProbe->minX = gActiveRenderProbe->maxX = xs[0];
+			gActiveRenderProbe->minY = gActiveRenderProbe->maxY = ys[0];
+			gActiveRenderProbe->hasGeometry = true;
+		}
+		for (int i = 0; i < 4; ++i) {
+			gActiveRenderProbe->minX = std::min(gActiveRenderProbe->minX, xs[i]);
+			gActiveRenderProbe->minY = std::min(gActiveRenderProbe->minY, ys[i]);
+			gActiveRenderProbe->maxX = std::max(gActiveRenderProbe->maxX, xs[i]);
+			gActiveRenderProbe->maxY = std::max(gActiveRenderProbe->maxY, ys[i]);
+		}
+		++gActiveRenderProbe->quadCount;
+	}
+}
 
 Animator::Animator() {
 	mReanim = nullptr;
@@ -340,10 +366,24 @@ void Animator::UpdateParallelDeferred(std::vector<DeferredEvent>& outBuf) {
 void Animator::Draw(Graphics* g, float baseX, float baseY, float Scale) {
 	if (!mReanim || !g) return;
 
+	// 附件通过 DrawInternal 递归而不会再次进入本函数；thread_local 让并行绘制的各根对象
+	// 独立聚合，并保留嵌套调用时的旧探针以免污染外层。
+	AnimatorRenderProbe* previousProbe = gActiveRenderProbe;
+	if (GameAPP::mAutoTestMode) {
+		mLastRenderProbe = {};
+		mLastRenderProbe.baseX = baseX;
+		mLastRenderProbe.baseY = baseY;
+		mLastRenderProbe.objectScale = Scale;
+		mLastRenderProbe.usedInstancePath = g->IsInstancePathEnabled();
+		gActiveRenderProbe = &mLastRenderProbe;
+	}
+
 	// 保存当前变换栈，确保不叠加额外变换
 	g->PushTransform(glm::mat4(1.0f));
 	DrawInternal(g, baseX, baseY, Scale);
 	g->PopTransform();
+	if (GameAPP::mAutoTestMode)
+		gActiveRenderProbe = previousProbe;
 }
 
 namespace {
@@ -416,6 +456,7 @@ void Animator::DrawInternalInstanced(Graphics* g, float baseX, float baseY, floa
 				rec.tx = baseX + (2.0f * mFlipPivotX - tx) * Scale;
 			}
 			ApplyRenderScale(rec);
+			RecordRenderQuad(rec.tA, rec.tB, rec.tC, rec.tD, rec.tx, rec.ty);
 
 			// 图集子图只改 UV，实例仍绑定所属 atlas page 的 bindless 槽位。
 			const Texture* bindTex = image->atlasPage ? image->atlasPage : image;
@@ -536,6 +577,8 @@ void Animator::DrawInternal(Graphics* g, float baseX, float baseY, float Scale) 
 				mat[3][0] = baseX + (2.0f * mFlipPivotX - tx) * Scale;
 			}
 			ApplyRenderScale(mat);
+			RecordRenderQuad(
+				mat[0][0], mat[0][1], mat[1][0], mat[1][1], mat[3][0], mat[3][1]);
 
 			float combinedAlpha = transform.a * mAlpha;
 			float baseAlpha = std::clamp(combinedAlpha, 0.0f, 1.0f);

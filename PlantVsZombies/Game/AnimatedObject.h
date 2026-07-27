@@ -99,6 +99,7 @@ public:
 
 	// 获取视觉绘制位置
 	virtual Vector GetVisualPosition() const;
+	AnimationType GetAnimationType() const { return mAnimType; }
 
 	std::shared_ptr<Animator> GetAnimatorInternal() const;
 

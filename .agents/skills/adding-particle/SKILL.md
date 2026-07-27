@@ -7,7 +7,8 @@ description: Use when adding or tuning ANY particle effect (粒子特效) in PvZ
 
 本文件每个标签的语义都是 2026-07-15 从 `ParticleSystem/` 源码逐行实证的（IceFumeCloud 蓝色孢子云实战），
 2026-07-16 随毁灭菇 Doom.xml 移植更新（ImageFrames 序列帧实装 + 原版 XML 移植口径），
-2026-07-20 随雨天特效补充 ParticleRotation 初始朝向。
+2026-07-20 随雨天特效补充 ParticleRotation 初始朝向，
+2026-07-27 补充 AutoTest 最终粒子矩形与相对实体取证。
 **改了引擎消费端（ParticleEmitter/ParticleXMLLoader）要回来同步本文档。**
 
 ## 心智模型
@@ -27,7 +28,8 @@ description: Use when adding or tuning ANY particle effect (粒子特效) in PvZ
 - 先确定特效应锚定当前对象的稳定视觉原点、Board 网格点还是当前场景边界，再把 C# 点位换算成相对该锚点的局部差值。
 - `EmitEffect` 的传入世界坐标优先由 `Transform + mVisualOffset`、植物视觉基点、`GetCellCenterPosition` 或 `SCENE_WIDTH/HEIGHT` 派生；受伤抖动等临时绘制偏移默认不进入粒子物理位置。
 - XML 的 `EmitterOffsetX/Y` 仍有“双倍生效”陷阱，但“除以 2”只能用于**完成坐标系换算后的局部偏移**，不能把 800×600 原值直接减半搬入。
-- 用可见截图核对粒子相对施法者/死亡前实体的位置；需要自动断言时导出相对锚点的整数投影，不断言运动对象的瞬时绝对 X/Y。
+- 触发后先执行同步 `screenshot`，再用 `particleEffectsByName.<Name>.0` 的 `renderProbeReady/worldBounds/originToRenderCenterD*Int/nearestPlant/nearestZombie` 断言本项目实际提交的粒子矩形相对发射原点与实体 collider 的关系；随机范围用宽容区间而非单点值。
+- `clipRightXInt` 是裁剪语义，`worldBounds` 是裁剪前提交几何；两者分开断言。运动对象瞬时绝对 X/Y 只供诊断，不作稳定断言。
 
 ## 数值语法（三种，核心）
 
@@ -123,7 +125,7 @@ description: Use when adding or tuning ANY particle effect (粒子特效) in PvZ
 
 ## 验证
 
-粒子寿命都是亚秒级，AutoTest 截图要卡时机：帧事件/命中发生后 `wait_frames` 5~20 再 `screenshot`（多截几张挑）。逐张 Read 核对：颜色、铺开范围、方向、有没有"看不见"（foot-gun ③）。改数值免编译，跑脚本前重启即可。
+粒子寿命都是亚秒级，AutoTest 截图要卡时机：帧事件/命中发生后 `wait_frames` 2~20 再 `screenshot`（多截几张挑）。截图成功后断言 `particleEffectNameCounts`、实际四边形数和相对包围盒，再逐张 Read 核对颜色、铺开范围、方向、有没有“看不见”（foot-gun ③）；参考 `smoke_particle_render_probe.json`。改 XML 数值免编译，跑脚本前重启即可。
 
 **每次完成并验证任何粒子新增、配置调参或触发点实质修改后，必须在提交前完善本 skill**：把本次实际暴露的新坐标换算、XML 语义、生命周期 foot-gun 或截图取证方法浓缩进相关章节；已有规则则合并强化，不堆一次性配方日志。任务同时修改植物、僵尸或天气时，也同步完善本次实际使用的对应 skill。更新后运行 skill-creator 的 `quick_validate.py` 校验全部改动过的 skill。
 

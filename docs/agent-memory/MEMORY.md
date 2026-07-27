@@ -2,6 +2,7 @@
 
 > Codex routing: required always-on rules live in `../../AGENTS.md`; detailed build, AutoTest, architecture, resource, and implementation guidance lives in `../agent-guide/PROJECT_GUIDE.md`. The entries below are historical subsystem context and should be read only when relevant.
 
+- [最终绘制坐标语义取证](project_pvz_render_coordinate_evidence.md) — 2026-07-27 AutoTest 从当前项目实际渲染路径导出植物/僵尸/动画特效的 Animator 世界包围盒，以及粒子最终矩形；断言使用相对视觉原点、发射点和最近实体 collider 的整数投影，默认实例化与 `-NoInstance` 可做同用例一致性核对，C# 800×600 绝对坐标只作行为语义参考
 - [经典火炬树桩与动画火豌豆](project_pvz_torchwood_firepea.md) — 2026-07-27 `PLANT_TORCHWOOD` 按原版把同排 Pea 点燃为 40 伤 Fireball、Snowpea 融化为 Pea，并用列守卫允许后续树桩再点火；FirePea 是 50～80fps 完整时间轴循环 Animator 子弹，运行时换型与对象池不可变槽位类型分离，覆盖并行推进、存档所有权与阴影重排；火焰直击解冻、同行 100px 穿盾溅射、门板/梯子/冰车抗火、冒险奖励及图鉴均有可见专项验证
 - [僵尸图鉴随冒险进度解锁](project_pvz_zombie_almanac_progression.md) — 2026-07-27 图鉴累计 `mAdventureLevel - 1` 之前已通关关卡的 `spawnlists.json` 并按首次遭遇排序，当前关不提前泄露；舞王显式带出 `weight: 0` 伴舞；概率变异精英舞王只在正式实体创建成功后写 PlayerInfo 永久遭遇标记并额外解锁，直造/预览/读档不误记
 - [经典地刺](project_pvz_caltrop.md) — 2026-07-26 `PLANT_SPIKEWEED` 由 `Caltrop` 实装：免普通啃食，18fps 攻击动画在主人指定全局第25帧结算30px窄攻击带20伤害；水路禁种、最后地形保留集中入口且当前按普通地面；冰车虚事件触发扁胎、TirePop、轮胎碎屑/烟雾、wheelie特殊动画与2.8秒延时爆炸，为精英冰车覆写留底；可见专项与冰车回归通过

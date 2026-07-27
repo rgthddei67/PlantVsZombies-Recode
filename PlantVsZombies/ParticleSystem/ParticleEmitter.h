@@ -7,10 +7,24 @@
 #include "../Graphics.h"
 #include <vector>
 
+/**
+ * AutoTest 最近一帧实际提交的粒子世界几何包围盒。
+ * 只在 AutoTest 模式采集；坐标来自 DrawTextureRegion 使用的最终粒子矩形。
+ */
+struct ParticleRenderProbe {
+	bool hasGeometry = false;
+	int quadCount = 0;
+	float minX = 0.0f;
+	float minY = 0.0f;
+	float maxX = 0.0f;
+	float maxY = 0.0f;
+};
+
 class ParticleEmitter {
 private:
 	Graphics* m_graphics = nullptr;
 	std::vector<Particle> particles;
+	ParticleRenderProbe mLastRenderProbe;
 
 	Vector position;
 	bool active = false;
@@ -47,6 +61,7 @@ public:
 	int GetActiveParticleCount() const;
 	void SetPosition(const Vector& pos) { position = pos; }
 	Vector GetPosition() const { return position; }
+	const ParticleRenderProbe& GetLastRenderProbe() const { return mLastRenderProbe; }
 
 	void Update();
 	void Draw();

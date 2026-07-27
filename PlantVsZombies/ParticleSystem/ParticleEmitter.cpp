@@ -1,11 +1,38 @@
 #include "ParticleEmitter.h"
 #include "../DeltaTime.h"
+#include "../GameAPP.h"
 #include "../Game/Definit.h"
 #include "../GameRandom.h"
 #include "../ResourceManager.h"
 #include <iostream>
 #include <cmath>
 #include <algorithm>
+#include <glm/gtc/matrix_transform.hpp>
+
+namespace {
+	/** 把粒子实际提交的单位四边形矩阵并入本发射器的 AutoTest 包围盒。 */
+	void RecordParticleQuad(ParticleRenderProbe& probe, const glm::mat4& matrix)
+	{
+		const glm::vec4 corners[4] = {
+			matrix * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f),
+			matrix * glm::vec4(1.0f, 0.0f, 0.0f, 1.0f),
+			matrix * glm::vec4(0.0f, 1.0f, 0.0f, 1.0f),
+			matrix * glm::vec4(1.0f, 1.0f, 0.0f, 1.0f),
+		};
+		if (!probe.hasGeometry) {
+			probe.minX = probe.maxX = corners[0].x;
+			probe.minY = probe.maxY = corners[0].y;
+			probe.hasGeometry = true;
+		}
+		for (const glm::vec4& corner : corners) {
+			probe.minX = std::min(probe.minX, corner.x);
+			probe.minY = std::min(probe.minY, corner.y);
+			probe.maxX = std::max(probe.maxX, corner.x);
+			probe.maxY = std::max(probe.maxY, corner.y);
+		}
+		++probe.quadCount;
+	}
+}
 
 ParticleEmitter::ParticleEmitter(Graphics* g)
 	: m_graphics(g)
@@ -236,6 +263,8 @@ Particle* ParticleEmitter::GetFreeParticle() {
 
 void ParticleEmitter::Draw() {
 	if (!m_graphics) return;
+	if (GameAPP::mAutoTestMode)
+		mLastRenderProbe = {};
 
 	for (size_t i = 0; i < particles.size(); i++)
 	{
@@ -267,6 +296,17 @@ void ParticleEmitter::Draw() {
 				// DrawTextureRegion 的兼容旋转路径会先非等比缩放再旋转，使细长贴图的角度
 				// 被长宽比压扁。显式初始朝向改为围绕世界中心先旋转、再绘制拉伸矩形，
 				// 让配置角度就是屏幕上实际角度；未使用新标签的旧特效保持原样。
+				if (GameAPP::mAutoTestMode) {
+					glm::mat4 finalMatrix(1.0f);
+					finalMatrix = glm::translate(finalMatrix,
+						glm::vec3(x + destW * 0.5f, y + destH * 0.5f, 0.0f));
+					finalMatrix = glm::rotate(finalMatrix, glm::radians(particle.rotation),
+						glm::vec3(0.0f, 0.0f, 1.0f));
+					finalMatrix = glm::translate(finalMatrix,
+						glm::vec3(-destW * 0.5f, -destH * 0.5f, 0.0f));
+					finalMatrix = glm::scale(finalMatrix, glm::vec3(destW, destH, 1.0f));
+					RecordParticleQuad(mLastRenderProbe, finalMatrix);
+				}
 				m_graphics->PushTransform();
 				m_graphics->Translate(x + destW * 0.5f, y + destH * 0.5f);
 				m_graphics->Rotate(particle.rotation, 0.0f, 0.0f, 1.0f);
@@ -280,6 +320,18 @@ void ParticleEmitter::Draw() {
 				m_graphics->PopTransform();
 			}
 			else {
+				if (GameAPP::mAutoTestMode) {
+					glm::mat4 finalMatrix(1.0f);
+					finalMatrix = glm::translate(finalMatrix, glm::vec3(x, y, 0.0f));
+					finalMatrix = glm::scale(finalMatrix, glm::vec3(destW, destH, 1.0f));
+					if (particle.rotation != 0.0f) {
+						finalMatrix = glm::translate(finalMatrix, glm::vec3(0.5f, 0.5f, 0.0f));
+						finalMatrix = glm::rotate(finalMatrix, glm::radians(particle.rotation),
+							glm::vec3(0.0f, 0.0f, 1.0f));
+						finalMatrix = glm::translate(finalMatrix, glm::vec3(-0.5f, -0.5f, 0.0f));
+					}
+					RecordParticleQuad(mLastRenderProbe, finalMatrix);
+				}
 				m_graphics->DrawTextureRegion(
 					particle.texture,
 					srcX, 0.0f, srcW, srcH,

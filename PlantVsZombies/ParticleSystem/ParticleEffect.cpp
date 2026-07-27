@@ -97,6 +97,29 @@ int ParticleEffect::GetActiveParticleCount() const {
 	return count;
 }
 
+ParticleRenderProbe ParticleEffect::GetLastRenderProbe() const {
+	ParticleRenderProbe combined;
+	for (const auto& emitter : emitters) {
+		const ParticleRenderProbe& probe = emitter->GetLastRenderProbe();
+		if (!probe.hasGeometry) continue;
+		if (!combined.hasGeometry) {
+			combined.minX = probe.minX;
+			combined.minY = probe.minY;
+			combined.maxX = probe.maxX;
+			combined.maxY = probe.maxY;
+			combined.hasGeometry = true;
+		}
+		else {
+			combined.minX = std::min(combined.minX, probe.minX);
+			combined.minY = std::min(combined.minY, probe.minY);
+			combined.maxX = std::max(combined.maxX, probe.maxX);
+			combined.maxY = std::max(combined.maxY, probe.maxY);
+		}
+		combined.quadCount += probe.quadCount;
+	}
+	return combined;
+}
+
 bool ParticleEffect::ShouldDestroy() const {
 	if (!active) {
 		// 检查所有发射器是否都应该销毁
