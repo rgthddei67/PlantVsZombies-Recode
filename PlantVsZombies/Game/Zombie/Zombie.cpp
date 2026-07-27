@@ -593,7 +593,7 @@ int Zombie::ComputeGoldenIceEffectStacks() const
 		});
 	}
 
-	// 车辆死亡后黄色冰道仍保留 30 秒；失去来源身份后继续作为一层非叠加速度场。
+	// 车辆死亡后黄色冰道仍保留 35 秒；失去来源身份后继续作为一层非叠加速度场。
 	if (stacks == 0 && (IsAlwaysAffectedByGoldenIce()
 		|| mBoard->IsGoldenIceAtWorld(mRow, GetPosition().x))) {
 		stacks = 1;

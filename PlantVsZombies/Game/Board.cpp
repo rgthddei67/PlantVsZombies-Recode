@@ -50,7 +50,7 @@ namespace {
 	constexpr int kPoolLastRow = 3;                       // 泳池最后一条水路的 0-based 行号
 	constexpr int kPoolFirstWaterSpawnWave = 5;           // 泳池自然波次从第几波起允许选择水路
 	constexpr float kIceTrailDuration = 40.0f;            // 冰车进入战场后每次延伸刷新冰道的寿命，单位秒
-	constexpr float kGoldenIceTrailDuration = 45.0f;      // 黄色冰道每次延伸刷新的寿命，单位秒
+	constexpr float kGoldenIceTrailDuration = 35.0f;      // 黄色冰道每次延伸刷新的寿命，单位秒
 	constexpr float kIceTrailFadeDuration = 0.1f;         // 冰道最后渐隐时长，单位秒
 	constexpr float kIceTrailLeftLimit = 25.0f;           // 原版非屋顶冰道左缘最小 X，单位 px
 	constexpr float kIceTrailCapBodyOverlap = 8.0f;       // 端盖与主体纹理的水平咬合量，单位 px
@@ -188,8 +188,8 @@ namespace {
 	constexpr int kSevereGustDistance = 1;               // 强台风每次吹动的整数格数
 	constexpr int kSuperGustDistance = 2;                // 超强台风每次吹动的整数格数
 	constexpr int kTyphoonMaxGusts = 0;                  // 普通台风不触发植物位移阵风，降低首次遇见的压迫感
-	constexpr int kSevereMaxGusts = 3;                   // 强台风单个大雨阶段最多阵风次数
-	constexpr int kSuperMaxGusts = 3;                    // 超强台风单个大雨阶段最多阵风次数
+	constexpr int kSevereMaxGusts = 1;                   // 强台风单个大雨阶段最多阵风次数
+	constexpr int kSuperMaxGusts = 2;                    // 超强台风单个大雨阶段最多阵风次数
 	constexpr float kTyphoonTailwindZombieMove = 1.10f;  // 普通台风顺风僵尸水平移动倍率（相对当前雨天）
 	constexpr float kTyphoonHeadwindZombieMove = 0.90f;  // 普通台风逆风僵尸水平移动倍率（相对当前雨天）
 	constexpr float kSevereTailwindZombieMove = 1.20f;   // 强台风顺风僵尸水平移动倍率（相对当前雨天）

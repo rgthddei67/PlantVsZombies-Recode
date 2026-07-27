@@ -349,6 +349,7 @@
     <Reanimation name="PoolBucketZombie">./resources/reanim/PoolBucketZombie.reanim</Reanimation>
     <Reanimation name="Zamboni">./resources/reanim/Zombie_zamboni.reanim</Reanimation>
     <Reanimation name="GildedZamboni">./resources/reanim/GildedZamboni.reanim</Reanimation>
+    <Reanimation name="ZombieDolphinrider">./resources/reanim/Zombie_dolphinrider.reanim</Reanimation>
 
     <Reanimation name="Zombie_Charred">./resources/reanim/Zombie_Charred.reanim</Reanimation>
     <Reanimation name="Zamboni_Charred">./resources/reanim/Zombie_charred_zamboni.reanim</Reanimation>
