@@ -119,13 +119,13 @@ description: Use when adding or tuning ANY particle effect (粒子特效) in PvZ
 2. **EmitterOffsetX/Y 在坐标系换算后减半**（本引擎双倍生效，foot-gun ②）：先求相对当前稳定锚点的目标局部偏移，再把该局部值除以 2；禁止机械套用原版绝对数值。
 3. **SystemField/SystemPosition 折算进 EmitterOffset**（本引擎不消费）：先把原版 SystemPosition 的视觉语义换算到当前 1100×600 场景/对象锚点，再与局部 EmitterOffset 合并并按双倍生效规则减半。
 4. `FullScreen` 闪光 → `ParticleScale 4000` + WhitePixel（1×1 白图，键 PARTICLE_WHITEPIXEL），RGB/Alpha 轨迹原样保留。
-5. `AnimationRate`/`ImageFrames` 仅对**单行横排帧条**原值照抄（单位本就是帧/秒），对应贴图整图入库不加 Column 属性。若原版另带 `ImageRow` 或贴图实际为多行帧表，本引擎 `ImageFrames` 没有选行能力；需要静态随机碎片时改用 `<Texture Column="帧数" Row="行数">` 并枚举所需 `PARTICLE_*_PART_n`，需要逐帧动画则先产出单行权威贴图，禁止把多行整图直接交给 `ImageFrames`。
+5. `AnimationRate`/`ImageFrames` 仅对**单行横排帧条**原值照抄（单位本就是帧/秒），对应贴图整图入库不加 Column 属性。若原版另带 `ImageRow` 或贴图实际为多行帧表，本引擎 `ImageFrames` 没有选行能力；需要静态随机碎片时改用 `<Texture Column="帧数" Row="行数">` 并枚举所需 `PARTICLE_*_PART_n`，需要逐帧动画则先产出单行权威贴图，禁止把多行整图直接交给 `ImageFrames`。**碎屑条即使原版 XML 写了 `ImageFrames` 也先看素材语义**：各格若是互不连续的碎块轮廓（坚果啃食碎屑实证），应拆为静态随机 Part，不能循环播放成会变形的单颗碎屑。
 6. 负数区间改升序（foot-gun ⑧）；`Image` 键按素材入库段落改前缀（IMAGE_/PARTICLE_）。
 7. **特效名=第一个 Emitter 的 Name**：把首发射器 Name 改成 EmitEffect 要用的名字（Doom.xml 首发射器 DoomStem→"Doom"）。
 
 ## 验证
 
-粒子寿命都是亚秒级，AutoTest 截图要卡时机：帧事件/命中发生后 `wait_frames` 2~20 再 `screenshot`（多截几张挑）。截图成功后断言 `particleEffectNameCounts`、实际四边形数和相对包围盒，再逐张 Read 核对颜色、铺开范围、方向、有没有“看不见”（foot-gun ③）；参考 `smoke_particle_render_probe.json`。改 XML 数值免编译，跑脚本前重启即可。
+粒子寿命都是亚秒级，AutoTest 截图要卡时机：帧事件/命中发生后 `wait_frames` 2~20 再 `screenshot`（多截几张挑）。截图成功后断言 `particleEffectNameCounts`、实际四边形数和相对包围盒，再逐张 Read 核对颜色、铺开范围、方向、有没有“看不见”（foot-gun ③）；参考 `smoke_particle_render_probe.json`。植物与荷叶/花盆同格时，`nearestPlant.type` 会按几何距离命中下层载体，改断言稳定的 `row/col` 与粒子包围盒，不能把“最近类型”当成触发者身份。改 XML 数值免编译，跑脚本前重启即可。
 
 **每次完成并验证任何粒子新增、配置调参或触发点实质修改后，必须在提交前完善本 skill**：把本次实际暴露的新坐标换算、XML 语义、生命周期 foot-gun 或截图取证方法浓缩进相关章节；已有规则则合并强化，不堆一次性配方日志。任务同时修改植物、僵尸或天气时，也同步完善本次实际使用的对应 skill。更新后运行 skill-creator 的 `quick_validate.py` 校验全部改动过的 skill。
 

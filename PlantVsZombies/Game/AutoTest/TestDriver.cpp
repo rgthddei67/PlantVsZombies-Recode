@@ -18,6 +18,7 @@
 #include "../CardComponent.h"
 #include "../Plant/PlantType.h"
 #include "../Plant/Plant.h"
+#include "../Plant/WallNut.h"
 #include "../Plant/LilyPad.h"
 #include "../Plant/Squash.h"
 #include "../Plant/ThreePeater.h"
@@ -1162,6 +1163,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_DOLPHIN_APPEARS);
 	out["dolphinBeforeJumpSoundRequestCount"] =
 		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_DOLPHIN_BEFORE_JUMPING);
+	out["bonkSoundRequestCount"] =
+		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_BONK);
 
 	if (auto* almanac = dynamic_cast<ZombieAlmanacScene*>(currentScene)) {
 		out["zombieAlmanacEntries"] = nlohmann::json::array();
@@ -1680,6 +1683,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "row", p->mRow }, { "col", p->mColumn },
 			{ "health", p->mPlantHealth }, { "maxHealth", p->mPlantMaxHealth },
 			{ "eaterCount", p->mEaterCount },
+			{ "canBeEaten", p->CanBeEaten() },
 			{ "sleeping", p->GetSleepState() },
 			{ "squished", p->IsSquished() },
 			{ "squishTimeMs", static_cast<int>(p->GetSquishTimeRemaining() * 1000.0f + 0.5f) },
@@ -1710,6 +1714,9 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		}
 		if (auto* lilyPad = dynamic_cast<LilyPad*>(p)) {
 			plantState["biteProtected"] = lilyPad->IsBiteProtected();
+		}
+		if (auto* wallNut = dynamic_cast<WallNut*>(p)) {
+			plantState["nutDamageStage"] = wallNut->GetDamageStage();
 		}
 		if (auto* squash = dynamic_cast<Squash*>(p)) {
 			plantState["squashState"] = squash->GetSquashStateName();
@@ -1760,6 +1767,9 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["particleEffectNameCounts"] = nlohmann::json::object();
 	out["particleEffectNameCounts"]["ZombieArmOff"] = 0;
 	out["particleEffectNameCounts"]["ZombieDolphinRiderHeadOff"] = 0;
+	out["particleEffectNameCounts"]["WallnutEatSmall"] = 0;
+	out["particleEffectNameCounts"]["WallnutEatLarge"] = 0;
+	out["particleEffectNameCounts"]["TallNutBlock"] = 0;
 	if (g_particleSystem) {
 		for (const auto& effect : g_particleSystem->GetEffectsForTesting()) {
 			if (!effect) continue;

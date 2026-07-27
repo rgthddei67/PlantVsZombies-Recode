@@ -3,7 +3,7 @@
 #include "Polevaulter.h"
 
 /**
- * @brief 绿色精英撑杆僵尸：双倍跳距，并在最终落点生成普通撑杆僵尸。
+ * @brief 绿色精英撑杆僵尸：双倍跳距，并在落地或被高坚果阻拦时生成普通撑杆僵尸。
  */
 class ElitePolevaulterZombie : public Polevaulter {
 public:
@@ -16,4 +16,5 @@ protected:
 	float GetVaultDistance() const override;
 	float GetAbilityAnimSpeedMultiplier() const override;
 	void OnVaultLanded() override;
+	void OnVaultBlocked() override;
 };

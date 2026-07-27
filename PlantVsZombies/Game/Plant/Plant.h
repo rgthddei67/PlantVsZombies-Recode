@@ -59,8 +59,12 @@ public:
 	virtual void TakeDamage(int damage, DamageSource source);
 	/** 当前是否能被僵尸选为啃食目标；睡莲用它实现种下后的短暂无咬保护。 */
 	virtual bool CanBeEaten() const { return !mIsSquished; }
+	/** 僵尸正式啃食命中时的植物侧反馈入口；默认植物不产生专属碎屑。 */
+	virtual void OnZombieBite(const Vector&) {}
 	/** 是否能在当前跳跃类别的判定节点阻拦僵尸；高坚果等阻拦植物覆写此接口。 */
 	virtual bool BlocksZombieJump(ZombieJumpType) const { return false; }
+	/** 跳跃确实被本植物阻拦后的音画反馈入口；由跳跃状态机保证每次只调用一次。 */
+	virtual void OnZombieJumpBlocked(ZombieJumpType) {}
 	virtual void SaveExtraData(nlohmann::json& j) const {}
 	virtual void LoadExtraData(const nlohmann::json& j) {}
 	virtual void Die();

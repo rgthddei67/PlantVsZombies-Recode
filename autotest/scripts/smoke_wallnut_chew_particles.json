@@ -1,0 +1,21 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 1 },
+    { "op": "choose_cards", "cards": ["PLANT_WALLNUT"] },
+    { "op": "wait_state", "state": "GAME", "timeout": 15 },
+    { "op": "set_spawn_paused", "value": true },
+    { "op": "set_sun", "value": 9000 },
+
+    { "op": "plant", "type": "PLANT_WALLNUT", "row": 0, "col": 5 },
+    { "op": "spawn_zombie", "type": "ZOMBIE_NORMAL", "row": 0, "x": 760 },
+    { "op": "wait_seconds", "value": 1.5, "timeout": 3 },
+    { "op": "assert_state", "path": "plants.0.health", "atMost": 3999 },
+    { "op": "assert_state", "path": "plants.0.eaterCount", "equals": 1 },
+    { "op": "assert_state", "path": "particleEffectNameCounts.WallnutEatSmall", "atLeast": 1 },
+    { "op": "assert_state", "path": "particleEffectsByName.WallnutEatSmall.0.renderProbeReady", "equals": true },
+    { "op": "assert_state", "path": "particleEffectsByName.WallnutEatSmall.0.nearestPlant.type", "equals": "PLANT_WALLNUT" },
+    { "op": "screenshot", "name": "wallnut_chew_particles.png" },
+    { "op": "dump_state", "name": "wallnut_chew_state.json" },
+    { "op": "quit" }
+  ]
+}

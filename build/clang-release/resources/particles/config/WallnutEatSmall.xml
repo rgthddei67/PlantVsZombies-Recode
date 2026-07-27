@@ -1,0 +1,17 @@
+<Emitter>
+  <Name>WallnutEatSmall</Name>
+  <SpawnMinActive>[2 3]</SpawnMinActive>
+  <SpawnMaxLaunched>3</SpawnMaxLaunched>
+  <SpawnRate>0</SpawnRate>
+  <ParticleDuration>[0.65 0.95]</ParticleDuration>
+  <SystemDuration>1.0</SystemDuration>
+  <ParticleAlpha>1,80 0</ParticleAlpha>
+  <ParticleScale>[0.9 1.1]</ParticleScale>
+  <EmitterType>Circle</EmitterType>
+  <EmitterRadius>[0 6]</EmitterRadius>
+  <LaunchSpeed>[65 110]</LaunchSpeed>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <ParticleGravity>160</ParticleGravity>
+  <ParticleSpinSpeed>[-260 260]</ParticleSpinSpeed>
+  <Image>PARTICLE_WALLNUTPARTICLESSMALL_PART_0,PARTICLE_WALLNUTPARTICLESSMALL_PART_1,PARTICLE_WALLNUTPARTICLESSMALL_PART_2,PARTICLE_WALLNUTPARTICLESSMALL_PART_3,PARTICLE_WALLNUTPARTICLESSMALL_PART_4</Image>
+</Emitter>

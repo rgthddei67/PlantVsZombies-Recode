@@ -51,7 +51,10 @@ void Polevaulter::SetupZombie()
 						SetAnimationSpeed(GameRandom::Range(0.9f, 1.7f));
 						mSpeed = GameRandom::Range(7.0f, 13.0f);
 						PlayWalkAnimation(0.0f);
+						plant->OnZombieJumpBlocked(ZombieJumpType::POLEVAULT);
 						StartEat(other);
+						// 派生阻拦代价最后结算，避免致死伤害后又被 StartEat 覆盖死亡动画。
+						OnVaultBlocked();
 					}
 					else {
 						StartJump();

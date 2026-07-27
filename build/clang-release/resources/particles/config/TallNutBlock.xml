@@ -1,0 +1,19 @@
+<Emitter>
+  <Name>TallNutBlock</Name>
+  <SpawnMinActive>6</SpawnMinActive>
+  <SpawnMaxLaunched>6</SpawnMaxLaunched>
+  <SpawnRate>0</SpawnRate>
+  <ParticleDuration>0.65</ParticleDuration>
+  <SystemDuration>0.7</SystemDuration>
+  <ParticleAlpha>1,70 0</ParticleAlpha>
+  <ParticleRed>1</ParticleRed>
+  <ParticleGreen>0.9</ParticleGreen>
+  <ParticleBlue>0</ParticleBlue>
+  <ParticleScale>[0.2 0.4]</ParticleScale>
+  <EmitterType>Circle</EmitterType>
+  <EmitterRadius>[10 42]</EmitterRadius>
+  <LaunchSpeed>[80 110]</LaunchSpeed>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <ParticleSpinSpeed>[-500 500]</ParticleSpinSpeed>
+  <Image>PARTICLE_STAR40</Image>
+</Emitter>

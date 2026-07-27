@@ -1060,6 +1060,7 @@ void Zombie::EatTarget()
 				}
 			}
 			// 原始攻击力交给植物受伤入口按来源统一结算；不写回 mAttackDamage，避免污染存档。
+			plant->OnZombieBite(GetPosition());
 			plant->TakeDamage(mAttackDamage, DamageSource::ZOMBIE);
 			if (plant->mPlantHealth <= 0)
 			{

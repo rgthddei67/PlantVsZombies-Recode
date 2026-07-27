@@ -173,7 +173,6 @@ void DolphinRiderZombie::FinishJump(bool blocked)
 				SetPosition(position);
 			}
 		}
-		AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_BONK, 0.5f);
 	}
 	else if (auto* transform = GetTransformComponent()) {
 		transform->Translate(mIsMindControlled ? kJumpWorldShift : -kJumpWorldShift, 0.0f);
@@ -211,6 +210,7 @@ void DolphinRiderZombie::ZombieUpdate(float)
 		if (mBoard) {
 			if (auto* plant = mBoard->mEntityManager.GetPlant(mJumpTargetPlantID);
 				plant && plant->BlocksZombieJump(ZombieJumpType::DOLPHIN_RIDER)) {
+				plant->OnZombieJumpBlocked(ZombieJumpType::DOLPHIN_RIDER);
 				FinishJump(true);
 				return;
 			}

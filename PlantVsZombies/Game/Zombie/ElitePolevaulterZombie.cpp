@@ -6,6 +6,7 @@
 
 namespace {
 	constexpr int kElitePolevaulterHealth = 450;  // 精英撑杆本体基础血量
+	constexpr int kTallNutBlockDamage = 800;  // 精英撑杆撞上高坚果时受到的固定碰撞伤害
 	constexpr float kEliteVaultDistance = 250.0f;  // 精英撑杆每次落地的逻辑推进距离，单位 px
 	constexpr float kEliteAnimationSpeedMultiplier = 1.1f;  // 相对普通撑杆的统一动画速度倍率
 }
@@ -41,6 +42,20 @@ void ElitePolevaulterZombie::OnVaultLanded()
 	if (!transform) return;
 
 	mBoard->CreateZombie(ZombieType::ZOMBIE_POLEVAULTER, mRow, transform->GetPosition().x);
+}
+
+/**
+ * @brief 被高坚果拦下时仍召唤普通撑杆，再结算绕过攻防词条与免伤次数的固定 800 本体伤害。
+ */
+void ElitePolevaulterZombie::OnVaultBlocked()
+{
+	if (!mBoard || mIsPreview || mIsDying) return;
+
+	const auto* transform = GetTransformComponent();
+	if (!transform) return;
+
+	mBoard->CreateZombie(ZombieType::ZOMBIE_POLEVAULTER, mRow, transform->GetPosition().x);
+	TakeBodyDamage(kTallNutBlockDamage);
 }
 
 /**

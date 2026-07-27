@@ -12,6 +12,12 @@
 #include "./CardSlotManager.h"
 #include "./Plant/GameDataManager.h"
 
+namespace {
+	constexpr float kCardPlantImageScale = 0.64f;  // 普通植物卡图相对原始贴图的统一绘制倍率
+	constexpr float kTallNutCardImageScale = 0.70f;  // 高坚果卡图在统一倍率之上的独立缩放
+	constexpr float kTallNutCardImageOffsetY = -5.0f;  // 高坚果卡图上移量，避开底部阳光文字，单位：px
+}
+
 CardDisplayComponent::CardDisplayComponent(PlantType type, int sunCost, float cooldown)
 	: plantType(type), needSun(sunCost), cooldownTime(cooldown) {
 	// cardState(Ready)/showMask(false)/maskFillAmount(0.0f) 均由头文件就地初始化
@@ -120,10 +126,19 @@ void CardDisplayComponent::DrawCardBackground(Graphics* g, const Vector& positio
 void CardDisplayComponent::DrawPlantImage(Graphics* g, const Vector& position, const glm::vec4& color) {
 	if (!plantTexture) return;
 
-	float drawX = position.x - 13;
-	float drawY = position.y - 9;
-	float drawW = plantTexture->width * 0.64f;
-	float drawH = plantTexture->height * 0.64f;
+	const float typeScale = plantType == PlantType::PLANT_TALLNUT
+		? kTallNutCardImageScale
+		: 1.0f;
+	const float typeOffsetY = plantType == PlantType::PLANT_TALLNUT
+		? kTallNutCardImageOffsetY
+		: 0.0f;
+	const float baseW = plantTexture->width * kCardPlantImageScale;
+	const float baseH = plantTexture->height * kCardPlantImageScale;
+	const float drawW = baseW * typeScale;
+	const float drawH = baseH * typeScale;
+	// 从既有卡图矩形中心缩放，避免缩小后向左上角漂移。
+	const float drawX = position.x - 13.0f + (baseW - drawW) * 0.5f;
+	const float drawY = position.y - 9.0f + (baseH - drawH) * 0.5f + typeOffsetY;
 
 	g->DrawTexture(plantTexture, drawX, drawY, drawW, drawH, 0.0f, color);
 }

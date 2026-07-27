@@ -36,6 +36,7 @@
 #include "Jalapeno.h"
 #include "Caltrop.h"
 #include "Torchwood.h"
+#include "TallNut.h"
 
 #include "../Zombie/Zombie.h"
 #include "../Zombie/ConeZombie.h"
@@ -229,6 +230,11 @@ void GameDataManager::InitializeHardcodedData() {
 		ResourceKeys::Textures::IMAGE_TORCHWOOD,
 		AnimationType::ANIM_TORCHWOOD,
 		ResourceKeys::Reanimations::REANIM_TORCHWOOD, &MakePlant<Torchwood>);
+
+	RegisterPlant(PlantType::PLANT_TALLNUT, "PLANT_TALLNUT",
+		ResourceKeys::Textures::IMAGE_TALLNUT,
+		AnimationType::ANIM_TALLNUT,
+		ResourceKeys::Reanimations::REANIM_TALLNUT, &MakePlant<TallNut>);
 
 	// 寒冰大喷菇：复用大喷菇 reanim（蓝色靠 overlay），仅卡图独立
 	RegisterPlant(PlantType::PLANT_ICEFUMESHROOM, "PLANT_ICEFUMESHROOM",

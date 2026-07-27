@@ -59,3 +59,11 @@ exit 0，日志 `script finished OK`。同步截图确认骑乘水线、碰撞�
 可见回归 exit 0，证明默认植物未改变撑杆翻越。生存候选池现按当前背景至少存在一个兼容行再纳入类型，
 因此保留海豚原版 `survivalRound=10`，但草地/黑夜无尽不会抽到无法落行的海豚；
 `smoke_survival_spawn_round.json` 可见回归 exit 0。
+
+## 高坚果阻拦补充（2026-07-27）
+
+`TallNut` 已实现 `Plant::BlocksZombieJump(DOLPHIN_RIDER)`。海豚仍只在跳跃进度 30% 的既有
+单次判定点查询；命中后调用植物侧 `OnZombieJumpBlocked` 播放 Bonk 与星星，再走
+`FinishJump(true)` 弃豚回到 `SWIMMING`。Bonk 不再由 `FinishJump` 自己播放，避免不同阻拦
+植物或调用路径重复反馈。`smoke_tallnut_dolphin.json` 在主人当前桌面可见运行退出码 0，
+断言阻拦检查一次、Bonk 一次、跳跃前音效一次和 `TallNutBlock` 一次。

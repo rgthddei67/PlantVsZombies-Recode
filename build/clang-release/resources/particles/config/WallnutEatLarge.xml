@@ -1,0 +1,18 @@
+<Emitter>
+  <Name>WallnutEatLarge</Name>
+  <SpawnMinActive>[4 6]</SpawnMinActive>
+  <SpawnMaxLaunched>6</SpawnMaxLaunched>
+  <SpawnRate>0</SpawnRate>
+  <ParticleDuration>[0.7 1.0]</ParticleDuration>
+  <SystemDuration>1.05</SystemDuration>
+  <ParticleAlpha>1,80 0</ParticleAlpha>
+  <ParticleScale>[0.85 1.1]</ParticleScale>
+  <EmitterType>Box</EmitterType>
+  <EmitterBoxX>[10 25]</EmitterBoxX>
+  <EmitterBoxY>[5 15]</EmitterBoxY>
+  <LaunchSpeed>[75 120]</LaunchSpeed>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <ParticleGravity>180</ParticleGravity>
+  <ParticleSpinSpeed>[-190 190]</ParticleSpinSpeed>
+  <Image>PARTICLE_WALLNUTPARTICLESLARGE_PART_0,PARTICLE_WALLNUTPARTICLESLARGE_PART_1,PARTICLE_WALLNUTPARTICLESLARGE_PART_2,PARTICLE_WALLNUTPARTICLESLARGE_PART_3,PARTICLE_WALLNUTPARTICLESLARGE_PART_4</Image>
+</Emitter>

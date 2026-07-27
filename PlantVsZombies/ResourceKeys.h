@@ -131,6 +131,13 @@ namespace ResourceKeys
 		RKEY(IMAGE_SUNFLOWER);
 		RKEY(IMAGE_CHERRYBOMB);
 		RKEY(IMAGE_WALLNUT);
+		RKEY(IMAGE_TALLNUT);
+		RKEY(IMAGE_WALLNUT_BODY);
+		RKEY(IMAGE_WALLNUT_CRACKED1);
+		RKEY(IMAGE_WALLNUT_CRACKED2);
+		RKEY(IMAGE_TALLNUT_BODY);
+		RKEY(IMAGE_TALLNUT_CRACKED1);
+		RKEY(IMAGE_TALLNUT_CRACKED2);
 		RKEY(IMAGE_POTATOMINE);
 		RKEY(IMAGE_SNOWPEASHOOTER);
 		RKEY(IMAGE_CHOMPER);
@@ -188,6 +195,7 @@ namespace ResourceKeys
 		inline const std::string PARTICLE_ZOMBIE_ELITEPOLEVAULTERHEAD = "PARTICLE_ZOMBIEELITEPOLEVAULTERHEAD";
 		inline const std::string PARTICLE_ZOMBIE_YETIHEAD = "PARTICLE_ZOMBIEYETIHEAD";
 		RKEY(PARTICLE_ZOMBIEARM);
+		RKEY(PARTICLE_STAR40);
 	}
 
 	namespace Fonts
@@ -292,6 +300,7 @@ namespace ResourceKeys
 		inline const std::string REANIM_PEASHOOTER = "PeaShooter";
 		inline const std::string REANIM_CHERRYBOMB = "CherryBomb";
 		inline const std::string REANIM_WALLNUT = "Wallnut";
+		inline const std::string REANIM_TALLNUT = "Tallnut";
 		inline const std::string REANIM_POTATOMINE = "PotatoMine";
 		inline const std::string REANIM_SNOWPEASHOOTER = "SnowPeaShooter";
 		inline const std::string REANIM_LILYPAD = "LilyPad";

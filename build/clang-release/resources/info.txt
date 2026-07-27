@@ -102,6 +102,11 @@
 [PLANT_TORCHWOOD_DESCRIPTION]
 火炬树桩会把穿过它的普通豌豆变成伤害翻倍的火球；火球还会对附近同排僵尸造成溅射伤害。寒冰豌豆经过时会融化成普通豌豆。“我很诚实，也很忠诚，”火炬树桩说，“只是一直没学会认字。”
 
+[PLANT_TALLNUT]
+高坚果
+[PLANT_TALLNUT_DESCRIPTION]
+高坚果是重型壁垒植物，拥有非常高的强度，并能挡住撑杆僵尸和海豚僵尸的跳跃。“我们之间怎么会存在竞争关系？我们是兄弟。”高坚果用男中音大声笑道。
+
 [ZOMBIE_NORMAL]
 僵尸
 [ZOMBIE_NORMAL_DESCRIPTION]

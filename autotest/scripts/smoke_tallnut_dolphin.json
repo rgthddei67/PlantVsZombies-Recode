@@ -1,0 +1,32 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 25 },
+    { "op": "choose_cards", "cards": ["PLANT_LILYPAD", "PLANT_TALLNUT"] },
+    { "op": "wait_state", "state": "GAME", "timeout": 15 },
+    { "op": "set_spawn_paused", "value": true },
+    { "op": "set_sun", "value": 9000 },
+
+    { "op": "plant", "type": "PLANT_LILYPAD", "row": 2, "col": 5 },
+    { "op": "plant", "type": "PLANT_TALLNUT", "row": 2, "col": 5 },
+    { "op": "spawn_zombie", "type": "ZOMBIE_DOLPHIN_RIDER", "row": 2, "x": 1040 },
+    { "op": "wait_seconds", "value": 2.4, "timeout": 4 },
+    { "op": "assert_state", "path": "zombies.0.dolphinPhase", "equals": "ENTERING_POOL" },
+    { "op": "wait_seconds", "value": 2.9, "timeout": 5 },
+    { "op": "assert_state", "path": "zombies.0.dolphinPhase", "equals": "RIDING" },
+    { "op": "screenshot", "name": "01_tallnut_pool_baseline.png" },
+
+    { "op": "wait_seconds", "value": 3.0, "timeout": 5 },
+    { "op": "assert_state", "path": "zombies.0.dolphinPhase", "equals": "SWIMMING" },
+    { "op": "assert_state", "path": "zombies.0.hasDolphin", "equals": false },
+    { "op": "assert_state", "path": "zombies.0.dolphinJumpBlockChecked", "equals": true },
+    { "op": "assert_state", "path": "bonkSoundRequestCount", "equals": 1 },
+    { "op": "assert_state", "path": "dolphinBeforeJumpSoundRequestCount", "equals": 1 },
+    { "op": "screenshot", "name": "02_dolphin_blocked_by_tallnut.png" },
+    { "op": "assert_state", "path": "particleEffectNameCounts.TallNutBlock", "equals": 1 },
+    { "op": "assert_state", "path": "particleEffectsByName.TallNutBlock.0.renderProbeReady", "equals": true },
+    { "op": "assert_state", "path": "particleEffectsByName.TallNutBlock.0.nearestPlant.row", "equals": 2 },
+    { "op": "assert_state", "path": "particleEffectsByName.TallNutBlock.0.nearestPlant.col", "equals": 5 },
+    { "op": "dump_state", "name": "tallnut_dolphin_state.json" },
+    { "op": "quit" }
+  ]
+}

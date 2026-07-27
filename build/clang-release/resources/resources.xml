@@ -172,6 +172,9 @@
     <Texture Column="3" Row="1">./resources/particles/pea_particles.png</Texture>
     <Texture Column="4" Row="1">./resources/particles/snowpea_splats.png</Texture>
     <Texture Column="3" Row="1">./resources/particles/snowpea_particles.png</Texture>
+    <Texture Column="5" Row="1">./resources/particles/WallnutParticlesSmall.png</Texture>
+    <Texture Column="5" Row="1">./resources/particles/WallnutParticlesLarge.png</Texture>
+    <Texture>./resources/particles/Star40.png</Texture>
     <Texture>./resources/particles/ExplosionCloud.png</Texture>
     <Texture>./resources/particles/ExplosionSpudow.png</Texture>
     <Texture Column="8" Row="2">./resources/particles/DirtSmall.png</Texture>
@@ -335,6 +338,7 @@
     <Reanimation name="Jalapeno">./resources/reanim/Jalapeno.reanim</Reanimation>
     <Reanimation name="Caltrop">./resources/reanim/Caltrop.reanim</Reanimation>
     <Reanimation name="Torchwood">./resources/reanim/Torchwood.reanim</Reanimation>
+    <Reanimation name="Tallnut">./resources/reanim/Tallnut.reanim</Reanimation>
 
     <Reanimation name="NormalZombie">./resources/reanim/NormalZombie.reanim</Reanimation>
     <Reanimation name="ConeZombie">./resources/reanim/ConeZombie.reanim</Reanimation>

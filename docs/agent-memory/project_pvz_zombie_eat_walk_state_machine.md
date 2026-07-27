@@ -28,3 +28,10 @@ metadata:
 **流程**：brainstorm→spec→plan→executing-plans 内联（选内联非 subagent 的理由=串行耦合链+重量级串行构建+机械小改+靠读真实 dump 验证）；两轮 code-review(workflow high)：Task2 后审基座无 finding；全量审出上述 blend 文档不准 1 条。新增回归脚本 `smoke_charm_fastpaper_eating`/`smoke_polevaulter_vault_walk`。dump_state 已有 `track`/`armVisible`/`doorArmVisible` 断言字段（TestDriver.cpp:387/391/393）。
 
 **新增僵尸规则**（写进 Zombie.h）：走路不同→覆写 `PlayWalkAnimation`；啃食露部件→覆写 `OnStartEating`/`OnStopEating`；永不碰 `ResumeWalkAfterEat`/`StopEat`/`ValidateEatingState`。关联 [project_pvz_charmed_zombie_feature](project_pvz_charmed_zombie_feature.md)（d83bab0 抽 ResumeWalkAfterEat 的未竟收口）、[project_pvz_animator_playstate_save_fix](project_pvz_animator_playstate_save_fix.md)（save/load reconciliation 同族）。
+
+## 植物啃食命中反馈补充（2026-07-27）
+
+`Zombie::EatTarget` 在确认顶层植物目标后、正式伤害前调用 `Plant::OnZombieBite(eaterPosition)`；
+默认实现为空，坚果家族覆写后每口喷出小碎屑。专属反馈归植物所有，僵尸啃食状态机不维护
+植物类型表，也不会影响魅惑菇等提前返回的特殊结算。`smoke_wallnut_chew_particles.json` 与
+`smoke_tallnut.json` 均在可见窗口验证生命确实下降、`eaterCount` 正确且碎屑有实际 render quad。

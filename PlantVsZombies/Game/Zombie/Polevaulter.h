@@ -55,6 +55,8 @@ protected:
 	virtual float GetVaultDistance() const;
 	/** @brief 落地位移与基础状态恢复完成后的派生行为入口。 */
 	virtual void OnVaultLanded() {}
+	/** @brief 撑杆被阻拦、弃杆状态恢复后的派生行为入口。 */
+	virtual void OnVaultBlocked() {}
 
 private:
 	float mLastVaultDistance = 0.0f;  // 最近一次实际落地位移；仅供稳定测试取证
