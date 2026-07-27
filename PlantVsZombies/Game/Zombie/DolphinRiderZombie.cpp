@@ -10,8 +10,9 @@
 #include <cstdint>
 
 namespace {
-	constexpr float kFastGroundSpeed = 33.5f;        // 骑豚步行动画根运动倍率，对应原版约 54 px/s
-	constexpr float kSlowGroundSpeed = 12.0f;        // 弃豚后游泳/步行根运动倍率，对应原版约 18 px/s
+	constexpr float kGroundRootMotionRate = 12.0f;   // 根轨每帧位移换算为每秒位移的资源帧率，禁止拿它直接放大移速
+	constexpr float kFastGroundClipSpeed = 2.25f;    // 原版 0.9 px/tick、47 tick/s 对齐为约 27 FPS 和 42 px/s
+	constexpr float kSlowGroundClipSpeed = 0.75f;    // 原版弃豚平均 0.3 px/tick 对齐为约 9 FPS 和 14 px/s
 	constexpr float kRideWorldSpeed = 54.0f;         // anim_ride 没有根运动，按原版 0.9 px/tick 手动推进
 	constexpr float kJumpWorldSpeed = 30.0f;         // 原版跳跃前半段 mVelX=0.5 px/tick
 	constexpr float kEntryClipSpeed = 16.0f / 12.0f; // 原版入水 16 FPS 相对资源 12 FPS 的倍率
@@ -78,7 +79,7 @@ void DolphinRiderZombie::SetupZombie()
 {
 	mBodyMaxHealth = 500;
 	mBodyHealth = 500;
-	mSpeed = kFastGroundSpeed;
+	mSpeed = kGroundRootMotionRate;
 	mNeedDropArm = false;
 	SetAnimationSpeed(1.0f);
 
@@ -94,7 +95,7 @@ void DolphinRiderZombie::SetupZombie()
 	if (mCollider) {
 		mBaseColliderOffsetX = mCollider->offset.x;
 	}
-	PlayTrack("anim_walkdolphin");
+	PlayTrack("anim_walkdolphin", kFastGroundClipSpeed);
 	ApplyPhasePresentation();
 }
 
@@ -141,7 +142,7 @@ void DolphinRiderZombie::FinishEnteringPool()
 		transform->Translate(mIsMindControlled ? kEntryWorldShift : -kEntryWorldShift, 0.0f);
 	}
 	mPhase = Phase::RIDING;
-	mSpeed = kFastGroundSpeed;
+	mSpeed = kGroundRootMotionRate;
 	ApplyPhasePresentation();
 }
 
@@ -153,6 +154,8 @@ void DolphinRiderZombie::BeginJump(Plant* target)
 	mJumpSplashPlayed = false;
 	mJumpBlockChecked = false;
 	PlayTrackOnce("anim_dolphinjump", "anim_swim", kJumpClipSpeed, 0.1f, 1.0f);
+	AudioSystem::PlaySound(
+		ResourceKeys::Sounds::SOUND_DOLPHIN_BEFORE_JUMPING, 0.45f);
 	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_PLANT_WATER, 0.35f);
 	ApplyPhasePresentation();
 }
@@ -178,7 +181,7 @@ void DolphinRiderZombie::FinishJump(bool blocked)
 
 	mPhase = mInPool ? Phase::SWIMMING : Phase::WALKING_WITHOUT_DOLPHIN;
 	mJumpTargetPlantID = NULL_PLANT_ID;
-	mSpeed = kSlowGroundSpeed;
+	mSpeed = kGroundRootMotionRate;
 	mNeedDropArm = true;
 	PlayWalkAnimation(0.0f);
 	ApplyPhasePresentation();
@@ -254,7 +257,7 @@ void DolphinRiderZombie::PlayWalkAnimation(float blendTime)
 {
 	if (mPhase == Phase::APPROACHING) {
 		if (mInPool) BeginEnteringPool();
-		else PlayTrack("anim_walkdolphin", 0.0f, blendTime);
+		else PlayTrack("anim_walkdolphin", kFastGroundClipSpeed, blendTime);
 		return;
 	}
 	if (mPhase == Phase::ENTERING_POOL || mPhase == Phase::JUMPING) return;
@@ -262,8 +265,8 @@ void DolphinRiderZombie::PlayWalkAnimation(float blendTime)
 		if (!mInPool) {
 			// 未遇到植物便穿过整段泳池时，按 C# 回到带豚陆地步行，而不是让 anim_ride 滑上岸。
 			mPhase = Phase::APPROACHING;
-			mSpeed = kFastGroundSpeed;
-			PlayTrack("anim_walkdolphin", 0.0f, blendTime);
+			mSpeed = kGroundRootMotionRate;
+			PlayTrack("anim_walkdolphin", kFastGroundClipSpeed, blendTime);
 			ApplyPhasePresentation();
 			return;
 		}
@@ -272,11 +275,11 @@ void DolphinRiderZombie::PlayWalkAnimation(float blendTime)
 	}
 	if (mInPool) {
 		mPhase = Phase::SWIMMING;
-		PlayTrack("anim_swim", 0.0f, blendTime);
+		PlayTrack("anim_swim", kSlowGroundClipSpeed, blendTime);
 	}
 	else {
 		mPhase = Phase::WALKING_WITHOUT_DOLPHIN;
-		PlayTrack("anim_walk", 0.0f, blendTime);
+		PlayTrack("anim_walk", kSlowGroundClipSpeed, blendTime);
 	}
 }
 
@@ -388,6 +391,6 @@ void DolphinRiderZombie::LoadExtraData(const nlohmann::json& j)
 	mJumpSplashPlayed = j.value("jumpSplashPlayed", false);
 	mJumpBlockChecked = j.value("jumpBlockChecked", false);
 	mNeedDropArm = !HasDolphin();
-	mSpeed = HasDolphin() ? kFastGroundSpeed : kSlowGroundSpeed;
+	mSpeed = kGroundRootMotionRate;
 	ApplyPhasePresentation();
 }

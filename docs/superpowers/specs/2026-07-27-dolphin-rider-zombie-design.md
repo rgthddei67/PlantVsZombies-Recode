@@ -23,8 +23,8 @@
 | 本体生命 | 500 | `mBodyMaxHealth = mBodyHealth = 500` |
 | 出怪权重 | 1500 | `gamedata.json weight` |
 | 最早波次 | 10 | `appearWave = survivalRound = 10` |
-| 骑豚速度 | 0.89–0.91 px/tick | 约 54 px/s 的根运动速度 |
-| 弃豚速度 | 0.23–0.37 px/tick | 约 18 px/s 的根运动速度 |
+| 骑豚陆地速度 | 0.89–0.91 px/tick | 按原版 47 tick/s 对齐为约 42 px/s；根运动 27 FPS |
+| 弃豚速度 | 0.23–0.37 px/tick | 按平均值对齐为约 14 px/s；根运动 9 FPS |
 | 入水动画 | 16 FPS | clip 倍率 `16/12` |
 | 骑乘动画 | 12 FPS | clip 倍率 `1` |
 | 跳跃动画 | 10 FPS | clip 倍率 `10/12` |
@@ -61,7 +61,8 @@ reanim 在入水、骑乘、跳跃和游泳轨道之间含局部根位移。实�
 - 海豚在手臂阈值前若仍骑豚，不立即断臂；弃豚后补做阈值检查，与 C# 一致。
 - 进入池后所有断头、断臂粒子均被抑制，模型和生命状态仍正常更新。
 - 骑豚、入水或跳跃状态死亡时直接移除；弃豚后按 `anim_death` 播放并在主人给定第 288 帧移除。
-- 使用 `DolphinAppears`、`DolphinBeforeJumping`、`ZombieEnteringWater`、`PlantWater`、`Bonk`、`LimbsPop`。
+- `DolphinAppears` 只在正式刷新时播放；发现目标并开始跳跃时同时播放
+  `DolphinBeforeJumping` 与 `PlantWater`。其余使用 `ZombieEnteringWater`、`Bonk`、`LimbsPop`。
 
 ## 冒险与图鉴
 
