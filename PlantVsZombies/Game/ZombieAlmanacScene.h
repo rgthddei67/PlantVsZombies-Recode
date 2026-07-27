@@ -17,6 +17,7 @@ private:
 	std::shared_ptr<Button> mBackMenuButton;
 	std::vector<std::weak_ptr<Zombie>> mGridZombies;
 	std::vector<Vector> mGridPositions;
+	std::vector<ZombieType> mDisplayedZombieTypes;
 	std::weak_ptr<Zombie> mPreviewZombie;
 
 	ZombieType mCurrentZombieType = ZombieType::NUM_ZOMBIE_TYPES;
@@ -27,6 +28,9 @@ private:
 	int   mDescriptionFontSize = 17;     // 自动收缩后的描述字号
 	float mDescriptionLineHeight = 22.0f; // 与字号等比的行高
 
+	/** 从已通关关卡的 spawnlist 推导玩家必然遭遇过的僵尸，按首次遭遇排序。 */
+	std::vector<ZombieType> LoadEncounteredZombieTypes() const;
+	/** 为已遭遇类型创建可点击的图鉴网格和裁剪预览。 */
 	void CreateAllZombieEntries();
 	void OnZombieClicked(ZombieType type);
 	void CreatePreviewZombie(ZombieType type);
@@ -41,6 +45,14 @@ public:
 	void OnEnter() override;
 	void OnExit() override;
 	void Update() override;
+
+	/** 返回当前进度下实际展示的僵尸类型，顺序为冒险模式首次遭遇顺序。 */
+	const std::vector<ZombieType>& GetDisplayedZombieTypes() const {
+		return mDisplayedZombieTypes;
+	}
+
+	/** 返回右侧详情当前选中的僵尸；空图鉴返回 NUM_ZOMBIE_TYPES。 */
+	ZombieType GetCurrentZombieType() const { return mCurrentZombieType; }
 
 	bool mReadyToSwitchAlmanacScene = false;
 

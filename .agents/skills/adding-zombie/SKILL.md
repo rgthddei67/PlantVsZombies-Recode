@@ -38,7 +38,7 @@ description: Use when adding or tuning any PvZ zombie, or integrating zombies in
 6. **粒子**：照抄 `ZombieHeadOff.xml` 改 `<Name>`+`<Image>`（图键=贴图文件名的标准派生键，如 `ZombieDancerHead.png`→`PARTICLE_ZOMBIEDANCERHEAD`），放权威 `build/clang-release/resources/particles/config/`，其他 preset 自动共享。XML 标签全参考/foot-guns 见 **adding-particle skill**（勿再读 ParticleSystem 源码）。
 7. **换色变体资源**：优先用仓库内 PowerShell + `System.Drawing` 脚本按 HSV/亮度映射目标材质，保留原 Alpha、阴影、高光、描边和非目标部件；不要对整张图平涂或只靠 overlay。脚本是可复现源，只向 clang-release 权威资源生成一次并逐文件比预期 SHA-256。换色后还要沿死亡/受击入口检查粒子 XML 的每个车辆或身体部件 `<Image>`：本体 reanim 换色不会自动替换粒子里写死的普通资源键，必要时由品种虚入口选择独立粒子配置。
 8. **⚠️ build/ 下资源提交必须 `git add -f`**——被 .gitignore 静默挡下，`git commit` 照样"成功"但文件没进去。提交后 `git show --stat` 核对文件数。
-9. **图鉴**：在权威 `build/clang-release/resources/info.txt` 同时添加 `[ZOMBIE_X]` 与 `[ZOMBIE_X_DESCRIPTION]`。`ZombieAlmanacScene` 会自动枚举已注册类型，缺键不会构建失败，只会留下有图无标题/正文的空白条目；因此静态检查每个新增枚举名的两枚 key 均存在且唯一。
+9. **图鉴**：在权威 `build/clang-release/resources/info.txt` 同时添加 `[ZOMBIE_X]` 与 `[ZOMBIE_X_DESCRIPTION]`。`ZombieAlmanacScene` 按 `mAdventureLevel - 1` 之前已通关关卡的 `spawnlists.json` 并集解锁条目，并按首次遭遇顺序排列；当前正在玩的关卡不得提前泄露。召唤型 `weight: 0` 子单位（如伴舞）不能为了图鉴解锁写进随机池，而应由图鉴的“必然派生遭遇”映射随其召唤者解锁。缺 info key 不会构建失败，只会留下有图无标题/正文的空白条目；因此静态检查每个可解锁枚举名的两枚 key 均存在且唯一。AutoTest 用 `set_adventure_level` 配合 UI 场景状态字段 `zombieAlmanacEntries` / `zombieAlmanacSelected`，同时断言当前关排除、下一关解锁并截图。
 
 ## 冒险出怪编排
 

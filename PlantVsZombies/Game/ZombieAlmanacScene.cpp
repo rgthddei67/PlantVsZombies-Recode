@@ -1,6 +1,7 @@
 ﻿#include "ZombieAlmanacScene.h"
 #include "SceneManager.h"
 #include "../GameAPP.h"
+#include "AdventureProgression.h"
 #include "Zombie/Zombie.h"
 #include "ClickableComponent.h"
 #include "ShadowComponent.h"
@@ -8,6 +9,7 @@
 #include "GameObjectManager.h"
 #include <sstream>
 #include <algorithm>
+#include <array>
 #include "../FileManager.h"
 
 constexpr float ZOMBIE_GRID_INIT_X = 70.0f;
@@ -100,12 +102,72 @@ void ZombieAlmanacScene::BuildDrawCommands()
 	SortDrawCommands();
 }
 
+std::vector<ZombieType> ZombieAlmanacScene::LoadEncounteredZombieTypes() const
+{
+	std::vector<ZombieType> encounteredTypes;
+	const int completedThrough = std::min(
+		GameAPP::GetInstance().mAdventureLevel - 1,
+		AdventureProgression::LAST_ADVENTURE_LEVEL);
+	if (completedThrough < 1) return encounteredTypes;
+
+	nlohmann::json spawnLists;
+	if (!FileManager::LoadJsonFile("./resources/spawnlists.json", spawnLists)
+		|| !spawnLists.is_array()) {
+		return encounteredTypes;
+	}
+
+	auto& gameData = GameDataManager::GetInstance();
+	std::array<bool, static_cast<std::size_t>(ZombieType::NUM_ZOMBIE_TYPES)> seen{};
+	auto appendType = [&](ZombieType type) {
+		const auto index = static_cast<std::size_t>(type);
+		if (index >= seen.size() || seen[index] || !gameData.HasZombie(type)) return;
+		seen[index] = true;
+		encounteredTypes.push_back(type);
+	};
+
+	// 当前关不计入：玩家只有通关后才必然见过该关池中的僵尸。
+	// 按关卡递增而不是依赖 JSON 文件顺序，使网格始终保持首次遭遇顺序。
+	for (int completedLevel = 1; completedLevel <= completedThrough; ++completedLevel) {
+		for (const auto& entry : spawnLists) {
+			if (!entry.is_object()) continue;
+			auto levelIt = entry.find("level");
+			if (levelIt == entry.end() || !levelIt->is_number_integer()
+				|| levelIt->get<int>() != completedLevel) {
+				continue;
+			}
+
+			auto zombiesIt = entry.find("zombies");
+			if (zombiesIt == entry.end() || !zombiesIt->is_array()) break;
+			for (const auto& value : *zombiesIt) {
+				if (!value.is_number_integer()) continue;
+				const int rawType = value.get<int>();
+				if (rawType < 0
+					|| rawType >= static_cast<int>(ZombieType::NUM_ZOMBIE_TYPES)) {
+					continue;
+				}
+
+				const ZombieType type = static_cast<ZombieType>(rawType);
+				appendType(type);
+
+				// 伴舞不会直接进入随机池，但玩家遇到舞王时必然会见到它。
+				if (type == ZombieType::ZOMBIE_DANCER
+					|| type == ZombieType::ZOMBIE_ELITE_DANCER) {
+					appendType(ZombieType::ZOMBIE_BACKUP_DANCER);
+				}
+			}
+			break;
+		}
+	}
+
+	return encounteredTypes;
+}
+
 void ZombieAlmanacScene::CreateAllZombieEntries()
 {
-	auto allTypes = GameDataManager::GetInstance().GetAllZombieTypes();
+	mDisplayedZombieTypes = LoadEncounteredZombieTypes();
 
 	int entryCount = 0;
-	for (const auto& zombieType : allTypes) {
+	for (const auto& zombieType : mDisplayedZombieTypes) {
 		int row = entryCount / ZOMBIE_MAX_PER_ROW;
 		int col = entryCount % ZOMBIE_MAX_PER_ROW;
 
@@ -192,10 +254,9 @@ void ZombieAlmanacScene::OnEnter()
 	LoadInfoFile();
 	CreateAllZombieEntries();
 
-	auto allTypes = GameDataManager::GetInstance().GetAllZombieTypes();
-	if (!allTypes.empty()) {
-		CreatePreviewZombie(allTypes[0]);
-		UpdateZombieInfo(allTypes[0]);
+	if (!mDisplayedZombieTypes.empty()) {
+		CreatePreviewZombie(mDisplayedZombieTypes.front());
+		UpdateZombieInfo(mDisplayedZombieTypes.front());
 	}
 }
 
@@ -203,6 +264,7 @@ void ZombieAlmanacScene::OnExit()
 {
 	mGridZombies.clear();
 	mGridPositions.clear();
+	mDisplayedZombieTypes.clear();
 	mPreviewZombie.reset();
 	mBackMenuButton.reset();
 	mInfoMap.clear();

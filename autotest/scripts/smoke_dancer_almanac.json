@@ -1,5 +1,6 @@
 {
   "commands": [
+    { "op": "set_adventure_level", "level": 17 },
     { "op": "wait_frames", "value": 30 },
     { "op": "click", "x": 570, "y": 490 },
     { "op": "wait_frames", "value": 30 },

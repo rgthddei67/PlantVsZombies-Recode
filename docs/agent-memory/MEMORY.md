@@ -2,6 +2,7 @@
 
 > Codex routing: required always-on rules live in `../../AGENTS.md`; detailed build, AutoTest, architecture, resource, and implementation guidance lives in `../agent-guide/PROJECT_GUIDE.md`. The entries below are historical subsystem context and should be read only when relevant.
 
+- [僵尸图鉴随冒险进度解锁](project_pvz_zombie_almanac_progression.md) — 2026-07-27 图鉴只累计 `mAdventureLevel - 1` 之前已通关关卡的 `spawnlists.json` 僵尸并按首次遭遇排序，当前关不提前泄露；舞王等必然召唤者显式带出 `weight: 0` 子单位而不污染随机池；AutoTest UI 状态字段与可见第3/4关、舞王/伴舞回归通过
 - [经典地刺](project_pvz_caltrop.md) — 2026-07-26 `PLANT_SPIKEWEED` 由 `Caltrop` 实装：免普通啃食，18fps 攻击动画在主人指定全局第25帧结算30px窄攻击带20伤害；水路禁种、最后地形保留集中入口且当前按普通地面；冰车虚事件触发扁胎、TirePop、轮胎碎屑/烟雾、wheelie特殊动画与2.8秒延时爆炸，为精英冰车覆写留底；可见专项与冰车回归通过
 - [冰车僵尸与冰道](project_pvz_zamboni_zombie.md) — 2026-07-26 原版冰车 1350 HP、右侧高速入场后减速、碾压植物、两段破损与二段烟雾；速度曲线以普通场景 `CELL_INITALIZE_POS_X` 为基准，屋顶留独立未核实入口；免疫寒冰且不会误播减速音效；碰撞/碾压/冰道统一锚定稳定视觉原点，低血量抖动±0.35px，烟雾相对视觉原点(-41,+95)；冰道出生即激活并铺到1100px右缘；普通死亡生成专属粒子，灰烬0.9且第53帧移除；地刺虚事件已接入扁胎音画与2.8秒延时死亡，雪橇小队枚举已删除；3-5 已接入并通过双Clang构建与可见专项 AutoTest
 - [鎏金冰车僵尸与黄色冰道](project_pvz_gilded_zamboni.md) — 2026-07-26 `ZOMBIE_GILDED_ZAMBONI`：2200 HP、基础驱动0.72、同波最多1只；本行及相邻陆路铺30秒黄色冰道并跨三行碾压，水路只压不铺；黄色覆盖普通冰道显示并禁种；每个活跃来源把能力/寒冰/雨势/台风的非中性倍率按加速×2、减速÷2逐层强化，重叠来源可互相和共同加速，蓄势基础为6/10/14秒×2/×4/×8、受伤归零且场地强化后仍封顶×8；地刺100、大嘴花50且均不触发普通秒杀；24关3-6与宝开式图鉴已接入；死亡使用独立鎏金车辆碎片与金色爆炸云

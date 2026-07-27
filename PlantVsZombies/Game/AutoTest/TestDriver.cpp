@@ -6,6 +6,7 @@
 #include "../../ResourceKeys.h"
 #include "../SceneManager.h"
 #include "../GameScene.h"
+#include "../ZombieAlmanacScene.h"
 #include "../ChooseCardUI.h"
 #include "../Board.h"
 #include "../Sun.h"
@@ -968,10 +969,33 @@ bool TestDriver::ExecuteCurrent() {
 
 bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 {
-	GameScene* gs = CurrentGameScene();
-	if (!gs || !gs->GetBoard()) { Fail(opName + ": 不在 GameScene 或 Board 为空"); return false; }
-	Board* board = gs->GetBoard();
+	Scene* currentScene = SceneManager::GetInstance().GetCurrentScene();
+	if (!currentScene) { Fail(opName + ": 当前 Scene 为空"); return false; }
 	auto& gameApp = GameAPP::GetInstance();
+	out["scene"] = currentScene->name;
+	out["adventureLevel"] = gameApp.mAdventureLevel;
+
+	if (auto* almanac = dynamic_cast<ZombieAlmanacScene*>(currentScene)) {
+		out["zombieAlmanacEntries"] = nlohmann::json::array();
+		for (ZombieType type : almanac->GetDisplayedZombieTypes()) {
+			out["zombieAlmanacEntries"].push_back(ZombieTypeName(type));
+		}
+		out["zombieAlmanacEntryCount"] =
+			static_cast<int>(almanac->GetDisplayedZombieTypes().size());
+		const ZombieType selected = almanac->GetCurrentZombieType();
+		out["zombieAlmanacSelected"] =
+			selected == ZombieType::NUM_ZOMBIE_TYPES
+			? nlohmann::json(nullptr)
+			: nlohmann::json(ZombieTypeName(selected));
+		return true;
+	}
+
+	GameScene* gs = dynamic_cast<GameScene*>(currentScene);
+	if (!gs || !gs->GetBoard()) {
+		Fail(opName + ": 当前 Scene 不支持状态导出 (" + currentScene->name + ")");
+		return false;
+	}
+	Board* board = gs->GetBoard();
 
 	out["boardState"] = BoardStateName(board->mBoardState);
 	out["chooseCardReady"] = gs->IsChooseCardReady();
