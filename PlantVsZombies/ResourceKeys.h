@@ -258,6 +258,8 @@ namespace ResourceKeys
 		RKEY(SOUND_HITCONE2);
 		RKEY(SOUND_IRONHIT);
 		RKEY(SOUND_IRONHIT2);
+		RKEY(SOUND_FIREPEA);				// 豌豆穿过火炬树桩后的点燃声
+		RKEY(SOUND_IGNITE);				// 火豌豆命中并触发溅射的燃烧声
 	}
 
 	namespace Music
@@ -293,6 +295,8 @@ namespace ResourceKeys
 		inline const std::string REANIM_JALAPENO = "Jalapeno";
 		inline const std::string REANIM_JALAPENO_FIRE = "Fire";
 		inline const std::string REANIM_CALTROP = "Caltrop";
+		inline const std::string REANIM_TORCHWOOD = "Torchwood";
+		inline const std::string REANIM_FIREPEA = "FirePea";
 
 		inline const std::string REANIM_NORMAL_ZOMBIE = "NormalZombie";
 		inline const std::string REANIM_CONE_ZOMBIE = "ConeZombie";

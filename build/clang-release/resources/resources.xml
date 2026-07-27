@@ -283,6 +283,8 @@
     <Sound>./resources/sounds/Bullet/splat2.ogg</Sound>
     <Sound>./resources/sounds/Bullet/splat3.ogg</Sound>
     <Sound>./resources/sounds/Bullet/puff.ogg</Sound>
+    <Sound>./resources/sounds/Bullet/firepea.ogg</Sound>
+    <Sound>./resources/sounds/Bullet/ignite.ogg</Sound>
 
     <Sound>./resources/sounds/Bullet/cooldownZombie.ogg</Sound>
 
@@ -326,6 +328,7 @@
     <Reanimation name="Tanglekelp">./resources/reanim/Tanglekelp.reanim</Reanimation>
     <Reanimation name="Jalapeno">./resources/reanim/Jalapeno.reanim</Reanimation>
     <Reanimation name="Caltrop">./resources/reanim/Caltrop.reanim</Reanimation>
+    <Reanimation name="Torchwood">./resources/reanim/Torchwood.reanim</Reanimation>
 
     <Reanimation name="NormalZombie">./resources/reanim/NormalZombie.reanim</Reanimation>
     <Reanimation name="ConeZombie">./resources/reanim/ConeZombie.reanim</Reanimation>
@@ -351,6 +354,7 @@
     <Reanimation name="Zamboni_Charred">./resources/reanim/Zombie_charred_zamboni.reanim</Reanimation>
 
     <Reanimation name="Fire">./resources/reanim/Fire.reanim</Reanimation>
+    <Reanimation name="FirePea">./resources/reanim/FirePea.reanim</Reanimation>
 
     <Reanimation name="LawnMower">./resources/reanim/LawnMower.reanim</Reanimation>
     <Reanimation name="PoolCleaner">./resources/reanim/PoolCleaner.reanim</Reanimation>

@@ -155,6 +155,8 @@ public:
 	int GetGoldenIceEffectStacks() const { return mGoldenIceEffectStacks; }
 	/** 同时清除减速与冻结，并恢复当前天气/能力组合后的动画速度。 */
 	void RemoveColdEffects();
+	/** 原版火球耐性：冰车类及仍持门/梯二类护盾的目标只承受直击，不吃溅射或解冻。 */
+	bool IsFireResistant() const;
 	/** 当前状态是否满足原版水草的近身锁定条件。 */
 	bool CanBeTargetedByTangleKelp() const;
 	/** 品种特殊阶段过滤点；撑杆跳跃和伴舞出土等状态可覆写。 */

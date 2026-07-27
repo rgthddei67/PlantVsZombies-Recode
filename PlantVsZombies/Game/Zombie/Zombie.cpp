@@ -666,6 +666,14 @@ void Zombie::RemoveColdEffects()
 	}
 }
 
+bool Zombie::IsFireResistant() const
+{
+	return mZombieType == ZombieType::ZOMBIE_ZAMBONI
+		|| mZombieType == ZombieType::ZOMBIE_GILDED_ZAMBONI
+		|| mShieldType == ShieldType::SHIELDTYPE_DOOR
+		|| mShieldType == ShieldType::SHIELDTYPE_LADDER;
+}
+
 void Zombie::ApplyCharmEffects()
 {
 	// 碰撞：换 CHARMED 层 → 分桶自动落入 seeker 桶（mRowOthers），二分搜同行僵尸；

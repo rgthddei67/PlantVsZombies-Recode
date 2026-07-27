@@ -442,6 +442,7 @@ bool GameInfoSaver::SaveLevelDataImpl(Board* board, CardSlotManager* manager)
 		b["damage"] = bullet->GetBulletDamage();
 		b["velocityX"] = bullet->GetVelocityX();
 		b["velocityY"] = bullet->GetVelocityY();
+		b["hitTorchwoodColumn"] = bullet->GetHitTorchwoodColumn();
 		b["threepeaterMotion"] = bullet->IsThreepeaterMotion();
 		bulletsArr.push_back(b);
 	}
@@ -925,10 +926,10 @@ bool GameInfoSaver::LoadLevelDataImpl(Board* board, CardSlotManager* manager)
 		}
 
 		if (bullet) {
-			bullet->mFromPool = false;
 			bullet->SetBulletDamage(b["damage"].get<int>());
 			bullet->SetVelocityX(b["velocityX"].get<float>());
 			bullet->SetVelocityY(b["velocityY"].get<float>());
+			bullet->SetHitTorchwoodColumn(b.value("hitTorchwoodColumn", -1));
 			if (b.value("threepeaterMotion", false)) {
 				// 先恢复运动类型以重建阴影布局，再用存档速度覆盖初始值继续衰减。
 				const float savedVelocityY = bullet->GetVelocityY();

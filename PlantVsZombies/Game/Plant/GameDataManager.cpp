@@ -35,6 +35,7 @@
 #include "TangleKelp.h"
 #include "Jalapeno.h"
 #include "Caltrop.h"
+#include "Torchwood.h"
 
 #include "../Zombie/Zombie.h"
 #include "../Zombie/ConeZombie.h"
@@ -223,6 +224,11 @@ void GameDataManager::InitializeHardcodedData() {
 		AnimationType::ANIM_CALTROP,
 		ResourceKeys::Reanimations::REANIM_CALTROP, &MakePlant<Caltrop>);
 
+	RegisterPlant(PlantType::PLANT_TORCHWOOD, "PLANT_TORCHWOOD",
+		ResourceKeys::Textures::IMAGE_TORCHWOOD,
+		AnimationType::ANIM_TORCHWOOD,
+		ResourceKeys::Reanimations::REANIM_TORCHWOOD, &MakePlant<Torchwood>);
+
 	// 寒冰大喷菇：复用大喷菇 reanim（蓝色靠 overlay），仅卡图独立
 	RegisterPlant(PlantType::PLANT_ICEFUMESHROOM, "PLANT_ICEFUMESHROOM",
 		ResourceKeys::Textures::IMAGE_ICEFUMESHROOM,
@@ -335,6 +341,8 @@ void GameDataManager::InitializeHardcodedData() {
 		ResourceKeys::Reanimations::REANIM_POOL_CLEANER;
 	mAnimToString[AnimationType::ANIM_JALAPENO_FIRE] =
 		ResourceKeys::Reanimations::REANIM_JALAPENO_FIRE;
+	mAnimToString[AnimationType::ANIM_FIREPEA] =
+		ResourceKeys::Reanimations::REANIM_FIREPEA;
 
 	mAnimToString[AnimationType::ANIM_NONE] = "Unknown";
 }

@@ -4,13 +4,29 @@
 #include "../GameObjectManager.h"
 #include "../ObjectPool/BulletPool.h"
 #include "../ShadowComponent.h"
+#include "../AnimatedObject.h"
 #include "../Cell.h"
 #include "../../GameAPP.h"
+#include "../../Logger.h"
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <vector>
 
 namespace {
+	constexpr int kPeaDamage = 20;                    // 普通/寒冰/孢子基础伤害
+	constexpr int kFireballDamage = 40;               // 火豌豆基础伤害，原版为普通豌豆两倍
+	constexpr float kFireballSplashWidth = 100.0f;    // 火球命中后同排水平溅射判定宽度，单位：像素
+	constexpr int kSplashDamageDivisor = 3;           // 火球次要目标伤害为直击伤害的三分之一
+	constexpr float kFireballForwardOffsetX = -25.0f; // FirePea.reanim 相对向右飞子弹逻辑原点的 X 偏移
+	constexpr float kFireballBackwardOffsetX = 55.0f; // FirePea.reanim 相对向左飞子弹逻辑原点的 X 偏移
+	constexpr float kFireballOffsetY = -25.0f;        // FirePea.reanim 相对子弹逻辑原点的 Y 偏移
+	constexpr float kFireballImpactOffsetX = 38.0f;   // 原版 JalapenoFire 命中特效相对子弹的 X 偏移
+	constexpr float kFireballImpactOffsetY = -20.0f;  // 原版 JalapenoFire 命中特效相对子弹的 Y 偏移
+	constexpr float kFireballImpactStartFrame = 3.0f; // Fire.reanim 约 25% 处起播，复刻原版 mAnimTime=0.25
+	constexpr float kFireballImpactSpeed = 2.0f;      // Fire.reanim 为 12fps，原版命中特效按 24fps 播放
+	constexpr float kFireballImpactScaleX = 0.7f;     // 原版火球命中特效横向缩放
+	constexpr float kFireballImpactScaleY = 0.4f;     // 原版火球命中特效纵向缩放
 	constexpr float kThreepeaterVerticalSpeed = 300.0f; // C# 在 100px 草地行高下每 10ms 移动 3px，换算为每秒像素
 	constexpr float kThreepeaterDampingPerTick = 0.97f; // C# 每个 10ms 更新对纵向速度的衰减
 	constexpr float kOriginalTickSeconds = 0.01f;       // 原版 Projectile 更新步长，单位：秒
@@ -65,6 +81,34 @@ namespace {
 		}
 		return kBulletWindProfiles[index].response;
 	}
+
+	/** 播放火球命中时的小段 JalapenoFire；依靠 PLAY_ONCE 完成态回收，不新增帧事件。 */
+	class FireballImpact final : public AnimatedObject {
+	public:
+		FireballImpact(Board* board, const Vector& position)
+			: AnimatedObject(ObjectType::OBJECT_PARTICLE, board, position,
+				AnimationType::ANIM_JALAPENO_FIRE, ColliderType::BOX,
+				Vector::zero(), Vector::zero(), 1.0f, "FireballImpact", true)
+		{
+		}
+
+		void Start() override
+		{
+			GameObject::Start();
+			if (!mAnimator) {
+				GameObjectManager::GetInstance().DestroyGameObject(this);
+				return;
+			}
+
+			mAnimator->SetFrameRangeToDefault();
+			SetLoopType(PlayState::PLAY_ONCE);
+			SetAnimationSpeed(kFireballImpactSpeed);
+			SetCurrentFrame(kFireballImpactStartFrame);
+			const Vector pivot = GetVisualPosition();
+			mAnimator->SetRenderScale(
+				kFireballImpactScaleX, kFireballImpactScaleY, pivot.x, pivot.y);
+		}
+	};
 }
 
 Bullet::Bullet(Board* board, BulletType bulletType, int row, const Vector& colliderRadius,
@@ -72,6 +116,9 @@ Bullet::Bullet(Board* board, BulletType bulletType, int row, const Vector& colli
 {
 	this->mBoard = board;
 	this->mBulletType = bulletType;
+	this->mPoolType = bulletType;
+	this->mDamage = bulletType == BulletType::BULLET_FIREBALL
+		? kFireballDamage : kPeaDamage;
 	this->mRow = row;
 	if (!mBoard) return;
 
@@ -107,16 +154,21 @@ Bullet::Bullet(Board* board, BulletType bulletType, int row, const Vector& colli
 void Bullet::Reset(Board* board, int row,
 	const Vector& colliderRadius, const Vector& position) {
 	mBoard = board;
+	mBulletType = mPoolType;
 	mRow = row;
 	mHasHit = false;
 	mCheckPositionTimer = 0.0f;
 	mBulletID = NULL_BULLET_ID;
 	mFromPool = true;  // 标记为来自对象池
 	// 自定义伤害/速度只属于上一位对象池使用者；不复位会污染后续普通豌豆或孢子。
-	mDamage = 20;
+	mDamage = mPoolType == BulletType::BULLET_FIREBALL
+		? kFireballDamage : kPeaDamage;
 	mVelocityX = 290.0f;
 	mVelocityY = 0.0f;
 	mThreepeaterMotion = false;
+	mHitTorchwoodColumn = -1;
+	mAnimatorAdvancedInParallel = false;
+	ConfigurePresentation();
 
 	// 重置 Transform
 	if (mTransform) {
@@ -128,6 +180,12 @@ void Bullet::Reset(Board* board, int row,
 	if (mCollider) {
 		mCollider->mEnabled = true;
 	}
+}
+
+void Bullet::Start()
+{
+	GameObject::Start();
+	ConfigurePresentation();
 }
 
 void Bullet::Die()
@@ -147,6 +205,16 @@ void Bullet::Die()
 
 void Bullet::Update()
 {
+	GameObject::Update();
+	if (mProjectileAnimator) {
+		if (mAnimatorAdvancedInParallel) {
+			mAnimatorAdvancedInParallel = false;
+		}
+		else {
+			mProjectileAnimator->Update();
+		}
+	}
+
 	auto* transform = GetTransformComponent();
 	float deltaTime = DeltaTime::GetDeltaTime();
 	if (transform)
@@ -171,8 +239,27 @@ void Bullet::Update()
 	}
 }
 
+void Bullet::UpdateParallel(std::vector<DeferredEvent>& outBuf)
+{
+	if (!mProjectileAnimator) {
+		mAnimatorAdvancedInParallel = false;
+		return;
+	}
+	mProjectileAnimator->UpdateParallelDeferred(outBuf);
+	mAnimatorAdvancedInParallel = true;
+}
+
 void Bullet::Draw(Graphics* g)
 {
+	if (mProjectileAnimator) {
+		const Vector position = GetPosition();
+		const float offsetX = mVelocityX < 0.0f
+			? kFireballBackwardOffsetX : kFireballForwardOffsetX;
+		mProjectileAnimator->Draw(
+			g, position.x + offsetX, position.y + kFireballOffsetY, 1.0f);
+		return;
+	}
+
 	if (mTexture) {
 		Vector position = GetPosition();
 		g->DrawTexture(mTexture, position.x, position.y,
@@ -195,7 +282,13 @@ void Bullet::UpdateShadowLayout(const Vector& position)
 	// C# Snowpea 分支把两轴统一放大 1.3 倍。
 	constexpr float kPeaShadowWidth = 21.0f;
 	constexpr float kPeaShadowHeight = 9.0f;
-	const float typeScale = mBulletType == BulletType::BULLET_SNOWPEA ? 1.3f : 1.0f;
+	float typeScale = 1.0f;
+	if (mBulletType == BulletType::BULLET_SNOWPEA) {
+		typeScale = 1.3f;
+	}
+	else if (mBulletType == BulletType::BULLET_FIREBALL) {
+		typeScale = 1.4f;
+	}
 	const float shadowWidth = kPeaShadowWidth * typeScale;
 	const float shadowHeight = kPeaShadowHeight * typeScale;
 
@@ -209,7 +302,8 @@ void Bullet::UpdateShadowLayout(const Vector& position)
 
 	// 主人校对：Y 与同一行豌豆射手的默认阴影中心一致，即格子中心 + 28。
 	// X 偏移沿用 C#：Pea +3，Snowpea -1。
-	const float shadowLeftOffset = mBulletType == BulletType::BULLET_SNOWPEA ? -1.0f : 3.0f;
+	const float shadowLeftOffset = mBulletType == BulletType::BULLET_SNOWPEA
+		? -1.0f : (mBulletType == BulletType::BULLET_FIREBALL ? 0.0f : 3.0f);
 	// 斜向豌豆从发射行地面起步并随本体一起汇入目标行；其发射点固定为格心上方 40px，
 	// 因而相对偏移恒为 68px。普通子弹仍直接锚定其碰撞行地面。
 	const float shadowOffsetY = mThreepeaterMotion
@@ -240,8 +334,222 @@ void Bullet::EnableThreepeaterMotion(int sourceRow)
 
 void Bullet::BulletHitZombie(Zombie* zombie)
 {
+	if (!zombie) return;
+
+	if (mBulletType == BulletType::BULLET_FIREBALL) {
+		HitFireballZombie(zombie);
+		return;
+	}
+
+	const bool canBeChilled =
+		mBulletType == BulletType::BULLET_SNOWPEA && zombie->CanBeChilled();
+	const bool playChillSound = canBeChilled
+		&& zombie->GetCooldownTimer() <= 0.0f
+		&& zombie->mHelmType == HelmType::HELMTYPE_NONE
+		&& zombie->mShieldType == ShieldType::SHIELDTYPE_NONE;
+
+	PlayStandardImpactSound(zombie);
 	// 风力先修正本发子弹的基础伤害，生存词条仍在 Zombie::TakeDamage 中统一且只缩放一次。
 	zombie->TakeDamage(GetWindAdjustedDamage(), DamageSource::PLANT);
+
+	if (mBulletType == BulletType::BULLET_SNOWPEA) {
+		if (canBeChilled) {
+			if (playChillSound) {
+				AudioSystem::PlaySound(
+					ResourceKeys::Sounds::SOUND_COOLDOWNZOMBIE, 0.22f);
+			}
+			zombie->SetCooldown(7.5f);
+		}
+		if (g_particleSystem) {
+			g_particleSystem->EmitEffect("SnowPeaBulletHit", GetPosition());
+		}
+	}
+	else if (mBulletType == BulletType::BULLET_PUFF) {
+		if (g_particleSystem) {
+			g_particleSystem->EmitEffect("PuffShroomHit", GetPosition());
+		}
+	}
+	else if (mBulletType == BulletType::BULLET_PEA) {
+		if (g_particleSystem) {
+			g_particleSystem->EmitEffect("PeaBulletHit", GetPosition());
+		}
+	}
+}
+
+void Bullet::ConfigurePresentation()
+{
+	mTexture = nullptr;
+	mProjectileAnimator.reset();
+	mAnimatorAdvancedInParallel = false;
+	mScale = 0.9f;
+
+	ResourceManager& resources = ResourceManager::GetInstance();
+	switch (mBulletType) {
+	case BulletType::BULLET_PEA:
+		mTexture = resources.GetTexture(ResourceKeys::Textures::IMAGE_PROJECTILEPEA);
+		break;
+	case BulletType::BULLET_SNOWPEA:
+		mTexture = resources.GetTexture(ResourceKeys::Textures::IMAGE_PROJECTILESNOWPEA);
+		break;
+	case BulletType::BULLET_PUFF:
+		mTexture = resources.GetTexture("IMAGE_PUFFSHROOM_PUFF1");
+		mScale = 0.68f;
+		break;
+	case BulletType::BULLET_FIREBALL: {
+		auto reanim = resources.GetReanimation(
+			resources.AnimationTypeToString(AnimationType::ANIM_FIREPEA));
+		if (!reanim) {
+			LOG_ERROR("Bullet") << "无法加载 FirePea.reanim";
+			break;
+		}
+		mProjectileAnimator = std::make_shared<Animator>(reanim);
+		mProjectileAnimator->SetFrameRangeToDefault();
+		mProjectileAnimator->SetCurrentFrame(0.0f);
+		mProjectileAnimator->SetSpeed(GameRandom::Range(50.0f, 80.0f) / 12.0f);
+		mProjectileAnimator->SetFlipX(mVelocityX < 0.0f);
+		mProjectileAnimator->Play(PlayState::PLAY_REPEAT);
+		break;
+	}
+	default:
+		break;
+	}
+}
+
+void Bullet::SetVelocityX(float x)
+{
+	mVelocityX = x;
+	if (mProjectileAnimator) {
+		mProjectileAnimator->SetFlipX(mVelocityX < 0.0f);
+	}
+}
+
+void Bullet::ConvertToFireball(int torchwoodColumn)
+{
+	if (mBulletType != BulletType::BULLET_PEA
+		|| mHitTorchwoodColumn == torchwoodColumn) {
+		return;
+	}
+
+	mBulletType = BulletType::BULLET_FIREBALL;
+	mDamage = kFireballDamage;
+	mHitTorchwoodColumn = torchwoodColumn;
+	ConfigurePresentation();
+	if (mTransform) {
+		UpdateShadowLayout(mTransform->GetPosition());
+	}
+	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_FIREPEA, 0.35f);
+}
+
+void Bullet::ConvertSnowPeaToPea(int torchwoodColumn)
+{
+	if (mBulletType != BulletType::BULLET_SNOWPEA
+		|| mHitTorchwoodColumn == torchwoodColumn) {
+		return;
+	}
+
+	mBulletType = BulletType::BULLET_PEA;
+	mDamage = kPeaDamage;
+	mHitTorchwoodColumn = torchwoodColumn;
+	ConfigurePresentation();
+	if (mTransform) {
+		UpdateShadowLayout(mTransform->GetPosition());
+	}
+	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_SHOOTER_SHOOT, 0.2f);
+}
+
+void Bullet::PlayStandardImpactSound(const Zombie* zombie) const
+{
+	if (!zombie) return;
+
+	if (zombie->mHelmType == HelmType::HELMTYPE_TRAFFIC_CONE
+		|| zombie->mHelmType == HelmType::HELMTYPE_FOOTBALL) {
+		AudioSystem::PlaySound(
+			GameRandom::Range(1, 2) == 1
+				? ResourceKeys::Sounds::SOUND_HITCONE
+				: ResourceKeys::Sounds::SOUND_HITCONE2,
+			0.2f);
+		return;
+	}
+
+	if (zombie->mHelmType == HelmType::HELMTYPE_BUCKET
+		|| zombie->mShieldType == ShieldType::SHIELDTYPE_DOOR
+		|| zombie->mShieldType == ShieldType::SHIELDTYPE_LADDER
+		|| zombie->mZombieType == ZombieType::ZOMBIE_ZAMBONI
+		|| zombie->mZombieType == ZombieType::ZOMBIE_GILDED_ZAMBONI) {
+		AudioSystem::PlaySound(
+			GameRandom::Range(1, 2) == 1
+				? ResourceKeys::Sounds::SOUND_IRONHIT
+				: ResourceKeys::Sounds::SOUND_IRONHIT2,
+			0.2f);
+		return;
+	}
+
+	switch (GameRandom::Range(1, 3)) {
+	case 1:
+		AudioSystem::PlaySound(
+			ResourceKeys::Sounds::SOUND_PEABULLET_HIT_BODY1, 0.2f);
+		break;
+	case 2:
+		AudioSystem::PlaySound(
+			ResourceKeys::Sounds::SOUND_PEABULLET_HIT_BODY2, 0.2f);
+		break;
+	default:
+		AudioSystem::PlaySound(
+			ResourceKeys::Sounds::SOUND_PEABULLET_HIT_BODY3, 0.2f);
+		break;
+	}
+}
+
+void Bullet::HitFireballZombie(Zombie* zombie)
+{
+	const int directDamage = GetWindAdjustedDamage();
+	if (zombie->IsFireResistant()) {
+		PlayStandardImpactSound(zombie);
+		zombie->TakeDamage(directDamage, DamageSource::PLANT);
+		return;
+	}
+
+	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_IGNITE, 0.35f);
+	zombie->RemoveColdEffects();
+
+	std::vector<Zombie*> secondaryTargets;
+	const float splashLeft = GetPosition().x;
+	const float splashRight = splashLeft + kFireballSplashWidth;
+	if (mBoard) {
+		mBoard->mEntityManager.ForEachZombieInRow(mRow, [&](Zombie* candidate) {
+			if (!candidate || candidate == zombie || !candidate->IsActive()
+				|| candidate->IsDying() || candidate->IsMindControlled()
+				|| candidate->IsFireResistant()) {
+				return;
+			}
+			const ColliderComponent* collider = candidate->GetColliderComponent();
+			if (!collider) return;
+			const SDL_FRect bounds = collider->GetBoundingBox();
+			if (bounds.x > splashRight || bounds.x + bounds.w < splashLeft) return;
+			secondaryTargets.push_back(candidate);
+			});
+	}
+
+	int splashDamage = std::max(1, directDamage / kSplashDamageDivisor);
+	const int splashTotal = splashDamage * static_cast<int>(secondaryTargets.size());
+	if (splashTotal > directDamage) {
+		splashDamage = std::max(1,
+			directDamage * directDamage
+			/ (splashTotal * kSplashDamageDivisor));
+	}
+
+	// 原版 splash damage flag 会让二类护盾照常受损，同时把全额伤害继续传给本体。
+	zombie->TakeDamage(directDamage, DamageSource::PLANT, true);
+	for (Zombie* target : secondaryTargets) {
+		if (target->IsActive() && !target->IsDying()) {
+			target->TakeDamage(splashDamage, DamageSource::PLANT, true);
+		}
+	}
+
+	GameObjectManager::GetInstance().CreateGameObject<FireballImpact>(
+		LAYER_EFFECTS_WORLD,
+		mBoard,
+		GetPosition() + Vector(kFireballImpactOffsetX, kFireballImpactOffsetY));
 }
 
 bool Bullet::IsTyphoonWindAffected() const

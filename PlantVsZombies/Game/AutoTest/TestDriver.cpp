@@ -65,7 +65,7 @@ namespace {
 #undef PT
 #define BT(n) { #n, BulletType::n }
 	const std::unordered_map<std::string, BulletType> kBulletNames = {
-		BT(BULLET_PEA), BT(BULLET_SNOWPEA), BT(BULLET_PUFF),
+		BT(BULLET_PEA), BT(BULLET_SNOWPEA), BT(BULLET_PUFF), BT(BULLET_FIREBALL),
 	};
 #undef BT
 #define ZT(n) { #n, ZombieType::n }
@@ -571,7 +571,7 @@ bool TestDriver::ExecuteCurrent() {
 		if (!gs || !gs->GetBoard()) { Fail("spawn_bullet: 不在 GameScene 或 Board 为空"); return false; }
 		auto it = kBulletNames.find(cmd.value("type", ""));
 		if (it == kBulletNames.end()) {
-			Fail("spawn_bullet: type 必须是 BULLET_PEA/BULLET_SNOWPEA/BULLET_PUFF");
+			Fail("spawn_bullet: type 必须是 BULLET_PEA/BULLET_SNOWPEA/BULLET_PUFF/BULLET_FIREBALL");
 			return false;
 		}
 		Bullet* bullet = gs->GetBoard()->CreateBullet(it->second, cmd.value("row", 0),
@@ -579,7 +579,7 @@ bool TestDriver::ExecuteCurrent() {
 		if (!bullet) { Fail("spawn_bullet: CreateBullet 返回空"); return false; }
 		bullet->SetVelocityX(cmd.value("velocityX", 290.0f));
 		bullet->SetVelocityY(cmd.value("velocityY", 0.0f));
-		bullet->SetBulletDamage(cmd.value("damage", 20));
+		bullet->SetBulletDamage(cmd.value("damage", bullet->GetBulletDamage()));
 		return true;
 	}
 	if (op == "spawn_zombie") {
@@ -1242,6 +1242,10 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_COOLDOWNZOMBIE);
 	out["caltropTirePopSoundRequestCount"] =
 		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_BALLOON_POP);
+	out["firePeaSoundRequestCount"] =
+		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_FIREPEA);
+	out["igniteSoundRequestCount"] =
+		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_IGNITE);
 
 	out["iceTrails"] = nlohmann::json::array();
 	out["goldenIceTrails"] = nlohmann::json::array();
@@ -1301,6 +1305,10 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	int poolRowZombieCount = 0;
 	int earlyWavePoolZombieCount = 0;
 	int gildedZamboniCount = 0;
+	int zombieBodyHealthTotal = 0;
+	int zombieShieldHealthTotal = 0;
+	int slowedZombieCount = 0;
+	int fireResistantZombieCount = 0;
 	for (int id : board->mEntityManager.GetAllZombieIDs()) {
 		Zombie* z = board->mEntityManager.GetZombie(id);
 		// Die() 会立即把对象标为 inactive，EntityManager 的 weak 引用到下一次清理才过期；
@@ -1315,6 +1323,10 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		if (z->mZombieType == ZombieType::ZOMBIE_GILDED_ZAMBONI) {
 			++gildedZamboniCount;
 		}
+		zombieBodyHealthTotal += z->mBodyHealth;
+		zombieShieldHealthTotal += z->mShieldHealth;
+		if (z->GetCooldownTimer() > 0.0f) ++slowedZombieCount;
+		if (z->IsFireResistant()) ++fireResistantZombieCount;
 		const Vector pos = z->GetPosition();
 		const auto anim = z->GetAnimatorInternal();
 		nlohmann::json zombieState = {
@@ -1326,6 +1338,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "yInt", static_cast<int>(std::lround(pos.y)) },
 			{ "bodyHealth", z->mBodyHealth }, { "bodyMaxHealth", z->mBodyMaxHealth },
 			{ "helmHealth", z->mHelmHealth }, { "shieldHealth", z->mShieldHealth },
+			{ "fireResistant", z->IsFireResistant() },
 			{ "mindControlled", z->IsMindControlled() },
 			{ "inPool", z->IsInPool() },
 			{ "isEating", z->IsEating() },
@@ -1437,6 +1450,10 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["gildedZamboniCount"] = gildedZamboniCount;
 	out["poolRowZombieCount"] = poolRowZombieCount;
 	out["earlyWavePoolZombieCount"] = earlyWavePoolZombieCount;
+	out["zombieBodyHealthTotal"] = zombieBodyHealthTotal;
+	out["zombieShieldHealthTotal"] = zombieShieldHealthTotal;
+	out["slowedZombieCount"] = slowedZombieCount;
+	out["fireResistantZombieCount"] = fireResistantZombieCount;
 
 	out["plants"] = nlohmann::json::array();
 	int repeatingShootingHeadCount = 0;
@@ -1541,6 +1558,11 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	bool hasBulletX = false;
 	float minBulletX = 0.0f;
 	float maxBulletX = 0.0f;
+	int peaBulletCount = 0;
+	int snowPeaBulletCount = 0;
+	int fireballBulletCount = 0;
+	int torchwoodProtectedPeaCount = 0;
+	int animatedBulletCount = 0;
 	for (int id : board->mEntityManager.GetAllBulletIDs()) {
 		Bullet* bullet = board->mEntityManager.GetBullet(id);
 		if (!bullet) continue;
@@ -1553,6 +1575,13 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			minBulletX = std::min(minBulletX, pos.x);
 			maxBulletX = std::max(maxBulletX, pos.x);
 		}
+		if (bullet->mBulletType == BulletType::BULLET_PEA) {
+			++peaBulletCount;
+			if (bullet->GetHitTorchwoodColumn() >= 0) ++torchwoodProtectedPeaCount;
+		}
+		else if (bullet->mBulletType == BulletType::BULLET_SNOWPEA) ++snowPeaBulletCount;
+		else if (bullet->mBulletType == BulletType::BULLET_FIREBALL) ++fireballBulletCount;
+		if (bullet->HasAnimatedPresentation()) ++animatedBulletCount;
 		out["bullets"].push_back({
 			{ "id", id },
 			{ "type", static_cast<int>(bullet->mBulletType) },
@@ -1565,9 +1594,16 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "baseDamage", bullet->GetBulletDamage() },
 			{ "windDamage", bullet->GetWindAdjustedDamage() },
 			{ "threepeaterMotion", bullet->IsThreepeaterMotion() },
+			{ "hitTorchwoodColumn", bullet->GetHitTorchwoodColumn() },
+			{ "animatedPresentation", bullet->HasAnimatedPresentation() },
 		});
 	}
 	out["bulletCount"] = static_cast<int>(out["bullets"].size());
+	out["peaBulletCount"] = peaBulletCount;
+	out["snowPeaBulletCount"] = snowPeaBulletCount;
+	out["fireballBulletCount"] = fireballBulletCount;
+	out["torchwoodProtectedPeaCount"] = torchwoodProtectedPeaCount;
+	out["animatedBulletCount"] = animatedBulletCount;
 	// 绝对 X 会随测试取证时点变化；整数化相对跨度用于稳定断言同帧同速弹丸。
 	out["bulletXSpreadMilli"] = hasBulletX
 		? static_cast<int>(std::lround((maxBulletX - minBulletX) * 1000.0f)) : 0;

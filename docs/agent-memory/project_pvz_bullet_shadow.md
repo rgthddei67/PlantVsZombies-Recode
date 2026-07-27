@@ -4,7 +4,7 @@ description: Bullet 地面阴影尺寸、对象池复用和跨对象绘制顺序
 metadata:
   node_type: memory
   type: project
-  updated_at: 2026-07-19
+  updated_at: 2026-07-27
 ---
 
 # Bullet 地面阴影
@@ -14,9 +14,11 @@ metadata:
 ## C# 与视觉口径
 
 - C# `Projectile.DrawShadow`：Pea 使用 `IMAGE_PEA_SHADOWS`；Snowpea 两轴 `1.3x`；Puff 直接返回、不画影子。
+- Fireball 复用 Pea 阴影并按 C# 使用两轴 `1.4x`，X 偏移为 `0`。
 - 原分辨率 `IMAGE_PEA_SHADOWS` 为日/夜两格共 `42x9`，所以 Pea 单格按 `21x9`；Snowpea 为 `27.3x11.7`。当前没有独立 projectile shadow 资源，复用 `IMAGE_PLANTSHADOW` 并非等比缩放到上述目标尺寸。
 - X 偏移沿 C#：Pea 左边 `+3`、Snowpea 左边 `-1`。Y 经主人可见校对，中心与同一行豌豆射手默认影子一致，即 `格子中心 + 28`。
 - 对象池复用会改变 row/position，`Bullet::Reset` 必须重新执行 `UpdateShadowLayout`，不能只在构造时计算一次。
+- Torchwood 会让池内 Pea 在运行时换成 Fireball；`ConfigurePresentation` 完成换型后也必须立即重算阴影，回收复用恢复 `mPoolType` 时同理。
 
 ## 绘制与验证
 

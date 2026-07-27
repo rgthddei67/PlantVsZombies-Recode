@@ -5,6 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 9e81cc04-5ff9-4abd-a71e-4383e3968e61
+  updated_at: 2026-07-27
 ---
 
 2026-06-06 完成（用户实跑验证功能一致后 commit/push）：给 `EntityManager` 加僵尸**按行空间索引**，治掉射手类索敌的热路径反模式。
@@ -23,3 +24,7 @@ metadata:
 **未动**：`GetAllZombieIDs()` 保留（`Board` / `GameInfoSaver` 存档路径仍用）。`FindGameObjectsWithTag` 全表扫实测**零调用**，未处理。
 
 **How to apply**：本仓库再见到"`GetAll*IDs()` / `GetAllGameObjects()` 取全集 → 循环按 row/tag 过滤"立即警觉；行敏感查询优先复用 CollisionSystem 的"每帧从 mRow 重建按行桶"惯用法，别引增量钩子。
+
+## 2026-07-27 同帧新增失效契约
+
+火豌豆范围伤害 AutoTest 暴露了另一条边界：若本帧较早的查询已经构建过 `mZombiesByRow`，随后 `AddZombie` / `AddZombieWithID` 新增的僵尸在本帧后续查询中会缺席。两个新增入口现在都会把 `mRowIndexDirty` 置为 `true`；以后增加任何绕过这两个入口的实体恢复/生成路径，也必须同步保证行索引失效。同帧专项期望值从漏算时的 500 恢复为正确的 487。

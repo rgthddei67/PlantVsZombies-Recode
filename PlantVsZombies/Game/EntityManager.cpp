@@ -32,6 +32,7 @@ int EntityManager::AddZombie(std::shared_ptr<Zombie> zombie) {
 	int id = mNextZombieID++;
 	mZombies[id] = zombie;
 	zombie->mZombieID = id;
+	mRowIndexDirty = true; // 同帧生成后，火球溅射等行查询必须立即看见新僵尸
 	return id;
 }
 
@@ -186,6 +187,7 @@ int EntityManager::AddPlantWithID(std::shared_ptr<Plant> plant, int id) {
 int EntityManager::AddZombieWithID(std::shared_ptr<Zombie> zombie, int id) {
 	mZombies[id] = zombie;
 	zombie->mZombieID = id;
+	mRowIndexDirty = true;
 	if (id >= mNextZombieID) {
 		mNextZombieID = id + 1;
 	}

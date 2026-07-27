@@ -97,6 +97,11 @@
 [PLANT_SPIKEWEED_DESCRIPTION]
 地刺会伤害所有踩到他的僵尸，普通僵尸无法啃食他。冰车碾过地刺时会被扎破轮胎，但地刺也会随之消失。“交通安全，”地刺说，“要从检查轮胎开始。”
 
+[PLANT_TORCHWOOD]
+火炬树桩
+[PLANT_TORCHWOOD_DESCRIPTION]
+火炬树桩会把穿过它的普通豌豆变成伤害翻倍的火球；火球还会对附近同排僵尸造成溅射伤害。寒冰豌豆经过时会融化成普通豌豆。“我很诚实，也很忠诚，”火炬树桩说，“只是一直没学会认字。”
+
 [ZOMBIE_NORMAL]
 僵尸
 [ZOMBIE_NORMAL_DESCRIPTION]

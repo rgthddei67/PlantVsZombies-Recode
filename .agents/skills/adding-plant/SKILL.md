@@ -36,6 +36,7 @@ description: Use when adding ANY new plant (新增植物) to PvZ — 射手/生�
 9. **整株世界变换必须覆盖复合 Animator 的两条 A/B 路径**：默认路径会把根 Animator 与任意深度附件按轨道顺序递归写入 GPU `InstanceRecord`，`-NoInstance` 才整棵走矩阵慢路径；外层 `Graphics` 变换栈不会覆盖默认实例路径。应在 `Animator` 最终矩阵/`InstanceRecord` 两处统一实现世界变换，并递归同步现有与以后附加的子 Animator；AutoTest 同时断言根/子变换，默认与 `-NoInstance` 都要逐张检查截图。
 10. **C# 复合头附件要补 `inverse(basePose)`**：C# `AttachToAnotherReanimation` 的附件矩阵是父轨道当前姿态乘基准姿态逆矩阵，而本项目 `AttachAnimator` 目前只直接乘父轨道当前姿态。子 reanim 仍使用整株绝对坐标时，必须从根返回/待机轨首帧读取每条附件轨各自的基准姿态并在子 Animator 局部变换中抵消；基准旋转/缩放为单位时就是 `SetLocalPosition(-baseX, -baseY)`。不能给多个头套同一个 `gamedata` 偏移，否则某个头会与茎错位；默认和射击轨都要可见截图校对。
 11. **不可啃食植物覆写 `CanBeEaten()`，不要在僵尸索敌处堆类型表**：植物自己声明契约，普通啃食路径会统一跳过；AutoTest 同时断言植物 `canBeEaten=false`、`eaterCount=0`、僵尸 `isEating=false` 和植物生命不变，防止只有视觉没播啃食但伤害仍在结算。
+12. **只有完整时间轴、没有 `anim_*` 包装轨的循环 reanim**（如 `FirePea.reanim`）用 `SetFrameRangeToDefault()` + `Play(PLAY_REPEAT)`，不要捏造轨道名或帧事件。非等比 `SetRenderScale` 的 pivot 是**世界坐标**；命中特效应传自身绘制基点，传 `(0,0)` 会把整个特效按比例拉向屏幕左上角。
 
 ## 存读档心智清单（AutoTest 测不到，只能靠脑内过一遍）
 
@@ -62,7 +63,7 @@ AutoTest 模式存档读写被短路 = **盲区**；写完必须逐条自查，�
 | **全场即时结算**（寒冰菇式） | `IceShroom`（帧事件→音效+白闪+逐行结算→`Die()`，仿 CherryBomb 骨架） | 全屏特效走 GameScene `ShowScreenFlash`/RegisterDrawCommand；**isPreview 特判否则图鉴也结算**（主人叮嘱） |
 | **格子占用系统**（弹坑/墓碑类） | `Crater`（毁灭菇弹坑，阻种 180s） | 轻量 GameObject（Trophy 先例，LAYER_GAME_OBJECT=背景上植物下）+Board weak_ptr 簿记+存档数组（旧档兼容=无字段则空）；**占格判定有两处独立口径都要改**：`CanPlaceInCell`（阻种）+`UpdatePlantPreviewPosition`（落点预览隐藏——漏改=悬停占用格仍显示预览，主人验收抓出）；AutoTest `plant` op 直连 CreatePlant **绕过闸门**，测阻种必须走 `click` 真实路径 + 旁格对照组防假阴 |
 | **引爆倒计时无敌** | CherryBomb / DoomShroom 的 `TakeDamage` 覆写 | 只 `SetGlowingTimer(0.1f)` 不掉血；**有睡觉态的要放行睡觉分支**（白天=普通蘑菇照常被啃，毁灭菇实证） |
-| **新子弹** | `Game/Bullet/PuffBullet.h` | `BulletType` 枚举 + BulletPool 对象池 + 命中粒子 `EmitEffect` |
+| **新子弹/运行时变种** | `PuffBullet`；Torchwood→FirePea | `BulletType` + BulletPool；动画子弹可在 `Bullet` 组合独立 Animator，但命中语义必须按“当前类型”分派，不能依赖分配时的 C++ 子类 |
 | **新粒子特效/染色变种** | IceFumeCloud（寒冰大喷菇） | XML 标签全参考在 **adding-particle skill**，勿再读 ParticleSystem 源码 |
 | **TakeDamage 类钩子** | FumeShroom 的 `penetrateShield` 参数 | 穿透只对二类护盾（门/报纸），不穿头盔；改签名先看全部调用点 |
 | **即时/范围结算** | CherryBomb/大喷菇锥形 | 帧事件触发结算帧（帧号问主人），范围判定用行桶不全扫 |
@@ -82,11 +83,19 @@ AutoTest 模式存档读写被短路 = **盲区**；写完必须逐条自查，�
 10. **豁免语义连伤害一起豁免**：原版 HitIceTrap 的 20 伤害在免疫判定**之后**——魅惑/跳跃中撑杆连血都不掉。把"伤害+状态"整体放进 StartXxx()，别在植物侧拆开无差别结算。
 11. **dump_state 加字段 + assert**（仿 `slowCooldown`/`frozen`/`armVisible`），否则 AutoTest 对新状态是瞎的。浮点计时器另配一个 bool 投影字段供 equals。
 
+**动画子弹与对象池附加清单**（Torchwood/FirePea 实证）：
+
+1. 对象池槽位保留不可变的“分配类型”，另存可变的“当前类型”；`Reset()` 必须恢复类型、基础伤害、转换防重标记、纹理/Animator、速度和阴影。否则点燃过的 Pea 槽位会以 Fireball 身份污染下一发。
+2. Animator 组合要镜像 `AnimatedObject` 的并行推进握手：`UpdateParallelDeferred` 成功后串行 `Update` 只清标记，没走并行时才回退 `Animator::Update()`；Draw 直接走 Animator，默认实例化与 `-NoInstance` 都要截图。
+3. 存档保存“当前类型”和会影响后续转换的防重字段；读档仍由 `BulletPool::AcquireShared` 创建，**不得把 `mFromPool` 改回 false**，否则死亡后池槽仍标 active 且无法复用。
+4. 同帧 AutoTest 可能先构建行索引再 `spawn_zombie`；`EntityManager::AddZombie/AddZombieWithID` 必须置 `mRowIndexDirty=true`，否则随后同帧的范围弹只看见旧桶。
+5. `dump_state` 为类型数量、动画表现和防重状态加聚合整数抓手；不要依赖 `unordered_map` 导出的 `bullets.N` 顺序。运动弹仍断言相对量，不断言绝对 X/Y。
+
 这类跨系统植物**不走"简短 spec 直实现"捷径**：回到完整 brainstorm（交互矩阵逐项问主人）→spec→必要时 writing-plans。
 
 ## 流程与模板
 
-纯植物侧的小套路：brainstorm 问清关键项→简短 spec 存 `docs/superpowers/specs/`→直接实现（不必单独 writing-plans）。模板：`2026-07-08-scaredyshroom-design.md`。commit 由 Codex 做、push 等主人发话。
+纯植物侧的小套路：brainstorm 问清关键项→简短 spec 存 `docs/superpowers/specs/`→直接实现（不必单独 writing-plans）。模板：`2026-07-08-scaredyshroom-design.md`。完成并验证后由 Codex 提交，再按仓库风险、工作区状态和上游是否明确决定是否常规 push。
 
 **每次完成并验证任何植物新增或实质修改后，必须在提交前完善本 skill**：把本次实际暴露的新坐标换算、交互契约、foot-gun 或验证手法浓缩进相关章节；已有规则则合并强化，不堆一次性日志。任务同时修改粒子、僵尸或天气时，也同步完善本次实际使用的对应 skill。更新后运行 skill-creator 的 `quick_validate.py` 校验全部改动过的 skill。
 
