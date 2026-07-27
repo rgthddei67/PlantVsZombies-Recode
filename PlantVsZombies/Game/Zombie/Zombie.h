@@ -77,6 +77,7 @@ private:
 	float mCheckPositionTimer = 0.0f;
 	float mSubHealthTimer = 0.0f;	
 	float mDyingTimer = 0.0f;	// mIsDying 持续时间，超过 10s 强制 Die 防止卡 BUG
+	float mCheckGoldenIceTimer = 0.0f;	// 每秒检查一次黄色冰道速度场层数，避免每帧都查 EntityManager
 
 public:
 	Zombie(Board* board, ZombieType zombieType, float x, float y, int row,

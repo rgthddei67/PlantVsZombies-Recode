@@ -391,7 +391,13 @@ void Zombie::Update()
 		// 入水状态是通用介质状态：冻结或啃食期间也要跟随阵风后的实际位置更新。
 		if (!mIsDying) UpdatePoolState();
 		// 黄色冰道可能在本帧延伸、消失，或被阵风跨越；在冻结/啃食早退前刷新速度场边沿。
-		RefreshGoldenIceSpeedState();
+
+		mCheckGoldenIceTimer += deltaTime;
+		if (mCheckGoldenIceTimer >= 0.4f)
+		{
+			mCheckGoldenIceTimer = 0.0f;
+			RefreshGoldenIceSpeedState();
+		}
 
 		if (!mHasHead)
 		{
