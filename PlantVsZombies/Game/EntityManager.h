@@ -8,6 +8,7 @@
 
 class Plant;
 class Zombie;
+class GildedZamboniZombie;
 class Coin;
 class Bullet;
 class Mower;
@@ -70,6 +71,14 @@ public:
 		for (Zombie* z : mZombiesByRow[row]) fn(z);
 	}
 
+	// 遍历本帧仍可作为黄色冰道来源的鎏金冰车；候选集只含该品种，不再让每只僵尸扫描相邻行全体。
+	// fn 签名为 void(GildedZamboniZombie*)；调用方仍须在回调内复核同帧发生的死亡/失活边沿。
+	template<typename Fn>
+	void ForEachGoldenIceSource(Fn&& fn) {
+		EnsureGoldenIceSourceSnapshot();
+		for (const auto& source : mGoldenIceSourceSnapshot) fn(source.get());
+	}
+
 private:
 	// 每 N 帧做一次"重表"全扫；植物表始终每帧扫
 	static constexpr int CLEANUP_FULL_INTERVAL = 30;
@@ -94,6 +103,16 @@ private:
 	std::array<std::vector<Zombie*>, kMaxRows> mZombiesByRow;
 	bool mRowIndexDirty = true;  // 每帧由 CleanupExpired 置脏；首次 ForEachZombieInRow 查询时重建
 	void EnsureZombieRowIndex();
+
+	// ── 黄色冰道独立来源索引（瞬态、每帧惰性快照）──
+	// 弱索引按实体 ID 覆盖普通生成与读档恢复；快照用 shared_ptr 把回调期间的来源生命周期钉住。
+	std::unordered_map<int, std::weak_ptr<GildedZamboniZombie>> mGoldenIceSources;
+	std::vector<std::shared_ptr<GildedZamboniZombie>> mGoldenIceSourceSnapshot;
+	bool mGoldenIceSourceSnapshotDirty = true;
+	/** 登记或覆盖指定 ID 的鎏金冰车来源；非鎏金类型会撤销同 ID 的旧登记。 */
+	void TrackGoldenIceSource(int id, const std::shared_ptr<Zombie>& zombie);
+	/** 从专用弱索引生成本帧活跃来源快照，不扫描全体僵尸。 */
+	void EnsureGoldenIceSourceSnapshot();
 };
 
 #endif

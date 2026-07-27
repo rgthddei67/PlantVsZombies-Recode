@@ -1,6 +1,7 @@
 #include "EntityManager.h"
 #include "Plant/Plant.h"
 #include "Zombie/Zombie.h"
+#include "Zombie/GildedZamboniZombie.h"
 #include "Bullet/Bullet.h"
 #include "Coin.h"
 #include "LawnMower.h"
@@ -33,6 +34,7 @@ int EntityManager::AddZombie(std::shared_ptr<Zombie> zombie) {
 	mZombies[id] = zombie;
 	zombie->mZombieID = id;
 	mRowIndexDirty = true; // 同帧生成后，火球溅射等行查询必须立即看见新僵尸
+	TrackGoldenIceSource(id, zombie);
 	return id;
 }
 
@@ -120,12 +122,44 @@ void EntityManager::EnsureZombieRowIndex() {
 	mRowIndexDirty = false;
 }
 
+void EntityManager::TrackGoldenIceSource(
+	int id, const std::shared_ptr<Zombie>& zombie)
+{
+	if (auto gilded = std::dynamic_pointer_cast<GildedZamboniZombie>(zombie)) {
+		mGoldenIceSources[id] = gilded;
+		mGoldenIceSourceSnapshotDirty = true;
+	}
+	else if (mGoldenIceSources.erase(id) > 0) {
+		mGoldenIceSourceSnapshotDirty = true;
+	}
+}
+
+void EntityManager::EnsureGoldenIceSourceSnapshot()
+{
+	if (!mGoldenIceSourceSnapshotDirty) return;
+
+	mGoldenIceSourceSnapshot.clear();
+	mGoldenIceSourceSnapshot.reserve(mGoldenIceSources.size());
+	for (const auto& pair : mGoldenIceSources) {
+		if (auto source = pair.second.lock()) {
+			// 与行索引保持相同候选契约；回调还会复核同帧晚些时候发生的状态切换。
+			if (source->IsActive() && !source->IsDying()) {
+				mGoldenIceSourceSnapshot.push_back(std::move(source));
+			}
+		}
+	}
+	mGoldenIceSourceSnapshotDirty = false;
+}
+
 std::vector<int> EntityManager::CleanupExpired() {
 	std::vector<int> removedPlants;
 
 	// 每帧标脏：僵尸的增/删/换行都会改变按行分布，统一靠"下一帧首次查询时重建"兜住，
 	// 无需在 Add/Die/换行各处接线（重建只在真的有人 ForEachZombieInRow 查询的帧才触发）。
 	mRowIndexDirty = true;
+	// 释放上一帧的强引用并让首个黄色冰道查询从专用弱索引重建安全快照。
+	mGoldenIceSourceSnapshot.clear();
+	mGoldenIceSourceSnapshotDirty = true;
 
 	// 清理植物：每帧扫，返回值用于 Board cell 同步（需准实时）
 	for (auto it = mPlants.begin(); it != mPlants.end(); ) {
@@ -147,6 +181,15 @@ std::vector<int> EntityManager::CleanupExpired() {
 		for (auto it = mZombies.begin(); it != mZombies.end(); ) {
 			if (it->second.expired()) {
 				it = mZombies.erase(it);
+			}
+			else {
+				++it;
+			}
+		}
+
+		for (auto it = mGoldenIceSources.begin(); it != mGoldenIceSources.end(); ) {
+			if (it->second.expired()) {
+				it = mGoldenIceSources.erase(it);
 			}
 			else {
 				++it;
@@ -188,6 +231,7 @@ int EntityManager::AddZombieWithID(std::shared_ptr<Zombie> zombie, int id) {
 	mZombies[id] = zombie;
 	zombie->mZombieID = id;
 	mRowIndexDirty = true;
+	TrackGoldenIceSource(id, zombie);
 	if (id >= mNextZombieID) {
 		mNextZombieID = id + 1;
 	}

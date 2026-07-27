@@ -8,7 +8,7 @@
 - [僵尸图鉴随冒险进度解锁](project_pvz_zombie_almanac_progression.md) — 2026-07-27 图鉴累计 `mAdventureLevel - 1` 之前已通关关卡的 `spawnlists.json` 并按首次遭遇排序，当前关不提前泄露；舞王显式带出 `weight: 0` 伴舞；概率变异精英舞王只在正式实体创建成功后写 PlayerInfo 永久遭遇标记并额外解锁，直造/预览/读档不误记
 - [经典地刺](project_pvz_caltrop.md) — 2026-07-26 `PLANT_SPIKEWEED` 由 `Caltrop` 实装：免普通啃食，18fps 攻击动画在主人指定全局第25帧结算30px窄攻击带20伤害；水路禁种、最后地形保留集中入口且当前按普通地面；冰车虚事件触发扁胎、TirePop、轮胎碎屑/烟雾、wheelie特殊动画与2.8秒延时爆炸，为精英冰车覆写留底；可见专项与冰车回归通过
 - [冰车僵尸与冰道](project_pvz_zamboni_zombie.md) — 2026-07-26 原版冰车 1350 HP、右侧高速入场后减速、碾压植物、两段破损与二段烟雾；速度曲线以普通场景 `CELL_INITALIZE_POS_X` 为基准，屋顶留独立未核实入口；免疫寒冰且不会误播减速音效；碰撞/碾压/冰道统一锚定稳定视觉原点，低血量抖动±0.35px，烟雾相对视觉原点(-41,+95)；冰道出生即激活并铺到1100px右缘；普通死亡生成专属粒子，灰烬0.9且第53帧移除；地刺虚事件已接入扁胎音画与2.8秒延时死亡，雪橇小队枚举已删除；3-5 已接入并通过双Clang构建与可见专项 AutoTest
-- [鎏金冰车僵尸与黄色冰道](project_pvz_gilded_zamboni.md) — 2026-07-26 `ZOMBIE_GILDED_ZAMBONI`：2200 HP、基础驱动0.72、同波最多1只；本行及相邻陆路铺30秒黄色冰道并跨三行碾压，水路只压不铺；黄色覆盖普通冰道显示并禁种；每个活跃来源把能力/寒冰/雨势/台风的非中性倍率按加速×2、减速÷2逐层强化，重叠来源可互相和共同加速，蓄势基础为6/10/14秒×2/×4/×8、受伤归零且场地强化后仍封顶×8；地刺100、大嘴花50且均不触发普通秒杀；24关3-6与宝开式图鉴已接入；死亡使用独立鎏金车辆碎片与金色爆炸云
+- [鎏金冰车僵尸与黄色冰道](project_pvz_gilded_zamboni.md) — 2026-07-27 `ZOMBIE_GILDED_ZAMBONI`：2200 HP、基础驱动0.72、同波最多1只；本行及相邻陆路铺35秒黄色冰道并跨三行碾压，水路只压不铺；黄色覆盖普通冰道显示并禁种；每个活跃来源把能力/寒冰/雨势/台风的非中性倍率按加速×2、减速÷2逐层强化，重叠来源可互相和共同加速，蓄势基础为6/10/14秒×2/×4/×8、受伤归零且场地强化后仍封顶×8；地刺100、大嘴花50且均不触发普通秒杀；24关3-6与宝开式图鉴已接入；死亡使用独立鎏金车辆碎片与金色爆炸云；来源专用弱索引/强快照已消除每只僵尸的相邻行全量扫描，并保持死亡后持久黄冰回退
 - [三线射手](project_pvz_threepeater.md) — 2026-07-24 三头视觉帧29/73/111，但按 C# 集中计数器只在帧73同帧创建三弹；逐头补 `inverse(basePose)`；顶/底越界弹折回本行且360/290px/s差速；斜向初速按地图行高缩放（草地300、泳池255px/s），水路僵尸碰撞框脱离+25px美术下沉；本次按主人要求只编译、不跑AutoTest
 - [火爆辣椒](project_pvz_jalapeno.md) — 2026-07-26 使用主人裁剪的0..19帧本体，第19帧引爆；12段火焰从`CELL_INITALIZE_POS_X`横铺750px并在第12帧消失；整行非魅惑目标先解冻/解减速再走1800灰烬伤害，水路保持水中死亡且睡莲不受影响；冰车合入后会把同行冰道剩余寿命压到0.2秒；双Clang预设及可见专项AutoTest通过
 - [缠绕水草](project_pvz_tanglekelp.md) — 2026-07-24 仅空水格直种且占普通层，25阳光/30秒冷却；普通目标按 C# 99→51→21→0cs 抓取拖沉；持门加固铁门改为原地保持 `anim_grab` 5秒后获释且仅水草死亡，掉门后恢复普通规则；一对一锁定、抗性扩展点与存档迁移已接入，首版专项 AutoTest 74 条全绿，本次扩展按主人要求仅双 preset 编译
@@ -94,7 +94,7 @@
 - [改进backlog](project_pvz_improvement_backlog.md) — 2026-05-31剩#2数值JSON化#3 RAII#5测试#6魔法数字#8 inline误用;#1工厂✅#4日志✅#7 Vector加explicit✅(Vector=位置词汇类型602处不全改vec2)
 - [统一日志系统 ✅#4](project_pvz_logging_system.md) — 2026-06-06 Logger.h/.cpp流式带级别宏;Debug五级/Release裁到WARN+ERROR;迁~193 cout+29 fprintf;扩展只改Logger.cpp::Write
 - [注册式工厂 ✅#1](project_pvz_factory_registry.md) — 2026-05-31消除两Instantiate switch→GameDataManager数据驱动(函数指针factory字段);函数指针非std::function/集中注册;指引在InitializeHardcodedData顶部
-- [僵尸按行索引 ✅](project_pvz_zombie_row_index.md) — 2026-06-06 EntityManager加ForEachZombieInRow替GetAllZombieIDs全表扫;惰性每帧重建(CleanupExpired标脏);foot-gun=取全集再过滤
+- [僵尸按行索引 ✅](project_pvz_zombie_row_index.md) — 2026-07-27 EntityManager加ForEachZombieInRow替GetAllZombieIDs全表扫；通用桶仍惰性每帧重建以承接任意换行，同帧新增会置脏；黄色冰道稀有来源查询已脱钩为品种专用索引，不再强制每帧建桶；foot-gun=取全集再过滤
 - [vcpkg缓存删除代价](feedback_vcpkg_cache_deletion.md) — vcpkg-master整目录不能删(toolchainFile指向);"可再生"≠"删了免费"(重装全量联网);清缓存前确认不reconfigure
 - [生存词条系统](project_pvz_perk_system.md) — 2026-07-20 共10词条(6植4僵)：阵营增伤由必填 `DamageSource` 在双方 `TakeDamage` 按来源结算，承伤词条仍覆盖所有来源；每轮2次独立选择，共享3次整批刷新；词条页退出存档避免重进叠卡
 - [资产/worktree/AutoTest坑](reference_pvz_assets_worktree_autotest_gotchas.md) — ①clang-release持有单份resources/font，playtest/debug用Junction；新worktree只需补一次权威原版资产 ②AutoTest wait字段名是"value"非frames ③状态切换后settle>30帧 ④蘑菇夜测goto 10-18 ⑤产阳光验证看dump sun字段

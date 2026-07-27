@@ -581,17 +581,18 @@ int Zombie::ComputeGoldenIceEffectStacks() const
 
 	int stacks = 0;
 	const bool targetIsGilded = dynamic_cast<const GildedZamboniZombie*>(this) != nullptr;
-	for (int sourceRow = std::max(0, mRow - 1);
-		sourceRow <= std::min(mBoard->mRows - 1, mRow + 1); ++sourceRow) {
-		mBoard->mEntityManager.ForEachZombieInRow(sourceRow, [&](Zombie* candidate) {
-			auto* gilded = dynamic_cast<GildedZamboniZombie*>(candidate);
-			if (!gilded || !gilded->IsActive() || gilded->IsDying()) return;
+	const int firstSourceRow = std::max(0, mRow - 1);
+	const int lastSourceRow = std::min(mBoard->mRows - 1, mRow + 1);
+	mBoard->mEntityManager.ForEachGoldenIceSource(
+		[&](GildedZamboniZombie* gilded) {
+			if (!gilded || gilded->mRow < firstSourceRow
+				|| gilded->mRow > lastSourceRow
+				|| !gilded->IsActive() || gilded->IsDying()) return;
 			if (gilded->ProvidesGoldenIceEffectAt(
 				mRow, GetPosition().x, targetIsGilded)) {
 				++stacks;
 			}
 		});
-	}
 
 	// 车辆死亡后黄色冰道仍保留 35 秒；失去来源身份后继续作为一层非叠加速度场。
 	if (stacks == 0 && (IsAlwaysAffectedByGoldenIce()

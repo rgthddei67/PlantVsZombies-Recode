@@ -15,7 +15,7 @@ metadata:
 AutoTest 的显式直造不消耗额度。冒险 3-6（level 24）为 20 波
 `{normal, cone, bucket, zamboni, gilded zamboni}`。
 
-车辆在本行与相邻两行碾压植物，包含相邻水路；黄色冰道只铺在非水路并保持 30 秒。
+车辆在本行与相邻两行碾压植物，包含相邻水路；黄色冰道只铺在非水路并保持 35 秒。
 Board 分行保存黄色左缘/寿命，旧档缺字段为空；黄色与普通冰道重叠时先截短普通段再绘制
 黄色段，因此玩家只看到黄色，且两者都禁止种植。
 
@@ -55,5 +55,24 @@ Board 分行保存黄色左缘/寿命，旧档缺字段为空；黄色与普通�
 `GildedZamboniExplosion`：车盖、车轮和滚刷全部引用鎏金 reanim 贴图，两层爆炸云也改为
 金黄色；普通冰车继续保持原蓝色效果。本次仍按主人要求不运行 AutoTest，只做构建与
 XML/资源键静态校验，最终视觉由主人复验。
+
+## 2026-07-27 黄色冰道来源专用索引
+
+`Zombie::ComputeGoldenIceEffectStacks()` 原先由每只僵尸逐帧查询本行及相邻行：
+首个 `ForEachZombieInRow()` 会在 `CleanupExpired()` 标脏后扫描全体僵尸重建行桶，
+随后还要遍历三行候选并逐个 `dynamic_cast`。即使场上没有鎏金冰车，这项能力也会把
+通用行索引拉进每帧热路径。
+
+现在 `EntityManager` 在 `AddZombie()` 与 `AddZombieWithID()` 统一登记鎏金冰车的
+ID→弱引用专用索引，每帧首查只从这张稀疏表生成活跃来源强引用快照；
+`CleanupExpired()` 每帧释放快照，并随原有 30 帧清理周期裁掉过期弱引用。
+目标仍即时复核来源当前行、活跃/死亡状态及 `ProvidesGoldenIceEffectAt()` 的精确覆盖，
+零活跃来源时的 Board 持久黄冰回退也保持不变，因此进入、离开、来源死亡、范围变化和
+多来源叠层语义未改变。复杂度从每目标扫描三行僵尸降为每目标只扫鎏金来源数，
+并且该能力不再触发通用行索引重建；通用行索引的每帧标脏契约本身未修改。
+
+`clang-playtest` 零警告构建通过。可见 `smoke_gilded_zamboni.json` 以 Seed 42 退出码 0；
+新增用例确认跨相邻行两来源为 2 层、逐个击杀后依次变为 1 层，最后活跃来源清零时仍由
+35 秒持久黄冰提供 1 层，`run.log` 以 `script finished OK` 结束。
 
 详细设计见 `docs/superpowers/specs/2026-07-26-gilded-zamboni-design.md`。
