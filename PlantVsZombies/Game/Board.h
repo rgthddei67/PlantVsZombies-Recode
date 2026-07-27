@@ -449,6 +449,8 @@ public:
 	ZombieType ResolveRainMutationType(ZombieType selected, int mutationRoll = 0);
 	/** 正式波次总解析入口；超过类型上限返回 NUM_ZOMBIE_TYPES，调用方必须跳过候选。 */
 	ZombieType ResolveWaveZombieType(ZombieType selected, int mutationRoll = 0);
+	/** 创建已解析的正式波次类型；成功后记录依赖实际出生的永久遭遇。 */
+	Zombie* CreateResolvedWaveZombie(ZombieType actualType, int row, float x);
 
 	// 初始化格子 默认5行9列
 	void InitializeCell(int rows = 4, int cols = 8);

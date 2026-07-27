@@ -619,8 +619,7 @@ bool TestDriver::ExecuteCurrent() {
 			Fail("spawn_wave_zombie: 目标行与正式地形规则不兼容");
 			return false;
 		}
-		const ZombieType terrainType = board->ResolveTerrainZombieType(actual, row);
-		if (!board->CreateZombie(terrainType, row, cmd.value("x", 900.0f))) {
+		if (!board->CreateResolvedWaveZombie(actual, row, cmd.value("x", 900.0f))) {
 			Fail("spawn_wave_zombie: CreateZombie 返回空");
 			return false;
 		}
@@ -974,6 +973,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	auto& gameApp = GameAPP::GetInstance();
 	out["scene"] = currentScene->name;
 	out["adventureLevel"] = gameApp.mAdventureLevel;
+	out["encounteredEliteDancer"] = gameApp.HasEncounteredEliteDancer();
 
 	if (auto* almanac = dynamic_cast<ZombieAlmanacScene*>(currentScene)) {
 		out["zombieAlmanacEntries"] = nlohmann::json::array();

@@ -56,6 +56,17 @@ GameAPP& GameAPP::GetInstance()
 	return instance;
 }
 
+void GameAPP::RecordEliteDancerEncounter()
+{
+	if (mEncounteredEliteDancer) return;
+
+	mEncounteredEliteDancer = true;
+	// 首次遭遇是低频永久进度；当场保存可避免玩家在离开关卡前退出而丢失解锁。
+	if (!mGameInfoSaver.SavePlayerInfo()) {
+		LOG_ERROR("GameApp") << "无法立即保存精英舞王遭遇记录，将在后续存档时重试。";
+	}
+}
+
 bool GameAPP::InitializeSDL()
 {
 	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0)

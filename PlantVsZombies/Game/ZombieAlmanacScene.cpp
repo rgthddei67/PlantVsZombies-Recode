@@ -105,16 +105,10 @@ void ZombieAlmanacScene::BuildDrawCommands()
 std::vector<ZombieType> ZombieAlmanacScene::LoadEncounteredZombieTypes() const
 {
 	std::vector<ZombieType> encounteredTypes;
+	auto& gameApp = GameAPP::GetInstance();
 	const int completedThrough = std::min(
-		GameAPP::GetInstance().mAdventureLevel - 1,
+		gameApp.mAdventureLevel - 1,
 		AdventureProgression::LAST_ADVENTURE_LEVEL);
-	if (completedThrough < 1) return encounteredTypes;
-
-	nlohmann::json spawnLists;
-	if (!FileManager::LoadJsonFile("./resources/spawnlists.json", spawnLists)
-		|| !spawnLists.is_array()) {
-		return encounteredTypes;
-	}
 
 	auto& gameData = GameDataManager::GetInstance();
 	std::array<bool, static_cast<std::size_t>(ZombieType::NUM_ZOMBIE_TYPES)> seen{};
@@ -125,38 +119,48 @@ std::vector<ZombieType> ZombieAlmanacScene::LoadEncounteredZombieTypes() const
 		encounteredTypes.push_back(type);
 	};
 
-	// 当前关不计入：玩家只有通关后才必然见过该关池中的僵尸。
-	// 按关卡递增而不是依赖 JSON 文件顺序，使网格始终保持首次遭遇顺序。
-	for (int completedLevel = 1; completedLevel <= completedThrough; ++completedLevel) {
-		for (const auto& entry : spawnLists) {
-			if (!entry.is_object()) continue;
-			auto levelIt = entry.find("level");
-			if (levelIt == entry.end() || !levelIt->is_number_integer()
-				|| levelIt->get<int>() != completedLevel) {
-				continue;
-			}
-
-			auto zombiesIt = entry.find("zombies");
-			if (zombiesIt == entry.end() || !zombiesIt->is_array()) break;
-			for (const auto& value : *zombiesIt) {
-				if (!value.is_number_integer()) continue;
-				const int rawType = value.get<int>();
-				if (rawType < 0
-					|| rawType >= static_cast<int>(ZombieType::NUM_ZOMBIE_TYPES)) {
+	nlohmann::json spawnLists;
+	if (completedThrough >= 1
+		&& FileManager::LoadJsonFile("./resources/spawnlists.json", spawnLists)
+		&& spawnLists.is_array()) {
+		// 当前关不计入：玩家只有通关后才必然见过该关池中的僵尸。
+		// 按关卡递增而不是依赖 JSON 文件顺序，使网格始终保持首次遭遇顺序。
+		for (int completedLevel = 1; completedLevel <= completedThrough; ++completedLevel) {
+			for (const auto& entry : spawnLists) {
+				if (!entry.is_object()) continue;
+				auto levelIt = entry.find("level");
+				if (levelIt == entry.end() || !levelIt->is_number_integer()
+					|| levelIt->get<int>() != completedLevel) {
 					continue;
 				}
 
-				const ZombieType type = static_cast<ZombieType>(rawType);
-				appendType(type);
+				auto zombiesIt = entry.find("zombies");
+				if (zombiesIt == entry.end() || !zombiesIt->is_array()) break;
+				for (const auto& value : *zombiesIt) {
+					if (!value.is_number_integer()) continue;
+					const int rawType = value.get<int>();
+					if (rawType < 0
+						|| rawType >= static_cast<int>(ZombieType::NUM_ZOMBIE_TYPES)) {
+						continue;
+					}
 
-				// 伴舞不会直接进入随机池，但玩家遇到舞王时必然会见到它。
-				if (type == ZombieType::ZOMBIE_DANCER
-					|| type == ZombieType::ZOMBIE_ELITE_DANCER) {
-					appendType(ZombieType::ZOMBIE_BACKUP_DANCER);
+					const ZombieType type = static_cast<ZombieType>(rawType);
+					appendType(type);
+
+					// 伴舞不会直接进入随机池，但玩家遇到舞王时必然会见到它。
+					if (type == ZombieType::ZOMBIE_DANCER
+						|| type == ZombieType::ZOMBIE_ELITE_DANCER) {
+						appendType(ZombieType::ZOMBIE_BACKUP_DANCER);
+					}
 				}
+				break;
 			}
-			break;
 		}
+	}
+
+	// 精英舞王是概率天气变异，不能由 spawnlist 推断；只合并实际出生后写入的永久记录。
+	if (gameApp.HasEncounteredEliteDancer()) {
+		appendType(ZombieType::ZOMBIE_ELITE_DANCER);
 	}
 
 	return encounteredTypes;

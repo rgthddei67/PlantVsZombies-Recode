@@ -43,7 +43,7 @@
     "ZOMBIE_POOL_CONE":       { "weight": 0, "appearWave": 3, "survivalRound": 2, "offset": [-50.0, -85.0], "scale": 1.0 },
     "ZOMBIE_POOL_BUCKET":     { "weight": 0, "appearWave": 5, "survivalRound": 3, "offset": [-50.0, -85.0], "scale": 1.0 },
     "ZOMBIE_ELITE_POLEVAULTER": { "weight": 2300, "appearWave": 6, "survivalRound": 5, "offset": [-50.0, -85.0], "scale": 1.0 },
-    "ZOMBIE_ZAMBONI":            { "weight": 2000, "appearWave": 10, "survivalRound": 7, "offset": [18.0, -108.0], "scale": 1.0 },
-    "ZOMBIE_GILDED_ZAMBONI":     { "weight": 3200, "appearWave": 8, "survivalRound": 8, "offset": [18.0, -108.0], "scale": 1.0 }
+    "ZOMBIE_ZAMBONI":            { "weight": 2000, "appearWave": 8, "survivalRound": 7, "offset": [18.0, -108.0], "scale": 1.0 },
+    "ZOMBIE_GILDED_ZAMBONI":     { "weight": 3200, "appearWave": 9, "survivalRound": 8, "offset": [18.0, -108.0], "scale": 1.0 }
   }
 }

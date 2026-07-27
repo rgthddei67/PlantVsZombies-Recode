@@ -1,0 +1,38 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 10 },
+    { "op": "choose_cards", "cards": ["PLANT_PEASHOOTER"] },
+    { "op": "wait_state", "state": "GAME", "timeout": 15 },
+    { "op": "assert_state", "path": "encounteredEliteDancer", "equals": false },
+
+    { "op": "spawn_zombie", "type": "ZOMBIE_ELITE_DANCER", "row": 3, "x": 900 },
+    { "op": "assert_state", "path": "encounteredEliteDancer", "equals": false },
+
+    { "op": "set_weather", "intensity": "HEAVY", "duration": 90 },
+    { "op": "set_typhoon", "strength": "SEVERE", "direction": "HOUSE", "gustIn": 30, "directionIn": 30, "gustsRemaining": 0, "decayIn": 60 },
+    { "op": "spawn_wave_zombie", "type": "ZOMBIE_DANCER", "mutationRoll": 50, "row": 2, "x": 900 },
+    { "op": "assert_state", "path": "zombies.1.type", "equals": "ZOMBIE_ELITE_DANCER" },
+    { "op": "assert_state", "path": "encounteredEliteDancer", "equals": true },
+
+    { "op": "key", "name": "escape" },
+    { "op": "wait_frames", "value": 5 },
+    { "op": "move_mouse", "x": 580, "y": 311 },
+    { "op": "wait_frames", "value": 3 },
+    { "op": "click", "x": 580, "y": 311, "hold_frames": 2 },
+    { "op": "wait_frames", "value": 30 },
+    { "op": "move_mouse", "x": 740, "y": 393 },
+    { "op": "wait_frames", "value": 3 },
+    { "op": "click", "x": 740, "y": 393, "hold_frames": 2 },
+    { "op": "wait_frames", "value": 30 },
+
+    { "op": "assert_state", "path": "scene", "equals": "ZombieAlmanacScene" },
+    { "op": "assert_state", "path": "adventureLevel", "equals": 1 },
+    { "op": "assert_state", "path": "encounteredEliteDancer", "equals": true },
+    { "op": "assert_state", "path": "zombieAlmanacEntryCount", "equals": 1 },
+    { "op": "assert_state", "path": "zombieAlmanacEntries.0", "equals": "ZOMBIE_ELITE_DANCER" },
+    { "op": "assert_state", "path": "zombieAlmanacSelected", "equals": "ZOMBIE_ELITE_DANCER" },
+    { "op": "dump_state", "name": "state.json" },
+    { "op": "screenshot", "name": "elite_dancer_unlocked.png" },
+    { "op": "quit" }
+  ]
+}

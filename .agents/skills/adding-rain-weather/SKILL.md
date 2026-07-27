@@ -49,6 +49,7 @@ description: Use when adding or tuning ANY rain-weather-dependent feature in PvZ
 - 僵尸动画速度统一经 `Zombie::UpdateAnimSpeed()` 收敛：`mExtraSpeed × slowFactor × rain`，冻结优先为 0。禁止用 `SetExtraSpeedMultiplier` 绕开它。
 - 场地效果若宣称“逐因子强化加速与减速”，对能力、寒冰、雨势和台风等每个非中性倍率分别变换后再相乘；当前鎏金冰道的主人定案为每层让加速倍率乘二（`1.4→2.8`）、减速倍率除二（`0.6→0.3`），中性 `1.0` 不变。手动改 X 的车辆也必须消费同一结果，不能只放大动画。允许重叠时按独立活跃来源逐层变换，并在进入、离开、来源死亡或范围变化时刷新。
 - 雨天出生变异不要塞进通用 `CreateZombie()`：该入口也被 AutoTest 显式生成和其他玩法调用。默认在 `TrySummonZombie()` 中对 `selected` 解析为实际类型；`CreateZombieWithID()` 永不重新变异。
+- 若图鉴或成就依赖“实际刷出”的概率变异，记录点必须位于正式实际类型成功创建之后，不能放在解析器命中时：超额候选、地形拒绝或创建失败都不算遭遇。永久账号进度存 `PlayerInfo.json`，不要混入 Board 关卡存档；AutoTest 只断言内存标记并源码审查磁盘契约。
 - 不要按天气改写持久的 `mSpawnZombieList`。生存模式会保存该列表，预览僵尸也使用它；天气变异应是波次生成时的一次性解析。
 - 随机变异只 roll 一次，并把实际类型或结果标志保存。禁止在 `Update()`、绘制、读档或每次技能检查中重 roll。
 - 若改动真实天气转移，必须同步 `BuildPlausibleForecasts()`；公开错误预报只能来自真实可达候选，无候选时强制报准。

@@ -188,6 +188,7 @@ bool GameInfoSaver::SavePlayerInfoImpl()
 	j["fullscreen"] = gameApp.mFullscreen;
 	j["difficulty"] = gameApp.Difficulty;
 	j["adventureLevel"] = gameApp.mAdventureLevel;
+	j["encounteredEliteDancer"] = gameApp.mEncounteredEliteDancer;
 	j["showPlantHP"] = gameApp.mShowPlantHP;
 	j["showZombieHP"] = gameApp.mShowZombieHP;
 	j["autoCollected"] = gameApp.mAutoCollected;
@@ -211,6 +212,7 @@ bool GameInfoSaver::LoadPlayerInfoImpl()
 	gameApp.mFullscreen = j.value("fullscreen", false);
 	gameApp.Difficulty = j.value("difficulty", 1);
 	gameApp.mAdventureLevel = j.value("adventureLevel", 1);
+	gameApp.mEncounteredEliteDancer = j.value("encounteredEliteDancer", false);
 	gameApp.mShowPlantHP = j.value("showPlantHP", false);
 	gameApp.mShowZombieHP = j.value("showZombieHP", false);
 	gameApp.mAutoCollected = j.value("autoCollected", true);

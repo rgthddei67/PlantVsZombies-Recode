@@ -1552,6 +1552,17 @@ ZombieType Board::ResolveWaveZombieType(ZombieType selected, int mutationRoll)
 	return ResolveRainMutationType(selected, mutationRoll);
 }
 
+Zombie* Board::CreateResolvedWaveZombie(ZombieType actualType, int row, float x)
+{
+	const ZombieType terrainType = ResolveTerrainZombieType(actualType, row);
+	Zombie* zombie = CreateZombie(terrainType, row, x);
+	// 只在正式候选真正创建成功后解锁；解析失败、预览、读档和通用直造都不能伪造遭遇。
+	if (zombie && actualType == ZombieType::ZOMBIE_ELITE_DANCER) {
+		GameAPP::GetInstance().RecordEliteDancerEncounter();
+	}
+	return zombie;
+}
+
 /**
  * 风向维持一段时间后独立重抽；允许继续吹向当前方向，避免固定左右交替被玩家预测。
  * 不在每次阵风临时重抽，玩家仍可根据面板中的实时方向应对当前阵风。
@@ -2990,7 +3001,6 @@ inline void Board::TrySummonZombie()
 		if (actualType == ZombieType::NUM_ZOMBIE_TYPES) continue;
 
 		int row = SelectSpawnRow(actualType);
-		const ZombieType terrainType = ResolveTerrainZombieType(actualType, row);
 
 		// 更新行追踪计数器
 		for (int i = 0; i < mRows; i++)
@@ -3004,7 +3014,7 @@ inline void Board::TrySummonZombie()
 		mRowInfos[row].secondLastPicked = mRowInfos[row].lastPicked;
 		mRowInfos[row].lastPicked = 0;
 
-		auto zombie = CreateZombie(terrainType, row, x);
+		auto zombie = CreateResolvedWaveZombie(actualType, row, x);
 		if (zombie)
 		{
 			zombiesSpawned++;

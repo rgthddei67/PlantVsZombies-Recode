@@ -43,6 +43,7 @@ class GameAPP
 public:
 	int Difficulty = 1; // 难度系数
 	int mAdventureLevel = 1;    // 玩到的冒险模式关卡
+	bool mEncounteredEliteDancer = false; // 是否曾由正式波次实际刷出精英舞王
 	bool mShowPlantHP = false;  // 植物显示血量
 	bool mShowZombieHP = false; // 僵尸显示血量
 	bool mAutoCollected = true; // 自动收集
@@ -118,6 +119,10 @@ public:
 
 	// 设置游戏是否运行
 	void SetRunning(bool running) { this->mRunning = running; }
+
+	/** 永久记录一次实际刷出的精英舞王，并立即尝试写入 PlayerInfo。 */
+	void RecordEliteDancerEncounter();
+	bool HasEncounteredEliteDancer() const { return mEncounteredEliteDancer; }
 
 	// 世界坐标绘制文本 UTF8编码
 	void DrawText(const std::string& text,

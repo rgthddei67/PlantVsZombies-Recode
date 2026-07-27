@@ -28,7 +28,7 @@ private:
 	int   mDescriptionFontSize = 17;     // 自动收缩后的描述字号
 	float mDescriptionLineHeight = 22.0f; // 与字号等比的行高
 
-	/** 从已通关关卡的 spawnlist 推导玩家必然遭遇过的僵尸，按首次遭遇排序。 */
+	/** 合并已通关 spawnlist 与永久实际遭遇记录，按首次推导顺序返回可见僵尸。 */
 	std::vector<ZombieType> LoadEncounteredZombieTypes() const;
 	/** 为已遭遇类型创建可点击的图鉴网格和裁剪预览。 */
 	void CreateAllZombieEntries();

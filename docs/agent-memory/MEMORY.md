@@ -2,7 +2,7 @@
 
 > Codex routing: required always-on rules live in `../../AGENTS.md`; detailed build, AutoTest, architecture, resource, and implementation guidance lives in `../agent-guide/PROJECT_GUIDE.md`. The entries below are historical subsystem context and should be read only when relevant.
 
-- [僵尸图鉴随冒险进度解锁](project_pvz_zombie_almanac_progression.md) — 2026-07-27 图鉴只累计 `mAdventureLevel - 1` 之前已通关关卡的 `spawnlists.json` 僵尸并按首次遭遇排序，当前关不提前泄露；舞王等必然召唤者显式带出 `weight: 0` 子单位而不污染随机池；AutoTest UI 状态字段与可见第3/4关、舞王/伴舞回归通过
+- [僵尸图鉴随冒险进度解锁](project_pvz_zombie_almanac_progression.md) — 2026-07-27 图鉴累计 `mAdventureLevel - 1` 之前已通关关卡的 `spawnlists.json` 并按首次遭遇排序，当前关不提前泄露；舞王显式带出 `weight: 0` 伴舞；概率变异精英舞王只在正式实体创建成功后写 PlayerInfo 永久遭遇标记并额外解锁，直造/预览/读档不误记
 - [经典地刺](project_pvz_caltrop.md) — 2026-07-26 `PLANT_SPIKEWEED` 由 `Caltrop` 实装：免普通啃食，18fps 攻击动画在主人指定全局第25帧结算30px窄攻击带20伤害；水路禁种、最后地形保留集中入口且当前按普通地面；冰车虚事件触发扁胎、TirePop、轮胎碎屑/烟雾、wheelie特殊动画与2.8秒延时爆炸，为精英冰车覆写留底；可见专项与冰车回归通过
 - [冰车僵尸与冰道](project_pvz_zamboni_zombie.md) — 2026-07-26 原版冰车 1350 HP、右侧高速入场后减速、碾压植物、两段破损与二段烟雾；速度曲线以普通场景 `CELL_INITALIZE_POS_X` 为基准，屋顶留独立未核实入口；免疫寒冰且不会误播减速音效；碰撞/碾压/冰道统一锚定稳定视觉原点，低血量抖动±0.35px，烟雾相对视觉原点(-41,+95)；冰道出生即激活并铺到1100px右缘；普通死亡生成专属粒子，灰烬0.9且第53帧移除；地刺虚事件已接入扁胎音画与2.8秒延时死亡，雪橇小队枚举已删除；3-5 已接入并通过双Clang构建与可见专项 AutoTest
 - [鎏金冰车僵尸与黄色冰道](project_pvz_gilded_zamboni.md) — 2026-07-26 `ZOMBIE_GILDED_ZAMBONI`：2200 HP、基础驱动0.72、同波最多1只；本行及相邻陆路铺30秒黄色冰道并跨三行碾压，水路只压不铺；黄色覆盖普通冰道显示并禁种；每个活跃来源把能力/寒冰/雨势/台风的非中性倍率按加速×2、减速÷2逐层强化，重叠来源可互相和共同加速，蓄势基础为6/10/14秒×2/×4/×8、受伤归零且场地强化后仍封顶×8；地刺100、大嘴花50且均不触发普通秒杀；24关3-6与宝开式图鉴已接入；死亡使用独立鎏金车辆碎片与金色爆炸云
@@ -14,7 +14,7 @@
 - [第三大关泳池基础系统](project_pvz_pool_basics.md) — 2026-07-26 当前范围 3-1～3-6：`WATER_POOL` 六行网格、原版 15×5 三层 GPU 动态水面、睡莲双层占格、前 4 波仅陆路、`Zombie` 通用入水/阴影/shader 水线裁剪、普通/路障/铁桶水路版本、水中爆炸无烧焦残影、PoolCleaner 与旧档边界；3-5 引入普通冰车，3-6加入同波最多一只的鎏金冰车与黄冰道；日间天降普通阳光14秒，泳池另每13秒在水面生成15点小阳光；水路 Transform 保留+30px美术下沉，碰撞仍回归逻辑行
 - [通用 shader ClipRect](project_pvz_shader_clip_rect.md) — 2026-07-23 `PushClipRect/PopClipRect` 全部改为逐顶点/逐实例 framebuffer 矩形裁剪；不再 flush、切 draw、录 worker 状态命令或动态改 scissor；覆盖水路、伴舞出土、图鉴格窗、粒子阻断，含延迟文字继承与无裁剪片元快路径
 - [冒险第二大关起雨势天气](project_pvz_night_rain_weather.md) — 2026-07-24 天气从冒险 2-1 起按 `Board::SupportsWeather` 启用，包括日间泳池；大雨前 5 秒按待生效台风等级显示四档古风文字警报，每档 3 句随机且与图片提示并存，待生效初态/文案编号随档保存；后期导演满压力天气权重 0/10/25/65、台风权重 15/45/40；水草抓取倒计时复用植物行动倍率而下沉保持真实速度
-- [精英舞王僵尸](project_pvz_elite_dancer_zombie.md) — 2026-07-22 当前为黑夜大雨任意台风 60% 变异、每波最多 3 只；超额成功变异候选源头跳过、不回退普通舞王，未命中变异仍正常刷新；720 HP、基础1.25、每0.2秒补伴舞至36只，强/超强台风再乘1.45/1.75；专项可见 AutoTest 通过
+- [精英舞王僵尸](project_pvz_elite_dancer_zombie.md) — 2026-07-27 当前为黑夜大雨任意台风 50% 变异、每波最多 2 只；超额成功变异候选源头跳过，实体创建成功后写 PlayerInfo 永久遭遇供图鉴解锁；720 HP、基础1.25、每0.2秒补伴舞至36只，强/超强台风再乘1.45/1.75；变异与图鉴专项可见 AutoTest 通过
 - [绿色精英撑杆僵尸](project_pvz_elite_polevaulter_zombie.md) — 2026-07-24 红蓝运动服统一换绿、450 HP、动画能力层 1.1、250px 跳距，落地同排同 X 生成普通撑杆；正式波次每波最多 2 只且计数入档；额外 100px 按 `anim_jump` 帧进度平滑补偿并随动画变速；`JUMPING` 拒绝入水切轨，最右列睡莲不再卡死
 - [黑夜第二大关出怪节奏](project_pvz_night_spawnlist_pacing.md) — 2026-07-22 冒险 2-1～2-9 单主题节奏：2-6 普通橄榄球、2-7 舞王、2-8 普通铁门+加固铁门（玩家已取得毁灭菇）、2-9 八种重点机制综合并必含加固铁门；双 preset 统一，`smoke_night_spawnlists` 逐关断言并截图
 - [倭瓜](project_pvz_squash.md) — 2026-07-23 3-1 奖励植物：C# 0.8观察→0.3预备→0.5上升→0.1下砸；本体耐久≤1800直接Die，更高则穿透二类护盾造成1800；草地尘土停留1秒、水路溅水即消失；仅需5条轨道且无帧事件；双Clang预设已过，最终AutoTest按主人要求未重跑
