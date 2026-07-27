@@ -46,7 +46,7 @@ description: Use when adding or tuning ANY rain-weather-dependent feature in PvZ
 
 - `GetRainIntensity()` 是目标档位，切档时立即改变；玩法倍率、暗幕和雨声音量再用两游戏秒平滑到目标。离散触发默认以目标档位为准。
 - 不要修改全局 `DeltaTime`，也不要整体加速 `Zombie::Update()`；只缩放明确属于该能力的计时或结算值。
-- 僵尸动画速度统一经 `Zombie::UpdateAnimSpeed()` 收敛：`mExtraSpeed × slowFactor × rain`，冻结优先为 0。禁止用 `SetExtraSpeedMultiplier` 绕开它。
+- 僵尸动画速度统一经 `Zombie::UpdateAnimSpeed()` 收敛：`GetAbilityAnimSpeedMultiplier() × slowFactor × rain`，冻结优先为 0。子类自身整体倍率只覆写该虚函数，状态变化后调用 `UpdateAnimSpeed()`；禁止用 `SetExtraSpeedMultiplier` 绕开它。
 - 场地效果若宣称“逐因子强化加速与减速”，对能力、寒冰、雨势和台风等每个非中性倍率分别变换后再相乘；当前鎏金冰道的主人定案为每层让加速倍率乘二（`1.4→2.8`）、减速倍率除二（`0.6→0.3`），中性 `1.0` 不变。手动改 X 的车辆也必须消费同一结果，不能只放大动画。允许重叠时按独立活跃来源逐层变换，并在进入、离开、来源死亡或范围变化时刷新。
 - 雨天出生变异不要塞进通用 `CreateZombie()`：该入口也被 AutoTest 显式生成和其他玩法调用。默认在 `TrySummonZombie()` 中对 `selected` 解析为实际类型；`CreateZombieWithID()` 永不重新变异。
 - 若图鉴或成就依赖“实际刷出”的概率变异，记录点必须位于正式实际类型成功创建之后，不能放在解析器命中时：超额候选、地形拒绝或创建失败都不算遭遇。永久账号进度存 `PlayerInfo.json`，不要混入 Board 关卡存档；AutoTest 只断言内存标记并源码审查磁盘契约。

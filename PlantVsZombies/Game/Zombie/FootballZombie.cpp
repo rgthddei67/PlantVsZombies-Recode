@@ -1,6 +1,11 @@
 #include "FootballZombie.h"
 #include "../AudioSystem.h"
 
+namespace {
+	constexpr float kFootballMoveSpeedMultiplier = 1.7f;	// 橄榄球僵尸相对基础僵尸的水平位移倍率
+	constexpr float kFootballAnimSpeedMultiplier = 1.8f;	// 橄榄球僵尸自身的整体动画能力倍率
+}
+
 void FootballZombie::SetupZombie()
 {
 	this->mHelmHealth = 1100;
@@ -8,9 +13,7 @@ void FootballZombie::SetupZombie()
 	this->mHelmType = HelmType::HELMTYPE_FOOTBALL;
 
 	if (!mIsPreview) {
-		this->mSpeed *= 1.7f;
-		mExtraSpeed = 1.8f;
-		mAnimator->SetExtraSpeedMultiplier(mExtraSpeed);
+		this->mSpeed *= kFootballMoveSpeedMultiplier;
 
 		PlayTrack("anim_walk");
 
@@ -24,6 +27,11 @@ void FootballZombie::SetupZombie()
 			this->Die();
 			});
 	}
+}
+
+float FootballZombie::GetAbilityAnimSpeedMultiplier() const
+{
+	return kFootballAnimSpeedMultiplier;
 }
 
 void FootballZombie::CheckHelmImage()

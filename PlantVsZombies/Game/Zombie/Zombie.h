@@ -44,7 +44,6 @@ protected:
 	Vector mVisualOffset;   // 视觉偏移量
 	bool mIsPreview = false;
 
-	float mExtraSpeed = 1.0f;
 	int mGoldenIceEffectStacks = 0;	// 当前黄色冰道速度场层数；由仍存活的铺路者与持久冰道实时派生，不入存档
 
 	float mCooldownTimer = 0.0f;	// 僵尸减速倒计时时间
@@ -200,14 +199,16 @@ public:
 	void ApplyHealthMultiplier(double multiplier);
 
 protected:
-	// 统一重算动画 extra 速度层：冻结(0) > 减速(mExtraSpeed×因子) > 常速(mExtraSpeed)。
-	// 所有改 mExtraSpeed/减速/冻结状态的运行期路径都必须经此收敛（原版 UpdateAnimSpeed 等价物），
-	// 直调 SetExtraSpeedMultiplier 会把冻结停格顶掉（出生 Setup 除外——彼时不可能已冻结）。
+	// 统一重算动画 extra 速度层：冻结(0) > 品种能力 × 减速 × 雨势。
+	// 子类自身的整体倍率只从 GetAbilityAnimSpeedMultiplier 返回；运行期状态变化后经此收敛，
+	// 禁止直调 SetExtraSpeedMultiplier，否则会把冻结停格顶掉或丢失天气组合。
 	void UpdateAnimSpeed();
 	// 减速时动画降速因子（快速铁桶 0.8 覆写；位移减半由 Update 的 scaledDelta 承担，与此正交）
 	virtual float GetSlowAnimFactor() const { return 0.6f; }
-	// 品种能力层动画倍率；天气等外部状态变化后由 Board 统一触发重算。
+	// 僵尸自身最终提供的整体动画能力倍率；可由固定品种值、运行期状态或已持久化随机结果派生。
 	virtual float GetAbilityAnimSpeedMultiplier() const { return 1.0f; }
+	/** 读取旧版根字段 extraSpeed；仅仍需实例随机倍率的派生类覆写，兼容完成后不再传播旧字段。 */
+	virtual void RestoreLegacyAbilityAnimSpeedMultiplier(float) {}
 	/** 返回经过黄色冰道叠层后的能力速度倍率；品种可覆写以施加自身上限。 */
 	virtual float GetAmplifiedAbilitySpeedMultiplier() const;
 	/** 品种是否无条件承受黄色冰道速度场；铺路者自身不依赖几何覆盖。 */

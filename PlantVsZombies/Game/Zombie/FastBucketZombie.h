@@ -11,15 +11,8 @@ public:
 	ArmorBrokenState mHelmStage = ArmorBrokenState::NO_BROKEN;
 	void HelmDrop() override;
 
-	void SaveExtraData(nlohmann::json& j) const override {
-		j["helmStage"] = static_cast<int>(mHelmStage);
-	}
-
-	void LoadExtraData(const nlohmann::json& j) override {
-		mHelmStage = static_cast<ArmorBrokenState>(
-			j.value("helmStage", static_cast<int>(ArmorBrokenState::NO_BROKEN))
-			);
-	}
+	void SaveExtraData(nlohmann::json& j) const override;
+	void LoadExtraData(const nlohmann::json& j) override;
 
 	void ZombieItemUpdate() const override {
 		Zombie::ZombieItemUpdate();
@@ -46,9 +39,14 @@ public:
 protected:
 	// 减速动画只降到 0.8x（快速僵尸减速后仍偏快的手感）；其余逻辑沿用基类 SetCooldown/UpdateAnimSpeed
 	float GetSlowAnimFactor() const override { return 0.8f; }
+	float GetAbilityAnimSpeedMultiplier() const override;
+	void RestoreLegacyAbilityAnimSpeedMultiplier(float multiplier) override;
 
 	void SetupZombie() override;
 	void CheckHelmImage() override;
+
+private:
+	float mAbilityAnimSpeedMultiplier = 1.0f;	// 每只快速铁桶出生时独立抽取并随关卡存档的动画能力倍率
 };
 
 #endif

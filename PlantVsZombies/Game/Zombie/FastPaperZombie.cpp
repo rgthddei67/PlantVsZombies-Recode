@@ -1,5 +1,9 @@
 #include "FastPaperZombie.h"
 
+namespace {
+	constexpr float kFastPaperBaseAnimSpeedMultiplier = 1.5f;	// 加强读报相对普通读报能力倍率的固定增幅
+}
+
 void FastPaperZombie::SetupZombie()
 {
 	// 复用读报僵尸的护盾类型、帧事件（131 死亡 / 85,206 啃食 / 144 狂怒换头+吼叫）与初始动画
@@ -17,11 +21,14 @@ void FastPaperZombie::SetupZombie()
 
 	if (mIsPreview) return;
 
-	// 攻击更疼；狂暴前就略快——mExtraSpeed 乘在 EffectiveSpeed 最外层，腿部动画与地面位移一起缩放，不脱节。
-	// 狂暴(ShieldDrop)倍率沿用基类：mSpeed*=4.5 / mAttackDamage*=2 / mExtraSpeed*=2.0（最终 extra≈2.5，比普通读报更快）。
+	// 攻击更疼；整体动画能力倍率由虚函数在普通读报状态倍率外再乘 1.5。
+	// 狂暴后最终能力倍率为 1.5×1.4=2.1，腿部动画与地面位移一起缩放，不脱节。
 	this->mAttackDamage = static_cast<int>(this->mAttackDamage * 1.5f);
-	mExtraSpeed = 1.5f;
-	mAnimator->SetExtraSpeedMultiplier(mExtraSpeed);
+}
+
+float FastPaperZombie::GetAbilityAnimSpeedMultiplier() const
+{
+	return kFastPaperBaseAnimSpeedMultiplier * PaperZombie::GetAbilityAnimSpeedMultiplier();
 }
 
 void FastPaperZombie::CheckShieldImage()

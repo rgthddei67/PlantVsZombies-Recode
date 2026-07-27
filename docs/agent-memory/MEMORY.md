@@ -4,6 +4,7 @@
 
 - [最终绘制坐标语义取证](project_pvz_render_coordinate_evidence.md) — 2026-07-27 AutoTest 从当前项目实际渲染路径导出植物/僵尸/动画特效的 Animator 世界包围盒，以及粒子最终矩形；断言使用相对视觉原点、发射点和最近实体 collider 的整数投影，默认实例化与 `-NoInstance` 可做同用例一致性核对，C# 800×600 绝对坐标只作行为语义参考
 - [经典火炬树桩与动画火豌豆](project_pvz_torchwood_firepea.md) — 2026-07-27 `PLANT_TORCHWOOD` 按原版把同排 Pea 点燃为 40 伤 Fireball、Snowpea 融化为 Pea，并用列守卫允许后续树桩再点火；FirePea 是 50～80fps 完整时间轴循环 Animator 子弹，运行时换型与对象池不可变槽位类型分离，覆盖并行推进、存档所有权与阴影重排；火焰直击解冻、同行 100px 穿盾溅射、门板/梯子/冰车抗火、冒险奖励及图鉴均有可见专项验证
+- [僵尸自身整体动画能力倍率](project_pvz_zombie_ability_anim_speed.md) — 2026-07-27 删除 `Zombie::mExtraSpeed`，自身整体动画倍率统一经 `GetAbilityAnimSpeedMultiplier()`；固定、阶段和实例随机值分别由类型、状态与派生存档提供，旧根字段只为快速铁桶保留只读迁移；天气、寒冰和黄色冰道回归通过
 - [僵尸图鉴随冒险进度解锁](project_pvz_zombie_almanac_progression.md) — 2026-07-27 图鉴累计 `mAdventureLevel - 1` 之前已通关关卡的 `spawnlists.json` 并按首次遭遇排序，当前关不提前泄露；舞王显式带出 `weight: 0` 伴舞；概率变异精英舞王只在正式实体创建成功后写 PlayerInfo 永久遭遇标记并额外解锁，直造/预览/读档不误记
 - [经典地刺](project_pvz_caltrop.md) — 2026-07-26 `PLANT_SPIKEWEED` 由 `Caltrop` 实装：免普通啃食，18fps 攻击动画在主人指定全局第25帧结算30px窄攻击带20伤害；水路禁种、最后地形保留集中入口且当前按普通地面；冰车虚事件触发扁胎、TirePop、轮胎碎屑/烟雾、wheelie特殊动画与2.8秒延时爆炸，为精英冰车覆写留底；可见专项与冰车回归通过
 - [冰车僵尸与冰道](project_pvz_zamboni_zombie.md) — 2026-07-26 原版冰车 1350 HP、右侧高速入场后减速、碾压植物、两段破损与二段烟雾；速度曲线以普通场景 `CELL_INITALIZE_POS_X` 为基准，屋顶留独立未核实入口；免疫寒冰且不会误播减速音效；碰撞/碾压/冰道统一锚定稳定视觉原点，低血量抖动±0.35px，烟雾相对视觉原点(-41,+95)；冰道出生即激活并铺到1100px右缘；普通死亡生成专属粒子，灰烬0.9且第53帧移除；地刺虚事件已接入扁胎音画与2.8秒延时死亡，雪橇小队枚举已删除；3-5 已接入并通过双Clang构建与可见专项 AutoTest

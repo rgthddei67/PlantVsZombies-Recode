@@ -1,0 +1,40 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 1 },
+    { "op": "choose_cards", "cards": ["PLANT_WALLNUT"] },
+    { "op": "wait_state", "state": "GAME" },
+    { "op": "set_spawn_paused", "value": true },
+
+    { "op": "spawn_zombie", "type": "ZOMBIE_FOOTBALL", "row": 0, "x": 920, "stationary": true },
+    { "op": "spawn_zombie", "type": "ZOMBIE_PINK_FOOTBALL", "row": 1, "x": 920, "stationary": true },
+    { "op": "spawn_zombie", "type": "ZOMBIE_NEWSPAPER", "row": 2, "x": 920, "stationary": true },
+    { "op": "spawn_zombie", "type": "ZOMBIE_FASTPAPER", "row": 3, "x": 920, "stationary": true },
+    { "op": "spawn_zombie", "type": "ZOMBIE_FASTBUCKET", "row": 4, "x": 920, "stationary": true },
+
+    { "op": "assert_state", "path": "zombies.0.animExtraSpeedPct", "equals": 180 },
+    { "op": "assert_state", "path": "zombies.1.animExtraSpeedPct", "equals": 195 },
+    { "op": "assert_state", "path": "zombies.2.animExtraSpeedPct", "equals": 100 },
+    { "op": "assert_state", "path": "zombies.3.animExtraSpeedPct", "equals": 150 },
+    { "op": "assert_state", "path": "zombies.4.animExtraSpeedPct", "atLeast": 155, "atMost": 160 },
+
+    { "op": "damage_zombie", "row": 2, "index": 0, "damage": 500, "source": "PLANT" },
+    { "op": "damage_zombie", "row": 3, "index": 0, "damage": 700, "source": "PLANT" },
+    { "op": "assert_state", "path": "zombies.2.animExtraSpeedPct", "equals": 140 },
+    { "op": "assert_state", "path": "zombies.3.animExtraSpeedPct", "equals": 210 },
+    { "op": "dump_state", "name": "01_before_save.json" },
+    { "op": "save_level_snapshot", "name": "ability_speed" },
+
+    { "op": "reload_level_snapshot", "name": "ability_speed" },
+    { "op": "assert_state", "path": "zombies.0.animExtraSpeedPct", "equals": 180 },
+    { "op": "assert_state", "path": "zombies.1.animExtraSpeedPct", "equals": 195 },
+    { "op": "assert_state", "path": "zombies.2.animExtraSpeedPct", "equals": 140 },
+    { "op": "assert_state", "path": "zombies.3.animExtraSpeedPct", "equals": 210 },
+    { "op": "assert_state", "path": "zombies.4.animExtraSpeedPct", "atLeast": 155, "atMost": 160 },
+    { "op": "dump_state", "name": "02_after_load.json" },
+    { "op": "screenshot", "name": "ability_speed_after_load.png" },
+    { "op": "wait_seconds", "value": 1.0 },
+
+    { "op": "set_spawn_paused", "value": false },
+    { "op": "quit" }
+  ]
+}

@@ -24,6 +24,7 @@ protected:
 	void CheckShieldImage() override;
 
 	void ZombieMove(float scaledDelta, TransformComponent* transform) override;
+	float GetAbilityAnimSpeedMultiplier() const override;
 
 public:
 	using Zombie::Zombie;
@@ -61,7 +62,7 @@ public:
 	void SaveExtraData(nlohmann::json& j) const override {
 		j["shieldStage"] = static_cast<int>(mShieldStage);
 		j["hasNewspaper"] = mHasNewspaper;
-		j["isGasp"] = mIsGasp;   // extra 速度层基准已由基类 Zombie::SaveProtectedData 统一持久化
+		j["isGasp"] = mIsGasp;
 	}
 
 	void LoadExtraData(const nlohmann::json& j) override;

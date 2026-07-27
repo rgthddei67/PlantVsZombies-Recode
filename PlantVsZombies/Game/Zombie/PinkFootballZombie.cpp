@@ -39,8 +39,11 @@ void PinkFootballZombie::SetupZombie()
 
 	// 基类已经应用 1.7 倍移速，只补足到本变体的 1.85 倍。
 	mSpeed *= kMoveSpeedMultiplier / kFootballMoveSpeedMultiplier;
-	mExtraSpeed = kAnimationSpeedMultiplier;
-	mAnimator->SetExtraSpeedMultiplier(mExtraSpeed);
+}
+
+float PinkFootballZombie::GetAbilityAnimSpeedMultiplier() const
+{
+	return kAnimationSpeedMultiplier;
 }
 
 /**

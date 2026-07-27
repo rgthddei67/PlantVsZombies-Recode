@@ -8,6 +8,7 @@ class FootballZombie : public Zombie {
 protected:
 	void SetupZombie() override;
 	void CheckHelmImage() override;
+	float GetAbilityAnimSpeedMultiplier() const override;
 
 public:
 	using Zombie::Zombie;

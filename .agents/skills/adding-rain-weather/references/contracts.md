@@ -45,7 +45,7 @@ const bool isRaining = rain != RainIntensity::CLEAR;
 | 合法公开预报 | `BuildPlausibleForecasts` | 错误预报也必须真实可达 |
 | 正式切档 | `BeginRain` / `EndRain` / `BeginWeatherTransition` | 目标枚举先变，倍率再插值 |
 | 天气逐帧推进 | `Board::UpdateWeather` | 全局场景状态，不属于波次更新 |
-| 僵尸天气动画倍率 | `Zombie::UpdateAnimSpeed` | 冻结 > 减速 × `mExtraSpeed` × rain |
+| 僵尸天气动画倍率 | `Zombie::UpdateAnimSpeed` | 冻结 > ability × 减速 × rain |
 | 植物天气行动倍率 | `Plant` 的 weather action helper | 不改变全局 delta |
 | 正式波次选型/生成 | `Board::TrySummonZombie` | 出生变异的默认接入点 |
 | 通用创建 | `Board::CreateZombie` | AutoTest、召唤等也可能调用，不默认随机变异 |
@@ -71,7 +71,7 @@ const bool isRaining = rain != RainIntensity::CLEAR;
 
 ### 动画与移动
 
-子类改变基础 `mExtraSpeed` 后调用 `UpdateAnimSpeed()`。不要直接设置 Animator extra 倍率，否则会覆盖冻结停格或丢失减速/雨天组合。`PlayTrack` 的 clip speed 是另一层，允许换轨但不能替代状态层倍率。
+子类通过 `GetAbilityAnimSpeedMultiplier()` 返回自身最终整体动画倍率；固定品种值可直接返回常量，动态阶段从已保存状态派生，实例随机值必须由派生类持久化。状态变化后调用 `UpdateAnimSpeed()`，不要直接设置 Animator extra 倍率，否则会覆盖冻结停格或丢失减速/雨天组合。`PlayTrack` 的 clip speed 是另一层，允许换轨但不能替代状态层倍率。
 
 ## 雨天出生变异配方
 

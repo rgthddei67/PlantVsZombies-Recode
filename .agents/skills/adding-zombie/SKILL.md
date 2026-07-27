@@ -33,6 +33,7 @@ description: Use when adding or tuning any PvZ zombie, or integrating zombies in
 2. **SetupZombie 先判定“复用父类”还是“完全接管”**：
    - **同一套 reanim/轨道/事件时序的换皮或数值变体**，优先调用最近父类的 `SetupZombie()`，再覆盖 HP、攻击和速度差额；这样直接复用已经验证过的 Die/EatTarget 事件，禁止重复 `AddFrameEvent`。父类已经乘过移速时，用“目标倍率 / 父类倍率”补差（粉色橄榄球 1.85/1.7 实证），不要再乘完整目标倍率。
    - **新 reanim、事件时序不同或状态机需要替换父类初始化**，才不调基类并自己接管三件事：帧事件注册（Die 一次性 + EatTarget `repeating=true`，帧号=全时间线绝对帧，只在所属剪辑段播放时经过）、走路起播、`mIsPreview` 分支（预览只 PlayTrack 不注册事件）。任何新增帧号仍必须先问主人。
+   - **僵尸自身整体动画倍率只有一个出口**：覆写 `GetAbilityAnimSpeedMultiplier()`，固定品种值直接返回常量，阶段能力从已保存状态派生，出生随机值存派生类字段并由 `SaveExtraData/LoadExtraData` 持久化。状态变化后调用 `UpdateAnimSpeed()`；禁止子类直调 `Animator::SetExtraSpeedMultiplier()` 或再造一份通用基础倍率字段。`mSpeed` 只表示额外水平位移，`PlayTrack(..., clipSpeed)` 只表示当前轨道绝对速度。
 3. **枚举移动 + 空工厂窗口**：新类型必须**追加在全部既有已实现类型之后、`NUM_ZOMBIE_TYPES` 哨兵之前**；禁止插进旧类型中间，否则存档里的整数僵尸 ID 会错位。把枚举移到哨兵前的**同一提交**必须补齐权威 `gamedata.json` 条目（缺字段拒启动 exit -6）；若工厂注册在后续提交，**weight 先填 0**（哨兵前+非零权重+无工厂=生存随机抽中即空指针），注册后再解封。
 4. **注册**：`GameDataManager.cpp` `#include` + `RegisterZombie(type, "ZOMBIE_X", ANIM_X, "ReanimName", &MakeZombie<T>)`——animName 必须与 resources.xml 的 `<Reanimation name>` 一致。
 5. **gamedata.json**：只改 `build/clang-release/resources/gamedata.json`，`{weight, appearWave, survivalRound, offset, scale}` 五字段缺一不可；只能被召唤的僵尸 `weight: 0`（永不被抽中，AutoTest spawn_zombie 仍可直造）。注意 weight 一物两用=抽中权重+生存点数成本。

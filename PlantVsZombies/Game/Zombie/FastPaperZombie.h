@@ -36,6 +36,7 @@ public:
 protected:
 	void SetupZombie() override;
 	void CheckShieldImage() override;
+	float GetAbilityAnimSpeedMultiplier() const override;
 };
 
 #endif

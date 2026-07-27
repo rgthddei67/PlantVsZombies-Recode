@@ -1,5 +1,13 @@
 #include "FastBucketZombie.h"
 
+namespace
+{
+	constexpr float kFastBucketMoveSpeedMin = 1.15f; // 初始化时随机移动速度倍率下限
+	constexpr float kFastBucketMoveSpeedMax = 1.22f; // 初始化时随机移动速度倍率上限
+	constexpr float kFastBucketAnimSpeedMin = 1.55f; // 初始化时随机能力动画倍率下限
+	constexpr float kFastBucketAnimSpeedMax = 1.60f; // 初始化时随机能力动画倍率上限
+}
+
 void FastBucketZombie::SetupZombie()
 {
 	Zombie::SetupZombie();
@@ -10,11 +18,37 @@ void FastBucketZombie::SetupZombie()
 	this->mHelmHealth = 600;
 	this->mHelmMaxHealth = 600;
 	this->mHelmType = HelmType::HELMTYPE_BUCKET;
-	this->mSpeed *= GameRandom::Range(1.15f, 1.22f);
+	this->mSpeed *= GameRandom::Range(kFastBucketMoveSpeedMin, kFastBucketMoveSpeedMax);
 	int damage = static_cast<int>(this->mAttackDamage * 1.5f);
 	this->mAttackDamage = damage;
-	mExtraSpeed = GameRandom::Range(1.55f, 1.6f);
-	mAnimator->SetExtraSpeedMultiplier(mExtraSpeed);
+	mAbilityAnimSpeedMultiplier =
+		GameRandom::Range(kFastBucketAnimSpeedMin, kFastBucketAnimSpeedMax);
+}
+
+float FastBucketZombie::GetAbilityAnimSpeedMultiplier() const
+{
+	return mAbilityAnimSpeedMultiplier;
+}
+
+void FastBucketZombie::RestoreLegacyAbilityAnimSpeedMultiplier(float multiplier)
+{
+	mAbilityAnimSpeedMultiplier = multiplier;
+}
+
+void FastBucketZombie::SaveExtraData(nlohmann::json& j) const
+{
+	j["helmStage"] = static_cast<int>(mHelmStage);
+	j["abilityAnimSpeedMultiplier"] = mAbilityAnimSpeedMultiplier;
+}
+
+void FastBucketZombie::LoadExtraData(const nlohmann::json& j)
+{
+	mHelmStage = static_cast<ArmorBrokenState>(
+		j.value("helmStage", static_cast<int>(ArmorBrokenState::NO_BROKEN)));
+	// 新档从派生数据恢复；旧档缺字段时保留 LoadProtectedData 已迁移的根字段 extraSpeed。
+	mAbilityAnimSpeedMultiplier =
+		j.value("abilityAnimSpeedMultiplier", mAbilityAnimSpeedMultiplier);
+	UpdateAnimSpeed();
 }
 
 void FastBucketZombie::HelmDrop()

@@ -141,7 +141,6 @@ void Zombie::SaveProtectedData(nlohmann::json& j) const {
 	j["isDying"] = mIsDying;
 	j["inPool"] = mInPool;
 	j["speed"] = mSpeed;
-	j["extraSpeed"] = mExtraSpeed;   // extra 速度层基准（如狂暴报纸僵尸 2.5、铁桶快僵随机值）
 	j["cooldownTimer"] = mCooldownTimer;
 	j["frozenTimer"] = mFrozenTimer;
 	j["dyingTimer"] = mDyingTimer;
@@ -167,12 +166,14 @@ void Zombie::LoadProtectedData(const nlohmann::json& j) {
 	mInPool = j.value("inPool", false);
 	mSpeed = j.value("speed", 10.0f);
 
-	// 必须在 SetCooldown 之前恢复：SetCooldown 内部用 mExtraSpeed*0.6 设置减速倍率，
-	// 若此刻 mExtraSpeed 仍是默认 1.0，减速会被错算（应为 base*0.6）。
-	mExtraSpeed = j.value("extraSpeed", 1.0f);
+	// 旧档把品种能力倍率放在根字段 extraSpeed；只有仍需实例随机值的派生类消费它。
+	// 固定倍率和状态倍率均由虚函数直接派生，新档不再写该字段。
+	if (j.contains("extraSpeed")) {
+		RestoreLegacyAbilityAnimSpeedMultiplier(j.value("extraSpeed", 1.0f));
+	}
 	float cooldown = j.value("cooldownTimer", 0.0f);
 	if (cooldown > 0.0f) {
-		this->SetCooldown(cooldown);                       // 用已恢复的 mExtraSpeed，正确得到 base*0.6
+		this->SetCooldown(cooldown);
 	}
 	else if (mAnimator) {
 		UpdateAnimSpeed();   // 无减速也要恢复僵尸基准 × 当前雨势倍率
@@ -265,7 +266,7 @@ void Zombie::Start()
 	SetAnimationSpeed(GameRandom::Range(1.1f, 1.4f));
 	SetupZombie();
 	mGoldenIceEffectStacks = ComputeGoldenIceEffectStacks();
-	// SetupZombie 可设置品种基准 mExtraSpeed；最后统一叠加减速/冻结/雨势，且跨 PlayTrack 存活。
+	// 子类虚函数提供品种能力倍率；最后统一叠加减速、冻结、雨势和场地效果，且跨 PlayTrack 存活。
 	if (!mIsPreview) UpdateAnimSpeed();
 	// 直接生成在水域内部时首帧就应进入水中，避免等待移动一帧后才裁剪。
 	UpdatePoolState();
@@ -552,8 +553,7 @@ void Zombie::UpdateAnimSpeed()
 	}
 	const float rainMultiplier = mBoard ? mBoard->GetZombieRainSpeedMultiplier() : 1.0f;
 	mAnimator->SetExtraSpeedMultiplier(
-		AmplifySpeedMultiplierForGoldenIce(mExtraSpeed)
-		* GetAmplifiedAbilitySpeedMultiplier()
+		GetAmplifiedAbilitySpeedMultiplier()
 		* AmplifySpeedMultiplierForGoldenIce(
 			mCooldownTimer > 0.0f ? GetSlowAnimFactor() : 1.0f)
 		* AmplifySpeedMultiplierForGoldenIce(rainMultiplier));

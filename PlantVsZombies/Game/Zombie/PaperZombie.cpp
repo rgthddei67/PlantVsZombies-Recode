@@ -3,9 +3,10 @@
 
 namespace {
 	// 狂暴（掉报纸）后奔跑轨道 anim_walk_nopaper 的 clip 速度。
-	// EffectiveSpeed = clip * extra(狂暴后 extra≈1.1) → 越大腿越快、地面位移也越快（GetTrackVelocity 按 EffectiveSpeed 缩放）。
+	// EffectiveSpeed = clip * extra(狂暴后 extra=1.4) → 越大腿越快、地面位移也越快（GetTrackVelocity 按 EffectiveSpeed 缩放）。
 	constexpr float kNoPaperWalkClip = 4.5f;
 	constexpr float kNoPaperEatClip = 3.5f;   // 狂暴啃食 anim_eat_nopaper 的 clip 速度（StartEat / 读档复用）
+	constexpr float kPaperRageAnimSpeedMultiplier = 1.4f;	// 掉报纸后的整体动画能力倍率
 }
 
 void PaperZombie::SetupZombie()
@@ -84,9 +85,8 @@ void PaperZombie::ShieldDrop()
 	mSpeed *= 1.35f;
 	mAttackDamage *= 2;
 
-	// 再叠一层轻微全局倍率，乘在 EffectiveSpeed 最外层（与逐轨道 clip 正交，啃食/gasp/走路一并 ×1.1）。
+	// 狂暴能力倍率由 GetAbilityAnimSpeedMultiplier 按持报纸状态派生，与逐轨道 clip 正交。
 	// 经 UpdateAnimSpeed 收敛：减速因子照算，冻结中狂暴不解除停格（解冻后新倍率自然生效）。
-	mExtraSpeed *= 1.4f;
 	UpdateAnimSpeed();
 
 	// gasp 播完后的回切轨道：若狂暴前已在啃食则回到啃食，否则狂奔。
@@ -104,6 +104,8 @@ void PaperZombie::LoadExtraData(const nlohmann::json& j)
 		j.value("shieldStage", static_cast<int>(ArmorBrokenState::NO_BROKEN)));
 	mHasNewspaper = j.value("hasNewspaper", true);
 	mIsGasp = j.value("isGasp", false);
+	// LoadProtectedData 早于派生状态恢复；持报纸状态就位后重新合成能力、寒冰与雨势倍率。
+	UpdateAnimSpeed();
 
 	if (!mAnimator) return;
 
@@ -204,4 +206,9 @@ void PaperZombie::ZombieMove(float scaledDelta, TransformComponent* transform)
 	if (!mIsGasp) {
 		Zombie::ZombieMove(scaledDelta, transform);
 	}
+}
+
+float PaperZombie::GetAbilityAnimSpeedMultiplier() const
+{
+	return mHasNewspaper ? 1.0f : kPaperRageAnimSpeedMultiplier;
 }

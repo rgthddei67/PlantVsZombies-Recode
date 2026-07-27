@@ -9,6 +9,7 @@ class PinkFootballZombie : public FootballZombie {
 protected:
 	void SetupZombie() override;
 	void CheckHelmImage() override;
+	float GetAbilityAnimSpeedMultiplier() const override;
 	// 与 FastBucketZombie 使用同一减速速度层；减速时保留 75% 动画速度。
 	float GetSlowAnimFactor() const override { return 0.75f; }
 
