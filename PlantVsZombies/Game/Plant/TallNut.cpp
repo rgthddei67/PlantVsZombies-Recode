@@ -4,7 +4,7 @@
 #include "../../ParticleSystem/ParticleSystem.h"
 
 namespace {
-	constexpr int kTallNutHealth = 8000;                    // 经典高坚果基础生命值
+	constexpr int kTallNutHealth = 9000;                    // 经典高坚果基础生命值
 	constexpr float kTallNutColliderWidth = 85.0f;          // 比普通植物向迎敌面多覆盖约 20 px
 	constexpr float kTallNutShadowOffsetY = 29.0f;          // 高坚果脚底阴影相对逻辑中心的垂直偏移，单位：px
 	constexpr float kTallNutShadowScaleX = 1.3f;            // 原版高坚果阴影横向放大倍率

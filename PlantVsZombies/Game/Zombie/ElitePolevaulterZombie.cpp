@@ -7,7 +7,7 @@
 
 namespace {
 	constexpr int kElitePolevaulterHealth = 450;  // 精英撑杆本体基础血量
-	constexpr int kTallNutBlockDamage = 800;  // 精英撑杆被挡时对高坚果造成的基础碰撞伤害
+	constexpr int kTallNutBlockDamage = 500;  // 精英撑杆被挡时对高坚果造成的基础碰撞伤害
 	constexpr float kEliteVaultDistance = 250.0f;  // 精英撑杆每次落地的逻辑推进距离，单位 px
 	constexpr float kEliteAnimationSpeedMultiplier = 1.1f;  // 相对普通撑杆的统一动画速度倍率
 }
@@ -46,7 +46,7 @@ void ElitePolevaulterZombie::OnVaultLanded()
 }
 
 /**
- * @brief 被高坚果拦下时仍先召唤普通撑杆，再对阻拦植物造成 800 点僵尸来源伤害。
+ * @brief 被高坚果拦下时仍先召唤普通撑杆，再对阻拦植物造成 500 点僵尸来源伤害。
  */
 void ElitePolevaulterZombie::OnVaultBlocked(Plant& blockingPlant)
 {
