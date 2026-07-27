@@ -15,9 +15,6 @@ public:
 	void HandleCaltropHit(Caltrop& caltrop) override;
 	void SetCooldown(float timer) override { Zombie::SetCooldown(timer); }
 
-	bool CanBeChilled() const override { return Zombie::CanBeChilled(); }
-	bool CanBeFrozen() const override { return true; }
-
 	float GetUndamagedTime() const { return mUndamagedTime; }
 	int GetAccelerationStage() const { return mAccelerationStage; }
 	float GetAccelerationMultiplier() const;
