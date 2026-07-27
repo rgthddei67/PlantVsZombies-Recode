@@ -34,6 +34,7 @@
 #include "../Zombie/GildedZamboniZombie.h"
 #include "../Zombie/EliteDancerZombie.h"
 #include "../Zombie/Polevaulter.h"
+#include "../Zombie/DolphinRiderZombie.h"
 #include "../Zombie/PoolNormalZombie.h"
 #include "../Trophy.h"   // dump_state 输出奖杯坐标
 #include "../Crater.h"   // dump_state 输出毁灭菇弹坑
@@ -380,6 +381,13 @@ bool TestDriver::ExecuteCurrent() {
 		if (!sm.SwitchTo("GameScene")) { Fail("SwitchTo(GameScene) 失败"); return false; }
 		return true;
 	}
+	if (op == "goto_zombie_almanac") {
+		if (!SceneManager::GetInstance().SwitchTo("ZombieAlmanacScene")) {
+			Fail("SwitchTo(ZombieAlmanacScene) 失败");
+			return false;
+		}
+		return true;
+	}
 	if (op == "set_timescale") {
 		DeltaTime::SetTimeScale(cmd.value("value", 1.0f));
 		return true;
@@ -679,6 +687,31 @@ bool TestDriver::ExecuteCurrent() {
 		}
 		if (!board->CreateResolvedWaveZombie(actual, row, cmd.value("x", 900.0f))) {
 			Fail("spawn_wave_zombie: CreateZombie 返回空");
+			return false;
+		}
+		return true;
+	}
+	if (op == "assert_zombie_spawn_row") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) {
+			Fail("assert_zombie_spawn_row: 不在 GameScene 或 Board 为空");
+			return false;
+		}
+		auto it = kZombieNames.find(cmd.value("type", ""));
+		if (it == kZombieNames.end()) {
+			Fail("assert_zombie_spawn_row: 未知僵尸类型");
+			return false;
+		}
+		if (!cmd.contains("expected")) {
+			Fail("assert_zombie_spawn_row: 缺 expected 字段");
+			return false;
+		}
+		const int row = cmd.value("row", -1);
+		const bool actual = gs->GetBoard()->CanSpawnZombieInRow(it->second, row);
+		const bool expected = cmd["expected"].get<bool>();
+		if (actual != expected) {
+			Fail("assert_zombie_spawn_row: 行兼容性与预期不符 row="
+				+ std::to_string(row));
 			return false;
 		}
 		return true;
@@ -1125,6 +1158,10 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["scene"] = currentScene->name;
 	out["adventureLevel"] = gameApp.mAdventureLevel;
 	out["encounteredEliteDancer"] = gameApp.HasEncounteredEliteDancer();
+	out["dolphinAppearSoundRequestCount"] =
+		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_DOLPHIN_APPEARS);
+	out["dolphinBeforeJumpSoundRequestCount"] =
+		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_DOLPHIN_BEFORE_JUMPING);
 
 	if (auto* almanac = dynamic_cast<ZombieAlmanacScene*>(currentScene)) {
 		out["zombieAlmanacEntries"] = nlohmann::json::array();
@@ -1399,7 +1436,6 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_FIREPEA);
 	out["igniteSoundRequestCount"] =
 		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_IGNITE);
-
 	out["iceTrails"] = nlohmann::json::array();
 	out["goldenIceTrails"] = nlohmann::json::array();
 	for (int row = 0; row < board->mRows; ++row) {
@@ -1518,6 +1554,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				z->GetTangleKelpSinkOffset() * 1000.0f)) },
 			{ "tangleKelpGrabFrameOn1000", static_cast<int>(std::lround(
 				z->GetTangleKelpGrabFrame() * 1000.0f)) },
+			{ "colliderEnabled", z->GetColliderComponent()
+				&& z->GetColliderComponent()->mEnabled },
 			// 铁门僵尸常规手臂（藏门后/啃食露出）当前可见性——手臂显隐类 bug 的断言抓手；
 			// 无此轨道的僵尸 GetTrackVisible 安全返回 false。
 			{ "armVisible", anim && anim->GetTrackVisible("Zombie_outerarm_hand") },
@@ -1547,6 +1585,29 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				polevaulter->GetLastVaultDistance() * 1000.0f));
 			zombieState["vaultExtraDistanceAppliedOn1000"] = static_cast<int>(std::lround(
 				polevaulter->GetVaultExtraDistanceApplied() * 1000.0f));
+		}
+		if (auto* dolphin = dynamic_cast<DolphinRiderZombie*>(z)) {
+			const char* phase = "APPROACHING";
+			switch (dolphin->GetPhase()) {
+			case DolphinRiderZombie::Phase::APPROACHING: phase = "APPROACHING"; break;
+			case DolphinRiderZombie::Phase::ENTERING_POOL: phase = "ENTERING_POOL"; break;
+			case DolphinRiderZombie::Phase::RIDING: phase = "RIDING"; break;
+			case DolphinRiderZombie::Phase::JUMPING: phase = "JUMPING"; break;
+			case DolphinRiderZombie::Phase::SWIMMING: phase = "SWIMMING"; break;
+			case DolphinRiderZombie::Phase::WALKING_WITHOUT_DOLPHIN:
+				phase = "WALKING_WITHOUT_DOLPHIN";
+				break;
+			}
+			const Vector visualCompensation = dolphin->GetDolphinVisualCompensation();
+			zombieState["dolphinPhase"] = phase;
+			zombieState["hasDolphin"] = dolphin->HasDolphin();
+			zombieState["dolphinJumpBlockChecked"] = dolphin->HasCheckedJumpBlocker();
+			zombieState["dolphinJumpProgressOn1000"] = static_cast<int>(std::lround(
+				dolphin->GetJumpProgress() * 1000.0f));
+			zombieState["dolphinVisualCompensationXOn1000"] =
+				static_cast<int>(std::lround(visualCompensation.x * 1000.0f));
+			zombieState["dolphinVisualCompensationYOn1000"] =
+				static_cast<int>(std::lround(visualCompensation.y * 1000.0f));
 		}
 		if (auto* zamboni = dynamic_cast<ZamboniZombie*>(z)) {
 			zombieState["zamboniDamageStage"] = zamboni->GetDamageStage();
@@ -1697,6 +1758,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["particleEffects"] = nlohmann::json::array();
 	out["particleEffectsByName"] = nlohmann::json::object();
 	out["particleEffectNameCounts"] = nlohmann::json::object();
+	out["particleEffectNameCounts"]["ZombieArmOff"] = 0;
+	out["particleEffectNameCounts"]["ZombieDolphinRiderHeadOff"] = 0;
 	if (g_particleSystem) {
 		for (const auto& effect : g_particleSystem->GetEffectsForTesting()) {
 			if (!effect) continue;

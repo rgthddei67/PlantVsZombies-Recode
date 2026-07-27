@@ -60,6 +60,7 @@ enum class AnimationType
 	ANIM_GILDED_ZAMBONI_ZOMBIE, // 鎏金冰车独立黄色材质；复用普通冰车时间线
 	ANIM_TORCHWOOD, // 经典火炬树桩；追加在末尾避免旧动画枚举值错位
 	ANIM_FIREPEA, // 火炬树桩点燃后的循环动画子弹；非植物实体
+	ANIM_DOLPHIN_RIDER_ZOMBIE, // 经典海豚僵尸；追加在末尾避免旧动画枚举值错位
 };
 
 #endif

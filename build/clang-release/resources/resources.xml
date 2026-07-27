@@ -252,6 +252,12 @@
     <Sound>./resources/sounds/Zombie/zamboni.ogg</Sound>
     <Sound>./resources/sounds/Zombie/balloon_pop.ogg</Sound>
     <Sound>./resources/sounds/Zombie/explosion.ogg</Sound>
+    <Sound>./resources/sounds/Zombie/dolphin_appears.ogg</Sound>
+    <Sound>./resources/sounds/Zombie/dolphin_before_jumping.ogg</Sound>
+    <Sound>./resources/sounds/Zombie/zombie_entering_water.ogg</Sound>
+    <Sound>./resources/sounds/Zombie/plant_water.ogg</Sound>
+    <Sound>./resources/sounds/Zombie/bonk.ogg</Sound>
+    <Sound>./resources/sounds/Zombie/limbs_pop.ogg</Sound>
 
     <Sound>./resources/sounds/Plant/ClickSeed.ogg</Sound>
     <Sound>./resources/sounds/Plant/deleteplant.ogg</Sound>

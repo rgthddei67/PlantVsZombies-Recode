@@ -126,6 +126,8 @@ public:
 	virtual void ArmDrop();		// 手掉落 不用调用Zombie::ArmDrop
 
 	virtual void Die();
+	/** 正式新建实体成功后的出生音效钩子；预览和读档恢复不调用。 */
+	virtual void PlaySpawnSound() {}
 	virtual void StartEat(ColliderComponent* other);
 	virtual void StopEat(ColliderComponent* other);
 	virtual void EatTarget();	// 吃东西掉血的函数
@@ -237,6 +239,8 @@ protected:
 	virtual void RegisterFrameEvents();
 	/** 返回掉头流血结束后应播放的死亡轨道名。 */
 	virtual const char* GetDeathTrackName() const { return "anim_death"; }
+	/** 当前品种阶段是否播放倒地动画；骑乘载具等阶段可要求直接移除。 */
+	virtual bool ShouldPlayDeathAnimation() const { return true; }
 
 	virtual void CheckHelmImage() {}	// 检查是否应该更换一类防具图片
 	virtual void CheckShieldImage() {} 	// 检查是否应该更换二类防具图片

@@ -14,6 +14,7 @@
 #include "../../DeltaTime.h"
 #include "../EntityManager.h"
 #include "../DamageSource.h"
+#include "../Zombie/ZombieJumpType.h"
 
 class Board;
 
@@ -58,6 +59,8 @@ public:
 	virtual void TakeDamage(int damage, DamageSource source);
 	/** 当前是否能被僵尸选为啃食目标；睡莲用它实现种下后的短暂无咬保护。 */
 	virtual bool CanBeEaten() const { return !mIsSquished; }
+	/** 是否能在当前跳跃类别的判定节点阻拦僵尸；高坚果等阻拦植物覆写此接口。 */
+	virtual bool BlocksZombieJump(ZombieJumpType) const { return false; }
 	virtual void SaveExtraData(nlohmann::json& j) const {}
 	virtual void LoadExtraData(const nlohmann::json& j) {}
 	virtual void Die();

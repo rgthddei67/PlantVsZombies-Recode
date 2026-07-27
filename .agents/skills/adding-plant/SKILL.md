@@ -20,9 +20,8 @@ description: Use when adding ANY new plant (新增植物) to PvZ — 射手/生�
 ## 第 0 步：勘察（动手前全部做完）
 
 1. **读 reanim**：`build/clang-release/resources/reanim/<Name>.reanim`，用 Grep `<name>` 提取全部 track 名，`anim_xxx` 即可用动画（具体可以询问主人，有些anim_xxx并不是可用动画，而是一个track）；`<f>-1/0</f>` 对定位 anim 轨活跃帧区间。
-2. **读 C# 参考**：`D:\PVZ\PlantsVsZombies.NET-master\Lawn_Shared\Lawn\Plant\Plant.cs`，grep 植物名，读专属 Update 函数 + 发射物类型 + mShootingCounter/state 分支。数值忠实原版。
+2. **读 C# 参考并主动盘点音效**：`D:\PVZ\PlantsVsZombies.NET-master\Lawn_Shared\Lawn\Plant\Plant.cs`，grep 植物名，读专属 Update 函数 + 发射物类型 + mShootingCounter/state 分支，数值忠实原版；同时收集相关路径的全部 `PlayFoley` / `PlaySample`，不要等主人听出缺声才补。沿 `FoleyType → Sexy.TodLib/Foley/TodFoley.cs → Resources.SOUND_*` 得到精确资源键，以资源键去掉 `SOUND_` 后的小写名到 `D:\PVZ\中文年度加强版完整版\Test\sounds\` 查同名 `.ogg`。找到后复制到唯一权威 `build/clang-release/resources/sounds/` 合理子目录，并同步 `resources.xml` 与 `ResourceKeys.h`；找不到才问主人，禁止用相近声音静默替代。构建后检查 `manifest.txt` 和启动日志无 missing sound，并用可见行为路径及 `GetSoundPlayRequestCount` 投影验证触发次数（含读档不得重响）。
 3. **盘点已就位的基建**（常常提前有了，别重复加）：`PlantType.h` 枚举、`TestDriver.cpp` kPlantNames、`ResourceKeys.h` RKEY、`AnimationTypes.h`、卡片图 `PlantImage/<Name>.png`、reanim 部件图。缺哪补哪。
-4. **音效缺失时**：先在 C# 参考里查 `FoleyType.Xxx → Resources.SOUND_XXX`（TodFoley.cs）拿原版文件名，再去原版素材库 `D:\PVZ\中文年度加强版完整版\Test\sounds\` 捞同名 .ogg，拷进权威目录 `build/clang-release/resources/sounds/`，并在同目录 `resources.xml` 加一行 `<Sound>` 条目（其他 preset 通过 Junction 共享）。
 
 ## 实现清单
 

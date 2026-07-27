@@ -57,6 +57,7 @@
 #include "../Zombie/ElitePolevaulterZombie.h"
 #include "../Zombie/ZamboniZombie.h"
 #include "../Zombie/GildedZamboniZombie.h"
+#include "../Zombie/DolphinRiderZombie.h"
 
 namespace {
 	template<typename T>
@@ -326,6 +327,12 @@ void GameDataManager::InitializeHardcodedData() {
 		AnimationType::ANIM_GILDED_ZAMBONI_ZOMBIE,
 		ResourceKeys::Reanimations::REANIM_GILDED_ZAMBONI_ZOMBIE,
 		&MakeZombie<GildedZamboniZombie>);
+
+	// 海豚僵尸拥有独立的入水、骑乘、跃豚与弃豚状态机。
+	RegisterZombie(ZombieType::ZOMBIE_DOLPHIN_RIDER, "ZOMBIE_DOLPHIN_RIDER",
+		AnimationType::ANIM_DOLPHIN_RIDER_ZOMBIE,
+		ResourceKeys::Reanimations::REANIM_DOLPHIN_RIDER_ZOMBIE,
+		&MakeZombie<DolphinRiderZombie>);
 
 	// ==================== 非植物/僵尸动画映射 ====================
 	mAnimToString[AnimationType::ANIM_SUN] = ResourceKeys::Reanimations::REANIM_SUN;

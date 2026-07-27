@@ -44,7 +44,18 @@ void Polevaulter::SetupZombie()
 				if (!plant || plant->mRow != this->mRow) return;
 
 				if (mVaultState == VaultState::RUNNING && !mHasVaulted) {
-					StartJump();
+					if (plant->BlocksZombieJump(ZombieJumpType::POLEVAULT)) {
+						// 阻拦植物让撑杆在其右侧弃杆；状态先转 WALKING，StartEat 才能走统一啃食链。
+						mVaultState = VaultState::WALKING;
+						mHasVaulted = true;
+						SetAnimationSpeed(GameRandom::Range(0.9f, 1.7f));
+						mSpeed = GameRandom::Range(7.0f, 13.0f);
+						PlayWalkAnimation(0.0f);
+						StartEat(other);
+					}
+					else {
+						StartJump();
+					}
 				}
 				else if (mVaultState == VaultState::WALKING) {
 					// 跳跃后走基类吃植物逻辑

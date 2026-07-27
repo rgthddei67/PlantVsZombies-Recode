@@ -432,6 +432,10 @@ void Zombie::Update()
 			{
 				if (!mIsDying)
 				{
+					if (!ShouldPlayDeathAnimation()) {
+						Die();
+						return;
+					}
 					// 冻着也要能倒：先解停格再播死亡动画（帧事件 Die 依赖动画前进）
 					if (mFrozenTimer > 0.0f) ClearFrozen();
 					PlayTrack(GetDeathTrackName(), 1.3f, 0.3f);

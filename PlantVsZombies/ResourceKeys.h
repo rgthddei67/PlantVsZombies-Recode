@@ -248,6 +248,12 @@ namespace ResourceKeys
 		RKEY(SOUND_ZAMBONI);				// 冰车驾驶声
 		RKEY(SOUND_BALLOON_POP);				// 原版 TirePop Foley 使用的车辆爆胎声
 		RKEY(SOUND_EXPLOSION);				// 冰车爆炸声
+		RKEY(SOUND_DOLPHIN_APPEARS);			// 海豚僵尸登场
+		RKEY(SOUND_DOLPHIN_BEFORE_JUMPING);	// 海豚起跳前鸣叫
+		RKEY(SOUND_ZOMBIE_ENTERING_WATER);	// 海豚僵尸入水
+		RKEY(SOUND_PLANT_WATER);				// 海豚压水与跳跃水声
+		RKEY(SOUND_BONK);					// 跳跃被高坚果等阻拦
+		RKEY(SOUND_LIMBS_POP);				// 海豚僵尸断肢断头
 
 		// 子弹击中僵尸
 		RKEY(SOUND_SNOW_PEA_SPARKLES);
@@ -309,6 +315,7 @@ namespace ResourceKeys
 		inline const std::string REANIM_POOL_BUCKET_ZOMBIE = "PoolBucketZombie";
 		inline const std::string REANIM_ZAMBONI_ZOMBIE = "Zamboni";
 		inline const std::string REANIM_GILDED_ZAMBONI_ZOMBIE = "GildedZamboni";
+		inline const std::string REANIM_DOLPHIN_RIDER_ZOMBIE = "ZombieDolphinrider";
 		inline const std::string REANIM_ZAMBONI_CHARRED = "Zamboni_Charred";
 
 		inline const std::string REANIM_ZOMBIE_CHARRED = "Zombie_Charred";

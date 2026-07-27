@@ -2536,6 +2536,7 @@ Zombie* Board::CreateZombie(ZombieType zombieType, int row, float x, bool skipse
 		// 词条②：按当前词条层数设定出生免伤次数（无词条→0）。读档走 CreateZombieWithID 不在此赋值，
 		// 由 LoadProtectedData 还原（与血量倍率同契约）。
 		zombie->mFreeHitsRemaining = GetPerkManager().GetZombieInvulnHits();
+		zombie->PlaySpawnSound();
 	}
 	return zombie.get();
 }
@@ -2812,6 +2813,10 @@ void Board::SetRowLoseMower(int row)
 
 bool Board::IsSpawnRowCompatible(ZombieType type, int row) const
 {
+	// 海豚僵尸依赖池沿入水状态机，只能在泳池背景的两条水路生成。
+	if (type == ZombieType::ZOMBIE_DOLPHIN_RIDER) {
+		return IsPoolBackground() && row >= 0 && row < mRows && IsPoolRow(row);
+	}
 	if ((mBackGround == Background::ROOF || mBackGround == Background::NIGHT_ROOF)
 		&& (type == ZombieType::ZOMBIE_ZAMBONI
 			|| type == ZombieType::ZOMBIE_GILDED_ZAMBONI)) return false;
@@ -3239,6 +3244,13 @@ void Board::BuildSurvivalSpawnList(int round)
 		int base = GameDataManager::GetInstance().GetZombieSurvivalRound(t);
 		if (base < 1) continue;                              // 0 = 不进生存
 		if (GameDataManager::GetInstance().GetZombieWeight(t) <= 0) continue; // 伴舞等召唤单位不独立占池位
+		bool hasCompatibleRow = false;
+		for (int row = 0; row < mRows; ++row) {
+			if (!IsSpawnRowCompatible(t, row)) continue;
+			hasCompatibleRow = true;
+			break;
+		}
+		if (!hasCompatibleRow) continue; // 保留原版轮次值，但当前地形无合法行时不把类型抽进本局候选池
 		int eff = std::max(base - reduction, 1);
 		if (eff <= round) candidates.push_back(t);
 	}

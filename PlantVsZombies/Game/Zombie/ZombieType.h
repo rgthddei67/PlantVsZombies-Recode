@@ -50,13 +50,13 @@ enum class ZombieType {
 	ZOMBIE_ELITE_POLEVAULTER,
 	ZOMBIE_ZAMBONI,		// 冰车
 	ZOMBIE_GILDED_ZAMBONI,	// 鎏金冰车：黄色三路冰道与无伤害阶梯加速
+	ZOMBIE_DOLPHIN_RIDER,	// 海豚僵尸：泳池水路专属，骑豚跃过第一株植物
 
 	// ↓ 哨兵：置于全部已实现僵尸之后，使 [0,NUM_ZOMBIE_TYPES) 只覆盖已实现类型，
 	//   生存模式随机抽取据此绝不会抽到下方未实现僵尸。
 	//   注：Board::LoadSpawnListFromJson 亦以此为上界校验 JSON 僵尸ID，效果一致。
 	NUM_ZOMBIE_TYPES,
 
-	ZOMBIE_DOLPHIN_RIDER,
 	ZOMBIE_JACK_IN_THE_BOX,
 	ZOMBIE_BALLOON,
 	ZOMBIE_DIGGER,
