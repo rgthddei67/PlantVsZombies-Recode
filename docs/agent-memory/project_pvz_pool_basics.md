@@ -1,6 +1,6 @@
 ---
 name: project_pvz_pool_basics
-description: 2026-07-28 第三大关泳池基础与 3-1 至 3-8 出怪；含六行、睡莲双层占格、地形僵尸替换、PoolCleaner、冰车、普通/精英海豚和旧档边界
+description: 2026-07-28 第三大关泳池基础与 3-1 至 3-9 出怪；含六行、睡莲双层占格、地形僵尸替换、PoolCleaner、冰车、普通/精英海豚和旧档边界
 metadata:
   node_type: memory
   type: project
@@ -10,11 +10,12 @@ metadata:
 
 ## 当前范围（2026-07-28）
 
-已开放冒险 3-1（level 19）至 3-8（level 26）的基础系统与出怪表。3-3 引入绿色精英撑杆，
-3-4 加入普通撑杆、铁桶、粉色橄榄球、加固铁门与精英撑杆组合压力；3-5 引入冰车；
+已开放冒险 3-1（level 19）至 3-9（level 27）的基础系统与出怪表。3-2 加入铁桶与快速铁桶；
+3-3 引入绿色精英撑杆并混合撑杆、铁门、快速读报与舞王；3-4 用铁桶、粉色橄榄球、
+加固铁门与精英撑杆组合压力；3-5 引入普通橄榄球和冰车；
 3-6 用普通/路障/铁桶/普通冰车/鎏金冰车形成首次综合压力；3-7 引入仅限水路的海豚僵尸。
-3-8 加入每波最多1只的精英海豚；3-9 出怪表和其他泳池植物仍未实现，
-后续必须逐关推进，不得将本基础当作整个第三大关已完成。
+3-8 加入每波最多1只的精英海豚；3-9 是 30 波综合收官关，用三种基础僵尸维持低波预算，
+再组合召唤、防线突破、陆路车辆与水路海豚四组已教学威胁。其他泳池植物仍未实现。
 
 资源由主人提供：泳池地图、睡莲/三种水路僵尸动画、`PoolCleaner` 已在 `resources.xml` 注册。2026-07-23 后续任务又从 `D:\PVZ\原！版！Test\images` 导入原版水面底图、AlphaGrid 阴影蒙版和焦散源图，增加动态水面；仍未新增通用入水水花或额外泳池粒子，PoolCleaner reanim 自带轨道不在此限制内。
 
@@ -44,14 +45,19 @@ metadata:
 - `PoolCleaner` 使用 `LAND/ENTERING/IN_POOL/EXITING` 高度状态；只改绘制偏移，不改行与碰撞。水中稳态相对原 28px 下沉位置向上校正 13px，入水/出水阶段按当前浸入比例渐进叠加该校正以避免跳变，原始深度仍照常存档。陆地/水中吞噬分别用 `anim_landsuck/anim_suck`，稳态用 `anim_land/anim_water`，运动速度按 C# 水车:草车 `2.5:3.33` 换算。
 - 日间天降普通阳光间隔由 15 秒缩短到 14 秒；`WATER_POOL` 另有独立的 13 秒倒计时，在随机水路内侧列生成一颗 15 点 `SmallSun`，用现有缩放动画出现在水面内部。该补偿不占卡槽，不在草地、夜间泳池或屋顶额外生成；两套倒计时均写入存档，旧档分别以 5 秒和 13 秒初始化。
 - level 19～27 存档写入 `poolGridVersion=2`。缺字段、旧五行/单植物槽或旧版上移 40px 坐标存档均保留文件但拒绝读取，让关卡按当前坐标重新开始。
-- 3-1 为 10 波 `{normal, cone}`；3-2 为 15 波
-  `{normal, cone, fast bucket, bucket, dancer}`；3-3 为 20 波
-  `{normal, cone, polevaulter, door, fast paper, elite polevaulter}`；3-4 为 30 波
-  `{normal, cone, polevaulter, bucket, pink football, reinforced door, elite polevaulter}`；
-  3-5 为 20 波 `{normal, cone, bucket, zamboni}`，3-6 为 20 波
+- 3-1 为 10 波 `{normal, cone}`；3-2 为 20 波
+  `{normal, cone, bucket, fast bucket}`；3-3 为 20 波
+  `{normal, cone, polevaulter, door, fast paper, elite polevaulter, dancer}`；3-4 为 30 波
+  `{normal, cone, bucket, pink football, reinforced door, elite polevaulter}`；
+  3-5 为 20 波 `{normal, cone, bucket, football, zamboni}`，3-6 为 20 波
   `{normal, cone, bucket, zamboni, gilded zamboni}`，3-7 为 20 波
   `{normal, cone, bucket, dolphin rider}`，3-8 为20波
-  `{normal, cone, bucket, dolphin rider, elite dolphin rider}`。水路替换在选行后发生，
+  `{normal, cone, bucket, dolphin rider, elite dolphin rider}`。3-9 为 30 波：
+  `{normal, cone, bucket, dancer, reinforced door, elite polevaulter, zamboni,
+  gilded zamboni, dolphin rider, elite dolphin rider}`，初始阳光 200。前三种承担低波预算；
+  中段从第 6/8/9 波依次开放精英撑杆与加固铁门、舞王与普通冰车、鎏金冰车；
+  第 10 波才开放两种海豚，利用既有 `appearWave` 在第一面旗前自然分阶段。撤下快速读报、
+  两种橄榄球等额外高速压迫，避免完整天气压力下形成缺少反应时间的随机死局。水路替换在选行后发生，
   成本/权重仍使用出怪表中的基础类型。精英撑杆详细契约见
   [project_pvz_elite_polevaulter_zombie](project_pvz_elite_polevaulter_zombie.md)。
 - 所有泳池背景的自然波次选行在第 1～4 波只允许陆地行，第 5 波起才开放水路。该门槛只属于自然波次选行；AutoTest/开发者显式指定行的造怪仍按静态地形兼容性执行，便于独立验证水路表现。
@@ -65,9 +71,9 @@ metadata:
 `smoke_pool_visual_fixes.json` 用真实卡片点击与 `move_mouse` 悬停覆盖睡莲上方预览层级，并在 3-1/3-2 各连续推进前四波断言 `earlyWavePoolZombieCount=0`。本次实现已通过 `clang-playtest` 编译；专项脚本首次可见运行在旧卡片边界坐标处未拿起卡片，修正坐标后主人明确取消后续 AutoTest，因此不记录运行通过结论。
 
 `smoke_pool_spawnlists_3_1_to_3_4.json` 逐关锁定 3-1～3-4 的背景、波数和完整出怪数组，
-2026-07-26 已按正式配置同步 3-2～3-4 的阵容与波数基线。新增
+2026-07-28 已按当前正式配置再次同步 3-2～3-4 的阵容与波数基线。新增
 `smoke_pool_spawnlists_3_1_to_3_5.json` 继续锁定 3-5 的 20 波
-`{normal, cone, bucket, zamboni}`；`clang-playtest` 在主人当前桌面可见运行，窗口标题正确、
+`{normal, cone, bucket, football, zamboni}`；`clang-playtest` 在主人当前桌面可见运行，窗口标题正确、
 退出码 0，日志 `script finished OK`，截图确认冰车在选卡预览区正常显示。
 `smoke_pool_spawnlist_3_6_gilded_zamboni.json` 锁定 3-6 的 20 波五类型阵容并确认鎏金冰车
 出现在正式预览池；当前桌面可见运行窗口标题正确、退出码 0、日志 `script finished OK`。
@@ -78,6 +84,12 @@ metadata:
 落地无倒退与左岸上岸首帧无blend残影。图鉴专项另验证通关3-7后才解锁且预览使用 `anim_idle`。
 精英专项、每波上限、高坚果500伤害与3-8图鉴均在主人当前桌面可见运行 exit 0，详见
 [project_pvz_elite_dolphin_rider_zombie](project_pvz_elite_dolphin_rider_zombie.md)。
+
+`smoke_pool_spawnlists_3_1_to_3_9.json` 按当前权威 JSON 逐关锁定第三大关完整背景、波数、
+出怪数量和数组，并额外断言 3-9 从 200 阳光开局、30 波、10 类型预览池；同步截图用于检查
+四组综合威胁同屏预览的可读性。2026-07-28 `clang-playtest` 零警告构建后在主人当前桌面可见
+运行，窗口标题正确、exit 0，71 条命令全部完成且日志无 `ERROR/FAIL/WATCHDOG`；截图确认
+两台冰车虽占位较大，但海豚、精英撑杆和其余预览仍可辨认。
 
 `smoke_pool_instanced_shadows.json` 用 8 组睡莲+豌豆射手和 140 只屏外静止陆地僵尸稳定跨过 200
 对象并行绘制阈值。旧路径把同一 worker blend 段的 batch 影子整体提前到 instance 睡莲之前，导致
