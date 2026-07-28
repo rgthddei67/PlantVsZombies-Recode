@@ -84,6 +84,8 @@ const bool isRaining = rain != RainIntensity::CLEAR;
 
 子类通过 `GetAbilityAnimSpeedMultiplier()` 返回自身最终整体动画倍率；固定品种值可直接返回常量，动态阶段从已保存状态派生，实例随机值必须由派生类持久化。状态变化后调用 `UpdateAnimSpeed()`，不要直接设置 Animator extra 倍率，否则会覆盖冻结停格或丢失减速/雨天组合。`PlayTrack` 的 clip speed 是另一层，允许换轨但不能替代状态层倍率。
 
+活动阵风对僵尸的漂移在冻结与啃食早退之前修改真实 Transform。移动后必须由僵尸基类复核已保存的植物目标仍存活、仍是顶层且保持有效咬合距离，不能把收尾完全托付给碰撞退出回调：海豚/撑杆被高坚果阻拦后可能停在碰撞箱外的小间隙并由状态机直接 `StartEat`，因此根本没有已登记碰撞对。目标失效时同步清目标 ID、`mEaterCount` 与啃食视觉；僵尸进入死亡轨道前同样先停止攻击。
+
 ## 雨天出生变异配方
 
 默认语义是“基础僵尸被替换为实际精英类型，生成后即使放晴仍保持精英类型”。推荐在 `TrySummonZombie()` 中：

@@ -1,6 +1,6 @@
 {
   "commands": [
-    { "op": "goto_level", "level": 26 },
+    { "op": "goto_level", "level": 26, "resetTestState": true },
     { "op": "choose_cards", "cards": ["PLANT_LILYPAD", "PLANT_TALLNUT"] },
     { "op": "wait_state", "state": "GAME", "timeout": 15 },
     { "op": "set_spawn_paused", "value": true },
@@ -22,7 +22,7 @@
     { "op": "assert_state", "path": "particleEffectNameCounts.TallNutBlock", "equals": 0 },
     { "op": "screenshot", "name": "01_before_30_percent_block.png" },
 
-    { "op": "wait_seconds", "value": 0.15, "timeout": 3 },
+    { "op": "wait_seconds", "value": 0.30, "timeout": 3 },
     { "op": "assert_state", "path": "zombies.0.dolphinPhase", "equals": "SWIMMING" },
     { "op": "assert_state", "path": "zombies.0.hasDolphin", "equals": false },
     { "op": "assert_state", "path": "zombies.0.dolphinJumpBlockChecked", "equals": true },

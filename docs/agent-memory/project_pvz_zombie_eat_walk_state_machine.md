@@ -35,3 +35,18 @@ metadata:
 默认实现为空，坚果家族覆写后每口喷出小碎屑。专属反馈归植物所有，僵尸啃食状态机不维护
 植物类型表，也不会影响魅惑菇等提前返回的特殊结算。`smoke_wallnut_chew_particles.json` 与
 `smoke_tallnut.json` 均在可见窗口验证生命确实下降、`eaterCount` 正确且碎屑有实际 render quad。
+
+## 外力位移与死亡清理（2026-07-28）
+
+水中海豚被高坚果阻拦后，`FinishJump` 会把僵尸碰撞箱放在植物右缘外 5px，再直接调用
+`StartEat`。该啃食关系从未进入 `CollisionSystem::currentCollisions`，所以超强台风向前线吹走
+海豚时不会产生 `onTriggerExit`，旧 `mEatPlantID`、`mIsEating` 和植物 `mEaterCount` 会一直残留，
+读档时才由旧有 `ValidateEatingState` 重建或清理。
+
+基类现用 6px 最大保留间隙逐帧验证当前植物目标：目标必须仍存活、碰撞启用、是当前 Cell 顶层，
+并与僵尸碰撞箱保持同行咬合距离。阵风吹离、目标死亡或 Cell 顶层变化都会原子清 ID、平衡
+`mEaterCount`、调用 `OnStopEating` 并经品种 `PlayWalkAnimation` 恢复；进入死亡轨道前也先清攻击，
+`EatTarget` 对垂死/已死僵尸早退。`smoke_typhoon_eating_target.json` 直接导出 `eatPlantID`，
+覆盖普通碰撞对照、受阻海豚吹离、目标植物死亡、快照恢复和啃食者死亡。2026-07-28
+`clang-playtest` 与 `clang-release` 均零警告；专项 71 条及普通/精英海豚、坚果啃食、快速读报、
+撑杆、水草和粉色橄榄球回归均在主人当前桌面可见运行通过。

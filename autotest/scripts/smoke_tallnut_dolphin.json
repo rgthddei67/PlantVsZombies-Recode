@@ -1,6 +1,6 @@
 {
   "commands": [
-    { "op": "goto_level", "level": 25 },
+    { "op": "goto_level", "level": 25, "resetTestState": true },
     { "op": "choose_cards", "cards": ["PLANT_LILYPAD", "PLANT_TALLNUT"] },
     { "op": "wait_state", "state": "GAME", "timeout": 15 },
     { "op": "set_spawn_paused", "value": true },
@@ -15,7 +15,9 @@
     { "op": "assert_state", "path": "zombies.0.dolphinPhase", "equals": "RIDING" },
     { "op": "screenshot", "name": "01_tallnut_pool_baseline.png" },
 
-    { "op": "wait_seconds", "value": 3.0, "timeout": 5 },
+    { "op": "wait_seconds", "value": 2.1, "timeout": 5 },
+    { "op": "assert_state", "path": "zombies.0.dolphinPhase", "equals": "JUMPING" },
+    { "op": "wait_seconds", "value": 0.15, "timeout": 3 },
     { "op": "assert_state", "path": "zombies.0.dolphinPhase", "equals": "SWIMMING" },
     { "op": "assert_state", "path": "zombies.0.hasDolphin", "equals": false },
     { "op": "assert_state", "path": "zombies.0.dolphinJumpBlockChecked", "equals": true },

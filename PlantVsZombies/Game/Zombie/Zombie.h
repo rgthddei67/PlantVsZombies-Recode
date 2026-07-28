@@ -148,6 +148,7 @@ public:
 	bool HasHead() const { return this->mHasHead; }
 	bool IsDying() const { return this->mIsDying; }
 	bool IsEating() const { return this->mIsEating; }
+	int GetEatingPlantID() const { return mEatPlantID; }
 	bool IsInPool() const { return this->mInPool; }
 	bool HasArm() const { return this->mHasArm; }
 	float GetCooldownTimer() const { return this->mCooldownTimer; }
@@ -274,6 +275,10 @@ protected:
 	bool IsPlantValidEatTarget(Plant* plant) const;
 	/** 把同格啃食目标迁移到新出现的上层植物，并保持双方 mEaterCount 平衡。 */
 	bool RetargetPlantIfHigherPriority(Plant* plant);
+	/** 检查当前植物目标仍存活、仍是顶层目标且处于允许啃食的接触距离。 */
+	bool IsCurrentPlantEatingTargetValid() const;
+	/** 目标失效时原子清理目标 ID、eaterCount 与啃食视觉，并恢复当前品种的稳态行走。 */
+	void StopEatingInvalidPlantTarget(float blendTime);
 	/** 创建两份水草抓取动画，并分别隐藏前层或后层，以便包裹僵尸本体。 */
 	void CreateTangleKelpGrabAnimators(float savedFrame = 22.0f);
 	/** 停止当前啃食并平衡目标计数；抗拖沉目标在抓取开始时调用，普通目标在拖沉节点调用。 */

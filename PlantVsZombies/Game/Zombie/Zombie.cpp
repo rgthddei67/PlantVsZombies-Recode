@@ -27,6 +27,7 @@ namespace {
 	constexpr float kTangleKelpGrabStartFrame = 22.0f;     // anim_grab 轨道在 Tanglekelp.reanim 中的首帧
 	constexpr float kTangleKelpGrabEndFrame = 26.0f;       // anim_grab 轨道末帧；读档帧钳位避免损坏值越界
 	constexpr int kMaxGoldenIceEffectStacks = 8;           // 独立黄色冰道来源计层的安全上限，防止极端调试生成导致倍率溢出
+	constexpr float kEatingTargetRetentionGap = 6.0f;      // 跳跃受阻后允许僵尸隔空啃食的最大碰撞箱间隙，单位：像素
 }
 
 Zombie::Zombie(Board* board, ZombieType zombieType, float x, float y, int row,
@@ -383,10 +384,15 @@ void Zombie::Update()
 		}
 
 		// 阵风是空气施加的独立位移：在冻结/啃食的早退前结算，使碰撞箱随 Transform 同帧移动。
-		// 若被吹离啃食目标，碰撞退出回调会按正常链路停止啃食，不需另造状态分支。
 		// 水草关系同时充当水底锚点，束缚期间不允许阵风改变僵尸的位置。
 		if (mTangleKelpPlantID == NULL_PLANT_ID) {
 			ApplyTyphoonGustDrift(deltaTime, transform);
+		}
+		// 海豚/撑杆被高坚果挡下后会在碰撞箱外手动开吃，没有碰撞对可产生 onTriggerExit。
+		// 因而每帧都以实体生命、顶层身份和实际间距复核一次，阵风吹离或目标死亡时立即收尾。
+		if (!mIsDying && mIsEating && mEatPlantID != NULL_PLANT_ID
+			&& !IsCurrentPlantEatingTargetValid()) {
+			StopEatingInvalidPlantTarget(0.2f);
 		}
 		// 入水状态是通用介质状态：冻结或啃食期间也要跟随阵风后的实际位置更新。
 		if (!mIsDying) UpdatePoolState();
@@ -438,6 +444,20 @@ void Zombie::Update()
 					}
 					// 冻着也要能倒：先解停格再播死亡动画（帧事件 Die 依赖动画前进）
 					if (mFrozenTimer > 0.0f) ClearFrozen();
+					// 死亡轨道开始前立即结束攻击，避免重复啃食帧事件继续伤害目标，
+					// 也避免植物的 eaterCount 一直等到死亡动画末帧才归零。
+					if (mIsEating) {
+						if (mEatPlantID != NULL_PLANT_ID && mBoard) {
+							if (Plant* plant = mBoard->mEntityManager.GetPlant(mEatPlantID);
+								plant && plant->mEaterCount > 0) {
+								--plant->mEaterCount;
+							}
+						}
+						mIsEating = false;
+						mEatPlantID = NULL_PLANT_ID;
+						mEatZombieID = NULL_ZOMBIE_ID;
+						OnStopEating();
+					}
 					PlayTrack(GetDeathTrackName(), 1.3f, 0.3f);
 					if (mCollider) mCollider->mEnabled = false;
 					mIsDying = true;
@@ -1016,6 +1036,8 @@ float Zombie::GetTangleKelpGrabFrame() const
 
 void Zombie::EatTarget()
 {
+	if (mIsDying || mIsDead) return;
+
 	if (mEatZombieID != NULL_ZOMBIE_ID && mHasHead)
 	{
 		Zombie* target = mBoard ? mBoard->mEntityManager.GetZombie(mEatZombieID) : nullptr;
@@ -1043,6 +1065,10 @@ void Zombie::EatTarget()
 			if (Plant* topPlant = mBoard->GetTopPlantAt(plant->mRow, plant->mColumn);
 				topPlant && topPlant != plant && RetargetPlantIfHigherPriority(topPlant)) {
 				plant = topPlant;
+			}
+			if (!IsCurrentPlantEatingTargetValid()) {
+				StopEatingInvalidPlantTarget(0.2f);
+				return;
 			}
 			// 魅惑菇：醒着被咬一口即触发——蘑菇立即消失、啃它的僵尸被魅惑（原版 AnimateChewSound：
 			// 不结算这口伤害）。睡着（白天）不触发，走下面普通被啃路径。StartMindControlled 内部
@@ -1076,6 +1102,12 @@ void Zombie::EatTarget()
 			{
 				AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_ZOMBIE_EAT2, 0.17f);
 			}
+			if (plant->mPlantHealth <= 0) {
+				StopEatingInvalidPlantTarget(0.2f);
+			}
+		}
+		else {
+			StopEatingInvalidPlantTarget(0.2f);
 		}
 	}
 }
@@ -1150,6 +1182,51 @@ bool Zombie::RetargetPlantIfHigherPriority(Plant* plant)
 	++plant->mEaterCount;
 	mEatPlantID = plant->mPlantID;
 	return true;
+}
+
+bool Zombie::IsCurrentPlantEatingTargetValid() const
+{
+	if (!mBoard || !mIsEating || mEatPlantID == NULL_PLANT_ID
+		|| !mCollider || !mCollider->mEnabled) {
+		return false;
+	}
+
+	Plant* plant = mBoard->mEntityManager.GetPlant(mEatPlantID);
+	if (!plant || !plant->IsActive() || plant->mPlantHealth <= 0
+		|| !IsPlantValidEatTarget(plant)) {
+		return false;
+	}
+	const ColliderComponent* plantCollider = plant->GetColliderComponent();
+	if (!plantCollider || !plantCollider->mEnabled) return false;
+
+	const SDL_FRect zombieBounds = mCollider->GetBoundingBox();
+	const SDL_FRect plantBounds = plantCollider->GetBoundingBox();
+	const bool rowsOverlap = zombieBounds.y < plantBounds.y + plantBounds.h
+		&& zombieBounds.y + zombieBounds.h > plantBounds.y;
+	if (!rowsOverlap) return false;
+
+	float horizontalGap = 0.0f;
+	if (zombieBounds.x > plantBounds.x + plantBounds.w) {
+		horizontalGap = zombieBounds.x - (plantBounds.x + plantBounds.w);
+	}
+	else if (plantBounds.x > zombieBounds.x + zombieBounds.w) {
+		horizontalGap = plantBounds.x - (zombieBounds.x + zombieBounds.w);
+	}
+	return horizontalGap <= kEatingTargetRetentionGap;
+}
+
+void Zombie::StopEatingInvalidPlantTarget(float blendTime)
+{
+	if (!mIsEating || mEatPlantID == NULL_PLANT_ID) return;
+	if (mBoard) {
+		if (Plant* plant = mBoard->mEntityManager.GetPlant(mEatPlantID);
+			plant && plant->mEaterCount > 0) {
+			--plant->mEaterCount;
+		}
+	}
+	mIsEating = false;
+	mEatPlantID = NULL_PLANT_ID;
+	ResumeWalkAfterEat(blendTime);
 }
 
 void Zombie::StopEat(ColliderComponent* other)

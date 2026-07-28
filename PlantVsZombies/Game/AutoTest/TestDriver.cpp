@@ -1541,6 +1541,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "mindControlled", z->IsMindControlled() },
 			{ "inPool", z->IsInPool() },
 			{ "isEating", z->IsEating() },
+			{ "isDying", z->IsDying() },
+			{ "eatPlantID", z->GetEatingPlantID() },
 			{ "hasHead", z->HasHead() }, { "hasArm", z->HasArm() },
 			{ "slowCooldown", z->GetCooldownTimer() },
 			// slowed 供 assert_state（bool 可 equals）；slowCooldown 浮点仅供肉眼核对勿断言

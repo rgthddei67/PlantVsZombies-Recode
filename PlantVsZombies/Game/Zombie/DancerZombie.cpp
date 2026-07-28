@@ -166,10 +166,12 @@ void DancerZombie::StartEat(ColliderComponent* other)
 
 void DancerZombie::EatTarget()
 {
+	const bool resolvedPlantBite = mEatPlantID != NULL_PLANT_ID
+		&& IsCurrentPlantEatingTargetValid();
 	Zombie::EatTarget();
 	// 月球漫步中被迫开吃：首口伤害结算完立即中断啃食，转打响指召唤。
 	// 强停啃食复刻 StartMindControlled 的规范：平衡 mEaterCount → 清目标 → 模板方法收尾。
-	if (mPhase != DancerPhase::DANCING_IN || !mHasHead || mIsDying) return;
+	if (!resolvedPlantBite || mPhase != DancerPhase::DANCING_IN || !mHasHead || mIsDying) return;
 	if (mIsEating && mEatPlantID != NULL_PLANT_ID && mBoard) {
 		if (auto* plant = mBoard->mEntityManager.GetPlant(mEatPlantID)) plant->mEaterCount--;
 	}

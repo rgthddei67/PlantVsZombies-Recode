@@ -51,15 +51,14 @@ float PinkFootballZombie::GetAbilityAnimSpeedMultiplier() const
  */
 void PinkFootballZombie::EatTarget()
 {
-	if (!mFirstPlantStrikeUsed && mEatPlantID != NULL_PLANT_ID && mHasHead && mBoard) {
-		if (mBoard->mEntityManager.GetPlant(mEatPlantID)) {
-			const int normalDamage = mAttackDamage;
-			mAttackDamage = kFirstPlantStrikeDamage;
-			FootballZombie::EatTarget();
-			mAttackDamage = normalDamage;
-			mFirstPlantStrikeUsed = true;
-			return;
-		}
+	if (!mFirstPlantStrikeUsed && mEatPlantID != NULL_PLANT_ID && mHasHead && mBoard
+		&& IsCurrentPlantEatingTargetValid()) {
+		const int normalDamage = mAttackDamage;
+		mAttackDamage = kFirstPlantStrikeDamage;
+		FootballZombie::EatTarget();
+		mAttackDamage = normalDamage;
+		mFirstPlantStrikeUsed = true;
+		return;
 	}
 
 	FootballZombie::EatTarget();

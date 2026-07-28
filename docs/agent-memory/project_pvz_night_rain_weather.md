@@ -56,6 +56,7 @@
 - 2026-07-28 大雨闪电从 `ShowScreenFlash()` 全屏白闪改成 GameScene 程序化分叉闪电与局部散射光，寒冰菇白闪契约保持独立；`clang-playtest` 配置/构建零警告，当前桌面可见 `smoke_lightning_visual` 19 条与更新后的 `smoke_night_rain` 87 条全部通过，窗口标题确认、退出码均为 0，主放电/回闪及完整回归截图目验通过。
 - 2026-07-23 新增提前 5 秒的大雨分级文字警报与多提示队列；四档各 3 句随机文案（两句七言押韵对句、一句英文），待生效台风完整初态和文案编号随档保存。`smoke_heavy_rain_prompt.json` 覆盖图片/文字并存、后出现文字处于上层、四档文案色阶、不同文案编号及超强台风切档消费；`clang-playtest` 构建通过，当前桌面可见运行 57 条命令通过，既有 `smoke_weather_forecast` 58 条回归通过，窗口均确认、退出码 0；四张专项截图已目验。
 - 2026-07-28 高坚果接入植物阵风锚定：`Board::TriggerTyphoonPlantMove` 继续按前缘到后缘逐格结算，通过植物虚接口识别锚定格，不写死 `PLANT_TALLNUT`。高坚果自身双向免位移，只对相邻来袭格每挡一格承受800环境伤害；链条不传压、睡莲组合不按层翻倍、伤害逐格而同阵风音画按高坚果合并，第一步死亡后第二步可进入腾出格。新增 `lastGustBlockedPlantSteps` 观测值和图鉴正文；`clang-playtest` 与 `clang-release` 均零警告，可见 `smoke_tallnut_typhoon_anchor` 123条、`smoke_typhoon` 123条、`smoke_tallnut` 83条均通过、退出码0，7张专项截图目验正常。既有 `smoke_typhoon` 同步当前强台风阵风上限，把超强衰减后的剩余额度断言由2改为1。
+- 2026-07-28 修复水中海豚被高坚果拦下后遭阵风吹离仍永久啃食旧目标：跳跃状态机在碰撞箱外 5px 手动 `StartEat`，原先没有碰撞对可触发退出。僵尸基类现逐帧校验目标生命、顶层身份与最多 6px 咬合间隙；吹离、目标死亡和啃食者进入死亡轨道都会同步清目标 ID 与 `eaterCount`。`clang-playtest` 与 `clang-release` 均零警告；可见 `smoke_typhoon_eating_target` 71 条通过，并回归普通/精英海豚、坚果啃食、快速读报、撑杆、水草与粉色橄榄球状态机。
 
 详细设计见 `docs/superpowers/specs/2026-07-20-night-rain-weather-design.md`。
 
