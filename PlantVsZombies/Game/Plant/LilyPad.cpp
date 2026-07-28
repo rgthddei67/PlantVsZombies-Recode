@@ -17,6 +17,11 @@ void LilyPad::PlantUpdate()
 	}
 }
 
+void LilyPad::Draw(Graphics* g)
+{
+	AnimatedObject::Draw(g);
+}
+
 bool LilyPad::CanBeEaten() const
 {
 	return Plant::CanBeEaten() && mBiteProtectionTimer <= 0.0f;

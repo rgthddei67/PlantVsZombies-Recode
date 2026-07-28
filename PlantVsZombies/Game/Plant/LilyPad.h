@@ -25,6 +25,8 @@ public:
 	void SaveExtraData(nlohmann::json& j) const override;
 	void LoadExtraData(const nlohmann::json& j) override;
 
+	void Draw(Graphics* g) override;
+
 protected:
 	/** 移除陆生植物通用阴影；睡莲原版不绘制独立阴影。 */
 	void SetupPlant() override;
