@@ -314,6 +314,7 @@ bool GameInfoSaver::SerializeLevelDataToPath(Board* board, CardSlotManager* mana
 	j["reinforcedDoorsSpawnedThisWave"] = board->mReinforcedDoorsSpawnedThisWave;
 	j["elitePolevaultersSpawnedThisWave"] = board->mElitePolevaultersSpawnedThisWave;
 	j["gildedZambonisSpawnedThisWave"] = board->mGildedZambonisSpawnedThisWave;
+	j["eliteDolphinRidersSpawnedThisWave"] = board->mEliteDolphinRidersSpawnedThisWave;
 	j["currentWeatherNoticeTimer"] = board->mGameScene
 		? board->mGameScene->GetCurrentWeatherNoticeTimer() : 0.0f;
 	j["weatherForecastFailureTimer"] = board->mGameScene
@@ -768,6 +769,8 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 		j.value("elitePolevaultersSpawnedThisWave", 0));
 	board->RestoreGildedZamboniWaveSpawnCount(
 		j.value("gildedZambonisSpawnedThisWave", 0));
+	board->RestoreEliteDolphinRiderWaveSpawnCount(
+		j.value("eliteDolphinRidersSpawnedThisWave", 0));
 	board->mRainVisualActive = false;   // 粒子不入存档，StartGame 按剩余时间重建
 	board->mMaxWave = j.value("maxWave", 10);
 	board->mZombieCountDown = j.value("zombieCountDown", 20.0f);

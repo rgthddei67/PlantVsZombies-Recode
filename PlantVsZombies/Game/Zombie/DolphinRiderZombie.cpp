@@ -20,13 +20,20 @@ namespace {
 	constexpr float kEntrySplashProgress = 0.56f;    // C# 入水水花节点
 	constexpr float kJumpBlockProgress = 0.30f;      // C# 高坚果阻拦检查节点
 	constexpr float kJumpSplashProgress = 0.49f;     // C# 海豚重新入水节点
+	constexpr float kEntryShoreLead = 20.0f;         // 原版在池岸外 0～20 px 启动抛豚入水演出
 	constexpr float kEntryWorldShift = 70.0f;        // 入水换轨时提交的相对根位移，单位 px
-	constexpr float kJumpWorldShift = 94.0f;         // 正常越过植物后提交的相对根位移，单位 px
+	constexpr float kDismountJumpWorldShift = 104.0f; // 跳跃末帧切 anim_swim 时抵消身体锚点差，单位 px
+	constexpr float kRetainedJumpWorldShift = 106.0f; // 精英首跳切回 anim_ride 时抵消身体锚点差，单位 px
 	constexpr float kRideVisualLift = 45.0f;         // 骑乘资源基准较低，抬升到与弃豚游泳一致的水面线
 	constexpr float kJumpLandingExtraLift = 15.0f;   // 跳跃末帧与 anim_swim 首帧的剩余垂直基准差
 	constexpr float kJumpAltitude = 10.0f;           // 跳跃中用于平滑轨道衔接的最大视觉高度，单位 px
 	constexpr float kBlockedLandingGap = 5.0f;       // 阻拦后碰撞箱与植物右边缘保留的间距，单位 px
 	constexpr float kPi = 3.14159265f;               // 跳跃视觉高度正弦插值使用的圆周率
+	constexpr int kNormalDolphinJumpCapacity = 1;    // 普通海豚成功越过一株植物后立即弃豚
+	constexpr float kEntryFirstClipEndProgress = 0.65f;    // C# 入水首段裁剪结束进度
+	constexpr float kEntrySecondClipBeginProgress = 0.75f; // C# 入水末段裁剪开始进度
+	constexpr float kEntryFirstClipBottomOffsetY = 126.0f; // C# 首段裁剪底线相对逻辑 Y 的偏移，单位 px
+	constexpr float kEntrySecondClipBottomOffsetY = 136.0f; // C# 末段裁剪底线相对逻辑 Y 的偏移，单位 px
 
 	float SmoothStep(float value)
 	{
@@ -43,6 +50,20 @@ bool DolphinRiderZombie::HasDolphin() const
 		|| mPhase == Phase::JUMPING;
 }
 
+int DolphinRiderZombie::GetDolphinJumpCapacity() const
+{
+	return kNormalDolphinJumpCapacity;
+}
+
+float DolphinRiderZombie::GetEntryProgress() const
+{
+	if (mPhase != Phase::ENTERING_POOL || !mAnimator) return 0.0f;
+	const auto [begin, end] = mAnimator->GetTrackRange("anim_jumpinpool");
+	if (end <= begin) return 0.0f;
+	return std::clamp((GetCurrentFrame() - static_cast<float>(begin))
+		/ static_cast<float>(end - begin), 0.0f, 1.0f);
+}
+
 float DolphinRiderZombie::GetJumpProgress() const
 {
 	if (mPhase != Phase::JUMPING || !mAnimator) return 0.0f;
@@ -55,11 +76,7 @@ float DolphinRiderZombie::GetJumpProgress() const
 Vector DolphinRiderZombie::GetDolphinVisualCompensation() const
 {
 	if (mPhase == Phase::ENTERING_POOL && mAnimator) {
-		const auto [begin, end] = mAnimator->GetTrackRange("anim_jumpinpool");
-		const float progress = end > begin
-			? std::clamp((GetCurrentFrame() - static_cast<float>(begin))
-				/ static_cast<float>(end - begin), 0.0f, 1.0f)
-			: 0.0f;
+		const float progress = GetEntryProgress();
 		const float liftProgress = SmoothStep(
 			(progress - kEntrySplashProgress) / (1.0f - kEntrySplashProgress));
 		return Vector(0.0f, -kRideVisualLift * liftProgress);
@@ -143,6 +160,8 @@ void DolphinRiderZombie::FinishEnteringPool()
 	}
 	mPhase = Phase::RIDING;
 	mSpeed = kGroundRootMotionRate;
+	// 演出从岸上开始，根位移提交后才正式切入水中介质并隐藏陆地阴影。
+	UpdatePoolState();
 	ApplyPhasePresentation();
 }
 
@@ -153,42 +172,81 @@ void DolphinRiderZombie::BeginJump(Plant* target)
 	mJumpTargetPlantID = target->mPlantID;
 	mJumpSplashPlayed = false;
 	mJumpBlockChecked = false;
-	PlayTrackOnce("anim_dolphinjump", "anim_swim", kJumpClipSpeed, 0.1f, 1.0f);
+	mJumpRetainsDolphinOnLanding =
+		mSuccessfulJumpCount + 1 < GetDolphinJumpCapacity();
+	// 精英第一次成功越障直接回到骑乘轨，避免先切弃豚游泳再切回海豚造成画面跳变。
+	const std::string returnTrack =
+		mJumpRetainsDolphinOnLanding ? "anim_ride" : "anim_swim";
+	PlayTrackOnce("anim_dolphinjump", returnTrack, kJumpClipSpeed, 0.1f, 1.0f);
 	AudioSystem::PlaySound(
 		ResourceKeys::Sounds::SOUND_DOLPHIN_BEFORE_JUMPING, 0.45f);
 	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_PLANT_WATER, 0.35f);
 	ApplyPhasePresentation();
 }
 
-void DolphinRiderZombie::FinishJump(bool blocked)
+void DolphinRiderZombie::FinishJump(bool blocked, Plant* blockingPlant)
 {
 	if (mPhase != Phase::JUMPING) return;
 
-	if (blocked && mBoard) {
-		if (auto* plant = mBoard->mEntityManager.GetPlant(mJumpTargetPlantID)) {
-			if (const auto* plantCollider = plant->GetColliderComponent()) {
-				const SDL_FRect bounds = plantCollider->GetBoundingBox();
-				Vector position = GetPosition();
-				position.x = bounds.x + bounds.w + kBlockedLandingGap - mBaseColliderOffsetX;
-				SetPosition(position);
-			}
+	if (blocked && blockingPlant) {
+		if (const auto* plantCollider = blockingPlant->GetColliderComponent()) {
+			const SDL_FRect bounds = plantCollider->GetBoundingBox();
+			Vector position = GetPosition();
+			position.x = bounds.x + bounds.w + kBlockedLandingGap - mBaseColliderOffsetX;
+			SetPosition(position);
 		}
 	}
 	else if (auto* transform = GetTransformComponent()) {
-		transform->Translate(mIsMindControlled ? kJumpWorldShift : -kJumpWorldShift, 0.0f);
+		const float worldShift = mJumpRetainsDolphinOnLanding
+			? kRetainedJumpWorldShift
+			: kDismountJumpWorldShift;
+		transform->Translate(mIsMindControlled ? worldShift : -worldShift, 0.0f);
 	}
 
-	mPhase = mInPool ? Phase::SWIMMING : Phase::WALKING_WITHOUT_DOLPHIN;
-	mJumpTargetPlantID = NULL_PLANT_ID;
+	if (!blocked) {
+		++mSuccessfulJumpCount;
+	}
+	const bool retainDolphin = !blocked
+		&& mJumpRetainsDolphinOnLanding
+		&& mInPool;
+	mPhase = retainDolphin
+		? Phase::RIDING
+		: (mInPool ? Phase::SWIMMING : Phase::WALKING_WITHOUT_DOLPHIN);
 	mSpeed = kGroundRootMotionRate;
-	mNeedDropArm = true;
-	PlayWalkAnimation(0.0f);
+	mNeedDropArm = !retainDolphin;
+	if (retainDolphin) {
+		PlayTrack("anim_ride", 1.0f, 0.0f);
+	}
+	else {
+		PlayWalkAnimation(0.0f);
+	}
 	ApplyPhasePresentation();
-	CheckDeferredArmDrop();
+	if (!retainDolphin) {
+		CheckDeferredArmDrop();
+	}
+
+	if (blocked && blockingPlant) {
+		if (auto* plantCollider = blockingPlant->GetColliderComponent()) {
+			StartEat(plantCollider);
+		}
+		OnDolphinJumpBlocked(*blockingPlant);
+	}
+	mJumpTargetPlantID = NULL_PLANT_ID;
+	mJumpRetainsDolphinOnLanding = false;
 }
 
 void DolphinRiderZombie::ZombieUpdate(float)
 {
+	if (mPhase == Phase::APPROACHING && mBoard && mBoard->IsPoolRow(mRow)) {
+		const float poolRight = CELL_INITALIZE_POS_X
+			+ static_cast<float>(mBoard->mColumns) * CELL_COLLIDER_SIZE_X;
+		const float x = GetPosition().x;
+		if (x >= poolRight && x <= poolRight + kEntryShoreLead) {
+			BeginEnteringPool();
+			return;
+		}
+	}
+
 	if (mPhase == Phase::ENTERING_POOL) {
 		const auto [begin, end] = mAnimator->GetTrackRange("anim_jumpinpool");
 		const float progress = end > begin
@@ -197,6 +255,7 @@ void DolphinRiderZombie::ZombieUpdate(float)
 			: 0.0f;
 		if (!mEntrySplashPlayed && progress >= kEntrySplashProgress) {
 			mEntrySplashPlayed = true;
+			ApplyPhasePresentation();
 			AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_ZOMBIE_ENTERING_WATER, 0.4f);
 		}
 		if (GetCurrentTrackName() == "anim_ride") FinishEnteringPool();
@@ -208,10 +267,17 @@ void DolphinRiderZombie::ZombieUpdate(float)
 	if (!mJumpBlockChecked && progress >= kJumpBlockProgress) {
 		mJumpBlockChecked = true;
 		if (mBoard) {
-			if (auto* plant = mBoard->mEntityManager.GetPlant(mJumpTargetPlantID);
-				plant && plant->BlocksZombieJump(ZombieJumpType::DOLPHIN_RIDER)) {
+			Plant* plant = mBoard->mEntityManager.GetPlant(mJumpTargetPlantID);
+			if (plant) {
+				if (Plant* topPlant = mBoard->GetTopPlantAt(plant->mRow, plant->mColumn)) {
+					plant = topPlant;
+				}
+			}
+			if (plant
+				&& plant->mRow == mRow
+				&& plant->BlocksZombieJump(ZombieJumpType::DOLPHIN_RIDER)) {
 				plant->OnZombieJumpBlocked(ZombieJumpType::DOLPHIN_RIDER);
-				FinishJump(true);
+				FinishJump(true, plant);
 				return;
 			}
 		}
@@ -221,7 +287,9 @@ void DolphinRiderZombie::ZombieUpdate(float)
 		AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_ZOMBIE_ENTERING_WATER, 0.4f);
 		AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_PLANT_WATER, 0.35f);
 	}
-	if (GetCurrentTrackName() == "anim_swim") FinishJump(false);
+	const char* returnTrack =
+		mJumpRetainsDolphinOnLanding ? "anim_ride" : "anim_swim";
+	if (GetCurrentTrackName() == returnTrack) FinishJump(false);
 }
 
 void DolphinRiderZombie::MoveManually(
@@ -266,7 +334,8 @@ void DolphinRiderZombie::PlayWalkAnimation(float blendTime)
 			// 未遇到植物便穿过整段泳池时，按 C# 回到带豚陆地步行，而不是让 anim_ride 滑上岸。
 			mPhase = Phase::APPROACHING;
 			mSpeed = kGroundRootMotionRate;
-			PlayTrack("anim_walkdolphin", kFastGroundClipSpeed, blendTime);
+			// 阶段切换会同步撤销骑乘视觉补偿；禁用混合，避免旧 anim_ride 姿态在陆地首帧垂挂到脚下。
+			PlayTrack("anim_walkdolphin", kFastGroundClipSpeed, 0.0f);
 			ApplyPhasePresentation();
 			return;
 		}
@@ -290,7 +359,7 @@ void DolphinRiderZombie::HeadDrop()
 	mAnimator->SetTrackVisible("anim_head2", false);
 	if (!mInPool) {
 		// 粒子配方本身包含头部偏移；从逻辑原点发射，避免再次叠加该品种的视觉偏移。
-		g_particleSystem->EmitEffect("ZombieDolphinRiderHeadOff", GetPosition());
+		g_particleSystem->EmitEffect(GetDolphinHeadOffEffectName(), GetPosition());
 	}
 	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_LIMBS_POP, 0.35f);
 }
@@ -302,7 +371,7 @@ void DolphinRiderZombie::ArmDrop()
 	mAnimator->SetTrackVisible("Zombie_outerarm_lower", false);
 	mAnimator->SetTrackImage("Zombie_dolphinrider_outerarm_upper",
 		ResourceManager::GetInstance().GetTexture(
-			ResourceKeys::Textures::IMAGE_ZOMBIE_DOLPHINRIDER_OUTERARM_UPPER2));
+			GetLostOuterArmTextureKey()));
 	if (!mInPool) {
 		g_particleSystem->EmitEffect("ZombieArmOff", GetPosition());
 	}
@@ -321,7 +390,7 @@ void DolphinRiderZombie::ZombieItemUpdate() const
 		mAnimator->SetTrackVisible("Zombie_outerarm_lower", false);
 		mAnimator->SetTrackImage("Zombie_dolphinrider_outerarm_upper",
 			ResourceManager::GetInstance().GetTexture(
-				ResourceKeys::Textures::IMAGE_ZOMBIE_DOLPHINRIDER_OUTERARM_UPPER2));
+				GetLostOuterArmTextureKey()));
 	}
 	ApplyPhasePresentation();
 }
@@ -351,6 +420,16 @@ bool DolphinRiderZombie::ShouldPlayDeathAnimation() const
 	return mPhase == Phase::SWIMMING || mPhase == Phase::WALKING_WITHOUT_DOLPHIN;
 }
 
+const std::string& DolphinRiderZombie::GetLostOuterArmTextureKey() const
+{
+	return ResourceKeys::Textures::IMAGE_ZOMBIE_DOLPHINRIDER_OUTERARM_UPPER2;
+}
+
+const char* DolphinRiderZombie::GetDolphinHeadOffEffectName() const
+{
+	return "ZombieDolphinRiderHeadOff";
+}
+
 void DolphinRiderZombie::CheckDeferredArmDrop()
 {
 	if (!mHasArm || mBodyHealth > static_cast<int64_t>(mBodyMaxHealth) * 2 / 3) return;
@@ -372,6 +451,30 @@ void DolphinRiderZombie::ApplyPhasePresentation() const
 	}
 }
 
+bool DolphinRiderZombie::TryGetDrawClipBottom(float& clipBottom) const
+{
+	if (mPhase != Phase::ENTERING_POOL) {
+		return Zombie::TryGetDrawClipBottom(clipBottom);
+	}
+	if (mIsPreview || !mAnimator) return false;
+
+	// C# 只在 0.56～0.65 与 0.75～结束裁剪；底线低于普通水面，避免把骑手和海豚横向切断。
+	const float progress = GetEntryProgress();
+	float bottomOffset = 0.0f;
+	if (progress >= kEntrySplashProgress && progress <= kEntryFirstClipEndProgress) {
+		bottomOffset = kEntryFirstClipBottomOffsetY;
+	}
+	else if (progress >= kEntrySecondClipBeginProgress) {
+		bottomOffset = kEntrySecondClipBottomOffsetY;
+	}
+	else {
+		return false;
+	}
+	clipBottom = static_cast<float>(static_cast<int>(
+		std::lround(GetPosition().y + bottomOffset)));
+	return true;
+}
+
 void DolphinRiderZombie::SaveExtraData(nlohmann::json& j) const
 {
 	j["phase"] = static_cast<int>(mPhase);
@@ -379,6 +482,8 @@ void DolphinRiderZombie::SaveExtraData(nlohmann::json& j) const
 	j["entrySplashPlayed"] = mEntrySplashPlayed;
 	j["jumpSplashPlayed"] = mJumpSplashPlayed;
 	j["jumpBlockChecked"] = mJumpBlockChecked;
+	j["jumpRetainsDolphinOnLanding"] = mJumpRetainsDolphinOnLanding;
+	j["successfulJumpCount"] = mSuccessfulJumpCount;
 }
 
 void DolphinRiderZombie::LoadExtraData(const nlohmann::json& j)
@@ -390,6 +495,9 @@ void DolphinRiderZombie::LoadExtraData(const nlohmann::json& j)
 	mEntrySplashPlayed = j.value("entrySplashPlayed", false);
 	mJumpSplashPlayed = j.value("jumpSplashPlayed", false);
 	mJumpBlockChecked = j.value("jumpBlockChecked", false);
+	mJumpRetainsDolphinOnLanding = j.value("jumpRetainsDolphinOnLanding", false);
+	mSuccessfulJumpCount = std::clamp(
+		j.value("successfulJumpCount", 0), 0, GetDolphinJumpCapacity());
 	mNeedDropArm = !HasDolphin();
 	mSpeed = kGroundRootMotionRate;
 	ApplyPhasePresentation();

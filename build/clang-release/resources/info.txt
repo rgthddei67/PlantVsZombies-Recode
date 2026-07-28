@@ -191,6 +191,10 @@
 海豚僵尸骑士
 [ZOMBIE_DOLPHIN_RIDER_DESCRIPTION]
 海豚僵尸骑士只在泳池水路出现，本体生命为500。骑豚时移动很快，会跃过碰到的第一株植物；落水弃豚后改为普通速度游泳。高坚果能够在跳跃途中将他拦下。“那海豚其实也是个僵尸。”
+[ZOMBIE_ELITE_DOLPHIN_RIDER]
+精英海豚骑士僵尸
+[ZOMBIE_ELITE_DOLPHIN_RIDER_DESCRIPTION]
+精英海豚骑士僵尸拥有700点生命，骑着醒目的粉白海豚。第一次成功越过植物后，他仍会继续骑乘并寻找第二个目标；高坚果能立即迫使他弃豚，但会因此承受500点撞击伤害。“这不是同一只海豚跳了两次——好吧，其实就是。”
 [ZOMBIE_GILDED_ZAMBONI]
 鎏金冰车僵尸
 [ZOMBIE_GILDED_ZAMBONI_DESCRIPTION]

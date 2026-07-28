@@ -1218,12 +1218,11 @@ float Zombie::GetTargetLeadX(float seconds) const
 
 void Zombie::Draw(Graphics* g)
 {
-	const bool clipAtWaterline = g && mInPool && !mIsPreview;
+	float clipBottom = 0.0f;
+	const bool clipAtWaterline = g && TryGetDrawClipBottom(clipBottom);
 	if (clipAtWaterline) {
 		// 水线复用通用 shader ClipRect，不生成 scissor 状态命令，因此不会把逐僵尸绘制拆成独立 draw。
-		const int clipBottom = static_cast<int>(
-			std::lround(GetPosition().y + kPoolClipBottomOffsetY));
-		g->PushClipBottom(static_cast<float>(clipBottom));
+		g->PushClipBottom(clipBottom);
 	}
 
 	const Vector grabPosition = GetVisualPosition()
@@ -1312,4 +1311,12 @@ void Zombie::ValidateEatingState(EntityManager& em)
 		mIsEating = false;
 		ResumeWalkAfterEat(0.3f);
 	}
+}
+
+bool Zombie::TryGetDrawClipBottom(float& clipBottom) const
+{
+	if (!mInPool || mIsPreview) return false;
+	clipBottom = static_cast<float>(static_cast<int>(
+		std::lround(GetPosition().y + kPoolClipBottomOffsetY)));
+	return true;
 }

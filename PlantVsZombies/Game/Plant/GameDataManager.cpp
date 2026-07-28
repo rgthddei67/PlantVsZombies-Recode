@@ -59,6 +59,7 @@
 #include "../Zombie/ZamboniZombie.h"
 #include "../Zombie/GildedZamboniZombie.h"
 #include "../Zombie/DolphinRiderZombie.h"
+#include "../Zombie/EliteDolphinRiderZombie.h"
 
 namespace {
 	template<typename T>
@@ -339,6 +340,12 @@ void GameDataManager::InitializeHardcodedData() {
 		AnimationType::ANIM_DOLPHIN_RIDER_ZOMBIE,
 		ResourceKeys::Reanimations::REANIM_DOLPHIN_RIDER_ZOMBIE,
 		&MakeZombie<DolphinRiderZombie>);
+
+	// 精英海豚复用普通时间线，只替换材质并把成功越障容量扩展为两次。
+	RegisterZombie(ZombieType::ZOMBIE_ELITE_DOLPHIN_RIDER, "ZOMBIE_ELITE_DOLPHIN_RIDER",
+		AnimationType::ANIM_ELITE_DOLPHIN_RIDER_ZOMBIE,
+		ResourceKeys::Reanimations::REANIM_ELITE_DOLPHIN_RIDER_ZOMBIE,
+		&MakeZombie<EliteDolphinRiderZombie>);
 
 	// ==================== 非植物/僵尸动画映射 ====================
 	mAnimToString[AnimationType::ANIM_SUN] = ResourceKeys::Reanimations::REANIM_SUN;

@@ -51,6 +51,7 @@ enum class ZombieType {
 	ZOMBIE_ZAMBONI,		// 冰车
 	ZOMBIE_GILDED_ZAMBONI,	// 鎏金冰车：黄色三路冰道与无伤害阶梯加速
 	ZOMBIE_DOLPHIN_RIDER,	// 海豚僵尸：泳池水路专属，骑豚跃过第一株植物
+	ZOMBIE_ELITE_DOLPHIN_RIDER,	// 精英海豚：第一次越障后保留海豚，第二次才弃豚
 
 	// ↓ 哨兵：置于全部已实现僵尸之后，使 [0,NUM_ZOMBIE_TYPES) 只覆盖已实现类型，
 	//   生存模式随机抽取据此绝不会抽到下方未实现僵尸。

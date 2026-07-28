@@ -101,7 +101,7 @@ namespace {
 		ZT(ZOMBIE_FOOTBALL), ZT(ZOMBIE_DANCER), ZT(ZOMBIE_BACKUP_DANCER), ZT(ZOMBIE_ELITE_DANCER), ZT(ZOMBIE_PINK_FOOTBALL),
 		ZT(ZOMBIE_REINFORCED_DOOR),
 		ZT(ZOMBIE_POOL_NORMAL), ZT(ZOMBIE_POOL_CONE), ZT(ZOMBIE_POOL_BUCKET),
-		ZT(ZOMBIE_ZAMBONI), ZT(ZOMBIE_GILDED_ZAMBONI), ZT(ZOMBIE_DOLPHIN_RIDER),
+		ZT(ZOMBIE_ZAMBONI), ZT(ZOMBIE_GILDED_ZAMBONI), ZT(ZOMBIE_DOLPHIN_RIDER), ZT(ZOMBIE_ELITE_DOLPHIN_RIDER),
 		ZT(ZOMBIE_JACK_IN_THE_BOX), ZT(ZOMBIE_BALLOON), ZT(ZOMBIE_DIGGER), ZT(ZOMBIE_POGO),
 		ZT(ZOMBIE_YETI), ZT(ZOMBIE_BUNGEE), ZT(ZOMBIE_LADDER), ZT(ZOMBIE_CATAPULT),
 		ZT(ZOMBIE_GARGANTUAR), ZT(ZOMBIE_IMP), ZT(ZOMBIE_BOSS), ZT(ZOMBIE_PEA_HEAD),
@@ -1347,6 +1347,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "reinforcedDoorsSpawnedThisWave", board->GetReinforcedDoorsSpawnedThisWave() },
 			{ "elitePolevaultersSpawnedThisWave", board->GetElitePolevaultersSpawnedThisWave() },
 			{ "gildedZambonisSpawnedThisWave", board->GetGildedZambonisSpawnedThisWave() },
+			{ "eliteDolphinRidersSpawnedThisWave", board->GetEliteDolphinRidersSpawnedThisWave() },
 			{ "typhoonDecayRemaining", board->GetTyphoonStrengthTimer() },
 			{ "windDirection", WindDirectionName(board->GetWindDirection()) },
 			{ "windDirectionRemaining", board->GetWindDirectionTimer() },
@@ -1608,7 +1609,12 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			const Vector visualCompensation = dolphin->GetDolphinVisualCompensation();
 			zombieState["dolphinPhase"] = phase;
 			zombieState["hasDolphin"] = dolphin->HasDolphin();
+			zombieState["dolphinEntrySplashPlayed"] = dolphin->HasPlayedEntrySplash();
+			zombieState["dolphinEntryProgressOn1000"] = static_cast<int>(std::lround(
+				dolphin->GetEntryProgress() * 1000.0f));
 			zombieState["dolphinJumpBlockChecked"] = dolphin->HasCheckedJumpBlocker();
+			zombieState["successfulDolphinJumps"] = dolphin->GetSuccessfulDolphinJumps();
+			zombieState["dolphinJumpCapacity"] = dolphin->GetDolphinJumpCapacity();
 			zombieState["dolphinJumpProgressOn1000"] = static_cast<int>(std::lround(
 				dolphin->GetJumpProgress() * 1000.0f));
 			zombieState["dolphinVisualCompensationXOn1000"] =
@@ -1677,6 +1683,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["fireResistantZombieCount"] = fireResistantZombieCount;
 
 	out["plants"] = nlohmann::json::array();
+	out["topPlantsByCell"] = nlohmann::json::object();
 	int repeatingShootingHeadCount = 0;
 	for (int id : board->mEntityManager.GetAllPlantIDs()) {
 		Plant* p = board->mEntityManager.GetPlant(id);
@@ -1760,6 +1767,12 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			plantState["growthRatePct"] = eliteScaredy->GetGrowthRatePercent();
 			plantState["growthProgressTenths"] = eliteScaredy->GetGrowthProgressTenths();
 		}
+		// 水池叠种会让 plants 数组索引依赖实体顺序；按格子额外导出顶层植物供稳定断言。
+		if (board->GetTopPlantAt(p->mRow, p->mColumn) == p) {
+			const std::string cellKey =
+				std::to_string(p->mRow) + "_" + std::to_string(p->mColumn);
+			out["topPlantsByCell"][cellKey] = plantState;
+		}
 		out["plants"].push_back(std::move(plantState));
 	}
 	out["plantCount"] = static_cast<int>(out["plants"].size());
@@ -1771,6 +1784,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["particleEffectNameCounts"] = nlohmann::json::object();
 	out["particleEffectNameCounts"]["ZombieArmOff"] = 0;
 	out["particleEffectNameCounts"]["ZombieDolphinRiderHeadOff"] = 0;
+	out["particleEffectNameCounts"]["EliteDolphinRiderHeadOff"] = 0;
 	out["particleEffectNameCounts"]["WallnutEatSmall"] = 0;
 	out["particleEffectNameCounts"]["WallnutEatLarge"] = 0;
 	out["particleEffectNameCounts"]["TallNutBlock"] = 0;

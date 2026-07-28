@@ -1,0 +1,40 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 26 },
+    { "op": "choose_cards", "cards": ["PLANT_LILYPAD", "PLANT_TALLNUT"] },
+    { "op": "wait_state", "state": "GAME", "timeout": 15 },
+    { "op": "set_spawn_paused", "value": true },
+    { "op": "set_sun", "value": 9000 },
+
+    { "op": "plant", "type": "PLANT_LILYPAD", "row": 2, "col": 5 },
+    { "op": "plant", "type": "PLANT_TALLNUT", "row": 2, "col": 5 },
+    { "op": "spawn_zombie", "type": "ZOMBIE_ELITE_DOLPHIN_RIDER", "row": 2, "x": 1040 },
+    { "op": "wait_seconds", "value": 5.3, "timeout": 8 },
+    { "op": "assert_state", "path": "zombies.0.dolphinPhase", "equals": "RIDING" },
+
+    { "op": "wait_seconds", "value": 2.1, "timeout": 5 },
+    { "op": "assert_state", "path": "zombies.0.dolphinPhase", "equals": "JUMPING" },
+    { "op": "assert_state", "path": "zombies.0.track", "equals": "anim_dolphinjump" },
+    { "op": "assert_state", "path": "zombies.0.dolphinJumpBlockChecked", "equals": false },
+    { "op": "assert_state", "path": "zombies.0.successfulDolphinJumps", "equals": 0 },
+    { "op": "assert_state", "path": "topPlantsByCell.2_5.health", "equals": 9000 },
+    { "op": "assert_state", "path": "bonkSoundRequestCount", "equals": 0 },
+    { "op": "assert_state", "path": "particleEffectNameCounts.TallNutBlock", "equals": 0 },
+    { "op": "screenshot", "name": "01_before_30_percent_block.png" },
+
+    { "op": "wait_seconds", "value": 0.15, "timeout": 3 },
+    { "op": "assert_state", "path": "zombies.0.dolphinPhase", "equals": "SWIMMING" },
+    { "op": "assert_state", "path": "zombies.0.hasDolphin", "equals": false },
+    { "op": "assert_state", "path": "zombies.0.dolphinJumpBlockChecked", "equals": true },
+    { "op": "assert_state", "path": "zombies.0.bodyHealth", "equals": 700 },
+    { "op": "assert_state", "path": "zombies.0.isEating", "equals": true },
+    { "op": "assert_state", "path": "zombies.0.track", "equals": "anim_eat" },
+    { "op": "assert_state", "path": "topPlantsByCell.2_5.health", "equals": 8500 },
+    { "op": "assert_state", "path": "topPlantsByCell.2_5.eaterCount", "equals": 1 },
+    { "op": "assert_state", "path": "bonkSoundRequestCount", "equals": 1 },
+    { "op": "assert_state", "path": "particleEffectNameCounts.TallNutBlock", "equals": 1 },
+    { "op": "screenshot", "name": "02_blocked_and_tallnut_damaged.png" },
+    { "op": "dump_state", "name": "tallnut_elite_dolphin_state.json" },
+    { "op": "quit" }
+  ]
+}

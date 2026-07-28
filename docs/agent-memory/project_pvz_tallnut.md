@@ -1,6 +1,6 @@
 ---
 name: project_pvz_tallnut
-description: 2026-07-27 经典高坚果、撑杆与海豚跳跃阻拦、坚果家族啃食碎屑和裂纹存档恢复
+description: 2026-07-28 经典高坚果、普通与精英撑杆/海豚跳跃阻拦、坚果家族啃食碎屑和裂纹存档恢复
 metadata:
   node_type: memory
   type: project
@@ -11,7 +11,7 @@ metadata:
 ## 当前实现
 
 `PLANT_TALLNUT` 已注册为 `TallNut : WallNut`，使用主人导入的 `Tallnut.reanim` 与卡图。基础生命
-8000，阳光 125，冷却 30 秒；普通坚果保持 4000 生命。两者共用按生命值派生的三阶段材质：
+9000，阳光 125，冷却 30 秒；普通坚果保持 4000 生命。两者共用按生命值派生的三阶段材质：
 高于 2/3 为完整体，不高于 2/3 与 1/3 时分别切换 `cracked1/2`。首次跨入裂纹阶段喷出
 `WallnutEatLarge`；快照读回仅重建材质和阶段，不重放碎屑。
 
@@ -37,22 +37,27 @@ metadata:
 - 起跳目标 ID 与是否已检查进入快照；读档恢复原 `anim_jump` 帧并继续到 60% 节点，不能像旧实现那样
   直接 `EndJump()` 绕过高坚果。组合植物在起跳和检查时均解析当前格顶层，避免睡莲先收到碰撞导致漏挡。
 - 精英撑杆自身保持 450 生命；被挡时先在同排同 X 召唤普通撑杆，再对高坚果调用
-  `TakeDamage(800, DamageSource::ZOMBIE)`。普通关高坚果从 8000 降至 7200，生存模式仍统一消费
+  `TakeDamage(500, DamageSource::ZOMBIE)`。普通关高坚果从 9000 降至 8500，生存模式仍统一消费
   僵尸增伤与植物韧性词条。
 - 海豚在跳跃进度 30% 的既有唯一判定点被挡，弃豚回到 `SWIMMING`；Bonk 从原来的僵尸内部
   分支收敛到植物反馈入口，避免两处重复播放。
+- 精英海豚在同一30%节点被挡后也立即弃豚并开始啃食，再由品种钩子对当前格顶层高坚果结算
+  `TakeDamage(500, DamageSource::ZOMBIE)`；精英自身700生命不变。水池同格断言通过
+  `topPlantsByCell.<row_col>` 读取顶层植物，避免 `plants` 数组受睡莲实体顺序影响。
 
 ## 验证
 
-2026-07-27 `clang-playtest` 构建成功且无警告。以下脚本均从 `build/clang-playtest/` 在主人
+2026-07-28 `clang-playtest` 构建成功且无警告。以下脚本均从 `build/clang-playtest/` 在主人
 当前桌面的“植物大战僵尸中文版”可见窗口运行，退出码 0，`run.log` 以
 `script finished OK` 结束：
 
-- `smoke_tallnut.json`：8000 生命、两档裂纹与大碎屑、裂纹快照恢复不重放、普通撑杆阻拦前
+- `smoke_tallnut.json`：9000 生命、两档裂纹与大碎屑、裂纹快照恢复不重放、普通撑杆阻拦前
   `JUMPING/anim_jump` 且 Bonk 为 0、跳跃快照继续、阻拦后零跳距、Bonk/星星和啃食小碎屑。
 - `smoke_tallnut_elite_pole.json`：阻拦前精英为 `JUMPING/anim_jump` 且双方未受伤；阻拦后
-  精英仍为 450 生命并啃食，高坚果为 7200，普通撑杆仍存在。
+  精英仍为 450 生命并啃食，高坚果为 8500，普通撑杆仍存在。
 - `smoke_tallnut_dolphin.json`：海豚由 `JUMPING` 被挡回 `SWIMMING`，弃豚，Bonk 与星星各一次。
+- `smoke_tallnut_elite_dolphin.json`：阻拦前顶层高坚果为9000；30%节点后精英海豚弃豚并啃食，
+  高坚果精确8500，精英仍为700，Bonk与星星各一次。
 - `smoke_wallnut_chew_particles.json`：普通坚果受一次 50 伤，啃食者计数 1，小碎屑有实际
   render quad 且与坚果/僵尸碰撞区相交。
 

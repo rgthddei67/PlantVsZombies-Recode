@@ -231,6 +231,12 @@ protected:
 	void UpdatePoolState();
 	/** 按通用入水状态隐藏陆地阴影；水面以下裁剪在 Draw 内与其他 Clip 嵌套。 */
 	void UpdatePoolVisualState() const;
+	/**
+	 * @brief 返回当前绘制是否需要水面裁剪及其世界坐标底线。
+	 *
+	 * 默认只裁剪已经处于水中的僵尸；特殊入水演出可覆写时间窗而不改变其他品种。
+	 */
+	virtual bool TryGetDrawClipBottom(float& clipBottom) const;
 	virtual void ZombieMove(float scaledDelta, TransformComponent* transform);
 
 	// 这才是设置僵尸

@@ -1,0 +1,31 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 26 },
+    { "op": "choose_cards", "cards": ["PLANT_PEASHOOTER"] },
+    { "op": "wait_state", "state": "GAME", "timeout": 15 },
+    { "op": "set_spawn_paused", "value": true },
+
+    { "op": "spawn_wave_zombie", "type": "ZOMBIE_ELITE_DOLPHIN_RIDER", "mutationRoll": 50, "row": 2, "x": 900 },
+    { "op": "spawn_wave_zombie", "type": "ZOMBIE_ELITE_DOLPHIN_RIDER", "mutationRoll": 50, "row": 3, "x": 900 },
+    { "op": "assert_state", "path": "zombieCount", "equals": 1 },
+    { "op": "assert_state", "path": "zombies.0.type", "equals": "ZOMBIE_ELITE_DOLPHIN_RIDER" },
+    { "op": "assert_state", "path": "weather.eliteDolphinRidersSpawnedThisWave", "equals": 1 },
+
+    { "op": "save_level_snapshot", "name": "elite_dolphin_wave_cap" },
+    { "op": "reload_level_snapshot", "name": "elite_dolphin_wave_cap" },
+    { "op": "wait_frames", "value": 2 },
+    { "op": "assert_state", "path": "weather.eliteDolphinRidersSpawnedThisWave", "equals": 1 },
+    { "op": "spawn_wave_zombie", "type": "ZOMBIE_ELITE_DOLPHIN_RIDER", "mutationRoll": 50, "row": 3, "x": 900 },
+    { "op": "assert_state", "path": "zombieCount", "equals": 1 },
+
+    { "op": "summon_next_wave" },
+    { "op": "assert_state", "path": "wave", "equals": 1 },
+    { "op": "assert_state", "path": "weather.eliteDolphinRidersSpawnedThisWave", "equals": 0 },
+    { "op": "spawn_wave_zombie", "type": "ZOMBIE_ELITE_DOLPHIN_RIDER", "mutationRoll": 50, "row": 3, "x": 900 },
+    { "op": "assert_state", "path": "weather.eliteDolphinRidersSpawnedThisWave", "equals": 1 },
+    { "op": "assert_state", "path": "zombieCount", "equals": 3 },
+    { "op": "screenshot", "name": "wave_cap_reset.png" },
+    { "op": "dump_state", "name": "elite_dolphin_wave_cap.json" },
+    { "op": "quit" }
+  ]
+}

@@ -17,7 +17,7 @@
     { "op": "assert_state", "path": "zombies.0.vaultBlockChecked", "equals": false },
     { "op": "assert_state", "path": "zombies.0.vaultHasTarget", "equals": true },
     { "op": "assert_state", "path": "zombies.0.vaultProgressOn1000", "atMost": 590 },
-    { "op": "assert_state", "path": "plants.0.health", "equals": 8000 },
+    { "op": "assert_state", "path": "plants.0.health", "equals": 9000 },
     { "op": "assert_state", "path": "bonkSoundRequestCount", "equals": 0 },
     { "op": "screenshot", "name": "01_elite_pole_jump_before_block.png" },
 
@@ -34,7 +34,7 @@
     { "op": "assert_state", "path": "zombies.0.lastVaultDistanceOn1000", "equals": 0 },
     { "op": "assert_state", "path": "zombies.0.vaultExtraDistanceAppliedOn1000", "equals": 0 },
     { "op": "assert_state", "path": "zombies.1.type", "equals": "ZOMBIE_POLEVAULTER" },
-    { "op": "assert_state", "path": "plants.0.health", "equals": 7200 },
+    { "op": "assert_state", "path": "plants.0.health", "equals": 8500 },
     { "op": "assert_state", "path": "plants.0.eaterCount", "equals": 1 },
     { "op": "assert_state", "path": "bonkSoundRequestCount", "equals": 1 },
     { "op": "screenshot", "name": "02_elite_pole_blocked_and_summoned.png" },

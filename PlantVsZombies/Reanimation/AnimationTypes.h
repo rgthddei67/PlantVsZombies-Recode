@@ -62,6 +62,7 @@ enum class AnimationType
 	ANIM_FIREPEA, // 火炬树桩点燃后的循环动画子弹；非植物实体
 	ANIM_DOLPHIN_RIDER_ZOMBIE, // 经典海豚僵尸；追加在末尾避免旧动画枚举值错位
 	ANIM_TALLNUT, // 经典高坚果；追加在末尾避免旧动画枚举值错位
+	ANIM_ELITE_DOLPHIN_RIDER_ZOMBIE, // 精英海豚独立粉白海豚与蓝色骑手材质
 };
 
 #endif

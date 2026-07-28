@@ -81,6 +81,7 @@ namespace {
 	constexpr int kReinforcedDoorMaxPerWave = 2;          // 每波最多正式生成的加固铁门数量；超额候选直接跳过
 	constexpr int kElitePolevaulterMaxPerWave = 2;        // 每波最多正式生成的精英撑杆数量；超额候选直接跳过
 	constexpr int kGildedZamboniMaxPerWave = 1;           // 每波最多正式生成的鎏金冰车数量；超额候选直接跳过
+	constexpr int kEliteDolphinRiderMaxPerWave = 1;       // 每波最多正式生成的精英海豚数量；超额候选直接跳过
 	constexpr int kEliteScaredyShroomPlantLimit = 4;      // 每个关卡累计最多种植的精英胆小菇数量
 	constexpr int kWaveCandidateAttemptLimit = MAX_ZOMBIES_PER_WAVE * 10; // 单波候选尝试上限，防止仅剩受限类型时死循环
 	constexpr float kWeatherTransitionDuration = 2.0f;   // 雨势切换时倍率、暗幕与雨声音量的平滑过渡时长（游戏秒）
@@ -1408,6 +1409,13 @@ void Board::RestoreGildedZamboniWaveSpawnCount(int count)
 	mGildedZambonisSpawnedThisWave = std::clamp(count, 0, kGildedZamboniMaxPerWave);
 }
 
+/** 夹紧并恢复当前波已经正式生成的精英海豚骑士数量。 */
+void Board::RestoreEliteDolphinRiderWaveSpawnCount(int count)
+{
+	mEliteDolphinRidersSpawnedThisWave =
+		std::clamp(count, 0, kEliteDolphinRiderMaxPerWave);
+}
+
 /** 清空全部台风派生状态；中雨、小雨、晴天和旧档默认都以此为单位元。 */
 void Board::StopTyphoon()
 {
@@ -1548,6 +1556,12 @@ ZombieType Board::ResolveWaveZombieType(ZombieType selected, int mutationRoll)
 			return ZombieType::NUM_ZOMBIE_TYPES;
 		}
 		++mGildedZambonisSpawnedThisWave;
+	}
+	if (selected == ZombieType::ZOMBIE_ELITE_DOLPHIN_RIDER) {
+		if (mEliteDolphinRidersSpawnedThisWave >= kEliteDolphinRiderMaxPerWave) {
+			return ZombieType::NUM_ZOMBIE_TYPES;
+		}
+		++mEliteDolphinRidersSpawnedThisWave;
 	}
 	return ResolveRainMutationType(selected, mutationRoll);
 }
@@ -2721,6 +2735,7 @@ void Board::SummonNextWave()
 	mReinforcedDoorsSpawnedThisWave = 0;
 	mElitePolevaultersSpawnedThisWave = 0;
 	mGildedZambonisSpawnedThisWave = 0;
+	mEliteDolphinRidersSpawnedThisWave = 0;
 	if (mCurrentWave == 1)
 	{
 		AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_FIRSTWAVE, 0.7f);
@@ -2814,7 +2829,8 @@ void Board::SetRowLoseMower(int row)
 bool Board::IsSpawnRowCompatible(ZombieType type, int row) const
 {
 	// 海豚僵尸依赖池沿入水状态机，只能在泳池背景的两条水路生成。
-	if (type == ZombieType::ZOMBIE_DOLPHIN_RIDER) {
+	if (type == ZombieType::ZOMBIE_DOLPHIN_RIDER
+		|| type == ZombieType::ZOMBIE_ELITE_DOLPHIN_RIDER) {
 		return IsPoolBackground() && row >= 0 && row < mRows && IsPoolRow(row);
 	}
 	if ((mBackGround == Background::ROOF || mBackGround == Background::NIGHT_ROOF)
@@ -3198,6 +3214,7 @@ void Board::OnSurvivalRoundClear()
 	mReinforcedDoorsSpawnedThisWave = 0;
 	mElitePolevaultersSpawnedThisWave = 0;
 	mGildedZambonisSpawnedThisWave = 0;
+	mEliteDolphinRidersSpawnedThisWave = 0;
 	RefreshZombieWeatherSpeeds();
 
 	// 重算难度（解锁更强僵尸）+ 刷新关卡名

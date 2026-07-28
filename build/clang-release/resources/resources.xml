@@ -188,6 +188,7 @@
     <Texture>./resources/particles/ZombieDiggerArm.png</Texture>
     <Texture>./resources/particles/ZombieDiggerHead.png</Texture>
     <Texture>./resources/particles/ZombieDolphinRiderHead.png</Texture>
+    <Texture>./resources/particles/ZombieEliteDolphinRiderHead.png</Texture>
     <Texture>./resources/particles/ZombieFootballHead.png</Texture>
     <Texture>./resources/particles/ZombieHead.png</Texture>
     <Texture>./resources/particles/ZombieImpHead.png</Texture>
@@ -360,6 +361,7 @@
     <Reanimation name="Zamboni">./resources/reanim/Zombie_zamboni.reanim</Reanimation>
     <Reanimation name="GildedZamboni">./resources/reanim/GildedZamboni.reanim</Reanimation>
     <Reanimation name="ZombieDolphinrider">./resources/reanim/Zombie_dolphinrider.reanim</Reanimation>
+    <Reanimation name="EliteDolphinRider">./resources/reanim/EliteDolphinRider.reanim</Reanimation>
 
     <Reanimation name="Zombie_Charred">./resources/reanim/Zombie_Charred.reanim</Reanimation>
     <Reanimation name="Zamboni_Charred">./resources/reanim/Zombie_charred_zamboni.reanim</Reanimation>
