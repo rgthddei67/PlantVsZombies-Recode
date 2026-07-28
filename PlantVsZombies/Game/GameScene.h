@@ -4,6 +4,7 @@
 #include "Scene.h"
 #include "../Game/Board.h"
 #include "Perk/PerkType.h"
+#include <cstdint>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -123,6 +124,17 @@ public:
 	void ShowScreenFlash(float duration = 0.5f, float peakAlpha = 200.0f);
 	bool IsScreenFlashActive() const { return mScreenFlashTimer > 0.0f; }
 	float GetScreenFlashPeakAlpha() const { return mScreenFlashPeakAlpha; }
+	/** 生成一次大雨闪电的固定分叉路径，并播放主放电与回闪局部照明。 */
+	void ShowLightningStrike(float duration = 0.42f);
+	bool IsLightningStrikeActive() const { return mLightningFlashTimer > 0.0f; }
+	int GetLightningMainSegmentCount() const {
+		return mLightningMainPath.empty()
+			? 0 : static_cast<int>(mLightningMainPath.size()) - 1;
+	}
+	int GetLightningBranchSegmentCount() const {
+		return static_cast<int>(mLightningBranches.size());
+	}
+	float GetLightningStrikeX() const { return mLightningStrikePoint.x; }
 	/** 天气阶段揭晓与公开预报不一致时，显示一个不会暂停战斗的失败提示。 */
 	void ShowWeatherForecastFailure(RainIntensity forecast, RainIntensity actual);
 	/** 从关卡存档恢复失败提示的剩余时间及预报/实际天气。 */
@@ -161,6 +173,7 @@ private:
 	void UpdateWeatherUi(float deltaTime);
 	void DrawWeatherPanel(Graphics* g) const;
 	void DrawWeatherForecastFailure(Graphics* g) const;
+	void DrawLightningStrike(Graphics* g) const;
 	void UpdatePrompts(float deltaTime);
 	void DrawPrompts(Graphics* g) const;
 	// 按当前 mSurvivalPerkStepsCompleted 重新 roll 并构建第 N/2 次选择框。
@@ -248,6 +261,14 @@ private:
 	float mScreenFlashTimer = 0.0f;
 	float mScreenFlashDuration = 0.5f;
 	float mScreenFlashPeakAlpha = 200.0f;
+
+	// 大雨闪电只保存本次瞬态路径；不进入关卡存档，也不消费玩法随机数序列。
+	float mLightningFlashTimer = 0.0f;
+	float mLightningFlashDuration = 0.42f;
+	glm::vec2 mLightningStrikePoint{ 0.0f, 0.0f };
+	std::vector<glm::vec2> mLightningMainPath;
+	std::vector<std::pair<glm::vec2, glm::vec2>> mLightningBranches;
+	uint32_t mLightningVisualSequence = 0;
 
 	// 屏幕抖动上一帧是否占用了相机（true 时抖动归零后须把相机复位一次；
 	// 平时不触碰相机，避免与开场动画的 SetCameraPosition(camX,0) 打架）

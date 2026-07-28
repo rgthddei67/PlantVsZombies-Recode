@@ -53,8 +53,11 @@
     { "op": "screenshot", "name": "rain_heavy_frozen.png" },
 
     { "op": "trigger_lightning" },
-    { "op": "assert_state", "path": "weather.screenFlashOn", "equals": true },
-    { "op": "assert_state", "path": "weather.screenFlashPeakAlpha", "equals": 105 },
+    { "op": "assert_state", "path": "weather.screenFlashOn", "equals": false },
+    { "op": "assert_state", "path": "weather.lightningFlashOn", "equals": true },
+    { "op": "assert_state", "path": "weather.lightningMainSegments", "equals": 10 },
+    { "op": "assert_state", "path": "weather.lightningBranchSegments", "equals": 6 },
+    { "op": "assert_state", "path": "weather.lightningStrikeX", "atLeast": 360, "atMost": 1030 },
     { "op": "screenshot", "name": "rain_heavy_lightning.png" },
     { "op": "dump_state", "name": "state.json" },
     { "op": "set_weather", "intensity": "LIGHT", "duration": 0.2 },

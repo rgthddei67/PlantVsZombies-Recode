@@ -1,0 +1,26 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 10 },
+    { "op": "choose_cards", "cards": ["PLANT_PEASHOOTER"] },
+    { "op": "wait_state", "state": "GAME", "timeout": 15 },
+    { "op": "set_weather", "intensity": "HEAVY", "duration": 60 },
+    { "op": "wait_frames", "value": 20 },
+
+    { "op": "trigger_lightning" },
+    { "op": "assert_state", "path": "weather.screenFlashOn", "equals": false },
+    { "op": "assert_state", "path": "weather.lightningFlashOn", "equals": true },
+    { "op": "assert_state", "path": "weather.lightningMainSegments", "equals": 10 },
+    { "op": "assert_state", "path": "weather.lightningBranchSegments", "equals": 6 },
+    { "op": "assert_state", "path": "weather.lightningStrikeX", "atLeast": 360, "atMost": 1030 },
+    { "op": "screenshot", "name": "lightning_main_discharge.png" },
+
+    { "op": "wait_seconds", "value": 0.08, "timeout": 2 },
+    { "op": "assert_state", "path": "weather.lightningFlashOn", "equals": true },
+    { "op": "screenshot", "name": "lightning_return_stroke.png" },
+
+    { "op": "wait_seconds", "value": 0.45, "timeout": 2 },
+    { "op": "assert_state", "path": "weather.lightningFlashOn", "equals": false },
+    { "op": "dump_state", "name": "state.json" },
+    { "op": "quit" }
+  ]
+}

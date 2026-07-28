@@ -1,6 +1,6 @@
 # 雨天天气扩展契约
 
-本文件记录 2026-07-20 的当前实现。动手前用文中的搜索词核实源码；当前代码优先于本文件。
+本文件记录 2026-07-28 的当前实现。动手前用文中的搜索词核实源码；当前代码优先于本文件。
 
 ## 目录
 
@@ -52,7 +52,7 @@ const bool isRaining = rain != RainIntensity::CLEAR;
 | 读档创建 | `Board::CreateZombieWithID` | 只还原已保存类型，永不重 roll |
 | 预览僵尸 | `Board::CreatePreviewZombies` | 使用基础出怪表，默认不展示临时天气变异 |
 | 天气存档 | `GameInfoSaver.cpp` 搜索 `rainIntensity` | Board 天气先恢复，再加载实体 |
-| 天气 AutoTest 状态 | `TestDriver.cpp` 搜索 `out["weather"]` | 浮点另给整数投影 |
+| 天气 AutoTest 状态 | `TestDriver.cpp` 搜索 `out["weather"]` | 浮点另给整数投影；闪电路径暴露激活、主干/分叉段数与落点 X |
 
 ## 雨天专属能力配方
 
@@ -130,7 +130,7 @@ const bool isRaining = rain != RainIntensity::CLEAR;
 - `set_weather`：固定天气并立即完成过渡；可传 `duration`、小雨的 `canIntensify`。
 - `set_weather_forecast`：固定公开/真实天气和揭晓时刻。
 - `advance_weather_phase`：用权重落点强制结束雨段，并立即完成过渡。
-- `trigger_lightning`：只允许大雨。
+- `trigger_lightning`：只允许大雨；生成固定到本次放电结束的程序化主干与分叉，不复用寒冰菇的全屏白闪。
 
 为雨天能力新增脚本时：
 

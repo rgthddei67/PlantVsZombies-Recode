@@ -56,6 +56,37 @@ namespace {
 	constexpr int kHeavyRainPromptFontSize = 42;          // 大雨分级警报字号
 	constexpr float kPoolEffectOffsetX = 209.0f;          // 原版水面坐标对齐当前 1880px 泳池背景的世界 X 偏移（像素）
 	constexpr float kPoolEffectOffsetY = 12.0f;           // 原版水面坐标对齐当前泳池内框的世界 Y 偏移（像素）
+	constexpr int kLightningMainSegments = 10;           // 主闪电从云层到落点的折线段数
+	constexpr int kLightningBranchCount = 3;             // 主干上生成的二段式分叉数量
+
+	// 用平行线模拟可调粗细，避免为只持续数帧的闪电引入独立纹理或 shader。
+	void DrawLightningSegment(Graphics* g, const glm::vec2& from, const glm::vec2& to,
+		float glowWidth, float glowAlpha, float coreAlpha)
+	{
+		const glm::vec2 delta = to - from;
+		const float length = std::sqrt(delta.x * delta.x + delta.y * delta.y);
+		if (!g || length <= 0.001f) return;
+		const glm::vec2 normal(-delta.y / length, delta.x / length);
+		const int glowRadius = std::max(1, static_cast<int>(std::lround(glowWidth)));
+
+		for (int offset = -glowRadius; offset <= glowRadius; ++offset) {
+			const float distance = std::abs(static_cast<float>(offset));
+			const float falloff = 1.0f - distance / static_cast<float>(glowRadius + 1);
+			const glm::vec2 shift = normal * static_cast<float>(offset);
+			g->DrawLine(from.x + shift.x, from.y + shift.y,
+				to.x + shift.x, to.y + shift.y,
+				glm::vec4(118.0f, 154.0f, 255.0f, glowAlpha * falloff));
+		}
+
+		for (int offset = -1; offset <= 1; ++offset) {
+			const glm::vec2 shift = normal * static_cast<float>(offset);
+			g->DrawLine(from.x + shift.x, from.y + shift.y,
+				to.x + shift.x, to.y + shift.y,
+				glm::vec4(206.0f, 225.0f, 255.0f, coreAlpha));
+		}
+		g->DrawLine(from.x, from.y, to.x, to.y,
+			glm::vec4(255.0f, 255.0f, 255.0f, std::min(255.0f, coreAlpha * 1.35f)));
+	}
 
 #define DEVZ(n) { ZombieType::n, #n }
 	// 开发者面板循环切换表；显示枚举标识符（简陋版足够）。与 TestDriver kZombieNames 同集合。
@@ -175,13 +206,67 @@ void GameScene::DrawWorldOverlay(Graphics* g)
 {
 	if (!g || !mBoard) return;
 	const float alpha = mBoard->GetRainOverlayAlpha();
-	if (alpha <= 0.0f) return;
+	if (alpha > 0.0f) {
+		// 低成本雨天环境光：只做蓝灰半透明暗幕。该钩子在战场主体与世界粒子之后、UI overlay
+		// 之前调用，因而背景、实体和世界特效统一变暗，但卡片、按钮和文字保持清晰。
+		g->FillRect(-20.0f, 0.0f,
+			static_cast<float>(SCENE_WIDTH + 500), static_cast<float>(SCENE_HEIGHT),
+			glm::vec4(36.0f, 52.0f, 78.0f, alpha));		// -20 500的预留空间
+	}
+	DrawLightningStrike(g);
+}
 
-	// 低成本雨天环境光：只做蓝灰半透明暗幕。该钩子在战场主体与世界粒子之后、UI overlay
-	// 之前调用，因而背景、实体和世界特效统一变暗，但卡片、按钮和文字保持清晰。
-	g->FillRect(-20.0f, 0.0f,
-		static_cast<float>(SCENE_WIDTH + 500), static_cast<float>(SCENE_HEIGHT),
-		glm::vec4(36.0f, 52.0f, 78.0f, alpha));		// -20 500的预留空间
+/** 绘制冷白闪电主干、分叉和有限半径的云层/落点散射光，不覆盖 UI。 */
+void GameScene::DrawLightningStrike(Graphics* g) const
+{
+	if (!g || mLightningFlashTimer <= 0.0f || mLightningMainPath.size() < 2) return;
+
+	const float elapsed = mLightningFlashDuration - mLightningFlashTimer;
+	// 首次主放电极快衰减，约 0.09 秒后追加较弱回闪，形成自然的双脉冲。
+	const float mainPulse = std::exp(-elapsed * 24.0f);
+	const float returnPulse = elapsed >= 0.09f
+		? 0.68f * std::exp(-(elapsed - 0.09f) * 18.0f) : 0.0f;
+	const float pulse = std::clamp(std::max(mainPulse, returnPulse), 0.0f, 1.0f);
+	if (pulse <= 0.005f) return;
+
+	const BlendMode previousBlend = g->GetBlendMode();
+	g->SetBlendMode(BlendMode::Add);
+
+	// 多层低透明圆模拟有限范围的空气散射，中心更亮但不会把整屏和 UI 一并漂白。
+	auto drawRadialGlow = [g, pulse](const glm::vec2& center, float radius,
+		const glm::vec3& color, float peakAlpha) {
+		constexpr int kGlowLayers = 7;
+		for (int layer = kGlowLayers; layer >= 1; --layer) {
+			const float scale = static_cast<float>(layer) / static_cast<float>(kGlowLayers);
+			const float layerAlpha = peakAlpha * pulse
+				* (0.06f + (1.0f - scale) * 0.10f);
+			g->FillCircle(center.x, center.y, radius * scale,
+				glm::vec4(color, layerAlpha), 40);
+		}
+	};
+
+	drawRadialGlow(mLightningMainPath.front() + glm::vec2(0.0f, 24.0f),
+		190.0f, glm::vec3(132.0f, 164.0f, 255.0f), 34.0f);
+	drawRadialGlow(mLightningStrikePoint,
+		155.0f, glm::vec3(144.0f, 178.0f, 255.0f), 42.0f);
+
+	for (const auto& branch : mLightningBranches) {
+		DrawLightningSegment(g, branch.first, branch.second,
+			2.0f, 12.0f * pulse, 112.0f * pulse);
+	}
+	for (size_t i = 1; i < mLightningMainPath.size(); ++i) {
+		DrawLightningSegment(g, mLightningMainPath[i - 1], mLightningMainPath[i],
+			4.0f, 18.0f * pulse, 190.0f * pulse);
+	}
+
+	// 落点的紧凑高光和贴地侧闪让闪电真正“落在草坪”，而不是悬浮在屏幕上。
+	g->FillCircle(mLightningStrikePoint.x, mLightningStrikePoint.y,
+		9.0f, glm::vec4(230.0f, 240.0f, 255.0f, 185.0f * pulse), 24);
+	g->DrawLine(mLightningStrikePoint.x - 34.0f, mLightningStrikePoint.y + 2.0f,
+		mLightningStrikePoint.x + 28.0f, mLightningStrikePoint.y + 2.0f,
+		glm::vec4(172.0f, 203.0f, 255.0f, 105.0f * pulse));
+
+	g->SetBlendMode(previousBlend);
 }
 
 /** 用未缩放时间推进天气面板与失败提示，使游戏倍速不改变 UI 动画观感。 */
@@ -921,6 +1006,11 @@ void GameScene::Update() {
 			mScreenFlashTimer -= DeltaTime::GetDeltaTime();
 			if (mScreenFlashTimer < 0.0f) mScreenFlashTimer = 0.0f;
 		}
+		if (mLightningFlashTimer > 0.0f)
+		{
+			mLightningFlashTimer -= DeltaTime::GetDeltaTime();
+			if (mLightningFlashTimer < 0.0f) mLightningFlashTimer = 0.0f;
+		}
 
 		UpdatePrompts(DeltaTime::GetDeltaTime());
 	}
@@ -1603,6 +1693,70 @@ void GameScene::ShowScreenFlash(float duration, float peakAlpha)
 	mScreenFlashDuration = duration;
 	mScreenFlashTimer = duration;
 	mScreenFlashPeakAlpha = std::clamp(peakAlpha, 0.0f, 255.0f);
+}
+
+/** 为本次闪电生成稳定路径；独立视觉序列保证不会扰动天气、出怪等玩法随机结果。 */
+void GameScene::ShowLightningStrike(float duration)
+{
+	if (duration <= 0.0f) return;
+
+	uint32_t randomState = (++mLightningVisualSequence * 747796405u) + 2891336453u;
+	auto nextUnit = [&randomState]() {
+		randomState ^= randomState << 13;
+		randomState ^= randomState >> 17;
+		randomState ^= randomState << 5;
+		return static_cast<float>(randomState & 0x00FFFFFFu) / 16777216.0f;
+	};
+	auto visualRange = [&nextUnit](float minValue, float maxValue) {
+		return minValue + (maxValue - minValue) * nextUnit();
+	};
+
+	mLightningFlashDuration = duration;
+	mLightningFlashTimer = duration;
+	const float strikeX = visualRange(360.0f, 1030.0f);
+	const float strikeY = visualRange(435.0f, 555.0f);
+	mLightningStrikePoint = glm::vec2(strikeX, strikeY);
+	const glm::vec2 cloudPoint(
+		std::clamp(mLightningStrikePoint.x + visualRange(-190.0f, 190.0f),
+			300.0f, 1060.0f),
+		72.0f);
+
+	mLightningMainPath.clear();
+	mLightningMainPath.reserve(kLightningMainSegments + 1);
+	mLightningMainPath.push_back(cloudPoint);
+	for (int index = 1; index < kLightningMainSegments; ++index) {
+		const float progress = static_cast<float>(index)
+			/ static_cast<float>(kLightningMainSegments);
+		const glm::vec2 center = cloudPoint
+			+ (mLightningStrikePoint - cloudPoint) * progress;
+		const float taper = 1.0f - progress * 0.45f;
+		const float jitterX = visualRange(-52.0f, 52.0f) * taper;
+		const float jitterY = visualRange(-8.0f, 8.0f);
+		mLightningMainPath.emplace_back(center.x + jitterX, center.y + jitterY);
+	}
+	mLightningMainPath.push_back(mLightningStrikePoint);
+
+	mLightningBranches.clear();
+	mLightningBranches.reserve(kLightningBranchCount * 2);
+	for (int branchIndex = 0; branchIndex < kLightningBranchCount; ++branchIndex) {
+		const int mainIndex = 3 + branchIndex * 2;
+		const glm::vec2 start = mLightningMainPath[mainIndex];
+		const float direction = nextUnit() < 0.5f ? -1.0f : 1.0f;
+		const float elbowLengthX = visualRange(38.0f, 72.0f);
+		const float elbowLengthY = visualRange(34.0f, 58.0f);
+		const float elbowX = std::clamp(start.x + direction * elbowLengthX,
+			24.0f, static_cast<float>(SCENE_WIDTH - 24));
+		const glm::vec2 elbow(elbowX, start.y + elbowLengthY);
+		const float endLengthX = visualRange(24.0f, 58.0f);
+		const float endLengthY = visualRange(28.0f, 52.0f);
+		const float endX = std::clamp(elbow.x + direction * endLengthX,
+			16.0f, static_cast<float>(SCENE_WIDTH - 16));
+		const float endY = std::min(elbow.y + endLengthY,
+			mLightningStrikePoint.y - 18.0f);
+		const glm::vec2 end(endX, endY);
+		mLightningBranches.emplace_back(start, elbow);
+		mLightningBranches.emplace_back(elbow, end);
+	}
 }
 
 void GameScene::ShowWeatherForecastFailure(RainIntensity forecast, RainIntensity actual)

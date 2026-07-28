@@ -1377,6 +1377,10 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				static_cast<int>(1500.0f / (plantRain * perkAttack) + 0.5f) },
 			{ "screenFlashOn", gs->IsScreenFlashActive() },
 			{ "screenFlashPeakAlpha", static_cast<int>(std::lround(gs->GetScreenFlashPeakAlpha())) },
+			{ "lightningFlashOn", gs->IsLightningStrikeActive() },
+			{ "lightningMainSegments", gs->GetLightningMainSegmentCount() },
+			{ "lightningBranchSegments", gs->GetLightningBranchSegmentCount() },
+			{ "lightningStrikeX", static_cast<int>(std::lround(gs->GetLightningStrikeX())) },
 			{ "panelSlidePct", static_cast<int>(std::lround(gs->GetWeatherPanelSlide() * 100.0f)) },
 			{ "currentNoticeOn", gs->IsCurrentWeatherNoticeActive() },
 			{ "currentNoticeRemainingMs", static_cast<int>(std::lround(

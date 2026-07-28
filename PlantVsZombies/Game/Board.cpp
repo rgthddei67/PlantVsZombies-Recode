@@ -145,8 +145,7 @@ namespace {
 	constexpr float kLightningDelayMax = 7.0f;           // 大雨开始后首次闪电的最长等待时间（秒）
 	constexpr float kLightningRepeatMin = 5.0f;          // 大雨中两次闪电的最短间隔（秒）
 	constexpr float kLightningRepeatMax = 10.0f;         // 大雨中两次闪电的最长间隔（秒）
-	constexpr float kLightningFlashDuration = 0.18f;     // 单次闪电白闪持续时间（秒）
-	constexpr float kLightningFlashPeakAlpha = 105.0f;   // 单次闪电白闪峰值透明度（0～255）
+	constexpr float kLightningFlashDuration = 0.42f;     // 单次闪电主放电与回闪的总可见时间（秒）
 	constexpr int kTyphoonChanceEarlyPercent = 75;       // 新大雨阶段附加台风的前期基础概率（百分比）
 	constexpr int kTyphoonChanceLatePercent = 95;        // 满压力新大雨附加台风的基础概率（百分比）
 	constexpr int kTyphoonPityPerMissPercent = 20;       // 每连续落空一个新大雨阶段，下次台风概率增加的百分点
@@ -1871,8 +1870,8 @@ void Board::EndRain()
 void Board::TriggerLightning()
 {
 	if (mRainIntensity != RainIntensity::HEAVY || !mGameScene) return;
-	// 仅做短促低峰值白闪；不启用动态光源、阴影或材质高光。
-	mGameScene->ShowScreenFlash(kLightningFlashDuration, kLightningFlashPeakAlpha);
+	// 闪电路径与局部散射光属于 GameScene 的瞬态视觉；Board 只负责大雨触发时机。
+	mGameScene->ShowLightningStrike(kLightningFlashDuration);
 }
 
 void Board::UpdateWeather(float deltaTime)
