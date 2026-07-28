@@ -6,6 +6,14 @@
 #include "../UI/GameMessageBox.h"
 #include "Board.h"
 #include "AdventureProgression.h"
+#include "../Logger.h"
+
+#include <algorithm>
+
+namespace
+{
+	constexpr int kSecondAreaFirstLevel = AdventureProgression::LEVELS_PER_AREA + 1; // 主菜单跳关目标：2-1
+}
 
 void MainMenuScene::OnEnter()
 {
@@ -19,6 +27,7 @@ void MainMenuScene::OnExit()
 {
 	GameObjectManager::GetInstance().DestroyGameObject(mGameButton);
 	mGameButton = nullptr;
+	mSkipToSecondAreaButton.reset();
 	mOpitionButton.reset();
 	mAlmanacButton.reset();
 	Scene::OnExit();
@@ -36,6 +45,11 @@ void MainMenuScene::Update()
 
 		SceneMgr.SetGlobalData("EnterLevel", std::to_string(gameApp.mAdventureLevel));
 		SceneMgr.SwitchTo("GameScene");
+		return;
+	}
+	if (mReadyToSkipToSecondArea) {
+		mReadyToSkipToSecondArea = false;
+		SkipToSecondArea();
 		return;
 	}
 	if (mReadyToSwitchAlmanac) {
@@ -79,6 +93,9 @@ void MainMenuScene::BuildDrawCommands()
 			}
 			if (!mOpenMenu && mAlmanacButton) {
 				mAlmanacButton->Draw(g);
+			}
+			if (!mOpenMenu && mSkipToSecondAreaButton) {
+				mSkipToSecondAreaButton->Draw(g);
 			}
 		},
 		LAYER_UI + 100);
@@ -125,6 +142,56 @@ void MainMenuScene::BuildDrawCommands()
 	mAlmanacButton->SetClickCallBack([this](bool) {
 		this->mReadyToSwitchAlmanac = true;
 		});
+
+	// 跳关只服务尚未到达 2-1 的存档；进入第二大关后不再占用主菜单空间。
+	if (GameAPP::GetInstance().mAdventureLevel < kSecondAreaFirstLevel) {
+		mSkipToSecondAreaButton = mUIManager.CreateButton(
+			Vector(330, 535), Vector(213 * 0.9f, 50 * 0.9f));
+		mSkipToSecondAreaButton->SetAsCheckbox(false);
+		mSkipToSecondAreaButton->SetSkipDraw(true);
+		mSkipToSecondAreaButton->SetText(u8"跳到 2-1",
+			ResourceKeys::Fonts::FONT_FZCQ, 18);
+		mSkipToSecondAreaButton->SetTextColor(glm::vec4{ 53, 191, 61, 255 });
+		mSkipToSecondAreaButton->SetHoverTextColor(glm::vec4{ 53, 240, 61, 255 });
+		mSkipToSecondAreaButton->SetImageKeys(
+			ResourceKeys::Textures::IMAGE_BUTTONBIG,
+			ResourceKeys::Textures::IMAGE_BUTTONBIG,
+			ResourceKeys::Textures::IMAGE_BUTTONBIG,
+			ResourceKeys::Textures::IMAGE_BUTTONBIG);
+		mSkipToSecondAreaButton->SetClickCallBack([this](bool) {
+			DeltaTime::SetPaused(false);
+			mReadyToSkipToSecondArea = true;
+			});
+	}
+}
+
+void MainMenuScene::SkipToSecondArea()
+{
+	auto& gameApp = GameAPP::GetInstance();
+
+	// 先保证初始豌豆射手存在，再按正式奖励表补齐已经跳过的 1-1～1-9 奖励。
+	auto ensureCard = [&gameApp](PlantType type) {
+		if (type == AdventureProgression::NO_PLANT_REWARD) return;
+		if (std::find(gameApp.mHaveCards.begin(), gameApp.mHaveCards.end(), type) ==
+			gameApp.mHaveCards.end()) {
+			gameApp.mHaveCards.push_back(type);
+		}
+		};
+	ensureCard(PlantType::PLANT_PEASHOOTER);
+	for (int completedLevel = 1; completedLevel < kSecondAreaFirstLevel; ++completedLevel) {
+		ensureCard(AdventureProgression::GetPlantReward(completedLevel));
+	}
+
+	// 只提升、不回退玩家的永久进度；无论当前进度多高，本按钮的游玩入口固定为 2-1。
+	gameApp.mAdventureLevel = std::max(gameApp.mAdventureLevel, kSecondAreaFirstLevel);
+	if (!gameApp.mGameInfoSaver.SavePlayerInfo()) {
+		LOG_ERROR("MainMenu") << "跳到 2-1 后无法立即保存冒险进度，将在退出游戏时重试。";
+	}
+
+	gameApp.GetGraphics().SetCameraPosition(0, 0);
+	auto& sceneManager = SceneManager::GetInstance();
+	sceneManager.SetGlobalData("EnterLevel", std::to_string(kSecondAreaFirstLevel));
+	sceneManager.SwitchTo("GameScene");
 }
 
 void MainMenuScene::OpenMenu()
@@ -135,6 +202,7 @@ void MainMenuScene::OpenMenu()
 	DeltaTime::SetPaused(true);
 	if (mAlmanacButton) mAlmanacButton->SetEnabled(false);
 	if (mOpitionButton) mOpitionButton->SetEnabled(false);
+	if (mSkipToSecondAreaButton) mSkipToSecondAreaButton->SetEnabled(false);
 	if (mGameButton) mGameButton->SetEnabled(false);
 	auto& gameApp = GameAPP::GetInstance();
 	const glm::vec4 labelColor{ 107, 109, 144, 255 };
@@ -145,6 +213,7 @@ void MainMenuScene::OpenMenu()
 		.Button(u8"返回游戏", Vector(400, 430), Vector(360, 100), 40, [this]() {
 			if (mAlmanacButton) mAlmanacButton->SetEnabled(true);
 			if (mOpitionButton) mOpitionButton->SetEnabled(true);
+			if (mSkipToSecondAreaButton) mSkipToSecondAreaButton->SetEnabled(true);
 			if (mGameButton) mGameButton->SetEnabled(true);
 			mOpenMenu = false;
 			DeltaTime::SetPaused(false);

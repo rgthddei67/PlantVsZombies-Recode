@@ -15,11 +15,13 @@ public:
 	void Update() override;
 
 	bool mReadyToSwitchAdventureLevel = false;
+	bool mReadyToSkipToSecondArea = false;
 	bool mReadyToSwitchAlmanac = false;
 	bool mReadyToSwitchSurvival = false;
 
 private:
 	class GameButton* mGameButton = nullptr;   // 所有权在 GameObjectManager
+	std::shared_ptr<Button> mSkipToSecondAreaButton;
 	std::shared_ptr<Button> mOpitionButton;
 	std::shared_ptr<Button> mExitButton;
 	std::shared_ptr<Button> mAlmanacButton;
@@ -28,6 +30,8 @@ private:
 
 	bool mOpenMenu = false;
 
+	/** 补齐第一大关进度与植物奖励，然后从 2-1 开始游戏。 */
+	void SkipToSecondArea();
 	void OpenMenu();
 
 protected:
