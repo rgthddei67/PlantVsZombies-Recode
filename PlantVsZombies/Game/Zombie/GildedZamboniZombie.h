@@ -3,7 +3,7 @@
 #include "ZamboniZombie.h"
 
 /**
- * @brief 鎏金冰车僵尸：铺设三路黄色冰道，并在持续无伤时阶梯加速。
+ * @brief 鎏金冰车僵尸：只碾压本行、铺设三路黄色冰道，并在持续无伤时阶梯加速。
  */
 class GildedZamboniZombie final : public ZamboniZombie {
 public:

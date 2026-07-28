@@ -26,7 +26,7 @@ metadata:
 - `Cell` 有 `under/normal` 两个植物槽。睡莲只能放在空水格的 under 层；普通植物只能放在已有睡莲且 normal 层为空的水格；土豆雷仍禁止下水。铲子、僵尸啃咬与 UI 预览都以 top 层为准。
 - 水格已有睡莲时，卡片悬停生成的半透明落点预览必须取当前 top 植物的 `renderOrder + 1`，保证待种植物显示在睡莲上方；空格预览使用 `LAYER_GAME_PLANT`。
 - 睡莲种下后 1 秒只免疫啃咬，计时器进存档；水面植物只做±2px 绘制浮动，Transform/碰撞与存档仍固定在逻辑格。植物本体与影子共享不含品种静态 offset 的动态视觉锚点，因此阵风插值和水面浮动会同步作用于两者，既有 `ShadowComponent::SetOffset` 校准不变。
-- 普通/路障/铁桶僵尸在水路由正式波次入口替换为 `ZOMBIE_POOL_*`，而非为出怪表添加独立权重；这三种专用类型仍只允许水路，陆地版本不会实际创建在水中。其他僵尸可直接抽到水路并保留自身类型与行为。`Board::CanZombieTypeSpawnInPool` 是集中禁水扩展点；普通与鎏金冰车均禁水，只能在泳池陆路生成。鎏金冰车可碾压相邻水路植物，但 Board 不在水路留下黄色冰道。`Zombie` 基类用前/后双探针统一维护 `mInPool`，本项目将下水/出水切换位置相对原探针向右校正 70px；水中统一隐藏陆地阴影，并在 `Zombie::Draw` 内用 `PushClipBottom/PopClipBottom` 把水面以下裁掉。该接口现为通用 shader `PushClipRect` 的全宽别名，不触发批处理 flush 或 `vkCmdSetScissor`，并自动与伴舞出土等既有矩形 Clip 取交集。专用泳池僵尸仍保留 swim、水中死亡和泳圈贴图；水中断头/断臂不生成悬浮的陆地碎片。
+- 普通/路障/铁桶僵尸在水路由正式波次入口替换为 `ZOMBIE_POOL_*`，而非为出怪表添加独立权重；这三种专用类型仍只允许水路，陆地版本不会实际创建在水中。其他僵尸可直接抽到水路并保留自身类型与行为。`Board::CanZombieTypeSpawnInPool` 是集中禁水扩展点；普通与鎏金冰车均禁水，只能在泳池陆路生成。鎏金冰车只碾压本行植物，三路黄色冰道仍由 Board 对水路集中拒绝。`Zombie` 基类用前/后双探针统一维护 `mInPool`，本项目将下水/出水切换位置相对原探针向右校正 70px；水中统一隐藏陆地阴影，并在 `Zombie::Draw` 内用 `PushClipBottom/PopClipBottom` 把水面以下裁掉。该接口现为通用 shader `PushClipRect` 的全宽别名，不触发批处理 flush 或 `vkCmdSetScissor`，并自动与伴舞出土等既有矩形 Clip 取交集。专用泳池僵尸仍保留 swim、水中死亡和泳圈贴图；水中断头/断臂不生成悬浮的陆地碎片。
 - 普通/精英海豚是地形兼容性的反向特例：只允许 `WATER_POOL` 的第2/3水路生成。通用
   `Zombie::TryGetDrawClipBottom` 默认保持既有 `mInPool` 水线，海豚只在 `ENTERING_POOL` 覆写
   C# 分段低位底线，因而不会把骑手切断或影响其他僵尸；岸上抛豚、跳跃锚点和上岸零blend详见
@@ -77,7 +77,9 @@ metadata:
 退出码 0，日志 `script finished OK`，截图确认冰车在选卡预览区正常显示。
 `smoke_pool_spawnlist_3_6_gilded_zamboni.json` 锁定 3-6 的 20 波五类型阵容并确认鎏金冰车
 出现在正式预览池；当前桌面可见运行窗口标题正确、退出码 0、日志 `script finished OK`。
-它与专项脚本共同验证水路不铺黄冰、相邻水路仍可被碾压。
+它与专项脚本共同验证水路不铺黄冰、相邻水路植物也不会被跨行碾压。
+2026-07-28 `smoke_gilded_zamboni_crush_rows.json` 在当前桌面可见运行 exit 0；截图确认
+鎏金冰车所在陆路的相邻陆路坚果与相邻水路睡莲+坚果均保持完整。
 
 `smoke_dolphin_rider.json` 锁定 3-7 的 20 波四类型阵容和海豚僵尸仅水路兼容，并覆盖首次入水、
 骑乘、越障、弃豚游泳、水中断肢与死亡；2026-07-28 又覆盖岸上抛豚、C#三个入水裁剪时间窗、

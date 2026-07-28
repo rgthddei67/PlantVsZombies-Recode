@@ -90,14 +90,14 @@ void GildedZamboniZombie::LayIceTrails(const Vector& stableVisualOrigin)
 	mGoldenTrailMinX = mGoldenTrailMinX > 0.0f
 		? std::min(mGoldenTrailMinX, frontX) : frontX;
 	for (int row = mRow - 1; row <= mRow + 1; ++row) {
-		// Board 集中拒绝越界与水路；因此相邻水路只参与碾压，不留下黄色冰道。
+		// 铺路范围独立于碾压范围；Board 另行集中拒绝越界与水路。
 		mBoard->ExtendGoldenIceTrail(row, frontX);
 	}
 }
 
 bool GildedZamboniZombie::CanCrushRow(int row) const
 {
-	return row >= mRow - 1 && row <= mRow + 1;
+	return row == mRow;
 }
 
 float GildedZamboniZombie::GetBaseDriveSpeedMultiplier() const
