@@ -1366,6 +1366,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "gustWarning", board->IsTyphoonGustWarning() },
 			{ "lastGustMovedPlants", board->GetLastTyphoonMovedPlants() },
 			{ "lastGustLostPlants", board->GetLastTyphoonLostPlants() },
+			{ "lastGustBlockedPlantSteps", board->GetLastTyphoonBlockedPlantSteps() },
 			{ "hostileWindMovePct", static_cast<int>(std::lround(hostileWind * 100.0f)) },
 			{ "charmedWindMovePct", static_cast<int>(std::lround(charmedWind * 100.0f)) },
 			{ "hostileCombinedMovePct", static_cast<int>(std::lround(zombieRain * hostileWind * 100.0f)) },

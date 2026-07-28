@@ -1434,6 +1434,7 @@ void Board::StopTyphoon()
 	mActiveGustPlantMoved = false;
 	mLastTyphoonMovedPlants = 0;
 	mLastTyphoonLostPlants = 0;
+	mLastTyphoonBlockedPlantSteps = 0;
 	RefreshZombieWeatherSpeeds();
 }
 
@@ -1653,6 +1654,7 @@ bool Board::BeginTyphoonGust(bool consumeBudget, float forcedPlantMoveIn)
 		|| mWindDirection == WindDirection::NONE || mTyphoonGustActive) return false;
 	mLastTyphoonMovedPlants = 0;
 	mLastTyphoonLostPlants = 0;
+	mLastTyphoonBlockedPlantSteps = 0;
 	const float duration = TyphoonGustDuration(mTyphoonStrength);
 	if (duration <= 0.0f) return true;
 	if (consumeBudget) {
@@ -1709,6 +1711,7 @@ void Board::EndTyphoonGust()
 
 /**
  * 同一阵风按已锁定吹向逐格、从前缘到后缘结算全部植物；
+ * 锚定植物所在格自身不移动，只对直接撞入该格的植物逐格派发撞击，不传导后方植物链；
  * 植物被吹出棋盘或吹入弹坑时死亡，弹坑不能反直觉地充当挡风墙。
  * 每次换格先更新 Cell、row/column 与碰撞箱，再让植物画面用瞬态偏移追赶；
  * 因此滑动中保存只会记录目标格，读档不会恢复半格状态或重复位移。
@@ -1717,6 +1720,7 @@ void Board::TriggerTyphoonPlantMove(TyphoonStrength strength, WindDirection dire
 {
 	mLastTyphoonMovedPlants = 0;
 	mLastTyphoonLostPlants = 0;
+	mLastTyphoonBlockedPlantSteps = 0;
 	if (!HasTyphoon() || mRainIntensity != RainIntensity::HEAVY
 		|| direction == WindDirection::NONE) return;
 
@@ -1724,6 +1728,7 @@ void Board::TriggerTyphoonPlantMove(TyphoonStrength strength, WindDirection dire
 	const int distance = TyphoonGustDistance(strength);
 	std::unordered_set<int> movedPlantIDs;
 	std::unordered_set<int> lostPlantIDs;
+	std::unordered_set<int> anchorFeedbackPlantIDs;
 	for (int step = 0; step < distance; ++step) {
 		for (int row = 0; row < mRows; ++row) {
 			const int firstColumn = columnDelta > 0 ? mColumns - 1 : 0;
@@ -1744,6 +1749,10 @@ void Board::TriggerTyphoonPlantMove(TyphoonStrength strength, WindDirection dire
 					normal = nullptr;
 				}
 				if (!under && !normal) continue;
+				const Plant* sourceAnchor = normal && normal->AnchorsPlantCellAgainstTyphoon()
+					? normal
+					: (under && under->AnchorsPlantCellAgainstTyphoon() ? under : nullptr);
+				if (sourceAnchor) continue;
 
 				const int targetColumn = column + columnDelta;
 				if (targetColumn < 0 || targetColumn >= mColumns) {
@@ -1759,7 +1768,17 @@ void Board::TriggerTyphoonPlantMove(TyphoonStrength strength, WindDirection dire
 				}
 
 				Cell* target = GetCell(row, targetColumn);
-				if (!target || !target->IsEmpty()) continue;
+				if (!target) continue;
+				if (!target->IsEmpty()) {
+					Plant* anchor = GetTopPlantAt(row, targetColumn);
+					if (anchor && anchor->AnchorsPlantCellAgainstTyphoon()) {
+						const bool showFeedback =
+							anchorFeedbackPlantIDs.insert(anchor->mPlantID).second;
+						anchor->OnTyphoonPlantImpact(showFeedback);
+						++mLastTyphoonBlockedPlantSteps;
+					}
+					continue;
+				}
 				if (HasCraterAt(row, targetColumn)) {
 					if (under) {
 						lostPlantIDs.insert(underID);

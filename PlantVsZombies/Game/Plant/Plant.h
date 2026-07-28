@@ -65,6 +65,13 @@ public:
 	virtual bool BlocksZombieJump(ZombieJumpType) const { return false; }
 	/** 跳跃确实被本植物阻拦后的音画反馈入口；由跳跃状态机保证每次只调用一次。 */
 	virtual void OnZombieJumpBlocked(ZombieJumpType) {}
+	/** 是否在强/超强台风的逐格结算中锚定整个植物格；默认植物会随阵风移动。 */
+	virtual bool AnchorsPlantCellAgainstTyphoon() const { return false; }
+	/**
+	 * 一个相邻植物格被本植物直接挡下一格时的结算入口。
+	 * showFeedback 在同一阵风首次撞击时为 true，供品种合并同帧音画而不合并逐格伤害。
+	 */
+	virtual void OnTyphoonPlantImpact(bool showFeedback) {}
 	virtual void SaveExtraData(nlohmann::json& j) const {}
 	virtual void LoadExtraData(const nlohmann::json& j) {}
 	virtual void Die();

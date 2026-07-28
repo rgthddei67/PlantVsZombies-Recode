@@ -228,6 +228,7 @@ private:
 	int mEliteScaredyShroomsPlanted = 0; // 本关累计种下的精英胆小菇数量；死亡或铲除不返还次数
 	int mLastTyphoonMovedPlants = 0;    // 最近一次阵风移动的植物数，仅供观测和测试
 	int mLastTyphoonLostPlants = 0;     // 最近一次阵风吹出棋盘或吹入弹坑的植物数，仅供观测和测试
+	int mLastTyphoonBlockedPlantSteps = 0; // 最近一次阵风被锚定植物直接挡下的植物格步数，仅供观测和测试
 
 	std::vector<RowInfo> mRowInfos;
 	static constexpr float ROW_WEIGHT_THRESHOLD = 1e-6f;
@@ -416,6 +417,7 @@ public:
 	int GetEliteDolphinRidersSpawnedThisWave() const { return mEliteDolphinRidersSpawnedThisWave; }
 	int GetLastTyphoonMovedPlants() const { return mLastTyphoonMovedPlants; }
 	int GetLastTyphoonLostPlants() const { return mLastTyphoonLostPlants; }
+	int GetLastTyphoonBlockedPlantSteps() const { return mLastTyphoonBlockedPlantSteps; }
 	bool IsTyphoonGustWarning() const;
 	/** 当前公开预报是否属于此天气阶段真实允许出现的下一档。 */
 	bool IsWeatherForecastPlausible() const;

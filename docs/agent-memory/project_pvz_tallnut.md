@@ -26,6 +26,10 @@ metadata:
 及高坚果喷出 `WallnutEatSmall`，因此不需要在僵尸侧维护植物类型表。碎屑条在
 `resources.xml` 以 `Column=5` 拆为五张静态纹理并随机取样，不能作为 `ImageFrames` 循环动画。
 
+高坚果图鉴现已说明台风能力：强台风与超强台风中锚定阵型，每直接挡住一个植物格移动一格
+便承受 800 点伤害。图鉴正文只修改权威 `build/clang-release/resources/info.txt`，
+`clang-playtest` 与 `msvc-debug` 继续通过资源目录联接共享。
+
 ## 跳跃阻拦
 
 高坚果通过 `BlocksZombieJump` 阻挡 `POLEVAULT` 与 `DOLPHIN_RIDER`，每次确实阻拦时由植物侧
@@ -45,6 +49,27 @@ metadata:
   `TakeDamage(500, DamageSource::ZOMBIE)`；精英自身700生命不变。水池同格断言通过
   `topPlantsByCell.<row_col>` 读取顶层植物，避免 `plants` 数组受睡莲实体顺序影响。
 
+## 台风锚定
+
+高坚果通过 `Plant::AnchorsPlantCellAgainstTyphoon` 声明双向锚定当前植物格，
+`Board::TriggerTyphoonPlantMove` 仍是唯一阵风结算点，不写死植物类型：
+
+- 高坚果自身不换格、不掉出棋盘或落入弹坑；独自抵抗自身位移不扣血。若位于睡莲上，
+  上下层作为一个格位保持不拆分。
+- 只有相邻植物格直接尝试进入高坚果格时才调用 `OnTyphoonPlantImpact`；每挡下一格立即走
+  `TakeDamage(800, DamageSource::OTHER)`。后方植物被普通占格挡住时不把压力传给高坚果。
+- 超强台风逐格调用两次，因此紧邻植物造成 1600 基础伤害；相隔一格则先移动再撞击一次，
+  只造成 800。来袭睡莲与上层植物按一个格位结算，不按实体层数翻倍。
+- 伤害逐格即时生效，但同一阵风用植物 ID 合并 Bonk 与 `TallNutBlock` 星光反馈。若第一步
+  撞击杀死高坚果，该步仍被挡，第二步重新读取已经腾出的格位并允许植物进入。
+- `weather.lastGustBlockedPlantSteps` 暴露最近一次阵风的直接阻挡格次；它是测试观测值，
+  与移动/损失计数一样不进存档。能力本身由植物类型、生命值和格子状态派生，也无需新存档字段。
+
+典型布局在风向右的超强台风中按两步结算：
+`向日葵 / 空格 / 豌豆射手 / 高坚果`
+变为 `空格 / 向日葵 / 豌豆射手 / 高坚果`。豌豆两次直接撞击使高坚果损失1600，
+向日葵第二步只被豌豆占格挡住，不额外传压。
+
 ## 验证
 
 2026-07-28 `clang-playtest` 构建成功且无警告。以下脚本均从 `build/clang-playtest/` 在主人
@@ -60,6 +85,9 @@ metadata:
   高坚果精确8500，精英仍为700，Bonk与星星各一次。
 - `smoke_wallnut_chew_particles.json`：普通坚果受一次 50 伤，啃食者计数 1，小碎屑有实际
   render quad 且与坚果/僵尸碰撞区相交。
+- `smoke_tallnut_typhoon_anchor.json`：普通台风 no-op、强台风双向直接阻挡、超强紧邻两格
+  1600 伤害但单次音画、相隔一格先移后挡、向日葵空格链不传压、第一步死亡后第二步放行，
+  以及水路上下层作为单个来袭格结算。
 
 水路高坚果与荷叶同格时，粒子探针的 `nearestPlant.type` 可能命中下层荷叶；这类场景应断言
 稳定的 `row/col`，不能把最近几何对象类型当成触发者身份。

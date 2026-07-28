@@ -39,6 +39,7 @@ description: Use when adding ANY new plant (新增植物) to PvZ — 射手/生�
 11. **不可啃食植物覆写 `CanBeEaten()`，不要在僵尸索敌处堆类型表**：植物自己声明契约，普通啃食路径会统一跳过；AutoTest 同时断言植物 `canBeEaten=false`、`eaterCount=0`、僵尸 `isEating=false` 和植物生命不变，防止只有视觉没播啃食但伤害仍在结算。
 12. **只有完整时间轴、没有 `anim_*` 包装轨的循环 reanim**（如 `FirePea.reanim`）用 `SetFrameRangeToDefault()` + `Play(PLAY_REPEAT)`，不要捏造轨道名或帧事件。非等比 `SetRenderScale` 的 pivot 是**世界坐标**；命中特效应传自身绘制基点，传 `(0,0)` 会把整个特效按比例拉向屏幕左上角。
 13. **跳跃阻拦植物只声明能力和反馈，不决定僵尸动画时序**：`BlocksZombieJump`/`OnZombieJumpBlocked` 由跳跃者在原版动画进度节点调用，接触植物时不得提前 Bonk、喷粒子或扣血。组合植物的跳跃目标取当前格顶层，避免先碰到底层睡莲/花盆便漏掉上层阻拦体。特殊僵尸若撞伤阻拦植物，应把植物引用传入品种钩子并走带正确 `DamageSource` 的正式承伤链；先确认规格中的受伤者，不能把“植物损失 N 血”误实现成僵尸自身扣血。
+14. **台风锚定植物也只声明格位能力和直接撞击反馈**：用类似 `AnchorsPlantCellAgainstTyphoon` / `OnTyphoonPlantImpact` 的虚接口让天气唯一结算点派发，禁止在 `Board` 堆植物类型表。逐格位移中先让锚定源格保持不动，再只对直接进入锚定目标格的植物组合结算；后方被普通占格挡住时不传导压力。伤害必须逐格立即生效，使锚定植物中途死亡后剩余步数能重读格位；同阵风重复撞击可按锚定植物 ID 合并音画反馈，但不能合并伤害。组合植物按一个移动格计数，专项覆盖双向、紧邻多步、间隔移动、连续链、水路上下层和中途死亡放行。
 
 ## 存读档心智清单
 

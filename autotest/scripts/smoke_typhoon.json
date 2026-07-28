@@ -101,7 +101,7 @@
     { "op": "set_typhoon", "strength": "SUPER", "direction": "FRONT", "gustIn": 30, "directionIn": 30, "gustsRemaining": 2, "decayIn": 0.05 },
     { "op": "wait_frames", "value": 6 },
     { "op": "assert_state", "path": "weather.typhoonStrength", "equals": "SEVERE" },
-    { "op": "assert_state", "path": "weather.gustsRemaining", "equals": 2 },
+    { "op": "assert_state", "path": "weather.gustsRemaining", "equals": 1 },
     { "op": "assert_state", "path": "weather.rainEffect", "equals": "RainHeavyTowardFront" },
     { "op": "assert_state", "path": "weather.hostileWindMovePct", "equals": 80 },
     { "op": "set_typhoon", "strength": "SEVERE", "direction": "HOUSE", "gustIn": 30, "directionIn": 30, "gustsRemaining": 3, "decayIn": 0.05 },

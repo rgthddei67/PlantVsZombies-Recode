@@ -10,6 +10,7 @@ namespace {
 	constexpr float kTallNutShadowScaleX = 1.3f;            // 原版高坚果阴影横向放大倍率
 	constexpr float kJumpBlockParticleOffsetX = 20.0f;      // 跳跃撞击星光相对逻辑中心的水平偏移，单位：px
 	constexpr float kJumpBlockParticleOffsetY = -65.0f;     // 跳跃撞击星光相对逻辑中心的垂直偏移，单位：px
+	constexpr int kTyphoonPlantImpactDamage = 800;           // 每直接挡住一个植物格前进一格所承受的环境伤害
 }
 
 void TallNut::SetupPlant()
@@ -35,6 +36,18 @@ bool TallNut::BlocksZombieJump(ZombieJumpType jumpType) const
 }
 
 void TallNut::OnZombieJumpBlocked(ZombieJumpType)
+{
+	PlayBlockFeedback();
+}
+
+void TallNut::OnTyphoonPlantImpact(bool showFeedback)
+{
+	// 伤害逐格立即结算，确保高坚果中途死亡后阵风的剩余步数可以重新读取空出的格位。
+	if (showFeedback) PlayBlockFeedback();
+	TakeDamage(kTyphoonPlantImpactDamage, DamageSource::OTHER);
+}
+
+void TallNut::PlayBlockFeedback()
 {
 	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_BONK, 0.5f);
 	if (g_particleSystem) {
