@@ -16,6 +16,8 @@ private:
 	Vector mScale = Vector(1.0f, 0.75f);  // 阴影的缩放（通常水平拉伸，垂直压缩）
 	float mAlpha = 0.9f;            // 阴影透明度
 	bool mVisible = true;           // 可见性开关（如伴舞出土期间人在土里，不该有影子）
+	Vector mLastDrawCenter = Vector::zero(); // 最近一次实际提交的阴影中心，供 AutoTest 取证
+	bool mLastDrawReady = false;    // 本帧是否已提交有效阴影几何
 
 public:
 	ShadowComponent(const Texture* shadowTexture = nullptr,
@@ -41,6 +43,13 @@ public:
 
 	// 设置阴影可见性（false 时跳过绘制，组件仍在）
 	void SetVisible(bool visible) { mVisible = visible; }
+
+	/** 返回配置的阴影中心偏移，供最终绘制坐标取证。 */
+	Vector GetOffset() const { return mOffset; }
+	/** 最近一次 Draw 是否实际提交了阴影。 */
+	bool IsLastDrawReady() const { return mLastDrawReady; }
+	/** 返回最近一次实际提交的阴影中心。 */
+	Vector GetLastDrawCenter() const { return mLastDrawCenter; }
 };
 
 #endif

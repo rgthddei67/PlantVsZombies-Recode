@@ -1,0 +1,28 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 19 },
+    { "op": "choose_cards", "cards": ["PLANT_LILYPAD", "PLANT_PEASHOOTER"] },
+    { "op": "wait_state", "state": "GAME", "timeout": 15 },
+    { "op": "set_spawn_paused", "value": true },
+    { "op": "set_sun", "value": 9000 },
+    { "op": "plant", "type": "PLANT_LILYPAD", "row": 2, "col": 4 },
+    { "op": "plant", "type": "PLANT_PEASHOOTER", "row": 2, "col": 4 },
+    { "op": "wait_frames", "value": 3 },
+    { "op": "assert_state", "path": "plantCount", "equals": 2 },
+    { "op": "assert_state", "path": "cells.2.4.under", "equals": "PLANT_LILYPAD" },
+    { "op": "assert_state", "path": "topPlantsByCell.2_4.type", "equals": "PLANT_PEASHOOTER" },
+    { "op": "screenshot", "name": "shadow_bob_phase_a.png" },
+    { "op": "assert_state", "path": "topPlantsByCell.2_4.shadowRenderProbeReady", "equals": true },
+    { "op": "assert_state", "path": "topPlantsByCell.2_4.shadowFollowsVisualAnchor", "equals": true },
+    { "op": "dump_state", "name": "shadow_bob_phase_a_state.json" },
+    { "op": "wait_frames", "value": 15 },
+    { "op": "screenshot", "name": "shadow_bob_phase_b.png" },
+    { "op": "assert_state", "path": "topPlantsByCell.2_4.shadowFollowsVisualAnchor", "equals": true },
+    { "op": "dump_state", "name": "shadow_bob_phase_b_state.json" },
+    { "op": "wait_frames", "value": 15 },
+    { "op": "screenshot", "name": "shadow_bob_phase_c.png" },
+    { "op": "assert_state", "path": "topPlantsByCell.2_4.shadowFollowsVisualAnchor", "equals": true },
+    { "op": "dump_state", "name": "shadow_bob_phase_c_state.json" },
+    { "op": "quit" }
+  ]
+}

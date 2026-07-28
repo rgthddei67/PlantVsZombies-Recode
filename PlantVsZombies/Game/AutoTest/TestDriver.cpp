@@ -16,6 +16,7 @@
 #include "../AudioSystem.h"
 #include "../Card.h"
 #include "../CardComponent.h"
+#include "../ShadowComponent.h"
 #include "../Plant/PlantType.h"
 #include "../Plant/Plant.h"
 #include "../Plant/WallNut.h"
@@ -1709,6 +1710,28 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "visualX", p->GetVisualPosition().x },
 			{ "visualY", p->GetVisualPosition().y },
 		};
+		if (const auto* shadow = p->GetComponent<ShadowComponent>()) {
+			const auto animator = p->GetAnimatorInternal();
+			const AnimatorRenderProbe* renderProbe =
+				animator ? &animator->GetLastRenderProbe() : nullptr;
+			// 与同一绘制帧的 Animator 实际 base 对比，避免截图完成后的下一逻辑帧
+			// 已推进水面正弦相位，令重新计算的当前锚点产生亚像素时序差。
+			const Vector actualCenter = shadow->GetLastDrawCenter();
+			const bool probeReady = shadow->IsLastDrawReady()
+				&& renderProbe && renderProbe->hasGeometry;
+			const Vector expectedCenter = probeReady
+				? Vector(renderProbe->baseX, renderProbe->baseY)
+					- p->GetStaticVisualOffset() + shadow->GetOffset()
+				: Vector::zero();
+			plantState["shadowRenderProbeReady"] = probeReady;
+			plantState["shadowCenterXOn1000"] =
+				static_cast<int>(std::lround(actualCenter.x * 1000.0f));
+			plantState["shadowCenterYOn1000"] =
+				static_cast<int>(std::lround(actualCenter.y * 1000.0f));
+			plantState["shadowFollowsVisualAnchor"] = probeReady
+				&& std::abs(actualCenter.x - expectedCenter.x) < 0.01f
+				&& std::abs(actualCenter.y - expectedCenter.y) < 0.01f;
+		}
 		if (auto* shooter = dynamic_cast<Shooter*>(p)) {
 			if (const Animator* head = shooter->GetHeadAnimator()) {
 				plantState["headTrack"] = head->GetCurrentTrackName();

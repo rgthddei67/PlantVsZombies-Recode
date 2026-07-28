@@ -82,8 +82,13 @@ public:
 	/** 由 GameInfoSaver 在派生类额外数据恢复后重建压扁终态。 */
 	void RestoreSquishState(float remainingSeconds, const Vector& visualPosition);
 	Vector GetPosition() const;
-	/** 逻辑格中心叠加阵风瞬态偏移，供阴影与其他非本体视觉同步滑动。 */
-	Vector GetGridVisualPosition() const { return GetPosition() + mGridMoveVisualOffset; }
+	/**
+	 * 返回不含品种静态 offset 的公共视觉锚点。
+	 * 阵风换格与水面浮动都在此收口，供本体、阴影和其他附属视觉保持同步。
+	 */
+	Vector GetVisualAnchorPosition() const;
+	/** 返回 gamedata 配置的品种静态视觉偏移，不包含任何逐帧动态量。 */
+	Vector GetStaticVisualOffset() const { return mVisualOffset; }
 	void SetPosition(const Vector& position);
 	/**
 	 * 立即把逻辑格与碰撞箱切到目标格，再用纯视觉偏移平滑追赶。

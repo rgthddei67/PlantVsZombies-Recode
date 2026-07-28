@@ -27,6 +27,7 @@ void ShadowComponent::Start() {
 }
 
 void ShadowComponent::Draw(Graphics* g) {
+	mLastDrawReady = false;
 	if (!mVisible) return;
 
 	auto gameObject = GetGameObject();
@@ -42,9 +43,9 @@ void ShadowComponent::Draw(Graphics* g) {
 	}
 	Vector objPos = transform->GetPosition();
 	if (type == ObjectType::OBJECT_PLANT) {
-		// 阵风换格时碰撞箱已在目标格，植物本体与阴影共同使用纯视觉偏移追赶。
+		// 植物的静态品种 offset 仍与阴影独立；仅共享阵风位移和水面浮动等动态视觉量。
 		if (auto* plant = dynamic_cast<Plant*>(gameObject)) {
-			objPos = plant->GetGridVisualPosition();
+			objPos = plant->GetVisualAnchorPosition();
 		}
 	}
 
@@ -58,6 +59,8 @@ void ShadowComponent::Draw(Graphics* g) {
 	}
 
 	if (!mShadowTexture) return;
+	mLastDrawCenter = shadowPos;
+	mLastDrawReady = true;
 
 	// 纹理尺寸
 	float texWidth = static_cast<float>(mShadowTexture->width);

@@ -25,7 +25,7 @@ metadata:
 - `GameScene` 在静态泳池背景之后、游戏对象之前调用 `Graphics::DrawPoolEffect`。专用 Vulkan pipeline 每帧绘制原版 `15×5` 规则网格的底图/阴影/焦散三层（每层 450 顶点、共 3 draw call）；`pool.vert` 用原版五组相位在 GPU 扭曲三层 UV，`pool.frag` 从静态 `256×256` 灰度源图复刻双线性焦散与字节阈值，不创建或上传逐帧动态纹理。日间/夜间分别使用原版 base/shading，夜间焦散按原版降亮；水面复用 matrix/bindless descriptors、相机 `projView` 和逐顶点 shader ClipRect，保持屏幕抖动一致且不增加动态 scissor。
 - `Cell` 有 `under/normal` 两个植物槽。睡莲只能放在空水格的 under 层；普通植物只能放在已有睡莲且 normal 层为空的水格；土豆雷仍禁止下水。铲子、僵尸啃咬与 UI 预览都以 top 层为准。
 - 水格已有睡莲时，卡片悬停生成的半透明落点预览必须取当前 top 植物的 `renderOrder + 1`，保证待种植物显示在睡莲上方；空格预览使用 `LAYER_GAME_PLANT`。
-- 睡莲种下后 1 秒只免疫啃咬，计时器进存档；水面植物只做±2px 绘制浮动，Transform/碰撞与存档仍固定在逻辑格。
+- 睡莲种下后 1 秒只免疫啃咬，计时器进存档；水面植物只做±2px 绘制浮动，Transform/碰撞与存档仍固定在逻辑格。植物本体与影子共享不含品种静态 offset 的动态视觉锚点，因此阵风插值和水面浮动会同步作用于两者，既有 `ShadowComponent::SetOffset` 校准不变。
 - 普通/路障/铁桶僵尸在水路由正式波次入口替换为 `ZOMBIE_POOL_*`，而非为出怪表添加独立权重；这三种专用类型仍只允许水路，陆地版本不会实际创建在水中。其他僵尸可直接抽到水路并保留自身类型与行为。`Board::CanZombieTypeSpawnInPool` 是集中禁水扩展点；普通与鎏金冰车均禁水，只能在泳池陆路生成。鎏金冰车可碾压相邻水路植物，但 Board 不在水路留下黄色冰道。`Zombie` 基类用前/后双探针统一维护 `mInPool`，本项目将下水/出水切换位置相对原探针向右校正 70px；水中统一隐藏陆地阴影，并在 `Zombie::Draw` 内用 `PushClipBottom/PopClipBottom` 把水面以下裁掉。该接口现为通用 shader `PushClipRect` 的全宽别名，不触发批处理 flush 或 `vkCmdSetScissor`，并自动与伴舞出土等既有矩形 Clip 取交集。专用泳池僵尸仍保留 swim、水中死亡和泳圈贴图；水中断头/断臂不生成悬浮的陆地碎片。
 - 普通/精英海豚是地形兼容性的反向特例：只允许 `WATER_POOL` 的第2/3水路生成。通用
   `Zombie::TryGetDrawClipBottom` 默认保持既有 `mInPool` 水线，海豚只在 `ENTERING_POOL` 覆写
@@ -96,6 +96,9 @@ metadata:
 上层植物影子被睡莲反盖；透明预览只因改变 worker 分片而让少量影子暂时恢复。`ShadowComponent`
 现于默认路径将影子写入同一 instance 流，`-NoInstance` 保留 batch 兜底；修复后两路径可见运行
 均 exit 0，截图显示全部 8 个影子，状态为 16 株植物、140 只僵尸、14 draw、0 scissor。
+2026-07-28 又新增 `smoke_pool_plant_shadow_bob.json`，跨三个水面浮动相位同步截图，并通过
+`ShadowComponent` 最近实际提交中心与同绘制帧 Animator base 断言上层豌豆射手影子始终等于公共动态视觉锚点加独立影子
+offset；主人实机确认影子已随睡莲上的植物同步上下浮动。
 
 `smoke_pool_polevaulter_stacked_plant.json` 固定 level 19 水路同格 `LILYPAD` under +
 `WALLNUT` normal，先断言双层格成立，再断言撑杆中段保持 `JUMPING/anim_jump/isEating=false`，
