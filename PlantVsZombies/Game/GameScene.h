@@ -2,6 +2,7 @@
 #ifndef _GAMESCENE_H
 #define _GAMESCENE_H
 #include "Scene.h"
+#include "BoardPresentation.h"
 #include "../Game/Board.h"
 #include "Perk/PerkType.h"
 #include <cstdint>
@@ -54,7 +55,7 @@ struct PromptAnimation {
 	float fadeDuration = 1.0f;    // 消失阶段时长
 };
 
-class GameScene : public Scene {
+class GameScene : public Scene, public BoardPresentation {
 public:
 	GameScene();
 	~GameScene() override;
@@ -82,14 +83,14 @@ public:
 
 	GameProgress* GetGameProgress() const;
 
-	void GameOver();
+	void GameOver() override;
 
 	// 生存模式：一轮清空后重新进入选卡子流程（同会话轮间，轻量路径）
 	void BeginSurvivalCardSelect();
 
 	static constexpr int SURVIVAL_PERK_PICKS_PER_ROUND = 2;
 	static constexpr int SURVIVAL_PERK_REFRESHES_PER_ROUND = 3;
-	void BeginSurvivalPerkSelect();          // 轮清后开始最多两次成对词条选择（选卡之前）
+	void BeginSurvivalPerkSelect() override; // 轮清后开始最多两次成对词条选择（选卡之前）
 	void ApplyPerkSelection(int index);      // 合法 index 应用一对；负数/越界只放弃当前一次机会
 	bool RefreshSurvivalPerkSelection();     // 消耗整轮共享的一次刷新额度并重抽当前候选；不可刷新时返回 false
 	void OpenPerkView();                      // 生存模式：弹出已选词条查看面板（固定面板+字号自动缩放，打开即暂停）
@@ -109,7 +110,7 @@ public:
 	void ShowPrompt(const std::string& textureKey,
 		float appearDur = 1.0f,
 		float holdDur = 3.0f,
-		float fadeDur = 1.0f);
+		float fadeDur = 1.0f) override;
 	/** 添加居中的紧急文字提示；同帧内越晚添加的提示绘制优先级越高。 */
 	void ShowTextPrompt(const std::string& text, const glm::vec4& color,
 		int fontSize = 40,
@@ -117,15 +118,16 @@ public:
 		float holdDur = 3.8f,
 		float fadeDur = 0.6f);
 	/** 根据已锁定的台风等级与同级文案编号显示大雨来临警报。 */
-	void ShowHeavyRainWarning(TyphoonStrength strength, int variant);
+	void ShowHeavyRainWarning(TyphoonStrength strength, int variant) override;
 	const std::vector<PromptAnimation>& GetPromptsForTesting() const { return mPrompts; }
 
 	// 全屏白闪（寒冰菇全场冻结的瞬间反馈）：alpha 从峰值线性衰减到 0
-	void ShowScreenFlash(float duration = 0.5f, float peakAlpha = 200.0f);
+	void ShowScreenFlash(
+		float duration = 0.5f, float peakAlpha = 200.0f) override;
 	bool IsScreenFlashActive() const { return mScreenFlashTimer > 0.0f; }
 	float GetScreenFlashPeakAlpha() const { return mScreenFlashPeakAlpha; }
 	/** 生成一次大雨闪电的固定分叉路径，并播放主放电与回闪局部照明。 */
-	void ShowLightningStrike(float duration = 0.42f);
+	void ShowLightningStrike(float duration = 0.42f) override;
 	bool IsLightningStrikeActive() const { return mLightningFlashTimer > 0.0f; }
 	int GetLightningMainSegmentCount() const {
 		return mLightningMainPath.empty()
@@ -136,12 +138,13 @@ public:
 	}
 	float GetLightningStrikeX() const { return mLightningStrikePoint.x; }
 	/** 天气阶段揭晓与公开预报不一致时，显示一个不会暂停战斗的失败提示。 */
-	void ShowWeatherForecastFailure(RainIntensity forecast, RainIntensity actual);
+	void ShowWeatherForecastFailure(
+		RainIntensity forecast, RainIntensity actual) override;
 	/** 从关卡存档恢复失败提示的剩余时间及预报/实际天气。 */
 	void RestoreWeatherForecastFailure(float remaining,
 		RainIntensity forecast, RainIntensity actual);
 	/** 天气发生变化后短暂显示当前结果，持续时间由天气 UI 常量统一控制。 */
-	void ShowCurrentWeatherNotice();
+	void ShowCurrentWeatherNotice() override;
 	/** 从关卡存档恢复当前天气展板的剩余显示时间；异常值会限制到 0～5 秒。 */
 	void RestoreCurrentWeatherNotice(float remaining);
 	float GetWeatherPanelSlide() const { return mWeatherPanelSlide; }
@@ -153,16 +156,26 @@ public:
 	RainIntensity GetActualForecastRainIntensity() const { return mActualForecastRainIntensity; }
 	int GetPoolEffectCounter() const { return mPoolEffectCounter; }
 
-	void SetReadyToBackMenu() { mReadyToBackMenu = true; }
+	void SetReadyToBackMenu() override { mReadyToBackMenu = true; }
 
-	void ShowShovel();
+	void ShowShovel() override;
+
+	/** 激活波次进度条并按当前关卡波数建立旗子。 */
+	void ActivateWaveProgress() override;
+	/** 读档后恢复旗子升起状态并立即对齐当前波次。 */
+	void RestoreWaveProgress() override;
+
+	WeatherPresentationState CaptureWeatherPresentationState() const override;
+	void RestoreWeatherPresentationState(
+		const WeatherPresentationState& state) override;
 
 	// 生存轮间空槽重选的冷却快照存取：词条选择期间退出也会保存，因此必须在进入词条页时
 	// 提前捕获；随后旧卡槽清空后，它是仍在冷却卡牌进度的唯一载体。
-	const std::unordered_map<PlantType, std::pair<float, float>>& GetSurvivalCardCooldowns() const {
+	const SurvivalCardCooldownMap& GetSurvivalCardCooldowns() const override {
 		return mSurvivalCardCooldowns;
 	}
-	void SetSurvivalCardCooldowns(std::unordered_map<PlantType, std::pair<float, float>> cooldowns) {
+	void SetSurvivalCardCooldowns(
+		SurvivalCardCooldownMap cooldowns) override {
 		mSurvivalCardCooldowns = std::move(cooldowns);
 	}
 
@@ -224,7 +237,7 @@ private:
 	RainIntensity mFailedForecastRainIntensity = RainIntensity::CLEAR; // 最近一次错误的公开预报
 	RainIntensity mActualForecastRainIntensity = RainIntensity::CLEAR; // 最近一次错误预报对应的真实天气
 	// 轮间空槽重选时，快照冷却中卡牌的 {植物类型 → (已计时, 总时长)}，选完后还原到重选回的同种卡
-	std::unordered_map<PlantType, std::pair<float, float>> mSurvivalCardCooldowns;
+	SurvivalCardCooldownMap mSurvivalCardCooldowns;
 	bool mLendToAlmanacScene = false;
 
 	IntroStage mCurrentStage = IntroStage::BACKGROUND_MOVE;

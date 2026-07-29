@@ -5,12 +5,11 @@
 #include "TransformComponent.h"
 
 class Board;
-class GameScene;
 
 class GameProgress : public GameObject
 {
 public:
-	GameProgress(Board* board, GameScene* gameScene);
+	explicit GameProgress(Board* board);
 	~GameProgress();
 
 	void Update() override;
@@ -30,7 +29,6 @@ public:
 
 private:
 	Board* mBoard = nullptr;
-	GameScene* mGameScene = nullptr;
 	float mUpdateTimer = 0.0f;
 
 	float mCurrentSliderValue = 1.0f;   // 当前显示进度

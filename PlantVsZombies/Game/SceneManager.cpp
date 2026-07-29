@@ -8,9 +8,9 @@ SceneManager& SceneManager::GetInstance() {
 }
 
 void SceneManager::ClearCurrentScene() {
-	if (!sceneStack_.empty()) {
-		sceneStack_.top()->OnExit();
-		sceneStack_.pop();
+	if (currentScene_) {
+		currentScene_->OnExit();
+		currentScene_.reset();
 	}
 }
 
@@ -22,69 +22,43 @@ bool SceneManager::SwitchTo(const std::string& name) {
 	}
 
 	// 退出当前场景
-	if (!sceneStack_.empty()) {
-		sceneStack_.top()->OnExit();
-		sceneStack_.pop();
+	if (currentScene_) {
+		currentScene_->OnExit();
+		currentScene_.reset();
 	}
 
 	// 创建并进入新场景
 	auto newScene = it->second();
 	newScene->OnEnter();
-	sceneStack_.push(std::move(newScene));
+	currentScene_ = std::move(newScene);
 	LOG_INFO("SceneManager") << "切换到场景: " << name;
 	return true;
 }
 
-void SceneManager::PushScene(const std::string& name) {
-	auto it = scenes_.find(name);
-	if (it == scenes_.end()) {
-		LOG_ERROR("SceneManager") << "场景未注册: " << name;
-		return;
-	}
-
-	// 暂停当前场景（不调用OnExit）
-	// 创建并进入新场景
-	auto newScene = it->second();
-	newScene->OnEnter();
-	sceneStack_.push(std::move(newScene));
-}
-
-void SceneManager::PopScene() {
-	if (sceneStack_.empty()) return;
-
-	sceneStack_.top()->OnExit();
-	sceneStack_.pop();
-
-	// 恢复上一个场景
-	if (!sceneStack_.empty()) {
-		sceneStack_.top()->OnEnter();
-	}
-}
-
 void SceneManager::Update() {
-	if (!sceneStack_.empty()) {
-		sceneStack_.top()->Update();
+	if (currentScene_) {
+		currentScene_->Update();
 	}
 }
 
 void SceneManager::Draw(Graphics* g) {
-	if (!sceneStack_.empty()) {
-		sceneStack_.top()->Draw(g);
+	if (currentScene_) {
+		currentScene_->Draw(g);
 	}
 }
 
 void SceneManager::DrawWorldOverlay(Graphics* g) {
-	if (!sceneStack_.empty()) {
-		sceneStack_.top()->DrawWorldOverlay(g);
+	if (currentScene_) {
+		currentScene_->DrawWorldOverlay(g);
 	}
 }
 
 Scene* SceneManager::GetCurrentScene() const {
-	return sceneStack_.empty() ? nullptr : sceneStack_.top().get();
+	return currentScene_.get();
 }
 
 bool SceneManager::IsEmpty() const {
-	return sceneStack_.empty();
+	return currentScene_ == nullptr;
 }
 
 void SceneManager::SetGlobalData(const std::string& key, const std::string& value) {

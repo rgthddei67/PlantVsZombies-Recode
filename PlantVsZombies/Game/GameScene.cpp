@@ -550,7 +550,7 @@ void GameScene::OnEnter() {
 	mCardSlotManager = CardUI->AddComponent<CardSlotManager>(mBoard.get());
 
 	mGameProgress = GameObjectManager::GetInstance().CreateGameObjectImmediate<GameProgress>(
-		LAYER_UI, mBoard.get(), this);
+		LAYER_UI, mBoard.get());
 	mGameProgress->SetActive(false);
 
 	auto button = mUIManager.CreateButton(Vector(990, -5), Vector(125 * 0.9f, 52 * 0.9f));
@@ -623,7 +623,7 @@ void GameScene::OnEnter() {
 		if (mBoard->mIsSurvival && mBoard->mSurvivalRound == 1
 			&& mBoard->mCurrentWave == 0
 			&& mBoard->mEntityManager.GetAllMowerIDs().empty()) {
-			mBoard->mIsLoadSave = false;
+			mBoard->CompleteLoadRestore();
 		}
 
 		mBoard->StartGame();
@@ -631,7 +631,7 @@ void GameScene::OnEnter() {
 		AddTexture(ResourceKeys::Textures::IMAGE_SEEDBANK_LONG,
 			130.0f, -10.0f, 0.85f, 0.9f, LAYER_UI, true);
 
-		mBoard->mIsLoadSave = false;
+		mBoard->CompleteLoadRestore();
 	}
 	else {
 		AudioSystem::PlayMusic(ResourceKeys::Music::MUSIC_CHOOSEYOURSEEDS, -1);
@@ -640,7 +640,7 @@ void GameScene::OnEnter() {
 		// 第 2 轮起的存档已含小推车（且可能因第 1 轮被用掉而合法地变少甚至为空），
 		// 保持 mIsLoadSave=true，由存档恢复，绝不重新生成。
 		if (mBoard->mIsSurvival && mBoard->mSurvivalRound == 1) {
-			mBoard->mIsLoadSave = false;
+			mBoard->CompleteLoadRestore();
 		}
 	}
 }
@@ -1524,6 +1524,24 @@ GameProgress* GameScene::GetGameProgress() const
 	return this->mGameProgress;
 }
 
+void GameScene::ActivateWaveProgress()
+{
+	if (!mGameProgress) return;
+	mGameProgress->SetActive(true);
+	auto& resources = ResourceManager::GetInstance();
+	mGameProgress->SetupFlags(
+		resources.GetTexture(ResourceKeys::Textures::IMAGE_FLAGMETER_PART_STICK),
+		resources.GetTexture(ResourceKeys::Textures::IMAGE_FLAGMETER_PART_FLAG));
+}
+
+void GameScene::RestoreWaveProgress()
+{
+	ActivateWaveProgress();
+	if (!mGameProgress) return;
+	mGameProgress->InitializeRaisedFlags(-10.0f);
+	mGameProgress->SnapProgressToCurrentWave();
+}
+
 void GameScene::GameOver()
 {
 	if (mBoard->mBoardState == BoardState::LOSE_GAME) return;
@@ -1787,6 +1805,24 @@ void GameScene::RestoreCurrentWeatherNotice(float remaining)
 {
 	mCurrentWeatherNoticeTimer = std::clamp(remaining, 0.0f,
 		kCurrentWeatherNoticeDuration);
+}
+
+WeatherPresentationState GameScene::CaptureWeatherPresentationState() const
+{
+	return WeatherPresentationState{
+		mCurrentWeatherNoticeTimer,
+		mWeatherForecastFailureTimer,
+		mFailedForecastRainIntensity,
+		mActualForecastRainIntensity
+	};
+}
+
+void GameScene::RestoreWeatherPresentationState(
+	const WeatherPresentationState& state)
+{
+	RestoreCurrentWeatherNotice(state.currentWeatherNoticeTimer);
+	RestoreWeatherForecastFailure(state.forecastFailureTimer,
+		state.failedForecast, state.actualForecast);
 }
 
 /**

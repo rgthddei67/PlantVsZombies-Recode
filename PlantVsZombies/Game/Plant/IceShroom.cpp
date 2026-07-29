@@ -1,5 +1,5 @@
 #include "IceShroom.h"
-#include "../GameScene.h"
+#include "../BoardPresentation.h"
 #include "../AudioSystem.h"
 #include "../ShadowComponent.h"
 #include "../Zombie/Zombie.h"
@@ -20,7 +20,8 @@ void IceShroom::SetupPlant()
 	mAnimator->AddFrameEvent(16, [this]() {
 		if (!mBoard) return;
 		AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_FROZEN, 0.5f);
-		if (mBoard->mGameScene) mBoard->mGameScene->ShowScreenFlash(0.5f);
+		if (mBoard->GetPresentation())
+			mBoard->GetPresentation()->ShowScreenFlash(0.5f);
 		FreezeAllZombies();
 		Die();
 		});

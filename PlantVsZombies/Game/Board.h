@@ -10,13 +10,14 @@
 #include "EntityManager.h"
 #include "CursorObjectManager.h"
 #include "Perk/SurvivalPerkManager.h"
+#include "WeatherTypes.h"
 #include <vector>
 #include <memory>
 #include <string>
 #include <array>
 
 class GameInfoSaver;
-class GameScene;
+class BoardPresentation;
 class Graphics;
 class Sun;
 class SmallSun;
@@ -37,29 +38,6 @@ enum class Background {
 	NIGHT_WATER_POOL,
 	ROOF,
 	NIGHT_ROOF
-};
-
-/** 黑夜天气强度；CLEAR 是所有倍率与视觉效果的单位元。 */
-enum class RainIntensity {
-	CLEAR,
-	LIGHT,
-	MEDIUM,
-	HEAVY
-};
-
-/** 仅在大雨阶段存在的台风强度；NONE 表示没有附加台风。 */
-enum class TyphoonStrength {
-	NONE,
-	TYPHOON,
-	SEVERE,
-	SUPER
-};
-
-/** 风实际吹向的棋盘方向；使用“吹向”口径，避免与气象学来向混淆。 */
-enum class WindDirection {
-	NONE,
-	TOWARD_HOUSE,
-	TOWARD_FRONT
 };
 
 struct RowInfo {
@@ -111,11 +89,9 @@ enum class BoardState {
 
 class Board {
 public:
-	friend GameScene;
 	friend GameInfoSaver;
 
 	BoardState mBoardState = BoardState::CHOOSE_CARD;
-	GameScene* mGameScene = nullptr;
 	std::string mLevelName = "关卡 1-1";
 	int mLevel = -1;	// 冒险模式当前关卡序号
 	Background mBackGround = Background::GROUND_DAY; // 背景图
@@ -171,6 +147,7 @@ public:
 	std::array<float, 8> mGoldenIceTimer{}; // 每行黄色冰道剩余寿命，单位秒
 
 private:
+	BoardPresentation* mPresentation = nullptr; // 非拥有；宿主场景的生命周期覆盖 Board
 	std::vector<ZombieType> mSpawnZombieList;	// 本关出怪表
 	float mHugeWaveCountDown = 0.0f;	// 一大波倒计时
 	float mUpdateZombieMetricsTimer = 0.0f;	// 僵尸血量与音乐敌对数的合并采样计时器
@@ -324,8 +301,13 @@ public:
 	 */
 	float GetZombieCollisionY(int row) const;
 
-	Board(GameScene* gameScene, Background background, int level);
+	Board(BoardPresentation* presentation, Background background, int level);
 	~Board();
+
+	/** 返回非拥有的场景展示端口；用于存档恢复 UI 瞬态。 */
+	BoardPresentation* GetPresentation() const { return mPresentation; }
+	/** 完成一次读档恢复，使后续 StartGame 使用正常新局路径。 */
+	void CompleteLoadRestore() { mIsLoadSave = false; }
 
 	inline void AddSun(int amount)
 	{

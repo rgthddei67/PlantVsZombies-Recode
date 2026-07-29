@@ -2,8 +2,8 @@
 #include "Board.h"
 #include "AudioSystem.h"
 #include "AdventureProgression.h"
+#include "BoardPresentation.h"
 #include "../GameAPP.h"
-#include "GameScene.h"
 #include "../DeltaTime.h"
 #include "GameObjectManager.h"
 #include "../ResourceManager.h"
@@ -111,8 +111,8 @@ void Trophy::Update()
 	}
 
 	if (mGrowTimer >= GROW_DURATION) {
-		if (mBoard && mBoard->mGameScene)
-			mBoard->mGameScene->SetReadyToBackMenu();
+		if (mBoard && mBoard->GetPresentation())
+			mBoard->GetPresentation()->SetReadyToBackMenu();
 		GameObjectManager::GetInstance().DestroyGameObject(this);
 	}
 }

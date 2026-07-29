@@ -1,17 +1,17 @@
 ﻿#include "GameInfoSaver.h"
 #include "SaveLocation.h"
 #include "SaveMigration.h"
+#include "SaveSchema.h"
 #include <algorithm>
 #include <filesystem>
 #include "GameAPP.h"
 #include "./Game/Board.h"
-#include "./Game/GameScene.h"
+#include "./Game/BoardPresentation.h"
 #include "./Game/AudioSystem.h"
 #include "./Game/Bullet/Bullet.h"
 #include "./Game/Plant/Plant.h"
 #include "./Game/Zombie/Zombie.h"
 #include "./Game/LawnMower.h"
-#include "./Game/GameProgress.h"
 #include "./Game/Sun.h"
 #include "./Game/Trophy.h"
 #include "./Game/Crater.h"
@@ -184,6 +184,7 @@ bool GameInfoSaver::SavePlayerInfoImpl()
 	FileManager::CreateDirectory(GetSaveRoot());
 
 	nlohmann::json j;
+	j["schemaVersion"] = SaveSchema::kCurrentPlayerVersion;
 	j["vsync"] = gameApp.mVsync;
 	j["fullscreen"] = gameApp.mFullscreen;
 	j["difficulty"] = gameApp.Difficulty;
@@ -206,6 +207,11 @@ bool GameInfoSaver::LoadPlayerInfoImpl()
 	nlohmann::json j;
 	if (!FileManager::LoadJsonFile(GetSaveFileForRead("PlayerInfo.json"), j))
 		return false;
+	std::string schemaError;
+	if (!SaveSchema::UpgradePlayerDocument(j, schemaError)) {
+		LOG_WARN("Save") << "拒绝加载玩家存档: " << schemaError;
+		return false;
+	}
 
 	auto& gameApp = GameAPP::GetInstance();
 	gameApp.mVsync = j.value("vsync", false);
@@ -233,6 +239,7 @@ bool GameInfoSaver::SerializeLevelDataToPath(Board* board, CardSlotManager* mana
 	if (!stateOk) return false;
 
 	nlohmann::json j;
+	j["schemaVersion"] = SaveSchema::kCurrentLevelVersion;
 
 	// Board 状态
 	j["boardState"] = static_cast<int>(board->mBoardState);
@@ -315,16 +322,16 @@ bool GameInfoSaver::SerializeLevelDataToPath(Board* board, CardSlotManager* mana
 	j["elitePolevaultersSpawnedThisWave"] = board->mElitePolevaultersSpawnedThisWave;
 	j["gildedZambonisSpawnedThisWave"] = board->mGildedZambonisSpawnedThisWave;
 	j["eliteDolphinRidersSpawnedThisWave"] = board->mEliteDolphinRidersSpawnedThisWave;
-	j["currentWeatherNoticeTimer"] = board->mGameScene
-		? board->mGameScene->GetCurrentWeatherNoticeTimer() : 0.0f;
-	j["weatherForecastFailureTimer"] = board->mGameScene
-		? board->mGameScene->GetWeatherForecastFailureTimer() : 0.0f;
-	j["failedForecastRainIntensity"] = board->mGameScene
-		? static_cast<int>(board->mGameScene->GetFailedForecastRainIntensity())
-		: static_cast<int>(RainIntensity::CLEAR);
-	j["weatherForecastFailureActualIntensity"] = board->mGameScene
-		? static_cast<int>(board->mGameScene->GetActualForecastRainIntensity())
-		: static_cast<int>(RainIntensity::CLEAR);
+	WeatherPresentationState weatherPresentation;
+	if (auto* presentation = board->GetPresentation()) {
+		weatherPresentation = presentation->CaptureWeatherPresentationState();
+	}
+	j["currentWeatherNoticeTimer"] = weatherPresentation.currentWeatherNoticeTimer;
+	j["weatherForecastFailureTimer"] = weatherPresentation.forecastFailureTimer;
+	j["failedForecastRainIntensity"] =
+		static_cast<int>(weatherPresentation.failedForecast);
+	j["weatherForecastFailureActualIntensity"] =
+		static_cast<int>(weatherPresentation.actualForecast);
 	j["maxWave"] = board->mMaxWave;
 	j["zombieCountDown"] = board->mZombieCountDown;
 	j["totalZombieHP"] = board->mTotalZombieHP;
@@ -516,9 +523,10 @@ bool GameInfoSaver::SerializeLevelDataToPath(Board* board, CardSlotManager* mana
 	// 生存轮间空槽重选的冷却快照：选卡阶段卡槽已被清空，仍在冷却的卡牌冷却进度暂存在 GameScene 的
 	// mSurvivalCardCooldowns 里（而非卡槽）。它是该进度的唯一载体，必须单独持久化，否则选卡界面
 	// 退出重进后快照丢失 → 选完卡冷却被清零。仅 survival 写入，普通模式无此字段、行为不变。
-	if (board->mIsSurvival && board->mGameScene) {
+	if (board->mIsSurvival && board->GetPresentation()) {
 		nlohmann::json cooldownArr = nlohmann::json::array();
-		for (const auto& [type, cd] : board->mGameScene->GetSurvivalCardCooldowns()) {
+		for (const auto& [type, cd] :
+			board->GetPresentation()->GetSurvivalCardCooldowns()) {
 			nlohmann::json c;
 			c["plantType"] = static_cast<int>(type);
 			c["cooldownTimer"] = cd.first;
@@ -546,6 +554,11 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 	nlohmann::json j;
 	if (!FileManager::LoadJsonFile(filename, j))
 		return false;
+	std::string schemaError;
+	if (!SaveSchema::UpgradeLevelDocument(j, schemaError)) {
+		LOG_WARN("Save") << "拒绝加载关卡存档 " << filename << ": " << schemaError;
+		return false;
+	}
 	// 旧 3-1~3-9 存档使用五行或上移 40px 的泳池坐标；保留文件但拒绝加载，
 	// 避免绝对 Y 入档的清洁车、子弹等对象与新网格错层。
 	if (board->mLevel >= 19 && board->mLevel <= 27
@@ -672,11 +685,8 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 		? static_cast<RainIntensity>(forecastRainValue) : RainIntensity::CLEAR;
 	board->mActualForecastRainIntensity = board->mWeatherForecastReady
 		? static_cast<RainIntensity>(actualForecastRainValue) : RainIntensity::CLEAR;
-	if (board->mGameScene) {
+	if (auto* presentation = board->GetPresentation()) {
 		// 缺字段的旧档按 0 秒恢复，避免读入雨中存档时把已消失的展板重新显示 5 秒。
-		board->mGameScene->RestoreCurrentWeatherNotice(
-			j.value("currentWeatherNoticeTimer", 0.0f));
-
 		const int failedForecastRainValue = j.value("failedForecastRainIntensity",
 			static_cast<int>(RainIntensity::CLEAR));
 		const int failureActualRainValue = j.value("weatherForecastFailureActualIntensity",
@@ -686,11 +696,17 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 		const bool validFailureActualRain = failureActualRainValue >= static_cast<int>(RainIntensity::CLEAR)
 			&& failureActualRainValue <= static_cast<int>(RainIntensity::HEAVY);
 		// 旧档或损坏字段按 0 秒恢复，已经消失的失败提示不会在读档后重播。
-		board->mGameScene->RestoreWeatherForecastFailure(
+		presentation->RestoreWeatherPresentationState(WeatherPresentationState{
+			j.value("currentWeatherNoticeTimer", 0.0f),
 			validFailedForecastRain && validFailureActualRain
 				? j.value("weatherForecastFailureTimer", 0.0f) : 0.0f,
-			validFailedForecastRain ? static_cast<RainIntensity>(failedForecastRainValue) : RainIntensity::CLEAR,
-			validFailureActualRain ? static_cast<RainIntensity>(failureActualRainValue) : RainIntensity::CLEAR);
+			validFailedForecastRain
+				? static_cast<RainIntensity>(failedForecastRainValue)
+				: RainIntensity::CLEAR,
+			validFailureActualRain
+				? static_cast<RainIntensity>(failureActualRainValue)
+				: RainIntensity::CLEAR
+		});
 	}
 	board->mWeatherTimer = std::max(0.0f, j.value("weatherTimer", 0.0f));
 	board->mLightningTimer = std::max(0.0f, j.value("lightningTimer", 0.0f));
@@ -784,15 +800,6 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 	board->mEntityManager.SetNextBulletID(j.value("nextBulletID", 1));
 	board->mEntityManager.SetNextCoinID(j.value("nextCoinID", 1));
 	board->mEntityManager.SetNextMowerID(j.value("nextMowerID", 1));
-
-	// 恢复进度条
-	if (board->mCurrentWave > 0) {
-		auto gameProgress = board->mGameScene->GetGameProgress();
-		gameProgress->SetActive(true);
-		auto& res = ResourceManager::GetInstance();
-		gameProgress->SetupFlags(res.GetTexture(ResourceKeys::Textures::IMAGE_FLAGMETER_PART_STICK)
-			, res.GetTexture(ResourceKeys::Textures::IMAGE_FLAGMETER_PART_FLAG));
-	}
 
 	// 压扁残影与后来补种的植物可以同格共存。先恢复并释放残影占格，再恢复正常植物，
 	// 避免无序存档数组令残影的创建过程覆盖同格新植物 ID。
@@ -1027,8 +1034,8 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 	// 恢复生存轮间冷却快照（见 SaveLevelData 同名字段注释）。必须在 ChooseCardComplete 还原冷却之前就位，
 	// 而本函数在 OnEnter 选卡分支之前执行，时序成立。旧版问题档的显式快照为空时，从被丢弃的
 	// 上一轮 cards 迁移冷却数据，既阻止重复卡牌，也不损失原本仍在冷却的进度。
-	if (board->mIsSurvival && board->mGameScene) {
-		std::unordered_map<PlantType, std::pair<float, float>> cooldowns;
+	if (board->mIsSurvival && board->GetPresentation()) {
+		SurvivalCardCooldownMap cooldowns;
 		if (j.contains("survivalCardCooldowns") && j["survivalCardCooldowns"].is_array()) {
 			for (auto& c : j["survivalCardCooldowns"]) {
 				PlantType type = static_cast<PlantType>(c["plantType"].get<int>());
@@ -1037,15 +1044,12 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 		}
 		if (cooldowns.empty() && isSurvivalCardSelect)
 			cooldowns = std::move(legacyCardCooldowns);
-		board->mGameScene->SetSurvivalCardCooldowns(std::move(cooldowns));
+		board->GetPresentation()->SetSurvivalCardCooldowns(std::move(cooldowns));
 	}
 
 	// 恢复旗子升起状态，并立刻对齐进度条滑块（跳过缓动动画）
-	if (board->mGameScene) {
-		if (auto progress = board->mGameScene->GetGameProgress()) {
-			progress->InitializeRaisedFlags(-10.0f);
-			progress->SnapProgressToCurrentWave();
-		}
+	if (board->mCurrentWave > 0 && board->GetPresentation()) {
+		board->GetPresentation()->RestoreWaveProgress();
 	}
 
 	return true;

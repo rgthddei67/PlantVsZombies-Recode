@@ -126,6 +126,15 @@ if(BUILD_TESTING)
     target_include_directories(SaveMigrationTests PRIVATE ${SRC_DIR})
     target_compile_options(SaveMigrationTests PRIVATE /utf-8 /W3 /sdl /EHsc)
     add_test(NAME save-migration COMMAND SaveMigrationTests)
+
+    add_executable(SaveSchemaTests
+        tests/SaveSchemaTests.cpp
+        PlantVsZombies/SaveSchema.cpp
+    )
+    target_include_directories(SaveSchemaTests PRIVATE ${SRC_DIR})
+    target_compile_options(SaveSchemaTests PRIVATE /utf-8 /W3 /sdl /EHsc)
+    target_link_libraries(SaveSchemaTests PRIVATE nlohmann_json::nlohmann_json)
+    add_test(NAME save-schema COMMAND SaveSchemaTests)
 endif()
 
 # ---- GLSL → SPIR-V（复刻 vcxproj 的 CompileShaders Target，增量编译）----

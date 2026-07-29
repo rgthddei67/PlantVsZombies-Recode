@@ -119,11 +119,12 @@ Bullet（独立类型；通过 BulletPool 使用对象池）
 
 | 类 | 文件 | 职责 |
 |---|---|---|
-| `Board` | `Game/Board.cpp` | 关卡管理：僵尸波次、阳光生成、胜负逻辑 |
+| `Board` | `Game/Board.cpp` | 关卡玩法权威：天气、僵尸波次、阳光生成、胜负逻辑 |
+| `BoardPresentation` | `Game/BoardPresentation.h` | `Board` 到宿主场景的窄展示端口：提示、进度条及 UI 瞬态存取 |
 | `GameObjectManager` | `Game/GameObjectManager` | 创建/销毁对象、渲染顺序、线程池 |
 | `CollisionSystem` | `Game/CollisionSystem` | 每帧碰撞检测与回调 |
 | `EntityManager` | `Game/EntityManager` | 按 ID 跟踪实体（存档系统使用） |
-| `SceneManager` | `Game/SceneManager` | 在 `MainMenuScene`、`AlmanacScene`、`GameScene`、`PlantAlmanacScene`、`ZombieAlmanacScene` 间切换；场景在 `GameApp.cpp` 注册 |
+| `SceneManager` | `Game/SceneManager` | 持有唯一活动场景并在各场景间切换；场景在 `GameApp.cpp` 注册 |
 | `ResourceManager` | `ResourceManager` | 加载/缓存资源；资源键定义在 `ResourceKeys.h` |
 | `Graphics` | `Graphics.cpp` | 自定义 Vulkan 封装，含变换栈与批渲染 |
 | `Animator` | `Reanimation/Animator` | 命名轨道动画系统；提供 `PlayTrack()`、`PlayTrackOnce()` 和帧事件 |
@@ -137,15 +138,23 @@ Bullet（独立类型；通过 BulletPool 使用对象池）
 2. **更新：** `SceneManager` → `Board::Update()` + `GameObjectManager::Update()`，处理生成、AI 和碰撞。
 3. **渲染：** `Draw()` 按渲染顺序遍历对象；内部通过线程池对每个对象调用 `PrepareForDraw()` 并行准备批数据，然后录制/提交 Vulkan 命令并调用 `Graphics::FlushBatch()`。
 
+### 所有权与场景边界
+
+- `SceneManager` 只持有一个 `unique_ptr<Scene>`。`SwitchTo()` 会先执行当前场景的 `OnExit()` 再销毁；本项目的 `Scene::OnExit()` 会清理全局 `GameObjectManager`，因此不支持把旧场景压栈后恢复。需要覆盖式 UI 时应留在当前场景内，用 `UIManager` / `GameMessageBox` 管理。
+- `GameScene` 用 `unique_ptr` 独占 `Board`；多数运行对象由 `GameObjectManager` 的 `shared_ptr` 持有。`Board` 中的 `Cell*`、预览僵尸指针以及场景缓存指针均为非拥有索引，奖杯、弹坑等可失效引用优先使用 `weak_ptr`。
+- `Board` 不依赖具体 `GameScene`，只保存非拥有的 `BoardPresentation*`。天气、波次和生存模式玩法状态只能由 `Board` 持有；场景只实现提示、闪屏、进度条和 UI 计时快照。新增展示请求应扩充这个窄端口，不能重新加入 `Board::mGameScene` 或在场景复制玩法状态。
+
 ### Board 网格
 
-棋盘是 `vector<vector<shared_ptr<Cell>>>` 网格。植物放置在 `(row, column)`，僵尸按行移动。`Board` 管理僵尸波次以及 `BoardState` 状态转换：`CHOOSE_CARD → GAME → WIN` 或 `LOSE_GAME`；`NONE` 表示尚未初始化。
+棋盘是 `vector<vector<Cell*>>` 非拥有寻址网格，`Cell` 的实际所有权在 `GameObjectManager`。植物放置在 `(row, column)`，僵尸按行移动。`Board` 管理僵尸波次以及 `BoardState` 状态转换：`CHOOSE_CARD → GAME → WIN` 或 `LOSE_GAME`；`NONE` 表示尚未初始化。
 
 `Board` 拥有当前关卡的行数、首行 Y 与行高：普通草地为 5×100px，泳池背景为 6×85px（水路是 0-based 第 2/3 行）。位置、弹坑、子弹影子与小推车必须优先调 `GetCellCenterPosition` / `GetCellHeight`，不要再硬编 `CELL_INITALIZE_POS_Y + row*100`。`Cell` 分 `under/normal` 两层植物槽；正式放置入口是 `Board::CanPlantAt`，铲子与僵尸啃咬只选 `GetTopPlantAt`。
 
 ### 存档系统
 
 使用 nlohmann/json 进行 JSON 序列化（`GameInfoSaver`）。植物和僵尸通过 `SaveExtraData(json&)`、`LoadExtraData(const json&)` 保存和恢复自定义状态。`PlayerInfo.json` 保存全局状态，`level{N}_data.json` 保存各关卡状态。Windows 通过 `FOLDERID_SavedGames` 写入系统“保存的游戏”目录（默认 `%USERPROFILE%\Saved Games\PlantsVsZombies\saves`）；Android 仍使用 `SDL_GetPrefPath`，Linux 暂沿用 `./saves/`。
+
+两类 JSON 根节点都写入独立的 `schemaVersion`，并在任何运行状态被修改前由纯逻辑 `SaveSchema` 事务式升级。缺版本的历史档视为 v0；高于当前程序的未来版本、非对象根节点或非法版本字段一律拒绝加载，失败时输入文档和游戏状态均不应被部分修改。新增持久化结构变化时，应在 `SaveSchema` 增加逐版本迁移并同步 `SaveSchemaTests`，不要把一次性兼容分支继续散落到对象恢复过程。
 
 Windows 首次发生真实存档访问时，会把当前工作目录旧 `./saves/` 中的普通文件复制到中央目录、逐字节校验后再删除源文件，跨磁盘同样安全。目标已有相同文件时只清理重复源文件；同名但内容不同则中央档优先、旧档原地保留且记录警告；迁移失败的缺失文件仍可逐文件回退旧目录读取。AutoTest 不触发迁移，`-AutoTestLoadSave` 始终只读构建目录下的 `./saves/`。
 

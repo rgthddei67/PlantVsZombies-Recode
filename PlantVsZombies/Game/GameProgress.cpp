@@ -1,5 +1,4 @@
 ﻿#include "GameProgress.h"
-#include "GameScene.h"
 #include "Board.h"
 #include "SceneManager.h"
 #include "../DeltaTime.h"
@@ -16,12 +15,12 @@ namespace {
 	constexpr float FLAG_RAISE_DURATION = 1.5f;
 }
 
-GameProgress::GameProgress(Board* board, GameScene* gameScene)
-	: mBoard(board), mGameScene(gameScene)
+GameProgress::GameProgress(Board* board)
+	: mBoard(board)
 {
 	// mCurrentSliderValue/mTargetSliderValue/mLerpSpeed 均由头文件就地初始化
-	if (!board || !gameScene) {
-		LOG_ERROR("GameProgress") << "初始化失败，board或者gameScene为nullptr！";
+	if (!board) {
+		LOG_ERROR("GameProgress") << "初始化失败，board为nullptr！";
 		return;
 	}
 
@@ -43,7 +42,6 @@ GameProgress::GameProgress(Board* board, GameScene* gameScene)
 GameProgress::~GameProgress()
 {
 	mBoard = nullptr;
-	mGameScene = nullptr;
 	LOG_DEBUG("GameProgress") << "~GameProgress";
 }
 

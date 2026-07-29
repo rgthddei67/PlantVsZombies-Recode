@@ -1,5 +1,6 @@
 ﻿#include "Board.h"
 #include "../Logger.h"
+#include "BoardPresentation.h"
 #include "LawnMower.h"
 #include "Shovel.h"
 #include "Sun.h"
@@ -12,12 +13,12 @@
 
 #include "EntityManager.h"
 #include "RenderOrder.h"
-#include "GameScene.h"
 #include "AudioSystem.h"
 #include "./Plant/GameDataManager.h"
-#include "./GameProgress.h"
 #include "../GameAPP.h"
 #include "../FileManager.h"
+#include "../ResourceManager.h"
+#include "../ResourceKeys.h"
 #include "../ParticleSystem/ParticleSystem.h"
 #include "../Graphics.h"
 #include <unordered_set>
@@ -678,9 +679,9 @@ static int SurvivalCurveLerp(int startRound, int endRound, int round,
 		static_cast<float>(fromVal) + t * static_cast<float>(toVal - fromVal)));
 }
 
-Board::Board(GameScene* gameScene, Background background, int level)
+Board::Board(BoardPresentation* presentation, Background background, int level)
 {
-	mGameScene = gameScene;
+	mPresentation = presentation;
 	mLevel = level;
 	mBackGround = background;
 	mIsSurvival = (level == SURVIVAL_ENDLESS_LEVEL || level == SURVIVAL_ENDLESS_NIGHT_LEVEL);
@@ -1216,10 +1217,10 @@ void Board::MaybeShowHeavyRainPrompt()
 	if (mHeavyRainPromptShown || !mWeatherForecastReady
 		|| mActualForecastRainIntensity != RainIntensity::HEAVY
 		|| mRainIntensity == RainIntensity::HEAVY
-		|| mWeatherTimer > kHeavyRainPromptLeadTime || !mGameScene) return;
+		|| mWeatherTimer > kHeavyRainPromptLeadTime || !mPresentation) return;
 	if (!mPendingHeavyTyphoonPrepared) PreparePendingHeavyTyphoon();
 	if (!mPendingHeavyTyphoonPrepared) return;
-	mGameScene->ShowHeavyRainWarning(
+	mPresentation->ShowHeavyRainWarning(
 		mPendingHeavyTyphoonStrength, mPendingHeavyRainPromptVariant);
 	mHeavyRainPromptShown = true;
 }
@@ -1242,8 +1243,8 @@ void Board::ConsumeWeatherForecast()
 	if (!mWeatherForecastReady) PrepareWeatherForecast();
 	const RainIntensity forecast = mForecastRainIntensity;
 	const RainIntensity next = mActualForecastRainIntensity;
-	if (forecast != next && mGameScene) {
-		mGameScene->ShowWeatherForecastFailure(forecast, next);
+	if (forecast != next && mPresentation) {
+		mPresentation->ShowWeatherForecastFailure(forecast, next);
 	}
 	mWeatherForecastReady = false;
 	mForecastRainIntensity = RainIntensity::CLEAR;
@@ -1498,7 +1499,7 @@ void Board::WeakenTyphoon()
 	if (next == TyphoonStrength::NONE) {
 		StopTyphoon();
 		RestartRainVisualForWindChange();
-		if (mGameScene) mGameScene->ShowCurrentWeatherNotice();
+		if (mPresentation) mPresentation->ShowCurrentWeatherNotice();
 		return;
 	}
 	mTyphoonStrength = next;
@@ -1508,7 +1509,7 @@ void Board::WeakenTyphoon()
 		? RandomTyphoonGustInterval(next) : 0.0f;
 	mWindParticleTimer = 0.0f;
 	RefreshZombieWeatherSpeeds();
-	if (mGameScene) mGameScene->ShowCurrentWeatherNotice();
+	if (mPresentation) mPresentation->ShowCurrentWeatherNotice();
 }
 
 /**
@@ -1847,7 +1848,7 @@ void Board::BeginRain(RainIntensity intensity, float duration, bool canIntensify
 	// 同档续期也新建发射器，让旧雨丝自然收尾并与新雨段无缝衔接。
 	EmitRainEffect(duration);
 	StartRainAudio();
-	if (mGameScene) mGameScene->ShowCurrentWeatherNotice();
+	if (mPresentation) mPresentation->ShowCurrentWeatherNotice();
 }
 
 void Board::FinishRainPhase(int transitionRoll)
@@ -1883,14 +1884,14 @@ void Board::EndRain()
 	RefreshZombieWeatherSpeeds();
 	if (mWeatherTransitionTimer > 0.0f) StartRainAudio();
 	else StopRainAudio();
-	if (mGameScene) mGameScene->ShowCurrentWeatherNotice();
+	if (mPresentation) mPresentation->ShowCurrentWeatherNotice();
 }
 
 void Board::TriggerLightning()
 {
-	if (mRainIntensity != RainIntensity::HEAVY || !mGameScene) return;
+	if (mRainIntensity != RainIntensity::HEAVY || !mPresentation) return;
 	// 闪电路径与局部散射光属于 GameScene 的瞬态视觉；Board 只负责大雨触发时机。
-	mGameScene->ShowLightningStrike(kLightningFlashDuration);
+	mPresentation->ShowLightningStrike(kLightningFlashDuration);
 }
 
 void Board::UpdateWeather(float deltaTime)
@@ -1953,7 +1954,7 @@ void Board::SetRainForTesting(RainIntensity intensity, float duration, bool canI
 		mRainCanIntensify = false;
 		mRainCanHold = false;
 		FinishWeatherTransitionImmediately();
-		if (mGameScene) mGameScene->ShowCurrentWeatherNotice();
+		if (mPresentation) mPresentation->ShowCurrentWeatherNotice();
 		return;
 	}
 	BeginRain(intensity, std::max(duration, 0.1f), canIntensify, true, false);
@@ -2711,8 +2712,8 @@ void Board::UpdateLevel()
 			{
 				mHasHugeWaveSound = true;
 				AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_HUGEWAVE, 0.7f);
-				if (mGameScene)
-					mGameScene->ShowPrompt(
+				if (mPresentation)
+					mPresentation->ShowPrompt(
 						ResourceKeys::Textures::IMAGE_HUGE_WAVE_APPROACHING,
 						0.4f,
 						4.0f,
@@ -2757,20 +2758,13 @@ void Board::SummonNextWave()
 	if (mCurrentWave == 1)
 	{
 		AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_FIRSTWAVE, 0.7f);
-		if (mGameScene) {
-			auto gameProgress = mGameScene->GetGameProgress();
-			gameProgress->SetActive(true);
-			auto& res = ResourceManager::GetInstance();
-			gameProgress->SetupFlags(res.GetTexture(ResourceKeys::Textures::IMAGE_FLAGMETER_PART_STICK)
-				, res.GetTexture(ResourceKeys::Textures::IMAGE_FLAGMETER_PART_FLAG)
-			);
-		}
+		if (mPresentation) mPresentation->ActivateWaveProgress();
 	}
 	if (mCurrentWave == mMaxWave)
 	{
 		AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_FINALWAVE, 0.7f);
-		if (mGameScene)
-			mGameScene->ShowPrompt(
+		if (mPresentation)
+			mPresentation->ShowPrompt(
 				ResourceKeys::Textures::IMAGE_FINAL_WAVE,
 				0.3f,
 				2.0f,
@@ -3152,8 +3146,8 @@ void Board::Update()
 void Board::StartGame()
 {
 	DestroyPreviewZombies();
-	if (mGameScene) {
-		mGameScene->ShowShovel();
+	if (mPresentation) {
+		mPresentation->ShowShovel();
 	}
 	if (!mIsLoadSave) {
 		InitializeMowers();
@@ -3206,8 +3200,8 @@ void Board::GameOver()
 	DeltaTime::SetPaused(true);
 	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_LOSTGAME, 0.65f);
 	AudioSystem::StopMusic();
-	if (mGameScene)
-		mGameScene->GameOver();
+	if (mPresentation)
+		mPresentation->GameOver();
 	mBoardState = BoardState::LOSE_GAME;
 }
 
@@ -3243,8 +3237,8 @@ void Board::OnSurvivalRoundClear()
 	mBoardState = BoardState::CHOOSE_CARD;
 
 	// 通知场景：先结算两次成对词条机会（每次可选或放弃），然后再链式进入选卡。
-	if (mGameScene)
-		mGameScene->BeginSurvivalPerkSelect();
+	if (mPresentation)
+		mPresentation->BeginSurvivalPerkSelect();
 }
 
 /** AutoTest 直接定位无尽轮次，并同步所有由轮次派生的天气速度状态。 */

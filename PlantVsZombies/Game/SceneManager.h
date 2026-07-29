@@ -7,7 +7,6 @@
 #include <memory>
 #include <SDL2/SDL.h>
 #include <unordered_map>
-#include <stack>
 
 class Graphics;
 
@@ -38,12 +37,6 @@ public:
 	// 场景切换
 	bool SwitchTo(const std::string& name);
 
-	// 压入场景（暂停当前）
-	void PushScene(const std::string& name);
-
-	// 弹出场景（恢复上一个）
-	void PopScene();
-
 	void Update();
 	void Draw(Graphics* g);
 	void DrawWorldOverlay(Graphics* g);
@@ -69,7 +62,8 @@ private:
 
 	std::unordered_map<std::string, std::function<std::unique_ptr<Scene>()>> scenes_;
 	std::unordered_map<std::string, std::string> globalData_;
-	std::stack<std::unique_ptr<Scene>> sceneStack_;
+	// Scene::OnExit 会清理全局对象，当前生命周期只支持一个活动场景。
+	std::unique_ptr<Scene> currentScene_;
 };
 
 #endif
