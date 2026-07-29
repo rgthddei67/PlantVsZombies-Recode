@@ -184,6 +184,7 @@ protected:
 
 private:
 	void UpdateWeatherUi(float deltaTime);
+	void DrawFog(Graphics* g) const;
 	void DrawWeatherPanel(Graphics* g) const;
 	void DrawWeatherForecastFailure(Graphics* g) const;
 	void DrawLightningStrike(Graphics* g) const;

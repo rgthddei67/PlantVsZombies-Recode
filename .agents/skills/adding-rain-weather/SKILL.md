@@ -1,6 +1,6 @@
 ---
 name: adding-rain-weather
-description: Use when adding or tuning ANY rain-weather-dependent feature in PvZ — 雨天专属植物/僵尸能力、精英僵尸雨势强化、仅在雨天发生的变异或条件生成、天气状态机/权重/过渡/预报/UI/存档，以及其他系统接入 Board 小雨/中雨/大雨状态。
+description: Use when adding or tuning ANY rain-weather-dependent feature or Board-owned weather dimension in PvZ — 雨天专属能力、天气变异、雨势状态机/预报/UI/存档，以及独立雾势与台风等跨天气联动。
 ---
 
 # 给雨天天气增加功能
@@ -27,6 +27,7 @@ description: Use when adding or tuning ANY rain-weather-dependent feature in PvZ
 | C. 出生时变异 | 实际类型或一次性标志 | 雨天有概率把基础僵尸替换为精英变体 | 在正式波次选型后、创建前只 roll 一次 |
 | D. 可逆形态 | 每实体状态 | 下雨变异、放晴还原 | 幂等 Apply/Revert + 边沿检测 + Save/Load |
 | E. 天气系统扩展 | 玩法状态在 `Board`；展示经 `BoardPresentation` | 新权重、过渡、预报规则或 UI | 同步真实抽取、合法预报候选、展示端口、存档与测试 |
+| F. 并行天气维度 | 独立玩法状态在 `Board` | 雾势、沙尘、积雪等与雨势可并存状态 | 独立枚举/计时/预报；只在明确交互点读取台风或其他天气 |
 
 能用 A/B 就不要选 D。可逆血量尤其容易造成反复下雨回血或舍入漂移，优先改伤害、技能冷却、范围或临时护盾；确需改血量时先定义当前血量如何映射。
 
@@ -46,6 +47,7 @@ description: Use when adding or tuning ANY rain-weather-dependent feature in PvZ
 ## 不可破坏的契约
 
 - `Board` 不得直接包含或访问具体 `GameScene`，也不得恢复 `mGameScene`。天气玩法状态继续由 `Board` 唯一持有；新增天气 UI 请求应扩展非拥有的 `BoardPresentation`，由 `GameScene` 实现。双方共享的天气枚举放在 `WeatherTypes.h`。
+- 新天气维度不得硬塞进 `RainIntensity`。例如四大关雾势使用独立 `FogWeatherIntensity`、阶段计时和预报；它可以在唯一交互点消费现有 `TyphoonStrength/WindDirection` 计算驱散与漂移，但雨势和雾势仍可独立抽取、持久化和测试。
 - `GetRainIntensity()` 是目标档位，切档时立即改变；玩法倍率、暗幕和雨声音量再用两游戏秒平滑到目标。离散触发默认以目标档位为准。
 - 不要修改全局 `DeltaTime`，也不要整体加速 `Zombie::Update()`；只缩放明确属于该能力的计时或结算值。
 - 僵尸动画速度统一经 `Zombie::UpdateAnimSpeed()` 收敛：`GetAbilityAnimSpeedMultiplier() × slowFactor × rain`，冻结优先为 0。子类自身整体倍率只覆写该虚函数，状态变化后调用 `UpdateAnimSpeed()`；禁止用 `SetExtraSpeedMultiplier` 绕开它。

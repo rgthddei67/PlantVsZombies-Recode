@@ -66,6 +66,27 @@ namespace {
 		}
 	}
 
+	void TestVersionOneLevelUpgradeDefersFogInitializationToBoard() {
+		nlohmann::json document = {
+			{ "schemaVersion", 1 },
+			{ "boardState", 1 },
+			{ "weatherTimer", 12.5f }
+		};
+		const auto legacy = document;
+		std::string error;
+
+		Expect(SaveSchema::UpgradeLevelDocument(document, error),
+			"v1 关卡档应升级到雾势结构版本");
+		Expect(document["schemaVersion"] == SaveSchema::kCurrentLevelVersion,
+			"v1 关卡档应写入当前版本");
+		Expect(!document.contains("fogWeatherInitialized"),
+			"迁移层不能在缺少关卡上下文时伪造雾势初始化状态");
+		for (const auto& [key, value] : legacy.items()) {
+			if (key == "schemaVersion") continue;
+			Expect(document[key] == value, "v1 关卡玩法字段必须原样保留");
+		}
+	}
+
 	void TestFutureVersionIsRejectedTransactionally() {
 		nlohmann::json document = {
 			{ "schemaVersion", SaveSchema::kCurrentLevelVersion + 1 },
@@ -112,6 +133,7 @@ int main() {
 	TestLegacyPlayerUpgradePreservesFields();
 	TestCurrentLevelDocumentIsStable();
 	TestLegacyLevelUpgradePreservesGameplayState();
+	TestVersionOneLevelUpgradeDefersFogInitializationToBoard();
 	TestFutureVersionIsRejectedTransactionally();
 	TestInvalidRootAndVersionAreRejected();
 

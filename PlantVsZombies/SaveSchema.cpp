@@ -65,6 +65,11 @@ namespace {
 				version = 1;
 				upgraded["schemaVersion"] = version;
 				break;
+			case 1:
+				// v2 加入四大关雾势字段；旧档必须由关卡上下文重建，迁移层不伪造初始化状态。
+				version = 2;
+				upgraded["schemaVersion"] = version;
+				break;
 			default:
 				error = std::string(documentName) + "存档缺少迁移路径";
 				return false;

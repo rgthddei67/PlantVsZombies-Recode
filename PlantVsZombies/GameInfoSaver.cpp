@@ -294,6 +294,16 @@ bool GameInfoSaver::SerializeLevelDataToPath(Board* board, CardSlotManager* mana
 	j["rainCanIntensify"] = board->mRainCanIntensify;
 	j["rainCanHold"] = board->mRainCanHold;
 	j["weatherForecastReady"] = board->mWeatherForecastReady;
+	j["fogWeatherInitialized"] = board->mFogWeatherInitialized;
+	j["fogWeatherIntensity"] = static_cast<int>(board->mFogWeatherIntensity);
+	j["forecastFogWeatherIntensity"] =
+		static_cast<int>(board->mForecastFogWeatherIntensity);
+	j["actualForecastFogWeatherIntensity"] =
+		static_cast<int>(board->mActualForecastFogWeatherIntensity);
+	j["fogWeatherTimer"] = board->mFogWeatherTimer;
+	j["fogWeatherForecastReady"] = board->mFogWeatherForecastReady;
+	j["fogDispersal"] = board->mFogDispersal;
+	j["fogVisualOffsetX"] = board->mFogVisualOffsetX;
 	j["pendingHeavyTyphoonPrepared"] = board->mPendingHeavyTyphoonPrepared;
 	j["pendingHeavyTyphoonStrength"] = static_cast<int>(board->mPendingHeavyTyphoonStrength);
 	j["pendingHeavyWindDirection"] = static_cast<int>(board->mPendingHeavyWindDirection);
@@ -717,6 +727,40 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 	board->mRainCanHold = (board->mRainIntensity == RainIntensity::MEDIUM
 		|| board->mRainIntensity == RainIntensity::HEAVY)
 		&& j.value("rainCanHold", false);
+	if (j.contains("fogWeatherIntensity")) {
+		const int fogWeatherValue = j.value("fogWeatherIntensity",
+			static_cast<int>(FogWeatherIntensity::CLEAR));
+		const int forecastFogWeatherValue = j.value("forecastFogWeatherIntensity",
+			static_cast<int>(FogWeatherIntensity::CLEAR));
+		const int actualForecastFogWeatherValue = j.value("actualForecastFogWeatherIntensity",
+			static_cast<int>(FogWeatherIntensity::CLEAR));
+		const bool validFogWeather = fogWeatherValue
+			>= static_cast<int>(FogWeatherIntensity::CLEAR)
+			&& fogWeatherValue <= static_cast<int>(FogWeatherIntensity::DENSE);
+		const bool validForecastFogWeather = forecastFogWeatherValue
+			>= static_cast<int>(FogWeatherIntensity::CLEAR)
+			&& forecastFogWeatherValue <= static_cast<int>(FogWeatherIntensity::DENSE);
+		const bool validActualForecastFogWeather = actualForecastFogWeatherValue
+			>= static_cast<int>(FogWeatherIntensity::CLEAR)
+			&& actualForecastFogWeatherValue <= static_cast<int>(FogWeatherIntensity::DENSE);
+		const bool fogForecastReady = j.value("fogWeatherForecastReady", false)
+			&& j.contains("actualForecastFogWeatherIntensity")
+			&& validForecastFogWeather && validActualForecastFogWeather;
+		// 基础雾由关卡派生；这里只恢复会影响未来抽取、台风回流和当前大雾结果的状态。
+		board->RestoreFogState(
+			j.value("fogWeatherInitialized", true),
+			validFogWeather
+				? static_cast<FogWeatherIntensity>(fogWeatherValue)
+				: FogWeatherIntensity::CLEAR,
+			fogForecastReady
+				? static_cast<FogWeatherIntensity>(forecastFogWeatherValue)
+				: FogWeatherIntensity::CLEAR,
+			fogForecastReady
+				? static_cast<FogWeatherIntensity>(actualForecastFogWeatherValue)
+				: FogWeatherIntensity::CLEAR,
+			j.value("fogWeatherTimer", 0.0f), fogForecastReady,
+			j.value("fogDispersal", 0.0f), j.value("fogVisualOffsetX", 0.0f));
+	}
 	const int pendingTyphoonValue = j.value("pendingHeavyTyphoonStrength",
 		static_cast<int>(TyphoonStrength::NONE));
 	const int pendingWindValue = j.value("pendingHeavyWindDirection",

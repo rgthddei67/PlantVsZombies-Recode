@@ -8,6 +8,15 @@ enum class RainIntensity {
 	HEAVY
 };
 
+/**
+ * 四大关独立雾势；它与雨势正交，因此大雾可以和任意雨档、台风同时存在。
+ * CLEAR 只表示没有额外“大雾天气”，不会删除关卡自身的基础迷雾。
+ */
+enum class FogWeatherIntensity {
+	CLEAR,
+	DENSE
+};
+
 /** 仅在大雨阶段存在的台风强度；NONE 表示没有附加台风。 */
 enum class TyphoonStrength {
 	NONE,

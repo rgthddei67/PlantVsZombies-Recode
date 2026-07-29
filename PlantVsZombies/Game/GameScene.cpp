@@ -21,6 +21,7 @@
 #include <cmath>
 #include <cstdio>
 #include <algorithm>
+#include <array>
 
 namespace {
 	// 右下角关卡名/轮数显示。
@@ -30,7 +31,6 @@ namespace {
 	constexpr float kLevelNameRightAnchor = 865.0f;
 	constexpr float kWeatherPanelWidth = 350.0f;          // 天气面板宽度；为最长风向与阵风中文实况预留安全边距（逻辑像素）
 	constexpr float kWeatherPanelHeight = 72.0f;          // 天气面板高度（逻辑像素）
-	constexpr float kTyphoonWeatherPanelHeight = 102.0f;  // 台风期间增加风向实况行后的面板高度（逻辑像素）
 	constexpr float kWeatherPanelVisibleX = 12.0f;        // 完全滑入后的左边距（逻辑像素）
 	constexpr float kWeatherPanelY = 76.0f;               // 面板顶部位置，避开上方种子槽（逻辑像素）
 	constexpr float kWeatherPanelSlideDuration = 0.32f;   // 完整滑入或滑出的动画时长（秒，未缩放）
@@ -38,6 +38,7 @@ namespace {
 	constexpr int kWeatherCurrentFontSize = 18;           // 第一行“当前天气”字号
 	constexpr int kWeatherForecastFontSize = 16;          // 第二行“天气预警”字号
 	constexpr int kWeatherWindFontSize = 15;              // 台风期间第三行“风向实况”字号
+	constexpr float kWeatherPanelDetailLineHeight = 30.0f; // 雾势预报或风向实况每增加一行的面板高度
 	constexpr float kForecastFailureWidth = 350.0f;       // 预报失败提示与加宽后的天气面板对齐（逻辑像素）
 	constexpr float kForecastFailureHeight = 58.0f;       // 预报失败提示高度（逻辑像素）
 	constexpr float kForecastFailureY = 154.0f;           // 失败提示顶部位置，显示在天气面板下方（逻辑像素）
@@ -58,6 +59,21 @@ namespace {
 	constexpr float kPoolEffectOffsetY = 12.0f;           // 原版水面坐标对齐当前泳池内框的世界 Y 偏移（像素）
 	constexpr int kLightningMainSegments = 10;           // 主闪电从云层到落点的折线段数
 	constexpr int kLightningBranchCount = 3;             // 主干上生成的二段式分叉数量
+	constexpr float kFogTileDrawWidth = 210.0f;           // 按原生 210px 宽绘制，使相邻 80px 雾格充分重叠
+	constexpr float kFogTileDrawHeight = 190.0f;          // 按原生 190px 高绘制，使相邻 85px 雾行形成连续雾幕
+	constexpr float kFogTailTileOffsetX = 120.0f;         // 最右雾格额外收边贴图的水平偏移，覆盖 1100px 场景右缘
+	struct FogLayerSpec {
+		float offsetX;
+		float offsetY;
+		float alphaFactor;
+	};
+	constexpr std::array<FogLayerSpec, 3> kFogLayers = {{
+		{ 0.0f, 0.0f, 1.0f },                            // 主雾层：严格对齐原版格位
+		{ 37.0f, 26.0f, 0.72f },                         // 小雾补层：错开主层透明洞
+		{ -31.0f, -23.0f, 0.58f },                       // 大雾补层：继续填补前两层剩余缝隙
+	}};
+	constexpr int kBaseFogLayerCount = 2;                 // 小雾为原版主层加一层补雾
+	constexpr int kDenseFogLayerCount = 3;                // 大雾为原版主层加两层补雾
 
 	// 用平行线模拟可调粗细，避免为只持续数帧的闪电引入独立纹理或 shader。
 	void DrawLightningSegment(Graphics* g, const glm::vec2& from, const glm::vec2& to,
@@ -139,6 +155,15 @@ namespace {
 		return u8"未知";
 	}
 
+	/** 把独立雾势转换为天气面板名称；CLEAR 仍保留关卡基础迷雾。 */
+	const char* FogWeatherDisplayName(FogWeatherIntensity intensity) {
+		switch (intensity) {
+		case FogWeatherIntensity::CLEAR: return u8"普通迷雾";
+		case FogWeatherIntensity::DENSE: return u8"大雾";
+		}
+		return u8"未知雾势";
+	}
+
 	/** 把台风强度转换为当前天气行使用的正式等级名称。 */
 	const char* TyphoonStrengthDisplayName(TyphoonStrength strength) {
 		switch (strength) {
@@ -169,6 +194,15 @@ namespace {
 		case RainIntensity::HEAVY:  return glm::vec4(255.0f, 166.0f, 116.0f, alpha);
 		}
 		return glm::vec4(230.0f, 230.0f, 230.0f, alpha);
+	}
+
+	/** 按独立雾势预报与台风实况行数计算面板高度，避免文字落出底板。 */
+	float WeatherPanelHeight(const Board* board) {
+		if (!board) return kWeatherPanelHeight;
+		float height = kWeatherPanelHeight;
+		if (board->HasFogWeatherForecast()) height += kWeatherPanelDetailLineHeight;
+		if (board->HasTyphoon()) height += kWeatherPanelDetailLineHeight;
+		return height;
 	}
 }
 
@@ -202,9 +236,73 @@ void GameScene::Draw(Graphics* g)
 	Scene::Draw(g);
 }
 
+/** 绘制四大关逐格迷雾；玩法状态完全来自 Board，UI 继续位于雾层之上。 */
+void GameScene::DrawFog(Graphics* g) const
+{
+	if (!g || !mBoard || !mBoard->SupportsStageFog()) return;
+	static const std::array<std::string, 8> kFogTextureKeys = {
+		ResourceKeys::Textures::IMAGE_FOG_PART_0,
+		ResourceKeys::Textures::IMAGE_FOG_PART_1,
+		ResourceKeys::Textures::IMAGE_FOG_PART_2,
+		ResourceKeys::Textures::IMAGE_FOG_PART_3,
+		ResourceKeys::Textures::IMAGE_FOG_PART_4,
+		ResourceKeys::Textures::IMAGE_FOG_PART_5,
+		ResourceKeys::Textures::IMAGE_FOG_PART_6,
+		ResourceKeys::Textures::IMAGE_FOG_PART_7,
+	};
+	auto& resources = ResourceManager::GetInstance();
+	const int drawRows = mBoard->GetFogDrawRowCount();
+	const int layerCount = mBoard->IsDenseFogWeather()
+		? kDenseFogLayerCount : kBaseFogLayerCount;
+
+	for (int row = 0; row < drawRows; ++row) {
+		for (int col = 0; col < mBoard->mColumns; ++col) {
+			const float alpha = mBoard->GetFogCellAlpha(row, col);
+			if (alpha < 1.0f) continue;
+			const Vector position = mBoard->GetFogTilePosition(row, col);
+			// 补层先画、主层最后画；所有层共用逐格 alpha，所以台风驱散和回流不会产生残影。
+			for (int layerIndex = layerCount - 1; layerIndex >= 0; --layerIndex) {
+				const FogLayerSpec& layer = kFogLayers[layerIndex];
+				const int variant = mBoard->GetFogTileVariant(
+					row + layerIndex * 7, col + layerIndex * 11);
+				const Texture* texture = resources.GetTexture(
+					kFogTextureKeys[variant], false);
+				if (!texture) continue;
+				const float pulse = 0.96f + 0.04f * std::sin(
+					mBoard->GetFogAnimationTime() * 0.9f
+						+ static_cast<float>(row) * 0.7f
+						+ static_cast<float>(col) * 0.45f
+						+ static_cast<float>(layerIndex) * 1.35f);
+				const glm::vec4 tint(225.0f, 233.0f, 242.0f,
+					std::clamp(alpha * pulse * layer.alphaFactor, 0.0f, 255.0f));
+				g->DrawTexture(texture,
+					position.x + layer.offsetX, position.y + layer.offsetY,
+					kFogTileDrawWidth, kFogTileDrawHeight, 0.0f, tint);
+
+				if (col == mBoard->mColumns - 1) {
+					// 1100px 扩展区使用另一稳定帧收边，避免原版同帧复制造成透明洞重合。
+					const int tailVariant = mBoard->GetFogTileVariant(
+						row + layerIndex * 7,
+						col + mBoard->mColumns + layerIndex * 13);
+					const Texture* tailTexture = resources.GetTexture(
+						kFogTextureKeys[tailVariant], false);
+					if (tailTexture) {
+						g->DrawTexture(tailTexture,
+							position.x + layer.offsetX + kFogTailTileOffsetX,
+							position.y + layer.offsetY,
+							kFogTileDrawWidth, kFogTileDrawHeight, 0.0f, tint);
+					}
+				}
+			}
+		}
+	}
+}
+
 void GameScene::DrawWorldOverlay(Graphics* g)
 {
 	if (!g || !mBoard) return;
+	// 雾先遮住战场与世界粒子，随后再统一接受雨天暗幕；闪电最后照亮雾层但仍不覆盖 UI。
+	DrawFog(g);
 	const float alpha = mBoard->GetRainOverlayAlpha();
 	if (alpha > 0.0f) {
 		// 低成本雨天环境光：只做蓝灰半透明暗幕。该钩子在战场主体与世界粒子之后、UI overlay
@@ -274,7 +372,7 @@ void GameScene::UpdateWeatherUi(float deltaTime)
 {
 	const bool shouldShow = mBoard && mBoard->mBoardState == BoardState::GAME
 		&& (mBoard->HasWeatherForecast() || mCurrentWeatherNoticeTimer > 0.0f
-			|| mBoard->HasTyphoon());
+			|| mBoard->HasFogWeatherForecast() || mBoard->HasTyphoon());
 	const float direction = shouldShow ? 1.0f : -1.0f;
 	mWeatherPanelSlide = std::clamp(mWeatherPanelSlide
 		+ direction * deltaTime / kWeatherPanelSlideDuration, 0.0f, 1.0f);
@@ -298,8 +396,7 @@ void GameScene::DrawWeatherPanel(Graphics* g) const
 	const float x = -kWeatherPanelWidth
 		+ (kWeatherPanelWidth + kWeatherPanelVisibleX) * eased;
 	const float alpha = 255.0f * eased;
-	const float panelHeight = mBoard->HasTyphoon()
-		? kTyphoonWeatherPanelHeight : kWeatherPanelHeight;
+	const float panelHeight = WeatherPanelHeight(mBoard.get());
 
 	// 深蓝半透明底板配强度色边条；矩形方案不新增贴图，分辨率和全屏模式都保持锐利。
 	g->FillRect(x + 3.0f, kWeatherPanelY + 3.0f,
@@ -314,6 +411,9 @@ void GameScene::DrawWeatherPanel(Graphics* g) const
 
 	std::string currentLine = std::string(u8"当前天气：")
 		+ RainIntensityDisplayName(mBoard->GetRainIntensity());
+	if (mBoard->IsDenseFogWeather()) {
+		currentLine += u8" · 大雾";
+	}
 	if (mBoard->HasTyphoon()) {
 		currentLine += std::string(u8" · ")
 			+ TyphoonStrengthDisplayName(mBoard->GetTyphoonStrength());
@@ -341,6 +441,26 @@ void GameScene::DrawWeatherPanel(Graphics* g) const
 	g->DrawText(forecastLine, ResourceKeys::Fonts::FONT_FZCQ, kWeatherForecastFontSize,
 		forecastColor, textX, kWeatherPanelY + 41.0f);
 
+	float detailLineY = kWeatherPanelY + 69.0f;
+	if (mBoard->HasFogWeatherForecast()) {
+		const int fogSeconds = std::max(0,
+			static_cast<int>(std::ceil(mBoard->GetFogWeatherTimer())));
+		std::string fogLine = std::string(u8"雾势预报（") + std::to_string(fogSeconds)
+			+ u8"秒）：" + FogWeatherDisplayName(mBoard->GetForecastFogWeatherIntensity());
+		if (mBoard->GetForecastFogWeatherIntensity() == mBoard->GetFogWeatherIntensity()) {
+			fogLine += u8"（持续）";
+		}
+		const glm::vec4 fogColor = mBoard->GetForecastFogWeatherIntensity()
+			== FogWeatherIntensity::DENSE
+			? glm::vec4(218.0f, 226.0f, 238.0f, alpha)
+			: glm::vec4(164.0f, 191.0f, 207.0f, alpha);
+		g->DrawText(fogLine, ResourceKeys::Fonts::FONT_FZCQ, kWeatherWindFontSize,
+			shadow, textX + 1.0f, detailLineY + 1.0f);
+		g->DrawText(fogLine, ResourceKeys::Fonts::FONT_FZCQ, kWeatherWindFontSize,
+			fogColor, textX, detailLineY);
+		detailLineY += kWeatherPanelDetailLineHeight;
+	}
+
 	if (mBoard->HasTyphoon()) {
 		std::string windLine = std::string(u8"风向实况：")
 			+ WindDirectionDisplayName(mBoard->GetWindDirection());
@@ -364,9 +484,9 @@ void GameScene::DrawWeatherPanel(Graphics* g) const
 			? glm::vec4(255.0f, 179.0f, 92.0f, alpha)
 			: glm::vec4(190.0f, 223.0f, 255.0f, alpha);
 		g->DrawText(windLine, ResourceKeys::Fonts::FONT_FZCQ, kWeatherWindFontSize,
-			shadow, textX + 1.0f, kWeatherPanelY + 70.0f);
+			shadow, textX + 1.0f, detailLineY + 1.0f);
 		g->DrawText(windLine, ResourceKeys::Fonts::FONT_FZCQ, kWeatherWindFontSize,
-			windColor, textX, kWeatherPanelY + 69.0f);
+			windColor, textX, detailLineY);
 	}
 }
 
@@ -374,8 +494,9 @@ void GameScene::DrawWeatherPanel(Graphics* g) const
 void GameScene::DrawWeatherForecastFailure(Graphics* g) const
 {
 	if (!g || mWeatherForecastFailureTimer <= 0.0f) return;
-	const float failureY = mBoard && mBoard->HasTyphoon()
-		? kWeatherPanelY + kTyphoonWeatherPanelHeight + 6.0f : kForecastFailureY;
+	const float failureY = mBoard
+		? kWeatherPanelY + WeatherPanelHeight(mBoard.get()) + 6.0f
+		: kForecastFailureY;
 
 	const float elapsed = kForecastFailureDuration - mWeatherForecastFailureTimer;
 	const float appear = std::clamp(elapsed / kForecastFailureAppearDuration, 0.0f, 1.0f);

@@ -14,8 +14,7 @@
     <Image>./resources/image/golden_ice.png</Image>
     <Image>./resources/image/golden_ice_cap.png</Image>
 
-    <Image>./resources/image/fog.jpg</Image>
-    <Image Column="8" Row="1">./resources/image/fog_.jpg</Image>
+    <Image Column="8" Row="1">./resources/image/fog.png</Image>
 
     <Image>./resources/image/UI/options_checkbox0.png</Image>
     <Image>./resources/image/UI/options_checkbox1.png</Image>

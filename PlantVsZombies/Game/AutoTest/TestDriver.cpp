@@ -45,6 +45,7 @@
 #include "../../ParticleSystem/ParticleSystem.h"
 #include <filesystem>
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <limits>
 #include <unordered_map>
@@ -131,6 +132,10 @@ namespace {
 		{ "CLEAR", RainIntensity::CLEAR }, { "LIGHT", RainIntensity::LIGHT },
 		{ "MEDIUM", RainIntensity::MEDIUM }, { "HEAVY", RainIntensity::HEAVY },
 	};
+	const std::unordered_map<std::string, FogWeatherIntensity> kFogWeatherIntensityNames = {
+		{ "CLEAR", FogWeatherIntensity::CLEAR },
+		{ "DENSE", FogWeatherIntensity::DENSE },
+	};
 	const std::unordered_map<std::string, TyphoonStrength> kTyphoonStrengthNames = {
 		{ "NONE", TyphoonStrength::NONE }, { "TYPHOON", TyphoonStrength::TYPHOON },
 		{ "SEVERE", TyphoonStrength::SEVERE }, { "SUPER", TyphoonStrength::SUPER },
@@ -186,6 +191,10 @@ namespace {
 	}
 	std::string RainIntensityName(RainIntensity intensity) {
 		for (const auto& [k, v] : kRainIntensityNames) if (v == intensity) return k;
+		return "UNKNOWN";
+	}
+	std::string FogWeatherIntensityName(FogWeatherIntensity intensity) {
+		for (const auto& [k, v] : kFogWeatherIntensityNames) if (v == intensity) return k;
 		return "UNKNOWN";
 	}
 	std::string TyphoonStrengthName(TyphoonStrength strength) {
@@ -450,6 +459,47 @@ bool TestDriver::ExecuteCurrent() {
 			cmd.value("canIntensify", false));
 		if (gs->GetBoard()->GetRainIntensity() != it->second) {
 			Fail("set_weather: 当前关卡不支持天气，天气未生效");
+			return false;
+		}
+		return true;
+	}
+	if (op == "set_fog_weather") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) {
+			Fail("set_fog_weather: 不在 GameScene 或 Board 为空");
+			return false;
+		}
+		auto it = kFogWeatherIntensityNames.find(cmd.value("intensity", ""));
+		if (it == kFogWeatherIntensityNames.end()
+			|| !gs->GetBoard()->SetFogWeatherForTesting(
+				it->second, cmd.value("duration", 30.0f))) {
+			Fail("set_fog_weather: intensity 必须是 CLEAR/DENSE，且当前必须是四大关");
+			return false;
+		}
+		return true;
+	}
+	if (op == "set_fog_forecast") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) {
+			Fail("set_fog_forecast: 不在 GameScene 或 Board 为空");
+			return false;
+		}
+		auto forecastIt = kFogWeatherIntensityNames.find(cmd.value("forecast", ""));
+		auto actualIt = kFogWeatherIntensityNames.find(cmd.value("actual", ""));
+		if (forecastIt == kFogWeatherIntensityNames.end()
+			|| actualIt == kFogWeatherIntensityNames.end()
+			|| !gs->GetBoard()->SetFogWeatherForecastForTesting(
+				forecastIt->second, actualIt->second, cmd.value("revealIn", 1.0f))) {
+			Fail("set_fog_forecast: forecast/actual 必须是 CLEAR/DENSE，且当前必须是已初始化的四大关");
+			return false;
+		}
+		return true;
+	}
+	if (op == "set_fog_dispersal") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()
+			|| !gs->GetBoard()->SetFogDispersalForTesting(cmd.value("value", -1.0f))) {
+			Fail("set_fog_dispersal: value 必须是有限数值，且当前必须是已初始化的四大关");
 			return false;
 		}
 		return true;
@@ -1323,6 +1373,57 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "shakeOn", (shake.x != 0.0f || shake.y != 0.0f) ? 1 : 0 },
 			{ "offsetX", shake.x }, { "offsetY", shake.y },
 		};
+	}
+
+	// 四大关迷雾：逐列 alpha、驱散比例和贴图分份数均给稳定整数抓手。
+	{
+		static const std::array<std::string, 8> fogTextureKeys = {
+			ResourceKeys::Textures::IMAGE_FOG_PART_0,
+			ResourceKeys::Textures::IMAGE_FOG_PART_1,
+			ResourceKeys::Textures::IMAGE_FOG_PART_2,
+			ResourceKeys::Textures::IMAGE_FOG_PART_3,
+			ResourceKeys::Textures::IMAGE_FOG_PART_4,
+			ResourceKeys::Textures::IMAGE_FOG_PART_5,
+			ResourceKeys::Textures::IMAGE_FOG_PART_6,
+			ResourceKeys::Textures::IMAGE_FOG_PART_7,
+		};
+		int loadedTextureParts = 0;
+		for (const std::string& key : fogTextureKeys) {
+			if (ResourceManager::GetInstance().GetTexture(key, false)) {
+				++loadedTextureParts;
+			}
+		}
+		out["fog"] = {
+			{ "supported", board->SupportsStageFog() },
+			{ "weatherSupported", board->SupportsFogWeather() },
+			{ "initialized", board->IsFogWeatherInitialized() },
+			{ "intensity", FogWeatherIntensityName(board->GetFogWeatherIntensity()) },
+			{ "baseLeftColumn", board->GetBaseFogLeftColumn() },
+			{ "effectiveLeftColumn", board->GetEffectiveFogLeftColumn() },
+			{ "drawRows", board->GetFogDrawRowCount() },
+			{ "visibleCells", board->GetVisibleFogCellCount() },
+			{ "maxAlpha", board->GetMaximumFogAlpha() },
+			{ "dispersalPct", static_cast<int>(std::lround(
+				board->GetFogDispersal() * 100.0f)) },
+			{ "offsetXInt", static_cast<int>(std::lround(board->GetFogVisualOffsetX())) },
+			{ "remaining", board->GetFogWeatherTimer() },
+			{ "forecastReady", board->HasFogWeatherForecast() },
+			{ "forecastIntensity", FogWeatherIntensityName(
+				board->GetForecastFogWeatherIntensity()) },
+			{ "lockedActualIntensity", FogWeatherIntensityName(
+				board->GetActualForecastFogWeatherIntensity()) },
+			{ "denseChancePct", board->GetDenseFogChancePercent() },
+			{ "texturePartsLoaded", loadedTextureParts },
+			{ "columnMaxAlpha", nlohmann::json::array() },
+		};
+		for (int col = 0; col < board->mColumns; ++col) {
+			float maximum = 0.0f;
+			for (int row = 0; row < board->GetFogDrawRowCount(); ++row) {
+				maximum = std::max(maximum, board->GetFogCellAlpha(row, col));
+			}
+			out["fog"]["columnMaxAlpha"].push_back(
+				static_cast<int>(std::lround(maximum)));
+		}
 	}
 
 	// 黑夜天气：倍率与 alpha 另给整数投影，避免 AutoTest 对浮点做严格 equals。

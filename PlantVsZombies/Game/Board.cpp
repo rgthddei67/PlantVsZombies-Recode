@@ -77,6 +77,30 @@ namespace {
 	constexpr float kHeavyRainPromptLeadTime = 5.0f;     // 真正进入新大雨前弹出分级文字警报的提前量（游戏秒）
 	constexpr int kWeatherForecastAccuracyPercent = 75;  // 前期天气预警准确率（百分比）
 	constexpr int kLateWeatherForecastAccuracyPercent = 95; // 满压力天气预警准确率上限（百分比）
+	constexpr float kFirstFogWeatherDelayMin = 45.0f;    // 四大关开局到首次独立雾势抽取的最短游戏秒
+	constexpr float kFirstFogWeatherDelayMax = 70.0f;    // 四大关开局到首次独立雾势抽取的最长游戏秒
+	constexpr float kClearFogWeatherDurationMin = 50.0f; // 无额外大雾阶段的最短持续游戏秒
+	constexpr float kClearFogWeatherDurationMax = 80.0f; // 无额外大雾阶段的最长持续游戏秒
+	constexpr float kDenseFogWeatherDurationMin = 35.0f; // 一次大雾天气的最短持续游戏秒
+	constexpr float kDenseFogWeatherDurationMax = 55.0f; // 一次大雾天气的最长持续游戏秒
+	constexpr float kFogWeatherForecastLeadTime = 15.0f; // 独立雾势揭晓前展示预报的游戏秒
+	constexpr int kDenseFogChancePercent = 35;           // 四大关前期每次雾势抽取进入大雾的概率
+	constexpr int kLateDenseFogChancePercent = 55;       // 满压力时每次雾势抽取进入大雾的概率
+	constexpr int kBaseFogColumnExpansion = 1;           // 小雾相对原版雾线向房屋方向额外覆盖的棋盘列数
+	constexpr int kDenseFogColumnExpansion = 2;          // 大雾相对原版雾线向房屋方向额外覆盖的棋盘列数
+	constexpr float kBaseFogEdgeAlpha = 200.0f;          // 基础雾最左边缘格的目标 alpha
+	constexpr float kDenseFogEdgeAlpha = 225.0f;         // 大雾最左边缘格的目标 alpha
+	constexpr float kFogInteriorAlpha = 255.0f;          // 雾区内部格的目标 alpha
+	constexpr float kFogFillRate = 180.0f;               // 雾生成或回流时每游戏秒最多增加的 alpha
+	constexpr float kFogClearRate = 320.0f;              // 台风驱散时每游戏秒最多减少的 alpha
+	constexpr float kTyphoonFogDispersalRate = 0.08f;    // 普通台风每游戏秒累积的雾驱散比例
+	constexpr float kSevereFogDispersalRate = 0.16f;     // 强台风每游戏秒累积的雾驱散比例
+	constexpr float kSuperFogDispersalRate = 0.28f;      // 超强台风每游戏秒累积的雾驱散比例
+	constexpr float kFogReturnRate = 0.06f;              // 停风后基础雾每游戏秒恢复的驱散比例
+	constexpr float kFogMaximumDriftX = 180.0f;          // 持续台风把雾团推向当前风向的最大水平像素
+	constexpr float kFogDriftSpeed = 240.0f;             // 雾团追随风向或回到原位的最大像素/游戏秒
+	constexpr float kFogTileLeftOverlap = 15.0f;         // 雾格相对逻辑列左缘向左覆盖的像素
+	constexpr float kFogTileTopOverlap = 65.0f;          // 雾格相对首行逻辑顶缘向上覆盖的像素
 	constexpr int kEliteDancerMutationChancePercent = 50; // 台风以上普通舞王变异为精英舞王的概率（百分比）
 	constexpr int kEliteDancerMaxPerWave = 2;             // 每波最多允许生成的精英舞王数量；超额候选直接跳过
 	constexpr int kReinforcedDoorMaxPerWave = 2;          // 每波最多正式生成的加固铁门数量；超额候选直接跳过
@@ -873,6 +897,14 @@ int Board::GetCurrentWeatherForecastAccuracyPercent() const
 		kLateWeatherForecastAccuracyPercent, GetWeatherDirectorFactor());
 }
 
+/** 大雾概率复用天气导演压力，但保持独立抽取，不改写雨势权重与保底。 */
+int Board::GetDenseFogChancePercent() const
+{
+	if (!SupportsFogWeather()) return 0;
+	return LerpWeatherWeight(kDenseFogChancePercent,
+		kLateDenseFogChancePercent, GetWeatherDirectorFactor());
+}
+
 int Board::GetCurrentNewWeatherWeight(RainIntensity intensity) const
 {
 	const NewWeatherWeights weights = BuildNewWeatherWeights(GetWeatherDirectorFactor());
@@ -1010,6 +1042,211 @@ void Board::InitializeWeather()
 	mWeatherTimer = SupportsWeather()
 		? GameRandom::Range(kFirstRainDelayMin, kFirstRainDelayMax)
 		: 0.0f;
+}
+
+/** 初始化四大关独立雾势；基础雾由关卡号派生，不占用随机天气枚举。 */
+void Board::InitializeFogWeather()
+{
+	const bool supportsFog = SupportsStageFog();
+	const int fogCellCount = supportsFog ? mColumns * (mRows + 1) : 0;
+	if (static_cast<int>(mFogCellAlpha.size()) != fogCellCount) {
+		mFogCellAlpha.assign(fogCellCount, 0.0f);
+	}
+	if (!supportsFog) {
+		mFogWeatherInitialized = false;
+		mFogWeatherIntensity = FogWeatherIntensity::CLEAR;
+		mFogWeatherTimer = 0.0f;
+		mFogDispersal = 0.0f;
+		mFogVisualOffsetX = 0.0f;
+		mFogAnimationTime = 0.0f;
+		ClearFogWeatherForecast();
+		return;
+	}
+	if (mFogWeatherInitialized) return;
+
+	mFogWeatherInitialized = true;
+	mFogWeatherIntensity = FogWeatherIntensity::CLEAR;
+	mFogWeatherTimer = GameRandom::Range(
+		kFirstFogWeatherDelayMin, kFirstFogWeatherDelayMax);
+	mFogDispersal = 0.0f;
+	mFogVisualOffsetX = 0.0f;
+	mFogAnimationTime = 0.0f;
+	ClearFogWeatherForecast();
+}
+
+/** 清除已经锁定的独立雾势预报；不会改变当前雾势或阶段倒计时。 */
+void Board::ClearFogWeatherForecast()
+{
+	mFogWeatherForecastReady = false;
+	mForecastFogWeatherIntensity = FogWeatherIntensity::CLEAR;
+	mActualForecastFogWeatherIntensity = FogWeatherIntensity::CLEAR;
+}
+
+/** 按当前天气压力抽取下一雾势；大雾结束后必定先回到普通基础雾。 */
+FogWeatherIntensity Board::RollNextFogWeather(int forcedRoll)
+{
+	if (mFogWeatherIntensity == FogWeatherIntensity::DENSE) {
+		return FogWeatherIntensity::CLEAR;
+	}
+	const int roll = forcedRoll > 0
+		? std::clamp(forcedRoll, 1, 100)
+		: GameRandom::Range(1, 100);
+	return roll <= GetDenseFogChancePercent()
+		? FogWeatherIntensity::DENSE
+		: FogWeatherIntensity::CLEAR;
+}
+
+/**
+ * 锁定下一雾势预报。
+ * 首版雾势预报保持准确，避免在现有仅表达雨势误报的提示端口中伪造第二种失败语义。
+ */
+void Board::PrepareFogWeatherForecast(int fogRoll)
+{
+	if (mFogWeatherForecastReady || !SupportsFogWeather()) return;
+	mActualForecastFogWeatherIntensity = RollNextFogWeather(fogRoll);
+	mForecastFogWeatherIntensity = mActualForecastFogWeatherIntensity;
+	mFogWeatherForecastReady = true;
+}
+
+/** 进入大雾天气；它只扩展基础雾覆盖，不修改雨势、台风或战斗目标选择。 */
+void Board::BeginDenseFog(float duration)
+{
+	const bool changed = mFogWeatherIntensity != FogWeatherIntensity::DENSE;
+	mFogWeatherIntensity = FogWeatherIntensity::DENSE;
+	mFogWeatherTimer = std::max(duration, 0.1f);
+	ClearFogWeatherForecast();
+	if (changed && mPresentation) mPresentation->ShowCurrentWeatherNotice();
+}
+
+/** 离开大雾天气并重新安排下一次独立雾势抽取；基础关卡雾仍然存在。 */
+void Board::EndDenseFog(float clearDuration)
+{
+	const bool changed = mFogWeatherIntensity != FogWeatherIntensity::CLEAR;
+	mFogWeatherIntensity = FogWeatherIntensity::CLEAR;
+	mFogWeatherTimer = std::max(clearDuration, 0.1f);
+	ClearFogWeatherForecast();
+	if (changed && mPresentation) mPresentation->ShowCurrentWeatherNotice();
+}
+
+/** 揭晓已经锁定的真实雾势，并给新阶段分配独立持续时间。 */
+void Board::ConsumeFogWeatherForecast()
+{
+	if (!mFogWeatherForecastReady) PrepareFogWeatherForecast();
+	const FogWeatherIntensity next = mActualForecastFogWeatherIntensity;
+	if (next == FogWeatherIntensity::DENSE) {
+		BeginDenseFog(GameRandom::Range(
+			kDenseFogWeatherDurationMin, kDenseFogWeatherDurationMax));
+		return;
+	}
+	EndDenseFog(GameRandom::Range(
+		kClearFogWeatherDurationMin, kClearFogWeatherDurationMax));
+}
+
+/** 独立推进雾势阶段和预报；暂停与倍速都跟随 Board 的游戏时间。 */
+void Board::UpdateFogWeather(float deltaTime)
+{
+	if (!SupportsFogWeather()) return;
+	mFogWeatherTimer -= deltaTime;
+	if (mFogWeatherTimer <= kFogWeatherForecastLeadTime
+		&& !mFogWeatherForecastReady) {
+		PrepareFogWeatherForecast();
+	}
+	if (mFogWeatherTimer <= 0.0f) {
+		ConsumeFogWeatherForecast();
+	}
+}
+
+/**
+ * 持续台风累积驱散雾，停风后只让关卡基础雾回流。
+ * 大雾天气一旦被完全吹散便提前结束，不会在同一事件中重新生成。
+ */
+void Board::UpdateFogDispersal(float deltaTime)
+{
+	float dispersalRate = 0.0f;
+	switch (mTyphoonStrength) {
+	case TyphoonStrength::NONE:     dispersalRate = -kFogReturnRate; break;
+	case TyphoonStrength::TYPHOON:  dispersalRate = kTyphoonFogDispersalRate; break;
+	case TyphoonStrength::SEVERE:   dispersalRate = kSevereFogDispersalRate; break;
+	case TyphoonStrength::SUPER:    dispersalRate = kSuperFogDispersalRate; break;
+	}
+	mFogDispersal = std::clamp(
+		mFogDispersal + dispersalRate * deltaTime, 0.0f, 1.0f);
+
+	float targetOffsetX = 0.0f;
+	if (HasTyphoon() && mWindDirection != WindDirection::NONE) {
+		const float direction = mWindDirection == WindDirection::TOWARD_FRONT ? 1.0f : -1.0f;
+		targetOffsetX = direction * kFogMaximumDriftX
+			* std::max(0.2f, mFogDispersal);
+	}
+	const float maxOffsetDelta = kFogDriftSpeed * deltaTime;
+	mFogVisualOffsetX += std::clamp(
+		targetOffsetX - mFogVisualOffsetX, -maxOffsetDelta, maxOffsetDelta);
+
+	if (mFogWeatherIntensity == FogWeatherIntensity::DENSE
+		&& mFogDispersal >= 0.999f) {
+		EndDenseFog(GameRandom::Range(
+			kClearFogWeatherDurationMin, kClearFogWeatherDurationMax));
+	}
+}
+
+/** 把关卡覆盖、大雾扩展和台风驱散合成为逐格平滑 alpha。 */
+void Board::UpdateFogCellAlpha(float deltaTime)
+{
+	const int drawRows = GetFogDrawRowCount();
+	const int fogCellCount = mColumns * drawRows;
+	if (static_cast<int>(mFogCellAlpha.size()) != fogCellCount) {
+		mFogCellAlpha.assign(fogCellCount, 0.0f);
+	}
+	if (fogCellCount <= 0) return;
+
+	const int leftColumn = GetEffectiveFogLeftColumn();
+	const float visibility = 1.0f - mFogDispersal;
+	const float edgeAlpha = IsDenseFogWeather()
+		? kDenseFogEdgeAlpha : kBaseFogEdgeAlpha;
+	for (int row = 0; row < drawRows; ++row) {
+		for (int col = 0; col < mColumns; ++col) {
+			float target = 0.0f;
+			if (col == leftColumn) target = edgeAlpha * visibility;
+			else if (col > leftColumn) target = kFogInteriorAlpha * visibility;
+
+			float& alpha = mFogCellAlpha[row * mColumns + col];
+			const float rate = target >= alpha ? kFogFillRate : kFogClearRate;
+			const float maxDelta = rate * deltaTime;
+			alpha += std::clamp(target - alpha, -maxDelta, maxDelta);
+		}
+	}
+}
+
+/** 推进四大关雾势、台风驱散与纹理呼吸；不支持迷雾的地图保持零开销。 */
+void Board::UpdateFog(float deltaTime)
+{
+	if (!mFogWeatherInitialized || deltaTime <= 0.0f || !SupportsStageFog()) return;
+	UpdateFogWeather(deltaTime);
+	UpdateFogDispersal(deltaTime);
+	UpdateFogCellAlpha(deltaTime);
+	mFogAnimationTime = std::fmod(mFogAnimationTime + deltaTime, 3600.0f);
+}
+
+/** 从关卡存档恢复会影响未来雾势和台风回流的状态；逐格 alpha 由目标状态平滑重建。 */
+void Board::RestoreFogState(bool initialized, FogWeatherIntensity intensity,
+	FogWeatherIntensity forecast, FogWeatherIntensity actual,
+	float timer, bool forecastReady, float dispersal, float visualOffsetX)
+{
+	mFogWeatherInitialized = initialized && SupportsFogWeather();
+	mFogWeatherIntensity = mFogWeatherInitialized
+		? intensity : FogWeatherIntensity::CLEAR;
+	mFogWeatherTimer = mFogWeatherInitialized ? std::max(0.0f, timer) : 0.0f;
+	mFogWeatherForecastReady = mFogWeatherInitialized && forecastReady;
+	mForecastFogWeatherIntensity = mFogWeatherForecastReady
+		? forecast : FogWeatherIntensity::CLEAR;
+	mActualForecastFogWeatherIntensity = mFogWeatherForecastReady
+		? actual : FogWeatherIntensity::CLEAR;
+	mFogDispersal = mFogWeatherInitialized
+		? std::clamp(dispersal, 0.0f, 1.0f) : 0.0f;
+	mFogVisualOffsetX = mFogWeatherInitialized
+		? std::clamp(visualOffsetX, -kFogMaximumDriftX, kFogMaximumDriftX) : 0.0f;
+	mFogAnimationTime = 0.0f;
+	mFogCellAlpha.assign(SupportsStageFog() ? mColumns * (mRows + 1) : 0, 0.0f);
 }
 
 void Board::RefreshZombieWeatherSpeeds()
@@ -1963,6 +2200,41 @@ void Board::SetRainForTesting(RainIntensity intensity, float duration, bool canI
 	FinishWeatherTransitionImmediately();
 }
 
+bool Board::SetFogWeatherForTesting(FogWeatherIntensity intensity, float duration)
+{
+	if (!SupportsFogWeather()) return false;
+	mFogWeatherInitialized = true;
+	mFogDispersal = 0.0f;
+	mFogVisualOffsetX = 0.0f;
+	ClearFogWeatherForecast();
+	if (intensity == FogWeatherIntensity::DENSE) {
+		BeginDenseFog(std::max(duration, 0.1f));
+	}
+	else {
+		EndDenseFog(std::max(duration, 0.1f));
+	}
+	return mFogWeatherIntensity == intensity;
+}
+
+bool Board::SetFogWeatherForecastForTesting(FogWeatherIntensity forecast,
+	FogWeatherIntensity actual, float revealIn)
+{
+	if (!SupportsFogWeather() || !mFogWeatherInitialized) return false;
+	mForecastFogWeatherIntensity = forecast;
+	mActualForecastFogWeatherIntensity = actual;
+	mFogWeatherForecastReady = true;
+	mFogWeatherTimer = std::max(revealIn, 0.1f);
+	return true;
+}
+
+bool Board::SetFogDispersalForTesting(float dispersal)
+{
+	if (!SupportsStageFog() || !mFogWeatherInitialized
+		|| !std::isfinite(dispersal)) return false;
+	mFogDispersal = std::clamp(dispersal, 0.0f, 1.0f);
+	return true;
+}
+
 bool Board::SetWeatherForecastForTesting(RainIntensity forecast, RainIntensity actual, float revealIn)
 {
 	if (!SupportsWeather() || !mWeatherInitialized) {
@@ -2089,6 +2361,87 @@ bool Board::SupportsWeather() const
 		|| mLevel == SURVIVAL_ENDLESS_POOL_LEVEL) return true;
 	return AdventureProgression::IsAdventureLevel(mLevel)
 		&& AdventureProgression::GetAreaNumber(mLevel) >= 2;
+}
+
+bool Board::SupportsStageFog() const
+{
+	return mBackGround == Background::NIGHT_WATER_POOL
+		&& AdventureProgression::IsAdventureLevel(mLevel)
+		&& AdventureProgression::GetAreaNumber(mLevel) == 4;
+}
+
+bool Board::SupportsFogWeather() const
+{
+	// 首版只改变正在建设的四大关；以后其他地图接入时保持雨势与雾势两个独立开关。
+	return SupportsStageFog();
+}
+
+/** 按当前九关制流程换算 C# 的 4-1 / 4-2～4-6 / 4-7～末关覆盖曲线。 */
+int Board::GetBaseFogLeftColumn() const
+{
+	if (!SupportsStageFog()) return mColumns;
+	const int levelInArea = AdventureProgression::GetLevelNumberInArea(mLevel);
+	if (levelInArea <= 1) return std::min(6, mColumns - 1);
+	if (levelInArea <= 6) return std::min(5, mColumns - 1);
+	return std::min(4, mColumns - 1);
+}
+
+int Board::GetEffectiveFogLeftColumn() const
+{
+	const int baseColumn = GetBaseFogLeftColumn();
+	if (!SupportsStageFog()) return baseColumn;
+	const int expansion = IsDenseFogWeather()
+		? kDenseFogColumnExpansion : kBaseFogColumnExpansion;
+	return std::max(0, baseColumn - expansion);
+}
+
+float Board::GetFogCellAlpha(int row, int col) const
+{
+	if (row < 0 || row >= GetFogDrawRowCount()
+		|| col < 0 || col >= mColumns) return 0.0f;
+	const int index = row * mColumns + col;
+	return index < static_cast<int>(mFogCellAlpha.size())
+		? mFogCellAlpha[index] : 0.0f;
+}
+
+int Board::GetFogTileVariant(int row, int col) const
+{
+	// 模拟原版 mGridCelLook 的逐格随机外观，但保持读档稳定且不消费玩法随机数。
+	unsigned hash = 2166136261u;
+	auto mix = [&hash](unsigned value) {
+		hash ^= value;
+		hash *= 16777619u;
+		hash ^= hash >> 13;
+	};
+	mix(static_cast<unsigned>(std::max(mLevel, 0)));
+	mix(static_cast<unsigned>(std::max(row, 0)));
+	mix(static_cast<unsigned>(std::max(col, 0)));
+	hash ^= hash >> 16;
+	hash *= 0x7feb352du;
+	hash ^= hash >> 15;
+	return static_cast<int>(hash % 8u);
+}
+
+Vector Board::GetFogTilePosition(int row, int col) const
+{
+	return Vector(
+		CELL_INITALIZE_POS_X + static_cast<float>(col) * CELL_COLLIDER_SIZE_X
+			- kFogTileLeftOverlap + mFogVisualOffsetX,
+		mCellInitialY + static_cast<float>(row) * mCellHeight - kFogTileTopOverlap);
+}
+
+int Board::GetVisibleFogCellCount() const
+{
+	return static_cast<int>(std::count_if(
+		mFogCellAlpha.begin(), mFogCellAlpha.end(),
+		[](float alpha) { return alpha >= 1.0f; }));
+}
+
+int Board::GetMaximumFogAlpha() const
+{
+	if (mFogCellAlpha.empty()) return 0;
+	return static_cast<int>(std::lround(*std::max_element(
+		mFogCellAlpha.begin(), mFogCellAlpha.end())));
 }
 
 bool Board::IsPoolRow(int row) const
@@ -3134,6 +3487,8 @@ void Board::Update()
 	}
 	// 天气属于整片场景而非波次逻辑：生存轮间也自然推进；暂停时 dt=0 与粒子同步冻结。
 	UpdateWeather(DeltaTime::GetDeltaTime());
+	// 四大关迷雾与雨势正交，但同样使用游戏时间并消费更新后的台风强度和实时风向。
+	UpdateFog(DeltaTime::GetDeltaTime());
 	UpdateIceTrails(DeltaTime::GetDeltaTime());
 	CleanupExpiredObjects();
 	mUpdateZombieMetricsTimer += DeltaTime::GetDeltaTime();
@@ -3157,6 +3512,7 @@ void Board::StartGame()
 	}
 	mBoardState = BoardState::GAME;
 	InitializeWeather();
+	InitializeFogWeather();
 	// 读档恢复到一场雨中时，玩法状态已经由存档还原；粒子是瞬态资源，需按剩余时间重建一次。
 	if (mRainIntensity != RainIntensity::CLEAR && !mRainVisualActive)
 	{

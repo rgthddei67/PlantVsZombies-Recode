@@ -171,6 +171,19 @@ private:
 	bool mRainCanIntensify = false;     // 仅初始小雨可增强；首次切档后永久转入衰减链
 	bool mRainCanHold = false;          // 新雨首段为中/大雨时允许一次同档续期，避免无限维持
 	bool mWeatherForecastReady = false; // true 表示公开预报与真实下一天气均已锁定、等待揭晓
+
+	// 四大关迷雾是独立于雨势的环境层：基础雾由关卡派生，大雾天气、预报与台风驱散才持久化。
+	FogWeatherIntensity mFogWeatherIntensity = FogWeatherIntensity::CLEAR;
+	FogWeatherIntensity mForecastFogWeatherIntensity = FogWeatherIntensity::CLEAR;
+	FogWeatherIntensity mActualForecastFogWeatherIntensity = FogWeatherIntensity::CLEAR;
+	float mFogWeatherTimer = 0.0f;      // CLEAR 时距下一次雾势抽取，DENSE 时为大雾剩余游戏秒
+	float mFogDispersal = 0.0f;         // 台风累积驱散比例（0～1）；停风后缓慢回落，基础雾随之回流
+	float mFogVisualOffsetX = 0.0f;     // 随实时风向平滑漂移的纯视觉横向偏移，单位像素
+	float mFogAnimationTime = 0.0f;     // 雾纹理轻微呼吸的游戏秒计时；纯视觉，不入存档
+	bool mFogWeatherInitialized = false; // 旧档缺雾势字段时由 StartGame 首次初始化
+	bool mFogWeatherForecastReady = false; // 已锁定公开/真实下一雾势，等待独立雾势倒计时揭晓
+	std::vector<float> mFogCellAlpha;   // 逐格平滑后的最终 alpha；行数为泳池六行再加一条底部收边
+
 	bool mPendingHeavyTyphoonPrepared = false; // 大雨预警期已锁定台风等级，切档时消费而不重 roll
 	TyphoonStrength mPendingHeavyTyphoonStrength = TyphoonStrength::NONE; // 下一场大雨的待生效台风等级
 	WindDirection mPendingHeavyWindDirection = WindDirection::NONE; // 待生效台风初始吹向；与等级一并锁定
@@ -231,6 +244,20 @@ private:
 	inline ZombieType GetCheapestZombie();
 	void InitializeWeather();
 	void UpdateWeather(float deltaTime);
+	void InitializeFogWeather();
+	void UpdateFog(float deltaTime);
+	void UpdateFogWeather(float deltaTime);
+	void UpdateFogDispersal(float deltaTime);
+	void UpdateFogCellAlpha(float deltaTime);
+	FogWeatherIntensity RollNextFogWeather(int forcedRoll = 0);
+	void PrepareFogWeatherForecast(int fogRoll = 0);
+	void ConsumeFogWeatherForecast();
+	void BeginDenseFog(float duration);
+	void EndDenseFog(float clearDuration);
+	void ClearFogWeatherForecast();
+	void RestoreFogState(bool initialized, FogWeatherIntensity intensity,
+		FogWeatherIntensity forecast, FogWeatherIntensity actual,
+		float timer, bool forecastReady, float dispersal, float visualOffsetX);
 	float GetWeatherLateGameFactor() const;
 	float GetWeatherDirectorFactor() const;
 	float GetWeatherTransitionProgress() const;
@@ -361,6 +388,38 @@ public:
 	bool HasWeatherForecast() const { return mWeatherForecastReady; }
 	RainIntensity GetForecastRainIntensity() const { return mForecastRainIntensity; }
 	RainIntensity GetActualForecastRainIntensity() const { return mActualForecastRainIntensity; }
+	FogWeatherIntensity GetFogWeatherIntensity() const { return mFogWeatherIntensity; }
+	FogWeatherIntensity GetForecastFogWeatherIntensity() const {
+		return mForecastFogWeatherIntensity;
+	}
+	FogWeatherIntensity GetActualForecastFogWeatherIntensity() const {
+		return mActualForecastFogWeatherIntensity;
+	}
+	float GetFogWeatherTimer() const { return mFogWeatherTimer; }
+	float GetFogDispersal() const { return mFogDispersal; }
+	float GetFogVisualOffsetX() const { return mFogVisualOffsetX; }
+	float GetFogAnimationTime() const { return mFogAnimationTime; }
+	bool IsFogWeatherInitialized() const { return mFogWeatherInitialized; }
+	bool HasFogWeatherForecast() const { return mFogWeatherForecastReady; }
+	bool IsDenseFogWeather() const {
+		return mFogWeatherIntensity == FogWeatherIntensity::DENSE;
+	}
+	/** 当前基础迷雾最左列；无迷雾关卡返回棋盘列数。 */
+	int GetBaseFogLeftColumn() const;
+	/** 合并大雾天气后的目标最左列，不受短时台风透明度影响。 */
+	int GetEffectiveFogLeftColumn() const;
+	/** 当前雾场用于绘制的行数；泳池六行外再保留一条底部收边。 */
+	int GetFogDrawRowCount() const { return SupportsStageFog() ? mRows + 1 : 0; }
+	/** 返回指定雾格平滑后的 alpha（0～255）。 */
+	float GetFogCellAlpha(int row, int col) const;
+	/** 返回稳定的 0～7 贴图变体；不消费玩法随机数。 */
+	int GetFogTileVariant(int row, int col) const;
+	/** 返回当前场景换算后的雾格左上角；包含风向漂移但不硬编码原版 800 宽坐标。 */
+	Vector GetFogTilePosition(int row, int col) const;
+	int GetVisibleFogCellCount() const;
+	int GetMaximumFogAlpha() const;
+	/** 当前天气导演下进入大雾的概率（百分比）；只用于四大关独立雾势抽取。 */
+	int GetDenseFogChancePercent() const;
 	bool HasPendingHeavyTyphoon() const { return mPendingHeavyTyphoonPrepared; }
 	TyphoonStrength GetPendingHeavyTyphoonStrength() const { return mPendingHeavyTyphoonStrength; }
 	int GetPendingHeavyRainPromptVariant() const { return mPendingHeavyRainPromptVariant; }
@@ -411,6 +470,13 @@ public:
 
 	// AutoTest 专用：固定雨势并重启对应粒子，真实游戏只走随机天气状态机。
 	void SetRainForTesting(RainIntensity intensity, float duration = 30.0f, bool canIntensify = false);
+	// AutoTest 专用：固定当前独立雾势并清除预报；基础关卡雾始终保留。
+	bool SetFogWeatherForTesting(FogWeatherIntensity intensity, float duration = 30.0f);
+	// AutoTest 专用：固定公开与真实雾势预报，并在指定游戏秒后揭晓。
+	bool SetFogWeatherForecastForTesting(FogWeatherIntensity forecast,
+		FogWeatherIntensity actual, float revealIn = 1.0f);
+	// AutoTest 专用：固定台风驱散进度，供存档往返与边界断言使用。
+	bool SetFogDispersalForTesting(float dispersal);
 	// AutoTest 专用：定位黑夜无尽轮次，并刷新所有由轮次派生的天气速度状态。
 	bool SetSurvivalRoundForTesting(int round);
 	// AutoTest 专用：固定公开预报与真实天气，并把当前阶段倒计时改为指定揭晓时间。
@@ -446,6 +512,10 @@ public:
 	bool IsPoolBackground() const;
 	/** 天气从第二大关起启用；白天泳池同样受天气系统影响。 */
 	bool SupportsWeather() const;
+	/** 四大关夜间泳池是否拥有不依赖天气的基础迷雾。 */
+	bool SupportsStageFog() const;
+	/** 当前仅四大关抽取独立大雾天气；接口预留给未来其他地图。 */
+	bool SupportsFogWeather() const;
 	bool IsPoolRow(int row) const;
 	bool IsPoolSquare(int row, int col) const;
 	bool IsPoolWorldPosition(int row, float x) const;
