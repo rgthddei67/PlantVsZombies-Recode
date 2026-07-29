@@ -70,6 +70,8 @@ public:
 private:
 	void CreatePlantPreview(PlantType plantType);
 	void UpdatePlantPreviewPosition(Graphics* g, const Vector& position);
+	/** 将世界坐标解析为唯一格子；重叠边界固定按行列顺序归属。 */
+	Cell* FindCellAtWorldPosition(const Vector& position) const;
 
 	// 创建Cell悬停预览（透明）
 	void CreateCellPlantPreview(PlantType plantType, Cell* cell);

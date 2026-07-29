@@ -27,8 +27,14 @@ void CardSlotManager::Start() {
 			for (int col = 0; col < mBoard->mColumns; ++col) {
 				Cell* cell = mBoard->GetCell(row, col);
 				if (cell) {
-					cell->SetClickCallback([this](int r, int c) {
-						HandleCellClick(r, c);
+					cell->SetClickCallback([this](int, int) {
+						// Cell 碰撞框共用边界且两侧都包含端点；点击也走预览的唯一解析，
+						// 避免 ClickableComponent 的渲染顺序选择出另一个相邻格。
+						const Vector mouseWorld =
+							GameAPP::GetInstance().GetInputHandler().GetMouseWorldPosition();
+						if (Cell* clickedCell = FindCellAtWorldPosition(mouseWorld)) {
+							HandleCellClick(clickedCell->mRow, clickedCell->mColumn);
+						}
 						});
 				}
 			}
@@ -243,26 +249,7 @@ void CardSlotManager::UpdatePlantPreviewPosition(Graphics* g, const Vector& mous
 	// 屏幕坐标转世界坐标
 	Vector mouseWorld = g->LogicalToWorld(mouseScreen.x, mouseScreen.y);
 
-	Cell* hoveredCell = nullptr;
-
-	if (mBoard) {
-		// 遍历所有 Cell，使用世界坐标检测鼠标是否在 Cell 的碰撞器内
-		for (int row = 0; row < mBoard->mRows; ++row) {
-			for (int col = 0; col < mBoard->mColumns; ++col) {
-				Cell* cell = mBoard->GetCell(row, col);
-				if (cell) {
-					auto collider = cell->GetComponent<ColliderComponent>();
-					if (collider && collider->mEnabled) {
-						if (collider->ContainsPoint(mouseWorld)) {   // 使用世界坐标
-							hoveredCell = cell;
-							break;
-						}
-					}
-				}
-			}
-			if (hoveredCell) break;
-		}
-	}
+	Cell* hoveredCell = FindCellAtWorldPosition(mouseWorld);
 
 	bool isOverCellWithPlant = false;
 	if (hoveredCell && mBoard) {
@@ -301,6 +288,25 @@ void CardSlotManager::UpdatePlantPreviewPosition(Graphics* g, const Vector& mous
 
 	// 更新鼠标预览植物位置
 	UpdatePreviewToMouse(mouseWorld);
+}
+
+Cell* CardSlotManager::FindCellAtWorldPosition(const Vector& position) const {
+	if (!mBoard) return nullptr;
+
+	// ContainsPoint 对矩形四边均为闭区间；按固定行列顺序返回第一个命中，
+	// 使水平、垂直乃至四格交点都只有一个稳定归属。
+	for (int row = 0; row < mBoard->mRows; ++row) {
+		for (int col = 0; col < mBoard->mColumns; ++col) {
+			Cell* cell = mBoard->GetCell(row, col);
+			if (!cell) continue;
+
+			auto* collider = cell->GetComponent<ColliderComponent>();
+			if (collider && collider->mEnabled && collider->ContainsPoint(position)) {
+				return cell;
+			}
+		}
+	}
+	return nullptr;
 }
 
 void CardSlotManager::UpdatePreviewToMouse(const Vector& mouseWorld) {
