@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #ifndef __PARTICLE_SYSTEM_H__
 #define __PARTICLE_SYSTEM_H__
 

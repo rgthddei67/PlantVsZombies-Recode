@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #ifndef _ENTITYMANAGER_H
 #define _ENTITYMANAGER_H
 #include <memory>

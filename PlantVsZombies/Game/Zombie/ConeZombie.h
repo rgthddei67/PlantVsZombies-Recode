@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #ifndef _CONEZOMBIE_H
 #define _CONEZOMBIE_H
 #include "Zombie.h"

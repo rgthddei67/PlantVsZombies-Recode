@@ -1,4 +1,4 @@
-﻿#include "Slider.h"
+#include "Slider.h"
 #include "../ResourceManager.h"
 #include "../CursorManager.h"
 #include "../Logger.h"

@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #ifndef _SLIDER_H
 #define _SLIDER_H
 #include "../Game/Definit.h"

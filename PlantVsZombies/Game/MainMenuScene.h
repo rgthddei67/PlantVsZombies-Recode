@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #ifndef _MAINMENUSCENE_H
 #define _MAINMENUSCENE_H
 

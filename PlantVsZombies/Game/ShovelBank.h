@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #ifndef _SHOVELBANK_H
 #define _SHOVELBANK_H
 

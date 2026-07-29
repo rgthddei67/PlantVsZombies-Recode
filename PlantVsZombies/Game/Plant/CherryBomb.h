@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #ifndef _CHERRYBOMB_H
 #define _CHERRYBOMB_H
 

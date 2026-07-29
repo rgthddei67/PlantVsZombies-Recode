@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #ifndef _LAWN_MOWER_H
 #define _LAWN_MOWER_H
 

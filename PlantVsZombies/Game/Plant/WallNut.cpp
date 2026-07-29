@@ -1,4 +1,4 @@
-﻿#include "WallNut.h"
+#include "WallNut.h"
 #include "../ShadowComponent.h"
 
 #include "../../ParticleSystem/ParticleSystem.h"

@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #ifndef _BUTTONMANAGER_H
 #define _BUTTONMANAGER_H
 #include "../UI/Button.h"

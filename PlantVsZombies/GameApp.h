@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #ifndef _GAMEAPP_H
 #define _GAMEAPP_H
 #ifdef DrawText

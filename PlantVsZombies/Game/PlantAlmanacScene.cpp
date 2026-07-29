@@ -1,4 +1,4 @@
-﻿#include "PlantAlmanacScene.h"
+#include "PlantAlmanacScene.h"
 #include "SceneManager.h"
 #include "../GameAPP.h"
 #include "Plant/Plant.h"

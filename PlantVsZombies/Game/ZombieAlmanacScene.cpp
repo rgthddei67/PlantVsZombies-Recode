@@ -1,4 +1,4 @@
-﻿#include "ZombieAlmanacScene.h"
+#include "ZombieAlmanacScene.h"
 #include "SceneManager.h"
 #include "../GameAPP.h"
 #include "AdventureProgression.h"

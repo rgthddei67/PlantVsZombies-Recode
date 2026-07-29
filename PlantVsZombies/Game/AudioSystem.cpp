@@ -1,4 +1,4 @@
-﻿#include "../Game/AudioSystem.h"
+#include "../Game/AudioSystem.h"
 #include "../Game/AdaptiveMusicPlayer.h"
 #include "../ResourceManager.h"
 #include "../Logger.h"

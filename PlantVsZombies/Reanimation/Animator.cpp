@@ -1,4 +1,4 @@
-﻿#include "Animator.h"
+#include "Animator.h"
 #include "../DeltaTime.h"
 #include "../GameAPP.h"
 #include "../ResourceManager.h"

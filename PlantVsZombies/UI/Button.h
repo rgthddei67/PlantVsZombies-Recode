@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #ifndef _BUTTON_H
 #define _BUTTON_H
 #include "../GameAPP.h"

@@ -1,4 +1,4 @@
-﻿#include "CrashHandler.h"
+#include "CrashHandler.h"
 #if defined(_WIN32)
 #include "Logger.h"
 #include <fstream>

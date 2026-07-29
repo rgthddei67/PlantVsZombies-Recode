@@ -1,4 +1,4 @@
-﻿#include "Polevaulter.h"
+#include "Polevaulter.h"
 #include "../Board.h"
 #include "../ShadowComponent.h"
 #include "../Plant/Plant.h"

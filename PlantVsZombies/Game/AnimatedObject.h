@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #ifndef _ANIMATED_OBJECT_H
 #define _ANIMATED_OBJECT_H
 

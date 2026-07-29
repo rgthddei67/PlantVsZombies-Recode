@@ -1,4 +1,4 @@
-﻿#include "ParticleConfig.h"
+#include "ParticleConfig.h"
 #include "../Logger.h"
 
 ParticleConfigManager::ParticleConfigManager(Graphics* graphics)

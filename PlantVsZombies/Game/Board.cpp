@@ -1,4 +1,4 @@
-﻿#include "Board.h"
+#include "Board.h"
 #include "../Logger.h"
 #include "BoardPresentation.h"
 #include "LawnMower.h"

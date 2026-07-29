@@ -1,4 +1,4 @@
-﻿#include "ParticleXMLLoader.h"
+#include "ParticleXMLLoader.h"
 #include "../FileManager.h"
 #include "../Logger.h"
 #include <sstream>

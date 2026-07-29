@@ -207,7 +207,7 @@ Windows 首次发生真实存档访问时，会把当前工作目录旧 `./saves
 
 - 视觉偏移使用 `mVisualOffset`，与逻辑网格位置分离。
 - `mRow`、`mColumn` 表示游戏网格单元；像素位置存放在 `TransformComponent`。
-- 代码库中的中文 UI 字符串使用 UTF-8。
+- 代码文件统一使用 UTF-8（无 BOM），由根目录 `.editorconfig` 约束；中文 UI 字符串使用 UTF-8。
 - **头文件保护（每个 `.h`）：** 每个头文件必须以 `#pragma once` 开头。旧有的 `#pragma once` + `#ifndef _NAME_H` 双重形式也可接受。运行 `cmake --preset` 时会安装 `.githooks/pre-commit` hook（`git config core.hooksPath .githooks`），拒绝暂存区中缺少保护的头文件；同一配置步骤也会用 WARNING 列出仓库里已有的无保护头文件。检查支持 BOM：在前 512 字节内匹配 token，而不是锚定 `^`，因此 UTF-8 BOM 不会造成误报。原因是迁移掉 `.sln` 后，VS 的“添加新项”模板不再自动插入保护。
 
 ## 沟通风格

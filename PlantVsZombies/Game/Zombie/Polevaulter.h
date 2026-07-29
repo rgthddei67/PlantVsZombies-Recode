@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #ifndef _POLEVAULTER_H
 #define _POLEVAULTER_H
 

@@ -1,4 +1,4 @@
-﻿#include "BulletPool.h"
+#include "BulletPool.h"
 
 #include "../Bullet/PeaBullet.h"
 #include "../Bullet/SnowPea.h"

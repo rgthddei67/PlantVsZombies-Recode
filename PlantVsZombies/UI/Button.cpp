@@ -1,4 +1,4 @@
-﻿#include "Button.h"
+#include "Button.h"
 #include "InputHandler.h"
 #include "../Logger.h"
 #include <SDL2/SDL_image.h>

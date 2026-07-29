@@ -1,4 +1,4 @@
-﻿#include "ParticleXMLConfig.h"
+#include "ParticleXMLConfig.h"
 #include "../GameRandom.h"
 #include <algorithm>
 

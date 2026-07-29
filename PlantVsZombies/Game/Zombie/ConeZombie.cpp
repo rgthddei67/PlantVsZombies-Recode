@@ -1,4 +1,4 @@
-﻿#include "ConeZombie.h"
+#include "ConeZombie.h"
 
 void ConeZombie::SetupZombie()
 {

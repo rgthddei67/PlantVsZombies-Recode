@@ -1,4 +1,4 @@
-﻿#include "Graphics.h"
+#include "Graphics.h"
 #include "Logger.h"
 #include "Profiler.h"
 

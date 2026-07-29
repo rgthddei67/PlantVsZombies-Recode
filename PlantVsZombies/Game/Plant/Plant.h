@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #ifndef _PLANT_H
 #define _PLANT_H
 #include <iostream>

@@ -1,4 +1,4 @@
-﻿#include "Zombie.h"
+#include "Zombie.h"
 #include "ZombieCharred.h"
 #include "GildedZamboniZombie.h"
 #include "../Plant/Plant.h"

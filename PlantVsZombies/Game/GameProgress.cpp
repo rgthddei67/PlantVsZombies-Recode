@@ -1,4 +1,4 @@
-﻿#include "GameProgress.h"
+#include "GameProgress.h"
 #include "Board.h"
 #include "SceneManager.h"
 #include "../DeltaTime.h"

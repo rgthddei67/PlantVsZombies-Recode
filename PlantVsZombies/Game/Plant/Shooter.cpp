@@ -1,4 +1,4 @@
-﻿#include "Shooter.h"
+#include "Shooter.h"
 #include "GameDataManager.h"
 #include "../Board.h"
 #include "../Zombie/Zombie.h"

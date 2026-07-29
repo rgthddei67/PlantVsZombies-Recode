@@ -1,4 +1,4 @@
-﻿#include "GameDataManager.h"
+#include "GameDataManager.h"
 #include "../../ResourceKeys.h"
 #include "../../Logger.h"
 #include "../../FileManager.h"

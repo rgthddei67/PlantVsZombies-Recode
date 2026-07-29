@@ -1,4 +1,4 @@
-﻿#include "Shovel.h"
+#include "Shovel.h"
 #include "Board.h"
 #include "Cell.h"
 #include "../UI/InputHandler.h"

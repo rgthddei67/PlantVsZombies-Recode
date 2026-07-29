@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #ifndef _UIMANAGER_H
 #define _UIMANAGER_H
 #include "../ResourceManager.h"

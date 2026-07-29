@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #ifndef _SHOVEL_H
 #define _SHOVEL_H
 

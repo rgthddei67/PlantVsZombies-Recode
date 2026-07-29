@@ -1,4 +1,4 @@
-﻿#include "CardDisplayComponent.h"
+#include "CardDisplayComponent.h"
 #include "../Logger.h"
 #include "../ResourceKeys.h"
 #include "./Card.h"

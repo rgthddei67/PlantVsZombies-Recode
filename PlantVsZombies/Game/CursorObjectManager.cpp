@@ -1,4 +1,4 @@
-﻿#include "CursorObjectManager.h"
+#include "CursorObjectManager.h"
 
 void CursorObjectManager::Activate(CursorObjectType type, std::function<void()> clearCallback)
 {

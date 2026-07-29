@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #ifndef __PARTICLE_XML_LOADER_H__
 #define __PARTICLE_XML_LOADER_H__
 

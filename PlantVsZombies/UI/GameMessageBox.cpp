@@ -1,4 +1,4 @@
-﻿#include "GameMessageBox.h"
+#include "GameMessageBox.h"
 #include "../ResourceManager.h"
 #include "../GameAPP.h"
 #include "../Game/GameObjectManager.h"

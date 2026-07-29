@@ -1,0 +1,7 @@
+root = true
+
+[*.{c,cc,cpp,cxx,h,hpp,inl,ipp,ixx,glsl,ps1,cmake}]
+charset = utf-8
+
+[CMakeLists.txt]
+charset = utf-8

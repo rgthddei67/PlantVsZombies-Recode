@@ -28,7 +28,7 @@
 - 源文件由 `GLOB_RECURSE CONFIGURE_DEPENDS` 自动收集；新增 `.cpp` 无需手动修改构建列表。
 - 每个新 `.h` 必须以 `#pragma once` 开头；pre-commit hook 会自动检查。
 - `build\clang-release\resources` 与同级 `font` 是唯一实体运行资产；`clang-playtest`、`msvc-debug` 通过 NTFS 目录联接共享。资源只修改权威目录，禁止复制或维护其他 preset 的资源副本。
-- 中文文本保持 UTF-8。逻辑网格位置与视觉偏移（`mVisualOffset`）必须分离。
+- 代码文件统一使用 UTF-8（无 BOM），由根目录 `.editorconfig` 约束；中文文本保持 UTF-8。逻辑网格位置与视觉偏移（`mVisualOffset`）必须分离。
 - 当前任务指令、当前源码/Git 状态和当前构建/测试证据优先于历史记忆。
 - 对已记录的子系统做出实质修改后，更新对应主题文件及 `docs/agent-memory/MEMORY.md` 中的条目。
 - 每次完成任务改动后、提交前，必须审计 `.agents/skills/` 中与本次改动相关的技能及 references，核对接口、路径、所有权、存档和验证流程是否与当前源码冲突、过期或缺失；发现可复用的契约变化就同步更新，并用 skill-creator 的 `quick_validate.py` 校验所有改动过的技能。仅文档或技能整理且不涉及运行行为时无需构建，但仍须完成该审计并在交付中说明结果。

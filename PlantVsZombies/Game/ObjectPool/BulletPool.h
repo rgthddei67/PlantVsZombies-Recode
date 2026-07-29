@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #ifndef _BULLETPOOL_H
 #define _BULLETPOOL_H
 

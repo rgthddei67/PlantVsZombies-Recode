@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #ifndef _GAMEINFOSAVER_H
 #define _GAMEINFOSAVER_H
 #include "FileManager.h"

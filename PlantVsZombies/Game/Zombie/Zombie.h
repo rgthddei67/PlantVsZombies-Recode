@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #ifndef _ZOMBIE_H
 #define _ZOMBIE_H
 

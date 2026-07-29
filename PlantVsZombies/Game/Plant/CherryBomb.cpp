@@ -1,4 +1,4 @@
-﻿#include "CherryBomb.h"
+#include "CherryBomb.h"
 #include "../Board.h"
 
 void CherryBomb::SetupPlant()

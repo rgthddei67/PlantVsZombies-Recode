@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #ifndef _H_MESSAGEBOX_H
 #define _H_MESSAGEBOX_H
 

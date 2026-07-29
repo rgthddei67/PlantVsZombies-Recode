@@ -1,4 +1,4 @@
-﻿#include "ParticleEffect.h"
+#include "ParticleEffect.h"
 #include "../DeltaTime.h"
 #include "../GameAPP.h"
 #include <algorithm>

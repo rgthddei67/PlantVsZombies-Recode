@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #ifndef _TRANSFORM_COMPONENT_H
 #define _TRANSFORM_COMPONENT_H
 

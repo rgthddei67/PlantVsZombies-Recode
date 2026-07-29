@@ -1,4 +1,4 @@
-﻿#include "GameScene.h"
+#include "GameScene.h"
 #include "CursorObjectManager.h"
 #include "SceneManager.h"
 #include "../ResourceManager.h"

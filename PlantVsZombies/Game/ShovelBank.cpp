@@ -1,4 +1,4 @@
-﻿#include "ShovelBank.h"
+#include "ShovelBank.h"
 #include "Board.h"
 #include "Shovel.h"
 #include "ClickableComponent.h"

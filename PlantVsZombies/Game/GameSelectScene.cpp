@@ -1,4 +1,4 @@
-﻿#include "GameSelectScene.h"
+#include "GameSelectScene.h"
 #include "SceneManager.h"
 #include "../GameAPP.h"
 #include "AudioSystem.h"

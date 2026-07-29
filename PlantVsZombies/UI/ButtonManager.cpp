@@ -1,4 +1,4 @@
-﻿#include "ButtonManager.h"
+#include "ButtonManager.h"
 
 std::shared_ptr<Button> ButtonManager::CreateButton(Vector pos, Vector size)
 {

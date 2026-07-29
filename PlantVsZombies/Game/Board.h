@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #ifndef _BOARD_H
 #define _BOARD_H
 #include "Cell.h"

@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #ifndef _INPUTHANDLER_H
 #define _INPUTHANDLER_H
 

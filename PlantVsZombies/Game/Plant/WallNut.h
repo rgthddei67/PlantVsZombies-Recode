@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #ifndef _WALLNUT_H
 #define _WALLNUT_H
 

@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #ifndef _SUNFLOWER_H
 #define _SUNFLOWER_H
 

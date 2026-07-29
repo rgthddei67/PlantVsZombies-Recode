@@ -1,4 +1,4 @@
-﻿#include "MainMenuScene.h"
+#include "MainMenuScene.h"
 #include "../DeltaTime.h"
 #include "AudioSystem.h"
 #include "../ResourceKeys.h"

@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #ifndef __PARTICLE_EFFECT_H__
 #define __PARTICLE_EFFECT_H__
 

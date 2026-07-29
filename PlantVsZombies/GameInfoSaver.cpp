@@ -1,4 +1,4 @@
-﻿#include "GameInfoSaver.h"
+#include "GameInfoSaver.h"
 #include "SaveLocation.h"
 #include "SaveMigration.h"
 #include "SaveSchema.h"

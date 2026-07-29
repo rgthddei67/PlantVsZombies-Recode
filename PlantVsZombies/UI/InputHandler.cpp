@@ -1,4 +1,4 @@
-﻿#include "InputHandler.h"
+#include "InputHandler.h"
 #include <iostream>
 #include "../Graphics.h"
 

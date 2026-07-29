@@ -1,4 +1,4 @@
-﻿#include "ChooseCardUI.h"
+#include "ChooseCardUI.h"
 #include "SceneManager.h"
 #include "../ResourceKeys.h"
 #include "../ResourceManager.h"

@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #ifndef _ANIMATIONTYPES_H
 #define _ANIMATIONTYPES_H
 

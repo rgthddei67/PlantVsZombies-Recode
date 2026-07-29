@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #ifndef _SLIDERMANAGER_H
 #define _SLIDERMANAGER_H
 #include "../UI/Slider.h"

@@ -1,4 +1,4 @@
-﻿#include "Reanimation.h"
+#include "Reanimation.h"
 #include "../ResourceManager.h"
 #include "../FileManager.h"
 #include "../Logger.h"

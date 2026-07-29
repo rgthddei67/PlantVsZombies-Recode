@@ -1,4 +1,4 @@
-﻿#include "ResourceManager.h"
+#include "ResourceManager.h"
 #include "./Game/Plant/GameDataManager.h"
 #include "./Renderer/VulkanTexturePool.h"
 #include "Logger.h"

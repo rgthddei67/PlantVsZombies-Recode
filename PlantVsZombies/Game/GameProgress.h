@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "GameObject.h"
 #include "FlagMeter.h"
 #include <memory>
