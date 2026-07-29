@@ -38,6 +38,7 @@ namespace {
 	constexpr int kWeatherCurrentFontSize = 18;           // 第一行“当前天气”字号
 	constexpr int kWeatherForecastFontSize = 16;          // 第二行“天气预警”字号
 	constexpr int kWeatherWindFontSize = 15;              // 台风期间第三行“风向实况”字号
+	constexpr int kPlanternGearMenuRenderOrder = LAYER_UI + 700; // 路灯花菜单盖过天气板/失败提示且低于全屏提示
 	constexpr float kWeatherPanelDetailLineHeight = 30.0f; // 雾势预报或风向实况每增加一行的面板高度
 	constexpr float kForecastFailureWidth = 350.0f;       // 预报失败提示与加宽后的天气面板对齐（逻辑像素）
 	constexpr float kForecastFailureHeight = 58.0f;       // 预报失败提示高度（逻辑像素）
@@ -640,6 +641,11 @@ void GameScene::BuildDrawCommands()
 		RegisterDrawCommand("WeatherForecastFailure",
 			[this](Graphics* g) { DrawWeatherForecastFailure(g); },
 			LAYER_UI + 600);
+		RegisterDrawCommand("PlanternGearMenu",
+			[this](Graphics* g) {
+				if (mCardSlotManager) mCardSlotManager->DrawPlanternGearMenu(g);
+			},
+			kPlanternGearMenuRenderOrder);
 
 		RegisterDrawCommand("Prompts",
 			[this](Graphics* g) { DrawPrompts(g); },

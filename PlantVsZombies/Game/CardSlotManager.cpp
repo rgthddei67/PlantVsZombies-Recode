@@ -90,7 +90,6 @@ void CardSlotManager::Draw(Graphics* g) {
 		// 更新预览位置
 		UpdatePlantPreviewPosition(g, mouseScreen);
 	}
-	DrawPlanternGearMenu(g);
 }
 
 void CardSlotManager::UpdateAllCardsState() {

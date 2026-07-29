@@ -33,7 +33,8 @@ metadata:
   `MistFuel` 飞行 0.62 秒，途中只占容量而不增加显示值，抵达灯芯时才正式到账。
 - 卡牌在路灯花存活时显示挡位、取整燃料值和比例条；点击卡牌/本体展开
   `CardSlotManager` 持有的 0/I/II/III 瞬态菜单。菜单直接对齐路灯花卡槽下方，允许覆盖天气
-  面板，不属于天气栏目且不进入存档。
+  面板，不属于天气栏目且不进入存档。菜单不再随 CardUI 的普通对象绘制，而由
+  `GameScene::BuildDrawCommands` 在天气面板与失败提示之后注册独立 UI 命令，确保视觉位于其上。
 - 资源键为 `IMAGE_MISTFUEL`，权威文件
   `build/clang-release/resources/image/MistFuel.png`；因 build 被忽略，提交须 `git add -f`。
 
@@ -47,4 +48,5 @@ metadata:
   无路灯花废弃、死亡重种和真实挡位按钮点击；关键截图已目验。
 - 原有 `smoke_fog_weather` 148 条命令可见回归 exit 0，确认无路灯花时雾势、台风驱散及
   雾存档不变。
+- 2026-07-29 菜单层级修复完成 `clang-playtest` 零错误构建；主人明确本次不运行 AutoTest。
 - 设计定稿见 `docs/superpowers/specs/2026-07-29-plantern-fog-core-design.md`。

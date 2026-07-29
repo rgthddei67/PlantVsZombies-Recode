@@ -47,6 +47,8 @@ public:
 	/** 点击路灯花卡片或本体时切换挡位菜单。 */
 	void TogglePlanternGearMenu();
 	bool IsPlanternGearMenuOpen() const { return mPlanternGearMenuOpen; }
+	/** 在场景顶层 UI 阶段绘制挡位菜单，确保它覆盖天气预报板。 */
+	void DrawPlanternGearMenu(Graphics* g);
 
 	bool CanAfford(int cost) const;   // 开发者作弊（无视阳光）守卫在 .cpp，避免头文件引 GameAPP.h
 	/** 同时检查阳光与该植物的本关累计种植次数。 */
@@ -89,7 +91,6 @@ private:
 	void PlacePlantInCell(int row, int col);
 	Card* FindPlanternCard() const;
 	void UpdatePlanternGearMenuInput();
-	void DrawPlanternGearMenu(Graphics* g);
 };
 
 #endif

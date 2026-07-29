@@ -100,6 +100,7 @@ const bool isRaining = rain != RainIntensity::CLEAR;
 | 天气玩法存档 | `GameInfoSaver.cpp` 搜索 `rainIntensity` | `Board` 天气先恢复，再加载实体 |
 | 天气 UI 请求 | `BoardPresentation.h` / `GameScene` 实现 | `Board` 不包含具体 `GameScene`，也不持有 UI 计时 |
 | 天气 UI 存档 | `CaptureWeatherPresentationState` / `RestoreWeatherPresentationState` | 经展示端口保存可重建的视觉瞬态，不得影响玩法 |
+| 天气面板上方交互浮层 | `GameScene::BuildDrawCommands` / `PlanternGearMenu` | `GameObjects` 命令整体早于天气面板；需另注册更晚的 UI 绘制命令，不能只提高组件所属对象层级 |
 | 存档版本升级 | `SaveSchema::UpgradeLevelDocument` | 升级成功后才允许修改 `Board` 或实体 |
 | 天气 AutoTest 状态 | `TestDriver.cpp` 搜索 `out["weather"]` | 浮点另给整数投影；闪电路径暴露激活、主干/分叉段数与落点 X |
 | 雾势玩法与绘制 | `Board::UpdateFog*` / `GameScene::DrawFog` | Board 持状态；GameScene 只按 getter 绘制 |

@@ -109,7 +109,9 @@
 `WeatherTypes.h`，而 `Board` 只通过非拥有的 `BoardPresentation` 请求警报、揭晓提示、
 失败提示和程序化闪电。`GameInfoSaver` 经同一端口保存/恢复展板与失败提示的剩余时间，
 这些字段仍只是 UI 瞬态，不得反向参与天气抽取或创建第二份天气状态。寒冰菇闪屏也走展示端口，
-但继续与大雨局部闪电保持两套独立视觉契约。当前桌面可见
+但继续与大雨局部闪电保持两套独立视觉契约。路灯花挡位菜单需要覆盖天气展板，因此不再依赖
+CardUI 所在的 `GameObjects` 命令，而在 `GameScene::BuildDrawCommands` 中以更晚的独立 UI
+命令绘制；天气展板本身的层级与状态所有权不变。当前桌面可见
 `smoke_weather_forecast` 58 条和含天气状态的 `smoke_crater_card_select` 33 条均通过，
 退出码为 0，错误预报、当前天气展板和轮间恢复截图已检查。
 
