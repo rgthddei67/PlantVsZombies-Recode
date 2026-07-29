@@ -133,7 +133,9 @@ namespace {
 		{ "MEDIUM", RainIntensity::MEDIUM }, { "HEAVY", RainIntensity::HEAVY },
 	};
 	const std::unordered_map<std::string, FogWeatherIntensity> kFogWeatherIntensityNames = {
-		{ "CLEAR", FogWeatherIntensity::CLEAR },
+		{ "DEFAULT", FogWeatherIntensity::DEFAULT },
+		{ "SMALL", FogWeatherIntensity::SMALL },
+		{ "NORMAL", FogWeatherIntensity::NORMAL },
 		{ "DENSE", FogWeatherIntensity::DENSE },
 	};
 	const std::unordered_map<std::string, TyphoonStrength> kTyphoonStrengthNames = {
@@ -194,7 +196,12 @@ namespace {
 		return "UNKNOWN";
 	}
 	std::string FogWeatherIntensityName(FogWeatherIntensity intensity) {
-		for (const auto& [k, v] : kFogWeatherIntensityNames) if (v == intensity) return k;
+		switch (intensity) {
+		case FogWeatherIntensity::DEFAULT: return "DEFAULT";
+		case FogWeatherIntensity::SMALL:  return "SMALL";
+		case FogWeatherIntensity::NORMAL: return "NORMAL";
+		case FogWeatherIntensity::DENSE:  return "DENSE";
+		}
 		return "UNKNOWN";
 	}
 	std::string TyphoonStrengthName(TyphoonStrength strength) {
@@ -473,7 +480,7 @@ bool TestDriver::ExecuteCurrent() {
 		if (it == kFogWeatherIntensityNames.end()
 			|| !gs->GetBoard()->SetFogWeatherForTesting(
 				it->second, cmd.value("duration", 30.0f))) {
-			Fail("set_fog_weather: intensity 必须是 CLEAR/DENSE，且当前必须是四大关");
+			Fail("set_fog_weather: intensity 必须是 DEFAULT/SMALL/NORMAL/DENSE，且当前必须是四大关");
 			return false;
 		}
 		return true;
@@ -490,7 +497,7 @@ bool TestDriver::ExecuteCurrent() {
 			|| actualIt == kFogWeatherIntensityNames.end()
 			|| !gs->GetBoard()->SetFogWeatherForecastForTesting(
 				forecastIt->second, actualIt->second, cmd.value("revealIn", 1.0f))) {
-			Fail("set_fog_forecast: forecast/actual 必须是 CLEAR/DENSE，且当前必须是已初始化的四大关");
+			Fail("set_fog_forecast: forecast/actual 必须是 DEFAULT/SMALL/NORMAL/DENSE，且当前必须是已初始化的四大关");
 			return false;
 		}
 		return true;
@@ -1398,6 +1405,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "weatherSupported", board->SupportsFogWeather() },
 			{ "initialized", board->IsFogWeatherInitialized() },
 			{ "intensity", FogWeatherIntensityName(board->GetFogWeatherIntensity()) },
+			{ "layerCount", board->GetFogLayerCount() },
 			{ "baseLeftColumn", board->GetBaseFogLeftColumn() },
 			{ "effectiveLeftColumn", board->GetEffectiveFogLeftColumn() },
 			{ "drawRows", board->GetFogDrawRowCount() },

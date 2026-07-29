@@ -9,11 +9,13 @@ enum class RainIntensity {
 };
 
 /**
- * 四大关独立雾势；它与雨势正交，因此大雾可以和任意雨档、台风同时存在。
- * CLEAR 只表示没有额外“大雾天气”，不会删除关卡自身的基础迷雾。
+ * 四大关独立雾势；它与雨势正交，因此任意雾势可以和任意雨档、台风同时存在。
+ * DEFAULT 对应原版基础覆盖，SMALL/NORMAL/DENSE 依次增加覆盖距离。
  */
 enum class FogWeatherIntensity {
-	CLEAR,
+	DEFAULT,
+	SMALL,
+	NORMAL,
 	DENSE
 };
 

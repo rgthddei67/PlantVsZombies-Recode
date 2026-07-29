@@ -87,6 +87,31 @@ namespace {
 		}
 	}
 
+	void TestVersionTwoLevelUpgradePreservesFogStrength() {
+		nlohmann::json document = {
+			{ "schemaVersion", 2 },
+			{ "fogWeatherInitialized", true },
+			{ "fogWeatherIntensity", 0 },
+			{ "forecastFogWeatherIntensity", 1 },
+			{ "actualForecastFogWeatherIntensity", 0 },
+			{ "fogWeatherForecastReady", true }
+		};
+		std::string error;
+
+		Expect(SaveSchema::UpgradeLevelDocument(document, error),
+			"v2 关卡档应升级到四档雾势结构");
+		Expect(document["schemaVersion"] == SaveSchema::kCurrentLevelVersion,
+			"v2 关卡档应写入当前版本");
+		Expect(document["fogWeatherIntensity"] == 1,
+			"旧 CLEAR 的双层扩展表现应迁移为小雾");
+		Expect(document["forecastFogWeatherIntensity"] == 3,
+			"旧 DENSE 预报应继续表示大雾");
+		Expect(document["actualForecastFogWeatherIntensity"] == 1,
+			"旧 CLEAR 真实预报应迁移为小雾");
+		Expect(document["fogWeatherForecastReady"] == true,
+			"雾势枚举迁移不得改变预报锁定状态");
+	}
+
 	void TestFutureVersionIsRejectedTransactionally() {
 		nlohmann::json document = {
 			{ "schemaVersion", SaveSchema::kCurrentLevelVersion + 1 },
@@ -134,6 +159,7 @@ int main() {
 	TestCurrentLevelDocumentIsStable();
 	TestLegacyLevelUpgradePreservesGameplayState();
 	TestVersionOneLevelUpgradeDefersFogInitializationToBoard();
+	TestVersionTwoLevelUpgradePreservesFogStrength();
 	TestFutureVersionIsRejectedTransactionally();
 	TestInvalidRootAndVersionAreRejected();
 

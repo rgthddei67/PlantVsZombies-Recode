@@ -69,11 +69,9 @@ namespace {
 	};
 	constexpr std::array<FogLayerSpec, 3> kFogLayers = {{
 		{ 0.0f, 0.0f, 1.0f },                            // 主雾层：严格对齐原版格位
-		{ 37.0f, 26.0f, 0.72f },                         // 小雾补层：错开主层透明洞
+		{ 37.0f, 26.0f, 0.72f },                         // 小雾/普通迷雾补层：错开主层透明洞
 		{ -31.0f, -23.0f, 0.58f },                       // 大雾补层：继续填补前两层剩余缝隙
 	}};
-	constexpr int kBaseFogLayerCount = 2;                 // 小雾为原版主层加一层补雾
-	constexpr int kDenseFogLayerCount = 3;                // 大雾为原版主层加两层补雾
 
 	// 用平行线模拟可调粗细，避免为只持续数帧的闪电引入独立纹理或 shader。
 	void DrawLightningSegment(Graphics* g, const glm::vec2& from, const glm::vec2& to,
@@ -155,11 +153,13 @@ namespace {
 		return u8"未知";
 	}
 
-	/** 把独立雾势转换为天气面板名称；CLEAR 仍保留关卡基础迷雾。 */
+	/** 把独立雾势转换为天气面板名称。 */
 	const char* FogWeatherDisplayName(FogWeatherIntensity intensity) {
 		switch (intensity) {
-		case FogWeatherIntensity::CLEAR: return u8"普通迷雾";
-		case FogWeatherIntensity::DENSE: return u8"大雾";
+		case FogWeatherIntensity::DEFAULT: return u8"原版迷雾";
+		case FogWeatherIntensity::SMALL:  return u8"小雾";
+		case FogWeatherIntensity::NORMAL: return u8"普通迷雾";
+		case FogWeatherIntensity::DENSE:  return u8"大雾";
 		}
 		return u8"未知雾势";
 	}
@@ -252,8 +252,7 @@ void GameScene::DrawFog(Graphics* g) const
 	};
 	auto& resources = ResourceManager::GetInstance();
 	const int drawRows = mBoard->GetFogDrawRowCount();
-	const int layerCount = mBoard->IsDenseFogWeather()
-		? kDenseFogLayerCount : kBaseFogLayerCount;
+	const int layerCount = mBoard->GetFogLayerCount();
 
 	for (int row = 0; row < drawRows; ++row) {
 		for (int col = 0; col < mBoard->mColumns; ++col) {
@@ -411,8 +410,9 @@ void GameScene::DrawWeatherPanel(Graphics* g) const
 
 	std::string currentLine = std::string(u8"当前天气：")
 		+ RainIntensityDisplayName(mBoard->GetRainIntensity());
-	if (mBoard->IsDenseFogWeather()) {
-		currentLine += u8" · 大雾";
+	if (mBoard->SupportsStageFog()) {
+		currentLine += std::string(u8" · ")
+			+ FogWeatherDisplayName(mBoard->GetFogWeatherIntensity());
 	}
 	if (mBoard->HasTyphoon()) {
 		currentLine += std::string(u8" · ")
@@ -450,10 +450,16 @@ void GameScene::DrawWeatherPanel(Graphics* g) const
 		if (mBoard->GetForecastFogWeatherIntensity() == mBoard->GetFogWeatherIntensity()) {
 			fogLine += u8"（持续）";
 		}
-		const glm::vec4 fogColor = mBoard->GetForecastFogWeatherIntensity()
-			== FogWeatherIntensity::DENSE
-			? glm::vec4(218.0f, 226.0f, 238.0f, alpha)
-			: glm::vec4(164.0f, 191.0f, 207.0f, alpha);
+		glm::vec4 fogColor(151.0f, 181.0f, 199.0f, alpha);
+		if (mBoard->GetForecastFogWeatherIntensity() == FogWeatherIntensity::SMALL) {
+			fogColor = glm::vec4(172.0f, 197.0f, 213.0f, alpha);
+		}
+		else if (mBoard->GetForecastFogWeatherIntensity() == FogWeatherIntensity::NORMAL) {
+			fogColor = glm::vec4(190.0f, 208.0f, 222.0f, alpha);
+		}
+		else if (mBoard->GetForecastFogWeatherIntensity() == FogWeatherIntensity::DENSE) {
+			fogColor = glm::vec4(218.0f, 226.0f, 238.0f, alpha);
+		}
 		g->DrawText(fogLine, ResourceKeys::Fonts::FONT_FZCQ, kWeatherWindFontSize,
 			shadow, textX + 1.0f, detailLineY + 1.0f);
 		g->DrawText(fogLine, ResourceKeys::Fonts::FONT_FZCQ, kWeatherWindFontSize,

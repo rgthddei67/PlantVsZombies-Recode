@@ -40,9 +40,10 @@ const bool isRaining = rain != RainIntensity::CLEAR;
 
 ## 独立雾势与跨天气联动
 
-`FogWeatherIntensity::CLEAR/DENSE` 与 `RainIntensity` 并列声明在 `WeatherTypes.h`。`CLEAR`
-只表示没有额外大雾事件，四大关的基础小雾仍由关卡派生。雾势有自己的阶段计时、准确预报和
-存档字段；不要借用雨势误报候选、雨势阶段计时或把大雾伪装成某档雨。
+`FogWeatherIntensity::DEFAULT/SMALL/NORMAL/DENSE` 与 `RainIntensity` 并列声明在
+`WeatherTypes.h`。`DEFAULT` 是原版基础覆盖，另外三档是独立增强事件；雾势有自己的阶段计时、
+准确预报和存档字段，不要借用雨势误报候选、雨势阶段计时或把雾势伪装成某档雨。当前阶段循环
+是“默认雾休整 → 小雾/普通迷雾/大雾事件 → 默认雾休整”，因此增强事件不会无限续期。
 
 跨天气交互只发生在 `Board::UpdateFogDispersal`：雾势读取既有
 `TyphoonStrength/WindDirection` 推进驱散比例与有符号视觉偏移，但不反向修改雨势、台风强度
@@ -51,15 +52,17 @@ const bool isRaining = rain != RainIntensity::CLEAR;
 四大关雾线分两层语义：
 
 - `GetBaseFogLeftColumn()` 保存由关卡编号换算的原版基准。
-- `GetEffectiveFogLeftColumn()` 再应用当前平衡扩展；当前小雾比基准多 1 格，大雾多 2 格。
+- `GetEffectiveFogLeftColumn()` 再应用当前平衡扩展；默认雾不扩格，小雾/普通迷雾/大雾依次多 1/2/3 格。
 
-`GameScene::DrawFog` 使用原生 210×190、8 帧 RGBA 雾片按 80×85 格距高重叠。小雾画
-2 层、大雾画 3 层，补层只换稳定帧并做小幅错位；禁止用固定白色矩形底幕填透明洞。
+`GameScene::DrawFog` 使用原生 210×190、8 帧 RGBA 雾片按 80×85 格距高重叠。默认雾只画
+原版主层，小雾与普通迷雾画 2 层，大雾画 3 层；补层只换稳定帧并做小幅错位，禁止用固定白色
+矩形底幕填透明洞。
 1100px 画面右侧收边必须使用另一稳定帧，不能直接照抄原版 800px 同帧尾片让透明洞重合。
 
-关卡 schema v2 保存雾势、预报、阶段计时、驱散和偏移。v1/无版本旧档没有足够上下文让纯迁移
-函数判断是否属于四大关，因此迁移只提升版本，加载端保留 `StartGame()` 已按当前 Board 建立的
-基础雾；只有文档确实包含雾势字段时才调用 `RestoreFogState()`。
+关卡 schema v3 保存雾势、预报、阶段计时、驱散和偏移。v2 的旧 `CLEAR/DENSE` 二态必须迁移
+为视觉等价的 `SMALL/DENSE`，不能把旧双层 `CLEAR` 误降为单层默认雾。v1/无版本旧档没有足够
+上下文让纯迁移函数判断是否属于四大关，因此加载端保留 `StartGame()` 已按当前 Board 建立的
+原版默认雾；只有文档确实包含雾势字段时才调用 `RestoreFogState()`。
 
 ## 源码钟点
 
@@ -176,7 +179,7 @@ const bool isRaining = rain != RainIntensity::CLEAR;
 - `set_weather_forecast`：固定公开/真实天气和揭晓时刻。
 - `advance_weather_phase`：用权重落点强制结束雨段，并立即完成过渡。
 - `trigger_lightning`：只允许大雨；生成固定到本次放电结束的程序化主干与分叉，不复用寒冰菇的全屏白闪。
-- `set_fog_weather`：固定四大关 `CLEAR/DENSE` 雾势与持续时间。
+- `set_fog_weather`：固定四大关 `DEFAULT/SMALL/NORMAL/DENSE` 雾势与持续时间。
 - `set_fog_forecast`：固定公开/真实雾势与揭晓时刻；当前雾势预报保持准确。
 - `set_fog_dispersal`：固定 `0..1` 驱散比例，供存档与渲染状态测试。
 

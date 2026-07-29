@@ -79,16 +79,17 @@ namespace {
 	constexpr int kLateWeatherForecastAccuracyPercent = 95; // 满压力天气预警准确率上限（百分比）
 	constexpr float kFirstFogWeatherDelayMin = 45.0f;    // 四大关开局到首次独立雾势抽取的最短游戏秒
 	constexpr float kFirstFogWeatherDelayMax = 70.0f;    // 四大关开局到首次独立雾势抽取的最长游戏秒
-	constexpr float kClearFogWeatherDurationMin = 50.0f; // 无额外大雾阶段的最短持续游戏秒
-	constexpr float kClearFogWeatherDurationMax = 80.0f; // 无额外大雾阶段的最长持续游戏秒
-	constexpr float kDenseFogWeatherDurationMin = 35.0f; // 一次大雾天气的最短持续游戏秒
-	constexpr float kDenseFogWeatherDurationMax = 55.0f; // 一次大雾天气的最长持续游戏秒
+	constexpr float kDefaultFogWeatherDurationMin = 50.0f; // 原版默认雾休整阶段的最短持续游戏秒
+	constexpr float kDefaultFogWeatherDurationMax = 80.0f; // 原版默认雾休整阶段的最长持续游戏秒
+	constexpr float kElevatedFogWeatherDurationMin = 35.0f; // 小雾、普通迷雾或大雾事件的最短持续游戏秒
+	constexpr float kElevatedFogWeatherDurationMax = 55.0f; // 小雾、普通迷雾或大雾事件的最长持续游戏秒
 	constexpr float kFogWeatherForecastLeadTime = 15.0f; // 独立雾势揭晓前展示预报的游戏秒
-	constexpr int kDenseFogChancePercent = 35;           // 四大关前期每次雾势抽取进入大雾的概率
-	constexpr int kLateDenseFogChancePercent = 55;       // 满压力时每次雾势抽取进入大雾的概率
-	constexpr int kBaseFogColumnExpansion = 1;           // 小雾相对原版雾线向房屋方向额外覆盖的棋盘列数
-	constexpr int kDenseFogColumnExpansion = 2;          // 大雾相对原版雾线向房屋方向额外覆盖的棋盘列数
-	constexpr float kBaseFogEdgeAlpha = 200.0f;          // 基础雾最左边缘格的目标 alpha
+	constexpr int kDenseFogChancePercent = 45;           // 四大关前期每次雾势抽取进入大雾的概率
+	constexpr int kLateDenseFogChancePercent = 85;       // 满压力时每次雾势抽取进入大雾的概率
+	constexpr int kSmallFogColumnExpansion = 1;          // 小雾相对原版雾线向房屋方向额外覆盖的棋盘列数
+	constexpr int kNormalFogColumnExpansion = 2;         // 普通迷雾相对原版雾线向房屋方向额外覆盖的棋盘列数
+	constexpr int kDenseFogColumnExpansion = 3;          // 大雾相对原版雾线向房屋方向额外覆盖的棋盘列数
+	constexpr float kBaseFogEdgeAlpha = 200.0f;          // 小雾和普通迷雾最左边缘格的目标 alpha
 	constexpr float kDenseFogEdgeAlpha = 225.0f;         // 大雾最左边缘格的目标 alpha
 	constexpr float kFogInteriorAlpha = 255.0f;          // 雾区内部格的目标 alpha
 	constexpr float kFogFillRate = 180.0f;               // 雾生成或回流时每游戏秒最多增加的 alpha
@@ -1054,7 +1055,7 @@ void Board::InitializeFogWeather()
 	}
 	if (!supportsFog) {
 		mFogWeatherInitialized = false;
-		mFogWeatherIntensity = FogWeatherIntensity::CLEAR;
+		mFogWeatherIntensity = FogWeatherIntensity::DEFAULT;
 		mFogWeatherTimer = 0.0f;
 		mFogDispersal = 0.0f;
 		mFogVisualOffsetX = 0.0f;
@@ -1065,7 +1066,7 @@ void Board::InitializeFogWeather()
 	if (mFogWeatherInitialized) return;
 
 	mFogWeatherInitialized = true;
-	mFogWeatherIntensity = FogWeatherIntensity::CLEAR;
+	mFogWeatherIntensity = FogWeatherIntensity::DEFAULT;
 	mFogWeatherTimer = GameRandom::Range(
 		kFirstFogWeatherDelayMin, kFirstFogWeatherDelayMax);
 	mFogDispersal = 0.0f;
@@ -1078,22 +1079,27 @@ void Board::InitializeFogWeather()
 void Board::ClearFogWeatherForecast()
 {
 	mFogWeatherForecastReady = false;
-	mForecastFogWeatherIntensity = FogWeatherIntensity::CLEAR;
-	mActualForecastFogWeatherIntensity = FogWeatherIntensity::CLEAR;
+	mForecastFogWeatherIntensity = FogWeatherIntensity::DEFAULT;
+	mActualForecastFogWeatherIntensity = FogWeatherIntensity::DEFAULT;
 }
 
-/** 按当前天气压力抽取下一雾势；大雾结束后必定先回到普通基础雾。 */
+/**
+ * 按“原版默认雾 → 小雾/普通迷雾/大雾事件 → 默认雾”的节奏抽取下一雾势。
+ * 大雾使用动态概率，剩余概率在小雾和普通迷雾之间尽量均分。
+ */
 FogWeatherIntensity Board::RollNextFogWeather(int forcedRoll)
 {
-	if (mFogWeatherIntensity == FogWeatherIntensity::DENSE) {
-		return FogWeatherIntensity::CLEAR;
+	if (mFogWeatherIntensity != FogWeatherIntensity::DEFAULT) {
+		return FogWeatherIntensity::DEFAULT;
 	}
 	const int roll = forcedRoll > 0
 		? std::clamp(forcedRoll, 1, 100)
 		: GameRandom::Range(1, 100);
-	return roll <= GetDenseFogChancePercent()
-		? FogWeatherIntensity::DENSE
-		: FogWeatherIntensity::CLEAR;
+	const int denseChance = GetDenseFogChancePercent();
+	if (roll <= denseChance) return FogWeatherIntensity::DENSE;
+	const int smallUpperBound = denseChance + (100 - denseChance + 1) / 2;
+	return roll <= smallUpperBound
+		? FogWeatherIntensity::SMALL : FogWeatherIntensity::NORMAL;
 }
 
 /**
@@ -1108,22 +1114,26 @@ void Board::PrepareFogWeatherForecast(int fogRoll)
 	mFogWeatherForecastReady = true;
 }
 
-/** 进入大雾天气；它只扩展基础雾覆盖，不修改雨势、台风或战斗目标选择。 */
-void Board::BeginDenseFog(float duration)
+/** 进入普通迷雾或大雾事件；只改变独立雾势，不修改雨势、台风或战斗目标选择。 */
+void Board::BeginFogWeather(FogWeatherIntensity intensity, float duration)
 {
-	const bool changed = mFogWeatherIntensity != FogWeatherIntensity::DENSE;
-	mFogWeatherIntensity = FogWeatherIntensity::DENSE;
+	if (intensity == FogWeatherIntensity::DEFAULT) {
+		EndFogWeather(duration);
+		return;
+	}
+	const bool changed = mFogWeatherIntensity != intensity;
+	mFogWeatherIntensity = intensity;
 	mFogWeatherTimer = std::max(duration, 0.1f);
 	ClearFogWeatherForecast();
 	if (changed && mPresentation) mPresentation->ShowCurrentWeatherNotice();
 }
 
-/** 离开大雾天气并重新安排下一次独立雾势抽取；基础关卡雾仍然存在。 */
-void Board::EndDenseFog(float clearDuration)
+/** 结束增强雾势并回到原版默认雾，随后重新安排下一次独立雾势抽取。 */
+void Board::EndFogWeather(float defaultDuration)
 {
-	const bool changed = mFogWeatherIntensity != FogWeatherIntensity::CLEAR;
-	mFogWeatherIntensity = FogWeatherIntensity::CLEAR;
-	mFogWeatherTimer = std::max(clearDuration, 0.1f);
+	const bool changed = mFogWeatherIntensity != FogWeatherIntensity::DEFAULT;
+	mFogWeatherIntensity = FogWeatherIntensity::DEFAULT;
+	mFogWeatherTimer = std::max(defaultDuration, 0.1f);
 	ClearFogWeatherForecast();
 	if (changed && mPresentation) mPresentation->ShowCurrentWeatherNotice();
 }
@@ -1133,13 +1143,13 @@ void Board::ConsumeFogWeatherForecast()
 {
 	if (!mFogWeatherForecastReady) PrepareFogWeatherForecast();
 	const FogWeatherIntensity next = mActualForecastFogWeatherIntensity;
-	if (next == FogWeatherIntensity::DENSE) {
-		BeginDenseFog(GameRandom::Range(
-			kDenseFogWeatherDurationMin, kDenseFogWeatherDurationMax));
+	if (next != FogWeatherIntensity::DEFAULT) {
+		BeginFogWeather(next, GameRandom::Range(
+			kElevatedFogWeatherDurationMin, kElevatedFogWeatherDurationMax));
 		return;
 	}
-	EndDenseFog(GameRandom::Range(
-		kClearFogWeatherDurationMin, kClearFogWeatherDurationMax));
+	EndFogWeather(GameRandom::Range(
+		kDefaultFogWeatherDurationMin, kDefaultFogWeatherDurationMax));
 }
 
 /** 独立推进雾势阶段和预报；暂停与倍速都跟随 Board 的游戏时间。 */
@@ -1157,8 +1167,8 @@ void Board::UpdateFogWeather(float deltaTime)
 }
 
 /**
- * 持续台风累积驱散雾，停风后只让关卡基础雾回流。
- * 大雾天气一旦被完全吹散便提前结束，不会在同一事件中重新生成。
+ * 持续台风累积驱散雾，停风后让当前档位的雾回流。
+ * 任一增强雾势事件被完全吹散后提前结束，并回到原版默认雾休整。
  */
 void Board::UpdateFogDispersal(float deltaTime)
 {
@@ -1182,14 +1192,14 @@ void Board::UpdateFogDispersal(float deltaTime)
 	mFogVisualOffsetX += std::clamp(
 		targetOffsetX - mFogVisualOffsetX, -maxOffsetDelta, maxOffsetDelta);
 
-	if (mFogWeatherIntensity == FogWeatherIntensity::DENSE
+	if (mFogWeatherIntensity != FogWeatherIntensity::DEFAULT
 		&& mFogDispersal >= 0.999f) {
-		EndDenseFog(GameRandom::Range(
-			kClearFogWeatherDurationMin, kClearFogWeatherDurationMax));
+		EndFogWeather(GameRandom::Range(
+			kDefaultFogWeatherDurationMin, kDefaultFogWeatherDurationMax));
 	}
 }
 
-/** 把关卡覆盖、大雾扩展和台风驱散合成为逐格平滑 alpha。 */
+/** 把关卡基准、三档增强雾势扩展和台风驱散合成为逐格平滑 alpha。 */
 void Board::UpdateFogCellAlpha(float deltaTime)
 {
 	const int drawRows = GetFogDrawRowCount();
@@ -1234,13 +1244,13 @@ void Board::RestoreFogState(bool initialized, FogWeatherIntensity intensity,
 {
 	mFogWeatherInitialized = initialized && SupportsFogWeather();
 	mFogWeatherIntensity = mFogWeatherInitialized
-		? intensity : FogWeatherIntensity::CLEAR;
+		? intensity : FogWeatherIntensity::DEFAULT;
 	mFogWeatherTimer = mFogWeatherInitialized ? std::max(0.0f, timer) : 0.0f;
 	mFogWeatherForecastReady = mFogWeatherInitialized && forecastReady;
 	mForecastFogWeatherIntensity = mFogWeatherForecastReady
-		? forecast : FogWeatherIntensity::CLEAR;
+		? forecast : FogWeatherIntensity::DEFAULT;
 	mActualForecastFogWeatherIntensity = mFogWeatherForecastReady
-		? actual : FogWeatherIntensity::CLEAR;
+		? actual : FogWeatherIntensity::DEFAULT;
 	mFogDispersal = mFogWeatherInitialized
 		? std::clamp(dispersal, 0.0f, 1.0f) : 0.0f;
 	mFogVisualOffsetX = mFogWeatherInitialized
@@ -2207,11 +2217,11 @@ bool Board::SetFogWeatherForTesting(FogWeatherIntensity intensity, float duratio
 	mFogDispersal = 0.0f;
 	mFogVisualOffsetX = 0.0f;
 	ClearFogWeatherForecast();
-	if (intensity == FogWeatherIntensity::DENSE) {
-		BeginDenseFog(std::max(duration, 0.1f));
+	if (intensity == FogWeatherIntensity::DEFAULT) {
+		EndFogWeather(std::max(duration, 0.1f));
 	}
 	else {
-		EndDenseFog(std::max(duration, 0.1f));
+		BeginFogWeather(intensity, std::max(duration, 0.1f));
 	}
 	return mFogWeatherIntensity == intensity;
 }
@@ -2386,12 +2396,29 @@ int Board::GetBaseFogLeftColumn() const
 	return std::min(4, mColumns - 1);
 }
 
+int Board::GetFogLayerCount() const
+{
+	if (!SupportsStageFog()) return 0;
+	switch (mFogWeatherIntensity) {
+	case FogWeatherIntensity::DEFAULT: return 1;
+	case FogWeatherIntensity::SMALL:  return 2;
+	case FogWeatherIntensity::NORMAL: return 2;
+	case FogWeatherIntensity::DENSE:  return 3;
+	}
+	return 1;
+}
+
 int Board::GetEffectiveFogLeftColumn() const
 {
 	const int baseColumn = GetBaseFogLeftColumn();
 	if (!SupportsStageFog()) return baseColumn;
-	const int expansion = IsDenseFogWeather()
-		? kDenseFogColumnExpansion : kBaseFogColumnExpansion;
+	int expansion = 0;
+	switch (mFogWeatherIntensity) {
+	case FogWeatherIntensity::DEFAULT: break;
+	case FogWeatherIntensity::SMALL:  expansion = kSmallFogColumnExpansion; break;
+	case FogWeatherIntensity::NORMAL: expansion = kNormalFogColumnExpansion; break;
+	case FogWeatherIntensity::DENSE:  expansion = kDenseFogColumnExpansion; break;
+	}
 	return std::max(0, baseColumn - expansion);
 }
 

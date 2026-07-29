@@ -729,35 +729,35 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 		&& j.value("rainCanHold", false);
 	if (j.contains("fogWeatherIntensity")) {
 		const int fogWeatherValue = j.value("fogWeatherIntensity",
-			static_cast<int>(FogWeatherIntensity::CLEAR));
+			static_cast<int>(FogWeatherIntensity::DEFAULT));
 		const int forecastFogWeatherValue = j.value("forecastFogWeatherIntensity",
-			static_cast<int>(FogWeatherIntensity::CLEAR));
+			static_cast<int>(FogWeatherIntensity::DEFAULT));
 		const int actualForecastFogWeatherValue = j.value("actualForecastFogWeatherIntensity",
-			static_cast<int>(FogWeatherIntensity::CLEAR));
+			static_cast<int>(FogWeatherIntensity::DEFAULT));
 		const bool validFogWeather = fogWeatherValue
-			>= static_cast<int>(FogWeatherIntensity::CLEAR)
+			>= static_cast<int>(FogWeatherIntensity::DEFAULT)
 			&& fogWeatherValue <= static_cast<int>(FogWeatherIntensity::DENSE);
 		const bool validForecastFogWeather = forecastFogWeatherValue
-			>= static_cast<int>(FogWeatherIntensity::CLEAR)
+			>= static_cast<int>(FogWeatherIntensity::DEFAULT)
 			&& forecastFogWeatherValue <= static_cast<int>(FogWeatherIntensity::DENSE);
 		const bool validActualForecastFogWeather = actualForecastFogWeatherValue
-			>= static_cast<int>(FogWeatherIntensity::CLEAR)
+			>= static_cast<int>(FogWeatherIntensity::DEFAULT)
 			&& actualForecastFogWeatherValue <= static_cast<int>(FogWeatherIntensity::DENSE);
 		const bool fogForecastReady = j.value("fogWeatherForecastReady", false)
 			&& j.contains("actualForecastFogWeatherIntensity")
 			&& validForecastFogWeather && validActualForecastFogWeather;
-		// 基础雾由关卡派生；这里只恢复会影响未来抽取、台风回流和当前大雾结果的状态。
+		// 关卡基准由当前进度派生；这里只恢复雾势、未来抽取和台风驱散结果。
 		board->RestoreFogState(
 			j.value("fogWeatherInitialized", true),
 			validFogWeather
 				? static_cast<FogWeatherIntensity>(fogWeatherValue)
-				: FogWeatherIntensity::CLEAR,
+				: FogWeatherIntensity::DEFAULT,
 			fogForecastReady
 				? static_cast<FogWeatherIntensity>(forecastFogWeatherValue)
-				: FogWeatherIntensity::CLEAR,
+				: FogWeatherIntensity::DEFAULT,
 			fogForecastReady
 				? static_cast<FogWeatherIntensity>(actualForecastFogWeatherValue)
-				: FogWeatherIntensity::CLEAR,
+				: FogWeatherIntensity::DEFAULT,
 			j.value("fogWeatherTimer", 0.0f), fogForecastReady,
 			j.value("fogDispersal", 0.0f), j.value("fogVisualOffsetX", 0.0f));
 	}

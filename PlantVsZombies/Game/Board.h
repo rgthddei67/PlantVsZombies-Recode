@@ -172,11 +172,11 @@ private:
 	bool mRainCanHold = false;          // 新雨首段为中/大雨时允许一次同档续期，避免无限维持
 	bool mWeatherForecastReady = false; // true 表示公开预报与真实下一天气均已锁定、等待揭晓
 
-	// 四大关迷雾是独立于雨势的环境层：基础雾由关卡派生，大雾天气、预报与台风驱散才持久化。
-	FogWeatherIntensity mFogWeatherIntensity = FogWeatherIntensity::CLEAR;
-	FogWeatherIntensity mForecastFogWeatherIntensity = FogWeatherIntensity::CLEAR;
-	FogWeatherIntensity mActualForecastFogWeatherIntensity = FogWeatherIntensity::CLEAR;
-	float mFogWeatherTimer = 0.0f;      // CLEAR 时距下一次雾势抽取，DENSE 时为大雾剩余游戏秒
+	// 四大关迷雾是独立于雨势的环境层：原版默认雾、增强雾势、预报与台风驱散均由 Board 持有。
+	FogWeatherIntensity mFogWeatherIntensity = FogWeatherIntensity::DEFAULT;
+	FogWeatherIntensity mForecastFogWeatherIntensity = FogWeatherIntensity::DEFAULT;
+	FogWeatherIntensity mActualForecastFogWeatherIntensity = FogWeatherIntensity::DEFAULT;
+	float mFogWeatherTimer = 0.0f;      // DEFAULT 时距下一次增强雾势，其余档位为本次事件剩余游戏秒
 	float mFogDispersal = 0.0f;         // 台风累积驱散比例（0～1）；停风后缓慢回落，基础雾随之回流
 	float mFogVisualOffsetX = 0.0f;     // 随实时风向平滑漂移的纯视觉横向偏移，单位像素
 	float mFogAnimationTime = 0.0f;     // 雾纹理轻微呼吸的游戏秒计时；纯视觉，不入存档
@@ -252,8 +252,8 @@ private:
 	FogWeatherIntensity RollNextFogWeather(int forcedRoll = 0);
 	void PrepareFogWeatherForecast(int fogRoll = 0);
 	void ConsumeFogWeatherForecast();
-	void BeginDenseFog(float duration);
-	void EndDenseFog(float clearDuration);
+	void BeginFogWeather(FogWeatherIntensity intensity, float duration);
+	void EndFogWeather(float defaultDuration);
 	void ClearFogWeatherForecast();
 	void RestoreFogState(bool initialized, FogWeatherIntensity intensity,
 		FogWeatherIntensity forecast, FogWeatherIntensity actual,
@@ -404,9 +404,11 @@ public:
 	bool IsDenseFogWeather() const {
 		return mFogWeatherIntensity == FogWeatherIntensity::DENSE;
 	}
+	/** 当前雾势的渲染层数：默认 1 层，小雾/普通迷雾 2 层，大雾 3 层。 */
+	int GetFogLayerCount() const;
 	/** 当前基础迷雾最左列；无迷雾关卡返回棋盘列数。 */
 	int GetBaseFogLeftColumn() const;
-	/** 合并大雾天气后的目标最左列，不受短时台风透明度影响。 */
+	/** 合并当前雾势扩展后的目标最左列，不受短时台风透明度影响。 */
 	int GetEffectiveFogLeftColumn() const;
 	/** 当前雾场用于绘制的行数；泳池六行外再保留一条底部收边。 */
 	int GetFogDrawRowCount() const { return SupportsStageFog() ? mRows + 1 : 0; }
@@ -470,7 +472,7 @@ public:
 
 	// AutoTest 专用：固定雨势并重启对应粒子，真实游戏只走随机天气状态机。
 	void SetRainForTesting(RainIntensity intensity, float duration = 30.0f, bool canIntensify = false);
-	// AutoTest 专用：固定当前独立雾势并清除预报；基础关卡雾始终保留。
+	// AutoTest 专用：固定小雾/普通迷雾/大雾并清除预报。
 	bool SetFogWeatherForTesting(FogWeatherIntensity intensity, float duration = 30.0f);
 	// AutoTest 专用：固定公开与真实雾势预报，并在指定游戏秒后揭晓。
 	bool SetFogWeatherForecastForTesting(FogWeatherIntensity forecast,
@@ -514,7 +516,7 @@ public:
 	bool SupportsWeather() const;
 	/** 四大关夜间泳池是否拥有不依赖天气的基础迷雾。 */
 	bool SupportsStageFog() const;
-	/** 当前仅四大关抽取独立大雾天气；接口预留给未来其他地图。 */
+	/** 当前仅四大关抽取独立增强雾势；接口预留给未来其他地图。 */
 	bool SupportsFogWeather() const;
 	bool IsPoolRow(int row) const;
 	bool IsPoolSquare(int row, int col) const;
