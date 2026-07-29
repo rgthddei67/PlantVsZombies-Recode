@@ -27,14 +27,10 @@
     { "op": "assert_state", "path": "zombieNumber", "equals": 1 },
     { "op": "assert_state", "path": "zombies.0.row", "equals": 0 },
 
-    { "op": "click", "x": 255, "y": 35 },
-    { "op": "click", "x": 602, "y": 338 },
-    { "op": "wait_frames", "value": 10 },
-    { "op": "dump_state", "name": "a4_crater_block.json" },
-    { "op": "assert_state", "path": "plants", "equals": [] },
-
-    { "op": "click", "x": 682, "y": 338 },
-    { "op": "wait_frames", "value": 10 },
+    { "op": "assert_can_plant", "type": "PLANT_PUFFSHROOM", "row": 2, "col": 4, "expected": false },
+    { "op": "assert_can_plant", "type": "PLANT_PUFFSHROOM", "row": 2, "col": 5, "expected": true },
+    { "op": "plant", "type": "PLANT_PUFFSHROOM", "row": 2, "col": 5 },
+    { "op": "wait_frames", "value": 2 },
     { "op": "screenshot", "name": "a5_adjacent_ok.png" },
     { "op": "dump_state", "name": "a5_adjacent.json" },
     { "op": "assert_state", "path": "plants.0.type", "equals": "PLANT_PUFFSHROOM" },

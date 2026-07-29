@@ -7,6 +7,14 @@
 #include "../ResourceKeys.h"
 #include "../DeltaTime.h"
 #include <algorithm>
+#include <cmath>
+
+namespace {
+	constexpr float kPoolBobAmplitude = 2.0f;	// 水格弹坑随水面上下浮动的振幅，单位：像素
+	constexpr float kPoolBobRadiansPerFrame = 3.14159265f / 60.0f;	// 60Hz 下两秒完成一个浮动周期
+	constexpr float kPoolBobRowPhase = 3.14159265f;	// 相邻水路交错半个浮动周期
+	constexpr float kPoolBobColumnPhase = 3.14159265f / 4.0f;	// 相邻列错开八分之一浮动周期
+}
 
 Crater::Crater(Board* board, int row, int column, float timeLeft)
 	: GameObject(ObjectType::OBJECT_NONE)
@@ -43,16 +51,7 @@ void Crater::Update()
 
 void Crater::Draw(Graphics* g)
 {
-	using namespace ResourceKeys::Textures;
-
-	// 贴图选择镜像原版：黑夜列 1 / 白天列 0；剩余时间过半后换消退版
-	const bool night = mBoard
-		&& GameAPP::GetInstance().GetBackgroundIsNight(mBoard->mBackGround);
-	const bool fading = mTimeLeft < CRATER_DURATION * 0.5f;
-	const std::string& key = fading
-		? (night ? IMAGE_CRATER_FADING_PART_1 : IMAGE_CRATER_FADING_PART_0)
-		: (night ? IMAGE_CRATER_PART_1 : IMAGE_CRATER_PART_0);
-	auto tex = ResourceManager::GetInstance().GetTexture(key);
+	auto tex = ResourceManager::GetInstance().GetTexture(GetTextureKey());
 	if (!tex) return;
 
 	float alpha = 255.0f;
@@ -61,7 +60,40 @@ void Crater::Draw(Graphics* g)
 	}
 
 	Vector pos = mTransform ? mTransform->GetPosition() : Vector::zero();
+	if (mBoard && mBoard->IsPoolSquare(mRow, mColumn)) {
+		// 水格弹坑与水面植物共用同一相位口径，避免贴图静止在浮动的睡莲之下。
+		const float phase = static_cast<float>(mBoard->mBoardFrame) * kPoolBobRadiansPerFrame
+			+ static_cast<float>(mRow) * kPoolBobRowPhase
+			+ static_cast<float>(mColumn) * kPoolBobColumnPhase;
+		pos.y += std::sin(phase) * kPoolBobAmplitude;
+	}
 	g->DrawTexture(tex, pos.x, pos.y,
 		static_cast<float>(tex->width), static_cast<float>(tex->height),
 		0.0f, glm::vec4(255.0f, 255.0f, 255.0f, alpha));
+}
+
+const std::string& Crater::GetTextureKey() const
+{
+	using namespace ResourceKeys::Textures;
+
+	const bool night = mBoard
+		&& GameAPP::GetInstance().GetBackgroundIsNight(mBoard->mBackGround);
+	const bool fading = mTimeLeft < CRATER_DURATION * 0.5f;
+
+	// 地形优先于整张背景：泳池关的陆地行仍使用普通草地弹坑。
+	if (mBoard && mBoard->IsPoolSquare(mRow, mColumn)) {
+		if (night) {
+			return fading ? IMAGE_CRATER_WATER_NIGHT_PART_1
+				: IMAGE_CRATER_WATER_NIGHT_PART_0;
+		}
+		// 白天毁灭菇当前会睡眠，这条资源路径仍须保留给后续咖啡豆唤醒后的正式爆炸。
+		// TODO(coffee-bean): 咖啡豆落地后补“白天泳池唤醒毁灭菇→生成水格弹坑”的端到端用例。
+		return fading ? IMAGE_CRATER_WATER_DAY_PART_1
+			: IMAGE_CRATER_WATER_DAY_PART_0;
+	}
+
+	// TODO(roof): 屋顶玩法完成后，按斜坡/平面格接入已预留的 ROOF_LEFT/ROOF_CENTER 两套贴图与偏移。
+	return fading
+		? (night ? IMAGE_CRATER_FADING_PART_1 : IMAGE_CRATER_FADING_PART_0)
+		: (night ? IMAGE_CRATER_PART_1 : IMAGE_CRATER_PART_0);
 }

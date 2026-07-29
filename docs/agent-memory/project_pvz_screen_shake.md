@@ -24,4 +24,4 @@ metadata:
 - 爆炸帧定位：PS 生成密集 dump 探测脚本读 shakeOn 翻转。seed 42：樱桃=种下+1.0s+17~20帧（PlayTrack 速度随机但 seed 定即确定），毁灭菇=+1.2s+13~16帧（51帧@23fps）。
 - Add-Type 内联 C# LockBits SAD 搜 ±10px 整数平移。**教训：必须分管线选区域对测**——初版验证区域全是 batch 内容（房屋背景/UI 按钮），假绿放过了 reanim 不动；修复后用"割草机柱"（纯 reanim）与背景区对测三方吻合才算数。非零残差（21/110/129）本身就是"部分内容没动"的指纹，别忽略。毁灭菇爆炸后 ~15+ 帧全屏紫闪把画面冲成近纯色，闪内帧不可光学测（连 UI 区都会给错值），选闪后帧或靠 dump 断言。区域坐标从图像边缘内缩 range px 防越界。
 
-**附带发现（待查，非抖动回归）：** smoke_doomshroom.json 在 master 基线（stash 掉抖动改动重编译）就 FAIL at cmd#32：click 序列选中小喷菇卡后弹坑旁格 (682,338) 点击 plants=[]（小喷菇 0 阳光所以 sun 无线索）。两 build 逐帧一致=确定性。db73b07 时声称七阶段全过——疑 3918192 的 UpdatePlantPreviewPosition 弹坑改动后没复跑，或验收跑的别的 preset/seed。见 [project_pvz_doomshroom_crater](project_pvz_doomshroom_crater.md)。
+**附带发现（已于 2026-07-29 收口，非抖动回归）：** smoke_doomshroom.json 曾在 master 基线稳定 FAIL at cmd#32；复查确认脚本的卡槽坐标 click 没有可靠选中/落下小喷菇，原阻种断言也可能假绿。现改为 `assert_can_plant` 正式断言弹坑格 false、旁格 true，再直接种旁格对照；完整脚本当前桌面可见运行退出码 0。见 [project_pvz_doomshroom_crater](project_pvz_doomshroom_crater.md)。

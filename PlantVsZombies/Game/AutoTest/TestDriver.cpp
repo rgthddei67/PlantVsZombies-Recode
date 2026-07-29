@@ -586,6 +586,24 @@ bool TestDriver::ExecuteCurrent() {
 		board->CreateTrophy(Vector(cmd.value("x", 500.0f), cmd.value("y", 300.0f)));
 		return true;
 	}
+	if (op == "add_crater") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) { Fail("add_crater: 不在 GameScene 或 Board 为空"); return false; }
+		Board* board = gs->GetBoard();
+		const int row = cmd.value("row", -1);
+		const int col = cmd.value("col", -1);
+		const float timeLeft = cmd.value("timeLeft", Crater::CRATER_DURATION);
+		if (row < 0 || row >= board->mRows || col < 0 || col >= board->mColumns
+			|| timeLeft <= 0.0f) {
+			Fail("add_crater: row/col 必须在当前棋盘内，timeLeft 必须大于 0");
+			return false;
+		}
+		if (!board->AddCrater(row, col, timeLeft)) {
+			Fail("add_crater: Board::AddCrater 返回空");
+			return false;
+		}
+		return true;
+	}
 	if (op == "force_survival_round") {
 		GameScene* gs = CurrentGameScene();
 		if (!gs || !gs->GetBoard()) { Fail("force_survival_round: 不在 GameScene 或 Board 为空"); return false; }
@@ -1283,14 +1301,18 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		out["trophy"] = nullptr;
 	}
 
-	// 弹坑（毁灭菇）——阻种/消退冒烟的断言抓手；timeLeftInt 整数投影供 equals，浮点勿断言
+	// 弹坑（毁灭菇）——阻种/消退/地形外观的断言抓手；timeLeftInt 整数投影供 equals，浮点勿断言
 	out["craters"] = nlohmann::json::array();
 	for (auto& weak : board->mCraters) {
 		auto crater = weak.lock();
 		if (!crater || !crater->IsActive()) continue;
+		const std::string& textureKey = crater->GetTextureKey();
 		out["craters"].push_back({
 			{ "row", crater->mRow }, { "col", crater->mColumn },
 			{ "timeLeftInt", static_cast<int>(crater->mTimeLeft) },
+			{ "textureKey", textureKey },
+			{ "textureLoaded",
+				ResourceManager::GetInstance().GetTexture(textureKey, false) != nullptr },
 		});
 	}
 

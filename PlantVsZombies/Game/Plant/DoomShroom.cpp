@@ -2,6 +2,7 @@
 #include "../Crater.h"
 #include "../AudioSystem.h"
 #include "../ShadowComponent.h"
+#include <vector>
 
 void DoomShroom::SetupPlant()
 {
@@ -43,6 +44,23 @@ void DoomShroom::Explode()
 	if (!mBoard) return;
 	// 音效 + Doom 粒子（蘑菇云/DOOM 字样/紫屏闪）+ 半径 250 圆形结算都在 CreateDoomBoom 内
 	mBoard->CreateDoomBoom(GetPosition());
+	KillOtherPlantsInCell();
 	mBoard->AddCrater(mRow, mColumn, Crater::CRATER_DURATION);
 	Die();
+}
+
+void DoomShroom::KillOtherPlantsInCell()
+{
+	if (!mBoard) return;
+	// 原版按全部植物的逻辑 row/column 过滤；保留这一口径可覆盖以后新增的南瓜等额外层。
+	// 先复制 ID 列表，避免 Plant::Die 释放格位及延迟销毁时改变遍历来源。
+	const std::vector<int> plantIDs = mBoard->mEntityManager.GetAllPlantIDs();
+	for (const int plantID : plantIDs) {
+		if (plantID == mPlantID) continue;
+		Plant* plant = mBoard->mEntityManager.GetPlant(plantID);
+		if (plant && plant->IsActive()
+			&& plant->mRow == mRow && plant->mColumn == mColumn) {
+			plant->Die();
+		}
+	}
 }

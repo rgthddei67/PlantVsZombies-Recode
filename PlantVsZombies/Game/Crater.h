@@ -4,6 +4,7 @@
 
 #include "GameObject.h"
 #include "TransformComponent.h"
+#include <string>
 
 class Board;
 
@@ -22,6 +23,9 @@ public:
 
 	void Update() override;
 	void Draw(Graphics* g) override;
+
+	/** 返回当前格子地形、昼夜与寿命阶段共同决定的弹坑贴图键。 */
+	const std::string& GetTextureKey() const;
 
 private:
 	static constexpr float FADE_OUT_TIME = 0.25f;	// 原版 counter<25cs 起 alpha 线性淡出

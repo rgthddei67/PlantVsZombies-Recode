@@ -1,0 +1,38 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 19 },
+    { "op": "choose_cards", "cards": [] },
+    { "op": "wait_state", "state": "GAME" },
+    { "op": "add_crater", "row": 0, "col": 3, "timeLeft": 180 },
+    { "op": "add_crater", "row": 2, "col": 3, "timeLeft": 180 },
+    { "op": "add_crater", "row": 3, "col": 5, "timeLeft": 80 },
+    { "op": "wait_frames", "value": 2 },
+    { "op": "screenshot", "name": "day_pool_craters.png" },
+    { "op": "dump_state", "name": "day_pool_craters.json" },
+    { "op": "assert_state", "path": "background", "equals": "WATER_POOL" },
+    { "op": "assert_state", "path": "craters.0.textureKey", "equals": "IMAGE_CRATER_PART_0" },
+    { "op": "assert_state", "path": "craters.0.textureLoaded", "equals": true },
+    { "op": "assert_state", "path": "craters.1.textureKey", "equals": "IMAGE_CRATER_WATER_DAY_PART_0" },
+    { "op": "assert_state", "path": "craters.1.textureLoaded", "equals": true },
+    { "op": "assert_state", "path": "craters.2.textureKey", "equals": "IMAGE_CRATER_WATER_DAY_PART_1" },
+    { "op": "assert_state", "path": "craters.2.textureLoaded", "equals": true },
+
+    { "op": "goto_level", "level": 28 },
+    { "op": "choose_cards", "cards": [] },
+    { "op": "wait_state", "state": "GAME" },
+    { "op": "add_crater", "row": 0, "col": 3, "timeLeft": 180 },
+    { "op": "add_crater", "row": 2, "col": 3, "timeLeft": 180 },
+    { "op": "add_crater", "row": 3, "col": 5, "timeLeft": 80 },
+    { "op": "wait_frames", "value": 2 },
+    { "op": "screenshot", "name": "night_pool_craters.png" },
+    { "op": "dump_state", "name": "night_pool_craters.json" },
+    { "op": "assert_state", "path": "background", "equals": "NIGHT_WATER_POOL" },
+    { "op": "assert_state", "path": "craters.0.textureKey", "equals": "IMAGE_CRATER_PART_1" },
+    { "op": "assert_state", "path": "craters.0.textureLoaded", "equals": true },
+    { "op": "assert_state", "path": "craters.1.textureKey", "equals": "IMAGE_CRATER_WATER_NIGHT_PART_0" },
+    { "op": "assert_state", "path": "craters.1.textureLoaded", "equals": true },
+    { "op": "assert_state", "path": "craters.2.textureKey", "equals": "IMAGE_CRATER_WATER_NIGHT_PART_1" },
+    { "op": "assert_state", "path": "craters.2.textureLoaded", "equals": true },
+    { "op": "quit" }
+  ]
+}
