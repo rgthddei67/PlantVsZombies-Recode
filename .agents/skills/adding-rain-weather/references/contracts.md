@@ -45,9 +45,10 @@ const bool isRaining = rain != RainIntensity::CLEAR;
 准确预报和存档字段，不要借用雨势误报候选、雨势阶段计时或把雾势伪装成某档雨。当前阶段循环
 是“默认雾休整 → 小雾/普通迷雾/大雾事件 → 默认雾休整”，因此增强事件不会无限续期。
 
-跨天气交互只发生在 `Board::UpdateFogDispersal`：雾势读取既有
-`TyphoonStrength/WindDirection` 推进驱散比例与有符号视觉偏移，但不反向修改雨势、台风强度
-或风向。所有雾渲染层共享同一逐格 alpha、驱散和偏移；层数只由当前雾势派生，不入存档。
+跨天气交互只发生在 `Board::UpdateFogDispersal`：只有 `TyphoonStrength::SUPER` 能增加驱散比例
+并在完全驱散时提前结束增强雾势；普通和强台风只按风向推动雾团，不降低 alpha，已有驱散量还会
+按回流速度恢复。雾势不会反向修改雨势、台风强度或风向。所有雾渲染层共享同一逐格 alpha、
+驱散和偏移；层数只由当前雾势派生，不入存档。
 
 四大关雾线分两层语义：
 

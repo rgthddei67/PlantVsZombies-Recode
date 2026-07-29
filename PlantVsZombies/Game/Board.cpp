@@ -94,8 +94,6 @@ namespace {
 	constexpr float kFogInteriorAlpha = 255.0f;          // 雾区内部格的目标 alpha
 	constexpr float kFogFillRate = 180.0f;               // 雾生成或回流时每游戏秒最多增加的 alpha
 	constexpr float kFogClearRate = 320.0f;              // 台风驱散时每游戏秒最多减少的 alpha
-	constexpr float kTyphoonFogDispersalRate = 0.08f;    // 普通台风每游戏秒累积的雾驱散比例
-	constexpr float kSevereFogDispersalRate = 0.16f;     // 强台风每游戏秒累积的雾驱散比例
 	constexpr float kSuperFogDispersalRate = 0.28f;      // 超强台风每游戏秒累积的雾驱散比例
 	constexpr float kFogReturnRate = 0.06f;              // 停风后基础雾每游戏秒恢复的驱散比例
 	constexpr float kFogMaximumDriftX = 180.0f;          // 持续台风把雾团推向当前风向的最大水平像素
@@ -1167,18 +1165,13 @@ void Board::UpdateFogWeather(float deltaTime)
 }
 
 /**
- * 持续台风累积驱散雾，停风后让当前档位的雾回流。
- * 任一增强雾势事件被完全吹散后提前结束，并回到原版默认雾休整。
+ * 仅超强台风累积驱散雾；较弱台风只推动雾团，并让已有驱散量继续回流。
+ * 增强雾势事件被超强台风完全吹散后提前结束，并回到原版默认雾休整。
  */
 void Board::UpdateFogDispersal(float deltaTime)
 {
-	float dispersalRate = 0.0f;
-	switch (mTyphoonStrength) {
-	case TyphoonStrength::NONE:     dispersalRate = -kFogReturnRate; break;
-	case TyphoonStrength::TYPHOON:  dispersalRate = kTyphoonFogDispersalRate; break;
-	case TyphoonStrength::SEVERE:   dispersalRate = kSevereFogDispersalRate; break;
-	case TyphoonStrength::SUPER:    dispersalRate = kSuperFogDispersalRate; break;
-	}
+	const float dispersalRate = mTyphoonStrength == TyphoonStrength::SUPER
+		? kSuperFogDispersalRate : -kFogReturnRate;
 	mFogDispersal = std::clamp(
 		mFogDispersal + dispersalRate * deltaTime, 0.0f, 1.0f);
 
