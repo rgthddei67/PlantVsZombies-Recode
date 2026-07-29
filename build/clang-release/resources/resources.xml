@@ -346,6 +346,7 @@
     <Reanimation name="Caltrop">./resources/reanim/Caltrop.reanim</Reanimation>
     <Reanimation name="Torchwood">./resources/reanim/Torchwood.reanim</Reanimation>
     <Reanimation name="Tallnut">./resources/reanim/Tallnut.reanim</Reanimation>
+    <Reanimation name="SeaShroom">./resources/reanim/SeaShroom.reanim</Reanimation>
 
     <Reanimation name="NormalZombie">./resources/reanim/NormalZombie.reanim</Reanimation>
     <Reanimation name="ConeZombie">./resources/reanim/ConeZombie.reanim</Reanimation>

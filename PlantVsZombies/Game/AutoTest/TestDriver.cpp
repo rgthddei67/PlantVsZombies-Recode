@@ -17,6 +17,7 @@
 #include "../Card.h"
 #include "../CardComponent.h"
 #include "../ShadowComponent.h"
+#include "../Plant/GameDataManager.h"
 #include "../Plant/PlantType.h"
 #include "../Plant/Plant.h"
 #include "../Plant/WallNut.h"
@@ -1349,6 +1350,14 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["haveCards"] = nlohmann::json::array();
 	for (PlantType type : gameApp.mHaveCards)
 		out["haveCards"].push_back(PlantTypeName(type));
+	out["plantDefinitions"] = nlohmann::json::object();
+	for (PlantType type : GameDataManager::GetInstance().GetAllPlantTypes()) {
+		out["plantDefinitions"][PlantTypeName(type)] = {
+			{ "sunCost", GameDataManager::GetInstance().GetPlantSunCost(type) },
+			{ "cooldownMs", static_cast<int>(std::lround(
+				GameDataManager::GetInstance().GetPlantCooldown(type) * 1000.0f)) },
+		};
+	}
 
 	// 奖杯（在场时给坐标，否则 null）——胜利路径冒烟测试的断言抓手
 	if (auto trophy = board->mTrophy.lock()) {
@@ -1573,6 +1582,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_COOLDOWNZOMBIE);
 	out["caltropTirePopSoundRequestCount"] =
 		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_BALLOON_POP);
+	out["puffSoundRequestCount"] =
+		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_PUFF);
 	out["firePeaSoundRequestCount"] =
 		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_FIREPEA);
 	out["igniteSoundRequestCount"] =
@@ -1847,6 +1858,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "logicalY", p->GetPosition().y },
 			{ "visualX", p->GetVisualPosition().x },
 			{ "visualY", p->GetVisualPosition().y },
+			{ "hasShadow", p->GetComponent<ShadowComponent>() != nullptr },
 		};
 		if (const auto* shadow = p->GetComponent<ShadowComponent>()) {
 			const auto animator = p->GetAnimatorInternal();

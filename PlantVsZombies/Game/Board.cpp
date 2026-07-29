@@ -2846,8 +2846,9 @@ bool Board::CanPlantAt(PlantType type, int row, int col)
 		return false;
 	}
 	if (type == PlantType::PLANT_LILYPAD
-		|| type == PlantType::PLANT_TANGLEKELP) {
-		// 水草与睡莲都是直接落水的植物；水草占普通层，因此空格判断也同时禁止叠在睡莲上。
+		|| type == PlantType::PLANT_TANGLEKELP
+		|| type == PlantType::PLANT_SEASHROOM) {
+		// 三种水生植物都直接落水；后两者占普通层，因此空格判断也禁止叠在睡莲上。
 		return isWater && cell->IsEmpty();
 	}
 	if (isWater) {

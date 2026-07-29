@@ -106,6 +106,7 @@ namespace AdventureProgression
 	static_assert(GetPlantReward(9) == PlantType::PLANT_PUFFSHROOM);
 	static_assert(GetPlantReward(17) == PlantType::PLANT_ELITE_SCAREDYSHROOM);
 	static_assert(GetPlantReward(19) == PlantType::PLANT_SQUASH);
+	static_assert(GetPlantReward(27) == PlantType::PLANT_SEASHROOM);
 	static_assert(GetAreaNumber(18) == 2 && GetLevelNumberInArea(18) == 9);
 	static_assert(GetAreaNumber(19) == 3 && GetLevelNumberInArea(19) == 1);
 }

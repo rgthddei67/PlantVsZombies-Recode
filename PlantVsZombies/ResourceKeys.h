@@ -155,6 +155,7 @@ namespace ResourceKeys
 		RKEY(IMAGE_CHOMPER);
 		RKEY(IMAGE_REPEATER);
 		RKEY(IMAGE_PUFFSHROOM);
+		RKEY(IMAGE_SEASHROOM);
 		RKEY(IMAGE_SUNSHROOM);
 		RKEY(IMAGE_FUMESHROOM);
 		RKEY(IMAGE_GRAVEBUSTER);
@@ -269,6 +270,7 @@ namespace ResourceKeys
 		RKEY(SOUND_FLOOP);
 		inline const std::string SOUND_SHOOTER_SHOOT = "SOUND_THROW";
 		inline const std::string SOUND_SHOOTER_SHOOT2 = "SOUND_THROW2";
+		RKEY(SOUND_PUFF);
 		RKEY(SOUND_CHERRYBOMB);
 		RKEY(SOUND_DOOMSHROOM);				// 毁灭菇爆炸（原版 doomshroom.ogg）
 		RKEY(SOUND_REVERSE_EXPLOSION);		// 毁灭菇引爆前吸气充能声（原版 reverse_explosion.ogg）
@@ -333,6 +335,7 @@ namespace ResourceKeys
 		inline const std::string REANIM_CALTROP = "Caltrop";
 		inline const std::string REANIM_TORCHWOOD = "Torchwood";
 		inline const std::string REANIM_FIREPEA = "FirePea";
+		inline const std::string REANIM_SEASHROOM = "SeaShroom";
 
 		inline const std::string REANIM_NORMAL_ZOMBIE = "NormalZombie";
 		inline const std::string REANIM_CONE_ZOMBIE = "ConeZombie";
