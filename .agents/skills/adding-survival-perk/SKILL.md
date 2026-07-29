@@ -75,7 +75,9 @@ description: Use when adding or tuning any 生存模式词条 (survival perk) in
 
 一项候选始终是 `PerkPairing { plant, zombie }`，选择一次会同时给植物增益和僵尸诅咒各加 1 层。配对不是固定绑定：`RollPerkPairings` 构造当前可用植物与僵尸词条的笛卡尔积，用 `GameRandom::Shuffle` 洗牌后截取 3 项，所以 `-Seed` 可复现。
 
-当前流程定义在 `GameScene`：
+`Board::OnSurvivalRoundClear()` 只经非拥有的
+`BoardPresentation::BeginSurvivalPerkSelect()` 发起展示请求；`GameScene` 实现下面的 UI 流程。
+禁止恢复 `Board → GameScene` 具体依赖，也不要把词条玩法状态复制到场景。
 
 - `SURVIVAL_PERK_PICKS_PER_ROUND = 2`。
 - `BeginSurvivalPerkSelect()` 把已消耗机会数和实际选择数都归零、暂停游戏，并调用 `RenderSurvivalPerkSelectStep()`。
@@ -100,6 +102,8 @@ description: Use when adding or tuning any 生存模式词条 (survival perk) in
 - `Load` 必须把层数夹到 `[0, maxStacks]`，因此调整上限会在读旧档时自动收敛。
 - 零词条时不要用 `Save(j["perks"])` 直接物化 null。先保存到局部 json，非 null 才写入；读端保留 `j.is_object()` 守卫，兼容历史上的 `"perks": null`。
 - 卡槽只在 `BoardState::GAME` 表示已提交卡组；`CHOOSE_CARD` 保存时必须写空卡组，读取时也不得恢复旧 `cards`。为兼容历史问题档，可把其中仍在冷却的旧卡迁移到 `survivalCardCooldowns`，但不能加入 `CardSlotManager`。
+- `survivalCardCooldowns` 经 `BoardPresentation` 捕获/恢复 UI 瞬态；最终词条层数仍由 `Board` 持有的 manager 保存。禁止为存档重新依赖具体 `GameScene`。
+- 新字段能用稳定 key 或中性默认值表示旧档时保持兼容；结构或语义变化无法只靠默认值表达时，提升 `SaveSchema::kCurrentLevelVersion`，增加连续迁移和 `SaveSchemaTests`。
 - 原型 A/C 通常不增加独立存档；原型 B 必须持久化实体状态。
 
 ## AutoTest 验证
@@ -126,8 +130,8 @@ description: Use when adding or tuning any 生存模式词条 (survival perk) in
 ## 构建与交付
 
 - 按 `docs/agent-guide/PROJECT_GUIDE.md` 导入 x64 Visual Studio 环境。
-- Release 验证依次运行 `cmake --preset clang-release`、`cmake --build --preset clang-release`。
-- 从 `build/clang-release/` 运行 `PlantsVsZombies.exe -AutoTest ...`，不要使用根目录旧的 `x64/Release` 产物。
+- 默认依次运行 `cmake --preset clang-playtest`、`cmake --build --preset clang-playtest`；只有正式发布、主人明确要求或验证发布配置时才用 `clang-release`。
+- 从 `build/<preset>/` 运行 `PlantsVsZombies.exe -AutoTest ...`，不要使用根目录旧的 `x64/Release` 产物。
 - 若 sandbox 阻止 vcpkg 写外部 `buildtrees`，先报告真实阻塞；只有已有且可信的 Ninja 图时，才可把按图全量重编和链接作为当前工作区验证补充，不能把它写成标准构建方式。
 - 功能、测试、技能和项目记忆一起复核后再提交。
 

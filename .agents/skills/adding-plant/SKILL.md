@@ -46,13 +46,14 @@ description: Use when adding ANY new plant (新增植物) to PvZ — 射手/生�
 普通 AutoTest 仍会短路玩家 `saves/`，但可用 `save_level_snapshot` → 主动改局面 → `reload_level_snapshot` 在脚本输出目录内验证“正式序列化 → 销毁旧 GameScene → 新场景正式反序列化”。这能覆盖实体与 Animator 的进程内往返；中央存档路径、跨进程退出重进和迁移行为仍需按任务风险另行验证。禁止临时关闭 `GameAPP::mAutoTestMode` 绕过保护。
 
 - 自定义状态（状态机枚举、计时器）→ `SaveExtraData/LoadExtraData`。
+- 新字段能用中性默认值表示旧档时保持兼容；结构或语义变化无法只靠默认值表达时，提升 `SaveSchema::kCurrentLevelVersion`，增加连续迁移和 `SaveSchemaTests`。JSON 必须先升级成功，再恢复 `Board` 与实体。
 - 动画轨道/PlayTrackOnce 进行态：`GameInfoSaver::RestoreAnimState` 已统一恢复，**不用自己存**；`LoadExtraData` 在其后运行可放心覆盖。
 - **由生命值等已保存数据派生的材质/阶段要在 `LoadExtraData` 主动重建，但必须走显式“只恢复终态、不播放反馈”路径**；不要复用会喷粒子、播音效或再次结算阈值奖励的实战更新入口。快照测试同时断言派生材质/阶段恢复且对应反馈计数为 0。
 - **凡是被状态机消费的节流缓存，读档第一帧不得吃初值**——缓存初值=给读档后的世界注入捏造状态（胆小菇实测：`mScaredCached=false` 初值让 SCARED 态读档后误判"僵尸走了"先伸头再缩回）。修法=计时器初始即到期，首帧强制真算。
 
 ## 验证（缺一不可）
 
-1. 日常迭代用 `clang-playtest` 构建 0 warning；完成后再用 `clang-release` 做 LTO 发布验证。两个 Clang 预设报告同一套全量警告。
+1. 默认用 `clang-playtest` 构建 0 warning；只有正式发布、主人明确要求或验证发布配置时才用 `clang-release` 做 LTO 验证。两个 Clang 预设报告同一套全量警告。
 2. **站位+影子截图校对**（写完必做，别等主人指出）：临时脚本把新植物与小喷菇/向日葵种同一行，截图比脚底基线。两套独立坐标：**本体 = gamedata.json 的 offset**（改无需重编译）；**影子 = 代码里 `ShadowComponent::SetOffset`**（改要重编译）。抄同类植物的值大概率不准。
    植物若有阵风插值、水面浮动等动态位移，收口成**不含品种静态 offset 的公共视觉锚点**：本体=`锚点+gamedata offset`，影子=`锚点+shadow offset`，禁止影子退回裸 `Transform` 而漏掉动态量。专项在同步截图后导出 `ShadowComponent` 最近实际提交的中心，并用**同一绘制帧**的 Animator render base 减 gamedata offset 得到锚点再断言；不要在截图后的下一逻辑帧重算正弦锚点，否则会产生亚像素相位差假失败。最后跨两个动画相位读图确认共同移动。
    卡槽/选卡卡图由 `CardDisplayComponent::DrawPlantImage` 独立绘制，不能为缩卡图去改 gamedata `scale`（那会改草坪本体）。需要品种特例时在通用卡图倍率上追加独立倍率，并从既有卡图矩形中心缩放，避免向左上角漂移；用实际卡槽截图验收。
@@ -66,7 +67,7 @@ description: Use when adding ANY new plant (新增植物) to PvZ — 射手/生�
 | 落点 | 先例 | 关键点 |
 |---|---|---|
 | **僵尸新状态效果**（冻结/减速/魅惑…） | 减速=SnowPea→`Zombie::SetCooldown`；冻结=IceShroom→`StartFrozen`；魅惑=HypnoShroom→`StartMindControlled` | 见下方专属清单 |
-| **全场即时结算**（寒冰菇式） | `IceShroom`（帧事件→音效+白闪+逐行结算→`Die()`，仿 CherryBomb 骨架） | 全屏特效走 GameScene `ShowScreenFlash`/RegisterDrawCommand；**isPreview 特判否则图鉴也结算**（主人叮嘱） |
+| **全场即时结算**（寒冰菇式） | `IceShroom`（帧事件→音效+白闪+逐行结算→`Die()`，仿 CherryBomb 骨架） | 植物先检查 `mBoard->GetPresentation()`，再用 `ShowScreenFlash(...)` 请求全屏效果；由 `GameScene` 实现 `BoardPresentation` 并注册绘制，禁止植物或 `Board` 恢复具体 `GameScene` 依赖；**isPreview 特判否则图鉴也结算**（主人叮嘱） |
 | **格子占用系统**（弹坑/墓碑类） | `Crater`（毁灭菇弹坑，阻种 180s） | 轻量 GameObject（Trophy 先例，LAYER_GAME_OBJECT=背景上植物下）+Board weak_ptr 簿记+存档数组（旧档兼容=无字段则空）；**占格判定有两处独立口径都要改**：`CanPlaceInCell`（阻种）+`UpdatePlantPreviewPosition`（落点预览隐藏——漏改=悬停占用格仍显示预览，主人验收抓出）；AutoTest `plant` op 直连 CreatePlant **绕过闸门**，测阻种必须走 `click` 真实路径 + 旁格对照组防假阴 |
 | **引爆倒计时无敌** | CherryBomb / DoomShroom 的 `TakeDamage` 覆写 | 只 `SetGlowingTimer(0.1f)` 不掉血；**有睡觉态的要放行睡觉分支**（白天=普通蘑菇照常被啃，毁灭菇实证） |
 | **新子弹/运行时变种** | `PuffBullet`；Torchwood→FirePea | `BulletType` + BulletPool；动画子弹可在 `Bullet` 组合独立 Animator，但命中语义必须按“当前类型”分派，不能依赖分配时的 C++ 子类 |

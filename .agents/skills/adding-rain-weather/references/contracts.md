@@ -1,6 +1,6 @@
 # 雨天天气扩展契约
 
-本文件记录 2026-07-28 的当前实现。动手前用文中的搜索词核实源码；当前代码优先于本文件。
+本文件记录截至 2026-07-29 的当前实现。动手前用文中的搜索词核实源码；当前代码优先于本文件。
 
 ## 目录
 
@@ -14,7 +14,8 @@
 
 ## 天气状态与时间语义
 
-`RainIntensity` 有 `CLEAR/LIGHT/MEDIUM/HEAVY` 四档。`Board` 是唯一权威：
+`RainIntensity` 有 `CLEAR/LIGHT/MEDIUM/HEAVY` 四档，和 `TyphoonStrength`、`WindDirection`
+一起声明在 `WeatherTypes.h`。`Board` 是唯一权威：
 
 | 接口 | 语义 |
 |---|---|
@@ -51,7 +52,10 @@ const bool isRaining = rain != RainIntensity::CLEAR;
 | 通用创建 | `Board::CreateZombie` | AutoTest、召唤等也可能调用，不默认随机变异 |
 | 读档创建 | `Board::CreateZombieWithID` | 只还原已保存类型，永不重 roll |
 | 预览僵尸 | `Board::CreatePreviewZombies` | 使用基础出怪表，默认不展示临时天气变异 |
-| 天气存档 | `GameInfoSaver.cpp` 搜索 `rainIntensity` | Board 天气先恢复，再加载实体 |
+| 天气玩法存档 | `GameInfoSaver.cpp` 搜索 `rainIntensity` | `Board` 天气先恢复，再加载实体 |
+| 天气 UI 请求 | `BoardPresentation.h` / `GameScene` 实现 | `Board` 不包含具体 `GameScene`，也不持有 UI 计时 |
+| 天气 UI 存档 | `CaptureWeatherPresentationState` / `RestoreWeatherPresentationState` | 经展示端口保存可重建的视觉瞬态，不得影响玩法 |
+| 存档版本升级 | `SaveSchema::UpgradeLevelDocument` | 升级成功后才允许修改 `Board` 或实体 |
 | 天气 AutoTest 状态 | `TestDriver.cpp` 搜索 `out["weather"]` | 浮点另给整数投影；闪电路径暴露激活、主干/分叉段数与落点 X |
 
 ## 雨天专属能力配方
@@ -133,8 +137,10 @@ const bool isRaining = rain != RainIntensity::CLEAR;
 - 出生替换成另一 `ZombieType` 后，关卡存档已经保存实际 `type`；读档走 `CreateZombieWithID`，不再解析天气变异。
 - 同类内的一次性随机增强必须保存布尔/枚举/数值结果；不要只保存随机种子并重算。
 - 新字段用 `j.value("key", neutralDefault)` 兼容旧档，并夹紧损坏范围。
+- 关卡 JSON 根节点包含 `schemaVersion`。结构或语义变化无法只靠中性默认值表达时，提升 `SaveSchema::kCurrentLevelVersion`，增加连续迁移步骤和 `SaveSchemaTests`；升级事务必须在任何 `Board` 状态变更前成功。
 - 通用僵尸核心状态优先 `SaveProtectedData/LoadProtectedData`；某个派生类独有状态用其 `SaveExtraData/LoadExtraData`，不要让另一个类解释该字段。
 - 若修改 Board 天气未来行为，保存所有会影响下一次抽取的资格和计时；瞬态粒子、水花不存档。
+- 天气 UI 的计时与展示状态经 `BoardPresentation` 捕获/恢复；它们是可重建瞬态，不能反向成为天气玩法权威。
 
 ## AutoTest 契约
 
@@ -155,4 +161,7 @@ const bool isRaining = rain != RainIntensity::CLEAR;
 6. 需要自然过渡时不要依赖 `set_weather`，改用短倒计时的正式切档路径。
 7. 检查退出码、`run.log`、状态 JSON、断言和必要截图。
 
-标准 AutoTest 默认短路存档读写。存档契约应靠专门的只读问题档测试或源码审计补充，不能声称普通 smoke 已覆盖真实保存/读取。
+普通玩家存档在 AutoTest 中仍默认短路；`save_level_snapshot` / `reload_level_snapshot`
+会在脚本输出目录内走正式序列化，销毁旧场景并创建新的 `GameScene` 反序列化，可验证
+schema、Board 天气和 UI 计时的进程内往返。它不覆盖中央真实存档路径、跨进程退出重进
+或历史版本迁移；这些仍须按风险用 `SaveSchemaTests`、只读问题档或源码审计补充。

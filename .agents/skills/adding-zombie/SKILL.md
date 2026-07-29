@@ -73,16 +73,23 @@ description: Use when adding or tuning any PvZ zombie, or integrating zombies in
 - **小推车特殊交互**：若能力只应吞掉“其他行”小推车，当前碰撞车必须先走原版 `Trigger()`，Board 副作用按当前 mower ID 排除它，最后仍对碰撞僵尸结算 `INT32_MAX`；不要在全场清理分支提前 return，否则精英会绕过本行最后防线直接进家。AutoTest 把吞车验证放在新场景，前序编队/动画长等待可能让移动僵尸提前撞到别行 mower，造成断言对象漂移。
 - **出土/升起**：垂直位移用 `mVisualOffset.y`（存基准值，按计时线性还原）；地面遮挡用现成 `SetClipRect(0,0,SCENE_WIDTH, groundY+margin)`，**底边取 `Board::GetZombieSpawnY(row)` 行地面线**（换地图自适应，主人指示），完成后 `ClearClipRect`；升起期不移动不啃食（覆写 StartEat 早退）。默认让动画继续播放；若主人明确要求静态出土，**只能 `Animator::Pause()` 播放头，不得把 base/extra 速度层写成 0**——后续 `PlayTrack(anim_death)` 会自动恢复 playing，RISING 读档在 `RestoreAnimState` 后须重新 Pause，并必须专项实测升起中死亡不会卡帧。
 
-## 存读档心智清单（AutoTest 短路存档=盲区，只能脑内过+主人真机验）
+## 存读档心智清单
+
+普通 AutoTest 仍会短路玩家 `saves/`，但可用 `save_level_snapshot` → 主动改局面 →
+`reload_level_snapshot` 在脚本输出目录内验证“正式序列化 → 销毁旧 `GameScene` →
+新场景正式反序列化”。这能覆盖实体与 Animator 的进程内往返；中央存档路径、跨进程
+退出重进和迁移行为仍需按任务风险另行验证。禁止临时关闭 `GameAPP::mAutoTestMode`
+绕过保护。
 
 - 状态机枚举/计时器/关联 ID → `SaveExtraData/LoadExtraData`；Load 首行 `if (mIsEating) return;` 再动动画。
+- 新字段能用中性默认值表示旧档时保持兼容；结构或语义变化无法只靠默认值表达时，提升 `SaveSchema::kCurrentLevelVersion`，增加连续迁移和 `SaveSchemaTests`。JSON 必须先升级成功，再恢复 `Board` 与实体。
 - **SetupZombie 先于 LoadExtraData 跑**：Setup 里的出生预设（下沉、裁剪、初相位）在 Load 里按存档相位**显式撤销**，否则读档僵尸带着出生态复活。
 - 关联僵尸 ID 经 `CreateZombieWithID` 保值可交叉引用；引用已死自然返回 null，无需清理回调。
 - 轨道/帧位由 `RestoreAnimState` 统一恢复不用自己存；节拍驱动的僵尸在 Load 里把"上次段位缓存"置 -1 重新入拍即可。
 
 ## 验证（缺一不可）
 
-1. 日常迭代用 `clang-playtest` 构建 0 warning；新 .cpp 未被编译先 `cmake --preset clang-playtest` reconfigure。完成后再用 `clang-release` 做 LTO 发布验证。
+1. 默认用 `clang-playtest` 构建 0 warning；新 .cpp 未被编译先 `cmake --preset clang-playtest` reconfigure。只有正式发布、主人明确要求或验证发布配置时才用 `clang-release` 做 LTO 验证。
 2. **AutoTest 冒烟**：`autotest/scripts/smoke_<name>.json`。默认按 `PROJECT_GUIDE.md` 的“当前桌面可见启动”方案运行：从 `build/<preset>/` 工作目录，用提升权限的 `Start-Process -WindowStyle Normal -PassThru` 启动并等待退出；普通沙箱 shell 即使写了 `WindowStyle Normal` 也可能落在隔离会话，主人桌面完全看不到。状态断言用 `zombies.N.type/hasArm/armVisible/hasHead/track/mindControlled`；几何断言用 `animatedObjectsByTag.Zombie.N` 的最终世界包围盒及相对 collider 投影，禁止把 C# 绝对坐标写成期望值。**exit 0 ≠ 通过**：逐张 Read 同步截图（断肢前后、编队站位、出土中段——注意升起初期整体在地面线下被裁掉是正确的，截图要卡升起 60% 时点）。
 3. **死亡消失必须专门测**（末-1 帧陷阱专项）：豌豆打死→dump 确认该 type 消失+run.log 无 WATCHDOG。炸弹类走 Die() 直杀路径，**测不到**死亡帧事件。
 4. 时序：`wait_seconds` 是游戏秒；关卡 20 秒起第一波普通僵尸会混入 dump，别断言"场上为空"。

@@ -26,7 +26,7 @@ description: Use when adding or tuning ANY rain-weather-dependent feature in PvZ
 | B. 平滑倍率 | 不新增状态 | 技能频率随雨势渐变 | 复用天气插值 getter，只缩放该技能自己的计时 |
 | C. 出生时变异 | 实际类型或一次性标志 | 雨天有概率把基础僵尸替换为精英变体 | 在正式波次选型后、创建前只 roll 一次 |
 | D. 可逆形态 | 每实体状态 | 下雨变异、放晴还原 | 幂等 Apply/Revert + 边沿检测 + Save/Load |
-| E. 天气系统扩展 | `Board` / `GameScene` | 新权重、过渡、预报规则或 UI | 同步真实抽取、合法预报候选、存档与测试 |
+| E. 天气系统扩展 | 玩法状态在 `Board`；展示经 `BoardPresentation` | 新权重、过渡、预报规则或 UI | 同步真实抽取、合法预报候选、展示端口、存档与测试 |
 
 能用 A/B 就不要选 D。可逆血量尤其容易造成反复下雨回血或舍入漂移，优先改伤害、技能冷却、范围或临时护盾；确需改血量时先定义当前血量如何映射。
 
@@ -38,12 +38,14 @@ description: Use when adding or tuning ANY rain-weather-dependent feature in PvZ
 4. 处理组合关系：冻结仍优先停格，减速与雨天倍率继续乘算，`PlayTrack` clip speed 不得覆盖天气 extra 层；帧事件能力已经随动画加速，不要再把同一倍率乘到逻辑计时器。
 5. 处理持久化：纯派生效果不存；一次性 roll、剩余次数、可逆形态必须存。读档只恢复结果，不能重新随机或再次叠加。
    - 若限制语义是“每波最多 N 次”，计数只在正式 `Board::SummonNextWave()` 推进到新波时清零；`StopTyphoon()`、放晴或重新起台风都不得返还同一波额度。计数进入 Board 存档，旧字段按保守已消费量迁移。
+   - 新字段能用中性默认值表示旧档时保持兼容；结构或语义变化无法只靠默认值表达时，提升 `SaveSchema::kCurrentLevelVersion`，增加逐版本迁移和 `SaveSchemaTests`。JSON 必须先升级成功，再修改 `Board`。
 6. 增加 AutoTest 可观测字段与最小脚本，覆盖晴天、目标雨势、放晴、减速/冻结组合，以及随机变异的固定种子结果。
 7. 更新 `docs/agent-memory/project_pvz_night_rain_weather.md`、对应僵尸/植物主题和 `docs/agent-memory/MEMORY.md`。
-8. 按项目指南完成 `clang-release` 与范围最小的可见 AutoTest；仅改技能文档时无需构建游戏。
+8. 按项目指南默认完成 `clang-playtest` 与范围最小的可见 AutoTest；只有正式发布、主人明确要求或验证发布配置时才用 `clang-release`。仅改技能文档时无需构建游戏。
 
 ## 不可破坏的契约
 
+- `Board` 不得直接包含或访问具体 `GameScene`，也不得恢复 `mGameScene`。天气玩法状态继续由 `Board` 唯一持有；新增天气 UI 请求应扩展非拥有的 `BoardPresentation`，由 `GameScene` 实现。双方共享的天气枚举放在 `WeatherTypes.h`。
 - `GetRainIntensity()` 是目标档位，切档时立即改变；玩法倍率、暗幕和雨声音量再用两游戏秒平滑到目标。离散触发默认以目标档位为准。
 - 不要修改全局 `DeltaTime`，也不要整体加速 `Zombie::Update()`；只缩放明确属于该能力的计时或结算值。
 - 僵尸动画速度统一经 `Zombie::UpdateAnimSpeed()` 收敛：`GetAbilityAnimSpeedMultiplier() × slowFactor × rain`，冻结优先为 0。子类自身整体倍率只覆写该虚函数，状态变化后调用 `UpdateAnimSpeed()`；禁止用 `SetExtraSpeedMultiplier` 绕开它。

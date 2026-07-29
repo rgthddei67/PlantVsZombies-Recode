@@ -43,3 +43,10 @@
 销毁旧场景、创建新 `GameScene` 并恢复 5 个僵尸；`smoke_weather_forecast` 58 条通过；
 `smoke_crater_card_select` 33 条通过，覆盖 `Board` 触发生存轮清、两次词条机会、
 轮间选卡与恢复。三项退出码均为 0，状态 JSON、run.log 与截图均已检查。
+
+## 技能同步门禁
+
+2026-07-29 已把 `BoardPresentation`、`WeatherTypes`、`SaveSchema` 和默认
+`clang-playtest` 约定同步到天气、植物、僵尸与生存词条技能。根 `AGENTS.md` 现要求
+每次任务改动完成后、提交前审计相关 `.agents/skills/` 及 references；发现通用契约变化
+必须同步技能，并用 skill-creator 的 `quick_validate.py` 校验所有改动过的技能。
