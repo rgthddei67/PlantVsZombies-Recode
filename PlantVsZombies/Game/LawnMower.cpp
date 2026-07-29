@@ -40,6 +40,7 @@ Mower::Mower(Board* board, MowerType type, AnimationType animType, float x, floa
 	// 水路清洁车待机时停在陆地轨道首帧，启动后才以原版速率循环。
 	if (mMowerType == MowerType::WATER) {
 		mSpeed = kPoolCleanerMoveSpeed;
+		shadowcomponent->SetOffset(Vector(25, 50));
 		PlayTrack("anim_land", kPoolCleanerClipSpeed);
 		PauseAnimation();
 	}
