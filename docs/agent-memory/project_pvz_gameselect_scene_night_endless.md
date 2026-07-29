@@ -1,6 +1,6 @@
 ---
 name: project_pvz_gameselect_scene_night_endless
-description: GameSelectScene(挑战模式风格选择界面)+黑夜无尽模式 已落地 master(3aba327)
+description: GameSelectScene 挑战风格选择界面与白天、黑夜、泳池三种无尽入口
 metadata:
   node_type: memory
   type: project
@@ -20,3 +20,19 @@ metadata:
 **卡片地面预览**(commit 1834a5a)：两无尽卡图标开口下各垫地面图(卡1 `Almanac_GroundDay` 绿/卡2 `Almanac_GroundNight` 暗,键用字面量 `IMAGE_ALMANAC_GROUND{DAY,NIGHT}`)。靠 `AddTexture(...,drawOrder=-900,...)` 夹在羊皮纸(-1000)与卡框(LAYER_UI)之间——**复用基类分层,无需新渲染队列/裁剪**;地面填入卡框透明开口(实测 native x[20..96] y[8..66] of 118×120,×kCardScale+2px bleed),溢出被不透明边框/标签条吃掉。
 
 **AutoTest 全链路验证**(关键坐标)：主菜单生存按钮中心 ≈(689,400)、卡1(171,207)、卡2(321,207)；`gameselect_smoke.json` 已改成 主菜单→生存→选择界面→黑夜无尽 的可达流程。实测白天卡→白天草坪、黑夜卡→夜晚草坪，clang-release 0 warn。相关坑见 [reference_pvz_assets_worktree_autotest_gotchas](reference_pvz_assets_worktree_autotest_gotchas.md)、生存机制见 [project_pvz_perk_system](project_pvz_perk_system.md)。
+
+## 2026-07-29 泳池无尽
+
+- 新增 `SURVIVAL_ENDLESS_POOL_LEVEL=1002`，`GameAPP::GetBackgroundID()` 映射到
+  `WATER_POOL`；`Board::mIsSurvival` 与关卡名分支同步接入，因此沿用无尽轮次、词条、
+  血量成长和 `level1002_data.json` 独立存档，同时直接复用泳池六行、水路僵尸替换、
+  动态水面、睡莲与水面阳光经济。
+- `Board::SupportsWeather()` 对 1002 返回 true，与第三大关日间泳池保持一致；天气玩法状态
+  仍只由 Board 持有，没有新增展示或存档副本。
+- 选择页第三张卡使用 `IMAGE_ALMANAC_GROUNDPOOL`，标签为“泳池无尽”，中心为 `(471,207)`。
+  当前主菜单生存按钮的稳定文字区点击点为 `(680,350)`；旧记录 `(689,400)` 在本次可见
+  AutoTest 中未触发按钮，已同步脚本。
+- `clang-playtest` 配置与完整增量构建退出码 0。可见 `gameselect_smoke` 从主菜单点击生存、
+  点击第三张卡并进入 1002，18 条命令全部通过、退出码 0；状态锁定
+  `WATER_POOL`、6 行、`poolRows=[2,3]`、第 1 轮、天气支持与小雨生效，选择页和泳池截图
+  均已人工检查。

@@ -6,9 +6,9 @@
 #include <vector>
 #include <memory>
 
-// 挑战模式风格的「选择关卡」界面（纯视觉脚手架）：
-// 羊皮纸背景 + 顶部标题 + 6+3 关卡卡片网格 + 左下「返回菜单」按钮。
-// 卡片为占位（可悬停高亮、点击仅打日志，不跳转）；入口暂不接，仅注册到 SceneManager。
+// 挑战模式风格的生存关卡选择界面：
+// 羊皮纸背景 + 顶部标题 + 无尽模式卡片网格 + 左下「返回菜单」按钮。
+// 卡片点击只登记待进入关卡，由 Update 在 UI 回调结束后统一切换到 GameScene。
 class GameSelectScene : public Scene {
 private:
 	std::shared_ptr<Button> mBackMenuButton;

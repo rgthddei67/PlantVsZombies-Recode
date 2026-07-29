@@ -588,6 +588,9 @@ Background GameAPP::GetBackgroundID(int level) const
 	else if (level == SURVIVAL_ENDLESS_NIGHT_LEVEL) {
 		return Background::GROUND_NIGHT; // 黑夜无尽
 	}
+	else if (level == SURVIVAL_ENDLESS_POOL_LEVEL) {
+		return Background::WATER_POOL;   // 泳池无尽
+	}
 
 	const int area = AdventureProgression::GetAreaNumber(level);
 	switch (area) {

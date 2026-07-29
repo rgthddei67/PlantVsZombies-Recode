@@ -64,7 +64,7 @@ void MainMenuScene::Update()
 		auto& gameApp = GameAPP::GetInstance();
 		auto& SceneMgr = SceneManager::GetInstance();
 		gameApp.GetGraphics().SetCameraPosition(0, 0);
-		// 不再直进无尽关，先进「选择关卡」界面，由玩家选白天/黑夜无尽
+		// 不再直进无尽关，先进「选择关卡」界面，由玩家选择白天、黑夜或泳池无尽。
 		SceneMgr.SwitchTo("GameSelectScene");
 		return;
 	}

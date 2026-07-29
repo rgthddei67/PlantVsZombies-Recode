@@ -51,7 +51,7 @@ void GameSelectScene::BuildDrawCommands()
 		this->mReadyToSwitchMainMenu = true;
 		});
 
-	// ===== 关卡卡片：卡1=白天无尽(level 1000)、卡2=黑夜无尽(level 1001)；其余暂注释 =====
+	// ===== 关卡卡片：白天、黑夜、泳池三种无尽；其余暂注释 =====
 	const float kCardScale = 0.95f;           // Challenge_Window 原始 118x120
 	const float kPitchX = 150.0f;             // 列间距
 	const float kCol0X = 115.0f;              // 第一列左上角 x
@@ -90,12 +90,13 @@ void GameSelectScene::BuildDrawCommands()
 	};
 
 	makeCard(kCol0X + kPitchX * 0, kRow1Y, SURVIVAL_ENDLESS_LEVEL,
-		"IMAGE_ALMANAC_GROUNDDAY");         // 卡1：白天无尽
+		ResourceKeys::Textures::IMAGE_ALMANAC_GROUNDDAY);   // 卡1：白天无尽
 	makeCard(kCol0X + kPitchX * 1, kRow1Y, SURVIVAL_ENDLESS_NIGHT_LEVEL,
-		"IMAGE_ALMANAC_GROUNDNIGHT");       // 卡2：黑夜无尽
+		ResourceKeys::Textures::IMAGE_ALMANAC_GROUNDNIGHT); // 卡2：黑夜无尽
+	makeCard(kCol0X + kPitchX * 2, kRow1Y, SURVIVAL_ENDLESS_POOL_LEVEL,
+		ResourceKeys::Textures::IMAGE_ALMANAC_GROUNDPOOL);  // 卡3：泳池无尽
 
 	// 多余的关卡方框（暂注释，后续接入更多模式时再启用；启用时同步上方 kLabels 与 kRow2Y）：
-	// makeCard(kCol0X + kPitchX * 2, kRow1Y, /* level */ -1);
 	// makeCard(kCol0X + kPitchX * 3, kRow1Y, /* level */ -1);
 	// makeCard(kCol0X + kPitchX * 4, kRow1Y, /* level */ -1);
 	// makeCard(kCol0X + kPitchX * 5, kRow1Y, /* level */ -1);
@@ -115,15 +116,15 @@ void GameSelectScene::BuildDrawCommands()
 			DrawFittedCenteredText(gameApp, u8"选择关卡", 550.0f, 80.0f, 500.0f,
 				glm::vec4(219, 219, 219, 219), ResourceKeys::Fonts::FONT_FZJZ, 37, 24);
 
-			// 卡片标签：与上面 makeCard 顺序一致（卡1白天、卡2黑夜），居中于灰色标签条
-			static const char* kLabels[2] = { u8"白天无尽", u8"黑夜无尽" };
+			// 卡片标签与 makeCard 顺序一致，居中于灰色标签条。
+			static const char* kLabels[3] = { u8"白天无尽", u8"黑夜无尽", u8"泳池无尽" };
 			auto drawLabel = [&](int index, float x, float y) {
 				float cx = x + kCardW * 0.5f;
 				float cy = y + kCardH * 0.73f;
 				DrawFittedCenteredText(gameApp, kLabels[index], cx, cy, kCardW * 0.82f,
 					glm::vec4(46, 46, 84, 255), ResourceKeys::Fonts::FONT_FZJZ, 16, 9);
 			};
-			for (int i = 0; i < 2; ++i) drawLabel(i, kCol0X + kPitchX * i, kRow1Y);
+			for (int i = 0; i < 3; ++i) drawLabel(i, kCol0X + kPitchX * i, kRow1Y);
 		},
 		LAYER_UI + 100);
 

@@ -684,7 +684,9 @@ Board::Board(BoardPresentation* presentation, Background background, int level)
 	mPresentation = presentation;
 	mLevel = level;
 	mBackGround = background;
-	mIsSurvival = (level == SURVIVAL_ENDLESS_LEVEL || level == SURVIVAL_ENDLESS_NIGHT_LEVEL);
+	mIsSurvival = (level == SURVIVAL_ENDLESS_LEVEL
+		|| level == SURVIVAL_ENDLESS_NIGHT_LEVEL
+		|| level == SURVIVAL_ENDLESS_POOL_LEVEL);
 
 	if (mLevel >= 1)
 	{
@@ -2083,7 +2085,8 @@ bool Board::IsPoolBackground() const
 
 bool Board::SupportsWeather() const
 {
-	if (mLevel == SURVIVAL_ENDLESS_NIGHT_LEVEL) return true;
+	if (mLevel == SURVIVAL_ENDLESS_NIGHT_LEVEL
+		|| mLevel == SURVIVAL_ENDLESS_POOL_LEVEL) return true;
 	return AdventureProgression::IsAdventureLevel(mLevel)
 		&& AdventureProgression::GetAreaNumber(mLevel) >= 2;
 }
@@ -3315,11 +3318,14 @@ void Board::BuildSurvivalSpawnList(int round)
 
 void Board::UpdateSurvivalLevelName()
 {
-	if (mLevel == 1000) {
+	if (mLevel == SURVIVAL_ENDLESS_LEVEL) {
 		mLevelName = u8"生存模式：白天无尽 第" + std::to_string(mSurvivalRound) + u8"轮";
 	}
-	else if (mLevel == 1001) {
+	else if (mLevel == SURVIVAL_ENDLESS_NIGHT_LEVEL) {
 		mLevelName = u8"生存模式：黑夜无尽 第" + std::to_string(mSurvivalRound) + u8"轮";
+	}
+	else if (mLevel == SURVIVAL_ENDLESS_POOL_LEVEL) {
+		mLevelName = u8"生存模式：泳池无尽 第" + std::to_string(mSurvivalRound) + u8"轮";
 	}
 	else {
 		mLevelName = u8"生存模式：未知无尽 第" + std::to_string(mSurvivalRound) + u8"轮";

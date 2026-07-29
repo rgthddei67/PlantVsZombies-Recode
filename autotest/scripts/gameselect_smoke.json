@@ -2,12 +2,22 @@
   "name": "gameselect_smoke",
   "commands": [
     { "op": "wait_frames", "value": 60 },
-    { "op": "click", "x": 689, "y": 400 },
+    { "op": "click", "x": 680, "y": 350 },
     { "op": "wait_frames", "value": 60 },
     { "op": "screenshot", "name": "select" },
-    { "op": "click", "x": 321, "y": 207 },
+    { "op": "click", "x": 471, "y": 207 },
     { "op": "wait_frames", "value": 150 },
-    { "op": "screenshot", "name": "night_endless" },
+    { "op": "assert_state", "path": "level", "equals": 1002 },
+    { "op": "assert_state", "path": "levelName", "equals": "生存模式：泳池无尽 第1轮" },
+    { "op": "assert_state", "path": "background", "equals": "WATER_POOL" },
+    { "op": "assert_state", "path": "rows", "equals": 6 },
+    { "op": "assert_state", "path": "poolRows", "equals": [2, 3] },
+    { "op": "assert_state", "path": "supportsWeather", "equals": true },
+    { "op": "assert_state", "path": "survivalRound", "equals": 1 },
+    { "op": "set_weather", "intensity": "LIGHT", "duration": 30.0 },
+    { "op": "assert_state", "path": "weather.intensity", "equals": "LIGHT" },
+    { "op": "dump_state", "name": "state" },
+    { "op": "screenshot", "name": "pool_endless" },
     { "op": "quit" }
   ]
 }

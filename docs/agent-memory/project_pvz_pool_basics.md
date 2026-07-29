@@ -19,6 +19,10 @@ metadata:
 
 资源由主人提供：泳池地图、睡莲/三种水路僵尸动画、`PoolCleaner` 已在 `resources.xml` 注册。2026-07-23 后续任务又从 `D:\PVZ\原！版！Test\images` 导入原版水面底图、AlphaGrid 阴影蒙版和焦散源图，增加动态水面；仍未新增通用入水水花或额外泳池粒子，PoolCleaner reanim 自带轨道不在此限制内。
 
+2026-07-29 新增 `SURVIVAL_ENDLESS_POOL_LEVEL=1002` 的“泳池无尽”选择页入口。该关直接复用
+`WATER_POOL` 的六行、水路、动态水面、睡莲、地形僵尸替换和日间泳池阳光经济，并通过独立
+关卡号隔离存档；无尽出怪池仍由正式生存轮次表构建，再按泳池地形过滤与选行。
+
 ## 核心契约
 
 - `Background::WATER_POOL` 与其他背景共用 `mBackgroundY`，不再额外上移；日间/夜间泳池的六行网格首行顶部均为 Y=85。泳池使用 6 行、85px 行高，0-based 第 2/3 行是水路，列宽仍为 80px。网格派生位置必须通过 `Board::GetCellCenterPosition/GetCellHeight`。
