@@ -3246,7 +3246,7 @@ void Board::UpdateLevel()
 		mBackGround == Background::ROOF) {
 		UpdateSunFalling(deltaTime);
 	}
-	if (mBackGround == Background::WATER_POOL) {
+	if (mBackGround == Background::WATER_POOL || mBackGround == Background::NIGHT_WATER_POOL) {
 		UpdatePoolSunFalling(deltaTime);
 	}
 
