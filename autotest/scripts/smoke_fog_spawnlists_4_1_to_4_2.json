@@ -1,0 +1,34 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 28, "resetTestState": true },
+    { "op": "set_timescale", "value": 1.0 },
+    { "op": "wait_state", "state": "CHOOSE_CARD", "timeout": 10 },
+    { "op": "assert_state", "path": "level", "equals": 28 },
+    { "op": "assert_state", "path": "levelName", "equals": "关卡 4-1" },
+    { "op": "assert_state", "path": "background", "equals": "NIGHT_WATER_POOL" },
+    { "op": "assert_state", "path": "maxWave", "equals": 10 },
+    { "op": "assert_state", "path": "sun", "equals": 50 },
+    { "op": "assert_state", "path": "spawnTypeCount", "equals": 3 },
+    { "op": "assert_state", "path": "spawnList", "equals": ["ZOMBIE_NORMAL", "ZOMBIE_TRAFFIC_CONE", "ZOMBIE_NEWSPAPER"] },
+    { "op": "wait_seconds", "value": 4.2, "timeout": 10 },
+    { "op": "assert_state", "path": "chooseCardReady", "equals": true },
+    { "op": "screenshot", "name": "fog_spawn_4_1_newspaper.png" },
+    { "op": "dump_state", "name": "fog_spawn_4_1.json" },
+
+    { "op": "goto_level", "level": 29, "resetTestState": true },
+    { "op": "set_timescale", "value": 1.0 },
+    { "op": "wait_state", "state": "CHOOSE_CARD", "timeout": 10 },
+    { "op": "assert_state", "path": "level", "equals": 29 },
+    { "op": "assert_state", "path": "levelName", "equals": "关卡 4-2" },
+    { "op": "assert_state", "path": "background", "equals": "NIGHT_WATER_POOL" },
+    { "op": "assert_state", "path": "maxWave", "equals": 20 },
+    { "op": "assert_state", "path": "sun", "equals": 50 },
+    { "op": "assert_state", "path": "spawnTypeCount", "equals": 4 },
+    { "op": "assert_state", "path": "spawnList", "equals": ["ZOMBIE_NORMAL", "ZOMBIE_TRAFFIC_CONE", "ZOMBIE_NEWSPAPER", "ZOMBIE_FOOTBALL"] },
+    { "op": "wait_seconds", "value": 4.2, "timeout": 10 },
+    { "op": "assert_state", "path": "chooseCardReady", "equals": true },
+    { "op": "screenshot", "name": "fog_spawn_4_2_football.png" },
+    { "op": "dump_state", "name": "fog_spawn_4_2.json" },
+    { "op": "quit" }
+  ]
+}
