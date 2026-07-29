@@ -14,6 +14,9 @@
     <Image>./resources/image/golden_ice.png</Image>
     <Image>./resources/image/golden_ice_cap.png</Image>
 
+    <Image>./resources/image/fog.jpg</Image>
+    <Image Column="1" Row="8">./resources/image/fog_.jpg</Image>
+
     <Image>./resources/image/UI/options_checkbox0.png</Image>
     <Image>./resources/image/UI/options_checkbox1.png</Image>
     <Image>./resources/image/UI/SeedChooser_Button2.png</Image>
@@ -163,6 +166,10 @@
     <Image>./resources/image/PuffShroom_puff2.png</Image>
     <Image Column="2" Row="1">./resources/image/crater.png</Image>
     <Image Column="2" Row="1">./resources/image/crater_fading.png</Image>
+    <Image Column="2" Row="1">./resources/image/crater_water_day.png</Image>
+    <Image Column="2" Row="1">./resources/image/crater_water_night.png</Image>
+    <Image Column="2" Row="1">./resources/image/crater_roof_left.png</Image>
+    <Image Column="2" Row="1">./resources/image/crater_roof_center.png</Image>
 
   </GameImages>
 
