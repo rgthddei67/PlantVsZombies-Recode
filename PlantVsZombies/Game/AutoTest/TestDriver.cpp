@@ -1614,6 +1614,14 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "dropAccumulatorPct", static_cast<int>(std::lround(
 				board->GetMistFuelDropAccumulator() * 100.0f)) },
 			{ "assignedThisWave", board->GetMistFuelAssignedThisWave() },
+			{ "scarcityPct", static_cast<int>(std::lround(
+				board->GetMistFuelScarcityFactor() * 100.0f)) },
+			{ "rewardAmount", board->GetMistFuelRewardAmount() },
+			{ "waveBudget", board->GetMistFuelWaveBudget() },
+			{ "baseCarrierChancePct", static_cast<int>(std::lround(
+				board->GetMistFuelBaseCarrierChance() * 100.0f)) },
+			{ "heavyCarrierBonusPct", static_cast<int>(std::lround(
+				board->GetMistFuelHeavyCarrierBonus() * 100.0f)) },
 			{ "fuelTextureLoaded", ResourceManager::GetInstance().GetTexture(
 				ResourceKeys::Textures::IMAGE_MISTFUEL, false) != nullptr },
 			{ "illuminationPct", nlohmann::json::array() },

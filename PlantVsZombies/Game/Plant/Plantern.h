@@ -17,7 +17,7 @@ enum class PlanternGear : int {
 class Plantern : public Plant {
 public:
 	static constexpr float FUEL_CAPACITY = 100.0f;
-	static constexpr float INITIAL_FUEL = 20.0f;
+	static constexpr float INITIAL_FUEL = 30.0f;
 
 	using Plant::Plant;
 

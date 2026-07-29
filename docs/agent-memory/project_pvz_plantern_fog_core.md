@@ -14,7 +14,7 @@ metadata:
   燃料、照明、产光增益和雾中远程索敌限制。
 - 场上最多一株活动路灯花，唯一性由 `Board::mActivePlanternID` 派生；死亡/压扁释放名额，
   读档由 `CreatePlantWithID` 重建 ID。它不是累计种植次数限制。
-- 容量 100、初始 20；关闭/I/II/III 每游戏秒消耗 0/0.5/1/2。范围为无、4×3、
+- 容量 100、初始 30；关闭/I/II/III 每游戏秒消耗 0/0.5/1/2。范围为无、4×3、
   裁角 8×5、扩大裁角 10×7；新增的一列统一朝僵尸来向，III 最外圈照明 72%。
 - `Board::GetPlanternIllumination()` 是逐格唯一形状源，`UpdateFogCellAlpha`、雾中索敌和
   `GetPlanternSunProductionMultiplier()` 都消费它。向日葵/阳光菇生产峰值为
@@ -26,9 +26,10 @@ metadata:
 
 ## 雾火与 UI
 
-- 只有 `TrySummonZombie()` 正式波次创建成功后分配雾火；单只 15，概率使用跨波累计保底，
-  普通耐久每只给累计器加 0.30、高耐久最多 0.60，每波预算随压力从 45 平滑到 60。
-  僵尸死亡走 `CollectMistFuelFromZombie()` 唯一发起入口。
+- 只有 `TrySummonZombie()` 正式波次创建成功后分配雾火；供给曲线按每关自己的首波到最终波
+  smoothstep，不复用天气导演也不写死总波数。单只价值 15→10，普通耐久累计份额
+  0.50→0.25，高耐久额外份额上限 0.25→0.15；每波最多三个携带者，预算因此 45→30。
+  僵尸死亡走 `CollectMistFuelFromZombie()` 唯一发起入口，灰烬群杀只能释放已预分配的奖励。
 - 无路灯花、满仓和魅惑目标直接丢弃；部分溢出只预留可容纳量，其余丢弃并触发 1.8 秒卡牌提示。
   `MistFuel` 飞行 0.62 秒，途中只占容量而不增加显示值，抵达灯芯时才正式到账。
 - 卡牌在路灯花存活时显示挡位、取整燃料值和比例条；点击卡牌/本体展开
@@ -43,10 +44,13 @@ metadata:
 - `Plantern::SaveExtraData` 保存 `fuel/pendingFuel/gear`；在途对象不单独保存，读档把预留量
   结算进燃料。`Zombie::SaveProtectedData` 保存奖励和已领取；Board 保存
   `mistFuelDropAccumulator`。旧档均以中性值兼容，无需 schema 提升。
-- `smoke_plantern_fog_core` 当前可见运行 174 条命令 exit 0，覆盖 4-1/4-2 边界、初始 20、
+- `smoke_plantern_fog_core` 当前可见运行 174 条命令 exit 0，覆盖 4-1/4-2 边界、初始 30、
   四档范围/耗油/产光、索敌、唯一性、飞行前后到账、在途读档、满仓与部分溢出、魅惑、
   无路灯花废弃、死亡重种和真实挡位按钮点击；关键截图已目验。
 - 原有 `smoke_fog_weather` 148 条命令可见回归 exit 0，确认无路灯花时雾势、台风驱散及
   雾存档不变。
+- `smoke_plantern_fuel_curve` 当前可见运行 49 条命令 exit 0，固定种子下验证 20 波 4-2
+  与 10 波 4-3 都从 15/45 平滑收紧到 10/30，4-2 第 10 波为 13/39，两个最终波正式出怪
+  实际分配均为 30。
 - 2026-07-29 菜单层级修复完成 `clang-playtest` 零错误构建；主人明确本次不运行 AutoTest。
 - 设计定稿见 `docs/superpowers/specs/2026-07-29-plantern-fog-core-design.md`。

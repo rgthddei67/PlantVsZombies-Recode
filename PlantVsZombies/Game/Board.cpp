@@ -100,11 +100,13 @@ namespace {
 	constexpr float kFogClearRate = 320.0f;              // 台风驱散时每游戏秒最多减少的 alpha
 	constexpr float kFogTargetingAlphaThreshold = 96.0f; // 4-2 起远程索敌仍可接受的最大逐格雾 alpha
 	constexpr float kFogCloseDetectionRange = 100.0f;    // 雾中不依赖照明的近身感知横向距离（像素）
-	constexpr int kMistFuelRewardAmount = 15;             // 单只携带者死亡时提供的雾火量
-	constexpr int kMistFuelEarlyWaveBudget = 45;          // 前期每波最多分配的雾火量
-	constexpr int kMistFuelLateWaveBudget = 60;           // 满压力每波最多分配的雾火量
-	constexpr float kMistFuelBaseCarrierChance = 0.30f;   // 普通耐久正式波次僵尸加入保底累计器的基础份额
-	constexpr float kMistFuelHeavyCarrierBonus = 0.30f;   // 高耐久僵尸相对普通僵尸最多追加的累计份额
+	constexpr int kMistFuelEarlyRewardAmount = 15;        // 首波单只携带者死亡时提供的雾火量
+	constexpr int kMistFuelLateRewardAmount = 10;         // 最终波单只携带者死亡时提供的雾火量
+	constexpr int kMistFuelCarriersPerWave = 3;           // 每波最多分配的雾火携带者数量
+	constexpr float kMistFuelEarlyBaseCarrierChance = 0.50f; // 首波普通耐久僵尸加入保底累计器的基础份额
+	constexpr float kMistFuelLateBaseCarrierChance = 0.25f; // 最终波普通耐久僵尸加入保底累计器的基础份额
+	constexpr float kMistFuelEarlyHeavyCarrierBonus = 0.25f; // 首波高耐久僵尸相对普通僵尸最多追加的累计份额
+	constexpr float kMistFuelLateHeavyCarrierBonus = 0.15f; // 最终波高耐久僵尸相对普通僵尸最多追加的累计份额
 	constexpr int kPlanternLowBackRadius = 1;              // 一档向房屋侧照亮的格数
 	constexpr int kPlanternLowFrontRadius = 2;             // 一档向僵尸来向照亮的格数
 	constexpr int kPlanternLowVerticalRadius = 1;          // 一档向上下照亮的格数
@@ -3647,33 +3649,65 @@ inline void Board::TrySummonZombie()
 	}
 }
 
+/** 返回本关雾火经济从首波宽松供给到最终波紧缩供给的平滑进度。 */
+float Board::GetMistFuelScarcityFactor() const
+{
+	if (mMaxWave <= 1) return 0.0f;
+	const float linear = std::clamp(
+		static_cast<float>(mCurrentWave - 1) / static_cast<float>(mMaxWave - 1),
+		0.0f, 1.0f);
+	return linear * linear * (3.0f - 2.0f * linear);
+}
+
+int Board::GetMistFuelRewardAmount() const
+{
+	return static_cast<int>(std::lround(LerpWeatherValue(
+		static_cast<float>(kMistFuelEarlyRewardAmount),
+		static_cast<float>(kMistFuelLateRewardAmount),
+		GetMistFuelScarcityFactor())));
+}
+
+int Board::GetMistFuelWaveBudget() const
+{
+	return GetMistFuelRewardAmount() * kMistFuelCarriersPerWave;
+}
+
+float Board::GetMistFuelBaseCarrierChance() const
+{
+	return LerpWeatherValue(kMistFuelEarlyBaseCarrierChance,
+		kMistFuelLateBaseCarrierChance, GetMistFuelScarcityFactor());
+}
+
+float Board::GetMistFuelHeavyCarrierBonus() const
+{
+	return LerpWeatherValue(kMistFuelEarlyHeavyCarrierBonus,
+		kMistFuelLateHeavyCarrierBonus, GetMistFuelScarcityFactor());
+}
+
 /**
- * 只给正式波次出生分配雾火：每波有硬预算，未命中的概率会进入跨波保底累计，
- * 因而不会因僵尸数量膨胀失控，也不会出现长时间完全断供。
+ * 只给正式波次出生分配雾火：首波提高命中以缓解低出怪量断供，之后独立于天气压力逐波
+ * 压低单团价值、携带概率和单波预算；未命中的份额仍跨波累计，避免长期完全断供。
  */
 void Board::AssignMistFuelReward(Zombie* zombie)
 {
 	if (!zombie || !SupportsPlanternMechanics()) return;
-	const int waveBudget = static_cast<int>(std::lround(LerpWeatherValue(
-		static_cast<float>(kMistFuelEarlyWaveBudget),
-		static_cast<float>(kMistFuelLateWaveBudget),
-		GetWeatherDirectorFactor())));
-	if (mMistFuelAssignedThisWave + kMistFuelRewardAmount > waveBudget) return;
+	const int rewardAmount = GetMistFuelRewardAmount();
+	if (mMistFuelAssignedThisWave + rewardAmount > GetMistFuelWaveBudget()) return;
 
 	const int totalMaxHealth = std::max(0, zombie->mBodyMaxHealth)
 		+ std::max(0, zombie->mHelmMaxHealth)
 		+ std::max(0, zombie->mShieldMaxHealth);
 	const float heavyFactor = std::clamp(
 		(static_cast<float>(totalMaxHealth) - 270.0f) / 1800.0f, 0.0f, 1.0f);
-	mMistFuelDropAccumulator += kMistFuelBaseCarrierChance
-		+ kMistFuelHeavyCarrierBonus * heavyFactor;
+	mMistFuelDropAccumulator += GetMistFuelBaseCarrierChance()
+		+ GetMistFuelHeavyCarrierBonus() * heavyFactor;
 
 	const float hitChance = std::min(mMistFuelDropAccumulator, 1.0f);
 	if (GameRandom::Range(0.0f, 1.0f) > hitChance) return;
 	mMistFuelDropAccumulator = std::max(
 		0.0f, mMistFuelDropAccumulator - 1.0f);
-	mMistFuelAssignedThisWave += kMistFuelRewardAmount;
-	zombie->SetMistFuelReward(static_cast<float>(kMistFuelRewardAmount));
+	mMistFuelAssignedThisWave += rewardAmount;
+	zombie->SetMistFuelReward(static_cast<float>(rewardAmount));
 }
 
 inline int Board::CalculateWaveZombiePoints() const

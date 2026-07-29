@@ -437,6 +437,16 @@ public:
 	float GetPlanternFuelFullHintTimer() const;
 	float GetMistFuelDropAccumulator() const { return mMistFuelDropAccumulator; }
 	int GetMistFuelAssignedThisWave() const { return mMistFuelAssignedThisWave; }
+	/** 返回首波 0 到最终波 1 的雾火紧缩进度；不复用天气导演压力。 */
+	float GetMistFuelScarcityFactor() const;
+	/** 返回当前波每只携带者的整数雾火价值。 */
+	int GetMistFuelRewardAmount() const;
+	/** 返回当前波最多预分配的雾火总量。 */
+	int GetMistFuelWaveBudget() const;
+	/** 返回当前波普通耐久僵尸加入跨波保底累计器的基础份额。 */
+	float GetMistFuelBaseCarrierChance() const;
+	/** 返回当前波高耐久僵尸按耐久比例最多追加的保底份额。 */
+	float GetMistFuelHeavyCarrierBonus() const;
 	void SetPlanternGear(PlanternGear gear);
 	void NotifyPlanternRemoved(int plantID);
 	void TogglePlanternGearMenu();
