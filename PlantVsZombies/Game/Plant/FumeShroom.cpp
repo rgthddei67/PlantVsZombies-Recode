@@ -50,7 +50,9 @@ bool FumeShroom::HasZombieInRow()
 				if (found) return;  // 已命中，跳过本行其余
 				float dx = zombie->GetPosition().x - thisX;
 				// 跳过魅惑僵尸：全行只剩魅惑时不触发喷射动画（与 Chomper/PotatoMine 索敌跳过魅惑同一惯例）
-				if (!zombie->IsMindControlled() && dx >= 0 && dx <= mFumeReach && zombie->HasHead() && !zombie->IsMindControlled())
+				if (!zombie->IsMindControlled() && dx >= 0 && dx <= mFumeReach
+					&& zombie->HasHead()
+					&& mBoard->CanPlantAcquireZombie(this, zombie))
 					found = true;
 				});
 			return found;

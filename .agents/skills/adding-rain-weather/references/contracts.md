@@ -59,6 +59,15 @@ const bool isRaining = rain != RainIntensity::CLEAR;
 原版主层，小雾与普通迷雾画 2 层，大雾画 3 层；补层只换稳定帧并做小幅错位，禁止用固定白色
 矩形底幕填透明洞。
 1100px 画面右侧收边必须使用另一稳定帧，不能直接照抄原版 800px 同帧尾片让透明洞重合。
+原生雾片仍可能因大量低 alpha/透明采样在满逻辑 alpha 时泄露实体轮廓；需要加强遮蔽时，
+优先增加消费同一逐格 alpha 的错位冷灰雾片补洞，不要改逻辑层数、索敌阈值或铺纯色矩形。
+同步截图必须成对检查“无照明浓雾确实藏住目标”和“路灯花照亮区仍清楚”。
+
+4-2 起逐格 alpha 还承担雾中远程索敌权威。路灯花用
+`Board::GetPlanternIllumination(row,col)` 在 `UpdateFogCellAlpha()` 目标值中削减雾，
+索敌再读取同一个平滑后的 `GetFogCellAlpha()`；不要另造“逻辑照明范围”绕开可见雾，
+否则刚点亮/熄灭时画面与玩法会不同步。近身感知是统一入口中的显式例外，已在飞行的子弹不撤销。
+照明形状同时服务产光倍率，必须从 Board getter 派生，不能让各植物复制挡位范围。
 
 关卡 schema v3 保存雾势、预报、阶段计时、驱散和偏移。v2 的旧 `CLEAR/DENSE` 二态必须迁移
 为视觉等价的 `SMALL/DENSE`，不能把旧双层 `CLEAR` 误降为单层默认雾。v1/无版本旧档没有足够
@@ -86,7 +95,8 @@ const bool isRaining = rain != RainIntensity::CLEAR;
 | 存档版本升级 | `SaveSchema::UpgradeLevelDocument` | 升级成功后才允许修改 `Board` 或实体 |
 | 天气 AutoTest 状态 | `TestDriver.cpp` 搜索 `out["weather"]` | 浮点另给整数投影；闪电路径暴露激活、主干/分叉段数与落点 X |
 | 雾势玩法与绘制 | `Board::UpdateFog*` / `GameScene::DrawFog` | Board 持状态；GameScene 只按 getter 绘制 |
-| 雾势 AutoTest 状态 | `TestDriver.cpp` 搜索 `out["fog"]` | 断言覆盖列、逐列 alpha、驱散百分比和有符号偏移 |
+| 路灯花照明/雾中索敌 | `GetPlanternIllumination` / `CanPlantAcquireZombie` | 同一逐格 alpha 同时服务视觉和远程索敌；近身例外只在统一入口 |
+| 雾势 AutoTest 状态 | `TestDriver.cpp` 搜索 `out["fog"]` / `out["plantern"]` | 断言覆盖逐格 alpha、照明矩阵、驱散、燃料、挡位和资源 |
 
 ## 雨天专属能力配方
 
@@ -183,6 +193,10 @@ const bool isRaining = rain != RainIntensity::CLEAR;
 - `set_fog_weather`：固定四大关 `DEFAULT/SMALL/NORMAL/DENSE` 雾势与持续时间。
 - `set_fog_forecast`：固定公开/真实雾势与揭晓时刻；当前雾势预报保持准确。
 - `set_fog_dispersal`：固定 `0..1` 驱散比例，供存档与渲染状态测试。
+- `set_plantern_gear` / `set_plantern_fuel` / `award_plantern_fuel`：固定挡位和燃料边界。
+- `assert_can_target`：直接断言统一雾中索敌入口；远目标和近身例外应成对覆盖。
+- `set_zombie_mist_fuel_reward` / `kill_zombie`：绕开随机分配，只验证正式死亡到账、满仓、
+  魅惑和无路灯花丢弃；概率/预算另用正式波次路径验证。
 
 为雨天能力新增脚本时：
 

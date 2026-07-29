@@ -38,6 +38,7 @@
 #include "Torchwood.h"
 #include "TallNut.h"
 #include "SeaShroom.h"
+#include "Plantern.h"
 
 #include "../Zombie/Zombie.h"
 #include "../Zombie/ConeZombie.h"
@@ -242,6 +243,11 @@ void GameDataManager::InitializeHardcodedData() {
 		ResourceKeys::Textures::IMAGE_SEASHROOM,
 		AnimationType::ANIM_SEASHROOM,
 		ResourceKeys::Reanimations::REANIM_SEASHROOM, &MakePlant<SeaShroom>);
+
+	RegisterPlant(PlantType::PLANT_PLANTERN, "PLANT_PLANTERN",
+		ResourceKeys::Textures::IMAGE_PLANTERN,
+		AnimationType::ANIM_PLANTERN,
+		ResourceKeys::Reanimations::REANIM_PLANTERN, &MakePlant<Plantern>);
 
 	// 寒冰大喷菇：复用大喷菇 reanim（蓝色靠 overlay），仅卡图独立
 	RegisterPlant(PlantType::PLANT_ICEFUMESHROOM, "PLANT_ICEFUMESHROOM",

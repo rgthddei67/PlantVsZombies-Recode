@@ -9,8 +9,26 @@
 #include "./Plant/GameDataManager.h"
 #include "AudioSystem.h"
 #include "./Plant/Plant.h"
+#include "./Plant/Plantern.h"
 #include "ShadowComponent.h"
 #include "../GameAPP.h"
+
+namespace {
+	constexpr float kPlanternMenuTopOffset = 74.0f; // 挡位菜单相对卡片顶部的纵向偏移，单位：UI px
+	constexpr float kPlanternMenuButtonWidth = 50.0f; // 单个挡位按钮宽度，单位：UI px
+	constexpr float kPlanternMenuButtonHeight = 21.0f; // 单个挡位按钮高度，单位：UI px
+	constexpr float kPlanternMenuButtonGap = 2.0f; // 相邻挡位按钮的纵向间隔，单位：UI px
+	constexpr float kPlanternMenuMinimumX = 374.0f; // 避开左侧天气面板后的最小逻辑 X，单位：UI px
+
+	/** 返回挡位菜单的逻辑锚点；首张卡位下方被天气面板占用时自动右移。 */
+	Vector GetPlanternMenuAnchor(Card* card)
+	{
+		if (!card || !card->GetTransform()) return Vector::zero();
+		const Vector cardAnchor = card->GetTransform()->GetPosition();
+		return Vector(std::max(cardAnchor.x, kPlanternMenuMinimumX),
+			cardAnchor.y + kPlanternMenuTopOffset);
+	}
+}
 
 CardSlotManager::CardSlotManager(Board* board)
 	: mBoard(board)
@@ -44,6 +62,7 @@ void CardSlotManager::Start() {
 
 void CardSlotManager::Update() {
 	static int lastSun = 0;
+	UpdatePlanternGearMenuInput();
 
 	// 如果有选中的卡牌，更新鼠标悬停的Cell
 	auto* selected = selectedCard;
@@ -73,6 +92,7 @@ void CardSlotManager::Draw(Graphics* g) {
 		// 更新预览位置
 		UpdatePlantPreviewPosition(g, mouseScreen);
 	}
+	DrawPlanternGearMenu(g);
 }
 
 void CardSlotManager::UpdateAllCardsState() {
@@ -101,6 +121,7 @@ void CardSlotManager::AddCard(Card* card) {
 
 void CardSlotManager::ClearAllCards() {
 	DeselectCard();
+	mPlanternGearMenuOpen = false;
 	for (auto* card : cards) {
 		if (card) GameObjectManager::GetInstance().DestroyGameObject(card);
 	}
@@ -165,6 +186,92 @@ void CardSlotManager::DeselectCard() {
 bool CardSlotManager::CanAfford(int cost) const {
 	if (GameAPP::mDevelopMode && GameAPP::mDevFreePlant) return true;   // 开发者作弊：无视阳光
 	return mBoard ? mBoard->GetSun() >= cost : false;
+}
+
+void CardSlotManager::TogglePlanternGearMenu()
+{
+	if (!mBoard || !mBoard->GetActivePlantern() || !FindPlanternCard()) {
+		mPlanternGearMenuOpen = false;
+		return;
+	}
+	DeselectCard();
+	mBoard->mCursorObjectManager.ClearActive();
+	mPlanternGearMenuOpen = !mPlanternGearMenuOpen;
+}
+
+Card* CardSlotManager::FindPlanternCard() const
+{
+	for (Card* card : cards) {
+		if (!card) continue;
+		CardComponent* component = card->GetCardComponent();
+		if (component && component->GetPlantType() == PlantType::PLANT_PLANTERN) {
+			return card;
+		}
+	}
+	return nullptr;
+}
+
+void CardSlotManager::UpdatePlanternGearMenuInput()
+{
+	if (!mPlanternGearMenuOpen) return;
+	Card* card = FindPlanternCard();
+	if (!mBoard || !mBoard->GetActivePlantern() || !card) {
+		mPlanternGearMenuOpen = false;
+		return;
+	}
+
+	auto& input = GameAPP::GetInstance().GetInputHandler();
+	if (input.IsMouseButtonPressed(SDL_BUTTON_RIGHT)) {
+		mPlanternGearMenuOpen = false;
+		return;
+	}
+	if (!input.IsMouseButtonPressed(SDL_BUTTON_LEFT)) return;
+
+	const Vector anchor = GetPlanternMenuAnchor(card);
+	const Vector mouse = input.GetMousePosition();
+	for (int gear = 0; gear <= 3; ++gear) {
+		const float y = anchor.y
+			+ gear * (kPlanternMenuButtonHeight + kPlanternMenuButtonGap);
+		if (mouse.x < anchor.x || mouse.x > anchor.x + kPlanternMenuButtonWidth
+			|| mouse.y < y || mouse.y > y + kPlanternMenuButtonHeight) {
+			continue;
+		}
+		mBoard->SetPlanternGear(static_cast<PlanternGear>(gear));
+		AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_CLICKSEED, 0.45f);
+		return;
+	}
+}
+
+void CardSlotManager::DrawPlanternGearMenu(Graphics* g)
+{
+	if (!g || !mPlanternGearMenuOpen || !mBoard || !mBoard->GetActivePlantern()) return;
+	Card* card = FindPlanternCard();
+	if (!card || !card->GetTransform()) return;
+
+	const Vector logical = GetPlanternMenuAnchor(card);
+	const Vector anchor = g->LogicalToWorld(logical.x, logical.y);
+	const int currentGear = mBoard->GetPlanternGearValue();
+	static const char* labels[] = { "0", "I", "II", "III" };
+	const float panelHeight = 4.0f * kPlanternMenuButtonHeight
+		+ 3.0f * kPlanternMenuButtonGap + 4.0f;
+	g->FillRect(anchor.x - 2.0f, anchor.y - 2.0f,
+		kPlanternMenuButtonWidth + 4.0f, panelHeight,
+		glm::vec4(28.0f, 24.0f, 20.0f, 225.0f));
+
+	for (int gear = 0; gear <= 3; ++gear) {
+		const float y = anchor.y
+			+ gear * (kPlanternMenuButtonHeight + kPlanternMenuButtonGap);
+		const bool selected = gear == currentGear;
+		g->FillRect(anchor.x, y, kPlanternMenuButtonWidth, kPlanternMenuButtonHeight,
+			selected
+				? glm::vec4(245.0f, 184.0f, 58.0f, 245.0f)
+				: glm::vec4(86.0f, 76.0f, 62.0f, 235.0f));
+		g->DrawGlyphRun(labels[gear], ResourceKeys::Fonts::FONT_FZCQ, 15,
+			selected
+				? glm::vec4(42.0f, 29.0f, 14.0f, 255.0f)
+				: glm::vec4(245.0f, 235.0f, 205.0f, 255.0f),
+			anchor.x + (gear < 2 ? 21.0f : 17.0f), y + 2.0f);
+	}
 }
 
 bool CardSlotManager::CanUsePlant(PlantType type, int cost) const {

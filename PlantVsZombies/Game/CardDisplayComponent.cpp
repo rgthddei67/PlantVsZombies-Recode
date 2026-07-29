@@ -11,6 +11,8 @@
 #include "../GameAPP.h"
 #include "./CardSlotManager.h"
 #include "./Plant/GameDataManager.h"
+#include <algorithm>
+#include <cmath>
 
 namespace {
 	constexpr float kCardPlantImageScale = 0.64f;  // 普通植物卡图相对原始贴图的统一绘制倍率
@@ -76,16 +78,25 @@ void CardDisplayComponent::Draw(Graphics* g) {
 	// 一次性算出世界坐标与当前色调，避免各子函数重复查询
 	Vector pos = transform->GetPosition();
 	Vector position = g->LogicalToWorld(pos.x, pos.y);
-	glm::vec4 color = GetCurrentColor();
+	Board* board = nullptr;
+	if (CardComponent* component = GetCardComponent()) {
+		if (CardSlotManager* manager = component->GetCardSlotManager()) {
+			board = manager->GetBoard();
+		}
+	}
+	const bool isActivePlantern = plantType == PlantType::PLANT_PLANTERN
+		&& board && board->GetActivePlantern();
+	glm::vec4 color = isActivePlantern ? readyColor : GetCurrentColor();
 
 	DrawCardBackground(g, position, color);
 	DrawPlantImage(g, position, color);
 
-	if (showMask && maskFillAmount > 0) {
+	if (!isActivePlantern && showMask && maskFillAmount > 0) {
 		DrawCooldownMask(g, position);
 	}
 
-	DrawSunCost(g, position);
+	if (isActivePlantern) DrawPlanternStatus(g, position);
+	else DrawSunCost(g, position);
 
 	if (isSelected) {
 		DrawSelectionHighlight(g, position);
@@ -141,6 +152,49 @@ void CardDisplayComponent::DrawPlantImage(Graphics* g, const Vector& position, c
 	const float drawY = position.y - 9.0f + (baseH - drawH) * 0.5f + typeOffsetY;
 
 	g->DrawTexture(plantTexture, drawX, drawY, drawW, drawH, 0.0f, color);
+}
+
+void CardDisplayComponent::DrawPlanternStatus(Graphics* g, const Vector& position)
+{
+	CardComponent* component = GetCardComponent();
+	CardSlotManager* manager = component ? component->GetCardSlotManager() : nullptr;
+	Board* board = manager ? manager->GetBoard() : nullptr;
+	if (!board) return;
+
+	const float ratio = std::clamp(board->GetPlanternFuelRatio(), 0.0f, 1.0f);
+	const float barX = position.x + 41.0f;
+	const float barY = position.y + 7.0f;
+	const float barW = 6.0f;
+	const float barH = 43.0f;
+	g->FillRect(barX - 1.0f, barY - 1.0f, barW + 2.0f, barH + 2.0f,
+		glm::vec4(32.0f, 25.0f, 19.0f, 230.0f));
+	const glm::vec4 fuelColor = ratio > 0.25f
+		? glm::vec4(248.0f, 184.0f, 49.0f, 255.0f)
+		: glm::vec4(238.0f, 92.0f, 45.0f, 255.0f);
+	g->FillRect(barX, barY + barH * (1.0f - ratio),
+		barW, barH * ratio, fuelColor);
+
+	static const char* gearLabels[] = { "0", "I", "II", "III" };
+	const int gear = std::clamp(board->GetPlanternGearValue(), 0, 3);
+	g->DrawGlyphRun(gearLabels[gear], ResourceKeys::Fonts::FONT_FZCQ, 14,
+		glm::vec4(50.0f, 28.0f, 12.0f, 255.0f),
+		position.x + (gear < 2 ? 7.0f : 4.0f), position.y + 51.0f);
+
+	const bool fullHint = board->GetPlanternFuelFullHintTimer() > 0.0f;
+	const std::string fuelText = std::to_string(static_cast<int>(std::lround(
+		board->GetPlanternFuel())));
+	const float fuelTextX = position.x + (fuelText.size() >= 3 ? 17.0f : 21.0f);
+	g->DrawGlyphRun(fuelText, ResourceKeys::Fonts::FONT_FZCQ, 12,
+		fullHint
+			? glm::vec4(172.0f, 72.0f, 12.0f, 255.0f)
+			: glm::vec4(50.0f, 28.0f, 12.0f, 255.0f),
+		fuelTextX, position.y + 52.0f);
+
+	if (fullHint) {
+		g->DrawRect(position.x + 1.0f, position.y + 1.0f,
+			static_cast<float>(CARD_WIDTH - 2), static_cast<float>(CARD_HEIGHT - 2),
+			glm::vec4(255.0f, 205.0f, 60.0f, 255.0f));
+	}
 }
 
 void CardDisplayComponent::DrawCooldownMask(Graphics* g, const Vector& position) {

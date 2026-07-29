@@ -9,7 +9,9 @@
 #include "AdventureProgression.h"
 #include "../GameRandom.h"
 #include "./Plant/Plant.h"
+#include "./Plant/Plantern.h"
 #include "./Zombie/Zombie.h"
+#include "MistFuel.h"
 
 #include "EntityManager.h"
 #include "RenderOrder.h"
@@ -81,6 +83,8 @@ namespace {
 	constexpr float kFirstFogWeatherDelayMax = 70.0f;    // 四大关开局到首次独立雾势抽取的最长游戏秒
 	constexpr float kDefaultFogWeatherDurationMin = 50.0f; // 原版默认雾休整阶段的最短持续游戏秒
 	constexpr float kDefaultFogWeatherDurationMax = 80.0f; // 原版默认雾休整阶段的最长持续游戏秒
+	constexpr float kLateDefaultFogWeatherDurationMin = 20.0f; // 满压力后默认雾休整的最短游戏秒
+	constexpr float kLateDefaultFogWeatherDurationMax = 35.0f; // 满压力后默认雾休整的最长游戏秒
 	constexpr float kElevatedFogWeatherDurationMin = 35.0f; // 小雾、普通迷雾或大雾事件的最短持续游戏秒
 	constexpr float kElevatedFogWeatherDurationMax = 55.0f; // 小雾、普通迷雾或大雾事件的最长持续游戏秒
 	constexpr float kFogWeatherForecastLeadTime = 15.0f; // 独立雾势揭晓前展示预报的游戏秒
@@ -94,6 +98,13 @@ namespace {
 	constexpr float kFogInteriorAlpha = 255.0f;          // 雾区内部格的目标 alpha
 	constexpr float kFogFillRate = 180.0f;               // 雾生成或回流时每游戏秒最多增加的 alpha
 	constexpr float kFogClearRate = 320.0f;              // 台风驱散时每游戏秒最多减少的 alpha
+	constexpr float kFogTargetingAlphaThreshold = 96.0f; // 4-2 起远程索敌仍可接受的最大逐格雾 alpha
+	constexpr float kFogCloseDetectionRange = 100.0f;    // 雾中不依赖照明的近身感知横向距离（像素）
+	constexpr int kMistFuelRewardAmount = 15;             // 单只携带者死亡时提供的雾火量
+	constexpr int kMistFuelEarlyWaveBudget = 45;          // 前期每波最多分配的雾火量
+	constexpr int kMistFuelLateWaveBudget = 75;           // 满压力每波最多分配的雾火量
+	constexpr float kMistFuelBaseCarrierChance = 0.30f;   // 普通耐久正式波次僵尸加入保底累计器的基础份额
+	constexpr float kMistFuelHeavyCarrierBonus = 0.30f;   // 高耐久僵尸相对普通僵尸最多追加的累计份额
 	constexpr float kSuperFogDispersalRate = 0.28f;      // 超强台风每游戏秒累积的雾驱散比例
 	constexpr float kFogReturnRate = 0.06f;              // 停风后基础雾每游戏秒恢复的驱散比例
 	constexpr float kFogMaximumDriftX = 180.0f;          // 持续台风把雾团推向当前风向的最大水平像素
@@ -1136,6 +1147,17 @@ void Board::EndFogWeather(float defaultDuration)
 	if (changed && mPresentation) mPresentation->ShowCurrentWeatherNotice();
 }
 
+/** 随天气导演缩短后期低压默认雾段，但始终保留可预期的短暂恢复窗口。 */
+float Board::RandomDefaultFogWeatherDuration() const
+{
+	const float directorFactor = GetWeatherDirectorFactor();
+	return GameRandom::Range(
+		LerpWeatherValue(kDefaultFogWeatherDurationMin,
+			kLateDefaultFogWeatherDurationMin, directorFactor),
+		LerpWeatherValue(kDefaultFogWeatherDurationMax,
+			kLateDefaultFogWeatherDurationMax, directorFactor));
+}
+
 /** 揭晓已经锁定的真实雾势，并给新阶段分配独立持续时间。 */
 void Board::ConsumeFogWeatherForecast()
 {
@@ -1146,8 +1168,7 @@ void Board::ConsumeFogWeatherForecast()
 			kElevatedFogWeatherDurationMin, kElevatedFogWeatherDurationMax));
 		return;
 	}
-	EndFogWeather(GameRandom::Range(
-		kDefaultFogWeatherDurationMin, kDefaultFogWeatherDurationMax));
+	EndFogWeather(RandomDefaultFogWeatherDuration());
 }
 
 /** 独立推进雾势阶段和预报；暂停与倍速都跟随 Board 的游戏时间。 */
@@ -1187,8 +1208,7 @@ void Board::UpdateFogDispersal(float deltaTime)
 
 	if (mFogWeatherIntensity != FogWeatherIntensity::DEFAULT
 		&& mFogDispersal >= 0.999f) {
-		EndFogWeather(GameRandom::Range(
-			kDefaultFogWeatherDurationMin, kDefaultFogWeatherDurationMax));
+		EndFogWeather(RandomDefaultFogWeatherDuration());
 	}
 }
 
@@ -1211,6 +1231,7 @@ void Board::UpdateFogCellAlpha(float deltaTime)
 			float target = 0.0f;
 			if (col == leftColumn) target = edgeAlpha * visibility;
 			else if (col > leftColumn) target = kFogInteriorAlpha * visibility;
+			target *= 1.0f - GetPlanternIllumination(row, col);
 
 			float& alpha = mFogCellAlpha[row * mColumns + col];
 			const float rate = target >= alpha ? kFogFillRate : kFogClearRate;
@@ -2373,6 +2394,12 @@ bool Board::SupportsStageFog() const
 		&& AdventureProgression::GetAreaNumber(mLevel) == 4;
 }
 
+bool Board::SupportsPlanternMechanics() const
+{
+	return SupportsStageFog()
+		&& AdventureProgression::GetLevelNumberInArea(mLevel) >= 2;
+}
+
 bool Board::SupportsFogWeather() const
 {
 	// 首版只改变正在建设的四大关；以后其他地图接入时保持雨势与雾势两个独立开关。
@@ -2422,6 +2449,148 @@ float Board::GetFogCellAlpha(int row, int col) const
 	const int index = row * mColumns + col;
 	return index < static_cast<int>(mFogCellAlpha.size())
 		? mFogCellAlpha[index] : 0.0f;
+}
+
+Plantern* Board::GetActivePlantern() const
+{
+	Plant* plant = mEntityManager.GetPlant(mActivePlanternID);
+	auto* plantern = dynamic_cast<Plantern*>(plant);
+	return plantern && !plantern->IsSquished() ? plantern : nullptr;
+}
+
+float Board::GetPlanternIllumination(int row, int col) const
+{
+	if (!SupportsPlanternMechanics()) return 0.0f;
+	const Plantern* plantern = GetActivePlantern();
+	if (!plantern || !plantern->HasUsableLight()) return 0.0f;
+
+	const int dx = std::abs(col - plantern->mColumn);
+	const int dy = std::abs(row - plantern->mRow);
+	switch (plantern->GetGear()) {
+	case PlanternGear::OFF:
+		return 0.0f;
+	case PlanternGear::LOW:
+		return dx <= 1 && dy <= 1 ? 1.0f : 0.0f;
+	case PlanternGear::MEDIUM:
+		// 复刻原版 7×5 菱角矩形：只裁去四个最远角。
+		return dx <= 3 && dy <= 2 && dx + dy <= 4 ? 1.0f : 0.0f;
+	case PlanternGear::HIGH:
+		if (dx > 4 || dy > 3 || dx + dy > 6) return 0.0f;
+		// 三档的 9 格宽外圈保留薄雾，视觉上形成柔和边缘但仍足以恢复索敌。
+		return dx == 4 || dy == 3 || dx + dy == 6 ? 0.72f : 1.0f;
+	}
+	return 0.0f;
+}
+
+bool Board::CanPlantAcquireZombie(const Plant* plant, const Zombie* zombie) const
+{
+	if (!plant || !zombie || !SupportsPlanternMechanics()) return true;
+	if (std::abs(zombie->mRow - plant->mRow) <= 1
+		&& std::abs(zombie->GetPosition().x - plant->GetPosition().x)
+			<= kFogCloseDetectionRange) {
+		return true;
+	}
+
+	const int column = std::clamp(static_cast<int>(
+		(zombie->GetPosition().x - CELL_INITALIZE_POS_X) / CELL_COLLIDER_SIZE_X),
+		0, mColumns - 1);
+	return GetFogCellAlpha(std::clamp(zombie->mRow, 0, mRows - 1), column)
+		<= kFogTargetingAlphaThreshold;
+}
+
+float Board::GetPlanternSunProductionMultiplier(const Plant* producer) const
+{
+	if (!producer) return 1.0f;
+	const Plantern* plantern = GetActivePlantern();
+	if (!plantern || !plantern->HasUsableLight()) return 1.0f;
+	const float illumination = GetPlanternIllumination(producer->mRow, producer->mColumn);
+	if (illumination <= 0.0f) return 1.0f;
+
+	float peak = 1.0f;
+	switch (plantern->GetGear()) {
+	case PlanternGear::OFF: break;
+	case PlanternGear::LOW: peak = 1.10f; break;
+	case PlanternGear::MEDIUM: peak = 1.20f; break;
+	case PlanternGear::HIGH: peak = 1.35f; break;
+	}
+	return 1.0f + (peak - 1.0f) * illumination;
+}
+
+float Board::GetPlanternFuel() const
+{
+	const Plantern* plantern = GetActivePlantern();
+	return plantern ? plantern->GetFuel() : 0.0f;
+}
+
+float Board::GetPlanternFuelRatio() const
+{
+	const Plantern* plantern = GetActivePlantern();
+	return plantern ? plantern->GetFuelRatio() : 0.0f;
+}
+
+int Board::GetPlanternGearValue() const
+{
+	const Plantern* plantern = GetActivePlantern();
+	return plantern ? static_cast<int>(plantern->GetGear()) : 0;
+}
+
+float Board::GetPlanternFuelFullHintTimer() const
+{
+	const Plantern* plantern = GetActivePlantern();
+	return plantern ? plantern->GetFuelFullHintTimer() : 0.0f;
+}
+
+void Board::SetPlanternGear(PlanternGear gear)
+{
+	if (Plantern* plantern = GetActivePlantern()) plantern->SetGear(gear);
+}
+
+void Board::NotifyPlanternRemoved(int plantID)
+{
+	if (mActivePlanternID == plantID) mActivePlanternID = NULL_PLANT_ID;
+}
+
+void Board::TogglePlanternGearMenu()
+{
+	if (mPresentation && GetActivePlantern()) {
+		mPresentation->TogglePlanternGearMenu();
+	}
+}
+
+void Board::CollectMistFuelFromZombie(Zombie* zombie)
+{
+	if (!zombie || !SupportsPlanternMechanics()
+		|| zombie->IsMindControlled()) return;
+	const float reward = zombie->ClaimMistFuelReward();
+	if (reward <= 0.0f) return;
+
+	Plantern* plantern = GetActivePlantern();
+	if (!plantern) return;
+	const float accepted = plantern->AddFuel(reward);
+	if (accepted <= 0.0f) return;
+
+	GameObjectManager::GetInstance().CreateGameObject<MistFuel>(
+		LAYER_EFFECTS, this,
+		zombie->GetVisualPosition() + Vector(0.0f, -24.0f),
+		plantern->mPlantID);
+}
+
+bool Board::SetPlanternFuelForTesting(float fuel)
+{
+	if (!std::isfinite(fuel) || fuel < 0.0f) return false;
+	Plantern* plantern = GetActivePlantern();
+	if (!plantern) return false;
+	plantern->SetFuel(fuel);
+	return true;
+}
+
+bool Board::AwardPlanternFuelForTesting(float amount)
+{
+	if (!std::isfinite(amount) || amount <= 0.0f) return false;
+	Plantern* plantern = GetActivePlantern();
+	if (!plantern) return false;
+	plantern->AddFuel(amount);
+	return true;
 }
 
 int Board::GetFogTileVariant(int row, int col) const
@@ -2856,6 +3025,9 @@ bool Board::CanPlantAt(PlantType type, int row, int col)
 
 bool Board::HasPlantingQuota(PlantType type) const
 {
+	if (type == PlantType::PLANT_PLANTERN) {
+		return GetActivePlantern() == nullptr;
+	}
 	return type != PlantType::PLANT_ELITE_SCAREDYSHROOM
 		|| mEliteScaredyShroomsPlanted < kEliteScaredyShroomPlantLimit;
 }
@@ -2920,6 +3092,9 @@ Plant* Board::CreatePlant(PlantType plantType, int row, int column, bool skipset
 		RefreshPlantStackRenderOrder(cell);
 		if (plantType == PlantType::PLANT_ELITE_SCAREDYSHROOM && consumesPlantingQuota) {
 			++mEliteScaredyShroomsPlanted;
+		}
+		if (plantType == PlantType::PLANT_PLANTERN) {
+			mActivePlanternID = plant->mPlantID;
 		}
 	}
 
@@ -3132,6 +3307,7 @@ void Board::SummonNextWave()
 	mElitePolevaultersSpawnedThisWave = 0;
 	mGildedZambonisSpawnedThisWave = 0;
 	mEliteDolphinRidersSpawnedThisWave = 0;
+	mMistFuelAssignedThisWave = 0;
 	if (mCurrentWave == 1)
 	{
 		AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_FIRSTWAVE, 0.7f);
@@ -3427,10 +3603,40 @@ inline void Board::TrySummonZombie()
 		auto zombie = CreateResolvedWaveZombie(actualType, row, x);
 		if (zombie)
 		{
+			AssignMistFuelReward(zombie);
 			zombiesSpawned++;
 			remainingPoints -= cost;
 		}
 	}
+}
+
+/**
+ * 只给正式波次出生分配雾火：每波有硬预算，未命中的概率会进入跨波保底累计，
+ * 因而不会因僵尸数量膨胀失控，也不会出现长时间完全断供。
+ */
+void Board::AssignMistFuelReward(Zombie* zombie)
+{
+	if (!zombie || !SupportsPlanternMechanics()) return;
+	const int waveBudget = static_cast<int>(std::lround(LerpWeatherValue(
+		static_cast<float>(kMistFuelEarlyWaveBudget),
+		static_cast<float>(kMistFuelLateWaveBudget),
+		GetWeatherDirectorFactor())));
+	if (mMistFuelAssignedThisWave + kMistFuelRewardAmount > waveBudget) return;
+
+	const int totalMaxHealth = std::max(0, zombie->mBodyMaxHealth)
+		+ std::max(0, zombie->mHelmMaxHealth)
+		+ std::max(0, zombie->mShieldMaxHealth);
+	const float heavyFactor = std::clamp(
+		(static_cast<float>(totalMaxHealth) - 270.0f) / 1800.0f, 0.0f, 1.0f);
+	mMistFuelDropAccumulator += kMistFuelBaseCarrierChance
+		+ kMistFuelHeavyCarrierBonus * heavyFactor;
+
+	const float hitChance = std::min(mMistFuelDropAccumulator, 1.0f);
+	if (GameRandom::Range(0.0f, 1.0f) > hitChance) return;
+	mMistFuelDropAccumulator = std::max(
+		0.0f, mMistFuelDropAccumulator - 1.0f);
+	mMistFuelAssignedThisWave += kMistFuelRewardAmount;
+	zombie->SetMistFuelReward(static_cast<float>(kMistFuelRewardAmount));
 }
 
 inline int Board::CalculateWaveZombiePoints() const
@@ -3768,6 +3974,9 @@ Plant* Board::CreatePlantWithID(PlantType type, int row, int col, int id) {
 			if (isUnderPlant) cell->SetUnderPlantID(id);
 			else cell->SetNormalPlantID(id);
 			RefreshPlantStackRenderOrder(cell);
+		}
+		if (type == PlantType::PLANT_PLANTERN) {
+			mActivePlanternID = id;
 		}
 	}
 	return plant.get();

@@ -84,6 +84,7 @@ public:
 	GameProgress* GetGameProgress() const;
 
 	void GameOver() override;
+	void TogglePlanternGearMenu() override;
 
 	// 生存模式：一轮清空后重新进入选卡子流程（同会话轮间，轻量路径）
 	void BeginSurvivalCardSelect();

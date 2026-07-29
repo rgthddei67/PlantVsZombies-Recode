@@ -112,6 +112,11 @@
 [PLANT_SEASHROOM_DESCRIPTION]
 海蘑菇是能够直接种在水面上的短程孢子射手，白天会睡觉。“我还没有真正见过大海，”海蘑菇说，“不过每天漂在泳池里，也算是在为远航做准备。”
 
+[PLANT_PLANTERN]
+路灯花
+[PLANT_PLANTERN_DESCRIPTION]
+路灯花消耗雾火驱散迷雾，并解除照明范围内的远程索敌限制。点击本体或已种下后的卡片可切换关闭、一档、二档和三档；挡位越高，照明范围、周围产光效率与燃料消耗越高。场上最多存在一株，死亡后可以重新种植。
+
 [ZOMBIE_NORMAL]
 僵尸
 [ZOMBIE_NORMAL_DESCRIPTION]

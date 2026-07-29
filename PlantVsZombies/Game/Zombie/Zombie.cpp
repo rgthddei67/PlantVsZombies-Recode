@@ -149,6 +149,8 @@ void Zombie::SaveProtectedData(nlohmann::json& j) const {
 	j["draggedUnderByTangleKelp"] = mDraggedUnderByTangleKelp;
 	j["tangleKelpSinkOffset"] = mTangleKelpSinkOffset;
 	j["tangleKelpGrabFrame"] = GetTangleKelpGrabFrame();
+	j["mistFuelReward"] = mMistFuelReward;
+	j["mistFuelRewardClaimed"] = mMistFuelRewardClaimed;
 }
 
 void Zombie::LoadProtectedData(const nlohmann::json& j) {
@@ -198,6 +200,8 @@ void Zombie::LoadProtectedData(const nlohmann::json& j) {
 	mTangleKelpPlantID = j.value("tangleKelpPlantID", NULL_PLANT_ID);
 	mDraggedUnderByTangleKelp = j.value("draggedUnderByTangleKelp", false);
 	mTangleKelpSinkOffset = std::max(0.0f, j.value("tangleKelpSinkOffset", 0.0f));
+	mMistFuelReward = std::max(0.0f, j.value("mistFuelReward", 0.0f));
+	mMistFuelRewardClaimed = j.value("mistFuelRewardClaimed", false);
 	if (mTangleKelpPlantID != NULL_PLANT_ID) {
 		CreateTangleKelpGrabAnimators(
 			j.value("tangleKelpGrabFrame", kTangleKelpGrabStartFrame));
@@ -925,6 +929,7 @@ void Zombie::Die()
 	mEatZombieID = NULL_ZOMBIE_ID;
 
 	if (mBoard) {
+		mBoard->CollectMistFuelFromZombie(this);
 		mBoard->mZombieNumber--;
 		CheckWin();
 	}

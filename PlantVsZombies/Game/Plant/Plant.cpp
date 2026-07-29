@@ -233,6 +233,13 @@ float Plant::GetWeatherActionDeltaTime() const
 	return DeltaTime::GetDeltaTime() * GetWeatherActionSpeedMultiplier();
 }
 
+float Plant::GetSunProductionDeltaTime() const
+{
+	const float planternMultiplier = mBoard
+		? mBoard->GetPlanternSunProductionMultiplier(this) : 1.0f;
+	return GetWeatherActionDeltaTime() * planternMultiplier;
+}
+
 float Plant::GetAttackSpeedMultiplier() const
 {
 	const float perkMultiplier = mBoard

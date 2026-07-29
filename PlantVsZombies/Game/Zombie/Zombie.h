@@ -10,6 +10,7 @@
 #include "../EntityManager.h"
 #include "../DamageSource.h"
 #include <nlohmann/json.hpp>
+#include <algorithm>
 
 class Board;
 class Plant;
@@ -43,6 +44,8 @@ public:
 protected:
 	Vector mVisualOffset;   // 视觉偏移量
 	bool mIsPreview = false;
+	float mMistFuelReward = 0.0f; // 正式波次出生时预分配的雾火；召唤物、预览与直造默认 0
+	bool mMistFuelRewardClaimed = false; // 死亡结算防重入；随实体存档避免读档重复领取
 
 	int mGoldenIceEffectStacks = 0;	// 当前黄色冰道速度场层数；由仍存活的铺路者与持久冰道实时派生，不入存档
 
@@ -141,6 +144,18 @@ public:
 	float GetTargetLeadX(float seconds) const;
 
 	bool IsMindControlled() const { return this->mIsMindControlled; }
+	void SetMistFuelReward(float reward) {
+		mMistFuelReward = std::max(0.0f, reward);
+		mMistFuelRewardClaimed = false;
+	}
+	float GetMistFuelReward() const {
+		return mMistFuelRewardClaimed ? 0.0f : mMistFuelReward;
+	}
+	float ClaimMistFuelReward() {
+		if (mMistFuelRewardClaimed) return 0.0f;
+		mMistFuelRewardClaimed = true;
+		return mMistFuelReward;
+	}
 	// 魅惑唯一入口：豁免(CanBeCharmed)/重复/垂死则 no-op。魅惑菇、AutoTest charm_zombie 都走这里。
 	void StartMindControlled();
 	// 子类豁免点：不可魅惑态（如撑杆 RUNNING/JUMPING）返回 false

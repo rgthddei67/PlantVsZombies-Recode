@@ -74,6 +74,12 @@ void CardComponent::SetCardGameClick(GameObject* gameObject)
 		clickable->onClick = [this]() {
 			// 通知卡槽管理器这个卡牌被点击了
 			auto* manager = GetCardSlotManager();
+			if (mPlantType == PlantType::PLANT_PLANTERN && manager
+				&& manager->GetBoard() && manager->GetBoard()->GetActivePlantern()) {
+				manager->TogglePlanternGearMenu();
+				AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_CLICKSEED, 0.5f);
+				return;
+			}
 			if (!IsReady() || !manager || !manager->CanUsePlant(mPlantType, mSunCost)) {
 				AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_CLICKFAILED, 0.5f);
 				return;

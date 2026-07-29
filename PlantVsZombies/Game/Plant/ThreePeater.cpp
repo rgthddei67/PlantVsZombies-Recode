@@ -157,7 +157,8 @@ bool ThreePeater::HasTargetInRow(int row) const
 		if (found || !zombie) return;
 		const float zombieX = zombie->GetPosition().x;
 		if (!zombie->IsMindControlled()
-			&& zombieX >= plantX && zombieX <= SCENE_WIDTH && zombie->HasHead()) {
+			&& zombieX >= plantX && zombieX <= SCENE_WIDTH && zombie->HasHead()
+			&& mBoard->CanPlantAcquireZombie(this, zombie)) {
 			found = true;
 		}
 	});

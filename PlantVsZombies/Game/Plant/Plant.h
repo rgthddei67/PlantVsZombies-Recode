@@ -125,6 +125,8 @@ protected:
 	float GetWeatherActionSpeedMultiplier() const;
 	/** 仅供攻击/生产/成长/恢复计时使用，禁止替代整个 Plant::Update 的 deltaTime。 */
 	float GetWeatherActionDeltaTime() const;
+	/** 产光专用计时增量 = 雨势行动倍率 × 路灯花局部照明倍率。 */
+	float GetSunProductionDeltaTime() const;
 	/** 攻击专用组合倍率 = 生存攻速词条 × 雨势行动倍率。 */
 	float GetAttackSpeedMultiplier() const;
 

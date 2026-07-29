@@ -15,6 +15,7 @@
     <Image>./resources/image/golden_ice_cap.png</Image>
 
     <Image Column="8" Row="1">./resources/image/fog.png</Image>
+    <Image>./resources/image/MistFuel.png</Image>
 
     <Image>./resources/image/UI/options_checkbox0.png</Image>
     <Image>./resources/image/UI/options_checkbox1.png</Image>
@@ -347,6 +348,7 @@
     <Reanimation name="Torchwood">./resources/reanim/Torchwood.reanim</Reanimation>
     <Reanimation name="Tallnut">./resources/reanim/Tallnut.reanim</Reanimation>
     <Reanimation name="SeaShroom">./resources/reanim/SeaShroom.reanim</Reanimation>
+    <Reanimation name="Plantern">./resources/reanim/Plantern.reanim</Reanimation>
 
     <Reanimation name="NormalZombie">./resources/reanim/NormalZombie.reanim</Reanimation>
     <Reanimation name="ConeZombie">./resources/reanim/ConeZombie.reanim</Reanimation>

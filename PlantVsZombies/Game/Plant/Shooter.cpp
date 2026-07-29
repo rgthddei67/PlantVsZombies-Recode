@@ -124,7 +124,9 @@ bool Shooter::HasZombieInRow()
 			mBoard->mEntityManager.ForEachZombieInRow(mRow, [&](Zombie* zombie) {
 				if (found) return;  // 已命中，跳过本行其余
 				float zombieX = zombie->GetPosition().x;
-				if (!zombie->IsMindControlled() && zombieX >= thisX && zombieX <= SCENE_WIDTH && zombie->HasHead())
+				if (!zombie->IsMindControlled() && zombieX >= thisX
+					&& zombieX <= SCENE_WIDTH && zombie->HasHead()
+					&& mBoard->CanPlantAcquireZombie(this, zombie))
 					found = true;
 			});
 			return found;

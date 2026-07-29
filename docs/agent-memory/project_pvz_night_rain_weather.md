@@ -112,3 +112,18 @@
 但继续与大雨局部闪电保持两套独立视觉契约。当前桌面可见
 `smoke_weather_forecast` 58 条和含天气状态的 `smoke_crater_card_select` 33 条均通过，
 退出码为 0，错误预报、当前天气展板和轮间恢复截图已检查。
+
+## 2026-07-29 路灯花接入与后期雾休整
+
+4-2 起，逐格平滑雾 alpha 不再只服务绘制：路灯花照明先在 `UpdateFogCellAlpha()` 的目标值中
+削减雾，再由远程植物统一通过 `CanPlantAcquireZombie()` 消费同一最终 alpha；因此视觉清晰度
+与索敌许可不会出现两套范围。路灯花挡位、燃料和产光加速的完整契约见
+[project_pvz_plantern_fog_core](project_pvz_plantern_fog_core.md)。
+
+默认雾休整仍以 50～80 游戏秒为前期边界，但随现有天气导演压力平滑缩短，在满压力时为
+20～35 秒；小雾、普通迷雾和大雾仍为 35～55 秒。此调整只改变独立雾势循环，不反向修改雨势、
+台风或预报权重。当前桌面可见 `smoke_plantern_fog_core` 与原有 `smoke_fog_weather` 均 exit 0。
+
+玩家反馈满雾仍能看清底下僵尸后，绘制新增一层错位冷灰原生雾片补透明洞；它不改变
+`GetFogLayerCount()`，不铺固定白色矩形，并继续乘同一个逐格 alpha。因此无照明区域明显加厚，
+路灯花照亮和台风驱散仍与原有雾层同步。

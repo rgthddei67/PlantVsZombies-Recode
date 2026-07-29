@@ -1,0 +1,53 @@
+#pragma once
+
+#include "Plant.h"
+
+enum class PlanternGear : int {
+	OFF = 0,
+	LOW = 1,
+	MEDIUM = 2,
+	HIGH = 3,
+};
+
+/**
+ * 四大关迷雾的唯一照明核心。
+ *
+ * 燃料与挡位属于实体状态并进入关卡存档；卡槽菜单、满仓闪烁等展示瞬态不影响玩法。
+ */
+class Plantern : public Plant {
+public:
+	static constexpr float FUEL_CAPACITY = 100.0f;
+	static constexpr float INITIAL_FUEL = 20.0f;
+
+	using Plant::Plant;
+
+	void PlantUpdate() override;
+	void Draw(Graphics* g) override;
+	void Die() override;
+	void SaveExtraData(nlohmann::json& j) const override;
+	void LoadExtraData(const nlohmann::json& j) override;
+
+	/** 尝试加入雾火，返回实际接收量；溢出部分直接丢弃并触发卡槽满仓提示。 */
+	float AddFuel(float amount);
+	void SetFuel(float fuel);
+	void SetGear(PlanternGear gear);
+
+	float GetFuel() const { return mFuel; }
+	float GetFuelRatio() const { return mFuel / FUEL_CAPACITY; }
+	PlanternGear GetGear() const { return mGear; }
+	bool HasUsableLight() const {
+		return !mIsPreview && !IsSquished()
+			&& mGear != PlanternGear::OFF && mFuel > 0.0f;
+	}
+	float GetFuelFullHintTimer() const { return mFuelFullHintTimer; }
+
+protected:
+	void SetupPlant() override;
+
+private:
+	float mFuel = INITIAL_FUEL;
+	PlanternGear mGear = PlanternGear::LOW;
+	float mFuelFullHintTimer = 0.0f;
+
+	static float GetBurnRate(PlanternGear gear);
+};

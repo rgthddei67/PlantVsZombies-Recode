@@ -97,6 +97,7 @@ private:
 	void DrawCooldownMask(Graphics* g, const Vector& position);
 	void DrawSunCost(Graphics* g, const Vector& position);
 	void DrawSelectionHighlight(Graphics* g, const Vector& position);
+	void DrawPlanternStatus(Graphics* g, const Vector& position);
 
 	glm::vec4 GetCurrentColor() const;
 	std::string GetPlantTextureKey() const;

@@ -332,6 +332,7 @@ bool GameInfoSaver::SerializeLevelDataToPath(Board* board, CardSlotManager* mana
 	j["elitePolevaultersSpawnedThisWave"] = board->mElitePolevaultersSpawnedThisWave;
 	j["gildedZambonisSpawnedThisWave"] = board->mGildedZambonisSpawnedThisWave;
 	j["eliteDolphinRidersSpawnedThisWave"] = board->mEliteDolphinRidersSpawnedThisWave;
+	j["mistFuelDropAccumulator"] = board->mMistFuelDropAccumulator;
 	WeatherPresentationState weatherPresentation;
 	if (auto* presentation = board->GetPresentation()) {
 		weatherPresentation = presentation->CaptureWeatherPresentationState();
@@ -668,6 +669,10 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 		board->mEliteScaredyShroomsPlanted = std::min(
 			legacyCount, board->GetEliteScaredyShroomPlantLimit());
 	}
+	board->mMistFuelDropAccumulator = std::clamp(
+		j.value("mistFuelDropAccumulator", 0.0f), 0.0f, 1.0f);
+	board->mMistFuelAssignedThisWave = 0;
+	board->mActivePlanternID = NULL_PLANT_ID;
 	board->mWeatherInitialized = j.value("weatherInitialized", j.contains("rainIntensity"));
 	const int rainValue = j.value("rainIntensity", static_cast<int>(RainIntensity::CLEAR));
 	board->mRainIntensity = (rainValue >= static_cast<int>(RainIntensity::CLEAR)

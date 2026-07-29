@@ -105,7 +105,8 @@ bool ScaredyShroom::HasZombieInRow()
 	mBoard->mEntityManager.ForEachZombieInRow(mRow, [&](Zombie* zombie) {
 		if (found) return;
 		const float dx = zombie->GetPosition().x - thisX;
-		if (!zombie->IsMindControlled() && dx >= 0 && zombie->HasHead())
+		if (!zombie->IsMindControlled() && dx >= 0 && zombie->HasHead()
+			&& mBoard->CanPlantAcquireZombie(this, zombie))
 			found = true;
 	});
 	mTargetCached = found;

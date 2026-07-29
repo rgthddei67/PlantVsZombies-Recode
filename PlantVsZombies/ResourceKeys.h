@@ -82,6 +82,7 @@ namespace ResourceKeys
 		RKEY(IMAGE_FOG_PART_5);
 		RKEY(IMAGE_FOG_PART_6);
 		RKEY(IMAGE_FOG_PART_7);
+		RKEY(IMAGE_MISTFUEL);			// 路灯花燃料“雾火”的透明掉落贴图
 		RKEY(IMAGE_SHOVELBANK);
 		RKEY(IMAGE_OPTIONS_MENUBACK);
 		RKEY(IMAGE_BUTTONBIG);
@@ -156,6 +157,7 @@ namespace ResourceKeys
 		RKEY(IMAGE_REPEATER);
 		RKEY(IMAGE_PUFFSHROOM);
 		RKEY(IMAGE_SEASHROOM);
+		RKEY(IMAGE_PLANTERN);
 		RKEY(IMAGE_SUNSHROOM);
 		RKEY(IMAGE_FUMESHROOM);
 		RKEY(IMAGE_GRAVEBUSTER);
@@ -336,6 +338,7 @@ namespace ResourceKeys
 		inline const std::string REANIM_TORCHWOOD = "Torchwood";
 		inline const std::string REANIM_FIREPEA = "FirePea";
 		inline const std::string REANIM_SEASHROOM = "SeaShroom";
+		inline const std::string REANIM_PLANTERN = "Plantern";
 
 		inline const std::string REANIM_NORMAL_ZOMBIE = "NormalZombie";
 		inline const std::string REANIM_CONE_ZOMBIE = "ConeZombie";

@@ -79,6 +79,7 @@ description: Use when adding ANY new plant (新增植物) to PvZ — 射手/生�
 | **TakeDamage 类钩子** | FumeShroom 的 `penetrateShield` 参数 | 穿透只对二类护盾（门/报纸），不穿头盔；改签名先看全部调用点 |
 | **即时/范围结算** | CherryBomb/大喷菇锥形 | 帧事件触发结算帧（帧号问主人），范围判定用行桶不全扫 |
 | **目标类型拥有特殊受击语义** | Caltrop → `ZamboniZombie::HandleCaltropHit` | 植物只负责命中与派发，目标基类拥有虚事件并处理消耗植物/动画/存活；精英变体覆写目标方法，禁止在植物攻击函数里继续堆具体精英类型分支 |
+| **场上唯一、死亡后可重种并复用卡槽作控制台** | Plantern → `Board::mActivePlanternID` + `CardSlotManager` | 唯一性从当前活动实体 ID 派生，创建/读档重建、死亡/压扁释放，不能复用“累计种植次数”计数；卡槽菜单只持 UI 瞬态，玩法状态留在实体/Board。卡片和本体只请求展开，同一按钮输入走真实 `click` + 截图验收；菜单需避让已有天气面板，不能因视觉重叠看似并入另一栏目 |
 
 **僵尸新状态效果专属清单**（血泪教训浓缩）：
 

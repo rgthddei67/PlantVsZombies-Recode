@@ -23,6 +23,7 @@ class Sun;
 class SmallSun;
 class Coin;
 class Plant;
+class Plantern;
 class Zombie;
 class Bullet;
 class Trophy;
@@ -30,6 +31,7 @@ class Crater;
 class Shovel;
 class Mower;
 enum class MowerType;
+enum class PlanternGear : int;
 
 enum class Background {
 	GROUND_DAY,
@@ -183,6 +185,9 @@ private:
 	bool mFogWeatherInitialized = false; // 旧档缺雾势字段时由 StartGame 首次初始化
 	bool mFogWeatherForecastReady = false; // 已锁定公开/真实下一雾势，等待独立雾势倒计时揭晓
 	std::vector<float> mFogCellAlpha;   // 逐格平滑后的最终 alpha；行数为泳池六行再加一条底部收边
+	int mActivePlanternID = NULL_PLANT_ID; // 当前唯一可用路灯花 ID；由实体创建/死亡派生，不单独入存档
+	float mMistFuelDropAccumulator = 0.0f; // 正式波次雾火随机的保底累计值；影响未来抽取，进入存档
+	int mMistFuelAssignedThisWave = 0; // 当前波已分配的雾火总量；只作预算闸门与观测
 
 	bool mPendingHeavyTyphoonPrepared = false; // 大雨预警期已锁定台风等级，切档时消费而不重 roll
 	TyphoonStrength mPendingHeavyTyphoonStrength = TyphoonStrength::NONE; // 下一场大雨的待生效台风等级
@@ -254,6 +259,7 @@ private:
 	void ConsumeFogWeatherForecast();
 	void BeginFogWeather(FogWeatherIntensity intensity, float duration);
 	void EndFogWeather(float defaultDuration);
+	float RandomDefaultFogWeatherDuration() const;
 	void ClearFogWeatherForecast();
 	void RestoreFogState(bool initialized, FogWeatherIntensity intensity,
 		FogWeatherIntensity forecast, FogWeatherIntensity actual,
@@ -316,6 +322,7 @@ private:
 	void StopRainAudio();
 	void RefreshZombieWeatherSpeeds();
 	void TriggerLightning();
+	void AssignMistFuelReward(Zombie* zombie);
 	// 生存模式"抽中权重"：对 NORMAL/CONE 随轮稀释(仅供 GetWeightedRandomZombie；成本侧仍用 GetZombieWeight)
 	inline int GetSurvivalPickWeight(ZombieType type) const;
 
@@ -414,6 +421,29 @@ public:
 	int GetFogDrawRowCount() const { return SupportsStageFog() ? mRows + 1 : 0; }
 	/** 返回指定雾格平滑后的 alpha（0～255）。 */
 	float GetFogCellAlpha(int row, int col) const;
+	/** 4-2 起启用路灯花燃料、照明、产光加速与雾中远程索敌限制。 */
+	bool SupportsPlanternMechanics() const;
+	/** 返回当前未压扁的唯一路灯花；ID 失效时返回空。 */
+	Plantern* GetActivePlantern() const;
+	/** 返回指定格受到的路灯花照明比例（0～1）；所有雾玩法消费同一形状。 */
+	float GetPlanternIllumination(int row, int col) const;
+	/** 远程植物的统一雾中索敌许可；近约一格仍可感知。 */
+	bool CanPlantAcquireZombie(const Plant* plant, const Zombie* zombie) const;
+	/** 周围产光植物的局部效率倍率；三档峰值依次为 1.10/1.20/1.35。 */
+	float GetPlanternSunProductionMultiplier(const Plant* producer) const;
+	float GetPlanternFuel() const;
+	float GetPlanternFuelRatio() const;
+	int GetPlanternGearValue() const;
+	float GetPlanternFuelFullHintTimer() const;
+	float GetMistFuelDropAccumulator() const { return mMistFuelDropAccumulator; }
+	int GetMistFuelAssignedThisWave() const { return mMistFuelAssignedThisWave; }
+	void SetPlanternGear(PlanternGear gear);
+	void NotifyPlanternRemoved(int plantID);
+	void TogglePlanternGearMenu();
+	/** 僵尸死亡的唯一雾火结算入口；无路灯花或满仓时直接丢弃。 */
+	void CollectMistFuelFromZombie(Zombie* zombie);
+	bool SetPlanternFuelForTesting(float fuel);
+	bool AwardPlanternFuelForTesting(float amount);
 	/** 返回稳定的 0～7 贴图变体；不消费玩法随机数。 */
 	int GetFogTileVariant(int row, int col) const;
 	/** 返回当前场景换算后的雾格左上角；包含风向漂移但不硬编码原版 800 宽坐标。 */

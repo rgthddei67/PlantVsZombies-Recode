@@ -62,6 +62,9 @@ namespace {
 	constexpr float kFogTileDrawWidth = 210.0f;           // 按原生 210px 宽绘制，使相邻 80px 雾格充分重叠
 	constexpr float kFogTileDrawHeight = 190.0f;          // 按原生 190px 高绘制，使相邻 85px 雾行形成连续雾幕
 	constexpr float kFogTailTileOffsetX = 120.0f;         // 最右雾格额外收边贴图的水平偏移，覆盖 1100px 场景右缘
+	constexpr float kFogOcclusionOffsetX = 19.0f;         // 深雾底层相对主层错位 X，用另一纹理填补透明洞
+	constexpr float kFogOcclusionOffsetY = -12.0f;        // 深雾底层相对主层错位 Y，避免重复轮廓形成规则网格
+	constexpr float kFogOcclusionAlphaFactor = 0.90f;     // 深雾底层的逐格 alpha 系数；提高遮蔽但保留云纹
 	struct FogLayerSpec {
 		float offsetX;
 		float offsetY;
@@ -259,6 +262,29 @@ void GameScene::DrawFog(Graphics* g) const
 			const float alpha = mBoard->GetFogCellAlpha(row, col);
 			if (alpha < 1.0f) continue;
 			const Vector position = mBoard->GetFogTilePosition(row, col);
+			// 原生雾片约四成像素接近全透明；先用错位的冷灰雾片补洞，避免满 alpha 时仍能
+			// 清楚辨认底下僵尸。它消费同一逐格 alpha，所以路灯花照明仍同步清除此底层。
+			const int occlusionVariant = mBoard->GetFogTileVariant(row + 19, col + 23);
+			if (const Texture* occlusionTexture = resources.GetTexture(
+				kFogTextureKeys[occlusionVariant], false)) {
+				const glm::vec4 occlusionTint(190.0f, 207.0f, 222.0f,
+					std::clamp(alpha * kFogOcclusionAlphaFactor, 0.0f, 255.0f));
+				g->DrawTexture(occlusionTexture,
+					position.x + kFogOcclusionOffsetX,
+					position.y + kFogOcclusionOffsetY,
+					kFogTileDrawWidth, kFogTileDrawHeight, 0.0f, occlusionTint);
+				if (col == mBoard->mColumns - 1) {
+					const int tailVariant = mBoard->GetFogTileVariant(
+						row + 19, col + mBoard->mColumns + 29);
+					if (const Texture* tailTexture = resources.GetTexture(
+						kFogTextureKeys[tailVariant], false)) {
+						g->DrawTexture(tailTexture,
+							position.x + kFogOcclusionOffsetX + kFogTailTileOffsetX,
+							position.y + kFogOcclusionOffsetY,
+							kFogTileDrawWidth, kFogTileDrawHeight, 0.0f, occlusionTint);
+					}
+				}
+			}
 			// 补层先画、主层最后画；所有层共用逐格 alpha，所以台风驱散和回流不会产生残影。
 			for (int layerIndex = layerCount - 1; layerIndex >= 0; --layerIndex) {
 				const FogLayerSpec& layer = kFogLayers[layerIndex];
@@ -1667,6 +1693,11 @@ void GameScene::RestoreWaveProgress()
 	if (!mGameProgress) return;
 	mGameProgress->InitializeRaisedFlags(-10.0f);
 	mGameProgress->SnapProgressToCurrentWave();
+}
+
+void GameScene::TogglePlanternGearMenu()
+{
+	if (mCardSlotManager) mCardSlotManager->TogglePlanternGearMenu();
 }
 
 void GameScene::GameOver()

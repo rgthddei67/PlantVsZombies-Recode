@@ -39,6 +39,8 @@ public:
 		float holdDuration = 3.0f,
 		float fadeDuration = 1.0f) = 0;
 	virtual void ShowShovel() = 0;
+	/** 点击路灯花本体后切换卡槽下方的挡位菜单。 */
+	virtual void TogglePlanternGearMenu() = 0;
 	virtual void GameOver() = 0;
 	virtual void BeginSurvivalPerkSelect() = 0;
 	virtual void SetReadyToBackMenu() = 0;

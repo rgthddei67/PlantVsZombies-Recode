@@ -20,6 +20,7 @@
 #include "../Plant/GameDataManager.h"
 #include "../Plant/PlantType.h"
 #include "../Plant/Plant.h"
+#include "../Plant/Plantern.h"
 #include "../Plant/WallNut.h"
 #include "../Plant/LilyPad.h"
 #include "../Plant/Squash.h"
@@ -139,6 +140,12 @@ namespace {
 		{ "NORMAL", FogWeatherIntensity::NORMAL },
 		{ "DENSE", FogWeatherIntensity::DENSE },
 	};
+	const std::unordered_map<std::string, PlanternGear> kPlanternGearNames = {
+		{ "OFF", PlanternGear::OFF }, { "0", PlanternGear::OFF },
+		{ "LOW", PlanternGear::LOW }, { "I", PlanternGear::LOW },
+		{ "MEDIUM", PlanternGear::MEDIUM }, { "II", PlanternGear::MEDIUM },
+		{ "HIGH", PlanternGear::HIGH }, { "III", PlanternGear::HIGH },
+	};
 	const std::unordered_map<std::string, TyphoonStrength> kTyphoonStrengthNames = {
 		{ "NONE", TyphoonStrength::NONE }, { "TYPHOON", TyphoonStrength::TYPHOON },
 		{ "SEVERE", TyphoonStrength::SEVERE }, { "SUPER", TyphoonStrength::SUPER },
@@ -202,6 +209,15 @@ namespace {
 		case FogWeatherIntensity::SMALL:  return "SMALL";
 		case FogWeatherIntensity::NORMAL: return "NORMAL";
 		case FogWeatherIntensity::DENSE:  return "DENSE";
+		}
+		return "UNKNOWN";
+	}
+	std::string PlanternGearName(PlanternGear gear) {
+		switch (gear) {
+		case PlanternGear::OFF:    return "OFF";
+		case PlanternGear::LOW:    return "LOW";
+		case PlanternGear::MEDIUM: return "MEDIUM";
+		case PlanternGear::HIGH:   return "HIGH";
 		}
 		return "UNKNOWN";
 	}
@@ -710,6 +726,95 @@ bool TestDriver::ExecuteCurrent() {
 		}
 		return true;
 	}
+	if (op == "set_plantern_gear") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) {
+			Fail("set_plantern_gear: 不在 GameScene 或 Board 为空");
+			return false;
+		}
+		auto it = kPlanternGearNames.find(cmd.value("gear", ""));
+		if (it == kPlanternGearNames.end() || !gs->GetBoard()->GetActivePlantern()) {
+			Fail("set_plantern_gear: gear 必须是 OFF/LOW/MEDIUM/HIGH（或 0/I/II/III），且场上必须有路灯花");
+			return false;
+		}
+		gs->GetBoard()->SetPlanternGear(it->second);
+		return true;
+	}
+	if (op == "set_plantern_fuel") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()
+			|| !gs->GetBoard()->SetPlanternFuelForTesting(cmd.value("value", -1.0f))) {
+			Fail("set_plantern_fuel: value 必须非负，且场上必须有路灯花");
+			return false;
+		}
+		return true;
+	}
+	if (op == "award_plantern_fuel") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()
+			|| !gs->GetBoard()->AwardPlanternFuelForTesting(cmd.value("value", 0.0f))) {
+			Fail("award_plantern_fuel: value 必须为正，且场上必须有路灯花");
+			return false;
+		}
+		return true;
+	}
+	if (op == "toggle_plantern_menu") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard() || !gs->GetBoard()->GetActivePlantern()) {
+			Fail("toggle_plantern_menu: 场上必须有路灯花");
+			return false;
+		}
+		gs->TogglePlanternGearMenu();
+		return true;
+	}
+	if (op == "assert_can_target") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) {
+			Fail("assert_can_target: 不在 GameScene 或 Board 为空");
+			return false;
+		}
+		Board* board = gs->GetBoard();
+		auto typeIt = kPlantNames.find(cmd.value("plantType", ""));
+		if (typeIt == kPlantNames.end()) {
+			Fail("assert_can_target: 未知 plantType");
+			return false;
+		}
+		Plant* plant = nullptr;
+		for (int id : board->mEntityManager.GetAllPlantIDs()) {
+			Plant* candidate = board->mEntityManager.GetPlant(id);
+			if (candidate && candidate->mPlantType == typeIt->second
+				&& candidate->mRow == cmd.value("plantRow", -1)
+				&& candidate->mColumn == cmd.value("plantCol", -1)) {
+				plant = candidate;
+				break;
+			}
+		}
+		std::vector<int> zombieIDs = board->mEntityManager.GetAllZombieIDs();
+		std::sort(zombieIDs.begin(), zombieIDs.end());
+		Zombie* zombie = nullptr;
+		int seen = 0;
+		const int zombieRow = cmd.value("zombieRow", -1);
+		const int zombieIndex = cmd.value("zombieIndex", 0);
+		for (int id : zombieIDs) {
+			Zombie* candidate = board->mEntityManager.GetZombie(id);
+			if (!candidate || !candidate->IsActive()) continue;
+			if (zombieRow >= 0 && candidate->mRow != zombieRow) continue;
+			if (seen++ == zombieIndex) {
+				zombie = candidate;
+				break;
+			}
+		}
+		if (!plant || !zombie) {
+			Fail("assert_can_target: 未找到指定植物或僵尸");
+			return false;
+		}
+		const bool actual = board->CanPlantAcquireZombie(plant, zombie);
+		if (actual != cmd.value("expected", true)) {
+			Fail("assert_can_target: 雾中索敌判定与预期不符");
+			return false;
+		}
+		return true;
+	}
 	if (op == "spawn_bullet") {
 		GameScene* gs = CurrentGameScene();
 		if (!gs || !gs->GetBoard()) { Fail("spawn_bullet: 不在 GameScene 或 Board 为空"); return false; }
@@ -827,6 +932,40 @@ bool TestDriver::ExecuteCurrent() {
 			+ ", index=" + std::to_string(index) + ")");
 		return false;
 	}
+	if (op == "set_zombie_mist_fuel_reward" || op == "kill_zombie") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) {
+			Fail(op + ": 不在 GameScene 或 Board 为空");
+			return false;
+		}
+		Board* board = gs->GetBoard();
+		std::vector<int> zombieIDs = board->mEntityManager.GetAllZombieIDs();
+		std::sort(zombieIDs.begin(), zombieIDs.end());
+		const int row = cmd.value("row", -1);
+		const int index = cmd.value("index", 0);
+		int seen = 0;
+		for (int id : zombieIDs) {
+			Zombie* zombie = board->mEntityManager.GetZombie(id);
+			if (!zombie || !zombie->IsActive()) continue;
+			if (row >= 0 && zombie->mRow != row) continue;
+			if (seen++ != index) continue;
+			if (op == "set_zombie_mist_fuel_reward") {
+				const float reward = cmd.value("value", 0.0f);
+				if (reward <= 0.0f) {
+					Fail("set_zombie_mist_fuel_reward: value 必须为正");
+					return false;
+				}
+				zombie->SetMistFuelReward(reward);
+			}
+			else {
+				// 走实体正式死亡入口，专门验证雾火结算与无路灯花丢弃契约。
+				zombie->Die();
+			}
+			return true;
+		}
+		Fail(op + ": 未找到目标僵尸");
+		return false;
+	}
 	if (op == "damage_plant") {
 		GameScene* gs = CurrentGameScene();
 		if (!gs || !gs->GetBoard()) { Fail("damage_plant: 不在 GameScene 或 Board 为空"); return false; }
@@ -920,9 +1059,11 @@ bool TestDriver::ExecuteCurrent() {
 		const int row = cmd.value("row", -1);     // -1 = 不过滤行
 		const int index = cmd.value("index", 0);  // 行过滤后按 ID 升序第 index 只
 		int seen = 0;
-		for (int id : board->mEntityManager.GetAllZombieIDs()) {
+		std::vector<int> zombieIDs = board->mEntityManager.GetAllZombieIDs();
+		std::sort(zombieIDs.begin(), zombieIDs.end());
+		for (int id : zombieIDs) {
 			Zombie* z = board->mEntityManager.GetZombie(id);
-			if (!z) continue;
+			if (!z || !z->IsActive()) continue;
 			if (row >= 0 && z->mRow != row) continue;
 			if (seen++ == index) {
 				z->StartMindControlled();   // 不可魅惑目标是 no-op：脚本用 dump_state 的 mindControlled 断言
@@ -1412,6 +1553,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		out["fog"] = {
 			{ "supported", board->SupportsStageFog() },
 			{ "weatherSupported", board->SupportsFogWeather() },
+			{ "planternMechanicsSupported", board->SupportsPlanternMechanics() },
 			{ "initialized", board->IsFogWeatherInitialized() },
 			{ "intensity", FogWeatherIntensityName(board->GetFogWeatherIntensity()) },
 			{ "layerCount", board->GetFogLayerCount() },
@@ -1432,7 +1574,16 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "denseChancePct", board->GetDenseFogChancePercent() },
 			{ "texturePartsLoaded", loadedTextureParts },
 			{ "columnMaxAlpha", nlohmann::json::array() },
+			{ "cellAlpha", nlohmann::json::array() },
 		};
+		for (int row = 0; row < board->GetFogDrawRowCount(); ++row) {
+			nlohmann::json rowAlpha = nlohmann::json::array();
+			for (int col = 0; col < board->mColumns; ++col) {
+				rowAlpha.push_back(static_cast<int>(std::lround(
+					board->GetFogCellAlpha(row, col))));
+			}
+			out["fog"]["cellAlpha"].push_back(std::move(rowAlpha));
+		}
 		for (int col = 0; col < board->mColumns; ++col) {
 			float maximum = 0.0f;
 			for (int row = 0; row < board->GetFogDrawRowCount(); ++row) {
@@ -1440,6 +1591,38 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			}
 			out["fog"]["columnMaxAlpha"].push_back(
 				static_cast<int>(std::lround(maximum)));
+		}
+	}
+
+	// 路灯花核心状态单独导出，避免把玩法控制塞进天气预报 UI 状态。
+	{
+		Plantern* plantern = board->GetActivePlantern();
+		out["plantern"] = {
+			{ "supported", board->SupportsPlanternMechanics() },
+			{ "active", plantern != nullptr },
+			{ "id", plantern ? plantern->mPlantID : NULL_PLANT_ID },
+			{ "fuelTenths", static_cast<int>(std::lround(
+				board->GetPlanternFuel() * 10.0f)) },
+			{ "fuelPct", static_cast<int>(std::lround(
+				board->GetPlanternFuelRatio() * 100.0f)) },
+			{ "capacity", static_cast<int>(Plantern::FUEL_CAPACITY) },
+			{ "gear", plantern ? PlanternGearName(plantern->GetGear()) : "NONE" },
+			{ "gearValue", board->GetPlanternGearValue() },
+			{ "fullHintOn", board->GetPlanternFuelFullHintTimer() > 0.0f },
+			{ "dropAccumulatorPct", static_cast<int>(std::lround(
+				board->GetMistFuelDropAccumulator() * 100.0f)) },
+			{ "assignedThisWave", board->GetMistFuelAssignedThisWave() },
+			{ "fuelTextureLoaded", ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_MISTFUEL, false) != nullptr },
+			{ "illuminationPct", nlohmann::json::array() },
+		};
+		for (int row = 0; row < board->mRows; ++row) {
+			nlohmann::json rowIllumination = nlohmann::json::array();
+			for (int col = 0; col < board->mColumns; ++col) {
+				rowIllumination.push_back(static_cast<int>(std::lround(
+					board->GetPlanternIllumination(row, col) * 100.0f)));
+			}
+			out["plantern"]["illuminationPct"].push_back(std::move(rowIllumination));
 		}
 	}
 
@@ -1558,6 +1741,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	int charredZombieCount = 0;
 	int zamboniCharredCount = 0;
 	int jalapenoFireCount = 0;
+	int mistFuelVisualCount = 0;
 	for (const auto& object : GameObjectManager::GetInstance().GetAllGameObjects()) {
 		if (object && object->IsActive() && dynamic_cast<ZombieCharred*>(object.get())) {
 			++charredZombieCount;
@@ -1568,10 +1752,14 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		if (object && object->IsActive() && object->GetTag() == "JalapenoFire") {
 			++jalapenoFireCount;
 		}
+		if (object && object->IsActive() && object->GetName() == "MistFuel") {
+			++mistFuelVisualCount;
+		}
 	}
 	out["charredZombieCount"] = charredZombieCount;
 	out["zamboniCharredCount"] = zamboniCharredCount;
 	out["jalapenoFireCount"] = jalapenoFireCount;
+	out["mistFuelVisualCount"] = mistFuelVisualCount;
 	out["zamboniExplosionParticleCount"] = g_particleSystem
 		? g_particleSystem->GetEffectActiveParticleCount("ZamboniExplosion") : 0;
 	out["zamboniSmokeParticleCount"] = g_particleSystem
@@ -1681,6 +1869,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "helmHealth", z->mHelmHealth }, { "shieldHealth", z->mShieldHealth },
 			{ "fireResistant", z->IsFireResistant() },
 			{ "mindControlled", z->IsMindControlled() },
+			{ "mistFuelReward", static_cast<int>(std::lround(z->GetMistFuelReward())) },
 			{ "inPool", z->IsInPool() },
 			{ "isEating", z->IsEating() },
 			{ "isDying", z->IsDying() },
@@ -1859,6 +2048,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "visualX", p->GetVisualPosition().x },
 			{ "visualY", p->GetVisualPosition().y },
 			{ "hasShadow", p->GetComponent<ShadowComponent>() != nullptr },
+			{ "sunProductionMultiplierPct", static_cast<int>(std::lround(
+				board->GetPlanternSunProductionMultiplier(p) * 100.0f)) },
 		};
 		if (const auto* shadow = p->GetComponent<ShadowComponent>()) {
 			const auto animator = p->GetAnimatorInternal();
@@ -1939,6 +2130,13 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			plantState["shootIntervalMs"] = eliteScaredy->GetShootIntervalMilliseconds();
 			plantState["growthRatePct"] = eliteScaredy->GetGrowthRatePercent();
 			plantState["growthProgressTenths"] = eliteScaredy->GetGrowthProgressTenths();
+		}
+		if (auto* plantern = dynamic_cast<Plantern*>(p)) {
+			plantState["planternFuelTenths"] = static_cast<int>(std::lround(
+				plantern->GetFuel() * 10.0f));
+			plantState["planternGear"] = PlanternGearName(plantern->GetGear());
+			plantState["planternGearValue"] = static_cast<int>(plantern->GetGear());
+			plantState["planternLightUsable"] = plantern->HasUsableLight();
 		}
 		// 水池叠种会让 plants 数组索引依赖实体顺序；按格子额外导出顶层植物供稳定断言。
 		if (board->GetTopPlantAt(p->mRow, p->mColumn) == p) {

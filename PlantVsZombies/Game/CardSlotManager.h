@@ -26,6 +26,7 @@ private:
 
 	Board* mBoard = nullptr;
 	Cell* mHoveredCell = nullptr;     // 当前鼠标悬停的Cell（观察者）
+	bool mPlanternGearMenuOpen = false; // 纯 UI 瞬态；不进入关卡存档
 
 public:
 	CardSlotManager(Board* board);
@@ -43,6 +44,9 @@ public:
 	void ClearAllCards();
 	void SelectCard(GameObject* card);
 	void DeselectCard();
+	/** 点击路灯花卡片或本体时切换挡位菜单。 */
+	void TogglePlanternGearMenu();
+	bool IsPlanternGearMenuOpen() const { return mPlanternGearMenuOpen; }
 
 	bool CanAfford(int cost) const;   // 开发者作弊（无视阳光）守卫在 .cpp，避免头文件引 GameAPP.h
 	/** 同时检查阳光与该植物的本关累计种植次数。 */
@@ -83,6 +87,9 @@ private:
 
 	// 在指定Cell放置植物
 	void PlacePlantInCell(int row, int col);
+	Card* FindPlanternCard() const;
+	void UpdatePlanternGearMenuInput();
+	void DrawPlanternGearMenu(Graphics* g);
 };
 
 #endif
