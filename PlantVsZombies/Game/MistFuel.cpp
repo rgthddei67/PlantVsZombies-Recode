@@ -11,19 +11,20 @@
 #include <cmath>
 
 namespace {
-	constexpr float kMistFuelFlightSeconds = 0.62f; // 雾火从击杀点飞抵路灯花的纯视觉时长
+	constexpr float kMistFuelFlightSeconds = 0.62f; // 雾火从击杀点飞抵路灯花并正式到账的游戏秒
 	constexpr float kMistFuelArcHeight = 58.0f;     // 贝塞尔中点相对直线抬升的像素
 	constexpr float kMistFuelDrawSize = 30.0f;      // 128px 原图在战斗场景中的逻辑绘制边长
 }
 
-MistFuel::MistFuel(Board* board, const Vector& startPosition, int planternID)
+MistFuel::MistFuel(Board* board, const Vector& startPosition, int planternID, float amount)
 	: GameObject(ObjectType::OBJECT_COIN),
 	mBoard(board),
 	mTexture(ResourceManager::GetInstance().GetTexture(
 		ResourceKeys::Textures::IMAGE_MISTFUEL, false)),
 	mStartPosition(startPosition),
 	mPosition(startPosition),
-	mPlanternID(planternID)
+	mPlanternID(planternID),
+	mAmount(std::max(0.0f, amount))
 {
 	SetName("MistFuel");
 }
@@ -50,6 +51,8 @@ void MistFuel::Update()
 		+ target * (t * t);
 
 	if (t >= 1.0f) {
+		// 玩家看到雾火被灯芯吞下的这一刻，数值才正式增加。
+		plantern->DeliverReservedFuel(mAmount);
 		GameObjectManager::GetInstance().DestroyGameObject(this);
 	}
 }

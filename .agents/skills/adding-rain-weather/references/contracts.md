@@ -68,6 +68,14 @@ const bool isRaining = rain != RainIntensity::CLEAR;
 索敌再读取同一个平滑后的 `GetFogCellAlpha()`；不要另造“逻辑照明范围”绕开可见雾，
 否则刚点亮/熄灭时画面与玩法会不同步。近身感知是统一入口中的显式例外，已在飞行的子弹不撤销。
 照明形状同时服务产光倍率，必须从 Board getter 派生，不能让各植物复制挡位范围。
+当前路灯花 I/II/III 依次使用朝僵尸来向多一列的 4×3、裁角 8×5、裁角 10×7；III
+最外圈为 72% 照明。雾火每团 15，跨波累计器由普通耐久的 0.30 平滑增加到高耐久的 0.60，
+每波预算随天气导演从 45 增到 60。
+
+`MistFuel` 是实际到账时序而不只是装饰：僵尸死亡只调用 `Plantern::ReserveFuel` 占用容量，
+0.62 游戏秒后抵达当前同 ID 路灯花才 `DeliverReservedFuel`。燃料卡牌在途中保持原值；
+目标死亡则丢弃。在途对象本身不进存档，因此 `pendingFuel` 随路灯花保存，读档时结算进实际
+燃料，避免丢奖励或永久占用容量。
 
 关卡 schema v3 保存雾势、预报、阶段计时、驱散和偏移。v2 的旧 `CLEAR/DENSE` 二态必须迁移
 为视觉等价的 `SMALL/DENSE`，不能把旧双层 `CLEAR` 误降为单层默认雾。v1/无版本旧档没有足够
@@ -195,8 +203,9 @@ const bool isRaining = rain != RainIntensity::CLEAR;
 - `set_fog_dispersal`：固定 `0..1` 驱散比例，供存档与渲染状态测试。
 - `set_plantern_gear` / `set_plantern_fuel` / `award_plantern_fuel`：固定挡位和燃料边界。
 - `assert_can_target`：直接断言统一雾中索敌入口；远目标和近身例外应成对覆盖。
-- `set_zombie_mist_fuel_reward` / `kill_zombie`：绕开随机分配，只验证正式死亡到账、满仓、
-  魅惑和无路灯花丢弃；概率/预算另用正式波次路径验证。
+- `set_zombie_mist_fuel_reward` / `kill_zombie`：绕开随机分配，只验证正式死亡发起；先断言
+  `pendingFuelTenths` 增加且实际燃料不变，再等待飞行结束断言到账。满仓、部分溢出、在途读档、
+  魅惑和无路灯花丢弃也在此覆盖；概率/预算另用正式波次路径验证。
 
 为雨天能力新增脚本时：
 

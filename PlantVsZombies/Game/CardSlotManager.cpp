@@ -18,15 +18,13 @@ namespace {
 	constexpr float kPlanternMenuButtonWidth = 50.0f; // 单个挡位按钮宽度，单位：UI px
 	constexpr float kPlanternMenuButtonHeight = 21.0f; // 单个挡位按钮高度，单位：UI px
 	constexpr float kPlanternMenuButtonGap = 2.0f; // 相邻挡位按钮的纵向间隔，单位：UI px
-	constexpr float kPlanternMenuMinimumX = 374.0f; // 避开左侧天气面板后的最小逻辑 X，单位：UI px
 
-	/** 返回挡位菜单的逻辑锚点；首张卡位下方被天气面板占用时自动右移。 */
+	/** 返回挡位菜单的逻辑锚点；始终直接对齐路灯花卡槽下方。 */
 	Vector GetPlanternMenuAnchor(Card* card)
 	{
 		if (!card || !card->GetTransform()) return Vector::zero();
 		const Vector cardAnchor = card->GetTransform()->GetPosition();
-		return Vector(std::max(cardAnchor.x, kPlanternMenuMinimumX),
-			cardAnchor.y + kPlanternMenuTopOffset);
+		return Vector(cardAnchor.x, cardAnchor.y + kPlanternMenuTopOffset);
 	}
 }
 

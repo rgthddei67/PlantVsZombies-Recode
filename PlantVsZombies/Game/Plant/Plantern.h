@@ -12,7 +12,7 @@ enum class PlanternGear : int {
 /**
  * 四大关迷雾的唯一照明核心。
  *
- * 燃料与挡位属于实体状态并进入关卡存档；卡槽菜单、满仓闪烁等展示瞬态不影响玩法。
+ * 燃料、在途预留量与挡位属于实体状态并进入关卡存档；卡槽菜单和满仓闪烁不影响玩法。
  */
 class Plantern : public Plant {
 public:
@@ -29,11 +29,16 @@ public:
 
 	/** 尝试加入雾火，返回实际接收量；溢出部分直接丢弃并触发卡槽满仓提示。 */
 	float AddFuel(float amount);
+	/** 为一团飞行中的雾火预留容量，但暂不增加玩家可见燃料。 */
+	float ReserveFuel(float amount);
+	/** 雾火飞抵本体后，把对应预留量正式计入燃料。 */
+	void DeliverReservedFuel(float amount);
 	void SetFuel(float fuel);
 	void SetGear(PlanternGear gear);
 
 	float GetFuel() const { return mFuel; }
 	float GetFuelRatio() const { return mFuel / FUEL_CAPACITY; }
+	float GetPendingFuel() const { return mPendingFuel; }
 	PlanternGear GetGear() const { return mGear; }
 	bool HasUsableLight() const {
 		return !mIsPreview && !IsSquished()
@@ -46,6 +51,7 @@ protected:
 
 private:
 	float mFuel = INITIAL_FUEL;
+	float mPendingFuel = 0.0f;
 	PlanternGear mGear = PlanternGear::LOW;
 	float mFuelFullHintTimer = 0.0f;
 

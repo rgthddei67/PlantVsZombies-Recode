@@ -102,9 +102,23 @@ namespace {
 	constexpr float kFogCloseDetectionRange = 100.0f;    // 雾中不依赖照明的近身感知横向距离（像素）
 	constexpr int kMistFuelRewardAmount = 15;             // 单只携带者死亡时提供的雾火量
 	constexpr int kMistFuelEarlyWaveBudget = 45;          // 前期每波最多分配的雾火量
-	constexpr int kMistFuelLateWaveBudget = 75;           // 满压力每波最多分配的雾火量
+	constexpr int kMistFuelLateWaveBudget = 60;           // 满压力每波最多分配的雾火量
 	constexpr float kMistFuelBaseCarrierChance = 0.30f;   // 普通耐久正式波次僵尸加入保底累计器的基础份额
 	constexpr float kMistFuelHeavyCarrierBonus = 0.30f;   // 高耐久僵尸相对普通僵尸最多追加的累计份额
+	constexpr int kPlanternLowBackRadius = 1;              // 一档向房屋侧照亮的格数
+	constexpr int kPlanternLowFrontRadius = 2;             // 一档向僵尸来向照亮的格数
+	constexpr int kPlanternLowVerticalRadius = 1;          // 一档向上下照亮的格数
+	constexpr int kPlanternMediumBaseRadiusX = 3;          // 二档原有主体向左右照亮的格数
+	constexpr int kPlanternMediumVerticalRadius = 2;       // 二档向上下照亮的格数
+	constexpr int kPlanternMediumManhattanLimit = 4;       // 二档主体裁去远角时允许的最大横纵格距和
+	constexpr int kPlanternMediumFrontExtension = 4;       // 二档向僵尸来向新增的最远列格距
+	constexpr int kPlanternMediumFrontHalfHeight = 1;      // 二档新增前沿列向上下延伸的格数
+	constexpr int kPlanternHighBaseRadiusX = 4;            // 三档原有主体向左右照亮的格数
+	constexpr int kPlanternHighVerticalRadius = 3;         // 三档向上下照亮的格数
+	constexpr int kPlanternHighManhattanLimit = 6;         // 三档主体裁去远角时允许的最大横纵格距和
+	constexpr int kPlanternHighFrontExtension = 5;         // 三档向僵尸来向新增的最远列格距
+	constexpr int kPlanternHighFrontHalfHeight = 2;        // 三档新增前沿列向上下延伸的格数
+	constexpr float kPlanternHighEdgeIllumination = 0.72f; // 三档最外圈保留的照明比例
 	constexpr float kSuperFogDispersalRate = 0.28f;      // 超强台风每游戏秒累积的雾驱散比例
 	constexpr float kFogReturnRate = 0.06f;              // 停风后基础雾每游戏秒恢复的驱散比例
 	constexpr float kFogMaximumDriftX = 180.0f;          // 持续台风把雾团推向当前风向的最大水平像素
@@ -2464,20 +2478,43 @@ float Board::GetPlanternIllumination(int row, int col) const
 	const Plantern* plantern = GetActivePlantern();
 	if (!plantern || !plantern->HasUsableLight()) return 0.0f;
 
-	const int dx = std::abs(col - plantern->mColumn);
-	const int dy = std::abs(row - plantern->mRow);
+	const int relativeX = col - plantern->mColumn;
+	const int relativeY = row - plantern->mRow;
+	const int dx = std::abs(relativeX);
+	const int dy = std::abs(relativeY);
 	switch (plantern->GetGear()) {
 	case PlanternGear::OFF:
 		return 0.0f;
 	case PlanternGear::LOW:
-		return dx <= 1 && dy <= 1 ? 1.0f : 0.0f;
+		return relativeX >= -kPlanternLowBackRadius
+			&& relativeX <= kPlanternLowFrontRadius
+			&& dy <= kPlanternLowVerticalRadius
+			? 1.0f : 0.0f;
 	case PlanternGear::MEDIUM:
-		// 复刻原版 7×5 菱角矩形：只裁去四个最远角。
-		return dx <= 3 && dy <= 2 && dx + dy <= 4 ? 1.0f : 0.0f;
-	case PlanternGear::HIGH:
-		if (dx > 4 || dy > 3 || dx + dy > 6) return 0.0f;
-		// 三档的 9 格宽外圈保留薄雾，视觉上形成柔和边缘但仍足以恢复索敌。
-		return dx == 4 || dy == 3 || dx + dy == 6 ? 0.72f : 1.0f;
+		return (dx <= kPlanternMediumBaseRadiusX
+				&& dy <= kPlanternMediumVerticalRadius
+				&& dx + dy <= kPlanternMediumManhattanLimit)
+			|| (relativeX == kPlanternMediumFrontExtension
+				&& dy <= kPlanternMediumFrontHalfHeight)
+			? 1.0f : 0.0f;
+	case PlanternGear::HIGH: {
+		const auto isInsideHighShape = [](int x, int y) {
+			const int shapeDx = std::abs(x);
+			const int shapeDy = std::abs(y);
+			return (shapeDx <= kPlanternHighBaseRadiusX
+					&& shapeDy <= kPlanternHighVerticalRadius
+					&& shapeDx + shapeDy <= kPlanternHighManhattanLimit)
+				|| (x == kPlanternHighFrontExtension
+					&& shapeDy <= kPlanternHighFrontHalfHeight);
+		};
+		if (!isInsideHighShape(relativeX, relativeY)) return 0.0f;
+		// 由四邻域实时识别扩展后轮廓，只有真正最外圈保留薄雾。
+		const bool isOuterEdge = !isInsideHighShape(relativeX - 1, relativeY)
+			|| !isInsideHighShape(relativeX + 1, relativeY)
+			|| !isInsideHighShape(relativeX, relativeY - 1)
+			|| !isInsideHighShape(relativeX, relativeY + 1);
+		return isOuterEdge ? kPlanternHighEdgeIllumination : 1.0f;
+	}
 	}
 	return 0.0f;
 }
@@ -2566,13 +2603,13 @@ void Board::CollectMistFuelFromZombie(Zombie* zombie)
 
 	Plantern* plantern = GetActivePlantern();
 	if (!plantern) return;
-	const float accepted = plantern->AddFuel(reward);
+	const float accepted = plantern->ReserveFuel(reward);
 	if (accepted <= 0.0f) return;
 
 	GameObjectManager::GetInstance().CreateGameObject<MistFuel>(
 		LAYER_EFFECTS, this,
 		zombie->GetVisualPosition() + Vector(0.0f, -24.0f),
-		plantern->mPlantID);
+		plantern->mPlantID, accepted);
 }
 
 bool Board::SetPlanternFuelForTesting(float fuel)

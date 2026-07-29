@@ -1603,6 +1603,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "id", plantern ? plantern->mPlantID : NULL_PLANT_ID },
 			{ "fuelTenths", static_cast<int>(std::lround(
 				board->GetPlanternFuel() * 10.0f)) },
+			{ "pendingFuelTenths", plantern ? static_cast<int>(std::lround(
+				plantern->GetPendingFuel() * 10.0f)) : 0 },
 			{ "fuelPct", static_cast<int>(std::lround(
 				board->GetPlanternFuelRatio() * 100.0f)) },
 			{ "capacity", static_cast<int>(Plantern::FUEL_CAPACITY) },

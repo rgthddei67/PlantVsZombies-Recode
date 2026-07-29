@@ -68,6 +68,7 @@ void Plantern::Draw(Graphics* g)
 
 void Plantern::Die()
 {
+	mPendingFuel = 0.0f;
 	if (mBoard) mBoard->NotifyPlanternRemoved(mPlantID);
 	Plant::Die();
 }
@@ -75,12 +76,19 @@ void Plantern::Die()
 void Plantern::SaveExtraData(nlohmann::json& j) const
 {
 	j["fuel"] = mFuel;
+	j["pendingFuel"] = mPendingFuel;
 	j["gear"] = static_cast<int>(mGear);
 }
 
 void Plantern::LoadExtraData(const nlohmann::json& j)
 {
-	SetFuel(j.value("fuel", INITIAL_FUEL));
+	const float savedFuel = std::clamp(
+		j.value("fuel", INITIAL_FUEL), 0.0f, FUEL_CAPACITY);
+	const float savedPendingFuel = std::clamp(
+		j.value("pendingFuel", 0.0f), 0.0f, FUEL_CAPACITY);
+	// MistFuel 不单独持久化；读档时把已预留的在途燃料结算，既不丢奖励也不留下永久占位。
+	mPendingFuel = 0.0f;
+	SetFuel(savedFuel + savedPendingFuel);
 	const int gear = std::clamp(j.value("gear", static_cast<int>(PlanternGear::LOW)),
 		static_cast<int>(PlanternGear::OFF), static_cast<int>(PlanternGear::HIGH));
 	mGear = static_cast<PlanternGear>(gear);
@@ -90,12 +98,32 @@ void Plantern::LoadExtraData(const nlohmann::json& j)
 float Plantern::AddFuel(float amount)
 {
 	if (amount <= 0.0f) return 0.0f;
-	const float accepted = std::min(amount, FUEL_CAPACITY - mFuel);
+	const float available = std::max(0.0f, FUEL_CAPACITY - mFuel - mPendingFuel);
+	const float accepted = std::min(amount, available);
 	mFuel += accepted;
 	if (accepted + 0.001f < amount) {
 		mFuelFullHintTimer = kFuelFullHintSeconds;
 	}
 	return accepted;
+}
+
+float Plantern::ReserveFuel(float amount)
+{
+	if (amount <= 0.0f) return 0.0f;
+	const float available = std::max(0.0f, FUEL_CAPACITY - mFuel - mPendingFuel);
+	const float accepted = std::min(amount, available);
+	mPendingFuel += accepted;
+	if (accepted + 0.001f < amount) {
+		mFuelFullHintTimer = kFuelFullHintSeconds;
+	}
+	return accepted;
+}
+
+void Plantern::DeliverReservedFuel(float amount)
+{
+	const float delivered = std::min(std::max(0.0f, amount), mPendingFuel);
+	mPendingFuel -= delivered;
+	AddFuel(delivered);
 }
 
 void Plantern::SetFuel(float fuel)
