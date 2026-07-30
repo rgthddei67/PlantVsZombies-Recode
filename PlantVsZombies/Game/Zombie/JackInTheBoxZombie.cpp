@@ -145,7 +145,8 @@ void JackInTheBoxZombie::Explode()
 	for (const int zombieID : zombieIDs) {
 		Zombie* zombie = mBoard->mEntityManager.GetZombie(zombieID);
 		if (!zombie || zombie == this || !zombie->IsActive()) continue;
-		if (mIsMindControlled && zombie->IsMindControlled()) continue;
+		// 小丑爆炸只伤害敌对阵营；魅惑状态改变爆炸所属阵营而非扩大目标范围。
+		if (zombie->IsMindControlled() == mIsMindControlled) continue;
 		const ColliderComponent* collider = zombie->GetColliderComponent();
 		if (!collider || !CircleOverlapsRect(center, kZombieBlastRadius,
 			collider->GetBoundingBox())) {
