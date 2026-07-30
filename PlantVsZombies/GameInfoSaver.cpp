@@ -131,7 +131,7 @@ namespace {
 	// 历史上只持久化 animTrack(当前轨道) + animFrame(当前帧)，读档时一律 PlayTrack(track)。
 	// 但 PlayTrack 会把 mPlayingState 强制写成 PLAY_REPEAT，于是一只正在 PlayTrackOnce 的
 	// 单位(长大/起跳/射击/喘气…)读档后会把那条一次性轨道当循环永远播放，再也切不回目标轨道。
-	// 修复：把整台状态机(播放状态 + 目标轨道 + 回切速度 + 基础/clip 速度)都存下来，
+	// 修复：把整台状态机(播放状态 + 目标轨道 + 回切速度/混合 + 基础/clip 速度)都存下来，
 	// 读档时按状态用 PlayTrackOnce 重建一次性播放。旧存档无新字段 → 默认 PLAY_REPEAT，
 	// 行为与从前逐位一致(向后兼容)。Chomper/PaperZombie/PotatoMine 的 LoadExtraData 在本
 	// 函数之后运行，仍可按需覆盖(它们还负责帧事件等本层无法序列化的东西)。
@@ -143,6 +143,7 @@ namespace {
 		j["animPlayState"] = static_cast<int>(obj->GetPlayingState());
 		j["animTargetTrack"] = obj->GetTargetTrack();     // PlayTrackOnce 播完后的回切轨道
 		j["animTargetTrackSpeed"] = obj->GetTargetTrackSpeed();
+		j["animTargetTrackBlendTime"] = obj->GetTargetTrackBlendTime();
 	}
 
 	void RestoreAnimState(const nlohmann::json& j, AnimatedObject* obj) {
@@ -158,7 +159,8 @@ namespace {
 			obj->PlayTrackOnce(track,
 				j.value("animTargetTrack", std::string{}),
 				clipSpeed, 0.0f,
-				j.value("animTargetTrackSpeed", 0.0f));
+				j.value("animTargetTrackSpeed", 0.0f),
+				j.value("animTargetTrackBlendTime", 0.5f));
 		}
 		else {
 			obj->PlayTrack(track, clipSpeed);

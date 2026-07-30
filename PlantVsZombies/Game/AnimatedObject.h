@@ -79,7 +79,8 @@ public:
 		const std::string& returnTrack = "",
 		float speed = 0.0f,
 		float blendTime = 0.0f,
-		float returnSpeed = 0.0f);
+		float returnSpeed = 0.0f,
+		float returnTrackBlendTime = 0.5f);
 
 	void SetFramesForLayer(const std::string& trackName);
 
@@ -92,6 +93,7 @@ public:
 	PlayState GetPlayingState() const;
 	std::string GetTargetTrack() const;
 	float GetTargetTrackSpeed() const;
+	float GetTargetTrackBlendTime() const;
 
 	// 组件获取
 	TransformComponent* GetTransformComponent() const;

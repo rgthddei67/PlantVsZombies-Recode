@@ -51,6 +51,7 @@ void Shooter::SaveExtraData(nlohmann::json& j) const
 	j["headAnimPlayState"] = static_cast<int>(mHeadAnim->GetPlayingState());
 	j["headAnimTargetTrack"] = mHeadAnim->GetTargetTrack();
 	j["headAnimTargetTrackSpeed"] = mHeadAnim->GetTargetTrackSpeed();
+	j["headAnimTargetTrackBlendTime"] = mHeadAnim->GetTargetTrackBlendTime();
 	j["headAnimPlaying"] = mHeadAnim->IsPlaying();
 }
 
@@ -72,7 +73,8 @@ void Shooter::LoadExtraData(const nlohmann::json& j)
 		if (state == PlayState::PLAY_ONCE || state == PlayState::PLAY_ONCE_TO) {
 			mHeadAnim->PlayTrackOnce(track,
 				j.value("headAnimTargetTrack", std::string{}), clipSpeed, 0.0f,
-				j.value("headAnimTargetTrackSpeed", 0.0f));
+				j.value("headAnimTargetTrackSpeed", 0.0f),
+				j.value("headAnimTargetTrackBlendTime", 0.5f));
 		}
 		else {
 			mHeadAnim->PlayTrack(track, clipSpeed);

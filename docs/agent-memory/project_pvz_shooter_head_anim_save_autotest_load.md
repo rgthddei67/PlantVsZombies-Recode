@@ -14,7 +14,7 @@ metadata:
 
 - `Shooter::mHeadAnim` 是附加在主 Animator 上的独立子 Animator，不经过 `GameInfoSaver::SaveAnimState/RestoreAnimState`。旧实现只保存 `headAnimTrack/headAnimFrame`，读取一律 `PlayTrack`，把进行中的 `PlayTrackOnce("anim_shooting")` 强制改成 `PLAY_REPEAT`。
 - 选卡阶段 `Plant::Update` 有意继续推进 Animator、但冻结 `PlantUpdate`；第 64 帧持久事件因此每轮触发一次 `ShootBullet`。不要通过在选卡阶段恢复 `PlantUpdate` 来修，否则生产、计时等植物行为也会继续。
-- Shooter 现保存头部轨道、帧、base/clip 速度、播放状态、目标轨道/回切速度以及 playing 标记，并按状态恢复。缺少新字段的旧存档若位于 `anim_shooting`，按一次性动画恢复并回到 `anim_head_idle`，绝不再默认循环。
+- Shooter 现保存头部轨道、帧、base/clip 速度、播放状态、目标轨道、回切速度/混合时间以及 playing 标记，并按状态恢复。目标混合字段缺失时沿用历史 0.5 秒；缺少整套播放状态字段的更老存档若位于 `anim_shooting`，按一次性动画恢复并回到 `anim_head_idle`，绝不再默认循环。
 - Repeater 另存 `pendingSecondShot/isSecondShot`，保证新存档能精确续完两发之间的瞬态；旧存档缺字段时默认尚未发出第一颗。
 
 ## AutoTest 特殊读档模式
@@ -32,5 +32,5 @@ metadata:
 
 ## 维护注意
 
-- 新增其他附加子 Animator 时，不能假设主 Animator 的通用存档会覆盖它；任何一次性轨道都必须保存播放状态机本身，而不只是轨道/帧。
+- 新增其他附加子 Animator 时，不能假设主 Animator 的通用存档会覆盖它；任何一次性轨道都必须保存播放状态机本身，包括目标轨道、返回速度和返回混合，而不只是轨道/帧。
 - AutoTest 声称“不写存档”时必须同时审查保存和删除入口；本次补上了过去遗漏的 `DeleteLevelData` AutoTest 守卫。

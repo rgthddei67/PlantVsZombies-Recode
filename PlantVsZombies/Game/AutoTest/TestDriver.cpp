@@ -2211,6 +2211,10 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "track", p->GetCurrentTrackName() },
 			{ "animFrame", p->GetCurrentFrame() },
 			{ "animPlaying", p->IsAnimationPlaying() },
+			{ "animPlayState", PlayStateName(p->GetPlayingState()) },
+			{ "animTargetTrack", p->GetTargetTrack() },
+			{ "animTargetTrackBlendMs", static_cast<int>(std::lround(
+				p->GetTargetTrackBlendTime() * 1000.0f)) },
 			{ "alphaPct", static_cast<int>(p->GetAlpha() * 100.0f + 0.5f) },
 			{ "renderScaleYPct",
 				static_cast<int>(p->GetSquishRenderScaleY() * 100.0f + 0.5f) },
@@ -2250,6 +2254,10 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				plantState["headAnimPlaying"] = head->IsPlaying();
 				plantState["headAnimFrame"] = head->GetCurrentFrame();
 				plantState["headAnimPlayState"] = PlayStateName(head->GetPlayingState());
+				plantState["headAnimTargetTrack"] = head->GetTargetTrack();
+				plantState["headAnimTargetTrackBlendMs"] =
+					static_cast<int>(std::lround(
+						head->GetTargetTrackBlendTime() * 1000.0f));
 				plantState["headRenderScaleYPct"] =
 					static_cast<int>(head->GetRenderScaleY() * 100.0f + 0.5f);
 				if (head->IsPlaying() && head->GetPlayingState() == PlayState::PLAY_REPEAT

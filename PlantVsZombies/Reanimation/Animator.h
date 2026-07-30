@@ -85,6 +85,7 @@ private:
 	// 过渡目标
 	std::string mTargetTrack = "";              ///< 播放一次后要切换到的轨道名
 	float mTargetTrackSpeed = 0.0f;             ///< 回切到 mTargetTrack 时用的 clip 速度（0=回落 base），由 PlayTrackOnce 指定
+	float mTargetTrackBlendTime = 0.5f;         ///< 回切到 mTargetTrack 时的混合秒数，默认保留历史 0.5 秒
 
 	struct FrameEvent {
 		std::function<void()> callback;
@@ -163,13 +164,15 @@ public:
 	 * @param speed 本轨道绝对播放速度，0.0=回落到基础速度(base)，>0=本轨道固定用该速度
 	 * @param blendTime 过渡时间
 	 * @param returnSpeed 回切到 returnTrack 时的 clip 速度，0.0=回落 base，>0=回切轨道固定用该速度
+	 * @param returnTrackBlendTime 回切到 returnTrack 时的混合时间，0.0=直接切换
 	 * @return 是否成功
 	 */
 	bool PlayTrackOnce(const std::string& trackName,
 		const std::string& returnTrack = "",
 		float speed = 0.0f,
 		float blendTime = 0,
-		float returnSpeed = 0.0f);
+		float returnSpeed = 0.0f,
+		float returnTrackBlendTime = 0.5f);
 
 
 	// ---------- 轨道范围控制 ----------
@@ -264,6 +267,11 @@ public:
 	 * @brief 获取回切到目标轨道时使用的 clip 速度 (0=回落 base)
 	 */
 	float GetTargetTrackSpeed() const { return mTargetTrackSpeed; }
+
+	/**
+	 * @brief 获取回切到目标轨道时使用的混合时间，单位：秒。
+	 */
+	float GetTargetTrackBlendTime() const { return mTargetTrackBlendTime; }
 
 	/**
 	 * @brief 直接设置当前帧索引 (用于存档恢复)

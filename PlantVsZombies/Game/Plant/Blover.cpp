@@ -9,7 +9,7 @@
 namespace {
 	constexpr int kBlowEventFrame = 44;               // 主人指定的全局吹风结算帧，已是代码口径
 	constexpr int kDisappearEventFrame = 61;          // 主人指定的全局消失帧，即 anim_loop 最后一帧
-	constexpr float kBlowClipSpeed = 20.0f / 12.0f;   // C# anim_blow 20 FPS 相对资源 12 FPS
+	constexpr float kBloverClipSpeed = 1.6f;          // 主人调整的两段动画统一播放倍率
 	constexpr float kFlipPivotX = 40.0f;              // 三叶草局部视觉中线，用于朝屋后时水平翻转
 	constexpr float kBloverSoundVolume = 0.5f;        // 原版 blover.ogg 单次播放音量
 }
@@ -22,7 +22,9 @@ void Blover::SetupPlant()
 	// anim_blow 的活跃窗口是 33..51；44 不会被 idle(0..32) 或 loop(52..61) 扫到。
 	mAnimator->AddFrameEvent(kBlowEventFrame, [this]() { TriggerBlow(); });
 	mAnimator->AddFrameEvent(kDisappearEventFrame, [this]() { Die(); });
-	PlayTrackOnce("anim_blow", "anim_loop", kBlowClipSpeed, 0.0f);
+	// 原版在相邻包装轨边界直接切换；两段保持同速，返回混合显式为 0。
+	PlayTrackOnce("anim_blow", "anim_loop",
+		kBloverClipSpeed, 0.0f, kBloverClipSpeed, 0.0f);
 }
 
 void Blover::SetBlowDirection(WindDirection direction)

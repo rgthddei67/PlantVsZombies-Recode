@@ -16,7 +16,7 @@
 namespace {
 	constexpr int kPeaDamage = 20;                    // 普通/寒冰/孢子基础伤害
 	constexpr int kFireballDamage = 40;               // 火豌豆基础伤害，原版为普通豌豆两倍
-	constexpr int kSpikeFrameDamage = 3;              // 仙人掌尖刺在 1x 下每个逻辑碰撞帧的基础伤害
+	constexpr int kSpikeFrameDamage = 2;              // 仙人掌尖刺在 1x 下每个逻辑碰撞帧的基础伤害
 	constexpr std::size_t kSpikePierceLimit = 4;       // 尖刺接触第四只不同僵尸后消失
 	constexpr float kFireballSplashWidth = 100.0f;    // 火球命中后同排水平溅射判定宽度，单位：像素
 	constexpr int kSplashDamageDivisor = 3;           // 火球次要目标伤害为直击伤害的三分之一

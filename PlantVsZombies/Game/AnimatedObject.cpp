@@ -236,8 +236,12 @@ bool AnimatedObject::PlayTrack(const std::string& trackName, float speed, float 
 }
 
 bool AnimatedObject::PlayTrackOnce(const std::string& trackName,
-	const std::string& returnTrack, float speed, float blendTime, float returnSpeed) {
-	return mAnimator ? mAnimator->PlayTrackOnce(trackName, returnTrack, speed, blendTime, returnSpeed) : false;
+	const std::string& returnTrack, float speed, float blendTime, float returnSpeed,
+	float returnTrackBlendTime) {
+	return mAnimator
+		? mAnimator->PlayTrackOnce(trackName, returnTrack, speed, blendTime,
+			returnSpeed, returnTrackBlendTime)
+		: false;
 }
 
 float AnimatedObject::GetClipSpeed() const
@@ -277,6 +281,10 @@ std::string AnimatedObject::GetTargetTrack() const {
 
 float AnimatedObject::GetTargetTrackSpeed() const {
 	return mAnimator ? mAnimator->GetTargetTrackSpeed() : 0.0f;
+}
+
+float AnimatedObject::GetTargetTrackBlendTime() const {
+	return mAnimator ? mAnimator->GetTargetTrackBlendTime() : 0.5f;
 }
 
 void AnimatedObject::SetCurrentFrame(float frameIndex) {

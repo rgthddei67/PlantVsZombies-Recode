@@ -39,6 +39,8 @@ namespace {
 		j[HeadStateKey(prefix, "PlayState")] = static_cast<int>(animator->GetPlayingState());
 		j[HeadStateKey(prefix, "TargetTrack")] = animator->GetTargetTrack();
 		j[HeadStateKey(prefix, "TargetTrackSpeed")] = animator->GetTargetTrackSpeed();
+		j[HeadStateKey(prefix, "TargetTrackBlendTime")] =
+			animator->GetTargetTrackBlendTime();
 		j[HeadStateKey(prefix, "Playing")] = animator->IsPlaying();
 	}
 
@@ -65,7 +67,8 @@ namespace {
 				j.value(HeadStateKey(prefix, "TargetTrack"), std::string{}),
 				clipSpeed,
 				0.0f,
-				j.value(HeadStateKey(prefix, "TargetTrackSpeed"), 0.0f));
+				j.value(HeadStateKey(prefix, "TargetTrackSpeed"), 0.0f),
+				j.value(HeadStateKey(prefix, "TargetTrackBlendTime"), 0.5f));
 		}
 		else {
 			animator->PlayTrack(track, clipSpeed);
