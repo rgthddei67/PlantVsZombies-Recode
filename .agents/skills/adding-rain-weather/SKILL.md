@@ -48,6 +48,7 @@ description: Use when adding or tuning ANY rain-weather-dependent feature or Boa
 
 - `Board` 不得直接包含或访问具体 `GameScene`，也不得恢复 `mGameScene`。天气玩法状态继续由 `Board` 唯一持有；新增天气 UI 请求应扩展非拥有的 `BoardPresentation`，由 `GameScene` 实现。双方共享的天气枚举放在 `WeatherTypes.h`。
 - 新天气维度不得硬塞进 `RainIntensity`。例如四大关雾势使用独立 `FogWeatherIntensity`、阶段计时和预报；它可以在唯一交互点消费现有 `TyphoonStrength/WindDirection` 计算驱散与漂移，但雨势和雾势仍可独立抽取、持久化和测试。
+- 逐格雾 alpha 是由雾势、驱散和路灯花派生的瞬态，不入存档；读档必须等实体恢复完成后直接同步终态，禁止从全透明重新平滑生成而给退出重进留下窥屏窗口。
 - `GetRainIntensity()` 是目标档位，切档时立即改变；玩法倍率、暗幕和雨声音量再用两游戏秒平滑到目标。离散触发默认以目标档位为准。
 - 不要修改全局 `DeltaTime`，也不要整体加速 `Zombie::Update()`；只缩放明确属于该能力的计时或结算值。
 - 僵尸动画速度统一经 `Zombie::UpdateAnimSpeed()` 收敛：`GetAbilityAnimSpeedMultiplier() × slowFactor × rain`，冻结优先为 0。子类自身整体倍率只覆写该虚函数，状态变化后调用 `UpdateAnimSpeed()`；禁止用 `SetExtraSpeedMultiplier` 绕开它。
@@ -67,6 +68,7 @@ description: Use when adding or tuning ANY rain-weather-dependent feature or Boa
 
 - `set_weather CLEAR/LIGHT/MEDIUM/HEAVY` 固定最终档位；该测试入口会立即完成过渡，适合精确数值断言。
 - 需要验证自然两秒过渡时，用短天气倒计时触发正式切档，再断言 `previousIntensity`、`transitionOn` 和结束状态。
+- 迷雾快照往返要在 `timeScale=0` 下于重载命令后立即断言逐格 alpha、可见格数和截图，不能先等一帧掩盖首帧透明问题。
 - 出生变异先固定天气，再走专用生产入口或新增一个只调用正式解析器的 AutoTest 命令；不要用通用 `spawn_zombie` 冒充波次随机生成。
 - 实体 dump 至少暴露实际类型、变异标志、技能计时/次数或可精确断言的整数投影。
 - 至少验证：白天/晴天 no-op、目标雨势生效、放晴后的语义、读档不重 roll、魅惑立场、减速/冻结、暂停与倍速。

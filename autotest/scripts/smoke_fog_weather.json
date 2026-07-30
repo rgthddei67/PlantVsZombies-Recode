@@ -157,6 +157,11 @@
     { "op": "assert_state", "path": "fog.intensity", "equals": "DENSE" },
     { "op": "assert_state", "path": "fog.dispersalPct", "equals": 42 },
     { "op": "assert_state", "path": "fog.effectiveLeftColumn", "equals": 1 },
+    { "op": "assert_state", "path": "fog.visibleCells", "equals": 56 },
+    { "op": "assert_state", "path": "fog.maxAlpha", "equals": 148 },
+    { "op": "assert_state", "path": "fog.columnMaxAlpha.1", "equals": 131 },
+    { "op": "assert_state", "path": "fog.columnMaxAlpha.2", "equals": 148 },
+    { "op": "screenshot", "name": "11_reload_keeps_fog_opaque.png" },
     { "op": "set_timescale", "value": 1.0 },
     { "op": "dump_state", "name": "state.json" },
     { "op": "quit" }

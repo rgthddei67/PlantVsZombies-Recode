@@ -778,6 +778,18 @@ Board::~Board()
 	StopRainAudio();
 }
 
+/**
+ * 结束读档生命周期，并按已恢复的雾势、驱散量和路灯花状态直接建立首帧迷雾。
+ * 正常开局与后续天气变化仍走逐帧平滑，只有重进存档跳过从透明开始的暴露窗口。
+ */
+void Board::CompleteLoadRestore()
+{
+	mIsLoadSave = false;
+	if (mFogWeatherInitialized && SupportsStageFog()) {
+		UpdateFogCellAlpha(0.0f, true);
+	}
+}
+
 float Board::GetZombieRainSpeedMultiplier() const
 {
 	const float progress = GetWeatherTransitionProgress();
@@ -1229,8 +1241,11 @@ void Board::UpdateFogDispersal(float deltaTime)
 	}
 }
 
-/** 把关卡基准、三档增强雾势扩展和台风驱散合成为逐格平滑 alpha。 */
-void Board::UpdateFogCellAlpha(float deltaTime)
+/**
+ * 把关卡基准、三档增强雾势扩展和台风驱散合成为逐格 alpha。
+ * 读档收尾可直接对齐终态，常规更新则继续按填充/消散速率平滑追赶。
+ */
+void Board::UpdateFogCellAlpha(float deltaTime, bool snapToTarget)
 {
 	const int drawRows = GetFogDrawRowCount();
 	const int fogCellCount = mColumns * drawRows;
@@ -1251,9 +1266,14 @@ void Board::UpdateFogCellAlpha(float deltaTime)
 			target *= 1.0f - GetPlanternIllumination(row, col);
 
 			float& alpha = mFogCellAlpha[row * mColumns + col];
-			const float rate = target >= alpha ? kFogFillRate : kFogClearRate;
-			const float maxDelta = rate * deltaTime;
-			alpha += std::clamp(target - alpha, -maxDelta, maxDelta);
+			if (snapToTarget) {
+				alpha = target;
+			}
+			else {
+				const float rate = target >= alpha ? kFogFillRate : kFogClearRate;
+				const float maxDelta = rate * deltaTime;
+				alpha += std::clamp(target - alpha, -maxDelta, maxDelta);
+			}
 		}
 	}
 }
@@ -1264,11 +1284,11 @@ void Board::UpdateFog(float deltaTime)
 	if (!mFogWeatherInitialized || deltaTime <= 0.0f || !SupportsStageFog()) return;
 	UpdateFogWeather(deltaTime);
 	UpdateFogDispersal(deltaTime);
-	UpdateFogCellAlpha(deltaTime);
+	UpdateFogCellAlpha(deltaTime, false);
 	mFogAnimationTime = std::fmod(mFogAnimationTime + deltaTime, 3600.0f);
 }
 
-/** 从关卡存档恢复会影响未来雾势和台风回流的状态；逐格 alpha 由目标状态平滑重建。 */
+/** 从关卡存档恢复会影响未来雾势和台风回流的状态；逐格 alpha 在实体恢复完成后重建。 */
 void Board::RestoreFogState(bool initialized, FogWeatherIntensity intensity,
 	FogWeatherIntensity forecast, FogWeatherIntensity actual,
 	float timer, bool forecastReady, float dispersal, float visualOffsetX)

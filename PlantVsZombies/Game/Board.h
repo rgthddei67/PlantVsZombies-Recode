@@ -253,7 +253,7 @@ private:
 	void UpdateFog(float deltaTime);
 	void UpdateFogWeather(float deltaTime);
 	void UpdateFogDispersal(float deltaTime);
-	void UpdateFogCellAlpha(float deltaTime);
+	void UpdateFogCellAlpha(float deltaTime, bool snapToTarget);
 	FogWeatherIntensity RollNextFogWeather(int forcedRoll = 0);
 	void PrepareFogWeatherForecast(int fogRoll = 0);
 	void ConsumeFogWeatherForecast();
@@ -341,8 +341,8 @@ public:
 
 	/** 返回非拥有的场景展示端口；用于存档恢复 UI 瞬态。 */
 	BoardPresentation* GetPresentation() const { return mPresentation; }
-	/** 完成一次读档恢复，使后续 StartGame 使用正常新局路径。 */
-	void CompleteLoadRestore() { mIsLoadSave = false; }
+	/** 完成一次读档恢复，并在实体全部还原后立即同步派生的逐格迷雾。 */
+	void CompleteLoadRestore();
 
 	inline void AddSun(int amount)
 	{

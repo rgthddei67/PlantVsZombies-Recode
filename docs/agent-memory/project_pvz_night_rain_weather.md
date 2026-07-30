@@ -133,3 +133,15 @@ CardUI 所在的 `GameObjects` 命令，而在 `GameScene::BuildDrawCommands` �
 玩家反馈满雾仍能看清底下僵尸后，绘制新增一层错位冷灰原生雾片补透明洞；它不改变
 `GetFogLayerCount()`，不铺固定白色矩形，并继续乘同一个逐格 alpha。因此无照明区域明显加厚，
 路灯花照亮和台风驱散仍与原有雾层同步。
+
+## 2026-07-30 重进存档首帧迷雾同步
+
+逐格雾 alpha 继续不入存档，由雾势、驱散量和路灯花照明派生；但读档不能把缓存清零后再从
+透明平滑生成，否则退出重进会短暂暴露整张草坪。`RestoreFogState()` 仍只恢复 Board 权威状态，
+待植物等实体全部还原、`StartGame()` 完成后，`Board::CompleteLoadRestore()` 会直接把每格 alpha
+同步到当前目标。正常新局与游戏中雾势/照明变化仍使用原有填充和消散动画。
+
+`smoke_fog_weather` 在 `timeScale=0` 的隔离快照重载后不等待任何帧，立即断言大雾 42% 驱散时
+56 个可见雾格、最高 alpha 148、边缘/内部列 alpha 131/148，并截取同步截图。未修复版本在同一
+位置确定性得到 `visibleCells=0`；修复后 `clang-playtest` 构建通过，可见专项 152 条及
+`smoke_plantern_fog_core` 185 条均退出 0、`script finished OK`。
