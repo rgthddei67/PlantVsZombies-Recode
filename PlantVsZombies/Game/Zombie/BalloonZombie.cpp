@@ -226,6 +226,22 @@ void BalloonZombie::PlaySpawnSound()
 		ResourceKeys::Sounds::SOUND_BALLOONINFLATE, kOneShotVolume);
 }
 
+void BalloonZombie::TakePlantAshDamage(int damage)
+{
+	if (damage <= 0 || !mBoard) return;
+
+	// 灰烬直消只取代致死表现；高血量生存模式下的非致死爆炸仍须走正式伤害链。
+	const int scaledDamage =
+		mBoard->GetPerkManager().ScaleTotalDamageToZombie(damage);
+	const int64_t remainingHealth = static_cast<int64_t>(mBodyHealth)
+		+ (mPhase == Phase::FLYING ? mBalloonHealth : 0);
+	if (remainingHealth <= scaledDamage) {
+		Die();
+		return;
+	}
+	TakeDamage(damage, DamageSource::PLANT_ASH);
+}
+
 void BalloonZombie::ArmDrop()
 {
 	if (!mHasArm || mPhase != Phase::WALKING) return;

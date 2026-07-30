@@ -21,7 +21,8 @@ metadata:
 ## 水道与存档
 
 - 对齐 C# `LandFlyer`：泳池行击破气球时播放爆裂声后直接 `Die()`，不会播放落地或站在水面；专项关卡使用 level 19 的水道行断言 `zombieCount=0`。
+- 主人指定灰烬致死统一直接 `Die()`：飞行、爆裂和落地阶段都不生成 `ZombieCharred`，也不进入普通死亡轨；只有足以覆盖当前本体加飞行气球层的最终灰烬伤害才直消，高血量生存模式下的非致死爆炸仍走正式 `PLANT_ASH` 扣血链。
 - 存档保存 phase、气球当前/上限、飞行速度、螺旋桨帧与播放态；Load 按 phase 重建碰撞框、掉落许可、轨道可见性和附件终态，不重播出生/爆裂声音。
 - 掉头粒子使用独立 `particles/ZombieBalloonHead.png`，按 `ParticleTextures` 生成的资源键为 `PARTICLE_ZOMBIEBALLOONHEAD`；不能继续复用 reanim 的单层头片，否则会缺少主人提供的完整头部造型。掉臂使用主人对照原版确认最接近的 `Zombie_polevaulter_innerhand.png`，由专属 `ZombieBalloonArmOff` 粒子预加载并发射，不复用通用 `ZombieArmOff`。
-- `clang-playtest` 已编译通过且无警告。`smoke_balloon_cactus.json` 在主人当前桌面可见运行，109 条命令、exit 0、`run.log` 以 `script finished OK` 结束；覆盖出生声、螺旋桨、空地命中互斥、爆裂中存读档、陆地落地、水道直接移除、啃食、断臂、专属掉头和第 152 帧死亡，9 张同步截图已人工核对。
+- `clang-playtest` 已编译通过且无警告。`smoke_balloon_cactus.json` 在主人当前桌面可见运行，153 条命令、exit 0、`run.log` 以 `script finished OK` 结束；覆盖出生声、螺旋桨、空地命中互斥、爆裂中存读档、陆地落地、水道直接移除、啃食、断臂、专属掉头、第 152 帧死亡，以及飞行/落地两态致死灰烬直消；另以 100 层僵尸生命词条锁定非致死灰烬仍保留 1970 本体生命。12 张同步截图已人工核对。
 - `smoke_fog_spawnlists_4_1_to_4_2.json` 同样可见 exit 0，确认 4-3 的完整有序出怪池为普通、路障、气球，选卡预览能正确绘制气球僵尸。
