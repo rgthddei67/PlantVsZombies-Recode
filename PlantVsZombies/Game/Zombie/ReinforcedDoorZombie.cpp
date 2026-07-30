@@ -7,6 +7,7 @@ namespace {
 	constexpr int kShieldedNormalDamageCap = 10;         // 持门时植物普通伤害的最终单次上限
 	constexpr int kAshDamageCap = 320;                  // 灰烬/爆炸伤害的最终单次上限
 	constexpr int kFumeDamageMultiplier = 2;            // 大喷菇与寒冰大喷菇基础伤害倍率
+	constexpr int kShieldedSpikeFrameDamageCap = 1;     // 持门时仙人掌尖刺每个 1x 碰撞帧的基础伤害上限
 	constexpr int kPlantInstantKillFallbackDamage = 10; // 大嘴花等植物直杀失败后结算的普通伤害（最终也是10）
 }
 
@@ -54,6 +55,14 @@ int ReinforcedDoorZombie::AdjustIncomingDamage(
 int ReinforcedDoorZombie::ModifyFumeDamage(int damage) const
 {
 	return damage * kFumeDamageMultiplier;
+}
+
+int ReinforcedDoorZombie::ModifySpikeFrameDamage(int damage) const
+{
+	if (mShieldType == ShieldType::SHIELDTYPE_NONE) {
+		return damage;
+	}
+	return std::min(damage, kShieldedSpikeFrameDamageCap);
 }
 
 bool ReinforcedDoorZombie::TakePlantInstantKill()

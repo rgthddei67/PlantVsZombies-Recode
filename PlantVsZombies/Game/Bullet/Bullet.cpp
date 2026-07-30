@@ -462,10 +462,11 @@ void Bullet::HandleZombieContact(ColliderComponent* other)
 		std::distance(mPiercedZombieIDs.begin(), idIt));
 	const bool reachedPierceLimit =
 		isNewZombie && mPiercedZombieIDs.size() >= kSpikePierceLimit;
+	const int frameDamage = zombie->ModifySpikeFrameDamage(mDamage);
 
 	if (reachedPierceLimit) {
 		// 达到穿透上限的目标没有后续 Stay 可消费额度，因此固定承受 1x 的完整帧伤后再回收。
-		for (int i = 0; i < mDamage && zombie->IsActive(); ++i) {
+		for (int i = 0; i < frameDamage && zombie->IsActive(); ++i) {
 			zombie->TakeDamage(1, DamageSource::PLANT);
 		}
 		mHasHit = true;
@@ -476,7 +477,7 @@ void Bullet::HandleZombieContact(ColliderComponent* other)
 	// 固定逻辑步的回调次数不随倍速改变；用缩放逻辑时间累计额度，保证同样游戏时长
 	// 在 0.5x/1x/2x 下按当前基础帧伤等比例推进，整数承伤总量保持一致。
 	float& damageRemainder = mSpikeDamageRemainders[targetIndex];
-	damageRemainder += static_cast<float>(mDamage)
+	damageRemainder += static_cast<float>(frameDamage)
 		* DeltaTime::GetDeltaTime() / DeltaTime::GetFixedStep();
 	const int damageToApply = static_cast<int>(std::floor(damageRemainder + 1e-6f));
 	if (damageToApply > 0) {

@@ -1,6 +1,6 @@
 ---
 name: project_pvz_reinforced_door_zombie
-description: 2026-07-23 加固铁门僵尸当前源码：300 本体/920 门、持门植物普通伤害10与灰烬320、免魅惑、大喷双伤只伤门
+description: 加固铁门僵尸当前源码：270 本体/1030 门、持门植物普通伤害10与灰烬320、仙人掌尖刺帧伤1、免魅惑、大喷双伤只伤门
 metadata:
   node_type: memory
   type: project
@@ -10,8 +10,9 @@ metadata:
 
 ## 契约与实现
 
-- 类型 `ZOMBIE_REINFORCED_DOOR`，类 `ReinforcedDoorZombie : DoorZombie`；2026-07-23 当前源码为本体 300、门 920，青绿色三阶段门贴图由 `scripts/recolor_reinforced_door.ps1` 从原版门可重复生成。主人会直接调整这些数值，后续平衡与断言必须先读取当前源码，不得依据本文件中的历史数字。
+- 类型 `ZOMBIE_REINFORCED_DOOR`，类 `ReinforcedDoorZombie : DoorZombie`；2026-07-30 当前源码为本体 270、门 1030，青绿色三阶段门贴图由 `scripts/recolor_reinforced_door.ps1` 从原版门可重复生成。主人会直接调整这些数值，后续平衡与断言必须先读取当前源码，不得依据本文件中的历史数字。
 - 门还在时，`AdjustIncomingDamage` 把植物普通伤害在词条缩放后钳到每次 10；门掉后取消该上限。大喷/寒冰大喷先经 `ModifyFumeDamage` 乘 2，再走普通植物伤害链，所以持门时仍最终为 10，掉门后每喷 40。
+- 仙人掌尖刺的帧伤会拆成多个独立 `TakeDamage(1)`，普通单击上限无法表达“本帧总伤害为 1”。因此 `Zombie::ModifySpikeFrameDamage` 在倍速额度累计前提供目标侧修正；本类型持门时返回 1，门掉后恢复尖刺基础 3，0.5x/1x/2.0x 的等伤语义保持不变。
 - 灰烬统一走 `Zombie::TakePlantAshDamage` 和 `DamageSource::PLANT_ASH`。持门时 `CanBeCharred=false` 且每次灰烬最终最多 320；门掉后恢复普通化灰与完整灰烬伤害。大嘴花直杀走返回 `bool` 的 `TakePlantInstantKill`：持门时把尝试降级为 10 点基础普通伤害并返回 false，门掉后直接吞掉并返回 true。小推车仍以 `OTHER + INT32_MAX` 正常秒杀。
 - 缠绕水草通过 `ResistsTangleKelpDrowning()` 接入同一“持门时抗直杀、掉门后恢复普通规则”契约。持门目标被原地锚定并保持 `anim_grab` 5 秒，不下沉、不死亡；到时仅水草死亡并释放目标。束缚开始立即停止啃食，期间不执行移动、阵风位移和品种逻辑，但动画与状态计时继续。水草中途被摧毁也只会提前释放目标；门已掉落时仍按普通水草流程拖沉。
 - 本类型 `CanBeCharmed=false`。醒着的魅惑菇仍由 `Zombie::EatTarget` 立即 `Die()` 并播放 `SOUND_FLOOP`，但随后 `StartMindControlled()` 被豁免守卫拒绝，僵尸阵营与门/本体血量都不变。
@@ -23,5 +24,6 @@ metadata:
 
 - `smoke_reinforced_door_wave_cap.json`：同波第 1/2 只为加固门，第 3 个候选完全跳过且随后普通僵尸正常生成；新波计数清零后可再次生成。
 - `smoke_night_spawnlists.json`：逐关验证黑夜出怪节奏；2-8/2-9 均含本类型，2-9 仍为 8 种池。
-- 2026-07-23 已按当前源码同步 `smoke_reinforced_door.json` 与 `smoke_reinforced_door_potatomine.json`：桌面可见运行均退出 0，覆盖 300/920、普通攻击扣门 10、灰烬扣门 320、破门、门后灰烬直杀、大嘴花、魅惑菇和小推车。
+- 2026-07-23 当时的 300/920 版本已可见运行 `smoke_reinforced_door.json` 与 `smoke_reinforced_door_potatomine.json` 且均退出 0，覆盖普通攻击扣门 10、灰烬扣门 320、破门、门后灰烬直杀、大嘴花、魅惑菇和小推车；该结果只作为历史证据。
 - 2026-07-24 的水草 5 秒束缚扩展按主人要求未新增或运行 AutoTest；`clang-playtest` 与启用 LTO 的 `clang-release` 均零警告编译通过。
+- 2026-07-30 已按当前 270/1030 数值静态同步两份原专项，并在 `smoke_cactus.json` 增加持门 1 点、掉门恢复 3 点的断言；按主人要求未编译、未运行 AutoTest。

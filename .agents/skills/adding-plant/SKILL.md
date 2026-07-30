@@ -104,7 +104,7 @@ description: Use when adding ANY new plant (新增植物) to PvZ — 射手/生�
 3. 存档同时保存不可变 `poolType`、可变“当前类型”和会影响后续转换的防重字段；读档按 `poolType` 走 `BulletPool::AcquireShared`，再恢复当前表现，**不得把 `mFromPool` 改回 false**。专项快照断言 bullet 的 `fromPool=true`、`poolType` 和转换列，防止动画变种读回错误池槽。
 4. 同帧 AutoTest 可能先构建行索引再 `spawn_zombie`；`EntityManager::AddZombie/AddZombieWithID` 必须置 `mRowIndexDirty=true`，否则随后同帧的范围弹只看见旧桶。
 5. `dump_state` 为类型数量、动画表现和防重状态加聚合整数抓手；不要依赖 `unordered_map` 导出的 `bullets.N` 顺序。运动弹仍断言相对量，不断言绝对 X/Y。
-6. `onTriggerStay` 的逐碰撞逻辑帧伤害不受渲染 FPS 波动影响，但固定逻辑步的回调次数不会随 `timeScale` 改变；若直接每次扣固定整数，移动弹在 0.5x/2.0x 下会因重叠帧数反向变化而失衡。默认按目标累计 `damage × GetDeltaTime()/GetFixedStep()` 的小数额度再取整结算，并把每个整数额度分别走一次 1 点正式承伤链，禁止合并成 `TakeDamage(N)` 而改变免伤次数/逐击取整。专项断言 0.5x 60 帧、1x 30 帧、2.0x 15 帧的同目标总伤害完全一致。
+6. `onTriggerStay` 的逐碰撞逻辑帧伤害不受渲染 FPS 波动影响，但固定逻辑步的回调次数不会随 `timeScale` 改变；若直接每次扣固定整数，移动弹在 0.5x/2.0x 下会因重叠帧数反向变化而失衡。默认按目标累计 `damage × GetDeltaTime()/GetFixedStep()` 的小数额度再取整结算，并把每个整数额度分别走一次 1 点正式承伤链，禁止合并成 `TakeDamage(N)` 而改变免伤次数/逐击取整。若特定目标要修改“每帧总基础伤害”，必须先由目标侧虚钩子修正 `damage` 再累计；不能依赖后续普通单击上限，因为拆开的每次输入已经只有 1 点。专项断言 0.5x 60 帧、1x 30 帧、2.0x 15 帧的同目标总伤害完全一致，并覆盖特殊目标的有/无防具两态。
 7. 持续命中且限制穿透数的子弹要按稳定实体 ID 记录不同目标：首次接触才登记并播放反馈，`stay` 只继续伤害；达到上限时先让最后目标承伤再回收。目标名单和逐目标小数伤害余额必须一起随存档恢复，并在对象池 `Reset()` 清空；专项至少覆盖“上限减一”目标后的存读档、达到上限消弹、倍速等伤和复用槽位归零，禁止把测试写死在某个穿透数。
 
 这类跨系统植物**不走"简短 spec 直实现"捷径**：回到完整 brainstorm（交互矩阵逐项问主人）→spec→必要时 writing-plans。

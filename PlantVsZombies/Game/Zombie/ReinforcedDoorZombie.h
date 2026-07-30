@@ -24,5 +24,6 @@ public:
 		return mShieldType != ShieldType::SHIELDTYPE_NONE;
 	}
 	int ModifyFumeDamage(int damage) const override;
+	int ModifySpikeFrameDamage(int damage) const override;
 	bool TakePlantInstantKill() override;
 };

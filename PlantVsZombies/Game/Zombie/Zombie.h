@@ -110,6 +110,8 @@ public:
 	virtual bool BlocksFumePiercing() const { return false; }
 	/** 调整大喷菇对本体的基础伤害；返回值随后统一进入词条与防具结算。 */
 	virtual int ModifyFumeDamage(int damage) const { return damage; }
+	/** 调整仙人掌尖刺每个 1x 碰撞帧的基础伤害；返回值随后按倍速累计并逐点结算。 */
+	virtual int ModifySpikeFrameDamage(int damage) const { return damage; }
 
 	virtual int TakeShieldDamage(int damage);
 	virtual int TakeHelmDamage(int damage);
