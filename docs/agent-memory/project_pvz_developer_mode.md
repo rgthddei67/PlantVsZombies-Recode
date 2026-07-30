@@ -20,4 +20,19 @@ metadata:
 
 2026-07-04 追加（0b4ee25）：「暂停刷怪」开关 `GameAPP::mDevSpawnPaused` —— 在 `Board::UpdateLevel` 于 `mZombieCountDown -= dt` 前 return，冻结出波倒计时与"本波清空提前出波"；面板「下一波」直调 `SummonNextWave` 不受影响。左上角 (5,5) 常驻角标 "开发者模式（刷怪已暂停）"（`BuildDrawCommands` 注册 DevModeBadge，LAYER_UI+100000）。dump_state 增 devSpawnPaused；验收 `smoke_dev_spawn_pause.json`（timescale 10 等 90 游戏秒断言 wave==0）。
 
+## 2026-07-30 面板选择持久化与生存直达
+
+- `PlayerInfo.json` 新增可选字段 `developerSelectedLevel` 与
+  `developerSelectedZombie`；旧档分别回退关卡 1 / `ZOMBIE_NORMAL`，属于可由中性默认值
+  表达的增量字段，未提升 player schema。关卡与僵尸箭头一经点击即调用
+  `SavePlayerInfo()`，新 `GameScene` 在 `OnEnter()` 从 `GameAPP` 恢复。
+- 僵尸保存枚举名字符串，不保存 `kDevZombieTable` 下标或 `ZombieType` 整数：新僵尸移入
+  `NUM_ZOMBIE_TYPES` 哨兵前时会改变后续数值，名称可稳定跨版本；未知或删除的名称回退普通
+  僵尸，并在下一次保存时规范化。
+- 「进入无尽」「进入夜无尽」现在直接把 1000/1001 交给延迟切关入口，单击即进入对应
+  生存选卡场景；快捷入口不改 `mDevLevelSel`，因此不会覆盖已保存的普通关卡选择。
+- 2026-07-30 `clang-playtest` 全量增量构建零警告；`save-schema` 通过；当前桌面可见
+  `smoke_develop` 61 条命令通过，窗口标题已确认，退出码 0。状态取证证明夜/日快捷按钮
+  分别直达 1001/1000 且保存值持续为关卡 2 / `ZOMBIE_TRAFFIC_CONE`，两张同步截图已检查。
+
 spec/plan 在 docs/superpowers/{specs,plans}/2026-07-03-developer-mode*。关联 [project_pvz_perk_system](project_pvz_perk_system.md)（面板 UI 模式来源）、[project_pvz_autotest_suite](project_pvz_autotest_suite.md)。

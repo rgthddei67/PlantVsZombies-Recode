@@ -22,6 +22,7 @@
 #include <cstdio>
 #include <algorithm>
 #include <array>
+#include <iterator>
 
 namespace {
 	// 右下角关卡名/轮数显示。
@@ -699,6 +700,7 @@ void GameScene::BuildDrawCommands()
 
 void GameScene::OnEnter() {
 	Scene::OnEnter();
+	RestoreDevPanelSelection();
 
 	int enterLevel = std::stoi(SceneManager::GetInstance().GetGlobalData("EnterLevel"));
 
@@ -1793,27 +1795,43 @@ void GameScene::RenderDevPanel()
 	// 僵尸类型选择行
 	const int zn = static_cast<int>(kDevZombieTable.size());
 	builder.Button("<", Vector(340.0f, 252.0f), Vector(40.0f, 36.0f), 16,
-		[this, zn]() { mDevZombieIndex = (mDevZombieIndex + zn - 1) % zn; RenderDevPanel(); });
+		[this, zn]() {
+			mDevZombieIndex = (mDevZombieIndex + zn - 1) % zn;
+			PersistDevPanelSelection();
+			RenderDevPanel();
+		});
 	builder.Text(Vector(395.0f, 260.0f), 14.0f,
 		kDevZombieTable[mDevZombieIndex].second, textColor);
 	builder.Button(">", Vector(560.0f, 252.0f), Vector(40.0f, 36.0f), 16,
-		[this, zn]() { mDevZombieIndex = (mDevZombieIndex + 1) % zn; RenderDevPanel(); });
+		[this, zn]() {
+			mDevZombieIndex = (mDevZombieIndex + 1) % zn;
+			PersistDevPanelSelection();
+			RenderDevPanel();
+		});
 	builder.Button(u8"召唤", Vector(620.0f, 252.0f), Vector(90.0f, 36.0f), 16,
 		[this]() { this->BeginDevSpawnMode(); });
 
 	// 关卡选择行
 	builder.Button(u8"-", Vector(340.0f, 302.0f), Vector(40.0f, 36.0f), 16,
-		[this]() { if (mDevLevelSel > 1) --mDevLevelSel; RenderDevPanel(); });
+		[this]() {
+			if (mDevLevelSel > 1) --mDevLevelSel;
+			PersistDevPanelSelection();
+			RenderDevPanel();
+		});
 	builder.Text(Vector(420.0f, 310.0f), 16.0f,
 		std::string(u8"关卡 ") + std::to_string(mDevLevelSel), textColor);
 	builder.Button(u8"+", Vector(560.0f, 302.0f), Vector(40.0f, 36.0f), 16,
-		[this]() { ++mDevLevelSel; RenderDevPanel(); });
+		[this]() {
+			++mDevLevelSel;
+			PersistDevPanelSelection();
+			RenderDevPanel();
+		});
 	builder.Button(u8"进入", Vector(620.0f, 302.0f), Vector(90.0f, 36.0f), 16,
-		[this]() { this->DevJumpToLevel(); });
-	builder.Button(u8"无尽1000", Vector(340.0f, 348.0f), Vector(110.0f, 32.0f), 14,
-		[this]() { mDevLevelSel = 1000; RenderDevPanel(); });
-	builder.Button(u8"夜无尽1001", Vector(460.0f, 348.0f), Vector(130.0f, 32.0f), 14,
-		[this]() { mDevLevelSel = 1001; RenderDevPanel(); });
+		[this]() { this->DevJumpToLevel(mDevLevelSel); });
+	builder.Button(u8"进入无尽", Vector(340.0f, 348.0f), Vector(110.0f, 32.0f), 14,
+		[this]() { DevJumpToLevel(SURVIVAL_ENDLESS_LEVEL); });
+	builder.Button(u8"进入夜无尽", Vector(460.0f, 348.0f), Vector(130.0f, 32.0f), 14,
+		[this]() { DevJumpToLevel(SURVIVAL_ENDLESS_NIGHT_LEVEL); });
 
 	// 底部：下一波 / 关闭
 	builder.Button(u8"下一波", Vector(360.0f, 420.0f), Vector(120.0f, 40.0f), 18,
@@ -1850,14 +1868,46 @@ void GameScene::BeginDevSpawnMode()
 		mDevHintRegistered = true;
 	}
 }
-void GameScene::DevJumpToLevel()
+
+/** 从 PlayerInfo 的稳定枚举名恢复面板状态；旧档或失效名称回退为普通僵尸。 */
+void GameScene::RestoreDevPanelSelection()
+{
+	auto& gameApp = GameAPP::GetInstance();
+	mDevLevelSel = std::max(1, gameApp.mDeveloperSelectedLevel);
+
+	const auto found = std::find_if(kDevZombieTable.begin(), kDevZombieTable.end(),
+		[&gameApp](const auto& entry) {
+			return gameApp.mDeveloperSelectedZombie == entry.second;
+		});
+	mDevZombieIndex = found == kDevZombieTable.end()
+		? 0
+		: static_cast<int>(std::distance(kDevZombieTable.begin(), found));
+
+	// 回写规范值，确保损坏或已删除的旧名称会在下一次保存时被修正。
+	gameApp.mDeveloperSelectedLevel = mDevLevelSel;
+	gameApp.mDeveloperSelectedZombie = kDevZombieTable[mDevZombieIndex].second;
+}
+
+/** 选择一经改变便持久化；保存名称而非下标/枚举值，避免僵尸表扩展导致旧选择漂移。 */
+void GameScene::PersistDevPanelSelection()
+{
+	auto& gameApp = GameAPP::GetInstance();
+	gameApp.mDeveloperSelectedLevel = mDevLevelSel;
+	gameApp.mDeveloperSelectedZombie = kDevZombieTable[mDevZombieIndex].second;
+	if (!gameApp.mGameInfoSaver.SavePlayerInfo()) {
+		LOG_WARN("DevMode") << "开发者面板选择保存失败，将在游戏退出时重试。";
+	}
+}
+
+void GameScene::DevJumpToLevel(int level)
 {
 	// 不能在按钮回调（本帧 Update 中段）直接 SwitchTo 销毁自身——
-	// 与 mReadyToBackMenu 同理，置 pending 由 Update 尾部统一执行
+	// 与 mReadyToBackMenu 同理，置 pending 由 Update 尾部统一执行。
+	// 生存快捷入口只传目标关卡，不覆盖普通关卡与召唤僵尸的已保存选择。
 	mDevPanelActive = false;
 	DeltaTime::SetPaused(false);
 	mDevPanelBox.reset();
-	mDevPendingLevel = mDevLevelSel;
+	mDevPendingLevel = level;
 }
 
 void GameScene::DevTriggerNextWave()

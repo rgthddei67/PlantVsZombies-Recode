@@ -1556,6 +1556,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["devNoCooldown"] = GameAPP::mDevNoCooldown;
 	out["devFreePlant"] = GameAPP::mDevFreePlant;
 	out["devSpawnPaused"] = GameAPP::mDevSpawnPaused;
+	out["devSelectedLevel"] = gameApp.mDeveloperSelectedLevel;
+	out["devSelectedZombie"] = gameApp.mDeveloperSelectedZombie;
 	out["timeScaleOn1000"] =
 		static_cast<int>(std::lround(DeltaTime::GetTimeScale() * 1000.0f));
 	out["adventureLevel"] = gameApp.mAdventureLevel;

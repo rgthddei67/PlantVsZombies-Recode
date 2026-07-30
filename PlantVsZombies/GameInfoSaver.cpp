@@ -192,6 +192,8 @@ bool GameInfoSaver::SavePlayerInfoImpl()
 	j["difficulty"] = gameApp.Difficulty;
 	j["adventureLevel"] = gameApp.mAdventureLevel;
 	j["encounteredEliteDancer"] = gameApp.mEncounteredEliteDancer;
+	j["developerSelectedLevel"] = gameApp.mDeveloperSelectedLevel;
+	j["developerSelectedZombie"] = gameApp.mDeveloperSelectedZombie;
 	j["showPlantHP"] = gameApp.mShowPlantHP;
 	j["showZombieHP"] = gameApp.mShowZombieHP;
 	j["autoCollected"] = gameApp.mAutoCollected;
@@ -221,6 +223,9 @@ bool GameInfoSaver::LoadPlayerInfoImpl()
 	gameApp.Difficulty = j.value("difficulty", 1);
 	gameApp.mAdventureLevel = j.value("adventureLevel", 1);
 	gameApp.mEncounteredEliteDancer = j.value("encounteredEliteDancer", false);
+	gameApp.mDeveloperSelectedLevel = std::max(1, j.value("developerSelectedLevel", 1));
+	gameApp.mDeveloperSelectedZombie =
+		j.value("developerSelectedZombie", std::string("ZOMBIE_NORMAL"));
 	gameApp.mShowPlantHP = j.value("showPlantHP", false);
 	gameApp.mShowZombieHP = j.value("showZombieHP", false);
 	gameApp.mAutoCollected = j.value("autoCollected", true);

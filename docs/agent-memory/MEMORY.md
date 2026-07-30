@@ -63,7 +63,7 @@
 
 - [粒子按RenderOrder分层](project_pvz_particle_render_layer.md) — 世界层粒子走 GameObjectManager pre-overlay hook（非场景槽，因 MessageBox 在 GameObjects 命令内部）；2026-07-21 雨天改为“世界粒子 → 暗幕 → UI”；EmitEffect 默认 LAYER_EFFECTS_WORLD=35000，显式顶层粒子仍走 DrawFrom
 
-- [开发者模式(-develop) ✅已push](project_pvz_developer_mode.md) — 2026-07-03 D键面板/收费点双条件守卫/点草坪召唤取最近行/跳关走pending延迟SwitchTo；15e109d修卡片显示层裸比阳光绕过CanAfford+下一波提取SummonNextWave可连点；foot-gun=FZCQ无◀▶字形用ASCII、AutoTest截图无.png扩展名、放置模式ESC与菜单ESC同帧用devConsumedEsc挡
+- [开发者模式(-develop) ✅](project_pvz_developer_mode.md) — 2026-07-30 PlayerInfo 按普通关卡号+僵尸枚举名持久化面板选择，两个生存按钮单击直达1000/1001且不覆盖保存关卡；原有D键面板/收费点双条件守卫/点草坪最近行召唤/下一波连点保留；foot-gun=僵尸选择禁存表下标或枚举整数、FZCQ方向按钮用ASCII、AutoTest截图无扩展名且不得与状态同名
 
 - [资源加载并行化 ✅达标已push](project_pvz_parallel_resource_loading.md) — 2026-07-03 方案A达标结算；冷启动10s=2600次open固定成本(Defender+NTFS冷缓存)非带宽(资源36MB)；计时WARN行留回归探针；foot-gun=PS5.1 `1>`重定向UTF-16 grep搜不到中文/subagent断流先查git再SendMessage原agent
 - [魅惑僵尸+魅惑菇全套 ✅已push](project_pvz_charmed_zombie_feature.md) — 2026-07-02 StartMindControlled/CanBeCharmed(撑杆仅WALKING)/双向互啃/SetFlipX翻身(支点48,须在overlay/glow复制前)/魅惑菇EatTarget判HYPNOSHROOM&&!睡眠→不结算这口(75阳光25sCD)；foot-gun=①行为守卫放虚函数不放lambda(onTriggerStay绕过) ②Edit撞形近行+单僵尸假阴性 ③脚本须{"commands":[]}；含 d83bab0 纸僵卡anim_eat修复起源(抽virtual ResumeWalkAfterEat)→已被 [project_pvz_zombie_eat_walk_state_machine](project_pvz_zombie_eat_walk_state_machine.md) 收口

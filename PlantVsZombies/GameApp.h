@@ -44,6 +44,8 @@ public:
 	int Difficulty = 1; // 难度系数
 	int mAdventureLevel = 1;    // 玩到的冒险模式关卡
 	bool mEncounteredEliteDancer = false; // 是否曾由正式波次实际刷出精英舞王
+	int mDeveloperSelectedLevel = 1; // 开发者面板上次选择的关卡号
+	std::string mDeveloperSelectedZombie = "ZOMBIE_NORMAL"; // 开发者面板上次选择的召唤僵尸枚举名
 	bool mShowPlantHP = false;  // 植物显示血量
 	bool mShowZombieHP = false; // 僵尸显示血量
 	bool mAutoCollected = true; // 自动收集

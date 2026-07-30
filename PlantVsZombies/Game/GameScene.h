@@ -299,7 +299,9 @@ private:
 	void CloseDevPanel();
 	void RenderDevPanel();        // 状态变化即整体重建（autoClose 帧末自毁旧盒）
 	void BeginDevSpawnMode();     // 进入召唤放置模式
-	void DevJumpToLevel();        // 置 pending，Update 尾部切关
+	void RestoreDevPanelSelection(); // 从 PlayerInfo 恢复稳定的关卡号与僵尸枚举名
+	void PersistDevPanelSelection(); // 选择变化时立即写入 PlayerInfo
+	void DevJumpToLevel(int level);  // 置 pending，Update 尾部切关；快捷入口不改已保存选择
 	void DevTriggerNextWave();    // 出波倒计时清零
 	void RegisterSurvivalGameUiOnce();
 };
