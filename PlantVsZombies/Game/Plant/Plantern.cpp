@@ -14,8 +14,8 @@
 
 namespace {
 	constexpr float kLowBurnRate = 0.5f;     // 一档每游戏秒消耗的雾火
-	constexpr float kMediumBurnRate = 1.0f;  // 二档每游戏秒消耗的雾火
-	constexpr float kHighEarlyBurnRate = 2.0f; // 首波三档每游戏秒消耗的雾火
+	constexpr float kMediumBurnRate = 1.1f;  // 二档每游戏秒消耗的雾火
+	constexpr float kHighEarlyBurnRate = 2.1f; // 首波三档每游戏秒消耗的雾火
 	constexpr float kHighLateBurnRate = 4.0f;  // 最终波三档每游戏秒消耗的雾火
 	constexpr float kFuelFullHintSeconds = 1.8f; // 雾火溢出后卡槽提示的持续游戏秒
 }

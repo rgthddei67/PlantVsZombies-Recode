@@ -17,7 +17,7 @@ enum class PlanternGear : int {
 class Plantern : public Plant {
 public:
 	static constexpr float FUEL_CAPACITY = 100.0f;
-	static constexpr float INITIAL_FUEL = 30.0f;
+	static constexpr float INITIAL_FUEL = 25.0f;
 	static constexpr float LOW_FUEL_THRESHOLD = 10.0f; // 跌破此燃料值时触发一次低燃料警报
 
 	using Plant::Plant;
