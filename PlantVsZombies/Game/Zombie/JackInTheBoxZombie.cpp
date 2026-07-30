@@ -73,12 +73,25 @@ void JackInTheBoxZombie::SetupZombie()
 	PlayWalkAnimation(0.0f);
 }
 
-/** 注册主人确认的啃食、开盒爆炸与死亡消失帧。 */
+/** 注册主人确认的共用帧，再补经典小丑独有的开盒爆炸帧。 */
 void JackInTheBoxZombie::RegisterFrameEvents()
 {
-	mAnimator->AddFrameEvent(45, [this]() { EatTarget(); }, true);
+	RegisterSharedFrameEvents();
 	mAnimator->AddFrameEvent(66, [this]() { Explode(); });
+}
+
+void JackInTheBoxZombie::RegisterSharedFrameEvents()
+{
+	mAnimator->AddFrameEvent(45, [this]() { EatTarget(); }, true);
 	mAnimator->AddFrameEvent(89, [this]() { Die(); });
+}
+
+void JackInTheBoxZombie::SetRunVelocityForVariant(float velocity)
+{
+	mRunVelocity = std::max(0.01f, velocity);
+	if (!mIsPreview && mPhase == Phase::RUNNING) {
+		PlayWalkAnimation(0.0f);
+	}
 }
 
 void JackInTheBoxZombie::Update()
@@ -241,9 +254,9 @@ void JackInTheBoxZombie::ArmDrop()
 	if (!mHasArm) return;
 	mAnimator->SetTrackImage("zombie_jackbox_outerarm_lower",
 		ResourceManager::GetInstance().GetTexture(
-			ResourceKeys::Textures::IMAGE_REANIM_ZOMBIE_JACKBOX_OUTERARM_LOWER2));
+			GetBrokenArmTextureKey()));
 	if (g_particleSystem) {
-		g_particleSystem->EmitEffect("ZombieJackboxArmOff", GetPosition());
+		g_particleSystem->EmitEffect(GetArmDropEffectName(), GetPosition());
 	}
 	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_LIMBS_POP, kLimbVolume);
 }
@@ -258,8 +271,18 @@ void JackInTheBoxZombie::ZombieItemUpdate() const
 	if (!mHasArm) {
 		mAnimator->SetTrackImage("zombie_jackbox_outerarm_lower",
 			ResourceManager::GetInstance().GetTexture(
-				ResourceKeys::Textures::IMAGE_REANIM_ZOMBIE_JACKBOX_OUTERARM_LOWER2));
+				GetBrokenArmTextureKey()));
 	}
+}
+
+const std::string& JackInTheBoxZombie::GetBrokenArmTextureKey() const
+{
+	return ResourceKeys::Textures::IMAGE_REANIM_ZOMBIE_JACKBOX_OUTERARM_LOWER2;
+}
+
+const char* JackInTheBoxZombie::GetArmDropEffectName() const
+{
+	return "ZombieJackboxArmOff";
 }
 
 void JackInTheBoxZombie::PlaySpawnSound()

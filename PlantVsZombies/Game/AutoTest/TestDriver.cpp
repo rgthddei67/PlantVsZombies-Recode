@@ -43,6 +43,7 @@
 #include "../Zombie/Polevaulter.h"
 #include "../Zombie/DolphinRiderZombie.h"
 #include "../Zombie/JackInTheBoxZombie.h"
+#include "../Zombie/EliteJackInTheBoxZombie.h"
 #include "../Zombie/BalloonZombie.h"
 #include "../Zombie/PoolNormalZombie.h"
 #include "../Trophy.h"   // dump_state 输出奖杯坐标
@@ -112,7 +113,8 @@ namespace {
 		ZT(ZOMBIE_REINFORCED_DOOR),
 		ZT(ZOMBIE_POOL_NORMAL), ZT(ZOMBIE_POOL_CONE), ZT(ZOMBIE_POOL_BUCKET),
 		ZT(ZOMBIE_ZAMBONI), ZT(ZOMBIE_GILDED_ZAMBONI), ZT(ZOMBIE_DOLPHIN_RIDER), ZT(ZOMBIE_ELITE_DOLPHIN_RIDER),
-		ZT(ZOMBIE_JACK_IN_THE_BOX), ZT(ZOMBIE_BALLOON), ZT(ZOMBIE_DIGGER), ZT(ZOMBIE_POGO),
+		ZT(ZOMBIE_JACK_IN_THE_BOX), ZT(ZOMBIE_ELITE_JACK_IN_THE_BOX), ZT(ZOMBIE_BALLOON),
+		ZT(ZOMBIE_DIGGER), ZT(ZOMBIE_POGO),
 		ZT(ZOMBIE_YETI), ZT(ZOMBIE_BUNGEE), ZT(ZOMBIE_LADDER), ZT(ZOMBIE_CATAPULT),
 		ZT(ZOMBIE_GARGANTUAR), ZT(ZOMBIE_IMP), ZT(ZOMBIE_BOSS), ZT(ZOMBIE_PEA_HEAD),
 		ZT(ZOMBIE_WALLNUT_HEAD), ZT(ZOMBIE_JALAPENO_HEAD), ZT(ZOMBIE_GATLING_HEAD),
@@ -892,13 +894,52 @@ bool TestDriver::ExecuteCurrent() {
 		for (const int id : zombieIDs) {
 			auto* jack = dynamic_cast<JackInTheBoxZombie*>(
 				gs->GetBoard()->mEntityManager.GetZombie(id));
-			if (!jack || !jack->IsActive()) continue;
+			if (!jack || !jack->IsActive()
+				|| jack->mZombieType != ZombieType::ZOMBIE_JACK_IN_THE_BOX) {
+				continue;
+			}
 			if (row >= 0 && jack->mRow != row) continue;
 			if (seen++ != index) continue;
 			jack->SetPopCountdownForTesting(seconds);
 			return true;
 		}
 		Fail("set_jack_pop_countdown: 未找到目标小丑僵尸");
+		return false;
+	}
+	if (op == "set_elite_jack_throw_countdown") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) {
+			Fail("set_elite_jack_throw_countdown: 不在 GameScene 或 Board 为空");
+			return false;
+		}
+		const float seconds = cmd.value("value", -1.0f);
+		if (seconds < 0.0f || seconds > 60.0f) {
+			Fail("set_elite_jack_throw_countdown: value 必须在 0～60 秒");
+			return false;
+		}
+		Board* board = gs->GetBoard();
+		const int sourceRow = cmd.value("row", -1);
+		const int targetRow = cmd.value("targetRow", -1);
+		const int targetColumn = cmd.value("targetColumn", -1);
+		if (targetRow >= board->mRows || targetColumn >= board->mColumns) {
+			Fail("set_elite_jack_throw_countdown: 固定目标超出当前地图");
+			return false;
+		}
+		const int index = cmd.value("index", 0);
+		int seen = 0;
+		std::vector<int> zombieIDs = board->mEntityManager.GetAllZombieIDs();
+		std::sort(zombieIDs.begin(), zombieIDs.end());
+		for (const int id : zombieIDs) {
+			auto* elite = dynamic_cast<EliteJackInTheBoxZombie*>(
+				board->mEntityManager.GetZombie(id));
+			if (!elite || !elite->IsActive()) continue;
+			if (sourceRow >= 0 && elite->mRow != sourceRow) continue;
+			if (seen++ != index) continue;
+			elite->SetThrowCountdownForTesting(
+				seconds, targetRow, targetColumn);
+			return true;
+		}
+		Fail("set_elite_jack_throw_countdown: 未找到目标精英小丑");
 		return false;
 	}
 	if (op == "spawn_wave_zombie") {
@@ -1788,6 +1829,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "elitePolevaultersSpawnedThisWave", board->GetElitePolevaultersSpawnedThisWave() },
 			{ "gildedZambonisSpawnedThisWave", board->GetGildedZambonisSpawnedThisWave() },
 			{ "eliteDolphinRidersSpawnedThisWave", board->GetEliteDolphinRidersSpawnedThisWave() },
+			{ "eliteJackInTheBoxesSpawnedThisWave", board->GetEliteJackInTheBoxesSpawnedThisWave() },
 			{ "typhoonDecayRemaining", board->GetTyphoonStrengthTimer() },
 			{ "windDirection", WindDirectionName(board->GetWindDirection()) },
 			{ "windDirectionRemaining", board->GetWindDirectionTimer() },
@@ -1964,7 +2006,9 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 
 	out["zombies"] = nlohmann::json::array();
 	out["jack"] = nullptr;
+	out["eliteJack"] = nullptr;
 	int jackZombieCount = 0;
+	int eliteJackZombieCount = 0;
 	int poolRowZombieCount = 0;
 	int earlyWavePoolZombieCount = 0;
 	int gildedZamboniCount = 0;
@@ -2000,6 +2044,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "xInt", static_cast<int>(std::lround(pos.x)) },
 			{ "yInt", static_cast<int>(std::lround(pos.y)) },
 			{ "bodyHealth", z->mBodyHealth }, { "bodyMaxHealth", z->mBodyMaxHealth },
+			{ "attackDamage", z->mAttackDamage },
 			{ "helmHealth", z->mHelmHealth }, { "shieldHealth", z->mShieldHealth },
 			{ "fireResistant", z->IsFireResistant() },
 			{ "mindControlled", z->IsMindControlled() },
@@ -2096,7 +2141,37 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			zombieState["dolphinVisualCompensationYOn1000"] =
 				static_cast<int>(std::lround(visualCompensation.y * 1000.0f));
 		}
-		if (auto* jack = dynamic_cast<JackInTheBoxZombie*>(z)) {
+		if (auto* eliteJack = dynamic_cast<EliteJackInTheBoxZombie*>(z)) {
+			++eliteJackZombieCount;
+			const Vector boxPosition = eliteJack->GetThrownBoxPosition();
+			const Vector targetPosition = eliteJack->GetThrowTargetPosition();
+			zombieState["eliteJackThrowCountdownMs"] =
+				static_cast<int>(std::lround(
+					eliteJack->GetThrowCountdown() * 1000.0f));
+			zombieState["eliteJackBoxInFlight"] = eliteJack->IsBoxInFlight();
+			zombieState["eliteJackBoxFlightProgressOn1000"] =
+				static_cast<int>(std::lround(
+					eliteJack->GetBoxFlightProgress() * 1000.0f));
+			zombieState["eliteJackBoxXInt"] =
+				static_cast<int>(std::lround(boxPosition.x));
+			zombieState["eliteJackBoxYInt"] =
+				static_cast<int>(std::lround(boxPosition.y));
+			zombieState["eliteJackTargetRow"] =
+				eliteJack->GetThrowTargetRow();
+			zombieState["eliteJackTargetXInt"] =
+				static_cast<int>(std::lround(targetPosition.x));
+			zombieState["eliteJackTargetYInt"] =
+				static_cast<int>(std::lround(targetPosition.y));
+			zombieState["eliteJackThrowWasMindControlled"] =
+				eliteJack->WasThrownByMindControlledZombie();
+			zombieState["eliteJackBoxTrackVisible"] =
+				anim && anim->GetTrackVisible("Zombie_jackbox_box");
+			zombieState["jackRunVelocityOn1000"] =
+				static_cast<int>(std::lround(
+					eliteJack->GetRunVelocity() * 1000.0f));
+			out["eliteJack"] = zombieState;
+		}
+		else if (auto* jack = dynamic_cast<JackInTheBoxZombie*>(z)) {
 			++jackZombieCount;
 			zombieState["jackPhase"] =
 				jack->GetPhase() == JackInTheBoxZombie::Phase::RUNNING
@@ -2191,6 +2266,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	}
 	out["zombieCount"] = static_cast<int>(out["zombies"].size());
 	out["jackZombieCount"] = jackZombieCount;
+	out["eliteJackZombieCount"] = eliteJackZombieCount;
 	out["gildedZamboniCount"] = gildedZamboniCount;
 	out["poolRowZombieCount"] = poolRowZombieCount;
 	out["earlyWavePoolZombieCount"] = earlyWavePoolZombieCount;
@@ -2357,6 +2433,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["particleEffectNameCounts"]["JackExplode"] = 0;
 	out["particleEffectNameCounts"]["CherryBomb"] = 0;
 	out["particleEffectNameCounts"]["ZombieJackboxArmOff"] = 0;
+	out["particleEffectNameCounts"]["ZombieEliteJackboxArmOff"] = 0;
 	out["particleEffectNameCounts"]["WallnutEatSmall"] = 0;
 	out["particleEffectNameCounts"]["WallnutEatLarge"] = 0;
 	out["particleEffectNameCounts"]["TallNutBlock"] = 0;

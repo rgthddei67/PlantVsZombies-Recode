@@ -1,0 +1,15 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 1 },
+    { "op": "choose_cards", "cards": ["PLANT_PEASHOOTER"] },
+    { "op": "wait_state", "state": "GAME", "timeout": 15 },
+    { "op": "set_spawn_paused", "value": true },
+    { "op": "spawn_zombie", "type": "ZOMBIE_ELITE_JACK_IN_THE_BOX", "row": 2, "x": 900, "stationary": true },
+    { "op": "wait_seconds", "value": 0.3, "timeout": 3 },
+    { "op": "assert_state", "path": "eliteJackZombieCount", "equals": 1 },
+    { "op": "assert_state", "path": "eliteJack.eliteJackBoxTrackVisible", "equals": true },
+    { "op": "screenshot", "name": "elite_jack_noinstance.png" },
+    { "op": "dump_state", "name": "elite_jack_noinstance.json" },
+    { "op": "quit" }
+  ]
+}

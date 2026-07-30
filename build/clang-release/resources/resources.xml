@@ -188,6 +188,7 @@
     <Texture Column="3" Row="1">./resources/particles/ZamboniSmoke.png</Texture>
     <Texture Column="5" Row="1">./resources/particles/Zomboss_particles.png</Texture>
     <Texture>./resources/particles/ZombieJackboxArm.png</Texture>
+    <Texture>./resources/particles/ZombieEliteJackboxArm.png</Texture>
     <Texture>./resources/particles/Sproing.png</Texture>
     <Texture>./resources/particles/ZombieBackupDancerHead.png</Texture>
     <Texture>./resources/particles/ZombieBackupDancerHead_disco.png</Texture>
@@ -385,6 +386,7 @@
     <Reanimation name="EliteDolphinRider">./resources/reanim/EliteDolphinRider.reanim</Reanimation>
 
     <Reanimation name="ZombieJackBox">./resources/reanim/Zombie_JackBox.reanim</Reanimation>
+    <Reanimation name="EliteJackBox">./resources/reanim/EliteJackBox.reanim</Reanimation>
     <Reanimation name="ZombieBalloon">./resources/reanim/Zombie_balloon.reanim</Reanimation>
 
     <Reanimation name="Zombie_Charred">./resources/reanim/Zombie_Charred.reanim</Reanimation>

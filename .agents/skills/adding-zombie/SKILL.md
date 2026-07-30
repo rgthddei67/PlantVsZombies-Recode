@@ -40,7 +40,7 @@ description: Use when adding or tuning any PvZ zombie, or integrating zombies in
 4. **注册**：`GameDataManager.cpp` `#include` + `RegisterZombie(type, "ZOMBIE_X", ANIM_X, "ReanimName", &MakeZombie<T>)`——animName 必须与 resources.xml 的 `<Reanimation name>` 一致。
 5. **gamedata.json**：只改 `build/clang-release/resources/gamedata.json`，`{weight, appearWave, survivalRound, offset, scale}` 五字段缺一不可；只能被召唤的僵尸 `weight: 0`（永不被抽中，AutoTest spawn_zombie 仍可直造）。注意 weight 一物两用=抽中权重+生存点数成本。
 6. **粒子**：照抄 `ZombieHeadOff.xml` 改 `<Name>`+`<Image>`（图键=贴图文件名的标准派生键，如 `ZombieDancerHead.png`→`PARTICLE_ZOMBIEDANCERHEAD`），放权威 `build/clang-release/resources/particles/config/`，其他 preset 自动共享。XML 标签全参考/foot-guns 见 **adding-particle skill**（勿再读 ParticleSystem 源码）。
-7. **换色变体资源**：优先用仓库内 PowerShell + `System.Drawing` 脚本按 HSV/亮度映射目标材质，保留原 Alpha、阴影、高光、描边和非目标部件；不要对整张图平涂或只靠 overlay。脚本是可复现源，只向 clang-release 权威资源生成一次并逐文件比预期 SHA-256。换色后还要沿死亡/受击入口检查粒子 XML 的每个车辆或身体部件 `<Image>`：本体 reanim 换色不会自动替换粒子里写死的普通资源键，必要时由品种虚入口选择独立粒子配置。
+7. **换色变体资源**：优先用仓库内 PowerShell + `System.Drawing` 脚本按 HSV/亮度映射目标材质，保留原 Alpha、阴影、高光、描边和非目标部件；不要对整张图平涂或只靠 overlay。脚本是可复现源，只向 clang-release 权威资源生成一次并逐文件比预期 SHA-256。换色后还要沿死亡/受击入口检查粒子 XML 的每个车辆或身体部件 `<Image>`：本体 reanim 换色不会自动替换粒子里写死的普通资源键。派生换色品种的断肢应由父类虚入口同时选择“本体残留材质”和“飞出粒子效果”，并让 `ZombieItemUpdate()` 复用同一材质入口，避免受伤或读档时短暂变回普通配色。
 8. **⚠️ build/ 下资源提交必须 `git add -f`**——被 .gitignore 静默挡下，`git commit` 照样"成功"但文件没进去。提交后 `git show --stat` 核对文件数。
 9. **图鉴**：在权威 `build/clang-release/resources/info.txt` 同时添加 `[ZOMBIE_X]` 与 `[ZOMBIE_X_DESCRIPTION]`。`ZombieAlmanacScene` 按 `mAdventureLevel - 1` 之前已通关关卡的 `spawnlists.json` 并集解锁条目，并按首次遭遇顺序排列；当前正在玩的关卡不得提前泄露。召唤型 `weight: 0` 子单位（如伴舞）不能为了图鉴解锁写进随机池，而应由图鉴的“必然派生遭遇”映射随其召唤者解锁。概率变异不能由 spawnlist 推断；若要求实际遇见后永久解锁，把独立遭遇标记存入 `PlayerInfo.json`，且只在正式波次的实际类型成功创建后记录，不能在 roll 命中、通用 `CreateZombie()`、读档或预览路径记录。缺 info key 不会构建失败，只会留下有图无标题/正文的空白条目；因此静态检查每个可解锁枚举名的两枚 key 均存在且唯一。AutoTest 用 `set_adventure_level` 配合 UI 场景状态字段 `zombieAlmanacEntries` / `zombieAlmanacSelected`，同时断言当前关排除、下一关解锁并截图；AutoTest 会短路真实 PlayerInfo 磁盘写入，遭遇持久化须用内存字段断言加保存/加载源码审查。
 
@@ -69,6 +69,8 @@ description: Use when adding or tuning any PvZ zombie, or integrating zombies in
 - **手动开吃不能依赖碰撞退出收尾**：跳跃受阻等状态机可能把僵尸停在植物碰撞箱外的小间隙后直接调用 `StartEat`，这对对象从未进入 `CollisionSystem::currentCollisions`，外力吹离时不会产生 `onTriggerExit`。基类必须逐帧复核已保存的植物目标仍存活、仍是同格顶层且碰撞箱间距仍在允许咬合范围；失效时原子清目标 ID、平衡 `mEaterCount`、调用 `OnStopEating` 并经 `PlayWalkAnimation` 恢复。进入死亡轨道前也要先清啃食状态，`EatTarget` 对垂死者硬早退。AutoTest 同时断言吹离、目标死亡、啃食者死亡三条路径的 `isEating=false`、目标 ID 为空和 `eaterCount=0`。
 - **魅惑交互**：`StartMindControlled` 非虚——子类反应放 `ZombieUpdate` 里的边沿检测（`mIsMindControlled && !mCharmHandled`）；魅惑领队后新召唤单位补调 `StartMindControlled()` 继承阵营；魅惑者互啃敌方是引擎既有行为，编队混战减员属正常。
 - **魅惑范围伤害按阵营对称过滤**：僵尸自身发起的爆炸或范围伤害若应攻击敌方，统一用 `target->IsMindControlled() != source->IsMindControlled()` 判敌，禁止只在来源已魅惑时跳过魅惑目标，否则未魅惑来源会误伤普通僵尸。AutoTest 的未魅惑与魅惑两侧都同时放普通僵尸、魅惑僵尸和植物，先证明敌方目标实际受击，再断言同阵营与植物是否按设计保留。
+- **离体但仍由僵尸持有的延迟攻击要按投出瞬间锁定**：保存飞行起终点、已飞时间、目标行、下一次倒计时和投出时阵营；飞行更新必须放在冻结、掉头和死亡动画的新攻击门禁之前，使已经离手的攻击继续结算。投出时隐藏手持轨、落地后恢复，`LoadExtraData()` 与 `ZombieItemUpdate()` 都按飞行状态重建显隐；若设计要求投掷者被立即回收后仍保留攻击，则不能继续把投射物只存在僵尸对象内，必须改成独立实体。
+- **范围攻击的贪心落点要按实际结算集合评分**：先从合法行/格或实体建立候选落点，再用与最终伤害完全相同的活动状态、阵营过滤和圆/碰撞框相交规则累计每个爆点覆盖目标的价值；位置倍率等权重施加到每个受影响目标，而不是只看被瞄准单体。无合法目标时不空投且用有界短间隔重试，最高分并列可随机择一。专项用“原价较低但加权后反超”的两目标局面锁定权重确实参与选择。
 - **寒冰免疫**：`CanBeChilled()` 是减速状态、蓝色覆色和减速音效的共同前置总闸；寒冰子弹必须先检查它，再调用 `SetCooldown` 或播放 `SOUND_COOLDOWNZOMBIE`。只在免疫僵尸里把 `SetCooldown` 写成 no-op 不够，调用方若提前播音仍会产生“没减速却有减速声”的假反馈。AutoTest 同时断言状态未变化和音效请求计数未增加，并用普通僵尸对照证明计数抓手有效。
 - **车辆/精英变体的特殊受击**：让车辆基类拥有虚事件（如 `HandleCaltropHit`），植物只命中并派发；普通车辆在默认实现里处理植物消耗、音画和死亡，精英车辆覆写生存规则，避免植物侧 `dynamic_cast` 到每个精英类型。若特殊死亡播放的是 wheelie/bounce 等非通用 `anim_death` 轨道，不要设置会被基类死亡轨看门狗消费的通用 dying 标志；用独立状态+计时器守卫 `ZombieMove`、碾压和继续承伤，存档保存状态/剩余时间，Load 和 `ZombieItemUpdate` 重新应用停驶、碰撞禁用及材质终态。
 - **特定植物攻击抗性**：由 `Zombie` 基类提供语义窄的虚修正点，特殊品种按当前防具/状态覆写；子弹只向目标查询，禁止在子弹侧堆类型表或 `dynamic_cast`。若攻击先按倍速累计“每帧总基础伤害”、再拆成多个 `TakeDamage(1)`，目标修正必须发生在累计之前，普通 `AdjustIncomingDamage` 单击上限无法把整帧压低。防具限定抗性在防具掉落后必须返回输入原值，专项同时锁定有/无防具两态。
@@ -101,6 +103,7 @@ description: Use when adding or tuning any PvZ zombie, or integrating zombies in
 3. **死亡消失必须专门测**（末-1 帧陷阱专项）：豌豆打死→dump 确认该 type 消失+run.log 无 WATCHDOG。炸弹类走 Die() 直杀路径，**测不到**死亡帧事件。
 4. 时序：`wait_seconds` 是游戏秒；关卡 20 秒起第一波普通僵尸会混入 dump，别断言"场上为空"。
 5. 站位/影子不对 → 本体调 gamedata offset（免编译）、影子调代码 `ShadowComponent`。
+6. 父类测试钩子或状态投影使用 `dynamic_cast` 时会同时命中派生精英；先判断具体派生类，或以 `mZombieType` 排除变体，避免普通品种计数和命令误操作精英。
 
 ## 完工交付：调参量清单交主人（必做环节，主人指定保留）
 

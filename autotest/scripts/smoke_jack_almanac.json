@@ -2,8 +2,8 @@
   "commands": [
     { "op": "goto_level", "level": 28 },
     { "op": "assert_state", "path": "levelName", "equals": "关卡 4-1" },
-    { "op": "assert_state", "path": "spawnList", "equals": ["ZOMBIE_NORMAL", "ZOMBIE_TRAFFIC_CONE", "ZOMBIE_JACK_IN_THE_BOX"] },
-    { "op": "assert_state", "path": "spawnTypeCount", "equals": 3 },
+    { "op": "assert_state", "path": "spawnList", "equals": ["ZOMBIE_NORMAL", "ZOMBIE_TRAFFIC_CONE", "ZOMBIE_BUCKET", "ZOMBIE_JACK_IN_THE_BOX"] },
+    { "op": "assert_state", "path": "spawnTypeCount", "equals": 4 },
 
     { "op": "goto_level", "level": 29 },
     { "op": "assert_state", "path": "levelName", "equals": "关卡 4-2" },

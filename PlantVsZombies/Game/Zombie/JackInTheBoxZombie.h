@@ -2,6 +2,8 @@
 
 #include "Zombie.h"
 
+#include <string>
+
 /**
  * @brief 经典小丑僵尸：伴随手摇盒循环声快速前进，随机倒计时后开盒并范围爆炸。
  */
@@ -43,14 +45,22 @@ protected:
 	void SaveExtraData(nlohmann::json& j) const override;
 	void LoadExtraData(const nlohmann::json& j) override;
 	float GetAbilityAnimSpeedMultiplier() const override;
+	/** 注册同一小丑时间线共用的啃食命中与死亡回收帧。 */
+	void RegisterSharedFrameEvents();
+	/** 同时间线变体通过该入口调整根运动对应的 C# 速度并立即同步步频。 */
+	void SetRunVelocityForVariant(float velocity);
+	void ClaimLoopSound();
+	void ReleaseLoopSound();
+	/** 返回当前变体断臂后仍留在本体上的前臂贴图。 */
+	virtual const std::string& GetBrokenArmTextureKey() const;
+	/** 返回当前变体抛出断臂所用的粒子效果名。 */
+	virtual const char* GetArmDropEffectName() const;
 
 private:
 	void BeginPop();
 	void PlaySurprise();
 	void Explode();
 	void StopEatingForPop();
-	void ClaimLoopSound();
-	void ReleaseLoopSound();
 	Vector GetExplosionCenter() const;
 
 	Phase mPhase = Phase::RUNNING;

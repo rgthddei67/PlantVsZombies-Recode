@@ -221,6 +221,7 @@ private:
 	int mElitePolevaultersSpawnedThisWave = 0; // 当前波正式生成的精英撑杆数量；上限计数并进入存档
 	int mGildedZambonisSpawnedThisWave = 0; // 当前波正式生成的鎏金冰车数量；每波至多一只并进入存档
 	int mEliteDolphinRidersSpawnedThisWave = 0; // 当前波正式生成的精英海豚数量；每波至多一只并进入存档
+	int mEliteJackInTheBoxesSpawnedThisWave = 0; // 当前波正式生成的精英小丑数量；每波至多一只并进入存档
 	int mEliteScaredyShroomsPlanted = 0; // 本关累计种下的精英胆小菇数量；死亡或铲除不返还次数
 	int mLastTyphoonMovedPlants = 0;    // 最近一次阵风移动的植物数，仅供观测和测试
 	int mLastTyphoonLostPlants = 0;     // 最近一次阵风吹出棋盘或吹入弹坑的植物数，仅供观测和测试
@@ -300,6 +301,7 @@ private:
 	void RestoreElitePolevaulterWaveSpawnCount(int count);
 	void RestoreGildedZamboniWaveSpawnCount(int count);
 	void RestoreEliteDolphinRiderWaveSpawnCount(int count);
+	void RestoreEliteJackInTheBoxWaveSpawnCount(int count);
 	void RestoreTyphoonState(TyphoonStrength strength, WindDirection direction,
 		float strengthTimer, float gustTimer, float directionTimer, int gustsRemaining);
 	void RestoreActiveTyphoonGust(bool active, TyphoonStrength strength,
@@ -504,6 +506,9 @@ public:
 	int GetElitePolevaultersSpawnedThisWave() const { return mElitePolevaultersSpawnedThisWave; }
 	int GetGildedZambonisSpawnedThisWave() const { return mGildedZambonisSpawnedThisWave; }
 	int GetEliteDolphinRidersSpawnedThisWave() const { return mEliteDolphinRidersSpawnedThisWave; }
+	int GetEliteJackInTheBoxesSpawnedThisWave() const {
+		return mEliteJackInTheBoxesSpawnedThisWave;
+	}
 	int GetLastTyphoonMovedPlants() const { return mLastTyphoonMovedPlants; }
 	int GetLastTyphoonLostPlants() const { return mLastTyphoonLostPlants; }
 	int GetLastTyphoonBlockedPlantSteps() const { return mLastTyphoonBlockedPlantSteps; }

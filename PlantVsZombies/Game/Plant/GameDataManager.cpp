@@ -65,6 +65,7 @@
 #include "../Zombie/DolphinRiderZombie.h"
 #include "../Zombie/EliteDolphinRiderZombie.h"
 #include "../Zombie/JackInTheBoxZombie.h"
+#include "../Zombie/EliteJackInTheBoxZombie.h"
 #include "../Zombie/BalloonZombie.h"
 
 namespace {
@@ -378,6 +379,13 @@ void GameDataManager::InitializeHardcodedData() {
 		AnimationType::ANIM_JACK_IN_THE_BOX_ZOMBIE,
 		ResourceKeys::Reanimations::REANIM_JACK_IN_THE_BOX_ZOMBIE,
 		&MakeZombie<JackInTheBoxZombie>);
+
+	// 精英小丑复用普通小丑时间线；派生类不注册自爆帧，改为持续投盒。
+	RegisterZombie(ZombieType::ZOMBIE_ELITE_JACK_IN_THE_BOX,
+		"ZOMBIE_ELITE_JACK_IN_THE_BOX",
+		AnimationType::ANIM_ELITE_JACK_IN_THE_BOX_ZOMBIE,
+		ResourceKeys::Reanimations::REANIM_ELITE_JACK_IN_THE_BOX_ZOMBIE,
+		&MakeZombie<EliteJackInTheBoxZombie>);
 
 	// 气球生命层破裂前处于空中；陆地完成爆裂演出后转为普通步行。
 	RegisterZombie(ZombieType::ZOMBIE_BALLOON, "ZOMBIE_BALLOON",

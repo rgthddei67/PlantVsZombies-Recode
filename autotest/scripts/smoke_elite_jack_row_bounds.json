@@ -1,0 +1,32 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 31 },
+    { "op": "choose_cards", "cards": ["PLANT_PEASHOOTER"] },
+    { "op": "wait_state", "state": "GAME", "timeout": 15 },
+    { "op": "set_spawn_paused", "value": true },
+
+    { "op": "spawn_zombie", "type": "ZOMBIE_ELITE_JACK_IN_THE_BOX", "row": 0, "x": 950, "stationary": true },
+    { "op": "spawn_zombie", "type": "ZOMBIE_ELITE_JACK_IN_THE_BOX", "row": 5, "x": 950, "stationary": true },
+    { "op": "set_elite_jack_throw_countdown", "row": 0, "value": 0.05, "targetRow": 1, "targetColumn": 0 },
+    { "op": "set_elite_jack_throw_countdown", "row": 5, "value": 0.05, "targetRow": 4, "targetColumn": 8 },
+    { "op": "wait_seconds", "value": 0.15, "timeout": 3 },
+
+    { "op": "assert_state", "path": "eliteJackZombieCount", "equals": 2 },
+    { "op": "assert_state", "path": "zombies.0.row", "equals": 0 },
+    { "op": "assert_state", "path": "zombies.0.eliteJackBoxInFlight", "equals": true },
+    { "op": "assert_state", "path": "zombies.0.eliteJackTargetRow", "equals": 1 },
+    { "op": "assert_state", "path": "zombies.1.row", "equals": 5 },
+    { "op": "assert_state", "path": "zombies.1.eliteJackBoxInFlight", "equals": true },
+    { "op": "assert_state", "path": "zombies.1.eliteJackTargetRow", "equals": 4 },
+    { "op": "screenshot", "name": "elite_jack_top_and_bottom_row_boxes.png" },
+
+    { "op": "wait_seconds", "value": 0.75, "timeout": 3 },
+    { "op": "assert_state", "path": "particleEffectNameCounts.JackExplode", "equals": 2 },
+    { "op": "assert_state", "path": "zombies.0.eliteJackBoxInFlight", "equals": false },
+    { "op": "assert_state", "path": "zombies.0.eliteJackBoxTrackVisible", "equals": true },
+    { "op": "assert_state", "path": "zombies.1.eliteJackBoxInFlight", "equals": false },
+    { "op": "assert_state", "path": "zombies.1.eliteJackBoxTrackVisible", "equals": true },
+    { "op": "dump_state", "name": "elite_jack_row_bounds.json" },
+    { "op": "quit" }
+  ]
+}

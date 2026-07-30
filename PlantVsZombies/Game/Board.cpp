@@ -134,6 +134,7 @@ namespace {
 	constexpr int kElitePolevaulterMaxPerWave = 2;        // 每波最多正式生成的精英撑杆数量；超额候选直接跳过
 	constexpr int kGildedZamboniMaxPerWave = 1;           // 每波最多正式生成的鎏金冰车数量；超额候选直接跳过
 	constexpr int kEliteDolphinRiderMaxPerWave = 1;       // 每波最多正式生成的精英海豚数量；超额候选直接跳过
+	constexpr int kEliteJackInTheBoxMaxPerWave = 1;       // 每波最多正式生成的精英小丑数量；超额候选直接跳过
 	constexpr int kEliteScaredyShroomPlantLimit = 4;      // 每个关卡累计最多种植的精英胆小菇数量
 	constexpr int kWaveCandidateAttemptLimit = MAX_ZOMBIES_PER_WAVE * 10; // 单波候选尝试上限，防止仅剩受限类型时死循环
 	constexpr float kWeatherTransitionDuration = 2.0f;   // 雨势切换时倍率、暗幕与雨声音量的平滑过渡时长（游戏秒）
@@ -1716,6 +1717,13 @@ void Board::RestoreEliteDolphinRiderWaveSpawnCount(int count)
 		std::clamp(count, 0, kEliteDolphinRiderMaxPerWave);
 }
 
+/** 夹紧并恢复当前波已经正式生成的精英小丑数量。 */
+void Board::RestoreEliteJackInTheBoxWaveSpawnCount(int count)
+{
+	mEliteJackInTheBoxesSpawnedThisWave =
+		std::clamp(count, 0, kEliteJackInTheBoxMaxPerWave);
+}
+
 /** 清空全部台风派生状态；中雨、小雨、晴天和旧档默认都以此为单位元。 */
 void Board::StopTyphoon()
 {
@@ -1863,6 +1871,12 @@ ZombieType Board::ResolveWaveZombieType(ZombieType selected, int mutationRoll)
 			return ZombieType::NUM_ZOMBIE_TYPES;
 		}
 		++mEliteDolphinRidersSpawnedThisWave;
+	}
+	if (selected == ZombieType::ZOMBIE_ELITE_JACK_IN_THE_BOX) {
+		if (mEliteJackInTheBoxesSpawnedThisWave >= kEliteJackInTheBoxMaxPerWave) {
+			return ZombieType::NUM_ZOMBIE_TYPES;
+		}
+		++mEliteJackInTheBoxesSpawnedThisWave;
 	}
 	return ResolveRainMutationType(selected, mutationRoll);
 }
@@ -3406,6 +3420,7 @@ void Board::SummonNextWave()
 	mElitePolevaultersSpawnedThisWave = 0;
 	mGildedZambonisSpawnedThisWave = 0;
 	mEliteDolphinRidersSpawnedThisWave = 0;
+	mEliteJackInTheBoxesSpawnedThisWave = 0;
 	mMistFuelAssignedThisWave = 0;
 	if (mCurrentWave == 1)
 	{
@@ -3944,6 +3959,7 @@ void Board::OnSurvivalRoundClear()
 	mElitePolevaultersSpawnedThisWave = 0;
 	mGildedZambonisSpawnedThisWave = 0;
 	mEliteDolphinRidersSpawnedThisWave = 0;
+	mEliteJackInTheBoxesSpawnedThisWave = 0;
 	RefreshZombieWeatherSpeeds();
 
 	// 重算难度（解锁更强僵尸）+ 刷新关卡名

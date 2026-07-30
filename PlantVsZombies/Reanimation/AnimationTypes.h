@@ -69,6 +69,7 @@ enum class AnimationType
 	ANIM_CACTUS, // 经典仙人掌；追加在末尾避免旧动画枚举值错位
 	ANIM_BALLOON_ZOMBIE, // 经典气球僵尸；追加在末尾避免旧动画枚举值错位
 	ANIM_BLOVER, // 经典三叶草；追加在末尾避免旧动画枚举值错位
+	ANIM_ELITE_JACK_IN_THE_BOX_ZOMBIE, // 精英小丑独立午夜紫礼服与紫金盒子材质
 };
 
 #endif

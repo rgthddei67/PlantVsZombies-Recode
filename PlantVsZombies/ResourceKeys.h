@@ -134,6 +134,8 @@ namespace ResourceKeys
 		RKEY(IMAGE_ZOMBIE_YETI_OUTERARM_UPPER2);
 		RKEY(IMAGE_REANIM_ZOMBIE_DUCKYTUBE_INWATER);
 		RKEY(IMAGE_REANIM_ZOMBIE_JACKBOX_OUTERARM_LOWER2);
+		RKEY(IMAGE_REANIM_ZOMBIE_ELITEJACKBOX_BOX);
+		RKEY(IMAGE_REANIM_ZOMBIE_ELITEJACKBOX_OUTERARM_LOWER2);
 		RKEY(IMAGE_REANIM_ZOMBIE_BALLOON_OUTERARM_UPPER2);
 
 		RKEY(IMAGE_PROJECTILECACTUS);
@@ -369,6 +371,7 @@ namespace ResourceKeys
 		inline const std::string REANIM_DOLPHIN_RIDER_ZOMBIE = "ZombieDolphinrider";
 		inline const std::string REANIM_ELITE_DOLPHIN_RIDER_ZOMBIE = "EliteDolphinRider";
 		inline const std::string REANIM_JACK_IN_THE_BOX_ZOMBIE = "ZombieJackBox";
+		inline const std::string REANIM_ELITE_JACK_IN_THE_BOX_ZOMBIE = "EliteJackBox";
 		inline const std::string REANIM_BALLOON_ZOMBIE = "ZombieBalloon";
 		inline const std::string REANIM_ZAMBONI_CHARRED = "Zamboni_Charred";
 
