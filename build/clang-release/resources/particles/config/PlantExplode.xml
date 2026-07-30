@@ -1,0 +1,54 @@
+<Emitter>
+  <Name>CherryBomb</Name>
+  <SpawnMinActive>16</SpawnMinActive>
+  <SpawnMaxLaunched>16</SpawnMaxLaunched>
+  <ParticleAlpha>1,70 0</ParticleAlpha>
+  <ParticleRed>0.95 1</ParticleRed>
+  <ParticleGreen>0.54</ParticleGreen>
+  <ParticleBlue>0</ParticleBlue>
+  <ParticleScale>[.55 .9],65 0</ParticleScale>
+  <SystemAlpha>1,80 0</SystemAlpha>
+  <EmitterRadius>[20 70]</EmitterRadius>
+  <LaunchSpeed>[150 240]</LaunchSpeed>
+  <ParticleDuration>[.65 .9]</ParticleDuration>
+  <SystemDuration>1.05</SystemDuration>
+  <Image>PARTICLE_EXPLOSIONCLOUD</Image>
+  <Field>
+    <FieldType>Friction</FieldType>
+    <X>.015</X>
+    <Y>.015</Y>
+  </Field>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <ParticleSpinSpeed>[-800 1000]</ParticleSpinSpeed>
+</Emitter>
+<Emitter>
+  <Name>PlantExplodeBigCloud</Name>
+  <SpawnMinActive>10</SpawnMinActive>
+  <SpawnMaxLaunched>10</SpawnMaxLaunched>
+  <ParticleAlpha>1,70 0</ParticleAlpha>
+  <ParticleRed>0.95 1</ParticleRed>
+  <ParticleGreen>0.69</ParticleGreen>
+  <ParticleBlue>0</ParticleBlue>
+  <ParticleScale>[1.2 1.8],68 0</ParticleScale>
+  <SystemAlpha>1,80 0</SystemAlpha>
+  <EmitterRadius>[15 65]</EmitterRadius>
+  <LaunchSpeed>[90 150]</LaunchSpeed>
+  <ParticleDuration>[.75 1.0]</ParticleDuration>
+  <SystemDuration>1.15</SystemDuration>
+  <Image>PARTICLE_EXPLOSIONCLOUD</Image>
+  <Field>
+    <FieldType>Friction</FieldType>
+    <X>.02</X>
+    <Y>.02</Y>
+  </Field>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <ParticleSpinSpeed>[-900 1000]</ParticleSpinSpeed>
+</Emitter>
+<Emitter>
+  <Name>PlantExplodeSproing</Name>
+  <SpawnMinActive>1</SpawnMinActive>
+  <SpawnMaxLaunched>1</SpawnMaxLaunched>
+  <ParticleDuration>0.35 0.45</ParticleDuration>
+  <SystemDuration>0.5</SystemDuration>
+  <Image>PARTICLE_EXPLOSIONSPUDOW</Image>
+</Emitter>

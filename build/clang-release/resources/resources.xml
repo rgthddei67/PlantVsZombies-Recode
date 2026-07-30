@@ -187,6 +187,8 @@
     <Texture Column="8" Row="2">./resources/particles/DirtSmall.png</Texture>
     <Texture Column="3" Row="1">./resources/particles/ZamboniSmoke.png</Texture>
     <Texture Column="5" Row="1">./resources/particles/Zomboss_particles.png</Texture>
+    <Texture>./resources/particles/ZombieJackboxArm.png</Texture>
+    <Texture>./resources/particles/Sproing.png</Texture>
     <Texture>./resources/particles/ZombieBackupDancerHead.png</Texture>
     <Texture>./resources/particles/ZombieBackupDancerHead_disco.png</Texture>
     <Texture>./resources/particles/ZombieBobsledHead.png</Texture>
@@ -269,6 +271,10 @@
     <Sound>./resources/sounds/Zombie/plant_water.ogg</Sound>
     <Sound>./resources/sounds/Zombie/bonk.ogg</Sound>
     <Sound>./resources/sounds/Zombie/limbs_pop.ogg</Sound>
+    <Sound>./resources/sounds/Zombie/boing.ogg</Sound>
+    <Sound>./resources/sounds/Zombie/jackinthebox.ogg</Sound>
+    <Sound>./resources/sounds/Zombie/jack_surprise.ogg</Sound>
+    <Sound>./resources/sounds/Zombie/jack_surprise2.ogg</Sound>
 
     <Sound>./resources/sounds/Plant/ClickSeed.ogg</Sound>
     <Sound>./resources/sounds/Plant/deleteplant.ogg</Sound>
@@ -371,6 +377,7 @@
     <Reanimation name="GildedZamboni">./resources/reanim/GildedZamboni.reanim</Reanimation>
     <Reanimation name="ZombieDolphinrider">./resources/reanim/Zombie_dolphinrider.reanim</Reanimation>
     <Reanimation name="EliteDolphinRider">./resources/reanim/EliteDolphinRider.reanim</Reanimation>
+    <Reanimation name="ZombieJackBox">./resources/reanim/Zombie_JackBox.reanim</Reanimation>
 
     <Reanimation name="Zombie_Charred">./resources/reanim/Zombie_Charred.reanim</Reanimation>
     <Reanimation name="Zamboni_Charred">./resources/reanim/Zombie_charred_zamboni.reanim</Reanimation>

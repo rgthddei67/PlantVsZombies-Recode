@@ -1,0 +1,19 @@
+<Emitter>
+  <Name>ZombieJackboxArmOff</Name>
+  <SpawnMinActive>1</SpawnMinActive>
+  <SpawnMaxLaunched>1</SpawnMaxLaunched>
+  <ParticleDuration>1.0</ParticleDuration>
+  <ParticleAlpha>1,90 0</ParticleAlpha>
+  <ParticleScale>.82</ParticleScale>
+  <LaunchSpeed>[60 100]</LaunchSpeed>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <ParticleGravity>140</ParticleGravity>
+  <ParticleSpinSpeed>[-190 190]</ParticleSpinSpeed>
+  <SystemDuration>1.1</SystemDuration>
+  <Image>PARTICLE_ZOMBIEJACKBOXARM</Image>
+  <Field>
+    <FieldType>Position</FieldType>
+    <X>12</X>
+    <Y>-30</Y>
+  </Field>
+</Emitter>

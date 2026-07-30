@@ -1,0 +1,78 @@
+<Emitter>
+  <Name>JackExplode</Name>
+  <SpawnMinActive>16</SpawnMinActive>
+  <SpawnMaxLaunched>16</SpawnMaxLaunched>
+  <EmitterType>Circle</EmitterType>
+  <EmitterRadius>[20 65]</EmitterRadius>
+  <LaunchSpeed>[120 190]</LaunchSpeed>
+  <ParticleDuration>[.6 .82]</ParticleDuration>
+  <ParticleAlpha>1,70 0</ParticleAlpha>
+  <ParticleRed>.65 .35 0</ParticleRed>
+  <ParticleGreen>.22 .05 0</ParticleGreen>
+  <ParticleBlue>1 .65 0</ParticleBlue>
+  <ParticleScale>[.5 .82],65 0</ParticleScale>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <ParticleSpinSpeed>[-200 200]</ParticleSpinSpeed>
+  <SystemDuration>1.0</SystemDuration>
+  <Image>PARTICLE_EXPLOSIONCLOUD</Image>
+  <Field>
+    <FieldType>Friction</FieldType>
+    <X>.015</X>
+    <Y>.015</Y>
+  </Field>
+</Emitter>
+<Emitter>
+  <Name>JackExplodeBigClouds</Name>
+  <SpawnMinActive>10</SpawnMinActive>
+  <SpawnMaxLaunched>10</SpawnMaxLaunched>
+  <EmitterType>Circle</EmitterType>
+  <EmitterRadius>[15 60]</EmitterRadius>
+  <LaunchSpeed>[70 120]</LaunchSpeed>
+  <ParticleDuration>[.7 .95]</ParticleDuration>
+  <ParticleAlpha>1,72 0</ParticleAlpha>
+  <ParticleRed>.58 .25 0</ParticleRed>
+  <ParticleGreen>.16 0 0</ParticleGreen>
+  <ParticleBlue>1 .7 0</ParticleBlue>
+  <ParticleScale>[1.15 1.7],68 0</ParticleScale>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <ParticleSpinSpeed>[-160 160]</ParticleSpinSpeed>
+  <SystemDuration>1.1</SystemDuration>
+  <Image>PARTICLE_EXPLOSIONCLOUD</Image>
+  <Field>
+    <FieldType>Friction</FieldType>
+    <X>.02</X>
+    <Y>.02</Y>
+  </Field>
+</Emitter>
+<Emitter>
+  <Name>JackExplodeParts</Name>
+  <SpawnMinActive>9</SpawnMinActive>
+  <SpawnMaxLaunched>9</SpawnMaxLaunched>
+  <EmitterType>Box</EmitterType>
+  <EmitterBoxX>[-40 40]</EmitterBoxX>
+  <EmitterBoxY>30</EmitterBoxY>
+  <LaunchSpeed>[140 220]</LaunchSpeed>
+  <ParticleDuration>[.85 1.2]</ParticleDuration>
+  <ParticleAlpha>1,88 0</ParticleAlpha>
+  <ParticleScale>[.28 .48]</ParticleScale>
+  <ParticleGravity>150</ParticleGravity>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <ParticleSpinSpeed>[-720 720]</ParticleSpinSpeed>
+  <SystemDuration>1.35</SystemDuration>
+  <Image>PARTICLE_ZOMBOSS_PARTICLES_PART_0,PARTICLE_ZOMBOSS_PARTICLES_PART_1,PARTICLE_ZOMBOSS_PARTICLES_PART_2,PARTICLE_ZOMBOSS_PARTICLES_PART_3,PARTICLE_ZOMBOSS_PARTICLES_PART_4</Image>
+</Emitter>
+<Emitter>
+  <Name>JackExplodeSproing</Name>
+  <SpawnMinActive>1</SpawnMinActive>
+  <SpawnMaxLaunched>1</SpawnMaxLaunched>
+  <ParticleDuration>.42</ParticleDuration>
+  <ParticleAlpha>1,72 0</ParticleAlpha>
+  <ParticleScale>.46 .62,28 .48,72 0</ParticleScale>
+  <SystemDuration>.5</SystemDuration>
+  <Image>PARTICLE_SPROING</Image>
+  <Field>
+    <FieldType>Position</FieldType>
+    <X>0</X>
+    <Y>-38</Y>
+  </Field>
+</Emitter>

@@ -133,6 +133,7 @@ namespace ResourceKeys
 		RKEY(IMAGE_ZOMBIE_SNORKLE_OUTERARM_UPPER2);
 		RKEY(IMAGE_ZOMBIE_YETI_OUTERARM_UPPER2);
 		RKEY(IMAGE_REANIM_ZOMBIE_DUCKYTUBE_INWATER);
+		RKEY(IMAGE_REANIM_ZOMBIE_JACKBOX_OUTERARM_LOWER2);
 
 		RKEY(IMAGE_PROJECTILECACTUS);
 		RKEY(IMAGE_PROJECTILEPEA);
@@ -219,6 +220,8 @@ namespace ResourceKeys
 		inline const std::string PARTICLE_ZOMBIE_ELITEPOLEVAULTERHEAD = "PARTICLE_ZOMBIEELITEPOLEVAULTERHEAD";
 		inline const std::string PARTICLE_ZOMBIE_YETIHEAD = "PARTICLE_ZOMBIEYETIHEAD";
 		RKEY(PARTICLE_ZOMBIEARM);
+		RKEY(PARTICLE_ZOMBIEJACKBOXARM);
+		RKEY(PARTICLE_SPROING);
 		RKEY(PARTICLE_STAR40);
 	}
 
@@ -287,6 +290,10 @@ namespace ResourceKeys
 		RKEY(SOUND_PLANT_WATER);				// 海豚压水与跳跃水声
 		RKEY(SOUND_BONK);					// 跳跃被高坚果等阻拦
 		RKEY(SOUND_LIMBS_POP);				// 海豚僵尸断肢断头
+		RKEY(SOUND_BOING);					// 小丑开盒弹簧声
+		RKEY(SOUND_JACKINTHEBOX);			// 小丑行走时的循环手摇盒声
+		RKEY(SOUND_JACK_SURPRISE);			// 小丑开盒惊吓声一
+		RKEY(SOUND_JACK_SURPRISE2);			// 小丑开盒惊吓声二
 
 		// 子弹击中僵尸
 		RKEY(SOUND_SNOW_PEA_SPARKLES);
@@ -353,6 +360,7 @@ namespace ResourceKeys
 		inline const std::string REANIM_GILDED_ZAMBONI_ZOMBIE = "GildedZamboni";
 		inline const std::string REANIM_DOLPHIN_RIDER_ZOMBIE = "ZombieDolphinrider";
 		inline const std::string REANIM_ELITE_DOLPHIN_RIDER_ZOMBIE = "EliteDolphinRider";
+		inline const std::string REANIM_JACK_IN_THE_BOX_ZOMBIE = "ZombieJackBox";
 		inline const std::string REANIM_ZAMBONI_CHARRED = "Zamboni_Charred";
 
 		inline const std::string REANIM_ZOMBIE_CHARRED = "Zombie_Charred";

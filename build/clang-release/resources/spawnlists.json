@@ -140,11 +140,11 @@
   {
     "level": 28,
     "waves": 10,
-    "zombies": [0, 1, 5]
+    "zombies": [0, 1, 22]
   },
   {
     "level": 29,
     "waves": 20,
-    "zombies": [0, 1, 5, 8]
+    "zombies": [0, 1, 22, 8]
   }
 ]

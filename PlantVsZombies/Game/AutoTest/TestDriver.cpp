@@ -39,6 +39,7 @@
 #include "../Zombie/EliteDancerZombie.h"
 #include "../Zombie/Polevaulter.h"
 #include "../Zombie/DolphinRiderZombie.h"
+#include "../Zombie/JackInTheBoxZombie.h"
 #include "../Zombie/PoolNormalZombie.h"
 #include "../Trophy.h"   // dump_state 输出奖杯坐标
 #include "../Crater.h"   // dump_state 输出毁灭菇弹坑
@@ -852,6 +853,34 @@ bool TestDriver::ExecuteCurrent() {
 		}
 		return true;
 	}
+	if (op == "set_jack_pop_countdown") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) {
+			Fail("set_jack_pop_countdown: 不在 GameScene 或 Board 为空");
+			return false;
+		}
+		const float seconds = cmd.value("value", -1.0f);
+		if (seconds < 0.0f || seconds > 60.0f) {
+			Fail("set_jack_pop_countdown: value 必须在 0～60 秒");
+			return false;
+		}
+		std::vector<int> zombieIDs = gs->GetBoard()->mEntityManager.GetAllZombieIDs();
+		std::sort(zombieIDs.begin(), zombieIDs.end());
+		const int row = cmd.value("row", -1);
+		const int index = cmd.value("index", 0);
+		int seen = 0;
+		for (const int id : zombieIDs) {
+			auto* jack = dynamic_cast<JackInTheBoxZombie*>(
+				gs->GetBoard()->mEntityManager.GetZombie(id));
+			if (!jack || !jack->IsActive()) continue;
+			if (row >= 0 && jack->mRow != row) continue;
+			if (seen++ != index) continue;
+			jack->SetPopCountdownForTesting(seconds);
+			return true;
+		}
+		Fail("set_jack_pop_countdown: 未找到目标小丑僵尸");
+		return false;
+	}
 	if (op == "spawn_wave_zombie") {
 		GameScene* gs = CurrentGameScene();
 		if (!gs || !gs->GetBoard()) { Fail("spawn_wave_zombie: 不在 GameScene 或 Board 为空"); return false; }
@@ -1383,6 +1412,21 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_DOLPHIN_BEFORE_JUMPING);
 	out["bonkSoundRequestCount"] =
 		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_BONK);
+	out["jackLoopSoundPlaying"] =
+		AudioSystem::IsLoopingSoundPlaying(ResourceKeys::Sounds::SOUND_JACKINTHEBOX);
+	out["jackBoingSoundRequestCount"] =
+		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_BOING);
+	out["jackSurprise1SoundRequestCount"] =
+		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_JACK_SURPRISE);
+	out["jackSurprise2SoundRequestCount"] =
+		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_JACK_SURPRISE2);
+	out["jackSurpriseSoundRequestCount"] =
+		out["jackSurprise1SoundRequestCount"].get<int>()
+		+ out["jackSurprise2SoundRequestCount"].get<int>();
+	out["jackExplosionSoundRequestCount"] =
+		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_EXPLOSION);
+	out["limbsPopSoundRequestCount"] =
+		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_LIMBS_POP);
 
 	if (auto* almanac = dynamic_cast<ZombieAlmanacScene*>(currentScene)) {
 		out["zombieAlmanacEntries"] = nlohmann::json::array();
@@ -1844,6 +1888,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["cellPlantPreviewCount"] = cellPlantPreviewCount;
 
 	out["zombies"] = nlohmann::json::array();
+	out["jack"] = nullptr;
+	int jackZombieCount = 0;
 	int poolRowZombieCount = 0;
 	int earlyWavePoolZombieCount = 0;
 	int gildedZamboniCount = 0;
@@ -1974,6 +2020,25 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			zombieState["dolphinVisualCompensationYOn1000"] =
 				static_cast<int>(std::lround(visualCompensation.y * 1000.0f));
 		}
+		if (auto* jack = dynamic_cast<JackInTheBoxZombie*>(z)) {
+			++jackZombieCount;
+			zombieState["jackPhase"] =
+				jack->GetPhase() == JackInTheBoxZombie::Phase::RUNNING
+				? "RUNNING" : "POPPING";
+			zombieState["jackPopCountdownMs"] = static_cast<int>(std::lround(
+				jack->GetPopCountdown() * 1000.0f));
+			zombieState["jackRunVelocityOn1000"] = static_cast<int>(std::lround(
+				jack->GetRunVelocity() * 1000.0f));
+			zombieState["jackSurprisePlayed"] = jack->HasPlayedSurprise();
+			zombieState["jackExplosionResolved"] = jack->HasResolvedExplosion();
+			zombieState["jackHead1Visible"] =
+				anim && anim->GetTrackVisible("anim_head1");
+			zombieState["jackHead2Visible"] =
+				anim && anim->GetTrackVisible("anim_head2");
+			zombieState["jackLowerArmVisible"] =
+				anim && anim->GetTrackVisible("zombie_jackbox_outerarm_lower");
+			out["jack"] = zombieState;
+		}
 		if (auto* zamboni = dynamic_cast<ZamboniZombie*>(z)) {
 			zombieState["zamboniDamageStage"] = zamboni->GetDamageStage();
 			zombieState["zamboniPuncturedByCaltrop"] = zamboni->IsPuncturedByCaltrop();
@@ -2026,6 +2091,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		out["zombies"].push_back(std::move(zombieState));
 	}
 	out["zombieCount"] = static_cast<int>(out["zombies"].size());
+	out["jackZombieCount"] = jackZombieCount;
 	out["gildedZamboniCount"] = gildedZamboniCount;
 	out["poolRowZombieCount"] = poolRowZombieCount;
 	out["earlyWavePoolZombieCount"] = earlyWavePoolZombieCount;
@@ -2169,6 +2235,9 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["particleEffectNameCounts"]["ZombieArmOff"] = 0;
 	out["particleEffectNameCounts"]["ZombieDolphinRiderHeadOff"] = 0;
 	out["particleEffectNameCounts"]["EliteDolphinRiderHeadOff"] = 0;
+	out["particleEffectNameCounts"]["JackExplode"] = 0;
+	out["particleEffectNameCounts"]["CherryBomb"] = 0;
+	out["particleEffectNameCounts"]["ZombieJackboxArmOff"] = 0;
 	out["particleEffectNameCounts"]["WallnutEatSmall"] = 0;
 	out["particleEffectNameCounts"]["WallnutEatLarge"] = 0;
 	out["particleEffectNameCounts"]["TallNutBlock"] = 0;

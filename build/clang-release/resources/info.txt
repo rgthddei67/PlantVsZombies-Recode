@@ -205,6 +205,10 @@
 精英海豚骑士僵尸
 [ZOMBIE_ELITE_DOLPHIN_RIDER_DESCRIPTION]
 精英海豚骑士僵尸拥有700点生命，骑着醒目的粉白海豚。第一次成功越过植物后，他仍会继续骑乘并寻找第二个目标；高坚果能立即迫使他弃豚，但会因此承受500点撞击伤害。“这不是同一只海豚跳了两次——好吧，其实就是。”
+[ZOMBIE_JACK_IN_THE_BOX]
+小丑僵尸
+[ZOMBIE_JACK_IN_THE_BOX_DESCRIPTION]
+小丑僵尸有500点生命，伴着诡异的手摇盒音乐快速前进。盒子会在随机时刻弹开并引发范围爆炸；如果及时让他掉头，音乐和爆炸都会停下。“惊喜的重点，”小丑僵尸说，“就是连我也不知道它什么时候来。”
 [ZOMBIE_GILDED_ZAMBONI]
 鎏金冰车僵尸
 [ZOMBIE_GILDED_ZAMBONI_DESCRIPTION]

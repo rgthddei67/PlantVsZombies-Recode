@@ -1,0 +1,22 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 1 },
+    { "op": "choose_cards", "cards": ["PLANT_CHERRYBOMB"] },
+    { "op": "wait_state", "state": "GAME", "timeout": 15 },
+    { "op": "set_spawn_paused", "value": true },
+    { "op": "set_sun", "value": 9000 },
+    { "op": "plant", "type": "PLANT_CHERRYBOMB", "row": 2, "col": 5 },
+    { "op": "wait_seconds", "value": 1.35, "timeout": 3 },
+    { "op": "assert_state", "path": "particleEffectNameCounts.CherryBomb", "equals": 1 },
+    { "op": "assert_state", "path": "particleEffectsByName.CherryBomb.0.renderProbeReady", "equals": true },
+    { "op": "assert_state", "path": "particleEffectsByName.CherryBomb.0.renderQuadCount", "atLeast": 20 },
+    { "op": "assert_state", "path": "particleEffectsByName.CherryBomb.0.worldBounds.widthInt", "atLeast": 200 },
+    { "op": "assert_state", "path": "particleEffectsByName.CherryBomb.0.worldBounds.heightInt", "atLeast": 200 },
+    { "op": "screenshot", "name": "01_cherry_explosion_spread.png" },
+    { "op": "dump_state", "name": "cherry_explosion_spread_state.json" },
+    { "op": "wait_seconds", "value": 1.4, "timeout": 3 },
+    { "op": "assert_state", "path": "particleEffectNameCounts.CherryBomb", "equals": 0 },
+    { "op": "set_spawn_paused", "value": false },
+    { "op": "quit" }
+  ]
+}

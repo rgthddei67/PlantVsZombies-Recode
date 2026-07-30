@@ -62,6 +62,7 @@
 #include "../Zombie/GildedZamboniZombie.h"
 #include "../Zombie/DolphinRiderZombie.h"
 #include "../Zombie/EliteDolphinRiderZombie.h"
+#include "../Zombie/JackInTheBoxZombie.h"
 
 namespace {
 	template<typename T>
@@ -358,6 +359,12 @@ void GameDataManager::InitializeHardcodedData() {
 		AnimationType::ANIM_ELITE_DOLPHIN_RIDER_ZOMBIE,
 		ResourceKeys::Reanimations::REANIM_ELITE_DOLPHIN_RIDER_ZOMBIE,
 		&MakeZombie<EliteDolphinRiderZombie>);
+
+	// 小丑僵尸拥有随机开盒倒计时、完整音效生命周期与专属范围爆炸。
+	RegisterZombie(ZombieType::ZOMBIE_JACK_IN_THE_BOX, "ZOMBIE_JACK_IN_THE_BOX",
+		AnimationType::ANIM_JACK_IN_THE_BOX_ZOMBIE,
+		ResourceKeys::Reanimations::REANIM_JACK_IN_THE_BOX_ZOMBIE,
+		&MakeZombie<JackInTheBoxZombie>);
 
 	// ==================== 非植物/僵尸动画映射 ====================
 	mAnimToString[AnimationType::ANIM_SUN] = ResourceKeys::Reanimations::REANIM_SUN;

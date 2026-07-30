@@ -105,6 +105,7 @@ description: Use when adding or tuning ANY particle effect (粒子特效) in PvZ
 9. **负数随机区间写升序** `[-300 -200]`：原版 XML 里的 `[-200 -300]` 直接照抄会把 min/max 反着喂给 GameRandom::Range，行为未定义。
 10. **移植原版 XML 只改权威资源**：贴图和 `resources.xml` 都放 `build/clang-release/resources/`，禁止再创建 msvc-debug 副本；配置其他 preset 后用 Junction 属性确认共享即可。
 11. **换色实体的部件粒子必须逐键审计**：reanim 换色不会改写死亡/受击粒子 XML 中固定的 `<Image>`。若爆炸会抛出车盖、车轮、帽子等部件，为变体建立独立效果名和配置，并把所有实体部件键换为变体资源；普通烟云可用 RGB 轨迹统一染色。
+12. **爆炸云的原版高阻力曲线不能直抄**：本引擎 `Friction` 是逐帧相乘，`.15,40 1` 会在极少数帧内把速度压到零，即使 `LaunchSpeed` 很高也只会聚成中心小团。需要持续向外扩散的云优先用约 `0.015～0.02` 的低恒定阻力，再以发射半径、速度和寿命调覆盖面；高阻力只留给需要立刻刹停的命中碎屑。
 
 ## 配方（照抄改数）
 
@@ -114,6 +115,8 @@ description: Use when adding or tuning ANY particle effect (粒子特效) in PvZ
 
 **命中飞溅**（PeaBulletHit，双发射器）：主溅斑（1颗、`ParticleScale 1.2 0.4` 缩小消失）+ 碎屑环（`EmitterType Circle` + `LaunchSpeed [65]` + `Friction 0.0,10 0.1` 先快后刹 + `Acceleration Y=5` 微下坠）。
 
+**范围爆炸云**（JackExplode/CherryBomb）：用固定初始爆发数量 + `EmitterType Circle` + 非零 `EmitterRadius` + `RandomLaunchSpin 1`，云团 `Friction` 保持约 `0.015～0.02`，寿命至少 `0.6s`；碎片可另用更高速度和重力。禁止用 `.15,40 1` 配合超高初速冒充扩散，必须以实际 `worldBounds.widthInt/heightInt` 验收覆盖面。
+
 **原版 XML 移植口径**（Doom.xml→10 发射器大特效实证，逐条机械换算）：
 1. 时间字段全部**厘秒→秒（÷100）**：ParticleDuration 150→1.5；SystemDuration 别照抄 400→4（原版仅回收判定），取"最长粒子寿命+余量"即可（→1.6）。
 2. **EmitterOffsetX/Y 在坐标系换算后减半**（本引擎双倍生效，foot-gun ②）：先求相对当前稳定锚点的目标局部偏移，再把该局部值除以 2；禁止机械套用原版绝对数值。
@@ -122,10 +125,11 @@ description: Use when adding or tuning ANY particle effect (粒子特效) in PvZ
 5. `AnimationRate`/`ImageFrames` 仅对**单行横排帧条**原值照抄（单位本就是帧/秒），对应贴图整图入库不加 Column 属性。若原版另带 `ImageRow` 或贴图实际为多行帧表，本引擎 `ImageFrames` 没有选行能力；需要静态随机碎片时改用 `<Texture Column="帧数" Row="行数">` 并枚举所需 `PARTICLE_*_PART_n`，需要逐帧动画则先产出单行权威贴图，禁止把多行整图直接交给 `ImageFrames`。**碎屑条即使原版 XML 写了 `ImageFrames` 也先看素材语义**：各格若是互不连续的碎块轮廓（坚果啃食碎屑实证），应拆为静态随机 Part，不能循环播放成会变形的单颗碎屑。
 6. 负数区间改升序（foot-gun ⑧）；`Image` 键按素材入库段落改前缀（IMAGE_/PARTICLE_）。
 7. **特效名=第一个 Emitter 的 Name**：把首发射器 Name 改成 EmitEffect 要用的名字（Doom.xml 首发射器 DoomStem→"Doom"）。
+8. **Friction 按本引擎逐帧语义重调**：原版爆炸云的高阻力关键帧不是无损迁移项；先用低恒定值恢复可见扩散，再以包围盒与截图收敛。
 
 ## 验证
 
-粒子寿命都是亚秒级，AutoTest 截图要卡时机：帧事件/命中发生后 `wait_frames` 2~20 再 `screenshot`（多截几张挑）。截图成功后断言 `particleEffectNameCounts`、实际四边形数和相对包围盒，再逐张 Read 核对颜色、铺开范围、方向、有没有“看不见”（foot-gun ③）；参考 `smoke_particle_render_probe.json`。动画中段才触发的命中/阻拦粒子必须做一负一正两段取证：节点前断言仍在对应动作轨且计数为 0，越过节点后立即断言计数为 1 并截图，防止“效果存在但提前播放”的时序假绿。植物与荷叶/花盆同格时，`nearestPlant.type` 会按几何距离命中下层载体，改断言稳定的 `row/col` 与粒子包围盒，不能把“最近类型”当成触发者身份。改 XML 数值免编译，跑脚本前重启即可。
+粒子寿命都是亚秒级，AutoTest 截图要卡时机：帧事件/命中发生后 `wait_frames` 2~20 再 `screenshot`（多截几张挑）。截图成功后断言 `particleEffectNameCounts`、实际四边形数和相对包围盒，再逐张 Read 核对颜色、铺开范围、方向、有没有“看不见”（foot-gun ③）；参考 `smoke_particle_render_probe.json`。范围爆炸必须给 `worldBounds.widthInt/heightInt` 设与设计半径相称的下界，不能只断言 quad 数，否则所有粒子挤在中心也会假绿。动画中段才触发的命中/阻拦粒子必须做一负一正两段取证：节点前断言仍在对应动作轨且计数为 0，越过节点后立即断言计数为 1 并截图，防止“效果存在但提前播放”的时序假绿。植物与荷叶/花盆同格时，`nearestPlant.type` 会按几何距离命中下层载体，改断言稳定的 `row/col` 与粒子包围盒，不能把“最近类型”当成触发者身份。改 XML 数值免编译，跑脚本前重启即可。
 
 **每次完成并验证任何粒子新增、配置调参或触发点实质修改后，必须在提交前完善本 skill**：把本次实际暴露的新坐标换算、XML 语义、生命周期 foot-gun 或截图取证方法浓缩进相关章节；已有规则则合并强化，不堆一次性配方日志。任务同时修改植物、僵尸或天气时，也同步完善本次实际使用的对应 skill。更新后运行 skill-creator 的 `quick_validate.py` 校验全部改动过的 skill。
 

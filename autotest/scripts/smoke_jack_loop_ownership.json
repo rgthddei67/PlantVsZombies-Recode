@@ -1,0 +1,33 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 1 },
+    { "op": "choose_cards", "cards": ["PLANT_WALLNUT"] },
+    { "op": "wait_state", "state": "GAME", "timeout": 15 },
+    { "op": "set_spawn_paused", "value": true },
+    { "op": "spawn_zombie", "type": "ZOMBIE_JACK_IN_THE_BOX", "row": 1, "x": 700, "stationary": true },
+    { "op": "spawn_zombie", "type": "ZOMBIE_JACK_IN_THE_BOX", "row": 3, "x": 700, "stationary": true },
+    { "op": "wait_frames", "value": 3 },
+    { "op": "assert_state", "path": "jackZombieCount", "equals": 2 },
+    { "op": "assert_state", "path": "jackLoopSoundPlaying", "equals": true },
+
+    { "op": "set_jack_pop_countdown", "row": 1, "value": 0.1 },
+    { "op": "wait_seconds", "value": 0.2, "timeout": 2 },
+    { "op": "assert_state", "path": "zombies.0.jackPhase", "equals": "POPPING" },
+    { "op": "assert_state", "path": "zombies.1.jackPhase", "equals": "RUNNING" },
+    { "op": "assert_state", "path": "jackLoopSoundPlaying", "equals": true },
+    { "op": "assert_state", "path": "jackBoingSoundRequestCount", "equals": 1 },
+    { "op": "screenshot", "name": "01_one_pops_other_keeps_loop.png" },
+
+    { "op": "wait_seconds", "value": 0.8, "timeout": 3 },
+    { "op": "assert_state", "path": "jackZombieCount", "equals": 1 },
+    { "op": "assert_state", "path": "jack.jackPhase", "equals": "RUNNING" },
+    { "op": "assert_state", "path": "jackLoopSoundPlaying", "equals": true },
+    { "op": "damage_zombie", "row": 3, "index": 0, "damage": 340, "source": "OTHER" },
+    { "op": "wait_frames", "value": 2 },
+    { "op": "assert_state", "path": "jack.hasHead", "equals": false },
+    { "op": "assert_state", "path": "jackLoopSoundPlaying", "equals": false },
+    { "op": "dump_state", "name": "jack_loop_ownership_state.json" },
+    { "op": "set_spawn_paused", "value": false },
+    { "op": "quit" }
+  ]
+}

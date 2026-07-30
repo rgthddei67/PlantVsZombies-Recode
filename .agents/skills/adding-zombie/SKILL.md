@@ -59,6 +59,7 @@ description: Use when adding or tuning any PvZ zombie, or integrating zombies in
 
 - **走路权威**：reanim 无 `anim_walk2` 必须覆写 `PlayWalkAnimation`（啃完回走/读档全经它）；啃食视觉残留用 `OnStartEating/OnStopEating` 对称钩子；永不覆写 `ResumeWalkAfterEat`。
 - **不移动阶段**：覆写 `ZombieMove` 按状态早退（PaperZombie gasp / 舞王 SNAPPING+HOLD 同款）。
+- **共享循环音效要有物种级所有权**：`AudioSystem` 的循环 key 是全局共享资源，一只实例直接 `StopLoopingSound` 会误停仍存活的同类。为品种维护静态引用计数，每实例用布尔值保证只申领/释放一次；只在正式出生钩子和 RUNNING 读档恢复时申领，在开盒/换态、掉头、死亡和析构时释放，计数归零才真正停止。Load 不得重播 boing/surprise/explosion 等一次性声音。AutoTest 至少断言循环实际播放状态与一次性请求计数；允许同品种并存时再造两只，验证一只退态后循环仍由另一只保持。
 - **编队齐舞/同步动作**：动画速度必须 `SetAnimationSpeed(固定值)` 锁死——基类 `Start()` 给每僵尸随机 1.1~1.4，不锁必散拍。全队同步时钟用现成的 `Board::mBoardFrame`+`GetDanceBeatFrame()`（0~22 拍，12 逻辑步/拍，入存档），按拍映射轨道、缓存上次段位防每帧重播。
 - **召唤僵尸**：`mBoard->CreateZombie(type, row, x)`（y 恒由 row 派生）；关联用 EntityManager 整型 ID（死亡自动失效）；**槽位有效性 = `GetZombie(id)` 非空 且 `IsMindControlled()` 与本体一致**——只判空则被魅惑的随从永远占位、补召失灵；行越界/永久不可用的槽要豁免，否则无限重触发召唤动作。持续补召必须把“最多维持数量”和“补召间隔”集中为匿名 namespace 可调常量，并明确计时使用哪种 delta：精英舞王实证为冻结暂停、减速按 scaled delta 拖慢，天气动画倍率不得重复加速召唤逻辑。
 - **跳跃阻拦要拆分职责、动画时序和受伤对象**：阻拦植物通过虚接口声明“能挡哪类跳跃”并拥有 Bonk/粒子反馈；接触回调只锁定当前格顶层目标并起播跳跃，必须到 C#/规格给出的动画进度节点才查询一次，禁止一碰植物就提前阻拦。仅按进度检查不需要新增 `AddFrameEvent`；目标 ID、是否已检查和额外根位移须入档，读档恢复原动画帧继续判定，不能直接落地绕过阻拦。被挡时先撤回品种已补的额外位移，再恢复碰撞/阴影、弃杆或落地、切稳态并开始啃食，最后把阻拦植物传给派生钩子结算召唤或撞击。**规格写“给 A N 点伤害”先确认 A 是植物还是跳跃者，禁止把碰撞伤害凭感觉记到自身**；常规僵尸对植物伤害走 `Plant::TakeDamage(N, DamageSource::ZOMBIE)` 以统一消费僵尸增伤与植物韧性，只有主人明确要求最终固定扣血才另设不缩放入口。若要求被挡后仍召唤，先创建召唤物再伤害目标。AutoTest 必须同时断言节点前 `JUMPING/anim_jump`、无 Bonk/粒子/扣血，节点后才出现阻拦终态和派生效果。
