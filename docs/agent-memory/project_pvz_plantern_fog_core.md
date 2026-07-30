@@ -15,7 +15,7 @@ metadata:
 - 场上最多一株活动路灯花，唯一性由 `Board::mActivePlanternID` 派生；死亡/压扁释放名额，
   读档由 `CreatePlantWithID` 重建 ID。它不是累计种植次数限制。
 - 容量 100、初始 30；关闭/I/II 每游戏秒消耗 0/0.5/1，III 挡随本关波次从 2 平滑升到
-  6/秒。范围为无、4×3、
+  4/秒。范围为无、4×3、
   裁角 8×5、扩大裁角 10×7；新增的一列统一朝僵尸来向，III 最外圈照明 72%。
 - `Board::GetPlanternIllumination()` 是逐格唯一形状源，`UpdateFogCellAlpha`、雾中索敌和
   `GetPlanternSunProductionMultiplier()` 都消费它。向日葵/阳光菇生产峰值为
@@ -57,7 +57,7 @@ metadata:
   雾存档不变。
 - `smoke_plantern_fuel_curve` 当前可见运行 83 条命令 exit 0：固定种子下 20 波 4-2 与
   10 波 4-3 均从 15/45 平滑收紧到 10/30，4-2 第 10 波为 13/39；两种总波数均锁定
-  III 挡首/末波 2/6 每秒。最终波同帧兑现四团 10 点奖励时只生成三团在途雾火、封顶 30，
-  到账后 III 挡运行 2 秒剩余约 18；同步截图已目验。
+  III 挡首/末波 2/4 每秒。最终波同帧兑现四团 10 点奖励时只生成三团在途雾火、封顶 30，
+  到账后 III 挡运行 2 秒剩余约 22；同步截图已目验。
 - 2026-07-29 菜单层级修复完成 `clang-playtest` 零错误构建；主人明确本次不运行 AutoTest。
 - 设计定稿见 `docs/superpowers/specs/2026-07-29-plantern-fog-core-design.md`。
