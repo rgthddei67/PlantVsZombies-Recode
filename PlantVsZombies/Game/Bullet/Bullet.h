@@ -4,6 +4,7 @@
 
 #include <SDL2/SDL.h>
 #include <memory>
+#include <vector>
 #include "../../DeltaTime.h"
 #include "../GameObject.h"
 #include "../../GameRandom.h"
@@ -41,6 +42,8 @@ protected:
 	bool mThreepeaterMotion = false; // 三线射手斜向豌豆按原版逐步衰减纵向速度
 	BulletType mPoolType = BulletType::NUM_BULLETS; // 对象池槽位的固定类型；火炬树桩只改变当前表现类型
 	int mHitTorchwoodColumn = -1; // 最近处理过本子弹的火炬树桩列，防止同列反复转换
+	std::vector<int> mPiercedZombieIDs; // 尖刺已接触的不同僵尸实体 ID；最多记录三只
+	std::vector<float> mSpikeDamageRemainders; // 与穿透 ID 对齐的未结算小数伤害额度
 	std::shared_ptr<Animator> mProjectileAnimator;
 	bool mAnimatorAdvancedInParallel = false;
 
@@ -50,6 +53,10 @@ protected:
 
 	// 子弹击中僵尸的效果
 	virtual void BulletHitZombie(Zombie* zombie);
+	/**
+	 * 处理一次子弹与僵尸的碰撞帧；普通弹只消费首次 Enter，尖刺在 Enter/Stay 均结算。
+	 */
+	void HandleZombieContact(ColliderComponent* other);
 
 	// 按 C# Projectile.DrawShadow 的类型尺寸与棋盘行位置刷新阴影布局。
 	void UpdateShadowLayout(const Vector& position);
@@ -103,6 +110,17 @@ public:
 	void RestoreSavedPresentationState(BulletType currentType, int hitTorchwoodColumn);
 	int GetHitTorchwoodColumn() const { return mHitTorchwoodColumn; }
 	void SetHitTorchwoodColumn(int column) { mHitTorchwoodColumn = column; }
+	/** 返回尖刺已接触的不同僵尸数量；其他子弹恒为 0。 */
+	int GetPiercedZombieCount() const {
+		return static_cast<int>(mPiercedZombieIDs.size());
+	}
+	const std::vector<int>& GetPiercedZombieIDs() const { return mPiercedZombieIDs; }
+	const std::vector<float>& GetSpikeDamageRemainders() const {
+		return mSpikeDamageRemainders;
+	}
+	/** 按存档恢复尖刺穿透目标和小数伤害额度；会去重并截断到玩法上限。 */
+	void RestorePiercedZombieState(const std::vector<int>& zombieIDs,
+		const std::vector<float>& damageRemainders);
 	bool HasAnimatedPresentation() const { return mProjectileAnimator != nullptr; }
 	/**
 	 * 启用三线射手斜向轨迹；target row 已由本子弹的 mRow 表示，纵向速度按当前地图行高缩放。

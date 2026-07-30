@@ -26,7 +26,8 @@
     "PLANT_TORCHWOOD":       { "cost": 175, "cooldown": 7.5,  "offset": [-37.6, -44.0], "scale": 1.0 },
     "PLANT_TALLNUT":         { "cost": 125, "cooldown": 30.0, "offset": [-37.6, -44.0], "scale": 1.0 },
     "PLANT_SEASHROOM":       { "cost": 0,   "cooldown": 10.0, "offset": [-37.6, -5.0],  "scale": 1.0 },
-    "PLANT_PLANTERN":        { "cost": 25,  "cooldown": 30.0, "offset": [-37.6, -44.0], "scale": 1.0 }
+    "PLANT_PLANTERN":        { "cost": 25,  "cooldown": 30.0, "offset": [-37.6, -44.0], "scale": 1.0 },
+    "PLANT_CACTUS":          { "cost": 125, "cooldown": 7.5,  "offset": [-37.6, -44.0], "scale": 1.0 }
   },
   "zombies": {
     "ZOMBIE_NORMAL":       { "weight": 1000, "appearWave": 1, "survivalRound": 1, "offset": [-50.0, -85.0], "scale": 1.0 },

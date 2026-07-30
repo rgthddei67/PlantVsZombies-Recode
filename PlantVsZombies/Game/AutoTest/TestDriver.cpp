@@ -97,6 +97,7 @@ namespace {
 #define BT(n) { #n, BulletType::n }
 	const std::unordered_map<std::string, BulletType> kBulletNames = {
 		BT(BULLET_PEA), BT(BULLET_SNOWPEA), BT(BULLET_PUFF), BT(BULLET_FIREBALL),
+		BT(BULLET_SPIKE),
 	};
 #undef BT
 #define ZT(n) { #n, ZombieType::n }
@@ -821,7 +822,7 @@ bool TestDriver::ExecuteCurrent() {
 		if (!gs || !gs->GetBoard()) { Fail("spawn_bullet: 不在 GameScene 或 Board 为空"); return false; }
 		auto it = kBulletNames.find(cmd.value("type", ""));
 		if (it == kBulletNames.end()) {
-			Fail("spawn_bullet: type 必须是 BULLET_PEA/BULLET_SNOWPEA/BULLET_PUFF/BULLET_FIREBALL");
+			Fail("spawn_bullet: 不支持的子弹类型");
 			return false;
 		}
 		Bullet* bullet = gs->GetBoard()->CreateBullet(it->second, cmd.value("row", 0),
@@ -2519,6 +2520,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	int peaBulletCount = 0;
 	int snowPeaBulletCount = 0;
 	int fireballBulletCount = 0;
+	int spikeBulletCount = 0;
 	int torchwoodProtectedPeaCount = 0;
 	int animatedBulletCount = 0;
 	for (int id : board->mEntityManager.GetAllBulletIDs()) {
@@ -2537,6 +2539,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		if (bullet->mBulletType == BulletType::BULLET_PEA) ++peaBulletCount;
 		else if (bullet->mBulletType == BulletType::BULLET_SNOWPEA) ++snowPeaBulletCount;
 		else if (bullet->mBulletType == BulletType::BULLET_FIREBALL) ++fireballBulletCount;
+		else if (bullet->mBulletType == BulletType::BULLET_SPIKE) ++spikeBulletCount;
 		if (bullet->HasAnimatedPresentation()) ++animatedBulletCount;
 		out["bullets"].push_back({
 			{ "id", id },
@@ -2551,6 +2554,9 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "windDamage", bullet->GetWindAdjustedDamage() },
 			{ "threepeaterMotion", bullet->IsThreepeaterMotion() },
 			{ "hitTorchwoodColumn", bullet->GetHitTorchwoodColumn() },
+			{ "piercedZombieCount", bullet->GetPiercedZombieCount() },
+			{ "piercedZombieIDs", bullet->GetPiercedZombieIDs() },
+			{ "spikeDamageRemainders", bullet->GetSpikeDamageRemainders() },
 			{ "animatedPresentation", bullet->HasAnimatedPresentation() },
 			{ "fromPool", bullet->IsFromPool() },
 			{ "poolType", BulletTypeName(bullet->GetPoolType()) },
@@ -2560,6 +2566,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["peaBulletCount"] = peaBulletCount;
 	out["snowPeaBulletCount"] = snowPeaBulletCount;
 	out["fireballBulletCount"] = fireballBulletCount;
+	out["spikeBulletCount"] = spikeBulletCount;
 	out["torchwoodProtectedPeaCount"] = torchwoodProtectedPeaCount;
 	out["animatedBulletCount"] = animatedBulletCount;
 	// 绝对 X 会随测试取证时点变化；整数化相对跨度用于稳定断言同帧同速弹丸。

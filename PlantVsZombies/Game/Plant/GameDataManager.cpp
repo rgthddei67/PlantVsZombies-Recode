@@ -39,6 +39,7 @@
 #include "TallNut.h"
 #include "SeaShroom.h"
 #include "Plantern.h"
+#include "Cactus.h"
 
 #include "../Zombie/Zombie.h"
 #include "../Zombie/ConeZombie.h"
@@ -249,6 +250,11 @@ void GameDataManager::InitializeHardcodedData() {
 		ResourceKeys::Textures::IMAGE_PLANTERN,
 		AnimationType::ANIM_PLANTERN,
 		ResourceKeys::Reanimations::REANIM_PLANTERN, &MakePlant<Plantern>);
+
+	RegisterPlant(PlantType::PLANT_CACTUS, "PLANT_CACTUS",
+		ResourceKeys::Textures::IMAGE_CACTUS,
+		AnimationType::ANIM_CACTUS,
+		ResourceKeys::Reanimations::REANIM_CACTUS, &MakePlant<Cactus>);
 
 	// 寒冰大喷菇：复用大喷菇 reanim（蓝色靠 overlay），仅卡图独立
 	RegisterPlant(PlantType::PLANT_ICEFUMESHROOM, "PLANT_ICEFUMESHROOM",

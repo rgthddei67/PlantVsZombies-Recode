@@ -16,6 +16,8 @@
 namespace {
 	constexpr int kPeaDamage = 20;                    // 普通/寒冰/孢子基础伤害
 	constexpr int kFireballDamage = 40;               // 火豌豆基础伤害，原版为普通豌豆两倍
+	constexpr int kSpikeFrameDamage = 1;              // 仙人掌尖刺在 1x 下每个逻辑碰撞帧的基础伤害
+	constexpr std::size_t kSpikePierceLimit = 3;       // 尖刺接触第三只不同僵尸后消失
 	constexpr float kFireballSplashWidth = 100.0f;    // 火球命中后同排水平溅射判定宽度，单位：像素
 	constexpr int kSplashDamageDivisor = 3;           // 火球次要目标伤害为直击伤害的三分之一
 	constexpr float kFireballForwardOffsetX = -25.0f; // FirePea.reanim 相对向右飞子弹逻辑原点的 X 偏移
@@ -82,6 +84,14 @@ namespace {
 		return kBulletWindProfiles[index].response;
 	}
 
+	/** 返回对象池新建/复用时应恢复的类型基础伤害。 */
+	int DefaultDamageForBullet(BulletType type)
+	{
+		if (type == BulletType::BULLET_FIREBALL) return kFireballDamage;
+		if (type == BulletType::BULLET_SPIKE) return kSpikeFrameDamage;
+		return kPeaDamage;
+	}
+
 	/** 播放火球命中时的小段 JalapenoFire；依靠 PLAY_ONCE 完成态回收，不新增帧事件。 */
 	class FireballImpact final : public AnimatedObject {
 	public:
@@ -117,8 +127,7 @@ Bullet::Bullet(Board* board, BulletType bulletType, int row, const Vector& colli
 	this->mBoard = board;
 	this->mBulletType = bulletType;
 	this->mPoolType = bulletType;
-	this->mDamage = bulletType == BulletType::BULLET_FIREBALL
-		? kFireballDamage : kPeaDamage;
+	this->mDamage = DefaultDamageForBullet(bulletType);
 	this->mRow = row;
 	if (!mBoard) return;
 
@@ -139,16 +148,13 @@ Bullet::Bullet(Board* board, BulletType bulletType, int row, const Vector& colli
 	collider->layerMask = CollisionLayer::BULLET;
 	collider->collisionMask = CollisionLayer::ZOMBIE;
 	collider->onTriggerEnter = [this](ColliderComponent* other) {
-		auto* otherGameObject = other->GetGameObject();
-		if (otherGameObject && otherGameObject->GetObjectType() == ObjectType::OBJECT_ZOMBIE) {
-			auto* zombie = dynamic_cast<Zombie*>(otherGameObject);
-			if (zombie && zombie->mRow == this->mRow && !this->mHasHit) {
-				this->mHasHit = true;
-				this->BulletHitZombie(zombie);
-				this->Die();
-			}
-		}
+		HandleZombieContact(other);
+	};
+	if (mBulletType == BulletType::BULLET_SPIKE) {
+		collider->onTriggerStay = [this](ColliderComponent* other) {
+			HandleZombieContact(other);
 		};
+	}
 }
 
 void Bullet::Reset(Board* board, int row,
@@ -161,12 +167,13 @@ void Bullet::Reset(Board* board, int row,
 	mBulletID = NULL_BULLET_ID;
 	mFromPool = true;  // 标记为来自对象池
 	// 自定义伤害/速度只属于上一位对象池使用者；不复位会污染后续普通豌豆或孢子。
-	mDamage = mPoolType == BulletType::BULLET_FIREBALL
-		? kFireballDamage : kPeaDamage;
+	mDamage = DefaultDamageForBullet(mPoolType);
 	mVelocityX = 290.0f;
 	mVelocityY = 0.0f;
 	mThreepeaterMotion = false;
 	mHitTorchwoodColumn = -1;
+	mPiercedZombieIDs.clear();
+	mSpikeDamageRemainders.clear();
 	mAnimatorAdvancedInParallel = false;
 	ConfigurePresentation();
 
@@ -301,9 +308,11 @@ void Bullet::UpdateShadowLayout(const Vector& position)
 	}
 
 	// 主人校对：Y 与同一行豌豆射手的默认阴影中心一致，即格子中心 + 28。
-	// X 偏移沿用 C#：Pea +3，Snowpea -1。
+	// X 偏移沿用 C#：Pea +3，Snowpea -1，Fireball/Spike 为 0。
 	const float shadowLeftOffset = mBulletType == BulletType::BULLET_SNOWPEA
-		? -1.0f : (mBulletType == BulletType::BULLET_FIREBALL ? 0.0f : 3.0f);
+		? -1.0f
+		: ((mBulletType == BulletType::BULLET_FIREBALL
+			|| mBulletType == BulletType::BULLET_SPIKE) ? 0.0f : 3.0f);
 	// 斜向豌豆从发射行地面起步并随本体一起汇入目标行；其发射点固定为格心上方 40px，
 	// 因而相对偏移恒为 68px。普通子弹仍直接锚定其碰撞行地面。
 	const float shadowOffsetY = mThreepeaterMotion
@@ -340,7 +349,6 @@ void Bullet::BulletHitZombie(Zombie* zombie)
 		HitFireballZombie(zombie);
 		return;
 	}
-
 	const bool canBeChilled =
 		mBulletType == BulletType::BULLET_SNOWPEA && zombie->CanBeChilled();
 	const bool playChillSound = canBeChilled
@@ -395,6 +403,10 @@ void Bullet::ConfigurePresentation()
 		mTexture = resources.GetTexture("IMAGE_PUFFSHROOM_PUFF1");
 		mScale = 0.68f;
 		break;
+	case BulletType::BULLET_SPIKE:
+		mTexture = resources.GetTexture(ResourceKeys::Textures::IMAGE_PROJECTILECACTUS);
+		mScale = 1.0f;
+		break;
 	case BulletType::BULLET_FIREBALL: {
 		auto reanim = resources.GetReanimation(
 			resources.AnimationTypeToString(AnimationType::ANIM_FIREPEA));
@@ -412,6 +424,66 @@ void Bullet::ConfigurePresentation()
 	}
 	default:
 		break;
+	}
+}
+
+void Bullet::HandleZombieContact(ColliderComponent* other)
+{
+	if (!IsActive() || !other) return;
+	auto* otherGameObject = other->GetGameObject();
+	if (!otherGameObject || otherGameObject->GetObjectType() != ObjectType::OBJECT_ZOMBIE) {
+		return;
+	}
+
+	auto* zombie = dynamic_cast<Zombie*>(otherGameObject);
+	if (!zombie || zombie->mRow != mRow) return;
+
+	if (mBulletType != BulletType::BULLET_SPIKE) {
+		if (mHasHit) return;
+		mHasHit = true;
+		BulletHitZombie(zombie);
+		Die();
+		return;
+	}
+
+	const bool isNewZombie = std::find(
+		mPiercedZombieIDs.begin(), mPiercedZombieIDs.end(), zombie->mZombieID)
+		== mPiercedZombieIDs.end();
+	if (isNewZombie) {
+		mPiercedZombieIDs.push_back(zombie->mZombieID);
+		mSpikeDamageRemainders.push_back(0.0f);
+		// 帧伤本身不能每帧重播撞击声；每只不同目标只在首次接触时反馈一次。
+		PlayStandardImpactSound(zombie);
+	}
+
+	const auto idIt = std::find(
+		mPiercedZombieIDs.begin(), mPiercedZombieIDs.end(), zombie->mZombieID);
+	const std::size_t targetIndex = static_cast<std::size_t>(
+		std::distance(mPiercedZombieIDs.begin(), idIt));
+	const bool reachedPierceLimit =
+		isNewZombie && mPiercedZombieIDs.size() >= kSpikePierceLimit;
+
+	if (reachedPierceLimit) {
+		// 第三只目标没有后续 Stay 可消费额度，因此固定承受 1x 的一次伤害后再回收。
+		zombie->TakeDamage(mDamage, DamageSource::PLANT);
+		mHasHit = true;
+		Die();
+		return;
+	}
+
+	// 固定逻辑步的回调次数不随倍速改变；用缩放逻辑时间累计额度，保证同样游戏时长
+	// 在 0.5x/1x/2x 下分别以 0.5/1/2 点推进，整数承伤总量保持一致。
+	float& damageRemainder = mSpikeDamageRemainders[targetIndex];
+	damageRemainder += static_cast<float>(mDamage)
+		* DeltaTime::GetDeltaTime() / DeltaTime::GetFixedStep();
+	const int damageToApply = static_cast<int>(std::floor(damageRemainder + 1e-6f));
+	if (damageToApply > 0) {
+		damageRemainder -= static_cast<float>(damageToApply);
+		// 每个整数额度仍是一次独立的 1 点帧伤；合并为 TakeDamage(N) 会让免伤次数、
+		// 逐击取整和其他“每次受击”语义在 2x 下少触发。
+		for (int i = 0; i < damageToApply && zombie->IsActive(); ++i) {
+			zombie->TakeDamage(1, DamageSource::PLANT);
+		}
 	}
 }
 
@@ -507,6 +579,28 @@ void Bullet::RestoreSavedPresentationState(BulletType currentType, int hitTorchw
 	ConfigurePresentation();
 	if (mTransform) {
 		UpdateShadowLayout(mTransform->GetPosition());
+	}
+}
+
+void Bullet::RestorePiercedZombieState(const std::vector<int>& zombieIDs,
+	const std::vector<float>& damageRemainders)
+{
+	mPiercedZombieIDs.clear();
+	mSpikeDamageRemainders.clear();
+	if (mBulletType != BulletType::BULLET_SPIKE) return;
+
+	for (std::size_t i = 0; i < zombieIDs.size(); ++i) {
+		const int id = zombieIDs[i];
+		if (std::find(mPiercedZombieIDs.begin(), mPiercedZombieIDs.end(), id)
+			!= mPiercedZombieIDs.end()) {
+			continue;
+		}
+		mPiercedZombieIDs.push_back(id);
+		const float remainder = i < damageRemainders.size()
+			? damageRemainders[i] : 0.0f;
+		mSpikeDamageRemainders.push_back(std::clamp(remainder, 0.0f, 0.999999f));
+		// 活跃子弹一旦接触第三只目标就已回收，因此合法存档至多包含前两只。
+		if (mPiercedZombieIDs.size() + 1 >= kSpikePierceLimit) break;
 	}
 }
 

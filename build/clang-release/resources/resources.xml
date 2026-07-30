@@ -355,6 +355,7 @@
     <Reanimation name="Tallnut">./resources/reanim/Tallnut.reanim</Reanimation>
     <Reanimation name="SeaShroom">./resources/reanim/SeaShroom.reanim</Reanimation>
     <Reanimation name="Plantern">./resources/reanim/Plantern.reanim</Reanimation>
+    <Reanimation name="Cactus">./resources/reanim/Cactus.reanim</Reanimation>
 
     <Reanimation name="NormalZombie">./resources/reanim/NormalZombie.reanim</Reanimation>
     <Reanimation name="ConeZombie">./resources/reanim/ConeZombie.reanim</Reanimation>
