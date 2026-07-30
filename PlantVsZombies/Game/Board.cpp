@@ -99,6 +99,7 @@ namespace {
 	constexpr float kFogFillRate = 180.0f;               // 雾生成或回流时每游戏秒最多增加的 alpha
 	constexpr float kFogClearRate = 320.0f;              // 台风驱散时每游戏秒最多减少的 alpha
 	constexpr float kFogTargetingAlphaThreshold = 96.0f; // 4-2 起远程索敌仍可接受的最大逐格雾 alpha
+	constexpr int kFogTargetingMarginColumns = 1;         // 植物可从当前可见边界额外看入薄雾的格数
 	constexpr float kFogCloseDetectionRange = 100.0f;    // 雾中不依赖照明的近身感知横向距离（像素）
 	constexpr int kMistFuelEarlyRewardAmount = 15;        // 首波单只携带者死亡时提供的雾火量
 	constexpr int kMistFuelLateRewardAmount = 10;         // 最终波单只携带者死亡时提供的雾火量
@@ -2524,17 +2525,31 @@ float Board::GetPlanternIllumination(int row, int col) const
 bool Board::CanPlantAcquireZombie(const Plant* plant, const Zombie* zombie) const
 {
 	if (!plant || !zombie || !SupportsPlanternMechanics()) return true;
+	const Vector plantPosition = plant->GetPosition();
+	const Vector zombiePosition = zombie->GetPosition();
 	if (std::abs(zombie->mRow - plant->mRow) <= 1
-		&& std::abs(zombie->GetPosition().x - plant->GetPosition().x)
+		&& std::abs(zombiePosition.x - plantPosition.x)
 			<= kFogCloseDetectionRange) {
 		return true;
 	}
 
 	const int column = std::clamp(static_cast<int>(
-		(zombie->GetPosition().x - CELL_INITALIZE_POS_X) / CELL_COLLIDER_SIZE_X),
+		(zombiePosition.x - CELL_INITALIZE_POS_X) / CELL_COLLIDER_SIZE_X),
 		0, mColumns - 1);
-	return GetFogCellAlpha(std::clamp(zombie->mRow, 0, mRows - 1), column)
-		<= kFogTargetingAlphaThreshold;
+	const int row = std::clamp(zombie->mRow, 0, mRows - 1);
+	if (GetFogCellAlpha(row, column) <= kFogTargetingAlphaThreshold) return true;
+
+	// 当前格仍被浓雾遮挡时，只允许从植物一侧已经看清的边界再深入一格。
+	if (zombiePosition.x == plantPosition.x) return false;
+	const int directionTowardPlant = zombiePosition.x > plantPosition.x ? -1 : 1;
+	for (int step = 1; step <= kFogTargetingMarginColumns; ++step) {
+		const int adjacentColumn = column + directionTowardPlant * step;
+		if (adjacentColumn < 0 || adjacentColumn >= mColumns) break;
+		if (GetFogCellAlpha(row, adjacentColumn) <= kFogTargetingAlphaThreshold) {
+			return true;
+		}
+	}
+	return false;
 }
 
 float Board::GetPlanternSunProductionMultiplier(const Plant* producer) const

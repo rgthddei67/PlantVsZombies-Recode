@@ -121,6 +121,8 @@ CardUI 所在的 `GameObjects` 命令，而在 `GameScene::BuildDrawCommands` �
 削减雾，再由远程植物统一通过 `CanPlantAcquireZombie()` 消费同一最终 alpha；因此视觉清晰度
 与索敌许可不会出现两套范围。路灯花挡位、燃料和产光加速的完整契约见
 [project_pvz_plantern_fog_core](project_pvz_plantern_fog_core.md)。
+索敌允许从当前可见边界额外看入一格薄雾：目标格自身超过阈值时，只有它朝植物方向的相邻格
+已经可见才放行，因此固定雾线和路灯花照明边缘共用规则，第二格浓雾仍会阻断。
 雾火供给另按当前关首波到最终波的归一化进度独立收紧，不复用天气导演压力：这样未来
 4-3～4-9 无论各自是 10、20 或 30 波都能走完整曲线，也不会因后期天气更强反而增加燃料。
 

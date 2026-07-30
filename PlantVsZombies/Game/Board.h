@@ -427,7 +427,7 @@ public:
 	Plantern* GetActivePlantern() const;
 	/** 返回指定格受到的路灯花照明比例（0～1）；所有雾玩法消费同一形状。 */
 	float GetPlanternIllumination(int row, int col) const;
-	/** 远程植物的统一雾中索敌许可；近约一格仍可感知。 */
+	/** 远程植物的统一雾中索敌许可；可见边界外一格薄雾与近身目标仍可感知。 */
 	bool CanPlantAcquireZombie(const Plant* plant, const Zombie* zombie) const;
 	/** 周围产光植物的局部效率倍率；三档峰值依次为 1.10/1.20/1.35。 */
 	float GetPlanternSunProductionMultiplier(const Plant* producer) const;
