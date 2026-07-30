@@ -109,6 +109,11 @@ void Plant::Die() {
 	GameObjectManager::GetInstance().DestroyGameObject(this);
 }
 
+bool Plant::CanAcquireZombie(const Zombie* zombie) const
+{
+	return zombie && zombie->CanBeTargetedByProjectile(false);
+}
+
 void Plant::Update()
 {
 	AnimatedObject::Update();   // 待机动画照常推进，让植物在选卡阶段仍"活着"

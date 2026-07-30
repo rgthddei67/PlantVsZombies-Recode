@@ -55,7 +55,7 @@ Mower::Mower(Board* board, MowerType type, AnimationType animType, float x, floa
 		auto* go = other->GetGameObject();
 		if (!go || go->GetObjectType() != ObjectType::OBJECT_ZOMBIE) return;
 		auto* zombie = dynamic_cast<Zombie*>(go);
-		if (!zombie) return;
+		if (!zombie || !zombie->CanBeTargetedByProjectile(false)) return;
 
 		// 首次碰撞触发移动
 		if (mState == MowerState::IDLE) {

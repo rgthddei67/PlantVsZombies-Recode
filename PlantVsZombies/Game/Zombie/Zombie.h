@@ -168,6 +168,15 @@ public:
 	int GetEatingPlantID() const { return mEatPlantID; }
 	bool IsInPool() const { return this->mInPool; }
 	bool HasArm() const { return this->mHasArm; }
+	/** 是否仍处于空中；默认僵尸始终在地面。 */
+	virtual bool IsFlying() const { return false; }
+	/**
+	 * 返回当前阶段能否被指定高度层的弹丸命中。
+	 * @param targetsFlying true=对空弹丸，false=地面弹丸。
+	 */
+	virtual bool CanBeTargetedByProjectile(bool targetsFlying) const {
+		return !targetsFlying;
+	}
 	float GetCooldownTimer() const { return this->mCooldownTimer; }
 	bool IsFrozen() const { return this->mFrozenTimer > 0.0f; }
 	float GetFrozenTimer() const { return this->mFrozenTimer; }
@@ -224,6 +233,10 @@ protected:
 	// 子类自身的整体倍率只从 GetAbilityAnimSpeedMultiplier 返回；运行期状态变化后经此收敛，
 	// 禁止直调 SetExtraSpeedMultiplier，否则会把冻结停格顶掉或丢失天气组合。
 	void UpdateAnimSpeed();
+	/** 头盔和护盾前的额外生命层；返回继续透入常规防具链的伤害。 */
+	virtual int TakeExtraProtectionDamage(int damage, DamageSource) { return damage; }
+	/** 生存血量倍率对品种额外生命层的扩展点。 */
+	virtual void ApplyExtraHealthMultiplier(double) {}
 	// 减速时动画降速因子（快速铁桶 0.8 覆写；位移减半由 Update 的 scaledDelta 承担，与此正交）
 	virtual float GetSlowAnimFactor() const { return 0.6f; }
 	// 僵尸自身最终提供的整体动画能力倍率；可由固定品种值、运行期状态或已持久化随机结果派生。
@@ -247,6 +260,8 @@ protected:
 	void ApplyTyphoonGustDrift(float deltaTime, TransformComponent* transform);
 	/** 用前后双探针维护通用入水状态；切换介质时同步视觉并恢复当前稳态走路轨道。 */
 	void UpdatePoolState();
+	/** 当前阶段是否允许基类按地面探针切换水路状态。 */
+	virtual bool CanUseGroundPoolState() const { return true; }
 	/** 按通用入水状态隐藏陆地阴影；水面以下裁剪在 Draw 内与其他 Clip 嵌套。 */
 	void UpdatePoolVisualState() const;
 	/**

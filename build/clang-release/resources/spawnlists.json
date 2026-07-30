@@ -146,5 +146,10 @@
     "level": 29,
     "waves": 20,
     "zombies": [0, 1, 22, 8]
+  },
+  {
+    "level": 30,
+    "waves": 20,
+    "zombies": [0, 1, 23]
   }
 ]

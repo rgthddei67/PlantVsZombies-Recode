@@ -129,6 +129,7 @@ void Zombie::ApplyHealthMultiplier(double multiplier)
 	mHelmMaxHealth = scale(mHelmMaxHealth);
 	mShieldHealth = scale(mShieldHealth);
 	mShieldMaxHealth = scale(mShieldMaxHealth);
+	ApplyExtraHealthMultiplier(multiplier);
 }
 
 void Zombie::SaveProtectedData(nlohmann::json& j) const {
@@ -507,6 +508,13 @@ void Zombie::ApplyTyphoonGustDrift(float deltaTime, TransformComponent* transfor
 void Zombie::UpdatePoolState()
 {
 	if (!mBoard || mIsPreview || mRow < 0) return;
+	if (!CanUseGroundPoolState()) {
+		if (mInPool) {
+			mInPool = false;
+			UpdatePoolVisualState();
+		}
+		return;
+	}
 
 	const float x = GetPosition().x;
 	const bool shouldBeInPool =
@@ -851,7 +859,8 @@ void Zombie::TakeDamage(
 
 	SetGlowingTimer(0.1f);
 
-	int remainingDamage = damage;
+	int remainingDamage = TakeExtraProtectionDamage(damage, source);
+	if (remainingDamage <= 0 || mIsDead || !IsActive()) return;
 
 	// 1. 优先扣除二类护盾
 	if (mShieldType != ShieldType::SHIELDTYPE_NONE)
@@ -1128,6 +1137,7 @@ void Zombie::StartEat(ColliderComponent* other)
 	{
 		auto* target = dynamic_cast<Zombie*>(gameObject);
 		if (!target) return;
+		if (!target->CanBeTargetedByProjectile(false)) return;
 		if (target->IsMindControlled() == mIsMindControlled) return;   // 同阵营不啃（魅惑×魅惑掩码本就不成对，此为语义兜底）
 		if (target->mIsDying) return;
 		if (target->mRow != this->mRow) return;

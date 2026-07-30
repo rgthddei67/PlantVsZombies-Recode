@@ -64,6 +64,7 @@
 #include "../Zombie/DolphinRiderZombie.h"
 #include "../Zombie/EliteDolphinRiderZombie.h"
 #include "../Zombie/JackInTheBoxZombie.h"
+#include "../Zombie/BalloonZombie.h"
 
 namespace {
 	template<typename T>
@@ -371,6 +372,12 @@ void GameDataManager::InitializeHardcodedData() {
 		AnimationType::ANIM_JACK_IN_THE_BOX_ZOMBIE,
 		ResourceKeys::Reanimations::REANIM_JACK_IN_THE_BOX_ZOMBIE,
 		&MakeZombie<JackInTheBoxZombie>);
+
+	// 气球生命层破裂前处于空中；陆地完成爆裂演出后转为普通步行。
+	RegisterZombie(ZombieType::ZOMBIE_BALLOON, "ZOMBIE_BALLOON",
+		AnimationType::ANIM_BALLOON_ZOMBIE,
+		ResourceKeys::Reanimations::REANIM_BALLOON_ZOMBIE,
+		&MakeZombie<BalloonZombie>);
 
 	// ==================== 非植物/僵尸动画映射 ====================
 	mAnimToString[AnimationType::ANIM_SUN] = ResourceKeys::Reanimations::REANIM_SUN;

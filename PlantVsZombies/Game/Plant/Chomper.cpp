@@ -15,6 +15,7 @@ int Chomper::FindTargetZombieID()
 	mBoard->mEntityManager.ForEachZombieInRow(mRow, [&](Zombie* z) {
 		if (z->IsMindControlled()) return;
 		if (!z->HasHead()) return;
+		if (!z->CanBeTargetedByProjectile(false)) return;
 		// 原版大嘴花不会与已经被水草锁定的目标争抢同一只僵尸。
 		if (z->IsTangleKelpTarget()) return;
 

@@ -17,6 +17,7 @@
 #include "../Zombie/ZombieJumpType.h"
 
 class Board;
+class Zombie;
 
 class Plant : public AnimatedObject {
 public:
@@ -63,6 +64,8 @@ public:
 	virtual void OnZombieBite(const Vector&) {}
 	/** 是否能在当前跳跃类别的判定节点阻拦僵尸；高坚果等阻拦植物覆写此接口。 */
 	virtual bool BlocksZombieJump(ZombieJumpType) const { return false; }
+	/** 远程索敌的高度层许可；默认植物只锁定可被地面弹丸命中的僵尸。 */
+	virtual bool CanAcquireZombie(const Zombie* zombie) const;
 	/** 跳跃确实被本植物阻拦后的音画反馈入口；由跳跃状态机保证每次只调用一次。 */
 	virtual void OnZombieJumpBlocked(ZombieJumpType) {}
 	/** 是否在强/超强台风的逐格结算中锚定整个植物格；默认植物会随阵风移动。 */

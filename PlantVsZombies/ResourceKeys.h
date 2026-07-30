@@ -134,6 +134,7 @@ namespace ResourceKeys
 		RKEY(IMAGE_ZOMBIE_YETI_OUTERARM_UPPER2);
 		RKEY(IMAGE_REANIM_ZOMBIE_DUCKYTUBE_INWATER);
 		RKEY(IMAGE_REANIM_ZOMBIE_JACKBOX_OUTERARM_LOWER2);
+		RKEY(IMAGE_REANIM_ZOMBIE_BALLOON_OUTERARM_UPPER2);
 
 		RKEY(IMAGE_PROJECTILECACTUS);
 		RKEY(IMAGE_PROJECTILEPEA);
@@ -284,6 +285,8 @@ namespace ResourceKeys
 		RKEY(SOUND_JUICY);					// 一次性植物爆发时的汁液声（原版 juicy.ogg）
 		RKEY(SOUND_ZAMBONI);				// 冰车驾驶声
 		RKEY(SOUND_BALLOON_POP);				// 原版 TirePop Foley 使用的车辆爆胎声
+		RKEY(SOUND_BALLOONINFLATE);			// 气球僵尸正式出生时的充气声
+		RKEY(SOUND_PLANTGROW);				// 仙人掌发现空中目标后伸长
 		RKEY(SOUND_EXPLOSION);				// 冰车爆炸声
 		RKEY(SOUND_DOLPHIN_APPEARS);			// 海豚僵尸登场
 		RKEY(SOUND_DOLPHIN_BEFORE_JUMPING);	// 海豚起跳前鸣叫
@@ -363,6 +366,7 @@ namespace ResourceKeys
 		inline const std::string REANIM_DOLPHIN_RIDER_ZOMBIE = "ZombieDolphinrider";
 		inline const std::string REANIM_ELITE_DOLPHIN_RIDER_ZOMBIE = "EliteDolphinRider";
 		inline const std::string REANIM_JACK_IN_THE_BOX_ZOMBIE = "ZombieJackBox";
+		inline const std::string REANIM_BALLOON_ZOMBIE = "ZombieBalloon";
 		inline const std::string REANIM_ZAMBONI_CHARRED = "Zamboni_Charred";
 
 		inline const std::string REANIM_ZOMBIE_CHARRED = "Zombie_Charred";

@@ -40,6 +40,7 @@ protected:
 	float mVelocityX = 290.0f;	// 子弹X轴动量
 	float mVelocityY = 0.0f;	// 子弹Y轴动量
 	bool mThreepeaterMotion = false; // 三线射手斜向豌豆按原版逐步衰减纵向速度
+	bool mTargetsFlying = false; // 高姿态仙人掌尖刺为 true；对象池与存档必须显式复位
 	BulletType mPoolType = BulletType::NUM_BULLETS; // 对象池槽位的固定类型；火炬树桩只改变当前表现类型
 	int mHitTorchwoodColumn = -1; // 最近处理过本子弹的火炬树桩列，防止同列反复转换
 	std::vector<int> mPiercedZombieIDs; // 尖刺已接触的不同僵尸实体 ID；按玩法穿透上限截断
@@ -128,6 +129,9 @@ public:
 	 */
 	void EnableThreepeaterMotion(int sourceRow);
 	bool IsThreepeaterMotion() const { return mThreepeaterMotion; }
+	/** 设定本弹丸仅命中空中层或地面层目标。 */
+	void SetTargetsFlying(bool targetsFlying) { mTargetsFlying = targetsFlying; }
+	bool TargetsFlying() const { return mTargetsFlying; }
 
 	int GetSortingKey() const override { return this->mRow; }
 	TransformComponent* GetTransformComponent() const { return mTransform; }

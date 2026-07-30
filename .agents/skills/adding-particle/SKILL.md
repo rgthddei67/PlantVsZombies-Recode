@@ -17,8 +17,8 @@ description: Use when adding or tuning ANY particle effect (粒子特效) in PvZ
 - **特效名 = 第一个 `<Emitter>` 的 `<Name>`，不是文件名**（文件名只是惯例上取一致）。
 - 目录：权威资源 `build/clang-release/resources/particles/config/`，启动时全目录加载；其他 preset 通过 Junction 共享，纯数据改配置**不用重编译，但要重启游戏**。
 - 触发：`g_particleSystem->EmitEffect("Name", GetPosition());`；完整可选参数依次为 `renderOrder, durationOverride, clipRightX`。名字打错启动不报错，**发射时** run.log 出 `ERROR 找不到粒子特效配置`。
-- 贴图：`<Image>` 填资源键（`IMAGE_*`/`PARTICLE_*`，即 resources.xml 里那些）；**没有独立粒子贴图格式**，任何已加载纹理都能当粒子。
-- **键前缀由 resources.xml 段落决定**：`<GameImages>` 里的 → `IMAGE_*`，`<ParticleTextures>` 里的 → `PARTICLE_*`（粒子专用图放后者）。写错前缀=粒子静默不生成（foot-gun ③）。
+- 贴图：`<Image>` 填资源键（`IMAGE_*`/`PARTICLE_*`）；**没有独立粒子贴图格式**，任何在发射前已经加载的纹理都能当粒子。
+- **键来源必须与加载路径一致**：`<GameImages>` 预加载的图用 `IMAGE_*`，`<ParticleTextures>` 用 `PARTICLE_*`（粒子专用图放后者）；reanim XML 直接引用并已加载的部件还会生成 `IMAGE_REANIM_*` 别名，可供该角色受击时的专属残肢粒子复用。动态发射前若对应 reanim 不保证已加载，就不能依赖这个别名，应改入预加载段。写错前缀或时序未加载=粒子静默不生成（foot-gun ③）。
 - **分份贴图**：`<Texture Column="4" Row="1">` 会把图切成独立纹理 `PARTICLE_XXX_PART_0..3`（`基础键_PART_序号`，行优先）——逗号列出来即"每粒子随机一张"（splats 碎屑的原理）。**序列帧动画别用它**，用 `ImageFrames`（整图不切，见标签表）。
 
 ## 坐标换算铁律

@@ -465,6 +465,7 @@ bool GameInfoSaver::SerializeLevelDataToPath(Board* board, CardSlotManager* mana
 		b["piercedZombieIDs"] = bullet->GetPiercedZombieIDs();
 		b["spikeDamageRemainders"] = bullet->GetSpikeDamageRemainders();
 		b["threepeaterMotion"] = bullet->IsThreepeaterMotion();
+		b["targetsFlying"] = bullet->TargetsFlying();
 		bulletsArr.push_back(b);
 	}
 	j["bullets"] = bulletsArr;
@@ -997,6 +998,7 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 			bullet->SetBulletDamage(b["damage"].get<int>());
 			bullet->SetVelocityX(b["velocityX"].get<float>());
 			bullet->SetVelocityY(b["velocityY"].get<float>());
+			bullet->SetTargetsFlying(b.value("targetsFlying", false));
 			bullet->RestorePiercedZombieState(
 				b.value("piercedZombieIDs", std::vector<int>{}),
 				b.value("spikeDamageRemainders", std::vector<float>{}));

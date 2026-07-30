@@ -67,6 +67,7 @@ enum class AnimationType
 	ANIM_PLANTERN, // 经典路灯花；追加在末尾避免旧动画枚举值错位
 	ANIM_JACK_IN_THE_BOX_ZOMBIE, // 经典小丑僵尸；追加在末尾避免旧动画枚举值错位
 	ANIM_CACTUS, // 经典仙人掌；追加在末尾避免旧动画枚举值错位
+	ANIM_BALLOON_ZOMBIE, // 经典气球僵尸；追加在末尾避免旧动画枚举值错位
 };
 
 #endif

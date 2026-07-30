@@ -53,13 +53,13 @@ enum class ZombieType {
 	ZOMBIE_DOLPHIN_RIDER,	// 海豚僵尸：泳池水路专属，骑豚跃过第一株植物
 	ZOMBIE_ELITE_DOLPHIN_RIDER,	// 精英海豚：第一次越障后保留海豚，第二次才弃豚
 	ZOMBIE_JACK_IN_THE_BOX,	// 小丑僵尸：随机倒计时开盒并范围爆炸
+	ZOMBIE_BALLOON,			// 气球僵尸：空中阶段仅受对空弹丸命中，气球破裂后落地
 
 	// ↓ 哨兵：置于全部已实现僵尸之后，使 [0,NUM_ZOMBIE_TYPES) 只覆盖已实现类型，
 	//   生存模式随机抽取据此绝不会抽到下方未实现僵尸。
 	//   注：Board::LoadSpawnListFromJson 亦以此为上界校验 JSON 僵尸ID，效果一致。
 	NUM_ZOMBIE_TYPES,
 
-	ZOMBIE_BALLOON,
 	ZOMBIE_DIGGER,
 	ZOMBIE_POGO,
 	ZOMBIE_YETI,

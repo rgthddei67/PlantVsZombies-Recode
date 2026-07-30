@@ -51,7 +51,8 @@ bool Caltrop::HasTargetInAttackRect() const
 	const float attackLeft = GetPosition().x + kAttackRectFromCenterX;
 	bool found = false;
 	mBoard->mEntityManager.ForEachZombieInRow(mRow, [&](Zombie* zombie) {
-		if (found || !zombie || zombie->IsMindControlled() || zombie->IsDying()) return;
+		if (found || !zombie || zombie->IsMindControlled() || zombie->IsDying()
+			|| !zombie->CanBeTargetedByProjectile(false)) return;
 		const ColliderComponent* collider = zombie->GetColliderComponent();
 		if (collider && collider->mEnabled && HorizontalOverlap(collider->GetBoundingBox(),
 			attackLeft, kAttackRectWidth) > 0.0f) {
@@ -68,7 +69,8 @@ void Caltrop::DamageTargetsAtAttackFrame()
 	const float attackLeft = GetPosition().x + kAttackRectFromCenterX;
 	bool hitAny = false;
 	mBoard->mEntityManager.ForEachZombieInRow(mRow, [&](Zombie* zombie) {
-		if (!zombie || zombie->IsMindControlled() || zombie->IsDying()) return;
+		if (!zombie || zombie->IsMindControlled() || zombie->IsDying()
+			|| !zombie->CanBeTargetedByProjectile(false)) return;
 		const ColliderComponent* collider = zombie->GetColliderComponent();
 		if (!collider || !collider->mEnabled || HorizontalOverlap(collider->GetBoundingBox(),
 			attackLeft, kAttackRectWidth) <= 0.0f) {

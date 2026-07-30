@@ -171,6 +171,7 @@ void Bullet::Reset(Board* board, int row,
 	mVelocityX = 290.0f;
 	mVelocityY = 0.0f;
 	mThreepeaterMotion = false;
+	mTargetsFlying = false;
 	mHitTorchwoodColumn = -1;
 	mPiercedZombieIDs.clear();
 	mSpikeDamageRemainders.clear();
@@ -436,7 +437,8 @@ void Bullet::HandleZombieContact(ColliderComponent* other)
 	}
 
 	auto* zombie = dynamic_cast<Zombie*>(otherGameObject);
-	if (!zombie || zombie->mRow != mRow) return;
+	if (!zombie || zombie->mRow != mRow
+		|| !zombie->CanBeTargetedByProjectile(mTargetsFlying)) return;
 
 	if (mBulletType != BulletType::BULLET_SPIKE) {
 		if (mHasHit) return;

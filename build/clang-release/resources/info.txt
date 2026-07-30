@@ -214,6 +214,10 @@
 小丑僵尸
 [ZOMBIE_JACK_IN_THE_BOX_DESCRIPTION]
 小丑僵尸有500点生命，伴着诡异的手摇盒音乐快速前进。盒子会在随机时刻弹开并引发范围爆炸；如果及时让他掉头，音乐和爆炸都会停下。“惊喜的重点，”小丑僵尸说，“就是连我也不知道它什么时候来。”
+[ZOMBIE_BALLOON]
+气球僵尸
+[ZOMBIE_BALLOON_DESCRIPTION]
+气球僵尸借助气球越过地面防线；仙人掌会伸长身体并向空中发射尖刺。气球破裂后，他会在陆地落下继续前进，但落入泳池时会直接消失。
 [ZOMBIE_GILDED_ZAMBONI]
 鎏金冰车僵尸
 [ZOMBIE_GILDED_ZAMBONI_DESCRIPTION]

@@ -2,7 +2,10 @@
 
 #include "../../ResourceKeys.h"
 #include "../Board.h"
+#include "../Bullet/Bullet.h"
 #include "../Zombie/Zombie.h"
+
+#include <algorithm>
 
 namespace
 {
@@ -12,7 +15,11 @@ namespace
 	constexpr float kReanimFps = 12.0f;                 // Cactus.reanim 的基础帧率，单位：帧/秒
 	constexpr float kShootClipSpeed = kOriginalShootFps / kReanimFps; // 原版帧率折算为 Animator clip 倍率
 	constexpr int kGroundShootEventFrame = 26;          // 主人给定的低姿态尖刺发射全局帧号
+	constexpr int kFlyingShootEventFrame = 70;          // 主人给定的高姿态尖刺发射全局帧号
 	const Vector kGroundSpikeOffset(30.0f, -27.0f);     // 原版低姿态发射点换算到当前格子中心的相对像素
+	const Vector kFlyingSpikeOffset(53.0f, -100.0f);    // 原版高姿态发射点换算到当前格子中心的相对像素
+	constexpr float kTransitionBlendSeconds = 0.2f;     // 伸长、缩短与射击轨道切换的混合时间
+	constexpr float kPlantGrowVolume = 0.3f;            // 仙人掌伸长提示音音量
 }
 
 void Cactus::SetupPlant()
@@ -21,63 +28,153 @@ void Cactus::SetupPlant()
 	if (mIsPreview || !mAnimator) return;
 
 	mAnimator->AddFrameEvent(kGroundShootEventFrame, [this]() {
-		ShootSpike();
+		if (mPhase == Phase::LOW && GetCurrentTrackName() == "anim_shooting") {
+			ShootSpike(false);
+		}
 	}, true);
-
-	// TODO(气球僵尸): 正式空中状态契约落地后接入 anim_rise/anim_idlehigh/
-	// anim_shootinghigh/anim_lower，并在主人给定的全局第 70 帧发射同一种 BULLET_SPIKE。
+	mAnimator->AddFrameEvent(kFlyingShootEventFrame, [this]() {
+		if (mPhase == Phase::HIGH && GetCurrentTrackName() == "anim_shootinghigh") {
+			ShootSpike(true);
+		}
+	}, true);
 }
 
 void Cactus::SaveExtraData(nlohmann::json& j) const
 {
 	j["shootTimer"] = mShootTimer;
+	j["checkZombieTimer"] = mCheckZombieTimer;
+	j["attackCheckTimer"] = mAttackCheckTimer;
+	j["phase"] = static_cast<int>(mPhase);
+	j["hasGroundTarget"] = mHasGroundTarget;
+	j["hasFlyingTarget"] = mHasFlyingTarget;
 }
 
 void Cactus::LoadExtraData(const nlohmann::json& j)
 {
-	mShootTimer = j.value("shootTimer", 1.0f);
+	mShootTimer = std::clamp(j.value("shootTimer", 1.0f),
+		0.0f, kShootIntervalSeconds);
+	mCheckZombieTimer = std::max(0.0f, j.value("checkZombieTimer", 0.0f));
+	mAttackCheckTimer = std::max(0.0f, j.value("attackCheckTimer", 0.0f));
+	const int phase = std::clamp(j.value("phase", 0), 0,
+		static_cast<int>(Phase::LOWERING));
+	mPhase = static_cast<Phase>(phase);
+	mHasGroundTarget = j.value("hasGroundTarget", false);
+	mHasFlyingTarget = j.value("hasFlyingTarget", false);
 }
 
 void Cactus::PlantUpdate()
 {
+	UpdateTargetCache();
+	const std::string& track = GetCurrentTrackName();
 	const float attackSpeed = GetAttackSpeedMultiplier();
 	mShootTimer += DeltaTime::GetDeltaTime() * attackSpeed;
-	if (mShootTimer < kShootIntervalSeconds || !HasZombieInRow()) return;
+
+	// 一次性伸缩轨结束后才提交稳定姿态，避免中途索敌抖动反复抢占动画。
+	if (mPhase == Phase::RISING && track == "anim_idlehigh") {
+		mPhase = Phase::HIGH;
+		mShootTimer = kShootIntervalSeconds;
+		mAttackCheckTimer = kTargetCheckIntervalSeconds;
+	}
+	else if (mPhase == Phase::LOWERING && track == "anim_idle") {
+		mPhase = Phase::LOW;
+	}
+
+	if (track == "anim_shooting" || track == "anim_shootinghigh"
+		|| mPhase == Phase::RISING || mPhase == Phase::LOWERING) {
+		return;
+	}
+
+	// 空中目标优先级高于地面目标：低姿态先伸长，高姿态失去空中目标后先缩短。
+	if (mPhase == Phase::LOW && mHasFlyingTarget) {
+		mPhase = Phase::RISING;
+		AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_PLANTGROW, kPlantGrowVolume);
+		PlayTrackOnce("anim_rise", "anim_idlehigh", 0.0f, kTransitionBlendSeconds);
+		return;
+	}
+	if (mPhase == Phase::HIGH && !mHasFlyingTarget) {
+		mPhase = Phase::LOWERING;
+		PlayTrackOnce("anim_lower", "anim_idle", 0.0f, kTransitionBlendSeconds);
+		return;
+	}
+
+	const bool hasTarget = mPhase == Phase::HIGH
+		? mHasFlyingTarget : mHasGroundTarget;
+	if (mShootTimer < kShootIntervalSeconds) return;
+
+	// 保留既有射手节奏：攻击冷却完成后才开始按固定间隔确认目标。
+	mAttackCheckTimer += DeltaTime::GetDeltaTime();
+	if (mAttackCheckTimer < kTargetCheckIntervalSeconds) return;
+	mAttackCheckTimer = 0.0f;
+	if (!hasTarget) return;
 
 	mShootTimer = 0.0f;
-	PlayTrackOnce("anim_shooting", "anim_idle",
-		kShootClipSpeed * attackSpeed, 0.2f);
+	if (mPhase == Phase::HIGH) {
+		PlayTrackOnce("anim_shootinghigh", "anim_idlehigh",
+			kShootClipSpeed * attackSpeed, kTransitionBlendSeconds);
+	}
+	else {
+		PlayTrackOnce("anim_shooting", "anim_idle",
+			kShootClipSpeed * attackSpeed, kTransitionBlendSeconds);
+	}
 }
 
-bool Cactus::HasZombieInRow()
+void Cactus::UpdateTargetCache()
 {
-	if (!mBoard) return false;
+	if (!mBoard) {
+		mHasGroundTarget = false;
+		mHasFlyingTarget = false;
+		return;
+	}
 
 	mCheckZombieTimer += DeltaTime::GetDeltaTime();
-	if (mCheckZombieTimer < kTargetCheckIntervalSeconds) return false;
+	if (mCheckZombieTimer < kTargetCheckIntervalSeconds) return;
 	mCheckZombieTimer = 0.0f;
 
 	const float cactusX = GetPosition().x;
-	bool found = false;
+	mHasGroundTarget = false;
+	mHasFlyingTarget = false;
 	mBoard->mEntityManager.ForEachZombieInRow(mRow, [&](Zombie* zombie) {
-		if (found || !zombie || !zombie->IsActive()) return;
+		if (!zombie || !zombie->IsActive()) return;
 		const float zombieX = zombie->GetPosition().x;
 		if (!zombie->IsMindControlled() && zombie->HasHead()
 			&& zombieX >= cactusX && zombieX <= SCENE_WIDTH
 			&& mBoard->CanPlantAcquireZombie(this, zombie)) {
-			found = true;
+			mHasFlyingTarget = mHasFlyingTarget
+				|| zombie->CanBeTargetedByProjectile(true);
+			mHasGroundTarget = mHasGroundTarget
+				|| zombie->CanBeTargetedByProjectile(false);
 		}
 	});
-	return found;
 }
 
-void Cactus::ShootSpike()
+bool Cactus::CanAcquireZombie(const Zombie* zombie) const
+{
+	return zombie && (zombie->CanBeTargetedByProjectile(false)
+		|| zombie->CanBeTargetedByProjectile(true));
+}
+
+void Cactus::ShootSpike(bool targetsFlying)
 {
 	if (!mBoard) return;
 
 	AudioSystem::PlaySound(GameRandom::Chance()
 		? ResourceKeys::Sounds::SOUND_SHOOTER_SHOOT
 		: ResourceKeys::Sounds::SOUND_SHOOTER_SHOOT2, 0.3f);
-	mBoard->CreateBullet(BulletType::BULLET_SPIKE, mRow,
-		GetVisualAnchorPosition() + kGroundSpikeOffset);
+	Bullet* spike = mBoard->CreateBullet(BulletType::BULLET_SPIKE, mRow,
+		GetVisualAnchorPosition()
+			+ (targetsFlying ? kFlyingSpikeOffset : kGroundSpikeOffset));
+	if (spike) {
+		spike->SetTargetsFlying(targetsFlying);
+	}
+}
+
+const char* Cactus::GetPhaseName() const
+{
+	switch (mPhase) {
+	case Phase::LOW: return "LOW";
+	case Phase::RISING: return "RISING";
+	case Phase::HIGH: return "HIGH";
+	case Phase::LOWERING: return "LOWERING";
+	}
+	return "LOW";
 }

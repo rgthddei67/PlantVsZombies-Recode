@@ -128,7 +128,8 @@ int Squash::FindTargetZombieID() const
 
 bool Squash::IsValidTarget(Zombie* zombie, float& score) const
 {
-	if (!zombie || zombie->IsMindControlled() || zombie->IsDying() || !zombie->HasHead()) {
+	if (!zombie || zombie->IsMindControlled() || zombie->IsDying() || !zombie->HasHead()
+		|| !zombie->CanBeTargetedByProjectile(false)) {
 		return false;
 	}
 	auto* collider = zombie->GetColliderComponent();
@@ -259,7 +260,8 @@ void Squash::ApplySquashDamage()
 		80.0f,
 	};
 	mBoard->mEntityManager.ForEachZombieInRow(mRow, [&](Zombie* zombie) {
-		if (!zombie || zombie->IsMindControlled() || zombie->IsDying()) return;
+		if (!zombie || zombie->IsMindControlled() || zombie->IsDying()
+			|| !zombie->CanBeTargetedByProjectile(false)) return;
 		auto* collider = zombie->GetColliderComponent();
 		if (!collider || !collider->mEnabled) return;
 

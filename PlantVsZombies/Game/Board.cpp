@@ -2544,7 +2544,8 @@ float Board::GetPlanternIllumination(int row, int col) const
 
 bool Board::CanPlantAcquireZombie(const Plant* plant, const Zombie* zombie) const
 {
-	if (!plant || !zombie || !SupportsPlanternMechanics()) return true;
+	if (!plant || !zombie || !plant->CanAcquireZombie(zombie)) return false;
+	if (!SupportsPlanternMechanics()) return true;
 	const Vector plantPosition = plant->GetPosition();
 	const Vector zombiePosition = zombie->GetPosition();
 	if (std::abs(zombie->mRow - plant->mRow) <= 1

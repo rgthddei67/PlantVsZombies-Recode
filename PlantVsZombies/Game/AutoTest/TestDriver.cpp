@@ -29,6 +29,7 @@
 #include "../Plant/Caltrop.h"
 #include "../Plant/Shooter.h"
 #include "../Plant/EliteScaredyShroom.h"
+#include "../Plant/Cactus.h"
 #include "../Bullet/Bullet.h"
 #include "../Zombie/ZombieType.h"
 #include "../Zombie/Zombie.h"
@@ -40,6 +41,7 @@
 #include "../Zombie/Polevaulter.h"
 #include "../Zombie/DolphinRiderZombie.h"
 #include "../Zombie/JackInTheBoxZombie.h"
+#include "../Zombie/BalloonZombie.h"
 #include "../Zombie/PoolNormalZombie.h"
 #include "../Trophy.h"   // dump_state 输出奖杯坐标
 #include "../Crater.h"   // dump_state 输出毁灭菇弹坑
@@ -831,6 +833,7 @@ bool TestDriver::ExecuteCurrent() {
 		bullet->SetVelocityX(cmd.value("velocityX", 290.0f));
 		bullet->SetVelocityY(cmd.value("velocityY", 0.0f));
 		bullet->SetBulletDamage(cmd.value("damage", bullet->GetBulletDamage()));
+		bullet->SetTargetsFlying(cmd.value("targetsFlying", false));
 		return true;
 	}
 	if (op == "spawn_zombie") {
@@ -844,6 +847,9 @@ bool TestDriver::ExecuteCurrent() {
 		if (cmd.value("stationary", false)) {
 			// 测试靶只停基础 Animator；不伪造冻结/减速状态，也不改变受击链。
 			z->SetAnimationSpeed(0.0f);
+			if (auto* balloon = dynamic_cast<BalloonZombie*>(z)) {
+				balloon->SetFlightVelocity(0.0f);
+			}
 		}
 		if (cmd.value("slowed", false)) {
 			z->SetCooldown(cmd.value("slowDuration", 20.0f));
@@ -1428,6 +1434,12 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_EXPLOSION);
 	out["limbsPopSoundRequestCount"] =
 		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_LIMBS_POP);
+	out["balloonInflateSoundRequestCount"] =
+		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_BALLOONINFLATE);
+	out["balloonPopSoundRequestCount"] =
+		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_BALLOON_POP);
+	out["plantGrowSoundRequestCount"] =
+		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_PLANTGROW);
 
 	if (auto* almanac = dynamic_cast<ZombieAlmanacScene*>(currentScene)) {
 		out["zombieAlmanacEntries"] = nlohmann::json::array();
@@ -1935,6 +1947,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "isDying", z->IsDying() },
 			{ "eatPlantID", z->GetEatingPlantID() },
 			{ "hasHead", z->HasHead() }, { "hasArm", z->HasArm() },
+			{ "flying", z->IsFlying() },
 			{ "slowCooldown", z->GetCooldownTimer() },
 			// slowed 供 assert_state（bool 可 equals）；slowCooldown 浮点仅供肉眼核对勿断言
 			{ "slowed", z->GetCooldownTimer() > 0.0f },
@@ -2039,6 +2052,24 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			zombieState["jackLowerArmVisible"] =
 				anim && anim->GetTrackVisible("zombie_jackbox_outerarm_lower");
 			out["jack"] = zombieState;
+		}
+		if (auto* balloon = dynamic_cast<BalloonZombie*>(z)) {
+			const char* phase = "FLYING";
+			switch (balloon->GetPhase()) {
+			case BalloonZombie::Phase::FLYING: phase = "FLYING"; break;
+			case BalloonZombie::Phase::POPPING: phase = "POPPING"; break;
+			case BalloonZombie::Phase::WALKING: phase = "WALKING"; break;
+			}
+			zombieState["balloonPhase"] = phase;
+			zombieState["balloonHealth"] = balloon->GetBalloonHealth();
+			zombieState["balloonMaxHealth"] = balloon->GetBalloonMaxHealth();
+			zombieState["balloonFlightVelocityOn1000"] =
+				static_cast<int>(std::lround(balloon->GetFlightVelocity() * 1000.0f));
+			zombieState["balloonPropellerFrameOn1000"] =
+				static_cast<int>(std::lround(balloon->GetPropellerFrame() * 1000.0f));
+			zombieState["balloonPropellerPlaying"] = balloon->IsPropellerPlaying();
+			zombieState["balloonHatVisible"] =
+				anim && anim->GetTrackVisible("hat");
 		}
 		if (auto* zamboni = dynamic_cast<ZamboniZombie*>(z)) {
 			zombieState["zamboniDamageStage"] = zamboni->GetDamageStage();
@@ -2188,6 +2219,11 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			plantState["caltropAttackCooldownMs"] = static_cast<int>(std::lround(
 				caltrop->GetAttackCooldown() * 1000.0f));
 			plantState["canBeEaten"] = caltrop->CanBeEaten();
+		}
+		if (auto* cactus = dynamic_cast<Cactus*>(p)) {
+			plantState["cactusPhase"] = cactus->GetPhaseName();
+			plantState["cactusHasGroundTarget"] = cactus->HasCachedGroundTarget();
+			plantState["cactusHasFlyingTarget"] = cactus->HasCachedFlyingTarget();
 		}
 		if (auto* threePeater = dynamic_cast<ThreePeater*>(p)) {
 			if (const Animator* head1 = threePeater->GetHeadAnimator()) {
@@ -2521,6 +2557,10 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	int snowPeaBulletCount = 0;
 	int fireballBulletCount = 0;
 	int spikeBulletCount = 0;
+	int flyingTargetSpikeCount = 0;
+	int groundTargetSpikeCount = 0;
+	int flyingTargetSpikePiercedZombieCount = 0;
+	int groundTargetSpikePiercedZombieCount = 0;
 	int torchwoodProtectedPeaCount = 0;
 	int animatedBulletCount = 0;
 	for (int id : board->mEntityManager.GetAllBulletIDs()) {
@@ -2539,7 +2579,17 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		if (bullet->mBulletType == BulletType::BULLET_PEA) ++peaBulletCount;
 		else if (bullet->mBulletType == BulletType::BULLET_SNOWPEA) ++snowPeaBulletCount;
 		else if (bullet->mBulletType == BulletType::BULLET_FIREBALL) ++fireballBulletCount;
-		else if (bullet->mBulletType == BulletType::BULLET_SPIKE) ++spikeBulletCount;
+		else if (bullet->mBulletType == BulletType::BULLET_SPIKE) {
+			++spikeBulletCount;
+			if (bullet->TargetsFlying()) {
+				++flyingTargetSpikeCount;
+				flyingTargetSpikePiercedZombieCount += bullet->GetPiercedZombieCount();
+			}
+			else {
+				++groundTargetSpikeCount;
+				groundTargetSpikePiercedZombieCount += bullet->GetPiercedZombieCount();
+			}
+		}
 		if (bullet->HasAnimatedPresentation()) ++animatedBulletCount;
 		out["bullets"].push_back({
 			{ "id", id },
@@ -2553,6 +2603,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "baseDamage", bullet->GetBulletDamage() },
 			{ "windDamage", bullet->GetWindAdjustedDamage() },
 			{ "threepeaterMotion", bullet->IsThreepeaterMotion() },
+			{ "targetsFlying", bullet->TargetsFlying() },
 			{ "hitTorchwoodColumn", bullet->GetHitTorchwoodColumn() },
 			{ "piercedZombieCount", bullet->GetPiercedZombieCount() },
 			{ "piercedZombieIDs", bullet->GetPiercedZombieIDs() },
@@ -2567,6 +2618,10 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["snowPeaBulletCount"] = snowPeaBulletCount;
 	out["fireballBulletCount"] = fireballBulletCount;
 	out["spikeBulletCount"] = spikeBulletCount;
+	out["flyingTargetSpikeCount"] = flyingTargetSpikeCount;
+	out["groundTargetSpikeCount"] = groundTargetSpikeCount;
+	out["flyingTargetSpikePiercedZombieCount"] = flyingTargetSpikePiercedZombieCount;
+	out["groundTargetSpikePiercedZombieCount"] = groundTargetSpikePiercedZombieCount;
 	out["torchwoodProtectedPeaCount"] = torchwoodProtectedPeaCount;
 	out["animatedBulletCount"] = animatedBulletCount;
 	// 绝对 X 会随测试取证时点变化；整数化相对跨度用于稳定断言同帧同速弹丸。

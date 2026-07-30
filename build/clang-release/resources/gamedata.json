@@ -52,6 +52,7 @@
     "ZOMBIE_GILDED_ZAMBONI":     { "weight": 3200, "appearWave": 9, "survivalRound": 8, "offset": [18.0, -108.0], "scale": 1.0 },
     "ZOMBIE_DOLPHIN_RIDER":      { "weight": 1500, "appearWave": 10, "survivalRound": 10, "offset": [-50.0, -85.0], "scale": 1.0 },
     "ZOMBIE_ELITE_DOLPHIN_RIDER": { "weight": 2400, "appearWave": 10, "survivalRound": 11, "offset": [-50.0, -85.0], "scale": 1.0 },
-    "ZOMBIE_JACK_IN_THE_BOX":     { "weight": 1000, "appearWave": 10, "survivalRound": 10, "offset": [-50.0, -85.0], "scale": 1.0 }
+    "ZOMBIE_JACK_IN_THE_BOX":     { "weight": 1000, "appearWave": 10, "survivalRound": 10, "offset": [-50.0, -85.0], "scale": 1.0 },
+    "ZOMBIE_BALLOON":             { "weight": 2000, "appearWave": 10, "survivalRound": 11, "offset": [-50.0, -98.0], "scale": 1.0 }
   }
 }

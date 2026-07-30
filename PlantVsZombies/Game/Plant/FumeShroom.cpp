@@ -70,7 +70,9 @@ float FumeShroom::FumeAttack()
 	mBoard->mEntityManager.ForEachZombieInRow(mRow, [&](Zombie* zombie) {
 		const float dx = zombie->GetPosition().x - thisX;
 		// 豁免魅惑僵尸：原版 DoRowAreaDamage(20, 2U) 的 damageRangeFlags 不含 bit7（不炸魅惑目标）
-		if (dx >= 0 && dx <= mFumeReach && zombie->HasHead() && !zombie->IsMindControlled())
+		if (dx >= 0 && dx <= mFumeReach && zombie->HasHead()
+			&& !zombie->IsMindControlled()
+			&& zombie->CanBeTargetedByProjectile(false))
 			targets.push_back(zombie);
 		});
 

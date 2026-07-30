@@ -58,6 +58,8 @@ description: Use when adding or tuning any PvZ zombie, or integrating zombies in
 ## 僵尸专属心智清单
 
 - **走路权威**：reanim 无 `anim_walk2` 必须覆写 `PlayWalkAnimation`（啃完回走/读档全经它）；啃食视觉残留用 `OnStartEating/OnStopEating` 对称钩子；永不覆写 `ResumeWalkAfterEat`。
+- **飞行/落地是命中层状态机，不只是视觉偏移**：由僵尸虚接口按当前 phase 声明空中层、地面层或过渡期不可命中，植物索敌与子弹碰撞都查询该接口；高低弹丸的层标记必须随对象池 `Reset()` 归零并入存档。飞行期同时禁用啃食、地面水池状态、冻结/黄油和断肢阈值，落地后再统一补结算；水道气球被击破按原版直接 `Die()`，不能先进入落地动画。飞行额外生命应在基类发光反馈后、普通防具/本体前由虚钩子消费，并参与全局生命倍率。专项至少覆盖空/地弹互斥、爆裂过渡、陆地落地、水道直接消失与存读档。
+- **同 reanim 独立附件**：螺旋桨等需要与主轨同时循环的部件可实例化第二个 Animator、只播放附件 clip，再挂到主 Animator 的稳定锚点；附件 clip 必须清除主轨下发的 clip 速度覆写，但保留冻结/减速 extra 倍率。父锚点隐藏不会自动阻止附件绘制，掉头、死亡和读档终态都要显式隐藏/暂停子 Animator；附件帧、播放态和宿主 phase 一起入档。
 - **不移动阶段**：覆写 `ZombieMove` 按状态早退（PaperZombie gasp / 舞王 SNAPPING+HOLD 同款）。
 - **共享循环音效要有物种级所有权**：`AudioSystem` 的循环 key 是全局共享资源，一只实例直接 `StopLoopingSound` 会误停仍存活的同类。为品种维护静态引用计数，每实例用布尔值保证只申领/释放一次；只在正式出生钩子和 RUNNING 读档恢复时申领，在开盒/换态、掉头、死亡和析构时释放，计数归零才真正停止。Load 不得重播 boing/surprise/explosion 等一次性声音。AutoTest 至少断言循环实际播放状态与一次性请求计数；允许同品种并存时再造两只，验证一只退态后循环仍由另一只保持。
 - **编队齐舞/同步动作**：动画速度必须 `SetAnimationSpeed(固定值)` 锁死——基类 `Start()` 给每僵尸随机 1.1~1.4，不锁必散拍。全队同步时钟用现成的 `Board::mBoardFrame`+`GetDanceBeatFrame()`（0~22 拍，12 逻辑步/拍，入存档），按拍映射轨道、缓存上次段位防每帧重播。
