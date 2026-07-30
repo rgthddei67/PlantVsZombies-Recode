@@ -16,6 +16,7 @@
 #include "../AudioSystem.h"
 #include "../Card.h"
 #include "../CardComponent.h"
+#include "../CardSlotManager.h"
 #include "../ShadowComponent.h"
 #include "../Plant/GameDataManager.h"
 #include "../Plant/PlantType.h"
@@ -30,6 +31,7 @@
 #include "../Plant/Shooter.h"
 #include "../Plant/EliteScaredyShroom.h"
 #include "../Plant/Cactus.h"
+#include "../Plant/Blover.h"
 #include "../Bullet/Bullet.h"
 #include "../Zombie/ZombieType.h"
 #include "../Zombie/Zombie.h"
@@ -712,6 +714,17 @@ bool TestDriver::ExecuteCurrent() {
 		Plant* p = gs->GetBoard()->CreatePlant(it->second,
 			cmd.value("row", 0), cmd.value("col", 0));
 		if (!p) { Fail("CreatePlant 返回空（格子非法或被占？）"); return false; }
+		if (auto* blover = dynamic_cast<Blover*>(p);
+			blover && cmd.contains("bloverDirection")) {
+			auto directionIt = kWindDirectionNames.find(
+				cmd["bloverDirection"].get<std::string>());
+			if (directionIt == kWindDirectionNames.end()
+				|| directionIt->second == WindDirection::NONE) {
+				Fail("plant: bloverDirection 必须是 HOUSE/FRONT");
+				return false;
+			}
+			blover->SetBlowDirection(directionIt->second);
+		}
 		return true;
 	}
 	if (op == "assert_can_plant") {
@@ -1440,6 +1453,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_BALLOON_POP);
 	out["plantGrowSoundRequestCount"] =
 		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_PLANTGROW);
+	out["bloverSoundRequestCount"] =
+		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_BLOVER);
 
 	if (auto* almanac = dynamic_cast<ZombieAlmanacScene*>(currentScene)) {
 		out["zombieAlmanacEntries"] = nlohmann::json::array();
@@ -1556,6 +1571,31 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				GameDataManager::GetInstance().GetPlantCooldown(type) * 1000.0f)) },
 		};
 	}
+	out["cards"] = nlohmann::json::array();
+	if (CardSlotManager* cardManager = gs->GetCardSlotManager()) {
+		for (Card* card : cardManager->GetCards()) {
+			if (!card) continue;
+			CardComponent* component = card->GetCardComponent();
+			TransformComponent* transform = card->GetTransform();
+			if (!component || !transform) continue;
+			nlohmann::json cardState = {
+				{ "type", PlantTypeName(component->GetPlantType()) },
+				{ "xInt", static_cast<int>(std::lround(
+					transform->GetPosition().x)) },
+				{ "yInt", static_cast<int>(std::lround(
+					transform->GetPosition().y)) },
+				{ "ready", component->IsReady() },
+				{ "selected", component->IsSelected() },
+				{ "cooldown", component->IsCooldown() },
+			};
+			if (component->GetPlantType() == PlantType::PLANT_BLOVER) {
+				cardState["bloverDirection"] =
+					WindDirectionName(component->GetBloverDirection());
+			}
+			out["cards"].push_back(std::move(cardState));
+		}
+	}
+	out["cardCount"] = static_cast<int>(out["cards"].size());
 
 	// 奖杯（在场时给坐标，否则 null）——胜利路径冒烟测试的断言抓手
 	if (auto trophy = board->mTrophy.lock()) {
@@ -1882,23 +1922,38 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		});
 	}
 
-	// 半透明植物预览来自落点幽灵；鼠标跟随预览保持不透明，故不会混入此抓手。
+	// 半透明植物预览来自落点幽灵；鼠标跟随预览保持不透明，分开导出便于验证卡片状态传递。
 	int cellPlantPreviewCount = 0;
+	int plantPreviewCount = 0;
 	out["cellPlantPreview"] = nullptr;
+	out["plantPreview"] = nullptr;
 	for (const auto& object : GameObjectManager::GetInstance().GetAllGameObjects()) {
 		auto* preview = object ? dynamic_cast<Plant*>(object.get()) : nullptr;
-		if (!preview || !preview->IsActive() || !preview->IsPreview()
-			|| preview->GetAlpha() >= 0.5f) continue;
-		++cellPlantPreviewCount;
+		if (!preview || !preview->IsActive() || !preview->IsPreview()) continue;
 		const Vector pos = preview->GetPosition();
-		out["cellPlantPreview"] = {
+		nlohmann::json previewState = {
 			{ "type", PlantTypeName(preview->mPlantType) },
 			{ "renderOrder", preview->GetRenderOrder() },
 			{ "xInt", static_cast<int>(std::lround(pos.x)) },
 			{ "yInt", static_cast<int>(std::lround(pos.y)) },
 		};
+		if (auto* blover = dynamic_cast<Blover*>(preview)) {
+			previewState["blowDirection"] =
+				WindDirectionName(blover->GetBlowDirection());
+			const auto animator = blover->GetAnimatorInternal();
+			previewState["flipX"] = animator && animator->GetFlipX();
+		}
+		if (preview->GetAlpha() < 0.5f) {
+			++cellPlantPreviewCount;
+			out["cellPlantPreview"] = std::move(previewState);
+		}
+		else {
+			++plantPreviewCount;
+			out["plantPreview"] = std::move(previewState);
+		}
 	}
 	out["cellPlantPreviewCount"] = cellPlantPreviewCount;
+	out["plantPreviewCount"] = plantPreviewCount;
 
 	out["zombies"] = nlohmann::json::array();
 	out["jack"] = nullptr;
@@ -2065,6 +2120,11 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			zombieState["balloonMaxHealth"] = balloon->GetBalloonMaxHealth();
 			zombieState["balloonFlightVelocityOn1000"] =
 				static_cast<int>(std::lround(balloon->GetFlightVelocity() * 1000.0f));
+			zombieState["balloonBloverBlowing"] = balloon->IsBloverBlowing();
+			zombieState["balloonBloverDirection"] =
+				WindDirectionName(balloon->GetBloverBlowDirection());
+			zombieState["balloonBloverRemainingInt"] =
+				static_cast<int>(std::lround(balloon->GetBloverBlowRemaining()));
 			zombieState["balloonPropellerFrameOn1000"] =
 				static_cast<int>(std::lround(balloon->GetPropellerFrame() * 1000.0f));
 			zombieState["balloonPropellerPlaying"] = balloon->IsPropellerPlaying();
@@ -2224,6 +2284,13 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			plantState["cactusPhase"] = cactus->GetPhaseName();
 			plantState["cactusHasGroundTarget"] = cactus->HasCachedGroundTarget();
 			plantState["cactusHasFlyingTarget"] = cactus->HasCachedFlyingTarget();
+		}
+		if (auto* blover = dynamic_cast<Blover*>(p)) {
+			plantState["blowDirection"] =
+				WindDirectionName(blover->GetBlowDirection());
+			plantState["blowTriggered"] = blover->HasTriggeredBlow();
+			const auto animator = blover->GetAnimatorInternal();
+			plantState["flipX"] = animator && animator->GetFlipX();
 		}
 		if (auto* threePeater = dynamic_cast<ThreePeater*>(p)) {
 			if (const Animator* head1 = threePeater->GetHeadAnimator()) {

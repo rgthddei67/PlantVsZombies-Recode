@@ -5,6 +5,7 @@
 #include "Component.h"
 #include "./CardDisplayComponent.h"
 #include "./Plant/PlantType.h"
+#include "WeatherTypes.h"
 #include <memory>
 
 class CardSlotManager;
@@ -26,6 +27,7 @@ private:
 	bool mIsReady = true;
 	bool mIsSelected = false;
 	bool mIsCooldown = false;
+	WindDirection mBloverDirection = WindDirection::TOWARD_FRONT;
 
 public:
 	CardComponent(PlantType type, int cost, float cooldown);
@@ -48,6 +50,11 @@ public:
 	float GetCooldownProgress() const;
 	CardState GetCardState() const;
 	void RestoreCooldown(float timer, float time);
+	/** 设置三叶草卡槽的下一株吹向；非法方向保持原值。 */
+	void SetBloverDirection(WindDirection direction);
+	/** 仅供三叶草卡槽右键在屋后/前线之间切换。 */
+	void ToggleBloverDirection();
+	WindDirection GetBloverDirection() const { return mBloverDirection; }
 
 	bool GetIsInChooseCardUI() const { return mIsInChooseCardUI; }
 	void SetIsInChooseCardUI(bool isInChooseCardUI) { mIsInChooseCardUI = isInChooseCardUI; }

@@ -1,0 +1,19 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 1 },
+    { "op": "choose_cards", "cards": [] },
+    { "op": "wait_state", "state": "GAME", "timeout": 15 },
+    { "op": "set_spawn_paused", "value": true },
+    { "op": "set_timescale", "value": 0.0 },
+    { "op": "plant", "type": "PLANT_BLOVER", "row": 2, "col": 3, "bloverDirection": "FRONT" },
+    { "op": "plant", "type": "PLANT_SUNFLOWER", "row": 2, "col": 5 },
+    { "op": "wait_frames", "value": 3 },
+    { "op": "assert_state", "path": "topPlantsByCell.2_3.type", "equals": "PLANT_BLOVER" },
+    { "op": "assert_state", "path": "topPlantsByCell.2_3.track", "equals": "anim_blow" },
+    { "op": "assert_state", "path": "topPlantsByCell.2_3.blowTriggered", "equals": false },
+    { "op": "assert_state", "path": "topPlantsByCell.2_5.type", "equals": "PLANT_SUNFLOWER" },
+    { "op": "screenshot", "name": "blover_visual.png" },
+    { "op": "dump_state", "name": "blover_visual.json" },
+    { "op": "quit" }
+  ]
+}

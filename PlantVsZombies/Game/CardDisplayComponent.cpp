@@ -18,6 +18,7 @@ namespace {
 	constexpr float kCardPlantImageScale = 0.64f;  // 普通植物卡图相对原始贴图的统一绘制倍率
 	constexpr float kTallNutCardImageScale = 0.70f;  // 高坚果卡图在统一倍率之上的独立缩放
 	constexpr float kTallNutCardImageOffsetY = -5.0f;  // 高坚果卡图上移量，避开底部阳光文字，单位：px
+	constexpr float kBloverCardImageScale = 0.90f;  // 三叶草卡槽贴图在普通卡图基础上的独立缩放
 }
 
 CardDisplayComponent::CardDisplayComponent(PlantType type, int sunCost, float cooldown)
@@ -97,6 +98,10 @@ void CardDisplayComponent::Draw(Graphics* g) {
 
 	if (isActivePlantern) DrawPlanternStatus(g, position);
 	else DrawSunCost(g, position);
+	if (plantType == PlantType::PLANT_BLOVER
+		&& GetCardComponent() && !GetCardComponent()->GetIsInChooseCardUI()) {
+		DrawBloverDirection(g, position);
+	}
 
 	if (isSelected) {
 		DrawSelectionHighlight(g, position);
@@ -139,7 +144,9 @@ void CardDisplayComponent::DrawPlantImage(Graphics* g, const Vector& position, c
 
 	const float typeScale = plantType == PlantType::PLANT_TALLNUT
 		? kTallNutCardImageScale
-		: 1.0f;
+		: plantType == PlantType::PLANT_BLOVER
+			? kBloverCardImageScale
+			: 1.0f;
 	const float typeOffsetY = plantType == PlantType::PLANT_TALLNUT
 		? kTallNutCardImageOffsetY
 		: 0.0f;
@@ -150,6 +157,22 @@ void CardDisplayComponent::DrawPlantImage(Graphics* g, const Vector& position, c
 	// 从既有卡图矩形中心缩放，避免缩小后向左上角漂移。
 	const float drawX = position.x - 13.0f + (baseW - drawW) * 0.5f;
 	const float drawY = position.y - 9.0f + (baseH - drawH) * 0.5f + typeOffsetY;
+
+	const CardComponent* component = GetCardComponent();
+	const bool flipBlover = plantType == PlantType::PLANT_BLOVER
+		&& component && !component->GetIsInChooseCardUI()
+		&& component->GetBloverDirection() == WindDirection::TOWARD_HOUSE;
+	if (flipBlover) {
+		// 方向箭头和卡图消费同一卡片状态；绕卡图中心镜像可保持 0.9 缩放后的占位不变。
+		const float centerX = drawX + drawW * 0.5f;
+		g->PushTransform();
+		g->Translate(centerX, 0.0f);
+		g->Scale(-1.0f, 1.0f);
+		g->Translate(-centerX, 0.0f);
+		g->DrawTexture(plantTexture, drawX, drawY, drawW, drawH, 0.0f, color);
+		g->PopTransform();
+		return;
+	}
 
 	g->DrawTexture(plantTexture, drawX, drawY, drawW, drawH, 0.0f, color);
 }
@@ -195,6 +218,27 @@ void CardDisplayComponent::DrawPlanternStatus(Graphics* g, const Vector& positio
 			static_cast<float>(CARD_WIDTH - 2), static_cast<float>(CARD_HEIGHT - 2),
 			glm::vec4(255.0f, 205.0f, 60.0f, 255.0f));
 	}
+}
+
+void CardDisplayComponent::DrawBloverDirection(
+	Graphics* g, const Vector& position)
+{
+	CardComponent* component = GetCardComponent();
+	if (!g || !component) return;
+
+	const bool towardFront =
+		component->GetBloverDirection() == WindDirection::TOWARD_FRONT;
+	const float tailX = position.x + (towardFront ? 31.0f : 45.0f);
+	const float tipX = position.x + (towardFront ? 45.0f : 31.0f);
+	const float centerY = position.y + 57.0f;
+	const float headSign = towardFront ? -1.0f : 1.0f;
+	const glm::vec4 back(25.0f, 36.0f, 25.0f, 220.0f);
+	const glm::vec4 arrow(112.0f, 225.0f, 118.0f, 255.0f);
+	g->FillRect(position.x + 28.0f, position.y + 50.0f,
+		20.0f, 14.0f, back);
+	g->DrawLine(tailX, centerY, tipX, centerY, arrow);
+	g->DrawLine(tipX, centerY, tipX + headSign * 5.0f, centerY - 4.0f, arrow);
+	g->DrawLine(tipX, centerY, tipX + headSign * 5.0f, centerY + 4.0f, arrow);
 }
 
 void CardDisplayComponent::DrawCooldownMask(Graphics* g, const Vector& position) {

@@ -1,0 +1,28 @@
+#pragma once
+
+#include "Plant.h"
+#include "../WeatherTypes.h"
+
+/**
+ * @brief 三叶草：第 44 帧按卡槽方向吹风，第 61 帧演出结束后消失。
+ */
+class Blover final : public Plant {
+public:
+	using Plant::Plant;
+
+	void SetBlowDirection(WindDirection direction);
+	WindDirection GetBlowDirection() const { return mBlowDirection; }
+	bool HasTriggeredBlow() const { return mBlowTriggered; }
+
+protected:
+	void SetupPlant() override;
+	void SaveExtraData(nlohmann::json& j) const override;
+	void LoadExtraData(const nlohmann::json& j) override;
+
+private:
+	void TriggerBlow();
+	void ApplyDirectionPresentation();
+
+	WindDirection mBlowDirection = WindDirection::TOWARD_FRONT;
+	bool mBlowTriggered = false;
+};

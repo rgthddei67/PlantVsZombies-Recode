@@ -1895,6 +1895,30 @@ void Board::RerollWindDirection(int directionRoll)
 	RestartRainVisualForWindChange();
 }
 
+bool Board::RedirectTyphoonFromBlover(WindDirection direction)
+{
+	if (!HasTyphoon()
+		|| (direction != WindDirection::TOWARD_HOUSE
+			&& direction != WindDirection::TOWARD_FRONT)) {
+		return false;
+	}
+
+	const bool changed = mWindDirection != direction;
+	mWindDirection = direction;
+	// 玩家主动改向后重新获得一个完整方向阶段，避免旧计时恰好归零而在下一帧立刻随机翻回。
+	mWindDirectionTimer = GameRandom::Range(
+		kWindDirectionDurationMin, kWindDirectionDurationMax);
+	if (mTyphoonGustActive) {
+		// 活动阵风的锁定方向也是玩法权威：后续僵尸漂移与尚未结算的植物换格立即跟随。
+		mActiveGustDirection = direction;
+	}
+	if (changed) {
+		mWindParticleTimer = 0.0f;
+		RestartRainVisualForWindChange();
+	}
+	return true;
+}
+
 /**
  * 周期性发射覆盖画面的横向风线。三档共用同一粒子资源，只用发射间隔表达浓度；
  * 该计时器是纯视觉瞬态，读档后从零开始即可按已恢复的强度与方向重建。

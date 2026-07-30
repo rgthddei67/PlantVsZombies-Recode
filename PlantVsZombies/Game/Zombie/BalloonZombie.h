@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Zombie.h"
+#include "../WeatherTypes.h"
 
 /**
  * @brief 经典气球僵尸：先以 20 点气球生命飞行，破裂演出结束后落地并恢复普通啃食。
@@ -21,8 +22,15 @@ public:
 	float GetFlightVelocity() const { return mFlightVelocity; }
 	float GetPropellerFrame() const;
 	bool IsPropellerPlaying() const;
+	bool IsBloverBlowing() const { return mBloverBlowing; }
+	WindDirection GetBloverBlowDirection() const { return mBloverBlowDirection; }
+	float GetBloverBlowRemaining() const { return mBloverBlowRemaining; }
 	/** AutoTest 静止靶与存档恢复共用的明确速度入口，单位：像素/秒。 */
 	void SetFlightVelocity(float velocity);
+	/**
+	 * 启动三叶草连续吹飞：向屋后累计滑行 400px，向前线滑出屏幕后再 Die。
+	 */
+	void BlowAway(WindDirection direction);
 
 	void Update() override;
 	void StartEat(ColliderComponent* other) override;
@@ -74,4 +82,7 @@ private:
 	float mFlightVelocity = 30.0f;
 	float mGroundColliderOffsetY = -65.0f;
 	std::shared_ptr<Animator> mPropellerAnimator;
+	bool mBloverBlowing = false;
+	WindDirection mBloverBlowDirection = WindDirection::NONE;
+	float mBloverBlowRemaining = 0.0f;
 };

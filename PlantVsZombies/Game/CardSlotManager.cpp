@@ -9,6 +9,7 @@
 #include "./Plant/GameDataManager.h"
 #include "AudioSystem.h"
 #include "./Plant/Plant.h"
+#include "./Plant/Blover.h"
 #include "./Plant/Plantern.h"
 #include "ShadowComponent.h"
 #include "../GameAPP.h"
@@ -60,6 +61,7 @@ void CardSlotManager::Start() {
 
 void CardSlotManager::Update() {
 	static int lastSun = 0;
+	const bool bloverDirectionChanged = UpdateBloverDirectionInput();
 	UpdatePlanternGearMenuInput();
 
 	// 如果有选中的卡牌，更新鼠标悬停的Cell
@@ -70,7 +72,8 @@ void CardSlotManager::Update() {
 
 		UpdatePreviewToMouse(mouseScreen);              // 传入屏幕坐标
 		// 右键取消选择
-		if (input.IsMouseButtonPressed(SDL_BUTTON_RIGHT)) {
+		if (!bloverDirectionChanged
+			&& input.IsMouseButtonPressed(SDL_BUTTON_RIGHT)) {
 			DeselectCard();
 			mBoard->mCursorObjectManager.ClearActive();
 		}
@@ -239,6 +242,48 @@ void CardSlotManager::UpdatePlanternGearMenuInput()
 	}
 }
 
+bool CardSlotManager::UpdateBloverDirectionInput()
+{
+	auto& input = GameAPP::GetInstance().GetInputHandler();
+	if (!input.IsMouseButtonPressed(SDL_BUTTON_RIGHT)) return false;
+
+	const Vector mouse = input.GetMousePosition();
+	for (auto it = cards.rbegin(); it != cards.rend(); ++it) {
+		Card* card = *it;
+		if (!card || !card->IsActive()) continue;
+		auto* component = card->GetCardComponent();
+		auto* collider = card->GetComponent<ColliderComponent>();
+		if (!component || !collider
+			|| component->GetPlantType() != PlantType::PLANT_BLOVER
+			|| !collider->mEnabled || !collider->ContainsPoint(mouse)) {
+			continue;
+		}
+
+		if (selectedCard && selectedCard != card) {
+			DeselectCard();
+			if (mBoard) mBoard->mCursorObjectManager.ClearActive();
+		}
+		component->ToggleBloverDirection();
+		ApplySelectedBloverDirection(plantPreview);
+		ApplySelectedBloverDirection(cellPlantPreview);
+		mPlanternGearMenuOpen = false;
+		AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_CLICKSEED, 0.45f);
+		return true;
+	}
+	return false;
+}
+
+void CardSlotManager::ApplySelectedBloverDirection(Plant* plant) const
+{
+	auto* blover = dynamic_cast<Blover*>(plant);
+	auto* cardComponent = selectedCard
+		? selectedCard->GetComponent<CardComponent>() : nullptr;
+	if (blover && cardComponent
+		&& cardComponent->GetPlantType() == PlantType::PLANT_BLOVER) {
+		blover->SetBlowDirection(cardComponent->GetBloverDirection());
+	}
+}
+
 void CardSlotManager::DrawPlanternGearMenu(Graphics* g)
 {
 	if (!g || !mPlanternGearMenuOpen || !mBoard || !mBoard->GetActivePlantern()) return;
@@ -316,6 +361,7 @@ void CardSlotManager::CreatePlantPreview(PlantType plantType) {
 		plantPreview->PauseAnimation();
 		plantPreview->SetRenderOrder(LAYER_EFFECTS + 10000);
 		plantPreview->RemoveComponent<ShadowComponent>();
+		ApplySelectedBloverDirection(plantPreview);
 	}
 }
 
@@ -340,6 +386,7 @@ void CardSlotManager::CreateCellPlantPreview(PlantType plantType, Cell* cell) {
 			cellPlantPreview->SetAlpha(0.35f);
 			cellPlantPreview->RemoveComponent<ShadowComponent>();
 			cellPlantPreview->PauseAnimation();
+			ApplySelectedBloverDirection(cellPlantPreview);
 		}
 	}
 }
@@ -482,6 +529,9 @@ void CardSlotManager::PlacePlantInCell(int row, int col) {
 	Plant* plant = mBoard->CreatePlant(cardComp->GetPlantType(), row, col);
 
 	if (plant) {
+		if (auto* blover = dynamic_cast<Blover*>(plant)) {
+			blover->SetBlowDirection(cardComp->GetBloverDirection());
+		}
 		cardComp->StartCooldown();
 	}
 

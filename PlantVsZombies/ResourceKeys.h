@@ -161,6 +161,7 @@ namespace ResourceKeys
 		RKEY(IMAGE_SEASHROOM);
 		RKEY(IMAGE_PLANTERN);
 		RKEY(IMAGE_CACTUS);
+		RKEY(IMAGE_BLOVER);
 		RKEY(IMAGE_SUNSHROOM);
 		RKEY(IMAGE_FUMESHROOM);
 		RKEY(IMAGE_GRAVEBUSTER);
@@ -287,6 +288,7 @@ namespace ResourceKeys
 		RKEY(SOUND_BALLOON_POP);				// 原版 TirePop Foley 使用的车辆爆胎声
 		RKEY(SOUND_BALLOONINFLATE);			// 气球僵尸正式出生时的充气声
 		RKEY(SOUND_PLANTGROW);				// 仙人掌发现空中目标后伸长
+		RKEY(SOUND_BLOVER);					// 三叶草第 44 帧吹风结算
 		RKEY(SOUND_EXPLOSION);				// 冰车爆炸声
 		RKEY(SOUND_DOLPHIN_APPEARS);			// 海豚僵尸登场
 		RKEY(SOUND_DOLPHIN_BEFORE_JUMPING);	// 海豚起跳前鸣叫
@@ -351,6 +353,7 @@ namespace ResourceKeys
 		inline const std::string REANIM_SEASHROOM = "SeaShroom";
 		inline const std::string REANIM_PLANTERN = "Plantern";
 		inline const std::string REANIM_CACTUS = "Cactus";
+		inline const std::string REANIM_BLOVER = "Blover";
 
 		inline const std::string REANIM_NORMAL_ZOMBIE = "NormalZombie";
 		inline const std::string REANIM_CONE_ZOMBIE = "ConeZombie";

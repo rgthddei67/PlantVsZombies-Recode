@@ -26,3 +26,11 @@ metadata:
 - 掉头粒子使用独立 `particles/ZombieBalloonHead.png`，按 `ParticleTextures` 生成的资源键为 `PARTICLE_ZOMBIEBALLOONHEAD`；不能继续复用 reanim 的单层头片，否则会缺少主人提供的完整头部造型。掉臂使用主人对照原版确认最接近的 `Zombie_polevaulter_innerhand.png`，由专属 `ZombieBalloonArmOff` 粒子预加载并发射，不复用通用 `ZombieArmOff`。
 - `clang-playtest` 已编译通过且无警告。`smoke_balloon_cactus.json` 在主人当前桌面可见运行，153 条命令、exit 0、`run.log` 以 `script finished OK` 结束；覆盖出生声、螺旋桨、空地命中互斥、爆裂中存读档、陆地落地、水道直接移除、啃食、断臂、专属掉头、第 152 帧死亡，以及飞行/落地两态致死灰烬直消；另以 100 层僵尸生命词条锁定非致死灰烬仍保留 1970 本体生命。12 张同步截图已人工核对。
 - `smoke_fog_spawnlists_4_1_to_4_2.json` 同样可见 exit 0，确认 4-3 的完整有序出怪池为普通、路障、气球，选卡预览能正确绘制气球僵尸。
+
+## 2026-07-30 三叶草连续吹飞
+
+三叶草第 44 帧只为仍在 FLYING 的气球启动连续吹飞态，不再瞬移。朝屋后以 600 px/s 累计
+精确移动 400 px 后停止吹飞；重复同向效果继续累加 400 px。朝前线以同速移动到
+`SCENE_WIDTH + 80` 后才 `Die()`。该状态优先于普通飞行速度和台风漂移，并保存吹飞标志、
+方向与剩余距离；气球爆裂时主动清除吹飞态。连续版本已通过 `clang-playtest` 编译，主人要求
+停止自动启动游戏，当前手感和完整专项由主人亲测。

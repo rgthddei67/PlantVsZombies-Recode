@@ -145,3 +145,10 @@ CardUI 所在的 `GameObjects` 命令，而在 `GameScene::BuildDrawCommands` �
 56 个可见雾格、最高 alpha 148、边缘/内部列 alpha 131/148，并截取同步截图。未修复版本在同一
 位置确定性得到 `visibleCells=0`；修复后 `clang-playtest` 构建通过，可见专项 152 条及
 `smoke_plantern_fog_core` 185 条均退出 0、`script finished OK`。
+
+## 2026-07-30 三叶草主动改向
+
+`Board::RedirectTyphoonFromBlover` 是外部能力改风的单一入口：有台风时同时改写持续
+`mWindDirection` 与仍在进行的 `mActiveGustDirection`，重新取得 15～25 秒完整方向阶段并
+重启方向相关雨/风视觉。它不改变台风强度、阵风预算/剩余时长、已完成的植物换格或迷雾驱散；
+没有台风时 no-op。三叶草自身不写雾势，普通雾的既有驱散量仍会按原规则回流。

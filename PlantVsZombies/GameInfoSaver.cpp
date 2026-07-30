@@ -529,6 +529,10 @@ bool GameInfoSaver::SerializeLevelDataToPath(Board* board, CardSlotManager* mana
 			c["cooldownTime"] = comp->GetCooldownTime();
 			c["isCooldown"] = comp->IsCooldown();
 			c["cooldownTimer"] = comp->GetCooldownTimer();
+			if (comp->GetPlantType() == PlantType::PLANT_BLOVER) {
+				c["bloverDirection"] =
+					static_cast<int>(comp->GetBloverDirection());
+			}
 			cardsArr.push_back(c);
 		}
 	}
@@ -1082,6 +1086,15 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 				if (auto comp = card->GetComponent<CardComponent>()) {
 					comp->RestoreCooldown(cooldownTimer, cooldownTime);
 				}
+			}
+			if (auto comp = card->GetComponent<CardComponent>();
+				comp && plantType == PlantType::PLANT_BLOVER) {
+				const int direction = c.value("bloverDirection",
+					static_cast<int>(WindDirection::TOWARD_FRONT));
+				comp->SetBloverDirection(
+					direction == static_cast<int>(WindDirection::TOWARD_HOUSE)
+					? WindDirection::TOWARD_HOUSE
+					: WindDirection::TOWARD_FRONT);
 			}
 			manager->AddCard(card);
 		}

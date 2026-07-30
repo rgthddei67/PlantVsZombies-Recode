@@ -25,6 +25,9 @@ namespace {
 	constexpr int kEatEventFrameTwo = 80;               // 主人给定的第二处啃食伤害全局帧
 	constexpr int kDeathEventFrame = 152;               // 主人给定的死亡回收全局帧
 	constexpr float kOneShotVolume = 0.4f;              // 气球充气、爆裂与断肢音效音量
+	constexpr float kBloverHouseDisplacement = 400.0f;  // 三叶草吹向屋后时每次累计滑行距离，单位：像素
+	constexpr float kBloverBlowSpeed = 600.0f;          // 三叶草吹飞的连续横移速度，单位：像素/秒
+	constexpr float kBloverFrontExitPadding = 80.0f;    // 向前线吹飞后的画面外死亡安全余量，单位：像素
 }
 
 void BalloonZombie::SetupZombie()
@@ -106,6 +109,34 @@ void BalloonZombie::ZombieMove(float scaledDelta, TransformComponent* transform)
 {
 	if (mPhase == Phase::FLYING) {
 		if (!transform) return;
+		if (mBloverBlowing) {
+			// 吹飞态独占本帧横移，避免普通飞行和台风倍率污染“每株朝屋后 400px”的距离契约。
+			const float step = kBloverBlowSpeed * scaledDelta;
+			if (mBloverBlowDirection == WindDirection::TOWARD_HOUSE) {
+				const float applied = std::min(step, mBloverBlowRemaining);
+				transform->Translate(-applied, 0.0f);
+				mBloverBlowRemaining =
+					std::max(0.0f, mBloverBlowRemaining - applied);
+				if (mBloverBlowRemaining <= 0.0f) {
+					mBloverBlowing = false;
+					mBloverBlowDirection = WindDirection::NONE;
+				}
+				return;
+			}
+			if (mBloverBlowDirection == WindDirection::TOWARD_FRONT) {
+				transform->Translate(step, 0.0f);
+				const float exitX =
+					static_cast<float>(SCENE_WIDTH) + kBloverFrontExitPadding;
+				if (GetPosition().x >= exitX) {
+					SetPosition(Vector(exitX, GetPosition().y));
+					Die();
+				}
+				return;
+			}
+			mBloverBlowing = false;
+			mBloverBlowDirection = WindDirection::NONE;
+			mBloverBlowRemaining = 0.0f;
+		}
 		const float direction = mIsMindControlled ? 1.0f : -1.0f;
 		const float windMultiplier = mBoard
 			? AmplifySpeedMultiplierForGoldenIce(
@@ -144,6 +175,9 @@ void BalloonZombie::PopBalloon()
 {
 	if (mPhase != Phase::FLYING || mIsDead) return;
 
+	mBloverBlowing = false;
+	mBloverBlowDirection = WindDirection::NONE;
+	mBloverBlowRemaining = 0.0f;
 	mBalloonHealth = 0;
 	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_BALLOON_POP, kOneShotVolume);
 	// 原版在泳池行击破气球后直接清除，避免没有水上落地轨道的僵尸站在水面。
@@ -311,6 +345,9 @@ void BalloonZombie::SaveExtraData(nlohmann::json& j) const
 	j["balloonHealth"] = mBalloonHealth;
 	j["balloonMaxHealth"] = mBalloonMaxHealth;
 	j["flightVelocity"] = mFlightVelocity;
+	j["bloverBlowing"] = mBloverBlowing;
+	j["bloverBlowDirection"] = static_cast<int>(mBloverBlowDirection);
+	j["bloverBlowRemaining"] = mBloverBlowRemaining;
 	if (mPropellerAnimator) {
 		j["propellerFrame"] = mPropellerAnimator->GetCurrentFrame();
 		j["propellerPlaying"] = mPropellerAnimator->IsPlaying();
@@ -328,6 +365,21 @@ void BalloonZombie::LoadExtraData(const nlohmann::json& j)
 		j.value("balloonHealth", mBalloonMaxHealth), 0, mBalloonMaxHealth);
 	mFlightVelocity = std::clamp(
 		j.value("flightVelocity", 30.0f), 0.0f, kFlightVelocityMax);
+	const int blowDirection = j.value("bloverBlowDirection",
+		static_cast<int>(WindDirection::NONE));
+	mBloverBlowDirection =
+		blowDirection == static_cast<int>(WindDirection::TOWARD_HOUSE)
+		? WindDirection::TOWARD_HOUSE
+		: blowDirection == static_cast<int>(WindDirection::TOWARD_FRONT)
+			? WindDirection::TOWARD_FRONT : WindDirection::NONE;
+	mBloverBlowing = mPhase == Phase::FLYING
+		&& j.value("bloverBlowing", false)
+		&& mBloverBlowDirection != WindDirection::NONE;
+	mBloverBlowRemaining = mBloverBlowing
+		&& mBloverBlowDirection == WindDirection::TOWARD_HOUSE
+		? std::max(0.0f,
+			j.value("bloverBlowRemaining", kBloverHouseDisplacement))
+		: 0.0f;
 	if (mPropellerAnimator) {
 		mPropellerAnimator->PlayTrack("propeller");
 		mPropellerAnimator->SetSpeed(1.0f);
@@ -344,6 +396,29 @@ void BalloonZombie::LoadExtraData(const nlohmann::json& j)
 void BalloonZombie::SetFlightVelocity(float velocity)
 {
 	mFlightVelocity = std::clamp(velocity, 0.0f, kFlightVelocityMax);
+}
+
+void BalloonZombie::BlowAway(WindDirection direction)
+{
+	if (mPhase != Phase::FLYING || mIsDead || mIsDying || !IsActive()) return;
+
+	if (direction == WindDirection::TOWARD_HOUSE) {
+		if (mBloverBlowing
+			&& mBloverBlowDirection == WindDirection::TOWARD_HOUSE) {
+			mBloverBlowRemaining += kBloverHouseDisplacement;
+		}
+		else {
+			mBloverBlowRemaining = kBloverHouseDisplacement;
+		}
+		mBloverBlowDirection = direction;
+		mBloverBlowing = true;
+		return;
+	}
+	if (direction == WindDirection::TOWARD_FRONT) {
+		mBloverBlowDirection = direction;
+		mBloverBlowRemaining = 0.0f;
+		mBloverBlowing = true;
+	}
 }
 
 float BalloonZombie::GetPropellerFrame() const

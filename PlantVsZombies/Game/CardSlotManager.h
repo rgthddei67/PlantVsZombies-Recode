@@ -91,6 +91,9 @@ private:
 	void PlacePlantInCell(int row, int col);
 	Card* FindPlanternCard() const;
 	void UpdatePlanternGearMenuInput();
+	/** 右键命中三叶草卡槽时切换方向；返回是否消费了本次右键。 */
+	bool UpdateBloverDirectionInput();
+	void ApplySelectedBloverDirection(Plant* plant) const;
 };
 
 #endif

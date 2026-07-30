@@ -156,6 +156,22 @@ void CardComponent::RestoreCooldown(float timer, float time) {
 	}
 }
 
+void CardComponent::SetBloverDirection(WindDirection direction)
+{
+	if (direction != WindDirection::TOWARD_HOUSE
+		&& direction != WindDirection::TOWARD_FRONT) {
+		return;
+	}
+	mBloverDirection = direction;
+}
+
+void CardComponent::ToggleBloverDirection()
+{
+	if (mPlantType != PlantType::PLANT_BLOVER) return;
+	mBloverDirection = mBloverDirection == WindDirection::TOWARD_HOUSE
+		? WindDirection::TOWARD_FRONT : WindDirection::TOWARD_HOUSE;
+}
+
 void CardComponent::StartCooldown() {
 	if (GameAPP::mDevelopMode && GameAPP::mDevNoCooldown) return;   // 开发者作弊：不进入冷却
 	if (IsReady() && !mIsCooldown) {

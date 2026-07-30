@@ -300,6 +300,7 @@
     <Sound>./resources/sounds/Plant/CHOMPPLANT.ogg</Sound>
     <Sound>./resources/sounds/Plant/plantgrow.ogg</Sound>
     <Sound>./resources/sounds/Plant/fume.ogg</Sound>
+    <Sound>./resources/sounds/Plant/blover.ogg</Sound>
 
     <Sound>./resources/sounds/Bullet/HitCone.ogg</Sound>
     <Sound>./resources/sounds/Bullet/HitCone2.ogg</Sound>
@@ -359,6 +360,7 @@
     <Reanimation name="SeaShroom">./resources/reanim/SeaShroom.reanim</Reanimation>
     <Reanimation name="Plantern">./resources/reanim/Plantern.reanim</Reanimation>
     <Reanimation name="Cactus">./resources/reanim/Cactus.reanim</Reanimation>
+    <Reanimation name="Blover">./resources/reanim/Blover.reanim</Reanimation>
 
     <Reanimation name="NormalZombie">./resources/reanim/NormalZombie.reanim</Reanimation>
     <Reanimation name="ConeZombie">./resources/reanim/ConeZombie.reanim</Reanimation>

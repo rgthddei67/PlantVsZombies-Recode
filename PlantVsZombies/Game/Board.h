@@ -478,6 +478,11 @@ public:
 	int GetCurrentTyphoonChancePercent() const;
 	TyphoonStrength GetTyphoonStrength() const { return mTyphoonStrength; }
 	WindDirection GetWindDirection() const { return mWindDirection; }
+	/**
+	 * 三叶草改写当前台风方向；活动阵风同步转向，但强度、预算和迷雾驱散量保持不变。
+	 * @return 当前确有台风且方向合法时返回 true。
+	 */
+	bool RedirectTyphoonFromBlover(WindDirection direction);
 	float GetTyphoonStrengthTimer() const { return mTyphoonStrengthTimer; }
 	float GetWindDirectionTimer() const { return mWindDirectionTimer; }
 	float GetWindGustTimer() const { return mWindGustTimer; }
