@@ -29,7 +29,7 @@ public:
 
 	/** 尝试加入雾火，返回实际接收量；溢出部分直接丢弃并触发卡槽满仓提示。 */
 	float AddFuel(float amount);
-	/** 为一团飞行中的雾火预留容量，但暂不增加玩家可见燃料。 */
+	/** 为飞行雾火预留容量；同批在途量受当前单波预算限制，避免跨波奖励被瞬间兑现。 */
 	float ReserveFuel(float amount);
 	/** 雾火飞抵本体后，把对应预留量正式计入燃料。 */
 	void DeliverReservedFuel(float amount);
@@ -39,6 +39,8 @@ public:
 	float GetFuel() const { return mFuel; }
 	float GetFuelRatio() const { return mFuel / FUEL_CAPACITY; }
 	float GetPendingFuel() const { return mPendingFuel; }
+	/** 返回当前挡位在当前波次的每游戏秒燃料消耗。 */
+	float GetCurrentBurnRate() const;
 	PlanternGear GetGear() const { return mGear; }
 	bool HasUsableLight() const {
 		return !mIsPreview && !IsSquished()
@@ -55,5 +57,5 @@ private:
 	PlanternGear mGear = PlanternGear::LOW;
 	float mFuelFullHintTimer = 0.0f;
 
-	static float GetBurnRate(PlanternGear gear);
+	float GetBurnRate(PlanternGear gear) const;
 };

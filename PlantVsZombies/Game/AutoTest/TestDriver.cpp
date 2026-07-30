@@ -1610,6 +1610,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "capacity", static_cast<int>(Plantern::FUEL_CAPACITY) },
 			{ "gear", plantern ? PlanternGearName(plantern->GetGear()) : "NONE" },
 			{ "gearValue", board->GetPlanternGearValue() },
+			{ "burnRateTenths", plantern ? static_cast<int>(std::lround(
+				plantern->GetCurrentBurnRate() * 10.0f)) : 0 },
 			{ "fullHintOn", board->GetPlanternFuelFullHintTimer() > 0.0f },
 			{ "dropAccumulatorPct", static_cast<int>(std::lround(
 				board->GetMistFuelDropAccumulator() * 100.0f)) },
@@ -1618,6 +1620,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				board->GetMistFuelScarcityFactor() * 100.0f)) },
 			{ "rewardAmount", board->GetMistFuelRewardAmount() },
 			{ "waveBudget", board->GetMistFuelWaveBudget() },
+			{ "intakeLimit", board->GetMistFuelWaveBudget() },
 			{ "baseCarrierChancePct", static_cast<int>(std::lround(
 				board->GetMistFuelBaseCarrierChance() * 100.0f)) },
 			{ "heavyCarrierBonusPct", static_cast<int>(std::lround(

@@ -12,7 +12,8 @@
 namespace {
 	constexpr float kLowBurnRate = 0.5f;     // 一档每游戏秒消耗的雾火
 	constexpr float kMediumBurnRate = 1.0f;  // 二档每游戏秒消耗的雾火
-	constexpr float kHighBurnRate = 2.0f;    // 三档每游戏秒消耗的雾火
+	constexpr float kHighEarlyBurnRate = 2.0f; // 首波三档每游戏秒消耗的雾火
+	constexpr float kHighLateBurnRate = 6.0f;  // 最终波三档每游戏秒消耗的雾火
 	constexpr float kFuelFullHintSeconds = 1.8f; // 雾火溢出后卡槽提示的持续游戏秒
 }
 
@@ -47,7 +48,7 @@ void Plantern::PlantUpdate()
 		return;
 	}
 
-	mFuel = std::max(0.0f, mFuel - GetBurnRate(mGear) * deltaTime);
+	mFuel = std::max(0.0f, mFuel - GetCurrentBurnRate() * deltaTime);
 }
 
 void Plantern::Draw(Graphics* g)
@@ -110,8 +111,13 @@ float Plantern::AddFuel(float amount)
 float Plantern::ReserveFuel(float amount)
 {
 	if (amount <= 0.0f) return 0.0f;
-	const float available = std::max(0.0f, FUEL_CAPACITY - mFuel - mPendingFuel);
-	const float accepted = std::min(amount, available);
+	const float storageAvailable = std::max(
+		0.0f, FUEL_CAPACITY - mFuel - mPendingFuel);
+	// 允许一次爆发兑现本波完整预算，但不能把数波未领取奖励同时灌入灯芯。
+	const float intakeLimit = mBoard
+		? static_cast<float>(mBoard->GetMistFuelWaveBudget()) : FUEL_CAPACITY;
+	const float intakeAvailable = std::max(0.0f, intakeLimit - mPendingFuel);
+	const float accepted = std::min({ amount, storageAvailable, intakeAvailable });
 	mPendingFuel += accepted;
 	if (accepted + 0.001f < amount) {
 		mFuelFullHintTimer = kFuelFullHintSeconds;
@@ -138,13 +144,24 @@ void Plantern::SetGear(PlanternGear gear)
 	mGear = static_cast<PlanternGear>(value);
 }
 
-float Plantern::GetBurnRate(PlanternGear gear)
+float Plantern::GetCurrentBurnRate() const
+{
+	return GetBurnRate(mGear);
+}
+
+float Plantern::GetBurnRate(PlanternGear gear) const
 {
 	switch (gear) {
 	case PlanternGear::OFF: return 0.0f;
 	case PlanternGear::LOW: return kLowBurnRate;
 	case PlanternGear::MEDIUM: return kMediumBurnRate;
-	case PlanternGear::HIGH: return kHighBurnRate;
+	case PlanternGear::HIGH: {
+		// III 挡保留前期手感，随本关波次升压为后期短时爆发工具。
+		const float scarcity = mBoard
+			? mBoard->GetMistFuelScarcityFactor() : 0.0f;
+		return kHighEarlyBurnRate
+			+ (kHighLateBurnRate - kHighEarlyBurnRate) * scarcity;
+	}
 	}
 	return 0.0f;
 }
