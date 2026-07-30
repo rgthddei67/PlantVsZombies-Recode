@@ -16,8 +16,8 @@
 namespace {
 	constexpr int kPeaDamage = 20;                    // 普通/寒冰/孢子基础伤害
 	constexpr int kFireballDamage = 40;               // 火豌豆基础伤害，原版为普通豌豆两倍
-	constexpr int kSpikeFrameDamage = 2;              // 仙人掌尖刺在 1x 下每个逻辑碰撞帧的基础伤害
-	constexpr std::size_t kSpikePierceLimit = 3;       // 尖刺接触第三只不同僵尸后消失
+	constexpr int kSpikeFrameDamage = 3;              // 仙人掌尖刺在 1x 下每个逻辑碰撞帧的基础伤害
+	constexpr std::size_t kSpikePierceLimit = 4;       // 尖刺接触第四只不同僵尸后消失
 	constexpr float kFireballSplashWidth = 100.0f;    // 火球命中后同排水平溅射判定宽度，单位：像素
 	constexpr int kSplashDamageDivisor = 3;           // 火球次要目标伤害为直击伤害的三分之一
 	constexpr float kFireballForwardOffsetX = -25.0f; // FirePea.reanim 相对向右飞子弹逻辑原点的 X 偏移
@@ -464,7 +464,7 @@ void Bullet::HandleZombieContact(ColliderComponent* other)
 		isNewZombie && mPiercedZombieIDs.size() >= kSpikePierceLimit;
 
 	if (reachedPierceLimit) {
-		// 第三只目标没有后续 Stay 可消费额度，因此固定承受 1x 的完整帧伤后再回收。
+		// 达到穿透上限的目标没有后续 Stay 可消费额度，因此固定承受 1x 的完整帧伤后再回收。
 		for (int i = 0; i < mDamage && zombie->IsActive(); ++i) {
 			zombie->TakeDamage(1, DamageSource::PLANT);
 		}
@@ -474,7 +474,7 @@ void Bullet::HandleZombieContact(ColliderComponent* other)
 	}
 
 	// 固定逻辑步的回调次数不随倍速改变；用缩放逻辑时间累计额度，保证同样游戏时长
-	// 在 0.5x/1x/2x 下分别以 0.5/1/2 点推进，整数承伤总量保持一致。
+	// 在 0.5x/1x/2x 下按当前基础帧伤等比例推进，整数承伤总量保持一致。
 	float& damageRemainder = mSpikeDamageRemainders[targetIndex];
 	damageRemainder += static_cast<float>(mDamage)
 		* DeltaTime::GetDeltaTime() / DeltaTime::GetFixedStep();
@@ -601,7 +601,7 @@ void Bullet::RestorePiercedZombieState(const std::vector<int>& zombieIDs,
 		const float remainder = i < damageRemainders.size()
 			? damageRemainders[i] : 0.0f;
 		mSpikeDamageRemainders.push_back(std::clamp(remainder, 0.0f, 0.999999f));
-		// 活跃子弹一旦接触第三只目标就已回收，因此合法存档至多包含前两只。
+		// 活跃子弹一旦达到穿透上限就已回收，因此合法存档至多包含上限减一只。
 		if (mPiercedZombieIDs.size() + 1 >= kSpikePierceLimit) break;
 	}
 }

@@ -42,7 +42,7 @@ protected:
 	bool mThreepeaterMotion = false; // 三线射手斜向豌豆按原版逐步衰减纵向速度
 	BulletType mPoolType = BulletType::NUM_BULLETS; // 对象池槽位的固定类型；火炬树桩只改变当前表现类型
 	int mHitTorchwoodColumn = -1; // 最近处理过本子弹的火炬树桩列，防止同列反复转换
-	std::vector<int> mPiercedZombieIDs; // 尖刺已接触的不同僵尸实体 ID；最多记录三只
+	std::vector<int> mPiercedZombieIDs; // 尖刺已接触的不同僵尸实体 ID；按玩法穿透上限截断
 	std::vector<float> mSpikeDamageRemainders; // 与穿透 ID 对齐的未结算小数伤害额度
 	std::shared_ptr<Animator> mProjectileAnimator;
 	bool mAnimatorAdvancedInParallel = false;
