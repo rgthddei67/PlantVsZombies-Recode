@@ -16,7 +16,7 @@
 namespace {
 	constexpr int kPeaDamage = 20;                    // 普通/寒冰/孢子基础伤害
 	constexpr int kFireballDamage = 40;               // 火豌豆基础伤害，原版为普通豌豆两倍
-	constexpr int kSpikeFrameDamage = 1;              // 仙人掌尖刺在 1x 下每个逻辑碰撞帧的基础伤害
+	constexpr int kSpikeFrameDamage = 2;              // 仙人掌尖刺在 1x 下每个逻辑碰撞帧的基础伤害
 	constexpr std::size_t kSpikePierceLimit = 3;       // 尖刺接触第三只不同僵尸后消失
 	constexpr float kFireballSplashWidth = 100.0f;    // 火球命中后同排水平溅射判定宽度，单位：像素
 	constexpr int kSplashDamageDivisor = 3;           // 火球次要目标伤害为直击伤害的三分之一
@@ -464,8 +464,10 @@ void Bullet::HandleZombieContact(ColliderComponent* other)
 		isNewZombie && mPiercedZombieIDs.size() >= kSpikePierceLimit;
 
 	if (reachedPierceLimit) {
-		// 第三只目标没有后续 Stay 可消费额度，因此固定承受 1x 的一次伤害后再回收。
-		zombie->TakeDamage(mDamage, DamageSource::PLANT);
+		// 第三只目标没有后续 Stay 可消费额度，因此固定承受 1x 的完整帧伤后再回收。
+		for (int i = 0; i < mDamage && zombie->IsActive(); ++i) {
+			zombie->TakeDamage(1, DamageSource::PLANT);
+		}
 		mHasHit = true;
 		Die();
 		return;

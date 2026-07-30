@@ -5,7 +5,7 @@
 - [架构边界、存档版本与技能审计门禁](project_pvz_architecture_boundaries.md) — 2026-07-29 `BoardPresentation` 取代 `Board::mGameScene`，Board 保持天气/波次/生存玩法唯一权威；`SceneManager` 明确单活动场景；玩家与关卡 JSON 加独立 `schemaVersion` 和事务式纯迁移测试；每次任务提交前审计相关 skills 并校验所有改动过的技能
 - [经典海蘑菇](project_pvz_seashroom.md) — 2026-07-29 `PLANT_SEASHROOM`：0 阳光、10 秒冷却，只能直接种在空水格且占 normal 层；复用小喷菇 1.5 秒间隔/300px 短程孢子，第 33 帧发射，无陆地阴影并随水面浮动；白天睡眠与双绘制路径可见专项通过
 - [最终绘制坐标语义取证](project_pvz_render_coordinate_evidence.md) — 2026-07-27 AutoTest 从当前项目实际渲染路径导出植物/僵尸/动画特效的 Animator 世界包围盒，以及粒子最终矩形；断言使用相对视觉原点、发射点和最近实体 collider 的整数投影，默认实例化与 `-NoInstance` 可做同用例一致性核对，C# 800×600 绝对坐标只作行为语义参考
-- [仙人掌与帧伤尖刺](project_pvz_cactus_frame_damage.md) — 2026-07-30 `PLANT_CACTUS` 地面形态在主人指定动画第26帧发射 `BULLET_SPIKE`；对空地目标以1x逐逻辑帧1伤为基准，按目标累计缩放时间伤害额度，使0.5x/1x/2.0x相同游戏时长总伤害一致；按稳定僵尸ID最多穿透3个目标，名单与小数余额支持存档并在对象池复用时清空；高形态第70帧等待气球僵尸接入
+- [仙人掌与帧伤尖刺](project_pvz_cactus_frame_damage.md) — 2026-07-30 `PLANT_CACTUS` 地面形态在主人指定动画第26帧发射 `BULLET_SPIKE`；对空地目标以1x逐逻辑帧2伤为基准，按目标累计缩放时间伤害额度，使0.5x/1x/2.0x相同游戏时长总伤害一致；按稳定僵尸ID最多穿透3个目标，名单与小数余额支持存档并在对象池复用时清空；高形态第70帧等待气球僵尸接入
 - [经典火炬树桩与动画火豌豆](project_pvz_torchwood_firepea.md) — 2026-07-27 `PLANT_TORCHWOOD` 按原版把同排 Pea 点燃为 40 伤 Fireball、Snowpea 融化为 Pea，并用列守卫允许后续树桩再点火；FirePea 是 50～80fps 完整时间轴循环 Animator 子弹，运行时换型与对象池不可变槽位类型分离，覆盖并行推进、存档所有权与阴影重排；火焰直击解冻、同行 100px 穿盾溅射、门板/梯子/冰车抗火、冒险奖励及图鉴均有可见专项验证
 - [经典高坚果与坚果啃食碎屑](project_pvz_tallnut.md) — 2026-07-28 `PLANT_TALLNUT`：9000 生命、125 阳光、30 秒冷却，两档裂纹与快照恢复不重放碎屑；声明式阻拦撑杆/海豚跳跃；双向锚定强/超强台风植物格，只对直接撞击逐格承受800环境伤害且同阵风反馈合并，链条不传压、水路组合不拆层、死亡后剩余步数可放行；海豚受阻后的手动啃食会随阵风吹离、目标死亡或自身死亡正确清理
 - [僵尸自身整体动画能力倍率](project_pvz_zombie_ability_anim_speed.md) — 2026-07-27 删除 `Zombie::mExtraSpeed`，自身整体动画倍率统一经 `GetAbilityAnimSpeedMultiplier()`；固定、阶段和实例随机值分别由类型、状态与派生存档提供，旧根字段只为快速铁桶保留只读迁移；天气、寒冰和黄色冰道回归通过
