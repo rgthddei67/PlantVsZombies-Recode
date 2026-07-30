@@ -53,6 +53,7 @@ struct PromptAnimation {
 	float appearDuration = 1.0f; // 出现阶段时长
 	float holdDuration = 3.0f;    // 停留阶段时长
 	float fadeDuration = 1.0f;    // 消失阶段时长
+	bool useUnscaledTime = false; // true 时高倍速不压缩时长；暂停时冻结并保留当前画面
 };
 
 class GameScene : public Scene, public BoardPresentation {
@@ -117,7 +118,10 @@ public:
 		int fontSize = 40,
 		float appearDur = 0.3f,
 		float holdDur = 3.8f,
-		float fadeDur = 0.6f);
+		float fadeDur = 0.6f,
+		bool useUnscaledTime = false);
+	/** 显示路灯花低燃料的大号红色中央警报。 */
+	void ShowPlanternLowFuelWarning() override;
 	/** 根据已锁定的台风等级与同级文案编号显示大雨来临警报。 */
 	void ShowHeavyRainWarning(TyphoonStrength strength, int variant) override;
 	const std::vector<PromptAnimation>& GetPromptsForTesting() const { return mPrompts; }
@@ -189,7 +193,7 @@ private:
 	void DrawWeatherPanel(Graphics* g) const;
 	void DrawWeatherForecastFailure(Graphics* g) const;
 	void DrawLightningStrike(Graphics* g) const;
-	void UpdatePrompts(float deltaTime);
+	void UpdatePrompts(float deltaTime, float unscaledDeltaTime);
 	void DrawPrompts(Graphics* g) const;
 	// 按当前 mSurvivalPerkStepsCompleted 重新 roll 并构建第 N/2 次选择框。
 	void RenderSurvivalPerkSelectStep();

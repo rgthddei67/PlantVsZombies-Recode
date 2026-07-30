@@ -1455,6 +1455,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_PLANTGROW);
 	out["bloverSoundRequestCount"] =
 		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_BLOVER);
+	out["clickFailedSoundRequestCount"] =
+		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_CLICKFAILED);
 
 	if (auto* almanac = dynamic_cast<ZombieAlmanacScene*>(currentScene)) {
 		out["zombieAlmanacEntries"] = nlohmann::json::array();
@@ -1711,6 +1713,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "gearValue", board->GetPlanternGearValue() },
 			{ "burnRateTenths", plantern ? static_cast<int>(std::lround(
 				plantern->GetCurrentBurnRate() * 10.0f)) : 0 },
+			{ "lowFuelWarningOn", board->SupportsPlanternMechanics()
+				&& plantern && plantern->IsFuelLow() },
 			{ "fullHintOn", board->GetPlanternFuelFullHintTimer() > 0.0f },
 			{ "dropAccumulatorPct", static_cast<int>(std::lround(
 				board->GetMistFuelDropAccumulator() * 100.0f)) },
@@ -1840,6 +1844,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "colorR", static_cast<int>(std::lround(prompt.textColor.r)) },
 			{ "colorG", static_cast<int>(std::lround(prompt.textColor.g)) },
 			{ "colorB", static_cast<int>(std::lround(prompt.textColor.b)) },
+			{ "usesUnscaledTime", prompt.useUnscaledTime },
 		});
 	}
 

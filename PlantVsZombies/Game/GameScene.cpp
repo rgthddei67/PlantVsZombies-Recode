@@ -57,6 +57,10 @@ namespace {
 	constexpr float kHeavyRainPromptHoldDuration = 3.85f; // 大雨警报完全可读的停留时长（游戏秒）
 	constexpr float kHeavyRainPromptFadeDuration = 0.55f; // 大雨警报放大淡出的时长（游戏秒）
 	constexpr int kHeavyRainPromptFontSize = 42;          // 大雨分级警报字号
+	constexpr float kPlanternLowFuelPromptAppearDuration = 0.18f; // 低燃料警报压入画面的未缩放秒数
+	constexpr float kPlanternLowFuelPromptHoldDuration = 2.35f; // 低燃料警报完全可读的未缩放秒数
+	constexpr float kPlanternLowFuelPromptFadeDuration = 0.47f; // 低燃料警报放大淡出的未缩放秒数，总计约 3 秒
+	constexpr int kPlanternLowFuelPromptFontSize = 46;    // 低燃料警报字号，刻意大于天气警报
 	constexpr float kPoolEffectOffsetX = 209.0f;          // 原版水面坐标对齐当前 1880px 泳池背景的世界 X 偏移（像素）
 	constexpr float kPoolEffectOffsetY = 12.0f;           // 原版水面坐标对齐当前泳池内框的世界 Y 偏移（像素）
 	constexpr int kLightningMainSegments = 10;           // 主闪电从云层到落点的折线段数
@@ -1173,7 +1177,8 @@ void GameScene::Update() {
 			if (mLightningFlashTimer < 0.0f) mLightningFlashTimer = 0.0f;
 		}
 
-		UpdatePrompts(DeltaTime::GetDeltaTime());
+		UpdatePrompts(
+			DeltaTime::GetDeltaTime(), DeltaTime::GetUnscaledDeltaTime());
 	}
 
 	if (mReadyToRestart) {
@@ -2043,12 +2048,14 @@ void GameScene::RestoreWeatherPresentationState(
  * 推进所有并存提示的缩放与透明度，并在动画结束后统一移除。
  * 保留 vector 的插入顺序，使后来出现的提示在绘制时自然覆盖较早提示。
  */
-void GameScene::UpdatePrompts(float deltaTime)
+void GameScene::UpdatePrompts(float deltaTime, float unscaledDeltaTime)
 {
-	if (deltaTime <= 0.0f || mPrompts.empty()) return;
+	if ((deltaTime <= 0.0f && unscaledDeltaTime <= 0.0f) || mPrompts.empty()) return;
 	for (PromptAnimation& prompt : mPrompts) {
 		if (!prompt.active) continue;
-		prompt.timer += deltaTime;
+		const float step = prompt.useUnscaledTime ? unscaledDeltaTime : deltaTime;
+		if (step <= 0.0f) continue;
+		prompt.timer += step;
 		switch (prompt.stage) {
 		case PromptStage::NONE:
 			prompt.active = false;
@@ -2170,7 +2177,8 @@ void GameScene::ShowPrompt(const std::string& textureKey,
 }
 
 void GameScene::ShowTextPrompt(const std::string& text, const glm::vec4& color,
-	int fontSize, float appearDur, float holdDur, float fadeDur)
+	int fontSize, float appearDur, float holdDur, float fadeDur,
+	bool useUnscaledTime)
 {
 	if (text.empty()) return;
 	PromptAnimation prompt;
@@ -2185,7 +2193,19 @@ void GameScene::ShowTextPrompt(const std::string& text, const glm::vec4& color,
 	prompt.appearDuration = std::max(appearDur, 0.01f);
 	prompt.holdDuration = std::max(holdDur, 0.01f);
 	prompt.fadeDuration = std::max(fadeDur, 0.01f);
+	prompt.useUnscaledTime = useUnscaledTime;
 	mPrompts.push_back(std::move(prompt));
+}
+
+void GameScene::ShowPlanternLowFuelWarning()
+{
+	ShowTextPrompt(u8"路灯花燃料即将耗尽！",
+		glm::vec4(255.0f, 58.0f, 48.0f, 255.0f),
+		kPlanternLowFuelPromptFontSize,
+		kPlanternLowFuelPromptAppearDuration,
+		kPlanternLowFuelPromptHoldDuration,
+		kPlanternLowFuelPromptFadeDuration,
+		true);
 }
 
 void GameScene::ShowHeavyRainWarning(TyphoonStrength strength, int variant)

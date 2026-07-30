@@ -11,6 +11,7 @@
 #include "../GameAPP.h"
 #include "./CardSlotManager.h"
 #include "./Plant/GameDataManager.h"
+#include "./Plant/Plantern.h"
 #include <algorithm>
 #include <cmath>
 
@@ -19,6 +20,7 @@ namespace {
 	constexpr float kTallNutCardImageScale = 0.70f;  // 高坚果卡图在统一倍率之上的独立缩放
 	constexpr float kTallNutCardImageOffsetY = -5.0f;  // 高坚果卡图上移量，避开底部阳光文字，单位：px
 	constexpr float kBloverCardImageScale = 0.90f;  // 三叶草卡槽贴图在普通卡图基础上的独立缩放
+	constexpr float kPlanternLowFuelPulseSpeed = 8.0f; // 低燃料卡牌每未缩放秒的脉冲相位速度
 }
 
 CardDisplayComponent::CardDisplayComponent(PlantType type, int sunCost, float cooldown)
@@ -185,6 +187,9 @@ void CardDisplayComponent::DrawPlanternStatus(Graphics* g, const Vector& positio
 	if (!board) return;
 
 	const float ratio = std::clamp(board->GetPlanternFuelRatio(), 0.0f, 1.0f);
+	Plantern* plantern = board->GetActivePlantern();
+	const bool lowFuel = board->SupportsPlanternMechanics()
+		&& plantern && plantern->IsFuelLow();
 	const float barX = position.x + 41.0f;
 	const float barY = position.y + 7.0f;
 	const float barW = 6.0f;
@@ -210,13 +215,28 @@ void CardDisplayComponent::DrawPlanternStatus(Graphics* g, const Vector& positio
 	g->DrawGlyphRun(fuelText, ResourceKeys::Fonts::FONT_FZCQ, 12,
 		fullHint
 			? glm::vec4(172.0f, 72.0f, 12.0f, 255.0f)
-			: glm::vec4(50.0f, 28.0f, 12.0f, 255.0f),
+			: (lowFuel
+				? glm::vec4(214.0f, 28.0f, 24.0f, 255.0f)
+				: glm::vec4(50.0f, 28.0f, 12.0f, 255.0f)),
 		fuelTextX, position.y + 52.0f);
 
 	if (fullHint) {
 		g->DrawRect(position.x + 1.0f, position.y + 1.0f,
 			static_cast<float>(CARD_WIDTH - 2), static_cast<float>(CARD_HEIGHT - 2),
 			glm::vec4(255.0f, 205.0f, 60.0f, 255.0f));
+	}
+	else if (lowFuel) {
+		// 中央警报结束后仍用高对比脉冲描边保留持续反馈，切到关闭挡即停止闪烁。
+		const float pulse = 0.5f + 0.5f
+			* std::sin(static_cast<float>(DeltaTime::GetUnscaledTotalTime())
+				* kPlanternLowFuelPulseSpeed);
+		const float alpha = 150.0f + 105.0f * pulse;
+		g->DrawRect(position.x, position.y,
+			static_cast<float>(CARD_WIDTH), static_cast<float>(CARD_HEIGHT),
+			glm::vec4(255.0f, 42.0f, 36.0f, alpha));
+		g->DrawRect(position.x + 2.0f, position.y + 2.0f,
+			static_cast<float>(CARD_WIDTH - 4), static_cast<float>(CARD_HEIGHT - 4),
+			glm::vec4(255.0f, 86.0f, 42.0f, alpha * 0.72f));
 	}
 }
 

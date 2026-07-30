@@ -18,9 +18,11 @@ class Plantern : public Plant {
 public:
 	static constexpr float FUEL_CAPACITY = 100.0f;
 	static constexpr float INITIAL_FUEL = 30.0f;
+	static constexpr float LOW_FUEL_THRESHOLD = 10.0f; // 跌破此燃料值时触发一次低燃料警报
 
 	using Plant::Plant;
 
+	/** 消耗当前挡位燃料，并在首次跌破低燃料阈值时发出一次显著警报。 */
 	void PlantUpdate() override;
 	void Draw(Graphics* g) override;
 	void Die() override;
@@ -42,6 +44,9 @@ public:
 	/** 返回当前挡位在当前波次的每游戏秒燃料消耗。 */
 	float GetCurrentBurnRate() const;
 	PlanternGear GetGear() const { return mGear; }
+	bool IsFuelLow() const {
+		return mGear != PlanternGear::OFF && mFuel < LOW_FUEL_THRESHOLD;
+	}
 	bool HasUsableLight() const {
 		return !mIsPreview && !IsSquished()
 			&& mGear != PlanternGear::OFF && mFuel > 0.0f;

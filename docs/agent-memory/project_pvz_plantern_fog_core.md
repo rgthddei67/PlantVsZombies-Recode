@@ -40,6 +40,10 @@ metadata:
   `CardSlotManager` 持有的 0/I/II/III 瞬态菜单。菜单直接对齐路灯花卡槽下方，允许覆盖天气
   面板，不属于天气栏目且不进入存档。菜单不再随 CardUI 的普通对象绘制，而由
   `GameScene::BuildDrawCommands` 在天气面板与失败提示之后注册独立 UI 命令，确保视觉位于其上。
+- 正式燃料消耗从不低于 10 跌破 10 时只触发一次 `SOUND_CLICKFAILED`，并通过
+  `BoardPresentation::ShowPlanternLowFuelWarning()` 显示约 3 秒、46 号红字中央警报；
+  提示按未缩放时间推进，高倍速不缩短。挡位开启且燃料低于 10 时，卡牌数字变红并持续显示
+  双层红色脉冲描边，补到 10 或切到关闭挡后停止。下降沿不存档，低燃料读档不会伪触发。
 - 资源键为 `IMAGE_MISTFUEL`，权威文件
   `build/clang-release/resources/image/MistFuel.png`；因 build 被忽略，提交须 `git add -f`。
 
@@ -48,10 +52,11 @@ metadata:
 - `Plantern::SaveExtraData` 保存 `fuel/pendingFuel/gear`；在途对象不单独保存，读档把预留量
   结算进燃料。`Zombie::SaveProtectedData` 保存奖励和已领取；Board 保存
   `mistFuelDropAccumulator`。旧档均以中性值兼容，无需 schema 提升。
-- `smoke_plantern_fog_core` 当前可见运行 186 条命令 exit 0，覆盖 4-1/4-2 边界、初始 30、
+- `smoke_plantern_fog_core` 当前可见运行 215 条命令 exit 0，覆盖 4-1/4-2 边界、初始 30、
   四档范围/耗油/产光、索敌、唯一性、飞行前后到账、在途读档、满仓与部分溢出、魅惑、
-  无路灯花废弃、死亡重种和真实挡位按钮点击；固定雾线实测相邻可见格/第一格/第二格 alpha
-  为 0/225/255，第一格可索敌而第二格不可；II 挡边缘实测 0/255，外侧第一格可索敌。
+  低燃料下降沿、一次音效、三秒红色中央警报、5 倍速不提前消失、持续卡牌红框、低燃料读档
+  不重响、无路灯花废弃、死亡重种和真实挡位按钮点击；固定雾线实测相邻可见格/第一格/第二格
+  alpha 为 0/225/255，第一格可索敌而第二格不可；II 挡边缘实测 0/255，外侧第一格可索敌。
   关键截图已目验。
 - 原有 `smoke_fog_weather` 148 条命令可见回归 exit 0，确认无路灯花时雾势、台风驱散及
   雾存档不变。

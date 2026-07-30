@@ -38,6 +38,8 @@ public:
 		float appearDuration = 1.0f,
 		float holdDuration = 3.0f,
 		float fadeDuration = 1.0f) = 0;
+	/** 路灯花燃料跌破安全线时显示不会受游戏倍速压缩的中央警报。 */
+	virtual void ShowPlanternLowFuelWarning() = 0;
 	virtual void ShowShovel() = 0;
 	/** 点击路灯花本体后切换卡槽下方的挡位菜单。 */
 	virtual void TogglePlanternGearMenu() = 0;

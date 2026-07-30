@@ -1,9 +1,12 @@
 #include "Plantern.h"
 
+#include "../AudioSystem.h"
 #include "../Board.h"
+#include "../BoardPresentation.h"
 #include "../ClickableComponent.h"
 #include "../CursorObjectManager.h"
 #include "../ShadowComponent.h"
+#include "../../ResourceKeys.h"
 #include "../../DeltaTime.h"
 
 #include <algorithm>
@@ -48,7 +51,15 @@ void Plantern::PlantUpdate()
 		return;
 	}
 
+	const float previousFuel = mFuel;
 	mFuel = std::max(0.0f, mFuel - GetCurrentBurnRate() * deltaTime);
+	if (previousFuel >= LOW_FUEL_THRESHOLD && mFuel < LOW_FUEL_THRESHOLD) {
+		// 只在阈值下降沿提示：持续低燃料不刷屏，补回阈值后再次跌破仍会重新提醒。
+		AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_CLICKFAILED, 0.5f);
+		if (BoardPresentation* presentation = mBoard->GetPresentation()) {
+			presentation->ShowPlanternLowFuelWarning();
+		}
+	}
 }
 
 void Plantern::Draw(Graphics* g)
