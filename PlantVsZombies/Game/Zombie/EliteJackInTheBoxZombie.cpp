@@ -29,8 +29,22 @@ namespace {
 	constexpr float kBoxExplosionRadius = 100.0f;       // 落地爆炸半径，单位 px
 	constexpr float kExplosionVolume = 0.42f;          // 小型盒子爆炸的一次性音量
 	constexpr float kBacklinePlantSunMultiplier = 1.2f; // 靠房屋侧半场植物计入贪心损失分数的倍率
+	constexpr float kSunProducerFutureValue = 300.0f;  // 每株产阳光植物计入的预期后续经济损失，单位：阳光分
 	constexpr float kNoTargetRetryDelay = 0.5f;         // 倒计时到点却没有合法目标时再次搜索的游戏秒
 	constexpr float kTargetScoreTieEpsilon = 0.001f;    // 浮点损失分数判定并列时的容差
+
+	/** 当前会持续提供战斗内阳光经济的植物类型。 */
+	bool IsSunProducer(PlantType plantType)
+	{
+		switch (plantType) {
+		case PlantType::PLANT_SUNFLOWER:
+		case PlantType::PLANT_SUNSHROOM:
+		case PlantType::PLANT_TWINSUNFLOWER:
+			return true;
+		default:
+			return false;
+		}
+	}
 
 	// 以碰撞框最近点判断范围，避免只按对象逻辑原点漏掉爆区边缘目标。
 	bool CircleOverlapsRect(const Vector& center, float radius, const SDL_FRect& bounds)
@@ -297,9 +311,7 @@ bool EliteJackInTheBoxZombie::PickGreedyPlantTarget(
 	return true;
 }
 
-/**
- * @brief 计算一个候选爆点实际覆盖植物的阳光价值，后半场核心区按 1.2 倍计分。
- */
+/** 计算候选爆点覆盖植物的当前造价与未来经济损失，后排价值再乘 1.2。 */
 float EliteJackInTheBoxZombie::ScorePlantBlastAt(
 	const Vector& targetPosition) const
 {
@@ -318,8 +330,12 @@ float EliteJackInTheBoxZombie::ScorePlantBlastAt(
 		}
 		const float positionMultiplier = plant->mColumn < backlineColumnCount
 			? kBacklinePlantSunMultiplier : 1.0f;
-		score += static_cast<float>(
-			gameData.GetPlantSunCost(plant->mPlantType)) * positionMultiplier;
+		float plantValue = static_cast<float>(
+			gameData.GetPlantSunCost(plant->mPlantType));
+		if (IsSunProducer(plant->mPlantType)) {
+			plantValue += kSunProducerFutureValue;
+		}
+		score += plantValue * positionMultiplier;
 	}
 	return score;
 }

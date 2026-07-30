@@ -1,0 +1,30 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 1 },
+    { "op": "choose_cards", "cards": ["PLANT_SUNFLOWER", "PLANT_THREEPEATER"] },
+    { "op": "wait_state", "state": "GAME", "timeout": 15 },
+    { "op": "set_spawn_paused", "value": true },
+    { "op": "set_sun", "value": 9000 },
+
+    { "op": "plant", "type": "PLANT_SUNFLOWER", "row": 1, "col": 2 },
+    { "op": "plant", "type": "PLANT_THREEPEATER", "row": 3, "col": 7 },
+    { "op": "spawn_zombie", "type": "ZOMBIE_ELITE_JACK_IN_THE_BOX", "row": 2, "x": 950, "stationary": true },
+    { "op": "set_elite_jack_throw_countdown", "row": 2, "value": 0.05 },
+    { "op": "wait_seconds", "value": 0.15, "timeout": 3 },
+
+    { "op": "assert_state", "path": "eliteJack.eliteJackBoxInFlight", "equals": true },
+    { "op": "assert_state", "path": "eliteJack.eliteJackTargetRow", "equals": 1 },
+    { "op": "assert_state", "path": "eliteJack.eliteJackTargetXInt", "equals": 442 },
+    { "op": "screenshot", "name": "elite_jack_targets_sunflower_economy.png" },
+
+    { "op": "wait_seconds", "value": 0.75, "timeout": 3 },
+    { "op": "assert_state", "path": "plants.0.type", "equals": "PLANT_SUNFLOWER" },
+    { "op": "assert_state", "path": "plants.0.health", "equals": 250 },
+    { "op": "assert_state", "path": "plants.1.type", "equals": "PLANT_THREEPEATER" },
+    { "op": "assert_state", "path": "plants.1.health", "equals": 300 },
+    { "op": "assert_state", "path": "particleEffectNameCounts.JackExplode", "equals": 1 },
+    { "op": "dump_state", "name": "elite_jack_economy_targeting.json" },
+    { "op": "set_spawn_paused", "value": false },
+    { "op": "quit" }
+  ]
+}
