@@ -251,6 +251,7 @@ bool EliteJackInTheBoxZombie::PickThrowTarget(
 	mLastMonteCarloCandidateCount = 0;
 	mLastMonteCarloZombieCount = 0;
 	mLastMonteCarloCardCount = 0;
+	mLastMonteCarloCoordinationLoss = 0.0f;
 
 	const int minRow = std::max(0, mRow - 1);
 	const int maxRow = std::min(mBoard->mRows - 1, mRow + 1);
@@ -301,6 +302,7 @@ bool EliteJackInTheBoxZombie::PickMonteCarloPlantTarget(
 	mLastMonteCarloCandidateCount = stats.candidateCount;
 	mLastMonteCarloZombieCount = stats.sampledZombieCount;
 	mLastMonteCarloCardCount = stats.cardCount;
+	mLastMonteCarloCoordinationLoss = stats.coordinationLoss;
 	return found;
 }
 

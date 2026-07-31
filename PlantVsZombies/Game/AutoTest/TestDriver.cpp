@@ -2206,6 +2206,9 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				eliteJack->GetLastMonteCarloZombieCount();
 			zombieState["eliteJackMonteCarloCardCount"] =
 				eliteJack->GetLastMonteCarloCardCount();
+			zombieState["eliteJackMonteCarloCoordinationLossOn100"] =
+				static_cast<int>(std::lround(
+					eliteJack->GetLastMonteCarloCoordinationLoss() * 100.0f));
 			zombieState["eliteJackBoxTrackVisible"] =
 				anim && anim->GetTrackVisible("Zombie_jackbox_box");
 			zombieState["jackRunVelocityOn1000"] =

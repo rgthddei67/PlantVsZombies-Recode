@@ -1,0 +1,64 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 1, "resetTestState": true },
+    { "op": "choose_cards", "cards": ["PLANT_PUFFSHROOM", "PLANT_WALLNUT"] },
+    { "op": "wait_state", "state": "GAME", "timeout": 15 },
+    { "op": "set_spawn_paused", "value": true },
+    { "op": "set_sun", "value": 9000 },
+
+    { "op": "plant", "type": "PLANT_PUFFSHROOM", "row": 1, "col": 0 },
+    { "op": "plant", "type": "PLANT_WALLNUT", "row": 3, "col": 0 },
+    { "op": "set_sun", "value": 0 },
+    { "op": "spawn_zombie", "type": "ZOMBIE_NORMAL", "row": 3, "x": 350 },
+    { "op": "wait_seconds", "value": 2.0, "timeout": 4 },
+    { "op": "assert_state", "path": "zombies.0.isEating", "equals": true },
+    { "op": "dump_state", "name": "coordination_before_throw.json" },
+
+    { "op": "spawn_zombie", "type": "ZOMBIE_ELITE_JACK_IN_THE_BOX", "row": 2, "x": 950, "stationary": true },
+    { "op": "set_elite_jack_throw_countdown", "row": 2, "value": 0.05 },
+    { "op": "wait_seconds", "value": 0.15, "timeout": 3 },
+
+    { "op": "assert_state", "path": "eliteJack.eliteJackTargetingMode", "equals": "MONTE_CARLO" },
+    { "op": "assert_state", "path": "eliteJack.eliteJackMonteCarloRolloutCount", "equals": 32 },
+    { "op": "assert_state", "path": "eliteJack.eliteJackMonteCarloCandidateCount", "equals": 2 },
+    { "op": "assert_state", "path": "eliteJack.eliteJackTargetRow", "equals": 3 },
+    { "op": "assert_state", "path": "eliteJack.eliteJackTargetXInt", "equals": 282 },
+    { "op": "assert_state", "path": "eliteJack.eliteJackMonteCarloCoordinationLossOn100", "atLeast": 1 },
+    { "op": "screenshot", "name": "elite_jack_terminal_coordination_target.png" },
+
+    { "op": "wait_seconds", "value": 0.75, "timeout": 3 },
+    { "op": "dump_state", "name": "elite_jack_monte_carlo_coordination.json" },
+    { "op": "set_spawn_paused", "value": false },
+
+    { "op": "goto_level", "level": 19, "resetTestState": true },
+    { "op": "choose_cards", "cards": ["PLANT_LILYPAD", "PLANT_REPEATER", "PLANT_WALLNUT"] },
+    { "op": "wait_state", "state": "GAME", "timeout": 15 },
+    { "op": "set_spawn_paused", "value": true },
+    { "op": "set_sun", "value": 9000 },
+
+    { "op": "plant", "type": "PLANT_LILYPAD", "row": 3, "col": 0 },
+    { "op": "plant", "type": "PLANT_REPEATER", "row": 3, "col": 0 },
+    { "op": "damage_plant", "row": 3, "col": 0, "index": 0, "damage": 250, "source": "OTHER" },
+    { "op": "damage_plant", "row": 3, "col": 0, "index": 1, "damage": 250, "source": "OTHER" },
+    { "op": "plant", "type": "PLANT_WALLNUT", "row": 5, "col": 0 },
+    { "op": "spawn_zombie", "type": "ZOMBIE_PINK_FOOTBALL", "row": 5, "x": 330 },
+    { "op": "wait_frames", "value": 20 },
+    { "op": "assert_state", "path": "zombies.0.isEating", "equals": true },
+    { "op": "damage_plant", "row": 5, "col": 0, "damage": 800, "source": "OTHER" },
+    { "op": "set_sun", "value": 0 },
+
+    { "op": "spawn_zombie", "type": "ZOMBIE_ELITE_JACK_IN_THE_BOX", "row": 4, "x": 950, "stationary": true },
+    { "op": "set_elite_jack_throw_countdown", "row": 4, "value": 0.05 },
+    { "op": "wait_seconds", "value": 0.15, "timeout": 3 },
+
+    { "op": "assert_state", "path": "eliteJack.eliteJackTargetingMode", "equals": "MONTE_CARLO" },
+    { "op": "assert_state", "path": "eliteJack.eliteJackTargetRow", "equals": 3 },
+    { "op": "assert_state", "path": "eliteJack.eliteJackTargetXInt", "equals": 282 },
+    { "op": "assert_state", "path": "eliteJack.eliteJackMonteCarloCoordinationLossOn100", "equals": 0 },
+    { "op": "screenshot", "name": "elite_jack_double_kill_still_beats_coordination.png" },
+    { "op": "wait_seconds", "value": 0.75, "timeout": 3 },
+    { "op": "dump_state", "name": "elite_jack_double_kill_still_beats_coordination.json" },
+    { "op": "set_spawn_paused", "value": false },
+    { "op": "quit" }
+  ]
+}

@@ -13,6 +13,7 @@ struct Bounds {
 };
 
 struct PlantSnapshot {
+	int id = 0;
 	int row = 0;
 	int column = 0;
 	float x = 0.0f;
@@ -28,6 +29,7 @@ struct PlantSnapshot {
 
 struct ZombieSnapshot {
 	int id = 0;
+	int eatingPlantId = -1;
 	int row = 0;
 	float x = 0.0f;
 	float moveSpeed = 0.0f;
@@ -81,7 +83,7 @@ struct Snapshot {
 struct Config {
 	int rolloutCount = 32;                  // 每个候选使用的短视未来样本数
 	int maxZombiesPerRollout = 12;          // 单次样本最多推进的当前敌方僵尸数
-	float horizonSeconds = 12.0f;           // 单次样本向前推演的游戏秒
+	float horizonSeconds = 16.0f;           // 单次样本向前推演的游戏秒
 	float stepSeconds = 0.25f;              // 固定数值步长，越小越精细但开销越高
 	float impactDamage = 50.0f;             // 候选动作在 t=0 对植物造成的伤害
 	float impactRadius = 100.0f;             // 候选动作的圆形爆区半径，单位 px
@@ -90,6 +92,8 @@ struct Config {
 	float plantDecisionInterval = 2.0f;      // 玩家在样本中尝试种下一株植物的间隔秒数
 	float houseX = 110.0f;                   // 僵尸越过此坐标后的防线失守判定
 	float breachPenalty = 1500.0f;           // 每只越线僵尸从玩家效用中扣除的分数
+	float terminalBlockedSecondUtility = 12.0f; // 终局每秒剩余破墙时间折算的玩家防守效用
+	float terminalBlockedSecondsCap = 90.0f; // 单个阻挡植物计入终局分的最大剩余破墙秒数
 };
 
 struct Result {
@@ -98,6 +102,7 @@ struct Result {
 	int rolloutCount = 0;
 	int sampledZombieCount = 0;
 	int cardCount = 0;
+	float coordinationLoss = 0.0f;
 };
 
 /**

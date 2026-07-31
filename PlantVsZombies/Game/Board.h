@@ -40,6 +40,7 @@ struct MonteCarloTargetStats {
 	int sampledZombieCount = 0;
 	int cardCount = 0;
 	float bestScore = 0.0f;
+	float coordinationLoss = 0.0f;
 };
 
 enum class Background {

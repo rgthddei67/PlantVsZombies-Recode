@@ -142,11 +142,13 @@ namespace {
 	constexpr int kEliteScaredyShroomPlantLimit = 4;      // 每个关卡累计最多种植的精英胆小菇数量
 	constexpr int kMonteCarloRolloutCount = 32;           // 每个爆点的轻量未来样本数；低配可由 GameAPP 总开关完全跳过
 	constexpr int kMonteCarloMaxZombies = 12;             // 单个样本最多推进的当前敌方僵尸数
-	constexpr float kMonteCarloHorizonSeconds = 12.0f;    // 植物防线短视推演时域，单位：游戏秒
+	constexpr float kMonteCarloHorizonSeconds = 16.0f;    // 植物防线短视推演时域，单位：游戏秒
 	constexpr float kMonteCarloStepSeconds = 0.25f;       // 纯数值推演固定步长，单位：游戏秒
 	constexpr float kMonteCarloPlantDecisionSeconds = 2.0f; // 样本内玩家尝试从实际卡槽种植的间隔秒数
 	constexpr float kMonteCarloBacklineMultiplier = 1.2f; // 当前后半场植物的战略价值倍率
 	constexpr float kMonteCarloSunProducerFutureValue = 300.0f; // 当前产能植物的未来经济价值，单位：阳光分
+	constexpr float kMonteCarloTerminalBlockedSecondUtility = 12.0f; // 终局每秒剩余破墙时间对应的防守效用分
+	constexpr float kMonteCarloTerminalBlockedSecondsCap = 90.0f; // 单株终局破墙时间最多计入的秒数
 	constexpr int kWaveCandidateAttemptLimit = MAX_ZOMBIES_PER_WAVE * 10; // 单波候选尝试上限，防止仅剩受限类型时死循环
 	constexpr float kWeatherTransitionDuration = 2.0f;   // 雨势切换时倍率、暗幕与雨声音量的平滑过渡时长（游戏秒）
 	constexpr float kLateWeatherRampStart = 0.40f;       // 普通关波次进度超过该比例后开始增强后期天气（0～1）
@@ -3180,6 +3182,7 @@ bool Board::PickMonteCarloPlantBlastTarget(
 				CELL_COLLIDER_SIZE_X, CELL_COLLIDER_SIZE_Y
 			};
 		snapshot.plants.push_back({
+			plant->mPlantID,
 			plant->mRow,
 			plant->mColumn,
 			plant->GetPosition().x,
@@ -3227,6 +3230,7 @@ bool Board::PickMonteCarloPlantBlastTarget(
 		}
 		snapshot.zombies.push_back({
 			zombie->mZombieID,
+			zombie->IsEating() ? zombie->GetEatingPlantID() : -1,
 			zombie->mRow,
 			centerX,
 			zombie->GetCurrentHorizontalMoveSpeed(),
@@ -3290,6 +3294,10 @@ bool Board::PickMonteCarloPlantBlastTarget(
 	config.impactDamage = static_cast<float>(damage);
 	config.impactRadius = radius;
 	config.plantDecisionInterval = kMonteCarloPlantDecisionSeconds;
+	config.terminalBlockedSecondUtility =
+		kMonteCarloTerminalBlockedSecondUtility;
+	config.terminalBlockedSecondsCap =
+		kMonteCarloTerminalBlockedSecondsCap;
 
 	std::uint32_t seed = 2166136261u;
 	auto mixSeed = [&seed](std::uint32_t value) {
@@ -3307,6 +3315,7 @@ bool Board::PickMonteCarloPlantBlastTarget(
 		stats->sampledZombieCount = result.sampledZombieCount;
 		stats->cardCount = result.cardCount;
 		stats->bestScore = result.score;
+		stats->coordinationLoss = result.coordinationLoss;
 	}
 	if (result.candidateIndex < 0
 		|| result.candidateIndex >= static_cast<int>(snapshot.candidates.size())) {

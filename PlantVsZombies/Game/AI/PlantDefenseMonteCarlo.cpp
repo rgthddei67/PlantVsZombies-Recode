@@ -20,6 +20,7 @@ namespace {
 	constexpr float kPlantChoiceJitter = 0.2f; // 玩家选牌/选格启发式的正负随机比例
 
 	struct SimPlant {
+		int id = -1;
 		int row = 0;
 		int column = 0;
 		float x = 0.0f;
@@ -34,6 +35,7 @@ namespace {
 	};
 
 	struct SimZombie {
+		int eatingPlantId = -1;
 		int row = 0;
 		float x = 0.0f;
 		float moveSpeed = 0.0f;
@@ -60,6 +62,11 @@ namespace {
 		float sun = 0.0f;
 		float breachLoss = 0.0f;
 		std::uint64_t reservedCells = 0;
+	};
+
+	struct ScenarioUtility {
+		float total = 0.0f;
+		float coordination = 0.0f;
 	};
 
 	float Random01(std::minstd_rand& random)
@@ -130,6 +137,7 @@ namespace {
 		for (int i = 0; i < state.plantCount; ++i) {
 			const PlantSnapshot& source = snapshot.plants[i];
 			state.plants[i] = {
+				source.id,
 				source.row,
 				source.column,
 				source.x,
@@ -183,6 +191,7 @@ namespace {
 			const float speedJitter =
 				1.0f + RandomSigned(random) * kMoveSpeedJitter;
 			state.zombies[i] = {
+				source.eatingPlantId,
 				source.row,
 				source.x,
 				std::max(0.0f, source.moveSpeed * speedJitter),
@@ -307,6 +316,7 @@ namespace {
 
 		const CellSnapshot& cell = snapshot.cells[bestCell];
 		SimPlant& plant = state.plants[state.plantCount++];
+		plant.id = -1;
 		plant.row = cell.row;
 		plant.column = cell.column;
 		plant.x = cell.x;
@@ -360,6 +370,15 @@ namespace {
 
 	int FindFrontPlant(const SimulationState& state, const SimZombie& zombie)
 	{
+		if (zombie.eatingPlantId >= 0) {
+			for (int i = 0; i < state.plantCount; ++i) {
+				const SimPlant& plant = state.plants[i];
+				if (IsAlive(plant) && plant.id == zombie.eatingPlantId) {
+					return i;
+				}
+			}
+		}
+
 		int target = -1;
 		float frontX = std::numeric_limits<float>::lowest();
 		for (int i = 0; i < state.plantCount; ++i) {
@@ -389,7 +408,10 @@ namespace {
 			else {
 				SimPlant& plant = state.plants[plantIndex];
 				const float distance = zombie.x - plant.x;
-				if (distance > config.contactDistance) {
+				const bool lockedEatingTarget =
+					zombie.eatingPlantId >= 0
+					&& zombie.eatingPlantId == plant.id;
+				if (!lockedEatingTarget && distance > config.contactDistance) {
 					zombie.x = std::max(
 						plant.x + config.contactDistance,
 						zombie.x - zombie.moveSpeed * deltaTime);
@@ -412,6 +434,45 @@ namespace {
 		}
 	}
 
+	// 在时域末端估算正在啃食的僵尸还要被挡多久，使视野外的破墙协同仍能进入评分。
+	float TerminalBlockerUtility(
+		const SimulationState& state, const Config& config)
+	{
+		std::array<float, kMaxSimulationPlants> biteDps{};
+		const float biteInterval = std::max(0.1f, config.biteInterval);
+		for (int zombieIndex = 0;
+			zombieIndex < state.zombieCount; ++zombieIndex) {
+			const SimZombie& zombie = state.zombies[zombieIndex];
+			if (!IsAlive(zombie) || zombie.attackDamage <= 0.0f) continue;
+			const int plantIndex = FindFrontPlant(state, zombie);
+			if (plantIndex < 0) continue;
+			const SimPlant& plant = state.plants[plantIndex];
+			const float distance = zombie.x - plant.x;
+			const bool lockedEatingTarget =
+				zombie.eatingPlantId >= 0
+				&& zombie.eatingPlantId == plant.id;
+			if (!lockedEatingTarget
+				&& (distance > config.contactDistance + 1.0f
+					|| distance < -10.0f)) {
+				continue;
+			}
+			biteDps[plantIndex] += zombie.attackDamage / biteInterval;
+		}
+
+		float utility = 0.0f;
+		for (int plantIndex = 0;
+			plantIndex < state.plantCount; ++plantIndex) {
+			const SimPlant& plant = state.plants[plantIndex];
+			if (!IsAlive(plant) || biteDps[plantIndex] <= 0.0f) continue;
+			const float remainingBlockedSeconds = std::min(
+				std::max(0.0f, config.terminalBlockedSecondsCap),
+				plant.health / biteDps[plantIndex]);
+			utility += remainingBlockedSeconds
+				* std::max(0.0f, config.terminalBlockedSecondUtility);
+		}
+		return utility;
+	}
+
 	// 把剩余阳光、植物战略价值和越线惩罚归一成候选之间可比较的玩家效用。
 	float PlayerUtility(const SimulationState& state)
 	{
@@ -427,7 +488,7 @@ namespace {
 	}
 
 	// 执行一个固定时域场景；candidate 为空时即为同随机种子的无攻击基线。
-	float RunScenario(const Snapshot& snapshot, const Config& config,
+	ScenarioUtility RunScenario(const Snapshot& snapshot, const Config& config,
 		const Candidate* candidate, std::uint32_t seed)
 	{
 		SimulationState state;
@@ -455,7 +516,11 @@ namespace {
 			UpdatePlantAttacks(state, deltaTime, snapshot.rows);
 			UpdateZombies(state, config, deltaTime);
 		}
-		return PlayerUtility(state);
+		const float coordination = TerminalBlockerUtility(state, config);
+		return {
+			PlayerUtility(state) + coordination,
+			coordination
+		};
 	}
 }
 
@@ -475,7 +540,7 @@ Result ChooseTarget(const Snapshot& snapshot, const Config& config, std::uint32_
 		return result;
 	}
 
-	std::vector<float> baselineUtilities(result.rolloutCount, 0.0f);
+	std::vector<ScenarioUtility> baselineUtilities(result.rolloutCount);
 	for (int rollout = 0; rollout < result.rolloutCount; ++rollout) {
 		const std::uint32_t rolloutSeed =
 			seed + static_cast<std::uint32_t>(rollout) * 0x85EBCA6Bu;
@@ -487,19 +552,27 @@ Result ChooseTarget(const Snapshot& snapshot, const Config& config, std::uint32_
 	for (std::size_t candidateIndex = 0;
 		candidateIndex < snapshot.candidates.size(); ++candidateIndex) {
 		float totalLoss = 0.0f;
+		float totalCoordinationLoss = 0.0f;
 		for (int rollout = 0; rollout < result.rolloutCount; ++rollout) {
 			const std::uint32_t rolloutSeed =
 				seed + static_cast<std::uint32_t>(rollout) * 0x85EBCA6Bu;
-			const float attackedUtility = RunScenario(
+			const ScenarioUtility attackedUtility = RunScenario(
 				snapshot, config, &snapshot.candidates[candidateIndex], rolloutSeed);
-			totalLoss += baselineUtilities[rollout] - attackedUtility;
+			totalLoss +=
+				baselineUtilities[rollout].total - attackedUtility.total;
+			totalCoordinationLoss +=
+				baselineUtilities[rollout].coordination
+				- attackedUtility.coordination;
 		}
 		const float averageLoss =
 			totalLoss / static_cast<float>(result.rolloutCount);
+		const float averageCoordinationLoss =
+			totalCoordinationLoss / static_cast<float>(result.rolloutCount);
 		if (averageLoss > bestScore + kScoreTieEpsilon) {
 			bestScore = averageLoss;
 			result.candidateIndex = static_cast<int>(candidateIndex);
 			result.score = averageLoss;
+			result.coordinationLoss = averageCoordinationLoss;
 		}
 	}
 	return result;

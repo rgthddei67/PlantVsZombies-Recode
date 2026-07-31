@@ -47,6 +47,9 @@ public:
 	int GetLastMonteCarloCardCount() const {
 		return mLastMonteCarloCardCount;
 	}
+	float GetLastMonteCarloCoordinationLoss() const {
+		return mLastMonteCarloCoordinationLoss;
+	}
 
 	/** AutoTest 确定性入口：覆盖下一投倒计时，并可固定合法目标格。 */
 	void SetThrowCountdownForTesting(
@@ -88,6 +91,7 @@ private:
 	int mLastMonteCarloCandidateCount = 0;
 	int mLastMonteCarloZombieCount = 0;
 	int mLastMonteCarloCardCount = 0;
+	float mLastMonteCarloCoordinationLoss = 0.0f;
 
 	// 仅由 AutoTest 下一次投掷消费，不属于正式玩法状态，无需入档。
 	int mForcedTargetRow = -1;
