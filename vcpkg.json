@@ -7,6 +7,7 @@
     "sdl2-ttf",
     "sdl2-mixer",
     "libopenmpt",
+    "volk",
     "glm",
     "nlohmann-json",
     "pugixml"
