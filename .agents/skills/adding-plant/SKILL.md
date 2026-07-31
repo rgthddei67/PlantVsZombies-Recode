@@ -28,7 +28,7 @@ description: Use when adding ANY new plant (新增植物) to PvZ — 射手/生�
 
 1. **类**：`Game/Plant/<Name>.h/.cpp`。选基类：蘑菇→`Shroom`（白天睡觉自动处理）；豌豆系带独立头部动画→`Shooter`；其余→`Plant`。抄最像的现有植物结构（喷射蘑菇抄 `PuffShroom`）。
 2. **注册**：`GameDataManager.cpp` 加 `#include` + `RegisterPlant(type, "PLANT_X", IMAGE_X, ANIM_X, "ReanimName", &MakePlant<T>)`。卡片由注册表数据驱动，**无需单独加卡**。
-3. **gamedata.json**：在 `build/clang-release/resources/gamedata.json` 加 `{cost, cooldown, offset, scale}` 条目（缺任一字段拒启动 exit -6）；其他 preset 自动共享。
+3. **gamedata.json**：在 `build/clang-release/resources/gamedata.json` 加 `{cost, cooldown, offset, scale, simulation}` 条目（前四项缺任一字段拒启动 exit -6）；其他 preset 自动共享。`simulation` 是 Board 级轻量防线推演画像：所有植物填写 `baseHealth`；普通射手按稳定等效值填写 `attackDps`，跨行攻击另填 `attackRowRadius`；向日葵/阳光菇类填写 `sunPerSecond` 与 `firstSunDelay`；一次性或无法可靠简化的复杂能力明确填 `persistent:false`，不得为了让它参与推演而在 `Board` 写植物类型特判。新增植物必须在专项中断言对应 `plantDefinitions.<TYPE>.simulation*` 投影，防止画像漏配或未加载。
 4. **info.txt（图鉴文案）**：在 `build/clang-release/resources/info.txt` 加两段——`[PLANT_X]` 下一行图鉴名字、`[PLANT_X_DESCRIPTION]` 下一行介绍（enum 名与注册的 "PLANT_X" 严格一致；解析器只认 `[key]`+正文，多行正文允许）。缺条目图鉴显示空白不报错，极易漏。
 5. **资源入库**：reanim、贴图、声音、resources.xml 都只改 `build/clang-release/resources/` 这一份权威资源；严禁为 playtest/debug 建副本或 Copy-Item 同步。新增文件仍因 build/ 被忽略而需要 `git add -f`。
 6. **射击类惯例**：帧事件发弹（帧号问主人）+ `mShootTimer` 乘词条攻速 `GetPlantAttackSpeedMultiplier()` + 索敌用 `ForEachZombieInRow`（严禁全表扫）。跨行/范围判定注意坐标换算：**C# 的 mX/mY 是格子左上角，本项目 `GetPosition()` 是 80×100 格子中心**，差 (40,50)。
@@ -60,7 +60,7 @@ description: Use when adding ANY new plant (新增植物) to PvZ — 射手/生�
    卡槽/选卡卡图由 `CardDisplayComponent::DrawPlantImage` 独立绘制，不能为缩卡图去改 gamedata `scale`（那会改草坪本体）。需要品种特例时在通用卡图倍率上追加独立倍率，并从既有卡图矩形中心缩放，避免向左上角漂移；用实际卡槽截图验收。
    若卡槽本身承载“下一株”的玩法设置（方向、模式等），权威状态放在该 `CardComponent`，卡面图标/箭头等提示和预览都实时消费同一状态，种植成功时再复制到实体；之后改卡不能追溯已落地实例。卡片和实体分别保存各自状态，旧档给中性默认。右键切换必须先于通用右键取消选择消费，并允许冷却中的卡修改。AutoTest 连续合成点击时，`click` 完成只代表松开事件已入队；移动鼠标或断言选中前至少留一个真实输入处理帧，否则松开会在新坐标结算而丢失点击。
    修改卡槽悬停或点击落格时，预览与种植必须共用同一个“世界坐标 → 唯一 `Cell`”解析入口和相同的边界归属规则。`ColliderComponent::ContainsPoint` 的矩形四边都是闭区间，相邻格边缘会同时命中；禁止预览按行列扫描、点击却依赖 `ClickableComponent` 渲染顺序，否则边缘和四格交点会显示一格却种到另一格。
-3. **AutoTest 冒烟**：`autotest/scripts/smoke_<name>.json`，每阶段**只种一棵**（plants dump 顺序来自 unordered_map，多棵时下标不可靠），断言 `plants.0.track`；`plantDefinitions.<TYPE>.sunCost/cooldownMs` 可直接锁定 gamedata 数值。几何验收用 `animatedObjectsByTag.Plant.0` 的最终世界包围盒与相对 collider 投影，禁止把 C# 绝对坐标写成期望值。时序估算用僵尸判定矩形 `[x±25]×[y-65,y+35]`、步速 23~45px/s。**exit 0 ≠ 通过**：必须逐张 Read 同步截图 + dump 数值核对（防假绿）。
+3. **AutoTest 冒烟**：`autotest/scripts/smoke_<name>.json`，每阶段**只种一棵**（plants dump 顺序来自 unordered_map，多棵时下标不可靠），断言 `plants.0.track`；`plantDefinitions.<TYPE>.sunCost/cooldownMs` 可直接锁定基础 gamedata 数值，`simulationBaseHealth/simulationAttackDpsOn100/simulationAttackRowRadius/simulationSunPerSecondOn100/simulationFirstSunDelayMs/simulationPersistent` 用来锁定轻量推演画像。几何验收用 `animatedObjectsByTag.Plant.0` 的最终世界包围盒与相对 collider 投影，禁止把 C# 绝对坐标写成期望值。时序估算用僵尸判定矩形 `[x±25]×[y-65,y+35]`、步速 23~45px/s。**exit 0 ≠ 通过**：必须逐张 Read 同步截图 + dump 数值核对（防假绿）。
 4. 蘑菇夜测用 level 10-18（九关制的 2-1..2-9）；白天睡觉断言 `anim_sleep`；魅惑僵尸清场用 `charm_zombie`（不触发输局）。
    只能种水路的蘑菇改用夜间泳池 level 28+ 验活跃态，并另在日间泳池 level 19+ 验 `anim_sleep`。
 

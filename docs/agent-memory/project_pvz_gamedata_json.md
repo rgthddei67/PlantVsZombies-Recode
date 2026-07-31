@@ -17,6 +17,12 @@ metadata:
 
 **新增植物/僵尸现在是 5 步**：gamedata.json 加条目是新增的一步；2026-07-22 起只改 `build/clang-release/resources/gamedata.json`，其他 preset 通过目录联接共享。漏加会启动时指名道姓报错。
 
+2026-07-31 植物条目新增可选 `simulation` 画像，供 Board 级轻量防线推演使用：
+`baseHealth`、`attackDps`、`attackRowRadius`、`sunPerSecond`、`firstSunDelay` 和
+`persistent`。现有类型已全部显式填写；未来新增植物由 adding-plant 流程要求补齐并用
+`plantDefinitions.*.simulation*` 投影验证。复杂一次性能力填 `persistent:false`，
+不得把植物类型判断堆进 Board。该对象保持可选，以兼容旧资源和未参与推演的扩展条目。
+
 **验证**：demo_peashooter -Seed 42 基线含 run.log **全字节一致**；负向①缺文件②删 PLANT_CHOMPER.cooldown 均 -6 且错误带枚举名+字段名。
 
 **Foot-guns：**

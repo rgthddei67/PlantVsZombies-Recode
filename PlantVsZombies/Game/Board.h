@@ -18,6 +18,7 @@
 
 class GameInfoSaver;
 class BoardPresentation;
+class CardSlotManager;
 class Graphics;
 class Sun;
 class SmallSun;
@@ -32,6 +33,14 @@ class Shovel;
 class Mower;
 enum class MowerType;
 enum class PlanternGear : int;
+
+struct MonteCarloTargetStats {
+	int rolloutCount = 0;
+	int candidateCount = 0;
+	int sampledZombieCount = 0;
+	int cardCount = 0;
+	float bestScore = 0.0f;
+};
 
 enum class Background {
 	GROUND_DAY,
@@ -151,6 +160,7 @@ public:
 
 private:
 	BoardPresentation* mPresentation = nullptr; // 非拥有；宿主场景的生命周期覆盖 Board
+	CardSlotManager* mCardSlotManager = nullptr; // 非拥有；由 GameScene 在 CardUI 创建后绑定
 	std::vector<ZombieType> mSpawnZombieList;	// 本关出怪表
 	float mHugeWaveCountDown = 0.0f;	// 一大波倒计时
 	float mUpdateZombieMetricsTimer = 0.0f;	// 僵尸血量与音乐敌对数的合并采样计时器
@@ -343,6 +353,17 @@ public:
 
 	/** 返回非拥有的场景展示端口；用于存档恢复 UI 瞬态。 */
 	BoardPresentation* GetPresentation() const { return mPresentation; }
+	/** 绑定当前场景卡槽，供 Board 级轻量推演读取玩家实际已选卡与冷却。 */
+	void BindCardSlotManager(CardSlotManager* manager) { mCardSlotManager = manager; }
+	/**
+	 * @brief 从当前实体和实际卡槽构建快照，用蒙特卡洛短视推演选择植物爆区。
+	 *
+	 * 算法只推进紧凑数值副本，不创建 GameObject，也不消费 GameRandom。
+	 */
+	bool PickMonteCarloPlantBlastTarget(
+		int minRow, int maxRow, int damage, float radius, int sourceZombieID,
+		int& targetRow, Vector& targetPosition,
+		MonteCarloTargetStats* stats = nullptr);
 	/** 完成一次读档恢复，并在实体全部还原后立即同步派生的逐格迷雾。 */
 	void CompleteLoadRestore();
 

@@ -49,6 +49,7 @@ public:
 	bool mShowPlantHP = false;  // 植物显示血量
 	bool mShowZombieHP = false; // 僵尸显示血量
 	bool mAutoCollected = true; // 自动收集
+	bool mEnableMonteCarloAI = true; // 轻量蒙特卡洛 AI；关闭后调用者走各自低配回退策略
 	bool mVsync = false;    // 是否开启垂直同步
 	bool mFullscreen = false;   // 是否全屏（等比 letterbox，无边框桌面全屏）
 

@@ -74,6 +74,19 @@ namespace {
 		}
 	}
 
+	const char* EliteJackTargetingModeName(
+		EliteJackInTheBoxZombie::PlantTargetingMode mode)
+	{
+		using Mode = EliteJackInTheBoxZombie::PlantTargetingMode;
+		switch (mode) {
+		case Mode::FORCED: return "FORCED";
+		case Mode::GREEDY: return "GREEDY";
+		case Mode::MONTE_CARLO: return "MONTE_CARLO";
+		case Mode::CHARMED_RANDOM: return "CHARMED_RANDOM";
+		default: return "NONE";
+		}
+	}
+
 	bool BoundsIntersect(const SDL_FRect& a, const SDL_FRect& b)
 	{
 		return a.x <= b.x + b.w && a.x + a.w >= b.x
@@ -372,6 +385,7 @@ void TestDriver::ResetTestState() {
 	GameAPP::mDevNoCooldown = false;
 	GameAPP::mDevFreePlant = false;
 	GameAPP::mDevSpawnPaused = false;
+	GameAPP::GetInstance().mEnableMonteCarloAI = true;
 }
 
 void TestDriver::Update() {
@@ -433,6 +447,11 @@ bool TestDriver::ExecuteCurrent() {
 	}
 	if (op == "set_timescale") {
 		DeltaTime::SetTimeScale(cmd.value("value", 1.0f));
+		return true;
+	}
+	if (op == "set_monte_carlo_ai") {
+		GameAPP::GetInstance().mEnableMonteCarloAI =
+			cmd.value("value", true);
 		return true;
 	}
 	if (op == "reset_test_state") {
@@ -1467,6 +1486,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["scene"] = currentScene->name;
 	out["adventureLevel"] = gameApp.mAdventureLevel;
 	out["encounteredEliteDancer"] = gameApp.HasEncounteredEliteDancer();
+	out["monteCarloAIEnabled"] = gameApp.mEnableMonteCarloAI;
 	out["dolphinAppearSoundRequestCount"] =
 		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_DOLPHIN_APPEARS);
 	out["dolphinBeforeJumpSoundRequestCount"] =
@@ -1610,10 +1630,21 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		out["haveCards"].push_back(PlantTypeName(type));
 	out["plantDefinitions"] = nlohmann::json::object();
 	for (PlantType type : GameDataManager::GetInstance().GetAllPlantTypes()) {
+		const PlantSimulationProfile& simulation =
+			GameDataManager::GetInstance().GetPlantSimulationProfile(type);
 		out["plantDefinitions"][PlantTypeName(type)] = {
 			{ "sunCost", GameDataManager::GetInstance().GetPlantSunCost(type) },
 			{ "cooldownMs", static_cast<int>(std::lround(
 				GameDataManager::GetInstance().GetPlantCooldown(type) * 1000.0f)) },
+			{ "simulationBaseHealth", simulation.baseHealth },
+			{ "simulationAttackDpsOn100", static_cast<int>(
+				std::lround(simulation.attackDps * 100.0f)) },
+			{ "simulationAttackRowRadius", simulation.attackRowRadius },
+			{ "simulationSunPerSecondOn100", static_cast<int>(
+				std::lround(simulation.sunPerSecond * 100.0f)) },
+			{ "simulationFirstSunDelayMs", static_cast<int>(
+				std::lround(simulation.firstSunDelay * 1000.0f)) },
+			{ "simulationPersistent", simulation.persistent },
 		};
 	}
 	out["cards"] = nlohmann::json::array();
@@ -2164,6 +2195,17 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				static_cast<int>(std::lround(targetPosition.y));
 			zombieState["eliteJackThrowWasMindControlled"] =
 				eliteJack->WasThrownByMindControlledZombie();
+			zombieState["eliteJackTargetingMode"] =
+				EliteJackTargetingModeName(
+					eliteJack->GetLastPlantTargetingMode());
+			zombieState["eliteJackMonteCarloRolloutCount"] =
+				eliteJack->GetLastMonteCarloRolloutCount();
+			zombieState["eliteJackMonteCarloCandidateCount"] =
+				eliteJack->GetLastMonteCarloCandidateCount();
+			zombieState["eliteJackMonteCarloZombieCount"] =
+				eliteJack->GetLastMonteCarloZombieCount();
+			zombieState["eliteJackMonteCarloCardCount"] =
+				eliteJack->GetLastMonteCarloCardCount();
 			zombieState["eliteJackBoxTrackVisible"] =
 				anim && anim->GetTrackVisible("Zombie_jackbox_box");
 			zombieState["jackRunVelocityOn1000"] =

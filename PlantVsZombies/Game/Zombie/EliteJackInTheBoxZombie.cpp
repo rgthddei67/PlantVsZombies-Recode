@@ -5,6 +5,7 @@
 #include "../Plant/GameDataManager.h"
 #include "../Plant/Plant.h"
 #include "../../DeltaTime.h"
+#include "../../GameAPP.h"
 #include "../../GameRandom.h"
 #include "../../Graphics.h"
 #include "../../ParticleSystem/ParticleSystem.h"
@@ -240,11 +241,16 @@ Vector EliteJackInTheBoxZombie::GetHeldBoxWorldPosition() const
  * @brief 按当前阵营选择落点：普通状态贪心攻击植物，魅惑状态随机攻击敌方僵尸。
  */
 bool EliteJackInTheBoxZombie::PickThrowTarget(
-	int& targetRow, Vector& targetPosition) const
+	int& targetRow, Vector& targetPosition)
 {
 	if (!mBoard) {
 		return false;
 	}
+	mLastPlantTargetingMode = PlantTargetingMode::NONE;
+	mLastMonteCarloRolloutCount = 0;
+	mLastMonteCarloCandidateCount = 0;
+	mLastMonteCarloZombieCount = 0;
+	mLastMonteCarloCardCount = 0;
 
 	const int minRow = std::max(0, mRow - 1);
 	const int maxRow = std::min(mBoard->mRows - 1, mRow + 1);
@@ -254,12 +260,48 @@ bool EliteJackInTheBoxZombie::PickThrowTarget(
 		targetRow = mForcedTargetRow;
 		targetPosition =
 			mBoard->GetCellCenterPosition(targetRow, mForcedTargetColumn);
+		mLastPlantTargetingMode = PlantTargetingMode::FORCED;
 		return true;
 	}
 
-	return mIsMindControlled
-		? PickRandomEnemyZombieTarget(targetRow, targetPosition)
-		: PickGreedyPlantTarget(targetRow, targetPosition);
+	if (mIsMindControlled) {
+		const bool found =
+			PickRandomEnemyZombieTarget(targetRow, targetPosition);
+		if (found) {
+			mLastPlantTargetingMode = PlantTargetingMode::CHARMED_RANDOM;
+		}
+		return found;
+	}
+	if (GameAPP::GetInstance().mEnableMonteCarloAI
+		&& PickMonteCarloPlantTarget(targetRow, targetPosition)) {
+		mLastPlantTargetingMode = PlantTargetingMode::MONTE_CARLO;
+		return true;
+	}
+	const bool found = PickGreedyPlantTarget(targetRow, targetPosition);
+	if (found) mLastPlantTargetingMode = PlantTargetingMode::GREEDY;
+	return found;
+}
+
+/** 调用 Board 级共享推演器；失败时由调用者回退到原贪心算法。 */
+bool EliteJackInTheBoxZombie::PickMonteCarloPlantTarget(
+	int& targetRow, Vector& targetPosition)
+{
+	if (!mBoard) return false;
+	MonteCarloTargetStats stats;
+	const bool found = mBoard->PickMonteCarloPlantBlastTarget(
+		std::max(0, mRow - 1),
+		std::min(mBoard->mRows - 1, mRow + 1),
+		kBoxExplosionDamage,
+		kBoxExplosionRadius,
+		mZombieID,
+		targetRow,
+		targetPosition,
+		&stats);
+	mLastMonteCarloRolloutCount = stats.rolloutCount;
+	mLastMonteCarloCandidateCount = stats.candidateCount;
+	mLastMonteCarloZombieCount = stats.sampledZombieCount;
+	mLastMonteCarloCardCount = stats.cardCount;
+	return found;
 }
 
 /**

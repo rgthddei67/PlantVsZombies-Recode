@@ -7,6 +7,10 @@
 #include "Trophy.h"
 #include "Crater.h"
 #include "AdventureProgression.h"
+#include "AI/PlantDefenseMonteCarlo.h"
+#include "CardSlotManager.h"
+#include "Card.h"
+#include "CardComponent.h"
 #include "../GameRandom.h"
 #include "./Plant/Plant.h"
 #include "./Plant/Plantern.h"
@@ -136,6 +140,13 @@ namespace {
 	constexpr int kEliteDolphinRiderMaxPerWave = 1;       // 每波最多正式生成的精英海豚数量；超额候选直接跳过
 	constexpr int kEliteJackInTheBoxMaxPerWave = 2;       // 每波最多正式生成的精英小丑数量；超额候选直接跳过
 	constexpr int kEliteScaredyShroomPlantLimit = 4;      // 每个关卡累计最多种植的精英胆小菇数量
+	constexpr int kMonteCarloRolloutCount = 32;           // 每个爆点的轻量未来样本数；低配可由 GameAPP 总开关完全跳过
+	constexpr int kMonteCarloMaxZombies = 12;             // 单个样本最多推进的当前敌方僵尸数
+	constexpr float kMonteCarloHorizonSeconds = 12.0f;    // 植物防线短视推演时域，单位：游戏秒
+	constexpr float kMonteCarloStepSeconds = 0.25f;       // 纯数值推演固定步长，单位：游戏秒
+	constexpr float kMonteCarloPlantDecisionSeconds = 2.0f; // 样本内玩家尝试从实际卡槽种植的间隔秒数
+	constexpr float kMonteCarloBacklineMultiplier = 1.2f; // 当前后半场植物的战略价值倍率
+	constexpr float kMonteCarloSunProducerFutureValue = 300.0f; // 当前产能植物的未来经济价值，单位：阳光分
 	constexpr int kWaveCandidateAttemptLimit = MAX_ZOMBIES_PER_WAVE * 10; // 单波候选尝试上限，防止仅剩受限类型时死循环
 	constexpr float kWeatherTransitionDuration = 2.0f;   // 雨势切换时倍率、暗幕与雨声音量的平滑过渡时长（游戏秒）
 	constexpr float kLateWeatherRampStart = 0.40f;       // 普通关波次进度超过该比例后开始增强后期天气（0～1）
@@ -3102,6 +3113,209 @@ void Board::CreateTrophy(const Vector& position)
 	auto trophy = GameObjectManager::GetInstance().CreateGameObjectAsShared<Trophy>(
 		LAYER_GAME_COIN, this, position);
 	mTrophy = trophy;
+}
+
+/**
+ * 从当前棋盘采集紧凑数值快照：实体提供真实生命/速度，卡槽提供未来种植候选，
+ * 再把纯计算交给共享推演器。这里是唯一接触 GameObject 的边界。
+ */
+bool Board::PickMonteCarloPlantBlastTarget(
+	int minRow, int maxRow, int damage, float radius, int sourceZombieID,
+	int& targetRow, Vector& targetPosition, MonteCarloTargetStats* stats)
+{
+	using namespace PlantDefenseMonteCarlo;
+	if (mRows <= 0 || mColumns <= 0 || mColumns * mRows > 64
+		|| damage <= 0 || radius <= 0.0f) {
+		return false;
+	}
+	minRow = std::clamp(minRow, 0, mRows - 1);
+	maxRow = std::clamp(maxRow, minRow, mRows - 1);
+
+	Snapshot snapshot;
+	snapshot.rows = mRows;
+	snapshot.columns = mColumns;
+	snapshot.initialSun = static_cast<float>(std::max(0, mSun));
+	snapshot.cells.reserve(static_cast<std::size_t>(mRows * mColumns));
+	for (int row = 0; row < mRows; ++row) {
+		for (int column = 0; column < mColumns; ++column) {
+			const Cell* cell = GetCell(row, column);
+			const Vector center = GetCellCenterPosition(row, column);
+			snapshot.cells.push_back({
+				row, column, center.x, center.y, cell && !cell->IsEmpty()
+			});
+		}
+	}
+
+	const auto& gameData = GameDataManager::GetInstance();
+	const int backlineColumnCount = (mColumns + 1) / 2;
+	std::vector<std::pair<int, int>> candidateCells;
+	std::vector<int> plantIDs = mEntityManager.GetAllPlantIDs();
+	std::sort(plantIDs.begin(), plantIDs.end());
+	snapshot.plants.reserve(plantIDs.size());
+	for (const int plantID : plantIDs) {
+		const Plant* plant = mEntityManager.GetPlant(plantID);
+		if (!plant || !plant->IsActive() || plant->IsSquished()
+			|| plant->mRow < 0 || plant->mRow >= mRows
+			|| plant->mColumn < 0 || plant->mColumn >= mColumns) {
+			continue;
+		}
+		const PlantSimulationProfile& profile =
+			gameData.GetPlantSimulationProfile(plant->mPlantType);
+		const bool sleeping = plant->GetSleepState();
+		float strategicValue = static_cast<float>(
+			gameData.GetPlantSunCost(plant->mPlantType));
+		if (profile.sunPerSecond > 0.0f) {
+			strategicValue += kMonteCarloSunProducerFutureValue;
+		}
+		if (plant->mColumn < backlineColumnCount) {
+			strategicValue *= kMonteCarloBacklineMultiplier;
+		}
+
+		const ColliderComponent* collider = plant->GetColliderComponent();
+		const SDL_FRect bounds = collider
+			? collider->GetBoundingBox()
+			: SDL_FRect{
+				plant->GetPosition().x - CELL_COLLIDER_SIZE_X * 0.5f,
+				plant->GetPosition().y - CELL_COLLIDER_SIZE_Y * 0.5f,
+				CELL_COLLIDER_SIZE_X, CELL_COLLIDER_SIZE_Y
+			};
+		snapshot.plants.push_back({
+			plant->mRow,
+			plant->mColumn,
+			plant->GetPosition().x,
+			static_cast<float>(std::max(0, plant->mPlantHealth)),
+			static_cast<float>(std::max(1, plant->mPlantMaxHealth)),
+			strategicValue,
+			sleeping ? 0.0f : profile.attackDps,
+			profile.attackRowRadius,
+			sleeping ? 0.0f : profile.sunPerSecond,
+			0.0f,
+			{ bounds.x, bounds.y, bounds.w, bounds.h }
+		});
+
+		if (plant->mRow >= minRow && plant->mRow <= maxRow) {
+			candidateCells.emplace_back(plant->mRow, plant->mColumn);
+		}
+	}
+	std::sort(candidateCells.begin(), candidateCells.end());
+	candidateCells.erase(
+		std::unique(candidateCells.begin(), candidateCells.end()),
+		candidateCells.end());
+	snapshot.candidates.reserve(candidateCells.size());
+	for (const auto& cell : candidateCells) {
+		const Vector center = GetCellCenterPosition(cell.first, cell.second);
+		snapshot.candidates.push_back({
+			cell.first, cell.second, center.x, center.y
+		});
+	}
+	if (snapshot.candidates.empty()) return false;
+
+	std::vector<int> zombieIDs = mEntityManager.GetAllZombieIDs();
+	std::sort(zombieIDs.begin(), zombieIDs.end());
+	snapshot.zombies.reserve(zombieIDs.size());
+	for (const int zombieID : zombieIDs) {
+		const Zombie* zombie = mEntityManager.GetZombie(zombieID);
+		if (!zombie || !zombie->IsActive() || zombie->IsDying()
+			|| !zombie->HasHead() || zombie->IsMindControlled()
+			|| zombie->mRow < 0 || zombie->mRow >= mRows) {
+			continue;
+		}
+		float centerX = zombie->GetPosition().x;
+		if (const ColliderComponent* collider = zombie->GetColliderComponent()) {
+			const SDL_FRect bounds = collider->GetBoundingBox();
+			centerX = bounds.x + bounds.w * 0.5f;
+		}
+		snapshot.zombies.push_back({
+			zombie->mZombieID,
+			zombie->mRow,
+			centerX,
+			zombie->GetCurrentHorizontalMoveSpeed(),
+			static_cast<float>(std::max(0, zombie->mBodyHealth)),
+			static_cast<float>(std::max(0, zombie->mHelmHealth)),
+			static_cast<float>(std::max(0, zombie->mShieldHealth)),
+			static_cast<float>(std::max(0, zombie->mAttackDamage)),
+			zombie->IsEating()
+		});
+	}
+
+	if (mCardSlotManager) {
+		const auto& cards = mCardSlotManager->GetCards();
+		snapshot.cards.reserve(cards.size());
+		for (Card* card : cards) {
+			if (!card) continue;
+			const CardComponent* component = card->GetCardComponent();
+			if (!component) continue;
+			const PlantType type = component->GetPlantType();
+			const PlantSimulationProfile& profile =
+				gameData.GetPlantSimulationProfile(type);
+			if (!profile.persistent) continue;
+
+			std::uint64_t legalCellMask = 0;
+			for (int row = 0; row < mRows; ++row) {
+				for (int column = 0; column < mColumns; ++column) {
+					const int cellIndex = row * mColumns + column;
+					if (CanPlantAt(type, row, column)) {
+						legalCellMask |= (1ULL << cellIndex);
+					}
+				}
+			}
+			if (legalCellMask == 0) continue;
+
+			const int cost = component->GetSunCost();
+			float strategicValue = static_cast<float>(cost);
+			if (profile.sunPerSecond > 0.0f) {
+				strategicValue += kMonteCarloSunProducerFutureValue;
+			}
+			snapshot.cards.push_back({
+				static_cast<int>(type),
+				cost,
+				component->GetCooldownTimer(),
+				component->GetCooldownTime(),
+				static_cast<float>(profile.baseHealth),
+				strategicValue,
+				profile.attackDps,
+				profile.attackRowRadius,
+				profile.sunPerSecond,
+				profile.firstSunDelay,
+				legalCellMask
+			});
+		}
+	}
+
+	Config config;
+	config.rolloutCount = kMonteCarloRolloutCount;
+	config.maxZombiesPerRollout = kMonteCarloMaxZombies;
+	config.horizonSeconds = kMonteCarloHorizonSeconds;
+	config.stepSeconds = kMonteCarloStepSeconds;
+	config.impactDamage = static_cast<float>(damage);
+	config.impactRadius = radius;
+	config.plantDecisionInterval = kMonteCarloPlantDecisionSeconds;
+
+	std::uint32_t seed = 2166136261u;
+	auto mixSeed = [&seed](std::uint32_t value) {
+		seed ^= value;
+		seed *= 16777619u;
+	};
+	mixSeed(static_cast<std::uint32_t>(mBoardFrame));
+	mixSeed(static_cast<std::uint32_t>(mCurrentWave));
+	mixSeed(static_cast<std::uint32_t>(sourceZombieID));
+	const Result result = ChooseTarget(snapshot, config, seed);
+	if (stats) {
+		stats->rolloutCount = result.rolloutCount;
+		stats->candidateCount =
+			static_cast<int>(snapshot.candidates.size());
+		stats->sampledZombieCount = result.sampledZombieCount;
+		stats->cardCount = result.cardCount;
+		stats->bestScore = result.score;
+	}
+	if (result.candidateIndex < 0
+		|| result.candidateIndex >= static_cast<int>(snapshot.candidates.size())) {
+		return false;
+	}
+	const Candidate& chosen = snapshot.candidates[result.candidateIndex];
+	targetRow = chosen.row;
+	targetPosition = Vector(chosen.x, chosen.y);
+	return true;
 }
 
 bool Board::CanPlantAt(PlantType type, int row, int col)

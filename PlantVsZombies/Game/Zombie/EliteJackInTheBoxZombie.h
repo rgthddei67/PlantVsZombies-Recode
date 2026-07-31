@@ -9,6 +9,14 @@ class Graphics;
  */
 class EliteJackInTheBoxZombie final : public JackInTheBoxZombie {
 public:
+	enum class PlantTargetingMode {
+		NONE,
+		FORCED,
+		GREEDY,
+		MONTE_CARLO,
+		CHARMED_RANDOM
+	};
+
 	using JackInTheBoxZombie::JackInTheBoxZombie;
 
 	void Update() override;
@@ -23,6 +31,21 @@ public:
 	Vector GetThrowTargetPosition() const { return mBoxTargetPosition; }
 	bool WasThrownByMindControlledZombie() const {
 		return mThrowWasMindControlled;
+	}
+	PlantTargetingMode GetLastPlantTargetingMode() const {
+		return mLastPlantTargetingMode;
+	}
+	int GetLastMonteCarloRolloutCount() const {
+		return mLastMonteCarloRolloutCount;
+	}
+	int GetLastMonteCarloCandidateCount() const {
+		return mLastMonteCarloCandidateCount;
+	}
+	int GetLastMonteCarloZombieCount() const {
+		return mLastMonteCarloZombieCount;
+	}
+	int GetLastMonteCarloCardCount() const {
+		return mLastMonteCarloCardCount;
 	}
 
 	/** AutoTest 确定性入口：覆盖下一投倒计时，并可固定合法目标格。 */
@@ -45,7 +68,8 @@ private:
 	void DamagePlantsAtImpact() const;
 	void DamageEnemyZombiesAtImpact() const;
 	Vector GetHeldBoxWorldPosition() const;
-	bool PickThrowTarget(int& targetRow, Vector& targetPosition) const;
+	bool PickThrowTarget(int& targetRow, Vector& targetPosition);
+	bool PickMonteCarloPlantTarget(int& targetRow, Vector& targetPosition);
 	bool PickGreedyPlantTarget(int& targetRow, Vector& targetPosition) const;
 	bool PickRandomEnemyZombieTarget(
 		int& targetRow, Vector& targetPosition) const;
@@ -59,6 +83,11 @@ private:
 	int mThrowTargetRow = -1;
 	bool mBoxInFlight = false;
 	bool mThrowWasMindControlled = false;
+	PlantTargetingMode mLastPlantTargetingMode = PlantTargetingMode::NONE;
+	int mLastMonteCarloRolloutCount = 0;
+	int mLastMonteCarloCandidateCount = 0;
+	int mLastMonteCarloZombieCount = 0;
+	int mLastMonteCarloCardCount = 0;
 
 	// 仅由 AutoTest 下一次投掷消费，不属于正式玩法状态，无需入档。
 	int mForcedTargetRow = -1;

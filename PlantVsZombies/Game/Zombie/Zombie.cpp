@@ -1286,6 +1286,21 @@ void Zombie::SetPosition(const Vector& position)
 	this->GetTransformComponent()->SetPosition(position);
 }
 
+float Zombie::GetCurrentHorizontalMoveSpeed() const
+{
+	if (mIsDying || mIsDead || !mHasHead || mTangleKelpPlantID != NULL_PLANT_ID
+		|| mFrozenTimer > 0.0f || !mAnimator) {
+		return 0.0f;
+	}
+	const float trackSpeed = mGroundTrackIndex >= 0
+		? mAnimator->GetTrackVelocity(mGroundTrackIndex)
+		: mAnimator->GetTrackVelocity("_ground");
+	float velocity = std::fabs(trackSpeed * mSpeed);
+	if (mCooldownTimer > 0.0f) velocity *= 0.5f;
+	if (mBoard) velocity *= mBoard->GetZombieWindMoveMultiplier(mIsMindControlled);
+	return std::max(0.0f, velocity);
+}
+
 float Zombie::GetTargetLeadX(float seconds) const
 {
 	float centerX = GetPosition().x;
@@ -1299,12 +1314,7 @@ float Zombie::GetTargetLeadX(float seconds) const
 		return centerX;
 	}
 
-	const float trackSpeed = mGroundTrackIndex >= 0
-		? mAnimator->GetTrackVelocity(mGroundTrackIndex)
-		: mAnimator->GetTrackVelocity("_ground");
-	float velocity = trackSpeed * mSpeed;
-	if (mCooldownTimer > 0.0f) velocity *= 0.5f;
-	if (mBoard) velocity *= mBoard->GetZombieWindMoveMultiplier(mIsMindControlled);
+	const float velocity = GetCurrentHorizontalMoveSpeed();
 	return centerX + (mIsMindControlled ? velocity : -velocity) * seconds;
 }
 

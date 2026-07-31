@@ -28,7 +28,7 @@
 - [路灯花与迷雾核心](project_pvz_plantern_fog_core.md) — 2026-07-30 4-2 起逐格雾 alpha 限制远程索敌，并允许从可见边界额外看入第一格薄雾、第二格仍阻断；唯一可重种路灯花用 25/100 初始/容量雾火维持 0/I/II/III 档 4×3/8×5/10×7 前向照明及 100%/110%/120%/135% 产光效率；雾火按每关归一化波次从每团15/单波45收紧到10/30，同时在途量受单波预算限制，II 挡消耗为1.1/秒、III 挡消耗从2.1/秒升至4/秒；卡牌独立显示挡位、具体燃料、比例条与槽下控制菜单，正式消耗跌破 10 时播放一次不足音效和约 3 秒中央红色警报，低量期间卡牌持续红色脉冲
 - [雾夜第四大关早期出怪节奏](project_pvz_fog_spawnlist_pacing.md) — 2026-07-30 4-1为10波普通/路障/小丑，4-2为20波并加入普通橄榄球，4-3在玩家取得仙人掌后以20波普通/路障/气球开启空中索敌教学；三关有序出怪表及选卡预览均有可见回归
 - [经典小丑僵尸](project_pvz_jack_in_the_box_zombie.md) — 2026-07-30 `ZOMBIE_JACK_IN_THE_BOX`：500 HP、0.66～0.68速度、随机开盒与共享循环声；第45帧啃食、第66帧爆炸、第89帧死亡，爆炸只伤敌对阵营僵尸（未魅惑侧另炸植物）、专属大范围爆炸、原版普通完整掉头、残肢和存档均有可见回归；4-1/4-2 已替换读报占位，樱桃同类粒子聚团一并修复
-- [精英小丑僵尸](project_pvz_elite_jack_in_the_box_zombie.md) — 2026-07-30 午夜紫双臂精英小丑：900 HP、0.61速度、每6～10秒只投1盒，普通侧按爆区阳光总价贪心选植物格、后排×1.2且产阳光植物额外+300经济分，魅惑侧随机选敌方僵尸，无目标不空投；100px内50伤，飞行状态/投出阵营入档；每波最多2只，4-4综合池与通关后图鉴解锁均有可见专项
+- [精英小丑僵尸](project_pvz_elite_jack_in_the_box_zombie.md) — 2026-07-31 午夜紫双臂精英小丑：900 HP、0.61速度、每6～10秒只投1盒；普通侧默认以 Board 采集的当前僵尸/实际卡槽做固定预算轻量蒙特卡洛选经济损失最大格，GameAPP 开关默认 true 且关闭回退原贪心，魅惑侧仍随机敌方僵尸；100px内50伤，飞行状态/投出阵营入档；每波最多2只，4-4综合池与通关后图鉴解锁均有可见专项
 - [精英舞王僵尸](project_pvz_elite_dancer_zombie.md) — 2026-07-27 当前为黑夜大雨任意台风 50% 变异、每波最多 2 只；超额成功变异候选源头跳过，实体创建成功后写 PlayerInfo 永久遭遇供图鉴解锁；720 HP、基础1.25、每0.2秒补伴舞至36只，强/超强台风再乘1.45/1.75；变异与图鉴专项可见 AutoTest 通过
 - [绿色精英撑杆僵尸](project_pvz_elite_polevaulter_zombie.md) — 2026-07-28 红蓝运动服统一换绿、450 HP、动画能力层1.1、250px跳距，正常落地同排同X生成普通撑杆；接触高坚果后先播放跳跃、在60%进度被挡，仍先召唤普通撑杆，再由9000生命高坚果承受500僵尸来源伤害，精英自身不扣血；正式波次每波最多2只且计数入档；额外100px按 `anim_jump` 帧进度平滑补偿并随动画变速
 - [黑夜第二大关出怪节奏](project_pvz_night_spawnlist_pacing.md) — 2026-07-22 冒险 2-1～2-9 单主题节奏：2-6 普通橄榄球、2-7 舞王、2-8 普通铁门+加固铁门（玩家已取得毁灭菇）、2-9 八种重点机制综合并必含加固铁门；双 preset 统一，`smoke_night_spawnlists` 逐关断言并截图
@@ -51,7 +51,7 @@
 - [胆小菇+adding-plant skill ✅已push](project_pvz_scaredyshroom_and_adding_plant_skill.md) — 2026-07-08(2d53f00..894fe5a) 新增植物流程已固化为.claude/skills/adding-plant(CLAUDE.md植物节已删指向skill,僵尸节保留)；foot-gun=帧事件帧号必问主人、站位/影子两套offset分居gamedata.json与代码、状态机消费的节流缓存读档首帧必须真算(AutoTest存档短路测不到)
 - [主菜单石碑排版、命中仲裁与2-1跳关](project_pvz_mainmenu_button_arbitration.md) — 2026-07-28 未到2-1时左下显示绿色「跳到 2-1」，点击补齐1-1～1-9正式植物奖励并把进度只提升到10后立即保存，达到2-1即隐藏；石碑紧贴重叠仍由ButtonManager中心最近仲裁，回归须Read中间截图防假绿
 - [血量字形worker侧instance化 ✅已push](project_pvz_glyph_run_worker_instancing.md) — 2026-07-07(db5c3e6) 20000可见血量行defer到串行replay逐行flush=N×ε聚合致死(51.9→9.7ms/19→103FPS)；修=RecordDrawGlyphRun快路径直写InstanceRecord切片(与reanim同管线,z-order不变)；foot-gun=textDraw(lines)计数器不覆盖字形路径(盲区误导两轮,已加glyphRun等-Profile探针)、glyphAtlasBuild失败无negative cache会每帧重建循环
-- [gamedata.json 数值外置 ✅已push](project_pvz_gamedata_json.md) — 2026-07-07(9f3e3ca+0b37e9f) JSON唯一数值来源+缺任一字段即拒启动(-6)+AutoTest不弹窗守卫；新增植物/僵尸改5步；2026-07-22 起只改 clang-release 权威资源，其他 preset 用 Junction 共享；foot-gun=文件名GameApp.cpp非GameAPP.cpp、后台PowerShell不继承VS环境
+- [gamedata.json 数值外置 ✅已push](project_pvz_gamedata_json.md) — 2026-07-07(9f3e3ca+0b37e9f) JSON唯一数值来源+缺任一基础字段即拒启动(-6)+AutoTest不弹窗守卫；2026-07-31 植物增加轻量防线推演 simulation 画像并纳入 adding-plant；2026-07-22 起只改 clang-release 权威资源，其他 preset 用 Junction 共享；foot-gun=文件名GameApp.cpp非GameAPP.cpp、后台PowerShell不继承VS环境
 - [幽灵僵尸射手空射修复 ✅已push](project_pvz_ghost_zombie_shooter_fix.md) — 2026-07-06(b1cec54) 行索引过滤IsActive/IsDying+Die()防重入(同帧双Die双扣计数)+DestroyGameObject(raw)静默失败留WARN；再见"计数0仍开火"先查GOM WARN
 - [固定步长主循环 ✅已push](project_pvz_fixed_timestep.md) — 2026-07-06(729356e) 逻辑60Hz+封顶3步丢债；AutoTest同Seed全产物逐字节复现；foot-gun=追帧第2/3步前必须补poll否则合成输入按下沿湮灭、wait_frames语义变逻辑步、验证防空对空假阳性
 

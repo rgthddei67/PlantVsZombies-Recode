@@ -488,6 +488,54 @@ bool GameDataManager::LoadNumbersFromJson() {
 			}
 			out = Vector(e["offset"][0].get<float>(), e["offset"][1].get<float>());
 		};
+		auto readSimulation = [&errors](const nlohmann::json& e,
+			const std::string& who, PlantSimulationProfile& out) {
+			if (!e.contains("simulation")) return;
+			if (!e["simulation"].is_object()) {
+				errors.push_back(who + " 的 \"simulation\" 须为对象");
+				return;
+			}
+			const nlohmann::json& simulation = e["simulation"];
+			auto readOptionalFloat = [&errors, &simulation, &who](
+				const char* field, float& value) {
+				if (!simulation.contains(field)) return;
+				if (!simulation[field].is_number()) {
+					errors.push_back(who + ".simulation 的 \"" + field
+						+ "\" 须为数字");
+					return;
+				}
+				value = simulation[field].get<float>();
+			};
+			auto readOptionalInt = [&errors, &simulation, &who](
+				const char* field, int& value) {
+				if (!simulation.contains(field)) return;
+				if (!simulation[field].is_number_integer()) {
+					errors.push_back(who + ".simulation 的 \"" + field
+						+ "\" 须为整数");
+					return;
+				}
+				value = simulation[field].get<int>();
+			};
+			readOptionalInt("baseHealth", out.baseHealth);
+			readOptionalFloat("attackDps", out.attackDps);
+			readOptionalInt("attackRowRadius", out.attackRowRadius);
+			readOptionalFloat("sunPerSecond", out.sunPerSecond);
+			readOptionalFloat("firstSunDelay", out.firstSunDelay);
+			if (simulation.contains("persistent")) {
+				if (!simulation["persistent"].is_boolean()) {
+					errors.push_back(who
+						+ ".simulation 的 \"persistent\" 须为布尔值");
+				}
+				else {
+					out.persistent = simulation["persistent"].get<bool>();
+				}
+			}
+			if (out.baseHealth <= 0 || out.attackDps < 0.0f
+				|| out.attackRowRadius < 0 || out.sunPerSecond < 0.0f
+				|| out.firstSunDelay < 0.0f) {
+				errors.push_back(who + ".simulation 含越界负数或零生命");
+			}
+		};
 
 		const bool hasPlants = data.contains("plants") && data["plants"].is_object();
 		const bool hasZombies = data.contains("zombies") && data["zombies"].is_object();
@@ -507,6 +555,7 @@ bool GameDataManager::LoadNumbersFromJson() {
 				readFloat(e, "cooldown", info.enumName, info.Cooldown);
 				readOffset(e, info.enumName, info.offset);
 				readFloat(e, "scale", info.enumName, info.scale);
+				readSimulation(e, info.enumName, info.simulation);
 			}
 			for (auto& item : plants.items()) {
 				if (mEnumNameToType.find(item.key()) == mEnumNameToType.end())
@@ -679,6 +728,15 @@ float GameDataManager::GetPlantCooldown(PlantType plantType) const {
 	if (it != mPlantInfo.end())
 		return it->second.Cooldown;
 	return 0.0f;
+}
+
+const PlantSimulationProfile& GameDataManager::GetPlantSimulationProfile(
+	PlantType plantType) const
+{
+	auto it = mPlantInfo.find(plantType);
+	if (it != mPlantInfo.end()) return it->second.simulation;
+	static const PlantSimulationProfile kDefaultProfile;
+	return kDefaultProfile;
 }
 
 AnimationType GameDataManager::GetZombieAnimationType(ZombieType zombieType) const {

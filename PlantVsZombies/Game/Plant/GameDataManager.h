@@ -19,6 +19,18 @@ class Zombie;
 using PlantFactoryFn  = std::shared_ptr<Plant>(*)(Board*, PlantType, int, int, AnimationType, float, bool);
 using ZombieFactoryFn = std::shared_ptr<Zombie>(*)(Board*, ZombieType, float, float, int, AnimationType, float, bool);
 
+/**
+ * @brief 轻量防线推演使用的植物画像；只表达可稳定近似的数值，不复制正式植物状态机。
+ */
+struct PlantSimulationProfile {
+	int baseHealth = 300;             // 未来种植的基础生命值；在场植物始终使用实体真实生命
+	float attackDps = 0.0f;           // 对每个覆盖行的等效持续伤害，单位：生命/游戏秒
+	int attackRowRadius = 0;          // 攻击覆盖自身行上下各几行；0=仅本行
+	float sunPerSecond = 0.0f;        // 简化后的长期产光速率，单位：阳光/游戏秒
+	float firstSunDelay = 0.0f;       // 新种下后开始贡献长期产能前的等待秒数
+	bool persistent = true;           // false=一次性/复杂能力牌，不参与未来种植推演
+};
+
 // 植物信息
 struct PlantInfo {
 	PlantType type = PlantType::NUM_PLANT_TYPES;   // 植物类型
@@ -31,6 +43,7 @@ struct PlantInfo {
 	Vector offset{ 0, 0 };       // 绘制偏移量
 	float scale = 1.0f;          // 创建时的缩放（仅 PotatoMine=0.8，其余=1.0）
 	PlantFactoryFn factory = nullptr;  // 具体类的构造工厂
+	PlantSimulationProfile simulation; // 蒙特卡洛防线推演的集中简化画像
 
 	PlantInfo() = default;
 };
@@ -156,6 +169,11 @@ public:
 	 * @return float 冷却时间（单位：秒），若未找到返回 0.0f
 	 */
 	float GetPlantCooldown(PlantType plantType) const;
+
+	/**
+	 * @brief 获取植物的轻量防线推演画像；未注册类型返回安全的无攻击默认画像。
+	 */
+	const PlantSimulationProfile& GetPlantSimulationProfile(PlantType plantType) const;
 
 	/**
 	 * @brief 获取僵尸对应的动画类型

@@ -714,6 +714,7 @@ void GameScene::OnEnter() {
 		LAYER_UI);
 	CardUI->SetName("CardUI");
 	mCardSlotManager = CardUI->AddComponent<CardSlotManager>(mBoard.get());
+	mBoard->BindCardSlotManager(mCardSlotManager);
 
 	mGameProgress = GameObjectManager::GetInstance().CreateGameObjectImmediate<GameProgress>(
 		LAYER_UI, mBoard.get());

@@ -142,6 +142,8 @@ public:
 	Vector GetVisualPosition() const override;
 	Vector GetPosition() const;
 	void SetPosition(const Vector& position);
+	/** 返回按当前减速、冻结、天气和场地状态折算后的水平行走速度绝对值，单位：像素/游戏秒。 */
+	float GetCurrentHorizontalMoveSpeed() const;
 	/** 按当前碰撞矩形中心与实际行走速度预测水平落点，供倭瓜复刻 ZombieTargetLeadX。 */
 	float GetTargetLeadX(float seconds) const;
 

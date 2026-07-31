@@ -197,6 +197,7 @@ bool GameInfoSaver::SavePlayerInfoImpl()
 	j["showPlantHP"] = gameApp.mShowPlantHP;
 	j["showZombieHP"] = gameApp.mShowZombieHP;
 	j["autoCollected"] = gameApp.mAutoCollected;
+	j["enableMonteCarloAI"] = gameApp.mEnableMonteCarloAI;
 	j["soundVolume"] = AudioSystem::GetSoundVolume();
 	j["musicVolume"] = AudioSystem::GetMusicVolume();
 	j["havecards"] = gameApp.mHaveCards;
@@ -229,6 +230,7 @@ bool GameInfoSaver::LoadPlayerInfoImpl()
 	gameApp.mShowPlantHP = j.value("showPlantHP", false);
 	gameApp.mShowZombieHP = j.value("showZombieHP", false);
 	gameApp.mAutoCollected = j.value("autoCollected", true);
+	gameApp.mEnableMonteCarloAI = j.value("enableMonteCarloAI", true);
 	gameApp.mHaveCards = j.value("havecards",
 		std::vector<PlantType>{PlantType::PLANT_PEASHOOTER});
 

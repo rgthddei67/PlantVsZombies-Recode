@@ -4,6 +4,7 @@
     { "op": "choose_cards", "cards": ["PLANT_SUNFLOWER", "PLANT_THREEPEATER"] },
     { "op": "wait_state", "state": "GAME", "timeout": 15 },
     { "op": "set_spawn_paused", "value": true },
+    { "op": "set_monte_carlo_ai", "value": false },
     { "op": "set_sun", "value": 9000 },
 
     { "op": "plant", "type": "PLANT_SUNFLOWER", "row": 1, "col": 2 },
@@ -13,6 +14,9 @@
     { "op": "wait_seconds", "value": 0.15, "timeout": 3 },
 
     { "op": "assert_state", "path": "eliteJack.eliteJackBoxInFlight", "equals": true },
+    { "op": "assert_state", "path": "monteCarloAIEnabled", "equals": false },
+    { "op": "assert_state", "path": "eliteJack.eliteJackTargetingMode", "equals": "GREEDY" },
+    { "op": "assert_state", "path": "eliteJack.eliteJackMonteCarloRolloutCount", "equals": 0 },
     { "op": "assert_state", "path": "eliteJack.eliteJackTargetRow", "equals": 1 },
     { "op": "assert_state", "path": "eliteJack.eliteJackTargetXInt", "equals": 442 },
     { "op": "screenshot", "name": "elite_jack_targets_sunflower_economy.png" },
