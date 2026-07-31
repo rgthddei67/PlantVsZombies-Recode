@@ -1,0 +1,22 @@
+{
+  "commands": [
+    { "op": "wait_frames", "value": 60 },
+    { "op": "assert_state", "path": "monteCarloAIEnabled", "equals": true },
+    { "op": "screenshot", "name": "console_button_main_menu" },
+    { "op": "click", "x": 995, "y": 568 },
+    { "op": "wait_frames", "value": 20 },
+    { "op": "screenshot", "name": "console_monte_carlo_enabled" },
+    { "op": "click", "x": 370, "y": 298 },
+    { "op": "wait_frames", "value": 2 },
+    { "op": "assert_state", "path": "monteCarloAIEnabled", "equals": false },
+    { "op": "screenshot", "name": "console_monte_carlo_disabled" },
+    { "op": "click", "x": 550, "y": 496 },
+    { "op": "wait_frames", "value": 20 },
+    { "op": "click", "x": 995, "y": 568 },
+    { "op": "wait_frames", "value": 20 },
+    { "op": "assert_state", "path": "monteCarloAIEnabled", "equals": false },
+    { "op": "dump_state", "name": "console_reopened_state" },
+    { "op": "screenshot", "name": "console_monte_carlo_disabled_reopened" },
+    { "op": "quit" }
+  ]
+}

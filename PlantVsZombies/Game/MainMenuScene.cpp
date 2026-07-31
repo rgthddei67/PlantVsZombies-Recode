@@ -13,6 +13,8 @@
 namespace
 {
 	constexpr int kSecondAreaFirstLevel = AdventureProgression::LEVELS_PER_AREA + 1; // 主菜单跳关目标：2-1
+	const Vector kConsoleButtonPosition(920.0f, 548.0f); // 主菜单右下角控制台入口左上角坐标
+	const Vector kConsoleButtonSize(150.0f, 40.0f); // 控制台入口按钮尺寸，单位：逻辑像素
 }
 
 void MainMenuScene::OnEnter()
@@ -29,6 +31,8 @@ void MainMenuScene::OnExit()
 	mGameButton = nullptr;
 	mSkipToSecondAreaButton.reset();
 	mOpitionButton.reset();
+	mConsoleButton.reset();
+	mExitButton.reset();
 	mAlmanacButton.reset();
 	Scene::OnExit();
 }
@@ -75,7 +79,7 @@ void MainMenuScene::BuildDrawCommands()
 	Scene::BuildDrawCommands();
 	RegisterDrawCommand("DrawLevel",
 		[this](Graphics* g) {
-			if (this->mOpenMenu) return;
+			if (this->mOpenMenu || this->mOpenConsole) return;
 			auto& gameApp = GameAPP::GetInstance();
 			int mBigLevel = AdventureProgression::GetAreaNumber(gameApp.mAdventureLevel);
 			int mSmallLevel = AdventureProgression::GetLevelNumberInArea(gameApp.mAdventureLevel);
@@ -88,14 +92,21 @@ void MainMenuScene::BuildDrawCommands()
 		LAYER_UI + 10000);
 	RegisterDrawCommand("DrawButton",
 		[this](Graphics* g) {
-			if (!mOpenMenu && mOpitionButton) {
+			const bool overlayOpen = mOpenMenu || mOpenConsole;
+			if (!overlayOpen && mOpitionButton) {
 				mOpitionButton->Draw(g);
 			}
-			if (!mOpenMenu && mAlmanacButton) {
+			if (!overlayOpen && mConsoleButton) {
+				mConsoleButton->Draw(g);
+			}
+			if (!overlayOpen && mAlmanacButton) {
 				mAlmanacButton->Draw(g);
 			}
-			if (!mOpenMenu && mSkipToSecondAreaButton) {
+			if (!overlayOpen && mSkipToSecondAreaButton) {
 				mSkipToSecondAreaButton->Draw(g);
+			}
+			if (!overlayOpen && mExitButton) {
+				mExitButton->Draw(g);
 			}
 		},
 		LAYER_UI + 100);
@@ -120,6 +131,7 @@ void MainMenuScene::BuildDrawCommands()
 	AddTexture(ResourceKeys::Textures::IMAGE_SELECTORSCREEN_HELP1, 786.0f, 515.0f, 1.0f, 1.0f, 10);
 	mExitButton = mUIManager.CreateButton(Vector(855, 495), Vector(47 * 1.2f, 27 * 1.2f));
 	mExitButton->SetAsCheckbox(false);
+	mExitButton->SetSkipDraw(true);
 	mExitButton->SetImageKeys(ResourceKeys::Textures::IMAGE_SELECTORSCREEN_QUIT1,
 		ResourceKeys::Textures::IMAGE_SELECTORSCREEN_QUIT2,
 		ResourceKeys::Textures::IMAGE_SELECTORSCREEN_QUIT2,
@@ -127,6 +139,22 @@ void MainMenuScene::BuildDrawCommands()
 	mExitButton->SetClickCallBack([](bool) {
 		GameAPP::GetInstance().SetRunning(false);
 		});
+
+	mConsoleButton = mUIManager.CreateButton(kConsoleButtonPosition, kConsoleButtonSize);
+	mConsoleButton->SetAsCheckbox(false);
+	mConsoleButton->SetSkipDraw(true);
+	mConsoleButton->SetText(u8"控制台", ResourceKeys::Fonts::FONT_FZCQ, 18);
+	mConsoleButton->SetTextColor(glm::vec4{ 53, 191, 61, 255 });
+	mConsoleButton->SetHoverTextColor(glm::vec4{ 53, 240, 61, 255 });
+	mConsoleButton->SetImageKeys(
+		ResourceKeys::Textures::IMAGE_BUTTONSMALL,
+		ResourceKeys::Textures::IMAGE_BUTTONSMALL,
+		ResourceKeys::Textures::IMAGE_BUTTONSMALL,
+		ResourceKeys::Textures::IMAGE_BUTTONSMALL);
+	mConsoleButton->SetClickCallBack([this](bool) {
+		OpenConsole();
+		});
+
 	// 花
 	AddTexture(ResourceKeys::Textures::IMAGE_SELECTORSCREEN_FLOWER1, 825.0f, 420.0f, 1.0f, 1.0f, 12);
 	AddTexture(ResourceKeys::Textures::IMAGE_SELECTORSCREEN_FLOWER2, 785.0f, 439.0f, 1.0f, 1.0f, 12);
@@ -194,16 +222,23 @@ void MainMenuScene::SkipToSecondArea()
 	sceneManager.SwitchTo("GameScene");
 }
 
+void MainMenuScene::SetMainMenuButtonsEnabled(bool enabled)
+{
+	if (mAlmanacButton) mAlmanacButton->SetEnabled(enabled);
+	if (mOpitionButton) mOpitionButton->SetEnabled(enabled);
+	if (mConsoleButton) mConsoleButton->SetEnabled(enabled);
+	if (mExitButton) mExitButton->SetEnabled(enabled);
+	if (mSkipToSecondAreaButton) mSkipToSecondAreaButton->SetEnabled(enabled);
+	if (mGameButton) mGameButton->SetEnabled(enabled);
+}
+
 void MainMenuScene::OpenMenu()
 {
-	if (mOpenMenu) return;
+	if (mOpenMenu || mOpenConsole) return;
 
 	mOpenMenu = true;
 	DeltaTime::SetPaused(true);
-	if (mAlmanacButton) mAlmanacButton->SetEnabled(false);
-	if (mOpitionButton) mOpitionButton->SetEnabled(false);
-	if (mSkipToSecondAreaButton) mSkipToSecondAreaButton->SetEnabled(false);
-	if (mGameButton) mGameButton->SetEnabled(false);
+	SetMainMenuButtonsEnabled(false);
 	auto& gameApp = GameAPP::GetInstance();
 	const glm::vec4 labelColor{ 107, 109, 144, 255 };
 	// 四个复选框初始态来自各自不同的状态变量（mVsync / IsFullscreen / mShowPlantHP /
@@ -211,10 +246,7 @@ void MainMenuScene::OpenMenu()
 	mMenu = GameMessageBox::Builder(Vector(SCENE_WIDTH / 2 + 50, SCENE_HEIGHT / 2 - 80.0f))
 		.Background(ResourceKeys::Textures::IMAGE_OPTIONS_MENUBACK)
 		.Button(u8"返回游戏", Vector(400, 430), Vector(360, 100), 40, [this]() {
-			if (mAlmanacButton) mAlmanacButton->SetEnabled(true);
-			if (mOpitionButton) mOpitionButton->SetEnabled(true);
-			if (mSkipToSecondAreaButton) mSkipToSecondAreaButton->SetEnabled(true);
-			if (mGameButton) mGameButton->SetEnabled(true);
+			SetMainMenuButtonsEnabled(true);
 			mOpenMenu = false;
 			DeltaTime::SetPaused(false);
 		}, ResourceKeys::Textures::IMAGE_OPTIONS_BACKTOGAMEBUTTON0)
@@ -249,4 +281,37 @@ void MainMenuScene::OpenMenu()
 		.Text(Vector(555, 334), 18, u8"植物血量显示", labelColor)
 		.Text(Vector(555, 374), 18, u8"僵尸血量显示", labelColor)
 		.Show();
+}
+
+void MainMenuScene::OpenConsole()
+{
+	if (mOpenMenu || mOpenConsole) return;
+
+	mOpenConsole = true;
+	DeltaTime::SetPaused(true);
+	SetMainMenuButtonsEnabled(false);
+
+	auto& gameApp = GameAPP::GetInstance();
+	const Vector panelCenter(SCENE_WIDTH / 2.0f, SCENE_HEIGHT / 2.0f);
+	const glm::vec4 titleColor{ 53, 191, 61, 255 };
+	const glm::vec4 labelColor{ 245, 214, 127, 255 };
+	mConsoleMenu = GameMessageBox::Builder(panelCenter)
+		.Panel(static_cast<float>(SCENE_WIDTH), static_cast<float>(SCENE_HEIGHT))
+		.Text(panelCenter + Vector(-76.0f, -190.0f), 38, u8"控制台", titleColor)
+		.Checkbox(panelCenter + Vector(-205.0f, -25.0f), Vector(50.0f, 46.0f), []() {
+			auto& app = GameAPP::GetInstance();
+			app.mEnableMonteCarloAI = !app.mEnableMonteCarloAI;
+		}, gameApp.mEnableMonteCarloAI)
+		.Text(panelCenter + Vector(-140.0f, -10.0f), 22,
+			u8"蒙特卡洛小丑选择植物", labelColor)
+		.Button(u8"关闭", panelCenter + Vector(-90.0f, 170.0f), Vector(180.0f, 52.0f),
+			24, [this]() { CloseConsole(); })
+		.Show();
+}
+
+void MainMenuScene::CloseConsole()
+{
+	SetMainMenuButtonsEnabled(true);
+	mOpenConsole = false;
+	DeltaTime::SetPaused(false);
 }

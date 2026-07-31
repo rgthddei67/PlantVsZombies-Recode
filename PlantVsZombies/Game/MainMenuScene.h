@@ -23,18 +23,29 @@ private:
 	class GameButton* mGameButton = nullptr;   // 所有权在 GameObjectManager
 	std::shared_ptr<Button> mSkipToSecondAreaButton;
 	std::shared_ptr<Button> mOpitionButton;
+	std::shared_ptr<Button> mConsoleButton;
 	std::shared_ptr<Button> mExitButton;
 	std::shared_ptr<Button> mAlmanacButton;
 
 	std::weak_ptr<GameMessageBox> mMenu;
+	std::weak_ptr<GameMessageBox> mConsoleMenu;
 
 	bool mOpenMenu = false;
+	bool mOpenConsole = false;
 
 	/** 补齐第一大关进度与植物奖励，然后从 2-1 开始游戏。 */
 	void SkipToSecondArea();
+	/** 统一控制主菜单入口的命中状态，防止模态窗口打开时点击到背景按钮。 */
+	void SetMainMenuButtonsEnabled(bool enabled);
+	/** 打开原版风格的音量、画面和难度选项面板。 */
 	void OpenMenu();
+	/** 打开仅承载高级玩法开关的控制台设置面板。 */
+	void OpenConsole();
+	/** 关闭控制台设置面板并恢复主菜单输入。 */
+	void CloseConsole();
 
 protected:
+	/** 构建主菜单背景、入口及模态页期间的条件绘制命令。 */
 	void BuildDrawCommands() override;
 };
 

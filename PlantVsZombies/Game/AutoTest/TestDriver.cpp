@@ -1519,6 +1519,11 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["clickFailedSoundRequestCount"] =
 		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_CLICKFAILED);
 
+	// 主菜单没有 Board，但仍允许测试读取上方 GameAPP 级设置，覆盖真实按钮切换路径。
+	if (currentScene->name == "MainMenuScene") {
+		return true;
+	}
+
 	if (auto* almanac = dynamic_cast<ZombieAlmanacScene*>(currentScene)) {
 		out["zombieAlmanacEntries"] = nlohmann::json::array();
 		for (ZombieType type : almanac->GetDisplayedZombieTypes()) {

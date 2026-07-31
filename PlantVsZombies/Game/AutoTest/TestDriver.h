@@ -36,6 +36,7 @@ private:
 
 	// 采集当前场景状态（GameScene 导出完整 Board，受支持的 UI 场景导出专属字段）。
 	// 当前场景不支持状态导出时 Fail（带 opName 前缀）并返回 false。
+	/** 为当前场景构建 dump_state / assert_state 共用的可断言状态。 */
 	bool BuildStateJson(const std::string& opName, nlohmann::json& out);
 	void Finish();                          // 全部命令跑完，正常收尾
 	void Log(const std::string& msg);       // 写 run.log（带帧号）并 flush

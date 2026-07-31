@@ -1,6 +1,6 @@
 ---
 name: project_pvz_elite_jack_in_the_box_zombie
-description: 2026-07-30 精英小丑的单盒跨行投掷、双阵营伤害、紫金资源、每波上限、存档、4-4与可见验证
+description: 2026-07-31 精英小丑的蒙特卡洛总开关与主菜单控制台、单盒跨行投掷、双阵营伤害、存档、4-4及验证
 metadata:
   node_type: memory
   type: project
@@ -28,6 +28,11 @@ metadata:
   默认 true 且进入玩家配置存档；关闭或推演失败时回退到原贪心（爆区阳光总价、后排
   1.2 倍、产能植物 +300）。魅惑后仍不做价值判断，从同三行的敌方僵尸中随机选一只。
   没有合法阵营目标时不空投，每 0.5 游戏秒重试。
+- 主菜单右下角的「控制台」打开覆盖整个 1100×600 逻辑画面的独立设置页，目前只放
+  “蒙特卡洛小丑选择植物”一项。该项由 `GameMessageBox::Builder::Checkbox` 创建真实
+  `Button`，初始勾选态绑定 `mEnableMonteCarloAI`，点击直接切换此字段；字段继续复用
+  既有 `PlayerInfo.json` 存读档。控制台打开时统一禁用主菜单入口，并把原本由全局
+  UI 层末尾绘制的退出按钮改为场景手动绘制，避免禁用后仍穿透显示在全屏背景之上。
 - 投出时隐藏 `Zombie_jackbox_box`，落地后恢复；爆炸复用 `JackExplode` 和 explosion
   音效，100px 半径内造成 50 基础伤害。未魅惑只伤植物，魅惑只伤非魅惑僵尸；
   阵营在投出瞬间锁定，飞行中再魅惑不会改写已发攻击。
@@ -62,6 +67,10 @@ metadata:
 - `smoke_elite_jack_monte_carlo_coordination` 锁定终局协同分的两个边界：普通僵尸
   正在啃坚果时会让精英小丑放弃廉价蘑菇并协同炸坚果；主人实测布局中，低血睡莲与
   双发的即时双杀仍优于帮助粉色橄榄球啃坚果。
+- `smoke_mainmenu_console` 从真实右下入口打开控制台，截图锁定全屏背景、启用/禁用
+  CheckBox 视觉，断言 `monteCarloAIEnabled` 从 true 切到 false 且关闭重开仍保持；
+  `MainMenuScene` 因此支持导出 GameAPP 级根状态。2026-07-31 `clang-playtest`
+  可见运行 exit 0，状态 JSON 与 `run.log` 均确认切换成功。
 - `smoke_fog_spawnlists_4_1_to_4_4`、`smoke_elite_jack_almanac`、普通小丑行为和
   循环声回归均在主人当前桌面可见运行 exit 0；默认实例化与 `-NoInstance` 截图均确认
   紫色双臂和紫金盒子正常。
