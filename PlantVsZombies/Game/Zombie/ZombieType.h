@@ -55,13 +55,13 @@ enum class ZombieType {
 	ZOMBIE_JACK_IN_THE_BOX,	// 小丑僵尸：随机倒计时开盒并范围爆炸
 	ZOMBIE_BALLOON,			// 气球僵尸：空中阶段仅受对空弹丸命中，气球破裂后落地
 	ZOMBIE_ELITE_JACK_IN_THE_BOX,	// 精英小丑：不自爆，持续向相邻三行随机投掷盒子
+	ZOMBIE_DIGGER,			// 经典矿工：地下穿行、左侧出土并反向折返
 
 	// ↓ 哨兵：置于全部已实现僵尸之后，使 [0,NUM_ZOMBIE_TYPES) 只覆盖已实现类型，
 	//   生存模式随机抽取据此绝不会抽到下方未实现僵尸。
 	//   注：Board::LoadSpawnListFromJson 亦以此为上界校验 JSON 僵尸ID，效果一致。
 	NUM_ZOMBIE_TYPES,
 
-	ZOMBIE_DIGGER,
 	ZOMBIE_POGO,
 	ZOMBIE_YETI,
 	ZOMBIE_BUNGEE,

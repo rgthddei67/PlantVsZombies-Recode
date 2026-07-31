@@ -1,0 +1,16 @@
+<Emitter>
+  <Name>DiggerRise</Name>
+  <SpawnMinActive>20</SpawnMinActive>
+  <SpawnMaxLaunched>20</SpawnMaxLaunched>
+  <ParticleDuration>[.35 .55]</ParticleDuration>
+  <ParticleAlpha>1,80 0</ParticleAlpha>
+  <ParticleScale>[.35 .75]</ParticleScale>
+  <EmitterType>Circle</EmitterType>
+  <EmitterRadius>[2 24]</EmitterRadius>
+  <LaunchSpeed>[55 115]</LaunchSpeed>
+  <ParticleGravity>180</ParticleGravity>
+  <SystemDuration>.6</SystemDuration>
+  <Image>PARTICLE_DIRTSMALL_PART_0,PARTICLE_DIRTSMALL_PART_1,PARTICLE_DIRTSMALL_PART_2,PARTICLE_DIRTSMALL_PART_3,PARTICLE_DIRTSMALL_PART_4,PARTICLE_DIRTSMALL_PART_5,PARTICLE_DIRTSMALL_PART_6,PARTICLE_DIRTSMALL_PART_7,PARTICLE_DIRTSMALL_PART_8,PARTICLE_DIRTSMALL_PART_9,PARTICLE_DIRTSMALL_PART_10,PARTICLE_DIRTSMALL_PART_11,PARTICLE_DIRTSMALL_PART_12,PARTICLE_DIRTSMALL_PART_13,PARTICLE_DIRTSMALL_PART_14,PARTICLE_DIRTSMALL_PART_15</Image>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <ParticleSpinSpeed>[-720 720]</ParticleSpinSpeed>
+</Emitter>

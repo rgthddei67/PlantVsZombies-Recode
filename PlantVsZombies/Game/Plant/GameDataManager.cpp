@@ -68,6 +68,7 @@
 #include "../Zombie/JackInTheBoxZombie.h"
 #include "../Zombie/EliteJackInTheBoxZombie.h"
 #include "../Zombie/BalloonZombie.h"
+#include "../Zombie/DiggerZombie.h"
 
 namespace {
 	template<typename T>
@@ -399,6 +400,12 @@ void GameDataManager::InitializeHardcodedData() {
 		ResourceKeys::Reanimations::REANIM_BALLOON_ZOMBIE,
 		&MakeZombie<BalloonZombie>);
 
+	// 矿工拥有地下穿行、两种出土路径及向前线折返的独立状态机。
+	RegisterZombie(ZombieType::ZOMBIE_DIGGER, "ZOMBIE_DIGGER",
+		AnimationType::ANIM_DIGGER_ZOMBIE,
+		ResourceKeys::Reanimations::REANIM_DIGGER_ZOMBIE,
+		&MakeZombie<DiggerZombie>);
+
 	// ==================== 非植物/僵尸动画映射 ====================
 	mAnimToString[AnimationType::ANIM_SUN] = ResourceKeys::Reanimations::REANIM_SUN;
 
@@ -406,6 +413,12 @@ void GameDataManager::InitializeHardcodedData() {
 		ResourceKeys::Reanimations::REANIM_ZOMBIE_CHARRED;
 	mAnimToString[AnimationType::ANIM_ZAMBONI_CHARRED] =
 		ResourceKeys::Reanimations::REANIM_ZAMBONI_CHARRED;
+	mAnimToString[AnimationType::ANIM_DIGGER_RISING_DIRT] =
+		ResourceKeys::Reanimations::REANIM_DIGGER_RISING_DIRT;
+	mAnimToString[AnimationType::ANIM_DIGGER_CHARRED] =
+		ResourceKeys::Reanimations::REANIM_DIGGER_CHARRED;
+	mAnimToString[AnimationType::ANIM_ZOMBIE_SURPRISE] =
+		ResourceKeys::Reanimations::REANIM_ZOMBIE_SURPRISE;
 
 	mAnimToString[AnimationType::ANIM_LAWNMOWER] =
 		ResourceKeys::Reanimations::REANIM_LAWNMOWER;

@@ -1,0 +1,19 @@
+<Emitter>
+  <Name>ZombieHeadLight</Name>
+  <SpawnMinActive>1</SpawnMinActive>
+  <SpawnMaxLaunched>1</SpawnMaxLaunched>
+  <ParticleDuration>1.1</ParticleDuration>
+  <ParticleAlpha>1 0.85</ParticleAlpha>
+  <ParticleScale>0.8 0.8</ParticleScale>
+  <LaunchSpeed>[65 100]</LaunchSpeed>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <ParticleGravity>140</ParticleGravity>
+  <ParticleSpinSpeed>[-360 360]</ParticleSpinSpeed>
+  <SystemDuration>1.2</SystemDuration>
+  <Image>IMAGE_REANIM_ZOMBIE_DIGGER_HARDHAT3</Image>
+  <Field>
+    <FieldType>Position</FieldType>
+    <X>-5</X>
+    <Y>-72</Y>
+  </Field>
+</Emitter>

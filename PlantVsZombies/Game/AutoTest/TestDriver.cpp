@@ -46,6 +46,7 @@
 #include "../Zombie/JackInTheBoxZombie.h"
 #include "../Zombie/EliteJackInTheBoxZombie.h"
 #include "../Zombie/BalloonZombie.h"
+#include "../Zombie/DiggerZombie.h"
 #include "../Zombie/PoolNormalZombie.h"
 #include "../Trophy.h"   // dump_state 输出奖杯坐标
 #include "../Crater.h"   // dump_state 输出毁灭菇弹坑
@@ -85,6 +86,22 @@ namespace {
 		case Mode::MONTE_CARLO: return "MONTE_CARLO";
 		case Mode::CHARMED_RANDOM: return "CHARMED_RANDOM";
 		default: return "NONE";
+		}
+	}
+
+	const char* DiggerPhaseName(DiggerZombie::Phase phase)
+	{
+		using Phase = DiggerZombie::Phase;
+		switch (phase) {
+		case Phase::TUNNELING: return "TUNNELING";
+		case Phase::RISING: return "RISING";
+		case Phase::STUNNED: return "STUNNED";
+		case Phase::WALKING_WITH_PICKAXE: return "WALKING_WITH_PICKAXE";
+		case Phase::TUNNELING_PAUSE_WITHOUT_PICKAXE:
+			return "TUNNELING_PAUSE_WITHOUT_PICKAXE";
+		case Phase::RISING_WITHOUT_PICKAXE: return "RISING_WITHOUT_PICKAXE";
+		case Phase::WALKING_WITHOUT_PICKAXE: return "WALKING_WITHOUT_PICKAXE";
+		default: return "UNKNOWN";
 		}
 	}
 
@@ -926,6 +943,29 @@ bool TestDriver::ExecuteCurrent() {
 		Fail("set_jack_pop_countdown: 未找到目标小丑僵尸");
 		return false;
 	}
+	if (op == "digger_lose_pickaxe") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) {
+			Fail("digger_lose_pickaxe: 不在 GameScene 或 Board 为空");
+			return false;
+		}
+		const int row = cmd.value("row", -1);
+		const int index = cmd.value("index", 0);
+		int seen = 0;
+		std::vector<int> zombieIDs = gs->GetBoard()->mEntityManager.GetAllZombieIDs();
+		std::sort(zombieIDs.begin(), zombieIDs.end());
+		for (const int id : zombieIDs) {
+			auto* digger = dynamic_cast<DiggerZombie*>(
+				gs->GetBoard()->mEntityManager.GetZombie(id));
+			if (!digger || !digger->IsActive()) continue;
+			if (row >= 0 && digger->mRow != row) continue;
+			if (seen++ != index) continue;
+			digger->LosePickaxe();
+			return true;
+		}
+		Fail("digger_lose_pickaxe: 未找到目标矿工僵尸");
+		return false;
+	}
 	if (op == "set_elite_jack_throw_countdown") {
 		GameScene* gs = CurrentGameScene();
 		if (!gs || !gs->GetBoard()) {
@@ -1017,16 +1057,16 @@ bool TestDriver::ExecuteCurrent() {
 		for (int i = 0; i < count; ++i) gs->GetBoard()->SummonNextWave();
 		return true;
 	}
-	if (op == "damage_zombie") {
+	if (op == "damage_zombie" || op == "ash_damage_zombie") {
 		GameScene* gs = CurrentGameScene();
-		if (!gs || !gs->GetBoard()) { Fail("damage_zombie: 不在 GameScene 或 Board 为空"); return false; }
+		if (!gs || !gs->GetBoard()) { Fail(op + ": 不在 GameScene 或 Board 为空"); return false; }
 		Board* board = gs->GetBoard();
 		const int row = cmd.value("row", -1);     // -1 = 不过滤行
 		const int index = cmd.value("index", 0);  // 行过滤后按 ID 升序第 index 只
 		const int damage = cmd.value("damage", 0);
-		if (damage <= 0) { Fail("damage_zombie: damage 必须大于 0"); return false; }
+		if (damage <= 0) { Fail(op + ": damage 必须大于 0"); return false; }
 		auto sourceIt = kDamageSourceNames.find(cmd.value("source", "OTHER"));
-		if (sourceIt == kDamageSourceNames.end()) { Fail("damage_zombie: source 必须是 PLANT/ZOMBIE/OTHER"); return false; }
+		if (sourceIt == kDamageSourceNames.end()) { Fail(op + ": source 必须是 PLANT/ZOMBIE/OTHER"); return false; }
 		int seen = 0;
 		for (int id : board->mEntityManager.GetAllZombieIDs()) {
 			Zombie* z = board->mEntityManager.GetZombie(id);
@@ -1034,11 +1074,12 @@ bool TestDriver::ExecuteCurrent() {
 			if (row >= 0 && z->mRow != row) continue;
 			if (seen++ == index) {
 				// 走正式受伤链（来源词条/护盾/头盔/断肢断头/免伤），用于验证而非直接 Die。
-				z->TakeDamage(damage, sourceIt->second, cmd.value("penetrateShield", false));
+				if (op == "ash_damage_zombie") z->TakePlantAshDamage(damage);
+				else z->TakeDamage(damage, sourceIt->second, cmd.value("penetrateShield", false));
 				return true;
 			}
 		}
-		Fail("damage_zombie: 未找到目标僵尸 (row=" + std::to_string(row)
+		Fail(op + ": 未找到目标僵尸 (row=" + std::to_string(row)
 			+ ", index=" + std::to_string(index) + ")");
 		return false;
 	}
@@ -1496,6 +1537,12 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_BONK);
 	out["jackLoopSoundPlaying"] =
 		AudioSystem::IsLoopingSoundPlaying(ResourceKeys::Sounds::SOUND_JACKINTHEBOX);
+	out["diggerLoopSoundPlaying"] =
+		AudioSystem::IsLoopingSoundPlaying(ResourceKeys::Sounds::SOUND_DIGGER_ZOMBIE);
+	out["diggerRiseSoundRequestCount"] =
+		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_DIRT_RISE);
+	out["diggerWakeupSoundRequestCount"] =
+		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_WAKEUP);
 	out["jackBoingSoundRequestCount"] =
 		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_BOING);
 	out["jackSurprise1SoundRequestCount"] =
@@ -2052,6 +2099,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	int poolRowZombieCount = 0;
 	int earlyWavePoolZombieCount = 0;
 	int gildedZamboniCount = 0;
+	int diggerZombieCount = 0;
 	int zombieBodyHealthTotal = 0;
 	int zombieShieldHealthTotal = 0;
 	int slowedZombieCount = 0;
@@ -2069,6 +2117,9 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		}
 		if (z->mZombieType == ZombieType::ZOMBIE_GILDED_ZAMBONI) {
 			++gildedZamboniCount;
+		}
+		if (z->mZombieType == ZombieType::ZOMBIE_DIGGER) {
+			++diggerZombieCount;
 		}
 		zombieBodyHealthTotal += z->mBodyHealth;
 		zombieShieldHealthTotal += z->mShieldHealth;
@@ -2267,6 +2318,31 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			zombieState["balloonHatVisible"] =
 				anim && anim->GetTrackVisible("hat");
 		}
+		if (auto* digger = dynamic_cast<DiggerZombie*>(z)) {
+			const auto* shadow = z->GetComponent<ShadowComponent>();
+			zombieState["diggerPhase"] = DiggerPhaseName(digger->GetPhase());
+			zombieState["diggerHasPickaxe"] = digger->HasPickaxe();
+			zombieState["diggerSurpriseShown"] = digger->HasShownSurprise();
+			zombieState["diggerMovingRight"] = digger->IsMovingRight();
+			zombieState["diggerCanTriggerGameOver"] = digger->CanTriggerGameOver();
+			zombieState["diggerTargetableGround"] =
+				digger->CanBeTargetedByProjectile(false);
+			zombieState["diggerPhaseRemainingMs"] = static_cast<int>(std::lround(
+				digger->GetPhaseRemaining() * 1000.0f));
+			zombieState["diggerAltitudeOn1000"] = static_cast<int>(std::lround(
+				digger->GetAltitude() * 1000.0f));
+			zombieState["diggerPickaxeVisible"] =
+				anim && anim->GetTrackVisible("Zombie_digger_pickaxe");
+			zombieState["diggerDirtVisible"] =
+				anim && anim->GetTrackVisible("Zombie_digger_dirt");
+			zombieState["diggerHardhatVisible"] =
+				anim && anim->GetTrackVisible("Zombie_digger_hardhat");
+			zombieState["diggerHeadEyeVisible"] =
+				anim && anim->GetTrackVisible("Zombie_digger_head_eye");
+			zombieState["diggerShadowVisible"] = shadow && shadow->IsVisible();
+			zombieState["diggerGroundTrackVisible"] =
+				anim && anim->GetTrackVisible("_ground");
+		}
 		if (auto* zamboni = dynamic_cast<ZamboniZombie*>(z)) {
 			zombieState["zamboniDamageStage"] = zamboni->GetDamageStage();
 			zombieState["zamboniPuncturedByCaltrop"] = zamboni->IsPuncturedByCaltrop();
@@ -2322,6 +2398,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["jackZombieCount"] = jackZombieCount;
 	out["eliteJackZombieCount"] = eliteJackZombieCount;
 	out["gildedZamboniCount"] = gildedZamboniCount;
+	out["diggerZombieCount"] = diggerZombieCount;
 	out["poolRowZombieCount"] = poolRowZombieCount;
 	out["earlyWavePoolZombieCount"] = earlyWavePoolZombieCount;
 	out["zombieBodyHealthTotal"] = zombieBodyHealthTotal;
@@ -2508,6 +2585,11 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["particleEffectNameCounts"]["WallnutEatSmall"] = 0;
 	out["particleEffectNameCounts"]["WallnutEatLarge"] = 0;
 	out["particleEffectNameCounts"]["TallNutBlock"] = 0;
+	out["particleEffectNameCounts"]["DiggerTunnel"] = 0;
+	out["particleEffectNameCounts"]["DiggerRise"] = 0;
+	out["particleEffectNameCounts"]["ZombieDiggerArmOff"] = 0;
+	out["particleEffectNameCounts"]["ZombieDiggerHeadOff"] = 0;
+	out["particleEffectNameCounts"]["ZombieHeadLight"] = 0;
 	if (g_particleSystem) {
 		for (const auto& effect : g_particleSystem->GetEffectsForTesting()) {
 			if (!effect) continue;
@@ -2624,6 +2706,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["animatedObjects"] = nlohmann::json::array();
 	out["animatedObjectsByTag"] = nlohmann::json::object();
 	out["animatedObjectTagCounts"] = nlohmann::json::object();
+	out["animatedObjectTagCounts"]["DiggerOneShotVisual"] = 0;
 	for (const auto& object : GameObjectManager::GetInstance().GetAllGameObjects()) {
 		auto* animated = object && object->IsActive()
 			? dynamic_cast<AnimatedObject*>(object.get()) : nullptr;

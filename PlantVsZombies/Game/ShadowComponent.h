@@ -43,6 +43,7 @@ public:
 
 	// 设置阴影可见性（false 时跳过绘制，组件仍在）
 	void SetVisible(bool visible) { mVisible = visible; }
+	bool IsVisible() const { return mVisible; }
 
 	/** 返回配置的阴影中心偏移，供最终绘制坐标取证。 */
 	Vector GetOffset() const { return mOffset; }

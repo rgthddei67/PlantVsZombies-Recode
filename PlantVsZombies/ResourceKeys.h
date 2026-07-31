@@ -137,6 +137,9 @@ namespace ResourceKeys
 		RKEY(IMAGE_REANIM_ZOMBIE_ELITEJACKBOX_BOX);
 		RKEY(IMAGE_REANIM_ZOMBIE_ELITEJACKBOX_OUTERARM_LOWER2);
 		RKEY(IMAGE_REANIM_ZOMBIE_BALLOON_OUTERARM_UPPER2);
+		RKEY(IMAGE_REANIM_ZOMBIE_DIGGER_OUTERARM_UPPER2);
+		RKEY(IMAGE_REANIM_ZOMBIE_DIGGER_HARDHAT2);
+		RKEY(IMAGE_REANIM_ZOMBIE_DIGGER_HARDHAT3);
 
 		RKEY(IMAGE_PROJECTILECACTUS);
 		RKEY(IMAGE_PROJECTILEPEA);
@@ -303,6 +306,9 @@ namespace ResourceKeys
 		RKEY(SOUND_JACKINTHEBOX);			// 小丑行走时的循环手摇盒声
 		RKEY(SOUND_JACK_SURPRISE);			// 小丑开盒惊吓声一
 		RKEY(SOUND_JACK_SURPRISE2);			// 小丑开盒惊吓声二
+		RKEY(SOUND_DIGGER_ZOMBIE);			// 矿工地下穿行循环声
+		RKEY(SOUND_DIRT_RISE);				// 矿工破土声
+		RKEY(SOUND_WAKEUP);					// 持镐矿工出土惊醒声
 
 		// 子弹击中僵尸
 		RKEY(SOUND_SNOW_PEA_SPARKLES);
@@ -375,6 +381,10 @@ namespace ResourceKeys
 		inline const std::string REANIM_JACK_IN_THE_BOX_ZOMBIE = "ZombieJackBox";
 		inline const std::string REANIM_ELITE_JACK_IN_THE_BOX_ZOMBIE = "EliteJackBox";
 		inline const std::string REANIM_BALLOON_ZOMBIE = "ZombieBalloon";
+		inline const std::string REANIM_DIGGER_ZOMBIE = "ZombieDigger";
+		inline const std::string REANIM_DIGGER_RISING_DIRT = "DiggerRisingDirt";
+		inline const std::string REANIM_DIGGER_CHARRED = "DiggerCharred";
+		inline const std::string REANIM_ZOMBIE_SURPRISE = "ZombieSurprise";
 		inline const std::string REANIM_ZAMBONI_CHARRED = "Zamboni_Charred";
 
 		inline const std::string REANIM_ZOMBIE_CHARRED = "Zombie_Charred";

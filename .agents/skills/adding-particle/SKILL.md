@@ -91,6 +91,7 @@ description: Use when adding or tuning ANY particle effect (粒子特效) in PvZ
 - 回收条件：发射停止（SystemDuration 到时 或 涓流配额打满）**且**存活粒子归零 → 特效对象自动销毁。`EmitEffect(..., durationOverride > 0)` 会让发射器持续复用池，直到覆盖时长到期再停止。
 - `EmitEffect` 第三参默认 `LAYER_EFFECTS_WORLD`(35000)=世界层（植物/僵尸之上、UI 之下，GameAPP `DrawBelow(LAYER_UI)`）；传 `>= LAYER_UI` 的值则画在 UI 之上（Scene `DrawFrom(LAYER_UI)`）。
 - `EmitEffect` 第五参 `clipRightX` 默认 -1（不裁剪）；传非负世界 X 后，本特效会与现有裁剪栈相交并仅绘制 `x<=clipRightX`。横向喷雾遇实体阻断时，先按传播顺序结算并取阻断者 collider 左沿，再把同一 X 传给粒子；**不要**改 Position 轨迹或维护多份长度 XML。
+- `EmitEffect` 创建后的特效保存世界坐标，不会自动跟随发射者 Transform。移动实体的尘土/尾迹应按短间隔在当前稳定视觉原点重复发射短寿命爆发；不要用长 `durationOverride` 生成一个停在旧世界原点的持续效果。
 - 粒子更新吃 DeltaTime：暂停/倍速/timescale 自动正确。
 
 ## Foot-guns（血泪汇总）

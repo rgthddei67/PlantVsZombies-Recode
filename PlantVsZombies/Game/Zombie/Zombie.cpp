@@ -378,7 +378,8 @@ void Zombie::Update()
 		{
 			mCheckPositionTimer = 0.0f;
 			Vector position = transform->GetPosition();
-			if (position.x <= GAMEOVER_X && mBoard->mBoardState == BoardState::GAME)
+			if (position.x <= GAMEOVER_X && CanTriggerGameOver()
+				&& mBoard->mBoardState == BoardState::GAME)
 			{
 				mBoard->GameOver();
 			}
@@ -555,9 +556,9 @@ void Zombie::ZombieMove(float scaledDelta, TransformComponent* transform)
 		// 统一组合，啃食、召唤与其他技能不会被顺风误加速。魅惑僵尸按实际向右移动判定顺逆风。
 		if (mBoard) {
 			speed *= AmplifySpeedMultiplierForGoldenIce(
-				mBoard->GetZombieWindMoveMultiplier(mIsMindControlled));
+				mBoard->GetZombieWindMoveMultiplier(IsMovingRight()));
 		}
-		if (mIsMindControlled)
+		if (IsMovingRight())
 		{
 			transform->Translate(speed * scaledDelta, 0);
 		}
@@ -1297,7 +1298,7 @@ float Zombie::GetCurrentHorizontalMoveSpeed() const
 		: mAnimator->GetTrackVelocity("_ground");
 	float velocity = std::fabs(trackSpeed * mSpeed);
 	if (mCooldownTimer > 0.0f) velocity *= 0.5f;
-	if (mBoard) velocity *= mBoard->GetZombieWindMoveMultiplier(mIsMindControlled);
+	if (mBoard) velocity *= mBoard->GetZombieWindMoveMultiplier(IsMovingRight());
 	return std::max(0.0f, velocity);
 }
 
@@ -1315,7 +1316,7 @@ float Zombie::GetTargetLeadX(float seconds) const
 	}
 
 	const float velocity = GetCurrentHorizontalMoveSpeed();
-	return centerX + (mIsMindControlled ? velocity : -velocity) * seconds;
+	return centerX + (IsMovingRight() ? velocity : -velocity) * seconds;
 }
 
 void Zombie::Draw(Graphics* g)

@@ -146,6 +146,10 @@ public:
 	float GetCurrentHorizontalMoveSpeed() const;
 	/** 按当前碰撞矩形中心与实际行走速度预测水平落点，供倭瓜复刻 ZombieTargetLeadX。 */
 	float GetTargetLeadX(float seconds) const;
+	/** 当前自主行走是否朝战场前线（世界坐标 +X）；反向品种覆写后由位移、风速与预测共用。 */
+	virtual bool IsMovingRight() const { return mIsMindControlled; }
+	/** 当前状态是否允许越过房屋失败线；地下、出土等特殊阶段可关闭。 */
+	virtual bool CanTriggerGameOver() const { return !IsMovingRight(); }
 
 	bool IsMindControlled() const { return this->mIsMindControlled; }
 	void SetMistFuelReward(float reward) {

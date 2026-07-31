@@ -1,0 +1,20 @@
+<Emitter>
+  <Name>DiggerTunnel</Name>
+  <SpawnMinActive>3</SpawnMinActive>
+  <SpawnMaxLaunched>3</SpawnMaxLaunched>
+  <ParticleDuration>[.18 .28]</ParticleDuration>
+  <ParticleAlpha>[.65 .9],70 0</ParticleAlpha>
+  <ParticleScale>[.25 .45]</ParticleScale>
+  <EmitterType>Box</EmitterType>
+  <EmitterBoxX>[-10 12]</EmitterBoxX>
+  <EmitterBoxY>[-2 3]</EmitterBoxY>
+  <SystemDuration>.3</SystemDuration>
+  <Image>PARTICLE_DIRTSMALL_PART_0,PARTICLE_DIRTSMALL_PART_1,PARTICLE_DIRTSMALL_PART_2,PARTICLE_DIRTSMALL_PART_3,PARTICLE_DIRTSMALL_PART_4,PARTICLE_DIRTSMALL_PART_5,PARTICLE_DIRTSMALL_PART_6,PARTICLE_DIRTSMALL_PART_7,PARTICLE_DIRTSMALL_PART_8,PARTICLE_DIRTSMALL_PART_9,PARTICLE_DIRTSMALL_PART_10,PARTICLE_DIRTSMALL_PART_11,PARTICLE_DIRTSMALL_PART_12,PARTICLE_DIRTSMALL_PART_13,PARTICLE_DIRTSMALL_PART_14,PARTICLE_DIRTSMALL_PART_15</Image>
+  <Field>
+    <FieldType>Position</FieldType>
+    <X>0 [-15 8]</X>
+    <Y>0 [-18 -6]</Y>
+  </Field>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <ParticleSpinSpeed>[-300 300]</ParticleSpinSpeed>
+</Emitter>
