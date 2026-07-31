@@ -16,7 +16,7 @@
     { "op": "assert_state", "path": "eliteJack.bodyMaxHealth", "equals": 900 },
     { "op": "assert_state", "path": "eliteJack.attackDamage", "equals": 65 },
     { "op": "assert_state", "path": "eliteJack.jackRunVelocityOn1000", "equals": 610 },
-    { "op": "assert_state", "path": "eliteJack.eliteJackThrowCountdownMs", "atLeast": 5900, "atMost": 10000 },
+    { "op": "assert_state", "path": "eliteJack.eliteJackThrowCountdownMs", "atLeast": 4900, "atMost": 7000 },
     { "op": "assert_state", "path": "eliteJack.eliteJackBoxInFlight", "equals": false },
     { "op": "assert_state", "path": "eliteJack.eliteJackBoxTrackVisible", "equals": true },
     { "op": "assert_state", "path": "jackLoopSoundPlaying", "equals": true },

@@ -20,8 +20,8 @@ namespace {
 	constexpr int kEliteBodyHealth = 900;              // 精英小丑本体基础生命
 	constexpr int kEliteBiteDamage = 65;               // 每次啃咬的基础伤害
 	constexpr float kEliteRunVelocity = 0.61f;         // C# 小丑速度口径；略慢于普通小丑
-	constexpr float kThrowIntervalMin = 6.0f;          // 两次投盒之间的最短游戏秒
-	constexpr float kThrowIntervalMax = 10.0f;         // 两次投盒之间的最长游戏秒
+	constexpr float kThrowIntervalMin = 5.0f;          // 两次投盒之间的最短游戏秒
+	constexpr float kThrowIntervalMax = 7.0f;          // 两次投盒之间的最长游戏秒
 	constexpr float kBoxFlightDuration = 0.75f;        // 盒子从手中飞到落点的游戏秒
 	constexpr float kBoxArcHeight = 120.0f;            // 抛物线中点相对直线抬升的像素
 	constexpr float kBoxDrawScale = 0.72f;             // 飞行盒相对原贴图的战场绘制倍率
