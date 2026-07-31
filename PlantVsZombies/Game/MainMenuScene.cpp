@@ -303,7 +303,7 @@ void MainMenuScene::OpenConsole()
 			app.mEnableMonteCarloAI = !app.mEnableMonteCarloAI;
 		}, gameApp.mEnableMonteCarloAI)
 		.Text(panelCenter + Vector(-140.0f, -10.0f), 22,
-			u8"蒙特卡洛小丑选择植物", labelColor)
+			u8"蒙特卡洛模拟未来AI", labelColor)
 		.Button(u8"关闭", panelCenter + Vector(-90.0f, 170.0f), Vector(180.0f, 52.0f),
 			24, [this]() { CloseConsole(); })
 		.Show();
