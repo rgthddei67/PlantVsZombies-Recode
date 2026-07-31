@@ -362,6 +362,7 @@
     <Reanimation name="Plantern">./resources/reanim/Plantern.reanim</Reanimation>
     <Reanimation name="Cactus">./resources/reanim/Cactus.reanim</Reanimation>
     <Reanimation name="Blover">./resources/reanim/Blover.reanim</Reanimation>
+    <Reanimation name="SplitPea">./resources/reanim/SplitPea.reanim</Reanimation>
 
     <Reanimation name="NormalZombie">./resources/reanim/NormalZombie.reanim</Reanimation>
     <Reanimation name="ConeZombie">./resources/reanim/ConeZombie.reanim</Reanimation>

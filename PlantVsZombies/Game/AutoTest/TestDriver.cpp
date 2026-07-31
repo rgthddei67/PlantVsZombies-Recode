@@ -32,6 +32,7 @@
 #include "../Plant/EliteScaredyShroom.h"
 #include "../Plant/Cactus.h"
 #include "../Plant/Blover.h"
+#include "../Plant/SplitPea.h"
 #include "../Bullet/Bullet.h"
 #include "../Zombie/ZombieType.h"
 #include "../Zombie/Zombie.h"
@@ -1518,6 +1519,9 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_BLOVER);
 	out["clickFailedSoundRequestCount"] =
 		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_CLICKFAILED);
+	out["shooterShootSoundRequestCount"] =
+		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_SHOOTER_SHOOT)
+		+ AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_SHOOTER_SHOOT2);
 
 	// 主菜单没有 Board，但仍允许测试读取上方 GameAPP 级设置，覆盖真实按钮切换路径。
 	if (currentScene->name == "MainMenuScene") {
@@ -2433,6 +2437,23 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			const auto animator = blover->GetAnimatorInternal();
 			plantState["flipX"] = animator && animator->GetFlipX();
 		}
+		if (auto* splitPea = dynamic_cast<SplitPea*>(p)) {
+			if (const Animator* rearHead = splitPea->GetRearHeadAnimator()) {
+				plantState["rearHeadTrack"] = rearHead->GetCurrentTrackName();
+				plantState["rearHeadFrame"] = rearHead->GetCurrentFrame();
+				plantState["rearHeadAnimPlaying"] = rearHead->IsPlaying();
+				plantState["rearHeadAnimPlayState"] =
+					PlayStateName(rearHead->GetPlayingState());
+				plantState["rearHeadAnimTargetTrack"] = rearHead->GetTargetTrack();
+				plantState["rearHeadAnimTargetTrackBlendMs"] =
+					static_cast<int>(std::lround(
+						rearHead->GetTargetTrackBlendTime() * 1000.0f));
+			}
+			plantState["rearSecondShotPending"] =
+				splitPea->HasPendingRearSecondShot();
+			plantState["rearSecondShotInBurst"] =
+				splitPea->IsRearSecondShot();
+		}
 		if (auto* threePeater = dynamic_cast<ThreePeater*>(p)) {
 			if (const Animator* head1 = threePeater->GetHeadAnimator()) {
 				plantState["head1Track"] = head1->GetCurrentTrackName();
@@ -2763,6 +2784,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	float minBulletX = 0.0f;
 	float maxBulletX = 0.0f;
 	int peaBulletCount = 0;
+	int forwardPeaBulletCount = 0;
+	int backwardPeaBulletCount = 0;
 	int snowPeaBulletCount = 0;
 	int fireballBulletCount = 0;
 	int spikeBulletCount = 0;
@@ -2785,7 +2808,11 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			maxBulletX = std::max(maxBulletX, pos.x);
 		}
 		if (bullet->GetHitTorchwoodColumn() >= 0) ++torchwoodProtectedPeaCount;
-		if (bullet->mBulletType == BulletType::BULLET_PEA) ++peaBulletCount;
+		if (bullet->mBulletType == BulletType::BULLET_PEA) {
+			++peaBulletCount;
+			if (bullet->GetVelocityX() > 0.0f) ++forwardPeaBulletCount;
+			else if (bullet->GetVelocityX() < 0.0f) ++backwardPeaBulletCount;
+		}
 		else if (bullet->mBulletType == BulletType::BULLET_SNOWPEA) ++snowPeaBulletCount;
 		else if (bullet->mBulletType == BulletType::BULLET_FIREBALL) ++fireballBulletCount;
 		else if (bullet->mBulletType == BulletType::BULLET_SPIKE) {
@@ -2824,6 +2851,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	}
 	out["bulletCount"] = static_cast<int>(out["bullets"].size());
 	out["peaBulletCount"] = peaBulletCount;
+	out["forwardPeaBulletCount"] = forwardPeaBulletCount;
+	out["backwardPeaBulletCount"] = backwardPeaBulletCount;
 	out["snowPeaBulletCount"] = snowPeaBulletCount;
 	out["fireballBulletCount"] = fireballBulletCount;
 	out["spikeBulletCount"] = spikeBulletCount;

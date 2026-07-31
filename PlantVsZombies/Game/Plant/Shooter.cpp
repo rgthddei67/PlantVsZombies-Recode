@@ -3,6 +3,13 @@
 #include "../Board.h"
 #include "../Zombie/Zombie.h"
 
+namespace {
+	std::string HeadStateKey(const char* prefix, const char* suffix)
+	{
+		return std::string(prefix) + suffix;
+	}
+}
+
 void Shooter::SetupPlant() {
 	Plant::SetupPlant();
 
@@ -40,60 +47,86 @@ void Shooter::SetupPlant() {
 void Shooter::SaveExtraData(nlohmann::json& j) const
 {
 	j["shootTimer"] = mShootTimer;
-	if (!mHeadAnim) return;
-
-	// 头部 Animator 不属于 AnimatedObject 的主 Animator，必须在额外数据里独立保存整台
-	// 播放状态机；只保存轨道/帧会令 PlayTrackOnce 射击在读档后退化为永久循环。
-	j["headAnimTrack"] = mHeadAnim->GetCurrentTrackName();
-	j["headAnimFrame"] = mHeadAnim->GetCurrentFrame();
-	j["headAnimSpeed"] = mHeadAnim->GetSpeed();
-	j["headAnimClipSpeed"] = mHeadAnim->GetClipSpeed();
-	j["headAnimPlayState"] = static_cast<int>(mHeadAnim->GetPlayingState());
-	j["headAnimTargetTrack"] = mHeadAnim->GetTargetTrack();
-	j["headAnimTargetTrackSpeed"] = mHeadAnim->GetTargetTrackSpeed();
-	j["headAnimTargetTrackBlendTime"] = mHeadAnim->GetTargetTrackBlendTime();
-	j["headAnimPlaying"] = mHeadAnim->IsPlaying();
+	SaveHeadAnimatorState(j, "headAnim", mHeadAnim.get());
 }
 
 void Shooter::LoadExtraData(const nlohmann::json& j)
 {
 	mShootTimer = j.value("shootTimer", 1.0f);
-	if (!mHeadAnim) return;
+	LoadHeadAnimatorState(j, "headAnim", mHeadAnim.get(),
+		"anim_shooting", "anim_head_idle");
+}
 
-	const std::string track = j.value("headAnimTrack", std::string{});
+void Shooter::SaveHeadAnimatorState(
+	nlohmann::json& j, const char* prefix, const Animator* animator)
+{
+	if (!animator) return;
+
+	// 附加头不属于 AnimatedObject 的根 Animator；仅存轨道/帧会让一次性射击读档后循环。
+	j[HeadStateKey(prefix, "Track")] = animator->GetCurrentTrackName();
+	j[HeadStateKey(prefix, "Frame")] = animator->GetCurrentFrame();
+	j[HeadStateKey(prefix, "Speed")] = animator->GetSpeed();
+	j[HeadStateKey(prefix, "ClipSpeed")] = animator->GetClipSpeed();
+	j[HeadStateKey(prefix, "PlayState")] =
+		static_cast<int>(animator->GetPlayingState());
+	j[HeadStateKey(prefix, "TargetTrack")] = animator->GetTargetTrack();
+	j[HeadStateKey(prefix, "TargetTrackSpeed")] = animator->GetTargetTrackSpeed();
+	j[HeadStateKey(prefix, "TargetTrackBlendTime")] =
+		animator->GetTargetTrackBlendTime();
+	j[HeadStateKey(prefix, "Playing")] = animator->IsPlaying();
+}
+
+void Shooter::LoadHeadAnimatorState(
+	const nlohmann::json& j, const char* prefix, Animator* animator,
+	const char* legacyShootingTrack, const char* legacyIdleTrack)
+{
+	if (!animator) return;
+
+	const std::string trackKey = HeadStateKey(prefix, "Track");
+	if (!j.contains(trackKey)) return;
+	const std::string track = j.value(trackKey, std::string{});
 	if (track.empty()) return;
 
-	const float clipSpeed = j.value("headAnimClipSpeed", 0.0f);
-	if (j.contains("headAnimPlayState")) {
-		const int rawState = j.value("headAnimPlayState", static_cast<int>(PlayState::PLAY_REPEAT));
+	const std::string playStateKey = HeadStateKey(prefix, "PlayState");
+	const float clipSpeed = j.value(HeadStateKey(prefix, "ClipSpeed"), 0.0f);
+	if (j.contains(playStateKey)) {
+		const int rawState = j.value(
+			playStateKey, static_cast<int>(PlayState::PLAY_REPEAT));
 		const PlayState state = (rawState >= static_cast<int>(PlayState::PLAY_NONE)
 			&& rawState <= static_cast<int>(PlayState::PLAY_ONCE_TO))
 			? static_cast<PlayState>(rawState) : PlayState::PLAY_REPEAT;
 
 		if (state == PlayState::PLAY_ONCE || state == PlayState::PLAY_ONCE_TO) {
-			mHeadAnim->PlayTrackOnce(track,
-				j.value("headAnimTargetTrack", std::string{}), clipSpeed, 0.0f,
-				j.value("headAnimTargetTrackSpeed", 0.0f),
-				j.value("headAnimTargetTrackBlendTime", 0.5f));
+			animator->PlayTrackOnce(
+				track,
+				j.value(HeadStateKey(prefix, "TargetTrack"), std::string{}),
+				clipSpeed,
+				0.0f,
+				j.value(HeadStateKey(prefix, "TargetTrackSpeed"), 0.0f),
+				j.value(HeadStateKey(prefix, "TargetTrackBlendTime"), 0.5f));
 		}
 		else {
-			mHeadAnim->PlayTrack(track, clipSpeed);
+			animator->PlayTrack(track, clipSpeed);
 		}
 	}
-	else if (track == "anim_shooting") {
-		// 旧 Shooter 存档没有播放状态。射击轨道在所有 Shooter 中都只应播放一次；宁可
-		// 回到 idle，也不能沿用旧逻辑的 PlayTrack() 把持久帧事件变成无限吐弹。
-		mHeadAnim->PlayTrackOnce(track, "anim_head_idle", clipSpeed);
+	else if (legacyShootingTrack && legacyIdleTrack
+		&& track == legacyShootingTrack) {
+		// 旧 Shooter 存档缺少播放状态；射击轨只能续播一次，不能恢复为永久循环。
+		animator->PlayTrackOnce(track, legacyIdleTrack, clipSpeed);
 	}
 	else {
-		mHeadAnim->PlayTrack(track, clipSpeed);
+		animator->PlayTrack(track, clipSpeed);
 	}
 
-	if (j.contains("headAnimSpeed"))
-		mHeadAnim->SetSpeed(j.value("headAnimSpeed", 1.0f));
-	mHeadAnim->SetCurrentFrame(j.value("headAnimFrame", 0.0f));
-	if (j.contains("headAnimPlaying") && !j.value("headAnimPlaying", true))
-		mHeadAnim->Pause();
+	const std::string speedKey = HeadStateKey(prefix, "Speed");
+	if (j.contains(speedKey)) {
+		animator->SetSpeed(j.value(speedKey, 1.0f));
+	}
+	animator->SetCurrentFrame(j.value(HeadStateKey(prefix, "Frame"), 0.0f));
+	if (j.contains(HeadStateKey(prefix, "Playing"))
+		&& !j.value(HeadStateKey(prefix, "Playing"), true)) {
+		animator->Pause();
+	}
 }
 
 void Shooter::PlantUpdate()

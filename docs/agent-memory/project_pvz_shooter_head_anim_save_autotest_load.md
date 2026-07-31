@@ -34,3 +34,11 @@ metadata:
 
 - 新增其他附加子 Animator 时，不能假设主 Animator 的通用存档会覆盖它；任何一次性轨道都必须保存播放状态机本身，包括目标轨道、返回速度和返回混合，而不只是轨道/帧。
 - AutoTest 声称“不写存档”时必须同时审查保存和删除入口；本次补上了过去遗漏的 `DeleteLevelData` AutoTest 守卫。
+
+## 2026-07-31 双向射手复用
+
+- 完整子头序列化已收口为 `Shooter::SaveHeadAnimatorState/LoadHeadAnimatorState`；
+  Shooter 主头与 ThreePeater 额外头均复用这组接口，新增多头射手不得再复制私有 helper。
+- SplitPea 后头使用 `rearHeadAnim` 前缀保存一次性射击的完整状态，并额外保存两发间
+  pending/in-burst 瞬态。`smoke_splitpea.json` 在第一颗后向豌豆后保存隔离快照，
+  重载后只续完第二颗并返回 `anim_splitpea_idle + PLAY_REPEAT`。

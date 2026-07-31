@@ -164,6 +164,7 @@ namespace ResourceKeys
 		RKEY(IMAGE_PLANTERN);
 		RKEY(IMAGE_CACTUS);
 		RKEY(IMAGE_BLOVER);
+		RKEY(IMAGE_SPLITPEA);
 		RKEY(IMAGE_SUNSHROOM);
 		RKEY(IMAGE_FUMESHROOM);
 		RKEY(IMAGE_GRAVEBUSTER);
@@ -356,6 +357,7 @@ namespace ResourceKeys
 		inline const std::string REANIM_PLANTERN = "Plantern";
 		inline const std::string REANIM_CACTUS = "Cactus";
 		inline const std::string REANIM_BLOVER = "Blover";
+		inline const std::string REANIM_SPLITPEA = "SplitPea";
 
 		inline const std::string REANIM_NORMAL_ZOMBIE = "NormalZombie";
 		inline const std::string REANIM_CONE_ZOMBIE = "ConeZombie";

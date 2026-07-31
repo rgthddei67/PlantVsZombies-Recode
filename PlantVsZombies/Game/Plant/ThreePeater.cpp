@@ -4,8 +4,6 @@
 #include "../Bullet/Bullet.h"
 #include "../Zombie/Zombie.h"
 
-#include <string>
-
 namespace {
 	constexpr int kSynchronizedVolleyFireFrame = 73; // 上头真实发射帧；作为 C# 三弹同步结算的唯一帧事件
 	constexpr float kReanimFramesPerSecond = 12.0f;  // ThreePeater.reanim 的基础帧率
@@ -22,68 +20,6 @@ namespace {
 	constexpr float kHead2BasePoseY = 35.0f;         // 根 anim_head2 在 anim_idle 首帧的基准锚点 Y
 	constexpr float kHead3BasePoseX = 21.0f;         // 根 anim_head3 在 anim_idle 首帧的基准锚点 X
 	constexpr float kHead3BasePoseY = 22.2f;         // 根 anim_head3 在 anim_idle 首帧的基准锚点 Y
-
-	std::string HeadStateKey(const char* prefix, const char* suffix)
-	{
-		return std::string(prefix) + suffix;
-	}
-
-	// 额外两个头不属于 AnimatedObject 根 Animator，必须完整保存一次性播放状态机。
-	void SaveHeadAnimatorState(nlohmann::json& j, const char* prefix, const Animator* animator)
-	{
-		if (!animator) return;
-		j[HeadStateKey(prefix, "Track")] = animator->GetCurrentTrackName();
-		j[HeadStateKey(prefix, "Frame")] = animator->GetCurrentFrame();
-		j[HeadStateKey(prefix, "Speed")] = animator->GetSpeed();
-		j[HeadStateKey(prefix, "ClipSpeed")] = animator->GetClipSpeed();
-		j[HeadStateKey(prefix, "PlayState")] = static_cast<int>(animator->GetPlayingState());
-		j[HeadStateKey(prefix, "TargetTrack")] = animator->GetTargetTrack();
-		j[HeadStateKey(prefix, "TargetTrackSpeed")] = animator->GetTargetTrackSpeed();
-		j[HeadStateKey(prefix, "TargetTrackBlendTime")] =
-			animator->GetTargetTrackBlendTime();
-		j[HeadStateKey(prefix, "Playing")] = animator->IsPlaying();
-	}
-
-	// 恢复完整 PlayTrackOnce 状态；字段缺失时保留 SetupPlant 建立的待机状态。
-	void LoadHeadAnimatorState(const nlohmann::json& j, const char* prefix, Animator* animator)
-	{
-		if (!animator) return;
-		const std::string trackKey = HeadStateKey(prefix, "Track");
-		if (!j.contains(trackKey)) return;
-
-		const std::string track = j.value(trackKey, std::string{});
-		if (track.empty()) return;
-
-		const float clipSpeed = j.value(HeadStateKey(prefix, "ClipSpeed"), 0.0f);
-		const int rawState = j.value(
-			HeadStateKey(prefix, "PlayState"), static_cast<int>(PlayState::PLAY_REPEAT));
-		const PlayState state = (rawState >= static_cast<int>(PlayState::PLAY_NONE)
-			&& rawState <= static_cast<int>(PlayState::PLAY_ONCE_TO))
-			? static_cast<PlayState>(rawState) : PlayState::PLAY_REPEAT;
-
-		if (state == PlayState::PLAY_ONCE || state == PlayState::PLAY_ONCE_TO) {
-			animator->PlayTrackOnce(
-				track,
-				j.value(HeadStateKey(prefix, "TargetTrack"), std::string{}),
-				clipSpeed,
-				0.0f,
-				j.value(HeadStateKey(prefix, "TargetTrackSpeed"), 0.0f),
-				j.value(HeadStateKey(prefix, "TargetTrackBlendTime"), 0.5f));
-		}
-		else {
-			animator->PlayTrack(track, clipSpeed);
-		}
-
-		const std::string speedKey = HeadStateKey(prefix, "Speed");
-		if (j.contains(speedKey)) {
-			animator->SetSpeed(j.value(speedKey, 1.0f));
-		}
-		animator->SetCurrentFrame(j.value(HeadStateKey(prefix, "Frame"), 0.0f));
-		if (j.contains(HeadStateKey(prefix, "Playing"))
-			&& !j.value(HeadStateKey(prefix, "Playing"), true)) {
-			animator->Pause();
-		}
-	}
 }
 
 void ThreePeater::SetupPlant()

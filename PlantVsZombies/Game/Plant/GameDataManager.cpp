@@ -41,6 +41,7 @@
 #include "Plantern.h"
 #include "Cactus.h"
 #include "Blover.h"
+#include "SplitPea.h"
 
 #include "../Zombie/Zombie.h"
 #include "../Zombie/ConeZombie.h"
@@ -263,6 +264,11 @@ void GameDataManager::InitializeHardcodedData() {
 		ResourceKeys::Textures::IMAGE_BLOVER,
 		AnimationType::ANIM_BLOVER,
 		ResourceKeys::Reanimations::REANIM_BLOVER, &MakePlant<Blover>);
+
+	RegisterPlant(PlantType::PLANT_SPLITPEA, "PLANT_SPLITPEA",
+		ResourceKeys::Textures::IMAGE_SPLITPEA,
+		AnimationType::ANIM_SPLITPEA,
+		ResourceKeys::Reanimations::REANIM_SPLITPEA, &MakePlant<SplitPea>);
 
 	// 寒冰大喷菇：复用大喷菇 reanim（蓝色靠 overlay），仅卡图独立
 	RegisterPlant(PlantType::PLANT_ICEFUMESHROOM, "PLANT_ICEFUMESHROOM",

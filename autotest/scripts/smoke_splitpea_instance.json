@@ -1,0 +1,17 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 1, "resetTestState": true },
+    { "op": "choose_cards", "cards": ["PLANT_SPLITPEA"] },
+    { "op": "wait_state", "state": "GAME" },
+    { "op": "set_spawn_paused", "value": true },
+    { "op": "set_sun", "value": 2000 },
+    { "op": "plant", "type": "PLANT_SPLITPEA", "row": 2, "col": 4 },
+    { "op": "wait_seconds", "value": 0.2 },
+    { "op": "assert_state", "path": "plants.0.track", "equals": "anim_idle" },
+    { "op": "assert_state", "path": "plants.0.headTrack", "equals": "anim_head_idle" },
+    { "op": "assert_state", "path": "plants.0.rearHeadTrack", "equals": "anim_splitpea_idle" },
+    { "op": "screenshot", "name": "splitpea_instance_idle.png" },
+    { "op": "dump_state", "name": "splitpea_instance_idle.json" },
+    { "op": "quit" }
+  ]
+}
