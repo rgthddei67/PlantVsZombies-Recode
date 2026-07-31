@@ -19,6 +19,7 @@ namespace {
 	constexpr float kPlanternMenuButtonWidth = 50.0f; // 单个挡位按钮宽度，单位：UI px
 	constexpr float kPlanternMenuButtonHeight = 21.0f; // 单个挡位按钮高度，单位：UI px
 	constexpr float kPlanternMenuButtonGap = 2.0f; // 相邻挡位按钮的纵向间隔，单位：UI px
+	constexpr int kPlanternMenuFontSize = 15; // 挡位标签字号，单位：逻辑 px
 
 	/** 返回挡位菜单的逻辑锚点；始终直接对齐路灯花卡槽下方。 */
 	Vector GetPlanternMenuAnchor(Card* card)
@@ -308,11 +309,14 @@ void CardSlotManager::DrawPlanternGearMenu(Graphics* g)
 			selected
 				? glm::vec4(245.0f, 184.0f, 58.0f, 245.0f)
 				: glm::vec4(86.0f, 76.0f, 62.0f, 235.0f));
-		g->DrawGlyphRun(labels[gear], ResourceKeys::Fonts::FONT_FZCQ, 15,
+		const float labelWidth = g->MeasureTextWidth(labels[gear],
+			ResourceKeys::Fonts::FONT_FZCQ, kPlanternMenuFontSize);
+		const float labelX = anchor.x + (kPlanternMenuButtonWidth - labelWidth) * 0.5f;
+		g->DrawGlyphRun(labels[gear], ResourceKeys::Fonts::FONT_FZCQ, kPlanternMenuFontSize,
 			selected
 				? glm::vec4(42.0f, 29.0f, 14.0f, 255.0f)
 				: glm::vec4(245.0f, 235.0f, 205.0f, 255.0f),
-			anchor.x + (gear < 2 ? 21.0f : 17.0f), y + 2.0f);
+			labelX, y + 2.0f);
 	}
 }
 

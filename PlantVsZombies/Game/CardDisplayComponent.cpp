@@ -21,6 +21,8 @@ namespace {
 	constexpr float kTallNutCardImageOffsetY = -5.0f;  // 高坚果卡图上移量，避开底部阳光文字，单位：px
 	constexpr float kBloverCardImageScale = 0.90f;  // 三叶草卡槽贴图在普通卡图基础上的独立缩放
 	constexpr float kPlanternLowFuelPulseSpeed = 8.0f; // 低燃料卡牌每未缩放秒的脉冲相位速度
+	constexpr float kPlanternGearLabelAreaWidth = 20.0f; // 卡牌左下挡位标签的水平布局宽度，单位：UI px
+	constexpr int kPlanternGearLabelFontSize = 14; // 卡牌挡位标签字号，单位：逻辑 px
 }
 
 CardDisplayComponent::CardDisplayComponent(PlantType type, int sunCost, float cooldown)
@@ -204,9 +206,14 @@ void CardDisplayComponent::DrawPlanternStatus(Graphics* g, const Vector& positio
 
 	static const char* gearLabels[] = { "0", "I", "II", "III" };
 	const int gear = std::clamp(board->GetPlanternGearValue(), 0, 3);
-	g->DrawGlyphRun(gearLabels[gear], ResourceKeys::Fonts::FONT_FZCQ, 14,
+	const float gearLabelWidth = g->MeasureTextWidth(gearLabels[gear],
+		ResourceKeys::Fonts::FONT_FZCQ, kPlanternGearLabelFontSize);
+	const float gearLabelX = position.x
+		+ (kPlanternGearLabelAreaWidth - gearLabelWidth) * 0.5f;
+	g->DrawGlyphRun(gearLabels[gear], ResourceKeys::Fonts::FONT_FZCQ,
+		kPlanternGearLabelFontSize,
 		glm::vec4(50.0f, 28.0f, 12.0f, 255.0f),
-		position.x + (gear < 2 ? 7.0f : 4.0f), position.y + 51.0f);
+		gearLabelX, position.y + 51.0f);
 
 	const bool fullHint = board->GetPlanternFuelFullHintTimer() > 0.0f;
 	const std::string fuelText = std::to_string(static_cast<int>(std::lround(

@@ -1458,6 +1458,19 @@ static int ComputeTextRasterSize(int fontSize, float letterboxScale, float& outS
 	return phys;
 }
 
+float Graphics::MeasureTextWidth(const std::string& text, const std::string& fontKey,
+	int fontSize, float scale) const {
+	if (text.empty() || fontSize <= 0 || scale <= 0.0f) return 0.0f;
+
+	float superSample = 1.0f;
+	const int physicalSize = ComputeTextRasterSize(fontSize, m_letterboxScale, superSample);
+	TTF_Font* font = ResourceManager::GetInstance().GetFont(fontKey, physicalSize);
+	int width = 0;
+	int height = 0;
+	if (!font || TTF_SizeUTF8(font, text.c_str(), &width, &height) != 0) return 0.0f;
+	return static_cast<float>(width) * scale / superSample;
+}
+
 uint32_t Graphics::GetOrCreateTextTexture(const std::string& text, const std::string& fontKey,
 	int fontSize, const glm::vec4& color, int& outWidth, int& outHeight, float& outSuperSample) {
 	// 按物理像素超采样光栅化。physSize 进缓存键，避免窗口/全屏两种密度的同一句文字串号。

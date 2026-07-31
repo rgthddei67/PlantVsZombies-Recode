@@ -520,6 +520,14 @@ public:
 		const glm::vec4& color, float x, float y, float scale = 1.0f);
 
 	/**
+	 * @brief 按当前 letterbox 超采样口径测量文字的逻辑宽度。
+	 *        与 DrawText/DrawGlyphRun 使用同一物理字号，适合在逻辑 UI 矩形内精确居中短文本。
+	 * @return 成功时返回逻辑像素宽度；空文本、无效字号或字体测量失败时返回 0。
+	 */
+	float MeasureTextWidth(const std::string& text, const std::string& fontKey,
+		int fontSize, float scale = 1.0f) const;
+
+	/**
 	 * @brief 取得一份常驻（pinned）文字纹理句柄；颜色已烘焙到纹理。
 	 *        用于对同一段文字频繁重绘的场景，避免 DrawText 每帧的 key 构造与 LRU 维护开销。
 	 *        句柄直到 Graphics 销毁（或显式清理）前都有效，不参与 LRU 淘汰。
