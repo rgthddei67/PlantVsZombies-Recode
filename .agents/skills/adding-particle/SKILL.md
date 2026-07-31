@@ -29,6 +29,7 @@ description: Use when adding or tuning ANY particle effect (粒子特效) in PvZ
 - `EmitEffect` 的传入世界坐标优先由 `Transform + mVisualOffset`、植物视觉基点、`GetCellCenterPosition` 或 `SCENE_WIDTH/HEIGHT` 派生；受伤抖动等临时绘制偏移默认不进入粒子物理位置。
 - XML 的 `EmitterOffsetX/Y` 仍有“双倍生效”陷阱，但“除以 2”只能用于**完成坐标系换算后的局部偏移**，不能把 800×600 原值直接减半搬入。
 - 触发后先执行同步 `screenshot`，再用 `particleEffectsByName.<Name>.0` 的 `renderProbeReady/worldBounds/originToRenderCenterD*Int/nearestPlant/nearestZombie` 断言本项目实际提交的粒子矩形相对发射原点与实体 collider 的关系；随机范围用宽容区间而非单点值。
+- 先确认视觉对象是不是 ParticleSystem XML：若代码用 `AnimatedObject(ObjectType::OBJECT_PARTICLE)` 播 reanim，它不会出现在 `particleEffectsByName`，应按自定义 tag 从 `animatedObjectsByTag` 取证。方向性命中特效的局部 X 偏移要按来源速度符号镜像，并断言 `nearestZombie.centerDxInt/boundsIntersect`，不能只凭截图估计。
 - `clipRightXInt` 是裁剪语义，`worldBounds` 是裁剪前提交几何；两者分开断言。运动对象瞬时绝对 X/Y 只供诊断，不作稳定断言。
 
 ## 数值语法（三种，核心）

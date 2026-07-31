@@ -21,6 +21,7 @@ metadata:
   `inverse(basePose)`。
 - 前弹复用普通 `BULLET_PEA`；后弹仍复用同一类型，只把基础 X 速度设为
   `-290px/s`。不要为方向新建 BulletType，否则会重复火炬、台风、碰撞和对象池链。
+  运行时变成火豆后，100px 溅射区与 38px 命中特效偏移也必须按负速度镜像到左侧。
 - 后头第一颗的帧事件置位第二发，下一逻辑步重播同一射击轨。保存
   `rearSecondShotPending/rearSecondShotInBurst`，并用
   `Shooter::SaveHeadAnimatorState/LoadHeadAnimatorState` 保存后头完整
@@ -41,3 +42,7 @@ metadata:
   `repro_shooter_save_resume.json` 依赖本地专用 `level1001_data.json` 和
   `-AutoTestLoadSave`；当前构建目录没有该历史问题存档，不能把它的前置断言失败记为
   代码回归。
+- `smoke_splitpea_fireball_direction.json` 可见 exit 0：两颗后向火豆令直击目标
+  270→190、左侧次要目标 270→244；`FireballImpact` 与直击目标矩形相交，中心横差
+  -8px。原 `smoke_torchwood.json` 89 条命令及 `smoke_splitpea.json` 94 条命令同轮
+  可见回归通过，全部当前截图已目检。

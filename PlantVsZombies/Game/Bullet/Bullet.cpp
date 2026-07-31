@@ -18,12 +18,12 @@ namespace {
 	constexpr int kFireballDamage = 40;               // 火豌豆基础伤害，原版为普通豌豆两倍
 	constexpr int kSpikeFrameDamage = 2;              // 仙人掌尖刺在 1x 下每个逻辑碰撞帧的基础伤害
 	constexpr std::size_t kSpikePierceLimit = 4;       // 尖刺接触第四只不同僵尸后消失
-	constexpr float kFireballSplashWidth = 100.0f;    // 火球命中后同排水平溅射判定宽度，单位：像素
+	constexpr float kFireballSplashWidth = 100.0f;    // 火球命中后沿飞行方向的同排溅射宽度，单位：像素
 	constexpr int kSplashDamageDivisor = 3;           // 火球次要目标伤害为直击伤害的三分之一
 	constexpr float kFireballForwardOffsetX = -25.0f; // FirePea.reanim 相对向右飞子弹逻辑原点的 X 偏移
 	constexpr float kFireballBackwardOffsetX = 55.0f; // FirePea.reanim 相对向左飞子弹逻辑原点的 X 偏移
 	constexpr float kFireballOffsetY = -25.0f;        // FirePea.reanim 相对子弹逻辑原点的 Y 偏移
-	constexpr float kFireballImpactOffsetX = 38.0f;   // 原版 JalapenoFire 命中特效相对子弹的 X 偏移
+	constexpr float kFireballImpactOffsetX = 38.0f;   // JalapenoFire 沿飞行方向相对子弹的 X 偏移绝对值
 	constexpr float kFireballImpactOffsetY = -20.0f;  // 原版 JalapenoFire 命中特效相对子弹的 Y 偏移
 	constexpr float kFireballImpactStartFrame = 3.0f; // Fire.reanim 约 25% 处起播，复刻原版 mAnimTime=0.25
 	constexpr float kFireballImpactSpeed = 2.0f;      // Fire.reanim 为 12fps，原版命中特效按 24fps 播放
@@ -622,8 +622,12 @@ void Bullet::HitFireballZombie(Zombie* zombie)
 	zombie->RemoveColdEffects();
 
 	std::vector<Zombie*> secondaryTargets;
-	const float splashLeft = GetPosition().x;
-	const float splashRight = splashLeft + kFireballSplashWidth;
+	const float impactX = GetPosition().x;
+	// 静止测试弹与普通向右火豆保持历史正向口径；反向火豆把同一宽度镜像到命中点左侧。
+	const float splashLeft = mVelocityX < 0.0f
+		? impactX - kFireballSplashWidth : impactX;
+	const float splashRight = mVelocityX < 0.0f
+		? impactX : impactX + kFireballSplashWidth;
 	if (mBoard) {
 		mBoard->mEntityManager.ForEachZombieInRow(mRow, [&](Zombie* candidate) {
 			if (!candidate || candidate == zombie || !candidate->IsActive()
@@ -655,10 +659,12 @@ void Bullet::HitFireballZombie(Zombie* zombie)
 		}
 	}
 
+	const float impactOffsetX = mVelocityX < 0.0f
+		? -kFireballImpactOffsetX : kFireballImpactOffsetX;
 	GameObjectManager::GetInstance().CreateGameObject<FireballImpact>(
 		LAYER_EFFECTS_WORLD,
 		mBoard,
-		GetPosition() + Vector(kFireballImpactOffsetX, kFireballImpactOffsetY));
+		GetPosition() + Vector(impactOffsetX, kFireballImpactOffsetY));
 }
 
 bool Bullet::IsTyphoonWindAffected() const
