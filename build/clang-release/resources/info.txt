@@ -132,6 +132,11 @@
 [PLANT_SPLITPEA_DESCRIPTION]
 双向射手可以向前后两个方向发射豌豆。前面的头每次发射一颗，后面的头每次连发两颗。“是的，我们是亲兄弟，”前面的头说。“他负责前面，我负责后面。至于谁负责中间？那不是问题。”
 
+[PLANT_STARFRUIT]
+杨桃
+[PLANT_STARFRUIT_DESCRIPTION]
+杨桃会朝五个方向发射星星。“哎呀，亲爱的，”杨桃说，“我有五个尖角，所以当然要朝五个方向发射。这不是炫耀，只是几何学。”
+
 [ZOMBIE_NORMAL]
 僵尸
 [ZOMBIE_NORMAL_DESCRIPTION]

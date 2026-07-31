@@ -182,6 +182,8 @@
     <Texture Column="5" Row="1">./resources/particles/WallnutParticlesSmall.png</Texture>
     <Texture Column="5" Row="1">./resources/particles/WallnutParticlesLarge.png</Texture>
     <Texture>./resources/particles/Star40.png</Texture>
+    <Texture>./resources/particles/Star_splats.png</Texture>
+    <Texture>./resources/particles/Star_particles.png</Texture>
     <Texture>./resources/particles/ExplosionCloud.png</Texture>
     <Texture>./resources/particles/ExplosionSpudow.png</Texture>
     <Texture Column="8" Row="2">./resources/particles/DirtSmall.png</Texture>
@@ -366,6 +368,7 @@
     <Reanimation name="Cactus">./resources/reanim/Cactus.reanim</Reanimation>
     <Reanimation name="Blover">./resources/reanim/Blover.reanim</Reanimation>
     <Reanimation name="SplitPea">./resources/reanim/SplitPea.reanim</Reanimation>
+    <Reanimation name="Starfruit">./resources/reanim/Starfruit.reanim</Reanimation>
 
     <Reanimation name="NormalZombie">./resources/reanim/NormalZombie.reanim</Reanimation>
     <Reanimation name="ConeZombie">./resources/reanim/ConeZombie.reanim</Reanimation>

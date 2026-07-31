@@ -1,16 +1,16 @@
 ---
 name: pvz-cmake-migration
-description: CMake+vcpkg 唯一构建系统；2026-07-22 增加 clang-playtest 并用目录联接共享单份运行资源
+description: CMake+vcpkg 唯一构建系统；2026-07-31 默认 clang-release，其他 preset 用目录联接共享单份运行资源
 metadata:
   node_type: memory
   type: project
   originSessionId: 83b50c95-5f75-4a56-8bd0-5051666fb921
 ---
 
-**2026-07-22 当前构建契约（取代下方迁移初期的 preset/运行目录描述）：**
-- `clang-playtest` 是日常预设：Clang `/O2` + AVX2 + fast-math + PDB，关闭 LTO，兼顾流畅试玩与可调试性。
-- `clang-release` 是发布预设：相同优化再加 `-flto`，不生成 PDB；最终交付验证仍用它。
-- `msvc-debug` 仅保留给 Debug CRT/特殊调试。`clang-playtest` 与 `msvc-debug` 的 `resources`/`font` 是指向 `build/clang-release/` 同名实体目录的 NTFS Junction；配置只创建一次联接，不复制资产。Shader、存档与 AutoTest 输出仍按 preset 隔离。
+**2026-07-31 当前构建契约（取代下方迁移初期的 preset/运行目录描述）：**
+- 主人改定 `clang-release` 为编译、逻辑验证、AutoTest、F5 与正式发布的默认预设：Clang `/O2` + AVX2 + fast-math + LTO，不生成 PDB。
+- `clang-playtest` 只在主人特殊要求快速迭代、PDB 或无 LTO 时使用；`msvc-debug` 只在主人特殊要求或确实需要 Debug CRT/Debug 语义时使用。
+- `clang-playtest` 与 `msvc-debug` 的 `resources`/`font` 是指向 `build/clang-release/` 同名实体目录的 NTFS Junction；配置只创建一次联接，不复制资产。Shader、存档与 AutoTest 输出仍按 preset 隔离。
 - Visual Studio `launch.vs.json` 使用 `${cmake.binaryDir}` 作为工作目录；所有运行仍从 exe 自己的 `build/<preset>/` 启动。
 
 2026-06-13 完成（4edb6c8 接入 → **a14a26c 统一**，主人主动要求"搞2套太乱"）：

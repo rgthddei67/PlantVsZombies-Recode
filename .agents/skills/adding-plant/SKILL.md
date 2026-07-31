@@ -1,6 +1,6 @@
 ---
 name: adding-plant
-description: Use when adding ANY new plant (新增植物) to PvZ — 射手/生产/即时消耗/全场结算，包括效果侵入僵尸或其他系统的（冻结/减速/魅惑/穿透/新子弹/格子占用）— proven on ScaredyShroom (胆小菇), IceShroom (寒冰菇), DoomShroom (毁灭菇+弹坑).
+description: Use when adding ANY new plant (新增植物) to PvZ — 射手/生产/即时消耗/全场结算，包括效果侵入僵尸或其他系统的（冻结/减速/魅惑/穿透/新子弹/格子占用）— proven on ScaredyShroom (胆小菇), IceShroom (寒冰菇), DoomShroom (毁灭菇+弹坑), Starfruit (杨桃+五向星弹).
 ---
 
 # 给 PvZ 新增植物
@@ -54,8 +54,8 @@ description: Use when adding ANY new plant (新增植物) to PvZ — 射手/生�
 
 ## 验证（缺一不可）
 
-1. 默认用 `clang-playtest` 构建 0 warning；只有正式发布、主人明确要求或验证发布配置时才用 `clang-release` 做 LTO 验证。两个 Clang 预设报告同一套全量警告。
-2. **站位+影子截图校对**（写完必做，别等主人指出）：临时脚本把新植物与小喷菇/向日葵种同一行，截图比脚底基线。两套独立坐标：**本体 = gamedata.json 的 offset**（改无需重编译）；**影子 = 代码里 `ShadowComponent::SetOffset`**（改要重编译）。抄同类植物的值大概率不准。
+1. 默认用 `clang-release` 完成带 LTO 的 0 warning 构建；只有主人特殊要求快速迭代、PDB 或无 LTO 时才改用 `clang-playtest`，特殊要求 Debug CRT/Debug 语义时才用 `msvc-debug`。
+2. **站位+影子截图校对**（写完必做，别等主人指出）：临时脚本把新植物与小喷菇/向日葵种同一行，截图比脚底基线。先从原版实现/画面确认该品种是否有影子；原版不画影子的品种即使是陆生植物也要在 `SetupPlant()` 显式 `RemoveComponent<ShadowComponent>()`，并断言 `hasShadow=false`，不能因落在草地就沿用基类默认影子。需要影子时再校对两套独立坐标：**本体 = gamedata.json 的 offset**（改无需重编译）；**影子 = 代码里 `ShadowComponent::SetOffset`**（改要重编译）。抄同类植物的值大概率不准。
    植物若有阵风插值、水面浮动等动态位移，收口成**不含品种静态 offset 的公共视觉锚点**：本体=`锚点+gamedata offset`，影子=`锚点+shadow offset`，禁止影子退回裸 `Transform` 而漏掉动态量。专项在同步截图后导出 `ShadowComponent` 最近实际提交的中心，并用**同一绘制帧**的 Animator render base 减 gamedata offset 得到锚点再断言；不要在截图后的下一逻辑帧重算正弦锚点，否则会产生亚像素相位差假失败。最后跨两个动画相位读图确认共同移动。
    卡槽/选卡卡图由 `CardDisplayComponent::DrawPlantImage` 独立绘制，不能为缩卡图去改 gamedata `scale`（那会改草坪本体）。需要品种特例时在通用卡图倍率上追加独立倍率，并从既有卡图矩形中心缩放，避免向左上角漂移；用实际卡槽截图验收。
    卡牌状态与槽下菜单若用比例字体显示可变短标签（如 `0/I/II/III`），必须用 `Graphics::MeasureTextWidth` 按当前字号和 letterbox 口径真实测宽后在各自布局矩形内居中；禁止按字符数分组手调 X，否则同组内不同字形宽度仍会肉眼错位。
@@ -110,6 +110,7 @@ description: Use when adding ANY new plant (新增植物) to PvZ — 射手/生�
 5. `dump_state` 为类型数量、动画表现和防重状态加聚合整数抓手；不要依赖 `unordered_map` 导出的 `bullets.N` 顺序。运动弹仍断言相对量，不断言绝对 X/Y。
 6. `onTriggerStay` 的逐碰撞逻辑帧伤害不受渲染 FPS 波动影响，但固定逻辑步的回调次数不会随 `timeScale` 改变；若直接每次扣固定整数，移动弹在 0.5x/2.0x 下会因重叠帧数反向变化而失衡。默认按目标累计 `damage × GetDeltaTime()/GetFixedStep()` 的小数额度再取整结算，并把每个整数额度分别走一次 1 点正式承伤链，禁止合并成 `TakeDamage(N)` 而改变免伤次数/逐击取整。若特定目标要修改“每帧总基础伤害”，必须先由目标侧虚钩子修正 `damage` 再累计；不能依赖后续普通单击上限，因为拆开的每次输入已经只有 1 点。专项断言 0.5x 60 帧、1x 30 帧、2.0x 15 帧的同目标总伤害完全一致，并覆盖特殊目标的有/无防具两态。
 7. 持续命中且限制穿透数的子弹要按稳定实体 ID 记录不同目标：首次接触才登记并播放反馈，`stay` 只继续伤害；达到上限时先让最后目标承伤再回收。目标名单和逐目标小数伤害余额必须一起随存档恢复，并在对象池 `Reset()` 清空；专项至少覆盖“上限减一”目标后的存读档、达到上限消弹、倍速等伤和复用槽位归零，禁止把测试写死在某个穿透数。
+8. 纹理子弹若新增旋转、纵向速度或其他影响命中与表现的运动状态，必须在 `BulletPool::Reset()` 归零、在存档中往返，并让读档恢复值覆盖表现初始化时的随机值。跨行直线弹按移动后的 Board 网格更新 `mRow`，再走统一碰撞链；场景上下边界用 `SCENE_HEIGHT`，横向仍沿用通用回收边界。专项用方向聚合断言同帧齐发数量，用直接 `spawn_bullet` 覆盖跨行、命中、对象池和存读档，不依赖运动弹的绝对坐标或数组顺序。
 
 这类跨系统植物**不走"简短 spec 直实现"捷径**：回到完整 brainstorm（交互矩阵逐项问主人）→spec→必要时 writing-plans。
 

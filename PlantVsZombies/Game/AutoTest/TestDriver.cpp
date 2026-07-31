@@ -33,6 +33,7 @@
 #include "../Plant/Cactus.h"
 #include "../Plant/Blover.h"
 #include "../Plant/SplitPea.h"
+#include "../Plant/StarFruit.h"
 #include "../Bullet/Bullet.h"
 #include "../Zombie/ZombieType.h"
 #include "../Zombie/Zombie.h"
@@ -133,7 +134,7 @@ namespace {
 #define BT(n) { #n, BulletType::n }
 	const std::unordered_map<std::string, BulletType> kBulletNames = {
 		BT(BULLET_PEA), BT(BULLET_SNOWPEA), BT(BULLET_PUFF), BT(BULLET_FIREBALL),
-		BT(BULLET_SPIKE),
+		BT(BULLET_SPIKE), BT(BULLET_STAR),
 	};
 #undef BT
 #define ZT(n) { #n, ZombieType::n }
@@ -887,6 +888,29 @@ bool TestDriver::ExecuteCurrent() {
 		bullet->SetBulletDamage(cmd.value("damage", bullet->GetBulletDamage()));
 		bullet->SetTargetsFlying(cmd.value("targetsFlying", false));
 		return true;
+	}
+	if (op == "set_starfruit_shoot_cycle") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) {
+			Fail("set_starfruit_shoot_cycle: 不在 GameScene 或 Board 为空");
+			return false;
+		}
+		Board* board = gs->GetBoard();
+		const int row = cmd.value("row", -1);
+		const int col = cmd.value("col", -1);
+		for (int id : board->mEntityManager.GetAllPlantIDs()) {
+			auto* starFruit = dynamic_cast<StarFruit*>(
+				board->mEntityManager.GetPlant(id));
+			if (!starFruit || (row >= 0 && starFruit->mRow != row)
+				|| (col >= 0 && starFruit->mColumn != col)) {
+				continue;
+			}
+			starFruit->SetShootCycleForTesting(
+				cmd.value("elapsed", 1.49f), cmd.value("interval", 1.5f));
+			return true;
+		}
+		Fail("set_starfruit_shoot_cycle: 未找到目标杨桃");
+		return false;
 	}
 	if (op == "spawn_zombie") {
 		GameScene* gs = CurrentGameScene();
@@ -2531,6 +2555,12 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			plantState["rearSecondShotInBurst"] =
 				splitPea->IsRearSecondShot();
 		}
+		if (auto* starFruit = dynamic_cast<StarFruit*>(p)) {
+			plantState["starfruitShootTimerMs"] = static_cast<int>(std::lround(
+				starFruit->GetShootTimer() * 1000.0f));
+			plantState["starfruitShootIntervalMs"] = static_cast<int>(std::lround(
+				starFruit->GetShootInterval() * 1000.0f));
+		}
 		if (auto* threePeater = dynamic_cast<ThreePeater*>(p)) {
 			if (const Animator* head1 = threePeater->GetHeadAnimator()) {
 				plantState["head1Track"] = head1->GetCurrentTrackName();
@@ -2872,6 +2902,13 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	int snowPeaBulletCount = 0;
 	int fireballBulletCount = 0;
 	int spikeBulletCount = 0;
+	int starBulletCount = 0;
+	int starLeftBulletCount = 0;
+	int starUpBulletCount = 0;
+	int starDownBulletCount = 0;
+	int starUpRightBulletCount = 0;
+	int starDownRightBulletCount = 0;
+	int starSpinningBulletCount = 0;
 	int flyingTargetSpikeCount = 0;
 	int groundTargetSpikeCount = 0;
 	int flyingTargetSpikePiercedZombieCount = 0;
@@ -2898,6 +2935,19 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		}
 		else if (bullet->mBulletType == BulletType::BULLET_SNOWPEA) ++snowPeaBulletCount;
 		else if (bullet->mBulletType == BulletType::BULLET_FIREBALL) ++fireballBulletCount;
+		else if (bullet->mBulletType == BulletType::BULLET_STAR) {
+			++starBulletCount;
+			if (bullet->GetRotationSpeedDegrees() != 0.0f) {
+				++starSpinningBulletCount;
+			}
+			const float vx = bullet->GetVelocityX();
+			const float vy = bullet->GetVelocityY();
+			if (vx < 0.0f && vy == 0.0f) ++starLeftBulletCount;
+			else if (vx == 0.0f && vy < 0.0f) ++starUpBulletCount;
+			else if (vx == 0.0f && vy > 0.0f) ++starDownBulletCount;
+			else if (vx > 0.0f && vy < 0.0f) ++starUpRightBulletCount;
+			else if (vx > 0.0f && vy > 0.0f) ++starDownRightBulletCount;
+		}
 		else if (bullet->mBulletType == BulletType::BULLET_SPIKE) {
 			++spikeBulletCount;
 			if (bullet->TargetsFlying()) {
@@ -2918,6 +2968,10 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "windAffected", bullet->IsTyphoonWindAffected() },
 			{ "baseVelocityX", static_cast<int>(std::lround(bullet->GetVelocityX())) },
 			{ "baseVelocityY", static_cast<int>(std::lround(bullet->GetVelocityY())) },
+			{ "rotationDegrees", static_cast<int>(std::lround(
+				bullet->GetRotationDegrees())) },
+			{ "rotationSpeedDegrees", static_cast<int>(std::lround(
+				bullet->GetRotationSpeedDegrees())) },
 			{ "windVelocityX", static_cast<int>(std::lround(bullet->GetWindAdjustedVelocityX())) },
 			{ "baseDamage", bullet->GetBulletDamage() },
 			{ "windDamage", bullet->GetWindAdjustedDamage() },
@@ -2939,6 +2993,13 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["snowPeaBulletCount"] = snowPeaBulletCount;
 	out["fireballBulletCount"] = fireballBulletCount;
 	out["spikeBulletCount"] = spikeBulletCount;
+	out["starBulletCount"] = starBulletCount;
+	out["starLeftBulletCount"] = starLeftBulletCount;
+	out["starUpBulletCount"] = starUpBulletCount;
+	out["starDownBulletCount"] = starDownBulletCount;
+	out["starUpRightBulletCount"] = starUpRightBulletCount;
+	out["starDownRightBulletCount"] = starDownRightBulletCount;
+	out["starSpinningBulletCount"] = starSpinningBulletCount;
 	out["flyingTargetSpikeCount"] = flyingTargetSpikeCount;
 	out["groundTargetSpikeCount"] = groundTargetSpikeCount;
 	out["flyingTargetSpikePiercedZombieCount"] = flyingTargetSpikePiercedZombieCount;

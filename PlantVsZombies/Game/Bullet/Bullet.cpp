@@ -33,6 +33,9 @@ namespace {
 	constexpr float kThreepeaterDampingPerTick = 0.97f; // C# 每个 10ms 更新对纵向速度的衰减
 	constexpr float kOriginalTickSeconds = 0.01f;       // 原版 Projectile 更新步长，单位：秒
 	constexpr float kThreepeaterShadowOffsetY = 68.0f;  // 斜向豌豆从格心上方 40px 到地面影子的相对距离
+	constexpr float kStarSpinSpeedMin = 286.0f;         // 原版 0.05rad/厘秒换算后的最小自旋，单位：度/秒
+	constexpr float kStarSpinSpeedMax = 573.0f;         // 原版 0.10rad/厘秒换算后的最大自旋，单位：度/秒
+	constexpr float kStarShadowExtraOffsetY = 15.0f;    // C# 星弹初始化时额外下移阴影 15px
 
 	enum class BulletWindResponse {
 		NONE,
@@ -170,6 +173,8 @@ void Bullet::Reset(Board* board, int row,
 	mDamage = DefaultDamageForBullet(mPoolType);
 	mVelocityX = 290.0f;
 	mVelocityY = 0.0f;
+	mRotationDegrees = 0.0f;
+	mRotationSpeedDegrees = 0.0f;
 	mThreepeaterMotion = false;
 	mTargetsFlying = false;
 	mHitTorchwoodColumn = -1;
@@ -236,9 +241,20 @@ void Bullet::Update()
 				position.x < -10.0f)
 			{
 				this->Die();
+				return;
 			}
 		}
 		transform->Translate(GetWindAdjustedVelocityX() * deltaTime, mVelocityY * deltaTime);
+		const Vector position = transform->GetPosition();
+		if (mBulletType == BulletType::BULLET_STAR) {
+			mRotationDegrees = std::fmod(
+				mRotationDegrees + mRotationSpeedDegrees * deltaTime, 360.0f);
+			if (position.y < 0.0f || position.y > static_cast<float>(SCENE_HEIGHT)) {
+				Die();
+				return;
+			}
+			UpdateStarRow(position);
+		}
 		if (mThreepeaterMotion) {
 			// 用指数折算保持不同固定步长下与 C# “每 10ms ×0.97”相同的弧线。
 			mVelocityY *= std::pow(
@@ -271,7 +287,9 @@ void Bullet::Draw(Graphics* g)
 	if (mTexture) {
 		Vector position = GetPosition();
 		g->DrawTexture(mTexture, position.x, position.y,
-			static_cast<float>(mTexture->width * mScale), static_cast<float>(mTexture->height) * mScale);
+			static_cast<float>(mTexture->width * mScale),
+			static_cast<float>(mTexture->height) * mScale,
+			mRotationDegrees);
 	}
 }
 
@@ -312,8 +330,10 @@ void Bullet::UpdateShadowLayout(const Vector& position)
 	// X 偏移沿用 C#：Pea +3，Snowpea -1，Fireball/Spike 为 0。
 	const float shadowLeftOffset = mBulletType == BulletType::BULLET_SNOWPEA
 		? -1.0f
-		: ((mBulletType == BulletType::BULLET_FIREBALL
-			|| mBulletType == BulletType::BULLET_SPIKE) ? 0.0f : 3.0f);
+		: (mBulletType == BulletType::BULLET_STAR
+			? 7.0f
+			: ((mBulletType == BulletType::BULLET_FIREBALL
+				|| mBulletType == BulletType::BULLET_SPIKE) ? 0.0f : 3.0f));
 	// 斜向豌豆从发射行地面起步并随本体一起汇入目标行；其发射点固定为格心上方 40px，
 	// 因而相对偏移恒为 68px。普通子弹仍直接锚定其碰撞行地面。
 	const float shadowOffsetY = mThreepeaterMotion
@@ -321,10 +341,25 @@ void Bullet::UpdateShadowLayout(const Vector& position)
 		: (mBoard
 			? mBoard->GetCellCenterPosition(mRow, 0).y
 			: CELL_INITALIZE_POS_Y + static_cast<float>(mRow) * CELL_COLLIDER_SIZE_Y
-				+ CELL_COLLIDER_SIZE_Y * 0.5f) + 28.0f - position.y;
+				+ CELL_COLLIDER_SIZE_Y * 0.5f) + 28.0f
+				+ (mBulletType == BulletType::BULLET_STAR
+					? kStarShadowExtraOffsetY : 0.0f) - position.y;
 	mShadow->SetOffset(Vector(
 		shadowLeftOffset + shadowWidth * 0.5f,
 		shadowOffsetY));
+}
+
+void Bullet::UpdateStarRow(const Vector& position)
+{
+	if (!mBoard || mBoard->mRows <= 0 || mVelocityY == 0.0f) return;
+
+	// C# PixelToGridYKeepOnBoard 以弹丸左上点所在格为准；由当前首行中心和行高重建同一边界。
+	const float rowHeight = mBoard->GetCellHeight();
+	if (rowHeight <= 0.0f) return;
+	const float boardTop =
+		mBoard->GetCellCenterPosition(0, 0).y - rowHeight * 0.5f;
+	const int row = static_cast<int>(std::floor((position.y - boardTop) / rowHeight));
+	mRow = std::clamp(row, 0, mBoard->mRows - 1);
 }
 
 void Bullet::EnableThreepeaterMotion(int sourceRow)
@@ -383,6 +418,11 @@ void Bullet::BulletHitZombie(Zombie* zombie)
 			g_particleSystem->EmitEffect("PeaBulletHit", GetPosition());
 		}
 	}
+	else if (mBulletType == BulletType::BULLET_STAR) {
+		if (g_particleSystem) {
+			g_particleSystem->EmitEffect("StarSplat", GetPosition());
+		}
+	}
 }
 
 void Bullet::ConfigurePresentation()
@@ -407,6 +447,12 @@ void Bullet::ConfigurePresentation()
 	case BulletType::BULLET_SPIKE:
 		mTexture = resources.GetTexture(ResourceKeys::Textures::IMAGE_PROJECTILECACTUS);
 		mScale = 1.0f;
+		break;
+	case BulletType::BULLET_STAR:
+		mTexture = resources.GetTexture(ResourceKeys::Textures::IMAGE_PROJECTILE_STAR);
+		mRotationSpeedDegrees = GameRandom::Range(
+			kStarSpinSpeedMin, kStarSpinSpeedMax);
+		if (GameRandom::Chance()) mRotationSpeedDegrees = -mRotationSpeedDegrees;
 		break;
 	case BulletType::BULLET_FIREBALL: {
 		auto reanim = resources.GetReanimation(

@@ -75,6 +75,7 @@ enum class AnimationType
 	ANIM_DIGGER_RISING_DIRT, // 矿工出土地块一次性动画
 	ANIM_DIGGER_CHARRED, // 矿工专属灰烬动画（含镐/无镐两条轨道）
 	ANIM_ZOMBIE_SURPRISE, // 地下丢镐后的问号一次性动画
+	ANIM_STARFRUIT, // 经典杨桃；追加在末尾避免旧动画枚举值错位
 };
 
 #endif

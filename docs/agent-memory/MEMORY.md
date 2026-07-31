@@ -7,6 +7,7 @@
 - [最终绘制坐标语义取证](project_pvz_render_coordinate_evidence.md) — 2026-07-27 AutoTest 从当前项目实际渲染路径导出植物/僵尸/动画特效的 Animator 世界包围盒，以及粒子最终矩形；断言使用相对视觉原点、发射点和最近实体 collider 的整数投影，默认实例化与 `-NoInstance` 可做同用例一致性核对，C# 800×600 绝对坐标只作行为语义参考
 - [仙人掌与帧伤尖刺](project_pvz_cactus_frame_damage.md) — 2026-07-30 `PLANT_CACTUS` 已接入空/地分层索敌：地面第26帧、高姿态第70帧发射 `BULLET_SPIKE`，空中目标优先驱动伸长；弹丸命中层随对象池复位和存档；既有地面首发节奏、逐逻辑帧3伤、持门降至1、跨倍速等伤与四目标穿透均经可见回归
 - [经典三叶草](project_pvz_blover.md) — 2026-07-30 `PLANT_BLOVER`：100 阳光、10 秒冷却，第44帧按卡槽右键方向结算；卡图独立×0.9；气球朝屋后以600px/s累计滑行400px，朝前线滑出屏幕后死亡；台风中同步改持续风和活动阵风，不驱散迷雾；连续版本已编译、主人亲测待完成
+- [经典杨桃与五向星弹](project_pvz_starfruit.md) — 2026-07-31 `PLANT_STARFRUIT`：125 阳光、7.5 秒冷却，第27帧同帧发出左/上/下/右上/右下五颗20伤星弹；复刻 C# 跨行预测索敌、随机自旋、动态行碰撞、对象池与存档，命中用 `StarSplat`；原版杨桃不画通用植物影子；`clang-release` 默认/NoInstance 可见专项均通过
 - [经典气球僵尸](project_pvz_balloon_zombie.md) — 2026-07-30 `ZOMBIE_BALLOON` 为20气球层+270本体、空中/爆裂/步行三阶段、独立螺旋桨附件、70/80啃食帧和152死亡帧；水道击破与致死灰烬都直接移除，非致死灰烬仍按额外层和本体扣血；专属掉头/掉臂、4-3与生存出怪均有可见专项
 - [经典矿工僵尸](project_pvz_digger_zombie.md) — 2026-07-31 270本体+100安全帽，地下穿行至首格起点右30px出土，持镐眩晕后向右折返、无镐向左推进；方向钩子统一位移/阵风/预测/失败线，出土中同时隐藏组件影子与`_ground`轨；66/81啃食、127死亡、36/73双灰烬回收帧，残肢、共享循环声、存档与双渲染可见专项通过；冒险当前只到4-4，第5大关仅留接口
 - [经典火炬树桩与动画火豌豆](project_pvz_torchwood_firepea.md) — 2026-07-31 `PLANT_TORCHWOOD` 把同排 Pea 点燃为 40 伤 Fireball、Snowpea 融化为 Pea；FirePea 为完整时间轴 Animator 子弹，运行时换型与对象池槽位类型分离；火焰直击解冻、沿当前速度方向 100px 穿盾溅射，反向命中特效的 38px X 偏移同步镜像；门板/梯子/冰车抗火及正反向可见专项均已覆盖
@@ -87,7 +88,7 @@
 - [大佬GS/compute渲染建议裁决](project_pvz_dalao_geometry_compute_suggestion.md) — 2026-06-17 ②目标早达成但用gl_VertexIndex顶点拉取+实例化非GS/①矩阵已并行写SSBO不值搬compute;再提同类渲染优化引此
 - [Gemini Vulkan审查](project_pvz_gemini_vulkan_review.md) — 2026-06-16 6条:4误判2休眠;**①DestroyTexture改帧计数延迟删除队列已push(0b14016)**;教训=GPU生命周期改动必开validation
 - [编译警告清零 ✅](project_pvz_warnings_cleanup.md) — 2026-06-13 clang-release 0warn;验证须用clang(msvc默认不报)、reorder改类内初始化、-Wswitch补显式case
-- [CMake构建配置 ✅统一](project_pvz_cmake_migration.md) — CMake+vcpkg唯一；2026-07-22 `clang-playtest`=/O2+PDB无LTO供日常、`clang-release`=LTO无PDB供发布，非发布 preset 用 NTFS Junction 共享 clang-release 单份 resources/font；Shader/存档/AutoTest输出仍隔离
+- [CMake构建配置 ✅统一](project_pvz_cmake_migration.md) — CMake+vcpkg唯一；2026-07-31 主人改定编译、逻辑验证、AutoTest 与 F5 默认 `clang-release`（LTO/无PDB），只有特殊要求快速迭代、PDB 或无LTO才用 `clang-playtest`；非发布 preset 仍用 NTFS Junction 共享 clang-release 单份 resources/font
 - [Build permission](feedback_build_permission_msbuild.md) — 主人解除构建限制:可直接命令行编译,不必F7不必核对时间戳(现用cmake preset)
 - [AutoTest套件 ✅](project_pvz_autotest_suite.md) — 2026-06-13完成;用法权威在CLAUDE.md AutoTest节(-AutoTest脚本+截图+dump_state闭环,-Seed确定性)
 - [perf optimization](project_pvz_perf_optimization.md) — 最新2026-06-24:11000z@168.5FPS/5.94ms完全CPU-bound(Present0.14/replay0.03);**STOP停在此**;编译**O2非O3**;若重启ROI序=par-record视口剔除>2d串行地板(Amdahl)>collision;GPU instancing已落地(388a845)

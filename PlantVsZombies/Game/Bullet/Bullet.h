@@ -39,6 +39,8 @@ protected:
 	int mDamage = 20;			// 子弹伤害
 	float mVelocityX = 290.0f;	// 子弹X轴动量
 	float mVelocityY = 0.0f;	// 子弹Y轴动量
+	float mRotationDegrees = 0.0f; // 星弹等纹理子弹的当前绘制旋转角，单位：度
+	float mRotationSpeedDegrees = 0.0f; // 星弹随机自旋速度，单位：度/游戏秒
 	bool mThreepeaterMotion = false; // 三线射手斜向豌豆按原版逐步衰减纵向速度
 	bool mTargetsFlying = false; // 高姿态仙人掌尖刺为 true；对象池与存档必须显式复位
 	BulletType mPoolType = BulletType::NUM_BULLETS; // 对象池槽位的固定类型；火炬树桩只改变当前表现类型
@@ -63,6 +65,8 @@ protected:
 	void UpdateShadowLayout(const Vector& position);
 	// 按当前可变子弹类型重建纹理或 FirePea.reanim 表现。
 	void ConfigurePresentation();
+	// 星弹纵向飞行时按当前 Board 网格更新碰撞行；其他子弹保持创建行。
+	void UpdateStarRow(const Vector& position);
 	void PlayStandardImpactSound(const Zombie* zombie) const;
 	void HitFireballZombie(Zombie* zombie);
 
@@ -101,6 +105,12 @@ public:
 	void SetVelocityX(float x);
 	float GetVelocityY() { return mVelocityY; }
 	void SetVelocityY(float y) { this->mVelocityY = y; }
+	float GetRotationDegrees() const { return mRotationDegrees; }
+	float GetRotationSpeedDegrees() const { return mRotationSpeedDegrees; }
+	void SetRotationDegrees(float degrees) { mRotationDegrees = degrees; }
+	void SetRotationSpeedDegrees(float degreesPerSecond) {
+		mRotationSpeedDegrees = degreesPerSecond;
+	}
 	/** 普通豌豆穿过火炬树桩后变为 40 伤害的动画火球。 */
 	void ConvertToFireball(int torchwoodColumn);
 	/** 寒冰豌豆穿过火炬树桩后退化为普通豌豆；同列不会再被点燃。 */

@@ -83,6 +83,11 @@ std::shared_ptr<Bullet> BulletPool::AcquireShared(Board* board, BulletType type,
 			LAYER_GAME_BULLET,
 			board, type, row, colliderRadius, position);
 		break;
+	case BulletType::BULLET_STAR:
+		bullet = GameObjectManager::GetInstance().CreateGameObjectImmediateAsShared<Bullet>(
+			LAYER_GAME_BULLET,
+			board, type, row, colliderRadius, position);
+		break;
 	default:
 		LOG_ERROR("BulletPool") << "Acquire 未知的子弹类型";
 		return nullptr;
