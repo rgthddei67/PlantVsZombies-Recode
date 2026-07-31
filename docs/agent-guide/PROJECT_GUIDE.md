@@ -41,7 +41,7 @@
 - **调试模式：** 使用 `-Debug` 参数运行可显示碰撞框。
 - **源文件管理：** `GLOB_RECURSE CONFIGURE_DEPENDS` 会自动收集源文件，新增 `.cpp` 无需修改构建文件；不参与编译的文件放入 `CMakeLists.txt` 的 `REMOVE_ITEM` 列表（当前为 `Reanimation/AttachmentSystem.cpp`）。
 
-依赖：SDL2、SDL2_image、SDL2_ttf、SDL2_mixer、Vulkan 1.3、glm、nlohmann/json、plugxml。
+依赖：SDL2、SDL2_image、SDL2_ttf、SDL2_mixer、Vulkan 1.3、Volk、glm、nlohmann/json、plugxml。Vulkan运行时入口由 SDL2 选定 loader 后交给 Volk动态加载；Vulkan SDK继续提供头文件、VMA 与 `glslc`，但 EXE 不直接链接 `vulkan-1.dll`。
 
 工具链：C++17；源码使用 `/utf-8` 编码（中文 UI 字符串所必需）；Unicode 字符集；vcpkg 静态链接。无头运行时，`CrashHandler` 通过 Windows Vectored Exception Handler 生成的崩溃对话框不会出现在 stderr。
 
@@ -128,7 +128,7 @@ Bullet（独立类型；通过 BulletPool 使用对象池）
 | `EntityManager` | `Game/EntityManager` | 按 ID 跟踪实体（存档系统使用） |
 | `SceneManager` | `Game/SceneManager` | 持有唯一活动场景并在各场景间切换；场景在 `GameApp.cpp` 注册 |
 | `ResourceManager` | `ResourceManager` | 加载/缓存资源；资源键定义在 `ResourceKeys.h` |
-| `Graphics` | `Graphics.cpp` | 自定义 Vulkan 封装，含变换栈与批渲染 |
+| `Graphics` | `Graphics.cpp` | 自定义 Vulkan 1.3 封装，含变换栈与批渲染；SDL2 提供 loader/Surface，Volk提供函数分发 |
 | `Animator` | `Reanimation/Animator` | 命名轨道动画系统；提供 `PlayTrack()`、`PlayTrackOnce()` 和帧事件 |
 | `ParticleSystem` | `ParticleSystem/` | 由 `resources/particles/` 下 XML 配置驱动的粒子系统 |
 | `AudioSystem` | `Game/AudioSystem.h` | SDL2_mixer 音效与音乐封装，管理声道 |

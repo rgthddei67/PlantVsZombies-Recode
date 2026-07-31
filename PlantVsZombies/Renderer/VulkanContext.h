@@ -1,8 +1,7 @@
 #pragma once
 
-// VulkanSDK 静态链接路径：函数原型由 <vulkan/vulkan.h> 提供，
-// 实现来自 vulkan-1.lib（项目链接器额外依赖里加入）。
-#include <vulkan/vulkan.h>
+// Volk 只声明动态函数指针；运行时 loader 由 SDL2 选定并提供 vkGetInstanceProcAddr。
+#include <volk.h>
 #include <vma/vk_mem_alloc.h>
 
 #include <cstdint>
@@ -48,6 +47,10 @@ namespace pvz {
 		bool SwapchainSupportsTransferSrc() const { return mSwapchainTransferSrc; }
 
 	private:
+		/**
+		 * @brief 使用 SDL2 已加载的 Vulkan loader 初始化 Volk 全局分发表。
+		 */
+		bool InitializeVulkanLoader();
 		bool CreateInstance(SDL_Window* window, bool enableValidation);
 		bool CreateDebugMessenger();
 		bool CreateSurface(SDL_Window* window);
@@ -60,6 +63,8 @@ namespace pvz {
 
 		bool                       mInitialized = false;
 		bool                       mValidationEnabled = false;
+		bool                       mVolkInitialized = false;
+		uint32_t                   mLoaderApiVersion = 0;
 
 		SDL_Window* mWindow = nullptr;  // Recreate 时复用
 

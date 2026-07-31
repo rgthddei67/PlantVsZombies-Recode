@@ -45,6 +45,8 @@ find_package(glm CONFIG REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
 find_package(pugixml CONFIG REQUIRED)
 find_package(Vulkan REQUIRED)
+set(VOLK_PULL_IN_VULKAN OFF)
+find_package(volk CONFIG REQUIRED)
 
 set(VMA_HEADER "${Vulkan_INCLUDE_DIR}/vma/vk_mem_alloc.h")
 if(NOT EXISTS "${VMA_HEADER}")
@@ -65,9 +67,14 @@ list(REMOVE_ITEM SOURCES
 add_executable(PlantsVsZombies ${SOURCES} "PlantVsZombies/Game/Zombie/DoorZombie.cpp" "PlantVsZombies/Game/Plant/HypnoShroom.h" "PlantVsZombies/Game/Zombie/FootballZombie.h" "PlantVsZombies/Game/Zombie/FootballZombie.cpp" )
 
 target_include_directories(PlantsVsZombies PRIVATE ${SRC_DIR})
+# Vulkan SDK 的 VMA 是第三方头；标为 SYSTEM，避免其 nullability 注解噪声破坏项目零警告基线。
+target_include_directories(PlantsVsZombies SYSTEM PRIVATE ${Vulkan_INCLUDE_DIR})
 
 target_compile_definitions(PlantsVsZombies PRIVATE
     _CONSOLE
+    VK_NO_PROTOTYPES
+    VMA_STATIC_VULKAN_FUNCTIONS=0
+    VMA_DYNAMIC_VULKAN_FUNCTIONS=1
     $<$<OR:$<CONFIG:Release>,$<CONFIG:RelWithDebInfo>>:
         _HAS_ITERATOR_DEBUGGING=0 _SCL_SECURE_NO_WARNINGS>
 )
@@ -112,7 +119,7 @@ target_link_libraries(PlantsVsZombies PRIVATE
     glm::glm
     nlohmann_json::nlohmann_json
     pugixml::pugixml
-    Vulkan::Vulkan
+    volk::volk
     version setupapi imm32 winmm shell32 ole32 legacy_stdio_definitions
 )
 

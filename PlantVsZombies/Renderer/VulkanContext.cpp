@@ -54,15 +54,19 @@ namespace pvz {
 		mValidationEnabled = enableValidation;
 		mWindow = window;
 
-		// VulkanSDK 静态链接：函数原型与实现都在 vulkan-1.lib 中。
-		// 不再需要 volkInitialize / volkLoadInstance / volkLoadDevice。
-		if (!CreateInstance(window, enableValidation)) return false;
-		if (enableValidation && !CreateDebugMessenger()) return false;
-		if (!CreateSurface(window))                     return false;
-		if (!PickPhysicalDevice())                      return false;
-		if (!CreateLogicalDevice())                     return false;
-		if (!CreateSwapchain(window, vsync))            return false;
-		if (!CreateAllocator())                         return false;
+		// 初始化失败也必须释放已创建到一半的 instance/device，并在 SDL 卸载 loader 前
+		// 清空 Volk 指针；集中走 Shutdown 可避免每个阶段各自维护回滚顺序。
+		if (!InitializeVulkanLoader() ||
+			!CreateInstance(window, enableValidation) ||
+			(enableValidation && !CreateDebugMessenger()) ||
+			!CreateSurface(window) ||
+			!PickPhysicalDevice() ||
+			!CreateLogicalDevice() ||
+			!CreateSwapchain(window, vsync) ||
+			!CreateAllocator()) {
+			Shutdown();
+			return false;
+		}
 
 		mInitialized = true;
 
@@ -70,6 +74,38 @@ namespace pvz {
 			<< " format=" << (int)mSwapchainFormat << " images=" << mSwapchainImages.size()
 			<< " validation=" << (mValidationEnabled ? 1 : 0);
 
+		return true;
+	}
+
+	bool VulkanContext::InitializeVulkanLoader() {
+		// SDL_WINDOW_VULKAN 已让 SDL2 加载平台 loader；沿用同一个入口可避免 SDL 与
+		// Volk 分别持有不同的动态库选择或搜索路径。
+		auto getInstanceProcAddr = reinterpret_cast<PFN_vkGetInstanceProcAddr>(
+			SDL_Vulkan_GetVkGetInstanceProcAddr());
+		if (!getInstanceProcAddr) {
+			LOG_ERROR("VulkanContext") << "SDL 未能取得 vkGetInstanceProcAddr: " << SDL_GetError();
+			return false;
+		}
+
+		volkInitializeCustom(getInstanceProcAddr);
+		mVolkInitialized = true;
+		if (!vkCreateInstance || !vkEnumerateInstanceExtensionProperties) {
+			LOG_ERROR("VulkanContext") << "Volk 未能加载 Vulkan 全局入口";
+			return false;
+		}
+
+		mLoaderApiVersion = volkGetInstanceVersion();
+		LOG_INFO("VulkanContext") << "Vulkan loader api "
+			<< VK_VERSION_MAJOR(mLoaderApiVersion) << "."
+			<< VK_VERSION_MINOR(mLoaderApiVersion) << "."
+			<< VK_VERSION_PATCH(mLoaderApiVersion);
+		if (mLoaderApiVersion < VK_API_VERSION_1_3) {
+			LOG_ERROR("VulkanContext") << "当前渲染路径要求 Vulkan loader 1.3；检测到 "
+				<< VK_VERSION_MAJOR(mLoaderApiVersion) << "."
+				<< VK_VERSION_MINOR(mLoaderApiVersion)
+				<< "。Vulkan 1.2/KHR 兼容路径尚未启用。";
+			return false;
+		}
 		return true;
 	}
 
@@ -115,6 +151,7 @@ namespace pvz {
 		info.ppEnabledLayerNames = layers.data();
 
 		VK_CHECK(vkCreateInstance(&info, nullptr, &mInstance));
+		volkLoadInstance(mInstance);
 		return true;
 	}
 
@@ -251,6 +288,8 @@ namespace pvz {
 		dci.ppEnabledExtensionNames = exts;
 
 		VK_CHECK(vkCreateDevice(mPhysicalDevice, &dci, nullptr, &mDevice));
+		// 本项目只创建一个 VkDevice；直接加载 device 表可绕过 loader 的逐调用分发。
+		volkLoadDevice(mDevice);
 		vkGetDeviceQueue(mDevice, mGraphicsQueueFamily, 0, &mGraphicsQueue);
 		return true;
 	}
@@ -343,12 +382,18 @@ namespace pvz {
 	}
 
 	bool VulkanContext::CreateAllocator() {
-		// 静态链接路径：VMA 直接调用 vkXxx 原型，pVulkanFunctions 留 nullptr。
+		// 只把两级查询入口交给 VMA；VMA 根据实际 apiVersion 动态取得其余函数，避免
+		// VMA 或 Vulkan SDK 头版本变化时重新把 vulkan-1.dll 符号写入 EXE 导入表。
+		VmaVulkanFunctions functions{};
+		functions.vkGetInstanceProcAddr = vkGetInstanceProcAddr;
+		functions.vkGetDeviceProcAddr = vkGetDeviceProcAddr;
+
 		VmaAllocatorCreateInfo aci{};
 		aci.vulkanApiVersion = VK_API_VERSION_1_3;
 		aci.instance = mInstance;
 		aci.physicalDevice = mPhysicalDevice;
 		aci.device = mDevice;
+		aci.pVulkanFunctions = &functions;
 
 		VK_CHECK(vmaCreateAllocator(&aci, &mAllocator));
 		return true;
@@ -383,7 +428,7 @@ namespace pvz {
 	}
 
 	void VulkanContext::Shutdown() {
-		if (!mInitialized) return;
+		if (!mVolkInitialized && !mInstance && !mDevice && !mAllocator) return;
 
 		if (mDevice) vkDeviceWaitIdle(mDevice);
 
@@ -400,5 +445,11 @@ namespace pvz {
 		if (mInstance) { vkDestroyInstance(mInstance, nullptr); mInstance = VK_NULL_HANDLE; }
 
 		mInitialized = false;
+		mLoaderApiVersion = 0;
+		mWindow = nullptr;
+		if (mVolkInitialized) {
+			volkFinalize();
+			mVolkInitialized = false;
+		}
 	}
 } // namespace pvz
