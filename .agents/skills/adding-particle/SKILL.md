@@ -8,7 +8,8 @@ description: Use when adding or tuning ANY particle effect (粒子特效) in PvZ
 本文件每个标签的语义都是 2026-07-15 从 `ParticleSystem/` 源码逐行实证的（IceFumeCloud 蓝色孢子云实战），
 2026-07-16 随毁灭菇 Doom.xml 移植更新（ImageFrames 序列帧实装 + 原版 XML 移植口径），
 2026-07-20 随雨天特效补充 ParticleRotation 初始朝向，
-2026-07-27 补充 AutoTest 最终粒子矩形与相对实体取证。
+2026-07-27 补充 AutoTest 最终粒子矩形与相对实体取证，
+2026-08-01 补充 manifest/注册/运行时键闭环与多根 XML 校验口径。
 **改了引擎消费端（ParticleEmitter/ParticleXMLLoader）要回来同步本文档。**
 
 ## 心智模型
@@ -18,7 +19,7 @@ description: Use when adding or tuning ANY particle effect (粒子特效) in PvZ
 - 目录：权威资源 `build/clang-release/resources/particles/config/`，启动时全目录加载；其他 preset 通过 Junction 共享，纯数据改配置**不用重编译，但要重启游戏**。
 - 触发：`g_particleSystem->EmitEffect("Name", GetPosition());`；完整可选参数依次为 `renderOrder, durationOverride, clipRightX`。名字打错启动不报错，**发射时** run.log 出 `ERROR 找不到粒子特效配置`。
 - 贴图：`<Image>` 填资源键（`IMAGE_*`/`PARTICLE_*`）；**没有独立粒子贴图格式**，任何在发射前已经加载的纹理都能当粒子。
-- **键来源必须与加载路径一致**：`<GameImages>` 预加载的图用 `IMAGE_*`，`<ParticleTextures>` 用 `PARTICLE_*`；粒子专用 PNG 必须显式列入 `resources.xml` 的 `<ParticleTextures>`，只有文件与 manifest 不会加载。reanim XML **实际引用**并已加载的部件才会生成 `IMAGE_REANIM_*` 别名；仅放在 `image/reanim/` 的运行时换图使用启动扫描产生的标准 `IMAGE_<UPPERCASE_STEM>` 键。动态发射前若对应 reanim 不保证已加载，就不能依赖别名，应改入预加载段。写错前缀或时序未加载=粒子静默不生成（foot-gun ③）。
+- **键来源必须与加载路径一致**：`<GameImages>` 预加载的图用 `IMAGE_*`，`<ParticleTextures>` 用 `PARTICLE_*`；粒子专用 PNG 必须显式列入 `resources.xml` 的 `<ParticleTextures>`，只有文件与 manifest 不会加载。`image/reanim/` 会由 manifest 驱动的启动扫描生成标准 `IMAGE_<UPPERCASE_STEM>` 键；reanim XML **实际引用**并已加载的部件才另有 `IMAGE_REANIM_*` 别名。动态发射前若对应 reanim 不保证已加载，就不能依赖别名，应改入预加载段。写错前缀或时序未加载=粒子静默不生成（foot-gun ③）。
 - **分份贴图**：`<Texture Column="4" Row="1">` 会把图切成独立纹理 `PARTICLE_XXX_PART_0..3`（`基础键_PART_序号`，行优先）——逗号列出来即"每粒子随机一张"（splats 碎屑的原理）。**序列帧动画别用它**，用 `ImageFrames`（整图不切，见标签表）。
 
 ## 坐标换算铁律
@@ -108,6 +109,7 @@ description: Use when adding or tuning ANY particle effect (粒子特效) in PvZ
 10. **移植原版 XML 只改权威资源**：贴图和 `resources.xml` 都放 `build/clang-release/resources/`，禁止再创建 msvc-debug 副本；配置其他 preset 后用 Junction 属性确认共享即可。
 11. **换色实体的部件粒子必须逐键审计**：reanim 换色不会改写死亡/受击粒子 XML 中固定的 `<Image>`。若爆炸会抛出车盖、车轮、帽子或手臂等部件，为变体建立独立效果名和配置，并把所有实体部件键换为变体资源；触发端的父类虚入口必须同时选择本体残留材质与飞出粒子，读档重建也复用该材质入口，避免受伤/读档回普通配色。普通烟云可用 RGB 轨迹统一染色。
 12. **爆炸云的原版高阻力曲线不能直抄**：本引擎 `Friction` 是逐帧相乘，`.15,40 1` 会在极少数帧内把速度压到零，即使 `LaunchSpeed` 很高也只会聚成中心小团。需要持续向外扩散的云优先用约 `0.015～0.02` 的低恒定阻力，再以发射半径、速度和寿命调覆盖面；高阻力只留给需要立刻刹停的命中碎屑。
+13. **粒子配置是多根 XML 片段**：一个文件可直接并列多个顶层 `<Emitter>`，因此用 PowerShell `[xml]` 或普通单根 XML validator 会报“已有 DocumentElement”。不要给实际配置包一层虚构根节点；静态校验时只在内存字符串外临时包 `<Root>...</Root>`，最终仍以 `ParticleXMLLoader` 启动加载和 AutoTest 发射为准。
 
 ## 配方（照抄改数）
 
@@ -131,7 +133,7 @@ description: Use when adding or tuning ANY particle effect (粒子特效) in PvZ
 
 ## 验证
 
-粒子寿命都是亚秒级，AutoTest 截图要卡时机：帧事件/命中发生后 `wait_frames` 2~20 再 `screenshot`（多截几张挑）。截图成功后断言 `particleEffectNameCounts`、实际四边形数和相对包围盒，再逐张 Read 核对颜色、铺开范围、方向、有没有“看不见”（foot-gun ③）；参考 `smoke_particle_render_probe.json`。范围爆炸必须给 `worldBounds.widthInt/heightInt` 设与设计半径相称的下界，不能只断言 quad 数，否则所有粒子挤在中心也会假绿。动画中段才触发的命中/阻拦粒子必须做一负一正两段取证：节点前断言仍在对应动作轨且计数为 0，越过节点后立即断言计数为 1 并截图，防止“效果存在但提前播放”的时序假绿。植物与荷叶/花盆同格时，`nearestPlant.type` 会按几何距离命中下层载体，改断言稳定的 `row/col` 与粒子包围盒，不能把“最近类型”当成触发者身份。改 XML 数值免编译，跑脚本前重启即可。
+粒子寿命都是亚秒级，AutoTest 截图要卡时机：首次发射前先以 `GetTexture(imageKey, false)` 导出所有新增 `<Image>` 键的加载断言，不能只看 manifest 或控制台 WARN；帧事件/命中发生后 `wait_frames` 2~20 再 `screenshot`（多截几张挑）。截图成功后断言 `particleEffectNameCounts`、实际四边形数和相对包围盒，再逐张 Read 核对颜色、铺开范围、方向、有没有“看不见”（foot-gun ③）；参考 `smoke_particle_render_probe.json`。范围爆炸必须给 `worldBounds.widthInt/heightInt` 设与设计半径相称的下界，不能只断言 quad 数，否则所有粒子挤在中心也会假绿。动画中段才触发的命中/阻拦粒子必须做一负一正两段取证：节点前断言仍在对应动作轨且计数为 0，越过节点后立即断言计数为 1 并截图，防止“效果存在但提前播放”的时序假绿。植物与荷叶/花盆同格时，`nearestPlant.type` 会按几何距离命中下层载体，改断言稳定的 `row/col` 与粒子包围盒，不能把“最近类型”当成触发者身份。改 XML 数值免编译，跑脚本前重启即可。
 
 **每次完成并验证任何粒子新增、配置调参或触发点实质修改后，必须在提交前完善本 skill**：把本次实际暴露的新坐标换算、XML 语义、生命周期 foot-gun 或截图取证方法浓缩进相关章节；已有规则则合并强化，不堆一次性配方日志。任务同时修改植物、僵尸或天气时，也同步完善本次实际使用的对应 skill。更新后运行 skill-creator 的 `quick_validate.py` 校验全部改动过的 skill。
 

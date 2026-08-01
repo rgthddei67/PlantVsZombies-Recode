@@ -1,6 +1,6 @@
 ---
 name: adding-zombie
-description: Use when adding or tuning any PvZ zombie, or integrating zombies into adventure/survival spawn pools — 含防具/换皮数值变体、召唤/编队、天气变异、出土/入地、断肢断头、掉装备粒子、魅惑交互与冒险出怪编排 — proven on DancerZombie, PinkFootballZombie and EliteDancerZombie.
+description: Use when adding or tuning any PvZ zombie, or integrating zombies into adventure/survival spawn pools — 含防具/换皮数值变体、召唤/编队、天气变异、出土/入地、断肢断头、掉装备粒子、魅惑交互与冒险出怪编排 — proven on DancerZombie, PinkFootballZombie, EliteDancerZombie and EliteDiggerZombie.
 ---
 
 # 给 PvZ 新增僵尸
@@ -22,9 +22,9 @@ description: Use when adding or tuning any PvZ zombie, or integrating zombies in
 
 ## 第 0 步：勘察（动手前全部做完）
 
-1. **读 reanim**：`build/clang-release/resources/reanim/<Name>.reanim`，Grep `<name>` 提取全部 track；`anim_*` 是剪辑轨（`<f>0/-1</f>` 定活跃帧区间），其余是部件轨。重点记下：头部组（`anim_head1`=头、`anim_head2`=下巴、`anim_hair`，可能有 tongue/earing 等挂件）、外臂三段（`*_outerarm_upper/lower/hand`，注意前缀可能不统一）、有无残肢轨（`_bone`/`upper2`）、`_ground` 轨（位移速度来源）。
+1. **读 reanim**：`build/clang-release/resources/reanim/<Name>.reanim`，Grep `<name>` 提取全部 track，并 Grep `<i>` 列出每个实际图片键；`anim_*` 是剪辑轨（`<f>0/-1</f>` 定活跃帧区间），其余是部件轨。重点记下：头部组（`anim_head1`=头、`anim_head2`=下巴、`anim_hair`，可能有 tongue/earing 等挂件）、外臂三段（`*_outerarm_upper/lower/hand`，注意前缀可能不统一）、有无残肢轨（`_bone`/`upper2`）、`_ground` 轨（位移速度来源），以及 `rise2～6` 这类把帽子、脸和衣服烘在一起的阶段合成图。独立部件换色不会影响合成图，必须按实际 `<i>` 引用逐张盘点。
 2. **读 C# 参考并主动盘点音效**：`D:\PVZ\PlantsVsZombies.NET-master\Lawn_Shared\Lawn\Zombie\Zombie.cs` grep 僵尸名，读 UpdateZombieXxx 状态机 + SetupReanimForLostArm/LostHead + 数值，同时收集相关路径的全部 `PlayFoley` / `PlaySample`；不要等主人听出缺声才补。沿 `FoleyType → Sexy.TodLib/Foley/TodFoley.cs → Resources.SOUND_*` 得到精确资源键，以资源键去掉 `SOUND_` 后的小写名到 `D:\PVZ\中文年度加强版完整版\Test\sounds\` 查同名 `.ogg`。找到后复制到唯一权威 `build/clang-release/resources/sounds/` 合理子目录，并同步 `resources.xml` 与 `ResourceKeys.h`；找不到才问主人，禁止用相近声音静默替代。构建后检查 `manifest.txt` 和启动日志无 missing sound，并用可见行为路径及 `GetSoundPlayRequestCount` 投影验证触发次数（含读档不得重响）。出生/登场声若只属于“新刷新”，必须从 `Board::CreateZombie` 的正式新建路径调用品种钩子，禁止塞进 `SetupZombie()`（预览与 `CreateZombieWithID` 读档也会经过 Setup）。**警惕版本错位**：C# 是后期资源（舞王=disco 版有 `_upper_bone` 残肢轨；主人给的 MJ 版没有）——状态机照抄、断肢方案按手头 reanim 实际轨道定。
-3. **盘点已就位基建**（常常提前有了，别重复加）：`ZombieType.h` 枚举（**多半在 `NUM_ZOMBIE_TYPES` 哨兵之后，要移进去才可出怪**）、`TestDriver.cpp` kZombieNames、`GameScene.cpp` kDevZombieTable、`AnimationTypes.h`、resources.xml 的 `<Reanimation name>`、粒子贴图。缺哪补哪。**reanim 文件进入 manifest 不等于已注册**：新角色必须同时把文件放入权威 `resources/reanim/` 并在 `resources.xml` 写 `<Reanimation name="...">`；漏后者会让 `AnimatedObject` 得到空 Animator，僵尸构造阶段访问轨道时直接 Access Violation。AutoTest 在首次直造前用 `ResourceManager::HasReanimation` 断言注册键。开发者面板会把所选僵尸的**枚举名字符串**写入 `PlayerInfo.json`；禁止改存表下标或枚举整数，因为新类型移入哨兵前会让旧数值漂移。新增表项继续用 `DEVZ(ZOMBIE_X)`，并让 `smoke_develop` 断言选择跨场景重建仍保持。
+3. **盘点已就位基建**（常常提前有了，别重复加）：`ZombieType.h` 枚举（**多半在 `NUM_ZOMBIE_TYPES` 哨兵之后，要移进去才可出怪**）、`TestDriver.cpp` kZombieNames、`GameScene.cpp` kDevZombieTable、`AnimationTypes.h`、resources.xml 的 `<Reanimation name>`、粒子贴图。缺哪补哪。**reanim 文件进入 manifest 不等于已注册**：新角色必须同时把文件放入权威 `resources/reanim/` 并在 `resources.xml` 写 `<Reanimation name="...">`；漏后者会让 `AnimatedObject` 得到空 Animator，僵尸构造阶段访问轨道时直接 Access Violation。AutoTest 在首次直造前用 `ResourceManager::HasReanimation` 断言注册键。不要给 `Zombie`/`AnimatedObject` 基类加宽泛空 Animator 早退来“止崩”，`Start()`/`SetupZombie()` 仍会访问它，且坏注册会被掩盖。开发者面板会把所选僵尸的**枚举名字符串**写入 `PlayerInfo.json`；禁止改存表下标或枚举整数，因为新类型移入哨兵前会让旧数值漂移。新增表项继续用 `DEVZ(ZOMBIE_X)`，并让 `smoke_develop` 断言选择跨场景重建仍保持。
 4. **若任务含冒险出怪表**：完整阅读 [references/adventure-spawnlist-pacing.md](references/adventure-spawnlist-pacing.md)，先画整大关的首次登场/复习/综合表，再改 JSON；禁止只盯被抱怨的单关局部挪怪。
 
 ## 实现清单
@@ -37,11 +37,12 @@ description: Use when adding or tuning any PvZ zombie, or integrating zombies in
    - **带 `_ground` 的根运动僵尸禁止把目标世界速度直接写进 `mSpeed`**：`GetTrackVelocity()` 已包含逐帧根位移与 `EffectiveSpeed()`，`ZombieMove()` 随后才乘 `mSpeed × delta`；因此 `mSpeed` 应承担资源 FPS 的时间基准换算，品种快慢主要用与 C# `mVelX` 对齐的 clip 速度同步改变步频和位移。直接把 42/54px/s 填给 `mSpeed` 会让身体滑行。AutoTest 至少断言 `effectiveAnimSpeed`，并从池外稳定起点检查进入泳池前仍保留可见步行时长。
    - **非魅惑状态也会反向移动的品种必须集中方向权威**：在 `Zombie` 提供 `IsMovingRight()` 虚入口，让基类位移、台风顺逆风、目标提前量和房屋失败线都查询它；子类只按当前 phase/阵营覆写一次。禁止仅在子类 `ZombieMove()` 里改正负号，否则会出现“视觉向右但仍触发进家”或阵风/索敌预测反向。AutoTest 同时断言方向、位移趋势与 `CanTriggerGameOver()`，并在房屋附近验证反向阶段不触发失败。
    - **跨轨道换态先核对视觉坐标系，不能只看逻辑位移**：从同一身体部件轨读取旧轨末帧与新轨首帧锚点，再叠加各阶段 `mVisualOffset`/视觉补偿，世界提交位移要抵消总差；海豚 `anim_dolphinjump→anim_swim/anim_ride` 当前实测分别需 104/106 px，原版 94 只复制逻辑位移会在落地时倒退。若换态同帧撤销视觉补偿，禁止继续 blend 旧姿态（海豚 `anim_ride→anim_walkdolphin` 上岸须零混合），否则旧姿态会被新坐标绘制成短暂垂挂。C# 的 `mUsesClipping` 也不等于通用水线裁剪：海豚入水只在 0.56～0.65 与 0.75～结束使用较低的局部底线，中间关闭；在本项目用派生类裁剪钩子复刻并截图校准，默认实现必须保持其他水中僵尸原样，禁止通过隐藏海豚部件轨或裁整只僵尸冒充。
+   - **把父类资源选择改成虚入口时必须双向回归**：派生类换色通过后，仍要触发父类的受损帽、残肢、掉落粒子和读档终态；新增虚入口可能把父类原先未被断言的错误键暴露出来。AutoTest 分别导出父类与派生类的实际资源键加载状态，不能只证明精英路径。
 3. **枚举移动 + 空工厂窗口**：新类型必须**追加在全部既有已实现类型之后、`NUM_ZOMBIE_TYPES` 哨兵之前**；禁止插进旧类型中间，否则存档里的整数僵尸 ID 会错位。把枚举移到哨兵前的**同一提交**必须补齐权威 `gamedata.json` 条目（缺字段拒启动 exit -6）；若工厂注册在后续提交，**weight 先填 0**（哨兵前+非零权重+无工厂=生存随机抽中即空指针），注册后再解封。
 4. **注册**：`GameDataManager.cpp` `#include` + `RegisterZombie(type, "ZOMBIE_X", ANIM_X, "ReanimName", &MakeZombie<T>)`——animName 必须与 resources.xml 的 `<Reanimation name>` 一致。
 5. **gamedata.json**：只改 `build/clang-release/resources/gamedata.json`，`{weight, appearWave, survivalRound, offset, scale}` 五字段缺一不可；只能被召唤的僵尸 `weight: 0`（永不被抽中，AutoTest spawn_zombie 仍可直造）。注意 weight 一物两用=抽中权重+生存点数成本。
 6. **粒子**：照抄 `ZombieHeadOff.xml` 改 `<Name>`+`<Image>`（图键=贴图文件名的标准派生键，如 `ZombieDancerHead.png`→`PARTICLE_ZOMBIEDANCERHEAD`），放权威 `build/clang-release/resources/particles/config/`，其他 preset 自动共享。新粒子专用 PNG 还必须登记进 `resources.xml` 的 `<ParticleTextures>`；只有文件和 manifest 不会加载出 `PARTICLE_*` 键。XML 标签全参考/foot-guns 见 **adding-particle skill**（勿再读 ParticleSystem 源码）。
-7. **换色变体资源**：优先用仓库内 PowerShell + `System.Drawing` 脚本按 HSV/亮度映射目标材质，保留原 Alpha、阴影、高光、描边和非目标部件；不要对整张图平涂或只靠 overlay。脚本是可复现源，只向 clang-release 权威资源生成一次并逐文件比预期 SHA-256。换色后还要沿死亡/受击入口检查粒子 XML 的每个车辆或身体部件 `<Image>`：本体 reanim 换色不会自动替换粒子里写死的普通资源键。**仅存在于 `image/reanim/` 但未被 reanim XML 引用的受损帽、残肢等运行时换图，启动自动加载键是文件标准键 `IMAGE_<UPPERCASE_STEM>`，不是 `IMAGE_REANIM_*`；后者只由 reanim loader 为时间线实际引用的图片建立。** 用 `GetTexture(key, false)` 导出加载断言，同时覆盖正常换图和读档重建。派生换色品种的断肢应由父类虚入口同时选择“本体残留材质”和“飞出粒子效果”，并让 `ZombieItemUpdate()` 复用同一材质入口，避免受伤或读档时短暂变回普通配色。
+7. **换色变体资源**：优先用仓库内 PowerShell + `System.Drawing` 脚本按 HSV/亮度映射目标材质，保留原 Alpha、阴影、高光、描边和非目标部件；不要对整张图平涂或只靠 overlay。脚本是可复现源，只向 clang-release 权威资源生成一次。先把 reanim 全部 `<i>` 引用建立源→目标表，尤其逐张处理阶段合成图；空间/低饱和度遮罩必须在原分辨率与原图并排检查，防止把眼白、灯泡、牙齿等一起染色，**视觉检查通过后**才把最终 SHA-256 写回脚本并复跑锁定。换色后还要沿死亡/受击入口检查粒子 XML 的每个车辆或身体部件 `<Image>`：本体 reanim 换色不会自动替换粒子里写死的普通资源键。**仅存在于 `image/reanim/` 但未被 reanim XML 引用的受损帽、残肢等运行时换图，manifest 驱动的启动扫描会生成文件标准键 `IMAGE_<UPPERCASE_STEM>`，不是 `IMAGE_REANIM_*`；后者只由 reanim loader 为时间线实际引用的图片建立。** 用 `GetTexture(key, false)` 导出加载断言，同时覆盖正常换图和读档重建。派生换色品种的断肢应由父类虚入口同时选择“本体残留材质”和“飞出粒子效果”，并让 `ZombieItemUpdate()` 复用同一材质入口，避免受伤或读档时短暂变回普通配色。
 8. **⚠️ build/ 下资源提交必须 `git add -f`**——被 .gitignore 静默挡下，`git commit` 照样"成功"但文件没进去。提交后 `git show --stat` 核对文件数。
 9. **图鉴**：在权威 `build/clang-release/resources/info.txt` 同时添加 `[ZOMBIE_X]` 与 `[ZOMBIE_X_DESCRIPTION]`。`ZombieAlmanacScene` 按 `mAdventureLevel - 1` 之前已通关关卡的 `spawnlists.json` 并集解锁条目，并按首次遭遇顺序排列；当前正在玩的关卡不得提前泄露。召唤型 `weight: 0` 子单位（如伴舞）不能为了图鉴解锁写进随机池，而应由图鉴的“必然派生遭遇”映射随其召唤者解锁。概率变异不能由 spawnlist 推断；若要求实际遇见后永久解锁，把独立遭遇标记存入 `PlayerInfo.json`，且只在正式波次的实际类型成功创建后记录，不能在 roll 命中、通用 `CreateZombie()`、读档或预览路径记录。缺 info key 不会构建失败，只会留下有图无标题/正文的空白条目；因此静态检查每个可解锁枚举名的两枚 key 均存在且唯一。AutoTest 用 `set_adventure_level` 配合 UI 场景状态字段 `zombieAlmanacEntries` / `zombieAlmanacSelected`，同时断言当前关排除、下一关解锁并截图；AutoTest 会短路真实 PlayerInfo 磁盘写入，遭遇持久化须用内存字段断言加保存/加载源码审查。
 
@@ -100,12 +101,13 @@ description: Use when adding or tuning any PvZ zombie, or integrating zombies in
 
 ## 验证（缺一不可）
 
-1. 默认用 `clang-playtest` 构建 0 warning；新 .cpp 未被编译先 `cmake --preset clang-playtest` reconfigure。只有正式发布、主人明确要求或验证发布配置时才用 `clang-release` 做 LTO 验证。
-2. **AutoTest 冒烟**：`autotest/scripts/smoke_<name>.json`。默认按 `PROJECT_GUIDE.md` 的“当前桌面可见启动”方案运行：从 `build/<preset>/` 工作目录，用提升权限的 `Start-Process -WindowStyle Normal -PassThru` 启动并等待退出；普通沙箱 shell 即使写了 `WindowStyle Normal` 也可能落在隔离会话，主人桌面完全看不到。状态断言用 `zombies.N.type/hasArm/armVisible/hasHead/track/mindControlled`；几何断言用 `animatedObjectsByTag.Zombie.N` 的最终世界包围盒及相对 collider 投影，禁止把 C# 绝对坐标写成期望值。**exit 0 ≠ 通过**：逐张 Read 同步截图（断肢前后、编队站位、出土中段——注意升起初期整体在地面线下被裁掉是正确的，截图要卡升起 60% 时点）。
+1. 默认按仓库契约配置并构建 `clang-release`，保持 0 warning；新 .cpp 未被编译先 `cmake --preset clang-release` reconfigure。只有主人要求快速迭代/PDB/无 LTO，或 Release 崩溃确需符号栈时才用 `clang-playtest`；诊断完成后仍须回到 `clang-release` 做最终验证。
+2. **AutoTest 冒烟**：`autotest/scripts/smoke_<name>.json`。默认按 `PROJECT_GUIDE.md` 的“当前桌面可见启动”方案运行：从 `build/<preset>/` 工作目录，用提升权限的 `Start-Process -WindowStyle Normal -PassThru` 启动并等待退出；普通沙箱 shell 即使写了 `WindowStyle Normal` 也可能落在隔离会话，主人桌面完全看不到。首次直造前断言 `HasReanimation`，运行时帽子/残肢/粒子贴图用 `GetTexture(key,false)` 导出加载状态；Release WARN 不保证写进 `run.log`，manifest 也不能替代这些断言。状态断言用 `zombies.N.type/hasArm/armVisible/hasHead/track/mindControlled`；几何断言用 `animatedObjectsByTag.Zombie.N` 的最终世界包围盒及相对 collider 投影，禁止把 C# 绝对坐标写成期望值。**exit 0 ≠ 通过**：逐张 Read 同步截图（断肢前后、编队站位、出土中段——换色变体必须截取真正使用 `rise*` 合成图的中段；注意升起初期整体在地面线下被裁掉是正确的，截图要卡升起 60% 时点）。
 3. **死亡消失必须专门测**（末-1 帧陷阱专项）：豌豆打死→dump 确认该 type 消失+run.log 无 WATCHDOG。炸弹类走 Die() 直杀路径，**测不到**死亡帧事件。
 4. 时序：`wait_seconds` 是游戏秒；关卡 20 秒起第一波普通僵尸会混入 dump，别断言"场上为空"。
 5. 站位/影子不对 → 本体调 gamedata offset（免编译）、影子调代码 `ShadowComponent`。
 6. 父类测试钩子或状态投影使用 `dynamic_cast` 时会同时命中派生精英；先判断具体派生类，或以 `mZombieType` 排除变体，避免普通品种计数和命令误操作精英。
+7. Release Fatal Error / Access Violation 先保留崩溃报告与最小脚本；需要堆栈时用同脚本在 `clang-playtest` 复现，优先检查资源注册/键和首个空对象来源。修复后重跑 Release 的新类型脚本和父类回归，禁止只交付 playtest 结果。
 
 ## 完工交付：调参量清单交主人（必做环节，主人指定保留）
 

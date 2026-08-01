@@ -36,6 +36,8 @@
 
   三个预设各司其职：`clang-release` 是编译、逻辑验证、AutoTest、F5 与正式发布的默认预设（`/O2`、AVX2、fast-math、LTO、无 PDB）；`clang-playtest` 只在主人特殊要求快速迭代、PDB 或无 LTO 时使用；`msvc-debug` 只在主人特殊要求或确实需要 Debug CRT/断点语义时使用。两个 Clang 预设都会报告 `-Wnonportable-include-path`、`-Wreorder-ctor`、`-Wunused-*`、`-Wswitch` 等诊断，并应保持零警告。
 
+- **Release 崩溃取证：** `clang-release` 的 Fatal Error / Access Violation 先保留 `crash_report_*.txt`、现场资源 WARN、触发脚本和崩溃阶段，不凭异常地址猜源码。确需函数栈时才构建 `clang-playtest`，用同一最小 AutoTest 在可见桌面复现，并确保 EXE/PDB 来自同一次构建。新动画对象若在构造或首帧崩溃，先查 reanim 注册、动画类型映射和轨道资源；不要在 `Zombie`/`AnimatedObject` 基类添加宽泛空 Animator 早退，这通常只会把崩溃推迟到 `Start()`/`SetupZombie()` 并掩盖强制资源缺失。修复后回到 `clang-release` 重建并重跑原失败脚本及父类回归。
+
 - **运行：** 可执行文件位于 `build\<preset>\PlantsVsZombies.exe`。`build\clang-release\resources` 与同级 `font` 是唯一实体目录；`clang-playtest`、`msvc-debug` 在首次配置时只创建 NTFS 目录联接，不复制资源。Shader、存档与 AutoTest 输出仍由各预设独立持有。运行游戏或 AutoTest 时，**必须以 exe 所在的 `build\<preset>\` 本身作为工作目录**：`Push-Location build\clang-release; .\PlantsVsZombies.exe -AutoTest <absolute-path>.json`。（⚠️ 根目录的 `x64\Release` 是陈旧产物，**禁止使用**。）
 - **在 VS 中开发：** 用 Visual Studio 的“打开文件夹”打开项目根目录，VS 会自动识别 CMakePresets。根目录 `launch.vs.json` 已包含 F5 调试配置、工作目录和 `-Debug` 变体。
 - **调试模式：** 使用 `-Debug` 参数运行可显示碰撞框。
@@ -164,8 +166,19 @@ Windows 首次发生真实存档访问时，会把当前工作目录旧 `./saves
 
 - 资源键是在 `ResourceKeys.h` 中手写的字符串常量，命名为 `PREFIX_UPPERCASE`（如 `IMAGE_PEASHOOTER`、`SOUND_CHERRYBOMB`、`MUSIC_DAY`、`PARTICLE_EXPLOSIONCLOUD`）。它们是 `ResourceManager::GenerateStandardKey` 根据文件名生成的实际键的防拼写错误镜像：去掉目录和扩展名 → 转大写 → 非字母数字转 `_` → 添加前缀。键值与常量名相同时，用 `RKEY(X)` 宏（展开为 `inline const std::string X = "X"`），避免重复书写；键值与名称不同时（例如 `IMAGE_HUGE_WAVE_APPROACHING = "IMAGE_APPROACHING"`、`SOUND_SHOOTER_SHOOT = "SOUND_THROW"`、值为 CamelCase 的 `REANIM_*`、字体路径），必须显式声明。
 - 资产根目录：图片在 `./resources/image/`，粒子 XML 在 `./resources/particles/config/`，reanim 文件在 `./resources/reanim/`，字体在 `./font/`。
+- **资源加载闭环：** `manifest.txt` 是构建期文件清单，也是 `image/reanim/` 等目录在 Android/桌面的枚举来源，但它不代替各资源类型自己的注册与键规则：
+
+  | 资源类型 | 进入加载器的条件 | 实际运行时键 | 最小断言 |
+  |---|---|---|---|
+  | `.reanim` | 文件进入 manifest，且 `resources.xml/<Reanimations>` 有同名 `<Reanimation name>` | `REANIM_*` 常量的值必须等于 `name` | `HasReanimation(key)` |
+  | `image/reanim/*.png` 运行时换图 | 文件进入 manifest；启动时 `LoadAllImagesFromPath` 全量加载 | `IMAGE_` + 大写文件名 stem；只有 reanim `<i>` 实际引用的图另有 `IMAGE_REANIM_*` 别名 | `GetTexture(key, false) != nullptr` |
+  | 游戏图片 | `resources.xml/<GameImages>` 明确列出 | `IMAGE_` 标准键 | `GetTexture(key, false) != nullptr` |
+  | 粒子专用 PNG | `resources.xml/<ParticleTextures>` 明确列出 | `PARTICLE_` 标准键 | `GetTexture(key, false) != nullptr` |
+  | 粒子配置 | XML 位于 `particles/config/` 并进入启动扫描 | 第一个 `<Emitter>` 的 `<Name>` | 发射前计数 0、发射后计数 1 + 同步截图 |
+
+  文件存在、manifest 存在、效果肉眼偶尔可见都不是单独的充分证据；运行时换图和掉落物应把加载状态导出到 AutoTest。Release 的资源 WARN 不保证进入 `run.log`，因此不能只 grep 日志。强制 reanim/纹理缺失必须修正注册或键来源，不能用通用 null guard 将坏对象留在场上。
 - **Reanimation：** `Reanimation/` 是自定义骨骼动画系统，不是精灵表播放器。它加载 `.reanim` XML 文件，通过 `Animator::PlayTrack()` 播放命名轨道（如 `anim_walk`）。帧事件可在指定帧注册一次性回调。
-- **粒子特效：** 粒子效果通过 `./resources/particles/config/` 下 XML 配置（根标签为 `<Emitter>`，包含 `<Image>`、`<LaunchSpeed>`、`<Field>` 等）；`ParticleXMLLoader` 按名称缓存。
+- **粒子特效：** 粒子效果通过 `./resources/particles/config/` 下 XML 配置；一个文件可并列多个顶层 `<Emitter>` 片段（包含 `<Image>`、`<LaunchSpeed>`、`<Field>` 等），`ParticleXMLLoader` 以首个 Emitter 的 Name 缓存整组效果。
 
 ## 参考与实现指引
 

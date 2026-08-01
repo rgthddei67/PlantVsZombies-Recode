@@ -18,6 +18,7 @@
 - 主人已长期授权本项目正常构建所需的 vcpkg 依赖安装、CMake 配置/生成和编译；若沙箱阻止写入工作区外的 vcpkg 目录，直接申请提升权限执行，无需再次询问是否允许构建。该授权不包含删除 vcpkg、清空缓存或其他破坏性操作。
 - CMake 已加入系统 `PATH`，直接使用 `cmake` 命令，不要再定位或硬编码 Visual Studio 自带的 `cmake.exe`。运行 CMake 前仍需先把 Visual Studio Installer 目录加入 `PATH`，用 `vswhere` 定位 VS，再导入 `VsDevCmd.bat -arch=x64 -no_logo`；准确的 PowerShell 步骤见项目指南。
 - 编译、逻辑验证、AutoTest 与 F5 默认依次运行 `cmake --preset clang-release` 和 `cmake --build --preset clang-release`；它启用 Release 级优化与 LTO，且不生成 PDB。只有主人特殊要求快速迭代、PDB 或无 LTO 构建时才使用 `clang-playtest`；`msvc-debug` 仅在主人特殊要求或确实需要 Debug CRT/Debug 语义时使用；不存在 MSVC Release 预设。
+- `clang-release` 出现 Fatal Error / Access Violation 时先保留崩溃报告、资源警告和最小复现脚本；确需符号栈再用 `clang-playtest` 复现同一路径，修复后必须回到 `clang-release` 完成最终构建与相关回归，不能把诊断预设当成交付证据。
 - 必须从 `build\<preset>\` 运行；可执行文件为 `build\<preset>\PlantsVsZombies.exe`。禁止使用根目录下陈旧的 `x64\Release` 产物。
 - Codex 启动任何需要主人看到的游戏或 AutoTest 窗口时，必须以 `build\<preset>\` 为工作目录，通过申请 `sandbox_permissions="require_escalated"` 的 shell 使用 `Start-Process -WindowStyle Normal -PassThru` 启动到主人当前桌面；普通沙箱 shell 即使指定 Normal 也不算可见运行。完整命令见项目指南。
 - 修改游戏逻辑后，从构建目录运行范围最小且相关的 `-AutoTest` 脚本。AutoTest 默认用主人当前桌面可见的游戏窗口依次运行（不得默认隐藏或仅后台执行），并同时检查退出码、`run.log`、状态文件和截图；只有主人明确要求后台运行或执行环境确实无法显示窗口时才可例外，并须说明。仅修改文档时无需构建游戏。
@@ -28,6 +29,7 @@
 - 源文件由 `GLOB_RECURSE CONFIGURE_DEPENDS` 自动收集；新增 `.cpp` 无需手动修改构建列表。
 - 每个新 `.h` 必须以 `#pragma once` 开头；pre-commit hook 会自动检查。
 - `build\clang-release\resources` 与同级 `font` 是唯一实体运行资产；`clang-playtest`、`msvc-debug` 通过 NTFS 目录联接共享。资源只修改权威目录，禁止复制或维护其他 preset 的资源副本。
+- `manifest.txt` 中出现文件不等于资源已按预期注册或能用目标键取得。新增或修改 reanim、运行时换图、粒子贴图时，必须核对“文件/清单 → 对应 loader 或 `resources.xml` 注册 → 实际资源键 → `HasReanimation`/`GetTexture(key,false)` AutoTest 断言”闭环；强制资源缺失应修注册或键来源，禁止用通用空 Animator/空纹理兜底掩盖根因。
 - 代码文件统一使用 UTF-8（无 BOM），由根目录 `.editorconfig` 约束；中文文本保持 UTF-8。逻辑网格位置与视觉偏移（`mVisualOffset`）必须分离。
 - 当前任务指令、当前源码/Git 状态和当前构建/测试证据优先于历史记忆。
 - 对已记录的子系统做出实质修改后，更新对应主题文件及 `docs/agent-memory/MEMORY.md` 中的条目。
