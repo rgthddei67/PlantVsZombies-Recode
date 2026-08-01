@@ -81,6 +81,17 @@ private:
 	float mSubHealthTimer = 0.0f;	
 	float mDyingTimer = 0.0f;	// mIsDying 持续时间，超过 10s 强制 Die 防止卡 BUG
 	float mCheckGoldenIceTimer = 0.0f;	// 每秒检查一次黄色冰道速度场层数，避免每帧都查 EntityManager
+	float mShieldHitGlowTimer = 0.0f;	// 二类护盾独立受击白光剩余秒数；本体白光继续复用 AnimatedObject
+	ShieldType mShieldHitGlowType = ShieldType::SHIELDTYPE_NONE;	// 白光计时期间保留已掉落护盾的轨道类型
+
+	/** 返回二类护盾对应的独立高亮轨道；未知类型返回 nullptr。 */
+	const char* GetShieldGlowTrackName(ShieldType shieldType) const;
+	/** 出生后把当前二类护盾轨道从 Animator 整体高亮中分离。 */
+	void ConfigureShieldHitGlowTrack();
+	/** 在护盾实际扣血后启动或刷新其独立白光。 */
+	void StartShieldHitGlow(ShieldType shieldType);
+	/** 推进二类护盾白光计时，并在到期时关闭对应轨道高亮。 */
+	void UpdateShieldHitGlow();
 
 public:
 	Zombie(Board* board, ZombieType zombieType, float x, float y, int row,
@@ -174,6 +185,12 @@ public:
 	int GetEatingPlantID() const { return mEatPlantID; }
 	bool IsInPool() const { return this->mInPool; }
 	bool HasArm() const { return this->mHasArm; }
+	/** 本体、头盔或飞行额外生命层是否正处于受击白光期。 */
+	bool IsBodyHitFlashing() const { return mGlowingTimer > 0.0f; }
+	/** 二类护盾是否正处于独立受击白光期。 */
+	bool IsShieldHitFlashing() const { return mShieldHitGlowTimer > 0.0f; }
+	/** 二类护盾轨道合并整体与独立开关后的实际高亮状态。 */
+	bool IsShieldTrackGlowing() const;
 	/** 是否仍处于空中；默认僵尸始终在地面。 */
 	virtual bool IsFlying() const { return false; }
 	/**

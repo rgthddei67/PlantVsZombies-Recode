@@ -487,7 +487,7 @@ void Animator::DrawInternalInstanced(Graphics* g, float baseX, float baseY, floa
 				g->AppendReanimInstance(ov, BlendMode::Alpha);
 			}
 
-			if (mEnableExtraAdditiveDraw) {
+			if (IsGlowEffectEnabledForTrack(i)) {
 				InstanceRecord glow = rec;
 				glow.colorRGBA8 = PackRGBA8(mExtraAdditiveColor.r,
 					mExtraAdditiveColor.g,
@@ -605,7 +605,7 @@ void Animator::DrawInternal(Graphics* g, float baseX, float baseY, float Scale) 
 			}
 
 			// 发光效果（叠加混合）——最后绘制，使加色提亮叠在覆盖层之上（减速白光保持可见）
-			if (mEnableExtraAdditiveDraw) {
+			if (IsGlowEffectEnabledForTrack(i)) {
 				glm::vec4 glowColor(mExtraAdditiveColor.r,
 					mExtraAdditiveColor.g,
 					mExtraAdditiveColor.b,
@@ -735,6 +735,13 @@ void Animator::EnableOverlayEffect(bool enable) {
 void Animator::SetTrackVisible(const std::string& trackName, bool visible) {
 	for (auto& extra : GetTrackExtrasByName(trackName)) {
 		extra->mVisible = visible;
+	}
+}
+
+void Animator::SetTrackGlowOverride(const std::string& trackName, bool enable) {
+	for (auto& extra : GetTrackExtrasByName(trackName)) {
+		extra->mHasGlowOverride = true;
+		extra->mGlowOverrideEnabled = enable;
 	}
 }
 
@@ -997,6 +1004,19 @@ bool Animator::GetTrackVisible(const std::string& trackName) const {
 		return mExtraInfos[index].mVisible;
 	}
 	return false;
+}
+
+bool Animator::GetTrackGlowEffectEnabled(const std::string& trackName) const {
+	const int trackIndex = GetFirstTrackIndexByName(trackName);
+	return trackIndex >= 0 && IsGlowEffectEnabledForTrack(trackIndex);
+}
+
+bool Animator::IsGlowEffectEnabledForTrack(int trackIndex) const {
+	if (trackIndex >= 0 && trackIndex < static_cast<int>(mExtraInfos.size())) {
+		const TrackExtraInfo& extra = mExtraInfos[trackIndex];
+		if (extra.mHasGlowOverride) return extra.mGlowOverrideEnabled;
+	}
+	return mEnableExtraAdditiveDraw;
 }
 
 TrackFrameTransform Animator::GetInterpolatedTransform(int trackIndex, float blendRatio) const {

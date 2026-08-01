@@ -82,6 +82,7 @@
 - [生存刷怪轮次表+随机子集池](project_pvz_survival_spawn_round_table.md) — 2026-07-18 在原数据化轮次表上新增最终最多8种(含普通)+基础数量随机±1~2；排除weight<=0召唤单位避免占池位；固定Seed验第3/6/13/40轮为4/2/8/6种；**weight仍一物两用，抽中调制与点数成本严禁混用**
 - [GameSelectScene+多地形无尽](project_pvz_gameselect_scene_night_endless.md) — 2026-07-29 选择页现有白天1000、黑夜1001、泳池1002三种无尽；泳池卡复用 `Almanac_GroundPool`，独立关卡存档，继承 `WATER_POOL` 六行、水路与天气系统
 - [大喷菇攻击补全+护盾穿透 ✅已push](project_pvz_fumeshroom_attack.md) — 2026-06-24(e443375)FumeAttack第27帧对本行[0,380]锥形20伤害;**Zombie::TakeDamage加penetrateShield还原穿透二类护盾(铁门/报纸不穿头盔)**;仅FastPaper/FastBucket透传;Gloom升级可复用
+- [僵尸分层受击闪烁](project_pvz_zombie_damage_flash.md) — 2026-08-01 复刻原版双计时器：本体/头盔/飞行额外生命与二类护盾按实际扣血独立闪白，普通正面弹只闪盾、大喷穿透才全闪；Animator 轨道覆盖的实例化与 NoInstance 路径均经可见专项验证
 - [小阳光/SunShroom/存档审查](project_pvz_smallsun_sunshroom_review.md) — 2026-06-23(53657f2..133a9f1)无严重bug;真实发现都是cleanup/注释/极小边界(SunShroom.h缺guard等)
 - [Animator播放状态机存读档修复 ✅已push](project_pvz_animator_playstate_save_fix.md) — PlayTrackOnce完整保存播放状态、目标轨道、返回速度与返回混合；2026-07-30新增独立`returnTrackBlendTime`，默认0.5兼容旧调用/旧档，零混合包装轨不再靠品种特判；save/load reconciliation同族见 [project_pvz_zombie_eat_walk_state_machine](project_pvz_zombie_eat_walk_state_machine.md)
 - [Shooter头部动画存档+AutoTest只读读档](project_pvz_shooter_head_anim_save_autotest_load.md) — 2026-07-18 修子Animator只存轨道/帧导致射击永久PLAY_REPEAT；完整保存头部播放状态+双发两发间瞬态，旧档shooting按一次性恢复；`-AutoTestLoadSave`仅放行关卡读档、保存/删除仍短路，真实level1001 RED(循环3)→GREEN(循环0/子弹0/哈希不变)

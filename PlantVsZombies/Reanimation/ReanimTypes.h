@@ -39,6 +39,8 @@ struct TrackInfo {
 // 杞ㄩ亾棰濆鎺у埗淇℃伅
 struct TrackExtraInfo {
 	bool mVisible = true;
+	bool mHasGlowOverride = false;   // 是否由本轨道独立决定高亮，不再继承 Animator 整体开关
+	bool mGlowOverrideEnabled = false; // 独立高亮的当前开关；仅在 mHasGlowOverride 时生效
 	float mOffsetX = 0.0f;          // 杞ㄩ亾鑷韩缁樺埗鍋忕Щ X
 	float mOffsetY = 0.0f;          // 杞ㄩ亾鑷韩缁樺埗鍋忕Щ Y
 	const Texture* mImage = nullptr;  // 鎵嬪姩瑕嗙洊鍥剧墖璁剧疆

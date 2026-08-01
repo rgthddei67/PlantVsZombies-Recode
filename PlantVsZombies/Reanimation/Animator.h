@@ -216,6 +216,13 @@ public:
 	void SetTrackVisible(const std::string& trackName, bool visible);
 
 	/**
+	 * @brief 让指定轨道独立决定是否高亮，不再继承 Animator 整体高亮开关。
+	 * @param trackName 轨道名
+	 * @param enable true=该轨道高亮，false=该轨道不高亮
+	 */
+	void SetTrackGlowOverride(const std::string& trackName, bool enable);
+
+	/**
 	 * @brief 将子动画器附加到指定轨道 (子动画将跟随父轨道的变换)
 	 * @param trackName 目标轨道名
 	 * @param child 子动画器共享指针
@@ -364,6 +371,8 @@ public:
 	 * @param enable true=启用
 	 */
 	void EnableGlowEffect(bool enable);
+	/** 获取 Animator 整体高亮开关；轨道仍可用独立覆盖替换该值。 */
+	bool GetGlowEffectEnabled() const { return mEnableExtraAdditiveDraw; }
 
 	/**
 	 * @brief 设置高亮颜色 (叠加混合)
@@ -450,6 +459,13 @@ public:
 	 */
 	bool GetTrackVisible(const std::string& trackName) const;
 
+	/**
+	 * @brief 获取指定轨道合并整体开关与轨道覆盖后的实际高亮状态。
+	 * @param trackName 轨道名
+	 * @return true=绘制时会提交该轨道的高亮层
+	 */
+	bool GetTrackGlowEffectEnabled(const std::string& trackName) const;
+
 	// ---------- 本地变换 (用于子动画相对父级) ----------
 	/**
 	 * @brief 设置本地位置偏移
@@ -526,6 +542,8 @@ private:
 	 * 单位四边形，2x3 仿射已预乘图像尺寸和 Scale。
 	 */
 	void DrawInternalInstanced(Graphics* g, float baseX, float baseY, float Scale) const;
+	/** 返回指定轨道合并整体开关与独立覆盖后的实际高亮状态。 */
+	bool IsGlowEffectEnabledForTrack(int trackIndex) const;
 	/** 把世界绘制缩放烘进实例化快路径的 2x3 仿射记录。 */
 	void ApplyRenderScale(InstanceRecord& record) const;
 	/** 把世界绘制缩放烘进慢路径的 4x4 仿射矩阵。 */

@@ -61,6 +61,7 @@ description: Use when adding or tuning any PvZ zombie, or integrating zombies in
 
 - **走路权威**：reanim 无 `anim_walk2` 必须覆写 `PlayWalkAnimation`（啃完回走/读档全经它）；啃食视觉残留用 `OnStartEating/OnStopEating` 对称钩子；永不覆写 `ResumeWalkAfterEat`。
 - **飞行/落地是命中层状态机，不只是视觉偏移**：由僵尸虚接口按当前 phase 声明空中层、地面层或过渡期不可命中，植物索敌与子弹碰撞都查询该接口；高低弹丸的层标记必须随对象池 `Reset()` 归零并入存档。飞行期同时禁用啃食、地面水池状态、冻结/黄油和断肢阈值，落地后再统一补结算；水道气球被击破按原版直接 `Die()`，不能先进入落地动画。飞行额外生命应在基类发光反馈后、普通防具/本体前由虚钩子消费，并参与全局生命倍率。专项至少覆盖空/地弹互斥、爆裂过渡、陆地落地、水道直接消失与存读档。
+- **受击白光必须按实际承伤层驱动**：禁止在 `TakeDamage` 分层前统一整身 `SetGlowingTimer`。原版本体/头盔/飞行额外生命共用本体计时器，报纸/铁门/梯子等二类护盾使用独立计时器和盾轨高亮；普通正面弹只伤盾就只闪盾，穿透或破盾溢出确实伤到后层才同时闪。围绕 `TakeExtraProtectionDamage`、`TakeShieldDamage`、`TakeHelmDamage`、`TakeBodyDamage` 的虚调用比较扣血前后值，避免派生覆写漏报；盾轨覆盖必须同时接入实例化与 `-NoInstance` 绘制路径。AutoTest 用 `hitFlashMask` 锁逻辑层、`renderedHitGlowMask` 锁实际轨道层，并同步截图检查铁门/报纸。
 - **灰烬致死若要求直接消失，不能只改 `CanBeCharred()`**：覆写 `TakePlantAshDamage()`，按词条缩放后的最终伤害与“本体 + 当前额外生命层”判断是否确实致死；致死直接 `Die()`，非致死继续 `TakeDamage(..., PLANT_ASH)`。同时覆写 `Charred()` 收口其他兼容调用，避免落地态仍生成烧焦残影。带额外生命层时不要简单放开飞行态 `CanBeCharred()`，因为通用调用方多只比较 `mBodyHealth`，会把本应剩血的目标误删。AutoTest 至少分别覆盖额外层仍在与落地后两态，并断言实体、`charredZombieCount` 和特殊爆裂音效。
 - **同 reanim 独立附件**：螺旋桨等需要与主轨同时循环的部件可实例化第二个 Animator、只播放附件 clip，再挂到主 Animator 的稳定锚点；附件 clip 必须清除主轨下发的 clip 速度覆写，但保留冻结/减速 extra 倍率。父锚点隐藏不会自动阻止附件绘制，掉头、死亡和读档终态都要显式隐藏/暂停子 Animator；附件帧、播放态和宿主 phase 一起入档。
 - **不移动阶段**：覆写 `ZombieMove` 按状态早退（PaperZombie gasp / 舞王 SNAPPING+HOLD 同款）。

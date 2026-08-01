@@ -28,6 +28,7 @@ namespace {
 	constexpr float kTangleKelpGrabEndFrame = 26.0f;       // anim_grab 轨道末帧；读档帧钳位避免损坏值越界
 	constexpr int kMaxGoldenIceEffectStacks = 8;           // 独立黄色冰道来源计层的安全上限，防止极端调试生成导致倍率溢出
 	constexpr float kEatingTargetRetentionGap = 6.0f;      // 跳跃受阻后允许僵尸隔空啃食的最大碰撞箱间隙，单位：像素
+	constexpr float kHitGlowDuration = 0.1f;               // 本体与二类护盾受击白光持续时间，单位：游戏秒
 }
 
 Zombie::Zombie(Board* board, ZombieType zombieType, float x, float y, int row,
@@ -271,6 +272,7 @@ void Zombie::Start()
 	}
 	SetAnimationSpeed(GameRandom::Range(1.1f, 1.4f));
 	SetupZombie();
+	ConfigureShieldHitGlowTrack();
 	mGoldenIceEffectStacks = ComputeGoldenIceEffectStacks();
 	// 子类虚函数提供品种能力倍率；最后统一叠加减速、冻结、雨势和场地效果，且跨 PlayTrack 存活。
 	if (!mIsPreview) UpdateAnimSpeed();
@@ -310,6 +312,7 @@ void Zombie::WinGame() const
 void Zombie::Update()
 {
 	AnimatedObject::Update();
+	UpdateShieldHitGlow();
 	if (mTangleKelpGrabBack) mTangleKelpGrabBack->Update();
 	if (mTangleKelpGrabFront) mTangleKelpGrabFront->Update();
 	if (!mIsPreview) {
@@ -803,6 +806,72 @@ int Zombie::TakeShieldDamage(int damage)
 	return 0;
 }
 
+const char* Zombie::GetShieldGlowTrackName(ShieldType shieldType) const
+{
+	switch (shieldType) {
+	case ShieldType::SHIELDTYPE_DOOR:
+		return "anim_screendoor";
+	case ShieldType::SHIELDTYPE_NEWSPAPER:
+		return "Zombie_paper_paper";
+	case ShieldType::SHIELDTYPE_LADDER:
+		return "Zombie_ladder_1";
+	default:
+		return nullptr;
+	}
+}
+
+void Zombie::ConfigureShieldHitGlowTrack()
+{
+	if (!mAnimator) return;
+	if (const char* trackName = GetShieldGlowTrackName(mShieldType)) {
+		// 原版把二类护盾放在独立 RENDER_GROUP_SHIELD；本项目用轨道覆盖保留同一高亮语义。
+		mAnimator->SetTrackGlowOverride(trackName, false);
+	}
+}
+
+void Zombie::StartShieldHitGlow(ShieldType shieldType)
+{
+	if (shieldType == ShieldType::SHIELDTYPE_NONE) return;
+	if (mAnimator && mShieldHitGlowType != ShieldType::SHIELDTYPE_NONE
+		&& mShieldHitGlowType != shieldType) {
+		if (const char* previousTrack = GetShieldGlowTrackName(mShieldHitGlowType)) {
+			mAnimator->SetTrackGlowOverride(previousTrack, false);
+		}
+	}
+	mShieldHitGlowType = shieldType;
+	mShieldHitGlowTimer = kHitGlowDuration;
+	if (mAnimator) {
+		if (const char* trackName = GetShieldGlowTrackName(shieldType)) {
+			mAnimator->SetTrackGlowOverride(trackName, true);
+		}
+	}
+}
+
+void Zombie::UpdateShieldHitGlow()
+{
+	if (mShieldHitGlowTimer <= 0.0f) return;
+	mShieldHitGlowTimer -= DeltaTime::GetDeltaTime();
+	if (mShieldHitGlowTimer > 0.0f) return;
+
+	mShieldHitGlowTimer = 0.0f;
+	if (mAnimator) {
+		if (const char* trackName = GetShieldGlowTrackName(mShieldHitGlowType)) {
+			mAnimator->SetTrackGlowOverride(trackName, false);
+		}
+	}
+	mShieldHitGlowType = ShieldType::SHIELDTYPE_NONE;
+}
+
+bool Zombie::IsShieldTrackGlowing() const
+{
+	if (!mAnimator) return false;
+	const ShieldType glowType = mShieldHitGlowType != ShieldType::SHIELDTYPE_NONE
+		? mShieldHitGlowType : mShieldType;
+	const char* trackName = GetShieldGlowTrackName(glowType);
+	return trackName && mAnimator->GetTrackVisible(trackName)
+		&& mAnimator->GetTrackGlowEffectEnabled(trackName);
+}
+
 int Zombie::TakeHelmDamage(int damage)
 {
 	if (mHelmHealth <= 0)
@@ -847,7 +916,7 @@ void Zombie::TakeDamage(
 	if (damage <= 0 || !mBoard) return;
 
 	// 词条②：僵尸前 N 次免伤（生存专用）。出生时由词条层数设定 mFreeHitsRemaining。
-	// 提前 return：完全吸收且不触发受击白光（SetGlowingTimer），0 伤害不应闪。
+	// 提前 return：完全吸收且不触发受击白光，0 伤害不应闪。
 	if (mFreeHitsRemaining > 0) { --mFreeHitsRemaining; return; }
 
 	// 植物增伤只放大植物来源（普通/灰烬）；僵尸免伤则对所有实际承伤生效。两者均在 0 层返回单位元。
@@ -858,15 +927,20 @@ void Zombie::TakeDamage(
 	damage = AdjustIncomingDamage(damage, source, penetrateShield);
 	if (damage <= 0) return;
 
-	SetGlowingTimer(0.1f);
-
 	int remainingDamage = TakeExtraProtectionDamage(damage, source);
+	// 原版飞行额外生命与头盔/本体共用 mJustGotShotCounter；只要确实吸收了伤害就闪本体层。
+	if (remainingDamage < damage) SetGlowingTimer(kHitGlowDuration);
 	if (remainingDamage <= 0 || mIsDead || !IsActive()) return;
 
 	// 1. 优先扣除二类护盾
 	if (mShieldType != ShieldType::SHIELDTYPE_NONE)
 	{
+		const ShieldType shieldTypeBeforeHit = mShieldType;
+		const int shieldHealthBeforeHit = mShieldHealth;
 		int overflow = TakeShieldDamage(remainingDamage);
+		if (mShieldHealth < shieldHealthBeforeHit) {
+			StartShieldHitGlow(shieldTypeBeforeHit);
+		}
 		// 穿透（大喷菇）：护盾照常受损/掉落（触发报纸狂暴等），但全额伤害继续透到头盔+本体；
 		// 阻断型护盾会吸收整次喷雾（包括破盾溢出）；普通非穿透伤害仍把击穿溢出传给后续部位。
 		remainingDamage = penetrateShield ? damage : (discardShieldOverflow ? 0 : overflow);
@@ -875,13 +949,21 @@ void Zombie::TakeDamage(
 	// 2. 然后扣除头盔（穿透不绕过一类头盔，原版仅穿透二类护盾）
 	if (remainingDamage > 0 && mHelmType != HelmType::HELMTYPE_NONE)
 	{
+		const int helmHealthBeforeHit = mHelmHealth;
 		remainingDamage = TakeHelmDamage(remainingDamage);
+		if (mHelmHealth < helmHealthBeforeHit) {
+			SetGlowingTimer(kHitGlowDuration);
+		}
 	}
 
 	// 3. 最后扣除本体
 	if (remainingDamage > 0)
 	{
+		const int bodyHealthBeforeHit = mBodyHealth;
 		TakeBodyDamage(remainingDamage);
+		if (mBodyHealth < bodyHealthBeforeHit) {
+			SetGlowingTimer(kHitGlowDuration);
+		}
 	}
 }
 

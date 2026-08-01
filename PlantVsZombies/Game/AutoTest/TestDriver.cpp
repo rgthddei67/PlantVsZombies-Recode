@@ -2188,6 +2188,12 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		if (z->IsFireResistant()) ++fireResistantZombieCount;
 		const Vector pos = z->GetPosition();
 		const auto anim = z->GetAnimatorInternal();
+		const bool bodyTrackGlowing = anim && anim->GetGlowEffectEnabled();
+		// bit0=本体/头盔/飞行额外生命，bit1=二类护盾；逻辑与实际渲染各导出一份。
+		const int hitFlashMask = (z->IsBodyHitFlashing() ? 1 : 0)
+			| (z->IsShieldHitFlashing() ? 2 : 0);
+		const int renderedHitGlowMask = (bodyTrackGlowing ? 1 : 0)
+			| (z->IsShieldTrackGlowing() ? 2 : 0);
 		nlohmann::json zombieState = {
 			{ "id", id },
 			{ "type", ZombieTypeName(z->mZombieType) },
@@ -2222,6 +2228,12 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "goldenIceSpeedActive", z->IsGoldenIceSpeedActive() },
 			{ "goldenIceEffectStacks", z->GetGoldenIceEffectStacks() },
 			{ "freeHitsRemaining", z->mFreeHitsRemaining },
+			{ "bodyHitFlashing", z->IsBodyHitFlashing() },
+			{ "shieldHitFlashing", z->IsShieldHitFlashing() },
+			{ "bodyTrackGlowing", bodyTrackGlowing },
+			{ "shieldTrackGlowing", z->IsShieldTrackGlowing() },
+			{ "hitFlashMask", hitFlashMask },
+			{ "renderedHitGlowMask", renderedHitGlowMask },
 			{ "tangleKelpTarget", z->IsTangleKelpTarget() },
 			{ "tangleKelpPlantID", z->GetTangleKelpPlantID() },
 			{ "draggedUnderByTangleKelp", z->IsDraggedUnderByTangleKelp() },
