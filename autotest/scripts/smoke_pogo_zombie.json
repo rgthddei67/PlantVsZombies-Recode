@@ -1,5 +1,12 @@
 {
   "commands": [
+    { "op": "goto_level", "level": 25 },
+    { "op": "assert_state", "path": "background", "equals": "WATER_POOL" },
+    { "op": "assert_zombie_spawn_row", "type": "ZOMBIE_POGO", "row": 0, "expected": true },
+    { "op": "assert_zombie_spawn_row", "type": "ZOMBIE_POGO", "row": 2, "expected": false },
+    { "op": "assert_zombie_spawn_row", "type": "ZOMBIE_POGO", "row": 3, "expected": false },
+    { "op": "assert_zombie_spawn_row", "type": "ZOMBIE_POGO", "row": 5, "expected": true },
+
     { "op": "goto_level", "level": 1 },
     { "op": "choose_cards", "cards": ["PLANT_TALLNUT"] },
     { "op": "wait_state", "state": "GAME", "timeout": 15 },

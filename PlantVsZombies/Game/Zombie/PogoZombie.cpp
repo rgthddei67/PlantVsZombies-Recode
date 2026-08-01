@@ -228,13 +228,10 @@ void PogoZombie::ZombieUpdate(float scaledTime)
 {
 	if (!mHasPogo || mPhase == Phase::WALKING || scaledTime <= 0.0f) return;
 	const bool isDescending = GetBounceProgress() > 0.5f;
-	const float abilityDelta = scaledTime * (mAnimator
-		? mAnimator->GetExtraSpeedMultiplier() : 1.0f);
-	// 寒冰仍会减慢起跳与动画，但重力下落按真实游戏时间推进，避免 scaledTime 和
-	// Animator extra speed 的双重减速把僵尸长时间悬在空中。
-	const float phaseDelta = isDescending
-		? DeltaTime::GetDeltaTime() * kPogoDescentTimeMultiplier
-		: abilityDelta;
+	// 弹跳是已经释放的空中运动：整段按真实游戏时间推进，不让寒冰后的 scaledTime
+	// 和 Animator extra speed 重复延长上升与浮空；只有下落额外加速。
+	const float phaseDelta = DeltaTime::GetDeltaTime()
+		* (isDescending ? kPogoDescentTimeMultiplier : 1.0f);
 	mBounceRemaining = std::max(0.0f, mBounceRemaining - phaseDelta);
 
 	if (mPhase == Phase::FORWARD_BOUNCE
@@ -288,10 +285,9 @@ void PogoZombie::ZombieMove(float scaledDelta, TransformComponent* transform)
 	}
 	if (mPhase == Phase::FORWARD_BOUNCE && mForwardDistanceTotal > 0.0f) {
 		const bool isDescending = GetBounceProgress() > 0.5f;
-		// 与物理下落共用同一时间基准；否则寒冰中会先落地、再因位移不足停在植物上方。
-		const float movementDelta = isDescending
-			? DeltaTime::GetDeltaTime() * kPogoDescentTimeMultiplier
-			: multiplier * scaledDelta;
+		// 与空中计时共用同一时间基准；否则寒冰中会先落地、再因位移不足停在植物上方。
+		const float movementDelta = DeltaTime::GetDeltaTime()
+			* (isDescending ? kPogoDescentTimeMultiplier : 1.0f);
 		const float distance = mForwardDistanceTotal / kPogoBounceDuration
 			* movementDelta;
 		const float remaining = std::max(0.0f,
@@ -317,6 +313,8 @@ void PogoZombie::BreakPogo(bool emitParticle)
 	mForwardDistanceApplied = 0.0f;
 	mJumpBlockChecked = false;
 	mSpeed = kGroundRootMotionRate;
+	// 持杆时寒冰不减慢弹跳动画；弃杆后立即恢复普通 0.6x 动画倍率。
+	UpdateAnimSpeed();
 	PlayWalkAnimation(0.0f);
 	if (emitParticle && g_particleSystem) {
 		g_particleSystem->EmitEffect("ZombiePogo", particlePosition);
@@ -432,8 +430,11 @@ void PogoZombie::LoadExtraData(const nlohmann::json& j)
 	if (!mHasPogo) {
 		mPhase = Phase::WALKING;
 		mAltitude = 0.0f;
+		UpdateAnimSpeed();
 		return;
 	}
+	// 基类读档时尚未恢复 hasPogo，需按最终持杆状态重算寒冰动画倍率。
+	UpdateAnimSpeed();
 	const auto [pogoBegin, pogoEnd] = mAnimator->GetTrackRange("anim_pogo");
 	const float savedFrame = std::clamp(mAnimator->GetCurrentFrame(),
 		static_cast<float>(pogoBegin), static_cast<float>(pogoEnd));

@@ -49,6 +49,10 @@ protected:
 	void PlayWalkAnimation(float blendTime) override;
 	void SaveExtraData(nlohmann::json& j) const override;
 	void LoadExtraData(const nlohmann::json& j) override;
+	/** 持杆弹跳动画不受寒冰降速；弃杆步行恢复普通僵尸的减速动画倍率。 */
+	float GetSlowAnimFactor() const override {
+		return mHasPogo ? 1.0f : Zombie::GetSlowAnimFactor();
+	}
 	bool CanUseGroundPoolState() const override { return !mHasPogo; }
 
 private:

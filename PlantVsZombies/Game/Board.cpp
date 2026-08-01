@@ -2788,12 +2788,13 @@ bool Board::IsPoolWorldPosition(int row, float x) const
 	return IsPoolRow(row) && x >= CELL_INITALIZE_POS_X && x < poolRight;
 }
 
-/** 返回指定类型能否被正式选行逻辑放进水路；未来禁水类型只需集中追加到此。 */
+/** 返回指定类型能否被正式选行逻辑放进水路；无水路状态机的品种在此集中排除。 */
 bool Board::CanZombieTypeSpawnInPool(ZombieType type) const
 {
 	switch (type) {
 	case ZombieType::ZOMBIE_ZAMBONI:
 	case ZombieType::ZOMBIE_GILDED_ZAMBONI:
+	case ZombieType::ZOMBIE_POGO:
 	case ZombieType::NUM_ZOMBIE_TYPES:
 		return false;
 	default:
