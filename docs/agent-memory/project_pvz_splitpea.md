@@ -28,7 +28,8 @@ metadata:
   `PlayTrackOnce` 状态；旧档缺字段时保持待机中性默认，无需提升存档版本。
 - `GameDataManager` 注册 `IMAGE_SPLITPEA/ANIM_SPLITPEA/REANIM_SPLITPEA`；
   `AdventureProgression` 既有表在内部关卡 31（4-4）结算时解锁该植物。
-  防线推演只记稳定前向输出 `attackDps=13.33`，不把条件性的背向火力恒算进去。
+  内部关卡 32（4-5）随即在矿工首次教学池中复习加固铁门，让玩家能尝试后向两连发
+  背击绕门；防线推演只记稳定前向输出 `attackDps=13.33`，不把条件性的背向火力恒算进去。
 
 ## 验证证据
 
@@ -46,3 +47,5 @@ metadata:
   270→190、左侧次要目标 270→244；`FireballImpact` 与直击目标矩形相交，中心横差
   -8px。原 `smoke_torchwood.json` 89 条命令及 `smoke_splitpea.json` 94 条命令同轮
   可见回归通过，全部当前截图已目检。
+- 2026-08-01 可见 `smoke_fog_spawnlists_4_1_to_4_6` exit 0；4-5 作为解锁后的首个
+  可选卡关，选卡预览已清楚展示加固铁门与矿工组合。

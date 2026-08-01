@@ -59,9 +59,10 @@ metadata:
 ## 集成与验证
 
 - 已注册普通/精英工厂、动画/资源键、图鉴文本与开发者入口。普通矿工在绝对关卡 32
-  （4-5）首次教学，爆破工头在绝对关卡 33（4-6）加入普通矿工复习池；精英 ID 26，
-  `gamedata` 为 weight 2400、appearWave 10、survivalRound 13，每个正式波次最多 1 只，
-  波计数进入关卡存档。冒险当前制作到 4-6。
+  （4-5）首次教学；同池在矿工之前加入已学过的加固铁门，作为双向射手解锁后的背击
+  绕门复习，不改变矿工末位主题。爆破工头在绝对关卡 33（4-6）加入普通矿工复习池；
+  精英 ID 26，`gamedata` 为 weight 2400、appearWave 10、survivalRound 13，每个正式
+  波次最多 1 只，波计数进入关卡存档。冒险当前制作到 4-6。
 - 可见 `smoke_digger` exit 0，覆盖两种出土、坐标/影子边界、反向移动、两次啃食、
   掉帽/断臂/掉头、两条灰烬回收、正常死亡、共享循环声与多阶段存档往返；`run.log`
   以 `script finished OK` 结束。
@@ -73,3 +74,5 @@ metadata:
   取消、受损帽与断臂资源。`smoke_elite_digger_wave_cap`、
   `smoke_elite_digger_almanac`、`smoke_adventure_progression` 均可见 exit 0；普通
   `smoke_digger` 新增三项运行时换图加载断言并回归通过。
+- 2026-08-01 可见 `smoke_fog_spawnlists_4_1_to_4_6` exit 0，确认 4-5 有序池为
+  普通、路障、精英海豚、精英撑杆、加固铁门、矿工，矿工仍为预览末位主题。

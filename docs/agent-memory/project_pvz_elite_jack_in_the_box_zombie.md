@@ -50,9 +50,9 @@ metadata:
 
 ## 出怪与验证
 
-- gamedata：`weight=2500`、`appearWave=10`、`survivalRound=12`。正式波次每波最多
+- gamedata：`weight=2600`、`appearWave=10`、`survivalRound=12`。正式波次每波最多
   2 只，计数入档，新波与生存轮清时归零。
-- 冒险 4-4（内部 31）保留主人现有 30 波综合池，在末位追加精英小丑：
+- 冒险 4-4（内部 31）保留主人现有 25 波、700 初始阳光综合池，在末位追加精英小丑：
   普通、路障、铁桶、读报、舞王、鎏金冰车、气球、精英小丑。游玩 4-4 时图鉴隐藏，
   通关后成为第 21 个条目。
 - `smoke_elite_jack_in_the_box` 覆盖数值、无目标不空投、后排 150×1.2 战胜前排
@@ -71,6 +71,6 @@ metadata:
   CheckBox 视觉，断言 `monteCarloAIEnabled` 从 true 切到 false 且关闭重开仍保持；
   `MainMenuScene` 因此支持导出 GameAPP 级根状态。2026-07-31 `clang-playtest`
   可见运行 exit 0，状态 JSON 与 `run.log` 均确认切换成功。
-- `smoke_fog_spawnlists_4_1_to_4_4`、`smoke_elite_jack_almanac`、普通小丑行为和
+- `smoke_fog_spawnlists_4_1_to_4_6`、`smoke_elite_jack_almanac`、普通小丑行为和
   循环声回归均在主人当前桌面可见运行 exit 0；默认实例化与 `-NoInstance` 截图均确认
   紫色双臂和紫金盒子正常。

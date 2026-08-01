@@ -18,12 +18,14 @@ metadata:
 - 本类型 `CanBeCharmed=false`。醒着的魅惑菇仍由 `Zombie::EatTarget` 立即 `Die()` 并播放 `SOUND_FLOOP`，但随后 `StartMindControlled()` 被豁免守卫拒绝，僵尸阵营与门/本体血量都不变。
 - 持门时 `BlocksFumePiercing=true`。FumeShroom 按 X 由近到远结算，命中它后停止；本击改用非穿透且丢弃破门溢出，门存在时只伤门、本体不掉血。粒子用同一 collider 左沿作为 `clipRightX`，不改 FumeCloud XML 长度。门掉后恢复大喷全额双倍本体伤害。
 - 正式波次生成通过 `Board::ResolveWaveZombieType` 计数；每波前两只保留本类型，第三只起返回 `NUM_ZOMBIE_TYPES`。`TrySummonZombie` 在选行和扣预算前直接 `continue`，继续抽取其他候选，禁止回退普通铁门干扰出怪池。计数在新波/生存轮清时归零并进入存档；开发/AutoTest 的 `spawn_zombie` 直造不占配额。
-- 生存池配置：`weight=2100, appearWave=6, survivalRound=6`。冒险模式在 2-8 用“普通铁门 + 加固铁门”做独立家族教学（玩家刚取得毁灭菇，能直接观察灰烬抗性），2-9 作为 8 种重点机制综合池必定包含本类型；末关撤下泛用铁桶维持原池大小。
+- 生存池配置：`weight=2500, appearWave=6, survivalRound=6`。冒险模式在 2-8 用“普通铁门 + 加固铁门”做独立家族教学（玩家刚取得毁灭菇，能直接观察灰烬抗性），2-9 作为 8 种重点机制综合池必定包含本类型；4-5 在双向射手解锁后的首个可选卡关复习本类型，展示反向两连发背击绕门，4-6 综合池继续保留。
 
 ## 验证
 
 - `smoke_reinforced_door_wave_cap.json`：同波第 1/2 只为加固门，第 3 个候选完全跳过且随后普通僵尸正常生成；新波计数清零后可再次生成。
 - `smoke_night_spawnlists.json`：逐关验证黑夜出怪节奏；2-8/2-9 均含本类型，2-9 仍为 8 种池。
+- `smoke_fog_spawnlists_4_1_to_4_6.json`：4-5/4-6 均含本类型，且 4-5 预览顺序保持矿工为末位教学主题。
+- 2026-08-01 上述雾关专项在 `clang-release` 可见运行 85 条命令、exit 0；4-5 选卡预览中的青绿色门体清楚可辨。
 - 2026-07-23 当时的 300/920 版本已可见运行 `smoke_reinforced_door.json` 与 `smoke_reinforced_door_potatomine.json` 且均退出 0，覆盖普通攻击扣门 10、灰烬扣门 320、破门、门后灰烬直杀、大嘴花、魅惑菇和小推车；该结果只作为历史证据。
 - 2026-07-24 的水草 5 秒束缚扩展按主人要求未新增或运行 AutoTest；`clang-playtest` 与启用 LTO 的 `clang-release` 均零警告编译通过。
 - 2026-07-30 已按当前 270/1030 数值静态同步两份原专项，并在 `smoke_cactus.json` 增加持门 1 点、掉门恢复 3 点的断言；按主人要求未编译、未运行 AutoTest。
