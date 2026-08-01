@@ -11,6 +11,7 @@
 - [经典气球僵尸](project_pvz_balloon_zombie.md) — 2026-07-30 `ZOMBIE_BALLOON` 为20气球层+270本体、空中/爆裂/步行三阶段、独立螺旋桨附件、70/80啃食帧和152死亡帧；水道击破与致死灰烬都直接移除，非致死灰烬仍按额外层和本体扣血；专属掉头/掉臂、4-3与生存出怪均有可见专项
 - [矿工僵尸家族](project_pvz_digger_zombie.md) — 2026-08-01 普通矿工270+100与爆破工头600+250；共用地下/出土/丢镐状态机，精英在3.5秒预警后爆破房屋侧3列×相邻3行、每层150伤害，再以0.15px/tick持镐折返，爆破前丢镐取消；普通4-5、精英4-6接入且精英每波限1；独立橙红+青蓝爆破、换色资源、存档、默认/NoInstance与资源加载断言通过
 - [经典火炬树桩与动画火豌豆](project_pvz_torchwood_firepea.md) — 2026-07-31 `PLANT_TORCHWOOD` 把同排 Pea 点燃为 40 伤 Fireball、Snowpea 融化为 Pea；FirePea 为完整时间轴 Animator 子弹，运行时换型与对象池槽位类型分离；火焰直击解冻、沿当前速度方向 100px 穿盾溅射，反向命中特效的 38px X 偏移同步镜像；门板/梯子/冰车抗火及正反向可见专项均已覆盖
+- [子弹按来向命中二类护盾](project_pvz_projectile_shield_direction.md) — 2026-08-01 所有 `Bullet` 直接伤害统一走 `Zombie::TakeProjectileDamage`，以命中时 `velocityX` 与 `IsMovingRight()` 判正背面；同向追上从背后绕过铁门/报纸/梯子只伤后层，静止弹保持正面，不按子弹类型/运动模式建白名单；双向射手真实后豆及正反向 Pea/Snowpea/Fireball/Star/Puff 可见专项通过
 - [经典高坚果与坚果啃食碎屑](project_pvz_tallnut.md) — 2026-07-28 `PLANT_TALLNUT`：9000 生命、125 阳光、30 秒冷却，两档裂纹与快照恢复不重放碎屑；声明式阻拦撑杆/海豚跳跃；双向锚定强/超强台风植物格，只对直接撞击逐格承受800环境伤害且同阵风反馈合并，链条不传压、水路组合不拆层、死亡后剩余步数可放行；海豚受阻后的手动啃食会随阵风吹离、目标死亡或自身死亡正确清理
 - [僵尸自身整体动画能力倍率](project_pvz_zombie_ability_anim_speed.md) — 2026-07-27 删除 `Zombie::mExtraSpeed`，自身整体动画倍率统一经 `GetAbilityAnimSpeedMultiplier()`；固定、阶段和实例随机值分别由类型、状态与派生存档提供，旧根字段只为快速铁桶保留只读迁移；天气、寒冰和黄色冰道回归通过
 - [海豚僵尸](project_pvz_dolphin_rider_zombie.md) — 2026-07-28 普通海豚 500 HP、一次越障；右岸外 0～20px 开始抛豚，C# 0.56～0.65/0.75～结束分段低位裁剪防海豚沉底且不切骑手；跳跃换轨按 reanim 锚点差提交104px（弃豚）或106px（保豚）消除落地倒退；左岸上岸零 blend 防旧骑乘姿态垂挂；3-7 限水路接入，声音、存档、断肢及高坚果30%阻拦回归通过
@@ -38,7 +39,7 @@
 - [双向射手](project_pvz_splitpea.md) — 2026-07-31 经典125阳光/7.5秒冷却/1.5秒轮询；前头95帧单发、后头57帧反向两连发且两侧独立索敌；双子 Animator 用 inverse(basePose) 对齐并完整入档；后豆穿火炬后溅射与命中特效随负速度镜像；4-4结算解锁，主专项、火豆交互、默认/NoInstance A/B 与三线射手回归均可见通过
 - [精英胆小菇](project_pvz_elite_scaredyshroom.md) — 2026-07-23 冒险 2-8 紫色奖励植物：500生命、10伤起步，每5发间隔乘0.85、每10发伤害+1，最终15伤/0.2秒；受惊全清，白天每发只长0.6；每关累计最多种3株且损失不返还，高速吐弹用pending防重播吞弹
 - [土豆地雷出土触发与范围爆炸](project_pvz_potato_mine_trigger_blast.md) — 2026-07-20 修复埋地时已被啃导致出土后不爆：出土跃迁若 `mEaterCount>0` 主动补触发；爆炸按原版同排半径60圆×僵尸矩形一次结算全部非魅惑目标，不再只杀碰撞触发者；可见 `smoke_potatomine.json` 独立覆盖先啃后出土与已出土双目标范围爆炸
-- [加固铁门僵尸](project_pvz_reinforced_door_zombie.md) — 2026-07-30 当前源码为270本体/1030门；持门植物普通伤害最多10、灰烬最多320、仙人掌尖刺帧伤1且免化灰/直杀，水草原地缠绕5秒后只死水草；掉门后恢复普通规则；免疫魅惑，大喷双伤只扣门并截断判定/孢子；数值可由主人直接调整，使用前必须重读源码
+- [加固铁门僵尸](project_pvz_reinforced_door_zombie.md) — 2026-08-01 当前源码为270本体/1030门；持门正面植物普通伤害最多10、灰烬最多320、仙人掌正面尖刺帧伤1且免化灰/直杀，背击子弹绕门并取消持门上限；水草原地缠绕5秒后只死水草；免疫魅惑，大喷双伤只扣门并截断判定/孢子；数值可由主人直接调整，使用前必须重读源码
 - [Bullet 地面阴影与跨对象绘制顺序](project_pvz_bullet_shadow.md) — 2026-07-19 对齐 C#：Pea 单格21×9、Snowpea 1.3×、Puff无影；对象池复用时按row/position重算；阴影由 BulletPool 在 GOM 主体前统一提交，不能靠 Component::SetDrawOrder 跨越植物/Bullet对象层；主人校对 Y 与同排豌豆射手影子一致；可见 `smoke_bullet_shadow.json` 验普通/寒冰子弹穿过坚果时本体在上、影子在下
 - [九关制冒险进度+显式植物奖励表](project_pvz_adventure_progression.md) — 2026-07-18 `AdventureProgression.h` 统一每大关9小关、关卡显示/背景/奖励同源；奖励表显式写每关植物或 `NO_PLANT_REWARD`，1-8无植物、1-9小喷菇；禁止再用关卡号强转PlantType（旧存档按整数保存枚举）；AutoTest `smoke_adventure_progression.json` 覆盖全部背景边界与8/9关奖励
 - [非整十波旗帜进度条](project_pvz_flag_meter_non_multiple_waves.md) — 2026-07-18 对齐 C# `DrawProgressMeter`：旗数=`总波数/10` 向下取整，第 k 面旗横向位置=`1-k*10/总波数`；旗子按第10/20/30波顺序存储，实时升旗和读档恢复均直接使用同一索引；可见 AutoTest 已覆盖15/25/35波布局与25波第10波升旗

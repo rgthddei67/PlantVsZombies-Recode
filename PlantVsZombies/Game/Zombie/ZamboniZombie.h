@@ -17,7 +17,7 @@ public:
 	void Die() override;
 	void Charred() override;
 	void StartEat(ColliderComponent* other) override;
-	void SetCooldown(float timer) override {}
+	void SetCooldown(float /*timer*/, bool /*bypassShield*/ = false) override {}
 
 	bool CanBeCharmed() const override { return false; }
 	bool CanBeChilled() const override { return false; }

@@ -105,8 +105,15 @@ public:
 	// source 必填，使植物增伤只作用于植物来源。penetrateShield=true：穿透二类护盾（大喷菇喷雾）——护盾照常受损/掉落，
 	// 但全额伤害继续透到头盔+本体（还原原版 DoRowAreaDamage(20, 2U) 的位标志语义）。
 	// discardShieldOverflow=true：若命中开始时存在二类护盾，则本击止于护盾，破盾溢出也不进入头盔/本体。
+	// bypassShield=true：本击从背面等未被护盾覆盖的位置命中，护盾完全不承伤，直接进入头盔/本体。
 	virtual void TakeDamage(int damage, DamageSource source, bool penetrateShield = false,
-		bool discardShieldOverflow = false);
+		bool discardShieldOverflow = false, bool bypassShield = false);
+	/**
+	 * 子弹伤害统一入口：按命中时的真实水平速度判断正面护盾或背面后层。
+	 * 后续直线、反向与追踪子弹均应走此入口，不按 BulletType 建立绕盾白名单。
+	 */
+	void TakeProjectileDamage(int damage, DamageSource source, float velocityX,
+		bool penetrateShield = false, bool discardShieldOverflow = false);
 	/** 植物爆炸的统一入口：默认按原版阈值化灰，否则走带 PLANT_ASH 分类的普通扣血链。 */
 	virtual void TakePlantAshDamage(int damage);
 	/** 大嘴花等植物直杀的统一入口；返回是否确实吞掉目标，以决定是否进入消化状态。 */
@@ -121,14 +128,15 @@ public:
 	virtual bool BlocksFumePiercing() const { return false; }
 	/** 调整大喷菇对本体的基础伤害；返回值随后统一进入词条与防具结算。 */
 	virtual int ModifyFumeDamage(int damage) const { return damage; }
-	/** 调整仙人掌尖刺每个 1x 碰撞帧的基础伤害；返回值随后按倍速累计并逐点结算。 */
-	virtual int ModifySpikeFrameDamage(int damage) const { return damage; }
+	/** 调整仙人掌尖刺每个 1x 碰撞帧的基础伤害；背击绕盾信息在倍速累计前一并传入。 */
+	virtual int ModifySpikeFrameDamage(int damage, bool /*bypassShield*/ = false) const { return damage; }
 
 	virtual int TakeShieldDamage(int damage);
 	virtual int TakeHelmDamage(int damage);
 	virtual void TakeBodyDamage(int damage);
-	/** 词条缩放后的最终伤害修正点；用于按来源和当前防具状态实施每击上限。 */
-	virtual int AdjustIncomingDamage(int damage, DamageSource source, bool penetrateShield) const {
+	/** 词条缩放后的最终伤害修正点；用于按来源、命中面和当前防具状态实施每击上限。 */
+	virtual int AdjustIncomingDamage(int damage, DamageSource /*source*/, bool /*penetrateShield*/,
+		bool /*bypassShield*/ = false) const {
 		return damage;
 	}
 
@@ -159,6 +167,11 @@ public:
 	float GetTargetLeadX(float seconds) const;
 	/** 当前自主行走是否朝战场前线（世界坐标 +X）；反向品种覆写后由位移、风速与预测共用。 */
 	virtual bool IsMovingRight() const { return mIsMindControlled; }
+	/**
+	 * 判断水平飞行的子弹是否从当前背面命中二类护盾持有者。
+	 * 子弹与面向同向时是从背后追上；velocityX=0 保留历史正面命中口径。
+	 */
+	bool ShouldProjectileBypassShield(float velocityX) const;
 	/** 当前状态是否允许越过房屋失败线；地下、出土等特殊阶段可关闭。 */
 	virtual bool CanTriggerGameOver() const { return !IsMovingRight(); }
 
@@ -237,7 +250,8 @@ public:
 	virtual bool CanBeChilled() const;
 	virtual bool CanBeFrozen() const { return true; }
 
-	virtual void SetCooldown(float timer);		// 设置僵尸减速状态
+	/** 设置减速；背击子弹可绕过仍存在但未实际承伤的二类护盾。 */
+	virtual void SetCooldown(float timer, bool bypassShield = false);
 	// Board 天气切换时调用，统一重算 extra 层；不会覆盖 PlayTrack 的 clip 速度。
 	void RefreshAnimSpeedForWeather() { UpdateAnimSpeed(); }
 

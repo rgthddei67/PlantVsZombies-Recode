@@ -572,9 +572,9 @@ void Zombie::ZombieMove(float scaledDelta, TransformComponent* transform)
 	}
 }
 
-void Zombie::SetCooldown(float timer)
+void Zombie::SetCooldown(float timer, bool bypassShield)
 {
-	if (!mAnimator || mShieldType != ShieldType::SHIELDTYPE_NONE) return;
+	if (!mAnimator || (mShieldType != ShieldType::SHIELDTYPE_NONE && !bypassShield)) return;
 
 	// 首次进入减速：蓝色 overlay。速度经 UpdateAnimSpeed 统一收敛（extra 层，
 	// 后续 PlayTrack / SetSpeed 不会覆盖；冻结中保持停格不被顶掉）。
@@ -719,6 +719,22 @@ bool Zombie::IsFireResistant() const
 		|| mZombieType == ZombieType::ZOMBIE_GILDED_ZAMBONI
 		|| mShieldType == ShieldType::SHIELDTYPE_DOOR
 		|| mShieldType == ShieldType::SHIELDTYPE_LADDER;
+}
+
+bool Zombie::ShouldProjectileBypassShield(float velocityX) const
+{
+	if (mShieldType == ShieldType::SHIELDTYPE_NONE || velocityX == 0.0f) return false;
+
+	// 僵尸面向与自主移动方向一致；同向子弹是在其身后追上，未经过正面的二类护盾。
+	return (velocityX > 0.0f) == IsMovingRight();
+}
+
+void Zombie::TakeProjectileDamage(
+	int damage, DamageSource source, float velocityX, bool penetrateShield,
+	bool discardShieldOverflow)
+{
+	TakeDamage(damage, source, penetrateShield, discardShieldOverflow,
+		ShouldProjectileBypassShield(velocityX));
 }
 
 void Zombie::ApplyCharmEffects()
@@ -911,7 +927,8 @@ void Zombie::TakeBodyDamage(int damage)
 }
 
 void Zombie::TakeDamage(
-	int damage, DamageSource source, bool penetrateShield, bool discardShieldOverflow)
+	int damage, DamageSource source, bool penetrateShield, bool discardShieldOverflow,
+	bool bypassShield)
 {
 	if (damage <= 0 || !mBoard) return;
 
@@ -924,7 +941,7 @@ void Zombie::TakeDamage(
 		damage = mBoard->GetPerkManager().ScalePlantDamage(damage);
 	}
 	damage = mBoard->GetPerkManager().ScaleDamageToZombie(damage);
-	damage = AdjustIncomingDamage(damage, source, penetrateShield);
+	damage = AdjustIncomingDamage(damage, source, penetrateShield, bypassShield);
 	if (damage <= 0) return;
 
 	int remainingDamage = TakeExtraProtectionDamage(damage, source);
@@ -933,7 +950,7 @@ void Zombie::TakeDamage(
 	if (remainingDamage <= 0 || mIsDead || !IsActive()) return;
 
 	// 1. 优先扣除二类护盾
-	if (mShieldType != ShieldType::SHIELDTYPE_NONE)
+	if (mShieldType != ShieldType::SHIELDTYPE_NONE && !bypassShield)
 	{
 		const ShieldType shieldTypeBeforeHit = mShieldType;
 		const int shieldHealthBeforeHit = mShieldHealth;

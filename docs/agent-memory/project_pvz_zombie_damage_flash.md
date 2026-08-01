@@ -10,7 +10,7 @@ metadata:
 
 ## 当前契约
 
-- 原版 `mJustGotShotCounter` 负责本体、头盔和飞行额外生命层，`mShieldJustGotShotCounter` 只负责报纸、铁门、梯子等二类护盾。普通正面子弹只伤盾时只闪盾；大喷穿透或破盾溢出确实伤到后层时才同时闪。
+- `mJustGotShotCounter` 负责本体、头盔和飞行额外生命层，`mShieldJustGotShotCounter` 只负责报纸、铁门、梯子等二类护盾。普通正面子弹只伤盾时只闪盾；从背后追上的子弹完全绕盾并只闪后层；大喷穿透或破盾溢出确实伤到后层时才同时闪。
 - `Zombie::TakeDamage` 不能在分层前统一开整身白光；必须围绕虚调用比较扣血前后值。这样 `DoorZombie::TakeBodyDamage` 等覆写仍能被准确观测，0 伤害、免伤和未实际承伤的层不会误闪。
 - 本体层继续复用 `AnimatedObject::mGlowingTimer`；二类护盾用独立计时器。`Animator::SetTrackGlowOverride` 让盾轨不继承整体高亮：铁门/加固门为 `anim_screendoor`，报纸为 `Zombie_paper_paper`，梯子预留 `Zombie_ladder_1`。门前手臂和拿报纸的手仍属于本体层。
 - `TrackExtraInfo` 的高亮覆盖同时由实例化快路径与 `-NoInstance` 慢路径消费；覆盖只改变 additive 高亮，不影响冻结/减速 overlay、轨道可见性、附件顺序或世界变换。

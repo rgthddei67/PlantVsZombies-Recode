@@ -380,6 +380,7 @@ void Bullet::EnableThreepeaterMotion(int sourceRow)
 void Bullet::BulletHitZombie(Zombie* zombie)
 {
 	if (!zombie) return;
+	const bool bypassShield = zombie->ShouldProjectileBypassShield(mVelocityX);
 
 	if (mBulletType == BulletType::BULLET_FIREBALL) {
 		HitFireballZombie(zombie);
@@ -390,11 +391,12 @@ void Bullet::BulletHitZombie(Zombie* zombie)
 	const bool playChillSound = canBeChilled
 		&& zombie->GetCooldownTimer() <= 0.0f
 		&& zombie->mHelmType == HelmType::HELMTYPE_NONE
-		&& zombie->mShieldType == ShieldType::SHIELDTYPE_NONE;
+		&& (zombie->mShieldType == ShieldType::SHIELDTYPE_NONE || bypassShield);
 
-	PlayStandardImpactSound(zombie);
+	PlayStandardImpactSound(zombie, bypassShield);
 	// 风力先修正本发子弹的基础伤害，生存词条仍在 Zombie::TakeDamage 中统一且只缩放一次。
-	zombie->TakeDamage(GetWindAdjustedDamage(), DamageSource::PLANT);
+	zombie->TakeProjectileDamage(
+		GetWindAdjustedDamage(), DamageSource::PLANT, mVelocityX);
 
 	if (mBulletType == BulletType::BULLET_SNOWPEA) {
 		if (canBeChilled) {
@@ -402,7 +404,7 @@ void Bullet::BulletHitZombie(Zombie* zombie)
 				AudioSystem::PlaySound(
 					ResourceKeys::Sounds::SOUND_COOLDOWNZOMBIE, 0.22f);
 			}
-			zombie->SetCooldown(7.5f);
+			zombie->SetCooldown(7.5f, bypassShield);
 		}
 		if (g_particleSystem) {
 			g_particleSystem->EmitEffect("SnowPeaBulletHit", GetPosition());
@@ -485,6 +487,7 @@ void Bullet::HandleZombieContact(ColliderComponent* other)
 	auto* zombie = dynamic_cast<Zombie*>(otherGameObject);
 	if (!zombie || zombie->mRow != mRow
 		|| !zombie->CanBeTargetedByProjectile(mTargetsFlying)) return;
+	const bool bypassShield = zombie->ShouldProjectileBypassShield(mVelocityX);
 
 	if (mBulletType != BulletType::BULLET_SPIKE) {
 		if (mHasHit) return;
@@ -501,7 +504,7 @@ void Bullet::HandleZombieContact(ColliderComponent* other)
 		mPiercedZombieIDs.push_back(zombie->mZombieID);
 		mSpikeDamageRemainders.push_back(0.0f);
 		// 帧伤本身不能每帧重播撞击声；每只不同目标只在首次接触时反馈一次。
-		PlayStandardImpactSound(zombie);
+		PlayStandardImpactSound(zombie, bypassShield);
 	}
 
 	const auto idIt = std::find(
@@ -510,12 +513,12 @@ void Bullet::HandleZombieContact(ColliderComponent* other)
 		std::distance(mPiercedZombieIDs.begin(), idIt));
 	const bool reachedPierceLimit =
 		isNewZombie && mPiercedZombieIDs.size() >= kSpikePierceLimit;
-	const int frameDamage = zombie->ModifySpikeFrameDamage(mDamage);
+	const int frameDamage = zombie->ModifySpikeFrameDamage(mDamage, bypassShield);
 
 	if (reachedPierceLimit) {
 		// 达到穿透上限的目标没有后续 Stay 可消费额度，因此固定承受 1x 的完整帧伤后再回收。
 		for (int i = 0; i < frameDamage && zombie->IsActive(); ++i) {
-			zombie->TakeDamage(1, DamageSource::PLANT);
+			zombie->TakeProjectileDamage(1, DamageSource::PLANT, mVelocityX);
 		}
 		mHasHit = true;
 		Die();
@@ -533,7 +536,7 @@ void Bullet::HandleZombieContact(ColliderComponent* other)
 		// 每个整数额度仍是一次独立的 1 点帧伤；合并为 TakeDamage(N) 会让免伤次数、
 		// 逐击取整和其他“每次受击”语义在 2x 下少触发。
 		for (int i = 0; i < damageToApply && zombie->IsActive(); ++i) {
-			zombie->TakeDamage(1, DamageSource::PLANT);
+			zombie->TakeProjectileDamage(1, DamageSource::PLANT, mVelocityX);
 		}
 	}
 }
@@ -580,7 +583,7 @@ void Bullet::ConvertSnowPeaToPea(int torchwoodColumn)
 	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_SHOOTER_SHOOT, 0.2f);
 }
 
-void Bullet::PlayStandardImpactSound(const Zombie* zombie) const
+void Bullet::PlayStandardImpactSound(const Zombie* zombie, bool bypassShield) const
 {
 	if (!zombie) return;
 
@@ -595,8 +598,8 @@ void Bullet::PlayStandardImpactSound(const Zombie* zombie) const
 	}
 
 	if (zombie->mHelmType == HelmType::HELMTYPE_BUCKET
-		|| zombie->mShieldType == ShieldType::SHIELDTYPE_DOOR
-		|| zombie->mShieldType == ShieldType::SHIELDTYPE_LADDER
+		|| (!bypassShield && zombie->mShieldType == ShieldType::SHIELDTYPE_DOOR)
+		|| (!bypassShield && zombie->mShieldType == ShieldType::SHIELDTYPE_LADDER)
 		|| zombie->mZombieType == ZombieType::ZOMBIE_ZAMBONI
 		|| zombie->mZombieType == ZombieType::ZOMBIE_GILDED_ZAMBONI) {
 		AudioSystem::PlaySound(
@@ -658,9 +661,10 @@ void Bullet::RestorePiercedZombieState(const std::vector<int>& zombieIDs,
 void Bullet::HitFireballZombie(Zombie* zombie)
 {
 	const int directDamage = GetWindAdjustedDamage();
-	if (zombie->IsFireResistant()) {
-		PlayStandardImpactSound(zombie);
-		zombie->TakeDamage(directDamage, DamageSource::PLANT);
+	const bool bypassShield = zombie->ShouldProjectileBypassShield(mVelocityX);
+	if (zombie->IsFireResistant() && !bypassShield) {
+		PlayStandardImpactSound(zombie, false);
+		zombie->TakeProjectileDamage(directDamage, DamageSource::PLANT, mVelocityX);
 		return;
 	}
 
@@ -698,7 +702,8 @@ void Bullet::HitFireballZombie(Zombie* zombie)
 	}
 
 	// 原版 splash damage flag 会让二类护盾照常受损，同时把全额伤害继续传给本体。
-	zombie->TakeDamage(directDamage, DamageSource::PLANT, true);
+	zombie->TakeProjectileDamage(
+		directDamage, DamageSource::PLANT, mVelocityX, /*penetrateShield=*/true);
 	for (Zombie* target : secondaryTargets) {
 		if (target->IsActive() && !target->IsDying()) {
 			target->TakeDamage(splashDamage, DamageSource::PLANT, true);

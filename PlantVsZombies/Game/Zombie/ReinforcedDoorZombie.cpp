@@ -39,14 +39,15 @@ const char* ReinforcedDoorZombie::GetDoorImageKey(ArmorBrokenState stage) const
 }
 
 int ReinforcedDoorZombie::AdjustIncomingDamage(
-	int damage, DamageSource source, bool /*penetrateShield*/) const
+	int damage, DamageSource source, bool /*penetrateShield*/, bool bypassShield) const
 {
 	// 上限作用于词条缩放后的最终单次伤害，确保增伤词条不能越过设计阈值。
 	if (source == DamageSource::PLANT_ASH && mShieldType != ShieldType::SHIELDTYPE_NONE) 
 	{
 		return std::min(damage, kAshDamageCap);
 	}
-	if (source == DamageSource::PLANT && mShieldType != ShieldType::SHIELDTYPE_NONE) {
+	if (source == DamageSource::PLANT && mShieldType != ShieldType::SHIELDTYPE_NONE
+		&& !bypassShield) {
 		return std::min(damage, kShieldedNormalDamageCap);
 	}
 	return damage;
@@ -57,9 +58,9 @@ int ReinforcedDoorZombie::ModifyFumeDamage(int damage) const
 	return damage * kFumeDamageMultiplier;
 }
 
-int ReinforcedDoorZombie::ModifySpikeFrameDamage(int damage) const
+int ReinforcedDoorZombie::ModifySpikeFrameDamage(int damage, bool bypassShield) const
 {
-	if (mShieldType == ShieldType::SHIELDTYPE_NONE) {
+	if (mShieldType == ShieldType::SHIELDTYPE_NONE || bypassShield) {
 		return damage;
 	}
 	return std::min(damage, kShieldedSpikeFrameDamageCap);

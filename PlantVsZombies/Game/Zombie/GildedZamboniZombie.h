@@ -13,7 +13,9 @@ public:
 	void TakeBodyDamage(int damage) override;
 	bool TakePlantInstantKill() override;
 	void HandleCaltropHit(Caltrop& caltrop) override;
-	void SetCooldown(float timer) override { Zombie::SetCooldown(timer); }
+	void SetCooldown(float timer, bool bypassShield = false) override {
+		Zombie::SetCooldown(timer, bypassShield);
+	}
 
 	float GetUndamagedTime() const { return mUndamagedTime; }
 	int GetAccelerationStage() const { return mAccelerationStage; }

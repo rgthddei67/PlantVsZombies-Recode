@@ -10,7 +10,8 @@ protected:
 	void SetupZombie() override;
 	const char* GetDoorImageKey(ArmorBrokenState stage) const override;
 	const char* GetDoorDropParticleName() const override { return "ZombieReinforcedDoorOff"; }
-	int AdjustIncomingDamage(int damage, DamageSource source, bool penetrateShield) const override;
+	int AdjustIncomingDamage(int damage, DamageSource source, bool penetrateShield,
+		bool bypassShield = false) const override;
 
 public:
 	using DoorZombie::DoorZombie;
@@ -24,6 +25,6 @@ public:
 		return mShieldType != ShieldType::SHIELDTYPE_NONE;
 	}
 	int ModifyFumeDamage(int damage) const override;
-	int ModifySpikeFrameDamage(int damage) const override;
+	int ModifySpikeFrameDamage(int damage, bool bypassShield = false) const override;
 	bool TakePlantInstantKill() override;
 };

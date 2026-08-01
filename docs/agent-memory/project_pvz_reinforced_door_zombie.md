@@ -11,8 +11,8 @@ metadata:
 ## 契约与实现
 
 - 类型 `ZOMBIE_REINFORCED_DOOR`，类 `ReinforcedDoorZombie : DoorZombie`；2026-07-30 当前源码为本体 270、门 1030，青绿色三阶段门贴图由 `scripts/recolor_reinforced_door.ps1` 从原版门可重复生成。主人会直接调整这些数值，后续平衡与断言必须先读取当前源码，不得依据本文件中的历史数字。
-- 门还在时，`AdjustIncomingDamage` 把植物普通伤害在词条缩放后钳到每次 10；门掉后取消该上限。大喷/寒冰大喷先经 `ModifyFumeDamage` 乘 2，再走普通植物伤害链，所以持门时仍最终为 10，掉门后每喷 40。
-- 仙人掌尖刺的帧伤会拆成多个独立 `TakeDamage(1)`，普通单击上限无法表达“本帧总伤害为 1”。因此 `Zombie::ModifySpikeFrameDamage` 在倍速额度累计前提供目标侧修正；本类型持门时返回 1，门掉后恢复尖刺基础 3，0.5x/1x/2.0x 的等伤语义保持不变。
+- 门还在且从正面命中时，`AdjustIncomingDamage` 把植物普通伤害在词条缩放后钳到每次 10；门掉后取消该上限。`Bullet` 背击通过 `bypassShield` 完全绕过门并取消持门上限，直接对后层结算完整伤害。大喷/寒冰大喷先经 `ModifyFumeDamage` 乘 2，再走普通植物伤害链，所以正面持门时仍最终为 10，掉门后每喷 40。
+- 仙人掌尖刺的帧伤会拆成多个独立 `TakeDamage(1)`，普通单击上限无法表达“本帧总伤害为 1”。因此 `Zombie::ModifySpikeFrameDamage` 在倍速额度累计前提供目标侧修正；本类型正面持门时返回 1，掉门或背击时恢复尖刺基础 3，0.5x/1x/2.0x 的等伤语义保持不变。
 - 灰烬统一走 `Zombie::TakePlantAshDamage` 和 `DamageSource::PLANT_ASH`。持门时 `CanBeCharred=false` 且每次灰烬最终最多 320；门掉后恢复普通化灰与完整灰烬伤害。大嘴花直杀走返回 `bool` 的 `TakePlantInstantKill`：持门时把尝试降级为 10 点基础普通伤害并返回 false，门掉后直接吞掉并返回 true。小推车仍以 `OTHER + INT32_MAX` 正常秒杀。
 - 缠绕水草通过 `ResistsTangleKelpDrowning()` 接入同一“持门时抗直杀、掉门后恢复普通规则”契约。持门目标被原地锚定并保持 `anim_grab` 5 秒，不下沉、不死亡；到时仅水草死亡并释放目标。束缚开始立即停止啃食，期间不执行移动、阵风位移和品种逻辑，但动画与状态计时继续。水草中途被摧毁也只会提前释放目标；门已掉落时仍按普通水草流程拖沉。
 - 本类型 `CanBeCharmed=false`。醒着的魅惑菇仍由 `Zombie::EatTarget` 立即 `Die()` 并播放 `SOUND_FLOOP`，但随后 `StartMindControlled()` 被豁免守卫拒绝，僵尸阵营与门/本体血量都不变。

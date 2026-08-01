@@ -204,10 +204,11 @@ void JackInTheBoxZombie::StopEatingForPop()
 }
 
 void JackInTheBoxZombie::TakeDamage(
-	int damage, DamageSource source, bool penetrateShield, bool discardShieldOverflow)
+	int damage, DamageSource source, bool penetrateShield, bool discardShieldOverflow,
+	bool bypassShield)
 {
 	if (mPhase == Phase::POPPING) return;
-	Zombie::TakeDamage(damage, source, penetrateShield, discardShieldOverflow);
+	Zombie::TakeDamage(damage, source, penetrateShield, discardShieldOverflow, bypassShield);
 }
 
 void JackInTheBoxZombie::StartEat(ColliderComponent* other)
