@@ -98,7 +98,8 @@ bool StarFruit::HasStarFruitTarget() const
 				return;
 			}
 
-			if (zombie->mZombieType == ZombieType::ZOMBIE_DIGGER) {
+			if (zombie->mZombieType == ZombieType::ZOMBIE_DIGGER
+				|| zombie->mZombieType == ZombieType::ZOMBIE_ELITE_DIGGER) {
 				bounds.w += 10.0f;
 			}
 			const float centerY = bounds.y + bounds.h * 0.5f;

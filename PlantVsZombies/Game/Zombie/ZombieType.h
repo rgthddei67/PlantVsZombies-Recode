@@ -56,6 +56,7 @@ enum class ZombieType {
 	ZOMBIE_BALLOON,			// 气球僵尸：空中阶段仅受对空弹丸命中，气球破裂后落地
 	ZOMBIE_ELITE_JACK_IN_THE_BOX,	// 精英小丑：不自爆，持续向相邻三行随机投掷盒子
 	ZOMBIE_DIGGER,			// 经典矿工：地下穿行、左侧出土并反向折返
+	ZOMBIE_ELITE_DIGGER,		// 爆破工头：出土预警后爆破后排三列并持镐折返
 
 	// ↓ 哨兵：置于全部已实现僵尸之后，使 [0,NUM_ZOMBIE_TYPES) 只覆盖已实现类型，
 	//   生存模式随机抽取据此绝不会抽到下方未实现僵尸。

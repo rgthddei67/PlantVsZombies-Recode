@@ -139,6 +139,7 @@ namespace {
 	constexpr int kGildedZamboniMaxPerWave = 1;           // 每波最多正式生成的鎏金冰车数量；超额候选直接跳过
 	constexpr int kEliteDolphinRiderMaxPerWave = 1;       // 每波最多正式生成的精英海豚数量；超额候选直接跳过
 	constexpr int kEliteJackInTheBoxMaxPerWave = 2;       // 每波最多正式生成的精英小丑数量；超额候选直接跳过
+	constexpr int kEliteDiggerMaxPerWave = 1;             // 每波最多正式生成的爆破工头数量；超额候选直接跳过
 	constexpr int kEliteScaredyShroomPlantLimit = 4;      // 每个关卡累计最多种植的精英胆小菇数量
 	constexpr int kMonteCarloRolloutCount = 32;           // 每个爆点的轻量未来样本数；低配可由 GameAPP 总开关完全跳过
 	constexpr int kMonteCarloMaxZombies = 12;             // 单个样本最多推进的当前敌方僵尸数
@@ -1737,6 +1738,11 @@ void Board::RestoreEliteJackInTheBoxWaveSpawnCount(int count)
 		std::clamp(count, 0, kEliteJackInTheBoxMaxPerWave);
 }
 
+void Board::RestoreEliteDiggerWaveSpawnCount(int count)
+{
+	mEliteDiggersSpawnedThisWave = std::clamp(count, 0, kEliteDiggerMaxPerWave);
+}
+
 /** 清空全部台风派生状态；中雨、小雨、晴天和旧档默认都以此为单位元。 */
 void Board::StopTyphoon()
 {
@@ -1890,6 +1896,12 @@ ZombieType Board::ResolveWaveZombieType(ZombieType selected, int mutationRoll)
 			return ZombieType::NUM_ZOMBIE_TYPES;
 		}
 		++mEliteJackInTheBoxesSpawnedThisWave;
+	}
+	if (selected == ZombieType::ZOMBIE_ELITE_DIGGER) {
+		if (mEliteDiggersSpawnedThisWave >= kEliteDiggerMaxPerWave) {
+			return ZombieType::NUM_ZOMBIE_TYPES;
+		}
+		++mEliteDiggersSpawnedThisWave;
 	}
 	return ResolveRainMutationType(selected, mutationRoll);
 }
@@ -3644,6 +3656,7 @@ void Board::SummonNextWave()
 	mGildedZambonisSpawnedThisWave = 0;
 	mEliteDolphinRidersSpawnedThisWave = 0;
 	mEliteJackInTheBoxesSpawnedThisWave = 0;
+	mEliteDiggersSpawnedThisWave = 0;
 	mMistFuelAssignedThisWave = 0;
 	if (mCurrentWave == 1)
 	{
@@ -4183,6 +4196,7 @@ void Board::OnSurvivalRoundClear()
 	mGildedZambonisSpawnedThisWave = 0;
 	mEliteDolphinRidersSpawnedThisWave = 0;
 	mEliteJackInTheBoxesSpawnedThisWave = 0;
+	mEliteDiggersSpawnedThisWave = 0;
 	RefreshZombieWeatherSpeeds();
 
 	// 重算难度（解锁更强僵尸）+ 刷新关卡名

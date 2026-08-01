@@ -174,7 +174,7 @@ void DiggerZombie::ZombieUpdate(float scaledTime)
 
 	case Phase::STUNNED:
 		mPhaseRemaining = std::max(0.0f, mPhaseRemaining - scaledTime);
-		if (mPhaseRemaining <= 0.0f) BeginStableWalk(true);
+		if (mPhaseRemaining <= 0.0f) OnPickaxeStunFinished();
 		break;
 
 	case Phase::TUNNELING_PAUSE_WITHOUT_PICKAXE: {
@@ -265,7 +265,7 @@ void DiggerZombie::UpdateRising(float scaledTime, bool withPickaxe)
 
 	mAltitude = 0.0f;
 	ApplyAltitude();
-	if (withPickaxe) {
+	if (withPickaxe && mHasPickaxe) {
 		mPhase = Phase::STUNNED;
 		mPhaseRemaining = kDizzyDuration;
 		PlayTrack("anim_dizzy", kLandingClip, 0.1f);
@@ -291,6 +291,7 @@ void DiggerZombie::BeginStableWalk(bool withPickaxe)
 void DiggerZombie::LosePickaxe()
 {
 	if (!mHasPickaxe || mIsDead) return;
+	const Phase previousPhase = mPhase;
 	if (mPhase == Phase::TUNNELING) {
 		mPhase = Phase::TUNNELING_PAUSE_WITHOUT_PICKAXE;
 		mPhaseRemaining = kPauseWithoutPickaxeDuration;
@@ -301,14 +302,51 @@ void DiggerZombie::LosePickaxe()
 	mHasPickaxe = false;
 	mAnimator->SetTrackVisible("Zombie_digger_pickaxe", false);
 	mAnimator->SetTrackVisible("Zombie_digger_dirt", false);
+	OnPickaxeLost(previousPhase);
 	UpdateFacing();
 }
 
 void DiggerZombie::PlayWalkAnimation(float blendTime)
 {
 	const float velocity = mPhase == Phase::WALKING_WITH_PICKAXE
-		? kBackwardWalkVelocity : mWalkVelocity;
+		? GetPickaxeWalkVelocity() : mWalkVelocity;
 	PlayTrack("anim_walk", GetWalkClipSpeed(velocity), blendTime);
+}
+
+void DiggerZombie::OnPickaxeStunFinished()
+{
+	BeginStableWalk(mHasPickaxe);
+}
+
+void DiggerZombie::OnPickaxeLost(Phase)
+{
+}
+
+float DiggerZombie::GetPickaxeWalkVelocity() const
+{
+	return kBackwardWalkVelocity;
+}
+
+const std::string& DiggerZombie::GetDamagedHardhatTexture(bool heavilyDamaged) const
+{
+	return heavilyDamaged
+		? ResourceKeys::Textures::IMAGE_ZOMBIE_DIGGER_HARDHAT3
+		: ResourceKeys::Textures::IMAGE_ZOMBIE_DIGGER_HARDHAT2;
+}
+
+const std::string& DiggerZombie::GetBrokenOuterArmTexture() const
+{
+	return ResourceKeys::Textures::IMAGE_ZOMBIE_DIGGER_OUTERARM_UPPER2;
+}
+
+const char* DiggerZombie::GetHelmDropEffectName() const
+{
+	return "ZombieHeadLight";
+}
+
+const char* DiggerZombie::GetArmDropEffectName() const
+{
+	return "ZombieDiggerArmOff";
 }
 
 void DiggerZombie::OnStartEating()
@@ -475,14 +513,14 @@ void DiggerZombie::CheckHelmImage()
 		mHelmStage = ArmorBrokenState::A_LITTLE_BROKEN;
 		mAnimator->SetTrackImage("Zombie_digger_hardhat",
 			ResourceManager::GetInstance().GetTexture(
-				ResourceKeys::Textures::IMAGE_REANIM_ZOMBIE_DIGGER_HARDHAT2));
+				GetDamagedHardhatTexture(false)));
 	}
 	if (mHelmStage == ArmorBrokenState::A_LITTLE_BROKEN
 		&& mHelmHealth <= mHelmMaxHealth / 3) {
 		mHelmStage = ArmorBrokenState::REALLY_BROKEN;
 		mAnimator->SetTrackImage("Zombie_digger_hardhat",
 			ResourceManager::GetInstance().GetTexture(
-				ResourceKeys::Textures::IMAGE_REANIM_ZOMBIE_DIGGER_HARDHAT3));
+				GetDamagedHardhatTexture(true)));
 	}
 }
 
@@ -493,7 +531,7 @@ void DiggerZombie::HelmDrop()
 	mHelmStage = ArmorBrokenState::NONE;
 	mAnimator->SetTrackVisible("Zombie_digger_hardhat", false);
 	if (g_particleSystem) {
-		g_particleSystem->EmitEffect("ZombieHeadLight", GetPosition());
+		g_particleSystem->EmitEffect(GetHelmDropEffectName(), GetPosition());
 	}
 	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_ARM_HEAD_DROP, kLimbVolume);
 }
@@ -518,9 +556,9 @@ void DiggerZombie::ArmDrop()
 	mAnimator->SetTrackVisible("Zombie_outerarm_hand", false);
 	mAnimator->SetTrackImage("Zombie_digger_outerarm_upper",
 		ResourceManager::GetInstance().GetTexture(
-			ResourceKeys::Textures::IMAGE_REANIM_ZOMBIE_DIGGER_OUTERARM_UPPER2));
+			GetBrokenOuterArmTexture()));
 	if (g_particleSystem) {
-		g_particleSystem->EmitEffect("ZombieDiggerArmOff", GetPosition());
+		g_particleSystem->EmitEffect(GetArmDropEffectName(), GetPosition());
 	}
 	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_ARM_HEAD_DROP, kLimbVolume);
 }
@@ -538,7 +576,7 @@ void DiggerZombie::ZombieItemUpdate() const
 		mAnimator->SetTrackVisible("Zombie_outerarm_hand", false);
 		mAnimator->SetTrackImage("Zombie_digger_outerarm_upper",
 			ResourceManager::GetInstance().GetTexture(
-				ResourceKeys::Textures::IMAGE_REANIM_ZOMBIE_DIGGER_OUTERARM_UPPER2));
+				GetBrokenOuterArmTexture()));
 	}
 	if (!mHasHead) {
 		mAnimator->SetTrackVisible("anim_head1", false);
@@ -551,12 +589,12 @@ void DiggerZombie::ZombieItemUpdate() const
 	else if (mHelmStage == ArmorBrokenState::A_LITTLE_BROKEN) {
 		mAnimator->SetTrackImage("Zombie_digger_hardhat",
 			ResourceManager::GetInstance().GetTexture(
-				ResourceKeys::Textures::IMAGE_REANIM_ZOMBIE_DIGGER_HARDHAT2));
+				GetDamagedHardhatTexture(false)));
 	}
 	else if (mHelmStage == ArmorBrokenState::REALLY_BROKEN) {
 		mAnimator->SetTrackImage("Zombie_digger_hardhat",
 			ResourceManager::GetInstance().GetTexture(
-				ResourceKeys::Textures::IMAGE_REANIM_ZOMBIE_DIGGER_HARDHAT3));
+				GetDamagedHardhatTexture(true)));
 	}
 }
 

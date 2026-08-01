@@ -5,7 +5,7 @@
 /**
  * @brief 经典矿工僵尸：地下穿行至房屋前出土，眩晕后向前线折返；丢镐时走独立出土分支。
  */
-class DiggerZombie final : public Zombie {
+class DiggerZombie : public Zombie {
 public:
 	using Zombie::Zombie;
 	~DiggerZombie() override;
@@ -25,6 +25,7 @@ public:
 	float GetAltitude() const { return mAltitude; }
 	bool HasPickaxe() const { return mHasPickaxe; }
 	bool HasShownSurprise() const { return mSurpriseShown; }
+	float GetPickaxeWalkVelocityValue() const { return GetPickaxeWalkVelocity(); }
 	/** 磁力菇与 AutoTest 共用的原版丢镐入口。 */
 	void LosePickaxe();
 
@@ -59,11 +60,20 @@ protected:
 	float GetAbilityAnimSpeedMultiplier() const override;
 	bool CanUseGroundPoolState() const override { return false; }
 	bool TryGetDrawClipBottom(float& clipBottom) const override;
+	/** 持镐眩晕结束入口；精英变体在这里先结算一次性能力。 */
+	virtual void OnPickaxeStunFinished();
+	/** 丢镐后的变体入口；previousPhase 是丢镐发生前的状态。 */
+	virtual void OnPickaxeLost(Phase previousPhase);
+	virtual float GetPickaxeWalkVelocity() const;
+	virtual const std::string& GetDamagedHardhatTexture(bool heavilyDamaged) const;
+	virtual const std::string& GetBrokenOuterArmTexture() const;
+	virtual const char* GetHelmDropEffectName() const;
+	virtual const char* GetArmDropEffectName() const;
+	void BeginStableWalk(bool withPickaxe);
 
 private:
 	void BeginRising(bool withPickaxe);
 	void UpdateRising(float scaledTime, bool withPickaxe);
-	void BeginStableWalk(bool withPickaxe);
 	void ApplyPhasePresentation();
 	void ApplyAltitude();
 	void UpdateFacing();

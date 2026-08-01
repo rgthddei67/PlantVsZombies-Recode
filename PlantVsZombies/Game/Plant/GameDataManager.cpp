@@ -70,6 +70,7 @@
 #include "../Zombie/EliteJackInTheBoxZombie.h"
 #include "../Zombie/BalloonZombie.h"
 #include "../Zombie/DiggerZombie.h"
+#include "../Zombie/EliteDiggerZombie.h"
 
 namespace {
 	template<typename T>
@@ -411,6 +412,12 @@ void GameDataManager::InitializeHardcodedData() {
 		AnimationType::ANIM_DIGGER_ZOMBIE,
 		ResourceKeys::Reanimations::REANIM_DIGGER_ZOMBIE,
 		&MakeZombie<DiggerZombie>);
+
+	// 爆破工头复用矿工状态机，在眩晕结束钩子结算固定后排爆破。
+	RegisterZombie(ZombieType::ZOMBIE_ELITE_DIGGER, "ZOMBIE_ELITE_DIGGER",
+		AnimationType::ANIM_ELITE_DIGGER_ZOMBIE,
+		ResourceKeys::Reanimations::REANIM_ELITE_DIGGER_ZOMBIE,
+		&MakeZombie<EliteDiggerZombie>);
 
 	// ==================== 非植物/僵尸动画映射 ====================
 	mAnimToString[AnimationType::ANIM_SUN] = ResourceKeys::Reanimations::REANIM_SUN;

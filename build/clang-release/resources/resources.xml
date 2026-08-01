@@ -198,6 +198,7 @@
     <Texture>./resources/particles/ZombieDancerHead.png</Texture>
     <Texture>./resources/particles/ZombieDancerHead_disco.png</Texture>
     <Texture>./resources/particles/ZombieDiggerArm.png</Texture>
+    <Texture>./resources/particles/ZombieEliteDiggerArm.png</Texture>
     <Texture>./resources/particles/ZombieDiggerHead.png</Texture>
     <Texture>./resources/particles/ZombieDolphinRiderHead.png</Texture>
     <Texture>./resources/particles/ZombieEliteDolphinRiderHead.png</Texture>
@@ -396,6 +397,7 @@
     <Reanimation name="EliteJackBox">./resources/reanim/EliteJackBox.reanim</Reanimation>
     <Reanimation name="ZombieBalloon">./resources/reanim/Zombie_balloon.reanim</Reanimation>
     <Reanimation name="ZombieDigger">./resources/reanim/Zombie_digger.reanim</Reanimation>
+    <Reanimation name="EliteDigger">./resources/reanim/EliteDigger.reanim</Reanimation>
     <Reanimation name="DiggerRisingDirt">./resources/reanim/Digger_rising_dirt.reanim</Reanimation>
     <Reanimation name="DiggerCharred">./resources/reanim/Zombie_charred_digger.reanim</Reanimation>
     <Reanimation name="ZombieSurprise">./resources/reanim/Zombie_surprise.reanim</Reanimation>

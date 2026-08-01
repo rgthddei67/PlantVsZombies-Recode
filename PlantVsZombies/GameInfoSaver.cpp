@@ -343,6 +343,7 @@ bool GameInfoSaver::SerializeLevelDataToPath(Board* board, CardSlotManager* mana
 	j["eliteDolphinRidersSpawnedThisWave"] = board->mEliteDolphinRidersSpawnedThisWave;
 	j["eliteJackInTheBoxesSpawnedThisWave"] =
 		board->mEliteJackInTheBoxesSpawnedThisWave;
+	j["eliteDiggersSpawnedThisWave"] = board->mEliteDiggersSpawnedThisWave;
 	j["mistFuelDropAccumulator"] = board->mMistFuelDropAccumulator;
 	WeatherPresentationState weatherPresentation;
 	if (auto* presentation = board->GetPresentation()) {
@@ -858,6 +859,8 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 		j.value("eliteDolphinRidersSpawnedThisWave", 0));
 	board->RestoreEliteJackInTheBoxWaveSpawnCount(
 		j.value("eliteJackInTheBoxesSpawnedThisWave", 0));
+	board->RestoreEliteDiggerWaveSpawnCount(
+		j.value("eliteDiggersSpawnedThisWave", 0));
 	board->mRainVisualActive = false;   // 粒子不入存档，StartGame 按剩余时间重建
 	board->mMaxWave = j.value("maxWave", 10);
 	board->mZombieCountDown = j.value("zombieCountDown", 20.0f);

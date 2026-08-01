@@ -48,6 +48,7 @@
 #include "../Zombie/EliteJackInTheBoxZombie.h"
 #include "../Zombie/BalloonZombie.h"
 #include "../Zombie/DiggerZombie.h"
+#include "../Zombie/EliteDiggerZombie.h"
 #include "../Zombie/PoolNormalZombie.h"
 #include "../Trophy.h"   // dump_state 输出奖杯坐标
 #include "../Crater.h"   // dump_state 输出毁灭菇弹坑
@@ -146,7 +147,7 @@ namespace {
 		ZT(ZOMBIE_POOL_NORMAL), ZT(ZOMBIE_POOL_CONE), ZT(ZOMBIE_POOL_BUCKET),
 		ZT(ZOMBIE_ZAMBONI), ZT(ZOMBIE_GILDED_ZAMBONI), ZT(ZOMBIE_DOLPHIN_RIDER), ZT(ZOMBIE_ELITE_DOLPHIN_RIDER),
 		ZT(ZOMBIE_JACK_IN_THE_BOX), ZT(ZOMBIE_ELITE_JACK_IN_THE_BOX), ZT(ZOMBIE_BALLOON),
-		ZT(ZOMBIE_DIGGER), ZT(ZOMBIE_POGO),
+		ZT(ZOMBIE_DIGGER), ZT(ZOMBIE_ELITE_DIGGER), ZT(ZOMBIE_POGO),
 		ZT(ZOMBIE_YETI), ZT(ZOMBIE_BUNGEE), ZT(ZOMBIE_LADDER), ZT(ZOMBIE_CATAPULT),
 		ZT(ZOMBIE_GARGANTUAR), ZT(ZOMBIE_IMP), ZT(ZOMBIE_BOSS), ZT(ZOMBIE_PEA_HEAD),
 		ZT(ZOMBIE_WALLNUT_HEAD), ZT(ZOMBIE_JALAPENO_HEAD), ZT(ZOMBIE_GATLING_HEAD),
@@ -975,13 +976,25 @@ bool TestDriver::ExecuteCurrent() {
 		}
 		const int row = cmd.value("row", -1);
 		const int index = cmd.value("index", 0);
+		ZombieType desiredType = ZombieType::ZOMBIE_DIGGER;
+		if (cmd.contains("type")) {
+			auto typeIt = kZombieNames.find(cmd.value("type", ""));
+			if (typeIt == kZombieNames.end()
+				|| (typeIt->second != ZombieType::ZOMBIE_DIGGER
+					&& typeIt->second != ZombieType::ZOMBIE_ELITE_DIGGER)) {
+				Fail("digger_lose_pickaxe: type 必须为普通或精英矿工");
+				return false;
+			}
+			desiredType = typeIt->second;
+		}
 		int seen = 0;
 		std::vector<int> zombieIDs = gs->GetBoard()->mEntityManager.GetAllZombieIDs();
 		std::sort(zombieIDs.begin(), zombieIDs.end());
 		for (const int id : zombieIDs) {
 			auto* digger = dynamic_cast<DiggerZombie*>(
 				gs->GetBoard()->mEntityManager.GetZombie(id));
-			if (!digger || !digger->IsActive()) continue;
+			if (!digger || !digger->IsActive()
+				|| digger->mZombieType != desiredType) continue;
 			if (row >= 0 && digger->mRow != row) continue;
 			if (seen++ != index) continue;
 			digger->LosePickaxe();
@@ -1567,6 +1580,25 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_DIRT_RISE);
 	out["diggerWakeupSoundRequestCount"] =
 		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_WAKEUP);
+	out["diggerResources"] = {
+		{ "damagedHardhatLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_ZOMBIE_DIGGER_HARDHAT2, false) != nullptr },
+		{ "criticalHardhatLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_ZOMBIE_DIGGER_HARDHAT3, false) != nullptr },
+		{ "brokenArmLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_ZOMBIE_DIGGER_OUTERARM_UPPER2, false) != nullptr },
+	};
+	// 精英矿工的受损帽与断臂是运行时换图资源；显式导出加载状态，防止键名或清单遗漏只留下 WARN。
+	out["eliteDiggerResources"] = {
+		{ "reanimationLoaded", ResourceManager::GetInstance().HasReanimation(
+			ResourceKeys::Reanimations::REANIM_ELITE_DIGGER_ZOMBIE) },
+		{ "damagedHardhatLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_ZOMBIE_ELITEDIGGER_HARDHAT2, false) != nullptr },
+		{ "criticalHardhatLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_ZOMBIE_ELITEDIGGER_HARDHAT3, false) != nullptr },
+		{ "armParticleLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Particles::PARTICLE_ZOMBIE_ELITEDIGGERARM, false) != nullptr },
+	};
 	out["jackBoingSoundRequestCount"] =
 		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_BOING);
 	out["jackSurprise1SoundRequestCount"] =
@@ -1941,6 +1973,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "gildedZambonisSpawnedThisWave", board->GetGildedZambonisSpawnedThisWave() },
 			{ "eliteDolphinRidersSpawnedThisWave", board->GetEliteDolphinRidersSpawnedThisWave() },
 			{ "eliteJackInTheBoxesSpawnedThisWave", board->GetEliteJackInTheBoxesSpawnedThisWave() },
+			{ "eliteDiggersSpawnedThisWave", board->GetEliteDiggersSpawnedThisWave() },
 			{ "typhoonDecayRemaining", board->GetTyphoonStrengthTimer() },
 			{ "windDirection", WindDirectionName(board->GetWindDirection()) },
 			{ "windDirectionRemaining", board->GetWindDirectionTimer() },
@@ -2124,6 +2157,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	int earlyWavePoolZombieCount = 0;
 	int gildedZamboniCount = 0;
 	int diggerZombieCount = 0;
+	int eliteDiggerZombieCount = 0;
 	int zombieBodyHealthTotal = 0;
 	int zombieShieldHealthTotal = 0;
 	int slowedZombieCount = 0;
@@ -2144,6 +2178,9 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		}
 		if (z->mZombieType == ZombieType::ZOMBIE_DIGGER) {
 			++diggerZombieCount;
+		}
+		if (z->mZombieType == ZombieType::ZOMBIE_ELITE_DIGGER) {
+			++eliteDiggerZombieCount;
 		}
 		zombieBodyHealthTotal += z->mBodyHealth;
 		zombieShieldHealthTotal += z->mShieldHealth;
@@ -2348,6 +2385,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			zombieState["diggerHasPickaxe"] = digger->HasPickaxe();
 			zombieState["diggerSurpriseShown"] = digger->HasShownSurprise();
 			zombieState["diggerMovingRight"] = digger->IsMovingRight();
+			zombieState["diggerPickaxeWalkVelocityOn1000"] = static_cast<int>(
+				std::lround(digger->GetPickaxeWalkVelocityValue() * 1000.0f));
 			zombieState["diggerCanTriggerGameOver"] = digger->CanTriggerGameOver();
 			zombieState["diggerTargetableGround"] =
 				digger->CanBeTargetedByProjectile(false);
@@ -2366,6 +2405,10 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			zombieState["diggerShadowVisible"] = shadow && shadow->IsVisible();
 			zombieState["diggerGroundTrackVisible"] =
 				anim && anim->GetTrackVisible("_ground");
+			if (auto* eliteDigger = dynamic_cast<EliteDiggerZombie*>(digger)) {
+				zombieState["eliteDiggerBlastResolved"] =
+					eliteDigger->HasResolvedBlast();
+			}
 		}
 		if (auto* zamboni = dynamic_cast<ZamboniZombie*>(z)) {
 			zombieState["zamboniDamageStage"] = zamboni->GetDamageStage();
@@ -2423,6 +2466,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["eliteJackZombieCount"] = eliteJackZombieCount;
 	out["gildedZamboniCount"] = gildedZamboniCount;
 	out["diggerZombieCount"] = diggerZombieCount;
+	out["eliteDiggerZombieCount"] = eliteDiggerZombieCount;
 	out["poolRowZombieCount"] = poolRowZombieCount;
 	out["earlyWavePoolZombieCount"] = earlyWavePoolZombieCount;
 	out["zombieBodyHealthTotal"] = zombieBodyHealthTotal;
@@ -2620,6 +2664,9 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["particleEffectNameCounts"]["ZombieDiggerArmOff"] = 0;
 	out["particleEffectNameCounts"]["ZombieDiggerHeadOff"] = 0;
 	out["particleEffectNameCounts"]["ZombieHeadLight"] = 0;
+	out["particleEffectNameCounts"]["EliteDiggerBlast"] = 0;
+	out["particleEffectNameCounts"]["ZombieEliteDiggerArmOff"] = 0;
+	out["particleEffectNameCounts"]["ZombieEliteDiggerHeadLight"] = 0;
 	if (g_particleSystem) {
 		for (const auto& effect : g_particleSystem->GetEffectsForTesting()) {
 			if (!effect) continue;

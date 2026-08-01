@@ -1,0 +1,105 @@
+<Emitter>
+  <Name>EliteDiggerBlast</Name>
+  <SpawnMinActive>20</SpawnMinActive>
+  <SpawnMaxLaunched>20</SpawnMaxLaunched>
+  <EmitterType>Box</EmitterType>
+  <EmitterBoxX>[-82 82]</EmitterBoxX>
+  <EmitterBoxY>[-20 20]</EmitterBoxY>
+  <LaunchSpeed>[110 185]</LaunchSpeed>
+  <ParticleDuration>[.68 .92]</ParticleDuration>
+  <ParticleAlpha>1,70 0</ParticleAlpha>
+  <ParticleRed>1 .72 0</ParticleRed>
+  <ParticleGreen>.48 .12 0</ParticleGreen>
+  <ParticleBlue>.08 .01 0</ParticleBlue>
+  <ParticleScale>[.55 .90],68 0</ParticleScale>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <ParticleSpinSpeed>[-220 220]</ParticleSpinSpeed>
+  <SystemDuration>1.05</SystemDuration>
+  <Image>PARTICLE_EXPLOSIONCLOUD</Image>
+  <Field>
+    <FieldType>Friction</FieldType>
+    <X>.015</X>
+    <Y>.015</Y>
+  </Field>
+</Emitter>
+<Emitter>
+  <Name>EliteDiggerBlastBigClouds</Name>
+  <SpawnMinActive>12</SpawnMinActive>
+  <SpawnMaxLaunched>12</SpawnMaxLaunched>
+  <EmitterType>Box</EmitterType>
+  <EmitterBoxX>[-70 70]</EmitterBoxX>
+  <EmitterBoxY>[-18 18]</EmitterBoxY>
+  <LaunchSpeed>[65 115]</LaunchSpeed>
+  <ParticleDuration>[.78 1.05]</ParticleDuration>
+  <ParticleAlpha>1,74 0</ParticleAlpha>
+  <ParticleRed>1 .62 0</ParticleRed>
+  <ParticleGreen>.28 .05 0</ParticleGreen>
+  <ParticleBlue>.03 0 0</ParticleBlue>
+  <ParticleScale>[1.12 1.72],70 0</ParticleScale>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <ParticleSpinSpeed>[-170 170]</ParticleSpinSpeed>
+  <SystemDuration>1.2</SystemDuration>
+  <Image>PARTICLE_EXPLOSIONCLOUD</Image>
+  <Field>
+    <FieldType>Friction</FieldType>
+    <X>.02</X>
+    <Y>.02</Y>
+  </Field>
+</Emitter>
+<Emitter>
+  <Name>EliteDiggerBlastParts</Name>
+  <SpawnMinActive>11</SpawnMinActive>
+  <SpawnMaxLaunched>11</SpawnMaxLaunched>
+  <EmitterType>Box</EmitterType>
+  <EmitterBoxX>[-88 88]</EmitterBoxX>
+  <EmitterBoxY>[15 34]</EmitterBoxY>
+  <LaunchSpeed>[135 225]</LaunchSpeed>
+  <ParticleDuration>[.85 1.22]</ParticleDuration>
+  <ParticleAlpha>1,88 0</ParticleAlpha>
+  <ParticleRed>1 .65 0</ParticleRed>
+  <ParticleGreen>.50 .12 0</ParticleGreen>
+  <ParticleBlue>.08 .01 0</ParticleBlue>
+  <ParticleScale>[.28 .50]</ParticleScale>
+  <ParticleGravity>150</ParticleGravity>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <ParticleSpinSpeed>[-720 720]</ParticleSpinSpeed>
+  <SystemDuration>1.4</SystemDuration>
+  <Image>PARTICLE_ZOMBOSS_PARTICLES_PART_0,PARTICLE_ZOMBOSS_PARTICLES_PART_1,PARTICLE_ZOMBOSS_PARTICLES_PART_2,PARTICLE_ZOMBOSS_PARTICLES_PART_3,PARTICLE_ZOMBOSS_PARTICLES_PART_4</Image>
+</Emitter>
+<Emitter>
+  <Name>EliteDiggerBlastElectricSparks</Name>
+  <SpawnMinActive>14</SpawnMinActive>
+  <SpawnMaxLaunched>14</SpawnMaxLaunched>
+  <EmitterType>Box</EmitterType>
+  <EmitterBoxX>[-96 96]</EmitterBoxX>
+  <EmitterBoxY>[-28 28]</EmitterBoxY>
+  <LaunchSpeed>[145 245]</LaunchSpeed>
+  <ParticleDuration>[.38 .68]</ParticleDuration>
+  <ParticleAlpha>1,80 0</ParticleAlpha>
+  <ParticleRed>.12 .02 0</ParticleRed>
+  <ParticleGreen>.95 .45 0</ParticleGreen>
+  <ParticleBlue>1 .72 0</ParticleBlue>
+  <ParticleScale>[.18 .36],76 0</ParticleScale>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <ParticleSpinSpeed>[-900 900]</ParticleSpinSpeed>
+  <SystemDuration>.8</SystemDuration>
+  <Image>PARTICLE_STAR40</Image>
+</Emitter>
+<Emitter>
+  <Name>EliteDiggerBlastSproing</Name>
+  <SpawnMinActive>1</SpawnMinActive>
+  <SpawnMaxLaunched>1</SpawnMaxLaunched>
+  <ParticleDuration>.46</ParticleDuration>
+  <ParticleAlpha>1,72 0</ParticleAlpha>
+  <ParticleRed>1 .75 0</ParticleRed>
+  <ParticleGreen>.48 .12 0</ParticleGreen>
+  <ParticleBlue>.08 .01 0</ParticleBlue>
+  <ParticleScale>.50 .70,28 .52,72 0</ParticleScale>
+  <SystemDuration>.55</SystemDuration>
+  <Image>PARTICLE_SPROING</Image>
+  <Field>
+    <FieldType>Position</FieldType>
+    <X>0</X>
+    <Y>-44</Y>
+  </Field>
+</Emitter>

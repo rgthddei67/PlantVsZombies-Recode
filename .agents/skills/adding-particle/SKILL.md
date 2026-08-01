@@ -18,7 +18,7 @@ description: Use when adding or tuning ANY particle effect (粒子特效) in PvZ
 - 目录：权威资源 `build/clang-release/resources/particles/config/`，启动时全目录加载；其他 preset 通过 Junction 共享，纯数据改配置**不用重编译，但要重启游戏**。
 - 触发：`g_particleSystem->EmitEffect("Name", GetPosition());`；完整可选参数依次为 `renderOrder, durationOverride, clipRightX`。名字打错启动不报错，**发射时** run.log 出 `ERROR 找不到粒子特效配置`。
 - 贴图：`<Image>` 填资源键（`IMAGE_*`/`PARTICLE_*`）；**没有独立粒子贴图格式**，任何在发射前已经加载的纹理都能当粒子。
-- **键来源必须与加载路径一致**：`<GameImages>` 预加载的图用 `IMAGE_*`，`<ParticleTextures>` 用 `PARTICLE_*`（粒子专用图放后者）；reanim XML 直接引用并已加载的部件还会生成 `IMAGE_REANIM_*` 别名，可供该角色受击时的专属残肢粒子复用。动态发射前若对应 reanim 不保证已加载，就不能依赖这个别名，应改入预加载段。写错前缀或时序未加载=粒子静默不生成（foot-gun ③）。
+- **键来源必须与加载路径一致**：`<GameImages>` 预加载的图用 `IMAGE_*`，`<ParticleTextures>` 用 `PARTICLE_*`；粒子专用 PNG 必须显式列入 `resources.xml` 的 `<ParticleTextures>`，只有文件与 manifest 不会加载。reanim XML **实际引用**并已加载的部件才会生成 `IMAGE_REANIM_*` 别名；仅放在 `image/reanim/` 的运行时换图使用启动扫描产生的标准 `IMAGE_<UPPERCASE_STEM>` 键。动态发射前若对应 reanim 不保证已加载，就不能依赖别名，应改入预加载段。写错前缀或时序未加载=粒子静默不生成（foot-gun ③）。
 - **分份贴图**：`<Texture Column="4" Row="1">` 会把图切成独立纹理 `PARTICLE_XXX_PART_0..3`（`基础键_PART_序号`，行优先）——逗号列出来即"每粒子随机一张"（splats 碎屑的原理）。**序列帧动画别用它**，用 `ImageFrames`（整图不切，见标签表）。
 
 ## 坐标换算铁律
@@ -98,7 +98,7 @@ description: Use when adding or tuning ANY particle effect (粒子特效) in PvZ
 
 1. **爆发型特效必须写 `SystemDuration`**：`SpawnRate=0` 时发射器的"配额打满"判定永远不成立（初始爆发不计入 particlesEmitted），没有 SystemDuration 的特效对象**永不回收**、每帧空转。所有现存配置都带它（≈ 最长粒子寿命 + 一点余量）。
 2. **`EmitterOffsetX/Y` 生效两次**：ParticleEffect 定位发射器时加一次，每次 spawn 取出生点又加一次——FumeCloud 写 25 实际前移 50px。调偏移按"写入值 × 2"心算，或干脆改 EmitEffect 传入坐标。
-3. **没写 `<Image>` 或键打错 = 粒子静默不生成**（这是刻意设计，供"纯计时"发射器用），特效"发了却看不见"先查这里；特效名打错才有 run.log ERROR。
+3. **没写 `<Image>`、键打错或贴图未登记加载 = 粒子静默不生成**（这是刻意设计，供"纯计时"发射器用），特效"发了却看不见"先用 `GetTexture(key, false)` 断言资源存在，再查 `<ParticleTextures>` 与键前缀；特效名打错才有 run.log ERROR。
 4. 染色走 `ParticleRed/Green/Blue`（0..1 乘法），等价心算：目标 overlay 色 (80,80,255)/255 ≈ (.31,.31,1)。**别去做染色贴图**。
 5. `RandomLaunchSpin` 不写时初速度**恒向右**——掉落物（头/手臂）必须写 `1`，否则一律向右飞。
 6. Position 场是**绝对偏移**：想让粒子"随时间飘远"，轨迹要从小值渐变到大值（`0 [20 300],60 ...`），写常量它就钉在那不动。

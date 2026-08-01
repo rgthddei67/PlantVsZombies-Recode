@@ -1,5 +1,5 @@
 <Emitter>
-  <Name>ZombieHeadLight</Name>
+  <Name>ZombieEliteDiggerHeadLight</Name>
   <SpawnMinActive>1</SpawnMinActive>
   <SpawnMaxLaunched>1</SpawnMaxLaunched>
   <ParticleDuration>1.1</ParticleDuration>
@@ -10,7 +10,7 @@
   <ParticleGravity>140</ParticleGravity>
   <ParticleSpinSpeed>[-360 360]</ParticleSpinSpeed>
   <SystemDuration>1.2</SystemDuration>
-  <Image>IMAGE_ZOMBIE_DIGGER_HARDHAT3</Image>
+  <Image>IMAGE_ZOMBIE_ELITEDIGGER_HARDHAT3</Image>
   <Field>
     <FieldType>Position</FieldType>
     <X>-5</X>

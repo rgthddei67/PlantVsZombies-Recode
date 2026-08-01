@@ -1,0 +1,27 @@
+{
+  "commands": [
+    { "op": "set_adventure_level", "level": 33 },
+    { "op": "goto_zombie_almanac" },
+    { "op": "wait_frames", "value": 30 },
+    { "op": "assert_state", "path": "scene", "equals": "ZombieAlmanacScene" },
+    { "op": "assert_state", "path": "zombieAlmanacEntryCount", "equals": 22 },
+    { "op": "assert_state", "path": "zombieAlmanacEntries.21", "equals": "ZOMBIE_DIGGER" },
+    { "op": "screenshot", "name": "01_playing_4_6_elite_digger_hidden.png" },
+    { "op": "click", "x": 85, "y": 573 },
+    { "op": "wait_frames", "value": 30 },
+    { "op": "set_adventure_level", "level": 34 },
+    { "op": "goto_zombie_almanac" },
+    { "op": "wait_frames", "value": 30 },
+    { "op": "assert_state", "path": "scene", "equals": "ZombieAlmanacScene" },
+    { "op": "assert_state", "path": "zombieAlmanacEntryCount", "equals": 23 },
+    { "op": "assert_state", "path": "zombieAlmanacEntries.22", "equals": "ZOMBIE_ELITE_DIGGER" },
+    { "op": "move_mouse", "x": 588, "y": 318 },
+    { "op": "wait_frames", "value": 3 },
+    { "op": "click", "x": 588, "y": 318, "hold_frames": 2 },
+    { "op": "wait_frames", "value": 20 },
+    { "op": "assert_state", "path": "zombieAlmanacSelected", "equals": "ZOMBIE_ELITE_DIGGER" },
+    { "op": "screenshot", "name": "02_after_4_6_elite_digger_unlocked.png" },
+    { "op": "dump_state", "name": "elite_digger_almanac_state.json" },
+    { "op": "quit" }
+  ]
+}
