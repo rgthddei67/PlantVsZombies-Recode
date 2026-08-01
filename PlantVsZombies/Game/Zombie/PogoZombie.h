@@ -1,0 +1,77 @@
+#pragma once
+
+#include "Zombie.h"
+
+class Plant;
+
+/**
+ * @brief 经典跳跳僵尸：周期弹跳越过普通植物，被高坚果阻拦后弃杆步行。
+ */
+class PogoZombie final : public Zombie {
+public:
+	using Zombie::Zombie;
+
+	enum class Phase {
+		BOUNCING,
+		HIGH_BOUNCE,
+		FORWARD_BOUNCE,
+		WALKING,
+	};
+
+	Phase GetPhase() const { return mPhase; }
+	float GetBounceRemaining() const { return mBounceRemaining; }
+	float GetBounceProgress() const;
+	float GetPogoAltitude() const { return mAltitude; }
+	bool HasPogo() const { return mHasPogo; }
+	bool HasCheckedJumpBlocker() const { return mJumpBlockChecked; }
+	float GetForwardDistanceTotal() const { return mForwardDistanceTotal; }
+	float GetForwardDistanceApplied() const { return mForwardDistanceApplied; }
+	/** AutoTest 专用：把当前持杆弹跳推进到确定性的剩余时间。 */
+	void SetBounceRemainingForTesting(float seconds);
+
+	void StartEat(ColliderComponent* other) override;
+	void HeadDrop() override;
+	void ArmDrop() override;
+	void ZombieItemUpdate() const override;
+	void PlaySpawnSound() override;
+	Vector GetVisualPosition() const override;
+	bool CanBeCharmed() const override { return !mHasPogo; }
+	bool CanBeFrozen() const override { return !mHasPogo; }
+	bool CanBeGrabbedByTangleKelp() const override { return false; }
+	bool CanTriggerPotatoMine() const override { return !mHasPogo; }
+	bool TakePlantInstantKill() override;
+
+protected:
+	void SetupZombie() override;
+	void RegisterFrameEvents() override;
+	void ZombieUpdate(float scaledTime) override;
+	void ZombieMove(float scaledDelta, TransformComponent* transform) override;
+	void PlayWalkAnimation(float blendTime) override;
+	void SaveExtraData(nlohmann::json& j) const override;
+	void LoadExtraData(const nlohmann::json& j) override;
+	bool CanUseGroundPoolState() const override { return !mHasPogo; }
+
+private:
+	void BeginBounce(Phase phase);
+	void BeginForwardBounce(Plant& plant);
+	void ResolveBounceLanding();
+	void RestartLandingAnimation();
+	void UpdateBounceAltitude();
+	void ApplyArmDamagePresentation() const;
+	void BreakPogo(bool emitParticle = true);
+	void MovePogoDistance(float distance, TransformComponent* transform);
+	Plant* ResolveContactPlant() const;
+	Plant* ResolveForwardTarget() const;
+
+	Phase mPhase = Phase::BOUNCING;
+	float mBounceRemaining = 0.0f;
+	float mAltitude = 9.0f;
+	bool mHasPogo = true;
+	int mContactPlantID = NULL_PLANT_ID;
+	int mForwardTargetPlantID = NULL_PLANT_ID;
+	bool mJumpBlockChecked = false;
+	bool mLandingAnimationStarted = false;
+	bool mLandingSoundPlayed = false;
+	float mForwardDistanceTotal = 0.0f;
+	float mForwardDistanceApplied = 0.0f;
+};

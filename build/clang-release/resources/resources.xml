@@ -209,6 +209,7 @@
     <Texture>./resources/particles/ZombieImpHead.png</Texture>
     <Texture>./resources/particles/ZombieLadderHead.png</Texture>
     <Texture>./resources/particles/ZombiePogoHead.png</Texture>
+    <Texture Column="3" Row="1">./resources/particles/ZombiePogo.png</Texture>
     <Texture>./resources/particles/ZombiePoleVaulterHead.png</Texture>
     <Texture>./resources/particles/ZombieElitePoleVaulterHead.png</Texture>
     <Texture>./resources/particles/ZombieYetiHead.png</Texture>
@@ -285,6 +286,7 @@
     <Sound>./resources/sounds/Zombie/digger_zombie.ogg</Sound>
     <Sound>./resources/sounds/Zombie/dirt_rise.ogg</Sound>
     <Sound>./resources/sounds/Zombie/wakeup.ogg</Sound>
+    <Sound>./resources/sounds/Zombie/pogo_zombie.ogg</Sound>
 
     <Sound>./resources/sounds/Plant/ClickSeed.ogg</Sound>
     <Sound>./resources/sounds/Plant/deleteplant.ogg</Sound>
@@ -401,6 +403,7 @@
     <Reanimation name="DiggerRisingDirt">./resources/reanim/Digger_rising_dirt.reanim</Reanimation>
     <Reanimation name="DiggerCharred">./resources/reanim/Zombie_charred_digger.reanim</Reanimation>
     <Reanimation name="ZombieSurprise">./resources/reanim/Zombie_surprise.reanim</Reanimation>
+    <Reanimation name="ZombiePogo">./resources/reanim/Zombie_pogo.reanim</Reanimation>
 
     <Reanimation name="Zombie_Charred">./resources/reanim/Zombie_Charred.reanim</Reanimation>
     <Reanimation name="Zamboni_Charred">./resources/reanim/Zombie_charred_zamboni.reanim</Reanimation>

@@ -32,7 +32,8 @@ void TallNut::SetupPlant()
 bool TallNut::BlocksZombieJump(ZombieJumpType jumpType) const
 {
 	return jumpType == ZombieJumpType::POLEVAULT
-		|| jumpType == ZombieJumpType::DOLPHIN_RIDER;
+		|| jumpType == ZombieJumpType::DOLPHIN_RIDER
+		|| jumpType == ZombieJumpType::POGO;
 }
 
 void TallNut::OnZombieJumpBlocked(ZombieJumpType)

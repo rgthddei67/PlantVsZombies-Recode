@@ -131,6 +131,9 @@ namespace ResourceKeys
 		RKEY(IMAGE_ZOMBIE_OUTERARM_UPPER2);
 		RKEY(IMAGE_ZOMBIE_PAPER_LEFTARM_UPPER2);
 		RKEY(IMAGE_ZOMBIE_POGO_OUTERARM_UPPER2);
+		RKEY(IMAGE_ZOMBIE_POGO_STICKHANDS2);
+		RKEY(IMAGE_ZOMBIE_POGO_STICKDAMAGE2);
+		RKEY(IMAGE_ZOMBIE_POGO_STICK2DAMAGE2);
 		RKEY(IMAGE_ZOMBIE_POLEVAULTER_OUTERARM_UPPER2);
 		RKEY(IMAGE_ZOMBIE_SNORKLE_OUTERARM_UPPER2);
 		RKEY(IMAGE_ZOMBIE_YETI_OUTERARM_UPPER2);
@@ -229,6 +232,7 @@ namespace ResourceKeys
 		inline const std::string PARTICLE_ZOMBIE_IMPHEAD = "PARTICLE_ZOMBIEIMPHEAD";
 		inline const std::string PARTICLE_ZOMBIE_LADDERHEAD = "PARTICLE_ZOMBIELADDERHEAD";
 		inline const std::string PARTICLE_ZOMBIE_POGOHEAD = "PARTICLE_ZOMBIEPOGOHEAD";
+		RKEY(PARTICLE_ZOMBIEPOGO_PART_2);
 		inline const std::string PARTICLE_ZOMBIE_POLEVAULTERHEAD = "PARTICLE_ZOMBIEPOLEVAULTERHEAD";
 		inline const std::string PARTICLE_ZOMBIE_ELITEPOLEVAULTERHEAD = "PARTICLE_ZOMBIEELITEPOLEVAULTERHEAD";
 		inline const std::string PARTICLE_ZOMBIE_YETIHEAD = "PARTICLE_ZOMBIEYETIHEAD";
@@ -313,6 +317,7 @@ namespace ResourceKeys
 		RKEY(SOUND_DIGGER_ZOMBIE);			// 矿工地下穿行循环声
 		RKEY(SOUND_DIRT_RISE);				// 矿工破土声
 		RKEY(SOUND_WAKEUP);					// 持镐矿工出土惊醒声
+		RKEY(SOUND_POGO_ZOMBIE);			// 跳跳僵尸每次落地前的弹簧声
 
 		// 子弹击中僵尸
 		RKEY(SOUND_SNOW_PEA_SPARKLES);
@@ -388,6 +393,7 @@ namespace ResourceKeys
 		inline const std::string REANIM_BALLOON_ZOMBIE = "ZombieBalloon";
 		inline const std::string REANIM_DIGGER_ZOMBIE = "ZombieDigger";
 		inline const std::string REANIM_ELITE_DIGGER_ZOMBIE = "EliteDigger";
+		inline const std::string REANIM_POGO_ZOMBIE = "ZombiePogo";
 		inline const std::string REANIM_DIGGER_RISING_DIRT = "DiggerRisingDirt";
 		inline const std::string REANIM_DIGGER_CHARRED = "DiggerCharred";
 		inline const std::string REANIM_ZOMBIE_SURPRISE = "ZombieSurprise";

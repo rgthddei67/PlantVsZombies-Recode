@@ -49,6 +49,7 @@
 #include "../Zombie/BalloonZombie.h"
 #include "../Zombie/DiggerZombie.h"
 #include "../Zombie/EliteDiggerZombie.h"
+#include "../Zombie/PogoZombie.h"
 #include "../Zombie/PoolNormalZombie.h"
 #include "../Trophy.h"   // dump_state 输出奖杯坐标
 #include "../Crater.h"   // dump_state 输出毁灭菇弹坑
@@ -103,6 +104,17 @@ namespace {
 			return "TUNNELING_PAUSE_WITHOUT_PICKAXE";
 		case Phase::RISING_WITHOUT_PICKAXE: return "RISING_WITHOUT_PICKAXE";
 		case Phase::WALKING_WITHOUT_PICKAXE: return "WALKING_WITHOUT_PICKAXE";
+		default: return "UNKNOWN";
+		}
+	}
+
+	const char* PogoPhaseName(PogoZombie::Phase phase)
+	{
+		switch (phase) {
+		case PogoZombie::Phase::BOUNCING: return "BOUNCING";
+		case PogoZombie::Phase::HIGH_BOUNCE: return "HIGH_BOUNCE";
+		case PogoZombie::Phase::FORWARD_BOUNCE: return "FORWARD_BOUNCE";
+		case PogoZombie::Phase::WALKING: return "WALKING";
 		default: return "UNKNOWN";
 		}
 	}
@@ -968,6 +980,34 @@ bool TestDriver::ExecuteCurrent() {
 		Fail("set_jack_pop_countdown: 未找到目标小丑僵尸");
 		return false;
 	}
+	if (op == "set_pogo_bounce_remaining") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) {
+			Fail("set_pogo_bounce_remaining: 不在 GameScene 或 Board 为空");
+			return false;
+		}
+		const float seconds = cmd.value("value", -1.0f);
+		if (seconds < 0.0f || seconds > 80.0f / 60.0f) {
+			Fail("set_pogo_bounce_remaining: value 必须在 0～1.333334 秒");
+			return false;
+		}
+		std::vector<int> zombieIDs = gs->GetBoard()->mEntityManager.GetAllZombieIDs();
+		std::sort(zombieIDs.begin(), zombieIDs.end());
+		const int row = cmd.value("row", -1);
+		const int index = cmd.value("index", 0);
+		int seen = 0;
+		for (const int id : zombieIDs) {
+			auto* pogo = dynamic_cast<PogoZombie*>(
+				gs->GetBoard()->mEntityManager.GetZombie(id));
+			if (!pogo || !pogo->IsActive()) continue;
+			if (row >= 0 && pogo->mRow != row) continue;
+			if (seen++ != index) continue;
+			pogo->SetBounceRemainingForTesting(seconds);
+			return true;
+		}
+		Fail("set_pogo_bounce_remaining: 未找到目标跳跳僵尸");
+		return false;
+	}
 	if (op == "digger_lose_pickaxe") {
 		GameScene* gs = CurrentGameScene();
 		if (!gs || !gs->GetBoard()) {
@@ -1580,6 +1620,24 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_DIRT_RISE);
 	out["diggerWakeupSoundRequestCount"] =
 		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_WAKEUP);
+	out["pogoSoundRequestCount"] =
+		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_POGO_ZOMBIE);
+	out["pogoResources"] = {
+		{ "reanimationLoaded", ResourceManager::GetInstance().HasReanimation(
+			ResourceKeys::Reanimations::REANIM_POGO_ZOMBIE) },
+		{ "brokenArmLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_ZOMBIE_POGO_OUTERARM_UPPER2, false) != nullptr },
+		{ "damagedHandsLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_ZOMBIE_POGO_STICKHANDS2, false) != nullptr },
+		{ "damagedStickLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_ZOMBIE_POGO_STICKDAMAGE2, false) != nullptr },
+		{ "damagedStick2Loaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_ZOMBIE_POGO_STICK2DAMAGE2, false) != nullptr },
+		{ "headParticleLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Particles::PARTICLE_ZOMBIE_POGOHEAD, false) != nullptr },
+		{ "pogoParticleLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Particles::PARTICLE_ZOMBIEPOGO_PART_2, false) != nullptr },
+	};
 	out["diggerResources"] = {
 		{ "damagedHardhatLoaded", ResourceManager::GetInstance().GetTexture(
 			ResourceKeys::Textures::IMAGE_ZOMBIE_DIGGER_HARDHAT2, false) != nullptr },
@@ -2304,6 +2362,29 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				static_cast<int>(std::lround(visualCompensation.x * 1000.0f));
 			zombieState["dolphinVisualCompensationYOn1000"] =
 				static_cast<int>(std::lround(visualCompensation.y * 1000.0f));
+		}
+		if (auto* pogo = dynamic_cast<PogoZombie*>(z)) {
+			const Vector visual = pogo->GetVisualPosition();
+			zombieState["pogoPhase"] = PogoPhaseName(pogo->GetPhase());
+			zombieState["hasPogo"] = pogo->HasPogo();
+			zombieState["pogoBounceRemainingMs"] = static_cast<int>(std::lround(
+				pogo->GetBounceRemaining() * 1000.0f));
+			zombieState["pogoBounceProgressOn1000"] = static_cast<int>(std::lround(
+				pogo->GetBounceProgress() * 1000.0f));
+			zombieState["pogoAltitudeOn1000"] = static_cast<int>(std::lround(
+				pogo->GetPogoAltitude() * 1000.0f));
+			zombieState["pogoVisualLiftOn1000"] = static_cast<int>(std::lround(
+				(pos.y - visual.y) * 1000.0f));
+			zombieState["pogoJumpBlockChecked"] = pogo->HasCheckedJumpBlocker();
+			zombieState["pogoForwardDistanceOn1000"] = static_cast<int>(std::lround(
+				pogo->GetForwardDistanceTotal() * 1000.0f));
+			zombieState["pogoForwardAppliedOn1000"] = static_cast<int>(std::lround(
+				pogo->GetForwardDistanceApplied() * 1000.0f));
+			zombieState["pogoGlassesVisible"] =
+				anim && anim->GetTrackVisible("anim_head_glasses");
+			zombieState["pogoStickVisible"] = anim
+				&& (anim->GetTrackVisible("Zombie_pogo_stick")
+					|| anim->GetTrackVisible("Zombie_pogo_stick2"));
 		}
 		if (auto* eliteJack = dynamic_cast<EliteJackInTheBoxZombie*>(z)) {
 			++eliteJackZombieCount;

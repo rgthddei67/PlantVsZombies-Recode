@@ -1,0 +1,38 @@
+<Emitter>
+  <Name>ZombiePogoHeadOff</Name>
+  <SpawnMinActive>1</SpawnMinActive>
+  <SpawnMaxLaunched>1</SpawnMaxLaunched>
+  <ParticleDuration>1.0</ParticleDuration>
+  <ParticleAlpha>1 0.9</ParticleAlpha>
+  <ParticleScale>0.75 0.75</ParticleScale>
+  <LaunchSpeed>[60 100]</LaunchSpeed>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <ParticleGravity>140</ParticleGravity>
+  <ParticleSpinSpeed>[-5 5]</ParticleSpinSpeed>
+  <SystemDuration>1.1</SystemDuration>
+  <Image>PARTICLE_ZOMBIEPOGOHEAD</Image>
+  <Field>
+    <FieldType>Position</FieldType>
+    <X>-10</X>
+    <Y>-50</Y>
+  </Field>
+</Emitter>
+<Emitter>
+  <Name>ZombiePogoGlasses</Name>
+  <SpawnMinActive>1</SpawnMinActive>
+  <SpawnMaxLaunched>1</SpawnMaxLaunched>
+  <ParticleDuration>1.0</ParticleDuration>
+  <ParticleAlpha>1 0.8</ParticleAlpha>
+  <ParticleScale>0.8 0.8</ParticleScale>
+  <LaunchSpeed>[75 115]</LaunchSpeed>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <ParticleGravity>150</ParticleGravity>
+  <ParticleSpinSpeed>[-7 7]</ParticleSpinSpeed>
+  <SystemDuration>1.1</SystemDuration>
+  <Image>IMAGE_ZOMBIE_PAPER_GLASSES</Image>
+  <Field>
+    <FieldType>Position</FieldType>
+    <X>0</X>
+    <Y>-52</Y>
+  </Field>
+</Emitter>

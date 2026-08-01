@@ -71,6 +71,7 @@
 #include "../Zombie/BalloonZombie.h"
 #include "../Zombie/DiggerZombie.h"
 #include "../Zombie/EliteDiggerZombie.h"
+#include "../Zombie/PogoZombie.h"
 
 namespace {
 	template<typename T>
@@ -418,6 +419,12 @@ void GameDataManager::InitializeHardcodedData() {
 		AnimationType::ANIM_ELITE_DIGGER_ZOMBIE,
 		ResourceKeys::Reanimations::REANIM_ELITE_DIGGER_ZOMBIE,
 		&MakeZombie<EliteDiggerZombie>);
+
+	// 跳跳僵尸使用独立弹跳状态机；高坚果阻拦后才回落到普通根运动步行。
+	RegisterZombie(ZombieType::ZOMBIE_POGO, "ZOMBIE_POGO",
+		AnimationType::ANIM_POGO_ZOMBIE,
+		ResourceKeys::Reanimations::REANIM_POGO_ZOMBIE,
+		&MakeZombie<PogoZombie>);
 
 	// ==================== 非植物/僵尸动画映射 ====================
 	mAnimToString[AnimationType::ANIM_SUN] = ResourceKeys::Reanimations::REANIM_SUN;

@@ -118,6 +118,8 @@ public:
 	virtual void TakePlantAshDamage(int damage);
 	/** 大嘴花等植物直杀的统一入口；返回是否确实吞掉目标，以决定是否进入消化状态。 */
 	virtual bool TakePlantInstantKill();
+	/** 当前状态是否允许作为已出土地雷的接触触发目标。 */
+	virtual bool CanTriggerPotatoMine() const { return true; }
 	virtual void SaveExtraData(nlohmann::json& j) const {}	// 保存额外数据
 	virtual void LoadExtraData(const nlohmann::json& j) {}	// 加载额外数据
 	virtual void ZombieItemUpdate() const; // 处理僵尸读档的时候的手臂、防具等处理

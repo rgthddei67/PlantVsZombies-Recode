@@ -27,7 +27,7 @@ description: Use when adding or tuning ANY particle effect (粒子特效) in PvZ
 **C# 原版逻辑场景是 800×600，本项目是 `SCENE_WIDTH=1100`、`SCENE_HEIGHT=600`。原版粒子发射坐标、Emitter/SystemPosition 偏移、全屏边界和裁剪值都只能当语义参考，禁止直接抄数值。**
 
 - 先确定特效应锚定当前对象的稳定视觉原点、Board 网格点还是当前场景边界，再把 C# 点位换算成相对该锚点的局部差值。
-- `EmitEffect` 的传入世界坐标优先由 `Transform + mVisualOffset`、植物视觉基点、`GetCellCenterPosition` 或 `SCENE_WIDTH/HEIGHT` 派生；受伤抖动等临时绘制偏移默认不进入粒子物理位置。
+- `EmitEffect` 的传入世界坐标优先由 `Transform + mVisualOffset`、植物视觉基点、`GetCellCenterPosition` 或 `SCENE_WIDTH/HEIGHT` 派生；受伤抖动等临时绘制偏移默认不进入粒子物理位置。若 XML 的 `EmitterOffsetX/Y` 已按实体视觉原点写入完整偏移，代码只能传逻辑 `Transform`（再加能力自身的动态高度），禁止又叠 `mVisualOffset`；先把“代码世界锚点”和“XML 局部偏移”写成一条加法式，避免同一视觉偏移计算两次。
 - XML 的 `EmitterOffsetX/Y` 仍有“双倍生效”陷阱，但“除以 2”只能用于**完成坐标系换算后的局部偏移**，不能把 800×600 原值直接减半搬入。
 - 触发后先执行同步 `screenshot`，再用 `particleEffectsByName.<Name>.0` 的 `renderProbeReady/worldBounds/originToRenderCenterD*Int/nearestPlant/nearestZombie` 断言本项目实际提交的粒子矩形相对发射原点与实体 collider 的关系；随机范围用宽容区间而非单点值。
 - 先确认视觉对象是不是 ParticleSystem XML：若代码用 `AnimatedObject(ObjectType::OBJECT_PARTICLE)` 播 reanim，它不会出现在 `particleEffectsByName`，应按自定义 tag 从 `animatedObjectsByTag` 取证。方向性命中特效的局部 X 偏移要按来源速度符号镜像，并断言 `nearestZombie.centerDxInt/boundsIntersect`，不能只凭截图估计。
