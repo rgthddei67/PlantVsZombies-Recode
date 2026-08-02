@@ -3,6 +3,7 @@
 #define _ZOMBIE_H
 
 #include "ZombieType.h"
+#include "MagneticItem.h"
 #include "../AnimatedObject.h"
 #include "../Plant/PlantType.h"
 #include "../../DeltaTime.h"
@@ -200,6 +201,15 @@ public:
 	int GetEatingPlantID() const { return mEatPlantID; }
 	bool IsInPool() const { return this->mInPool; }
 	bool HasArm() const { return this->mHasArm; }
+	/** 当前实体是否满足磁力菇通用目标门禁且仍持有可吸取装备。 */
+	bool CanBeTargetedByMagnetShroom() const;
+	/** 品种是否仍持有可被磁力菇吸取的装备；派生类只声明装备状态。 */
+	virtual bool HasMagneticItem() const { return false; }
+	/**
+	 * 立即卸下当前金属装备，并把离体表现交给磁力菇。
+	 * 返回 false 表示装备已在同帧由其他路径移除，调用方不得开始充能。
+	 */
+	virtual bool ExtractMagneticItem(MagneticItem&) { return false; }
 	/** 本体、头盔或飞行额外生命层是否正处于受击白光期。 */
 	bool IsBodyHitFlashing() const { return mGlowingTimer > 0.0f; }
 	/** 二类护盾是否正处于独立受击白光期。 */
@@ -268,6 +278,8 @@ public:
 	void ApplyHealthMultiplier(double multiplier);
 
 protected:
+	/** 把当前 Animator 轨道局部锚点换算为稳定世界坐标，供离体装备取得起点。 */
+	Vector GetTrackWorldPosition(const std::string& trackName) const;
 	// 统一重算动画 extra 速度层：冻结(0) > 品种能力 × 减速 × 雨势。
 	// 子类自身的整体倍率只从 GetAbilityAnimSpeedMultiplier 返回；运行期状态变化后经此收敛，
 	// 禁止直调 SetExtraSpeedMultiplier，否则会把冻结停格顶掉或丢失天气组合。

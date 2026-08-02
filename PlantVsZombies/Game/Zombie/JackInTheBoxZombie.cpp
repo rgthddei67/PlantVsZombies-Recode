@@ -30,6 +30,11 @@ namespace {
 	constexpr float kLoopVolume = 0.42f;               // 手摇盒循环声的独立音量
 	constexpr float kOneShotVolume = 0.55f;            // 开盒、惊吓与爆炸一次性音效音量
 	constexpr float kLimbVolume = 0.35f;               // 断肢断头音效音量
+	constexpr float kDisarmedVelocityMin = 0.23f;       // 失去盒子后的普通步速随机下界，单位 px/tick
+	constexpr float kDisarmedVelocityMax = 0.37f;       // 失去盒子后的普通步速随机上界，单位 px/tick
+	constexpr float kMagnetDestinationX = 20.0f;        // 盒子吸到磁力菇旁的局部 X 偏移，单位 px
+	constexpr float kMagnetDestinationY = 15.0f;        // 盒子吸到磁力菇旁的局部 Y 偏移，单位 px
+	constexpr float kMagnetDestinationJitter = 10.0f;   // 盒子落点随机扰动半径，单位 px
 
 	bool CircleOverlapsRect(const Vector& center, float radius, const SDL_FRect& bounds)
 	{
@@ -106,11 +111,42 @@ void JackInTheBoxZombie::Update()
 		if (mPopCountdown <= 0.0f) BeginPop();
 		return;
 	}
+	if (mPhase == Phase::DISARMED) return;
 
 	if (!mSurprisePlayed) {
 		mSurpriseCountdown = std::max(0.0f, mSurpriseCountdown - deltaTime);
 		if (mSurpriseCountdown <= 0.0f) PlaySurprise();
 	}
+}
+
+bool JackInTheBoxZombie::HasMagneticItem() const
+{
+	return mPhase == Phase::RUNNING;
+}
+
+/** 磁吸会把小丑永久转为普通步行状态，并终止开盒倒计时与循环声。 */
+bool JackInTheBoxZombie::ExtractMagneticItem(MagneticItem& item)
+{
+	if (!HasMagneticItem()) return false;
+	item.textureKey = GetMagneticBoxImageKey();
+	item.worldPosition = GetTrackWorldPosition("Zombie_jackbox_box");
+	item.destinationOffset = Vector(
+		kMagnetDestinationX + GameRandom::Range(-kMagnetDestinationJitter,
+			kMagnetDestinationJitter),
+		kMagnetDestinationY + GameRandom::Range(-kMagnetDestinationJitter,
+			kMagnetDestinationJitter));
+	mPhase = Phase::DISARMED;
+	mPopCountdown = 0.0f;
+	mSurpriseCountdown = 0.0f;
+	mSurprisePlayed = false;
+	mExplosionResolved = false;
+	mRunVelocity = GameRandom::Range(kDisarmedVelocityMin, kDisarmedVelocityMax);
+	ReleaseLoopSound();
+	mAnimator->SetTrackVisible("Zombie_jackbox_box", false);
+	mAnimator->SetTrackVisible("Zombie_jackbox_handle", false);
+	if (!mIsEating) PlayWalkAnimation(0.15f);
+	else OnStartEating();
+	return true;
 }
 
 void JackInTheBoxZombie::SetPopCountdownForTesting(float seconds)
@@ -219,7 +255,7 @@ void JackInTheBoxZombie::StartEat(ColliderComponent* other)
 
 void JackInTheBoxZombie::OnStartEating()
 {
-	PlayTrack("anim_eat", kEatEffectiveClip / kAbilityAnimMultiplier, 0.2f);
+	PlayTrack("anim_eat", kEatEffectiveClip / GetAbilityAnimSpeedMultiplier(), 0.2f);
 }
 
 void JackInTheBoxZombie::ZombieMove(
@@ -234,7 +270,7 @@ void JackInTheBoxZombie::PlayWalkAnimation(float blendTime)
 	if (mPhase == Phase::POPPING) return;
 	const float speedRatio = mRunVelocity / kReferenceVelocity;
 	PlayTrack("anim_walk",
-		kRunEffectiveClip / kAbilityAnimMultiplier * speedRatio, blendTime);
+		kRunEffectiveClip / GetAbilityAnimSpeedMultiplier() * speedRatio, blendTime);
 }
 
 void JackInTheBoxZombie::HeadDrop()
@@ -274,11 +310,20 @@ void JackInTheBoxZombie::ZombieItemUpdate() const
 			ResourceManager::GetInstance().GetTexture(
 				GetBrokenArmTextureKey()));
 	}
+	if (mPhase == Phase::DISARMED) {
+		mAnimator->SetTrackVisible("Zombie_jackbox_box", false);
+		mAnimator->SetTrackVisible("Zombie_jackbox_handle", false);
+	}
 }
 
 const std::string& JackInTheBoxZombie::GetBrokenArmTextureKey() const
 {
 	return ResourceKeys::Textures::IMAGE_REANIM_ZOMBIE_JACKBOX_OUTERARM_LOWER2;
+}
+
+const std::string& JackInTheBoxZombie::GetMagneticBoxImageKey() const
+{
+	return ResourceKeys::Textures::IMAGE_ZOMBIE_JACKBOX_BOX;
 }
 
 const char* JackInTheBoxZombie::GetArmDropEffectName() const
@@ -326,7 +371,7 @@ bool JackInTheBoxZombie::CanBeFrozen() const
 
 float JackInTheBoxZombie::GetAbilityAnimSpeedMultiplier() const
 {
-	return kAbilityAnimMultiplier;
+	return mPhase == Phase::DISARMED ? 1.0f : kAbilityAnimMultiplier;
 }
 
 Vector JackInTheBoxZombie::GetExplosionCenter() const
@@ -351,16 +396,17 @@ void JackInTheBoxZombie::SaveExtraData(nlohmann::json& j) const
 void JackInTheBoxZombie::LoadExtraData(const nlohmann::json& j)
 {
 	const int phase = std::clamp(j.value("phase", 0), 0,
-		static_cast<int>(Phase::POPPING));
+		static_cast<int>(Phase::DISARMED));
 	mPhase = static_cast<Phase>(phase);
 	mPopCountdown = std::max(0.0f, j.value("popCountdown", 0.0f));
 	mSurpriseCountdown = std::max(0.0f,
 		j.value("surpriseCountdown", kSurpriseDelay));
 	mRunVelocity = std::clamp(j.value("runVelocity", kReferenceVelocity),
-		0.66f, 0.68f);
+		kDisarmedVelocityMin, 0.68f);
 	mSurprisePlayed = j.value("surprisePlayed", false);
 	mExplosionResolved = j.value("explosionResolved", false);
 	if (mPhase == Phase::RUNNING && mHasHead && !mExplosionResolved) {
 		ClaimLoopSound();
 	}
+	ZombieItemUpdate();
 }

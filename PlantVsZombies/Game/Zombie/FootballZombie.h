@@ -9,12 +9,16 @@ protected:
 	void SetupZombie() override;
 	void CheckHelmImage() override;
 	float GetAbilityAnimSpeedMultiplier() const override;
+	/** 返回磁力菇吸取时与当前破损阶段一致的头盔贴图键。 */
+	virtual const char* GetMagneticHelmetImageKey() const;
 
 public:
 	using Zombie::Zombie;
 	ArmorBrokenState mHelmStage = ArmorBrokenState::NO_BROKEN;
 
 	void HelmDrop() override;
+	bool HasMagneticItem() const override;
+	bool ExtractMagneticItem(MagneticItem& item) override;
 	void HeadDrop() override;
 	void ArmDrop() override;
 

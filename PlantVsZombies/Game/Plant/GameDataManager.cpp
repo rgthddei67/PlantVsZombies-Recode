@@ -44,6 +44,7 @@
 #include "SplitPea.h"
 #include "StarFruit.h"
 #include "PumpkinShell.h"
+#include "MagnetShroom.h"
 
 #include "../Zombie/Zombie.h"
 #include "../Zombie/ConeZombie.h"
@@ -284,6 +285,11 @@ void GameDataManager::InitializeHardcodedData() {
 		ResourceKeys::Textures::IMAGE_PUMPKIN,
 		AnimationType::ANIM_PUMPKIN,
 		ResourceKeys::Reanimations::REANIM_PUMPKIN, &MakePlant<PumpkinShell>);
+
+	RegisterPlant(PlantType::PLANT_MAGNETSHROOM, "PLANT_MAGNETSHROOM",
+		ResourceKeys::Textures::IMAGE_MAGNETSHROOM,
+		AnimationType::ANIM_MAGNETSHROOM,
+		ResourceKeys::Reanimations::REANIM_MAGNETSHROOM, &MakePlant<MagnetShroom>);
 
 	// 寒冰大喷菇：复用大喷菇 reanim（蓝色靠 overlay），仅卡图独立
 	RegisterPlant(PlantType::PLANT_ICEFUMESHROOM, "PLANT_ICEFUMESHROOM",

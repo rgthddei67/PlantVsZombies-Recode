@@ -15,6 +15,7 @@ public:
 	enum class Phase {
 		RUNNING,
 		POPPING,
+		DISARMED,
 	};
 
 	Phase GetPhase() const { return mPhase; }
@@ -24,6 +25,8 @@ public:
 	float GetRunVelocity() const { return mRunVelocity; }
 	/** AutoTest 用确定性入口；仅在 RUNNING 阶段覆盖剩余开盒秒数。 */
 	void SetPopCountdownForTesting(float seconds);
+	bool HasMagneticItem() const override;
+	bool ExtractMagneticItem(MagneticItem& item) override;
 
 	void Update() override;
 	void TakeDamage(int damage, DamageSource source, bool penetrateShield = false,
@@ -53,6 +56,8 @@ protected:
 	void ReleaseLoopSound();
 	/** 返回当前变体断臂后仍留在本体上的前臂贴图。 */
 	virtual const std::string& GetBrokenArmTextureKey() const;
+	/** 返回当前小丑变体被磁力吸走的盒子贴图。 */
+	virtual const std::string& GetMagneticBoxImageKey() const;
 	/** 返回当前变体抛出断臂所用的粒子效果名。 */
 	virtual const char* GetArmDropEffectName() const;
 

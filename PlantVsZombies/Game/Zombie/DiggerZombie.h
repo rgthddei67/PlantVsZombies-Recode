@@ -28,6 +28,8 @@ public:
 	float GetPickaxeWalkVelocityValue() const { return GetPickaxeWalkVelocity(); }
 	/** 磁力菇与 AutoTest 共用的原版丢镐入口。 */
 	void LosePickaxe();
+	bool HasMagneticItem() const override;
+	bool ExtractMagneticItem(MagneticItem& item) override;
 
 	void PlaySpawnSound() override;
 	void StartEat(ColliderComponent* other) override;
@@ -67,6 +69,8 @@ protected:
 	virtual float GetPickaxeWalkVelocity() const;
 	virtual const std::string& GetDamagedHardhatTexture(bool heavilyDamaged) const;
 	virtual const std::string& GetBrokenOuterArmTexture() const;
+	/** 返回当前矿工变体被磁力吸走的镐子贴图。 */
+	virtual const std::string& GetMagneticPickaxeImageKey() const;
 	virtual const char* GetHelmDropEffectName() const;
 	virtual const char* GetArmDropEffectName() const;
 	void BeginStableWalk(bool withPickaxe);

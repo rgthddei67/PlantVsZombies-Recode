@@ -79,6 +79,7 @@ enum class AnimationType
 	ANIM_ELITE_DIGGER_ZOMBIE, // 爆破工头独立工程警戒配色；复用普通矿工时间线
 	ANIM_POGO_ZOMBIE, // 经典跳跳僵尸；追加在末尾避免旧动画枚举值错位
 	ANIM_PUMPKIN, // 经典南瓜头；追加在末尾避免旧动画枚举值错位
+	ANIM_MAGNETSHROOM, // 经典磁力菇；追加在末尾避免旧动画枚举值错位
 };
 
 #endif

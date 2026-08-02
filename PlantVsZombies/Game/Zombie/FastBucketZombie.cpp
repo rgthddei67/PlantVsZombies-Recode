@@ -6,6 +6,18 @@ namespace
 	constexpr float kFastBucketMoveSpeedMax = 1.22f; // 初始化时随机移动速度倍率上限
 	constexpr float kFastBucketAnimSpeedMin = 1.55f; // 初始化时随机能力动画倍率下限
 	constexpr float kFastBucketAnimSpeedMax = 1.60f; // 初始化时随机能力动画倍率上限
+	constexpr float kMagnetDestinationX = 25.0f; // 铁桶吸附到磁力菇头部附近的局部 X
+	constexpr float kMagnetDestinationY = 20.0f; // 铁桶吸附到磁力菇头部附近的局部 Y
+	constexpr float kMagnetDestinationJitter = 10.0f; // 离体装备落点随机扰动，单位 px
+
+	const char* FastBucketImageKey(ArmorBrokenState stage)
+	{
+		switch (stage) {
+		case ArmorBrokenState::A_LITTLE_BROKEN: return "IMAGE_FASTZOMBIE_BUCKET2";
+		case ArmorBrokenState::REALLY_BROKEN: return "IMAGE_FASTZOMBIE_BUCKET3";
+		default: return "IMAGE_FASTZOMBIE_BUCKET1";
+		}
+	}
 }
 
 void FastBucketZombie::SetupZombie()
@@ -76,4 +88,25 @@ void FastBucketZombie::CheckHelmImage()
 		mAnimator->SetTrackImage("anim_bucket", ResourceManager::GetInstance().
 			GetTexture("IMAGE_FASTZOMBIE_BUCKET3"));
 	}
+}
+
+bool FastBucketZombie::HasMagneticItem() const
+{
+	return mHelmType == HelmType::HELMTYPE_BUCKET;
+}
+
+bool FastBucketZombie::ExtractMagneticItem(MagneticItem& item)
+{
+	if (!HasMagneticItem()) return false;
+	item.textureKey = FastBucketImageKey(mHelmStage);
+	item.worldPosition = GetTrackWorldPosition("anim_bucket");
+	item.destinationOffset = Vector(
+		kMagnetDestinationX + GameRandom::Range(-kMagnetDestinationJitter, kMagnetDestinationJitter),
+		kMagnetDestinationY + GameRandom::Range(-kMagnetDestinationJitter, kMagnetDestinationJitter));
+	item.drawScale = 0.8f;
+	mHelmHealth = 0;
+	Zombie::HelmDrop();
+	mHelmStage = ArmorBrokenState::NONE;
+	mAnimator->SetTrackVisible("anim_bucket", false);
+	return true;
 }

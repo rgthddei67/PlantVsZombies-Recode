@@ -40,6 +40,8 @@ public:
 	bool CanBeGrabbedByTangleKelp() const override { return false; }
 	bool CanTriggerPotatoMine() const override { return !mHasPogo; }
 	bool TakePlantInstantKill() override;
+	bool HasMagneticItem() const override { return mHasPogo; }
+	bool ExtractMagneticItem(MagneticItem& item) override;
 
 protected:
 	void SetupZombie() override;

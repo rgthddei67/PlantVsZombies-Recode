@@ -16,6 +16,8 @@ metadata:
 - 灰烬统一走 `Zombie::TakePlantAshDamage` 和 `DamageSource::PLANT_ASH`。持门时 `CanBeCharred=false` 且每次灰烬最终最多 320；门掉后恢复普通化灰与完整灰烬伤害。大嘴花直杀走返回 `bool` 的 `TakePlantInstantKill`：持门时把尝试降级为 10 点基础普通伤害并返回 false，门掉后直接吞掉并返回 true。小推车仍以 `OTHER + INT32_MAX` 正常秒杀。
 - 缠绕水草通过 `ResistsTangleKelpDrowning()` 接入同一“持门时抗直杀、掉门后恢复普通规则”契约。持门目标被原地锚定并保持 `anim_grab` 5 秒，不下沉、不死亡；到时仅水草死亡并释放目标。束缚开始立即停止啃食，期间不执行移动、阵风位移和品种逻辑，但动画与状态计时继续。水草中途被摧毁也只会提前释放目标；门已掉落时仍按普通水草流程拖沉。
 - 本类型 `CanBeCharmed=false`。醒着的魅惑菇仍由 `Zombie::EatTarget` 立即 `Die()` 并播放 `SOUND_FLOOP`，但随后 `StartMindControlled()` 被豁免守卫拒绝，僵尸阵营与门/本体血量都不变。
+- 2026-08-02 主人指定加固铁门免疫磁力菇，`HasMagneticItem()` 固定 false；普通铁门仍可被
+  剥离，加固门的 1030 护盾、耐性、持门手臂和截断能力不因近距离磁力菇消失。
 - 持门时 `BlocksFumePiercing=true`。FumeShroom 按 X 由近到远结算，命中它后停止；本击改用非穿透且丢弃破门溢出，门存在时只伤门、本体不掉血。粒子用同一 collider 左沿作为 `clipRightX`，不改 FumeCloud XML 长度。门掉后恢复大喷全额双倍本体伤害。
 - 正式波次生成通过 `Board::ResolveWaveZombieType` 计数；每波前两只保留本类型，第三只起返回 `NUM_ZOMBIE_TYPES`。`TrySummonZombie` 在选行和扣预算前直接 `continue`，继续抽取其他候选，禁止回退普通铁门干扰出怪池。计数在新波/生存轮清时归零并进入存档；开发/AutoTest 的 `spawn_zombie` 直造不占配额。
 - 生存池配置：`weight=2500, appearWave=6, survivalRound=6`。冒险模式在 2-8 用“普通铁门 + 加固铁门”做独立家族教学（玩家刚取得毁灭菇，能直接观察灰烬抗性），2-9 作为 8 种重点机制综合池必定包含本类型；4-5 在双向射手解锁后的首个可选卡关复习本类型，展示反向两连发背击绕门，4-6 综合池继续保留。

@@ -94,6 +94,7 @@ void EliteJackInTheBoxZombie::Update()
 		UpdateThrownBox(deltaTime);
 		return;
 	}
+	if (GetPhase() != Phase::RUNNING) return;
 	if (mIsDying || !mHasHead || mFrozenTimer > 0.0f) return;
 
 	mThrowCountdown = std::max(0.0f, mThrowCountdown - deltaTime);
@@ -134,7 +135,8 @@ float EliteJackInTheBoxZombie::RollThrowInterval() const
  */
 bool EliteJackInTheBoxZombie::BeginThrow()
 {
-	if (mBoxInFlight || !mBoard || !mHasHead || mIsDying || mIsDead) {
+	if (GetPhase() != Phase::RUNNING || mBoxInFlight || !mBoard
+		|| !mHasHead || mIsDying || mIsDead) {
 		return false;
 	}
 	Vector targetPosition;
@@ -188,8 +190,10 @@ void EliteJackInTheBoxZombie::ResolveThrownBox()
 		DamagePlantsAtImpact();
 	}
 
-	mThrowCountdown = RollThrowInterval();
-	SetHeldBoxVisible(true);
+	if (GetPhase() == Phase::RUNNING) {
+		mThrowCountdown = RollThrowInterval();
+		SetHeldBoxVisible(true);
+	}
 }
 
 /** 对爆区内的活动植物走统一僵尸来源伤害入口。 */
@@ -463,6 +467,12 @@ const std::string& EliteJackInTheBoxZombie::GetBrokenArmTextureKey() const
 	return ResourceKeys::Textures::IMAGE_REANIM_ZOMBIE_ELITEJACKBOX_OUTERARM_LOWER2;
 }
 
+bool EliteJackInTheBoxZombie::HasMagneticItem() const
+{
+	// 精英投盒能力保留完整反制压力，不允许磁力菇永久废除。
+	return false;
+}
+
 const char* EliteJackInTheBoxZombie::GetArmDropEffectName() const
 {
 	return "ZombieEliteJackboxArmOff";
@@ -471,12 +481,13 @@ const char* EliteJackInTheBoxZombie::GetArmDropEffectName() const
 void EliteJackInTheBoxZombie::ZombieItemUpdate() const
 {
 	JackInTheBoxZombie::ZombieItemUpdate();
-	SetHeldBoxVisible(!mBoxInFlight);
+	SetHeldBoxVisible(GetPhase() == Phase::RUNNING && !mBoxInFlight);
 }
 
 /** 保存下一投倒计时与已经离手盒子的完整结算状态。 */
 void EliteJackInTheBoxZombie::SaveExtraData(nlohmann::json& j) const
 {
+	JackInTheBoxZombie::SaveExtraData(j);
 	j["throwCountdown"] = mThrowCountdown;
 	j["boxInFlight"] = mBoxInFlight;
 	j["boxFlightElapsed"] = mBoxFlightElapsed;
@@ -491,6 +502,7 @@ void EliteJackInTheBoxZombie::SaveExtraData(nlohmann::json& j) const
 /** 恢复投盒状态，并按当前飞行/生命阶段重建轨道和循环声所有权。 */
 void EliteJackInTheBoxZombie::LoadExtraData(const nlohmann::json& j)
 {
+	JackInTheBoxZombie::LoadExtraData(j);
 	mThrowCountdown = std::clamp(
 		j.value("throwCountdown", mThrowCountdown),
 		0.0f, kThrowIntervalMax);
@@ -513,8 +525,8 @@ void EliteJackInTheBoxZombie::LoadExtraData(const nlohmann::json& j)
 		mBoxInFlight = false;
 		mThrowCountdown = RollThrowInterval();
 	}
-	SetHeldBoxVisible(!mBoxInFlight);
-	if (mHasHead && !mIsDying && !mIsDead) {
+	SetHeldBoxVisible(GetPhase() == Phase::RUNNING && !mBoxInFlight);
+	if (GetPhase() == Phase::RUNNING && mHasHead && !mIsDying && !mIsDead) {
 		ClaimLoopSound();
 	}
 }

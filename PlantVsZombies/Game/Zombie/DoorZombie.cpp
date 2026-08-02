@@ -1,6 +1,12 @@
 #include "DoorZombie.h"
 #include "../Plant/Plant.h"
 
+namespace {
+	constexpr float kMagnetDestinationX = 30.0f; // 铁门吸附到磁力菇头部附近的局部 X
+	constexpr float kMagnetDestinationY = 0.0f;  // 铁门吸附到磁力菇头部附近的局部 Y
+	constexpr float kMagnetDestinationJitter = 10.0f; // 离体装备落点随机扰动，单位 px
+}
+
 void DoorZombie::SetupZombie()
 {
 	this->ShowArm(false);
@@ -130,6 +136,35 @@ void DoorZombie::ShieldDrop()
 			GetPosition());
 	}
 } 
+
+bool DoorZombie::HasMagneticItem() const
+{
+	return mShieldType == ShieldType::SHIELDTYPE_DOOR;
+}
+
+bool DoorZombie::ExtractMagneticItem(MagneticItem& item)
+{
+	if (!HasMagneticItem()) return false;
+	const char* imageKey = GetDoorImageKey(mShieldStage);
+	if (!imageKey) return false;
+	item.textureKey = imageKey;
+	item.worldPosition = GetTrackWorldPosition("anim_screendoor");
+	item.destinationOffset = Vector(
+		kMagnetDestinationX + GameRandom::Range(-kMagnetDestinationJitter, kMagnetDestinationJitter),
+		kMagnetDestinationY + GameRandom::Range(-kMagnetDestinationJitter, kMagnetDestinationJitter));
+	item.drawScale = 0.8f;
+
+	// 磁吸是无掉落粒子的卸装路径；门的后续能力与手臂表现仍复用掉门终态。
+	mShieldHealth = 0;
+	Zombie::ShieldDrop();
+	mShieldStage = ArmorBrokenState::NONE;
+	mAnimator->SetTrackVisible("anim_screendoor", false);
+	mAnimator->SetTrackVisible("Zombie_innerarm_screendoor", false);
+	mAnimator->SetTrackVisible("Zombie_outerarm_screendoor", false);
+	mAnimator->SetTrackVisible("Zombie_innerarm_screendoor_hand", false);
+	ShowArm(true);
+	return true;
+}
 
 void DoorZombie::TakeBodyDamage(int damage)
 {

@@ -4,6 +4,9 @@
 namespace {
 	constexpr float kFootballMoveSpeedMultiplier = 1.7f;	// 橄榄球僵尸相对基础僵尸的水平位移倍率
 	constexpr float kFootballAnimSpeedMultiplier = 1.8f;	// 橄榄球僵尸自身的整体动画能力倍率
+	constexpr float kMagnetDestinationX = 20.0f; // 头盔吸附到磁力菇头部附近的局部 X
+	constexpr float kMagnetDestinationY = 20.0f; // 头盔吸附到磁力菇头部附近的局部 Y
+	constexpr float kMagnetDestinationJitter = 10.0f; // 离体装备落点随机扰动，单位 px
 }
 
 void FootballZombie::SetupZombie()
@@ -32,6 +35,36 @@ void FootballZombie::SetupZombie()
 float FootballZombie::GetAbilityAnimSpeedMultiplier() const
 {
 	return kFootballAnimSpeedMultiplier;
+}
+
+const char* FootballZombie::GetMagneticHelmetImageKey() const
+{
+	switch (mHelmStage) {
+	case ArmorBrokenState::A_LITTLE_BROKEN: return "IMAGE_ZOMBIE_FOOTBALL_HELMET2";
+	case ArmorBrokenState::REALLY_BROKEN: return "IMAGE_ZOMBIE_FOOTBALL_HELMET3";
+	default: return "IMAGE_ZOMBIE_FOOTBALL_HELMET";
+	}
+}
+
+bool FootballZombie::HasMagneticItem() const
+{
+	return mHelmType == HelmType::HELMTYPE_FOOTBALL;
+}
+
+bool FootballZombie::ExtractMagneticItem(MagneticItem& item)
+{
+	if (!HasMagneticItem()) return false;
+	item.textureKey = GetMagneticHelmetImageKey();
+	item.worldPosition = GetTrackWorldPosition("zombie_football_helmet");
+	item.destinationOffset = Vector(
+		kMagnetDestinationX + GameRandom::Range(-kMagnetDestinationJitter, kMagnetDestinationJitter),
+		kMagnetDestinationY + GameRandom::Range(-kMagnetDestinationJitter, kMagnetDestinationJitter));
+	item.drawScale = 0.8f;
+	mHelmHealth = 0;
+	Zombie::HelmDrop();
+	mHelmStage = ArmorBrokenState::NONE;
+	mAnimator->SetTrackVisible("zombie_football_helmet", false);
+	return true;
 }
 
 void FootballZombie::CheckHelmImage()

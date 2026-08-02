@@ -22,6 +22,7 @@ public:
 	void Update() override;
 	void Draw(Graphics* g) override;
 	void ZombieItemUpdate() const override;
+	bool HasMagneticItem() const override;
 
 	float GetThrowCountdown() const { return mThrowCountdown; }
 	bool IsBoxInFlight() const { return mBoxInFlight; }

@@ -35,6 +35,7 @@
 #include "../Plant/SplitPea.h"
 #include "../Plant/StarFruit.h"
 #include "../Plant/PumpkinShell.h"
+#include "../Plant/MagnetShroom.h"
 #include "../Bullet/Bullet.h"
 #include "../Zombie/ZombieType.h"
 #include "../Zombie/Zombie.h"
@@ -105,6 +106,16 @@ namespace {
 			return "TUNNELING_PAUSE_WITHOUT_PICKAXE";
 		case Phase::RISING_WITHOUT_PICKAXE: return "RISING_WITHOUT_PICKAXE";
 		case Phase::WALKING_WITHOUT_PICKAXE: return "WALKING_WITHOUT_PICKAXE";
+		default: return "UNKNOWN";
+		}
+	}
+
+	const char* JackPhaseName(JackInTheBoxZombie::Phase phase)
+	{
+		switch (phase) {
+		case JackInTheBoxZombie::Phase::RUNNING: return "RUNNING";
+		case JackInTheBoxZombie::Phase::POPPING: return "POPPING";
+		case JackInTheBoxZombie::Phase::DISARMED: return "DISARMED";
 		default: return "UNKNOWN";
 		}
 	}
@@ -1632,6 +1643,36 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_WAKEUP);
 	out["pogoSoundRequestCount"] =
 		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_POGO_ZOMBIE);
+	out["magnetSoundRequestCount"] =
+		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_MAGNETSHROOM);
+	out["magnetResources"] = {
+		{ "reanimationLoaded", ResourceManager::GetInstance().HasReanimation(
+			ResourceKeys::Reanimations::REANIM_MAGNETSHROOM) },
+		{ "cardLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_MAGNETSHROOM, false) != nullptr },
+		{ "soundLoaded", ResourceManager::GetInstance().GetSound(
+			ResourceKeys::Sounds::SOUND_MAGNETSHROOM) != nullptr },
+		{ "bucketLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_ZOMBIE_BUCKET1, false) != nullptr },
+		{ "fastBucketLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_FASTZOMBIE_BUCKET1, false) != nullptr },
+		{ "footballHelmetLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_ZOMBIE_FOOTBALL_HELMET, false) != nullptr },
+		{ "pinkFootballHelmetLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_ZOMBIE_PINKFOOTBALL_HELMET, false) != nullptr },
+		{ "doorLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_ZOMBIE_SCREENDOOR1, false) != nullptr },
+		{ "reinforcedDoorLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_ZOMBIE_REINFORCED_SCREENDOOR1, false) != nullptr },
+		{ "pogoLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_ZOMBIE_POGO_STICK, false) != nullptr },
+		{ "jackBoxLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_ZOMBIE_JACKBOX_BOX, false) != nullptr },
+		{ "eliteJackBoxLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_REANIM_ZOMBIE_ELITEJACKBOX_BOX, false) != nullptr },
+		{ "diggerPickaxeLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_ZOMBIE_DIGGER_PICKAXE, false) != nullptr },
+	};
 	out["pogoResources"] = {
 		{ "reanimationLoaded", ResourceManager::GetInstance().HasReanimation(
 			ResourceKeys::Reanimations::REANIM_POGO_ZOMBIE) },
@@ -2323,6 +2364,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				z->GetTangleKelpSinkOffset() * 1000.0f)) },
 			{ "tangleKelpGrabFrameOn1000", static_cast<int>(std::lround(
 				z->GetTangleKelpGrabFrame() * 1000.0f)) },
+			{ "magneticItemAvailable", z->CanBeTargetedByMagnetShroom() },
 			{ "colliderEnabled", z->GetColliderComponent()
 				&& z->GetColliderComponent()->mEnabled },
 			// 铁门僵尸常规手臂（藏门后/啃食露出）当前可见性——手臂显隐类 bug 的断言抓手；
@@ -2412,6 +2454,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		}
 		if (auto* eliteJack = dynamic_cast<EliteJackInTheBoxZombie*>(z)) {
 			++eliteJackZombieCount;
+			zombieState["jackPhase"] = JackPhaseName(eliteJack->GetPhase());
 			const Vector boxPosition = eliteJack->GetThrownBoxPosition();
 			const Vector targetPosition = eliteJack->GetThrowTargetPosition();
 			zombieState["eliteJackThrowCountdownMs"] =
@@ -2449,6 +2492,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 					eliteJack->GetLastMonteCarloCoordinationLoss() * 100.0f));
 			zombieState["eliteJackBoxTrackVisible"] =
 				anim && anim->GetTrackVisible("Zombie_jackbox_box");
+			zombieState["jackHandleTrackVisible"] =
+				anim && anim->GetTrackVisible("Zombie_jackbox_handle");
 			zombieState["jackRunVelocityOn1000"] =
 				static_cast<int>(std::lround(
 					eliteJack->GetRunVelocity() * 1000.0f));
@@ -2456,9 +2501,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		}
 		else if (auto* jack = dynamic_cast<JackInTheBoxZombie*>(z)) {
 			++jackZombieCount;
-			zombieState["jackPhase"] =
-				jack->GetPhase() == JackInTheBoxZombie::Phase::RUNNING
-				? "RUNNING" : "POPPING";
+			zombieState["jackPhase"] = JackPhaseName(jack->GetPhase());
 			zombieState["jackPopCountdownMs"] = static_cast<int>(std::lround(
 				jack->GetPopCountdown() * 1000.0f));
 			zombieState["jackRunVelocityOn1000"] = static_cast<int>(std::lround(
@@ -2471,6 +2514,10 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				anim && anim->GetTrackVisible("anim_head2");
 			zombieState["jackLowerArmVisible"] =
 				anim && anim->GetTrackVisible("zombie_jackbox_outerarm_lower");
+			zombieState["jackBoxTrackVisible"] =
+				anim && anim->GetTrackVisible("Zombie_jackbox_box");
+			zombieState["jackHandleTrackVisible"] =
+				anim && anim->GetTrackVisible("Zombie_jackbox_handle");
 			out["jack"] = zombieState;
 		}
 		if (auto* balloon = dynamic_cast<BalloonZombie*>(z)) {
@@ -2675,6 +2722,22 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			plantState["pumpkinDamageStage"] = pumpkin->GetDamageStage();
 			plantState["pumpkinBackAnimatorReady"] = pumpkin->HasBackAnimator();
 		}
+		if (auto* magnet = dynamic_cast<MagnetShroom*>(p)) {
+			plantState["magnetPhase"] = magnet->GetPhaseName();
+			plantState["magnetRechargeMs"] = static_cast<int>(std::lround(
+				magnet->GetRechargeTimeRemaining() * 1000.0f));
+			plantState["magnetItemActive"] = magnet->HasCapturedItem();
+			plantState["magnetItemTextureKey"] =
+				magnet->GetCapturedItemTextureKey();
+			plantState["magnetItemDistanceInt"] = static_cast<int>(std::lround(
+				magnet->GetCapturedItemDistance()));
+			const Vector destinationFromLogical =
+				magnet->GetCapturedItemDestinationFromLogical();
+			plantState["magnetItemDestinationFromLogicalXInt"] =
+				static_cast<int>(std::lround(destinationFromLogical.x));
+			plantState["magnetItemDestinationFromLogicalYInt"] =
+				static_cast<int>(std::lround(destinationFromLogical.y));
+		}
 		if (auto* squash = dynamic_cast<Squash*>(p)) {
 			plantState["squashState"] = squash->GetSquashStateName();
 			plantState["squashTargetZombieID"] = squash->GetTargetZombieID();
@@ -2788,6 +2851,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["particleEffectNameCounts"]["EliteDiggerBlast"] = 0;
 	out["particleEffectNameCounts"]["ZombieEliteDiggerArmOff"] = 0;
 	out["particleEffectNameCounts"]["ZombieEliteDiggerHeadLight"] = 0;
+	out["particleEffectNameCounts"]["ZombiePinkFootballOff"] = 0;
 	if (g_particleSystem) {
 		for (const auto& effect : g_particleSystem->GetEffectsForTesting()) {
 			if (!effect) continue;

@@ -10,6 +10,8 @@ public:
 	using DiggerZombie::DiggerZombie;
 
 	bool HasResolvedBlast() const { return mBlastResolved; }
+	/** 爆破工头的镐子承载核心预警能力，主人指定免疫磁力菇。 */
+	bool HasMagneticItem() const override { return false; }
 
 protected:
 	void SetupZombie() override;

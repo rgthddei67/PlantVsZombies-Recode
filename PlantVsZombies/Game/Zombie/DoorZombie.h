@@ -34,6 +34,8 @@ protected:
 
 public:
 	using Zombie::Zombie;
+	bool HasMagneticItem() const override;
+	bool ExtractMagneticItem(MagneticItem& item) override;
 
 	void HeadDrop() override;
 

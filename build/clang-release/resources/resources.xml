@@ -295,6 +295,7 @@
     <Sound>./resources/sounds/Plant/plant_onwater.ogg</Sound>
     <Sound>./resources/sounds/Plant/potato_mine.ogg</Sound>
     <Sound>./resources/sounds/Plant/frozen.ogg</Sound>
+    <Sound>./resources/sounds/Plant/magnetshroom.ogg</Sound>
 <Sound>./resources/sounds/Plant/snow_pea_sparkles.ogg</Sound>
     <Sound>./resources/sounds/Plant/squash_hmm.ogg</Sound>
     <Sound>./resources/sounds/Plant/squash_hmm2.ogg</Sound>
@@ -374,6 +375,7 @@
     <Reanimation name="SplitPea">./resources/reanim/SplitPea.reanim</Reanimation>
     <Reanimation name="Starfruit">./resources/reanim/Starfruit.reanim</Reanimation>
     <Reanimation name="Pumpkin">./resources/reanim/Pumpkin.reanim</Reanimation>
+    <Reanimation name="Magnetshroom">./resources/reanim/Magnetshroom.reanim</Reanimation>
 
     <Reanimation name="NormalZombie">./resources/reanim/NormalZombie.reanim</Reanimation>
     <Reanimation name="ConeZombie">./resources/reanim/ConeZombie.reanim</Reanimation>

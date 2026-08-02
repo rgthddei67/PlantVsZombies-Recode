@@ -1069,6 +1069,21 @@ Vector Zombie::GetVisualPosition() const {
 		+ mVisualOffset + Vector(0.0f, mTangleKelpSinkOffset);
 }
 
+bool Zombie::CanBeTargetedByMagnetShroom() const
+{
+	return !mIsPreview && !mIsDead && !mIsDying && !mIsMindControlled
+		&& mHasHead && IsActive() && HasMagneticItem();
+}
+
+Vector Zombie::GetTrackWorldPosition(const std::string& trackName) const
+{
+	const float scale = GetTransformComponent()
+		? GetTransformComponent()->GetScale() : 1.0f;
+	const Vector local = mAnimator
+		? mAnimator->GetTrackPosition(trackName) : Vector::zero();
+	return GetVisualPosition() + local * scale;
+}
+
 bool Zombie::CanBeTargetedByTangleKelp() const
 {
 	return !mIsPreview && !mIsDead && !mIsDying && !mIsMindControlled

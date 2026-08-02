@@ -37,7 +37,7 @@ void EliteDiggerZombie::OnPickaxeStunFinished()
 	DiggerZombie::OnPickaxeStunFinished();
 }
 
-/** 预警期间被吸走镐子会立即取消爆破并改为向房屋推进。 */
+/** 预警期间若通过调试或其他卸装路径丢镐，会立即取消爆破并改为向房屋推进。 */
 void EliteDiggerZombie::OnPickaxeLost(Phase previousPhase)
 {
 	if (previousPhase == Phase::STUNNED) {

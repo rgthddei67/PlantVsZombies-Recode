@@ -7,6 +7,7 @@
 #include "../Plant/Plant.h"
 #include "../ShadowComponent.h"
 #include "../../ParticleSystem/ParticleSystem.h"
+#include "../../ResourceKeys.h"
 #include "../../ResourceManager.h"
 
 #include <algorithm>
@@ -54,6 +55,9 @@ namespace {
 	constexpr float kLimbVolume = 0.25f;                    // 断肢、掉头与掉帽音量
 	constexpr int kCharredRemovalFrameWithPickaxe = 36;     // 主人确认的 anim_crumble 灰烬回收帧
 	constexpr int kCharredRemovalFrameWithoutPickaxe = 73;  // 主人确认的 anim_crumble_noaxe 灰烬回收帧
+	constexpr float kMagnetDestinationX = 45.0f;             // 镐子吸到磁力菇旁的局部 X 偏移，单位 px
+	constexpr float kMagnetDestinationY = 15.0f;             // 镐子吸到磁力菇旁的局部 Y 偏移，单位 px
+	constexpr float kMagnetDestinationJitter = 10.0f;        // 镐子落点随机扰动半径，单位 px
 
 	float EaseOut(float t)
 	{
@@ -306,6 +310,28 @@ void DiggerZombie::LosePickaxe()
 	UpdateFacing();
 }
 
+bool DiggerZombie::HasMagneticItem() const
+{
+	return mHasPickaxe && (mPhase == Phase::TUNNELING
+		|| mPhase == Phase::STUNNED
+		|| mPhase == Phase::WALKING_WITH_PICKAXE);
+}
+
+/** 先记录镐子的视觉状态，再复用正式丢镐状态机处理地下停顿或爆破取消。 */
+bool DiggerZombie::ExtractMagneticItem(MagneticItem& item)
+{
+	if (!HasMagneticItem()) return false;
+	item.textureKey = GetMagneticPickaxeImageKey();
+	item.worldPosition = GetTrackWorldPosition("Zombie_digger_pickaxe");
+	item.destinationOffset = Vector(
+		kMagnetDestinationX + GameRandom::Range(-kMagnetDestinationJitter,
+			kMagnetDestinationJitter),
+		kMagnetDestinationY + GameRandom::Range(-kMagnetDestinationJitter,
+			kMagnetDestinationJitter));
+	LosePickaxe();
+	return true;
+}
+
 void DiggerZombie::PlayWalkAnimation(float blendTime)
 {
 	const float velocity = mPhase == Phase::WALKING_WITH_PICKAXE
@@ -337,6 +363,11 @@ const std::string& DiggerZombie::GetDamagedHardhatTexture(bool heavilyDamaged) c
 const std::string& DiggerZombie::GetBrokenOuterArmTexture() const
 {
 	return ResourceKeys::Textures::IMAGE_ZOMBIE_DIGGER_OUTERARM_UPPER2;
+}
+
+const std::string& DiggerZombie::GetMagneticPickaxeImageKey() const
+{
+	return ResourceKeys::Textures::IMAGE_ZOMBIE_DIGGER_PICKAXE;
 }
 
 const char* DiggerZombie::GetHelmDropEffectName() const

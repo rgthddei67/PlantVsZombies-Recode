@@ -46,6 +46,15 @@ float PinkFootballZombie::GetAbilityAnimSpeedMultiplier() const
 	return kAnimationSpeedMultiplier;
 }
 
+const char* PinkFootballZombie::GetMagneticHelmetImageKey() const
+{
+	switch (mHelmStage) {
+	case ArmorBrokenState::A_LITTLE_BROKEN: return "IMAGE_ZOMBIE_PINKFOOTBALL_HELMET2";
+	case ArmorBrokenState::REALLY_BROKEN: return "IMAGE_ZOMBIE_PINKFOOTBALL_HELMET3";
+	default: return "IMAGE_ZOMBIE_PINKFOOTBALL_HELMET";
+	}
+}
+
 /**
  * @brief 第一次真正啃到植物时临时把本次伤害提升为 400，之后恢复 40。
  */

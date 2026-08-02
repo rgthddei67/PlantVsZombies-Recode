@@ -26,6 +26,9 @@ namespace {
 	constexpr float kLandingGap = 5.0f;                   // 越障落地后碰撞框与植物保留的间距，单位：px
 	constexpr float kContactRetentionGap = 10.0f;         // 落地查询允许的植物碰撞框水平间隙，单位：px
 	constexpr float kLimbVolume = 0.35f;                  // 跳跳断肢与掉头音量
+	constexpr float kMagnetDestinationX = 44.0f;          // 跳跳杆吸附到磁力菇头部附近的局部 X
+	constexpr float kMagnetDestinationY = 10.0f;          // 跳跳杆吸附到磁力菇头部附近的局部 Y
+	constexpr float kMagnetDestinationJitter = 10.0f;     // 离体装备落点随机扰动，单位 px
 }
 
 void PogoZombie::SetupZombie()
@@ -319,6 +322,21 @@ void PogoZombie::BreakPogo(bool emitParticle)
 	if (emitParticle && g_particleSystem) {
 		g_particleSystem->EmitEffect("ZombiePogo", particlePosition);
 	}
+}
+
+bool PogoZombie::ExtractMagneticItem(MagneticItem& item)
+{
+	if (!mHasPogo) return false;
+	item.textureKey = mHasArm
+		? ResourceKeys::Textures::IMAGE_ZOMBIE_POGO_STICK
+		: ResourceKeys::Textures::IMAGE_ZOMBIE_POGO_STICKDAMAGE2;
+	item.worldPosition = GetTrackWorldPosition("Zombie_pogo_stick");
+	item.destinationOffset = Vector(
+		kMagnetDestinationX + GameRandom::Range(-kMagnetDestinationJitter, kMagnetDestinationJitter),
+		kMagnetDestinationY + GameRandom::Range(-kMagnetDestinationJitter, kMagnetDestinationJitter));
+	item.drawScale = 0.8f;
+	BreakPogo(false);
+	return true;
 }
 
 void PogoZombie::PlayWalkAnimation(float blendTime)

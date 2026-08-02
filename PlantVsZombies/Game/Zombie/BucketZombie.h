@@ -9,6 +9,8 @@ public:
 	ArmorBrokenState mHelmStage = ArmorBrokenState::NO_BROKEN;
 
 	void HelmDrop() override;
+	bool HasMagneticItem() const override;
+	bool ExtractMagneticItem(MagneticItem& item) override;
 
 	void SaveExtraData(nlohmann::json& j) const override {
 		j["helmStage"] = static_cast<int>(mHelmStage);

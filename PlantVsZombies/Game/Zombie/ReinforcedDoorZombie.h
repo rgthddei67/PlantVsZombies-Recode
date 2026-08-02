@@ -17,6 +17,8 @@ public:
 	using DoorZombie::DoorZombie;
 
 	bool CanBeCharred() const override;
+	/** 加固门是本变体的核心能力，主人指定磁力菇不能将其卸除。 */
+	bool HasMagneticItem() const override { return false; }
 	bool CanBeCharmed() const override { return false; }
 	bool ResistsTangleKelpDrowning() const override {
 		return mShieldType != ShieldType::SHIELDTYPE_NONE;
