@@ -81,6 +81,7 @@ enum class AnimationType
 	ANIM_PUMPKIN, // 经典南瓜头；追加在末尾避免旧动画枚举值错位
 	ANIM_MAGNETSHROOM, // 经典磁力菇；追加在末尾避免旧动画枚举值错位
 	ANIM_ELITE_POGO_ZOMBIE, // 碳纤维精英跳跳；复用普通跳跳时间线
+	ANIM_TOXICPEASHOOTER, // 毒囊射手独立配色；复用豌豆射手时间线
 };
 
 #endif

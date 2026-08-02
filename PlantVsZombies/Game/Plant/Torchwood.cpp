@@ -21,6 +21,7 @@ void Torchwood::PlantUpdate()
 		Bullet* bullet = mBoard->mEntityManager.GetBullet(bulletID);
 		if (!bullet || !bullet->IsActive() || bullet->mRow != mRow) continue;
 		if (bullet->mBulletType != BulletType::BULLET_PEA
+			&& bullet->mBulletType != BulletType::BULLET_TOXICPEA
 			&& bullet->mBulletType != BulletType::BULLET_SNOWPEA) {
 			continue;
 		}
@@ -32,7 +33,8 @@ void Torchwood::PlantUpdate()
 			- std::max(attackLeft, bounds.x);
 		if (overlap < kMinimumOverlap) continue;
 
-		if (bullet->mBulletType == BulletType::BULLET_PEA) {
+		if (bullet->mBulletType == BulletType::BULLET_PEA
+			|| bullet->mBulletType == BulletType::BULLET_TOXICPEA) {
 			bullet->ConvertToFireball(mColumn);
 		}
 		else {

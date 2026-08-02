@@ -171,10 +171,14 @@ namespace ResourceKeys
 		RKEY(IMAGE_PROJECTILECACTUS);
 		RKEY(IMAGE_PROJECTILEPEA);
 		RKEY(IMAGE_PROJECTILESNOWPEA);
+		RKEY(IMAGE_PROJECTILETOXICPEA);
 		RKEY(IMAGE_PROJECTILE_STAR);
+		RKEY(IMAGE_REANIM_TOXICPEASHOOTER_HEAD);
+		RKEY(IMAGE_REANIM_TOXICPEASHOOTER_SPROUT);
 
 		// 植物图片（IMAGE_ + 大写文件名）
 		RKEY(IMAGE_PEASHOOTER);
+		RKEY(IMAGE_TOXICPEASHOOTER);
 		RKEY(IMAGE_SUNFLOWER);
 		RKEY(IMAGE_CHERRYBOMB);
 		RKEY(IMAGE_WALLNUT);
@@ -387,6 +391,7 @@ namespace ResourceKeys
 
 		inline const std::string REANIM_SUNFLOWER = "SunFlower";
 		inline const std::string REANIM_PEASHOOTER = "PeaShooter";
+		inline const std::string REANIM_TOXICPEASHOOTER = "ToxicPeaShooter";
 		inline const std::string REANIM_CHERRYBOMB = "CherryBomb";
 		inline const std::string REANIM_WALLNUT = "Wallnut";
 		inline const std::string REANIM_TALLNUT = "Tallnut";

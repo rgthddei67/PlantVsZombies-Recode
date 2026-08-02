@@ -61,6 +61,7 @@ enum class PlantType
 	PLANT_SPROUT,
 	PLANT_LEFTPEATER,
 	PLANT_ELITE_SCAREDYSHROOM,	// 精英胆小菇；追加在末尾以保持旧存档植物整数 ID
+	PLANT_TOXICPEASHOOTER,	// 毒囊射手；继续追加在末尾以保持旧存档植物整数 ID
 	NUM_PLANT_TYPES,
 };
 

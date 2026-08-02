@@ -154,13 +154,13 @@ namespace {
 		PT(PLANT_GATLINGPEA), PT(PLANT_TWINSUNFLOWER), PT(PLANT_GLOOMSHROOM), PT(PLANT_CATTAIL),
 		PT(PLANT_WINTERMELON), PT(PLANT_GOLD_MAGNET), PT(PLANT_SPIKEROCK), PT(PLANT_COBCANNON),
 		PT(PLANT_IMITATER), PT(PLANT_EXPLODE_O_NUT), PT(PLANT_GIANT_WALLNUT), PT(PLANT_SPROUT),
-		PT(PLANT_LEFTPEATER), PT(PLANT_ELITE_SCAREDYSHROOM),
+		PT(PLANT_LEFTPEATER), PT(PLANT_ELITE_SCAREDYSHROOM), PT(PLANT_TOXICPEASHOOTER),
 	};
 #undef PT
 #define BT(n) { #n, BulletType::n }
 	const std::unordered_map<std::string, BulletType> kBulletNames = {
 		BT(BULLET_PEA), BT(BULLET_SNOWPEA), BT(BULLET_PUFF), BT(BULLET_FIREBALL),
-		BT(BULLET_SPIKE), BT(BULLET_STAR),
+		BT(BULLET_SPIKE), BT(BULLET_STAR), BT(BULLET_TOXICPEA),
 	};
 #undef BT
 #define ZT(n) { #n, ZombieType::n }
@@ -1674,6 +1674,18 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		{ "diggerPickaxeLoaded", ResourceManager::GetInstance().GetTexture(
 			ResourceKeys::Textures::IMAGE_ZOMBIE_DIGGER_PICKAXE, false) != nullptr },
 	};
+	out["toxicPeaResources"] = {
+		{ "reanimationLoaded", ResourceManager::GetInstance().HasReanimation(
+			ResourceKeys::Reanimations::REANIM_TOXICPEASHOOTER) },
+		{ "cardLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_TOXICPEASHOOTER, false) != nullptr },
+		{ "projectileLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_PROJECTILETOXICPEA, false) != nullptr },
+		{ "headLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_REANIM_TOXICPEASHOOTER_HEAD, false) != nullptr },
+		{ "tailLeafLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_REANIM_TOXICPEASHOOTER_SPROUT, false) != nullptr },
+	};
 	out["pogoResources"] = {
 		{ "reanimationLoaded", ResourceManager::GetInstance().HasReanimation(
 			ResourceKeys::Reanimations::REANIM_POGO_ZOMBIE) },
@@ -2318,6 +2330,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	int zombieBodyHealthTotal = 0;
 	int zombieShieldHealthTotal = 0;
 	int slowedZombieCount = 0;
+	int toxicZombieCount = 0;
 	int fireResistantZombieCount = 0;
 	for (int id : board->mEntityManager.GetAllZombieIDs()) {
 		Zombie* z = board->mEntityManager.GetZombie(id);
@@ -2342,6 +2355,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		zombieBodyHealthTotal += z->mBodyHealth;
 		zombieShieldHealthTotal += z->mShieldHealth;
 		if (z->GetCooldownTimer() > 0.0f) ++slowedZombieCount;
+		if (z->GetToxinLayerCount() > 0) ++toxicZombieCount;
 		if (z->IsFireResistant()) ++fireResistantZombieCount;
 		const Vector pos = z->GetPosition();
 		const auto anim = z->GetAnimatorInternal();
@@ -2376,6 +2390,12 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			// frozen 供 assert_state（bool 可 equals）；frozenTimer 浮点仅供肉眼核对勿断言
 			{ "frozen", z->IsFrozen() },
 			{ "frozenTimer", z->GetFrozenTimer() },
+			{ "toxic", z->GetToxinLayerCount() > 0 },
+			{ "toxinStacks", z->GetToxinLayerCount() },
+			{ "toxinMaxRemainingMs", static_cast<int>(std::lround(
+				z->GetToxinMaxRemaining() * 1000.0f)) },
+			{ "toxinDamageRemainderOn1000", static_cast<int>(std::lround(
+				z->GetToxinDamageRemainder() * 1000.0f)) },
 			{ "track", z->GetCurrentTrackName() },
 			{ "flipX", anim && anim->GetFlipX() },
 			{ "animPlaying", anim && anim->IsPlaying() },
@@ -2676,6 +2696,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["zombieBodyHealthTotal"] = zombieBodyHealthTotal;
 	out["zombieShieldHealthTotal"] = zombieShieldHealthTotal;
 	out["slowedZombieCount"] = slowedZombieCount;
+	out["toxicZombieCount"] = toxicZombieCount;
 	out["fireResistantZombieCount"] = fireResistantZombieCount;
 
 	out["plants"] = nlohmann::json::array();
@@ -3185,6 +3206,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	int backwardPeaBulletCount = 0;
 	int snowPeaBulletCount = 0;
 	int fireballBulletCount = 0;
+	int toxicPeaBulletCount = 0;
 	int spikeBulletCount = 0;
 	int starBulletCount = 0;
 	int starLeftBulletCount = 0;
@@ -3219,6 +3241,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		}
 		else if (bullet->mBulletType == BulletType::BULLET_SNOWPEA) ++snowPeaBulletCount;
 		else if (bullet->mBulletType == BulletType::BULLET_FIREBALL) ++fireballBulletCount;
+		else if (bullet->mBulletType == BulletType::BULLET_TOXICPEA) ++toxicPeaBulletCount;
 		else if (bullet->mBulletType == BulletType::BULLET_STAR) {
 			++starBulletCount;
 			if (bullet->GetRotationSpeedDegrees() != 0.0f) {
@@ -3276,6 +3299,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["backwardPeaBulletCount"] = backwardPeaBulletCount;
 	out["snowPeaBulletCount"] = snowPeaBulletCount;
 	out["fireballBulletCount"] = fireballBulletCount;
+	out["toxicPeaBulletCount"] = toxicPeaBulletCount;
 	out["spikeBulletCount"] = spikeBulletCount;
 	out["starBulletCount"] = starBulletCount;
 	out["starLeftBulletCount"] = starLeftBulletCount;

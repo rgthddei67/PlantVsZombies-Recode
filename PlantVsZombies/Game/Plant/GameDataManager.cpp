@@ -13,6 +13,7 @@
 #include "../Board.h"
 
 #include "PeaShooter.h"
+#include "ToxicPeaShooter.h"
 #include "SunFlower.h"
 #include "CherryBomb.h"
 #include "WallNut.h"
@@ -140,6 +141,11 @@ void GameDataManager::InitializeHardcodedData() {
 		ResourceKeys::Textures::IMAGE_PEASHOOTER,
 		AnimationType::ANIM_PEASHOOTER,
 		ResourceKeys::Reanimations::REANIM_PEASHOOTER, &MakePlant<PeaShooter>);
+
+	RegisterPlant(PlantType::PLANT_TOXICPEASHOOTER, "PLANT_TOXICPEASHOOTER",
+		ResourceKeys::Textures::IMAGE_TOXICPEASHOOTER,
+		AnimationType::ANIM_TOXICPEASHOOTER,
+		ResourceKeys::Reanimations::REANIM_TOXICPEASHOOTER, &MakePlant<ToxicPeaShooter>);
 
 	RegisterPlant(PlantType::PLANT_CHERRYBOMB, "PLANT_CHERRYBOMB",
 		ResourceKeys::Textures::IMAGE_CHERRYBOMB,

@@ -29,6 +29,9 @@ namespace {
 	constexpr int kMaxGoldenIceEffectStacks = 8;           // 独立黄色冰道来源计层的安全上限，防止极端调试生成导致倍率溢出
 	constexpr float kEatingTargetRetentionGap = 6.0f;      // 跳跃受阻后允许僵尸隔空啃食的最大碰撞箱间隙，单位：像素
 	constexpr float kHitGlowDuration = 0.1f;               // 本体与二类护盾受击白光持续时间，单位：游戏秒
+	constexpr float kToxinLayerDuration = 6.0f;            // 单层毒素持续时间，单位：游戏秒
+	constexpr float kToxinDamagePerSecond = 2.0f;          // 单层毒素每秒伤害；满四层为 8 DPS
+	constexpr float kToxinDamageEpsilon = 0.0001f;         // 浮点取整容差，避免整点伤害因误差延迟一帧
 
 	/** 对齐 C# AnimateChewSound：坚硬防御植物使用 ChompSoft，其他植物使用普通 Chomp。 */
 	bool UsesSoftChewSound(PlantType type)
@@ -160,6 +163,8 @@ void Zombie::SaveProtectedData(nlohmann::json& j) const {
 	j["speed"] = mSpeed;
 	j["cooldownTimer"] = mCooldownTimer;
 	j["frozenTimer"] = mFrozenTimer;
+	j["toxinLayerTimers"] = mToxinLayerTimers;
+	j["toxinDamageRemainder"] = mToxinDamageRemainder;
 	j["dyingTimer"] = mDyingTimer;
 	j["tangleKelpPlantID"] = mTangleKelpPlantID;
 	j["draggedUnderByTangleKelp"] = mDraggedUnderByTangleKelp;
@@ -171,10 +176,6 @@ void Zombie::SaveProtectedData(nlohmann::json& j) const {
 
 void Zombie::LoadProtectedData(const nlohmann::json& j) {
 	mIsMindControlled = j.value("isMindControlled", false);
-	// 魅惑是持久状态，掩码/红光是派生状态：读档按标志重建（存档只存布尔）
-	if (mIsMindControlled) {
-		ApplyCharmEffects();
-	}
 	mFreeHitsRemaining = j.value("freeHitsRemaining", 0);   // 旧档缺字段→0
 	mIsEating = j.value("isEating", false);
 	mEatPlantID = j.value("eatPlantID", NULL_PLANT_ID);
@@ -202,9 +203,29 @@ void Zombie::LoadProtectedData(const nlohmann::json& j) {
 	mFrozenTimer = j.value("frozenTimer", 0.0f);
 	if (mFrozenTimer > 0.0f && mAnimator) {
 		UpdateAnimSpeed();
-		// 冻结自带蓝光：持盾僵尸吃不到上面 SetCooldown 那份（它直接 no-op），这里补上
-		mAnimator->EnableOverlayEffect(true);
-		mAnimator->SetOverlayColor(80, 80, 255, 240);
+	}
+
+	mToxinLayerTimers.fill(0.0f);
+	if (const auto it = j.find("toxinLayerTimers"); it != j.end() && it->is_array()) {
+		const std::size_t count = std::min(it->size(), mToxinLayerTimers.size());
+		for (std::size_t index = 0; index < count; ++index) {
+			mToxinLayerTimers[index] = std::clamp(
+				(*it)[index].get<float>(), 0.0f, kToxinLayerDuration);
+		}
+	}
+	mToxinDamageRemainder = std::clamp(
+		j.value("toxinDamageRemainder", 0.0f), 0.0f, 0.9999f);
+	// 魅惑状态不允许携带任何敌对植物的延迟伤害；旧档也在这里归一化。
+	if (mIsMindControlled) {
+		mCooldownTimer = 0.0f;
+		mFrozenTimer = 0.0f;
+		mToxinLayerTimers.fill(0.0f);
+		mToxinDamageRemainder = 0.0f;
+		UpdateAnimSpeed();
+		ApplyCharmEffects();
+	}
+	else {
+		UpdateStatusOverlay();
 	}
 
 	// 如果播放死亡动画，禁用碰撞箱（判空与 Die/预览路径一致：预览僵尸已移除碰撞箱、mCollider=null）
@@ -335,6 +356,10 @@ void Zombie::Update()
 
 		if (!transform || !mBoard) return;
 
+		// 毒素不受减速、冻结、啃食和水草早退影响，因此在所有行为状态分支之前结算。
+		UpdateToxin(deltaTime);
+		if (!IsActive()) return;
+
 		if (mTangleKelpPlantID != NULL_PLANT_ID
 			&& !mBoard->mEntityManager.GetPlant(mTangleKelpPlantID)) {
 			ClearOrphanedTangleKelpGrab();
@@ -372,7 +397,7 @@ void Zombie::Update()
 			{
 				mCooldownTimer = 0.0f;
 				UpdateAnimSpeed();
-				if (mAnimator) mAnimator->EnableOverlayEffect(false);
+				UpdateStatusOverlay();
 			}
 		}
 
@@ -590,17 +615,10 @@ void Zombie::SetCooldown(float timer, bool bypassShield)
 {
 	if (!mAnimator || (mShieldType != ShieldType::SHIELDTYPE_NONE && !bypassShield)) return;
 
-	// 首次进入减速：蓝色 overlay。速度经 UpdateAnimSpeed 统一收敛（extra 层，
-	// 后续 PlayTrack / SetSpeed 不会覆盖；冻结中保持停格不被顶掉）。
-	if (mCooldownTimer <= 0.0f)
-	{
-		mAnimator->EnableOverlayEffect(true);
-		mAnimator->SetOverlayColor(80, 80, 255, 240);
-	}
-
 	// 已在减速中则取 max，避免短射缩短减速
 	mCooldownTimer = std::max(mCooldownTimer, timer);
 	UpdateAnimSpeed();
+	UpdateStatusOverlay();
 }
 
 void Zombie::UpdateAnimSpeed()
@@ -689,13 +707,7 @@ bool Zombie::StartFrozen()
 		? GameRandom::Range(3.0f, 4.0f)    // 已减速/已冻再冻缩短（原版 300~400cs，防连放无限定身）
 		: GameRandom::Range(4.0f, 6.0f);   // 首冻（原版 400~600cs）
 	UpdateAnimSpeed();
-
-	// 冻结自带蓝色 overlay（与减速共用同色）：持盾僵尸吃不到 SetCooldown 的那份，也要变蓝
-	if (mAnimator)
-	{
-		mAnimator->EnableOverlayEffect(true);
-		mAnimator->SetOverlayColor(80, 80, 255, 240);
-	}
+	UpdateStatusOverlay();
 
 	// 附带 20 点伤害（原版 HitIceTrap 固定值，在免疫判定之后——魅惑/跳跃中撑杆不掉血）。
 	// 走 TakeDamage 正常链（护盾→头盔→本体）；先停格再结算：报纸狂暴等
@@ -708,11 +720,7 @@ void Zombie::ClearFrozen()
 {
 	mFrozenTimer = 0.0f;
 	UpdateAnimSpeed();
-	// 减速尾巴仍在则蓝光归它管（到期自清）；没有尾巴（持盾）立即褪色
-	if (mCooldownTimer <= 0.0f && mAnimator)
-	{
-		mAnimator->EnableOverlayEffect(false);
-	}
+	UpdateStatusOverlay();
 }
 
 void Zombie::RemoveColdEffects()
@@ -722,7 +730,93 @@ void Zombie::RemoveColdEffects()
 	mCooldownTimer = 0.0f;
 	mFrozenTimer = 0.0f;
 	UpdateAnimSpeed();
-	if (mAnimator && !mIsMindControlled) {
+	UpdateStatusOverlay();
+}
+
+int Zombie::GetToxinLayerCount() const
+{
+	return static_cast<int>(std::count_if(
+		mToxinLayerTimers.begin(), mToxinLayerTimers.end(),
+		[](float timer) { return timer > 0.0f; }));
+}
+
+float Zombie::GetToxinMaxRemaining() const
+{
+	return *std::max_element(mToxinLayerTimers.begin(), mToxinLayerTimers.end());
+}
+
+bool Zombie::ApplyToxinStack()
+{
+	if (mIsPreview || mIsDead || mIsDying || mIsMindControlled || !IsActive()) return false;
+
+	auto slot = std::find_if(mToxinLayerTimers.begin(), mToxinLayerTimers.end(),
+		[](float timer) { return timer <= 0.0f; });
+	if (slot == mToxinLayerTimers.end()) {
+		// 满层后只刷新最早到期的一层，所有毒囊射手共同受此目标级上限约束。
+		slot = std::min_element(mToxinLayerTimers.begin(), mToxinLayerTimers.end());
+	}
+	*slot = kToxinLayerDuration;
+	UpdateStatusOverlay();
+	return true;
+}
+
+void Zombie::ClearToxin()
+{
+	mToxinLayerTimers.fill(0.0f);
+	mToxinDamageRemainder = 0.0f;
+	UpdateStatusOverlay();
+}
+
+void Zombie::UpdateToxin(float deltaTime)
+{
+	if (GetToxinLayerCount() == 0) return;
+	if (mIsDead || mIsDying || mIsMindControlled) {
+		ClearToxin();
+		return;
+	}
+	if (deltaTime <= 0.0f) return;
+
+	float activeLayerSeconds = 0.0f;
+	for (float& timer : mToxinLayerTimers) {
+		if (timer <= 0.0f) continue;
+		activeLayerSeconds += std::min(timer, deltaTime);
+		timer = std::max(0.0f, timer - deltaTime);
+	}
+
+	mToxinDamageRemainder += activeLayerSeconds * kToxinDamagePerSecond;
+	const int damage = static_cast<int>(
+		std::floor(mToxinDamageRemainder + kToxinDamageEpsilon));
+	if (damage > 0) {
+		mToxinDamageRemainder = std::max(0.0f, mToxinDamageRemainder - damage);
+		// 速度 0 表示从正面命中当前防护层；毒伤永不以背击规则绕过门板。
+		// 每点分别走正式链，避免高倍速长帧把多次毒跳合并成一次免伤/词条结算。
+		for (int point = 0; point < damage; ++point) {
+			TakeProjectileDamage(1, DamageSource::PLANT, 0.0f);
+			if (!IsActive()) return;
+		}
+	}
+	if (GetToxinLayerCount() == 0) {
+		mToxinDamageRemainder = 0.0f;
+	}
+	UpdateStatusOverlay();
+}
+
+void Zombie::UpdateStatusOverlay()
+{
+	if (!mAnimator) return;
+	if (mIsMindControlled) {
+		mAnimator->EnableOverlayEffect(true);
+		mAnimator->SetOverlayColor(255, 64, 64, 160);
+	}
+	else if (mFrozenTimer > 0.0f || mCooldownTimer > 0.0f) {
+		mAnimator->EnableOverlayEffect(true);
+		mAnimator->SetOverlayColor(80, 80, 255, 240);
+	}
+	else if (GetToxinLayerCount() > 0) {
+		mAnimator->EnableOverlayEffect(true);
+		mAnimator->SetOverlayColor(175, 70, 215, 180);
+	}
+	else {
 		mAnimator->EnableOverlayEffect(false);
 	}
 }
@@ -760,10 +854,9 @@ void Zombie::ApplyCharmEffects()
 		mCollider->layerMask = CollisionLayer::CHARMED;
 		mCollider->collisionMask = CollisionLayer::ZOMBIE;
 	}
-	// 视觉：红光。overlay 与减速蓝光共用——调用方已保证减速被清、且魅惑后子弹打不中不会再有新减速。
+	// 视觉：魅惑红光优先于所有其他共享 overlay 的状态。
 	if (mAnimator) {
-		mAnimator->EnableOverlayEffect(true);
-		mAnimator->SetOverlayColor(255, 64, 64, 160);
+		UpdateStatusOverlay();
 		mAnimator->SetFlipX(true, 48.0f);   // 支点≈身体中线（动画局部坐标），截图目验后微调
 	}
 }
@@ -806,6 +899,7 @@ void Zombie::StartMindControlled()
 		mFrozenTimer = 0.0f;
 		UpdateAnimSpeed();
 	}
+	ClearToxin();
 
 	// 如果是最后一波的最后一个僵尸，魅惑后就不会再有僵尸了，直接死亡
 	if (mBoard && mBoard->mCurrentWave == mBoard->mMaxWave && mBoard->mZombieNumber == 1)
@@ -1040,6 +1134,8 @@ void Zombie::Die()
 	// 此刻 weak_ptr 尚未过期）。重复执行会把 mZombieNumber 多扣一次，导致计数提前归零。
 	if (mIsDead) return;
 	mIsDead = true;
+	mToxinLayerTimers.fill(0.0f);
+	mToxinDamageRemainder = 0.0f;
 
 	// 若死亡时仍在啃食植物，手动清理啃食状态（防止 mEaterCount 无法归零）
 	if (mIsEating && mEatPlantID != NULL_PLANT_ID && mBoard) {

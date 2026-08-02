@@ -23,6 +23,7 @@ description: Use when adding ANY new plant (新增植物) to PvZ — 射手/生�
 2. **读 C# 参考并主动盘点音效**：`D:\PVZ\PlantsVsZombies.NET-master\Lawn_Shared\Lawn\Plant\Plant.cs`，grep 植物名，读专属 Update 函数 + 发射物类型 + mShootingCounter/state 分支，数值忠实原版；同时收集相关路径的全部 `PlayFoley` / `PlaySample`，不要等主人听出缺声才补。受啃、受击等由外部对象触发的反馈还必须搜索消费方（例如 `Zombie::AnimateChewSound` 会按植物类型选择 `ChompSoft`），不能只读 `Plant.cs`。沿 `FoleyType → Sexy.TodLib/Foley/TodFoley.cs → Resources.SOUND_*` 得到精确资源键，以资源键去掉 `SOUND_` 后的小写名到 `D:\PVZ\中文年度加强版完整版\Test\sounds\` 查同名 `.ogg`。找到后复制到唯一权威 `build/clang-release/resources/sounds/` 合理子目录，并同步 `resources.xml` 与 `ResourceKeys.h`；找不到才问主人，禁止用相近声音静默替代。构建后检查 `manifest.txt` 和启动日志无 missing sound，并用可见行为路径及 `GetSoundPlayRequestCount` 投影验证触发次数（含读档不得重响）。
 3. **盘点已就位的基建**（常常提前有了，别重复加）：`PlantType.h` 枚举、`TestDriver.cpp` kPlantNames、`ResourceKeys.h` RKEY、`AnimationTypes.h`、卡片图 `PlantImage/<Name>.png`、reanim 部件图。缺哪补哪。
    `image/reanim/` 全目录预加载生成 `IMAGE_<文件名大写>`；只有被 reanim XML 的 `<i>` 直接引用的部件才会额外获得 `IMAGE_REANIM_*` 别名。运行时动态换入、但不在 XML 时间线出现的受伤材质必须用前者。更新派生阶段时先确认 `GetTexture` 非空，再提交阶段缓存，避免“状态断言通过、画面仍是旧图”的假绿。
+   派生换色必须逐个核对目标 reanim 的实际 `<i>` 资源键，不能从 track 名或文件名猜部件归属：名字像 `backleaf` 的轨道可能属于地面叶座，头后小叶反而可能引用共享 `ANIM_SPROUT`。只给真正需要变色的共享部件派生独立纹理并替换新 reanim 的键，原植物仍保留共享资源；AutoTest 为该独立键增加 `GetTexture(key,false)` 断言并截图。
 
 ## 实现清单
 
@@ -103,6 +104,8 @@ description: Use when adding ANY new plant (新增植物) to PvZ — 射手/生�
 9. **视觉反馈别耦合在别的效果上**：蓝色 overlay 原先绑在减速里，持盾僵尸免减速→冻结了却不变蓝（主人一眼抓出）。新状态的视觉在自己的入口/出口开关，别搭别的状态的便车。
 10. **豁免语义连伤害一起豁免**：原版 HitIceTrap 的 20 伤害在免疫判定**之后**——魅惑/跳跃中撑杆连血都不掉。把"伤害+状态"整体放进 StartXxx()，别在植物侧拆开无差别结算。
 11. **dump_state 加字段 + assert**（仿 `slowCooldown`/`frozen`/`armVisible`），否则 AutoTest 对新状态是瞎的。浮点计时器另配一个 bool 投影字段供 equals。
+12. **共享 overlay 必须单点合成优先级**：魅惑、冻结/减速、中毒等共用 Animator overlay 时，让 `UpdateStatusOverlay()` 从全部权威状态派生最终颜色；每个进入、到期、清除、魅惑与读档路径都调用它。禁止某状态结束时直接 `EnableOverlayEffect(false)`，否则会抹掉仍有效的较低优先级状态。
+13. **目标级持续伤害要保存完整时间状态**：共享层数上限放在目标实体，独立层保存各自剩余时间；跨帧小数余量按未减速的游戏 `deltaTime` 累积并与计时器一起入档，旧档默认中性。规格若要求魅惑清除延迟伤害，唯一魅惑入口和读档归一化都要清层；不绕盾的毒伤继续走 `TakeProjectileDamage(..., velocityX=0)`。专项覆盖满层后的刷新、存读档、魅惑、护盾以及不同 `timeScale` 下相同游戏时间等伤。
 
 **动画子弹与对象池附加清单**（Torchwood/FirePea 实证）：
 

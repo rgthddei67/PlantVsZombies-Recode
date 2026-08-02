@@ -133,6 +133,7 @@
     <Image>./resources/image/PlantImage/Marigold.png</Image>
     <Image>./resources/image/PlantImage/Melonpult.png</Image>
     <Image>./resources/image/PlantImage/PeaShooter.png</Image>
+    <Image>./resources/image/PlantImage/ToxicPeaShooter.png</Image>
     <Image>./resources/image/PlantImage/Plantern.png</Image>
     <Image>./resources/image/PlantImage/plantshadow.png</Image>
     <Image>./resources/image/PlantImage/plantshadow2.png</Image>
@@ -161,6 +162,7 @@
     <Image>./resources/image/ProjectileCactus.png</Image>
     <Image>./resources/image/ProjectilePea.png</Image>
     <Image>./resources/image/ProjectileSnowPea.png</Image>
+    <Image>./resources/image/ProjectileToxicPea.png</Image>
     <Image>./resources/image/Projectile_star.png</Image>
     <Image>./resources/image/PuffShroom_puff1.png</Image>
     <Image>./resources/image/PuffShroom_puff2.png</Image>
@@ -349,6 +351,7 @@
 
     <Reanimation name="SunFlower">./resources/reanim/SunFlower.reanim</Reanimation>
     <Reanimation name="PeaShooter">./resources/reanim/PeaShooter.reanim</Reanimation>
+    <Reanimation name="ToxicPeaShooter">./resources/reanim/ToxicPeaShooter.reanim</Reanimation>
     <Reanimation name="CherryBomb">./resources/reanim/CherryBomb.reanim</Reanimation>
     <Reanimation name="Wallnut">./resources/reanim/Wallnut.reanim</Reanimation>
     <Reanimation name="PotatoMine">./resources/reanim/PotatoMine.reanim</Reanimation>

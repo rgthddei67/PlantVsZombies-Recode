@@ -15,6 +15,7 @@
 
 namespace {
 	constexpr int kPeaDamage = 20;                    // 普通/寒冰/孢子基础伤害
+	constexpr int kToxicPeaDamage = 15;               // 毒豆直击伤害；持续伤害由目标僵尸结算
 	constexpr int kFireballDamage = 40;               // 火豌豆基础伤害，原版为普通豌豆两倍
 	constexpr int kSpikeFrameDamage = 2;              // 仙人掌尖刺在 1x 下每个逻辑碰撞帧的基础伤害
 	constexpr std::size_t kSpikePierceLimit = 4;       // 尖刺接触第四只不同僵尸后消失
@@ -63,6 +64,7 @@ namespace {
 		{ BulletType::BULLET_COBBIG,     BulletWindResponse::NONE },
 		{ BulletType::BULLET_BUTTER,     BulletWindResponse::NONE },
 		{ BulletType::BULLET_ZOMBIE_PEA, BulletWindResponse::NONE },
+		{ BulletType::BULLET_TOXICPEA,   BulletWindResponse::LIGHT_PROJECTILE },
 	};
 
 	constexpr bool BulletWindProfilesCoverEveryType()
@@ -92,6 +94,7 @@ namespace {
 	{
 		if (type == BulletType::BULLET_FIREBALL) return kFireballDamage;
 		if (type == BulletType::BULLET_SPIKE) return kSpikeFrameDamage;
+		if (type == BulletType::BULLET_TOXICPEA) return kToxicPeaDamage;
 		return kPeaDamage;
 	}
 
@@ -397,6 +400,10 @@ void Bullet::BulletHitZombie(Zombie* zombie)
 	// 风力先修正本发子弹的基础伤害，生存词条仍在 Zombie::TakeDamage 中统一且只缩放一次。
 	zombie->TakeProjectileDamage(
 		GetWindAdjustedDamage(), DamageSource::PLANT, mVelocityX);
+	// 直击死亡、魅惑或对象已回收时不得留下延迟伤害；具体门禁由目标集中维护。
+	if (mBulletType == BulletType::BULLET_TOXICPEA) {
+		zombie->ApplyToxinStack();
+	}
 
 	if (mBulletType == BulletType::BULLET_SNOWPEA) {
 		if (canBeChilled) {
@@ -415,7 +422,8 @@ void Bullet::BulletHitZombie(Zombie* zombie)
 			g_particleSystem->EmitEffect("PuffShroomHit", GetPosition());
 		}
 	}
-	else if (mBulletType == BulletType::BULLET_PEA) {
+	else if (mBulletType == BulletType::BULLET_PEA
+		|| mBulletType == BulletType::BULLET_TOXICPEA) {
 		if (g_particleSystem) {
 			g_particleSystem->EmitEffect("PeaBulletHit", GetPosition());
 		}
@@ -441,6 +449,9 @@ void Bullet::ConfigurePresentation()
 		break;
 	case BulletType::BULLET_SNOWPEA:
 		mTexture = resources.GetTexture(ResourceKeys::Textures::IMAGE_PROJECTILESNOWPEA);
+		break;
+	case BulletType::BULLET_TOXICPEA:
+		mTexture = resources.GetTexture(ResourceKeys::Textures::IMAGE_PROJECTILETOXICPEA);
 		break;
 	case BulletType::BULLET_PUFF:
 		mTexture = resources.GetTexture("IMAGE_PUFFSHROOM_PUFF1");
@@ -551,7 +562,8 @@ void Bullet::SetVelocityX(float x)
 
 void Bullet::ConvertToFireball(int torchwoodColumn)
 {
-	if (mBulletType != BulletType::BULLET_PEA
+	if ((mBulletType != BulletType::BULLET_PEA
+		&& mBulletType != BulletType::BULLET_TOXICPEA)
 		|| mHitTorchwoodColumn == torchwoodColumn) {
 		return;
 	}

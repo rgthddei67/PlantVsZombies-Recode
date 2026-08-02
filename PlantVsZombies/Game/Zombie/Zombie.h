@@ -12,6 +12,7 @@
 #include "../DamageSource.h"
 #include <nlohmann/json.hpp>
 #include <algorithm>
+#include <array>
 
 class Board;
 class Plant;
@@ -52,6 +53,8 @@ protected:
 
 	float mCooldownTimer = 0.0f;	// 僵尸减速倒计时时间
 	float mFrozenTimer = 0.0f;		// 冻结剩余秒数（寒冰菇完全定身），0=未冻结
+	std::array<float, 4> mToxinLayerTimers{};	// 每层独立剩余秒数；四格即每只僵尸的共享上限
+	float mToxinDamageRemainder = 0.0f;	// 跨帧保留未满 1 点的持续伤害，保证倍速下总量稳定
 
 	bool mIsMindControlled = false;	//有没有被魅惑
 	bool mInPool = false;	// 水路介质状态；由基类双探针统一维护，所有僵尸共享
@@ -228,6 +231,13 @@ public:
 	float GetCooldownTimer() const { return this->mCooldownTimer; }
 	bool IsFrozen() const { return this->mFrozenTimer > 0.0f; }
 	float GetFrozenTimer() const { return this->mFrozenTimer; }
+	/** 命中时增加毒层；满四层则刷新剩余时间最短的一层。 */
+	bool ApplyToxinStack();
+	/** 清除全部毒层及尚未结算的小数伤害。 */
+	void ClearToxin();
+	int GetToxinLayerCount() const;
+	float GetToxinMaxRemaining() const;
+	float GetToxinDamageRemainder() const { return mToxinDamageRemainder; }
 	bool IsGoldenIceSpeedActive() const { return mGoldenIceEffectStacks > 0; }
 	int GetGoldenIceEffectStacks() const { return mGoldenIceEffectStacks; }
 	/** 同时清除减速与冻结，并恢复当前天气/能力组合后的动画速度。 */
@@ -304,8 +314,12 @@ protected:
 	float AmplifySpeedMultiplierForGoldenIce(float multiplier) const;
 	/** 在跨入、离开、叠层变化或冰道消失的边沿刷新 Animator 速度组合。 */
 	void RefreshGoldenIceSpeedState();
-	// 解除冻结并恢复动画速度；蓝色 overlay 仅在无减速尾巴时清除（持盾僵尸没有尾巴→立即褪色）
+	// 解除冻结并恢复动画速度；最终染色由全部剩余状态统一派生。
 	void ClearFrozen();
+	/** 按未减速的游戏时间推进毒层，并沿普通投射物伤害链结算。 */
+	void UpdateToxin(float deltaTime);
+	/** 统一应用魅惑、寒冷和中毒共享的 Animator overlay 优先级。 */
+	void UpdateStatusOverlay();
 
 	/** 叠加活动阵风的物理漂移；不依赖自主行走、啃食、冻结或魅惑方向。 */
 	void ApplyTyphoonGustDrift(float deltaTime, TransformComponent* transform);

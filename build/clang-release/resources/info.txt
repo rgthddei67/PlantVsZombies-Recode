@@ -2,6 +2,10 @@
 豌豆射手
 [PLANT_PEASHOOTER_DESCRIPTION]
 豌豆射手可以向僵尸发射豌豆。"我从小就立志要成为一名枪手，"豌豆射手说，"整个大学我都在练习射击。我已经作好了准备。"
+[PLANT_TOXICPEASHOOTER]
+毒囊射手
+[PLANT_TOXICPEASHOOTER_DESCRIPTION]
+毒囊射手的毒豆造成15点直击伤害，并留下持续6秒的毒素；同一僵尸最多共享4层。毒豆穿过火炬树桩后会变成普通火球。"毒性不在剂量，在于节奏。"毒囊射手认真地说。
 [PLANT_SUNFLOWER]
 向日葵
 [PLANT_SUNFLOWER_DESCRIPTION]

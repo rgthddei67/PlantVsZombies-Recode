@@ -60,7 +60,7 @@ namespace AdventureProgression
 		PlantType::PLANT_STARFRUIT,
 		PlantType::PLANT_PUMPKINSHELL,
 		PlantType::PLANT_MAGNETSHROOM,
-		NO_PLANT_REWARD,
+		PlantType::PLANT_TOXICPEASHOOTER,
 		PlantType::PLANT_CABBAGEPULT,
 
 		// 5-1 ... 5-9（屋顶；5-9 为最终 Boss 关）
@@ -107,6 +107,7 @@ namespace AdventureProgression
 	static_assert(GetPlantReward(17) == PlantType::PLANT_ELITE_SCAREDYSHROOM);
 	static_assert(GetPlantReward(19) == PlantType::PLANT_SQUASH);
 	static_assert(GetPlantReward(27) == PlantType::PLANT_SEASHROOM);
+	static_assert(GetPlantReward(35) == PlantType::PLANT_TOXICPEASHOOTER);
 	static_assert(GetAreaNumber(18) == 2 && GetLevelNumberInArea(18) == 9);
 	static_assert(GetAreaNumber(19) == 3 && GetLevelNumberInArea(19) == 1);
 }

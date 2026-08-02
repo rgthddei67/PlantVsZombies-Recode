@@ -59,6 +59,7 @@ std::shared_ptr<Bullet> BulletPool::AcquireShared(Board* board, BulletType type,
 	// TODO: 新增子弹修改我
 	switch (type) {
 	case BulletType::BULLET_PEA:
+	case BulletType::BULLET_TOXICPEA:
 		bullet = GameObjectManager::GetInstance().CreateGameObjectImmediateAsShared<PeaBullet>(
 			LAYER_GAME_BULLET,
 			board, type, row, colliderRadius, position);

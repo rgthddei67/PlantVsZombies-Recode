@@ -4,7 +4,7 @@ description: 经典火炬树桩、运行时子弹换型、FirePea 全时间轴�
 metadata:
   node_type: memory
   type: project
-  updated_at: 2026-07-31
+  updated_at: 2026-08-02
 ---
 
 # 火炬树桩与动画火豌豆
@@ -38,3 +38,5 @@ metadata:
 穿过身后火炬后，直击目标共受 80 点、其左侧次要目标共受 26 点；同步截图后
 `FireballImpact` 相对直击目标中心 X 为 -8px 且矩形相交。修复前同一取证为 +68px，
 并且溅射固定落在命中点右侧。
+
+2026-08-02 毒豆纳入同一转换链：`BULLET_TOXICPEA` 穿过火炬后成为普通 40 伤火球并失去附毒能力，但不可变 `mPoolType` 仍是 ToxicPea；回收复用后恢复 15 伤纯紫毒豆。`smoke_toxic_peashooter.json` 断言转换目标无毒、当前类型/基础伤害和池槽类型，原 `smoke_torchwood.json` 同日可见回归继续通过。

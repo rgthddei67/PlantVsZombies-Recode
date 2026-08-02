@@ -19,6 +19,7 @@ enum class BulletType {
 	BULLET_COBBIG,			// 玉米加农炮
 	BULLET_BUTTER,			// 黄油
 	BULLET_ZOMBIE_PEA,		// 僵尸豌豆
+	BULLET_TOXICPEA,		// 毒豆；追加在末尾以保持旧存档子弹整数 ID
 	NUM_BULLETS,
 };
 
