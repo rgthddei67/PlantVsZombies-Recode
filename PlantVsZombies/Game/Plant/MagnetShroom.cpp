@@ -28,7 +28,6 @@ namespace {
 	constexpr float kShadowScale = 0.72f;                     // 磁力菇脚底影子相对默认贴图的缩放
 	constexpr float kShadowOffsetY = 32.0f;                   // 影子相对格中心的垂直偏移，单位 px
 	constexpr float kMagnetSoundVolume = 0.5f;                // 原版磁吸音效播放音量
-	constexpr float kCapturedItemRightCompensation = 25.0f;  // 校正当前宽屏资源视觉原点，使落点不偏在磁体左侧
 
 	bool CircleOverlapsRect(const Vector& center, float radius, const SDL_FRect& bounds)
 	{
@@ -168,8 +167,18 @@ void MagnetShroom::FinishRecharge()
 
 Vector MagnetShroom::GetCapturedItemDestination() const
 {
-	return GetVisualPosition() + mCapturedItem.destinationOffset
-		+ Vector(kCapturedItemRightCompensation, 0.0f);
+	Vector destination = GetVisualPosition() + mCapturedItem.destinationOffset;
+	const Texture* texture = ResourceManager::GetInstance().GetTexture(
+		mCapturedItem.textureKey, false);
+	if (!texture) return destination;
+
+	// C# 的 MagnetItem 目标偏移指向未缩放贴图左上角；本项目用中心点绘制，
+	// 必须按各装备的实际缩放尺寸转换，不能用统一补偿冒充锚点换算。
+	destination.x += static_cast<float>(texture->width)
+		* mCapturedItem.drawScale * 0.5f;
+	destination.y += static_cast<float>(texture->height)
+		* mCapturedItem.drawScale * 0.5f;
+	return destination;
 }
 
 float MagnetShroom::GetCapturedItemDistance() const
