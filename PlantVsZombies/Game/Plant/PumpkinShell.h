@@ -28,6 +28,8 @@ public:
 protected:
 	/** 配置经典耐久、宽碰撞框、阴影与前后分层 Animator。 */
 	void SetupPlant() override;
+	/** 把外壳血量下移一行，避免与同格普通植物的血量重叠。 */
+	Vector GetHealthTextOffset() const override;
 
 private:
 	/** 按已保存生命值恢复前脸材质；资源缺失时保留上一终态，避免假绿。 */

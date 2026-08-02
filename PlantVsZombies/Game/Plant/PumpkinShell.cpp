@@ -13,6 +13,7 @@ namespace {
 	constexpr float kPumpkinShadowOffsetY = 23.0f;        // 大外壳脚底阴影相对逻辑中心的垂直偏移，单位：px
 	constexpr float kPumpkinShadowScaleX = 1.4f;          // 原版南瓜阴影横向放大倍率
 	constexpr float kPumpkinShadowScaleY = 1.05f;         // 保持通用阴影 0.75 纵向压缩后的等比放大
+	constexpr float kPumpkinHealthTextDropY = 20.0f;      // 外壳血量相对通用植物下移距离，单位：px
 	constexpr const char* kBackTrack = "Pumpkin_back";    // 外壳背片；在普通植物绘制中插入
 	constexpr const char* kFrontTrack = "Pumpkin_front";  // 外壳前脸；由南瓜实体本体绘制
 }
@@ -74,6 +75,11 @@ void PumpkinShell::DrawStackBackground(Graphics* g)
 	const Vector position = GetVisualPosition();
 	const float scale = mTransform ? mTransform->GetScale() : 1.0f;
 	mBackAnimator->Draw(g, position.x, position.y, scale);
+}
+
+Vector PumpkinShell::GetHealthTextOffset() const
+{
+	return Plant::GetHealthTextOffset() + Vector(0.0f, kPumpkinHealthTextDropY);
 }
 
 void PumpkinShell::TakeDamage(int damage, DamageSource source)

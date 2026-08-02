@@ -23,6 +23,8 @@ metadata:
   阶段完全由通用生命存档派生，`LoadExtraData` 只恢复终态，不重播反馈。
 - C# `Zombie::AnimateChewSound` 把 Wallnut、Tallnut、Garlic、Pumpkinshell 归入 `ChompSoft`。
   C++ 通用啃食路径同样按这四类选择 `SOUND_CHOMPSOFT`，普通植物仍随机 Chomp/Chomp2。
+- 植物血量文字位置由 `Plant::GetHealthTextOffset` 提供品种覆写点；南瓜头在通用位置基础上
+  向下偏移 20px，使同格普通植物与外壳的两行血量不再重叠。
 - `Board::ApplyPumpkinProtectedZombieAreaDamage` 是特殊僵尸范围扣血的统一入口：先沿各技能
   原几何收集命中植物，再按逻辑格归并；格内有活动南瓜层时只让外壳承受一次基础伤害
   `×3`，没有外壳时维持 under/normal 各自承伤。当前接入精英小丑投盒、精英矿工爆破和
@@ -45,3 +47,6 @@ metadata:
   150、普通小丑仍直接清空整组。此前 ×5 版本与精英小丑完整/蒙特卡洛、精英矿工、
   粉色橄榄球和普通小丑存量脚本同批可见回归均 exit 0；当前 ×3 纯数值调整按主人要求
   仅做静态一致性检查，未重新构建或运行 AutoTest。
+- 2026-08-02 血量文字下移 20px 后，`clang-release` 构建成功；`smoke_pumpkin` 在主人当前
+  桌面可见运行 exit 0，`01_pumpkin_stacking_orders.png` 已确认普通植物与外壳血量上下分行，
+  豌豆头部未被数字遮挡。其余受伤、水池、存档与台风段同批通过。

@@ -134,6 +134,8 @@ protected:
 	float GetSunProductionDeltaTime() const;
 	/** 攻击专用组合倍率 = 生存攻速词条 × 雨势行动倍率。 */
 	float GetAttackSpeedMultiplier() const;
+	/** 返回血量文字相对公共视觉锚点的偏移；叠层品种可覆写以避免文字重叠。 */
+	virtual Vector GetHealthTextOffset() const { return Vector(-21.0f, -11.0f); }
 
 	// 注意： 需要判断mIsPreview，所有植物都执行
 	virtual void SetupPlant();

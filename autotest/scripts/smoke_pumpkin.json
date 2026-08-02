@@ -5,6 +5,7 @@
     { "op": "wait_state", "state": "GAME", "timeout": 15 },
     { "op": "set_spawn_paused", "value": true },
     { "op": "set_sun", "value": 9000 },
+    { "op": "show_plant_hp", "on": true },
 
     { "op": "assert_state", "path": "pumpkinResources.reanimationLoaded", "equals": true },
     { "op": "assert_state", "path": "pumpkinResources.frontLoaded", "equals": true },

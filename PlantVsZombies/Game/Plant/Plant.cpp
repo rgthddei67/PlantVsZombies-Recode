@@ -329,7 +329,7 @@ void Plant::Draw(Graphics* g)
 	// 直接用逻辑坐标：DrawText 与 Animator 的 DrawTextureMatrix 共享同一 projView，
 	// Animator 画 sprite 时就是用裸逻辑坐标，文字必须同坐标系才能叠在对象上（勿转 World）
 	// 血条属于画面反馈，随台风平滑位移；碰撞箱仍使用已经落在目标格的 Transform。
-	Vector pos = GetVisualAnchorPosition() + Vector(-21, -11);
+	Vector pos = GetVisualAnchorPosition() + GetHealthTextOffset();
 
 	std::string text = std::to_string(mPlantHealth) + u8"/" + std::to_string(mPlantMaxHealth);
 	// 颜色是 0..255 范围（ToSDLColor 直接 static_cast，不乘 255），勿写成 0..1 否则全透明隐形

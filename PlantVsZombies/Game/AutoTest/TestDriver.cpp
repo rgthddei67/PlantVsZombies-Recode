@@ -1281,6 +1281,10 @@ bool TestDriver::ExecuteCurrent() {
 		GameAPP::GetInstance().mShowZombieHP = cmd.value("on", true);   // 调试：游戏内绘制僵尸血量
 		return true;
 	}
+	if (op == "show_plant_hp") {
+		GameAPP::GetInstance().mShowPlantHP = cmd.value("on", true);    // 调试：游戏内绘制植物血量
+		return true;
+	}
 	if (op == "charm_zombie") {
 		GameScene* gs = CurrentGameScene();
 		if (!gs || !gs->GetBoard()) { Fail("charm_zombie: 不在 GameScene 或 Board 为空"); return false; }
