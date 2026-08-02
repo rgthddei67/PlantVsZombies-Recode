@@ -5,8 +5,11 @@
     { "op": "wait_state", "state": "GAME", "timeout": 15 },
     { "op": "set_weather", "intensity": "HEAVY", "duration": 60 },
     { "op": "wait_frames", "value": 20 },
+    { "op": "assert_state", "path": "weather.thunderSoundLoaded", "equals": true },
+    { "op": "assert_state", "path": "weather.thunderSoundPlayRequests", "equals": 0 },
 
     { "op": "trigger_lightning" },
+    { "op": "assert_state", "path": "weather.thunderSoundPlayRequests", "equals": 1 },
     { "op": "assert_state", "path": "weather.screenFlashOn", "equals": false },
     { "op": "assert_state", "path": "weather.lightningFlashOn", "equals": true },
     { "op": "assert_state", "path": "weather.lightningMainSegments", "equals": 10 },

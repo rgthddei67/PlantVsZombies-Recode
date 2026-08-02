@@ -116,7 +116,7 @@ Board 雾势、再恢复植物，所以 `RestoreFogState()` 只清空旧缓存�
 | 天气 UI 存档 | `CaptureWeatherPresentationState` / `RestoreWeatherPresentationState` | 经展示端口保存可重建的视觉瞬态，不得影响玩法 |
 | 天气面板上方交互浮层 | `GameScene::BuildDrawCommands` / `PlanternGearMenu` | `GameObjects` 命令整体早于天气面板；需另注册更晚的 UI 绘制命令，不能只提高组件所属对象层级 |
 | 存档版本升级 | `SaveSchema::UpgradeLevelDocument` | 升级成功后才允许修改 `Board` 或实体 |
-| 天气 AutoTest 状态 | `TestDriver.cpp` 搜索 `out["weather"]` | 浮点另给整数投影；闪电路径暴露激活、主干/分叉段数与落点 X |
+| 天气 AutoTest 状态 | `TestDriver.cpp` 搜索 `out["weather"]` | 浮点另给整数投影；闪电路径暴露激活、主干/分叉段数与落点 X，雷声暴露资源加载与播放请求次数 |
 | 雾势玩法与绘制 | `Board::UpdateFog*` / `GameScene::DrawFog` | Board 持状态；GameScene 只按 getter 绘制 |
 | 路灯花照明/雾中索敌 | `GetPlanternIllumination` / `CanPlantAcquireZombie` | 同一逐格 alpha 同时服务视觉和远程索敌；近身例外只在统一入口 |
 | 雾势 AutoTest 状态 | `TestDriver.cpp` 搜索 `out["fog"]` / `out["plantern"]` | 断言覆盖逐格 alpha、照明矩阵、驱散、燃料、挡位和资源 |
@@ -212,7 +212,7 @@ Board 雾势、再恢复植物，所以 `RestoreFogState()` 只清空旧缓存�
 - `set_weather`：固定天气并立即完成过渡；可传 `duration`、小雨的 `canIntensify`。
 - `set_weather_forecast`：固定公开/真实天气和揭晓时刻。
 - `advance_weather_phase`：用权重落点强制结束雨段，并立即完成过渡。
-- `trigger_lightning`：只允许大雨；生成固定到本次放电结束的程序化主干与分叉，不复用寒冰菇的全屏白闪。
+- `trigger_lightning`：只允许大雨；同步播放 `SOUND_THUNDER`，并生成固定到本次放电结束的程序化主干与分叉，不复用寒冰菇的全屏白闪。
 - `set_fog_weather`：固定四大关 `DEFAULT/SMALL/NORMAL/DENSE` 雾势与持续时间。
 - `set_fog_forecast`：固定公开/真实雾势与揭晓时刻；当前雾势预报保持准确。
 - `set_fog_dispersal`：固定 `0..1` 驱散比例，供存档与渲染状态测试。

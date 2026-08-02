@@ -2122,6 +2122,10 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "plantActionSpeedPct", static_cast<int>(std::lround(plantRain * 100.0f)) },
 			{ "overlayAlpha", static_cast<int>(std::lround(board->GetRainOverlayAlpha())) },
 			{ "rainSoundPlaying", AudioSystem::IsLoopingSoundPlaying(ResourceKeys::Sounds::SOUND_RAIN) },
+			{ "thunderSoundLoaded", ResourceManager::GetInstance().GetSound(
+				ResourceKeys::Sounds::SOUND_THUNDER) != nullptr },
+			{ "thunderSoundPlayRequests", AudioSystem::GetSoundPlayRequestCount(
+				ResourceKeys::Sounds::SOUND_THUNDER) },
 			{ "combinedAttackIntervalOn1500",
 				static_cast<int>(1500.0f / (plantRain * perkAttack) + 0.5f) },
 			{ "screenFlashOn", gs->IsScreenFlashActive() },

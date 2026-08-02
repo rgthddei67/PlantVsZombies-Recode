@@ -249,6 +249,7 @@
     <Sound>./resources/sounds/UI/pause.ogg</Sound>
     <Sound>./resources/sounds/UI/shovel.ogg</Sound>
     <Sound>./resources/sounds/collectsun.ogg</Sound>
+    <Sound>./resources/sounds/thunder.ogg</Sound>
     <Sound>./resources/sounds/UI/clickfailed.ogg</Sound>
     <Sound>./resources/sounds/Afterhugewave.ogg</Sound>
     <Sound>./resources/sounds/hugewave.ogg</Sound>

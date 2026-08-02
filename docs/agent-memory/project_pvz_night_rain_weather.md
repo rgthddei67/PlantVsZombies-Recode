@@ -159,3 +159,11 @@ CardUI 所在的 `GameObjects` 命令，而在 `GameScene::BuildDrawCommands` �
 出界死亡和弹坑死亡中都同时处理 `under/normal/pumpkin`。三层组合只占一个目标格，但
 `lastGustMovedPlants` 按实际移动实体计数；南瓜专项以睡莲、豌豆、南瓜三层组合锁定一次强台风
 向房屋移动一格后计数为 3，保存/重载前后层级不变。
+
+## 2026-08-02 大雨闪电雷声
+
+程序化闪电的唯一触发点 `Board::TriggerLightning()` 现在同步请求播放一次
+`SOUND_THUNDER`（`resources/sounds/thunder.ogg`，请求音量 0.75），自然大雨计时与
+`trigger_lightning` AutoTest 因此共用同一音画路径。`dump_state.weather` 暴露
+`thunderSoundLoaded` 与 `thunderSoundPlayRequests`，专项同时锁定资源注册成功和单次触发次数；
+雷声是一次性展示效果，不新增 Board 或存档状态。

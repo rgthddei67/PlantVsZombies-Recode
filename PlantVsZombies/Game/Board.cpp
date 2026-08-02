@@ -214,6 +214,7 @@ namespace {
 	constexpr float kLightningRepeatMin = 5.0f;          // 大雨中两次闪电的最短间隔（秒）
 	constexpr float kLightningRepeatMax = 10.0f;         // 大雨中两次闪电的最长间隔（秒）
 	constexpr float kLightningFlashDuration = 0.42f;     // 单次闪电主放电与回闪的总可见时间（秒）
+	constexpr float kThunderSoundVolume = 0.75f;         // 闪电出现时雷声相对音效音量
 	constexpr int kTyphoonChanceEarlyPercent = 75;       // 新大雨阶段附加台风的前期基础概率（百分比）
 	constexpr int kTyphoonChanceLatePercent = 95;        // 满压力新大雨附加台风的基础概率（百分比）
 	constexpr int kTyphoonPityPerMissPercent = 20;       // 每连续落空一个新大雨阶段，下次台风概率增加的百分点
@@ -2276,7 +2277,8 @@ void Board::EndRain()
 void Board::TriggerLightning()
 {
 	if (mRainIntensity != RainIntensity::HEAVY || !mPresentation) return;
-	// 闪电路径与局部散射光属于 GameScene 的瞬态视觉；Board 只负责大雨触发时机。
+	// 雷声与程序化闪电从同一触发点发起，保证自然天气与 AutoTest 路径音画同步。
+	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_THUNDER, kThunderSoundVolume);
 	mPresentation->ShowLightningStrike(kLightningFlashDuration);
 }
 

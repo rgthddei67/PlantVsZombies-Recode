@@ -337,6 +337,7 @@ private:
 	void StartRainAudio();
 	void StopRainAudio();
 	void RefreshZombieWeatherSpeeds();
+	/** 大雨阶段触发一次同步的程序化闪电与雷声。 */
 	void TriggerLightning();
 	void AssignMistFuelReward(Zombie* zombie);
 	// 生存模式"抽中权重"：对 NORMAL/CONE 随轮稀释(仅供 GetWeightedRandomZombie；成本侧仍用 GetZombieWeight)

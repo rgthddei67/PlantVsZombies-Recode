@@ -305,6 +305,7 @@ namespace ResourceKeys
 		RKEY(SOUND_COOLDOWNZOMBIE);	// 寒冰豌豆首次施加减速（原版 frozen 音效入口）
 		RKEY(SOUND_FROZEN);		// 寒冰菇全场冻结（原版 frozen.ogg）
 		RKEY(SOUND_RAIN);			// 原版暴风雨夜循环环境音（rain.ogg）
+		RKEY(SOUND_THUNDER);		// 大雨程序化闪电出现时的一次性雷声（thunder.ogg）
 		inline const std::string SOUND_POLEVAULT_JUMP = "SOUND_POLEVAULT";
 
 		RKEY(SOUND_CLICKSEED);
