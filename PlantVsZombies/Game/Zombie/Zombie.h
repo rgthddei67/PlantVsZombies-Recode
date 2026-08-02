@@ -53,7 +53,7 @@ protected:
 
 	float mCooldownTimer = 0.0f;	// 僵尸减速倒计时时间
 	float mFrozenTimer = 0.0f;		// 冻结剩余秒数（寒冰菇完全定身），0=未冻结
-	std::array<float, 4> mToxinLayerTimers{};	// 每层独立剩余秒数；四格即每只僵尸的共享上限
+	std::array<float, 5> mToxinLayerTimers{};	// 每层独立剩余秒数；五格即每只僵尸的共享上限
 	float mToxinDamageRemainder = 0.0f;	// 跨帧保留未满 1 点的持续伤害，保证倍速下总量稳定
 
 	bool mIsMindControlled = false;	//有没有被魅惑
@@ -231,7 +231,7 @@ public:
 	float GetCooldownTimer() const { return this->mCooldownTimer; }
 	bool IsFrozen() const { return this->mFrozenTimer > 0.0f; }
 	float GetFrozenTimer() const { return this->mFrozenTimer; }
-	/** 命中时增加毒层；满四层则刷新剩余时间最短的一层。 */
+	/** 命中时增加毒层；满五层则刷新剩余时间最短的一层。 */
 	bool ApplyToxinStack();
 	/** 清除全部毒层及尚未结算的小数伤害。 */
 	void ClearToxin();
