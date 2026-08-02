@@ -81,14 +81,12 @@ void EliteDiggerZombie::ResolveBlast()
 	const int minRow = std::max(0, mRow - kBlastAdjacentRows);
 	const int maxRow = std::min(mBoard->mRows - 1,
 		mRow + kBlastAdjacentRows);
-	const std::vector<int> plantIDs = mBoard->mEntityManager.GetAllPlantIDs();
-	for (const int plantID : plantIDs) {
-		Plant* plant = mBoard->mEntityManager.GetPlant(plantID);
-		if (!plant || !plant->IsActive()) continue;
-		if (plant->mRow < minRow || plant->mRow > maxRow) continue;
-		if (plant->mColumn < kBlastMinColumn || plant->mColumn > kBlastMaxColumn) continue;
-		plant->TakeDamage(kBlastDamage, DamageSource::ZOMBIE);
-	}
+	mBoard->ApplyPumpkinProtectedZombieAreaDamage(kBlastDamage,
+		[minRow, maxRow](const Plant& plant) {
+			return plant.mRow >= minRow && plant.mRow <= maxRow
+				&& plant.mColumn >= kBlastMinColumn
+				&& plant.mColumn <= kBlastMaxColumn;
+		});
 
 	const Vector blastCenter = mBoard->GetCellCenterPosition(mRow, 1);
 	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_EXPLOSION, kExplosionVolume);

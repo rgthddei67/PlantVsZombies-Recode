@@ -15,6 +15,7 @@
 #include <memory>
 #include <string>
 #include <array>
+#include <functional>
 
 class GameInfoSaver;
 class BoardPresentation;
@@ -630,6 +631,14 @@ public:
 	Plant* GetNormalPlantAt(int row, int col) const;
 	/** 返回指定格南瓜外壳层；不存在或 ID 已失效时返回空。 */
 	Plant* GetPumpkinAt(int row, int col) const;
+	/**
+	 * 对命中范围内的植物结算可被南瓜头拦截的僵尸范围伤害。
+	 *
+	 * 同格有活动南瓜头时，该格只让南瓜头承受一次 5 倍基础伤害；没有南瓜头时，
+	 * 仍按旧规则让每个实际命中的植物层分别承受基础伤害。
+	 */
+	void ApplyPumpkinProtectedZombieAreaDamage(int baseDamage,
+		const std::function<bool(const Plant&)>& overlapsArea);
 	/** 将基础僵尸按所选行解析为泳池表现变体；不改变波次成本。 */
 	ZombieType ResolveTerrainZombieType(ZombieType selected, int row) const;
 	bool CanSpawnZombieInRow(ZombieType type, int row) const {

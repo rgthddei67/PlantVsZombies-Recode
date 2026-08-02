@@ -141,6 +141,7 @@ namespace {
 	constexpr int kEliteJackInTheBoxMaxPerWave = 2;       // 每波最多正式生成的精英小丑数量；超额候选直接跳过
 	constexpr int kEliteDiggerMaxPerWave = 1;             // 每波最多正式生成的爆破工头数量；超额候选直接跳过
 	constexpr int kEliteScaredyShroomPlantLimit = 4;      // 每个关卡累计最多种植的精英胆小菇数量
+	constexpr int kPumpkinAreaDamageMultiplier = 5;       // 特殊僵尸范围伤害被南瓜头拦截时的基础伤害倍率
 	constexpr int kMonteCarloRolloutCount = 32;           // 每个爆点的轻量未来样本数；低配可由 GameAPP 总开关完全跳过
 	constexpr int kMonteCarloMaxZombies = 12;             // 单个样本最多推进的当前敌方僵尸数
 	constexpr float kMonteCarloHorizonSeconds = 16.0f;    // 植物防线短视推演时域，单位：游戏秒
@@ -3228,7 +3229,8 @@ bool Board::PickMonteCarloPlantBlastTarget(
 			profile.attackRowRadius,
 			sleeping ? 0.0f : profile.sunPerSecond,
 			0.0f,
-			{ bounds.x, bounds.y, bounds.w, bounds.h }
+			{ bounds.x, bounds.y, bounds.w, bounds.h },
+			plant->mPlantType == PlantType::PLANT_PUMPKINSHELL
 		});
 
 		if (plant->mRow >= minRow && plant->mRow <= maxRow) {
@@ -3316,7 +3318,8 @@ bool Board::PickMonteCarloPlantBlastTarget(
 				profile.attackRowRadius,
 				profile.sunPerSecond,
 				profile.firstSunDelay,
-				legalCellMask
+				legalCellMask,
+				type == PlantType::PLANT_PUMPKINSHELL
 			});
 		}
 	}
@@ -3328,6 +3331,8 @@ bool Board::PickMonteCarloPlantBlastTarget(
 	config.stepSeconds = kMonteCarloStepSeconds;
 	config.impactDamage = static_cast<float>(damage);
 	config.impactRadius = radius;
+	config.pumpkinImpactDamageMultiplier =
+		static_cast<float>(kPumpkinAreaDamageMultiplier);
 	config.plantDecisionInterval = kMonteCarloPlantDecisionSeconds;
 	config.terminalBlockedSecondUtility =
 		kMonteCarloTerminalBlockedSecondUtility;
@@ -3432,6 +3437,49 @@ Plant* Board::GetPumpkinAt(int row, int col) const
 	if (row < 0 || row >= mRows || col < 0 || col >= mColumns) return nullptr;
 	Cell* cell = mCells[row][col];
 	return cell ? mEntityManager.GetPlant(cell->GetPumpkinPlantID()) : nullptr;
+}
+
+/**
+ * 先按原范围规则收集命中植物，再按逻辑格归并南瓜层，避免水路三层被同一次爆炸重复扣血。
+ */
+void Board::ApplyPumpkinProtectedZombieAreaDamage(int baseDamage,
+	const std::function<bool(const Plant&)>& overlapsArea)
+{
+	if (baseDamage <= 0 || !overlapsArea) return;
+
+	std::vector<int> unprotectedPlantIDs;
+	std::unordered_set<int> protectedCellIndices;
+	for (const int plantID : mEntityManager.GetAllPlantIDs()) {
+		Plant* plant = mEntityManager.GetPlant(plantID);
+		if (!plant || !plant->IsActive() || !overlapsArea(*plant)) continue;
+
+		Plant* pumpkin = GetPumpkinAt(plant->mRow, plant->mColumn);
+		if (pumpkin && pumpkin->IsActive()) {
+			protectedCellIndices.insert(plant->mRow * mColumns + plant->mColumn);
+		}
+		else {
+			unprotectedPlantIDs.push_back(plantID);
+		}
+	}
+
+	// 无外壳格保持旧行为：范围实际命中的 under/normal 各自吃一次基础伤害。
+	for (const int plantID : unprotectedPlantIDs) {
+		Plant* plant = mEntityManager.GetPlant(plantID);
+		if (plant && plant->IsActive()) {
+			plant->TakeDamage(baseDamage, DamageSource::ZOMBIE);
+		}
+	}
+
+	const int pumpkinDamage = baseDamage > INT_MAX / kPumpkinAreaDamageMultiplier
+		? INT_MAX : baseDamage * kPumpkinAreaDamageMultiplier;
+	for (const int cellIndex : protectedCellIndices) {
+		const int row = cellIndex / mColumns;
+		const int column = cellIndex % mColumns;
+		Plant* pumpkin = GetPumpkinAt(row, column);
+		if (pumpkin && pumpkin->IsActive()) {
+			pumpkin->TakeDamage(pumpkinDamage, DamageSource::ZOMBIE);
+		}
+	}
 }
 
 void Board::RefreshPlantStackRenderOrder(Cell* cell)

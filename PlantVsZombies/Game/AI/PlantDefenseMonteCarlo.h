@@ -25,6 +25,7 @@ struct PlantSnapshot {
 	float sunPerSecond = 0.0f;
 	float productionDelay = 0.0f;
 	Bounds bounds;
+	bool pumpkinShell = false;
 };
 
 struct ZombieSnapshot {
@@ -52,6 +53,7 @@ struct CardSnapshot {
 	float sunPerSecond = 0.0f;
 	float firstSunDelay = 0.0f;
 	std::uint64_t legalCellMask = 0;
+	bool pumpkinShell = false;
 };
 
 struct CellSnapshot {
@@ -87,6 +89,7 @@ struct Config {
 	float stepSeconds = 0.25f;              // 固定数值步长，越小越精细但开销越高
 	float impactDamage = 50.0f;             // 候选动作在 t=0 对植物造成的伤害
 	float impactRadius = 100.0f;             // 候选动作的圆形爆区半径，单位 px
+	float pumpkinImpactDamageMultiplier = 5.0f; // 南瓜头拦截候选范围伤害时的输入倍率
 	float biteInterval = 1.0f;               // 简化啃咬的等效间隔，单位游戏秒
 	float contactDistance = 55.0f;           // 僵尸进入啃咬态的水平距离，单位 px
 	float plantDecisionInterval = 2.0f;      // 玩家在样本中尝试种下一株植物的间隔秒数

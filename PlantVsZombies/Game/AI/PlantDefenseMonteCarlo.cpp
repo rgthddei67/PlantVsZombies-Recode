@@ -32,6 +32,7 @@ namespace {
 		float sunPerSecond = 0.0f;
 		float productionDelay = 0.0f;
 		Bounds bounds;
+		bool pumpkinShell = false;
 	};
 
 	struct SimZombie {
@@ -148,7 +149,8 @@ namespace {
 				std::max(0, source.attackRowRadius),
 				std::max(0.0f, source.sunPerSecond),
 				std::max(0.0f, source.productionDelay),
-				source.bounds
+				source.bounds,
+				source.pumpkinShell
 			};
 		}
 
@@ -205,16 +207,42 @@ namespace {
 		}
 	}
 
+	// 与正式范围伤害一致：先找每个命中格的南瓜层，再让外壳一次性承受倍率伤害。
 	void ApplyCandidateImpact(
 		SimulationState& state, const Candidate& candidate, const Config& config)
 	{
+		std::array<bool, kMaxSimulationPlants> normalHits{};
+		std::array<bool, kMaxSimulationPlants> pumpkinHits{};
 		for (int i = 0; i < state.plantCount; ++i) {
-			SimPlant& plant = state.plants[i];
+			const SimPlant& plant = state.plants[i];
 			if (!IsAlive(plant)
 				|| !CircleOverlapsBounds(candidate, config.impactRadius, plant.bounds)) {
 				continue;
 			}
-			plant.health = std::max(0.0f, plant.health - config.impactDamage);
+
+			int pumpkinIndex = -1;
+			for (int candidateIndex = 0;
+				candidateIndex < state.plantCount; ++candidateIndex) {
+				const SimPlant& candidatePlant = state.plants[candidateIndex];
+				if (IsAlive(candidatePlant) && candidatePlant.pumpkinShell
+					&& candidatePlant.row == plant.row
+					&& candidatePlant.column == plant.column) {
+					pumpkinIndex = candidateIndex;
+					break;
+				}
+			}
+			if (pumpkinIndex >= 0) pumpkinHits[pumpkinIndex] = true;
+			else normalHits[i] = true;
+		}
+
+		for (int i = 0; i < state.plantCount; ++i) {
+			SimPlant& plant = state.plants[i];
+			const float damage = pumpkinHits[i]
+				? config.impactDamage * config.pumpkinImpactDamageMultiplier
+				: (normalHits[i] ? config.impactDamage : 0.0f);
+			if (damage > 0.0f) {
+				plant.health = std::max(0.0f, plant.health - damage);
+			}
 		}
 	}
 
@@ -332,6 +360,7 @@ namespace {
 		plant.bounds = {
 			cell.x - 40.0f, cell.y - 50.0f, 80.0f, 100.0f
 		};
+		plant.pumpkinShell = card.pumpkinShell;
 		// 初始合法性由正式 CanPlantAt 快照决定；这里只阻止同一 rollout 再占用新种格。
 		state.reservedCells |= (1ULL << bestCell);
 		state.sun -= static_cast<float>(card.cost);
@@ -368,6 +397,7 @@ namespace {
 		}
 	}
 
+	// 同 X 叠层时让活动南瓜层胜出；外壳被打破后自然回落到同格内层。
 	int FindFrontPlant(const SimulationState& state, const SimZombie& zombie)
 	{
 		if (zombie.eatingPlantId >= 0) {
@@ -384,9 +414,11 @@ namespace {
 		for (int i = 0; i < state.plantCount; ++i) {
 			const SimPlant& plant = state.plants[i];
 			if (!IsAlive(plant) || plant.row != zombie.row
-				|| plant.x > zombie.x + 10.0f || plant.x <= frontX) {
+				|| plant.x > zombie.x + 10.0f || plant.x < frontX) {
 				continue;
 			}
+			if (plant.x == frontX && target >= 0
+				&& (!plant.pumpkinShell || state.plants[target].pumpkinShell)) continue;
 			frontX = plant.x;
 			target = i;
 		}

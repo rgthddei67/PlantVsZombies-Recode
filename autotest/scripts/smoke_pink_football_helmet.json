@@ -1,10 +1,10 @@
 {
   "commands": [
-    { "op": "goto_level", "level": 17 },
+    { "op": "goto_level", "level": 18 },
     { "op": "choose_cards", "cards": ["PLANT_WALLNUT"] },
     { "op": "wait_state", "state": "GAME" },
     { "op": "assert_state", "path": "background", "equals": "GROUND_NIGHT" },
-    { "op": "assert_state", "path": "spawnList.5", "equals": "ZOMBIE_PINK_FOOTBALL" },
+    { "op": "assert_state", "path": "spawnList.6", "equals": "ZOMBIE_PINK_FOOTBALL" },
     { "op": "plant", "type": "PLANT_WALLNUT", "row": 2, "col": 5 },
     { "op": "plant", "type": "PLANT_WALLNUT", "row": 1, "col": 5 },
     { "op": "plant", "type": "PLANT_WALLNUT", "row": 1, "col": 4 },
@@ -14,8 +14,8 @@
     { "op": "assert_state", "path": "zombies.0.helmHealth", "equals": 900 },
     { "op": "screenshot", "name": "01_spawn.png" },
     { "op": "damage_zombie", "row": 2, "index": 0, "damage": 900, "source": "PLANT" },
-    { "op": "assert_state", "path": "plants.0.health", "equals": 3975 },
-    { "op": "assert_state", "path": "plants.1.health", "equals": 3975 },
+    { "op": "assert_state", "path": "plants.0.health", "equals": 3950 },
+    { "op": "assert_state", "path": "plants.1.health", "equals": 3950 },
     { "op": "assert_state", "path": "plants.2.health", "equals": 4000 },
     { "op": "assert_state", "path": "zombies.0.helmHealth", "equals": 0 },
     { "op": "wait_frames", "value": 6 },

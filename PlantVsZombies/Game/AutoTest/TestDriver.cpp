@@ -3051,9 +3051,13 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			Plant* top = board->GetTopPlantAt(row, col);
 			rowState.push_back({
 				{ "under", under ? PlantTypeName(under->mPlantType) : "NONE" },
+				{ "underHealth", under ? under->mPlantHealth : 0 },
 				{ "normal", normal ? PlantTypeName(normal->mPlantType) : "NONE" },
+				{ "normalHealth", normal ? normal->mPlantHealth : 0 },
 				{ "pumpkin", pumpkin ? PlantTypeName(pumpkin->mPlantType) : "NONE" },
+				{ "pumpkinHealth", pumpkin ? pumpkin->mPlantHealth : 0 },
 				{ "top", top ? PlantTypeName(top->mPlantType) : "NONE" },
+				{ "topHealth", top ? top->mPlantHealth : 0 },
 			});
 		}
 		out["cells"].push_back(std::move(rowState));

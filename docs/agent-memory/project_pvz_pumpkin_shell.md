@@ -23,6 +23,11 @@ metadata:
   阶段完全由通用生命存档派生，`LoadExtraData` 只恢复终态，不重播反馈。
 - C# `Zombie::AnimateChewSound` 把 Wallnut、Tallnut、Garlic、Pumpkinshell 归入 `ChompSoft`。
   C++ 通用啃食路径同样按这四类选择 `SOUND_CHOMPSOFT`，普通植物仍随机 Chomp/Chomp2。
+- `Board::ApplyPumpkinProtectedZombieAreaDamage` 是特殊僵尸范围扣血的统一入口：先沿各技能
+  原几何收集命中植物，再按逻辑格归并；格内有活动南瓜层时只让外壳承受一次基础伤害
+  `×5`，没有外壳时维持 under/normal 各自承伤。当前接入精英小丑投盒、精英矿工爆破和
+  粉色橄榄球掉盔；普通小丑的直接 `Die()` 爆炸明确不接入。精英小丑贪心与蒙特卡洛
+  快照也保存南瓜层并使用同一承伤集合。
 - 台风把 `under/normal/pumpkin` 当一个占格组合搬运或一起出界/坠入弹坑；移动统计仍按实体 ID，
   三层水池组合移动一次得到 `lastGustMovedPlants=3`。
 
@@ -35,3 +40,7 @@ metadata:
   陆地/水池快照往返和三层台风搬运。6 张最终同步截图已逐张检查。
 - 既有 `smoke_typhoon.json` 可见 exit 0。`smoke_pool_basics.json` 的本次相关双层种植与阵风段
   全部通过，之后在无关的旧 `maxWave=15` 预期处失败，当前源码实际为 20。
+- `smoke_pumpkin_zombie_area_damage` 可见 exit 0，精确锁定精英小丑 `50×5`、精英矿工
+  `150×5`、水路三层粉色橄榄球 `50×5`，内层生命不变；同时锁定无壳精英矿工仍扣
+  150、普通小丑仍直接清空整组。精英小丑完整/蒙特卡洛、精英矿工、粉色橄榄球和普通
+  小丑存量脚本同批可见回归均 exit 0。

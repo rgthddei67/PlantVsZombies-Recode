@@ -6,9 +6,11 @@ metadata:
   type: project
 ---
 
-2026-07-20 新增 `ZOMBIE_PINK_FOOTBALL`：冒险模式只进入 2-8/2-9 的夜晚 spawnlist，生存随机池只允许黑夜无尽。数值为本体 220、头盔 900、位移倍率 1.85、动画 extra 1.95；按 `FastBucketZombie` 的 `GetSlowAnimFactor` 机制覆写为 0.7（减速动画保留 70%，即受 30% 影响）。对植物第一次真实啃食为 400 基础伤害，之后恢复 40。首次重击状态随 `SaveExtraData` 持久化，避免读档后重复触发。
+2026-07-20 新增 `ZOMBIE_PINK_FOOTBALL`；当前冒险模式位于 2-9 的夜晚 spawnlist，生存随机池只允许黑夜无尽。数值为本体 220、头盔 900、位移倍率 1.85、动画 extra 1.95；按 `FastBucketZombie` 的 `GetSlowAnimFactor` 机制覆写为 0.7（减速动画保留 70%，即受 30% 影响）。对植物第一次真实啃食为 400 基础伤害，之后恢复 40。首次重击状态随 `SaveExtraData` 持久化，避免读档后重复触发。
 
 掉盔沿用 `Zombie::HelmDrop` 的一类防具状态清理，再以僵尸逻辑坐标为圆心，对半径 120 像素圆内每株植物结算 50 点 `DamageSource::ZOMBIE` 伤害；判定使用平方距离避免开方。`PinkFootballZombie::SetupZombie` 直接调用 `FootballZombie::SetupZombie` 复用既有啃食/死亡帧事件，只补数值和速度差额，没有新增动画帧事件。
+
+2026-08-02 接入南瓜范围拦截：圆内任一层命中的格子若有活动南瓜头，只让外壳承受一次 `50×5=250`，睡莲与普通层不扣血；无南瓜格仍保持每株 50。`smoke_pumpkin_zombie_area_damage` 已覆盖水路 `under+normal+pumpkin` 三层，`smoke_pink_football_helmet` 同时更新到当前 2-9 出怪表并锁定无壳圆内 3950、圆外 4000，可见 exit 0。
 
 资源由 `scripts/recolor_pink_football.ps1` 使用 PowerShell/.NET `System.Drawing` 生成：只把橄榄球素材的红色材质映射到粉色，保持 PNG 尺寸、Alpha、绿色皮肤、白色条纹、银色护具和描边；两个 preset 均有独立 `PinkFootballZombie.reanim`、粉色掉盔/断臂粒子和图鉴文案。资源均需按 adding-zombie 规则用 `git add -f` 收编。
 

@@ -196,16 +196,12 @@ void EliteJackInTheBoxZombie::ResolveThrownBox()
 void EliteJackInTheBoxZombie::DamagePlantsAtImpact() const
 {
 	if (!mBoard) return;
-	const std::vector<int> plantIDs = mBoard->mEntityManager.GetAllPlantIDs();
-	for (const int plantID : plantIDs) {
-		Plant* plant = mBoard->mEntityManager.GetPlant(plantID);
-		if (!plant || !plant->IsActive()) continue;
-		const ColliderComponent* collider = plant->GetColliderComponent();
-		if (collider && CircleOverlapsRect(
-			mBoxTargetPosition, kBoxExplosionRadius, collider->GetBoundingBox())) {
-			plant->TakeDamage(kBoxExplosionDamage, DamageSource::ZOMBIE);
-		}
-	}
+	mBoard->ApplyPumpkinProtectedZombieAreaDamage(kBoxExplosionDamage,
+		[this](const Plant& plant) {
+			const ColliderComponent* collider = plant.GetColliderComponent();
+			return collider && CircleOverlapsRect(mBoxTargetPosition,
+				kBoxExplosionRadius, collider->GetBoundingBox());
+		});
 }
 
 /** 对爆区内与投出阵营敌对的活动僵尸造成伤害。 */
@@ -355,7 +351,7 @@ bool EliteJackInTheBoxZombie::PickGreedyPlantTarget(
 	return true;
 }
 
-/** 计算候选爆点覆盖植物的当前造价与未来经济损失，后排价值再乘 1.2。 */
+/** 按正式南瓜拦截后的承伤集合计算候选爆点损失，后排价值再乘 1.2。 */
 float EliteJackInTheBoxZombie::ScorePlantBlastAt(
 	const Vector& targetPosition) const
 {
@@ -363,6 +359,7 @@ float EliteJackInTheBoxZombie::ScorePlantBlastAt(
 	float score = 0.0f;
 	const int backlineColumnCount = (mBoard->mColumns + 1) / 2;
 	const auto& gameData = GameDataManager::GetInstance();
+	std::vector<std::pair<int, int>> scoredPumpkinCells;
 	const std::vector<int> plantIDs = mBoard->mEntityManager.GetAllPlantIDs();
 	for (const int plantID : plantIDs) {
 		const Plant* plant = mBoard->mEntityManager.GetPlant(plantID);
@@ -372,11 +369,23 @@ float EliteJackInTheBoxZombie::ScorePlantBlastAt(
 			targetPosition, kBoxExplosionRadius, collider->GetBoundingBox())) {
 			continue;
 		}
-		const float positionMultiplier = plant->mColumn < backlineColumnCount
+
+		const Plant* scoredPlant = plant;
+		if (const Plant* pumpkin = mBoard->GetPumpkinAt(
+			plant->mRow, plant->mColumn); pumpkin && pumpkin->IsActive()) {
+			const std::pair<int, int> cell(plant->mRow, plant->mColumn);
+			if (std::find(scoredPumpkinCells.begin(), scoredPumpkinCells.end(), cell)
+				!= scoredPumpkinCells.end()) {
+				continue;
+			}
+			scoredPumpkinCells.push_back(cell);
+			scoredPlant = pumpkin;
+		}
+		const float positionMultiplier = scoredPlant->mColumn < backlineColumnCount
 			? kBacklinePlantSunMultiplier : 1.0f;
 		float plantValue = static_cast<float>(
-			gameData.GetPlantSunCost(plant->mPlantType));
-		if (IsSunProducer(plant->mPlantType)) {
+			gameData.GetPlantSunCost(scoredPlant->mPlantType));
+		if (IsSunProducer(scoredPlant->mPlantType)) {
 			plantValue += kSunProducerFutureValue;
 		}
 		score += plantValue * positionMultiplier;

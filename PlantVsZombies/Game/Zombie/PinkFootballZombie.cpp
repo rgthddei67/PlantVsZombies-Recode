@@ -123,17 +123,14 @@ void PinkFootballZombie::DamagePlantsNearBrokenHelmet()
 	if (!mBoard) return;
 
 	const Vector center = GetPosition();
-	for (int id : mBoard->mEntityManager.GetAllPlantIDs()) {
-		Plant* plant = mBoard->mEntityManager.GetPlant(id);
-		if (!plant) continue;
-
-		const Vector plantPosition = plant->GetPosition();
-		const float deltaX = plantPosition.x - center.x;
-		const float deltaY = plantPosition.y - center.y;
-		if (deltaX * deltaX + deltaY * deltaY <= kHelmetBreakRadius * kHelmetBreakRadius) {
-			plant->TakeDamage(kHelmetBreakDamage, DamageSource::ZOMBIE);
-		}
-	}
+	mBoard->ApplyPumpkinProtectedZombieAreaDamage(kHelmetBreakDamage,
+		[center](const Plant& plant) {
+			const Vector plantPosition = plant.GetPosition();
+			const float deltaX = plantPosition.x - center.x;
+			const float deltaY = plantPosition.y - center.y;
+			return deltaX * deltaX + deltaY * deltaY
+				<= kHelmetBreakRadius * kHelmetBreakRadius;
+		});
 }
 
 /**
