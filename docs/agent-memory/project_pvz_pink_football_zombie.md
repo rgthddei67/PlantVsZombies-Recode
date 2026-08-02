@@ -10,7 +10,7 @@ metadata:
 
 掉盔沿用 `Zombie::HelmDrop` 的一类防具状态清理，再以僵尸逻辑坐标为圆心，对半径 120 像素圆内每株植物结算 50 点 `DamageSource::ZOMBIE` 伤害；判定使用平方距离避免开方。`PinkFootballZombie::SetupZombie` 直接调用 `FootballZombie::SetupZombie` 复用既有啃食/死亡帧事件，只补数值和速度差额，没有新增动画帧事件。
 
-2026-08-02 接入南瓜范围拦截：圆内任一层命中的格子若有活动南瓜头，只让外壳承受一次 `50×3=150`，睡莲与普通层不扣血；无南瓜格仍保持每株 50。`smoke_pumpkin_zombie_area_damage` 已覆盖水路 `under+normal+pumpkin` 三层，`smoke_pink_football_helmet` 同时更新到当前 2-9 出怪表并锁定无壳圆内 3950、圆外 4000。当前 ×3 纯数值调整按主人要求仅静态同步期望值，未重新运行 AutoTest；此前 ×5 版本的两项脚本均可见 exit 0。
+2026-08-02 接入南瓜范围拦截：圆内任一层命中的格子若有活动南瓜头，只让外壳承受一次 `50×6=300`，睡莲与普通层不扣血；无南瓜格仍保持每株 50。`smoke_pumpkin_zombie_area_damage` 已覆盖水路 `under+normal+pumpkin` 三层，`smoke_pink_football_helmet` 同时更新到当前 2-9 出怪表并锁定无壳圆内 3950、圆外 4000。当前 ×6 纯数值调整按主人要求仅静态同步期望值，未重新构建或运行 AutoTest；此前 ×5 版本的两项脚本均可见 exit 0。
 
 资源由 `scripts/recolor_pink_football.ps1` 使用 PowerShell/.NET `System.Drawing` 生成：只把橄榄球素材的红色材质映射到粉色，保持 PNG 尺寸、Alpha、绿色皮肤、白色条纹、银色护具和描边；两个 preset 均有独立 `PinkFootballZombie.reanim`、粉色掉盔/断臂粒子和图鉴文案。资源均需按 adding-zombie 规则用 `git add -f` 收编。
 

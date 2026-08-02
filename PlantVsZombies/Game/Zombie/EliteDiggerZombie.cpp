@@ -12,6 +12,7 @@ namespace {
 	constexpr int kEliteBodyHealth = 600;              // 爆破工头本体生命值
 	constexpr int kEliteHardhatHealth = 250;           // 爆破工头安全帽生命值
 	constexpr int kBlastDamage = 150;                  // 爆破对每个植物层造成的固定伤害
+	constexpr int kPumpkinBlastDamageMultiplier = 5;   // 爆破被南瓜头拦截时的基础伤害倍率
 	constexpr int kBlastMinColumn = 0;                 // 爆区从房屋侧第 0 列开始
 	constexpr int kBlastMaxColumn = 2;                 // 爆区覆盖到第 2 列，共 240px
 	constexpr int kBlastAdjacentRows = 1;              // 爆区向上下各扩一行
@@ -82,6 +83,7 @@ void EliteDiggerZombie::ResolveBlast()
 	const int maxRow = std::min(mBoard->mRows - 1,
 		mRow + kBlastAdjacentRows);
 	mBoard->ApplyPumpkinProtectedZombieAreaDamage(kBlastDamage,
+		kPumpkinBlastDamageMultiplier,
 		[minRow, maxRow](const Plant& plant) {
 			return plant.mRow >= minRow && plant.mRow <= maxRow
 				&& plant.mColumn >= kBlastMinColumn

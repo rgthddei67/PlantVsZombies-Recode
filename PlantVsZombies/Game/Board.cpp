@@ -141,7 +141,7 @@ namespace {
 	constexpr int kEliteJackInTheBoxMaxPerWave = 2;       // 每波最多正式生成的精英小丑数量；超额候选直接跳过
 	constexpr int kEliteDiggerMaxPerWave = 1;             // 每波最多正式生成的爆破工头数量；超额候选直接跳过
 	constexpr int kEliteScaredyShroomPlantLimit = 4;      // 每个关卡累计最多种植的精英胆小菇数量
-	constexpr int kPumpkinAreaDamageMultiplier = 3;       // 特殊僵尸范围伤害被南瓜头拦截时的基础伤害倍率
+	constexpr int kPumpkinAreaDamageMultiplier = 6;       // 特殊僵尸范围伤害被南瓜头拦截时的默认基础伤害倍率
 	constexpr int kMonteCarloRolloutCount = 32;           // 每个爆点的轻量未来样本数；低配可由 GameAPP 总开关完全跳过
 	constexpr int kMonteCarloMaxZombies = 12;             // 单个样本最多推进的当前敌方僵尸数
 	constexpr float kMonteCarloHorizonSeconds = 16.0f;    // 植物防线短视推演时域，单位：游戏秒
@@ -3439,13 +3439,21 @@ Plant* Board::GetPumpkinAt(int row, int col) const
 	return cell ? mEntityManager.GetPlant(cell->GetPumpkinPlantID()) : nullptr;
 }
 
+void Board::ApplyPumpkinProtectedZombieAreaDamage(int baseDamage,
+	const std::function<bool(const Plant&)>& overlapsArea)
+{
+	ApplyPumpkinProtectedZombieAreaDamage(baseDamage,
+		kPumpkinAreaDamageMultiplier, overlapsArea);
+}
+
 /**
  * 先按原范围规则收集命中植物，再按逻辑格归并南瓜层，避免水路三层被同一次爆炸重复扣血。
  */
 void Board::ApplyPumpkinProtectedZombieAreaDamage(int baseDamage,
+	int pumpkinDamageMultiplier,
 	const std::function<bool(const Plant&)>& overlapsArea)
 {
-	if (baseDamage <= 0 || !overlapsArea) return;
+	if (baseDamage <= 0 || pumpkinDamageMultiplier <= 0 || !overlapsArea) return;
 
 	std::vector<int> unprotectedPlantIDs;
 	std::unordered_set<int> protectedCellIndices;
@@ -3470,8 +3478,8 @@ void Board::ApplyPumpkinProtectedZombieAreaDamage(int baseDamage,
 		}
 	}
 
-	const int pumpkinDamage = baseDamage > INT_MAX / kPumpkinAreaDamageMultiplier
-		? INT_MAX : baseDamage * kPumpkinAreaDamageMultiplier;
+	const int pumpkinDamage = baseDamage > INT_MAX / pumpkinDamageMultiplier
+		? INT_MAX : baseDamage * pumpkinDamageMultiplier;
 	for (const int cellIndex : protectedCellIndices) {
 		const int row = cellIndex / mColumns;
 		const int column = cellIndex % mColumns;

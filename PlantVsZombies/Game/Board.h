@@ -634,10 +634,14 @@ public:
 	/**
 	 * 对命中范围内的植物结算可被南瓜头拦截的僵尸范围伤害。
 	 *
-	 * 同格有活动南瓜头时，该格只让南瓜头承受一次 3 倍基础伤害；没有南瓜头时，
+	 * 同格有活动南瓜头时，该格只让南瓜头承受一次默认 6 倍基础伤害；没有南瓜头时，
 	 * 仍按旧规则让每个实际命中的植物层分别承受基础伤害。
 	 */
 	void ApplyPumpkinProtectedZombieAreaDamage(int baseDamage,
+		const std::function<bool(const Plant&)>& overlapsArea);
+	/** 使用调用方指定的正倍率结算南瓜拦截，供拥有独立平衡值的范围攻击复用同一归并规则。 */
+	void ApplyPumpkinProtectedZombieAreaDamage(int baseDamage,
+		int pumpkinDamageMultiplier,
 		const std::function<bool(const Plant&)>& overlapsArea);
 	/** 将基础僵尸按所选行解析为泳池表现变体；不改变波次成本。 */
 	ZombieType ResolveTerrainZombieType(ZombieType selected, int row) const;

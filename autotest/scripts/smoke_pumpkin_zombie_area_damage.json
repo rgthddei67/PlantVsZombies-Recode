@@ -12,7 +12,7 @@
     { "op": "set_elite_jack_throw_countdown", "row": 2, "value": 0.05, "targetRow": 2, "targetColumn": 4 },
     { "op": "wait_seconds", "value": 0.95, "timeout": 3 },
     { "op": "assert_state", "path": "cells.2.4.normalHealth", "equals": 300 },
-    { "op": "assert_state", "path": "cells.2.4.pumpkinHealth", "equals": 3850 },
+    { "op": "assert_state", "path": "cells.2.4.pumpkinHealth", "equals": 3700 },
     { "op": "assert_state", "path": "particleEffectNameCounts.JackExplode", "equals": 1 },
     { "op": "screenshot", "name": "01_elite_jack_hits_pumpkin_only.png" },
 
@@ -27,7 +27,7 @@
     { "op": "spawn_zombie", "type": "ZOMBIE_ELITE_DIGGER", "row": 2, "x": 310 },
     { "op": "wait_seconds", "value": 5.7, "timeout": 8 },
     { "op": "assert_state", "path": "cells.2.0.normalHealth", "equals": 300 },
-    { "op": "assert_state", "path": "cells.2.0.pumpkinHealth", "equals": 3550 },
+    { "op": "assert_state", "path": "cells.2.0.pumpkinHealth", "equals": 3250 },
     { "op": "assert_state", "path": "cells.2.1.normalHealth", "equals": 3850 },
     { "op": "assert_state", "path": "particleEffectNameCounts.EliteDiggerBlast", "equals": 1 },
     { "op": "screenshot", "name": "02_elite_digger_redirects_once.png" },
@@ -44,7 +44,7 @@
     { "op": "damage_zombie", "row": 2, "index": 0, "damage": 900, "source": "PLANT" },
     { "op": "assert_state", "path": "cells.2.4.underHealth", "equals": 300 },
     { "op": "assert_state", "path": "cells.2.4.normalHealth", "equals": 300 },
-    { "op": "assert_state", "path": "cells.2.4.pumpkinHealth", "equals": 3850 },
+    { "op": "assert_state", "path": "cells.2.4.pumpkinHealth", "equals": 3700 },
     { "op": "assert_state", "path": "zombies.0.helmHealth", "equals": 0 },
     { "op": "screenshot", "name": "03_pool_three_layers_hit_pumpkin_only.png" },
 
