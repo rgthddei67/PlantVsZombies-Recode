@@ -39,4 +39,6 @@ metadata:
 `FireballImpact` 相对直击目标中心 X 为 -8px 且矩形相交。修复前同一取证为 +68px，
 并且溅射固定落在命中点右侧。
 
-2026-08-02 毒豆纳入同一转换链：`BULLET_TOXICPEA` 穿过火炬后成为普通 40 伤火球并失去附毒能力，但不可变 `mPoolType` 仍是 ToxicPea；回收复用后恢复 15 伤纯紫毒豆。`smoke_toxic_peashooter.json` 断言转换目标无毒、当前类型/基础伤害和池槽类型，原 `smoke_torchwood.json` 同日可见回归继续通过。
+2026-08-02 毒豆纳入同一转换链：`BULLET_TOXICPEA` 穿过火炬后变为独立 `BULLET_TOXICFIREBALL`，享受普通火豆的 40 伤、溅射、解冻和抗火语义，并使用紫焰飞行/命中特效、只让直击目标附毒；溅射目标不附毒。当前类型明确入档，不可变 `mPoolType` 仍保留 ToxicPea 回收归属，复用后恢复 15 伤纯紫毒豆。
+
+最终 `clang-release` 构建通过；桌面可见 `smoke_torchwood.json` 退出 0、25 条状态断言全绿，确认普通豌豆仍转换为 `BULLET_FIREBALL` 且紫焰计数为 0。毒囊专项默认与 `-NoInstance` 均退出 0，独立紫焰类型、存读档、直击/溅射分流和对象池复位通过。

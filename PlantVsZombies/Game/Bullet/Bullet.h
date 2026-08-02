@@ -111,7 +111,7 @@ public:
 	void SetRotationSpeedDegrees(float degreesPerSecond) {
 		mRotationSpeedDegrees = degreesPerSecond;
 	}
-	/** 普通豌豆穿过火炬树桩后变为 40 伤害的动画火球。 */
+	/** 普通/毒豆穿过火炬树桩后分别变为普通火豆或紫焰毒火豆。 */
 	void ConvertToFireball(int torchwoodColumn);
 	/** 寒冰豌豆穿过火炬树桩后退化为普通豌豆；同列不会再被点燃。 */
 	void ConvertSnowPeaToPea(int torchwoodColumn);
@@ -121,6 +121,10 @@ public:
 	void RestoreSavedPresentationState(BulletType currentType, int hitTorchwoodColumn);
 	int GetHitTorchwoodColumn() const { return mHitTorchwoodColumn; }
 	void SetHitTorchwoodColumn(int column) { mHitTorchwoodColumn = column; }
+	/** 返回当前类型是否为独立的紫焰毒火豆。 */
+	bool IsToxicFireball() const {
+		return mBulletType == BulletType::BULLET_TOXICFIREBALL;
+	}
 	/** 返回尖刺已接触的不同僵尸数量；其他子弹恒为 0。 */
 	int GetPiercedZombieCount() const {
 		return static_cast<int>(mPiercedZombieIDs.size());

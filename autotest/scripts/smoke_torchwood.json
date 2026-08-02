@@ -15,6 +15,7 @@
     { "op": "spawn_bullet", "type": "BULLET_SNOWPEA", "row": 3, "x": 615, "y": 408, "velocityX": 100 },
     { "op": "wait_frames", "value": 4 },
     { "op": "assert_state", "path": "fireballBulletCount", "equals": 1 },
+    { "op": "assert_state", "path": "toxicFireballBulletCount", "equals": 0 },
     { "op": "assert_state", "path": "animatedBulletCount", "equals": 1 },
     { "op": "assert_state", "path": "snowPeaBulletCount", "equals": 0 },
     { "op": "assert_state", "path": "peaBulletCount", "equals": 1 },

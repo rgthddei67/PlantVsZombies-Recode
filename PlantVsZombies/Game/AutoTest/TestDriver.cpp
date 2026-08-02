@@ -160,7 +160,7 @@ namespace {
 #define BT(n) { #n, BulletType::n }
 	const std::unordered_map<std::string, BulletType> kBulletNames = {
 		BT(BULLET_PEA), BT(BULLET_SNOWPEA), BT(BULLET_PUFF), BT(BULLET_FIREBALL),
-		BT(BULLET_SPIKE), BT(BULLET_STAR), BT(BULLET_TOXICPEA),
+		BT(BULLET_SPIKE), BT(BULLET_STAR), BT(BULLET_TOXICPEA), BT(BULLET_TOXICFIREBALL),
 	};
 #undef BT
 #define ZT(n) { #n, ZombieType::n }
@@ -3206,6 +3206,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	int backwardPeaBulletCount = 0;
 	int snowPeaBulletCount = 0;
 	int fireballBulletCount = 0;
+	int toxicFireballBulletCount = 0;
 	int toxicPeaBulletCount = 0;
 	int spikeBulletCount = 0;
 	int starBulletCount = 0;
@@ -3241,6 +3242,9 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		}
 		else if (bullet->mBulletType == BulletType::BULLET_SNOWPEA) ++snowPeaBulletCount;
 		else if (bullet->mBulletType == BulletType::BULLET_FIREBALL) ++fireballBulletCount;
+		else if (bullet->mBulletType == BulletType::BULLET_TOXICFIREBALL) {
+			++toxicFireballBulletCount;
+		}
 		else if (bullet->mBulletType == BulletType::BULLET_TOXICPEA) ++toxicPeaBulletCount;
 		else if (bullet->mBulletType == BulletType::BULLET_STAR) {
 			++starBulletCount;
@@ -3289,6 +3293,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "piercedZombieIDs", bullet->GetPiercedZombieIDs() },
 			{ "spikeDamageRemainders", bullet->GetSpikeDamageRemainders() },
 			{ "animatedPresentation", bullet->HasAnimatedPresentation() },
+			{ "toxicFireball", bullet->IsToxicFireball() },
 			{ "fromPool", bullet->IsFromPool() },
 			{ "poolType", BulletTypeName(bullet->GetPoolType()) },
 		});
@@ -3299,6 +3304,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["backwardPeaBulletCount"] = backwardPeaBulletCount;
 	out["snowPeaBulletCount"] = snowPeaBulletCount;
 	out["fireballBulletCount"] = fireballBulletCount;
+	out["toxicFireballBulletCount"] = toxicFireballBulletCount;
 	out["toxicPeaBulletCount"] = toxicPeaBulletCount;
 	out["spikeBulletCount"] = spikeBulletCount;
 	out["starBulletCount"] = starBulletCount;

@@ -75,6 +75,7 @@ std::shared_ptr<Bullet> BulletPool::AcquireShared(Board* board, BulletType type,
 			board, type, row, colliderRadius, position);
 		break;
 	case BulletType::BULLET_FIREBALL:
+	case BulletType::BULLET_TOXICFIREBALL:
 		bullet = GameObjectManager::GetInstance().CreateGameObjectImmediateAsShared<FirePeaBullet>(
 			LAYER_GAME_BULLET,
 			board, type, row, colliderRadius, position);

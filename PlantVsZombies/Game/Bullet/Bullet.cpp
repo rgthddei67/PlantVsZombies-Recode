@@ -30,6 +30,7 @@ namespace {
 	constexpr float kFireballImpactSpeed = 2.0f;      // Fire.reanim 为 12fps，原版命中特效按 24fps 播放
 	constexpr float kFireballImpactScaleX = 0.7f;     // 原版火球命中特效横向缩放
 	constexpr float kFireballImpactScaleY = 0.4f;     // 原版火球命中特效纵向缩放
+	constexpr SDL_Color kToxicFireOverlay{165, 55, 235, 225}; // 毒豆点燃后的紫焰覆盖色，保留原动画明暗
 	constexpr float kThreepeaterVerticalSpeed = 300.0f; // C# 在 100px 草地行高下每 10ms 移动 3px，换算为每秒像素
 	constexpr float kThreepeaterDampingPerTick = 0.97f; // C# 每个 10ms 更新对纵向速度的衰减
 	constexpr float kOriginalTickSeconds = 0.01f;       // 原版 Projectile 更新步长，单位：秒
@@ -65,6 +66,7 @@ namespace {
 		{ BulletType::BULLET_BUTTER,     BulletWindResponse::NONE },
 		{ BulletType::BULLET_ZOMBIE_PEA, BulletWindResponse::NONE },
 		{ BulletType::BULLET_TOXICPEA,   BulletWindResponse::LIGHT_PROJECTILE },
+		{ BulletType::BULLET_TOXICFIREBALL, BulletWindResponse::LIGHT_PROJECTILE },
 	};
 
 	constexpr bool BulletWindProfilesCoverEveryType()
@@ -92,7 +94,8 @@ namespace {
 	/** 返回对象池新建/复用时应恢复的类型基础伤害。 */
 	int DefaultDamageForBullet(BulletType type)
 	{
-		if (type == BulletType::BULLET_FIREBALL) return kFireballDamage;
+		if (type == BulletType::BULLET_FIREBALL
+			|| type == BulletType::BULLET_TOXICFIREBALL) return kFireballDamage;
 		if (type == BulletType::BULLET_SPIKE) return kSpikeFrameDamage;
 		if (type == BulletType::BULLET_TOXICPEA) return kToxicPeaDamage;
 		return kPeaDamage;
@@ -101,10 +104,11 @@ namespace {
 	/** 播放火球命中时的小段 JalapenoFire；依靠 PLAY_ONCE 完成态回收，不新增帧事件。 */
 	class FireballImpact final : public AnimatedObject {
 	public:
-		FireballImpact(Board* board, const Vector& position)
+		FireballImpact(Board* board, const Vector& position, bool toxicFlame)
 			: AnimatedObject(ObjectType::OBJECT_PARTICLE, board, position,
 				AnimationType::ANIM_JALAPENO_FIRE, ColliderType::BOX,
-				Vector::zero(), Vector::zero(), 1.0f, "FireballImpact", true)
+				Vector::zero(), Vector::zero(), 1.0f, "FireballImpact", true),
+			mToxicFlame(toxicFlame)
 		{
 		}
 
@@ -123,7 +127,15 @@ namespace {
 			const Vector pivot = GetVisualPosition();
 			mAnimator->SetRenderScale(
 				kFireballImpactScaleX, kFireballImpactScaleY, pivot.x, pivot.y);
+			if (mToxicFlame) {
+				mAnimator->SetOverlayColor(kToxicFireOverlay.r, kToxicFireOverlay.g,
+					kToxicFireOverlay.b, kToxicFireOverlay.a);
+				mAnimator->EnableOverlayEffect(true);
+			}
 		}
+
+	private:
+		bool mToxicFlame = false;
 	};
 }
 
@@ -315,7 +327,8 @@ void Bullet::UpdateShadowLayout(const Vector& position)
 	if (mBulletType == BulletType::BULLET_SNOWPEA) {
 		typeScale = 1.3f;
 	}
-	else if (mBulletType == BulletType::BULLET_FIREBALL) {
+	else if (mBulletType == BulletType::BULLET_FIREBALL
+		|| mBulletType == BulletType::BULLET_TOXICFIREBALL) {
 		typeScale = 1.4f;
 	}
 	const float shadowWidth = kPeaShadowWidth * typeScale;
@@ -336,6 +349,7 @@ void Bullet::UpdateShadowLayout(const Vector& position)
 		: (mBulletType == BulletType::BULLET_STAR
 			? 7.0f
 			: ((mBulletType == BulletType::BULLET_FIREBALL
+				|| mBulletType == BulletType::BULLET_TOXICFIREBALL
 				|| mBulletType == BulletType::BULLET_SPIKE) ? 0.0f : 3.0f));
 	// 斜向豌豆从发射行地面起步并随本体一起汇入目标行；其发射点固定为格心上方 40px，
 	// 因而相对偏移恒为 68px。普通子弹仍直接锚定其碰撞行地面。
@@ -385,7 +399,8 @@ void Bullet::BulletHitZombie(Zombie* zombie)
 	if (!zombie) return;
 	const bool bypassShield = zombie->ShouldProjectileBypassShield(mVelocityX);
 
-	if (mBulletType == BulletType::BULLET_FIREBALL) {
+	if (mBulletType == BulletType::BULLET_FIREBALL
+		|| mBulletType == BulletType::BULLET_TOXICFIREBALL) {
 		HitFireballZombie(zombie);
 		return;
 	}
@@ -467,7 +482,8 @@ void Bullet::ConfigurePresentation()
 			kStarSpinSpeedMin, kStarSpinSpeedMax);
 		if (GameRandom::Chance()) mRotationSpeedDegrees = -mRotationSpeedDegrees;
 		break;
-	case BulletType::BULLET_FIREBALL: {
+	case BulletType::BULLET_FIREBALL:
+	case BulletType::BULLET_TOXICFIREBALL: {
 		auto reanim = resources.GetReanimation(
 			resources.AnimationTypeToString(AnimationType::ANIM_FIREPEA));
 		if (!reanim) {
@@ -479,6 +495,11 @@ void Bullet::ConfigurePresentation()
 		mProjectileAnimator->SetCurrentFrame(0.0f);
 		mProjectileAnimator->SetSpeed(GameRandom::Range(50.0f, 80.0f) / 12.0f);
 		mProjectileAnimator->SetFlipX(mVelocityX < 0.0f);
+		if (IsToxicFireball()) {
+			mProjectileAnimator->SetOverlayColor(kToxicFireOverlay.r, kToxicFireOverlay.g,
+				kToxicFireOverlay.b, kToxicFireOverlay.a);
+			mProjectileAnimator->EnableOverlayEffect(true);
+		}
 		mProjectileAnimator->Play(PlayState::PLAY_REPEAT);
 		break;
 	}
@@ -568,7 +589,9 @@ void Bullet::ConvertToFireball(int torchwoodColumn)
 		return;
 	}
 
-	mBulletType = BulletType::BULLET_FIREBALL;
+	mBulletType = mBulletType == BulletType::BULLET_TOXICPEA
+		? BulletType::BULLET_TOXICFIREBALL
+		: BulletType::BULLET_FIREBALL;
 	mDamage = kFireballDamage;
 	mHitTorchwoodColumn = torchwoodColumn;
 	ConfigurePresentation();
@@ -674,9 +697,11 @@ void Bullet::HitFireballZombie(Zombie* zombie)
 {
 	const int directDamage = GetWindAdjustedDamage();
 	const bool bypassShield = zombie->ShouldProjectileBypassShield(mVelocityX);
+	const bool toxicFireball = IsToxicFireball();
 	if (zombie->IsFireResistant() && !bypassShield) {
 		PlayStandardImpactSound(zombie, false);
 		zombie->TakeProjectileDamage(directDamage, DamageSource::PLANT, mVelocityX);
+		if (toxicFireball) zombie->ApplyToxinStack();
 		return;
 	}
 
@@ -716,6 +741,8 @@ void Bullet::HitFireballZombie(Zombie* zombie)
 	// 原版 splash damage flag 会让二类护盾照常受损，同时把全额伤害继续传给本体。
 	zombie->TakeProjectileDamage(
 		directDamage, DamageSource::PLANT, mVelocityX, /*penetrateShield=*/true);
+	// 紫焰豆只让实际直击目标叠毒；溅射维持普通火豆语义，避免一发向整群铺层。
+	if (toxicFireball) zombie->ApplyToxinStack();
 	for (Zombie* target : secondaryTargets) {
 		if (target->IsActive() && !target->IsDying()) {
 			target->TakeDamage(splashDamage, DamageSource::PLANT, true);
@@ -727,7 +754,8 @@ void Bullet::HitFireballZombie(Zombie* zombie)
 	GameObjectManager::GetInstance().CreateGameObject<FireballImpact>(
 		LAYER_EFFECTS_WORLD,
 		mBoard,
-		GetPosition() + Vector(impactOffsetX, kFireballImpactOffsetY));
+		GetPosition() + Vector(impactOffsetX, kFireballImpactOffsetY),
+		toxicFireball);
 }
 
 bool Bullet::IsTyphoonWindAffected() const
