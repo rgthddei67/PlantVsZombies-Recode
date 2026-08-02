@@ -179,6 +179,8 @@
   <ParticleTextures>
     <Texture Column="4" Row="1">./resources/particles/pea_splats.png</Texture>
     <Texture Column="3" Row="1">./resources/particles/pea_particles.png</Texture>
+    <Texture Column="4" Row="1">./resources/particles/toxicpea_splats.png</Texture>
+    <Texture Column="3" Row="1">./resources/particles/toxicpea_particles.png</Texture>
     <Texture Column="4" Row="1">./resources/particles/snowpea_splats.png</Texture>
     <Texture Column="3" Row="1">./resources/particles/snowpea_particles.png</Texture>
     <Texture Column="5" Row="1">./resources/particles/WallnutParticlesSmall.png</Texture>

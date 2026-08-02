@@ -7,6 +7,7 @@ Add-Type -AssemblyName System.Drawing
 $resourceRoot = Join-Path $RepositoryRoot "build/clang-release/resources"
 $reanimImageRoot = Join-Path $resourceRoot "image/reanim"
 $plantImageRoot = Join-Path $resourceRoot "image/PlantImage"
+$particleRoot = Join-Path $resourceRoot "particles"
 
 function Convert-TintedImage {
     param(
@@ -112,6 +113,14 @@ Convert-TintedImage `
     (Join-Path $resourceRoot "image/ProjectilePea.png") `
     (Join-Path $resourceRoot "image/ProjectileToxicPea.png") `
     $purple
+Convert-TintedImage `
+    (Join-Path $particleRoot "pea_splats.png") `
+    (Join-Path $particleRoot "toxicpea_splats.png") `
+    $purple
+Convert-TintedImage `
+    (Join-Path $particleRoot "pea_particles.png") `
+    (Join-Path $particleRoot "toxicpea_particles.png") `
+    $purple
 
 $sourceReanim = Join-Path $resourceRoot "reanim/PeaShooter.reanim"
 $destinationReanim = Join-Path $resourceRoot "reanim/ToxicPeaShooter.reanim"
@@ -127,4 +136,4 @@ $reanimText = $reanimText.Replace(
     $reanimText,
     [System.Text.UTF8Encoding]::new($false))
 
-Write-Output "Generated ToxicPeaShooter card, projectile, reanimation and 11 recolored track images."
+Write-Output "Generated ToxicPeaShooter card, projectile, hit particles, reanimation and 11 recolored track images."

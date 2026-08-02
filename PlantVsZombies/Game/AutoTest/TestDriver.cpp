@@ -1674,6 +1674,21 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		{ "diggerPickaxeLoaded", ResourceManager::GetInstance().GetTexture(
 			ResourceKeys::Textures::IMAGE_ZOMBIE_DIGGER_PICKAXE, false) != nullptr },
 	};
+	// 命中配方随机取七个分片；全部加载才能排除“偶尔抽到空纹理”的假绿。
+	const std::array<std::string, 7> toxicPeaHitTextureKeys = {
+		ResourceKeys::Particles::PARTICLE_TOXICPEA_SPLATS_PART_0,
+		ResourceKeys::Particles::PARTICLE_TOXICPEA_SPLATS_PART_1,
+		ResourceKeys::Particles::PARTICLE_TOXICPEA_SPLATS_PART_2,
+		ResourceKeys::Particles::PARTICLE_TOXICPEA_SPLATS_PART_3,
+		ResourceKeys::Particles::PARTICLE_TOXICPEA_PARTICLES_PART_0,
+		ResourceKeys::Particles::PARTICLE_TOXICPEA_PARTICLES_PART_1,
+		ResourceKeys::Particles::PARTICLE_TOXICPEA_PARTICLES_PART_2,
+	};
+	const int toxicPeaHitTexturePartsLoaded = static_cast<int>(std::count_if(
+		toxicPeaHitTextureKeys.begin(), toxicPeaHitTextureKeys.end(),
+		[](const std::string& key) {
+			return ResourceManager::GetInstance().GetTexture(key, false) != nullptr;
+		}));
 	out["toxicPeaResources"] = {
 		{ "reanimationLoaded", ResourceManager::GetInstance().HasReanimation(
 			ResourceKeys::Reanimations::REANIM_TOXICPEASHOOTER) },
@@ -1685,6 +1700,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			ResourceKeys::Textures::IMAGE_REANIM_TOXICPEASHOOTER_HEAD, false) != nullptr },
 		{ "tailLeafLoaded", ResourceManager::GetInstance().GetTexture(
 			ResourceKeys::Textures::IMAGE_REANIM_TOXICPEASHOOTER_SPROUT, false) != nullptr },
+		{ "hitTexturePartsLoaded", toxicPeaHitTexturePartsLoaded },
 	};
 	out["pogoResources"] = {
 		{ "reanimationLoaded", ResourceManager::GetInstance().HasReanimation(
@@ -2894,6 +2910,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["particleEffects"] = nlohmann::json::array();
 	out["particleEffectsByName"] = nlohmann::json::object();
 	out["particleEffectNameCounts"] = nlohmann::json::object();
+	out["particleEffectNameCounts"]["PeaBulletHit"] = 0;
+	out["particleEffectNameCounts"]["ToxicPeaBulletHit"] = 0;
 	out["particleEffectNameCounts"]["ZombieArmOff"] = 0;
 	out["particleEffectNameCounts"]["ZombieDolphinRiderHeadOff"] = 0;
 	out["particleEffectNameCounts"]["EliteDolphinRiderHeadOff"] = 0;

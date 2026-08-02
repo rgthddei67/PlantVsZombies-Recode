@@ -21,8 +21,10 @@ metadata:
 
 ## 资源与验证
 
-`ToxicPeaShooter.reanim` 复用 PeaShooter 时间线但引用独立换色部件：头、嘴和共享 `ANIM_SPROUT` 派生的头后小叶为紫色，地面叶座与茎为青绿；毒豆为纯紫色并保留自然高光。`scripts/recolor_toxic_peashooter.ps1` 可从权威 PeaShooter 素材重建卡片、11 张轨道图、毒豆和 reanim；不要把地面 `backleaf` 误当成头后小叶。
+`ToxicPeaShooter.reanim` 复用 PeaShooter 时间线但引用独立换色部件：头、嘴和共享 `ANIM_SPROUT` 派生的头后小叶为紫色，地面叶座与茎为青绿；毒豆为纯紫色并保留自然高光。普通毒豆命中使用独立 `ToxicPeaBulletHit`，其紫色溅斑/碎屑由与毒豆相同的调色公式从绿色权威图集派生；普通豌豆仍走绿色 `PeaBulletHit`。`scripts/recolor_toxic_peashooter.ps1` 可重建卡片、11 张轨道图、毒豆、两张命中粒子图集和 reanim；不要把地面 `backleaf` 误当成头后小叶。
 
 初版四层/2 DPS 实现曾通过 `clang-release` 与桌面可见专项回归。2026-08-02 根据主人实测把上限调为五层、单层调为每 0.4 秒 1 伤；随后新增独立紫焰毒火豆并重新完成 `clang-release` 构建。桌面可见 `smoke_toxic_peashooter.json` 默认实例化与 `-NoInstance` 均退出 0，最终脚本 55 条状态断言全绿，覆盖五层/第六发刷新、五层盾伤、存档、魅惑、倍速、独立紫焰类型、紫焰存读档、直击附毒和 ToxicPea 池槽复位；截图确认两条渲染路径的紫焰表现一致。紫焰火豆后续收窄为 30 像素溅射并让实际受到溅射的目标同样叠毒，最终回归证据见本主题后续记录。
 
 2026-08-02 紫焰溅射附毒调整完成后，`clang-release` 构建通过；桌面可见 `smoke_toxic_peashooter.json` 退出 0、59 条状态断言全绿。专项在同排布置直击目标、30 像素内次要目标和范围外目标，逐只断言仅前两只中毒、范围外目标保持 270 满血，且三者总生命符合 40 点直击、13 点单体溅射和两份毒伤；`d1_toxic_fireball_30px_splash_and_pool_reset.png` 同时确认前两只呈紫色、第三只保持正常颜色。对象池复位断言继续通过。
+
+2026-08-02 修复普通毒豆误用绿色 `PeaBulletHit`：新增独立紫色主溅斑与碎屑图集、`ToxicPeaBulletHit` 配方，并按当前 `BULLET_TOXICPEA` 分派。`clang-release` 构建通过；桌面可见毒囊专项退出 0、66 条状态断言全绿，七个粒子分片全部加载、紫色效果计数为 5、绿色效果计数为 0，截图确认命中处为紫色。桌面可见普通豌豆粒子专项退出 0、9 条断言全绿，绿色 `PeaBulletHit` 保持不变。

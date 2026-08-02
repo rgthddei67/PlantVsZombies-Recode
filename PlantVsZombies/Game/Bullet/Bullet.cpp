@@ -438,8 +438,12 @@ void Bullet::BulletHitZombie(Zombie* zombie)
 			g_particleSystem->EmitEffect("PuffShroomHit", GetPosition());
 		}
 	}
-	else if (mBulletType == BulletType::BULLET_PEA
-		|| mBulletType == BulletType::BULLET_TOXICPEA) {
+	else if (mBulletType == BulletType::BULLET_TOXICPEA) {
+		if (g_particleSystem) {
+			g_particleSystem->EmitEffect("ToxicPeaBulletHit", GetPosition());
+		}
+	}
+	else if (mBulletType == BulletType::BULLET_PEA) {
 		if (g_particleSystem) {
 			g_particleSystem->EmitEffect("PeaBulletHit", GetPosition());
 		}
