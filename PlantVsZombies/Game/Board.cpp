@@ -141,7 +141,7 @@ namespace {
 	constexpr int kEliteJackInTheBoxMaxPerWave = 2;       // 每波最多正式生成的精英小丑数量；超额候选直接跳过
 	constexpr int kEliteDiggerMaxPerWave = 1;             // 每波最多正式生成的爆破工头数量；超额候选直接跳过
 	constexpr int kEliteScaredyShroomPlantLimit = 4;      // 每个关卡累计最多种植的精英胆小菇数量
-	constexpr int kPumpkinAreaDamageMultiplier = 5;       // 特殊僵尸范围伤害被南瓜头拦截时的基础伤害倍率
+	constexpr int kPumpkinAreaDamageMultiplier = 3;       // 特殊僵尸范围伤害被南瓜头拦截时的基础伤害倍率
 	constexpr int kMonteCarloRolloutCount = 32;           // 每个爆点的轻量未来样本数；低配可由 GameAPP 总开关完全跳过
 	constexpr int kMonteCarloMaxZombies = 12;             // 单个样本最多推进的当前敌方僵尸数
 	constexpr float kMonteCarloHorizonSeconds = 16.0f;    // 植物防线短视推演时域，单位：游戏秒
