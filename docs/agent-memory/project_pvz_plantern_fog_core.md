@@ -8,7 +8,7 @@ metadata:
 
 # 路灯花与迷雾核心
 
-## 当前契约（2026-07-31）
+## 当前契约（2026-08-02）
 
 - `PLANT_PLANTERN` 在冒险 4-1 作为奖励，25 阳光、30 秒冷却；4-1 只保留雾视觉，4-2 起启用
   燃料、照明、产光增益和雾中远程索敌限制。
@@ -42,6 +42,9 @@ metadata:
   `GameScene::BuildDrawCommands` 在天气面板与失败提示之后注册独立 UI 命令，确保视觉位于其上。
   卡牌当前挡位和槽下四个挡位标签均通过 `Graphics::MeasureTextWidth` 按实际比例字体宽度在各自
   布局矩形内居中，不再按字符数量分组硬编码 X 偏移。
+- 图鉴/选卡卡片属于非实战上下文，可以没有 `CardSlotManager`。`CardDisplayComponent::Draw`
+  只在实战路灯花卡需要活动实体状态时查询 manager/Board，避免植物图鉴为每张卡每帧重查 host
+  并刷 `CardSlotManager host invalid`；实战卡仍保留挡位、燃料和比例条显示。
 - 正式燃料消耗从不低于 10 跌破 10 时只触发一次 `SOUND_CLICKFAILED`，并通过
   `BoardPresentation::ShowPlanternLowFuelWarning()` 显示约 3 秒、46 号红字中央警报；
   提示按未缩放时间推进，高倍速不缩短。挡位开启且燃料低于 10 时，卡牌数字变红并持续显示
@@ -67,4 +70,7 @@ metadata:
 - 2026-07-29 菜单层级修复完成 `clang-playtest` 零错误构建；主人明确本次不运行 AutoTest。
 - 2026-07-31 挡位标签真实测宽居中修复完成 `clang-playtest` 配置/构建 exit 0 且无警告；
   主人明确本次编译后无需运行 AutoTest。
+- 2026-08-02 图鉴卡 host 重查修复完成 `clang-release` 配置/构建；
+  `smoke_plant_almanac_card_host` 在当前桌面可见运行 exit 0，从主菜单真实点击进入植物图鉴后
+  目标警告为 0，再进入 4-2 断言路灯花 III 挡并目验卡牌挡位/燃料截图。
 - 设计定稿见 `docs/superpowers/specs/2026-07-29-plantern-fog-core-design.md`。

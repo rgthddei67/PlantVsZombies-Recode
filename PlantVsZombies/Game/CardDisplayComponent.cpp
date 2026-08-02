@@ -83,8 +83,12 @@ void CardDisplayComponent::Draw(Graphics* g) {
 	// 一次性算出世界坐标与当前色调，避免各子函数重复查询
 	Vector pos = transform->GetPosition();
 	Vector position = g->LogicalToWorld(pos.x, pos.y);
+	CardComponent* component = GetCardComponent();
 	Board* board = nullptr;
-	if (CardComponent* component = GetCardComponent()) {
+	// 只有实战中的路灯花卡面需要 Board；图鉴/选卡卡片没有 CardSlotManager，
+	// 绘制时查询会在每帧对每张卡反复触发无意义的 host 重查与警告。
+	if (plantType == PlantType::PLANT_PLANTERN
+		&& component && !component->GetIsInChooseCardUI()) {
 		if (CardSlotManager* manager = component->GetCardSlotManager()) {
 			board = manager->GetBoard();
 		}
@@ -103,7 +107,7 @@ void CardDisplayComponent::Draw(Graphics* g) {
 	if (isActivePlantern) DrawPlanternStatus(g, position);
 	else DrawSunCost(g, position);
 	if (plantType == PlantType::PLANT_BLOVER
-		&& GetCardComponent() && !GetCardComponent()->GetIsInChooseCardUI()) {
+		&& component && !component->GetIsInChooseCardUI()) {
 		DrawBloverDirection(g, position);
 	}
 
