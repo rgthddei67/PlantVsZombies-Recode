@@ -624,8 +624,12 @@ public:
 	/** 返回该植物是否仍有本关种植次数；无限制的植物恒为 true。 */
 	bool HasPlantingQuota(PlantType type) const;
 	int GetEliteScaredyShroomPlantLimit() const;
-	/** 返回格子最上层可被铲除或啃食的植物：普通层优先于承载层。 */
+	/** 返回格子最上层可被铲除或啃食的植物：南瓜层、普通层、承载层依次优先。 */
 	Plant* GetTopPlantAt(int row, int col) const;
+	/** 返回指定格普通植物层；不存在或 ID 已失效时返回空。 */
+	Plant* GetNormalPlantAt(int row, int col) const;
+	/** 返回指定格南瓜外壳层；不存在或 ID 已失效时返回空。 */
+	Plant* GetPumpkinAt(int row, int col) const;
 	/** 将基础僵尸按所选行解析为泳池表现变体；不改变波次成本。 */
 	ZombieType ResolveTerrainZombieType(ZombieType selected, int row) const;
 	bool CanSpawnZombieInRow(ZombieType type, int row) const {

@@ -2102,8 +2102,10 @@ void Board::TriggerTyphoonPlantMove(TyphoonStrength strength, WindDirection dire
 				if (!source || source->IsEmpty()) continue;
 				const int underID = source->GetUnderPlantID();
 				const int normalID = source->GetNormalPlantID();
+				const int pumpkinID = source->GetPumpkinPlantID();
 				Plant* under = mEntityManager.GetPlant(underID);
 				Plant* normal = mEntityManager.GetPlant(normalID);
+				Plant* pumpkin = mEntityManager.GetPlant(pumpkinID);
 				if (!under || !under->IsActive()) {
 					source->ClearUnderPlantID();
 					under = nullptr;
@@ -2112,10 +2114,16 @@ void Board::TriggerTyphoonPlantMove(TyphoonStrength strength, WindDirection dire
 					source->ClearNormalPlantID();
 					normal = nullptr;
 				}
-				if (!under && !normal) continue;
-				const Plant* sourceAnchor = normal && normal->AnchorsPlantCellAgainstTyphoon()
-					? normal
-					: (under && under->AnchorsPlantCellAgainstTyphoon() ? under : nullptr);
+				if (!pumpkin || !pumpkin->IsActive()) {
+					source->ClearPumpkinPlantID();
+					pumpkin = nullptr;
+				}
+				if (!under && !normal && !pumpkin) continue;
+				const Plant* sourceAnchor = pumpkin && pumpkin->AnchorsPlantCellAgainstTyphoon()
+					? pumpkin
+					: (normal && normal->AnchorsPlantCellAgainstTyphoon()
+						? normal
+						: (under && under->AnchorsPlantCellAgainstTyphoon() ? under : nullptr));
 				if (sourceAnchor) continue;
 
 				const int targetColumn = column + columnDelta;
@@ -2127,6 +2135,10 @@ void Board::TriggerTyphoonPlantMove(TyphoonStrength strength, WindDirection dire
 					if (normal) {
 						lostPlantIDs.insert(normalID);
 						normal->Die();
+					}
+					if (pumpkin) {
+						lostPlantIDs.insert(pumpkinID);
+						pumpkin->Die();
 					}
 					continue;
 				}
@@ -2152,10 +2164,15 @@ void Board::TriggerTyphoonPlantMove(TyphoonStrength strength, WindDirection dire
 						lostPlantIDs.insert(normalID);
 						normal->Die();
 					}
+					if (pumpkin) {
+						lostPlantIDs.insert(pumpkinID);
+						pumpkin->Die();
+					}
 					continue;
 				}
 				source->ClearUnderPlantID();
 				source->ClearNormalPlantID();
+				source->ClearPumpkinPlantID();
 				if (under) {
 					target->SetUnderPlantID(underID);
 					under->MoveToGridCell(row, targetColumn, kTyphoonPlantSlideDuration);
@@ -2165,6 +2182,11 @@ void Board::TriggerTyphoonPlantMove(TyphoonStrength strength, WindDirection dire
 					target->SetNormalPlantID(normalID);
 					normal->MoveToGridCell(row, targetColumn, kTyphoonPlantSlideDuration);
 					movedPlantIDs.insert(normalID);
+				}
+				if (pumpkin) {
+					target->SetPumpkinPlantID(pumpkinID);
+					pumpkin->MoveToGridCell(row, targetColumn, kTyphoonPlantSlideDuration);
+					movedPlantIDs.insert(pumpkinID);
 				}
 				RefreshPlantStackRenderOrder(target);
 			}
@@ -3349,6 +3371,11 @@ bool Board::CanPlantAt(PlantType type, int row, int col)
 	if (!cell || HasCraterAt(row, col)) return false;
 
 	const bool isWater = IsPoolSquare(row, col);
+	if (type == PlantType::PLANT_PUMPKINSHELL) {
+		// 原版南瓜有独立外壳层；水路仍需睡莲承载，陆地可空壳或包住普通植物。
+		return cell->GetPumpkinPlantID() == NULL_PLANT_ID
+			&& (!isWater || cell->GetUnderPlantID() != NULL_PLANT_ID);
+	}
 	if ((type == PlantType::PLANT_SPIKEWEED
 		|| type == PlantType::PLANT_SPIKEROCK)
 		&& (isWater || IsSpikeweedTerrainRestricted(mBackGround))) {
@@ -3393,17 +3420,36 @@ Plant* Board::GetTopPlantAt(int row, int col) const
 	return cell ? mEntityManager.GetPlant(cell->GetTopPlantID()) : nullptr;
 }
 
+Plant* Board::GetNormalPlantAt(int row, int col) const
+{
+	if (row < 0 || row >= mRows || col < 0 || col >= mColumns) return nullptr;
+	Cell* cell = mCells[row][col];
+	return cell ? mEntityManager.GetPlant(cell->GetNormalPlantID()) : nullptr;
+}
+
+Plant* Board::GetPumpkinAt(int row, int col) const
+{
+	if (row < 0 || row >= mRows || col < 0 || col >= mColumns) return nullptr;
+	Cell* cell = mCells[row][col];
+	return cell ? mEntityManager.GetPlant(cell->GetPumpkinPlantID()) : nullptr;
+}
+
 void Board::RefreshPlantStackRenderOrder(Cell* cell)
 {
 	if (!cell) return;
 	Plant* under = mEntityManager.GetPlant(cell->GetUnderPlantID());
 	Plant* normal = mEntityManager.GetPlant(cell->GetNormalPlantID());
-	if (!under || !normal) return;
-	const int underOrder = under->GetRenderOrder();
-	const int normalOrder = normal->GetRenderOrder();
-	if (underOrder < normalOrder) return;
-	under->SetRenderOrder(normalOrder);
-	normal->SetRenderOrder(underOrder == normalOrder ? normalOrder + 1 : underOrder);
+	Plant* pumpkin = mEntityManager.GetPlant(cell->GetPumpkinPlantID());
+	std::vector<int> orders;
+	if (under) orders.push_back(under->GetRenderOrder());
+	if (normal) orders.push_back(normal->GetRenderOrder());
+	if (pumpkin) orders.push_back(pumpkin->GetRenderOrder());
+	if (orders.size() < 2) return;
+	std::sort(orders.begin(), orders.end());
+	size_t index = 0;
+	if (under) under->SetRenderOrder(orders[index++]);
+	if (normal) normal->SetRenderOrder(orders[index++]);
+	if (pumpkin) pumpkin->SetRenderOrder(orders[index]);
 }
 
 Plant* Board::CreatePlant(PlantType plantType, int row, int column, bool skipsettings, bool isPreview)
@@ -3427,8 +3473,10 @@ Plant* Board::CreatePlant(PlantType plantType, int row, int column, bool skipset
 	if (plant && !isPreview && !skipsettings) {
 		Cell* cell = GetCell(row, column);
 		const bool isUnderPlant = plantType == PlantType::PLANT_LILYPAD;
+		const bool isPumpkinPlant = plantType == PlantType::PLANT_PUMPKINSHELL;
 		const int occupiedID = isUnderPlant
-			? cell->GetUnderPlantID() : cell->GetNormalPlantID();
+			? cell->GetUnderPlantID()
+			: (isPumpkinPlant ? cell->GetPumpkinPlantID() : cell->GetNormalPlantID());
 		if (occupiedID != NULL_PLANT_ID) {
 			plant->Die();
 			return nullptr;
@@ -3437,6 +3485,7 @@ Plant* Board::CreatePlant(PlantType plantType, int row, int column, bool skipset
 
 		// 将植物与格子关联
 		if (isUnderPlant) cell->SetUnderPlantID(plant->mPlantID);
+		else if (isPumpkinPlant) cell->SetPumpkinPlantID(plant->mPlantID);
 		else cell->SetNormalPlantID(plant->mPlantID);
 		RefreshPlantStackRenderOrder(cell);
 		if (plantType == PlantType::PLANT_ELITE_SCAREDYSHROOM && consumesPlantingQuota) {
@@ -3515,6 +3564,8 @@ inline void Board::CleanPlantFromCells(int plantID)
 				mCells[i][j]->ClearUnderPlantID();
 			if (mCells[i][j]->GetNormalPlantID() == plantID)
 				mCells[i][j]->ClearNormalPlantID();
+			if (mCells[i][j]->GetPumpkinPlantID() == plantID)
+				mCells[i][j]->ClearPumpkinPlantID();
 		}
 	}
 }
@@ -4343,8 +4394,10 @@ void Board::LoadSpawnListFromJson()
 Plant* Board::CreatePlantWithID(PlantType type, int row, int col, int id) {
 	Cell* cell = GetCell(row, col);
 	const bool isUnderPlant = type == PlantType::PLANT_LILYPAD;
+	const bool isPumpkinPlant = type == PlantType::PLANT_PUMPKINSHELL;
 	if (cell && (isUnderPlant
-		? cell->GetUnderPlantID() : cell->GetNormalPlantID()) != NULL_PLANT_ID) {
+		? cell->GetUnderPlantID()
+		: (isPumpkinPlant ? cell->GetPumpkinPlantID() : cell->GetNormalPlantID())) != NULL_PLANT_ID) {
 		return nullptr;
 	}
 	// 走 GameApp 工厂拿 shared_ptr 用于 EntityManager 注册
@@ -4357,6 +4410,7 @@ Plant* Board::CreatePlantWithID(PlantType type, int row, int col, int id) {
 		mEntityManager.AddPlantWithID(plant, id);
 		if (cell) {
 			if (isUnderPlant) cell->SetUnderPlantID(id);
+			else if (isPumpkinPlant) cell->SetPumpkinPlantID(id);
 			else cell->SetNormalPlantID(id);
 			RefreshPlantStackRenderOrder(cell);
 		}

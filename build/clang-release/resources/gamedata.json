@@ -30,7 +30,8 @@
     "PLANT_CACTUS":          { "cost": 125, "cooldown": 7.5,  "offset": [-37.6, -44.0], "scale": 1.0, "simulation": { "baseHealth": 300, "attackDps": 13.33 } },
     "PLANT_BLOVER":          { "cost": 100, "cooldown": 10.0, "offset": [-37.6, -44.0], "scale": 1.0, "simulation": { "baseHealth": 300, "persistent": false } },
     "PLANT_SPLITPEA":        { "cost": 125, "cooldown": 7.5,  "offset": [-37.6, -44.0], "scale": 1.0, "simulation": { "baseHealth": 300, "attackDps": 13.33 } },
-    "PLANT_STARFRUIT":       { "cost": 125, "cooldown": 7.5,  "offset": [-37.6, -34.0], "scale": 1.0, "simulation": { "baseHealth": 300, "attackDps": 13.33, "attackRowRadius": 4 } }
+    "PLANT_STARFRUIT":       { "cost": 125, "cooldown": 7.5,  "offset": [-37.6, -34.0], "scale": 1.0, "simulation": { "baseHealth": 300, "attackDps": 13.33, "attackRowRadius": 4 } },
+    "PLANT_PUMPKINSHELL":    { "cost": 125, "cooldown": 30.0, "offset": [-37.6, -34.0], "scale": 1.0, "simulation": { "baseHealth": 4000 } }
   },
   "zombies": {
     "ZOMBIE_NORMAL":       { "weight": 1000, "appearWave": 1, "survivalRound": 1, "offset": [-50.0, -85.0], "scale": 1.0 },

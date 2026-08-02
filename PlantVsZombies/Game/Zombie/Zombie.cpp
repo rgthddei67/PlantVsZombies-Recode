@@ -29,6 +29,20 @@ namespace {
 	constexpr int kMaxGoldenIceEffectStacks = 8;           // 独立黄色冰道来源计层的安全上限，防止极端调试生成导致倍率溢出
 	constexpr float kEatingTargetRetentionGap = 6.0f;      // 跳跃受阻后允许僵尸隔空啃食的最大碰撞箱间隙，单位：像素
 	constexpr float kHitGlowDuration = 0.1f;               // 本体与二类护盾受击白光持续时间，单位：游戏秒
+
+	/** 对齐 C# AnimateChewSound：坚硬防御植物使用 ChompSoft，其他植物使用普通 Chomp。 */
+	bool UsesSoftChewSound(PlantType type)
+	{
+		switch (type) {
+		case PlantType::PLANT_WALLNUT:
+		case PlantType::PLANT_TALLNUT:
+		case PlantType::PLANT_GARLIC:
+		case PlantType::PLANT_PUMPKINSHELL:
+			return true;
+		default:
+			return false;
+		}
+	}
 }
 
 Zombie::Zombie(Board* board, ZombieType zombieType, float x, float y, int row,
@@ -1207,8 +1221,11 @@ void Zombie::EatTarget()
 				AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_ZOMBIE_FINISHEAT, 0.2f);
 			}
 
-			int random = GameRandom::Range(0, 1);
-			if (random == 0)
+			if (UsesSoftChewSound(plant->mPlantType))
+			{
+				AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_ZOMBIE_EAT_SOFT, 0.17f);
+			}
+			else if (GameRandom::Range(0, 1) == 0)
 			{
 				AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_ZOMBIE_EAT, 0.17f);
 			}

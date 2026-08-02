@@ -137,6 +137,11 @@
 [PLANT_STARFRUIT_DESCRIPTION]
 杨桃会朝五个方向发射星星。“哎呀，亲爱的，”杨桃说，“我有五个尖角，所以当然要朝五个方向发射。这不是炫耀，只是几何学。”
 
+[PLANT_PUMPKINSHELL]
+南瓜头
+[PLANT_PUMPKINSHELL_DESCRIPTION]
+南瓜头可以套在普通植物外面，为同格植物提供4000点额外防护。僵尸会先啃食南瓜头，外壳破碎后里面的植物才会暴露出来。
+
 [ZOMBIE_NORMAL]
 僵尸
 [ZOMBIE_NORMAL_DESCRIPTION]

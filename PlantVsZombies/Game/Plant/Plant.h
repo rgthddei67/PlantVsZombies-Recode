@@ -56,6 +56,8 @@ public:
 	int GetSortingKey() const override { return this->mRow; }
 
 	virtual void PlantUpdate();		// 子类重写Update用这个
+	/** 绘制需要夹在承载/普通层与本体前层之间的格子背景；默认植物没有这一层。 */
+	virtual void DrawStackBackground(Graphics*) {}
 	// 统一结算植物承伤；source 必填，使僵尸增伤只作用于僵尸来源。
 	virtual void TakeDamage(int damage, DamageSource source);
 	/** 当前是否能被僵尸选为啃食目标；睡莲用它实现种下后的短暂无咬保护。 */
@@ -122,7 +124,7 @@ protected:
 	void UpdateSquish();
 	/** 统一施加压扁态的暂停、碰撞、影子、占格和透明度表现。 */
 	void ApplySquishedPresentation();
-	/** 仅在格子仍指向自身 ID 时释放上下层占格，避免误清后来种下的植物。 */
+	/** 仅在格子仍指向自身 ID 时释放所属占格层，避免误清后来种下的植物。 */
 	void ReleaseGridSlot();
 	/** 雨势对正向植物行动的倍率；不包含生存攻速词条。 */
 	float GetWeatherActionSpeedMultiplier() const;

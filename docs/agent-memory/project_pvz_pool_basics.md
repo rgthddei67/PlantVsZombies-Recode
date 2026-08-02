@@ -27,7 +27,7 @@ metadata:
 
 - `Background::WATER_POOL` 与其他背景共用 `mBackgroundY`，不再额外上移；日间/夜间泳池的六行网格首行顶部均为 Y=85。泳池使用 6 行、85px 行高，0-based 第 2/3 行是水路，列宽仍为 80px。网格派生位置必须通过 `Board::GetCellCenterPosition/GetCellHeight`。
 - `GameScene` 在静态泳池背景之后、游戏对象之前调用 `Graphics::DrawPoolEffect`。专用 Vulkan pipeline 每帧绘制原版 `15×5` 规则网格的底图/阴影/焦散三层（每层 450 顶点、共 3 draw call）；`pool.vert` 用原版五组相位在 GPU 扭曲三层 UV，`pool.frag` 从静态 `256×256` 灰度源图复刻双线性焦散与字节阈值，不创建或上传逐帧动态纹理。日间/夜间分别使用原版 base/shading，夜间焦散按原版降亮；水面复用 matrix/bindless descriptors、相机 `projView` 和逐顶点 shader ClipRect，保持屏幕抖动一致且不增加动态 scissor。
-- `Cell` 有 `under/normal` 两个植物槽。睡莲只能放在空水格的 under 层；普通植物只能放在已有睡莲且 normal 层为空的水格；缠绕水草和海蘑菇是直接落水特例，要求空水格并占 normal 层，不能叠在睡莲上；土豆雷仍禁止下水。铲子、僵尸啃咬与 UI 预览都以 top 层为准。
+- `Cell` 当前有 `under/normal/pumpkin` 三个植物槽。睡莲只能放在空水格的 under 层；普通植物只能放在已有睡莲且 normal 层为空的水格；南瓜头需要睡莲承载并占独立 pumpkin 层，可包住 normal 植物；缠绕水草和海蘑菇是直接落水特例，要求空水格并占 normal 层，不能叠在睡莲上或直接套南瓜；土豆雷仍禁止下水。铲子、僵尸啃咬与 UI 预览都以 `pumpkin > normal > under` 的 top 层为准。
 - 水格已有睡莲时，卡片悬停生成的半透明落点预览必须取当前 top 植物的 `renderOrder + 1`，保证待种植物显示在睡莲上方；空格预览使用 `LAYER_GAME_PLANT`。
 - 睡莲种下后 1 秒只免疫啃咬，计时器进存档；水面植物只做±2px 绘制浮动，Transform/碰撞与存档仍固定在逻辑格。植物本体与影子共享不含品种静态 offset 的动态视觉锚点，因此阵风插值和水面浮动会同步作用于两者，既有 `ShadowComponent::SetOffset` 校准不变。
 - 普通/路障/铁桶僵尸在水路由正式波次入口替换为 `ZOMBIE_POOL_*`，而非为出怪表添加独立权重；这三种专用类型仍只允许水路，陆地版本不会实际创建在水中。其他僵尸可直接抽到水路并保留自身类型与行为。`Board::CanZombieTypeSpawnInPool` 是集中禁水扩展点；普通与鎏金冰车均禁水，只能在泳池陆路生成。鎏金冰车只碾压本行植物，三路黄色冰道仍由 Board 对水路集中拒绝。`Zombie` 基类用前/后双探针统一维护 `mInPool`，本项目将下水/出水切换位置相对原探针向右校正 70px；水中统一隐藏陆地阴影，并在 `Zombie::Draw` 内用 `PushClipBottom/PopClipBottom` 把水面以下裁掉。该接口现为通用 shader `PushClipRect` 的全宽别名，不触发批处理 flush 或 `vkCmdSetScissor`，并自动与伴舞出土等既有矩形 Clip 取交集。专用泳池僵尸仍保留 swim、水中死亡和泳圈贴图；水中断头/断臂不生成悬浮的陆地碎片。

@@ -153,7 +153,7 @@ Bullet（独立类型；通过 BulletPool 使用对象池）
 
 棋盘是 `vector<vector<Cell*>>` 非拥有寻址网格，`Cell` 的实际所有权在 `GameObjectManager`。植物放置在 `(row, column)`，僵尸按行移动。`Board` 管理僵尸波次以及 `BoardState` 状态转换：`CHOOSE_CARD → GAME → WIN` 或 `LOSE_GAME`；`NONE` 表示尚未初始化。
 
-`Board` 拥有当前关卡的行数、首行 Y 与行高：普通草地为 5×100px，泳池背景为 6×85px（水路是 0-based 第 2/3 行）。位置、弹坑、子弹影子与小推车必须优先调 `GetCellCenterPosition` / `GetCellHeight`，不要再硬编 `CELL_INITALIZE_POS_Y + row*100`。`Cell` 分 `under/normal` 两层植物槽；正式放置入口是 `Board::CanPlantAt`，铲子与僵尸啃咬只选 `GetTopPlantAt`。
+`Board` 拥有当前关卡的行数、首行 Y 与行高：普通草地为 5×100px，泳池背景为 6×85px（水路是 0-based 第 2/3 行）。位置、弹坑、子弹影子与小推车必须优先调 `GetCellCenterPosition` / `GetCellHeight`，不要再硬编 `CELL_INITALIZE_POS_Y + row*100`。`Cell` 当前分 `under/normal/pumpkin` 三层植物槽，顶层优先级为 `pumpkin > normal > under`；正式放置入口是 `Board::CanPlantAt`，铲子与僵尸啃咬只选 `GetTopPlantAt`。新增层必须同步创建/读档创建、释放/清理、render order、台风整组搬运与 AutoTest 投影。
 
 ### 存档系统
 

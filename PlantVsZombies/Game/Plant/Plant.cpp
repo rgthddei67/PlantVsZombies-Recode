@@ -216,6 +216,9 @@ void Plant::ReleaseGridSlot()
 	if (cell && cell->GetNormalPlantID() == mPlantID) {
 		cell->ClearNormalPlantID();
 	}
+	if (cell && cell->GetPumpkinPlantID() == mPlantID) {
+		cell->ClearPumpkinPlantID();
+	}
 }
 
 void Plant::UpdateSquish()
@@ -302,6 +305,15 @@ void Plant::UpdateGridMoveVisual()
 
 void Plant::Draw(Graphics* g)
 {
+	if (!mIsPreview && !mIsSquished && mBoard) {
+		Plant* pumpkin = mBoard->GetPumpkinAt(mRow, mColumn);
+		Plant* normal = mBoard->GetNormalPlantAt(mRow, mColumn);
+		// 原版在普通植物绘制中插入 Pumpkin_back；空壳则由南瓜自己先画背片。
+		if (pumpkin && ((normal && normal == this) || (!normal && pumpkin == this))) {
+			pumpkin->DrawStackBackground(g);
+		}
+	}
+
 	if (mIsSquished) {
 		// 非等比缩放已烘进 Animator 的快/慢绘制路径；这里只抑制压扁态血量文字。
 		AnimatedObject::Draw(g);

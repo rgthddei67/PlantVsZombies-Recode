@@ -174,6 +174,12 @@ namespace ResourceKeys
 		RKEY(IMAGE_BLOVER);
 		RKEY(IMAGE_SPLITPEA);
 		RKEY(IMAGE_STARFRUIT);
+		RKEY(IMAGE_PUMPKIN);
+		RKEY(IMAGE_PUMPKIN_FRONT);
+		RKEY(IMAGE_PUMPKIN_BACK);
+		RKEY(IMAGE_PUMPKIN_DAMAGE1);
+		RKEY(IMAGE_PUMPKIN_DAMAGE2);
+		RKEY(IMAGE_PUMPKIN_DAMAGE3);
 		RKEY(IMAGE_SUNSHROOM);
 		RKEY(IMAGE_FUMESHROOM);
 		RKEY(IMAGE_GRAVEBUSTER);
@@ -272,6 +278,7 @@ namespace ResourceKeys
 		RKEY(SOUND_WINMUSIC);
 		inline const std::string SOUND_ZOMBIE_EAT = "SOUND_CHOMP";
 		inline const std::string SOUND_ZOMBIE_EAT2 = "SOUND_CHOMP2";
+		inline const std::string SOUND_ZOMBIE_EAT_SOFT = "SOUND_CHOMPSOFT"; // 坚果、大坚果、蒜与南瓜头的原版软啃声
 		inline const std::string SOUND_ZOMBIE_FINISHEAT = "SOUND_FINISHEATING";
 		RKEY(SOUND_HUGEWAVE);
 		RKEY(SOUND_ARM_HEAD_DROP);
@@ -374,6 +381,7 @@ namespace ResourceKeys
 		inline const std::string REANIM_BLOVER = "Blover";
 		inline const std::string REANIM_SPLITPEA = "SplitPea";
 		inline const std::string REANIM_STARFRUIT = "Starfruit";
+		inline const std::string REANIM_PUMPKIN = "Pumpkin";
 
 		inline const std::string REANIM_NORMAL_ZOMBIE = "NormalZombie";
 		inline const std::string REANIM_CONE_ZOMBIE = "ConeZombie";

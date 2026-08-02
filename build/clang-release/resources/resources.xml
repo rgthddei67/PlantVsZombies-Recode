@@ -262,6 +262,7 @@
     <Sound>./resources/sounds/winmusic.ogg</Sound>
     <Sound>./resources/sounds/Zombie/chomp.ogg</Sound>
     <Sound>./resources/sounds/Zombie/chomp2.ogg</Sound>
+    <Sound>./resources/sounds/Zombie/chompsoft.ogg</Sound>
     <Sound>./resources/sounds/Zombie/finisheating.ogg</Sound>
     <Sound>./resources/sounds/Zombie/arm_head_drop.ogg</Sound>
     <Sound>./resources/sounds/Zombie/polevault.ogg</Sound>
@@ -372,6 +373,7 @@
     <Reanimation name="Blover">./resources/reanim/Blover.reanim</Reanimation>
     <Reanimation name="SplitPea">./resources/reanim/SplitPea.reanim</Reanimation>
     <Reanimation name="Starfruit">./resources/reanim/Starfruit.reanim</Reanimation>
+    <Reanimation name="Pumpkin">./resources/reanim/Pumpkin.reanim</Reanimation>
 
     <Reanimation name="NormalZombie">./resources/reanim/NormalZombie.reanim</Reanimation>
     <Reanimation name="ConeZombie">./resources/reanim/ConeZombie.reanim</Reanimation>

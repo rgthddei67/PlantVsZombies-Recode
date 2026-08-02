@@ -152,3 +152,10 @@ CardUI 所在的 `GameObjects` 命令，而在 `GameScene::BuildDrawCommands` �
 `mWindDirection` 与仍在进行的 `mActiveGustDirection`，重新取得 15～25 秒完整方向阶段并
 重启方向相关雨/风视觉。它不改变台风强度、阵风预算/剩余时长、已完成的植物换格或迷雾驱散；
 没有台风时 no-op。三叶草自身不写雾势，普通雾的既有驱散量仍会按原规则回流。
+
+## 2026-08-02 南瓜层整组搬运
+
+`Cell` 新增独立 pumpkin 层后，`Board::TriggerTyphoonPlantMove` 在源格校验、锚定选择、普通搬运、
+出界死亡和弹坑死亡中都同时处理 `under/normal/pumpkin`。三层组合只占一个目标格，但
+`lastGustMovedPlants` 按实际移动实体计数；南瓜专项以睡莲、豌豆、南瓜三层组合锁定一次强台风
+向房屋移动一格后计数为 3，保存/重载前后层级不变。

@@ -22,6 +22,7 @@ private:
 	Vector mColliderSize = Vector(CELL_COLLIDER_SIZE_X, CELL_COLLIDER_SIZE_Y);
 	int mUnderPlantID = NULL_PLANT_ID;
 	int mNormalPlantID = NULL_PLANT_ID;
+	int mPumpkinPlantID = NULL_PLANT_ID;
 
 public:
 	int mRow = 0;		// 行
@@ -76,25 +77,31 @@ public:
 	}
 
 	// 设置植物ID
-	/** 水面承载层（当前仅睡莲）与普通植物层分开存储，避免叠种时互相覆盖。 */
+	/** 水面承载层、普通植物层与南瓜外壳层分开存储，避免组合植物互相覆盖。 */
 	void SetUnderPlantID(int plantID) { mUnderPlantID = plantID; }
 	void SetNormalPlantID(int plantID) { mNormalPlantID = plantID; }
+	void SetPumpkinPlantID(int plantID) { mPumpkinPlantID = plantID; }
 
 	// 获取植物ID
 	int GetUnderPlantID() const { return mUnderPlantID; }
 	int GetNormalPlantID() const { return mNormalPlantID; }
+	int GetPumpkinPlantID() const { return mPumpkinPlantID; }
 	int GetTopPlantID() const {
+		if (mPumpkinPlantID != NULL_PLANT_ID) return mPumpkinPlantID;
 		return mNormalPlantID != NULL_PLANT_ID ? mNormalPlantID : mUnderPlantID;
 	}
 
 	// 清除植物ID
 	void ClearUnderPlantID() { mUnderPlantID = NULL_PLANT_ID; }
 	void ClearNormalPlantID() { mNormalPlantID = NULL_PLANT_ID; }
+	void ClearPumpkinPlantID() { mPumpkinPlantID = NULL_PLANT_ID; }
 
 	// 检查格子是否为空
 	bool IsEmpty() const
 	{
-		return mUnderPlantID == NULL_PLANT_ID && mNormalPlantID == NULL_PLANT_ID;
+		return mUnderPlantID == NULL_PLANT_ID
+			&& mNormalPlantID == NULL_PLANT_ID
+			&& mPumpkinPlantID == NULL_PLANT_ID;
 	}
 
 	// 检查点是否在格子内

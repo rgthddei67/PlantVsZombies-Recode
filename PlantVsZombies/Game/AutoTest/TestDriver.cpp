@@ -34,6 +34,7 @@
 #include "../Plant/Blover.h"
 #include "../Plant/SplitPea.h"
 #include "../Plant/StarFruit.h"
+#include "../Plant/PumpkinShell.h"
 #include "../Bullet/Bullet.h"
 #include "../Zombie/ZombieType.h"
 #include "../Zombie/Zombie.h"
@@ -1612,6 +1613,11 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_DOLPHIN_BEFORE_JUMPING);
 	out["bonkSoundRequestCount"] =
 		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_BONK);
+	out["softChewSoundRequestCount"] =
+		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_ZOMBIE_EAT_SOFT);
+	out["normalChewSoundRequestCount"] =
+		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_ZOMBIE_EAT)
+		+ AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_ZOMBIE_EAT2);
 	out["jackLoopSoundPlaying"] =
 		AudioSystem::IsLoopingSoundPlaying(ResourceKeys::Sounds::SOUND_JACKINTHEBOX);
 	out["diggerLoopSoundPlaying"] =
@@ -1637,6 +1643,20 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			ResourceKeys::Particles::PARTICLE_ZOMBIE_POGOHEAD, false) != nullptr },
 		{ "pogoParticleLoaded", ResourceManager::GetInstance().GetTexture(
 			ResourceKeys::Particles::PARTICLE_ZOMBIEPOGO_PART_2, false) != nullptr },
+	};
+	out["pumpkinResources"] = {
+		{ "reanimationLoaded", ResourceManager::GetInstance().HasReanimation(
+			ResourceKeys::Reanimations::REANIM_PUMPKIN) },
+		{ "frontLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_PUMPKIN_FRONT, false) != nullptr },
+		{ "backLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_PUMPKIN_BACK, false) != nullptr },
+		{ "damage1Loaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_PUMPKIN_DAMAGE1, false) != nullptr },
+		{ "damage3Loaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_PUMPKIN_DAMAGE3, false) != nullptr },
+		{ "softChewLoaded", ResourceManager::GetInstance().GetSound(
+			ResourceKeys::Sounds::SOUND_ZOMBIE_EAT_SOFT) != nullptr },
 	};
 	out["diggerResources"] = {
 		{ "damagedHardhatLoaded", ResourceManager::GetInstance().GetTexture(
@@ -2647,6 +2667,10 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		if (auto* wallNut = dynamic_cast<WallNut*>(p)) {
 			plantState["nutDamageStage"] = wallNut->GetDamageStage();
 		}
+		if (auto* pumpkin = dynamic_cast<PumpkinShell*>(p)) {
+			plantState["pumpkinDamageStage"] = pumpkin->GetDamageStage();
+			plantState["pumpkinBackAnimatorReady"] = pumpkin->HasBackAnimator();
+		}
 		if (auto* squash = dynamic_cast<Squash*>(p)) {
 			plantState["squashState"] = squash->GetSquashStateName();
 			plantState["squashTargetZombieID"] = squash->GetTargetZombieID();
@@ -3023,11 +3047,13 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			Cell* cell = board->GetCell(row, col);
 			Plant* under = cell ? board->mEntityManager.GetPlant(cell->GetUnderPlantID()) : nullptr;
 			Plant* normal = cell ? board->mEntityManager.GetPlant(cell->GetNormalPlantID()) : nullptr;
+			Plant* pumpkin = cell ? board->mEntityManager.GetPlant(cell->GetPumpkinPlantID()) : nullptr;
+			Plant* top = board->GetTopPlantAt(row, col);
 			rowState.push_back({
 				{ "under", under ? PlantTypeName(under->mPlantType) : "NONE" },
 				{ "normal", normal ? PlantTypeName(normal->mPlantType) : "NONE" },
-				{ "top", normal ? PlantTypeName(normal->mPlantType)
-					: (under ? PlantTypeName(under->mPlantType) : "NONE") },
+				{ "pumpkin", pumpkin ? PlantTypeName(pumpkin->mPlantType) : "NONE" },
+				{ "top", top ? PlantTypeName(top->mPlantType) : "NONE" },
 			});
 		}
 		out["cells"].push_back(std::move(rowState));
