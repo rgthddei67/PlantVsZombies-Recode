@@ -74,6 +74,7 @@
 #include "../Zombie/DiggerZombie.h"
 #include "../Zombie/EliteDiggerZombie.h"
 #include "../Zombie/PogoZombie.h"
+#include "../Zombie/ElitePogoZombie.h"
 
 namespace {
 	template<typename T>
@@ -437,6 +438,12 @@ void GameDataManager::InitializeHardcodedData() {
 		AnimationType::ANIM_POGO_ZOMBIE,
 		ResourceKeys::Reanimations::REANIM_POGO_ZOMBIE,
 		&MakeZombie<PogoZombie>);
+
+	// 精英跳跳复用普通跳跳时序，并由独立配色资源与缓冲器状态扩展能力。
+	RegisterZombie(ZombieType::ZOMBIE_ELITE_POGO, "ZOMBIE_ELITE_POGO",
+		AnimationType::ANIM_ELITE_POGO_ZOMBIE,
+		ResourceKeys::Reanimations::REANIM_ELITE_POGO_ZOMBIE,
+		&MakeZombie<ElitePogoZombie>);
 
 	// ==================== 非植物/僵尸动画映射 ====================
 	mAnimToString[AnimationType::ANIM_SUN] = ResourceKeys::Reanimations::REANIM_SUN;

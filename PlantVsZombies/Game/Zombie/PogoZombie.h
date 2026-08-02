@@ -7,7 +7,7 @@ class Plant;
 /**
  * @brief 经典跳跳僵尸：周期弹跳越过普通植物，被高坚果阻拦后弃杆步行。
  */
-class PogoZombie final : public Zombie {
+class PogoZombie : public Zombie {
 public:
 	using Zombie::Zombie;
 
@@ -23,6 +23,11 @@ public:
 	float GetBounceProgress() const;
 	float GetPogoAltitude() const { return mAltitude; }
 	bool HasPogo() const { return mHasPogo; }
+	/** 预览大图是否正在运行无位移、无音效的原地弹跳循环。 */
+	bool IsPreviewBounceActive() const {
+		return mIsPreview && !mIsUI && mHasPogo && mPhase != Phase::WALKING
+			&& mBounceRemaining > 0.0f;
+	}
 	bool HasCheckedJumpBlocker() const { return mJumpBlockChecked; }
 	float GetForwardDistanceTotal() const { return mForwardDistanceTotal; }
 	float GetForwardDistanceApplied() const { return mForwardDistanceApplied; }
@@ -30,6 +35,7 @@ public:
 	void SetBounceRemainingForTesting(float seconds);
 
 	void StartEat(ColliderComponent* other) override;
+	void Update() override;
 	void HeadDrop() override;
 	void ArmDrop() override;
 	void ZombieItemUpdate() const override;
@@ -56,6 +62,12 @@ protected:
 		return mHasPogo ? 1.0f : Zombie::GetSlowAnimFactor();
 	}
 	bool CanUseGroundPoolState() const override { return !mHasPogo; }
+	/** 处理高坚果等植物的跳跃阻拦；返回 true 表示本次阻拦已终止前跳。 */
+	virtual bool HandlePogoJumpBlocked(Plant& plant);
+	virtual const std::string& GetDamagedOuterArmTextureKey() const;
+	virtual const std::string& GetDamagedStickTextureKey() const;
+	virtual const std::string& GetDamagedStick2TextureKey() const;
+	virtual const char* GetPogoBreakEffectName() const { return "ZombiePogo"; }
 
 private:
 	void BeginBounce(Phase phase);
@@ -63,6 +75,7 @@ private:
 	void ResolveBounceLanding();
 	void RestartLandingAnimation();
 	void UpdateBounceAltitude();
+	void UpdatePreviewBounce();
 	void ApplyArmDamagePresentation() const;
 	void BreakPogo(bool emitParticle = true);
 	void MovePogoDistance(float distance, TransformComponent* transform);

@@ -1,0 +1,26 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 1 },
+    { "op": "choose_cards", "cards": [] },
+    { "op": "wait_state", "state": "GAME", "timeout": 15 },
+    { "op": "set_spawn_paused", "value": true },
+    { "op": "spawn_wave_zombie", "type": "ZOMBIE_ELITE_POGO", "mutationRoll": 50, "row": 0, "x": 900 },
+    { "op": "spawn_wave_zombie", "type": "ZOMBIE_ELITE_POGO", "mutationRoll": 50, "row": 1, "x": 900 },
+    { "op": "assert_state", "path": "elitePogoZombieCount", "equals": 1 },
+    { "op": "assert_state", "path": "weather.elitePogosSpawnedThisWave", "equals": 1 },
+    { "op": "save_level_snapshot", "name": "elite_pogo_wave_cap" },
+    { "op": "reload_level_snapshot", "name": "elite_pogo_wave_cap" },
+    { "op": "wait_frames", "value": 2 },
+    { "op": "assert_state", "path": "weather.elitePogosSpawnedThisWave", "equals": 1 },
+    { "op": "spawn_wave_zombie", "type": "ZOMBIE_ELITE_POGO", "mutationRoll": 50, "row": 1, "x": 900 },
+    { "op": "assert_state", "path": "elitePogoZombieCount", "equals": 1 },
+    { "op": "summon_next_wave" },
+    { "op": "assert_state", "path": "weather.elitePogosSpawnedThisWave", "equals": 0 },
+    { "op": "spawn_wave_zombie", "type": "ZOMBIE_ELITE_POGO", "mutationRoll": 50, "row": 1, "x": 900 },
+    { "op": "assert_state", "path": "weather.elitePogosSpawnedThisWave", "equals": 1 },
+    { "op": "assert_state", "path": "elitePogoZombieCount", "equals": 2 },
+    { "op": "screenshot", "name": "elite_pogo_wave_cap_reset.png" },
+    { "op": "dump_state", "name": "elite_pogo_wave_cap_state.json" },
+    { "op": "quit" }
+  ]
+}

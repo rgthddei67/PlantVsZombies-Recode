@@ -47,7 +47,11 @@ void PogoZombie::SetupZombie()
 	const auto [begin, end] = mAnimator->GetTrackRange("anim_pogo");
 	if (end >= begin) mAnimator->SetCurrentFrame(static_cast<float>(end));
 	mAnimator->Pause();
-	if (mIsPreview) return;
+	if (mIsPreview) {
+		// 预览大图不走 Zombie 的实战更新路径，但仍应像原版一样原地弹跳。
+		BeginBounce(Phase::BOUNCING);
+		return;
+	}
 
 	RegisterFrameEvents();
 	mBounceRemaining = static_cast<float>(GameRandom::Range(1, 80)) / 60.0f;
@@ -55,6 +59,13 @@ void PogoZombie::SetupZombie()
 	mLandingAnimationStarted = mBounceRemaining <= kLandingAnimRemaining;
 	mLandingSoundPlayed = mBounceRemaining <= kLandingSoundRemaining;
 	UpdateBounceAltitude();
+}
+
+/** 让选卡与图鉴大图继续弹跳；图鉴网格缩略图仍遵守场景的显式 PauseAnimation。 */
+void PogoZombie::Update()
+{
+	Zombie::Update();
+	if (mIsPreview && !mIsUI) UpdatePreviewBounce();
 }
 
 /** 注册主人确认的两次啃食命中帧和死亡终点；帧号不做减一换算。 */
@@ -227,6 +238,23 @@ void PogoZombie::UpdateBounceAltitude()
 	mAltitude = kBounceDeflection + height * heightProgress;
 }
 
+/** 推进纯展示弹跳，不查询植物、不水平移动，也不播放落地音效。 */
+void PogoZombie::UpdatePreviewBounce()
+{
+	if (!mHasPogo || mPhase == Phase::WALKING) return;
+	const bool isDescending = GetBounceProgress() > 0.5f;
+	const float phaseDelta = DeltaTime::GetDeltaTime()
+		* (isDescending ? kPogoDescentTimeMultiplier : 1.0f);
+	mBounceRemaining = std::max(0.0f, mBounceRemaining - phaseDelta);
+
+	if (!mLandingAnimationStarted && mBounceRemaining <= kLandingAnimRemaining) {
+		mLandingAnimationStarted = true;
+		RestartLandingAnimation();
+	}
+	UpdateBounceAltitude();
+	if (mBounceRemaining <= 0.0f) BeginBounce(Phase::BOUNCING);
+}
+
 void PogoZombie::ZombieUpdate(float scaledTime)
 {
 	if (!mHasPogo || mPhase == Phase::WALKING || scaledTime <= 0.0f) return;
@@ -243,10 +271,7 @@ void PogoZombie::ZombieUpdate(float scaledTime)
 		if (Plant* plant = ResolveForwardTarget();
 			plant && plant->BlocksZombieJump(ZombieJumpType::POGO)) {
 			plant->OnZombieJumpBlocked(ZombieJumpType::POGO);
-			ColliderComponent* collider = plant->GetColliderComponent();
-			BreakPogo();
-			if (collider) StartEat(collider);
-			return;
+			if (HandlePogoJumpBlocked(*plant)) return;
 		}
 	}
 
@@ -320,8 +345,31 @@ void PogoZombie::BreakPogo(bool emitParticle)
 	UpdateAnimSpeed();
 	PlayWalkAnimation(0.0f);
 	if (emitParticle && g_particleSystem) {
-		g_particleSystem->EmitEffect("ZombiePogo", particlePosition);
+		g_particleSystem->EmitEffect(GetPogoBreakEffectName(), particlePosition);
 	}
+}
+
+bool PogoZombie::HandlePogoJumpBlocked(Plant& plant)
+{
+	ColliderComponent* collider = plant.GetColliderComponent();
+	BreakPogo();
+	if (collider) StartEat(collider);
+	return true;
+}
+
+const std::string& PogoZombie::GetDamagedOuterArmTextureKey() const
+{
+	return ResourceKeys::Textures::IMAGE_ZOMBIE_POGO_OUTERARM_UPPER2;
+}
+
+const std::string& PogoZombie::GetDamagedStickTextureKey() const
+{
+	return ResourceKeys::Textures::IMAGE_ZOMBIE_POGO_STICKDAMAGE2;
+}
+
+const std::string& PogoZombie::GetDamagedStick2TextureKey() const
+{
+	return ResourceKeys::Textures::IMAGE_ZOMBIE_POGO_STICK2DAMAGE2;
 }
 
 bool PogoZombie::ExtractMagneticItem(MagneticItem& item)
@@ -351,13 +399,13 @@ void PogoZombie::ApplyArmDamagePresentation() const
 	mAnimator->SetTrackVisible("Zombie_outerarm_hand", false);
 	auto& resources = ResourceManager::GetInstance();
 	mAnimator->SetTrackImage("Zombie_outerarm_upper", resources.GetTexture(
-		ResourceKeys::Textures::IMAGE_ZOMBIE_POGO_OUTERARM_UPPER2));
+		GetDamagedOuterArmTextureKey()));
 	mAnimator->SetTrackImage("Zombie_pogo_stickhands", resources.GetTexture(
 		ResourceKeys::Textures::IMAGE_ZOMBIE_POGO_STICKHANDS2));
 	mAnimator->SetTrackImage("Zombie_pogo_stick", resources.GetTexture(
-		ResourceKeys::Textures::IMAGE_ZOMBIE_POGO_STICKDAMAGE2));
+		GetDamagedStickTextureKey()));
 	mAnimator->SetTrackImage("Zombie_pogo_stick2", resources.GetTexture(
-		ResourceKeys::Textures::IMAGE_ZOMBIE_POGO_STICK2DAMAGE2));
+		GetDamagedStick2TextureKey()));
 }
 
 void PogoZombie::ArmDrop()

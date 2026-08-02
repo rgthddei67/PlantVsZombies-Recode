@@ -53,6 +53,11 @@ public:
 
 	/** 返回右侧详情当前选中的僵尸；空图鉴返回 NUM_ZOMBIE_TYPES。 */
 	ZombieType GetCurrentZombieType() const { return mCurrentZombieType; }
+	/** 返回右侧详情预览实例；仅供只读状态取证。 */
+	Zombie* GetPreviewZombie() const {
+		const auto zombie = mPreviewZombie.lock();
+		return zombie.get();
+	}
 
 	bool mReadyToSwitchAlmanacScene = false;
 

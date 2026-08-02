@@ -140,6 +140,7 @@ namespace {
 	constexpr int kEliteDolphinRiderMaxPerWave = 1;       // 每波最多正式生成的精英海豚数量；超额候选直接跳过
 	constexpr int kEliteJackInTheBoxMaxPerWave = 2;       // 每波最多正式生成的精英小丑数量；超额候选直接跳过
 	constexpr int kEliteDiggerMaxPerWave = 1;             // 每波最多正式生成的爆破工头数量；超额候选直接跳过
+	constexpr int kElitePogoMaxPerWave = 1;               // 每波最多正式生成的精英跳跳数量；超额候选直接跳过
 	constexpr int kEliteScaredyShroomPlantLimit = 4;      // 每个关卡累计最多种植的精英胆小菇数量
 	constexpr int kPumpkinAreaDamageMultiplier = 6;       // 特殊僵尸范围伤害被南瓜头拦截时的默认基础伤害倍率
 	constexpr int kMonteCarloRolloutCount = 32;           // 每个爆点的轻量未来样本数；低配可由 GameAPP 总开关完全跳过
@@ -1745,6 +1746,12 @@ void Board::RestoreEliteDiggerWaveSpawnCount(int count)
 	mEliteDiggersSpawnedThisWave = std::clamp(count, 0, kEliteDiggerMaxPerWave);
 }
 
+/** 夹紧并恢复当前波已经正式生成的精英跳跳数量。 */
+void Board::RestoreElitePogoWaveSpawnCount(int count)
+{
+	mElitePogosSpawnedThisWave = std::clamp(count, 0, kElitePogoMaxPerWave);
+}
+
 /** 清空全部台风派生状态；中雨、小雨、晴天和旧档默认都以此为单位元。 */
 void Board::StopTyphoon()
 {
@@ -1904,6 +1911,12 @@ ZombieType Board::ResolveWaveZombieType(ZombieType selected, int mutationRoll)
 			return ZombieType::NUM_ZOMBIE_TYPES;
 		}
 		++mEliteDiggersSpawnedThisWave;
+	}
+	if (selected == ZombieType::ZOMBIE_ELITE_POGO) {
+		if (mElitePogosSpawnedThisWave >= kElitePogoMaxPerWave) {
+			return ZombieType::NUM_ZOMBIE_TYPES;
+		}
+		++mElitePogosSpawnedThisWave;
 	}
 	return ResolveRainMutationType(selected, mutationRoll);
 }
@@ -2820,6 +2833,7 @@ bool Board::CanZombieTypeSpawnInPool(ZombieType type) const
 	case ZombieType::ZOMBIE_ZAMBONI:
 	case ZombieType::ZOMBIE_GILDED_ZAMBONI:
 	case ZombieType::ZOMBIE_POGO:
+	case ZombieType::ZOMBIE_ELITE_POGO:
 	case ZombieType::NUM_ZOMBIE_TYPES:
 		return false;
 	default:
@@ -3767,6 +3781,7 @@ void Board::SummonNextWave()
 	mEliteDolphinRidersSpawnedThisWave = 0;
 	mEliteJackInTheBoxesSpawnedThisWave = 0;
 	mEliteDiggersSpawnedThisWave = 0;
+	mElitePogosSpawnedThisWave = 0;
 	mMistFuelAssignedThisWave = 0;
 	if (mCurrentWave == 1)
 	{
@@ -4307,6 +4322,7 @@ void Board::OnSurvivalRoundClear()
 	mEliteDolphinRidersSpawnedThisWave = 0;
 	mEliteJackInTheBoxesSpawnedThisWave = 0;
 	mEliteDiggersSpawnedThisWave = 0;
+	mElitePogosSpawnedThisWave = 0;
 	RefreshZombieWeatherSpeeds();
 
 	// 重算难度（解锁更强僵尸）+ 刷新关卡名

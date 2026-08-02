@@ -52,6 +52,7 @@
 #include "../Zombie/DiggerZombie.h"
 #include "../Zombie/EliteDiggerZombie.h"
 #include "../Zombie/PogoZombie.h"
+#include "../Zombie/ElitePogoZombie.h"
 #include "../Zombie/PoolNormalZombie.h"
 #include "../Trophy.h"   // dump_state 输出奖杯坐标
 #include "../Crater.h"   // dump_state 输出毁灭菇弹坑
@@ -171,7 +172,7 @@ namespace {
 		ZT(ZOMBIE_POOL_NORMAL), ZT(ZOMBIE_POOL_CONE), ZT(ZOMBIE_POOL_BUCKET),
 		ZT(ZOMBIE_ZAMBONI), ZT(ZOMBIE_GILDED_ZAMBONI), ZT(ZOMBIE_DOLPHIN_RIDER), ZT(ZOMBIE_ELITE_DOLPHIN_RIDER),
 		ZT(ZOMBIE_JACK_IN_THE_BOX), ZT(ZOMBIE_ELITE_JACK_IN_THE_BOX), ZT(ZOMBIE_BALLOON),
-		ZT(ZOMBIE_DIGGER), ZT(ZOMBIE_ELITE_DIGGER), ZT(ZOMBIE_POGO),
+		ZT(ZOMBIE_DIGGER), ZT(ZOMBIE_ELITE_DIGGER), ZT(ZOMBIE_POGO), ZT(ZOMBIE_ELITE_POGO),
 		ZT(ZOMBIE_YETI), ZT(ZOMBIE_BUNGEE), ZT(ZOMBIE_LADDER), ZT(ZOMBIE_CATAPULT),
 		ZT(ZOMBIE_GARGANTUAR), ZT(ZOMBIE_IMP), ZT(ZOMBIE_BOSS), ZT(ZOMBIE_PEA_HEAD),
 		ZT(ZOMBIE_WALLNUT_HEAD), ZT(ZOMBIE_JALAPENO_HEAD), ZT(ZOMBIE_GATLING_HEAD),
@@ -1689,6 +1690,18 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		{ "pogoParticleLoaded", ResourceManager::GetInstance().GetTexture(
 			ResourceKeys::Particles::PARTICLE_ZOMBIEPOGO_PART_2, false) != nullptr },
 	};
+	out["elitePogoResources"] = {
+		{ "reanimationLoaded", ResourceManager::GetInstance().HasReanimation(
+			ResourceKeys::Reanimations::REANIM_ELITE_POGO_ZOMBIE) },
+		{ "brokenArmLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_ZOMBIE_ELITE_POGO_OUTERARM_UPPER2, false) != nullptr },
+		{ "damagedStickLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_ZOMBIE_ELITE_POGO_STICKDAMAGE2, false) != nullptr },
+		{ "damagedStick2Loaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_ZOMBIE_ELITE_POGO_STICK2DAMAGE2, false) != nullptr },
+		{ "pogoParticleLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Particles::PARTICLE_ZOMBIEELITEPOGO_PART_2, false) != nullptr },
+	};
 	out["pumpkinResources"] = {
 		{ "reanimationLoaded", ResourceManager::GetInstance().HasReanimation(
 			ResourceKeys::Reanimations::REANIM_PUMPKIN) },
@@ -1766,6 +1779,21 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			selected == ZombieType::NUM_ZOMBIE_TYPES
 			? nlohmann::json(nullptr)
 			: nlohmann::json(ZombieTypeName(selected));
+		out["zombieAlmanacPreview"] = nullptr;
+		if (Zombie* preview = almanac->GetPreviewZombie()) {
+			const auto anim = preview->GetAnimatorInternal();
+			nlohmann::json previewState = {
+				{ "type", ZombieTypeName(preview->mZombieType) },
+				{ "track", preview->GetCurrentTrackName() },
+				{ "animPlaying", anim && anim->IsPlaying() },
+			};
+			if (auto* pogo = dynamic_cast<PogoZombie*>(preview)) {
+				previewState["pogoPreviewBounceActive"] = pogo->IsPreviewBounceActive();
+				previewState["pogoAltitudeOn1000"] = static_cast<int>(std::lround(
+					pogo->GetPogoAltitude() * 1000.0f));
+			}
+			out["zombieAlmanacPreview"] = std::move(previewState);
+		}
 		return true;
 	}
 
@@ -2097,6 +2125,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "eliteDolphinRidersSpawnedThisWave", board->GetEliteDolphinRidersSpawnedThisWave() },
 			{ "eliteJackInTheBoxesSpawnedThisWave", board->GetEliteJackInTheBoxesSpawnedThisWave() },
 			{ "eliteDiggersSpawnedThisWave", board->GetEliteDiggersSpawnedThisWave() },
+			{ "elitePogosSpawnedThisWave", board->GetElitePogosSpawnedThisWave() },
 			{ "typhoonDecayRemaining", board->GetTyphoonStrengthTimer() },
 			{ "windDirection", WindDirectionName(board->GetWindDirection()) },
 			{ "windDirectionRemaining", board->GetWindDirectionTimer() },
@@ -2285,6 +2314,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	int gildedZamboniCount = 0;
 	int diggerZombieCount = 0;
 	int eliteDiggerZombieCount = 0;
+	int elitePogoZombieCount = 0;
 	int zombieBodyHealthTotal = 0;
 	int zombieShieldHealthTotal = 0;
 	int slowedZombieCount = 0;
@@ -2362,6 +2392,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "hitFlashMask", hitFlashMask },
 			{ "renderedHitGlowMask", renderedHitGlowMask },
 			{ "tangleKelpTarget", z->IsTangleKelpTarget() },
+			{ "hasMagneticItem", z->HasMagneticItem() },
 			{ "tangleKelpPlantID", z->GetTangleKelpPlantID() },
 			{ "draggedUnderByTangleKelp", z->IsDraggedUnderByTangleKelp() },
 			{ "tangleKelpSinkOffsetOn1000", static_cast<int>(std::lround(
@@ -2455,6 +2486,10 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			zombieState["pogoStickVisible"] = anim
 				&& (anim->GetTrackVisible("Zombie_pogo_stick")
 					|| anim->GetTrackVisible("Zombie_pogo_stick2"));
+		}
+		if (auto* elitePogo = dynamic_cast<ElitePogoZombie*>(z)) {
+			++elitePogoZombieCount;
+			zombieState["elitePogoImpactBufferAvailable"] = elitePogo->HasImpactBuffer();
 		}
 		if (auto* eliteJack = dynamic_cast<EliteJackInTheBoxZombie*>(z)) {
 			++eliteJackZombieCount;
@@ -2635,6 +2670,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["gildedZamboniCount"] = gildedZamboniCount;
 	out["diggerZombieCount"] = diggerZombieCount;
 	out["eliteDiggerZombieCount"] = eliteDiggerZombieCount;
+	out["elitePogoZombieCount"] = elitePogoZombieCount;
 	out["poolRowZombieCount"] = poolRowZombieCount;
 	out["earlyWavePoolZombieCount"] = earlyWavePoolZombieCount;
 	out["zombieBodyHealthTotal"] = zombieBodyHealthTotal;
@@ -2856,6 +2892,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["particleEffectNameCounts"]["ZombieEliteDiggerArmOff"] = 0;
 	out["particleEffectNameCounts"]["ZombieEliteDiggerHeadLight"] = 0;
 	out["particleEffectNameCounts"]["ZombiePinkFootballOff"] = 0;
+	out["particleEffectNameCounts"]["ZombieElitePogo"] = 0;
 	if (g_particleSystem) {
 		for (const auto& effect : g_particleSystem->GetEffectsForTesting()) {
 			if (!effect) continue;
@@ -3021,6 +3058,11 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				std::abs(animator->GetRenderPivotX() - probe.baseX) < 0.5f
 				&& std::abs(animator->GetRenderPivotY() - probe.baseY) < 0.5f },
 		};
+		if (auto* pogo = dynamic_cast<PogoZombie*>(animated)) {
+			state["pogoPreviewBounceActive"] = pogo->IsPreviewBounceActive();
+			state["pogoAltitudeOn1000"] = static_cast<int>(std::lround(
+				pogo->GetPogoAltitude() * 1000.0f));
+		}
 
 		if (probe.hasGeometry) {
 			const SDL_FRect bounds = {

@@ -62,6 +62,7 @@
     "ZOMBIE_ELITE_JACK_IN_THE_BOX": { "weight": 2600, "appearWave": 10, "survivalRound": 12, "offset": [-50.0, -85.0], "scale": 1.0 },
     "ZOMBIE_DIGGER":              { "weight": 1000, "appearWave": 10, "survivalRound": 10, "offset": [-50.0, -85.0], "scale": 1.0 },
     "ZOMBIE_ELITE_DIGGER":        { "weight": 2400, "appearWave": 10, "survivalRound": 13, "offset": [-50.0, -85.0], "scale": 1.0 },
-    "ZOMBIE_POGO":                { "weight": 1000, "appearWave": 10, "survivalRound": 10, "offset": [-50.0, -85.0], "scale": 1.0 }
+    "ZOMBIE_POGO":                { "weight": 1000, "appearWave": 10, "survivalRound": 10, "offset": [-50.0, -85.0], "scale": 1.0 },
+    "ZOMBIE_ELITE_POGO":          { "weight": 2700, "appearWave": 15, "survivalRound": 14, "offset": [-50.0, -85.0], "scale": 1.0 }
   }
 }

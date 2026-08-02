@@ -1,0 +1,19 @@
+<Emitter>
+  <Name>ZombieElitePogo</Name>
+  <SpawnMinActive>1</SpawnMinActive>
+  <SpawnMaxLaunched>1</SpawnMaxLaunched>
+  <ParticleDuration>1.2</ParticleDuration>
+  <ParticleAlpha>1 0.9</ParticleAlpha>
+  <ParticleScale>0.75 0.75</ParticleScale>
+  <LaunchSpeed>[35 65]</LaunchSpeed>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <ParticleGravity>150</ParticleGravity>
+  <ParticleSpinSpeed>[-4 4]</ParticleSpinSpeed>
+  <SystemDuration>1.3</SystemDuration>
+  <Image>PARTICLE_ZOMBIEELITEPOGO_PART_2</Image>
+  <Field>
+    <FieldType>Position</FieldType>
+    <X>18</X>
+    <Y>22</Y>
+  </Field>
+</Emitter>

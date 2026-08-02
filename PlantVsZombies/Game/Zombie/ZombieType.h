@@ -58,6 +58,7 @@ enum class ZombieType {
 	ZOMBIE_DIGGER,			// 经典矿工：地下穿行、左侧出土并反向折返
 	ZOMBIE_ELITE_DIGGER,		// 爆破工头：出土预警后爆破后排三列并持镐折返
 	ZOMBIE_POGO,			// 经典跳跳：反复弹跳越过植物，高坚果可击落跳杆
+	ZOMBIE_ELITE_POGO,		// 碳纤维精英跳跳：免疫磁力吸取并抵消首次高坚果阻拦
 
 	// ↓ 哨兵：置于全部已实现僵尸之后，使 [0,NUM_ZOMBIE_TYPES) 只覆盖已实现类型，
 	//   生存模式随机抽取据此绝不会抽到下方未实现僵尸。
