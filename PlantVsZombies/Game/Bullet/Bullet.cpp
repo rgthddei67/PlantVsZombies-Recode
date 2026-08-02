@@ -20,6 +20,7 @@ namespace {
 	constexpr int kSpikeFrameDamage = 2;              // 仙人掌尖刺在 1x 下每个逻辑碰撞帧的基础伤害
 	constexpr std::size_t kSpikePierceLimit = 4;       // 尖刺接触第四只不同僵尸后消失
 	constexpr float kFireballSplashWidth = 100.0f;    // 火球命中后沿飞行方向的同排溅射宽度，单位：像素
+	constexpr float kToxicFireballSplashWidth = 30.0f; // 毒素火球以更窄范围换取溅射目标同样叠毒，单位：像素
 	constexpr int kSplashDamageDivisor = 3;           // 火球次要目标伤害为直击伤害的三分之一
 	constexpr float kFireballForwardOffsetX = -25.0f; // FirePea.reanim 相对向右飞子弹逻辑原点的 X 偏移
 	constexpr float kFireballBackwardOffsetX = 55.0f; // FirePea.reanim 相对向左飞子弹逻辑原点的 X 偏移
@@ -710,11 +711,13 @@ void Bullet::HitFireballZombie(Zombie* zombie)
 
 	std::vector<Zombie*> secondaryTargets;
 	const float impactX = GetPosition().x;
+	const float splashWidth = toxicFireball
+		? kToxicFireballSplashWidth : kFireballSplashWidth;
 	// 静止测试弹与普通向右火豆保持历史正向口径；反向火豆把同一宽度镜像到命中点左侧。
 	const float splashLeft = mVelocityX < 0.0f
-		? impactX - kFireballSplashWidth : impactX;
+		? impactX - splashWidth : impactX;
 	const float splashRight = mVelocityX < 0.0f
-		? impactX : impactX + kFireballSplashWidth;
+		? impactX : impactX + splashWidth;
 	if (mBoard) {
 		mBoard->mEntityManager.ForEachZombieInRow(mRow, [&](Zombie* candidate) {
 			if (!candidate || candidate == zombie || !candidate->IsActive()
@@ -741,11 +744,12 @@ void Bullet::HitFireballZombie(Zombie* zombie)
 	// 原版 splash damage flag 会让二类护盾照常受损，同时把全额伤害继续传给本体。
 	zombie->TakeProjectileDamage(
 		directDamage, DamageSource::PLANT, mVelocityX, /*penetrateShield=*/true);
-	// 紫焰豆只让实际直击目标叠毒；溅射维持普通火豆语义，避免一发向整群铺层。
+	// 紫焰豆以 30px 小范围限制铺毒规模；直击与实际受溅射的目标各叠一层。
 	if (toxicFireball) zombie->ApplyToxinStack();
 	for (Zombie* target : secondaryTargets) {
 		if (target->IsActive() && !target->IsDying()) {
 			target->TakeDamage(splashDamage, DamageSource::PLANT, true);
+			if (toxicFireball) target->ApplyToxinStack();
 		}
 	}
 
