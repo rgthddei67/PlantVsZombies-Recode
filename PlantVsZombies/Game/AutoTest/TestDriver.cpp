@@ -1913,6 +1913,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["roofResources"] = {
 		{ "dayBackgroundLoaded", ResourceManager::GetInstance().GetTexture(
 			ResourceKeys::Textures::IMAGE_BACKGROUND_ROOF, false) != nullptr },
+		{ "rainBackgroundLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_BACKGROUND_ROOF_RAIN, false) != nullptr },
 		{ "nightBackgroundLoaded", ResourceManager::GetInstance().GetTexture(
 			ResourceKeys::Textures::IMAGE_BACKGROUND_NIGHTROOF, false) != nullptr },
 		{ "roofCleanerReanimationLoaded", ResourceManager::GetInstance().HasReanimation(
@@ -2305,8 +2307,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "charmedCombinedMovePct", static_cast<int>(std::lround(zombieRain * charmedWind * 100.0f)) },
 			{ "plantActionSpeedPct", static_cast<int>(std::lround(plantRain * 100.0f)) },
 			{ "overlayAlpha", static_cast<int>(std::lround(board->GetRainOverlayAlpha())) },
-			{ "roofSkyOverlayAlpha", static_cast<int>(std::lround(
-				gs->GetRoofRainSkyOverlayAlpha())) },
+			{ "roofRainBackgroundAlpha", static_cast<int>(std::lround(
+				gs->GetRoofRainBackgroundAlpha())) },
 			{ "rainSoundPlaying", AudioSystem::IsLoopingSoundPlaying(ResourceKeys::Sounds::SOUND_RAIN) },
 			{ "thunderSoundLoaded", ResourceManager::GetInstance().GetSound(
 				ResourceKeys::Sounds::SOUND_THUNDER) != nullptr },

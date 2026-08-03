@@ -3,7 +3,7 @@
 ## 当前状态（2026-08-03）
 
 - 内部关卡 37～44 使用 `ROOF`，45（5-9）使用 `NIGHT_ROOF`；`GameScene` 已分别绘制 `IMAGE_BACKGROUND_ROOF` 与 `IMAGE_BACKGROUND_NIGHTROOF`，两张贴图均通过资源键加载断言。
-- 白天屋顶下雨时在背景与战场实体之间叠加冷灰垂直渐变，复用通用雨幕的两秒平滑值压低蓝天饱和度；不会额外染色植物、僵尸或 UI，`NIGHT_ROOF` 明确不叠加。
+- 白天屋顶下雨时在原背景与战场实体之间交叉淡入 `IMAGE_BACKGROUND_ROOF_RAIN`；雨景 PNG 只替换天空蒙版，蒙版外的瓦片、烟囱、树木、房屋和卫星锅像素与原图完全相同。它复用通用雨幕的两秒平滑值，不会额外染色植物、僵尸或 UI，`NIGHT_ROOF` 明确不叠加。
 - 屋顶沿用 5 行、9 列：首行逻辑顶部为 `CELL_INITALIZE_POS_Y - 10 = 78`，行高 85。房屋侧前 5 列按每列 20px 离散抬升，平台从 `CELL_INITALIZE_POS_X + 5 * CELL_COLLIDER_SIZE_X = 642` 开始；植物与格对象统一取 `Board::GetCellCenterPosition`。
 - 僵尸地面是同一几何的连续版本：平台左侧 `Y += (642 - worldX) * 0.25`。权威接口为 `Board::GetRowCenterYAtX`、`GetZombieCollisionY(row, worldX)` 和 `GetZombieSpawnY(row, worldX)`，不得在僵尸品种中复制坡度。
 - `Zombie` 基类在阵风横移后、以及每个品种完成 `ZombieMove` 后统一执行屋顶 Y 收敛。因此普通行走、气球飞行和矿工地下移动都只负责 X；出生与读档也用保存的 `row + x` 重建 Y，无需提升存档版本。屋顶美术脚底最终校准量为行中心下移 `17.5px`。
@@ -33,5 +33,5 @@
 - `clang-release` 配置、编译、链接成功。
 - 主人完成连续实玩校准并确认最终画面“现在没问题了”。可见 `smoke_roof_zombie_foundation.json` 与 `smoke_roof_terrain_consumers.json` 均 exit 0；后者覆盖预览、屋顶车静止/运动/读档、平台冰道、逐段辣椒火焰、左右弹坑、台风植物二维滑动、白天/黑夜屋顶、雨滴落点及平射坡面遮挡，并逐张检查 6 张同步截图。
 - 花盆接入后再次可见运行上述两条屋顶专项，均 exit 0；门禁、under/normal 组合、5px 抬升、台风与快照断言已同步。
-- 雨天天空协调后，`clang-release` 配置/构建成功；当前桌面可见 `smoke_roof_rain_sky.json` 21 条与更新后的 `smoke_roof_terrain_consumers.json` 87 条均 exit 0、窗口标题确认、`script finished OK`。专项锁定晴/小/中/大雨天空渐变 alpha `0/56/88/150`，四张截图确认蓝天随雨势转为冷灰且无可见条带，夜间屋顶保持 0。
+- 雨天天空专项锁定晴/小/中/大雨背景 alpha `0/96/149/255`，并断言雨景资源键已加载；夜间屋顶保持 0。静态像素对比确认雨景与原背景同为 1880×720，天空蒙版外 975361 个像素全部不变，因此屋顶格子和其他前景轮廓保持原位。`clang-release` 配置/链接退出 0；当前桌面可见 `smoke_roof_rain_sky.json` 22 条与 `smoke_roof_terrain_consumers.json` 88 条均 exit 0、窗口标题确认、`script finished OK`。晴天/大雨空瓦片区边缘相关在 `dx=0, dy=0` 取得唯一最高值 `0.993055`，与像素蒙版证据一致。
 - 可见回归 `smoke_zamboni.json`、`smoke_jalapeno.json`、`smoke_typhoon.json`、`smoke_typhoon_bullets.json`、`smoke_crater_terrain_visuals.json`、`smoke_bullet_shadow.json` 全部 exit 0。`smoke_typhoon_bullets` 同步了当前源码的风力数值与孢子已响应台风的类型表，不再保留过期期望。

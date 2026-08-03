@@ -71,6 +71,7 @@
     <Image>./resources/image/pool_shading_night.png</Image>
     <Image>./resources/image/pool_caustic_effect.jpg</Image>
     <Image>./resources/image/background_roof.jpg</Image>
+    <Image>./resources/image/background_roof_rain.png</Image>
     <Image>./resources/image/background_nightroof.jpg</Image>
 
     <Image>./resources/image/UI/ShovelBank.png</Image>
