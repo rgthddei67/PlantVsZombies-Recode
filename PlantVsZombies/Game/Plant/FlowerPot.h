@@ -25,6 +25,8 @@ public:
 	void SaveExtraData(nlohmann::json& j) const override;
 	void LoadExtraData(const nlohmann::json& j) override;
 
+	void Draw(Graphics* g) override;
+
 protected:
 	/** 使用现有 ShadowComponent 复现原版花盆相对通用阴影的偏移。 */
 	void SetupPlant() override;

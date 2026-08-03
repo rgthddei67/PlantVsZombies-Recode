@@ -6,7 +6,7 @@
 #include <algorithm>
 
 namespace {
-	constexpr float kFlowerPotShadowOffsetX = -4.0f;	// C# DrawShadow 的 -3px 通用落点再左移 1px，单位：px
+	constexpr float kFlowerPotShadowOffsetX = 2.0f;	// C# DrawShadow 的 -3px 通用落点再左移 1px，单位：px
 	constexpr float kFlowerPotShadowOffsetY = 46.0f;	// C# DrawShadow 的 51px 通用落点再上移 5px，单位：px
 }
 
@@ -18,6 +18,11 @@ void FlowerPot::SetupPlant()
 		// C# TodDrawImageCenterScaledF 使用 1:1 比例；通用组件默认的纵向 0.75 压缩会让阴影几乎全被盆底遮住。
 		shadow->SetScale(Vector(1.0f, 1.0f));
 	}
+}
+
+void FlowerPot::Draw(Graphics* g)
+{
+	AnimatedObject::Draw(g);
 }
 
 void FlowerPot::PlantUpdate()
