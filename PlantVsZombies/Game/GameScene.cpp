@@ -36,6 +36,8 @@ namespace {
 	constexpr float kWeatherPanelY = 76.0f;               // 面板顶部位置，避开上方种子槽（逻辑像素）
 	constexpr float kWeatherPanelSlideDuration = 0.32f;   // 完整滑入或滑出的动画时长（秒，未缩放）
 	constexpr float kCurrentWeatherNoticeDuration = 5.0f; // 天气揭晓后继续展示“当前天气”的时长（秒，未缩放）
+	constexpr float kWeatherPanelShadowAlpha = 64.0f;     // 天气面板错位阴影 alpha，保留层次且避免叠加后底板过实
+	constexpr float kWeatherPanelBackgroundAlpha = 176.0f; // 天气面板主底色 alpha，让战场仍可透出但保证文字对比度
 	constexpr int kWeatherCurrentFontSize = 18;           // 第一行“当前天气”字号
 	constexpr int kWeatherForecastFontSize = 16;          // 第二行“天气预警”字号
 	constexpr int kWeatherWindFontSize = 15;              // 台风期间第三行“风向实况”字号
@@ -498,9 +500,9 @@ void GameScene::DrawWeatherPanel(Graphics* g) const
 	// 深蓝半透明底板配强度色边条；矩形方案不新增贴图，分辨率和全屏模式都保持锐利。
 	g->FillRect(x + 3.0f, kWeatherPanelY + 3.0f,
 		kWeatherPanelWidth, panelHeight,
-		glm::vec4(0.0f, 0.0f, 0.0f, 92.0f * eased));
+		glm::vec4(0.0f, 0.0f, 0.0f, kWeatherPanelShadowAlpha * eased));
 	g->FillRect(x, kWeatherPanelY, kWeatherPanelWidth, panelHeight,
-		glm::vec4(18.0f, 28.0f, 48.0f, 218.0f * eased));
+		glm::vec4(18.0f, 28.0f, 48.0f, kWeatherPanelBackgroundAlpha * eased));
 	g->DrawRect(x, kWeatherPanelY, kWeatherPanelWidth, panelHeight,
 		glm::vec4(111.0f, 151.0f, 196.0f, 180.0f * eased));
 	g->FillRect(x, kWeatherPanelY, 5.0f, panelHeight,
