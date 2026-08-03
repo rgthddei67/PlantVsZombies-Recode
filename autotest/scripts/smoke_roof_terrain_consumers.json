@@ -93,10 +93,15 @@
 
     { "op": "goto_level", "level": 45 },
     { "op": "assert_state", "path": "background", "equals": "NIGHT_ROOF" },
+    { "op": "assert_state", "path": "roofResources.nightRainBackgroundLoaded", "equals": true },
     { "op": "assert_state", "path": "weather.roofRainBackgroundAlpha", "equals": 0 },
     { "op": "assert_state", "path": "previewZombies.0.terrainYOffsetOn1000", "equals": 0 },
     { "op": "wait_seconds", "value": 4.2 },
     { "op": "screenshot", "name": "05_night_roof_consumers.png" },
+    { "op": "set_weather", "intensity": "HEAVY", "duration": 90 },
+    { "op": "assert_state", "path": "weather.roofRainBackgroundAlpha", "equals": 255 },
+    { "op": "wait_seconds", "value": 5.2 },
+    { "op": "screenshot", "name": "06_night_roof_heavy_rain.png" },
     { "op": "quit" }
   ]
 }

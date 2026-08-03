@@ -73,6 +73,7 @@
     <Image>./resources/image/background_roof.jpg</Image>
     <Image>./resources/image/background_roof_rain.png</Image>
     <Image>./resources/image/background_nightroof.jpg</Image>
+    <Image>./resources/image/background_nightroof_rain.png</Image>
 
     <Image>./resources/image/UI/ShovelBank.png</Image>
     <Image>./resources/image/UI/options_menuback.png</Image>

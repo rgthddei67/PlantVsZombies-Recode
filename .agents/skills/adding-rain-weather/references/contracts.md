@@ -56,13 +56,14 @@ const bool isRaining = rain != RainIntensity::CLEAR;
 `DrawWorldOverlay()` 后绘制，再继续画 UI GameObject；否则卡片虽可见，`IMAGE_SEEDBANK_LONG`
 这类 Scene 卡槽底板仍会被全屏黑幕遮掉。不要按当前卡槽坐标给黑幕挖洞。
 
-白天屋顶另有只作用于静态背景的雨景变体：`GameScene::DrawRoofRainBackground` 以
+昼夜屋顶各有只作用于静态背景的雨景变体：`GameScene::DrawRoofRainBackground` 以
 `LAYER_BACKGROUND + 1` 位于原背景贴图之后、冰道和战场实体之前，复用
-`GetRainOverlayAlpha()` 的两秒平滑值交叉淡入 `IMAGE_BACKGROUND_ROOF_RAIN`。该
-1880×720 PNG 由 `background_roof.jpg` 与雨云素材按天空蒙版合成：蒙版外的瓦片、
-烟囱、树木、房屋和卫星锅像素与原图完全相同，因此可以在不重绘网格的前提下交叉淡化。
-它不得挪到 `DrawWorldOverlay()`，否则实体会被额外染色。该效果只对
-`Background::ROOF` 生效，已有夜空美术的 `NIGHT_ROOF` 明确 no-op。
+`GetRainOverlayAlpha()` 的两秒平滑值，按当前背景交叉淡入 `IMAGE_BACKGROUND_ROOF_RAIN`
+或 `IMAGE_BACKGROUND_NIGHTROOF_RAIN`。两张 1880×720 PNG 分别以 `background_roof.jpg`
+与 `background_nightroof.jpg` 为底图，按同一天空轮廓蒙版合成对应的白天灰云与深蓝紫夜云。
+蒙版外的瓦片、烟囱、树木、房屋和卫星锅像素与各自原图完全相同，因此可以在不重绘网格的前提下交叉淡化。
+晴夜仍显示原星月；大雨夜 alpha 到 255 时用夜云完整遮住星星和月牙。它不得挪到
+`DrawWorldOverlay()`，否则实体会被额外染色。
 
 ## 独立雾势与跨天气联动
 
@@ -245,7 +246,8 @@ Board 雾势、再恢复植物，所以 `RestoreFogState()` 只清空旧缓存�
 
 - `set_weather`：固定天气并立即完成过渡；可传 `duration`、小雨的 `canIntensify`。
 - `roofResources.rainBackgroundLoaded`：白天屋顶雨景变体已按 `IMAGE_BACKGROUND_ROOF_RAIN` 完成注册与加载。
-- `weather.roofRainBackgroundAlpha`：白天屋顶雨景变体的整数 alpha；当前晴/小/中/大雨为 `0/96/149/255`，夜间屋顶恒为 `0`。
+- `roofResources.nightRainBackgroundLoaded`：夜间屋顶雨景变体已按 `IMAGE_BACKGROUND_NIGHTROOF_RAIN` 完成注册与加载。
+- `weather.roofRainBackgroundAlpha`：昼夜屋顶雨景变体的整数 alpha；两者当前晴/小/中/大雨均为 `0/96/149/255`，非屋顶恒为 `0`。
 - `set_weather_forecast`：固定公开/真实天气和揭晓时刻。
 - `advance_weather_phase`：用权重落点强制结束雨段，并立即完成过渡。
 - `trigger_lightning`：只允许大雨；普通大雨同步播放 `SOUND_THUNDER` 并生成程序化主干/分叉；暴风雨夜改走 C# 风格全屏短闪，且不得同时激活普通局部闪电。

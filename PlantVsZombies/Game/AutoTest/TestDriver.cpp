@@ -1917,6 +1917,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			ResourceKeys::Textures::IMAGE_BACKGROUND_ROOF_RAIN, false) != nullptr },
 		{ "nightBackgroundLoaded", ResourceManager::GetInstance().GetTexture(
 			ResourceKeys::Textures::IMAGE_BACKGROUND_NIGHTROOF, false) != nullptr },
+		{ "nightRainBackgroundLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_BACKGROUND_NIGHTROOF_RAIN, false) != nullptr },
 		{ "roofCleanerReanimationLoaded", ResourceManager::GetInstance().HasReanimation(
 			ResourceKeys::Reanimations::REANIM_ROOF_CLEANER) },
 	};

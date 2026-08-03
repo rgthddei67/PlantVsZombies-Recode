@@ -189,22 +189,22 @@ CardUI 所在的 `GameObjects` 命令，而在 `GameScene::BuildDrawCommands` �
 普通天气回归中，`smoke_night_rain` 的暗幕断言同步当前源码 45/70/120 后 87 条可见退出 0，
 `smoke_lightning_visual` 19 条亦可见退出 0，确认普通大雨仍使用局部程序化闪电。
 
-## 2026-08-03 白天屋顶雨景背景
+## 2026-08-03 昼夜屋顶雨景背景
 
-白天屋顶背景原图自带高饱和蓝天，通用世界暗幕在大雨中仍会留下明显晴空感。
-`GameScene::DrawRoofRainBackground` 现于 `LAYER_BACKGROUND + 1` 交叉淡入
-`IMAGE_BACKGROUND_ROOF_RAIN`，它位于原背景之后、冰道与战场实体之前，只对
-`Background::ROOF` 生效；植物、僵尸和 UI 仍只接受原有世界雨幕，`NIGHT_ROOF`
-不重复叠加。背景 alpha 直接消费 `GetRainOverlayAlpha()`，因此沿用现有两游戏秒过渡且不新增玩法或存档状态；当前晴/小/中/大雨整数 alpha 为 `0/96/149/255`。
+白天屋顶原图的高饱和蓝天在大雨中仍有晴空感，夜间屋顶的星空与月牙在大雨中同样不协调。
+`GameScene::DrawRoofRainBackground` 现于 `LAYER_BACKGROUND + 1` 按当前昼夜背景交叉淡入
+`IMAGE_BACKGROUND_ROOF_RAIN` 或 `IMAGE_BACKGROUND_NIGHTROOF_RAIN`；它位于原背景之后、
+冰道与战场实体之前，植物、僵尸和 UI 仍只接受原有世界雨幕。背景 alpha 直接消费
+`GetRainOverlayAlpha()`，因此沿用现有两游戏秒过渡且不新增玩法或存档状态；昼夜屋顶当前晴/小/中/大雨整数 alpha 均为 `0/96/149/255`。
 
-雨云素材由生成式图像提供，但运行资产并非重画整张屋顶：它以原始 1880×720
-`background_roof.jpg` 为底图，只在从原图分割的天空蒙版内换入雨云。像素对比确认蒙版外
-975361 个像素全部不变，屋顶下方 `y >= 367` 变化为 0；因此瓦缝、烟囱、树木、
-房屋和卫星锅保持原位，完整 PNG 亦可与原背景无缝交叉淡化。AutoTest 同时断言
-`roofResources.rainBackgroundLoaded` 的资源注册闭环。
+昼夜雨云素材由生成式图像提供，但运行资产并非重画整张屋顶：它们分别以原始 1880×720
+`background_roof.jpg` 和 `background_nightroof.jpg` 为底图，只在同一天空蒙版内换入白天灰云或深蓝紫夜云。
+像素对比确认两张图的蒙版外各有 975361 个像素全部不变，屋顶下方 `y >= 367` 变化均为 0；
+因此瓦缝、烟囱、树木、房屋和卫星锅保持原位。晴夜 alpha 为 0 保留星月，大雨夜 alpha 为 255 时完整换成无星月的夜云。
+AutoTest 同时断言 `roofResources.rainBackgroundLoaded` 与 `roofResources.nightRainBackgroundLoaded` 的资源注册闭环。
 
-`clang-release` 配置/链接退出 0。当前桌面可见 `smoke_roof_rain_sky` 22 条命令与
-`smoke_roof_terrain_consumers` 88 条命令均退出 0，窗口标题为“植物大战僵尸中文版”，`run.log`
-均为 `script finished OK`。四档截图已目验：大雨时不再显露蓝天白云，屋脊无蓝色漏边；
-晴天/大雨空瓦片区边缘相关的唯一最佳位移为 `dx=0, dy=0`（`0.993055`），完整回归也确认
-清洁车、植物、弹坑、冰道、台风与夜间屋顶均未受影响。
+`clang-release` 配置/链接退出 0。当前桌面可见 `smoke_roof_rain_sky` 35 条命令与
+`smoke_roof_terrain_consumers` 93 条命令均退出 0，窗口标题为“植物大战僵尸中文版”，`run.log`
+均为 `script finished OK`。昼夜截图已目验：白天大雨不再显露蓝天白云，夜间大雨不再显露星星月牙；
+晴夜/大雨夜空瓦片区边缘相关的唯一最佳位移为 `dx=0, dy=0`（`0.965122`），原月牙区域亮像素从 1348 降为 0。
+完整回归也确认清洁车、植物、弹坑、冰道、台风与昼夜屋顶均未受影响。

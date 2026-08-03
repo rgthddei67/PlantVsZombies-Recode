@@ -379,7 +379,8 @@ void GameScene::DrawWorldOverlay(Graphics* g)
 
 float GameScene::GetRoofRainBackgroundAlpha() const
 {
-	if (!mBoard || mBoard->mBackGround != Background::ROOF) return 0.0f;
+	if (!mBoard || (mBoard->mBackGround != Background::ROOF
+		&& mBoard->mBackGround != Background::NIGHT_ROOF)) return 0.0f;
 	return std::clamp(mBoard->GetRainOverlayAlpha() * kRoofRainBackgroundAlphaScale,
 		0.0f, 255.0f);
 }
@@ -390,11 +391,14 @@ void GameScene::DrawRoofRainBackground(Graphics* g)
 	const float alpha = GetRoofRainBackgroundAlpha();
 	if (alpha <= 0.0f) return;
 
+	const std::string& rainBackgroundKey = mBoard->mBackGround == Background::NIGHT_ROOF
+		? ResourceKeys::Textures::IMAGE_BACKGROUND_NIGHTROOF_RAIN
+		: ResourceKeys::Textures::IMAGE_BACKGROUND_ROOF_RAIN;
 	const Texture* rainBackground = ResourceManager::GetInstance().GetTexture(
-		ResourceKeys::Textures::IMAGE_BACKGROUND_ROOF_RAIN, false);
+		rainBackgroundKey, false);
 	if (!rainBackground) return;
 
-	// 完整雨景只替换静态背景层；Board 网格、实体位置和后续世界雨幕仍走原有路径。
+	// 昼夜雨景都只替换静态背景层；Board 网格、实体位置和后续世界雨幕仍走原有路径。
 	g->DrawTexture(rainBackground, mStartX, mBackgroundY,
 		static_cast<float>(rainBackground->width),
 		static_cast<float>(rainBackground->height), 0.0f,
@@ -677,7 +681,7 @@ void GameScene::BuildDrawCommands()
 			mStartX, mBackgroundY, 1.0f, 1.0f, LAYER_BACKGROUND, false);
 	}
 
-	if (background == Background::ROOF && mBoard) {
+	if ((background == Background::ROOF || background == Background::NIGHT_ROOF) && mBoard) {
 		RegisterDrawCommand("RoofRainBackground",
 			[this](Graphics* g) { DrawRoofRainBackground(g); },
 			LAYER_BACKGROUND + 1);
