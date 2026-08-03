@@ -2305,6 +2305,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "charmedCombinedMovePct", static_cast<int>(std::lround(zombieRain * charmedWind * 100.0f)) },
 			{ "plantActionSpeedPct", static_cast<int>(std::lround(plantRain * 100.0f)) },
 			{ "overlayAlpha", static_cast<int>(std::lround(board->GetRainOverlayAlpha())) },
+			{ "roofSkyOverlayAlpha", static_cast<int>(std::lround(
+				gs->GetRoofRainSkyOverlayAlpha())) },
 			{ "rainSoundPlaying", AudioSystem::IsLoopingSoundPlaying(ResourceKeys::Sounds::SOUND_RAIN) },
 			{ "thunderSoundLoaded", ResourceManager::GetInstance().GetSound(
 				ResourceKeys::Sounds::SOUND_THUNDER) != nullptr },

@@ -188,3 +188,16 @@ CardUI 所在的 `GameObjects` 命令，而在 `GameScene::BuildDrawCommands` �
 目验预报色、纯黑战场、全屏闪光与完整 UI。同步后的 4-7～4-9 出怪表回归亦可见退出 0。
 普通天气回归中，`smoke_night_rain` 的暗幕断言同步当前源码 45/70/120 后 87 条可见退出 0，
 `smoke_lightning_visual` 19 条亦可见退出 0，确认普通大雨仍使用局部程序化闪电。
+
+## 2026-08-03 白天屋顶雨云调色
+
+白天屋顶背景原图自带高饱和蓝天，通用世界暗幕在大雨中仍会留下明显晴空感。
+`GameScene::DrawRoofRainSkyAtmosphere` 现于 `LAYER_BACKGROUND + 1` 绘制冷灰垂直渐变，
+它位于背景之后、冰道与战场实体之前，只对 `Background::ROOF` 生效；植物、僵尸和 UI 仍只接受
+原有世界雨幕，`NIGHT_ROOF` 不重复调色。渐变直接消费 `GetRainOverlayAlpha()`，因此沿用现有
+两游戏秒过渡且不新增玩法或存档状态；当前晴/小/中/大雨峰值整数投影为 `0/56/88/150`。
+
+生成式整图雨景方案虽能提供更厚的云层，但会重绘烟囱、瓦缝和卫星锅轮廓，无法与原背景在
+交叉淡化时逐像素对齐，因此未进入运行资产。`clang-release` 配置/构建退出 0；当前桌面可见
+`smoke_roof_rain_sky` 21 条与 `smoke_roof_terrain_consumers` 87 条均退出 0、窗口标题确认、
+`run.log` 为 `script finished OK`。四档截图已目验无横向硬边，夜间屋顶 no-op 断言通过。

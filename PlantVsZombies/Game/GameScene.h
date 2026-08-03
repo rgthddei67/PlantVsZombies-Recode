@@ -68,6 +68,8 @@ public:
 	// 含不消费变换栈的 reanim/字形 GPU instancing 快路径（详见 .cpp 实现注释）
 	void Draw(Graphics* g) override;
 	void DrawWorldOverlay(Graphics* g) override;
+	/** 返回白天屋顶雨云背景最上方的渐变 alpha；非白天屋顶恒为 0。 */
+	float GetRoofRainSkyOverlayAlpha() const;
 
 	void ChooseCardComplete();  // 选卡完成
 
@@ -188,6 +190,8 @@ protected:
 	void BuildDrawCommands() override;
 
 private:
+	/** 在背景与战场实体之间绘制白天屋顶的冷灰雨云渐变，不遮盖 UI 或实体。 */
+	void DrawRoofRainSkyAtmosphere(Graphics* g);
 	void UpdateWeatherUi(float deltaTime);
 	void DrawFog(Graphics* g) const;
 	void DrawWeatherPanel(Graphics* g) const;

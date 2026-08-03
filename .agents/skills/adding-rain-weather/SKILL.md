@@ -52,6 +52,7 @@ description: Use when adding or tuning ANY rain-weather-dependent feature or Boa
 - `GetRainIntensity()` 是目标档位，切档时立即改变；玩法倍率、暗幕和雨声音量再用两游戏秒平滑到目标。离散触发默认以目标档位为准。
 - 关卡/波次派生的固定复合天气要把“是否生效”和“是否已初始化”分开：生效条件可由关卡与波次重算，一次性阵风额度、闪光节奏等未来状态必须保存。读档和每帧强制修复不得返还已消费额度；若设计要求天气随波次骤然降临，应显式完成普通两秒过渡。
 - 全屏天气覆盖层只能压世界层。`Scene` 中 `isUI=true` 的贴图由 pre-overlay 接缝在 `DrawWorldOverlay()` 后、UI GameObject 前绘制；卡槽底板等 UI 不得继续混在世界贴图批次，也不要给黑幕写死矩形挖洞。
+- 地图专属天气调色若只应改变静态背景，必须注册在 `LAYER_BACKGROUND` 与战场实体之间并消费平滑后的天气 getter；禁止塞进全世界覆盖层而重复染色实体，也禁止用会重绘网格/地形轮廓的生成图直接做交叉淡化。白天屋顶雨云渐变只对 `ROOF` 生效，`NIGHT_ROOF` 保持 no-op。
 - 不要修改全局 `DeltaTime`，也不要整体加速 `Zombie::Update()`；只缩放明确属于该能力的计时或结算值。
 - 僵尸动画速度统一经 `Zombie::UpdateAnimSpeed()` 收敛：`GetAbilityAnimSpeedMultiplier() × slowFactor × rain`，冻结优先为 0。子类自身整体倍率只覆写该虚函数，状态变化后调用 `UpdateAnimSpeed()`；禁止用 `SetExtraSpeedMultiplier` 绕开它。
 - 场地效果若宣称“逐因子强化加速与减速”，对能力、寒冰、雨势和台风等每个非中性倍率分别变换后再相乘；当前鎏金冰道的主人定案为每层让加速倍率乘二（`1.4→2.8`）、减速倍率除二（`0.6→0.3`），中性 `1.0` 不变。手动改 X 的车辆也必须消费同一结果，不能只放大动画。允许重叠时按独立活跃来源逐层变换，并在进入、离开、来源死亡或范围变化时刷新。

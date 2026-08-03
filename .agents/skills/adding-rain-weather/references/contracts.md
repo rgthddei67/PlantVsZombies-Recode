@@ -56,6 +56,12 @@ const bool isRaining = rain != RainIntensity::CLEAR;
 `DrawWorldOverlay()` 后绘制，再继续画 UI GameObject；否则卡片虽可见，`IMAGE_SEEDBANK_LONG`
 这类 Scene 卡槽底板仍会被全屏黑幕遮掉。不要按当前卡槽坐标给黑幕挖洞。
 
+白天屋顶另有只作用于静态背景的雨云调色：`GameScene::DrawRoofRainSkyAtmosphere` 以
+`LAYER_BACKGROUND + 1` 位于背景贴图之后、冰道和战场实体之前，复用
+`GetRainOverlayAlpha()` 的两秒平滑值生成冷灰垂直渐变。它不得挪到 `DrawWorldOverlay()`，
+否则实体会被额外染色；也不得用重新生成、瓦缝不能逐像素对齐的整张屋顶图交叉淡化。
+该效果只对 `Background::ROOF` 生效，已有夜空美术的 `NIGHT_ROOF` 明确 no-op。
+
 ## 独立雾势与跨天气联动
 
 `FogWeatherIntensity::DEFAULT/SMALL/NORMAL/DENSE` 与 `RainIntensity` 并列声明在
@@ -236,6 +242,7 @@ Board 雾势、再恢复植物，所以 `RestoreFogState()` 只清空旧缓存�
 现有命令：
 
 - `set_weather`：固定天气并立即完成过渡；可传 `duration`、小雨的 `canIntensify`。
+- `weather.roofSkyOverlayAlpha`：白天屋顶天空渐变峰值的整数投影；当前晴/小/中/大雨为 `0/56/88/150`，夜间屋顶恒为 `0`。
 - `set_weather_forecast`：固定公开/真实天气和揭晓时刻。
 - `advance_weather_phase`：用权重落点强制结束雨段，并立即完成过渡。
 - `trigger_lightning`：只允许大雨；普通大雨同步播放 `SOUND_THUNDER` 并生成程序化主干/分叉；暴风雨夜改走 C# 风格全屏短闪，且不得同时激活普通局部闪电。

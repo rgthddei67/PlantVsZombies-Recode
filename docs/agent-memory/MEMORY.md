@@ -2,7 +2,7 @@
 
 > Codex routing: required always-on rules live in `../../AGENTS.md`; detailed build, AutoTest, architecture, resource, and implementation guidance lives in `../agent-guide/PROJECT_GUIDE.md`. The entries below are historical subsystem context and should be read only when relevant.
 
-- [屋顶地形与僵尸连续坡面](project_pvz_roof_terrain_foundation.md) — 2026-08-03 白天/黑夜屋顶共用 Board 连续1:4坡面；植物离散格、僵尸连续坡面、清洁车/火焰/雨滴/弹坑/台风/子弹按语义消费；花盆已接管 under 层与屋顶种植门禁，初始 5/4/3 列、上层 5px 抬升和台风整组搬移已纳入屋顶专项
+- [屋顶地形与僵尸连续坡面](project_pvz_roof_terrain_foundation.md) — 2026-08-03 白天/黑夜屋顶共用 Board 连续1:4坡面；植物离散格、僵尸连续坡面、清洁车/火焰/雨滴/弹坑/台风/子弹按语义消费；花盆承载与台风整组搬移已纳入专项；白天屋顶雨天在背景层渐变压低蓝天饱和度，夜间 no-op
 - [经典花盆与屋顶承载层](project_pvz_flowerpot.md) — 2026-08-03 `PLANT_FLOWERPOT` 25阳光/7.5秒/300生命/1秒无啃食；under+normal+南瓜分层、屋顶门禁、5-1/5-2/后续5/4/3列初始布局、覆盖暂停、5px视觉抬升、通用ShadowComponent 46px可见阴影、双向台风整组与存档均经默认/NoInstance可见专项
 - [架构边界、存档版本与技能审计门禁](project_pvz_architecture_boundaries.md) — 2026-08-03 `BoardPresentation` 取代 `Board::mGameScene`，Board 保持天气/波次/生存玩法唯一权威；`SceneManager` 明确单活动场景；玩家 schema v2 为已通关3-8的旧档补发前移后的毒囊射手，迁移保持事务式并有纯测试；每次任务提交前审计相关 skills
 - [经典海蘑菇](project_pvz_seashroom.md) — 2026-07-29 `PLANT_SEASHROOM`：0 阳光、10 秒冷却，只能直接种在空水格且占 normal 层；复用小喷菇 1.5 秒间隔/300px 短程孢子，第 33 帧发射，无陆地阴影并随水面浮动；白天睡眠与双绘制路径可见专项通过
@@ -34,7 +34,7 @@
 - [Windows 中央存档目录与旧档安全迁移](project_pvz_save_location_migration.md) — 2026-07-21 Windows 正式存档改到 `FOLDERID_SavedGames/PlantsVsZombies/saves`；首次访问旧 `./saves` 时复制、逐字节校验、再删源文件，冲突不覆盖、失败逐文件回退；AutoTest/`-AutoTestLoadSave` 继续隔离在构建目录
 - [第三大关泳池基础系统](project_pvz_pool_basics.md) — 2026-08-03 当前范围 3-1～3-9：`WATER_POOL` 六行网格、原版 15×5 三层 GPU 动态水面、睡莲双层占格及上层植物本体/影子共享水面浮动视觉锚点、前4波仅陆路、`Zombie` 通用水线裁剪与 `Splash.reanim + PlantingPool` 进出水反馈、海豚派生节点、普通/路障/铁桶水路版本、水中爆炸无烧焦残影、PoolCleaner 与旧档边界；3-5普通冰车、3-6鎏金冰车、3-7普通海豚、3-8精英海豚、3-9为200初始阳光与10种敌人的30波分阶段综合；日间天降普通阳光14秒，泳池另每13秒生成15点小阳光；水路 Transform +30px美术下沉而碰撞仍回归逻辑行
 - [通用 shader ClipRect](project_pvz_shader_clip_rect.md) — 2026-07-23 `PushClipRect/PopClipRect` 全部改为逐顶点/逐实例 framebuffer 矩形裁剪；不再 flush、切 draw、录 worker 状态命令或动态改 scissor；覆盖水路、伴舞出土、图鉴格窗、粒子阻断，含延迟文字继承与无裁剪片元快路径
-- [冒险第二大关起雨势天气与四大关迷雾](project_pvz_night_rain_weather.md) — 2026-08-03 4-9 第22波预报暴风雨，第23～30波锁定大雨/大雾/强台风：一次阵风、波点数×2、普通出波上限5秒；C# 4-10式全黑/雷声全屏闪光只压世界层，Scene UI贴图在覆盖层后绘制；状态与闪光计时可存档，专项与出怪回归可见通过
+- [冒险第二大关起雨势天气与四大关迷雾](project_pvz_night_rain_weather.md) — 2026-08-03 4-9 第22波预报暴风雨，第23～30波锁定大雨/大雾/强台风；世界天气覆盖保持 UI 清晰；白天屋顶新增位于背景与实体之间的冷灰雨云渐变，复用两秒雨幕过渡且夜间屋顶 no-op；天气状态、闪光与专项证据见主题
 - [路灯花与迷雾核心](project_pvz_plantern_fog_core.md) — 2026-08-02 4-2 起逐格雾 alpha 限制远程索敌，并允许从可见边界额外看入第一格薄雾、第二格仍阻断；唯一可重种路灯花用 25/100 初始/容量雾火维持 0/I/II/III 档 4×3/8×5/10×7 前向照明及 100%/110%/120%/135% 产光效率；雾火按每关归一化波次从每团15/单波45收紧到10/30，同时在途量受单波预算限制，II 挡消耗为1.1/秒、III 挡消耗从2.1/秒升至4/秒；卡牌独立显示挡位、具体燃料、比例条与槽下控制菜单，卡牌与菜单的比例字体挡位标签按实际宽度居中；图鉴/选卡卡片不依赖 `CardSlotManager`，只允许实战路灯花卡面查询 Board；正式消耗跌破 10 时播放一次不足音效和约 3 秒中央红色警报，低量期间卡牌持续红色脉冲
 - [雾夜第四大关4-1至4-9出怪节奏](project_pvz_fog_spawnlist_pacing.md) — 2026-08-03 4-8当前为普通/精英海豚、气球、跳跳三高度池；4-9为12类型暴风雨终局综合池并以普通/精英跳跳收尾；权威资源未改，4-7～4-9有序池与预览专项已同步并可见通过
 - [经典小丑僵尸](project_pvz_jack_in_the_box_zombie.md) — 2026-08-02 `ZOMBIE_JACK_IN_THE_BOX`：500 HP、0.66～0.68速度、随机开盒与共享循环声；第45帧啃食、第66帧爆炸、第89帧死亡，爆炸只伤敌对阵营僵尸（未魅惑侧直接清除爆区全部植物层），明确不受南瓜范围拦截影响；专属大范围爆炸、原版普通完整掉头、残肢和存档均有可见回归

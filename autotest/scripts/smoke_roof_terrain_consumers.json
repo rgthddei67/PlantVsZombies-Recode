@@ -51,6 +51,7 @@
 
     { "op": "plant", "type": "PLANT_PEASHOOTER", "row": 1, "col": 1 },
     { "op": "set_weather", "intensity": "HEAVY", "duration": 90 },
+    { "op": "assert_state", "path": "weather.roofSkyOverlayAlpha", "equals": 150 },
     { "op": "set_typhoon", "strength": "SEVERE", "direction": "FRONT", "gustIn": 30, "directionIn": 30, "gustsRemaining": 1, "decayIn": 30 },
     { "op": "trigger_typhoon_gust", "plantMoveIn": 0.0 },
     { "op": "wait_seconds", "value": 0.1 },
@@ -91,6 +92,7 @@
 
     { "op": "goto_level", "level": 45 },
     { "op": "assert_state", "path": "background", "equals": "NIGHT_ROOF" },
+    { "op": "assert_state", "path": "weather.roofSkyOverlayAlpha", "equals": 0 },
     { "op": "assert_state", "path": "previewZombies.0.terrainYOffsetOn1000", "equals": 0 },
     { "op": "wait_seconds", "value": 4.2 },
     { "op": "screenshot", "name": "05_night_roof_consumers.png" },

@@ -66,6 +66,14 @@ namespace {
 	constexpr int kPlanternLowFuelPromptFontSize = 46;    // 低燃料警报字号，刻意大于天气警报
 	constexpr float kPoolEffectOffsetX = 209.0f;          // 原版水面坐标对齐当前 1880px 泳池背景的世界 X 偏移（像素）
 	constexpr float kPoolEffectOffsetY = 12.0f;           // 原版水面坐标对齐当前泳池内框的世界 Y 偏移（像素）
+	constexpr float kRoofRainSkyTintR = 66.0f;            // 白天屋顶雨云渐变的中性冷灰红通道（0～255）
+	constexpr float kRoofRainSkyTintG = 70.0f;            // 白天屋顶雨云渐变的中性冷灰绿通道（0～255）
+	constexpr float kRoofRainSkyTintB = 78.0f;            // 白天屋顶雨云渐变的中性冷灰蓝通道（0～255）
+	constexpr float kRoofRainSkyAlphaScale = 1.25f;       // 由通用雨幕 alpha 放大到天空渐变峰值的倍率
+	constexpr float kRoofRainSkyMaxAlpha = 150.0f;        // 大雨时天空渐变的最大 alpha，保留白天可读性
+	constexpr float kRoofRainSkySolidEndY = 145.0f;       // 天空顶部保持完整冷灰强度的屏幕 Y 下界（像素）
+	constexpr float kRoofRainSkyFadeEndY = 360.0f;        // 冷灰渐变完全消失的屏幕 Y，覆盖屋檐两侧低空（像素）
+	constexpr float kRoofRainSkyStripHeight = 8.0f;       // 程序化垂直渐变的条带高度（像素）
 	constexpr int kLightningMainSegments = 10;           // 主闪电从云层到落点的折线段数
 	constexpr int kLightningBranchCount = 3;             // 主干上生成的二段式分叉数量
 	constexpr float kFogTileDrawWidth = 210.0f;           // 按原生 210px 宽绘制，使相邻 80px 雾格充分重叠
@@ -376,6 +384,33 @@ void GameScene::DrawWorldOverlay(Graphics* g)
 	DrawLightningStrike(g);
 }
 
+float GameScene::GetRoofRainSkyOverlayAlpha() const
+{
+	if (!mBoard || mBoard->mBackGround != Background::ROOF) return 0.0f;
+	return std::min(kRoofRainSkyMaxAlpha,
+		mBoard->GetRainOverlayAlpha() * kRoofRainSkyAlphaScale);
+}
+
+void GameScene::DrawRoofRainSkyAtmosphere(Graphics* g)
+{
+	if (!g) return;
+	const float peakAlpha = GetRoofRainSkyOverlayAlpha();
+	if (peakAlpha <= 0.0f) return;
+
+	// 只在背景层逐条压低蓝天饱和度；渐变下缘落在低空与屋瓦交界，避免出现横向硬边。
+	for (float y = 0.0f; y < kRoofRainSkyFadeEndY; y += kRoofRainSkyStripHeight) {
+		const float fadeProgress = std::clamp(
+			(y - kRoofRainSkySolidEndY)
+				/ (kRoofRainSkyFadeEndY - kRoofRainSkySolidEndY),
+			0.0f, 1.0f);
+		const float smoothFade = fadeProgress * fadeProgress * (3.0f - 2.0f * fadeProgress);
+		const float alpha = peakAlpha * (1.0f - smoothFade);
+		g->FillRect(-20.0f, y,
+			static_cast<float>(SCENE_WIDTH + 500), kRoofRainSkyStripHeight,
+			glm::vec4(kRoofRainSkyTintR, kRoofRainSkyTintG, kRoofRainSkyTintB, alpha));
+	}
+}
+
 /** 绘制冷白闪电主干、分叉和有限半径的云层/落点散射光，不覆盖 UI。 */
 void GameScene::DrawLightningStrike(Graphics* g) const
 {
@@ -650,6 +685,12 @@ void GameScene::BuildDrawCommands()
 	else if (background == Background::NIGHT_ROOF) {
 		AddTexture(ResourceKeys::Textures::IMAGE_BACKGROUND_NIGHTROOF,
 			mStartX, mBackgroundY, 1.0f, 1.0f, LAYER_BACKGROUND, false);
+	}
+
+	if (background == Background::ROOF && mBoard) {
+		RegisterDrawCommand("RoofRainSkyAtmosphere",
+			[this](Graphics* g) { DrawRoofRainSkyAtmosphere(g); },
+			LAYER_BACKGROUND + 1);
 	}
 
 	if (background == Background::WATER_POOL
