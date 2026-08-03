@@ -41,6 +41,9 @@ namespace {
 	constexpr int kWeatherWindFontSize = 15;              // 台风期间第三行“风向实况”字号
 	constexpr int kPlanternGearMenuRenderOrder = LAYER_UI + 700; // 路灯花菜单盖过天气板/失败提示且低于全屏提示
 	constexpr float kWeatherPanelDetailLineHeight = 30.0f; // 雾势预报或风向实况每增加一行的面板高度
+	constexpr float kStormyNightColorR = 224.0f;          // “暴风雨”预报与当前天气的紫红强调色 R
+	constexpr float kStormyNightColorG = 70.0f;           // “暴风雨”预报与当前天气的紫红强调色 G
+	constexpr float kStormyNightColorB = 158.0f;          // “暴风雨”预报与当前天气的紫红强调色 B
 	constexpr float kForecastFailureWidth = 350.0f;       // 预报失败提示与加宽后的天气面板对齐（逻辑像素）
 	constexpr float kForecastFailureHeight = 58.0f;       // 预报失败提示高度（逻辑像素）
 	constexpr float kForecastFailureY = 154.0f;           // 失败提示顶部位置，显示在天气面板下方（逻辑像素）
@@ -206,11 +209,20 @@ namespace {
 		return glm::vec4(230.0f, 230.0f, 230.0f, alpha);
 	}
 
+	glm::vec4 StormyNightTextColor(float alpha) {
+		return glm::vec4(
+			kStormyNightColorR, kStormyNightColorG, kStormyNightColorB, alpha);
+	}
+
 	/** 按独立雾势预报与台风实况行数计算面板高度，避免文字落出底板。 */
 	float WeatherPanelHeight(const Board* board) {
 		if (!board) return kWeatherPanelHeight;
 		float height = kWeatherPanelHeight;
-		if (board->HasFogWeatherForecast()) height += kWeatherPanelDetailLineHeight;
+		const bool stormyNight = board->IsStormyNightForecastActive()
+			|| board->IsStormyNightActive();
+		if (!stormyNight && board->HasFogWeatherForecast()) {
+			height += kWeatherPanelDetailLineHeight;
+		}
 		if (board->HasTyphoon()) height += kWeatherPanelDetailLineHeight;
 		return height;
 	}
@@ -343,6 +355,24 @@ void GameScene::DrawWorldOverlay(Graphics* g)
 			static_cast<float>(SCENE_WIDTH + 500), static_cast<float>(SCENE_HEIGHT),
 			glm::vec4(36.0f, 52.0f, 78.0f, alpha));		// -20 500的预留空间
 	}
+	if (mBoard->IsStormyNightActive()) {
+		// 与 C# 4-10 相同：战场世界层常态全黑，闪电时降低黑幕并短暂叠加白光；UI 稍后绘制。
+		const float blackAlpha = mBoard->GetStormyNightBlackAlpha();
+		const float whiteAlpha = mBoard->GetStormyNightWhiteAlpha();
+		if (blackAlpha > 0.0f) {
+			g->FillRect(-1000.0f, -1000.0f,
+				static_cast<float>(SCENE_WIDTH + 2000),
+				static_cast<float>(SCENE_HEIGHT + 2000),
+				glm::vec4(0.0f, 0.0f, 0.0f, blackAlpha));
+		}
+		if (whiteAlpha > 0.0f) {
+			g->FillRect(-1000.0f, -1000.0f,
+				static_cast<float>(SCENE_WIDTH + 2000),
+				static_cast<float>(SCENE_HEIGHT + 2000),
+				glm::vec4(255.0f, 255.0f, 255.0f, whiteAlpha));
+		}
+		return;
+	}
 	DrawLightningStrike(g);
 }
 
@@ -404,7 +434,8 @@ void GameScene::UpdateWeatherUi(float deltaTime)
 {
 	const bool shouldShow = mBoard && mBoard->mBoardState == BoardState::GAME
 		&& (mBoard->HasWeatherForecast() || mCurrentWeatherNoticeTimer > 0.0f
-			|| mBoard->HasFogWeatherForecast() || mBoard->HasTyphoon());
+			|| mBoard->HasFogWeatherForecast() || mBoard->HasTyphoon()
+			|| mBoard->IsStormyNightForecastActive() || mBoard->IsStormyNightActive());
 	const float direction = shouldShow ? 1.0f : -1.0f;
 	mWeatherPanelSlide = std::clamp(mWeatherPanelSlide
 		+ direction * deltaTime / kWeatherPanelSlideDuration, 0.0f, 1.0f);
@@ -429,6 +460,11 @@ void GameScene::DrawWeatherPanel(Graphics* g) const
 		+ (kWeatherPanelWidth + kWeatherPanelVisibleX) * eased;
 	const float alpha = 255.0f * eased;
 	const float panelHeight = WeatherPanelHeight(mBoard.get());
+	const bool stormyNightForecast = mBoard->IsStormyNightForecastActive()
+		|| mBoard->IsStormyNightActive();
+	const glm::vec4 accentColor = stormyNightForecast
+		? StormyNightTextColor(alpha)
+		: RainIntensityTextColor(mBoard->GetRainIntensity(), alpha);
 
 	// 深蓝半透明底板配强度色边条；矩形方案不新增贴图，分辨率和全屏模式都保持锐利。
 	g->FillRect(x + 3.0f, kWeatherPanelY + 3.0f,
@@ -439,21 +475,28 @@ void GameScene::DrawWeatherPanel(Graphics* g) const
 	g->DrawRect(x, kWeatherPanelY, kWeatherPanelWidth, panelHeight,
 		glm::vec4(111.0f, 151.0f, 196.0f, 180.0f * eased));
 	g->FillRect(x, kWeatherPanelY, 5.0f, panelHeight,
-		RainIntensityTextColor(mBoard->GetRainIntensity(), alpha));
+		accentColor);
 
-	std::string currentLine = std::string(u8"当前天气：")
-		+ RainIntensityDisplayName(mBoard->GetRainIntensity());
-	if (mBoard->SupportsStageFog()) {
-		currentLine += std::string(u8" · ")
-			+ FogWeatherDisplayName(mBoard->GetFogWeatherIntensity());
-	}
-	if (mBoard->HasTyphoon()) {
-		currentLine += std::string(u8" · ")
-			+ TyphoonStrengthDisplayName(mBoard->GetTyphoonStrength());
+	std::string currentLine = mBoard->IsStormyNightActive()
+		? std::string(u8"当前天气：暴风雨")
+		: std::string(u8"当前天气：") + RainIntensityDisplayName(mBoard->GetRainIntensity());
+	if (!mBoard->IsStormyNightActive()) {
+		if (mBoard->SupportsStageFog()) {
+			currentLine += std::string(u8" · ")
+				+ FogWeatherDisplayName(mBoard->GetFogWeatherIntensity());
+		}
+		if (mBoard->HasTyphoon()) {
+			currentLine += std::string(u8" · ")
+				+ TyphoonStrengthDisplayName(mBoard->GetTyphoonStrength());
+		}
 	}
 	std::string forecastLine = u8"天气预报：暂无";
 	glm::vec4 forecastColor(166.0f, 178.0f, 196.0f, alpha);
-	if (mBoard->HasWeatherForecast()) {
+	if (stormyNightForecast) {
+		forecastLine = u8"天气预报：暴风雨";
+		forecastColor = StormyNightTextColor(alpha);
+	}
+	else if (mBoard->HasWeatherForecast()) {
 		const int seconds = std::max(0, static_cast<int>(std::ceil(mBoard->GetWeatherTimer())));
 		forecastLine = std::string(u8"天气预报（") + std::to_string(seconds)
 			+ u8"秒）：" + RainIntensityDisplayName(mBoard->GetForecastRainIntensity());
@@ -468,14 +511,17 @@ void GameScene::DrawWeatherPanel(Graphics* g) const
 	g->DrawText(currentLine, ResourceKeys::Fonts::FONT_FZCQ, kWeatherCurrentFontSize,
 		shadow, textX + 1.0f, kWeatherPanelY + 10.0f);
 	g->DrawText(currentLine, ResourceKeys::Fonts::FONT_FZCQ, kWeatherCurrentFontSize,
-		RainIntensityTextColor(mBoard->GetRainIntensity(), alpha), textX, kWeatherPanelY + 9.0f);
+		mBoard->IsStormyNightActive()
+			? StormyNightTextColor(alpha)
+			: RainIntensityTextColor(mBoard->GetRainIntensity(), alpha),
+		textX, kWeatherPanelY + 9.0f);
 	g->DrawText(forecastLine, ResourceKeys::Fonts::FONT_FZCQ, kWeatherForecastFontSize,
 		shadow, textX + 1.0f, kWeatherPanelY + 42.0f);
 	g->DrawText(forecastLine, ResourceKeys::Fonts::FONT_FZCQ, kWeatherForecastFontSize,
 		forecastColor, textX, kWeatherPanelY + 41.0f);
 
 	float detailLineY = kWeatherPanelY + 69.0f;
-	if (mBoard->HasFogWeatherForecast()) {
+	if (!stormyNightForecast && mBoard->HasFogWeatherForecast()) {
 		const int fogSeconds = std::max(0,
 			static_cast<int>(std::ceil(mBoard->GetFogWeatherTimer())));
 		std::string fogLine = std::string(u8"雾势预报（") + std::to_string(fogSeconds)

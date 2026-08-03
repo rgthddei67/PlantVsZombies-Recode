@@ -185,6 +185,9 @@ private:
 	bool mRainCanIntensify = false;     // 仅初始小雨可增强；首次切档后永久转入衰减链
 	bool mRainCanHold = false;          // 新雨首段为中/大雨时允许一次同档续期，避免无限维持
 	bool mWeatherForecastReady = false; // true 表示公开预报与真实下一天气均已锁定、等待揭晓
+	bool mStormyNightInitialized = false; // 4-9 第 23 波暴风雨夜是否已经正式初始化，防读档重置阵风额度
+	int mStormyNightFlashPattern = 0;   // 原版 4-10 三种闪光节奏（1～3）；0 表示尚未启用
+	float mStormyNightFlashTimer = 0.0f; // 当前闪光节奏剩余游戏秒；黑屏等待也包含在此计时内
 
 	// 四大关迷雾是独立于雨势的环境层：原版默认雾、增强雾势、预报与台风驱散均由 Board 持有。
 	FogWeatherIntensity mFogWeatherIntensity = FogWeatherIntensity::DEFAULT;
@@ -287,6 +290,11 @@ private:
 	void UpdateWeatherTransition(float deltaTime);
 	void FinishWeatherTransitionImmediately();
 	void RestoreWeatherTransition(RainIntensity previous, float remaining);
+	void ActivateStormyNight();
+	void EnforceStormyNightWeather();
+	void UpdateStormyNightFlash(float deltaTime);
+	void ScheduleNextStormyNightFlash();
+	void GetStormyNightOverlayAlphas(float& blackAlpha, float& whiteAlpha) const;
 	int GetNextWeatherRollTotal() const;
 	bool ShouldForceHeavyWeather() const;
 	void RecordNewWeatherOutcome(RainIntensity next);
@@ -413,6 +421,16 @@ public:
 	float GetPlantRainActionSpeedMultiplier() const;
 	/** 世界层蓝灰暗幕的 alpha（0..255）；UI 在暗幕之后绘制，不受影响。 */
 	float GetRainOverlayAlpha() const;
+	/** 4-9 第 22 波显示暴风雨预报，但尚不改变玩法天气。 */
+	bool IsStormyNightForecastActive() const;
+	/** 4-9 第 23～30 波固定启用暴风雨夜。 */
+	bool IsStormyNightActive() const;
+	bool IsStormyNightInitialized() const { return mStormyNightInitialized; }
+	int GetStormyNightFlashPattern() const { return mStormyNightFlashPattern; }
+	float GetStormyNightFlashTimer() const { return mStormyNightFlashTimer; }
+	bool IsStormyNightFlashOn() const;
+	float GetStormyNightBlackAlpha() const;
+	float GetStormyNightWhiteAlpha() const;
 	RainIntensity GetRainIntensity() const { return mRainIntensity; }
 	RainIntensity GetPreviousRainIntensity() const { return mPreviousRainIntensity; }
 	float GetWeatherTimer() const { return mWeatherTimer; }
@@ -738,6 +756,8 @@ public:
 
 	// 计算当前波的总点数
 	inline int CalculateWaveZombiePoints() const;
+	/** 返回当前波正式生成使用的点数预算，供状态投影和回归测试读取。 */
+	int GetCurrentWaveZombiePoints() const;
 
 	// 推进并生成下一波（Update 倒计时归零与开发者面板「下一波」共用入口）
 	void SummonNextWave();

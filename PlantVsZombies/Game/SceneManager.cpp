@@ -53,6 +53,12 @@ void SceneManager::DrawWorldOverlay(Graphics* g) {
 	}
 }
 
+void SceneManager::DrawUITextures(Graphics* g) {
+	if (currentScene_) {
+		currentScene_->DrawUITextures(g);
+	}
+}
+
 Scene* SceneManager::GetCurrentScene() const {
 	return currentScene_.get();
 }

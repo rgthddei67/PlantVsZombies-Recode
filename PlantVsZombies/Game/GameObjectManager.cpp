@@ -236,7 +236,7 @@ void GameObjectManager::DrawAll(Graphics* g) {
 	const int parallelCount = splitIdx;  // [0, splitIdx) 走并行；[splitIdx, total) overlay 串行
 
 	if (!g->IsParallelDrawEnabled() || parallelCount < kParallelDrawThreshold) {
-		// 串行 fallback（菜单/图鉴等少对象场景）：主体 → 世界层粒子 → overlay
+		// 串行 fallback：主体 → 世界粒子/天气覆盖/Scene UI 贴图 → UI GameObject。
 		PROFILE_SCOPE("6.Draw_submit(serial-fallback)");
 		drawSerialRange(0, splitIdx);
 		if (mPreOverlayHook) mPreOverlayHook();
@@ -282,10 +282,10 @@ void GameObjectManager::DrawAll(Graphics* g) {
 		g->ReplayAndEndParallel();
 	}
 
-	// 世界层粒子（< LAYER_UI）画在主体 replay 之后、overlay 之前（主线程串行，保序）
+	// 主体 replay 后统一插入世界粒子、天气覆盖与 Scene UI 贴图（主线程串行，保序）。
 	if (mPreOverlayHook) mPreOverlayHook();
 
-	// overlay 层（renderOrder ≥ LAYER_UI）在 replay 之后主线程串行绘制，保证恒在最上层。
+	// UI 层（renderOrder ≥ LAYER_UI）在接缝之后主线程串行绘制，保证恒在最上层。
 	// 串行路径走 m_batchVertices / AppendReanimInstance 的主线程分支，自带 cross-flush 严格保序。
 	{
 		PROFILE_SCOPE("8.Draw_overlay(serial)");

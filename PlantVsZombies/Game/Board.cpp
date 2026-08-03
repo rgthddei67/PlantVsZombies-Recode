@@ -32,6 +32,7 @@
 #include <array>
 #include <algorithm>   // std::max, std::swap
 #include <cmath>       // std::lround
+#include <cstdint>
 
 namespace {
 	/** 集中保留地刺系的背景地形规则；未实装的最后地形当前仍按普通地面处理。 */
@@ -65,6 +66,16 @@ namespace {
 	constexpr float kIceTrailTopOffset = 20.0f;           // 冰道相对逻辑行顶的绘制偏移，单位 px
 	constexpr float kFirstRainDelayMin = 90.0f;          // 开局到首场雨的最短等待时间（秒）
 	constexpr float kFirstRainDelayMax = 105.0f;          // 开局到首场雨的最长等待时间（秒）
+	constexpr int kStormyNightLevel = 36;                 // 暴风雨夜专属冒险关：内部 level 36 即 4-9
+	constexpr int kStormyNightForecastWave = 22;          // 第 22 波开始固定发布“暴风雨”预报
+	constexpr int kStormyNightStartWave = 23;             // 第 23 波正式进入暴风雨夜，持续到第 30 波
+	constexpr float kStormyNightWavePointMultiplier = 2.0f; // 暴风雨夜每波僵尸生成点数倍率
+	constexpr float kStormyNightNextWaveSeconds = 5.0f;   // 暴风雨夜普通出波最大间隔；血量阈值仍可提前出波
+	constexpr float kStormyNightLockedDuration = 3600.0f; // 锁定雨势/雾势的安全运行时长；状态机不会递减
+	constexpr float kStormFlashUnitSeconds = 1.5f;        // C# 原版 STORM_FLASH_TIME=150cs 换算的游戏秒
+	constexpr float kStormFlashShortDelayMax = 4.0f;      // 原版较密闪电等待上界（游戏秒）
+	constexpr float kStormFlashLongDelayMax = 7.5f;       // 原版较疏闪电等待上界（游戏秒）
+	constexpr float kStormFlashDelayMin = 3.0f;           // 每轮黑屏后等待闪光的最短游戏秒
 	constexpr float kClearWeatherDelayMin = 15.0f;       // 两场雨之间的最短晴空间隔（秒）
 	constexpr float kClearWeatherDelayMax = 40.0f;       // 两场雨之间的最长晴空间隔（秒）
 	constexpr float kRainDurationMin = 85.0f;            // 一场新雨第一个雨段的最短持续时间（秒）
@@ -896,6 +907,101 @@ float Board::GetRainOverlayAlpha() const
 	return previous + (OverlayAlphaForRain(mRainIntensity) - previous) * progress;
 }
 
+bool Board::IsStormyNightForecastActive() const
+{
+	return mLevel == kStormyNightLevel && mCurrentWave == kStormyNightForecastWave;
+}
+
+bool Board::IsStormyNightActive() const
+{
+	return mLevel == kStormyNightLevel && mCurrentWave >= kStormyNightStartWave;
+}
+
+bool Board::IsStormyNightFlashOn() const
+{
+	if (!IsStormyNightActive()) return false;
+	switch (mStormyNightFlashPattern) {
+	case 1:
+	case 2:
+		return mStormyNightFlashTimer < kStormFlashUnitSeconds * 2.0f;
+	case 3:
+		return mStormyNightFlashTimer < kStormFlashUnitSeconds;
+	default:
+		return false;
+	}
+}
+
+/**
+ * 复刻 C# `DrawStormFlash` 的两层线性幕：闪光开始时先降低黑幕并叠白光，随后恢复全黑。
+ * pattern 1 是强弱双闪，pattern 2 是三秒长闪，pattern 3 是一点五秒短闪。
+ */
+void Board::GetStormyNightOverlayAlphas(float& blackAlpha, float& whiteAlpha) const
+{
+	blackAlpha = 0.0f;
+	whiteAlpha = 0.0f;
+	if (!IsStormyNightActive()) return;
+	blackAlpha = 255.0f;
+
+	float flashTime = -1.0f;
+	float maxAmount = 255.0f;
+	switch (mStormyNightFlashPattern) {
+	case 1:
+		if (mStormyNightFlashTimer < kStormFlashUnitSeconds * 2.0f) {
+			if (mStormyNightFlashTimer > kStormFlashUnitSeconds) {
+				flashTime = mStormyNightFlashTimer - kStormFlashUnitSeconds;
+			}
+			else {
+				flashTime = mStormyNightFlashTimer;
+				maxAmount = 92.0f;
+			}
+		}
+		break;
+	case 2:
+		if (mStormyNightFlashTimer < kStormFlashUnitSeconds * 2.0f) {
+			flashTime = mStormyNightFlashTimer * 0.5f;
+		}
+		break;
+	case 3:
+		if (mStormyNightFlashTimer < kStormFlashUnitSeconds) {
+			flashTime = mStormyNightFlashTimer;
+		}
+		break;
+	default:
+		break;
+	}
+	if (flashTime < 0.0f) return;
+
+	flashTime = std::clamp(flashTime, 0.0f, kStormFlashUnitSeconds);
+	blackAlpha = 255.0f - maxAmount * (flashTime / kStormFlashUnitSeconds);
+	const float whiteStart = kStormFlashUnitSeconds * 0.5f;
+	if (flashTime > whiteStart) {
+		whiteAlpha = maxAmount * (flashTime - whiteStart)
+			/ (kStormFlashUnitSeconds - whiteStart);
+	}
+
+	// 原版每六个计数抖动一次黑幕 alpha；这里用 Board 游戏帧哈希复刻闪烁且不消费出怪 RNG。
+	std::uint32_t flickerState = static_cast<std::uint32_t>(mBoardFrame / 4);
+	flickerState = flickerState * 1664525u + 1013904223u;
+	const int flicker = static_cast<int>((flickerState >> 24) & 63u) - 32;
+	blackAlpha = std::clamp(blackAlpha + static_cast<float>(flicker), 0.0f, 255.0f);
+}
+
+float Board::GetStormyNightBlackAlpha() const
+{
+	float blackAlpha = 0.0f;
+	float whiteAlpha = 0.0f;
+	GetStormyNightOverlayAlphas(blackAlpha, whiteAlpha);
+	return blackAlpha;
+}
+
+float Board::GetStormyNightWhiteAlpha() const
+{
+	float blackAlpha = 0.0f;
+	float whiteAlpha = 0.0f;
+	GetStormyNightOverlayAlphas(blackAlpha, whiteAlpha);
+	return whiteAlpha;
+}
+
 /** 后期强度按波次推进；无尽模式额外按轮次抬高下限，防止新一轮又退回早期天气。 */
 float Board::GetWeatherLateGameFactor() const
 {
@@ -1071,6 +1177,135 @@ void Board::FinishWeatherTransitionImmediately()
 	RefreshZombieWeatherSpeeds();
 	if (mRainIntensity == RainIntensity::CLEAR) StopRainAudio();
 	else StartRainAudio();
+}
+
+/** 第 23 波只执行一次：锁定大雨、大雾和强台风，并沿用强台风原有的一次阵风额度。 */
+void Board::ActivateStormyNight()
+{
+	if (!IsStormyNightActive()) return;
+	mStormyNightInitialized = true;
+	// C# 4-10 入场从 StormFlash2 的中段开始；此后再进入随机三节奏循环。
+	mStormyNightFlashPattern = 2;
+	mStormyNightFlashTimer = kStormFlashUnitSeconds;
+	mZombieCountDown = std::min(mZombieCountDown, kStormyNightNextWaveSeconds);
+
+	BeginRain(RainIntensity::HEAVY, kStormyNightLockedDuration, false, false, false);
+	// 暴风雨夜与第 23 波同步骤然降临，玩法倍率不沿用普通天气的两秒渐变。
+	FinishWeatherTransitionImmediately();
+	mLightningTimer = 0.0f;
+	mWeakWeatherPhasesSinceHeavy = 0;
+	mHeavyPhasesWithoutTyphoon = 0;
+
+	mFogWeatherInitialized = true;
+	mFogDispersal = 0.0f;
+	mFogVisualOffsetX = 0.0f;
+	BeginFogWeather(FogWeatherIntensity::DENSE, kStormyNightLockedDuration);
+
+	StopTyphoon();
+	mTyphoonStrength = TyphoonStrength::SEVERE;
+	mWindDirection = WindDirectionForRoll(0);
+	mTyphoonStrengthTimer = kStormyNightLockedDuration;
+	mWindDirectionTimer = GameRandom::Range(
+		kWindDirectionDurationMin, kWindDirectionDurationMax);
+	mTyphoonGustsRemaining = kSevereMaxGusts;
+	mWindGustTimer = RandomTyphoonGustInterval(mTyphoonStrength);
+	mWindParticleTimer = 0.0f;
+	RefreshZombieWeatherSpeeds();
+	RestartRainVisualForWindChange();
+}
+
+/**
+ * 暴风雨锁定由波次派生；读入旧档时补做一次初始化，新档则保留已消费的阵风与闪光计时。
+ * 正常逐帧只修正可能被损坏档或测试入口破坏的组合，不会返还一次性阵风。
+ */
+void Board::EnforceStormyNightWeather()
+{
+	if (!IsStormyNightActive()) return;
+	if (!mStormyNightInitialized) {
+		ActivateStormyNight();
+		return;
+	}
+
+	mZombieCountDown = std::min(mZombieCountDown, kStormyNightNextWaveSeconds);
+	mWeatherInitialized = true;
+	if (mRainIntensity != RainIntensity::HEAVY) {
+		BeginRain(RainIntensity::HEAVY, kStormyNightLockedDuration, false, false, false);
+		FinishWeatherTransitionImmediately();
+	}
+	mWeatherTimer = kStormyNightLockedDuration;
+	mRainCanIntensify = false;
+	mRainCanHold = false;
+	mForecastRainIntensity = RainIntensity::CLEAR;
+	mActualForecastRainIntensity = RainIntensity::CLEAR;
+	mWeatherForecastReady = false;
+	mLightningTimer = 0.0f;
+	ClearPendingHeavyRainWarning();
+
+	mFogWeatherInitialized = true;
+	if (mFogWeatherIntensity != FogWeatherIntensity::DENSE) {
+		BeginFogWeather(FogWeatherIntensity::DENSE, kStormyNightLockedDuration);
+	}
+	mFogWeatherTimer = kStormyNightLockedDuration;
+	ClearFogWeatherForecast();
+
+	if (mTyphoonStrength != TyphoonStrength::SEVERE) {
+		const WindDirection preservedDirection = mWindDirection;
+		StopTyphoon();
+		mTyphoonStrength = TyphoonStrength::SEVERE;
+		mWindDirection = (preservedDirection == WindDirection::TOWARD_HOUSE
+			|| preservedDirection == WindDirection::TOWARD_FRONT)
+			? preservedDirection : WindDirectionForRoll(0);
+		mWindDirectionTimer = GameRandom::Range(
+			kWindDirectionDurationMin, kWindDirectionDurationMax);
+		// 已初始化后的异常修复按阵风已消费处理，禁止天气切换或读档返还额度。
+		mTyphoonGustsRemaining = 0;
+		mWindGustTimer = 0.0f;
+		mWindParticleTimer = 0.0f;
+		RestartRainVisualForWindChange();
+	}
+	mTyphoonStrengthTimer = kStormyNightLockedDuration;
+	if (mStormyNightFlashPattern < 1 || mStormyNightFlashPattern > 3
+		|| mStormyNightFlashTimer <= 0.0f) {
+		ScheduleNextStormyNightFlash();
+	}
+}
+
+/** 按原版 4.5～9 秒范围安排下一种闪光节奏；随机结果和剩余时间都会进入关卡存档。 */
+void Board::ScheduleNextStormyNightFlash()
+{
+	mStormyNightFlashPattern = GameRandom::Range(1, 3);
+	const float maximumDelay = GameRandom::Range(0, 1) == 0
+		? kStormFlashLongDelayMax : kStormFlashShortDelayMax;
+	mStormyNightFlashTimer = kStormFlashUnitSeconds
+		+ GameRandom::Range(kStormFlashDelayMin, maximumDelay);
+}
+
+/** 推进 C# 三种闪光节奏，并在主闪与 pattern 1 的回闪节点分别播放雷声。 */
+void Board::UpdateStormyNightFlash(float deltaTime)
+{
+	if (!IsStormyNightActive() || deltaTime <= 0.0f) return;
+	if (mStormyNightFlashTimer <= 0.0f) ScheduleNextStormyNightFlash();
+	const float previous = mStormyNightFlashTimer;
+	mStormyNightFlashTimer = std::max(0.0f, mStormyNightFlashTimer - deltaTime);
+	const auto crossed = [previous, this](float threshold) {
+		return previous > threshold && mStormyNightFlashTimer <= threshold;
+	};
+
+	bool playThunder = false;
+	if (mStormyNightFlashPattern == 1) {
+		playThunder = crossed(kStormFlashUnitSeconds * 2.0f)
+			|| crossed(kStormFlashUnitSeconds);
+	}
+	else if (mStormyNightFlashPattern == 2) {
+		playThunder = crossed(kStormFlashUnitSeconds * 2.0f);
+	}
+	else if (mStormyNightFlashPattern == 3) {
+		playThunder = crossed(kStormFlashUnitSeconds);
+	}
+	if (playThunder) {
+		AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_THUNDER, kThunderSoundVolume);
+	}
+	if (mStormyNightFlashTimer <= 0.0f) ScheduleNextStormyNightFlash();
 }
 
 void Board::InitializeWeather()
@@ -1300,7 +1535,8 @@ void Board::UpdateFogCellAlpha(float deltaTime, bool snapToTarget)
 void Board::UpdateFog(float deltaTime)
 {
 	if (!mFogWeatherInitialized || deltaTime <= 0.0f || !SupportsStageFog()) return;
-	UpdateFogWeather(deltaTime);
+	// 暴风雨夜把大雾锁到通关；驱散、漂移与逐格 alpha 仍走原有唯一结算链。
+	if (!IsStormyNightActive()) UpdateFogWeather(deltaTime);
 	UpdateFogDispersal(deltaTime);
 	UpdateFogCellAlpha(deltaTime, false);
 	mFogAnimationTime = std::fmod(mFogAnimationTime + deltaTime, 3600.0f);
@@ -2007,8 +2243,14 @@ void Board::UpdateTyphoon(float deltaTime)
 		UpdateActiveTyphoonGust(deltaTime);
 		return;
 	}
-	mTyphoonStrengthTimer -= deltaTime;
-	if (mTyphoonStrengthTimer <= 0.0f) WeakenTyphoon();
+	if (IsStormyNightActive()) {
+		// 4-9 终局固定强台风；只保留风向重抽和一次性阵风预算，不走强度衰减。
+		mTyphoonStrengthTimer = kStormyNightLockedDuration;
+	}
+	else {
+		mTyphoonStrengthTimer -= deltaTime;
+		if (mTyphoonStrengthTimer <= 0.0f) WeakenTyphoon();
+	}
 	if (!HasTyphoon()) return;
 
 	mWindDirectionTimer -= deltaTime;
@@ -2289,7 +2531,15 @@ void Board::EndRain()
 
 void Board::TriggerLightning()
 {
-	if (mRainIntensity != RainIntensity::HEAVY || !mPresentation) return;
+	if (mRainIntensity != RainIntensity::HEAVY) return;
+	if (IsStormyNightActive()) {
+		// 暴风雨夜复用原版全屏短闪，不再叠加普通大雨的程序化闪电路径。
+		mStormyNightFlashPattern = 3;
+		mStormyNightFlashTimer = kStormFlashUnitSeconds;
+		AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_THUNDER, kThunderSoundVolume);
+		return;
+	}
+	if (!mPresentation) return;
 	// 雷声与程序化闪电从同一触发点发起，保证自然天气与 AutoTest 路径音画同步。
 	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_THUNDER, kThunderSoundVolume);
 	mPresentation->ShowLightningStrike(kLightningFlashDuration);
@@ -2298,6 +2548,18 @@ void Board::TriggerLightning()
 void Board::UpdateWeather(float deltaTime)
 {
 	if (!mWeatherInitialized || deltaTime <= 0.0f || !SupportsWeather()) return;
+	if (IsStormyNightActive()) {
+		EnforceStormyNightWeather();
+		UpdateWeatherTransition(deltaTime);
+		if (!IsRainEffectEmitting()) {
+			mRainVisualActive = false;
+			EmitRainEffect(kStormyNightLockedDuration);
+		}
+		UpdateRainGroundSplash(deltaTime);
+		UpdateTyphoon(deltaTime);
+		UpdateStormyNightFlash(deltaTime);
+		return;
+	}
 	UpdateWeatherTransition(deltaTime);
 
 	// 每帧只推进当前阶段的倒计时。雨中归零会按当前强度决定续期、增强、衰减或放晴；
@@ -3770,8 +4032,12 @@ void Board::UpdateLevel()
 // 由 Update 出波倒计时归零调用；开发者面板「下一波」也直接调用（暂停中同样可出波）。
 void Board::SummonNextWave()
 {
-	mZombieCountDown = NEXTWAVE_COUNT_MAX;
 	mCurrentWave++;
+	mZombieCountDown = IsStormyNightActive()
+		? kStormyNightNextWaveSeconds : NEXTWAVE_COUNT_MAX;
+	if (IsStormyNightActive() && !mStormyNightInitialized) {
+		ActivateStormyNight();
+	}
 	// 普通关压力随波次推进；先刷新存活僵尸，再生成使用同一新倍率的本波僵尸。
 	RefreshZombieWeatherSpeeds();
 	mEliteDancersSpawnedThisWave = 0;
@@ -4152,6 +4418,9 @@ inline int Board::CalculateWaveZombiePoints() const
 	float points = (static_cast<float>(mCurrentWave) / 3 + 1.0f) * 1000.0f;
 
 	points *= (GameAPP::GetInstance().Difficulty * 0.5f);
+	if (IsStormyNightActive()) {
+		points *= kStormyNightWavePointMultiplier;
+	}
 
 	// 生存模式：单波点数预算随轮次递增（每轮 mCurrentWave 会重置，故由轮次系数补偿）
 	if (mIsSurvival)
@@ -4174,6 +4443,11 @@ inline int Board::CalculateWaveZombiePoints() const
 		return INT_MAX;
 	}
 	return static_cast<int>(points);
+}
+
+int Board::GetCurrentWaveZombiePoints() const
+{
+	return CalculateWaveZombiePoints();
 }
 
 inline void Board::UpdateZombieMetrics()
@@ -4247,6 +4521,7 @@ void Board::StartGame()
 	mBoardState = BoardState::GAME;
 	InitializeWeather();
 	InitializeFogWeather();
+	EnforceStormyNightWeather();
 	// 读档恢复到一场雨中时，玩法状态已经由存档还原；粒子是瞬态资源，需按剩余时间重建一次。
 	if (mRainIntensity != RainIntensity::CLEAR && !mRainVisualActive)
 	{

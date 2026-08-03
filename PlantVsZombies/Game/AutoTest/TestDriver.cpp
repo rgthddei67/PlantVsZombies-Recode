@@ -1915,6 +1915,9 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["smallSunCount"] = smallSunCount;
 	out["wave"] = board->mCurrentWave;
 	out["maxWave"] = board->mMaxWave;
+	out["nextWaveCountdownMs"] = static_cast<int>(std::lround(
+		board->mZombieCountDown * 1000.0f));
+	out["waveZombiePoints"] = board->GetCurrentWaveZombiePoints();
 	out["zombieNumber"] = board->mZombieNumber;
 	out["hostileZombieCountForMusic"] = board->GetHostileZombieCountForMusic();
 	out["mowerCount"] = static_cast<int>(board->mEntityManager.GetAllMowerIDs().size());
@@ -2147,6 +2150,17 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		out["weather"] = {
 			{ "intensity", RainIntensityName(board->GetRainIntensity()) },
 			{ "rainEffect", board->GetRainVisualEffectName() },
+			{ "stormyNightForecast", board->IsStormyNightForecastActive() },
+			{ "stormyNightActive", board->IsStormyNightActive() },
+			{ "stormyNightInitialized", board->IsStormyNightInitialized() },
+			{ "stormFlashPattern", board->GetStormyNightFlashPattern() },
+			{ "stormFlashRemainingMs", static_cast<int>(std::lround(
+				board->GetStormyNightFlashTimer() * 1000.0f)) },
+			{ "stormFlashOn", board->IsStormyNightFlashOn() },
+			{ "stormBlackAlpha", static_cast<int>(std::lround(
+				board->GetStormyNightBlackAlpha())) },
+			{ "stormWhiteAlpha", static_cast<int>(std::lround(
+				board->GetStormyNightWhiteAlpha())) },
 			{ "previousIntensity", RainIntensityName(board->GetPreviousRainIntensity()) },
 			{ "initialized", board->IsWeatherInitialized() },
 			{ "transitionOn", board->IsWeatherTransitionActive() },

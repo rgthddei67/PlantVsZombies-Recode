@@ -1,10 +1,11 @@
 # 雨天天气扩展契约
 
-本文件记录截至 2026-07-30 的当前实现。动手前用文中的搜索词核实源码；当前代码优先于本文件。
+本文件记录截至 2026-08-03 的当前实现。动手前用文中的搜索词核实源码；当前代码优先于本文件。
 
 ## 目录
 
 - [天气状态与时间语义](#天气状态与时间语义)
+- [波次锁定的复合天气](#波次锁定的复合天气)
 - [独立雾势与跨天气联动](#独立雾势与跨天气联动)
 - [源码钟点](#源码钟点)
 - [雨天专属能力配方](#雨天专属能力配方)
@@ -37,6 +38,23 @@ const bool isRaining = rain != RainIntensity::CLEAR;
 ```
 
 不要用 overlay alpha 推断是否下雨：它是视觉插值，雨转晴的两秒内仍大于 0。
+
+## 波次锁定的复合天气
+
+4-9 的暴风雨夜是当前首个由关卡/波次派生的复合天气：第 22 波只显示紫红色
+`天气预报：暴风雨`，第 23～30 波固定大雨、大雾和强台风。生效时立即完成普通雨势的两秒过渡，
+锁定阶段不再走自然雨势/雾势/台风衰减；强台风仍按原规则仅有一次阵风，已消费额度不得因逐帧
+强制、天气测试入口或读档返还。该阶段同时把 `CalculateWaveZombiePoints()` 乘 2，并把普通出波
+倒计时上限改为 5 游戏秒；现有波内血量阈值仍可提前开波，最终波前的 7.5 秒大波警告保持独立。
+
+`IsStormyNightActive()` 由 level/wave 重算，不需要保存；`mStormyNightInitialized`、闪光 pattern/余时
+以及既有台风阵风状态会影响未来行为，必须进入关卡存档。旧档缺初始化字段时只补做一次激活；
+新档恢复后不得重播入场状态或重置阵风。世界层使用 C# 4-10 的黑幕/白闪节奏，普通大雨的局部
+程序化闪电在此阶段停用，`trigger_lightning` 改走全屏短闪与同一雷声请求。
+
+天气覆盖层位于世界粒子之后、UI 之前。`Scene` 的 `isUI=true` 贴图必须由 pre-overlay 接缝在
+`DrawWorldOverlay()` 后绘制，再继续画 UI GameObject；否则卡片虽可见，`IMAGE_SEEDBANK_LONG`
+这类 Scene 卡槽底板仍会被全屏黑幕遮掉。不要按当前卡槽坐标给黑幕挖洞。
 
 ## 独立雾势与跨天气联动
 
@@ -105,6 +123,8 @@ Board 雾势、再恢复植物，所以 `RestoreFogState()` 只清空旧缓存�
 | 合法公开预报 | `BuildPlausibleForecasts` | 错误预报也必须真实可达 |
 | 正式切档 | `BeginRain` / `EndRain` / `BeginWeatherTransition` | 目标枚举先变，倍率再插值 |
 | 天气逐帧推进 | `Board::UpdateWeather` | 全局场景状态，不属于波次更新 |
+| 波次锁定复合天气 | `IsStormyNightActive` / `ActivateStormyNight` / `EnforceStormyNightWeather` | 生效条件派生；一次性资源和闪光未来状态入档 |
+| 世界天气覆盖与 Scene UI 贴图 | `GameAPP` pre-overlay hook / `Scene::DrawUITextures` | 世界粒子 → 天气覆盖 → Scene UI 贴图 → UI GameObject |
 | 僵尸天气动画倍率 | `Zombie::UpdateAnimSpeed` | 冻结 > ability × 减速 × rain |
 | 植物天气行动倍率 | `Plant` 的 weather action helper | 不改变全局 delta |
 | 正式波次选型/生成 | `Board::TrySummonZombie` | 出生变异的默认接入点 |
@@ -203,6 +223,7 @@ Board 雾势、再恢复植物，所以 `RestoreFogState()` 只清空旧缓存�
 - 关卡 JSON 根节点包含 `schemaVersion`。结构或语义变化无法只靠中性默认值表达时，提升 `SaveSchema::kCurrentLevelVersion`，增加连续迁移步骤和 `SaveSchemaTests`；升级事务必须在任何 `Board` 状态变更前成功。
 - 通用僵尸核心状态优先 `SaveProtectedData/LoadProtectedData`；某个派生类独有状态用其 `SaveExtraData/LoadExtraData`，不要让另一个类解释该字段。
 - 若修改 Board 天气未来行为，保存所有会影响下一次抽取的资格和计时；瞬态粒子、水花不存档。
+- 关卡/波次派生事件的 active 布尔通常不存，但“是否完成一次性初始化”、闪光节奏/余时、阵风余额等未来状态必须保存；旧档默认未初始化，新档读回后禁止重复初始化。
 - 天气 UI 的计时与展示状态经 `BoardPresentation` 捕获/恢复；它们是可重建瞬态，不能反向成为天气玩法权威。
 
 ## AutoTest 契约
@@ -212,7 +233,7 @@ Board 雾势、再恢复植物，所以 `RestoreFogState()` 只清空旧缓存�
 - `set_weather`：固定天气并立即完成过渡；可传 `duration`、小雨的 `canIntensify`。
 - `set_weather_forecast`：固定公开/真实天气和揭晓时刻。
 - `advance_weather_phase`：用权重落点强制结束雨段，并立即完成过渡。
-- `trigger_lightning`：只允许大雨；同步播放 `SOUND_THUNDER`，并生成固定到本次放电结束的程序化主干与分叉，不复用寒冰菇的全屏白闪。
+- `trigger_lightning`：只允许大雨；普通大雨同步播放 `SOUND_THUNDER` 并生成程序化主干/分叉；暴风雨夜改走 C# 风格全屏短闪，且不得同时激活普通局部闪电。
 - `set_fog_weather`：固定四大关 `DEFAULT/SMALL/NORMAL/DENSE` 雾势与持续时间。
 - `set_fog_forecast`：固定公开/真实雾势与揭晓时刻；当前雾势预报保持准确。
 - `set_fog_dispersal`：固定 `0..1` 驱散比例，供存档与渲染状态测试。

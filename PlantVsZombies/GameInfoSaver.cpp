@@ -303,6 +303,9 @@ bool GameInfoSaver::SerializeLevelDataToPath(Board* board, CardSlotManager* mana
 	j["rainCanIntensify"] = board->mRainCanIntensify;
 	j["rainCanHold"] = board->mRainCanHold;
 	j["weatherForecastReady"] = board->mWeatherForecastReady;
+	j["stormyNightInitialized"] = board->mStormyNightInitialized;
+	j["stormyNightFlashPattern"] = board->mStormyNightFlashPattern;
+	j["stormyNightFlashTimer"] = board->mStormyNightFlashTimer;
 	j["fogWeatherInitialized"] = board->mFogWeatherInitialized;
 	j["fogWeatherIntensity"] = static_cast<int>(board->mFogWeatherIntensity);
 	j["forecastFogWeatherIntensity"] =
@@ -747,6 +750,20 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 	}
 	board->mWeatherTimer = std::max(0.0f, j.value("weatherTimer", 0.0f));
 	board->mLightningTimer = std::max(0.0f, j.value("lightningTimer", 0.0f));
+	// 暴风雨夜由关卡与波次派生。旧档不带初始化字段时交给 StartGame 补齐一次；
+	// 新档保存闪光节奏和计时，避免读档重放入场闪电或返还一次性阵风。
+	board->mStormyNightInitialized = board->IsStormyNightActive()
+		&& j.value("stormyNightInitialized", false);
+	if (board->mStormyNightInitialized) {
+		board->mStormyNightFlashPattern = std::clamp(
+			j.value("stormyNightFlashPattern", 2), 1, 3);
+		board->mStormyNightFlashTimer = std::clamp(
+			j.value("stormyNightFlashTimer", 1.5f), 0.0f, 12.0f);
+	}
+	else {
+		board->mStormyNightFlashPattern = 0;
+		board->mStormyNightFlashTimer = 0.0f;
+	}
 	// 旧版天气存档没有该字段时按 false：少一次增强机会比读档后凭空再增强更稳妥。
 	board->mRainCanIntensify = board->mRainIntensity == RainIntensity::LIGHT
 		&& j.value("rainCanIntensify", false);

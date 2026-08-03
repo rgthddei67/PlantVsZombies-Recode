@@ -11,7 +11,7 @@
     { "op": "assert_state", "path": "weather.rainEffect", "equals": "RainLight" },
     { "op": "assert_state", "path": "weather.zombieSpeedPct", "equals": 115 },
     { "op": "assert_state", "path": "weather.plantActionSpeedPct", "equals": 110 },
-    { "op": "assert_state", "path": "weather.overlayAlpha", "equals": 34 },
+    { "op": "assert_state", "path": "weather.overlayAlpha", "equals": 45 },
     { "op": "assert_state", "path": "weather.rainSoundPlaying", "equals": true },
     { "op": "screenshot", "name": "rain_light.png" },
 
@@ -21,7 +21,7 @@
     { "op": "assert_state", "path": "weather.rainEffect", "equals": "RainMedium" },
     { "op": "assert_state", "path": "weather.zombieSpeedPct", "equals": 125 },
     { "op": "assert_state", "path": "weather.plantActionSpeedPct", "equals": 115 },
-    { "op": "assert_state", "path": "weather.overlayAlpha", "equals": 55 },
+    { "op": "assert_state", "path": "weather.overlayAlpha", "equals": 70 },
     { "op": "assert_state", "path": "weather.rainSoundPlaying", "equals": true },
     { "op": "screenshot", "name": "rain_medium.png" },
 
@@ -31,7 +31,7 @@
     { "op": "assert_state", "path": "weather.rainEffect", "equals": "RainHeavy" },
     { "op": "assert_state", "path": "weather.zombieSpeedPct", "equals": 140 },
     { "op": "assert_state", "path": "weather.plantActionSpeedPct", "equals": 120 },
-    { "op": "assert_state", "path": "weather.overlayAlpha", "equals": 110 },
+    { "op": "assert_state", "path": "weather.overlayAlpha", "equals": 120 },
     { "op": "assert_state", "path": "weather.rainSoundPlaying", "equals": true },
     { "op": "assert_state", "path": "weather.combinedAttackIntervalOn1500", "equals": 1250 },
     { "op": "screenshot", "name": "rain_heavy.png" },

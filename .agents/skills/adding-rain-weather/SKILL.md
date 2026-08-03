@@ -42,7 +42,7 @@ description: Use when adding or tuning ANY rain-weather-dependent feature or Boa
    - 新字段能用中性默认值表示旧档时保持兼容；结构或语义变化无法只靠默认值表达时，提升 `SaveSchema::kCurrentLevelVersion`，增加逐版本迁移和 `SaveSchemaTests`。JSON 必须先升级成功，再修改 `Board`。
 6. 增加 AutoTest 可观测字段与最小脚本，覆盖晴天、目标雨势、放晴、减速/冻结组合，以及随机变异的固定种子结果。
 7. 更新 `docs/agent-memory/project_pvz_night_rain_weather.md`、对应僵尸/植物主题和 `docs/agent-memory/MEMORY.md`。
-8. 按项目指南默认完成 `clang-playtest` 与范围最小的可见 AutoTest；只有正式发布、主人明确要求或验证发布配置时才用 `clang-release`。仅改技能文档时无需构建游戏。
+8. 按项目指南默认完成 `clang-release` 与范围最小的可见 AutoTest；只有主人明确要求快速迭代、PDB 或无 LTO 时才用 `clang-playtest`。仅改技能文档时无需构建游戏。
 
 ## 不可破坏的契约
 
@@ -50,6 +50,8 @@ description: Use when adding or tuning ANY rain-weather-dependent feature or Boa
 - 新天气维度不得硬塞进 `RainIntensity`。例如四大关雾势使用独立 `FogWeatherIntensity`、阶段计时和预报；它可以在唯一交互点消费现有 `TyphoonStrength/WindDirection` 计算驱散与漂移，但雨势和雾势仍可独立抽取、持久化和测试。
 - 逐格雾 alpha 是由雾势、驱散和路灯花派生的瞬态，不入存档；读档必须等实体恢复完成后直接同步终态，禁止从全透明重新平滑生成而给退出重进留下窥屏窗口。
 - `GetRainIntensity()` 是目标档位，切档时立即改变；玩法倍率、暗幕和雨声音量再用两游戏秒平滑到目标。离散触发默认以目标档位为准。
+- 关卡/波次派生的固定复合天气要把“是否生效”和“是否已初始化”分开：生效条件可由关卡与波次重算，一次性阵风额度、闪光节奏等未来状态必须保存。读档和每帧强制修复不得返还已消费额度；若设计要求天气随波次骤然降临，应显式完成普通两秒过渡。
+- 全屏天气覆盖层只能压世界层。`Scene` 中 `isUI=true` 的贴图由 pre-overlay 接缝在 `DrawWorldOverlay()` 后、UI GameObject 前绘制；卡槽底板等 UI 不得继续混在世界贴图批次，也不要给黑幕写死矩形挖洞。
 - 不要修改全局 `DeltaTime`，也不要整体加速 `Zombie::Update()`；只缩放明确属于该能力的计时或结算值。
 - 僵尸动画速度统一经 `Zombie::UpdateAnimSpeed()` 收敛：`GetAbilityAnimSpeedMultiplier() × slowFactor × rain`，冻结优先为 0。子类自身整体倍率只覆写该虚函数，状态变化后调用 `UpdateAnimSpeed()`；禁止用 `SetExtraSpeedMultiplier` 绕开它。
 - 场地效果若宣称“逐因子强化加速与减速”，对能力、寒冰、雨势和台风等每个非中性倍率分别变换后再相乘；当前鎏金冰道的主人定案为每层让加速倍率乘二（`1.4→2.8`）、减速倍率除二（`0.6→0.3`），中性 `1.0` 不变。手动改 X 的车辆也必须消费同一结果，不能只放大动画。允许重叠时按独立活跃来源逐层变换，并在进入、离开、来源死亡或范围变化时刷新。
@@ -74,6 +76,7 @@ description: Use when adding or tuning ANY rain-weather-dependent feature or Boa
 - 实体 dump 至少暴露实际类型、变异标志、技能计时/次数或可精确断言的整数投影。
 - 至少验证：白天/晴天 no-op、目标雨势生效、放晴后的语义、读档不重 roll、魅惑立场、减速/冻结、暂停与倍速。
 - 视觉或 UI 改动检查截图；同时检查退出码、`run.log` 的 `script finished OK`、状态 JSON 和断言。
+- 固定复合天气至少覆盖生效前一波的预报、生效波的锁定组合/倍率/倒计时、一次性资源读档不返还、常态黑幕与闪光两张截图，以及 UI 贴图未被世界覆盖层遮挡。
 
 ## 关联资料
 

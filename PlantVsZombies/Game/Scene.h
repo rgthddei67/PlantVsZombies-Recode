@@ -81,6 +81,8 @@ public:
 	 * @details GameObjectManager 的 pre-overlay 接缝调用；普通场景默认无覆盖层。
 	 */
 	virtual void DrawWorldOverlay(Graphics*) {}
+	/** 绘制标记为 UI 坐标的 Scene 贴图；由世界覆盖层之后、UI GameObject 之前的接缝调用。 */
+	void DrawUITextures(Graphics* g);
 
 	// 注册自定义绘制命令
 	void RegisterDrawCommand(const std::string& name,
@@ -141,13 +143,14 @@ protected:
 	// 清空所有纹理
 	void ClearAllTextures();
 
-	// 绘制所有纹理
-	void DrawAllTextures(Graphics* g);
+	// 绘制世界坐标纹理；UI 贴图由 pre-overlay 接缝另行绘制，避免被天气覆盖层遮住。
+	void DrawWorldTextures(Graphics* g);
 
 	// 获取纹理信息（用于调试或特殊处理）
 	TextureInfo* GetTextureInfo(const std::string& textureName);
 
 private:
+	void DrawTextureLayer(Graphics* g, bool uiLayer);
 	std::vector<TextureInfo> mTextures;
 	std::vector<DrawCommand> mDrawCommands;
 };

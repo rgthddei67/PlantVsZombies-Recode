@@ -12,7 +12,7 @@ void Scene::BuildDrawCommands() {
 
 	// 添加纹理绘制命令
 	RegisterDrawCommand("GameTextures",
-		[this](Graphics* g) { this->DrawAllTextures(g); },
+		[this](Graphics* g) { this->DrawWorldTextures(g); },
 		LAYER_BACKGROUND);
 
 	// 添加游戏对象绘制命令
@@ -201,7 +201,16 @@ void Scene::ClearAllTextures() {
 	mTextures.clear();
 }
 
-void Scene::DrawAllTextures(Graphics* g) {
+void Scene::DrawWorldTextures(Graphics* g) {
+	DrawTextureLayer(g, false);
+}
+
+void Scene::DrawUITextures(Graphics* g) {
+	DrawTextureLayer(g, true);
+}
+
+/** 按坐标空间拆分 Scene 贴图，让 UI 贴图能插入世界天气覆盖层之后。 */
+void Scene::DrawTextureLayer(Graphics* g, bool uiLayer) {
 	// 按绘制顺序排序
 	std::sort(mTextures.begin(), mTextures.end(),
 		[](const TextureInfo& a, const TextureInfo& b) {
@@ -210,14 +219,14 @@ void Scene::DrawAllTextures(Graphics* g) {
 
 	for (size_t i = 0; i < mTextures.size(); ++i) {
 		const auto& texInfo = mTextures[i];
-		if (!texInfo.visible) continue;
+		if (!texInfo.visible || texInfo.isUI != uiLayer) continue;
 
 		// 计算显示尺寸
 		float displayWidth = texInfo.texture->width * texInfo.scaleX;
 		float displayHeight = texInfo.texture->height * texInfo.scaleY;
 		Vector drawPosition = Vector(texInfo.posX, texInfo.posY);
 
-		if (texInfo.isUI) {
+		if (uiLayer) {
 			drawPosition = g->LogicalToWorld(texInfo.posX, texInfo.posY);
 		}
 
