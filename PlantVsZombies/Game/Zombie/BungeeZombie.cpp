@@ -17,7 +17,7 @@ namespace {
 	constexpr int kBungeeBodyHealth = 450;                  // 原版蹦极僵尸本体生命
 	constexpr float kInitialAltitudeBase = SCENE_HEIGHT + 180.0f; // 初始离地高度，按当前场景高派生，单位 px
 	constexpr float kInitialAltitudeJitter = 150.0f;        // 同批蹦极下落起点随机差，单位 px
-	constexpr float kDiveSpeed = 240.0f;                    // 下落速度，单位 px/s
+	constexpr float kDiveSpeed = 480.0f;                    // 下落速度，单位 px/s
 	constexpr float kRiseSpeed = 1600.0f;                   // 抓取后的瞬时抽离速度，单位 px/s
 	constexpr float kScreamAltitude = SCENE_HEIGHT * 0.75f; // 下降到此高度后播放一次尖叫，单位 px
 	constexpr float kBottomWaitSeconds = 5.0f;              // 落地到开始抓取的等待时间，单位游戏秒

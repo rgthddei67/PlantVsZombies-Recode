@@ -11,7 +11,7 @@ metadata:
 ## 当前实现
 
 - `ZOMBIE_BUNGEE` 已移入 `NUM_ZOMBIE_TYPES` 哨兵前并注册 `BungeeZombie` 工厂，450 本体生命；下降期为空中层，不吃普通弹丸、灰烬、土豆雷、缠绕水草、冻结、魅惑、台风位移或进家判定，落地等待与抓取阶段才允许正常承伤。实现只接入生存随机池，没有修改冒险 5-5 或实现 Bungee Blitz 固定五只玩法。
-- 状态机为 `DIVING → AT_BOTTOM → GRABBING → RISING`。下降 240 px/s，落地等待 5 游戏秒；抓取使用 `PlayTrackOnce(anim_grab → anim_hold)`，上提使用 `PlayTrackOnce(anim_raise)`，没有新增动画帧事件。主人视觉复核后，上升提高到 1600 px/s；最终携带植物偏移定为 `(-20,-12)`，其中 X 从可见测试的 `-12` 再向左调 8px，按主人要求只完成 clang-release 编译、留给主人实机看最终效果。
+- 状态机为 `DIVING → AT_BOTTOM → GRABBING → RISING`。下降初版 240 px/s 被主人实机判定过慢，最终提高到 480 px/s；落地等待 5 游戏秒。抓取使用 `PlayTrackOnce(anim_grab → anim_hold)`，上提使用 `PlayTrackOnce(anim_raise)`，没有新增动画帧事件。主人视觉复核后，上升提高到 1600 px/s；最终携带植物偏移定为 `(-20,-12)`，其中 X 从可见测试的 `-12` 再向左调 8px，按主人要求只完成 clang-release 编译、留给主人实机看最终效果。
 - 植物侧保存抓取者 ID、抓取/上升状态与视觉偏移。被盯上后暂停行为、免疫伤害、不可啃食并关闭碰撞/影子；上升时跳过常规植物绘制，由蹦极按“后层身体 → 植物 → 前臂专用 Animator”顺序绘制。抓取未离地时击杀蹦极会释放植物，上升后击杀或离场会结算植物移除；双方关系、阶段、高度、计时与动画状态支持关卡快照往返。
 
 ## 选点与资源
