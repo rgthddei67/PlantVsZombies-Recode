@@ -1,5 +1,7 @@
 #include "SaveSchema.h"
+#include "Game/Plant/PlantType.h"
 
+#include <algorithm>
 #include <iostream>
 #include <nlohmann/json.hpp>
 #include <string>
@@ -31,6 +33,62 @@ namespace {
 		for (const auto& [key, value] : legacy.items()) {
 			Expect(document[key] == value, "玩家旧字段必须原样保留");
 		}
+	}
+
+	void TestMovedToxicRewardPlayerUpgrade() {
+		const int toxicPea = static_cast<int>(PlantType::PLANT_TOXICPEASHOOTER);
+		auto countToxicPea = [toxicPea](const nlohmann::json& document) {
+			return static_cast<int>(std::count(
+				document["havecards"].begin(), document["havecards"].end(), toxicPea));
+		};
+		std::string error;
+
+		nlohmann::json beforeCompletion = {
+			{ "schemaVersion", 1 },
+			{ "adventureLevel", 26 },
+			{ "havecards", { static_cast<int>(PlantType::PLANT_PEASHOOTER) } }
+		};
+		Expect(SaveSchema::UpgradePlayerDocument(beforeCompletion, error),
+			"尚未通关3-8的玩家档应升级成功");
+		Expect(countToxicPea(beforeCompletion) == 0,
+			"尚未通关3-8时不得提前补发毒囊射手");
+
+		nlohmann::json afterCompletion = {
+			{ "schemaVersion", 1 },
+			{ "adventureLevel", 27 },
+			{ "havecards", { static_cast<int>(PlantType::PLANT_PEASHOOTER) } }
+		};
+		Expect(SaveSchema::UpgradePlayerDocument(afterCompletion, error),
+			"已通关3-8的玩家档应升级成功");
+		Expect(afterCompletion["schemaVersion"] == SaveSchema::kCurrentPlayerVersion,
+			"奖励迁移后应写入当前玩家版本");
+		Expect(countToxicPea(afterCompletion) == 1,
+			"已通关3-8的旧档应补发一次毒囊射手");
+
+		nlohmann::json alreadyOwned = {
+			{ "schemaVersion", 1 },
+			{ "adventureLevel", 36 },
+			{ "havecards", {
+				static_cast<int>(PlantType::PLANT_PEASHOOTER), toxicPea } }
+		};
+		Expect(SaveSchema::UpgradePlayerDocument(alreadyOwned, error),
+			"已拥有毒囊射手的玩家档应升级成功");
+		Expect(countToxicPea(alreadyOwned) == 1,
+			"玩家档迁移不得重复已有毒囊射手");
+	}
+
+	void TestCurrentPlayerDocumentIsStable() {
+		nlohmann::json document = {
+			{ "schemaVersion", SaveSchema::kCurrentPlayerVersion },
+			{ "adventureLevel", 27 },
+			{ "havecards", { static_cast<int>(PlantType::PLANT_PEASHOOTER) } }
+		};
+		const auto before = document;
+		std::string error;
+
+		Expect(SaveSchema::UpgradePlayerDocument(document, error),
+			"当前版本玩家档应通过");
+		Expect(document == before, "当前版本玩家档不应重复执行历史迁移");
 	}
 
 	void TestCurrentLevelDocumentIsStable() {
@@ -156,6 +214,8 @@ namespace {
 
 int main() {
 	TestLegacyPlayerUpgradePreservesFields();
+	TestMovedToxicRewardPlayerUpgrade();
+	TestCurrentPlayerDocumentIsStable();
 	TestCurrentLevelDocumentIsStable();
 	TestLegacyLevelUpgradePreservesGameplayState();
 	TestVersionOneLevelUpgradeDefersFogInitializationToBoard();

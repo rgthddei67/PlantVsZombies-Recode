@@ -74,19 +74,31 @@
     { "op": "assert_state", "path": "haveCardCount", "equals": 4 },
     { "op": "assert_state", "path": "haveCards.3", "equals": "PLANT_SQUASH" },
 
+    { "op": "set_adventure_level", "level": 26 },
+    { "op": "goto_level", "level": 26 },
+    { "op": "choose_cards", "cards": [], "timeout": 20 },
+    { "op": "wait_state", "state": "GAME" },
+    { "op": "force_trophy" },
+    { "op": "wait_frames", "value": 2 },
+    { "op": "screenshot", "name": "reward_toxic_peashooter_3_8.png" },
+    { "op": "click", "target": "trophy" },
+    { "op": "wait_frames", "value": 3 },
+    { "op": "assert_state", "path": "boardState", "equals": "WIN" },
+    { "op": "assert_state", "path": "adventureLevel", "equals": 27 },
+    { "op": "assert_state", "path": "haveCardCount", "equals": 5 },
+    { "op": "assert_state", "path": "haveCards.4", "equals": "PLANT_TOXICPEASHOOTER" },
+
     { "op": "set_adventure_level", "level": 35 },
     { "op": "goto_level", "level": 35 },
     { "op": "choose_cards", "cards": [], "timeout": 20 },
     { "op": "wait_state", "state": "GAME" },
     { "op": "force_trophy" },
     { "op": "wait_frames", "value": 2 },
-    { "op": "screenshot", "name": "reward_toxic_peashooter_4_8.png" },
     { "op": "click", "target": "trophy" },
     { "op": "wait_frames", "value": 3 },
     { "op": "assert_state", "path": "boardState", "equals": "WIN" },
     { "op": "assert_state", "path": "adventureLevel", "equals": 36 },
     { "op": "assert_state", "path": "haveCardCount", "equals": 5 },
-    { "op": "assert_state", "path": "haveCards.4", "equals": "PLANT_TOXICPEASHOOTER" },
     { "op": "quit" }
   ]
 }

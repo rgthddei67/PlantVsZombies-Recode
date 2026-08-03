@@ -1,11 +1,18 @@
 #include "SaveSchema.h"
+#include "Game/Plant/PlantType.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <nlohmann/json.hpp>
 #include <string>
 #include <utility>
 
 namespace {
+	enum class DocumentKind {
+		Player,
+		Level,
+	};
+
 	bool ReadSchemaVersion(const nlohmann::json& document, int currentVersion,
 		const char* documentName, int& version, std::string& error)
 	{
@@ -46,9 +53,30 @@ namespace {
 		return true;
 	}
 
-	/** 在副本上执行迁移，全部成功后才提交，避免失败路径留下半迁移文档。 */
+	/** 为已经通关 3-8 的旧玩家补发前移后的毒囊射手，且不重复已有卡片。 */
+	void MigrateMovedToxicPeaReward(nlohmann::json& document)
+	{
+		constexpr int kFirstLevelAfterReward = 27; // 3-8 通关后推进到的内部冒险关卡
+		if (!document.contains("adventureLevel") ||
+			!document["adventureLevel"].is_number_integer() ||
+			document["adventureLevel"].get<int>() < kFirstLevelAfterReward ||
+			!document.contains("havecards") || !document["havecards"].is_array()) {
+			return;
+		}
+
+		auto& cards = document["havecards"];
+		const int reward = static_cast<int>(PlantType::PLANT_TOXICPEASHOOTER);
+		const bool alreadyOwned = std::any_of(cards.begin(), cards.end(),
+			[](const nlohmann::json& card) {
+				return card.is_number_integer() && card.get<int>() ==
+					static_cast<int>(PlantType::PLANT_TOXICPEASHOOTER);
+			});
+		if (!alreadyOwned) cards.push_back(reward);
+	}
+
+	/** 在副本上按文档类型执行迁移，全部成功后才提交，避免失败留下半迁移文档。 */
 	bool UpgradeDocument(nlohmann::json& document, int currentVersion,
-		const char* documentName, std::string& error)
+		const char* documentName, DocumentKind kind, std::string& error)
 	{
 		error.clear();
 		int version = 0;
@@ -66,11 +94,19 @@ namespace {
 				upgraded["schemaVersion"] = version;
 				break;
 			case 1:
-				// v2 加入四大关雾势字段；旧档必须由关卡上下文重建，迁移层不伪造初始化状态。
+				if (kind == DocumentKind::Player) {
+					// 玩家 v2 对已通关 3-8 的旧档补发前移后的植物奖励。
+					MigrateMovedToxicPeaReward(upgraded);
+				}
+				// 关卡 v2 加入四大关雾势字段；旧档由关卡上下文重建，迁移层不伪造状态。
 				version = 2;
 				upgraded["schemaVersion"] = version;
 				break;
 			case 2: {
+				if (kind != DocumentKind::Level) {
+					error = std::string(documentName) + "存档缺少迁移路径";
+					return false;
+				}
 				// v3 把旧 CLEAR/DENSE 二态扩成 DEFAULT/SMALL/NORMAL/DENSE，保留旧档视觉强度。
 				constexpr const char* kFogIntensityKeys[] = {
 					"fogWeatherIntensity",
@@ -100,11 +136,13 @@ namespace {
 bool SaveSchema::UpgradePlayerDocument(
 	nlohmann::json& document, std::string& error)
 {
-	return UpgradeDocument(document, kCurrentPlayerVersion, "玩家", error);
+	return UpgradeDocument(document, kCurrentPlayerVersion,
+		"玩家", DocumentKind::Player, error);
 }
 
 bool SaveSchema::UpgradeLevelDocument(
 	nlohmann::json& document, std::string& error)
 {
-	return UpgradeDocument(document, kCurrentLevelVersion, "关卡", error);
+	return UpgradeDocument(document, kCurrentLevelVersion,
+		"关卡", DocumentKind::Level, error);
 }

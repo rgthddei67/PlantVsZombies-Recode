@@ -2,13 +2,13 @@
 
 > Codex routing: required always-on rules live in `../../AGENTS.md`; detailed build, AutoTest, architecture, resource, and implementation guidance lives in `../agent-guide/PROJECT_GUIDE.md`. The entries below are historical subsystem context and should be read only when relevant.
 
-- [架构边界、存档版本与技能审计门禁](project_pvz_architecture_boundaries.md) — 2026-07-29 `BoardPresentation` 取代 `Board::mGameScene`，Board 保持天气/波次/生存玩法唯一权威；`SceneManager` 明确单活动场景；玩家与关卡 JSON 加独立 `schemaVersion` 和事务式纯迁移测试；每次任务提交前审计相关 skills 并校验所有改动过的技能
+- [架构边界、存档版本与技能审计门禁](project_pvz_architecture_boundaries.md) — 2026-08-03 `BoardPresentation` 取代 `Board::mGameScene`，Board 保持天气/波次/生存玩法唯一权威；`SceneManager` 明确单活动场景；玩家 schema v2 为已通关3-8的旧档补发前移后的毒囊射手，迁移保持事务式并有纯测试；每次任务提交前审计相关 skills
 - [经典海蘑菇](project_pvz_seashroom.md) — 2026-07-29 `PLANT_SEASHROOM`：0 阳光、10 秒冷却，只能直接种在空水格且占 normal 层；复用小喷菇 1.5 秒间隔/300px 短程孢子，第 33 帧发射，无陆地阴影并随水面浮动；白天睡眠与双绘制路径可见专项通过
 - [最终绘制坐标语义取证](project_pvz_render_coordinate_evidence.md) — 2026-07-27 AutoTest 从当前项目实际渲染路径导出植物/僵尸/动画特效的 Animator 世界包围盒，以及粒子最终矩形；断言使用相对视觉原点、发射点和最近实体 collider 的整数投影，默认实例化与 `-NoInstance` 可做同用例一致性核对，C# 800×600 绝对坐标只作行为语义参考
 - [仙人掌与帧伤尖刺](project_pvz_cactus_frame_damage.md) — 2026-07-30 `PLANT_CACTUS` 已接入空/地分层索敌：地面第26帧、高姿态第70帧发射 `BULLET_SPIKE`，空中目标优先驱动伸长；弹丸命中层随对象池复位和存档；既有地面首发节奏、逐逻辑帧3伤、持门降至1、跨倍速等伤与四目标穿透均经可见回归
 - [经典三叶草](project_pvz_blover.md) — 2026-07-30 `PLANT_BLOVER`：100 阳光、10 秒冷却，第44帧按卡槽右键方向结算；卡图独立×0.9；气球朝屋后以600px/s累计滑行400px，朝前线滑出屏幕后死亡；台风中同步改持续风和活动阵风，不驱散迷雾；连续版本已编译、主人亲测待完成
 - [经典杨桃与五向星弹](project_pvz_starfruit.md) — 2026-07-31 `PLANT_STARFRUIT`：125 阳光、7.5 秒冷却，第27帧同帧发出左/上/下/右上/右下五颗20伤星弹；复刻 C# 跨行预测索敌、随机自旋、动态行碰撞、对象池与存档，命中用 `StarSplat`；原版杨桃不画通用植物影子；`clang-release` 默认/NoInstance 可见专项均通过
-- [毒囊射手与目标级叠毒](project_pvz_toxic_peashooter.md) — 2026-08-02 `PLANT_TOXICPEASHOOTER` 为4-8奖励：125阳光、15直击、每层6秒/0.4秒1伤、每目标共享上限5层；第六发刷新最短层，火炬转独立紫焰毒火豆，30px内直击/溅射目标均附毒，魅惑清毒；五层计时/余量入档，纯紫子弹/命中粒子、盾牌/倍速/对象池专项
+- [毒囊射手与目标级叠毒](project_pvz_toxic_peashooter.md) — 2026-08-03 `PLANT_TOXICPEASHOOTER` 为3-8奖励：125阳光、15直击、每层6秒/0.4秒1伤、每目标共享上限5层；第六发刷新最短层，火炬转独立紫焰毒火豆，30px内直击/溅射目标均附毒，魅惑清毒；五层计时/余量入档，纯紫子弹/命中粒子、盾牌/倍速/对象池专项
 - [经典南瓜头与第三植物层](project_pvz_pumpkin_shell.md) — 2026-08-02 `PLANT_PUMPKINSHELL`：125 阳光、30 秒冷却、4000 生命；独立 pumpkin 层可包住普通植物，顶层优先啃食/铲除；精英小丑与粉色橄榄球范围伤害按格只打外壳一次并输入 6 倍，爆破工头独立 5 倍，普通小丑不变；前后片夹层、叠层血量上下分行、两档破损、ChompSoft、水池三层、存档、台风与可见专项闭环
 - [经典磁力菇与僵尸装备剥离契约](project_pvz_magnetshroom.md) — 2026-08-02 `PLANT_MAGNETSHROOM`：100 阳光、7.5 秒卡冷却、15 秒吸取充能；目标侧虚接口原子剥离当前金属装备且不触发破甲副作用，离体贴图按 5%/固定步趋近并完整入档；加固铁门、精英小丑、爆破工头免疫；C# 左上角目标偏移按缩放后贴图半尺寸换算为 C++ 绘制中心；行为专项此前通过，最新锚点修复仅完成 clang-release 编译、待主人视觉复验
 - [经典气球僵尸](project_pvz_balloon_zombie.md) — 2026-07-30 `ZOMBIE_BALLOON` 为20气球层+270本体、空中/爆裂/步行三阶段、独立螺旋桨附件、70/80啃食帧和152死亡帧；水道击破与致死灰烬都直接移除，非致死灰烬仍按额外层和本体扣血；专属掉头/掉臂、4-3与生存出怪均有可见专项
@@ -46,7 +46,7 @@
 - [土豆地雷出土触发与范围爆炸](project_pvz_potato_mine_trigger_blast.md) — 2026-07-20 修复埋地时已被啃导致出土后不爆：出土跃迁若 `mEaterCount>0` 主动补触发；爆炸按原版同排半径60圆×僵尸矩形一次结算全部非魅惑目标，不再只杀碰撞触发者；可见 `smoke_potatomine.json` 独立覆盖先啃后出土与已出土双目标范围爆炸
 - [加固铁门僵尸](project_pvz_reinforced_door_zombie.md) — 2026-08-01 当前源码为270本体/1030门；持门正面植物普通伤害最多10、灰烬最多320、仙人掌正面尖刺帧伤1且免化灰/直杀，背击子弹绕门并取消持门上限；4-5加入双向射手即时反制教学，4-6继续综合复习；水草束缚、免魅惑与大喷截断契约保持
 - [Bullet 地面阴影与跨对象绘制顺序](project_pvz_bullet_shadow.md) — 2026-07-19 对齐 C#：Pea 单格21×9、Snowpea 1.3×、Puff无影；对象池复用时按row/position重算；阴影由 BulletPool 在 GOM 主体前统一提交，不能靠 Component::SetDrawOrder 跨越植物/Bullet对象层；主人校对 Y 与同排豌豆射手影子一致；可见 `smoke_bullet_shadow.json` 验普通/寒冰子弹穿过坚果时本体在上、影子在下
-- [九关制冒险进度+显式植物奖励表](project_pvz_adventure_progression.md) — 2026-07-18 `AdventureProgression.h` 统一每大关9小关、关卡显示/背景/奖励同源；奖励表显式写每关植物或 `NO_PLANT_REWARD`，1-8无植物、1-9小喷菇；禁止再用关卡号强转PlantType（旧存档按整数保存枚举）；AutoTest `smoke_adventure_progression.json` 覆盖全部背景边界与8/9关奖励
+- [九关制冒险进度+显式植物奖励表](project_pvz_adventure_progression.md) — 2026-08-03 `AdventureProgression.h` 统一每大关9小关、关卡显示/背景/奖励同源；当前3-8解锁毒囊射手、4-8无植物奖励；禁止再用关卡号强转PlantType（旧存档按整数保存枚举）；AutoTest `smoke_adventure_progression.json` 覆盖全部背景边界与关键奖励
 - [非整十波旗帜进度条](project_pvz_flag_meter_non_multiple_waves.md) — 2026-07-18 对齐 C# `DrawProgressMeter`：旗数=`总波数/10` 向下取整，第 k 面旗横向位置=`1-k*10/总波数`；旗子按第10/20/30波顺序存储，实时升旗和读档恢复均直接使用同一索引；可见 AutoTest 已覆盖15/25/35波布局与25波第10波升旗
 - [原版 MO3 动态分轨音乐 ✅Release 已编译](project_pvz_adaptive_mo3_music.md) — 2026-07-17 `AdaptiveMusicPlayer` 用 libopenmpt interactive API 并行解码主旋律/鼓组/踩镲，按原版 order+channel 表切分 DAY/NIGHT/POOL/FOG/ROOF；敌对存活僵尸≥10或一大波警告触发 burst，持续8s后<4淡出；2026-07-22 敌对数并入 `UpdateZombieMetrics` 的 0.5s 血量采样，取消每帧 O(n) 扫描；**许可证方案不用 stock vcpkg 的 mpg123(LGPL)，overlay 编入 libopenmpt 自带 minimp3(CC0)+stb_vorbis(MIT)+zlib**；MO3 来自本机原版素材库，放 build/<preset>/resources/music（不入 git）；主人要求不跑首版 AutoTest，首版已过 clang-release
 - [屏幕抖动ShakeBoard ✅commit未push](project_pvz_screen_shake.md) — 2026-07-16(f3e87b4+修复f09abb3) **全屏视觉效果必须走相机SetCameraPosition(projView)而非变换栈——reanim/字形instancing快路径不消费栈,栈方案下植物僵尸全体不动(主人抓出)**；相机勿每帧无条件写(开场平移也用它)；樱桃(3,-4)原版单跳/毁灭菇(6,-9)0.5s衰减正弦5半周期；SAD验证须分管线选区对测(初版全测batch区假绿,紫闪帧不可光学测)；2026-07-29 已把旧 `smoke_doomshroom` 的不可靠坐标 click 对照改成正式 `assert_can_plant` 双向断言并恢复全绿

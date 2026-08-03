@@ -1,15 +1,15 @@
 ---
 name: project_pvz_toxic_peashooter
-description: 毒囊射手、目标级五层独立计时毒素、状态染色优先级、火炬转换及4-8奖励闭环
+description: 毒囊射手、目标级五层独立计时毒素、状态染色优先级、火炬转换及3-8奖励闭环
 metadata:
   node_type: memory
   type: project
-  updated_at: 2026-08-02
+  updated_at: 2026-08-03
 ---
 
 # 毒囊射手与目标级叠毒
 
-2026-08-02 完成 `PLANT_TOXICPEASHOOTER`：125 阳光、7.5 秒冷却、300 生命，复用 Shooter 的 1.5 秒攻击节奏和既有全局第 64 帧发射事件。植物追加在 `PlantType` 末尾，`ANIM_TOXICPEASHOOTER` 与 `BULLET_TOXICPEA` 同样只在各自枚举末尾追加；冒险内部关卡 35（显示 4-8）由空奖励改为毒囊射手。
+2026-08-02 完成 `PLANT_TOXICPEASHOOTER`：125 阳光、7.5 秒冷却、300 生命，复用 Shooter 的 1.5 秒攻击节奏和既有全局第 64 帧发射事件。植物追加在 `PlantType` 末尾，`ANIM_TOXICPEASHOOTER` 与 `BULLET_TOXICPEA` 同样只在各自枚举末尾追加；初版冒险奖励位于内部关卡 35（显示 4-8）。2026-08-03 为避免进入屋顶后平射弹道受限，将奖励前移至内部关卡 26（显示 3-8），使其能从 3-9 起用于泳池终局与完整雾夜大关；4-8 恢复为无植物奖励，数值与行为不变。
 
 ## 毒素与交互
 
@@ -28,3 +28,5 @@ metadata:
 2026-08-02 紫焰溅射附毒调整完成后，`clang-release` 构建通过；桌面可见 `smoke_toxic_peashooter.json` 退出 0、59 条状态断言全绿。专项在同排布置直击目标、30 像素内次要目标和范围外目标，逐只断言仅前两只中毒、范围外目标保持 270 满血，且三者总生命符合 40 点直击、13 点单体溅射和两份毒伤；`d1_toxic_fireball_30px_splash_and_pool_reset.png` 同时确认前两只呈紫色、第三只保持正常颜色。对象池复位断言继续通过。
 
 2026-08-02 修复普通毒豆误用绿色 `PeaBulletHit`：新增独立紫色主溅斑与碎屑图集、`ToxicPeaBulletHit` 配方，并按当前 `BULLET_TOXICPEA` 分派。`clang-release` 构建通过；桌面可见毒囊专项退出 0、66 条状态断言全绿，七个粒子分片全部加载、紫色效果计数为 5、绿色效果计数为 0，截图确认命中处为紫色。桌面可见普通豌豆粒子专项退出 0、9 条断言全绿，绿色 `PeaBulletHit` 保持不变。
+
+2026-08-03 奖励前移完成：`AdventureProgression::GetPlantReward(26)` 为毒囊射手，关卡 35 为 `NO_PLANT_REWARD`。玩家 schema v2 会为已通关3-8但尚未获得该卡的 v0/v1 旧档补发一次，边界与去重由 `save-schema` 纯测试覆盖。`clang-release` 构建退出 0；桌面可见冒险进度专项退出 0，3-8 真实奖杯结算新增毒囊射手，4-8 结算不再增加卡片。

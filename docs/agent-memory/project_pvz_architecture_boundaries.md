@@ -29,6 +29,11 @@
 且不会留下半迁移 JSON。迁移逻辑由独立 `SaveSchemaTests` 覆盖，后续结构变化必须增加
 逐版本步骤和对应纯测试。
 
+2026-08-03 玩家 schema 升至 v2，以兼容毒囊射手奖励由 4-8 前移到 3-8：v0/v1 玩家档
+在 `adventureLevel >= 27` 且 `havecards` 尚无该枚举时补发一次；尚未通关3-8不补发，
+已经拥有时不重复。迁移仍只在 JSON 副本上执行，成功后才提交；`SaveSchemaTests` 覆盖
+26/27 边界、已有卡去重和当前版本不重复执行历史迁移，`save-schema` 1/1 通过。
+
 ## 所有权约束
 
 - `GameScene` 独占 `Board`；`BoardPresentation*` 仅为非拥有回调端口。
