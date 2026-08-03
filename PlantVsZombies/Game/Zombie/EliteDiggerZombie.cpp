@@ -9,8 +9,8 @@
 #include <algorithm>
 
 namespace {
-	constexpr int kEliteBodyHealth = 600;              // 爆破工头本体生命值
-	constexpr int kEliteHardhatHealth = 250;           // 爆破工头安全帽生命值
+	constexpr int kEliteBodyHealth = 250;              // 爆破工头本体生命值
+	constexpr int kEliteHardhatHealth = 100;           // 爆破工头安全帽生命值
 	constexpr int kBlastDamage = 150;                  // 爆破对每个植物层造成的固定伤害
 	constexpr int kPumpkinBlastDamageMultiplier = 5;   // 爆破被南瓜头拦截时的基础伤害倍率
 	constexpr int kBlastMinColumn = 0;                 // 爆区从房屋侧第 0 列开始
