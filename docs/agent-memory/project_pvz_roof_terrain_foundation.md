@@ -17,17 +17,19 @@
 - 台风换格仍在结算帧切逻辑格，但 0.45 秒视觉追赶从源/目标 `GetCellCenterPosition` 插值完整二维锚点，本体、影子与测试导出共用该锚点，因此植物经过屋顶坡面不会横移浮空。
 - 平射子弹不贴坡，只把当前弹体离地高度与 `GetRowCenterYAtX(row, bulletX)` 比较：豌豆/寒冰/火球/尖刺/毒豆阈值 28px，孢子 0px，星弹 23px；投掷物排除。撞坡先播放对应命中反馈再回收，阴影独立消费当前 X 的地面线。
 
-## 临时种植边界
+## 花盆承载边界
 
-- 花盆尚未实现。本阶段在 `Board::CanPlantAt` 显式允许非水生普通植物直接占屋顶 normal 层，under 层保持为空；睡莲、水草、海蘑菇仍保留各自水生地形限制。
-- 后续花盆应占 under 层，并在同一个屋顶门禁把“允许直种”替换为“已有花盆才允许 normal 植物”，同时覆盖预览、铲除、啃食、存档重建和组合层测试。
+- `PLANT_FLOWERPOT` 已占 `under` 层；屋顶普通植物与南瓜分别进入 `normal` / `pumpkin` 层前必须有花盆，地刺系保持拒绝屋顶。上层本体和落点预览共用 `Plant::kFlowerPotVisualLiftY=-5px`，逻辑格与碰撞箱不动。
+- 新局在选卡前按 C# 显示关卡语义铺设初始花盆：内部 37（5-1）五列、38（5-2）四列、39～45 三列；外层按列、内层按行创建，读档生命周期不重复生成。
+- 花盆覆盖时暂停 idle，露出后恢复；台风把同格 `under + normal + pumpkin` 当作一个组合搬移/丢失，存档只记录换格后的稳定逻辑层。
 
 ## 明确延后
 
-- 花盆、投掷植物主动调整抛物线、屋顶专属僵尸与 Boss 仍未实现。投掷物当前保持自由抛物线，并明确排除于平射坡面遮挡。
+- 投掷植物主动调整抛物线、屋顶专属僵尸与 Boss 仍未实现。投掷物当前保持自由抛物线，并明确排除于平射坡面遮挡。
 
 ## 验证证据（2026-08-03）
 
 - `clang-release` 配置、编译、链接成功。
 - 主人完成连续实玩校准并确认最终画面“现在没问题了”。可见 `smoke_roof_zombie_foundation.json` 与 `smoke_roof_terrain_consumers.json` 均 exit 0；后者覆盖预览、屋顶车静止/运动/读档、平台冰道、逐段辣椒火焰、左右弹坑、台风植物二维滑动、白天/黑夜屋顶、雨滴落点及平射坡面遮挡，并逐张检查 6 张同步截图。
+- 花盆接入后再次可见运行上述两条屋顶专项，均 exit 0；门禁、under/normal 组合、5px 抬升、台风与快照断言已同步。
 - 可见回归 `smoke_zamboni.json`、`smoke_jalapeno.json`、`smoke_typhoon.json`、`smoke_typhoon_bullets.json`、`smoke_crater_terrain_visuals.json`、`smoke_bullet_shadow.json` 全部 exit 0。`smoke_typhoon_bullets` 同步了当前源码的风力数值与孢子已响应台风的类型表，不再保留过期期望。

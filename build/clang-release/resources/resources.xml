@@ -383,6 +383,7 @@
     <Reanimation name="Starfruit">./resources/reanim/Starfruit.reanim</Reanimation>
     <Reanimation name="Pumpkin">./resources/reanim/Pumpkin.reanim</Reanimation>
     <Reanimation name="Magnetshroom">./resources/reanim/Magnetshroom.reanim</Reanimation>
+    <Reanimation name="Pot">./resources/reanim/Pot.reanim</Reanimation>
 
     <Reanimation name="NormalZombie">./resources/reanim/NormalZombie.reanim</Reanimation>
     <Reanimation name="ConeZombie">./resources/reanim/ConeZombie.reanim</Reanimation>

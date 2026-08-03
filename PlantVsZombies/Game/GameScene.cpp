@@ -826,8 +826,12 @@ void GameScene::OnEnter() {
 		button3->SetClickCallBack([this](bool) { this->OpenPerkView(); });
 	}
 
-	// 读档
+	// 原版在选卡前铺好屋顶初始花盆；只给没有关卡存档的新局生成，避免读档重复叠加。
 	GameAPP::GetInstance().mGameInfoSaver.LoadLevelData(mBoard.get(), mCardSlotManager);
+	// AutoTest 的无存档路径按契约返回 true，但不会置 mIsLoadSave；以读档生命周期标记判定新局。
+	if (!mBoard->IsLoadRestoreActive()) {
+		mBoard->InitializeStartingFlowerPots();
+	}
 
 	if (mBoard->mBoardState == BoardState::GAME) {
 		// 跳过选卡和开场动画，直接进入游戏

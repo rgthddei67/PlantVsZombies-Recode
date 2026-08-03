@@ -385,6 +385,8 @@ public:
 		MonteCarloTargetStats* stats = nullptr);
 	/** 完成一次读档恢复，并在实体全部还原后立即同步派生的逐格迷雾。 */
 	void CompleteLoadRestore();
+	/** 返回 Board 是否仍处于关卡存档恢复生命周期。 */
+	bool IsLoadRestoreActive() const { return mIsLoadSave; }
 
 	inline void AddSun(int amount)
 	{
@@ -663,6 +665,8 @@ public:
 	int GetEliteScaredyShroomPlantLimit() const;
 	/** 返回格子最上层可被铲除或啃食的植物：南瓜层、普通层、承载层依次优先。 */
 	Plant* GetTopPlantAt(int row, int col) const;
+	/** 返回指定格承载层；当前可能是睡莲或花盆。 */
+	Plant* GetUnderPlantAt(int row, int col) const;
 	/** 返回指定格普通植物层；不存在或 ID 已失效时返回空。 */
 	Plant* GetNormalPlantAt(int row, int col) const;
 	/** 返回指定格南瓜外壳层；不存在或 ID 已失效时返回空。 */
@@ -778,6 +782,8 @@ public:
 
 	// 选好卡，开始游戏
 	void StartGame();
+	/** 新开屋顶关时按 C# 关卡规则与列优先顺序生成初始花盆；读档路径不得调用。 */
+	void InitializeStartingFlowerPots();
 
 	// 游戏结束
 	void GameOver();

@@ -12,7 +12,7 @@ description: Use when adding ANY new plant (新增植物) to PvZ — 射手/生�
 **C# 原版逻辑场景是 800×600，本项目是 `SCENE_WIDTH=1100`、`SCENE_HEIGHT=600`。原版任何绝对 X/Y、范围端点、绘制偏移、碰撞框和粒子触发点都只能当语义参考，禁止直接抄入代码。**
 
 - 场景范围由 `SCENE_WIDTH/SCENE_HEIGHT` 和 Board 当前背景几何重算；格子范围由 `GetCellCenterPosition`、`GetCellHeight` 与 `CELL_COLLIDER_SIZE_X` 派生。
-- 屋顶植物只使用 `GetCellCenterPosition(row, col)` 的离散坡面格中心；不要复用僵尸的连续 `GetRowCenterYAtX`。花盆接入前若要允许直种，必须在 `Board::CanPlantAt` 留显式过渡分支；接入花盆时只替换这一地形门禁，并让花盆占 under 层、上层植物继续占 normal 层。
+- 屋顶植物只使用 `GetCellCenterPosition(row, col)` 的离散坡面格中心；不要复用僵尸的连续 `GetRowCenterYAtX`。花盆占 `under`、上层植物占 `normal`、南瓜占独立壳层；普通植物/南瓜必须有花盆，地刺系仍拒绝屋顶。新局在选卡前且确认未进入读档生命周期后，按大关内编号生成 5-1 五列、5-2 四列、后续三列的初始花盆；C# 原关卡号分段与本项目九关制不同，必须按显示关卡语义映射，并保留外层列、内层行的创建顺序。
 - 植物局部点位先换算到本项目以格子中心为 `GetPosition()` 的口径，再叠加当前 gamedata 视觉偏移；逻辑格位置与 `mVisualOffset` 永远分开。
 - 发射点、范围边界和附加 Animator 基点优先表达成“相对稳定视觉原点/父轨基准姿态”的差值，不把 C# 的世界坐标塞进局部偏移。
 - AutoTest 先执行同步 `screenshot`，再用 `animatedObjectsByTag.Plant` 的 `renderProbeReady/worldBounds/visualToRenderCenterD*Int/nearestPlant` 验证本项目最终绘制几何相对格子与植物 collider 的关系；每阶段只保留一株目标植物以稳定数组索引。
@@ -58,7 +58,9 @@ description: Use when adding ANY new plant (新增植物) to PvZ — 射手/生�
 ## 验证（缺一不可）
 
 1. 默认用 `clang-release` 完成带 LTO 的 0 warning 构建；只有主人特殊要求快速迭代、PDB 或无 LTO 时才改用 `clang-playtest`，特殊要求 Debug CRT/Debug 语义时才用 `msvc-debug`。
-2. **站位+影子截图校对**（写完必做，别等主人指出）：临时脚本把新植物与小喷菇/向日葵种同一行，截图比脚底基线。先从原版实现/画面确认该品种是否有影子；原版不画影子的品种即使是陆生植物也要在 `SetupPlant()` 显式 `RemoveComponent<ShadowComponent>()`，并断言 `hasShadow=false`，不能因落在草地就沿用基类默认影子。需要影子时再校对两套独立坐标：**本体 = gamedata.json 的 offset**（改无需重编译）；**影子 = 代码里 `ShadowComponent::SetOffset`**（改要重编译）。抄同类植物的值大概率不准。
+2. **站位+影子截图校对**（写完必做，别等主人指出）：临时脚本把新植物与小喷菇/向日葵种同一行，截图比脚底基线。先从原版实现/画面确认该品种是否有影子；原版不画影子的品种即使是陆生植物也要在 `SetupPlant()` 显式 `RemoveComponent<ShadowComponent>()`，并断言 `hasShadow=false`，不能因落在草地就沿用基类默认影子。需要影子时再校对两套独立坐标：**本体 = gamedata.json 的 offset**（改无需重编译）；**影子 = 代码里 `ShadowComponent::SetOffset`**（改要重编译）。C# `DrawShadow` 的 `num2/num3` 是最终局部落点，不是相对本项目组件默认值的增量：例如花盆为 `Y=51-5=46` 且 1:1，不能误写成 `28-5` 或继续套纵向 0.75 压缩；除状态探针外必须以截图确认肉眼可见。抄同类植物的值大概率不准。
+
+   花盆这类承载植物还要让上层本体与落点预览共同消费一个 5px 视觉抬升常量，逻辑位置/碰撞箱不变；上层存在时暂停花盆 idle，移除或台风换格/读档后按当前 Cell 派生状态恢复。台风必须把同格 `under + normal + pumpkin` 作为一个组合移动、丢失或受阻，不能只搬顶层。
    植物若有阵风插值、水面浮动等动态位移，收口成**不含品种静态 offset 的公共视觉锚点**：本体=`锚点+gamedata offset`，影子=`锚点+shadow offset`，禁止影子退回裸 `Transform` 而漏掉动态量。专项在同步截图后导出 `ShadowComponent` 最近实际提交的中心，并用**同一绘制帧**的 Animator render base 减 gamedata offset 得到锚点再断言；不要在截图后的下一逻辑帧重算正弦锚点，否则会产生亚像素相位差假失败。最后跨两个动画相位读图确认共同移动。
    屋顶等非水平网格中，阵风换格或其他格间动画必须从源/目标 `Board::GetCellCenterPosition` 插值完整二维视觉锚点，不能只改 X 后继续沿用源格 Y；逻辑 `row/column` 与 `mVisualOffset` 仍分离。格内植物保持离散格中心，横跨多列的火焰/范围视觉则按每个分段 X 单独查询坡面。禁止给通用 `Transform` 自动消费坡面，以免污染飞行物、UI 和其他地图。
    卡槽/选卡卡图由 `CardDisplayComponent::DrawPlantImage` 独立绘制，不能为缩卡图去改 gamedata `scale`（那会改草坪本体）。需要品种特例时在通用卡图倍率上追加独立倍率，并从既有卡图矩形中心缩放，避免向左上角漂移；用实际卡槽截图验收。

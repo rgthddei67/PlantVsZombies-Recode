@@ -44,6 +44,8 @@ protected:
 	float mGridMoveVisualDuration = 0.0f;
 
 public:
+	static constexpr float kFlowerPotVisualLiftY = -5.0f; // 上层植物相对花盆抬升量，单位：px
+
 	Plant(Board* board, PlantType plantType, int row, int column,
 		AnimationType animType, float scale = 1.0f, bool isPreview = false);
 

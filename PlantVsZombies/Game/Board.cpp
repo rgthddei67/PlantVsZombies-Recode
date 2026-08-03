@@ -35,14 +35,13 @@
 #include <cstdint>
 
 namespace {
-	/** 集中保留地刺系的背景地形规则；未实装的最后地形当前仍按普通地面处理。 */
+	/** 集中保留地刺系的背景地形规则；屋顶必须拒绝无法放入花盆的地刺系。 */
 	bool IsSpikeweedTerrainRestricted(Background background)
 	{
 		switch (background) {
 		case Background::ROOF:
 		case Background::NIGHT_ROOF:
-			// 预留给最后地形：资源和玩法落地后只需在这里启用对应限制。
-			return false;
+			return true;
 		default:
 			return false;
 		}
@@ -3736,25 +3735,34 @@ bool Board::CanPlantAt(PlantType type, int row, int col)
 	if (!cell || HasCraterAt(row, col)) return false;
 
 	const bool isWater = IsPoolSquare(row, col);
+	Plant* underPlant = mEntityManager.GetPlant(cell->GetUnderPlantID());
+	const bool hasLilyPad = underPlant
+		&& underPlant->mPlantType == PlantType::PLANT_LILYPAD;
+	const bool hasFlowerPot = underPlant
+		&& underPlant->mPlantType == PlantType::PLANT_FLOWERPOT;
 	if (type == PlantType::PLANT_PUMPKINSHELL) {
-		// 原版南瓜有独立外壳层；水路仍需睡莲承载，陆地可空壳或包住普通植物。
-		return cell->GetPumpkinPlantID() == NULL_PLANT_ID
-			&& (!isWater || cell->GetUnderPlantID() != NULL_PLANT_ID);
+		// 南瓜有独立外壳层，但水路与屋顶仍分别要求正确的承载植物。
+		if (cell->GetPumpkinPlantID() != NULL_PLANT_ID) return false;
+		if (isWater) return hasLilyPad;
+		if (IsRoofBackground()) return hasFlowerPot;
+		return true;
+	}
+	if (type == PlantType::PLANT_FLOWERPOT) {
+		// 原版允许花盆落在任意非水地面；屋顶以外通常只是不推荐选择。
+		return !isWater && cell->IsEmpty();
 	}
 	if ((type == PlantType::PLANT_SPIKEWEED
 		|| type == PlantType::PLANT_SPIKEROCK)
 		&& (isWater || IsSpikeweedTerrainRestricted(mBackGround))) {
-		// 当前已实现地形里只收紧水路：地刺系不能隔着睡莲直接扎水面。
-		// 最后一类地形的入口保留在 IsSpikeweedTerrainRestricted，现阶段继续按普通地面处理。
+		// 地刺系既不能隔着睡莲扎水面，也不能隔着花盆扎屋顶瓦片。
 		return false;
 	}
 	if (IsRoofBackground()
 		&& type != PlantType::PLANT_LILYPAD
 		&& type != PlantType::PLANT_TANGLEKELP
 		&& type != PlantType::PLANT_SEASHROOM) {
-		// 花盆尚未接入前的显式过渡规则：屋顶普通植物直接占普通层，不检查承载植物。
-		return cell->GetNormalPlantID() == NULL_PLANT_ID
-			&& cell->GetUnderPlantID() == NULL_PLANT_ID;
+		// 屋顶普通植物只占 normal 层，必须由 under 层的花盆承载。
+		return hasFlowerPot && cell->GetNormalPlantID() == NULL_PLANT_ID;
 	}
 	if (type == PlantType::PLANT_LILYPAD
 		|| type == PlantType::PLANT_TANGLEKELP
@@ -3765,11 +3773,11 @@ bool Board::CanPlantAt(PlantType type, int row, int col)
 	if (isWater) {
 		// 土豆雷没有水面形态；即使已有睡莲也不能落在水路。
 		if (type == PlantType::PLANT_POTATOMINE) return false;
-		return cell->GetUnderPlantID() != NULL_PLANT_ID
+		return hasLilyPad
 			&& cell->GetNormalPlantID() == NULL_PLANT_ID;
 	}
 	return cell->GetNormalPlantID() == NULL_PLANT_ID
-		&& cell->GetUnderPlantID() == NULL_PLANT_ID;
+		&& (cell->GetUnderPlantID() == NULL_PLANT_ID || hasFlowerPot);
 }
 
 bool Board::HasPlantingQuota(PlantType type) const
@@ -3791,6 +3799,13 @@ Plant* Board::GetTopPlantAt(int row, int col) const
 	if (row < 0 || row >= mRows || col < 0 || col >= mColumns) return nullptr;
 	Cell* cell = mCells[row][col];
 	return cell ? mEntityManager.GetPlant(cell->GetTopPlantID()) : nullptr;
+}
+
+Plant* Board::GetUnderPlantAt(int row, int col) const
+{
+	if (row < 0 || row >= mRows || col < 0 || col >= mColumns) return nullptr;
+	Cell* cell = mCells[row][col];
+	return cell ? mEntityManager.GetPlant(cell->GetUnderPlantID()) : nullptr;
 }
 
 Plant* Board::GetNormalPlantAt(int row, int col) const
@@ -3896,7 +3911,8 @@ Plant* Board::CreatePlant(PlantType plantType, int row, int column, bool skipset
 
 	if (plant && !isPreview && !skipsettings) {
 		Cell* cell = GetCell(row, column);
-		const bool isUnderPlant = plantType == PlantType::PLANT_LILYPAD;
+		const bool isUnderPlant = plantType == PlantType::PLANT_LILYPAD
+			|| plantType == PlantType::PLANT_FLOWERPOT;
 		const bool isPumpkinPlant = plantType == PlantType::PLANT_PUMPKINSHELL;
 		const int occupiedID = isUnderPlant
 			? cell->GetUnderPlantID()
@@ -4639,6 +4655,32 @@ void Board::StartGame()
 	PlayBackgroundMusic();
 }
 
+/**
+ * 按 C# CutScene.AddFlowerPots 的列优先顺序，为新开的屋顶冒险关铺设初始花盆。
+ * 当前九关制把原版 5-1/5-2/后续关卡的 5/4/3 列规则映射到内部 37/38/39～45。
+ */
+void Board::InitializeStartingFlowerPots()
+{
+	if (!IsRoofBackground()) return;
+
+	int columnCount = 3;
+	if (AdventureProgression::IsAdventureLevel(mLevel)
+		&& AdventureProgression::GetAreaNumber(mLevel) == 5) {
+		const int levelInArea = AdventureProgression::GetLevelNumberInArea(mLevel);
+		if (levelInArea == 1) columnCount = 5;
+		else if (levelInArea == 2) columnCount = 4;
+	}
+
+	// 原版外层遍历列、内层遍历行；保留创建顺序，令实体 ID 与演出层叠同源可复现。
+	for (int column = 0; column < std::min(columnCount, mColumns); ++column) {
+		for (int row = 0; row < mRows; ++row) {
+			if (CanPlantAt(PlantType::PLANT_FLOWERPOT, row, column)) {
+				CreatePlant(PlantType::PLANT_FLOWERPOT, row, column);
+			}
+		}
+	}
+}
+
 void Board::PlayBackgroundMusic()
 {
 	switch (mBackGround)
@@ -4843,7 +4885,8 @@ void Board::LoadSpawnListFromJson()
 
 Plant* Board::CreatePlantWithID(PlantType type, int row, int col, int id) {
 	Cell* cell = GetCell(row, col);
-	const bool isUnderPlant = type == PlantType::PLANT_LILYPAD;
+	const bool isUnderPlant = type == PlantType::PLANT_LILYPAD
+		|| type == PlantType::PLANT_FLOWERPOT;
 	const bool isPumpkinPlant = type == PlantType::PLANT_PUMPKINSHELL;
 	if (cell && (isUnderPlant
 		? cell->GetUnderPlantID()

@@ -376,6 +376,12 @@ void CardSlotManager::CreateCellPlantPreview(PlantType plantType, Cell* cell) {
 		cellPlantPreview = mBoard->CreatePlant(plantType, 0, 0, true, true);
 		if (cellPlantPreview) {
 			Vector centerPos = cell->GetCenterPosition();          // 世界坐标
+			Plant* supportPlant = mBoard->GetUnderPlantAt(cell->mRow, cell->mColumn);
+			if (plantType != PlantType::PLANT_FLOWERPOT && supportPlant
+				&& supportPlant->mPlantType == PlantType::PLANT_FLOWERPOT) {
+				// 预览实体没有真实 row/column，需在落点处显式复用花盆抬升口径。
+				centerPos.y += Plant::kFlowerPotVisualLiftY;
+			}
 
 			// 落点幽灵必须盖在该格已有承载植物之上，否则睡莲会遮住待种植物。
 			Plant* topPlant = mBoard->GetTopPlantAt(cell->mRow, cell->mColumn);

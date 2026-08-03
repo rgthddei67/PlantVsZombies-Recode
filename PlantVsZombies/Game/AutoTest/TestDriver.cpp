@@ -36,6 +36,7 @@
 #include "../Plant/StarFruit.h"
 #include "../Plant/PumpkinShell.h"
 #include "../Plant/MagnetShroom.h"
+#include "../Plant/FlowerPot.h"
 #include "../Bullet/Bullet.h"
 #include "../Zombie/ZombieType.h"
 #include "../Zombie/Zombie.h"
@@ -2047,6 +2048,12 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "simulationPersistent", simulation.persistent },
 		};
 	}
+	out["flowerPotResources"] = {
+		{ "reanimationLoaded", ResourceManager::GetInstance().HasReanimation(
+			ResourceKeys::Reanimations::REANIM_FLOWERPOT) },
+		{ "cardTextureLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_FLOWERPOT, false) != nullptr },
+	};
 	out["cards"] = nlohmann::json::array();
 	if (CardSlotManager* cardManager = gs->GetCardSlotManager()) {
 		for (Card* card : cardManager->GetCards()) {
@@ -2859,6 +2866,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 
 	out["plants"] = nlohmann::json::array();
 	out["topPlantsByCell"] = nlohmann::json::object();
+	out["flowerPotsByCell"] = nlohmann::json::object();
 	int repeatingShootingHeadCount = 0;
 	for (int id : board->mEntityManager.GetAllPlantIDs()) {
 		Plant* p = board->mEntityManager.GetPlant(id);
@@ -2909,6 +2917,10 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				board->GetPlanternSunProductionMultiplier(p) * 100.0f)) },
 		};
 		if (const auto* shadow = p->GetComponent<ShadowComponent>()) {
+			plantState["shadowOffsetXInt"] = static_cast<int>(std::lround(
+				shadow->GetOffset().x));
+			plantState["shadowOffsetYInt"] = static_cast<int>(std::lround(
+				shadow->GetOffset().y));
 			const auto animator = p->GetAnimatorInternal();
 			const AnimatorRenderProbe* renderProbe =
 				animator ? &animator->GetLastRenderProbe() : nullptr;
@@ -2950,6 +2962,13 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		}
 		if (auto* lilyPad = dynamic_cast<LilyPad*>(p)) {
 			plantState["biteProtected"] = lilyPad->IsBiteProtected();
+		}
+		if (auto* flowerPot = dynamic_cast<FlowerPot*>(p)) {
+			plantState["biteProtected"] = flowerPot->IsBiteProtected();
+			plantState["covered"] = flowerPot->IsCovered();
+			const std::string cellKey =
+				std::to_string(p->mRow) + "_" + std::to_string(p->mColumn);
+			out["flowerPotsByCell"][cellKey] = plantState;
 		}
 		if (auto* wallNut = dynamic_cast<WallNut*>(p)) {
 			plantState["nutDamageStage"] = wallNut->GetDamageStage();

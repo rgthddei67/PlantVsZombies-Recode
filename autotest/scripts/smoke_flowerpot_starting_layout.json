@@ -1,0 +1,35 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 37, "resetTestState": true },
+    { "op": "assert_state", "path": "plants.0.row", "equals": 0 },
+    { "op": "assert_state", "path": "plants.0.col", "equals": 0 },
+    { "op": "assert_state", "path": "plants.4.row", "equals": 4 },
+    { "op": "assert_state", "path": "plants.4.col", "equals": 0 },
+    { "op": "assert_state", "path": "plants.5.row", "equals": 0 },
+    { "op": "assert_state", "path": "plants.5.col", "equals": 1 },
+    { "op": "assert_state", "path": "plants.24.row", "equals": 4 },
+    { "op": "assert_state", "path": "plants.24.col", "equals": 4 },
+    { "op": "assert_state", "path": "cells.4.4.under", "equals": "PLANT_FLOWERPOT" },
+    { "op": "assert_state", "path": "cells.0.5.under", "equals": "NONE" },
+
+    { "op": "goto_level", "level": 38, "resetTestState": true },
+    { "op": "assert_state", "path": "plants.19.row", "equals": 4 },
+    { "op": "assert_state", "path": "plants.19.col", "equals": 3 },
+    { "op": "assert_state", "path": "cells.4.3.under", "equals": "PLANT_FLOWERPOT" },
+    { "op": "assert_state", "path": "cells.0.4.under", "equals": "NONE" },
+
+    { "op": "goto_level", "level": 39, "resetTestState": true },
+    { "op": "assert_state", "path": "plants.14.row", "equals": 4 },
+    { "op": "assert_state", "path": "plants.14.col", "equals": 2 },
+    { "op": "assert_state", "path": "cells.4.2.under", "equals": "PLANT_FLOWERPOT" },
+    { "op": "assert_state", "path": "cells.0.3.under", "equals": "NONE" },
+
+    { "op": "goto_level", "level": 45, "resetTestState": true },
+    { "op": "assert_state", "path": "plants.14.row", "equals": 4 },
+    { "op": "assert_state", "path": "plants.14.col", "equals": 2 },
+    { "op": "assert_state", "path": "cells.4.2.under", "equals": "PLANT_FLOWERPOT" },
+    { "op": "assert_state", "path": "cells.0.3.under", "equals": "NONE" },
+    { "op": "screenshot", "name": "01_roof_starting_flowerpots.png" },
+    { "op": "quit" }
+  ]
+}

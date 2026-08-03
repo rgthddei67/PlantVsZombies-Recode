@@ -147,6 +147,14 @@ Vector Plant::GetVisualAnchorPosition() const
 			+ static_cast<float>(mColumn) * kPoolBobColumnPhase;
 		visual.y += std::sin(phase) * kPoolBobAmplitude;
 	}
+	if (!mIsPreview && mBoard && mPlantType != PlantType::PLANT_FLOWERPOT) {
+		Plant* support = mBoard->GetUnderPlantAt(mRow, mColumn);
+		if (support && support->mPlantType == PlantType::PLANT_FLOWERPOT
+			&& !support->IsSquished()) {
+			// 只抬升画面锚点；逻辑格、碰撞箱和存档坐标仍保持在同一格中心。
+			visual.y += kFlowerPotVisualLiftY;
+		}
+	}
 	return visual;
 }
 
