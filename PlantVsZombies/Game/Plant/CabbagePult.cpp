@@ -13,7 +13,7 @@ namespace {
 	constexpr float kShootFramesPerSecond = 35.0f;         // C# anim_shooting 的播放帧率
 	constexpr float kIdleFramesPerSecondMin = 10.0f;       // 经典普通植物待机随机帧率下限
 	constexpr float kIdleFramesPerSecondMax = 15.0f;       // 经典普通植物待机随机帧率上限
-	constexpr float kShootBlendSeconds = 0.2f;             // 射击动画进入与返回的混合时间
+	constexpr float kShootBlendSeconds = 0.0f;             // 射击动画进入与返回的混合时间
 	constexpr float kInitialShootInterval = 3.0f;          // C# launch rate 300 厘秒
 	constexpr float kRepeatShootIntervalMin = 2.86f;       // 300-NextNumber(15) 的最短后续周期
 	constexpr float kRepeatShootIntervalMax = 3.0f;        // 300-NextNumber(15) 的最长后续周期
