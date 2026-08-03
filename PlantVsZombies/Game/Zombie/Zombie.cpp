@@ -36,7 +36,7 @@ namespace {
 	constexpr float kEatingTargetRetentionGap = 6.0f;      // 跳跃受阻后允许僵尸隔空啃食的最大碰撞箱间隙，单位：像素
 	constexpr float kHitGlowDuration = 0.1f;               // 本体与二类护盾受击白光持续时间，单位：游戏秒
 	constexpr float kToxinLayerDuration = 6.0f;            // 单层毒素持续时间，单位：游戏秒
-	constexpr float kToxinDamageInterval = 0.4f;           // 每层积满 1 点毒伤的游戏时间间隔，单位：秒
+	constexpr float kToxinDamageInterval = 0.2f;           // 每层积满 1 点毒伤的游戏时间间隔，单位：秒
 	constexpr float kToxinDamageEpsilon = 0.0001f;         // 浮点取整容差，避免整点伤害因误差延迟一帧
 
 	/** 对齐 C# AnimateChewSound：坚硬防御植物使用 ChompSoft，其他植物使用普通 Chomp。 */

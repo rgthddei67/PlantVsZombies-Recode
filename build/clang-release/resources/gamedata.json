@@ -24,7 +24,7 @@
     "PLANT_TANGLEKELP":      { "cost": 25,  "cooldown": 30.0, "offset": [-37.6, -28.0], "scale": 1.0, "simulation": { "baseHealth": 300, "persistent": false } },
     "PLANT_JALAPENO":        { "cost": 125, "cooldown": 50.0, "offset": [-37.6, -44.0], "scale": 1.0, "simulation": { "baseHealth": 300, "persistent": false } },
     "PLANT_SPIKEWEED":       { "cost": 100, "cooldown": 7.5,  "offset": [-37.6, -44.0], "scale": 1.0, "simulation": { "baseHealth": 300, "attackDps": 20.0 } },
-    "PLANT_TORCHWOOD":       { "cost": 175, "cooldown": 7.5,  "offset": [-37.6, -44.0], "scale": 1.0, "simulation": { "baseHealth": 300 } },
+    "PLANT_TORCHWOOD":       { "cost": 100, "cooldown": 7.5,  "offset": [-37.6, -44.0], "scale": 1.0, "simulation": { "baseHealth": 300 } },
     "PLANT_TALLNUT":         { "cost": 125, "cooldown": 30.0, "offset": [-37.6, -44.0], "scale": 1.0, "simulation": { "baseHealth": 9000 } },
     "PLANT_SEASHROOM":       { "cost": 0,   "cooldown": 10.0, "offset": [-37.6, -5.0],  "scale": 1.0, "simulation": { "baseHealth": 300, "attackDps": 13.33 } },
     "PLANT_PLANTERN":        { "cost": 25,  "cooldown": 30.0, "offset": [-37.6, -44.0], "scale": 1.0, "simulation": { "baseHealth": 300 } },
