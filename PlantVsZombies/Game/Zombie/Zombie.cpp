@@ -584,7 +584,8 @@ void Zombie::SyncToRoofTerrain(TransformComponent* transform)
  */
 void Zombie::ApplyTyphoonGustDrift(float deltaTime, TransformComponent* transform)
 {
-	if (!transform || !mBoard || mIsDying || deltaTime <= 0.0f) return;
+	if (!transform || !mBoard || mIsDying || deltaTime <= 0.0f
+		|| !CanBeMovedByTyphoonGust()) return;
 	const float velocity = mBoard->GetZombieGustDriftVelocity();
 	if (velocity == 0.0f) return;
 	float displacement = velocity * deltaTime;

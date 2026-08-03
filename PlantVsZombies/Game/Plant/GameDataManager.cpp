@@ -78,6 +78,7 @@
 #include "../Zombie/EliteDiggerZombie.h"
 #include "../Zombie/PogoZombie.h"
 #include "../Zombie/ElitePogoZombie.h"
+#include "../Zombie/BungeeZombie.h"
 
 namespace {
 	template<typename T>
@@ -462,6 +463,12 @@ void GameDataManager::InitializeHardcodedData() {
 		AnimationType::ANIM_ELITE_POGO_ZOMBIE,
 		ResourceKeys::Reanimations::REANIM_ELITE_POGO_ZOMBIE,
 		&MakeZombie<ElitePogoZombie>);
+
+	// 蹦极僵尸使用独立垂直状态机；普通刷怪不接入 5-5 的固定五只特殊编排。
+	RegisterZombie(ZombieType::ZOMBIE_BUNGEE, "ZOMBIE_BUNGEE",
+		AnimationType::ANIM_BUNGEE_ZOMBIE,
+		ResourceKeys::Reanimations::REANIM_BUNGEE_ZOMBIE,
+		&MakeZombie<BungeeZombie>);
 
 	// ==================== 非植物/僵尸动画映射 ====================
 	mAnimToString[AnimationType::ANIM_SUN] = ResourceKeys::Reanimations::REANIM_SUN;

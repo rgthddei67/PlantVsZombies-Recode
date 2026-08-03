@@ -312,6 +312,8 @@ protected:
 	virtual float GetAmplifiedAbilitySpeedMultiplier() const;
 	/** 品种是否无条件承受黄色冰道速度场；铺路者自身不依赖几何覆盖。 */
 	virtual bool IsAlwaysAffectedByGoldenIce() const { return false; }
+	/** 当前品种是否接受台风的水平漂移；定点悬挂单位可关闭。 */
+	virtual bool CanBeMovedByTyphoonGust() const { return true; }
 	/** 统计当前点由多少辆仍存活的鎏金冰车覆盖；仅剩持久冰道时至少返回一层。 */
 	int ComputeGoldenIceEffectStacks() const;
 	/** 每层黄色冰道把加速倍率乘二、减速倍率除二；中性倍率 1.0 保持不变。 */

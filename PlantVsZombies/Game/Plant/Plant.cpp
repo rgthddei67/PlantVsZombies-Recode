@@ -81,7 +81,7 @@ void Plant::Start()
 }
 
 void Plant::TakeDamage(int damage, DamageSource source) {
-	if (mIsPreview || mIsSquished) return;
+	if (mIsPreview || mIsSquished || IsBungeeTargeted()) return;
 	// 僵尸增伤只放大僵尸来源；植物韧性则对所有实际承伤生效。两者均在 0 层返回单位元。
 	int scaledDamage = damage;
 	if (mBoard) {
@@ -126,7 +126,7 @@ void Plant::Update()
 	UpdateGridMoveVisual();
 	// 仅在对战进行中(GAME)才跑行为逻辑：生存轮间选卡(CHOOSE_CARD)时场上保留的植物应冻结，
 	// 否则向日葵会继续产阳光、射手继续计时等。WIN/LOSE 同理不再行动。
-	if (!mIsPreview && !mIsSleeping &&
+	if (!mIsPreview && !mIsSleeping && !IsBungeeTargeted() &&
 		mBoard && mBoard->mBoardState == BoardState::GAME) {
 		PlantUpdate();
 	}
@@ -135,7 +135,7 @@ void Plant::Update()
 Vector Plant::GetVisualPosition() const {
 	if (mIsSquished) return mSquishVisualPosition;
 
-	return GetVisualAnchorPosition() + mVisualOffset;
+	return GetVisualAnchorPosition() + mVisualOffset + mBungeeVisualOffset;
 }
 
 Vector Plant::GetVisualAnchorPosition() const
@@ -276,6 +276,7 @@ void Plant::SetPosition(const Vector& position)
 
 void Plant::MoveToGridCell(int row, int column, float visualDuration)
 {
+	if (IsBungeeTargeted()) return;
 	// 逻辑格和碰撞箱必须在同一帧落到目标格；旧画面位置只作为瞬态绘制偏移保留。
 	const Vector currentVisualBase = GetPosition() + mGridMoveVisualOffset;
 	const Vector target = mBoard
@@ -313,6 +314,7 @@ void Plant::UpdateGridMoveVisual()
 
 void Plant::Draw(Graphics* g)
 {
+	if (mBungeeState == PlantBungeeState::RISING) return;
 	if (!mIsPreview && !mIsSquished && mBoard) {
 		Plant* pumpkin = mBoard->GetPumpkinAt(mRow, mColumn);
 		Plant* normal = mBoard->GetNormalPlantAt(mRow, mColumn);
@@ -343,4 +345,52 @@ void Plant::Draw(Graphics* g)
 	// 颜色是 0..255 范围（ToSDLColor 直接 static_cast，不乘 255），勿写成 0..1 否则全透明隐形
 	const glm::vec4 green(0.0f, 255.0f, 0.0f, 255.0f);
 	g->DrawGlyphRun(text, ResourceKeys::Fonts::FONT_FZCQ, 17, green, pos.x, pos.y);
+}
+
+bool Plant::BeginBungeeGrab(int zombieID)
+{
+	if (mIsPreview || mIsSquished || zombieID == NULL_ZOMBIE_ID
+		|| (IsBungeeTargeted() && mBungeeOwnerZombieID != zombieID)) {
+		return false;
+	}
+	mBungeeState = PlantBungeeState::GRABBING;
+	mBungeeOwnerZombieID = zombieID;
+	mBungeeVisualOffset = Vector::zero();
+	if (mCollider) mCollider->mEnabled = false;
+	if (auto* shadow = GetComponent<ShadowComponent>()) shadow->SetVisible(false);
+	return true;
+}
+
+bool Plant::BeginBungeeLift(int zombieID)
+{
+	if (mBungeeState != PlantBungeeState::GRABBING
+		|| mBungeeOwnerZombieID != zombieID) {
+		return false;
+	}
+	mBungeeState = PlantBungeeState::RISING;
+	return true;
+}
+
+void Plant::CancelBungeeGrab(int zombieID)
+{
+	if (!IsBungeeTargeted() || mBungeeOwnerZombieID != zombieID) return;
+	mBungeeState = PlantBungeeState::NONE;
+	mBungeeOwnerZombieID = NULL_ZOMBIE_ID;
+	mBungeeVisualOffset = Vector::zero();
+	if (mCollider) mCollider->mEnabled = true;
+	if (auto* shadow = GetComponent<ShadowComponent>()) shadow->SetVisible(true);
+}
+
+void Plant::SetBungeeVisualOffset(int zombieID, const Vector& offset)
+{
+	if (mBungeeState != PlantBungeeState::RISING
+		|| mBungeeOwnerZombieID != zombieID) return;
+	mBungeeVisualOffset = offset;
+}
+
+void Plant::DrawAsBungeeCargo(Graphics* g)
+{
+	if (mBungeeState == PlantBungeeState::RISING) {
+		AnimatedObject::Draw(g);
+	}
 }

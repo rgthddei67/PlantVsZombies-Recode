@@ -59,6 +59,7 @@ enum class ZombieType {
 	ZOMBIE_ELITE_DIGGER,		// 爆破工头：出土预警后爆破后排三列并持镐折返
 	ZOMBIE_POGO,			// 经典跳跳：反复弹跳越过植物，高坚果可击落跳杆
 	ZOMBIE_ELITE_POGO,		// 碳纤维精英跳跳：免疫磁力吸取并抵消首次高坚果阻拦
+	ZOMBIE_BUNGEE,			// 经典蹦极：定点下落后抓走一株植物并升空离场
 
 	// ↓ 哨兵：置于全部已实现僵尸之后，使 [0,NUM_ZOMBIE_TYPES) 只覆盖已实现类型，
 	//   生存模式随机抽取据此绝不会抽到下方未实现僵尸。
@@ -66,7 +67,6 @@ enum class ZombieType {
 	NUM_ZOMBIE_TYPES,
 
 	ZOMBIE_YETI,
-	ZOMBIE_BUNGEE,
 	ZOMBIE_LADDER,
 	ZOMBIE_CATAPULT,
 	ZOMBIE_GARGANTUAR,

@@ -69,6 +69,7 @@ struct Candidate {
 	int column = 0;
 	float x = 0.0f;
 	float y = 0.0f;
+	int targetPlantId = -1; // >=0 时候选动作只移除这株植物；-1 保持圆形范围伤害
 };
 
 struct Snapshot {

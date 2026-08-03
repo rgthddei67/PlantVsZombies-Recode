@@ -78,6 +78,8 @@ namespace ResourceKeys
 		RKEY(IMAGE_POOL_SHADING);
 		RKEY(IMAGE_POOL_SHADING_NIGHT);
 		RKEY(IMAGE_POOL_CAUSTIC_EFFECT);
+		RKEY(IMAGE_BUNGEECORD);             // 蹦极僵尸从屏幕顶端延伸的绳索段
+		RKEY(IMAGE_BUNGEETARGET);           // 蹦极僵尸下落前标记目标格的靶标
 		RKEY(IMAGE_FOG_PART_0);		// 四大关迷雾 RGBA 分份贴图（fog.png，1 行 8 列）
 		RKEY(IMAGE_FOG_PART_1);
 		RKEY(IMAGE_FOG_PART_2);
@@ -375,6 +377,10 @@ namespace ResourceKeys
 		RKEY(SOUND_DIRT_RISE);				// 矿工破土声
 		RKEY(SOUND_WAKEUP);					// 持镐矿工出土惊醒声
 		RKEY(SOUND_POGO_ZOMBIE);			// 跳跳僵尸每次落地前的弹簧声
+		RKEY(SOUND_GRASSSTEP);              // 蹦极僵尸开始下降时的草地踏步声
+		RKEY(SOUND_BUNGEE_SCREAM);          // 蹦极僵尸下降尖叫一
+		RKEY(SOUND_BUNGEE_SCREAM2);         // 蹦极僵尸下降尖叫二
+		RKEY(SOUND_BUNGEE_SCREAM3);         // 蹦极僵尸下降尖叫三
 
 		// 子弹击中僵尸
 		RKEY(SOUND_SNOW_PEA_SPARKLES);
@@ -457,6 +463,7 @@ namespace ResourceKeys
 		inline const std::string REANIM_ELITE_DIGGER_ZOMBIE = "EliteDigger";
 		inline const std::string REANIM_POGO_ZOMBIE = "ZombiePogo";
 		inline const std::string REANIM_ELITE_POGO_ZOMBIE = "ElitePogoZombie";
+		inline const std::string REANIM_BUNGEE_ZOMBIE = "ZombieBungi";
 		inline const std::string REANIM_DIGGER_RISING_DIRT = "DiggerRisingDirt";
 		inline const std::string REANIM_DIGGER_CHARRED = "DiggerCharred";
 		inline const std::string REANIM_ZOMBIE_SURPRISE = "ZombieSurprise";

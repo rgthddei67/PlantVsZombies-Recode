@@ -3518,11 +3518,14 @@ void Board::CreateTrophy(const Vector& position)
  */
 bool Board::PickMonteCarloPlantBlastTarget(
 	int minRow, int maxRow, int damage, float radius, int sourceZombieID,
-	int& targetRow, Vector& targetPosition, MonteCarloTargetStats* stats)
+	int& targetRow, Vector& targetPosition, MonteCarloTargetStats* stats,
+	const std::vector<int>* removalPlantIDs, int* selectedRemovalPlantID)
 {
 	using namespace PlantDefenseMonteCarlo;
+	const bool removalMode = removalPlantIDs != nullptr;
 	if (mRows <= 0 || mColumns <= 0 || mColumns * mRows > 64
-		|| damage <= 0 || radius <= 0.0f) {
+		|| (removalMode ? removalPlantIDs->empty()
+			: (damage <= 0 || radius <= 0.0f))) {
 		return false;
 	}
 	minRow = std::clamp(minRow, 0, mRows - 1);
@@ -3546,6 +3549,9 @@ bool Board::PickMonteCarloPlantBlastTarget(
 	const auto& gameData = GameDataManager::GetInstance();
 	const int backlineColumnCount = (mColumns + 1) / 2;
 	std::vector<std::pair<int, int>> candidateCells;
+	const std::unordered_set<int> eligibleRemovalIDs = removalMode
+		? std::unordered_set<int>(removalPlantIDs->begin(), removalPlantIDs->end())
+		: std::unordered_set<int>();
 	std::vector<int> plantIDs = mEntityManager.GetAllPlantIDs();
 	std::sort(plantIDs.begin(), plantIDs.end());
 	snapshot.plants.reserve(plantIDs.size());
@@ -3592,20 +3598,29 @@ bool Board::PickMonteCarloPlantBlastTarget(
 			plant->mPlantType == PlantType::PLANT_PUMPKINSHELL
 		});
 
-		if (plant->mRow >= minRow && plant->mRow <= maxRow) {
+		if (removalMode && eligibleRemovalIDs.find(plantID) != eligibleRemovalIDs.end()) {
+			const Vector center = GetCellCenterPosition(plant->mRow, plant->mColumn);
+			snapshot.candidates.push_back({
+				plant->mRow, plant->mColumn, center.x, center.y, plantID
+			});
+		}
+		else if (!removalMode
+			&& plant->mRow >= minRow && plant->mRow <= maxRow) {
 			candidateCells.emplace_back(plant->mRow, plant->mColumn);
 		}
 	}
-	std::sort(candidateCells.begin(), candidateCells.end());
-	candidateCells.erase(
-		std::unique(candidateCells.begin(), candidateCells.end()),
-		candidateCells.end());
-	snapshot.candidates.reserve(candidateCells.size());
-	for (const auto& cell : candidateCells) {
-		const Vector center = GetCellCenterPosition(cell.first, cell.second);
-		snapshot.candidates.push_back({
-			cell.first, cell.second, center.x, center.y
-		});
+	if (!removalMode) {
+		std::sort(candidateCells.begin(), candidateCells.end());
+		candidateCells.erase(
+			std::unique(candidateCells.begin(), candidateCells.end()),
+			candidateCells.end());
+		snapshot.candidates.reserve(candidateCells.size());
+		for (const auto& cell : candidateCells) {
+			const Vector center = GetCellCenterPosition(cell.first, cell.second);
+			snapshot.candidates.push_back({
+				cell.first, cell.second, center.x, center.y
+			});
+		}
 	}
 	if (snapshot.candidates.empty()) return false;
 
@@ -3723,7 +3738,22 @@ bool Board::PickMonteCarloPlantBlastTarget(
 	const Candidate& chosen = snapshot.candidates[result.candidateIndex];
 	targetRow = chosen.row;
 	targetPosition = Vector(chosen.x, chosen.y);
+	if (selectedRemovalPlantID) {
+		*selectedRemovalPlantID = chosen.targetPlantId;
+	}
 	return true;
+}
+
+bool Board::PickMonteCarloPlantRemovalTarget(
+	const std::vector<int>& eligiblePlantIDs, int sourceZombieID,
+	int& targetPlantID, MonteCarloTargetStats* stats)
+{
+	int targetRow = -1;
+	Vector targetPosition;
+	targetPlantID = NULL_PLANT_ID;
+	return PickMonteCarloPlantBlastTarget(
+		0, std::max(0, mRows - 1), 0, 0.0f, sourceZombieID,
+		targetRow, targetPosition, stats, &eligiblePlantIDs, &targetPlantID);
 }
 
 bool Board::CanPlantAt(PlantType type, int row, int col)

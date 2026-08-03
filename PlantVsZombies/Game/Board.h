@@ -382,7 +382,15 @@ public:
 	bool PickMonteCarloPlantBlastTarget(
 		int minRow, int maxRow, int damage, float radius, int sourceZombieID,
 		int& targetRow, Vector& targetPosition,
-		MonteCarloTargetStats* stats = nullptr);
+		MonteCarloTargetStats* stats = nullptr,
+		const std::vector<int>* removalPlantIDs = nullptr,
+		int* selectedRemovalPlantID = nullptr);
+	/**
+	 * @brief 用共享短视推演从给定植物 ID 中选择立即移除后对玩家损失最大的目标。
+	 */
+	bool PickMonteCarloPlantRemovalTarget(
+		const std::vector<int>& eligiblePlantIDs, int sourceZombieID,
+		int& targetPlantID, MonteCarloTargetStats* stats = nullptr);
 	/** 完成一次读档恢复，并在实体全部还原后立即同步派生的逐格迷雾。 */
 	void CompleteLoadRestore();
 	/** 返回 Board 是否仍处于关卡存档恢复生命周期。 */

@@ -55,6 +55,7 @@
 #include "../Zombie/EliteDiggerZombie.h"
 #include "../Zombie/PogoZombie.h"
 #include "../Zombie/ElitePogoZombie.h"
+#include "../Zombie/BungeeZombie.h"
 #include "../Zombie/PoolNormalZombie.h"
 #include "../Trophy.h"   // dump_state 输出奖杯坐标
 #include "../Crater.h"   // dump_state 输出毁灭菇弹坑
@@ -130,6 +131,33 @@ namespace {
 		case PogoZombie::Phase::HIGH_BOUNCE: return "HIGH_BOUNCE";
 		case PogoZombie::Phase::FORWARD_BOUNCE: return "FORWARD_BOUNCE";
 		case PogoZombie::Phase::WALKING: return "WALKING";
+		default: return "UNKNOWN";
+		}
+	}
+
+	const char* BungeePhaseName(BungeeZombie::Phase phase)
+	{
+		switch (phase) {
+		case BungeeZombie::Phase::DIVING: return "DIVING";
+		case BungeeZombie::Phase::AT_BOTTOM: return "AT_BOTTOM";
+		case BungeeZombie::Phase::GRABBING: return "GRABBING";
+		case BungeeZombie::Phase::RISING: return "RISING";
+		default: return "UNKNOWN";
+		}
+	}
+
+	const char* BungeeTargetModeName(BungeeZombie::TargetMode mode)
+	{
+		return mode == BungeeZombie::TargetMode::MONTE_CARLO
+			? "MONTE_CARLO" : "RANDOM";
+	}
+
+	const char* PlantBungeeStateName(PlantBungeeState state)
+	{
+		switch (state) {
+		case PlantBungeeState::NONE: return "NONE";
+		case PlantBungeeState::GRABBING: return "GRABBING";
+		case PlantBungeeState::RISING: return "RISING";
 		default: return "UNKNOWN";
 		}
 	}
@@ -1089,6 +1117,40 @@ bool TestDriver::ExecuteCurrent() {
 		Fail("set_pogo_bounce_remaining: 未找到目标跳跳僵尸");
 		return false;
 	}
+	if (op == "set_bungee_altitude" || op == "set_bungee_bottom_countdown") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) {
+			Fail(op + ": 不在 GameScene 或 Board 为空");
+			return false;
+		}
+		const int index = cmd.value("index", 0);
+		const int row = cmd.value("row", -1);
+		const float value = cmd.value("value", -1.0f);
+		if (value < 0.0f) {
+			Fail(op + ": value 必须大于等于 0");
+			return false;
+		}
+		int seen = 0;
+		std::vector<int> zombieIDs =
+			gs->GetBoard()->mEntityManager.GetAllZombieIDs();
+		std::sort(zombieIDs.begin(), zombieIDs.end());
+		for (const int id : zombieIDs) {
+			auto* bungee = dynamic_cast<BungeeZombie*>(
+				gs->GetBoard()->mEntityManager.GetZombie(id));
+			if (!bungee || !bungee->IsActive()) continue;
+			if (row >= 0 && bungee->mRow != row) continue;
+			if (seen++ != index) continue;
+			if (op == "set_bungee_altitude") {
+				bungee->SetAltitudeForTesting(value);
+			}
+			else {
+				bungee->SetBottomWaitForTesting(value);
+			}
+			return true;
+		}
+		Fail(op + ": 未找到目标蹦极僵尸");
+		return false;
+	}
 	if (op == "digger_lose_pickaxe") {
 		GameScene* gs = CurrentGameScene();
 		if (!gs || !gs->GetBoard()) {
@@ -1741,6 +1803,12 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_WAKEUP);
 	out["pogoSoundRequestCount"] =
 		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_POGO_ZOMBIE);
+	out["bungeeScreamSoundRequestCount"] =
+		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_BUNGEE_SCREAM)
+		+ AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_BUNGEE_SCREAM2)
+		+ AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_BUNGEE_SCREAM3);
+	out["bungeeGrassstepSoundRequestCount"] =
+		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_GRASSSTEP);
 	out["magnetSoundRequestCount"] =
 		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_MAGNETSHROOM);
 	out["magnetResources"] = {
@@ -1826,6 +1894,23 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			ResourceKeys::Textures::IMAGE_ZOMBIE_ELITE_POGO_STICK2DAMAGE2, false) != nullptr },
 		{ "pogoParticleLoaded", ResourceManager::GetInstance().GetTexture(
 			ResourceKeys::Particles::PARTICLE_ZOMBIEELITEPOGO_PART_2, false) != nullptr },
+	};
+	out["bungeeResources"] = {
+		{ "reanimationLoaded", ResourceManager::GetInstance().HasReanimation(
+			ResourceKeys::Reanimations::REANIM_BUNGEE_ZOMBIE) },
+		{ "cordLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_BUNGEECORD, false) != nullptr },
+		{ "targetLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_BUNGEETARGET, false) != nullptr },
+		{ "soundsLoaded",
+			ResourceManager::GetInstance().GetSound(
+				ResourceKeys::Sounds::SOUND_GRASSSTEP) != nullptr
+			&& ResourceManager::GetInstance().GetSound(
+				ResourceKeys::Sounds::SOUND_BUNGEE_SCREAM) != nullptr
+			&& ResourceManager::GetInstance().GetSound(
+				ResourceKeys::Sounds::SOUND_BUNGEE_SCREAM2) != nullptr
+			&& ResourceManager::GetInstance().GetSound(
+				ResourceKeys::Sounds::SOUND_BUNGEE_SCREAM3) != nullptr },
 	};
 	out["pumpkinResources"] = {
 		{ "reanimationLoaded", ResourceManager::GetInstance().HasReanimation(
@@ -2719,6 +2804,28 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			++elitePogoZombieCount;
 			zombieState["elitePogoImpactBufferAvailable"] = elitePogo->HasImpactBuffer();
 		}
+		if (auto* bungee = dynamic_cast<BungeeZombie*>(z)) {
+			const MonteCarloTargetStats& stats = bungee->GetMonteCarloStats();
+			zombieState["bungeePhase"] = BungeePhaseName(bungee->GetPhase());
+			zombieState["bungeeTargetMode"] =
+				BungeeTargetModeName(bungee->GetTargetMode());
+			zombieState["bungeeAltitudeInt"] = static_cast<int>(std::lround(
+				bungee->GetAltitude()));
+			zombieState["bungeePhaseTimerMs"] = static_cast<int>(std::lround(
+				bungee->GetPhaseTimer() * 1000.0f));
+			zombieState["bungeeTargetRow"] = bungee->GetTargetRow();
+			zombieState["bungeeTargetColumn"] = bungee->GetTargetColumn();
+			zombieState["bungeeTargetPlantID"] = bungee->GetTargetPlantID();
+			zombieState["bungeeTargetInitialized"] = bungee->HasSelectedTarget();
+			zombieState["bungeeTargetableGround"] =
+				bungee->CanBeTargetedByProjectile(false);
+			zombieState["bungeeMonteCarloRolloutCount"] = stats.rolloutCount;
+			zombieState["bungeeMonteCarloCandidateCount"] = stats.candidateCount;
+			zombieState["bungeeMonteCarloZombieCount"] = stats.sampledZombieCount;
+			zombieState["bungeeMonteCarloCardCount"] = stats.cardCount;
+			zombieState["bungeeMonteCarloBestScoreOn100"] =
+				static_cast<int>(std::lround(stats.bestScore * 100.0f));
+		}
 		if (auto* eliteJack = dynamic_cast<EliteJackInTheBoxZombie*>(z)) {
 			++eliteJackZombieCount;
 			zombieState["jackPhase"] = JackPhaseName(eliteJack->GetPhase());
@@ -2958,6 +3065,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "hasShadow", p->GetComponent<ShadowComponent>() != nullptr },
 			{ "sunProductionMultiplierPct", static_cast<int>(std::lround(
 				board->GetPlanternSunProductionMultiplier(p) * 100.0f)) },
+			{ "bungeeState", PlantBungeeStateName(p->GetBungeeState()) },
+			{ "bungeeOwnerZombieID", p->GetBungeeOwnerZombieID() },
 		};
 		if (const auto* shadow = p->GetComponent<ShadowComponent>()) {
 			plantState["shadowOffsetXInt"] = static_cast<int>(std::lround(

@@ -1,0 +1,17 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 37, "resetTestState": true },
+    { "op": "assert_state", "path": "background", "equals": "ROOF" },
+    { "op": "choose_cards", "cards": ["PLANT_WALLNUT"] },
+    { "op": "wait_state", "state": "GAME", "timeout": 15 },
+    { "op": "set_spawn_paused", "value": true },
+    { "op": "spawn_zombie", "type": "ZOMBIE_BUNGEE", "row": 0, "x": 950 },
+    { "op": "wait_frames", "value": 3 },
+    { "op": "set_bungee_altitude", "value": 0 },
+    { "op": "wait_frames", "value": 2 },
+    { "op": "assert_state", "path": "zombies.0.bungeePhase", "equals": "AT_BOTTOM" },
+    { "op": "screenshot", "name": "01_bungee_roof_rope_alignment.png" },
+    { "op": "dump_state", "name": "bungee_roof_rope_alignment.json" },
+    { "op": "quit" }
+  ]
+}

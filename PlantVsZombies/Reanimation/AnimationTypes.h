@@ -86,6 +86,7 @@ enum class AnimationType
 	ANIM_ROOF_CLEANER, // 屋顶专属清洁车；追加在末尾避免旧动画枚举值错位
 	ANIM_FLOWERPOT, // 经典花盆；追加在末尾避免旧动画枚举值错位
 	ANIM_CABBAGEPULT, // 经典卷心菜投手；追加在末尾避免旧动画枚举值错位
+	ANIM_BUNGEE_ZOMBIE, // 经典蹦极僵尸；追加在末尾避免旧动画枚举值错位
 };
 
 #endif

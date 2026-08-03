@@ -15,9 +15,16 @@
 #include "../EntityManager.h"
 #include "../DamageSource.h"
 #include "../Zombie/ZombieJumpType.h"
+#include "../Zombie/ZombieType.h"
 
 class Board;
 class Zombie;
+
+enum class PlantBungeeState {
+	NONE,
+	GRABBING,
+	RISING,
+};
 
 class Plant : public AnimatedObject {
 public:
@@ -42,6 +49,9 @@ protected:
 	Vector mGridMoveVisualStart;  // 本次平滑位移的起始偏移，用于无漂移插值
 	float mGridMoveVisualTimer = 0.0f;
 	float mGridMoveVisualDuration = 0.0f;
+	PlantBungeeState mBungeeState = PlantBungeeState::NONE;
+	int mBungeeOwnerZombieID = NULL_ZOMBIE_ID;
+	Vector mBungeeVisualOffset;
 
 public:
 	static constexpr float kFlowerPotVisualLiftY = -5.0f; // 上层植物相对花盆抬升量，单位：px
@@ -63,7 +73,9 @@ public:
 	// 统一结算植物承伤；source 必填，使僵尸增伤只作用于僵尸来源。
 	virtual void TakeDamage(int damage, DamageSource source);
 	/** 当前是否能被僵尸选为啃食目标；睡莲用它实现种下后的短暂无咬保护。 */
-	virtual bool CanBeEaten() const { return !mIsSquished; }
+	virtual bool CanBeEaten() const {
+		return !mIsSquished && mBungeeState == PlantBungeeState::NONE;
+	}
 	/** 僵尸正式啃食命中时的植物侧反馈入口；默认植物不产生专属碎屑。 */
 	virtual void OnZombieBite(const Vector&) {}
 	/** 是否能在当前跳跃类别的判定节点阻拦僵尸；高坚果等阻拦植物覆写此接口。 */
@@ -109,6 +121,21 @@ public:
 	 * 视觉偏移不入存档；滑动中读档会稳定落在已经结算的目标格。
 	 */
 	void MoveToGridCell(int row, int column, float visualDuration);
+	/** 由蹦极僵尸建立抓取关系；成功后暂停行为并关闭碰撞。 */
+	bool BeginBungeeGrab(int zombieID);
+	/** 把已抓植物切到升空态；只有当前抓取者能推进关系。 */
+	bool BeginBungeeLift(int zombieID);
+	/** 抓取者落地阶段死亡时恢复植物行动和碰撞。 */
+	void CancelBungeeGrab(int zombieID);
+	/** 更新升空视觉偏移；逻辑格在真正偷走前保持不变。 */
+	void SetBungeeVisualOffset(int zombieID, const Vector& offset);
+	/** 供蹦极僵尸在本体与前臂之间绘制升空植物。 */
+	void DrawAsBungeeCargo(Graphics* g);
+	PlantBungeeState GetBungeeState() const { return mBungeeState; }
+	int GetBungeeOwnerZombieID() const { return mBungeeOwnerZombieID; }
+	bool IsBungeeTargeted() const {
+		return mBungeeState != PlantBungeeState::NONE;
+	}
 
 	// 获取睡觉状态
 	bool GetSleepState() const { return this->mIsSleeping; }

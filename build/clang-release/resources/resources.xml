@@ -13,6 +13,8 @@
     <Image>./resources/image/ice_cap.png</Image>
     <Image>./resources/image/golden_ice.png</Image>
     <Image>./resources/image/golden_ice_cap.png</Image>
+    <Image>./resources/image/BungeeCord.png</Image>
+    <Image>./resources/image/BungeeTarget.png</Image>
 
     <Image Column="8" Row="1">./resources/image/fog.png</Image>
     <Image>./resources/image/MistFuel.png</Image>
@@ -296,6 +298,10 @@
     <Sound>./resources/sounds/Zombie/dirt_rise.ogg</Sound>
     <Sound>./resources/sounds/Zombie/wakeup.ogg</Sound>
     <Sound>./resources/sounds/Zombie/pogo_zombie.ogg</Sound>
+    <Sound>./resources/sounds/Zombie/grassstep.ogg</Sound>
+    <Sound>./resources/sounds/Zombie/bungee_scream.ogg</Sound>
+    <Sound>./resources/sounds/Zombie/bungee_scream2.ogg</Sound>
+    <Sound>./resources/sounds/Zombie/bungee_scream3.ogg</Sound>
 
     <Sound>./resources/sounds/Plant/ClickSeed.ogg</Sound>
     <Sound>./resources/sounds/Plant/deleteplant.ogg</Sound>
@@ -420,6 +426,8 @@
     <Reanimation name="ZombieSurprise">./resources/reanim/Zombie_surprise.reanim</Reanimation>
     <Reanimation name="ZombiePogo">./resources/reanim/Zombie_pogo.reanim</Reanimation>
     <Reanimation name="ElitePogoZombie">./resources/reanim/ElitePogo.reanim</Reanimation>
+
+    <Reanimation name="ZombieBungi">./resources/reanim/Zombie_bungi.reanim</Reanimation>
 
     <Reanimation name="Zombie_Charred">./resources/reanim/Zombie_Charred.reanim</Reanimation>
     <Reanimation name="Zamboni_Charred">./resources/reanim/Zombie_charred_zamboni.reanim</Reanimation>

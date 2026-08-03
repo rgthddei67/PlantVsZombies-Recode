@@ -211,6 +211,17 @@ namespace {
 	void ApplyCandidateImpact(
 		SimulationState& state, const Candidate& candidate, const Config& config)
 	{
+		if (candidate.targetPlantId >= 0) {
+			for (int i = 0; i < state.plantCount; ++i) {
+				SimPlant& plant = state.plants[i];
+				if (IsAlive(plant) && plant.id == candidate.targetPlantId) {
+					plant.health = 0.0f;
+					return;
+				}
+			}
+			return;
+		}
+
 		std::array<bool, kMaxSimulationPlants> normalHits{};
 		std::array<bool, kMaxSimulationPlants> pumpkinHits{};
 		for (int i = 0; i < state.plantCount; ++i) {
@@ -581,6 +592,8 @@ Result ChooseTarget(const Snapshot& snapshot, const Config& config, std::uint32_
 	}
 
 	float bestScore = std::numeric_limits<float>::lowest();
+	std::mt19937 tieRandom(seed ^ 0x9E3779B9u);
+	int tiedBestCount = 0;
 	for (std::size_t candidateIndex = 0;
 		candidateIndex < snapshot.candidates.size(); ++candidateIndex) {
 		float totalLoss = 0.0f;
@@ -602,9 +615,19 @@ Result ChooseTarget(const Snapshot& snapshot, const Config& config, std::uint32_
 			totalCoordinationLoss / static_cast<float>(result.rolloutCount);
 		if (averageLoss > bestScore + kScoreTieEpsilon) {
 			bestScore = averageLoss;
+			tiedBestCount = 1;
 			result.candidateIndex = static_cast<int>(candidateIndex);
 			result.score = averageLoss;
 			result.coordinationLoss = averageCoordinationLoss;
+		}
+		else if (std::abs(averageLoss - bestScore) <= kScoreTieEpsilon) {
+			++tiedBestCount;
+			std::uniform_int_distribution<int> chooseTie(1, tiedBestCount);
+			if (chooseTie(tieRandom) == 1) {
+				result.candidateIndex = static_cast<int>(candidateIndex);
+				result.score = averageLoss;
+				result.coordinationLoss = averageCoordinationLoss;
+			}
 		}
 	}
 	return result;
