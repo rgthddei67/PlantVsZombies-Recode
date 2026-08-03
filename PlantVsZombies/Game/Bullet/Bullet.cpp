@@ -59,13 +59,13 @@ namespace {
 		{ BulletType::BULLET_PUFF,       BulletWindResponse::LIGHT_PROJECTILE },
 		{ BulletType::BULLET_WINTERMELON, BulletWindResponse::NONE },
 		{ BulletType::BULLET_FIREBALL,   BulletWindResponse::LIGHT_PROJECTILE },
-		{ BulletType::BULLET_STAR,       BulletWindResponse::NONE },
+		{ BulletType::BULLET_STAR,       BulletWindResponse::LIGHT_PROJECTILE },
 		{ BulletType::BULLET_SPIKE,      BulletWindResponse::NONE },
 		{ BulletType::BULLET_BASKETBALL, BulletWindResponse::NONE },
 		{ BulletType::BULLET_KERNEL,     BulletWindResponse::NONE },
 		{ BulletType::BULLET_COBBIG,     BulletWindResponse::NONE },
 		{ BulletType::BULLET_BUTTER,     BulletWindResponse::NONE },
-		{ BulletType::BULLET_ZOMBIE_PEA, BulletWindResponse::NONE },
+		{ BulletType::BULLET_ZOMBIE_PEA, BulletWindResponse::LIGHT_PROJECTILE },
 		{ BulletType::BULLET_TOXICPEA,   BulletWindResponse::LIGHT_PROJECTILE },
 		{ BulletType::BULLET_TOXICFIREBALL, BulletWindResponse::LIGHT_PROJECTILE },
 	};
@@ -711,7 +711,10 @@ void Bullet::HitFireballZombie(Zombie* zombie)
 	}
 
 	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_IGNITE, 0.35f);
-	zombie->RemoveColdEffects();
+	if (!toxicFireball)
+	{
+		zombie->RemoveColdEffects();
+	}
 
 	std::vector<Zombie*> secondaryTargets;
 	const float impactX = GetPosition().x;
