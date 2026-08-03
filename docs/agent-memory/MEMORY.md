@@ -10,7 +10,7 @@
 - [仙人掌与帧伤尖刺](project_pvz_cactus_frame_damage.md) — 2026-07-30 `PLANT_CACTUS` 已接入空/地分层索敌：地面第26帧、高姿态第70帧发射 `BULLET_SPIKE`，空中目标优先驱动伸长；弹丸命中层随对象池复位和存档；既有地面首发节奏、逐逻辑帧3伤、持门降至1、跨倍速等伤与四目标穿透均经可见回归
 - [经典三叶草](project_pvz_blover.md) — 2026-07-30 `PLANT_BLOVER`：100 阳光、10 秒冷却，第44帧按卡槽右键方向结算；卡图独立×0.9；气球朝屋后以600px/s累计滑行400px，朝前线滑出屏幕后死亡；台风中同步改持续风和活动阵风，不驱散迷雾；连续版本已编译、主人亲测待完成
 - [经典杨桃与五向星弹](project_pvz_starfruit.md) — 2026-07-31 `PLANT_STARFRUIT`：125 阳光、7.5 秒冷却，第27帧同帧发出左/上/下/右上/右下五颗20伤星弹；复刻 C# 跨行预测索敌、随机自旋、动态行碰撞、对象池与存档，命中用 `StarSplat`；原版杨桃不画通用植物影子；`clang-release` 默认/NoInstance 可见专项均通过
-- [经典卷心菜投手与解析抛物线](project_pvz_cabbagepult.md) — 2026-08-03 `PLANT_CABBAGEPULT`：100阳光、7.5秒、40伤、第43帧发射；1.2秒/210px解析抛物线使用目标公开速度预判，不移植原版僵尸类型固定偏移；末段碰撞、对象池、存档、CabbageSplat、屋顶与默认/NoInstance可见专项闭环
+- [经典卷心菜投手与解析抛物线](project_pvz_cabbagepult.md) — 2026-08-03 `PLANT_CABBAGEPULT`：100阳光、7.5秒、40伤、第43帧发射；1.2秒/210px解析抛物线使用目标公开速度预判，不移植原版僵尸类型固定偏移；直击绕过普通二类护盾但由加固铁门目标侧否决；末段碰撞、对象池、存档、CabbageSplat、屋顶与默认/NoInstance闭环
 - [毒囊射手与目标级叠毒](project_pvz_toxic_peashooter.md) — 2026-08-03 `PLANT_TOXICPEASHOOTER` 为3-8奖励：125阳光、15直击、每层6秒/0.4秒1伤、每目标共享上限5层；第六发刷新最短层，火炬转独立紫焰毒火豆，30px内直击/溅射目标均附毒，魅惑清毒；五层计时/余量入档，纯紫子弹/命中粒子、盾牌/倍速/对象池专项
 - [经典南瓜头与第三植物层](project_pvz_pumpkin_shell.md) — 2026-08-02 `PLANT_PUMPKINSHELL`：125 阳光、30 秒冷却、4000 生命；独立 pumpkin 层可包住普通植物，顶层优先啃食/铲除；精英小丑与粉色橄榄球范围伤害按格只打外壳一次并输入 6 倍，爆破工头独立 5 倍，普通小丑不变；前后片夹层、叠层血量上下分行、两档破损、ChompSoft、水池三层、存档、台风与可见专项闭环
 - [经典磁力菇与僵尸装备剥离契约](project_pvz_magnetshroom.md) — 2026-08-02 `PLANT_MAGNETSHROOM`：100 阳光、7.5 秒卡冷却、15 秒吸取充能；目标侧虚接口原子剥离当前金属装备且不触发破甲副作用，离体贴图按 5%/固定步趋近并完整入档；加固铁门、精英小丑、爆破工头免疫；C# 左上角目标偏移按缩放后贴图半尺寸换算为 C++ 绘制中心；行为专项此前通过，最新锚点修复仅完成 clang-release 编译、待主人视觉复验
@@ -91,7 +91,7 @@
 - [生存刷怪轮次表+随机子集池](project_pvz_survival_spawn_round_table.md) — 2026-07-18 在原数据化轮次表上新增最终最多8种(含普通)+基础数量随机±1~2；排除weight<=0召唤单位避免占池位；固定Seed验第3/6/13/40轮为4/2/8/6种；**weight仍一物两用，抽中调制与点数成本严禁混用**
 - [GameSelectScene+多地形无尽](project_pvz_gameselect_scene_night_endless.md) — 2026-07-29 选择页现有白天1000、黑夜1001、泳池1002三种无尽；泳池卡复用 `Almanac_GroundPool`，独立关卡存档，继承 `WATER_POOL` 六行、水路与天气系统
 - [大喷菇攻击补全+护盾穿透 ✅已push](project_pvz_fumeshroom_attack.md) — 2026-06-24(e443375)FumeAttack第27帧对本行[0,380]锥形20伤害;**Zombie::TakeDamage加penetrateShield还原穿透二类护盾(铁门/报纸不穿头盔)**;仅FastPaper/FastBucket透传;Gloom升级可复用
-- [僵尸分层受击闪烁](project_pvz_zombie_damage_flash.md) — 2026-08-01 复刻原版双计时器：本体/头盔/飞行额外生命与二类护盾按实际扣血独立闪白，普通正面弹只闪盾、大喷穿透才全闪；Animator 轨道覆盖的实例化与 NoInstance 路径均经可见专项验证
+- [僵尸分层受击闪烁](project_pvz_zombie_damage_flash.md) — 2026-08-03 本体/头盔/飞行额外生命与二类护盾按实际扣血独立闪白；方向背击与弹丸主动绕盾统一由 `TakeProjectileDamage` 路由，目标可否决主动绕盾；Animator 轨道覆盖的实例化与 NoInstance 路径已有可见专项基线
 - [小阳光/SunShroom/存档审查](project_pvz_smallsun_sunshroom_review.md) — 2026-06-23(53657f2..133a9f1)无严重bug;真实发现都是cleanup/注释/极小边界(SunShroom.h缺guard等)
 - [Animator播放状态机存读档修复 ✅已push](project_pvz_animator_playstate_save_fix.md) — PlayTrackOnce完整保存播放状态、目标轨道、返回速度与返回混合；2026-07-30新增独立`returnTrackBlendTime`，默认0.5兼容旧调用/旧档，零混合包装轨不再靠品种特判；save/load reconciliation同族见 [project_pvz_zombie_eat_walk_state_machine](project_pvz_zombie_eat_walk_state_machine.md)
 - [Shooter头部动画存档+AutoTest只读读档](project_pvz_shooter_head_anim_save_autotest_load.md) — 2026-07-18 修子Animator只存轨道/帧导致射击永久PLAY_REPEAT；完整保存头部播放状态+双发两发间瞬态，旧档shooting按一次性恢复；`-AutoTestLoadSave`仅放行关卡读档、保存/删除仍短路，真实level1001 RED(循环3)→GREEN(循环0/子弹0/哈希不变)

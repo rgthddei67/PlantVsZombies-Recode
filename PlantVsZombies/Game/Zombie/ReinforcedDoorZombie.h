@@ -26,6 +26,10 @@ public:
 	bool BlocksFumePiercing() const override {
 		return mShieldType != ShieldType::SHIELDTYPE_NONE;
 	}
+	/** 持有加固门时拒绝特殊弹丸主动绕盾；从背后命中仍沿用通用方向判定。 */
+	bool BlocksProjectileShieldBypass() const override {
+		return mShieldType != ShieldType::SHIELDTYPE_NONE;
+	}
 	int ModifyFumeDamage(int damage) const override;
 	int ModifySpikeFrameDamage(int damage, bool bypassShield = false) const override;
 	bool TakePlantInstantKill() override;

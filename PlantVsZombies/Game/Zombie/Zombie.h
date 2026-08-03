@@ -113,11 +113,12 @@ public:
 	virtual void TakeDamage(int damage, DamageSource source, bool penetrateShield = false,
 		bool discardShieldOverflow = false, bool bypassShield = false);
 	/**
-	 * 子弹伤害统一入口：按命中时的真实水平速度判断正面护盾或背面后层。
-	 * 后续直线、反向与追踪子弹均应走此入口，不按 BulletType 建立绕盾白名单。
+	 * 子弹伤害统一入口：先按命中时的真实水平速度判断正面护盾或背面后层，
+	 * 再处理弹丸主动请求的二类护盾绕过；目标可通过 BlocksProjectileShieldBypass 否决后者。
 	 */
 	void TakeProjectileDamage(int damage, DamageSource source, float velocityX,
-		bool penetrateShield = false, bool discardShieldOverflow = false);
+		bool penetrateShield = false, bool discardShieldOverflow = false,
+		bool requestsShieldBypass = false);
 	/** 植物爆炸的统一入口：默认按原版阈值化灰，否则走带 PLANT_ASH 分类的普通扣血链。 */
 	virtual void TakePlantAshDamage(int damage);
 	/** 大嘴花等植物直杀的统一入口；返回是否确实吞掉目标，以决定是否进入消化状态。 */
@@ -132,6 +133,8 @@ public:
 	virtual bool CanBeCharred() const { return !mInPool; }
 	/** 是否在当前状态截断大喷菇区域攻击；调用方必须在本次伤害结算前取值。 */
 	virtual bool BlocksFumePiercing() const { return false; }
+	/** 特殊弹丸主动请求无视二类护盾时，当前目标是否仍强制由护盾承伤。 */
+	virtual bool BlocksProjectileShieldBypass() const { return false; }
 	/** 调整大喷菇对本体的基础伤害；返回值随后统一进入词条与防具结算。 */
 	virtual int ModifyFumeDamage(int damage) const { return damage; }
 	/** 调整仙人掌尖刺每个 1x 碰撞帧的基础伤害；背击绕盾信息在倍速累计前一并传入。 */
@@ -174,10 +177,11 @@ public:
 	/** 当前自主行走是否朝战场前线（世界坐标 +X）；反向品种覆写后由位移、风速与预测共用。 */
 	virtual bool IsMovingRight() const { return mIsMindControlled; }
 	/**
-	 * 判断水平飞行的子弹是否从当前背面命中二类护盾持有者。
-	 * 子弹与面向同向时是从背后追上；velocityX=0 保留历史正面命中口径。
+	 * 判断子弹本次是否绕过二类护盾。背后追击保留物理绕盾语义；特殊弹丸的主动
+	 * 绕盾请求还必须通过目标自身的 BlocksProjectileShieldBypass 门禁。
 	 */
-	bool ShouldProjectileBypassShield(float velocityX) const;
+	bool ShouldProjectileBypassShield(
+		float velocityX, bool requestsShieldBypass = false) const;
 	/** 当前状态是否允许越过房屋失败线；地下、出土等特殊阶段可关闭。 */
 	virtual bool CanTriggerGameOver() const { return !IsMovingRight(); }
 

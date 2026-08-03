@@ -498,7 +498,10 @@ void Bullet::EnableThreepeaterMotion(int sourceRow)
 void Bullet::BulletHitZombie(Zombie* zombie)
 {
 	if (!zombie) return;
-	const bool bypassShield = zombie->ShouldProjectileBypassShield(mVelocityX);
+	// 卷心菜从上方砸向后层，普通二类护盾不参与承伤；不可绕过的加固防具由目标否决。
+	const bool requestsShieldBypass = mBulletType == BulletType::BULLET_CABBAGE;
+	const bool bypassShield = zombie->ShouldProjectileBypassShield(
+		mVelocityX, requestsShieldBypass);
 
 	if (mBulletType == BulletType::BULLET_FIREBALL
 		|| mBulletType == BulletType::BULLET_TOXICFIREBALL) {
@@ -515,7 +518,9 @@ void Bullet::BulletHitZombie(Zombie* zombie)
 	PlayStandardImpactSound(zombie, bypassShield);
 	// 风力先修正本发子弹的基础伤害，生存词条仍在 Zombie::TakeDamage 中统一且只缩放一次。
 	zombie->TakeProjectileDamage(
-		GetWindAdjustedDamage(), DamageSource::PLANT, mVelocityX);
+		GetWindAdjustedDamage(), DamageSource::PLANT, mVelocityX,
+		/*penetrateShield=*/false, /*discardShieldOverflow=*/false,
+		requestsShieldBypass);
 	// 直击死亡、魅惑或对象已回收时不得留下延迟伤害；具体门禁由目标集中维护。
 	if (mBulletType == BulletType::BULLET_TOXICPEA) {
 		zombie->ApplyToxinStack();

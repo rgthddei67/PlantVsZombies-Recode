@@ -912,20 +912,24 @@ bool Zombie::IsFireResistant() const
 		|| mShieldType == ShieldType::SHIELDTYPE_LADDER;
 }
 
-bool Zombie::ShouldProjectileBypassShield(float velocityX) const
+bool Zombie::ShouldProjectileBypassShield(
+	float velocityX, bool requestsShieldBypass) const
 {
-	if (mShieldType == ShieldType::SHIELDTYPE_NONE || velocityX == 0.0f) return false;
+	if (mShieldType == ShieldType::SHIELDTYPE_NONE) return false;
 
 	// 僵尸面向与自主移动方向一致；同向子弹是在其身后追上，未经过正面的二类护盾。
-	return (velocityX > 0.0f) == IsMovingRight();
+	if (velocityX != 0.0f && (velocityX > 0.0f) == IsMovingRight()) return true;
+
+	// 主动绕盾是弹丸能力；是否存在不可绕过的防具由目标自己声明，避免子弹侧维护品种表。
+	return requestsShieldBypass && !BlocksProjectileShieldBypass();
 }
 
 void Zombie::TakeProjectileDamage(
 	int damage, DamageSource source, float velocityX, bool penetrateShield,
-	bool discardShieldOverflow)
+	bool discardShieldOverflow, bool requestsShieldBypass)
 {
 	TakeDamage(damage, source, penetrateShield, discardShieldOverflow,
-		ShouldProjectileBypassShield(velocityX));
+		ShouldProjectileBypassShield(velocityX, requestsShieldBypass));
 }
 
 void Zombie::ApplyCharmEffects()
