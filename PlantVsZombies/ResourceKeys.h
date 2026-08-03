@@ -459,6 +459,7 @@ namespace ResourceKeys
 
 		inline const std::string REANIM_LAWNMOWER = "LawnMower";
 		inline const std::string REANIM_POOL_CLEANER = "PoolCleaner";
+		inline const std::string REANIM_ROOF_CLEANER = "RoofCleaner";
 		inline const std::string REANIM_POOL_SPLASH = "Splash";
 	}
 }

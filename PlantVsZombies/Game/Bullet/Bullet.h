@@ -63,6 +63,12 @@ protected:
 
 	// 按 C# Projectile.DrawShadow 的类型尺寸与棋盘行位置刷新阴影布局。
 	void UpdateShadowLayout(const Vector& position);
+	/** 返回当前弹丸在地形上的阴影基线；屋顶碰撞与阴影绘制必须共用同一采样。 */
+	float GetTerrainShadowY(const Vector& position) const;
+	/** 按经典弹型离地阈值判断平射弹是否撞上屋顶抬高区域。 */
+	bool HitsRoofTerrain(const Vector& position) const;
+	/** 播放无目标的地形命中特效并回收弹丸。 */
+	void HitRoofTerrain();
 	// 按当前可变子弹类型重建纹理或 FirePea.reanim 表现。
 	void ConfigurePresentation();
 	// 星弹纵向飞行时按当前 Board 网格更新碰撞行；其他子弹保持创建行。
@@ -146,6 +152,7 @@ public:
 	/** 设定本弹丸仅命中空中层或地面层目标。 */
 	void SetTargetsFlying(bool targetsFlying) { mTargetsFlying = targetsFlying; }
 	bool TargetsFlying() const { return mTargetsFlying; }
+	float GetTerrainShadowYForTesting() const { return GetTerrainShadowY(GetPosition()); }
 
 	int GetSortingKey() const override { return this->mRow; }
 	TransformComponent* GetTransformComponent() const { return mTransform; }

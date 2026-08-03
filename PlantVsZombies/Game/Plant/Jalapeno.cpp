@@ -81,12 +81,14 @@ void Jalapeno::IgniteRow()
 	mBoard->ShakeBoard(3.0f, -4.0f);
 
 	// C# DoFwoosh：十二段等距铺满战场，每段独立随机缩放、速率与水平翻面。
-	const float fireY = mBoard->GetCellCenterPosition(mRow, 0).y
-		- mBoard->GetCellHeight() * 0.5f + kFireTopOffsetY;
 	for (int i = 0; i < kFireSegmentCount; ++i) {
 		const float t = static_cast<float>(i) / static_cast<float>(kFireSegmentCount - 1);
 		// 主人校准：基点从草坪逻辑左缘开始；贴图自身再向左伸约 45px，刚好覆盖边界。
-		const Vector position(CELL_INITALIZE_POS_X + kFireSpanX * t, fireY);
+		const float fireX = CELL_INITALIZE_POS_X + kFireSpanX * t;
+		// C# 用每段 X+10 单独采样 GetPosYBasedOnRow；屋顶因此沿坡面铺开，平地结果不变。
+		const float fireY = mBoard->GetRowCenterYAtX(mRow, fireX + 10.0f)
+			- mBoard->GetCellHeight() * 0.5f + kFireTopOffsetY;
+		const Vector position(fireX, fireY);
 		GameObjectManager::GetInstance().CreateGameObjectImmediate<JalapenoFire>(
 			LAYER_EFFECTS_WORLD, mBoard, position,
 			GameRandom::Range(kFireMinScale, kFireMaxScale), GameRandom::Chance());

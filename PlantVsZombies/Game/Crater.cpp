@@ -67,6 +67,10 @@ void Crater::Draw(Graphics* g)
 			+ static_cast<float>(mColumn) * kPoolBobColumnPhase;
 		pos.y += std::sin(phase) * kPoolBobAmplitude;
 	}
+	else if (mBoard && mBoard->IsRoofBackground()) {
+		// 原版两套屋顶贴图拥有不同留白，必须与其斜坡/平台锚点偏移配套使用。
+		pos += mColumn < 5 ? Vector(16.0f, -16.0f) : Vector(18.0f, -9.0f);
+	}
 	g->DrawTexture(tex, pos.x, pos.y,
 		static_cast<float>(tex->width), static_cast<float>(tex->height),
 		0.0f, glm::vec4(255.0f, 255.0f, 255.0f, alpha));
@@ -92,7 +96,15 @@ const std::string& Crater::GetTextureKey() const
 			: IMAGE_CRATER_WATER_DAY_PART_0;
 	}
 
-	// TODO(roof): 屋顶玩法完成后，按斜坡/平面格接入已预留的 ROOF_LEFT/ROOF_CENTER 两套贴图与偏移。
+	if (mBoard && mBoard->IsRoofBackground()) {
+		if (mColumn < 5) {
+			return fading ? IMAGE_CRATER_ROOF_LEFT_PART_1
+				: IMAGE_CRATER_ROOF_LEFT_PART_0;
+		}
+		return fading ? IMAGE_CRATER_ROOF_CENTER_PART_1
+			: IMAGE_CRATER_ROOF_CENTER_PART_0;
+	}
+
 	return fading
 		? (night ? IMAGE_CRATER_FADING_PART_1 : IMAGE_CRATER_FADING_PART_0)
 		: (night ? IMAGE_CRATER_PART_1 : IMAGE_CRATER_PART_0);

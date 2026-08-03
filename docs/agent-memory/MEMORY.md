@@ -2,7 +2,7 @@
 
 > Codex routing: required always-on rules live in `../../AGENTS.md`; detailed build, AutoTest, architecture, resource, and implementation guidance lives in `../agent-guide/PROJECT_GUIDE.md`. The entries below are historical subsystem context and should be read only when relevant.
 
-- [屋顶地形与僵尸连续坡面](project_pvz_roof_terrain_foundation.md) — 2026-08-03 白天/黑夜屋顶背景已接入；5×9 网格用85px行高，前5列按20px离散抬升、坡顶X=642；Board提供连续1:4坡面，Zombie基类统一让普通/气球/矿工沿当前X贴坡，出生与读档复用row+x；花盆前非水生植物临时直占normal层，平射遮挡、抛物线、屋顶车与专属敌人延后
+- [屋顶地形与僵尸连续坡面](project_pvz_roof_terrain_foundation.md) — 2026-08-03 白天/黑夜屋顶共用 Board 连续1:4坡面；普通/气球/矿工、预览、出土裁剪、屋顶清洁车、逐段辣椒火焰、雨滴水花、弹坑、台风植物二维滑动与子弹阴影按语义消费；平射按品种高度撞坡，冰道仅画X>=642平台；禁止给通用Transform套坡；花盆前非水生植物临时直占normal层，投掷物与屋顶专属敌人延后；主人实玩验收且专项/相关回归可见通过
 - [架构边界、存档版本与技能审计门禁](project_pvz_architecture_boundaries.md) — 2026-08-03 `BoardPresentation` 取代 `Board::mGameScene`，Board 保持天气/波次/生存玩法唯一权威；`SceneManager` 明确单活动场景；玩家 schema v2 为已通关3-8的旧档补发前移后的毒囊射手，迁移保持事务式并有纯测试；每次任务提交前审计相关 skills
 - [经典海蘑菇](project_pvz_seashroom.md) — 2026-07-29 `PLANT_SEASHROOM`：0 阳光、10 秒冷却，只能直接种在空水格且占 normal 层；复用小喷菇 1.5 秒间隔/300px 短程孢子，第 33 帧发射，无陆地阴影并随水面浮动；白天睡眠与双绘制路径可见专项通过
 - [最终绘制坐标语义取证](project_pvz_render_coordinate_evidence.md) — 2026-07-27 AutoTest 从当前项目实际渲染路径导出植物/僵尸/动画特效的 Animator 世界包围盒，以及粒子最终矩形；断言使用相对视觉原点、发射点和最近实体 collider 的整数投影，默认实例化与 `-NoInstance` 可做同用例一致性核对，C# 800×600 绝对坐标只作行为语义参考
@@ -24,7 +24,7 @@
 - [精英海豚骑士僵尸](project_pvz_elite_dolphin_rider_zombie.md) — 2026-07-28 深蓝骑手+粉白海豚，700 HP、第一次成功越障保豚、第二次弃豚；高坚果在30%节点阻挡后承受500僵尸来源伤害；3-8 五类型20波教学池，正式波次每波最多1只且计数入档；独立换色资源与头粒子由25文件哈希脚本锁定
 - [僵尸图鉴随冒险进度解锁](project_pvz_zombie_almanac_progression.md) — 2026-07-27 图鉴累计 `mAdventureLevel - 1` 之前已通关关卡的 `spawnlists.json` 并按首次遭遇排序，当前关不提前泄露；舞王显式带出 `weight: 0` 伴舞；概率变异精英舞王只在正式实体创建成功后写 PlayerInfo 永久遭遇标记并额外解锁，直造/预览/读档不误记
 - [经典地刺](project_pvz_caltrop.md) — 2026-07-26 `PLANT_SPIKEWEED` 由 `Caltrop` 实装：免普通啃食，18fps 攻击动画在主人指定全局第25帧结算30px窄攻击带20伤害；水路禁种、最后地形保留集中入口且当前按普通地面；冰车虚事件触发扁胎、TirePop、轮胎碎屑/烟雾、wheelie特殊动画与2.8秒延时爆炸，为精英冰车覆写留底；可见专项与冰车回归通过
-- [冰车僵尸与冰道](project_pvz_zamboni_zombie.md) — 2026-07-26 原版冰车 1350 HP、右侧高速入场后减速、碾压植物、两段破损与二段烟雾；速度曲线以普通场景 `CELL_INITALIZE_POS_X` 为基准，屋顶留独立未核实入口；免疫寒冰且不会误播减速音效；碰撞/碾压/冰道统一锚定稳定视觉原点，低血量抖动±0.35px，烟雾相对视觉原点(-41,+95)；冰道出生即激活并铺到1100px右缘；普通死亡生成专属粒子，灰烬0.9且第53帧移除；地刺虚事件已接入扁胎音画与2.8秒延时死亡，雪橇小队枚举已删除；3-5 已接入并通过双Clang构建与可见专项 AutoTest
+- [冰车僵尸与冰道](project_pvz_zamboni_zombie.md) — 2026-08-03 原版冰车 1350 HP、右侧高速入场后减速、碾压植物、两段破损与二段烟雾；仍禁止正式屋顶出怪，但直造时屋顶冰道按原版只画坡顶X=642以右平台且保持水平；免疫寒冰且不会误播减速音效；碰撞/碾压/冰道统一锚定稳定视觉原点，低血量抖动±0.35px，烟雾相对视觉原点(-41,+95)；普通死亡专属粒子、0.9灰烬第53帧移除、地刺扁胎与2.8秒延时死亡均保留；3-5及可见回归通过
 - [鎏金冰车僵尸与黄色冰道](project_pvz_gilded_zamboni.md) — 2026-07-28 `ZOMBIE_GILDED_ZAMBONI`：2200 HP、基础驱动0.72、同波最多1只；只碾压本行植物，本行及相邻陆路仍铺35秒黄色冰道，水路不铺；黄色覆盖普通冰道显示并禁种；每个活跃来源把能力/寒冰/雨势/台风的非中性倍率按加速×2、减速÷2逐层强化，重叠来源可互相和共同加速，蓄势基础为6/10/14秒×2/×4/×8、受伤归零且场地强化后仍封顶×8；地刺100、大嘴花50且均不触发普通秒杀；24关3-6与宝开式图鉴已接入；死亡使用独立鎏金车辆碎片与金色爆炸云；来源专用弱索引/强快照已消除每只僵尸的相邻行全量扫描，并保持死亡后持久黄冰回退
 - [三线射手](project_pvz_threepeater.md) — 2026-07-24 三头视觉帧29/73/111，但按 C# 集中计数器只在帧73同帧创建三弹；逐头补 `inverse(basePose)`；顶/底越界弹折回本行且360/290px/s差速；斜向初速按地图行高缩放（草地300、泳池255px/s），水路僵尸碰撞框脱离+25px美术下沉；本次按主人要求只编译、不跑AutoTest
 - [火爆辣椒](project_pvz_jalapeno.md) — 2026-07-26 使用主人裁剪的0..19帧本体，第19帧引爆；12段火焰从`CELL_INITALIZE_POS_X`横铺750px并在第12帧消失；整行非魅惑目标先解冻/解减速再走1800灰烬伤害，水路保持水中死亡且睡莲不受影响；冰车合入后会把同行冰道剩余寿命压到0.2秒；双Clang预设及可见专项AutoTest通过

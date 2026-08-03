@@ -9,6 +9,11 @@
 
 namespace {
 	constexpr float kPoolCleanerClipSpeed = 35.0f / 12.0f; // 原版 35 FPS；本引擎参数是相对资源 12 FPS 的倍率
+	constexpr float kRoofCleanerClipSpeed = 70.0f / 12.0f; // 原版屋顶清洁车启动后按 70 FPS 循环
+	constexpr float kRoofCleanerIdleShadowOffsetX = 41.0f; // 待机缓存帧影子对齐轮组中心的水平偏移，单位：像素
+	constexpr float kRoofCleanerMovingShadowOffsetX = 31.0f; // 启动 reanim 车身左移 10px，影子同步补偿
+	constexpr float kRoofCleanerIdleShadowOffsetY = 22.0f; // 待机缓存帧影子垂直偏移，单位：像素
+	constexpr float kRoofCleanerMovingShadowOffsetY = 58.0f; // 启动 reanim 比待机帧下移 36px，影子同步补偿
 	constexpr float kPoolCleanerMoveSpeed = 230.0f * 2.5f / 3.33f; // 按原版水车/草车 2.5:3.33 的速度比换算
 	constexpr float kPoolTransitionDepth = 28.0f;           // 入水阶段最大视觉下沉距离，单位：像素
 	constexpr float kPoolCleanerInWaterLiftY = 13.0f;       // 水中稳态相对原下沉位置向上校正的像素数
@@ -43,6 +48,15 @@ Mower::Mower(Board* board, MowerType type, AnimationType animType, float x, floa
 		shadowcomponent->SetOffset(Vector(25, 50));
 		PlayTrack("anim_land", kPoolCleanerClipSpeed);
 		PauseAnimation();
+	}
+	else if (mMowerType == MowerType::ROOF) {
+		SetAnimationSpeed(kRoofCleanerClipSpeed);
+		SetCurrentFrame(0.0f);
+		PauseAnimation();
+		// RoofCleaner 的轮组中心偏右；影子贴在两轮之间，避免落到车身左下方。
+		shadowcomponent->SetOffset(Vector(
+			kRoofCleanerIdleShadowOffsetX, kRoofCleanerIdleShadowOffsetY));
+		shadowcomponent->SetScale(Vector(1.0f, 1.2f));
 	}
 
 	auto collider = GetColliderComponent();
@@ -83,6 +97,11 @@ void Mower::Trigger()
 		AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_POOL_CLEANER, 0.4f);
 		PlayTrack("anim_land", kPoolCleanerClipSpeed);
 	}
+	else if (mMowerType == MowerType::ROOF) {
+		AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_LAWNMOWER, 0.4f);
+		SetAnimationSpeed(kRoofCleanerClipSpeed);
+		PlayAnimation();
+	}
 	else {
 		AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_LAWNMOWER, 0.4f);
 		PlayTrack("anim_normal");
@@ -96,17 +115,40 @@ void Mower::Trigger()
 
 void Mower::Update()
 {
-	// 通用动画读档会恢复轨道状态但不保存 Pause；待机水路车每帧重申首帧冻结契约。
+	// 通用动画读档会恢复轨道状态但不保存 Pause；待机清洁车每帧重申首帧冻结契约。
 	if (mMowerType == MowerType::WATER && mState == MowerState::IDLE) {
 		PauseAnimation();
 	}
+	if (mMowerType == MowerType::ROOF) {
+		if (mState == MowerState::IDLE) PauseAnimation();
+		else if (!IsAnimationPlaying()) {
+			SetAnimationSpeed(kRoofCleanerClipSpeed);
+			PlayAnimation();
+		}
+		// 待机缓存帧与启动 reanim 的车身 Y 相差 36px；影子必须按状态同步，否则启动后会留在车顶。
+		if (auto shadow = GetComponent<ShadowComponent>()) {
+			shadow->SetOffset(Vector(
+				mState == MowerState::IDLE
+					? kRoofCleanerIdleShadowOffsetX : kRoofCleanerMovingShadowOffsetX,
+				mState == MowerState::IDLE
+					? kRoofCleanerIdleShadowOffsetY : kRoofCleanerMovingShadowOffsetY));
+		}
+	}
 	AnimatedObject::Update();
 
+	Vector pos = GetPosition();
+	if (mMowerType == MowerType::ROOF && mBoard) {
+		pos.y = mBoard->GetMowerTerrainY(mRow, pos.x + 40.0f);
+		SetPosition(pos);
+	}
 	if (mState != MowerState::MOVING) return;
 
 	float deltaTime = DeltaTime::GetDeltaTime();
-	Vector pos = GetPosition();
 	pos.x += mSpeed * deltaTime;
+	if (mMowerType == MowerType::ROOF && mBoard) {
+		// 车辆前缘是与 C# 一致的地面探针，穿过斜坡/平台折角时不会瞬移。
+		pos.y = mBoard->GetMowerTerrainY(mRow, pos.x + 40.0f);
+	}
 	SetPosition(pos);
 	if (mMowerType == MowerType::WATER) {
 		UpdatePoolState(deltaTime);
@@ -142,6 +184,12 @@ void Mower::SetPosition(const Vector& position)
 
 Vector Mower::GetVisualPosition() const
 {
+	if (mMowerType == MowerType::ROOF) {
+		// RoofCleaner 的资源原点与普通草车不同；保留原版待机缓存与启动 reanim 的两套偏移。
+		return AnimatedObject::GetVisualPosition()
+			+ (mState == MowerState::IDLE
+				? Vector(6.0f, -40.0f) : Vector(-4.0f, -4.0f));
+	}
 	float waterLiftY = 0.0f;
 	if (mMowerType == MowerType::WATER && mMowerHeight != MowerHeight::LAND) {
 		// 上移校正按当前入水深度渐进，避免 ENTERING/IN_POOL/EXITING 切换时画面跳变；

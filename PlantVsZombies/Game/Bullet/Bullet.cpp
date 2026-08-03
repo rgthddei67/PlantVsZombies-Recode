@@ -35,7 +35,6 @@ namespace {
 	constexpr float kThreepeaterVerticalSpeed = 300.0f; // C# 在 100px 草地行高下每 10ms 移动 3px，换算为每秒像素
 	constexpr float kThreepeaterDampingPerTick = 0.97f; // C# 每个 10ms 更新对纵向速度的衰减
 	constexpr float kOriginalTickSeconds = 0.01f;       // 原版 Projectile 更新步长，单位：秒
-	constexpr float kThreepeaterShadowOffsetY = 68.0f;  // 斜向豌豆从格心上方 40px 到地面影子的相对距离
 	constexpr float kStarSpinSpeedMin = 286.0f;         // 原版 0.05rad/厘秒换算后的最小自旋，单位：度/秒
 	constexpr float kStarSpinSpeedMax = 573.0f;         // 原版 0.10rad/厘秒换算后的最大自旋，单位：度/秒
 	constexpr float kStarShadowExtraOffsetY = 15.0f;    // C# 星弹初始化时额外下移阴影 15px
@@ -271,6 +270,11 @@ void Bullet::Update()
 			}
 			UpdateStarRow(position);
 		}
+		UpdateShadowLayout(position);
+		if (HitsRoofTerrain(position)) {
+			HitRoofTerrain();
+			return;
+		}
 		if (mThreepeaterMotion) {
 			// 用指数折算保持不同固定步长下与 C# “每 10ms ×0.97”相同的弧线。
 			mVelocityY *= std::pow(
@@ -352,19 +356,79 @@ void Bullet::UpdateShadowLayout(const Vector& position)
 			: ((mBulletType == BulletType::BULLET_FIREBALL
 				|| mBulletType == BulletType::BULLET_TOXICFIREBALL
 				|| mBulletType == BulletType::BULLET_SPIKE) ? 0.0f : 3.0f));
-	// 斜向豌豆从发射行地面起步并随本体一起汇入目标行；其发射点固定为格心上方 40px，
-	// 因而相对偏移恒为 68px。普通子弹仍直接锚定其碰撞行地面。
-	const float shadowOffsetY = mThreepeaterMotion
-		? kThreepeaterShadowOffsetY
-		: (mBoard
-			? mBoard->GetCellCenterPosition(mRow, 0).y
-			: CELL_INITALIZE_POS_Y + static_cast<float>(mRow) * CELL_COLLIDER_SIZE_Y
-				+ CELL_COLLIDER_SIZE_Y * 0.5f) + 28.0f
-				+ (mBulletType == BulletType::BULLET_STAR
-					? kStarShadowExtraOffsetY : 0.0f) - position.y;
+	const float shadowOffsetY = GetTerrainShadowY(position) - position.y;
 	mShadow->SetOffset(Vector(
 		shadowLeftOffset + shadowWidth * 0.5f,
 		shadowOffsetY));
+}
+
+float Bullet::GetTerrainShadowY(const Vector& position) const
+{
+	const float rowCenterY = mBoard
+		? mBoard->GetRowCenterYAtX(mRow, position.x)
+		: CELL_INITALIZE_POS_Y + static_cast<float>(mRow) * CELL_COLLIDER_SIZE_Y
+			+ CELL_COLLIDER_SIZE_Y * 0.5f;
+	return rowCenterY + 28.0f
+		+ (mBulletType == BulletType::BULLET_STAR ? kStarShadowExtraOffsetY : 0.0f);
+}
+
+bool Bullet::HitsRoofTerrain(const Vector& position) const
+{
+	if (!mBoard || !mBoard->IsRoofBackground() || mRow < 0 || mRow >= mBoard->mRows) {
+		return false;
+	}
+
+	float minimumClearance = 0.0f;
+	switch (mBulletType) {
+	case BulletType::BULLET_PEA:
+	case BulletType::BULLET_SNOWPEA:
+	case BulletType::BULLET_FIREBALL:
+	case BulletType::BULLET_SPIKE:
+	case BulletType::BULLET_TOXICPEA:
+	case BulletType::BULLET_TOXICFIREBALL:
+		minimumClearance = 28.0f;
+		break;
+	case BulletType::BULLET_PUFF:
+		minimumClearance = 0.0f;
+		break;
+	case BulletType::BULLET_STAR:
+		minimumClearance = 23.0f;
+		break;
+	default:
+		// 卷心菜、玉米、篮球等拥有独立抛射高度，不能套用平射弹的屋顶阈值。
+		return false;
+	}
+	return GetTerrainShadowY(position) - position.y < minimumClearance;
+}
+
+void Bullet::HitRoofTerrain()
+{
+	if (mHasHit) return;
+	mHasHit = true;
+	const Vector position = GetPosition();
+	if (mBulletType == BulletType::BULLET_FIREBALL
+		|| mBulletType == BulletType::BULLET_TOXICFIREBALL) {
+		AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_IGNITE, 0.35f);
+		const float impactOffsetX = mVelocityX < 0.0f
+			? -kFireballImpactOffsetX : kFireballImpactOffsetX;
+		GameObjectManager::GetInstance().CreateGameObject<FireballImpact>(
+			LAYER_EFFECTS_WORLD, mBoard,
+			position + Vector(impactOffsetX, kFireballImpactOffsetY),
+			IsToxicFireball());
+	}
+	else if (g_particleSystem) {
+		const char* effectName = nullptr;
+		switch (mBulletType) {
+		case BulletType::BULLET_SNOWPEA: effectName = "SnowPeaBulletHit"; break;
+		case BulletType::BULLET_PUFF: effectName = "PuffShroomHit"; break;
+		case BulletType::BULLET_TOXICPEA: effectName = "ToxicPeaBulletHit"; break;
+		case BulletType::BULLET_PEA: effectName = "PeaBulletHit"; break;
+		case BulletType::BULLET_STAR: effectName = "StarSplat"; break;
+		default: break;
+		}
+		if (effectName) g_particleSystem->EmitEffect(effectName, position);
+	}
+	Die();
 }
 
 void Bullet::UpdateStarRow(const Vector& position)
@@ -375,7 +439,7 @@ void Bullet::UpdateStarRow(const Vector& position)
 	const float rowHeight = mBoard->GetCellHeight();
 	if (rowHeight <= 0.0f) return;
 	const float boardTop =
-		mBoard->GetCellCenterPosition(0, 0).y - rowHeight * 0.5f;
+		mBoard->GetRowCenterYAtX(0, position.x) - rowHeight * 0.5f;
 	const int row = static_cast<int>(std::floor((position.y - boardTop) / rowHeight));
 	mRow = std::clamp(row, 0, mBoard->mRows - 1);
 }

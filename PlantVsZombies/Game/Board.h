@@ -603,6 +603,8 @@ public:
 	bool RollTyphoonForTesting(int chanceRoll, int strengthRoll, WindDirection direction);
 	// AutoTest 专用：启动一次当前强度的阵风，不消费自动预算；可固定植物结算时刻。
 	bool TriggerTyphoonGustForTesting(float plantMoveIn = 0.0f);
+	/** 立即生成一次地面雨滴水花，供不同地形的落点闭环测试。 */
+	void TriggerRainGroundSplashForTesting();
 	/** 正式波次与 AutoTest 共用的天气变异入口；mutationRoll=0 时随机，超额成功变异返回 NUM_ZOMBIE_TYPES。 */
 	ZombieType ResolveRainMutationType(ZombieType selected, int mutationRoll = 0);
 	/** 正式波次总解析入口；超过类型上限返回 NUM_ZOMBIE_TYPES，调用方必须跳过候选。 */
@@ -620,6 +622,8 @@ public:
 	float GetRoofSlopeEndX() const;
 	/** 返回指定行在任意世界 X 上的地面中心 Y，供所有僵尸品种复用地形。 */
 	float GetRowCenterYAtX(int row, float worldX) const;
+	/** 返回清扫车前缘探针在指定行的逻辑 Y；屋顶包含 RoofCleaner 资源原点校准。 */
+	float GetMowerTerrainY(int row, float worldX) const;
 	/** 天气从第二大关起启用；白天泳池同样受天气系统影响。 */
 	bool SupportsWeather() const;
 	/** 四大关夜间泳池是否拥有不依赖天气的基础迷雾。 */

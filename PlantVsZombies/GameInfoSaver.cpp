@@ -960,7 +960,10 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 		if (mower) {
 			mower->mState = static_cast<MowerState>(m.value("state", 0));
 			mower->mSpeed = m.value("speed", 300.0f);
-			RestoreAnimState(m, mower);
+			// 开发期屋顶存档可能仍记录草车的 anim_normal；车型规范化后不可把旧轨道灌入 RoofCleaner。
+			if (!(board->IsRoofBackground() && type != MowerType::ROOF)) {
+				RestoreAnimState(m, mower);
+			}
 			const int heightValue = m.value("mowerHeight", static_cast<int>(MowerHeight::LAND));
 			const MowerHeight height = heightValue >= static_cast<int>(MowerHeight::LAND)
 				&& heightValue <= static_cast<int>(MowerHeight::EXITING)

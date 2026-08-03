@@ -469,6 +469,8 @@ void GameDataManager::InitializeHardcodedData() {
 		ResourceKeys::Reanimations::REANIM_LAWNMOWER;
 	mAnimToString[AnimationType::ANIM_POOL_CLEANER] =
 		ResourceKeys::Reanimations::REANIM_POOL_CLEANER;
+	mAnimToString[AnimationType::ANIM_ROOF_CLEANER] =
+		ResourceKeys::Reanimations::REANIM_ROOF_CLEANER;
 	mAnimToString[AnimationType::ANIM_JALAPENO_FIRE] =
 		ResourceKeys::Reanimations::REANIM_JALAPENO_FIRE;
 	mAnimToString[AnimationType::ANIM_FIREPEA] =

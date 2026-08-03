@@ -750,6 +750,44 @@ bool TestDriver::ExecuteCurrent() {
 		}
 		return true;
 	}
+	if (op == "extend_ice_trail") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) { Fail("extend_ice_trail: 不在 GameScene 或 Board 为空"); return false; }
+		Board* board = gs->GetBoard();
+		const int row = cmd.value("row", -1);
+		if (row < 0 || row >= board->mRows) {
+			Fail("extend_ice_trail: row 必须在当前棋盘内");
+			return false;
+		}
+		const float frontX = cmd.value("frontX", board->GetRoofSlopeEndX() - 200.0f);
+		if (cmd.value("golden", false)) board->ExtendGoldenIceTrail(row, frontX);
+		else board->ExtendIceTrail(row, frontX);
+		return true;
+	}
+	if (op == "trigger_mower") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) { Fail("trigger_mower: 不在 GameScene 或 Board 为空"); return false; }
+		Board* board = gs->GetBoard();
+		const int row = cmd.value("row", -1);
+		for (int id : board->mEntityManager.GetAllMowerIDs()) {
+			Mower* mower = board->mEntityManager.GetMower(id);
+			if (mower && mower->mRow == row) {
+				mower->Trigger();
+				return true;
+			}
+		}
+		Fail("trigger_mower: 未找到指定行的小推车");
+		return false;
+	}
+	if (op == "trigger_rain_ground_splash") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) {
+			Fail("trigger_rain_ground_splash: 不在 GameScene 或 Board 为空");
+			return false;
+		}
+		gs->GetBoard()->TriggerRainGroundSplashForTesting();
+		return true;
+	}
 	if (op == "force_survival_round") {
 		GameScene* gs = CurrentGameScene();
 		if (!gs || !gs->GetBoard()) { Fail("force_survival_round: 不在 GameScene 或 Board 为空"); return false; }
@@ -1876,7 +1914,25 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			ResourceKeys::Textures::IMAGE_BACKGROUND_ROOF, false) != nullptr },
 		{ "nightBackgroundLoaded", ResourceManager::GetInstance().GetTexture(
 			ResourceKeys::Textures::IMAGE_BACKGROUND_NIGHTROOF, false) != nullptr },
+		{ "roofCleanerReanimationLoaded", ResourceManager::GetInstance().HasReanimation(
+			ResourceKeys::Reanimations::REANIM_ROOF_CLEANER) },
 	};
+	out["previewZombies"] = nlohmann::json::array();
+	for (Zombie* preview : board->mPreviewZombieList) {
+		if (!preview || !preview->IsActive()) continue;
+		const Vector pos = preview->GetPosition();
+		const float terrainY = preview->mRow >= 0
+			? board->GetZombieSpawnY(preview->mRow, pos.x) : pos.y;
+		out["previewZombies"].push_back({
+			{ "type", ZombieTypeName(preview->mZombieType) },
+			{ "row", preview->mRow },
+			{ "xInt", static_cast<int>(std::lround(pos.x)) },
+			{ "yInt", static_cast<int>(std::lround(pos.y)) },
+			{ "terrainYOffsetOn1000", static_cast<int>(std::lround(
+				(pos.y - terrainY) * 1000.0f)) },
+		});
+	}
+	out["previewZombieCount"] = static_cast<int>(out["previewZombies"].size());
 	out["supportsWeather"] = board->SupportsWeather();
 	out["poolRows"] = nlohmann::json::array();
 	for (int row = 0; row < board->mRows; ++row) {
@@ -1936,14 +1992,27 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		if (!mower) continue;
 		const bool moving = mower->mState == MowerState::MOVING;
 		if (moving) ++movingMowerCount;
+		const Vector mowerPosition = mower->GetPosition();
+		const float terrainY = board->GetMowerTerrainY(
+			mower->mRow, mowerPosition.x + 40.0f);
+		const auto* mowerShadow = mower->GetComponent<ShadowComponent>();
+		const Vector mowerShadowOffset = mowerShadow
+			? mowerShadow->GetOffset() : Vector::zero();
 		out["mowers"].push_back({
 			{ "id", id }, { "row", mower->mRow },
 			{ "type", MowerTypeName(mower->mMowerType) },
 			{ "state", moving ? "MOVING" : "IDLE" },
 			{ "height", MowerHeightName(mower->mMowerHeight) },
 			{ "track", mower->GetCurrentTrackName() },
+			{ "animationType", static_cast<int>(mower->GetAnimationType()) },
+			{ "animationPlaying", mower->IsAnimationPlaying() },
 			{ "visualY", mower->GetVisualPosition().y },
-			{ "xInt", static_cast<int>(std::lround(mower->GetPosition().x)) },
+			{ "shadowOffsetXInt", static_cast<int>(std::lround(mowerShadowOffset.x)) },
+			{ "shadowOffsetYInt", static_cast<int>(std::lround(mowerShadowOffset.y)) },
+			{ "xInt", static_cast<int>(std::lround(mowerPosition.x)) },
+			{ "yInt", static_cast<int>(std::lround(mowerPosition.y)) },
+			{ "terrainYOffsetOn1000", static_cast<int>(std::lround(
+				(mowerPosition.y - terrainY) * 1000.0f)) },
 		});
 	}
 	out["movingMowerCount"] = movingMowerCount;
@@ -2279,6 +2348,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	int charredZombieCount = 0;
 	int zamboniCharredCount = 0;
 	int jalapenoFireCount = 0;
+	std::vector<Vector> jalapenoFirePositions;
 	int mistFuelVisualCount = 0;
 	for (const auto& object : GameObjectManager::GetInstance().GetAllGameObjects()) {
 		if (object && object->IsActive() && dynamic_cast<ZombieCharred*>(object.get())) {
@@ -2289,6 +2359,9 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		}
 		if (object && object->IsActive() && object->GetTag() == "JalapenoFire") {
 			++jalapenoFireCount;
+			if (auto* fire = dynamic_cast<AnimatedObject*>(object.get())) {
+				jalapenoFirePositions.push_back(fire->GetVisualPosition());
+			}
 		}
 		if (object && object->IsActive() && object->GetName() == "MistFuel") {
 			++mistFuelVisualCount;
@@ -2297,6 +2370,15 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["charredZombieCount"] = charredZombieCount;
 	out["zamboniCharredCount"] = zamboniCharredCount;
 	out["jalapenoFireCount"] = jalapenoFireCount;
+	std::sort(jalapenoFirePositions.begin(), jalapenoFirePositions.end(),
+		[](const Vector& lhs, const Vector& rhs) { return lhs.x < rhs.x; });
+	out["jalapenoFirePath"] = nlohmann::json::array();
+	for (const Vector& position : jalapenoFirePositions) {
+		out["jalapenoFirePath"].push_back({
+			{ "xInt", static_cast<int>(std::lround(position.x)) },
+			{ "yInt", static_cast<int>(std::lround(position.y)) },
+		});
+	}
 	out["mistFuelVisualCount"] = mistFuelVisualCount;
 	out["zamboniExplosionParticleCount"] = g_particleSystem
 		? g_particleSystem->GetEffectActiveParticleCount("ZamboniExplosion") : 0;
@@ -2338,6 +2420,12 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "remainingMs", static_cast<int>(std::lround(
 				board->GetIceTrailTimeRemaining(row) * 1000.0f)) },
 			{ "startCol", startCol },
+			{ "leftTopYInt", static_cast<int>(std::lround(
+				board->GetRowCenterYAtX(row, board->GetIceTrailMinX(row))
+				- board->GetCellHeight() * 0.5f + 20.0f)) },
+			{ "slopeEndTopYInt", static_cast<int>(std::lround(
+				board->GetRowCenterYAtX(row, board->GetRoofSlopeEndX())
+				- board->GetCellHeight() * 0.5f + 20.0f)) },
 		});
 		out["goldenIceTrails"].push_back({
 			{ "row", row },
@@ -2775,6 +2863,10 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	for (int id : board->mEntityManager.GetAllPlantIDs()) {
 		Plant* p = board->mEntityManager.GetPlant(id);
 		if (!p) continue;
+		const Vector plantPosition = p->GetPosition();
+		const Vector plantVisualPosition = p->GetVisualPosition();
+		const Vector plantVisualAnchor = p->GetVisualAnchorPosition();
+		const Vector cellCenter = board->GetCellCenterPosition(p->mRow, p->mColumn);
 		nlohmann::json plantState = {
 			{ "id", id },
 			{ "type", PlantTypeName(p->mPlantType) },
@@ -2795,10 +2887,23 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "alphaPct", static_cast<int>(p->GetAlpha() * 100.0f + 0.5f) },
 			{ "renderScaleYPct",
 				static_cast<int>(p->GetSquishRenderScaleY() * 100.0f + 0.5f) },
-			{ "logicalX", p->GetPosition().x },
-			{ "logicalY", p->GetPosition().y },
-			{ "visualX", p->GetVisualPosition().x },
-			{ "visualY", p->GetVisualPosition().y },
+			{ "logicalX", plantPosition.x },
+			{ "logicalY", plantPosition.y },
+			{ "visualX", plantVisualPosition.x },
+			{ "visualY", plantVisualPosition.y },
+			{ "visualAnchorX", plantVisualAnchor.x },
+			{ "visualAnchorY", plantVisualAnchor.y },
+			{ "visualOffsetXOn1000", static_cast<int>(std::lround(
+				(plantVisualAnchor.x - plantPosition.x) * 1000.0f)) },
+			{ "visualOffsetYOn1000", static_cast<int>(std::lround(
+				(plantVisualAnchor.y - plantPosition.y) * 1000.0f)) },
+			{ "roofVisualPathErrorOn1000", static_cast<int>(std::lround((
+				plantVisualAnchor.x - plantPosition.x
+				+ 4.0f * (plantVisualAnchor.y - plantPosition.y)) * 1000.0f)) },
+			{ "terrainXOffsetOn1000", static_cast<int>(std::lround(
+				(plantPosition.x - cellCenter.x) * 1000.0f)) },
+			{ "terrainYOffsetOn1000", static_cast<int>(std::lround(
+				(plantPosition.y - cellCenter.y) * 1000.0f)) },
 			{ "hasShadow", p->GetComponent<ShadowComponent>() != nullptr },
 			{ "sunProductionMultiplierPct", static_cast<int>(std::lround(
 				board->GetPlanternSunProductionMultiplier(p) * 100.0f)) },
@@ -3002,6 +3107,22 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				{ "renderProbeReady", probe.hasGeometry },
 				{ "renderQuadCount", probe.quadCount },
 			};
+			if (board->IsRoofBackground()) {
+				int nearestRow = 0;
+				float nearestOffset = std::numeric_limits<float>::max();
+				for (int row = 0; row < board->mRows; ++row) {
+					const float offset = origin.y - board->GetRowCenterYAtX(row, origin.x);
+					if (std::abs(offset) < std::abs(nearestOffset)) {
+						nearestOffset = offset;
+						nearestRow = row;
+					}
+				}
+				state["roofTerrainRow"] = nearestRow;
+				state["roofTerrainLocalYOffsetOn1000"] = static_cast<int>(
+					std::lround(nearestOffset * 1000.0f));
+				state["roofTerrainInsideRow"] = std::abs(nearestOffset)
+					<= board->GetCellHeight() * 0.5f;
+			}
 			state["clipRightXInt"] = effect->GetClipRightX() >= 0.0f
 				? nlohmann::json(static_cast<int>(std::lround(effect->GetClipRightX())))
 				: nlohmann::json(nullptr);
@@ -3353,6 +3474,10 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "type", static_cast<int>(bullet->mBulletType) },
 			{ "row", bullet->mRow },
 			{ "x", pos.x }, { "y", pos.y },
+			{ "terrainShadowYInt", static_cast<int>(std::lround(
+				bullet->GetTerrainShadowYForTesting())) },
+			{ "terrainClearanceOn1000", static_cast<int>(std::lround(
+				(bullet->GetTerrainShadowYForTesting() - pos.y) * 1000.0f)) },
 			{ "windAffected", bullet->IsTyphoonWindAffected() },
 			{ "baseVelocityX", static_cast<int>(std::lround(bullet->GetVelocityX())) },
 			{ "baseVelocityY", static_cast<int>(std::lround(bullet->GetVelocityY())) },

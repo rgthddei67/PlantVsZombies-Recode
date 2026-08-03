@@ -55,6 +55,7 @@ namespace {
 	constexpr int kRoofSlopeColumnCount = 5;              // 从房屋侧起参与斜坡抬升的逻辑列数
 	constexpr float kRoofSlopeRisePerPixel = 0.25f;       // 屋顶向房屋侧每移动 1 像素增加的屏幕 Y（像素/像素）
 	constexpr float kZombieSpawnBaseOffsetY = 2.0f;       // 第一、二大关已确认正确的僵尸行中心统一基线（像素）
+	constexpr float kRoofZombieAlignmentOffsetY = 17.5f; // 屋顶僵尸脚底相对 85px 行中心的美术校准量，单位：像素
 	constexpr float kPoolBackgroundZombieSpawnYOffset = 0.0f; // 所有泳池背景、所有行共用的僵尸额外基线，单位：像素
 	constexpr float kThirdAreaZombieAlignmentOffsetY = 10.0f; // 仅第三大关所有行使用的地图对齐基线，单位：像素
 	constexpr float kPoolRowZombieSpawnYOffset = 30.0f;   // 仅水路行僵尸的画面下沉量；碰撞基线不含此值，单位：像素
@@ -67,6 +68,10 @@ namespace {
 	constexpr float kIceTrailLeftLimit = 25.0f;           // 原版非屋顶冰道左缘最小 X，单位 px
 	constexpr float kIceTrailCapBodyOverlap = 8.0f;       // 端盖与主体纹理的水平咬合量，单位 px
 	constexpr float kIceTrailGridProbeOffset = 12.0f;     // 原版由冰道左缘推导首个禁种格的采样偏移，单位 px
+	constexpr float kRoofMowerTerrainOffsetY = 9.0f;      // RoofCleaner 逻辑原点相对连续行中心的下移量，单位：像素
+	constexpr float kRoofPreviewZombieMinX = 1056.0f;     // 主人实测的屋顶选卡预览世界坐标左缘，单位：像素
+	constexpr float kRoofPreviewZombieMaxX = 1356.0f;     // 主人实测的屋顶选卡预览世界坐标右缘，单位：像素
+	constexpr int kRoofPreviewZombieFirstRow = 1;         // 顶行会令僵尸头部进入天空区；预览只使用第 2～5 行
 	constexpr float kIceTrailTopOffset = 20.0f;           // 冰道相对逻辑行顶的绘制偏移，单位 px
 	constexpr float kFirstRainDelayMin = 90.0f;          // 开局到首场雨的最短等待时间（秒）
 	constexpr float kFirstRainDelayMax = 105.0f;          // 开局到首场雨的最长等待时间（秒）
@@ -796,8 +801,9 @@ Board::Board(BoardPresentation* presentation, Background background, int level)
 		LoadSpawnListFromJson();
 	}
 
-	CreatePreviewZombies();
 	InitializeCell(IsPoolBackground() ? 5 : 4, 8);
+	// 屋顶预览会读取行高与连续坡面；必须在网格尺寸完成初始化后再生成。
+	CreatePreviewZombies();
 	mIceMinX.fill(GetIceTrailRightX());
 	mIceTimer.fill(0.0f);
 	mGoldenIceMinX.fill(GetIceTrailRightX());
@@ -1602,7 +1608,7 @@ void Board::RestartRainVisualForWindChange()
 	EmitRainEffect(mWeatherTimer);
 }
 
-/** 在草地逻辑网格内随机选择落点，播放短促的原版雨滴水花与扩散圆圈。 */
+/** 在当前地形的逻辑网格内随机选择落点，播放短促的原版雨滴水花与扩散圆圈。 */
 void Board::TriggerRainGroundSplash()
 {
 	if (!g_particleSystem || mRows <= 0 || mColumns <= 0) return;
@@ -1616,8 +1622,17 @@ void Board::TriggerRainGroundSplash()
 		- kRainSplashEdgePadding;
 	if (maxX <= minX || maxY <= minY) return;
 
-	g_particleSystem->EmitEffect("RainGroundSplash",
-		Vector(GameRandom::Range(minX, maxX), GameRandom::Range(minY, maxY)),
+	const float splashX = GameRandom::Range(minX, maxX);
+	float splashY = GameRandom::Range(minY, maxY);
+	if (IsRoofBackground()) {
+		// 屋顶每行是随 X 偏移的斜带；先选行，再在该行内部取局部 Y，避免矩形采样落到天空。
+		const int row = GameRandom::Range(0, mRows - 1);
+		const float halfHeight = mCellHeight * 0.5f;
+		splashY = GetRowCenterYAtX(row, splashX) + GameRandom::Range(
+			-halfHeight + kRainSplashEdgePadding,
+			halfHeight - kRainSplashEdgePadding);
+	}
+	g_particleSystem->EmitEffect("RainGroundSplash", Vector(splashX, splashY),
 		LAYER_EFFECTS_WORLD);
 }
 
@@ -2777,6 +2792,11 @@ bool Board::TriggerTyphoonGustForTesting(float plantMoveIn)
 	return BeginTyphoonGust(false, plantMoveIn);
 }
 
+void Board::TriggerRainGroundSplashForTesting()
+{
+	TriggerRainGroundSplash();
+}
+
 bool Board::IsPoolBackground() const
 {
 	return mBackGround == Background::WATER_POOL
@@ -2810,6 +2830,13 @@ float Board::GetRowCenterYAtX(int row, float worldX) const
 			* kRoofSlopeRisePerPixel;
 	}
 	return centerY;
+}
+
+float Board::GetMowerTerrainY(int row, float worldX) const
+{
+	const float centerY = GetRowCenterYAtX(row, worldX);
+	if (centerY < 0.0f) return centerY;
+	return centerY + (IsRoofBackground() ? kRoofMowerTerrainOffsetY : -3.0f);
 }
 
 bool Board::SupportsWeather() const
@@ -3157,7 +3184,9 @@ void Board::ExtendIceTrail(int row, float frontX)
 	if (row < 0 || row >= mRows || row >= static_cast<int>(mIceTimer.size())
 		|| IsPoolRow(row)) return;
 
-	const float clampedFront = std::max(frontX, kIceTrailLeftLimit);
+	// 原版 Zamboni 在屋顶把冰道左缘钳在坡顶平台；斜坡既不结冰，也不参与禁种判定。
+	const float leftLimit = IsRoofBackground() ? GetRoofSlopeEndX() : kIceTrailLeftLimit;
+	const float clampedFront = std::max(frontX, leftLimit);
 	mIceMinX[row] = std::min(mIceMinX[row], clampedFront);
 	// 车辆还在屏幕右侧入场时就激活冰道；左缘钳在屏幕右边界，进入画面后自然连续增长。
 	mIceTimer[row] = kIceTrailDuration;
@@ -3168,7 +3197,8 @@ void Board::ExtendGoldenIceTrail(int row, float frontX)
 	if (row < 0 || row >= mRows || row >= static_cast<int>(mGoldenIceTimer.size())
 		|| IsPoolRow(row)) return;
 
-	const float clampedFront = std::max(frontX, kIceTrailLeftLimit);
+	const float leftLimit = IsRoofBackground() ? GetRoofSlopeEndX() : kIceTrailLeftLimit;
+	const float clampedFront = std::max(frontX, leftLimit);
 	mGoldenIceMinX[row] = std::min(mGoldenIceMinX[row], clampedFront);
 	mGoldenIceTimer[row] = kGoldenIceTrailDuration;
 }
@@ -3276,7 +3306,8 @@ void Board::DrawIceTrails(Graphics* g) const
 		const float alpha = 255.0f * std::clamp(
 			remaining / kIceTrailFadeDuration, 0.0f, 1.0f);
 		const glm::vec4 tint(255.0f, 255.0f, 255.0f, alpha);
-		const float drawY = GetCellCenterPosition(row, 0).y
+		// 原版固定取最右侧平地行高；屋顶冰道因此始终水平，且不会沿斜坡弯折。
+		const float drawY = GetRowCenterYAtX(row, GetIceTrailRightX())
 			- mCellHeight * 0.5f + kIceTrailTopOffset;
 		const float bodyStart = minX + kIceTrailCapBodyOverlap;
 		const float length = std::max(0.0f, rightX - bodyStart);
@@ -4143,12 +4174,23 @@ void Board::CreatePreviewZombies()
 	mPreviewZombieList.clear();
 	for (ZombieType zombieType : mSpawnZombieList)
 	{
-		Vector spawnPosition = Vector(GameRandom::Range
-		(mSpawnZombiePos1.x, mSpawnZombiePos2.x), GameRandom::Range
-		(mSpawnZombiePos1.y, mSpawnZombiePos2.y));
-		// 预览僵尸需要在生成区内随机散落（任意 y），不绑定网格行，故走自由摆放路径。
-		auto preview = GameAPP::GetInstance().InstantiateZombieFree(
-			zombieType, this, spawnPosition.x, spawnPosition.y);
+		// 选卡镜头会平移到扩展世界区域；屋顶使用主人实测的专属世界坐标范围。
+		const float spawnX = IsRoofBackground()
+			? GameRandom::Range(kRoofPreviewZombieMinX, kRoofPreviewZombieMaxX)
+			: GameRandom::Range(mSpawnZombiePos1.x, mSpawnZombiePos2.x);
+		std::shared_ptr<Zombie> preview;
+		if (IsRoofBackground()) {
+			// 屋顶预览仍需占一条视觉路径，才能消费连续坡面；其他地图保留自由散落布局。
+			const int row = GameRandom::Range(
+				std::min(kRoofPreviewZombieFirstRow, mRows - 1), mRows - 1);
+			preview = GameAPP::GetInstance().InstantiateZombie(
+				zombieType, this, spawnX, GetZombieSpawnY(row, spawnX), row, true);
+		}
+		else {
+			const float spawnY = GameRandom::Range(mSpawnZombiePos1.y, mSpawnZombiePos2.y);
+			preview = GameAPP::GetInstance().InstantiateZombieFree(
+				zombieType, this, spawnX, spawnY);
+		}
 		if (!preview) continue;
 		// 与 Zombie::Die 中的 mZombieNumber-- 保持平衡（预览僵尸 board == this，销毁时会递减）。
 		mZombieNumber++;
@@ -4897,10 +4939,13 @@ void Board::ActivateShovel()
 
 Mower* Board::CreateMower(MowerType type, int row)
 {
+	if (IsRoofBackground()) type = MowerType::ROOF;
 	float x = 160.0f;
-	float y = GetCellCenterPosition(row, 0).y - 3.0f;
+	float y = GetMowerTerrainY(row, x + 40.0f);
 	const AnimationType animType = type == MowerType::WATER
-		? AnimationType::ANIM_POOL_CLEANER : AnimationType::ANIM_LAWNMOWER;
+		? AnimationType::ANIM_POOL_CLEANER
+		: (type == MowerType::ROOF
+			? AnimationType::ANIM_ROOF_CLEANER : AnimationType::ANIM_LAWNMOWER);
 	const float scale = type == MowerType::WATER ? 0.8f : 0.85f;
 
 	auto mower = GameObjectManager::GetInstance().CreateGameObjectImmediateAsShared<Mower>(
@@ -4914,8 +4959,15 @@ Mower* Board::CreateMower(MowerType type, int row)
 
 Mower* Board::CreateMowerWithID(MowerType type, int row, float x, float y, int id)
 {
+	// 屋顶开发期旧存档曾把清洁车保存成 LAWN；按当前地图规范化即可无版本迁移兼容。
+	if (IsRoofBackground()) {
+		type = MowerType::ROOF;
+		y = GetMowerTerrainY(row, x + 40.0f);
+	}
 	const AnimationType animType = type == MowerType::WATER
-		? AnimationType::ANIM_POOL_CLEANER : AnimationType::ANIM_LAWNMOWER;
+		? AnimationType::ANIM_POOL_CLEANER
+		: (type == MowerType::ROOF
+			? AnimationType::ANIM_ROOF_CLEANER : AnimationType::ANIM_LAWNMOWER);
 	const float scale = type == MowerType::WATER ? 0.8f : 0.85f;
 	auto mower = GameObjectManager::GetInstance().CreateGameObjectImmediateAsShared<Mower>(
 		LAYER_GAME_OBJECT, this, type, animType, x, y, row, scale);
@@ -4929,7 +4981,9 @@ Mower* Board::CreateMowerWithID(MowerType type, int row, float x, float y, int i
 void Board::InitializeMowers()
 {
 	for (int row = 0; row < mRows; row++) {
-		CreateMower(IsPoolRow(row) ? MowerType::WATER : MowerType::LAWN, row);
+		CreateMower(IsRoofBackground()
+			? MowerType::ROOF
+			: (IsPoolRow(row) ? MowerType::WATER : MowerType::LAWN), row);
 	}
 }
 
@@ -4963,6 +5017,7 @@ float Board::GetZombieCollisionY(int row, float worldX) const
 		? kThirdAreaZombieAlignmentOffsetY
 		: 0.0f;
 	return GetRowCenterYAtX(row, worldX) + kZombieSpawnBaseOffsetY + mapAlignmentOffset
+		+ (IsRoofBackground() ? kRoofZombieAlignmentOffsetY : 0.0f)
 		+ (IsPoolBackground()
 			? kPoolBackgroundZombieSpawnYOffset
 			: 0.0f);
