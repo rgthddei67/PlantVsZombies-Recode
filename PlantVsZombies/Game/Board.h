@@ -357,11 +357,15 @@ public:
 	// 该行僵尸的视觉落脚 y（由地图行几何与地形美术偏移派生）。公开原因：伴舞出土裁剪要用
 	// “行地面线”而非僵尸自身动态坐标定裁剪底边——换新地图/行高时自动适配（主人指示）。
 	float GetZombieSpawnY(int row) const;
+	/** 返回指定世界 X 上的僵尸视觉落脚 Y；屋顶斜坡必须使用此重载。 */
+	float GetZombieSpawnY(int row, float worldX) const;
 	/**
 	 * 返回该行僵尸参与碰撞的逻辑基线 Y。
 	 * 水路美术下沉不进入此坐标，避免子弹、植物和小推车判定随贴图对齐量漂移。
 	 */
 	float GetZombieCollisionY(int row) const;
+	/** 返回指定世界 X 上的僵尸碰撞基线；屋顶斜坡必须使用此重载。 */
+	float GetZombieCollisionY(int row, float worldX) const;
 
 	Board(BoardPresentation* presentation, Background background, int level);
 	~Board();
@@ -610,6 +614,12 @@ public:
 	void InitializeCell(int rows = 4, int cols = 8);
 	/** 当前地图是否使用泳池地形与六行网格。 */
 	bool IsPoolBackground() const;
+	/** 当前地图是否使用屋顶五行网格与连续斜坡。 */
+	bool IsRoofBackground() const;
+	/** 返回屋顶斜坡与平台交界的世界 X；非屋顶也返回同一网格派生位置。 */
+	float GetRoofSlopeEndX() const;
+	/** 返回指定行在任意世界 X 上的地面中心 Y，供所有僵尸品种复用地形。 */
+	float GetRowCenterYAtX(int row, float worldX) const;
 	/** 天气从第二大关起启用；白天泳池同样受天气系统影响。 */
 	bool SupportsWeather() const;
 	/** 四大关夜间泳池是否拥有不依赖天气的基础迷雾。 */

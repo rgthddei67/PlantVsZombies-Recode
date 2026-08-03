@@ -12,6 +12,7 @@ description: Use when adding ANY new plant (新增植物) to PvZ — 射手/生�
 **C# 原版逻辑场景是 800×600，本项目是 `SCENE_WIDTH=1100`、`SCENE_HEIGHT=600`。原版任何绝对 X/Y、范围端点、绘制偏移、碰撞框和粒子触发点都只能当语义参考，禁止直接抄入代码。**
 
 - 场景范围由 `SCENE_WIDTH/SCENE_HEIGHT` 和 Board 当前背景几何重算；格子范围由 `GetCellCenterPosition`、`GetCellHeight` 与 `CELL_COLLIDER_SIZE_X` 派生。
+- 屋顶植物只使用 `GetCellCenterPosition(row, col)` 的离散坡面格中心；不要复用僵尸的连续 `GetRowCenterYAtX`。花盆接入前若要允许直种，必须在 `Board::CanPlantAt` 留显式过渡分支；接入花盆时只替换这一地形门禁，并让花盆占 under 层、上层植物继续占 normal 层。
 - 植物局部点位先换算到本项目以格子中心为 `GetPosition()` 的口径，再叠加当前 gamedata 视觉偏移；逻辑格位置与 `mVisualOffset` 永远分开。
 - 发射点、范围边界和附加 Animator 基点优先表达成“相对稳定视觉原点/父轨基准姿态”的差值，不把 C# 的世界坐标塞进局部偏移。
 - AutoTest 先执行同步 `screenshot`，再用 `animatedObjectsByTag.Plant` 的 `renderProbeReady/worldBounds/visualToRenderCenterD*Int/nearestPlant` 验证本项目最终绘制几何相对格子与植物 collider 的关系；每阶段只保留一株目标植物以稳定数组索引。

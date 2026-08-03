@@ -2,6 +2,7 @@
 
 > Codex routing: required always-on rules live in `../../AGENTS.md`; detailed build, AutoTest, architecture, resource, and implementation guidance lives in `../agent-guide/PROJECT_GUIDE.md`. The entries below are historical subsystem context and should be read only when relevant.
 
+- [屋顶地形与僵尸连续坡面](project_pvz_roof_terrain_foundation.md) — 2026-08-03 白天/黑夜屋顶背景已接入；5×9 网格用85px行高，前5列按20px离散抬升、坡顶X=642；Board提供连续1:4坡面，Zombie基类统一让普通/气球/矿工沿当前X贴坡，出生与读档复用row+x；花盆前非水生植物临时直占normal层，平射遮挡、抛物线、屋顶车与专属敌人延后
 - [架构边界、存档版本与技能审计门禁](project_pvz_architecture_boundaries.md) — 2026-08-03 `BoardPresentation` 取代 `Board::mGameScene`，Board 保持天气/波次/生存玩法唯一权威；`SceneManager` 明确单活动场景；玩家 schema v2 为已通关3-8的旧档补发前移后的毒囊射手，迁移保持事务式并有纯测试；每次任务提交前审计相关 skills
 - [经典海蘑菇](project_pvz_seashroom.md) — 2026-07-29 `PLANT_SEASHROOM`：0 阳光、10 秒冷却，只能直接种在空水格且占 normal 层；复用小喷菇 1.5 秒间隔/300px 短程孢子，第 33 帧发射，无陆地阴影并随水面浮动；白天睡眠与双绘制路径可见专项通过
 - [最终绘制坐标语义取证](project_pvz_render_coordinate_evidence.md) — 2026-07-27 AutoTest 从当前项目实际渲染路径导出植物/僵尸/动画特效的 Animator 世界包围盒，以及粒子最终矩形；断言使用相对视觉原点、发射点和最近实体 collider 的整数投影，默认实例化与 `-NoInstance` 可做同用例一致性核对，C# 800×600 绝对坐标只作行为语义参考

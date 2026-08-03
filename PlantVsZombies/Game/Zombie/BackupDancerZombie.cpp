@@ -31,8 +31,10 @@ void BackupDancerZombie::SetupZombie()
 	mVisualOffset.y = mBaseOffsetY + kRiseDepth;
 	mPhase = BackupPhase::RISING;
 	// 地面线以下不可见：复用逐对象裁剪（图鉴僵尸窗同款），升起完成后 ClearClipRect 恢复。
-	// 底边用“行地面线”GetZombieSpawnY(row) 而非自身坐标——换新地图/行高自动适配（主人指示）。
-	const float groundY = mBoard ? mBoard->GetZombieSpawnY(mRow) : GetPosition().y;
+	// 底边用当前 X 上的“行地面线”而非自身坐标——屋顶出土时也沿斜坡裁剪。
+	const float groundY = mBoard
+		? mBoard->GetZombieSpawnY(mRow, GetPosition().x)
+		: GetPosition().y;
 	SetClipRect(0, 0, SCENE_WIDTH,
 		static_cast<int>(groundY) + kGroundClipMargin);
 	// 人还在土里，地面不该有影子；出土完成后恢复（影子组件在 Zombie::Start 中先于本函数挂上）

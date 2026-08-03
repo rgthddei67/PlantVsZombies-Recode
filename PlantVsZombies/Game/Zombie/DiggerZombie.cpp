@@ -528,7 +528,9 @@ bool DiggerZombie::CanBeCharred() const
 bool DiggerZombie::TryGetDrawClipBottom(float& clipBottom) const
 {
 	if (!mIsPreview && mAltitude < 0.0f) {
-		const float groundY = mBoard ? mBoard->GetZombieSpawnY(mRow) : GetPosition().y;
+		const float groundY = mBoard
+			? mBoard->GetZombieSpawnY(mRow, GetPosition().x)
+			: GetPosition().y;
 		clipBottom = static_cast<float>(static_cast<int>(
 			std::lround(groundY + kGroundClipMargin)));
 		return true;

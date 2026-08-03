@@ -643,6 +643,14 @@ void GameScene::BuildDrawCommands()
 		AddTexture(ResourceKeys::Textures::IMAGE_BACKGROUND_NIGHTPOOL,
 			mStartX, mBackgroundY, 1.0f, 1.0f, LAYER_BACKGROUND, false);
 	}
+	else if (background == Background::ROOF) {
+		AddTexture(ResourceKeys::Textures::IMAGE_BACKGROUND_ROOF,
+			mStartX, mBackgroundY, 1.0f, 1.0f, LAYER_BACKGROUND, false);
+	}
+	else if (background == Background::NIGHT_ROOF) {
+		AddTexture(ResourceKeys::Textures::IMAGE_BACKGROUND_NIGHTROOF,
+			mStartX, mBackgroundY, 1.0f, 1.0f, LAYER_BACKGROUND, false);
+	}
 
 	if (background == Background::WATER_POOL
 		|| background == Background::NIGHT_WATER_POOL) {
@@ -1033,7 +1041,7 @@ void GameScene::Update() {
 				int bestRow = 0;
 				float bestDist = 1e9f;
 				for (int r = 0; r < mBoard->mRows; ++r) {
-					const float d = std::abs(mp.y - mBoard->GetZombieSpawnY(r));
+					const float d = std::abs(mp.y - mBoard->GetZombieSpawnY(r, mp.x));
 					if (d < bestDist) { bestDist = d; bestRow = r; }
 				}
 				mBoard->CreateZombie(kDevZombieTable[mDevZombieIndex].first, bestRow, mp.x);

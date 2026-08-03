@@ -50,6 +50,10 @@ namespace {
 
 	constexpr float kPoolCellInitialY = 85.0f;            // 泳池背景共用的六行网格首行顶部世界坐标（像素）
 	constexpr float kPoolCellHeight = 85.0f;              // 泳池六行的逻辑格高（像素）；列宽仍保持 80
+	constexpr float kRoofCellInitialYOffsetY = -10.0f;    // 屋顶五行网格相对普通草坪首行顶部的上移量（像素）
+	constexpr float kRoofCellHeight = 85.0f;              // 屋顶五行的逻辑格高（像素）；与原版屋顶行距一致
+	constexpr int kRoofSlopeColumnCount = 5;              // 从房屋侧起参与斜坡抬升的逻辑列数
+	constexpr float kRoofSlopeRisePerPixel = 0.25f;       // 屋顶向房屋侧每移动 1 像素增加的屏幕 Y（像素/像素）
 	constexpr float kZombieSpawnBaseOffsetY = 2.0f;       // 第一、二大关已确认正确的僵尸行中心统一基线（像素）
 	constexpr float kPoolBackgroundZombieSpawnYOffset = 0.0f; // 所有泳池背景、所有行共用的僵尸额外基线，单位：像素
 	constexpr float kThirdAreaZombieAlignmentOffsetY = 10.0f; // 仅第三大关所有行使用的地图对齐基线，单位：像素
@@ -2779,6 +2783,35 @@ bool Board::IsPoolBackground() const
 		|| mBackGround == Background::NIGHT_WATER_POOL;
 }
 
+bool Board::IsRoofBackground() const
+{
+	return mBackGround == Background::ROOF
+		|| mBackGround == Background::NIGHT_ROOF;
+}
+
+float Board::GetRoofSlopeEndX() const
+{
+	return CELL_INITALIZE_POS_X
+		+ static_cast<float>(kRoofSlopeColumnCount) * CELL_COLLIDER_SIZE_X;
+}
+
+/**
+ * 把 C# 屋顶的连续坡面换算为当前 1100 宽场景的 Board 网格坐标。
+ * 平台段保持行中心不变，房屋侧按 1:4 坡度向屏幕下方抬升。
+ */
+float Board::GetRowCenterYAtX(int row, float worldX) const
+{
+	if (row < 0 || row >= mRows) return -1.0f;
+
+	float centerY = mCellInitialY + static_cast<float>(row) * mCellHeight
+		+ mCellHeight * 0.5f;
+	if (IsRoofBackground()) {
+		centerY += std::max(0.0f, GetRoofSlopeEndX() - worldX)
+			* kRoofSlopeRisePerPixel;
+	}
+	return centerY;
+}
+
 bool Board::SupportsWeather() const
 {
 	if (mLevel == SURVIVAL_ENDLESS_NIGHT_LEVEL
@@ -3107,9 +3140,16 @@ bool Board::CanZombieTypeSpawnInPool(ZombieType type) const
 
 Vector Board::GetCellCenterPosition(int row, int col) const
 {
-	return Vector(CELL_INITALIZE_POS_X + static_cast<float>(col) * CELL_COLLIDER_SIZE_X
-		+ CELL_COLLIDER_SIZE_X * 0.5f,
-		mCellInitialY + static_cast<float>(row) * mCellHeight + mCellHeight * 0.5f);
+	const float cellLeftX = CELL_INITALIZE_POS_X
+		+ static_cast<float>(col) * CELL_COLLIDER_SIZE_X;
+	float centerY = mCellInitialY + static_cast<float>(row) * mCellHeight
+		+ mCellHeight * 0.5f;
+	if (IsRoofBackground()) {
+		// 格子沿用原版按列离散抬升；僵尸则通过 GetRowCenterYAtX 沿同一坡面连续移动。
+		centerY += std::max(0.0f, GetRoofSlopeEndX() - cellLeftX)
+			* kRoofSlopeRisePerPixel;
+	}
+	return Vector(cellLeftX + CELL_COLLIDER_SIZE_X * 0.5f, centerY);
 }
 
 void Board::ExtendIceTrail(int row, float frontX)
@@ -3278,18 +3318,27 @@ void Board::InitializeCell(int rows, int cols)
 {
 	mRows = rows + 1;
 	mColumns = cols + 1;
-	mCellInitialY = IsPoolBackground()
-		? kPoolCellInitialY
-		: CELL_INITALIZE_POS_Y;
-	mCellHeight = IsPoolBackground() ? kPoolCellHeight : CELL_COLLIDER_SIZE_Y;
+	if (IsPoolBackground()) {
+		mCellInitialY = kPoolCellInitialY;
+		mCellHeight = kPoolCellHeight;
+	}
+	else if (IsRoofBackground()) {
+		mCellInitialY = CELL_INITALIZE_POS_Y + kRoofCellInitialYOffsetY;
+		mCellHeight = kRoofCellHeight;
+	}
+	else {
+		mCellInitialY = CELL_INITALIZE_POS_Y;
+		mCellHeight = CELL_COLLIDER_SIZE_Y;
+	}
 	mCells.resize(mRows);
 	for (int i = 0; i < mRows; i++)
 	{
 		mCells[i].resize(mColumns);
 		for (int j = 0; j < mColumns; j++)
 		{
-			Vector position(CELL_INITALIZE_POS_X + j * CELL_COLLIDER_SIZE_X,
-				mCellInitialY + i * mCellHeight);
+			const Vector center = GetCellCenterPosition(i, j);
+			Vector position(center.x - CELL_COLLIDER_SIZE_X * 0.5f,
+				center.y - mCellHeight * 0.5f);
 			Cell* cell = GameObjectManager::GetInstance().CreateGameObject<Cell>(
 				LAYER_BACKGROUND, i, j, position,
 				Vector(CELL_COLLIDER_SIZE_X, mCellHeight));
@@ -3668,6 +3717,14 @@ bool Board::CanPlantAt(PlantType type, int row, int col)
 		// 最后一类地形的入口保留在 IsSpikeweedTerrainRestricted，现阶段继续按普通地面处理。
 		return false;
 	}
+	if (IsRoofBackground()
+		&& type != PlantType::PLANT_LILYPAD
+		&& type != PlantType::PLANT_TANGLEKELP
+		&& type != PlantType::PLANT_SEASHROOM) {
+		// 花盆尚未接入前的显式过渡规则：屋顶普通植物直接占普通层，不检查承载植物。
+		return cell->GetNormalPlantID() == NULL_PLANT_ID
+			&& cell->GetUnderPlantID() == NULL_PLANT_ID;
+	}
 	if (type == PlantType::PLANT_LILYPAD
 		|| type == PlantType::PLANT_TANGLEKELP
 		|| type == PlantType::PLANT_SEASHROOM) {
@@ -3836,8 +3893,8 @@ Plant* Board::CreatePlant(PlantType plantType, int row, int column, bool skipset
 }
 
 Zombie* Board::CreateZombie(ZombieType zombieType, int row, float x, bool skipsettings, bool isPreview) {
-	// y 始终由 row 决定，调用方无法自定义。GetZombieSpawnY 对非法行返回 -1，兜底为 0。
-	float y = GetZombieSpawnY(row);
+	// y 由 row 与地形上的当前 x 共同决定；屋顶出生点因此直接落在连续坡面上。
+	float y = GetZombieSpawnY(row, x);
 	if (y < 0.0f) y = 0.0f;
 
 	std::shared_ptr<Zombie> zombie = GameAPP::GetInstance().InstantiateZombie
@@ -4773,8 +4830,8 @@ Plant* Board::CreatePlantWithID(PlantType type, int row, int col, int id) {
 }
 
 Zombie* Board::CreateZombieWithID(ZombieType type, int row, float x, int id) {
-	// y 始终由 row 决定（读档僵尸只持久化 row + x，y 不入存档）。
-	float y = GetZombieSpawnY(row);
+	// y 由持久化的 row + x 重建，屋顶不需要新增坐标字段即可恢复连续坡面。
+	float y = GetZombieSpawnY(row, x);
 	if (y < 0.0f) y = 0.0f;
 
 	std::shared_ptr<Zombie> zombie = GameAPP::GetInstance().InstantiateZombie
@@ -4891,6 +4948,11 @@ void Board::RemoveOtherMowersWithoutTrigger(int preservedMowerID)
 
 float Board::GetZombieCollisionY(int row) const
 {
+	return GetZombieCollisionY(row, CELL_INITALIZE_POS_X);
+}
+
+float Board::GetZombieCollisionY(int row, float worldX) const
+{
 	if (row < 0 || row >= mRows) {
 		LOG_INFO("Board") << "GetZombieCollisionY: 无效的行索引: " << row;
 		return -1.0f;
@@ -4900,7 +4962,7 @@ float Board::GetZombieCollisionY(int row) const
 	const float mapAlignmentOffset = mBackGround == Background::WATER_POOL
 		? kThirdAreaZombieAlignmentOffsetY
 		: 0.0f;
-	return GetCellCenterPosition(row, 0).y + kZombieSpawnBaseOffsetY + mapAlignmentOffset
+	return GetRowCenterYAtX(row, worldX) + kZombieSpawnBaseOffsetY + mapAlignmentOffset
 		+ (IsPoolBackground()
 			? kPoolBackgroundZombieSpawnYOffset
 			: 0.0f);
@@ -4908,7 +4970,12 @@ float Board::GetZombieCollisionY(int row) const
 
 float Board::GetZombieSpawnY(int row) const
 {
-	const float collisionY = GetZombieCollisionY(row);
+	return GetZombieSpawnY(row, CELL_INITALIZE_POS_X);
+}
+
+float Board::GetZombieSpawnY(int row, float worldX) const
+{
+	const float collisionY = GetZombieCollisionY(row, worldX);
 	if (collisionY < 0.0f) return collisionY;
 
 	// 水路身体需要继续保持主人校对过的下沉画面，但该偏移只影响生成/绘制基准。

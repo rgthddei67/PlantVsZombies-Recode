@@ -14,9 +14,9 @@ description: Use when adding or tuning any PvZ zombie, or integrating zombies in
 **C# 原版逻辑场景是 800×600，本项目是 `SCENE_WIDTH=1100`、`SCENE_HEIGHT=600`。原版任何绝对 X/Y、碰撞框偏移、绘制偏移、粒子触发点和屏幕边界都只能当语义参考，禁止直接抄入代码。**
 
 - 场景绝对坐标改由 `SCENE_WIDTH/SCENE_HEIGHT`、Board 网格与当前背景几何重新派生；不要把 800 宽地图的右边界、出生点或阈值原样搬来。
-- 原版按世界 X 分段的速度/状态阈值写成“当前地图坐标基准 + 原版相对距离”；平地可从 `CELL_INITALIZE_POS_X` 派生，屋顶因斜坡几何必须保留独立基准入口并在实测后填写，禁止先假定与平地相同。
+- 原版按世界 X 分段的速度/状态阈值写成“当前地图坐标基准 + 原版相对距离”；平地可从 `CELL_INITALIZE_POS_X` 派生。屋顶连续坡面由 `Board::GetRoofSlopeEndX/GetRowCenterYAtX` 唯一拥有，当前交界 X 从 `CELL_INITALIZE_POS_X + 5 * CELL_COLLIDER_SIZE_X` 派生，禁止品种复制斜坡公式。
 - 僵尸局部坐标先求“原值相对 C# 绘制原点”的差，再锚到本项目稳定视觉原点 `Transform + mVisualOffset`；物理框、攻击框和粒子通常不得跟受伤抖动等临时绘制偏移移动。
-- 网格位置与画面偏移继续分离；优先使用 `GetCellCenterPosition`、`GetCellHeight`、`GetZombieCollisionY/GetZombieSpawnY`。
+- 网格位置与画面偏移继续分离；屋顶出生、读档重建、出土裁剪及任意当前点地面线必须使用 `GetZombieCollisionY/GetZombieSpawnY(row, worldX)`。水平移动仍由品种的 `ZombieMove` 决定，基类在阵风后和 `ZombieMove` 后统一把 Transform Y 收敛到坡面，普通、飞行、地下品种不得各自维护 Y 公式。
 - 验证先执行同步 `screenshot`，再用 `animatedObjectsByTag.Zombie` 的 `renderProbeReady/worldBounds/visualToRenderCenterD*Int/nearestZombie` 验证本项目最终绘制几何相对自身 collider、同排植物或攻击目标的关系；每阶段只保留一个目标僵尸以稳定数组索引。
 - 修改出生 offset、受伤偏移、附件、翻转或整身变换时，默认实例化与 `-NoInstance` 各跑同一静止用例并比较整数 `worldBounds`；运动对象瞬时绝对 X/Y 只供诊断，不作稳定断言。
 

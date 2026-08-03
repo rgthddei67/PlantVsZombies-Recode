@@ -108,7 +108,7 @@ Zombie::Zombie(Board* board, ZombieType zombieType, float x, float y, int row,
 	if (!mBoard) return;
 
 	auto collider = GetColliderComponent();
-	const float collisionY = mBoard->GetZombieCollisionY(row);
+	const float collisionY = mBoard->GetZombieCollisionY(row, x);
 	if (collisionY >= 0.0f) {
 		// 水路僵尸的 Transform 保留美术下沉，碰撞框反向抵消该差值并回到逻辑行基线。
 		collider->offset.y += collisionY - y;
@@ -466,6 +466,8 @@ void Zombie::Update()
 		if (mTangleKelpPlantID == NULL_PLANT_ID) {
 			ApplyTyphoonGustDrift(deltaTime, transform);
 		}
+		// 冻结和啃食会在下方早退，阵风横移后仍必须立刻回到屋顶坡面。
+		SyncToRoofTerrain(transform);
 		// 海豚/撑杆被高坚果挡下后会在碰撞箱外手动开吃，没有碰撞对可产生 onTriggerExit。
 		// 因而每帧都以实体生命、顶层身份和实际间距复核一次，阵风吹离或目标死亡时立即收尾。
 		if (!mIsDying && mIsEating && mEatPlantID != NULL_PLANT_ID
@@ -554,7 +556,25 @@ void Zombie::Update()
 		if (mIsEating) return;
 
 		ZombieMove(scaledDelta, transform);
+		// 品种只负责水平推进；坡面高度统一由基类在同帧收敛。
+		SyncToRoofTerrain(transform);
 		ZombieUpdate(scaledDelta);
+	}
+}
+
+/**
+ * 屋顶高度是 Board 拥有的地形数据。所有普通、飞行、地下和特殊移动品种都只提交 X，
+ * 基类再把逻辑落脚点贴到连续坡面，避免各品种复制一套斜坡公式。
+ */
+void Zombie::SyncToRoofTerrain(TransformComponent* transform)
+{
+	if (!transform || !mBoard || mIsPreview || !mBoard->IsRoofBackground()) return;
+
+	Vector position = transform->GetPosition();
+	const float terrainY = mBoard->GetZombieSpawnY(mRow, position.x);
+	if (terrainY >= 0.0f) {
+		position.y = terrainY;
+		transform->SetPosition(position);
 	}
 }
 

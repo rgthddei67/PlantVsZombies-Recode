@@ -323,6 +323,8 @@ protected:
 
 	/** 叠加活动阵风的物理漂移；不依赖自主行走、啃食、冻结或魅惑方向。 */
 	void ApplyTyphoonGustDrift(float deltaTime, TransformComponent* transform);
+	/** 把所有僵尸品种的 Transform Y 收敛到当前 X 对应的屋顶连续坡面。 */
+	void SyncToRoofTerrain(TransformComponent* transform);
 	/**
 	 * 用前后双探针维护通用入水状态；切换介质时同步视觉并恢复当前稳态走路轨道。
 	 * @param playTransitionFeedback 首次生成、读档或品种自管演出结束时传 false，避免伪造跨界反馈。

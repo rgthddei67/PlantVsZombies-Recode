@@ -1869,6 +1869,14 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["poolEffectCounter"] = gs->GetPoolEffectCounter();
 	out["rows"] = board->mRows;
 	out["columns"] = board->mColumns;
+	out["cellHeightInt"] = static_cast<int>(std::lround(board->GetCellHeight()));
+	out["roofSlopeEndXInt"] = static_cast<int>(std::lround(board->GetRoofSlopeEndX()));
+	out["roofResources"] = {
+		{ "dayBackgroundLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_BACKGROUND_ROOF, false) != nullptr },
+		{ "nightBackgroundLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_BACKGROUND_NIGHTROOF, false) != nullptr },
+	};
 	out["supportsWeather"] = board->SupportsWeather();
 	out["poolRows"] = nlohmann::json::array();
 	for (int row = 0; row < board->mRows; ++row) {
@@ -2417,6 +2425,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		if (z->GetToxinLayerCount() > 0) ++toxicZombieCount;
 		if (z->IsFireResistant()) ++fireResistantZombieCount;
 		const Vector pos = z->GetPosition();
+		const float terrainY = board->GetZombieSpawnY(z->mRow, pos.x);
 		const auto anim = z->GetAnimatorInternal();
 		const bool bodyTrackGlowing = anim && anim->GetGlowEffectEnabled();
 		// bit0=本体/头盔/飞行额外生命，bit1=二类护盾；逻辑与实际渲染各导出一份。
@@ -2431,6 +2440,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "x", pos.x }, { "y", pos.y },
 			{ "xInt", static_cast<int>(std::lround(pos.x)) },
 			{ "yInt", static_cast<int>(std::lround(pos.y)) },
+			{ "terrainYOffsetOn1000", static_cast<int>(std::lround(
+				(pos.y - terrainY) * 1000.0f)) },
 			{ "bodyHealth", z->mBodyHealth }, { "bodyMaxHealth", z->mBodyMaxHealth },
 			{ "attackDamage", z->mAttackDamage },
 			{ "helmHealth", z->mHelmHealth }, { "shieldHealth", z->mShieldHealth },
@@ -3243,11 +3254,14 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		nlohmann::json rowState = nlohmann::json::array();
 		for (int col = 0; col < board->mColumns; ++col) {
 			Cell* cell = board->GetCell(row, col);
+			const Vector center = board->GetCellCenterPosition(row, col);
 			Plant* under = cell ? board->mEntityManager.GetPlant(cell->GetUnderPlantID()) : nullptr;
 			Plant* normal = cell ? board->mEntityManager.GetPlant(cell->GetNormalPlantID()) : nullptr;
 			Plant* pumpkin = cell ? board->mEntityManager.GetPlant(cell->GetPumpkinPlantID()) : nullptr;
 			Plant* top = board->GetTopPlantAt(row, col);
 			rowState.push_back({
+				{ "centerXInt", static_cast<int>(std::lround(center.x)) },
+				{ "centerYInt", static_cast<int>(std::lround(center.y)) },
 				{ "under", under ? PlantTypeName(under->mPlantType) : "NONE" },
 				{ "underHealth", under ? under->mPlantHealth : 0 },
 				{ "normal", normal ? PlantTypeName(normal->mPlantType) : "NONE" },
