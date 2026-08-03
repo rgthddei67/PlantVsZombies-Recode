@@ -3096,6 +3096,8 @@ bool Board::CanZombieTypeSpawnInPool(ZombieType type) const
 	case ZombieType::ZOMBIE_GILDED_ZAMBONI:
 	case ZombieType::ZOMBIE_POGO:
 	case ZombieType::ZOMBIE_ELITE_POGO:
+	case ZombieType::ZOMBIE_DIGGER:
+	case ZombieType::ZOMBIE_ELITE_DIGGER:
 	case ZombieType::NUM_ZOMBIE_TYPES:
 		return false;
 	default:

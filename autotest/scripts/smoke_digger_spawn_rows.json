@@ -1,0 +1,19 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 25 },
+    { "op": "assert_state", "path": "background", "equals": "WATER_POOL" },
+
+    { "op": "assert_zombie_spawn_row", "type": "ZOMBIE_DIGGER", "row": 0, "expected": true },
+    { "op": "assert_zombie_spawn_row", "type": "ZOMBIE_DIGGER", "row": 2, "expected": false },
+    { "op": "assert_zombie_spawn_row", "type": "ZOMBIE_DIGGER", "row": 3, "expected": false },
+    { "op": "assert_zombie_spawn_row", "type": "ZOMBIE_DIGGER", "row": 5, "expected": true },
+
+    { "op": "assert_zombie_spawn_row", "type": "ZOMBIE_ELITE_DIGGER", "row": 0, "expected": true },
+    { "op": "assert_zombie_spawn_row", "type": "ZOMBIE_ELITE_DIGGER", "row": 2, "expected": false },
+    { "op": "assert_zombie_spawn_row", "type": "ZOMBIE_ELITE_DIGGER", "row": 3, "expected": false },
+    { "op": "assert_zombie_spawn_row", "type": "ZOMBIE_ELITE_DIGGER", "row": 5, "expected": true },
+
+    { "op": "screenshot", "name": "digger_land_only_spawn_rows.png" },
+    { "op": "dump_state", "name": "digger_spawn_rows_state.json" }
+  ]
+}
