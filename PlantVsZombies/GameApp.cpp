@@ -417,7 +417,7 @@ int GameAPP::Run()
 			Draw();
 		}
 
-		if (GameAPP::GetInstance().mDevelopMode || GameAPP::GetInstance().mDebugMode)
+		if (GameAPP::GetInstance().mDebugMode)
 		{
 			static int MousePoint = 0;
 			if (MousePoint++ % 40 == 0)
