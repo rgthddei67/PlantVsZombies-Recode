@@ -36,7 +36,7 @@ void Chomper::StartBite(int zombieID)
 	mState = State::BITING;
 	mTargetZombieID = zombieID;
 
-	PlayTrackOnce("anim_bite", "anim_chew", 1.4f * GetWeatherActionSpeedMultiplier(), 0.05f);
+	PlayTrackOnce("anim_bite", "anim_chew", 1.4f * GetWeatherActionSpeedMultiplier(), 0.05f, 0.0f, 0.0f);
 	mAnimator->AddFrameEvent(BITE_KILL_FRAME, [this]() {
 		OnBiteKillFrame();
 		});
@@ -64,14 +64,14 @@ void Chomper::OnBiteKillFrame()
 	mState = State::IDLE;
 	mDigestTimer = 0.0f;
 	mDetectionTimer = 0.0f;
-	PlayTrack("anim_idle", 0.0f, 0.30f);
+	PlayTrack("anim_idle", 0.0f, 0.1f);
 }
 
 void Chomper::EndDigest()
 {
 	mState = State::IDLE;
 	mDigestTimer = 0.0f;
-	PlayTrackOnce("anim_swallow", "anim_idle", 1.2f * GetWeatherActionSpeedMultiplier(), 0.05f);
+	PlayTrackOnce("anim_swallow", "anim_idle", 1.2f * GetWeatherActionSpeedMultiplier(), 0.05f, 0.0f, 0.0f);
 }
 
 void Chomper::PlantUpdate()
