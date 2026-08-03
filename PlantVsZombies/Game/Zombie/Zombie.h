@@ -323,8 +323,17 @@ protected:
 
 	/** 叠加活动阵风的物理漂移；不依赖自主行走、啃食、冻结或魅惑方向。 */
 	void ApplyTyphoonGustDrift(float deltaTime, TransformComponent* transform);
-	/** 用前后双探针维护通用入水状态；切换介质时同步视觉并恢复当前稳态走路轨道。 */
-	void UpdatePoolState();
+	/**
+	 * 用前后双探针维护通用入水状态；切换介质时同步视觉并恢复当前稳态走路轨道。
+	 * @param playTransitionFeedback 首次生成、读档或品种自管演出结束时传 false，避免伪造跨界反馈。
+	 */
+	void UpdatePoolState(bool playTransitionFeedback = true);
+	/** 取得通用双探针中点对应的稳定池沿水花原点。 */
+	Vector GetPoolTransitionSplashOrigin() const;
+	/** 在给定水面世界点播放原版 Splash 动画与 PlantingPool 水滴。 */
+	void PlayPoolSplashVisual(const Vector& origin) const;
+	/** 对齐 C# PoolSplash：播放通用水花，并按入水/出水语义选择 Foley 音效。 */
+	void PlayPoolTransitionFeedback(bool entering) const;
 	/** 当前阶段是否允许基类按地面探针切换水路状态。 */
 	virtual bool CanUseGroundPoolState() const { return true; }
 	/** 按通用入水状态隐藏陆地阴影；水面以下裁剪在 Draw 内与其他 Clip 嵌套。 */

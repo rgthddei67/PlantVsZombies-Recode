@@ -58,6 +58,12 @@ C# `GetDrawPos/DrawReanim` 语义仅在 0.56～0.65 与 0.75～结束启用派�
 AutoTest 导出两枚请求计数，专项断言 appears 只随正式直造增加，before-jump 只在真正开始越障时增加，
 骑乘/跳跃快照往返均不重复播放。
 
+2026-08-03 对齐 C# 两个水花节点：`anim_jumpinpool` 56% 与 `anim_dolphinjump` 49% 均调用通用
+`Splash.reanim + PlantingPool` 双层视觉并播放一次 `ZombieEnteringWater`；开始越障时已有的
+`PlantWater` 保留，49% 节点不再额外重播第二次。入水动作结束调用 `UpdatePoolState(false)`
+只提交介质/裁剪，避免与 56% 节点重复。更新后的 `smoke_dolphin_rider.json` 在当前桌面可见
+`clang-release` 运行 exit 0，节点前两层计数为 0、节点后各为 1、骑乘稳态归零，快照往返不重响。
+
 ## 验证
 
 `smoke_dolphin_rider.json` 覆盖 3-7 出怪表、仅水路兼容、陆地根运动步频、右岸抛豚、入水

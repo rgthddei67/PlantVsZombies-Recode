@@ -473,6 +473,8 @@ void GameDataManager::InitializeHardcodedData() {
 		ResourceKeys::Reanimations::REANIM_JALAPENO_FIRE;
 	mAnimToString[AnimationType::ANIM_FIREPEA] =
 		ResourceKeys::Reanimations::REANIM_FIREPEA;
+	mAnimToString[AnimationType::ANIM_POOL_SPLASH] =
+		ResourceKeys::Reanimations::REANIM_POOL_SPLASH;
 
 	mAnimToString[AnimationType::ANIM_NONE] = "Unknown";
 }

@@ -1627,6 +1627,35 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_DOLPHIN_APPEARS);
 	out["dolphinBeforeJumpSoundRequestCount"] =
 		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_DOLPHIN_BEFORE_JUMPING);
+	out["plantWaterSoundRequestCount"] =
+		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_PLANT_WATER);
+	out["zombieEnteringWaterSoundRequestCount"] =
+		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_ZOMBIE_ENTERING_WATER);
+	out["poolTransitionSoundRequestCount"] =
+		out["plantWaterSoundRequestCount"].get<int>()
+		+ out["zombieEnteringWaterSoundRequestCount"].get<int>();
+	out["poolSplashResources"] = {
+		{ "reanimationLoaded", ResourceManager::GetInstance().HasReanimation(
+			ResourceKeys::Reanimations::REANIM_POOL_SPLASH) },
+		{ "soundsLoaded",
+			ResourceManager::GetInstance().GetSound(
+				ResourceKeys::Sounds::SOUND_PLANT_WATER) != nullptr
+			&& ResourceManager::GetInstance().GetSound(
+				ResourceKeys::Sounds::SOUND_ZOMBIE_ENTERING_WATER) != nullptr },
+		{ "waterParticlePartsLoaded",
+			ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Particles::PARTICLE_WATERPARTICLE_PART_0, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Particles::PARTICLE_WATERPARTICLE_PART_1, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Particles::PARTICLE_WATERPARTICLE_PART_2, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Particles::PARTICLE_WATERPARTICLE_PART_3, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Particles::PARTICLE_WATERPARTICLE_PART_4, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Particles::PARTICLE_WATERPARTICLE_PART_5, false) != nullptr },
+	};
 	out["bonkSoundRequestCount"] =
 		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_BONK);
 	out["softChewSoundRequestCount"] =
@@ -2932,6 +2961,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["particleEffectNameCounts"]["ZombieEliteDiggerHeadLight"] = 0;
 	out["particleEffectNameCounts"]["ZombiePinkFootballOff"] = 0;
 	out["particleEffectNameCounts"]["ZombieElitePogo"] = 0;
+	out["particleEffectNameCounts"]["PlantingPool"] = 0;
 	if (g_particleSystem) {
 		for (const auto& effect : g_particleSystem->GetEffectsForTesting()) {
 			if (!effect) continue;
@@ -3049,6 +3079,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["animatedObjectsByTag"] = nlohmann::json::object();
 	out["animatedObjectTagCounts"] = nlohmann::json::object();
 	out["animatedObjectTagCounts"]["DiggerOneShotVisual"] = 0;
+	out["animatedObjectTagCounts"]["PoolSplash"] = 0;
 	for (const auto& object : GameObjectManager::GetInstance().GetAllGameObjects()) {
 		auto* animated = object && object->IsActive()
 			? dynamic_cast<AnimatedObject*>(object.get()) : nullptr;

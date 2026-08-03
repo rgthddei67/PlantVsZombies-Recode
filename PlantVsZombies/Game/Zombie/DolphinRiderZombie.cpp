@@ -20,6 +20,8 @@ namespace {
 	constexpr float kEntrySplashProgress = 0.56f;    // C# 入水水花节点
 	constexpr float kJumpBlockProgress = 0.30f;      // C# 高坚果阻拦检查节点
 	constexpr float kJumpSplashProgress = 0.49f;     // C# 海豚重新入水节点
+	constexpr float kEntrySplashOffsetX = -46.0f;    // C# 抛豚入水水滴相对逻辑 X 的局部偏移，单位 px
+	constexpr float kJumpSplashOffsetX = -26.0f;     // C# 越障落水水滴相对逻辑 X 的局部偏移，单位 px
 	constexpr float kEntryShoreLead = 20.0f;         // 原版在池岸外 0～20 px 启动抛豚入水演出
 	constexpr float kEntryWorldShift = 70.0f;        // 入水换轨时提交的相对根位移，单位 px
 	constexpr float kDismountJumpWorldShift = 104.0f; // 跳跃末帧切 anim_swim 时抵消身体锚点差，单位 px
@@ -161,7 +163,7 @@ void DolphinRiderZombie::FinishEnteringPool()
 	mPhase = Phase::RIDING;
 	mSpeed = kGroundRootMotionRate;
 	// 演出从岸上开始，根位移提交后才正式切入水中介质并隐藏陆地阴影。
-	UpdatePoolState();
+	UpdatePoolState(false);
 	ApplyPhasePresentation();
 }
 
@@ -256,6 +258,7 @@ void DolphinRiderZombie::ZombieUpdate(float)
 		if (!mEntrySplashPlayed && progress >= kEntrySplashProgress) {
 			mEntrySplashPlayed = true;
 			ApplyPhasePresentation();
+			PlayPoolSplashVisual(GetPosition() + Vector(kEntrySplashOffsetX, 0.0f));
 			AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_ZOMBIE_ENTERING_WATER, 0.4f);
 		}
 		if (GetCurrentTrackName() == "anim_ride") FinishEnteringPool();
@@ -284,8 +287,8 @@ void DolphinRiderZombie::ZombieUpdate(float)
 	}
 	if (!mJumpSplashPlayed && progress >= kJumpSplashProgress) {
 		mJumpSplashPlayed = true;
+		PlayPoolSplashVisual(GetPosition() + Vector(kJumpSplashOffsetX, 0.0f));
 		AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_ZOMBIE_ENTERING_WATER, 0.4f);
-		AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_PLANT_WATER, 0.35f);
 	}
 	const char* returnTrack =
 		mJumpRetainsDolphinOnLanding ? "anim_ride" : "anim_swim";

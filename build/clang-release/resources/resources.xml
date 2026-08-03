@@ -425,6 +425,7 @@
 
     <Reanimation name="LawnMower">./resources/reanim/LawnMower.reanim</Reanimation>
     <Reanimation name="PoolCleaner">./resources/reanim/PoolCleaner.reanim</Reanimation>
+    <Reanimation name="Splash">./resources/reanim/splash.reanim</Reanimation>
 
   </Reanimations>
 </Resources>

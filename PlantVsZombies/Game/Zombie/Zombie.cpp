@@ -3,12 +3,14 @@
 #include "GildedZamboniZombie.h"
 #include "../Plant/Plant.h"
 #include "../Plant/HypnoShroom.h"
+#include "../AudioSystem.h"
 #include "../Board.h"
 #include "../ShadowComponent.h"
 #include "../GameObjectManager.h"
 #include "../Plant/GameDataManager.h"
 #include "../../ParticleSystem/ParticleSystem.h"
 #include "../../GameAPP.h"
+#include "../../ResourceKeys.h"
 #include <algorithm>
 #include <climits>
 #include <cmath>
@@ -20,6 +22,10 @@ namespace {
 	constexpr float kPoolTransitionRightShiftX = 70.0f;    // 适配当前泳池图，把进出水边界向右校正的像素数
 	constexpr float kPoolTransitionBlend = 0.2f;           // 进出水后恢复稳态走路轨道的混合秒数
 	constexpr float kPoolClipBottomOffsetY = 0.0f;         // 水面裁剪底边相对行逻辑 Y 的偏移，单位：像素
+	constexpr float kPoolSplashScale = 0.8f;               // C# PoolSplash 对 Splash.reanim 的统一缩放
+	constexpr float kPoolSplashAnimOffsetX = -30.0f;       // Splash 轨道视觉中心相对池沿发射点的反向锚定，单位：像素
+	constexpr float kPoolSplashAnimOffsetY = -40.0f;       // Splash 轨道水面中心相对池沿发射点的反向锚定，单位：像素
+	constexpr float kPoolSplashSoundVolume = 0.4f;         // 通用入水/出水 Foley 音量
 	constexpr float kTangleKelpSinkSpeed = 100.0f;         // 原版拖沉速度，单位：像素/秒
 	constexpr float kTangleKelpGrabOffsetX = -13.0f;       // 原版通用僵尸 anim_grab 附着点水平偏移，单位：像素
 	constexpr float kTangleKelpGrabOffsetY = 15.0f;        // 原版通用僵尸 anim_grab 附着点垂直偏移，单位：像素
@@ -46,6 +52,30 @@ namespace {
 			return false;
 		}
 	}
+
+	/** 播放原版 Splash.reanim 的完整一次性时间轴，并在末帧自动回收。 */
+	class PoolSplashVisual final : public AnimatedObject {
+	public:
+		PoolSplashVisual(Board* board, const Vector& position)
+			: AnimatedObject(ObjectType::OBJECT_PARTICLE, board, position,
+				AnimationType::ANIM_POOL_SPLASH, ColliderType::BOX,
+				Vector::zero(), Vector::zero(), kPoolSplashScale,
+				"PoolSplash", true)
+		{
+		}
+
+		void Start() override
+		{
+			AnimatedObject::Start();
+			if (!mAnimator) {
+				GameObjectManager::GetInstance().DestroyGameObject(this);
+				return;
+			}
+			mAnimator->SetFrameRangeToDefault();
+			SetAnimationSpeed(1.0f);
+			SetLoopType(PlayState::PLAY_ONCE);
+		}
+	};
 }
 
 Zombie::Zombie(Board* board, ZombieType zombieType, float x, float y, int row,
@@ -312,7 +342,7 @@ void Zombie::Start()
 	// 子类虚函数提供品种能力倍率；最后统一叠加减速、冻结、雨势和场地效果，且跨 PlayTrack 存活。
 	if (!mIsPreview) UpdateAnimSpeed();
 	// 直接生成在水域内部时首帧就应进入水中，避免等待移动一帧后才裁剪。
-	UpdatePoolState();
+	UpdatePoolState(false);
 }
 
 void Zombie::CheckWin() const
@@ -548,7 +578,7 @@ void Zombie::ApplyTyphoonGustDrift(float deltaTime, TransformComponent* transfor
 }
 
 /** 双探针同时落入泳池才切入水中，避免僵尸横跨池沿时来回闪动。 */
-void Zombie::UpdatePoolState()
+void Zombie::UpdatePoolState(bool playTransitionFeedback)
 {
 	if (!mBoard || mIsPreview || mRow < 0) return;
 	if (!CanUseGroundPoolState()) {
@@ -569,10 +599,43 @@ void Zombie::UpdatePoolState()
 
 	mInPool = shouldBeInPool;
 	UpdatePoolVisualState();
+	if (playTransitionFeedback) {
+		PlayPoolTransitionFeedback(mInPool);
+	}
 	// 啃食轨道结束时会经 ResumeWalkAfterEat 读取最新介质；此处不抢占正在播放的啃食。
 	if (!mIsEating && !mIsDying) {
 		PlayWalkAnimation(kPoolTransitionBlend);
 	}
+}
+
+/** 以决定介质切换的同一对探针中点为 X，水面裁剪底线为 Y，避免复用 C# 800×600 绝对坐标。 */
+Vector Zombie::GetPoolTransitionSplashOrigin() const
+{
+	const float probeMidpointX = (kPoolFrontProbeX + kPoolRearProbeX) * 0.5f
+		- kPoolTransitionRightShiftX;
+	return GetPosition() + Vector(probeMidpointX, kPoolClipBottomOffsetY);
+}
+
+/** 同时复刻 C# PoolSplash 的 Splash.reanim 与 PlantingPool 两层视觉。 */
+void Zombie::PlayPoolSplashVisual(const Vector& origin) const
+{
+	if (!mBoard || mIsPreview) return;
+	GameObjectManager::GetInstance().CreateGameObjectImmediate<PoolSplashVisual>(
+		LAYER_EFFECTS_WORLD, mBoard,
+		origin + Vector(kPoolSplashAnimOffsetX, kPoolSplashAnimOffsetY));
+	if (g_particleSystem) {
+		g_particleSystem->EmitEffect("PlantingPool", origin, LAYER_EFFECTS_WORLD);
+	}
+}
+
+/** 入水沿用 C# Zombiesplash 的两种随机采样，出水固定使用 PlantWater。 */
+void Zombie::PlayPoolTransitionFeedback(bool entering) const
+{
+	PlayPoolSplashVisual(GetPoolTransitionSplashOrigin());
+	const std::string& sound = entering && GameRandom::Range(0, 1) != 0
+		? ResourceKeys::Sounds::SOUND_ZOMBIE_ENTERING_WATER
+		: ResourceKeys::Sounds::SOUND_PLANT_WATER;
+	AudioSystem::PlaySound(sound, kPoolSplashSoundVolume);
 }
 
 /** 水中不绘制陆地投影；实际水面裁剪在 Draw 内压入 Graphics 裁剪栈。 */

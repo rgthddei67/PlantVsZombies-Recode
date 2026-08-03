@@ -8,7 +8,7 @@ metadata:
 
 # 第三大关泳池基础系统
 
-## 当前范围（2026-07-28）
+## 当前范围（2026-08-03）
 
 已开放冒险 3-1（level 19）至 3-9（level 27）的基础系统与出怪表。3-2 加入铁桶与快速铁桶；
 3-3 引入绿色精英撑杆并混合撑杆、铁门、快速读报与舞王；3-4 用铁桶、粉色橄榄球、
@@ -17,7 +17,7 @@ metadata:
 3-8 加入每波最多1只的精英海豚；3-9 是 30 波综合收官关，用三种基础僵尸维持低波预算，
 再组合召唤、防线突破、陆路车辆与水路海豚四组已教学威胁。其他泳池植物仍未实现。
 
-资源由主人提供：泳池地图、睡莲/三种水路僵尸动画、`PoolCleaner` 已在 `resources.xml` 注册。2026-07-23 后续任务又从 `D:\PVZ\原！版！Test\images` 导入原版水面底图、AlphaGrid 阴影蒙版和焦散源图，增加动态水面；仍未新增通用入水水花或额外泳池粒子，PoolCleaner reanim 自带轨道不在此限制内。
+资源由主人提供：泳池地图、睡莲/三种水路僵尸动画、`PoolCleaner` 已在 `resources.xml` 注册。2026-07-23 后续任务又从 `D:\PVZ\原！版！Test\images` 导入原版水面底图、AlphaGrid 阴影蒙版和焦散源图，增加动态水面。2026-08-03 又从 C# `Zombie::PoolSplash` 对齐通用进出水反馈：注册原版 `Splash.reanim`，并用 `PlantingPool` XML 水滴复刻第二层视觉。
 
 2026-07-29 新增 `SURVIVAL_ENDLESS_POOL_LEVEL=1002` 的“泳池无尽”选择页入口。该关直接复用
 `WATER_POOL` 的六行、水路、动态水面、睡莲、地形僵尸替换和日间泳池阳光经济，并通过独立
@@ -31,6 +31,7 @@ metadata:
 - 水格已有睡莲时，卡片悬停生成的半透明落点预览必须取当前 top 植物的 `renderOrder + 1`，保证待种植物显示在睡莲上方；空格预览使用 `LAYER_GAME_PLANT`。
 - 睡莲种下后 1 秒只免疫啃咬，计时器进存档；水面植物只做±2px 绘制浮动，Transform/碰撞与存档仍固定在逻辑格。植物本体与影子共享不含品种静态 offset 的动态视觉锚点，因此阵风插值和水面浮动会同步作用于两者，既有 `ShadowComponent::SetOffset` 校准不变。
 - 普通/路障/铁桶僵尸在水路由正式波次入口替换为 `ZOMBIE_POOL_*`，而非为出怪表添加独立权重；这三种专用类型仍只允许水路，陆地版本不会实际创建在水中。其他僵尸可直接抽到水路并保留自身类型与行为。`Board::CanZombieTypeSpawnInPool` 是集中禁水扩展点；普通与鎏金冰车均禁水，只能在泳池陆路生成。鎏金冰车只碾压本行植物，三路黄色冰道仍由 Board 对水路集中拒绝。`Zombie` 基类用前/后双探针统一维护 `mInPool`，本项目将下水/出水切换位置相对原探针向右校正 70px；水中统一隐藏陆地阴影，并在 `Zombie::Draw` 内用 `PushClipBottom/PopClipBottom` 把水面以下裁掉。该接口现为通用 shader `PushClipRect` 的全宽别名，不触发批处理 flush 或 `vkCmdSetScissor`，并自动与伴舞出土等既有矩形 Clip 取交集。专用泳池僵尸仍保留 swim、水中死亡和泳圈贴图；水中断头/断臂不生成悬浮的陆地碎片。
+- 通用 `mInPool` 真正跨界时以同一对探针的中点作 X、当前水面裁剪底线作 Y，同时创建 0.8 倍原版 `Splash.reanim` 与 16 水滴 `PlantingPool`，入水从 C# `FoleyType.Zombiesplash` 的 `PlantWater/ZombieEnteringWater` 两种资源随机取一，出水固定 `PlantWater`。直接生成在水中、预览与快照读档只静默同步，不能重播；海豚在自身 56%/49% 动作节点发射共用视觉，入水动作结束调用 `UpdatePoolState(false)`，避免重复反馈。
 - 普通/精英海豚是地形兼容性的反向特例：只允许 `WATER_POOL` 的第2/3水路生成。通用
   `Zombie::TryGetDrawClipBottom` 默认保持既有 `mInPool` 水线，海豚只在 `ENTERING_POOL` 覆写
   C# 分段低位底线，因而不会把骑手切断或影响其他僵尸；岸上抛豚、跳跃锚点和上岸零blend详见
@@ -68,7 +69,9 @@ metadata:
 
 ## 验证
 
-`smoke_pool_basics.json` 覆盖 3-1/3-2 背景、六行、出怪表、睡莲分层/保护/禁种、天气、台风整叠搬运、地形僵尸替换与水中死亡。`smoke_pool_cleaner.json` 覆盖待机、启动、入水、水中、出水和回到陆地，并锁定水中上移 13px 后 `visualY≈309.5`、回到陆地为 `visualY≈294.5`。`smoke_pool_zombie_visuals.json` 在 x=930 断言向右校正后的入水切换，并同时锁定主人后来调整后的第三大关水路 Y≈340、陆地行 Y≈140、第一/二大关仍为 Y≈340；水中 `anim_eat` 保持腿部轨道激活但画面由 shader 水线裁掉，额外生成报纸僵尸验证非专用类型也能进入水路，并断言 `poolBlockedZombieTypeCount=2`（普通/鎏金冰车）与 `graphics.lastFrameScissorChanges=0`。2026-07-28 海豚派生裁剪接入后该脚本再次在主人当前桌面可见运行 exit 0，截图确认普通水中僵尸仍使用原水线。`smoke_pool_zombie_interactions.json` 用陆地化灰作对照，断言水中爆炸 `charredZombieCount=0`，并现场验证补种上层植物后睡莲/坚果 `eaterCount` 从 `1/0` 迁移为 `0/1`。2026-07-24 又增加“陆地 row 1 樱桃命中相邻水路 row 2 僵尸”回归；`clang-playtest` 零警告构建后在主人当前桌面可见运行 exit 0，日志断言目标进入 `anim_waterdeath`，截图确认无烧焦残影。2026-07-23 同场景同种子实测逐僵尸矩形 Clip 为 `21 draw + 4 scissor`，改成 shader 水线后为 `19 draw + 0 scissor`（2 只水中僵尸）；通用化后默认实例路径与 `-NoInstance` 回退路径再次可见运行 exit 0、截图正确。完整通用 Clip 契约见 [project_pvz_shader_clip_rect](project_pvz_shader_clip_rect.md)。
+`smoke_pool_basics.json` 覆盖 3-1/3-2 背景、六行、出怪表、睡莲分层/保护/禁种、天气、台风整叠搬运、地形僵尸替换与水中死亡。`smoke_pool_cleaner.json` 覆盖待机、启动、入水、水中、出水和回到陆地，并锁定水中上移 13px 后 `visualY≈309.5`、回到陆地为 `visualY≈294.5`。`smoke_pool_zombie_visuals.json` 在 x=930 断言向右校正后的入水切换，并同时锁定主人后来调整后的第三大关水路 Y≈340、陆地行 Y≈140、第一/二大关仍为 Y≈340；水中 `anim_eat` 保持腿部轨道激活但画面由 shader 水线裁掉，额外生成报纸僵尸验证非专用类型也能进入水路，并按当前源码断言 `poolBlockedZombieTypeCount=4`（普通/鎏金冰车与普通/精英跳跳）和 `graphics.lastFrameScissorChanges=0`。2026-08-03 `clang-release` 可见回归 exit 0，截图确认普通水中僵尸仍使用原水线。`smoke_pool_zombie_interactions.json` 用陆地化灰作对照，断言水中爆炸 `charredZombieCount=0`，并现场验证补种上层植物后睡莲/坚果 `eaterCount` 从 `1/0` 迁移为 `0/1`。2026-07-24 又增加“陆地 row 1 樱桃命中相邻水路 row 2 僵尸”回归；`clang-playtest` 零警告构建后在主人当前桌面可见运行 exit 0，日志断言目标进入 `anim_waterdeath`，截图确认无烧焦残影。2026-07-23 同场景同种子实测逐僵尸矩形 Clip 为 `21 draw + 4 scissor`，改成 shader 水线后为 `19 draw + 0 scissor`（2 只水中僵尸）；通用化后默认实例路径与 `-NoInstance` 回退路径再次可见运行 exit 0、截图正确。完整通用 Clip 契约见 [project_pvz_shader_clip_rect](project_pvz_shader_clip_rect.md)。
+
+`smoke_pool_zombie_entry_feedback.json` 用一只直接生成在水中的静止僵尸作负对照，再让第二只从 x=958 真正跨过右池沿；2026-08-03 `clang-release` 当前桌面可见运行 exit 0，断言 `Splash` reanim 与六张水滴分片全部加载，跨界前两层计数和声音请求为 0、跨界后各为 1，`PlantingPool` 16 个 quad 的最终包围盒约 60×58 且最近僵尸为同一行，0.8 秒后两层回收。关卡快照重载后 `mInPool=true`，声画计数不再增加。
 
 `smoke_pool_effect.json` 固定白天战斗视角截取相隔 45 帧的水面，并补验夜间泳池资源分支、动画计数与 `graphics.lastFrameScissorChanges=0`。2026-07-23 `clang-playtest` 可见运行 exit 0；白天内框 ROI 有 `107434/108724` 像素变化，上方草坪对照 ROI 为 0，证明动画只作用于水面。随后 `smoke_pool_zombie_visuals.json` 可见回归 exit 0，实体层序、水线裁剪与跨关卡坐标断言全部保持通过。
 
