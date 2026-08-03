@@ -177,6 +177,7 @@ namespace ResourceKeys
 		RKEY(IMAGE_PROJECTILESNOWPEA);
 		RKEY(IMAGE_PROJECTILETOXICPEA);
 		RKEY(IMAGE_PROJECTILE_STAR);
+		RKEY(IMAGE_REANIM_CABBAGEPULT_CABBAGE);
 		RKEY(IMAGE_REANIM_TOXICPEASHOOTER_HEAD);
 		RKEY(IMAGE_REANIM_TOXICPEASHOOTER_SPROUT);
 
@@ -212,6 +213,7 @@ namespace ResourceKeys
 		RKEY(IMAGE_PUMPKIN_DAMAGE3);
 		RKEY(IMAGE_MAGNETSHROOM);
 		RKEY(IMAGE_FLOWERPOT);
+		RKEY(IMAGE_CABBAGEPULT);
 		RKEY(IMAGE_SUNSHROOM);
 		RKEY(IMAGE_FUMESHROOM);
 		RKEY(IMAGE_GRAVEBUSTER);
@@ -433,6 +435,7 @@ namespace ResourceKeys
 		inline const std::string REANIM_PUMPKIN = "Pumpkin";
 		inline const std::string REANIM_MAGNETSHROOM = "Magnetshroom";
 		inline const std::string REANIM_FLOWERPOT = "Pot";
+		inline const std::string REANIM_CABBAGEPULT = "Cabbagepult";
 
 		inline const std::string REANIM_NORMAL_ZOMBIE = "NormalZombie";
 		inline const std::string REANIM_CONE_ZOMBIE = "ConeZombie";

@@ -86,6 +86,7 @@ std::shared_ptr<Bullet> BulletPool::AcquireShared(Board* board, BulletType type,
 			board, type, row, colliderRadius, position);
 		break;
 	case BulletType::BULLET_STAR:
+	case BulletType::BULLET_CABBAGE:
 		bullet = GameObjectManager::GetInstance().CreateGameObjectImmediateAsShared<Bullet>(
 			LAYER_GAME_BULLET,
 			board, type, row, colliderRadius, position);

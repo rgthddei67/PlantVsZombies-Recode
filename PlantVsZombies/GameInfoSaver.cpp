@@ -484,6 +484,16 @@ bool GameInfoSaver::SerializeLevelDataToPath(Board* board, CardSlotManager* mana
 		b["spikeDamageRemainders"] = bullet->GetSpikeDamageRemainders();
 		b["threepeaterMotion"] = bullet->IsThreepeaterMotion();
 		b["targetsFlying"] = bullet->TargetsFlying();
+		b["lobbedMotion"] = bullet->IsLobbedMotion();
+		if (bullet->IsLobbedMotion()) {
+			b["lobStartX"] = bullet->GetLobStart().x;
+			b["lobStartY"] = bullet->GetLobStart().y;
+			b["lobTargetX"] = bullet->GetLobTarget().x;
+			b["lobTargetY"] = bullet->GetLobTarget().y;
+			b["lobElapsed"] = bullet->GetLobElapsed();
+			b["lobDuration"] = bullet->GetLobDuration();
+			b["lobApexHeight"] = bullet->GetLobApexHeight();
+		}
 		bulletsArr.push_back(b);
 	}
 	j["bullets"] = bulletsArr;
@@ -1056,6 +1066,14 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 				const int sourceRow = savedVelocityY < 0.0f ? row + 1 : row - 1;
 				bullet->EnableThreepeaterMotion(sourceRow);
 				bullet->SetVelocityY(savedVelocityY);
+			}
+			if (b.value("lobbedMotion", false)) {
+				bullet->RestoreLobbedMotion(
+					Vector(b.value("lobStartX", x), b.value("lobStartY", y)),
+					Vector(b.value("lobTargetX", x), b.value("lobTargetY", y)),
+					b.value("lobElapsed", 0.0f),
+					b.value("lobDuration", 1.2f),
+					b.value("lobApexHeight", 0.0f));
 			}
 		}
 	}

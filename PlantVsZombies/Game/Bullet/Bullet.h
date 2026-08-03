@@ -43,6 +43,12 @@ protected:
 	float mRotationSpeedDegrees = 0.0f; // 星弹随机自旋速度，单位：度/游戏秒
 	bool mThreepeaterMotion = false; // 三线射手斜向豌豆按原版逐步衰减纵向速度
 	bool mTargetsFlying = false; // 高姿态仙人掌尖刺为 true；对象池与存档必须显式复位
+	bool mLobbedMotion = false; // 解析抛射物状态；对象池复用必须显式清空
+	Vector mLobStart = Vector::zero(); // 抛射起点，逻辑弹心坐标
+	Vector mLobTarget = Vector::zero(); // 发射时预测并冻结的落点，逻辑弹心坐标
+	float mLobElapsed = 0.0f; // 已飞行游戏时间，单位：秒
+	float mLobDuration = 0.0f; // 到达预测落点所需游戏时间，单位：秒
+	float mLobApexHeight = 0.0f; // 相对起终点连线的最高拱高，单位：像素
 	BulletType mPoolType = BulletType::NUM_BULLETS; // 对象池槽位的固定类型；火炬树桩只改变当前表现类型
 	int mHitTorchwoodColumn = -1; // 最近处理过本子弹的火炬树桩列，防止同列反复转换
 	std::vector<int> mPiercedZombieIDs; // 尖刺已接触的不同僵尸实体 ID；按玩法穿透上限截断
@@ -75,6 +81,10 @@ protected:
 	void UpdateStarRow(const Vector& position);
 	void PlayStandardImpactSound(const Zombie* zombie, bool bypassShield = false) const;
 	void HitFireballZombie(Zombie* zombie);
+	/** 推进解析抛物线；返回 false 表示本帧已落空并回收。 */
+	bool UpdateLobbedMotion(float deltaTime);
+	/** 抛射物到达无目标落点后的粒子与回收入口。 */
+	void HitLobbedGround();
 
 public:
 	Bullet(Board* board, BulletType bulletType, int row, const Vector& colliderRadius,
@@ -153,6 +163,23 @@ public:
 	void SetTargetsFlying(bool targetsFlying) { mTargetsFlying = targetsFlying; }
 	bool TargetsFlying() const { return mTargetsFlying; }
 	float GetTerrainShadowYForTesting() const { return GetTerrainShadowY(GetPosition()); }
+	/**
+	 * 把当前弹心作为起点，按固定飞行时间和拱高配置解析抛物线。
+	 * 目标预测由发射植物负责，本层只保证轨迹精确经过起点和落点。
+	 */
+	void ConfigureLobbedMotion(
+		const Vector& target, float durationSeconds, float apexHeight);
+	/** 按存档恢复在途解析抛物线，并重建速度、位置与末段碰撞门禁。 */
+	void RestoreLobbedMotion(const Vector& start, const Vector& target,
+		float elapsedSeconds, float durationSeconds, float apexHeight);
+	bool IsLobbedMotion() const { return mLobbedMotion; }
+	const Vector& GetLobStart() const { return mLobStart; }
+	const Vector& GetLobTarget() const { return mLobTarget; }
+	float GetLobElapsed() const { return mLobElapsed; }
+	float GetLobDuration() const { return mLobDuration; }
+	float GetLobApexHeight() const { return mLobApexHeight; }
+	float GetLobProgress() const;
+	float GetLobArcHeight() const;
 
 	int GetSortingKey() const override { return this->mRow; }
 	TransformComponent* GetTransformComponent() const { return mTransform; }

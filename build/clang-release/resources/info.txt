@@ -276,3 +276,8 @@
 花盆
 [PLANT_FLOWERPOT_DESCRIPTION]
 花盆可以让你在屋顶上种植植物。“我是用来种植物的花盆，”花盆说，“不过我自己也是植物。你的脑袋开花了吗？”
+
+[PLANT_CABBAGEPULT]
+卷心菜投手
+[PLANT_CABBAGEPULT_DESCRIPTION]
+卷心菜投手可以把卷心菜投过障碍物砸向僵尸。“我才不是什么菜篮子，”卷心菜投手说，“我是经过严格弹道训练的菜篮子。”

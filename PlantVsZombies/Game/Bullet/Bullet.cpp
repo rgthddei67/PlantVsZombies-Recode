@@ -17,6 +17,7 @@ namespace {
 	constexpr int kPeaDamage = 20;                    // 普通/寒冰/孢子基础伤害
 	constexpr int kToxicPeaDamage = 15;               // 毒豆直击伤害；持续伤害由目标僵尸结算
 	constexpr int kFireballDamage = 40;               // 火豌豆基础伤害，原版为普通豌豆两倍
+	constexpr int kCabbageDamage = 40;                // 经典卷心菜直击伤害
 	constexpr int kSpikeFrameDamage = 2;              // 仙人掌尖刺在 1x 下每个逻辑碰撞帧的基础伤害
 	constexpr std::size_t kSpikePierceLimit = 4;       // 尖刺接触第四只不同僵尸后消失
 	constexpr float kFireballSplashWidth = 100.0f;    // 火球命中后沿飞行方向的同排溅射宽度，单位：像素
@@ -38,6 +39,12 @@ namespace {
 	constexpr float kStarSpinSpeedMin = 286.0f;         // 原版 0.05rad/厘秒换算后的最小自旋，单位：度/秒
 	constexpr float kStarSpinSpeedMax = 573.0f;         // 原版 0.10rad/厘秒换算后的最大自旋，单位：度/秒
 	constexpr float kStarShadowExtraOffsetY = 15.0f;    // C# 星弹初始化时额外下移阴影 15px
+	constexpr float kCabbageInitialRotation = -50.4f;   // C# -0.8796rad 的初始朝向，单位：度
+	constexpr float kCabbageSpinSpeedMin = -458.4f;     // C# -0.08rad/厘秒换算后的自旋下限，单位：度/秒
+	constexpr float kCabbageSpinSpeedMax = -114.6f;     // C# -0.02rad/厘秒换算后的自旋上限，单位：度/秒
+	constexpr float kLobCollisionArcHeight = 35.0f;     // 下降末段距基准轨迹不超过此高度时才允许碰撞，单位：px
+	constexpr float kLobLandingGrace = 0.08f;           // 到达预测点后留给碰撞系统的命中宽限，单位：秒
+	constexpr float kLobShadowHeightScale = 200.0f;     // 经典投掷物阴影随高度缩小公式的高度尺度，单位：px
 
 	enum class BulletWindResponse {
 		NONE,
@@ -96,6 +103,7 @@ namespace {
 	{
 		if (type == BulletType::BULLET_FIREBALL
 			|| type == BulletType::BULLET_TOXICFIREBALL) return kFireballDamage;
+		if (type == BulletType::BULLET_CABBAGE) return kCabbageDamage;
 		if (type == BulletType::BULLET_SPIKE) return kSpikeFrameDamage;
 		if (type == BulletType::BULLET_TOXICPEA) return kToxicPeaDamage;
 		return kPeaDamage;
@@ -192,6 +200,12 @@ void Bullet::Reset(Board* board, int row,
 	mRotationSpeedDegrees = 0.0f;
 	mThreepeaterMotion = false;
 	mTargetsFlying = false;
+	mLobbedMotion = false;
+	mLobStart = Vector::zero();
+	mLobTarget = Vector::zero();
+	mLobElapsed = 0.0f;
+	mLobDuration = 0.0f;
+	mLobApexHeight = 0.0f;
 	mHitTorchwoodColumn = -1;
 	mPiercedZombieIDs.clear();
 	mSpikeDamageRemainders.clear();
@@ -259,11 +273,19 @@ void Bullet::Update()
 				return;
 			}
 		}
-		transform->Translate(GetWindAdjustedVelocityX() * deltaTime, mVelocityY * deltaTime);
+		if (mLobbedMotion) {
+			if (!UpdateLobbedMotion(deltaTime)) return;
+		}
+		else {
+			transform->Translate(
+				GetWindAdjustedVelocityX() * deltaTime, mVelocityY * deltaTime);
+		}
 		const Vector position = transform->GetPosition();
-		if (mBulletType == BulletType::BULLET_STAR) {
+		if (mRotationSpeedDegrees != 0.0f) {
 			mRotationDegrees = std::fmod(
 				mRotationDegrees + mRotationSpeedDegrees * deltaTime, 360.0f);
+		}
+		if (mBulletType == BulletType::BULLET_STAR) {
 			if (position.y < 0.0f || position.y > static_cast<float>(SCENE_HEIGHT)) {
 				Die();
 				return;
@@ -275,7 +297,7 @@ void Bullet::Update()
 			HitRoofTerrain();
 			return;
 		}
-		if (mThreepeaterMotion) {
+		if (mThreepeaterMotion && !mLobbedMotion) {
 			// 用指数折算保持不同固定步长下与 C# “每 10ms ×0.97”相同的弧线。
 			mVelocityY *= std::pow(
 				kThreepeaterDampingPerTick, deltaTime / kOriginalTickSeconds);
@@ -306,6 +328,10 @@ void Bullet::Draw(Graphics* g)
 
 	if (mTexture) {
 		Vector position = GetPosition();
+		if (mBulletType == BulletType::BULLET_CABBAGE) {
+			position.x -= static_cast<float>(mTexture->width) * mScale * 0.5f;
+			position.y -= static_cast<float>(mTexture->height) * mScale * 0.5f;
+		}
 		g->DrawTexture(mTexture, position.x, position.y,
 			static_cast<float>(mTexture->width * mScale),
 			static_cast<float>(mTexture->height) * mScale,
@@ -336,6 +362,14 @@ void Bullet::UpdateShadowLayout(const Vector& position)
 		|| mBulletType == BulletType::BULLET_TOXICFIREBALL) {
 		typeScale = 1.4f;
 	}
+	else if (mBulletType == BulletType::BULLET_CABBAGE) {
+		const float height = mLobbedMotion
+			? GetLobArcHeight()
+			: std::max(0.0f, GetTerrainShadowY(position) - position.y);
+		typeScale = std::clamp(
+			kLobShadowHeightScale / (height + kLobShadowHeightScale),
+			0.45f, 1.0f);
+	}
 	const float shadowWidth = kPeaShadowWidth * typeScale;
 	const float shadowHeight = kPeaShadowHeight * typeScale;
 
@@ -355,7 +389,8 @@ void Bullet::UpdateShadowLayout(const Vector& position)
 			? 7.0f
 			: ((mBulletType == BulletType::BULLET_FIREBALL
 				|| mBulletType == BulletType::BULLET_TOXICFIREBALL
-				|| mBulletType == BulletType::BULLET_SPIKE) ? 0.0f : 3.0f));
+			|| mBulletType == BulletType::BULLET_SPIKE
+			|| mBulletType == BulletType::BULLET_CABBAGE) ? 0.0f : 3.0f));
 	const float shadowOffsetY = GetTerrainShadowY(position) - position.y;
 	mShadow->SetOffset(Vector(
 		shadowLeftOffset + shadowWidth * 0.5f,
@@ -424,6 +459,7 @@ void Bullet::HitRoofTerrain()
 		case BulletType::BULLET_TOXICPEA: effectName = "ToxicPeaBulletHit"; break;
 		case BulletType::BULLET_PEA: effectName = "PeaBulletHit"; break;
 		case BulletType::BULLET_STAR: effectName = "StarSplat"; break;
+		case BulletType::BULLET_CABBAGE: effectName = "CabbageSplat"; break;
 		default: break;
 		}
 		if (effectName) g_particleSystem->EmitEffect(effectName, position);
@@ -517,6 +553,11 @@ void Bullet::BulletHitZombie(Zombie* zombie)
 			g_particleSystem->EmitEffect("StarSplat", GetPosition());
 		}
 	}
+	else if (mBulletType == BulletType::BULLET_CABBAGE) {
+		if (g_particleSystem) {
+			g_particleSystem->EmitEffect("CabbageSplat", GetPosition());
+		}
+	}
 }
 
 void Bullet::ConfigurePresentation()
@@ -551,6 +592,14 @@ void Bullet::ConfigurePresentation()
 			kStarSpinSpeedMin, kStarSpinSpeedMax);
 		if (GameRandom::Chance()) mRotationSpeedDegrees = -mRotationSpeedDegrees;
 		break;
+	case BulletType::BULLET_CABBAGE:
+		mTexture = resources.GetTexture(
+			ResourceKeys::Textures::IMAGE_REANIM_CABBAGEPULT_CABBAGE);
+		mScale = 1.0f;
+		mRotationDegrees = kCabbageInitialRotation;
+		mRotationSpeedDegrees = GameRandom::Range(
+			kCabbageSpinSpeedMin, kCabbageSpinSpeedMax);
+		break;
 	case BulletType::BULLET_FIREBALL:
 	case BulletType::BULLET_TOXICFIREBALL: {
 		auto reanim = resources.GetReanimation(
@@ -575,6 +624,96 @@ void Bullet::ConfigurePresentation()
 	default:
 		break;
 	}
+}
+
+void Bullet::ConfigureLobbedMotion(
+	const Vector& target, float durationSeconds, float apexHeight)
+{
+	if (!mTransform) return;
+	mLobbedMotion = true;
+	mLobStart = mTransform->GetPosition();
+	mLobTarget = target;
+	mLobElapsed = 0.0f;
+	mLobDuration = std::max(0.01f, durationSeconds);
+	mLobApexHeight = std::max(0.0f, apexHeight);
+	mVelocityX = (mLobTarget.x - mLobStart.x) / mLobDuration;
+	mVelocityY = (mLobTarget.y - mLobStart.y) / mLobDuration
+		- 4.0f * mLobApexHeight / mLobDuration;
+	if (mCollider) mCollider->mEnabled = false;
+	UpdateShadowLayout(mLobStart);
+}
+
+void Bullet::RestoreLobbedMotion(const Vector& start, const Vector& target,
+	float elapsedSeconds, float durationSeconds, float apexHeight)
+{
+	mLobbedMotion = true;
+	mLobStart = start;
+	mLobTarget = target;
+	mLobDuration = std::max(0.01f, durationSeconds);
+	mLobElapsed = std::clamp(
+		elapsedSeconds, 0.0f, mLobDuration + kLobLandingGrace);
+	mLobApexHeight = std::max(0.0f, apexHeight);
+	const float progress = GetLobProgress();
+	const Vector position(
+		mLobStart.x + (mLobTarget.x - mLobStart.x) * progress,
+		mLobStart.y + (mLobTarget.y - mLobStart.y) * progress
+			- GetLobArcHeight());
+	if (mTransform) mTransform->SetPosition(position);
+	mVelocityX = (mLobTarget.x - mLobStart.x) / mLobDuration;
+	mVelocityY = (mLobTarget.y - mLobStart.y) / mLobDuration
+		- (4.0f * mLobApexHeight / mLobDuration) * (1.0f - 2.0f * progress);
+	if (mCollider) {
+		mCollider->mEnabled = progress >= 0.5f
+			&& GetLobArcHeight() <= kLobCollisionArcHeight;
+	}
+	UpdateShadowLayout(position);
+}
+
+float Bullet::GetLobProgress() const
+{
+	if (!mLobbedMotion || mLobDuration <= 0.0f) return 0.0f;
+	return std::clamp(mLobElapsed / mLobDuration, 0.0f, 1.0f);
+}
+
+float Bullet::GetLobArcHeight() const
+{
+	const float progress = GetLobProgress();
+	return 4.0f * mLobApexHeight * progress * (1.0f - progress);
+}
+
+bool Bullet::UpdateLobbedMotion(float deltaTime)
+{
+	if (!mTransform || mLobDuration <= 0.0f) return true;
+	mLobElapsed += deltaTime;
+	const float progress = GetLobProgress();
+	const float arcHeight = GetLobArcHeight();
+	const Vector position(
+		mLobStart.x + (mLobTarget.x - mLobStart.x) * progress,
+		mLobStart.y + (mLobTarget.y - mLobStart.y) * progress - arcHeight);
+	mTransform->SetPosition(position);
+	mVelocityX = (mLobTarget.x - mLobStart.x) / mLobDuration;
+	mVelocityY = (mLobTarget.y - mLobStart.y) / mLobDuration
+		- (4.0f * mLobApexHeight / mLobDuration) * (1.0f - 2.0f * progress);
+	if (mCollider) {
+		// 只在下降末段打开碰撞，飞越前排目标时不会在高空误触。
+		mCollider->mEnabled = progress >= 0.5f
+			&& arcHeight <= kLobCollisionArcHeight;
+	}
+	if (mLobElapsed >= mLobDuration + kLobLandingGrace) {
+		HitLobbedGround();
+		return false;
+	}
+	return true;
+}
+
+void Bullet::HitLobbedGround()
+{
+	if (mHasHit) return;
+	mHasHit = true;
+	if (g_particleSystem) {
+		g_particleSystem->EmitEffect("CabbageSplat", GetPosition());
+	}
+	Die();
 }
 
 void Bullet::HandleZombieContact(ColliderComponent* other)

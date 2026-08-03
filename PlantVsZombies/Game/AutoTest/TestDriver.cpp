@@ -37,6 +37,7 @@
 #include "../Plant/PumpkinShell.h"
 #include "../Plant/MagnetShroom.h"
 #include "../Plant/FlowerPot.h"
+#include "../Plant/CabbagePult.h"
 #include "../Bullet/Bullet.h"
 #include "../Zombie/ZombieType.h"
 #include "../Zombie/Zombie.h"
@@ -160,7 +161,7 @@ namespace {
 #undef PT
 #define BT(n) { #n, BulletType::n }
 	const std::unordered_map<std::string, BulletType> kBulletNames = {
-		BT(BULLET_PEA), BT(BULLET_SNOWPEA), BT(BULLET_PUFF), BT(BULLET_FIREBALL),
+		BT(BULLET_PEA), BT(BULLET_SNOWPEA), BT(BULLET_CABBAGE), BT(BULLET_PUFF), BT(BULLET_FIREBALL),
 		BT(BULLET_SPIKE), BT(BULLET_STAR), BT(BULLET_TOXICPEA), BT(BULLET_TOXICFIREBALL),
 	};
 #undef BT
@@ -952,6 +953,11 @@ bool TestDriver::ExecuteCurrent() {
 		bullet->SetVelocityY(cmd.value("velocityY", 0.0f));
 		bullet->SetBulletDamage(cmd.value("damage", bullet->GetBulletDamage()));
 		bullet->SetTargetsFlying(cmd.value("targetsFlying", false));
+		if (cmd.contains("lobTargetX") && cmd.contains("lobTargetY")) {
+			bullet->ConfigureLobbedMotion(
+				Vector(cmd["lobTargetX"].get<float>(), cmd["lobTargetY"].get<float>()),
+				cmd.value("lobDuration", 1.2f), cmd.value("lobApexHeight", 210.0f));
+		}
 		return true;
 	}
 	if (op == "set_starfruit_shoot_cycle") {
@@ -975,6 +981,29 @@ bool TestDriver::ExecuteCurrent() {
 			return true;
 		}
 		Fail("set_starfruit_shoot_cycle: 未找到目标杨桃");
+		return false;
+	}
+	if (op == "set_cabbagepult_shoot_cycle") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) {
+			Fail("set_cabbagepult_shoot_cycle: 不在 GameScene 或 Board 为空");
+			return false;
+		}
+		Board* board = gs->GetBoard();
+		const int row = cmd.value("row", -1);
+		const int col = cmd.value("col", -1);
+		for (int id : board->mEntityManager.GetAllPlantIDs()) {
+			auto* cabbagePult = dynamic_cast<CabbagePult*>(
+				board->mEntityManager.GetPlant(id));
+			if (!cabbagePult || (row >= 0 && cabbagePult->mRow != row)
+				|| (col >= 0 && cabbagePult->mColumn != col)) {
+				continue;
+			}
+			cabbagePult->SetShootCycleForTesting(
+				cmd.value("elapsed", 2.99f), cmd.value("interval", 3.0f));
+			return true;
+		}
+		Fail("set_cabbagepult_shoot_cycle: 未找到目标卷心菜投手");
 		return false;
 	}
 	if (op == "spawn_zombie") {
@@ -2058,6 +2087,14 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		{ "cardTextureLoaded", ResourceManager::GetInstance().GetTexture(
 			ResourceKeys::Textures::IMAGE_FLOWERPOT, false) != nullptr },
 	};
+	out["cabbagePultResources"] = {
+		{ "reanimationLoaded", ResourceManager::GetInstance().HasReanimation(
+			ResourceKeys::Reanimations::REANIM_CABBAGEPULT) },
+		{ "cardTextureLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_CABBAGEPULT, false) != nullptr },
+		{ "projectileTextureLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_REANIM_CABBAGEPULT_CABBAGE, false) != nullptr },
+	};
 	out["cards"] = nlohmann::json::array();
 	if (CardSlotManager* cardManager = gs->GetCardSlotManager()) {
 		for (Card* card : cardManager->GetCards()) {
@@ -3050,6 +3087,12 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			plantState["starfruitShootIntervalMs"] = static_cast<int>(std::lround(
 				starFruit->GetShootInterval() * 1000.0f));
 		}
+		if (auto* cabbagePult = dynamic_cast<CabbagePult*>(p)) {
+			plantState["cabbageShootTimerMs"] = static_cast<int>(std::lround(
+				cabbagePult->GetShootTimer() * 1000.0f));
+			plantState["cabbageShootIntervalMs"] = static_cast<int>(std::lround(
+				cabbagePult->GetShootInterval() * 1000.0f));
+		}
 		if (auto* threePeater = dynamic_cast<ThreePeater*>(p)) {
 			if (const Animator* head1 = threePeater->GetHeadAnimator()) {
 				plantState["head1Track"] = head1->GetCurrentTrackName();
@@ -3096,6 +3139,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["particleEffectNameCounts"] = nlohmann::json::object();
 	out["particleEffectNameCounts"]["PeaBulletHit"] = 0;
 	out["particleEffectNameCounts"]["ToxicPeaBulletHit"] = 0;
+	out["particleEffectNameCounts"]["CabbageSplat"] = 0;
 	out["particleEffectNameCounts"]["ZombieArmOff"] = 0;
 	out["particleEffectNameCounts"]["ZombieDolphinRiderHeadOff"] = 0;
 	out["particleEffectNameCounts"]["EliteDolphinRiderHeadOff"] = 0;
@@ -3439,6 +3483,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	int starUpRightBulletCount = 0;
 	int starDownRightBulletCount = 0;
 	int starSpinningBulletCount = 0;
+	int cabbageBulletCount = 0;
+	int lobbedBulletCount = 0;
 	int flyingTargetSpikeCount = 0;
 	int groundTargetSpikeCount = 0;
 	int flyingTargetSpikePiercedZombieCount = 0;
@@ -3482,6 +3528,9 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			else if (vx > 0.0f && vy < 0.0f) ++starUpRightBulletCount;
 			else if (vx > 0.0f && vy > 0.0f) ++starDownRightBulletCount;
 		}
+		else if (bullet->mBulletType == BulletType::BULLET_CABBAGE) {
+			++cabbageBulletCount;
+		}
 		else if (bullet->mBulletType == BulletType::BULLET_SPIKE) {
 			++spikeBulletCount;
 			if (bullet->TargetsFlying()) {
@@ -3494,6 +3543,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			}
 		}
 		if (bullet->HasAnimatedPresentation()) ++animatedBulletCount;
+		if (bullet->IsLobbedMotion()) ++lobbedBulletCount;
 		out["bullets"].push_back({
 			{ "id", id },
 			{ "type", static_cast<int>(bullet->mBulletType) },
@@ -3523,6 +3573,21 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "toxicFireball", bullet->IsToxicFireball() },
 			{ "fromPool", bullet->IsFromPool() },
 			{ "poolType", BulletTypeName(bullet->GetPoolType()) },
+			{ "colliderEnabled", bullet->GetColliderComponent()
+				&& bullet->GetColliderComponent()->mEnabled },
+			{ "lobbedMotion", bullet->IsLobbedMotion() },
+			{ "lobElapsedMs", static_cast<int>(std::lround(
+				bullet->GetLobElapsed() * 1000.0f)) },
+			{ "lobDurationMs", static_cast<int>(std::lround(
+				bullet->GetLobDuration() * 1000.0f)) },
+			{ "lobProgressOn1000", static_cast<int>(std::lround(
+				bullet->GetLobProgress() * 1000.0f)) },
+			{ "lobArcHeightOn1000", static_cast<int>(std::lround(
+				bullet->GetLobArcHeight() * 1000.0f)) },
+			{ "lobTargetXInt", static_cast<int>(std::lround(
+				bullet->GetLobTarget().x)) },
+			{ "lobTargetYInt", static_cast<int>(std::lround(
+				bullet->GetLobTarget().y)) },
 		});
 	}
 	out["bulletCount"] = static_cast<int>(out["bullets"].size());
@@ -3541,6 +3606,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["starUpRightBulletCount"] = starUpRightBulletCount;
 	out["starDownRightBulletCount"] = starDownRightBulletCount;
 	out["starSpinningBulletCount"] = starSpinningBulletCount;
+	out["cabbageBulletCount"] = cabbageBulletCount;
+	out["lobbedBulletCount"] = lobbedBulletCount;
 	out["flyingTargetSpikeCount"] = flyingTargetSpikeCount;
 	out["groundTargetSpikeCount"] = groundTargetSpikeCount;
 	out["flyingTargetSpikePiercedZombieCount"] = flyingTargetSpikePiercedZombieCount;

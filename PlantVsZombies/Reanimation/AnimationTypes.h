@@ -85,6 +85,7 @@ enum class AnimationType
 	ANIM_POOL_SPLASH, // 原版通用入水/出水一次性 Splash 动画
 	ANIM_ROOF_CLEANER, // 屋顶专属清洁车；追加在末尾避免旧动画枚举值错位
 	ANIM_FLOWERPOT, // 经典花盆；追加在末尾避免旧动画枚举值错位
+	ANIM_CABBAGEPULT, // 经典卷心菜投手；追加在末尾避免旧动画枚举值错位
 };
 
 #endif
