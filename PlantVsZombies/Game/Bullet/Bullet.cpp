@@ -46,6 +46,10 @@ namespace {
 	constexpr float kKernelInitialRotation = 0.0f;       // C# 玉米粒初始朝向，单位：度
 	constexpr float kKernelSpinSpeedMin = -1145.9f;      // C# -0.20rad/厘秒换算后的自旋下限，单位：度/秒
 	constexpr float kKernelSpinSpeedMax = -458.4f;       // C# -0.08rad/厘秒换算后的自旋上限，单位：度/秒
+	constexpr float kKernelDrawScale = 0.95f;            // C# 玉米粒弹丸绘制缩放
+	constexpr float kButterDrawScale = 0.8f;             // C# 黄油弹丸绘制缩放
+	constexpr float kKernelImpactVolume = 0.3f;          // 玉米粒命中或落空 Foley 音量
+	constexpr float kButterImpactVolume = 0.3f;          // 黄油命中或落空 Foley 音量
 	constexpr float kLobCollisionArcHeight = 35.0f;     // 下降末段距基准轨迹不超过此高度时才允许碰撞，单位：px
 	constexpr float kLobLandingGrace = 0.08f;           // 到达预测点后留给碰撞系统的命中宽限，单位：秒
 	constexpr float kLobShadowHeightScale = 200.0f;     // 经典投掷物阴影随高度缩小公式的高度尺度，单位：px
@@ -127,7 +131,7 @@ namespace {
 	{
 		AudioSystem::PlaySound(GameRandom::Chance()
 			? ResourceKeys::Sounds::SOUND_KERNELPULT
-			: ResourceKeys::Sounds::SOUND_KERNELPULT2, 0.3f);
+			: ResourceKeys::Sounds::SOUND_KERNELPULT2, kKernelImpactVolume);
 	}
 
 	/** 播放火球命中时的小段 JalapenoFire；依靠 PLAY_ONCE 完成态回收，不新增帧事件。 */
@@ -541,7 +545,8 @@ void Bullet::BulletHitZombie(Zombie* zombie)
 		PlayKernelImpactSound();
 	}
 	else if (mBulletType == BulletType::BULLET_BUTTER) {
-		AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_BUTTER, 0.3f);
+		AudioSystem::PlaySound(
+			ResourceKeys::Sounds::SOUND_BUTTER, kButterImpactVolume);
 		// 原版黄油声替代普通肉身 splat，但仍允许不可绕过防具或一类头盔发出材质声。
 		PlayStandardImpactSound(zombie, bypassShield, false);
 	}
@@ -648,7 +653,7 @@ void Bullet::ConfigurePresentation()
 	case BulletType::BULLET_KERNEL:
 		mTexture = resources.GetTexture(
 			ResourceKeys::Textures::IMAGE_CORNPULT_KERNAL);
-		mScale = 0.95f;
+		mScale = kKernelDrawScale;
 		mRotationDegrees = kKernelInitialRotation;
 		mRotationSpeedDegrees = GameRandom::Range(
 			kKernelSpinSpeedMin, kKernelSpinSpeedMax);
@@ -656,7 +661,7 @@ void Bullet::ConfigurePresentation()
 	case BulletType::BULLET_BUTTER:
 		mTexture = resources.GetTexture(
 			ResourceKeys::Textures::IMAGE_CORNPULT_BUTTER);
-		mScale = 0.8f;
+		mScale = kButterDrawScale;
 		mRotationDegrees = kCabbageInitialRotation;
 		mRotationSpeedDegrees = GameRandom::Range(
 			kCabbageSpinSpeedMin, kCabbageSpinSpeedMax);
@@ -775,7 +780,8 @@ void Bullet::HitLobbedGround()
 		PlayKernelImpactSound();
 	}
 	else if (mBulletType == BulletType::BULLET_BUTTER) {
-		AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_BUTTER, 0.3f);
+		AudioSystem::PlaySound(
+			ResourceKeys::Sounds::SOUND_BUTTER, kButterImpactVolume);
 		if (g_particleSystem) {
 			g_particleSystem->EmitEffect("ButterSplat", GetPosition());
 		}

@@ -26,6 +26,7 @@ namespace {
 	constexpr float kFallbackLandingOffsetY = -20.0f;      // 目标消失时相对同行地形基线的安全落点高度
 	constexpr int kKernelDamage = 20;                      // C# ProjectileType.Kernel 直击伤害
 	constexpr int kButterDamage = 40;                      // C# ProjectileType.Butter 直击伤害
+	constexpr float kShootSoundVolume = 0.3f;              // Throw/Throw2 发射 Foley 音量
 }
 
 void KernelPult::SetupPlant()
@@ -142,7 +143,7 @@ void KernelPult::FireProjectile()
 
 	AudioSystem::PlaySound(GameRandom::Chance()
 		? ResourceKeys::Sounds::SOUND_SHOOTER_SHOOT
-		: ResourceKeys::Sounds::SOUND_SHOOTER_SHOOT2, 0.3f);
+		: ResourceKeys::Sounds::SOUND_SHOOTER_SHOOT2, kShootSoundVolume);
 	Bullet* projectile = mBoard->CreateBullet(
 		fireButter ? BulletType::BULLET_BUTTER : BulletType::BULLET_KERNEL,
 		mRow, launchPosition);
