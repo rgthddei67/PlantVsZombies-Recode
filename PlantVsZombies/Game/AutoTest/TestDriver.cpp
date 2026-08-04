@@ -253,6 +253,11 @@ namespace {
 		{ "NONE", WindDirection::NONE }, { "HOUSE", WindDirection::TOWARD_HOUSE },
 		{ "FRONT", WindDirection::TOWARD_FRONT },
 	};
+	const std::unordered_map<std::string, RoofRunoffPhase> kRoofRunoffPhaseNames = {
+		{ "IDLE", RoofRunoffPhase::IDLE },
+		{ "WARNING", RoofRunoffPhase::WARNING },
+		{ "FLOWING", RoofRunoffPhase::FLOWING },
+	};
 
 	const std::unordered_map<std::string, Uint8> kMouseButtonNames = {
 		{ "left", SDL_BUTTON_LEFT }, { "right", SDL_BUTTON_RIGHT },
@@ -326,6 +331,10 @@ namespace {
 	}
 	std::string WindDirectionName(WindDirection direction) {
 		for (const auto& [k, v] : kWindDirectionNames) if (v == direction) return k;
+		return "UNKNOWN";
+	}
+	std::string RoofRunoffPhaseName(RoofRunoffPhase phase) {
+		for (const auto& [k, v] : kRoofRunoffPhaseNames) if (v == phase) return k;
 		return "UNKNOWN";
 	}
 	std::string PlayStateName(PlayState s) {
@@ -664,6 +673,44 @@ bool TestDriver::ExecuteCurrent() {
 		if (!gs || !gs->GetBoard()) { Fail("trigger_typhoon_gust: 不在 GameScene 或 Board 为空"); return false; }
 		if (!gs->GetBoard()->TriggerTyphoonGustForTesting(cmd.value("plantMoveIn", 0.0f))) {
 			Fail("trigger_typhoon_gust: 当前不是带台风的大雨");
+			return false;
+		}
+		return true;
+	}
+	if (op == "set_roof_runoff") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) {
+			Fail("set_roof_runoff: 不在 GameScene 或 Board 为空");
+			return false;
+		}
+		Board* board = gs->GetBoard();
+		int rowMask = 0;
+		if (cmd.contains("rows") && cmd["rows"].is_array()) {
+			for (const auto& rowJson : cmd["rows"]) {
+				if (!rowJson.is_number_integer()) {
+					Fail("set_roof_runoff: rows 必须是合法行号数组");
+					return false;
+				}
+				const int row = rowJson.get<int>();
+				if (row < 0 || row >= board->mRows) {
+					Fail("set_roof_runoff: rows 包含越界行号");
+					return false;
+				}
+				rowMask |= 1 << row;
+			}
+		}
+		else if (cmd.contains("row")) {
+			// 兼容现有单行脚本；新脚本应传 rows，使测试表达与正式多行状态一致。
+			const int row = cmd.value("row", -1);
+			if (row >= 0 && row < board->mRows) rowMask = 1 << row;
+		}
+		auto phaseIt = kRoofRunoffPhaseNames.find(cmd.value("phase", "IDLE"));
+		if (phaseIt == kRoofRunoffPhaseNames.end()
+			|| !board->SetRoofRunoffForTesting(
+				cmd.value("charge", 0.0f), phaseIt->second,
+				rowMask, cmd.value("remaining", 0.0f),
+				cmd.value("retainedCharge", 45.0f))) {
+			Fail("set_roof_runoff: 仅昼夜屋顶可用；phase 必须为 IDLE/WARNING/FLOWING，活动阶段须提供非空合法 rows");
 			return false;
 		}
 		return true;
@@ -2514,6 +2561,31 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "failedForecastIntensity", RainIntensityName(gs->GetFailedForecastRainIntensity()) },
 			{ "actualForecastIntensity", RainIntensityName(gs->GetActualForecastRainIntensity()) },
 		};
+		nlohmann::json runoffRows = nlohmann::json::array();
+		int firstRunoffRow = -1;
+		for (int row = 0; row < board->mRows; ++row) {
+			if (!board->IsRoofRunoffRowSelected(row)) continue;
+			if (firstRunoffRow < 0) firstRunoffRow = row;
+			runoffRows.push_back(row);
+		}
+		out["weather"]["roofRunoff"] = {
+			{ "supported", board->SupportsRoofRunoff() },
+			{ "chargePct", static_cast<int>(std::lround(
+				board->GetRoofRunoffChargeRatio() * 100.0f)) },
+			{ "retainedChargePct", static_cast<int>(std::lround(
+				board->GetRoofRunoffRetainedCharge())) },
+			{ "phase", RoofRunoffPhaseName(board->GetRoofRunoffPhase()) },
+			{ "rowMask", board->GetRoofRunoffRowMask() },
+			{ "rowCount", board->GetRoofRunoffRowCount() },
+			{ "rows", runoffRows },
+			{ "phaseRemainingMs", static_cast<int>(std::lround(
+				board->GetRoofRunoffPhaseTimer() * 1000.0f)) },
+			{ "flowProgressPct", static_cast<int>(std::lround(
+				board->GetRoofRunoffFlowProgress() * 100.0f)) },
+			{ "zombieDriftSpeed", static_cast<int>(std::lround(
+				board->GetRoofRunoffZombieDriftVelocity(
+					firstRunoffRow, board->GetRoofSlopeEndX() - 1.0f))) },
+		};
 	}
 	out["prompts"] = {
 		{ "activeCount", static_cast<int>(gs->GetPromptsForTesting().size()) },
@@ -3134,6 +3206,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "hasShadow", p->GetComponent<ShadowComponent>() != nullptr },
 			{ "sunProductionMultiplierPct", static_cast<int>(std::lround(
 				board->GetPlanternSunProductionMultiplier(p) * 100.0f)) },
+			{ "roofRunoffPaused", board->IsPlantPausedByRoofRunoff(p) },
 			{ "bungeeState", PlantBungeeStateName(p->GetBungeeState()) },
 			{ "bungeeOwnerZombieID", p->GetBungeeOwnerZombieID() },
 		};

@@ -229,6 +229,19 @@ namespace {
 	constexpr float kHeavySplashDelayMin = 0.01f;         // 大雨两次地面水花的最短间隔（秒，约每秒 20多 次）
 	constexpr float kHeavySplashDelayMax = 0.02f;         // 大雨两次地面水花的最长间隔（秒，约每秒 20多 次）
 	constexpr float kRainSplashEdgePadding = 18.0f;       // 水花中心距草地网格边缘的安全距离（像素）
+	constexpr float kRoofRunoffChargeMaximum = 100.0f;    // 坡面径流进入锁行预警所需的满积累值
+	constexpr float kRoofRunoffLightChargePerSecond = 1.00f; // 小雨每游戏秒增加的径流积累点数
+	constexpr float kRoofRunoffMediumChargePerSecond = 2.00f; // 中雨每游戏秒增加的径流积累点数
+	constexpr float kRoofRunoffHeavyChargePerSecond = 3.50f; // 大雨每游戏秒增加的径流积累点数
+	constexpr float kRoofRunoffClearDrainPerSecond = 0.30f; // 晴天每游戏秒自然排走的径流积累点数
+	constexpr float kRoofRunoffWarningDuration = 3.0f;    // 满积累后锁行预警的持续游戏秒
+	constexpr float kRoofRunoffFlowDuration = 2.20f;      // 单次目标行冲刷的持续游戏秒
+	constexpr float kRoofRunoffZombieDriftSpeed = -60.0f; // 地面僵尸顺坡冲向屋檐的附加速度，像素/游戏秒
+	constexpr int kRoofRunoffRetainedChargeMin = 30;      // 冲刷结束后保留湿度的均匀随机下限（百分比）
+	constexpr int kRoofRunoffRetainedChargeMax = 60;      // 冲刷结束后保留湿度的均匀随机上限（百分比）
+	constexpr int kRoofRunoffOneRowWeight = 50;           // 满积累事件只冲刷一行的相对权重
+	constexpr int kRoofRunoffTwoRowWeight = 35;           // 满积累事件同时冲刷两行的相对权重
+	constexpr int kRoofRunoffThreeRowWeight = 15;         // 满积累事件同时冲刷三行的相对权重
 	constexpr float kLightningDelayMin = 3.5f;           // 大雨开始后首次闪电的最短等待时间（秒）
 	constexpr float kLightningDelayMax = 7.0f;           // 大雨开始后首次闪电的最长等待时间（秒）
 	constexpr float kLightningRepeatMin = 5.0f;          // 大雨中两次闪电的最短间隔（秒）
@@ -909,6 +922,27 @@ float Board::GetPlantRainActionSpeedMultiplier() const
 	return previous + (PlantSpeedForRain(mRainIntensity, pressure) - previous) * progress;
 }
 
+/**
+ * 只暂停锁定行坡段的花盆上层，不碰承载花盆本体、平台植物或其他行。
+ * 由格子层 ID 判定 normal/pumpkin，避免临时覆盖层被误当作常规作物。
+ */
+bool Board::IsPlantPausedByRoofRunoff(const Plant* plant) const
+{
+	if (!plant || !plant->IsActive() || !IsRoofRunoffFlowing()
+		|| !IsRoofRunoffRowSelected(plant->mRow) || plant->mColumn < 0
+		|| plant->mColumn >= kRoofSlopeColumnCount
+		|| plant->mPlantType == PlantType::PLANT_FLOWERPOT) return false;
+	if (plant->mRow < 0 || plant->mRow >= mRows
+		|| plant->mColumn >= mColumns) return false;
+
+	Cell* cell = mCells[plant->mRow][plant->mColumn];
+	if (!cell || (cell->GetNormalPlantID() != plant->mPlantID
+		&& cell->GetPumpkinPlantID() != plant->mPlantID)) return false;
+	Plant* support = mEntityManager.GetPlant(cell->GetUnderPlantID());
+	return support && support->IsActive() && !support->IsSquished()
+		&& support->mPlantType == PlantType::PLANT_FLOWERPOT;
+}
+
 float Board::GetRainOverlayAlpha() const
 {
 	const float progress = GetWeatherTransitionProgress();
@@ -1339,6 +1373,11 @@ void Board::InitializeWeather()
 	mRainVisualEffectName.clear();
 	mWeakWeatherPhasesSinceHeavy = 0;
 	mHeavyPhasesWithoutTyphoon = 0;
+	mRoofRunoffCharge = 0.0f;
+	mRoofRunoffRetainedCharge = 0.0f;
+	mRoofRunoffPhase = RoofRunoffPhase::IDLE;
+	mRoofRunoffPhaseTimer = 0.0f;
+	mRoofRunoffRowMask = 0;
 	StopTyphoon();
 	mWeatherTimer = SupportsWeather()
 		? GameRandom::Range(kFirstRainDelayMin, kFirstRainDelayMax)
@@ -2583,9 +2622,110 @@ void Board::TriggerLightning()
 	mPresentation->ShowLightningStrike(kLightningFlashDuration);
 }
 
+/**
+ * 昼夜屋顶把当前雨势换算为可保留的全局积累；满值后只随机一次目标行组，
+ * 依次经过可读预警和短时冲刷。晴天只缓慢排水，不会凭空触发事件。
+ */
+void Board::UpdateRoofRunoff(float deltaTime)
+{
+	if (!SupportsRoofRunoff()) {
+		mRoofRunoffCharge = 0.0f;
+		mRoofRunoffRetainedCharge = 0.0f;
+		mRoofRunoffPhase = RoofRunoffPhase::IDLE;
+		mRoofRunoffPhaseTimer = 0.0f;
+		mRoofRunoffRowMask = 0;
+		return;
+	}
+	if (deltaTime <= 0.0f) return;
+
+	if (mRoofRunoffPhase == RoofRunoffPhase::WARNING
+		|| mRoofRunoffPhase == RoofRunoffPhase::FLOWING) {
+		mRoofRunoffPhaseTimer = std::max(0.0f,
+			mRoofRunoffPhaseTimer - deltaTime);
+		if (mRoofRunoffPhaseTimer > 0.0f) return;
+
+		if (mRoofRunoffPhase == RoofRunoffPhase::WARNING) {
+			mRoofRunoffPhase = RoofRunoffPhase::FLOWING;
+			mRoofRunoffPhaseTimer = kRoofRunoffFlowDuration;
+			return;
+		}
+
+		mRoofRunoffCharge = mRoofRunoffRetainedCharge;
+		mRoofRunoffRetainedCharge = 0.0f;
+		mRoofRunoffPhase = RoofRunoffPhase::IDLE;
+		mRoofRunoffRowMask = 0;
+		return;
+	}
+
+	float chargeDelta = 0.0f;
+	switch (mRainIntensity) {
+	case RainIntensity::CLEAR:
+		chargeDelta = -kRoofRunoffClearDrainPerSecond;
+		break;
+	case RainIntensity::LIGHT:
+		chargeDelta = kRoofRunoffLightChargePerSecond;
+		break;
+	case RainIntensity::MEDIUM:
+		chargeDelta = kRoofRunoffMediumChargePerSecond;
+		break;
+	case RainIntensity::HEAVY:
+		chargeDelta = kRoofRunoffHeavyChargePerSecond;
+		break;
+	}
+	mRoofRunoffCharge = std::clamp(mRoofRunoffCharge
+		+ chargeDelta * deltaTime, 0.0f, kRoofRunoffChargeMaximum);
+	if (mRoofRunoffCharge < kRoofRunoffChargeMaximum || mRows <= 0) return;
+
+	// 锁行组只抽一次并随档保存；不按敌我密度选行，避免系统暗中追打当前最拥挤防线。
+	mRoofRunoffPhase = RoofRunoffPhase::WARNING;
+	mRoofRunoffPhaseTimer = kRoofRunoffWarningDuration;
+	// 下一轮起点和行组同时预抽并入档，避免活动阶段读档改变后续湿度。
+	mRoofRunoffRetainedCharge = static_cast<float>(GameRandom::Range(
+		kRoofRunoffRetainedChargeMin, kRoofRunoffRetainedChargeMax));
+	const int rowCountRoll = GameRandom::Range(1,
+		kRoofRunoffOneRowWeight + kRoofRunoffTwoRowWeight + kRoofRunoffThreeRowWeight);
+	int rowCount = rowCountRoll <= kRoofRunoffOneRowWeight ? 1
+		: (rowCountRoll <= kRoofRunoffOneRowWeight + kRoofRunoffTwoRowWeight ? 2 : 3);
+	rowCount = std::min(rowCount, mRows);
+	mRoofRunoffRowMask = 0;
+	while (GetRoofRunoffRowCount() < rowCount) {
+		mRoofRunoffRowMask |= 1 << GameRandom::Range(0, mRows - 1);
+	}
+}
+
+/** 校验并恢复径流状态；损坏组合和非屋顶存档都回到中性状态。 */
+void Board::RestoreRoofRunoffState(float charge, RoofRunoffPhase phase,
+	int rowMask, float phaseTimer, float retainedCharge)
+{
+	mRoofRunoffCharge = 0.0f;
+	mRoofRunoffRetainedCharge = 0.0f;
+	mRoofRunoffPhase = RoofRunoffPhase::IDLE;
+	mRoofRunoffPhaseTimer = 0.0f;
+	mRoofRunoffRowMask = 0;
+	if (!SupportsRoofRunoff() || !std::isfinite(charge)
+		|| !std::isfinite(phaseTimer) || !std::isfinite(retainedCharge)) return;
+
+	mRoofRunoffCharge = std::clamp(charge, 0.0f, kRoofRunoffChargeMaximum);
+	if (phase != RoofRunoffPhase::WARNING && phase != RoofRunoffPhase::FLOWING) return;
+	const int validRowMask = mRows > 0 ? (1 << mRows) - 1 : 0;
+	rowMask &= validRowMask;
+	if (rowMask == 0 || phaseTimer < 0.0f) {
+		mRoofRunoffCharge = 0.0f;
+		return;
+	}
+	mRoofRunoffCharge = kRoofRunoffChargeMaximum;
+	mRoofRunoffPhase = phase;
+	mRoofRunoffPhaseTimer = phaseTimer;
+	mRoofRunoffRowMask = rowMask;
+	mRoofRunoffRetainedCharge = std::clamp(retainedCharge,
+		static_cast<float>(kRoofRunoffRetainedChargeMin),
+		static_cast<float>(kRoofRunoffRetainedChargeMax));
+}
+
 void Board::UpdateWeather(float deltaTime)
 {
 	if (!mWeatherInitialized || deltaTime <= 0.0f || !SupportsWeather()) return;
+	UpdateRoofRunoff(deltaTime);
 	if (IsStormyNightActive()) {
 		EnforceStormyNightWeather();
 		UpdateWeatherTransition(deltaTime);
@@ -2811,6 +2951,28 @@ bool Board::TriggerTyphoonGustForTesting(float plantMoveIn)
 	return BeginTyphoonGust(false, plantMoveIn);
 }
 
+bool Board::SetRoofRunoffForTesting(float charge, RoofRunoffPhase phase,
+	int rowMask, float phaseTimer, float retainedCharge)
+{
+	if (!SupportsRoofRunoff() || !std::isfinite(charge)
+		|| !std::isfinite(phaseTimer) || !std::isfinite(retainedCharge)) return false;
+	if (phase == RoofRunoffPhase::WARNING || phase == RoofRunoffPhase::FLOWING) {
+		const int validRowMask = mRows > 0 ? (1 << mRows) - 1 : 0;
+		if ((rowMask & validRowMask) == 0 || (rowMask & ~validRowMask) != 0) return false;
+		if (phaseTimer <= 0.0f) {
+			phaseTimer = phase == RoofRunoffPhase::WARNING
+				? kRoofRunoffWarningDuration : kRoofRunoffFlowDuration;
+		}
+	}
+	else {
+		rowMask = 0;
+		phaseTimer = 0.0f;
+		retainedCharge = 0.0f;
+	}
+	RestoreRoofRunoffState(charge, phase, rowMask, phaseTimer, retainedCharge);
+	return mRoofRunoffPhase == phase;
+}
+
 void Board::TriggerRainGroundSplashForTesting()
 {
 	TriggerRainGroundSplash();
@@ -2864,6 +3026,34 @@ bool Board::SupportsWeather() const
 		|| mLevel == SURVIVAL_ENDLESS_POOL_LEVEL) return true;
 	return AdventureProgression::IsAdventureLevel(mLevel)
 		&& AdventureProgression::GetAreaNumber(mLevel) >= 2;
+}
+
+bool Board::SupportsRoofRunoff() const
+{
+	return IsRoofBackground() && SupportsWeather();
+}
+
+float Board::GetRoofRunoffZombieDriftVelocity(int row, float worldX) const
+{
+	if (!IsRoofRunoffFlowing() || !IsRoofRunoffRowSelected(row)
+		|| worldX > GetRoofSlopeEndX()) return 0.0f;
+	return kRoofRunoffZombieDriftSpeed;
+}
+
+int Board::GetRoofRunoffRowCount() const
+{
+	int count = 0;
+	for (int row = 0; row < mRows; ++row) {
+		if (IsRoofRunoffRowSelected(row)) ++count;
+	}
+	return count;
+}
+
+float Board::GetRoofRunoffFlowProgress() const
+{
+	if (!IsRoofRunoffFlowing()) return 0.0f;
+	return std::clamp(1.0f - mRoofRunoffPhaseTimer / kRoofRunoffFlowDuration,
+		0.0f, 1.0f);
 }
 
 bool Board::SupportsStageFog() const

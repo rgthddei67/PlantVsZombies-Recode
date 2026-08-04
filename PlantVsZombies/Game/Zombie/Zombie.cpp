@@ -484,6 +484,7 @@ void Zombie::Update()
 		// 水草关系同时充当水底锚点，束缚期间不允许阵风改变僵尸的位置。
 		if (mTangleKelpPlantID == NULL_PLANT_ID) {
 			ApplyTyphoonGustDrift(deltaTime, transform);
+			ApplyRoofRunoffDrift(deltaTime, transform);
 		}
 		// 冻结和啃食会在下方早退，阵风横移后仍必须立刻回到屋顶坡面。
 		SyncToRoofTerrain(transform);
@@ -616,6 +617,20 @@ void Zombie::ApplyTyphoonGustDrift(float deltaTime, TransformComponent* transfor
 		displacement = std::min(displacement, limit - x);
 	}
 	transform->Translate(displacement, 0.0f);
+}
+
+/**
+ * 坡面径流与自主行走正交，即使僵尸正在啃食或被定身也会被水推走；飞行、地下、
+ * 弹跳中及明确拒绝台风物理位移的品种不属于屋面地面单位，因此保持原位。
+ */
+void Zombie::ApplyRoofRunoffDrift(float deltaTime, TransformComponent* transform)
+{
+	if (!transform || !mBoard || mIsDying || deltaTime <= 0.0f
+		|| !CanBeMovedByTyphoonGust() || !CanUseGroundPoolState() || IsFlying()) return;
+	const float velocity = mBoard->GetRoofRunoffZombieDriftVelocity(
+		mRow, transform->GetPosition().x);
+	if (velocity == 0.0f) return;
+	transform->Translate(velocity * deltaTime, 0.0f);
 }
 
 /** 双探针同时落入泳池才切入水中，避免僵尸横跨池沿时来回闪动。 */

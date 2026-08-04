@@ -62,6 +62,8 @@ public:
 
 	~Plant() = default;
 	void Start() override;
+	/** 并行动画阶段也遵守屋顶径流暂停，避免帧事件先于串行行为守卫触发。 */
+	void UpdateParallel(std::vector<DeferredEvent>& outBuf) override;
 	void Update() override;
 	void Draw(Graphics* g) override;	// 重写以叠加血量显示
 	Vector GetVisualPosition() const override;

@@ -188,6 +188,11 @@ private:
 	bool mStormyNightInitialized = false; // 4-9 第 23 波暴风雨夜是否已经正式初始化，防读档重置阵风额度
 	int mStormyNightFlashPattern = 0;   // 原版 4-10 三种闪光节奏（1～3）；0 表示尚未启用
 	float mStormyNightFlashTimer = 0.0f; // 当前闪光节奏剩余游戏秒；黑屏等待也包含在此计时内
+	float mRoofRunoffCharge = 0.0f;     // 昼夜屋顶坡面径流积累值（0～100）
+	float mRoofRunoffRetainedCharge = 0.0f; // 本次冲刷结束后兑现的预抽残留湿度（30～60）
+	RoofRunoffPhase mRoofRunoffPhase = RoofRunoffPhase::IDLE; // 当前径流所处的待机、预警或冲刷阶段
+	float mRoofRunoffPhaseTimer = 0.0f; // 当前预警或冲刷阶段剩余游戏秒
+	int mRoofRunoffRowMask = 0;         // 已锁定的冲刷行 bitmask；待机阶段为 0
 
 	// 四大关迷雾是独立于雨势的环境层：原版默认雾、增强雾势、预报与台风驱散均由 Board 持有。
 	FogWeatherIntensity mFogWeatherIntensity = FogWeatherIntensity::DEFAULT;
@@ -267,6 +272,11 @@ private:
 	inline ZombieType GetCheapestZombie();
 	void InitializeWeather();
 	void UpdateWeather(float deltaTime);
+	/** 推进昼夜屋顶雨水积累、锁行预警与短时冲刷状态机。 */
+	void UpdateRoofRunoff(float deltaTime);
+	/** 从存档恢复已经判定的积累值、阶段、锁定行、残留湿度与剩余时间，不重新抽取。 */
+	void RestoreRoofRunoffState(float charge, RoofRunoffPhase phase,
+		int rowMask, float phaseTimer, float retainedCharge);
 	void InitializeFogWeather();
 	void UpdateFog(float deltaTime);
 	void UpdateFogWeather(float deltaTime);
@@ -433,6 +443,8 @@ public:
 	float GetPlantBulletWindDamageMultiplier(bool movingTowardFront) const;
 	/** 当前雨势对植物攻击、生产、成长和恢复计时的倍率。 */
 	float GetPlantRainActionSpeedMultiplier() const;
+	/** 屋顶冲刷时，花盆上的目标行坡面植物暂停行动；花盆本体保持工作。 */
+	bool IsPlantPausedByRoofRunoff(const Plant* plant) const;
 	/** 世界层蓝灰暗幕的 alpha（0..255）；UI 在暗幕之后绘制，不受影响。 */
 	float GetRainOverlayAlpha() const;
 	/** 4-9 第 22 波显示暴风雨预报，但尚不改变玩法天气。 */
@@ -613,6 +625,9 @@ public:
 	bool RollTyphoonForTesting(int chanceRoll, int strengthRoll, WindDirection direction);
 	// AutoTest 专用：启动一次当前强度的阵风，不消费自动预算；可固定植物结算时刻。
 	bool TriggerTyphoonGustForTesting(float plantMoveIn = 0.0f);
+	/** AutoTest 专用：固定径流积累、活动阶段和冲刷后的残留湿度。 */
+	bool SetRoofRunoffForTesting(float charge, RoofRunoffPhase phase,
+		int rowMask = 0, float phaseTimer = 0.0f, float retainedCharge = 45.0f);
 	/** 立即生成一次地面雨滴水花，供不同地形的落点闭环测试。 */
 	void TriggerRainGroundSplashForTesting();
 	/** 正式波次与 AutoTest 共用的天气变异入口；mutationRoll=0 时随机，超额成功变异返回 NUM_ZOMBIE_TYPES。 */
@@ -636,6 +651,31 @@ public:
 	float GetMowerTerrainY(int row, float worldX) const;
 	/** 天气从第二大关起启用；白天泳池同样受天气系统影响。 */
 	bool SupportsWeather() const;
+	/** 昼夜屋顶共用坡面径流；夜屋顶未来可在此之上叠加独立电荷机制。 */
+	bool SupportsRoofRunoff() const;
+	float GetRoofRunoffCharge() const { return mRoofRunoffCharge; }
+	float GetRoofRunoffChargeRatio() const { return mRoofRunoffCharge / 100.0f; }
+	float GetRoofRunoffRetainedCharge() const { return mRoofRunoffRetainedCharge; }
+	RoofRunoffPhase GetRoofRunoffPhase() const { return mRoofRunoffPhase; }
+	float GetRoofRunoffPhaseTimer() const { return mRoofRunoffPhaseTimer; }
+	/** 正式冲刷从 0 到 1 的归一化进度；非冲刷阶段返回 0。 */
+	float GetRoofRunoffFlowProgress() const;
+	/** 返回本次锁定行集合的 bitmask；待机阶段为 0。 */
+	int GetRoofRunoffRowMask() const { return mRoofRunoffRowMask; }
+	/** 判断指定逻辑行是否属于当前锁定行组。 */
+	bool IsRoofRunoffRowSelected(int row) const {
+		return row >= 0 && row < mRows && (mRoofRunoffRowMask & (1 << row)) != 0;
+	}
+	/** 返回当前锁定的不重复行数。 */
+	int GetRoofRunoffRowCount() const;
+	bool IsRoofRunoffWarning() const {
+		return mRoofRunoffPhase == RoofRunoffPhase::WARNING;
+	}
+	bool IsRoofRunoffFlowing() const {
+		return mRoofRunoffPhase == RoofRunoffPhase::FLOWING;
+	}
+	/** 返回目标行坡段地面僵尸承受的有符号径流速度；负值表示顺坡冲向屋檐/房屋。 */
+	float GetRoofRunoffZombieDriftVelocity(int row, float worldX) const;
 	/** 四大关夜间泳池是否拥有不依赖天气的基础迷雾。 */
 	bool SupportsStageFog() const;
 	/** 当前仅四大关抽取独立增强雾势；接口预留给未来其他地图。 */

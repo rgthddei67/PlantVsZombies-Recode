@@ -28,6 +28,7 @@ description: Use when adding or tuning ANY rain-weather-dependent feature or Boa
 | D. 可逆形态 | 每实体状态 | 下雨变异、放晴还原 | 幂等 Apply/Revert + 边沿检测 + Save/Load |
 | E. 天气系统扩展 | 玩法状态在 `Board`；展示经 `BoardPresentation` | 新权重、过渡、预报规则或 UI | 同步真实抽取、合法预报候选、展示端口、存档与测试 |
 | F. 并行天气维度 | 独立玩法状态在 `Board` | 雾势、沙尘、积雪等与雨势可并存状态 | 独立枚举/计时/预报；只在明确交互点读取台风或其他天气 |
+| G. 地图专属积累器 | 积累、阶段和锁定结果在 `Board` | 屋顶径流、雷荷等按天气充放的场景机制 | 独立积累/阶段；一次锁定结果入档；世界表现只消费 getter |
 
 能用 A/B 就不要选 D。可逆血量尤其容易造成反复下雨回血或舍入漂移，优先改伤害、技能冷却、范围或临时护盾；确需改血量时先定义当前血量如何映射。
 
@@ -48,6 +49,7 @@ description: Use when adding or tuning ANY rain-weather-dependent feature or Boa
 
 - `Board` 不得直接包含或访问具体 `GameScene`，也不得恢复 `mGameScene`。天气玩法状态继续由 `Board` 唯一持有；新增天气 UI 请求应扩展非拥有的 `BoardPresentation`，由 `GameScene` 实现。双方共享的天气枚举放在 `WeatherTypes.h`。
 - 新天气维度不得硬塞进 `RainIntensity`。例如四大关雾势使用独立 `FogWeatherIntensity`、阶段计时和预报；它可以在唯一交互点消费现有 `TyphoonStrength/WindDirection` 计算驱散与漂移，但雨势和雾势仍可独立抽取、持久化和测试。
+- 地图专属积累器不属于雨势档位：由 `Board` 按地形门禁和当前雨势推进，满值时只随机一次目标行/路线；积累、阶段、倒计时和锁定结果全部入档，绘制不得重 roll。冲刷后若随机保留部分积累，应在锁定事件时预抽并保存 pending 值，结束只兑现，避免活动阶段读档改写下一轮起点。昼夜共用同一斜坡时默认共用径流，未来夜间电荷等系统以独立状态叠加，不能因新增机制撤掉地形固有效果。多行目标优先保存 bitmask，并让 UI、世界特效、植物/僵尸结算和 AutoTest 共用同一查询接口。
 - 逐格雾 alpha 是由雾势、驱散和路灯花派生的瞬态，不入存档；读档必须等实体恢复完成后直接同步终态，禁止从全透明重新平滑生成而给退出重进留下窥屏窗口。
 - `GetRainIntensity()` 是目标档位，切档时立即改变；玩法倍率、暗幕和雨声音量再用两游戏秒平滑到目标。离散触发默认以目标档位为准。
 - 关卡/波次派生的固定复合天气要把“是否生效”和“是否已初始化”分开：生效条件可由关卡与波次重算，一次性阵风额度、闪光节奏等未来状态必须保存。读档和每帧强制修复不得返还已消费额度；若设计要求天气随波次骤然降临，应显式完成普通两秒过渡。
@@ -74,6 +76,7 @@ description: Use when adding or tuning ANY rain-weather-dependent feature or Boa
 - `set_weather CLEAR/LIGHT/MEDIUM/HEAVY` 固定最终档位；该测试入口会立即完成过渡，适合精确数值断言。
 - 需要验证自然两秒过渡时，用短天气倒计时触发正式切档，再断言 `previousIntensity`、`transitionOn` 和结束状态。
 - 迷雾快照往返要在 `timeScale=0` 下于重载命令后立即断言逐格 alpha、可见格数和截图，不能先等一帧掩盖首帧透明问题。
+- 地图专属积累器至少覆盖自然满值后的目标数与残留值范围、固定多目标正反行、活动阶段快照往返、结束后兑现并清空 pending，以及不支持地图 no-op；世界特效必须读同步截图，防止逻辑通过但锁定行或坡面采样错位。
 - 出生变异先固定天气，再走专用生产入口或新增一个只调用正式解析器的 AutoTest 命令；不要用通用 `spawn_zombie` 冒充波次随机生成。
 - 实体 dump 至少暴露实际类型、变异标志、技能计时/次数或可精确断言的整数投影。
 - 至少验证：白天/晴天 no-op、目标雨势生效、放晴后的语义、读档不重 roll、魅惑立场、减速/冻结、暂停与倍速。

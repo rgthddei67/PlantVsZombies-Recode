@@ -6,6 +6,7 @@
 
 - [天气状态与时间语义](#天气状态与时间语义)
 - [波次锁定的复合天气](#波次锁定的复合天气)
+- [地图专属天气积累器](#地图专属天气积累器)
 - [独立雾势与跨天气联动](#独立雾势与跨天气联动)
 - [源码钟点](#源码钟点)
 - [雨天专属能力配方](#雨天专属能力配方)
@@ -38,6 +39,20 @@ const bool isRaining = rain != RainIntensity::CLEAR;
 ```
 
 不要用 overlay alpha 推断是否下雨：它是视觉插值，雨转晴的两秒内仍大于 0。
+
+## 地图专属天气积累器
+
+昼夜屋顶径流是当前首个地图专属积累器。`Board::UpdateRoofRunoff` 在 `ROOF/NIGHT_ROOF` 中把雨势
+换算为积累，满值后一次锁定 1～3 个不重复目标行，并同时预抽冲刷后的 30%～60% 残留湿度；
+`roofRunoffRowMask`、pending 残留、阶段和余时会影响未来结算，必须随关卡存档。结束时只兑现
+pending 并清空，不能临时重抽。`GameScene` 的累计条与坡面水膜、`Plant` 暂停、`Zombie` 漂移和 AutoTest dump
+都查询同一 Board 行组，禁止在展示或实体侧另存/重抽目标。世界效果以 `GetRowCenterYAtX` 贴坡，
+低透明面状表现优先于密集规则流线；多行同时生效时每行各绘制水膜和屋檐反馈。
+
+环境要求植物完全暂停时，不能只让 `PlantUpdate()` 提前返回：并行阶段可能已经由 Animator 产生
+帧事件。应同时阻断 `UpdateParallel` 的事件队列，并在串行回退把 `mAdvancedInParallel` 置位，让
+`AnimatedObject::Update` 跳过本帧 Animator，再让公开行动倍率返回 0。禁止临时 `Pause/Play`：
+一次性轨道可能被公共结束检查误判，此前已经暂停的轨道也可能被错误唤醒。
 
 ## 波次锁定的复合天气
 
@@ -132,6 +147,7 @@ Board 雾势、再恢复植物，所以 `RestoreFogState()` 只清空旧缓存�
 | 合法公开预报 | `BuildPlausibleForecasts` | 错误预报也必须真实可达 |
 | 正式切档 | `BeginRain` / `EndRain` / `BeginWeatherTransition` | 目标枚举先变，倍率再插值 |
 | 天气逐帧推进 | `Board::UpdateWeather` | 全局场景状态，不属于波次更新 |
+| 昼夜屋顶径流 | `Board::UpdateRoofRunoff` / `DrawRoofRunoff` | Board 持积累与行组；GameScene 只画常驻条和坡面瞬态 |
 | 波次锁定复合天气 | `IsStormyNightActive` / `ActivateStormyNight` / `EnforceStormyNightWeather` | 生效条件派生；一次性资源和闪光未来状态入档 |
 | 世界天气覆盖与 Scene UI 贴图 | `GameAPP` pre-overlay hook / `Scene::DrawUITextures` | 世界粒子 → 天气覆盖 → Scene UI 贴图 → UI GameObject |
 | 僵尸天气动画倍率 | `Zombie::UpdateAnimSpeed` | 冻结 > ability × 减速 × rain |
@@ -245,6 +261,8 @@ Board 雾势、再恢复植物，所以 `RestoreFogState()` 只清空旧缓存�
 现有命令：
 
 - `set_weather`：固定天气并立即完成过渡；可传 `duration`、小雨的 `canIntensify`。
+- `set_roof_runoff`：昼夜屋顶可用；`phase=IDLE/WARNING/FLOWING`，活动阶段以非空 `rows` 数组固定行组，可选 `charge/remaining/retainedCharge`；单个 `row` 只作旧脚本兼容。
+- `weather.roofRunoff`：导出 `chargePct/retainedChargePct/phase/rowMask/rowCount/rows/phaseRemainingMs/flowProgressPct/zombieDriftSpeed`；植物另导出 `roofRunoffPaused`。
 - `roofResources.rainBackgroundLoaded`：白天屋顶雨景变体已按 `IMAGE_BACKGROUND_ROOF_RAIN` 完成注册与加载。
 - `roofResources.nightRainBackgroundLoaded`：夜间屋顶雨景变体已按 `IMAGE_BACKGROUND_NIGHTROOF_RAIN` 完成注册与加载。
 - `weather.roofRainBackgroundAlpha`：昼夜屋顶雨景变体的整数 alpha；两者当前晴/小/中/大雨均为 `0/96/149/255`，非屋顶恒为 `0`。

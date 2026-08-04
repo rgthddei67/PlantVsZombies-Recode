@@ -83,6 +83,19 @@ void Plant::Start()
 	this->SetupPlant();
 }
 
+/**
+ * 径流暂停必须在并行动画推进前判断；否则射击帧事件会先入队，随后串行阶段再停工已经太晚。
+ * mAdvancedInParallel 仍置位，让串行 AnimatedObject::Update 只完成公共收尾而不补推进一遍动画。
+ */
+void Plant::UpdateParallel(std::vector<DeferredEvent>& outBuf)
+{
+	if (mBoard && mBoard->IsPlantPausedByRoofRunoff(this)) {
+		mAdvancedInParallel = true;
+		return;
+	}
+	AnimatedObject::UpdateParallel(outBuf);
+}
+
 void Plant::TakeDamage(int damage, DamageSource source) {
 	if (mIsPreview || mIsSquished || IsBungeeTargeted()) return;
 	// 僵尸增伤只放大僵尸来源；植物韧性则对所有实际承伤生效。两者均在 0 层返回单位元。
@@ -123,7 +136,11 @@ bool Plant::CanAcquireZombie(const Zombie* zombie) const
 
 void Plant::Update()
 {
-	AnimatedObject::Update();   // 待机动画照常推进，让植物在选卡阶段仍"活着"
+	const bool roofRunoffPaused = mBoard
+		&& mBoard->IsPlantPausedByRoofRunoff(this);
+	// 串行回退路径也直接跳过 Animator 推进；不要 Pause/Play，否则一次性轨道会被公共结束检查误判。
+	if (roofRunoffPaused) mAdvancedInParallel = true;
+	AnimatedObject::Update();   // 非冲刷时待机动画照常推进，让植物在选卡阶段仍"活着"
 	if (mIsSquished) {
 		if (!mIsPreview && mBoard && mBoard->mBoardState == BoardState::GAME) {
 			UpdateSquish();
@@ -136,7 +153,7 @@ void Plant::Update()
 	}
 	// 仅在对战进行中(GAME)才跑行为逻辑：生存轮间选卡(CHOOSE_CARD)时场上保留的植物应冻结，
 	// 否则向日葵会继续产阳光、射手继续计时等。WIN/LOSE 同理不再行动。
-	if (!mIsPreview && !mIsSleeping && !IsBungeeTargeted() &&
+	if (!roofRunoffPaused && !mIsPreview && !mIsSleeping && !IsBungeeTargeted() &&
 		mBoard && mBoard->mBoardState == BoardState::GAME) {
 		PlantUpdate();
 	}
@@ -304,7 +321,9 @@ void Plant::UpdateSquish()
 
 float Plant::GetWeatherActionSpeedMultiplier() const
 {
-	return mBoard ? mBoard->GetPlantRainActionSpeedMultiplier() : 1.0f;
+	if (!mBoard) return 1.0f;
+	return mBoard->IsPlantPausedByRoofRunoff(this)
+		? 0.0f : mBoard->GetPlantRainActionSpeedMultiplier();
 }
 
 float Plant::GetWeatherActionDeltaTime() const

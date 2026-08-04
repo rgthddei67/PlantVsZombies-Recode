@@ -33,3 +33,10 @@ enum class WindDirection {
 	TOWARD_HOUSE,
 	TOWARD_FRONT
 };
+
+/** 昼夜屋顶共用的坡面径流阶段；IDLE 时 charge 可继续随雨势积累。 */
+enum class RoofRunoffPhase {
+	IDLE,
+	WARNING,
+	FLOWING
+};

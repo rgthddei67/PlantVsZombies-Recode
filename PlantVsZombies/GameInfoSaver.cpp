@@ -306,6 +306,11 @@ bool GameInfoSaver::SerializeLevelDataToPath(Board* board, CardSlotManager* mana
 	j["stormyNightInitialized"] = board->mStormyNightInitialized;
 	j["stormyNightFlashPattern"] = board->mStormyNightFlashPattern;
 	j["stormyNightFlashTimer"] = board->mStormyNightFlashTimer;
+	j["roofRunoffCharge"] = board->mRoofRunoffCharge;
+	j["roofRunoffRetainedCharge"] = board->mRoofRunoffRetainedCharge;
+	j["roofRunoffPhase"] = static_cast<int>(board->mRoofRunoffPhase);
+	j["roofRunoffPhaseTimer"] = board->mRoofRunoffPhaseTimer;
+	j["roofRunoffRowMask"] = board->mRoofRunoffRowMask;
 	j["fogWeatherInitialized"] = board->mFogWeatherInitialized;
 	j["fogWeatherIntensity"] = static_cast<int>(board->mFogWeatherIntensity);
 	j["forecastFogWeatherIntensity"] =
@@ -775,6 +780,18 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 		board->mStormyNightFlashPattern = 0;
 		board->mStormyNightFlashTimer = 0.0f;
 	}
+	const int roofRunoffPhaseValue = j.value("roofRunoffPhase",
+		static_cast<int>(RoofRunoffPhase::IDLE));
+	const RoofRunoffPhase roofRunoffPhase = roofRunoffPhaseValue
+		>= static_cast<int>(RoofRunoffPhase::IDLE)
+		&& roofRunoffPhaseValue <= static_cast<int>(RoofRunoffPhase::FLOWING)
+		? static_cast<RoofRunoffPhase>(roofRunoffPhaseValue)
+		: RoofRunoffPhase::IDLE;
+	// 锁定行组和倒计时会影响后续冲刷；旧档缺字段时从空积累开始，不伪造一次事件。
+	board->RestoreRoofRunoffState(j.value("roofRunoffCharge", 0.0f),
+		roofRunoffPhase, j.value("roofRunoffRowMask", 0),
+		j.value("roofRunoffPhaseTimer", 0.0f),
+		j.value("roofRunoffRetainedCharge", 30.0f));
 	// 旧版天气存档没有该字段时按 false：少一次增强机会比读档后凭空再增强更稳妥。
 	board->mRainCanIntensify = board->mRainIntensity == RainIntensity::LIGHT
 		&& j.value("rainCanIntensify", false);

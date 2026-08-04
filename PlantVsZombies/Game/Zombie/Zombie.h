@@ -338,6 +338,8 @@ protected:
 
 	/** 叠加活动阵风的物理漂移；不依赖自主行走、啃食、冻结或魅惑方向。 */
 	void ApplyTyphoonGustDrift(float deltaTime, TransformComponent* transform);
+	/** 叠加昼夜屋顶目标行的顺坡径流；只移动仍处于地面的可移动品种。 */
+	void ApplyRoofRunoffDrift(float deltaTime, TransformComponent* transform);
 	/** 把所有僵尸品种的 Transform Y 收敛到当前 X 对应的屋顶连续坡面。 */
 	void SyncToRoofTerrain(TransformComponent* transform);
 	/**

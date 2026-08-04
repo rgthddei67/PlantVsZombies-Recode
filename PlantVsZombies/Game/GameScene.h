@@ -192,6 +192,8 @@ protected:
 private:
 	/** 在背景与战场实体之间交叉淡入对应昼夜的屋顶雨景，不改变逻辑地形。 */
 	void DrawRoofRainBackground(Graphics* g);
+	/** 在世界层绘制已锁定径流行的预警边界或顺坡水痕。 */
+	void DrawRoofRunoff(Graphics* g) const;
 	void UpdateWeatherUi(float deltaTime);
 	void DrawFog(Graphics* g) const;
 	void DrawWeatherPanel(Graphics* g) const;

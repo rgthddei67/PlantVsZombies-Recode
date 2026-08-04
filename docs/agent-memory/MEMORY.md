@@ -3,6 +3,7 @@
 > Codex routing: required always-on rules live in `../../AGENTS.md`; detailed build, AutoTest, architecture, resource, and implementation guidance lives in `../agent-guide/PROJECT_GUIDE.md`. The entries below are historical subsystem context and should be read only when relevant.
 
 - [屋顶地形与僵尸连续坡面](project_pvz_roof_terrain_foundation.md) — 2026-08-03 白天/黑夜屋顶共用 Board 连续1:4坡面；植物离散格、僵尸连续坡面、清洁车/火焰/雨滴/弹坑/台风/子弹按语义消费；花盆承载与台风整组搬移已纳入专项；昼夜屋顶雨天在背景层淡入各自仅替换天空的雨景变体，非天空像素与各自原图一致
+- [昼夜屋顶坡面径流](project_pvz_roof_runoff.md) — 2026-08-04 `ROOF/NIGHT_ROOF` 共用雨势积累、3 秒预警与 2.2 秒冲刷；一次不重复锁定 1～3 行（50/35/15），僵尸以 60px/s 向屋檐漂移；结束兑现预抽并入档的 30%～60% 残留湿度，夜屋顶未来在此之上叠加独立电荷系统
 - [第六大关黑夜屋顶延期设计](project_pvz_sixth_area_night_roof_backlog.md) — 2026-08-04 第五大关完成前仅记录：完整 `NIGHT_ROOF` 大关候选采用独立雷荷/导电瓦路；全场当前总血量处决僵尸按植物格组合与僵尸三层生命冻结快照同时结算、花盆豁免，并已确认“约 6～8 秒天气预警＋约 0.9～1.2 秒最终锁定”、灰烬可硬解、死亡不清雷荷且本次劫持不转移
 - [经典花盆与屋顶承载层](project_pvz_flowerpot.md) — 2026-08-03 `PLANT_FLOWERPOT` 25阳光/7.5秒/300生命/1秒无啃食；under+normal+南瓜分层、屋顶门禁、5-1/5-2/后续5/4/3列初始布局、覆盖暂停、5px视觉抬升、通用ShadowComponent 46px可见阴影、双向台风整组与存档均经默认/NoInstance可见专项
 - [架构边界、存档版本与技能审计门禁](project_pvz_architecture_boundaries.md) — 2026-08-03 `BoardPresentation` 取代 `Board::mGameScene`，Board 保持天气/波次/生存玩法唯一权威；`SceneManager` 明确单活动场景；玩家 schema v2 为已通关3-8的旧档补发前移后的毒囊射手，迁移保持事务式并有纯测试；每次任务提交前审计相关 skills

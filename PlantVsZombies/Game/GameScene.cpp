@@ -43,6 +43,12 @@ namespace {
 	constexpr int kWeatherWindFontSize = 15;              // 台风期间第三行“风向实况”字号
 	constexpr int kPlanternGearMenuRenderOrder = LAYER_UI + 700; // 路灯花菜单盖过天气板/失败提示且低于全屏提示
 	constexpr float kWeatherPanelDetailLineHeight = 30.0f; // 雾势预报或风向实况每增加一行的面板高度
+	constexpr float kWeatherPanelGaugeLineHeight = 38.0f; // 累计条文字与 8px 进度槽合计占用的面板高度
+	constexpr float kWeatherGaugeWidth = 314.0f;          // 天气累计条可用宽度，左右与正文对齐
+	constexpr float kWeatherGaugeHeight = 8.0f;           // 天气累计条槽高，避免长期遮挡过多战场
+	constexpr float kRoofRunoffSlopeStartX = CELL_INITALIZE_POS_X; // 径流世界特效从房屋侧第一列边缘开始
+	constexpr float kRoofRunoffSheetSliceWidth = 4.0f;    // 水膜按窄竖片贴合连续坡面，单位像素；片间重叠避免出现轮廓线
+	constexpr float kRoofRunoffDropletTravelPerFlow = 240.0f; // 单次冲刷期间零散水珠朝屋檐行进的视觉距离，单位像素
 	constexpr float kStormyNightColorR = 224.0f;          // “暴风雨”预报与当前天气的紫红强调色 R
 	constexpr float kStormyNightColorG = 70.0f;           // “暴风雨”预报与当前天气的紫红强调色 G
 	constexpr float kStormyNightColorB = 158.0f;          // “暴风雨”预报与当前天气的紫红强调色 B
@@ -201,6 +207,20 @@ namespace {
 		return u8"未知";
 	}
 
+	/** 把 bitmask 锁定行组格式化为面板文案，例如“第1、3行”。 */
+	std::string RoofRunoffRowsDisplayName(const Board* board) {
+		if (!board) return u8"未知行";
+		std::string result = u8"第";
+		bool hasRow = false;
+		for (int row = 0; row < board->mRows; ++row) {
+			if (!board->IsRoofRunoffRowSelected(row)) continue;
+			if (hasRow) result += u8"、";
+			result += std::to_string(row + 1);
+			hasRow = true;
+		}
+		return hasRow ? result + u8"行" : std::string(u8"未知行");
+	}
+
 	/** 返回各档天气在面板上的强调色，并保留调用方提供的透明度。 */
 	glm::vec4 RainIntensityTextColor(RainIntensity intensity, float alpha) {
 		switch (intensity) {
@@ -217,7 +237,32 @@ namespace {
 			kStormyNightColorR, kStormyNightColorG, kStormyNightColorB, alpha);
 	}
 
-	/** 按独立雾势预报与台风实况行数计算面板高度，避免文字落出底板。 */
+	/** 绘制可复用于不同天气资源的统一累计条；玩法只提供文案、比例和专属颜色。 */
+	void DrawWeatherAccumulationGauge(Graphics* g, float x, float y,
+		const std::string& label, float ratio, const glm::vec4& color,
+		float visibility)
+	{
+		if (!g) return;
+		const float clampedRatio = std::clamp(ratio, 0.0f, 1.0f);
+		const glm::vec4 shadow(0.0f, 0.0f, 0.0f, 185.0f * visibility);
+		g->DrawText(label, ResourceKeys::Fonts::FONT_FZCQ, kWeatherWindFontSize,
+			shadow, x + 1.0f, y + 1.0f);
+		g->DrawText(label, ResourceKeys::Fonts::FONT_FZCQ, kWeatherWindFontSize,
+			color, x, y);
+
+		const float barY = y + 20.0f;
+		g->FillRect(x, barY, kWeatherGaugeWidth, kWeatherGaugeHeight,
+			glm::vec4(5.0f, 13.0f, 24.0f, 150.0f * visibility));
+		if (clampedRatio > 0.0f) {
+			g->FillRect(x + 1.0f, barY + 1.0f,
+				(kWeatherGaugeWidth - 2.0f) * clampedRatio,
+				kWeatherGaugeHeight - 2.0f, color);
+		}
+		g->DrawRect(x, barY, kWeatherGaugeWidth, kWeatherGaugeHeight,
+			glm::vec4(155.0f, 220.0f, 237.0f, 155.0f * visibility));
+	}
+
+	/** 按独立雾势、屋顶累计条与台风实况计算面板高度，避免内容落出底板。 */
 	float WeatherPanelHeight(const Board* board) {
 		if (!board) return kWeatherPanelHeight;
 		float height = kWeatherPanelHeight;
@@ -226,6 +271,7 @@ namespace {
 		if (!stormyNight && board->HasFogWeatherForecast()) {
 			height += kWeatherPanelDetailLineHeight;
 		}
+		if (board->SupportsRoofRunoff()) height += kWeatherPanelGaugeLineHeight;
 		if (board->HasTyphoon()) height += kWeatherPanelDetailLineHeight;
 		return height;
 	}
@@ -350,6 +396,7 @@ void GameScene::DrawWorldOverlay(Graphics* g)
 	if (!g || !mBoard) return;
 	// 雾先遮住战场与世界粒子，随后再统一接受雨天暗幕；闪电最后照亮雾层但仍不覆盖 UI。
 	DrawFog(g);
+	DrawRoofRunoff(g);
 	const float alpha = mBoard->GetRainOverlayAlpha();
 	if (alpha > 0.0f) {
 		// 低成本雨天环境光：只做蓝灰半透明暗幕。该钩子在战场主体与世界粒子之后、UI overlay
@@ -405,6 +452,79 @@ void GameScene::DrawRoofRainBackground(Graphics* g)
 		static_cast<float>(rainBackground->width),
 		static_cast<float>(rainBackground->height), 0.0f,
 		glm::vec4(255.0f, 255.0f, 255.0f, alpha));
+}
+
+/**
+ * 径流必须沿 Board 的连续坡面采样，不能用水平贴图假装水流。预警只勾勒目标行；
+ * 正式阶段再叠加低透明水膜、向房屋侧移动的稀疏水珠和屋檐端飞溅。
+ */
+void GameScene::DrawRoofRunoff(Graphics* g) const
+{
+	if (!g || !mBoard || !mBoard->SupportsRoofRunoff()) return;
+	const RoofRunoffPhase phase = mBoard->GetRoofRunoffPhase();
+	if (phase == RoofRunoffPhase::IDLE || mBoard->GetRoofRunoffRowCount() <= 0) return;
+
+	const float slopeEndX = mBoard->GetRoofSlopeEndX();
+	const float pulse = 0.68f + 0.32f * std::sin(
+		static_cast<float>(mBoard->mBoardFrame) * 0.16f);
+	const BlendMode previousBlend = g->GetBlendMode();
+	g->SetBlendMode(BlendMode::Alpha);
+
+	if (phase == RoofRunoffPhase::WARNING) {
+		// 稀疏湿润光点只负责标出范围；不画贯穿整行的亮直线，避免抢在冲刷前伪装成水柱。
+		const float warningOffset = std::fmod(
+			static_cast<float>(mBoard->mBoardFrame) * 0.55f, 92.0f);
+		for (int row = 0; row < mBoard->mRows; ++row) {
+			if (!mBoard->IsRoofRunoffRowSelected(row)) continue;
+			for (int edge : { -1, 1 }) {
+				const float offsetY = static_cast<float>(edge) * 31.0f;
+				for (float x = slopeEndX - warningOffset;
+					x >= kRoofRunoffSlopeStartX; x -= 92.0f) {
+					g->FillCircle(x, mBoard->GetRowCenterYAtX(row, x) + offsetY,
+						2.2f, glm::vec4(93.0f, 196.0f, 222.0f, 54.0f * pulse), 8);
+				}
+			}
+		}
+		g->SetBlendMode(previousBlend);
+		return;
+	}
+
+	for (int row = 0; row < mBoard->mRows; ++row) {
+		if (!mBoard->IsRoofRunoffRowSelected(row)) continue;
+		// 窄竖片拼成没有描边的半透明水膜；颜色变化是大尺度缓变，不形成规则流线。
+		for (float x = kRoofRunoffSlopeStartX; x < slopeEndX;
+			x += kRoofRunoffSheetSliceWidth) {
+			const float width = std::min(kRoofRunoffSheetSliceWidth + 0.5f, slopeEndX - x);
+			const float shimmer = 0.5f + 0.5f * std::sin(x * 0.035f
+				+ static_cast<float>(mBoard->mBoardFrame) * 0.045f);
+			g->FillRect(x, mBoard->GetRowCenterYAtX(row, x) - 32.0f,
+				width, 64.0f, glm::vec4(43.0f, 143.0f, 185.0f, 8.0f + 4.0f * shimmer));
+		}
+
+		// 每行只留五颗错位水珠提供动态流向，静帧不再呈现成排短线。
+		const float slopeSpan = std::max(1.0f, slopeEndX - kRoofRunoffSlopeStartX);
+		for (int droplet = 0; droplet < 5; ++droplet) {
+			const float travel = std::fmod(mBoard->GetRoofRunoffFlowProgress()
+				* kRoofRunoffDropletTravelPerFlow + static_cast<float>(droplet) * 97.0f,
+				slopeSpan);
+			const float x = slopeEndX - travel;
+			const float offsetY = -24.0f + static_cast<float>((droplet * 13) % 49);
+			g->FillCircle(x, mBoard->GetRowCenterYAtX(row, x) + offsetY,
+				2.0f + static_cast<float>(droplet % 2),
+				glm::vec4(112.0f, 211.0f, 232.0f, 78.0f), 10);
+		}
+
+		// 每条被选行各自拥有屋檐端飞溅，和同一行水膜保持一一对应。
+		const float eaveY = mBoard->GetRowCenterYAtX(row, kRoofRunoffSlopeStartX);
+		for (int splash = 0; splash < 3; ++splash) {
+			const float wobble = std::sin(static_cast<float>(mBoard->mBoardFrame) * 0.22f
+				+ static_cast<float>(splash) * 2.1f);
+			g->FillCircle(kRoofRunoffSlopeStartX - 5.0f - splash * 7.0f,
+				eaveY - 14.0f + splash * 13.0f + wobble * 4.0f,
+				3.0f + splash, glm::vec4(139.0f, 235.0f, 255.0f, 105.0f), 12);
+		}
+	}
+	g->SetBlendMode(previousBlend);
 }
 
 /** 绘制冷白闪电主干、分叉和有限半径的云层/落点散射光，不覆盖 UI。 */
@@ -464,9 +584,7 @@ void GameScene::DrawLightningStrike(Graphics* g) const
 void GameScene::UpdateWeatherUi(float deltaTime)
 {
 	const bool shouldShow = mBoard && mBoard->mBoardState == BoardState::GAME
-		&& (mBoard->HasWeatherForecast() || mCurrentWeatherNoticeTimer > 0.0f
-			|| mBoard->HasFogWeatherForecast() || mBoard->HasTyphoon()
-			|| mBoard->IsStormyNightForecastActive() || mBoard->IsStormyNightActive());
+		&& mBoard->SupportsWeather();
 	const float direction = shouldShow ? 1.0f : -1.0f;
 	mWeatherPanelSlide = std::clamp(mWeatherPanelSlide
 		+ direction * deltaTime / kWeatherPanelSlideDuration, 0.0f, 1.0f);
@@ -575,6 +693,32 @@ void GameScene::DrawWeatherPanel(Graphics* g) const
 		g->DrawText(fogLine, ResourceKeys::Fonts::FONT_FZCQ, kWeatherWindFontSize,
 			fogColor, textX, detailLineY);
 		detailLineY += kWeatherPanelDetailLineHeight;
+	}
+
+	if (mBoard->SupportsRoofRunoff()) {
+		const int chargePercent = static_cast<int>(std::lround(
+			mBoard->GetRoofRunoffChargeRatio() * 100.0f));
+		std::string runoffLine = std::string(u8"坡面径流：")
+			+ std::to_string(chargePercent) + "%";
+		if (mBoard->IsRoofRunoffWarning()) {
+			const int seconds = std::max(0,
+				static_cast<int>(std::ceil(mBoard->GetRoofRunoffPhaseTimer())));
+			runoffLine = std::string(u8"坡面径流：")
+				+ RoofRunoffRowsDisplayName(mBoard.get())
+				+ u8"预警（" + std::to_string(seconds) + u8"秒）";
+		}
+		else if (mBoard->IsRoofRunoffFlowing()) {
+			runoffLine = std::string(u8"坡面径流：")
+				+ RoofRunoffRowsDisplayName(mBoard.get()) + u8"冲刷中";
+		}
+		const float warningPulse = (mBoard->IsRoofRunoffWarning()
+			|| mBoard->IsRoofRunoffFlowing())
+			? 0.78f + 0.22f * std::sin(static_cast<float>(mBoard->mBoardFrame) * 0.16f)
+			: 1.0f;
+		DrawWeatherAccumulationGauge(g, textX, detailLineY, runoffLine,
+			mBoard->GetRoofRunoffChargeRatio(),
+			glm::vec4(76.0f, 218.0f, 255.0f, alpha * warningPulse), eased);
+		detailLineY += kWeatherPanelGaugeLineHeight;
 	}
 
 	if (mBoard->HasTyphoon()) {
