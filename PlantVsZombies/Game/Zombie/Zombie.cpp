@@ -41,7 +41,7 @@ namespace {
 	constexpr float kButterDuration = 4.0f;                // C# mButteredCounter=400 厘秒的黄油定身时长
 	constexpr float kButterSplatOffsetY = -6.0f;           // C# DrawButter 相对头部轨道的贴图纵向偏移，单位：像素
 	constexpr float kButterSplatScale = 0.8f;              // 对齐原版头顶覆盖比例，同时保留面部与上身轮廓
-	const Vector kButterFallbackHeadOffset(0.0f, -65.0f);   // 缺少 anim_head1 时相对逻辑位置的保底头部锚点
+	const Vector kButterFallbackHeadOffset(0.0f, -40.0f);   // 缺少 anim_head1 时相对逻辑位置的保底头部锚点
 
 	/** 对齐 C# AnimateChewSound：坚硬防御植物使用 ChompSoft，其他植物使用普通 Chomp。 */
 	bool UsesSoftChewSound(PlantType type)
