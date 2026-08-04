@@ -38,6 +38,10 @@ namespace {
 	constexpr float kToxinLayerDuration = 6.0f;            // 单层毒素持续时间，单位：游戏秒
 	constexpr float kToxinDamageInterval = 0.2f;           // 每层积满 1 点毒伤的游戏时间间隔，单位：秒
 	constexpr float kToxinDamageEpsilon = 0.0001f;         // 浮点取整容差，避免整点伤害因误差延迟一帧
+	constexpr float kButterDuration = 4.0f;                // C# mButteredCounter=400 厘秒的黄油定身时长
+	constexpr float kButterSplatOffsetY = -6.0f;           // C# DrawButter 相对头部轨道的贴图纵向偏移，单位：像素
+	constexpr float kButterSplatScale = 0.8f;              // 对齐原版头顶覆盖比例，同时保留面部与上身轮廓
+	const Vector kButterFallbackHeadOffset(0.0f, -65.0f);   // 缺少 anim_head1 时相对逻辑位置的保底头部锚点
 
 	/** 对齐 C# AnimateChewSound：坚硬防御植物使用 ChompSoft，其他植物使用普通 Chomp。 */
 	bool UsesSoftChewSound(PlantType type)
@@ -193,6 +197,7 @@ void Zombie::SaveProtectedData(nlohmann::json& j) const {
 	j["speed"] = mSpeed;
 	j["cooldownTimer"] = mCooldownTimer;
 	j["frozenTimer"] = mFrozenTimer;
+	j["butterTimer"] = mButterTimer;
 	j["toxinLayerTimers"] = mToxinLayerTimers;
 	j["toxinDamageRemainder"] = mToxinDamageRemainder;
 	j["dyingTimer"] = mDyingTimer;
@@ -234,6 +239,11 @@ void Zombie::LoadProtectedData(const nlohmann::json& j) {
 	if (mFrozenTimer > 0.0f && mAnimator) {
 		UpdateAnimSpeed();
 	}
+	mButterTimer = std::clamp(
+		j.value("butterTimer", 0.0f), 0.0f, kButterDuration);
+	if (mButterTimer > 0.0f && mAnimator) {
+		UpdateAnimSpeed();
+	}
 
 	mToxinLayerTimers.fill(0.0f);
 	if (const auto it = j.find("toxinLayerTimers"); it != j.end() && it->is_array()) {
@@ -249,6 +259,7 @@ void Zombie::LoadProtectedData(const nlohmann::json& j) {
 	if (mIsMindControlled) {
 		mCooldownTimer = 0.0f;
 		mFrozenTimer = 0.0f;
+		mButterTimer = 0.0f;
 		mToxinLayerTimers.fill(0.0f);
 		mToxinDamageRemainder = 0.0f;
 		UpdateAnimSpeed();
@@ -400,8 +411,9 @@ void Zombie::Update()
 
 		if (mIsDying)
 		{
-			// 冻结兜底解除：任何转入死亡的路径都不得停格——死亡动画靠帧事件 Die()，停格即卡尸
+			// 定身兜底解除：任何转入死亡的路径都不得停格——死亡动画靠帧事件 Die()，停格即卡尸
 			if (mFrozenTimer > 0.0f) ClearFrozen();
+			if (mButterTimer > 0.0f) ClearButter();
 			mDyingTimer += deltaTime;
 			if (GetCurrentTrackName() != GetDeathTrackName() && !mDbgAnomalyLogged) {
 				mDbgAnomalyLogged = true;
@@ -459,6 +471,13 @@ void Zombie::Update()
 			{
 				this->Die();
 			}
+		}
+
+		// —— 黄油定身滴答（游戏 deltaTime，倍速下仍按相同游戏秒数到期） ——
+		if (mButterTimer > 0.0f)
+		{
+			mButterTimer -= deltaTime;
+			if (mButterTimer <= 0.0f) ClearButter();
 		}
 
 		// 阵风是空气施加的独立位移：在冻结/啃食的早退前结算，使碰撞箱随 Transform 同帧移动。
@@ -522,8 +541,9 @@ void Zombie::Update()
 						Die();
 						return;
 					}
-					// 冻着也要能倒：先解停格再播死亡动画（帧事件 Die 依赖动画前进）
+					// 定身中也要能倒：先解停格再播死亡动画（帧事件 Die 依赖动画前进）
 					if (mFrozenTimer > 0.0f) ClearFrozen();
+					if (mButterTimer > 0.0f) ClearButter();
 					// 死亡轨道开始前立即结束攻击，避免重复啃食帧事件继续伤害目标，
 					// 也避免植物的 eaterCount 一直等到死亡动画末帧才归零。
 					if (mIsEating) {
@@ -549,9 +569,9 @@ void Zombie::Update()
 		// 水草束缚只停移动、碰撞行为和品种逻辑；上方的动画、状态计时与无头流血仍继续。
 		if (mTangleKelpPlantID != NULL_PLANT_ID) return;
 
-		// 冻结定身：移动/啃食推进/子类逻辑全停（上方的无头流血、减速与冻结滴答照走）。
+		// 冻结/黄油定身：移动、啃食推进与子类逻辑全停；上方状态计时照常推进。
 		// 啃食帧事件因动画停格（extra=0）自然不触发，mIsEating 状态保留，解冻续啃。
-		if (mFrozenTimer > 0.0f) return;
+		if (IsImmobilized()) return;
 
 		if (mIsEating) return;
 
@@ -708,9 +728,9 @@ void Zombie::SetCooldown(float timer, bool bypassShield)
 void Zombie::UpdateAnimSpeed()
 {
 	if (!mAnimator) return;
-	if (mFrozenTimer > 0.0f)
+	if (IsImmobilized())
 	{
-		mAnimator->SetExtraSpeedMultiplier(0.0f);   // 冻结停格（同 WallNut 被啃暂停：状态层，不动 base）
+		mAnimator->SetExtraSpeedMultiplier(0.0f);   // 冻结/黄油停格：状态层不改各轨道 base 速度
 		return;
 	}
 	const float rainMultiplier = mBoard ? mBoard->GetZombieRainSpeedMultiplier() : 1.0f;
@@ -719,6 +739,29 @@ void Zombie::UpdateAnimSpeed()
 		* AmplifySpeedMultiplierForGoldenIce(
 			mCooldownTimer > 0.0f ? GetSlowAnimFactor() : 1.0f)
 		* AmplifySpeedMultiplierForGoldenIce(rainMultiplier));
+}
+
+bool Zombie::ApplyButter()
+{
+	if (!mHasHead || mIsPreview || mIsDead || mIsDying || mIsMindControlled
+		|| !IsActive() || !CanBeFrozen() || IsFlying()
+		|| mTangleKelpPlantID != NULL_PLANT_ID
+		|| mZombieType == ZombieType::ZOMBIE_ZAMBONI
+		|| mZombieType == ZombieType::ZOMBIE_GILDED_ZAMBONI
+		|| mZombieType == ZombieType::ZOMBIE_BOSS) {
+		return false;
+	}
+
+	mButterTimer = kButterDuration;
+	UpdateAnimSpeed();
+	return true;
+}
+
+void Zombie::ClearButter()
+{
+	if (mButterTimer == 0.0f) return;
+	mButterTimer = 0.0f;
+	UpdateAnimSpeed();
 }
 
 float Zombie::GetAmplifiedAbilitySpeedMultiplier() const
@@ -981,10 +1024,11 @@ void Zombie::StartMindControlled()
 		ResumeWalkAfterEat(0.2f);
 	}
 
-	// 清减速+冻结：把 overlay 让给红光；魅惑免疫寒冰效果（原版），动画立即恢复
-	if (mCooldownTimer > 0.0f || mFrozenTimer > 0.0f) {
+	// 清减速、冻结和黄油：魅惑目标不保留敌对植物施加的控制，动画立即恢复。
+	if (mCooldownTimer > 0.0f || mFrozenTimer > 0.0f || mButterTimer > 0.0f) {
 		mCooldownTimer = 0.0f;
 		mFrozenTimer = 0.0f;
+		mButterTimer = 0.0f;
 		UpdateAnimSpeed();
 	}
 	ClearToxin();
@@ -1119,6 +1163,7 @@ void Zombie::TakeBodyDamage(int damage)
 	{
 		HeadDrop();
 		mHasHead = false;
+		ClearButter();
 	}
 }
 
@@ -1222,6 +1267,7 @@ void Zombie::Die()
 	// 此刻 weak_ptr 尚未过期）。重复执行会把 mZombieNumber 多扣一次，导致计数提前归零。
 	if (mIsDead) return;
 	mIsDead = true;
+	mButterTimer = 0.0f;
 	mToxinLayerTimers.fill(0.0f);
 	mToxinDamageRemainder = 0.0f;
 
@@ -1445,7 +1491,7 @@ void Zombie::EatTarget()
 void Zombie::StartEat(ColliderComponent* other)
 {
 	// 冻结中不进入啃食态（碰撞 onTriggerStay 每帧重试，解冻后自然补上）
-	if (mIsPreview || mIsDying || mFrozenTimer > 0.0f
+	if (mIsPreview || mIsDying || IsImmobilized()
 		|| mTangleKelpPlantID != NULL_PLANT_ID) return;
 	const bool wasEating = mIsEating;   // 仅"本次真开吃"（false→true）触发 OnStartEating，避免每帧 onTriggerStay 重复触发
 	auto* gameObject = other->GetGameObject();
@@ -1605,7 +1651,7 @@ void Zombie::SetPosition(const Vector& position)
 float Zombie::GetCurrentHorizontalMoveSpeed() const
 {
 	if (mIsDying || mIsDead || !mHasHead || mTangleKelpPlantID != NULL_PLANT_ID
-		|| mFrozenTimer > 0.0f || !mAnimator) {
+		|| IsImmobilized() || !mAnimator) {
 		return 0.0f;
 	}
 	const float trackSpeed = mGroundTrackIndex >= 0
@@ -1626,7 +1672,7 @@ float Zombie::GetTargetLeadX(float seconds) const
 	}
 	if (seconds <= 0.0f || mIsEating || mIsDying || mIsDead || !mHasHead
 		|| mTangleKelpPlantID != NULL_PLANT_ID
-		|| mFrozenTimer > 0.0f || !mAnimator) {
+		|| IsImmobilized() || !mAnimator) {
 		return centerX;
 	}
 
@@ -1654,6 +1700,20 @@ void Zombie::Draw(Graphics* g)
 	AnimatedObject::Draw(g);	// 水草后层之后画僵尸本体
 	if (mTangleKelpGrabFront) {
 		mTangleKelpGrabFront->Draw(g, grabPosition.x, grabPosition.y, scale);
+	}
+
+	// 原版优先使用 anim_head1 跟随当前姿态；极少数无头轨道品种退回稳定逻辑头部锚点。
+	if (g && mButterTimer > 0.0f && mHasHead && !mIsPreview) {
+		if (const Texture* tex = ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_CORNPULT_BUTTER_SPLAT)) {
+			const Vector headAnchor = mAnimator && mAnimator->HasTrack("anim_head1")
+				? GetTrackWorldPosition("anim_head1")
+				: GetPosition() + kButterFallbackHeadOffset * scale;
+			g->DrawTexture(tex, headAnchor.x,
+				headAnchor.y + kButterSplatOffsetY * scale,
+				static_cast<float>(tex->width) * scale * kButterSplatScale,
+				static_cast<float>(tex->height) * scale * kButterSplatScale);
+		}
 	}
 
 	// 冻结冰晶（icetrap.png）：画在本体之后=前景，垫在僵尸脚底

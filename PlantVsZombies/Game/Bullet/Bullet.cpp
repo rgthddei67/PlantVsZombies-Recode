@@ -18,6 +18,7 @@ namespace {
 	constexpr int kToxicPeaDamage = 15;               // 毒豆直击伤害；持续伤害由目标僵尸结算
 	constexpr int kFireballDamage = 40;               // 火豌豆基础伤害，原版为普通豌豆两倍
 	constexpr int kCabbageDamage = 40;                // 经典卷心菜直击伤害
+	constexpr int kButterDamage = 40;                 // 经典黄油直击伤害；玉米粒沿用普通 20 点
 	constexpr int kSpikeFrameDamage = 2;              // 仙人掌尖刺在 1x 下每个逻辑碰撞帧的基础伤害
 	constexpr std::size_t kSpikePierceLimit = 4;       // 尖刺接触第四只不同僵尸后消失
 	constexpr float kFireballSplashWidth = 100.0f;    // 火球命中后沿飞行方向的同排溅射宽度，单位：像素
@@ -42,6 +43,9 @@ namespace {
 	constexpr float kCabbageInitialRotation = -50.4f;   // C# -0.8796rad 的初始朝向，单位：度
 	constexpr float kCabbageSpinSpeedMin = -458.4f;     // C# -0.08rad/厘秒换算后的自旋下限，单位：度/秒
 	constexpr float kCabbageSpinSpeedMax = -114.6f;     // C# -0.02rad/厘秒换算后的自旋上限，单位：度/秒
+	constexpr float kKernelInitialRotation = 0.0f;       // C# 玉米粒初始朝向，单位：度
+	constexpr float kKernelSpinSpeedMin = -1145.9f;      // C# -0.20rad/厘秒换算后的自旋下限，单位：度/秒
+	constexpr float kKernelSpinSpeedMax = -458.4f;       // C# -0.08rad/厘秒换算后的自旋上限，单位：度/秒
 	constexpr float kLobCollisionArcHeight = 35.0f;     // 下降末段距基准轨迹不超过此高度时才允许碰撞，单位：px
 	constexpr float kLobLandingGrace = 0.08f;           // 到达预测点后留给碰撞系统的命中宽限，单位：秒
 	constexpr float kLobShadowHeightScale = 200.0f;     // 经典投掷物阴影随高度缩小公式的高度尺度，单位：px
@@ -104,9 +108,26 @@ namespace {
 		if (type == BulletType::BULLET_FIREBALL
 			|| type == BulletType::BULLET_TOXICFIREBALL) return kFireballDamage;
 		if (type == BulletType::BULLET_CABBAGE) return kCabbageDamage;
+		if (type == BulletType::BULLET_BUTTER) return kButterDamage;
 		if (type == BulletType::BULLET_SPIKE) return kSpikeFrameDamage;
 		if (type == BulletType::BULLET_TOXICPEA) return kToxicPeaDamage;
 		return kPeaDamage;
+	}
+
+	/** 经典投手家族共用弹心绘制、解析阴影和上方绕盾语义。 */
+	bool IsClassicLobbedBullet(BulletType type)
+	{
+		return type == BulletType::BULLET_CABBAGE
+			|| type == BulletType::BULLET_KERNEL
+			|| type == BulletType::BULLET_BUTTER;
+	}
+
+	/** 播放玉米粒落地或命中的两段随机 Foley。 */
+	void PlayKernelImpactSound()
+	{
+		AudioSystem::PlaySound(GameRandom::Chance()
+			? ResourceKeys::Sounds::SOUND_KERNELPULT
+			: ResourceKeys::Sounds::SOUND_KERNELPULT2, 0.3f);
 	}
 
 	/** 播放火球命中时的小段 JalapenoFire；依靠 PLAY_ONCE 完成态回收，不新增帧事件。 */
@@ -328,7 +349,7 @@ void Bullet::Draw(Graphics* g)
 
 	if (mTexture) {
 		Vector position = GetPosition();
-		if (mBulletType == BulletType::BULLET_CABBAGE) {
+		if (IsClassicLobbedBullet(mBulletType)) {
 			position.x -= static_cast<float>(mTexture->width) * mScale * 0.5f;
 			position.y -= static_cast<float>(mTexture->height) * mScale * 0.5f;
 		}
@@ -362,7 +383,7 @@ void Bullet::UpdateShadowLayout(const Vector& position)
 		|| mBulletType == BulletType::BULLET_TOXICFIREBALL) {
 		typeScale = 1.4f;
 	}
-	else if (mBulletType == BulletType::BULLET_CABBAGE) {
+	else if (IsClassicLobbedBullet(mBulletType)) {
 		const float height = mLobbedMotion
 			? GetLobArcHeight()
 			: std::max(0.0f, GetTerrainShadowY(position) - position.y);
@@ -390,7 +411,7 @@ void Bullet::UpdateShadowLayout(const Vector& position)
 			: ((mBulletType == BulletType::BULLET_FIREBALL
 				|| mBulletType == BulletType::BULLET_TOXICFIREBALL
 			|| mBulletType == BulletType::BULLET_SPIKE
-			|| mBulletType == BulletType::BULLET_CABBAGE) ? 0.0f : 3.0f));
+			|| IsClassicLobbedBullet(mBulletType)) ? 0.0f : 3.0f));
 	const float shadowOffsetY = GetTerrainShadowY(position) - position.y;
 	mShadow->SetOffset(Vector(
 		shadowLeftOffset + shadowWidth * 0.5f,
@@ -460,6 +481,7 @@ void Bullet::HitRoofTerrain()
 		case BulletType::BULLET_PEA: effectName = "PeaBulletHit"; break;
 		case BulletType::BULLET_STAR: effectName = "StarSplat"; break;
 		case BulletType::BULLET_CABBAGE: effectName = "CabbageSplat"; break;
+		case BulletType::BULLET_BUTTER: effectName = "ButterSplat"; break;
 		default: break;
 		}
 		if (effectName) g_particleSystem->EmitEffect(effectName, position);
@@ -498,8 +520,8 @@ void Bullet::EnableThreepeaterMotion(int sourceRow)
 void Bullet::BulletHitZombie(Zombie* zombie)
 {
 	if (!zombie) return;
-	// 卷心菜从上方砸向后层，普通二类护盾不参与承伤；不可绕过的加固防具由目标否决。
-	const bool requestsShieldBypass = mBulletType == BulletType::BULLET_CABBAGE;
+	// 经典投掷物从上方砸向后层；普通二类护盾不承伤，加固防具由目标否决绕过。
+	const bool requestsShieldBypass = IsClassicLobbedBullet(mBulletType);
 	const bool bypassShield = zombie->ShouldProjectileBypassShield(
 		mVelocityX, requestsShieldBypass);
 
@@ -515,7 +537,17 @@ void Bullet::BulletHitZombie(Zombie* zombie)
 		&& zombie->mHelmType == HelmType::HELMTYPE_NONE
 		&& (zombie->mShieldType == ShieldType::SHIELDTYPE_NONE || bypassShield);
 
-	PlayStandardImpactSound(zombie, bypassShield);
+	if (mBulletType == BulletType::BULLET_KERNEL) {
+		PlayKernelImpactSound();
+	}
+	else if (mBulletType == BulletType::BULLET_BUTTER) {
+		AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_BUTTER, 0.3f);
+		// 原版黄油声替代普通肉身 splat，但仍允许不可绕过防具或一类头盔发出材质声。
+		PlayStandardImpactSound(zombie, bypassShield, false);
+	}
+	else {
+		PlayStandardImpactSound(zombie, bypassShield);
+	}
 	// 风力先修正本发子弹的基础伤害，生存词条仍在 Zombie::TakeDamage 中统一且只缩放一次。
 	zombie->TakeProjectileDamage(
 		GetWindAdjustedDamage(), DamageSource::PLANT, mVelocityX,
@@ -524,6 +556,9 @@ void Bullet::BulletHitZombie(Zombie* zombie)
 	// 直击死亡、魅惑或对象已回收时不得留下延迟伤害；具体门禁由目标集中维护。
 	if (mBulletType == BulletType::BULLET_TOXICPEA) {
 		zombie->ApplyToxinStack();
+	}
+	else if (mBulletType == BulletType::BULLET_BUTTER) {
+		zombie->ApplyButter();
 	}
 
 	if (mBulletType == BulletType::BULLET_SNOWPEA) {
@@ -561,6 +596,11 @@ void Bullet::BulletHitZombie(Zombie* zombie)
 	else if (mBulletType == BulletType::BULLET_CABBAGE) {
 		if (g_particleSystem) {
 			g_particleSystem->EmitEffect("CabbageSplat", GetPosition());
+		}
+	}
+	else if (mBulletType == BulletType::BULLET_BUTTER) {
+		if (g_particleSystem) {
+			g_particleSystem->EmitEffect("ButterSplat", GetPosition());
 		}
 	}
 }
@@ -601,6 +641,22 @@ void Bullet::ConfigurePresentation()
 		mTexture = resources.GetTexture(
 			ResourceKeys::Textures::IMAGE_REANIM_CABBAGEPULT_CABBAGE);
 		mScale = 1.0f;
+		mRotationDegrees = kCabbageInitialRotation;
+		mRotationSpeedDegrees = GameRandom::Range(
+			kCabbageSpinSpeedMin, kCabbageSpinSpeedMax);
+		break;
+	case BulletType::BULLET_KERNEL:
+		mTexture = resources.GetTexture(
+			ResourceKeys::Textures::IMAGE_CORNPULT_KERNAL);
+		mScale = 0.95f;
+		mRotationDegrees = kKernelInitialRotation;
+		mRotationSpeedDegrees = GameRandom::Range(
+			kKernelSpinSpeedMin, kKernelSpinSpeedMax);
+		break;
+	case BulletType::BULLET_BUTTER:
+		mTexture = resources.GetTexture(
+			ResourceKeys::Textures::IMAGE_CORNPULT_BUTTER);
+		mScale = 0.8f;
 		mRotationDegrees = kCabbageInitialRotation;
 		mRotationSpeedDegrees = GameRandom::Range(
 			kCabbageSpinSpeedMin, kCabbageSpinSpeedMax);
@@ -715,7 +771,16 @@ void Bullet::HitLobbedGround()
 {
 	if (mHasHit) return;
 	mHasHit = true;
-	if (g_particleSystem) {
+	if (mBulletType == BulletType::BULLET_KERNEL) {
+		PlayKernelImpactSound();
+	}
+	else if (mBulletType == BulletType::BULLET_BUTTER) {
+		AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_BUTTER, 0.3f);
+		if (g_particleSystem) {
+			g_particleSystem->EmitEffect("ButterSplat", GetPosition());
+		}
+	}
+	else if (g_particleSystem) {
 		g_particleSystem->EmitEffect("CabbageSplat", GetPosition());
 	}
 	Die();
@@ -831,7 +896,8 @@ void Bullet::ConvertSnowPeaToPea(int torchwoodColumn)
 	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_SHOOTER_SHOOT, 0.2f);
 }
 
-void Bullet::PlayStandardImpactSound(const Zombie* zombie, bool bypassShield) const
+void Bullet::PlayStandardImpactSound(
+	const Zombie* zombie, bool bypassShield, bool includeBodySplat) const
 {
 	if (!zombie) return;
 
@@ -857,6 +923,7 @@ void Bullet::PlayStandardImpactSound(const Zombie* zombie, bool bypassShield) co
 			0.2f);
 		return;
 	}
+	if (!includeBodySplat) return;
 
 	switch (GameRandom::Range(1, 3)) {
 	case 1:

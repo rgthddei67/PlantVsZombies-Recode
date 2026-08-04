@@ -180,6 +180,9 @@ namespace ResourceKeys
 		RKEY(IMAGE_PROJECTILETOXICPEA);
 		RKEY(IMAGE_PROJECTILE_STAR);
 		RKEY(IMAGE_REANIM_CABBAGEPULT_CABBAGE);
+		RKEY(IMAGE_CORNPULT_KERNAL);
+		RKEY(IMAGE_CORNPULT_BUTTER);
+		RKEY(IMAGE_CORNPULT_BUTTER_SPLAT);
 		RKEY(IMAGE_REANIM_TOXICPEASHOOTER_HEAD);
 		RKEY(IMAGE_REANIM_TOXICPEASHOOTER_SPROUT);
 
@@ -216,6 +219,7 @@ namespace ResourceKeys
 		RKEY(IMAGE_MAGNETSHROOM);
 		RKEY(IMAGE_FLOWERPOT);
 		RKEY(IMAGE_CABBAGEPULT);
+		RKEY(IMAGE_CORNPULT);
 		RKEY(IMAGE_SUNSHROOM);
 		RKEY(IMAGE_FUMESHROOM);
 		RKEY(IMAGE_GRAVEBUSTER);
@@ -350,6 +354,9 @@ namespace ResourceKeys
 		RKEY(SOUND_FLOOP);
 		inline const std::string SOUND_SHOOTER_SHOOT = "SOUND_THROW";
 		inline const std::string SOUND_SHOOTER_SHOOT2 = "SOUND_THROW2";
+		RKEY(SOUND_KERNELPULT);
+		RKEY(SOUND_KERNELPULT2);
+		RKEY(SOUND_BUTTER);
 		RKEY(SOUND_PUFF);
 		RKEY(SOUND_CHERRYBOMB);
 		RKEY(SOUND_DOOMSHROOM);				// 毁灭菇爆炸（原版 doomshroom.ogg）
@@ -442,6 +449,7 @@ namespace ResourceKeys
 		inline const std::string REANIM_MAGNETSHROOM = "Magnetshroom";
 		inline const std::string REANIM_FLOWERPOT = "Pot";
 		inline const std::string REANIM_CABBAGEPULT = "Cabbagepult";
+		inline const std::string REANIM_KERNELPULT = "Cornpult";
 
 		inline const std::string REANIM_NORMAL_ZOMBIE = "NormalZombie";
 		inline const std::string REANIM_CONE_ZOMBIE = "ConeZombie";

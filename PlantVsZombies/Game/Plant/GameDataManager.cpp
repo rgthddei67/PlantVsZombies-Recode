@@ -48,6 +48,7 @@
 #include "MagnetShroom.h"
 #include "FlowerPot.h"
 #include "CabbagePult.h"
+#include "KernelPult.h"
 
 #include "../Zombie/Zombie.h"
 #include "../Zombie/ConeZombie.h"
@@ -310,6 +311,11 @@ void GameDataManager::InitializeHardcodedData() {
 		ResourceKeys::Textures::IMAGE_CABBAGEPULT,
 		AnimationType::ANIM_CABBAGEPULT,
 		ResourceKeys::Reanimations::REANIM_CABBAGEPULT, &MakePlant<CabbagePult>);
+
+	RegisterPlant(PlantType::PLANT_KERNELPULT, "PLANT_KERNELPULT",
+		ResourceKeys::Textures::IMAGE_CORNPULT,
+		AnimationType::ANIM_KERNELPULT,
+		ResourceKeys::Reanimations::REANIM_KERNELPULT, &MakePlant<KernelPult>);
 
 	// 寒冰大喷菇：复用大喷菇 reanim（蓝色靠 overlay），仅卡图独立
 	RegisterPlant(PlantType::PLANT_ICEFUMESHROOM, "PLANT_ICEFUMESHROOM",

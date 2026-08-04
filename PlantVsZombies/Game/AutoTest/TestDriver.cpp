@@ -38,6 +38,7 @@
 #include "../Plant/MagnetShroom.h"
 #include "../Plant/FlowerPot.h"
 #include "../Plant/CabbagePult.h"
+#include "../Plant/KernelPult.h"
 #include "../Bullet/Bullet.h"
 #include "../Zombie/ZombieType.h"
 #include "../Zombie/Zombie.h"
@@ -190,7 +191,8 @@ namespace {
 #define BT(n) { #n, BulletType::n }
 	const std::unordered_map<std::string, BulletType> kBulletNames = {
 		BT(BULLET_PEA), BT(BULLET_SNOWPEA), BT(BULLET_CABBAGE), BT(BULLET_PUFF), BT(BULLET_FIREBALL),
-		BT(BULLET_SPIKE), BT(BULLET_STAR), BT(BULLET_TOXICPEA), BT(BULLET_TOXICFIREBALL),
+		BT(BULLET_SPIKE), BT(BULLET_STAR), BT(BULLET_KERNEL), BT(BULLET_BUTTER),
+		BT(BULLET_TOXICPEA), BT(BULLET_TOXICFIREBALL),
 	};
 #undef BT
 #define ZT(n) { #n, ZombieType::n }
@@ -1032,6 +1034,31 @@ bool TestDriver::ExecuteCurrent() {
 			return true;
 		}
 		Fail("set_cabbagepult_shoot_cycle: 未找到目标卷心菜投手");
+		return false;
+	}
+	if (op == "set_kernelpult_shoot_cycle") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) {
+			Fail("set_kernelpult_shoot_cycle: 不在 GameScene 或 Board 为空");
+			return false;
+		}
+		Board* board = gs->GetBoard();
+		const int row = cmd.value("row", -1);
+		const int col = cmd.value("col", -1);
+		int forcedShot = -1;
+		if (cmd.contains("butter")) forcedShot = cmd.value("butter", false) ? 1 : 0;
+		for (int id : board->mEntityManager.GetAllPlantIDs()) {
+			auto* kernelPult = dynamic_cast<KernelPult*>(
+				board->mEntityManager.GetPlant(id));
+			if (!kernelPult || (row >= 0 && kernelPult->mRow != row)
+				|| (col >= 0 && kernelPult->mColumn != col)) {
+				continue;
+			}
+			kernelPult->SetShootCycleForTesting(
+				cmd.value("elapsed", 2.99f), cmd.value("interval", 3.0f), forcedShot);
+			return true;
+		}
+		Fail("set_kernelpult_shoot_cycle: 未找到目标玉米投手");
 		return false;
 	}
 	if (op == "spawn_zombie") {
@@ -2180,6 +2207,24 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		{ "projectileTextureLoaded", ResourceManager::GetInstance().GetTexture(
 			ResourceKeys::Textures::IMAGE_REANIM_CABBAGEPULT_CABBAGE, false) != nullptr },
 	};
+	out["kernelPultResources"] = {
+		{ "reanimationLoaded", ResourceManager::GetInstance().HasReanimation(
+			ResourceKeys::Reanimations::REANIM_KERNELPULT) },
+		{ "cardTextureLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_CORNPULT, false) != nullptr },
+		{ "kernelTextureLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_CORNPULT_KERNAL, false) != nullptr },
+		{ "butterTextureLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_CORNPULT_BUTTER, false) != nullptr },
+		{ "butterSplatTextureLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_CORNPULT_BUTTER_SPLAT, false) != nullptr },
+		{ "kernelSoundsLoaded", ResourceManager::GetInstance().HasSound(
+			ResourceKeys::Sounds::SOUND_KERNELPULT)
+			&& ResourceManager::GetInstance().HasSound(
+				ResourceKeys::Sounds::SOUND_KERNELPULT2) },
+		{ "butterSoundLoaded", ResourceManager::GetInstance().HasSound(
+			ResourceKeys::Sounds::SOUND_BUTTER) },
+	};
 	out["cards"] = nlohmann::json::array();
 	if (CardSlotManager* cardManager = gs->GetCardSlotManager()) {
 		for (Card* card : cardManager->GetCards()) {
@@ -2531,6 +2576,11 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_FIREPEA);
 	out["igniteSoundRequestCount"] =
 		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_IGNITE);
+	out["kernelImpactSoundRequestCount"] =
+		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_KERNELPULT)
+		+ AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_KERNELPULT2);
+	out["butterImpactSoundRequestCount"] =
+		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_BUTTER);
 	out["iceTrails"] = nlohmann::json::array();
 	out["goldenIceTrails"] = nlohmann::json::array();
 	for (int row = 0; row < board->mRows; ++row) {
@@ -2683,6 +2733,9 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			// frozen 供 assert_state（bool 可 equals）；frozenTimer 浮点仅供肉眼核对勿断言
 			{ "frozen", z->IsFrozen() },
 			{ "frozenTimer", z->GetFrozenTimer() },
+			{ "buttered", z->IsButtered() },
+			{ "butterTimerMs", static_cast<int>(std::lround(
+				z->GetButterTimer() * 1000.0f)) },
 			{ "toxic", z->GetToxinLayerCount() > 0 },
 			{ "toxinStacks", z->GetToxinLayerCount() },
 			{ "toxinMaxRemainingMs", static_cast<int>(std::lround(
@@ -3202,6 +3255,18 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			plantState["cabbageShootIntervalMs"] = static_cast<int>(std::lround(
 				cabbagePult->GetShootInterval() * 1000.0f));
 		}
+		if (auto* kernelPult = dynamic_cast<KernelPult*>(p)) {
+			plantState["kernelShootTimerMs"] = static_cast<int>(std::lround(
+				kernelPult->GetShootTimer() * 1000.0f));
+			plantState["kernelShootIntervalMs"] = static_cast<int>(std::lround(
+				kernelPult->GetShootInterval() * 1000.0f));
+			plantState["butterShotPending"] = kernelPult->IsButterShotPending();
+			const std::shared_ptr<Animator> animator = kernelPult->GetAnimatorInternal();
+			plantState["heldKernelVisible"] = animator
+				&& animator->GetTrackVisible("Cornpult_kernal");
+			plantState["heldButterVisible"] = animator
+				&& animator->GetTrackVisible("Cornpult_butter");
+		}
 		if (auto* threePeater = dynamic_cast<ThreePeater*>(p)) {
 			if (const Animator* head1 = threePeater->GetHeadAnimator()) {
 				plantState["head1Track"] = head1->GetCurrentTrackName();
@@ -3249,6 +3314,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["particleEffectNameCounts"]["PeaBulletHit"] = 0;
 	out["particleEffectNameCounts"]["ToxicPeaBulletHit"] = 0;
 	out["particleEffectNameCounts"]["CabbageSplat"] = 0;
+	out["particleEffectNameCounts"]["ButterSplat"] = 0;
 	out["particleEffectNameCounts"]["ZombieArmOff"] = 0;
 	out["particleEffectNameCounts"]["ZombieDolphinRiderHeadOff"] = 0;
 	out["particleEffectNameCounts"]["EliteDolphinRiderHeadOff"] = 0;
@@ -3593,6 +3659,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	int starDownRightBulletCount = 0;
 	int starSpinningBulletCount = 0;
 	int cabbageBulletCount = 0;
+	int kernelBulletCount = 0;
+	int butterBulletCount = 0;
 	int lobbedBulletCount = 0;
 	int flyingTargetSpikeCount = 0;
 	int groundTargetSpikeCount = 0;
@@ -3639,6 +3707,12 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		}
 		else if (bullet->mBulletType == BulletType::BULLET_CABBAGE) {
 			++cabbageBulletCount;
+		}
+		else if (bullet->mBulletType == BulletType::BULLET_KERNEL) {
+			++kernelBulletCount;
+		}
+		else if (bullet->mBulletType == BulletType::BULLET_BUTTER) {
+			++butterBulletCount;
 		}
 		else if (bullet->mBulletType == BulletType::BULLET_SPIKE) {
 			++spikeBulletCount;
@@ -3716,6 +3790,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["starDownRightBulletCount"] = starDownRightBulletCount;
 	out["starSpinningBulletCount"] = starSpinningBulletCount;
 	out["cabbageBulletCount"] = cabbageBulletCount;
+	out["kernelBulletCount"] = kernelBulletCount;
+	out["butterBulletCount"] = butterBulletCount;
 	out["lobbedBulletCount"] = lobbedBulletCount;
 	out["flyingTargetSpikeCount"] = flyingTargetSpikeCount;
 	out["groundTargetSpikeCount"] = groundTargetSpikeCount;

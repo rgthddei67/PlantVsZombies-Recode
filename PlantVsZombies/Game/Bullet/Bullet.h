@@ -79,7 +79,9 @@ protected:
 	void ConfigurePresentation();
 	// 星弹纵向飞行时按当前 Board 网格更新碰撞行；其他子弹保持创建行。
 	void UpdateStarRow(const Vector& position);
-	void PlayStandardImpactSound(const Zombie* zombie, bool bypassShield = false) const;
+	/** 播放头盔/护盾材质声，并可抑制无防具时的普通本体 splat。 */
+	void PlayStandardImpactSound(
+		const Zombie* zombie, bool bypassShield = false, bool includeBodySplat = true) const;
 	void HitFireballZombie(Zombie* zombie);
 	/** 推进解析抛物线；返回 false 表示本帧已落空并回收。 */
 	bool UpdateLobbedMotion(float deltaTime);

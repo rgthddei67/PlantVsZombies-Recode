@@ -53,6 +53,7 @@ protected:
 
 	float mCooldownTimer = 0.0f;	// 僵尸减速倒计时时间
 	float mFrozenTimer = 0.0f;		// 冻结剩余秒数（寒冰菇完全定身），0=未冻结
+	float mButterTimer = 0.0f;		// 黄油定身剩余秒数，0=未被黄油固定
 	std::array<float, 20> mToxinLayerTimers{};	// 每层独立剩余秒数；二十格即每只僵尸的共享上限
 	float mToxinDamageRemainder = 0.0f;	// 跨帧保留未满 1 点的持续伤害，保证倍速下总量稳定
 
@@ -235,6 +236,12 @@ public:
 	float GetCooldownTimer() const { return this->mCooldownTimer; }
 	bool IsFrozen() const { return this->mFrozenTimer > 0.0f; }
 	float GetFrozenTimer() const { return this->mFrozenTimer; }
+	bool IsButtered() const { return mButterTimer > 0.0f; }
+	float GetButterTimer() const { return mButterTimer; }
+	/** 冻结或黄油任一生效时，统一视为完全定身。 */
+	bool IsImmobilized() const { return IsFrozen() || IsButtered(); }
+	/** 黄油弹命中入口；返回 false 表示当前品种或阶段免疫定身。 */
+	bool ApplyButter();
 	/** 命中时增加毒层；满二十层则刷新剩余时间最短的一层。 */
 	bool ApplyToxinStack();
 	/** 清除全部毒层及尚未结算的小数伤害。 */
@@ -294,10 +301,12 @@ public:
 protected:
 	/** 把当前 Animator 轨道局部锚点换算为稳定世界坐标，供离体装备取得起点。 */
 	Vector GetTrackWorldPosition(const std::string& trackName) const;
-	// 统一重算动画 extra 速度层：冻结(0) > 品种能力 × 减速 × 雨势。
+	// 统一重算动画 extra 速度层：冻结/黄油(0) > 品种能力 × 减速 × 雨势。
 	// 子类自身的整体倍率只从 GetAbilityAnimSpeedMultiplier 返回；运行期状态变化后经此收敛，
 	// 禁止直调 SetExtraSpeedMultiplier，否则会把冻结停格顶掉或丢失天气组合。
 	void UpdateAnimSpeed();
+	/** 清除黄油定身并按剩余状态恢复动画速度。 */
+	void ClearButter();
 	/** 头盔和护盾前的额外生命层；返回继续透入常规防具链的伤害。 */
 	virtual int TakeExtraProtectionDamage(int damage, DamageSource) { return damage; }
 	/** 生存血量倍率对品种额外生命层的扩展点。 */

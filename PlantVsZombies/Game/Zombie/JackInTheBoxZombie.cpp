@@ -102,7 +102,7 @@ void JackInTheBoxZombie::SetRunVelocityForVariant(float velocity)
 void JackInTheBoxZombie::Update()
 {
 	Zombie::Update();
-	if (mIsPreview || mIsDead || mIsDying || mFrozenTimer > 0.0f) return;
+	if (mIsPreview || mIsDead || mIsDying || IsImmobilized()) return;
 
 	const float deltaTime = DeltaTime::GetDeltaTime();
 	if (mPhase == Phase::RUNNING) {

@@ -95,7 +95,7 @@ void EliteJackInTheBoxZombie::Update()
 		return;
 	}
 	if (GetPhase() != Phase::RUNNING) return;
-	if (mIsDying || !mHasHead || mFrozenTimer > 0.0f) return;
+	if (mIsDying || !mHasHead || IsImmobilized()) return;
 
 	mThrowCountdown = std::max(0.0f, mThrowCountdown - deltaTime);
 	if (mThrowCountdown <= 0.0f) {

@@ -317,6 +317,9 @@
     <Sound>./resources/sounds/Zombie/zombiesplash.ogg</Sound>
     <Sound>./resources/sounds/Plant/PlantShoot/throw.ogg</Sound>
     <Sound>./resources/sounds/Plant/PlantShoot/throw2.ogg</Sound>
+    <Sound>./resources/sounds/Plant/PlantShoot/kernelpult.ogg</Sound>
+    <Sound>./resources/sounds/Plant/PlantShoot/kernelpult2.ogg</Sound>
+    <Sound>./resources/sounds/Plant/PlantShoot/butter.ogg</Sound>
     <Sound>./resources/sounds/Plant/cherrybomb.ogg</Sound>
     <Sound>./resources/sounds/Plant/doomshroom.ogg</Sound>
     <Sound>./resources/sounds/Plant/reverse_explosion.ogg</Sound>
@@ -393,6 +396,7 @@
     <Reanimation name="Magnetshroom">./resources/reanim/Magnetshroom.reanim</Reanimation>
     <Reanimation name="Pot">./resources/reanim/Pot.reanim</Reanimation>
     <Reanimation name="Cabbagepult">./resources/reanim/Cabbagepult.reanim</Reanimation>
+    <Reanimation name="Cornpult">./resources/reanim/Cornpult.reanim</Reanimation>
 
     <Reanimation name="NormalZombie">./resources/reanim/NormalZombie.reanim</Reanimation>
     <Reanimation name="ConeZombie">./resources/reanim/ConeZombie.reanim</Reanimation>
