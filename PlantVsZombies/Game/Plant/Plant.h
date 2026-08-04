@@ -39,7 +39,8 @@ public:
 	int mEaterCount = 0;			// 正在啃食此植物的僵尸数量
 
 protected:
-	bool mIsSleeping = false;	// 
+	bool mIsSleeping = false;	// 白天蘑菇睡眠权威状态
+	float mWakeUpTimer = 0.0f;	// 咖啡豆唤醒倒计时，单位：秒；大于 0 时仍保持睡眠
 	bool mIsPreview = false;
 	bool mIsSquished = false;	// 压扁残影仍参与绘制，但已退出占格、碰撞与植物行为
 	float mSquishTimer = 0.0f;	// 压扁残影剩余时间，单位：秒
@@ -139,18 +140,28 @@ public:
 
 	// 获取睡觉状态
 	bool GetSleepState() const { return this->mIsSleeping; }
+	float GetWakeUpTimeRemaining() const { return mWakeUpTimer; }
+	bool IsWakingUp() const { return mWakeUpTimer > 0.0f; }
 
 	// 是否为预览植物（选卡预览用，不参与对战逻辑）
 	bool IsPreview() const { return this->mIsPreview; }
 
-	// 设置睡觉状态
+	/** 切换睡眠状态；蘑菇覆写此入口以同步睡眠/清醒动画。 */
 	virtual void SetSleepState(bool sleep) { this->mIsSleeping = sleep; }
+	/** 咖啡豆请求开始原版 1 秒唤醒流程；重复请求或非睡眠植物返回 false。 */
+	bool BeginWakeUp(float durationSeconds = 1.0f);
+	/** 存档恢复专用：只还原权威状态与表现，不播放唤醒音效或重新触发品种行为。 */
+	void RestoreSleepState(bool sleep, float wakeUpTimeRemaining);
 
 protected:
 	/** 推进阵风换格的纯视觉插值；暂停时 DeltaTime 为 0，逻辑占格不受影响。 */
 	void UpdateGridMoveVisual();
 	/** 推进压扁残影的保留与渐隐计时，到期后销毁。 */
 	void UpdateSquish();
+	/** 推进咖啡豆唤醒倒计时、原版纵向弹性表现及两个音效/状态边界。 */
+	void UpdateWakeUp();
+	/** 按当前唤醒倒计时重建蘑菇纵向弹性表现；读档与逐帧更新共用。 */
+	void ApplyWakeUpPresentation();
 	/** 统一施加压扁态的暂停、碰撞、影子、占格和透明度表现。 */
 	void ApplySquishedPresentation();
 	/** 仅在格子仍指向自身 ID 时释放所属占格层，避免误清后来种下的植物。 */

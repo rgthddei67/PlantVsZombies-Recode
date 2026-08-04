@@ -12,6 +12,22 @@ void Shroom::SetupPlant()
 	else 
 	{
 		this->SetSleepState(true);
-		this->PlayTrack("anim_sleep");
 	}
+}
+
+void Shroom::SetSleepState(bool sleep)
+{
+	if (mIsSleeping == sleep) return;
+	Plant::SetSleepState(sleep);
+	if (sleep) {
+		PlayTrack("anim_sleep");
+		return;
+	}
+	mWakeUpTimer = 0.0f;
+	OnWakeUp();
+}
+
+void Shroom::OnWakeUp()
+{
+	PlayTrack("anim_idle");
 }

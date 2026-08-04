@@ -22,11 +22,21 @@ void DoomShroom::SetupPlant()
 		});
 
 	// 夜晚种下立即充能：镜像原版 UpdateDoomShroom（23fps 播 anim_explode + 吸气充能声）；
-	// 白天睡觉由 Shroom 基类切 anim_sleep，充能推迟到永远（本项目关卡昼夜固定，无咖啡豆）
+	// 白天睡觉由 Shroom 基类切 anim_sleep，咖啡豆倒计时归零后从 OnWakeUp 进入同一路径。
 	if (!mIsSleeping) {
-		AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_REVERSE_EXPLOSION, 0.5f);
-		this->PlayTrack("anim_explode", 23.0f / 12.0f, 0);
+		StartCharging();
 	}
+}
+
+void DoomShroom::OnWakeUp()
+{
+	StartCharging();
+}
+
+void DoomShroom::StartCharging()
+{
+	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_REVERSE_EXPLOSION, 0.5f);
+	PlayTrack("anim_explode", 23.0f / 12.0f, 0.0f);
 }
 
 void DoomShroom::TakeDamage(int damage, DamageSource source)

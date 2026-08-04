@@ -49,6 +49,7 @@
 #include "FlowerPot.h"
 #include "CabbagePult.h"
 #include "KernelPult.h"
+#include "CoffeeBean.h"
 
 #include "../Zombie/Zombie.h"
 #include "../Zombie/ConeZombie.h"
@@ -316,6 +317,11 @@ void GameDataManager::InitializeHardcodedData() {
 		ResourceKeys::Textures::IMAGE_CORNPULT,
 		AnimationType::ANIM_KERNELPULT,
 		ResourceKeys::Reanimations::REANIM_KERNELPULT, &MakePlant<KernelPult>);
+
+	RegisterPlant(PlantType::PLANT_INSTANT_COFFEE, "PLANT_INSTANT_COFFEE",
+		ResourceKeys::Textures::IMAGE_COFFEEBEAN,
+		AnimationType::ANIM_COFFEEBEAN,
+		ResourceKeys::Reanimations::REANIM_COFFEEBEAN, &MakePlant<CoffeeBean>);
 
 	// 寒冰大喷菇：复用大喷菇 reanim（蓝色靠 overlay），仅卡图独立
 	RegisterPlant(PlantType::PLANT_ICEFUMESHROOM, "PLANT_ICEFUMESHROOM",

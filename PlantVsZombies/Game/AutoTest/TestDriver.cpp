@@ -39,6 +39,7 @@
 #include "../Plant/FlowerPot.h"
 #include "../Plant/CabbagePult.h"
 #include "../Plant/KernelPult.h"
+#include "../Plant/CoffeeBean.h"
 #include "../Bullet/Bullet.h"
 #include "../Zombie/ZombieType.h"
 #include "../Zombie/Zombie.h"
@@ -1828,6 +1829,18 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_DIRT_RISE);
 	out["diggerWakeupSoundRequestCount"] =
 		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_WAKEUP);
+	out["coffeeSoundRequestCount"] =
+		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_COFFEE);
+	out["plantWakeupSoundRequestCount"] =
+		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_WAKEUP);
+	out["coffeeBeanResources"] = {
+		{ "reanimationLoaded", ResourceManager::GetInstance().HasReanimation(
+			ResourceKeys::Reanimations::REANIM_COFFEEBEAN) },
+		{ "cardLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_COFFEEBEAN, false) != nullptr },
+		{ "soundLoaded", ResourceManager::GetInstance().GetSound(
+			ResourceKeys::Sounds::SOUND_COFFEE) != nullptr },
+	};
 	out["pogoSoundRequestCount"] =
 		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_POGO_ZOMBIE);
 	out["bungeeScreamSoundRequestCount"] =
@@ -3069,6 +3082,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 
 	out["plants"] = nlohmann::json::array();
 	out["topPlantsByCell"] = nlohmann::json::object();
+	out["overlayPlantsByCell"] = nlohmann::json::object();
 	out["flowerPotsByCell"] = nlohmann::json::object();
 	int repeatingShootingHeadCount = 0;
 	for (int id : board->mEntityManager.GetAllPlantIDs()) {
@@ -3086,6 +3100,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "eaterCount", p->mEaterCount },
 			{ "canBeEaten", p->CanBeEaten() },
 			{ "sleeping", p->GetSleepState() },
+			{ "wakeUpTimeMs", static_cast<int>(std::lround(
+				p->GetWakeUpTimeRemaining() * 1000.0f)) },
 			{ "squished", p->IsSquished() },
 			{ "squishTimeMs", static_cast<int>(p->GetSquishTimeRemaining() * 1000.0f + 0.5f) },
 			{ "track", p->GetCurrentTrackName() },
@@ -3296,11 +3312,20 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			plantState["planternGearValue"] = static_cast<int>(plantern->GetGear());
 			plantState["planternLightUsable"] = plantern->HasUsableLight();
 		}
+		if (auto* coffeeBean = dynamic_cast<CoffeeBean*>(p)) {
+			plantState["coffeeBeanPhase"] = coffeeBean->GetPhaseName();
+			plantState["coffeeBeanWaitMs"] = coffeeBean->GetWaitTimeRemainingMs();
+		}
 		// 水池叠种会让 plants 数组索引依赖实体顺序；按格子额外导出顶层植物供稳定断言。
 		if (board->GetTopPlantAt(p->mRow, p->mColumn) == p) {
 			const std::string cellKey =
 				std::to_string(p->mRow) + "_" + std::to_string(p->mColumn);
 			out["topPlantsByCell"][cellKey] = plantState;
+		}
+		if (board->GetOverlayPlantAt(p->mRow, p->mColumn) == p) {
+			const std::string cellKey =
+				std::to_string(p->mRow) + "_" + std::to_string(p->mColumn);
+			out["overlayPlantsByCell"][cellKey] = plantState;
 		}
 		out["plants"].push_back(std::move(plantState));
 	}
@@ -3623,6 +3648,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			Plant* under = cell ? board->mEntityManager.GetPlant(cell->GetUnderPlantID()) : nullptr;
 			Plant* normal = cell ? board->mEntityManager.GetPlant(cell->GetNormalPlantID()) : nullptr;
 			Plant* pumpkin = cell ? board->mEntityManager.GetPlant(cell->GetPumpkinPlantID()) : nullptr;
+			Plant* overlay = cell ? board->mEntityManager.GetPlant(cell->GetOverlayPlantID()) : nullptr;
 			Plant* top = board->GetTopPlantAt(row, col);
 			rowState.push_back({
 				{ "centerXInt", static_cast<int>(std::lround(center.x)) },
@@ -3633,6 +3659,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				{ "normalHealth", normal ? normal->mPlantHealth : 0 },
 				{ "pumpkin", pumpkin ? PlantTypeName(pumpkin->mPlantType) : "NONE" },
 				{ "pumpkinHealth", pumpkin ? pumpkin->mPlantHealth : 0 },
+				{ "overlay", overlay ? PlantTypeName(overlay->mPlantType) : "NONE" },
 				{ "top", top ? PlantTypeName(top->mPlantType) : "NONE" },
 				{ "topHealth", top ? top->mPlantHealth : 0 },
 			});

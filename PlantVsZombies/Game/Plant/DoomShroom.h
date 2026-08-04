@@ -17,12 +17,15 @@ public:
 
 protected:
 	void SetupPlant() override;
+	void OnWakeUp() override;
 
 public:
 	// 充能（引爆倒计时）期间无敌，参考樱桃炸弹；白天睡觉时仍正常掉血
 	void TakeDamage(int damage, DamageSource source) override;
 
 private:
+	/** 进入毁灭菇原版充能轨并播放吸气声；夜种与咖啡豆唤醒共用。 */
+	void StartCharging();
 	/** 引爆前清除当前格除自身外的全部植物，避免任意承载/保护层留在弹坑里。 */
 	void KillOtherPlantsInCell();
 	void Explode();

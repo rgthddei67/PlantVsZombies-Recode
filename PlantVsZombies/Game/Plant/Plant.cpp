@@ -16,6 +16,9 @@ namespace {
 	constexpr float kSquishDurationSeconds = 5.0f;         // 主人调短的压扁残影总保留时间，单位：秒
 	constexpr float kSquishFadeSeconds = 1.0f;             // 保持 C# 末段占总时长 20% 的线性渐隐比例
 	constexpr float kDefaultSquishPivotOffsetY = 100.0f;   // 无 Board 的预防性回退；正式关卡使用当前地图格高
+	constexpr float kWakeUpSoundTimeRemaining = 0.6f;      // 原版 WAKE_UP_TIME=100，在剩 60cs 时播放 wakeup
+	constexpr float kWakeUpBounceStartTime = 0.7f;         // 原版只在倒计时最后 70cs 做 EaseSinWave 纵向弹性
+	constexpr float kWakeUpVisualPivotOffsetY = 80.0f;     // 原版 reanim 局部底边枢轴，单位：px
 }
 
 Plant::Plant(Board* board, PlantType plantType, int row, int column,
@@ -124,6 +127,9 @@ void Plant::Update()
 		return;
 	}
 	UpdateGridMoveVisual();
+	if (!mIsPreview && mBoard && mBoard->mBoardState == BoardState::GAME) {
+		UpdateWakeUp();
+	}
 	// 仅在对战进行中(GAME)才跑行为逻辑：生存轮间选卡(CHOOSE_CARD)时场上保留的植物应冻结，
 	// 否则向日葵会继续产阳光、射手继续计时等。WIN/LOSE 同理不再行动。
 	if (!mIsPreview && !mIsSleeping && !IsBungeeTargeted() &&
@@ -227,6 +233,59 @@ void Plant::ReleaseGridSlot()
 	if (cell && cell->GetPumpkinPlantID() == mPlantID) {
 		cell->ClearPumpkinPlantID();
 	}
+	if (cell && cell->GetOverlayPlantID() == mPlantID) {
+		cell->ClearOverlayPlantID();
+	}
+}
+
+bool Plant::BeginWakeUp(float durationSeconds)
+{
+	if (mIsPreview || !mIsSleeping || mWakeUpTimer > 0.0f
+		|| durationSeconds <= 0.0f) {
+		return false;
+	}
+	mWakeUpTimer = durationSeconds;
+	ApplyWakeUpPresentation();
+	return true;
+}
+
+void Plant::RestoreSleepState(bool sleep, float wakeUpTimeRemaining)
+{
+	mIsSleeping = sleep;
+	mWakeUpTimer = sleep ? std::max(0.0f, wakeUpTimeRemaining) : 0.0f;
+	ApplyWakeUpPresentation();
+}
+
+void Plant::UpdateWakeUp()
+{
+	if (mWakeUpTimer <= 0.0f) return;
+	const float previous = mWakeUpTimer;
+	mWakeUpTimer = std::max(0.0f, mWakeUpTimer - DeltaTime::GetDeltaTime());
+
+	if (previous > kWakeUpSoundTimeRemaining
+		&& mWakeUpTimer <= kWakeUpSoundTimeRemaining) {
+		AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_WAKEUP, 0.5f);
+	}
+	ApplyWakeUpPresentation();
+	if (mWakeUpTimer <= 0.0f) {
+		SetSleepState(false);
+	}
+}
+
+void Plant::ApplyWakeUpPresentation()
+{
+	if (!mAnimator) return;
+	float scaleY = 1.0f;
+	if (mWakeUpTimer > 0.0f && mWakeUpTimer < kWakeUpBounceStartTime) {
+		const float t = std::clamp(
+			(kWakeUpBounceStartTime - mWakeUpTimer) / kWakeUpBounceStartTime,
+			0.0f, 1.0f);
+		const float eased = t * t * (3.0f - 2.0f * t);
+		scaleY = 1.0f - 0.2f * std::sin(eased * 2.0f * 3.14159265f);
+	}
+	const Vector visual = GetVisualPosition();
+	mAnimator->SetRenderScale(1.0f, scaleY,
+		visual.x, visual.y + kWakeUpVisualPivotOffsetY);
 }
 
 void Plant::UpdateSquish()

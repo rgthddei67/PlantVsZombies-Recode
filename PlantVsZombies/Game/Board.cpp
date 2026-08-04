@@ -2378,9 +2378,11 @@ void Board::TriggerTyphoonPlantMove(TyphoonStrength strength, WindDirection dire
 				const int underID = source->GetUnderPlantID();
 				const int normalID = source->GetNormalPlantID();
 				const int pumpkinID = source->GetPumpkinPlantID();
+				const int overlayID = source->GetOverlayPlantID();
 				Plant* under = mEntityManager.GetPlant(underID);
 				Plant* normal = mEntityManager.GetPlant(normalID);
 				Plant* pumpkin = mEntityManager.GetPlant(pumpkinID);
+				Plant* overlay = mEntityManager.GetPlant(overlayID);
 				if (!under || !under->IsActive()) {
 					source->ClearUnderPlantID();
 					under = nullptr;
@@ -2393,7 +2395,11 @@ void Board::TriggerTyphoonPlantMove(TyphoonStrength strength, WindDirection dire
 					source->ClearPumpkinPlantID();
 					pumpkin = nullptr;
 				}
-				if (!under && !normal && !pumpkin) continue;
+				if (!overlay || !overlay->IsActive()) {
+					source->ClearOverlayPlantID();
+					overlay = nullptr;
+				}
+				if (!under && !normal && !pumpkin && !overlay) continue;
 				const Plant* sourceAnchor = pumpkin && pumpkin->AnchorsPlantCellAgainstTyphoon()
 					? pumpkin
 					: (normal && normal->AnchorsPlantCellAgainstTyphoon()
@@ -2414,6 +2420,10 @@ void Board::TriggerTyphoonPlantMove(TyphoonStrength strength, WindDirection dire
 					if (pumpkin) {
 						lostPlantIDs.insert(pumpkinID);
 						pumpkin->Die();
+					}
+					if (overlay) {
+						lostPlantIDs.insert(overlayID);
+						overlay->Die();
 					}
 					continue;
 				}
@@ -2443,11 +2453,16 @@ void Board::TriggerTyphoonPlantMove(TyphoonStrength strength, WindDirection dire
 						lostPlantIDs.insert(pumpkinID);
 						pumpkin->Die();
 					}
+					if (overlay) {
+						lostPlantIDs.insert(overlayID);
+						overlay->Die();
+					}
 					continue;
 				}
 				source->ClearUnderPlantID();
 				source->ClearNormalPlantID();
 				source->ClearPumpkinPlantID();
+				source->ClearOverlayPlantID();
 				if (under) {
 					target->SetUnderPlantID(underID);
 					under->MoveToGridCell(row, targetColumn, kTyphoonPlantSlideDuration);
@@ -2462,6 +2477,11 @@ void Board::TriggerTyphoonPlantMove(TyphoonStrength strength, WindDirection dire
 					target->SetPumpkinPlantID(pumpkinID);
 					pumpkin->MoveToGridCell(row, targetColumn, kTyphoonPlantSlideDuration);
 					movedPlantIDs.insert(pumpkinID);
+				}
+				if (overlay) {
+					target->SetOverlayPlantID(overlayID);
+					overlay->MoveToGridCell(row, targetColumn, kTyphoonPlantSlideDuration);
+					movedPlantIDs.insert(overlayID);
 				}
 				RefreshPlantStackRenderOrder(target);
 			}
@@ -3766,10 +3786,18 @@ bool Board::CanPlantAt(PlantType type, int row, int col)
 
 	const bool isWater = IsPoolSquare(row, col);
 	Plant* underPlant = mEntityManager.GetPlant(cell->GetUnderPlantID());
+	Plant* normalPlant = mEntityManager.GetPlant(cell->GetNormalPlantID());
 	const bool hasLilyPad = underPlant
 		&& underPlant->mPlantType == PlantType::PLANT_LILYPAD;
 	const bool hasFlowerPot = underPlant
 		&& underPlant->mPlantType == PlantType::PLANT_FLOWERPOT;
+	if (type == PlantType::PLANT_INSTANT_COFFEE) {
+		// 原版 flying layer：只允许覆盖仍睡眠、尚未进入唤醒且未被蹦极抓取的普通层蘑菇。
+		return cell->GetOverlayPlantID() == NULL_PLANT_ID
+			&& normalPlant && normalPlant->GetSleepState()
+			&& !normalPlant->IsWakingUp()
+			&& !normalPlant->IsBungeeTargeted();
+	}
 	if (type == PlantType::PLANT_PUMPKINSHELL) {
 		// 南瓜有独立外壳层，但水路与屋顶仍分别要求正确的承载植物。
 		if (cell->GetPumpkinPlantID() != NULL_PLANT_ID) return false;
@@ -3852,6 +3880,13 @@ Plant* Board::GetPumpkinAt(int row, int col) const
 	return cell ? mEntityManager.GetPlant(cell->GetPumpkinPlantID()) : nullptr;
 }
 
+Plant* Board::GetOverlayPlantAt(int row, int col) const
+{
+	if (row < 0 || row >= mRows || col < 0 || col >= mColumns) return nullptr;
+	Cell* cell = mCells[row][col];
+	return cell ? mEntityManager.GetPlant(cell->GetOverlayPlantID()) : nullptr;
+}
+
 void Board::ApplyPumpkinProtectedZombieAreaDamage(int baseDamage,
 	const std::function<bool(const Plant&)>& overlapsArea)
 {
@@ -3909,16 +3944,19 @@ void Board::RefreshPlantStackRenderOrder(Cell* cell)
 	Plant* under = mEntityManager.GetPlant(cell->GetUnderPlantID());
 	Plant* normal = mEntityManager.GetPlant(cell->GetNormalPlantID());
 	Plant* pumpkin = mEntityManager.GetPlant(cell->GetPumpkinPlantID());
+	Plant* overlay = mEntityManager.GetPlant(cell->GetOverlayPlantID());
 	std::vector<int> orders;
 	if (under) orders.push_back(under->GetRenderOrder());
 	if (normal) orders.push_back(normal->GetRenderOrder());
 	if (pumpkin) orders.push_back(pumpkin->GetRenderOrder());
+	if (overlay) orders.push_back(overlay->GetRenderOrder());
 	if (orders.size() < 2) return;
 	std::sort(orders.begin(), orders.end());
 	size_t index = 0;
 	if (under) under->SetRenderOrder(orders[index++]);
 	if (normal) normal->SetRenderOrder(orders[index++]);
-	if (pumpkin) pumpkin->SetRenderOrder(orders[index]);
+	if (pumpkin) pumpkin->SetRenderOrder(orders[index++]);
+	if (overlay) overlay->SetRenderOrder(orders[index]);
 }
 
 Plant* Board::CreatePlant(PlantType plantType, int row, int column, bool skipsettings, bool isPreview)
@@ -3935,6 +3973,11 @@ Plant* Board::CreatePlant(PlantType plantType, int row, int column, bool skipset
 	if (consumesPlantingQuota && !HasPlantingQuota(plantType)) {
 		return nullptr;
 	}
+	const bool isOverlayPlant = plantType == PlantType::PLANT_INSTANT_COFFEE;
+	if (isOverlayPlant && consumesPlantingQuota
+		&& !CanPlantAt(plantType, row, column)) {
+		return nullptr;
+	}
 
 	// 根据植物类型创建对应的植物
 	std::shared_ptr<Plant> plant = GameAPP::GetInstance().InstantiatePlant(plantType, this, row, column, isPreview);
@@ -3946,7 +3989,8 @@ Plant* Board::CreatePlant(PlantType plantType, int row, int column, bool skipset
 		const bool isPumpkinPlant = plantType == PlantType::PLANT_PUMPKINSHELL;
 		const int occupiedID = isUnderPlant
 			? cell->GetUnderPlantID()
-			: (isPumpkinPlant ? cell->GetPumpkinPlantID() : cell->GetNormalPlantID());
+			: (isPumpkinPlant ? cell->GetPumpkinPlantID()
+				: (isOverlayPlant ? cell->GetOverlayPlantID() : cell->GetNormalPlantID()));
 		if (occupiedID != NULL_PLANT_ID) {
 			plant->Die();
 			return nullptr;
@@ -3956,6 +4000,7 @@ Plant* Board::CreatePlant(PlantType plantType, int row, int column, bool skipset
 		// 将植物与格子关联
 		if (isUnderPlant) cell->SetUnderPlantID(plant->mPlantID);
 		else if (isPumpkinPlant) cell->SetPumpkinPlantID(plant->mPlantID);
+		else if (isOverlayPlant) cell->SetOverlayPlantID(plant->mPlantID);
 		else cell->SetNormalPlantID(plant->mPlantID);
 		RefreshPlantStackRenderOrder(cell);
 		if (plantType == PlantType::PLANT_ELITE_SCAREDYSHROOM && consumesPlantingQuota) {
@@ -4036,6 +4081,8 @@ inline void Board::CleanPlantFromCells(int plantID)
 				mCells[i][j]->ClearNormalPlantID();
 			if (mCells[i][j]->GetPumpkinPlantID() == plantID)
 				mCells[i][j]->ClearPumpkinPlantID();
+			if (mCells[i][j]->GetOverlayPlantID() == plantID)
+				mCells[i][j]->ClearOverlayPlantID();
 		}
 	}
 }
@@ -4918,9 +4965,11 @@ Plant* Board::CreatePlantWithID(PlantType type, int row, int col, int id) {
 	const bool isUnderPlant = type == PlantType::PLANT_LILYPAD
 		|| type == PlantType::PLANT_FLOWERPOT;
 	const bool isPumpkinPlant = type == PlantType::PLANT_PUMPKINSHELL;
+	const bool isOverlayPlant = type == PlantType::PLANT_INSTANT_COFFEE;
 	if (cell && (isUnderPlant
 		? cell->GetUnderPlantID()
-		: (isPumpkinPlant ? cell->GetPumpkinPlantID() : cell->GetNormalPlantID())) != NULL_PLANT_ID) {
+		: (isPumpkinPlant ? cell->GetPumpkinPlantID()
+			: (isOverlayPlant ? cell->GetOverlayPlantID() : cell->GetNormalPlantID()))) != NULL_PLANT_ID) {
 		return nullptr;
 	}
 	// 走 GameApp 工厂拿 shared_ptr 用于 EntityManager 注册
@@ -4934,6 +4983,7 @@ Plant* Board::CreatePlantWithID(PlantType type, int row, int col, int id) {
 		if (cell) {
 			if (isUnderPlant) cell->SetUnderPlantID(id);
 			else if (isPumpkinPlant) cell->SetPumpkinPlantID(id);
+			else if (isOverlayPlant) cell->SetOverlayPlantID(id);
 			else cell->SetNormalPlantID(id);
 			RefreshPlantStackRenderOrder(cell);
 		}

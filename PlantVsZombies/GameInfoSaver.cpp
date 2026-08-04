@@ -386,6 +386,7 @@ bool GameInfoSaver::SerializeLevelDataToPath(Board* board, CardSlotManager* mana
 		p["health"] = plant->mPlantHealth;
 		p["maxHealth"] = plant->mPlantMaxHealth;
 		p["isSleeping"] = plant->GetSleepState();
+		p["wakeUpTimer"] = plant->GetWakeUpTimeRemaining();
 		p["isSquished"] = plant->IsSquished();
 		if (plant->IsSquished()) {
 			const Vector squishVisual = plant->GetSquishVisualPosition();
@@ -928,7 +929,8 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 		if (plant) {
 			plant->mPlantHealth = health;
 			plant->mPlantMaxHealth = maxHealth;
-			plant->SetSleepState(isSleeping);
+			// 原始状态恢复不得重播咖啡豆唤醒音效或品种激活反馈；旧档缺字段时为中性 0。
+			plant->RestoreSleepState(isSleeping, p.value("wakeUpTimer", 0.0f));
 			RestoreAnimState(p, plant);
 			if (p.contains("extraData")) {
 				plant->LoadExtraData(p["extraData"]);

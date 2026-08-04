@@ -12,7 +12,7 @@ description: Use when adding ANY new plant (新增植物) to PvZ — 射手/生�
 **C# 原版逻辑场景是 800×600，本项目是 `SCENE_WIDTH=1100`、`SCENE_HEIGHT=600`。原版任何绝对 X/Y、范围端点、绘制偏移、碰撞框和粒子触发点都只能当语义参考，禁止直接抄入代码。**
 
 - 场景范围由 `SCENE_WIDTH/SCENE_HEIGHT` 和 Board 当前背景几何重算；格子范围由 `GetCellCenterPosition`、`GetCellHeight` 与 `CELL_COLLIDER_SIZE_X` 派生。
-- 屋顶植物只使用 `GetCellCenterPosition(row, col)` 的离散坡面格中心；不要复用僵尸的连续 `GetRowCenterYAtX`。花盆占 `under`、上层植物占 `normal`、南瓜占独立壳层；普通植物/南瓜必须有花盆，地刺系仍拒绝屋顶。新局在选卡前且确认未进入读档生命周期后，按大关内编号生成 5-1 五列、5-2 四列、后续三列的初始花盆；C# 原关卡号分段与本项目九关制不同，必须按显示关卡语义映射，并保留外层列、内层行的创建顺序。
+- 屋顶植物只使用 `GetCellCenterPosition(row, col)` 的离散坡面格中心；不要复用僵尸的连续 `GetRowCenterYAtX`。花盆占 `under`、上层植物占 `normal`、南瓜占独立壳层，咖啡豆这类原版 flying 叠种体可占短时 `overlay`；普通植物/南瓜必须有花盆，地刺系仍拒绝屋顶。新局在选卡前且确认未进入读档生命周期后，按大关内编号生成 5-1 五列、5-2 四列、后续三列的初始花盆；C# 原关卡号分段与本项目九关制不同，必须按显示关卡语义映射，并保留外层列、内层行的创建顺序。
 - 植物局部点位先换算到本项目以格子中心为 `GetPosition()` 的口径，再叠加当前 gamedata 视觉偏移；逻辑格位置与 `mVisualOffset` 永远分开。
 - 发射点、范围边界和附加 Animator 基点优先表达成“相对稳定视觉原点/父轨基准姿态”的差值，不把 C# 的世界坐标塞进局部偏移。
 - AutoTest 先执行同步 `screenshot`，再用 `animatedObjectsByTag.Plant` 的 `renderProbeReady/worldBounds/visualToRenderCenterD*Int/nearestPlant` 验证本项目最终绘制几何相对格子与植物 collider 的关系；每阶段只保留一株目标植物以稳定数组索引。
@@ -43,7 +43,8 @@ description: Use when adding ANY new plant (新增植物) to PvZ — 射手/生�
 13. **跳跃阻拦植物只声明能力和反馈，不决定僵尸动画时序**：`BlocksZombieJump`/`OnZombieJumpBlocked` 由跳跃者在原版动画进度节点调用，接触植物时不得提前 Bonk、喷粒子或扣血。组合植物的跳跃目标取当前格顶层，避免先碰到底层睡莲/花盆便漏掉上层阻拦体。特殊僵尸若撞伤阻拦植物，应把植物引用传入品种钩子并走带正确 `DamageSource` 的正式承伤链；先确认规格中的受伤者，不能把“植物损失 N 血”误实现成僵尸自身扣血。
 14. **台风锚定植物也只声明格位能力和直接撞击反馈**：用类似 `AnchorsPlantCellAgainstTyphoon` / `OnTyphoonPlantImpact` 的虚接口让天气唯一结算点派发，禁止在 `Board` 堆植物类型表。逐格位移中先让锚定源格保持不动，再只对直接进入锚定目标格的植物组合结算；后方被普通占格挡住时不传导压力。伤害必须逐格立即生效，使锚定植物中途死亡后剩余步数能重读格位；同阵风重复撞击可按锚定植物 ID 合并音画反馈，但不能合并伤害。组合植物按一个移动格计数，专项覆盖双向、紧邻多步、间隔移动、连续链、水路上下层和中途死亡放行。
 15. **直接落水植物必须同时声明地形、层级与水面表现**：在 `Board::CanPlantAt` 的水生集中分支要求“水格且 `Cell::IsEmpty()`”，从而允许空水直种并同时拒绝陆地、已有睡莲和其他植物；除睡莲继续占 `under` 外，水草/海蘑菇这类能力植物占 `normal`，不要为了直种改 `CreatePlant` 的通用层级。原版不画陆地影子的品种移除 `ShadowComponent`；发射点和附属视觉从 `GetVisualAnchorPosition()` 派生以跟随水面浮动。专项用 `assert_can_plant` 覆盖空水 true、陆地 false、睡莲水格 false，再断言 `cells.*.normal/under`、无阴影和同步截图。
-16. **套壳或其他新增占格层必须闭合 Cell 生命周期与绘制夹层**：新增槽位时同步检查 `CanPlantAt`、`CreatePlant/CreatePlantWithID`、`GetTopPlantAt`、`ReleaseGridSlot/CleanPlantFromCells`、铲子/啃食、render order、存读档重建、台风整组搬运和外部范围伤害，AutoTest 导出每层类型及生命与 top，分别覆盖正反种植顺序、移除外层和水路多层。若范围技能规定外壳拦截，先沿原几何找出命中植物，再按逻辑格把同格命中归并为一次外壳承伤；无外壳格保持该技能原有逐层行为，不能直接全表逐株扣血，也不能只用爆点所在格的 `GetTopPlantAt` 漏掉范围边缘。选点 AI/推演必须消费相同层级集合，并专项覆盖陆地、水路 under+normal+壳、倍率、无壳与明确豁免攻击。若美术要求“后片→内层植物→前片”，不要在 `Draw` 中临时切换共享 Animator 轨道可见性；默认实例化可能并行提交。由套壳持有同步帧/alpha/scale 的独立后片 Animator，根 Animator 只画前片，并在默认与 `-NoInstance` 下逐张核对同一截图。开启植物血量显示时，同格各层会分别绘制数字；让外壳覆写血量文字偏移并错开至少一行，再用同屏截图确认不会覆盖内层数字或主体。
+16. **套壳或其他新增占格层必须闭合 Cell 生命周期与绘制夹层**：新增槽位时同步检查 `CanPlantAt`、`CreatePlant/CreatePlantWithID`、`GetTopPlantAt`、`ReleaseGridSlot/CleanPlantFromCells`、铲子/啃食、render order、存读档重建、台风整组搬运和外部范围伤害，AutoTest 导出每层类型及生命与 top，分别覆盖正反种植顺序、移除外层和水路多层。先明确新层是否参与 top：咖啡豆的 flying `overlay` 需要画在普通层上方，却故意不参与啃食/铲除 top，并通过无 collider、`CanBeEaten=false` 与承伤覆写排除地面攻击。若范围技能规定外壳拦截，先沿原几何找出命中植物，再按逻辑格把同格命中归并为一次外壳承伤；无外壳格保持该技能原有逐层行为，不能直接全表逐株扣血，也不能只用爆点所在格的 `GetTopPlantAt` 漏掉范围边缘。选点 AI/推演必须消费相同层级集合，并专项覆盖陆地、水路 under+normal+壳、倍率、无壳与明确豁免攻击。若美术要求“后片→内层植物→前片”，不要在 `Draw` 中临时切换共享 Animator 轨道可见性；默认实例化可能并行提交。由套壳持有同步帧/alpha/scale 的独立后片 Animator，根 Animator 只画前片，并在默认与 `-NoInstance` 下逐张核对同一截图。开启植物血量显示时，同格各层会分别绘制数字；让外壳覆写血量文字偏移并错开至少一行，再用同屏截图确认不会覆盖内层数字或主体。
+17. **唤醒蘑菇要把倒计时与品种激活分开**：目标蘑菇基类持有 sleeping/wake timer、原版 `EaseSinWave` 纵向弹性与 `SOUND_WAKEUP` 边界，咖啡豆只负责等待、碎裂并对同格普通层调用单一 `BeginWakeUp`。品种通过 `OnWakeUp` 恢复自身能力轨；毁灭菇等特殊蘑菇必须进入与夜间种下相同的充能入口，不能统一硬切 `anim_idle`。咖啡豆阶段/等待计时与目标 wake timer 都入档；加载使用无音效、无能力重触发的恢复入口，再由统一 Animator 恢复当前轨，避免重播咖啡声或充能声。专项覆盖等待和碎裂中各一次快照、音效请求不增加、普通蘑菇恢复 idle 与特殊蘑菇正式结算。
 
 ## 存读档心智清单
 
@@ -60,7 +61,7 @@ description: Use when adding ANY new plant (新增植物) to PvZ — 射手/生�
 1. 默认用 `clang-release` 完成带 LTO 的 0 warning 构建；只有主人特殊要求快速迭代、PDB 或无 LTO 时才改用 `clang-playtest`，特殊要求 Debug CRT/Debug 语义时才用 `msvc-debug`。
 2. **站位+影子截图校对**（写完必做，别等主人指出）：临时脚本把新植物与小喷菇/向日葵种同一行，截图比脚底基线。先从原版实现/画面确认该品种是否有影子；原版不画影子的品种即使是陆生植物也要在 `SetupPlant()` 显式 `RemoveComponent<ShadowComponent>()`，并断言 `hasShadow=false`，不能因落在草地就沿用基类默认影子。需要影子时再校对两套独立坐标：**本体 = gamedata.json 的 offset**（改无需重编译）；**影子 = 代码里 `ShadowComponent::SetOffset`**（改要重编译）。C# `DrawShadow` 的 `num2/num3` 是最终局部落点，不是相对本项目组件默认值的增量：例如花盆为 `Y=51-5=46` 且 1:1，不能误写成 `28-5` 或继续套纵向 0.75 压缩；除状态探针外必须以截图确认肉眼可见。抄同类植物的值大概率不准。
 
-   花盆这类承载植物还要让上层本体与落点预览共同消费一个 5px 视觉抬升常量，逻辑位置/碰撞箱不变；上层存在时暂停花盆 idle，移除或台风换格/读档后按当前 Cell 派生状态恢复。台风必须把同格 `under + normal + pumpkin` 作为一个组合移动、丢失或受阻，不能只搬顶层。
+   花盆这类承载植物还要让上层本体与落点预览共同消费一个 5px 视觉抬升常量，逻辑位置/碰撞箱不变；上层存在时暂停花盆 idle，移除或台风换格/读档后按当前 Cell 派生状态恢复。台风必须遍历同格全部活跃层（当前含 `under + normal + pumpkin + overlay`）作为一个组合移动、丢失或受阻，不能只搬顶层。
    植物若有阵风插值、水面浮动等动态位移，收口成**不含品种静态 offset 的公共视觉锚点**：本体=`锚点+gamedata offset`，影子=`锚点+shadow offset`，禁止影子退回裸 `Transform` 而漏掉动态量。专项在同步截图后导出 `ShadowComponent` 最近实际提交的中心，并用**同一绘制帧**的 Animator render base 减 gamedata offset 得到锚点再断言；不要在截图后的下一逻辑帧重算正弦锚点，否则会产生亚像素相位差假失败。最后跨两个动画相位读图确认共同移动。
    屋顶等非水平网格中，阵风换格或其他格间动画必须从源/目标 `Board::GetCellCenterPosition` 插值完整二维视觉锚点，不能只改 X 后继续沿用源格 Y；逻辑 `row/column` 与 `mVisualOffset` 仍分离。格内植物保持离散格中心，横跨多列的火焰/范围视觉则按每个分段 X 单独查询坡面。禁止给通用 `Transform` 自动消费坡面，以免污染飞行物、UI 和其他地图。
    卡槽/选卡卡图由 `CardDisplayComponent::DrawPlantImage` 独立绘制，不能为缩卡图去改 gamedata `scale`（那会改草坪本体）。需要品种特例时在通用卡图倍率上追加独立倍率，并从既有卡图矩形中心缩放，避免向左上角漂移；用实际卡槽截图验收。

@@ -23,6 +23,7 @@ private:
 	int mUnderPlantID = NULL_PLANT_ID;
 	int mNormalPlantID = NULL_PLANT_ID;
 	int mPumpkinPlantID = NULL_PLANT_ID;
+	int mOverlayPlantID = NULL_PLANT_ID;
 
 public:
 	int mRow = 0;		// 行
@@ -77,15 +78,17 @@ public:
 	}
 
 	// 设置植物ID
-	/** 水面承载层、普通植物层与南瓜外壳层分开存储，避免组合植物互相覆盖。 */
+	/** 水面承载层、普通层、南瓜外壳层与短时飞行覆盖层分开存储，避免组合植物互相覆盖。 */
 	void SetUnderPlantID(int plantID) { mUnderPlantID = plantID; }
 	void SetNormalPlantID(int plantID) { mNormalPlantID = plantID; }
 	void SetPumpkinPlantID(int plantID) { mPumpkinPlantID = plantID; }
+	void SetOverlayPlantID(int plantID) { mOverlayPlantID = plantID; }
 
 	// 获取植物ID
 	int GetUnderPlantID() const { return mUnderPlantID; }
 	int GetNormalPlantID() const { return mNormalPlantID; }
 	int GetPumpkinPlantID() const { return mPumpkinPlantID; }
+	int GetOverlayPlantID() const { return mOverlayPlantID; }
 	int GetTopPlantID() const {
 		if (mPumpkinPlantID != NULL_PLANT_ID) return mPumpkinPlantID;
 		return mNormalPlantID != NULL_PLANT_ID ? mNormalPlantID : mUnderPlantID;
@@ -95,13 +98,15 @@ public:
 	void ClearUnderPlantID() { mUnderPlantID = NULL_PLANT_ID; }
 	void ClearNormalPlantID() { mNormalPlantID = NULL_PLANT_ID; }
 	void ClearPumpkinPlantID() { mPumpkinPlantID = NULL_PLANT_ID; }
+	void ClearOverlayPlantID() { mOverlayPlantID = NULL_PLANT_ID; }
 
 	// 检查格子是否为空
 	bool IsEmpty() const
 	{
 		return mUnderPlantID == NULL_PLANT_ID
 			&& mNormalPlantID == NULL_PLANT_ID
-			&& mPumpkinPlantID == NULL_PLANT_ID;
+			&& mPumpkinPlantID == NULL_PLANT_ID
+			&& mOverlayPlantID == NULL_PLANT_ID;
 	}
 
 	// 检查点是否在格子内

@@ -220,6 +220,7 @@ namespace ResourceKeys
 		RKEY(IMAGE_FLOWERPOT);
 		RKEY(IMAGE_CABBAGEPULT);
 		RKEY(IMAGE_CORNPULT);
+		RKEY(IMAGE_COFFEEBEAN);
 		RKEY(IMAGE_SUNSHROOM);
 		RKEY(IMAGE_FUMESHROOM);
 		RKEY(IMAGE_GRAVEBUSTER);
@@ -382,7 +383,8 @@ namespace ResourceKeys
 		RKEY(SOUND_JACK_SURPRISE2);			// 小丑开盒惊吓声二
 		RKEY(SOUND_DIGGER_ZOMBIE);			// 矿工地下穿行循环声
 		RKEY(SOUND_DIRT_RISE);				// 矿工破土声
-		RKEY(SOUND_WAKEUP);					// 持镐矿工出土惊醒声
+		RKEY(SOUND_WAKEUP);					// 咖啡豆唤醒蘑菇与持镐矿工出土共用惊醒声
+		RKEY(SOUND_COFFEE);					// 咖啡豆开始碎裂并给蘑菇提神
 		RKEY(SOUND_POGO_ZOMBIE);			// 跳跳僵尸每次落地前的弹簧声
 		RKEY(SOUND_GRASSSTEP);              // 蹦极僵尸开始下降时的草地踏步声
 		RKEY(SOUND_BUNGEE_SCREAM);          // 蹦极僵尸下降尖叫一
@@ -450,6 +452,7 @@ namespace ResourceKeys
 		inline const std::string REANIM_FLOWERPOT = "Pot";
 		inline const std::string REANIM_CABBAGEPULT = "Cabbagepult";
 		inline const std::string REANIM_KERNELPULT = "Cornpult";
+		inline const std::string REANIM_COFFEEBEAN = "Coffeebean";
 
 		inline const std::string REANIM_NORMAL_ZOMBIE = "NormalZombie";
 		inline const std::string REANIM_CONE_ZOMBIE = "ConeZombie";
