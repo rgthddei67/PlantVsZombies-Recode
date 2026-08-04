@@ -415,12 +415,12 @@ protected:
 	//     void OnStopEating()  override { if (mShieldType != ShieldType::SHIELDTYPE_NONE) ShowArm(false); }
 	virtual void OnStartEating() {}
 	virtual void OnStopEating()  {}
-	/** 双层水面种植下只允许选中格子的最上层植物，并尊重植物自己的短期啃食保护。 */
+	/** 按 C# EatingOrder 选目标：只有仍可啃的上层植物才遮挡下层，并尊重植物自己的离地或短期保护。 */
 	bool IsPlantValidEatTarget(Plant* plant) const;
-	/** 把同格啃食目标迁移到新出现的上层植物，并保持双方 mEaterCount 平衡。 */
-	bool RetargetPlantIfHigherPriority(Plant* plant);
-	/** 检查当前植物目标仍存活、仍是顶层目标且处于允许啃食的接触距离。 */
-	bool IsCurrentPlantEatingTargetValid() const;
+	/** 把同格啃食目标迁移到当前最高有效植物，并保持双方 mEaterCount 平衡。 */
+	bool RetargetPlantWithinCell(Plant* plant);
+	/** 检查当前植物目标仍存活、仍是当前最高有效目标且处于允许啃食的接触距离。 */
+	bool IsCurrentPlantEatingTargetValid();
 	/** 目标失效时原子清理目标 ID、eaterCount 与啃食视觉，并恢复当前品种的稳态行走。 */
 	void StopEatingInvalidPlantTarget(float blendTime);
 	/** 创建两份水草抓取动画，并分别隐藏前层或后层，以便包裹僵尸本体。 */

@@ -20,6 +20,7 @@ metadata:
 - 起跳前重新索敌，并按目标 0.3 秒后的水平位置修正落点；多株倭瓜不会同时锁定同一僵尸。
 - C# 伤害入口是 `TakeDamage(1800, 18U)`：bit1 穿透二类护盾，bit4 令被打空本体的普通目标立即消失。本项目按主人确认的结果语义显式实现为：当前本体耐久 `<=1800` 直接 `Die()`；更高耐久目标调用穿透二类护盾的 `TakeDamage(1800, PLANT, true)`。
 - 草地落地抖屏、播放重击声并发射 `DustSquash`，压扁造型保留 1 秒；水路落地发射 `SquashPoolSplash`、播放水花声并立即消失。
+- C# `NotOnGround()` 仅在 `SquashRising`、`SquashFalling`、`SquashDoneFalling` 返回 true；本项目对应 `RISING/FALLING/LANDED` 阶段 `CanBeEaten=false`，观察与起跳预备仍保持可被选中。组合格的僵尸 `EatingOrder` 只能让仍可啃的上层遮挡支撑层，因此倭瓜升空后僵尸应持续啃花盆/睡莲，不能停吃恢复行走后又被下层碰撞重开同一啃食帧。
 
 ## 动画与资源
 
@@ -39,6 +40,6 @@ metadata:
 
 `Squash` 保存状态、剩余计时、目标 ID、预测落点 X 和伤害是否已结算；读档会重建空中位置、碰撞开关及固定地面阴影。
 
-2026-07-23 `clang-playtest` 与 `clang-release`（LTO）均编译通过且无警告。可见 `smoke_squash.json` 在主人叫停 AutoTest 前已通过草地的 idle/look/jumpup/jumpdown、伤害、落地与自毁断言；水路首次等待 1.72 秒落在 `FALLING` 边界，脚本已放宽到 1.85 秒。随后主人要求不再运行 AutoTest，并把伤害改为显式阈值直杀，因此当前脚本已同步新断言但尚未在最终代码上重跑；不得把它记成最终通过。
+2026-07-23 `clang-playtest` 与 `clang-release`（LTO）均编译通过且无警告。可见 `smoke_squash.json` 在主人叫停 AutoTest 前已通过草地的 idle/look/jumpup/jumpdown、伤害、落地与自毁断言；水路首次等待 1.72 秒落在 `FALLING` 边界，脚本已放宽到 1.85 秒。随后主人要求不再运行 AutoTest，并把伤害改为显式阈值直杀，因此当前脚本已同步新断言但尚未在最终代码上重跑；不得把它记成最终通过。2026-08-04 补齐离地啃食资格与 C# EatingOrder 后，`clang-release` 再次编译通过；按主人要求仍未运行 AutoTest，待使用 `level37_data.json` 实机确认。
 
 设计文档：`docs/superpowers/specs/2026-07-23-squash-design.md`。

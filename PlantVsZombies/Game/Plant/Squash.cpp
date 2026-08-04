@@ -104,6 +104,15 @@ void Squash::TakeDamage(int damage, DamageSource source)
 	}
 }
 
+bool Squash::CanBeEaten() const
+{
+	// C# NotOnGround 只把离地后的三个阶段排除；观察和起跳预备仍允许僵尸选中。
+	return Plant::CanBeEaten()
+		&& mState != State::RISING
+		&& mState != State::FALLING
+		&& mState != State::LANDED;
+}
+
 int Squash::FindTargetZombieID() const
 {
 	if (!mBoard) return NULL_ZOMBIE_ID;

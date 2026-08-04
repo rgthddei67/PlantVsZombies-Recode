@@ -1529,10 +1529,10 @@ void Zombie::EatTarget()
 	if (mEatPlantID != NULL_PLANT_ID && mHasHead)
 	{
 		if (auto* plant = mBoard->mEntityManager.GetPlant(mEatPlantID)) {
-			// C# 原版在每次啃食伤害前重新 FindPlantTarget；这里在伤害帧兜底检查同格顶层，
-			// 避免上层植物刚种下、碰撞 stay 尚未处理时仍有一口伤害落到荷叶。
+			// C# 原版在每次啃食伤害前重新 FindPlantTarget；这里在伤害帧兜底检查同格最高有效层，
+			// 避免可啃上层刚种下时仍伤到支撑层，同时让已离地的倭瓜不再遮挡花盆。
 			if (Plant* topPlant = mBoard->GetTopPlantAt(plant->mRow, plant->mColumn);
-				topPlant && topPlant != plant && RetargetPlantIfHigherPriority(topPlant)) {
+				topPlant && topPlant != plant && RetargetPlantWithinCell(topPlant)) {
 				plant = topPlant;
 			}
 			if (!IsCurrentPlantEatingTargetValid()) {
@@ -1615,7 +1615,8 @@ void Zombie::StartEat(ColliderComponent* other)
 		if (auto* plant = dynamic_cast<Plant*>(gameObject))
 		{
 			if (mBoard) {
-				if (Plant* top = mBoard->GetTopPlantAt(plant->mRow, plant->mColumn)) {
+				if (Plant* top = mBoard->GetTopPlantAt(plant->mRow, plant->mColumn);
+					top && top != plant && IsPlantValidEatTarget(top)) {
 					plant = top;
 				}
 			}
@@ -1623,7 +1624,7 @@ void Zombie::StartEat(ColliderComponent* other)
 			if (!IsPlantValidEatTarget(plant)) return;
 			if (mEatZombieID != NULL_ZOMBIE_ID || plant->mRow != this->mRow) return;
 			if (mEatPlantID != NULL_PLANT_ID) {
-				RetargetPlantIfHigherPriority(plant);
+				RetargetPlantWithinCell(plant);
 				return;
 			}
 
@@ -1640,11 +1641,19 @@ void Zombie::StartEat(ColliderComponent* other)
 
 bool Zombie::IsPlantValidEatTarget(Plant* plant) const
 {
-	if (!plant || !plant->CanBeEaten() || plant->mRow != mRow) return false;
-	return !mBoard || mBoard->GetTopPlantAt(plant->mRow, plant->mColumn) == plant;
+	if (!plant || !plant->IsActive() || plant->mPlantHealth <= 0
+		|| !plant->CanBeEaten() || plant->mRow != mRow) {
+		return false;
+	}
+	if (!mBoard) return true;
+
+	// C# CanTargetPlant(Chew) 会递归询问 EatingOrder 顶层；顶层若 NotOnGround，
+	// 下层仍可成为目标。不能把 Cell 的物理顶层无条件当成唯一合法目标。
+	Plant* top = mBoard->GetTopPlantAt(plant->mRow, plant->mColumn);
+	return !top || top == plant || !IsPlantValidEatTarget(top);
 }
 
-bool Zombie::RetargetPlantIfHigherPriority(Plant* plant)
+bool Zombie::RetargetPlantWithinCell(Plant* plant)
 {
 	if (!mBoard || !mIsEating || mEatPlantID == NULL_PLANT_ID
 		|| !IsPlantValidEatTarget(plant)) {
@@ -1664,7 +1673,7 @@ bool Zombie::RetargetPlantIfHigherPriority(Plant* plant)
 	return true;
 }
 
-bool Zombie::IsCurrentPlantEatingTargetValid() const
+bool Zombie::IsCurrentPlantEatingTargetValid()
 {
 	if (!mBoard || !mIsEating || mEatPlantID == NULL_PLANT_ID
 		|| !mCollider || !mCollider->mEnabled) {
@@ -1672,9 +1681,26 @@ bool Zombie::IsCurrentPlantEatingTargetValid() const
 	}
 
 	Plant* plant = mBoard->mEntityManager.GetPlant(mEatPlantID);
-	if (!plant || !plant->IsActive() || plant->mPlantHealth <= 0
-		|| !IsPlantValidEatTarget(plant)) {
+	if (!plant || !plant->IsActive() || plant->mPlantHealth <= 0) {
 		return false;
+	}
+	if (!IsPlantValidEatTarget(plant)) {
+		// 读档或同帧换态时，旧目标可能刚变成 NotOnGround；原地迁移到同格最高有效层，
+		// 避免先恢复走路一帧、再靠支撑层碰撞重开啃食动画。
+		Plant* layers[] = {
+			mBoard->GetPumpkinAt(plant->mRow, plant->mColumn),
+			mBoard->GetNormalPlantAt(plant->mRow, plant->mColumn),
+			mBoard->GetUnderPlantAt(plant->mRow, plant->mColumn),
+		};
+		Plant* replacement = nullptr;
+		for (Plant* candidate : layers) {
+			if (candidate != plant && IsPlantValidEatTarget(candidate)) {
+				replacement = candidate;
+				break;
+			}
+		}
+		if (!replacement || !RetargetPlantWithinCell(replacement)) return false;
+		plant = replacement;
 	}
 	const ColliderComponent* plantCollider = plant->GetColliderComponent();
 	if (!plantCollider || !plantCollider->mEnabled) return false;

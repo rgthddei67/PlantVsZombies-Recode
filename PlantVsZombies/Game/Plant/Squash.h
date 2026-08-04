@@ -12,6 +12,8 @@ public:
 	void PlantUpdate() override;
 	/** 起跳流程开始后忽略啃食伤害，与原版 SquashLook/PreLaunch 无敌窗口一致。 */
 	void TakeDamage(int damage, DamageSource source) override;
+	/** 起跳离地、下砸及落地残留阶段不再成为啃食目标，对齐 C# NotOnGround。 */
+	bool CanBeEaten() const override;
 	/** 保存状态机计时、锁定目标与落点，使起跳途中存档不会重置攻击。 */
 	void SaveExtraData(nlohmann::json& j) const override;
 	/** 恢复自定义状态后重建空中位置、碰撞开关和阴影偏移。 */
