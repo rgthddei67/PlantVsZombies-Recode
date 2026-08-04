@@ -20,6 +20,7 @@ public:
 	void Update() override;
 	void Draw(Graphics* g) override;
 
+	/** 按鼠标在格内的可见区域选择待铲层，并持续高亮同一目标。 */
 	void CheckPlant();
 	void Activate();
 	ShovelState GetState() const { return mState; }

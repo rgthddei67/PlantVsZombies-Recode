@@ -155,7 +155,7 @@ Bullet（独立类型；通过 BulletPool 使用对象池）
 
 棋盘是 `vector<vector<Cell*>>` 非拥有寻址网格，`Cell` 的实际所有权在 `GameObjectManager`。植物放置在 `(row, column)`，僵尸按行移动。`Board` 管理僵尸波次以及 `BoardState` 状态转换：`CHOOSE_CARD → GAME → WIN` 或 `LOSE_GAME`；`NONE` 表示尚未初始化。
 
-`Board` 拥有当前关卡的行数、首行 Y 与行高：普通草地为 5×100px，泳池背景为 6×85px（水路是 0-based 第 2/3 行）。位置、弹坑、子弹影子与小推车必须优先调 `GetCellCenterPosition` / `GetCellHeight`，不要再硬编 `CELL_INITALIZE_POS_Y + row*100`。`Cell` 当前分 `under/normal/pumpkin` 三层植物槽，顶层优先级为 `pumpkin > normal > under`；正式放置入口是 `Board::CanPlantAt`，铲子与僵尸啃咬只选 `GetTopPlantAt`。需要南瓜拦截的僵尸范围扣血统一走 `ApplyPumpkinProtectedZombieAreaDamage`：先按技能原几何找命中植物，再按格把有壳组合归并为一次默认 6 倍外壳伤害；爆破工头显式使用 5 倍重载，无壳仍逐层结算，普通小丑直接清除不走此入口。新增层必须同步创建/读档创建、释放/清理、render order、台风整组搬运、外部范围伤害与 AutoTest 投影。
+`Board` 拥有当前关卡的行数、首行 Y 与行高：普通草地为 5×100px，泳池背景为 6×85px（水路是 0-based 第 2/3 行）。位置、弹坑、子弹影子与小推车必须优先调 `GetCellCenterPosition` / `GetCellHeight`，不要再硬编 `CELL_INITALIZE_POS_Y + row*100`。`Cell` 当前分 `under/normal/pumpkin` 三层植物槽，战斗顶层优先级为 `pumpkin > normal > under`；正式放置入口是 `Board::CanPlantAt`，僵尸啃咬只选 `GetTopPlantAt`。铲子单独按格内可见区域选层：南瓜中空中心选 `normal`，外圈选 `pumpkin`，空壳整格仍选南瓜；命中区域必须按当前 Cell 宽高派生，悬停高亮与最终铲除结果共用同一目标。需要南瓜拦截的僵尸范围扣血统一走 `ApplyPumpkinProtectedZombieAreaDamage`：先按技能原几何找命中植物，再按格把有壳组合归并为一次默认 6 倍外壳伤害；爆破工头显式使用 5 倍重载，无壳仍逐层结算，普通小丑直接清除不走此入口。新增层必须同步创建/读档创建、释放/清理、render order、台风整组搬运、外部范围伤害与 AutoTest 投影。
 
 ### 存档系统
 

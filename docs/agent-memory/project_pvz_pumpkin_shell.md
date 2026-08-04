@@ -14,8 +14,11 @@ metadata:
 
 ## 实现契约
 
-- `Cell` 新增独立 `pumpkin` 槽，顶层顺序为 `pumpkin > normal > under`。创建、带 ID 读档创建、
-  释放、全格清理、render order、铲子、僵尸啃食和台风都消费同一层级；外壳死亡后内层植物保留。
+- `Cell` 新增独立 `pumpkin` 槽，战斗顶层顺序为 `pumpkin > normal > under`。创建、带 ID 读档创建、
+  释放、全格清理、render order、僵尸啃食和台风都消费该层级；外壳死亡后内层植物保留。
+- 2026-08-04 起铲子不再复用战斗顶层：点击南瓜中空中心选择 `normal`，点击下半部可见外圈
+  选择 `pumpkin`，没有普通内层的空壳仍整格选南瓜。外圈环心、内外半径与上边界均按当前
+  Cell 宽高比例派生。本次按主人要求不新增或运行 AutoTest，只完成构建与静态路径核对。
 - 根 Animator 隐藏 `Pumpkin_back`，独立同步 Animator 隐藏 `Pumpkin_front`。普通植物绘制前插入
   后片，南瓜实体随后绘制前片；空壳/预览/压扁由自身补后片，避免 Draw 中改共享轨道状态而破坏
   默认并行实例化。默认与 `-NoInstance` 截图必须一致。
@@ -53,3 +56,6 @@ metadata:
 - 2026-08-02 血量文字下移 20px 后，`clang-release` 构建成功；`smoke_pumpkin` 在主人当前
   桌面可见运行 exit 0，`01_pumpkin_stacking_orders.png` 已确认普通植物与外壳血量上下分行，
   豌豆头部未被数字遮挡。其余受伤、水池、存档与台风段同批通过。
+- 2026-08-04 分层铲除改动完成 `clang-release` 配置、编译和链接，exit 0；仅出现既存的
+  vcpkg applocal 找不到 dumpbin/objdump 提示。按主人要求未新增或运行 AutoTest；静态核对确认
+  中心点落在内半径内并选择 `normal`，下半部外圈点落在环带内并选择 `pumpkin`。

@@ -715,7 +715,7 @@ public:
 	/** 返回该植物是否仍有本关种植次数；无限制的植物恒为 true。 */
 	bool HasPlantingQuota(PlantType type) const;
 	int GetEliteScaredyShroomPlantLimit() const;
-	/** 返回格子最上层可被铲除或啃食的植物：南瓜层、普通层、承载层依次优先。 */
+	/** 返回格子最上层战斗目标：南瓜层、普通层、承载层依次优先；铲子另按点击区域选层。 */
 	Plant* GetTopPlantAt(int row, int col) const;
 	/** 返回指定格承载层；当前可能是睡莲或花盆。 */
 	Plant* GetUnderPlantAt(int row, int col) const;
@@ -723,7 +723,7 @@ public:
 	Plant* GetNormalPlantAt(int row, int col) const;
 	/** 返回指定格南瓜外壳层；不存在或 ID 已失效时返回空。 */
 	Plant* GetPumpkinAt(int row, int col) const;
-	/** 返回指定格短时飞行覆盖层；当前由咖啡豆占用，不参与顶层啃食/铲除选择。 */
+	/** 返回指定格短时飞行覆盖层；当前由咖啡豆占用，不参与顶层啃食或铲子选择。 */
 	Plant* GetOverlayPlantAt(int row, int col) const;
 	/**
 	 * 对命中范围内的植物结算可被南瓜头拦截的僵尸范围伤害。
