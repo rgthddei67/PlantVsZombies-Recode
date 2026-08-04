@@ -726,10 +726,17 @@ public:
 	/** 返回指定格短时飞行覆盖层；当前由咖啡豆占用，不参与顶层啃食或铲子选择。 */
 	Plant* GetOverlayPlantAt(int row, int col) const;
 	/**
+	 * 返回能替目标植物承受僵尸范围爆炸的南瓜头。
+	 *
+	 * 保护范围为逻辑九宫格；优先正交近邻，再按行、列和实体 ID 稳定打破并列。
+	 * 南瓜头只为自身承伤，不会由相邻南瓜继续转移伤害。
+	 */
+	Plant* FindPumpkinAreaProtector(const Plant& plant) const;
+	/**
 	 * 对命中范围内的植物结算可被南瓜头拦截的僵尸范围伤害。
 	 *
-	 * 同格有活动南瓜头时，该格只让南瓜头承受一次默认 6 倍基础伤害；没有南瓜头时，
-	 * 仍按旧规则让每个实际命中的植物层分别承受基础伤害。
+	 * 每个实际命中的植物层先在自身九宫格内选择一枚活动南瓜头；同一次爆炸对同一南瓜
+	 * 只结算一次默认 5 倍基础伤害。没有保护者时仍由原命中植物层承受基础伤害。
 	 */
 	void ApplyPumpkinProtectedZombieAreaDamage(int baseDamage,
 		const std::function<bool(const Plant&)>& overlapsArea);

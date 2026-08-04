@@ -13,7 +13,7 @@
     { "op": "assert_state", "path": "pumpkinResources.damage1Loaded", "equals": true },
     { "op": "assert_state", "path": "pumpkinResources.damage3Loaded", "equals": true },
     { "op": "assert_state", "path": "pumpkinResources.softChewLoaded", "equals": true },
-    { "op": "assert_state", "path": "plantDefinitions.PLANT_PUMPKINSHELL.sunCost", "equals": 125 },
+    { "op": "assert_state", "path": "plantDefinitions.PLANT_PUMPKINSHELL.sunCost", "equals": 100 },
     { "op": "assert_state", "path": "plantDefinitions.PLANT_PUMPKINSHELL.cooldownMs", "equals": 30000 },
     { "op": "assert_state", "path": "plantDefinitions.PLANT_PUMPKINSHELL.simulationBaseHealth", "equals": 4000 },
     { "op": "assert_state", "path": "plantDefinitions.PLANT_PUMPKINSHELL.simulationPersistent", "equals": true },

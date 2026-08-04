@@ -163,7 +163,8 @@ namespace {
 	constexpr int kEliteDiggerMaxPerWave = 1;             // 每波最多正式生成的爆破工头数量；超额候选直接跳过
 	constexpr int kElitePogoMaxPerWave = 1;               // 每波最多正式生成的精英跳跳数量；超额候选直接跳过
 	constexpr int kEliteScaredyShroomPlantLimit = 4;      // 每个关卡累计最多种植的精英胆小菇数量
-	constexpr int kPumpkinAreaDamageMultiplier = 4;       // 特殊僵尸范围伤害被南瓜头拦截时的默认基础伤害倍率
+	constexpr int kPumpkinProtectionCellRadius = 1;       // 南瓜头范围爆炸保护的逻辑格半径；1 表示自身九宫格
+	constexpr int kPumpkinAreaDamageMultiplier = 5;       // 特殊僵尸范围伤害被南瓜头拦截时的默认基础伤害倍率
 	constexpr int kMonteCarloRolloutCount = 32;           // 每个爆点的轻量未来样本数；低配可由 GameAPP 总开关完全跳过
 	constexpr int kMonteCarloMaxZombies = 12;             // 单个样本最多推进的当前敌方僵尸数
 	constexpr float kMonteCarloHorizonSeconds = 16.0f;    // 植物防线短视推演时域，单位：游戏秒
@@ -4004,6 +4005,7 @@ bool Board::PickMonteCarloPlantBlastTarget(
 	config.stepSeconds = kMonteCarloStepSeconds;
 	config.impactDamage = static_cast<float>(damage);
 	config.impactRadius = radius;
+	config.pumpkinProtectionCellRadius = kPumpkinProtectionCellRadius;
 	config.pumpkinImpactDamageMultiplier =
 		static_cast<float>(kPumpkinAreaDamageMultiplier);
 	config.plantDecisionInterval = kMonteCarloPlantDecisionSeconds;
@@ -4166,6 +4168,54 @@ Plant* Board::GetOverlayPlantAt(int row, int col) const
 	return cell ? mEntityManager.GetPlant(cell->GetOverlayPlantID()) : nullptr;
 }
 
+/**
+ * 在目标九宫格中稳定选择最近的活动南瓜头；南瓜本体只由自己承伤，避免外壳连锁保护。
+ */
+Plant* Board::FindPumpkinAreaProtector(const Plant& plant) const
+{
+	if (!plant.IsActive() || plant.mRow < 0 || plant.mRow >= mRows
+		|| plant.mColumn < 0 || plant.mColumn >= mColumns) {
+		return nullptr;
+	}
+
+	if (plant.mPlantType == PlantType::PLANT_PUMPKINSHELL) {
+		Plant* pumpkin = GetPumpkinAt(plant.mRow, plant.mColumn);
+		return pumpkin && pumpkin->IsActive()
+			&& pumpkin->mPlantID == plant.mPlantID ? pumpkin : nullptr;
+	}
+
+	Plant* best = nullptr;
+	int bestDistanceSquared = INT_MAX;
+	for (int row = std::max(0, plant.mRow - kPumpkinProtectionCellRadius);
+		row <= std::min(mRows - 1, plant.mRow + kPumpkinProtectionCellRadius);
+		++row) {
+		for (int column = std::max(0,
+			plant.mColumn - kPumpkinProtectionCellRadius);
+			column <= std::min(mColumns - 1,
+				plant.mColumn + kPumpkinProtectionCellRadius); ++column) {
+			Plant* candidate = GetPumpkinAt(row, column);
+			if (!candidate || !candidate->IsActive()) continue;
+
+			const int rowDelta = row - plant.mRow;
+			const int columnDelta = column - plant.mColumn;
+			const int distanceSquared = rowDelta * rowDelta
+				+ columnDelta * columnDelta;
+			const bool stableTieBreak = best
+				&& distanceSquared == bestDistanceSquared
+				&& (candidate->mRow < best->mRow
+					|| (candidate->mRow == best->mRow
+						&& (candidate->mColumn < best->mColumn
+							|| (candidate->mColumn == best->mColumn
+								&& candidate->mPlantID < best->mPlantID))));
+			if (!best || distanceSquared < bestDistanceSquared || stableTieBreak) {
+				best = candidate;
+				bestDistanceSquared = distanceSquared;
+			}
+		}
+	}
+	return best;
+}
+
 void Board::ApplyPumpkinProtectedZombieAreaDamage(int baseDamage,
 	const std::function<bool(const Plant&)>& overlapsArea)
 {
@@ -4174,7 +4224,7 @@ void Board::ApplyPumpkinProtectedZombieAreaDamage(int baseDamage,
 }
 
 /**
- * 先按原范围规则收集命中植物，再按逻辑格归并南瓜层，避免水路三层被同一次爆炸重复扣血。
+ * 先按原范围收集命中层，再按九宫格保护者 ID 归并，避免密集或水路叠层重复扣壳。
  */
 void Board::ApplyPumpkinProtectedZombieAreaDamage(int baseDamage,
 	int pumpkinDamageMultiplier,
@@ -4183,14 +4233,13 @@ void Board::ApplyPumpkinProtectedZombieAreaDamage(int baseDamage,
 	if (baseDamage <= 0 || pumpkinDamageMultiplier <= 0 || !overlapsArea) return;
 
 	std::vector<int> unprotectedPlantIDs;
-	std::unordered_set<int> protectedCellIndices;
+	std::unordered_set<int> protectedPumpkinIDSet;
 	for (const int plantID : mEntityManager.GetAllPlantIDs()) {
 		Plant* plant = mEntityManager.GetPlant(plantID);
 		if (!plant || !plant->IsActive() || !overlapsArea(*plant)) continue;
 
-		Plant* pumpkin = GetPumpkinAt(plant->mRow, plant->mColumn);
-		if (pumpkin && pumpkin->IsActive()) {
-			protectedCellIndices.insert(plant->mRow * mColumns + plant->mColumn);
+		if (Plant* pumpkin = FindPumpkinAreaProtector(*plant)) {
+			protectedPumpkinIDSet.insert(pumpkin->mPlantID);
 		}
 		else {
 			unprotectedPlantIDs.push_back(plantID);
@@ -4207,10 +4256,11 @@ void Board::ApplyPumpkinProtectedZombieAreaDamage(int baseDamage,
 
 	const int pumpkinDamage = baseDamage > INT_MAX / pumpkinDamageMultiplier
 		? INT_MAX : baseDamage * pumpkinDamageMultiplier;
-	for (const int cellIndex : protectedCellIndices) {
-		const int row = cellIndex / mColumns;
-		const int column = cellIndex % mColumns;
-		Plant* pumpkin = GetPumpkinAt(row, column);
+	std::vector<int> protectedPumpkinIDs(
+		protectedPumpkinIDSet.begin(), protectedPumpkinIDSet.end());
+	std::sort(protectedPumpkinIDs.begin(), protectedPumpkinIDs.end());
+	for (const int pumpkinID : protectedPumpkinIDs) {
+		Plant* pumpkin = mEntityManager.GetPlant(pumpkinID);
 		if (pumpkin && pumpkin->IsActive()) {
 			pumpkin->TakeDamage(pumpkinDamage, DamageSource::ZOMBIE);
 		}

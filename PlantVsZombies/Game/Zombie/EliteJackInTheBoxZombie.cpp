@@ -355,7 +355,7 @@ bool EliteJackInTheBoxZombie::PickGreedyPlantTarget(
 	return true;
 }
 
-/** 按正式南瓜拦截后的承伤集合计算候选爆点损失，后排价值再乘 1.2。 */
+/** 按正式九宫格南瓜拦截后的承伤集合计算候选爆点损失，后排价值再乘 1.2。 */
 float EliteJackInTheBoxZombie::ScorePlantBlastAt(
 	const Vector& targetPosition) const
 {
@@ -363,7 +363,7 @@ float EliteJackInTheBoxZombie::ScorePlantBlastAt(
 	float score = 0.0f;
 	const int backlineColumnCount = (mBoard->mColumns + 1) / 2;
 	const auto& gameData = GameDataManager::GetInstance();
-	std::vector<std::pair<int, int>> scoredPumpkinCells;
+	std::vector<int> scoredPumpkinIDs;
 	const std::vector<int> plantIDs = mBoard->mEntityManager.GetAllPlantIDs();
 	for (const int plantID : plantIDs) {
 		const Plant* plant = mBoard->mEntityManager.GetPlant(plantID);
@@ -375,14 +375,12 @@ float EliteJackInTheBoxZombie::ScorePlantBlastAt(
 		}
 
 		const Plant* scoredPlant = plant;
-		if (const Plant* pumpkin = mBoard->GetPumpkinAt(
-			plant->mRow, plant->mColumn); pumpkin && pumpkin->IsActive()) {
-			const std::pair<int, int> cell(plant->mRow, plant->mColumn);
-			if (std::find(scoredPumpkinCells.begin(), scoredPumpkinCells.end(), cell)
-				!= scoredPumpkinCells.end()) {
+		if (const Plant* pumpkin = mBoard->FindPumpkinAreaProtector(*plant)) {
+			if (std::find(scoredPumpkinIDs.begin(), scoredPumpkinIDs.end(),
+				pumpkin->mPlantID) != scoredPumpkinIDs.end()) {
 				continue;
 			}
-			scoredPumpkinCells.push_back(cell);
+			scoredPumpkinIDs.push_back(pumpkin->mPlantID);
 			scoredPlant = pumpkin;
 		}
 		const float positionMultiplier = scoredPlant->mColumn < backlineColumnCount

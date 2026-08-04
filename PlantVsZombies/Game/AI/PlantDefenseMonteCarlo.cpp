@@ -207,7 +207,7 @@ namespace {
 		}
 	}
 
-	// 与正式范围伤害一致：先找每个命中格的南瓜层，再让外壳一次性承受倍率伤害。
+	// 与正式范围伤害一致：每个命中层稳定选择九宫格内最近南瓜，外壳按 ID 归并承伤。
 	void ApplyCandidateImpact(
 		SimulationState& state, const Candidate& candidate, const Config& config)
 	{
@@ -231,15 +231,36 @@ namespace {
 				continue;
 			}
 
-			int pumpkinIndex = -1;
+			int pumpkinIndex = plant.pumpkinShell ? i : -1;
+			int bestDistanceSquared = plant.pumpkinShell ? 0
+				: std::numeric_limits<int>::max();
 			for (int candidateIndex = 0;
-				candidateIndex < state.plantCount; ++candidateIndex) {
+				!plant.pumpkinShell && candidateIndex < state.plantCount;
+				++candidateIndex) {
 				const SimPlant& candidatePlant = state.plants[candidateIndex];
-				if (IsAlive(candidatePlant) && candidatePlant.pumpkinShell
-					&& candidatePlant.row == plant.row
-					&& candidatePlant.column == plant.column) {
+				if (!IsAlive(candidatePlant) || !candidatePlant.pumpkinShell) continue;
+				const int rowDelta = candidatePlant.row - plant.row;
+				const int columnDelta = candidatePlant.column - plant.column;
+				if (std::abs(rowDelta) > config.pumpkinProtectionCellRadius
+					|| std::abs(columnDelta) > config.pumpkinProtectionCellRadius) {
+					continue;
+				}
+
+				const int distanceSquared = rowDelta * rowDelta
+					+ columnDelta * columnDelta;
+				const SimPlant* best = pumpkinIndex >= 0
+					? &state.plants[pumpkinIndex] : nullptr;
+				const bool stableTieBreak = best
+					&& distanceSquared == bestDistanceSquared
+					&& (candidatePlant.row < best->row
+						|| (candidatePlant.row == best->row
+							&& (candidatePlant.column < best->column
+								|| (candidatePlant.column == best->column
+									&& candidatePlant.id < best->id))));
+				if (!best || distanceSquared < bestDistanceSquared
+					|| stableTieBreak) {
 					pumpkinIndex = candidateIndex;
-					break;
+					bestDistanceSquared = distanceSquared;
 				}
 			}
 			if (pumpkinIndex >= 0) pumpkinHits[pumpkinIndex] = true;
