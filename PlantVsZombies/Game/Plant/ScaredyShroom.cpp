@@ -120,8 +120,10 @@ bool ScaredyShroom::HasZombieNearby()
 	// 0.1s 节流：害怕判定要扫 3 行僵尸做圆-矩形相交，逐帧算在海量僵尸场景下白烧 CPU，
 	// 100ms 的反应延迟肉眼不可感。缓存上次结果供节流间隙使用。
 	mFearCheckTimer += DeltaTime::GetDeltaTime();
-	if (mFearCheckTimer < 0.1f) return mScaredCached;
+	if (mFearCheckTimer < 0.15f) return mScaredCached;
 	mFearCheckTimer = 0.0f;
+
+	if (mBoard->GetPumpkinAt(this->mRow, this->mColumn)) return false;
 
 	// 原版圆心 (mX, mY+20) 是格子左上角坐标系；本项目 GetPosition() 是 80x100 格子中心，
 	// 换算后圆心 = 中心 + (-40, -30)，半径 120（覆盖本行±1行、含身后僵尸）。
