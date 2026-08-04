@@ -15,6 +15,7 @@
 #include "./Game/Sun.h"
 #include "./Game/Trophy.h"
 #include "./Game/Crater.h"
+#include "./Game/Ladder.h"
 #include "./Game/Bullet/BulletType.h"
 #include "./Game/CardSlotManager.h"
 #include "./Game/Card.h"
@@ -544,6 +545,18 @@ bool GameInfoSaver::SerializeLevelDataToPath(Board* board, CardSlotManager* mana
 		});
 	}
 	if (!cratersArr.empty()) j["craters"] = cratersArr;
+
+	// 已放置扶梯只需格子坐标；无扶梯时省略字段，旧档天然兼容。
+	nlohmann::json laddersArr = nlohmann::json::array();
+	for (auto& weak : board->mLadders) {
+		auto ladder = weak.lock();
+		if (!ladder || !ladder->IsActive()) continue;
+		laddersArr.push_back({
+			{ "row", ladder->mRow },
+			{ "column", ladder->mColumn },
+		});
+	}
+	if (!laddersArr.empty()) j["ladders"] = laddersArr;
 
 	// 卡牌只在 GAME 中代表已提交卡组。CHOOSE_CARD 中的卡槽必须为空；即便未来流程意外留下
 	// 旧卡，也不能把它序列化成下一轮已提交卡组，否则读档后再次选卡会叠出两套卡牌。
@@ -1179,6 +1192,11 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 			}
 			manager->AddCard(card);
 		}
+	}
+
+	// 恢复已放置扶梯；旧档无 ladders 字段时保持空集合。
+	for (auto& ladder : j.value("ladders", nlohmann::json::array())) {
+		board->AddLadder(ladder.value("row", 0), ladder.value("column", 0));
 	}
 
 	// 恢复生存轮间冷却快照（见 SaveLevelData 同名字段注释）。必须在 ChooseCardComplete 还原冷却之前就位，

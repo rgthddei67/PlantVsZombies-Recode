@@ -120,9 +120,17 @@ bool MagnetShroom::TryStartMagnetizing()
 	}
 
 	MagneticItem item;
-	if (!nearest || !nearest->ExtractMagneticItem(item)) return false;
-	BeginMagnetizing(std::move(item));
-	return true;
+	if (nearest && nearest->ExtractMagneticItem(item)) {
+		BeginMagnetizing(std::move(item));
+		return true;
+	}
+
+	// C# 仅在附近没有可吸僵尸装备时，按两格 Chebyshev 距离搜索场景扶梯。
+	if (mBoard->ExtractNearestLadderForMagnet(mRow, mColumn, item)) {
+		BeginMagnetizing(std::move(item));
+		return true;
+	}
+	return false;
 }
 
 void MagnetShroom::BeginMagnetizing(MagneticItem item)

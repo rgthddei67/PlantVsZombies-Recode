@@ -102,5 +102,6 @@ void Jalapeno::IgniteRow()
 		});
 	// 原版辣椒把本行冰道计时压到 20cs；本项目统一使用秒。
 	mBoard->ShortenIceTrail(mRow, 0.2f);
+	mBoard->RemoveLaddersInRow(mRow);
 	Die();
 }

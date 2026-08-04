@@ -18,6 +18,13 @@ class Board;
 class Plant;
 class ShadowComponent;
 
+/** 经典扶梯的通用垂直状态；所有可在地面行走的僵尸共享。 */
+enum class LadderClimbPhase {
+	NONE,
+	CLIMBING,
+	FALLING,
+};
+
 class Zombie : public AnimatedObject {
 public:
 	Board* mBoard = nullptr;
@@ -80,6 +87,9 @@ protected:
 	float mTangleKelpSinkOffset = 0.0f;		// 拖沉阶段叠加到视觉 Y 的位移，单位：像素
 	std::shared_ptr<Animator> mTangleKelpGrabBack;	// anim_grab 后层，绘制在僵尸本体之后
 	std::shared_ptr<Animator> mTangleKelpGrabFront;	// anim_grab 前层，绘制在僵尸本体之前
+	LadderClimbPhase mLadderClimbPhase = LadderClimbPhase::NONE;
+	float mLadderAltitude = 0.0f;	// 相对地面的扶梯攀爬高度，单位：像素
+	int mUseLadderColumn = -1;	// 最近使用的扶梯列；防止落地后反复攀爬同一架梯
 
 private:
 	float mCheckPositionTimer = 0.0f;
@@ -209,6 +219,9 @@ public:
 	int GetEatingPlantID() const { return mEatPlantID; }
 	bool IsInPool() const { return this->mInPool; }
 	bool HasArm() const { return this->mHasArm; }
+	LadderClimbPhase GetLadderClimbPhase() const { return mLadderClimbPhase; }
+	float GetLadderAltitude() const { return mLadderAltitude; }
+	int GetUseLadderColumn() const { return mUseLadderColumn; }
 	/** 当前实体是否满足磁力菇通用目标门禁且仍持有可吸取装备。 */
 	bool CanBeTargetedByMagnetShroom() const;
 	/** 品种是否仍持有可被磁力菇吸取的装备；派生类只声明装备状态。 */
@@ -355,6 +368,12 @@ protected:
 	void PlayPoolTransitionFeedback(bool entering) const;
 	/** 当前阶段是否允许基类按地面探针切换水路状态。 */
 	virtual bool CanUseGroundPoolState() const { return true; }
+	/** 若目标格有扶梯，则阻止啃食并按原版条件开始攀爬。 */
+	bool TryStartLadderClimb(Plant* plant);
+	/** 由放梯者在成功放置的同帧直接进入攀爬。 */
+	void BeginLadderClimb(int column);
+	/** 推进攀爬/下落高度和慢速僵尸的额外前移。 */
+	void UpdateLadderClimb(float scaledDelta, TransformComponent* transform);
 	/** 按通用入水状态隐藏陆地阴影；水面以下裁剪在 Draw 内与其他 Clip 嵌套。 */
 	void UpdatePoolVisualState() const;
 	/**

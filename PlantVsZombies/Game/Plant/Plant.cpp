@@ -117,6 +117,10 @@ void Plant::Die() {
 	// GameObjectManager 在下一次 Update 才真正移除对象；先失活可避免本帧绘制已被
 	// StopAnimation 重置到轨道起点的姿态，也让重复死亡调用保持幂等。
 	if (!IsActive()) return;
+	// C# 只有飞行的咖啡豆死亡不影响地面扶梯；其余植物死亡都会拆掉同格梯子。
+	if (!mIsPreview && mBoard && mPlantType != PlantType::PLANT_INSTANT_COFFEE) {
+		mBoard->RemoveLadderAt(mRow, mColumn);
+	}
 	SetActive(false);
 	StopAnimation();
 
@@ -192,6 +196,9 @@ void Plant::PlantUpdate()
 void Plant::Squish()
 {
 	if (mIsPreview || mIsSquished) return;
+	if (mBoard && mPlantType != PlantType::PLANT_INSTANT_COFFEE) {
+		mBoard->RemoveLadderAt(mRow, mColumn);
+	}
 
 	// 必须在置位前采样；GetVisualPosition() 在压扁态会直接返回冻结坐标。
 	mSquishVisualPosition = GetVisualPosition();

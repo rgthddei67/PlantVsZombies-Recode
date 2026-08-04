@@ -1,0 +1,17 @@
+<Emitter>
+  <Name>ZombieLadder</Name>
+  <SpawnMinActive>1</SpawnMinActive>
+  <SpawnMaxLaunched>1</SpawnMaxLaunched>
+  <ParticleDuration>1.2</ParticleDuration>
+  <ParticleAlpha>1 0.8</ParticleAlpha>
+  <ParticleScale>0.8 0.8</ParticleScale>
+  <LaunchSpeed>200</LaunchSpeed>
+  <LaunchAngle>[100 120]</LaunchAngle>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <ParticleGravity>170</ParticleGravity>
+  <ParticleSpinSpeed>[-5 -4]</ParticleSpinSpeed>
+  <CollisionReflect>0.3</CollisionReflect>
+  <CollisionSpin>[-3 -6]</CollisionSpin>
+  <SystemDuration>1.3</SystemDuration>
+  <Image>IMAGE_ZOMBIE_LADDER_1_DAMAGE2</Image>
+</Emitter>

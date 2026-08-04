@@ -44,6 +44,13 @@ void Polevaulter::SetupZombie()
 
 				auto* plant = dynamic_cast<Plant*>(gameObject);
 				if (!plant || plant->mRow != this->mRow) return;
+				if (mBoard) {
+					if (Plant* top = mBoard->GetTopPlantAt(plant->mRow, plant->mColumn)) {
+						plant = top;
+					}
+				}
+				// C# 在撑杆起跳之前检查该格扶梯；命中时保留撑杆并直接进入通用攀爬。
+				if (TryStartLadderClimb(plant)) return;
 
 				if (mVaultState == VaultState::RUNNING && !mHasVaulted) {
 					// 原版先起跳，再在 anim_jump 60% 处检查 Tallnut；接触回调只锁定目标并开播。
@@ -320,6 +327,17 @@ void Polevaulter::LoadExtraData(const nlohmann::json& j)
 
 void Polevaulter::StartEat(ColliderComponent* other)
 {
+	if (other && other->GetGameObject()->GetObjectType() == ObjectType::OBJECT_PLANT) {
+		if (auto* plant = dynamic_cast<Plant*>(other->GetGameObject())) {
+			if (mBoard) {
+				if (Plant* top = mBoard->GetTopPlantAt(plant->mRow, plant->mColumn)) {
+					plant = top;
+				}
+			}
+			// C# 在撑杆起跳判定前先检查扶梯；有梯时保留撑杆并直接攀爬。
+			if (TryStartLadderClimb(plant)) return;
+		}
+	}
 	// 碰撞对在本帧回调前已经收集完：组合植物的第二个回调即使看到碰撞体已关闭也仍会到达。
 	// 状态机入口统一守卫，避免 RUNNING/JUMPING 被任何植物或僵尸碰撞旁路切成啃食动画。
 	if (mVaultState != VaultState::WALKING) return;

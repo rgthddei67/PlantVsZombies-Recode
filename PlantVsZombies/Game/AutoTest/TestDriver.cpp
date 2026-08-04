@@ -11,6 +11,7 @@
 #include "../ZombieAlmanacScene.h"
 #include "../ChooseCardUI.h"
 #include "../Board.h"
+#include "../Ladder.h"
 #include "../Sun.h"
 #include "../LawnMower.h"
 #include "../AudioSystem.h"
@@ -58,6 +59,7 @@
 #include "../Zombie/PogoZombie.h"
 #include "../Zombie/ElitePogoZombie.h"
 #include "../Zombie/BungeeZombie.h"
+#include "../Zombie/LadderZombie.h"
 #include "../Zombie/PoolNormalZombie.h"
 #include "../Trophy.h"   // dump_state 输出奖杯坐标
 #include "../Crater.h"   // dump_state 输出毁灭菇弹坑
@@ -152,6 +154,16 @@ namespace {
 	{
 		return mode == BungeeZombie::TargetMode::MONTE_CARLO
 			? "MONTE_CARLO" : "RANDOM";
+	}
+
+	const char* LadderClimbPhaseName(LadderClimbPhase phase)
+	{
+		switch (phase) {
+		case LadderClimbPhase::NONE: return "NONE";
+		case LadderClimbPhase::CLIMBING: return "CLIMBING";
+		case LadderClimbPhase::FALLING: return "FALLING";
+		default: return "UNKNOWN";
+		}
 	}
 
 	const char* PlantBungeeStateName(PlantBungeeState state)
@@ -1133,6 +1145,26 @@ bool TestDriver::ExecuteCurrent() {
 		}
 		return true;
 	}
+	if (op == "add_ladder") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) {
+			Fail("add_ladder: 不在 GameScene 或 Board 为空");
+			return false;
+		}
+		Board* board = gs->GetBoard();
+		const int row = cmd.value("row", -1);
+		const int column = cmd.value("col", -1);
+		if (row < 0 || row >= board->mRows
+			|| column < 0 || column >= board->mColumns) {
+			Fail("add_ladder: row/col 超出当前地图");
+			return false;
+		}
+		if (!board->AddLadder(row, column)) {
+			Fail("add_ladder: Board 未能创建扶梯");
+			return false;
+		}
+		return true;
+	}
 	if (op == "set_jack_pop_countdown") {
 		GameScene* gs = CurrentGameScene();
 		if (!gs || !gs->GetBoard()) {
@@ -1999,6 +2031,26 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			&& ResourceManager::GetInstance().GetSound(
 				ResourceKeys::Sounds::SOUND_BUNGEE_SCREAM3) != nullptr },
 	};
+	out["ladderSoundRequestCount"] =
+		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_LADDER_ZOMBIE);
+	out["ladderResources"] = {
+		{ "reanimationLoaded", ResourceManager::GetInstance().HasReanimation(
+			ResourceKeys::Reanimations::REANIM_LADDER_ZOMBIE) },
+		{ "baseLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_ZOMBIE_LADDER_1, false) != nullptr },
+		{ "damage1Loaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_ZOMBIE_LADDER_1_DAMAGE1, false) != nullptr },
+		{ "damage2Loaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_ZOMBIE_LADDER_1_DAMAGE2, false) != nullptr },
+		{ "placedLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_ZOMBIE_LADDER_5, false) != nullptr },
+		{ "brokenArmLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_ZOMBIE_LADDER_OUTERARM_UPPER2, false) != nullptr },
+		{ "headParticleLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Particles::PARTICLE_ZOMBIE_LADDERHEAD, false) != nullptr },
+		{ "soundLoaded", ResourceManager::GetInstance().GetSound(
+			ResourceKeys::Sounds::SOUND_LADDER_ZOMBIE) != nullptr },
+	};
 	out["pumpkinResources"] = {
 		{ "reanimationLoaded", ResourceManager::GetInstance().HasReanimation(
 			ResourceKeys::Reanimations::REANIM_PUMPKIN) },
@@ -2741,6 +2793,22 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["cellPlantPreviewCount"] = cellPlantPreviewCount;
 	out["plantPreviewCount"] = plantPreviewCount;
 
+	out["ladders"] = nlohmann::json::array();
+	for (int row = 0; row < board->mRows; ++row) {
+		for (int column = 0; column < board->mColumns; ++column) {
+			Ladder* ladder = board->GetLadderAt(row, column);
+			if (!ladder) continue;
+			const Vector center = ladder->GetVisualCenter();
+			out["ladders"].push_back({
+				{ "row", row },
+				{ "col", column },
+				{ "visualCenterXInt", static_cast<int>(std::lround(center.x)) },
+				{ "visualCenterYInt", static_cast<int>(std::lround(center.y)) },
+			});
+		}
+	}
+	out["ladderCount"] = static_cast<int>(out["ladders"].size());
+
 	out["zombies"] = nlohmann::json::array();
 	out["jack"] = nullptr;
 	out["eliteJack"] = nullptr;
@@ -2810,6 +2878,10 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "isEating", z->IsEating() },
 			{ "isDying", z->IsDying() },
 			{ "eatPlantID", z->GetEatingPlantID() },
+			{ "ladderClimbPhase", LadderClimbPhaseName(z->GetLadderClimbPhase()) },
+			{ "ladderAltitudeOn1000", static_cast<int>(std::lround(
+				z->GetLadderAltitude() * 1000.0f)) },
+			{ "useLadderColumn", z->GetUseLadderColumn() },
 			{ "hasHead", z->HasHead() }, { "hasArm", z->HasArm() },
 			{ "flying", z->IsFlying() },
 			{ "slowCooldown", z->GetCooldownTimer() },
@@ -2828,6 +2900,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "toxinDamageRemainderOn1000", static_cast<int>(std::lround(
 				z->GetToxinDamageRemainder() * 1000.0f)) },
 			{ "track", z->GetCurrentTrackName() },
+			{ "animFrame", anim ? anim->GetCurrentFrame() : -1 },
 			{ "flipX", anim && anim->GetFlipX() },
 			{ "animPlaying", anim && anim->IsPlaying() },
 			{ "animExtraSpeedPct", anim
@@ -2867,6 +2940,14 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				elite->GetSummonTimer() * 1000.0f));
 			zombieState["eliteTyphoonSpeedPct"] = static_cast<int>(std::lround(
 				elite->GetTyphoonAbilitySpeedMultiplier() * 100.0f));
+		}
+		if (auto* ladder = dynamic_cast<LadderZombie*>(z)) {
+			zombieState["ladderPhase"] = ladder->GetPhaseName();
+			zombieState["ladderShieldStage"] = static_cast<int>(ladder->GetShieldStage());
+			zombieState["ladderPlacementRow"] = ladder->GetPlacementRow();
+			zombieState["ladderPlacementColumn"] = ladder->GetPlacementColumn();
+			zombieState["ladderTrackVisible"] = anim
+				&& anim->GetTrackVisible("Zombie_ladder_1");
 		}
 		if (auto* polevaulter = dynamic_cast<Polevaulter*>(z)) {
 			const char* vaultState = "RUNNING";

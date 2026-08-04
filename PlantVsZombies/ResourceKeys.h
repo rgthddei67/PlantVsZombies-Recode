@@ -151,6 +151,10 @@ namespace ResourceKeys
 		RKEY(IMAGE_ZOMBIE_ZAMBONI_WHEEL_FLAT);
 		RKEY(IMAGE_ZOMBIE_JACKSON_OUTERARM_UPPER2);
 		RKEY(IMAGE_ZOMBIE_LADDER_OUTERARM_UPPER2);
+		RKEY(IMAGE_ZOMBIE_LADDER_1);
+		RKEY(IMAGE_ZOMBIE_LADDER_1_DAMAGE1);
+		RKEY(IMAGE_ZOMBIE_LADDER_1_DAMAGE2);
+		RKEY(IMAGE_ZOMBIE_LADDER_5);
 		RKEY(IMAGE_ZOMBIE_OUTERARM_UPPER2);
 		RKEY(IMAGE_ZOMBIE_PAPER_LEFTARM_UPPER2);
 		RKEY(IMAGE_ZOMBIE_POGO_OUTERARM_UPPER2);
@@ -386,6 +390,7 @@ namespace ResourceKeys
 		RKEY(SOUND_WAKEUP);					// 咖啡豆唤醒蘑菇与持镐矿工出土共用惊醒声
 		RKEY(SOUND_COFFEE);					// 咖啡豆开始碎裂并给蘑菇提神
 		RKEY(SOUND_POGO_ZOMBIE);			// 跳跳僵尸每次落地前的弹簧声
+		RKEY(SOUND_LADDER_ZOMBIE);			// 扶梯僵尸成功把梯子搭到植物上
 		RKEY(SOUND_GRASSSTEP);              // 蹦极僵尸开始下降时的草地踏步声
 		RKEY(SOUND_BUNGEE_SCREAM);          // 蹦极僵尸下降尖叫一
 		RKEY(SOUND_BUNGEE_SCREAM2);         // 蹦极僵尸下降尖叫二
@@ -475,6 +480,7 @@ namespace ResourceKeys
 		inline const std::string REANIM_POGO_ZOMBIE = "ZombiePogo";
 		inline const std::string REANIM_ELITE_POGO_ZOMBIE = "ElitePogoZombie";
 		inline const std::string REANIM_BUNGEE_ZOMBIE = "ZombieBungi";
+		inline const std::string REANIM_LADDER_ZOMBIE = "ZombieLadder";
 		inline const std::string REANIM_DIGGER_RISING_DIRT = "DiggerRisingDirt";
 		inline const std::string REANIM_DIGGER_CHARRED = "DiggerCharred";
 		inline const std::string REANIM_ZOMBIE_SURPRISE = "ZombieSurprise";

@@ -207,6 +207,9 @@ void Zombie::SaveProtectedData(nlohmann::json& j) const {
 	j["tangleKelpGrabFrame"] = GetTangleKelpGrabFrame();
 	j["mistFuelReward"] = mMistFuelReward;
 	j["mistFuelRewardClaimed"] = mMistFuelRewardClaimed;
+	j["ladderClimbPhase"] = static_cast<int>(mLadderClimbPhase);
+	j["ladderAltitude"] = mLadderAltitude;
+	j["useLadderColumn"] = mUseLadderColumn;
 }
 
 void Zombie::LoadProtectedData(const nlohmann::json& j) {
@@ -280,6 +283,11 @@ void Zombie::LoadProtectedData(const nlohmann::json& j) {
 	mTangleKelpSinkOffset = std::max(0.0f, j.value("tangleKelpSinkOffset", 0.0f));
 	mMistFuelReward = std::max(0.0f, j.value("mistFuelReward", 0.0f));
 	mMistFuelRewardClaimed = j.value("mistFuelRewardClaimed", false);
+	const int ladderPhase = std::clamp(j.value("ladderClimbPhase", 0), 0,
+		static_cast<int>(LadderClimbPhase::FALLING));
+	mLadderClimbPhase = static_cast<LadderClimbPhase>(ladderPhase);
+	mLadderAltitude = std::clamp(j.value("ladderAltitude", 0.0f), 0.0f, 90.0f);
+	mUseLadderColumn = j.value("useLadderColumn", -1);
 	if (mTangleKelpPlantID != NULL_PLANT_ID) {
 		CreateTangleKelpGrabAnimators(
 			j.value("tangleKelpGrabFrame", kTangleKelpGrabStartFrame));
@@ -504,6 +512,10 @@ void Zombie::Update()
 			mCheckGoldenIceTimer = 0.0f;
 			RefreshGoldenIceSpeedState();
 		}
+		if (mLadderClimbPhase != LadderClimbPhase::NONE
+			&& (mIsDying || (mTangleKelpPlantID == NULL_PLANT_ID && !IsImmobilized()))) {
+			UpdateLadderClimb(scaledDelta, transform);
+		}
 
 		if (!mHasHead)
 		{
@@ -545,6 +557,9 @@ void Zombie::Update()
 					// 定身中也要能倒：先解停格再播死亡动画（帧事件 Die 依赖动画前进）
 					if (mFrozenTimer > 0.0f) ClearFrozen();
 					if (mButterTimer > 0.0f) ClearButter();
+					if (mLadderClimbPhase == LadderClimbPhase::CLIMBING) {
+						mLadderClimbPhase = LadderClimbPhase::FALLING;
+					}
 					// 死亡轨道开始前立即结束攻击，避免重复啃食帧事件继续伤害目标，
 					// 也避免植物的 eaterCount 一直等到死亡动画末帧才归零。
 					if (mIsEating) {
@@ -738,6 +753,67 @@ void Zombie::SetCooldown(float timer, bool bypassShield)
 	mCooldownTimer = std::max(mCooldownTimer, timer);
 	UpdateAnimSpeed();
 	UpdateStatusOverlay();
+}
+
+void Zombie::BeginLadderClimb(int column)
+{
+	if (column < 0) return;
+	mLadderClimbPhase = LadderClimbPhase::CLIMBING;
+	mUseLadderColumn = column;
+}
+
+bool Zombie::TryStartLadderClimb(Plant* plant)
+{
+	if (!plant || !mBoard || mIsMindControlled || !CanUseGroundPoolState()
+		|| IsFlying() || !mBoard->HasLadderAt(plant->mRow, plant->mColumn)) {
+		return false;
+	}
+
+	// 有梯时该格永远不是啃食目标；即使刚刚才放梯，也要平衡既有 eaterCount。
+	if (mIsEating && mEatPlantID != NULL_PLANT_ID) {
+		StopEatingInvalidPlantTarget(0.0f);
+	}
+	if (mLadderClimbPhase == LadderClimbPhase::NONE
+		&& mUseLadderColumn != plant->mColumn) {
+		BeginLadderClimb(plant->mColumn);
+	}
+	return true;
+}
+
+void Zombie::UpdateLadderClimb(float scaledDelta, TransformComponent* transform)
+{
+	if (scaledDelta <= 0.0f || !transform) return;
+	constexpr float kLadderClimbSpeed = 80.0f; // C# 每厘秒上升 0.8px，折算为 px/s
+	constexpr float kLadderFallSpeed = 100.0f; // C# 每厘秒下落 1px，折算为 px/s
+	constexpr float kLadderSlowZombieBoost = 50.0f; // 慢速僵尸攀爬时的额外水平速度，单位 px/s
+	constexpr float kLadderTargetAltitude = 90.0f; // 原版扶梯顶端离地高度，单位 px
+	constexpr float kSlowZombieSpeedThreshold = 16.0f; // 适配本项目根运动倍率的 mVelX<0.5 分界
+
+	if (mIsDying && mLadderClimbPhase == LadderClimbPhase::CLIMBING) {
+		mLadderClimbPhase = LadderClimbPhase::FALLING;
+	}
+	if (mLadderClimbPhase == LadderClimbPhase::CLIMBING) {
+		if (!mBoard || !mBoard->HasLadderAt(mRow, mUseLadderColumn)) {
+			mLadderClimbPhase = LadderClimbPhase::FALLING;
+			return;
+		}
+		mLadderAltitude = std::min(kLadderTargetAltitude,
+			mLadderAltitude + kLadderClimbSpeed * scaledDelta);
+		if (mSpeed < kSlowZombieSpeedThreshold) {
+			const float distance = kLadderSlowZombieBoost * scaledDelta;
+			transform->Translate(IsMovingRight() ? distance : -distance, 0.0f);
+		}
+		if (mLadderAltitude >= kLadderTargetAltitude) {
+			mLadderClimbPhase = LadderClimbPhase::FALLING;
+		}
+		return;
+	}
+
+	mLadderAltitude = std::max(0.0f, mLadderAltitude - kLadderFallSpeed * scaledDelta);
+	if (mLadderAltitude <= 0.0f) {
+		mLadderAltitude = 0.0f;
+		mLadderClimbPhase = LadderClimbPhase::NONE;
+	}
 }
 
 void Zombie::UpdateAnimSpeed()
@@ -1311,7 +1387,7 @@ void Zombie::Die()
 
 Vector Zombie::GetVisualPosition() const {
 	return GetTransformComponent()->GetPosition()
-		+ mVisualOffset + Vector(0.0f, mTangleKelpSinkOffset);
+		+ mVisualOffset + Vector(0.0f, mTangleKelpSinkOffset - mLadderAltitude);
 }
 
 bool Zombie::CanBeTargetedByMagnetShroom() const
@@ -1507,7 +1583,8 @@ void Zombie::StartEat(ColliderComponent* other)
 {
 	// 冻结中不进入啃食态（碰撞 onTriggerStay 每帧重试，解冻后自然补上）
 	if (mIsPreview || mIsDying || IsImmobilized()
-		|| mTangleKelpPlantID != NULL_PLANT_ID) return;
+		|| mTangleKelpPlantID != NULL_PLANT_ID
+		|| mLadderClimbPhase != LadderClimbPhase::NONE) return;
 	const bool wasEating = mIsEating;   // 仅"本次真开吃"（false→true）触发 OnStartEating，避免每帧 onTriggerStay 重复触发
 	auto* gameObject = other->GetGameObject();
 	if (gameObject->GetObjectType() == ObjectType::OBJECT_ZOMBIE)
@@ -1532,6 +1609,12 @@ void Zombie::StartEat(ColliderComponent* other)
 	{
 		if (auto* plant = dynamic_cast<Plant*>(gameObject))
 		{
+			if (mBoard) {
+				if (Plant* top = mBoard->GetTopPlantAt(plant->mRow, plant->mColumn)) {
+					plant = top;
+				}
+			}
+			if (TryStartLadderClimb(plant)) return;
 			if (!IsPlantValidEatTarget(plant)) return;
 			if (mEatZombieID != NULL_ZOMBIE_ID || plant->mRow != this->mRow) return;
 			if (mEatPlantID != NULL_PLANT_ID) {

@@ -30,8 +30,10 @@ class Zombie;
 class Bullet;
 class Trophy;
 class Crater;
+class Ladder;
 class Shovel;
 class Mower;
+struct MagneticItem;
 enum class MowerType;
 enum class PlanternGear : int;
 
@@ -143,6 +145,8 @@ public:
 
 	// 毁灭菇弹坑：所有权在 GameObjectManager（到时自毁），此处 weak_ptr 仅供寻址/存档
 	std::vector<std::weak_ptr<Crater>> mCraters;
+	// 已放置扶梯：所有权在 GameObjectManager；Board 只保留格子查询与存档所需的弱引用。
+	std::vector<std::weak_ptr<Ladder>> mLadders;
 
 	bool mIsSurvival = false;     // 是否为生存模式（无尽）
 	int  mSurvivalRound = 1;      // 当前第几面旗（轮次，从 1 起）
@@ -785,6 +789,17 @@ public:
 	// 添加/查询弹坑（毁灭菇）。AddCrater 由爆炸与读档共用；timeLeft 读档时传剩余值
 	Crater* AddCrater(int row, int column, float timeLeft);
 	bool HasCraterAt(int row, int column);   // 顺带惰性清理已消散的 weak_ptr
+	/** 在格子上添加唯一扶梯；已有扶梯时直接返回原对象。 */
+	Ladder* AddLadder(int row, int column);
+	/** 查询格子上的活动扶梯，并顺带清理失效弱引用。 */
+	Ladder* GetLadderAt(int row, int column);
+	bool HasLadderAt(int row, int column) { return GetLadderAt(row, column) != nullptr; }
+	/** 移除指定格扶梯；返回是否确实移除。 */
+	bool RemoveLadderAt(int row, int column);
+	/** 移除指定行全部扶梯，返回移除数量。 */
+	int RemoveLaddersInRow(int row);
+	/** 按 C# 两格评分选择并移除最近扶梯，构造磁力菇离体物。 */
+	bool ExtractNearestLadderForMagnet(int plantRow, int plantColumn, MagneticItem& item);
 
 	// 屏幕抖动（移植原版 Board::ShakeBoard）。amountX/amountY 为峰值位移（像素，
 	// 符号约定同原版：正 amountX 向左、正 amountY 向下）；oscillations=1 时为原版

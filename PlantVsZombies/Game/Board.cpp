@@ -6,6 +6,7 @@
 #include "Sun.h"
 #include "Trophy.h"
 #include "Crater.h"
+#include "Ladder.h"
 #include "AdventureProgression.h"
 #include "AI/PlantDefenseMonteCarlo.h"
 #include "CardSlotManager.h"
@@ -15,6 +16,7 @@
 #include "./Plant/Plant.h"
 #include "./Plant/Plantern.h"
 #include "./Zombie/Zombie.h"
+#include "./Zombie/MagneticItem.h"
 #include "MistFuel.h"
 
 #include "EntityManager.h"
@@ -3679,6 +3681,84 @@ bool Board::HasCraterAt(int row, int column)
 			return false;
 		}), mCraters.end());
 	return found;
+}
+
+Ladder* Board::AddLadder(int row, int column)
+{
+	if (row < 0 || row >= mRows || column < 0 || column >= mColumns) return nullptr;
+	if (Ladder* existing = GetLadderAt(row, column)) return existing;
+	auto ladder = GameObjectManager::GetInstance().CreateGameObjectAsShared<Ladder>(
+		LAYER_GAME_ZOMBIE, this, row, column);
+	if (ladder) mLadders.push_back(ladder);
+	return ladder.get();
+}
+
+Ladder* Board::GetLadderAt(int row, int column)
+{
+	Ladder* found = nullptr;
+	mLadders.erase(std::remove_if(mLadders.begin(), mLadders.end(),
+		[&](const std::weak_ptr<Ladder>& weak) {
+			auto ladder = weak.lock();
+			if (!ladder || !ladder->IsActive()) return true;
+			if (ladder->mRow == row && ladder->mColumn == column) found = ladder.get();
+			return false;
+		}), mLadders.end());
+	return found;
+}
+
+bool Board::RemoveLadderAt(int row, int column)
+{
+	bool removed = false;
+	mLadders.erase(std::remove_if(mLadders.begin(), mLadders.end(),
+		[&](const std::weak_ptr<Ladder>& weak) {
+			auto ladder = weak.lock();
+			if (!ladder || !ladder->IsActive()) return true;
+			if (ladder->mRow != row || ladder->mColumn != column) return false;
+			ladder->SetActive(false);
+			GameObjectManager::GetInstance().DestroyGameObject(ladder.get());
+			removed = true;
+			return true;
+		}), mLadders.end());
+	return removed;
+}
+
+int Board::RemoveLaddersInRow(int row)
+{
+	int removed = 0;
+	for (int column = 0; column < mColumns; ++column) {
+		if (RemoveLadderAt(row, column)) ++removed;
+	}
+	return removed;
+}
+
+bool Board::ExtractNearestLadderForMagnet(
+	int plantRow, int plantColumn, MagneticItem& item)
+{
+	Ladder* nearest = nullptr;
+	float nearestScore = 0.0f;
+	for (const auto& weak : mLadders) {
+		auto ladder = weak.lock();
+		if (!ladder || !ladder->IsActive()) continue;
+		const int columnDistance = ladder->mColumn - plantColumn;
+		const int rowDistance = ladder->mRow - plantRow;
+		const int cellDistance = std::max(std::abs(columnDistance), std::abs(rowDistance));
+		if (cellDistance > 2) continue;
+		const float score = static_cast<float>(cellDistance)
+			+ static_cast<float>(std::abs(rowDistance)) * 0.05f;
+		if (!nearest || score < nearestScore) {
+			nearest = ladder.get();
+			nearestScore = score;
+		}
+	}
+	if (!nearest) return false;
+
+	item.textureKey = ResourceKeys::Textures::IMAGE_ZOMBIE_LADDER_5;
+	item.worldPosition = nearest->GetVisualCenter();
+	item.destinationOffset = Vector(
+		10.0f + GameRandom::Range(-10.0f, 10.0f),
+		GameRandom::Range(-10.0f, 10.0f));
+	item.drawScale = 0.8f;
+	return RemoveLadderAt(nearest->mRow, nearest->mColumn);
 }
 
 Sun* Board::CreateSun(const Vector& position, bool needAnimation)

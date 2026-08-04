@@ -298,6 +298,7 @@
     <Sound>./resources/sounds/Zombie/dirt_rise.ogg</Sound>
     <Sound>./resources/sounds/Zombie/wakeup.ogg</Sound>
     <Sound>./resources/sounds/Zombie/pogo_zombie.ogg</Sound>
+    <Sound>./resources/sounds/Zombie/ladder_zombie.ogg</Sound>
     <Sound>./resources/sounds/Zombie/grassstep.ogg</Sound>
     <Sound>./resources/sounds/Zombie/bungee_scream.ogg</Sound>
     <Sound>./resources/sounds/Zombie/bungee_scream2.ogg</Sound>
@@ -434,6 +435,7 @@
     <Reanimation name="ElitePogoZombie">./resources/reanim/ElitePogo.reanim</Reanimation>
 
     <Reanimation name="ZombieBungi">./resources/reanim/Zombie_bungi.reanim</Reanimation>
+    <Reanimation name="ZombieLadder">./resources/reanim/Zombie_ladder.reanim</Reanimation>
 
     <Reanimation name="Zombie_Charred">./resources/reanim/Zombie_Charred.reanim</Reanimation>
     <Reanimation name="Zamboni_Charred">./resources/reanim/Zombie_charred_zamboni.reanim</Reanimation>

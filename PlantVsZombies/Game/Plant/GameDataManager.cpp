@@ -81,6 +81,7 @@
 #include "../Zombie/PogoZombie.h"
 #include "../Zombie/ElitePogoZombie.h"
 #include "../Zombie/BungeeZombie.h"
+#include "../Zombie/LadderZombie.h"
 
 namespace {
 	template<typename T>
@@ -481,6 +482,12 @@ void GameDataManager::InitializeHardcodedData() {
 		AnimationType::ANIM_BUNGEE_ZOMBIE,
 		ResourceKeys::Reanimations::REANIM_BUNGEE_ZOMBIE,
 		&MakeZombie<BungeeZombie>);
+
+	// 扶梯僵尸携带可破坏/可磁吸护盾，并为坚果类创建全地面僵尸共享的攀爬物。
+	RegisterZombie(ZombieType::ZOMBIE_LADDER, "ZOMBIE_LADDER",
+		AnimationType::ANIM_LADDER_ZOMBIE,
+		ResourceKeys::Reanimations::REANIM_LADDER_ZOMBIE,
+		&MakeZombie<LadderZombie>);
 
 	// ==================== 非植物/僵尸动画映射 ====================
 	mAnimToString[AnimationType::ANIM_SUN] = ResourceKeys::Reanimations::REANIM_SUN;
