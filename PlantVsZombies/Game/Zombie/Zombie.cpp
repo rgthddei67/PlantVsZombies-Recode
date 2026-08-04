@@ -769,9 +769,14 @@ bool Zombie::TryStartLadderClimb(Plant* plant)
 		return false;
 	}
 
-	// 有梯时该格永远不是啃食目标；即使刚刚才放梯，也要平衡既有 eaterCount。
+	// 原版只会对本次 FindPlantTarget 找到的梯子格 StopEating；碰撞回调可能同帧还扫到
+	// 已经爬过的相邻梯子格，不能因此取消正在啃食的下一格植物并反复重播走路动画。
 	if (mIsEating && mEatPlantID != NULL_PLANT_ID) {
-		StopEatingInvalidPlantTarget(0.0f);
+		Plant* eatingTarget = mBoard->mEntityManager.GetPlant(mEatPlantID);
+		if (eatingTarget && eatingTarget->mRow == plant->mRow
+			&& eatingTarget->mColumn == plant->mColumn) {
+			StopEatingInvalidPlantTarget(0.0f);
+		}
 	}
 	if (mLadderClimbPhase == LadderClimbPhase::NONE
 		&& mUseLadderColumn != plant->mColumn) {
