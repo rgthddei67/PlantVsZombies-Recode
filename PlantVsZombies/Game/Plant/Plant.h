@@ -117,6 +117,8 @@ public:
 	 * 阵风换格与水面浮动都在此收口，供本体、阴影和其他附属视觉保持同步。
 	 */
 	Vector GetVisualAnchorPosition() const;
+	/** 返回阵风换格的瞬态视觉偏移，供随格附件与植物保持完全同步。 */
+	Vector GetGridMoveVisualOffset() const { return mGridMoveVisualOffset; }
 	/** 返回 gamedata 配置的品种静态视觉偏移，不包含任何逐帧动态量。 */
 	Vector GetStaticVisualOffset() const { return mVisualOffset; }
 	void SetPosition(const Vector& position);

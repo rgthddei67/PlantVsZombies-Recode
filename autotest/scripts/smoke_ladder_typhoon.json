@@ -1,0 +1,36 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 37, "resetTestState": true },
+    { "op": "choose_cards", "cards": ["PLANT_WALLNUT"] },
+    { "op": "wait_state", "state": "GAME", "timeout": 15 },
+    { "op": "set_spawn_paused", "value": true },
+    { "op": "set_sun", "value": 9000 },
+    { "op": "plant", "type": "PLANT_WALLNUT", "row": 2, "col": 4 },
+    { "op": "add_ladder", "row": 2, "col": 4 },
+    { "op": "assert_state", "path": "ladders.0.attachedToPlant", "equals": true },
+
+    { "op": "set_weather", "intensity": "HEAVY", "duration": 90 },
+    { "op": "set_typhoon", "strength": "SEVERE", "direction": "FRONT", "gustIn": 30, "directionIn": 30, "gustsRemaining": 1, "decayIn": 30 },
+    { "op": "trigger_typhoon_gust", "plantMoveIn": 0.0 },
+    { "op": "assert_state", "path": "cells.2.5.under", "equals": "PLANT_FLOWERPOT" },
+    { "op": "assert_state", "path": "cells.2.5.normal", "equals": "PLANT_WALLNUT" },
+    { "op": "assert_state", "path": "ladderCount", "equals": 1 },
+    { "op": "assert_state", "path": "ladders.0.row", "equals": 2 },
+    { "op": "assert_state", "path": "ladders.0.col", "equals": 5 },
+    { "op": "wait_seconds", "value": 0.1 },
+    { "op": "assert_state", "path": "ladders.0.gridMoveVisualOffsetXOn1000", "atMost": -1000 },
+    { "op": "assert_state", "path": "ladders.0.gridMoveVisualOffsetYOn1000", "atLeast": 1000 },
+    { "op": "assert_state", "path": "ladders.0.attachedPlantOffsetErrorXOn1000", "equals": 0 },
+    { "op": "assert_state", "path": "ladders.0.attachedPlantOffsetErrorYOn1000", "equals": 0 },
+    { "op": "screenshot", "name": "01_roof_ladder_typhoon_slide.png" },
+
+    { "op": "wait_seconds", "value": 0.45 },
+    { "op": "assert_state", "path": "ladders.0.gridMoveVisualOffsetXOn1000", "equals": 0 },
+    { "op": "assert_state", "path": "ladders.0.gridMoveVisualOffsetYOn1000", "equals": 0 },
+    { "op": "assert_state", "path": "ladders.0.attachedPlantOffsetErrorXOn1000", "equals": 0 },
+    { "op": "assert_state", "path": "ladders.0.attachedPlantOffsetErrorYOn1000", "equals": 0 },
+    { "op": "screenshot", "name": "02_roof_ladder_typhoon_settled.png" },
+    { "op": "dump_state", "name": "ladder_typhoon_final_state.json" },
+    { "op": "quit" }
+  ]
+}

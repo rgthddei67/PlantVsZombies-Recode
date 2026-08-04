@@ -2799,11 +2799,24 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			Ladder* ladder = board->GetLadderAt(row, column);
 			if (!ladder) continue;
 			const Vector center = ladder->GetVisualCenter();
+			const Vector gridMoveOffset = ladder->GetGridMoveVisualOffset();
+			Plant* host = board->GetTopPlantAt(row, column);
+			const Vector hostGridMoveOffset = host
+				? host->GetGridMoveVisualOffset() : Vector::zero();
 			out["ladders"].push_back({
 				{ "row", row },
 				{ "col", column },
 				{ "visualCenterXInt", static_cast<int>(std::lround(center.x)) },
 				{ "visualCenterYInt", static_cast<int>(std::lround(center.y)) },
+				{ "attachedToPlant", host != nullptr },
+				{ "gridMoveVisualOffsetXOn1000", static_cast<int>(std::lround(
+					gridMoveOffset.x * 1000.0f)) },
+				{ "gridMoveVisualOffsetYOn1000", static_cast<int>(std::lround(
+					gridMoveOffset.y * 1000.0f)) },
+				{ "attachedPlantOffsetErrorXOn1000", static_cast<int>(std::lround(
+					(gridMoveOffset.x - hostGridMoveOffset.x) * 1000.0f)) },
+				{ "attachedPlantOffsetErrorYOn1000", static_cast<int>(std::lround(
+					(gridMoveOffset.y - hostGridMoveOffset.y) * 1000.0f)) },
 			});
 		}
 	}

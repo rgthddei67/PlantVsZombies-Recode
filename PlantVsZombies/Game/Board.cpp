@@ -2416,6 +2416,7 @@ void Board::TriggerTyphoonPlantMove(TyphoonStrength strength, WindDirection dire
 			for (int column = firstColumn; column != endColumn; column -= columnDelta) {
 				Cell* source = GetCell(row, column);
 				if (!source || source->IsEmpty()) continue;
+				Ladder* sourceLadder = GetLadderAt(row, column);
 				const int underID = source->GetUnderPlantID();
 				const int normalID = source->GetNormalPlantID();
 				const int pumpkinID = source->GetPumpkinPlantID();
@@ -2523,6 +2524,14 @@ void Board::TriggerTyphoonPlantMove(TyphoonStrength strength, WindDirection dire
 					target->SetOverlayPlantID(overlayID);
 					overlay->MoveToGridCell(row, targetColumn, kTyphoonPlantSlideDuration);
 					movedPlantIDs.insert(overlayID);
+				}
+				if (sourceLadder) {
+					// 扶梯是植物组合的格附件：逻辑格与 Cell 同帧切换，绘制继续共享宿主的追赶偏移。
+					if (Ladder* staleTarget = GetLadderAt(row, targetColumn);
+						staleTarget && staleTarget != sourceLadder) {
+						RemoveLadderAt(row, targetColumn);
+					}
+					sourceLadder->MoveToGridCell(row, targetColumn);
 				}
 				RefreshPlantStackRenderOrder(target);
 			}
