@@ -68,8 +68,8 @@ namespace {
 	constexpr float kIceTrailCapBodyOverlap = 8.0f;       // 端盖与主体纹理的水平咬合量，单位 px
 	constexpr float kIceTrailGridProbeOffset = 12.0f;     // 原版由冰道左缘推导首个禁种格的采样偏移，单位 px
 	constexpr float kRoofMowerTerrainOffsetY = 9.0f;      // RoofCleaner 逻辑原点相对连续行中心的下移量，单位：像素
-	constexpr float kRoofPreviewZombieMinX = 1056.0f;     // 主人实测的屋顶选卡预览世界坐标左缘，单位：像素
-	constexpr float kRoofPreviewZombieMaxX = 1356.0f;     // 主人实测的屋顶选卡预览世界坐标右缘，单位：像素
+	constexpr float kRoofPreviewZombieMinX = 1160.0f;     // 主人实测的屋顶选卡预览世界坐标左缘，单位：像素
+	constexpr float kRoofPreviewZombieMaxX = 1365.0f;     // 主人实测的屋顶选卡预览世界坐标右缘，单位：像素
 	constexpr int kRoofPreviewZombieFirstRow = 1;         // 顶行会令僵尸头部进入天空区；预览只使用第 2～5 行
 	constexpr float kIceTrailTopOffset = 20.0f;           // 冰道相对逻辑行顶的绘制偏移，单位 px
 	constexpr float kFirstRainDelayMin = 90.0f;          // 开局到首场雨的最短等待时间（秒）
@@ -161,7 +161,7 @@ namespace {
 	constexpr int kEliteDiggerMaxPerWave = 1;             // 每波最多正式生成的爆破工头数量；超额候选直接跳过
 	constexpr int kElitePogoMaxPerWave = 1;               // 每波最多正式生成的精英跳跳数量；超额候选直接跳过
 	constexpr int kEliteScaredyShroomPlantLimit = 4;      // 每个关卡累计最多种植的精英胆小菇数量
-	constexpr int kPumpkinAreaDamageMultiplier = 6;       // 特殊僵尸范围伤害被南瓜头拦截时的默认基础伤害倍率
+	constexpr int kPumpkinAreaDamageMultiplier = 4;       // 特殊僵尸范围伤害被南瓜头拦截时的默认基础伤害倍率
 	constexpr int kMonteCarloRolloutCount = 32;           // 每个爆点的轻量未来样本数；低配可由 GameAPP 总开关完全跳过
 	constexpr int kMonteCarloMaxZombies = 12;             // 单个样本最多推进的当前敌方僵尸数
 	constexpr float kMonteCarloHorizonSeconds = 16.0f;    // 植物防线短视推演时域，单位：游戏秒
