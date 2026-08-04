@@ -94,6 +94,7 @@ public:
 	virtual void OnTyphoonPlantImpact(bool showFeedback) {}
 	virtual void SaveExtraData(nlohmann::json& j) const {}
 	virtual void LoadExtraData(const nlohmann::json& j) {}
+	/** 立即退出更新、碰撞与绘制，并登记到下一帧安全销毁。 */
 	virtual void Die();
 	/**
 	 * 把植物变为原版压扁残影：冻结当前位置和动画、释放占格，并在渐隐后销毁。

@@ -101,6 +101,10 @@ void Plant::TakeDamage(int damage, DamageSource source) {
 }
 
 void Plant::Die() {
+	// GameObjectManager 在下一次 Update 才真正移除对象；先失活可避免本帧绘制已被
+	// StopAnimation 重置到轨道起点的姿态，也让重复死亡调用保持幂等。
+	if (!IsActive()) return;
+	SetActive(false);
 	StopAnimation();
 
 	// 禁用碰撞体
