@@ -33,27 +33,6 @@ namespace pvz {
 			return f;
 		}
 
-		// VK_KHR_synchronization2 风格的 image barrier helper
-		void ImageBarrier2(VkCommandBuffer cb,
-			VkImage image,
-			VkPipelineStageFlags2 srcStage, VkAccessFlags2 srcAccess,
-			VkPipelineStageFlags2 dstStage, VkAccessFlags2 dstAccess,
-			VkImageLayout oldLayout, VkImageLayout newLayout) {
-			VkImageMemoryBarrier2 b{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2 };
-			b.srcStageMask = srcStage;
-			b.srcAccessMask = srcAccess;
-			b.dstStageMask = dstStage;
-			b.dstAccessMask = dstAccess;
-			b.oldLayout = oldLayout;
-			b.newLayout = newLayout;
-			b.image = image;
-			b.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
-
-			VkDependencyInfo dep{ VK_STRUCTURE_TYPE_DEPENDENCY_INFO };
-			dep.imageMemoryBarrierCount = 1;
-			dep.pImageMemoryBarriers = &b;
-			vkCmdPipelineBarrier2(cb, &dep);
-		}
 	} // anonymous
 
 	VulkanRenderer::VulkanRenderer() = default;
@@ -213,26 +192,40 @@ namespace pvz {
 		VK_CHECK(vkBeginCommandBuffer(frame.cmdBuffer, &bi));
 
 		VkImage swapImage = mCtx->SwapchainImages()[mAcquiredImageIdx];
-		ImageBarrier2(frame.cmdBuffer, swapImage,
+		const VkImageSubresourceRange colorRange{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+		mCtx->CmdImageBarrier(frame.cmdBuffer, swapImage,
 			VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT, 0,
 			VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
 			VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
 			VK_IMAGE_LAYOUT_UNDEFINED,
-			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, colorRange);
 
-		VkRenderingAttachmentInfo color{ VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO };
-		color.imageView = mCtx->SwapchainImageViews()[mAcquiredImageIdx];
-		color.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-		color.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-		color.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-		color.clearValue.color = { { r, g, b, a } };
+		if (mCtx->UsesDynamicRendering()) {
+			VkRenderingAttachmentInfo color{ VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO };
+			color.imageView = mCtx->SwapchainImageViews()[mAcquiredImageIdx];
+			color.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+			color.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+			color.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+			color.clearValue.color = { { r, g, b, a } };
 
-		VkRenderingInfo ri{ VK_STRUCTURE_TYPE_RENDERING_INFO };
-		ri.renderArea = { {0, 0}, mCtx->SwapchainExtent() };
-		ri.layerCount = 1;
-		ri.colorAttachmentCount = 1;
-		ri.pColorAttachments = &color;
-		vkCmdBeginRendering(frame.cmdBuffer, &ri);
+			VkRenderingInfo renderingInfo{ VK_STRUCTURE_TYPE_RENDERING_INFO };
+			renderingInfo.renderArea = { {0, 0}, mCtx->SwapchainExtent() };
+			renderingInfo.layerCount = 1;
+			renderingInfo.colorAttachmentCount = 1;
+			renderingInfo.pColorAttachments = &color;
+			mCtx->CmdBeginRendering(frame.cmdBuffer, renderingInfo);
+		}
+		else {
+			VkClearValue clearValue{};
+			clearValue.color = { { r, g, b, a } };
+			VkRenderPassBeginInfo renderPassInfo{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
+			renderPassInfo.renderPass = mCtx->LegacyRenderPass();
+			renderPassInfo.framebuffer = mCtx->LegacyFramebuffer(mAcquiredImageIdx);
+			renderPassInfo.renderArea = { {0, 0}, mCtx->SwapchainExtent() };
+			renderPassInfo.clearValueCount = 1;
+			renderPassInfo.pClearValues = &clearValue;
+			vkCmdBeginRenderPass(frame.cmdBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+		}
 
 		// 默认 viewport / scissor 固定整帧；对象级 ClipRect 随顶点/实例进入 fragment shader。
 		// 负高度 viewport：Vulkan 1.1+ 支持，效果是把 clip-space Y 翻转，让 PVZ 沿用
@@ -261,7 +254,10 @@ namespace pvz {
 		PerFrame& frame = mFrames[mFrameIdx];
 		VkImage swapImage = mCtx->SwapchainImages()[mAcquiredImageIdx];
 
-		vkCmdEndRendering(frame.cmdBuffer);
+		if (mCtx->UsesDynamicRendering())
+			mCtx->CmdEndRendering(frame.cmdBuffer);
+		else
+			vkCmdEndRenderPass(frame.cmdBuffer);
 
 		// AutoTest 截图：present 之后图像归显示引擎所有，回读必须发生在 present 之前。
 		VulkanBuffer captureBuf;   // 函数内 RAII：submit 后等 fence 再读，函数尾析构
@@ -272,12 +268,13 @@ namespace pvz {
 		const bool capturing = !mCapturePath.empty();
 		const VkExtent2D captureExt = mCtx->SwapchainExtent();
 		if (capturing) {
-			ImageBarrier2(frame.cmdBuffer, swapImage,
+			const VkImageSubresourceRange colorRange{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+			mCtx->CmdImageBarrier(frame.cmdBuffer, swapImage,
 				VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
 				VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
 				VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_READ_BIT,
 				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-				VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+				VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, colorRange);
 			if (captureBuf.Create(mCtx,
 				VkDeviceSize(captureExt.width) * captureExt.height * 4,
 				VK_BUFFER_USAGE_TRANSFER_DST_BIT, /*hostVisible=*/true, /*hostReadback=*/true)) {
@@ -291,19 +288,20 @@ namespace pvz {
 				LOG_ERROR("VulkanRenderer") << "截图 buffer 创建失败，本次截图跳过";
 				CompleteCapture(false, "截图回读 buffer 创建失败");
 			}
-			ImageBarrier2(frame.cmdBuffer, swapImage,
+			mCtx->CmdImageBarrier(frame.cmdBuffer, swapImage,
 				VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_READ_BIT,
 				VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT, 0,
 				VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-				VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+				VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, colorRange);
 		}
 		else {
-			ImageBarrier2(frame.cmdBuffer, swapImage,
+			const VkImageSubresourceRange colorRange{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+			mCtx->CmdImageBarrier(frame.cmdBuffer, swapImage,
 				VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
 				VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
 				VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT, 0,
 				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-				VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+				VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, colorRange);
 		}
 
 		const VkResult endCommandResult = vkEndCommandBuffer(frame.cmdBuffer);
@@ -318,29 +316,15 @@ namespace pvz {
 			return false;
 		}
 
-		VkSemaphoreSubmitInfo waitSem{ VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO };
-		waitSem.semaphore = frame.imageAvailable;
-		waitSem.stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
-
-		VkSemaphoreSubmitInfo signalSem{ VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO };
-		signalSem.semaphore = mRenderFinished[mAcquiredImageIdx];
-		signalSem.stageMask = VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT;
-
-		VkCommandBufferSubmitInfo cbSi{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO };
-		cbSi.commandBuffer = frame.cmdBuffer;
-
-		VkSubmitInfo2 si2{ VK_STRUCTURE_TYPE_SUBMIT_INFO_2 };
-		si2.waitSemaphoreInfoCount = 1; si2.pWaitSemaphoreInfos = &waitSem;
-		si2.commandBufferInfoCount = 1; si2.pCommandBufferInfos = &cbSi;
-		si2.signalSemaphoreInfoCount = 1; si2.pSignalSemaphoreInfos = &signalSem;
-
-		const VkResult submitResult =
-			vkQueueSubmit2(mCtx->GraphicsQueue(), 1, &si2, frame.inFlight);
+		const VkResult submitResult = mCtx->SubmitCommandBuffer(
+			frame.cmdBuffer, frame.inFlight,
+			frame.imageAvailable, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+			mRenderFinished[mAcquiredImageIdx], VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT);
 		if (submitResult != VK_SUCCESS) {
-			LOG_ERROR("VulkanRenderer") << "vkQueueSubmit2 failed (VkResult="
+			LOG_ERROR("VulkanRenderer") << "frame submission failed (VkResult="
 				<< static_cast<int>(submitResult) << ")";
 			if (capturing) {
-				CompleteCapture(false, "vkQueueSubmit2 失败 ("
+				CompleteCapture(false, "帧提交失败 ("
 					+ std::to_string(static_cast<int>(submitResult)) + ")");
 			}
 			mFrameActive = false;

@@ -36,6 +36,28 @@ int main(int argc, char** argv)
 			GameAPP::mDisableInstancePath = true;
 			LOG_WARN("Main") << "GPU Instance Path 已禁用 (A/B baseline). 可能会消除部分兼容性问题.";
 		}
+		else if (arg == "-Vulkan12" || arg == "-vulkan12")
+		{
+			GameAPP::mForceVulkan12 = true;
+			LOG_WARN("Main") << "Vulkan API 协商已限制到 1.2（兼容路径测试）.";
+		}
+		else if (arg == "-VulkanLegacyRendering" || arg == "-vulkanlegacyrendering")
+		{
+			GameAPP::mForceLegacyRendering = true;
+			LOG_WARN("Main") << "Dynamic Rendering 已屏蔽（传统 RenderPass 测试）.";
+		}
+		else if (arg == "-VulkanLegacySync" || arg == "-vulkanlegacysync")
+		{
+			GameAPP::mForceLegacySync = true;
+			LOG_WARN("Main") << "Synchronization2 已屏蔽（传统同步测试）.";
+		}
+		else if (arg == "-Vulkan12Fallback" || arg == "-vulkan12fallback")
+		{
+			GameAPP::mForceVulkan12 = true;
+			GameAPP::mForceLegacyRendering = true;
+			GameAPP::mForceLegacySync = true;
+			LOG_WARN("Main") << "完整 Vulkan 1.2 最低兼容路径已强制启用.";
+		}
 		else if (arg == "-Develop" || arg == "-develop")
 		{
 			GameAPP::mDevelopMode = true;

@@ -92,6 +92,9 @@ public:
 	inline static bool mDebugMode = false;        // 是否是调试模式
 	inline static bool mShowColliders = false;    // 显示碰撞框开关
 	inline static bool mDisableInstancePath = false;  // Task 7: -NoInstance 启动参数禁用 GPU instance path
+	inline static bool mForceVulkan12 = false;        // -Vulkan12：把 instance/device 能力协商限制到 Vulkan 1.2
+	inline static bool mForceLegacyRendering = false; // -VulkanLegacyRendering：屏蔽 dynamic rendering 路径
+	inline static bool mForceLegacySync = false;      // -VulkanLegacySync：屏蔽 synchronization2 路径
 	inline static bool mAutoTestMode = false;         // -AutoTest 自动化测试模式：默认禁存档读写、由 TestDriver 驱动
 	inline static bool mAutoTestLoadSave = false;     // -AutoTestLoadSave：仅允许读取当前关卡存档，所有保存/删除仍短路
 	inline static bool mDevelopMode = false;          // -develop 开发者模式（RSHIFT 键面板）
@@ -109,6 +112,7 @@ public:
 
 	// AutoTest 截图入口
 	pvz::VulkanRenderer* GetVulkanRenderer() const { return m_vulkanRenderer.get(); }
+	pvz::VulkanContext* GetVulkanContext() const { return m_vulkanCtx.get(); }
 
 	// 应用新的垂直同步设置：写 mVsync + 热重建 swapchain（不重启）。
 	// 必须在主线程、帧外（不在 BeginFrame..EndFrame 之间）调用。

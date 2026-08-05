@@ -2,6 +2,7 @@
 #include "../../GameAPP.h"
 #include "../../GameInfoSaver.h"
 #include "../../Renderer/VulkanRenderer.h"
+#include "../../Renderer/VulkanContext.h"
 #include "../../DeltaTime.h"
 #include "../../Logger.h"
 #include "../../ResourceKeys.h"
@@ -490,6 +491,16 @@ void TestDriver::ResetTestState() {
 void TestDriver::Update() {
 	if (!mActive) return;
 	++mFrame;
+	if (mFrame == 1) {
+		// 把实际能力路径写入权威 run.log；Release 构建不会保留普通 Logger 信息，
+		// 兼容矩阵仍需能证明每次运行确实走了目标分支。
+		if (auto* context = GameAPP::GetInstance().GetVulkanContext()) {
+			Log("vulkan api=" + std::to_string(VK_VERSION_MAJOR(context->ApiVersion())) + "."
+				+ std::to_string(VK_VERSION_MINOR(context->ApiVersion()))
+				+ " dynamicRendering=" + context->DynamicRenderingPathName()
+				+ " synchronization=" + context->SynchronizationPathName());
+		}
+	}
 	mBreakFrame = false;
 	int guard = 0;
 	while (mActive && !mBreakFrame && mIndex < mCommands.size()) {
@@ -2207,9 +2218,18 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["poolBlockedZombieTypeCount"] =
 		static_cast<int>(out["poolBlockedZombieTypes"].size());
 	Graphics& graphics = gameApp.GetGraphics();
+	auto* vulkanContext = gameApp.GetVulkanContext();
 	out["graphics"] = {
 		{ "lastFrameDrawCalls", graphics.GetLastFrameDrawCallCount() },
 		{ "lastFrameScissorChanges", graphics.GetLastFrameScissorChangeCount() },
+		{ "vulkanApiMajor", vulkanContext
+			? static_cast<int>(VK_VERSION_MAJOR(vulkanContext->ApiVersion())) : 0 },
+		{ "vulkanApiMinor", vulkanContext
+			? static_cast<int>(VK_VERSION_MINOR(vulkanContext->ApiVersion())) : 0 },
+		{ "dynamicRenderingPath", vulkanContext
+			? vulkanContext->DynamicRenderingPathName() : "unavailable" },
+		{ "synchronizationPath", vulkanContext
+			? vulkanContext->SynchronizationPathName() : "unavailable" },
 	};
 	out["sun"] = board->mSun;
 	out["skySunCountdownMs"] =

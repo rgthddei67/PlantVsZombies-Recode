@@ -150,7 +150,9 @@ namespace pvz {
 		prci.pColorAttachmentFormats = &colorFmt;
 
 		VkGraphicsPipelineCreateInfo gpci{ VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO };
-		gpci.pNext = &prci;
+		// Dynamic rendering 不需要 VkRenderPass；Vulkan 1.2 传统路径则必须把 pipeline
+		// 绑定到 Context 持有的兼容 RenderPass。两条路径共用其余 shader/state。
+		gpci.pNext = mCtx->UsesDynamicRendering() ? &prci : nullptr;
 		gpci.stageCount = 2;
 		gpci.pStages = stages;
 		gpci.pVertexInputState = &vis;
@@ -161,6 +163,9 @@ namespace pvz {
 		gpci.pColorBlendState = &cb;
 		gpci.pDynamicState = &ds;
 		gpci.layout = mLayout;
+		gpci.renderPass = mCtx->UsesDynamicRendering()
+			? VK_NULL_HANDLE : mCtx->LegacyRenderPass();
+		gpci.subpass = 0;
 
 		VkResult r = vkCreateGraphicsPipelines(dev, VK_NULL_HANDLE, 1, &gpci, nullptr, &mPipeline);
 

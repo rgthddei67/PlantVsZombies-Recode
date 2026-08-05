@@ -1,6 +1,6 @@
 ---
 name: project-pvz-volk-dynamic-loader
-description: 2026-07-31 SDL2 + Volk 动态 Vulkan loader 接入，消除旧 loader 启动期缺少 Vulkan 1.3 导出导致的系统弹窗
+description: SDL2 + Volk 动态 Vulkan loader，以及 Vulkan 1.3 核心、1.2 KHR 与传统回退的运行时能力矩阵
 metadata:
   node_type: memory
   type: project
@@ -22,15 +22,24 @@ Windows 7 玩家启动时在进入 `main()` 前收到“无法定位程序输入
 - VMA统一使用 `VMA_STATIC_VULKAN_FUNCTIONS=0`、`VMA_DYNAMIC_VULKAN_FUNCTIONS=1`，创建 allocator 时只传 Volk已加载的 `vkGetInstanceProcAddr` / `vkGetDeviceProcAddr`。不要用 `vmaImportVulkanFunctionsFromVolk()` 复制整表：本次环境 Vulkan SDK header=350、vcpkg Volk header=341，二级查询入口能避免两套生成表的版本耦合。
 - `VulkanContext::Initialize()` 任一步失败都集中走 `Shutdown()`，释放部分创建的 instance/device/surface 并在 SDL卸载 loader 前 `volkFinalize()`。
 
-## 版本边界
+## 版本边界与能力选路（2026-08-05 更新）
 
-本次只改变函数加载方式，**运行时仍请求并硬要求 Vulkan 1.3**；`VK_API_VERSION_1_3`、dynamic rendering、Synchronization2 与 descriptor indexing 检查均未降低。Shader 的 `--target-env=vulkan1.2` 是既有 SPIR-V 目标环境，不代表运行时降为 Vulkan 1.2。
+运行时最低版本现为 Vulkan 1.2；instance 请求 `min(loader, 1.3)`，设备使用 instance 与物理设备共同支持的版本。CPU 的 x64 + AVX2 门槛没有降低。设备必须提供 `VK_KHR_swapchain`、项目现用的 Vulkan 1.2 bindless descriptor indexing features，并允许至少 8192 个 update-after-bind combined image samplers；不满足这些条件仍会在初始化阶段给出明确错误。
 
-旧 loader 现在会进入程序并记录明确版本错误，不再出现 Windows 的缺入口弹窗；要让只有 Vulkan 1.2 的设备实际进入游戏，仍需后续实现 dynamic rendering / Synchronization2 的 KHR 路径，并另行判断 bindless descriptor indexing 能力。
+dynamic rendering 与 synchronization2 独立选路，不能假定驱动同时提供二者：
+
+- Vulkan 1.3 feature 可用时走核心 `vkCmdBeginRendering` / `vkCmdPipelineBarrier2` / `vkQueueSubmit2`。
+- Vulkan 1.2 分别探测并启用 `VK_KHR_dynamic_rendering` 与 `VK_KHR_synchronization2`；只有一个扩展时只让对应子系统走 KHR。
+- 缺 dynamic rendering 时创建单颜色附件 RenderPass 和每 swapchain image 一个 framebuffer，graphics pipeline 绑定该 RenderPass。
+- 缺 synchronization2 时把项目实际使用的 stage/access2 标志保守映射到传统标志，并走 `vkCmdPipelineBarrier` / `vkQueueSubmit`。
+- Shader 继续以 `--target-env=vulkan1.2` 编译；bindless descriptor 路径和批处理/实例化 shader 不分叉。
+
+测试开关：`-Vulkan12` 把协商限制到 1.2；`-VulkanLegacyRendering` / `-VulkanLegacySync` 分别屏蔽两项新接口；`-Vulkan12Fallback` 是三者同时启用的最低路径别名。AutoTest 首帧把实际 API 和两条路径写入 `run.log`，状态 JSON 的 `graphics` 也导出相同字段。
 
 ## 当前验证证据
 
-- `cmake --preset clang-release` + `cmake --build --preset clang-release`：成功，0 warning / 0 error。
-- `dumpbin /imports build/clang-release/PlantsVsZombies.exe`：无 `vulkan-1.dll`、`vkCmdBeginRendering`、`vkCmdPipelineBarrier2`、`vkQueueSubmit2` 导入。
-- 当前桌面可见运行 `demo_peashooter.json`：窗口已观察，exit 0；`run.log` 结束于 `script finished OK`，三张同步截图均生成且非空，`state.json` 正常。
-- `.agents/skills/` 无 Vulkan/Volk相关技能或 reference，本次无需技能更新。
+- `cmake --preset clang-release` + `cmake --build --preset clang-release`：成功；增量复查 `ninja: no work to do`。
+- 当前桌面可见、只读加载 30,333,941 字节的 `level18_data.json`（约 20,000 僵尸）运行 `repro_vulkan_level18_pressure.json`；默认 1.3 核心路径与 Vulkan 1.2 的 KHR/KHR、RenderPass/KHR、KHR/传统同步、RenderPass/传统同步共五组均 exit 0、`script finished OK`，每组两张截图存在且非空。
+- 五组起始截图逐字节一致；8 秒高压碰撞/死亡/断肢/粒子阶段相对核心基线最多仅 20/660,000 像素不同，单通道最大差 12，肉眼截图一致。压力存档测试前后 SHA-256 均为 `D89B27258F5D821E62841C939AE76E321B45C688F372926BBBD14D10127A08F3`。
+- 旧验证仍确认 EXE 无 `vulkan-1.dll` 及 Vulkan 1.3 核心函数静态导入；1.2 loader 不会在进入 `main()` 前因缺导出失败。
+- `.agents/skills/` 当前没有 Vulkan/Volk/Graphics 兼容技能或 reference；本次审计未发现需同步的技能契约，因此不更新技能。

@@ -132,7 +132,8 @@ bool GameAPP::CreateWindowAndRenderer()
 #endif
 
 	m_vulkanCtx = std::make_unique<pvz::VulkanContext>();
-	if (!m_vulkanCtx->Initialize(mWindow, enableValidation, mVsync)) {
+	if (!m_vulkanCtx->Initialize(mWindow, enableValidation, mVsync,
+		mForceVulkan12, mForceLegacyRendering, mForceLegacySync)) {
 		LOG_ERROR("GameApp") << "VulkanContext 初始化失败";
 		return false;
 	}

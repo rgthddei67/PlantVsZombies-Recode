@@ -1,4 +1,5 @@
 #include "VulkanContext.h"
+#include "VulkanTexturePool.h"
 #include "../Logger.h"
 
 #include <SDL2/SDL.h>
@@ -6,6 +7,7 @@
 
 #include <algorithm>
 #include <cstring>
+#include <limits>
 #include <string>
 
 namespace pvz {
@@ -45,13 +47,77 @@ namespace pvz {
 			}
 			return false;
 		}
+
+		bool HasDeviceExtension(const std::vector<VkExtensionProperties>& extensions,
+			const char* name) {
+			return std::any_of(extensions.begin(), extensions.end(), [name](const auto& extension) {
+				return std::strcmp(extension.extensionName, name) == 0;
+				});
+		}
+
+		std::vector<VkExtensionProperties> EnumerateDeviceExtensions(VkPhysicalDevice device) {
+			uint32_t count = 0;
+			vkEnumerateDeviceExtensionProperties(device, nullptr, &count, nullptr);
+			std::vector<VkExtensionProperties> extensions(count);
+			vkEnumerateDeviceExtensionProperties(device, nullptr, &count, extensions.data());
+			return extensions;
+		}
+
+		// synchronization2 的 64 位标志比传统接口更细；这里只映射项目实际使用的范围，
+		// 未知标志保守扩大为 ALL_COMMANDS，避免兼容路径发生欠同步。
+		VkPipelineStageFlags ToLegacyStageMask(VkPipelineStageFlags2 stages) {
+			VkPipelineStageFlags result = 0;
+			if (stages & VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT)
+				result |= VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+			if (stages & VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT)
+				result |= VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+			if (stages & VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT)
+				result |= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+			if (stages & VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT)
+				result |= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+			if (stages & VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT)
+				result |= VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
+			if (stages & (VK_PIPELINE_STAGE_2_TRANSFER_BIT |
+				VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT |
+				VK_PIPELINE_STAGE_2_COPY_BIT |
+				VK_PIPELINE_STAGE_2_RESOLVE_BIT |
+				VK_PIPELINE_STAGE_2_BLIT_BIT |
+				VK_PIPELINE_STAGE_2_CLEAR_BIT)) {
+				result |= VK_PIPELINE_STAGE_TRANSFER_BIT;
+			}
+			return result != 0 ? result : VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+		}
+
+		VkAccessFlags ToLegacyAccessMask(VkAccessFlags2 accesses) {
+			VkAccessFlags result = 0;
+			if (accesses & VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT)
+				result |= VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
+			if (accesses & VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT)
+				result |= VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+			if (accesses & VK_ACCESS_2_TRANSFER_READ_BIT)
+				result |= VK_ACCESS_TRANSFER_READ_BIT;
+			if (accesses & VK_ACCESS_2_TRANSFER_WRITE_BIT)
+				result |= VK_ACCESS_TRANSFER_WRITE_BIT;
+			if (accesses & (VK_ACCESS_2_SHADER_READ_BIT | VK_ACCESS_2_SHADER_SAMPLED_READ_BIT))
+				result |= VK_ACCESS_SHADER_READ_BIT;
+			if (accesses & VK_ACCESS_2_MEMORY_READ_BIT)
+				result |= VK_ACCESS_MEMORY_READ_BIT;
+			if (accesses & VK_ACCESS_2_MEMORY_WRITE_BIT)
+				result |= VK_ACCESS_MEMORY_WRITE_BIT;
+			if (accesses == 0 || result != 0) return result;
+			return VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT;
+		}
 	} // anonymous namespace
 
 	VulkanContext::VulkanContext() = default;
 	VulkanContext::~VulkanContext() { Shutdown(); }
 
-	bool VulkanContext::Initialize(SDL_Window* window, bool enableValidation, bool vsync) {
+	bool VulkanContext::Initialize(SDL_Window* window, bool enableValidation, bool vsync,
+		bool forceVulkan12, bool forceLegacyRendering, bool forceLegacySynchronization) {
 		mValidationEnabled = enableValidation;
+		mForceVulkan12 = forceVulkan12;
+		mForceLegacyRendering = forceLegacyRendering;
+		mForceLegacySynchronization = forceLegacySynchronization;
 		mWindow = window;
 
 		// 初始化失败也必须释放已创建到一半的 instance/device，并在 SDL 卸载 loader 前
@@ -72,7 +138,10 @@ namespace pvz {
 
 		LOG_INFO("VulkanContext") << "Ready. swapchain=" << mSwapchainExtent.width << "x" << mSwapchainExtent.height
 			<< " format=" << (int)mSwapchainFormat << " images=" << mSwapchainImages.size()
-			<< " validation=" << (mValidationEnabled ? 1 : 0);
+			<< " validation=" << (mValidationEnabled ? 1 : 0)
+			<< " api=" << VK_VERSION_MAJOR(mApiVersion) << "." << VK_VERSION_MINOR(mApiVersion)
+			<< " dynamicRendering=" << DynamicRenderingPathName()
+			<< " synchronization=" << SynchronizationPathName();
 
 		return true;
 	}
@@ -99,13 +168,15 @@ namespace pvz {
 			<< VK_VERSION_MAJOR(mLoaderApiVersion) << "."
 			<< VK_VERSION_MINOR(mLoaderApiVersion) << "."
 			<< VK_VERSION_PATCH(mLoaderApiVersion);
-		if (mLoaderApiVersion < VK_API_VERSION_1_3) {
-			LOG_ERROR("VulkanContext") << "当前渲染路径要求 Vulkan loader 1.3；检测到 "
+		if (mLoaderApiVersion < VK_API_VERSION_1_2) {
+			LOG_ERROR("VulkanContext") << "当前渲染路径至少要求 Vulkan loader 1.2；检测到 "
 				<< VK_VERSION_MAJOR(mLoaderApiVersion) << "."
 				<< VK_VERSION_MINOR(mLoaderApiVersion)
-				<< "。Vulkan 1.2/KHR 兼容路径尚未启用。";
+				<< "。";
 			return false;
 		}
+		mInstanceApiVersion = std::min(mLoaderApiVersion,
+			mForceVulkan12 ? VK_API_VERSION_1_2 : VK_API_VERSION_1_3);
 		return true;
 	}
 
@@ -115,7 +186,7 @@ namespace pvz {
 		app.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
 		app.pEngineName = "PVZ-Vulkan";
 		app.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-		app.apiVersion = VK_API_VERSION_1_3;
+		app.apiVersion = mInstanceApiVersion;
 
 		// SDL 帮我们列出 surface 相关扩展（platform-specific）
 		uint32_t sdlExtCount = 0;
@@ -196,63 +267,167 @@ namespace pvz {
 		std::vector<VkPhysicalDevice> devices(count);
 		vkEnumeratePhysicalDevices(mInstance, &count, devices.data());
 
-		auto isSuitable = [this](VkPhysicalDevice dev, uint32_t& outQueueFamily) -> bool {
-			VkPhysicalDeviceProperties props;
-			vkGetPhysicalDeviceProperties(dev, &props);
-			if (props.apiVersion < VK_API_VERSION_1_3) return false;
+		struct Candidate {
+			VkPhysicalDevice device = VK_NULL_HANDLE;
+			VkPhysicalDeviceProperties properties{};
+			uint32_t queueFamily = UINT32_MAX;
+			uint32_t apiVersion = 0;
+			FeaturePath dynamicRendering = FeaturePath::Legacy;
+			FeaturePath synchronization = FeaturePath::Legacy;
+		};
 
-			// 必须的 1.2 / 1.3 feature
+		auto inspect = [this](VkPhysicalDevice dev, Candidate& out) -> bool {
+			VkPhysicalDeviceProperties props{};
+			vkGetPhysicalDeviceProperties(dev, &props);
+			const uint32_t apiVersion = std::min(mInstanceApiVersion, props.apiVersion);
+			if (apiVersion < VK_API_VERSION_1_2) {
+				LOG_WARN("VulkanContext") << "Skipping " << props.deviceName
+					<< ": Vulkan 1.2 is required";
+				return false;
+			}
+
+			const auto extensions = EnumerateDeviceExtensions(dev);
+			if (!HasDeviceExtension(extensions, VK_KHR_SWAPCHAIN_EXTENSION_NAME)) {
+				LOG_WARN("VulkanContext") << "Skipping " << props.deviceName
+					<< ": VK_KHR_swapchain is missing";
+				return false;
+			}
+
+			const bool core13 = apiVersion >= VK_API_VERSION_1_3;
+			const bool hasDynamicRenderingExtension = !mForceLegacyRendering &&
+				HasDeviceExtension(extensions, VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME);
+			const bool hasSynchronization2Extension = !mForceLegacySynchronization &&
+				HasDeviceExtension(extensions, VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME);
+
 			VkPhysicalDeviceVulkan13Features f13{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES };
+			VkPhysicalDeviceDynamicRenderingFeaturesKHR dynamicRendering{
+				VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR };
+			VkPhysicalDeviceSynchronization2FeaturesKHR synchronization{
+				VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES_KHR };
 			VkPhysicalDeviceVulkan12Features f12{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES };
-			f12.pNext = &f13;
+			if (core13) {
+				f12.pNext = &f13;
+			}
+			else if (hasDynamicRenderingExtension) {
+				f12.pNext = &dynamicRendering;
+				dynamicRendering.pNext = hasSynchronization2Extension ? &synchronization : nullptr;
+			}
+			else if (hasSynchronization2Extension) {
+				f12.pNext = &synchronization;
+			}
 			VkPhysicalDeviceFeatures2 f2{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
 			f2.pNext = &f12;
 			vkGetPhysicalDeviceFeatures2(dev, &f2);
 
-			if (!f13.dynamicRendering || !f13.synchronization2) return false;
-			if (!f12.descriptorIndexing) return false;
-			if (!f12.runtimeDescriptorArray) return false;
-			if (!f12.descriptorBindingPartiallyBound) return false;
-			if (!f12.descriptorBindingSampledImageUpdateAfterBind) return false;
-			if (!f12.shaderSampledImageArrayNonUniformIndexing) return false;
-			if (!f12.descriptorBindingVariableDescriptorCount) return false;
+			if (!f12.descriptorIndexing ||
+				!f12.runtimeDescriptorArray ||
+				!f12.descriptorBindingPartiallyBound ||
+				!f12.descriptorBindingSampledImageUpdateAfterBind ||
+				!f12.shaderSampledImageArrayNonUniformIndexing ||
+				!f12.descriptorBindingVariableDescriptorCount) {
+				LOG_WARN("VulkanContext") << "Skipping " << props.deviceName
+					<< ": required Vulkan 1.2 bindless descriptor features are missing";
+				return false;
+			}
 
-			// 找到一个同时支持 graphics 和 present 的队列家族
-			uint32_t qCount = 0;
-			vkGetPhysicalDeviceQueueFamilyProperties(dev, &qCount, nullptr);
-			std::vector<VkQueueFamilyProperties> qs(qCount);
-			vkGetPhysicalDeviceQueueFamilyProperties(dev, &qCount, qs.data());
-			for (uint32_t i = 0; i < qCount; ++i) {
-				if (!(qs[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)) continue;
+			// 8192 个 combined image samplers 会同时消耗 sampler 与 sampled-image 限额。
+			VkPhysicalDeviceVulkan12Properties properties12{
+				VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_PROPERTIES };
+			VkPhysicalDeviceProperties2 properties2{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2 };
+			properties2.pNext = &properties12;
+			vkGetPhysicalDeviceProperties2(dev, &properties2);
+			constexpr uint32_t requiredDescriptors = VulkanTexturePool::MAX_TEXTURES; // bindless 固定容量
+			if (properties12.maxPerStageDescriptorUpdateAfterBindSamplers < requiredDescriptors ||
+				properties12.maxPerStageDescriptorUpdateAfterBindSampledImages < requiredDescriptors ||
+				properties12.maxDescriptorSetUpdateAfterBindSamplers < requiredDescriptors ||
+				properties12.maxDescriptorSetUpdateAfterBindSampledImages < requiredDescriptors ||
+				properties12.maxUpdateAfterBindDescriptorsInAllPools < requiredDescriptors) {
+				LOG_WARN("VulkanContext") << "Skipping " << props.deviceName
+					<< ": update-after-bind descriptor limit is below " << requiredDescriptors;
+				return false;
+			}
+
+			uint32_t queueFamily = UINT32_MAX;
+			uint32_t queueCount = 0;
+			vkGetPhysicalDeviceQueueFamilyProperties(dev, &queueCount, nullptr);
+			std::vector<VkQueueFamilyProperties> queues(queueCount);
+			vkGetPhysicalDeviceQueueFamilyProperties(dev, &queueCount, queues.data());
+			for (uint32_t i = 0; i < queueCount; ++i) {
+				if (!(queues[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)) continue;
 				VkBool32 supportsPresent = VK_FALSE;
 				vkGetPhysicalDeviceSurfaceSupportKHR(dev, i, mSurface, &supportsPresent);
-				if (supportsPresent) { outQueueFamily = i; return true; }
-			}
-			return false;
-			};
-
-		// 优先 discrete GPU
-		for (auto type : { VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU,
-						   VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU,
-						   VK_PHYSICAL_DEVICE_TYPE_OTHER }) {
-			for (auto dev : devices) {
-				VkPhysicalDeviceProperties props;
-				vkGetPhysicalDeviceProperties(dev, &props);
-				if (props.deviceType != type && type != VK_PHYSICAL_DEVICE_TYPE_OTHER) continue;
-				uint32_t qf = UINT32_MAX;
-				if (isSuitable(dev, qf)) {
-					mPhysicalDevice = dev;
-					mGraphicsQueueFamily = qf;
-					LOG_INFO("VulkanContext") << "Selected GPU: " << props.deviceName
-						<< " (api " << VK_VERSION_MAJOR(props.apiVersion)
-						<< "." << VK_VERSION_MINOR(props.apiVersion)
-						<< "." << VK_VERSION_PATCH(props.apiVersion) << ")";
-					return true;
+				if (supportsPresent) {
+					queueFamily = i;
+					break;
 				}
 			}
+			if (queueFamily == UINT32_MAX) {
+				LOG_WARN("VulkanContext") << "Skipping " << props.deviceName
+					<< ": no graphics+present queue family";
+				return false;
+			}
+
+			out.device = dev;
+			out.properties = props;
+			out.queueFamily = queueFamily;
+			out.apiVersion = apiVersion;
+			out.dynamicRendering = !mForceLegacyRendering && core13 && f13.dynamicRendering
+				? FeaturePath::Core13
+				: (hasDynamicRenderingExtension && dynamicRendering.dynamicRendering
+					? FeaturePath::KhrExtension : FeaturePath::Legacy);
+			out.synchronization = !mForceLegacySynchronization && core13 && f13.synchronization2
+				? FeaturePath::Core13
+				: (hasSynchronization2Extension && synchronization.synchronization2
+					? FeaturePath::KhrExtension : FeaturePath::Legacy);
+			return true;
+		};
+
+		Candidate selected{};
+		int selectedScore = std::numeric_limits<int>::min();
+		for (auto dev : devices) {
+			Candidate candidate{};
+			if (!inspect(dev, candidate)) continue;
+			int score = 0;
+			switch (candidate.properties.deviceType) {
+			case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU:   score = 300; break;
+			case VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU: score = 200; break;
+			case VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU:    score = 100; break;
+			default:                                     score = 0;   break;
+			}
+			if (candidate.dynamicRendering != FeaturePath::Legacy) score += 10;
+			if (candidate.synchronization != FeaturePath::Legacy) score += 5;
+			if (score > selectedScore) {
+				selected = candidate;
+				selectedScore = score;
+			}
 		}
-		LOG_ERROR("VulkanContext") << "No GPU meets feature requirements (Vulkan 1.3, dynamic rendering, descriptor indexing).";
-		return false;
+
+		if (!selected.device) {
+			LOG_ERROR("VulkanContext") << "No GPU meets requirements: Vulkan 1.2, swapchain, "
+				"and 8192-slot bindless descriptors.";
+			return false;
+		}
+
+		mPhysicalDevice = selected.device;
+		mGraphicsQueueFamily = selected.queueFamily;
+		mApiVersion = selected.apiVersion;
+		mDynamicRenderingPath = selected.dynamicRendering;
+		mSynchronizationPath = selected.synchronization;
+		LOG_INFO("VulkanContext") << "Selected GPU: " << selected.properties.deviceName
+			<< " (api " << VK_VERSION_MAJOR(mApiVersion)
+			<< "." << VK_VERSION_MINOR(mApiVersion)
+			<< "." << VK_VERSION_PATCH(mApiVersion) << ")";
+		if (mForceVulkan12 || mForceLegacyRendering || mForceLegacySynchronization) {
+			LOG_WARN("VulkanContext") << "Vulkan compatibility overrides active: api="
+				<< VK_VERSION_MAJOR(mApiVersion) << "." << VK_VERSION_MINOR(mApiVersion)
+				<< " dynamicRendering=" << DynamicRenderingPathName()
+				<< " synchronization=" << SynchronizationPathName();
+		}
+		else if (!UsesDynamicRendering() || !UsesSynchronization2()) {
+			LOG_WARN("VulkanContext") << "Using Vulkan 1.2 compatibility path: dynamicRendering="
+				<< DynamicRenderingPathName() << " synchronization=" << SynchronizationPathName();
+		}
+		return true;
 	}
 
 	bool VulkanContext::CreateLogicalDevice() {
@@ -263,33 +438,66 @@ namespace pvz {
 		qci.pQueuePriorities = &prio;
 
 		VkPhysicalDeviceVulkan13Features f13{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES };
-		f13.dynamicRendering = VK_TRUE;
-		f13.synchronization2 = VK_TRUE;
+		f13.dynamicRendering = mDynamicRenderingPath == FeaturePath::Core13;
+		f13.synchronization2 = mSynchronizationPath == FeaturePath::Core13;
+
+		VkPhysicalDeviceDynamicRenderingFeaturesKHR dynamicRendering{
+			VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR };
+		dynamicRendering.dynamicRendering = mDynamicRenderingPath == FeaturePath::KhrExtension;
+		VkPhysicalDeviceSynchronization2FeaturesKHR synchronization{
+			VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES_KHR };
+		synchronization.synchronization2 = mSynchronizationPath == FeaturePath::KhrExtension;
 
 		VkPhysicalDeviceVulkan12Features f12{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES };
-		f12.pNext = &f13;
 		f12.descriptorIndexing = VK_TRUE;
 		f12.runtimeDescriptorArray = VK_TRUE;
 		f12.descriptorBindingPartiallyBound = VK_TRUE;
 		f12.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE;
 		f12.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
 		f12.descriptorBindingVariableDescriptorCount = VK_TRUE;
+		if (mDynamicRenderingPath == FeaturePath::Core13 ||
+			mSynchronizationPath == FeaturePath::Core13) {
+			f12.pNext = &f13;
+		}
+		else if (mDynamicRenderingPath == FeaturePath::KhrExtension) {
+			f12.pNext = &dynamicRendering;
+			dynamicRendering.pNext = mSynchronizationPath == FeaturePath::KhrExtension
+				? &synchronization : nullptr;
+		}
+		else if (mSynchronizationPath == FeaturePath::KhrExtension) {
+			f12.pNext = &synchronization;
+		}
 
 		VkPhysicalDeviceFeatures2 f2{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
 		f2.pNext = &f12;
 
-		const char* exts[] = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
+		std::vector<const char*> extensions{ VK_KHR_SWAPCHAIN_EXTENSION_NAME };
+		if (mDynamicRenderingPath == FeaturePath::KhrExtension)
+			extensions.push_back(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME);
+		if (mSynchronizationPath == FeaturePath::KhrExtension)
+			extensions.push_back(VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME);
 
 		VkDeviceCreateInfo dci{ VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO };
 		dci.pNext = &f2;
 		dci.queueCreateInfoCount = 1;
 		dci.pQueueCreateInfos = &qci;
-		dci.enabledExtensionCount = 1;
-		dci.ppEnabledExtensionNames = exts;
+		dci.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
+		dci.ppEnabledExtensionNames = extensions.data();
 
 		VK_CHECK(vkCreateDevice(mPhysicalDevice, &dci, nullptr, &mDevice));
 		// 本项目只创建一个 VkDevice；直接加载 device 表可绕过 loader 的逐调用分发。
 		volkLoadDevice(mDevice);
+		if ((mDynamicRenderingPath == FeaturePath::Core13 &&
+			(!vkCmdBeginRendering || !vkCmdEndRendering)) ||
+			(mDynamicRenderingPath == FeaturePath::KhrExtension &&
+				(!vkCmdBeginRenderingKHR || !vkCmdEndRenderingKHR)) ||
+			(mSynchronizationPath == FeaturePath::Core13 &&
+				(!vkCmdPipelineBarrier2 || !vkQueueSubmit2)) ||
+			(mSynchronizationPath == FeaturePath::KhrExtension &&
+				(!vkCmdPipelineBarrier2KHR || !vkQueueSubmit2KHR))) {
+			LOG_ERROR("VulkanContext") << "Selected Vulkan feature entry points are missing";
+			return false;
+		}
 		vkGetDeviceQueue(mDevice, mGraphicsQueueFamily, 0, &mGraphicsQueue);
 		return true;
 	}
@@ -378,6 +586,59 @@ namespace pvz {
 			vci.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
 			VK_CHECK(vkCreateImageView(mDevice, &vci, nullptr, &mSwapchainImageViews[i]));
 		}
+		return CreateLegacyRenderTargets();
+	}
+
+	bool VulkanContext::CreateLegacyRenderTargets() {
+		if (UsesDynamicRendering()) return true;
+
+		// RenderPass 只描述格式与附件生命周期，swapchain 重建通常只需重建 framebuffer。
+		// 若 surface 格式真的变化，旧 pipeline 也已不兼容，明确失败比静默错配更安全。
+		if (!mLegacyRenderPass) {
+			VkAttachmentDescription colorAttachment{};
+			colorAttachment.format = mSwapchainFormat;
+			colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+			colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+			colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+			colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+			colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+			colorAttachment.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+			colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+			VkAttachmentReference colorReference{};
+			colorReference.attachment = 0;
+			colorReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+			VkSubpassDescription subpass{};
+			subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+			subpass.colorAttachmentCount = 1;
+			subpass.pColorAttachments = &colorReference;
+
+			VkRenderPassCreateInfo renderPassInfo{ VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO };
+			renderPassInfo.attachmentCount = 1;
+			renderPassInfo.pAttachments = &colorAttachment;
+			renderPassInfo.subpassCount = 1;
+			renderPassInfo.pSubpasses = &subpass;
+			VK_CHECK(vkCreateRenderPass(mDevice, &renderPassInfo, nullptr, &mLegacyRenderPass));
+			mLegacyRenderPassFormat = mSwapchainFormat;
+		}
+		else if (mLegacyRenderPassFormat != mSwapchainFormat) {
+			LOG_ERROR("VulkanContext") << "Swapchain format changed while using legacy RenderPass";
+			return false;
+		}
+
+		mLegacyFramebuffers.resize(mSwapchainImageViews.size(), VK_NULL_HANDLE);
+		for (size_t i = 0; i < mSwapchainImageViews.size(); ++i) {
+			VkFramebufferCreateInfo framebufferInfo{ VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
+			framebufferInfo.renderPass = mLegacyRenderPass;
+			framebufferInfo.attachmentCount = 1;
+			framebufferInfo.pAttachments = &mSwapchainImageViews[i];
+			framebufferInfo.width = mSwapchainExtent.width;
+			framebufferInfo.height = mSwapchainExtent.height;
+			framebufferInfo.layers = 1;
+			VK_CHECK(vkCreateFramebuffer(mDevice, &framebufferInfo, nullptr,
+				&mLegacyFramebuffers[i]));
+		}
 		return true;
 	}
 
@@ -389,7 +650,7 @@ namespace pvz {
 		functions.vkGetDeviceProcAddr = vkGetDeviceProcAddr;
 
 		VmaAllocatorCreateInfo aci{};
-		aci.vulkanApiVersion = VK_API_VERSION_1_3;
+		aci.vulkanApiVersion = mApiVersion;
 		aci.instance = mInstance;
 		aci.physicalDevice = mPhysicalDevice;
 		aci.device = mDevice;
@@ -400,10 +661,142 @@ namespace pvz {
 	}
 
 	void VulkanContext::DestroySwapchain() {
+		DestroyLegacyFramebuffers();
 		for (auto v : mSwapchainImageViews) if (v) vkDestroyImageView(mDevice, v, nullptr);
 		mSwapchainImageViews.clear();
 		mSwapchainImages.clear();
 		if (mSwapchain) { vkDestroySwapchainKHR(mDevice, mSwapchain, nullptr); mSwapchain = VK_NULL_HANDLE; }
+	}
+
+	void VulkanContext::DestroyLegacyFramebuffers() {
+		for (auto framebuffer : mLegacyFramebuffers) {
+			if (framebuffer) vkDestroyFramebuffer(mDevice, framebuffer, nullptr);
+		}
+		mLegacyFramebuffers.clear();
+	}
+
+	bool VulkanContext::UsesDynamicRendering() const {
+		return mDynamicRenderingPath != FeaturePath::Legacy;
+	}
+
+	bool VulkanContext::UsesSynchronization2() const {
+		return mSynchronizationPath != FeaturePath::Legacy;
+	}
+
+	const char* VulkanContext::DynamicRenderingPathName() const {
+		switch (mDynamicRenderingPath) {
+		case FeaturePath::Core13:      return "core-1.3";
+		case FeaturePath::KhrExtension:return "KHR-extension";
+		default:                       return "legacy-render-pass";
+		}
+	}
+
+	const char* VulkanContext::SynchronizationPathName() const {
+		switch (mSynchronizationPath) {
+		case FeaturePath::Core13:      return "core-1.3";
+		case FeaturePath::KhrExtension:return "KHR-extension";
+		default:                       return "legacy";
+		}
+	}
+
+	VkFramebuffer VulkanContext::LegacyFramebuffer(uint32_t imageIndex) const {
+		return imageIndex < mLegacyFramebuffers.size()
+			? mLegacyFramebuffers[imageIndex] : VK_NULL_HANDLE;
+	}
+
+	void VulkanContext::CmdBeginRendering(VkCommandBuffer commandBuffer,
+		const VkRenderingInfo& renderingInfo) const {
+		if (mDynamicRenderingPath == FeaturePath::Core13)
+			vkCmdBeginRendering(commandBuffer, &renderingInfo);
+		else if (mDynamicRenderingPath == FeaturePath::KhrExtension)
+			vkCmdBeginRenderingKHR(commandBuffer, &renderingInfo);
+	}
+
+	void VulkanContext::CmdEndRendering(VkCommandBuffer commandBuffer) const {
+		if (mDynamicRenderingPath == FeaturePath::Core13)
+			vkCmdEndRendering(commandBuffer);
+		else if (mDynamicRenderingPath == FeaturePath::KhrExtension)
+			vkCmdEndRenderingKHR(commandBuffer);
+	}
+
+	void VulkanContext::CmdImageBarrier(VkCommandBuffer commandBuffer, VkImage image,
+		VkPipelineStageFlags2 srcStage, VkAccessFlags2 srcAccess,
+		VkPipelineStageFlags2 dstStage, VkAccessFlags2 dstAccess,
+		VkImageLayout oldLayout, VkImageLayout newLayout,
+		const VkImageSubresourceRange& subresourceRange) const {
+		if (UsesSynchronization2()) {
+			VkImageMemoryBarrier2 barrier{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2 };
+			barrier.srcStageMask = srcStage;
+			barrier.srcAccessMask = srcAccess;
+			barrier.dstStageMask = dstStage;
+			barrier.dstAccessMask = dstAccess;
+			barrier.oldLayout = oldLayout;
+			barrier.newLayout = newLayout;
+			barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+			barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+			barrier.image = image;
+			barrier.subresourceRange = subresourceRange;
+
+			VkDependencyInfo dependency{ VK_STRUCTURE_TYPE_DEPENDENCY_INFO };
+			dependency.imageMemoryBarrierCount = 1;
+			dependency.pImageMemoryBarriers = &barrier;
+			if (mSynchronizationPath == FeaturePath::Core13)
+				vkCmdPipelineBarrier2(commandBuffer, &dependency);
+			else
+				vkCmdPipelineBarrier2KHR(commandBuffer, &dependency);
+			return;
+		}
+
+		VkImageMemoryBarrier barrier{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
+		barrier.srcAccessMask = ToLegacyAccessMask(srcAccess);
+		barrier.dstAccessMask = ToLegacyAccessMask(dstAccess);
+		barrier.oldLayout = oldLayout;
+		barrier.newLayout = newLayout;
+		barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		barrier.image = image;
+		barrier.subresourceRange = subresourceRange;
+		vkCmdPipelineBarrier(commandBuffer,
+			ToLegacyStageMask(srcStage), ToLegacyStageMask(dstStage), 0,
+			0, nullptr, 0, nullptr, 1, &barrier);
+	}
+
+	VkResult VulkanContext::SubmitCommandBuffer(VkCommandBuffer commandBuffer, VkFence fence,
+		VkSemaphore waitSemaphore, VkPipelineStageFlags2 waitStage,
+		VkSemaphore signalSemaphore, VkPipelineStageFlags2 signalStage) const {
+		if (UsesSynchronization2()) {
+			VkCommandBufferSubmitInfo commandInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO };
+			commandInfo.commandBuffer = commandBuffer;
+
+			VkSemaphoreSubmitInfo waitInfo{ VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO };
+			waitInfo.semaphore = waitSemaphore;
+			waitInfo.stageMask = waitStage;
+			VkSemaphoreSubmitInfo signalInfo{ VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO };
+			signalInfo.semaphore = signalSemaphore;
+			signalInfo.stageMask = signalStage;
+
+			VkSubmitInfo2 submit{ VK_STRUCTURE_TYPE_SUBMIT_INFO_2 };
+			submit.waitSemaphoreInfoCount = waitSemaphore ? 1u : 0u;
+			submit.pWaitSemaphoreInfos = waitSemaphore ? &waitInfo : nullptr;
+			submit.commandBufferInfoCount = 1;
+			submit.pCommandBufferInfos = &commandInfo;
+			submit.signalSemaphoreInfoCount = signalSemaphore ? 1u : 0u;
+			submit.pSignalSemaphoreInfos = signalSemaphore ? &signalInfo : nullptr;
+			return mSynchronizationPath == FeaturePath::Core13
+				? vkQueueSubmit2(mGraphicsQueue, 1, &submit, fence)
+				: vkQueueSubmit2KHR(mGraphicsQueue, 1, &submit, fence);
+		}
+
+		VkPipelineStageFlags legacyWaitStage = ToLegacyStageMask(waitStage);
+		VkSubmitInfo submit{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
+		submit.waitSemaphoreCount = waitSemaphore ? 1u : 0u;
+		submit.pWaitSemaphores = waitSemaphore ? &waitSemaphore : nullptr;
+		submit.pWaitDstStageMask = waitSemaphore ? &legacyWaitStage : nullptr;
+		submit.commandBufferCount = 1;
+		submit.pCommandBuffers = &commandBuffer;
+		submit.signalSemaphoreCount = signalSemaphore ? 1u : 0u;
+		submit.pSignalSemaphores = signalSemaphore ? &signalSemaphore : nullptr;
+		return vkQueueSubmit(mGraphicsQueue, 1, &submit, fence);
 	}
 
 	bool VulkanContext::RecreateSwapchain(bool vsync) {
@@ -434,6 +827,11 @@ namespace pvz {
 
 		if (mAllocator) { vmaDestroyAllocator(mAllocator);    mAllocator = VK_NULL_HANDLE; }
 		DestroySwapchain();
+		if (mLegacyRenderPass) {
+			vkDestroyRenderPass(mDevice, mLegacyRenderPass, nullptr);
+			mLegacyRenderPass = VK_NULL_HANDLE;
+			mLegacyRenderPassFormat = VK_FORMAT_UNDEFINED;
+		}
 		if (mDevice) { vkDestroyDevice(mDevice, nullptr);  mDevice = VK_NULL_HANDLE; }
 		if (mSurface) { vkDestroySurfaceKHR(mInstance, mSurface, nullptr); mSurface = VK_NULL_HANDLE; }
 		if (mDebugMessenger) {
@@ -446,6 +844,13 @@ namespace pvz {
 
 		mInitialized = false;
 		mLoaderApiVersion = 0;
+		mInstanceApiVersion = 0;
+		mApiVersion = 0;
+		mDynamicRenderingPath = FeaturePath::Legacy;
+		mSynchronizationPath = FeaturePath::Legacy;
+		mForceVulkan12 = false;
+		mForceLegacyRendering = false;
+		mForceLegacySynchronization = false;
 		mWindow = nullptr;
 		if (mVolkInitialized) {
 			volkFinalize();

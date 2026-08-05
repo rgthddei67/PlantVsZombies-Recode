@@ -1,0 +1,11 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 18, "timeout": 120 },
+    { "op": "wait_state", "state": "GAME", "timeout": 120 },
+    { "op": "wait_seconds", "value": 2.0, "timeout": 30 },
+    { "op": "screenshot", "name": "pressure_start.png", "timeout": 30 },
+    { "op": "wait_seconds", "value": 8.0, "timeout": 60 },
+    { "op": "screenshot", "name": "pressure_after_8s.png", "timeout": 30 },
+    { "op": "quit" }
+  ]
+}

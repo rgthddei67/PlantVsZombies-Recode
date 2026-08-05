@@ -201,18 +201,12 @@ namespace pvz {
 		// 3) 屏障：UNDEFINED → TRANSFER_DST_OPTIMAL（覆盖全部 mip 级；copy 只写 level 0，
 		//    其余级随后由 blit 链写入，同样需要 TRANSFER_DST 布局）
 		{
-			VkImageMemoryBarrier2 b{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2 };
-			b.srcStageMask = VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT;
-			b.dstStageMask = VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT;
-			b.dstAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
-			b.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-			b.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-			b.image = tex.image;
-			b.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, tex.mipLevels, 0, 1 };
-			VkDependencyInfo dep{ VK_STRUCTURE_TYPE_DEPENDENCY_INFO };
-			dep.imageMemoryBarrierCount = 1;
-			dep.pImageMemoryBarriers = &b;
-			vkCmdPipelineBarrier2(cb, &dep);
+			const VkImageSubresourceRange range{
+				VK_IMAGE_ASPECT_COLOR_BIT, 0, tex.mipLevels, 0, 1 };
+			mCtx->CmdImageBarrier(cb, tex.image,
+				VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT, 0,
+				VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT,
+				VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, range);
 		}
 
 		// 4) Copy
@@ -229,19 +223,11 @@ namespace pvz {
 			auto barrier = [&](uint32_t level,
 				VkPipelineStageFlags2 srcStage, VkAccessFlags2 srcAccess, VkImageLayout oldLayout,
 				VkPipelineStageFlags2 dstStage, VkAccessFlags2 dstAccess, VkImageLayout newLayout) {
-					VkImageMemoryBarrier2 b{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2 };
-					b.srcStageMask = srcStage;
-					b.srcAccessMask = srcAccess;
-					b.dstStageMask = dstStage;
-					b.dstAccessMask = dstAccess;
-					b.oldLayout = oldLayout;
-					b.newLayout = newLayout;
-					b.image = tex.image;
-					b.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, level, 1, 0, 1 };
-					VkDependencyInfo dep{ VK_STRUCTURE_TYPE_DEPENDENCY_INFO };
-					dep.imageMemoryBarrierCount = 1;
-					dep.pImageMemoryBarriers = &b;
-					vkCmdPipelineBarrier2(cb, &dep);
+					const VkImageSubresourceRange range{
+						VK_IMAGE_ASPECT_COLOR_BIT, level, 1, 0, 1 };
+					mCtx->CmdImageBarrier(cb, tex.image,
+						srcStage, srcAccess, dstStage, dstAccess,
+						oldLayout, newLayout, range);
 				};
 
 			int32_t mipW = tex.width, mipH = tex.height;
@@ -288,14 +274,8 @@ namespace pvz {
 		VK_CHECK(vkEndCommandBuffer(cb));
 
 		// 6) 同步提交（一次性、阻塞）
-		VkCommandBufferSubmitInfo cbSi{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO };
-		cbSi.commandBuffer = cb;
-		VkSubmitInfo2 si{ VK_STRUCTURE_TYPE_SUBMIT_INFO_2 };
-		si.commandBufferInfoCount = 1;
-		si.pCommandBufferInfos = &cbSi;
-
 		vkResetFences(mCtx->Device(), 1, &mUploadFence);
-		VK_CHECK(vkQueueSubmit2(mCtx->GraphicsQueue(), 1, &si, mUploadFence));
+		VK_CHECK(mCtx->SubmitCommandBuffer(cb, mUploadFence));
 		vkWaitForFences(mCtx->Device(), 1, &mUploadFence, VK_TRUE, UINT64_MAX);
 
 		vkFreeCommandBuffers(mCtx->Device(), mUploadPool, 1, &cb);
