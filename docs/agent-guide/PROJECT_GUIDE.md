@@ -96,7 +96,7 @@ Vulkan 运行时把 dynamic rendering 与 synchronization2 **分别**选路：Vu
     `ZombieAlmanacScene` 也支持这两条命令，导出 `scene`、`adventureLevel`、`encounteredEliteDancer`、`zombieAlmanacEntries`、`zombieAlmanacEntryCount`、`zombieAlmanacSelected` 和右侧详情的 `zombieAlmanacPreview`，用于断言图鉴随冒险进度解锁、当前关不提前泄露以及详情动画状态；`encounteredEliteDancer` 是 PlayerInfo 的永久遭遇标记，但 AutoTest 只验证同一进程内的内存状态，不会读写真实玩家存档。
   - `key`：`{ "op":"key", "name":"space" }`，可选 `"action"`（`press`，默认，完整点击 / `down`，仅按下沿 / `up`，仅释放沿）。`name` 是键名字符串：`a`–`z`、`0`–`9`、`space` / `enter` / `escape` / `tab` / `backspace`、方向键 `up` / `down` / `left` / `right`、`f1`–`f12` 等；新增键名需要在 `TestDriver.cpp` 的 `kKeyNames` 中添加一行。
 - **隔离性：** AutoTest 模式默认短路所有玩家存档读写（不读取或写入 `saves/`）；每次进入关卡都是确定性的全新关卡；`-Seed N` 固定随机种子。只有必须复现真实关卡存档问题时才显式加 `-AutoTestLoadSave`：此参数允许 `LoadLevelData` 从当前构建目录的 `./saves/` 读取关卡存档，但玩家设置仍用 AutoTest 默认值，且保存和删除入口继续短路，因此是严格只读模式。脚本快照是唯一显式写入例外，只能写当前脚本输出目录；禁止临时关闭 `GameAPP::mAutoTestMode` 绕过保护，否则可能触发真实存档写入、删除或迁移。
-- **射手存档观测：** `dump_state` 根节点提供 `plantCount`、`bulletCount`、`repeatingShootingHeadCount`；Shooter 植物条目另含 `headTrack`、`headAnimPlaying`、`headAnimPlayState`，可配合 `assert_state` 验证附加头部 Animator。
+- **植物状态观测：** `dump_state` 根节点提供 `plantCount`、`bulletCount`、`repeatingShootingHeadCount`；Shooter 植物条目另含 `headTrack`、`headAnimPlaying`、`headAnimPlayState`，可配合 `assert_state` 验证附加头部 Animator。`scaredyShroomsByCell.<row_col>.fearState` 按格稳定导出胆小菇四态，不受同格南瓜成为 `topPlantsByCell` 的影响。
 - **示例：** `autotest/scripts/demo_peashooter.json`（验收脚本）以及各子系统的 `smoke_*.json`。
 
 ## 架构概览
@@ -157,7 +157,7 @@ Bullet（独立类型；通过 BulletPool 使用对象池）
 
 棋盘是 `vector<vector<Cell*>>` 非拥有寻址网格，`Cell` 的实际所有权在 `GameObjectManager`。植物放置在 `(row, column)`，僵尸按行移动。`Board` 管理僵尸波次以及 `BoardState` 状态转换：`CHOOSE_CARD → GAME → WIN` 或 `LOSE_GAME`；`NONE` 表示尚未初始化。
 
-`Board` 拥有当前关卡的行数、首行 Y 与行高：普通草地为 5×100px，泳池背景为 6×85px（水路是 0-based 第 2/3 行）。位置、弹坑、子弹影子与小推车必须优先调 `GetCellCenterPosition` / `GetCellHeight`，不要再硬编 `CELL_INITALIZE_POS_Y + row*100`。`Cell` 当前分 `under/normal/pumpkin` 三层植物槽，战斗顶层优先级为 `pumpkin > normal > under`；正式放置入口是 `Board::CanPlantAt`，僵尸啃咬只选 `GetTopPlantAt`。铲子单独按格内可见区域选层：南瓜中空中心选 `normal`，外圈选 `pumpkin`，空壳整格仍选南瓜；命中区域必须按当前 Cell 宽高派生，悬停高亮与最终铲除结果共用同一目标。需要南瓜拦截的僵尸范围扣血统一走 `ApplyPumpkinProtectedZombieAreaDamage`：先按技能原几何找命中植物，再为每个命中层选择自身逻辑九宫格内最近的活动南瓜，稳定打破并列并按保护者 ID 归并为一次默认 5 倍外壳伤害；爆破工头显式使用 4 倍重载，无保护者仍逐层结算，南瓜之间不连锁，普通小丑直接清除不走此入口。新增层必须同步创建/读档创建、释放/清理、render order、台风整组搬运、外部范围伤害与 AutoTest 投影。
+`Board` 拥有当前关卡的行数、首行 Y 与行高：普通草地为 5×100px，泳池背景为 6×85px（水路是 0-based 第 2/3 行）。位置、弹坑、子弹影子与小推车必须优先调 `GetCellCenterPosition` / `GetCellHeight`，不要再硬编 `CELL_INITALIZE_POS_Y + row*100`。`Cell` 当前分 `under/normal/pumpkin` 三层植物槽，战斗顶层优先级为 `pumpkin > normal > under`；正式放置入口是 `Board::CanPlantAt`，僵尸啃咬只选 `GetTopPlantAt`。跳跃阻拦另走 `GetJumpBlockingPlantAt` 按层询问能力，非阻拦南瓜不会遮蔽内层高坚果。铲子单独按格内可见区域选层：南瓜中空中心选 `normal`，外圈选 `pumpkin`，空壳整格仍选南瓜；命中区域必须按当前 Cell 宽高派生，悬停高亮与最终铲除结果共用同一目标。需要南瓜拦截的僵尸范围扣血统一走 `ApplyPumpkinProtectedZombieAreaDamage`：先按技能原几何找命中植物，再为每个命中层选择自身逻辑九宫格内最近的活动南瓜，稳定打破并列并按保护者 ID 归并为一次默认 5 倍外壳伤害；爆破工头显式使用 4 倍重载，无保护者仍逐层结算，南瓜之间不连锁，普通小丑直接清除不走此入口。新增层必须同步创建/读档创建、释放/清理、render order、台风整组搬运、外部范围伤害与 AutoTest 投影。
 
 ### 存档系统
 

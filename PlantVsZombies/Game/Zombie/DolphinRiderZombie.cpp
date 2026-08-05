@@ -272,13 +272,10 @@ void DolphinRiderZombie::ZombieUpdate(float)
 		if (mBoard) {
 			Plant* plant = mBoard->mEntityManager.GetPlant(mJumpTargetPlantID);
 			if (plant) {
-				if (Plant* topPlant = mBoard->GetTopPlantAt(plant->mRow, plant->mColumn)) {
-					plant = topPlant;
-				}
+				plant = mBoard->GetJumpBlockingPlantAt(
+					plant->mRow, plant->mColumn, ZombieJumpType::DOLPHIN_RIDER);
 			}
-			if (plant
-				&& plant->mRow == mRow
-				&& plant->BlocksZombieJump(ZombieJumpType::DOLPHIN_RIDER)) {
+			if (plant && plant->mRow == mRow) {
 				plant->OnZombieJumpBlocked(ZombieJumpType::DOLPHIN_RIDER);
 				FinishJump(true, plant);
 				return;

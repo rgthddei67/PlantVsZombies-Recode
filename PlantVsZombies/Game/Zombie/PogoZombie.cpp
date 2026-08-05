@@ -268,8 +268,12 @@ void PogoZombie::ZombieUpdate(float scaledTime)
 	if (mPhase == Phase::FORWARD_BOUNCE
 		&& !mJumpBlockChecked && GetBounceProgress() >= kJumpBlockProgress) {
 		mJumpBlockChecked = true;
-		if (Plant* plant = ResolveForwardTarget();
-			plant && plant->BlocksZombieJump(ZombieJumpType::POGO)) {
+		Plant* plant = ResolveForwardTarget();
+		if (plant && mBoard) {
+			plant = mBoard->GetJumpBlockingPlantAt(
+				plant->mRow, plant->mColumn, ZombieJumpType::POGO);
+		}
+		if (plant) {
 			plant->OnZombieJumpBlocked(ZombieJumpType::POGO);
 			if (HandlePogoJumpBlocked(*plant)) return;
 		}

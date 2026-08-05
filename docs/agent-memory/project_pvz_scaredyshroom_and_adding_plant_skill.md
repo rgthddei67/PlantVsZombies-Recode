@@ -16,5 +16,6 @@ metadata:
 - 种完必须与小喷菇/向日葵同行截图比脚底基线：本体 offset 在 gamedata.json（免编译），影子 offset 在代码 ShadowComponent::SetOffset（要编译），两套独立。
 - 被状态机消费的节流缓存 = 存读档地雷：缓存初值会给读档第一帧注入捏造状态（mScaredCached=false → SCARED 态读档先伸头再缩回）；修法 = 计时器初始即到期首帧真算。AutoTest 存档被短路测不到，只能请主人手动退出重进验证。
 - 2026-07-23 精英胆小菇把间隔加速到 0.2 秒后，射击轨道必须用 `mShotPending` 守到第 25 帧真正吐弹，随后才允许重播；若按间隔无条件重播，会在最后几档不断重置动画而吞掉帧事件。害怕守卫也只能覆盖 pending 前摇，不能覆盖整段射击轨道。
+- 2026-08-05 南瓜免疫必须在害怕判定节流之前清掉 `mScaredCached`，并把检查计时保持在到期态；若只在完整重算分支直接 `return false`，旧的 `true` 会在其余缓存帧继续驱动 READY→LOWERING，形成“伸头/缩头”循环，脱壳后也应首帧恢复真实近身判定。
 
 关联 [project_pvz_gamedata_json](project_pvz_gamedata_json.md) [project_pvz_animator_playstate_save_fix](project_pvz_animator_playstate_save_fix.md) [reference_pvz_assets_worktree_autotest_gotchas](reference_pvz_assets_worktree_autotest_gotchas.md)

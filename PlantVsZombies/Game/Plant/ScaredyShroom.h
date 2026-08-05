@@ -29,6 +29,8 @@ public:
 	}
 
 	void PlantUpdate() override;
+	/** 返回稳定的害怕状态名，供诊断与 AutoTest 验证过渡态收敛。 */
+	const char* GetFearStateName() const;
 
 protected:
 	FearState mFearState = FearState::READY;
@@ -38,7 +40,7 @@ protected:
 	// 初始即到期：首帧必须真算，不能吃 mScaredCached 的初始 false——
 	// 否则读档恢复 SCARED 态的第一帧会误判"僵尸走了"，先伸头再缩回去
 	float mFearCheckTimer = 1.0f;
-	bool mScaredCached = false;  // 害怕判定节流缓存（0.1s 重算一次）
+	bool mScaredCached = false;  // 害怕判定节流缓存（0.15s 重算一次）
 	bool mTargetCached = false;  // 本行索敌节流缓存（0.1s 重算一次，支持最快 0.2s 连射）
 	bool mShotPending = false;   // 射击动画已起播但第 25 帧孢子事件尚未结算
 

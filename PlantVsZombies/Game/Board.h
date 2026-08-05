@@ -36,6 +36,7 @@ class Mower;
 struct MagneticItem;
 enum class MowerType;
 enum class PlanternGear : int;
+enum class ZombieJumpType;
 
 struct MonteCarloTargetStats {
 	int rolloutCount = 0;
@@ -717,6 +718,8 @@ public:
 	int GetEliteScaredyShroomPlantLimit() const;
 	/** 返回格子最上层战斗目标：南瓜层、普通层、承载层依次优先；铲子另按点击区域选层。 */
 	Plant* GetTopPlantAt(int row, int col) const;
+	/** 返回指定格中最上层能阻挡该类跳跃的植物；非阻拦外壳不会遮蔽内层高坚果。 */
+	Plant* GetJumpBlockingPlantAt(int row, int col, ZombieJumpType jumpType) const;
 	/** 返回指定格承载层；当前可能是睡莲或花盆。 */
 	Plant* GetUnderPlantAt(int row, int col) const;
 	/** 返回指定格普通植物层；不存在或 ID 已失效时返回空。 */

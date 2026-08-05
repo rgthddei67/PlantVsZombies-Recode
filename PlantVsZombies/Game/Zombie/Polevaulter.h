@@ -67,10 +67,13 @@ protected:
 private:
 	/** @brief 在原版 60% 跳跃节点撤回额外位移、恢复碰撞并开始啃食阻拦植物。 */
 	void FinishBlockedVault(Plant& blockingPlant);
+	/** @brief 在本次完整跳跃扫过的路径中选择最先遇到的阻拦植物。 */
+	Plant* FindVaultBlockingPlant() const;
 
 	float mLastVaultDistance = 0.0f;  // 最近一次实际落地位移；仅供稳定测试取证
 	float mVaultExtraDistanceApplied = 0.0f;  // 本次跳跃已随动画进度补偿的额外逻辑位移，单位 px
-	int mVaultTargetPlantID = NULL_PLANT_ID;  // 起跳时锁定的顶层植物 ID，供动画中段阻拦与快照恢复
+	float mVaultStartX = 0.0f;  // 本次起跳逻辑原点 X；用于长跳路径阻拦与快照恢复
+	int mVaultTargetPlantID = NULL_PLANT_ID;  // 起跳时锁定的顶层植物 ID，供状态取证与快照恢复
 	bool mVaultBlockChecked = false;  // 本次跳跃是否已越过唯一阻拦检查节点
 };
 

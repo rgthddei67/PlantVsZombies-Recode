@@ -4,10 +4,12 @@
 #include "../Plant/Plant.h"
 
 #include <algorithm>
+#include <limits>
 
 namespace {
 	constexpr float kBakedVaultDistance = 150.0f;  // anim_jump 轨道内置的水平视觉位移，单位 px
 	constexpr float kVaultBlockProgress = 0.60f;  // C# 原版在 anim_jump 进度 0.6~0.7 检查高坚果
+	constexpr float kBlockedPlantGap = 5.0f;  // 受阻落点中僵尸碰撞框与阻拦植物保留的间距，单位 px
 }
 
 void Polevaulter::SetupZombie()
@@ -116,6 +118,7 @@ void Polevaulter::StartJump(Plant* target)
 	mVaultState = VaultState::JUMPING;
 	mLastVaultDistance = 0.0f;
 	mVaultExtraDistanceApplied = 0.0f;
+	mVaultStartX = GetPosition().x;
 	mVaultBlockChecked = false;
 
 	// 组合植物以当前格顶层为跳跃目标，避免先收到睡莲碰撞便跳过上层高坚果。
@@ -211,24 +214,59 @@ void Polevaulter::ZombieUpdate(float)
 		return;
 	}
 
-	// 与原版 ShouldTriggerTimedEvent 一样，每次跳跃只在中段查询一次；目标消失则正常完成翻越。
+	// 与原版 ShouldTriggerTimedEvent 一样，每次跳跃只在中段查询一次。
 	mVaultBlockChecked = true;
-	Plant* target = mBoard
-		? mBoard->mEntityManager.GetPlant(mVaultTargetPlantID)
-		: nullptr;
-	if (target && mBoard) {
-		if (Plant* topPlant = mBoard->GetTopPlantAt(target->mRow, target->mColumn)) {
-			target = topPlant;
-		}
-	}
-	if (!target
-		|| target->mRow != mRow
-		|| !target->BlocksZombieJump(ZombieJumpType::POLEVAULT)) {
+	Plant* target = FindVaultBlockingPlant();
+	if (!target) {
 		mVaultTargetPlantID = NULL_PLANT_ID;
 		return;
 	}
 
 	FinishBlockedVault(*target);
+}
+
+Plant* Polevaulter::FindVaultBlockingPlant() const
+{
+	if (!mBoard || !mCollider) return nullptr;
+
+	// Animator 内置根位移不改变碰撞框；用起跳逻辑 X 和完整跳距构造碰撞框扫掠区，
+	// 让精英长跳能发现初始目标后方的高坚果，而非只复查起跳植物 ID。
+	const SDL_FRect currentBounds = mCollider->GetBoundingBox();
+	const float startShift = mVaultStartX - GetPosition().x;
+	const float startLeft = currentBounds.x + startShift;
+	const float startRight = startLeft + currentBounds.w;
+	const bool movingRight = IsMovingRight();
+	const float signedDistance = movingRight ? GetVaultDistance() : -GetVaultDistance();
+	const float endLeft = startLeft + signedDistance;
+	const float endRight = startRight + signedDistance;
+	const float sweepLeft = std::min(startLeft, endLeft);
+	const float sweepRight = std::max(startRight, endRight);
+
+	Plant* closest = nullptr;
+	float closestEdge = movingRight
+		? std::numeric_limits<float>::max()
+		: std::numeric_limits<float>::lowest();
+	for (int column = 0; column < mBoard->mColumns; ++column) {
+		Plant* candidate = mBoard->GetJumpBlockingPlantAt(
+			mRow, column, ZombieJumpType::POLEVAULT);
+		const ColliderComponent* collider = candidate
+			? candidate->GetColliderComponent() : nullptr;
+		if (!collider) continue;
+
+		const SDL_FRect bounds = collider->GetBoundingBox();
+		const float right = bounds.x + bounds.w;
+		if (right < sweepLeft || bounds.x > sweepRight) continue;
+
+		const float encounterEdge = movingRight ? bounds.x : right;
+		const bool isCloser = movingRight
+			? encounterEdge < closestEdge
+			: encounterEdge > closestEdge;
+		if (isCloser) {
+			closest = candidate;
+			closestEdge = encounterEdge;
+		}
+	}
+	return closest;
 }
 
 void Polevaulter::FinishBlockedVault(Plant& blockingPlant)
@@ -239,6 +277,24 @@ void Polevaulter::FinishBlockedVault(Plant& blockingPlant)
 	if (mVaultExtraDistanceApplied != 0.0f) {
 		JumpMove(-mVaultExtraDistanceApplied);
 		mVaultExtraDistanceApplied = 0.0f;
+	}
+	if (mCollider) {
+		// 长跳可能在初始普通植物之后才撞上高坚果；落到实际阻拦者迎敌面，保证后续啃食关系有效。
+		const ColliderComponent* plantCollider = blockingPlant.GetColliderComponent();
+		if (plantCollider) {
+			const SDL_FRect plantBounds = plantCollider->GetBoundingBox();
+			const SDL_FRect zombieBounds = mCollider->GetBoundingBox();
+			Vector position = GetPosition();
+			if (IsMovingRight()) {
+				const float relativeRight = zombieBounds.x + zombieBounds.w - position.x;
+				position.x = plantBounds.x - kBlockedPlantGap - relativeRight;
+			}
+			else {
+				const float relativeLeft = zombieBounds.x - position.x;
+				position.x = plantBounds.x + plantBounds.w + kBlockedPlantGap - relativeLeft;
+			}
+			SetPosition(position);
+		}
 	}
 	mLastVaultDistance = 0.0f;
 	mVaultState = VaultState::WALKING;
@@ -293,6 +349,7 @@ void Polevaulter::SaveExtraData(nlohmann::json& j) const
 	j["vaultState"] = static_cast<int>(mVaultState);
 	j["hasVaulted"] = mHasVaulted;
 	j["vaultExtraDistanceApplied"] = mVaultExtraDistanceApplied;
+	j["vaultStartX"] = mVaultStartX;
 	j["vaultTargetPlantID"] = mVaultTargetPlantID;
 	j["vaultBlockChecked"] = mVaultBlockChecked;
 }
@@ -306,6 +363,10 @@ void Polevaulter::LoadExtraData(const nlohmann::json& j)
 		j.value("vaultExtraDistanceApplied", 0.0f),
 		std::min(0.0f, targetExtraDistance),
 		std::max(0.0f, targetExtraDistance));
+	const float currentX = GetPosition().x;
+	const float signedApplied = IsMovingRight()
+		? mVaultExtraDistanceApplied : -mVaultExtraDistanceApplied;
+	mVaultStartX = j.value("vaultStartX", currentX - signedApplied);
 	mVaultTargetPlantID = j.value("vaultTargetPlantID", NULL_PLANT_ID);
 	mVaultBlockChecked = j.value("vaultBlockChecked", false);
 

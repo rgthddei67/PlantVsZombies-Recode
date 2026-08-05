@@ -4140,6 +4140,23 @@ Plant* Board::GetTopPlantAt(int row, int col) const
 	return cell ? mEntityManager.GetPlant(cell->GetTopPlantID()) : nullptr;
 }
 
+Plant* Board::GetJumpBlockingPlantAt(int row, int col, ZombieJumpType jumpType) const
+{
+	// 跳跃阻拦是格内植物能力，不等同于啃食顶层；南瓜等非阻拦外壳要继续向内查询。
+	const std::array<Plant*, 3> layers = {
+		GetPumpkinAt(row, col),
+		GetNormalPlantAt(row, col),
+		GetUnderPlantAt(row, col),
+	};
+	for (Plant* plant : layers) {
+		if (plant && plant->IsActive() && plant->mPlantHealth > 0
+			&& plant->BlocksZombieJump(jumpType)) {
+			return plant;
+		}
+	}
+	return nullptr;
+}
+
 Plant* Board::GetUnderPlantAt(int row, int col) const
 {
 	if (row < 0 || row >= mRows || col < 0 || col >= mColumns) return nullptr;

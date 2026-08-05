@@ -32,6 +32,7 @@
 #include "../Plant/Caltrop.h"
 #include "../Plant/Shooter.h"
 #include "../Plant/EliteScaredyShroom.h"
+#include "../Plant/ScaredyShroom.h"
 #include "../Plant/Cactus.h"
 #include "../Plant/Blover.h"
 #include "../Plant/SplitPea.h"
@@ -3270,6 +3271,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["topPlantsByCell"] = nlohmann::json::object();
 	out["overlayPlantsByCell"] = nlohmann::json::object();
 	out["flowerPotsByCell"] = nlohmann::json::object();
+	out["scaredyShroomsByCell"] = nlohmann::json::object();
 	int repeatingShootingHeadCount = 0;
 	for (int id : board->mEntityManager.GetAllPlantIDs()) {
 		Plant* p = board->mEntityManager.GetPlant(id);
@@ -3491,6 +3493,12 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			plantState["shootIntervalMs"] = eliteScaredy->GetShootIntervalMilliseconds();
 			plantState["growthRatePct"] = eliteScaredy->GetGrowthRatePercent();
 			plantState["growthProgressTenths"] = eliteScaredy->GetGrowthProgressTenths();
+		}
+		if (auto* scaredy = dynamic_cast<ScaredyShroom*>(p)) {
+			plantState["fearState"] = scaredy->GetFearStateName();
+			const std::string cellKey =
+				std::to_string(p->mRow) + "_" + std::to_string(p->mColumn);
+			out["scaredyShroomsByCell"][cellKey] = plantState;
 		}
 		if (auto* plantern = dynamic_cast<Plantern*>(p)) {
 			plantState["planternFuelTenths"] = static_cast<int>(std::lround(

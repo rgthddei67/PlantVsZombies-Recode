@@ -4,6 +4,7 @@
 
 namespace {
 	constexpr float kTargetCheckIntervalSeconds = 0.1f; // 本行索敌缓存刷新间隔（秒），须短于精英最快射击间隔
+	constexpr float kFearCheckIntervalSeconds = 0.15f;  // 近身害怕判定缓存刷新间隔（秒）
 	constexpr float kBaseShootAnimationSpeed = 1.5f;    // 普通胆小菇既有射击动画速度
 	constexpr float kShootWindupAtUnitSpeed = 0.75f;    // anim_shooting 16→25 帧在 12fps、1倍速下的吐弹前摇（秒）
 }
@@ -116,14 +117,18 @@ bool ScaredyShroom::HasZombieInRow()
 bool ScaredyShroom::HasZombieNearby()
 {
 	if (!mBoard) return false;
+	if (mBoard->GetPumpkinAt(mRow, mColumn)) {
+		// 套壳免疫必须同时覆盖节流缓存；保留旧 true 会让 READY 与受惊过渡态反复切换。
+		mScaredCached = false;
+		mFearCheckTimer = kFearCheckIntervalSeconds;
+		return false;
+	}
 
-	// 0.1s 节流：害怕判定要扫 3 行僵尸做圆-矩形相交，逐帧算在海量僵尸场景下白烧 CPU，
-	// 100ms 的反应延迟肉眼不可感。缓存上次结果供节流间隙使用。
+	// 0.15s 节流：害怕判定要扫 3 行僵尸做圆-矩形相交，逐帧算在海量僵尸场景下白烧 CPU，
+	// 150ms 的反应延迟肉眼不可感。缓存上次结果供节流间隙使用。
 	mFearCheckTimer += DeltaTime::GetDeltaTime();
-	if (mFearCheckTimer < 0.15f) return mScaredCached;
+	if (mFearCheckTimer < kFearCheckIntervalSeconds) return mScaredCached;
 	mFearCheckTimer = 0.0f;
-
-	if (mBoard->GetPumpkinAt(this->mRow, this->mColumn)) return false;
 
 	// 原版圆心 (mX, mY+20) 是格子左上角坐标系；本项目 GetPosition() 是 80x100 格子中心，
 	// 换算后圆心 = 中心 + (-40, -30)，半径 120（覆盖本行±1行、含身后僵尸）。
@@ -150,6 +155,17 @@ bool ScaredyShroom::HasZombieNearby()
 	}
 	mScaredCached = found;
 	return found;
+}
+
+const char* ScaredyShroom::GetFearStateName() const
+{
+	switch (mFearState) {
+	case FearState::READY: return "READY";
+	case FearState::LOWERING: return "LOWERING";
+	case FearState::SCARED: return "SCARED";
+	case FearState::RAISING: return "RAISING";
+	}
+	return "UNKNOWN";
 }
 
 float ScaredyShroom::GetShootAnimationSpeed(float attackSpeedMultiplier) const
