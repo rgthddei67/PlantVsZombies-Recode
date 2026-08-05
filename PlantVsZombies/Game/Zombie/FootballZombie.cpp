@@ -11,8 +11,8 @@ namespace {
 
 void FootballZombie::SetupZombie()
 {
-	this->mHelmHealth = 1100;
-	this->mHelmMaxHealth = 1100;
+	this->mHelmHealth = 1400;
+	this->mHelmMaxHealth = 1400;
 	this->mHelmType = HelmType::HELMTYPE_FOOTBALL;
 
 	if (!mIsPreview) {
