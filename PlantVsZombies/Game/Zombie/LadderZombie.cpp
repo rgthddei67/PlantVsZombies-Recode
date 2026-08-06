@@ -100,7 +100,8 @@ Plant* LadderZombie::ResolvePlacementTarget() const
 
 void LadderZombie::BeginPlacement(Plant& plant)
 {
-	if (mPhase != Phase::CARRYING || !IsLadderTarget(&plant)) return;
+	if (mPhase != Phase::CARRYING || !mHasHead || mIsDying || mIsDead
+		|| mIsMindControlled || !IsActive() || !IsLadderTarget(&plant)) return;
 	if (mIsEating && mEatPlantID != NULL_PLANT_ID) {
 		StopEatingInvalidPlantTarget(0.0f);
 	}
@@ -111,9 +112,23 @@ void LadderZombie::BeginPlacement(Plant& plant)
 	mAnimator->Play(PlayState::PLAY_ONCE);
 }
 
+void LadderZombie::AbortPlacement(bool restoreWalkAnimation)
+{
+	if (mPhase != Phase::PLACING) return;
+
+	// 断头、死亡或旧存档可在一次性动作完成前使其失效；移动锁不能只由完成分支释放。
+	mPhase = mShieldType == ShieldType::SHIELDTYPE_NONE ? Phase::NORMAL : Phase::CARRYING;
+	mPlacementRow = -1;
+	mPlacementColumn = -1;
+	if (restoreWalkAnimation && mAnimator && !mIsDying && !mIsDead) {
+		PlayWalkAnimation(0.0f);
+	}
+}
+
 void LadderZombie::StartEat(ColliderComponent* other)
 {
-	if (!other || mIsPreview || mIsDying || mPhase == Phase::PLACING) return;
+	if (!other || mIsPreview || !mHasHead || mIsDying || mIsDead
+		|| mPhase == Phase::PLACING) return;
 	if (other->GetGameObject()->GetObjectType() == ObjectType::OBJECT_PLANT
 		&& mPhase == Phase::CARRYING) {
 		if (auto* plant = dynamic_cast<Plant*>(other->GetGameObject())) {
@@ -139,8 +154,12 @@ void LadderZombie::StartEat(ColliderComponent* other)
 
 void LadderZombie::ZombieUpdate(float)
 {
-	if (mIsMindControlled || !mHasHead || mIsDying || mPhase != Phase::PLACING
-		|| !mAnimator || mAnimator->IsPlaying()) {
+	if (mPhase == Phase::PLACING
+		&& (mIsMindControlled || !mHasHead || mIsDying || mIsDead)) {
+		AbortPlacement(!mIsDying && !mIsDead);
+		return;
+	}
+	if (mPhase != Phase::PLACING || !mAnimator || mAnimator->IsPlaying()) {
 		return;
 	}
 
@@ -280,6 +299,8 @@ void LadderZombie::ArmDrop()
 void LadderZombie::HeadDrop()
 {
 	if (!mHasHead) return;
+	// 如果受伤恰好发生在放梯期，立即恢复行走，避免无头分支永远不结算动画。
+	AbortPlacement(true);
 	mAnimator->SetTrackVisible("anim_head1", false);
 	mAnimator->SetTrackVisible("anim_head2", false);
 	if (g_particleSystem) {
@@ -325,5 +346,10 @@ void LadderZombie::LoadExtraData(const nlohmann::json& j)
 		(velocityMin + velocityMax) * 0.5f), velocityMin, velocityMax);
 	// 旧档的 mSpeed 是合并后的根运动倍率；新模型固定根轨换算，只让 clip 随 C# mVelX 改变。
 	mSpeed = kGroundRootMotionScale;
+	// 修复旧档可保留的“无头/垂死 + PLACING”坏状态；RestoreAnimState 已在此前执行。
+	if (mPhase == Phase::PLACING
+		&& (mIsMindControlled || !mHasHead || mIsDying || mIsDead)) {
+		AbortPlacement(!mIsDying && !mIsDead);
+	}
 	ApplyShieldImage();
 }

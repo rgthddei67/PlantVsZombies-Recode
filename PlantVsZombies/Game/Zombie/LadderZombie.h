@@ -63,6 +63,8 @@ private:
 	Plant* ResolvePlacementTarget() const;
 	/** 停止移动并开始一次性放梯动画。 */
 	void BeginPlacement(Plant& plant);
+	/** 中断未完成的放梯动作，释放移动锁并清理保存的目标格。 */
+	void AbortPlacement(bool restoreWalkAnimation);
 	/** 结束携梯护盾并恢复普通走路/啃食；可选择生成掉梯粒子。 */
 	void DetachLadder(bool emitParticle);
 	/** 按当前护盾阶段恢复扶梯贴图；供受击与读档共用。 */

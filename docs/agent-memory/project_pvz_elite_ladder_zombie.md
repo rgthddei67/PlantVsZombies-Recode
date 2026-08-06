@@ -23,3 +23,9 @@
 - 僵尸额外保存扫描倒计时/完成标志、四个能力布尔和扫描统计。Board 保存每波精英扶梯计数；场景扶梯保存样式。所有新增字段以中性默认兼容旧档，无需提升 schema。
 - `smoke_elite_ladder.json` 覆盖：资源键、银灰完整态到金色完整态、银灰二段破损到金色二段破损、8300 无限连续放两梯、300 双速/双盾且仍银灰、6000/数量相等边界、四增益粒子、普通/精英断梯粒子互斥、僵尸与已放置梯存档。
 - `smoke_elite_ladder_wave_cap.json` 覆盖同波拒绝第二只、计数随档、换波恢复额度。最终 `clang-release` 构建通过；默认和 `-NoInstance` 主专项、限额专项、经典 `smoke_ladder_zombie` 均在主人桌面可见、退出码 0、`run.log` 无 WARN/ERROR/FAIL，截图和状态 JSON 齐全。
+
+## 2026-08-06 断头放梯死锁修复
+
+- 主人提供的 37 关存档暴露：携梯阶段在断头后仍可被碰撞回调切入 `PLACING`；`ZombieMove` 因 `PLACING` 停止，`ZombieUpdate` 又因 `!mHasHead` 不结算放梯，因此动画与移动双重卡死直到流血死亡。
+- `BeginPlacement` 与 `StartEat` 现在拒绝无头/死亡状态；放梯中断头会立即原子清理目标格、退回携梯或普通走路阶段并恢复行走。`LoadExtraData` 同时自愈旧档的“无头/垂死 + PLACING”组合，且不覆盖已在播放的死亡轨道。
+- 主人明确要求本次不跑 AutoTest，由主人用原存档实机验收；Codex 仅执行 `clang-release` 编译与静态检查，交付不宣称运行回归通过。
