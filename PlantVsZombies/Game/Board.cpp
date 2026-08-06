@@ -162,6 +162,7 @@ namespace {
 	constexpr int kEliteJackInTheBoxMaxPerWave = 2;       // 每波最多正式生成的精英小丑数量；超额候选直接跳过
 	constexpr int kEliteDiggerMaxPerWave = 1;             // 每波最多正式生成的爆破工头数量；超额候选直接跳过
 	constexpr int kElitePogoMaxPerWave = 1;               // 每波最多正式生成的精英跳跳数量；超额候选直接跳过
+	constexpr int kEliteLadderMaxPerWave = 1;             // 每波最多正式生成的精英扶梯数量；超额候选直接跳过
 	constexpr int kEliteScaredyShroomPlantLimit = 4;      // 每个关卡累计最多种植的精英胆小菇数量
 	constexpr int kPumpkinProtectionCellRadius = 1;       // 南瓜头范围爆炸保护的逻辑格半径；1 表示自身九宫格
 	constexpr int kPumpkinAreaDamageMultiplier = 5;       // 特殊僵尸范围伤害被南瓜头拦截时的默认基础伤害倍率
@@ -2048,6 +2049,12 @@ void Board::RestoreElitePogoWaveSpawnCount(int count)
 	mElitePogosSpawnedThisWave = std::clamp(count, 0, kElitePogoMaxPerWave);
 }
 
+/** 夹紧并恢复当前波已经正式生成的精英扶梯数量。 */
+void Board::RestoreEliteLadderWaveSpawnCount(int count)
+{
+	mEliteLaddersSpawnedThisWave = std::clamp(count, 0, kEliteLadderMaxPerWave);
+}
+
 /** 清空全部台风派生状态；中雨、小雨、晴天和旧档默认都以此为单位元。 */
 void Board::StopTyphoon()
 {
@@ -2213,6 +2220,12 @@ ZombieType Board::ResolveWaveZombieType(ZombieType selected, int mutationRoll)
 			return ZombieType::NUM_ZOMBIE_TYPES;
 		}
 		++mElitePogosSpawnedThisWave;
+	}
+	if (selected == ZombieType::ZOMBIE_ELITE_LADDER) {
+		if (mEliteLaddersSpawnedThisWave >= kEliteLadderMaxPerWave) {
+			return ZombieType::NUM_ZOMBIE_TYPES;
+		}
+		++mEliteLaddersSpawnedThisWave;
 	}
 	return ResolveRainMutationType(selected, mutationRoll);
 }
@@ -3693,12 +3706,12 @@ bool Board::HasCraterAt(int row, int column)
 	return found;
 }
 
-Ladder* Board::AddLadder(int row, int column)
+Ladder* Board::AddLadder(int row, int column, LadderStyle style)
 {
 	if (row < 0 || row >= mRows || column < 0 || column >= mColumns) return nullptr;
 	if (Ladder* existing = GetLadderAt(row, column)) return existing;
 	auto ladder = GameObjectManager::GetInstance().CreateGameObjectAsShared<Ladder>(
-		LAYER_GAME_ZOMBIE, this, row, column);
+		LAYER_GAME_ZOMBIE, this, row, column, style);
 	if (ladder) mLadders.push_back(ladder);
 	return ladder.get();
 }
@@ -3762,7 +3775,7 @@ bool Board::ExtractNearestLadderForMagnet(
 	}
 	if (!nearest) return false;
 
-	item.textureKey = ResourceKeys::Textures::IMAGE_ZOMBIE_LADDER_5;
+	item.textureKey = nearest->GetTextureKey();
 	item.worldPosition = nearest->GetVisualCenter();
 	item.destinationOffset = Vector(
 		10.0f + GameRandom::Range(-10.0f, 10.0f),
@@ -4577,6 +4590,7 @@ void Board::SummonNextWave()
 	mEliteJackInTheBoxesSpawnedThisWave = 0;
 	mEliteDiggersSpawnedThisWave = 0;
 	mElitePogosSpawnedThisWave = 0;
+	mEliteLaddersSpawnedThisWave = 0;
 	mMistFuelAssignedThisWave = 0;
 	if (mCurrentWave == 1)
 	{
@@ -5164,6 +5178,7 @@ void Board::OnSurvivalRoundClear()
 	mEliteJackInTheBoxesSpawnedThisWave = 0;
 	mEliteDiggersSpawnedThisWave = 0;
 	mElitePogosSpawnedThisWave = 0;
+	mEliteLaddersSpawnedThisWave = 0;
 	RefreshZombieWeatherSpeeds();
 
 	// 重算难度（解锁更强僵尸）+ 刷新关卡名

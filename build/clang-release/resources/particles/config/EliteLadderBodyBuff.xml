@@ -1,0 +1,39 @@
+<Emitter>
+  <Name>EliteLadderBodyBuff</Name>
+  <SpawnMinActive>1</SpawnMinActive>
+  <SpawnMaxLaunched>1</SpawnMaxLaunched>
+  <SpawnRate>0</SpawnRate>
+  <ParticleDuration>.52</ParticleDuration>
+  <ParticleAlpha>1,72 0</ParticleAlpha>
+  <ParticleRed>1 .74 0</ParticleRed>
+  <ParticleGreen>.34 .08 0</ParticleGreen>
+  <ParticleBlue>.03 0</ParticleBlue>
+  <ParticleScale>.58 1.18</ParticleScale>
+  <SystemDuration>.58</SystemDuration>
+  <Image>PARTICLE_RAIN_CIRCLE</Image>
+  <Field>
+    <FieldType>Position</FieldType>
+    <X>0</X>
+    <Y>-8</Y>
+  </Field>
+</Emitter>
+<Emitter>
+  <Name>EliteLadderBodyBuffStars</Name>
+  <SpawnMinActive>8</SpawnMinActive>
+  <SpawnMaxLaunched>8</SpawnMaxLaunched>
+  <SpawnRate>0</SpawnRate>
+  <ParticleDuration>[.48 .72]</ParticleDuration>
+  <ParticleAlpha>1,76 0</ParticleAlpha>
+  <ParticleRed>1 .82</ParticleRed>
+  <ParticleGreen>.28 .10</ParticleGreen>
+  <ParticleBlue>.02 0</ParticleBlue>
+  <ParticleScale>[.22 .34],78 0</ParticleScale>
+  <EmitterType>Circle</EmitterType>
+  <EmitterRadius>[12 38]</EmitterRadius>
+  <LaunchSpeed>[62 105]</LaunchSpeed>
+  <ParticleGravity>55</ParticleGravity>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <ParticleSpinSpeed>[-700 700]</ParticleSpinSpeed>
+  <SystemDuration>.78</SystemDuration>
+  <Image>PARTICLE_STAR40</Image>
+</Emitter>

@@ -153,10 +153,19 @@ void LadderZombie::ZombieUpdate(float)
 		return;
 	}
 
-	mBoard->AddLadder(target->mRow, target->mColumn);
+	mBoard->AddLadder(target->mRow, target->mColumn, GetPlacedLadderStyle());
 	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_LADDER_ZOMBIE);
 	BeginLadderClimb(target->mColumn);
-	DetachLadder(false);
+	if (RetainsLadderAfterPlacement()) {
+		// 无限搭梯只免除“放置即消耗”；梯子被伤害打碎或被磁力菇吸走仍会失去能力载体。
+		mPhase = Phase::CARRYING;
+		mPlacementRow = -1;
+		mPlacementColumn = -1;
+		PlayWalkAnimation(0.0f);
+	}
+	else {
+		DetachLadder(false);
+	}
 }
 
 void LadderZombie::ZombieMove(float scaledDelta, TransformComponent* transform)
@@ -174,15 +183,24 @@ void LadderZombie::PlayWalkAnimation(float blendTime)
 void LadderZombie::ApplyShieldImage() const
 {
 	if (!mAnimator || mShieldType != ShieldType::SHIELDTYPE_LADDER) return;
-	const std::string* key = &ResourceKeys::Textures::IMAGE_ZOMBIE_LADDER_1;
-	if (mShieldStage == ArmorBrokenState::A_LITTLE_BROKEN) {
-		key = &ResourceKeys::Textures::IMAGE_ZOMBIE_LADDER_1_DAMAGE1;
-	}
-	else if (mShieldStage == ArmorBrokenState::REALLY_BROKEN) {
-		key = &ResourceKeys::Textures::IMAGE_ZOMBIE_LADDER_1_DAMAGE2;
-	}
 	mAnimator->SetTrackImage("Zombie_ladder_1",
-		ResourceManager::GetInstance().GetTexture(*key));
+		ResourceManager::GetInstance().GetTexture(GetShieldTextureKey(mShieldStage)));
+}
+
+const std::string& LadderZombie::GetShieldTextureKey(ArmorBrokenState stage) const
+{
+	if (stage == ArmorBrokenState::A_LITTLE_BROKEN) {
+		return ResourceKeys::Textures::IMAGE_ZOMBIE_LADDER_1_DAMAGE1;
+	}
+	if (stage == ArmorBrokenState::REALLY_BROKEN) {
+		return ResourceKeys::Textures::IMAGE_ZOMBIE_LADDER_1_DAMAGE2;
+	}
+	return ResourceKeys::Textures::IMAGE_ZOMBIE_LADDER_1;
+}
+
+const std::string& LadderZombie::GetBrokenArmTextureKey() const
+{
+	return ResourceKeys::Textures::IMAGE_ZOMBIE_LADDER_OUTERARM_UPPER2;
 }
 
 void LadderZombie::CheckShieldImage()
@@ -214,7 +232,7 @@ void LadderZombie::DetachLadder(bool emitParticle)
 	if (mIsEating) PlayTrack("anim_eat", kEatClipSpeed, 0.2f);
 	else PlayWalkAnimation(0.0f);
 	if (emitParticle && g_particleSystem) {
-		g_particleSystem->EmitEffect("ZombieLadder", particlePosition);
+		g_particleSystem->EmitEffect(GetLadderDropEffectName(), particlePosition);
 	}
 }
 
@@ -231,17 +249,7 @@ bool LadderZombie::HasMagneticItem() const
 bool LadderZombie::ExtractMagneticItem(MagneticItem& item)
 {
 	if (!HasMagneticItem()) return false;
-	switch (mShieldStage) {
-	case ArmorBrokenState::A_LITTLE_BROKEN:
-		item.textureKey = ResourceKeys::Textures::IMAGE_ZOMBIE_LADDER_1_DAMAGE1;
-		break;
-	case ArmorBrokenState::REALLY_BROKEN:
-		item.textureKey = ResourceKeys::Textures::IMAGE_ZOMBIE_LADDER_1_DAMAGE2;
-		break;
-	default:
-		item.textureKey = ResourceKeys::Textures::IMAGE_ZOMBIE_LADDER_1;
-		break;
-	}
+	item.textureKey = GetShieldTextureKey(mShieldStage);
 	item.worldPosition = GetTrackWorldPosition("Zombie_ladder_1");
 	item.destinationOffset = Vector(
 		kMagnetDestinationX + GameRandom::Range(-kMagnetDestinationJitter, kMagnetDestinationJitter),
@@ -258,7 +266,7 @@ void LadderZombie::ApplyBrokenArmPresentation() const
 	mAnimator->SetTrackVisible("Zombie_outerarm_lower", false);
 	mAnimator->SetTrackImage("Zombie_ladder_outerarm_upper",
 		ResourceManager::GetInstance().GetTexture(
-			ResourceKeys::Textures::IMAGE_ZOMBIE_LADDER_OUTERARM_UPPER2));
+			GetBrokenArmTextureKey()));
 }
 
 void LadderZombie::ArmDrop()

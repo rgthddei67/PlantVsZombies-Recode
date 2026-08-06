@@ -4,6 +4,7 @@
 #include "Cell.h"
 #include "GameObject.h"
 #include "GameObjectManager.h"
+#include "Ladder.h"
 #include "./Plant/PlantType.h"
 #include "./Zombie/ZombieType.h"
 #include "./Bullet/BulletType.h"
@@ -30,7 +31,6 @@ class Zombie;
 class Bullet;
 class Trophy;
 class Crater;
-class Ladder;
 class Shovel;
 class Mower;
 struct MagneticItem;
@@ -249,6 +249,7 @@ private:
 	int mEliteJackInTheBoxesSpawnedThisWave = 0; // 当前波正式生成的精英小丑数量；每波至多一只并进入存档
 	int mEliteDiggersSpawnedThisWave = 0; // 当前波正式生成的爆破工头数量；每波至多一只并进入存档
 	int mElitePogosSpawnedThisWave = 0; // 当前波正式生成的精英跳跳数量；每波至多一只并进入存档
+	int mEliteLaddersSpawnedThisWave = 0; // 当前波正式生成的精英扶梯数量；每波至多一只并进入存档
 	int mEliteScaredyShroomsPlanted = 0; // 本关累计种下的精英胆小菇数量；死亡或铲除不返还次数
 	int mLastTyphoonMovedPlants = 0;    // 最近一次阵风移动的植物数，仅供观测和测试
 	int mLastTyphoonLostPlants = 0;     // 最近一次阵风吹出棋盘或吹入弹坑的植物数，仅供观测和测试
@@ -341,6 +342,7 @@ private:
 	void RestoreEliteJackInTheBoxWaveSpawnCount(int count);
 	void RestoreEliteDiggerWaveSpawnCount(int count);
 	void RestoreElitePogoWaveSpawnCount(int count);
+	void RestoreEliteLadderWaveSpawnCount(int count);
 	void RestoreTyphoonState(TyphoonStrength strength, WindDirection direction,
 		float strengthTimer, float gustTimer, float directionTimer, int gustsRemaining);
 	void RestoreActiveTyphoonGust(bool active, TyphoonStrength strength,
@@ -588,6 +590,7 @@ public:
 	}
 	int GetEliteDiggersSpawnedThisWave() const { return mEliteDiggersSpawnedThisWave; }
 	int GetElitePogosSpawnedThisWave() const { return mElitePogosSpawnedThisWave; }
+	int GetEliteLaddersSpawnedThisWave() const { return mEliteLaddersSpawnedThisWave; }
 	int GetLastTyphoonMovedPlants() const { return mLastTyphoonMovedPlants; }
 	int GetLastTyphoonLostPlants() const { return mLastTyphoonLostPlants; }
 	int GetLastTyphoonBlockedPlantSteps() const { return mLastTyphoonBlockedPlantSteps; }
@@ -800,7 +803,8 @@ public:
 	Crater* AddCrater(int row, int column, float timeLeft);
 	bool HasCraterAt(int row, int column);   // 顺带惰性清理已消散的 weak_ptr
 	/** 在格子上添加唯一扶梯；已有扶梯时直接返回原对象。 */
-	Ladder* AddLadder(int row, int column);
+	Ladder* AddLadder(int row, int column,
+		LadderStyle style = LadderStyle::CLASSIC);
 	/** 查询格子上的活动扶梯，并顺带清理失效弱引用。 */
 	Ladder* GetLadderAt(int row, int column);
 	bool HasLadderAt(int row, int column) { return GetLadderAt(row, column) != nullptr; }

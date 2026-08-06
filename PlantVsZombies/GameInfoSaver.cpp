@@ -354,6 +354,7 @@ bool GameInfoSaver::SerializeLevelDataToPath(Board* board, CardSlotManager* mana
 		board->mEliteJackInTheBoxesSpawnedThisWave;
 	j["eliteDiggersSpawnedThisWave"] = board->mEliteDiggersSpawnedThisWave;
 	j["elitePogosSpawnedThisWave"] = board->mElitePogosSpawnedThisWave;
+	j["eliteLaddersSpawnedThisWave"] = board->mEliteLaddersSpawnedThisWave;
 	j["mistFuelDropAccumulator"] = board->mMistFuelDropAccumulator;
 	WeatherPresentationState weatherPresentation;
 	if (auto* presentation = board->GetPresentation()) {
@@ -546,7 +547,7 @@ bool GameInfoSaver::SerializeLevelDataToPath(Board* board, CardSlotManager* mana
 	}
 	if (!cratersArr.empty()) j["craters"] = cratersArr;
 
-	// 已放置扶梯只需格子坐标；无扶梯时省略字段，旧档天然兼容。
+	// 已放置扶梯保存格子与样式；旧档缺 style 时按经典扶梯恢复。
 	nlohmann::json laddersArr = nlohmann::json::array();
 	for (auto& weak : board->mLadders) {
 		auto ladder = weak.lock();
@@ -554,6 +555,7 @@ bool GameInfoSaver::SerializeLevelDataToPath(Board* board, CardSlotManager* mana
 		laddersArr.push_back({
 			{ "row", ladder->mRow },
 			{ "column", ladder->mColumn },
+			{ "style", static_cast<int>(ladder->GetStyle()) },
 		});
 	}
 	if (!laddersArr.empty()) j["ladders"] = laddersArr;
@@ -922,6 +924,8 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 		j.value("eliteDiggersSpawnedThisWave", 0));
 	board->RestoreElitePogoWaveSpawnCount(
 		j.value("elitePogosSpawnedThisWave", 0));
+	board->RestoreEliteLadderWaveSpawnCount(
+		j.value("eliteLaddersSpawnedThisWave", 0));
 	board->mRainVisualActive = false;   // 粒子不入存档，StartGame 按剩余时间重建
 	board->mMaxWave = j.value("maxWave", 10);
 	board->mZombieCountDown = j.value("zombieCountDown", 20.0f);
@@ -1194,9 +1198,12 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 		}
 	}
 
-	// 恢复已放置扶梯；旧档无 ladders 字段时保持空集合。
+	// 恢复已放置扶梯；旧档无 ladders 字段时保持空集合，缺 style 时恢复经典样式。
 	for (auto& ladder : j.value("ladders", nlohmann::json::array())) {
-		board->AddLadder(ladder.value("row", 0), ladder.value("column", 0));
+		const int savedStyle = std::clamp(ladder.value("style", 0), 0,
+			static_cast<int>(LadderStyle::ELITE));
+		board->AddLadder(ladder.value("row", 0), ladder.value("column", 0),
+			static_cast<LadderStyle>(savedStyle));
 	}
 
 	// 恢复生存轮间冷却快照（见 SaveLevelData 同名字段注释）。必须在 ChooseCardComplete 还原冷却之前就位，

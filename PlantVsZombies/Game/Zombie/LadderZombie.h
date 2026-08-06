@@ -1,13 +1,14 @@
 #pragma once
 
 #include "Zombie.h"
+#include "../Ladder.h"
 
 class Plant;
 
 /**
  * @brief 经典扶梯僵尸：携梯高速前进，为坚果类放梯，失去扶梯后按普通僵尸行动。
  */
-class LadderZombie final : public Zombie {
+class LadderZombie : public Zombie {
 public:
 	using Zombie::Zombie;
 
@@ -20,6 +21,10 @@ public:
 	Phase GetPhase() const { return mPhase; }
 	const char* GetPhaseName() const;
 	ArmorBrokenState GetShieldStage() const { return mShieldStage; }
+	/** 返回当前携梯实际使用的贴图键，供状态观测验证动态换色与损坏阶段。 */
+	const std::string& GetCurrentLadderTextureKey() const {
+		return GetShieldTextureKey(mShieldStage);
+	}
 	int GetPlacementRow() const { return mPlacementRow; }
 	int GetPlacementColumn() const { return mPlacementColumn; }
 
@@ -40,6 +45,16 @@ protected:
 	void ZombieMove(float scaledDelta, TransformComponent* transform) override;
 	void PlayWalkAnimation(float blendTime) override;
 	void CheckShieldImage() override;
+	/** 成功放梯后是否保留携梯护盾与继续放梯能力；经典扶梯只使用一次。 */
+	virtual bool RetainsLadderAfterPlacement() const { return false; }
+	/** 选择 Board 共享扶梯的外观样式。 */
+	virtual LadderStyle GetPlacedLadderStyle() const { return LadderStyle::CLASSIC; }
+	/** 选择当前损伤阶段的携梯贴图，供换色派生类保持受伤终态。 */
+	virtual const std::string& GetShieldTextureKey(ArmorBrokenState stage) const;
+	/** 选择断臂后残留上臂材质。 */
+	virtual const std::string& GetBrokenArmTextureKey() const;
+	/** 选择扶梯破盾时的掉落粒子效果。 */
+	virtual const char* GetLadderDropEffectName() const { return "ZombieLadder"; }
 
 private:
 	/** 判断目标是否是当前 C# Ladder 攻击类型允许的坚果/高坚果/南瓜。 */

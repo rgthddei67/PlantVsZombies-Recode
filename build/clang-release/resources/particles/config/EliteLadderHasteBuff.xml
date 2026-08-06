@@ -1,0 +1,25 @@
+<Emitter>
+  <Name>EliteLadderHasteBuff</Name>
+  <SpawnMinActive>14</SpawnMinActive>
+  <SpawnMaxLaunched>14</SpawnMaxLaunched>
+  <SpawnRate>0</SpawnRate>
+  <ParticleDuration>[.48 .68]</ParticleDuration>
+  <ParticleAlpha>1 .68,70 0,100</ParticleAlpha>
+  <ParticleScale>[.38 .56]</ParticleScale>
+  <ParticleStretch>[1.65 2.10]</ParticleStretch>
+  <ParticleBrightness>[.82 1]</ParticleBrightness>
+  <ParticleRed>.12</ParticleRed>
+  <ParticleGreen>.82</ParticleGreen>
+  <ParticleBlue>1</ParticleBlue>
+  <EmitterType>Box</EmitterType>
+  <EmitterBoxX>[-36 30]</EmitterBoxX>
+  <EmitterBoxY>[-62 56]</EmitterBoxY>
+  <ParticleRotation>90</ParticleRotation>
+  <SystemDuration>.72</SystemDuration>
+  <Image>PARTICLE_WINDSTREAK</Image>
+  <Field>
+    <FieldType>Position</FieldType>
+    <X>0 -190</X>
+    <Y>0 [-10 10]</Y>
+  </Field>
+</Emitter>

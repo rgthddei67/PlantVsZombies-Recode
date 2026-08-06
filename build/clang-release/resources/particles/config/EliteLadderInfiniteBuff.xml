@@ -1,0 +1,15 @@
+<Emitter>
+  <Name>EliteLadderInfiniteBuff</Name>
+  <SpawnMinActive>10</SpawnMinActive>
+  <SpawnMaxLaunched>10</SpawnMaxLaunched>
+  <SpawnRate>0</SpawnRate>
+  <ParticleDuration>[.68 .86]</ParticleDuration>
+  <ParticleAlpha>1,72 0</ParticleAlpha>
+  <ParticleScale>[.19 .23],80 0</ParticleScale>
+  <EmitterType>Circle</EmitterType>
+  <EmitterRadius>54</EmitterRadius>
+  <LaunchSpeed>0</LaunchSpeed>
+  <ParticleRotation>[-14 14]</ParticleRotation>
+  <SystemDuration>.92</SystemDuration>
+  <Image>IMAGE_ZOMBIE_ELITE_LADDER_5</Image>
+</Emitter>

@@ -26,11 +26,12 @@ namespace {
 	}
 }
 
-Ladder::Ladder(Board* board, int row, int column)
+Ladder::Ladder(Board* board, int row, int column, LadderStyle style)
 	: GameObject(ObjectType::OBJECT_NONE)
 	, mRow(row)
 	, mColumn(column)
 	, mBoard(board)
+	, mStyle(style)
 {
 	SetTag("Ladder");
 	SetName("Ladder_" + std::to_string(row) + "_" + std::to_string(column));
@@ -41,7 +42,7 @@ void Ladder::Draw(Graphics* g)
 {
 	if (!g || !mTransform) return;
 	const Texture* texture = ResourceManager::GetInstance().GetTexture(
-		ResourceKeys::Textures::IMAGE_ZOMBIE_LADDER_5, false);
+		GetTextureKey(), false);
 	if (!texture) return;
 	const Vector position = mTransform->GetPosition() + GetGridMoveVisualOffset();
 	g->DrawTexture(texture, position.x, position.y,
@@ -70,9 +71,21 @@ Vector Ladder::GetVisualCenter() const
 		? mTransform->GetPosition() + GetGridMoveVisualOffset()
 		: Vector::zero();
 	const Texture* texture = ResourceManager::GetInstance().GetTexture(
-		ResourceKeys::Textures::IMAGE_ZOMBIE_LADDER_5, false);
+		GetTextureKey(), false);
 	if (!texture) return position;
 	return position + Vector(
 		static_cast<float>(texture->width) * kLadderDrawScale * 0.5f,
 		static_cast<float>(texture->height) * kLadderDrawScale * 0.5f);
+}
+
+const char* Ladder::GetStyleName() const
+{
+	return mStyle == LadderStyle::ELITE ? "ELITE" : "CLASSIC";
+}
+
+const std::string& Ladder::GetTextureKey() const
+{
+	return mStyle == LadderStyle::ELITE
+		? ResourceKeys::Textures::IMAGE_ZOMBIE_ELITE_LADDER_5
+		: ResourceKeys::Textures::IMAGE_ZOMBIE_LADDER_5;
 }

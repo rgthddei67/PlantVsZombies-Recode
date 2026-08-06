@@ -82,6 +82,7 @@
 #include "../Zombie/ElitePogoZombie.h"
 #include "../Zombie/BungeeZombie.h"
 #include "../Zombie/LadderZombie.h"
+#include "../Zombie/EliteLadderZombie.h"
 
 namespace {
 	template<typename T>
@@ -488,6 +489,12 @@ void GameDataManager::InitializeHardcodedData() {
 		AnimationType::ANIM_LADDER_ZOMBIE,
 		ResourceKeys::Reanimations::REANIM_LADDER_ZOMBIE,
 		&MakeZombie<LadderZombie>);
+
+	// 精英扶梯复用经典时间线，在五秒整行扫描后锁定能力分支。
+	RegisterZombie(ZombieType::ZOMBIE_ELITE_LADDER, "ZOMBIE_ELITE_LADDER",
+		AnimationType::ANIM_ELITE_LADDER_ZOMBIE,
+		ResourceKeys::Reanimations::REANIM_ELITE_LADDER_ZOMBIE,
+		&MakeZombie<EliteLadderZombie>);
 
 	// ==================== 非植物/僵尸动画映射 ====================
 	mAnimToString[AnimationType::ANIM_SUN] = ResourceKeys::Reanimations::REANIM_SUN;

@@ -62,6 +62,7 @@
 #include "../Zombie/ElitePogoZombie.h"
 #include "../Zombie/BungeeZombie.h"
 #include "../Zombie/LadderZombie.h"
+#include "../Zombie/EliteLadderZombie.h"
 #include "../Zombie/PoolNormalZombie.h"
 #include "../Trophy.h"   // dump_state 输出奖杯坐标
 #include "../Crater.h"   // dump_state 输出毁灭菇弹坑
@@ -220,7 +221,7 @@ namespace {
 		ZT(ZOMBIE_ZAMBONI), ZT(ZOMBIE_GILDED_ZAMBONI), ZT(ZOMBIE_DOLPHIN_RIDER), ZT(ZOMBIE_ELITE_DOLPHIN_RIDER),
 		ZT(ZOMBIE_JACK_IN_THE_BOX), ZT(ZOMBIE_ELITE_JACK_IN_THE_BOX), ZT(ZOMBIE_BALLOON),
 		ZT(ZOMBIE_DIGGER), ZT(ZOMBIE_ELITE_DIGGER), ZT(ZOMBIE_POGO), ZT(ZOMBIE_ELITE_POGO),
-		ZT(ZOMBIE_YETI), ZT(ZOMBIE_BUNGEE), ZT(ZOMBIE_LADDER), ZT(ZOMBIE_CATAPULT),
+		ZT(ZOMBIE_YETI), ZT(ZOMBIE_BUNGEE), ZT(ZOMBIE_LADDER), ZT(ZOMBIE_ELITE_LADDER), ZT(ZOMBIE_CATAPULT),
 		ZT(ZOMBIE_GARGANTUAR), ZT(ZOMBIE_IMP), ZT(ZOMBIE_BOSS), ZT(ZOMBIE_PEA_HEAD),
 		ZT(ZOMBIE_WALLNUT_HEAD), ZT(ZOMBIE_JALAPENO_HEAD), ZT(ZOMBIE_GATLING_HEAD),
 		ZT(ZOMBIE_SQUASH_HEAD), ZT(ZOMBIE_TALLNUT_HEAD), ZT(ZOMBIE_REDEYE_GARGANTUAR),
@@ -1177,6 +1178,34 @@ bool TestDriver::ExecuteCurrent() {
 		}
 		return true;
 	}
+	if (op == "set_elite_ladder_scan_countdown") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) {
+			Fail("set_elite_ladder_scan_countdown: 不在 GameScene 或 Board 为空");
+			return false;
+		}
+		const float seconds = cmd.value("value", -1.0f);
+		if (seconds < 0.0f || seconds > 5.0f) {
+			Fail("set_elite_ladder_scan_countdown: value 必须在 0～5 秒");
+			return false;
+		}
+		const int row = cmd.value("row", -1);
+		const int index = cmd.value("index", 0);
+		int seen = 0;
+		std::vector<int> zombieIDs = gs->GetBoard()->mEntityManager.GetAllZombieIDs();
+		std::sort(zombieIDs.begin(), zombieIDs.end());
+		for (const int id : zombieIDs) {
+			auto* elite = dynamic_cast<EliteLadderZombie*>(
+				gs->GetBoard()->mEntityManager.GetZombie(id));
+			if (!elite || !elite->IsActive()) continue;
+			if (row >= 0 && elite->mRow != row) continue;
+			if (seen++ != index) continue;
+			elite->SetRowScanTimeRemainingForTesting(seconds);
+			return true;
+		}
+		Fail("set_elite_ladder_scan_countdown: 未找到目标精英扶梯僵尸");
+		return false;
+	}
 	if (op == "set_jack_pop_countdown") {
 		GameScene* gs = CurrentGameScene();
 		if (!gs || !gs->GetBoard()) {
@@ -2063,6 +2092,24 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		{ "soundLoaded", ResourceManager::GetInstance().GetSound(
 			ResourceKeys::Sounds::SOUND_LADDER_ZOMBIE) != nullptr },
 	};
+	out["eliteLadderResources"] = {
+		{ "reanimationLoaded", ResourceManager::GetInstance().HasReanimation(
+			ResourceKeys::Reanimations::REANIM_ELITE_LADDER_ZOMBIE) },
+		{ "bodyLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_ZOMBIE_ELITE_LADDER_BODY, false) != nullptr },
+		{ "body2Loaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_ZOMBIE_ELITE_LADDER_BODY2, false) != nullptr },
+		{ "baseLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_ZOMBIE_ELITE_LADDER_1, false) != nullptr },
+		{ "damage1Loaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_ZOMBIE_ELITE_LADDER_1_DAMAGE1, false) != nullptr },
+		{ "damage2Loaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_ZOMBIE_ELITE_LADDER_1_DAMAGE2, false) != nullptr },
+		{ "placedLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_ZOMBIE_ELITE_LADDER_5, false) != nullptr },
+		{ "brokenArmLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_ZOMBIE_ELITE_LADDER_OUTERARM_UPPER2, false) != nullptr },
+	};
 	out["pumpkinResources"] = {
 		{ "reanimationLoaded", ResourceManager::GetInstance().HasReanimation(
 			ResourceKeys::Reanimations::REANIM_PUMPKIN) },
@@ -2585,6 +2632,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "eliteJackInTheBoxesSpawnedThisWave", board->GetEliteJackInTheBoxesSpawnedThisWave() },
 			{ "eliteDiggersSpawnedThisWave", board->GetEliteDiggersSpawnedThisWave() },
 			{ "elitePogosSpawnedThisWave", board->GetElitePogosSpawnedThisWave() },
+			{ "eliteLaddersSpawnedThisWave", board->GetEliteLaddersSpawnedThisWave() },
 			{ "typhoonDecayRemaining", board->GetTyphoonStrengthTimer() },
 			{ "windDirection", WindDirectionName(board->GetWindDirection()) },
 			{ "windDirectionRemaining", board->GetWindDirectionTimer() },
@@ -2827,6 +2875,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			out["ladders"].push_back({
 				{ "row", row },
 				{ "col", column },
+				{ "style", ladder->GetStyleName() },
+				{ "textureKey", ladder->GetTextureKey() },
 				{ "visualCenterXInt", static_cast<int>(std::lround(center.x)) },
 				{ "visualCenterYInt", static_cast<int>(std::lround(center.y)) },
 				{ "attachedToPlant", host != nullptr },
@@ -2854,6 +2904,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	int diggerZombieCount = 0;
 	int eliteDiggerZombieCount = 0;
 	int elitePogoZombieCount = 0;
+	int eliteLadderZombieCount = 0;
 	int zombieBodyHealthTotal = 0;
 	int zombieShieldHealthTotal = 0;
 	int slowedZombieCount = 0;
@@ -2975,9 +3026,30 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			zombieState["eliteTyphoonSpeedPct"] = static_cast<int>(std::lround(
 				elite->GetTyphoonAbilitySpeedMultiplier() * 100.0f));
 		}
+		if (auto* eliteLadder = dynamic_cast<EliteLadderZombie*>(z)) {
+			++eliteLadderZombieCount;
+			zombieState["eliteLadderScanComplete"] = eliteLadder->IsRowScanComplete();
+			zombieState["eliteLadderScanRemainingMs"] = static_cast<int>(std::lround(
+				eliteLadder->GetRowScanTimeRemaining() * 1000.0f));
+			zombieState["eliteLadderScannedPlantHealth"] =
+				eliteLadder->GetScannedPlantHealth();
+			zombieState["eliteLadderScannedPultCount"] =
+				eliteLadder->GetScannedPultCount();
+			zombieState["eliteLadderScannedShooterCount"] =
+				eliteLadder->GetScannedShooterCount();
+			zombieState["eliteLadderInfinite"] =
+				eliteLadder->HasInfiniteLadderAbility();
+			zombieState["eliteLadderDoubleAnim"] =
+				eliteLadder->HasDoubledAnimationSpeed();
+			zombieState["eliteLadderBodyBonus"] =
+				eliteLadder->HasBodyHealthBonus();
+			zombieState["eliteLadderShieldDoubled"] =
+				eliteLadder->HasDoubledShieldHealth();
+		}
 		if (auto* ladder = dynamic_cast<LadderZombie*>(z)) {
 			zombieState["ladderPhase"] = ladder->GetPhaseName();
 			zombieState["ladderShieldStage"] = static_cast<int>(ladder->GetShieldStage());
+			zombieState["ladderTextureKey"] = ladder->GetCurrentLadderTextureKey();
 			zombieState["ladderPlacementRow"] = ladder->GetPlacementRow();
 			zombieState["ladderPlacementColumn"] = ladder->GetPlacementColumn();
 			zombieState["ladderTrackVisible"] = anim
@@ -3259,6 +3331,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["diggerZombieCount"] = diggerZombieCount;
 	out["eliteDiggerZombieCount"] = eliteDiggerZombieCount;
 	out["elitePogoZombieCount"] = elitePogoZombieCount;
+	out["eliteLadderZombieCount"] = eliteLadderZombieCount;
 	out["poolRowZombieCount"] = poolRowZombieCount;
 	out["earlyWavePoolZombieCount"] = earlyWavePoolZombieCount;
 	out["zombieBodyHealthTotal"] = zombieBodyHealthTotal;
@@ -3555,6 +3628,12 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["particleEffectNameCounts"]["ZombieEliteDiggerHeadLight"] = 0;
 	out["particleEffectNameCounts"]["ZombiePinkFootballOff"] = 0;
 	out["particleEffectNameCounts"]["ZombieElitePogo"] = 0;
+	out["particleEffectNameCounts"]["ZombieEliteLadder"] = 0;
+	out["particleEffectNameCounts"]["ZombieLadder"] = 0;
+	out["particleEffectNameCounts"]["EliteLadderInfiniteBuff"] = 0;
+	out["particleEffectNameCounts"]["EliteLadderHasteBuff"] = 0;
+	out["particleEffectNameCounts"]["EliteLadderBodyBuff"] = 0;
+	out["particleEffectNameCounts"]["EliteLadderShieldBuff"] = 0;
 	out["particleEffectNameCounts"]["PlantingPool"] = 0;
 	if (g_particleSystem) {
 		for (const auto& effect : g_particleSystem->GetEffectsForTesting()) {

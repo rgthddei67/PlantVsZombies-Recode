@@ -1,0 +1,34 @@
+<Emitter>
+  <Name>EliteLadderShieldBuff</Name>
+  <SpawnMinActive>1</SpawnMinActive>
+  <SpawnMaxLaunched>1</SpawnMaxLaunched>
+  <SpawnRate>0</SpawnRate>
+  <ParticleDuration>.56</ParticleDuration>
+  <ParticleAlpha>.94 .58,72 0,100</ParticleAlpha>
+  <ParticleScale>.68 1.36</ParticleScale>
+  <ParticleBrightness>1</ParticleBrightness>
+  <ParticleRed>1</ParticleRed>
+  <ParticleGreen>.94</ParticleGreen>
+  <ParticleBlue>.28</ParticleBlue>
+  <SystemDuration>.62</SystemDuration>
+  <Image>PARTICLE_RAIN_CIRCLE</Image>
+</Emitter>
+<Emitter>
+  <Name>EliteLadderShieldBuffSparks</Name>
+  <SpawnMinActive>10</SpawnMinActive>
+  <SpawnMaxLaunched>10</SpawnMaxLaunched>
+  <SpawnRate>0</SpawnRate>
+  <ParticleDuration>[.45 .68]</ParticleDuration>
+  <ParticleAlpha>1,72 0</ParticleAlpha>
+  <ParticleRed>1</ParticleRed>
+  <ParticleGreen>.96 .74</ParticleGreen>
+  <ParticleBlue>.50 .08</ParticleBlue>
+  <ParticleScale>[.24 .38],78 0</ParticleScale>
+  <EmitterType>Circle</EmitterType>
+  <EmitterRadius>[22 54]</EmitterRadius>
+  <LaunchSpeed>[28 58]</LaunchSpeed>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <ParticleSpinSpeed>[-760 760]</ParticleSpinSpeed>
+  <SystemDuration>.72</SystemDuration>
+  <Image>PARTICLE_STAR40</Image>
+</Emitter>
