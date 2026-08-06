@@ -341,6 +341,20 @@ public:
 	float GetTrackVelocity(int trackIndex) const;
 
 	/**
+	 * @brief 获取当前动画片段内指定轨道的平均运动速度。
+	 * @param trackName 轨道名
+	 * @return 当前帧范围内逐帧位移绝对值的平均值，再乘实际播放倍率
+	 */
+	float GetTrackAverageVelocity(const std::string& trackName) const;
+
+	/**
+	 * @brief 通过轨道索引获取当前动画片段的平均运动速度。
+	 * @param trackIndex 轨道索引
+	 * @return 当前帧范围内的平均运动速度
+	 */
+	float GetTrackAverageVelocity(int trackIndex) const;
+
+	/**
 	 * @brief 根据轨道名获取第一个匹配的轨道索引 (O(1) 哈希查找)
 	 * @param trackName 轨道名
 	 * @return 索引，-1 表示未找到

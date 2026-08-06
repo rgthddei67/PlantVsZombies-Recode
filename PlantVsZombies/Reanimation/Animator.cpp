@@ -946,6 +946,37 @@ float Animator::GetTrackVelocity(int trackIndex) const {
 	return std::abs(velocity);
 }
 
+float Animator::GetTrackAverageVelocity(const std::string& trackName) const {
+	const int index = GetFirstTrackIndexByName(trackName);
+	if (index < 0) return 0.0f;
+	return GetTrackAverageVelocity(index);
+}
+
+float Animator::GetTrackAverageVelocity(int trackIndex) const {
+	if (!mReanim) return 0.0f;
+
+	const auto* track = mReanim->GetTrack(trackIndex);
+	if (!track || track->mFrames.empty()) return 0.0f;
+
+	const int maxIndex = static_cast<int>(track->mFrames.size()) - 1;
+	const int frameBegin = std::clamp(
+		static_cast<int>(mFrameIndexBegin), 0, maxIndex);
+	const int frameEnd = std::clamp(
+		static_cast<int>(mFrameIndexEnd), 0, maxIndex);
+	if (frameEnd <= frameBegin) return 0.0f;
+
+	// 实际根运动逐帧取位移绝对值；预测也对同一片段积分，避免把步态停顿帧或跨步帧
+	// 误当成未来整段时间的恒定速度。
+	float totalDistance = 0.0f;
+	for (int frame = frameBegin; frame < frameEnd; ++frame) {
+		totalDistance += std::abs(
+			track->mFrames[frame + 1].x - track->mFrames[frame].x);
+	}
+	const float averageFrameDistance =
+		totalDistance / static_cast<float>(frameEnd - frameBegin);
+	return averageFrameDistance * std::abs(EffectiveSpeed());
+}
+
 void Animator::SetExtraSpeedMultiplier(float mul) {
 	mExtraSpeedMultiplier = mul;
 

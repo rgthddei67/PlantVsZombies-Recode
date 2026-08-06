@@ -71,7 +71,7 @@ description: Use when adding ANY new plant (新增植物) to PvZ — 射手/生�
    若卡槽本身承载“下一株”的玩法设置（方向、模式等），权威状态放在该 `CardComponent`，卡面图标/箭头等提示和预览都实时消费同一状态，种植成功时再复制到实体；之后改卡不能追溯已落地实例。卡片和实体分别保存各自状态，旧档给中性默认。右键切换必须先于通用右键取消选择消费，并允许冷却中的卡修改。AutoTest 连续合成点击时，`click` 完成只代表松开事件已入队；移动鼠标或断言选中前至少留一个真实输入处理帧，否则松开会在新坐标结算而丢失点击。
    图鉴/选卡卡片用 `GetIsInChooseCardUI()` 表示非实战上下文，这些场景可以没有 `CardSlotManager`。`CardDisplayComponent` 只有在具体实战卡面确实需要 `Board`（当前为活动路灯花状态）且该标志为 false 时才查询 manager；禁止为通用卡面绘制每帧全表重找，否则植物图鉴会按“每张卡×每帧”刷 `CardSlotManager host invalid`。专项从主菜单走真实点击进入植物图鉴并检查捕获 stdout 中目标警告为 0，再切 GameScene 截图确认活动路灯花卡仍显示挡位与燃料。
    修改卡槽悬停或点击落格时，预览与种植必须共用同一个“世界坐标 → 唯一 `Cell`”解析入口和相同的边界归属规则。`ColliderComponent::ContainsPoint` 的矩形四边都是闭区间，相邻格边缘会同时命中；禁止预览按行列扫描、点击却依赖 `ClickableComponent` 渲染顺序，否则边缘和四格交点会显示一格却种到另一格。
-3. **AutoTest 冒烟**：`autotest/scripts/smoke_<name>.json`，每阶段**只种一棵**（plants dump 顺序来自 unordered_map，多棵时下标不可靠），断言 `plants.0.track`；`plantDefinitions.<TYPE>.sunCost/cooldownMs` 可直接锁定基础 gamedata 数值，`simulationBaseHealth/simulationAttackDpsOn100/simulationAttackRowRadius/simulationSunPerSecondOn100/simulationFirstSunDelayMs/simulationPersistent` 用来锁定轻量推演画像。几何验收用 `animatedObjectsByTag.Plant.0` 的最终世界包围盒与相对 collider 投影，禁止把 C# 绝对坐标写成期望值。时序估算用僵尸判定矩形 `[x±25]×[y-65,y+35]`、步速 23~45px/s。**exit 0 ≠ 通过**：必须逐张 Read 同步截图 + dump 数值核对（防假绿）。
+3. **AutoTest 冒烟**：`autotest/scripts/smoke_<name>.json`，每阶段**只种一棵**（plants dump 顺序来自 unordered_map，多棵时下标不可靠），断言 `plants.0.track`；`plantDefinitions.<TYPE>.sunCost/cooldownMs` 可直接锁定基础 gamedata 数值，`simulationBaseHealth/simulationAttackDpsOn100/simulationAttackRowRadius/simulationSunPerSecondOn100/simulationFirstSunDelayMs/simulationPersistent` 用来锁定轻量推演画像。几何验收用 `animatedObjectsByTag.Plant.0` 的最终世界包围盒与相对 collider 投影，禁止把 C# 绝对坐标写成期望值。时序估算用僵尸判定矩形 `[x±25]×[y-65,y+35]`、步速 23~45px/s；验证帧事件时，等待值必须越过理论触发时刻至少一个逻辑步，不能把断言卡在“刚好到帧”的浮点边界。**exit 0 ≠ 通过**：必须逐张 Read 同步截图 + dump 数值核对（防假绿）。
 4. 蘑菇夜测用 level 10-18（九关制的 2-1..2-9）；白天睡觉断言 `anim_sleep`；魅惑僵尸清场用 `charm_zombie`（不触发输局）。
    只能种水路的蘑菇改用夜间泳池 level 28+ 验活跃态，并另在日间泳池 level 19+ 验 `anim_sleep`。
 
@@ -129,7 +129,7 @@ description: Use when adding ANY new plant (新增植物) to PvZ — 射手/生�
 10. 派生溅射弹若以缩小范围换取次要目标状态，范围和状态分派都按当前 `BulletType` 决定，基础弹保留原范围；只给实际进入溅射集合且仍有效的目标施加状态。专项在同一行放置直击、范围内和范围外目标，逐只断言状态与生命，并回归基础弹的原溅射宽度，禁止只用总数或总伤害掩盖边界选错目标。
 11. 换色子弹还要审计命中粒子 XML 的每个固定 `<Image>` 键；本体贴图换色不会自动改变飞溅/碎屑。需要独立配色时按当前 `BulletType` 分派独立效果名，并按 adding-particle 的资源闭环注册同布局图集；专项同步截图后同时断言派生效果存在、基础效果计数为 0，再跑基础子弹回归防止串色。
 12. 屋顶平射遮挡按子弹类型的视觉离地高度与 `Board::GetRowCenterYAtX(row, bulletX)` 比较；豌豆、孢子、尖刺、星星等阈值可不同，投掷物不进入这条判定。遮挡时先走对应命中反馈再回收，不能把子弹本体强制贴坡冒充遮挡；阴影若存在则可独立采样当前 X 的地面。专项在坡段与平台各放正/负例，并回归草地地图不受影响。
-13. 固定飞行时间的投掷物优先用“预测落点 + 解析抛物线”：发射时通过目标公开的实时水平速度入口预测 X，Y 取碰撞箱稳定部位；以 `p=elapsed/duration` 计算 `lerp(start,target,p) + (0,-4*apex*p*(1-p))`，不要在植物或子弹里按僵尸类型堆落点补丁。起点、落点、elapsed、duration、apex 全部入档并在对象池复位；飞行高段关闭碰撞器，只在下降接近落点时开启，到点后留一个碰撞帧宽限再按落空反馈回收。阴影独立采样当前 X 地形并随离地高度缩放，屋顶不套平射遮挡。专项覆盖移动目标命中、拱顶碰撞关闭、在途快照、落空、池槽归零和屋顶。
+13. 固定飞行时间的投掷物优先用“预测落点 + 解析抛物线”：发射时通过目标公开的水平速度入口预测 X，Y 取碰撞箱稳定部位；带 `_ground` 的根运动目标必须以**当前活动动画片段的平均逐帧位移**估算未来速度，禁止把发射瞬间单帧 `GetTrackVelocity` 外推到整段飞行——步态停顿帧会严重少预判，跨步帧会严重多预判，动画倍率还会同步放大两类误差。以 `p=elapsed/duration` 计算 `lerp(start,target,p) + (0,-4*apex*p*(1-p))`，不要在植物或子弹里按僵尸类型堆落点补丁。起点、落点、elapsed、duration、apex 全部入档并在对象池复位；飞行高段关闭碰撞器，只在下降接近落点时开启，到点后留一个碰撞帧宽限再按落空反馈回收。阴影独立采样当前 X 地形并随离地高度缩放，屋顶不套平射遮挡。专项除移动目标命中、拱顶碰撞关闭、在途快照、落空、池槽归零和屋顶外，还要在同一变速根运动目标的多个步态相位断言相对提前量稳定。
 
 这类跨系统植物**不走"简短 spec 直实现"捷径**：回到完整 brainstorm（交互矩阵逐项问主人）→spec→必要时 writing-plans。
 

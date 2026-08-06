@@ -29,3 +29,8 @@
 - 主人提供的 37 关存档暴露：携梯阶段在断头后仍可被碰撞回调切入 `PLACING`；`ZombieMove` 因 `PLACING` 停止，`ZombieUpdate` 又因 `!mHasHead` 不结算放梯，因此动画与移动双重卡死直到流血死亡。
 - `BeginPlacement` 与 `StartEat` 现在拒绝无头/死亡状态；放梯中断头会立即原子清理目标格、退回携梯或普通走路阶段并恢复行走。`LoadExtraData` 同时自愈旧档的“无头/垂死 + PLACING”组合，且不覆盖已在播放的死亡轨道。
 - 主人明确要求本次不跑 AutoTest，由主人用原存档实机验收；Codex 仅执行 `clang-release` 编译与静态检查，交付不宣称运行回归通过。
+
+## 2026-08-06 投手预判稳定性
+
+- 精英扶梯的 `_ground` 单帧位移在步态内明显不均匀；双速能力会把发射瞬间的速度采样误差同步放大，使固定 1.2 秒落点偶尔落在身前或身后。
+- 通用 `Zombie::GetCurrentHorizontalMoveSpeed` 现改用当前活动动画片段的平均根位移，保留实际逐帧根运动和卷心菜冻结落点，不做追踪弹。`smoke_cabbagepult` 跨五个双速步态相位锁定 80～100px 提前量，并验证实际命中。

@@ -1780,15 +1780,19 @@ void Zombie::SetPosition(const Vector& position)
 float Zombie::GetCurrentHorizontalMoveSpeed() const
 {
 	if (mIsDying || mIsDead || !mHasHead || mTangleKelpPlantID != NULL_PLANT_ID
-		|| IsImmobilized() || !mAnimator) {
+		|| IsImmobilized() || !mAnimator || !mAnimator->IsPlaying()) {
 		return 0.0f;
 	}
 	const float trackSpeed = mGroundTrackIndex >= 0
-		? mAnimator->GetTrackVelocity(mGroundTrackIndex)
-		: mAnimator->GetTrackVelocity("_ground");
+		? mAnimator->GetTrackAverageVelocity(mGroundTrackIndex)
+		: mAnimator->GetTrackAverageVelocity("_ground");
 	float velocity = std::fabs(trackSpeed * mSpeed);
 	if (mCooldownTimer > 0.0f) velocity *= 0.5f;
-	if (mBoard) velocity *= mBoard->GetZombieWindMoveMultiplier(IsMovingRight());
+	if (mBoard) {
+		// 与 ZombieMove 使用同一场地放大顺序，避免黄色冰道上的预测和实际风速分叉。
+		velocity *= AmplifySpeedMultiplierForGoldenIce(
+			mBoard->GetZombieWindMoveMultiplier(IsMovingRight()));
+	}
 	return std::max(0.0f, velocity);
 }
 

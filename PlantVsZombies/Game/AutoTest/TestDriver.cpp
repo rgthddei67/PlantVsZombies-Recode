@@ -2938,6 +2938,14 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		const Vector pos = z->GetPosition();
 		const float terrainY = board->GetZombieSpawnY(z->mRow, pos.x);
 		const auto anim = z->GetAnimatorInternal();
+		float colliderCenterX = pos.x;
+		if (const ColliderComponent* collider = z->GetColliderComponent()) {
+			const SDL_FRect bounds = collider->GetBoundingBox();
+			colliderCenterX = bounds.x + bounds.w * 0.5f;
+		}
+		const float horizontalMoveSpeed = z->GetCurrentHorizontalMoveSpeed();
+		const float targetLeadDistance = std::fabs(
+			z->GetTargetLeadX(1.2f) - colliderCenterX);
 		const bool bodyTrackGlowing = anim && anim->GetGlowEffectEnabled();
 		// bit0=本体/头盔/飞行额外生命，bit1=二类护盾；逻辑与实际渲染各导出一份。
 		const int hitFlashMask = (z->IsBodyHitFlashing() ? 1 : 0)
@@ -2991,6 +2999,10 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "animExtraSpeedPct", anim
 				? static_cast<int>(std::lround(anim->GetExtraSpeedMultiplier() * 100.0f)) : 0 },
 			{ "effectiveAnimSpeed", anim ? anim->EffectiveSpeed() : 0.0f },
+			{ "horizontalMoveSpeedOn1000", static_cast<int>(std::lround(
+				horizontalMoveSpeed * 1000.0f)) },
+			{ "targetLeadDistance1200On1000", static_cast<int>(std::lround(
+				targetLeadDistance * 1000.0f)) },
 			{ "goldenIceSpeedActive", z->IsGoldenIceSpeedActive() },
 			{ "goldenIceEffectStacks", z->GetGoldenIceEffectStacks() },
 			{ "freeHitsRemaining", z->mFreeHitsRemaining },
