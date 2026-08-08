@@ -25,7 +25,7 @@ metadata:
 
 ## 数据、冒险与验证
 
-- 生存数据为 `weight=1000`、`appearWave=10`、`survivalRound=10`。当前冒险 5-3（内部 level 39）已接入普通扶梯，并与投篮车同池；5-4（level 40）继续包含普通/精英扶梯和投篮车综合阵容。
+- 生存数据为 `weight=1000`、`appearWave=10`、`survivalRound=10`。当前冒险 5-3（内部 level 39）首次接入普通扶梯；5-4（level 40）继续包含普通/精英扶梯，二者均保留原阵容而不加入投篮车。新增 5-6（level 42）再以普通扶梯与蹦极、投篮车做综合。
 - 主人提供的 `Zombie_ladder.reanim` 与全部 `Zombie_ladder_*` 贴图、`ZombieLadderHead.png`、扶梯音效及三个粒子 XML 均走权威 `build/clang-release/resources`，专项逐项断言 reanim/运行时换图/声音加载，不能只看 manifest。
 - `clang-release` 构建通过。主人当前桌面可见运行 `smoke_ladder_zombie.json`，窗口标题“植物大战僵尸中文版”、exit 0、208 条命令、`run.log` 为 `script finished OK`；除携梯、放梯、共享攀爬、死亡与磁吸外，草坪双坚果路径断言第二目标正常开吃，屋顶专项则锁定“旧梯子碰撞回调不得取消相邻植物啃食”。该专项只覆盖第一种平移，不能代表所有“动画不动但仍移动”均已解决。
 - 主人后来更新的 `level37_data.json` 暴露第二种同症状根因：倭瓜处于 `RISING`、自身 collider 已关闭，但 Cell 物理顶层仍是倭瓜；其下花盆持续产生碰撞。旧 `StartEat` 每帧无条件把花盆替换为倭瓜，下一帧目标校验又因倭瓜 collider 关闭而停吃并恢复走路，随后碰撞再次重播 `anim_eat`，于是第 179 帧冻结而 X 按普通行走速度移动。C# `CanTargetPlant(Chew)` 只在 `EatingOrder` 顶层自身仍合法时阻挡下层，且 `SquashRising/Falling/DoneFalling` 均由 `NotOnGround()` 排除。现已让 `Squash::CanBeEaten` 精确排除 RISING/FALLING/LANDED，并把 `Zombie::IsPlantValidEatTarget` 改为最高**有效**层递归语义；2026-08-04 `clang-release` 编译通过，按主人要求未跑 AutoTest、待亲自实机验证。

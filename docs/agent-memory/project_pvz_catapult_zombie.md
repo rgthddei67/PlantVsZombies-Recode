@@ -1,6 +1,6 @@
 ---
 name: project-pvz-catapult-zombie
-description: 经典投篮车的六发篮球、车辆碾压/爆胎/死亡、专属化灰、存档及屋顶 5-3/5-4 出怪契约
+description: 经典投篮车的六发篮球、车辆碾压/爆胎/死亡、专属化灰、存档及屋顶 5-5/5-6 出怪契约
 metadata:
   node_type: memory
   type: project
@@ -17,6 +17,6 @@ metadata:
 
 主人可见目验后的最终坐标：gamedata offset 为 `[-7,-108]`（较初版整体下移 18px）；篮球起点相对稳定视觉原点为 `[+100,-3]`（较初版向车尾回收 30px）。碰撞框、碾压框、烟雾、爆炸和化灰都从 `Transform + mVisualOffset` 派生，整车上下调只改 gamedata，不分别补偿。资源为 `CatapultZombie`、`Catapult_Charred`、`Zombie_catapult_basketball.png`、`basketball.ogg` 与六发射器 `CatapultExplosion.xml`；运行时断言覆盖 reanim、篮球和三张损坏材质实际键。
 
-冒险加入屋顶两关：5-3（level 39，20 波/200 阳光）池为普通、路障、撑杆、加强铁门、扶梯、投篮车；5-4（level 40，25 波/600 阳光）池为普通、路障、小丑、蹦极、气球、普通扶梯、精英扶梯、投篮车。`smoke_catapult_spawnlists.json` 在当前桌面可见运行 exit 0，完整断言两关背景、波数、阳光、数组顺序、屋顶行兼容并保存选卡预览截图。
+冒险保留既有 5-3（level 39）普通、路障、撑杆、加强铁门、扶梯和 5-4（level 40）普通、路障、小丑、蹦极、气球、普通/精英扶梯阵容。新增 5-5（level 41，25 波/300 阳光）为普通、路障、铁桶、投篮车的精简教学；新增 5-6（level 42，25 波/700 阳光）为普通、路障、铁桶、蹦极、扶梯、投篮车的复习综合，承接 5-5 通关后获得的叶子保护伞。最终 `smoke_catapult_spawnlists.json` 在主人当前桌面可见运行 69 条命令、exit 0，覆盖 5-1～5-6 完整数组、屋顶行兼容，`run.log` 以 `script finished OK` 结束；5-5/5-6 选卡预览截图均已检查且无越界。
 
 验证证据：`clang-release` 编译并链接成功；可见 `smoke_catapult_zombie.json` 118 条命令 exit 0，覆盖第 46 帧前后、75 伤、六发耗尽、装填快照、碾压、两段损坏、不可魅惑、普通爆炸、化灰第 29 帧、爆胎延迟爆炸及爆胎阶段停止碾压，9 张同步截图已检查。共享回归 `smoke_caltrop.json`、`smoke_cabbagepult.json`、`smoke_kernelpult.json` 均可见 exit 0；地刺脚本同时修正了与当前屋顶正式规则冲突的陈旧断言，屋顶地刺应不可直接种植。
