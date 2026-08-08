@@ -21,7 +21,7 @@
 ## 任务 3：投篮车本体
 
 - [x] 实现 850 HP、随机车速、手动位移、碰撞框与同排压扁。
-- [x] 实现 `WALKING/SHOOTING/RELOADING/CALTROP_DYING`，第 46 帧投球、六发库存与篮筐显隐。
+- [x] 实现 `WALKING/SHOOTING/RELOADING/CALTROP_DYING`，第 46 帧投球、十二发逻辑库存与四球篮筐显隐。
 - [x] 实现两段损坏、烟雾、自损、不可魅惑、火焰耐性和水路过滤。
 
 ## 任务 4：地刺、死亡与存档

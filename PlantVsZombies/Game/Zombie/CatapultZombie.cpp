@@ -25,7 +25,7 @@ namespace {
 	constexpr float kIdleClipSpeed = 1.0f;                  // 原版 anim_idle 12fps 相对资源 12fps 的倍率
 	constexpr float kBounceClipSpeed = 1.0f;                // 原版 anim_bounce 12fps 相对资源 12fps 的倍率
 	constexpr int kShootFrame = 46;                         // 主人提供的真实 AddFrameEvent 投篮帧
-	constexpr int kInitialBasketballs = 6;                  // 原版初始篮球库存
+	constexpr int kInitialBasketballs = 12;                 // 主人调高后的初始篮球库存
 	constexpr float kReloadSeconds = 3.0f;                  // 原版 mPhaseCounter=300，单位秒
 	constexpr float kShootStartInsideBoard = 150.0f;        // 进入逻辑棋盘右缘该距离后允许投篮，单位 px
 	constexpr float kMinimumTargetLead = 100.0f;            // 车辆至少位于植物右侧该距离才可锁定，单位 px

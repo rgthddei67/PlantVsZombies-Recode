@@ -6,7 +6,7 @@ class Caltrop;
 class Plant;
 
 /**
- * @brief 经典投篮车僵尸：六发篮球循环、车辆碾压、损坏与专属爆炸/化灰表现。
+ * @brief 经典投篮车僵尸：十二发篮球循环、车辆碾压、损坏与专属爆炸/化灰表现。
  */
 class CatapultZombie final : public Zombie {
 public:
@@ -65,7 +65,7 @@ private:
 
 	Phase mPhase = Phase::WALKING;
 	float mPhaseTimer = 0.0f;
-	int mBasketballCount = 6;
+	int mBasketballCount = 12;
 	float mDriveSpeed = 30.0f;
 	Vector mShotTarget;
 	bool mShotFiredThisCycle = false;

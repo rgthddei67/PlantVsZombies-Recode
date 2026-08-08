@@ -503,7 +503,7 @@ void GameDataManager::InitializeHardcodedData() {
 		ResourceKeys::Reanimations::REANIM_ELITE_LADDER_ZOMBIE,
 		&MakeZombie<EliteLadderZombie>);
 
-	// 投篮车拥有独立六发篮球、碾压、车辆损坏及专属死亡状态机。
+	// 投篮车拥有独立十二发篮球、碾压、车辆损坏及专属死亡状态机。
 	RegisterZombie(ZombieType::ZOMBIE_CATAPULT, "ZOMBIE_CATAPULT",
 		AnimationType::ANIM_CATAPULT_ZOMBIE,
 		ResourceKeys::Reanimations::REANIM_CATAPULT_ZOMBIE,
