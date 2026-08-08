@@ -30,6 +30,7 @@ namespace {
 	constexpr float kCordOffsetX = 40.0f;                   // 绳索相对僵尸视觉原点的水平偏移，单位 px
 	constexpr float kCordEndOffsetY = 10.0f;                // 绳索向下延伸进身体背后的固定点，单位 px
 	constexpr float kBungeeSoundVolume = 0.45f;             // 蹦极登场、尖叫与抓取音效音量
+	constexpr float kUmbrellaBounceVolume = 0.4f;           // 叶子保护伞弹回蹦极时的 boing 音量
 	constexpr float kOccupiedCellWeight = 10000.0f;         // 原版有植物格随机权重
 	constexpr float kEmptyCellWeight = 1.0f;                // 原版空格随机权重
 
@@ -253,6 +254,20 @@ bool BungeeZombie::IsCellReserved(int row, int column) const
 void BungeeZombie::LandAtTarget()
 {
 	mAltitude = 0.0f;
+	if (Plant* protector = mBoard->FindAirborneThreatProtector(
+		mTargetRow, mTargetColumn)) {
+		if (protector->ActivateAirborneDefense()
+			!= AirborneDefenseState::INACTIVE) {
+			// 原版落地节点立即空手弹回；必须先清除预订植物，避免 RISING 的 Die() 误删目标。
+			AudioSystem::PlaySound(
+				ResourceKeys::Sounds::SOUND_BOING, kUmbrellaBounceVolume);
+			mTargetPlantID = NULL_PLANT_ID;
+			mPhase = Phase::RISING;
+			mPhaseTimer = 0.0f;
+			if (mCollider) mCollider->mEnabled = false;
+			return;
+		}
+	}
 	mPhase = Phase::AT_BOTTOM;
 	mPhaseTimer = kBottomWaitSeconds;
 	PlayTrack("anim_idle", kDropClipSpeed, 0.15f);

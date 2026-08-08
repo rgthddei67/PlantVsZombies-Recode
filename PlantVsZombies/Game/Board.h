@@ -723,6 +723,8 @@ public:
 	Plant* GetTopPlantAt(int row, int col) const;
 	/** 返回投篮车篮球在指定格应命中的层：飞行覆盖、普通、南瓜、承载依次优先。 */
 	Plant* GetCatapultTargetPlantAt(int row, int col) const;
+	/** 返回能保护指定格免受空中威胁的最早种下植物；重叠范围只触发一株。 */
+	Plant* FindAirborneThreatProtector(int row, int col) const;
 	/** 返回指定格中最上层能阻挡该类跳跃的植物；非阻拦外壳不会遮蔽内层高坚果。 */
 	Plant* GetJumpBlockingPlantAt(int row, int col, ZombieJumpType jumpType) const;
 	/** 返回指定格承载层；当前可能是睡莲或花盆。 */

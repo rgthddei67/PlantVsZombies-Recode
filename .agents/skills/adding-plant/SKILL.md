@@ -47,6 +47,7 @@ description: Use when adding ANY new plant (新增植物) to PvZ — 射手/生�
 17. **唤醒蘑菇要把倒计时与品种激活分开**：目标蘑菇基类持有 sleeping/wake timer、原版 `EaseSinWave` 纵向弹性与 `SOUND_WAKEUP` 边界，咖啡豆只负责等待、碎裂并对同格普通层调用单一 `BeginWakeUp`。品种通过 `OnWakeUp` 恢复自身能力轨；毁灭菇等特殊蘑菇必须进入与夜间种下相同的充能入口，不能统一硬切 `anim_idle`。咖啡豆阶段/等待计时与目标 wake timer 都入档；加载使用无音效、无能力重触发的恢复入口，再由统一 Animator 恢复当前轨，避免重播咖啡声或充能声。专项覆盖等待和碎裂中各一次快照、音效请求不增加、普通蘑菇恢复 idle 与特殊蘑菇正式结算。
 18. **立即死亡必须先失活再登记延迟销毁**：`GameObjectManager::DestroyGameObject` 到下一次 `Update` 才真正移除对象，而 `StopAnimation()` 会把 Animator 重置到轨道起点。`Plant::Die()` 必须先防重入并 `SetActive(false)`，再停动画、释放格位和入销毁队列，否则死亡当帧仍会闪回起始姿态一次。需要保留残影的压扁态继续走 `Squish()`，不能套用立即死亡契约。
 19. **环境完全暂停要同时封住并行事件与串行动画**：只跳过 `PlantUpdate()` 不够，Animator 可能已在 `UpdateParallel` 产生帧事件并由串行阶段消费。让 Board 提供声明式暂停查询；植物在并行阶段不推进/不排事件，串行回退也把 `mAdvancedInParallel` 置位让公共更新跳过本帧 Animator，并让行动倍率返回 0。禁止用临时 `Pause/Play` 代替：一次性轨道会被公共自动结束检查误判，原本已暂停的花盆轨也可能被唤醒。专项同时断言选中/未选行、活动阶段读档和结束恢复。
+20. **短展开防御要让植物声明能力与阶段、威胁负责结算时序**：由植物虚接口回答保护格、启动动作并返回 `INACTIVE/ACTIVATING/REFLECTING`，Board 只按逻辑格和稳定实体 ID 选择唯一保护者，禁止在篮球、蹦极等威胁侧维护植物类型表。需要等待展开的持续碰撞必须同时接 `onTriggerEnter + onTriggerStay`：`ACTIVATING` 不伤目标也不回收威胁，保持重叠宽限；`REFLECTING` 才原子消费威胁。无需等待的落地威胁可在其原版落地节点立即弹回。阶段与剩余时间入档，加载只按已恢复 Animator 修正终态，不重播声音或重触发威胁；专项覆盖保护范围内外、对角格、重叠选择、展开等待、存档无反馈重放和原威胁回归。
 
 ## 存读档心智清单
 

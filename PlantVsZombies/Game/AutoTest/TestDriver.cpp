@@ -193,6 +193,16 @@ namespace {
 		}
 	}
 
+	const char* AirborneDefenseStateName(AirborneDefenseState state)
+	{
+		switch (state) {
+		case AirborneDefenseState::INACTIVE: return "INACTIVE";
+		case AirborneDefenseState::ACTIVATING: return "ACTIVATING";
+		case AirborneDefenseState::REFLECTING: return "REFLECTING";
+		default: return "UNKNOWN";
+		}
+	}
+
 	bool BoundsIntersect(const SDL_FRect& a, const SDL_FRect& b)
 	{
 		return a.x <= b.x + b.w && a.x + a.w >= b.x
@@ -1995,6 +2005,51 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			&& ResourceManager::GetInstance().GetSound(
 				ResourceKeys::Sounds::SOUND_YUCK2) != nullptr },
 	};
+	out["umbrellaSoundRequestCount"] =
+		AudioSystem::GetSoundPlayRequestCount(
+			ResourceKeys::Sounds::SOUND_SHOOTER_SHOOT2);
+	out["umbrellaBoingSoundRequestCount"] =
+		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_BOING);
+	out["umbrellaSplatSoundRequestCount"] =
+		AudioSystem::GetSoundPlayRequestCount(
+			ResourceKeys::Sounds::SOUND_PEABULLET_HIT_BODY1);
+	out["umbrellaResources"] = {
+		{ "reanimationLoaded", ResourceManager::GetInstance().HasReanimation(
+			ResourceKeys::Reanimations::REANIM_UMBRELLALEAF) },
+		{ "cardLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_UMBRELLALEAF, false) != nullptr },
+		{ "partsLoaded",
+			ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_UMBRELLALEAF_BLINK1, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_UMBRELLALEAF_BLINK2, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_REANIM_UMBRELLALEAF_BODY, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_REANIM_UMBRELLALEAF_LEAF1, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_REANIM_UMBRELLALEAF_LEAF2, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_REANIM_UMBRELLALEAF_LEAF3, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_REANIM_UMBRELLALEAF_LEAF4, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_REANIM_UMBRELLALEAF_LEAF5, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_REANIM_UMBRELLALEAF_LEAF6, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_REANIM_UMBRELLALEAF_LEAF7, false) != nullptr },
+		{ "soundsLoaded",
+			ResourceManager::GetInstance().GetSound(
+				ResourceKeys::Sounds::SOUND_SHOOTER_SHOOT2) != nullptr
+			&& ResourceManager::GetInstance().GetSound(
+				ResourceKeys::Sounds::SOUND_BOING) != nullptr
+			&& ResourceManager::GetInstance().GetSound(
+				ResourceKeys::Sounds::SOUND_PEABULLET_HIT_BODY1) != nullptr },
+		{ "basketballTextureLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_REANIM_ZOMBIE_CATAPULT_BASKETBALL,
+			false) != nullptr },
+	};
 	out["pogoSoundRequestCount"] =
 		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_POGO_ZOMBIE);
 	out["bungeeScreamSoundRequestCount"] =
@@ -3504,6 +3559,10 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "roofRunoffPaused", board->IsPlantPausedByRoofRunoff(p) },
 			{ "bungeeState", PlantBungeeStateName(p->GetBungeeState()) },
 			{ "bungeeOwnerZombieID", p->GetBungeeOwnerZombieID() },
+			{ "airborneDefenseState",
+				AirborneDefenseStateName(p->GetAirborneDefenseState()) },
+			{ "airborneDefenseActivationMs", static_cast<int>(std::lround(
+				p->GetAirborneDefenseActivationTime() * 1000.0f)) },
 		};
 		if (const auto* shadow = p->GetComponent<ShadowComponent>()) {
 			plantState["shadowOffsetXInt"] = static_cast<int>(std::lround(
@@ -3717,6 +3776,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["particleEffectNameCounts"]["ToxicPeaBulletHit"] = 0;
 	out["particleEffectNameCounts"]["CabbageSplat"] = 0;
 	out["particleEffectNameCounts"]["ButterSplat"] = 0;
+	out["particleEffectNameCounts"]["UmbrellaReflect"] = 0;
 	out["particleEffectNameCounts"]["ZombieArmOff"] = 0;
 	out["particleEffectNameCounts"]["ZombieDolphinRiderHeadOff"] = 0;
 	out["particleEffectNameCounts"]["EliteDolphinRiderHeadOff"] = 0;

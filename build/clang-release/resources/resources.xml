@@ -404,6 +404,7 @@
     <Reanimation name="Cornpult">./resources/reanim/Cornpult.reanim</Reanimation>
     <Reanimation name="Coffeebean">./resources/reanim/Coffeebean.reanim</Reanimation>
     <Reanimation name="Garlic">./resources/reanim/Garlic.reanim</Reanimation>
+    <Reanimation name="Umbrellaleaf">./resources/reanim/Umbrellaleaf.reanim</Reanimation>
 
     <Reanimation name="NormalZombie">./resources/reanim/NormalZombie.reanim</Reanimation>
     <Reanimation name="ConeZombie">./resources/reanim/ConeZombie.reanim</Reanimation>

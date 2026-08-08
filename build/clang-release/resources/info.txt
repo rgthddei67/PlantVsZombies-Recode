@@ -177,6 +177,11 @@
 [PLANT_GARLIC_DESCRIPTION]
 大蒜会迫使咬到他的僵尸改道到相邻一行。“路线规划是一门艺术，”大蒜说，“尤其当你的呼吸很有说服力时。”
 
+[PLANT_UMBRELLA]
+叶子保护伞
+[PLANT_UMBRELLA_DESCRIPTION]
+叶子保护伞可以保护自身和周围八格的植物，弹开蹦极僵尸与投篮车投来的篮球。“下雨要撑伞，天上掉僵尸更要撑伞，”叶子保护伞认真地说。
+
 [ZOMBIE_NORMAL]
 僵尸
 [ZOMBIE_NORMAL_DESCRIPTION]

@@ -114,6 +114,7 @@ description: Use when adding or tuning ANY particle effect (粒子特效) in PvZ
 14. **乘法染色不能凭空补颜色通道**：高饱和绿色飞溅要变成紫色时，若源图蓝/红通道接近 0，`ParticleRed/Green/Blue` 只能压暗，无法正确换相。用可复现脚本从权威图集生成同尺寸、同行列布局的独立换色图集，注册到 `<ParticleTextures>` 后让派生效果改用独立分片键；同步截图后断言全部分片加载、派生效果计数和基础效果计数互斥，并跑基础效果回归防止串色。
 15. **运行时装备换色的粒子必须跟随当前样式**：初始普通、能力触发后变色的装备不能让派生类永久固定使用变体掉落效果；由装备状态统一选择普通/变体效果名，且两份 XML 的 `<Image>` 分别指向对应损伤阶段。若能力提示直接复用缩小装备贴图，使用发射前已强制加载的稳定 `IMAGE_*` 键，并断言能力粒子活动数、初始/变色贴图键和破损态切换截图，避免只看到特效却没证明本体同步换色。
 16. **普通爆炸与专属灰烬必须在死亡入口互斥**：若同一实体有“普通死亡发粒子”和“灰烬死亡建独立残骸”两条表现，先按伤害语义选唯一分支，再移除本体；禁止通用 `Die()` 先发爆炸、灰烬覆写随后又补残骸。AutoTest 分别断言普通入口效果名恰为 1、灰烬入口同名计数为 0，并继续等待残骸自己的生命周期结束，不能只截两张看似不同的图。
+17. **原版定向 `LaunchAngle` 不能直接移植**：本引擎没有该标签，`RandomLaunchSpin` 又只能在固定向右和 360° 随机间选择。单颗反弹飞行物需要稳定方向与弧线时，使用 `FieldType=Position` 的 X/Y 关键帧直接描述相对发射点的完整轨迹，再用 `ParticleRotation/ParticleSpinSpeed` 单独处理贴图朝向；发射点取实际飞行物中心，并用同步截图和 `originToRenderCenter*`/`nearestPlant.row,col` 验证方向与锚点。
 
 ## 配方（照抄改数）
 
@@ -122,6 +123,8 @@ description: Use when adding or tuning ANY particle effect (粒子特效) in PvZ
 **掉落物**（ZombieHeadOff）：`SpawnMinActive 1` + `LaunchSpeed [60 100]` + `RandomLaunchSpin 1` + `ParticleGravity 140` + `ParticleSpinSpeed [-5 5]` + Position 场常量（出生点修正 -10,-50）。
 
 **命中飞溅**（PeaBulletHit，双发射器）：主溅斑（1颗、`ParticleScale 1.2 0.4` 缩小消失）+ 碎屑环（`EmitterType Circle` + `LaunchSpeed [65]` + `Friction 0.0,10 0.1` 先快后刹 + `Acceleration Y=5` 微下坠）。
+
+**定向反弹物**（UmbrellaReflect）：`SpawnMinActive 1` + 现有飞行物贴图 + Position X 从 0 向目标方向推进、Y 用三点轨迹先升后落 + `ParticleSpinSpeed`；不用不受支持的 `LaunchAngle`，也不用 `RandomLaunchSpin` 丢失方向。
 
 **范围爆炸云**（JackExplode/CherryBomb）：用固定初始爆发数量 + `EmitterType Circle` + 非零 `EmitterRadius` + `RandomLaunchSpin 1`，云团 `Friction` 保持约 `0.015～0.02`，寿命至少 `0.6s`；碎片可另用更高速度和重力。禁止用 `.15,40 1` 配合超高初速冒充扩散，必须以实际 `worldBounds.widthInt/heightInt` 验收覆盖面。
 

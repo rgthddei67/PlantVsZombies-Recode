@@ -1,0 +1,18 @@
+<Emitter>
+  <Name>UmbrellaReflect</Name>
+  <SpawnMinActive>1</SpawnMinActive>
+  <SpawnMaxLaunched>1</SpawnMaxLaunched>
+  <SpawnRate>0</SpawnRate>
+  <ParticleDuration>0.8</ParticleDuration>
+  <SystemDuration>0.85</SystemDuration>
+  <ParticleAlpha>1,85 0,100</ParticleAlpha>
+  <ParticleScale>1.1</ParticleScale>
+  <ParticleRotation>[0 360]</ParticleRotation>
+  <ParticleSpinSpeed>[-720 720]</ParticleSpinSpeed>
+  <Image>IMAGE_REANIM_ZOMBIE_CATAPULT_BASKETBALL</Image>
+  <Field>
+    <FieldType>Position</FieldType>
+    <X>0,0 120,100</X>
+    <Y>0,0 -90,55 30,100</Y>
+  </Field>
+</Emitter>

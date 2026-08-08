@@ -12,6 +12,7 @@ metadata:
 
 - `ZOMBIE_BUNGEE` 已移入 `NUM_ZOMBIE_TYPES` 哨兵前并注册 `BungeeZombie` 工厂，450 本体生命；下降期为空中层，不吃普通弹丸、灰烬、土豆雷、缠绕水草、冻结、魅惑、台风位移或进家判定，落地等待与抓取阶段才允许正常承伤。Bungee Blitz 固定五只玩法仍未实现；普通蹦极已进入既有 5-4，并在新增 5-6 与扶梯、投篮车综合。
 - 状态机为 `DIVING → AT_BOTTOM → GRABBING → RISING`。下降初版 240 px/s 被主人实机判定过慢，最终提高到 480 px/s；落地等待 5 游戏秒。抓取使用 `PlayTrackOnce(anim_grab → anim_hold)`，上提使用 `PlayTrackOnce(anim_raise)`，没有新增动画帧事件。主人视觉复核后，上升提高到 1600 px/s；最终携带植物偏移定为 `(-20,-12)`，其中 X 从可见测试的 `-12` 再向左调 8px，按主人要求只完成 clang-release 编译、留给主人实机看最终效果。
+- 落地节点会先按目标逻辑格查询空中防御保护者；叶子保护伞覆盖时播放 `boing`、触发 `anim_block`，清空 `mTargetPlantID` 并直接进入 `RISING`，从而不进入等待/抓取且不会在离场 `Die()` 误删目标。保护范围外的原落地流程不变。
 - 植物侧保存抓取者 ID、抓取/上升状态与视觉偏移。被盯上后暂停行为、免疫伤害、不可啃食并关闭碰撞/影子；上升时跳过常规植物绘制，由蹦极按“后层身体 → 植物 → 前臂专用 Animator”顺序绘制。抓取未离地时击杀蹦极会释放植物，上升后击杀或离场会结算植物移除；双方关系、阶段、高度、计时与动画状态支持关卡快照往返。
 
 ## 选点与资源
@@ -25,6 +26,7 @@ metadata:
 - `clang-release` 配置/构建成功。主人当前桌面可见运行 `smoke_bungee_zombie.json`，窗口标题“植物大战僵尸中文版”、exit 0、`run.log` 为 `script finished OK`；覆盖资源、蒙特卡洛与原版随机分支、空中/落地承伤、尖叫、抓取禁用、快照恢复、快速上升、离场移除和抓取中死亡释放。该次携带截图使用 `cargoX=-12`，主人随后认为仍略偏右，最终 `cargoX=-20` 只重新完成 clang-release 编译，未按主人要求再跑 AutoTest。
 - `smoke_bungee_roof_visual.json` 在主人当前桌面可见运行 exit 0，屋顶截图确认绳索从顶部连续伸入僵尸背后，整身与目标花盆中心对齐；该验证不依赖之后只改携带植物的 `cargoX=-20`。
 - 共享蒙特卡洛回归 `smoke_elite_jack_monte_carlo_targeting.json` 同样在当前桌面可见运行 exit 0，原有爆炸候选的 32 rollout、候选数、目标行/X 与植物存活断言保持通过。
+- 2026-08-08 接入叶子保护伞后，`smoke_bungee_zombie.json` 104 条命令再次在主人当前桌面可见运行 exit 0、`script finished OK`，携带坚果与随机/蒙特卡洛选点截图保持正常；`smoke_umbrella_leaf.json` 另断言保护区内蹦极空手上升、目标 300 生命保留、快照往返不重播伞声或 `boing`。
 
 ## 可复用契约
 

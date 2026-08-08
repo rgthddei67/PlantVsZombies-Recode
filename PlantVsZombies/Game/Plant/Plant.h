@@ -26,6 +26,12 @@ enum class PlantBungeeState {
 	RISING,
 };
 
+enum class AirborneDefenseState {
+	INACTIVE,
+	ACTIVATING,
+	REFLECTING,
+};
+
 class Plant : public AnimatedObject {
 public:
 	Board* mBoard = nullptr;
@@ -89,6 +95,18 @@ public:
 	virtual void OnZombieJumpBlocked(ZombieJumpType) {}
 	/** 是否在强/超强台风的逐格结算中锚定整个植物格；默认植物会随阵风移动。 */
 	virtual bool AnchorsPlantCellAgainstTyphoon() const { return false; }
+	/** 是否能保护指定逻辑格免受蹦极、篮球等来自上方的威胁。 */
+	virtual bool ProtectsCellFromAirborneThreat(int, int) const { return false; }
+	/** 请求启动或复用当前空中防御动作；默认植物不响应。 */
+	virtual AirborneDefenseState ActivateAirborneDefense() {
+		return AirborneDefenseState::INACTIVE;
+	}
+	/** 返回当前空中防御阶段，供威胁结算与 AutoTest 共用。 */
+	virtual AirborneDefenseState GetAirborneDefenseState() const {
+		return AirborneDefenseState::INACTIVE;
+	}
+	/** 返回防御动作展开前的剩余等待时间，单位：秒。 */
+	virtual float GetAirborneDefenseActivationTime() const { return 0.0f; }
 	/**
 	 * 一个相邻植物格被本植物直接挡下一格时的结算入口。
 	 * showFeedback 在同一阵风首次撞击时为 true，供品种合并同帧音画而不合并逐格伤害。

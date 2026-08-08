@@ -4171,6 +4171,20 @@ Plant* Board::GetCatapultTargetPlantAt(int row, int col) const
 	return nullptr;
 }
 
+Plant* Board::FindAirborneThreatProtector(int row, int col) const
+{
+	if (row < 0 || row >= mRows || col < 0 || col >= mColumns) return nullptr;
+
+	// 原版按植物容器顺序返回第一株；实体 ID 保留种植先后，排序后可在重叠保护区稳定复刻。
+	std::vector<int> plantIDs = mEntityManager.GetAllPlantIDs();
+	std::sort(plantIDs.begin(), plantIDs.end());
+	for (const int plantID : plantIDs) {
+		Plant* plant = mEntityManager.GetPlant(plantID);
+		if (plant && plant->ProtectsCellFromAirborneThreat(row, col)) return plant;
+	}
+	return nullptr;
+}
+
 Plant* Board::GetJumpBlockingPlantAt(int row, int col, ZombieJumpType jumpType) const
 {
 	// 跳跃阻拦是格内植物能力，不等同于啃食顶层；南瓜等非阻拦外壳要继续向内查询。

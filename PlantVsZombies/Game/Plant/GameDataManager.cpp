@@ -51,6 +51,7 @@
 #include "KernelPult.h"
 #include "CoffeeBean.h"
 #include "Garlic.h"
+#include "UmbrellaLeaf.h"
 
 #include "../Zombie/Zombie.h"
 #include "../Zombie/ConeZombie.h"
@@ -126,14 +127,15 @@ void GameDataManager::InitializeHardcodedData() {
 	// 本函数只注册【身份数据】：枚举名/纹理键/动画/构造工厂。
 	// 全部【数值】（cost/cooldown/weight/appearWave/survivalRound/offset/scale）
 	// 住在 resources/gamedata.json（数值唯一来源，改数值不用重编译）。
-	// 【新增植物】共 5 步（不再需要改 GameApp 的 switch —— 已用注册式工厂取代）：
+	// 【新增植物】共 6 步（不再需要改 GameApp 的 switch —— 已用注册式工厂取代）：
 	//   1. PlantType.h    加枚举项
 	//   2. Game/Plant/    写植物类（纯头文件即可，构造经 using 继承 Plant/Shooter）
 	//   3. 本文件          在下方“植物注册”区加一行 RegisterPlant(..., &MakePlant<新类>)
 	//      并在本文件顶部 #include "你的植物.h"
 	//   4. resources/gamedata.json 的 "plants" 加同枚举名条目（漏了 → 启动时报错退出，
 	//      只改 build/clang-release/resources/；其他预设通过目录联接共享同一份资源）
-	//   5. 加 Card 条目
+	//   5. resources/info.txt 加图鉴名称与说明（卡片本身由注册表数据驱动，无需单独接线）
+	//   6. TestDriver 名称表、资源断言与专项 AutoTest 闭环
 	// 【新增僵尸】同理：ZombieType.h 加枚举 → 写僵尸类 → 下方“僵尸注册”区加一行
 	//      RegisterZombie(..., &MakeZombie<新类>) + 顶部 #include
 	//      + gamedata.json 的 "zombies" 加条目（weight/appearWave/survivalRound 都在 JSON）。
@@ -331,6 +333,11 @@ void GameDataManager::InitializeHardcodedData() {
 		ResourceKeys::Textures::IMAGE_GARLIC,
 		AnimationType::ANIM_GARLIC,
 		ResourceKeys::Reanimations::REANIM_GARLIC, &MakePlant<Garlic>);
+
+	RegisterPlant(PlantType::PLANT_UMBRELLA, "PLANT_UMBRELLA",
+		ResourceKeys::Textures::IMAGE_UMBRELLALEAF,
+		AnimationType::ANIM_UMBRELLALEAF,
+		ResourceKeys::Reanimations::REANIM_UMBRELLALEAF, &MakePlant<UmbrellaLeaf>);
 
 	// 寒冰大喷菇：复用大喷菇 reanim（蓝色靠 overlay），仅卡图独立
 	RegisterPlant(PlantType::PLANT_ICEFUMESHROOM, "PLANT_ICEFUMESHROOM",

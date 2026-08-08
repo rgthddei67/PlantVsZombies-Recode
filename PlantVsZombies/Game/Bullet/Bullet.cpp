@@ -813,6 +813,9 @@ void Bullet::ConfigureCollisionTarget()
 		mCollider->onTriggerEnter = [this](ColliderComponent* other) {
 			HandlePlantContact(other);
 		};
+		mCollider->onTriggerStay = [this](ColliderComponent* other) {
+			HandlePlantContact(other);
+		};
 		return;
 	}
 
@@ -842,7 +845,25 @@ void Bullet::HandlePlantContact(ColliderComponent* other)
 		collidedPlant->mRow, collidedPlant->mColumn);
 	if (!target) return;
 
-	// TODO(叶子保护伞)：在实际扣血前查询同排保护伞的触发状态；未来在此等待、触发或反弹篮球。
+	if (Plant* protector = mBoard->FindAirborneThreatProtector(
+		target->mRow, target->mColumn)) {
+		const AirborneDefenseState defense = protector->ActivateAirborneDefense();
+		if (defense == AirborneDefenseState::ACTIVATING) {
+			// 原版给伞叶 0.05 秒展开；Stay 会在篮球仍与目标重叠时继续完成正式反弹。
+			return;
+		}
+		if (defense == AirborneDefenseState::REFLECTING) {
+			mHasHit = true;
+			AudioSystem::PlaySound(
+				ResourceKeys::Sounds::SOUND_PEABULLET_HIT_BODY1, 0.2f);
+			if (g_particleSystem) {
+				g_particleSystem->EmitEffect("UmbrellaReflect", GetPosition());
+			}
+			Die();
+			return;
+		}
+	}
+
 	mHasHit = true;
 	target->TakeDamage(mDamage, DamageSource::ZOMBIE);
 	AudioSystem::PlaySound(
