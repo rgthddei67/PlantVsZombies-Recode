@@ -257,6 +257,10 @@ public:
 	bool IsShieldTrackGlowing() const;
 	/** 是否仍处于空中；默认僵尸始终在地面。 */
 	virtual bool IsFlying() const { return false; }
+	/** 径流自然锁行时是否允许本实体把自己的行纳入本次行组。 */
+	virtual bool CanGuideRoofRunoff() const { return false; }
+	/** 当前实例承受屋顶径流附加位移的倍率；默认不改变 Board 基础速度。 */
+	virtual float GetRoofRunoffDriftMultiplier() const { return 1.0f; }
 	/**
 	 * 返回当前阶段能否被指定高度层的弹丸命中。
 	 * @param targetsFlying true=对空弹丸，false=地面弹丸。

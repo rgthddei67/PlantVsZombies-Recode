@@ -3,10 +3,10 @@
 > Codex routing: required always-on rules live in `../../AGENTS.md`; detailed build, AutoTest, architecture, resource, and implementation guidance lives in `../agent-guide/PROJECT_GUIDE.md`. The entries below are historical subsystem context and should be read only when relevant.
 
 - [经典叶子保护伞与空中威胁防御](project_pvz_umbrella_leaf.md) — 2026-08-08 `PLANT_UMBRELLA` 100阳光/7.5秒/300生命，以能力接口覆盖自身及周围八格；0.05秒展开后反弹75伤篮球并让蹦极立即空手上升，阶段/计时入档且不重播反馈；无新增动画帧事件，默认/NoInstance专项及蹦极/投篮车回归可见通过
-- [经典投篮车僵尸](project_pvz_catapult_zombie.md) — 2026-08-08 `ZOMBIE_CATAPULT` 850整车生命/23～37px每秒/十二发75伤篮球，第46帧发射、3秒装填；篮筐仍只显示四球且从剩余4开始逐个减少；碾压、两段损坏、地刺2.8秒爆胎死亡、普通爆炸与专属第29帧化灰，完整瞬态存档；主人目验后整车下移18px、篮球向车尾回收30px，黄油跟司机头轨、冰晶底边中心为稳定视觉原点`[+95,+143]`；保留屋顶5-3/5-4原阵容，新增5-5精简教学与5-6蹦极/扶梯综合；篮球扣血入口现已接入叶子保护伞展开等待与反弹
+- [经典投篮车与导流投篮车僵尸](project_pvz_catapult_zombie.md) — 2026-08-08 普通型850生命/十二发75伤篮球/第46帧/3秒装填；导流精英1000生命并完整继承弹药状态机，屋顶自然锁行时最近房屋的坡段候选只替换一条随机行，行掩码锁后不因死亡重抽，只有自身径流从-60放大到-100且爆胎回退；正式每波最多一只并入档，5-6在普通投篮车之后首次登场；独立青蓝资源/爆炸与共享篮球键已闭环，专项、上限、出怪表和父回归均可见通过且日志0 ERROR/WARN
 - [经典大蒜与僵尸跨行反应](project_pvz_garlic.md) — 2026-08-08 `PLANT_GARLIC` 50阳光/7.5秒/400生命；首口50伤后由 Zombie 独立嫌恶状态在0.7秒停吃、1.7秒同介质相邻行改道、2.7秒结束，逻辑 `mRow` 先切换而 Y 以100px/s追赶；报纸破盾原子取消、魅惑继续，阶段/Y/恶心脸存档；通用 grossout 头按透明像素框上移15px；clang-release、默认/NoInstance各196命令可见专项及报纸父回归通过
 - [屋顶地形与僵尸连续坡面](project_pvz_roof_terrain_foundation.md) — 2026-08-03 白天/黑夜屋顶共用 Board 连续1:4坡面；植物离散格、僵尸连续坡面、清洁车/火焰/雨滴/弹坑/台风/子弹按语义消费；花盆承载与台风整组搬移已纳入专项；昼夜屋顶雨天在背景层淡入各自仅替换天空的雨景变体，非天空像素与各自原图一致
-- [昼夜屋顶坡面径流](project_pvz_roof_runoff.md) — 2026-08-04 `ROOF/NIGHT_ROOF` 共用雨势积累、3 秒预警与 2.2 秒冲刷；一次不重复锁定 1～3 行（50/35/15），僵尸以 60px/s 向屋檐漂移；结束兑现预抽并入档的 30%～60% 残留湿度，夜屋顶未来在此之上叠加独立电荷系统
+- [昼夜屋顶坡面径流](project_pvz_roof_runoff.md) — 2026-08-08 `ROOF/NIGHT_ROOF` 共用雨势积累、3秒预警与2.2秒冲刷；一次不重复锁定1～3行（50/35/15），结束兑现预抽并入档的30%～60%残留湿度；普通僵尸以60px/s向屋檐漂移，导流投篮车可在锁行时用自身行替换一条且只把自身放大到100px/s，最终mask仍是唯一入档事实；夜屋顶未来独立电荷继续叠加
 - [第六大关黑夜屋顶延期设计](project_pvz_sixth_area_night_roof_backlog.md) — 2026-08-04 第五大关完成前仅记录：完整 `NIGHT_ROOF` 大关候选采用独立雷荷/导电瓦路；全场当前总血量处决僵尸按植物格组合与僵尸三层生命冻结快照同时结算、花盆豁免，并已确认“约 6～8 秒天气预警＋约 0.9～1.2 秒最终锁定”、灰烬可硬解、死亡不清雷荷且本次劫持不转移
 - [经典花盆与屋顶承载层](project_pvz_flowerpot.md) — 2026-08-03 `PLANT_FLOWERPOT` 25阳光/7.5秒/300生命/1秒无啃食；under+normal+南瓜分层、屋顶门禁、5-1/5-2/后续5/4/3列初始布局、覆盖暂停、5px视觉抬升、通用ShadowComponent 46px可见阴影、双向台风整组与存档均经默认/NoInstance可见专项
 - [架构边界、存档版本与技能审计门禁](project_pvz_architecture_boundaries.md) — 2026-08-03 `BoardPresentation` 取代 `Board::mGameScene`，Board 保持天气/波次/生存玩法唯一权威；`SceneManager` 明确单活动场景；玩家 schema v2 为已通关3-8的旧档补发前移后的毒囊射手，迁移保持事务式并有纯测试；每次任务提交前审计相关 skills

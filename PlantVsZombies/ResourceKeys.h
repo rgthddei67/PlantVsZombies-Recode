@@ -156,6 +156,9 @@ namespace ResourceKeys
 		RKEY(IMAGE_ZOMBIE_CATAPULT_SIDING_DAMAGE);
 		RKEY(IMAGE_ZOMBIE_CATAPULT_POLE_DAMAGE);
 		RKEY(IMAGE_ZOMBIE_CATAPULT_POLE_DAMAGE_WITHBALL);
+		RKEY(IMAGE_REANIM_ZOMBIE_ELITE_CATAPULT_SIDING);
+		RKEY(IMAGE_ZOMBIE_ELITE_CATAPULT_SIDING_DAMAGE);
+		RKEY(IMAGE_ZOMBIE_ELITE_CATAPULT_MANHOLE);
 		RKEY(IMAGE_ZOMBIE_JACKSON_OUTERARM_UPPER2);
 		RKEY(IMAGE_ZOMBIE_LADDER_OUTERARM_UPPER2);
 		RKEY(IMAGE_ZOMBIE_LADDER_1);
@@ -517,6 +520,7 @@ namespace ResourceKeys
 		inline const std::string REANIM_LADDER_ZOMBIE = "ZombieLadder";
 		inline const std::string REANIM_ELITE_LADDER_ZOMBIE = "EliteLadderZombie";
 		inline const std::string REANIM_CATAPULT_ZOMBIE = "CatapultZombie";
+		inline const std::string REANIM_ELITE_CATAPULT_ZOMBIE = "EliteCatapultZombie";
 		inline const std::string REANIM_DIGGER_RISING_DIRT = "DiggerRisingDirt";
 		inline const std::string REANIM_DIGGER_CHARRED = "DiggerCharred";
 		inline const std::string REANIM_ZOMBIE_SURPRISE = "ZombieSurprise";

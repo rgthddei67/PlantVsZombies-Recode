@@ -35,6 +35,7 @@
 #include <algorithm>   // std::max, std::swap
 #include <cmath>       // std::lround
 #include <cstdint>
+#include <limits>
 
 namespace {
 	/** 集中保留地刺系的背景地形规则；屋顶必须拒绝无法放入花盆的地刺系。 */
@@ -163,6 +164,7 @@ namespace {
 	constexpr int kEliteDiggerMaxPerWave = 1;             // 每波最多正式生成的爆破工头数量；超额候选直接跳过
 	constexpr int kElitePogoMaxPerWave = 1;               // 每波最多正式生成的精英跳跳数量；超额候选直接跳过
 	constexpr int kEliteLadderMaxPerWave = 1;             // 每波最多正式生成的精英扶梯数量；超额候选直接跳过
+	constexpr int kEliteCatapultMaxPerWave = 1;           // 每波最多正式生成的导流投篮车数量；超额候选直接跳过
 	constexpr int kEliteScaredyShroomPlantLimit = 4;      // 每个关卡累计最多种植的精英胆小菇数量
 	constexpr int kPumpkinProtectionCellRadius = 1;       // 南瓜头范围爆炸保护的逻辑格半径；1 表示自身九宫格
 	constexpr int kPumpkinAreaDamageMultiplier = 5;       // 特殊僵尸范围伤害被南瓜头拦截时的默认基础伤害倍率
@@ -2055,6 +2057,13 @@ void Board::RestoreEliteLadderWaveSpawnCount(int count)
 	mEliteLaddersSpawnedThisWave = std::clamp(count, 0, kEliteLadderMaxPerWave);
 }
 
+/** 夹紧并恢复当前波已经正式生成的导流投篮车数量。 */
+void Board::RestoreEliteCatapultWaveSpawnCount(int count)
+{
+	mEliteCatapultsSpawnedThisWave = std::clamp(
+		count, 0, kEliteCatapultMaxPerWave);
+}
+
 /** 清空全部台风派生状态；中雨、小雨、晴天和旧档默认都以此为单位元。 */
 void Board::StopTyphoon()
 {
@@ -2226,6 +2235,12 @@ ZombieType Board::ResolveWaveZombieType(ZombieType selected, int mutationRoll)
 			return ZombieType::NUM_ZOMBIE_TYPES;
 		}
 		++mEliteLaddersSpawnedThisWave;
+	}
+	if (selected == ZombieType::ZOMBIE_ELITE_CATAPULT) {
+		if (mEliteCatapultsSpawnedThisWave >= kEliteCatapultMaxPerWave) {
+			return ZombieType::NUM_ZOMBIE_TYPES;
+		}
+		++mEliteCatapultsSpawnedThisWave;
 	}
 	return ResolveRainMutationType(selected, mutationRoll);
 }
@@ -2716,6 +2731,47 @@ void Board::UpdateRoofRunoff(float deltaTime)
 	while (GetRoofRunoffRowCount() < rowCount) {
 		mRoofRunoffRowMask |= 1 << GameRandom::Range(0, mRows - 1);
 	}
+
+	// 导流车只能替换本次已经抽中的一行，不能扩充冲刷规模；最终掩码仍是唯一入档事实。
+	const int guideRow = GetRoofRunoffGuideCandidateRow();
+	if (guideRow >= 0 && !IsRoofRunoffRowSelected(guideRow)) {
+		const int replacedIndex = GameRandom::Range(0, rowCount - 1);
+		int selectedIndex = 0;
+		for (int row = 0; row < mRows; ++row) {
+			if (!IsRoofRunoffRowSelected(row)) continue;
+			if (selectedIndex++ != replacedIndex) continue;
+			mRoofRunoffRowMask &= ~(1 << row);
+			break;
+		}
+		mRoofRunoffRowMask |= 1 << guideRow;
+	}
+}
+
+/**
+ * 自然锁行只采样仍在坡段内的活动导流车；最近房屋者优先，ID 只负责同 X 稳定决胜。
+ */
+int Board::GetRoofRunoffGuideCandidateRow() const
+{
+	if (!SupportsRoofRunoff()) return -1;
+	const float slopeEndX = GetRoofSlopeEndX();
+	int bestRow = -1;
+	int bestID = NULL_ZOMBIE_ID;
+	float bestX = std::numeric_limits<float>::max();
+	for (const int id : mEntityManager.GetAllZombieIDs()) {
+		const Zombie* zombie = mEntityManager.GetZombie(id);
+		if (!zombie || zombie->mRow < 0 || zombie->mRow >= mRows
+			|| !zombie->CanGuideRoofRunoff()) {
+			continue;
+		}
+		const float x = zombie->GetPosition().x;
+		if (x > slopeEndX) continue;
+		if (x < bestX || (x == bestX && (bestID == NULL_ZOMBIE_ID || id < bestID))) {
+			bestX = x;
+			bestID = id;
+			bestRow = zombie->mRow;
+		}
+	}
+	return bestRow;
 }
 
 /** 校验并恢复径流状态；损坏组合和非屋顶存档都回到中性状态。 */
@@ -3389,6 +3445,7 @@ bool Board::CanZombieTypeSpawnInPool(ZombieType type) const
 	case ZombieType::ZOMBIE_ZAMBONI:
 	case ZombieType::ZOMBIE_GILDED_ZAMBONI:
 	case ZombieType::ZOMBIE_CATAPULT:
+	case ZombieType::ZOMBIE_ELITE_CATAPULT:
 	case ZombieType::ZOMBIE_POGO:
 	case ZombieType::ZOMBIE_ELITE_POGO:
 	case ZombieType::ZOMBIE_DIGGER:
@@ -4623,6 +4680,7 @@ void Board::SummonNextWave()
 	mEliteDiggersSpawnedThisWave = 0;
 	mElitePogosSpawnedThisWave = 0;
 	mEliteLaddersSpawnedThisWave = 0;
+	mEliteCatapultsSpawnedThisWave = 0;
 	mMistFuelAssignedThisWave = 0;
 	if (mCurrentWave == 1)
 	{
@@ -5211,6 +5269,7 @@ void Board::OnSurvivalRoundClear()
 	mEliteDiggersSpawnedThisWave = 0;
 	mElitePogosSpawnedThisWave = 0;
 	mEliteLaddersSpawnedThisWave = 0;
+	mEliteCatapultsSpawnedThisWave = 0;
 	RefreshZombieWeatherSpeeds();
 
 	// 重算难度（解锁更强僵尸）+ 刷新关卡名

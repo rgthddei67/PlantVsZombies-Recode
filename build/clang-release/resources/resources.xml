@@ -443,6 +443,7 @@
     <Reanimation name="ZombieLadder">./resources/reanim/Zombie_ladder.reanim</Reanimation>
     <Reanimation name="EliteLadderZombie">./resources/reanim/EliteLadder.reanim</Reanimation>
     <Reanimation name="CatapultZombie">./resources/reanim/Zombie_catapult.reanim</Reanimation>
+    <Reanimation name="EliteCatapultZombie">./resources/reanim/EliteCatapult.reanim</Reanimation>
 
     <Reanimation name="Zombie_Charred">./resources/reanim/Zombie_Charred.reanim</Reanimation>
     <Reanimation name="Zamboni_Charred">./resources/reanim/Zombie_charred_zamboni.reanim</Reanimation>

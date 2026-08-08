@@ -250,6 +250,7 @@ private:
 	int mEliteDiggersSpawnedThisWave = 0; // 当前波正式生成的爆破工头数量；每波至多一只并进入存档
 	int mElitePogosSpawnedThisWave = 0; // 当前波正式生成的精英跳跳数量；每波至多一只并进入存档
 	int mEliteLaddersSpawnedThisWave = 0; // 当前波正式生成的精英扶梯数量；每波至多一只并进入存档
+	int mEliteCatapultsSpawnedThisWave = 0; // 当前波正式生成的导流投篮车数量；每波至多一只并进入存档
 	int mEliteScaredyShroomsPlanted = 0; // 本关累计种下的精英胆小菇数量；死亡或铲除不返还次数
 	int mLastTyphoonMovedPlants = 0;    // 最近一次阵风移动的植物数，仅供观测和测试
 	int mLastTyphoonLostPlants = 0;     // 最近一次阵风吹出棋盘或吹入弹坑的植物数，仅供观测和测试
@@ -343,6 +344,7 @@ private:
 	void RestoreEliteDiggerWaveSpawnCount(int count);
 	void RestoreElitePogoWaveSpawnCount(int count);
 	void RestoreEliteLadderWaveSpawnCount(int count);
+	void RestoreEliteCatapultWaveSpawnCount(int count);
 	void RestoreTyphoonState(TyphoonStrength strength, WindDirection direction,
 		float strengthTimer, float gustTimer, float directionTimer, int gustsRemaining);
 	void RestoreActiveTyphoonGust(bool active, TyphoonStrength strength,
@@ -591,6 +593,7 @@ public:
 	int GetEliteDiggersSpawnedThisWave() const { return mEliteDiggersSpawnedThisWave; }
 	int GetElitePogosSpawnedThisWave() const { return mElitePogosSpawnedThisWave; }
 	int GetEliteLaddersSpawnedThisWave() const { return mEliteLaddersSpawnedThisWave; }
+	int GetEliteCatapultsSpawnedThisWave() const { return mEliteCatapultsSpawnedThisWave; }
 	int GetLastTyphoonMovedPlants() const { return mLastTyphoonMovedPlants; }
 	int GetLastTyphoonLostPlants() const { return mLastTyphoonLostPlants; }
 	int GetLastTyphoonBlockedPlantSteps() const { return mLastTyphoonBlockedPlantSteps; }
@@ -676,6 +679,8 @@ public:
 	}
 	/** 返回当前锁定的不重复行数。 */
 	int GetRoofRunoffRowCount() const;
+	/** 返回当前最靠房屋且能参与下一次自然锁行的导流僵尸行；没有候选时返回 -1。 */
+	int GetRoofRunoffGuideCandidateRow() const;
 	bool IsRoofRunoffWarning() const {
 		return mRoofRunoffPhase == RoofRunoffPhase::WARNING;
 	}

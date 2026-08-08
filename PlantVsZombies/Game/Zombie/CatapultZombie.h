@@ -8,7 +8,7 @@ class Plant;
 /**
  * @brief 经典投篮车僵尸：十二发篮球循环、车辆碾压、损坏与专属爆炸/化灰表现。
  */
-class CatapultZombie final : public Zombie {
+class CatapultZombie : public Zombie {
 public:
 	using Zombie::Zombie;
 
@@ -46,6 +46,12 @@ protected:
 	void ZombieMove(float scaledDelta, TransformComponent* transform) override;
 	void SaveExtraData(nlohmann::json& j) const override;
 	void LoadExtraData(const nlohmann::json& j) override;
+	/** 按损坏阶段选择侧板材质，使精英子类复用完整车辆状态机。 */
+	virtual const std::string& GetCatapultSidingTextureKey(bool damaged) const;
+	/** 按损坏与持球状态选择投臂材质。 */
+	virtual const std::string& GetCatapultPoleTextureKey(bool damaged, bool hasBall) const;
+	/** 返回普通死亡时发射的粒子效果名。 */
+	virtual const char* GetCatapultExplosionEffectName() const;
 
 private:
 	/** @brief 从步行态进入一次射击，并冻结本发篮球的目标弹心。 */

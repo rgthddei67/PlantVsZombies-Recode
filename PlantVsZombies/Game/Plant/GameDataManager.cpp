@@ -86,6 +86,7 @@
 #include "../Zombie/LadderZombie.h"
 #include "../Zombie/EliteLadderZombie.h"
 #include "../Zombie/CatapultZombie.h"
+#include "../Zombie/EliteCatapultZombie.h"
 
 namespace {
 	template<typename T>
@@ -515,6 +516,12 @@ void GameDataManager::InitializeHardcodedData() {
 		AnimationType::ANIM_CATAPULT_ZOMBIE,
 		ResourceKeys::Reanimations::REANIM_CATAPULT_ZOMBIE,
 		&MakeZombie<CatapultZombie>);
+
+	// 导流投篮车继承普通投篮车全部弹药行为，只增加屋顶锁行与自身径流倍率。
+	RegisterZombie(ZombieType::ZOMBIE_ELITE_CATAPULT, "ZOMBIE_ELITE_CATAPULT",
+		AnimationType::ANIM_ELITE_CATAPULT_ZOMBIE,
+		ResourceKeys::Reanimations::REANIM_ELITE_CATAPULT_ZOMBIE,
+		&MakeZombie<EliteCatapultZombie>);
 
 	// ==================== 非植物/僵尸动画映射 ====================
 	mAnimToString[AnimationType::ANIM_SUN] = ResourceKeys::Reanimations::REANIM_SUN;

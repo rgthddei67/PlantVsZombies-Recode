@@ -318,13 +318,7 @@ void CatapultZombie::ApplyBasketballPresentation() const
 	ResourceManager& resources = ResourceManager::GetInstance();
 	const bool damagedPole = GetDamageStage() >= 2;
 	const bool hasBall = mBasketballCount > 0;
-	const std::string& poleKey = damagedPole
-		? (hasBall
-			? ResourceKeys::Textures::IMAGE_ZOMBIE_CATAPULT_POLE_DAMAGE_WITHBALL
-			: ResourceKeys::Textures::IMAGE_ZOMBIE_CATAPULT_POLE_DAMAGE)
-		: (hasBall
-			? ResourceKeys::Textures::IMAGE_REANIM_ZOMBIE_CATAPULT_POLE_WITHBALL
-			: ResourceKeys::Textures::IMAGE_REANIM_ZOMBIE_CATAPULT_POLE);
+	const std::string& poleKey = GetCatapultPoleTextureKey(damagedPole, hasBall);
 	mAnimator->SetTrackImage("Zombie_catapult_pole", resources.GetTexture(poleKey));
 }
 
@@ -332,11 +326,34 @@ void CatapultZombie::ApplyDamageVisuals() const
 {
 	if (!mAnimator) return;
 	ResourceManager& resources = ResourceManager::GetInstance();
-	const std::string& sidingKey = GetDamageStage() >= 1
-		? ResourceKeys::Textures::IMAGE_ZOMBIE_CATAPULT_SIDING_DAMAGE
-		: ResourceKeys::Textures::IMAGE_REANIM_ZOMBIE_CATAPULT_SIDING;
+	const std::string& sidingKey = GetCatapultSidingTextureKey(GetDamageStage() >= 1);
 	mAnimator->SetTrackImage("Zombie_catapult_siding", resources.GetTexture(sidingKey));
 	ApplyBasketballPresentation();
+}
+
+const std::string& CatapultZombie::GetCatapultSidingTextureKey(bool damaged) const
+{
+	return damaged
+		? ResourceKeys::Textures::IMAGE_ZOMBIE_CATAPULT_SIDING_DAMAGE
+		: ResourceKeys::Textures::IMAGE_REANIM_ZOMBIE_CATAPULT_SIDING;
+}
+
+const std::string& CatapultZombie::GetCatapultPoleTextureKey(
+	bool damaged, bool hasBall) const
+{
+	if (damaged) {
+		return hasBall
+			? ResourceKeys::Textures::IMAGE_ZOMBIE_CATAPULT_POLE_DAMAGE_WITHBALL
+			: ResourceKeys::Textures::IMAGE_ZOMBIE_CATAPULT_POLE_DAMAGE;
+	}
+	return hasBall
+		? ResourceKeys::Textures::IMAGE_REANIM_ZOMBIE_CATAPULT_POLE_WITHBALL
+		: ResourceKeys::Textures::IMAGE_REANIM_ZOMBIE_CATAPULT_POLE;
+}
+
+const char* CatapultZombie::GetCatapultExplosionEffectName() const
+{
+	return "CatapultExplosion";
 }
 
 void CatapultZombie::TakeBodyDamage(int damage)
@@ -372,7 +389,7 @@ void CatapultZombie::Die()
 	if (!mSuppressDeathEffects && !mIsPreview && !mDeathEffectsEmitted) {
 		mDeathEffectsEmitted = true;
 		if (g_particleSystem) {
-			g_particleSystem->EmitEffect("CatapultExplosion",
+			g_particleSystem->EmitEffect(GetCatapultExplosionEffectName(),
 				GetPosition() + mVisualOffset
 					+ Vector(kDeathEffectFromVisualX, kDeathEffectFromVisualY));
 		}

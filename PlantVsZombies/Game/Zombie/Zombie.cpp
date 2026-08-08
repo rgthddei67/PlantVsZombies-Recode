@@ -887,7 +887,7 @@ void Zombie::ApplyRoofRunoffDrift(float deltaTime, TransformComponent* transform
 	if (!transform || !mBoard || mIsDying || deltaTime <= 0.0f
 		|| !CanBeMovedByTyphoonGust() || !CanUseGroundPoolState() || IsFlying()) return;
 	const float velocity = mBoard->GetRoofRunoffZombieDriftVelocity(
-		mRow, transform->GetPosition().x);
+		mRow, transform->GetPosition().x) * GetRoofRunoffDriftMultiplier();
 	if (velocity == 0.0f) return;
 	transform->Translate(velocity * deltaTime, 0.0f);
 }

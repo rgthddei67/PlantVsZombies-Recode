@@ -66,6 +66,7 @@
 #include "../Zombie/EliteLadderZombie.h"
 #include "../Zombie/CatapultCharred.h"
 #include "../Zombie/CatapultZombie.h"
+#include "../Zombie/EliteCatapultZombie.h"
 #include "../Zombie/PoolNormalZombie.h"
 #include "../Trophy.h"   // dump_state 输出奖杯坐标
 #include "../Crater.h"   // dump_state 输出毁灭菇弹坑
@@ -245,7 +246,7 @@ namespace {
 		ZT(ZOMBIE_ZAMBONI), ZT(ZOMBIE_GILDED_ZAMBONI), ZT(ZOMBIE_DOLPHIN_RIDER), ZT(ZOMBIE_ELITE_DOLPHIN_RIDER),
 		ZT(ZOMBIE_JACK_IN_THE_BOX), ZT(ZOMBIE_ELITE_JACK_IN_THE_BOX), ZT(ZOMBIE_BALLOON),
 		ZT(ZOMBIE_DIGGER), ZT(ZOMBIE_ELITE_DIGGER), ZT(ZOMBIE_POGO), ZT(ZOMBIE_ELITE_POGO),
-		ZT(ZOMBIE_BUNGEE), ZT(ZOMBIE_LADDER), ZT(ZOMBIE_ELITE_LADDER), ZT(ZOMBIE_CATAPULT),
+		ZT(ZOMBIE_BUNGEE), ZT(ZOMBIE_LADDER), ZT(ZOMBIE_ELITE_LADDER), ZT(ZOMBIE_CATAPULT), ZT(ZOMBIE_ELITE_CATAPULT),
 		ZT(ZOMBIE_YETI),
 		ZT(ZOMBIE_GARGANTUAR), ZT(ZOMBIE_IMP), ZT(ZOMBIE_BOSS), ZT(ZOMBIE_PEA_HEAD),
 		ZT(ZOMBIE_WALLNUT_HEAD), ZT(ZOMBIE_JALAPENO_HEAD), ZT(ZOMBIE_GATLING_HEAD),
@@ -2510,6 +2511,19 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		{ "basketballSoundLoaded", ResourceManager::GetInstance().HasSound(
 			ResourceKeys::Sounds::SOUND_BASKETBALL) },
 	};
+	out["eliteCatapultResources"] = {
+		{ "reanimationLoaded", ResourceManager::GetInstance().HasReanimation(
+			ResourceKeys::Reanimations::REANIM_ELITE_CATAPULT_ZOMBIE) },
+		{ "sidingTextureLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_REANIM_ZOMBIE_ELITE_CATAPULT_SIDING,
+			false) != nullptr },
+		{ "sidingDamageTextureLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_ZOMBIE_ELITE_CATAPULT_SIDING_DAMAGE,
+			false) != nullptr },
+		{ "manholeTextureLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_ZOMBIE_ELITE_CATAPULT_MANHOLE,
+			false) != nullptr },
+	};
 	out["cards"] = nlohmann::json::array();
 	if (CardSlotManager* cardManager = gs->GetCardSlotManager()) {
 		for (Card* card : cardManager->GetCards()) {
@@ -2738,6 +2752,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "eliteDiggersSpawnedThisWave", board->GetEliteDiggersSpawnedThisWave() },
 			{ "elitePogosSpawnedThisWave", board->GetElitePogosSpawnedThisWave() },
 			{ "eliteLaddersSpawnedThisWave", board->GetEliteLaddersSpawnedThisWave() },
+			{ "eliteCatapultsSpawnedThisWave", board->GetEliteCatapultsSpawnedThisWave() },
 			{ "typhoonDecayRemaining", board->GetTyphoonStrengthTimer() },
 			{ "windDirection", WindDirectionName(board->GetWindDirection()) },
 			{ "windDirectionRemaining", board->GetWindDirectionTimer() },
@@ -2804,6 +2819,9 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "rowMask", board->GetRoofRunoffRowMask() },
 			{ "rowCount", board->GetRoofRunoffRowCount() },
 			{ "rows", runoffRows },
+			{ "guideCandidateRow", board->GetRoofRunoffGuideCandidateRow() },
+			{ "guideCandidateSelected", board->IsRoofRunoffRowSelected(
+				board->GetRoofRunoffGuideCandidateRow()) },
 			{ "phaseRemainingMs", static_cast<int>(std::lround(
 				board->GetRoofRunoffPhaseTimer() * 1000.0f)) },
 			{ "flowProgressPct", static_cast<int>(std::lround(
@@ -2884,6 +2902,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		? g_particleSystem->GetEffectActiveParticleCount("ZamboniTire") : 0;
 	out["catapultExplosionParticleCount"] = g_particleSystem
 		? g_particleSystem->GetEffectActiveParticleCount("CatapultExplosion") : 0;
+	out["eliteCatapultExplosionParticleCount"] = g_particleSystem
+		? g_particleSystem->GetEffectActiveParticleCount("EliteCatapultExplosion") : 0;
 	out["cooldownZombieSoundRequestCount"] =
 		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_COOLDOWNZOMBIE);
 	out["caltropTirePopSoundRequestCount"] =
@@ -3019,6 +3039,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	int eliteDiggerZombieCount = 0;
 	int elitePogoZombieCount = 0;
 	int eliteLadderZombieCount = 0;
+	int eliteCatapultZombieCount = 0;
 	int zombieBodyHealthTotal = 0;
 	int zombieShieldHealthTotal = 0;
 	int slowedZombieCount = 0;
@@ -3043,6 +3064,9 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		}
 		if (z->mZombieType == ZombieType::ZOMBIE_ELITE_DIGGER) {
 			++eliteDiggerZombieCount;
+		}
+		if (z->mZombieType == ZombieType::ZOMBIE_ELITE_CATAPULT) {
+			++eliteCatapultZombieCount;
 		}
 		zombieBodyHealthTotal += z->mBodyHealth;
 		zombieShieldHealthTotal += z->mShieldHealth;
@@ -3076,6 +3100,12 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "terrainYOffsetOn1000", static_cast<int>(std::lround(
 				(pos.y - terrainY) * 1000.0f)) },
 			{ "bodyHealth", z->mBodyHealth }, { "bodyMaxHealth", z->mBodyMaxHealth },
+			{ "roofRunoffGuideEligible", z->CanGuideRoofRunoff() },
+			{ "roofRunoffDriftMultiplierOn1000", static_cast<int>(std::lround(
+				z->GetRoofRunoffDriftMultiplier() * 1000.0f)) },
+			{ "roofRunoffDriftVelocity", static_cast<int>(std::lround(
+				board->GetRoofRunoffZombieDriftVelocity(z->mRow, pos.x)
+				* z->GetRoofRunoffDriftMultiplier())) },
 			{ "attackDamage", z->mAttackDamage },
 			{ "helmHealth", z->mHelmHealth }, { "shieldHealth", z->mShieldHealth },
 			{ "fireResistant", z->IsFireResistant() },
@@ -3493,6 +3523,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["eliteDiggerZombieCount"] = eliteDiggerZombieCount;
 	out["elitePogoZombieCount"] = elitePogoZombieCount;
 	out["eliteLadderZombieCount"] = eliteLadderZombieCount;
+	out["eliteCatapultZombieCount"] = eliteCatapultZombieCount;
 	out["poolRowZombieCount"] = poolRowZombieCount;
 	out["earlyWavePoolZombieCount"] = earlyWavePoolZombieCount;
 	out["zombieBodyHealthTotal"] = zombieBodyHealthTotal;
@@ -3805,6 +3836,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["particleEffectNameCounts"]["EliteLadderShieldBuff"] = 0;
 	out["particleEffectNameCounts"]["PlantingPool"] = 0;
 	out["particleEffectNameCounts"]["CatapultExplosion"] = 0;
+	out["particleEffectNameCounts"]["EliteCatapultExplosion"] = 0;
 	if (g_particleSystem) {
 		for (const auto& effect : g_particleSystem->GetEffectsForTesting()) {
 			if (!effect) continue;

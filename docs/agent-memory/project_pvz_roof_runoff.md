@@ -8,7 +8,7 @@ metadata:
 
 # 昼夜屋顶坡面径流
 
-## 当前实现（2026-08-04）
+## 当前实现（2026-08-08）
 
 - `Background::ROOF` 与 `Background::NIGHT_ROOF` 共用径流；触发根因是屋顶斜坡与降雨，不按
   昼夜拆分。第六大关未来的雷荷是叠加系统：径流继续冲刷，电荷另管导电瓦路和放电。
@@ -23,6 +23,10 @@ metadata:
   暂停动画和行动。可被地面风力移动的僵尸获得 `-60 px/游戏秒` 的屋檐向漂移，单次最多约
   `132px`；冻结和啃食早退
   前照常应用并重新贴合连续坡面；平台、飞行态和不符合地面状态的僵尸不受影响。
+- 导流投篮车是锁行阶段的窄扩展：满值时由 Board 选择坡段内活动、未爆胎且最靠房屋的候选，
+  若其行不在随机组内只替换一个已选行，不增加行数。最终 row mask 一旦进入 WARNING 就不再随候选
+  死亡或新生变化。僵尸基类只提供实例径流倍率；普通僵尸保持 `-60px/s`，未爆胎导流车独享
+  `5/3` 倍即 `-100px/s`，爆胎后回到倍率 1。该能力不把导流状态复制到实体，也不改变全行僵尸。
 
 ## 展示与持久化
 
@@ -35,7 +39,8 @@ metadata:
   中性状态。活动阶段读档只继续原锁定行组、余时和已预抽残留湿度，不重新抽取。
 - `set_roof_runoff` 可用 `rows` 数组固定活动行组，以 `retainedCharge` 固定结束后的湿度；单个
   `row` 仅为旧脚本兼容。dump 导出 `chargePct/retainedChargePct/phase/rowMask/rowCount/rows`，
-  以及 `phaseRemainingMs/flowProgressPct/zombieDriftSpeed`。
+  以及 `phaseRemainingMs/flowProgressPct/zombieDriftSpeed/guideCandidateRow/guideCandidateSelected`；僵尸逐体
+  导出 `roofRunoffGuideEligible/roofRunoffDriftMultiplierOn1000/roofRunoffDriftVelocity`。
 
 ## 验证证据
 
@@ -44,3 +49,5 @@ metadata:
   植物与僵尸正反例、活动阶段 45% 残留快照往返、结束兑现、昼夜屋顶和同步预警/冲刷流水截图；
   `smoke_roof_terrain_consumers.json` 92 条命令回归通过；窗口标题
   `植物大战僵尸中文版`，退出码 0，`run.log` 以 `script finished OK` 结束。
+- 可见 `smoke_elite_catapult.json` 进一步锁定导流替换、最近房屋候选、WARNING 死亡不重抽和
+  普通/精英 `-60/-100` 实例速度；固定种子下死亡前后 row mask 都为 22，候选行从 4 变 0 后仍未补入。

@@ -95,6 +95,7 @@ enum class AnimationType
 	ANIM_CATAPULT_ZOMBIE, // 经典投篮车僵尸；追加在末尾避免旧动画枚举值错位
 	ANIM_CATAPULT_CHARRED, // 投篮车专属化灰时间线；主人指定第 29 帧回收
 	ANIM_UMBRELLALEAF, // 经典叶子保护伞；追加在末尾避免旧动画枚举值错位
+	ANIM_ELITE_CATAPULT_ZOMBIE, // 导流投篮车独立深青蓝材质；复用普通投篮车时间线
 };
 
 #endif

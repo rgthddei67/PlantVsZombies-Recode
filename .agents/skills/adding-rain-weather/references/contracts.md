@@ -49,6 +49,12 @@ pending 并清空，不能临时重抽。`GameScene` 的累计条与坡面水膜
 都查询同一 Board 行组，禁止在展示或实体侧另存/重抽目标。世界效果以 `GetRowCenterYAtX` 贴坡，
 低透明面状表现优先于密集规则流线；多行同时生效时每行各绘制水膜和屋檐反馈。
 
+实体若能引导锁行，Board 只在积累满值的锁定帧查询一次语义资格，按明确的位置与稳定 ID 规则
+选唯一候选；只能替换现有目标，不能增加已抽中的行数。进入 WARNING 后最终 row mask 是唯一事实，
+候选死亡、晚出生或跨波残留都不得重抽。导流投篮车当前选择坡段内最靠房屋的活动未爆胎实例，
+只把自己的行纳入；普通地面僵尸仍承受 `-60px/s`，该实例通过 Zombie 虚倍率 `5/3` 独享
+`-100px/s`，爆胎后回到倍率 1。禁止把这一能力实现成选中行所有僵尸的公共加速。
+
 环境要求植物完全暂停时，不能只让 `PlantUpdate()` 提前返回：并行阶段可能已经由 Animator 产生
 帧事件。应同时阻断 `UpdateParallel` 的事件队列，并在串行回退把 `mAdvancedInParallel` 置位，让
 `AnimatedObject::Update` 跳过本帧 Animator，再让公开行动倍率返回 0。禁止临时 `Pause/Play`：
@@ -267,7 +273,7 @@ Board 雾势、再恢复植物，所以 `RestoreFogState()` 只清空旧缓存�
 
 - `set_weather`：固定天气并立即完成过渡；可传 `duration`、小雨的 `canIntensify`。
 - `set_roof_runoff`：昼夜屋顶可用；`phase=IDLE/WARNING/FLOWING`，活动阶段以非空 `rows` 数组固定行组，可选 `charge/remaining/retainedCharge`；单个 `row` 只作旧脚本兼容。
-- `weather.roofRunoff`：导出 `chargePct/retainedChargePct/phase/rowMask/rowCount/rows/phaseRemainingMs/flowProgressPct/zombieDriftSpeed`；植物另导出 `roofRunoffPaused`。
+- `weather.roofRunoff`：导出 `chargePct/retainedChargePct/phase/rowMask/rowCount/rows/phaseRemainingMs/flowProgressPct/zombieDriftSpeed/guideCandidateRow/guideCandidateSelected`；植物另导出 `roofRunoffPaused`，僵尸逐体导出 `roofRunoffGuideEligible/roofRunoffDriftMultiplierOn1000/roofRunoffDriftVelocity`。
 - `roofResources.rainBackgroundLoaded`：白天屋顶雨景变体已按 `IMAGE_BACKGROUND_ROOF_RAIN` 完成注册与加载。
 - `roofResources.nightRainBackgroundLoaded`：夜间屋顶雨景变体已按 `IMAGE_BACKGROUND_NIGHTROOF_RAIN` 完成注册与加载。
 - `weather.roofRainBackgroundAlpha`：昼夜屋顶雨景变体的整数 alpha；两者当前晴/小/中/大雨均为 `0/96/149/255`，非屋顶恒为 `0`。

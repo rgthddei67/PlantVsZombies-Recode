@@ -63,6 +63,7 @@ enum class ZombieType {
 	ZOMBIE_LADDER,			// 经典扶梯：为坚果类放梯并供地面僵尸攀爬
 	ZOMBIE_ELITE_LADDER,	// 精英扶梯：五秒后按本行血量与远程植物构成获得分支能力
 	ZOMBIE_CATAPULT,		// 经典投篮车：十二发篮球、车辆碾压与专属爆炸死亡
+	ZOMBIE_ELITE_CATAPULT,	// 导流投篮车：锁定自身所在径流行，并仅强化自身顺坡漂移
 
 	// ↓ 哨兵：置于全部已实现僵尸之后，使 [0,NUM_ZOMBIE_TYPES) 只覆盖已实现类型，
 	//   生存模式随机抽取据此绝不会抽到下方未实现僵尸。
