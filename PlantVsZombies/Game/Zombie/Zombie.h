@@ -17,6 +17,7 @@
 class Board;
 class Plant;
 class ShadowComponent;
+class Caltrop;
 
 /** 经典扶梯的通用垂直状态；所有可在地面行走的僵尸共享。 */
 enum class LadderClimbPhase {
@@ -139,6 +140,8 @@ public:
 	virtual bool TakePlantInstantKill();
 	/** 当前状态是否允许作为已出土地雷的接触触发目标。 */
 	virtual bool CanTriggerPotatoMine() const { return true; }
+	/** 车辆僵尸接管地刺命中的扩展点；返回 true 表示已处理，地刺不得再结算普通伤害。 */
+	virtual bool HandleCaltropHit(Caltrop&) { return false; }
 	virtual void SaveExtraData(nlohmann::json& j) const {}	// 保存额外数据
 	virtual void LoadExtraData(const nlohmann::json& j) {}	// 加载额外数据
 	virtual void ZombieItemUpdate() const; // 处理僵尸读档的时候的手臂、防具等处理
@@ -185,7 +188,7 @@ public:
 	Vector GetPosition() const;
 	void SetPosition(const Vector& position);
 	/** 返回当前动画片段的平均根运动速度，并折算减速、冻结、天气和场地状态，单位：像素/游戏秒。 */
-	float GetCurrentHorizontalMoveSpeed() const;
+	virtual float GetCurrentHorizontalMoveSpeed() const;
 	/** 按当前碰撞矩形中心与片段平均行走速度预测水平落点，供投手和倭瓜复刻 ZombieTargetLeadX。 */
 	float GetTargetLeadX(float seconds) const;
 	/** 当前自主行走是否朝战场前线（世界坐标 +X）；反向品种覆写后由位移、风速与预测共用。 */

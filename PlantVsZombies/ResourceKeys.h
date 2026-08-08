@@ -149,6 +149,13 @@ namespace ResourceKeys
 		RKEY(IMAGE_ZOMBIE_REINFORCED_SCREENDOOR2);
 		RKEY(IMAGE_ZOMBIE_REINFORCED_SCREENDOOR3);
 		RKEY(IMAGE_ZOMBIE_ZAMBONI_WHEEL_FLAT);
+		RKEY(IMAGE_REANIM_ZOMBIE_CATAPULT_BASKETBALL);
+		RKEY(IMAGE_REANIM_ZOMBIE_CATAPULT_POLE);
+		RKEY(IMAGE_REANIM_ZOMBIE_CATAPULT_POLE_WITHBALL);
+		RKEY(IMAGE_REANIM_ZOMBIE_CATAPULT_SIDING);
+		RKEY(IMAGE_ZOMBIE_CATAPULT_SIDING_DAMAGE);
+		RKEY(IMAGE_ZOMBIE_CATAPULT_POLE_DAMAGE);
+		RKEY(IMAGE_ZOMBIE_CATAPULT_POLE_DAMAGE_WITHBALL);
 		RKEY(IMAGE_ZOMBIE_JACKSON_OUTERARM_UPPER2);
 		RKEY(IMAGE_ZOMBIE_LADDER_OUTERARM_UPPER2);
 		RKEY(IMAGE_ZOMBIE_LADDER_1);
@@ -383,6 +390,7 @@ namespace ResourceKeys
 		RKEY(SOUND_JALAPENO);				// 火爆辣椒点燃整行（原版 jalapeno.ogg）
 		RKEY(SOUND_JUICY);					// 一次性植物爆发时的汁液声（原版 juicy.ogg）
 		RKEY(SOUND_ZAMBONI);				// 冰车驾驶声
+		RKEY(SOUND_BASKETBALL);			// 投篮车第 46 帧发射篮球
 		RKEY(SOUND_BALLOON_POP);				// 原版 TirePop Foley 使用的车辆爆胎声
 		RKEY(SOUND_BALLOONINFLATE);			// 气球僵尸正式出生时的充气声
 		RKEY(SOUND_PLANTGROW);				// 仙人掌发现空中目标后伸长
@@ -496,10 +504,12 @@ namespace ResourceKeys
 		inline const std::string REANIM_BUNGEE_ZOMBIE = "ZombieBungi";
 		inline const std::string REANIM_LADDER_ZOMBIE = "ZombieLadder";
 		inline const std::string REANIM_ELITE_LADDER_ZOMBIE = "EliteLadderZombie";
+		inline const std::string REANIM_CATAPULT_ZOMBIE = "CatapultZombie";
 		inline const std::string REANIM_DIGGER_RISING_DIRT = "DiggerRisingDirt";
 		inline const std::string REANIM_DIGGER_CHARRED = "DiggerCharred";
 		inline const std::string REANIM_ZOMBIE_SURPRISE = "ZombieSurprise";
 		inline const std::string REANIM_ZAMBONI_CHARRED = "Zamboni_Charred";
+		inline const std::string REANIM_CATAPULT_CHARRED = "Catapult_Charred";
 
 		inline const std::string REANIM_ZOMBIE_CHARRED = "Zombie_Charred";
 

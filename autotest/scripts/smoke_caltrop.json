@@ -66,7 +66,7 @@
     { "op": "choose_cards", "cards": ["PLANT_SPIKEWEED"] },
     { "op": "wait_state", "state": "GAME", "timeout": 15 },
     { "op": "set_spawn_paused", "value": true },
-    { "op": "assert_can_plant", "type": "PLANT_SPIKEWEED", "row": 2, "col": 4, "expected": true },
+    { "op": "assert_can_plant", "type": "PLANT_SPIKEWEED", "row": 2, "col": 4, "expected": false },
     { "op": "dump_state", "name": "caltrop_placement_rules.json" },
     { "op": "quit" }
   ]

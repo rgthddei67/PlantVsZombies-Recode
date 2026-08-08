@@ -66,6 +66,10 @@ protected:
 	 * 处理一次子弹与僵尸的碰撞帧；普通弹只消费首次 Enter，尖刺在 Enter/Stay 均结算。
 	 */
 	void HandleZombieContact(ColliderComponent* other);
+	/** 处理投篮车篮球与植物的下降末段碰撞，并按格内投篮层级重定向目标。 */
+	void HandlePlantContact(ColliderComponent* other);
+	/** 按对象池固定弹型恢复碰撞阵营与回调，避免篮球槽位复用后沿用僵尸掩码。 */
+	void ConfigureCollisionTarget();
 
 	// 按 C# Projectile.DrawShadow 的类型尺寸与棋盘行位置刷新阴影布局。
 	void UpdateShadowLayout(const Vector& position);

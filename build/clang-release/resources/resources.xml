@@ -283,6 +283,7 @@
     <Sound>./resources/sounds/Zombie/newspaper_rarrgh2.ogg</Sound>
     <Sound>./resources/sounds/Zombie/floop.ogg</Sound>
     <Sound>./resources/sounds/Zombie/zamboni.ogg</Sound>
+    <Sound>./resources/sounds/Zombie/basketball.ogg</Sound>
     <Sound>./resources/sounds/Zombie/balloon_pop.ogg</Sound>
     <Sound>./resources/sounds/Zombie/ballooninflate.ogg</Sound>
     <Sound>./resources/sounds/Zombie/explosion.ogg</Sound>
@@ -440,9 +441,11 @@
     <Reanimation name="ZombieBungi">./resources/reanim/Zombie_bungi.reanim</Reanimation>
     <Reanimation name="ZombieLadder">./resources/reanim/Zombie_ladder.reanim</Reanimation>
     <Reanimation name="EliteLadderZombie">./resources/reanim/EliteLadder.reanim</Reanimation>
+    <Reanimation name="CatapultZombie">./resources/reanim/Zombie_catapult.reanim</Reanimation>
 
     <Reanimation name="Zombie_Charred">./resources/reanim/Zombie_Charred.reanim</Reanimation>
     <Reanimation name="Zamboni_Charred">./resources/reanim/Zombie_charred_zamboni.reanim</Reanimation>
+    <Reanimation name="Catapult_Charred">./resources/reanim/Zombie_charred_catapult.reanim</Reanimation>
 
     <Reanimation name="Fire">./resources/reanim/Fire.reanim</Reanimation>
     <Reanimation name="FirePea">./resources/reanim/FirePea.reanim</Reanimation>

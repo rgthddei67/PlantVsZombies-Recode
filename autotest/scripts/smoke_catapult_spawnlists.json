@@ -1,0 +1,36 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 39, "resetTestState": true },
+    { "op": "set_timescale", "value": 1.0 },
+    { "op": "wait_state", "state": "CHOOSE_CARD", "timeout": 10 },
+    { "op": "assert_state", "path": "levelName", "equals": "关卡 5-3" },
+    { "op": "assert_state", "path": "background", "equals": "ROOF" },
+    { "op": "assert_state", "path": "maxWave", "equals": 20 },
+    { "op": "assert_state", "path": "sun", "equals": 200 },
+    { "op": "assert_state", "path": "spawnTypeCount", "equals": 6 },
+    { "op": "assert_state", "path": "spawnList", "equals": ["ZOMBIE_NORMAL", "ZOMBIE_TRAFFIC_CONE", "ZOMBIE_POLEVAULTER", "ZOMBIE_REINFORCED_DOOR", "ZOMBIE_LADDER", "ZOMBIE_CATAPULT"] },
+    { "op": "assert_zombie_spawn_row", "type": "ZOMBIE_CATAPULT", "row": 0, "expected": true },
+    { "op": "assert_zombie_spawn_row", "type": "ZOMBIE_CATAPULT", "row": 4, "expected": true },
+    { "op": "wait_seconds", "value": 4.2, "timeout": 10 },
+    { "op": "assert_state", "path": "chooseCardReady", "equals": true },
+    { "op": "screenshot", "name": "roof_spawn_5_3_catapult_intro.png" },
+    { "op": "dump_state", "name": "roof_spawn_5_3.json" },
+
+    { "op": "goto_level", "level": 40, "resetTestState": true },
+    { "op": "set_timescale", "value": 1.0 },
+    { "op": "wait_state", "state": "CHOOSE_CARD", "timeout": 10 },
+    { "op": "assert_state", "path": "levelName", "equals": "关卡 5-4" },
+    { "op": "assert_state", "path": "background", "equals": "ROOF" },
+    { "op": "assert_state", "path": "maxWave", "equals": 25 },
+    { "op": "assert_state", "path": "sun", "equals": 600 },
+    { "op": "assert_state", "path": "spawnTypeCount", "equals": 8 },
+    { "op": "assert_state", "path": "spawnList", "equals": ["ZOMBIE_NORMAL", "ZOMBIE_TRAFFIC_CONE", "ZOMBIE_JACK_IN_THE_BOX", "ZOMBIE_BUNGEE", "ZOMBIE_BALLOON", "ZOMBIE_LADDER", "ZOMBIE_ELITE_LADDER", "ZOMBIE_CATAPULT"] },
+    { "op": "assert_zombie_spawn_row", "type": "ZOMBIE_CATAPULT", "row": 0, "expected": true },
+    { "op": "assert_zombie_spawn_row", "type": "ZOMBIE_CATAPULT", "row": 4, "expected": true },
+    { "op": "wait_seconds", "value": 4.2, "timeout": 10 },
+    { "op": "assert_state", "path": "chooseCardReady", "equals": true },
+    { "op": "screenshot", "name": "roof_spawn_5_4_catapult_mixed.png" },
+    { "op": "dump_state", "name": "roof_spawn_5_4.json" },
+    { "op": "quit" }
+  ]
+}

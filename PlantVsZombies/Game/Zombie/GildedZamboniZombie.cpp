@@ -76,11 +76,12 @@ bool GildedZamboniZombie::TakePlantInstantKill()
 	return false;
 }
 
-void GildedZamboniZombie::HandleCaltropHit(Caltrop& /*caltrop*/)
+bool GildedZamboniZombie::HandleCaltropHit(Caltrop& /*caltrop*/)
 {
-	if (mIsDead) return;
+	if (mIsDead) return true;
 	// 地刺保留在场并按自身攻击周期继续扎刺；车辆不会爆胎或进入延迟死亡。
 	TakeDamage(kCaltropHitDamage, DamageSource::PLANT);
+	return true;
 }
 
 void GildedZamboniZombie::LayIceTrails(const Vector& stableVisualOrigin)

@@ -92,6 +92,8 @@ enum class AnimationType
 	ANIM_LADDER_ZOMBIE, // 经典扶梯僵尸；追加在末尾避免旧动画枚举值错位
 	ANIM_ELITE_LADDER_ZOMBIE, // 精英扶梯独立深蓝工装与黄黑梯子材质
 	ANIM_GARLIC, // 经典大蒜；追加在末尾避免旧动画枚举值错位
+	ANIM_CATAPULT_ZOMBIE, // 经典投篮车僵尸；追加在末尾避免旧动画枚举值错位
+	ANIM_CATAPULT_CHARRED, // 投篮车专属化灰时间线；主人指定第 29 帧回收
 };
 
 #endif

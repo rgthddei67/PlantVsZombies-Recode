@@ -12,7 +12,7 @@ public:
 	void Update() override;
 	void TakeBodyDamage(int damage) override;
 	bool TakePlantInstantKill() override;
-	void HandleCaltropHit(Caltrop& caltrop) override;
+	bool HandleCaltropHit(Caltrop& caltrop) override;
 	void SetCooldown(float timer, bool bypassShield = false) override {
 		Zombie::SetCooldown(timer, bypassShield);
 	}

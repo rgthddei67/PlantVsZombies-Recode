@@ -64,6 +64,8 @@
 #include "../Zombie/BungeeZombie.h"
 #include "../Zombie/LadderZombie.h"
 #include "../Zombie/EliteLadderZombie.h"
+#include "../Zombie/CatapultCharred.h"
+#include "../Zombie/CatapultZombie.h"
 #include "../Zombie/PoolNormalZombie.h"
 #include "../Trophy.h"   // dump_state 输出奖杯坐标
 #include "../Crater.h"   // dump_state 输出毁灭菇弹坑
@@ -170,6 +172,17 @@ namespace {
 		}
 	}
 
+	const char* CatapultPhaseName(CatapultZombie::Phase phase)
+	{
+		switch (phase) {
+		case CatapultZombie::Phase::WALKING: return "WALKING";
+		case CatapultZombie::Phase::SHOOTING: return "SHOOTING";
+		case CatapultZombie::Phase::RELOADING: return "RELOADING";
+		case CatapultZombie::Phase::CALTROP_DYING: return "CALTROP_DYING";
+		default: return "UNKNOWN";
+		}
+	}
+
 	const char* PlantBungeeStateName(PlantBungeeState state)
 	{
 		switch (state) {
@@ -208,7 +221,7 @@ namespace {
 #define BT(n) { #n, BulletType::n }
 	const std::unordered_map<std::string, BulletType> kBulletNames = {
 		BT(BULLET_PEA), BT(BULLET_SNOWPEA), BT(BULLET_CABBAGE), BT(BULLET_PUFF), BT(BULLET_FIREBALL),
-		BT(BULLET_SPIKE), BT(BULLET_STAR), BT(BULLET_KERNEL), BT(BULLET_BUTTER),
+		BT(BULLET_SPIKE), BT(BULLET_STAR), BT(BULLET_BASKETBALL), BT(BULLET_KERNEL), BT(BULLET_BUTTER),
 		BT(BULLET_TOXICPEA), BT(BULLET_TOXICFIREBALL),
 	};
 #undef BT
@@ -222,7 +235,8 @@ namespace {
 		ZT(ZOMBIE_ZAMBONI), ZT(ZOMBIE_GILDED_ZAMBONI), ZT(ZOMBIE_DOLPHIN_RIDER), ZT(ZOMBIE_ELITE_DOLPHIN_RIDER),
 		ZT(ZOMBIE_JACK_IN_THE_BOX), ZT(ZOMBIE_ELITE_JACK_IN_THE_BOX), ZT(ZOMBIE_BALLOON),
 		ZT(ZOMBIE_DIGGER), ZT(ZOMBIE_ELITE_DIGGER), ZT(ZOMBIE_POGO), ZT(ZOMBIE_ELITE_POGO),
-		ZT(ZOMBIE_YETI), ZT(ZOMBIE_BUNGEE), ZT(ZOMBIE_LADDER), ZT(ZOMBIE_ELITE_LADDER), ZT(ZOMBIE_CATAPULT),
+		ZT(ZOMBIE_BUNGEE), ZT(ZOMBIE_LADDER), ZT(ZOMBIE_ELITE_LADDER), ZT(ZOMBIE_CATAPULT),
+		ZT(ZOMBIE_YETI),
 		ZT(ZOMBIE_GARGANTUAR), ZT(ZOMBIE_IMP), ZT(ZOMBIE_BOSS), ZT(ZOMBIE_PEA_HEAD),
 		ZT(ZOMBIE_WALLNUT_HEAD), ZT(ZOMBIE_JALAPENO_HEAD), ZT(ZOMBIE_GATLING_HEAD),
 		ZT(ZOMBIE_SQUASH_HEAD), ZT(ZOMBIE_TALLNUT_HEAD), ZT(ZOMBIE_REDEYE_GARGANTUAR),
@@ -2425,6 +2439,22 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		{ "butterSoundLoaded", ResourceManager::GetInstance().HasSound(
 			ResourceKeys::Sounds::SOUND_BUTTER) },
 	};
+	out["catapultResources"] = {
+		{ "reanimationLoaded", ResourceManager::GetInstance().HasReanimation(
+			ResourceKeys::Reanimations::REANIM_CATAPULT_ZOMBIE) },
+		{ "charredReanimationLoaded", ResourceManager::GetInstance().HasReanimation(
+			ResourceKeys::Reanimations::REANIM_CATAPULT_CHARRED) },
+		{ "basketballTextureLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_REANIM_ZOMBIE_CATAPULT_BASKETBALL, false) != nullptr },
+		{ "sidingDamageTextureLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_ZOMBIE_CATAPULT_SIDING_DAMAGE, false) != nullptr },
+		{ "poleDamageTextureLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_ZOMBIE_CATAPULT_POLE_DAMAGE, false) != nullptr },
+		{ "poleDamageWithBallTextureLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_ZOMBIE_CATAPULT_POLE_DAMAGE_WITHBALL, false) != nullptr },
+		{ "basketballSoundLoaded", ResourceManager::GetInstance().HasSound(
+			ResourceKeys::Sounds::SOUND_BASKETBALL) },
+	};
 	out["cards"] = nlohmann::json::array();
 	if (CardSlotManager* cardManager = gs->GetCardSlotManager()) {
 		for (Card* card : cardManager->GetCards()) {
@@ -2753,6 +2783,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 
 	int charredZombieCount = 0;
 	int zamboniCharredCount = 0;
+	int catapultCharredCount = 0;
 	int jalapenoFireCount = 0;
 	std::vector<Vector> jalapenoFirePositions;
 	int mistFuelVisualCount = 0;
@@ -2762,6 +2793,9 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		}
 		if (object && object->IsActive() && dynamic_cast<ZamboniCharred*>(object.get())) {
 			++zamboniCharredCount;
+		}
+		if (object && object->IsActive() && dynamic_cast<CatapultCharred*>(object.get())) {
+			++catapultCharredCount;
 		}
 		if (object && object->IsActive() && object->GetTag() == "JalapenoFire") {
 			++jalapenoFireCount;
@@ -2775,6 +2809,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	}
 	out["charredZombieCount"] = charredZombieCount;
 	out["zamboniCharredCount"] = zamboniCharredCount;
+	out["catapultCharredCount"] = catapultCharredCount;
 	out["jalapenoFireCount"] = jalapenoFireCount;
 	std::sort(jalapenoFirePositions.begin(), jalapenoFirePositions.end(),
 		[](const Vector& lhs, const Vector& rhs) { return lhs.x < rhs.x; });
@@ -2792,10 +2827,14 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		? g_particleSystem->GetEffectActiveParticleCount("ZamboniSmoke") : 0;
 	out["zamboniTireParticleCount"] = g_particleSystem
 		? g_particleSystem->GetEffectActiveParticleCount("ZamboniTire") : 0;
+	out["catapultExplosionParticleCount"] = g_particleSystem
+		? g_particleSystem->GetEffectActiveParticleCount("CatapultExplosion") : 0;
 	out["cooldownZombieSoundRequestCount"] =
 		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_COOLDOWNZOMBIE);
 	out["caltropTirePopSoundRequestCount"] =
 		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_BALLOON_POP);
+	out["basketballSoundRequestCount"] =
+		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_BASKETBALL);
 	out["puffSoundRequestCount"] =
 		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_PUFF);
 	out["firePeaSoundRequestCount"] =
@@ -3343,6 +3382,26 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			zombieState["zamboniIceFromVisualXOn1000"] = static_cast<int>(std::lround(
 				(trailMinX - visualPosition.x) * 1000.0f));
 		}
+		if (auto* catapult = dynamic_cast<CatapultZombie*>(z)) {
+			zombieState["catapultPhase"] = CatapultPhaseName(catapult->GetPhase());
+			zombieState["catapultBasketballs"] = catapult->GetBasketballCount();
+			zombieState["catapultDamageStage"] = catapult->GetDamageStage();
+			zombieState["catapultPuncturedByCaltrop"] = catapult->IsCaltropPunctured();
+			zombieState["catapultPhaseRemainingMs"] = static_cast<int>(std::lround(
+				catapult->GetPhaseTimer() * 1000.0f));
+			zombieState["catapultDriveSpeedOn1000"] = static_cast<int>(std::lround(
+				catapult->GetDriveSpeed() * 1000.0f));
+			const Vector visualPosition = catapult->GetVisualPosition();
+			if (const auto* collider = catapult->GetColliderComponent()) {
+				const SDL_FRect bounds = collider->GetBoundingBox();
+				zombieState["catapultColliderFromVisualXOn1000"] = static_cast<int>(
+					std::lround((bounds.x - visualPosition.x) * 1000.0f));
+				zombieState["catapultColliderFromVisualYOn1000"] = static_cast<int>(
+					std::lround((bounds.y - visualPosition.y) * 1000.0f));
+				zombieState["catapultColliderWidthInt"] = static_cast<int>(std::lround(bounds.w));
+				zombieState["catapultColliderHeightInt"] = static_cast<int>(std::lround(bounds.h));
+			}
+		}
 		if (auto* gilded = dynamic_cast<GildedZamboniZombie*>(z)) {
 			zombieState["gildedUndamagedMs"] = static_cast<int>(std::lround(
 				gilded->GetUndamagedTime() * 1000.0f));
@@ -3675,6 +3734,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["particleEffectNameCounts"]["EliteLadderBodyBuff"] = 0;
 	out["particleEffectNameCounts"]["EliteLadderShieldBuff"] = 0;
 	out["particleEffectNameCounts"]["PlantingPool"] = 0;
+	out["particleEffectNameCounts"]["CatapultExplosion"] = 0;
 	if (g_particleSystem) {
 		for (const auto& effect : g_particleSystem->GetEffectsForTesting()) {
 			if (!effect) continue;
@@ -4002,6 +4062,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	int cabbageBulletCount = 0;
 	int kernelBulletCount = 0;
 	int butterBulletCount = 0;
+	int basketballBulletCount = 0;
 	int lobbedBulletCount = 0;
 	int flyingTargetSpikeCount = 0;
 	int groundTargetSpikeCount = 0;
@@ -4054,6 +4115,9 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		}
 		else if (bullet->mBulletType == BulletType::BULLET_BUTTER) {
 			++butterBulletCount;
+		}
+		else if (bullet->mBulletType == BulletType::BULLET_BASKETBALL) {
+			++basketballBulletCount;
 		}
 		else if (bullet->mBulletType == BulletType::BULLET_SPIKE) {
 			++spikeBulletCount;
@@ -4133,6 +4197,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["cabbageBulletCount"] = cabbageBulletCount;
 	out["kernelBulletCount"] = kernelBulletCount;
 	out["butterBulletCount"] = butterBulletCount;
+	out["basketballBulletCount"] = basketballBulletCount;
 	out["lobbedBulletCount"] = lobbedBulletCount;
 	out["flyingTargetSpikeCount"] = flyingTargetSpikeCount;
 	out["groundTargetSpikeCount"] = groundTargetSpikeCount;

@@ -84,6 +84,7 @@
 #include "../Zombie/BungeeZombie.h"
 #include "../Zombie/LadderZombie.h"
 #include "../Zombie/EliteLadderZombie.h"
+#include "../Zombie/CatapultZombie.h"
 
 namespace {
 	template<typename T>
@@ -502,6 +503,12 @@ void GameDataManager::InitializeHardcodedData() {
 		ResourceKeys::Reanimations::REANIM_ELITE_LADDER_ZOMBIE,
 		&MakeZombie<EliteLadderZombie>);
 
+	// 投篮车拥有独立六发篮球、碾压、车辆损坏及专属死亡状态机。
+	RegisterZombie(ZombieType::ZOMBIE_CATAPULT, "ZOMBIE_CATAPULT",
+		AnimationType::ANIM_CATAPULT_ZOMBIE,
+		ResourceKeys::Reanimations::REANIM_CATAPULT_ZOMBIE,
+		&MakeZombie<CatapultZombie>);
+
 	// ==================== 非植物/僵尸动画映射 ====================
 	mAnimToString[AnimationType::ANIM_SUN] = ResourceKeys::Reanimations::REANIM_SUN;
 
@@ -509,6 +516,8 @@ void GameDataManager::InitializeHardcodedData() {
 		ResourceKeys::Reanimations::REANIM_ZOMBIE_CHARRED;
 	mAnimToString[AnimationType::ANIM_ZAMBONI_CHARRED] =
 		ResourceKeys::Reanimations::REANIM_ZAMBONI_CHARRED;
+	mAnimToString[AnimationType::ANIM_CATAPULT_CHARRED] =
+		ResourceKeys::Reanimations::REANIM_CATAPULT_CHARRED;
 	mAnimToString[AnimationType::ANIM_DIGGER_RISING_DIRT] =
 		ResourceKeys::Reanimations::REANIM_DIGGER_RISING_DIRT;
 	mAnimToString[AnimationType::ANIM_DIGGER_CHARRED] =

@@ -3388,6 +3388,7 @@ bool Board::CanZombieTypeSpawnInPool(ZombieType type) const
 	switch (type) {
 	case ZombieType::ZOMBIE_ZAMBONI:
 	case ZombieType::ZOMBIE_GILDED_ZAMBONI:
+	case ZombieType::ZOMBIE_CATAPULT:
 	case ZombieType::ZOMBIE_POGO:
 	case ZombieType::ZOMBIE_ELITE_POGO:
 	case ZombieType::ZOMBIE_DIGGER:
@@ -4151,6 +4152,23 @@ Plant* Board::GetTopPlantAt(int row, int col) const
 	if (row < 0 || row >= mRows || col < 0 || col >= mColumns) return nullptr;
 	Cell* cell = mCells[row][col];
 	return cell ? mEntityManager.GetPlant(cell->GetTopPlantID()) : nullptr;
+}
+
+Plant* Board::GetCatapultTargetPlantAt(int row, int col) const
+{
+	const std::array<Plant*, 4> layers = {
+		GetOverlayPlantAt(row, col),
+		GetNormalPlantAt(row, col),
+		GetPumpkinAt(row, col),
+		GetUnderPlantAt(row, col),
+	};
+	for (Plant* plant : layers) {
+		if (plant && plant->IsActive() && plant->mPlantHealth > 0
+			&& !plant->IsSquished() && plant->CanBeEaten()) {
+			return plant;
+		}
+	}
+	return nullptr;
 }
 
 Plant* Board::GetJumpBlockingPlantAt(int row, int col, ZombieJumpType jumpType) const

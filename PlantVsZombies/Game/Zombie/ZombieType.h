@@ -62,6 +62,7 @@ enum class ZombieType {
 	ZOMBIE_BUNGEE,			// 经典蹦极：定点下落后抓走一株植物并升空离场
 	ZOMBIE_LADDER,			// 经典扶梯：为坚果类放梯并供地面僵尸攀爬
 	ZOMBIE_ELITE_LADDER,	// 精英扶梯：五秒后按本行血量与远程植物构成获得分支能力
+	ZOMBIE_CATAPULT,		// 经典投篮车：六发篮球、车辆碾压与专属爆炸死亡
 
 	// ↓ 哨兵：置于全部已实现僵尸之后，使 [0,NUM_ZOMBIE_TYPES) 只覆盖已实现类型，
 	//   生存模式随机抽取据此绝不会抽到下方未实现僵尸。
@@ -69,7 +70,6 @@ enum class ZombieType {
 	NUM_ZOMBIE_TYPES,
 
 	ZOMBIE_YETI,
-	ZOMBIE_CATAPULT,
 	ZOMBIE_GARGANTUAR,
 	ZOMBIE_IMP,
 	ZOMBIE_BOSS,

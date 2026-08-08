@@ -3,7 +3,6 @@
 #include "../../ResourceKeys.h"
 #include "../Board.h"
 #include "../ShadowComponent.h"
-#include "../Zombie/ZamboniZombie.h"
 #include "../Zombie/Zombie.h"
 
 #include <algorithm>
@@ -78,9 +77,8 @@ void Caltrop::DamageTargetsAtAttackFrame()
 		}
 
 		hitAny = true;
-		if (auto* zamboni = dynamic_cast<ZamboniZombie*>(zombie)) {
-			// 车辆自己拥有特殊受扎语义；精英冰车可覆写该虚函数，不必污染地刺攻击逻辑。
-			zamboni->HandleCaltropHit(*this);
+		if (zombie->HandleCaltropHit(*this)) {
+			// 车辆自己拥有特殊受扎语义；普通/鎏金冰车与投篮车均由虚入口保持各自契约。
 			return;
 		}
 		zombie->TakeDamage(kCaltropDamage, DamageSource::PLANT);

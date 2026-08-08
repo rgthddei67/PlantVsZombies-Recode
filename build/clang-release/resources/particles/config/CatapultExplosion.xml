@@ -1,0 +1,111 @@
+<Emitter>
+  <Name>CatapultExplosion</Name>
+  <SpawnMinActive>10</SpawnMinActive>
+  <SpawnMaxLaunched>10</SpawnMaxLaunched>
+  <ParticleDuration>[.4 .6]</ParticleDuration>
+  <ParticleAlpha>1,70 0</ParticleAlpha>
+  <ParticleRed>.55 .22 0</ParticleRed>
+  <ParticleGreen>.3 0</ParticleGreen>
+  <ParticleBlue>.2 0</ParticleBlue>
+  <ParticleScale>[.45 .65],60 0</ParticleScale>
+  <EmitterType>Circle</EmitterType>
+  <EmitterRadius>[10 50]</EmitterRadius>
+  <LaunchSpeed>[45 80]</LaunchSpeed>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <ParticleSpinSpeed>[-200 200]</ParticleSpinSpeed>
+  <SystemDuration>.8</SystemDuration>
+  <Image>PARTICLE_EXPLOSIONCLOUD</Image>
+  <Field>
+    <FieldType>Friction</FieldType>
+    <X>.018</X>
+    <Y>.018</Y>
+  </Field>
+</Emitter>
+<Emitter>
+  <Name>CatapultManhole</Name>
+  <SpawnMinActive>1</SpawnMinActive>
+  <SpawnMaxLaunched>1</SpawnMaxLaunched>
+  <ParticleDuration>.8</ParticleDuration>
+  <ParticleAlpha>1,90 0</ParticleAlpha>
+  <ParticleScale>.8</ParticleScale>
+  <EmitterType>Box</EmitterType>
+  <EmitterBoxX>[-35 35]</EmitterBoxX>
+  <EmitterBoxY>30</EmitterBoxY>
+  <LaunchSpeed>[65 95]</LaunchSpeed>
+  <ParticleGravity>140</ParticleGravity>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <ParticleSpinSpeed>[-720 720]</ParticleSpinSpeed>
+  <SystemDuration>.9</SystemDuration>
+  <Image>IMAGE_REANIM_ZOMBIE_CATAPULT_MANHOLE</Image>
+</Emitter>
+<Emitter>
+  <Name>CatapultParts</Name>
+  <SpawnMinActive>6</SpawnMinActive>
+  <SpawnMaxLaunched>6</SpawnMaxLaunched>
+  <ParticleDuration>.8</ParticleDuration>
+  <ParticleAlpha>1,90 0</ParticleAlpha>
+  <ParticleScale>[.4 .6]</ParticleScale>
+  <EmitterType>Box</EmitterType>
+  <EmitterBoxX>[-35 35]</EmitterBoxX>
+  <EmitterBoxY>30</EmitterBoxY>
+  <LaunchSpeed>[60 90]</LaunchSpeed>
+  <ParticleGravity>140</ParticleGravity>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <ParticleSpinSpeed>[-720 720]</ParticleSpinSpeed>
+  <SystemDuration>.9</SystemDuration>
+  <Image>PARTICLE_ZOMBOSS_PARTICLES_PART_0,PARTICLE_ZOMBOSS_PARTICLES_PART_1,PARTICLE_ZOMBOSS_PARTICLES_PART_2,PARTICLE_ZOMBOSS_PARTICLES_PART_3,PARTICLE_ZOMBOSS_PARTICLES_PART_4</Image>
+</Emitter>
+<Emitter>
+  <Name>CatapultPole</Name>
+  <SpawnMinActive>1</SpawnMinActive>
+  <SpawnMaxLaunched>1</SpawnMaxLaunched>
+  <ParticleDuration>.8</ParticleDuration>
+  <ParticleAlpha>1,90 0</ParticleAlpha>
+  <ParticleScale>.8</ParticleScale>
+  <LaunchSpeed>[65 95]</LaunchSpeed>
+  <ParticleGravity>140</ParticleGravity>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <ParticleSpinSpeed>[-720 720]</ParticleSpinSpeed>
+  <SystemDuration>.9</SystemDuration>
+  <Image>IMAGE_ZOMBIE_CATAPULT_POLE_DAMAGE</Image>
+</Emitter>
+<Emitter>
+  <Name>CatapultBasketballs</Name>
+  <SpawnMinActive>3</SpawnMinActive>
+  <SpawnMaxLaunched>3</SpawnMaxLaunched>
+  <ParticleDuration>.8</ParticleDuration>
+  <ParticleAlpha>1,90 0</ParticleAlpha>
+  <ParticleScale>.8</ParticleScale>
+  <EmitterType>Box</EmitterType>
+  <EmitterBoxX>[-35 35]</EmitterBoxX>
+  <EmitterBoxY>30</EmitterBoxY>
+  <LaunchSpeed>[60 90]</LaunchSpeed>
+  <ParticleGravity>140</ParticleGravity>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <ParticleSpinSpeed>[-720 720]</ParticleSpinSpeed>
+  <SystemDuration>.9</SystemDuration>
+  <Image>IMAGE_REANIM_ZOMBIE_CATAPULT_BASKETBALL</Image>
+</Emitter>
+<Emitter>
+  <Name>CatapultBigClouds</Name>
+  <SpawnMinActive>8</SpawnMinActive>
+  <SpawnMaxLaunched>8</SpawnMaxLaunched>
+  <ParticleDuration>[.4 .6]</ParticleDuration>
+  <ParticleAlpha>1,70 0</ParticleAlpha>
+  <ParticleRed>.55 .22 0</ParticleRed>
+  <ParticleGreen>.3 0</ParticleGreen>
+  <ParticleBlue>.2 0</ParticleBlue>
+  <ParticleScale>[1.2 1.6],60 0</ParticleScale>
+  <EmitterType>Circle</EmitterType>
+  <EmitterRadius>[10 50]</EmitterRadius>
+  <LaunchSpeed>[20 55]</LaunchSpeed>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <ParticleSpinSpeed>[-200 200]</ParticleSpinSpeed>
+  <SystemDuration>.8</SystemDuration>
+  <Image>PARTICLE_EXPLOSIONCLOUD</Image>
+  <Field>
+    <FieldType>Friction</FieldType>
+    <X>.018</X>
+    <Y>.018</Y>
+  </Field>
+</Emitter>

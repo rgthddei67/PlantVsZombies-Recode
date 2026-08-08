@@ -1296,6 +1296,7 @@ bool Zombie::IsFireResistant() const
 {
 	return mZombieType == ZombieType::ZOMBIE_ZAMBONI
 		|| mZombieType == ZombieType::ZOMBIE_GILDED_ZAMBONI
+		|| mZombieType == ZombieType::ZOMBIE_CATAPULT
 		|| mShieldType == ShieldType::SHIELDTYPE_DOOR
 		|| mShieldType == ShieldType::SHIELDTYPE_LADDER;
 }

@@ -287,9 +287,9 @@ void ZamboniZombie::CrushPlants()
 	}
 }
 
-void ZamboniZombie::HandleCaltropHit(Caltrop& caltrop)
+bool ZamboniZombie::HandleCaltropHit(Caltrop& caltrop)
 {
-	if (mIsDead || mPuncturedByCaltrop) return;
+	if (mIsDead || mPuncturedByCaltrop) return true;
 
 	// C# 的 bit5 地刺伤害由车辆拥有：普通地刺先消失，车辆再进入专属爆胎阶段。
 	caltrop.Die();
@@ -313,6 +313,20 @@ void ZamboniZombie::HandleCaltropHit(Caltrop& caltrop)
 		&& GameRandom::Range(0, kWheelie2RollMax) == 0;
 	PlayTrackOnce(useWheelie2 ? "anim_wheelie2" : "anim_wheelie1", "",
 		useWheelie2 ? kWheelie2AnimationSpeed : kWheelie1AnimationSpeed, 0.1f);
+	return true;
+}
+
+float ZamboniZombie::GetCurrentHorizontalMoveSpeed() const
+{
+	if (mIsDead || mIsDying || mPuncturedByCaltrop || IsImmobilized()) return 0.0f;
+	float speed = mDriveSpeed * GetAmplifiedAbilitySpeedMultiplier();
+	if (mBoard) {
+		speed *= AmplifySpeedMultiplierForGoldenIce(
+			mBoard->GetZombieRainSpeedMultiplier());
+		speed *= AmplifySpeedMultiplierForGoldenIce(
+			mBoard->GetZombieWindMoveMultiplier(false));
+	}
+	return std::max(0.0f, speed);
 }
 
 void ZamboniZombie::Die()

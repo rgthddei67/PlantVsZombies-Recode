@@ -27,7 +27,8 @@ public:
 	/**
 	 * @brief 处理地刺扎车事件；普通冰车进入延迟爆胎死亡，精英冰车可覆写生存规则。
 	 */
-	virtual void HandleCaltropHit(Caltrop& caltrop);
+	bool HandleCaltropHit(Caltrop& caltrop) override;
+	float GetCurrentHorizontalMoveSpeed() const override;
 
 	int GetDamageStage() const;
 	float GetDriveSpeed() const { return mDriveSpeed; }

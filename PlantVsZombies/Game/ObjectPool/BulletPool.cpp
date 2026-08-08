@@ -87,6 +87,7 @@ std::shared_ptr<Bullet> BulletPool::AcquireShared(Board* board, BulletType type,
 		break;
 	case BulletType::BULLET_STAR:
 	case BulletType::BULLET_CABBAGE:
+	case BulletType::BULLET_BASKETBALL:
 	case BulletType::BULLET_KERNEL:
 	case BulletType::BULLET_BUTTER:
 		bullet = GameObjectManager::GetInstance().CreateGameObjectImmediateAsShared<Bullet>(

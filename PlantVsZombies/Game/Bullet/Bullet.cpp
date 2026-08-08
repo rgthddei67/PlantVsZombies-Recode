@@ -1,5 +1,6 @@
 #include "../Board.h"
 #include "../Zombie/Zombie.h"
+#include "../Plant/Plant.h"
 #include "Bullet.h"
 #include "../GameObjectManager.h"
 #include "../ObjectPool/BulletPool.h"
@@ -19,6 +20,7 @@ namespace {
 	constexpr int kFireballDamage = 40;               // 火豌豆基础伤害，原版为普通豌豆两倍
 	constexpr int kCabbageDamage = 40;                // 经典卷心菜直击伤害
 	constexpr int kButterDamage = 40;                 // 经典黄油直击伤害；玉米粒沿用普通 20 点
+	constexpr int kBasketballDamage = 75;             // 原版投篮车篮球单发伤害
 	constexpr int kSpikeFrameDamage = 2;              // 仙人掌尖刺在 1x 下每个逻辑碰撞帧的基础伤害
 	constexpr std::size_t kSpikePierceLimit = 4;       // 尖刺接触第四只不同僵尸后消失
 	constexpr float kFireballSplashWidth = 100.0f;    // 火球命中后沿飞行方向的同排溅射宽度，单位：像素
@@ -48,6 +50,9 @@ namespace {
 	constexpr float kKernelSpinSpeedMax = -458.4f;       // C# -0.08rad/厘秒换算后的自旋上限，单位：度/秒
 	constexpr float kKernelDrawScale = 0.95f;            // C# 玉米粒弹丸绘制缩放
 	constexpr float kButterDrawScale = 0.8f;             // C# 黄油弹丸绘制缩放
+	constexpr float kBasketballDrawScale = 1.1f;         // C# 篮球弹丸绘制缩放
+	constexpr float kBasketballSpinSpeedMin = 286.0f;    // 原版 0.05rad/厘秒换算后的最小自旋，单位：度/秒
+	constexpr float kBasketballSpinSpeedMax = 573.0f;    // 原版 0.10rad/厘秒换算后的最大自旋，单位：度/秒
 	constexpr float kKernelImpactVolume = 0.3f;          // 玉米粒命中或落空 Foley 音量
 	constexpr float kButterImpactVolume = 0.3f;          // 黄油命中或落空 Foley 音量
 	constexpr float kLobCollisionArcHeight = 35.0f;     // 下降末段距基准轨迹不超过此高度时才允许碰撞，单位：px
@@ -113,6 +118,7 @@ namespace {
 			|| type == BulletType::BULLET_TOXICFIREBALL) return kFireballDamage;
 		if (type == BulletType::BULLET_CABBAGE) return kCabbageDamage;
 		if (type == BulletType::BULLET_BUTTER) return kButterDamage;
+		if (type == BulletType::BULLET_BASKETBALL) return kBasketballDamage;
 		if (type == BulletType::BULLET_SPIKE) return kSpikeFrameDamage;
 		if (type == BulletType::BULLET_TOXICPEA) return kToxicPeaDamage;
 		return kPeaDamage;
@@ -123,7 +129,8 @@ namespace {
 	{
 		return type == BulletType::BULLET_CABBAGE
 			|| type == BulletType::BULLET_KERNEL
-			|| type == BulletType::BULLET_BUTTER;
+			|| type == BulletType::BULLET_BUTTER
+			|| type == BulletType::BULLET_BASKETBALL;
 	}
 
 	/** 播放玉米粒落地或命中的两段随机 Foley。 */
@@ -194,18 +201,7 @@ Bullet::Bullet(Board* board, BulletType bulletType, int row, const Vector& colli
 		UpdateShadowLayout(position);
 	}
 
-	auto* collider = GetColliderComponent();
-	collider->isTrigger = true;	// 设置为触发器
-	collider->layerMask = CollisionLayer::BULLET;
-	collider->collisionMask = CollisionLayer::ZOMBIE;
-	collider->onTriggerEnter = [this](ColliderComponent* other) {
-		HandleZombieContact(other);
-	};
-	if (mBulletType == BulletType::BULLET_SPIKE) {
-		collider->onTriggerStay = [this](ColliderComponent* other) {
-			HandleZombieContact(other);
-		};
-	}
+	ConfigureCollisionTarget();
 }
 
 void Bullet::Reset(Board* board, int row,
@@ -236,6 +232,7 @@ void Bullet::Reset(Board* board, int row,
 	mSpikeDamageRemainders.clear();
 	mAnimatorAdvancedInParallel = false;
 	ConfigurePresentation();
+	ConfigureCollisionTarget();
 
 	// 重置 Transform
 	if (mTransform) {
@@ -666,6 +663,15 @@ void Bullet::ConfigurePresentation()
 		mRotationSpeedDegrees = GameRandom::Range(
 			kCabbageSpinSpeedMin, kCabbageSpinSpeedMax);
 		break;
+	case BulletType::BULLET_BASKETBALL:
+		mTexture = resources.GetTexture(
+			ResourceKeys::Textures::IMAGE_REANIM_ZOMBIE_CATAPULT_BASKETBALL);
+		mScale = kBasketballDrawScale;
+		mRotationDegrees = GameRandom::Range(0.0f, 360.0f);
+		mRotationSpeedDegrees = GameRandom::Range(
+			kBasketballSpinSpeedMin, kBasketballSpinSpeedMax);
+		if (GameRandom::Chance()) mRotationSpeedDegrees = -mRotationSpeedDegrees;
+		break;
 	case BulletType::BULLET_FIREBALL:
 	case BulletType::BULLET_TOXICFIREBALL: {
 		auto reanim = resources.GetReanimation(
@@ -786,9 +792,61 @@ void Bullet::HitLobbedGround()
 			g_particleSystem->EmitEffect("ButterSplat", GetPosition());
 		}
 	}
+	else if (mBulletType == BulletType::BULLET_BASKETBALL) {
+		AudioSystem::PlaySound(
+			ResourceKeys::Sounds::SOUND_PEABULLET_HIT_BODY1, 0.2f);
+	}
 	else if (g_particleSystem) {
 		g_particleSystem->EmitEffect("CabbageSplat", GetPosition());
 	}
+	Die();
+}
+
+void Bullet::ConfigureCollisionTarget()
+{
+	if (!mCollider) return;
+	mCollider->isTrigger = true;
+	mCollider->layerMask = CollisionLayer::BULLET;
+	mCollider->onTriggerStay = nullptr;
+	if (mPoolType == BulletType::BULLET_BASKETBALL) {
+		mCollider->collisionMask = CollisionLayer::PLANT;
+		mCollider->onTriggerEnter = [this](ColliderComponent* other) {
+			HandlePlantContact(other);
+		};
+		return;
+	}
+
+	mCollider->collisionMask = CollisionLayer::ZOMBIE;
+	mCollider->onTriggerEnter = [this](ColliderComponent* other) {
+		HandleZombieContact(other);
+	};
+	if (mPoolType == BulletType::BULLET_SPIKE) {
+		mCollider->onTriggerStay = [this](ColliderComponent* other) {
+			HandleZombieContact(other);
+		};
+	}
+}
+
+void Bullet::HandlePlantContact(ColliderComponent* other)
+{
+	if (mHasHit || !IsActive() || !mBoard || !other
+		|| mBulletType != BulletType::BULLET_BASKETBALL) {
+		return;
+	}
+	auto* object = other->GetGameObject();
+	if (!object || object->GetObjectType() != ObjectType::OBJECT_PLANT) return;
+	auto* collidedPlant = dynamic_cast<Plant*>(object);
+	if (!collidedPlant || collidedPlant->mRow != mRow) return;
+
+	Plant* target = mBoard->GetCatapultTargetPlantAt(
+		collidedPlant->mRow, collidedPlant->mColumn);
+	if (!target) return;
+
+	// TODO(叶子保护伞)：在实际扣血前查询同排保护伞的触发状态；未来在此等待、触发或反弹篮球。
+	mHasHit = true;
+	target->TakeDamage(mDamage, DamageSource::ZOMBIE);
+	AudioSystem::PlaySound(
+		ResourceKeys::Sounds::SOUND_PEABULLET_HIT_BODY1, 0.2f);
 	Die();
 }
 
