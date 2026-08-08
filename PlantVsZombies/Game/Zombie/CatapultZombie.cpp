@@ -31,9 +31,9 @@ namespace {
 	constexpr float kMinimumTargetLead = 100.0f;            // 车辆至少位于植物右侧该距离才可锁定，单位 px
 	constexpr float kLobDuration = 1.2f;                    // 篮球固定飞行时间，单位秒
 	constexpr float kLobApexHeight = 210.0f;                // 篮球相对起终点连线的最高拱高，单位 px
-	constexpr float kColliderFromVisualX = -43.0f;          // 碰撞框左缘相对稳定视觉原点的 X，单位 px
+	constexpr float kColliderFromVisualX = -5.0f;          // 碰撞框左缘相对稳定视觉原点的 X，单位 px
 	constexpr float kColliderFromVisualY = 28.0f;           // 碰撞框上缘相对稳定视觉原点的 Y，单位 px
-	constexpr float kAttackFromVisualX = -33.0f;            // 碾压攻击框左缘相对稳定视觉原点的 X，单位 px
+	constexpr float kAttackFromVisualX = -20.0f;            // 碾压攻击框左缘相对稳定视觉原点的 X，单位 px
 	constexpr float kAttackFromVisualY = 28.0f;             // 碾压攻击框上缘相对稳定视觉原点的 Y，单位 px
 	constexpr float kAttackWidth = 133.0f;                  // 原版车辆攻击矩形宽度，单位 px
 	constexpr float kAttackHeight = 140.0f;                 // 原版车辆攻击矩形高度，单位 px
@@ -77,7 +77,7 @@ void CatapultZombie::SetupZombie()
 	mBasketballCount = kInitialBasketballs;
 
 	if (mCollider) {
-		mCollider->size = Vector(153.0f, 140.0f);
+		mCollider->size = Vector(150.0f, 140.0f);
 		mCollider->offset = mVisualOffset
 			+ Vector(kColliderFromVisualX, kColliderFromVisualY);
 		mCollider->onTriggerEnter = [this](ColliderComponent* other) { StartEat(other); };
