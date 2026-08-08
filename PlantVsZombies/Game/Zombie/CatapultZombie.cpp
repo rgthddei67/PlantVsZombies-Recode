@@ -205,7 +205,7 @@ void CatapultZombie::BeginShooting(Plant& target)
 	}
 	mShotFiredThisCycle = false;
 	mPhase = Phase::SHOOTING;
-	PlayTrackOnce("anim_shoot", "", kShootClipSpeed, 0.15f);
+	PlayTrackOnce("anim_shoot", "", kShootClipSpeed, 0.0f);
 }
 
 void CatapultZombie::LaunchBasketball()

@@ -40,7 +40,7 @@ void PogoZombie::SetupZombie()
 	mNeedDropHead = true;
 
 	if (auto* shadow = GetComponent<ShadowComponent>()) {
-		shadow->SetOffset(Vector(4.0f, 42.0f));
+		shadow->SetOffset(Vector(4.0f, 35.0f));
 	}
 
 	PlayTrack("anim_pogo", kPogoClipSpeed);
