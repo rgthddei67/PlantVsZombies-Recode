@@ -20,6 +20,7 @@ protected:
 	void HeadDrop() override;
 	void ArmDrop() override;
 	void ShieldDrop() override;
+	void RestoreHeadImageAfterGarlic() override;
 
 	void CheckShieldImage() override;
 

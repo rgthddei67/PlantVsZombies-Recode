@@ -2,6 +2,7 @@
 
 > Codex routing: required always-on rules live in `../../AGENTS.md`; detailed build, AutoTest, architecture, resource, and implementation guidance lives in `../agent-guide/PROJECT_GUIDE.md`. The entries below are historical subsystem context and should be read only when relevant.
 
+- [经典大蒜与僵尸跨行反应](project_pvz_garlic.md) — 2026-08-08 `PLANT_GARLIC` 50阳光/7.5秒/400生命；首口50伤后由 Zombie 独立嫌恶状态在0.7秒停吃、1.7秒同介质相邻行改道、2.7秒结束，逻辑 `mRow` 先切换而 Y 以100px/s追赶；报纸破盾原子取消、魅惑继续，阶段/Y/恶心脸存档；通用 grossout 头按透明像素框上移15px；clang-release、默认/NoInstance各196命令可见专项及报纸父回归通过
 - [屋顶地形与僵尸连续坡面](project_pvz_roof_terrain_foundation.md) — 2026-08-03 白天/黑夜屋顶共用 Board 连续1:4坡面；植物离散格、僵尸连续坡面、清洁车/火焰/雨滴/弹坑/台风/子弹按语义消费；花盆承载与台风整组搬移已纳入专项；昼夜屋顶雨天在背景层淡入各自仅替换天空的雨景变体，非天空像素与各自原图一致
 - [昼夜屋顶坡面径流](project_pvz_roof_runoff.md) — 2026-08-04 `ROOF/NIGHT_ROOF` 共用雨势积累、3 秒预警与 2.2 秒冲刷；一次不重复锁定 1～3 行（50/35/15），僵尸以 60px/s 向屋檐漂移；结束兑现预抽并入档的 30%～60% 残留湿度，夜屋顶未来在此之上叠加独立电荷系统
 - [第六大关黑夜屋顶延期设计](project_pvz_sixth_area_night_roof_backlog.md) — 2026-08-04 第五大关完成前仅记录：完整 `NIGHT_ROOF` 大关候选采用独立雷荷/导电瓦路；全场当前总血量处决僵尸按植物格组合与僵尸三层生命冻结快照同时结算、花盆豁免，并已确认“约 6～8 秒天气预警＋约 0.9～1.2 秒最终锁定”、灰烬可硬解、死亡不清雷荷且本次劫持不转移

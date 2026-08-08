@@ -70,6 +70,9 @@ protected:
 	bool mIsEating = false;
 	int mEatPlantID = NULL_PLANT_ID;
 	int mEatZombieID = NULL_ZOMBIE_ID;   // 互啃目标（魅惑↔普通）；不持久化——读档后由碰撞下一帧重建
+	bool mGarlicRedirectActive = false;   // 大蒜嫌恶反应仍在推进；与啃食目标分离，目标死亡后也必须完成换行
+	float mGarlicRedirectElapsed = 0.0f;  // 嫌恶反应已推进的游戏秒数；冻结/黄油期间暂停
+	bool mGarlicRowChanged = false;       // 1.7 秒节点是否已经提交相邻行，防止跨帧重复选行
 
 	bool mHasHead = true;
 	bool mHasArm = true;
@@ -217,6 +220,14 @@ public:
 	bool IsDying() const { return this->mIsDying; }
 	bool IsEating() const { return this->mIsEating; }
 	int GetEatingPlantID() const { return mEatPlantID; }
+	/** 是否正在执行由大蒜首口触发的停顿、换行或收尾阶段。 */
+	bool IsGarlicRedirecting() const { return mGarlicRedirectActive; }
+	/** AutoTest 与存档诊断使用的嫌恶反应进度，单位：游戏秒。 */
+	float GetGarlicRedirectElapsed() const { return mGarlicRedirectElapsed; }
+	/** 本次嫌恶反应是否已经把逻辑行切到目标相邻行。 */
+	bool HasGarlicChangedRow() const { return mGarlicRowChanged; }
+	/** 当前是否处于应显示嫌恶脸的时间窗，供状态导出验证外观恢复。 */
+	bool IsGarlicYuckFaceVisible() const;
 	bool IsInPool() const { return this->mInPool; }
 	bool HasArm() const { return this->mHasArm; }
 	LadderClimbPhase GetLadderClimbPhase() const { return mLadderClimbPhase; }
@@ -304,6 +315,8 @@ public:
 	void SaveProtectedData(nlohmann::json& j) const;
 
 	void LoadProtectedData(const nlohmann::json& j);
+	/** 派生读档与装备外观恢复完成后，重建大蒜脸覆盖和动画停走层。 */
+	void FinalizeProtectedLoad();
 
 	void ValidateEatingState(EntityManager& em);
 
@@ -355,6 +368,24 @@ protected:
 	void ApplyRoofRunoffDrift(float deltaTime, TransformComponent* transform);
 	/** 把所有僵尸品种的 Transform Y 收敛到当前 X 对应的屋顶连续坡面。 */
 	void SyncToRoofTerrain(TransformComponent* transform);
+	/** 推进大蒜嫌恶反应，并在原版节点停止啃食、选择同介质相邻行和恢复移动。 */
+	void UpdateGarlicRedirect(float deltaTime, TransformComponent* transform);
+	/** 首口命中大蒜后建立独立嫌恶阶段，并立即冻结当前啃食动画。 */
+	void StartGarlicRedirect();
+	/** 立即结束大蒜嫌恶反应；报纸狂暴与死亡用它原子清理脸图、啃食和纵向过渡。 */
+	void CancelGarlicRedirect(bool stopEating);
+	/** 当前大蒜阶段是否应冻结自主位移与 Animator extra 层。 */
+	bool IsGarlicRedirectPaused() const;
+	/** 当前品种是否有匹配的嫌恶脸贴图；缺专属资源的品种走原版短停顿分支。 */
+	bool SupportsGarlicYuckFace() const;
+	/** 设置或恢复嫌恶脸以及被它临时隐藏的头部附属轨道。 */
+	void SetGarlicYuckFaceVisible(bool visible);
+	/** 按屏上僵尸数节流并播放原版 2:1 权重的 Yuck Foley。 */
+	void PlayGarlicYuckSound() const;
+	/** 从当前行的同介质相邻候选中选定一行并更新逻辑行。 */
+	bool ChangeRowForGarlic();
+	/** 恢复当前品种原有头图；报纸狂暴态覆写为 madhead。 */
+	virtual void RestoreHeadImageAfterGarlic();
 	/**
 	 * 用前后双探针维护通用入水状态；切换介质时同步视觉并恢复当前稳态走路轨道。
 	 * @param playTransitionFeedback 首次生成、读档或品种自管演出结束时传 false，避免伪造跨界反馈。

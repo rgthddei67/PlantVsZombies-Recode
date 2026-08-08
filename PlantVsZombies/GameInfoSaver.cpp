@@ -445,6 +445,7 @@ bool GameInfoSaver::SerializeLevelDataToPath(Board* board, CardSlotManager* mana
 		z["type"] = static_cast<int>(zombie->mZombieType);
 		z["row"] = zombie->mRow;
 		z["x"] = zombie->GetPosition().x;
+		z["y"] = zombie->GetPosition().y;
 
 		z["bodyHealth"] = zombie->mBodyHealth;
 		z["bodyMaxHealth"] = zombie->mBodyMaxHealth;
@@ -1034,6 +1035,10 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 		}
 
 		if (zombie) {
+			// 大蒜换行会让逻辑行先切换、Transform Y 再平滑追上；旧档缺 y 时沿用新建实体的行基准。
+			Vector savedPosition = zombie->GetPosition();
+			savedPosition.y = z.value("y", savedPosition.y);
+			zombie->SetPosition(savedPosition);
 			zombie->mBodyHealth = z.value("bodyHealth", 270);
 			zombie->mBodyMaxHealth = z.value("bodyMaxHealth", 270);
 			zombie->mHelmType = static_cast<HelmType>(z.value("helmType", HelmType::HELMTYPE_NONE));
@@ -1055,6 +1060,7 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 			}
 
 			zombie->ZombieItemUpdate();
+			zombie->FinalizeProtectedLoad();
 		}
 	}
 

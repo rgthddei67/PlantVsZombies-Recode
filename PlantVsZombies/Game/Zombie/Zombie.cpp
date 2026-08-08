@@ -42,6 +42,13 @@ namespace {
 	constexpr float kButterSplatOffsetY = -6.0f;           // C# DrawButter 相对头部轨道的贴图纵向偏移，单位：像素
 	constexpr float kButterSplatScale = 0.8f;              // 对齐原版头顶覆盖比例，同时保留面部与上身轮廓
 	const Vector kButterFallbackHeadOffset(0.0f, -40.0f);   // 缺少 anim_head1 时相对逻辑位置的保底头部锚点
+	constexpr float kGarlicShortPauseTime = 0.20f;         // 无匹配嫌恶脸资源的品种只停顿 20 厘秒
+	constexpr float kGarlicFacePauseTime = 0.70f;          // 有嫌恶脸品种在 70 厘秒节点停吃并换脸
+	constexpr float kGarlicHoldTime = 1.70f;               // 原版 YUCKI_HOLD_TIME：选择相邻行并恢复行走
+	constexpr float kGarlicWalkEndTime = 2.70f;            // 原版 YUCKI_WALK_TIME：收回嫌恶脸并结束状态
+	constexpr float kGarlicRowMoveSpeed = 100.0f;          // 原版每厘秒移动 1 像素，折合像素/游戏秒
+	constexpr float kGarlicRowMoveEpsilon = 0.001f;        // 纵向收敛判定容差，避免浮点残差留在行间
+	constexpr float kGarlicYuckFaceOffsetY = -15.0f;       // grossout PNG 顶部透明留白相对普通头图的垂直补偿，单位：像素
 
 	/** 对齐 C# AnimateChewSound：坚硬防御植物使用 ChompSoft，其他植物使用普通 Chomp。 */
 	bool UsesSoftChewSound(PlantType type)
@@ -49,7 +56,6 @@ namespace {
 		switch (type) {
 		case PlantType::PLANT_WALLNUT:
 		case PlantType::PLANT_TALLNUT:
-		case PlantType::PLANT_GARLIC:
 		case PlantType::PLANT_PUMPKINSHELL:
 			return true;
 		default:
@@ -210,6 +216,9 @@ void Zombie::SaveProtectedData(nlohmann::json& j) const {
 	j["ladderClimbPhase"] = static_cast<int>(mLadderClimbPhase);
 	j["ladderAltitude"] = mLadderAltitude;
 	j["useLadderColumn"] = mUseLadderColumn;
+	j["garlicRedirectActive"] = mGarlicRedirectActive;
+	j["garlicRedirectElapsed"] = mGarlicRedirectElapsed;
+	j["garlicRowChanged"] = mGarlicRowChanged;
 }
 
 void Zombie::LoadProtectedData(const nlohmann::json& j) {
@@ -288,6 +297,16 @@ void Zombie::LoadProtectedData(const nlohmann::json& j) {
 	mLadderClimbPhase = static_cast<LadderClimbPhase>(ladderPhase);
 	mLadderAltitude = std::clamp(j.value("ladderAltitude", 0.0f), 0.0f, 90.0f);
 	mUseLadderColumn = j.value("useLadderColumn", -1);
+	mGarlicRedirectActive = j.value("garlicRedirectActive", false);
+	mGarlicRedirectElapsed = std::clamp(
+		j.value("garlicRedirectElapsed", 0.0f), 0.0f, kGarlicWalkEndTime);
+	mGarlicRowChanged = mGarlicRedirectActive && j.value("garlicRowChanged", false);
+	// 损坏档或旧版调试档不得把已完成阶段恢复成永久停格。
+	if (mGarlicRedirectActive && mGarlicRedirectElapsed >= kGarlicWalkEndTime) {
+		mGarlicRedirectActive = false;
+		mGarlicRedirectElapsed = 0.0f;
+		mGarlicRowChanged = false;
+	}
 	if (mTangleKelpPlantID != NULL_PLANT_ID) {
 		CreateTangleKelpGrabAnimators(
 			j.value("tangleKelpGrabFrame", kTangleKelpGrabStartFrame));
@@ -419,6 +438,7 @@ void Zombie::Update()
 
 		if (mIsDying)
 		{
+			if (mGarlicRedirectActive) CancelGarlicRedirect(false);
 			// 定身兜底解除：任何转入死亡的路径都不得停格——死亡动画靠帧事件 Die()，停格即卡尸
 			if (mFrozenTimer > 0.0f) ClearFrozen();
 			if (mButterTimer > 0.0f) ClearButter();
@@ -494,6 +514,8 @@ void Zombie::Update()
 			ApplyTyphoonGustDrift(deltaTime, transform);
 			ApplyRoofRunoffDrift(deltaTime, transform);
 		}
+		// 大蒜计时使用未减速游戏时间；冻结/黄油在函数内部暂停，换行后则同时收敛纵向位置。
+		UpdateGarlicRedirect(deltaTime, transform);
 		// 冻结和啃食会在下方早退，阵风横移后仍必须立刻回到屋顶坡面。
 		SyncToRoofTerrain(transform);
 		// 海豚/撑杆被高坚果挡下后会在碰撞箱外手动开吃，没有碰撞对可产生 onTriggerExit。
@@ -560,6 +582,7 @@ void Zombie::Update()
 					if (mLadderClimbPhase == LadderClimbPhase::CLIMBING) {
 						mLadderClimbPhase = LadderClimbPhase::FALLING;
 					}
+					CancelGarlicRedirect(false);
 					// 死亡轨道开始前立即结束攻击，避免重复啃食帧事件继续伤害目标，
 					// 也避免植物的 eaterCount 一直等到死亡动画末帧才归零。
 					if (mIsEating) {
@@ -588,6 +611,7 @@ void Zombie::Update()
 		// 冻结/黄油定身：移动、啃食推进与子类逻辑全停；上方状态计时照常推进。
 		// 啃食帧事件因动画停格（extra=0）自然不触发，mIsEating 状态保留，解冻续啃。
 		if (IsImmobilized()) return;
+		if (IsGarlicRedirectPaused()) return;
 
 		if (mIsEating) return;
 
@@ -598,6 +622,16 @@ void Zombie::Update()
 	}
 }
 
+void Zombie::FinalizeProtectedLoad()
+{
+	if (!mGarlicRedirectActive || !mAnimator) return;
+	SetGarlicYuckFaceVisible(
+		SupportsGarlicYuckFace()
+		&& mGarlicRedirectElapsed >= kGarlicFacePauseTime
+		&& mGarlicRedirectElapsed < kGarlicWalkEndTime);
+	UpdateAnimSpeed();
+}
+
 /**
  * 屋顶高度是 Board 拥有的地形数据。所有普通、飞行、地下和特殊移动品种都只提交 X，
  * 基类再把逻辑落脚点贴到连续坡面，避免各品种复制一套斜坡公式。
@@ -605,12 +639,222 @@ void Zombie::Update()
 void Zombie::SyncToRoofTerrain(TransformComponent* transform)
 {
 	if (!transform || !mBoard || mIsPreview || !mBoard->IsRoofBackground()) return;
+	// 大蒜换行期间 Y 正向目标行平滑收敛；坡面同步若同帧硬贴目标行会抹掉这段过渡。
+	if (mGarlicRedirectActive && mGarlicRowChanged) return;
 
 	Vector position = transform->GetPosition();
 	const float terrainY = mBoard->GetZombieSpawnY(mRow, position.x);
 	if (terrainY >= 0.0f) {
 		position.y = terrainY;
 		transform->SetPosition(position);
+	}
+}
+
+bool Zombie::IsGarlicRedirectPaused() const
+{
+	return mGarlicRedirectActive && mGarlicRedirectElapsed < kGarlicHoldTime;
+}
+
+bool Zombie::IsGarlicYuckFaceVisible() const
+{
+	return mGarlicRedirectActive && SupportsGarlicYuckFace()
+		&& mGarlicRedirectElapsed >= kGarlicFacePauseTime
+		&& mGarlicRedirectElapsed < kGarlicWalkEndTime;
+}
+
+bool Zombie::SupportsGarlicYuckFace() const
+{
+	if (!mAnimator || !mAnimator->HasTrack("anim_head1")
+		|| !ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_ZOMBIE_HEAD_GROSSOUT, false)) {
+		return false;
+	}
+
+	// 舞王、伴舞与撑杆原版各用专属 grossout 图；当前资源包未提供时必须走短停顿，
+	// 不能把普通僵尸脸硬贴到不同骨架。其余特殊品种原版本来也没有嫌恶脸图。
+	switch (mZombieType) {
+	case ZombieType::ZOMBIE_NORMAL:
+	case ZombieType::ZOMBIE_TRAFFIC_CONE:
+	case ZombieType::ZOMBIE_BUCKET:
+	case ZombieType::ZOMBIE_FASTBUCKET:
+	case ZombieType::ZOMBIE_NEWSPAPER:
+	case ZombieType::ZOMBIE_FASTPAPER:
+	case ZombieType::ZOMBIE_DOOR:
+	case ZombieType::ZOMBIE_REINFORCED_DOOR:
+	case ZombieType::ZOMBIE_POOL_NORMAL:
+	case ZombieType::ZOMBIE_POOL_CONE:
+	case ZombieType::ZOMBIE_POOL_BUCKET:
+		return true;
+	default:
+		return false;
+	}
+}
+
+void Zombie::RestoreHeadImageAfterGarlic()
+{
+	if (mAnimator) mAnimator->SetTrackImage("anim_head1", nullptr);
+}
+
+void Zombie::SetGarlicYuckFaceVisible(bool visible)
+{
+	if (!mAnimator) return;
+	if (visible) {
+		if (!SupportsGarlicYuckFace()) return;
+		mAnimator->SetTrackImage("anim_head1", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_ZOMBIE_HEAD_GROSSOUT, false));
+		mAnimator->SetTrackOffset("anim_head1", 0.0f, kGarlicYuckFaceOffsetY);
+		mAnimator->SetTrackVisible("anim_head2", false);
+		mAnimator->SetTrackVisible("anim_head_jaw", false);
+		mAnimator->SetTrackVisible("anim_tongue", false);
+		return;
+	}
+
+	RestoreHeadImageAfterGarlic();
+	mAnimator->SetTrackOffset("anim_head1", 0.0f, 0.0f);
+	if (mHasHead) {
+		mAnimator->SetTrackVisible("anim_head2", true);
+		mAnimator->SetTrackVisible("anim_head_jaw", true);
+		mAnimator->SetTrackVisible("anim_tongue", mHasTongue);
+	}
+}
+
+void Zombie::PlayGarlicYuckSound() const
+{
+	if (!mBoard || !mHasHead) return;
+
+	// 这是每次大蒜反应至多一次的冷路径；按原版只统计仍有头、未魅惑且可见的活动僵尸。
+	int zombiesOnScreen = 0;
+	for (int id : mBoard->mEntityManager.GetAllZombieIDs()) {
+		const Zombie* zombie = mBoard->mEntityManager.GetZombie(id);
+		if (!zombie || !zombie->IsActive() || !zombie->mHasHead
+			|| zombie->mIsDying || zombie->mIsMindControlled) {
+			continue;
+		}
+		const float x = zombie->GetPosition().x;
+		if (x >= -120.0f && x <= static_cast<float>(SCENE_WIDTH + 120)) {
+			++zombiesOnScreen;
+		}
+	}
+	if (zombiesOnScreen > 10 || (zombiesOnScreen > 5 && !GameRandom::Chance())) return;
+
+	// TodFoley 的 Yuck 权重为 YUCK:YUCK2 = 2:1。
+	AudioSystem::PlaySound(
+		GameRandom::Range(0, 2) < 2
+			? ResourceKeys::Sounds::SOUND_YUCK
+			: ResourceKeys::Sounds::SOUND_YUCK2,
+		0.3f);
+}
+
+bool Zombie::ChangeRowForGarlic()
+{
+	if (!mBoard || mRow < 0 || mRow >= mBoard->mRows) return false;
+
+	int candidates[2] = { -1, -1 };
+	int candidateCount = 0;
+	const bool currentRowIsPool = mBoard->IsPoolRow(mRow);
+	for (const int candidate : { mRow - 1, mRow + 1 }) {
+		if (candidate < 0 || candidate >= mBoard->mRows
+			|| mBoard->IsPoolRow(candidate) != currentRowIsPool
+			|| !mBoard->CanSpawnZombieInRow(mZombieType, candidate)) {
+			continue;
+		}
+		candidates[candidateCount++] = candidate;
+	}
+	if (candidateCount == 0) return false;
+
+	const int destination = candidates[candidateCount == 1
+		? 0
+		: GameRandom::Range(0, candidateCount - 1)];
+	mRow = destination;
+	return true;
+}
+
+void Zombie::StartGarlicRedirect()
+{
+	if (mGarlicRedirectActive || mIsPreview || mIsDying || mIsDead || !mBoard) return;
+	mGarlicRedirectActive = true;
+	mGarlicRedirectElapsed = 0.0f;
+	mGarlicRowChanged = false;
+	UpdateAnimSpeed();
+}
+
+void Zombie::CancelGarlicRedirect(bool stopEating)
+{
+	if (!mGarlicRedirectActive) return;
+	if (stopEating && mIsEating && mEatPlantID != NULL_PLANT_ID) {
+		StopEatingInvalidPlantTarget(0.2f);
+	}
+
+	// 当前引擎没有原版每帧通用 Y 收敛；中途打断必须落到已提交行，不能把碰撞箱留在行间。
+	if (mGarlicRowChanged && mBoard) {
+		if (TransformComponent* transform = GetTransformComponent()) {
+			Vector position = transform->GetPosition();
+			const float targetY = mBoard->GetZombieSpawnY(mRow, position.x);
+			if (targetY >= 0.0f) {
+				position.y = targetY;
+				transform->SetPosition(position);
+			}
+		}
+	}
+	SetGarlicYuckFaceVisible(false);
+	mGarlicRedirectActive = false;
+	mGarlicRedirectElapsed = 0.0f;
+	mGarlicRowChanged = false;
+	UpdateAnimSpeed();
+}
+
+void Zombie::UpdateGarlicRedirect(float deltaTime, TransformComponent* transform)
+{
+	if (!mGarlicRedirectActive || !mBoard || !transform || mIsPreview || mIsDying || mIsDead) return;
+	// 对齐原版 Animate 的定身早退：冻结和黄油都暂停嫌恶计时，解控后从原节点继续。
+	if (IsImmobilized()) return;
+
+	const float previousElapsed = mGarlicRedirectElapsed;
+	mGarlicRedirectElapsed = std::min(
+		kGarlicWalkEndTime, mGarlicRedirectElapsed + std::max(0.0f, deltaTime));
+	const bool hasYuckFace = SupportsGarlicYuckFace();
+
+	if (!hasYuckFace
+		&& previousElapsed <= kGarlicShortPauseTime
+		&& mGarlicRedirectElapsed > kGarlicShortPauseTime) {
+		if (mIsEating && mEatPlantID != NULL_PLANT_ID) StopEatingInvalidPlantTarget(0.2f);
+		mGarlicRedirectElapsed = kGarlicHoldTime;
+		PlayGarlicYuckSound();
+	}
+	if (hasYuckFace
+		&& previousElapsed < kGarlicFacePauseTime
+		&& mGarlicRedirectElapsed >= kGarlicFacePauseTime) {
+		if (mIsEating && mEatPlantID != NULL_PLANT_ID) StopEatingInvalidPlantTarget(0.2f);
+		SetGarlicYuckFaceVisible(true);
+		PlayGarlicYuckSound();
+	}
+
+	if (!mGarlicRowChanged && mGarlicRedirectElapsed >= kGarlicHoldTime) {
+		if (mIsEating && mEatPlantID != NULL_PLANT_ID) StopEatingInvalidPlantTarget(0.2f);
+		if (!ChangeRowForGarlic()) {
+			CancelGarlicRedirect(false);
+			PlayWalkAnimation(0.2f);
+			return;
+		}
+		mGarlicRowChanged = true;
+		PlayWalkAnimation(0.2f);
+		UpdateAnimSpeed();
+	}
+
+	if (mGarlicRowChanged) {
+		Vector position = transform->GetPosition();
+		const float targetY = mBoard->GetZombieSpawnY(mRow, position.x);
+		if (targetY >= 0.0f) {
+			const float remaining = targetY - position.y;
+			const float step = kGarlicRowMoveSpeed * std::max(0.0f, deltaTime);
+			if (std::fabs(remaining) <= step + kGarlicRowMoveEpsilon) position.y = targetY;
+			else position.y += remaining > 0.0f ? step : -step;
+			transform->SetPosition(position);
+		}
+	}
+
+	if (mGarlicRedirectElapsed >= kGarlicWalkEndTime) {
+		CancelGarlicRedirect(false);
 	}
 }
 
@@ -827,6 +1071,10 @@ void Zombie::UpdateAnimSpeed()
 	if (IsImmobilized())
 	{
 		mAnimator->SetExtraSpeedMultiplier(0.0f);   // 冻结/黄油停格：状态层不改各轨道 base 速度
+		return;
+	}
+	if (IsGarlicRedirectPaused()) {
+		mAnimator->SetExtraSpeedMultiplier(0.0f);   // 大蒜停顿不改 clip，1.7 秒恢复时可直接续用稳态走路轨道
 		return;
 	}
 	const float rainMultiplier = mBoard ? mBoard->GetZombieRainSpeedMultiplier() : 1.0f;
@@ -1363,6 +1611,7 @@ void Zombie::Die()
 	// 此刻 weak_ptr 尚未过期）。重复执行会把 mZombieNumber 多扣一次，导致计数提前归零。
 	if (mIsDead) return;
 	mIsDead = true;
+	CancelGarlicRedirect(false);
 	mButterTimer = 0.0f;
 	mToxinLayerTimers.fill(0.0f);
 	mToxinDamageRemainder = 0.0f;
@@ -1523,9 +1772,11 @@ void Zombie::EatTarget()
 		if (GameRandom::Range(0, 1) == 0)
 			AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_ZOMBIE_EAT, 0.17f);
 		else
-			AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_ZOMBIE_EAT2, 0.17f);
+		AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_ZOMBIE_EAT2, 0.17f);
 		return;
 	}
+	// 首口大蒜已经建立独立嫌恶状态；后续啃食帧事件即使因长帧同批抵达也不得再造成伤害。
+	if (mGarlicRedirectActive) return;
 	if (mEatPlantID != NULL_PLANT_ID && mHasHead)
 	{
 		if (auto* plant = mBoard->mEntityManager.GetPlant(mEatPlantID)) {
@@ -1562,7 +1813,18 @@ void Zombie::EatTarget()
 				AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_ZOMBIE_FINISHEAT, 0.2f);
 			}
 
-			if (UsesSoftChewSound(plant->mPlantType))
+			const bool isGarlic = plant->mPlantType == PlantType::PLANT_GARLIC;
+			if (isGarlic)
+			{
+				// 原版 Garlic 明确使用普通 Chomp；嫌恶音在停吃节点另播。
+				AudioSystem::PlaySound(
+					GameRandom::Range(0, 1) == 0
+						? ResourceKeys::Sounds::SOUND_ZOMBIE_EAT
+						: ResourceKeys::Sounds::SOUND_ZOMBIE_EAT2,
+					0.17f);
+				StartGarlicRedirect();
+			}
+			else if (UsesSoftChewSound(plant->mPlantType))
 			{
 				AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_ZOMBIE_EAT_SOFT, 0.17f);
 			}
@@ -1587,7 +1849,7 @@ void Zombie::EatTarget()
 void Zombie::StartEat(ColliderComponent* other)
 {
 	// 冻结中不进入啃食态（碰撞 onTriggerStay 每帧重试，解冻后自然补上）
-	if (mIsPreview || mIsDying || IsImmobilized()
+	if (mIsPreview || mIsDying || IsImmobilized() || mGarlicRedirectActive
 		|| mTangleKelpPlantID != NULL_PLANT_ID
 		|| mLadderClimbPhase != LadderClimbPhase::NONE) return;
 	const bool wasEating = mIsEating;   // 仅"本次真开吃"（false→true）触发 OnStartEating，避免每帧 onTriggerStay 重复触发
@@ -1780,7 +2042,8 @@ void Zombie::SetPosition(const Vector& position)
 float Zombie::GetCurrentHorizontalMoveSpeed() const
 {
 	if (mIsDying || mIsDead || !mHasHead || mTangleKelpPlantID != NULL_PLANT_ID
-		|| IsImmobilized() || !mAnimator || !mAnimator->IsPlaying()) {
+		|| IsImmobilized() || IsGarlicRedirectPaused()
+		|| !mAnimator || !mAnimator->IsPlaying()) {
 		return 0.0f;
 	}
 	const float trackSpeed = mGroundTrackIndex >= 0

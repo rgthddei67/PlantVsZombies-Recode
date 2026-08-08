@@ -50,6 +50,7 @@
 #include "CabbagePult.h"
 #include "KernelPult.h"
 #include "CoffeeBean.h"
+#include "Garlic.h"
 
 #include "../Zombie/Zombie.h"
 #include "../Zombie/ConeZombie.h"
@@ -324,6 +325,11 @@ void GameDataManager::InitializeHardcodedData() {
 		ResourceKeys::Textures::IMAGE_COFFEEBEAN,
 		AnimationType::ANIM_COFFEEBEAN,
 		ResourceKeys::Reanimations::REANIM_COFFEEBEAN, &MakePlant<CoffeeBean>);
+
+	RegisterPlant(PlantType::PLANT_GARLIC, "PLANT_GARLIC",
+		ResourceKeys::Textures::IMAGE_GARLIC,
+		AnimationType::ANIM_GARLIC,
+		ResourceKeys::Reanimations::REANIM_GARLIC, &MakePlant<Garlic>);
 
 	// 寒冰大喷菇：复用大喷菇 reanim（蓝色靠 overlay），仅卡图独立
 	RegisterPlant(PlantType::PLANT_ICEFUMESHROOM, "PLANT_ICEFUMESHROOM",

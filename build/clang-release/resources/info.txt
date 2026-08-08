@@ -172,6 +172,11 @@
 [PLANT_INSTANT_COFFEE_DESCRIPTION]
 咖啡豆可以唤醒白天沉睡的蘑菇。“我不是在催你起床，”咖啡豆说，“我只是把清醒这件事浓缩成了一小口。”
 
+[PLANT_GARLIC]
+大蒜
+[PLANT_GARLIC_DESCRIPTION]
+大蒜会迫使咬到他的僵尸改道到相邻一行。“路线规划是一门艺术，”大蒜说，“尤其当你的呼吸很有说服力时。”
+
 [ZOMBIE_NORMAL]
 僵尸
 [ZOMBIE_NORMAL_DESCRIPTION]

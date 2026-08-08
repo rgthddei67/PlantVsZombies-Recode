@@ -43,6 +43,7 @@
 #include "../Plant/CabbagePult.h"
 #include "../Plant/KernelPult.h"
 #include "../Plant/CoffeeBean.h"
+#include "../Plant/Garlic.h"
 #include "../Bullet/Bullet.h"
 #include "../Zombie/ZombieType.h"
 #include "../Zombie/Zombie.h"
@@ -1961,6 +1962,25 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		{ "soundLoaded", ResourceManager::GetInstance().GetSound(
 			ResourceKeys::Sounds::SOUND_COFFEE) != nullptr },
 	};
+	out["garlicYuckSoundRequestCount"] =
+		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_YUCK)
+		+ AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_YUCK2);
+	out["garlicResources"] = {
+		{ "reanimationLoaded", ResourceManager::GetInstance().HasReanimation(
+			ResourceKeys::Reanimations::REANIM_GARLIC) },
+		{ "cardLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_GARLIC, false) != nullptr },
+		{ "damageBody2Loaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_GARLIC_BODY2, false) != nullptr },
+		{ "damageBody3Loaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_GARLIC_BODY3, false) != nullptr },
+		{ "grossoutFaceLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_ZOMBIE_HEAD_GROSSOUT, false) != nullptr },
+		{ "yuckSoundsLoaded", ResourceManager::GetInstance().GetSound(
+			ResourceKeys::Sounds::SOUND_YUCK) != nullptr
+			&& ResourceManager::GetInstance().GetSound(
+				ResourceKeys::Sounds::SOUND_YUCK2) != nullptr },
+	};
 	out["pogoSoundRequestCount"] =
 		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_POGO_ZOMBIE);
 	out["bungeeScreamSoundRequestCount"] =
@@ -2971,6 +2991,11 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "isEating", z->IsEating() },
 			{ "isDying", z->IsDying() },
 			{ "eatPlantID", z->GetEatingPlantID() },
+			{ "garlicRedirecting", z->IsGarlicRedirecting() },
+			{ "garlicRedirectElapsedMs", static_cast<int>(std::lround(
+				z->GetGarlicRedirectElapsed() * 1000.0f)) },
+			{ "garlicRowChanged", z->HasGarlicChangedRow() },
+			{ "garlicYuckFaceVisible", z->IsGarlicYuckFaceVisible() },
 			{ "ladderClimbPhase", LadderClimbPhaseName(z->GetLadderClimbPhase()) },
 			{ "ladderAltitudeOn1000", static_cast<int>(std::lround(
 				z->GetLadderAltitude() * 1000.0f)) },
@@ -3467,6 +3492,9 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		}
 		if (auto* wallNut = dynamic_cast<WallNut*>(p)) {
 			plantState["nutDamageStage"] = wallNut->GetDamageStage();
+		}
+		if (auto* garlic = dynamic_cast<Garlic*>(p)) {
+			plantState["garlicDamageStage"] = garlic->GetDamageStage();
 		}
 		if (auto* pumpkin = dynamic_cast<PumpkinShell*>(p)) {
 			plantState["pumpkinDamageStage"] = pumpkin->GetDamageStage();

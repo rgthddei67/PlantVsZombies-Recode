@@ -91,6 +91,7 @@ enum class AnimationType
 	ANIM_COFFEEBEAN, // 经典咖啡豆；追加在末尾避免旧动画枚举值错位
 	ANIM_LADDER_ZOMBIE, // 经典扶梯僵尸；追加在末尾避免旧动画枚举值错位
 	ANIM_ELITE_LADDER_ZOMBIE, // 精英扶梯独立深蓝工装与黄黑梯子材质
+	ANIM_GARLIC, // 经典大蒜；追加在末尾避免旧动画枚举值错位
 };
 
 #endif

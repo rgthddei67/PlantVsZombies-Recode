@@ -751,6 +751,13 @@ void Animator::SetTrackImage(const std::string& trackName, const Texture* image)
 	}
 }
 
+void Animator::SetTrackOffset(const std::string& trackName, float x, float y) {
+	for (auto& extra : GetTrackExtrasByName(trackName)) {
+		extra->mOffsetX = x;
+		extra->mOffsetY = y;
+	}
+}
+
 void Animator::SetLocalPosition(float x, float y) {
 	mLocalPosX = x;
 	mLocalPosY = y;

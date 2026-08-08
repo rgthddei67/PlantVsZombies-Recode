@@ -209,6 +209,14 @@ public:
 	void SetTrackImage(const std::string& trackName, const Texture* image);
 
 	/**
+	 * @brief 设置指定轨道叠加在 reanim 原始变换上的绘制偏移。
+	 * @param trackName 轨道名。
+	 * @param x 水平偏移，单位：动画局部像素。
+	 * @param y 垂直偏移，单位：动画局部像素。
+	 */
+	void SetTrackOffset(const std::string& trackName, float x, float y);
+
+	/**
 	 * @brief 设置轨道可见性
 	 * @param trackName 轨道名
 	 * @param visible true=显示，false=隐藏

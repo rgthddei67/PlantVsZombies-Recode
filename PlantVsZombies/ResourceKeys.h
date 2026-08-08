@@ -232,6 +232,10 @@ namespace ResourceKeys
 		RKEY(IMAGE_CABBAGEPULT);
 		RKEY(IMAGE_CORNPULT);
 		RKEY(IMAGE_COFFEEBEAN);
+		RKEY(IMAGE_GARLIC);
+		RKEY(IMAGE_GARLIC_BODY2);
+		RKEY(IMAGE_GARLIC_BODY3);
+		RKEY(IMAGE_ZOMBIE_HEAD_GROSSOUT);
 		RKEY(IMAGE_SUNSHROOM);
 		RKEY(IMAGE_FUMESHROOM);
 		RKEY(IMAGE_GRAVEBUSTER);
@@ -344,8 +348,10 @@ namespace ResourceKeys
 		RKEY(SOUND_WINMUSIC);
 		inline const std::string SOUND_ZOMBIE_EAT = "SOUND_CHOMP";
 		inline const std::string SOUND_ZOMBIE_EAT2 = "SOUND_CHOMP2";
-		inline const std::string SOUND_ZOMBIE_EAT_SOFT = "SOUND_CHOMPSOFT"; // 坚果、大坚果、蒜与南瓜头的原版软啃声
+		inline const std::string SOUND_ZOMBIE_EAT_SOFT = "SOUND_CHOMPSOFT"; // 坚果、大坚果与南瓜头的原版软啃声
 		inline const std::string SOUND_ZOMBIE_FINISHEAT = "SOUND_FINISHEATING";
+		RKEY(SOUND_YUCK);
+		RKEY(SOUND_YUCK2);
 		RKEY(SOUND_HUGEWAVE);
 		RKEY(SOUND_ARM_HEAD_DROP);
 		RKEY(SOUND_COOLDOWNZOMBIE);	// 寒冰豌豆首次施加减速（原版 frozen 音效入口）
@@ -465,6 +471,7 @@ namespace ResourceKeys
 		inline const std::string REANIM_CABBAGEPULT = "Cabbagepult";
 		inline const std::string REANIM_KERNELPULT = "Cornpult";
 		inline const std::string REANIM_COFFEEBEAN = "Coffeebean";
+		inline const std::string REANIM_GARLIC = "Garlic";
 
 		inline const std::string REANIM_NORMAL_ZOMBIE = "NormalZombie";
 		inline const std::string REANIM_CONE_ZOMBIE = "ConeZombie";

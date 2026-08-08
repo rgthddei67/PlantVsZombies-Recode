@@ -68,6 +68,8 @@ void PaperZombie::CheckShieldImage()
 
 void PaperZombie::ShieldDrop()
 {
+	// 原版撕报会原子中断 Garlic 嫌恶态；先清脸与旧啃食目标，再进入 gasp 狂暴演出。
+	CancelGarlicRedirect(true);
 	Zombie::ShieldDrop();
 	mShieldStage = ArmorBrokenState::NONE;
 	mAnimator->SetTrackVisible("Zombie_paper_paper", false);
@@ -164,7 +166,7 @@ void PaperZombie::ArmDrop()
 
 void PaperZombie::StartEat(ColliderComponent* other)
 {
-	if (mIsPreview || mIsDying)	return;
+	if (mIsPreview || mIsDying || IsGarlicRedirecting())	return;
 	if (other->GetGameObject()->GetObjectType() == ObjectType::OBJECT_ZOMBIE) {
 		Zombie::StartEat(other);
 		return;
@@ -206,6 +208,14 @@ void PaperZombie::ZombieMove(float scaledDelta, TransformComponent* transform)
 	if (!mIsGasp) {
 		Zombie::ZombieMove(scaledDelta, transform);
 	}
+}
+
+void PaperZombie::RestoreHeadImageAfterGarlic()
+{
+	if (!mAnimator) return;
+	mAnimator->SetTrackImage("anim_head1", mHasNewspaper
+		? nullptr
+		: ResourceManager::GetInstance().GetTexture("IMAGE_ZOMBIE_PAPER_MADHEAD"));
 }
 
 float PaperZombie::GetAbilityAnimSpeedMultiplier() const
