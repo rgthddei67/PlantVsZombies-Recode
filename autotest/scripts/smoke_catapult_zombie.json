@@ -57,6 +57,7 @@
     { "op": "wait_seconds", "value": 12.0 },
     { "op": "wait_seconds", "value": 12.0 },
     { "op": "wait_seconds", "value": 12.0 },
+    { "op": "wait_seconds", "value": 6.0 },
     { "op": "assert_state", "path": "zombies.0.catapultBasketballs", "equals": 0 },
     { "op": "assert_state", "path": "zombies.0.catapultPhase", "equals": "WALKING" },
     { "op": "assert_state", "path": "plants.0.health", "equals": 8100 },
@@ -125,6 +126,29 @@
     { "op": "assert_state", "path": "zombieCount", "equals": 0 },
     { "op": "assert_state", "path": "particleEffectNameCounts.CatapultExplosion", "equals": 1 },
     { "op": "screenshot", "name": "e1_catapult_caltrop_explosion.png" },
+
+    { "op": "goto_level", "level": 1, "resetTestState": true },
+    { "op": "choose_cards", "cards": [] },
+    { "op": "wait_state", "state": "GAME" },
+    { "op": "set_spawn_paused", "value": true },
+    { "op": "spawn_zombie", "type": "ZOMBIE_CATAPULT", "row": 2, "x": 700 },
+    { "op": "spawn_bullet", "type": "BULLET_BUTTER", "row": 2, "x": 700, "y": 300, "velocityX": 0, "damage": 0 },
+    { "op": "wait_frames", "value": 3 },
+    { "op": "assert_state", "path": "zombies.0.buttered", "equals": true },
+    { "op": "assert_state", "path": "zombies.0.catapultButterAnchorFromVisualXOn1000", "atLeast": 25000, "atMost": 70000 },
+    { "op": "assert_state", "path": "zombies.0.catapultButterAnchorFromVisualYOn1000", "atLeast": -25000, "atMost": 10000 },
+    { "op": "screenshot", "name": "f0_catapult_butter_driver_head.png" },
+
+    { "op": "goto_level", "level": 1, "resetTestState": true },
+    { "op": "choose_cards", "cards": [] },
+    { "op": "wait_state", "state": "GAME" },
+    { "op": "set_spawn_paused", "value": true },
+    { "op": "spawn_zombie", "type": "ZOMBIE_CATAPULT", "row": 2, "x": 700, "frozen": true },
+    { "op": "wait_frames", "value": 2 },
+    { "op": "assert_state", "path": "zombies.0.frozen", "equals": true },
+    { "op": "assert_state", "path": "zombies.0.catapultIceTrapBottomFromVisualXOn1000", "equals": 95000 },
+    { "op": "assert_state", "path": "zombies.0.catapultIceTrapBottomFromVisualYOn1000", "equals": 143000 },
+    { "op": "screenshot", "name": "f1_catapult_frozen_vehicle_center.png" },
     { "op": "quit" }
   ]
 }

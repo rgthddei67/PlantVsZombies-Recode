@@ -28,6 +28,8 @@ public:
 	bool HandleCaltropHit(Caltrop& caltrop) override;
 	float GetCurrentHorizontalMoveSpeed() const override;
 	Vector GetVisualPosition() const override;
+	Vector GetButterSplatAnchor() const override;
+	Vector GetIceTrapBottomAnchor() const override;
 
 	bool CanBeCharmed() const override { return false; }
 	bool CanBeGrabbedByTangleKelp() const override { return false; }

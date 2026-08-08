@@ -185,6 +185,10 @@ public:
 	virtual bool ConsumesOtherMowersOnContact() const { return false; }
 
 	Vector GetVisualPosition() const override;
+	/** 返回黄油贴图跟随目标的世界锚点；异形身体可覆写为专属头部轨道。 */
+	virtual Vector GetButterSplatAnchor() const;
+	/** 返回冻结冰晶底边中心的世界锚点；车辆可覆写到整车视觉中央。 */
+	virtual Vector GetIceTrapBottomAnchor() const;
 	Vector GetPosition() const;
 	void SetPosition(const Vector& position);
 	/** 返回当前动画片段的平均根运动速度，并折算减速、冻结、天气和场地状态，单位：像素/游戏秒。 */

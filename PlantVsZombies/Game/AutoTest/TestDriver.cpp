@@ -3392,6 +3392,16 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			zombieState["catapultDriveSpeedOn1000"] = static_cast<int>(std::lround(
 				catapult->GetDriveSpeed() * 1000.0f));
 			const Vector visualPosition = catapult->GetVisualPosition();
+			const Vector butterAnchor = catapult->GetButterSplatAnchor();
+			const Vector iceTrapBottomAnchor = catapult->GetIceTrapBottomAnchor();
+			zombieState["catapultButterAnchorFromVisualXOn1000"] = static_cast<int>(
+				std::lround((butterAnchor.x - visualPosition.x) * 1000.0f));
+			zombieState["catapultButterAnchorFromVisualYOn1000"] = static_cast<int>(
+				std::lround((butterAnchor.y - visualPosition.y) * 1000.0f));
+			zombieState["catapultIceTrapBottomFromVisualXOn1000"] = static_cast<int>(
+				std::lround((iceTrapBottomAnchor.x - visualPosition.x) * 1000.0f));
+			zombieState["catapultIceTrapBottomFromVisualYOn1000"] = static_cast<int>(
+				std::lround((iceTrapBottomAnchor.y - visualPosition.y) * 1000.0f));
 			if (const auto* collider = catapult->GetColliderComponent()) {
 				const SDL_FRect bounds = collider->GetBoundingBox();
 				zombieState["catapultColliderFromVisualXOn1000"] = static_cast<int>(

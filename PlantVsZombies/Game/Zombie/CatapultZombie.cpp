@@ -55,6 +55,8 @@ namespace {
 	constexpr float kDeathEffectFromVisualY = 101.0f;       // 普通爆炸中心相对稳定视觉原点的 Y，单位 px
 	constexpr float kCharredFromVisualX = -57.0f;           // 专属灰烬原点相对稳定视觉原点的 X，单位 px
 	constexpr float kCharredFromVisualY = 11.0f;            // 专属灰烬原点相对稳定视觉原点的 Y，单位 px
+	constexpr float kIceTrapBottomFromVisualX = 95.0f;      // 冰晶底边中心相对稳定视觉原点的 X，置于整车视觉中央
+	constexpr float kIceTrapBottomFromVisualY = 143.0f;     // 冰晶底边中心相对稳定视觉原点的 Y，保持原脚底高度
 
 	float HorizontalOverlap(const SDL_FRect& lhs, const SDL_FRect& rhs)
 	{
@@ -407,6 +409,19 @@ void CatapultZombie::ZombieItemUpdate() const
 Vector CatapultZombie::GetVisualPosition() const
 {
 	return Zombie::GetVisualPosition() + mDamageShakeOffset;
+}
+
+Vector CatapultZombie::GetButterSplatAnchor() const
+{
+	// 司机头是投篮车 reanim 的专属轨道；跟随当前射击/行走姿态，避免退回车头逻辑原点。
+	return GetTrackWorldPosition("Zombie_catapult_driver_head");
+}
+
+Vector CatapultZombie::GetIceTrapBottomAnchor() const
+{
+	// 冰晶属于车体控制状态，不跟随低血量受击抖动。
+	return GetPosition() + mVisualOffset
+		+ Vector(kIceTrapBottomFromVisualX, kIceTrapBottomFromVisualY);
 }
 
 void CatapultZombie::PlayWalking()

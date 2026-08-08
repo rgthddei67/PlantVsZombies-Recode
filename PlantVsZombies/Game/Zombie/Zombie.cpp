@@ -1645,6 +1645,20 @@ Vector Zombie::GetVisualPosition() const {
 		+ mVisualOffset + Vector(0.0f, mTangleKelpSinkOffset - mLadderAltitude);
 }
 
+Vector Zombie::GetButterSplatAnchor() const
+{
+	const float scale = GetTransformComponent()
+		? GetTransformComponent()->GetScale() : 1.0f;
+	return mAnimator && mAnimator->HasTrack("anim_head1")
+		? GetTrackWorldPosition("anim_head1")
+		: GetPosition() + kButterFallbackHeadOffset * scale;
+}
+
+Vector Zombie::GetIceTrapBottomAnchor() const
+{
+	return GetPosition() + Vector(0.0f, 35.0f);
+}
+
 bool Zombie::CanBeTargetedByMagnetShroom() const
 {
 	return !mIsPreview && !mIsDead && !mIsDying && !mIsMindControlled
@@ -2099,13 +2113,11 @@ void Zombie::Draw(Graphics* g)
 		mTangleKelpGrabFront->Draw(g, grabPosition.x, grabPosition.y, scale);
 	}
 
-	// 原版优先使用 anim_head1 跟随当前姿态；极少数无头轨道品种退回稳定逻辑头部锚点。
+	// 默认优先跟随 anim_head1；车辆等异形身体通过虚锚点绑定自己的稳定视觉部位。
 	if (g && mButterTimer > 0.0f && mHasHead && !mIsPreview) {
 		if (const Texture* tex = ResourceManager::GetInstance().GetTexture(
 			ResourceKeys::Textures::IMAGE_CORNPULT_BUTTER_SPLAT)) {
-			const Vector headAnchor = mAnimator && mAnimator->HasTrack("anim_head1")
-				? GetTrackWorldPosition("anim_head1")
-				: GetPosition() + kButterFallbackHeadOffset * scale;
+			const Vector headAnchor = GetButterSplatAnchor();
 			g->DrawTexture(tex, headAnchor.x,
 				headAnchor.y + kButterSplatOffsetY * scale,
 				static_cast<float>(tex->width) * scale * kButterSplatScale,
@@ -2120,11 +2132,11 @@ void Zombie::Draw(Graphics* g)
 		if (auto* tex = ResourceManager::GetInstance().GetTexture(
 			ResourceKeys::Textures::IMAGE_ICETRAP))
 		{
-			const Vector pos = GetPosition();
+			const Vector bottomAnchor = GetIceTrapBottomAnchor();
 			const float w = static_cast<float>(tex->width);
 			const float h = static_cast<float>(tex->height);
-			// 僵尸判定矩形底边 ≈ y+35：冰晶底边压在脚底线上（站位截图后微调）
-			g->DrawTexture(tex, pos.x - w * 0.5f, pos.y + 35.0f - h, w, h);
+			// 普通僵尸仍压在脚底线；车辆覆写后可保持高度并横移到整车中央。
+			g->DrawTexture(tex, bottomAnchor.x - w * 0.5f, bottomAnchor.y - h, w, h);
 		}
 	}
 
