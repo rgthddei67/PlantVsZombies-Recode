@@ -42,6 +42,7 @@ protected:
 	void RegisterFrameEvents() override;
 	void ZombieMove(float scaledDelta, TransformComponent* transform) override;
 	void PlayWalkAnimation(float blendTime) override;
+	float GetAbilityAnimSpeedMultiplier() const override;
 	void OnMindControlled() override;
 	void SaveExtraData(nlohmann::json& j) const override;
 	void LoadExtraData(const nlohmann::json& j) override;
@@ -74,5 +75,6 @@ private:
 	int mTargetColumn = -1;
 	int mTargetZombieID = NULL_ZOMBIE_ID;
 	float mThrowDistance = 0.0f;
+	float mAnimSpeedMultiplier = 0.5f; // 每只巨人出生时独立抽取并随关卡存档的整体动画倍率
 	WeaponVariant mWeaponVariant = WeaponVariant::TELEPHONE_POLE;
 };

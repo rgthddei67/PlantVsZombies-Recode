@@ -9,6 +9,7 @@
 #include "../../GameRandom.h"
 #include "../../ResourceKeys.h"
 #include "../../ResourceManager.h"
+#include "../ShadowComponent.h"
 
 #include <algorithm>
 #include <array>
@@ -19,6 +20,8 @@ namespace {
 	constexpr int kSmashFrame = 93;                           // 主人指定的砸击结算全局帧
 	constexpr int kThrowReleaseFrame = 124;                   // 主人确认的小鬼脱手全局帧
 	constexpr int kDeathFrame = 196;                          // 主人指定的普通死亡回收全局帧
+	constexpr float kAnimSpeedMultiplierMin = 0.4f;            // 每只巨人整体动画倍率随机下限
+	constexpr float kAnimSpeedMultiplierMax = 0.6f;            // 每只巨人整体动画倍率随机上限
 	constexpr float kWalkClipSpeed = 1.0f;                    // 资源 12fps 的巨人稳态行走倍率
 	constexpr float kSmashClipSpeed = 16.0f / 12.0f;          // 原版砸击 16fps 相对资源 12fps
 	constexpr float kThrowClipSpeed = 24.0f / 12.0f;          // 原版投掷 24fps 相对资源 12fps
@@ -62,20 +65,32 @@ void GargantuarZombie::SetupZombie()
 		mCollider->offset = Vector(kColliderOffsetX, kColliderOffsetY);
 	}
 
+	if (auto* shadow = GetComponent<ShadowComponent>()) {
+		shadow->SetScale(Vector(1.3f, 1.3f));
+	}
+
 	if (!mAnimator) return;
 	RegisterFrameEvents();
 	const int roll = GameRandom::Range(0, 99);
 	mWeaponVariant = roll < 10 ? WeaponVariant::ZOMBIE
 		: roll < 35 ? WeaponVariant::DUCK_SIGN
 		: WeaponVariant::TELEPHONE_POLE;
+	mAnimSpeedMultiplier = GameRandom::Range(
+		kAnimSpeedMultiplierMin, kAnimSpeedMultiplierMax);
 	ApplyWeaponPresentation();
 	ApplyHeldImpPresentation();
 	if (mIsPreview) {
-		PlayTrack("anim_idle");
+		// 预览对象不走基类 UpdateAnimSpeed；把同一随机倍率直接作为 idle clip 速度。
+		PlayTrack("anim_idle", mAnimSpeedMultiplier);
 		return;
 	}
 	mSpeed += GameRandom::Range(-2, 2);
 	PlayWalking();
+}
+
+float GargantuarZombie::GetAbilityAnimSpeedMultiplier() const
+{
+	return mAnimSpeedMultiplier;
 }
 
 /** 注册巨人专属的砸击、脱手与死亡帧事件。 */
@@ -379,6 +394,7 @@ void GargantuarZombie::SaveExtraData(nlohmann::json& j) const
 	j["targetColumn"] = mTargetColumn;
 	j["targetZombieID"] = mTargetZombieID;
 	j["throwDistance"] = mThrowDistance;
+	j["animSpeedMultiplier"] = mAnimSpeedMultiplier;
 	j["weaponVariant"] = static_cast<int>(mWeaponVariant);
 }
 
@@ -395,6 +411,9 @@ void GargantuarZombie::LoadExtraData(const nlohmann::json& j)
 	mTargetZombieID = j.value("targetZombieID", NULL_ZOMBIE_ID);
 	mThrowDistance = std::clamp(j.value("throwDistance", 0.0f),
 		0.0f, static_cast<float>(SCENE_WIDTH));
+	mAnimSpeedMultiplier = std::clamp(
+		j.value("animSpeedMultiplier", mAnimSpeedMultiplier),
+		kAnimSpeedMultiplierMin, kAnimSpeedMultiplierMax);
 	mWeaponVariant = static_cast<WeaponVariant>(std::clamp(
 		j.value("weaponVariant", 0), 0, static_cast<int>(WeaponVariant::ZOMBIE)));
 
@@ -419,4 +438,5 @@ void GargantuarZombie::LoadExtraData(const nlohmann::json& j)
 	ApplyHeldImpPresentation();
 	ApplyWeaponPresentation();
 	ApplyDamagePresentation();
+	UpdateAnimSpeed();
 }
