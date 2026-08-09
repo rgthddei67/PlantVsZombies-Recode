@@ -84,7 +84,10 @@ Mower::Mower(Board* board, MowerType type, AnimationType animType, float x, floa
 		if (mMowerType == MowerType::WATER) {
 			PlayPoolMowAnimation();
 		}
-		zombie->TakeDamage(INT32_MAX, DamageSource::OTHER);
+		// 先完成正常启动与消耗；首领可拒绝处决，让清洁车从其身上驶过而不造成伤害。
+		if (zombie->CanBeKilledByMower()) {
+			zombie->TakeDamage(INT32_MAX, DamageSource::OTHER);
+		}
 
 		};
 }

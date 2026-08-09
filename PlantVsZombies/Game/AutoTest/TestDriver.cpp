@@ -3342,6 +3342,10 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "terrainYOffsetOn1000", static_cast<int>(std::lround(
 				(pos.y - terrainY) * 1000.0f)) },
 			{ "bodyHealth", z->mBodyHealth }, { "bodyMaxHealth", z->mBodyMaxHealth },
+			{ "canBeCharred", z->CanBeCharred() },
+			{ "canBeCharmed", z->CanBeCharmed() },
+			{ "canBeKilledByMower", z->CanBeKilledByMower() },
+			{ "resistsTangleKelpDrowning", z->ResistsTangleKelpDrowning() },
 			{ "roofRunoffGuideEligible", z->CanGuideRoofRunoff() },
 			{ "roofRunoffDriftMultiplierOn1000", static_cast<int>(std::lround(
 				z->GetRoofRunoffDriftMultiplier() * 1000.0f)) },

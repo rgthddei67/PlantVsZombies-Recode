@@ -141,6 +141,8 @@ public:
 	virtual bool TakePlantInstantKill();
 	/** 当前状态是否允许作为已出土地雷的接触触发目标。 */
 	virtual bool CanTriggerPotatoMine() const { return true; }
+	/** 小推车碰撞是否允许直接处决；首领可拒绝处决，但小推车仍正常启动并驶离。 */
+	virtual bool CanBeKilledByMower() const { return true; }
 	/** 车辆僵尸接管地刺命中的扩展点；返回 true 表示已处理，地刺不得再结算普通伤害。 */
 	virtual bool HandleCaltropHit(Caltrop&) { return false; }
 	virtual void SaveExtraData(nlohmann::json& j) const {}	// 保存额外数据
