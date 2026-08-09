@@ -271,6 +271,7 @@ private:
 	void LoadSpawnListFromJson();
 	void RefreshPlantStackRenderOrder(Cell* cell);
 	void InitializeRows();
+	/** 按地形与行平滑权重选择正式出生行；没有合法行时返回 -1。 */
 	inline int SelectSpawnRow(ZombieType type);
 	bool IsSpawnRowCompatible(ZombieType type, int row) const;
 	bool IsNaturalWaveSpawnRowCompatible(ZombieType type, int row) const;

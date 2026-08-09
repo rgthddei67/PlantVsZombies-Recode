@@ -3142,6 +3142,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	int eliteJackZombieCount = 0;
 	int poolRowZombieCount = 0;
 	int earlyWavePoolZombieCount = 0;
+	int zamboniCount = 0;
+	int zamboniRowMask = 0;
 	int gildedZamboniCount = 0;
 	int diggerZombieCount = 0;
 	int eliteDiggerZombieCount = 0;
@@ -3164,6 +3166,12 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			++poolRowZombieCount;
 			if (z->mSpawnWave >= 1 && z->mSpawnWave <= 4) {
 				++earlyWavePoolZombieCount;
+			}
+		}
+		if (z->mZombieType == ZombieType::ZOMBIE_ZAMBONI) {
+			++zamboniCount;
+			if (z->mRow >= 0 && z->mRow < board->mRows) {
+				zamboniRowMask |= 1 << z->mRow;
 			}
 		}
 		if (z->mZombieType == ZombieType::ZOMBIE_GILDED_ZAMBONI) {
@@ -3675,6 +3683,13 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["zombieCount"] = static_cast<int>(out["zombies"].size());
 	out["jackZombieCount"] = jackZombieCount;
 	out["eliteJackZombieCount"] = eliteJackZombieCount;
+	out["zamboniCount"] = zamboniCount;
+	out["zamboniRowMask"] = zamboniRowMask;
+	int zamboniDistinctRowCount = 0;
+	for (int row = 0; row < board->mRows; ++row) {
+		if ((zamboniRowMask & (1 << row)) != 0) ++zamboniDistinctRowCount;
+	}
+	out["zamboniDistinctRowCount"] = zamboniDistinctRowCount;
 	out["gildedZamboniCount"] = gildedZamboniCount;
 	out["diggerZombieCount"] = diggerZombieCount;
 	out["eliteDiggerZombieCount"] = eliteDiggerZombieCount;

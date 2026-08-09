@@ -23,7 +23,6 @@ namespace {
 	constexpr float kDriveCurveLeftFromBaseX = 300.0f;   // 线性速度曲线左端相对当前地图坐标基准的 X
 	constexpr float kDriveCurveRightFromBaseX = 700.0f;  // 线性速度曲线右端相对当前地图坐标基准的 X
 	constexpr float kDriveCurveStopFromBaseX = 400.0f;   // 越过该相对位置后不再重算速度
-	constexpr float kRoofDriveCoordinateBaseX = 0.0f;    // TODO：屋顶冰车解禁前按斜坡实测并独立填写，不能套用草坪基准
 	constexpr float kColliderFromVisualX = -68.0f;       // 原版碰撞框左缘相对车辆稳定视觉原点的 X，单位 px
 	constexpr float kColliderFromVisualY = 10.0f;        // 原版碰撞框上缘相对车辆稳定视觉原点的 Y，单位 px
 	constexpr float kIceFrontFromVisualX = 50.0f;        // 冰道左端相对车辆稳定视觉原点的 X，单位 px
@@ -43,7 +42,7 @@ namespace {
 	constexpr float kDeathEffectFromVisualX = 12.0f;      // C# 爆炸点换算到车辆稳定视觉原点后的 X，单位 px
 	constexpr float kDeathEffectFromVisualY = 73.0f;      // C# 换算值 83px 再按主人要求上移 10px 后的 Y
 	constexpr float kCharredScale = 0.94f;                 // 冰车专属灰烬缩放
-	constexpr float kCharredScaleAnchorOffsetY = 18.0f;   // 0.9 缩放后补回轮胎落地点，单位 px
+	constexpr float kCharredScaleAnchorOffsetY = 18.0f;   // 0.94 缩放后补回轮胎落地点，单位 px
 	constexpr float kCaltropDeathDelaySeconds = 2.8f;     // C# mPhaseCounter=280：爆胎后延迟爆炸时间，单位秒
 	constexpr float kWheelie1AnimationSpeed = 0.4f;       // C# 12fps / 冰车 reanim 30fps
 	constexpr float kWheelie2AnimationSpeed = 1.0f / 3.0f; // C# 10fps / 冰车 reanim 30fps
@@ -124,10 +123,9 @@ void ZamboniZombie::ZombieMove(float scaledDelta, TransformComponent* transform)
 
 float ZamboniZombie::GetDriveCoordinateBaseX() const
 {
-	if (mBoard && (mBoard->mBackGround == Background::ROOF
-		|| mBoard->mBackGround == Background::NIGHT_ROOF)) {
-		// 屋顶当前禁止生成冰车；先保留独立入口，未来必须按斜坡坐标实测后再解禁。
-		return kRoofDriveCoordinateBaseX;
+	if (mBoard && mBoard->IsRoofBackground()) {
+		// 让平台上的线性减速段恰好在坡顶结束；进入斜坡后稳定使用固定内场速度。
+		return mBoard->GetRoofSlopeEndX() - kDriveCurveStopFromBaseX;
 	}
 	return CELL_INITALIZE_POS_X;
 }

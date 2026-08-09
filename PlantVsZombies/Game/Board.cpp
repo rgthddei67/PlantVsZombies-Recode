@@ -4783,9 +4783,8 @@ bool Board::IsSpawnRowCompatible(ZombieType type, int row) const
 		|| type == ZombieType::ZOMBIE_ELITE_DOLPHIN_RIDER) {
 		return IsPoolBackground() && row >= 0 && row < mRows && IsPoolRow(row);
 	}
-	if ((mBackGround == Background::ROOF || mBackGround == Background::NIGHT_ROOF)
-		&& (type == ZombieType::ZOMBIE_ZAMBONI
-			|| type == ZombieType::ZOMBIE_GILDED_ZAMBONI)) return false;
+	// 普通冰车已支持昼/夜屋顶的连续坡面；鎏金冰车仍保持未解禁状态。
+	if (IsRoofBackground() && type == ZombieType::ZOMBIE_GILDED_ZAMBONI) return false;
 	if (!IsPoolBackground()) return row >= 0 && row < mRows;
 	if (row < 0 || row >= mRows) return false;
 	if (IsPoolRow(row)) {
@@ -4874,14 +4873,12 @@ inline int Board::SelectSpawnRow(ZombieType type)
 
 	// 第三步：加权随机选行
 	if (smoothTotal <= 0.0f) {
-		for (int i = 0; i < mRows; ++i)
-			if (IsNaturalWaveSpawnRowCompatible(type, i)) return i;
-		return 0;
+		return -1;
 	}
 
 	float randNum = GameRandom::Range(0.0f, smoothTotal);
 	float cumulative = 0.0f;
-	int lastCompatibleRow = 0;
+	int lastCompatibleRow = -1;
 	for (int i = 0; i < mRows; i++)
 	{
 		if (!IsNaturalWaveSpawnRowCompatible(type, i)) continue;
@@ -4972,6 +4969,8 @@ inline void Board::TrySummonZombie()
 		if (actualType == ZombieType::NUM_ZOMBIE_TYPES) continue;
 
 		int row = SelectSpawnRow(actualType);
+		// 地图没有任何合法行时跳过候选，禁止把地形不兼容品种静默塞进第 1 路。
+		if (row < 0) continue;
 
 		// 更新行追踪计数器
 		for (int i = 0; i < mRows; i++)
