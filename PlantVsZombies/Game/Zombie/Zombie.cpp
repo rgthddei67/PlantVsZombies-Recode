@@ -280,6 +280,7 @@ void Zombie::LoadProtectedData(const nlohmann::json& j) {
 	else {
 		UpdateStatusOverlay();
 	}
+	SetEmbeddedButterSplatVisible(mButterTimer > 0.0f && mHasHead && !mIsPreview);
 
 	// 如果播放死亡动画，禁用碰撞箱（判空与 Die/预览路径一致：预览僵尸已移除碰撞箱、mCollider=null）
 	if (mIsDying && mCollider) {
@@ -1097,14 +1098,19 @@ bool Zombie::ApplyButter()
 	}
 
 	mButterTimer = kButterDuration;
+	SetEmbeddedButterSplatVisible(true);
 	UpdateAnimSpeed();
 	return true;
 }
 
 void Zombie::ClearButter()
 {
-	if (mButterTimer == 0.0f) return;
+	if (mButterTimer == 0.0f) {
+		SetEmbeddedButterSplatVisible(false);
+		return;
+	}
 	mButterTimer = 0.0f;
+	SetEmbeddedButterSplatVisible(false);
 	UpdateAnimSpeed();
 }
 
@@ -1374,6 +1380,7 @@ void Zombie::StartMindControlled()
 		mCooldownTimer = 0.0f;
 		mFrozenTimer = 0.0f;
 		mButterTimer = 0.0f;
+		SetEmbeddedButterSplatVisible(false);
 		UpdateAnimSpeed();
 	}
 	ClearToxin();
@@ -1615,6 +1622,7 @@ void Zombie::Die()
 	mIsDead = true;
 	CancelGarlicRedirect(false);
 	mButterTimer = 0.0f;
+	SetEmbeddedButterSplatVisible(false);
 	mToxinLayerTimers.fill(0.0f);
 	mToxinDamageRemainder = 0.0f;
 
@@ -2115,7 +2123,8 @@ void Zombie::Draw(Graphics* g)
 	}
 
 	// 默认优先跟随 anim_head1；车辆等异形身体通过虚锚点绑定自己的稳定视觉部位。
-	if (g && mButterTimer > 0.0f && mHasHead && !mIsPreview) {
+	if (g && mButterTimer > 0.0f && mHasHead && !mIsPreview
+		&& !UsesEmbeddedButterSplat()) {
 		if (const Texture* tex = ResourceManager::GetInstance().GetTexture(
 			ResourceKeys::Textures::IMAGE_CORNPULT_BUTTER_SPLAT)) {
 			const Vector headAnchor = GetButterSplatAnchor();

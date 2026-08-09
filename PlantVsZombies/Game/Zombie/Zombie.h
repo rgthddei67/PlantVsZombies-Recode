@@ -348,6 +348,10 @@ protected:
 	void UpdateAnimSpeed();
 	/** 清除黄油定身并按剩余状态恢复动画速度。 */
 	void ClearButter();
+	/** 是否由品种自身在 reanim 轨道层级绘制黄油；默认仍由 Zombie::Draw 统一后绘。 */
+	virtual bool UsesEmbeddedButterSplat() const { return false; }
+	/** 同步品种自带黄油轨道的显隐；普通僵尸默认无需处理。 */
+	virtual void SetEmbeddedButterSplatVisible(bool) const {}
 	/** 头盔和护盾前的额外生命层；返回继续透入常规防具链的伤害。 */
 	virtual int TakeExtraProtectionDamage(int damage, DamageSource) { return damage; }
 	/** 生存血量倍率对品种额外生命层的扩展点。 */

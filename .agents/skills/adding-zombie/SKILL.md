@@ -17,6 +17,7 @@ description: Use when adding or tuning any PvZ zombie, or integrating zombies in
 - 原版按世界 X 分段的速度/状态阈值写成“当前地图坐标基准 + 原版相对距离”；平地可从 `CELL_INITALIZE_POS_X` 派生。屋顶连续坡面由 `Board::GetRoofSlopeEndX/GetRowCenterYAtX` 唯一拥有，当前交界 X 从 `CELL_INITALIZE_POS_X + 5 * CELL_COLLIDER_SIZE_X` 派生，禁止品种复制斜坡公式。
 - 僵尸局部坐标先求“原值相对 C# 绘制原点”的差，再锚到本项目稳定视觉原点 `Transform + mVisualOffset`；物理框、攻击框和粒子通常不得跟受伤抖动等临时绘制偏移移动。
 - 黄油、冰晶等由 `Zombie::Draw` 统一提交的状态贴图不能假定所有品种都有 `anim_head1`，也不能直接使用逻辑原点；为每类语义提供基类虚锚点，普通僵尸保留既有公式，异形/车辆用专属部件轨道（跟随头部）或 `Transform + mVisualOffset` 局部常量（稳定车体/地面效果）覆写。异常体型还应通过独立虚倍率调尺寸，默认倍率保持 `1.0`，禁止为放大贴图改语义锚点或全局默认尺寸。专项导出相对视觉原点整数投影并同步截图，分别确认派生位置、派生尺寸与普通父类视觉。
+- 大幅摆动的头部若会被武器、下巴或前臂跨层遮挡，禁止继续把黄油等贴图放在整只僵尸之后统一后绘；只让该品种使用父轨道的 follower image，在语义轨道本体之后、后续 reanim 轨道之前提交，并继承插值后的完整仿射变换。普通品种继续走原路径；默认与 `-NoInstance` 必须用同一公式并检查极端动作帧的遮挡顺序。
 - 用户目验若指出整只载具统一偏高/偏低，且碰撞框、攻击框、发射点、死亡特效都已从 `Transform + mVisualOffset` 派生，只调权威 gamedata 的整车 offset，禁止给每个消费者再补一份 Y。改后同时复查车轮地面线、投射物起点与独立残骸；只有其中单项仍偏时才调该项的局部常量。
 - 网格位置与画面偏移继续分离；屋顶出生、读档重建、出土裁剪及任意当前点地面线必须使用 `GetZombieCollisionY/GetZombieSpawnY(row, worldX)`。水平移动仍由品种的 `ZombieMove` 决定，基类在阵风后和 `ZombieMove` 后统一把 Transform Y 收敛到坡面，普通、飞行、地下品种不得各自维护 Y 公式。
 - 验证先执行同步 `screenshot`，再用 `animatedObjectsByTag.Zombie` 的 `renderProbeReady/worldBounds/visualToRenderCenterD*Int/nearestZombie` 验证本项目最终绘制几何相对自身 collider、同排植物或攻击目标的关系；每阶段只保留一个目标僵尸以稳定数组索引。

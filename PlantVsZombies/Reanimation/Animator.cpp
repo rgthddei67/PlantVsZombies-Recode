@@ -419,9 +419,13 @@ void Animator::DrawInternalInstanced(Graphics* g, float baseX, float baseY, floa
 		const Texture* image = shouldDrawSelf
 			? (extra->mImage ? extra->mImage : transform.image)
 			: nullptr;
+		const Texture* followerImage = extra && extra->mVisible
+			&& extra->mFollowerVisible && transform.f != -1
+			? extra->mFollowerImage : nullptr;
 
-		// 无本体也无附件的轨道不需要仿射数据；保住原实例快路径对隐藏轨道的早退收益。
-		if (!image && (!extra || extra->mAttachedReanims.empty())) continue;
+		// 无本体、跟随贴图和附件的轨道不需要仿射数据；保住隐藏轨道的实例快路径。
+		if (!image && !followerImage
+			&& (!extra || extra->mAttachedReanims.empty())) continue;
 
 		// CPU still computes the trig — GATE A measured this is ~6 ms CPU sum across
 		// 165k tracks/frame; the GPU instancing win comes from removing per-call mat4
@@ -497,6 +501,42 @@ void Animator::DrawInternalInstanced(Graphics* g, float baseX, float baseY, floa
 			}
 		}
 
+		if (followerImage) {
+			const float followerX = tx + tA * extra->mFollowerOffsetX
+				+ tC * extra->mFollowerOffsetY;
+			const float followerY = ty + tB * extra->mFollowerOffsetX
+				+ tD * extra->mFollowerOffsetY;
+			const float w = static_cast<float>(followerImage->width);
+			const float h = static_cast<float>(followerImage->height);
+
+			InstanceRecord rec;
+			rec.tA = tA * w * Scale * extra->mFollowerScaleX;
+			rec.tB = tB * w * Scale * extra->mFollowerScaleX;
+			rec.tC = tC * h * Scale * extra->mFollowerScaleY;
+			rec.tD = tD * h * Scale * extra->mFollowerScaleY;
+			rec.tx = baseX + followerX * Scale;
+			rec.ty = baseY + followerY * Scale;
+			if (mFlipX) {
+				rec.tA = -rec.tA;
+				rec.tC = -rec.tC;
+				rec.tx = baseX + (2.0f * mFlipPivotX - followerX) * Scale;
+			}
+			ApplyRenderScale(rec);
+			RecordRenderQuad(rec.tA, rec.tB, rec.tC, rec.tD, rec.tx, rec.ty);
+
+			const Texture* bindTex = followerImage->atlasPage
+				? followerImage->atlasPage : followerImage;
+			rec.u0 = followerImage->aU0;
+			rec.v0 = followerImage->aV0;
+			rec.u1 = followerImage->aU1;
+			rec.v1 = followerImage->aV1;
+			rec.texSlot = bindTex->id;
+			const float alpha = std::clamp(transform.a * mAlpha, 0.0f, 1.0f);
+			rec.colorRGBA8 = PackRGBA8(255, 255, 255,
+				static_cast<uint8_t>(alpha * 255.0f));
+			g->AppendReanimInstance(rec, BlendMode::Alpha);
+		}
+
 		if (!extra) continue;
 
 		// 在当前父轨道实例之后立即递归，既保持 reanim 轨道交错顺序，也让任意深度附件
@@ -549,24 +589,26 @@ void Animator::DrawInternal(Graphics* g, float baseX, float baseY, float Scale) 
 		float tC = sinY * transform.sy;
 		float tD = cosY * transform.sy;
 
-		bool shouldDrawSelf = (i < static_cast<int>(mExtraInfos.size()) &&
-			mExtraInfos[i].mVisible &&
-			transform.f != -1);
+		const TrackExtraInfo* extra = i < static_cast<int>(mExtraInfos.size())
+			? &mExtraInfos[i] : nullptr;
+		bool shouldDrawSelf = extra && extra->mVisible && transform.f != -1;
 		const Texture* image = nullptr;
 
 		if (shouldDrawSelf) {
-			image = mExtraInfos[i].mImage ? mExtraInfos[i].mImage : transform.image;
+			image = extra->mImage ? extra->mImage : transform.image;
 			shouldDrawSelf = (image != nullptr);
 		}
+		const Texture* followerImage = extra && extra->mVisible
+			&& extra->mFollowerVisible && transform.f != -1
+			? extra->mFollowerImage : nullptr;
+		const float tx = transform.x + (extra ? extra->mOffsetX : 0.0f);
+		const float ty = transform.y + (extra ? extra->mOffsetY : 0.0f);
 
 		if (shouldDrawSelf) {
 			int imgWidth = image->width;
 			int imgHeight = image->height;
 			float w = static_cast<float>(imgWidth);
 			float h = static_cast<float>(imgHeight);
-
-			float tx = transform.x + mExtraInfos[i].mOffsetX;
-			float ty = transform.y + mExtraInfos[i].mOffsetY;
 
 			// 直接构造仿射变换矩阵（将单位矩形映射到目标四边形，省去中间顶点计算）
 			glm::mat4 mat(
@@ -614,16 +656,41 @@ void Animator::DrawInternal(Graphics* g, float baseX, float baseY, float Scale) 
 			}
 		}
 
+		if (followerImage) {
+			const float followerX = tx + tA * extra->mFollowerOffsetX
+				+ tC * extra->mFollowerOffsetY;
+			const float followerY = ty + tB * extra->mFollowerOffsetX
+				+ tD * extra->mFollowerOffsetY;
+			const float w = static_cast<float>(followerImage->width);
+			const float h = static_cast<float>(followerImage->height);
+			glm::mat4 mat(
+				tA * w * Scale * extra->mFollowerScaleX,
+				tB * w * Scale * extra->mFollowerScaleX, 0.0f, 0.0f,
+				tC * h * Scale * extra->mFollowerScaleY,
+				tD * h * Scale * extra->mFollowerScaleY, 0.0f, 0.0f,
+				0.0f, 0.0f, 1.0f, 0.0f,
+				baseX + followerX * Scale, baseY + followerY * Scale, 0.0f, 1.0f);
+			if (mFlipX) {
+				mat[0][0] = -mat[0][0];
+				mat[1][0] = -mat[1][0];
+				mat[3][0] = baseX + (2.0f * mFlipPivotX - followerX) * Scale;
+			}
+			ApplyRenderScale(mat);
+			RecordRenderQuad(
+				mat[0][0], mat[0][1], mat[1][0], mat[1][1], mat[3][0], mat[3][1]);
+			const float alpha = std::clamp(transform.a * mAlpha, 0.0f, 1.0f);
+			g->DrawTextureMatrix(followerImage, mat, 0.0f, 0.0f,
+				glm::vec4(255.0f, 255.0f, 255.0f, alpha * 255.0f),
+				BlendMode::Alpha);
+		}
+
 		// 子动画
-		if (i < static_cast<int>(mExtraInfos.size())) {
-			for (const auto& weakChild : mExtraInfos[i].mAttachedReanims) {
+		if (extra) {
+			for (const auto& weakChild : extra->mAttachedReanims) {
 				auto child = weakChild.lock();
 				if (!child || !child->mReanim) continue;
 
 				// 复用本轨道已计算的 tA/tB/tC/tD，无需重复三角运算
-				float tx = transform.x + mExtraInfos[i].mOffsetX;
-				float ty = transform.y + mExtraInfos[i].mOffsetY;
-
 				float childX = child->mLocalPosX;
 				float childY = child->mLocalPosY;
 
@@ -755,6 +822,24 @@ void Animator::SetTrackOffset(const std::string& trackName, float x, float y) {
 	for (auto& extra : GetTrackExtrasByName(trackName)) {
 		extra->mOffsetX = x;
 		extra->mOffsetY = y;
+	}
+}
+
+void Animator::SetTrackFollowerImage(const std::string& trackName, const Texture* image,
+	float offsetX, float offsetY, float scaleX, float scaleY) {
+	for (auto& extra : GetTrackExtrasByName(trackName)) {
+		extra->mFollowerImage = image;
+		extra->mFollowerOffsetX = offsetX;
+		extra->mFollowerOffsetY = offsetY;
+		extra->mFollowerScaleX = scaleX;
+		extra->mFollowerScaleY = scaleY;
+		if (!image) extra->mFollowerVisible = false;
+	}
+}
+
+void Animator::SetTrackFollowerVisible(const std::string& trackName, bool visible) {
+	for (auto& extra : GetTrackExtrasByName(trackName)) {
+		extra->mFollowerVisible = visible && extra->mFollowerImage;
 	}
 }
 
