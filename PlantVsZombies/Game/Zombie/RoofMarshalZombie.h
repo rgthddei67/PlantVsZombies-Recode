@@ -2,12 +2,28 @@
 
 #include "Zombie.h"
 
+#include <array>
+
 /**
- * @brief 5-9 屋脊督军；复用普通僵尸骨架，并提供首领耐久与植物直杀抗性。
+ * @brief 5-9 屋脊督军；复用普通僵尸骨架，提供首领抗性、指挥召唤、阶段移动与改天技能。
  */
 class RoofMarshalZombie : public Zombie {
 public:
 	using Zombie::Zombie;
+
+	enum class CommandPhase {
+		ADVANCING,
+		COMMANDING,
+	};
+
+	/** @brief 推进召唤冷却与指挥姿势；冻结、黄油、啃食和水草束缚由基类统一暂停。 */
+	void ZombieUpdate(float scaledTime) override;
+	/** @brief 在高血量换行演出期间叠加独立纵向视觉补偿，不污染逻辑行和通用素材偏移。 */
+	Vector GetVisualPosition() const override;
+	/** @brief 指挥姿势期间拒绝开吃，姿势结束后碰撞系统会自然重试。 */
+	void StartEat(ColliderComponent* other) override;
+	/** @brief 取消普通僵尸的残血掉头临界值，仅在本体生命归零时触发掉头死亡。 */
+	void TakeBodyDamage(int damage) override;
 
 	/** @brief 将所有植物灰烬伤害限制为首领单次伤害上限，土豆雷也不能绕过耐久。 */
 	void TakePlantAshDamage(int damage) override;
@@ -22,8 +38,69 @@ public:
 	/** @brief 小推车仍会被触发并消耗，但不能借此跳过首领战。 */
 	bool CanBeKilledByMower() const override { return false; }
 
+	/** @brief 保存会影响后续召唤时序与批次诊断的全部派生状态。 */
+	void SaveExtraData(nlohmann::json& j) const override;
+	/** @brief 恢复并钳制指挥状态，损坏档不会造成永久停步或无穷连召。 */
+	void LoadExtraData(const nlohmann::json& j) override;
+
+	CommandPhase GetCommandPhase() const { return mCommandPhase; }
+	const char* GetCommandPhaseName() const;
+	float GetSummonTimer() const { return mSummonTimer; }
+	float GetCommandPoseTimer() const { return mCommandPoseTimer; }
+	int GetCommandCount() const { return mCommandCount; }
+	int GetLastSummonCount() const { return mLastSummonCount; }
+	int GetLastSummonRowMask() const { return mLastSummonRowMask; }
+	int GetLastSummonDistinctRowCount() const;
+	bool IsHighThreatPoolUnlocked() const;
+	int GetCurrentSummonCount() const;
+	float GetCurrentSummonInterval() const;
+	float GetLaneSwitchTimer() const { return mLaneSwitchTimer; }
+	float GetLaneTransitionRemaining() const { return mLaneTransitionRemaining; }
+	float GetLaneVisualOffsetY() const { return mLaneVisualOffsetY; }
+	int GetLaneSwitchCount() const { return mLaneSwitchCount; }
+	bool IsWalkingPhase() const;
+	const std::array<ZombieType, 4>& GetLastSummonedTypes() const {
+		return mLastSummonedTypes;
+	}
+	/** @brief 判断类型是否属于不会随未来注册表扩张的督军固定原版白名单。 */
+	static bool IsAllowedSummonType(ZombieType type);
+	static bool IsHighThreatSummonType(ZombieType type);
+
 protected:
 	void SetupZombie() override;
+	/** @brief 指挥姿势期间停止自主移动，其余阶段复用普通僵尸移动。 */
+	void ZombieMove(float scaledDelta, TransformComponent* transform) override;
+	/** @brief 高血量稳态使用 idle2；换行和 4000 以下阶段才播放普通走路。 */
+	void PlayWalkAnimation(float blendTime) override;
 	/** @brief 隐藏普通头部组并发射军帽与头一体的专属掉落粒子。 */
 	void HeadDrop() override;
+
+private:
+	/** @brief 立即生成一批固定白名单僵尸，并记录实际生成结果供存档与验收。 */
+	void SummonCommandedZombies();
+	/** @brief 根据当前生命阶段选择下一只原版僵尸。 */
+	ZombieType RollSummonedZombieType() const;
+	/** @brief 召唤后进入 1.2 秒指挥姿势，但不延后下一次召唤冷却。 */
+	void BeginCommandPose();
+	/** @brief 从相邻合法行中选一行并开始独立的纵向换行演出。 */
+	void BeginLaneSwitch();
+	/** @brief 线性收敛换行视觉补偿；逻辑行在演出开始时已原子提交。 */
+	void UpdateLaneTransition(float scaledTime);
+
+	CommandPhase mCommandPhase = CommandPhase::ADVANCING;
+	float mSummonTimer = 1.0f;
+	float mCommandPoseTimer = 0.0f;
+	float mLaneSwitchTimer = 6.0f;
+	float mLaneTransitionRemaining = 0.0f;
+	float mLaneVisualOffsetY = 0.0f;
+	int mCommandCount = 0;
+	int mLaneSwitchCount = 0;
+	int mLastSummonCount = 0;
+	int mLastSummonRowMask = 0;
+	std::array<ZombieType, 4> mLastSummonedTypes{
+		ZombieType::NUM_ZOMBIE_TYPES,
+		ZombieType::NUM_ZOMBIE_TYPES,
+		ZombieType::NUM_ZOMBIE_TYPES,
+		ZombieType::NUM_ZOMBIE_TYPES,
+	};
 };

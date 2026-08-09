@@ -233,3 +233,22 @@ AutoTest 同时断言 `roofResources.rainBackgroundLoaded` 与 `roofResources.ni
 `clang-release` 配置与构建退出 0。当前桌面可见最小天气板专项 9 条命令退出 0，窗口标题为
 “植物大战僵尸中文版”，`run.log` 为 `script finished OK`；截图目验确认战场纹理能透过底板，
 两行文字、边框和状态色条仍清晰。
+
+## 2026-08-09 屋脊督军直接改天
+
+实体主动改天气仍不能持有第二份雨势状态。`RoofMarshalZombie` 只按自身已保存的指挥次数与生命
+跨段发出命令，`Board::TriggerRoofMarshalWeather` 才负责检查天气支持、暴风雨夜锁定、强度优先级与
+同档续期策略，并复用 `BeginRain` 的两秒过渡、粒子、声音、天气板和既有存档字段。当前入口只接受
+中雨/大雨且只升不降：周期中雨不续同档，避免固定技能永久锁雨；残血大雨只在跨越 4000 时调用一次，
+允许把已有大雨补足到 30 秒。技能本身不额外抽取台风，自然大雨已存在时同档补时保留其既有台风。
+
+督军每第 3 次实际指挥在晴/小雨时强制 20 秒中雨，首次进入 `1..3999` 生命时强制至少 30 秒大雨；
+不支持天气的第一大关 no-op，已有大雨不会被周期命令降级或刷新。`smoke_roof_marshal_weather` 可见
+exit 0，覆盖上述边界、两秒过渡、无额外台风、后续受击不重置和两次隔离快照往返；
+`smoke_night_rain`、`smoke_roof_rain_sky` 同步可见 exit 0。
+
+本次还确认三份旧天气脚本存在 HEAD 既有断言债务，并非督军入口引入：源码当前
+`kAdventurePressureFullProgress=0.7`、`kLateWeatherForecastAccuracyPercent=95`，而
+`smoke_weather_pressure`/`smoke_weather_director` 仍按旧 75% 曲线结果 86% 和 90% 上限断言；
+`smoke_weather_forecast` 的末尾面板也会被随后自然生成的新预报重新拉回。未在首领任务中擅自改变
+这些平衡常量或旧脚本，后续专门整理天气导演时必须先让主人确认 70%/95% 是否为当前定案。

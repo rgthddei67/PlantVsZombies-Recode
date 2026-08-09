@@ -469,6 +469,12 @@ public:
 	float GetStormyNightWhiteAlpha() const;
 	RainIntensity GetRainIntensity() const { return mRainIntensity; }
 	RainIntensity GetPreviousRainIntensity() const { return mPreviousRainIntensity; }
+	/**
+	 * 屋脊督军直接提升当前雨势；不会降级更强天气，是否延长同档由调用方显式决定。
+	 * @return 本次确实改变档位或延长持续时间时返回 true。
+	 */
+	bool TriggerRoofMarshalWeather(RainIntensity target, float duration,
+		bool extendSameIntensity = false);
 	float GetWeatherTimer() const { return mWeatherTimer; }
 	float GetWeatherTransitionTimer() const { return mWeatherTransitionTimer; }
 	bool IsWeatherTransitionActive() const { return mWeatherTransitionTimer > 0.0f; }
@@ -860,6 +866,8 @@ public:
 
 	// 尝试生成本波僵尸
 	inline void TrySummonZombie();
+	/** 在正式冒险 BOSS 波按槽位额外创建唯一首领；普通关和非最终波无操作。 */
+	void TrySummonAdventureBoss();
 
 	// 计算当前波的总点数
 	inline int CalculateWaveZombiePoints() const;

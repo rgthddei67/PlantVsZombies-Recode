@@ -40,6 +40,12 @@ const bool isRaining = rain != RainIntensity::CLEAR;
 
 不要用 overlay alpha 推断是否下雨：它是视觉插值，雨转晴的两秒内仍大于 0。
 
+实体若能主动改变雨势，实体只保存施法次数/冷却或生命跨段，实际切档必须走 Board 的窄入口。
+入口要显式检查地图支持与关卡锁定，并规定强度优先级、同档续期和台风策略；默认只升不降，周期
+技能不续同档，避免把自然大雨降级或永久锁雨。一次性阶段技能允许补足同档余时时也须显式传参。
+入口复用 `BeginRain` 后，雨势、过渡、余时、粒子、声音、天气板和存档仍由 Board 统一负责，实体
+不得复制这些字段。专项覆盖不支持地图 no-op、弱转强、已有更强天气、同档策略与双方快照往返。
+
 ## 地图专属天气积累器
 
 昼夜屋顶径流是当前首个地图专属积累器。`Board::UpdateRoofRunoff` 在 `ROOF/NIGHT_ROOF` 中把雨势
@@ -152,6 +158,7 @@ Board 雾势、再恢复植物，所以 `RestoreFogState()` 只清空旧缓存�
 | 随机下一天气 | `Board::RollNextWeather` / `RainTransitionForRoll` | 与合法预报候选保持同构 |
 | 合法公开预报 | `BuildPlausibleForecasts` | 错误预报也必须真实可达 |
 | 正式切档 | `BeginRain` / `EndRain` / `BeginWeatherTransition` | 目标枚举先变，倍率再插值 |
+| 实体主动改天 | `TriggerRoofMarshalWeather` 或同类 Board 窄入口 | 实体只发请求；入口规定只升不降、同档续期与台风策略 |
 | 天气逐帧推进 | `Board::UpdateWeather` | 全局场景状态，不属于波次更新 |
 | 昼夜屋顶径流 | `Board::UpdateRoofRunoff` / `DrawRoofRunoff` | Board 持积累与行组；GameScene 只画常驻条和坡面瞬态 |
 | 波次锁定复合天气 | `IsStormyNightActive` / `ActivateStormyNight` / `EnforceStormyNightWeather` | 生效条件派生；一次性资源和闪光未来状态入档 |

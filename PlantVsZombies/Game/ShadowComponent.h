@@ -40,6 +40,7 @@ public:
 
 	// 设置阴影缩放
 	void SetScale(const Vector& scale) { mScale = scale; }
+	Vector GetScale() const { return mScale; }
 
 	// 设置阴影可见性（false 时跳过绘制，组件仍在）
 	void SetVisible(bool visible) { mVisible = visible; }

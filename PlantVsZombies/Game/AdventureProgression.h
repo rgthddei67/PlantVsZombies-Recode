@@ -12,10 +12,10 @@ namespace AdventureProgression
 	inline constexpr int LAST_ADVENTURE_LEVEL = LEVELS_PER_AREA * ADVENTURE_AREA_COUNT;
 	inline constexpr int AREA_FIVE_BOSS_LEVEL = LEVELS_PER_AREA * 5;
 
-	/** 冒险关的 BOSS 槽位；RESERVED 只声明关卡性质，不绑定角色、出怪或战斗机制。 */
+	/** 冒险关的 BOSS 槽位；枚举值同时是关卡编排选择，不直接承担实体所有权。 */
 	enum class BossSlot {
 		NONE,
-		RESERVED,
+		ROOF_MARSHAL,
 	};
 
 	// NUM_PLANT_TYPES 在奖励表中表示“该关正常推进，但不解锁植物”。
@@ -100,15 +100,15 @@ namespace AdventureProgression
 		return level >= 1 && level <= LAST_ADVENTURE_LEVEL;
 	}
 
-	/** 查询当前已登记的 BOSS 槽位；具体 BOSS 未定时返回 RESERVED。 */
+	/** 查询当前已登记的 BOSS 槽位。 */
 	constexpr BossSlot GetBossSlot(int level)
 	{
 		return level == AREA_FIVE_BOSS_LEVEL
-			? BossSlot::RESERVED
+			? BossSlot::ROOF_MARSHAL
 			: BossSlot::NONE;
 	}
 
-	/** 判断关卡是否已被正式标记为 BOSS 关，不代表 BOSS 玩法已经实现。 */
+	/** 判断关卡是否已被正式标记为 BOSS 关。 */
 	constexpr bool IsBossLevel(int level)
 	{
 		return GetBossSlot(level) != BossSlot::NONE;
@@ -133,5 +133,6 @@ namespace AdventureProgression
 	static_assert(GetAreaNumber(18) == 2 && GetLevelNumberInArea(18) == 9);
 	static_assert(GetAreaNumber(19) == 3 && GetLevelNumberInArea(19) == 1);
 	static_assert(IsBossLevel(AREA_FIVE_BOSS_LEVEL));
+	static_assert(GetBossSlot(AREA_FIVE_BOSS_LEVEL) == BossSlot::ROOF_MARSHAL);
 	static_assert(GetBossSlot(44) == BossSlot::NONE);
 }

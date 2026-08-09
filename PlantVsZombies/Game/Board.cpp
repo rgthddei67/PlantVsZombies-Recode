@@ -74,6 +74,7 @@ namespace {
 	constexpr float kRoofPreviewZombieMinX = 1160.0f;     // 主人实测的屋顶选卡预览世界坐标左缘，单位：像素
 	constexpr float kRoofPreviewZombieMaxX = 1365.0f;     // 主人实测的屋顶选卡预览世界坐标右缘，单位：像素
 	constexpr int kRoofPreviewZombieFirstRow = 1;         // 顶行会令僵尸头部进入天空区；预览只使用第 2～5 行
+	constexpr float kRoofMarshalBossSpawnX = 1000.0f;     // 督军高血量不水平推进，必须在右侧可见纵深直接登场，单位：像素
 	constexpr float kIceTrailTopOffset = 20.0f;           // 冰道相对逻辑行顶的绘制偏移，单位 px
 	constexpr float kFirstRainDelayMin = 90.0f;          // 开局到首场雨的最短等待时间（秒）
 	constexpr float kFirstRainDelayMax = 105.0f;          // 开局到首场雨的最长等待时间（秒）
@@ -2610,6 +2611,35 @@ void Board::BeginRain(RainIntensity intensity, float duration, bool canIntensify
 	if (mPresentation) mPresentation->ShowCurrentWeatherNotice();
 }
 
+/**
+ * 督军天气命令只沿雨势强度向上覆盖，并复用 Board 的正式切档、粒子、声音和存档字段。
+ * 周期中雨不续同档，避免靠固定指挥节奏把雨永久锁住；残血大雨可一次性补足最低持续时间。
+ */
+bool Board::TriggerRoofMarshalWeather(RainIntensity target, float duration,
+	bool extendSameIntensity)
+{
+	if (!SupportsWeather() || !mWeatherInitialized || IsStormyNightActive()
+		|| duration <= 0.0f
+		|| (target != RainIntensity::MEDIUM && target != RainIntensity::HEAVY)) {
+		return false;
+	}
+
+	const int currentRank = static_cast<int>(mRainIntensity);
+	const int targetRank = static_cast<int>(target);
+	if (currentRank > targetRank) return false;
+	if (mRainIntensity == target
+		&& (!extendSameIntensity || mWeatherTimer >= duration)) {
+		return false;
+	}
+
+	const float appliedDuration = mRainIntensity == target
+		? std::max(mWeatherTimer, duration)
+		: duration;
+	// 督军只号令雨势，不额外抽取台风；自然大雨已存在时同档延长会保留其既有台风状态。
+	BeginRain(target, appliedDuration, false, false, false);
+	return true;
+}
+
 void Board::FinishRainPhase(int transitionRoll)
 {
 	const float directorFactor = GetWeatherDirectorFactor();
@@ -4703,10 +4733,29 @@ void Board::SummonNextWave()
 	}
 
 	TrySummonZombie();
+	TrySummonAdventureBoss();
 	UpdateZombieMetrics();
 
 	mNextWaveSpawnZombieHP = static_cast<int64_t>
 		(GameRandom::Range(0.5f, 0.65f) * static_cast<double>(mCurrectWaveZombieHP));
+}
+
+/**
+ * 关卡编排只在准确的最终波读取显式 BOSS 槽位；越过最终波的开发者直调不会重复创建。
+ */
+void Board::TrySummonAdventureBoss()
+{
+	if (mCurrentWave != mMaxWave || mCurrentWave <= 0) return;
+
+	switch (AdventureProgression::GetBossSlot(mLevel)) {
+	case AdventureProgression::BossSlot::ROOF_MARSHAL:
+		// 固定中路便于玩家识别首领入场；Y 仍由 CreateZombie 按屋顶坡面统一解析。
+		CreateZombie(ZombieType::ZOMBIE_ROOF_MARSHAL, mRows / 2,
+			kRoofMarshalBossSpawnX);
+		break;
+	case AdventureProgression::BossSlot::NONE:
+		break;
+	}
 }
 
 void Board::CreatePreviewZombies()

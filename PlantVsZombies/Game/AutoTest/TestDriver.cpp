@@ -74,6 +74,7 @@
 #include "../Zombie/ImpCharred.h"
 #include "../Zombie/ImpZombie.h"
 #include "../Zombie/PoolNormalZombie.h"
+#include "../Zombie/RoofMarshalZombie.h"
 #include "../Trophy.h"   // dump_state 输出奖杯坐标
 #include "../Crater.h"   // dump_state 输出毁灭菇弹坑
 #include "../../Reanimation/Animator.h"   // dump_state 查询轨道可见性（如铁门僵尸手臂）
@@ -444,8 +445,8 @@ namespace {
 	}
 	const char* BossSlotName(AdventureProgression::BossSlot slot) {
 		switch (slot) {
-		case AdventureProgression::BossSlot::NONE:     return "NONE";
-		case AdventureProgression::BossSlot::RESERVED: return "RESERVED";
+		case AdventureProgression::BossSlot::NONE:         return "NONE";
+		case AdventureProgression::BossSlot::ROOF_MARSHAL: return "ROOF_MARSHAL";
 		}
 		return "UNKNOWN";
 	}
@@ -3271,6 +3272,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	int gargantuarZombieCount = 0;
 	int redEyeGargantuarZombieCount = 0;
 	int impZombieCount = 0;
+	int roofMarshalZombieCount = 0;
 	int zombieBodyHealthTotal = 0;
 	int zombieShieldHealthTotal = 0;
 	int slowedZombieCount = 0;
@@ -3310,6 +3312,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			++redEyeGargantuarZombieCount;
 		}
 		if (z->mZombieType == ZombieType::ZOMBIE_IMP) ++impZombieCount;
+		if (z->mZombieType == ZombieType::ZOMBIE_ROOF_MARSHAL) ++roofMarshalZombieCount;
 		zombieBodyHealthTotal += z->mBodyHealth;
 		zombieShieldHealthTotal += z->mShieldHealth;
 		if (z->GetCooldownTimer() > 0.0f) ++slowedZombieCount;
@@ -3318,6 +3321,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		const Vector pos = z->GetPosition();
 		const float terrainY = board->GetZombieSpawnY(z->mRow, pos.x);
 		const auto anim = z->GetAnimatorInternal();
+		const auto* zombieShadow = z->GetComponent<ShadowComponent>();
 		float colliderCenterX = pos.x;
 		if (const ColliderComponent* collider = z->GetColliderComponent()) {
 			const SDL_FRect bounds = collider->GetBoundingBox();
@@ -3398,6 +3402,12 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "animExtraSpeedPct", anim
 				? static_cast<int>(std::lround(anim->GetExtraSpeedMultiplier() * 100.0f)) : 0 },
 			{ "effectiveAnimSpeed", anim ? anim->EffectiveSpeed() : 0.0f },
+			{ "animationScalePct", static_cast<int>(std::lround(
+				z->GetAnimationScale() * 100.0f)) },
+			{ "shadowScaleXPct", zombieShadow ? static_cast<int>(std::lround(
+				zombieShadow->GetScale().x * 100.0f)) : 0 },
+			{ "shadowScaleYPct", zombieShadow ? static_cast<int>(std::lround(
+				zombieShadow->GetScale().y * 100.0f)) : 0 },
 			{ "horizontalMoveSpeedOn1000", static_cast<int>(std::lround(
 				horizontalMoveSpeed * 1000.0f)) },
 			{ "targetLeadDistance1200On1000", static_cast<int>(std::lround(
@@ -3806,6 +3816,47 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				|| anim->GetTrackVisible("Zombie_outerleg_lower")
 				|| anim->GetTrackVisible("Zombie_outerleg_foot"));
 		}
+		if (auto* marshal = dynamic_cast<RoofMarshalZombie*>(z)) {
+			zombieState["roofMarshalCommandPhase"] = marshal->GetCommandPhaseName();
+			zombieState["roofMarshalSummonTimerMs"] = static_cast<int>(std::lround(
+				marshal->GetSummonTimer() * 1000.0f));
+			zombieState["roofMarshalCommandPoseTimerMs"] = static_cast<int>(std::lround(
+				marshal->GetCommandPoseTimer() * 1000.0f));
+			zombieState["roofMarshalCommandCount"] = marshal->GetCommandCount();
+			zombieState["roofMarshalLastSummonCount"] = marshal->GetLastSummonCount();
+			zombieState["roofMarshalLastSummonRowMask"] = marshal->GetLastSummonRowMask();
+			zombieState["roofMarshalLastSummonDistinctRowCount"] =
+				marshal->GetLastSummonDistinctRowCount();
+			zombieState["roofMarshalHighThreatPoolUnlocked"] =
+				marshal->IsHighThreatPoolUnlocked();
+			zombieState["roofMarshalCurrentSummonCount"] =
+				marshal->GetCurrentSummonCount();
+			zombieState["roofMarshalCurrentSummonIntervalMs"] = static_cast<int>(
+				std::lround(marshal->GetCurrentSummonInterval() * 1000.0f));
+			zombieState["roofMarshalLaneSwitchTimerMs"] = static_cast<int>(std::lround(
+				marshal->GetLaneSwitchTimer() * 1000.0f));
+			zombieState["roofMarshalLaneTransitionRemainingMs"] = static_cast<int>(
+				std::lround(marshal->GetLaneTransitionRemaining() * 1000.0f));
+			zombieState["roofMarshalLaneVisualOffsetYOn1000"] = static_cast<int>(
+				std::lround(marshal->GetLaneVisualOffsetY() * 1000.0f));
+			zombieState["roofMarshalLaneSwitchCount"] = marshal->GetLaneSwitchCount();
+			zombieState["roofMarshalWalkingPhase"] = marshal->IsWalkingPhase();
+			zombieState["roofMarshalLastSummonAvoidedCurrentRow"] =
+				(marshal->GetLastSummonRowMask() & (1 << marshal->mRow)) == 0;
+			zombieState["roofMarshalLastSummonedTypes"] = nlohmann::json::array();
+			bool allAllowed = true;
+			int highThreatCount = 0;
+			const auto& summonedTypes = marshal->GetLastSummonedTypes();
+			for (int i = 0; i < marshal->GetLastSummonCount(); ++i) {
+				const ZombieType type = summonedTypes[static_cast<std::size_t>(i)];
+				zombieState["roofMarshalLastSummonedTypes"].push_back(ZombieTypeName(type));
+				allAllowed = allAllowed && RoofMarshalZombie::IsAllowedSummonType(type);
+				if (RoofMarshalZombie::IsHighThreatSummonType(type)) ++highThreatCount;
+			}
+			zombieState["roofMarshalLastSummonAllAllowed"] = allAllowed;
+			zombieState["roofMarshalLastSummonHighThreatCount"] = highThreatCount;
+			out["roofMarshal"] = zombieState;
+		}
 		out["zombies"].push_back(std::move(zombieState));
 	}
 	out["zombieCount"] = static_cast<int>(out["zombies"].size());
@@ -3829,6 +3880,28 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["redEyeGargantuarWeight"] = GameDataManager::GetInstance().GetZombieWeight(
 		ZombieType::ZOMBIE_REDEYE_GARGANTUAR);
 	out["impZombieCount"] = impZombieCount;
+	out["roofMarshalZombieCount"] = roofMarshalZombieCount;
+	out["roofMarshalSummonWhitelist"] = nlohmann::json::array();
+	for (int i = 0; i < static_cast<int>(ZombieType::NUM_ZOMBIE_TYPES); ++i) {
+		const auto type = static_cast<ZombieType>(i);
+		if (RoofMarshalZombie::IsAllowedSummonType(type)) {
+			out["roofMarshalSummonWhitelist"].push_back(ZombieTypeName(type));
+		}
+	}
+	out["roofMarshalSummonWhitelistCount"] =
+		static_cast<int>(out["roofMarshalSummonWhitelist"].size());
+	out["roofMarshalAllowsNormal"] = RoofMarshalZombie::IsAllowedSummonType(
+		ZombieType::ZOMBIE_NORMAL);
+	out["roofMarshalAllowsGargantuar"] = RoofMarshalZombie::IsAllowedSummonType(
+		ZombieType::ZOMBIE_GARGANTUAR);
+	out["roofMarshalAllowsEliteDancer"] = RoofMarshalZombie::IsAllowedSummonType(
+		ZombieType::ZOMBIE_ELITE_DANCER);
+	out["roofMarshalAllowsRedEyeGargantuar"] = RoofMarshalZombie::IsAllowedSummonType(
+		ZombieType::ZOMBIE_REDEYE_GARGANTUAR);
+	out["roofMarshalAllowsPoolNormal"] = RoofMarshalZombie::IsAllowedSummonType(
+		ZombieType::ZOMBIE_POOL_NORMAL);
+	out["roofMarshalAllowsSelf"] = RoofMarshalZombie::IsAllowedSummonType(
+		ZombieType::ZOMBIE_ROOF_MARSHAL);
 	out["poolRowZombieCount"] = poolRowZombieCount;
 	out["earlyWavePoolZombieCount"] = earlyWavePoolZombieCount;
 	out["zombieBodyHealthTotal"] = zombieBodyHealthTotal;

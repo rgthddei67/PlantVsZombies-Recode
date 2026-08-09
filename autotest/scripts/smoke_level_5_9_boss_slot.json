@@ -4,7 +4,7 @@
     { "op": "assert_state", "path": "levelName", "equals": "关卡 5-9" },
     { "op": "assert_state", "path": "background", "equals": "ROOF" },
     { "op": "assert_state", "path": "isBossLevel", "equals": true },
-    { "op": "assert_state", "path": "bossSlot", "equals": "RESERVED" },
+    { "op": "assert_state", "path": "bossSlot", "equals": "ROOF_MARSHAL" },
     { "op": "assert_state", "path": "maxWave", "equals": 15 },
     { "op": "assert_state", "path": "previewZombieCount", "equals": 3 },
     { "op": "assert_state", "path": "previewZombies.0.type", "equals": "ZOMBIE_NORMAL" },

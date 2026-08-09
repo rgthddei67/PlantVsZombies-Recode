@@ -11,6 +11,9 @@
   { "op": "assert_state", "path": "zombies.1.type", "equals": "ZOMBIE_ROOF_MARSHAL" },
   { "op": "assert_state", "path": "zombies.0.bodyHealth", "equals": 12000 },
   { "op": "assert_state", "path": "zombies.0.bodyMaxHealth", "equals": 12000 },
+  { "op": "assert_state", "path": "zombies.0.animationScalePct", "equals": 120 },
+  { "op": "assert_state", "path": "zombies.0.shadowScaleXPct", "equals": 120 },
+  { "op": "assert_state", "path": "zombies.0.shadowScaleYPct", "equals": 90 },
   { "op": "assert_state", "path": "roofMarshalResources.reanimationLoaded", "equals": true },
   { "op": "assert_state", "path": "roofMarshalResources.bodyTextureLoaded", "equals": true },
   { "op": "assert_state", "path": "roofMarshalResources.hatTextureLoaded", "equals": true },
@@ -29,8 +32,9 @@
   { "op": "assert_state", "path": "particleEffectsByName.RoofMarshalHeadOff.0.renderQuadCount", "equals": 1 },
   { "op": "assert_state", "path": "particleEffectsByName.RoofMarshalHeadOff.0.originToRenderCenterDxInt", "atLeast": -20, "atMost": 20 },
   { "op": "assert_state", "path": "particleEffectsByName.RoofMarshalHeadOff.0.originToRenderCenterDyInt", "atLeast": -20, "atMost": 20 },
+  { "op": "kill_zombie", "row": 3, "index": 0 },
   { "op": "wait_seconds", "value": 3.5, "timeout": 6 },
-  { "op": "assert_state", "path": "zombieCount", "equals": 1 },
+  { "op": "assert_state", "path": "zombieCount", "equals": 0 },
   { "op": "dump_state", "name": "roof_marshal_visual.json" }
   ]
 }
