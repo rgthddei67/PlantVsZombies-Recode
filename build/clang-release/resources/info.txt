@@ -182,6 +182,11 @@
 [PLANT_UMBRELLA_DESCRIPTION]
 叶子保护伞可以保护自身和周围八格的植物，弹开蹦极僵尸与投篮车投来的篮球。“下雨要撑伞，天上掉僵尸更要撑伞，”叶子保护伞认真地说。
 
+[PLANT_MARIGOLD]
+金盏花
+[PLANT_MARIGOLD_DESCRIPTION]
+金盏花目前只是一株安静的观赏植物，不会吐出金币。也许以后她会找到新的工作，不过今天只负责让花园更明亮一些。
+
 [ZOMBIE_NORMAL]
 僵尸
 [ZOMBIE_NORMAL_DESCRIPTION]

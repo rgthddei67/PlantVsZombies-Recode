@@ -52,6 +52,7 @@
 #include "CoffeeBean.h"
 #include "Garlic.h"
 #include "UmbrellaLeaf.h"
+#include "Marigold.h"
 
 #include "../Zombie/Zombie.h"
 #include "../Zombie/ConeZombie.h"
@@ -342,6 +343,11 @@ void GameDataManager::InitializeHardcodedData() {
 		ResourceKeys::Textures::IMAGE_UMBRELLALEAF,
 		AnimationType::ANIM_UMBRELLALEAF,
 		ResourceKeys::Reanimations::REANIM_UMBRELLALEAF, &MakePlant<UmbrellaLeaf>);
+
+	RegisterPlant(PlantType::PLANT_MARIGOLD, "PLANT_MARIGOLD",
+		ResourceKeys::Textures::IMAGE_MARIGOLD,
+		AnimationType::ANIM_MARIGOLD,
+		ResourceKeys::Reanimations::REANIM_MARIGOLD, &MakePlant<Marigold>);
 
 	// 寒冰大喷菇：复用大喷菇 reanim（蓝色靠 overlay），仅卡图独立
 	RegisterPlant(PlantType::PLANT_ICEFUMESHROOM, "PLANT_ICEFUMESHROOM",
