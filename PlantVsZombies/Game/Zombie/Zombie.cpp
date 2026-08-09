@@ -40,7 +40,7 @@ namespace {
 	constexpr float kToxinDamageEpsilon = 0.0001f;         // 浮点取整容差，避免整点伤害因误差延迟一帧
 	constexpr float kButterDuration = 4.0f;                // C# mButteredCounter=400 厘秒的黄油定身时长
 	constexpr float kButterSplatOffsetY = -6.0f;           // C# DrawButter 相对头部轨道的贴图纵向偏移，单位：像素
-	constexpr float kButterSplatScale = 0.8f;              // 对齐原版头顶覆盖比例，同时保留面部与上身轮廓
+	constexpr float kButterSplatScale = 1.0f;              // 对齐原版头顶覆盖比例，同时保留面部与上身轮廓
 	const Vector kButterFallbackHeadOffset(0.0f, -40.0f);   // 缺少 anim_head1 时相对逻辑位置的保底头部锚点
 	constexpr float kGarlicShortPauseTime = 0.20f;         // 无匹配嫌恶脸资源的品种只停顿 20 厘秒
 	constexpr float kGarlicFacePauseTime = 0.70f;          // 有嫌恶脸品种在 70 厘秒节点停吃并换脸
