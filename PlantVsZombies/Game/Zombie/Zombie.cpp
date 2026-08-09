@@ -1386,6 +1386,7 @@ void Zombie::StartMindControlled()
 
 	mIsMindControlled = true;
 	ApplyCharmEffects();
+	if (!mIsDead) OnMindControlled();
 }
 
 int Zombie::TakeShieldDamage(int damage)

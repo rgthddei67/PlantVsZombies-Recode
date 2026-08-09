@@ -15,6 +15,14 @@
     <Image>./resources/image/golden_ice_cap.png</Image>
     <Image>./resources/image/BungeeCord.png</Image>
     <Image>./resources/image/BungeeTarget.png</Image>
+    <Image>./resources/image/reanim/Zombie_gargantuar_telephonepole.png</Image>
+    <Image>./resources/image/reanim/Zombie_gargantuar_duckxing.png</Image>
+    <Image>./resources/image/reanim/Zombie_gargantuar_zombie.png</Image>
+    <Image>./resources/image/reanim/Zombie_gargantuar_body1_2.png</Image>
+    <Image>./resources/image/reanim/Zombie_gargantuar_body1_3.png</Image>
+    <Image>./resources/image/reanim/Zombie_gargantuar_outerarm_lower2.png</Image>
+    <Image>./resources/image/reanim/Zombie_gargantuar_foot2.png</Image>
+    <Image>./resources/image/reanim/Zombie_gargantuar_head2.png</Image>
 
     <Image Column="8" Row="1">./resources/image/fog.png</Image>
     <Image>./resources/image/MistFuel.png</Image>
@@ -319,6 +327,12 @@
     <Sound>./resources/sounds/Plant/squash_hmm.ogg</Sound>
     <Sound>./resources/sounds/Plant/squash_hmm2.ogg</Sound>
     <Sound>./resources/sounds/Zombie/gargantuar_thump.ogg</Sound>
+    <Sound>./resources/sounds/Zombie/lowgroan.ogg</Sound>
+    <Sound>./resources/sounds/Zombie/lowgroan2.ogg</Sound>
+    <Sound>./resources/sounds/Zombie/swing.ogg</Sound>
+    <Sound>./resources/sounds/Zombie/imp.ogg</Sound>
+    <Sound>./resources/sounds/Zombie/imp2.ogg</Sound>
+    <Sound>./resources/sounds/Zombie/gargantudeath.ogg</Sound>
     <Sound>./resources/sounds/Zombie/zombiesplash.ogg</Sound>
     <Sound>./resources/sounds/Plant/PlantShoot/throw.ogg</Sound>
     <Sound>./resources/sounds/Plant/PlantShoot/throw2.ogg</Sound>
@@ -444,10 +458,14 @@
     <Reanimation name="EliteLadderZombie">./resources/reanim/EliteLadder.reanim</Reanimation>
     <Reanimation name="CatapultZombie">./resources/reanim/Zombie_catapult.reanim</Reanimation>
     <Reanimation name="EliteCatapultZombie">./resources/reanim/EliteCatapult.reanim</Reanimation>
+    <Reanimation name="GargantuarZombie">./resources/reanim/Zombie_gargantuar.reanim</Reanimation>
+    <Reanimation name="ImpZombie">./resources/reanim/Zombie_imp.reanim</Reanimation>
 
     <Reanimation name="Zombie_Charred">./resources/reanim/Zombie_Charred.reanim</Reanimation>
     <Reanimation name="Zamboni_Charred">./resources/reanim/Zombie_charred_zamboni.reanim</Reanimation>
     <Reanimation name="Catapult_Charred">./resources/reanim/Zombie_charred_catapult.reanim</Reanimation>
+    <Reanimation name="Gargantuar_Charred">./resources/reanim/Zombie_charred_gargantuar.reanim</Reanimation>
+    <Reanimation name="Imp_Charred">./resources/reanim/Zombie_charred_imp.reanim</Reanimation>
 
     <Reanimation name="Fire">./resources/reanim/Fire.reanim</Reanimation>
     <Reanimation name="FirePea">./resources/reanim/FirePea.reanim</Reanimation>

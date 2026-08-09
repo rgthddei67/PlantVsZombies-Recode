@@ -457,6 +457,8 @@ protected:
 	//     void OnStopEating()  override { if (mShieldType != ShieldType::SHIELDTYPE_NONE) ShowArm(false); }
 	virtual void OnStartEating() {}
 	virtual void OnStopEating()  {}
+	/** 魅惑状态完成提交后的派生回调；一次性动作在此原子撤销，避免旧帧事件抢跑。 */
+	virtual void OnMindControlled() {}
 	/** 按 C# EatingOrder 选目标：只有仍可啃的上层植物才遮挡下层，并尊重植物自己的离地或短期保护。 */
 	bool IsPlantValidEatTarget(Plant* plant) const;
 	/** 把同格啃食目标迁移到当前最高有效植物，并保持双方 mEaterCount 平衡。 */

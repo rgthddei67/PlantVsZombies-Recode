@@ -2,6 +2,7 @@
 
 > Codex routing: required always-on rules live in `../../AGENTS.md`; detailed build, AutoTest, architecture, resource, and implementation guidance lives in `../agent-guide/PROJECT_GUIDE.md`. The entries below are historical subsystem context and should be read only when relevant.
 
+- [经典巨人僵尸与小鬼](project_pvz_gargantuar_zombie.md) — 2026-08-09 巨人3000生命且只在0血死亡，按2/3与1/3生命派生两档创口贴/伤势材质；第93帧砸扁植物或重击敌对僵尸，半血后第124帧唯一一次投出270生命小鬼，剩余减速与阵营同时继承；持有标志、动作防重与小鬼飞行参数完整入档并修复矛盾旧态；65/25/10随机持电线杆/鸭子路牌/普通僵尸，不设图鉴、预览或5-8特殊武器分支；5-7/5-8接入及可见专项通过
 - [经典叶子保护伞与空中威胁防御](project_pvz_umbrella_leaf.md) — 2026-08-08 `PLANT_UMBRELLA` 100阳光/7.5秒/300生命，以能力接口覆盖自身及周围八格；0.05秒展开后反弹75伤篮球并让蹦极立即空手上升，阶段/计时入档且不重播反馈；无新增动画帧事件，默认/NoInstance专项及蹦极/投篮车回归可见通过
 - [经典投篮车与导流投篮车僵尸](project_pvz_catapult_zombie.md) — 2026-08-08 普通型850生命/十二发75伤篮球/第46帧/3秒装填；导流精英1000生命并完整继承弹药状态机，屋顶自然锁行时最近房屋的坡段候选只替换一条随机行，行掩码锁后不因死亡重抽，只有自身径流从-60放大到-100且爆胎回退；正式每波最多一只并入档，5-6在普通投篮车之后首次登场；独立青蓝资源/爆炸与共享篮球键已闭环，专项、上限、出怪表和父回归均可见通过且日志0 ERROR/WARN
 - [经典大蒜与僵尸跨行反应](project_pvz_garlic.md) — 2026-08-08 `PLANT_GARLIC` 50阳光/7.5秒/400生命；首口50伤后由 Zombie 独立嫌恶状态在0.7秒停吃、1.7秒同介质相邻行改道、2.7秒结束，逻辑 `mRow` 先切换而 Y 以100px/s追赶；报纸破盾原子取消、魅惑继续，阶段/Y/恶心脸存档；通用 grossout 头按透明像素框上移15px；clang-release、默认/NoInstance各196命令可见专项及报纸父回归通过
@@ -41,7 +42,7 @@
 - [三线射手](project_pvz_threepeater.md) — 2026-07-24 三头视觉帧29/73/111，但按 C# 集中计数器只在帧73同帧创建三弹；逐头补 `inverse(basePose)`；顶/底越界弹折回本行且360/290px/s差速；斜向初速按地图行高缩放（草地300、泳池255px/s），水路僵尸碰撞框脱离+25px美术下沉；本次按主人要求只编译、不跑AutoTest
 - [火爆辣椒](project_pvz_jalapeno.md) — 2026-07-26 使用主人裁剪的0..19帧本体，第19帧引爆；12段火焰从`CELL_INITALIZE_POS_X`横铺750px并在第12帧消失；整行非魅惑目标先解冻/解减速再走1800灰烬伤害，水路保持水中死亡且睡莲不受影响；冰车合入后会把同行冰道剩余寿命压到0.2秒；双Clang预设及可见专项AutoTest通过
 - [缠绕水草](project_pvz_tanglekelp.md) — 2026-07-24 仅空水格直种且占普通层，25阳光/30秒冷却；普通目标按 C# 99→51→21→0cs 抓取拖沉；持门加固铁门改为原地保持 `anim_grab` 5秒后获释且仅水草死亡，掉门后恢复普通规则；一对一锁定、抗性扩展点与存档迁移已接入，首版专项 AutoTest 74 条全绿，本次扩展按主人要求仅双 preset 编译
-- [植物压扁与复合 Animator 世界缩放](project_pvz_plant_squish.md) — 2026-07-26 `Plant::Squish()` 统一冻结位置/动画、释放占格、纵向 0.5 底边锚定、5 秒残影与末 1 秒渐隐；默认绘制已递归实例化根与任意深度附件，`SetRenderScale` 同时覆盖 `InstanceRecord` 与 `-NoInstance` 矩阵兜底；冰车已成为首个正式调用方，巨人和投篮车仍未实现
+- [植物压扁与复合 Animator 世界缩放](project_pvz_plant_squish.md) — 2026-08-09 `Plant::Squish()` 统一冻结位置/动画、释放占格、纵向 0.5 底边锚定、5 秒残影与末 1 秒渐隐；默认绘制已递归实例化根与任意深度附件，`SetRenderScale` 同时覆盖 `InstanceRecord` 与 `-NoInstance` 矩阵兜底；冰车、投篮车与巨人均已成为正式调用方，巨人在第93帧压扁目标格全部植物层
 - [Windows 中央存档目录与旧档安全迁移](project_pvz_save_location_migration.md) — 2026-07-21 Windows 正式存档改到 `FOLDERID_SavedGames/PlantsVsZombies/saves`；首次访问旧 `./saves` 时复制、逐字节校验、再删源文件，冲突不覆盖、失败逐文件回退；AutoTest/`-AutoTestLoadSave` 继续隔离在构建目录
 - [第三大关泳池基础系统](project_pvz_pool_basics.md) — 2026-08-03 当前范围 3-1～3-9：`WATER_POOL` 六行网格、原版 15×5 三层 GPU 动态水面、睡莲双层占格及上层植物本体/影子共享水面浮动视觉锚点、前4波仅陆路、`Zombie` 通用水线裁剪与 `Splash.reanim + PlantingPool` 进出水反馈、海豚派生节点、普通/路障/铁桶水路版本、水中爆炸无烧焦残影、PoolCleaner 与旧档边界；3-5普通冰车、3-6鎏金冰车、3-7普通海豚、3-8精英海豚、3-9为200初始阳光与10种敌人的30波分阶段综合；日间天降普通阳光14秒，泳池另每13秒生成15点小阳光；水路 Transform +30px美术下沉而碰撞仍回归逻辑行
 - [通用 shader ClipRect](project_pvz_shader_clip_rect.md) — 2026-07-23 `PushClipRect/PopClipRect` 全部改为逐顶点/逐实例 framebuffer 矩形裁剪；不再 flush、切 draw、录 worker 状态命令或动态改 scissor；覆盖水路、伴舞出土、图鉴格窗、粒子阻断，含延迟文字继承与无裁剪片元快路径

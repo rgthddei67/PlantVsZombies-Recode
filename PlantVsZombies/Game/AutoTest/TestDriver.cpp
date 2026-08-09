@@ -67,6 +67,10 @@
 #include "../Zombie/CatapultCharred.h"
 #include "../Zombie/CatapultZombie.h"
 #include "../Zombie/EliteCatapultZombie.h"
+#include "../Zombie/GargantuarCharred.h"
+#include "../Zombie/GargantuarZombie.h"
+#include "../Zombie/ImpCharred.h"
+#include "../Zombie/ImpZombie.h"
 #include "../Zombie/PoolNormalZombie.h"
 #include "../Trophy.h"   // dump_state 输出奖杯坐标
 #include "../Crater.h"   // dump_state 输出毁灭菇弹坑
@@ -121,6 +125,36 @@ namespace {
 			return "TUNNELING_PAUSE_WITHOUT_PICKAXE";
 		case Phase::RISING_WITHOUT_PICKAXE: return "RISING_WITHOUT_PICKAXE";
 		case Phase::WALKING_WITHOUT_PICKAXE: return "WALKING_WITHOUT_PICKAXE";
+		default: return "UNKNOWN";
+		}
+	}
+
+	const char* GargantuarPhaseName(GargantuarZombie::Phase phase)
+	{
+		switch (phase) {
+		case GargantuarZombie::Phase::WALKING: return "WALKING";
+		case GargantuarZombie::Phase::SMASHING: return "SMASHING";
+		case GargantuarZombie::Phase::THROWING: return "THROWING";
+		default: return "UNKNOWN";
+		}
+	}
+
+	const char* GargantuarWeaponName(GargantuarZombie::WeaponVariant variant)
+	{
+		switch (variant) {
+		case GargantuarZombie::WeaponVariant::TELEPHONE_POLE: return "TELEPHONE_POLE";
+		case GargantuarZombie::WeaponVariant::DUCK_SIGN: return "DUCK_SIGN";
+		case GargantuarZombie::WeaponVariant::ZOMBIE: return "ZOMBIE";
+		default: return "UNKNOWN";
+		}
+	}
+
+	const char* ImpPhaseName(ImpZombie::Phase phase)
+	{
+		switch (phase) {
+		case ImpZombie::Phase::WALKING: return "WALKING";
+		case ImpZombie::Phase::THROWN: return "THROWN";
+		case ImpZombie::Phase::LANDING: return "LANDING";
 		default: return "UNKNOWN";
 		}
 	}
@@ -2524,6 +2558,50 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			ResourceKeys::Textures::IMAGE_ZOMBIE_ELITE_CATAPULT_MANHOLE,
 			false) != nullptr },
 	};
+	out["gargantuarResources"] = {
+		{ "reanimationLoaded", ResourceManager::GetInstance().HasReanimation(
+			ResourceKeys::Reanimations::REANIM_GARGANTUAR_ZOMBIE) },
+		{ "charredReanimationLoaded", ResourceManager::GetInstance().HasReanimation(
+			ResourceKeys::Reanimations::REANIM_GARGANTUAR_CHARRED) },
+		{ "telephonePoleTextureLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_ZOMBIE_GARGANTUAR_TELEPHONEPOLE,
+			false) != nullptr },
+		{ "duckSignTextureLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_ZOMBIE_GARGANTUAR_DUCKXING,
+			false) != nullptr },
+		{ "zombieWeaponTextureLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_ZOMBIE_GARGANTUAR_ZOMBIE,
+			false) != nullptr },
+		{ "damageTexturesLoaded",
+			ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_ZOMBIE_GARGANTUAR_BODY1_2, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_ZOMBIE_GARGANTUAR_BODY1_3, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_ZOMBIE_GARGANTUAR_OUTERARM_LOWER2, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_ZOMBIE_GARGANTUAR_FOOT2, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_ZOMBIE_GARGANTUAR_HEAD2, false) != nullptr },
+		{ "actionSoundsLoaded", ResourceManager::GetInstance().HasSound(
+			ResourceKeys::Sounds::SOUND_GARGANTUAR_THUMP)
+			&& ResourceManager::GetInstance().HasSound(ResourceKeys::Sounds::SOUND_LOWGROAN)
+			&& ResourceManager::GetInstance().HasSound(ResourceKeys::Sounds::SOUND_LOWGROAN2)
+			&& ResourceManager::GetInstance().HasSound(ResourceKeys::Sounds::SOUND_SWING)
+			&& ResourceManager::GetInstance().HasSound(ResourceKeys::Sounds::SOUND_IMP)
+			&& ResourceManager::GetInstance().HasSound(ResourceKeys::Sounds::SOUND_IMP2)
+			&& ResourceManager::GetInstance().HasSound(ResourceKeys::Sounds::SOUND_GARGANTUDEATH) },
+	};
+	out["impResources"] = {
+		{ "reanimationLoaded", ResourceManager::GetInstance().HasReanimation(
+			ResourceKeys::Reanimations::REANIM_IMP_ZOMBIE) },
+		{ "charredReanimationLoaded", ResourceManager::GetInstance().HasReanimation(
+			ResourceKeys::Reanimations::REANIM_IMP_CHARRED) },
+		{ "headParticleTextureLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Particles::PARTICLE_ZOMBIE_IMPHEAD, false) != nullptr },
+		{ "armBoneTextureLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_REANIM_ZOMBIE_IMP_ARM1_BONE, false) != nullptr },
+	};
 	out["cards"] = nlohmann::json::array();
 	if (CardSlotManager* cardManager = gs->GetCardSlotManager()) {
 		for (Card* card : cardManager->GetCards()) {
@@ -2857,6 +2935,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	int charredZombieCount = 0;
 	int zamboniCharredCount = 0;
 	int catapultCharredCount = 0;
+	int gargantuarCharredCount = 0;
+	int impCharredCount = 0;
 	int jalapenoFireCount = 0;
 	std::vector<Vector> jalapenoFirePositions;
 	int mistFuelVisualCount = 0;
@@ -2869,6 +2949,12 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		}
 		if (object && object->IsActive() && dynamic_cast<CatapultCharred*>(object.get())) {
 			++catapultCharredCount;
+		}
+		if (object && object->IsActive() && dynamic_cast<GargantuarCharred*>(object.get())) {
+			++gargantuarCharredCount;
+		}
+		if (object && object->IsActive() && dynamic_cast<ImpCharred*>(object.get())) {
+			++impCharredCount;
 		}
 		if (object && object->IsActive() && object->GetTag() == "JalapenoFire") {
 			++jalapenoFireCount;
@@ -2883,6 +2969,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["charredZombieCount"] = charredZombieCount;
 	out["zamboniCharredCount"] = zamboniCharredCount;
 	out["catapultCharredCount"] = catapultCharredCount;
+	out["gargantuarCharredCount"] = gargantuarCharredCount;
+	out["impCharredCount"] = impCharredCount;
 	out["jalapenoFireCount"] = jalapenoFireCount;
 	std::sort(jalapenoFirePositions.begin(), jalapenoFirePositions.end(),
 		[](const Vector& lhs, const Vector& rhs) { return lhs.x < rhs.x; });
@@ -2910,6 +2998,22 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_BALLOON_POP);
 	out["basketballSoundRequestCount"] =
 		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_BASKETBALL);
+	out["gargantuarThumpSoundRequestCount"] =
+		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_GARGANTUAR_THUMP);
+	out["gargantuarGroanSoundRequestCount"] =
+		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_LOWGROAN)
+		+ AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_LOWGROAN2);
+	out["gargantuarSwingSoundRequestCount"] =
+		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_SWING);
+	out["impVoiceSoundRequestCount"] =
+		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_IMP)
+		+ AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_IMP2);
+	out["gargantuarDeathSoundRequestCount"] =
+		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_GARGANTUDEATH);
+	out["impHeadParticleCount"] = g_particleSystem
+		? g_particleSystem->GetEffectActiveParticleCount("ImpZombieHeadOff") : 0;
+	out["impArmParticleCount"] = g_particleSystem
+		? g_particleSystem->GetEffectActiveParticleCount("ImpZombieArmOff") : 0;
 	out["puffSoundRequestCount"] =
 		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_PUFF);
 	out["firePeaSoundRequestCount"] =
@@ -3040,6 +3144,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	int elitePogoZombieCount = 0;
 	int eliteLadderZombieCount = 0;
 	int eliteCatapultZombieCount = 0;
+	int gargantuarZombieCount = 0;
+	int impZombieCount = 0;
 	int zombieBodyHealthTotal = 0;
 	int zombieShieldHealthTotal = 0;
 	int slowedZombieCount = 0;
@@ -3068,6 +3174,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		if (z->mZombieType == ZombieType::ZOMBIE_ELITE_CATAPULT) {
 			++eliteCatapultZombieCount;
 		}
+		if (z->mZombieType == ZombieType::ZOMBIE_GARGANTUAR) ++gargantuarZombieCount;
+		if (z->mZombieType == ZombieType::ZOMBIE_IMP) ++impZombieCount;
 		zombieBodyHealthTotal += z->mBodyHealth;
 		zombieShieldHealthTotal += z->mShieldHealth;
 		if (z->GetCooldownTimer() > 0.0f) ++slowedZombieCount;
@@ -3497,6 +3605,47 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				zombieState["catapultColliderHeightInt"] = static_cast<int>(std::lround(bounds.h));
 			}
 		}
+		if (auto* gargantuar = dynamic_cast<GargantuarZombie*>(z)) {
+			zombieState["gargantuarPhase"] = GargantuarPhaseName(gargantuar->GetPhase());
+			zombieState["gargantuarHasImp"] = gargantuar->HasImp();
+			zombieState["gargantuarSmashApplied"] = gargantuar->HasAppliedSmash();
+			zombieState["gargantuarThrowReleased"] = gargantuar->HasReleasedImp();
+			zombieState["gargantuarTargetRow"] = gargantuar->GetActionTargetRow();
+			zombieState["gargantuarTargetColumn"] = gargantuar->GetActionTargetColumn();
+			zombieState["gargantuarTargetZombieID"] = gargantuar->GetActionTargetZombieID();
+			zombieState["gargantuarThrowDistanceInt"] = static_cast<int>(std::lround(
+				gargantuar->GetThrowDistance()));
+			zombieState["gargantuarWeapon"] = GargantuarWeaponName(
+				gargantuar->GetWeaponVariant());
+			zombieState["gargantuarDamageStage"] = gargantuar->GetDamageStage();
+			zombieState["gargantuarHeldImpVisible"] = anim
+				&& anim->GetTrackVisible("Zombie_imp_head")
+				&& anim->GetTrackVisible("Zombie_imp_body1")
+				&& anim->GetTrackVisible("Zombie_gargantuar_whiterope");
+		}
+		if (auto* imp = dynamic_cast<ImpZombie*>(z)) {
+			const auto* shadow = imp->GetComponent<ShadowComponent>();
+			zombieState["impPhase"] = ImpPhaseName(imp->GetPhase());
+			zombieState["impAltitudeOn1000"] = static_cast<int>(std::lround(
+				imp->GetThrowAltitude() * 1000.0f));
+			zombieState["impVerticalVelocityOn1000"] = static_cast<int>(std::lround(
+				imp->GetThrowVerticalVelocity() * 1000.0f));
+			zombieState["impHorizontalVelocityOn1000"] = static_cast<int>(std::lround(
+				imp->GetThrowHorizontalVelocity() * 1000.0f));
+			zombieState["impThrowMovingRight"] = imp->IsThrowMovingRight();
+			zombieState["impShadowVisible"] = shadow && shadow->IsVisible();
+			const Vector impVisual = imp->GetVisualPosition();
+			const Vector impHeadAnchor = imp->GetHeadParticleAnchor();
+			const Vector impArmAnchor = imp->GetArmParticleAnchor();
+			zombieState["impHeadAnchorFromVisualXOn1000"] = static_cast<int>(
+				std::lround((impHeadAnchor.x - impVisual.x) * 1000.0f));
+			zombieState["impHeadAnchorFromVisualYOn1000"] = static_cast<int>(
+				std::lround((impHeadAnchor.y - impVisual.y) * 1000.0f));
+			zombieState["impArmAnchorFromVisualXOn1000"] = static_cast<int>(
+				std::lround((impArmAnchor.x - impVisual.x) * 1000.0f));
+			zombieState["impArmAnchorFromVisualYOn1000"] = static_cast<int>(
+				std::lround((impArmAnchor.y - impVisual.y) * 1000.0f));
+		}
 		if (auto* gilded = dynamic_cast<GildedZamboniZombie*>(z)) {
 			zombieState["gildedUndamagedMs"] = static_cast<int>(std::lround(
 				gilded->GetUndamagedTime() * 1000.0f));
@@ -3524,6 +3673,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["elitePogoZombieCount"] = elitePogoZombieCount;
 	out["eliteLadderZombieCount"] = eliteLadderZombieCount;
 	out["eliteCatapultZombieCount"] = eliteCatapultZombieCount;
+	out["gargantuarZombieCount"] = gargantuarZombieCount;
+	out["impZombieCount"] = impZombieCount;
 	out["poolRowZombieCount"] = poolRowZombieCount;
 	out["earlyWavePoolZombieCount"] = earlyWavePoolZombieCount;
 	out["zombieBodyHealthTotal"] = zombieBodyHealthTotal;

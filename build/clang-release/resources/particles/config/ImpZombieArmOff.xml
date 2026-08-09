@@ -1,0 +1,18 @@
+<Emitter>
+  <Name>ImpZombieArmOff</Name>
+  <SpawnMinActive>1</SpawnMinActive>
+  <SpawnMaxLaunched>1</SpawnMaxLaunched>
+  <ParticleDuration>0.7</ParticleDuration>
+  <ParticleAlpha>1 0.7</ParticleAlpha>
+  <ParticleScale>0.7 0.7</ParticleScale>
+  <LaunchSpeed>0</LaunchSpeed>
+  <ParticleSpinSpeed>[-5 5]</ParticleSpinSpeed>
+  <ParticleGravity>115</ParticleGravity>
+  <SystemDuration>0.8</SystemDuration>
+  <Image>IMAGE_REANIM_ZOMBIE_IMP_ARM2</Image>
+  <Field>
+    <FieldType>Position</FieldType>
+    <X>0</X>
+    <Y>0</Y>
+  </Field>
+</Emitter>

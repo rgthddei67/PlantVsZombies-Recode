@@ -28,6 +28,7 @@ description: Use when adding or tuning ANY particle effect (粒子特效) in PvZ
 
 - 先确定特效应锚定当前对象的稳定视觉原点、Board 网格点还是当前场景边界，再把 C# 点位换算成相对该锚点的局部差值。
 - `EmitEffect` 的传入世界坐标优先由 `Transform + mVisualOffset`、植物视觉基点、`GetCellCenterPosition` 或 `SCENE_WIDTH/HEIGHT` 派生；受伤抖动等临时绘制偏移默认不进入粒子物理位置。若 XML 的 `EmitterOffsetX/Y` 已按实体视觉原点写入完整偏移，代码只能传逻辑 `Transform`（再加能力自身的动态高度），禁止又叠 `mVisualOffset`；先把“代码世界锚点”和“XML 局部偏移”写成一条加法式，避免同一视觉偏移计算两次。
+- 头、手臂等动画部件掉落优先使用该部件轨道的世界坐标（如 `GetTrackWorldPosition`）作为发射点，并把 XML 的 `EmitterOffsetX/Y` 归零或只保留粒子自身微调；禁止用整身视觉原点再猜一组固定偏移。轨道锚点应在隐藏/换材质前读取，AutoTest 用粒子 `worldBounds` 与最近实体 collider 的相对中心和相交关系验收。
 - 池沿、地形边界等状态切换特效必须复用决定切换的同一几何：通用僵尸入水用前后探针中点作 X、水面裁剪底线作 Y，禁止另抄一组 C# 800×600 点位。若原版表现同时含短 `AnimatedObject` reanim 与 ParticleSystem XML（`PoolSplash` 实证），两层保持独立资源与生命周期；AutoTest 分别断言 `animatedObjectTagCounts` 和 `particleEffectNameCounts`，不能只证明其中一层。
 - XML 的 `EmitterOffsetX/Y` 仍有“双倍生效”陷阱，但“除以 2”只能用于**完成坐标系换算后的局部偏移**，不能把 800×600 原值直接减半搬入。
 - 触发后先执行同步 `screenshot`，再用 `particleEffectsByName.<Name>.0` 的 `renderProbeReady/worldBounds/originToRenderCenterD*Int/nearestPlant/nearestZombie` 断言本项目实际提交的粒子矩形相对发射原点与实体 collider 的关系；随机范围用宽容区间而非单点值。
@@ -120,7 +121,7 @@ description: Use when adding or tuning ANY particle effect (粒子特效) in PvZ
 
 **一次性爆发云**（FumeCloud/IceFumeCloud）：`SpawnMinActive [16 32]` + `ParticleAlpha .9,80 0` + Position 场区间轨迹铺开 + `Shake 1` + `SystemDuration 1.25`。染色版只加三行 RGB；实体阻断长度走 `clipRightX`，XML 保持完整射程。
 
-**掉落物**（ZombieHeadOff）：`SpawnMinActive 1` + `LaunchSpeed [60 100]` + `RandomLaunchSpin 1` + `ParticleGravity 140` + `ParticleSpinSpeed [-5 5]` + Position 场常量（出生点修正 -10,-50）。
+**掉落物**（ZombieHeadOff）：`SpawnMinActive 1` + `LaunchSpeed [60 100]` + `RandomLaunchSpin 1` + `ParticleGravity 140` + `ParticleSpinSpeed [-5 5]`。通用旧效果可保留 Position 场修正；新部件效果优先由代码传入轨道世界锚点并让 XML 偏移归零。
 
 **命中飞溅**（PeaBulletHit，双发射器）：主溅斑（1颗、`ParticleScale 1.2 0.4` 缩小消失）+ 碎屑环（`EmitterType Circle` + `LaunchSpeed [65]` + `Friction 0.0,10 0.1` 先快后刹 + `Acceleration Y=5` 微下坠）。
 

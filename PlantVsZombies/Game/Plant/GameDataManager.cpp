@@ -87,6 +87,8 @@
 #include "../Zombie/EliteLadderZombie.h"
 #include "../Zombie/CatapultZombie.h"
 #include "../Zombie/EliteCatapultZombie.h"
+#include "../Zombie/GargantuarZombie.h"
+#include "../Zombie/ImpZombie.h"
 
 namespace {
 	template<typename T>
@@ -523,6 +525,16 @@ void GameDataManager::InitializeHardcodedData() {
 		ResourceKeys::Reanimations::REANIM_ELITE_CATAPULT_ZOMBIE,
 		&MakeZombie<EliteCatapultZombie>);
 
+	// 巨人拥有独立砸击/投掷状态机；小鬼权重为零，只允许由巨人召唤或测试直造。
+	RegisterZombie(ZombieType::ZOMBIE_GARGANTUAR, "ZOMBIE_GARGANTUAR",
+		AnimationType::ANIM_GARGANTUAR_ZOMBIE,
+		ResourceKeys::Reanimations::REANIM_GARGANTUAR_ZOMBIE,
+		&MakeZombie<GargantuarZombie>);
+	RegisterZombie(ZombieType::ZOMBIE_IMP, "ZOMBIE_IMP",
+		AnimationType::ANIM_IMP_ZOMBIE,
+		ResourceKeys::Reanimations::REANIM_IMP_ZOMBIE,
+		&MakeZombie<ImpZombie>);
+
 	// ==================== 非植物/僵尸动画映射 ====================
 	mAnimToString[AnimationType::ANIM_SUN] = ResourceKeys::Reanimations::REANIM_SUN;
 
@@ -532,6 +544,10 @@ void GameDataManager::InitializeHardcodedData() {
 		ResourceKeys::Reanimations::REANIM_ZAMBONI_CHARRED;
 	mAnimToString[AnimationType::ANIM_CATAPULT_CHARRED] =
 		ResourceKeys::Reanimations::REANIM_CATAPULT_CHARRED;
+	mAnimToString[AnimationType::ANIM_GARGANTUAR_CHARRED] =
+		ResourceKeys::Reanimations::REANIM_GARGANTUAR_CHARRED;
+	mAnimToString[AnimationType::ANIM_IMP_CHARRED] =
+		ResourceKeys::Reanimations::REANIM_IMP_CHARRED;
 	mAnimToString[AnimationType::ANIM_DIGGER_RISING_DIRT] =
 		ResourceKeys::Reanimations::REANIM_DIGGER_RISING_DIRT;
 	mAnimToString[AnimationType::ANIM_DIGGER_CHARRED] =

@@ -1,0 +1,36 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 43, "resetTestState": true },
+    { "op": "set_timescale", "value": 1.0 },
+    { "op": "wait_state", "state": "CHOOSE_CARD", "timeout": 10 },
+    { "op": "assert_state", "path": "levelName", "equals": "关卡 5-7" },
+    { "op": "assert_state", "path": "background", "equals": "ROOF" },
+    { "op": "assert_state", "path": "maxWave", "equals": 25 },
+    { "op": "assert_state", "path": "sun", "equals": 800 },
+    { "op": "assert_state", "path": "spawnTypeCount", "equals": 7 },
+    { "op": "assert_state", "path": "spawnList", "equals": ["ZOMBIE_NORMAL", "ZOMBIE_TRAFFIC_CONE", "ZOMBIE_BUCKET", "ZOMBIE_JACK_IN_THE_BOX", "ZOMBIE_BUNGEE", "ZOMBIE_CATAPULT", "ZOMBIE_GARGANTUAR"] },
+    { "op": "assert_zombie_spawn_row", "type": "ZOMBIE_GARGANTUAR", "row": 0, "expected": true },
+    { "op": "assert_zombie_spawn_row", "type": "ZOMBIE_GARGANTUAR", "row": 4, "expected": true },
+    { "op": "wait_seconds", "value": 4.2, "timeout": 10 },
+    { "op": "assert_state", "path": "chooseCardReady", "equals": true },
+    { "op": "screenshot", "name": "roof_spawn_5_7_gargantuar.png" },
+    { "op": "dump_state", "name": "roof_spawn_5_7.json" },
+
+    { "op": "goto_level", "level": 44, "resetTestState": true },
+    { "op": "set_timescale", "value": 1.0 },
+    { "op": "wait_state", "state": "CHOOSE_CARD", "timeout": 10 },
+    { "op": "assert_state", "path": "levelName", "equals": "关卡 5-8" },
+    { "op": "assert_state", "path": "background", "equals": "ROOF" },
+    { "op": "assert_state", "path": "maxWave", "equals": 30 },
+    { "op": "assert_state", "path": "sun", "equals": 1000 },
+    { "op": "assert_state", "path": "spawnTypeCount", "equals": 9 },
+    { "op": "assert_state", "path": "spawnList", "equals": ["ZOMBIE_NORMAL", "ZOMBIE_TRAFFIC_CONE", "ZOMBIE_POLEVAULTER", "ZOMBIE_BUNGEE", "ZOMBIE_LADDER", "ZOMBIE_ELITE_LADDER", "ZOMBIE_CATAPULT", "ZOMBIE_ELITE_CATAPULT", "ZOMBIE_GARGANTUAR"] },
+    { "op": "assert_zombie_spawn_row", "type": "ZOMBIE_GARGANTUAR", "row": 0, "expected": true },
+    { "op": "assert_zombie_spawn_row", "type": "ZOMBIE_GARGANTUAR", "row": 4, "expected": true },
+    { "op": "wait_seconds", "value": 4.2, "timeout": 10 },
+    { "op": "assert_state", "path": "chooseCardReady", "equals": true },
+    { "op": "screenshot", "name": "roof_spawn_5_8_gargantuar_mixed.png" },
+    { "op": "dump_state", "name": "roof_spawn_5_8.json" },
+    { "op": "quit" }
+  ]
+}

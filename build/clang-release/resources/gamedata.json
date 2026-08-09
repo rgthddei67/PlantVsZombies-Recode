@@ -75,6 +75,8 @@
     "ZOMBIE_LADDER":              { "weight": 1500, "appearWave": 10, "survivalRound": 5, "offset": [-50.0, -85.0], "scale": 1.0 },
     "ZOMBIE_ELITE_LADDER":        { "weight": 2200, "appearWave": 12, "survivalRound": 9, "offset": [-50.0, -85.0], "scale": 1.0 },
     "ZOMBIE_CATAPULT":            { "weight": 1500, "appearWave": 10, "survivalRound": 8, "offset": [-7.0, -108.0], "scale": 1.0 },
-    "ZOMBIE_ELITE_CATAPULT":      { "weight": 2300, "appearWave": 14, "survivalRound": 11, "offset": [-7.0, -108.0], "scale": 1.0 }
+    "ZOMBIE_ELITE_CATAPULT":      { "weight": 2300, "appearWave": 14, "survivalRound": 11, "offset": [-7.0, -108.0], "scale": 1.0 },
+    "ZOMBIE_GARGANTUAR":          { "weight": 3000, "appearWave": 12, "survivalRound": 10, "offset": [-62.0, -107.0], "scale": 1.0 },
+    "ZOMBIE_IMP":                 { "weight": 0,    "appearWave": 12, "survivalRound": 10, "offset": [-42.0, -84.0], "scale": 1.0 }
   }
 }

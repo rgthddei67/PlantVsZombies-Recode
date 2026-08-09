@@ -194,6 +194,15 @@ namespace ResourceKeys
 		RKEY(IMAGE_ZOMBIE_ELITEDIGGER_OUTERARM_UPPER2);
 		RKEY(IMAGE_ZOMBIE_ELITEDIGGER_HARDHAT2);
 		RKEY(IMAGE_ZOMBIE_ELITEDIGGER_HARDHAT3);
+		RKEY(IMAGE_REANIM_ZOMBIE_IMP_ARM1_BONE);
+		RKEY(IMAGE_ZOMBIE_GARGANTUAR_DUCKXING);
+		RKEY(IMAGE_ZOMBIE_GARGANTUAR_ZOMBIE);
+		RKEY(IMAGE_ZOMBIE_GARGANTUAR_TELEPHONEPOLE);
+		RKEY(IMAGE_ZOMBIE_GARGANTUAR_BODY1_2);
+		RKEY(IMAGE_ZOMBIE_GARGANTUAR_BODY1_3);
+		RKEY(IMAGE_ZOMBIE_GARGANTUAR_OUTERARM_LOWER2);
+		RKEY(IMAGE_ZOMBIE_GARGANTUAR_FOOT2);
+		RKEY(IMAGE_ZOMBIE_GARGANTUAR_HEAD2);
 
 		RKEY(IMAGE_PROJECTILECACTUS);
 		RKEY(IMAGE_PROJECTILEPEA);
@@ -389,6 +398,12 @@ namespace ResourceKeys
 		RKEY(SOUND_SQUASH_HMM);
 		RKEY(SOUND_SQUASH_HMM2);
 		RKEY(SOUND_GARGANTUAR_THUMP);
+		RKEY(SOUND_LOWGROAN);
+		RKEY(SOUND_LOWGROAN2);
+		RKEY(SOUND_SWING);
+		RKEY(SOUND_IMP);
+		RKEY(SOUND_IMP2);
+		RKEY(SOUND_GARGANTUDEATH);
 		RKEY(SOUND_ZOMBIESPLASH);
 		RKEY(SOUND_FLOOP);
 		inline const std::string SOUND_SHOOTER_SHOOT = "SOUND_THROW";
@@ -521,11 +536,15 @@ namespace ResourceKeys
 		inline const std::string REANIM_ELITE_LADDER_ZOMBIE = "EliteLadderZombie";
 		inline const std::string REANIM_CATAPULT_ZOMBIE = "CatapultZombie";
 		inline const std::string REANIM_ELITE_CATAPULT_ZOMBIE = "EliteCatapultZombie";
+		inline const std::string REANIM_GARGANTUAR_ZOMBIE = "GargantuarZombie";
+		inline const std::string REANIM_IMP_ZOMBIE = "ImpZombie";
 		inline const std::string REANIM_DIGGER_RISING_DIRT = "DiggerRisingDirt";
 		inline const std::string REANIM_DIGGER_CHARRED = "DiggerCharred";
 		inline const std::string REANIM_ZOMBIE_SURPRISE = "ZombieSurprise";
 		inline const std::string REANIM_ZAMBONI_CHARRED = "Zamboni_Charred";
 		inline const std::string REANIM_CATAPULT_CHARRED = "Catapult_Charred";
+		inline const std::string REANIM_GARGANTUAR_CHARRED = "Gargantuar_Charred";
+		inline const std::string REANIM_IMP_CHARRED = "Imp_Charred";
 
 		inline const std::string REANIM_ZOMBIE_CHARRED = "Zombie_Charred";
 

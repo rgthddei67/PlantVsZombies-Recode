@@ -1,0 +1,22 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 1, "resetTestState": true },
+    { "op": "choose_cards", "cards": ["PLANT_WALLNUT"] },
+    { "op": "wait_state", "state": "GAME" },
+    { "op": "set_spawn_paused", "value": true },
+    { "op": "set_sun", "value": 9000 },
+    { "op": "plant", "type": "PLANT_WALLNUT", "row": 2, "col": 7 },
+    { "op": "spawn_zombie", "type": "ZOMBIE_IMP", "row": 2, "x": 800 },
+    { "op": "wait_frames", "value": 2 },
+    { "op": "assert_state", "path": "zombies.0.isEating", "equals": true },
+    { "op": "assert_state", "path": "zombies.0.track", "equals": "anim_eat" },
+    { "op": "wait_seconds", "value": 0.35 },
+    { "op": "assert_state", "path": "plants.0.health", "equals": 4000 },
+    { "op": "wait_seconds", "value": 0.2 },
+    { "op": "assert_state", "path": "plants.0.health", "equals": 3950 },
+    { "op": "wait_seconds", "value": 0.5 },
+    { "op": "assert_state", "path": "plants.0.health", "equals": 3900 },
+    { "op": "screenshot", "name": "imp_bites_frame44_55.png" },
+    { "op": "quit" }
+  ]
+}
