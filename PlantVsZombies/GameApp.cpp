@@ -606,10 +606,8 @@ Background GameAPP::GetBackgroundID(int level) const
 	case 4:
 		return Background::NIGHT_WATER_POOL;
 	case 5:
-		// 5-9 是最终 Boss 关，单独使用黑夜屋顶。
-		return AdventureProgression::GetLevelNumberInArea(level) == 9
-			? Background::NIGHT_ROOF
-			: Background::ROOF;
+		// 第五大关完整使用白天屋顶；5-9 的 BOSS 槽位不再通过切夜景表达。
+		return Background::ROOF;
 	default:
 		return Background::GROUND_DAY;
 	}

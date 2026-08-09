@@ -10,6 +10,13 @@ namespace AdventureProgression
 	inline constexpr int LEVELS_PER_AREA = 9;
 	inline constexpr int ADVENTURE_AREA_COUNT = 5;
 	inline constexpr int LAST_ADVENTURE_LEVEL = LEVELS_PER_AREA * ADVENTURE_AREA_COUNT;
+	inline constexpr int AREA_FIVE_BOSS_LEVEL = LEVELS_PER_AREA * 5;
+
+	/** 冒险关的 BOSS 槽位；RESERVED 只声明关卡性质，不绑定角色、出怪或战斗机制。 */
+	enum class BossSlot {
+		NONE,
+		RESERVED,
+	};
 
 	// NUM_PLANT_TYPES 在奖励表中表示“该关正常推进，但不解锁植物”。
 	inline constexpr PlantType NO_PLANT_REWARD = PlantType::NUM_PLANT_TYPES;
@@ -63,7 +70,7 @@ namespace AdventureProgression
 		NO_PLANT_REWARD,
 		PlantType::PLANT_CABBAGEPULT,
 
-		// 5-1 ... 5-9（屋顶；5-9 为最终 Boss 关）
+		// 5-1 ... 5-9（白天屋顶；5-9 保留独立 BOSS 槽位）
 		PlantType::PLANT_FLOWERPOT,
 		PlantType::PLANT_KERNELPULT,
 		PlantType::PLANT_INSTANT_COFFEE,
@@ -93,6 +100,20 @@ namespace AdventureProgression
 		return level >= 1 && level <= LAST_ADVENTURE_LEVEL;
 	}
 
+	/** 查询当前已登记的 BOSS 槽位；具体 BOSS 未定时返回 RESERVED。 */
+	constexpr BossSlot GetBossSlot(int level)
+	{
+		return level == AREA_FIVE_BOSS_LEVEL
+			? BossSlot::RESERVED
+			: BossSlot::NONE;
+	}
+
+	/** 判断关卡是否已被正式标记为 BOSS 关，不代表 BOSS 玩法已经实现。 */
+	constexpr bool IsBossLevel(int level)
+	{
+		return GetBossSlot(level) != BossSlot::NONE;
+	}
+
 	/** 查询通关植物奖励；NO_PLANT_REWARD 表示只推进关卡。 */
 	constexpr PlantType GetPlantReward(int completedLevel)
 	{
@@ -111,4 +132,6 @@ namespace AdventureProgression
 	static_assert(GetPlantReward(35) == NO_PLANT_REWARD);
 	static_assert(GetAreaNumber(18) == 2 && GetLevelNumberInArea(18) == 9);
 	static_assert(GetAreaNumber(19) == 3 && GetLevelNumberInArea(19) == 1);
+	static_assert(IsBossLevel(AREA_FIVE_BOSS_LEVEL));
+	static_assert(GetBossSlot(44) == BossSlot::NONE);
 }

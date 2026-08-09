@@ -8,6 +8,7 @@
 #include "../../ResourceKeys.h"
 #include "../SceneManager.h"
 #include "../GameScene.h"
+#include "../AdventureProgression.h"
 #include "../AnimatedObject.h"
 #include "../ZombieAlmanacScene.h"
 #include "../ChooseCardUI.h"
@@ -432,6 +433,21 @@ namespace {
 		}
 		return "UNKNOWN";
 	}
+	bool IsBackgroundName(const std::string& name) {
+		return name == "GROUND_DAY"
+			|| name == "GROUND_NIGHT"
+			|| name == "WATER_POOL"
+			|| name == "NIGHT_WATER_POOL"
+			|| name == "ROOF"
+			|| name == "NIGHT_ROOF";
+	}
+	const char* BossSlotName(AdventureProgression::BossSlot slot) {
+		switch (slot) {
+		case AdventureProgression::BossSlot::NONE:     return "NONE";
+		case AdventureProgression::BossSlot::RESERVED: return "RESERVED";
+		}
+		return "UNKNOWN";
+	}
 	const char* MowerTypeName(MowerType type) {
 		switch (type) {
 		case MowerType::LAWN:  return "LAWN";
@@ -606,6 +622,12 @@ bool TestDriver::ExecuteCurrent() {
 		if (!cmd.contains("level")) { Fail("goto_level 缺 level 字段"); return false; }
 		if (cmd.value("resetTestState", false)) ResetTestState();
 		auto& sm = SceneManager::GetInstance();
+		const std::string backgroundName = cmd.value("background", "");
+		if (!backgroundName.empty() && !IsBackgroundName(backgroundName)) {
+			Fail("goto_level.background 必须为合法背景枚举名");
+			return false;
+		}
+		sm.SetGlobalData("AutoTestBackground", backgroundName);
 		sm.SetGlobalData("EnterLevel", std::to_string(cmd["level"].get<int>()));
 		if (!sm.SwitchTo("GameScene")) { Fail("SwitchTo(GameScene) 失败"); return false; }
 		return true;
@@ -2345,6 +2367,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["level"] = board->mLevel;
 	out["levelName"] = board->mLevelName;
 	out["background"] = BackgroundName(board->mBackGround);
+	out["isBossLevel"] = AdventureProgression::IsBossLevel(board->mLevel);
+	out["bossSlot"] = BossSlotName(AdventureProgression::GetBossSlot(board->mLevel));
 	out["poolEffectCounter"] = gs->GetPoolEffectCounter();
 	out["rows"] = board->mRows;
 	out["columns"] = board->mColumns;

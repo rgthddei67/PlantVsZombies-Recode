@@ -66,7 +66,7 @@
 	{ "op": "assert_state", "path": "weather.roofRunoff.retainedChargePct", "equals": 0 },
     { "op": "assert_state", "path": "topPlantsByCell.1_1.roofRunoffPaused", "equals": false },
 
-    { "op": "goto_level", "level": 45 },
+    { "op": "goto_level", "level": 45, "background": "NIGHT_ROOF" },
     { "op": "assert_state", "path": "background", "equals": "NIGHT_ROOF" },
 	{ "op": "choose_cards", "cards": ["PLANT_PEASHOOTER"] },
 	{ "op": "wait_state", "state": "GAME", "timeout": 15 },

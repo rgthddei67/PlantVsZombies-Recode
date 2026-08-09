@@ -94,6 +94,23 @@ namespace {
 		{ -31.0f, -23.0f, 0.58f },                       // 大雾补层：继续填补前两层剩余缝隙
 	}};
 
+	/** 解析进入关卡的背景；AutoTest 可显式覆盖，以继续验证尚未接入冒险流程的地图。 */
+	Background ResolveEnterBackground(int level)
+	{
+		const Background configured = GameAPP::GetInstance().GetBackgroundID(level);
+		if (!GameAPP::mAutoTestMode) return configured;
+
+		const std::string overrideName =
+			SceneManager::GetInstance().GetGlobalData("AutoTestBackground");
+		if (overrideName == "GROUND_DAY") return Background::GROUND_DAY;
+		if (overrideName == "GROUND_NIGHT") return Background::GROUND_NIGHT;
+		if (overrideName == "WATER_POOL") return Background::WATER_POOL;
+		if (overrideName == "NIGHT_WATER_POOL") return Background::NIGHT_WATER_POOL;
+		if (overrideName == "ROOF") return Background::ROOF;
+		if (overrideName == "NIGHT_ROOF") return Background::NIGHT_ROOF;
+		return configured;
+	}
+
 	// 用平行线模拟可调粗细，避免为只持续数帧的闪电引入独立纹理或 shader。
 	void DrawLightningSegment(Graphics* g, const glm::vec2& from, const glm::vec2& to,
 		float glowWidth, float glowAlpha, float coreAlpha)
@@ -800,8 +817,8 @@ void GameScene::BuildDrawCommands()
 {
 	Scene::BuildDrawCommands();
 
-	Background background = GameAPP::GetInstance().GetBackgroundID
-	(std::stoi(SceneManager::GetInstance().GetGlobalData("EnterLevel")));
+	Background background = ResolveEnterBackground(
+		std::stoi(SceneManager::GetInstance().GetGlobalData("EnterLevel")));
 
 	if (background == Background::GROUND_DAY) {
 		AddTexture(ResourceKeys::Textures::IMAGE_BACKGROUND_DAY,
@@ -945,7 +962,7 @@ void GameScene::OnEnter() {
 
 	int enterLevel = std::stoi(SceneManager::GetInstance().GetGlobalData("EnterLevel"));
 
-	mBoard = std::make_unique<Board>(this, GameAPP::GetInstance().GetBackgroundID(enterLevel), enterLevel);
+	mBoard = std::make_unique<Board>(this, ResolveEnterBackground(enterLevel), enterLevel);
 	auto CardUI = GameObjectManager::GetInstance().CreateGameObjectImmediate<GameObject>(
 		LAYER_UI);
 	CardUI->SetName("CardUI");

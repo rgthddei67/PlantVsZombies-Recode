@@ -67,7 +67,7 @@
     { "op": "assert_state", "path": "zombies.3.terrainYOffsetOn1000", "equals": 0 },
     { "op": "dump_state", "name": "roof_zombie_foundation_state.json" },
 
-    { "op": "goto_level", "level": 45 },
+    { "op": "goto_level", "level": 45, "background": "NIGHT_ROOF" },
     { "op": "assert_state", "path": "boardState", "equals": "CHOOSE_CARD" },
     { "op": "assert_state", "path": "background", "equals": "NIGHT_ROOF" },
     { "op": "assert_state", "path": "rows", "equals": 5 },

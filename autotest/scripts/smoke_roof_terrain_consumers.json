@@ -91,7 +91,7 @@
     { "op": "assert_state", "path": "topPlantsByCell.1_2.terrainYOffsetOn1000", "equals": 0 },
     { "op": "dump_state", "name": "roof_terrain_consumers_state.json" },
 
-    { "op": "goto_level", "level": 45 },
+    { "op": "goto_level", "level": 45, "background": "NIGHT_ROOF" },
     { "op": "assert_state", "path": "background", "equals": "NIGHT_ROOF" },
     { "op": "assert_state", "path": "roofResources.nightRainBackgroundLoaded", "equals": true },
     { "op": "assert_state", "path": "weather.roofRainBackgroundAlpha", "equals": 0 },

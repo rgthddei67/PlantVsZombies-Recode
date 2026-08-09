@@ -54,6 +54,8 @@ description: Use when adding or tuning any PvZ zombie, or integrating zombies in
 
 修改 `spawnlists.json` 时完整遵循 [references/adventure-spawnlist-pacing.md](references/adventure-spawnlist-pacing.md)。核心不是“把新僵尸塞进一个可生成关卡”，而是围绕玩家在**关卡开始时**已有的植物，给重点敌人安排独立教学、无同场复习和最终综合，并用精简池保证重点敌人的实际抽中率与选卡预览可读性。
 
+- **未定 BOSS 只登记关卡槽位**：在 `AdventureProgression` 用 `BossSlot::RESERVED` 标记关卡性质，背景映射继续独立决定；禁止为了“先占位”把现有 `ZOMBIE_BOSS`、其他普通僵尸或伪造枚举写进出怪表。等主人明确身份、机制与投放时，再把槽位升级为具体契约并补正式生成、存档和 AutoTest。
+
 ## 断肢 / 断头（每个 reanim 单独定案，先问主人）
 
 - 覆写 `ArmDrop()/HeadDrop()`（不调基类——基类隐藏的是普通僵尸轨道名）+ 基类阈值自动触发（臂≤2/3、头≤1/3，由 `mNeedDropArm/Head` 门控）。

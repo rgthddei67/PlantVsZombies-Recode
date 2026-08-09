@@ -1,0 +1,15 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 45 },
+    { "op": "assert_state", "path": "levelName", "equals": "关卡 5-9" },
+    { "op": "assert_state", "path": "background", "equals": "ROOF" },
+    { "op": "assert_state", "path": "isBossLevel", "equals": true },
+    { "op": "assert_state", "path": "bossSlot", "equals": "RESERVED" },
+    { "op": "assert_state", "path": "previewZombieCount", "equals": 1 },
+    { "op": "assert_state", "path": "previewZombies.0.type", "equals": "ZOMBIE_NORMAL" },
+    { "op": "wait_seconds", "value": 4.2 },
+    { "op": "screenshot", "name": "level_5_9_day_roof_boss_slot.png" },
+    { "op": "dump_state", "name": "level_5_9_boss_slot_state.json" },
+    { "op": "quit" }
+  ]
+}

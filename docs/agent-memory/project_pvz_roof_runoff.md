@@ -41,6 +41,9 @@ metadata:
   `row` 仅为旧脚本兼容。dump 导出 `chargePct/retainedChargePct/phase/rowMask/rowCount/rows`，
   以及 `phaseRemainingMs/flowProgressPct/zombieDriftSpeed/guideCandidateRow/guideCandidateSelected`；僵尸逐体
   导出 `roofRunoffGuideEligible/roofRunoffDriftMultiplierOn1000/roofRunoffDriftVelocity`。
+- 2026-08-09 起正式冒险 5-9 改为白天 `ROOF`；`NIGHT_ROOF` 仍保留完整实现供未来第六大关使用。
+  现有夜屋顶专项通过 AutoTest-only 的 `goto_level.background=NIGHT_ROOF` 覆盖继续运行，不能据此
+  推断当前玩家流程存在夜屋顶关卡。
 
 ## 验证证据
 
