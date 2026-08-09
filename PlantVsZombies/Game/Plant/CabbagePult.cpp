@@ -3,6 +3,7 @@
 #include "../Board.h"
 #include "../Bullet/Bullet.h"
 #include "../Zombie/Zombie.h"
+#include "../ShadowComponent.h"
 
 #include <algorithm>
 #include <limits>
@@ -36,6 +37,10 @@ void CabbagePult::SetupPlant()
 		kIdleFramesPerSecondMax / kReanimFramesPerSecond));
 	mShootInterval = kInitialShootInterval;
 	mShootTimer = GameRandom::Range(0.0f, kInitialShootInterval);
+
+	if (auto* shadow = GetComponent<ShadowComponent>()) {
+		shadow->SetOffset(Vector(2.0f, 24.0f));
+	}
 
 	mAnimator->AddFrameEvent(kFireFrame, [this]() {
 		if (GetCurrentTrackName() == "anim_shooting") FireCabbage();
