@@ -20,17 +20,17 @@ namespace {
 	constexpr int kSmashFrame = 93;                           // 主人指定的砸击结算全局帧
 	constexpr int kThrowReleaseFrame = 124;                   // 主人确认的小鬼脱手全局帧
 	constexpr int kDeathFrame = 196;                          // 主人指定的普通死亡回收全局帧
-	constexpr float kAnimSpeedMultiplierMin = 0.4f;            // 每只巨人整体动画倍率随机下限
-	constexpr float kAnimSpeedMultiplierMax = 0.6f;            // 每只巨人整体动画倍率随机上限
+	constexpr float kAnimSpeedMultiplierMin = 0.5f;            // 每只巨人整体动画倍率随机下限
+	constexpr float kAnimSpeedMultiplierMax = 0.7f;            // 每只巨人整体动画倍率随机上限
 	constexpr float kWalkClipSpeed = 1.0f;                    // 资源 12fps 的巨人稳态行走倍率
 	constexpr float kSmashClipSpeed = 16.0f / 12.0f;          // 原版砸击 16fps 相对资源 12fps
-	constexpr float kThrowClipSpeed = 24.0f / 12.0f;          // 原版投掷 24fps 相对资源 12fps
-	constexpr float kDeathClipSpeed = 14.0f / 12.0f;          // 原版普通死亡 14fps 相对资源 12fps
+	constexpr float kThrowClipSpeed = 44.0f / 12.0f;          // 原版投掷 24fps 相对资源 12fps
+	constexpr float kDeathClipSpeed = 16.0f / 12.0f;          // 原版普通死亡 14fps 相对资源 12fps
 	constexpr int kSmashZombieDamage = 1800;                  // 魅惑巨人砸击敌方僵尸的单次伤害
-	constexpr float kColliderOffsetX = -17.0f;                // 原版碰撞框左缘相对逻辑原点 X，单位 px
-	constexpr float kColliderOffsetY = -38.0f;                // 原版碰撞框上缘相对逻辑原点 Y，单位 px
+	constexpr float kColliderOffsetX = -85.0f;                // 原版碰撞框左缘相对逻辑原点 X，单位 px
+	constexpr float kColliderOffsetY = -130.0f;                // 原版碰撞框上缘相对逻辑原点 Y，单位 px
 	constexpr float kColliderWidth = 125.0f;                  // 原版巨人碰撞框宽度，单位 px
-	constexpr float kColliderHeight = 154.0f;                 // 原版巨人碰撞框高度，单位 px
+	constexpr float kColliderHeight = 170.0f;                 // 原版巨人碰撞框高度，单位 px
 	constexpr float kThrowAnchorMinDistance = 40.0f;          // 巨人离投掷锚点至少该距离才允许投掷，单位 px
 	constexpr float kRoofThrowDistanceReduction = 180.0f;     // 原版屋顶投掷距离缩短量，单位 px
 	constexpr float kImpReleaseOffsetX = 133.0f;              // 小鬼逻辑出生点相对巨人原点的水平距离，单位 px
@@ -66,7 +66,7 @@ void GargantuarZombie::SetupZombie()
 	}
 
 	if (auto* shadow = GetComponent<ShadowComponent>()) {
-		shadow->SetScale(Vector(1.3f, 1.3f));
+		shadow->SetScale(Vector(1.34f, 1.34f));
 	}
 
 	if (!mAnimator) return;

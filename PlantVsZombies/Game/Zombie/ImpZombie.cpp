@@ -24,6 +24,10 @@ namespace {
 	constexpr float kThrowGravity = 500.0f;                  // 原版每厘秒 0.05px，折算 px/s^2
 	constexpr float kInitialAltitude = 88.0f;                // 原版小鬼脱手高度，单位 px
 	constexpr float kLimbVolume = 0.25f;                     // 小鬼断肢断头音量
+	constexpr float kColliderWidth = 40.0f;                  // 小鬼碰撞框宽度，单位 px
+	constexpr float kColliderHeight = 70.0f;                 // 小鬼碰撞框高度，单位 px
+	constexpr float kColliderOffsetX = -15.0f;                // 原版碰撞框左缘相对逻辑原点 X，单位 px
+	constexpr float kColliderOffsetY = -20.0f;                // 原版碰撞框上缘相对逻辑原点 Y，单位 px
 }
 
 void ImpZombie::SetupZombie()
@@ -33,6 +37,17 @@ void ImpZombie::SetupZombie()
 	mHasTongue = false;
 	mPhase = Phase::WALKING;
 	mAltitude = 0.0f;
+
+	if (auto* shadow = GetComponent<ShadowComponent>()) {
+		shadow->SetScale(Vector(0.6f, 0.6f));
+		shadow->SetOffset(Vector(16.0f, 38.0f));
+	}
+
+	if (mCollider) {
+		mCollider->size = Vector(kColliderWidth, kColliderHeight);
+		mCollider->offset = Vector(kColliderOffsetX, kColliderOffsetY);
+	}
+
 	RegisterFrameEvents();
 	if (mIsPreview) {
 		PlayTrack("anim_walk");
