@@ -102,6 +102,7 @@ enum class AnimationType
 	ANIM_IMP_CHARRED, // 小鬼专属化灰时间线；主人指定第 34 帧回收
 	ANIM_MARIGOLD, // 经典金盏花；追加在末尾避免旧动画枚举值错位
 	ANIM_MELONPULT, // 经典西瓜投手；追加在末尾避免旧动画枚举值错位
+	ANIM_ROOF_MARSHAL_ZOMBIE, // 5-9 屋脊督军独立军官材质；复用普通僵尸时间线
 };
 
 #endif

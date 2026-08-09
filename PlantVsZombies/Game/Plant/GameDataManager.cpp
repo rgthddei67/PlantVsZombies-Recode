@@ -92,6 +92,7 @@
 #include "../Zombie/GargantuarZombie.h"
 #include "../Zombie/ImpZombie.h"
 #include "../Zombie/RedeyeGargantuarZombie.h"
+#include "../Zombie/RoofMarshalZombie.h"
 
 namespace {
 	template<typename T>
@@ -552,6 +553,12 @@ void GameDataManager::InitializeHardcodedData() {
 		AnimationType::ANIM_GARGANTUAR_ZOMBIE,
 		ResourceKeys::Reanimations::REANIM_GARGANTUAR_ZOMBIE,
 		&MakeZombie<RedeyeGargantuarZombie>);
+
+	// 5-9 屋脊督军先以视觉样机注册；权重为零，不会污染正式冒险或生存出怪池。
+	RegisterZombie(ZombieType::ZOMBIE_ROOF_MARSHAL, "ZOMBIE_ROOF_MARSHAL",
+		AnimationType::ANIM_ROOF_MARSHAL_ZOMBIE,
+		ResourceKeys::Reanimations::REANIM_ROOF_MARSHAL_ZOMBIE,
+		&MakeZombie<RoofMarshalZombie>);
 
 	// ==================== 非植物/僵尸动画映射 ====================
 	mAnimToString[AnimationType::ANIM_SUN] = ResourceKeys::Reanimations::REANIM_SUN;

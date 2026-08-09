@@ -30,13 +30,18 @@ metadata:
 现有 `ZOMBIE_BOSS`（僵尸博士）。僵尸博士计划放到未来 6-9；第六大关尚未接入当前五大关流程，
 因此此时只更新设计记忆，不提前写入关卡号 54 的运行逻辑。
 
+2026-08-09 已注册权重为 0 的 `ZOMBIE_ROOF_MARSHAL` 第一阶段视觉样机，用于验证普通僵尸时间线
+与独立军官分体素材；它仍未绑定 `BossSlot::RESERVED`，不会改变正式 5-9 的空 BOSS 槽语义。
+完整素材、军帽随头飞出的专属掉头粒子与验证见 `project_pvz_roof_marshal_prototype.md`。
+
 验证：`smoke_adventure_progression.json` 使用 `set_adventure_level` + `force_trophy` 走真实 Trophy 点击结算，断言 1-8 只推进、1-9 解锁小喷菇、2-8 解锁精英胆小菇、3-8 解锁毒囊射手、4-8 只推进，并覆盖全部背景边界；`dump_state` 为此新增 level/background/adventureLevel/haveCards。2026-08-09 又增加 `isBossLevel/bossSlot` 投影和最小 `smoke_level_5_9_boss_slot.json`，锁定 5-9 的白天屋顶、`RESERVED` 槽位及未生成僵尸博士的空实现。
 
 2026-08-09 当前证据：`clang-release` 配置、编译与 LTO 链接退出 0；主人当前桌面可见
 `smoke_level_5_9_boss_slot.json`（11 条命令/6 项断言）与完整
 `smoke_adventure_progression.json`（99/38）均 exit 0、`script finished OK`、日志 0 ERROR/WARN。
-前者状态文件为 `level=45/background=ROOF/isBossLevel=true/bossSlot=RESERVED`，预览池仅一只
-`ZOMBIE_NORMAL`；同步截图确认选卡场景使用晴朗白天屋顶。
+后续提交 `b5765be` 已把 5-9 调整为 15 波，正式出怪池为普通、路障、铁桶，因此当前预览顺序为
+`ZOMBIE_NORMAL/ZOMBIE_TRAFFIC_CONE/ZOMBIE_BUCKET`；`smoke_level_5_9_boss_slot.json` 已同步断言
+`maxWave=15` 和三只预览。BOSS 槽仍为 `RESERVED`，同步截图继续确认选卡场景使用晴朗白天屋顶。
 
 旧存档不做自动删卡迁移：已经提前获得小喷菇的档会保留该卡，避免误删开发者或手动授予的卡；验证新流程使用 AutoTest 隔离状态或新档。
 

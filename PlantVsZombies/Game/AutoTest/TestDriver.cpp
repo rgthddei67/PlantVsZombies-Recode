@@ -286,7 +286,7 @@ namespace {
 		ZT(ZOMBIE_YETI),
 		ZT(ZOMBIE_GARGANTUAR), ZT(ZOMBIE_IMP), ZT(ZOMBIE_BOSS), ZT(ZOMBIE_PEA_HEAD),
 		ZT(ZOMBIE_WALLNUT_HEAD), ZT(ZOMBIE_JALAPENO_HEAD), ZT(ZOMBIE_GATLING_HEAD),
-		ZT(ZOMBIE_SQUASH_HEAD), ZT(ZOMBIE_TALLNUT_HEAD), ZT(ZOMBIE_REDEYE_GARGANTUAR),
+		ZT(ZOMBIE_SQUASH_HEAD), ZT(ZOMBIE_TALLNUT_HEAD), ZT(ZOMBIE_REDEYE_GARGANTUAR), ZT(ZOMBIE_ROOF_MARSHAL),
 	};
 #undef ZT
 #define PK(n) { #n, PerkType::n }
@@ -2655,6 +2655,22 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			ResourceKeys::Textures::IMAGE_ZOMBIE_ELITE_CATAPULT_MANHOLE,
 			false) != nullptr },
 	};
+	out["roofMarshalResources"] = {
+		{ "reanimationLoaded", ResourceManager::GetInstance().HasReanimation(
+			ResourceKeys::Reanimations::REANIM_ROOF_MARSHAL_ZOMBIE) },
+		{ "bodyTextureLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_REANIM_ZOMBIE_ROOFMARSHAL_BODY,
+			false) != nullptr },
+		{ "hatTextureLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_REANIM_ZOMBIE_ROOFMARSHAL_HAT,
+			false) != nullptr },
+		{ "tieTextureLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_REANIM_ZOMBIE_ROOFMARSHAL_TIE,
+			false) != nullptr },
+		{ "headParticleTextureLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Particles::PARTICLE_ZOMBIE_ROOF_MARSHAL_HEAD,
+			false) != nullptr },
+	};
 	out["gargantuarResources"] = {
 		{ "reanimationLoaded", ResourceManager::GetInstance().HasReanimation(
 			ResourceKeys::Reanimations::REANIM_GARGANTUAR_ZOMBIE) },
@@ -4100,6 +4116,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["particleEffectNameCounts"]["ButterSplat"] = 0;
 	out["particleEffectNameCounts"]["UmbrellaReflect"] = 0;
 	out["particleEffectNameCounts"]["ZombieArmOff"] = 0;
+	out["particleEffectNameCounts"]["ZombieHeadOff"] = 0;
+	out["particleEffectNameCounts"]["RoofMarshalHeadOff"] = 0;
 	out["particleEffectNameCounts"]["ZombieDolphinRiderHeadOff"] = 0;
 	out["particleEffectNameCounts"]["EliteDolphinRiderHeadOff"] = 0;
 	out["particleEffectNameCounts"]["JackExplode"] = 0;
