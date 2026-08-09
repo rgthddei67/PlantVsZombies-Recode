@@ -20,6 +20,9 @@ namespace {
 	constexpr float kTallNutCardImageScale = 0.70f;  // 高坚果卡图在统一倍率之上的独立缩放
 	constexpr float kTallNutCardImageOffsetY = -5.0f;  // 高坚果卡图上移量，避开底部阳光文字，单位：px
 	constexpr float kBloverCardImageScale = 0.90f;  // 三叶草卡槽贴图在普通卡图基础上的独立缩放
+	constexpr float kMelonPultCardImageScale = 0.80f;  // 西瓜投手卡图构图较饱满，只缩小卡片立绘
+	constexpr float kMelonPultCardImageOffsetX = 3.0f;  // 缩小后让透明画布内容居中，单位：UI px
+	constexpr float kMelonPultCardImageOffsetY = 1.0f;  // 缩小后把视觉重心微量下移，单位：UI px
 	constexpr float kPlanternLowFuelPulseSpeed = 8.0f; // 低燃料卡牌每未缩放秒的脉冲相位速度
 	constexpr float kPlanternGearLabelAreaWidth = 20.0f; // 卡牌左下挡位标签的水平布局宽度，单位：UI px
 	constexpr int kPlanternGearLabelFontSize = 14; // 卡牌挡位标签字号，单位：逻辑 px
@@ -154,16 +157,23 @@ void CardDisplayComponent::DrawPlantImage(Graphics* g, const Vector& position, c
 		? kTallNutCardImageScale
 		: plantType == PlantType::PLANT_BLOVER
 			? kBloverCardImageScale
-			: 1.0f;
+			: plantType == PlantType::PLANT_MELONPULT
+				? kMelonPultCardImageScale
+				: 1.0f;
+	const float typeOffsetX = plantType == PlantType::PLANT_MELONPULT
+		? kMelonPultCardImageOffsetX
+		: 0.0f;
 	const float typeOffsetY = plantType == PlantType::PLANT_TALLNUT
 		? kTallNutCardImageOffsetY
-		: 0.0f;
+		: plantType == PlantType::PLANT_MELONPULT
+			? kMelonPultCardImageOffsetY
+			: 0.0f;
 	const float baseW = plantTexture->width * kCardPlantImageScale;
 	const float baseH = plantTexture->height * kCardPlantImageScale;
 	const float drawW = baseW * typeScale;
 	const float drawH = baseH * typeScale;
 	// 从既有卡图矩形中心缩放，避免缩小后向左上角漂移。
-	const float drawX = position.x - 13.0f + (baseW - drawW) * 0.5f;
+	const float drawX = position.x - 13.0f + (baseW - drawW) * 0.5f + typeOffsetX;
 	const float drawY = position.y - 9.0f + (baseH - drawH) * 0.5f + typeOffsetY;
 
 	const CardComponent* component = GetCardComponent();

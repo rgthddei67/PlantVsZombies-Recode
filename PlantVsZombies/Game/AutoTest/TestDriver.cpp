@@ -43,6 +43,7 @@
 #include "../Plant/FlowerPot.h"
 #include "../Plant/CabbagePult.h"
 #include "../Plant/KernelPult.h"
+#include "../Plant/MelonPult.h"
 #include "../Plant/CoffeeBean.h"
 #include "../Plant/Garlic.h"
 #include "../Bullet/Bullet.h"
@@ -266,7 +267,7 @@ namespace {
 #undef PT
 #define BT(n) { #n, BulletType::n }
 	const std::unordered_map<std::string, BulletType> kBulletNames = {
-		BT(BULLET_PEA), BT(BULLET_SNOWPEA), BT(BULLET_CABBAGE), BT(BULLET_PUFF), BT(BULLET_FIREBALL),
+		BT(BULLET_PEA), BT(BULLET_SNOWPEA), BT(BULLET_CABBAGE), BT(BULLET_MELON), BT(BULLET_PUFF), BT(BULLET_FIREBALL),
 		BT(BULLET_SPIKE), BT(BULLET_STAR), BT(BULLET_BASKETBALL), BT(BULLET_KERNEL), BT(BULLET_BUTTER),
 		BT(BULLET_TOXICPEA), BT(BULLET_TOXICFIREBALL),
 	};
@@ -1214,6 +1215,29 @@ bool TestDriver::ExecuteCurrent() {
 			return true;
 		}
 		Fail("set_kernelpult_shoot_cycle: 未找到目标玉米投手");
+		return false;
+	}
+	if (op == "set_melonpult_shoot_cycle") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) {
+			Fail("set_melonpult_shoot_cycle: 不在 GameScene 或 Board 为空");
+			return false;
+		}
+		Board* board = gs->GetBoard();
+		const int row = cmd.value("row", -1);
+		const int col = cmd.value("col", -1);
+		for (int id : board->mEntityManager.GetAllPlantIDs()) {
+			auto* melonPult = dynamic_cast<MelonPult*>(
+				board->mEntityManager.GetPlant(id));
+			if (!melonPult || (row >= 0 && melonPult->mRow != row)
+				|| (col >= 0 && melonPult->mColumn != col)) {
+				continue;
+			}
+			melonPult->SetShootCycleForTesting(
+				cmd.value("elapsed", 2.99f), cmd.value("interval", 3.0f));
+			return true;
+		}
+		Fail("set_melonpult_shoot_cycle: 未找到目标西瓜投手");
 		return false;
 	}
 	if (op == "spawn_zombie") {
@@ -2578,6 +2602,30 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		{ "butterSoundLoaded", ResourceManager::GetInstance().HasSound(
 			ResourceKeys::Sounds::SOUND_BUTTER) },
 	};
+	out["melonPultResources"] = {
+		{ "reanimationLoaded", ResourceManager::GetInstance().HasReanimation(
+			ResourceKeys::Reanimations::REANIM_MELONPULT) },
+		{ "cardTextureLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_MELONPULT, false) != nullptr },
+		{ "projectileTextureLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_REANIM_MELONPULT_MELON, false) != nullptr },
+		{ "bodyTexturesLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_REANIM_MELONPULT_BLINK1, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_REANIM_MELONPULT_BLINK2, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_REANIM_MELONPULT_BODY, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_REANIM_MELONPULT_EYEBROW, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_REANIM_MELONPULT_STALK, false) != nullptr },
+		{ "particleTextureLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Particles::PARTICLE_MELONPULT_PARTICLES, false) != nullptr },
+		{ "impactSoundsLoaded", ResourceManager::GetInstance().HasSound(
+			ResourceKeys::Sounds::SOUND_MELONIMPACT)
+			&& ResourceManager::GetInstance().HasSound(
+				ResourceKeys::Sounds::SOUND_MELONIMPACT2) },
+	};
 	out["catapultResources"] = {
 		{ "reanimationLoaded", ResourceManager::GetInstance().HasReanimation(
 			ResourceKeys::Reanimations::REANIM_CATAPULT_ZOMBIE) },
@@ -3080,6 +3128,9 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		+ AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_KERNELPULT2);
 	out["butterImpactSoundRequestCount"] =
 		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_BUTTER);
+	out["melonImpactSoundRequestCount"] =
+		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_MELONIMPACT)
+		+ AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_MELONIMPACT2);
 	out["iceTrails"] = nlohmann::json::array();
 	out["goldenIceTrails"] = nlohmann::json::array();
 	for (int row = 0; row < board->mRows; ++row) {
@@ -3978,6 +4029,12 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			plantState["heldButterVisible"] = animator
 				&& animator->GetTrackVisible("Cornpult_butter");
 		}
+		if (auto* melonPult = dynamic_cast<MelonPult*>(p)) {
+			plantState["melonShootTimerMs"] = static_cast<int>(std::lround(
+				melonPult->GetShootTimer() * 1000.0f));
+			plantState["melonShootIntervalMs"] = static_cast<int>(std::lround(
+				melonPult->GetShootInterval() * 1000.0f));
+		}
 		if (auto* threePeater = dynamic_cast<ThreePeater*>(p)) {
 			if (const Animator* head1 = threePeater->GetHeadAnimator()) {
 				plantState["head1Track"] = head1->GetCurrentTrackName();
@@ -4396,6 +4453,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	int starDownRightBulletCount = 0;
 	int starSpinningBulletCount = 0;
 	int cabbageBulletCount = 0;
+	int melonBulletCount = 0;
 	int kernelBulletCount = 0;
 	int butterBulletCount = 0;
 	int basketballBulletCount = 0;
@@ -4445,6 +4503,9 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		}
 		else if (bullet->mBulletType == BulletType::BULLET_CABBAGE) {
 			++cabbageBulletCount;
+		}
+		else if (bullet->mBulletType == BulletType::BULLET_MELON) {
+			++melonBulletCount;
 		}
 		else if (bullet->mBulletType == BulletType::BULLET_KERNEL) {
 			++kernelBulletCount;
@@ -4531,6 +4592,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["starDownRightBulletCount"] = starDownRightBulletCount;
 	out["starSpinningBulletCount"] = starSpinningBulletCount;
 	out["cabbageBulletCount"] = cabbageBulletCount;
+	out["melonBulletCount"] = melonBulletCount;
 	out["kernelBulletCount"] = kernelBulletCount;
 	out["butterBulletCount"] = butterBulletCount;
 	out["basketballBulletCount"] = basketballBulletCount;

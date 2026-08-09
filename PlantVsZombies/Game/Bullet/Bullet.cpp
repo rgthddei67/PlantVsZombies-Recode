@@ -19,6 +19,7 @@ namespace {
 	constexpr int kToxicPeaDamage = 15;               // 毒豆直击伤害；持续伤害由目标僵尸结算
 	constexpr int kFireballDamage = 40;               // 火豌豆基础伤害，原版为普通豌豆两倍
 	constexpr int kCabbageDamage = 40;                // 经典卷心菜直击伤害
+	constexpr int kMelonDamage = 80;                  // 经典西瓜直击伤害
 	constexpr int kButterDamage = 40;                 // 经典黄油直击伤害；玉米粒沿用普通 20 点
 	constexpr int kBasketballDamage = 75;             // 原版投篮车篮球单发伤害
 	constexpr int kSpikeFrameDamage = 2;              // 仙人掌尖刺在 1x 下每个逻辑碰撞帧的基础伤害
@@ -26,6 +27,9 @@ namespace {
 	constexpr float kFireballSplashWidth = 100.0f;    // 火球命中后沿飞行方向的同排溅射宽度，单位：像素
 	constexpr float kToxicFireballSplashWidth = 30.0f; // 毒素火球以更窄范围换取溅射目标同样叠毒，单位：像素
 	constexpr int kSplashDamageDivisor = 3;           // 火球次要目标伤害为直击伤害的三分之一
+	constexpr float kMelonSplashWidth = 60.0f;        // C# Melon 弹丸溅射碰撞区的水平宽度，单位：像素
+	constexpr int kMelonSplashRowRadius = 1;           // 西瓜溅射覆盖命中行与上下相邻行
+	constexpr int kMelonSecondaryBudgetMultiplier = 7; // 原版次要目标总伤害上限是直击的七倍
 	constexpr float kFireballForwardOffsetX = -25.0f; // FirePea.reanim 相对向右飞子弹逻辑原点的 X 偏移
 	constexpr float kFireballBackwardOffsetX = 55.0f; // FirePea.reanim 相对向左飞子弹逻辑原点的 X 偏移
 	constexpr float kFireballOffsetY = -25.0f;        // FirePea.reanim 相对子弹逻辑原点的 Y 偏移
@@ -43,6 +47,7 @@ namespace {
 	constexpr float kStarSpinSpeedMax = 573.0f;         // 原版 0.10rad/厘秒换算后的最大自旋，单位：度/秒
 	constexpr float kStarShadowExtraOffsetY = 15.0f;    // C# 星弹初始化时额外下移阴影 15px
 	constexpr float kCabbageInitialRotation = -50.4f;   // C# -0.8796rad 的初始朝向，单位：度
+	constexpr float kMelonInitialRotation = -72.0f;     // C# -1.2566rad 的初始朝向，单位：度
 	constexpr float kCabbageSpinSpeedMin = -458.4f;     // C# -0.08rad/厘秒换算后的自旋下限，单位：度/秒
 	constexpr float kCabbageSpinSpeedMax = -114.6f;     // C# -0.02rad/厘秒换算后的自旋上限，单位：度/秒
 	constexpr float kKernelInitialRotation = 0.0f;       // C# 玉米粒初始朝向，单位：度
@@ -55,9 +60,11 @@ namespace {
 	constexpr float kBasketballSpinSpeedMax = 573.0f;    // 原版 0.10rad/厘秒换算后的最大自旋，单位：度/秒
 	constexpr float kKernelImpactVolume = 0.3f;          // 玉米粒命中或落空 Foley 音量
 	constexpr float kButterImpactVolume = 0.3f;          // 黄油命中或落空 Foley 音量
+	constexpr float kMelonImpactVolume = 0.3f;           // 西瓜命中或落空 Foley 音量
 	constexpr float kLobCollisionArcHeight = 35.0f;     // 下降末段距基准轨迹不超过此高度时才允许碰撞，单位：px
 	constexpr float kLobLandingGrace = 0.08f;           // 到达预测点后留给碰撞系统的命中宽限，单位：秒
 	constexpr float kLobShadowHeightScale = 200.0f;     // 经典投掷物阴影随高度缩小公式的高度尺度，单位：px
+	constexpr float kMelonShadowOffsetX = 6.0f;         // 西瓜弹丸地面阴影相对通用投掷物的右移量，单位：px
 
 	enum class BulletWindResponse {
 		NONE,
@@ -117,6 +124,7 @@ namespace {
 		if (type == BulletType::BULLET_FIREBALL
 			|| type == BulletType::BULLET_TOXICFIREBALL) return kFireballDamage;
 		if (type == BulletType::BULLET_CABBAGE) return kCabbageDamage;
+		if (type == BulletType::BULLET_MELON) return kMelonDamage;
 		if (type == BulletType::BULLET_BUTTER) return kButterDamage;
 		if (type == BulletType::BULLET_BASKETBALL) return kBasketballDamage;
 		if (type == BulletType::BULLET_SPIKE) return kSpikeFrameDamage;
@@ -128,6 +136,7 @@ namespace {
 	bool IsClassicLobbedBullet(BulletType type)
 	{
 		return type == BulletType::BULLET_CABBAGE
+			|| type == BulletType::BULLET_MELON
 			|| type == BulletType::BULLET_KERNEL
 			|| type == BulletType::BULLET_BUTTER
 			|| type == BulletType::BULLET_BASKETBALL;
@@ -139,6 +148,14 @@ namespace {
 		AudioSystem::PlaySound(GameRandom::Chance()
 			? ResourceKeys::Sounds::SOUND_KERNELPULT
 			: ResourceKeys::Sounds::SOUND_KERNELPULT2, kKernelImpactVolume);
+	}
+
+	/** 播放西瓜命中或落空的两段随机 Foley。 */
+	void PlayMelonImpactSound()
+	{
+		AudioSystem::PlaySound(GameRandom::Chance()
+			? ResourceKeys::Sounds::SOUND_MELONIMPACT
+			: ResourceKeys::Sounds::SOUND_MELONIMPACT2, kMelonImpactVolume);
 	}
 
 	/** 播放火球命中时的小段 JalapenoFire；依靠 PLAY_ONCE 完成态回收，不新增帧事件。 */
@@ -404,15 +421,17 @@ void Bullet::UpdateShadowLayout(const Vector& position)
 	}
 
 	// 主人校对：Y 与同一行豌豆射手的默认阴影中心一致，即格子中心 + 28。
-	// X 偏移沿用 C#：Pea +3，Snowpea -1，Fireball/Spike 为 0。
-	const float shadowLeftOffset = mBulletType == BulletType::BULLET_SNOWPEA
-		? -1.0f
-		: (mBulletType == BulletType::BULLET_STAR
-			? 7.0f
-			: ((mBulletType == BulletType::BULLET_FIREBALL
-				|| mBulletType == BulletType::BULLET_TOXICFIREBALL
-			|| mBulletType == BulletType::BULLET_SPIKE
-			|| IsClassicLobbedBullet(mBulletType)) ? 0.0f : 3.0f));
+	// X 偏移沿用 C#：Pea +3，Snowpea -1，Fireball/Spike 为 0；西瓜按主人可见校对右移 6px。
+	const float shadowLeftOffset = mBulletType == BulletType::BULLET_MELON
+		? kMelonShadowOffsetX
+		: mBulletType == BulletType::BULLET_SNOWPEA
+			? -1.0f
+			: (mBulletType == BulletType::BULLET_STAR
+				? 7.0f
+				: ((mBulletType == BulletType::BULLET_FIREBALL
+					|| mBulletType == BulletType::BULLET_TOXICFIREBALL
+					|| mBulletType == BulletType::BULLET_SPIKE
+					|| IsClassicLobbedBullet(mBulletType)) ? 0.0f : 3.0f));
 	const float shadowOffsetY = GetTerrainShadowY(position) - position.y;
 	mShadow->SetOffset(Vector(
 		shadowLeftOffset + shadowWidth * 0.5f,
@@ -521,6 +540,10 @@ void Bullet::EnableThreepeaterMotion(int sourceRow)
 void Bullet::BulletHitZombie(Zombie* zombie)
 {
 	if (!zombie) return;
+	if (mBulletType == BulletType::BULLET_MELON) {
+		HitMelonZombie(zombie);
+		return;
+	}
 	// 经典投掷物从上方砸向后层；普通二类护盾不承伤，加固防具由目标否决绕过。
 	const bool requestsShieldBypass = IsClassicLobbedBullet(mBulletType);
 	const bool bypassShield = zombie->ShouldProjectileBypassShield(
@@ -607,6 +630,62 @@ void Bullet::BulletHitZombie(Zombie* zombie)
 	}
 }
 
+void Bullet::HitMelonZombie(Zombie* zombie)
+{
+	if (!zombie || !mBoard) return;
+
+	PlayMelonImpactSound();
+	const int directDamage = GetWindAdjustedDamage();
+	std::vector<int> secondaryIDs;
+	const float impactLeft = GetPosition().x - kMelonSplashWidth * 0.5f;
+	const float impactRight = impactLeft + kMelonSplashWidth;
+	const int firstRow = std::max(0, mRow - kMelonSplashRowRadius);
+	const int lastRow = std::min(mBoard->mRows - 1, mRow + kMelonSplashRowRadius);
+
+	// 行桶已表达垂直溅射范围；只沿 X 比较原版 60px 命中窗口，
+	// 避免把 800x600 左上坐标系的绝对 Y 碰撞框搬进当前 Board 网格。
+	for (int row = firstRow; row <= lastRow; ++row) {
+		mBoard->mEntityManager.ForEachZombieInRow(row, [&](Zombie* candidate) {
+			if (!candidate || candidate == zombie || !candidate->IsActive()
+				|| candidate->IsDying() || candidate->IsMindControlled()
+				|| !candidate->CanBeTargetedByProjectile(false)) {
+				return;
+			}
+			const ColliderComponent* collider = candidate->GetColliderComponent();
+			if (!collider) return;
+			const SDL_FRect bounds = collider->GetBoundingBox();
+			if (bounds.x <= impactRight && bounds.x + bounds.w >= impactLeft) {
+				secondaryIDs.push_back(candidate->mZombieID);
+			}
+		});
+	}
+
+	// 原版 splash 会让二类护盾与后方本体同时承受完整伤害。
+	zombie->TakeProjectileDamage(
+		directDamage, DamageSource::PLANT, mVelocityX,
+		/*penetrateShield=*/true, /*discardShieldOverflow=*/false,
+		/*requestsShieldBypass=*/false);
+
+	const int nominalSecondaryDamage = std::max(1, directDamage / kSplashDamageDivisor);
+	const int secondaryDamage = secondaryIDs.empty()
+		? nominalSecondaryDamage
+		: std::max(1, std::min(nominalSecondaryDamage,
+			directDamage * kMelonSecondaryBudgetMultiplier
+				/ static_cast<int>(secondaryIDs.size())));
+	for (const int id : secondaryIDs) {
+		Zombie* candidate = mBoard->mEntityManager.GetZombie(id);
+		if (!candidate || !candidate->IsActive() || candidate->IsDying()) continue;
+		candidate->TakeProjectileDamage(
+			secondaryDamage, DamageSource::PLANT, mVelocityX,
+			/*penetrateShield=*/true, /*discardShieldOverflow=*/false,
+			/*requestsShieldBypass=*/false);
+	}
+
+	if (g_particleSystem) {
+		g_particleSystem->EmitEffect("MelonSplash", GetPosition());
+	}
+}
+
 void Bullet::ConfigurePresentation()
 {
 	mTexture = nullptr;
@@ -644,6 +723,14 @@ void Bullet::ConfigurePresentation()
 			ResourceKeys::Textures::IMAGE_REANIM_CABBAGEPULT_CABBAGE);
 		mScale = 1.0f;
 		mRotationDegrees = kCabbageInitialRotation;
+		mRotationSpeedDegrees = GameRandom::Range(
+			kCabbageSpinSpeedMin, kCabbageSpinSpeedMax);
+		break;
+	case BulletType::BULLET_MELON:
+		mTexture = resources.GetTexture(
+			ResourceKeys::Textures::IMAGE_REANIM_MELONPULT_MELON);
+		mScale = 1.0f;
+		mRotationDegrees = kMelonInitialRotation;
 		mRotationSpeedDegrees = GameRandom::Range(
 			kCabbageSpinSpeedMin, kCabbageSpinSpeedMax);
 		break;
@@ -784,6 +871,12 @@ void Bullet::HitLobbedGround()
 	mHasHit = true;
 	if (mBulletType == BulletType::BULLET_KERNEL) {
 		PlayKernelImpactSound();
+	}
+	else if (mBulletType == BulletType::BULLET_MELON) {
+		PlayMelonImpactSound();
+		if (g_particleSystem) {
+			g_particleSystem->EmitEffect("MelonSplash", GetPosition());
+		}
 	}
 	else if (mBulletType == BulletType::BULLET_BUTTER) {
 		AudioSystem::PlaySound(

@@ -87,6 +87,8 @@ protected:
 	void PlayStandardImpactSound(
 		const Zombie* zombie, bool bypassShield = false, bool includeBodySplat = true) const;
 	void HitFireballZombie(Zombie* zombie);
+	/** 结算西瓜直击、相邻行溅射和穿透二类护盾的原版语义。 */
+	void HitMelonZombie(Zombie* zombie);
 	/** 推进解析抛物线；返回 false 表示本帧已落空并回收。 */
 	bool UpdateLobbedMotion(float deltaTime);
 	/** 抛射物到达无目标落点后的粒子与回收入口。 */

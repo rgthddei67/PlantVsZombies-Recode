@@ -180,6 +180,12 @@
     <Image>./resources/image/Projectile_star.png</Image>
     <Image>./resources/image/PuffShroom_puff1.png</Image>
     <Image>./resources/image/PuffShroom_puff2.png</Image>
+    <Image>./resources/image/reanim/Melonpult_blink1.png</Image>
+    <Image>./resources/image/reanim/Melonpult_blink2.png</Image>
+    <Image>./resources/image/reanim/Melonpult_body.png</Image>
+    <Image>./resources/image/reanim/Melonpult_eyebrow.png</Image>
+    <Image>./resources/image/reanim/Melonpult_melon.png</Image>
+    <Image>./resources/image/reanim/Melonpult_stalk.png</Image>
     <Image Column="2" Row="1">./resources/image/crater.png</Image>
     <Image Column="2" Row="1">./resources/image/crater_fading.png</Image>
     <Image Column="2" Row="1">./resources/image/crater_water_day.png</Image>
@@ -202,6 +208,7 @@
     <Texture>./resources/particles/Star40.png</Texture>
     <Texture>./resources/particles/Star_splats.png</Texture>
     <Texture>./resources/particles/Star_particles.png</Texture>
+    <Texture>./resources/particles/Melonpult_particles.png</Texture>
     <Texture>./resources/particles/ExplosionCloud.png</Texture>
     <Texture>./resources/particles/ExplosionSpudow.png</Texture>
     <Texture Column="8" Row="2">./resources/particles/DirtSmall.png</Texture>
@@ -341,6 +348,8 @@
     <Sound>./resources/sounds/Plant/PlantShoot/kernelpult.ogg</Sound>
     <Sound>./resources/sounds/Plant/PlantShoot/kernelpult2.ogg</Sound>
     <Sound>./resources/sounds/Plant/PlantShoot/butter.ogg</Sound>
+    <Sound>./resources/sounds/Plant/PlantShoot/melonimpact.ogg</Sound>
+    <Sound>./resources/sounds/Plant/PlantShoot/melonimpact2.ogg</Sound>
     <Sound>./resources/sounds/Plant/cherrybomb.ogg</Sound>
     <Sound>./resources/sounds/Plant/doomshroom.ogg</Sound>
     <Sound>./resources/sounds/Plant/reverse_explosion.ogg</Sound>
@@ -422,6 +431,7 @@
     <Reanimation name="Garlic">./resources/reanim/Garlic.reanim</Reanimation>
     <Reanimation name="Umbrellaleaf">./resources/reanim/Umbrellaleaf.reanim</Reanimation>
     <Reanimation name="Marigold">./resources/reanim/Marigold.reanim</Reanimation>
+    <Reanimation name="Melonpult">./resources/reanim/Melonpult.reanim</Reanimation>
 
     <Reanimation name="NormalZombie">./resources/reanim/NormalZombie.reanim</Reanimation>
     <Reanimation name="ConeZombie">./resources/reanim/ConeZombie.reanim</Reanimation>
