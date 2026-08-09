@@ -448,7 +448,7 @@ void Zombie::Update()
 			if (GetCurrentTrackName() != GetDeathTrackName() && !mDbgAnomalyLogged) {
 				mDbgAnomalyLogged = true;
 			}
-			if (mDyingTimer >= 10.0f)
+			if (mDyingTimer >= 20.0f)
 			{
 				LOG_WARN("DBG") << "WATCHDOG force-die type=" << static_cast<int>(mZombieType)
 					<< " track=" << GetCurrentTrackName()
