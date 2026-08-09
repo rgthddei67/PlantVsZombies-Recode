@@ -21,7 +21,7 @@ namespace {
 	constexpr float kTallNutCardImageOffsetY = -5.0f;  // 高坚果卡图上移量，避开底部阳光文字，单位：px
 	constexpr float kBloverCardImageScale = 0.90f;  // 三叶草卡槽贴图在普通卡图基础上的独立缩放
 	constexpr float kMelonPultCardImageScale = 0.80f;  // 西瓜投手卡图构图较饱满，只缩小卡片立绘
-	constexpr float kMelonPultCardImageOffsetX = 3.0f;  // 缩小后让透明画布内容居中，单位：UI px
+	constexpr float kMelonPultCardImageOffsetX = -10.0f;  // 缩小后让透明画布内容居中，单位：UI px
 	constexpr float kMelonPultCardImageOffsetY = 1.0f;  // 缩小后把视觉重心微量下移，单位：UI px
 	constexpr float kPlanternLowFuelPulseSpeed = 8.0f; // 低燃料卡牌每未缩放秒的脉冲相位速度
 	constexpr float kPlanternGearLabelAreaWidth = 20.0f; // 卡牌左下挡位标签的水平布局宽度，单位：UI px
