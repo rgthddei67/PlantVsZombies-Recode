@@ -2119,10 +2119,12 @@ void Zombie::Draw(Graphics* g)
 		if (const Texture* tex = ResourceManager::GetInstance().GetTexture(
 			ResourceKeys::Textures::IMAGE_CORNPULT_BUTTER_SPLAT)) {
 			const Vector headAnchor = GetButterSplatAnchor();
+			const float butterScale = scale * kButterSplatScale
+				* GetButterSplatScaleMultiplier();
 			g->DrawTexture(tex, headAnchor.x,
 				headAnchor.y + kButterSplatOffsetY * scale,
-				static_cast<float>(tex->width) * scale * kButterSplatScale,
-				static_cast<float>(tex->height) * scale * kButterSplatScale);
+				static_cast<float>(tex->width) * butterScale,
+				static_cast<float>(tex->height) * butterScale);
 		}
 	}
 
@@ -2134,8 +2136,9 @@ void Zombie::Draw(Graphics* g)
 			ResourceKeys::Textures::IMAGE_ICETRAP))
 		{
 			const Vector bottomAnchor = GetIceTrapBottomAnchor();
-			const float w = static_cast<float>(tex->width);
-			const float h = static_cast<float>(tex->height);
+			const float iceTrapScale = GetIceTrapScaleMultiplier();
+			const float w = static_cast<float>(tex->width) * iceTrapScale;
+			const float h = static_cast<float>(tex->height) * iceTrapScale;
 			// 普通僵尸仍压在脚底线；车辆覆写后可保持高度并横移到整车中央。
 			g->DrawTexture(tex, bottomAnchor.x - w * 0.5f, bottomAnchor.y - h, w, h);
 		}

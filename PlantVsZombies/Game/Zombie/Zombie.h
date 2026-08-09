@@ -187,8 +187,12 @@ public:
 	Vector GetVisualPosition() const override;
 	/** 返回黄油贴图跟随目标的世界锚点；异形身体可覆写为专属头部轨道。 */
 	virtual Vector GetButterSplatAnchor() const;
+	/** 返回黄油贴图相对普通尺寸的倍率；巨型身体可独立放大而不改变锚点。 */
+	virtual float GetButterSplatScaleMultiplier() const { return 1.0f; }
 	/** 返回冻结冰晶底边中心的世界锚点；车辆可覆写到整车视觉中央。 */
 	virtual Vector GetIceTrapBottomAnchor() const;
+	/** 返回冻结冰晶相对普通尺寸的倍率；巨型身体可独立放大而不改变脚底线。 */
+	virtual float GetIceTrapScaleMultiplier() const { return 1.0f; }
 	Vector GetPosition() const;
 	void SetPosition(const Vector& position);
 	/** 返回当前动画片段的平均根运动速度，并折算减速、冻结、天气和场地状态，单位：像素/游戏秒。 */

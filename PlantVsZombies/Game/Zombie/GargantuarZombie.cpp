@@ -34,6 +34,8 @@ namespace {
 	constexpr float kThrowAnchorMinDistance = 40.0f;          // 巨人离投掷锚点至少该距离才允许投掷，单位 px
 	constexpr float kRoofThrowDistanceReduction = 180.0f;     // 原版屋顶投掷距离缩短量，单位 px
 	constexpr float kImpReleaseOffsetX = 133.0f;              // 小鬼逻辑出生点相对巨人原点的水平距离，单位 px
+	constexpr float kButterSplatScaleMultiplier = 1.35f;      // 巨人头顶黄油相对普通僵尸贴图尺寸的倍率
+	constexpr float kIceTrapScaleMultiplier = 1.35f;          // 巨人脚底冰晶相对普通僵尸贴图尺寸的倍率
 	constexpr float kOneShotVolume = 0.45f;                   // 巨人低吼、投掷和死亡 Foley 音量
 
 	constexpr std::array<const char*, 14> kHeldImpTracks = {
@@ -91,6 +93,16 @@ void GargantuarZombie::SetupZombie()
 float GargantuarZombie::GetAbilityAnimSpeedMultiplier() const
 {
 	return mAnimSpeedMultiplier;
+}
+
+float GargantuarZombie::GetButterSplatScaleMultiplier() const
+{
+	return kButterSplatScaleMultiplier;
+}
+
+float GargantuarZombie::GetIceTrapScaleMultiplier() const
+{
+	return kIceTrapScaleMultiplier;
 }
 
 /** 注册巨人专属的砸击、脱手与死亡帧事件。 */

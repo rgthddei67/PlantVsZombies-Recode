@@ -25,6 +25,8 @@ public:
 	void Charred() override;
 	void ZombieItemUpdate() const override;
 	bool CanBeGrabbedByTangleKelp() const override { return false; }
+	float GetButterSplatScaleMultiplier() const override;
+	float GetIceTrapScaleMultiplier() const override;
 
 	Phase GetPhase() const { return mPhase; }
 	bool HasImp() const { return mHasImp; }
