@@ -28,7 +28,9 @@ public:
 	bool HandleCaltropHit(Caltrop& caltrop) override;
 	float GetCurrentHorizontalMoveSpeed() const override;
 	Vector GetVisualPosition() const override;
-	Vector GetButterSplatAnchor() const override;
+	const char* GetButterSplatTrackName() const override {
+		return "Zombie_catapult_driver_head";
+	}
 	Vector GetIceTrapBottomAnchor() const override;
 
 	bool CanBeCharmed() const override { return false; }

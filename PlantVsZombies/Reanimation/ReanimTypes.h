@@ -44,12 +44,13 @@ struct TrackExtraInfo {
 	float mOffsetX = 0.0f;          // 杞ㄩ亾鑷韩缁樺埗鍋忕Щ X
 	float mOffsetY = 0.0f;          // 杞ㄩ亾鑷韩缁樺埗鍋忕Щ Y
 	const Texture* mImage = nullptr;  // 鎵嬪姩瑕嗙洊鍥剧墖璁剧疆
-	bool mFollowerVisible = false;   // 是否绘制紧随本轨道、但仍位于后续轨道之下的附属贴图
+	bool mFollowerVisible = false;   // 是否绘制继承本轨道完整插值变换的附属贴图
 	float mFollowerOffsetX = 0.0f;   // 附属贴图相对本轨道原点的局部 X 偏移
 	float mFollowerOffsetY = 0.0f;   // 附属贴图相对本轨道原点的局部 Y 偏移
 	float mFollowerScaleX = 1.0f;    // 附属贴图相对本轨道的横向缩放
 	float mFollowerScaleY = 1.0f;    // 附属贴图相对本轨道的纵向缩放
 	const Texture* mFollowerImage = nullptr; // 附属贴图；为空时不提交额外几何
+	bool mFollowerDrawAfterAllTracks = false; // true 时保留父轨变换，但延迟到本 Animator 全部轨道之后绘制
 	std::unordered_map<std::string, const Texture*> mTextureCache; // 鍥剧墖鍚?-> 绾圭悊
 	std::vector<std::weak_ptr<class Animator>> mAttachedReanims;  // 闄勫姞鐨勫瓙鍔ㄧ敾
 };

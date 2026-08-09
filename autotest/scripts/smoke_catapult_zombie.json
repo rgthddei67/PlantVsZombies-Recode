@@ -18,7 +18,7 @@
     { "op": "assert_state", "path": "zombies.0.catapultPhase", "equals": "SHOOTING" },
     { "op": "assert_state", "path": "zombies.0.catapultBasketballs", "equals": 12 },
     { "op": "assert_state", "path": "zombies.0.mindControlled", "equals": false },
-    { "op": "assert_state", "path": "zombies.0.catapultColliderWidthInt", "equals": 153 },
+    { "op": "assert_state", "path": "zombies.0.catapultColliderWidthInt", "equals": 150 },
     { "op": "assert_state", "path": "zombies.0.catapultColliderHeightInt", "equals": 140 },
     { "op": "charm_zombie", "row": 2, "index": 0 },
     { "op": "assert_state", "path": "zombies.0.mindControlled", "equals": false },

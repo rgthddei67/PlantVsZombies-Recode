@@ -4,7 +4,7 @@ description: 经典投篮车与导流精英的篮球、车辆状态机、径流�
 metadata:
   node_type: memory
   type: project
-  updated_at: 2026-08-08
+  updated_at: 2026-08-09
 ---
 
 # 经典投篮车与导流投篮车僵尸
@@ -15,7 +15,7 @@ metadata:
 
 两段损坏切换侧板/投臂贴图并补烟，低于 200 HP 概率自损。地刺通过 `Zombie::HandleCaltropHit` 通用虚入口派发：投篮车消耗地刺、播放爆胎和 `anim_bounce`，2.8 秒后 `CatapultExplosion`；普通/鎏金冰车保持原语义。普通死亡立即爆炸，灰烬死亡只创建 `Catapult_Charred` 并在主人指定的第 29 帧移除，不叠普通爆炸。phase、计时、库存、随机车速、目标、烟雾与爆胎终态全部进入 `extraData`，装填中快照往返不重放声音或多发球。
 
-主人可见目验后的最终坐标：gamedata offset 为 `[-7,-108]`（较初版整体下移 18px）；篮球起点相对稳定视觉原点为 `[+100,-3]`（较初版向车尾回收 30px）。黄油不再退回车头逻辑原点，改为跟随专属 `Zombie_catapult_driver_head` 司机头轨；冻结冰晶底边中心锚到稳定视觉原点 `[+95,+143]`，其中 Y 保持普通脚底高度，X 位于两轮之间的整车视觉中央。`Zombie` 基类为两种状态贴图提供独立虚锚点，普通僵尸仍保持 `anim_head1`/逻辑脚底原公式。碰撞框、碾压框、烟雾、爆炸和化灰都从 `Transform + mVisualOffset` 派生，整车上下调只改 gamedata，不分别补偿。资源为 `CatapultZombie`、`Catapult_Charred`、`Zombie_catapult_basketball.png`、`basketball.ogg` 与六发射器 `CatapultExplosion.xml`；运行时断言覆盖 reanim、篮球和三张损坏材质实际键。
+主人可见目验后的最终坐标：gamedata offset 为 `[-7,-108]`（较初版整体下移 18px）；篮球起点相对稳定视觉原点为 `[+100,-3]`（较初版向车尾回收 30px）。黄油通过通用 follower 虚接口跟随专属 `Zombie_catapult_driver_head` 司机头轨，并按普通品种策略延迟到 Animator 末尾，保证压在司机头部附件最高层；冻结冰晶底边中心锚到稳定视觉原点 `[+95,+143]`，其中 Y 保持普通脚底高度，X 位于两轮之间的整车视觉中央。碰撞框、碾压框、烟雾、爆炸和化灰都从 `Transform + mVisualOffset` 派生，整车上下调只改 gamedata，不分别补偿。通用黄油生命周期和渲染批次契约见 `project_pvz_zombie_butter_overlay.md`。资源为 `CatapultZombie`、`Catapult_Charred`、`Zombie_catapult_basketball.png`、`basketball.ogg` 与六发射器 `CatapultExplosion.xml`；运行时断言覆盖 reanim、篮球和三张损坏材质实际键。
 
 ## 导流精英（2026-08-08）
 
@@ -25,6 +25,6 @@ metadata:
 
 冒险保留既有 5-3（level 39）普通、路障、撑杆、加强铁门、扶梯和 5-4（level 40）普通、路障、小丑、蹦极、气球、普通/精英扶梯阵容。5-5（level 41，25 波/300 阳光）为普通、路障、铁桶、投篮车的精简教学；5-6（level 42，25 波/700 阳光）在普通、路障、铁桶、蹦极、扶梯、投篮车之后追加导流投篮车，基础型提前一关教学，精英作为末位重点威胁。最终 `smoke_catapult_spawnlists.json` 在主人当前桌面可见 exit 0，覆盖 5-1～5-6 完整数组、两种投篮车屋顶行兼容，`run.log` 以 `script finished OK` 结束且无 ERROR/WARN；5-5/5-6 选卡预览截图均已检查且无越界。
 
-最终验证证据：`smoke_catapult_zombie.json` 在主人当前桌面可见运行 143 条命令、exit 0，覆盖第 46 帧前后、初始 12/首发后 11、十二发共 900 伤与耗尽、装填快照、碾压、两段损坏、不可魅惑、普通爆炸、化灰第 29 帧、爆胎延迟爆炸、爆胎阶段停止碾压，以及司机头黄油与中央冰晶的相对锚点；11 张同步截图均已检查。2026-08-08 接入叶子保护伞后再次可见运行同一 143 条命令，exit 0、`script finished OK`，篮球既有弹道截图保持正常；新交互的范围内外、展开等待和反弹粒子另由 `smoke_umbrella_leaf.json` 覆盖。共享父回归 `smoke_kernelpult.json` 184 条命令、`smoke_iceshroom.json` 47 条命令同样可见 exit 0，普通僵尸的头部黄油与脚底冰晶截图保持原样；三份 `run.log` 都以 `script finished OK` 结束且无 FAIL/Fatal/WATCHDOG/资源缺失标记。最终 `clang-release` 配置、编译与增量链接均 exit 0；链接仍输出既有 vcpkg applocal 找不到 objdump 的非阻断提示。
+最终验证证据：`smoke_catapult_zombie.json` 在主人当前桌面可见运行 143 条命令、exit 0，覆盖第 46 帧前后、初始 12/首发后 11、十二发共 900 伤与耗尽、装填快照、碾压、两段损坏、不可魅惑、普通爆炸、化灰第 29 帧、爆胎延迟爆炸、爆胎阶段停止碾压，以及司机头黄油与中央冰晶的相对锚点；11 张同步截图均已检查。2026-08-09 通用黄油 follower 接入后再次可见运行同一 143 条命令并通过；同时把 2026-08-06 已将碰撞宽度改为 150、但脚本仍期望 153 的陈旧断言同步为 150。共享父回归 `smoke_kernelpult.json` 与双路径 `smoke_zombie_butter_layers.json` 同样可见通过，日志均以 `script finished OK` 结束且无异常标记。最终 `clang-release` 构建与 LTO 链接通过；链接仍输出既有 vcpkg applocal 找不到 objdump 的非阻断提示。
 
 导流精英专项 `smoke_elite_catapult.json` 可见 exit 0：固定种子下最近房屋的第 5 行候选把随机行组锁成 mask 22（第 2、3、5 行），其在 WARNING 死亡后剩余候选变为第 1 行但 mask 仍为 22 且候选未被补入；普通/精英同排径流整数投影分别为 -60/-100；另覆盖 1000 生命、共享 75 伤篮球、独立爆炸粒子、爆胎倍率回 1 和五张截图。`smoke_elite_catapult_wave_cap.json` 覆盖同波第二只拒绝、快照保持已消费、下一波归零；普通 `smoke_roof_runoff.json`、`smoke_catapult_zombie.json`、`smoke_umbrella_leaf.json` 均再次可见 exit 0。六份最终相关日志均 `script finished OK` 且 ERROR/WARN 为 0。

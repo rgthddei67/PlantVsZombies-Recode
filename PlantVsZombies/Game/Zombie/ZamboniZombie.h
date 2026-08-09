@@ -36,6 +36,7 @@ public:
 	float GetDriveCoordinateBaseX() const;
 	Vector GetDamageShakeOffset() const { return mDamageShakeOffset; }
 	Vector GetVisualPosition() const override;
+	const char* GetButterSplatTrackName() const override { return "Zombie_head"; }
 	bool IsPuncturedByCaltrop() const { return mPuncturedByCaltrop; }
 	float GetCaltropDeathTimer() const { return mCaltropDeathTimer; }
 

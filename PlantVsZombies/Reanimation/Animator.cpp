@@ -403,6 +403,9 @@ namespace {
 
 void Animator::DrawInternalInstanced(Graphics* g, float baseX, float baseY, float Scale) const {
 	static constexpr float DEG_TO_RAD = 3.14159265358979323846f / 180.0f;
+	InstanceRecord firstDeferredFollowerInstance{};
+	bool hasDeferredFollowerInstance = false;
+	std::vector<InstanceRecord> deferredFollowerOverflow;
 
 	float blendRatio = 0.0f;
 	if (mReanimBlendCounter > 0.0f)
@@ -534,7 +537,18 @@ void Animator::DrawInternalInstanced(Graphics* g, float baseX, float baseY, floa
 			const float alpha = std::clamp(transform.a * mAlpha, 0.0f, 1.0f);
 			rec.colorRGBA8 = PackRGBA8(255, 255, 255,
 				static_cast<uint8_t>(alpha * 255.0f));
-			g->AppendReanimInstance(rec, BlendMode::Alpha);
+			if (extra->mFollowerDrawAfterAllTracks) {
+				if (!hasDeferredFollowerInstance) {
+					firstDeferredFollowerInstance = rec;
+					hasDeferredFollowerInstance = true;
+				}
+				else {
+					deferredFollowerOverflow.push_back(rec);
+				}
+			}
+			else {
+				g->AppendReanimInstance(rec, BlendMode::Alpha);
+			}
 		}
 
 		if (!extra) continue;
@@ -552,6 +566,13 @@ void Animator::DrawInternalInstanced(Graphics* g, float baseX, float baseY, floa
 			child->DrawInternalInstanced(g, worldX, worldY, 1.0f);
 		}
 	}
+
+	if (hasDeferredFollowerInstance) {
+		g->AppendReanimInstance(firstDeferredFollowerInstance, BlendMode::Alpha);
+	}
+	for (const InstanceRecord& rec : deferredFollowerOverflow) {
+		g->AppendReanimInstance(rec, BlendMode::Alpha);
+	}
 }
 
 void Animator::DrawInternal(Graphics* g, float baseX, float baseY, float Scale) const {
@@ -565,6 +586,14 @@ void Animator::DrawInternal(Graphics* g, float baseX, float baseY, float Scale) 
 	}
 
 	static constexpr float DEG_TO_RAD = 3.14159265358979323846f / 180.0f;
+	struct DeferredFollowerDraw {
+		const Texture* image;
+		glm::mat4 transform;
+		glm::vec4 color;
+	};
+	DeferredFollowerDraw firstDeferredFollowerDraw{};
+	bool hasDeferredFollowerDraw = false;
+	std::vector<DeferredFollowerDraw> deferredFollowerOverflow;
 
 	// 预计算混合比例，避免在轨道循环内每次做浮点除法
 	float blendRatio = 0.0f;
@@ -679,9 +708,21 @@ void Animator::DrawInternal(Graphics* g, float baseX, float baseY, float Scale) 
 			RecordRenderQuad(
 				mat[0][0], mat[0][1], mat[1][0], mat[1][1], mat[3][0], mat[3][1]);
 			const float alpha = std::clamp(transform.a * mAlpha, 0.0f, 1.0f);
-			g->DrawTextureMatrix(followerImage, mat, 0.0f, 0.0f,
-				glm::vec4(255.0f, 255.0f, 255.0f, alpha * 255.0f),
-				BlendMode::Alpha);
+			const glm::vec4 color(255.0f, 255.0f, 255.0f, alpha * 255.0f);
+			if (extra->mFollowerDrawAfterAllTracks) {
+				const DeferredFollowerDraw draw{ followerImage, mat, color };
+				if (!hasDeferredFollowerDraw) {
+					firstDeferredFollowerDraw = draw;
+					hasDeferredFollowerDraw = true;
+				}
+				else {
+					deferredFollowerOverflow.push_back(draw);
+				}
+			}
+			else {
+				g->DrawTextureMatrix(followerImage, mat, 0.0f, 0.0f,
+					color, BlendMode::Alpha);
+			}
 		}
 
 		// 子动画
@@ -703,6 +744,16 @@ void Animator::DrawInternal(Graphics* g, float baseX, float baseY, float Scale) 
 				child->DrawInternal(g, worldX, worldY, 1.0f);
 			}
 		}
+	}
+
+	if (hasDeferredFollowerDraw) {
+		g->DrawTextureMatrix(firstDeferredFollowerDraw.image,
+			firstDeferredFollowerDraw.transform, 0.0f, 0.0f,
+			firstDeferredFollowerDraw.color, BlendMode::Alpha);
+	}
+	for (const DeferredFollowerDraw& draw : deferredFollowerOverflow) {
+		g->DrawTextureMatrix(draw.image, draw.transform, 0.0f, 0.0f,
+			draw.color, BlendMode::Alpha);
 	}
 }
 
@@ -826,13 +877,14 @@ void Animator::SetTrackOffset(const std::string& trackName, float x, float y) {
 }
 
 void Animator::SetTrackFollowerImage(const std::string& trackName, const Texture* image,
-	float offsetX, float offsetY, float scaleX, float scaleY) {
+	float offsetX, float offsetY, float scaleX, float scaleY, bool drawAfterAllTracks) {
 	for (auto& extra : GetTrackExtrasByName(trackName)) {
 		extra->mFollowerImage = image;
 		extra->mFollowerOffsetX = offsetX;
 		extra->mFollowerOffsetY = offsetY;
 		extra->mFollowerScaleX = scaleX;
 		extra->mFollowerScaleY = scaleY;
+		extra->mFollowerDrawAfterAllTracks = drawAfterAllTracks;
 		if (!image) extra->mFollowerVisible = false;
 	}
 }
@@ -1125,6 +1177,15 @@ bool Animator::GetTrackVisible(const std::string& trackName) const {
 	int index = GetFirstTrackIndexByName(trackName);
 	if (index >= 0 && index < static_cast<int>(mExtraInfos.size())) {
 		return mExtraInfos[index].mVisible;
+	}
+	return false;
+}
+
+bool Animator::GetTrackFollowerVisible(const std::string& trackName) const {
+	const int index = GetFirstTrackIndexByName(trackName);
+	if (index >= 0 && index < static_cast<int>(mExtraInfos.size())) {
+		const TrackExtraInfo& extra = mExtraInfos[index];
+		return extra.mVisible && extra.mFollowerVisible && extra.mFollowerImage;
 	}
 	return false;
 }

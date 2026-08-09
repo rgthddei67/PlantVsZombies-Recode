@@ -34,8 +34,7 @@ namespace {
 	constexpr float kThrowAnchorMinDistance = 40.0f;          // 巨人离投掷锚点至少该距离才允许投掷，单位 px
 	constexpr float kRoofThrowDistanceReduction = 180.0f;     // 原版屋顶投掷距离缩短量，单位 px
 	constexpr float kImpReleaseOffsetX = 133.0f;              // 小鬼逻辑出生点相对巨人原点的水平距离，单位 px
-	constexpr float kButterSplatTrackOffsetY = -6.0f;         // 巨人头部轨道内黄油的局部纵向偏移，单位 px
-	constexpr float kButterSplatTrackScale = 1.08f;           // 普通黄油 0.8 × 主人指定放大 1.35 后的实际轨道倍率
+	constexpr float kButterSplatScaleMultiplier = 1.35f;      // 巨人头部黄油相对普通僵尸尺寸的倍率
 	constexpr float kIceTrapScaleMultiplier = 1.35f;          // 巨人脚底冰晶相对普通僵尸贴图尺寸的倍率
 	constexpr float kOneShotVolume = 0.45f;                   // 巨人低吼、投掷和死亡 Foley 音量
 
@@ -73,12 +72,6 @@ void GargantuarZombie::SetupZombie()
 	}
 
 	if (!mAnimator) return;
-	mAnimator->SetTrackFollowerImage("anim_head1",
-		ResourceManager::GetInstance().GetTexture(
-			ResourceKeys::Textures::IMAGE_CORNPULT_BUTTER_SPLAT),
-		0.0f, kButterSplatTrackOffsetY,
-		kButterSplatTrackScale, kButterSplatTrackScale);
-	SetEmbeddedButterSplatVisible(false);
 	RegisterFrameEvents();
 	const int roll = GameRandom::Range(0, 99);
 	mWeaponVariant = roll < 10 ? WeaponVariant::ZOMBIE
@@ -102,17 +95,14 @@ float GargantuarZombie::GetAbilityAnimSpeedMultiplier() const
 	return mAnimSpeedMultiplier;
 }
 
+float GargantuarZombie::GetButterSplatScaleMultiplier() const
+{
+	return kButterSplatScaleMultiplier;
+}
+
 float GargantuarZombie::GetIceTrapScaleMultiplier() const
 {
 	return kIceTrapScaleMultiplier;
-}
-
-void GargantuarZombie::SetEmbeddedButterSplatVisible(bool visible) const
-{
-	if (mAnimator) {
-		mAnimator->SetTrackFollowerVisible("anim_head1",
-			visible && mHasHead && !mIsPreview);
-	}
 }
 
 /** 注册巨人专属的砸击、脱手与死亡帧事件。 */
@@ -392,7 +382,6 @@ void GargantuarZombie::ApplyDamagePresentation() const
 void GargantuarZombie::ZombieItemUpdate() const
 {
 	Zombie::ZombieItemUpdate();
-	SetEmbeddedButterSplatVisible(mButterTimer > 0.0f);
 	ApplyHeldImpPresentation();
 	ApplyWeaponPresentation();
 	ApplyDamagePresentation();

@@ -280,7 +280,7 @@ void Zombie::LoadProtectedData(const nlohmann::json& j) {
 	else {
 		UpdateStatusOverlay();
 	}
-	SetEmbeddedButterSplatVisible(mButterTimer > 0.0f && mHasHead && !mIsPreview);
+	SetButterSplatFollowerVisible(mButterTimer > 0.0f && mHasHead && !mIsPreview);
 
 	// 如果播放死亡动画，禁用碰撞箱（判空与 Die/预览路径一致：预览僵尸已移除碰撞箱、mCollider=null）
 	if (mIsDying && mCollider) {
@@ -376,6 +376,7 @@ void Zombie::Start()
 	}
 	SetAnimationSpeed(GameRandom::Range(1.1f, 1.4f));
 	SetupZombie();
+	ConfigureButterSplatFollower();
 	ConfigureShieldHitGlowTrack();
 	mGoldenIceEffectStacks = ComputeGoldenIceEffectStacks();
 	// 子类虚函数提供品种能力倍率；最后统一叠加减速、冻结、雨势和场地效果，且跨 PlayTrack 存活。
@@ -1098,7 +1099,7 @@ bool Zombie::ApplyButter()
 	}
 
 	mButterTimer = kButterDuration;
-	SetEmbeddedButterSplatVisible(true);
+	SetButterSplatFollowerVisible(true);
 	UpdateAnimSpeed();
 	return true;
 }
@@ -1106,11 +1107,11 @@ bool Zombie::ApplyButter()
 void Zombie::ClearButter()
 {
 	if (mButterTimer == 0.0f) {
-		SetEmbeddedButterSplatVisible(false);
+		SetButterSplatFollowerVisible(false);
 		return;
 	}
 	mButterTimer = 0.0f;
-	SetEmbeddedButterSplatVisible(false);
+	SetButterSplatFollowerVisible(false);
 	UpdateAnimSpeed();
 }
 
@@ -1380,7 +1381,7 @@ void Zombie::StartMindControlled()
 		mCooldownTimer = 0.0f;
 		mFrozenTimer = 0.0f;
 		mButterTimer = 0.0f;
-		SetEmbeddedButterSplatVisible(false);
+		SetButterSplatFollowerVisible(false);
 		UpdateAnimSpeed();
 	}
 	ClearToxin();
@@ -1622,7 +1623,7 @@ void Zombie::Die()
 	mIsDead = true;
 	CancelGarlicRedirect(false);
 	mButterTimer = 0.0f;
-	SetEmbeddedButterSplatVisible(false);
+	SetButterSplatFollowerVisible(false);
 	mToxinLayerTimers.fill(0.0f);
 	mToxinDamageRemainder = 0.0f;
 
@@ -1658,9 +1659,50 @@ Vector Zombie::GetButterSplatAnchor() const
 {
 	const float scale = GetTransformComponent()
 		? GetTransformComponent()->GetScale() : 1.0f;
-	return mAnimator && mAnimator->HasTrack("anim_head1")
-		? GetTrackWorldPosition("anim_head1")
+	const char* trackName = GetButterSplatTrackName();
+	return mAnimator && trackName && mAnimator->HasTrack(trackName)
+		? GetTrackWorldPosition(trackName)
 		: GetPosition() + kButterFallbackHeadOffset * scale;
+}
+
+bool Zombie::IsButterSplatFollowerVisible() const
+{
+	const char* trackName = GetButterSplatTrackName();
+	return mButterSplatFollowerConfigured && mAnimator && trackName
+		&& mAnimator->GetTrackFollowerVisible(trackName);
+}
+
+/**
+ * 把所有可识别头部轨道的僵尸统一切到 reanim 内分层黄油；缺轨品种保留旧后绘兜底。
+ */
+void Zombie::ConfigureButterSplatFollower()
+{
+	mButterSplatFollowerConfigured = false;
+	if (!mAnimator) return;
+
+	const char* trackName = GetButterSplatTrackName();
+	if (!trackName || !mAnimator->HasTrack(trackName)) return;
+
+	const Texture* texture = ResourceManager::GetInstance().GetTexture(
+		ResourceKeys::Textures::IMAGE_CORNPULT_BUTTER_SPLAT);
+	if (!texture) return;
+
+	const float followerScale = kButterSplatScale * GetButterSplatScaleMultiplier();
+	mAnimator->SetTrackFollowerImage(trackName, texture,
+		0.0f, kButterSplatOffsetY, followerScale, followerScale,
+		ShouldDrawButterSplatAfterAllTracks());
+	mButterSplatFollowerConfigured = true;
+	SetButterSplatFollowerVisible(mButterTimer > 0.0f && mHasHead && !mIsPreview);
+}
+
+void Zombie::SetButterSplatFollowerVisible(bool visible) const
+{
+	if (!mButterSplatFollowerConfigured || !mAnimator) return;
+	const char* trackName = GetButterSplatTrackName();
+	if (trackName) {
+		mAnimator->SetTrackFollowerVisible(trackName,
+			visible && mHasHead && !mIsPreview);
+	}
 }
 
 Vector Zombie::GetIceTrapBottomAnchor() const
@@ -2122,9 +2164,9 @@ void Zombie::Draw(Graphics* g)
 		mTangleKelpGrabFront->Draw(g, grabPosition.x, grabPosition.y, scale);
 	}
 
-	// 默认优先跟随 anim_head1；车辆等异形身体通过虚锚点绑定自己的稳定视觉部位。
+	// 缺少语义头部轨道的未来异形资源才走旧锚点后绘；当前常规品种均由 reanim 内分层。
 	if (g && mButterTimer > 0.0f && mHasHead && !mIsPreview
-		&& !UsesEmbeddedButterSplat()) {
+		&& !mButterSplatFollowerConfigured) {
 		if (const Texture* tex = ResourceManager::GetInstance().GetTexture(
 			ResourceKeys::Textures::IMAGE_CORNPULT_BUTTER_SPLAT)) {
 			const Vector headAnchor = GetButterSplatAnchor();

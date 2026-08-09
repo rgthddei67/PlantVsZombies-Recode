@@ -428,12 +428,6 @@ Vector CatapultZombie::GetVisualPosition() const
 	return Zombie::GetVisualPosition() + mDamageShakeOffset;
 }
 
-Vector CatapultZombie::GetButterSplatAnchor() const
-{
-	// 司机头是投篮车 reanim 的专属轨道；跟随当前射击/行走姿态，避免退回车头逻辑原点。
-	return GetTrackWorldPosition("Zombie_catapult_driver_head");
-}
-
 Vector CatapultZombie::GetIceTrapBottomAnchor() const
 {
 	// 冰晶属于车体控制状态，不跟随低血量受击抖动。

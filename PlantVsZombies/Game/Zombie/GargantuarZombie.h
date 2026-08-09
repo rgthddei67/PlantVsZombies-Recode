@@ -25,6 +25,8 @@ public:
 	void Charred() override;
 	void ZombieItemUpdate() const override;
 	bool CanBeGrabbedByTangleKelp() const override { return false; }
+	float GetButterSplatScaleMultiplier() const override;
+	bool ShouldDrawButterSplatAfterAllTracks() const override { return false; }
 	float GetIceTrapScaleMultiplier() const override;
 
 	Phase GetPhase() const { return mPhase; }
@@ -44,8 +46,6 @@ protected:
 	void ZombieMove(float scaledDelta, TransformComponent* transform) override;
 	void PlayWalkAnimation(float blendTime) override;
 	float GetAbilityAnimSpeedMultiplier() const override;
-	bool UsesEmbeddedButterSplat() const override { return true; }
-	void SetEmbeddedButterSplatVisible(bool visible) const override;
 	void OnMindControlled() override;
 	void SaveExtraData(nlohmann::json& j) const override;
 	void LoadExtraData(const nlohmann::json& j) override;

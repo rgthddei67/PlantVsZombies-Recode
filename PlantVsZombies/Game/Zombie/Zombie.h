@@ -62,6 +62,7 @@ protected:
 	float mCooldownTimer = 0.0f;	// 僵尸减速倒计时时间
 	float mFrozenTimer = 0.0f;		// 冻结剩余秒数（寒冰菇完全定身），0=未冻结
 	float mButterTimer = 0.0f;		// 黄油定身剩余秒数，0=未被黄油固定
+	bool mButterSplatFollowerConfigured = false; // 当前 reanim 是否已绑定语义头部轨道黄油；纯展示派生状态不入档
 	std::array<float, 20> mToxinLayerTimers{};	// 每层独立剩余秒数；二十格即每只僵尸的共享上限
 	float mToxinDamageRemainder = 0.0f;	// 跨帧保留未满 1 点的持续伤害，保证倍速下总量稳定
 
@@ -185,10 +186,18 @@ public:
 	virtual bool ConsumesOtherMowersOnContact() const { return false; }
 
 	Vector GetVisualPosition() const override;
-	/** 返回黄油贴图跟随目标的世界锚点；异形身体可覆写为专属头部轨道。 */
-	virtual Vector GetButterSplatAnchor() const;
+	/** 返回承载黄油贴图的语义头部轨道；普通僵尸默认使用 anim_head1。 */
+	virtual const char* GetButterSplatTrackName() const { return "anim_head1"; }
+	/** 是否把黄油延迟到整套 reanim 最后绘制；普通僵尸保持最高层。 */
+	virtual bool ShouldDrawButterSplatAfterAllTracks() const { return true; }
+	/** 返回黄油语义轨道当前帧的世界锚点，主要供展示诊断与旧路径回退。 */
+	Vector GetButterSplatAnchor() const;
 	/** 返回黄油贴图相对普通尺寸的倍率；巨型身体可独立放大而不改变锚点。 */
 	virtual float GetButterSplatScaleMultiplier() const { return 1.0f; }
+	/** 当前 Animator 是否成功配置了轨道内黄油 follower。 */
+	bool IsButterSplatFollowerConfigured() const { return mButterSplatFollowerConfigured; }
+	/** 当前轨道内黄油是否实际可见；供 AutoTest 核对状态与读档重建。 */
+	bool IsButterSplatFollowerVisible() const;
 	/** 返回冻结冰晶底边中心的世界锚点；车辆可覆写到整车视觉中央。 */
 	virtual Vector GetIceTrapBottomAnchor() const;
 	/** 返回冻结冰晶相对普通尺寸的倍率；巨型身体可独立放大而不改变脚底线。 */
@@ -348,10 +357,10 @@ protected:
 	void UpdateAnimSpeed();
 	/** 清除黄油定身并按剩余状态恢复动画速度。 */
 	void ClearButter();
-	/** 是否由品种自身在 reanim 轨道层级绘制黄油；默认仍由 Zombie::Draw 统一后绘。 */
-	virtual bool UsesEmbeddedButterSplat() const { return false; }
-	/** 同步品种自带黄油轨道的显隐；普通僵尸默认无需处理。 */
-	virtual void SetEmbeddedButterSplatVisible(bool) const {}
+	/** 出生 Setup 完成后把黄油统一绑定到品种声明的语义头部轨道。 */
+	void ConfigureButterSplatFollower();
+	/** 同步轨道内黄油显隐；未配置的异形资源继续由 Draw 的旧锚点路径兜底。 */
+	void SetButterSplatFollowerVisible(bool visible) const;
 	/** 头盔和护盾前的额外生命层；返回继续透入常规防具链的伤害。 */
 	virtual int TakeExtraProtectionDamage(int damage, DamageSource) { return damage; }
 	/** 生存血量倍率对品种额外生命层的扩展点。 */

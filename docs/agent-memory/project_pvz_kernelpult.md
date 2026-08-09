@@ -4,6 +4,7 @@ description: 经典玉米投手、玉米粒/黄油抛射、黄油定身、二类
 metadata:
   node_type: memory
   type: project
+  updated_at: 2026-08-09
 ---
 
 # 经典玉米投手（Kernel-pult）
@@ -25,8 +26,10 @@ metadata:
   能力倒计时；冻结与黄油通过 `IsImmobilized()` 合成。飞行、无头、垂死、魅惑、
   水草抓取、冰车、Boss 及 `CanBeFrozen()` 否决阶段免疫定身，但仍承受弹丸伤害。
 - 黄油时间进入 `Zombie::SaveProtectedData/LoadProtectedData`，旧档缺字段为 0；断头、
-  死亡和魅惑立即清除。头贴跟随 `anim_head1` 世界锚点，主人对比原版后最终使用
-  0.8 倍 `Cornpult_butter_splat.png`，覆盖头顶但保留脸和上身轮廓。
+  死亡和魅惑立即清除。头贴通过基类 follower 默认跟随 `anim_head1` 完整仿射变换，
+  并延迟到 Animator 末尾压在头发/眼镜等附件上方；主人对比原版后最终使用 0.8 倍
+  `Cornpult_butter_splat.png`。异形轨道、巨人层内遮挡和批次契约见
+  `project_pvz_zombie_butter_overlay.md`。
 - `Cornpult.reanim`、卡图、三张运行时贴图、三段音效和 `ButterSplat.xml` 都从
   `build/clang-release/resources` 权威目录注册；资源键由 AutoTest 的
   `HasReanimation/GetTexture(key,false)/HasSound` 闭环断言。
@@ -42,6 +45,8 @@ metadata:
   快照、伤害/定身/到期、落空、对象池复位、普通二类护盾绕过、加固铁门例外、
   冰车免疫和屋顶。关键截图逐张检查，0.8 头贴与默认/慢路径显示正常。
 - 共享 `smoke_cabbagepult.json` 在最终共享逻辑修改后可见 exit 0，日志无异常标记。
+- 2026-08-09 通用黄油 follower 接入后，`smoke_zombie_butter_layers.json` 默认实例化与
+  `-NoInstance` 均可见通过；随后 `smoke_kernelpult.json` 再次可见 `script finished OK`。
 - 2026-08-06 共用目标平均根速度回归时，原脚本在第 30 帧理论边界只等待 0.32 秒，
   曾在播放头尚未越帧时提前断言发弹；玉米粒和黄油两处均改为 0.38 秒安全余量，
   不改变游戏发射时序。

@@ -1216,6 +1216,10 @@ bool TestDriver::ExecuteCurrent() {
 			Fail("spawn_zombie: frozen=true 但目标不能进入冻结");
 			return false;
 		}
+		if (cmd.value("buttered", false) && !z->ApplyButter()) {
+			Fail("spawn_zombie: buttered=true 但目标不能进入黄油定身");
+			return false;
+		}
 		return true;
 	}
 	if (op == "add_ladder") {
@@ -3243,6 +3247,10 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "buttered", z->IsButtered() },
 			{ "butterTimerMs", static_cast<int>(std::lround(
 				z->GetButterTimer() * 1000.0f)) },
+			{ "butterSplatTrack", z->GetButterSplatTrackName() },
+			{ "butterSplatAfterAllTracks", z->ShouldDrawButterSplatAfterAllTracks() },
+			{ "butterSplatFollowerConfigured", z->IsButterSplatFollowerConfigured() },
+			{ "butterSplatFollowerVisible", z->IsButterSplatFollowerVisible() },
 			{ "toxic", z->GetToxinLayerCount() > 0 },
 			{ "toxinStacks", z->GetToxinLayerCount() },
 			{ "toxinMaxRemainingMs", static_cast<int>(std::lround(

@@ -217,16 +217,18 @@ public:
 	void SetTrackOffset(const std::string& trackName, float x, float y);
 
 	/**
-	 * 配置紧随指定轨道绘制的附属贴图；它继承该轨道的插值仿射变换，并在后续轨道之前提交。
+	 * 配置跟随指定轨道完整插值仿射变换的附属贴图。
 	 * @param trackName 父轨道名。
 	 * @param image 附属纹理；nullptr 表示移除。
 	 * @param offsetX 相对父轨道原点的局部 X 偏移，单位：动画像素。
 	 * @param offsetY 相对父轨道原点的局部 Y 偏移，单位：动画像素。
 	 * @param scaleX 相对父轨道的横向缩放倍率。
 	 * @param scaleY 相对父轨道的纵向缩放倍率。
+	 * @param drawAfterAllTracks true=延迟到本 Animator 全部轨道及附件之后提交；false=紧随父轨道。
 	 */
 	void SetTrackFollowerImage(const std::string& trackName, const Texture* image,
-		float offsetX, float offsetY, float scaleX = 1.0f, float scaleY = 1.0f);
+		float offsetX, float offsetY, float scaleX = 1.0f, float scaleY = 1.0f,
+		bool drawAfterAllTracks = false);
 	/** 控制指定轨道附属贴图的显隐，不影响父轨道本身。 */
 	void SetTrackFollowerVisible(const std::string& trackName, bool visible);
 
@@ -494,6 +496,8 @@ public:
 	 * @return true=可见
 	 */
 	bool GetTrackVisible(const std::string& trackName) const;
+	/** 返回父轨道与 follower 自身均启用时的最终可见状态。 */
+	bool GetTrackFollowerVisible(const std::string& trackName) const;
 
 	/**
 	 * @brief 获取指定轨道合并整体开关与轨道覆盖后的实际高亮状态。
