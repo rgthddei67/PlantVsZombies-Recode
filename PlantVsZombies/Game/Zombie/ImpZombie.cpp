@@ -22,7 +22,7 @@ namespace {
 	constexpr float kEatClipSpeed = 24.0f / 12.0f;           // 小鬼啃食轨采用原版常用 24fps
 	constexpr float kHorizontalThrowSpeed = 300.0f;          // 原版每厘秒 3px，折算 px/s
 	constexpr float kThrowGravity = 500.0f;                  // 原版每厘秒 0.05px，折算 px/s^2
-	constexpr float kInitialAltitude = 88.0f;                // 原版小鬼脱手高度，单位 px
+	constexpr float kInitialAltitude = 112.0f;               // 小鬼脱手高度；按主人目验在原版 88px 基础上上抬 24px
 	constexpr float kLimbVolume = 0.25f;                     // 小鬼断肢断头音量
 	constexpr float kColliderWidth = 40.0f;                  // 小鬼碰撞框宽度，单位 px
 	constexpr float kColliderHeight = 70.0f;                 // 小鬼碰撞框高度，单位 px

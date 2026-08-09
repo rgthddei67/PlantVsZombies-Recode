@@ -18,7 +18,7 @@
 namespace {
 	constexpr int kBodyHealth = 3000;                         // 原版经典巨人本体生命
 	constexpr int kSmashFrame = 93;                           // 主人指定的砸击结算全局帧
-	constexpr int kThrowReleaseFrame = 124;                   // 主人确认的小鬼脱手全局帧
+	constexpr int kThrowReleaseFrame = 131;                   // 主人确认的小鬼脱手全局帧
 	constexpr int kDeathFrame = 196;                          // 主人指定的普通死亡回收全局帧
 	constexpr float kAnimSpeedMultiplierMin = 0.5f;            // 每只巨人整体动画倍率随机下限
 	constexpr float kAnimSpeedMultiplierMax = 0.7f;            // 每只巨人整体动画倍率随机上限
