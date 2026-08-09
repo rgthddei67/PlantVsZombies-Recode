@@ -83,7 +83,7 @@ void GargantuarZombie::SetupZombie()
 	ApplyHeldImpPresentation();
 	if (mIsPreview) {
 		// 预览对象不走基类 UpdateAnimSpeed；把同一随机倍率直接作为 idle clip 速度。
-		PlayTrack("anim_idle", mAnimSpeedMultiplier);
+		PlayTrack("anim_idle");
 		return;
 	}
 	mSpeed += GameRandom::Range(-2, 2);
