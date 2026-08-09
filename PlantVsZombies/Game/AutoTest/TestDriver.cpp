@@ -2611,6 +2611,12 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				ResourceKeys::Textures::IMAGE_ZOMBIE_GARGANTUAR_FOOT2, false) != nullptr
 			&& ResourceManager::GetInstance().GetTexture(
 				ResourceKeys::Textures::IMAGE_ZOMBIE_GARGANTUAR_HEAD2, false) != nullptr },
+		{ "redEyeHeadTexturesLoaded",
+			ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_ZOMBIE_GARGANTUAR_HEAD_REDEYE, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_ZOMBIE_GARGANTUAR_HEAD2_REDEYE,
+				false) != nullptr },
 		{ "actionSoundsLoaded", ResourceManager::GetInstance().HasSound(
 			ResourceKeys::Sounds::SOUND_GARGANTUAR_THUMP)
 			&& ResourceManager::GetInstance().HasSound(ResourceKeys::Sounds::SOUND_LOWGROAN)
@@ -3175,6 +3181,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	int eliteLadderZombieCount = 0;
 	int eliteCatapultZombieCount = 0;
 	int gargantuarZombieCount = 0;
+	int redEyeGargantuarZombieCount = 0;
 	int impZombieCount = 0;
 	int zombieBodyHealthTotal = 0;
 	int zombieShieldHealthTotal = 0;
@@ -3211,6 +3218,9 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			++eliteCatapultZombieCount;
 		}
 		if (z->mZombieType == ZombieType::ZOMBIE_GARGANTUAR) ++gargantuarZombieCount;
+		if (z->mZombieType == ZombieType::ZOMBIE_REDEYE_GARGANTUAR) {
+			++redEyeGargantuarZombieCount;
+		}
 		if (z->mZombieType == ZombieType::ZOMBIE_IMP) ++impZombieCount;
 		zombieBodyHealthTotal += z->mBodyHealth;
 		zombieShieldHealthTotal += z->mShieldHealth;
@@ -3658,6 +3668,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			zombieState["gargantuarWeapon"] = GargantuarWeaponName(
 				gargantuar->GetWeaponVariant());
 			zombieState["gargantuarDamageStage"] = gargantuar->GetDamageStage();
+			zombieState["gargantuarHeadTextureKey"] =
+				gargantuar->GetCurrentHeadTextureKey();
 			zombieState["gargantuarHeldImpVisible"] = anim
 				&& anim->GetTrackVisible("Zombie_imp_head")
 				&& anim->GetTrackVisible("Zombie_imp_body1")
@@ -3721,6 +3733,9 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["eliteLadderZombieCount"] = eliteLadderZombieCount;
 	out["eliteCatapultZombieCount"] = eliteCatapultZombieCount;
 	out["gargantuarZombieCount"] = gargantuarZombieCount;
+	out["redEyeGargantuarZombieCount"] = redEyeGargantuarZombieCount;
+	out["redEyeGargantuarWeight"] = GameDataManager::GetInstance().GetZombieWeight(
+		ZombieType::ZOMBIE_REDEYE_GARGANTUAR);
 	out["impZombieCount"] = impZombieCount;
 	out["poolRowZombieCount"] = poolRowZombieCount;
 	out["earlyWavePoolZombieCount"] = earlyWavePoolZombieCount;

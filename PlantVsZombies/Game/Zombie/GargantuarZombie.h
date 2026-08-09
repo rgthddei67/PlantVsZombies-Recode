@@ -3,7 +3,7 @@
 #include "Zombie.h"
 
 /** 经典巨人僵尸：接触目标时砸击，并在半血后把唯一一只小鬼投向前方。 */
-class GargantuarZombie final : public Zombie {
+class GargantuarZombie : public Zombie {
 public:
 	using Zombie::Zombie;
 
@@ -39,6 +39,8 @@ public:
 	float GetThrowDistance() const { return mThrowDistance; }
 	WeaponVariant GetWeaponVariant() const { return mWeaponVariant; }
 	int GetDamageStage() const;
+	/** 返回当前伤势阶段实际应使用的头部贴图键，供表现重建与测试取证共用。 */
+	const std::string& GetCurrentHeadTextureKey() const;
 
 protected:
 	void SetupZombie() override;
@@ -49,6 +51,10 @@ protected:
 	void OnMindControlled() override;
 	void SaveExtraData(nlohmann::json& j) const override;
 	void LoadExtraData(const nlohmann::json& j) override;
+	/** 按伤势阶段选择头部材质；同时间线换色变体只需覆写此入口。 */
+	virtual const std::string& GetHeadTextureKey(int damageStage) const;
+	/** 按生命比例恢复身体、手臂、脚和头部的两档受伤换图。 */
+	void ApplyDamagePresentation() const;
 
 private:
 	/** 从行走态进入一次砸击，并冻结本次植物格或敌对僵尸目标。 */
@@ -57,7 +63,7 @@ private:
 	void ApplySmashImpact();
 	/** 半血且位置允许时开始唯一一次投掷。 */
 	void TryBeginThrow();
-	/** 主人确认的第 124 帧回调：生成小鬼、继承阵营与剩余减速。 */
+	/** 主人确认的第 131 帧回调：生成小鬼、继承阵营与剩余减速。 */
 	void ReleaseImp();
 	/** 原子清理移动抑制动作；死亡入口可保留随后接管的死亡轨。 */
 	void AbortAction(bool playWalkingTrack);
@@ -65,8 +71,6 @@ private:
 	void ApplyHeldImpPresentation() const;
 	/** 按出生时冻结的随机结果恢复电线杆、鸭子路牌或普通僵尸持物。 */
 	void ApplyWeaponPresentation() const;
-	/** 按原版三分之一阈值恢复身体、手臂、脚和头部的两档受伤换图。 */
-	void ApplyDamagePresentation() const;
 	void PlayWalking(float blendTime = 0.0f);
 
 	Phase mPhase = Phase::WALKING;

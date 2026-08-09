@@ -89,6 +89,7 @@
 #include "../Zombie/EliteCatapultZombie.h"
 #include "../Zombie/GargantuarZombie.h"
 #include "../Zombie/ImpZombie.h"
+#include "../Zombie/RedeyeGargantuarZombie.h"
 
 namespace {
 	template<typename T>
@@ -534,6 +535,11 @@ void GameDataManager::InitializeHardcodedData() {
 		AnimationType::ANIM_IMP_ZOMBIE,
 		ResourceKeys::Reanimations::REANIM_IMP_ZOMBIE,
 		&MakeZombie<ImpZombie>);
+	// 红眼巨人复用经典巨人时间线；权重为零，只允许开发者面板或测试直造。
+	RegisterZombie(ZombieType::ZOMBIE_REDEYE_GARGANTUAR, "ZOMBIE_REDEYE_GARGANTUAR",
+		AnimationType::ANIM_GARGANTUAR_ZOMBIE,
+		ResourceKeys::Reanimations::REANIM_GARGANTUAR_ZOMBIE,
+		&MakeZombie<RedeyeGargantuarZombie>);
 
 	// ==================== 非植物/僵尸动画映射 ====================
 	mAnimToString[AnimationType::ANIM_SUN] = ResourceKeys::Reanimations::REANIM_SUN;

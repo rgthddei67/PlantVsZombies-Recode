@@ -355,6 +355,18 @@ int GargantuarZombie::GetDamageStage() const
 	return 0;
 }
 
+const std::string& GargantuarZombie::GetCurrentHeadTextureKey() const
+{
+	return GetHeadTextureKey(GetDamageStage());
+}
+
+const std::string& GargantuarZombie::GetHeadTextureKey(int damageStage) const
+{
+	return damageStage >= 2
+		? ResourceKeys::Textures::IMAGE_ZOMBIE_GARGANTUAR_HEAD2
+		: ResourceKeys::Textures::IMAGE_REANIM_ZOMBIE_GARGANTUAR_HEAD;
+}
+
 void GargantuarZombie::ApplyDamagePresentation() const
 {
 	if (!mAnimator) return;
@@ -373,10 +385,10 @@ void GargantuarZombie::ApplyDamagePresentation() const
 		mAnimator->SetTrackImage("Zombie_gargantuar_outerleg_foot",
 			ResourceManager::GetInstance().GetTexture(
 				ResourceKeys::Textures::IMAGE_ZOMBIE_GARGANTUAR_FOOT2));
-		mAnimator->SetTrackImage("anim_head1",
-			ResourceManager::GetInstance().GetTexture(
-				ResourceKeys::Textures::IMAGE_ZOMBIE_GARGANTUAR_HEAD2));
 	}
+	// 头部选择独立于其他伤势材质，使同时间线换色变体在健康、轻伤、重伤和读档后保持一致。
+	mAnimator->SetTrackImage("anim_head1", ResourceManager::GetInstance().GetTexture(
+		GetHeadTextureKey(stage)));
 }
 
 void GargantuarZombie::ZombieItemUpdate() const

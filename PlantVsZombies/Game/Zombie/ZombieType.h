@@ -66,6 +66,7 @@ enum class ZombieType {
 	ZOMBIE_ELITE_CATAPULT,	// 导流投篮车：锁定自身所在径流行，并仅强化自身顺坡漂移
 	ZOMBIE_GARGANTUAR,		// 经典巨人：砸扁植物并在半血时投出一只小鬼
 	ZOMBIE_IMP,			// 经典小鬼：仅由巨人投出，不进入随机出怪权重池
+	ZOMBIE_REDEYE_GARGANTUAR,	// 红眼巨人：复用经典巨人全部行为，6000 生命且不进入出怪池
 
 	// ↓ 哨兵：置于全部已实现僵尸之后，使 [0,NUM_ZOMBIE_TYPES) 只覆盖已实现类型，
 	//   生存模式随机抽取据此绝不会抽到下方未实现僵尸。
@@ -80,7 +81,6 @@ enum class ZombieType {
 	ZOMBIE_GATLING_HEAD,
 	ZOMBIE_SQUASH_HEAD,
 	ZOMBIE_TALLNUT_HEAD,
-	ZOMBIE_REDEYE_GARGANTUAR,
 };
 
 #endif

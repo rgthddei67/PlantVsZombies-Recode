@@ -23,6 +23,8 @@
     <Image>./resources/image/reanim/Zombie_gargantuar_outerarm_lower2.png</Image>
     <Image>./resources/image/reanim/Zombie_gargantuar_foot2.png</Image>
     <Image>./resources/image/reanim/Zombie_gargantuar_head2.png</Image>
+    <Image>./resources/image/reanim/Zombie_gargantuar_head_redeye.png</Image>
+    <Image>./resources/image/reanim/Zombie_gargantuar_head2_redeye.png</Image>
 
     <Image Column="8" Row="1">./resources/image/fog.png</Image>
     <Image>./resources/image/MistFuel.png</Image>
