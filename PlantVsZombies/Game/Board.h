@@ -198,8 +198,12 @@ private:
 	RoofRunoffPhase mRoofRunoffPhase = RoofRunoffPhase::IDLE; // 当前径流所处的待机、预警或冲刷阶段
 	float mRoofRunoffPhaseTimer = 0.0f; // 当前预警或冲刷阶段剩余游戏秒
 	int mRoofRunoffRowMask = 0;         // 已锁定的冲刷行 bitmask；待机阶段为 0
+	float mNightRoofCharge = 0.0f;      // 黑夜屋顶独立雷荷积累值（0～100）
+	NightRoofChargePhase mNightRoofChargePhase = NightRoofChargePhase::CHARGING; // 当前积累、预警或放电阶段
+	float mNightRoofChargePhaseTimer = 0.0f; // 当前预警或放电阶段剩余游戏秒
+	int mNightRoofChargeRow = -1;       // 满电后一次锁定的导电瓦路行；积累阶段为 -1
 
-	// 四大关迷雾是独立于雨势的环境层：原版默认雾、增强雾势、预报与台风驱散均由 Board 持有。
+	// 夜间泳池迷雾是独立于雨势的环境层：基础雾、增强雾势、预报与台风驱散均由 Board 持有。
 	FogWeatherIntensity mFogWeatherIntensity = FogWeatherIntensity::DEFAULT;
 	FogWeatherIntensity mForecastFogWeatherIntensity = FogWeatherIntensity::DEFAULT;
 	FogWeatherIntensity mActualForecastFogWeatherIntensity = FogWeatherIntensity::DEFAULT;
@@ -285,6 +289,15 @@ private:
 	/** 从存档恢复已经判定的积累值、阶段、锁定行、残留湿度与剩余时间，不重新抽取。 */
 	void RestoreRoofRunoffState(float charge, RoofRunoffPhase phase,
 		int rowMask, float phaseTimer, float retainedCharge);
+	/** 推进黑夜屋顶独立雷荷的积累、锁行预警与基础放电状态机。 */
+	void UpdateNightRoofCharge(float deltaTime);
+	/** 只在积累阶段增加雷荷；达到阈值时立即锁定一条导电瓦路。 */
+	void AddNightRoofCharge(float amount);
+	/** 满电后抽取并锁定本次导电瓦路；锁定结果在活动阶段保持不变。 */
+	void BeginNightRoofChargeWarning();
+	/** 从存档恢复雷荷积累、阶段、锁定行和倒计时，不重新抽取路线。 */
+	void RestoreNightRoofChargeState(float charge, NightRoofChargePhase phase,
+		int row, float phaseTimer);
 	void InitializeFogWeather();
 	void UpdateFog(float deltaTime);
 	void UpdateFogWeather(float deltaTime);
@@ -550,7 +563,7 @@ public:
 	Vector GetFogTilePosition(int row, int col) const;
 	int GetVisibleFogCellCount() const;
 	int GetMaximumFogAlpha() const;
-	/** 当前天气导演下进入大雾的概率（百分比）；只用于四大关独立雾势抽取。 */
+	/** 当前天气导演下进入大雾的概率（百分比）；只用于夜间泳池独立雾势抽取。 */
 	int GetDenseFogChancePercent() const;
 	bool HasPendingHeavyTyphoon() const { return mPendingHeavyTyphoonPrepared; }
 	TyphoonStrength GetPendingHeavyTyphoonStrength() const { return mPendingHeavyTyphoonStrength; }
@@ -646,6 +659,9 @@ public:
 	/** AutoTest 专用：固定径流积累、活动阶段和冲刷后的残留湿度。 */
 	bool SetRoofRunoffForTesting(float charge, RoofRunoffPhase phase,
 		int rowMask = 0, float phaseTimer = 0.0f, float retainedCharge = 45.0f);
+	/** AutoTest 专用：固定黑夜屋顶雷荷积累、活动阶段、锁定行和剩余时间。 */
+	bool SetNightRoofChargeForTesting(float charge, NightRoofChargePhase phase,
+		int row = -1, float phaseTimer = 0.0f);
 	/** 立即生成一次地面雨滴水花，供不同地形的落点闭环测试。 */
 	void TriggerRainGroundSplashForTesting();
 	/** 正式波次与 AutoTest 共用的天气变异入口；mutationRoll=0 时随机，超额成功变异返回 NUM_ZOMBIE_TYPES。 */
@@ -667,9 +683,9 @@ public:
 	float GetRowCenterYAtX(int row, float worldX) const;
 	/** 返回清扫车前缘探针在指定行的逻辑 Y；屋顶包含 RoofCleaner 资源原点校准。 */
 	float GetMowerTerrainY(int row, float worldX) const;
-	/** 天气从第二大关起启用；白天泳池同样受天气系统影响。 */
+	/** 正式冒险从第二大关启用天气；白天、黑夜与泳池三种生存模式始终启用。 */
 	bool SupportsWeather() const;
-	/** 昼夜屋顶共用坡面径流；夜屋顶未来可在此之上叠加独立电荷机制。 */
+	/** 昼夜屋顶场景共用坡面径流，不依赖关卡编号。 */
 	bool SupportsRoofRunoff() const;
 	float GetRoofRunoffCharge() const { return mRoofRunoffCharge; }
 	float GetRoofRunoffChargeRatio() const { return mRoofRunoffCharge / 100.0f; }
@@ -696,9 +712,24 @@ public:
 	}
 	/** 返回目标行坡段地面僵尸承受的有符号径流速度；负值表示顺坡冲向屋檐/房屋。 */
 	float GetRoofRunoffZombieDriftVelocity(int row, float worldX) const;
-	/** 四大关夜间泳池是否拥有不依赖天气的基础迷雾。 */
+	/** 黑夜屋顶场景启用独立雷荷，不依赖关卡编号。 */
+	bool SupportsNightRoofCharge() const;
+	float GetNightRoofCharge() const { return mNightRoofCharge; }
+	float GetNightRoofChargeRatio() const { return mNightRoofCharge / 100.0f; }
+	NightRoofChargePhase GetNightRoofChargePhase() const { return mNightRoofChargePhase; }
+	float GetNightRoofChargePhaseTimer() const { return mNightRoofChargePhaseTimer; }
+	int GetNightRoofChargeRow() const { return mNightRoofChargeRow; }
+	bool IsNightRoofChargeWarning() const {
+		return mNightRoofChargePhase == NightRoofChargePhase::WARNING;
+	}
+	bool IsNightRoofChargeDischarging() const {
+		return mNightRoofChargePhase == NightRoofChargePhase::DISCHARGING;
+	}
+	/** 返回本次基础放电的 0～1 进度；非放电阶段为 0。 */
+	float GetNightRoofChargeDischargeProgress() const;
+	/** 夜间泳池场景是否拥有不依赖天气的基础迷雾。 */
 	bool SupportsStageFog() const;
-	/** 当前仅四大关抽取独立增强雾势；接口预留给未来其他地图。 */
+	/** 仅夜间泳池背景抽取独立增强雾势；资格不依赖冒险关卡号。 */
 	bool SupportsFogWeather() const;
 	bool IsPoolRow(int row) const;
 	bool IsPoolSquare(int row, int col) const;

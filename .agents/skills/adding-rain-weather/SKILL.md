@@ -44,13 +44,14 @@ description: Use when adding or tuning ANY rain-weather-dependent feature or Boa
    - 若限制语义是“每波最多 N 次”，计数只在正式 `Board::SummonNextWave()` 推进到新波时清零；`StopTyphoon()`、放晴或重新起台风都不得返还同一波额度。计数进入 Board 存档，旧字段按保守已消费量迁移。
    - 新字段能用中性默认值表示旧档时保持兼容；结构或语义变化无法只靠默认值表达时，提升 `SaveSchema::kCurrentLevelVersion`，增加逐版本迁移和 `SaveSchemaTests`。JSON 必须先升级成功，再修改 `Board`。
 6. 增加 AutoTest 可观测字段与最小脚本，覆盖晴天、目标雨势、放晴、减速/冻结组合，以及随机变异的固定种子结果。
-7. 更新 `docs/agent-memory/project_pvz_night_rain_weather.md`、对应僵尸/植物主题和 `docs/agent-memory/MEMORY.md`。
+7. 更新对应天气/场景主题、相关僵尸/植物主题和 `docs/agent-memory/MEMORY.md`。
 8. 按项目指南默认完成 `clang-release` 与范围最小的可见 AutoTest；只有主人明确要求快速迭代、PDB 或无 LTO 时才用 `clang-playtest`。仅改技能文档时无需构建游戏。
 
 ## 不可破坏的契约
 
 - `Board` 不得直接包含或访问具体 `GameScene`，也不得恢复 `mGameScene`。天气玩法状态继续由 `Board` 唯一持有；新增天气 UI 请求应扩展非拥有的 `BoardPresentation`，由 `GameScene` 实现。双方共享的天气枚举放在 `WeatherTypes.h`。
-- 新天气维度不得硬塞进 `RainIntensity`。例如四大关雾势使用独立 `FogWeatherIntensity`、阶段计时和预报；它可以在唯一交互点消费现有 `TyphoonStrength/WindDirection` 计算驱散与漂移，但雨势和雾势仍可独立抽取、持久化和测试。
+- 新天气维度不得硬塞进 `RainIntensity`。例如夜间泳池雾势使用独立 `FogWeatherIntensity`、阶段计时和预报；它可以在唯一交互点消费现有 `TyphoonStrength/WindDirection` 计算驱散与漂移，但雨势和雾势仍可独立抽取、持久化和测试。
+- 场景特殊机制的资格默认按 `Background` 判断；关卡号只用于教学解锁、关内曲线或明确的固定关卡事件。当前通用雨势是显式例外：冒险一大关关闭、2-1 起开启，白天/黑夜/泳池三种生存模式均开启；夜间泳池迷雾、昼夜屋顶径流和黑夜屋顶雷荷分别只看对应背景。
 - 地图专属积累器不属于雨势档位：由 `Board` 按地形门禁和当前雨势推进，满值时只随机一次目标行/路线；积累、阶段、倒计时和锁定结果全部入档，绘制不得重 roll。冲刷后若随机保留部分积累，应在锁定事件时预抽并保存 pending 值，结束只兑现，避免活动阶段读档改写下一轮起点。若实体能引导锁定结果，Board 只在锁定瞬间通过语义虚查询选唯一候选，并在不扩大原目标数量的前提下替换；最终 mask/路线仍是唯一事实，候选死亡或后来出生不得触发重抽。实体独享的冲刷倍率应挂在实体虚入口上乘 Board 基础速度，禁止升级成整行光环。昼夜共用同一斜坡时默认共用径流，未来夜间电荷等系统以独立状态叠加，不能因新增机制撤掉地形固有效果。多行目标优先保存 bitmask，并让 UI、世界特效、植物/僵尸结算和 AutoTest 共用同一查询接口。
 - 逐格雾 alpha 是由雾势、驱散和路灯花派生的瞬态，不入存档；读档必须等实体恢复完成后直接同步终态，禁止从全透明重新平滑生成而给退出重进留下窥屏窗口。
 - `GetRainIntensity()` 是目标档位，切档时立即改变；玩法倍率、暗幕和雨声音量再用两游戏秒平滑到目标。离散触发默认以目标档位为准。

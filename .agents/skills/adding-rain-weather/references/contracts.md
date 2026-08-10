@@ -1,6 +1,6 @@
 # 雨天天气扩展契约
 
-本文件记录截至 2026-08-03 的当前实现。动手前用文中的搜索词核实源码；当前代码优先于本文件。
+本文件记录截至 2026-08-10 的当前实现。动手前用文中的搜索词核实源码；当前代码优先于本文件。
 
 ## 目录
 
@@ -61,6 +61,11 @@ pending 并清空，不能临时重抽。`GameScene` 的累计条与坡面水膜
 只把自己的行纳入；普通地面僵尸仍承受 `-60px/s`，该实例通过 Zombie 虚倍率 `5/3` 独享
 `-100px/s`，爆胎后回到倍率 1。禁止把这一能力实现成选中行所有僵尸的公共加速。
 
+黑夜屋顶雷荷是并行的第二个积累器。`Board::UpdateNightRoofCharge` 只在 `NIGHT_ROOF` 中推进：
+晴夜每秒漏 0.5，小/中/大雨每秒积累 1/2/3，现有大雨闪电一次增加 18；满 100 后只锁定一次行，
+预警 4 秒并放电演出 0.65 秒。`nightRoofCharge/Phase/PhaseTimer/Row` 全部入档，紫色累计条、锁行节点、
+坡面折线和 AutoTest 都查询 Board 同一状态。当前基础版本不伤害或暂停实体，不得从演出反推玩法结算。
+
 环境要求植物完全暂停时，不能只让 `PlantUpdate()` 提前返回：并行阶段可能已经由 Animator 产生
 帧事件。应同时阻断 `UpdateParallel` 的事件队列，并在串行回退把 `mAdvancedInParallel` 置位，让
 `AnimatedObject::Update` 跳过本帧 Animator，再让公开行动倍率返回 0。禁止临时 `Pause/Play`：
@@ -108,7 +113,7 @@ pending 并清空，不能临时重抽。`GameScene` 的累计条与坡面水膜
 方向必须同步更新，并重新取得完整方向持续阶段、重启方向相关视觉。该入口只改方向，不改台风
 强度、阵风预算/剩余时长、已经完成的植物换格或迷雾驱散；没有台风时保持 no-op。
 
-四大关雾线分两层语义：
+夜间泳池雾线分两层语义：资格只看 `NIGHT_WATER_POOL` 背景，关卡号只负责现有冒险曲线。
 
 - `GetBaseFogLeftColumn()` 保存由关卡编号换算的原版基准。
 - `GetEffectiveFogLeftColumn()` 再应用当前平衡扩展；默认雾不扩格，小雾/普通迷雾/大雾依次多 1/2/3 格。
@@ -142,7 +147,7 @@ false，并保留目标格自身仍高 alpha 的证据。
 
 关卡 schema v3 保存雾势、预报、阶段计时、驱散和偏移。v2 的旧 `CLEAR/DENSE` 二态必须迁移
 为视觉等价的 `SMALL/DENSE`，不能把旧双层 `CLEAR` 误降为单层默认雾。v1/无版本旧档没有足够
-上下文让纯迁移函数判断是否属于四大关，因此加载端保留 `StartGame()` 已按当前 Board 建立的
+上下文让纯迁移函数判断是否属于夜间泳池背景，因此加载端保留 `StartGame()` 已按当前 Board 建立的
 原版默认雾；只有文档确实包含雾势字段时才调用 `RestoreFogState()`。
 
 `mFogCellAlpha` 不入存档，因为它由当前雾势、驱散量和路灯花照明完整派生。反序列化先恢复
@@ -161,6 +166,7 @@ Board 雾势、再恢复植物，所以 `RestoreFogState()` 只清空旧缓存�
 | 实体主动改天 | `TriggerRoofMarshalWeather` 或同类 Board 窄入口 | 实体只发请求；入口规定只升不降、同档续期与台风策略 |
 | 天气逐帧推进 | `Board::UpdateWeather` | 全局场景状态，不属于波次更新 |
 | 昼夜屋顶径流 | `Board::UpdateRoofRunoff` / `DrawRoofRunoff` | Board 持积累与行组；GameScene 只画常驻条和坡面瞬态 |
+| 黑夜屋顶雷荷 | `Board::UpdateNightRoofCharge` / `DrawNightRoofCharge` | 只看 `NIGHT_ROOF`；Board 持积累、阶段、余时和锁定行，GameScene 只画紫条与瞬态 |
 | 波次锁定复合天气 | `IsStormyNightActive` / `ActivateStormyNight` / `EnforceStormyNightWeather` | 生效条件派生；一次性资源和闪光未来状态入档 |
 | 世界天气覆盖与 Scene UI 贴图 | `GameAPP` pre-overlay hook / `Scene::DrawUITextures` | 世界粒子 → 天气覆盖 → Scene UI 贴图 → UI GameObject |
 | 僵尸天气动画倍率 | `Zombie::UpdateAnimSpeed` | 冻结 > ability × 减速 × rain |
@@ -281,13 +287,15 @@ Board 雾势、再恢复植物，所以 `RestoreFogState()` 只清空旧缓存�
 - `set_weather`：固定天气并立即完成过渡；可传 `duration`、小雨的 `canIntensify`。
 - `set_roof_runoff`：昼夜屋顶可用；`phase=IDLE/WARNING/FLOWING`，活动阶段以非空 `rows` 数组固定行组，可选 `charge/remaining/retainedCharge`；单个 `row` 只作旧脚本兼容。
 - `weather.roofRunoff`：导出 `chargePct/retainedChargePct/phase/rowMask/rowCount/rows/phaseRemainingMs/flowProgressPct/zombieDriftSpeed/guideCandidateRow/guideCandidateSelected`；植物另导出 `roofRunoffPaused`，僵尸逐体导出 `roofRunoffGuideEligible/roofRunoffDriftMultiplierOn1000/roofRunoffDriftVelocity`。
+- `set_night_roof_charge`：只对黑夜屋顶可用；`phase=CHARGING/WARNING/DISCHARGING`，活动阶段用 `row` 固定路线，可选 `charge/remaining`。
+- `weather.nightRoofCharge`：导出 `supported/chargePct/phase/row/phaseRemainingMs/dischargeProgressPct`。
 - `roofResources.rainBackgroundLoaded`：白天屋顶雨景变体已按 `IMAGE_BACKGROUND_ROOF_RAIN` 完成注册与加载。
 - `roofResources.nightRainBackgroundLoaded`：夜间屋顶雨景变体已按 `IMAGE_BACKGROUND_NIGHTROOF_RAIN` 完成注册与加载。
 - `weather.roofRainBackgroundAlpha`：昼夜屋顶雨景变体的整数 alpha；两者当前晴/小/中/大雨均为 `0/96/149/255`，非屋顶恒为 `0`。
 - `set_weather_forecast`：固定公开/真实天气和揭晓时刻。
 - `advance_weather_phase`：用权重落点强制结束雨段，并立即完成过渡。
 - `trigger_lightning`：只允许大雨；普通大雨同步播放 `SOUND_THUNDER` 并生成程序化主干/分叉；暴风雨夜改走 C# 风格全屏短闪，且不得同时激活普通局部闪电。
-- `set_fog_weather`：固定四大关 `DEFAULT/SMALL/NORMAL/DENSE` 雾势与持续时间。
+- `set_fog_weather`：固定 `NIGHT_WATER_POOL` 背景的 `DEFAULT/SMALL/NORMAL/DENSE` 雾势与持续时间。
 - `set_fog_forecast`：固定公开/真实雾势与揭晓时刻；当前雾势预报保持准确。
 - `set_fog_dispersal`：固定 `0..1` 驱散比例，供存档与渲染状态测试。
 - `set_plantern_gear` / `set_plantern_fuel` / `award_plantern_fuel`：固定挡位和燃料边界。

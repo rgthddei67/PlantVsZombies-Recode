@@ -312,6 +312,10 @@ bool GameInfoSaver::SerializeLevelDataToPath(Board* board, CardSlotManager* mana
 	j["roofRunoffPhase"] = static_cast<int>(board->mRoofRunoffPhase);
 	j["roofRunoffPhaseTimer"] = board->mRoofRunoffPhaseTimer;
 	j["roofRunoffRowMask"] = board->mRoofRunoffRowMask;
+	j["nightRoofCharge"] = board->mNightRoofCharge;
+	j["nightRoofChargePhase"] = static_cast<int>(board->mNightRoofChargePhase);
+	j["nightRoofChargePhaseTimer"] = board->mNightRoofChargePhaseTimer;
+	j["nightRoofChargeRow"] = board->mNightRoofChargeRow;
 	j["fogWeatherInitialized"] = board->mFogWeatherInitialized;
 	j["fogWeatherIntensity"] = static_cast<int>(board->mFogWeatherIntensity);
 	j["forecastFogWeatherIntensity"] =
@@ -809,6 +813,17 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 		roofRunoffPhase, j.value("roofRunoffRowMask", 0),
 		j.value("roofRunoffPhaseTimer", 0.0f),
 		j.value("roofRunoffRetainedCharge", 30.0f));
+	const int nightRoofChargePhaseValue = j.value("nightRoofChargePhase",
+		static_cast<int>(NightRoofChargePhase::CHARGING));
+	const NightRoofChargePhase nightRoofChargePhase = nightRoofChargePhaseValue
+		>= static_cast<int>(NightRoofChargePhase::CHARGING)
+		&& nightRoofChargePhaseValue <= static_cast<int>(NightRoofChargePhase::DISCHARGING)
+		? static_cast<NightRoofChargePhase>(nightRoofChargePhaseValue)
+		: NightRoofChargePhase::CHARGING;
+	// 旧档缺雷荷字段时从空积累开始；活动阶段沿用已锁定路线和倒计时，不重新抽取。
+	board->RestoreNightRoofChargeState(j.value("nightRoofCharge", 0.0f),
+		nightRoofChargePhase, j.value("nightRoofChargeRow", -1),
+		j.value("nightRoofChargePhaseTimer", 0.0f));
 	// 旧版天气存档没有该字段时按 false：少一次增强机会比读档后凭空再增强更稳妥。
 	board->mRainCanIntensify = board->mRainIntensity == RainIntensity::LIGHT
 		&& j.value("rainCanIntensify", false);

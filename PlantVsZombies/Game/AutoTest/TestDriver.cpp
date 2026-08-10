@@ -336,6 +336,11 @@ namespace {
 		{ "WARNING", RoofRunoffPhase::WARNING },
 		{ "FLOWING", RoofRunoffPhase::FLOWING },
 	};
+	const std::unordered_map<std::string, NightRoofChargePhase> kNightRoofChargePhaseNames = {
+		{ "CHARGING", NightRoofChargePhase::CHARGING },
+		{ "WARNING", NightRoofChargePhase::WARNING },
+		{ "DISCHARGING", NightRoofChargePhase::DISCHARGING },
+	};
 
 	const std::unordered_map<std::string, Uint8> kMouseButtonNames = {
 		{ "left", SDL_BUTTON_LEFT }, { "right", SDL_BUTTON_RIGHT },
@@ -413,6 +418,10 @@ namespace {
 	}
 	std::string RoofRunoffPhaseName(RoofRunoffPhase phase) {
 		for (const auto& [k, v] : kRoofRunoffPhaseNames) if (v == phase) return k;
+		return "UNKNOWN";
+	}
+	std::string NightRoofChargePhaseName(NightRoofChargePhase phase) {
+		for (const auto& [k, v] : kNightRoofChargePhaseNames) if (v == phase) return k;
 		return "UNKNOWN";
 	}
 	std::string PlayStateName(PlayState s) {
@@ -820,6 +829,23 @@ bool TestDriver::ExecuteCurrent() {
 				rowMask, cmd.value("remaining", 0.0f),
 				cmd.value("retainedCharge", 45.0f))) {
 			Fail("set_roof_runoff: 仅昼夜屋顶可用；phase 必须为 IDLE/WARNING/FLOWING，活动阶段须提供非空合法 rows");
+			return false;
+		}
+		return true;
+	}
+	if (op == "set_night_roof_charge") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) {
+			Fail("set_night_roof_charge: 不在 GameScene 或 Board 为空");
+			return false;
+		}
+		auto phaseIt = kNightRoofChargePhaseNames.find(
+			cmd.value("phase", "CHARGING"));
+		if (phaseIt == kNightRoofChargePhaseNames.end()
+			|| !gs->GetBoard()->SetNightRoofChargeForTesting(
+				cmd.value("charge", 0.0f), phaseIt->second,
+				cmd.value("row", -1), cmd.value("remaining", 0.0f))) {
+			Fail("set_night_roof_charge: 仅黑夜屋顶可用；phase 必须为 CHARGING/WARNING/DISCHARGING，活动阶段须提供合法 row");
 			return false;
 		}
 		return true;
@@ -3084,6 +3110,17 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "zombieDriftSpeed", static_cast<int>(std::lround(
 				board->GetRoofRunoffZombieDriftVelocity(
 					firstRunoffRow, board->GetRoofSlopeEndX() - 1.0f))) },
+		};
+		out["weather"]["nightRoofCharge"] = {
+			{ "supported", board->SupportsNightRoofCharge() },
+			{ "chargePct", static_cast<int>(std::lround(
+				board->GetNightRoofChargeRatio() * 100.0f)) },
+			{ "phase", NightRoofChargePhaseName(board->GetNightRoofChargePhase()) },
+			{ "row", board->GetNightRoofChargeRow() },
+			{ "phaseRemainingMs", static_cast<int>(std::lround(
+				board->GetNightRoofChargePhaseTimer() * 1000.0f)) },
+			{ "dischargeProgressPct", static_cast<int>(std::lround(
+				board->GetNightRoofChargeDischargeProgress() * 100.0f)) },
 		};
 	}
 	out["prompts"] = {

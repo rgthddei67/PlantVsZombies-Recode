@@ -40,3 +40,10 @@ enum class RoofRunoffPhase {
 	WARNING,
 	FLOWING
 };
+
+/** 黑夜屋顶独立雷荷阶段；CHARGING 时电荷随雨势积累或在晴夜泄漏。 */
+enum class NightRoofChargePhase {
+	CHARGING,
+	WARNING,
+	DISCHARGING
+};

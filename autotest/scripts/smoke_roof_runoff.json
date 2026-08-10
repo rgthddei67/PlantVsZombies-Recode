@@ -6,7 +6,7 @@
     { "op": "wait_state", "state": "GAME", "timeout": 15 },
     { "op": "set_spawn_paused", "value": true },
     { "op": "set_sun", "value": 9000 },
-    { "op": "wait_seconds", "value": 0.5 },
+    { "op": "wait_seconds", "value": 0.8 },
     { "op": "assert_state", "path": "weather.panelSlidePct", "equals": 100 },
     { "op": "assert_state", "path": "weather.roofRunoff.supported", "equals": true },
     { "op": "assert_state", "path": "weather.roofRunoff.phase", "equals": "IDLE" },
@@ -66,7 +66,7 @@
 	{ "op": "assert_state", "path": "weather.roofRunoff.retainedChargePct", "equals": 0 },
     { "op": "assert_state", "path": "topPlantsByCell.1_1.roofRunoffPaused", "equals": false },
 
-    { "op": "goto_level", "level": 45, "background": "NIGHT_ROOF" },
+    { "op": "goto_level", "level": 46 },
     { "op": "assert_state", "path": "background", "equals": "NIGHT_ROOF" },
 	{ "op": "choose_cards", "cards": ["PLANT_PEASHOOTER"] },
 	{ "op": "wait_state", "state": "GAME", "timeout": 15 },

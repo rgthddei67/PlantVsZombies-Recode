@@ -608,6 +608,9 @@ Background GameAPP::GetBackgroundID(int level) const
 	case 5:
 		// 第五大关完整使用白天屋顶；5-9 的 BOSS 槽位不再通过切夜景表达。
 		return Background::ROOF;
+	case 6:
+		// 第六大关完整使用黑夜屋顶；雷荷与坡面径流均由场景能力自动启用。
+		return Background::NIGHT_ROOF;
 	default:
 		return Background::GROUND_DAY;
 	}

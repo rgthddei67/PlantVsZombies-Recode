@@ -50,6 +50,8 @@ namespace {
 	constexpr float kRoofRunoffSlopeStartX = CELL_INITALIZE_POS_X; // 径流世界特效从房屋侧第一列边缘开始
 	constexpr float kRoofRunoffSheetSliceWidth = 4.0f;    // 水膜按窄竖片贴合连续坡面，单位像素；片间重叠避免出现轮廓线
 	constexpr float kRoofRunoffDropletTravelPerFlow = 240.0f; // 单次冲刷期间零散水珠朝屋檐行进的视觉距离，单位像素
+	constexpr int kNightRoofChargeRouteSegments = 18;      // 导电瓦路放电折线的分段数，越高越贴合连续坡面
+	constexpr float kNightRoofChargeRouteInsetX = 18.0f;   // 导电瓦路相对左右屋顶网格边缘的视觉内缩，单位像素
 	constexpr float kStormyNightColorR = 224.0f;          // “暴风雨”预报与当前天气的紫红强调色 R
 	constexpr float kStormyNightColorG = 70.0f;           // “暴风雨”预报与当前天气的紫红强调色 G
 	constexpr float kStormyNightColorB = 158.0f;          // “暴风雨”预报与当前天气的紫红强调色 B
@@ -254,6 +256,13 @@ namespace {
 		return hasRow ? result + u8"行" : std::string(u8"未知行");
 	}
 
+	/** 把黑夜屋顶锁定导电瓦路格式化为简短面板文案。 */
+	std::string NightRoofChargeRowDisplayName(const Board* board) {
+		if (!board || board->GetNightRoofChargeRow() < 0) return u8"未知行";
+		return std::string(u8"第")
+			+ std::to_string(board->GetNightRoofChargeRow() + 1) + u8"行";
+	}
+
 	/** 返回各档天气在面板上的强调色，并保留调用方提供的透明度。 */
 	glm::vec4 RainIntensityTextColor(RainIntensity intensity, float alpha) {
 		switch (intensity) {
@@ -305,6 +314,7 @@ namespace {
 			height += kWeatherPanelDetailLineHeight;
 		}
 		if (board->SupportsRoofRunoff()) height += kWeatherPanelGaugeLineHeight;
+		if (board->SupportsNightRoofCharge()) height += kWeatherPanelGaugeLineHeight;
 		if (board->HasTyphoon()) height += kWeatherPanelDetailLineHeight;
 		return height;
 	}
@@ -478,6 +488,7 @@ void GameScene::DrawWorldOverlay(Graphics* g)
 		}
 		return;
 	}
+	DrawNightRoofCharge(g);
 	DrawLightningStrike(g);
 }
 
@@ -577,6 +588,86 @@ void GameScene::DrawRoofRunoff(Graphics* g) const
 			g->FillCircle(kRoofRunoffSlopeStartX - 5.0f - splash * 7.0f,
 				eaveY - 14.0f + splash * 13.0f + wobble * 4.0f,
 				3.0f + splash, glm::vec4(139.0f, 235.0f, 255.0f, 105.0f), 12);
+		}
+	}
+	g->SetBlendMode(previousBlend);
+}
+
+/**
+ * 雷荷预警以离散瓦片节点表达锁定路线，避免长期覆盖战场；正式放电才用短暂折线沿平台和坡面
+ * 贯穿到屋檐。全部抖动由锁定行、分段编号和 Board 帧派生，不保存第二份玩法状态。
+ */
+void GameScene::DrawNightRoofCharge(Graphics* g) const
+{
+	if (!g || !mBoard || !mBoard->SupportsNightRoofCharge()) return;
+	const int row = mBoard->GetNightRoofChargeRow();
+	if (row < 0 || row >= mBoard->mRows) return;
+	if (!mBoard->IsNightRoofChargeWarning()
+		&& !mBoard->IsNightRoofChargeDischarging()) return;
+
+	const float leftX = CELL_INITALIZE_POS_X + kNightRoofChargeRouteInsetX;
+	const float rightX = CELL_INITALIZE_POS_X
+		+ static_cast<float>(mBoard->mColumns) * CELL_COLLIDER_SIZE_X
+		- kNightRoofChargeRouteInsetX;
+	const BlendMode previousBlend = g->GetBlendMode();
+	g->SetBlendMode(BlendMode::Add);
+
+	if (mBoard->IsNightRoofChargeWarning()) {
+		const float pulse = 0.62f + 0.38f * std::sin(
+			static_cast<float>(mBoard->mBoardFrame) * 0.18f);
+		for (int column = 0; column < mBoard->mColumns; ++column) {
+			const float x = CELL_INITALIZE_POS_X
+				+ (static_cast<float>(column) + 0.5f) * CELL_COLLIDER_SIZE_X;
+			const float y = mBoard->GetRowCenterYAtX(row, x);
+			const float stagger = 0.72f + 0.28f * std::sin(
+				static_cast<float>(mBoard->mBoardFrame) * 0.13f
+				+ static_cast<float>(column) * 1.7f);
+			g->FillCircle(x, y, 7.5f,
+				glm::vec4(142.0f, 99.0f, 255.0f, 25.0f * pulse * stagger), 18);
+			g->FillCircle(x, y, 2.5f,
+				glm::vec4(222.0f, 212.0f, 255.0f, 135.0f * pulse * stagger), 12);
+			// 每隔数帧只让少量节点分叉一下，提示通电而不画成长时间常亮直线。
+			if ((mBoard->mBoardFrame / 5 + column * 3 + row) % 7 == 0) {
+				g->DrawLine(x - 7.0f, y + 1.0f, x - 1.0f, y - 5.0f,
+					glm::vec4(183.0f, 163.0f, 255.0f, 118.0f));
+				g->DrawLine(x - 1.0f, y - 5.0f, x + 5.0f, y + 3.0f,
+					glm::vec4(237.0f, 229.0f, 255.0f, 170.0f));
+			}
+		}
+		g->SetBlendMode(previousBlend);
+		return;
+	}
+
+	const float progress = mBoard->GetNightRoofChargeDischargeProgress();
+	const float mainPulse = std::exp(-progress * 7.5f);
+	const float returnPulse = progress >= 0.34f
+		? 0.72f * std::exp(-(progress - 0.34f) * 9.0f) : 0.0f;
+	const float pulse = std::clamp(std::max(mainPulse, returnPulse), 0.0f, 1.0f);
+	if (pulse > 0.005f) {
+		glm::vec2 previous(rightX, mBoard->GetRowCenterYAtX(row, rightX));
+		for (int segment = 1; segment <= kNightRoofChargeRouteSegments; ++segment) {
+			const float routeProgress = static_cast<float>(segment)
+				/ static_cast<float>(kNightRoofChargeRouteSegments);
+			const float x = rightX + (leftX - rightX) * routeProgress;
+			uint32_t hash = static_cast<uint32_t>((row + 1) * 2246822519u)
+				^ static_cast<uint32_t>(segment * 3266489917u);
+			hash ^= hash >> 15;
+			const float unit = static_cast<float>(hash & 0xFFFFu) / 65535.0f;
+			const float endpointFactor = std::sin(routeProgress * 3.14159265f);
+			const float y = mBoard->GetRowCenterYAtX(row, x)
+				+ (unit * 2.0f - 1.0f) * 13.0f * endpointFactor;
+			const glm::vec2 current(x, y);
+			DrawLightningSegment(g, previous, current,
+				4.0f, 26.0f * pulse, 210.0f * pulse);
+			previous = current;
+		}
+
+		for (int column = 0; column < mBoard->mColumns; ++column) {
+			const float x = CELL_INITALIZE_POS_X
+				+ (static_cast<float>(column) + 0.5f) * CELL_COLLIDER_SIZE_X;
+			g->FillCircle(x, mBoard->GetRowCenterYAtX(row, x),
+				5.0f + 3.0f * pulse,
+				glm::vec4(190.0f, 166.0f, 255.0f, 92.0f * pulse), 18);
 		}
 	}
 	g->SetBlendMode(previousBlend);
@@ -773,6 +864,32 @@ void GameScene::DrawWeatherPanel(Graphics* g) const
 		DrawWeatherAccumulationGauge(g, textX, detailLineY, runoffLine,
 			mBoard->GetRoofRunoffChargeRatio(),
 			glm::vec4(76.0f, 218.0f, 255.0f, alpha * warningPulse), eased);
+		detailLineY += kWeatherPanelGaugeLineHeight;
+	}
+
+	if (mBoard->SupportsNightRoofCharge()) {
+		const int chargePercent = static_cast<int>(std::lround(
+			mBoard->GetNightRoofChargeRatio() * 100.0f));
+		std::string chargeLine = std::string(u8"屋顶雷荷：")
+			+ std::to_string(chargePercent) + "%";
+		if (mBoard->IsNightRoofChargeWarning()) {
+			const int seconds = std::max(0,
+				static_cast<int>(std::ceil(mBoard->GetNightRoofChargePhaseTimer())));
+			chargeLine = std::string(u8"屋顶雷荷：")
+				+ NightRoofChargeRowDisplayName(mBoard.get())
+				+ u8"预警（" + std::to_string(seconds) + u8"秒）";
+		}
+		else if (mBoard->IsNightRoofChargeDischarging()) {
+			chargeLine = std::string(u8"屋顶雷荷：")
+				+ NightRoofChargeRowDisplayName(mBoard.get()) + u8"放电中";
+		}
+		const float warningPulse = (mBoard->IsNightRoofChargeWarning()
+			|| mBoard->IsNightRoofChargeDischarging())
+			? 0.72f + 0.28f * std::sin(static_cast<float>(mBoard->mBoardFrame) * 0.20f)
+			: 1.0f;
+		DrawWeatherAccumulationGauge(g, textX, detailLineY, chargeLine,
+			mBoard->GetNightRoofChargeRatio(),
+			glm::vec4(192.0f, 136.0f, 255.0f, alpha * warningPulse), eased);
 		detailLineY += kWeatherPanelGaugeLineHeight;
 	}
 

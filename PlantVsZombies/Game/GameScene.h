@@ -212,6 +212,8 @@ private:
 	void DrawRoofRainBackground(Graphics* g);
 	/** 在世界层绘制已锁定径流行的预警边界或顺坡水痕。 */
 	void DrawRoofRunoff(Graphics* g) const;
+	/** 在世界层绘制黑夜屋顶已锁定导电瓦路的预警节点或基础放电。 */
+	void DrawNightRoofCharge(Graphics* g) const;
 	void UpdateWeatherUi(float deltaTime);
 	void DrawFog(Graphics* g) const;
 	void DrawWeatherPanel(Graphics* g) const;

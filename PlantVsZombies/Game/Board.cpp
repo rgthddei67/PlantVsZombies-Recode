@@ -106,8 +106,8 @@ namespace {
 	constexpr float kHeavyRainPromptLeadTime = 5.0f;     // 真正进入新大雨前弹出分级文字警报的提前量（游戏秒）
 	constexpr int kWeatherForecastAccuracyPercent = 75;  // 前期天气预警准确率（百分比）
 	constexpr int kLateWeatherForecastAccuracyPercent = 95; // 满压力天气预警准确率上限（百分比）
-	constexpr float kFirstFogWeatherDelayMin = 45.0f;    // 四大关开局到首次独立雾势抽取的最短游戏秒
-	constexpr float kFirstFogWeatherDelayMax = 70.0f;    // 四大关开局到首次独立雾势抽取的最长游戏秒
+	constexpr float kFirstFogWeatherDelayMin = 45.0f;    // 夜间泳池开局到首次独立雾势抽取的最短游戏秒
+	constexpr float kFirstFogWeatherDelayMax = 70.0f;    // 夜间泳池开局到首次独立雾势抽取的最长游戏秒
 	constexpr float kDefaultFogWeatherDurationMin = 50.0f; // 原版默认雾休整阶段的最短持续游戏秒
 	constexpr float kDefaultFogWeatherDurationMax = 80.0f; // 原版默认雾休整阶段的最长持续游戏秒
 	constexpr float kLateDefaultFogWeatherDurationMin = 20.0f; // 满压力后默认雾休整的最短游戏秒
@@ -115,7 +115,7 @@ namespace {
 	constexpr float kElevatedFogWeatherDurationMin = 35.0f; // 小雾、普通迷雾或大雾事件的最短持续游戏秒
 	constexpr float kElevatedFogWeatherDurationMax = 55.0f; // 小雾、普通迷雾或大雾事件的最长持续游戏秒
 	constexpr float kFogWeatherForecastLeadTime = 15.0f; // 独立雾势揭晓前展示预报的游戏秒
-	constexpr int kDenseFogChancePercent = 45;           // 四大关前期每次雾势抽取进入大雾的概率
+	constexpr int kDenseFogChancePercent = 45;           // 夜间泳池前期每次雾势抽取进入大雾的概率
 	constexpr int kLateDenseFogChancePercent = 85;       // 满压力时每次雾势抽取进入大雾的概率
 	constexpr int kSmallFogColumnExpansion = 1;          // 小雾相对原版雾线向房屋方向额外覆盖的棋盘列数
 	constexpr int kNormalFogColumnExpansion = 2;         // 普通迷雾相对原版雾线向房屋方向额外覆盖的棋盘列数
@@ -249,6 +249,14 @@ namespace {
 	constexpr int kRoofRunoffOneRowWeight = 50;           // 满积累事件只冲刷一行的相对权重
 	constexpr int kRoofRunoffTwoRowWeight = 35;           // 满积累事件同时冲刷两行的相对权重
 	constexpr int kRoofRunoffThreeRowWeight = 15;         // 满积累事件同时冲刷三行的相对权重
+	constexpr float kNightRoofChargeMaximum = 100.0f;     // 黑夜屋顶进入导电瓦路预警所需的满电值
+	constexpr float kNightRoofChargeLightPerSecond = 1.0f; // 小雨每游戏秒增加的黑夜屋顶电荷点数
+	constexpr float kNightRoofChargeMediumPerSecond = 2.0f; // 中雨每游戏秒增加的黑夜屋顶电荷点数
+	constexpr float kNightRoofChargeHeavyPerSecond = 3.0f; // 大雨每游戏秒增加的黑夜屋顶电荷点数
+	constexpr float kNightRoofChargeClearLeakPerSecond = 0.5f; // 晴夜每游戏秒自然泄漏的黑夜屋顶电荷点数
+	constexpr float kNightRoofChargeLightningBonus = 18.0f; // 现有大雨闪电为黑夜屋顶一次注入的电荷点数
+	constexpr float kNightRoofChargeWarningDuration = 4.0f; // 满电锁定导电瓦路后的预警游戏秒数
+	constexpr float kNightRoofChargeDischargeDuration = 0.65f; // 基础坡面放电的可见游戏秒数
 	constexpr float kLightningDelayMin = 3.5f;           // 大雨开始后首次闪电的最短等待时间（秒）
 	constexpr float kLightningDelayMax = 7.0f;           // 大雨开始后首次闪电的最长等待时间（秒）
 	constexpr float kLightningRepeatMin = 5.0f;          // 大雨中两次闪电的最短间隔（秒）
@@ -1363,7 +1371,7 @@ void Board::InitializeWeather()
 	if (mWeatherInitialized) return;
 	// 主进度由“当前雨势 + 一个复用倒计时”驱动：CLEAR 时倒计时代表距首场雨/下一场雨，
 	// 下雨时则代表当前雨段剩余时间；另用布尔值记录初始小雨是否还拥有一次增强资格。
-	// 第一大关与白天无尽把倒计时保持为 0；冒险第二大关起均启用天气。
+	// 第一大关把倒计时保持为 0；冒险第二大关起及三种生存地图均启用天气。
 	mWeatherInitialized = true;
 	mRainIntensity = RainIntensity::CLEAR;
 	mPreviousRainIntensity = RainIntensity::CLEAR;
@@ -1385,13 +1393,17 @@ void Board::InitializeWeather()
 	mRoofRunoffPhase = RoofRunoffPhase::IDLE;
 	mRoofRunoffPhaseTimer = 0.0f;
 	mRoofRunoffRowMask = 0;
+	mNightRoofCharge = 0.0f;
+	mNightRoofChargePhase = NightRoofChargePhase::CHARGING;
+	mNightRoofChargePhaseTimer = 0.0f;
+	mNightRoofChargeRow = -1;
 	StopTyphoon();
 	mWeatherTimer = SupportsWeather()
 		? GameRandom::Range(kFirstRainDelayMin, kFirstRainDelayMax)
 		: 0.0f;
 }
 
-/** 初始化四大关独立雾势；基础雾由关卡号派生，不占用随机天气枚举。 */
+/** 初始化夜间泳池背景的独立雾势；基础雾线仍可由关内进度调节。 */
 void Board::InitializeFogWeather()
 {
 	const bool supportsFog = SupportsStageFog();
@@ -1586,7 +1598,7 @@ void Board::UpdateFogCellAlpha(float deltaTime, bool snapToTarget)
 	}
 }
 
-/** 推进四大关雾势、台风驱散与纹理呼吸；不支持迷雾的地图保持零开销。 */
+/** 推进夜间泳池雾势、台风驱散与纹理呼吸；其他背景保持零开销。 */
 void Board::UpdateFog(float deltaTime)
 {
 	if (!mFogWeatherInitialized || deltaTime <= 0.0f || !SupportsStageFog()) return;
@@ -2679,6 +2691,8 @@ void Board::EndRain()
 void Board::TriggerLightning()
 {
 	if (mRainIntensity != RainIntensity::HEAVY) return;
+	// 黑夜屋顶把现有大雨闪电作为独立雷荷的一次增量；不改变雨势或坡面径流。
+	AddNightRoofCharge(kNightRoofChargeLightningBonus);
 	if (IsStormyNightActive()) {
 		// 暴风雨夜复用原版全屏短闪，不再叠加普通大雨的程序化闪电路径。
 		mStormyNightFlashPattern = 3;
@@ -2833,10 +2847,125 @@ void Board::RestoreRoofRunoffState(float charge, RoofRunoffPhase phase,
 		static_cast<float>(kRoofRunoffRetainedChargeMax));
 }
 
+/** 满电时只抽取一次导电瓦路；预警、放电和读档都沿用同一锁定行。 */
+void Board::BeginNightRoofChargeWarning()
+{
+	if (!SupportsNightRoofCharge()
+		|| mNightRoofChargePhase != NightRoofChargePhase::CHARGING
+		|| mRows <= 0) return;
+	mNightRoofCharge = kNightRoofChargeMaximum;
+	mNightRoofChargePhase = NightRoofChargePhase::WARNING;
+	mNightRoofChargePhaseTimer = kNightRoofChargeWarningDuration;
+	mNightRoofChargeRow = GameRandom::Range(0, mRows - 1);
+}
+
+/** 统一接收雨势与自然闪电增量，保证跨阈值时路线只锁定一次。 */
+void Board::AddNightRoofCharge(float amount)
+{
+	if (!SupportsNightRoofCharge()
+		|| mNightRoofChargePhase != NightRoofChargePhase::CHARGING
+		|| amount <= 0.0f || !std::isfinite(amount)) return;
+	mNightRoofCharge = std::clamp(mNightRoofCharge + amount,
+		0.0f, kNightRoofChargeMaximum);
+	if (mNightRoofCharge >= kNightRoofChargeMaximum) {
+		BeginNightRoofChargeWarning();
+	}
+}
+
+/**
+ * 黑夜屋顶雷荷与径流并行推进。当前基础版只完成锁路与可见放电，
+ * 不在这里结算植物、僵尸或花盆，后续玩法统一接入放电转换节点。
+ */
+void Board::UpdateNightRoofCharge(float deltaTime)
+{
+	if (!SupportsNightRoofCharge()) {
+		mNightRoofCharge = 0.0f;
+		mNightRoofChargePhase = NightRoofChargePhase::CHARGING;
+		mNightRoofChargePhaseTimer = 0.0f;
+		mNightRoofChargeRow = -1;
+		return;
+	}
+	if (deltaTime <= 0.0f) return;
+
+	if (mNightRoofChargePhase == NightRoofChargePhase::WARNING
+		|| mNightRoofChargePhase == NightRoofChargePhase::DISCHARGING) {
+		mNightRoofChargePhaseTimer = std::max(0.0f,
+			mNightRoofChargePhaseTimer - deltaTime);
+		if (mNightRoofChargePhaseTimer > 0.0f) return;
+
+		if (mNightRoofChargePhase == NightRoofChargePhase::WARNING) {
+			mNightRoofChargePhase = NightRoofChargePhase::DISCHARGING;
+			mNightRoofChargePhaseTimer = kNightRoofChargeDischargeDuration;
+			AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_THUNDER,
+				kThunderSoundVolume);
+			return;
+		}
+
+		mNightRoofCharge = 0.0f;
+		mNightRoofChargePhase = NightRoofChargePhase::CHARGING;
+		mNightRoofChargePhaseTimer = 0.0f;
+		mNightRoofChargeRow = -1;
+		return;
+	}
+
+	float chargeDelta = 0.0f;
+	switch (mRainIntensity) {
+	case RainIntensity::CLEAR:
+		chargeDelta = -kNightRoofChargeClearLeakPerSecond;
+		break;
+	case RainIntensity::LIGHT:
+		chargeDelta = kNightRoofChargeLightPerSecond;
+		break;
+	case RainIntensity::MEDIUM:
+		chargeDelta = kNightRoofChargeMediumPerSecond;
+		break;
+	case RainIntensity::HEAVY:
+		chargeDelta = kNightRoofChargeHeavyPerSecond;
+		break;
+	}
+	if (chargeDelta > 0.0f) {
+		AddNightRoofCharge(chargeDelta * deltaTime);
+	}
+	else {
+		mNightRoofCharge = std::clamp(mNightRoofCharge
+			+ chargeDelta * deltaTime, 0.0f, kNightRoofChargeMaximum);
+	}
+}
+
+/** 校验并恢复黑夜屋顶雷荷；损坏组合和其他背景都回到中性积累状态。 */
+void Board::RestoreNightRoofChargeState(float charge, NightRoofChargePhase phase,
+	int row, float phaseTimer)
+{
+	mNightRoofCharge = 0.0f;
+	mNightRoofChargePhase = NightRoofChargePhase::CHARGING;
+	mNightRoofChargePhaseTimer = 0.0f;
+	mNightRoofChargeRow = -1;
+	if (!SupportsNightRoofCharge() || !std::isfinite(charge)
+		|| !std::isfinite(phaseTimer)) return;
+
+	mNightRoofCharge = std::clamp(charge, 0.0f, kNightRoofChargeMaximum);
+	if (phase == NightRoofChargePhase::CHARGING) return;
+	if ((phase != NightRoofChargePhase::WARNING
+		&& phase != NightRoofChargePhase::DISCHARGING)
+		|| row < 0 || row >= mRows || phaseTimer < 0.0f) {
+		mNightRoofCharge = 0.0f;
+		return;
+	}
+	mNightRoofCharge = kNightRoofChargeMaximum;
+	mNightRoofChargePhase = phase;
+	mNightRoofChargePhaseTimer = std::clamp(phaseTimer, 0.0f,
+		phase == NightRoofChargePhase::WARNING
+			? kNightRoofChargeWarningDuration : kNightRoofChargeDischargeDuration);
+	mNightRoofChargeRow = row;
+}
+
 void Board::UpdateWeather(float deltaTime)
 {
-	if (!mWeatherInitialized || deltaTime <= 0.0f || !SupportsWeather()) return;
+	if (!mWeatherInitialized || deltaTime <= 0.0f) return;
+	// 场景积累器只由背景资格决定；通用天气的冒险进度门槛不能反向关闭屋顶固有机制。
 	UpdateRoofRunoff(deltaTime);
+	UpdateNightRoofCharge(deltaTime);
+	if (!SupportsWeather()) return;
 	if (IsStormyNightActive()) {
 		EnforceStormyNightWeather();
 		UpdateWeatherTransition(deltaTime);
@@ -3084,6 +3213,28 @@ bool Board::SetRoofRunoffForTesting(float charge, RoofRunoffPhase phase,
 	return mRoofRunoffPhase == phase;
 }
 
+bool Board::SetNightRoofChargeForTesting(float charge, NightRoofChargePhase phase,
+	int row, float phaseTimer)
+{
+	if (!SupportsNightRoofCharge() || !std::isfinite(charge)
+		|| !std::isfinite(phaseTimer)) return false;
+	if (phase == NightRoofChargePhase::WARNING
+		|| phase == NightRoofChargePhase::DISCHARGING) {
+		if (row < 0 || row >= mRows) return false;
+		if (phaseTimer <= 0.0f) {
+			phaseTimer = phase == NightRoofChargePhase::WARNING
+				? kNightRoofChargeWarningDuration
+				: kNightRoofChargeDischargeDuration;
+		}
+	}
+	else {
+		row = -1;
+		phaseTimer = 0.0f;
+	}
+	RestoreNightRoofChargeState(charge, phase, row, phaseTimer);
+	return mNightRoofChargePhase == phase;
+}
+
 void Board::TriggerRainGroundSplashForTesting()
 {
 	TriggerRainGroundSplash();
@@ -3133,7 +3284,9 @@ float Board::GetMowerTerrainY(int row, float worldX) const
 
 bool Board::SupportsWeather() const
 {
-	if (mLevel == SURVIVAL_ENDLESS_NIGHT_LEVEL
+	// 基础天气保留唯一的进度门槛：正式一大关不启用；三种无尽地图均独立启用。
+	if (mLevel == SURVIVAL_ENDLESS_LEVEL
+		|| mLevel == SURVIVAL_ENDLESS_NIGHT_LEVEL
 		|| mLevel == SURVIVAL_ENDLESS_POOL_LEVEL) return true;
 	return AdventureProgression::IsAdventureLevel(mLevel)
 		&& AdventureProgression::GetAreaNumber(mLevel) >= 2;
@@ -3141,7 +3294,12 @@ bool Board::SupportsWeather() const
 
 bool Board::SupportsRoofRunoff() const
 {
-	return IsRoofBackground() && SupportsWeather();
+	return IsRoofBackground();
+}
+
+bool Board::SupportsNightRoofCharge() const
+{
+	return mBackGround == Background::NIGHT_ROOF;
 }
 
 float Board::GetRoofRunoffZombieDriftVelocity(int row, float worldX) const
@@ -3167,11 +3325,17 @@ float Board::GetRoofRunoffFlowProgress() const
 		0.0f, 1.0f);
 }
 
+float Board::GetNightRoofChargeDischargeProgress() const
+{
+	if (!IsNightRoofChargeDischarging()) return 0.0f;
+	return std::clamp(1.0f
+		- mNightRoofChargePhaseTimer / kNightRoofChargeDischargeDuration,
+		0.0f, 1.0f);
+}
+
 bool Board::SupportsStageFog() const
 {
-	return mBackGround == Background::NIGHT_WATER_POOL
-		&& AdventureProgression::IsAdventureLevel(mLevel)
-		&& AdventureProgression::GetAreaNumber(mLevel) == 4;
+	return mBackGround == Background::NIGHT_WATER_POOL;
 }
 
 bool Board::SupportsPlanternMechanics() const
@@ -3182,7 +3346,7 @@ bool Board::SupportsPlanternMechanics() const
 
 bool Board::SupportsFogWeather() const
 {
-	// 首版只改变正在建设的四大关；以后其他地图接入时保持雨势与雾势两个独立开关。
+	// 雾势资格由场景背景决定；雨势与雾势仍保持两个独立开关。
 	return SupportsStageFog();
 }
 
@@ -5187,7 +5351,7 @@ void Board::Update()
 	}
 	// 天气属于整片场景而非波次逻辑：生存轮间也自然推进；暂停时 dt=0 与粒子同步冻结。
 	UpdateWeather(DeltaTime::GetDeltaTime());
-	// 四大关迷雾与雨势正交，但同样使用游戏时间并消费更新后的台风强度和实时风向。
+	// 夜间泳池迷雾与雨势正交，但同样使用游戏时间并消费更新后的台风强度和实时风向。
 	UpdateFog(DeltaTime::GetDeltaTime());
 	UpdateIceTrails(DeltaTime::GetDeltaTime());
 	CleanupExpiredObjects();
@@ -5232,7 +5396,7 @@ void Board::StartGame()
 
 /**
  * 按 C# CutScene.AddFlowerPots 的列优先顺序，为新开的屋顶冒险关铺设初始花盆。
- * 当前九关制把原版 5-1/5-2/后续关卡的 5/4/3 列规则映射到内部 37/38/39～45。
+ * 当前九关制把原版 5-1/5-2/后续屋顶关的 5/4/3 列规则映射到内部 37/38/39～54。
  */
 void Board::InitializeStartingFlowerPots()
 {

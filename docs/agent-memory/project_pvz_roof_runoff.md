@@ -8,10 +8,10 @@ metadata:
 
 # 昼夜屋顶坡面径流
 
-## 当前实现（2026-08-08）
+## 当前实现（2026-08-10）
 
 - `Background::ROOF` 与 `Background::NIGHT_ROOF` 共用径流；触发根因是屋顶斜坡与降雨，不按
-  昼夜拆分。第六大关未来的雷荷是叠加系统：径流继续冲刷，电荷另管导电瓦路和放电。
+  昼夜拆分。黑夜屋顶雷荷是独立叠加系统：径流继续冲刷，电荷另管导电瓦路和放电。
 - `Board` 唯一持有 0～100 积累、`IDLE/WARNING/FLOWING` 阶段、阶段余时和锁定行 bitmask。
   小/中/大雨每游戏秒增加 `1.00/2.00/3.50`，晴天每游戏秒排走 `0.30`；首次从 0 满值
   约需 `100/50/29` 游戏秒。
@@ -30,8 +30,8 @@ metadata:
 
 ## 展示与持久化
 
-- 天气展板在支持天气的实战中常驻；径流使用可复用累计条。当前青色用于径流；未来夜屋顶电荷
-  复用同一规格的另一颜色进度条，两条状态各自独立。
+- 天气展板在支持天气的实战中常驻；径流使用青色累计条，夜屋顶雷荷复用同一规格的紫色进度条，
+  两条状态各自独立。
 - 活动阶段显示完整行组，例如“第2、4行预警/冲刷中”。世界特效按
   `Board::GetRowCenterYAtX` 贴合坡面：预警用稀疏湿润光点；冲刷用无描边低透明水膜、少量移动
   水珠和各行屋檐飞溅。不要恢复成大量贯穿或规则短线，静帧会显得像轨迹覆盖层。
@@ -41,9 +41,8 @@ metadata:
   `row` 仅为旧脚本兼容。dump 导出 `chargePct/retainedChargePct/phase/rowMask/rowCount/rows`，
   以及 `phaseRemainingMs/flowProgressPct/zombieDriftSpeed/guideCandidateRow/guideCandidateSelected`；僵尸逐体
   导出 `roofRunoffGuideEligible/roofRunoffDriftMultiplierOn1000/roofRunoffDriftVelocity`。
-- 2026-08-09 起正式冒险 5-9 改为白天 `ROOF`；`NIGHT_ROOF` 仍保留完整实现供未来第六大关使用。
-  现有夜屋顶专项通过 AutoTest-only 的 `goto_level.background=NIGHT_ROOF` 覆盖继续运行，不能据此
-  推断当前玩家流程存在夜屋顶关卡。
+- 正式冒险 5-1～5-9 使用白天 `ROOF`，6-1～6-9（内部 46～54）使用 `NIGHT_ROOF`；径流资格只看
+  背景，不再按关卡号判断。`smoke_roof_runoff.json` 的夜屋顶段直接进入正式 6-1，不依赖背景覆盖。
 
 ## 验证证据
 

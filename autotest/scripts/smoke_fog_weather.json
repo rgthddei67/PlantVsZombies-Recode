@@ -10,6 +10,18 @@
     { "op": "assert_state", "path": "fog.visibleCells", "equals": 0 },
     { "op": "assert_state", "path": "fog.texturePartsLoaded", "equals": 8 },
 
+    { "op": "goto_level", "level": 1, "background": "NIGHT_WATER_POOL", "resetTestState": true },
+    { "op": "choose_cards", "cards": ["PLANT_PEASHOOTER"] },
+    { "op": "wait_state", "state": "GAME", "timeout": 15 },
+    { "op": "set_spawn_paused", "value": true },
+    { "op": "wait_seconds", "value": 2.0, "timeout": 4 },
+    { "op": "assert_state", "path": "background", "equals": "NIGHT_WATER_POOL" },
+    { "op": "assert_state", "path": "weather.intensity", "equals": "CLEAR" },
+    { "op": "assert_state", "path": "fog.supported", "equals": true },
+    { "op": "assert_state", "path": "fog.weatherSupported", "equals": true },
+    { "op": "assert_state", "path": "fog.initialized", "equals": true },
+    { "op": "assert_state", "path": "plantern.supported", "equals": false },
+
     { "op": "goto_level", "level": 28 },
     { "op": "choose_cards", "cards": ["PLANT_PEASHOOTER"] },
     { "op": "wait_state", "state": "GAME", "timeout": 15 },

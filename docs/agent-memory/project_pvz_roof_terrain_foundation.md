@@ -1,8 +1,8 @@
 # 屋顶地形与僵尸连续坡面
 
-## 当前状态（2026-08-09）
+## 当前状态（2026-08-10）
 
-- 内部关卡 37～45（5-1～5-9）统一使用白天 `ROOF`；5-9 由 `AdventureProgression::BossSlot::ROOF_MARSHAL` 标记，并在第 15 波额外生成唯一屋脊督军。`NIGHT_ROOF` 留给未来第六大关，AutoTest 可用 `goto_level.background=NIGHT_ROOF` 显式覆盖背景，继续验证夜屋顶资源与共用坡面，而不污染正式关卡映射。
+- 内部关卡 37～45（5-1～5-9）统一使用白天 `ROOF`；5-9 由 `AdventureProgression::BossSlot::ROOF_MARSHAL` 标记，并在第 15 波额外生成唯一屋脊督军。内部关卡 46～54（6-1～6-9）已正式映射为 `NIGHT_ROOF`，并复用同一连续坡面；显式 `goto_level.background` 只保留作隔离测试夹具。
 - 昼夜屋顶下雨时在各自原背景与战场实体之间交叉淡入 `IMAGE_BACKGROUND_ROOF_RAIN` 或 `IMAGE_BACKGROUND_NIGHTROOF_RAIN`；两张雨景 PNG 只替换同一天空蒙版，蒙版外的瓦片、烟囱、树木、房屋和卫星锅像素与各自原图完全相同。它们复用通用雨幕的两秒平滑值，不会额外染色植物、僵尸或 UI；晴夜保留星月，大雨夜以深蓝紫夜云完整遮蔽。
 - 屋顶沿用 5 行、9 列：首行逻辑顶部为 `CELL_INITALIZE_POS_Y - 10 = 78`，行高 85。房屋侧前 5 列按每列 20px 离散抬升，平台从 `CELL_INITALIZE_POS_X + 5 * CELL_COLLIDER_SIZE_X = 642` 开始；植物与格对象统一取 `Board::GetCellCenterPosition`。
 - 僵尸地面是同一几何的连续版本：平台左侧 `Y += (642 - worldX) * 0.25`。权威接口为 `Board::GetRowCenterYAtX`、`GetZombieCollisionY(row, worldX)` 和 `GetZombieSpawnY(row, worldX)`，不得在僵尸品种中复制坡度。
@@ -21,17 +21,17 @@
 ## 花盆承载边界
 
 - `PLANT_FLOWERPOT` 已占 `under` 层；屋顶普通植物与南瓜分别进入 `normal` / `pumpkin` 层前必须有花盆，地刺系保持拒绝屋顶。上层本体和落点预览共用 `Plant::kFlowerPotVisualLiftY=-5px`，逻辑格与碰撞箱不动。
-- 新局在选卡前按 C# 显示关卡语义铺设初始花盆：内部 37（5-1）五列、38（5-2）四列、39～45 三列；外层按列、内层按行创建，读档生命周期不重复生成。
+- 新局在选卡前按 C# 显示关卡语义铺设初始花盆：内部 37（5-1）五列、38（5-2）四列、39～54 三列；外层按列、内层按行创建，读档生命周期不重复生成。
 - 花盆覆盖时暂停 idle，露出后恢复；台风把同格 `under + normal + pumpkin` 当作一个组合搬移/丢失，存档只记录换格后的稳定逻辑层。
 
 ## 明确延后
 
-- 投掷植物主动调整抛物线仍未实现。5-9 已使用屋脊督军；现有僵尸博士不用于 5-9，计划留到未来 6-9。投掷物当前保持自由抛物线，并明确排除于平射坡面遮挡。
+- 投掷植物主动调整抛物线仍未实现。5-9 已使用屋脊督军；现有僵尸博士不用于 5-9，计划留到未来 6-9，但 6-9 当前只具备场景骨架。投掷物当前保持自由抛物线，并明确排除于平射坡面遮挡。
 
 ## 验证证据（2026-08-09）
 
 - 主人当前桌面可见 `smoke_level_5_9_boss_slot.json` exit 0，状态与截图共同锁定 5-9 正式使用白天 `ROOF`、BOSS 槽位为 `ROOF_MARSHAL`、前 14 波无首领且第 15 波创建唯一督军；现有僵尸博士仍未占位。
-- 可见 `smoke_roof_zombie_foundation.json`（73/46）用显式 `background=NIGHT_ROOF` 继续覆盖夜屋顶资源、五行连续坡面和预览贴地，exit 0、`script finished OK`、日志 0 ERROR/WARN；夜屋顶选卡同步截图目验正常。
+- 可见 `smoke_sixth_area_night_roof.json` 逐关锁定 6-1～6-9 的正式 `NIGHT_ROOF` 映射、径流与雷荷资格；6-1 同步截图目验为黑夜屋顶。既有 `smoke_roof_zombie_foundation.json` 仍覆盖五行连续坡面和预览贴地。
 - `clang-release` 配置、编译和 LTO 链接退出 0。
 
 ## 历史验证证据（2026-08-03）

@@ -8,7 +8,7 @@
 namespace AdventureProgression
 {
 	inline constexpr int LEVELS_PER_AREA = 9;
-	inline constexpr int ADVENTURE_AREA_COUNT = 5;
+	inline constexpr int ADVENTURE_AREA_COUNT = 6;
 	inline constexpr int LAST_ADVENTURE_LEVEL = LEVELS_PER_AREA * ADVENTURE_AREA_COUNT;
 	inline constexpr int AREA_FIVE_BOSS_LEVEL = LEVELS_PER_AREA * 5;
 
@@ -80,6 +80,17 @@ namespace AdventureProgression
 		PlantType::PLANT_MELONPULT,
 		NO_PLANT_REWARD,
 		NO_PLANT_REWARD,
+
+		// 6-1 ... 6-9（黑夜屋顶；植物奖励与专属编排后续逐关补充）
+		NO_PLANT_REWARD,
+		NO_PLANT_REWARD,
+		NO_PLANT_REWARD,
+		NO_PLANT_REWARD,
+		NO_PLANT_REWARD,
+		NO_PLANT_REWARD,
+		NO_PLANT_REWARD,
+		NO_PLANT_REWARD,
+		NO_PLANT_REWARD,
 	};
 
 	/** 返回内部关卡号对应的大关编号；非正数关卡返回 0。 */
@@ -94,7 +105,7 @@ namespace AdventureProgression
 		return level > 0 ? (level - 1) % LEVELS_PER_AREA + 1 : 0;
 	}
 
-	/** 判断关卡号是否属于当前五大关冒险流程。 */
+	/** 判断关卡号是否属于当前六大关冒险流程。 */
 	constexpr bool IsAdventureLevel(int level)
 	{
 		return level >= 1 && level <= LAST_ADVENTURE_LEVEL;
@@ -135,4 +146,8 @@ namespace AdventureProgression
 	static_assert(IsBossLevel(AREA_FIVE_BOSS_LEVEL));
 	static_assert(GetBossSlot(AREA_FIVE_BOSS_LEVEL) == BossSlot::ROOF_MARSHAL);
 	static_assert(GetBossSlot(44) == BossSlot::NONE);
+	static_assert(IsAdventureLevel(46) && IsAdventureLevel(54));
+	static_assert(GetAreaNumber(46) == 6 && GetLevelNumberInArea(46) == 1);
+	static_assert(GetAreaNumber(54) == 6 && GetLevelNumberInArea(54) == 9);
+	static_assert(GetPlantReward(54) == NO_PLANT_REWARD);
 }
