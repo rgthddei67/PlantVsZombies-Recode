@@ -63,11 +63,14 @@ pending 并清空，不能临时重抽。`GameScene` 的累计条与坡面水膜
 
 黑夜屋顶雷荷是并行的第二个积累器。`Board::UpdateNightRoofCharge` 只在 `NIGHT_ROOF` 中推进：
 晴夜每秒漏 0.5，小/中/大雨每秒积累 1/2/3，现有大雨闪电一次增加 18；满 100 后只锁定一次行，
-预警 4 秒并放电演出 0.65 秒。`nightRoofCharge/Phase/PhaseTimer/Row` 全部入档，紫色累计条、锁行节点、
+预警 4 秒并放电演出 0.65 秒。`nightRoofCharge/Overcharge/Phase/PhaseTimer/Row` 全部入档，紫色累计条、锁行节点、
 坡面折线和 AutoTest 都查询 Board 同一状态。`WARNING -> DISCHARGING` 的唯一边沿按稳定 ID 快照结算：
 普通非花盆植物停机 2.5 秒，地面僵尸承受 75 环境伤害并麻痹 0.75 秒；若锁定行正处于径流
 `FLOWING`，仅湿坡升级为 5 秒、120 伤害和 1.2 秒。同一行平台仍用普通数值，花盆不停机，飞行/
-地下阶段免疫，车辆只受伤。恢复已经处于 `DISCHARGING` 的档不得重复结算。
+地下阶段免疫，车辆只受伤。满电的同一笔正向输入若越过 100，溢出部分立即进入余电；从预警开始
+到放电演出结束，雨势积累与普通局部闪电也只增加余电，封顶 15，不改变本次放电数值。活动阶段晴夜
+不泄漏余电；放电结束一次兑现为下一轮主电荷并清零，之后才重新服从晴夜泄漏。恢复已经处于
+`DISCHARGING` 的档不得重复结算，余电也必须按已保存值继续而不能重算。
 
 环境要求植物完全暂停时，不能只让 `PlantUpdate()` 提前返回：并行阶段可能已经由 Animator 产生
 帧事件。应同时阻断 `UpdateParallel` 的事件队列，并在串行回退把 `mAdvancedInParallel` 置位，让
@@ -293,7 +296,7 @@ Board 雾势、再恢复植物，所以 `RestoreFogState()` 只清空旧缓存�
 - `set_roof_runoff`：昼夜屋顶可用；`phase=IDLE/WARNING/FLOWING`，活动阶段以非空 `rows` 数组固定行组，可选 `charge/remaining/retainedCharge`；单个 `row` 只作旧脚本兼容。
 - `weather.roofRunoff`：导出 `chargePct/retainedChargePct/phase/rowMask/rowCount/rows/phaseRemainingMs/flowProgressPct/zombieDriftSpeed/guideCandidateRow/guideCandidateSelected`；植物另导出 `roofRunoffPaused`，僵尸逐体导出 `roofRunoffGuideEligible/roofRunoffDriftMultiplierOn1000/roofRunoffDriftVelocity`。
 - `set_night_roof_charge`：只对黑夜屋顶可用；`phase=CHARGING/WARNING/DISCHARGING`，活动阶段用 `row` 固定路线，可选 `charge/remaining`。
-- `weather.nightRoofCharge`：导出 `supported/chargePct/phase/row/phaseRemainingMs/dischargeProgressPct`。
+- `weather.nightRoofCharge`：导出 `supported/chargePct/overchargePct/phase/row/phaseRemainingMs/dischargeProgressPct`；`set_night_roof_charge` 可用 `overcharge` 固定活动阶段余电，积累阶段会强制归零。
 - `roofResources.rainBackgroundLoaded`：白天屋顶雨景变体已按 `IMAGE_BACKGROUND_ROOF_RAIN` 完成注册与加载。
 - `roofResources.nightRainBackgroundLoaded`：夜间屋顶雨景变体已按 `IMAGE_BACKGROUND_NIGHTROOF_RAIN` 完成注册与加载。
 - `weather.roofRainBackgroundAlpha`：昼夜屋顶雨景变体的整数 alpha；两者当前晴/小/中/大雨均为 `0/96/149/255`，非屋顶恒为 `0`。

@@ -199,6 +199,7 @@ private:
 	float mRoofRunoffPhaseTimer = 0.0f; // 当前预警或冲刷阶段剩余游戏秒
 	int mRoofRunoffRowMask = 0;         // 已锁定的冲刷行 bitmask；待机阶段为 0
 	float mNightRoofCharge = 0.0f;      // 黑夜屋顶独立雷荷积累值（0～100）
+	float mNightRoofOvercharge = 0.0f;  // 满电活动阶段截留、放电结束后兑现的余电（0～15）
 	NightRoofChargePhase mNightRoofChargePhase = NightRoofChargePhase::CHARGING; // 当前积累、预警或放电阶段
 	float mNightRoofChargePhaseTimer = 0.0f; // 当前预警或放电阶段剩余游戏秒
 	int mNightRoofChargeRow = -1;       // 满电后一次锁定的导电瓦路行；积累阶段为 -1
@@ -291,15 +292,15 @@ private:
 		int rowMask, float phaseTimer, float retainedCharge);
 	/** 推进黑夜屋顶独立雷荷的积累、锁行预警与基础放电状态机。 */
 	void UpdateNightRoofCharge(float deltaTime);
-	/** 只在积累阶段增加雷荷；达到阈值时立即锁定一条导电瓦路。 */
+	/** 统一接收正向雷荷；积累阶段跨阈值的溢出和活动阶段新增量都转入余电。 */
 	void AddNightRoofCharge(float amount);
 	/** 满电后抽取并锁定本次导电瓦路；锁定结果在活动阶段保持不变。 */
 	void BeginNightRoofChargeWarning();
 	/** 在预警转放电的唯一边沿快照目标，并结算通用停机、伤害与麻痹。 */
 	void ResolveNightRoofChargeDischarge();
-	/** 从存档恢复雷荷积累、阶段、锁定行和倒计时，不重新抽取路线。 */
+	/** 从存档恢复雷荷积累、余电、阶段、锁定行和倒计时，不重新抽取路线。 */
 	void RestoreNightRoofChargeState(float charge, NightRoofChargePhase phase,
-		int row, float phaseTimer);
+		int row, float phaseTimer, float overcharge);
 	void InitializeFogWeather();
 	void UpdateFog(float deltaTime);
 	void UpdateFogWeather(float deltaTime);
@@ -661,9 +662,9 @@ public:
 	/** AutoTest 专用：固定径流积累、活动阶段和冲刷后的残留湿度。 */
 	bool SetRoofRunoffForTesting(float charge, RoofRunoffPhase phase,
 		int rowMask = 0, float phaseTimer = 0.0f, float retainedCharge = 45.0f);
-	/** AutoTest 专用：固定黑夜屋顶雷荷积累、活动阶段、锁定行和剩余时间。 */
+	/** AutoTest 专用：固定黑夜屋顶雷荷、余电、活动阶段、锁定行和剩余时间。 */
 	bool SetNightRoofChargeForTesting(float charge, NightRoofChargePhase phase,
-		int row = -1, float phaseTimer = 0.0f);
+		int row = -1, float phaseTimer = 0.0f, float overcharge = 0.0f);
 	/** 立即生成一次地面雨滴水花，供不同地形的落点闭环测试。 */
 	void TriggerRainGroundSplashForTesting();
 	/** 正式波次与 AutoTest 共用的天气变异入口；mutationRoll=0 时随机，超额成功变异返回 NUM_ZOMBIE_TYPES。 */
@@ -718,6 +719,8 @@ public:
 	bool SupportsNightRoofCharge() const;
 	float GetNightRoofCharge() const { return mNightRoofCharge; }
 	float GetNightRoofChargeRatio() const { return mNightRoofCharge / 100.0f; }
+	float GetNightRoofOvercharge() const { return mNightRoofOvercharge; }
+	float GetNightRoofOverchargeRatio() const { return mNightRoofOvercharge / 100.0f; }
 	NightRoofChargePhase GetNightRoofChargePhase() const { return mNightRoofChargePhase; }
 	float GetNightRoofChargePhaseTimer() const { return mNightRoofChargePhaseTimer; }
 	int GetNightRoofChargeRow() const { return mNightRoofChargeRow; }

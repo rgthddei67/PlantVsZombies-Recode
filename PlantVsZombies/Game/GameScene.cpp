@@ -279,13 +279,14 @@ namespace {
 			kStormyNightColorR, kStormyNightColorG, kStormyNightColorB, alpha);
 	}
 
-	/** 绘制可复用于不同天气资源的统一累计条；玩法只提供文案、比例和专属颜色。 */
+	/** 绘制统一累计条及可选的右端余量段；玩法只提供文案、比例和专属颜色。 */
 	void DrawWeatherAccumulationGauge(Graphics* g, float x, float y,
 		const std::string& label, float ratio, const glm::vec4& color,
-		float visibility)
+		float visibility, float reserveRatio, const glm::vec4& reserveColor)
 	{
 		if (!g) return;
 		const float clampedRatio = std::clamp(ratio, 0.0f, 1.0f);
+		const float clampedReserveRatio = std::clamp(reserveRatio, 0.0f, 1.0f);
 		const glm::vec4 shadow(0.0f, 0.0f, 0.0f, 185.0f * visibility);
 		g->DrawText(label, ResourceKeys::Fonts::FONT_FZCQ, kWeatherWindFontSize,
 			shadow, x + 1.0f, y + 1.0f);
@@ -299,6 +300,13 @@ namespace {
 			g->FillRect(x + 1.0f, barY + 1.0f,
 				(kWeatherGaugeWidth - 2.0f) * clampedRatio,
 				kWeatherGaugeHeight - 2.0f, color);
+		}
+		if (clampedReserveRatio > 0.0f) {
+			const float reserveWidth = (kWeatherGaugeWidth - 2.0f)
+				* clampedReserveRatio;
+			g->FillRect(x + kWeatherGaugeWidth - 1.0f - reserveWidth,
+				barY + 1.0f, reserveWidth, kWeatherGaugeHeight - 2.0f,
+				reserveColor);
 		}
 		g->DrawRect(x, barY, kWeatherGaugeWidth, kWeatherGaugeHeight,
 			glm::vec4(155.0f, 220.0f, 237.0f, 155.0f * visibility));
@@ -863,7 +871,8 @@ void GameScene::DrawWeatherPanel(Graphics* g) const
 			: 1.0f;
 		DrawWeatherAccumulationGauge(g, textX, detailLineY, runoffLine,
 			mBoard->GetRoofRunoffChargeRatio(),
-			glm::vec4(76.0f, 218.0f, 255.0f, alpha * warningPulse), eased);
+			glm::vec4(76.0f, 218.0f, 255.0f, alpha * warningPulse), eased,
+			0.0f, glm::vec4(0.0f));
 		detailLineY += kWeatherPanelGaugeLineHeight;
 	}
 
@@ -883,13 +892,21 @@ void GameScene::DrawWeatherPanel(Graphics* g) const
 			chargeLine = std::string(u8"屋顶雷荷：")
 				+ NightRoofChargeRowDisplayName(mBoard.get()) + u8"放电中";
 		}
+		const int overchargePercent = static_cast<int>(std::lround(
+			mBoard->GetNightRoofOvercharge()));
+		if (overchargePercent > 0) {
+			chargeLine += std::string(u8"｜余电+")
+				+ std::to_string(overchargePercent) + "%";
+		}
 		const float warningPulse = (mBoard->IsNightRoofChargeWarning()
 			|| mBoard->IsNightRoofChargeDischarging())
 			? 0.72f + 0.28f * std::sin(static_cast<float>(mBoard->mBoardFrame) * 0.20f)
 			: 1.0f;
 		DrawWeatherAccumulationGauge(g, textX, detailLineY, chargeLine,
 			mBoard->GetNightRoofChargeRatio(),
-			glm::vec4(192.0f, 136.0f, 255.0f, alpha * warningPulse), eased);
+			glm::vec4(192.0f, 136.0f, 255.0f, alpha * warningPulse), eased,
+			mBoard->GetNightRoofOverchargeRatio(),
+			glm::vec4(247.0f, 225.0f, 255.0f, alpha * warningPulse));
 		detailLineY += kWeatherPanelGaugeLineHeight;
 	}
 

@@ -844,7 +844,8 @@ bool TestDriver::ExecuteCurrent() {
 		if (phaseIt == kNightRoofChargePhaseNames.end()
 			|| !gs->GetBoard()->SetNightRoofChargeForTesting(
 				cmd.value("charge", 0.0f), phaseIt->second,
-				cmd.value("row", -1), cmd.value("remaining", 0.0f))) {
+				cmd.value("row", -1), cmd.value("remaining", 0.0f),
+				cmd.value("overcharge", 0.0f))) {
 			Fail("set_night_roof_charge: 仅黑夜屋顶可用；phase 必须为 CHARGING/WARNING/DISCHARGING，活动阶段须提供合法 row");
 			return false;
 		}
@@ -3115,6 +3116,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "supported", board->SupportsNightRoofCharge() },
 			{ "chargePct", static_cast<int>(std::lround(
 				board->GetNightRoofChargeRatio() * 100.0f)) },
+			{ "overchargePct", static_cast<int>(std::lround(
+				board->GetNightRoofOvercharge())) },
 			{ "phase", NightRoofChargePhaseName(board->GetNightRoofChargePhase()) },
 			{ "row", board->GetNightRoofChargeRow() },
 			{ "phaseRemainingMs", static_cast<int>(std::lround(

@@ -257,6 +257,7 @@ namespace {
 	constexpr float kNightRoofChargeLightningBonus = 18.0f; // 现有大雨闪电为黑夜屋顶一次注入的电荷点数
 	constexpr float kNightRoofChargeWarningDuration = 4.0f; // 满电锁定导电瓦路后的预警游戏秒数
 	constexpr float kNightRoofChargeDischargeDuration = 0.65f; // 基础坡面放电的可见游戏秒数
+	constexpr float kNightRoofOverchargeMaximum = 15.0f;   // 满电后最多截留给下一轮的余电点数
 	constexpr float kNightRoofPlantShutdownDuration = 2.5f; // 普通瓦面植物在放电快照中停机的游戏秒数
 	constexpr float kNightRoofWetPlantShutdownDuration = 5.0f; // 正在冲刷的湿坡面植物强导电停机秒数
 	constexpr int kNightRoofZombieDamage = 75;             // 普通瓦面地面僵尸承受的环境伤害
@@ -1400,6 +1401,7 @@ void Board::InitializeWeather()
 	mRoofRunoffPhaseTimer = 0.0f;
 	mRoofRunoffRowMask = 0;
 	mNightRoofCharge = 0.0f;
+	mNightRoofOvercharge = 0.0f;
 	mNightRoofChargePhase = NightRoofChargePhase::CHARGING;
 	mNightRoofChargePhaseTimer = 0.0f;
 	mNightRoofChargeRow = -1;
@@ -2865,17 +2867,29 @@ void Board::BeginNightRoofChargeWarning()
 	mNightRoofChargeRow = GameRandom::Range(0, mRows - 1);
 }
 
-/** 统一接收雨势与自然闪电增量，保证跨阈值时路线只锁定一次。 */
+/**
+ * 统一接收雨势与自然闪电增量。积累阶段跨过 100 的同一笔增量保留溢出；
+ * 预警和放电演出期间的新增电荷也只进入余电，不改变本次已公开的放电强度。
+ */
 void Board::AddNightRoofCharge(float amount)
 {
-	if (!SupportsNightRoofCharge()
-		|| mNightRoofChargePhase != NightRoofChargePhase::CHARGING
-		|| amount <= 0.0f || !std::isfinite(amount)) return;
-	mNightRoofCharge = std::clamp(mNightRoofCharge + amount,
-		0.0f, kNightRoofChargeMaximum);
-	if (mNightRoofCharge >= kNightRoofChargeMaximum) {
-		BeginNightRoofChargeWarning();
+	if (!SupportsNightRoofCharge() || amount <= 0.0f
+		|| !std::isfinite(amount)) return;
+	if (mNightRoofChargePhase == NightRoofChargePhase::CHARGING) {
+		const float combinedCharge = mNightRoofCharge + amount;
+		mNightRoofCharge = std::clamp(combinedCharge,
+			0.0f, kNightRoofChargeMaximum);
+		if (combinedCharge >= kNightRoofChargeMaximum) {
+			const float overflow = combinedCharge - kNightRoofChargeMaximum;
+			BeginNightRoofChargeWarning();
+			mNightRoofOvercharge = std::clamp(
+				mNightRoofOvercharge + overflow,
+				0.0f, kNightRoofOverchargeMaximum);
+		}
+		return;
 	}
+	mNightRoofOvercharge = std::clamp(mNightRoofOvercharge + amount,
+		0.0f, kNightRoofOverchargeMaximum);
 }
 
 /**
@@ -2929,41 +2943,20 @@ void Board::ResolveNightRoofChargeDischarge()
 }
 
 /**
- * 黑夜屋顶雷荷与径流并行推进。预警转放电时按一次快照结算实体效果，
- * 其余放电帧只负责展示，避免倍速、卡顿或读档造成重复命中。
+ * 黑夜屋顶雷荷与径流并行推进。预警转放电时按一次快照结算实体效果；
+ * 活动阶段新增电荷只截留为下一轮余电，避免改写已公开的本次强度或重复命中。
  */
 void Board::UpdateNightRoofCharge(float deltaTime)
 {
 	if (!SupportsNightRoofCharge()) {
 		mNightRoofCharge = 0.0f;
+		mNightRoofOvercharge = 0.0f;
 		mNightRoofChargePhase = NightRoofChargePhase::CHARGING;
 		mNightRoofChargePhaseTimer = 0.0f;
 		mNightRoofChargeRow = -1;
 		return;
 	}
 	if (deltaTime <= 0.0f) return;
-
-	if (mNightRoofChargePhase == NightRoofChargePhase::WARNING
-		|| mNightRoofChargePhase == NightRoofChargePhase::DISCHARGING) {
-		mNightRoofChargePhaseTimer = std::max(0.0f,
-			mNightRoofChargePhaseTimer - deltaTime);
-		if (mNightRoofChargePhaseTimer > 0.0f) return;
-
-		if (mNightRoofChargePhase == NightRoofChargePhase::WARNING) {
-			mNightRoofChargePhase = NightRoofChargePhase::DISCHARGING;
-			mNightRoofChargePhaseTimer = kNightRoofChargeDischargeDuration;
-			ResolveNightRoofChargeDischarge();
-			AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_THUNDER,
-				kThunderSoundVolume);
-			return;
-		}
-
-		mNightRoofCharge = 0.0f;
-		mNightRoofChargePhase = NightRoofChargePhase::CHARGING;
-		mNightRoofChargePhaseTimer = 0.0f;
-		mNightRoofChargeRow = -1;
-		return;
-	}
 
 	float chargeDelta = 0.0f;
 	switch (mRainIntensity) {
@@ -2980,6 +2973,32 @@ void Board::UpdateNightRoofCharge(float deltaTime)
 		chargeDelta = kNightRoofChargeHeavyPerSecond;
 		break;
 	}
+
+	if (mNightRoofChargePhase == NightRoofChargePhase::WARNING
+		|| mNightRoofChargePhase == NightRoofChargePhase::DISCHARGING) {
+		// 活动阶段只截留正向输入；晴夜泄漏要等余电兑现为下一轮主电荷后才重新生效。
+		if (chargeDelta > 0.0f) AddNightRoofCharge(chargeDelta * deltaTime);
+		mNightRoofChargePhaseTimer = std::max(0.0f,
+			mNightRoofChargePhaseTimer - deltaTime);
+		if (mNightRoofChargePhaseTimer > 0.0f) return;
+
+		if (mNightRoofChargePhase == NightRoofChargePhase::WARNING) {
+			mNightRoofChargePhase = NightRoofChargePhase::DISCHARGING;
+			mNightRoofChargePhaseTimer = kNightRoofChargeDischargeDuration;
+			ResolveNightRoofChargeDischarge();
+			AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_THUNDER,
+				kThunderSoundVolume);
+			return;
+		}
+
+		mNightRoofCharge = mNightRoofOvercharge;
+		mNightRoofOvercharge = 0.0f;
+		mNightRoofChargePhase = NightRoofChargePhase::CHARGING;
+		mNightRoofChargePhaseTimer = 0.0f;
+		mNightRoofChargeRow = -1;
+		return;
+	}
+
 	if (chargeDelta > 0.0f) {
 		AddNightRoofCharge(chargeDelta * deltaTime);
 	}
@@ -2991,14 +3010,15 @@ void Board::UpdateNightRoofCharge(float deltaTime)
 
 /** 校验并恢复黑夜屋顶雷荷；损坏组合和其他背景都回到中性积累状态。 */
 void Board::RestoreNightRoofChargeState(float charge, NightRoofChargePhase phase,
-	int row, float phaseTimer)
+	int row, float phaseTimer, float overcharge)
 {
 	mNightRoofCharge = 0.0f;
+	mNightRoofOvercharge = 0.0f;
 	mNightRoofChargePhase = NightRoofChargePhase::CHARGING;
 	mNightRoofChargePhaseTimer = 0.0f;
 	mNightRoofChargeRow = -1;
 	if (!SupportsNightRoofCharge() || !std::isfinite(charge)
-		|| !std::isfinite(phaseTimer)) return;
+		|| !std::isfinite(phaseTimer) || !std::isfinite(overcharge)) return;
 
 	mNightRoofCharge = std::clamp(charge, 0.0f, kNightRoofChargeMaximum);
 	if (phase == NightRoofChargePhase::CHARGING) return;
@@ -3014,6 +3034,8 @@ void Board::RestoreNightRoofChargeState(float charge, NightRoofChargePhase phase
 		phase == NightRoofChargePhase::WARNING
 			? kNightRoofChargeWarningDuration : kNightRoofChargeDischargeDuration);
 	mNightRoofChargeRow = row;
+	mNightRoofOvercharge = std::clamp(overcharge,
+		0.0f, kNightRoofOverchargeMaximum);
 }
 
 void Board::UpdateWeather(float deltaTime)
@@ -3271,10 +3293,10 @@ bool Board::SetRoofRunoffForTesting(float charge, RoofRunoffPhase phase,
 }
 
 bool Board::SetNightRoofChargeForTesting(float charge, NightRoofChargePhase phase,
-	int row, float phaseTimer)
+	int row, float phaseTimer, float overcharge)
 {
 	if (!SupportsNightRoofCharge() || !std::isfinite(charge)
-		|| !std::isfinite(phaseTimer)) return false;
+		|| !std::isfinite(phaseTimer) || !std::isfinite(overcharge)) return false;
 	if (phase == NightRoofChargePhase::WARNING
 		|| phase == NightRoofChargePhase::DISCHARGING) {
 		if (row < 0 || row >= mRows) return false;
@@ -3287,8 +3309,9 @@ bool Board::SetNightRoofChargeForTesting(float charge, NightRoofChargePhase phas
 	else {
 		row = -1;
 		phaseTimer = 0.0f;
+		overcharge = 0.0f;
 	}
-	RestoreNightRoofChargeState(charge, phase, row, phaseTimer);
+	RestoreNightRoofChargeState(charge, phase, row, phaseTimer, overcharge);
 	return mNightRoofChargePhase == phase;
 }
 
