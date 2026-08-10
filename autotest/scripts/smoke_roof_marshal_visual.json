@@ -15,6 +15,8 @@
   { "op": "assert_state", "path": "zombies.0.shadowScaleXPct", "equals": 120 },
   { "op": "assert_state", "path": "zombies.0.shadowScaleYPct", "equals": 90 },
   { "op": "assert_state", "path": "roofMarshalResources.reanimationLoaded", "equals": true },
+  { "op": "assert_state", "path": "roofMarshalResources.assaultFlagReanimationLoaded", "equals": true },
+  { "op": "assert_state", "path": "roofMarshalResources.assaultFlagTextureLoaded", "equals": true },
   { "op": "assert_state", "path": "roofMarshalResources.bodyTextureLoaded", "equals": true },
   { "op": "assert_state", "path": "roofMarshalResources.hatTextureLoaded", "equals": true },
   { "op": "assert_state", "path": "roofMarshalResources.tieTextureLoaded", "equals": true },

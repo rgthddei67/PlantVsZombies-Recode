@@ -1,0 +1,29 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 45 },
+    { "op": "choose_cards", "cards": ["PLANT_PEASHOOTER"] },
+    { "op": "wait_state", "state": "GAME", "timeout": 15 },
+    { "op": "set_spawn_paused", "value": true },
+    { "op": "spawn_zombie", "type": "ZOMBIE_ROOF_MARSHAL", "row": 2, "x": 760 },
+    { "op": "butter_zombie", "index": 0, "expectedApplied": true },
+    { "op": "assert_state", "path": "roofMarshal.buttered", "equals": true },
+    { "op": "assert_state", "path": "roofMarshal.butterTimerMs", "atLeast": 1150, "atMost": 1250 },
+    { "op": "butter_zombie", "index": 0, "expectedApplied": false },
+    { "op": "assert_state", "path": "roofMarshal.butterTimerMs", "atMost": 1250 },
+    { "op": "wait_seconds", "value": 1.35, "timeout": 4 },
+    { "op": "assert_state", "path": "roofMarshal.buttered", "equals": false },
+    { "op": "assert_state", "path": "roofMarshal.roofMarshalButterImmunityTimerMs", "atLeast": 4700, "atMost": 5000 },
+    { "op": "save_level_snapshot", "name": "roof_marshal_butter_immunity" },
+    { "op": "reload_level_snapshot", "name": "roof_marshal_butter_immunity" },
+    { "op": "assert_state", "path": "roofMarshal.buttered", "equals": false },
+    { "op": "assert_state", "path": "roofMarshal.roofMarshalButterImmunityTimerMs", "atLeast": 4500, "atMost": 5000 },
+    { "op": "butter_zombie", "index": 0, "expectedApplied": false },
+    { "op": "wait_seconds", "value": 5.1, "timeout": 8 },
+    { "op": "assert_state", "path": "roofMarshal.roofMarshalButterImmunityTimerMs", "equals": 0 },
+    { "op": "butter_zombie", "index": 0, "expectedApplied": true },
+    { "op": "assert_state", "path": "roofMarshal.buttered", "equals": true },
+    { "op": "assert_state", "path": "roofMarshal.butterTimerMs", "atLeast": 1150, "atMost": 1250 },
+    { "op": "dump_state", "name": "roof_marshal_control_resistance.json" },
+    { "op": "quit" }
+  ]
+}

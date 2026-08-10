@@ -35,6 +35,8 @@ public:
 	bool CanBeCharred() const override { return false; }
 	/** @brief 首领不接受魅惑，魅惑菇仍按通用规则被吃掉。 */
 	bool CanBeCharmed() const override { return false; }
+	/** @brief 黄油只定身 1.25 秒，期间不刷新；解除后进入 5 秒黄油免疫。 */
+	bool ApplyButter() override;
 	/** @brief 缠绕水草只能限时束缚首领，不能把它拖入水下处决。 */
 	bool ResistsTangleKelpDrowning() const override { return true; }
 	/** @brief 小推车仍会被触发并消耗，但不能借此跳过首领战。 */
@@ -63,6 +65,8 @@ public:
 	int GetAssaultCommandCount() const { return mAssaultCommandCount; }
 	int GetLastAssaultRow() const { return mLastAssaultRow; }
 	int GetLastAssaultAffectedCount() const { return mLastAssaultAffectedCount; }
+	float GetButterImmunityTimer() const { return mButterImmunityTimer; }
+	int GetLastSummonBossRow() const { return mLastSummonBossRow; }
 	bool IsWalkingPhase() const;
 	const std::array<ZombieType, 4>& GetLastSummonedTypes() const {
 		return mLastSummonedTypes;
@@ -95,6 +99,8 @@ private:
 	void BeginCommandPose();
 	/** @brief 从相邻合法行中选一行并开始独立的纵向换行演出。 */
 	void BeginLaneSwitch();
+	/** @brief 原子切到指定合法行，并以走路轨道完成纵向视觉过渡。 */
+	bool BeginLaneSwitchTo(int destination);
 	/** @brief 线性收敛换行视觉补偿；逻辑行在演出开始时已原子提交。 */
 	void UpdateLaneTransition(float scaledTime);
 
@@ -104,10 +110,12 @@ private:
 	float mLaneSwitchTimer = 6.0f;
 	float mLaneTransitionRemaining = 0.0f;
 	float mLaneVisualOffsetY = 0.0f;
+	float mButterImmunityTimer = 0.0f;
 	int mCommandCount = 0;
 	int mLaneSwitchCount = 0;
 	int mLastSummonCount = 0;
 	int mLastSummonRowMask = 0;
+	int mLastSummonBossRow = -1;
 	int mAssaultCommandCount = 0;
 	int mLastAssaultRow = -1;
 	int mLastAssaultAffectedCount = 0;

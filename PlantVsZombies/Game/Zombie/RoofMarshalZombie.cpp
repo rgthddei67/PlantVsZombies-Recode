@@ -2,6 +2,7 @@
 
 #include "../AudioSystem.h"
 #include "../Board.h"
+#include "../BoardPresentation.h"
 #include "../ShadowComponent.h"
 #include "../../ParticleSystem/ParticleSystem.h"
 #include "../../ResourceKeys.h"
@@ -15,10 +16,10 @@ namespace {
 	constexpr int kPlantInstantKillFallbackDamage = 1800; // 大嘴花直杀失败后结算的单次基础伤害
 	constexpr float kBossVisualScale = 1.2f;              // 须与 gamedata.json 的督军 scale 同改；影子按此倍率同步放大
 	constexpr int kHighThreatHealthThreshold = 8000;      // 低于此本体生命后，高威胁原版池开始参与抽取
-	constexpr int kDesperateHealthThreshold = 4000;       // 低于此本体生命后，切换 7 秒四只的最终阶段
+	constexpr int kDesperateHealthThreshold = 4000;       // 低于此本体生命后，切换 4 秒四只的最终阶段
 	constexpr float kFirstSummonDelay = 1.0f;             // 登场到第一批实际生成的游戏秒数
-	constexpr float kNormalSummonInterval = 9.0f;         // 常态与第二阶段的实际召唤间隔，单位：游戏秒
-	constexpr float kDesperateSummonInterval = 7.0f;      // 4000 血以下的实际召唤间隔，单位：游戏秒
+	constexpr float kNormalSummonInterval = 6.0f;         // 常态与第二阶段的实际召唤间隔，单位：游戏秒
+	constexpr float kDesperateSummonInterval = 4.0f;      // 4000 血以下的实际召唤间隔，单位：游戏秒
 	constexpr float kCommandPoseDuration = 1.2f;          // 每次召唤后停步播放 anim_idle 的游戏秒数
 	constexpr float kCommandBlendTime = 0.2f;             // 指挥姿势与走路轨道切换的混合时长，单位：秒
 	constexpr float kLaneSwitchInterval = 6.0f;           // 4000 血以上每次自主换到相邻行的间隔，单位：游戏秒
@@ -32,9 +33,11 @@ namespace {
 	constexpr float kCommandedMediumRainDuration = 20.0f; // 周期天气技能强制中雨的最短游戏秒数
 	constexpr float kDesperateHeavyRainDuration = 30.0f;  // 首次进入残血阶段时强制大雨的最短游戏秒数
 	constexpr int kAssaultCommandCadence = 2;             // 每完成多少批实际召唤发动一次突击令
-	constexpr float kAssaultDuration = 6.0f;               // 突击令对目标行持续的游戏秒数
+	constexpr float kAssaultDuration = 10.0f;              // 突击令目标行强化与红旗显示的统一游戏秒数
 	constexpr float kAssaultMoveMultiplier = 1.5f;         // 突击令目标行自主水平推进倍率
 	constexpr float kAssaultBiteMultiplier = 1.5f;         // 突击令目标行每口啃食伤害倍率
+	constexpr float kButterImmobilizeDuration = 1.25f;     // 督军单次黄油定身时长，单位：游戏秒
+	constexpr float kButterImmunityDuration = 5.0f;        // 黄油自然解除后的免疫窗口，单位：游戏秒
 
 	// 显式前五大关白名单是跨版本契约：未来第六大关类型注册到枚举后也不会自动混入。
 	constexpr std::array<ZombieType, 14> kStandardSummonPool = {
@@ -117,10 +120,12 @@ void RoofMarshalZombie::SetupZombie()
 	mLaneSwitchTimer = kLaneSwitchInterval;
 	mLaneTransitionRemaining = 0.0f;
 	mLaneVisualOffsetY = 0.0f;
+	mButterImmunityTimer = 0.0f;
 	mCommandCount = 0;
 	mLaneSwitchCount = 0;
 	mLastSummonCount = 0;
 	mLastSummonRowMask = 0;
+	mLastSummonBossRow = -1;
 	mAssaultCommandCount = 0;
 	mLastAssaultRow = -1;
 	mLastAssaultAffectedCount = 0;
@@ -134,8 +139,18 @@ void RoofMarshalZombie::SetupZombie()
 
 void RoofMarshalZombie::Update()
 {
+	const bool wasButtered = IsButtered();
+	if (mButterImmunityTimer > 0.0f) {
+		mButterImmunityTimer = std::max(0.0f,
+			mButterImmunityTimer - DeltaTime::GetDeltaTime());
+	}
 	const bool wasEating = mIsEating;
 	Zombie::Update();
+	// 只在自然到期且首领仍可战斗时开启免疫；死亡/掉头清状态不能制造无意义的遗留窗口。
+	if (wasButtered && !IsButtered() && mHasHead && !mIsDying && !mIsDead
+		&& IsActive()) {
+		mButterImmunityTimer = kButterImmunityDuration;
+	}
 	// 基类会在仍在啃食时跳过 ZombieUpdate；督军只补这一次派生逻辑，保留 anim_eat 与啃食帧事件。
 	if (!wasEating || !mIsEating || mIsPreview || mIsDying || mIsDead
 		|| !IsActive() || IsImmobilized() || IsGarlicRedirecting()
@@ -144,6 +159,15 @@ void RoofMarshalZombie::Update()
 	}
 	const float slowMultiplier = mCooldownTimer > 0.0f ? 0.5f : 1.0f;
 	ZombieUpdate(DeltaTime::GetDeltaTime() * slowMultiplier);
+}
+
+bool RoofMarshalZombie::ApplyButter()
+{
+	// 同一次定身不允许刷新，免疫期内黄油仁仍正常造成弹丸伤害但不再停住首领。
+	if (IsButtered() || mButterImmunityTimer > 0.0f) return false;
+	if (!Zombie::ApplyButter()) return false;
+	mButterTimer = kButterImmobilizeDuration;
+	return true;
 }
 
 void RoofMarshalZombie::ZombieUpdate(float scaledTime)
@@ -163,7 +187,7 @@ void RoofMarshalZombie::ZombieUpdate(float scaledTime)
 		mLaneSwitchTimer = 0.0f;
 	}
 
-	// 一旦进入最终阶段，尚未开始的长冷却立刻收敛到 7 秒，而不是再等完旧的 9 秒。
+	// 一旦进入最终阶段，尚未开始的长冷却立刻收敛到 4 秒，而不是再等完旧的 6 秒。
 	if (mBodyHealth < kDesperateHealthThreshold
 		&& mSummonTimer > kDesperateSummonInterval) {
 		mSummonTimer = kDesperateSummonInterval;
@@ -263,6 +287,7 @@ void RoofMarshalZombie::SummonCommandedZombies()
 {
 	mLastSummonCount = 0;
 	mLastSummonRowMask = 0;
+	mLastSummonBossRow = mRow;
 	mLastSummonedTypes.fill(ZombieType::NUM_ZOMBIE_TYPES);
 	if (!mBoard || mBoard->mRows <= 0) return;
 
@@ -338,6 +363,8 @@ void RoofMarshalZombie::IssueAssaultCommand()
 	}
 	mLastAssaultRow = tiedRows[static_cast<std::size_t>(
 		GameRandom::Range(0, tiedRowCount - 1))];
+	// 先提交目标逻辑行并播放跨行走路，再向该行部队下令；红旗与强化共享 10 秒寿命。
+	BeginLaneSwitchTo(mLastAssaultRow);
 	mBoard->mEntityManager.ForEachZombieInRow(mLastAssaultRow, [&](Zombie* zombie) {
 		if (!zombie || zombie == this || zombie->mZombieType == ZombieType::ZOMBIE_ROOF_MARSHAL
 			|| zombie->IsMindControlled() || zombie->IsDying()) {
@@ -350,11 +377,21 @@ void RoofMarshalZombie::IssueAssaultCommand()
 	if (mLastAssaultAffectedCount > 0) {
 		++mAssaultCommandCount;
 		AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_HUGEWAVE, 0.25f);
+		if (BoardPresentation* presentation = mBoard->GetPresentation()) {
+			presentation->ShowRoofMarshalAssaultWarning(
+				mLastAssaultRow, kAssaultDuration);
+		}
 	}
 }
 
 void RoofMarshalZombie::BeginCommandPose()
 {
+	// 突击令刚触发的跨行演出必须保持走路轨道；到达后由换行收尾恢复 idle2。
+	if (mLaneTransitionRemaining > 0.0f) {
+		mCommandPhase = CommandPhase::ADVANCING;
+		mCommandPoseTimer = 0.0f;
+		return;
+	}
 	mCommandPhase = CommandPhase::COMMANDING;
 	mCommandPoseTimer = kCommandPoseDuration;
 	PlayTrack("anim_idle", 0.0f, kCommandBlendTime);
@@ -376,15 +413,25 @@ void RoofMarshalZombie::BeginLaneSwitch()
 	}
 	if (candidateCount == 0) return;
 
-	TransformComponent* transform = GetTransformComponent();
-	if (!transform) return;
-	Vector position = transform->GetPosition();
-	const float oldTerrainY = mBoard->GetZombieSpawnY(mRow, position.x);
 	const int destination = candidates[candidateCount == 1
 		? 0
 		: GameRandom::Range(0, candidateCount - 1)];
+	BeginLaneSwitchTo(destination);
+}
+
+bool RoofMarshalZombie::BeginLaneSwitchTo(int destination)
+{
+	if (!mBoard || destination < 0 || destination >= mBoard->mRows
+		|| destination == mRow
+		|| !mBoard->CanSpawnZombieInRow(mZombieType, destination)) {
+		return false;
+	}
+	TransformComponent* transform = GetTransformComponent();
+	if (!transform) return false;
+	Vector position = transform->GetPosition();
+	const float oldTerrainY = mBoard->GetZombieSpawnY(mRow, position.x);
 	const float newTerrainY = mBoard->GetZombieSpawnY(destination, position.x);
-	if (oldTerrainY < 0.0f || newTerrainY < 0.0f) return;
+	if (oldTerrainY < 0.0f || newTerrainY < 0.0f) return false;
 
 	// 逻辑行与碰撞箱立即提交；独立视觉补偿从旧行高度平滑归零，遵守逻辑网格/美术偏移分离契约。
 	mRow = destination;
@@ -394,6 +441,7 @@ void RoofMarshalZombie::BeginLaneSwitch()
 	mLaneTransitionRemaining = kLaneTransitionDuration;
 	++mLaneSwitchCount;
 	PlayWalkAnimation(kLaneTransitionBlendTime);
+	return true;
 }
 
 void RoofMarshalZombie::UpdateLaneTransition(float scaledTime)
@@ -470,10 +518,12 @@ void RoofMarshalZombie::SaveExtraData(nlohmann::json& j) const
 	j["laneSwitchTimer"] = mLaneSwitchTimer;
 	j["laneTransitionRemaining"] = mLaneTransitionRemaining;
 	j["laneVisualOffsetY"] = mLaneVisualOffsetY;
+	j["butterImmunityTimer"] = mButterImmunityTimer;
 	j["commandCount"] = mCommandCount;
 	j["laneSwitchCount"] = mLaneSwitchCount;
 	j["lastSummonCount"] = mLastSummonCount;
 	j["lastSummonRowMask"] = mLastSummonRowMask;
+	j["lastSummonBossRow"] = mLastSummonBossRow;
 	j["assaultCommandCount"] = mAssaultCommandCount;
 	j["lastAssaultRow"] = mLastAssaultRow;
 	j["lastAssaultAffectedCount"] = mLastAssaultAffectedCount;
@@ -499,6 +549,10 @@ void RoofMarshalZombie::LoadExtraData(const nlohmann::json& j)
 		0.0f, kLaneTransitionDuration);
 	mLaneVisualOffsetY = std::clamp(j.value("laneVisualOffsetY", 0.0f),
 		-static_cast<float>(SCENE_HEIGHT), static_cast<float>(SCENE_HEIGHT));
+	mButterImmunityTimer = std::clamp(j.value("butterImmunityTimer", 0.0f),
+		0.0f, kButterImmunityDuration);
+	mButterTimer = std::min(mButterTimer, kButterImmobilizeDuration);
+	if (mButterTimer > 0.0f) mButterImmunityTimer = 0.0f;
 	mCommandCount = std::max(0, j.value("commandCount", 0));
 	mLaneSwitchCount = std::max(0, j.value("laneSwitchCount", 0));
 	mLastSummonCount = std::clamp(j.value("lastSummonCount", 0), 0,
@@ -507,6 +561,8 @@ void RoofMarshalZombie::LoadExtraData(const nlohmann::json& j)
 		? (1 << std::min(mBoard->mRows, 30)) - 1
 		: 0;
 	mLastSummonRowMask = j.value("lastSummonRowMask", 0) & validRowMask;
+	mLastSummonBossRow = std::clamp(j.value("lastSummonBossRow", mRow), -1,
+		mBoard && mBoard->mRows > 0 ? mBoard->mRows - 1 : -1);
 	mAssaultCommandCount = std::max(0, j.value("assaultCommandCount", 0));
 	mLastAssaultRow = std::clamp(j.value("lastAssaultRow", -1), -1,
 		mBoard && mBoard->mRows > 0 ? mBoard->mRows - 1 : -1);

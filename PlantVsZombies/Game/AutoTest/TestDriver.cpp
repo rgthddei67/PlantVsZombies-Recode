@@ -1562,6 +1562,34 @@ bool TestDriver::ExecuteCurrent() {
 			+ ", index=" + std::to_string(index) + ")");
 		return false;
 	}
+	if (op == "butter_zombie") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) {
+			Fail("butter_zombie: 不在 GameScene 或 Board 为空");
+			return false;
+		}
+		Board* board = gs->GetBoard();
+		std::vector<int> zombieIDs = board->mEntityManager.GetAllZombieIDs();
+		std::sort(zombieIDs.begin(), zombieIDs.end());
+		const int row = cmd.value("row", -1);
+		const int index = cmd.value("index", 0);
+		const bool expected = cmd.value("expectedApplied", true);
+		int seen = 0;
+		for (int id : zombieIDs) {
+			Zombie* zombie = board->mEntityManager.GetZombie(id);
+			if (!zombie || !zombie->IsActive()) continue;
+			if (row >= 0 && zombie->mRow != row) continue;
+			if (seen++ != index) continue;
+			const bool applied = zombie->ApplyButter();
+			if (applied != expected) {
+				Fail("butter_zombie: ApplyButter 结果与 expectedApplied 不符");
+				return false;
+			}
+			return true;
+		}
+		Fail("butter_zombie: 未找到目标僵尸");
+		return false;
+	}
 	if (op == "set_zombie_mist_fuel_reward" || op == "kill_zombie") {
 		GameScene* gs = CurrentGameScene();
 		if (!gs || !gs->GetBoard()) {
@@ -2659,6 +2687,11 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["roofMarshalResources"] = {
 		{ "reanimationLoaded", ResourceManager::GetInstance().HasReanimation(
 			ResourceKeys::Reanimations::REANIM_ROOF_MARSHAL_ZOMBIE) },
+		{ "assaultFlagReanimationLoaded", ResourceManager::GetInstance().HasReanimation(
+			ResourceKeys::Reanimations::REANIM_ROOF_MARSHAL_ASSAULT_FLAG) },
+		{ "assaultFlagTextureLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_REANIM_ZOMBIE_FLAG1,
+			false) != nullptr },
 		{ "bodyTextureLoaded", ResourceManager::GetInstance().GetTexture(
 			ResourceKeys::Textures::IMAGE_REANIM_ZOMBIE_ROOFMARSHAL_BODY,
 			false) != nullptr },
@@ -3045,6 +3078,15 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "colorG", static_cast<int>(std::lround(prompt.textColor.g)) },
 			{ "colorB", static_cast<int>(std::lround(prompt.textColor.b)) },
 			{ "usesUnscaledTime", prompt.useUnscaledTime },
+			{ "appearDurationMs", static_cast<int>(std::lround(
+				prompt.appearDuration * 1000.0f)) },
+			{ "holdDurationMs", static_cast<int>(std::lround(
+				prompt.holdDuration * 1000.0f)) },
+			{ "fadeDurationMs", static_cast<int>(std::lround(
+				prompt.fadeDuration * 1000.0f)) },
+			{ "totalDurationMs", static_cast<int>(std::lround(
+				(prompt.appearDuration + prompt.holdDuration
+					+ prompt.fadeDuration) * 1000.0f)) },
 		});
 	}
 
@@ -3278,6 +3320,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	int roofMarshalZombieCount = 0;
 	int roofMarshalAssaultBoostedZombieCount = 0;
 	int roofMarshalAssaultBoostedRowMask = 0;
+	int roofMarshalAssaultFlagAnimatorCount = 0;
+	int roofMarshalAssaultFlagVisibleCount = 0;
 	int roofMarshalAssaultMoveMultiplierPctMax = 100;
 	int roofMarshalAssaultBiteMultiplierPctMax = 100;
 	int zombieBodyHealthTotal = 0;
@@ -3332,6 +3376,12 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				roofMarshalAssaultBiteMultiplierPctMax, static_cast<int>(std::lround(
 					z->GetRoofMarshalAssaultBiteMultiplier() * 100.0f)));
 		}
+		if (z->HasRoofMarshalAssaultFlagAnimator()) {
+			++roofMarshalAssaultFlagAnimatorCount;
+		}
+		if (z->IsRoofMarshalAssaultFlagVisible()) {
+			++roofMarshalAssaultFlagVisibleCount;
+		}
 		zombieBodyHealthTotal += z->mBodyHealth;
 		zombieShieldHealthTotal += z->mShieldHealth;
 		if (z->GetCooldownTimer() > 0.0f) ++slowedZombieCount;
@@ -3382,6 +3432,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				z->GetRoofMarshalAssaultMoveMultiplier() * 100.0f)) },
 			{ "roofMarshalAssaultBiteMultiplierPct", static_cast<int>(std::lround(
 				z->GetRoofMarshalAssaultBiteMultiplier() * 100.0f)) },
+			{ "roofMarshalAssaultFlagAnimator", z->HasRoofMarshalAssaultFlagAnimator() },
+			{ "roofMarshalAssaultFlagVisible", z->IsRoofMarshalAssaultFlagVisible() },
 			{ "helmHealth", z->mHelmHealth }, { "shieldHealth", z->mShieldHealth },
 			{ "fireResistant", z->IsFireResistant() },
 			{ "mindControlled", z->IsMindControlled() },
@@ -3850,6 +3902,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			zombieState["roofMarshalCommandCount"] = marshal->GetCommandCount();
 			zombieState["roofMarshalLastSummonCount"] = marshal->GetLastSummonCount();
 			zombieState["roofMarshalLastSummonRowMask"] = marshal->GetLastSummonRowMask();
+			zombieState["roofMarshalLastSummonBossRow"] = marshal->GetLastSummonBossRow();
 			zombieState["roofMarshalLastSummonDistinctRowCount"] =
 				marshal->GetLastSummonDistinctRowCount();
 			zombieState["roofMarshalHighThreatPoolUnlocked"] =
@@ -3869,9 +3922,16 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			zombieState["roofMarshalLastAssaultRow"] = marshal->GetLastAssaultRow();
 			zombieState["roofMarshalLastAssaultAffectedCount"] =
 				marshal->GetLastAssaultAffectedCount();
+			zombieState["roofMarshalAtLastAssaultRow"] =
+				marshal->GetLastAssaultRow() >= 0
+				&& marshal->mRow == marshal->GetLastAssaultRow();
+			zombieState["roofMarshalButterImmunityTimerMs"] = static_cast<int>(
+				std::lround(marshal->GetButterImmunityTimer() * 1000.0f));
 			zombieState["roofMarshalWalkingPhase"] = marshal->IsWalkingPhase();
 			zombieState["roofMarshalLastSummonAvoidedCurrentRow"] =
-				(marshal->GetLastSummonRowMask() & (1 << marshal->mRow)) == 0;
+				marshal->GetLastSummonBossRow() < 0
+				|| (marshal->GetLastSummonRowMask()
+					& (1 << marshal->GetLastSummonBossRow())) == 0;
 			zombieState["roofMarshalLastSummonedTypes"] = nlohmann::json::array();
 			bool allAllowed = true;
 			int highThreatCount = 0;
@@ -3912,6 +3972,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["roofMarshalZombieCount"] = roofMarshalZombieCount;
 	out["roofMarshalAssaultBoostedZombieCount"] = roofMarshalAssaultBoostedZombieCount;
 	out["roofMarshalAssaultBoostedRowMask"] = roofMarshalAssaultBoostedRowMask;
+	out["roofMarshalAssaultFlagAnimatorCount"] = roofMarshalAssaultFlagAnimatorCount;
+	out["roofMarshalAssaultFlagVisibleCount"] = roofMarshalAssaultFlagVisibleCount;
 	int roofMarshalAssaultBoostedDistinctRowCount = 0;
 	for (int mask = roofMarshalAssaultBoostedRowMask; mask != 0; mask >>= 1) {
 		roofMarshalAssaultBoostedDistinctRowCount += mask & 1;

@@ -436,6 +436,7 @@
 
     <Reanimation name="NormalZombie">./resources/reanim/NormalZombie.reanim</Reanimation>
     <Reanimation name="RoofMarshalZombie">./resources/reanim/RoofMarshal.reanim</Reanimation>
+    <Reanimation name="RoofMarshalAssaultFlag">./resources/reanim/RoofMarshalAssaultFlag.reanim</Reanimation>
     <Reanimation name="ConeZombie">./resources/reanim/ConeZombie.reanim</Reanimation>
     <Reanimation name="PolevaulterZombie">./resources/reanim/Polevaulter.reanim</Reanimation>
     <Reanimation name="ElitePolevaulterZombie">./resources/reanim/ElitePolevaulter.reanim</Reanimation>

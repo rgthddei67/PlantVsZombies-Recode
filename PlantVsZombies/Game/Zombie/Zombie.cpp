@@ -42,6 +42,8 @@ namespace {
 	constexpr float kButterSplatOffsetY = -6.0f;           // C# DrawButter 相对头部轨道的贴图纵向偏移，单位：像素
 	constexpr float kButterSplatScale = 1.0f;              // 对齐原版头顶覆盖比例，同时保留面部与上身轮廓
 	const Vector kButterFallbackHeadOffset(0.0f, -40.0f);   // 缺少 anim_head1 时相对逻辑位置的保底头部锚点
+	constexpr float kRoofMarshalFlagOffsetX = 18.0f;       // 突击令红旗左上角移到头部右后侧，避免遮住脸，单位：局部像素
+	constexpr float kRoofMarshalFlagOffsetY = -5.0f;       // 最上排也不会被顶部 UI 大面积裁掉的纵向偏移，单位：局部像素
 	constexpr float kGarlicShortPauseTime = 0.20f;         // 无匹配嫌恶脸资源的品种只停顿 20 厘秒
 	constexpr float kGarlicFacePauseTime = 0.70f;          // 有嫌恶脸品种在 70 厘秒节点停吃并换脸
 	constexpr float kGarlicHoldTime = 1.70f;               // 原版 YUCKI_HOLD_TIME：选择相邻行并恢复行走
@@ -450,6 +452,7 @@ void Zombie::Update()
 			if (mRoofMarshalAssaultTimer <= 0.0f) {
 				mRoofMarshalAssaultMoveMultiplier = 1.0f;
 				mRoofMarshalAssaultBiteMultiplier = 1.0f;
+				SetRoofMarshalAssaultFlagVisible(false);
 			}
 		}
 
@@ -649,12 +652,14 @@ void Zombie::Update()
 
 void Zombie::FinalizeProtectedLoad()
 {
-	if (!mGarlicRedirectActive || !mAnimator) return;
-	SetGarlicYuckFaceVisible(
-		SupportsGarlicYuckFace()
-		&& mGarlicRedirectElapsed >= kGarlicFacePauseTime
-		&& mGarlicRedirectElapsed < kGarlicWalkEndTime);
-	UpdateAnimSpeed();
+	if (mGarlicRedirectActive && mAnimator) {
+		SetGarlicYuckFaceVisible(
+			SupportsGarlicYuckFace()
+			&& mGarlicRedirectElapsed >= kGarlicFacePauseTime
+			&& mGarlicRedirectElapsed < kGarlicWalkEndTime);
+		UpdateAnimSpeed();
+	}
+	SetRoofMarshalAssaultFlagVisible(IsRoofMarshalAssaultActive());
 }
 
 /**
@@ -1648,6 +1653,10 @@ void Zombie::Die()
 	CancelGarlicRedirect(false);
 	mButterTimer = 0.0f;
 	SetButterSplatFollowerVisible(false);
+	mRoofMarshalAssaultTimer = 0.0f;
+	mRoofMarshalAssaultMoveMultiplier = 1.0f;
+	mRoofMarshalAssaultBiteMultiplier = 1.0f;
+	SetRoofMarshalAssaultFlagVisible(false);
 	mToxinLayerTimers.fill(0.0f);
 	mToxinDamageRemainder = 0.0f;
 
@@ -1851,6 +1860,42 @@ void Zombie::ApplyRoofMarshalAssault(
 		mRoofMarshalAssaultMoveMultiplier, std::max(1.0f, moveMultiplier));
 	mRoofMarshalAssaultBiteMultiplier = std::max(
 		mRoofMarshalAssaultBiteMultiplier, std::max(1.0f, biteMultiplier));
+	SetRoofMarshalAssaultFlagVisible(true);
+}
+
+void Zombie::ConfigureRoofMarshalAssaultFlag()
+{
+	if (mRoofMarshalAssaultFlagAnimator || !mAnimator) return;
+	const char* trackName = GetButterSplatTrackName();
+	if (!trackName || !mAnimator->HasTrack(trackName)) return;
+
+	auto reanim = ResourceManager::GetInstance().GetReanimation(
+		ResourceKeys::Reanimations::REANIM_ROOF_MARSHAL_ASSAULT_FLAG);
+	if (!reanim) return;
+	auto flagAnimator = std::make_shared<Animator>(reanim);
+	flagAnimator->PlayTrack("anim_idle");
+	flagAnimator->SetLocalPosition(kRoofMarshalFlagOffsetX, kRoofMarshalFlagOffsetY);
+	flagAnimator->SetAlpha(0.0f);
+	if (!mAnimator->AttachAnimator(trackName, flagAnimator)) return;
+	mRoofMarshalAssaultFlagAnimator = std::move(flagAnimator);
+}
+
+void Zombie::SetRoofMarshalAssaultFlagVisible(bool visible)
+{
+	if (visible && !mRoofMarshalAssaultFlagAnimator) {
+		ConfigureRoofMarshalAssaultFlag();
+	}
+	if (mRoofMarshalAssaultFlagAnimator) {
+		mRoofMarshalAssaultFlagAnimator->SetAlpha(
+			visible && !mIsPreview && !mIsDead && !mIsDying ? 1.0f : 0.0f);
+	}
+}
+
+bool Zombie::IsRoofMarshalAssaultFlagVisible() const
+{
+	return IsRoofMarshalAssaultActive() && mRoofMarshalAssaultFlagAnimator
+		&& mRoofMarshalAssaultFlagAnimator->GetAlpha() > 0.01f
+		&& !mIsPreview && !mIsDead && !mIsDying;
 }
 
 void Zombie::EatTarget()

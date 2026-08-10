@@ -122,6 +122,8 @@ public:
 		float holdDur = 3.8f,
 		float fadeDur = 0.6f,
 		bool useUnscaledTime = false);
+	/** 显示“第 N 行全军突击”短警报；持续红旗负责表达后续强化状态。 */
+	void ShowRoofMarshalAssaultWarning(int row, float duration) override;
 	/** 显示路灯花低燃料的大号红色中央警报。 */
 	void ShowPlanternLowFuelWarning() override;
 	/** 根据已锁定的台风等级与同级文案编号显示大雨来临警报。 */

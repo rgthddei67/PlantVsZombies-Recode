@@ -65,6 +65,7 @@ protected:
 	float mRoofMarshalAssaultTimer = 0.0f; // 突击令剩余游戏秒数；独立于天气与寒冷状态
 	float mRoofMarshalAssaultMoveMultiplier = 1.0f; // 突击令自主水平推进倍率
 	float mRoofMarshalAssaultBiteMultiplier = 1.0f; // 突击令每口伤害倍率
+	std::shared_ptr<Animator> mRoofMarshalAssaultFlagAnimator; // 复用原版红旗的轨道内警示附件；纯展示派生状态不入档
 	bool mButterSplatFollowerConfigured = false; // 当前 reanim 是否已绑定语义头部轨道黄油；纯展示派生状态不入档
 	std::array<float, 20> mToxinLayerTimers{};	// 每层独立剩余秒数；二十格即每只僵尸的共享上限
 	float mToxinDamageRemainder = 0.0f;	// 跨帧保留未满 1 点的持续伤害，保证倍速下总量稳定
@@ -301,10 +302,16 @@ public:
 	float GetRoofMarshalAssaultBiteMultiplier() const {
 		return IsRoofMarshalAssaultActive() ? mRoofMarshalAssaultBiteMultiplier : 1.0f;
 	}
+	/** 突击令红旗附件是否成功创建；用于资源闭环与 AutoTest。 */
+	bool HasRoofMarshalAssaultFlagAnimator() const {
+		return static_cast<bool>(mRoofMarshalAssaultFlagAnimator);
+	}
+	/** 突击令红旗当前是否随目标僵尸显示。 */
+	bool IsRoofMarshalAssaultFlagVisible() const;
 	/** 冻结或黄油任一生效时，统一视为完全定身。 */
 	bool IsImmobilized() const { return IsFrozen() || IsButtered(); }
 	/** 黄油弹命中入口；返回 false 表示当前品种或阶段免疫定身。 */
-	bool ApplyButter();
+	virtual bool ApplyButter();
 	/** 命中时增加毒层；满二十层则刷新剩余时间最短的一层。 */
 	bool ApplyToxinStack();
 	/** 清除全部毒层及尚未结算的小数伤害。 */
@@ -376,6 +383,10 @@ protected:
 	void ConfigureButterSplatFollower();
 	/** 同步轨道内黄油显隐；未配置的异形资源继续由 Draw 的旧锚点路径兜底。 */
 	void SetButterSplatFollowerVisible(bool visible) const;
+	/** 首次受突击令时创建红旗子 Animator，并挂到该品种已审计的语义头部轨道。 */
+	void ConfigureRoofMarshalAssaultFlag();
+	/** 同步突击令红旗显隐；计时仍由通用突击令状态唯一拥有。 */
+	void SetRoofMarshalAssaultFlagVisible(bool visible);
 	/** 头盔和护盾前的额外生命层；返回继续透入常规防具链的伤害。 */
 	virtual int TakeExtraProtectionDamage(int damage, DamageSource) { return damage; }
 	/** 生存血量倍率对品种额外生命层的扩展点。 */

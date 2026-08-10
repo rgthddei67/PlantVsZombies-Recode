@@ -38,6 +38,8 @@ public:
 		float appearDuration = 1.0f,
 		float holdDuration = 3.0f,
 		float fadeDuration = 1.0f) = 0;
+	/** 屋脊督军锁定目标行时显示一次中央突击警报。 */
+	virtual void ShowRoofMarshalAssaultWarning(int row, float duration) = 0;
 	/** 路灯花燃料跌破安全线时显示不会受游戏倍速压缩的中央警报。 */
 	virtual void ShowPlanternLowFuelWarning() = 0;
 	virtual void ShowShovel() = 0;

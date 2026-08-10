@@ -72,6 +72,10 @@ namespace {
 	constexpr float kPlanternLowFuelPromptHoldDuration = 2.35f; // 低燃料警报完全可读的未缩放秒数
 	constexpr float kPlanternLowFuelPromptFadeDuration = 0.47f; // 低燃料警报放大淡出的未缩放秒数，总计约 3 秒
 	constexpr int kPlanternLowFuelPromptFontSize = 46;    // 低燃料警报字号，刻意大于天气警报
+	constexpr float kRoofMarshalPromptAppearDuration = 0.22f; // 突击令中央警报压入画面的游戏秒数
+	constexpr float kRoofMarshalPromptHoldDuration = 2.10f; // 突击令文案完整可读的游戏秒数
+	constexpr float kRoofMarshalPromptFadeDuration = 0.48f; // 突击令中央警报放大淡出的游戏秒数
+	constexpr int kRoofMarshalPromptFontSize = 44;         // 突击令中央警报字号
 	constexpr float kPoolEffectOffsetX = 209.0f;          // 原版水面坐标对齐当前 1880px 泳池背景的世界 X 偏移（像素）
 	constexpr float kPoolEffectOffsetY = 12.0f;           // 原版水面坐标对齐当前泳池内框的世界 Y 偏移（像素）
 	constexpr float kRoofRainBackgroundAlphaScale = 2.125f; // 通用大雨暗幕 120 映射为雨景背景完全显现 255 的倍率
@@ -2454,6 +2458,18 @@ void GameScene::ShowTextPrompt(const std::string& text, const glm::vec4& color,
 	prompt.fadeDuration = std::max(fadeDur, 0.01f);
 	prompt.useUnscaledTime = useUnscaledTime;
 	mPrompts.push_back(std::move(prompt));
+}
+
+void GameScene::ShowRoofMarshalAssaultWarning(int row, float duration)
+{
+	if (duration <= 0.0f) return;
+	ShowTextPrompt(u8"突击令：第" + std::to_string(row + 1) + u8"行全军突击！",
+		glm::vec4(255.0f, 62.0f, 42.0f, 255.0f),
+		kRoofMarshalPromptFontSize,
+		kRoofMarshalPromptAppearDuration,
+		kRoofMarshalPromptHoldDuration,
+		kRoofMarshalPromptFadeDuration,
+		false);
 }
 
 void GameScene::ShowPlanternLowFuelWarning()
