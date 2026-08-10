@@ -12,6 +12,7 @@
     { "op": "assert_state", "path": "roofMarshalResources.reanimationLoaded", "equals": true },
     { "op": "assert_state", "path": "roofMarshalResources.bodyTextureLoaded", "equals": true },
     { "op": "assert_state", "path": "roofMarshalResources.hatTextureLoaded", "equals": true },
+    { "op": "assert_state", "path": "roofMarshalResources.brokenArmTextureLoaded", "equals": true },
     { "op": "assert_state", "path": "roofMarshalResources.headParticleTextureLoaded", "equals": true },
     { "op": "screenshot", "name": "01_roof_marshal_noinstance.png" },
     { "op": "damage_zombie", "row": 2, "index": 0, "damage": 12000, "source": "OTHER" },

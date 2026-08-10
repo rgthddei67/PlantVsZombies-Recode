@@ -14,6 +14,7 @@ $expectedHashes['image/reanim/Zombie_roofmarshal_innerarm_lower.png'] = '53698df
 $expectedHashes['image/reanim/Zombie_roofmarshal_innerarm_upper.png'] = 'af1d08e694180a3facff960ab73e00f6894dbebac387ff88a104c8b5b11a202b'
 $expectedHashes['image/reanim/Zombie_roofmarshal_outerarm_lower.png'] = '72751aa10ff791db41d0d42989098fcfbe1fda8e9ff29860627ff7bec3320b3f'
 $expectedHashes['image/reanim/Zombie_roofmarshal_outerarm_upper.png'] = 'fba640455ad8e97aa64be596b03527f95db9dde1a1aab30b6357f3a822b0cad4'
+$expectedHashes['image/reanim/Zombie_roofmarshal_outerarm_upper2.png'] = 'd04af2828818f2e748e1563c7f10969463ce21120ba94c8c3ce638b098314270'
 $expectedHashes['image/reanim/Zombie_roofmarshal_innerleg_foot.png'] = '5059398012c91936b02bf1028155e2b05a51ab378df8814b31c9d5906af6eb57'
 $expectedHashes['image/reanim/Zombie_roofmarshal_outerleg_foot.png'] = '71b07b315ba0741e3e9fe5c52193da4a52b6e26253f15d70a073ab9b818efccb'
 $expectedHashes['image/reanim/Zombie_roofmarshal_tie.png'] = '0c8d887363fb1af64730c02d64a37223f10125c4fef6ac2271506c7a0f3dcccb'
@@ -212,7 +213,8 @@ $resourceRoot = Join-Path $RepositoryRoot 'build\clang-release\resources'
 $imageDirectory = Join-Path $resourceRoot 'image\reanim'
 $generatedFiles = [System.Collections.Generic.List[string]]::new()
 
-foreach ($part in @('body', 'innerarm_lower', 'innerarm_upper', 'outerarm_lower', 'outerarm_upper')) {
+foreach ($part in @('body', 'innerarm_lower', 'innerarm_upper', 'outerarm_lower', 'outerarm_upper',
+        'outerarm_upper2')) {
     $target = Join-Path $imageDirectory "Zombie_roofmarshal_$part.png"
     Convert-UniformPart `
         -SourcePath (Join-Path $imageDirectory "Zombie_$part.png") `

@@ -10,6 +10,7 @@
 
 namespace {
 	constexpr int kBodyHealth = 12000;                    // 主人确认的首领本体生命值
+	constexpr int kBiteDamageMultiplier = 5;              // 督军每口啃食伤害相对普通僵尸的倍率
 	constexpr int kPlantAshDamageCap = 1800;              // 灰烬与土豆雷的单次基础伤害上限
 	constexpr int kPlantInstantKillFallbackDamage = 1800; // 大嘴花直杀失败后结算的单次基础伤害
 	constexpr float kBossVisualScale = 1.2f;              // 须与 gamedata.json 的督军 scale 同改；影子按此倍率同步放大
@@ -30,27 +31,50 @@ namespace {
 	constexpr int kWeatherCommandCadence = 3;             // 每完成多少次实际指挥召唤尝试一次周期改天
 	constexpr float kCommandedMediumRainDuration = 20.0f; // 周期天气技能强制中雨的最短游戏秒数
 	constexpr float kDesperateHeavyRainDuration = 30.0f;  // 首次进入残血阶段时强制大雨的最短游戏秒数
+	constexpr int kAssaultCommandCadence = 2;             // 每完成多少批实际召唤发动一次突击令
+	constexpr float kAssaultDuration = 6.0f;               // 突击令对目标行持续的游戏秒数
+	constexpr float kAssaultMoveMultiplier = 1.5f;         // 突击令目标行自主水平推进倍率
+	constexpr float kAssaultBiteMultiplier = 1.5f;         // 突击令目标行每口啃食伤害倍率
 
-	// 显式白名单是跨版本契约：第六大关新增或其他原创类型不会因注册到枚举/图鉴而自动混入。
-	constexpr std::array<ZombieType, 6> kStandardSummonPool = {
+	// 显式前五大关白名单是跨版本契约：未来第六大关类型注册到枚举后也不会自动混入。
+	constexpr std::array<ZombieType, 14> kStandardSummonPool = {
 		ZombieType::ZOMBIE_NORMAL,
 		ZombieType::ZOMBIE_TRAFFIC_CONE,
 		ZombieType::ZOMBIE_POLEVAULTER,
 		ZombieType::ZOMBIE_BUCKET,
+		ZombieType::ZOMBIE_FASTBUCKET,
 		ZombieType::ZOMBIE_NEWSPAPER,
+		ZombieType::ZOMBIE_FASTPAPER,
 		ZombieType::ZOMBIE_DOOR,
+		ZombieType::ZOMBIE_BACKUP_DANCER,
+		ZombieType::ZOMBIE_REINFORCED_DOOR,
+		ZombieType::ZOMBIE_POOL_NORMAL,
+		ZombieType::ZOMBIE_POOL_CONE,
+		ZombieType::ZOMBIE_POOL_BUCKET,
+		ZombieType::ZOMBIE_IMP,
 	};
-	constexpr std::array<ZombieType, 11> kHighThreatSummonPool = {
+	constexpr std::array<ZombieType, 22> kHighThreatSummonPool = {
 		ZombieType::ZOMBIE_FOOTBALL,
 		ZombieType::ZOMBIE_DANCER,
+		ZombieType::ZOMBIE_PINK_FOOTBALL,
+		ZombieType::ZOMBIE_ELITE_DANCER,
+		ZombieType::ZOMBIE_ELITE_POLEVAULTER,
 		ZombieType::ZOMBIE_ZAMBONI,
+		ZombieType::ZOMBIE_GILDED_ZAMBONI,
+		ZombieType::ZOMBIE_DOLPHIN_RIDER,
+		ZombieType::ZOMBIE_ELITE_DOLPHIN_RIDER,
 		ZombieType::ZOMBIE_JACK_IN_THE_BOX,
 		ZombieType::ZOMBIE_BALLOON,
+		ZombieType::ZOMBIE_ELITE_JACK_IN_THE_BOX,
 		ZombieType::ZOMBIE_DIGGER,
+		ZombieType::ZOMBIE_ELITE_DIGGER,
 		ZombieType::ZOMBIE_POGO,
+		ZombieType::ZOMBIE_ELITE_POGO,
 		ZombieType::ZOMBIE_BUNGEE,
 		ZombieType::ZOMBIE_LADDER,
+		ZombieType::ZOMBIE_ELITE_LADDER,
 		ZombieType::ZOMBIE_CATAPULT,
+		ZombieType::ZOMBIE_ELITE_CATAPULT,
 		ZombieType::ZOMBIE_GARGANTUAR,
 	};
 
@@ -59,6 +83,22 @@ namespace {
 	{
 		return std::find(pool.begin(), pool.end(), type) != pool.end();
 	}
+
+	template <std::size_t N>
+	ZombieType RollCompatibleZombieType(
+		const std::array<ZombieType, N>& pool, const Board& board, int row)
+	{
+		std::array<ZombieType, N> compatible{};
+		int compatibleCount = 0;
+		for (ZombieType type : pool) {
+			if (board.CanSpawnZombieInRow(type, row)) {
+				compatible[static_cast<std::size_t>(compatibleCount++)] = type;
+			}
+		}
+		if (compatibleCount == 0) return ZombieType::ZOMBIE_NORMAL;
+		return compatible[static_cast<std::size_t>(
+			GameRandom::Range(0, compatibleCount - 1))];
+	}
 }
 
 /**
@@ -66,10 +106,11 @@ namespace {
  */
 void RoofMarshalZombie::SetupZombie()
 {
-	// 完整复用普通僵尸的帧事件和动作时序，只覆盖首领耐久。
+	// 完整复用普通僵尸的帧事件和动作时序，只覆盖首领耐久与啃食伤害。
 	Zombie::SetupZombie();
 	mBodyHealth = kBodyHealth;
 	mBodyMaxHealth = kBodyHealth;
+	mAttackDamage *= kBiteDamageMultiplier;
 	mCommandPhase = CommandPhase::ADVANCING;
 	mSummonTimer = kFirstSummonDelay;
 	mCommandPoseTimer = 0.0f;
@@ -80,12 +121,29 @@ void RoofMarshalZombie::SetupZombie()
 	mLaneSwitchCount = 0;
 	mLastSummonCount = 0;
 	mLastSummonRowMask = 0;
+	mAssaultCommandCount = 0;
+	mLastAssaultRow = -1;
+	mLastAssaultAffectedCount = 0;
 	mLastSummonedTypes.fill(ZombieType::NUM_ZOMBIE_TYPES);
 	if (mPoolShadow) {
 		// 普通影子默认 (1.0, 0.75)；保持扁率并同步 1.2 倍本体，脚底中心仍由逻辑 Transform 决定。
 		mPoolShadow->SetScale(Vector(kBossVisualScale, 0.75f * kBossVisualScale));
 	}
 	if (!mIsPreview) PlayTrack("anim_idle2", 0.0f, 0.0f);
+}
+
+void RoofMarshalZombie::Update()
+{
+	const bool wasEating = mIsEating;
+	Zombie::Update();
+	// 基类会在仍在啃食时跳过 ZombieUpdate；督军只补这一次派生逻辑，保留 anim_eat 与啃食帧事件。
+	if (!wasEating || !mIsEating || mIsPreview || mIsDying || mIsDead
+		|| !IsActive() || IsImmobilized() || IsGarlicRedirecting()
+		|| mTangleKelpPlantID != NULL_PLANT_ID) {
+		return;
+	}
+	const float slowMultiplier = mCooldownTimer > 0.0f ? 0.5f : 1.0f;
+	ZombieUpdate(DeltaTime::GetDeltaTime() * slowMultiplier);
 }
 
 void RoofMarshalZombie::ZombieUpdate(float scaledTime)
@@ -126,7 +184,8 @@ void RoofMarshalZombie::ZombieUpdate(float scaledTime)
 	mSummonTimer = mBodyHealth < kDesperateHealthThreshold
 		? kDesperateSummonInterval
 		: kNormalSummonInterval;
-	BeginCommandPose();
+	// 啃食期间照常下令，但不抢占 anim_eat；停嘴后的碰撞/状态机会自然恢复稳态轨道。
+	if (!mIsEating) BeginCommandPose();
 }
 
 Vector RoofMarshalZombie::GetVisualPosition() const
@@ -190,15 +249,14 @@ void RoofMarshalZombie::TakeBodyDamage(int damage)
 	}
 }
 
-ZombieType RoofMarshalZombie::RollSummonedZombieType() const
+ZombieType RoofMarshalZombie::RollSummonedZombieType(int row) const
 {
+	if (!mBoard) return ZombieType::ZOMBIE_NORMAL;
 	const bool canRollHighThreat = mBodyHealth < kHighThreatHealthThreshold;
 	if (canRollHighThreat && GameRandom::Range(1, 100) <= kHighThreatRollPercent) {
-		return kHighThreatSummonPool[static_cast<std::size_t>(
-			GameRandom::Range(0, static_cast<int>(kHighThreatSummonPool.size()) - 1))];
+		return RollCompatibleZombieType(kHighThreatSummonPool, *mBoard, row);
 	}
-	return kStandardSummonPool[static_cast<std::size_t>(
-		GameRandom::Range(0, static_cast<int>(kStandardSummonPool.size()) - 1))];
+	return RollCompatibleZombieType(kStandardSummonPool, *mBoard, row);
 }
 
 void RoofMarshalZombie::SummonCommandedZombies()
@@ -227,8 +285,8 @@ void RoofMarshalZombie::SummonCommandedZombies()
 		std::swap(rows[static_cast<std::size_t>(i)], rows[static_cast<std::size_t>(swapIndex)]);
 
 		const int row = rows[static_cast<std::size_t>(i)];
-		ZombieType type = RollSummonedZombieType();
-		// 白名单均为屋顶可用陆地类型；此守卫防未来单项行为变化把整批召唤打断。
+		ZombieType type = RollSummonedZombieType(row);
+		// 白名单包含泳池历史形态；目标行地形不兼容时不会抽到，此守卫只防未来单项行为漂移。
 		if (!mBoard->CanSpawnZombieInRow(type, row)) type = ZombieType::ZOMBIE_NORMAL;
 		Zombie* summoned = mBoard->CreateZombie(type, row, kCommandSpawnX);
 		if (!summoned) continue;
@@ -238,11 +296,60 @@ void RoofMarshalZombie::SummonCommandedZombies()
 		++mLastSummonCount;
 	}
 	++mCommandCount;
+	if (mCommandCount % kAssaultCommandCadence == 0) {
+		IssueAssaultCommand();
+	}
 	if (mBodyHealth >= kDesperateHealthThreshold
 		&& mCommandCount % kWeatherCommandCadence == 0) {
 		// 周期命令只把晴/小雨提升到中雨；已有中雨或大雨保持原倒计时，不被永久续期。
 		mBoard->TriggerRoofMarshalWeather(
 			RainIntensity::MEDIUM, kCommandedMediumRainDuration, false);
+	}
+}
+
+void RoofMarshalZombie::IssueAssaultCommand()
+{
+	mLastAssaultRow = -1;
+	mLastAssaultAffectedCount = 0;
+	if (!mBoard || mBoard->mRows <= 0) return;
+
+	std::array<int, 6> rowCounts{};
+	int highestCount = 0;
+	for (int row = 0; row < mBoard->mRows
+		&& row < static_cast<int>(rowCounts.size()); ++row) {
+		mBoard->mEntityManager.ForEachZombieInRow(row, [&](Zombie* zombie) {
+			if (!zombie || zombie == this || zombie->mZombieType == ZombieType::ZOMBIE_ROOF_MARSHAL
+				|| zombie->IsMindControlled() || zombie->IsDying()) {
+				return;
+			}
+			++rowCounts[static_cast<std::size_t>(row)];
+		});
+		highestCount = std::max(highestCount, rowCounts[static_cast<std::size_t>(row)]);
+	}
+	if (highestCount <= 0) return;
+
+	std::array<int, 6> tiedRows{};
+	int tiedRowCount = 0;
+	for (int row = 0; row < mBoard->mRows
+		&& row < static_cast<int>(rowCounts.size()); ++row) {
+		if (rowCounts[static_cast<std::size_t>(row)] == highestCount) {
+			tiedRows[static_cast<std::size_t>(tiedRowCount++)] = row;
+		}
+	}
+	mLastAssaultRow = tiedRows[static_cast<std::size_t>(
+		GameRandom::Range(0, tiedRowCount - 1))];
+	mBoard->mEntityManager.ForEachZombieInRow(mLastAssaultRow, [&](Zombie* zombie) {
+		if (!zombie || zombie == this || zombie->mZombieType == ZombieType::ZOMBIE_ROOF_MARSHAL
+			|| zombie->IsMindControlled() || zombie->IsDying()) {
+			return;
+		}
+		zombie->ApplyRoofMarshalAssault(
+			kAssaultDuration, kAssaultMoveMultiplier, kAssaultBiteMultiplier);
+		++mLastAssaultAffectedCount;
+	});
+	if (mLastAssaultAffectedCount > 0) {
+		++mAssaultCommandCount;
+		AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_HUGEWAVE, 0.25f);
 	}
 }
 
@@ -367,6 +474,9 @@ void RoofMarshalZombie::SaveExtraData(nlohmann::json& j) const
 	j["laneSwitchCount"] = mLaneSwitchCount;
 	j["lastSummonCount"] = mLastSummonCount;
 	j["lastSummonRowMask"] = mLastSummonRowMask;
+	j["assaultCommandCount"] = mAssaultCommandCount;
+	j["lastAssaultRow"] = mLastAssaultRow;
+	j["lastAssaultAffectedCount"] = mLastAssaultAffectedCount;
 	j["lastSummonedTypes"] = nlohmann::json::array();
 	for (ZombieType type : mLastSummonedTypes) {
 		j["lastSummonedTypes"].push_back(static_cast<int>(type));
@@ -397,6 +507,10 @@ void RoofMarshalZombie::LoadExtraData(const nlohmann::json& j)
 		? (1 << std::min(mBoard->mRows, 30)) - 1
 		: 0;
 	mLastSummonRowMask = j.value("lastSummonRowMask", 0) & validRowMask;
+	mAssaultCommandCount = std::max(0, j.value("assaultCommandCount", 0));
+	mLastAssaultRow = std::clamp(j.value("lastAssaultRow", -1), -1,
+		mBoard && mBoard->mRows > 0 ? mBoard->mRows - 1 : -1);
+	mLastAssaultAffectedCount = std::max(0, j.value("lastAssaultAffectedCount", 0));
 	mLastSummonedTypes.fill(ZombieType::NUM_ZOMBIE_TYPES);
 	if (j.contains("lastSummonedTypes") && j["lastSummonedTypes"].is_array()) {
 		const auto& savedTypes = j["lastSummonedTypes"];
@@ -458,4 +572,27 @@ void RoofMarshalZombie::HeadDrop()
 		g_particleSystem->EmitEffect("RoofMarshalHeadOff", particlePosition);
 	}
 	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_ARM_HEAD_DROP, 0.25f);
+}
+
+void RoofMarshalZombie::ArmDrop()
+{
+	if (!mHasArm || !mAnimator) return;
+	mAnimator->SetTrackVisible("Zombie_outerarm_hand", false);
+	mAnimator->SetTrackVisible("Zombie_outerarm_lower", false);
+	mAnimator->SetTrackImage("Zombie_outerarm_upper", ResourceManager::GetInstance().
+		GetTexture(ResourceKeys::Textures::IMAGE_ZOMBIE_ROOFMARSHAL_OUTERARM_UPPER2));
+	if (g_particleSystem) {
+		g_particleSystem->EmitEffect("ZombieArmOff", GetPosition());
+	}
+	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_ARM_HEAD_DROP, 0.25f);
+}
+
+void RoofMarshalZombie::ZombieItemUpdate() const
+{
+	Zombie::ZombieItemUpdate();
+	if (!mHasArm && mAnimator) {
+		// 基类先恢复残肢显隐，再把普通棕袖替换为督军军服断袖，保证读档与实时掉臂一致。
+		mAnimator->SetTrackImage("Zombie_outerarm_upper", ResourceManager::GetInstance().
+			GetTexture(ResourceKeys::Textures::IMAGE_ZOMBIE_ROOFMARSHAL_OUTERARM_UPPER2));
+	}
 }

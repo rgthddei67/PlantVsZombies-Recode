@@ -1,0 +1,30 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 1, "resetTestState": true },
+    { "op": "choose_cards", "cards": ["PLANT_WALLNUT"] },
+    { "op": "wait_state", "state": "GAME", "timeout": 15 },
+    { "op": "set_spawn_paused", "value": true },
+    { "op": "set_sun", "value": 9000 },
+    { "op": "plant", "type": "PLANT_WALLNUT", "row": 2, "col": 7 },
+    { "op": "spawn_zombie", "type": "ZOMBIE_ROOF_MARSHAL", "row": 2, "x": 800 },
+    { "op": "wait_frames", "value": 2 },
+    { "op": "assert_state", "path": "roofMarshal.attackDamage", "equals": 250 },
+    { "op": "assert_state", "path": "roofMarshal.isEating", "equals": true },
+    { "op": "assert_state", "path": "roofMarshal.track", "equals": "anim_eat" },
+    { "op": "wait_seconds", "value": 0.55, "timeout": 3 },
+    { "op": "assert_state", "path": "plants.0.health", "equals": 4000 },
+    { "op": "wait_seconds", "value": 0.55, "timeout": 3 },
+    { "op": "assert_state", "path": "plants.0.health", "atMost": 3750 },
+    { "op": "assert_state", "path": "roofMarshal.isEating", "equals": true },
+    { "op": "assert_state", "path": "roofMarshal.track", "equals": "anim_eat" },
+    { "op": "assert_state", "path": "roofMarshal.roofMarshalCommandCount", "equals": 1 },
+    { "op": "assert_state", "path": "roofMarshal.roofMarshalCommandPhase", "equals": "ADVANCING" },
+    { "op": "assert_state", "path": "roofMarshal.roofMarshalLastSummonCount", "equals": 3 },
+    { "op": "save_level_snapshot", "name": "roof_marshal_eating_command" },
+    { "op": "reload_level_snapshot", "name": "roof_marshal_eating_command" },
+    { "op": "assert_state", "path": "roofMarshal.isEating", "equals": true },
+    { "op": "assert_state", "path": "roofMarshal.roofMarshalCommandCount", "equals": 1 },
+    { "op": "dump_state", "name": "roof_marshal_eating_command.json" },
+    { "op": "quit" }
+  ]
+}

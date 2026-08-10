@@ -204,6 +204,9 @@ void Zombie::SaveProtectedData(nlohmann::json& j) const {
 	j["cooldownTimer"] = mCooldownTimer;
 	j["frozenTimer"] = mFrozenTimer;
 	j["butterTimer"] = mButterTimer;
+	j["roofMarshalAssaultTimer"] = mRoofMarshalAssaultTimer;
+	j["roofMarshalAssaultMoveMultiplier"] = mRoofMarshalAssaultMoveMultiplier;
+	j["roofMarshalAssaultBiteMultiplier"] = mRoofMarshalAssaultBiteMultiplier;
 	j["toxinLayerTimers"] = mToxinLayerTimers;
 	j["toxinDamageRemainder"] = mToxinDamageRemainder;
 	j["dyingTimer"] = mDyingTimer;
@@ -232,6 +235,16 @@ void Zombie::LoadProtectedData(const nlohmann::json& j) {
 	mIsDying = j.value("isDying", false);
 	mInPool = j.value("inPool", false);
 	mSpeed = j.value("speed", 10.0f);
+	mRoofMarshalAssaultTimer = std::clamp(
+		j.value("roofMarshalAssaultTimer", 0.0f), 0.0f, 60.0f);
+	mRoofMarshalAssaultMoveMultiplier = std::clamp(
+		j.value("roofMarshalAssaultMoveMultiplier", 1.0f), 1.0f, 4.0f);
+	mRoofMarshalAssaultBiteMultiplier = std::clamp(
+		j.value("roofMarshalAssaultBiteMultiplier", 1.0f), 1.0f, 4.0f);
+	if (mRoofMarshalAssaultTimer <= 0.0f) {
+		mRoofMarshalAssaultMoveMultiplier = 1.0f;
+		mRoofMarshalAssaultBiteMultiplier = 1.0f;
+	}
 
 	// 旧档把品种能力倍率放在根字段 extraSpeed；只有仍需实例随机值的派生类消费它。
 	// 固定倍率和状态倍率均由虚函数直接派生，新档不再写该字段。
@@ -429,6 +442,16 @@ void Zombie::Update()
 		// 毒素不受减速、冻结、啃食和水草早退影响，因此在所有行为状态分支之前结算。
 		UpdateToxin(deltaTime);
 		if (!IsActive()) return;
+
+		// 突击令按游戏时间衰减，不因啃食、冻结或品种行为早退而变成永久增益。
+		if (mRoofMarshalAssaultTimer > 0.0f) {
+			mRoofMarshalAssaultTimer = std::max(0.0f,
+				mRoofMarshalAssaultTimer - deltaTime);
+			if (mRoofMarshalAssaultTimer <= 0.0f) {
+				mRoofMarshalAssaultMoveMultiplier = 1.0f;
+				mRoofMarshalAssaultBiteMultiplier = 1.0f;
+			}
+		}
 
 		if (mTangleKelpPlantID != NULL_PLANT_ID
 			&& !mBoard->mEntityManager.GetPlant(mTangleKelpPlantID)) {
@@ -980,6 +1003,7 @@ void Zombie::ZombieMove(float scaledDelta, TransformComponent* transform)
 			speed *= AmplifySpeedMultiplierForGoldenIce(
 				mBoard->GetZombieWindMoveMultiplier(IsMovingRight()));
 		}
+		speed *= GetRoofMarshalAssaultMoveMultiplier();
 		if (IsMovingRight())
 		{
 			transform->Translate(speed * scaledDelta, 0);
@@ -1818,9 +1842,22 @@ float Zombie::GetTangleKelpGrabFrame() const
 		: kTangleKelpGrabStartFrame;
 }
 
+void Zombie::ApplyRoofMarshalAssault(
+	float duration, float moveMultiplier, float biteMultiplier)
+{
+	if (duration <= 0.0f || mIsDead || mIsDying) return;
+	mRoofMarshalAssaultTimer = std::max(mRoofMarshalAssaultTimer, duration);
+	mRoofMarshalAssaultMoveMultiplier = std::max(
+		mRoofMarshalAssaultMoveMultiplier, std::max(1.0f, moveMultiplier));
+	mRoofMarshalAssaultBiteMultiplier = std::max(
+		mRoofMarshalAssaultBiteMultiplier, std::max(1.0f, biteMultiplier));
+}
+
 void Zombie::EatTarget()
 {
 	if (mIsDying || mIsDead) return;
+	const int biteDamage = std::max(1, static_cast<int>(std::lround(
+		static_cast<double>(mAttackDamage) * GetRoofMarshalAssaultBiteMultiplier())));
 
 	if (mEatZombieID != NULL_ZOMBIE_ID && mHasHead)
 	{
@@ -1834,7 +1871,7 @@ void Zombie::EatTarget()
 		}
 		// 互啃走 TakeDamage 正常链（护盾→头盔→本体）：免伤/减伤词条对啃咬同样生效（语义自洽）；
 		// 不过 ScaleZombieDamage——那是僵尸对植物的词条
-		target->TakeDamage(mAttackDamage, DamageSource::ZOMBIE);
+		target->TakeDamage(biteDamage, DamageSource::ZOMBIE);
 		if (GameRandom::Range(0, 1) == 0)
 			AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_ZOMBIE_EAT, 0.17f);
 		else
@@ -1873,7 +1910,7 @@ void Zombie::EatTarget()
 			}
 			// 原始攻击力交给植物受伤入口按来源统一结算；不写回 mAttackDamage，避免污染存档。
 			plant->OnZombieBite(GetPosition());
-			plant->TakeDamage(mAttackDamage, DamageSource::ZOMBIE);
+			plant->TakeDamage(biteDamage, DamageSource::ZOMBIE);
 			if (plant->mPlantHealth <= 0)
 			{
 				AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_ZOMBIE_FINISHEAT, 0.2f);
@@ -2122,6 +2159,7 @@ float Zombie::GetCurrentHorizontalMoveSpeed() const
 		velocity *= AmplifySpeedMultiplierForGoldenIce(
 			mBoard->GetZombieWindMoveMultiplier(IsMovingRight()));
 	}
+	velocity *= GetRoofMarshalAssaultMoveMultiplier();
 	return std::max(0.0f, velocity);
 }
 

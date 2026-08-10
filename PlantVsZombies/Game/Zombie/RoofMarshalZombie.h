@@ -16,7 +16,9 @@ public:
 		COMMANDING,
 	};
 
-	/** @brief 推进召唤冷却与指挥姿势；冻结、黄油、啃食和水草束缚由基类统一暂停。 */
+	/** @brief 让基类推进通用状态，并在啃食早退后继续执行首领指挥逻辑。 */
+	void Update() override;
+	/** @brief 推进召唤冷却与指挥姿势；冻结、黄油和水草束缚仍会暂停。 */
 	void ZombieUpdate(float scaledTime) override;
 	/** @brief 在高血量换行演出期间叠加独立纵向视觉补偿，不污染逻辑行和通用素材偏移。 */
 	Vector GetVisualPosition() const override;
@@ -58,11 +60,14 @@ public:
 	float GetLaneTransitionRemaining() const { return mLaneTransitionRemaining; }
 	float GetLaneVisualOffsetY() const { return mLaneVisualOffsetY; }
 	int GetLaneSwitchCount() const { return mLaneSwitchCount; }
+	int GetAssaultCommandCount() const { return mAssaultCommandCount; }
+	int GetLastAssaultRow() const { return mLastAssaultRow; }
+	int GetLastAssaultAffectedCount() const { return mLastAssaultAffectedCount; }
 	bool IsWalkingPhase() const;
 	const std::array<ZombieType, 4>& GetLastSummonedTypes() const {
 		return mLastSummonedTypes;
 	}
-	/** @brief 判断类型是否属于不会随未来注册表扩张的督军固定原版白名单。 */
+	/** @brief 判断类型是否属于不会随未来第六大关扩张的督军固定前五大关白名单。 */
 	static bool IsAllowedSummonType(ZombieType type);
 	static bool IsHighThreatSummonType(ZombieType type);
 
@@ -74,12 +79,18 @@ protected:
 	void PlayWalkAnimation(float blendTime) override;
 	/** @brief 隐藏普通头部组并发射军帽与头一体的专属掉落粒子。 */
 	void HeadDrop() override;
+	/** @brief 换用军服断袖贴图，并复用普通断臂粒子和音效。 */
+	void ArmDrop() override;
+	/** @brief 读档恢复通用残肢后，重新覆盖督军专属断袖材质。 */
+	void ZombieItemUpdate() const override;
 
 private:
 	/** @brief 立即生成一批固定白名单僵尸，并记录实际生成结果供存档与验收。 */
 	void SummonCommandedZombies();
-	/** @brief 根据当前生命阶段选择下一只原版僵尸。 */
-	ZombieType RollSummonedZombieType() const;
+	/** @brief 根据当前生命阶段与目标行地形选择下一只前五大关僵尸。 */
+	ZombieType RollSummonedZombieType(int row) const;
+	/** @brief 每两批召唤选择兵力最集中的一行，短时强化其推进与啃食。 */
+	void IssueAssaultCommand();
 	/** @brief 召唤后进入 1.2 秒指挥姿势，但不延后下一次召唤冷却。 */
 	void BeginCommandPose();
 	/** @brief 从相邻合法行中选一行并开始独立的纵向换行演出。 */
@@ -97,6 +108,9 @@ private:
 	int mLaneSwitchCount = 0;
 	int mLastSummonCount = 0;
 	int mLastSummonRowMask = 0;
+	int mAssaultCommandCount = 0;
+	int mLastAssaultRow = -1;
+	int mLastAssaultAffectedCount = 0;
 	std::array<ZombieType, 4> mLastSummonedTypes{
 		ZombieType::NUM_ZOMBIE_TYPES,
 		ZombieType::NUM_ZOMBIE_TYPES,

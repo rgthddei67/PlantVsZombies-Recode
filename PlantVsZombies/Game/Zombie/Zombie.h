@@ -62,6 +62,9 @@ protected:
 	float mCooldownTimer = 0.0f;	// 僵尸减速倒计时时间
 	float mFrozenTimer = 0.0f;		// 冻结剩余秒数（寒冰菇完全定身），0=未冻结
 	float mButterTimer = 0.0f;		// 黄油定身剩余秒数，0=未被黄油固定
+	float mRoofMarshalAssaultTimer = 0.0f; // 突击令剩余游戏秒数；独立于天气与寒冷状态
+	float mRoofMarshalAssaultMoveMultiplier = 1.0f; // 突击令自主水平推进倍率
+	float mRoofMarshalAssaultBiteMultiplier = 1.0f; // 突击令每口伤害倍率
 	bool mButterSplatFollowerConfigured = false; // 当前 reanim 是否已绑定语义头部轨道黄油；纯展示派生状态不入档
 	std::array<float, 20> mToxinLayerTimers{};	// 每层独立剩余秒数；二十格即每只僵尸的共享上限
 	float mToxinDamageRemainder = 0.0f;	// 跨帧保留未满 1 点的持续伤害，保证倍速下总量稳定
@@ -288,6 +291,16 @@ public:
 	float GetFrozenTimer() const { return this->mFrozenTimer; }
 	bool IsButtered() const { return mButterTimer > 0.0f; }
 	float GetButterTimer() const { return mButterTimer; }
+	/** @brief 施加或刷新屋脊督军突击令；重复命令只延长并保留较强倍率。 */
+	void ApplyRoofMarshalAssault(float duration, float moveMultiplier, float biteMultiplier);
+	bool IsRoofMarshalAssaultActive() const { return mRoofMarshalAssaultTimer > 0.0f; }
+	float GetRoofMarshalAssaultTimer() const { return mRoofMarshalAssaultTimer; }
+	float GetRoofMarshalAssaultMoveMultiplier() const {
+		return IsRoofMarshalAssaultActive() ? mRoofMarshalAssaultMoveMultiplier : 1.0f;
+	}
+	float GetRoofMarshalAssaultBiteMultiplier() const {
+		return IsRoofMarshalAssaultActive() ? mRoofMarshalAssaultBiteMultiplier : 1.0f;
+	}
 	/** 冻结或黄油任一生效时，统一视为完全定身。 */
 	bool IsImmobilized() const { return IsFrozen() || IsButtered(); }
 	/** 黄油弹命中入口；返回 false 表示当前品种或阶段免疫定身。 */

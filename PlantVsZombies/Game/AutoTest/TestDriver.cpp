@@ -2668,6 +2668,9 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		{ "tieTextureLoaded", ResourceManager::GetInstance().GetTexture(
 			ResourceKeys::Textures::IMAGE_REANIM_ZOMBIE_ROOFMARSHAL_TIE,
 			false) != nullptr },
+		{ "brokenArmTextureLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_ZOMBIE_ROOFMARSHAL_OUTERARM_UPPER2,
+			false) != nullptr },
 		{ "headParticleTextureLoaded", ResourceManager::GetInstance().GetTexture(
 			ResourceKeys::Particles::PARTICLE_ZOMBIE_ROOF_MARSHAL_HEAD,
 			false) != nullptr },
@@ -3273,6 +3276,10 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	int redEyeGargantuarZombieCount = 0;
 	int impZombieCount = 0;
 	int roofMarshalZombieCount = 0;
+	int roofMarshalAssaultBoostedZombieCount = 0;
+	int roofMarshalAssaultBoostedRowMask = 0;
+	int roofMarshalAssaultMoveMultiplierPctMax = 100;
+	int roofMarshalAssaultBiteMultiplierPctMax = 100;
 	int zombieBodyHealthTotal = 0;
 	int zombieShieldHealthTotal = 0;
 	int slowedZombieCount = 0;
@@ -3313,6 +3320,18 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		}
 		if (z->mZombieType == ZombieType::ZOMBIE_IMP) ++impZombieCount;
 		if (z->mZombieType == ZombieType::ZOMBIE_ROOF_MARSHAL) ++roofMarshalZombieCount;
+		if (z->IsRoofMarshalAssaultActive()) {
+			++roofMarshalAssaultBoostedZombieCount;
+			if (z->mRow >= 0 && z->mRow < board->mRows) {
+				roofMarshalAssaultBoostedRowMask |= 1 << z->mRow;
+			}
+			roofMarshalAssaultMoveMultiplierPctMax = std::max(
+				roofMarshalAssaultMoveMultiplierPctMax, static_cast<int>(std::lround(
+					z->GetRoofMarshalAssaultMoveMultiplier() * 100.0f)));
+			roofMarshalAssaultBiteMultiplierPctMax = std::max(
+				roofMarshalAssaultBiteMultiplierPctMax, static_cast<int>(std::lround(
+					z->GetRoofMarshalAssaultBiteMultiplier() * 100.0f)));
+		}
 		zombieBodyHealthTotal += z->mBodyHealth;
 		zombieShieldHealthTotal += z->mShieldHealth;
 		if (z->GetCooldownTimer() > 0.0f) ++slowedZombieCount;
@@ -3357,6 +3376,12 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				board->GetRoofRunoffZombieDriftVelocity(z->mRow, pos.x)
 				* z->GetRoofRunoffDriftMultiplier())) },
 			{ "attackDamage", z->mAttackDamage },
+			{ "roofMarshalAssaultTimerMs", static_cast<int>(std::lround(
+				z->GetRoofMarshalAssaultTimer() * 1000.0f)) },
+			{ "roofMarshalAssaultMoveMultiplierPct", static_cast<int>(std::lround(
+				z->GetRoofMarshalAssaultMoveMultiplier() * 100.0f)) },
+			{ "roofMarshalAssaultBiteMultiplierPct", static_cast<int>(std::lround(
+				z->GetRoofMarshalAssaultBiteMultiplier() * 100.0f)) },
 			{ "helmHealth", z->mHelmHealth }, { "shieldHealth", z->mShieldHealth },
 			{ "fireResistant", z->IsFireResistant() },
 			{ "mindControlled", z->IsMindControlled() },
@@ -3840,6 +3865,10 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			zombieState["roofMarshalLaneVisualOffsetYOn1000"] = static_cast<int>(
 				std::lround(marshal->GetLaneVisualOffsetY() * 1000.0f));
 			zombieState["roofMarshalLaneSwitchCount"] = marshal->GetLaneSwitchCount();
+			zombieState["roofMarshalAssaultCommandCount"] = marshal->GetAssaultCommandCount();
+			zombieState["roofMarshalLastAssaultRow"] = marshal->GetLastAssaultRow();
+			zombieState["roofMarshalLastAssaultAffectedCount"] =
+				marshal->GetLastAssaultAffectedCount();
 			zombieState["roofMarshalWalkingPhase"] = marshal->IsWalkingPhase();
 			zombieState["roofMarshalLastSummonAvoidedCurrentRow"] =
 				(marshal->GetLastSummonRowMask() & (1 << marshal->mRow)) == 0;
@@ -3881,6 +3910,16 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		ZombieType::ZOMBIE_REDEYE_GARGANTUAR);
 	out["impZombieCount"] = impZombieCount;
 	out["roofMarshalZombieCount"] = roofMarshalZombieCount;
+	out["roofMarshalAssaultBoostedZombieCount"] = roofMarshalAssaultBoostedZombieCount;
+	out["roofMarshalAssaultBoostedRowMask"] = roofMarshalAssaultBoostedRowMask;
+	int roofMarshalAssaultBoostedDistinctRowCount = 0;
+	for (int mask = roofMarshalAssaultBoostedRowMask; mask != 0; mask >>= 1) {
+		roofMarshalAssaultBoostedDistinctRowCount += mask & 1;
+	}
+	out["roofMarshalAssaultBoostedDistinctRowCount"] =
+		roofMarshalAssaultBoostedDistinctRowCount;
+	out["roofMarshalAssaultMoveMultiplierPctMax"] = roofMarshalAssaultMoveMultiplierPctMax;
+	out["roofMarshalAssaultBiteMultiplierPctMax"] = roofMarshalAssaultBiteMultiplierPctMax;
 	out["roofMarshalSummonWhitelist"] = nlohmann::json::array();
 	for (int i = 0; i < static_cast<int>(ZombieType::NUM_ZOMBIE_TYPES); ++i) {
 		const auto type = static_cast<ZombieType>(i);
@@ -3896,6 +3935,18 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		ZombieType::ZOMBIE_GARGANTUAR);
 	out["roofMarshalAllowsEliteDancer"] = RoofMarshalZombie::IsAllowedSummonType(
 		ZombieType::ZOMBIE_ELITE_DANCER);
+	out["roofMarshalAllowsElitePolevaulter"] = RoofMarshalZombie::IsAllowedSummonType(
+		ZombieType::ZOMBIE_ELITE_POLEVAULTER);
+	out["roofMarshalAllowsEliteJack"] = RoofMarshalZombie::IsAllowedSummonType(
+		ZombieType::ZOMBIE_ELITE_JACK_IN_THE_BOX);
+	out["roofMarshalAllowsEliteDigger"] = RoofMarshalZombie::IsAllowedSummonType(
+		ZombieType::ZOMBIE_ELITE_DIGGER);
+	out["roofMarshalAllowsElitePogo"] = RoofMarshalZombie::IsAllowedSummonType(
+		ZombieType::ZOMBIE_ELITE_POGO);
+	out["roofMarshalAllowsEliteLadder"] = RoofMarshalZombie::IsAllowedSummonType(
+		ZombieType::ZOMBIE_ELITE_LADDER);
+	out["roofMarshalAllowsEliteCatapult"] = RoofMarshalZombie::IsAllowedSummonType(
+		ZombieType::ZOMBIE_ELITE_CATAPULT);
 	out["roofMarshalAllowsRedEyeGargantuar"] = RoofMarshalZombie::IsAllowedSummonType(
 		ZombieType::ZOMBIE_REDEYE_GARGANTUAR);
 	out["roofMarshalAllowsPoolNormal"] = RoofMarshalZombie::IsAllowedSummonType(

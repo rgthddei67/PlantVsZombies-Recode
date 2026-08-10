@@ -1,10 +1,10 @@
 ---
 name: project_pvz_roof_marshal_prototype
-description: 2026-08-09 5-9 屋脊督军完整首领；12000 生命、生存抗性、指挥召唤、阶段移动与改天技能
+description: 2026-08-10 5-9 屋脊督军完整首领；12000 生命、前五大关召唤、突击令、阶段移动与改天技能
 metadata:
   node_type: memory
   type: project
-  updated_at: 2026-08-09
+  updated_at: 2026-08-10
 ---
 
 # 5-9 屋脊督军首领
@@ -18,22 +18,25 @@ metadata:
 `Board::TrySummonAdventureBoss()` 额外创建一只，固定中路 `x=1000`。开发者面板和 AutoTest 仍可直造，
 但普通出怪池、预览和未来新增类型不会自动混入首领路径。
 `RoofMarshal.reanim` 完整复制 `NormalZombie.reanim` 时间线，派生 `SetupZombie()` 先调用
-`Zombie::SetupZombie()`，再把本体当前/最大生命设为 12000；因此继续复用普通走路、啃食和死亡帧事件，
-没有新增帧号。
+`Zombie::SetupZombie()`，再把本体当前/最大生命设为 12000、每口伤害从 50 提升到 250；因此继续复用
+普通走路、啃食和死亡帧事件，没有新增帧号。
 
 美术源分两层：`docs/art/roof-marshal/roof-marshal-concept-v1.png` 是 ImageGen 生成的整张概念设定稿，
 只用于确定深海军蓝短军装、旧金领饰和紧凑大檐帽方向，绝不直接切片进游戏；权威运行素材由
 `scripts/generate_roof_marshal_assets.ps1` 从普通僵尸小分体可复现生成。脚本只替换外套、四段袖子、
-两只鞋、领饰和 `anim_hair` 对应的 64x31 帽子，保留原画布、Alpha、关节轴以及普通脸/手/腿。
+两只鞋、领饰和 `anim_hair` 对应的 64x31 帽子，保留原画布、Alpha、关节轴以及普通脸/手/腿；普通
+`Zombie_outerarm_upper2.png` 断袖也只逐像素把棕布换成军服深蓝，皮肤、骨头、透明区与 17x35 锚点不变。
 主人随后确认军帽随头一起飞；脚本现把普通掉头图与军帽预合成为独立的
-`ZombieRoofMarshalHead.png`，共 11 个生成结果均锁定 SHA-256。`resources.xml`、manifest、reanim/粒子键与
+`ZombieRoofMarshalHead.png`，共 12 个生成结果均锁定 SHA-256。`resources.xml`、manifest、reanim/粒子键与
 `GetTexture(key,false)` 断言已闭环。
 
 视觉结论：白天屋顶默认实例化路径与 `-NoInstance` 路径均能稳定显示深蓝军装、金色领饰和帽子，
 帽檐不遮眼，袖子在普通走路帧没有露出棕色接缝。`RoofMarshalZombie::HeadDrop()` 在隐藏
 `anim_head1/anim_head2/anim_tongue/anim_hair` 前读取头轨世界锚点，只发射一颗
 `RoofMarshalHeadOff` 粒子，因此军帽与头在抛起、旋转和下坠期间不会错位；通用 `ZombieHeadOff`
-保持为 0。普通死亡时间线可正常进入 `anim_death` 并在事件终点回收。
+保持为 0。`ArmDrop()` 与 `ZombieItemUpdate()` 都把残肢上臂覆盖为
+`IMAGE_ZOMBIE_ROOFMARSHAL_OUTERARM_UPPER2`，实时掉臂和读档恢复不会退回普通棕袖。普通死亡时间线可正常
+进入 `anim_death` 并在事件终点回收。
 
 生存契约：普通灰烬基础伤害仍为 1800；`TakePlantAshDamage()` 先把土豆雷传入的 `INT32_MAX` 等高值
 压到 1800，再进入基类伤害链，因此生存词条仍能正常缩放。大嘴花每次完整咬合改为 1800 基础植物伤害，
@@ -43,11 +46,17 @@ metadata:
 本体常规死亡时间线与专属军帽掉头粒子。
 
 指挥契约：登场 1 秒生成首批，此后生命不低于 4000 时每 9 秒生成 3 只，低于 4000 时每 7 秒生成
-4 只；同一批使用不重复随机行并避开首领当前行，全部在 `x=910` 创建。常规池固定为普通、路障、
-撑杆、铁桶、读报和铁门；低于 8000 后每个召唤位有 30% 从橄榄球、舞王、冰车、玩偶匣、气球、
-矿工、跳跳、蹦极、扶梯、投篮车和巨人池抽取。两池是显式原版白名单，原创/精英、泳池专属、
-召唤子单位、红眼巨人、督军自身和未来第六大关类型不得自动进入。每次创建后用现有 `anim_idle`
-播放 1.2 秒指挥姿势，不新增动画帧事件。
+4 只；同一批使用不重复随机行并避开首领当前行，全部在 `x=910` 创建。固定白名单显式列出当前枚举
+0..35 的全部前五大关已实现类型，共 36 种：普通/快速变体、全部现有精英、泳池形态、伴舞和小鬼均在
+其中；红眼巨人、督军自身及未来第六大关以后新增类型不因扩张枚举而自动进入。实际抽取还必须通过
+`Board::CanSpawnZombieInRow`，所以泳池专属形态不会被硬塞到 5-9 屋顶。低于 8000 后每个召唤位仍有
+30% 从高威胁子池抽取。每次创建后用现有 `anim_idle` 播放 1.2 秒指挥姿势，不新增动画帧事件；若首领
+正在 `anim_eat`，派生 `Update()` 只补推进一次首领逻辑，照常召唤/施法但不抢占啃食轨道。
+
+突击令：每完成第 2、4、6……批召唤，选择当前非魅惑、非垂死、非督军兵力最多的一行（并列随机），
+吹响现有 `SOUND_HUGEWAVE` 号角，并令该行单位在 6 游戏秒内自主水平推进与每口伤害各乘 1.5。强化
+计时和两项倍率属于每只 `Zombie` 的受保护存档数据，啃食、冻结及品种早退不会令它永久残留；首领保存
+突击次数、最近目标行和受影响数用于诊断，不强化自己。
 
 移动与耐久阶段：本体不低于 4000 时不水平推进，稳态播放 `anim_idle2`，每 6 秒只换到相邻合法行；
 逻辑行和碰撞箱先原子提交，独立视觉 Y 补偿在 0.65 秒内归零。低于 4000 后停止自主换行并按普通
@@ -81,3 +90,12 @@ metadata:
 残血从小雨切到无台风大雨、后续受击不重置余时，以及中雨/大雨和指挥累计次数的快照往返；同步截图
 确认天气板、屋顶雨景、1.2 倍本体与影子同时正确显示。既有 `smoke_night_rain` 和
 `smoke_roof_rain_sky` 亦可见通过，证明自然雨势与屋顶雨云路径未被首领入口改写。
+
+2026-08-10 修正验收：`clang-release` 配置、编译、LTO 链接 exit 0。主人当前桌面可见
+`smoke_roof_marshal_eating_command` exit 0、26 条命令通过，实测 `attackDamage=250`、首口坚果
+`4000→3750`、全程保持 `anim_eat`，约 1 秒仍召唤 3 只，快照重载后继续啃食且命令计数为 1；
+`smoke_roof_marshal_command` exit 0、119 条命令通过，锁定 36 种白名单、全部现有精英允许、红眼/自身
+排除，以及第二批突击令只强化一行、移动/啃食均为 150% 并完整入档；`smoke_roof_marshal_visual`
+exit 0、46 条命令通过，断袖资源已加载，7999 血实时断臂和快照重载截图均显示深蓝断袖，致死后专属
+军帽掉头仍正常。`smoke_roof_marshal_noinstance -NoInstance` exit 0、25 条命令通过，普通小鬼啃食父类
+回归 `smoke_imp_eat` exit 0、18 条命令通过。
