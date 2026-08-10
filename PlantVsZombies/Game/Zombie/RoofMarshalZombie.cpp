@@ -10,25 +10,25 @@
 #include <array>
 
 namespace {
-	constexpr int kBodyHealth = 12000;                    // 主人确认的首领本体生命值
+	constexpr int kBodyHealth = 15000;                    // 主人确认的首领本体生命值
 	constexpr int kBiteDamageMultiplier = 5;              // 督军每口啃食伤害相对普通僵尸的倍率
 	constexpr int kPlantAshDamageCap = 1800;              // 灰烬与土豆雷的单次基础伤害上限
 	constexpr int kPlantInstantKillFallbackDamage = 1800; // 大嘴花直杀失败后结算的单次基础伤害
 	constexpr float kBossVisualScale = 1.2f;              // 须与 gamedata.json 的督军 scale 同改；影子按此倍率同步放大
-	constexpr int kHighThreatHealthThreshold = 8000;      // 低于此本体生命后，高威胁原版池开始参与抽取
-	constexpr int kDesperateHealthThreshold = 4000;       // 低于此本体生命后，切换 4 秒四只的最终阶段
+	constexpr int kHighThreatHealthThreshold = 11000;      // 低于此本体生命后，高威胁原版池开始参与抽取
+	constexpr int kDesperateHealthThreshold = 5400;       // 低于此本体生命后，切换 4 秒四只的最终阶段
 	constexpr float kFirstSummonDelay = 1.0f;             // 登场到第一批实际生成的游戏秒数
 	constexpr float kNormalSummonInterval = 6.0f;         // 常态与第二阶段的实际召唤间隔，单位：游戏秒
-	constexpr float kDesperateSummonInterval = 4.0f;      // 4000 血以下的实际召唤间隔，单位：游戏秒
+	constexpr float kDesperateSummonInterval = 4.0f;      // 5400 血以下的实际召唤间隔，单位：游戏秒
 	constexpr float kCommandPoseDuration = 1.2f;          // 每次召唤后停步播放 anim_idle 的游戏秒数
 	constexpr float kCommandBlendTime = 0.2f;             // 指挥姿势与走路轨道切换的混合时长，单位：秒
-	constexpr float kLaneSwitchInterval = 6.0f;           // 4000 血以上每次自主换到相邻行的间隔，单位：游戏秒
+	constexpr float kLaneSwitchInterval = 6.0f;           // 5400 血以上每次自主换到相邻行的间隔，单位：游戏秒
 	constexpr float kLaneTransitionDuration = 0.65f;      // 换行视觉从旧行平滑收敛到新行的时长，单位：游戏秒
 	constexpr float kLaneTransitionBlendTime = 0.15f;     // 换行开始/结束时切换走路与待机轨道的混合时长，单位：秒
-	constexpr int kNormalSummonCount = 3;                 // 4000 血以上每批生成数量
-	constexpr int kDesperateSummonCount = 4;              // 4000 血以下每批生成数量
-	constexpr int kHighThreatRollStartPercent = 30;       // 刚低于 8000 血时，每个位置抽取高威胁池的起始概率
-	constexpr int kHighThreatRollEndPercent = 100;        // 到 4000 血及以下时，每个位置只从高威胁池抽取
+	constexpr int kNormalSummonCount = 3;                 // 5400 血以上每批生成数量
+	constexpr int kDesperateSummonCount = 4;              // 5400 血以下每批生成数量
+	constexpr int kHighThreatRollStartPercent = 30;       // 刚低于 11000 血时，每个位置抽取高威胁池的起始概率
+	constexpr int kHighThreatRollEndPercent = 100;        // 到 5400 血及以下时，每个位置只从高威胁池抽取
 	constexpr float kCommandSpawnX = 910.0f;              // 主人指定的部队召唤 X；直接出现在战场右侧可见区域，单位：像素
 	constexpr int kWeatherCommandCadence = 3;             // 每完成多少次实际指挥召唤尝试一次周期改天
 	constexpr float kCommandedMediumRainDuration = 20.0f; // 周期天气技能强制中雨的最短游戏秒数
