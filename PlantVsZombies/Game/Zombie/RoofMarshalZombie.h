@@ -67,6 +67,10 @@ public:
 	int GetLastAssaultAffectedCount() const { return mLastAssaultAffectedCount; }
 	float GetButterImmunityTimer() const { return mButterImmunityTimer; }
 	int GetLastSummonBossRow() const { return mLastSummonBossRow; }
+	/** @brief 高威胁援军阶段的绝对生命分界，供首领 UI 与测试共用。 */
+	int GetHighThreatHealthThreshold() const;
+	/** @brief 狂暴行走阶段的绝对生命分界，供首领 UI 与测试共用。 */
+	int GetDesperateHealthThreshold() const;
 	bool IsWalkingPhase() const;
 	const std::array<ZombieType, 4>& GetLastSummonedTypes() const {
 		return mLastSummonedTypes;

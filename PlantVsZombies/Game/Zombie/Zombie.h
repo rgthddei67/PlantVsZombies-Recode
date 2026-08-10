@@ -244,6 +244,7 @@ public:
 	virtual bool CanBeCharmed() const { return true; }
 	bool HasHead() const { return this->mHasHead; }
 	bool IsDying() const { return this->mIsDying; }
+	bool IsPreview() const { return this->mIsPreview; }
 	bool IsEating() const { return this->mIsEating; }
 	int GetEatingPlantID() const { return mEatPlantID; }
 	/** 是否正在执行由大蒜首口触发的停顿、换行或收尾阶段。 */

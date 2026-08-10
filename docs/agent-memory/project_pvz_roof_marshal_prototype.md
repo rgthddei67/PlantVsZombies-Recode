@@ -79,6 +79,14 @@ metadata:
 只在余时不足时补足一次。入口不额外抽取台风，并复用 `BeginRain` 的两秒过渡、粒子、声音、天气板
 与 Board 现有存档字段。僵尸只保存其 `commandCount` 等施法节奏，绝不复制雨势或天气倒计时。
 
+首领血条：`GameScene` 在 Board 的 `GAME` 状态下从当前存活、非预览、非垂死的
+`ZOMBIE_ROOF_MARSHAL` 实体即时派生表现状态，不在场景或存档复制生命。`EntityManager` 为此提供按类型
+无分配查询，并以最小实体 ID 保证多实例开发测试时结果稳定。最终版血槽居中为 560×18，左上角
+`(270,556)`；黑金装甲底板从 Y=529 延伸至 Y=588，主动覆盖可牺牲的关卡文字区域，避免遮住第五路主要作战区。
+槽内绘制实际生命 `current / max`，并直接读取督军 getter 在 8000、4000 处画“精锐/狂暴”黑金铭牌和
+贯穿标线；低于 4000 时红色填充脉冲。首领致死即隐藏，不等待死亡动画回收；快照恢复后由实体状态
+自然重建。全部图形由现有 `Graphics` 基元与字体绘制，不新增位图资源。
+
 验证：`clang-release` 配置、编译和 LTO 链接 exit 0。主人当前桌面可见
 `smoke_roof_marshal_visual.json` exit 0、32 条命令全部通过：两只样机、12000 当前/最大生命、五项资源断言、专属/通用粒子
 互斥、单粒子/单 quad 与发射原点相对包围盒均通过；3.5 秒后死亡个体回收、仅保留另一只，并同步
@@ -110,7 +118,7 @@ exit 0、46 条命令通过，断袖资源已加载，7999 血实时断臂和快
 回归 `smoke_imp_eat` exit 0、18 条命令通过。
 
 2026-08-10 强化回归：`clang-release` 重建和 LTO 链接 exit 0。主人当前桌面可见
-`smoke_roof_marshal_command` exit 0、128 条命令通过，覆盖 1/6/4 秒召唤节奏、10 秒突击强化、
+`smoke_roof_marshal_command` exit 0、133 条命令通过，覆盖正式第 15 波血条出场/读档、1/6/4 秒召唤节奏、10 秒突击强化、
 首领随突击换行及残血阶段仅允许突击换行；`smoke_roof_marshal_control_resistance` exit 0、25 条命令
 通过，覆盖黄油定身上限 1.25 秒、定身期间不刷新、自然解除后 5 秒免疫及快照往返；
 `smoke_roof_marshal_assault_visual` 默认与 `-NoInstance` 均 exit 0、32 条命令通过，截图确认目标行
@@ -118,3 +126,8 @@ exit 0、46 条命令通过，断袖资源已加载，7999 血实时断臂和快
 红旗同步消失。`smoke_roof_marshal_eating_command`、`smoke_roof_marshal_weather` 和
 `smoke_roof_marshal_visual` 亦均 `script finished OK`；天气测试第三次指挥取证点已按 6 秒常态节奏
 同步到约 13 游戏秒。
+
+2026-08-10 首领血条验收：`clang-release` 配置、编译和 LTO 链接 exit 0；主人当前桌面可见
+`smoke_roof_marshal_boss_bar` exit 0、39 条命令全部通过。专项锁定出场前隐藏、12000 满血、
+8000/4000 标线位置、7000 精锐阶段、快照往返、3000 狂暴阶段和致死隐藏；五张同步截图确认最终
+560×18 版本的标题、实际生命与黑金阶段铭牌清晰，并显著减少对第五路的遮挡。

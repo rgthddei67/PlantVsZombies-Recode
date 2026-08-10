@@ -56,6 +56,7 @@ description: Use when adding or tuning any PvZ zombie, or integrating zombies in
 修改 `spawnlists.json` 时完整遵循 [references/adventure-spawnlist-pacing.md](references/adventure-spawnlist-pacing.md)。核心不是“把新僵尸塞进一个可生成关卡”，而是围绕玩家在**关卡开始时**已有的植物，给重点敌人安排独立教学、无同场复习和最终综合，并用精简池保证重点敌人的实际抽中率与选卡预览可读性。
 
 - **未定 BOSS 只登记关卡槽位**：在 `AdventureProgression` 用 `BossSlot::RESERVED` 标记关卡性质，背景映射继续独立决定；禁止为了“先占位”把现有 `ZOMBIE_BOSS`、其他普通僵尸或伪造枚举写进出怪表。等主人明确身份、机制与投放时，再把槽位升级为具体契约并补正式生成、存档和 AutoTest。
+- **常驻 BOSS 血条属于场景表现，不复制战斗状态**：`GameScene` 每帧从 Board 当前有效实体派生可见性、当前/最大生命与阶段阈值；阶段阈值由 BOSS 暴露语义 getter，禁止 UI 再写一套魔数。热路径查找不得创建临时僵尸向量，可增加无分配的 `EntityManager` 语义查询或缓存实体 ID，并排除预览、垂死和已死亡对象。血条本身无需入档，实体恢复后自然重建；AutoTest 至少锁定出场前隐藏、正式最终波出场、满血与跨阶段比例/标线、快照往返、致死隐藏，并用同步截图校准是否遮挡最下路与底部关卡信息。
 
 ## 断肢 / 断头（每个 reanim 单独定案，先问主人）
 

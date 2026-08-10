@@ -2444,6 +2444,27 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["isBossLevel"] = AdventureProgression::IsBossLevel(board->mLevel);
 	out["bossSlot"] = BossSlotName(AdventureProgression::GetBossSlot(board->mLevel));
 	out["poolEffectCounter"] = gs->GetPoolEffectCounter();
+	const RoofMarshalBossHealthBarState bossHealthBar =
+		gs->GetRoofMarshalBossHealthBarState();
+	out["roofMarshalBossHealthBar"] = {
+		{ "visible", bossHealthBar.visible },
+		{ "currentHealth", bossHealthBar.currentHealth },
+		{ "maxHealth", bossHealthBar.maxHealth },
+		{ "fillPermille", static_cast<int>(std::lround(
+			bossHealthBar.fillRatio * 1000.0f)) },
+		{ "highThreatThreshold", bossHealthBar.highThreatThreshold },
+		{ "desperateThreshold", bossHealthBar.desperateThreshold },
+		{ "highThreatMarkerPermille", bossHealthBar.maxHealth > 0
+			? static_cast<int>(std::lround(1000.0f
+				* bossHealthBar.highThreatThreshold / bossHealthBar.maxHealth)) : 0 },
+		{ "desperateMarkerPermille", bossHealthBar.maxHealth > 0
+			? static_cast<int>(std::lround(1000.0f
+				* bossHealthBar.desperateThreshold / bossHealthBar.maxHealth)) : 0 },
+		{ "xInt", static_cast<int>(std::lround(bossHealthBar.x)) },
+		{ "yInt", static_cast<int>(std::lround(bossHealthBar.y)) },
+		{ "widthInt", static_cast<int>(std::lround(bossHealthBar.width)) },
+		{ "heightInt", static_cast<int>(std::lround(bossHealthBar.height)) },
+	};
 	out["rows"] = board->mRows;
 	out["columns"] = board->mColumns;
 	out["cellHeightInt"] = static_cast<int>(std::lround(board->GetCellHeight()));

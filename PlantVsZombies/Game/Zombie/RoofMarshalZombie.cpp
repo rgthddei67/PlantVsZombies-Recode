@@ -491,6 +491,16 @@ bool RoofMarshalZombie::IsHighThreatPoolUnlocked() const
 	return mBodyHealth < kHighThreatHealthThreshold;
 }
 
+int RoofMarshalZombie::GetHighThreatHealthThreshold() const
+{
+	return kHighThreatHealthThreshold;
+}
+
+int RoofMarshalZombie::GetDesperateHealthThreshold() const
+{
+	return kDesperateHealthThreshold;
+}
+
 int RoofMarshalZombie::GetCurrentSummonCount() const
 {
 	return mBodyHealth < kDesperateHealthThreshold

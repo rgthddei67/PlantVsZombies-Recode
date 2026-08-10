@@ -17,6 +17,7 @@
 #include "../Profiler.h"
 #include "./Shovel.h"
 #include "ShovelBank.h"
+#include "Zombie/RoofMarshalZombie.h"
 #include "../Logger.h"
 #include <cmath>
 #include <cstdio>
@@ -76,6 +77,16 @@ namespace {
 	constexpr float kRoofMarshalPromptHoldDuration = 2.10f; // 突击令文案完整可读的游戏秒数
 	constexpr float kRoofMarshalPromptFadeDuration = 0.48f; // 突击令中央警报放大淡出的游戏秒数
 	constexpr int kRoofMarshalPromptFontSize = 44;         // 突击令中央警报字号
+	constexpr float kRoofMarshalBossBarWidth = 560.0f;     // 首领血槽宽度，收窄后少遮挡第五路
+	constexpr float kRoofMarshalBossBarHeight = 18.0f;     // 首领血槽高度，单位：逻辑像素
+	constexpr float kRoofMarshalBossBarY = 556.0f;         // 血槽顶部；让底板覆盖关卡文字而非第五路作战区
+	constexpr float kRoofMarshalBossPlatePaddingX = 16.0f; // 金属底板相对血槽的左右扩展，单位：逻辑像素
+	constexpr float kRoofMarshalBossPlateTop = 27.0f;      // 金属底板高出血槽的距离，容纳紧凑首领名
+	constexpr float kRoofMarshalBossPlateBottom = 14.0f;   // 金属底板低于血槽的距离，容纳黑金阶段铭牌
+	constexpr int kRoofMarshalBossTitleFontSize = 20;      // “屋脊督军”标题字号
+	constexpr int kRoofMarshalBossHealthFontSize = 14;     // 血槽内实际生命数字号
+	constexpr int kRoofMarshalBossPhaseFontSize = 12;      // 8000/4000 技能分界标签字号
+	constexpr float kRoofMarshalBossDesperatePulseSpeed = 0.16f; // 狂暴阶段血色脉冲速度，单位：弧度/逻辑帧
 	constexpr float kPoolEffectOffsetX = 209.0f;          // 原版水面坐标对齐当前 1880px 泳池背景的世界 X 偏移（像素）
 	constexpr float kPoolEffectOffsetY = 12.0f;           // 原版水面坐标对齐当前泳池内框的世界 Y 偏移（像素）
 	constexpr float kRoofRainBackgroundAlphaScale = 2.125f; // 通用大雨暗幕 120 映射为雨景背景完全显现 255 的倍率
@@ -296,6 +307,28 @@ namespace {
 		if (board->SupportsRoofRunoff()) height += kWeatherPanelGaugeLineHeight;
 		if (board->HasTyphoon()) height += kWeatherPanelDetailLineHeight;
 		return height;
+	}
+
+	/** 按当前字体测量 UI 文字宽度；字体未加载时只作保守半宽兜底。 */
+	float MeasureUiTextWidth(const std::string& text, int fontSize)
+	{
+		int textWidth = static_cast<int>(text.size()) * fontSize / 2;
+		if (TTF_Font* font = ResourceManager::GetInstance().GetFont(
+			ResourceKeys::Fonts::FONT_FZCQ, fontSize)) {
+			int textHeight = 0;
+			TTF_SizeUTF8(font, text.c_str(), &textWidth, &textHeight);
+		}
+		return static_cast<float>(textWidth);
+	}
+
+	/** 绘制水平居中文字；阴影由调用方单独提交以保留配色自由度。 */
+	void DrawCenteredUiText(Graphics* g, const std::string& text, int fontSize,
+		const glm::vec4& color, float centerX, float y)
+	{
+		if (!g) return;
+		const float textWidth = MeasureUiTextWidth(text, fontSize);
+		g->DrawText(text, ResourceKeys::Fonts::FONT_FZCQ, fontSize,
+			color, centerX - textWidth * 0.5f, y);
 	}
 }
 
@@ -817,6 +850,145 @@ void GameScene::DrawWeatherForecastFailure(Graphics* g) const
 		glm::vec4(242.0f, 229.0f, 220.0f, alpha), textX, failureY + 33.0f);
 }
 
+RoofMarshalBossHealthBarState GameScene::GetRoofMarshalBossHealthBarState() const
+{
+	RoofMarshalBossHealthBarState state;
+	state.width = kRoofMarshalBossBarWidth;
+	state.height = kRoofMarshalBossBarHeight;
+	state.x = (static_cast<float>(SCENE_WIDTH) - state.width) * 0.5f;
+	state.y = kRoofMarshalBossBarY;
+	if (!mBoard || mBoard->mBoardState != BoardState::GAME) return state;
+
+	Zombie* zombie = mBoard->mEntityManager.GetFirstActiveZombieOfType(
+		ZombieType::ZOMBIE_ROOF_MARSHAL);
+	auto* marshal = dynamic_cast<RoofMarshalZombie*>(zombie);
+	if (!marshal || marshal->mBodyHealth <= 0 || marshal->mBodyMaxHealth <= 0) {
+		return state;
+	}
+
+	state.visible = true;
+	state.currentHealth = std::max(0, marshal->mBodyHealth);
+	state.maxHealth = marshal->mBodyMaxHealth;
+	state.highThreatThreshold = marshal->GetHighThreatHealthThreshold();
+	state.desperateThreshold = marshal->GetDesperateHealthThreshold();
+	state.fillRatio = std::clamp(
+		static_cast<float>(state.currentHealth) / static_cast<float>(state.maxHealth),
+		0.0f, 1.0f);
+	return state;
+}
+
+void GameScene::DrawRoofMarshalBossHealthBar(Graphics* g) const
+{
+	if (!g) return;
+	const RoofMarshalBossHealthBarState state = GetRoofMarshalBossHealthBarState();
+	if (!state.visible) return;
+
+	const float plateX = state.x - kRoofMarshalBossPlatePaddingX;
+	const float plateY = state.y - kRoofMarshalBossPlateTop;
+	const float plateWidth = state.width + kRoofMarshalBossPlatePaddingX * 2.0f;
+	const float plateHeight = kRoofMarshalBossPlateTop + state.height
+		+ kRoofMarshalBossPlateBottom;
+	const float wingY = plateY + 18.0f;
+	const glm::vec4 shadow(0.0f, 0.0f, 0.0f, 190.0f);
+	const glm::vec4 darkMetal(18.0f, 12.0f, 15.0f, 246.0f);
+	const glm::vec4 blackMetal(7.0f, 5.0f, 7.0f, 252.0f);
+	const glm::vec4 darkGold(101.0f, 61.0f, 16.0f, 255.0f);
+	const glm::vec4 gold(214.0f, 158.0f, 56.0f, 255.0f);
+	const glm::vec4 brightGold(255.0f, 221.0f, 119.0f, 255.0f);
+
+	// 两侧阶梯肩甲与双层金边把血条做成独立的首领铭牌，不依赖额外位图资源。
+	g->FillRect(plateX - 30.0f, wingY + 5.0f, plateWidth + 60.0f, 20.0f, shadow);
+	g->FillRect(plateX - 28.0f, wingY + 3.0f, 28.0f, 25.0f, darkGold);
+	g->FillRect(plateX - 38.0f, wingY + 8.0f, 10.0f, 15.0f, gold);
+	g->FillRect(plateX + plateWidth, wingY + 3.0f, 28.0f, 25.0f, darkGold);
+	g->FillRect(plateX + plateWidth + 28.0f, wingY + 8.0f, 10.0f, 15.0f, gold);
+	g->FillRect(plateX + 4.0f, plateY + 5.0f, plateWidth, plateHeight, shadow);
+	g->FillRect(plateX, plateY, plateWidth, plateHeight, darkGold);
+	g->FillRect(plateX + 2.0f, plateY + 2.0f,
+		plateWidth - 4.0f, plateHeight - 4.0f, gold);
+	g->FillRect(plateX + 5.0f, plateY + 5.0f,
+		plateWidth - 10.0f, plateHeight - 10.0f, darkMetal);
+	g->DrawRect(plateX + 7.0f, plateY + 7.0f,
+		plateWidth - 14.0f, plateHeight - 14.0f, brightGold);
+
+	const float fillX = state.x + 3.0f;
+	const float fillY = state.y + 3.0f;
+	const float fillWidth = state.width - 6.0f;
+	const float fillHeight = state.height - 6.0f;
+	g->FillRect(state.x - 4.0f, state.y - 4.0f,
+		state.width + 8.0f, state.height + 8.0f, blackMetal);
+	g->FillRect(state.x - 2.0f, state.y - 2.0f,
+		state.width + 4.0f, state.height + 4.0f, gold);
+	g->FillRect(state.x, state.y, state.width, state.height,
+		glm::vec4(25.0f, 3.0f, 6.0f, 255.0f));
+
+	const float desperateRatio = std::clamp(
+		static_cast<float>(state.desperateThreshold) / static_cast<float>(state.maxHealth),
+		0.0f, 1.0f);
+	const float highThreatRatio = std::clamp(
+		static_cast<float>(state.highThreatThreshold) / static_cast<float>(state.maxHealth),
+		0.0f, 1.0f);
+	// 空槽本身也分成三段；血量掉过界后，下一阶段区域仍保持暗红轮廓可读。
+	g->FillRect(fillX, fillY, fillWidth * desperateRatio, fillHeight,
+		glm::vec4(76.0f, 10.0f, 7.0f, 255.0f));
+	g->FillRect(fillX + fillWidth * desperateRatio, fillY,
+		fillWidth * std::max(0.0f, highThreatRatio - desperateRatio), fillHeight,
+		glm::vec4(54.0f, 7.0f, 9.0f, 255.0f));
+
+	const bool desperate = state.currentHealth < state.desperateThreshold;
+	const float pulse = desperate && mBoard
+		? 0.5f + 0.5f * std::sin(static_cast<float>(mBoard->mBoardFrame)
+			* kRoofMarshalBossDesperatePulseSpeed)
+		: 0.0f;
+	const float currentFillWidth = fillWidth * state.fillRatio;
+	if (currentFillWidth > 0.0f) {
+		g->FillRect(fillX, fillY, currentFillWidth, fillHeight,
+			glm::vec4(145.0f + 55.0f * pulse, 8.0f, 16.0f, 255.0f));
+		g->FillRect(fillX, fillY, currentFillWidth, fillHeight * 0.48f,
+			glm::vec4(232.0f + 23.0f * pulse,
+				32.0f + 42.0f * pulse, 37.0f, 255.0f));
+		g->FillRect(fillX, fillY, currentFillWidth, 2.0f,
+			glm::vec4(255.0f, 119.0f + 75.0f * pulse, 104.0f, 230.0f));
+	}
+
+	auto drawPhaseMarker = [&](float ratio, const std::string& label) {
+		if (ratio <= 0.0f || ratio >= 1.0f) return;
+		const float markerX = fillX + fillWidth * ratio;
+		const float labelWidth = MeasureUiTextWidth(
+			label, kRoofMarshalBossPhaseFontSize);
+		const float labelY = state.y + state.height + 1.0f;
+		g->FillRect(markerX - 3.0f, state.y - 6.0f,
+			6.0f, state.height + 12.0f, blackMetal);
+		g->FillRect(markerX - 1.5f, state.y - 7.0f,
+			3.0f, state.height + 14.0f, brightGold);
+		g->FillRect(markerX - 4.0f, state.y - 9.0f, 8.0f, 4.0f, gold);
+		g->FillRect(markerX - labelWidth * 0.5f - 6.0f, labelY - 1.0f,
+			labelWidth + 12.0f, 14.0f, blackMetal);
+		g->DrawRect(markerX - labelWidth * 0.5f - 6.0f, labelY - 1.0f,
+			labelWidth + 12.0f, 14.0f, gold);
+		DrawCenteredUiText(g, label, kRoofMarshalBossPhaseFontSize,
+			shadow, markerX + 1.0f, labelY + 1.0f);
+		DrawCenteredUiText(g, label, kRoofMarshalBossPhaseFontSize,
+			brightGold, markerX, labelY);
+	};
+	drawPhaseMarker(highThreatRatio,
+		std::string(u8"精锐 ") + std::to_string(state.highThreatThreshold));
+	drawPhaseMarker(desperateRatio,
+		std::string(u8"狂暴 ") + std::to_string(state.desperateThreshold));
+
+	const float centerX = state.x + state.width * 0.5f;
+	DrawCenteredUiText(g, u8"—  屋脊督军  —", kRoofMarshalBossTitleFontSize,
+		shadow, centerX + 2.0f, plateY + 3.0f);
+	DrawCenteredUiText(g, u8"—  屋脊督军  —", kRoofMarshalBossTitleFontSize,
+		brightGold, centerX, plateY + 1.0f);
+	const std::string healthText = std::to_string(state.currentHealth)
+		+ " / " + std::to_string(state.maxHealth);
+	DrawCenteredUiText(g, healthText, kRoofMarshalBossHealthFontSize,
+		shadow, centerX + 1.0f, state.y + 1.0f);
+	DrawCenteredUiText(g, healthText, kRoofMarshalBossHealthFontSize,
+		glm::vec4(255.0f, 245.0f, 221.0f, 255.0f), centerX, state.y);
+}
+
 void GameScene::BuildDrawCommands()
 {
 	Scene::BuildDrawCommands();
@@ -909,6 +1081,9 @@ void GameScene::BuildDrawCommands()
 				if (mCardSlotManager) mCardSlotManager->DrawPlanternGearMenu(g);
 			},
 			kPlanternGearMenuRenderOrder);
+		RegisterDrawCommand("RoofMarshalBossHealthBar",
+			[this](Graphics* g) { DrawRoofMarshalBossHealthBar(g); },
+			LAYER_UI + 800);
 
 		RegisterDrawCommand("Prompts",
 			[this](Graphics* g) { DrawPrompts(g); },

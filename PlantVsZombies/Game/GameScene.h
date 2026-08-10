@@ -56,6 +56,20 @@ struct PromptAnimation {
 	bool useUnscaledTime = false; // true 时高倍速不压缩时长；暂停时冻结并保留当前画面
 };
 
+// 首领血条完全由当前 Board 实体派生，不复制玩法生命状态；布局字段供 AutoTest 锁定屏幕位置。
+struct RoofMarshalBossHealthBarState {
+	bool visible = false;
+	int currentHealth = 0;
+	int maxHealth = 0;
+	int highThreatThreshold = 0;
+	int desperateThreshold = 0;
+	float fillRatio = 0.0f;
+	float x = 0.0f;
+	float y = 0.0f;
+	float width = 0.0f;
+	float height = 0.0f;
+};
+
 class GameScene : public Scene, public BoardPresentation {
 public:
 	GameScene();
@@ -164,6 +178,8 @@ public:
 	RainIntensity GetFailedForecastRainIntensity() const { return mFailedForecastRainIntensity; }
 	RainIntensity GetActualForecastRainIntensity() const { return mActualForecastRainIntensity; }
 	int GetPoolEffectCounter() const { return mPoolEffectCounter; }
+	/** 返回当前屋脊督军及底部血条的纯派生展示状态。 */
+	RoofMarshalBossHealthBarState GetRoofMarshalBossHealthBarState() const;
 
 	void SetReadyToBackMenu() override { mReadyToBackMenu = true; }
 
@@ -201,6 +217,8 @@ private:
 	void DrawWeatherPanel(Graphics* g) const;
 	void DrawWeatherForecastFailure(Graphics* g) const;
 	void DrawLightningStrike(Graphics* g) const;
+	/** 绘制屋脊督军的底部金属血条、阶段分界与实际生命。 */
+	void DrawRoofMarshalBossHealthBar(Graphics* g) const;
 	void UpdatePrompts(float deltaTime, float unscaledDeltaTime);
 	void DrawPrompts(Graphics* g) const;
 	// 按当前 mSurvivalPerkStepsCompleted 重新 roll 并构建第 N/2 次选择框。

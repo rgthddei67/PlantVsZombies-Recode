@@ -54,6 +54,23 @@ std::vector<int> EntityManager::GetAllZombieIDs() const {
 	return ids;
 }
 
+Zombie* EntityManager::GetFirstActiveZombieOfType(ZombieType type) const {
+	Zombie* result = nullptr;
+	int resultID = mNextZombieID;
+	for (const auto& pair : mZombies) {
+		auto zombie = pair.second.lock();
+		if (!zombie || pair.first >= resultID
+			|| zombie->mZombieType != type || zombie->IsPreview()
+			|| !zombie->IsActive() || zombie->IsDying()
+			|| zombie->mBodyHealth <= 0) {
+			continue;
+		}
+		result = zombie.get();
+		resultID = pair.first;
+	}
+	return result;
+}
+
 int EntityManager::AddBullet(std::shared_ptr<Bullet> bullet) {
 	int id = mNextBulletID++;
 	mBullets[id] = bullet;

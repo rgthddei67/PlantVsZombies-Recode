@@ -12,6 +12,7 @@ class GildedZamboniZombie;
 class Coin;
 class Bullet;
 class Mower;
+enum class ZombieType;
 
 class EntityManager {
 public:
@@ -22,6 +23,8 @@ public:
 	int AddZombie(std::shared_ptr<Zombie> zombie);
 	Zombie* GetZombie(int id) const;
 	std::vector<int> GetAllZombieIDs() const;
+	/** 返回指定品种中实体 ID 最小的活跃战斗个体；不分配临时 ID 数组，适合逐帧展示查询。 */
+	Zombie* GetFirstActiveZombieOfType(ZombieType type) const;
 
 	int AddBullet(std::shared_ptr<Bullet> bullet);
 	Bullet* GetBullet(int id) const;
