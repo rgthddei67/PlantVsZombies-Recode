@@ -34,6 +34,7 @@ public:
 	Vector GetIceTrapBottomAnchor() const override;
 
 	bool CanBeCharmed() const override { return false; }
+	bool CanBeParalyzed() const override { return false; }
 	bool CanBeGrabbedByTangleKelp() const override { return false; }
 
 	Phase GetPhase() const { return mPhase; }

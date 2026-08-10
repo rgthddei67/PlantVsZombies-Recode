@@ -19,6 +19,7 @@ namespace {
 	constexpr float kWakeUpSoundTimeRemaining = 0.6f;      // 原版 WAKE_UP_TIME=100，在剩 60cs 时播放 wakeup
 	constexpr float kWakeUpBounceStartTime = 0.7f;         // 原版只在倒计时最后 70cs 做 EaseSinWave 纵向弹性
 	constexpr float kWakeUpVisualPivotOffsetY = 80.0f;     // 原版 reanim 局部底边枢轴，单位：px
+	constexpr float kMaximumShutdownDuration = 600.0f;     // 通用停机单次/读档允许的最大剩余秒数，防损坏档永久停工
 }
 
 Plant::Plant(Board* board, PlantType plantType, int row, int column,
@@ -84,12 +85,12 @@ void Plant::Start()
 }
 
 /**
- * 径流暂停必须在并行动画推进前判断；否则射击帧事件会先入队，随后串行阶段再停工已经太晚。
+ * 通用停机和径流暂停必须在并行动画推进前判断；否则射击帧事件会先入队，随后串行阶段再停工已经太晚。
  * mAdvancedInParallel 仍置位，让串行 AnimatedObject::Update 只完成公共收尾而不补推进一遍动画。
  */
 void Plant::UpdateParallel(std::vector<DeferredEvent>& outBuf)
 {
-	if (mBoard && mBoard->IsPlantPausedByRoofRunoff(this)) {
+	if (IsActionPaused()) {
 		mAdvancedInParallel = true;
 		return;
 	}
@@ -117,6 +118,7 @@ void Plant::Die() {
 	// GameObjectManager 在下一次 Update 才真正移除对象；先失活可避免本帧绘制已被
 	// StopAnimation 重置到轨道起点的姿态，也让重复死亡调用保持幂等。
 	if (!IsActive()) return;
+	mShutdownTimer = 0.0f;
 	// C# 只有飞行的咖啡豆死亡不影响地面扶梯；其余植物死亡都会拆掉同格梯子。
 	if (!mIsPreview && mBoard && mPlantType != PlantType::PLANT_INSTANT_COFFEE) {
 		mBoard->RemoveLadderAt(mRow, mColumn);
@@ -140,10 +142,9 @@ bool Plant::CanAcquireZombie(const Zombie* zombie) const
 
 void Plant::Update()
 {
-	const bool roofRunoffPaused = mBoard
-		&& mBoard->IsPlantPausedByRoofRunoff(this);
+	const bool actionPaused = IsActionPaused();
 	// 串行回退路径也直接跳过 Animator 推进；不要 Pause/Play，否则一次性轨道会被公共结束检查误判。
-	if (roofRunoffPaused) mAdvancedInParallel = true;
+	if (actionPaused) mAdvancedInParallel = true;
 	AnimatedObject::Update();   // 非冲刷时待机动画照常推进，让植物在选卡阶段仍"活着"
 	if (mIsSquished) {
 		if (!mIsPreview && mBoard && mBoard->mBoardState == BoardState::GAME) {
@@ -153,14 +154,47 @@ void Plant::Update()
 	}
 	UpdateGridMoveVisual();
 	if (!mIsPreview && mBoard && mBoard->mBoardState == BoardState::GAME) {
+		if (mShutdownTimer > 0.0f) {
+			mShutdownTimer = std::max(0.0f,
+				mShutdownTimer - DeltaTime::GetDeltaTime());
+		}
 		UpdateWakeUp();
 	}
 	// 仅在对战进行中(GAME)才跑行为逻辑：生存轮间选卡(CHOOSE_CARD)时场上保留的植物应冻结，
 	// 否则向日葵会继续产阳光、射手继续计时等。WIN/LOSE 同理不再行动。
-	if (!roofRunoffPaused && !mIsPreview && !mIsSleeping && !IsBungeeTargeted() &&
+	if (!actionPaused && !mIsPreview && !mIsSleeping && !IsBungeeTargeted() &&
 		mBoard && mBoard->mBoardState == BoardState::GAME) {
 		PlantUpdate();
 	}
+}
+
+bool Plant::ApplyShutdown(float durationSeconds)
+{
+	if (!std::isfinite(durationSeconds) || durationSeconds <= 0.0f
+		|| mIsPreview || mIsSquished || !IsActive() || !CanBeShutdown()) {
+		return false;
+	}
+	mShutdownTimer = std::max(mShutdownTimer,
+		std::min(durationSeconds, kMaximumShutdownDuration));
+	return true;
+}
+
+void Plant::RestoreShutdown(float remainingSeconds)
+{
+	mShutdownTimer = std::isfinite(remainingSeconds)
+		? std::clamp(remainingSeconds, 0.0f, kMaximumShutdownDuration)
+		: 0.0f;
+}
+
+bool Plant::IsShutdown() const
+{
+	return mShutdownTimer > 0.0f
+		|| (mBoard && mBoard->IsPlantPausedByRoofRunoff(this));
+}
+
+bool Plant::IsActionPaused() const
+{
+	return IsShutdown();
 }
 
 Vector Plant::GetVisualPosition() const {

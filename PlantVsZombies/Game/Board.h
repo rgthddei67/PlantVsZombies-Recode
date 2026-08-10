@@ -295,6 +295,8 @@ private:
 	void AddNightRoofCharge(float amount);
 	/** 满电后抽取并锁定本次导电瓦路；锁定结果在活动阶段保持不变。 */
 	void BeginNightRoofChargeWarning();
+	/** 在预警转放电的唯一边沿快照目标，并结算通用停机、伤害与麻痹。 */
+	void ResolveNightRoofChargeDischarge();
 	/** 从存档恢复雷荷积累、阶段、锁定行和倒计时，不重新抽取路线。 */
 	void RestoreNightRoofChargeState(float charge, NightRoofChargePhase phase,
 		int row, float phaseTimer);

@@ -39,6 +39,7 @@ namespace {
 	constexpr float kToxinDamageInterval = 0.2f;           // 每层积满 1 点毒伤的游戏时间间隔，单位：秒
 	constexpr float kToxinDamageEpsilon = 0.0001f;         // 浮点取整容差，避免整点伤害因误差延迟一帧
 	constexpr float kButterDuration = 4.0f;                // C# mButteredCounter=400 厘秒的黄油定身时长
+	constexpr float kMaximumParalysisDuration = 600.0f;    // 通用麻痹单次/读档允许的最大剩余秒数，防损坏档永久停格
 	constexpr float kButterSplatOffsetY = -6.0f;           // C# DrawButter 相对头部轨道的贴图纵向偏移，单位：像素
 	constexpr float kButterSplatScale = 1.0f;              // 对齐原版头顶覆盖比例，同时保留面部与上身轮廓
 	const Vector kButterFallbackHeadOffset(0.0f, -40.0f);   // 缺少 anim_head1 时相对逻辑位置的保底头部锚点
@@ -206,6 +207,7 @@ void Zombie::SaveProtectedData(nlohmann::json& j) const {
 	j["cooldownTimer"] = mCooldownTimer;
 	j["frozenTimer"] = mFrozenTimer;
 	j["butterTimer"] = mButterTimer;
+	j["paralysisTimer"] = mParalysisTimer;
 	j["roofMarshalAssaultTimer"] = mRoofMarshalAssaultTimer;
 	j["roofMarshalAssaultMoveMultiplier"] = mRoofMarshalAssaultMoveMultiplier;
 	j["roofMarshalAssaultBiteMultiplier"] = mRoofMarshalAssaultBiteMultiplier;
@@ -271,6 +273,12 @@ void Zombie::LoadProtectedData(const nlohmann::json& j) {
 	if (mButterTimer > 0.0f && mAnimator) {
 		UpdateAnimSpeed();
 	}
+	mParalysisTimer = std::clamp(
+		j.value("paralysisTimer", 0.0f), 0.0f, kMaximumParalysisDuration);
+	if (!CanBeParalyzed()) mParalysisTimer = 0.0f;
+	if (mParalysisTimer > 0.0f && mAnimator) {
+		UpdateAnimSpeed();
+	}
 
 	mToxinLayerTimers.fill(0.0f);
 	if (const auto it = j.find("toxinLayerTimers"); it != j.end() && it->is_array()) {
@@ -292,9 +300,8 @@ void Zombie::LoadProtectedData(const nlohmann::json& j) {
 		UpdateAnimSpeed();
 		ApplyCharmEffects();
 	}
-	else {
-		UpdateStatusOverlay();
-	}
+	// 通用麻痹可以来自中立环境并跨魅惑保留；统一按当前全部状态重建最终覆盖色。
+	UpdateStatusOverlay();
 	SetButterSplatFollowerVisible(mButterTimer > 0.0f && mHasHead && !mIsPreview);
 
 	// 如果播放死亡动画，禁用碰撞箱（判空与 Die/预览路径一致：预览僵尸已移除碰撞箱、mCollider=null）
@@ -470,6 +477,7 @@ void Zombie::Update()
 			// 定身兜底解除：任何转入死亡的路径都不得停格——死亡动画靠帧事件 Die()，停格即卡尸
 			if (mFrozenTimer > 0.0f) ClearFrozen();
 			if (mButterTimer > 0.0f) ClearButter();
+			if (mParalysisTimer > 0.0f) ClearParalysis();
 			mDyingTimer += deltaTime;
 			if (GetCurrentTrackName() != GetDeathTrackName() && !mDbgAnomalyLogged) {
 				mDbgAnomalyLogged = true;
@@ -534,6 +542,13 @@ void Zombie::Update()
 		{
 			mButterTimer -= deltaTime;
 			if (mButterTimer <= 0.0f) ClearButter();
+		}
+
+		// 通用麻痹与黄油一样使用游戏时间；倍速只改变现实等待，不改变玩法秒数。
+		if (mParalysisTimer > 0.0f)
+		{
+			mParalysisTimer -= deltaTime;
+			if (mParalysisTimer <= 0.0f) ClearParalysis();
 		}
 
 		// 阵风是空气施加的独立位移：在冻结/啃食的早退前结算，使碰撞箱随 Transform 同帧移动。
@@ -607,6 +622,7 @@ void Zombie::Update()
 					// 定身中也要能倒：先解停格再播死亡动画（帧事件 Die 依赖动画前进）
 					if (mFrozenTimer > 0.0f) ClearFrozen();
 					if (mButterTimer > 0.0f) ClearButter();
+					if (mParalysisTimer > 0.0f) ClearParalysis();
 					if (mLadderClimbPhase == LadderClimbPhase::CLIMBING) {
 						mLadderClimbPhase = LadderClimbPhase::FALLING;
 					}
@@ -1101,7 +1117,7 @@ void Zombie::UpdateAnimSpeed()
 	if (!mAnimator) return;
 	if (IsImmobilized())
 	{
-		mAnimator->SetExtraSpeedMultiplier(0.0f);   // 冻结/黄油停格：状态层不改各轨道 base 速度
+		mAnimator->SetExtraSpeedMultiplier(0.0f);   // 冻结/黄油/麻痹停格：状态层不改各轨道 base 速度
 		return;
 	}
 	if (IsGarlicRedirectPaused()) {
@@ -1131,6 +1147,27 @@ bool Zombie::ApplyButter()
 	SetButterSplatFollowerVisible(true);
 	UpdateAnimSpeed();
 	return true;
+}
+
+bool Zombie::ApplyParalysis(float durationSeconds)
+{
+	if (!std::isfinite(durationSeconds) || durationSeconds <= 0.0f
+		|| mIsPreview || mIsDead || mIsDying || !IsActive()
+		|| !CanBeParalyzed()) {
+		return false;
+	}
+	mParalysisTimer = std::max(mParalysisTimer,
+		std::min(durationSeconds, kMaximumParalysisDuration));
+	UpdateAnimSpeed();
+	UpdateStatusOverlay();
+	return true;
+}
+
+void Zombie::ClearParalysis()
+{
+	mParalysisTimer = 0.0f;
+	UpdateAnimSpeed();
+	UpdateStatusOverlay();
 }
 
 void Zombie::ClearButter()
@@ -1311,7 +1348,11 @@ void Zombie::UpdateToxin(float deltaTime)
 void Zombie::UpdateStatusOverlay()
 {
 	if (!mAnimator) return;
-	if (mIsMindControlled) {
+	if (mParalysisTimer > 0.0f) {
+		mAnimator->EnableOverlayEffect(true);
+		mAnimator->SetOverlayColor(170, 90, 255, 210);
+	}
+	else if (mIsMindControlled) {
 		mAnimator->EnableOverlayEffect(true);
 		mAnimator->SetOverlayColor(255, 64, 64, 160);
 	}
@@ -1366,7 +1407,7 @@ void Zombie::ApplyCharmEffects()
 		mCollider->layerMask = CollisionLayer::CHARMED;
 		mCollider->collisionMask = CollisionLayer::ZOMBIE;
 	}
-	// 视觉：魅惑红光优先于所有其他共享 overlay 的状态。
+	// 视觉：按 UpdateStatusOverlay 的统一优先级重建；中立麻痹持续时覆盖魅惑红光。
 	if (mAnimator) {
 		UpdateStatusOverlay();
 		mAnimator->SetFlipX(true, 48.0f);   // 支点≈身体中线（动画局部坐标），截图目验后微调
@@ -1423,6 +1464,8 @@ void Zombie::StartMindControlled()
 
 	mIsMindControlled = true;
 	ApplyCharmEffects();
+	// 天气等中立来源的麻痹可跨阵营保留；麻痹紫色在持续期间优先于魅惑红色。
+	UpdateStatusOverlay();
 	if (!mIsDead) OnMindControlled();
 }
 
@@ -1652,6 +1695,7 @@ void Zombie::Die()
 	mIsDead = true;
 	CancelGarlicRedirect(false);
 	mButterTimer = 0.0f;
+	mParalysisTimer = 0.0f;
 	SetButterSplatFollowerVisible(false);
 	mRoofMarshalAssaultTimer = 0.0f;
 	mRoofMarshalAssaultMoveMultiplier = 1.0f;

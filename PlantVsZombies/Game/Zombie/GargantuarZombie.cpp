@@ -296,6 +296,7 @@ void GargantuarZombie::TakeBodyDamage(int damage)
 	AbortAction(false);
 	if (mFrozenTimer > 0.0f) ClearFrozen();
 	if (mButterTimer > 0.0f) ClearButter();
+	if (mParalysisTimer > 0.0f) ClearParalysis();
 	PlayTrack("anim_death", kDeathClipSpeed, 0.3f);
 	if (mCollider) mCollider->mEnabled = false;
 	mIsDying = true;

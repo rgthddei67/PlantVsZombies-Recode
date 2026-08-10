@@ -141,7 +141,7 @@ void RoofMarshalZombie::SetupZombie()
 void RoofMarshalZombie::Update()
 {
 	const bool wasButtered = IsButtered();
-	if (mButterImmunityTimer > 0.0f) {
+	if (!IsParalyzed() && mButterImmunityTimer > 0.0f) {
 		mButterImmunityTimer = std::max(0.0f,
 			mButterImmunityTimer - DeltaTime::GetDeltaTime());
 	}

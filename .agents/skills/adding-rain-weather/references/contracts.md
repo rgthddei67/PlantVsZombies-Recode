@@ -64,12 +64,17 @@ pending 并清空，不能临时重抽。`GameScene` 的累计条与坡面水膜
 黑夜屋顶雷荷是并行的第二个积累器。`Board::UpdateNightRoofCharge` 只在 `NIGHT_ROOF` 中推进：
 晴夜每秒漏 0.5，小/中/大雨每秒积累 1/2/3，现有大雨闪电一次增加 18；满 100 后只锁定一次行，
 预警 4 秒并放电演出 0.65 秒。`nightRoofCharge/Phase/PhaseTimer/Row` 全部入档，紫色累计条、锁行节点、
-坡面折线和 AutoTest 都查询 Board 同一状态。当前基础版本不伤害或暂停实体，不得从演出反推玩法结算。
+坡面折线和 AutoTest 都查询 Board 同一状态。`WARNING -> DISCHARGING` 的唯一边沿按稳定 ID 快照结算：
+普通非花盆植物停机 2.5 秒，地面僵尸承受 75 环境伤害并麻痹 0.75 秒；若锁定行正处于径流
+`FLOWING`，仅湿坡升级为 5 秒、120 伤害和 1.2 秒。同一行平台仍用普通数值，花盆不停机，飞行/
+地下阶段免疫，车辆只受伤。恢复已经处于 `DISCHARGING` 的档不得重复结算。
 
 环境要求植物完全暂停时，不能只让 `PlantUpdate()` 提前返回：并行阶段可能已经由 Animator 产生
 帧事件。应同时阻断 `UpdateParallel` 的事件队列，并在串行回退把 `mAdvancedInParallel` 置位，让
 `AnimatedObject::Update` 跳过本帧 Animator，再让公开行动倍率返回 0。禁止临时 `Pause/Play`：
-一次性轨道可能被公共结束检查误判，此前已经暂停的轨道也可能被错误唤醒。
+一次性轨道可能被公共结束检查误判，此前已经暂停的轨道也可能被错误唤醒。离散来源调用
+`Plant::ApplyShutdown` 并保存计时余量；连续径流继续由 Board 区域查询拥有，二者在
+`Plant::IsShutdown` 合并，不能每帧用短计时刷新来模拟区域场。
 
 ## 波次锁定的复合天气
 
@@ -166,7 +171,7 @@ Board 雾势、再恢复植物，所以 `RestoreFogState()` 只清空旧缓存�
 | 实体主动改天 | `TriggerRoofMarshalWeather` 或同类 Board 窄入口 | 实体只发请求；入口规定只升不降、同档续期与台风策略 |
 | 天气逐帧推进 | `Board::UpdateWeather` | 全局场景状态，不属于波次更新 |
 | 昼夜屋顶径流 | `Board::UpdateRoofRunoff` / `DrawRoofRunoff` | Board 持积累与行组；GameScene 只画常驻条和坡面瞬态 |
-| 黑夜屋顶雷荷 | `Board::UpdateNightRoofCharge` / `DrawNightRoofCharge` | 只看 `NIGHT_ROOF`；Board 持积累、阶段、余时和锁定行，GameScene 只画紫条与瞬态 |
+| 黑夜屋顶雷荷 | `Board::UpdateNightRoofCharge` / `ResolveNightRoofChargeDischarge` / `DrawNightRoofCharge` | 只看 `NIGHT_ROOF`；Board 持积累、阶段、余时和锁定行，转换边沿快照实体并调用通用状态接口，GameScene 只画紫条与瞬态 |
 | 波次锁定复合天气 | `IsStormyNightActive` / `ActivateStormyNight` / `EnforceStormyNightWeather` | 生效条件派生；一次性资源和闪光未来状态入档 |
 | 世界天气覆盖与 Scene UI 贴图 | `GameAPP` pre-overlay hook / `Scene::DrawUITextures` | 世界粒子 → 天气覆盖 → Scene UI 贴图 → UI GameObject |
 | 僵尸天气动画倍率 | `Zombie::UpdateAnimSpeed` | 冻结 > ability × 减速 × rain |

@@ -257,6 +257,12 @@ namespace {
 	constexpr float kNightRoofChargeLightningBonus = 18.0f; // 现有大雨闪电为黑夜屋顶一次注入的电荷点数
 	constexpr float kNightRoofChargeWarningDuration = 4.0f; // 满电锁定导电瓦路后的预警游戏秒数
 	constexpr float kNightRoofChargeDischargeDuration = 0.65f; // 基础坡面放电的可见游戏秒数
+	constexpr float kNightRoofPlantShutdownDuration = 2.5f; // 普通瓦面植物在放电快照中停机的游戏秒数
+	constexpr float kNightRoofWetPlantShutdownDuration = 5.0f; // 正在冲刷的湿坡面植物强导电停机秒数
+	constexpr int kNightRoofZombieDamage = 75;             // 普通瓦面地面僵尸承受的环境伤害
+	constexpr int kNightRoofWetZombieDamage = 120;         // 正在冲刷的湿坡面地面僵尸承受的强导电伤害
+	constexpr float kNightRoofZombieParalysisDuration = 0.75f; // 普通瓦面非车辆僵尸的麻痹游戏秒数
+	constexpr float kNightRoofWetZombieParalysisDuration = 1.2f; // 正在冲刷的湿坡面非车辆僵尸麻痹游戏秒数
 	constexpr float kLightningDelayMin = 3.5f;           // 大雨开始后首次闪电的最短等待时间（秒）
 	constexpr float kLightningDelayMax = 7.0f;           // 大雨开始后首次闪电的最长等待时间（秒）
 	constexpr float kLightningRepeatMin = 5.0f;          // 大雨中两次闪电的最短间隔（秒）
@@ -2873,8 +2879,58 @@ void Board::AddNightRoofCharge(float amount)
 }
 
 /**
- * 黑夜屋顶雷荷与径流并行推进。当前基础版只完成锁路与可见放电，
- * 不在这里结算植物、僵尸或花盆，后续玩法统一接入放电转换节点。
+ * 放电只在 WARNING 转入 DISCHARGING 的边沿结算一次。植物与僵尸先按稳定 ID
+ * 形成快照，再调用实体级通用状态接口；读档恢复 DISCHARGING 不会重复伤害。
+ */
+void Board::ResolveNightRoofChargeDischarge()
+{
+	if (!SupportsNightRoofCharge() || mNightRoofChargeRow < 0
+		|| mNightRoofChargeRow >= mRows) return;
+
+	const int row = mNightRoofChargeRow;
+	const bool wetRow = IsRoofRunoffFlowing() && IsRoofRunoffRowSelected(row);
+	std::vector<int> plantIDs = mEntityManager.GetAllPlantIDs();
+	std::sort(plantIDs.begin(), plantIDs.end());
+	for (const int id : plantIDs) {
+		Plant* plant = mEntityManager.GetPlant(id);
+		if (!plant || !plant->IsActive() || plant->IsPreview()
+			|| plant->IsSquished() || plant->IsBungeeTargeted()
+			|| plant->mRow != row
+			|| plant->mPlantType == PlantType::PLANT_FLOWERPOT) {
+			continue;
+		}
+		const bool onWetSlope = wetRow && plant->mColumn >= 0
+			&& plant->mColumn < kRoofSlopeColumnCount;
+		plant->ApplyShutdown(onWetSlope
+			? kNightRoofWetPlantShutdownDuration
+			: kNightRoofPlantShutdownDuration);
+	}
+
+	std::vector<int> zombieIDs = mEntityManager.GetAllZombieIDs();
+	std::sort(zombieIDs.begin(), zombieIDs.end());
+	for (const int id : zombieIDs) {
+		Zombie* zombie = mEntityManager.GetZombie(id);
+		if (!zombie || !zombie->IsActive() || zombie->IsDying()
+			|| zombie->mRow != row
+			|| !zombie->CanBeAffectedByGroundHazards()) {
+			continue;
+		}
+		const bool onWetSlope = wetRow
+			&& zombie->GetPosition().x <= GetRoofSlopeEndX();
+		zombie->TakeDamage(onWetSlope
+			? kNightRoofWetZombieDamage : kNightRoofZombieDamage,
+			DamageSource::OTHER);
+		if (zombie->IsActive() && !zombie->IsDying()) {
+			zombie->ApplyParalysis(onWetSlope
+				? kNightRoofWetZombieParalysisDuration
+				: kNightRoofZombieParalysisDuration);
+		}
+	}
+}
+
+/**
+ * 黑夜屋顶雷荷与径流并行推进。预警转放电时按一次快照结算实体效果，
+ * 其余放电帧只负责展示，避免倍速、卡顿或读档造成重复命中。
  */
 void Board::UpdateNightRoofCharge(float deltaTime)
 {
@@ -2896,6 +2952,7 @@ void Board::UpdateNightRoofCharge(float deltaTime)
 		if (mNightRoofChargePhase == NightRoofChargePhase::WARNING) {
 			mNightRoofChargePhase = NightRoofChargePhase::DISCHARGING;
 			mNightRoofChargePhaseTimer = kNightRoofChargeDischargeDuration;
+			ResolveNightRoofChargeDischarge();
 			AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_THUNDER,
 				kThunderSoundVolume);
 			return;

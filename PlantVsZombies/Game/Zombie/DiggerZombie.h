@@ -47,6 +47,7 @@ public:
 	bool CanBeChilled() const override;
 	bool CanBeFrozen() const override;
 	bool CanBeCharred() const override;
+	bool CanBeAffectedByGroundHazards() const override { return IsInteractivePhase(); }
 	bool CanBeGrabbedByTangleKelp() const override { return false; }
 
 protected:

@@ -22,6 +22,7 @@ public:
 	bool CanBeCharmed() const override { return false; }
 	bool CanBeChilled() const override { return false; }
 	bool CanBeFrozen() const override { return false; }
+	bool CanBeParalyzed() const override { return false; }
 	bool CanBeGrabbedByTangleKelp() const override { return false; }
 
 	/**

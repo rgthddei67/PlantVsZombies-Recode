@@ -47,6 +47,7 @@ public:
 protected:
 	bool mIsSleeping = false;	// 白天蘑菇睡眠权威状态
 	float mWakeUpTimer = 0.0f;	// 咖啡豆唤醒倒计时，单位：秒；大于 0 时仍保持睡眠
+	float mShutdownTimer = 0.0f; // 通用停机剩余游戏秒；来源可以是天气、僵尸技能或其他机制
 	bool mIsPreview = false;
 	bool mIsSquished = false;	// 压扁残影仍参与绘制，但已退出占格、碰撞与植物行为
 	float mSquishTimer = 0.0f;	// 压扁残影剩余时间，单位：秒
@@ -68,7 +69,7 @@ public:
 
 	~Plant() = default;
 	void Start() override;
-	/** 并行动画阶段也遵守屋顶径流暂停，避免帧事件先于串行行为守卫触发。 */
+	/** 并行动画阶段也遵守通用停机与屋顶径流暂停，避免帧事件先于串行行为守卫触发。 */
 	void UpdateParallel(std::vector<DeferredEvent>& outBuf) override;
 	void Update() override;
 	void Draw(Graphics* g) override;	// 重写以叠加血量显示
@@ -165,6 +166,20 @@ public:
 	bool GetSleepState() const { return this->mIsSleeping; }
 	float GetWakeUpTimeRemaining() const { return mWakeUpTimer; }
 	bool IsWakingUp() const { return mWakeUpTimer > 0.0f; }
+	/**
+	 * @brief 对植物施加通用停机；重复施加只保留更长的剩余时间。
+	 *
+	 * 停机会冻结 Animator 帧事件和 PlantUpdate，但不改变睡眠、占格或生命状态。
+	 * @return 当前实体接受停机时返回 true。
+	 */
+	bool ApplyShutdown(float durationSeconds);
+	/** 返回通用计时停机或当前区域环境停机的合并结果。 */
+	bool IsShutdown() const;
+	float GetShutdownTimeRemaining() const { return mShutdownTimer; }
+	/** 品种可覆写通用停机免疫；默认所有正式存活植物都可停机。 */
+	virtual bool CanBeShutdown() const { return true; }
+	/** 存档恢复专用：钳制并还原剩余停机时间，不重放来源效果。 */
+	void RestoreShutdown(float remainingSeconds);
 
 	// 是否为预览植物（选卡预览用，不参与对战逻辑）
 	bool IsPreview() const { return this->mIsPreview; }
@@ -183,6 +198,8 @@ protected:
 	void UpdateSquish();
 	/** 推进咖啡豆唤醒倒计时、原版纵向弹性表现及两个音效/状态边界。 */
 	void UpdateWakeUp();
+	/** 返回是否应冻结本帧植物动画与行为；通用停机和环境冲刷共用。 */
+	bool IsActionPaused() const;
 	/** 按当前唤醒倒计时重建蘑菇纵向弹性表现；读档与逐帧更新共用。 */
 	void ApplyWakeUpPresentation();
 	/** 统一施加压扁态的暂停、碰撞、影子、占格和透明度表现。 */

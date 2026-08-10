@@ -70,11 +70,11 @@ void EliteLadderZombie::Update()
 {
 	LadderZombie::Update();
 	if (mRowScanComplete || mIsPreview || mIsDying || !IsActive() || !mBoard
-		|| mBoard->mBoardState != BoardState::GAME) {
+		|| IsParalyzed() || mBoard->mBoardState != BoardState::GAME) {
 		return;
 	}
 
-	// 出场计时独立于走路/啃食/冻结状态，但仍服从暂停与全局 timeScale。
+	// 出场计时独立于旧有走路/啃食/冰冻控制；通用麻痹明确冻结尚未释放的技能。
 	mRowScanTimeRemaining = std::max(0.0f,
 		mRowScanTimeRemaining - DeltaTime::GetDeltaTime());
 	if (mRowScanTimeRemaining <= 0.0f) ScanRowAndApplyAbilities();

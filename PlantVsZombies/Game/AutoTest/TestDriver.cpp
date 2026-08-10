@@ -3358,6 +3358,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["ladderCount"] = static_cast<int>(out["ladders"].size());
 
 	out["zombies"] = nlohmann::json::array();
+	out["zombiesByType"] = nlohmann::json::object();
 	out["jack"] = nullptr;
 	out["eliteJack"] = nullptr;
 	int jackZombieCount = 0;
@@ -3477,6 +3478,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "canBeCharmed", z->CanBeCharmed() },
 			{ "canBeKilledByMower", z->CanBeKilledByMower() },
 			{ "resistsTangleKelpDrowning", z->ResistsTangleKelpDrowning() },
+			{ "groundHazardEligible", z->CanBeAffectedByGroundHazards() },
+			{ "canBeParalyzed", z->CanBeParalyzed() },
 			{ "roofRunoffGuideEligible", z->CanGuideRoofRunoff() },
 			{ "roofRunoffDriftMultiplierOn1000", static_cast<int>(std::lround(
 				z->GetRoofRunoffDriftMultiplier() * 1000.0f)) },
@@ -3520,6 +3523,9 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "buttered", z->IsButtered() },
 			{ "butterTimerMs", static_cast<int>(std::lround(
 				z->GetButterTimer() * 1000.0f)) },
+			{ "paralyzed", z->IsParalyzed() },
+			{ "paralysisTimerMs", static_cast<int>(std::lround(
+				z->GetParalysisTimeRemaining() * 1000.0f)) },
 			{ "butterSplatTrack", z->GetButterSplatTrackName() },
 			{ "butterSplatAfterAllTracks", z->ShouldDrawButterSplatAfterAllTracks() },
 			{ "butterSplatFollowerConfigured", z->IsButterSplatFollowerConfigured() },
@@ -4006,6 +4012,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			zombieState["roofMarshalLastSummonHighThreatCount"] = highThreatCount;
 			out["roofMarshal"] = zombieState;
 		}
+		// 专项脚本中的异品种靶子可按语义类型稳定取证；同品种多只时仍使用 zombies 全量数组。
+		out["zombiesByType"][ZombieTypeName(z->mZombieType)] = zombieState;
 		out["zombies"].push_back(std::move(zombieState));
 	}
 	out["zombieCount"] = static_cast<int>(out["zombies"].size());
@@ -4139,6 +4147,9 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "sunProductionMultiplierPct", static_cast<int>(std::lround(
 				board->GetPlanternSunProductionMultiplier(p) * 100.0f)) },
 			{ "roofRunoffPaused", board->IsPlantPausedByRoofRunoff(p) },
+			{ "shutdown", p->IsShutdown() },
+			{ "shutdownTimerMs", static_cast<int>(std::lround(
+				p->GetShutdownTimeRemaining() * 1000.0f)) },
 			{ "bungeeState", PlantBungeeStateName(p->GetBungeeState()) },
 			{ "bungeeOwnerZombieID", p->GetBungeeOwnerZombieID() },
 			{ "airborneDefenseState",

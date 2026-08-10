@@ -64,6 +64,7 @@ public:
 	bool CanBeGrabbedByTangleKelp() const override { return false; }
 	bool CanTriggerGameOver() const override { return false; }
 	bool CanBeCharred() const override { return IsVulnerable(); }
+	bool CanBeAffectedByGroundHazards() const override { return IsVulnerable(); }
 
 protected:
 	void SetupZombie() override;

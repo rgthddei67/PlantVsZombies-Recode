@@ -62,6 +62,7 @@ protected:
 	float mCooldownTimer = 0.0f;	// 僵尸减速倒计时时间
 	float mFrozenTimer = 0.0f;		// 冻结剩余秒数（寒冰菇完全定身），0=未冻结
 	float mButterTimer = 0.0f;		// 黄油定身剩余秒数，0=未被黄油固定
+	float mParalysisTimer = 0.0f;   // 通用麻痹剩余游戏秒；来源可以是天气、植物或其他机制
 	float mRoofMarshalAssaultTimer = 0.0f; // 突击令剩余游戏秒数；独立于天气与寒冷状态
 	float mRoofMarshalAssaultMoveMultiplier = 1.0f; // 突击令自主水平推进倍率
 	float mRoofMarshalAssaultBiteMultiplier = 1.0f; // 突击令每口伤害倍率
@@ -309,8 +310,19 @@ public:
 	}
 	/** 突击令红旗当前是否随目标僵尸显示。 */
 	bool IsRoofMarshalAssaultFlagVisible() const;
-	/** 冻结或黄油任一生效时，统一视为完全定身。 */
-	bool IsImmobilized() const { return IsFrozen() || IsButtered(); }
+	/** 冻结、黄油或通用麻痹任一生效时，统一视为完全定身。 */
+	bool IsImmobilized() const { return IsFrozen() || IsButtered() || IsParalyzed(); }
+	/**
+	 * @brief 对僵尸施加通用麻痹；重复施加只保留更长的剩余时间。
+	 * @return 当前品种与阶段接受麻痹时返回 true。
+	 */
+	bool ApplyParalysis(float durationSeconds);
+	bool IsParalyzed() const { return mParalysisTimer > 0.0f; }
+	float GetParalysisTimeRemaining() const { return mParalysisTimer; }
+	/** 车辆等永久免疫麻痹的品种覆写此接口；伤害资格与它相互独立。 */
+	virtual bool CanBeParalyzed() const { return true; }
+	/** 地面区域危害的通用命中资格；飞行单位默认免疫，特殊阶段可进一步收紧。 */
+	virtual bool CanBeAffectedByGroundHazards() const { return !IsFlying(); }
 	/** 黄油弹命中入口；返回 false 表示当前品种或阶段免疫定身。 */
 	virtual bool ApplyButter();
 	/** 命中时增加毒层；满二十层则刷新剩余时间最短的一层。 */
@@ -374,12 +386,14 @@ public:
 protected:
 	/** 把当前 Animator 轨道局部锚点换算为稳定世界坐标，供离体装备取得起点。 */
 	Vector GetTrackWorldPosition(const std::string& trackName) const;
-	// 统一重算动画 extra 速度层：冻结/黄油(0) > 品种能力 × 减速 × 雨势。
+	// 统一重算动画 extra 速度层：冻结/黄油/麻痹(0) > 品种能力 × 减速 × 雨势。
 	// 子类自身的整体倍率只从 GetAbilityAnimSpeedMultiplier 返回；运行期状态变化后经此收敛，
 	// 禁止直调 SetExtraSpeedMultiplier，否则会把冻结停格顶掉或丢失天气组合。
 	void UpdateAnimSpeed();
 	/** 清除黄油定身并按剩余状态恢复动画速度。 */
 	void ClearButter();
+	/** 清除通用麻痹并按剩余状态恢复动画与染色。 */
+	void ClearParalysis();
 	/** 出生 Setup 完成后把黄油统一绑定到品种声明的语义头部轨道。 */
 	void ConfigureButterSplatFollower();
 	/** 同步轨道内黄油显隐；未配置的异形资源继续由 Draw 的旧锚点路径兜底。 */
