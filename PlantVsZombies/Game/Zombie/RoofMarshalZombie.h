@@ -56,6 +56,8 @@ public:
 	int GetLastSummonRowMask() const { return mLastSummonRowMask; }
 	int GetLastSummonDistinctRowCount() const;
 	bool IsHighThreatPoolUnlocked() const;
+	/** @brief 返回当前生命对应的高威胁池抽取概率，范围 0～100。 */
+	int GetCurrentHighThreatRollPercent() const;
 	int GetCurrentSummonCount() const;
 	float GetCurrentSummonInterval() const;
 	float GetLaneSwitchTimer() const { return mLaneSwitchTimer; }

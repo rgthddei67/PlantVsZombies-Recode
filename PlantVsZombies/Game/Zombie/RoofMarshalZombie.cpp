@@ -27,7 +27,8 @@ namespace {
 	constexpr float kLaneTransitionBlendTime = 0.15f;     // 换行开始/结束时切换走路与待机轨道的混合时长，单位：秒
 	constexpr int kNormalSummonCount = 3;                 // 4000 血以上每批生成数量
 	constexpr int kDesperateSummonCount = 4;              // 4000 血以下每批生成数量
-	constexpr int kHighThreatRollPercent = 30;            // 第二、三阶段每个位置抽取高威胁池的概率
+	constexpr int kHighThreatRollStartPercent = 30;       // 刚低于 8000 血时，每个位置抽取高威胁池的起始概率
+	constexpr int kHighThreatRollEndPercent = 100;        // 到 4000 血及以下时，每个位置只从高威胁池抽取
 	constexpr float kCommandSpawnX = 910.0f;              // 主人指定的部队召唤 X；直接出现在战场右侧可见区域，单位：像素
 	constexpr int kWeatherCommandCadence = 3;             // 每完成多少次实际指挥召唤尝试一次周期改天
 	constexpr float kCommandedMediumRainDuration = 20.0f; // 周期天气技能强制中雨的最短游戏秒数
@@ -276,8 +277,9 @@ void RoofMarshalZombie::TakeBodyDamage(int damage)
 ZombieType RoofMarshalZombie::RollSummonedZombieType(int row) const
 {
 	if (!mBoard) return ZombieType::ZOMBIE_NORMAL;
-	const bool canRollHighThreat = mBodyHealth < kHighThreatHealthThreshold;
-	if (canRollHighThreat && GameRandom::Range(1, 100) <= kHighThreatRollPercent) {
+	const int highThreatRollPercent = GetCurrentHighThreatRollPercent();
+	if (highThreatRollPercent > 0
+		&& GameRandom::Range(1, 100) <= highThreatRollPercent) {
 		return RollCompatibleZombieType(kHighThreatSummonPool, *mBoard, row);
 	}
 	return RollCompatibleZombieType(kStandardSummonPool, *mBoard, row);
@@ -489,6 +491,22 @@ int RoofMarshalZombie::GetLastSummonDistinctRowCount() const
 bool RoofMarshalZombie::IsHighThreatPoolUnlocked() const
 {
 	return mBodyHealth < kHighThreatHealthThreshold;
+}
+
+int RoofMarshalZombie::GetCurrentHighThreatRollPercent() const
+{
+	if (mBodyHealth >= kHighThreatHealthThreshold) return 0;
+	if (mBodyHealth <= kDesperateHealthThreshold) {
+		return kHighThreatRollEndPercent;
+	}
+	// 8000→4000 血把概率从 30% 线性抬到 100%；最终阶段因此不会再混入普通杂兵。
+	const int threatPhaseHealthSpan =
+		kHighThreatHealthThreshold - kDesperateHealthThreshold;
+	const int healthLostInThreatPhase =
+		kHighThreatHealthThreshold - mBodyHealth;
+	return kHighThreatRollStartPercent
+		+ (kHighThreatRollEndPercent - kHighThreatRollStartPercent)
+		* healthLostInThreatPhase / threatPhaseHealthSpan;
 }
 
 int RoofMarshalZombie::GetHighThreatHealthThreshold() const

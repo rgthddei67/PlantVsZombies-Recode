@@ -3928,6 +3928,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				marshal->GetLastSummonDistinctRowCount();
 			zombieState["roofMarshalHighThreatPoolUnlocked"] =
 				marshal->IsHighThreatPoolUnlocked();
+			zombieState["roofMarshalHighThreatRollPercent"] =
+				marshal->GetCurrentHighThreatRollPercent();
 			zombieState["roofMarshalCurrentSummonCount"] =
 				marshal->GetCurrentSummonCount();
 			zombieState["roofMarshalCurrentSummonIntervalMs"] = static_cast<int>(
