@@ -61,6 +61,15 @@ void CardSlotManager::Start() {
 }
 
 void CardSlotManager::Update() {
+	// 普通暂停只保留已有手持预览的鼠标跟随；卡槽附属操作、取消与落种均等待恢复。
+	if (mPauseGameplayInputBlocked) {
+		if (selectedCard) {
+			UpdatePreviewToMouse(
+				GameAPP::GetInstance().GetInputHandler().GetMousePosition());
+		}
+		return;
+	}
+
 	static int lastSun = 0;
 	const bool bloverDirectionChanged = UpdateBloverDirectionInput();
 	UpdatePlanternGearMenuInput();
@@ -131,7 +140,7 @@ void CardSlotManager::ClearAllCards() {
 }
 
 void CardSlotManager::SelectCard(GameObject* card) {
-	if (!card) return;
+	if (!card || mPauseGameplayInputBlocked) return;
 
 	auto cardComp = card->GetComponent<CardComponent>();
 	if (!cardComp) {
@@ -191,6 +200,7 @@ bool CardSlotManager::CanAfford(int cost) const {
 
 void CardSlotManager::TogglePlanternGearMenu()
 {
+	if (mPauseGameplayInputBlocked) return;
 	if (!mBoard || !mBoard->GetActivePlantern() || !FindPlanternCard()) {
 		mPlanternGearMenuOpen = false;
 		return;
@@ -491,7 +501,7 @@ void CardSlotManager::UpdatePreviewToCell(Cell* cell) {
 }
 
 void CardSlotManager::HandleCellClick(int row, int col) {
-	if (!selectedCard) return;
+	if (!selectedCard || mPauseGameplayInputBlocked) return;
 
 	Cell* cell = mBoard ? mBoard->GetCell(row, col) : nullptr;
 	if (!cell) return;
@@ -502,7 +512,7 @@ void CardSlotManager::HandleCellClick(int row, int col) {
 }
 
 bool CardSlotManager::CanPlaceInCell(Cell* cell) const {
-	if (!selectedCard || !cell) return false;
+	if (!selectedCard || !cell || mPauseGameplayInputBlocked) return false;
 
 	// 检查阳光是否足够
 	if (auto cardComp = selectedCard->GetComponent<CardComponent>()) {

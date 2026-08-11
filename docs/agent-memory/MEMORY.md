@@ -12,8 +12,8 @@
 - [黑夜屋顶雷荷与基础放电](project_pvz_night_roof_charge.md) — 2026-08-10 仅 `NIGHT_ROOF` 启用独立雷荷；满100锁行预警4秒再放电0.65秒，跨阈值溢出和活动期正向输入截留为最多15%余电并在结束后兑现；普通非花盆植物停机2.5秒、地面僵尸75伤害+0.75秒麻痹，冲刷湿坡升级为5秒/120+1.2秒；飞行地下免疫、车辆只受伤，余电及通用停机/麻痹余时已入档并有可见专项
 - [第六大关黑夜屋顶与延期设计](project_pvz_sixth_area_night_roof_backlog.md) — 2026-08-10 6-1～6-9 已接入正式黑夜屋顶场景和基础雷荷；新植物、僵尸、专属出怪、6-9僵尸博士及处决僵尸联动仍延期，既有反制和快照边界不变
 - [经典花盆与屋顶承载层](project_pvz_flowerpot.md) — 2026-08-03 `PLANT_FLOWERPOT` 25阳光/7.5秒/300生命/1秒无啃食；under+normal+南瓜分层、屋顶门禁、5-1/5-2/后续5/4/3列初始布局、覆盖暂停、5px视觉抬升、通用ShadowComponent 46px可见阴影、双向台风整组与存档均经默认/NoInstance可见专项
-- [架构边界、存档版本与技能审计门禁](project_pvz_architecture_boundaries.md) — 2026-08-03 `BoardPresentation` 取代 `Board::mGameScene`，Board 保持天气/波次/生存玩法唯一权威；`SceneManager` 明确单活动场景；玩家 schema v2 为已通关3-8的旧档补发前移后的毒囊射手，迁移保持事务式并有纯测试；每次任务提交前审计相关 skills
-- [空格轻量暂停与暂停倍速待选](project_pvz_space_pause_ui.md) — 2026-08-11 空格只切换不遮挡战场的轻量暂停并在上方中央显示“游戏暂停”；Esc/右上主菜单保留完整菜单；暂停中倍速按钮只更新待恢复值、实际倍速恒为0，恢复后应用；泳池水面相位也随全局暂停冻结
+- [架构边界、存档版本与技能审计门禁](project_pvz_architecture_boundaries.md) — 2026-08-11 `BoardPresentation` 取代 `Board::mGameScene`，Board 保持天气/波次/生存玩法唯一权威；`SceneManager` 明确单活动场景；玩家 schema v2 补发毒囊射手，v3 为旧档补默认关闭的高级暂停且保留已有选择；迁移保持事务式并有纯测试；每次任务提交前审计相关 skills
+- [空格轻量暂停与可选高级暂停](project_pvz_space_pause_ui.md) — 2026-08-11 空格只显示上方中央“游戏暂停”；高级暂停默认关闭并只在主菜单控制台设置，关闭时卡槽/落种被门禁但已有手持预览仍跟随，开启时暂停中可选卡种植；Esc 完整菜单不展示该开关；暂停倍速仅待选、泳池相位冻结
 - [经典咖啡豆、蘑菇睡眠 Z 与唤醒](project_pvz_coffeebean.md) — 2026-08-11 白天沉睡植物以独立 `Z.reanim` 按原版6～8fps随机相位循环，位置适配当前视觉锚点且醒来/压扁/失活即移除；`PLANT_INSTANT_COFFEE` 仍以短时 overlay 等待1秒后碎裂并启动1秒唤醒，资源、存档、台风与默认/NoInstance可见专项闭环
 - [植物立即死亡的可见生命周期](project_pvz_plant_die_visibility.md) — 2026-08-04 `Plant::Die()` 在延迟销毁前立即失活，避免 `StopAnimation()` 重置轨道后仍被当帧绘制；咖啡豆、倭瓜等瞬时消耗植物不再闪回起始姿态；`clang-release` 编译通过，按主人要求未跑 AutoTest、待亲自目验
 - [经典海蘑菇](project_pvz_seashroom.md) — 2026-07-29 `PLANT_SEASHROOM`：0 阳光、10 秒冷却，只能直接种在空水格且占 normal 层；复用小喷菇 1.5 秒间隔/300px 短程孢子，第 33 帧发射，无陆地阴影并随水面浮动；白天睡眠与双绘制路径可见专项通过
@@ -80,7 +80,7 @@
 - [粉色橄榄球僵尸 ✅](project_pvz_pink_football_zombie.md) — 2026-08-02 黑夜专属轻装变体：220本体/900头盔、速度1.85/1.95、减速动画系数0.7，首口400后续40；掉盔对半径120圆内无壳植物造成50，南瓜格只让外壳承受300，水路内层与睡莲安全；2-9 出怪、圆内/圆外及水路三层均有可见专项
 - [胆小菇+adding-plant skill ✅已push](project_pvz_scaredyshroom_and_adding_plant_skill.md) — 2026-08-05 四态害怕状态机；南瓜免疫须在节流前清空旧 `mScaredCached` 并保持检查到期，否则旧 true 会驱动反复缩头；既有 foot-gun 仍包括帧事件帧号必问主人、站位/影子两套 offset 分居 gamedata 与代码、读档首帧必须真算
 - [金盏花最小观赏版本](project_pvz_marigold_minimal.md) — 2026-08-09 `Marigold : Plant` 只播 `anim_idle`，不吐钱；费用 `-100`、冷却 25 秒，正式卡槽实测阳光 `0→100`；blink1/2 只用通用 `IMAGE_*` 键，默认与 `-NoInstance` 可见专项及整数 worldBounds 一致
-- [主菜单石碑排版、命中仲裁、控制台与2-1跳关](project_pvz_mainmenu_button_arbitration.md) — 2026-07-31 右下「控制台」打开全屏模态设置页，以 CheckBox 控制蒙特卡洛小丑选植物并屏蔽/隐藏背景入口；左下未到2-1时仍显示跳关；石碑紧贴重叠由ButtonManager中心最近仲裁，回归须Read中间截图防假绿
+- [主菜单石碑排版、命中仲裁、控制台与2-1跳关](project_pvz_mainmenu_button_arbitration.md) — 2026-08-11 右下「控制台」打开全屏模态设置页，以 CheckBox 控制蒙特卡洛 AI 与默认关闭的高级暂停并屏蔽/隐藏背景入口；高级暂停不重复放进战斗 Esc 菜单；左下未到2-1时仍显示跳关；石碑紧贴重叠由ButtonManager中心最近仲裁
 - [血量字形worker侧instance化 ✅已push](project_pvz_glyph_run_worker_instancing.md) — 2026-07-07(db5c3e6) 20000可见血量行defer到串行replay逐行flush=N×ε聚合致死(51.9→9.7ms/19→103FPS)；修=RecordDrawGlyphRun快路径直写InstanceRecord切片(与reanim同管线,z-order不变)；foot-gun=textDraw(lines)计数器不覆盖字形路径(盲区误导两轮,已加glyphRun等-Profile探针)、glyphAtlasBuild失败无negative cache会每帧重建循环
 - [gamedata.json 数值外置 ✅已push](project_pvz_gamedata_json.md) — 2026-07-07(9f3e3ca+0b37e9f) JSON唯一数值来源+缺任一基础字段即拒启动(-6)+AutoTest不弹窗守卫；2026-07-31 植物增加轻量防线推演 simulation 画像并纳入 adding-plant；2026-07-22 起只改 clang-release 权威资源，其他 preset 用 Junction 共享；foot-gun=文件名GameApp.cpp非GameAPP.cpp、后台PowerShell不继承VS环境
 - [幽灵僵尸射手空射修复 ✅已push](project_pvz_ghost_zombie_shooter_fix.md) — 2026-07-06(b1cec54) 行索引过滤IsActive/IsDying+Die()防重入(同帧双Die双扣计数)+DestroyGameObject(raw)静默失败留WARN；再见"计数0仍开火"先查GOM WARN

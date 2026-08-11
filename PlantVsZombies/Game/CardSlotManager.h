@@ -27,6 +27,7 @@ private:
 	Board* mBoard = nullptr;
 	Cell* mHoveredCell = nullptr;     // 当前鼠标悬停的Cell（观察者）
 	bool mPlanternGearMenuOpen = false; // 纯 UI 瞬态；不进入关卡存档
+	bool mPauseGameplayInputBlocked = false; // 普通空格暂停仅冻结卡槽/落种，手持预览仍跟随鼠标
 
 public:
 	CardSlotManager(Board* board);
@@ -44,6 +45,9 @@ public:
 	void ClearAllCards();
 	void SelectCard(GameObject* card);
 	void DeselectCard();
+	/** 设置普通空格暂停的玩法输入门禁；不会销毁进入暂停前已拿起的植物预览。 */
+	void SetPauseGameplayInputBlocked(bool blocked) { mPauseGameplayInputBlocked = blocked; }
+	bool CanAcceptGameplayInput() const { return !mPauseGameplayInputBlocked; }
 	/** 点击路灯花卡片或本体时切换挡位菜单。 */
 	void TogglePlanternGearMenu();
 	bool IsPlanternGearMenuOpen() const { return mPlanternGearMenuOpen; }

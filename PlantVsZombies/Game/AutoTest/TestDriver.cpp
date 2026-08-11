@@ -575,6 +575,7 @@ void TestDriver::ResetTestState() {
 	GameAPP::mDevFreePlant = false;
 	GameAPP::mDevSpawnPaused = false;
 	GameAPP::GetInstance().mEnableMonteCarloAI = true;
+	GameAPP::GetInstance().mAdvancedPauseEnabled = false;
 }
 
 void TestDriver::Update() {
@@ -657,6 +658,11 @@ bool TestDriver::ExecuteCurrent() {
 	if (op == "set_monte_carlo_ai") {
 		GameAPP::GetInstance().mEnableMonteCarloAI =
 			cmd.value("value", true);
+		return true;
+	}
+	if (op == "set_advanced_pause") {
+		GameAPP::GetInstance().mAdvancedPauseEnabled =
+			cmd.value("value", false);
 		return true;
 	}
 	if (op == "reset_test_state") {
@@ -2067,6 +2073,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["adventureLevel"] = gameApp.mAdventureLevel;
 	out["encounteredEliteDancer"] = gameApp.HasEncounteredEliteDancer();
 	out["monteCarloAIEnabled"] = gameApp.mEnableMonteCarloAI;
+	out["advancedPauseEnabled"] = gameApp.mAdvancedPauseEnabled;
 	out["dolphinAppearSoundRequestCount"] =
 		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_DOLPHIN_APPEARS);
 	out["dolphinBeforeJumpSoundRequestCount"] =
@@ -2474,6 +2481,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["paused"] = DeltaTime::IsPaused();
 	out["spacePauseActive"] = gs->IsSpacePauseActiveForTesting();
 	out["pauseMenuOpen"] = gs->IsPauseMenuOpenForTesting();
+	out["pauseGameplayInputBlocked"] = gs->GetCardSlotManager()
+		? !gs->GetCardSlotManager()->CanAcceptGameplayInput() : false;
 	out["selectedTimeScaleOn1000"] = static_cast<int>(std::lround(
 		DeltaTime::GetSelectedTimeScale() * 1000.0f));
 	out["level"] = board->mLevel;

@@ -330,6 +330,8 @@ private:
 	void OpenQuitMenu();
 	/** 切换空格键轻量暂停；其他模态暂停打开时不抢占其所有权。 */
 	void ToggleSpacePause();
+	/** 按空格暂停所有权与玩家设置同步卡槽/落种输入门禁。 */
+	void SyncSpacePauseInputPolicy();
 	/** 在画面上方中央绘制轻量暂停文字。 */
 	void DrawSpacePauseLabel(Graphics* g) const;
 

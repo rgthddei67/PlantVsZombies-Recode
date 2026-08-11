@@ -1436,6 +1436,7 @@ void GameScene::OpenMenu()
 
 	// 从轻量暂停切换到完整菜单时保持全程冻结，只把暂停 UI 的所有权交给菜单。
 	mSpacePauseActive = false;
+	SyncSpacePauseInputPolicy();
 	mOpenMenu = true;
 	DeltaTime::SetPaused(true);
 	auto& gameApp = GameAPP::GetInstance();
@@ -1485,7 +1486,17 @@ void GameScene::ToggleSpacePause()
 		|| mSurvivalPerkSelectActive || mPerkViewActive || mDevPanelActive) return;
 
 	mSpacePauseActive = !mSpacePauseActive;
+	SyncSpacePauseInputPolicy();
 	DeltaTime::SetPaused(mSpacePauseActive);
+}
+
+/** 普通暂停只保留鼠标预览；开启高级暂停时沿用既有的完整种植交互。 */
+void GameScene::SyncSpacePauseInputPolicy()
+{
+	if (!mCardSlotManager) return;
+	const bool blockGameplayInput = mSpacePauseActive
+		&& !GameAPP::GetInstance().mAdvancedPauseEnabled;
+	mCardSlotManager->SetPauseGameplayInputBlocked(blockGameplayInput);
 }
 
 void GameScene::OpenRestartMenu()

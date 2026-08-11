@@ -49,3 +49,11 @@ GameMessageBox 之后绘制时曾穿透全屏背景，因此它也改为 `SetSki
 true→false、重开仍为 false，保存状态 JSON 并截图启用/禁用两态；可见
 `clang-playtest` exit 0。同期重跑 `smoke_mainmenu_buttons` exit 0，并人工读取
 `after_overlap_click_still_menu`，确认重叠带点击后仍停留主菜单。
+
+## 2026-08-11：控制台承载高级暂停
+
+控制台新增“高级暂停（暂停时可选卡和种植）”CheckBox，与
+`GameAPP::mAdvancedPauseEnabled` 直接绑定，默认关闭并进入玩家设置存档。该开关只放在
+主菜单控制台；战斗 Esc/右上“主菜单”的完整菜单明确不重复展示。控制台仍沿用全屏模态
+与统一背景入口屏蔽。`smoke_mainmenu_console` 现同时真实点击蒙特卡洛与高级暂停两项，
+关闭重开后断言 `false/true` 保持，并以当前桌面可见 `clang-release` 运行 exit 0。

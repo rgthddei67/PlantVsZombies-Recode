@@ -103,21 +103,25 @@ namespace {
 				upgraded["schemaVersion"] = version;
 				break;
 			case 2: {
-				if (kind != DocumentKind::Level) {
-					error = std::string(documentName) + "存档缺少迁移路径";
-					return false;
+				if (kind == DocumentKind::Player) {
+					// 玩家 v3 新增高级暂停设置；旧玩家默认进入更严格的普通暂停。
+					if (!upgraded.contains("advancedPauseEnabled")) {
+						upgraded["advancedPauseEnabled"] = false;
+					}
 				}
-				// v3 把旧 CLEAR/DENSE 二态扩成 DEFAULT/SMALL/NORMAL/DENSE，保留旧档视觉强度。
-				constexpr const char* kFogIntensityKeys[] = {
-					"fogWeatherIntensity",
-					"forecastFogWeatherIntensity",
-					"actualForecastFogWeatherIntensity",
-				};
-				for (const char* key : kFogIntensityKeys) {
-					if (!upgraded.contains(key) || !upgraded[key].is_number_integer()) continue;
-					const int oldValue = upgraded[key].get<int>();
-					if (oldValue == 0) upgraded[key] = 1;      // 旧 CLEAR 是双层并扩 1 格，对应小雾
-					else if (oldValue == 1) upgraded[key] = 3; // 旧 DENSE 仍是大雾
+				else {
+					// 关卡 v3 把旧 CLEAR/DENSE 二态扩成 DEFAULT/SMALL/NORMAL/DENSE，保留旧档视觉强度。
+					constexpr const char* kFogIntensityKeys[] = {
+						"fogWeatherIntensity",
+						"forecastFogWeatherIntensity",
+						"actualForecastFogWeatherIntensity",
+					};
+					for (const char* key : kFogIntensityKeys) {
+						if (!upgraded.contains(key) || !upgraded[key].is_number_integer()) continue;
+						const int oldValue = upgraded[key].get<int>();
+						if (oldValue == 0) upgraded[key] = 1;      // 旧 CLEAR 是双层并扩 1 格，对应小雾
+						else if (oldValue == 1) upgraded[key] = 3; // 旧 DENSE 仍是大雾
+					}
 				}
 				version = 3;
 				upgraded["schemaVersion"] = version;

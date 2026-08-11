@@ -304,6 +304,12 @@ void MainMenuScene::OpenConsole()
 		}, gameApp.mEnableMonteCarloAI)
 		.Text(panelCenter + Vector(-140.0f, -10.0f), 22,
 			u8"蒙特卡洛模拟未来AI", labelColor)
+		.Checkbox(panelCenter + Vector(-205.0f, 50.0f), Vector(50.0f, 46.0f), []() {
+			auto& app = GameAPP::GetInstance();
+			app.mAdvancedPauseEnabled = !app.mAdvancedPauseEnabled;
+		}, gameApp.mAdvancedPauseEnabled)
+		.Text(panelCenter + Vector(-140.0f, 65.0f), 22,
+			u8"高级暂停（暂停时可选卡和种植）", labelColor)
 		.Button(u8"关闭", panelCenter + Vector(-90.0f, 170.0f), Vector(180.0f, 52.0f),
 			24, [this]() { CloseConsole(); })
 		.Show();

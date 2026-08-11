@@ -91,6 +91,33 @@ namespace {
 		Expect(document == before, "当前版本玩家档不应重复执行历史迁移");
 	}
 
+	void TestVersionTwoPlayerUpgradeDefaultsToStrictPause() {
+		nlohmann::json document = {
+			{ "schemaVersion", 2 },
+			{ "difficulty", 2 },
+			{ "enableMonteCarloAI", false }
+		};
+		std::string error;
+
+		Expect(SaveSchema::UpgradePlayerDocument(document, error),
+			"v2 玩家档应升级到高级暂停设置版本");
+		Expect(document["schemaVersion"] == SaveSchema::kCurrentPlayerVersion,
+			"v2 玩家档应写入当前玩家版本");
+		Expect(document["advancedPauseEnabled"] == false,
+			"旧玩家默认应关闭高级暂停");
+		Expect(document["enableMonteCarloAI"] == false,
+			"高级暂停迁移不得改写已有玩家设置");
+
+		nlohmann::json prereleaseDocument = {
+			{ "schemaVersion", 2 },
+			{ "advancedPauseEnabled", true }
+		};
+		Expect(SaveSchema::UpgradePlayerDocument(prereleaseDocument, error),
+			"已含高级暂停字段的 v2 玩家档应升级成功");
+		Expect(prereleaseDocument["advancedPauseEnabled"] == true,
+			"迁移不得覆盖玩家已有的高级暂停选择");
+	}
+
 	void TestCurrentLevelDocumentIsStable() {
 		nlohmann::json document = {
 			{ "schemaVersion", SaveSchema::kCurrentLevelVersion },
@@ -216,6 +243,7 @@ int main() {
 	TestLegacyPlayerUpgradePreservesFields();
 	TestMovedToxicRewardPlayerUpgrade();
 	TestCurrentPlayerDocumentIsStable();
+	TestVersionTwoPlayerUpgradeDefaultsToStrictPause();
 	TestCurrentLevelDocumentIsStable();
 	TestLegacyLevelUpgradePreservesGameplayState();
 	TestVersionOneLevelUpgradeDefersFogInitializationToBoard();
