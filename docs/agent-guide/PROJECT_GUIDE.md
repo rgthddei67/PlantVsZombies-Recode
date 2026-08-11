@@ -14,7 +14,7 @@
 
 ## 构建与运行
 
-这是一个使用 CMake + vcpkg（manifest 模式）的 C++ 项目，仅支持 x64 Windows。构建系统已于 2026-06-13 统一迁移到 CMake，不再使用 `.sln/.vcxproj`（`CMakeLists.txt` + `CMakePresets.json` + `vcpkg.json`，triplet 为 `x64-windows-static`）。
+这是一个使用 CMake + vcpkg（manifest 模式）的 C++ 项目，仅支持 x64 Windows。构建系统已于 2026-06-13 统一迁移到 CMake，不再使用 `.sln/.vcxproj`（`CMakeLists.txt` + `CMakePresets.json` + `vcpkg.json`，triplet 为 `x64-windows-static`）；仓库内专用依赖通过 `cmake/vcpkg-ports` overlay port 提供。
 
 - **构建（Codex 可自主运行）：** CMake 已加入系统 `PATH`，应直接调用 `cmake`，不再定位或硬编码 Visual Studio 自带的 `cmake.exe`。构建仍必须在 VS 开发者环境中运行，以便提供编译器、Windows SDK 和相关工具链。**关键顺序：先把 `vswhere` 所在的 Installer 目录加入 `PATH`，再导入 `VsDevCmd.bat`**；否则 VsDevCmd 内部调用 vswhere 时会输出 `'vswhere.exe' is not recognized`（构建仍能成功，但会产生噪声）。无噪声的一次性环境导入与构建命令：
 
@@ -43,7 +43,9 @@
 - **调试模式：** 使用 `-Debug` 参数运行可显示碰撞框。
 - **源文件管理：** `GLOB_RECURSE CONFIGURE_DEPENDS` 会自动收集源文件，新增 `.cpp` 无需修改构建文件；不参与编译的文件放入 `CMakeLists.txt` 的 `REMOVE_ITEM` 列表（当前为 `Reanimation/AttachmentSystem.cpp`）。
 
-依赖：SDL2、SDL2_image、SDL2_ttf、SDL2_mixer、Vulkan 1.2、Volk、glm、nlohmann/json、plugxml。Vulkan运行时入口由 SDL2 选定 loader 后交给 Volk动态加载；Vulkan SDK继续提供头文件、VMA 与 `glslc`，但 EXE 不直接链接 `vulkan-1.dll`。最低设备能力仍包含 `VK_KHR_swapchain`、Vulkan 1.2 bindless descriptor indexing 所需 feature，以及至少 8192 个 update-after-bind combined image sampler；CPU 仍硬要求 x64 + AVX2。
+依赖：SDL2、SDL2_image、SDL2_ttf、SDL2_mixer、Vulkan 1.2、Volk、glm、nlohmann/json、pugixml、YY-Thunks。Vulkan运行时入口由 SDL2 选定 loader 后交给 Volk动态加载；Vulkan SDK继续提供头文件、VMA 与 `glslc`，但 EXE 不直接链接 `vulkan-1.dll`。最低设备能力仍包含 `VK_KHR_swapchain`、Vulkan 1.2 bindless descriptor indexing 所需 feature，以及至少 8192 个 update-after-bind combined image sampler；CPU 仍硬要求 x64 + AVX2。
+
+Windows 发布产物以 Windows 7 SP1 x64（PE subsystem 6.01）为最低系统。项目内 `yy-thunks` overlay port 固定官方 v1.2.2 的 Lib 与 Objs 资产：Clang/LLD 把 Win7 替代 import libraries 放在 WinSDK 前，MSVC `link.exe` 直接链接官方 `YY_Thunks_for_Win7.obj`；例如 `CopyFile2`、`CreateFile2`、`GetSystemTimePreciseAsFileTime` 等新 API 会运行时探测并在 Win7 走回退。每个 Windows 可执行目标链接后，`cmake/assert_win7_imports.ps1` 都会用 `llvm-readobj` 将直接 PE imports 与随包 Win7 x64 导出表逐项核对；新增依赖若引入 Win7 不存在且 YY-Thunks 未接管的入口，构建必须失败，禁止靠放宽白名单掩盖。此兼容层只解决系统 API 装载门槛，不降低 x64 + AVX2、Vulkan 1.2 和 bindless 设备能力要求。
 
 Vulkan 运行时把 dynamic rendering 与 synchronization2 **分别**选路：Vulkan 1.3 优先核心入口；1.2 驱动若提供 `VK_KHR_dynamic_rendering` / `VK_KHR_synchronization2` 就使用对应 KHR 入口；缺少任一扩展时分别回退到传统 RenderPass / `vkCmdPipelineBarrier` + `vkQueueSubmit`，不会因为只缺其中一个而放弃另一个快路径。兼容矩阵开关为 `-Vulkan12`（把协商限制到 1.2）、`-VulkanLegacyRendering`、`-VulkanLegacySync`，`-Vulkan12Fallback` 等价于三者同时启用。它们只用于测试和故障诊断，正常启动保持 1.3 核心快路径。
 

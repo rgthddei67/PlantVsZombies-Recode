@@ -13,6 +13,8 @@ metadata:
 
 Windows 7 玩家启动时在进入 `main()` 前收到“无法定位程序输入点 `vkCmdBeginRendering` 于 `vulkan-1.dll`”系统错误。根因不是 SDL2，也不能据此断定显卡不支持 Vulkan；项目直接链接 `Vulkan::Vulkan`，使 EXE 导入表硬依赖 loader 导出 Vulkan 1.3 核心入口，旧 loader 因缺少导出而被 Windows 装载器提前拒绝。
 
+2026-08-11 又补齐了 Vulkan 之外的 Windows 系统 API 装载层；YY-Thunks、subsystem 6.01 与全 EXE 导入门禁的独立契约见 [Windows 7 x64 系统 API 兼容层](project_pvz_win7_yy_thunks.md)。两层必须同时保留：Volk 解决 Vulkan loader 导出差异，YY-Thunks 解决 KERNEL32 等系统 DLL 的新入口。
+
 现已改为 SDL2 与 Volk协作：`SDL_WINDOW_VULKAN` 仍由 SDL2 加载平台 loader，`VulkanContext` 从 `SDL_Vulkan_GetVkGetInstanceProcAddr()` 取得同一 loader 的入口并调用 `volkInitializeCustom()`。创建 instance 后调用 `volkLoadInstance()`，创建唯一 device 后调用 `volkLoadDevice()`；SDL2 继续负责窗口、扩展清单与 `VkSurfaceKHR`，没有被 Volk替代。
 
 ## 接口与构建契约

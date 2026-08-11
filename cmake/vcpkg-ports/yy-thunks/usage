@@ -1,0 +1,6 @@
+yy-thunks provides linker import libraries rather than a normal CMake target.
+
+Use find_package(yy-thunks CONFIG REQUIRED). With LLD, prepend
+${YY_THUNKS_WIN7_X64_LIBRARY_DIR} with target_link_directories(BEFORE ...); with
+MSVC link.exe, link ${YY_THUNKS_WIN7_X64_OBJECT} directly.
+The package also exports ${YY_THUNKS_WIN7_X64_EXPORT_MAP} for PE import audits.

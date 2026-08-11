@@ -1,0 +1,9 @@
+{
+  "name": "yy-thunks",
+  "version": "1.2.2",
+  "port-version": 2,
+  "description": "Linker-level Windows API compatibility thunks for older Windows releases",
+  "homepage": "https://github.com/Chuyu-Team/YY-Thunks",
+  "license": "MIT",
+  "supports": "windows & x64"
+}

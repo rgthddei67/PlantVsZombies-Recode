@@ -117,6 +117,7 @@
 - [大佬GS/compute渲染建议裁决](project_pvz_dalao_geometry_compute_suggestion.md) — 2026-06-17 ②目标早达成但用gl_VertexIndex顶点拉取+实例化非GS/①矩阵已并行写SSBO不值搬compute;再提同类渲染优化引此
 - [Gemini Vulkan审查](project_pvz_gemini_vulkan_review.md) — 2026-06-16 6条:4误判2休眠;**①DestroyTexture改帧计数延迟删除队列已push(0b14016)**;教训=GPU生命周期改动必开validation
 - [Volk动态 Vulkan loader + 1.2兼容矩阵 ✅](project_pvz_volk_dynamic_loader.md) — SDL2 loader→Volk动态分发；运行时优先1.3核心，并对 dynamic rendering / synchronization2 分别选择1.2 KHR或RenderPass/传统同步回退；最低仍要求Vulkan1.2 bindless 8192槽与x64+AVX2，五路径level18高压可见回归通过
+- [Windows 7 x64 系统 API 兼容层 + 导入门禁 ✅](project_pvz_win7_yy_thunks.md) — 仓库 overlay port 固定 YY-Thunks 1.2.2；LLD 用替代 import libs、MSVC 用官方 Win7 obj；PE subsystem 6.01，所有 EXE 链接后逐项核对 Win7 x64 导出表，修复 CopyFile2/CreateFile2/PreciseTime 装载失败但不降低 Vulkan1.2/AVX2 门槛
 - [编译警告清零 ✅](project_pvz_warnings_cleanup.md) — 2026-06-13 clang-release 0warn;验证须用clang(msvc默认不报)、reorder改类内初始化、-Wswitch补显式case
 - [CMake构建配置 ✅统一](project_pvz_cmake_migration.md) — CMake+vcpkg唯一；2026-07-31 主人改定编译、逻辑验证、AutoTest 与 F5 默认 `clang-release`（LTO/无PDB），只有特殊要求快速迭代、PDB 或无LTO才用 `clang-playtest`；非发布 preset 仍用 NTFS Junction 共享 clang-release 单份 resources/font
 - [Build permission](feedback_build_permission_msbuild.md) — 主人解除构建限制:可直接命令行编译,不必F7不必核对时间戳(现用cmake preset)

@@ -1,5 +1,5 @@
 # CMake 是本项目唯一构建系统。
-# 日常构建见 CMakePresets.json：cmake --preset clang-playtest && cmake --build --preset clang-playtest
+# 默认构建见 CMakePresets.json：cmake --preset clang-release && cmake --build --preset clang-release
 cmake_minimum_required(VERSION 3.29)
 
 project(PlantsVsZombies LANGUAGES CXX)
@@ -47,6 +47,49 @@ find_package(pugixml CONFIG REQUIRED)
 find_package(Vulkan REQUIRED)
 set(VOLK_PULL_IN_VULKAN OFF)
 find_package(volk CONFIG REQUIRED)
+
+# 当前 MSVC STL 会直接引用 Windows 8+ API。YY-Thunks 把这些入口改为运行时探测，
+# 在 Windows 7 上走等价旧 API，同时在新系统继续调用原生实现。
+if(WIN32)
+    find_package(yy-thunks CONFIG REQUIRED)
+
+    add_library(pvz_win7_compat INTERFACE)
+    if(CMAKE_LINKER_TYPE STREQUAL "LLD")
+        # LLD 需要 YY-Thunks 的整套替代 import libraries，并要求其先于 WinSDK 搜索。
+        target_link_directories(pvz_win7_compat BEFORE INTERFACE
+            "${YY_THUNKS_WIN7_X64_LIBRARY_DIR}"
+        )
+    else()
+        # MSVC link.exe 直接链接官方聚合对象；用 LLD 链接该对象会产生重复符号。
+        target_link_libraries(pvz_win7_compat INTERFACE
+            "${YY_THUNKS_WIN7_X64_OBJECT}"
+        )
+    endif()
+    target_link_options(pvz_win7_compat INTERFACE /SUBSYSTEM:CONSOLE,6.01)
+
+    get_filename_component(_compiler_bin_dir "${CMAKE_CXX_COMPILER}" DIRECTORY)
+    find_program(PVZ_LLVM_READOBJ
+        NAMES llvm-readobj.exe llvm-readobj
+        HINTS
+            "${_compiler_bin_dir}"
+            "$ENV{VSINSTALLDIR}/VC/Tools/Llvm/x64/bin"
+        REQUIRED
+    )
+
+    # 每个 Windows 可执行目标链接后都与 Win7 x64 官方导出表核对，防止依赖更新
+    # 再次引入只能在 Windows 8+ 解析的静态入口。
+    function(pvz_assert_win7_imports target_name)
+        add_custom_command(TARGET ${target_name} POST_BUILD
+            COMMAND powershell.exe -NoProfile -ExecutionPolicy Bypass
+                    -File "${CMAKE_CURRENT_SOURCE_DIR}/cmake/assert_win7_imports.ps1"
+                    -LlvmReadObj "${PVZ_LLVM_READOBJ}"
+                    -Binary "$<TARGET_FILE:${target_name}>"
+                    -Win7ExportMap "${YY_THUNKS_WIN7_X64_EXPORT_MAP}"
+            COMMENT "Checking ${target_name} imports against Windows 7 x64"
+            VERBATIM
+        )
+    endfunction()
+endif()
 
 set(VMA_HEADER "${Vulkan_INCLUDE_DIR}/vma/vk_mem_alloc.h")
 if(NOT EXISTS "${VMA_HEADER}")
@@ -111,6 +154,7 @@ endif()
 target_link_options(PlantsVsZombies PRIVATE /STACK:4194304,65536)
 
 target_link_libraries(PlantsVsZombies PRIVATE
+    $<$<PLATFORM_ID:Windows>:pvz_win7_compat>
     $<IF:$<TARGET_EXISTS:SDL2::SDL2>,SDL2::SDL2,SDL2::SDL2-static>
     $<IF:$<TARGET_EXISTS:SDL2_image::SDL2_image>,SDL2_image::SDL2_image,SDL2_image::SDL2_image-static>
     $<IF:$<TARGET_EXISTS:SDL2_ttf::SDL2_ttf>,SDL2_ttf::SDL2_ttf,SDL2_ttf::SDL2_ttf-static>
@@ -123,6 +167,10 @@ target_link_libraries(PlantsVsZombies PRIVATE
     version setupapi imm32 winmm shell32 ole32 legacy_stdio_definitions
 )
 
+if(WIN32)
+    pvz_assert_win7_imports(PlantsVsZombies)
+endif()
+
 # 存档迁移是纯文件系统逻辑，单独目标可在不启动游戏、不接触真实玩家目录的情况下验证。
 include(CTest)
 if(BUILD_TESTING)
@@ -132,6 +180,10 @@ if(BUILD_TESTING)
      )
     target_include_directories(SaveMigrationTests PRIVATE ${SRC_DIR})
     target_compile_options(SaveMigrationTests PRIVATE /utf-8 /W3 /sdl /EHsc)
+    target_link_libraries(SaveMigrationTests PRIVATE $<$<PLATFORM_ID:Windows>:pvz_win7_compat>)
+    if(WIN32)
+        pvz_assert_win7_imports(SaveMigrationTests)
+    endif()
     add_test(NAME save-migration COMMAND SaveMigrationTests)
 
     add_executable(SaveSchemaTests
@@ -140,7 +192,13 @@ if(BUILD_TESTING)
      )
     target_include_directories(SaveSchemaTests PRIVATE ${SRC_DIR})
     target_compile_options(SaveSchemaTests PRIVATE /utf-8 /W3 /sdl /EHsc)
-    target_link_libraries(SaveSchemaTests PRIVATE nlohmann_json::nlohmann_json)
+    target_link_libraries(SaveSchemaTests PRIVATE
+        $<$<PLATFORM_ID:Windows>:pvz_win7_compat>
+        nlohmann_json::nlohmann_json
+    )
+    if(WIN32)
+        pvz_assert_win7_imports(SaveSchemaTests)
+    endif()
     add_test(NAME save-schema COMMAND SaveSchemaTests)
 endif()
 
