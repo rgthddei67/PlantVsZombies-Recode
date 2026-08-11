@@ -5,6 +5,7 @@ cmake_minimum_required(VERSION 3.29)
 project(PlantsVsZombies LANGUAGES CXX)
 
 option(PVZ_ENABLE_LTO "为发布构建启用 Clang LTO" OFF)
+option(PVZ_ENABLE_AVX2 "允许游戏目标生成 AVX/AVX2 指令" ON)
 set(PVZ_SHARED_RUNTIME_ROOT "" CACHE PATH
     "共享 resources/font 的权威运行目录；留空表示当前构建持有实体目录")
 
@@ -91,7 +92,10 @@ if(WIN32)
     endfunction()
 endif()
 
-set(VMA_HEADER "${Vulkan_INCLUDE_DIR}/vma/vk_mem_alloc.h")
+# FindVulkan 可能优先命中 vcpkg 的 vulkan-headers；VMA 仍由项目约定的 Vulkan SDK 提供，
+# 因此不能把它的位置间接绑定到 Vulkan_INCLUDE_DIR。
+set(VULKAN_SDK_INCLUDE_DIR "$ENV{VULKAN_SDK}/Include")
+set(VMA_HEADER "${VULKAN_SDK_INCLUDE_DIR}/vma/vk_mem_alloc.h")
 if(NOT EXISTS "${VMA_HEADER}")
     message(FATAL_ERROR "Vulkan SDK 缺少 VMA 头文件: ${VMA_HEADER}")
 endif()
@@ -111,7 +115,10 @@ add_executable(PlantsVsZombies ${SOURCES} "PlantVsZombies/Game/Zombie/DoorZombie
 
 target_include_directories(PlantsVsZombies PRIVATE ${SRC_DIR})
 # Vulkan SDK 的 VMA 是第三方头；标为 SYSTEM，避免其 nullability 注解噪声破坏项目零警告基线。
-target_include_directories(PlantsVsZombies SYSTEM PRIVATE ${Vulkan_INCLUDE_DIR})
+target_include_directories(PlantsVsZombies SYSTEM PRIVATE
+    ${Vulkan_INCLUDE_DIR}
+    ${VULKAN_SDK_INCLUDE_DIR}
+)
 
 target_compile_definitions(PlantsVsZombies PRIVATE
     _CONSOLE
@@ -131,12 +138,16 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     target_compile_options(PlantsVsZombies PRIVATE
         $<$<OR:$<CONFIG:Release>,$<CONFIG:RelWithDebInfo>>:
             /O2                     # MSVC 风格，clang-cl 原生识别，不加 /clang:
-            /arch:AVX2              # 同上
             /fp:fast                # 同上，等价于 -ffast-math
             /clang:-fvectorize      # 每个 clang 专属选项单独传递
             /clang:-fomit-frame-pointer
         >
     )
+    if(PVZ_ENABLE_AVX2)
+        target_compile_options(PlantsVsZombies PRIVATE
+            $<$<OR:$<CONFIG:Release>,$<CONFIG:RelWithDebInfo>>:/arch:AVX2>
+        )
+    endif()
     if(PVZ_ENABLE_LTO)
         target_compile_options(PlantsVsZombies PRIVATE $<$<CONFIG:Release>:-flto>)
     endif()
@@ -144,10 +155,13 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
         $<$<OR:$<CONFIG:Release>,$<CONFIG:RelWithDebInfo>>:/OPT:REF /OPT:ICF>
     )
 else()
-    # 对应旧 Release|x64：MaxSpeed + AVX2 + fast-math + LTCG
+    # 对应旧 Release|x64：MaxSpeed + fast-math + LTCG；AVX2 由发布预设显式选择。
     target_compile_options(PlantsVsZombies PRIVATE
-        $<$<CONFIG:Release>:/O2 /Ob2 /Oi /Ot /Oy /arch:AVX2 /fp:fast /GL>
+        $<$<CONFIG:Release>:/O2 /Ob2 /Oi /Ot /Oy /fp:fast /GL>
     )
+    if(PVZ_ENABLE_AVX2)
+        target_compile_options(PlantsVsZombies PRIVATE $<$<CONFIG:Release>:/arch:AVX2>)
+    endif()
     target_link_options(PlantsVsZombies PRIVATE $<$<CONFIG:Release>:/LTCG>)
 endif()
 

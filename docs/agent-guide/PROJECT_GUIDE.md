@@ -29,23 +29,27 @@
   cmake --preset clang-release
   cmake --build --preset clang-release
 
+  # Win7/旧环境出现 0xC000001D 时的同配置无 AVX2 发布版
+  cmake --preset clang-release-noavx2
+  cmake --build --preset clang-release-noavx2
+
   # 仅在主人特殊要求快速迭代、PDB 或无 LTO 时使用
   cmake --preset clang-playtest
   cmake --build --preset clang-playtest
   ```
 
-  三个预设各司其职：`clang-release` 是编译、逻辑验证、AutoTest、F5 与正式发布的默认预设（`/O2`、AVX2、fast-math、LTO、无 PDB）；`clang-playtest` 只在主人特殊要求快速迭代、PDB 或无 LTO 时使用；`msvc-debug` 只在主人特殊要求或确实需要 Debug CRT/断点语义时使用。两个 Clang 预设都会报告 `-Wnonportable-include-path`、`-Wreorder-ctor`、`-Wunused-*`、`-Wswitch` 等诊断，并应保持零警告。
+  四个预设各司其职：`clang-release` 是编译、逻辑验证、AutoTest、F5 与正式发布的默认预设（`/O2`、AVX2、fast-math、LTO、无 PDB）；`clang-release-noavx2` 只为 Win7/旧环境的 `0xC000001D` 非法指令提供同配置发布版，除关闭 `PVZ_ENABLE_AVX2` 外保持 `/O2`、fast-math、LTO、静态运行时和无 PDB；`clang-playtest` 只在主人特殊要求快速迭代、PDB 或无 LTO 时使用；`msvc-debug` 只在主人特殊要求或确实需要 Debug CRT/断点语义时使用。三个 Clang 预设都会报告 `-Wnonportable-include-path`、`-Wreorder-ctor`、`-Wunused-*`、`-Wswitch` 等诊断，并应保持零警告。
 
 - **Release 崩溃取证：** `clang-release` 的 Fatal Error / Access Violation 先保留 `crash_report_*.txt`、现场资源 WARN、触发脚本和崩溃阶段，不凭异常地址猜源码。确需函数栈时才构建 `clang-playtest`，用同一最小 AutoTest 在可见桌面复现，并确保 EXE/PDB 来自同一次构建。新动画对象若在构造或首帧崩溃，先查 reanim 注册、动画类型映射和轨道资源；不要在 `Zombie`/`AnimatedObject` 基类添加宽泛空 Animator 早退，这通常只会把崩溃推迟到 `Start()`/`SetupZombie()` 并掩盖强制资源缺失。修复后回到 `clang-release` 重建并重跑原失败脚本及父类回归。
 
-- **运行：** 可执行文件位于 `build\<preset>\PlantsVsZombies.exe`。`build\clang-release\resources` 与同级 `font` 是唯一实体目录；`clang-playtest`、`msvc-debug` 在首次配置时只创建 NTFS 目录联接，不复制资源。Shader、存档与 AutoTest 输出仍由各预设独立持有。运行游戏或 AutoTest 时，**必须以 exe 所在的 `build\<preset>\` 本身作为工作目录**：`Push-Location build\clang-release; .\PlantsVsZombies.exe -AutoTest <absolute-path>.json`。（⚠️ 根目录的 `x64\Release` 是陈旧产物，**禁止使用**。）
+- **运行：** 可执行文件位于 `build\<preset>\PlantsVsZombies.exe`。`build\clang-release\resources` 与同级 `font` 是唯一实体目录；`clang-release-noavx2`、`clang-playtest`、`msvc-debug` 在首次配置时只创建 NTFS 目录联接，不复制资源。Shader、存档与 AutoTest 输出仍由各预设独立持有。运行游戏或 AutoTest 时，**必须以 exe 所在的 `build\<preset>\` 本身作为工作目录**：`Push-Location build\clang-release; .\PlantsVsZombies.exe -AutoTest <absolute-path>.json`。（⚠️ 根目录的 `x64\Release` 是陈旧产物，**禁止使用**。）
 - **在 VS 中开发：** 用 Visual Studio 的“打开文件夹”打开项目根目录，VS 会自动识别 CMakePresets。根目录 `launch.vs.json` 已包含 F5 调试配置、工作目录和 `-Debug` 变体。
 - **调试模式：** 使用 `-Debug` 参数运行可显示碰撞框。
 - **源文件管理：** `GLOB_RECURSE CONFIGURE_DEPENDS` 会自动收集源文件，新增 `.cpp` 无需修改构建文件；不参与编译的文件放入 `CMakeLists.txt` 的 `REMOVE_ITEM` 列表（当前为 `Reanimation/AttachmentSystem.cpp`）。
 
-依赖：SDL2、SDL2_image、SDL2_ttf、SDL2_mixer、Vulkan 1.2、Volk、glm、nlohmann/json、pugixml、YY-Thunks。Vulkan运行时入口由 SDL2 选定 loader 后交给 Volk动态加载；Vulkan SDK继续提供头文件、VMA 与 `glslc`，但 EXE 不直接链接 `vulkan-1.dll`。最低设备能力仍包含 `VK_KHR_swapchain`、Vulkan 1.2 bindless descriptor indexing 所需 feature，以及至少 8192 个 update-after-bind combined image sampler；CPU 仍硬要求 x64 + AVX2。
+依赖：SDL2、SDL2_image、SDL2_ttf、SDL2_mixer、Vulkan 1.2、Volk、glm、nlohmann/json、pugixml、YY-Thunks。Vulkan运行时入口由 SDL2 选定 loader 后交给 Volk动态加载；Vulkan SDK继续提供头文件、VMA 与 `glslc`，但 EXE 不直接链接 `vulkan-1.dll`。最低设备能力仍包含 `VK_KHR_swapchain`、Vulkan 1.2 bindless descriptor indexing 所需 feature，以及至少 8192 个 update-after-bind combined image sampler。默认 `clang-release` 要求 x64 + AVX2；`clang-release-noavx2` 的项目源码回到 x64 基线指令集，只用于排除 CPU/系统 XState 状态造成的 `0xC000001D`，不会降低 GPU 要求。
 
-Windows 发布产物以 Windows 7 SP1 x64（PE subsystem 6.01）为最低系统。项目内 `yy-thunks` overlay port 固定官方 v1.2.2 的 Lib 与 Objs 资产：Clang/LLD 把 Win7 替代 import libraries 放在 WinSDK 前，MSVC `link.exe` 直接链接官方 `YY_Thunks_for_Win7.obj`；例如 `CopyFile2`、`CreateFile2`、`GetSystemTimePreciseAsFileTime` 等新 API 会运行时探测并在 Win7 走回退。每个 Windows 可执行目标链接后，`cmake/assert_win7_imports.ps1` 都会用 `llvm-readobj` 将直接 PE imports 与随包 Win7 x64 导出表逐项核对；新增依赖若引入 Win7 不存在且 YY-Thunks 未接管的入口，构建必须失败，禁止靠放宽白名单掩盖。此兼容层只解决系统 API 装载门槛，不降低 x64 + AVX2、Vulkan 1.2 和 bindless 设备能力要求。
+Windows 发布产物以 Windows 7 SP1 x64（PE subsystem 6.01）为最低系统。项目内 `yy-thunks` overlay port 固定官方 v1.2.2 的 Lib 与 Objs 资产：Clang/LLD 把 Win7 替代 import libraries 放在 WinSDK 前，MSVC `link.exe` 直接链接官方 `YY_Thunks_for_Win7.obj`；例如 `CopyFile2`、`CreateFile2`、`GetSystemTimePreciseAsFileTime` 等新 API 会运行时探测并在 Win7 走回退。每个 Windows 可执行目标链接后，`cmake/assert_win7_imports.ps1` 都会用 `llvm-readobj` 将直接 PE imports 与随包 Win7 x64 导出表逐项核对；新增依赖若引入 Win7 不存在且 YY-Thunks 未接管的入口，构建必须失败，禁止靠放宽白名单掩盖。此兼容层只解决系统 API 装载门槛；CPU 指令集由构建预设独立决定，GPU 的 Vulkan 1.2 与 bindless 设备能力要求不会因此降低。
 
 Vulkan 运行时把 dynamic rendering 与 synchronization2 **分别**选路：Vulkan 1.3 优先核心入口；1.2 驱动若提供 `VK_KHR_dynamic_rendering` / `VK_KHR_synchronization2` 就使用对应 KHR 入口；缺少任一扩展时分别回退到传统 RenderPass / `vkCmdPipelineBarrier` + `vkQueueSubmit`，不会因为只缺其中一个而放弃另一个快路径。兼容矩阵开关为 `-Vulkan12`（把协商限制到 1.2）、`-VulkanLegacyRendering`、`-VulkanLegacySync`，`-Vulkan12Fallback` 等价于三者同时启用。它们只用于测试和故障诊断，正常启动保持 1.3 核心快路径。
 

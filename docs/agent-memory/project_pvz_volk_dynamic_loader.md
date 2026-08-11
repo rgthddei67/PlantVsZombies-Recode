@@ -26,7 +26,7 @@ Windows 7 玩家启动时在进入 `main()` 前收到“无法定位程序输入
 
 ## 版本边界与能力选路（2026-08-05 更新）
 
-运行时最低版本现为 Vulkan 1.2；instance 请求 `min(loader, 1.3)`，设备使用 instance 与物理设备共同支持的版本。CPU 的 x64 + AVX2 门槛没有降低。设备必须提供 `VK_KHR_swapchain`、项目现用的 Vulkan 1.2 bindless descriptor indexing features，并允许至少 8192 个 update-after-bind combined image samplers；不满足这些条件仍会在初始化阶段给出明确错误。
+运行时最低版本现为 Vulkan 1.2；instance 请求 `min(loader, 1.3)`，设备使用 instance 与物理设备共同支持的版本。默认 `clang-release` 的 CPU 门槛是 x64 + AVX2；Win7 非法指令回退版 `clang-release-noavx2` 只降低项目源码的指令集，不改变任何 Vulkan 能力要求。设备必须提供 `VK_KHR_swapchain`、项目现用的 Vulkan 1.2 bindless descriptor indexing features，并允许至少 8192 个 update-after-bind combined image samplers；不满足这些条件仍会在初始化阶段给出明确错误。
 
 dynamic rendering 与 synchronization2 独立选路，不能假定驱动同时提供二者：
 
@@ -40,6 +40,7 @@ dynamic rendering 与 synchronization2 独立选路，不能假定驱动同时�
 
 ## 当前验证证据
 
+- 2026-08-11 Win7 玩家用 `clang-release-noavx2` 已越过系统 API 与非法指令阶段，但 SDL 创建 Vulkan 窗口时，系统 loader 的首次 `vkEnumerateInstanceExtensionProperties(NULL, &count, NULL)` 返回 `VK_ERROR_OUT_OF_HOST_MEMORY (-1)`；程序尚未进入项目的 `VulkanContext`/Volk 能力选路。须先用同机 `vulkaninfo`、实际加载的 `vulkan-1.dll` 路径及驱动/隐式 layer 状态诊断，不能靠 `-Vulkan12Fallback` 绕过。
 - `cmake --preset clang-release` + `cmake --build --preset clang-release`：成功；增量复查 `ninja: no work to do`。
 - 当前桌面可见、只读加载 30,333,941 字节的 `level18_data.json`（约 20,000 僵尸）运行 `repro_vulkan_level18_pressure.json`；默认 1.3 核心路径与 Vulkan 1.2 的 KHR/KHR、RenderPass/KHR、KHR/传统同步、RenderPass/传统同步共五组均 exit 0、`script finished OK`，每组两张截图存在且非空。
 - 五组起始截图逐字节一致；8 秒高压碰撞/死亡/断肢/粒子阶段相对核心基线最多仅 20/660,000 像素不同，单通道最大差 12，肉眼截图一致。压力存档测试前后 SHA-256 均为 `D89B27258F5D821E62841C939AE76E321B45C688F372926BBBD14D10127A08F3`。

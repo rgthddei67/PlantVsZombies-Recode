@@ -7,11 +7,14 @@ metadata:
   originSessionId: 83b50c95-5f75-4a56-8bd0-5051666fb921
 ---
 
-**2026-07-31 当前构建契约（取代下方迁移初期的 preset/运行目录描述）：**
+**2026-08-11 当前构建契约（取代下方迁移初期的 preset/运行目录描述）：**
 - 主人改定 `clang-release` 为编译、逻辑验证、AutoTest、F5 与正式发布的默认预设：Clang `/O2` + AVX2 + fast-math + LTO，不生成 PDB。
+- `clang-release-noavx2` 是 Win7/旧环境发生 `0xC000001D` 时的独立发布预设；只把 `PVZ_ENABLE_AVX2` 关掉，仍保留 `/O2`、fast-math、LTO、静态运行时和无 PDB，不能取代默认预设。
+- 该开关约束游戏自己的编译单元，不保证最终静态 EXE 逐字节不含 AVX：libjpeg-turbo 等依赖仍可能内置由运行时能力检测保护的多套 SIMD 实现。验收应同时核对游戏 152 条编译命令无 `/arch:AVX2` 与目标 Win7 实机不再触发 `0xC000001D`，不能只对最终 EXE 搜指令助记符。
 - `clang-playtest` 只在主人特殊要求快速迭代、PDB 或无 LTO 时使用；`msvc-debug` 只在主人特殊要求或确实需要 Debug CRT/Debug 语义时使用。
-- `clang-playtest` 与 `msvc-debug` 的 `resources`/`font` 是指向 `build/clang-release/` 同名实体目录的 NTFS Junction；配置只创建一次联接，不复制资产。Shader、存档与 AutoTest 输出仍按 preset 隔离。
+- `clang-release-noavx2`、`clang-playtest` 与 `msvc-debug` 的 `resources`/`font` 是指向 `build/clang-release/` 同名实体目录的 NTFS Junction；配置只创建一次联接，不复制资产。Shader、存档与 AutoTest 输出仍按 preset 隔离。
 - Visual Studio `launch.vs.json` 使用 `${cmake.binaryDir}` 作为工作目录；所有运行仍从 exe 自己的 `build/<preset>/` 启动。
+- `find_package(Vulkan)` 可能优先命中 vcpkg `vulkan-headers`；VMA 头固定从 `$ENV{VULKAN_SDK}/Include/vma/vk_mem_alloc.h` 取得，不能再通过 `Vulkan_INCLUDE_DIR` 间接推导。
 
 2026-06-13 完成（4edb6c8 接入 → **a14a26c 统一**，主人主动要求"搞2套太乱"）：
 .sln/.vcxproj/.filters 已删，**CMake 是唯一构建系统**。

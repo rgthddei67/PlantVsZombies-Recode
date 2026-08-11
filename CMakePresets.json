@@ -50,7 +50,17 @@
       "inherits": "clang-base",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
-        "PVZ_ENABLE_LTO": "ON"
+        "PVZ_ENABLE_LTO": "ON",
+        "PVZ_ENABLE_AVX2": "ON"
+      }
+    },
+    {
+      "name": "clang-release-noavx2",
+      "displayName": "Clang Release No AVX2（Win7 兼容：/O2 + fast-math + LTO，无 PDB）",
+      "inherits": "clang-release",
+      "cacheVariables": {
+        "PVZ_ENABLE_AVX2": "OFF",
+        "PVZ_SHARED_RUNTIME_ROOT": "${sourceDir}/build/clang-release"
       }
     },
     {
@@ -60,6 +70,7 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "RelWithDebInfo",
         "PVZ_ENABLE_LTO": "OFF",
+        "PVZ_ENABLE_AVX2": "ON",
         "PVZ_SHARED_RUNTIME_ROOT": "${sourceDir}/build/clang-release"
       }
     }
@@ -67,6 +78,7 @@
   "buildPresets": [
     { "name": "msvc-debug", "configurePreset": "msvc-debug" },
     { "name": "clang-release", "configurePreset": "clang-release" },
+    { "name": "clang-release-noavx2", "configurePreset": "clang-release-noavx2" },
     { "name": "clang-playtest", "configurePreset": "clang-playtest" }
   ]
 }
