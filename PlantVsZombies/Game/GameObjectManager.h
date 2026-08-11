@@ -129,11 +129,19 @@ public:
 	void ResetAllLayers();
 
 	void AssignRenderOrder(GameObject* gameObject, RenderLayer layer);
+	/**
+	 * @brief 对象的行等排序键变化后，回收旧区间并在新键区间重新分配绘制号。
+	 * @param previousKey 变化前的排序键；当前键由 gameObject 重新读取。
+	 */
+	void RefreshRenderOrderForSortingKey(GameObject* gameObject, int previousKey);
 
 	// 回收渲染顺序
 	void RecycleRenderOrder(int renderOrder, RenderLayer layer, int key = -1);
 
 private:
+	// 只按对象当前 layer/key 分配新绘制号；调用方负责先回收旧号。
+	void AssignNewRenderOrder(GameObject* gameObject, RenderLayer layer);
+
 	// 获取图层内的下一个可用子顺序
 	int GetNextSubOrder(RenderLayer layer);
 

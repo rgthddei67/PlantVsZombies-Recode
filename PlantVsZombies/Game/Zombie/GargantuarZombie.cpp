@@ -404,7 +404,7 @@ void GargantuarZombie::Charred()
 {
 	if (mIsDead || !mBoard) return;
 	GameObjectManager::GetInstance().CreateGameObjectImmediate<GargantuarCharred>(
-		LAYER_GAME_ZOMBIE, mBoard, GetVisualPosition(), mHasImp);
+		LAYER_GAME_ZOMBIE, mBoard, GetVisualPosition(), mHasImp, mRow);
 	Die();
 }
 

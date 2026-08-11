@@ -360,7 +360,8 @@ void Zombie::ZombieItemUpdate() const
 void Zombie::Charred()
 {
 	GameObjectManager::GetInstance().CreateGameObjectImmediate<ZombieCharred>
-		(LAYER_GAME_ZOMBIE, ObjectType::OBJECT_ZOMBIE, mBoard, this->GetVisualPosition(), AnimationType::ANIM_ZOMBIE_CHARRED);
+		(LAYER_GAME_ZOMBIE, ObjectType::OBJECT_ZOMBIE, mBoard, this->GetVisualPosition(),
+			AnimationType::ANIM_ZOMBIE_CHARRED, mRow);
 	Die();
 }
 
@@ -811,8 +812,16 @@ bool Zombie::ChangeRowForGarlic()
 	const int destination = candidates[candidateCount == 1
 		? 0
 		: GameRandom::Range(0, candidateCount - 1)];
-	mRow = destination;
+	CommitRow(destination);
 	return true;
+}
+
+void Zombie::CommitRow(int row)
+{
+	const int previousRow = mRow;
+	mRow = row;
+	GameObjectManager::GetInstance().RefreshRenderOrderForSortingKey(
+		this, previousRow);
 }
 
 void Zombie::StartGarlicRedirect()

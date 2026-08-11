@@ -2,6 +2,7 @@
 
 #include "Board.h"
 #include "Cell.h"
+#include "GameObjectManager.h"
 #include "Plant/Plant.h"
 #include "../Graphics.h"
 #include "../ResourceKeys.h"
@@ -52,8 +53,11 @@ void Ladder::Draw(Graphics* g)
 
 void Ladder::MoveToGridCell(int row, int column)
 {
+	const int previousRow = mRow;
 	mRow = row;
 	mColumn = column;
+	GameObjectManager::GetInstance().RefreshRenderOrderForSortingKey(
+		this, previousRow);
 	SetName("Ladder_" + std::to_string(row) + "_" + std::to_string(column));
 	if (mTransform) mTransform->SetPosition(LadderDrawPosition(mBoard, row, column));
 }

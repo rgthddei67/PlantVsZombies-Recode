@@ -436,7 +436,7 @@ bool RoofMarshalZombie::BeginLaneSwitchTo(int destination)
 	if (oldTerrainY < 0.0f || newTerrainY < 0.0f) return false;
 
 	// 逻辑行与碰撞箱立即提交；独立视觉补偿从旧行高度平滑归零，遵守逻辑网格/美术偏移分离契约。
-	mRow = destination;
+	CommitRow(destination);
 	position.y = newTerrainY;
 	transform->SetPosition(position);
 	mLaneVisualOffsetY = oldTerrainY - newTerrainY;

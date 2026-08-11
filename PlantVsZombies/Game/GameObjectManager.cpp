@@ -5,6 +5,27 @@
 #include <cstdio>
 #include <unordered_set>
 
+namespace {
+	constexpr int kBattlefieldRowStride = SUBORDER_PER_KEY * 2;
+	constexpr int kBattlefieldOrderCapacity =
+		LAYER_GAME_BULLET - LAYER_GAME_PLANT;
+	constexpr int kBattlefieldMaximumRows =
+		kBattlefieldOrderCapacity / kBattlefieldRowStride;
+
+	// 植物与僵尸共用战场深度区间；同排植物在前、僵尸在后，下一排再整体覆盖上一排。
+	bool UsesBattlefieldRowDepth(RenderLayer layer, int key)
+	{
+		return key >= 0 && key < kBattlefieldMaximumRows
+			&& (layer == LAYER_GAME_PLANT || layer == LAYER_GAME_ZOMBIE);
+	}
+
+	int GetBattlefieldRowBandBase(RenderLayer layer, int key)
+	{
+		return LAYER_GAME_PLANT + key * kBattlefieldRowStride
+			+ (layer == LAYER_GAME_ZOMBIE ? SUBORDER_PER_KEY : 0);
+	}
+}
+
 GameObjectManager::GameObjectManager() {
 	ResetAllLayers();
 	int n = static_cast<int>(std::thread::hardware_concurrency());
@@ -366,7 +387,19 @@ void GameObjectManager::ResetAllLayers() {
 void GameObjectManager::AssignRenderOrder(GameObject* gameObject, RenderLayer layer) {
 	// 先回收旧的渲染顺序（需要知道旧的 key）
 	RecycleRenderOrder(gameObject->GetRenderOrder(), gameObject->GetLayer(), gameObject->GetSortingKey());
+	AssignNewRenderOrder(gameObject, layer);
+}
 
+void GameObjectManager::RefreshRenderOrderForSortingKey(
+	GameObject* gameObject, int previousKey)
+{
+	if (!gameObject || previousKey == gameObject->GetSortingKey()) return;
+	RecycleRenderOrder(gameObject->GetRenderOrder(), gameObject->GetLayer(), previousKey);
+	AssignNewRenderOrder(gameObject, gameObject->GetLayer());
+	mSortDirty = true;
+}
+
+void GameObjectManager::AssignNewRenderOrder(GameObject* gameObject, RenderLayer layer) {
 	int subOrder;
 	int key = gameObject->GetSortingKey();
 	if (key >= 0) {
@@ -376,10 +409,23 @@ void GameObjectManager::AssignRenderOrder(GameObject* gameObject, RenderLayer la
 		subOrder = GetNextSubOrder(layer);
 	}
 	int renderOrder = static_cast<int>(layer) + subOrder;
+	if (UsesBattlefieldRowDepth(layer, key)) {
+		const int localIndex = subOrder - key * SUBORDER_PER_KEY;
+		renderOrder = GetBattlefieldRowBandBase(layer, key) + localIndex;
+	}
 	gameObject->SetRenderOrder(renderOrder);
 }
 
 void GameObjectManager::RecycleRenderOrder(int renderOrder, RenderLayer layer, int key) {
+	if (UsesBattlefieldRowDepth(layer, key)) {
+		const int localIndex = renderOrder - GetBattlefieldRowBandBase(layer, key);
+		if (localIndex >= 0 && localIndex < SUBORDER_PER_KEY) {
+			mLayerKeyRecycledOrders[layer][key].insert(
+				key * SUBORDER_PER_KEY + localIndex);
+		}
+		return;
+	}
+
 	int subOrder = renderOrder - static_cast<int>(layer);
 	if (subOrder >= 0 && subOrder < 10000) {  // 范围Χ 0~9999
 		if (key >= 0) {

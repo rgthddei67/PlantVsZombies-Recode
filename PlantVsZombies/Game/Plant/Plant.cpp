@@ -406,8 +406,11 @@ void Plant::MoveToGridCell(int row, int column, float visualDuration)
 		? mBoard->GetCellCenterPosition(row, column)
 		: Vector(CELL_INITALIZE_POS_X + column * CELL_COLLIDER_SIZE_X + CELL_COLLIDER_SIZE_X / 2,
 			CELL_INITALIZE_POS_Y + row * CELL_COLLIDER_SIZE_Y + CELL_COLLIDER_SIZE_Y / 2);
+	const int previousRow = mRow;
 	mRow = row;
 	mColumn = column;
+	GameObjectManager::GetInstance().RefreshRenderOrderForSortingKey(
+		this, previousRow);
 	SetPosition(target);
 
 	mGridMoveVisualStart = currentVisualBase - target;

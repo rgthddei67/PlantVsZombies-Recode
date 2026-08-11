@@ -6,12 +6,13 @@
 /** 巨人专属化灰残影；是否显示背上的小鬼由死亡瞬间的持有状态冻结。 */
 class GargantuarCharred final : public AnimatedObject {
 public:
-	GargantuarCharred(Board* board, const Vector& position, bool showImp)
+	GargantuarCharred(Board* board, const Vector& position, bool showImp, int row)
 		: AnimatedObject(ObjectType::OBJECT_ZOMBIE, board, position,
 			AnimationType::ANIM_GARGANTUAR_CHARRED, ColliderType::BOX,
 			Vector::zero(), Vector::zero(), 1.0f, "GargantuarCharred", true)
 		, mShowImp(showImp)
 	{
+		SetSortingKey(row);
 	}
 
 	void Start() override

@@ -353,7 +353,7 @@ void ZamboniZombie::Charred()
 		GetVisualPosition() + Vector(0.0f, kCharredScaleAnchorOffsetY),
 		AnimationType::ANIM_ZAMBONI_CHARRED,
 		ColliderType::BOX, Vector::zero(), Vector::zero(), kCharredScale,
-		"ZamboniCharred", true);
+		"ZamboniCharred", true, mRow);
 	mSuppressDeathEffects = true;
 	Die();
 }

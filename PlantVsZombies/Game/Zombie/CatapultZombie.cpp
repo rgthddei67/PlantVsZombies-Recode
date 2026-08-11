@@ -405,7 +405,7 @@ void CatapultZombie::Charred()
 		LAYER_GAME_ZOMBIE, ObjectType::OBJECT_ZOMBIE, mBoard,
 		GetPosition() + mVisualOffset + Vector(kCharredFromVisualX, kCharredFromVisualY),
 		AnimationType::ANIM_CATAPULT_CHARRED, ColliderType::BOX,
-		Vector::zero(), Vector::zero(), 1.0f, "CatapultCharred", false);
+		Vector::zero(), Vector::zero(), 1.0f, "CatapultCharred", false, mRow);
 	mSuppressDeathEffects = true;
 	Die();
 }

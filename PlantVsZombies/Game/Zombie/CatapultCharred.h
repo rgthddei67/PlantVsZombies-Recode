@@ -8,7 +8,15 @@
  */
 class CatapultCharred final : public AnimatedObject {
 public:
-	using AnimatedObject::AnimatedObject;
+	CatapultCharred(ObjectType type, Board* board, const Vector& position,
+		AnimationType animType, const ColliderType& colliderType,
+		const Vector& colliderSize, const Vector& colliderOffset, float scale,
+		const std::string& tag, bool autoDestroy, int row)
+		: AnimatedObject(type, board, position, animType, colliderType,
+			colliderSize, colliderOffset, scale, tag, autoDestroy)
+	{
+		SetSortingKey(row);
+	}
 
 	void Start() override
 	{

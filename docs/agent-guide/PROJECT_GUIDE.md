@@ -163,6 +163,8 @@ Bullet（独立类型；通过 BulletPool 使用对象池）
 
 `Board` 拥有当前关卡的行数、首行 Y 与行高：普通草地为 5×100px，泳池背景为 6×85px（水路是 0-based 第 2/3 行）。位置、弹坑、子弹影子与小推车必须优先调 `GetCellCenterPosition` / `GetCellHeight`，不要再硬编 `CELL_INITALIZE_POS_Y + row*100`。`Cell` 当前分 `under/normal/pumpkin` 三层植物槽，战斗顶层优先级为 `pumpkin > normal > under`；正式放置入口是 `Board::CanPlantAt`，僵尸啃咬只选 `GetTopPlantAt`。跳跃阻拦另走 `GetJumpBlockingPlantAt` 按层询问能力，非阻拦南瓜不会遮蔽内层高坚果。铲子单独按格内可见区域选层：南瓜中空中心选 `normal`，外圈选 `pumpkin`，空壳整格仍选南瓜；命中区域必须按当前 Cell 宽高派生，悬停高亮与最终铲除结果共用同一目标。需要南瓜拦截的僵尸范围扣血统一走 `ApplyPumpkinProtectedZombieAreaDamage`：先按技能原几何找命中植物，再为每个命中层选择自身逻辑九宫格内最近的活动南瓜，稳定打破并列并按保护者 ID 归并为一次默认 5 倍外壳伤害；爆破工头显式使用 4 倍重载，无保护者仍逐层结算，南瓜之间不连锁，普通小丑直接清除不走此入口。新增层必须同步创建/读档创建、释放/清理、render order、台风整组搬运、外部范围伤害与 AutoTest 投影。
 
+战场主体绘制按行交错：`row N 植物 → row N 僵尸/扶梯 → row N+1 植物`，所以同排僵尸仍盖住植物，而下一行植物会正确遮住上一行越界伸下来的身体。`LAYER_GAME_PLANT` / `LAYER_GAME_ZOMBIE` 继续表示对象语义层，`GameObjectManager` 只在二者到 `LAYER_GAME_BULLET` 之间编排实际绘制号；小推车的 `LAYER_GAME_OBJECT` 和子弹层不变。任何运行期 `mRow` 变化必须通过排序键刷新入口重新分配绘制号，不能只改字段。
+
 ### 存档系统
 
 使用 nlohmann/json 进行 JSON 序列化（`GameInfoSaver`）。植物和僵尸通过 `SaveExtraData(json&)`、`LoadExtraData(const json&)` 保存和恢复自定义状态。`PlayerInfo.json` 保存全局状态，`level{N}_data.json` 保存各关卡状态。Windows 通过 `FOLDERID_SavedGames` 写入系统“保存的游戏”目录（默认 `%USERPROFILE%\Saved Games\PlantsVsZombies\saves`）；Android 仍使用 `SDL_GetPrefPath`，Linux 暂沿用 `./saves/`。

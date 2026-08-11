@@ -6,11 +6,12 @@
 /** 小鬼专属化灰残影；资源没有片段标记，播放完整时间线并在第 34 帧回收。 */
 class ImpCharred final : public AnimatedObject {
 public:
-	ImpCharred(Board* board, const Vector& position)
+	ImpCharred(Board* board, const Vector& position, int row)
 		: AnimatedObject(ObjectType::OBJECT_ZOMBIE, board, position,
 			AnimationType::ANIM_IMP_CHARRED, ColliderType::BOX,
 			Vector::zero(), Vector::zero(), 1.0f, "ImpCharred", true)
 	{
+		SetSortingKey(row);
 	}
 
 	void Start() override

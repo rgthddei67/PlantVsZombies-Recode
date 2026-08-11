@@ -74,7 +74,8 @@ namespace {
 	class DiggerOneShotVisual final : public AnimatedObject {
 	public:
 		DiggerOneShotVisual(Board* board, const Vector& position, AnimationType animType,
-			std::string track, float clipSpeed, bool flip = false, int removalFrame = -1)
+			std::string track, float clipSpeed, bool flip = false, int removalFrame = -1,
+			int row = -1)
 			: AnimatedObject(ObjectType::OBJECT_PARTICLE, board, position, animType,
 				ColliderType::BOX, Vector::zero(), Vector::zero(), 1.0f,
 				"DiggerOneShotVisual", true)
@@ -83,6 +84,7 @@ namespace {
 			, mFlip(flip)
 			, mRemovalFrame(removalFrame)
 		{
+			SetSortingKey(row);
 		}
 
 		/** 播放指定分层轨道，依靠 AnimatedObject 的非循环结束自动回收。 */
@@ -655,7 +657,8 @@ void DiggerZombie::Charred()
 		AnimationType::ANIM_DIGGER_CHARRED,
 		noAxeTrack ? "anim_crumble_noaxe" : "anim_crumble",
 		GameRandom::Range(0.9f, 1.1f), IsMovingRight(),
-		noAxeTrack ? kCharredRemovalFrameWithoutPickaxe : kCharredRemovalFrameWithPickaxe);
+		noAxeTrack ? kCharredRemovalFrameWithoutPickaxe : kCharredRemovalFrameWithPickaxe,
+		mRow);
 	Die();
 }
 

@@ -101,6 +101,9 @@ protected:
 	float mLadderAltitude = 0.0f;	// 相对地面的扶梯攀爬高度，单位：像素
 	int mUseLadderColumn = -1;	// 最近使用的扶梯列；防止落地后反复攀爬同一架梯
 
+	/** 提交新的逻辑行，并同步刷新植物/僵尸共用的逐行绘制深度。 */
+	void CommitRow(int row);
+
 private:
 	float mCheckPositionTimer = 0.0f;
 	float mSubHealthTimer = 0.0f;	

@@ -48,6 +48,7 @@ protected:
 	bool mDrawableSortDirty = false;
 	std::string mTag = "Untagged";
 	std::string mName = "GameObject";
+	int mSortingKey = -1; // 可选的行深度键；普通对象保持 -1，按行残影可在构造期继承来源行
 
 private:
 	void RegisterAllColliders();
@@ -155,7 +156,8 @@ public:
 	void ClearClipRect() { mHasClipRect = false; }
 	bool HasClipRect() const { return mHasClipRect; }
 	const ClipRect& GetClipRect() const { return mClipRect; }
-	virtual int GetSortingKey() const { return -1; }        // 获取排序顺序，实现不同row顺序不一样
+	virtual int GetSortingKey() const { return mSortingKey; } // 获取排序顺序，实现不同 row 顺序不一样
+	void SetSortingKey(int sortingKey) { mSortingKey = sortingKey; }
 
 	static RenderLayer GetLayerFromOrder(int renderOrder) {
 		if (renderOrder < LAYER_GAME_OBJECT) return LAYER_BACKGROUND;

@@ -23,6 +23,7 @@ description: Use when adding or tuning any PvZ zombie, or integrating zombies in
 - 网格位置与画面偏移继续分离；屋顶出生、读档重建、出土裁剪及任意当前点地面线必须使用 `GetZombieCollisionY/GetZombieSpawnY(row, worldX)`。水平移动仍由品种的 `ZombieMove` 决定，基类在阵风后和 `ZombieMove` 后统一把 Transform Y 收敛到坡面，普通、飞行、地下品种不得各自维护 Y 公式。
 - 验证先执行同步 `screenshot`，再用 `animatedObjectsByTag.Zombie` 的 `renderProbeReady/worldBounds/visualToRenderCenterD*Int/nearestZombie` 验证本项目最终绘制几何相对自身 collider、同排植物或攻击目标的关系；每阶段只保留一个目标僵尸以稳定数组索引。
 - 修改出生 offset、受伤偏移、附件、翻转或整身变换时，默认实例化与 `-NoInstance` 各跑同一静止用例并比较整数 `worldBounds`；运动对象瞬时绝对 X/Y 只供诊断，不作稳定断言。
+- 战场主体按 `row N 植物 → row N 僵尸/扶梯 → row N+1 植物` 交错绘制；同排僵尸仍在植物之上，下一行植物遮挡上一行越界身体。大蒜改道、蹦极选格、首领换行等运行期 `mRow` 提交必须走基类行提交/排序键刷新入口，不能只改字段；小推车与子弹层保持原顺序。专项同时断言语义 `renderLayer` 未变、实际 `renderOrder` 行带正确，并以默认/`-NoInstance` 屋顶跨行截图验收。
 
 ## 第 0 步：勘察（动手前全部做完）
 

@@ -96,7 +96,7 @@ void BungeeZombie::ZombieUpdate(float scaledTime)
 	const Vector center = mBoard->GetCellCenterPosition(mTargetRow, mTargetColumn);
 	SetPosition(Vector(center.x,
 		mBoard->GetZombieSpawnY(mTargetRow, center.x)));
-	mRow = mTargetRow;
+	CommitRow(mTargetRow);
 
 	switch (mPhase) {
 	case Phase::DIVING:
@@ -212,7 +212,7 @@ void BungeeZombie::ApplySelectedCell(const CellCandidate& candidate)
 	mTargetRow = candidate.row;
 	mTargetColumn = candidate.column;
 	mTargetPlantID = candidate.plantID;
-	mRow = candidate.row;
+	CommitRow(candidate.row);
 	mTargetInitialized = true;
 	mAltitude = kInitialAltitudeBase
 		+ GameRandom::Range(0.0f, kInitialAltitudeJitter);

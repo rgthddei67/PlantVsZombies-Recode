@@ -17,6 +17,7 @@
 - [植物立即死亡的可见生命周期](project_pvz_plant_die_visibility.md) — 2026-08-04 `Plant::Die()` 在延迟销毁前立即失活，避免 `StopAnimation()` 重置轨道后仍被当帧绘制；咖啡豆、倭瓜等瞬时消耗植物不再闪回起始姿态；`clang-release` 编译通过，按主人要求未跑 AutoTest、待亲自目验
 - [经典海蘑菇](project_pvz_seashroom.md) — 2026-07-29 `PLANT_SEASHROOM`：0 阳光、10 秒冷却，只能直接种在空水格且占 normal 层；复用小喷菇 1.5 秒间隔/300px 短程孢子，第 33 帧发射，无陆地阴影并随水面浮动；白天睡眠与双绘制路径可见专项通过
 - [最终绘制坐标语义取证](project_pvz_render_coordinate_evidence.md) — 2026-07-27 AutoTest 从当前项目实际渲染路径导出植物/僵尸/动画特效的 Animator 世界包围盒，以及粒子最终矩形；断言使用相对视觉原点、发射点和最近实体 collider 的整数投影，默认实例化与 `-NoInstance` 可做同用例一致性核对，C# 800×600 绝对坐标只作行为语义参考
+- [植物与僵尸逐行绘制深度](project_pvz_row_depth_render_order.md) — 2026-08-11 战场主体改为 `row N 植物→row N 僵尸/扶梯→row N+1 植物`，同排僵尸仍在上且下一行可遮挡上一行越界身体；小推车/子弹语义层不变，动态换行刷新绘制号，默认/NoInstance 屋顶专项通过
 - [仙人掌与帧伤尖刺](project_pvz_cactus_frame_damage.md) — 2026-07-30 `PLANT_CACTUS` 已接入空/地分层索敌：地面第26帧、高姿态第70帧发射 `BULLET_SPIKE`，空中目标优先驱动伸长；弹丸命中层随对象池复位和存档；既有地面首发节奏、逐逻辑帧3伤、持门降至1、跨倍速等伤与四目标穿透均经可见回归
 - [经典三叶草](project_pvz_blover.md) — 2026-07-30 `PLANT_BLOVER`：100 阳光、10 秒冷却，第44帧按卡槽右键方向结算；卡图独立×0.9；气球朝屋后以600px/s累计滑行400px，朝前线滑出屏幕后死亡；台风中同步改持续风和活动阵风，不驱散迷雾；连续版本已编译、主人亲测待完成
 - [经典杨桃与五向星弹](project_pvz_starfruit.md) — 2026-07-31 `PLANT_STARFRUIT`：125 阳光、7.5 秒冷却，第27帧同帧发出左/上/下/右上/右下五颗20伤星弹；复刻 C# 跨行预测索敌、随机自旋、动态行碰撞、对象池与存档，命中用 `StarSplat`；原版杨桃不画通用植物影子；`clang-release` 默认/NoInstance 可见专项均通过

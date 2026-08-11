@@ -7,7 +7,23 @@
 
 class ZombieCharred : public AnimatedObject {
 public:
-	using AnimatedObject::AnimatedObject;
+	ZombieCharred(ObjectType type, Board* board, const Vector& position,
+		AnimationType animType, int row)
+		: AnimatedObject(type, board, position, animType, ColliderType::BOX,
+			Vector::zero(), Vector::zero(), 1.0f, "ZombieCharred", true)
+	{
+		SetSortingKey(row);
+	}
+
+	ZombieCharred(ObjectType type, Board* board, const Vector& position,
+		AnimationType animType, const ColliderType& colliderType,
+		const Vector& colliderSize, const Vector& colliderOffset, float scale,
+		const std::string& tag, bool autoDestroy, int row)
+		: AnimatedObject(type, board, position, animType, colliderType,
+			colliderSize, colliderOffset, scale, tag, autoDestroy)
+	{
+		SetSortingKey(row);
+	}
 
 	void Start() override
 	{

@@ -224,7 +224,7 @@ void ImpZombie::Charred()
 {
 	if (mIsDead || !mBoard) return;
 	GameObjectManager::GetInstance().CreateGameObjectImmediate<ImpCharred>(
-		LAYER_GAME_ZOMBIE, mBoard, GetVisualPosition());
+		LAYER_GAME_ZOMBIE, mBoard, GetVisualPosition(), mRow);
 	Die();
 }
 

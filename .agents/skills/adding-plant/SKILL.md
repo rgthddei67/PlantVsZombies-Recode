@@ -17,6 +17,7 @@ description: Use when adding ANY new plant (新增植物) to PvZ — 射手/生�
 - 发射点、范围边界和附加 Animator 基点优先表达成“相对稳定视觉原点/父轨基准姿态”的差值，不把 C# 的世界坐标塞进局部偏移。
 - AutoTest 先执行同步 `screenshot`，再用 `animatedObjectsByTag.Plant` 的 `renderProbeReady/worldBounds/visualToRenderCenterD*Int/nearestPlant` 验证本项目最终绘制几何相对格子与植物 collider 的关系；每阶段只保留一株目标植物以稳定数组索引。
 - 修改 gamedata offset、附件、整株变换或 `SetRenderScale` 时，默认实例化与 `-NoInstance` 各跑同一静止用例并比较整数 `worldBounds`；截图负责肉眼基线，运动对象瞬时绝对 X/Y 只供诊断、不作稳定断言。
+- 战场主体按 `row N 植物 → row N 僵尸/扶梯 → row N+1 植物` 交错绘制；同排僵尸仍在植物之上，下一行植物遮挡上一行越界身体。植物运行期换行/搬格若改变 `mRow`，必须同步调用 `GameObjectManager` 的排序键刷新入口；小推车与子弹层不得顺带改动。专项同时断言语义 `renderLayer` 未变、实际 `renderOrder` 行带正确，并以默认/`-NoInstance` 屋顶跨行截图验收。
 
 ## 第 0 步：勘察（动手前全部做完）
 
