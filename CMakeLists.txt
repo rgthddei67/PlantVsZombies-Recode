@@ -256,7 +256,9 @@ add_dependencies(PlantsVsZombies CompileShaders)
 add_custom_command(TARGET PlantsVsZombies POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different
             ${SRC_DIR}/Shader/spv $<TARGET_FILE_DIR:PlantsVsZombies>/Shader/spv
-    COMMENT "Copying Shader spv to output directory"
+    COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different
+            ${SRC_DIR}/Shader/opengl $<TARGET_FILE_DIR:PlantsVsZombies>/Shader/opengl
+    COMMENT "Copying Vulkan SPIR-V and OpenGL GLSL shaders to output directory"
 )
 
 # ---- 生成资源清单 resources/manifest.txt（取代运行时 std::filesystem 目录枚举）----

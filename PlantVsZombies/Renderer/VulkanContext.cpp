@@ -17,7 +17,9 @@ namespace pvz {
     do {                                                                    \
         VkResult _r = (expr);                                               \
         if (_r != VK_SUCCESS) {                                             \
-            LOG_ERROR("VulkanContext") << #expr " failed (VkResult=" << (int)_r << ")"; \
+			mLastError = std::string(#expr) + " failed (VkResult="            \
+				+ std::to_string(static_cast<int>(_r)) + ")";                    \
+			LOG_ERROR("VulkanContext") << mLastError;                           \
             return false;                                                   \
         }                                                                   \
     } while (0)
@@ -114,6 +116,7 @@ namespace pvz {
 
 	bool VulkanContext::Initialize(SDL_Window* window, bool enableValidation, bool vsync,
 		bool forceVulkan12, bool forceLegacyRendering, bool forceLegacySynchronization) {
+		mLastError.clear();
 		mValidationEnabled = enableValidation;
 		mForceVulkan12 = forceVulkan12;
 		mForceLegacyRendering = forceLegacyRendering;
@@ -122,17 +125,22 @@ namespace pvz {
 
 		// 初始化失败也必须释放已创建到一半的 instance/device，并在 SDL 卸载 loader 前
 		// 清空 Volk 指针；集中走 Shutdown 可避免每个阶段各自维护回滚顺序。
-		if (!InitializeVulkanLoader() ||
-			!CreateInstance(window, enableValidation) ||
-			(enableValidation && !CreateDebugMessenger()) ||
-			!CreateSurface(window) ||
-			!PickPhysicalDevice() ||
-			!CreateLogicalDevice() ||
-			!CreateSwapchain(window, vsync) ||
-			!CreateAllocator()) {
+		auto runStage = [this](const char* stage, bool succeeded) {
+			if (succeeded) return true;
+			mLastError = std::string("stage=") + stage + " detail="
+				+ (mLastError.empty() ? "unknown failure" : mLastError);
+			LOG_ERROR("VulkanContext") << mLastError;
 			Shutdown();
 			return false;
-		}
+		};
+		if (!runStage("loader", InitializeVulkanLoader())) return false;
+		if (!runStage("instance", CreateInstance(window, enableValidation))) return false;
+		if (enableValidation && !runStage("debug-messenger", CreateDebugMessenger())) return false;
+		if (!runStage("surface", CreateSurface(window))) return false;
+		if (!runStage("physical-device", PickPhysicalDevice())) return false;
+		if (!runStage("logical-device", CreateLogicalDevice())) return false;
+		if (!runStage("swapchain", CreateSwapchain(window, vsync))) return false;
+		if (!runStage("allocator", CreateAllocator())) return false;
 
 		mInitialized = true;
 
@@ -152,14 +160,16 @@ namespace pvz {
 		auto getInstanceProcAddr = reinterpret_cast<PFN_vkGetInstanceProcAddr>(
 			SDL_Vulkan_GetVkGetInstanceProcAddr());
 		if (!getInstanceProcAddr) {
-			LOG_ERROR("VulkanContext") << "SDL 未能取得 vkGetInstanceProcAddr: " << SDL_GetError();
+			mLastError = std::string("SDL 未能取得 vkGetInstanceProcAddr: ") + SDL_GetError();
+			LOG_ERROR("VulkanContext") << mLastError;
 			return false;
 		}
 
 		volkInitializeCustom(getInstanceProcAddr);
 		mVolkInitialized = true;
 		if (!vkCreateInstance || !vkEnumerateInstanceExtensionProperties) {
-			LOG_ERROR("VulkanContext") << "Volk 未能加载 Vulkan 全局入口";
+			mLastError = "Volk 未能加载 Vulkan 全局入口";
+			LOG_ERROR("VulkanContext") << mLastError;
 			return false;
 		}
 
@@ -169,10 +179,11 @@ namespace pvz {
 			<< VK_VERSION_MINOR(mLoaderApiVersion) << "."
 			<< VK_VERSION_PATCH(mLoaderApiVersion);
 		if (mLoaderApiVersion < VK_API_VERSION_1_2) {
-			LOG_ERROR("VulkanContext") << "当前渲染路径至少要求 Vulkan loader 1.2；检测到 "
-				<< VK_VERSION_MAJOR(mLoaderApiVersion) << "."
-				<< VK_VERSION_MINOR(mLoaderApiVersion)
-				<< "。";
+			mLastError = "Vulkan loader version="
+				+ std::to_string(VK_VERSION_MAJOR(mLoaderApiVersion)) + "."
+				+ std::to_string(VK_VERSION_MINOR(mLoaderApiVersion))
+				+ " is below required 1.2";
+			LOG_ERROR("VulkanContext") << mLastError;
 			return false;
 		}
 		mInstanceApiVersion = std::min(mLoaderApiVersion,
@@ -191,12 +202,14 @@ namespace pvz {
 		// SDL 帮我们列出 surface 相关扩展（platform-specific）
 		uint32_t sdlExtCount = 0;
 		if (!SDL_Vulkan_GetInstanceExtensions(window, &sdlExtCount, nullptr)) {
-			LOG_ERROR("VulkanContext") << "SDL_Vulkan_GetInstanceExtensions(count) failed: " << SDL_GetError();
+			mLastError = std::string("SDL_Vulkan_GetInstanceExtensions(count) failed: ") + SDL_GetError();
+			LOG_ERROR("VulkanContext") << mLastError;
 			return false;
 		}
 		std::vector<const char*> extensions(sdlExtCount);
 		if (!SDL_Vulkan_GetInstanceExtensions(window, &sdlExtCount, extensions.data())) {
-			LOG_ERROR("VulkanContext") << "SDL_Vulkan_GetInstanceExtensions failed: " << SDL_GetError();
+			mLastError = std::string("SDL_Vulkan_GetInstanceExtensions failed: ") + SDL_GetError();
+			LOG_ERROR("VulkanContext") << mLastError;
 			return false;
 		}
 		if (enableValidation) {
@@ -232,7 +245,8 @@ namespace pvz {
 		auto fnCreate = (PFN_vkCreateDebugUtilsMessengerEXT)
 			vkGetInstanceProcAddr(mInstance, "vkCreateDebugUtilsMessengerEXT");
 		if (!fnCreate) {
-			LOG_ERROR("VulkanContext") << "vkCreateDebugUtilsMessengerEXT not found (VK_EXT_debug_utils not loaded?)";
+			mLastError = "vkCreateDebugUtilsMessengerEXT not found (VK_EXT_debug_utils not loaded?)";
+			LOG_ERROR("VulkanContext") << mLastError;
 			return false;
 		}
 
@@ -251,7 +265,8 @@ namespace pvz {
 
 	bool VulkanContext::CreateSurface(SDL_Window* window) {
 		if (!SDL_Vulkan_CreateSurface(window, mInstance, &mSurface)) {
-			LOG_ERROR("VulkanContext") << "SDL_Vulkan_CreateSurface failed: " << SDL_GetError();
+			mLastError = std::string("SDL_Vulkan_CreateSurface failed: ") + SDL_GetError();
+			LOG_ERROR("VulkanContext") << mLastError;
 			return false;
 		}
 		return true;
@@ -259,13 +274,14 @@ namespace pvz {
 
 	bool VulkanContext::PickPhysicalDevice() {
 		uint32_t count = 0;
-		vkEnumeratePhysicalDevices(mInstance, &count, nullptr);
+		VK_CHECK(vkEnumeratePhysicalDevices(mInstance, &count, nullptr));
 		if (count == 0) {
-			LOG_ERROR("VulkanContext") << "No Vulkan-capable GPU found.";
+			mLastError = "No Vulkan-capable GPU found";
+			LOG_ERROR("VulkanContext") << mLastError;
 			return false;
 		}
 		std::vector<VkPhysicalDevice> devices(count);
-		vkEnumeratePhysicalDevices(mInstance, &count, devices.data());
+		VK_CHECK(vkEnumeratePhysicalDevices(mInstance, &count, devices.data()));
 
 		struct Candidate {
 			VkPhysicalDevice device = VK_NULL_HANDLE;
@@ -403,8 +419,9 @@ namespace pvz {
 		}
 
 		if (!selected.device) {
-			LOG_ERROR("VulkanContext") << "No GPU meets requirements: Vulkan 1.2, swapchain, "
-				"and 8192-slot bindless descriptors.";
+			mLastError = "No GPU meets requirements: Vulkan 1.2, swapchain, "
+				"and 8192-slot bindless descriptors";
+			LOG_ERROR("VulkanContext") << mLastError;
 			return false;
 		}
 
@@ -495,7 +512,8 @@ namespace pvz {
 				(!vkCmdPipelineBarrier2 || !vkQueueSubmit2)) ||
 			(mSynchronizationPath == FeaturePath::KhrExtension &&
 				(!vkCmdPipelineBarrier2KHR || !vkQueueSubmit2KHR))) {
-			LOG_ERROR("VulkanContext") << "Selected Vulkan feature entry points are missing";
+			mLastError = "Selected Vulkan feature entry points are missing";
+			LOG_ERROR("VulkanContext") << mLastError;
 			return false;
 		}
 		vkGetDeviceQueue(mDevice, mGraphicsQueueFamily, 0, &mGraphicsQueue);
@@ -508,9 +526,14 @@ namespace pvz {
 
 		// 选 surface 格式：优先 B8G8R8A8_UNORM（线性，匹配现有 GL 行为，不做 sRGB 偏移）
 		uint32_t fcount = 0;
-		vkGetPhysicalDeviceSurfaceFormatsKHR(mPhysicalDevice, mSurface, &fcount, nullptr);
+		VK_CHECK(vkGetPhysicalDeviceSurfaceFormatsKHR(mPhysicalDevice, mSurface, &fcount, nullptr));
+		if (fcount == 0) {
+			mLastError = "Vulkan surface reports zero formats";
+			LOG_ERROR("VulkanContext") << mLastError;
+			return false;
+		}
 		std::vector<VkSurfaceFormatKHR> formats(fcount);
-		vkGetPhysicalDeviceSurfaceFormatsKHR(mPhysicalDevice, mSurface, &fcount, formats.data());
+		VK_CHECK(vkGetPhysicalDeviceSurfaceFormatsKHR(mPhysicalDevice, mSurface, &fcount, formats.data()));
 
 		VkSurfaceFormatKHR chosen = formats[0];
 		for (const auto& f : formats) {
@@ -573,9 +596,14 @@ namespace pvz {
 		VK_CHECK(vkCreateSwapchainKHR(mDevice, &sci, nullptr, &mSwapchain));
 
 		uint32_t actual = 0;
-		vkGetSwapchainImagesKHR(mDevice, mSwapchain, &actual, nullptr);
+		VK_CHECK(vkGetSwapchainImagesKHR(mDevice, mSwapchain, &actual, nullptr));
+		if (actual == 0) {
+			mLastError = "Vulkan swapchain reports zero images";
+			LOG_ERROR("VulkanContext") << mLastError;
+			return false;
+		}
 		mSwapchainImages.resize(actual);
-		vkGetSwapchainImagesKHR(mDevice, mSwapchain, &actual, mSwapchainImages.data());
+		VK_CHECK(vkGetSwapchainImagesKHR(mDevice, mSwapchain, &actual, mSwapchainImages.data()));
 
 		mSwapchainImageViews.resize(actual);
 		for (uint32_t i = 0; i < actual; ++i) {
@@ -623,7 +651,8 @@ namespace pvz {
 			mLegacyRenderPassFormat = mSwapchainFormat;
 		}
 		else if (mLegacyRenderPassFormat != mSwapchainFormat) {
-			LOG_ERROR("VulkanContext") << "Swapchain format changed while using legacy RenderPass";
+			mLastError = "Swapchain format changed while using legacy RenderPass";
+			LOG_ERROR("VulkanContext") << mLastError;
 			return false;
 		}
 

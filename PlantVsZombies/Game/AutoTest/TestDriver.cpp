@@ -3,6 +3,7 @@
 #include "../../GameInfoSaver.h"
 #include "../../Renderer/VulkanRenderer.h"
 #include "../../Renderer/VulkanContext.h"
+#include "../../Renderer/OpenGLRenderer.h"
 #include "../../DeltaTime.h"
 #include "../../Logger.h"
 #include "../../ResourceKeys.h"
@@ -539,6 +540,7 @@ bool TestDriver::LoadScript(const std::string& path) {
 	}
 
 	mActive = true;
+	WriteStatus("running");
 	Log("script loaded: " + path + " (" + std::to_string(mCommands.size()) + " commands)");
 	if (GameAPP::mAutoTestLoadSave)
 		Log("level save loading enabled (read-only): ./saves");
@@ -553,18 +555,33 @@ void TestDriver::Log(const std::string& msg) {
 	LOG_INFO("AutoTest") << msg;   // Release 编译期裁掉，run.log 才是权威记录
 }
 
+void TestDriver::WriteStatus(const char* status, const std::string& detail) {
+	nlohmann::json value = {
+		{ "status", status ? status : "unknown" },
+		{ "exitCode", mExitCode },
+		{ "frame", mFrame },
+		{ "commandIndex", mIndex },
+	};
+	if (!detail.empty()) value["detail"] = detail;
+	std::ofstream output(mOutDir + "/status.json", std::ios::trunc);
+	if (output) output << value.dump(2);
+}
+
 void TestDriver::Fail(const std::string& reason) {
 	const std::string op = (mIndex < mCommands.size())
 		? mCommands[mIndex].value("op", "?") : "?";
 	Log("FAIL at cmd#" + std::to_string(mIndex) + " (" + op + "): " + reason);
 	LOG_ERROR("AutoTest") << "FAIL at cmd#" << mIndex << " (" << op << "): " << reason;
 	mExitCode = 1;
+	WriteStatus("failed", reason);
 	mActive = false;
 	GameAPP::GetInstance().SetRunning(false);
 }
 
 void TestDriver::Finish() {
 	Log("script finished OK");
+	mExitCode = 0;
+	WriteStatus("passed");
 	mActive = false;
 	GameAPP::GetInstance().SetRunning(false);
 }
@@ -584,11 +601,33 @@ void TestDriver::Update() {
 	if (mFrame == 1) {
 		// 把实际能力路径写入权威 run.log；Release 构建不会保留普通 Logger 信息，
 		// 兼容矩阵仍需能证明每次运行确实走了目标分支。
-		if (auto* context = GameAPP::GetInstance().GetVulkanContext()) {
+		GameAPP& app = GameAPP::GetInstance();
+		Log(std::string("renderer requested=")
+			+ pvz::RendererPreferenceName(GameAPP::mRendererPreference)
+			+ " selected=" + pvz::RendererBackendName(app.GetSelectedRenderer())
+			+ " noInstance=" + (GameAPP::mDisableInstancePath ? "yes" : "no")
+			+ " testVulkanInitFailure=" + (GameAPP::mTestForceVulkanInitFailure ? "yes" : "no"));
+		Log(std::string("sdl video driver=")
+			+ (SDL_GetCurrentVideoDriver() ? SDL_GetCurrentVideoDriver() : "unknown"));
+		if (!app.GetVulkanStartupError().empty()) {
+			Log("vulkan fallback error=" + app.GetVulkanStartupError());
+		}
+		if (auto* context = app.GetVulkanContext()) {
 			Log("vulkan api=" + std::to_string(VK_VERSION_MAJOR(context->ApiVersion())) + "."
 				+ std::to_string(VK_VERSION_MINOR(context->ApiVersion()))
 				+ " dynamicRendering=" + context->DynamicRenderingPathName()
 				+ " synchronization=" + context->SynchronizationPathName());
+		}
+		else if (auto* renderer = app.GetOpenGLRenderer()) {
+			Log("opengl vendor=" + renderer->Vendor() + " renderer=" + renderer->RendererName()
+				+ " version=" + renderer->Version() + " glsl=" + renderer->ShadingLanguageVersion()
+				+ " framebuffer=" + std::to_string(renderer->DrawableWidth()) + "x"
+				+ std::to_string(renderer->DrawableHeight())
+				+ " vsync=" + (renderer->IsVsyncEnabled() ? "on" : "off"));
+#if defined(_WIN32)
+			Log(std::string("opengl vulkanLoaderLoaded=")
+				+ (GetModuleHandleW(L"vulkan-1.dll") ? "yes" : "no"));
+#endif
 		}
 	}
 	mBreakFrame = false;
@@ -667,6 +706,20 @@ bool TestDriver::ExecuteCurrent() {
 	}
 	if (op == "reset_test_state") {
 		ResetTestState();
+		return true;
+	}
+	if (op == "set_vsync") {
+		if (!GameAPP::GetInstance().ApplyVsync(cmd.value("value", false))) {
+			Fail("set_vsync: 后端拒绝 VSync 切换");
+			return false;
+		}
+		return true;
+	}
+	if (op == "set_fullscreen") {
+		if (!GameAPP::GetInstance().SetFullscreen(cmd.value("value", false))) {
+			Fail("set_fullscreen: SDL/后端切换失败");
+			return false;
+		}
 		return true;
 	}
 	if (op == "set_spawn_paused") {
@@ -1842,7 +1895,7 @@ bool TestDriver::ExecuteCurrent() {
 	}
 	if (op == "screenshot") {
 		const std::string name = cmd.value("name", "shot.png");
-		auto* renderer = GameAPP::GetInstance().GetVulkanRenderer();
+		auto* renderer = GameAPP::GetInstance().GetCaptureBackend();
 		if (!renderer) { Fail("screenshot: renderer 为空"); return false; }
 		if (mCaptureTicket == 0) {
 			mCaptureTicket = renderer->RequestCapture(mOutDir + "/" + name);
@@ -2561,7 +2614,9 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		static_cast<int>(out["poolBlockedZombieTypes"].size());
 	Graphics& graphics = gameApp.GetGraphics();
 	auto* vulkanContext = gameApp.GetVulkanContext();
+	auto* openGLRenderer = gameApp.GetOpenGLRenderer();
 	out["graphics"] = {
+		{ "renderer", pvz::RendererBackendName(gameApp.GetSelectedRenderer()) },
 		{ "lastFrameDrawCalls", graphics.GetLastFrameDrawCallCount() },
 		{ "lastFrameScissorChanges", graphics.GetLastFrameScissorChangeCount() },
 		{ "vulkanApiMajor", vulkanContext
@@ -2572,6 +2627,20 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			? vulkanContext->DynamicRenderingPathName() : "unavailable" },
 		{ "synchronizationPath", vulkanContext
 			? vulkanContext->SynchronizationPathName() : "unavailable" },
+		{ "openGLQuadCount", openGLRenderer
+			? openGLRenderer->LastFrameStats().quadCount : 0 },
+		{ "openGLBatchCount", openGLRenderer
+			? openGLRenderer->LastFrameStats().batchCount : 0 },
+		{ "openGLTextureFlushCount", openGLRenderer
+			? openGLRenderer->LastFrameStats().textureFlushCount : 0 },
+		{ "openGLStateFlushCount", openGLRenderer
+			? openGLRenderer->LastFrameStats().stateFlushCount : 0 },
+		{ "openGLPeakVboBytes", openGLRenderer
+			? openGLRenderer->LastFrameStats().peakVboBytes : 0 },
+		{ "openGLPeakIboBytes", openGLRenderer
+			? openGLRenderer->LastFrameStats().peakIboBytes : 0 },
+		{ "openGLFrameMilliseconds", openGLRenderer
+			? openGLRenderer->LastFrameStats().frameMilliseconds : 0.0 },
 	};
 	out["sun"] = board->mSun;
 	out["skySunCountdownMs"] =

@@ -1,0 +1,14 @@
+{
+  "commands": [
+    { "op": "wait_frames", "value": 10 },
+    { "op": "screenshot", "name": "main_menu.png" },
+    { "op": "goto_level", "level": 1 },
+    { "op": "choose_cards", "cards": ["PLANT_PEASHOOTER"] },
+    { "op": "wait_state", "state": "GAME", "timeout": 15 },
+    { "op": "set_spawn_paused", "value": true },
+    { "op": "assert_state", "path": "graphics.renderer", "equals": "opengl" },
+    { "op": "screenshot", "name": "gameplay.png" },
+    { "op": "dump_state", "name": "renderer_state.json" },
+    { "op": "quit" }
+  ]
+}

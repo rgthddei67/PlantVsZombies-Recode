@@ -7,6 +7,7 @@
 #include "./Renderer/VulkanTexturePool.h"
 #include "./Renderer/VulkanBuffer.h"
 #include "./Renderer/VulkanPipeline.h"
+#include "./Renderer/OpenGLRenderer.h"
 
 #include <cstring>
 #include <array>
@@ -208,19 +209,17 @@ Graphics::Graphics() {
 }
 
 Graphics::~Graphics() {
-	// Phase 3c：顺序很重要——文字缓存里的纹理需要 pool 还活着才能正确归还 bindless 槽，
-	// 所以先 Clear*TextCache，再 ShutdownVulkan 释放 pipeline / 缓冲 / matrix descriptor pool。
-	// 如果 GameApp 已经先调过 ShutdownVulkan，Clear* 会走 m_vk==null 的 else 分支，由 pool::Shutdown 兜底回收。
+	// 文字与白色纹理必须在对应 TextureBackend/Context 仍存活时归还。
 	ClearTextCache();
 	ClearPinnedTextCache();
+	ShutdownOpenGL();
 	ShutdownVulkan();
 	m_batchVertices.clear();
 	m_batchMatrices.clear();
 }
 
 bool Graphics::Initialize(int windowWidth, int windowHeight) {
-	// Phase 5 cleanup：所有 GL 资源 / 批处理上限都已删除。Vulkan 容量在 InitializeVulkan 里建立。
-	// 这里只剩窗口尺寸 + 投影矩阵的设置。
+	// 共享初始化只设置窗口尺寸与投影矩阵；GPU 资源由各后端初始化函数建立。
 	SetWindowSize(windowWidth, windowHeight);
 	return true;
 }
@@ -229,7 +228,7 @@ void Graphics::SetWindowSize(int width, int height) {
 	m_windowWidth = width;
 	m_windowHeight = height;
 	m_projection = glm::ortho(0.0f, (float)width, (float)height, 0.0f, -1.0f, 1.0f);
-	// Phase 3a：视口由 Vulkan dynamic state 处理，CPU 侧只更新投影矩阵。
+	// 实际视口由当前后端处理，CPU 侧只维护逻辑投影矩阵。
 }
 
 bool Graphics::IsWorldPointVisible(float worldX, float worldY, float marginPx) const {
@@ -255,6 +254,8 @@ bool Graphics::InitializeVulkan(pvz::VulkanContext* ctx,
 		LOG_WARN("Graphics") << "InitializeVulkan 已初始化";
 		return false;
 	}
+	m_backend = pvz::RendererBackend::Vulkan;
+	m_textureBackend = pool;
 
 	auto state = std::make_unique<VulkanGraphicsState>();
 	state->ctx = ctx;
@@ -487,6 +488,7 @@ bool Graphics::InitializeVulkan(pvz::VulkanContext* ctx,
 			return false;
 		}
 		m_whiteTexture = state->whiteTex->bindlessIndex;
+		m_whiteTextureHandle = state->whiteTex;
 	}
 
 	m_vk = std::move(state);
@@ -507,6 +509,8 @@ void Graphics::ShutdownVulkan() {
 	if (m_vk->whiteTex && m_vk->texPool) {
 		m_vk->texPool->DestroyTexture(m_vk->whiteTex);
 		m_vk->whiteTex = nullptr;
+		m_whiteTextureHandle = nullptr;
+		m_whiteTexture = 0;
 	}
 
 	m_vk->pipeBatchAlpha.reset();
@@ -534,6 +538,24 @@ void Graphics::ShutdownVulkan() {
 	m_vk->instanceSetLayout = VK_NULL_HANDLE;
 
 	m_vk.reset();
+	if (m_backend == pvz::RendererBackend::Vulkan) m_textureBackend = nullptr;
+}
+
+void Graphics::ShutdownOpenGL() {
+	if (!m_gl) return;
+	if (m_textureBackend && m_whiteTextureHandle) {
+		m_textureBackend->DestroyTexture(m_whiteTextureHandle);
+	}
+	m_whiteTextureHandle = nullptr;
+	m_whiteTexture = 0;
+	m_gl = nullptr;
+	m_textureBackend = nullptr;
+}
+
+pvz::CaptureBackend* Graphics::GetCaptureBackend() const {
+	if (m_gl) return m_gl;
+	if (m_vk) return m_vk->renderer;
+	return nullptr;
 }
 
 namespace {
@@ -576,6 +598,13 @@ namespace {
 } // namespace
 
 bool Graphics::BeginFrame() {
+	if (m_gl) {
+		m_frameDrawCallCount = 0;
+		m_frameScissorChangeCount = 0;
+		return m_gl->BeginFrame(m_clearR, m_clearG, m_clearB, m_clearA,
+			m_windowWidth, m_windowHeight, m_letterboxScale,
+			m_letterboxOffsetX, m_letterboxOffsetY);
+	}
 	if (!m_vk || !m_vk->renderer) return false;
 	if (m_vk->frameOpen) {
 		LOG_WARN("Graphics") << "BeginFrame 上一帧未 EndFrame";
@@ -635,6 +664,14 @@ bool Graphics::BeginFrame() {
 }
 
 bool Graphics::EndFrame() {
+	if (m_gl) {
+		FlushBatch();
+		FlushInstances();
+		const bool succeeded = m_gl->EndFrame();
+		m_lastFrameDrawCallCount = m_gl->LastFrameStats().drawCallCount;
+		m_lastFrameScissorChangeCount = 0;
+		return succeeded;
+	}
 	if (!m_vk || !m_vk->frameOpen) return false;
 	FlushBatch();
 	FlushInstances();
@@ -798,6 +835,10 @@ PackedClipRect Graphics::PackClipRect(const ClipRect& rect) const {
 		framebufferW = std::min(extent.width, 0xFFFFu);
 		framebufferH = std::min(extent.height, 0xFFFFu);
 	}
+	else if (m_gl) {
+		framebufferW = static_cast<uint32_t>(std::clamp(m_gl->DrawableWidth(), 0, 0xFFFF));
+		framebufferH = static_cast<uint32_t>(std::clamp(m_gl->DrawableHeight(), 0, 0xFFFF));
+	}
 
 	const int64_t rawRight = static_cast<int64_t>(x) + w;
 	const int64_t rawBottom = static_cast<int64_t>(y) + h;
@@ -856,9 +897,8 @@ PackedClipRect Graphics::CurrentPackedClipRect() const {
 }
 
 void Graphics::FlushBatch() {
-	// Phase 3b：把累积的 BatchVertex + glm::mat4 拷到当前帧的 host-visible VBO/SSBO，
-	// 按 BatchVertex.blendMode 字段分段，每段 issue 一个 vkCmdDraw。
-	// 没活动帧（未初始化、Begin 失败、析构期）时只清 CPU 缓冲。
+	// Vulkan 把累积顶点/矩阵拷入当前帧 mapped VBO/SSBO；OpenGL 先在 CPU
+	// 展开矩阵，再按原顺序的纹理/混合边界提交动态 VBO/IBO。没有活动帧时只清 CPU 缓冲。
 
 	const size_t vertCount = m_batchVertices.size();
 	const size_t matCount = m_batchMatrices.size();
@@ -867,6 +907,65 @@ void Graphics::FlushBatch() {
 		m_batchVertices.clear();
 		m_batchMatrices.clear();
 		};
+
+	if (m_gl) {
+		if (!m_gl->IsFrameOpen() || vertCount == 0) {
+			clearCpu();
+			return;
+		}
+
+		std::vector<pvz::OpenGLVertex> expanded;
+		expanded.reserve(vertCount);
+		for (const BatchVertex& source : m_batchVertices) {
+			const glm::mat4& matrix = source.matrixIndex < m_batchMatrices.size()
+				? m_batchMatrices[source.matrixIndex] : glm::mat4(1.0f);
+			const glm::vec4 transformed = matrix * glm::vec4(source.x, source.y, 0.0f, 1.0f);
+			pvz::OpenGLVertex vertex{};
+			vertex.x = transformed.x;
+			vertex.y = transformed.y;
+			vertex.u = source.u;
+			vertex.v = source.v;
+			vertex.r = source.r;
+			vertex.g = source.g;
+			vertex.b = source.b;
+			vertex.a = source.a;
+			vertex.clipLeft = static_cast<float>(source.clipMinXY & 0xFFFFu);
+			vertex.clipTop = static_cast<float>((source.clipMinXY >> 16) & 0xFFFFu);
+			vertex.clipRight = static_cast<float>(source.clipMaxXY & 0xFFFFu);
+			vertex.clipBottom = static_cast<float>((source.clipMaxXY >> 16) & 0xFFFFu);
+			expanded.push_back(vertex);
+		}
+
+		// 上层几何由三角形组成；只在三角形边界按纹理/Blend 分段，不跨命令重排。
+		const glm::mat4 projectionView = m_projection * m_viewMatrix;
+		std::size_t segmentStart = 0;
+		std::uint32_t segmentTexture = m_batchVertices[0].texIndex;
+		float segmentBlend = m_batchVertices[0].blendMode;
+		bool firstSegment = true;
+		auto submit = [&](std::size_t end) {
+			if (end <= segmentStart) return;
+			const bool textureBoundary = !firstSegment
+				&& segmentTexture != m_batchVertices[segmentStart - 1].texIndex;
+			const bool stateBoundary = !firstSegment
+				&& segmentBlend != m_batchVertices[segmentStart - 1].blendMode;
+			m_gl->SubmitBatch(segmentTexture, segmentBlend >= 0.5f,
+				expanded.data() + segmentStart, end - segmentStart,
+				projectionView, textureBoundary, stateBoundary);
+			firstSegment = false;
+		};
+		for (std::size_t i = 3; i + 2 < vertCount; i += 3) {
+			const BatchVertex& next = m_batchVertices[i];
+			if (next.texIndex != segmentTexture || next.blendMode != segmentBlend) {
+				submit(i);
+				segmentStart = i;
+				segmentTexture = next.texIndex;
+				segmentBlend = next.blendMode;
+			}
+		}
+		submit(vertCount - (vertCount % 3));
+		clearCpu();
+		return;
+	}
 
 	if (!m_vk || !m_vk->frameOpen || vertCount == 0) {
 		clearCpu();
@@ -1000,14 +1099,13 @@ void Graphics::FlushInstances() {
 }
 
 int Graphics::BindTexture(uint32_t textureID) {
-	// Phase 3b：textureID 现在就是 bindless 槽位索引（来自 VulkanTexturePool）。
-	// 没有 32 单元限制，也不需要"已注册纹理表"——直接返回 ID 让 shader 用它 index 进 bindless 数组。
+	// TextureBackend 已把 binding ID 编码为对应后端需要的值：Vulkan 为 bindless
+	// 槽位，OpenGL 为 texture name。Graphics 保留该值，由 FlushBatch 按后端解释。
 	return (int)textureID;
 }
 
 int Graphics::AddMatrix(const glm::mat4& matrix) {
-	// Phase 3b：SSBO 容量足以装下整帧的矩阵，因此不再因为阈值触发 mid-frame flush。
-	// 真正的 flush 边界由跨队列保序、容量、SetBlendMode / EndFrame 触发。
+	// 矩阵先保留在 CPU 列表中：Vulkan 提交到 SSBO，OpenGL 在 FlushBatch 时展开到顶点。
 	m_batchMatrices.push_back(matrix);
 	return (int)(m_batchMatrices.size() - 1);
 }
@@ -1033,6 +1131,13 @@ void Graphics::AddVertices(const BatchVertex* vertices, int count) {
 }
 
 void Graphics::CheckBatch() {
+	if (m_gl) {
+		// 兼容路径使用可增长 GPU buffer，但限制单次 CPU 暂存，避免极端场景形成超大拷贝。
+		if (m_batchVertices.size() + 6 >= std::max<std::size_t>(m_batchBufferCapacity, 65536)) {
+			FlushBatch();
+		}
+		return;
+	}
 	// Phase 3b（+3c 修复）：主动 flush 在还能把当前批 fit 进剩余空间时。
 	// 阈值要早于"已经填满"——因为 FlushBatch 是把整个 m_batchVertices append 到本帧 buffer，
 	// 一旦 m_batchVertices ≥ 剩余空间，flush 就会 drop（参见 FlushBatch 里的 overflow 报错）。
@@ -1061,7 +1166,7 @@ void Graphics::DrawTexture(const Texture* tex, float x, float y, float width, fl
 	}
 	if (tl_record) { RecordDrawTexture(*tl_record, tex, x, y, width, height, rotation, tint); return; }
 
-	int texIndex = BindTexture(tex->id);
+	int texIndex = BindTexture(tex->BindingId());
 
 	// 构建局部变换矩阵：平移 -> 缩放 -> 旋转（绕中心）
 	glm::mat4 local = glm::mat4(1.0f);
@@ -1128,7 +1233,7 @@ void Graphics::DrawTextureInstanced(const Texture* tex, float x, float y, float 
 	rec.v0 = tex->aV0;
 	rec.u1 = tex->aU1;
 	rec.v1 = tex->aV1;
-	rec.texSlot = bindTex->id;
+	rec.texSlot = bindTex->BindingId();
 
 	// InstanceRecord 使用 RGBA8；按现有字形实例路径四舍五入并钳制 0..255 颜色约定。
 	const auto pack8 = [](float value) {
@@ -1147,6 +1252,70 @@ void Graphics::DrawTextureInstanced(const Texture* tex, float x, float y, float 
 bool Graphics::DrawPoolEffect(const Texture* baseTex, const Texture* shadingTex,
 	const Texture* causticTex, float offsetX, float offsetY,
 	int poolCounter, bool isNight) {
+	if (m_gl) {
+		if (tl_record || !m_gl->IsFrameOpen()) return false;
+		const std::array<const Texture*, kPoolLayerCount> textures = {
+			baseTex, shadingTex, causticTex
+		};
+		for (const Texture* texture : textures) {
+			// Pool Shader 的 UV 是规则网格坐标；当前三张 GameImage 均保持独立纹理。
+			if (!texture || !texture->renderTexture || texture->atlasPage) return false;
+		}
+
+		FlushBatch();
+		FlushInstances();
+		const PackedClipRect clip = CurrentPackedClipRect();
+		const float clipLeft = static_cast<float>(clip.minXY & 0xFFFFu);
+		const float clipTop = static_cast<float>((clip.minXY >> 16) & 0xFFFFu);
+		const float clipRight = static_cast<float>(clip.maxXY & 0xFFFFu);
+		const float clipBottom = static_cast<float>((clip.maxXY >> 16) & 0xFFFFu);
+		constexpr int kIndexOffsetX[6] = { 0, 0, 1, 0, 1, 1 };
+		constexpr int kIndexOffsetY[6] = { 0, 1, 1, 0, 1, 0 };
+		std::array<pvz::OpenGLVertex, kPoolVerticesPerLayer> vertices{};
+		const glm::mat4 objectMatrix = m_transformStack.back();
+		const glm::mat4 projectionView = m_projection * m_viewMatrix;
+
+		for (int layer = 0; layer < kPoolLayerCount; ++layer) {
+			std::size_t vertexIndex = 0;
+			for (int x = 0; x < kPoolGridColumns; ++x) {
+				for (int y = 0; y < kPoolGridRows; ++y) {
+					for (int i = 0; i < 6; ++i) {
+						const int gridX = x + kIndexOffsetX[i];
+						const int gridY = y + kIndexOffsetY[i];
+						const bool caustic = layer == 2;
+						const float drawX = caustic
+							? (kPoolCausticWidth / kPoolGridColumns) * gridX + 45.0f + offsetX
+							: (kPoolBaseWidth / kPoolGridColumns) * gridX + 35.0f + offsetX;
+						const float drawY = caustic
+							? kPoolCausticCellHeight * gridY + 288.0f + offsetY
+							: (kPoolBaseHeight / kPoolGridRows) * gridY + 279.0f + offsetY;
+						float color = 1.0f;
+						if (caustic) {
+							if (gridX == 0 || gridX == kPoolGridColumns || gridY == 0) color = 32.0f / 255.0f;
+							else if (isNight) color = 48.0f / 255.0f;
+							else color = gridX <= 7 ? 192.0f / 255.0f : 128.0f / 255.0f;
+						}
+						const glm::vec4 transformed = objectMatrix * glm::vec4(drawX, drawY, 0.0f, 1.0f);
+						auto& vertex = vertices[vertexIndex++];
+						vertex.x = transformed.x;
+						vertex.y = transformed.y;
+						vertex.u = gridX / static_cast<float>(kPoolGridColumns);
+						vertex.v = gridY / static_cast<float>(kPoolGridRows);
+						vertex.r = vertex.g = vertex.b = vertex.a = color;
+						vertex.clipLeft = clipLeft;
+						vertex.clipTop = clipTop;
+						vertex.clipRight = clipRight;
+						vertex.clipBottom = clipBottom;
+					}
+				}
+			}
+			if (!m_gl->SubmitPoolLayer(textures[layer]->BindingId(), layer,
+				static_cast<float>(poolCounter), vertices.data(), vertices.size(), projectionView)) {
+				return false;
+			}
+		}
+		return true;
+	}
 	if (tl_record || !m_vk || !m_vk->frameOpen || !m_vk->pipePool) return false;
 
 	const std::array<const Texture*, kPoolLayerCount> textures = {
@@ -1154,7 +1323,7 @@ bool Graphics::DrawPoolEffect(const Texture* baseTex, const Texture* shadingTex,
 	};
 	for (const Texture* texture : textures) {
 		// PoolEffect 资源是独立 GameImage；若以后被收入图集，必须同时增加 UV region 支持。
-		if (!texture || !texture->vkTex || texture->atlasPage) return false;
+		if (!texture || !texture->renderTexture || texture->atlasPage) return false;
 	}
 
 	// 专用 draw 必须排在此前普通背景之后、随后游戏对象之前。
@@ -1231,7 +1400,7 @@ bool Graphics::DrawPoolEffect(const Texture* baseTex, const Texture* shadingTex,
 						drawY,
 						gridX / static_cast<float>(kPoolGridColumns),
 						gridY / static_cast<float>(kPoolGridRows),
-						textures[layer]->id,
+						textures[layer]->BindingId(),
 						matrixIndex,
 						color, color, color, color,
 						0.0f,
@@ -1275,6 +1444,39 @@ bool Graphics::DrawPoolEffect(const Texture* baseTex, const Texture* shadingTex,
 	return true;
 }
 
+bool Graphics::InitializeOpenGL(pvz::OpenGLRenderer* renderer,
+	pvz::TextureBackend* textureBackend) {
+	if (!renderer || !textureBackend
+		|| textureBackend->Backend() != pvz::RendererBackend::OpenGL) {
+		LOG_ERROR("Graphics") << "InitializeOpenGL 参数无效";
+		return false;
+	}
+	if (m_gl || m_vk) {
+		LOG_ERROR("Graphics") << "渲染后端已经初始化";
+		return false;
+	}
+	const uint8_t white[4] = { 255, 255, 255, 255 };
+	pvz::RenderTexture* whiteTexture = textureBackend->CreateTextureRGBA8(1, 1, white);
+	if (!whiteTexture) {
+		LOG_ERROR("Graphics") << "OpenGL 白色纹理上传失败";
+		return false;
+	}
+	m_gl = renderer;
+	m_textureBackend = textureBackend;
+	m_backend = pvz::RendererBackend::OpenGL;
+	m_whiteTextureHandle = whiteTexture;
+	m_whiteTexture = whiteTexture->bindingId;
+	m_useInstancePath = false;
+	// Vulkan worker 直接写 mapped buffer；兼容后端保持串行 CPU 展开，所有 GL API
+	// 只发生在持有 Context 的主线程，提交顺序与现有慢路径一致。
+	m_parallelDrawEnabled = false;
+	m_batchBufferCapacity = 65536;
+	m_batchVertices.reserve(m_batchBufferCapacity);
+	m_batchMatrices.reserve(m_batchBufferCapacity / 6);
+	LOG_WARN("Graphics") << "OpenGL 兼容路径启用: CPU vertex batch, GPU instancing=off, parallel record=off";
+	return true;
+}
+
 void Graphics::DrawTextureMatrix(const Texture* tex, const glm::mat4& transform,
 	float pivotX, float pivotY, const glm::vec4& tint, BlendMode blendMode) {
 	if (!tex) return;
@@ -1287,7 +1489,7 @@ void Graphics::DrawTextureMatrix(const Texture* tex, const glm::mat4& transform,
 		bindTex = tex->atlasPage;
 		u0 = tex->aU0; v0 = tex->aV0; u1 = tex->aU1; v1 = tex->aV1;
 	}
-	int texIndex = BindTexture(bindTex->id);
+	int texIndex = BindTexture(bindTex->BindingId());
 
 	glm::mat4 pivotTransform;
 	if (pivotX != 0.0f || pivotY != 0.0f) {
@@ -1393,7 +1595,7 @@ void Graphics::DrawTextureRegion(const Texture* tex,
 	float dstX, float dstY, float dstW, float dstH,
 	float rotation, const glm::vec4& tint)
 {
-	if (!tex || tex->id == 0) return;
+	if (!tex || tex->BindingId() == 0) return;
 	if (tl_record) { RecordDrawTextureRegion(*tl_record, tex, srcX, srcY, srcW, srcH, dstX, dstY, dstW, dstH, rotation, tint); return; }
 
 	// 计算归一化 UV 坐标
@@ -1412,7 +1614,7 @@ void Graphics::DrawTextureRegion(const Texture* tex,
 		local = glm::translate(local, glm::vec3(-0.5f, -0.5f, 0.0f));
 	}
 
-	int texIndex = BindTexture(tex->id);
+	int texIndex = BindTexture(tex->BindingId());
 	glm::mat4 finalMatrix = m_transformStack.back() * local;
 	int matrixIndex = AddMatrix(finalMatrix);
 
@@ -1493,7 +1695,7 @@ uint32_t Graphics::GetOrCreateTextTexture(const std::string& text, const std::st
 		it->second.second = m_textCacheOrder.begin();
 		outWidth = it->second.first.width;
 		outHeight = it->second.first.height;
-		return it->second.first.textureID;
+		return it->second.first.BindingId();
 	}
 
 	// 未命中：TTF 光栅化 + 格式转换 + GPU 上传（+ 满载时淘汰旧纹理）。这段是串行 replay 里
@@ -1502,7 +1704,7 @@ uint32_t Graphics::GetOrCreateTextTexture(const std::string& text, const std::st
 	PROFILE_SCOPE("7a.TextRaster_miss");
 
 	CachedText entry;
-	if (!RenderTextToVulkanTexture(text, fontKey, physSize, color, entry)) {
+	if (!RenderTextToBackendTexture(text, fontKey, physSize, color, entry)) {
 		return 0;
 	}
 	entry.superSample = superSample;
@@ -1514,9 +1716,8 @@ uint32_t Graphics::GetOrCreateTextTexture(const std::string& text, const std::st
 		const std::string& lruKey = m_textCacheOrder.back();
 		auto lruIt = m_textCache.find(lruKey);
 		if (lruIt != m_textCache.end()) {
-			// Phase 3c：回收 bindless 槽位（否则池会被反复创建-淘汰的文字撑爆）。
-			if (m_vk && m_vk->texPool && lruIt->second.first.vkTex) {
-				m_vk->texPool->DestroyTexture(lruIt->second.first.vkTex);
+			if (m_textureBackend && lruIt->second.first.texture) {
+				m_textureBackend->DestroyTexture(lruIt->second.first.texture);
 			}
 			m_textCache.erase(lruIt);
 		}
@@ -1526,22 +1727,21 @@ uint32_t Graphics::GetOrCreateTextTexture(const std::string& text, const std::st
 	// 插入新条目到链表头部
 	m_textCacheOrder.push_front(key);
 	m_textCache[key] = { entry, m_textCacheOrder.begin() };
-	return entry.textureID;
+	return entry.BindingId();
 }
 
-bool Graphics::RenderTextToVulkanTexture(const std::string& text, const std::string& fontKey,
+bool Graphics::RenderTextToBackendTexture(const std::string& text, const std::string& fontKey,
 	int fontSize, const glm::vec4& color, CachedText& out) {
-	// Phase 3c：TTF → SDL_Surface → ABGR8888 → VulkanTexturePool::CreateTextureRGBA8。
-	// 失败要让 out 保持空（textureID=0），上层会据此 early-return 不显示。
-	if (!m_vk || !m_vk->texPool) {
-		LOG_ERROR("Graphics") << "RenderTextToVulkanTexture: Vulkan 尚未初始化";
+	// TTF → SDL_Surface → ABGR8888 → 当前 TextureBackend；失败保持空句柄。
+	if (!m_textureBackend) {
+		LOG_ERROR("Graphics") << "RenderTextToBackendTexture: 纹理后端尚未初始化";
 		return false;
 	}
 	if (text.empty()) return false;
 
 	TTF_Font* font = ResourceManager::GetInstance().GetFont(fontKey, fontSize);
 	if (!font) {
-		LOG_WARN("Graphics") << "RenderTextToVulkanTexture: 找不到字体: " << fontKey
+		LOG_WARN("Graphics") << "RenderTextToBackendTexture: 找不到字体: " << fontKey
 			<< " size=" << fontSize;
 		return false;
 	}
@@ -1549,47 +1749,45 @@ bool Graphics::RenderTextToVulkanTexture(const std::string& text, const std::str
 	const SDL_Color sdlColor = ToSDLColor(color);
 	SDL_Surface* surface = TTF_RenderUTF8_Blended(font, text.c_str(), sdlColor);
 	if (!surface) {
-		LOG_ERROR("Graphics") << "RenderTextToVulkanTexture: TTF_RenderUTF8_Blended 失败: "
+		LOG_ERROR("Graphics") << "RenderTextToBackendTexture: TTF_RenderUTF8_Blended 失败: "
 			<< TTF_GetError();
 		return false;
 	}
 
-	// 统一到 ABGR8888，匹配 VulkanTexturePool 的 VK_FORMAT_R8G8B8A8_UNORM 输入约定。
+	// 小端 ABGR8888 内存布局即 RGBA 字节序，两个纹理后端共用该输入约定。
 	SDL_Surface* conv = SDL_ConvertSurfaceFormat(surface, SDL_PIXELFORMAT_ABGR8888, 0);
 	SDL_FreeSurface(surface);
 	if (!conv) {
-		LOG_ERROR("Graphics") << "RenderTextToVulkanTexture: SDL_ConvertSurfaceFormat 失败: "
+		LOG_ERROR("Graphics") << "RenderTextToBackendTexture: SDL_ConvertSurfaceFormat 失败: "
 			<< SDL_GetError();
 		return false;
 	}
 
-	pvz::VulkanTexture* vkt = m_vk->texPool->CreateTextureRGBA8(conv->w, conv->h, conv->pixels);
+	pvz::RenderTexture* uploaded = m_textureBackend->CreateTextureRGBA8(conv->w, conv->h, conv->pixels);
 	const int w = conv->w;
 	const int h = conv->h;
 	SDL_FreeSurface(conv);
-	if (!vkt) {
-		LOG_ERROR("Graphics") << "RenderTextToVulkanTexture: VulkanTexturePool 上传失败";
+	if (!uploaded) {
+		LOG_ERROR("Graphics") << "RenderTextToBackendTexture: 纹理上传失败";
 		return false;
 	}
 
-	out.textureID = vkt->bindlessIndex;
+	out.texture = uploaded;
 	out.width = w;
 	out.height = h;
-	out.vkTex = vkt;
 	return true;
 }
 
 void Graphics::BuildGlyphAtlas(const std::string& fontKey, int fontSize, GlyphAtlas& atlas) {
 	Profiler::Get().CountGlyphBuild();
 	atlas.glyphs.clear();
-	// 旧纹理先还给 pool（重建场景：新码点 / letterbox 变化）。
-	if (m_vk && m_vk->texPool && atlas.vkTex) {
-		m_vk->texPool->DestroyTexture(atlas.vkTex);
-		atlas.vkTex = nullptr;
+	// 旧纹理先还给当前后端（重建场景：新码点 / letterbox 变化）。
+	if (m_textureBackend && atlas.texture) {
+		m_textureBackend->DestroyTexture(atlas.texture);
+		atlas.texture = nullptr;
 	}
-	atlas.textureID = 0;
 
-	if (!m_vk || !m_vk->texPool || atlas.covered.empty()) return;
+	if (!m_textureBackend || atlas.covered.empty()) return;
 
 	float superSample;
 	const int physSize = ComputeTextRasterSize(fontSize, m_letterboxScale, superSample);
@@ -1675,15 +1873,14 @@ void Graphics::BuildGlyphAtlas(const std::string& fontKey, int fontSize, GlyphAt
 		if (p.surf) SDL_FreeSurface(p.surf);
 	}
 
-	pvz::VulkanTexture* vkt = m_vk->texPool->CreateTextureRGBA8(atlasW, atlasH, atlasSurf->pixels);
+	pvz::RenderTexture* uploaded = m_textureBackend->CreateTextureRGBA8(atlasW, atlasH, atlasSurf->pixels);
 	SDL_FreeSurface(atlasSurf);
-	if (!vkt) {
+	if (!uploaded) {
 		LOG_ERROR("Graphics") << "BuildGlyphAtlas: CreateTextureRGBA8 失败";
 		atlas.glyphs.clear();
 		return;
 	}
-	atlas.vkTex = vkt;
-	atlas.textureID = vkt->bindlessIndex;
+	atlas.texture = uploaded;
 	atlas.texW = atlasW;
 	atlas.texH = atlasH;
 	atlas.ascent = ascent;
@@ -1699,7 +1896,7 @@ GlyphAtlas& Graphics::GetOrBuildGlyphAtlas(const std::string& fontKey, int fontS
 	float ss;
 	const int curPhys = ComputeTextRasterSize(fontSize, m_letterboxScale, ss);
 	// physSize 变化（letterbox）或图集未建 → 需重建；有新码点 → 加入 covered 后重建。
-	bool needRebuild = (atlas.textureID == 0) || (atlas.physSize != curPhys);
+	bool needRebuild = (atlas.BindingId() == 0) || (atlas.physSize != curPhys);
 	for (uint32_t cp : needed)
 		if (atlas.covered.insert(cp).second) needRebuild = true;
 
@@ -1708,9 +1905,9 @@ GlyphAtlas& Graphics::GetOrBuildGlyphAtlas(const std::string& fontKey, int fontS
 }
 
 void Graphics::ClearGlyphAtlases() {
-	if (m_vk && m_vk->texPool) {
+	if (m_textureBackend) {
 		for (auto& kv : m_glyphAtlases)
-			if (kv.second.vkTex) m_vk->texPool->DestroyTexture(kv.second.vkTex);
+			if (kv.second.texture) m_textureBackend->DestroyTexture(kv.second.texture);
 	}
 	m_glyphAtlases.clear();
 }
@@ -1731,7 +1928,7 @@ CachedText Graphics::AcquireTextTexture(const std::string& text, const std::stri
 		return it->second;
 	}
 
-	// RenderTextToVulkanTexture 走 VulkanTexturePool 上传，且要写共享的
+	// RenderTextToBackendTexture 会上传 GPU 纹理且写共享的
 	// m_pinnedTextCache——两者都只能在主线程做。worker 线程
 	// （tl_record 非空，例如并行 Draw 录制阶段）上未命中时直接放弃本帧返回空
 	// 句柄，由主线程预热缓存后即稳定命中。缺少此守卫会在 worker 线程拿到无效/
@@ -1739,7 +1936,7 @@ CachedText Graphics::AcquireTextTexture(const std::string& text, const std::stri
 	if (tl_record) return {};
 
 	CachedText entry;
-	if (!RenderTextToVulkanTexture(text, fontKey, physSize, color, entry)) {
+	if (!RenderTextToBackendTexture(text, fontKey, physSize, color, entry)) {
 		return {};
 	}
 	entry.superSample = superSample;
@@ -1749,13 +1946,13 @@ CachedText Graphics::AcquireTextTexture(const std::string& text, const std::stri
 }
 
 void Graphics::DrawCachedText(const CachedText& handle, float x, float y, float scale) {
-	if (handle.textureID == 0) return;
+	if (handle.BindingId() == 0) return;
 	// 过期句柄（底层纹理已被 ClearPinnedTextCache 销毁）直接丢弃，避免读悬垂的 bindless 槽位。
 	// 消费者应在主线程经 IsCachedTextStale 重新获取；这里只做防御。
 	if (handle.generation != m_textGeneration) return;
 	if (tl_record) { RecordDrawCachedText(*tl_record, handle, x, y, scale); return; }
 
-	int texIndex = BindTexture(handle.textureID);
+	int texIndex = BindTexture(handle.BindingId());
 	glm::mat4 local = glm::mat4(1.0f);
 	local = glm::translate(local, glm::vec3(x, y, 0.0f));
 	// 超采样纹理：除回逻辑尺寸保证屏幕布局不变（handle.superSample=1 时等价）。
@@ -1777,10 +1974,9 @@ void Graphics::DrawCachedText(const CachedText& handle, float x, float y, float 
 }
 
 void Graphics::ClearPinnedTextCache() {
-	// Phase 3c：把每条 pinned 文字纹理还给 pool（要求 pool 仍存活——GameApp::Shutdown 顺序保证了）。
-	if (m_vk && m_vk->texPool) {
+	if (m_textureBackend) {
 		for (auto& kv : m_pinnedTextCache) {
-			if (kv.second.vkTex) m_vk->texPool->DestroyTexture(kv.second.vkTex);
+			if (kv.second.texture) m_textureBackend->DestroyTexture(kv.second.texture);
 		}
 	}
 	m_pinnedTextCache.clear();
@@ -1860,7 +2056,7 @@ void Graphics::DrawGlyphRun(const std::string& text, const std::string& fontKey,
 	// 3. 取/建图集（当帧把缺码点并入并重建 → 此后所有字形必在）。
 	PROFILE_SCOPE("7b0.glyph_body");
 	GlyphAtlas& atlas = GetOrBuildGlyphAtlas(fontKey, fontSize, cps);
-	if (atlas.textureID == 0) {  // 建失败 → fallback 整串 DrawText，保证不消失
+	if (atlas.BindingId() == 0) {  // 建失败 → fallback 整串 DrawText，保证不消失
 		Profiler::Get().CountGlyphFallback(true);
 		DrawText(text, fontKey, fontSize, color, x, y, scale);
 		return;
@@ -1879,7 +2075,7 @@ void Graphics::DrawGlyphRun(const std::string& text, const std::string& fontKey,
 
 	// 4. 逐字形拼 quad。度量是物理像素，× invSS 转逻辑尺寸。烘白 + 顶点色 tint（NormalizeColor）。
 	Profiler::Get().CountGlyphLine();
-	const int texIndex = BindTexture(atlas.textureID);
+	const int texIndex = BindTexture(atlas.BindingId());
 	const glm::vec4 nc = NormalizeColor(color);
 	const float invSS = scale / atlas.superSample;
 	const float ascent = (float)atlas.ascent;
@@ -1913,10 +2109,9 @@ void Graphics::DrawGlyphRun(const std::string& text, const std::string& fontKey,
 }
 
 void Graphics::ClearTextCache() {
-	// Phase 3c：把每条 LRU 文字纹理还给 pool。pool 不在了就直接 clear（构造/Shutdown 期都安全）。
-	if (m_vk && m_vk->texPool) {
+	if (m_textureBackend) {
 		for (auto& kv : m_textCache) {
-			if (kv.second.first.vkTex) m_vk->texPool->DestroyTexture(kv.second.first.vkTex);
+			if (kv.second.first.texture) m_textureBackend->DestroyTexture(kv.second.first.texture);
 		}
 	}
 	m_textCache.clear();
@@ -1989,7 +2184,7 @@ void Graphics::ResetCamera() {
 }
 
 void Graphics::RecomputeLetterbox() {
-	// 真实交换链尺寸。m_vk 未就绪（构造期/无 Vulkan）时退化为逻辑尺寸 → scale=1、offset=0。
+	// 使用当前后端的真实 framebuffer 尺寸；构造期退化为逻辑尺寸。
 	float realW = (float)m_windowWidth;
 	float realH = (float)m_windowHeight;
 	if (m_vk && m_vk->ctx) {
@@ -1997,6 +2192,16 @@ void Graphics::RecomputeLetterbox() {
 		if (ext.width > 0 && ext.height > 0) {
 			realW = (float)ext.width;
 			realH = (float)ext.height;
+		}
+	}
+	else if (m_gl) {
+		// BeginFrame 之前也可能发生全屏切换，不能沿用上一帧缓存的 drawable 尺寸。
+		m_gl->RefreshDrawableSize();
+		const int drawableWidth = m_gl->DrawableWidth();
+		const int drawableHeight = m_gl->DrawableHeight();
+		if (drawableWidth > 0 && drawableHeight > 0) {
+			realW = static_cast<float>(drawableWidth);
+			realH = static_cast<float>(drawableHeight);
 		}
 	}
 	const float prevScale = m_letterboxScale;
@@ -2215,8 +2420,7 @@ void Graphics::FillCircle(float cx, float cy, float radius, const glm::vec4& col
 //   1. tl_record 只在 worker 线程上非空，主线程上始终为 nullptr。
 //   2. 每个 slot 一份的 WorkerRecord / WorkerThreadState 由该 slot 绑定的 worker
 //      线程独占写入，无 lock 必要。
-//   3. Replay 在主线程串行执行；走的是和原来一样的 BindTexture / AddMatrix /
-//      AddVertices / CheckBatch / FlushBatch 路径，所以 GL 行为与原顺序提交一致。
+	//   3. Replay 在主线程串行执行；该 mapped-buffer 路径只由 Vulkan 启用。
 //   4. 顺序保证：ThreadPool 按 idx 把 [idx*chunk, idx*chunk+chunk) 分给 worker
 //      idx，slot 也取这个 idx。回放循环 slot = 0..N-1，slot 内按 cmd push 顺序
 //      重放，整体绝对顺序与原串行 Draw 等价。
@@ -2759,7 +2963,7 @@ void Graphics::RecordDrawTexture(WorkerRecord& r,
 
 	const glm::vec4 nt = NormalizeColor(tint);
 	const float bm = (tl_blend == BlendMode::Add) ? 1.0f : 0.0f;
-	EmitQuad(sl, 0.0f, 0.0f, 1.0f, 1.0f, (uint32_t)tex->id, matAbs, nt.r, nt.g, nt.b, nt.a, bm);
+	EmitQuad(sl, 0.0f, 0.0f, 1.0f, 1.0f, tex->BindingId(), matAbs, nt.r, nt.g, nt.b, nt.a, bm);
 }
 
 void Graphics::RecordDrawTextureMatrix(WorkerRecord& r,
@@ -2812,7 +3016,7 @@ void Graphics::RecordDrawTextureMatrix(WorkerRecord& r,
 	const glm::vec4 nt = NormalizeColor(tint);
 	const BlendMode actualMode = (blendMode == BlendMode::None) ? tl_blend : blendMode;
 	const float bm = (actualMode == BlendMode::Add) ? 1.0f : 0.0f;
-	EmitQuad(sl, u0, v0, u1, v1, (uint32_t)bindTex->id, matAbs, nt.r, nt.g, nt.b, nt.a, bm);
+	EmitQuad(sl, u0, v0, u1, v1, bindTex->BindingId(), matAbs, nt.r, nt.g, nt.b, nt.a, bm);
 
 	if (needSwitch) {
 		RecordSetBlendMode(r, savedBlend);   // 恢复进入时的 tl_blend，避免污染后续绘制
@@ -2825,7 +3029,7 @@ void Graphics::RecordDrawTextureRegion(WorkerRecord& r,
 	float dstX, float dstY, float dstW, float dstH,
 	float rotation, const glm::vec4& tint)
 {
-	if (!tex || tex->id == 0) return;
+	if (!tex || tex->BindingId() == 0) return;
 	VkWorkerSlice& sl = r.slice;
 	if (!SliceHasRoom(sl, 6, 1)) return;
 
@@ -2848,14 +3052,14 @@ void Graphics::RecordDrawTextureRegion(WorkerRecord& r,
 
 	const glm::vec4 nt = NormalizeColor(tint);
 	const float bm = (tl_blend == BlendMode::Add) ? 1.0f : 0.0f;
-	EmitQuad(sl, u0, v0, u1, v1, (uint32_t)tex->id, matAbs, nt.r, nt.g, nt.b, nt.a, bm);
+	EmitQuad(sl, u0, v0, u1, v1, tex->BindingId(), matAbs, nt.r, nt.g, nt.b, nt.a, bm);
 }
 
 void Graphics::RecordDrawCachedText(WorkerRecord& r,
 	const CachedText& handle, float x, float y, float scale)
 {
 	// CachedText 是 immutable POD——worker 直接走快速路径，不需要 DeferredText。
-	if (handle.textureID == 0) return;
+	if (handle.BindingId() == 0) return;
 	// 过期句柄丢弃（同 DrawCachedText）。m_textGeneration 只在帧外（RecomputeLetterbox）变更，
 	// 并行录制期间稳定，worker 读取安全。
 	if (handle.generation != m_textGeneration) return;
@@ -2872,7 +3076,7 @@ void Graphics::RecordDrawCachedText(WorkerRecord& r,
 	const uint32_t matAbs = PushSliceMatrix(sl, finalMatrix);
 
 	const float bm = (tl_blend == BlendMode::Add) ? 1.0f : 0.0f;
-	EmitQuad(sl, 0.0f, 0.0f, 1.0f, 1.0f, handle.textureID, matAbs, 1.0f, 1.0f, 1.0f, 1.0f, bm);
+	EmitQuad(sl, 0.0f, 0.0f, 1.0f, 1.0f, handle.BindingId(), matAbs, 1.0f, 1.0f, 1.0f, 1.0f, bm);
 }
 
 void Graphics::RecordDrawText(WorkerRecord& r,
@@ -2920,7 +3124,7 @@ void Graphics::RecordDrawGlyphRun(WorkerRecord& r,
 		const auto itA = m_glyphAtlases.find(fontKey + "|" + std::to_string(fontSize));
 		if (itA == m_glyphAtlases.end()) break;
 		const GlyphAtlas& atlas = itA->second;
-		if (atlas.textureID == 0) break;
+		if (atlas.BindingId() == 0) break;
 		float ss;
 		if (atlas.physSize != ComputeTextRasterSize(fontSize, m_letterboxScale, ss)) break;
 
@@ -2993,7 +3197,7 @@ void Graphics::RecordDrawGlyphRun(WorkerRecord& r,
 					}
 					rec.u0 = gi.u0; rec.v0 = gi.v0;
 					rec.u1 = gi.u1; rec.v1 = gi.v1;
-					rec.texSlot = atlas.textureID;
+					rec.texSlot = atlas.BindingId();
 					rec.colorRGBA8 = colorRGBA8;
 					const PackedClipRect clip = CurrentPackedClipRect();
 					rec.clipMinXY = clip.minXY;

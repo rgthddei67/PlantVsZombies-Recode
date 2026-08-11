@@ -21,12 +21,13 @@
 #include <set>
 
 #include "ResourceManager.h"
+#include "Renderer/RenderBackend.h"
 
 namespace pvz {
 	class VulkanContext;
 	class VulkanRenderer;
 	class VulkanTexturePool;
-	struct VulkanTexture;
+	class OpenGLRenderer;
 }
 
 /**
@@ -44,7 +45,7 @@ inline SDL_Color ToSDLColor(const glm::vec4& color) {
 }
 
 /**
- * @brief 将 0-255 格式的颜色转换为 0-1 归一化格式（用于 OpenGL）。
+ * @brief 将 0-255 格式的颜色转换为渲染后端使用的 0-1 归一化格式。
  * @param color 输入颜色（各分量范围 [0,255]）
  * @return 归一化后的颜色（各分量范围 [0,1]）
  */
@@ -71,8 +72,8 @@ static_assert(sizeof(PackedClipRect) == 8, "PackedClipRect must be 8 bytes");
 struct BatchVertex {
 	float x, y;          // 顶点位置（局部坐标，通常为 0~1 矩形）
 	float u, v;          // 纹理坐标
-	uint32_t texIndex;     // 纹理索引（bindless 槽位）
-	uint32_t matrixIndex;  // 变换矩阵索引（SSBO 槽位）
+	uint32_t texIndex;     // 当前后端的纹理 binding（Vulkan 为 bindless 槽，GL 为 texture name）
+	uint32_t matrixIndex;  // CPU 矩阵列表索引；Vulkan 提交时转成 SSBO 绝对槽位
 	float r, g, b, a;    // 顶点颜色（预乘色调）
 	float blendMode;     // 混合模式（0.0 = Alpha, 1.0 = Additive），仅 CPU 侧分段使用
 	uint32_t clipMinXY = DRAW_CLIP_MIN_DISABLED;  // 帧缓冲 left/top，各占 16 bit
@@ -105,21 +106,19 @@ struct InstanceRecord {
 static_assert(sizeof(InstanceRecord) == 56, "InstanceRecord must be 56 bytes");
 
 /**
- * @brief 文字缓存条目，存储已生成的文字纹理及其尺寸。
- *        Phase 3c：textureID 现在是 bindless 槽位下标；vkTex 持有上传到 VulkanTexturePool
- *        的纹理句柄，LRU 淘汰 / 缓存清空时用它把槽位还回 pool。
+ * @brief 文字缓存条目，持有当前 TextureBackend 创建的后端无关纹理句柄及其尺寸。
  */
 struct CachedText {
-	uint32_t textureID = 0;          // bindless 槽位（Phase 3c）
+	pvz::RenderTexture* texture = nullptr;
 	int width = 0;
 	int height = 0;
-	pvz::VulkanTexture* vkTex = nullptr;
+	uint32_t BindingId() const { return texture ? texture->bindingId : 0; }
 	// 光栅化时的超采样倍数（= physSize / fontSize）。全屏 letterbox 放大下，文字按物理
 	// 像素光栅化以保持锐利；绘制时用它把 width/height 除回逻辑尺寸，保证屏幕布局不变。
 	float superSample = 1.0f;
 	// pinned 缓存代际号：AcquireTextTexture 时打上当时的 m_textGeneration。letterbox 变化
 	// 清 pinned 缓存会递增代际号，使所有持有旧副本的消费者（如 CardDisplayComponent）能
-	// 用 IsCachedTextStale 察觉自己手里的句柄已失效，避免读已销毁的 bindless 槽位。
+	// 用 IsCachedTextStale 察觉自己手里的句柄已失效，避免读已销毁的后端纹理 binding。
 	uint32_t generation = 0;
 };
 
@@ -135,12 +134,12 @@ struct GlyphInfo {
 };
 
 /**
- * @brief 一张 HUD 字形图集：单行打包的白色字形纹理（一个 bindless 槽），按 (字体,字号) 缓存。
+ * @brief 一张 HUD 字形图集：单行打包的白色字形纹理，按 (字体,字号) 缓存。
  *        白色烘焙 + 顶点色 tint → 一张图集服务所有颜色。physSize 变化（letterbox）时整张重建。
  */
 struct GlyphAtlas {
-	pvz::VulkanTexture* vkTex = nullptr;     // 图集纹理句柄（ClearGlyphAtlases 负责还给 pool）
-	uint32_t            textureID = 0;       // vkTex->bindlessIndex；0 = 未建/建失败
+	pvz::RenderTexture* texture = nullptr;   // ClearGlyphAtlases 负责还给当前纹理后端
+	uint32_t BindingId() const { return texture ? texture->bindingId : 0; }
 	int                 texW = 0, texH = 0;
 	int                 ascent = 0;          // physSize 字体的 TTF_FontAscent（物理像素）
 	int                 physSize = 0;        // 烘焙物理字号（= ComputeTextRasterSize 结果）
@@ -165,18 +164,17 @@ struct ClipRect {
  */
 enum class BlendMode {
 	None,   // 不启用混合
-	Alpha,  // 标准 Alpha 混合：GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA
-	Add     // 叠加混合：GL_SRC_ALPHA, GL_ONE
+	Alpha,  // 预乘 Alpha 混合：ONE, ONE_MINUS_SRC_ALPHA
+	Add     // 预乘叠加混合：ONE, ONE
 };
 
 // ==================== 多线程录制（Record / Replay）相关结构 ====================
 //
 // 设计：GameObjectManager 在 Draw 阶段把对象按渲染顺序切成 N 块，每个工作线程把自己
 // 那块的 Graphics 调用录制到 thread-local 的 WorkerRecord（POD 命令流 + 顶点池），
-// 不调任何 GL；主线程随后按 slot 顺序回放，转成真实的 BindTexture / AddMatrix /
-// AddVertices / FlushBatch 调用。这样把矩阵乘法、UV、顶点构造等纯 CPU 工作分摊到多
-// 核，主线程仅做 GL 调用与轻量 append。绘制顺序通过 slot 升序 + slot 内 record 顺
-// 序严格保留。
+// 不调任何渲染后端 API；主线程随后按 slot 顺序回放。Vulkan 使用该并行
+// mapped-buffer 路径；OpenGL 3.3 兼容后端禁用并行 Draw，使所有 GL 调用留在 Context
+// 所属的主线程。两条路径都严格保留原绘制顺序。
 
 /**
  * @brief 录制命令类型。命令类型决定如何在回放时解释 RecordCmd 的字段。
@@ -311,8 +309,8 @@ struct WorkerThreadState {
 /**
  * @brief 图形渲染核心类，负责纹理绘制、文字渲染、几何图形绘制及批处理。
  *
- * 提供两种渲染模式：立即模式（直接调用 OpenGL）和批处理模式（自动合并绘制调用以提高性能）。
- * 支持变换矩阵栈、混合模式设置、文字缓存等功能。
+ * 向上层提供统一的批处理、变换矩阵栈、混合、裁剪与文字缓存接口，
+ * 向下可选择 Vulkan 高性能路径或 OpenGL 3.3 Core 兼容路径。
  */
 class Graphics {
 public:
@@ -322,7 +320,7 @@ public:
 	Graphics();
 
 	/**
-	 * @brief 析构函数，释放所有 OpenGL 资源和缓存。
+	 * @brief 析构函数，释放当前渲染后端的资源和缓存。
 	 */
 	~Graphics();
 
@@ -334,22 +332,27 @@ public:
 	 */
 	bool Initialize(int windowWidth, int windowHeight);
 
-	// Phase 3b — Vulkan 渲染接入。
+	// 渲染后端接入。
 	// InitializeVulkan: 在 VulkanContext / VulkanRenderer / VulkanTexturePool 都就绪、
 	//   且所有纹理已经上传之后调用一次，建立 batch pipeline、逐帧 VBO/SSBO、descriptor set。
+	// InitializeOpenGL: 在 3.3 Core Context 与 TextureBackend 就绪后建立 CPU 展开批处理。
 	// BeginFrame / EndFrame: GameApp::Draw 每帧调用一对，承担 acquire→record→submit→present。
 	//   绘制 API（DrawTexture 等）必须在这两个调用之间使用。
 	bool InitializeVulkan(pvz::VulkanContext* ctx,
 		pvz::VulkanRenderer* renderer,
 		pvz::VulkanTexturePool* pool);
+	bool InitializeOpenGL(pvz::OpenGLRenderer* renderer, pvz::TextureBackend* textureBackend);
 	void ShutdownVulkan();
+	void ShutdownOpenGL();
 	bool BeginFrame();
 	bool EndFrame();
+	pvz::RendererBackend GetRendererBackend() const { return m_backend; }
+	pvz::CaptureBackend* GetCaptureBackend() const;
 
-	/// 上一完整帧实际录入 command buffer 的 vkCmdDraw 次数，供性能回归测试使用。
+	/// 上一完整帧实际提交给当前后端的 draw 次数，供性能回归测试使用。
 	uint32_t GetLastFrameDrawCallCount() const { return m_lastFrameDrawCallCount; }
 
-	/// 上一完整帧动态 vkCmdSetScissor 次数；通用 shader ClipRect 路径下应恒为 0。
+	/// 上一完整帧动态 scissor 变更次数；通用 shader ClipRect 路径下应恒为 0。
 	uint32_t GetLastFrameScissorChangeCount() const { return m_lastFrameScissorChangeCount; }
 
 	/**
@@ -531,7 +534,7 @@ public:
 	 * @brief 取得一份常驻（pinned）文字纹理句柄；颜色已烘焙到纹理。
 	 *        用于对同一段文字频繁重绘的场景，避免 DrawText 每帧的 key 构造与 LRU 维护开销。
 	 *        句柄直到 Graphics 销毁（或显式清理）前都有效，不参与 LRU 淘汰。
-	 * @return 句柄；若渲染失败 textureID 为 0。
+	 * @return 句柄；若渲染失败 texture 为空。
 	 */
 	CachedText AcquireTextTexture(const std::string& text, const std::string& fontKey,
 		int fontSize, const glm::vec4& color);
@@ -566,8 +569,8 @@ public:
 	/**
 	 * @brief Append a per-sprite instance record consumed by the GPU-instancing reanim pipeline.
 	 *        Caller (Task 5+) must pre-multiply tA..tD by (sprite_width × Scale) /
-	 *        (sprite_height × Scale); tx/ty are absolute world coords; tex slot is a bindless
-	 *        index; colorRGBA8 is pre-tinted (r=lsb, a=msb).
+	 *        (sprite_height × Scale); tx/ty are absolute world coords; tex slot is a Vulkan
+	 *        bindless index; colorRGBA8 is pre-tinted (r=lsb, a=msb). OpenGL 使用 CPU 慢路径。
 	 *
 	 *        Worker thread (tl_record set): writes into the slot's slice.instPtr at instCount,
 	 *        records a SetBlend cmd if blendMode differs from tl_blend.
@@ -693,7 +696,7 @@ public:
 	void SetClearColor(float r, float g, float b, float a);
 
 	/**
-	 * @brief 获取当前清屏颜色（归一化 [0,1]）。Phase 3a：由 VulkanRenderer 在每帧 BeginFrame 时使用。
+	 * @brief 获取当前清屏颜色（归一化 [0,1]），由当前后端在 BeginFrame 时使用。
 	 */
 	void GetClearColor(float& r, float& g, float& b, float& a) const {
 		r = m_clearR; g = m_clearG; b = m_clearB; a = m_clearA;
@@ -786,14 +789,14 @@ public:
 	//
 	// 逻辑分辨率恒为 1100×600（m_windowWidth/Height）。全屏时真实交换链尺寸变大，
 	// 这里算出统一缩放比 + 居中黑边偏移，供三处共用：
-	//   1) VulkanRenderer 默认 viewport（画面等比居中，黑边区域不画）
+	//   1) 当前渲染后端的 viewport（画面等比居中，黑边区域不画）
 	//   2) PackClipRect 的 shader 裁剪边界（逻辑裁剪框 → 帧缓冲像素）
 	//   3) InputHandler 鼠标坐标（帧缓冲像素 → 逻辑坐标）
 	// 窗口模式（真实尺寸==逻辑尺寸）时 scale=1、offset=0，退化为原行为。
 
 	/**
-	 * @brief 交换链重建后调用一次：读真实交换链尺寸，重算缩放比与黑边偏移。
-	 *        m_vk 未初始化时退化为 scale=1、offset=0。
+	 * @brief 可绘制表面尺寸变化后调用：读真实尺寸，重算缩放比与黑边偏移。
+	 *        后端未初始化时退化为 scale=1、offset=0。
 	 */
 	void RecomputeLetterbox();
 
@@ -828,7 +831,7 @@ public:
 	//   g->ReplayAndEndParallel();                          // 主线程
 	//
 	// worker 内调用 DrawTexture / DrawTextureMatrix / DrawText / PushTransform 等
-	// 都会被 Graphics 内部 thread_local 检测拦截到 record 路径，不调任何 GL。
+	// 都会被 Graphics 内部 thread_local 检测拦截到 record 路径，不调任何后端 API。
 
 	/**
 	 * @brief 主线程：开启并行录制阶段，确保有 numWorkers 个 WorkerRecord，
@@ -853,7 +856,7 @@ public:
 
 	/**
 	 * @brief 主线程：按 slot 0..N-1 顺序回放所有录制的命令到真实 Graphics 状态，
-	 *        触发必要的 FlushBatch / GL 调用，最后重置标志。不释放 record 存储。
+	 *        触发必要的 Vulkan 批处理提交，最后重置标志。不释放 record 存储。
 	 */
 	void ReplayAndEndParallel();
 
@@ -899,20 +902,24 @@ private:
 	size_t m_batchBufferCapacity = 0;             ///< 当前 VBO 容量（顶点个数）
 
 	bool m_batchMode = true;                      ///< 是否启用批处理模式
-	uint32_t m_frameDrawCallCount = 0;             ///< 当前帧实际 vkCmdDraw 次数
-	uint32_t m_lastFrameDrawCallCount = 0;         ///< 上一完整帧实际 vkCmdDraw 次数
+	uint32_t m_frameDrawCallCount = 0;             ///< 当前帧实际 draw 次数
+	uint32_t m_lastFrameDrawCallCount = 0;         ///< 上一完整帧实际 draw 次数
 	uint32_t m_frameScissorChangeCount = 0;        ///< ClipRect 动态 scissor 回归计数（shader 裁剪下应恒为 0）
 	uint32_t m_lastFrameScissorChangeCount = 0;    ///< 上一完整帧的动态 scissor 回归计数
 
-	uint32_t m_whiteTexture = 0;   ///< 1×1 纯白纹理 bindless 槽位，用于 FillRect 批处理
+	uint32_t m_whiteTexture = 0;   ///< 当前后端的 1×1 纯白纹理 binding，用于几何批处理
+	pvz::RenderTexture* m_whiteTextureHandle = nullptr;
 
-	// Phase 3a：清屏颜色（归一化 [0,1]），SetClearColor 写入、GetClearColor 读出，供 VulkanRenderer 使用。
+	// 清屏颜色（归一化 [0,1]），由当前渲染后端在 BeginFrame 时使用。
 	float m_clearR = 1.0f, m_clearG = 1.0f, m_clearB = 1.0f, m_clearA = 1.0f;
 
 	// Phase 3b：Vulkan 真渲染的 PIMPL 状态（pipeline / 逐帧 VBO+SSBO / descriptor set 等），
 	// 定义在 Graphics.cpp 内部，避免把 vulkan.h 暴露给整个工程。
 	struct VulkanGraphicsState;
 	std::unique_ptr<VulkanGraphicsState> m_vk;
+	pvz::OpenGLRenderer* m_gl = nullptr;
+	pvz::TextureBackend* m_textureBackend = nullptr;
+	pvz::RendererBackend m_backend = pvz::RendererBackend::Vulkan;
 
 	static const int TEXT_CACHE_MAX_SIZE = 1024;  ///< 文字缓存最大条目数（LRU 淘汰）
 	std::list<std::string> m_textCacheOrder;     ///< LRU 顺序链表（front = 最近使用）
@@ -976,9 +983,9 @@ private:
 	PackedClipRect CurrentPackedClipRect() const;
 
 	/**
-	 * @brief 将纹理 ID 绑定到批处理纹理列表，返回纹理单元索引。
-	 * @param textureID OpenGL 纹理 ID
-	 * @return 纹理单元索引
+	 * @brief 把当前后端的纹理 binding 写入批处理顶点。
+	 * @param textureID TextureBackend 分配的 binding ID
+	 * @return 保留后端语义的批处理纹理索引
 	 */
 	int BindTexture(uint32_t textureID);
 
@@ -1002,25 +1009,25 @@ private:
 	void CheckBatch();
 
 	/**
-	 * @brief 获取或创建文字纹理。如果文字已缓存，则直接返回缓存的纹理ID。
+	 * @brief 获取或创建文字纹理。如果文字已缓存，则直接返回缓存的 binding ID。
 	 * @param text      文字内容
 	 * @param fontKey   字体键名
 	 * @param fontSize  字体大小
 	 * @param color     文字颜色
 	 * @param outWidth  输出纹理宽度
 	 * @param outHeight 输出纹理高度
-	 * @return OpenGL 纹理 ID，失败返回 0
+	 * @return 当前后端的纹理 binding ID，失败返回 0
 	 */
 	uint32_t GetOrCreateTextTexture(const std::string& text, const std::string& fontKey,
 		int fontSize, const glm::vec4& color,
 		int& outWidth, int& outHeight, float& outSuperSample);
 
 	/**
-	 * @brief 通过 TTF 渲染一段文字并上传为一张新的 Vulkan 纹理。
+	 * @brief 通过 TTF 渲染一段文字并上传为一张当前后端纹理。
 	 *        调用方负责在不再需要时释放返回纹理。
 	 * @return 成功返回 true，并填充 out；失败返回 false。
 	 */
-	bool RenderTextToVulkanTexture(const std::string& text, const std::string& fontKey,
+	bool RenderTextToBackendTexture(const std::string& text, const std::string& fontKey,
 		int fontSize, const glm::vec4& color, CachedText& out);
 
 	/**
@@ -1032,17 +1039,17 @@ private:
 
 	/**
 	 * @brief 按 atlas.covered 全集（重新）烘焙图集：逐字形 TTF 度量+渲染→单行打包→上传一张纹理。
-	 *        旧纹理先还给 pool。失败时令 atlas.textureID=0（上层 fallback）。
+	 *        旧纹理先还给当前后端。失败时令 atlas.texture=nullptr（上层 fallback）。
 	 */
 	void BuildGlyphAtlas(const std::string& fontKey, int fontSize, GlyphAtlas& atlas);
 
 	/**
-	 * @brief 释放全部字形图集纹理（还给 pool），清空缓存。ShutdownVulkan / ClearTextCache 时调。
+	 * @brief 释放全部字形图集纹理（还给当前后端），清空缓存。后端关闭 / ClearTextCache 时调。
 	 */
 	void ClearGlyphAtlases();
 
 	/**
-	 * @brief 清空常驻文字纹理缓存（释放 GL 纹理）。析构时调用。
+	 * @brief 清空常驻文字纹理缓存（释放当前后端纹理）。析构时调用。
 	 */
 	void ClearPinnedTextCache();
 
@@ -1054,7 +1061,7 @@ private:
 
 	// ==================== Record 路径辅助函数 ====================
 	// 这些函数把对应的 DrawXxx 调用录制到当前 worker 的 WorkerRecord 中，不调任何
-	// GL。每个函数对应一个公开 DrawXxx，做的事情是公开版批处理路径里"BindTexture
+	// 渲染后端 API。每个函数对应一个公开 DrawXxx，做的事情是公开版批处理路径里"BindTexture
 	// + AddMatrix + AddVertices + CheckBatch"那一段在 worker 上的等价物（但把全局
 	// 槽位分配延迟到回放时）。
 

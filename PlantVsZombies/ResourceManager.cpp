@@ -1,6 +1,6 @@
 #include "ResourceManager.h"
 #include "./Game/Plant/GameDataManager.h"
-#include "./Renderer/VulkanTexturePool.h"
+#include "./Renderer/RenderBackend.h"
 #include "Logger.h"
 #include "FileManager.h"
 #include <algorithm>
@@ -85,14 +85,13 @@ const Texture* ResourceManager::UploadDecodedTexture(SDL_Surface* converted, con
 	tex.width = converted->w;
 	tex.height = converted->h;
 
-	if (mTexturePool) {
-		pvz::VulkanTexture* vkt = mTexturePool->CreateTextureRGBA8(converted->w, converted->h, converted->pixels);
-		if (vkt) {
-			tex.vkTex = vkt;
-			tex.id = vkt->bindlessIndex;
+	if (mTextureBackend) {
+		pvz::RenderTexture* uploaded = mTextureBackend->CreateTextureRGBA8(converted->w, converted->h, converted->pixels);
+		if (uploaded) {
+			tex.renderTexture = uploaded;
 		}
 		else {
-			LOG_ERROR("ResourceManager") << "LoadTexture VulkanTexturePool 上传失败: " << filepath;
+			LOG_ERROR("ResourceManager") << "LoadTexture 当前纹理后端上传失败: " << filepath;
 		}
 	}
 	SDL_FreeSurface(converted);
@@ -188,8 +187,8 @@ const Texture* ResourceManager::GetTexture(const std::string& key, bool warnOnMi
 void ResourceManager::UnloadTexture(const std::string& key) {
 	auto it = mTextures.find(key);
 	if (it != mTextures.end()) {
-		if (mTexturePool && it->second.vkTex) {
-			mTexturePool->DestroyTexture(it->second.vkTex);
+		if (mTextureBackend && it->second.renderTexture) {
+			mTextureBackend->DestroyTexture(it->second.renderTexture);
 		}
 		mTextures.erase(it);
 		LOG_DEBUG("ResourceManager") << "卸载纹理: " << key;
@@ -200,7 +199,7 @@ bool ResourceManager::HasTexture(const std::string& key) const {
 	return mTextures.find(key) != mTextures.end();
 }
 
-bool ResourceManager::LoadTiledTextureGL(const TiledImageInfo& info, const std::string& prefix) {
+bool ResourceManager::LoadTiledTexture(const TiledImageInfo& info, const std::string& prefix) {
 	// 加载原图到表面（用于分割）
 	SDL_RWops* rw = SDL_RWFromFile(info.path.c_str(), "rb");
 	if (!rw) {
@@ -261,11 +260,10 @@ bool ResourceManager::LoadTiledTextureGL(const TiledImageInfo& info, const std::
 			Texture tex;
 			tex.width = tileW;
 			tex.height = tileH;
-			if (mTexturePool) {
-				pvz::VulkanTexture* vkt = mTexturePool->CreateTextureRGBA8(tileW, tileH, tileSurface->pixels);
-				if (vkt) {
-					tex.vkTex = vkt;
-					tex.id = vkt->bindlessIndex;
+			if (mTextureBackend) {
+				pvz::RenderTexture* uploaded = mTextureBackend->CreateTextureRGBA8(tileW, tileH, tileSurface->pixels);
+				if (uploaded) {
+					tex.renderTexture = uploaded;
 				}
 				else {
 					LOG_ERROR("ResourceManager") << "LoadTiledTexture 分割贴图上传失败: " << info.path << " tile " << row << "," << col;
@@ -298,7 +296,7 @@ bool ResourceManager::LoadAllGameImages() {
 		}
 		else {
 			// 分割贴图（个位数）：保持串行
-			if (!LoadTiledTextureGL(info, "IMAGE_")) {
+			if (!LoadTiledTexture(info, "IMAGE_")) {
 				LOG_ERROR("ResourceManager") << "加载分割贴图失败: " << info.path;
 				success = false;
 			}
@@ -321,7 +319,7 @@ bool ResourceManager::LoadAllParticleTextures() {
 			                 "加载粒子纹理失败: " + info.path });
 		}
 		else {
-			if (!LoadTiledTextureGL(info, "PARTICLE_")) {
+			if (!LoadTiledTexture(info, "PARTICLE_")) {
 				LOG_ERROR("ResourceManager") << "加载粒子分割贴图失败: " << info.path;
 				success = false;
 			}
@@ -399,11 +397,105 @@ bool ResourceManager::LoadAllReanimations()
 }
 
 void ResourceManager::BuildReanimAtlases() {
-	// Phase 3a stub：图集化原本通过 GL FBO blit 把多张源纹理拼到一张图集页上，
-	// 消除 batch 渲染时的 32 纹理单元抖动。Vulkan bindless 一开始就没有 32 单元
-	// 限制，因此 3b+ 这个函数应该可以整体删除（计划文档 risk #2 也提到要换成
-	// CPU-side compose into SDL_Surface 的简化做法，待 3b 评估）。
-	// 现阶段保留空函数体，避免调用方崩溃。
+	// Vulkan 依靠 bindless 保持动画部件合批；传统 OpenGL 单 sampler 路径则把同一
+	// reanim 的部件尽量放进同页，避免每个轨道都触发 texture flush。
+	if (!mTextureBackend || mTextureBackend->Backend() != pvz::RendererBackend::OpenGL) return;
+
+	std::vector<Texture*> sources;
+	std::unordered_set<Texture*> seen;
+	for (auto& pair : mReanimations) {
+		const auto& reanim = pair.second;
+		if (!reanim || !reanim->mTracks) continue;
+		std::vector<Texture*> group;
+		for (auto& track : *reanim->mTracks) {
+			for (auto& frame : track.mFrames) {
+				if (!frame.image) continue;
+				auto* texture = const_cast<Texture*>(frame.image);
+				if (texture->atlasPage || !texture->renderTexture
+					|| texture->width <= 0 || texture->height <= 0) continue;
+				if (seen.insert(texture).second) group.push_back(texture);
+			}
+		}
+		std::stable_sort(group.begin(), group.end(), [](const Texture* lhs, const Texture* rhs) {
+			return lhs->height > rhs->height;
+		});
+		sources.insert(sources.end(), group.begin(), group.end());
+	}
+	if (sources.empty()) return;
+
+	constexpr int kAtlasPadding = 2; // 图块四周复制边缘像素的宽度，保护线性过滤和 mipmap。
+	const int pageDimension = (std::min)(mTextureBackend->MaxTextureSize(), 4096);
+	struct Placement {
+		Texture* texture = nullptr;
+		int x = 0;
+		int y = 0;
+	};
+	std::vector<std::vector<Placement>> pages(1);
+	int cursorX = kAtlasPadding;
+	int cursorY = kAtlasPadding;
+	int shelfHeight = 0;
+
+	for (Texture* texture : sources) {
+		const int width = texture->width;
+		const int height = texture->height;
+		if (width + 2 * kAtlasPadding > pageDimension
+			|| height + 2 * kAtlasPadding > pageDimension) {
+			LOG_WARN("ResourceManager") << "reanim 纹理超过 OpenGL 图集页，保留独立纹理: "
+				<< width << "x" << height;
+			continue;
+		}
+		if (cursorX + width + kAtlasPadding > pageDimension) {
+			cursorX = kAtlasPadding;
+			cursorY += shelfHeight + 2 * kAtlasPadding;
+			shelfHeight = 0;
+		}
+		if (cursorY + height + kAtlasPadding > pageDimension) {
+			pages.emplace_back();
+			cursorX = kAtlasPadding;
+			cursorY = kAtlasPadding;
+			shelfHeight = 0;
+		}
+		pages.back().push_back({ texture, cursorX, cursorY });
+		cursorX += width + 2 * kAtlasPadding;
+		shelfHeight = (std::max)(shelfHeight, height);
+	}
+
+	std::size_t packedCount = 0;
+	for (const auto& placements : pages) {
+		if (placements.empty()) continue;
+		std::vector<pvz::AtlasCopy> copies;
+		copies.reserve(placements.size());
+		for (const Placement& placement : placements) {
+			copies.push_back({ placement.texture->renderTexture, placement.x, placement.y,
+				placement.texture->width, placement.texture->height, kAtlasPadding });
+		}
+		pvz::RenderTexture* pageHandle = mTextureBackend->CreateAtlasPage(
+			pageDimension, pageDimension, copies);
+		if (!pageHandle) {
+			LOG_ERROR("ResourceManager") << "OpenGL reanim 图集页创建失败，保留独立纹理";
+			continue;
+		}
+
+		mAtlasPages.emplace_back();
+		Texture& page = mAtlasPages.back();
+		page.width = pageDimension;
+		page.height = pageDimension;
+		page.renderTexture = pageHandle;
+		const float halfTexel = 0.5f / static_cast<float>(pageDimension);
+		for (const Placement& placement : placements) {
+			Texture* texture = placement.texture;
+			texture->atlasPage = &page;
+			texture->aU0 = static_cast<float>(placement.x) / pageDimension + halfTexel;
+			texture->aV0 = static_cast<float>(placement.y) / pageDimension + halfTexel;
+			texture->aU1 = static_cast<float>(placement.x + texture->width) / pageDimension - halfTexel;
+			texture->aV1 = static_cast<float>(placement.y + texture->height) / pageDimension - halfTexel;
+			++packedCount;
+		}
+	}
+
+	LOG_WARN("ResourceManager") << "OpenGL reanim 图集: " << packedCount
+		<< " 张源纹理 -> " << mAtlasPages.size() << " 页 (" << pageDimension << "x"
+		<< pageDimension << ", padding=" << kAtlasPadding << ")";
 }
 
 bool ResourceManager::LoadAllImagesFromPath(const std::string& directory) {
@@ -702,15 +794,18 @@ std::string ResourceManager::GenerateStandardKey(const std::string& path, const 
 }
 
 void ResourceManager::UnloadAll() {
-	// Phase 3b：先把每张 bindless 纹理还给 pool，再 clear。调用方需保证 pool 仍存活
-	// （GameApp::Shutdown 顺序：先 RM.UnloadAll → 再 pool->Shutdown → 再 ctx->Shutdown）。
-	if (mTexturePool) {
+	// 先把每张纹理还给当前后端，再 clear；GameApp 保证纹理后端仍存活。
+	if (mTextureBackend) {
 		for (auto& kv : mTextures) {
-			if (kv.second.vkTex) mTexturePool->DestroyTexture(kv.second.vkTex);
+			if (kv.second.renderTexture) mTextureBackend->DestroyTexture(kv.second.renderTexture);
+		}
+		for (auto& page : mAtlasPages) {
+			if (page.renderTexture) mTextureBackend->DestroyTexture(page.renderTexture);
 		}
 	}
 	mTextures.clear();
 	mAtlasPages.clear();
+	mTextureBackend = nullptr;
 
 	// 清理动画
 	mReanimations.clear();

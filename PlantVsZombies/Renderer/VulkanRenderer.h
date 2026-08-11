@@ -1,5 +1,6 @@
 #pragma once
 
+#include "RenderBackend.h"
 #include <volk.h>
 
 #include <array>
@@ -12,18 +13,9 @@ namespace pvz {
 	class VulkanContext;
 	class VulkanPipeline;
 
-	using CaptureTicket = std::uint64_t;
-
-	enum class CaptureStatus {
-		Unknown,
-		Pending,
-		Succeeded,
-		Failed,
-	};
-
 	// Phase 1.5 — 持有命令池、命令缓冲、同步原语，跑 acquire→record→submit→present 循环。
 	// Phase 2a — 可选挂一个 pipeline，每帧画 3 个顶点的三角形。
-	class VulkanRenderer {
+	class VulkanRenderer final : public CaptureBackend {
 	public:
 		static constexpr uint32_t FRAMES_IN_FLIGHT = 2;
 
@@ -51,9 +43,9 @@ namespace pvz {
 		 * @brief 登记一次 AutoTest 截图，并返回可查询的单调递增 ticket。
 		 * @details 下一次 EndFrame 在 present 前回读并写 PNG；同一时刻只接受一个未完成请求。
 		 */
-		CaptureTicket RequestCapture(const std::string& pngPath);
-		CaptureStatus GetCaptureStatus(CaptureTicket ticket) const;
-		std::string GetCaptureError(CaptureTicket ticket) const;
+		CaptureTicket RequestCapture(const std::string& pngPath) override;
+		CaptureStatus GetCaptureStatus(CaptureTicket ticket) const override;
+		std::string GetCaptureError(CaptureTicket ticket) const override;
 
 		VkCommandBuffer CurrentCmdBuffer() const;
 		uint32_t        CurrentFrameIdx() const { return mFrameIdx; }

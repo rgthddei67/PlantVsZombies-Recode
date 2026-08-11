@@ -9,6 +9,8 @@ metadata:
 
 # PvZ Phase 6 — OpenGL 残留清理（已完成，用户验证通过；2026-05-17）
 
+> 2026-08-11 更新：本文只描述 2026-05-17 当时的清理历史。当前仓库已为 Win7/旧显卡重新加入独立 OpenGL 3.3 Core 兼容后端；现行契约见 [OpenGL 3.3 Core 兼容后端](project_pvz_opengl33_backend.md)，不得再把“源码零 GL”当成当前状态。
+
 主 Vulkan 迁移计划（`C:\Users\ZJ\.claude\plans\opengl-vulkan-vcpkg-brotli-x64-windows-snuggly-bentley.md`）的 **Phase 6 — Cleanup**。用户原话引用 phase-5 计划，但 OpenGL 清理实为 Phase 6。关联 [pvz-perf-optimization](project_pvz_perf_optimization.md)、[collaboration-style](feedback_collaboration_style.md)。
 
 ## 产出物（已写入仓库 docs/）

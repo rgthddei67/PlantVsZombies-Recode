@@ -1,5 +1,6 @@
 #pragma once
 
+#include "RenderBackend.h"
 #include <volk.h>
 #include <vma/vk_mem_alloc.h>
 
@@ -11,12 +12,10 @@ namespace pvz {
 	class VulkanContext;
 
 	// 一个 bindless 纹理槽位。bindlessIndex 直接对应 fragment shader 中 textures[index] 的下标。
-	struct VulkanTexture {
+	struct VulkanTexture final : RenderTexture {
 		VkImage         image = VK_NULL_HANDLE;
 		VmaAllocation   alloc = VK_NULL_HANDLE;
 		VkImageView     view = VK_NULL_HANDLE;
-		int             width = 0;
-		int             height = 0;
 		uint32_t        bindlessIndex = 0;
 		uint32_t        mipLevels = 1;   // 完整 mip 链级数（不支持 blit 时回退 1）
 		// 后续 phase 会补 atlasPage + a{U,V}{0,1}
@@ -28,7 +27,7 @@ namespace pvz {
 	//   - 共享一个 immutable LINEAR/CLAMP 采样器
 	//   - 通过 free-list 管理 bindless 索引
 	//   - CreateTextureRGBA8 走 staging buffer → vkCmdCopyBufferToImage → 屏障到 SHADER_READ_ONLY
-	class VulkanTexturePool {
+	class VulkanTexturePool final : public TextureBackend {
 	public:
 		static constexpr uint32_t MAX_TEXTURES = 8192;
 
@@ -42,11 +41,15 @@ namespace pvz {
 		void Shutdown();
 
 		// 上传 RGBA8 数据创建一张纹理。返回的指针由 pool 拥有；调用 DestroyTexture 释放。
-		VulkanTexture* CreateTextureRGBA8(int width, int height, const void* pixels);
+		RendererBackend Backend() const override { return RendererBackend::Vulkan; }
+		VulkanTexture* CreateTextureRGBA8(int width, int height, const void* pixels) override;
+		bool UpdateTextureRGBA8(RenderTexture* texture, int x, int y,
+			int width, int height, const void* pixels) override;
+		int MaxTextureSize() const override { return mMaxTextureSize; }
 
 		// 把纹理交给延迟删除队列：立即从可见集合移除，但 GPU 句柄 + bindless 槽位保留到
 		// 至少 FRAMES_IN_FLIGHT 帧后再回收，确保没有 in-flight 帧仍在引用。不再 vkDeviceWaitIdle。
-		void DestroyTexture(VulkanTexture* tex);
+		void DestroyTexture(RenderTexture* texture) override;
 
 		// 每帧调一次（Graphics::BeginFrame 中、renderer->BeginFrame 成功后）：推进帧计数，
 		// 回收"已过 FRAMES_IN_FLIGHT 帧"的延迟删除项。无活动帧/teardown 期不要调用。
@@ -77,6 +80,7 @@ namespace pvz {
 		// R8G8B8A8_UNORM 是否支持 linear blit（optimal tiling）：Initialize 时查询一次。
 		// 桌面 GPU 全支持；万一驱动缺失则所有纹理回退单级 mip（糊但不黑屏）。
 		bool mMipmapCapable = false;
+		int mMaxTextureSize = 4096;
 
 		VkSampler             mSampler = VK_NULL_HANDLE;
 		VkDescriptorSetLayout mLayout = VK_NULL_HANDLE;

@@ -7,6 +7,8 @@
 #include "./Profiler.h"
 #include "./Game/AutoTest/TestDriver.h"
 #include <SDL2/SDL.h>
+#include <algorithm>
+#include <cctype>
 #include <string>
 
 int main(int argc, char** argv)
@@ -22,10 +24,30 @@ int main(int argc, char** argv)
 
 	// 检查命令行参数
 	std::string autoTestScript;
+	bool invalidRendererArgument = false;
 	for (int i = 1; i < argc; ++i)
 	{
 		const std::string arg = argv[i];
-		if (arg == "-Debug" || arg == "-debug")
+		std::string lowerArg = arg;
+		std::transform(lowerArg.begin(), lowerArg.end(), lowerArg.begin(),
+			[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+		if (lowerArg.rfind("-renderer=", 0) == 0)
+		{
+			const std::string value = lowerArg.substr(std::string("-renderer=").size());
+			if (value == "auto") GameAPP::mRendererPreference = pvz::RendererPreference::Auto;
+			else if (value == "vulkan") GameAPP::mRendererPreference = pvz::RendererPreference::Vulkan;
+			else if (value == "opengl") GameAPP::mRendererPreference = pvz::RendererPreference::OpenGL;
+			else {
+				LOG_ERROR("Main") << "无效 Renderer: " << value << "；可用值为 auto/vulkan/opengl";
+				invalidRendererArgument = true;
+			}
+		}
+		else if (lowerArg == "-testvulkaninitfailure")
+		{
+			GameAPP::mTestForceVulkanInitFailure = true;
+			LOG_WARN("Main") << "测试开关启用：显式模拟 Vulkan 初始化失败";
+		}
+		else if (arg == "-Debug" || arg == "-debug")
 		{
 			GameAPP::mDebugMode = true;
 			GameAPP::mShowColliders = true;
@@ -86,6 +108,10 @@ int main(int argc, char** argv)
 				LOG_WARN("Main") << "-Seed 参数无效，已忽略: " << e.what();
 			}
 		}
+	}
+	if (invalidRendererArgument) {
+		CrashHandler::Cleanup();
+		return 2;
 	}
 	if (GameAPP::mAutoTestLoadSave && !GameAPP::mAutoTestMode) {
 		LOG_WARN("Main") << "-AutoTestLoadSave 仅在 -AutoTest 模式生效，已忽略。";

@@ -5,6 +5,7 @@
 #include <vma/vk_mem_alloc.h>
 
 #include <cstdint>
+#include <string>
 #include <vector>
 
 struct SDL_Window;
@@ -37,6 +38,8 @@ namespace pvz {
 		bool RecreateSwapchain(bool vsync);
 
 		bool IsInitialized() const { return mInitialized; }
+		/** 初始化失败时保留阶段、原始 SDL 错误或 VkResult，供 auto 回退日志使用。 */
+		const std::string& LastError() const { return mLastError; }
 
 		// 给后续 phase 的渲染层用的访问器
 		VkInstance       Instance()        const { return mInstance; }
@@ -121,6 +124,7 @@ namespace pvz {
 		};
 
 		bool                       mInitialized = false;
+		std::string                mLastError;
 		bool                       mValidationEnabled = false;
 		bool                       mVolkInitialized = false;
 		bool                       mForceVulkan12 = false;

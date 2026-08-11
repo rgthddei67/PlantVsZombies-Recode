@@ -476,7 +476,7 @@ void Animator::DrawInternalInstanced(Graphics* g, float baseX, float baseY, floa
 			rec.v0 = image->aV0;
 			rec.u1 = image->aU1;
 			rec.v1 = image->aV1;
-			rec.texSlot = bindTex->id;
+			rec.texSlot = bindTex->BindingId();
 
 			// 本体 → overlay → glow 的相对顺序是视觉契约，子 Animator 必须排在三者之后。
 			const float baseAlpha = std::clamp(transform.a * mAlpha, 0.0f, 1.0f);
@@ -533,7 +533,7 @@ void Animator::DrawInternalInstanced(Graphics* g, float baseX, float baseY, floa
 			rec.v0 = followerImage->aV0;
 			rec.u1 = followerImage->aU1;
 			rec.v1 = followerImage->aV1;
-			rec.texSlot = bindTex->id;
+			rec.texSlot = bindTex->BindingId();
 			const float alpha = std::clamp(transform.a * mAlpha, 0.0f, 1.0f);
 			rec.colorRGBA8 = PackRGBA8(255, 255, 255,
 				static_cast<uint8_t>(alpha * 255.0f));

@@ -34,6 +34,8 @@ namespace pvz {
 	class VulkanContext;
 	class VulkanRenderer;
 	class VulkanTexturePool;
+	class OpenGLRenderer;
+	class OpenGLTextureBackend;
 }
 
 enum class Background;
@@ -63,11 +65,15 @@ private:
 	std::unique_ptr<Graphics> m_graphics;   // 改用 Graphics
 
 	SDL_Window* mWindow;
-	// Phase 3a/3b：Vulkan 接管。VulkanContext / VulkanRenderer 取代了 SDL_GLContext。
-	// Phase 3b 起增加 VulkanTexturePool，承载 bindless 纹理槽位。
+	// 两套后端互斥拥有自己的窗口渲染资源；Graphics 只持非 owning 接口。
 	std::unique_ptr<pvz::VulkanContext>     m_vulkanCtx;
 	std::unique_ptr<pvz::VulkanRenderer>    m_vulkanRenderer;
 	std::unique_ptr<pvz::VulkanTexturePool> m_vulkanTexPool;
+	std::unique_ptr<pvz::OpenGLRenderer> m_openGLRenderer;
+	std::unique_ptr<pvz::OpenGLTextureBackend> m_openGLTextureBackend;
+	pvz::RendererBackend m_selectedRenderer = pvz::RendererBackend::Vulkan;
+	std::string m_vulkanStartupError;
+	std::string m_openGLStartupError;
 
 	bool mRunning;
 	bool mInitialized;
@@ -83,6 +89,9 @@ private:
 	bool InitializeSDL_TTF();
 	bool InitializeAudioSystem();
 	bool CreateWindowAndRenderer();
+	bool TryCreateVulkanRenderer(std::string& error);
+	bool TryCreateOpenGLRenderer(std::string& error);
+	void DestroyRenderWindow();
 	bool InitializeResourceManager();
 	bool LoadAllResources();
 	void CleanupResources();
@@ -96,6 +105,8 @@ public:
 	inline static bool mForceVulkan12 = false;        // -Vulkan12：把 instance/device 能力协商限制到 Vulkan 1.2
 	inline static bool mForceLegacyRendering = false; // -VulkanLegacyRendering：屏蔽 dynamic rendering 路径
 	inline static bool mForceLegacySync = false;      // -VulkanLegacySync：屏蔽 synchronization2 路径
+	inline static pvz::RendererPreference mRendererPreference = pvz::RendererPreference::Auto;
+	inline static bool mTestForceVulkanInitFailure = false; // 显式测试开关，不影响正常玩家启动
 	inline static bool mAutoTestMode = false;         // -AutoTest 自动化测试模式：默认禁存档读写、由 TestDriver 驱动
 	inline static bool mAutoTestLoadSave = false;     // -AutoTestLoadSave：仅允许读取当前关卡存档，所有保存/删除仍短路
 	inline static bool mDevelopMode = false;          // -develop 开发者模式（RSHIFT 键面板）
@@ -111,15 +122,19 @@ public:
 	// 获取 Graphics 对象
 	Graphics& GetGraphics() { return *m_graphics; }
 
-	// AutoTest 截图入口
+	// AutoTest 与诊断入口
+	pvz::CaptureBackend* GetCaptureBackend() const { return m_graphics ? m_graphics->GetCaptureBackend() : nullptr; }
 	pvz::VulkanRenderer* GetVulkanRenderer() const { return m_vulkanRenderer.get(); }
 	pvz::VulkanContext* GetVulkanContext() const { return m_vulkanCtx.get(); }
+	pvz::OpenGLRenderer* GetOpenGLRenderer() const { return m_openGLRenderer.get(); }
+	pvz::RendererBackend GetSelectedRenderer() const { return m_selectedRenderer; }
+	const std::string& GetVulkanStartupError() const { return m_vulkanStartupError; }
 
-	// 应用新的垂直同步设置：写 mVsync + 热重建 swapchain（不重启）。
+	// 应用新的垂直同步设置：OpenGL 更新 swap interval；Vulkan 热重建 swapchain。
 	// 必须在主线程、帧外（不在 BeginFrame..EndFrame 之间）调用。
 	bool ApplyVsync(bool vsync);
 
-	// 切换全屏：SDL_SetWindowFullscreen(FULLSCREEN_DESKTOP) + 热重建 swapchain + 重算 letterbox。
+	// 切换全屏：SDL_SetWindowFullscreen(FULLSCREEN_DESKTOP) + 后端尺寸刷新 + 重算 letterbox。
 	// 画面等比居中、UI 逻辑坐标不变、黑边补齐。必须在主线程、帧外调用。
 	// 按钮直接调用此函数即可（主人自行接 UI）。
 	bool SetFullscreen(bool fullscreen);

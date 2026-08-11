@@ -40,6 +40,7 @@ private:
 	bool BuildStateJson(const std::string& opName, nlohmann::json& out);
 	void Finish();                          // 全部命令跑完，正常收尾
 	void Log(const std::string& msg);       // 写 run.log（带帧号）并 flush
+	void WriteStatus(const char* status, const std::string& detail = {});
 
 	bool mActive = false;
 	int  mExitCode = 0;

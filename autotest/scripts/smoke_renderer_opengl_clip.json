@@ -1,0 +1,22 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 19 },
+    { "op": "choose_cards", "cards": ["PLANT_LILYPAD", "PLANT_WALLNUT"] },
+    { "op": "wait_state", "state": "GAME", "timeout": 15 },
+    { "op": "set_spawn_paused", "value": true },
+    { "op": "set_sun", "value": 9000 },
+    { "op": "set_timescale", "value": 4.0 },
+    { "op": "plant", "type": "PLANT_LILYPAD", "row": 2, "col": 7 },
+    { "op": "plant", "type": "PLANT_WALLNUT", "row": 2, "col": 7 },
+    { "op": "spawn_zombie", "type": "ZOMBIE_POOL_NORMAL", "row": 2, "x": 930 },
+    { "op": "wait_seconds", "value": 5.0, "timeout": 8 },
+    { "op": "assert_state", "path": "graphics.renderer", "equals": "opengl" },
+    { "op": "assert_state", "path": "zombies.0.inPool", "equals": true },
+    { "op": "assert_state", "path": "zombies.0.isEating", "equals": true },
+    { "op": "screenshot", "name": "waterline_clip.png" },
+    { "op": "wait_frames", "value": 2 },
+    { "op": "assert_state", "path": "graphics.lastFrameScissorChanges", "equals": 0 },
+    { "op": "dump_state", "name": "clip_state.json" },
+    { "op": "quit" }
+  ]
+}

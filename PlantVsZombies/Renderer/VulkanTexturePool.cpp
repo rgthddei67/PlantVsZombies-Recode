@@ -24,6 +24,9 @@ namespace pvz {
 
 	bool VulkanTexturePool::Initialize(VulkanContext* ctx) {
 		mCtx = ctx;
+		VkPhysicalDeviceProperties deviceProperties{};
+		vkGetPhysicalDeviceProperties(mCtx->PhysicalDevice(), &deviceProperties);
+		mMaxTextureSize = static_cast<int>(deviceProperties.limits.maxImageDimension2D);
 
 		// mipmap 能力：生成 mip 链要求 R8G8B8A8_UNORM 在 optimal tiling 下支持
 		// blit 源/目标 + linear 过滤采样。查询一次，不支持则全部纹理回退单级。
@@ -294,6 +297,8 @@ namespace pvz {
 		}
 
 		auto t = std::make_unique<VulkanTexture>();
+		t->backend = RendererBackend::Vulkan;
+		t->bindingId = idx;
 		t->width = width;
 		t->height = height;
 		t->bindlessIndex = idx;
@@ -357,7 +362,14 @@ namespace pvz {
 		return raw;
 	}
 
-	void VulkanTexturePool::DestroyTexture(VulkanTexture* tex) {
+	bool VulkanTexturePool::UpdateTextureRGBA8(RenderTexture*, int, int, int, int, const void*) {
+		// 当前 Vulkan 资源均为只读贴图；运行时字体采用整张重建。保留明确失败语义，
+		// 避免在未知 image layout 上做不安全的原地更新。
+		return false;
+	}
+
+	void VulkanTexturePool::DestroyTexture(RenderTexture* texture) {
+		auto* tex = dynamic_cast<VulkanTexture*>(texture);
 		if (!tex || !mCtx) return;
 		const uint32_t idx = tex->bindlessIndex;
 		if (idx >= mTextures.size() || mTextures[idx].get() != tex) return;

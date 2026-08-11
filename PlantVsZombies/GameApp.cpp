@@ -2,6 +2,8 @@
 #include "./Renderer/VulkanContext.h"
 #include "./Renderer/VulkanRenderer.h"
 #include "./Renderer/VulkanTexturePool.h"
+#include "./Renderer/OpenGLRenderer.h"
+#include "./Renderer/OpenGLTextureBackend.h"
 #include <SDL2/SDL_vulkan.h>
 #include "./UI/InputHandler.h"
 #include "./ResourceManager.h"
@@ -109,74 +111,164 @@ bool GameAPP::InitializeAudioSystem()
 	return true;
 }
 
-bool GameAPP::CreateWindowAndRenderer()
+void GameAPP::DestroyRenderWindow()
 {
-	// Phase 3a：Vulkan 窗口。SDL_WINDOW_VULKAN 让 SDL 在创建窗口时加载 Vulkan loader，
-	// 并把窗口标记为 Vulkan 兼容（影响 surface 创建路径）。
-	mWindow = SDL_CreateWindow(u8"植物大战僵尸中文版",
-		SDL_WINDOWPOS_CENTERED,
-		SDL_WINDOWPOS_CENTERED,
-		SCENE_WIDTH, SCENE_HEIGHT,
-		SDL_WINDOW_VULKAN | SDL_WINDOW_SHOWN);
+	m_openGLTextureBackend.reset();
+	m_openGLRenderer.reset();
+	m_vulkanTexPool.reset();
+	m_vulkanRenderer.reset();
+	m_vulkanCtx.reset();
+	if (mWindow) {
+		SDL_DestroyWindow(mWindow);
+		mWindow = nullptr;
+	}
+}
 
+bool GameAPP::TryCreateVulkanRenderer(std::string& error)
+{
+	mWindow = SDL_CreateWindow(u8"植物大战僵尸中文版",
+		SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+		SCENE_WIDTH, SCENE_HEIGHT,
+		SDL_WINDOW_VULKAN | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
 	if (!mWindow) {
-		LOG_ERROR("GameApp") << "窗口创建失败: " << SDL_GetError();
+		error = std::string("Vulkan window: ") + SDL_GetError();
+		return false;
+	}
+	if (mTestForceVulkanInitFailure) {
+		error = "stage=VulkanContext errorCode=TEST_FORCED_VULKAN_INIT_FAILURE "
+			"detail=-TestVulkanInitFailure 显式模拟初始化失败";
 		return false;
 	}
 
-	// 校验层：Debug 构建打开；Release 关闭以减少开销。
 #ifdef _DEBUG
 	const bool enableValidation = true;
 #else
 	const bool enableValidation = false;
 #endif
-
 	m_vulkanCtx = std::make_unique<pvz::VulkanContext>();
 	if (!m_vulkanCtx->Initialize(mWindow, enableValidation, mVsync,
 		mForceVulkan12, mForceLegacyRendering, mForceLegacySync)) {
-		LOG_ERROR("GameApp") << "VulkanContext 初始化失败";
+		error = "VulkanContext: " + (m_vulkanCtx->LastError().empty()
+			? std::string("初始化失败; SDL=") + SDL_GetError()
+			: m_vulkanCtx->LastError());
 		return false;
 	}
-
 	m_vulkanRenderer = std::make_unique<pvz::VulkanRenderer>();
 	if (!m_vulkanRenderer->Initialize(m_vulkanCtx.get())) {
-		LOG_ERROR("GameApp") << "VulkanRenderer 初始化失败";
+		error = "VulkanRenderer: 帧资源或交换链渲染器初始化失败";
 		return false;
 	}
-
-	// Phase 3b：bindless 纹理池——LoadAllResources 把所有纹理上传到这里取得 slot；
-	// Graphics::InitializeVulkan 也需要它来构 batch pipeline 的 descriptor layout。
 	m_vulkanTexPool = std::make_unique<pvz::VulkanTexturePool>();
 	if (!m_vulkanTexPool->Initialize(m_vulkanCtx.get())) {
-		LOG_ERROR("GameApp") << "VulkanTexturePool 初始化失败";
+		error = "VulkanTexturePool: bindless 纹理资源初始化失败";
 		return false;
 	}
+	return true;
+}
 
-	// 创建 Graphics 实例并初始化（Phase 3b：CPU 端默认，Vulkan 资源在 InitializeVulkan 时挂上）
+bool GameAPP::TryCreateOpenGLRenderer(std::string& error)
+{
+	SDL_GL_ResetAttributes();
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 0);
+	SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 0);
+	mWindow = SDL_CreateWindow(u8"植物大战僵尸中文版",
+		SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+		SCENE_WIDTH, SCENE_HEIGHT,
+		SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
+	if (!mWindow) {
+		error = std::string("OpenGL window: ") + SDL_GetError();
+		return false;
+	}
+	m_openGLRenderer = std::make_unique<pvz::OpenGLRenderer>();
+	if (!m_openGLRenderer->Initialize(mWindow, mVsync, error)) return false;
+	m_openGLTextureBackend = std::make_unique<pvz::OpenGLTextureBackend>();
+	if (!m_openGLTextureBackend->Initialize(m_openGLRenderer->Api())) {
+		error = "OpenGLTextureBackend: GL_MAX_TEXTURE_SIZE 或纹理入口无效";
+		return false;
+	}
+	return true;
+}
+
+bool GameAPP::CreateWindowAndRenderer()
+{
+	LOG_WARN("Startup") << "Renderer requested=" << pvz::RendererPreferenceName(mRendererPreference)
+		<< " SDL video driver=" << (SDL_GetCurrentVideoDriver() ? SDL_GetCurrentVideoDriver() : "unknown");
+
+	bool created = false;
+	if (mRendererPreference != pvz::RendererPreference::OpenGL) {
+		created = TryCreateVulkanRenderer(m_vulkanStartupError);
+		if (created) {
+			m_selectedRenderer = pvz::RendererBackend::Vulkan;
+		}
+		else {
+			LOG_WARN("Startup") << "Vulkan 初始化失败: " << m_vulkanStartupError;
+			DestroyRenderWindow();
+			SDL_Vulkan_UnloadLibrary();
+			if (mRendererPreference == pvz::RendererPreference::Vulkan) {
+				SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Vulkan 初始化失败",
+					m_vulkanStartupError.c_str(), nullptr);
+				return false;
+			}
+			LOG_WARN("Startup") << "Renderer auto: 完整清理 Vulkan 后尝试 OpenGL 3.3 Core";
+		}
+	}
+
+	if (!created) {
+		created = TryCreateOpenGLRenderer(m_openGLStartupError);
+		if (created) {
+			m_selectedRenderer = pvz::RendererBackend::OpenGL;
+		}
+		else {
+			LOG_ERROR("Startup") << "OpenGL 初始化失败: " << m_openGLStartupError;
+			DestroyRenderWindow();
+			const std::string message = "无法初始化渲染器。\nVulkan: "
+				+ (m_vulkanStartupError.empty() ? std::string("未请求") : m_vulkanStartupError)
+				+ "\nOpenGL: " + m_openGLStartupError;
+			SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "渲染器初始化失败", message.c_str(), nullptr);
+			return false;
+		}
+	}
+
 	m_graphics = std::make_unique<Graphics>();
 	if (!m_graphics->Initialize(SCENE_WIDTH, SCENE_HEIGHT)) {
 		LOG_ERROR("GameApp") << "Graphics 初始化失败";
+		DestroyRenderWindow();
 		return false;
 	}
-	if (!m_graphics->InitializeVulkan(m_vulkanCtx.get(), m_vulkanRenderer.get(), m_vulkanTexPool.get())) {
-		LOG_ERROR("GameApp") << "Graphics::InitializeVulkan 失败";
+	const bool graphicsReady = m_selectedRenderer == pvz::RendererBackend::Vulkan
+		? m_graphics->InitializeVulkan(m_vulkanCtx.get(), m_vulkanRenderer.get(), m_vulkanTexPool.get())
+		: m_graphics->InitializeOpenGL(m_openGLRenderer.get(), m_openGLTextureBackend.get());
+	if (!graphicsReady) {
+		LOG_ERROR("GameApp") << "Graphics 后端接入失败: " << pvz::RendererBackendName(m_selectedRenderer);
+		m_graphics.reset();
+		DestroyRenderWindow();
 		return false;
 	}
 
-	// Task 7: apply A/B toggle from startup flag
-	m_graphics->SetInstancePathEnabled(!mDisableInstancePath);
-	if (mDisableInstancePath) {
-		LOG_DEBUG("GameApp") << "Instance path 关闭 — reanim 全走 slow path (DrawTextureMatrix)";
+	if (m_selectedRenderer == pvz::RendererBackend::Vulkan) {
+		m_graphics->SetInstancePathEnabled(!mDisableInstancePath);
+		if (mDisableInstancePath) LOG_WARN("GameApp") << "Vulkan -NoInstance: reanim 使用 CPU slow path";
+	}
+	else {
+		m_graphics->SetInstancePathEnabled(false);
+		if (mDisableInstancePath) {
+			LOG_WARN("GameApp") << "OpenGL -NoInstance: 兼容后端默认使用 CPU Batch，画面路径不变";
+		}
 	}
 
-	// 设置默认清屏颜色（0~255 输入，内部归一化）。
-	// 用黑色：全屏 letterbox 时清屏色只在黑边区域可见，黑边即由此而来；
-	// 窗口模式下背景图铺满逻辑画面，清屏色不可见，无副作用。
 	m_graphics->SetClearColor(0, 0, 0, 255);
-
-	// 初始化 letterbox 参数（窗口模式 scale=1/offset=0）。
 	m_graphics->RecomputeLetterbox();
-
+	LOG_WARN("Startup") << "Renderer selected=" << pvz::RendererBackendName(m_selectedRenderer);
+#if defined(_WIN32)
+	if (m_selectedRenderer == pvz::RendererBackend::OpenGL) {
+		LOG_WARN("Startup") << "OpenGL path Vulkan runtime loaded="
+			<< (GetModuleHandleW(L"vulkan-1.dll") ? "yes" : "no");
+	}
+#endif
 	return true;
 }
 
@@ -197,8 +289,10 @@ bool GameAPP::InitializeResourceManager()
 
 	ResourceManager& resourceManager = ResourceManager::GetInstance();
 
-	// Phase 3b：先注入 Vulkan 纹理池，再 Initialize 读 XML；LoadAllResources 上传时就能拿到 pool。
-	resourceManager.SetVulkanTexturePool(m_vulkanTexPool.get());
+	// 先注入选中后端的纹理生命周期接口，再读取/上传资源。
+	resourceManager.SetTextureBackend(m_selectedRenderer == pvz::RendererBackend::Vulkan
+		? static_cast<pvz::TextureBackend*>(m_vulkanTexPool.get())
+		: static_cast<pvz::TextureBackend*>(m_openGLTextureBackend.get()));
 
 	if (!resourceManager.Initialize("./resources/resources.xml")) {
 		LOG_ERROR("GameApp") << "ResourceManager 初始化失败！";
@@ -308,10 +402,7 @@ int GameAPP::Run()
 		CleanupResources();
 		AudioSystem::Shutdown();
 		m_graphics.reset();
-		m_vulkanTexPool.reset();
-		m_vulkanRenderer.reset();
-		m_vulkanCtx.reset();
-		SDL_DestroyWindow(mWindow);
+		DestroyRenderWindow();
 		TTF_Quit();
 		IMG_Quit();
 		SDL_Quit();
@@ -324,10 +415,7 @@ int GameAPP::Run()
 		AudioSystem::Shutdown();
 		CursorManager::GetInstance().Cleanup();
 		m_graphics.reset();
-		m_vulkanTexPool.reset();
-		m_vulkanRenderer.reset();
-		m_vulkanCtx.reset();
-		SDL_DestroyWindow(mWindow);
+		DestroyRenderWindow();
 		TTF_Quit();
 		IMG_Quit();
 		SDL_Quit();
@@ -387,6 +475,13 @@ int GameAPP::Run()
 				if (event.type == SDL_QUIT)
 				{
 					mRunning = false;
+				}
+				else if (event.type == SDL_WINDOWEVENT
+					&& (event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED
+						|| event.window.event == SDL_WINDOWEVENT_RESIZED)) {
+					if (m_graphics && m_selectedRenderer == pvz::RendererBackend::OpenGL) {
+						m_graphics->RecomputeLetterbox();
+					}
 				}
 				mInputHandler->ProcessEvent(&event);
 			}
@@ -482,6 +577,17 @@ void GameAPP::Draw()
 
 bool GameAPP::ApplyVsync(bool vsync)
 {
+	if (m_selectedRenderer == pvz::RendererBackend::OpenGL) {
+		if (!m_openGLRenderer) return false;
+		std::string error;
+		if (!m_openGLRenderer->ApplyVsync(vsync, error)) {
+			LOG_ERROR("GameApp") << error;
+			return false;
+		}
+		mVsync = vsync;
+		LOG_WARN("OpenGL") << "VSync=" << (mVsync ? "on" : "off");
+		return true;
+	}
 	if (!m_vulkanCtx || !m_vulkanRenderer) return false;
 	mVsync = vsync;
 	if (!m_vulkanCtx->RecreateSwapchain(mVsync)) return false;
@@ -493,7 +599,7 @@ bool GameAPP::ApplyVsync(bool vsync)
 
 bool GameAPP::SetFullscreen(bool fullscreen)
 {
-	if (!mWindow || !m_vulkanCtx || !m_vulkanRenderer || !m_graphics) return false;
+	if (!mWindow || !m_graphics) return false;
 
 	// FULLSCREEN_DESKTOP：沿用桌面分辨率、不切显示模式、Alt-Tab 顺滑。0 = 还原窗口。
 	Uint32 flag = fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0;
@@ -502,8 +608,14 @@ bool GameAPP::SetFullscreen(bool fullscreen)
 		return false;
 	}
 	mFullscreen = fullscreen;
+	if (m_selectedRenderer == pvz::RendererBackend::OpenGL) {
+		SDL_PumpEvents();
+		m_graphics->RecomputeLetterbox();
+		return true;
+	}
 
 	// 交换链尺寸随之改变，需热重建并重算 letterbox（缩放比 + 黑边偏移）。
+	if (!m_vulkanCtx || !m_vulkanRenderer) return false;
 	if (!m_vulkanCtx->RecreateSwapchain(mVsync)) return false;
 	if (!m_vulkanRenderer->OnSwapchainRecreated()) return false;
 	m_vulkanRenderer->ClearSwapchainRebuildFlag();
@@ -528,7 +640,7 @@ void GameAPP::Shutdown()
 	GameObjectManager::GetInstance().ClearAll();
 	CollisionSystem::GetInstance().ClearAll();
 
-	// 清理资源管理器 (会通过 VulkanTexturePool 释放每张 bindless 纹理 —— 此时 pool 必须仍存活)
+	// 资源与文字缓存都必须在当前 TextureBackend/Context 仍存活时释放。
 	ResourceManager::ReleaseInstance();
 
 	// 清理文字缓存 (Graphics 内部有缓存)
@@ -542,20 +654,11 @@ void GameAPP::Shutdown()
 	// 清理输入处理器
 	mInputHandler.reset();
 
-	// 清理 Graphics（Phase 3b：内部会先 ShutdownVulkan 释放 pipeline / 缓冲 / descriptor pool —— 需要 ctx 仍存活）
+	// Graphics 先释放白纹理和后端专用 pipeline/buffer。
 	m_graphics.reset();
 
-	// 清理 Vulkan：先纹理池（依赖 ctx），再 renderer，最后 ctx；都在 SDL_DestroyWindow 之前——
-	// VulkanContext 析构会销毁 surface，而 surface 来自该窗口
-	m_vulkanTexPool.reset();
-	m_vulkanRenderer.reset();
-	m_vulkanCtx.reset();
-
-	// 清理窗口
-	if (mWindow) {
-		SDL_DestroyWindow(mWindow);
-		mWindow = nullptr;
-	}
+	// GL: texture backend → renderer/context → window；Vulkan: pool → renderer → context → window。
+	DestroyRenderWindow();
 
 	// 清理光标管理器
 	CursorManager::GetInstance().Cleanup();

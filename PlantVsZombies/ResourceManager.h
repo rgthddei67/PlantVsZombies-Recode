@@ -5,6 +5,7 @@
 #include "./Reanimation/Reanimation.h"
 #include "./Reanimation/AnimationTypes.h"
 #include "ResourcesXMLConfigReader.h"
+#include "Renderer/RenderBackend.h"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_ttf.h>
@@ -17,26 +18,24 @@
 #include <list>
 #include <vector>
 
-namespace pvz { class VulkanTexturePool; struct VulkanTexture; }
-
-// 纹理信息：id = bindless slot 索引；vkTex 为拥有的底层 VulkanTexture（Unload 时回收槽位 + 销毁 image）
+// 后端无关纹理信息；具体 Vulkan/OpenGL 对象只由 TextureBackend 创建和销毁。
 struct Texture {
-	uint32_t id = 0;           // Phase 3b: bindlessIndex（8192 槽位之一）
 	int width = 0;
 	int height = 0;
-	// Phase 3b: 拥有的 VulkanTexture* —— 用于 Unload 时回收 bindless 槽位 + 销毁 image
-	pvz::VulkanTexture* vkTex = nullptr;
+	pvz::RenderTexture* renderTexture = nullptr;
+
+	uint32_t BindingId() const { return renderTexture ? renderTexture->bindingId : 0; }
 
 	// —— 图集映射 ——
 	// 若 atlasPage != nullptr，说明本纹理已被打进 atlasPage 指向的图集页，
-	// 绘制时应改用 atlasPage->id，并把 [0,1] UV 重映射到 [aU0,aU1]x[aV0,aV1]。
+	// 绘制时应改用 atlasPage->BindingId()，并把 [0,1] UV 重映射到对应区域。
 	const Texture* atlasPage = nullptr;
 	float aU0 = 0.0f, aV0 = 0.0f, aU1 = 1.0f, aV1 = 1.0f;
 };
 
 class ResourceManager {
 private:
-	// OpenGL 纹理缓存
+	// 后端无关纹理缓存
 	std::unordered_map<std::string, Texture> mTextures;
 
 	// 动画缓存
@@ -58,13 +57,13 @@ private:
 	ResourcesXMLConfigReader configReader;
 
 	static ResourceManager* instance;
-	pvz::VulkanTexturePool* mTexturePool = nullptr;
+	pvz::TextureBackend* mTextureBackend = nullptr;
 	ResourceManager() {}
 
 	// 加载分割贴图
-	bool LoadTiledTextureGL(const TiledImageInfo& info, const std::string& prefix);
+	bool LoadTiledTexture(const TiledImageInfo& info, const std::string& prefix);
 
-	// 把已解码的 ABGR8888 surface 上传 Vulkan 并插入 mTextures（接管 converted 所有权）。
+	// 把已解码的 ABGR8888 surface 上传当前后端并插入 mTextures（接管 converted 所有权）。
 	// 仅主线程调用；上传失败仍按原语义插入空 Texture 并返回其指针。
 	const Texture* UploadDecodedTexture(SDL_Surface* converted, const std::string& key, const std::string& filepath);
 
@@ -84,8 +83,8 @@ public:
 
 	bool Initialize(const std::string& configPath = "./resources/resources.xml");
 
-	// Phase 3b：由 GameApp 在初始化期注入。LoadTexture / LoadTiledTextureGL 会通过它上传像素并获取 bindless 槽位。
-	void SetVulkanTexturePool(pvz::VulkanTexturePool* pool) { mTexturePool = pool; }
+	// 由 GameApp 在渲染后端就绪后注入；资源层不解释具体 GPU 句柄。
+	void SetTextureBackend(pvz::TextureBackend* backend) { mTextureBackend = backend; }
 
 	// 加载纹理，返回纹理信息指针，失败返回 nullptr
 	const Texture* LoadTexture(const std::string& filepath, const std::string& key = "");
@@ -105,8 +104,8 @@ public:
 	bool LoadAllSounds();
 	bool LoadAllMusic();
 	bool LoadAllReanimations();
-	// 把所有 reanim 引用到的部件纹理打进图集页，消除批渲染时的纹理单元抖动。
-	// 必须在 GL 上下文就绪、且 LoadAllReanimations 之后调用。
+	// 在支持图集页的后端上，把 reanim 部件纹理打进图集，降低单 sampler 的纹理切换。
+	// 必须在纹理后端就绪、且 LoadAllReanimations 之后调用。
 	void BuildReanimAtlases();
 	/// @brief 加载 ./resources/image/reanim/ 目录下的所有 JPG/PNG 图片，使用文件名（不含扩展名）作为键名
 	/// @param directory 要扫描的目录，默认为 "./resources/image/reanim/"

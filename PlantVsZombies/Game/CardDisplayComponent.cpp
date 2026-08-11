@@ -55,7 +55,7 @@ void CardDisplayComponent::Update() {
 	// 已销毁纹理，使数字按新分辨率重新光栅化以保持锐利。
 	{
 		Graphics& g = GameAPP::GetInstance().GetGraphics();
-		if (mCachedSunValue != needSun || mSunTextCache.textureID == 0 || g.IsCachedTextStale(mSunTextCache)) {
+		if (mCachedSunValue != needSun || mSunTextCache.BindingId() == 0 || g.IsCachedTextStale(mSunTextCache)) {
 			mSunTextCache = g.AcquireTextTexture(std::to_string(needSun),
 				ResourceKeys::Fonts::FONT_FZCQ,
 				kSunTextRasterSize,

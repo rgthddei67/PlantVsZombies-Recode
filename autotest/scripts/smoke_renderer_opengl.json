@@ -1,0 +1,31 @@
+{
+  "commands": [
+    { "op": "wait_frames", "value": 10 },
+    { "op": "screenshot", "name": "main_menu.png" },
+    { "op": "set_vsync", "value": true },
+    { "op": "set_fullscreen", "value": true },
+    { "op": "wait_frames", "value": 5 },
+    { "op": "screenshot", "name": "fullscreen.png" },
+    { "op": "set_fullscreen", "value": false },
+    { "op": "set_vsync", "value": false },
+    { "op": "goto_level", "level": 1 },
+    { "op": "choose_cards", "cards": ["PLANT_PEASHOOTER", "PLANT_CHERRYBOMB"] },
+    { "op": "wait_state", "state": "GAME", "timeout": 15 },
+    { "op": "set_spawn_paused", "value": true },
+    { "op": "set_sun", "value": 2000 },
+    { "op": "show_zombie_hp", "on": true },
+    { "op": "plant", "type": "PLANT_PEASHOOTER", "row": 2, "col": 1 },
+    { "op": "spawn_zombie", "type": "ZOMBIE_TRAFFIC_CONE", "row": 2, "x": 650 },
+    { "op": "wait_seconds", "value": 1.0 },
+    { "op": "screenshot", "name": "gameplay_reanim_glyph.png" },
+    { "op": "plant", "type": "PLANT_CHERRYBOMB", "row": 2, "col": 5 },
+    { "op": "wait_seconds", "value": 1.2 },
+    { "op": "screenshot", "name": "particle_blend.png" },
+    { "op": "wait_frames", "value": 30 },
+    { "op": "assert_state", "path": "graphics.renderer", "equals": "opengl" },
+    { "op": "assert_state", "path": "graphics.openGLBatchCount", "atLeast": 1 },
+    { "op": "assert_state", "path": "graphics.lastFrameScissorChanges", "equals": 0 },
+    { "op": "dump_state", "name": "renderer_state.json" },
+    { "op": "quit" }
+  ]
+}
