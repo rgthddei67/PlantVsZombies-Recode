@@ -2471,6 +2471,11 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 
 	out["boardState"] = BoardStateName(board->mBoardState);
 	out["chooseCardReady"] = gs->IsChooseCardReady();
+	out["paused"] = DeltaTime::IsPaused();
+	out["spacePauseActive"] = gs->IsSpacePauseActiveForTesting();
+	out["pauseMenuOpen"] = gs->IsPauseMenuOpenForTesting();
+	out["selectedTimeScaleOn1000"] = static_cast<int>(std::lround(
+		DeltaTime::GetSelectedTimeScale() * 1000.0f));
 	out["level"] = board->mLevel;
 	out["levelName"] = board->mLevelName;
 	out["background"] = BackgroundName(board->mBackGround);

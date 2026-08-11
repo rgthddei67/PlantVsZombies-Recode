@@ -178,6 +178,8 @@ public:
 	RainIntensity GetFailedForecastRainIntensity() const { return mFailedForecastRainIntensity; }
 	RainIntensity GetActualForecastRainIntensity() const { return mActualForecastRainIntensity; }
 	int GetPoolEffectCounter() const { return mPoolEffectCounter; }
+	bool IsSpacePauseActiveForTesting() const { return mSpacePauseActive; }
+	bool IsPauseMenuOpenForTesting() const { return mOpenMenu; }
 	/** 返回当前屋脊督军及底部血条的纯派生展示状态。 */
 	RoofMarshalBossHealthBarState GetRoofMarshalBossHealthBarState() const;
 
@@ -259,6 +261,7 @@ private:
 	bool mOpenMenu = false;
 	bool mOpenRestartMenu = false;
 	bool mOpenQuitMenu = false;
+	bool mSpacePauseActive = false;  // 空格触发的轻量暂停；只显示顶部文字，不创建遮挡战场的菜单
 
 	bool mReadyToBackMenu = false;
 	bool mReadyToRestart = false;
@@ -325,6 +328,10 @@ private:
 	void OpenMenu();
 	void OpenRestartMenu();
 	void OpenQuitMenu();
+	/** 切换空格键轻量暂停；其他模态暂停打开时不抢占其所有权。 */
+	void ToggleSpacePause();
+	/** 在画面上方中央绘制轻量暂停文字。 */
+	void DrawSpacePauseLabel(Graphics* g) const;
 
 	// ---- 开发者模式 ----
 	void OpenDevPanel();

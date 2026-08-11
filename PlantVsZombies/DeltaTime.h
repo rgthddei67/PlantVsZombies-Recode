@@ -85,6 +85,22 @@ public:
 	// 获取当前时间缩放系数
 	static float GetTimeScale() { return timeScale; }
 
+	/**
+	 * 设置玩家选中的正数倍速；暂停期间只更新恢复后的倍速，不会解除暂停。
+	 */
+	static void SetSelectedTimeScale(float scale) {
+		if (scale <= 0.0f) return;
+		if (isPaused) savedTimeScale = scale;
+		else timeScale = scale;
+	}
+
+	/** 返回玩家当前选中的倍速；暂停期间返回待恢复值而不是实际的 0。 */
+	static float GetSelectedTimeScale() {
+		return isPaused
+			? ((savedTimeScale > 0.0f) ? savedTimeScale : 1.0f)
+			: timeScale;
+	}
+
 	// 暂停/恢复游戏
 	static void SetPaused(bool paused) {
 		if (paused) {

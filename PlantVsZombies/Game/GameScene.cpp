@@ -67,6 +67,8 @@ namespace {
 	constexpr float kPromptBandHorizontalInset = 58.0f;   // 横幅左右留白，避免贴住画面边缘（逻辑像素）
 	constexpr float kPromptTextHoldPulse = 0.015f;        // 文字停留阶段的呼吸缩放幅度
 	constexpr float kPromptTextHoldPulseSpeed = 12.0f;    // 文字停留阶段的呼吸频率（弧度/游戏秒）
+	constexpr float kSpacePauseLabelY = 72.0f;            // 轻量暂停文字顶部，避开种子槽与右上角按钮
+	constexpr int kSpacePauseLabelFontSize = 32;          // 轻量暂停文字字号，保持醒目但不遮挡战场
 	constexpr float kHeavyRainPromptAppearDuration = 0.28f; // 大雨警报压入画面的时长（游戏秒）
 	constexpr float kHeavyRainPromptHoldDuration = 3.85f; // 大雨警报完全可读的停留时长（游戏秒）
 	constexpr float kHeavyRainPromptFadeDuration = 0.55f; // 大雨警报放大淡出的时长（游戏秒）
@@ -378,6 +380,17 @@ void GameScene::Draw(Graphics* g)
 		mShakeCameraApplied = false;
 	}
 	Scene::Draw(g);
+}
+
+/** 只在空格键轻量暂停期间绘制紧凑提示，不为其他模态暂停重复叠字。 */
+void GameScene::DrawSpacePauseLabel(Graphics* g) const
+{
+	if (!g || !mSpacePauseActive) return;
+	const float centerX = static_cast<float>(SCENE_WIDTH) * 0.5f;
+	DrawCenteredUiText(g, u8"游戏暂停", kSpacePauseLabelFontSize,
+		glm::vec4(0.0f, 0.0f, 0.0f, 220.0f), centerX + 2.0f, kSpacePauseLabelY + 2.0f);
+	DrawCenteredUiText(g, u8"游戏暂停", kSpacePauseLabelFontSize,
+		glm::vec4(255.0f, 244.0f, 196.0f, 255.0f), centerX, kSpacePauseLabelY);
 }
 
 /** 绘制四大关逐格迷雾；玩法状态完全来自 Board，UI 继续位于雾层之上。 */
@@ -1222,6 +1235,9 @@ void GameScene::BuildDrawCommands()
 		RegisterDrawCommand("Prompts",
 			[this](Graphics* g) { DrawPrompts(g); },
 			LAYER_UI + 1000);
+		RegisterDrawCommand("SpacePauseLabel",
+			[this](Graphics* g) { DrawSpacePauseLabel(g); },
+			LAYER_UI + 2000);
 
 		// 全屏白闪（寒冰菇）：盖过场景与 Prompt，但在开发者角标（+100000）之下
 		RegisterDrawCommand("ScreenFlash",
@@ -1305,21 +1321,20 @@ void GameScene::OnEnter() {
 		std::snprintf(buf, sizeof(buf), "x%.1f", scale);
 		return std::string(buf);
 		};
-	button2->SetText(formatSpeedText(DeltaTime::GetTimeScale()));
+	button2->SetText(formatSpeedText(DeltaTime::GetSelectedTimeScale()));
 	button2->SetAsCheckbox(false);
 	button2->SetTextColor(glm::vec4{ 53, 191, 61, 255 });
 	button2->SetHoverTextColor(glm::vec4{ 53, 240, 61, 255 });
 	button2->SetImageKeys(ResourceKeys::Textures::IMAGE_BUTTONSMALL, ResourceKeys::Textures::IMAGE_BUTTONSMALL,
 		ResourceKeys::Textures::IMAGE_BUTTONSMALL, ResourceKeys::Textures::IMAGE_BUTTONSMALL);
 	button2->SetClickCallBack([this, formatSpeedText](bool) {
-		// 暂停时不响应点击，避免 SetTimeScale 把游戏从暂停状态拉回
-		if (DeltaTime::IsPaused()) return;
-		float current = DeltaTime::GetTimeScale();
+		// 暂停时只切换待恢复倍速；实际 timeScale 仍为 0，游戏不会因点击按钮而启动。
+		float current = DeltaTime::GetSelectedTimeScale();
 		float next = 1.0f;
 		if (current == 1.0f)      next = 2.0f;
 		else if (current == 2.0f) next = 0.5f;
 		else                       next = 1.0f;
-		DeltaTime::SetTimeScale(next);
+		DeltaTime::SetSelectedTimeScale(next);
 		if (auto btn = mSpeedSettingsButton.lock()) {
 			btn->SetText(formatSpeedText(next));
 		}
@@ -1414,9 +1429,13 @@ void GameScene::OnExit() {
 void GameScene::OpenMenu()
 {
 	if (mOpenMenu) return;
+	if (mOpenRestartMenu || mOpenQuitMenu) return;
 	if (mSurvivalPerkSelectActive) return;   // 选词条模态期间禁止打开暂停菜单（否则会在框下解除暂停）
 	if (mPerkViewActive) return;             // 词条查看面板打开期间禁止叠开暂停菜单
+	if (mDevPanelActive) return;             // 开发者面板拥有当前暂停，禁止叠开普通菜单
 
+	// 从轻量暂停切换到完整菜单时保持全程冻结，只把暂停 UI 的所有权交给菜单。
+	mSpacePauseActive = false;
 	mOpenMenu = true;
 	DeltaTime::SetPaused(true);
 	auto& gameApp = GameAPP::GetInstance();
@@ -1456,6 +1475,17 @@ void GameScene::OpenMenu()
 		.Text(Vector(498, 256), 14, u8"植物血量显示", labelColor)
 		.Text(Vector(634, 256), 14, u8"僵尸血量显示", labelColor)
 		.Show();
+}
+
+/** 空格键只拥有轻量暂停；完整菜单和其他暂停模态打开时不会被它意外解除。 */
+void GameScene::ToggleSpacePause()
+{
+	if (!mBoard || mBoard->mBoardState != BoardState::GAME) return;
+	if (mOpenMenu || mOpenRestartMenu || mOpenQuitMenu
+		|| mSurvivalPerkSelectActive || mPerkViewActive || mDevPanelActive) return;
+
+	mSpacePauseActive = !mSpacePauseActive;
+	DeltaTime::SetPaused(mSpacePauseActive);
 }
 
 void GameScene::OpenRestartMenu()
@@ -1505,19 +1535,16 @@ void GameScene::OpenQuitMenu()
 void GameScene::Update() {
 	Scene::Update();
 
-	// 水面沿用原版逐 Update 计数器，保持与游戏倍速和天气 DeltaTime 解耦。
-	if (mBoard && mBoard->IsPoolBackground()) {
+	// 水面沿用原版逐 Update 计数器，保持与游戏倍速和天气 DeltaTime 解耦；全局暂停仍冻结画面。
+	if (mBoard && mBoard->IsPoolBackground() && !DeltaTime::IsPaused()) {
 		++mPoolEffectCounter;
 	}
 
-	// 同步速度按钮文字与当前时间缩放（仅在非暂停时；暂停期间 timeScale=0，保持上一次显示）
-	// 这样 F3 切换 5x、菜单暂停后恢复用户速度，按钮文字都能保持一致
-	if (!DeltaTime::IsPaused()) {
-		if (auto btn = mSpeedSettingsButton.lock()) {
-			char buf[16];
-			std::snprintf(buf, sizeof(buf), "x%.1f", DeltaTime::GetTimeScale());
-			btn->SetText(buf);
-		}
+	// 暂停时显示待恢复倍速，非暂停时显示实际倍速；两种状态都可由同一按钮更新。
+	if (auto btn = mSpeedSettingsButton.lock()) {
+		char buf[16];
+		std::snprintf(buf, sizeof(buf), "x%.1f", DeltaTime::GetSelectedTimeScale());
+		btn->SetText(buf);
 	}
 
 	if (mBoard && !mReadyToRestart && !mReadyToBackMenu)
@@ -1566,15 +1593,20 @@ void GameScene::Update() {
 			}
 		}
 
-		if (mBoard->mBoardState != BoardState::LOSE_GAME && !this->mOpenRestartMenu && !devConsumedEsc && (input.IsKeyPressed(SDLK_SPACE) || input.IsKeyPressed(SDLK_ESCAPE))) {
-			if (this->mOpenMenu) {
+		if (!devConsumedEsc && input.IsKeyPressed(SDLK_SPACE)) {
+			ToggleSpacePause();
+		}
+		else if (mBoard->mBoardState != BoardState::LOSE_GAME
+			&& !mOpenRestartMenu && !mOpenQuitMenu && !devConsumedEsc
+			&& input.IsKeyPressed(SDLK_ESCAPE)) {
+			if (mOpenMenu) {
 				mOpenMenu = false;
 				DeltaTime::SetPaused(false);
 				GameObjectManager::GetInstance().DestroyGameObject(mMenu.lock());
 				mMenu.reset();
 			}
 			else {
-				this->OpenMenu();
+				OpenMenu();
 			}
 		}
 
