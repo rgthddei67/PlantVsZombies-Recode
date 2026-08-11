@@ -20,6 +20,8 @@ namespace {
 	constexpr int kSmashFrame = 93;                           // 主人指定的砸击结算全局帧
 	constexpr int kThrowReleaseFrame = 131;                   // 主人确认的小鬼脱手全局帧
 	constexpr int kDeathFrame = 196;                          // 主人指定的普通死亡回收全局帧
+	constexpr int kDeathSoundFrame = 190;                     // 主人指定的死亡音效触发全局帧
+
 	constexpr float kAnimSpeedMultiplierMin = 0.5f;            // 每只巨人整体动画倍率随机下限
 	constexpr float kAnimSpeedMultiplierMax = 0.7f;            // 每只巨人整体动画倍率随机上限
 	constexpr float kWalkClipSpeed = 1.0f;                    // 资源 12fps 的巨人稳态行走倍率
@@ -111,6 +113,10 @@ void GargantuarZombie::RegisterFrameEvents()
 	mAnimator->AddFrameEvent(kSmashFrame, [this]() { ApplySmashImpact(); }, true);
 	mAnimator->AddFrameEvent(kThrowReleaseFrame, [this]() { ReleaseImp(); }, true);
 	mAnimator->AddFrameEvent(kDeathFrame, [this]() { Die(); });
+	mAnimator->AddFrameEvent(kDeathSoundFrame, []() 
+	{ 	
+		AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_GARGANTUAR_THUMP, kOneShotVolume);
+	});
 }
 
 void GargantuarZombie::Update()
