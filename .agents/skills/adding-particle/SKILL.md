@@ -12,6 +12,12 @@ description: Use when adding or tuning ANY particle effect (粒子特效) in PvZ
 2026-08-01 补充 manifest/注册/运行时键闭环与多根 XML 校验口径。
 **改了引擎消费端（ParticleEmitter/ParticleXMLLoader）要回来同步本文档。**
 
+## 原版参考边界
+
+- 原版 XML、C# 触发代码和实际画面用于确定玩家可感知的功能契约：何时出现、由谁触发、包含哪些视觉层、持续多久、如何运动以及配什么声音。没有主人批准时，成品功能与反馈不得自行删减或改义。
+- 移植前逐项核对本引擎实际支持的标签、时间单位、坐标系、摩擦/字段语义、资源键和生命周期。原版参数只有在两边语义一致时才可原值采用；不一致时必须按当前引擎重建等价表现，禁止把 XML 当作可机械转写的数据表。
+- 实现差异必须由状态投影、最终世界矩形和同步截图共同证明仍符合原版表现；单纯“成功加载”或逐项改写数字不算行为等价。
+
 ## 心智模型
 
 - **一个 XML 文件 = 一个特效**，可含多个 `<Emitter>`（同时全部点燃，如 PeaBulletHit=飞溅+碎屑两发射器）。
@@ -130,7 +136,7 @@ description: Use when adding or tuning ANY particle effect (粒子特效) in PvZ
 
 **范围爆炸云**（JackExplode/CherryBomb）：用固定初始爆发数量 + `EmitterType Circle` + 非零 `EmitterRadius` + `RandomLaunchSpin 1`，云团 `Friction` 保持约 `0.015～0.02`，寿命至少 `0.6s`；碎片可另用更高速度和重力。禁止用 `.15,40 1` 配合超高初速冒充扩散，必须以实际 `worldBounds.widthInt/heightInt` 验收覆盖面。
 
-**原版 XML 移植口径**（Doom.xml→10 发射器大特效实证，逐条机械换算）：
+**原版 XML 语义移植口径**（Doom.xml→10 发射器大特效实证，逐项映射，禁止机械照搬）：
 1. 时间字段全部**厘秒→秒（÷100）**：ParticleDuration 150→1.5；SystemDuration 别照抄 400→4（原版仅回收判定），取"最长粒子寿命+余量"即可（→1.6）。
 2. **EmitterOffsetX/Y 在坐标系换算后减半**（本引擎双倍生效，foot-gun ②）：先求相对当前稳定锚点的目标局部偏移，再把该局部值除以 2；禁止机械套用原版绝对数值。
 3. **SystemField/SystemPosition 折算进 EmitterOffset**（本引擎不消费）：先把原版 SystemPosition 的视觉语义换算到当前 1100×600 场景/对象锚点，再与局部 EmitterOffset 合并并按双倍生效规则减半。

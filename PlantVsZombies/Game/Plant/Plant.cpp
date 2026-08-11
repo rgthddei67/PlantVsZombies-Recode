@@ -5,6 +5,7 @@
 #include "../ShadowComponent.h"
 #include "GameDataManager.h"
 #include "../../GameAPP.h"	// GameAPP::mShowPlantHP / Graphics / DrawText
+#include "../../Logger.h"
 #include <cmath>
 
 namespace {
@@ -20,6 +21,39 @@ namespace {
 	constexpr float kWakeUpBounceStartTime = 0.7f;         // 原版只在倒计时最后 70cs 做 EaseSinWave 纵向弹性
 	constexpr float kWakeUpVisualPivotOffsetY = 80.0f;     // 原版 reanim 局部底边枢轴，单位：px
 	constexpr float kMaximumShutdownDuration = 600.0f;     // 通用停机单次/读档允许的最大剩余秒数，防损坏档永久停工
+	constexpr float kSleepIndicatorOffsetX = 10.0f;        // C# mX+50 换算到本项目格中心后的通用水平偏移，单位：px
+	constexpr float kFumeSleepIndicatorExtraX = 12.0f;     // 大喷菇系原版额外右移量，单位：px
+	constexpr float kScaredySleepIndicatorOffsetY = -20.0f; // 胆小菇系原版额外上移量，单位：px
+	constexpr float kGloomSleepIndicatorOffsetY = -12.0f;  // 忧郁菇原版额外上移量，单位：px
+	constexpr float kSleepIndicatorReanimFps = 12.0f;      // Z.reanim 资源基础帧率，单位：fps
+	constexpr float kSleepIndicatorMinFps = 6.0f;          // 原版每个 Z 标识的随机最低播放帧率，单位：fps
+	constexpr float kSleepIndicatorMaxFps = 8.0f;          // 原版每个 Z 标识的随机最高播放帧率，单位：fps
+	constexpr float kSleepIndicatorMaxStartTime = 0.9f;    // 原版随机起始归一化时间上界，避免同屏完全同步
+
+	/**
+	 * 把 C# 以 80x80 左上角为基准的睡眠标识特例换算成本项目公共视觉锚点偏移。
+	 * 自创冰大喷与精英胆小菇沿用各自原型的可感知位置语义。
+	 */
+	Vector GetSleepIndicatorOffset(PlantType type)
+	{
+		Vector offset(kSleepIndicatorOffsetX, 0.0f);
+		switch (type) {
+		case PlantType::PLANT_FUMESHROOM:
+		case PlantType::PLANT_ICEFUMESHROOM:
+			offset.x += kFumeSleepIndicatorExtraX;
+			break;
+		case PlantType::PLANT_SCAREDYSHROOM:
+		case PlantType::PLANT_ELITE_SCAREDYSHROOM:
+			offset.y = kScaredySleepIndicatorOffsetY;
+			break;
+		case PlantType::PLANT_GLOOMSHROOM:
+			offset.y = kGloomSleepIndicatorOffsetY;
+			break;
+		default:
+			break;
+		}
+		return offset;
+	}
 }
 
 Plant::Plant(Board* board, PlantType plantType, int row, int column,
@@ -95,6 +129,9 @@ void Plant::UpdateParallel(std::vector<DeferredEvent>& outBuf)
 		return;
 	}
 	AnimatedObject::UpdateParallel(outBuf);
+	if (mSleepIndicatorAnimator) {
+		mSleepIndicatorAnimator->UpdateParallelDeferred(outBuf);
+	}
 }
 
 void Plant::TakeDamage(int damage, DamageSource source) {
@@ -145,7 +182,11 @@ void Plant::Update()
 	const bool actionPaused = IsActionPaused();
 	// 串行回退路径也直接跳过 Animator 推进；不要 Pause/Play，否则一次性轨道会被公共结束检查误判。
 	if (actionPaused) mAdvancedInParallel = true;
+	const bool animatedInParallel = mAdvancedInParallel;
 	AnimatedObject::Update();   // 非冲刷时待机动画照常推进，让植物在选卡阶段仍"活着"
+	if (mSleepIndicatorAnimator && !animatedInParallel) {
+		mSleepIndicatorAnimator->Update();
+	}
 	if (mIsSquished) {
 		if (!mIsPreview && mBoard && mBoard->mBoardState == BoardState::GAME) {
 			UpdateSquish();
@@ -223,6 +264,12 @@ Vector Plant::GetVisualAnchorPosition() const
 	return visual;
 }
 
+Vector Plant::GetSleepIndicatorPosition() const
+{
+	return GetVisualAnchorPosition() + mBungeeVisualOffset
+		+ GetSleepIndicatorOffset(mPlantType);
+}
+
 void Plant::PlantUpdate()
 {
 }
@@ -260,6 +307,8 @@ void Plant::RestoreSquishState(float remainingSeconds, const Vector& visualPosit
 
 void Plant::ApplySquishedPresentation()
 {
+	// 压扁残影不再表达“仍在睡觉”；立即移除独立 Z，读档恢复也走同一终态。
+	SyncSleepIndicator();
 	PauseAnimation();
 	const float pivotOffsetY = mBoard ? mBoard->GetCellHeight() : kDefaultSquishPivotOffsetY;
 	if (mAnimator) {
@@ -311,11 +360,55 @@ bool Plant::BeginWakeUp(float durationSeconds)
 	return true;
 }
 
+void Plant::SetSleepState(bool sleep)
+{
+	mIsSleeping = sleep;
+	SyncSleepIndicator();
+}
+
 void Plant::RestoreSleepState(bool sleep, float wakeUpTimeRemaining)
 {
 	mIsSleeping = sleep;
 	mWakeUpTimer = sleep ? std::max(0.0f, wakeUpTimeRemaining) : 0.0f;
+	SyncSleepIndicator();
 	ApplyWakeUpPresentation();
+}
+
+void Plant::SyncSleepIndicator()
+{
+	if (!mIsSleeping || mIsPreview || mIsSquished) {
+		mSleepIndicatorAnimator.reset();
+		return;
+	}
+	if (mSleepIndicatorAnimator) return;
+
+	auto reanim = ResourceManager::GetInstance().GetReanimation(
+		ResourceKeys::Reanimations::REANIM_SLEEPING);
+	if (!reanim) {
+		LOG_ERROR("Plant") << "cannot create sleeping indicator: missing Z reanimation";
+		return;
+	}
+
+	mSleepIndicatorAnimator = std::make_shared<Animator>(reanim);
+	mSleepIndicatorAnimator->SetFrameRangeToDefault();
+	const int totalFrames = reanim->GetTotalFrames();
+	if (totalFrames > 1) {
+		mSleepIndicatorAnimator->SetCurrentFrame(GameRandom::Range(
+			0.0f, kSleepIndicatorMaxStartTime)
+			* static_cast<float>(totalFrames - 1));
+	}
+	mSleepIndicatorAnimator->SetSpeed(GameRandom::Range(
+		kSleepIndicatorMinFps / kSleepIndicatorReanimFps,
+		kSleepIndicatorMaxFps / kSleepIndicatorReanimFps));
+	mSleepIndicatorAnimator->Play(PlayState::PLAY_REPEAT);
+}
+
+void Plant::DrawSleepIndicator(Graphics* g)
+{
+	if (!g || !mIsSleeping || mIsSquished || !mSleepIndicatorAnimator) return;
+	const Vector position = GetSleepIndicatorPosition();
+	// Z 是独立世界动画，不继承品种 gamedata scale；只复用植物的动态视觉锚点。
+	mSleepIndicatorAnimator->Draw(g, position.x, position.y, 1.0f);
 }
 
 void Plant::UpdateWakeUp()
@@ -457,6 +550,7 @@ void Plant::Draw(Graphics* g)
 	}
 
 	AnimatedObject::Draw(g);	// 先画本体动画
+	DrawSleepIndicator(g);
 
 	if (!g || mIsPreview || !GameAPP::GetInstance().mShowPlantHP) return;
 	// 视口剔除：屏外植物不画血量文字（与 Zombie::Draw 同构，省 batch VBO + CPU）。
@@ -518,5 +612,6 @@ void Plant::DrawAsBungeeCargo(Graphics* g)
 {
 	if (mBungeeState == PlantBungeeState::RISING) {
 		AnimatedObject::Draw(g);
+		DrawSleepIndicator(g);
 	}
 }

@@ -9,6 +9,10 @@ description: Use when adding or tuning any 生存模式词条 (survival perk) in
 
 开始前先读仓库根目录 `AGENTS.md`，并按任务范围阅读 `docs/agent-guide/PROJECT_GUIDE.md`。涉及既有设计时搜索 `docs/agent-memory/MEMORY.md`，当前源码和测试证据优先于历史记录。
 
+## 原版参考边界
+
+生存词条本身没有可机械照搬的 C# 架构。若某个词条复用原版伤害、承伤、冷却、产阳光或实体状态，只把 C# 当作该基础机制的玩家可感知行为证据；先核对本项目的唯一结算钟点、`DamageSource`、对象生命周期、存档和既有聚合倍率，再在 manager getter 与当前钟点接入。未获主人批准不得改变基础机制的原版结果，也不得为了贴近 C# 在词条层复制一套植物、僵尸或 Board 状态。
+
 ## 当前词条目录（2026-07-20）
 
 | 枚举 | 类别 | 当前效果 | 上限 | 主要钟点 |
@@ -130,7 +134,7 @@ description: Use when adding or tuning any 生存模式词条 (survival perk) in
 ## 构建与交付
 
 - 按 `docs/agent-guide/PROJECT_GUIDE.md` 导入 x64 Visual Studio 环境。
-- 默认依次运行 `cmake --preset clang-playtest`、`cmake --build --preset clang-playtest`；只有正式发布、主人明确要求或验证发布配置时才用 `clang-release`。
+- 默认依次运行 `cmake --preset clang-release`、`cmake --build --preset clang-release`；只有主人明确要求快速迭代、PDB 或无 LTO 时才用 `clang-playtest`，需要 Debug CRT/Debug 语义时才用 `msvc-debug`。
 - 从 `build/<preset>/` 运行 `PlantsVsZombies.exe -AutoTest ...`，不要使用根目录旧的 `x64/Release` 产物。
 - 若 sandbox 阻止 vcpkg 写外部 `buildtrees`，先报告真实阻塞；只有已有且可信的 Ninja 图时，才可把按图全量重编和链接作为当前工作区验证补充，不能把它写成标准构建方式。
 - 功能、测试、技能和项目记忆一起复核后再提交。

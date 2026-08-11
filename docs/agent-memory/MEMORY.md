@@ -13,7 +13,7 @@
 - [第六大关黑夜屋顶与延期设计](project_pvz_sixth_area_night_roof_backlog.md) — 2026-08-10 6-1～6-9 已接入正式黑夜屋顶场景和基础雷荷；新植物、僵尸、专属出怪、6-9僵尸博士及处决僵尸联动仍延期，既有反制和快照边界不变
 - [经典花盆与屋顶承载层](project_pvz_flowerpot.md) — 2026-08-03 `PLANT_FLOWERPOT` 25阳光/7.5秒/300生命/1秒无啃食；under+normal+南瓜分层、屋顶门禁、5-1/5-2/后续5/4/3列初始布局、覆盖暂停、5px视觉抬升、通用ShadowComponent 46px可见阴影、双向台风整组与存档均经默认/NoInstance可见专项
 - [架构边界、存档版本与技能审计门禁](project_pvz_architecture_boundaries.md) — 2026-08-03 `BoardPresentation` 取代 `Board::mGameScene`，Board 保持天气/波次/生存玩法唯一权威；`SceneManager` 明确单活动场景；玩家 schema v2 为已通关3-8的旧档补发前移后的毒囊射手，迁移保持事务式并有纯测试；每次任务提交前审计相关 skills
-- [经典咖啡豆与蘑菇唤醒](project_pvz_coffeebean.md) — 2026-08-04 `PLANT_INSTANT_COFFEE`：75阳光、7.5秒；占短时 flying overlay，仅可叠在白天沉睡且未唤醒的普通层蘑菇，等待1秒后以22fps碎裂并启动目标1秒唤醒；咖啡/唤醒音效、EaseSinWave弹性、普通/毁灭菇激活、存档、台风全层搬运和默认/NoInstance可见专项闭环
+- [经典咖啡豆、蘑菇睡眠 Z 与唤醒](project_pvz_coffeebean.md) — 2026-08-11 白天沉睡植物以独立 `Z.reanim` 按原版6～8fps随机相位循环，位置适配当前视觉锚点且醒来/压扁/失活即移除；`PLANT_INSTANT_COFFEE` 仍以短时 overlay 等待1秒后碎裂并启动1秒唤醒，资源、存档、台风与默认/NoInstance可见专项闭环
 - [植物立即死亡的可见生命周期](project_pvz_plant_die_visibility.md) — 2026-08-04 `Plant::Die()` 在延迟销毁前立即失活，避免 `StopAnimation()` 重置轨道后仍被当帧绘制；咖啡豆、倭瓜等瞬时消耗植物不再闪回起始姿态；`clang-release` 编译通过，按主人要求未跑 AutoTest、待亲自目验
 - [经典海蘑菇](project_pvz_seashroom.md) — 2026-07-29 `PLANT_SEASHROOM`：0 阳光、10 秒冷却，只能直接种在空水格且占 normal 层；复用小喷菇 1.5 秒间隔/300px 短程孢子，第 33 帧发射，无陆地阴影并随水面浮动；白天睡眠与双绘制路径可见专项通过
 - [最终绘制坐标语义取证](project_pvz_render_coordinate_evidence.md) — 2026-07-27 AutoTest 从当前项目实际渲染路径导出植物/僵尸/动画特效的 Animator 世界包围盒，以及粒子最终矩形；断言使用相对视觉原点、发射点和最近实体 collider 的整数投影，默认实例化与 `-NoInstance` 可做同用例一致性核对，C# 800×600 绝对坐标只作行为语义参考

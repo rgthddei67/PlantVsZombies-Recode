@@ -7,6 +7,8 @@ description: Use when adding or tuning ANY rain-weather-dependent feature or Boa
 
 雨天状态由 `Board` 统一持有。优先在效果的唯一结算点读取天气，不要让每个实体复制一份可由 `Board` 推导的雨势状态；只有“随机结果只判定一次”“进入/离开雨天触发一次”或“可逆形态”才新增实体字段。
 
+若原版或 C# 已有对应天气行为，先把玩家可感知的档位、触发边界、时序、数值、音画反馈和关卡门禁写成行为契约，并保持功能一致；随后核对本项目现有 `Board` 权威、独立天气维度、1100×600 场景、展示端口和存档 schema，再用当前接口实现。禁止把 C# 的 Board/Scene 耦合、800×600 坐标或字段布局机械复制进来。原版没有的天气扩展以主人规格和当前项目契约为准，不得为了“像 C#”破坏已经独立的天气状态。
+
 开始前先读仓库根目录 `AGENTS.md`，并按任务范围阅读 `docs/agent-guide/PROJECT_GUIDE.md`。必须完整阅读 [references/contracts.md](references/contracts.md)，再以当前源码核实其中的路径和行为；历史文档只作上下文。
 
 若任务同时涉及以下内容，必须一并使用对应技能：

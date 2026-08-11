@@ -7,6 +7,12 @@ description: Use when adding ANY new plant (新增植物) to PvZ — 射手/生�
 
 **最高原则：不确定的事立刻问主人，不要自行推断。** 已知必问项：①**帧事件的帧号**（主人会看动画预览，他有准确答案；从 reanim 活跃区间推断会错——胆小菇实测 25，区间末段推法给 28）②数值/行为想偏离原版时。**帧号口径（主人 2026-07-14 定死）：`AddFrameEvent` 真实帧号 = 动画预览帧号 − 1；主人报给你的帧号默认已经 −1 过，代码直接用、不许再减**。只有自己从预览工具读数时才需要手动 −1。
 
+## 原版参考边界
+
+- C# 参考实现是玩家可感知功能的证据：先提取状态、触发顺序、时长、数值、目标规则、音效和资源表现；未获主人批准时，这些行为必须与原版一致。
+- C# 不是本项目的架构模板。动手前逐项核对当前植物类型体系、Board/实体所有权、更新与 Animator 时序、占格/碰撞、绘制路径、资源键以及存读档入口，再接入现有最窄扩展点；禁止为了贴近 C# 类结构复制平行状态或旁路系统。
+- 坐标和资源按下述当前项目契约换算。工程实现可以不同，但必须用 AutoTest 状态、音效请求、默认与 `-NoInstance` 截图证明功能等价；验证失败时先修适配，不能用“原版就是这样写的”合理化当前项目中的错误表现。
+
 ## 坐标换算铁律
 
 **C# 原版逻辑场景是 800×600，本项目是 `SCENE_WIDTH=1100`、`SCENE_HEIGHT=600`。原版任何绝对 X/Y、范围端点、绘制偏移、碰撞框和粒子触发点都只能当语义参考，禁止直接抄入代码。**
@@ -22,7 +28,7 @@ description: Use when adding ANY new plant (新增植物) to PvZ — 射手/生�
 ## 第 0 步：勘察（动手前全部做完）
 
 1. **读 reanim**：`build/clang-release/resources/reanim/<Name>.reanim`，用 Grep `<name>` 提取全部 track 名，`anim_xxx` 即可用动画（具体可以询问主人，有些anim_xxx并不是可用动画，而是一个track）；`<f>-1/0</f>` 对定位 anim 轨活跃帧区间。
-2. **读 C# 参考并主动盘点音效**：`D:\PVZ\PlantsVsZombies.NET-master\Lawn_Shared\Lawn\Plant\Plant.cs`，grep 植物名，读专属 Update 函数 + 发射物类型 + mShootingCounter/state 分支，数值忠实原版；同时收集相关路径的全部 `PlayFoley` / `PlaySample`，不要等主人听出缺声才补。受啃、受击等由外部对象触发的反馈还必须搜索消费方（例如 `Zombie::AnimateChewSound` 会按植物类型选择 `ChompSoft`），不能只读 `Plant.cs`。沿 `FoleyType → Sexy.TodLib/Foley/TodFoley.cs → Resources.SOUND_*` 得到精确资源键，以资源键去掉 `SOUND_` 后的小写名到 `D:\PVZ\中文年度加强版完整版\Test\sounds\` 查同名 `.ogg`。找到后复制到唯一权威 `build/clang-release/resources/sounds/` 合理子目录，并同步 `resources.xml` 与 `ResourceKeys.h`；找不到才问主人，禁止用相近声音静默替代。构建后检查 `manifest.txt` 和启动日志无 missing sound，并用可见行为路径及 `GetSoundPlayRequestCount` 投影验证触发次数（含读档不得重响）。
+2. **读 C# 参考并主动盘点音效**：`D:\PVZ\PlantsVsZombies.NET-master\Lawn_Shared\Lawn\Plant\Plant.cs`，grep 植物名，读专属 Update 函数 + 发射物类型 + mShootingCounter/state 分支，先记录必须忠实的行为与数值，再按本项目现有所有权、坐标、更新、绘制和存档契约实现；同时收集相关路径的全部 `PlayFoley` / `PlaySample`，不要等主人听出缺声才补。受啃、受击等由外部对象触发的反馈还必须搜索消费方（例如 `Zombie::AnimateChewSound` 会按植物类型选择 `ChompSoft`），不能只读 `Plant.cs`。沿 `FoleyType → Sexy.TodLib/Foley/TodFoley.cs → Resources.SOUND_*` 得到精确资源键，以资源键去掉 `SOUND_` 后的小写名到 `D:\PVZ\中文年度加强版完整版\Test\sounds\` 查同名 `.ogg`。找到后复制到唯一权威 `build/clang-release/resources/sounds/` 合理子目录，并同步 `resources.xml` 与 `ResourceKeys.h`；找不到才问主人，禁止用相近声音静默替代。构建后检查 `manifest.txt` 和启动日志无 missing sound，并用可见行为路径及 `GetSoundPlayRequestCount` 投影验证触发次数（含读档不得重响）。
 3. **盘点已就位的基建**（常常提前有了，别重复加）：`PlantType.h` 枚举、`TestDriver.cpp` kPlantNames、`ResourceKeys.h` RKEY、`AnimationTypes.h`、卡片图 `PlantImage/<Name>.png`、reanim 部件图。缺哪补哪。
    如果植物枚举、冒险解锁位或 AutoTest 名称表已经预置但尚未注册，保留现有位置与整数 ID，只补缺失接线；动画枚举仍追加在末尾，禁止为追求排列整齐移动旧值或再加重复项。
    `image/reanim/` 全目录预加载生成 `IMAGE_<文件名大写>`；只有被 reanim XML 的 `<i>` 直接引用的部件才会额外获得 `IMAGE_REANIM_*` 别名。运行时动态换入、但不在 XML 时间线出现的受伤材质必须用前者。更新派生阶段时先确认 `GetTexture` 非空，再提交阶段缓存，避免“状态断言通过、画面仍是旧图”的假绿。
@@ -46,7 +52,7 @@ description: Use when adding ANY new plant (新增植物) to PvZ — 射手/生�
 14. **台风锚定植物也只声明格位能力和直接撞击反馈**：用类似 `AnchorsPlantCellAgainstTyphoon` / `OnTyphoonPlantImpact` 的虚接口让天气唯一结算点派发，禁止在 `Board` 堆植物类型表。逐格位移中先让锚定源格保持不动，再只对直接进入锚定目标格的植物组合结算；后方被普通占格挡住时不传导压力。伤害必须逐格立即生效，使锚定植物中途死亡后剩余步数能重读格位；同阵风重复撞击可按锚定植物 ID 合并音画反馈，但不能合并伤害。组合植物按一个移动格计数，专项覆盖双向、紧邻多步、间隔移动、连续链、水路上下层和中途死亡放行。
 15. **直接落水植物必须同时声明地形、层级与水面表现**：在 `Board::CanPlantAt` 的水生集中分支要求“水格且 `Cell::IsEmpty()`”，从而允许空水直种并同时拒绝陆地、已有睡莲和其他植物；除睡莲继续占 `under` 外，水草/海蘑菇这类能力植物占 `normal`，不要为了直种改 `CreatePlant` 的通用层级。原版不画陆地影子的品种移除 `ShadowComponent`；发射点和附属视觉从 `GetVisualAnchorPosition()` 派生以跟随水面浮动。专项用 `assert_can_plant` 覆盖空水 true、陆地 false、睡莲水格 false，再断言 `cells.*.normal/under`、无阴影和同步截图。
 16. **套壳或其他新增占格层必须闭合 Cell 生命周期与绘制夹层**：新增槽位时同步检查 `CanPlantAt`、`CreatePlant/CreatePlantWithID`、`GetTopPlantAt`、`ReleaseGridSlot/CleanPlantFromCells`、铲子/啃食、render order、存读档重建、台风整组搬运和外部范围伤害，AutoTest 导出每层类型及生命与 top，分别覆盖正反种植顺序、移除外层和水路多层。先明确新层是否参与 top：咖啡豆的 flying `overlay` 需要画在普通层上方，却故意不参与啃食/铲除 top，并通过无 collider、`CanBeEaten=false` 与承伤覆写排除地面攻击。**铲子选择与战斗 top 必须分开建模**：僵尸可继续按外壳优先，铲子则按可见区域在壳与内层间选择；命中环、中心或边界从当前 Cell 宽高/稳定视觉原点派生，悬停高亮与最终铲除共用同一目标，并用真实 `click` 分别断言只移除内层、只移除外壳。若范围技能规定外壳或邻格保护，先沿原几何找出实际命中层，再通过唯一 Board 解析入口按逻辑格选择保护者；范围重叠须使用稳定最近者/并列规则，命中的外壳只选自身以阻断保护链，最后按保护者实体 ID 归并为每次攻击一次承伤。没有保护者的命中层保持技能原行为，不能直接全表逐株扣血，也不能只用爆点所在格的 `GetTopPlantAt` 漏掉范围边缘；生产结算、选点评分和纯数值推演必须消费同一保护范围、选择与归并语义，普通版本若明确豁免则不得误接。专项覆盖陆地、水路 under+normal+壳、多命中归并、重叠保护、倍率、无保护与明确豁免攻击。若美术要求“后片→内层植物→前片”，不要在 `Draw` 中临时切换共享 Animator 轨道可见性；默认实例化可能并行提交。由套壳持有同步帧/alpha/scale 的独立后片 Animator，根 Animator 只画前片，并在默认与 `-NoInstance` 下逐张核对同一截图。开启植物血量显示时，同格各层会分别绘制数字；让外壳覆写血量文字偏移并错开至少一行，再用同屏截图确认不会覆盖内层数字或主体。
-17. **唤醒蘑菇要把倒计时与品种激活分开**：目标蘑菇基类持有 sleeping/wake timer、原版 `EaseSinWave` 纵向弹性与 `SOUND_WAKEUP` 边界，咖啡豆只负责等待、碎裂并对同格普通层调用单一 `BeginWakeUp`。品种通过 `OnWakeUp` 恢复自身能力轨；毁灭菇等特殊蘑菇必须进入与夜间种下相同的充能入口，不能统一硬切 `anim_idle`。咖啡豆阶段/等待计时与目标 wake timer 都入档；加载使用无音效、无能力重触发的恢复入口，再由统一 Animator 恢复当前轨，避免重播咖啡声或充能声。专项覆盖等待和碎裂中各一次快照、音效请求不增加、普通蘑菇恢复 idle 与特殊蘑菇正式结算。
+17. **唤醒蘑菇要把倒计时、睡眠指示和品种激活分开**：目标蘑菇基类持有 sleeping/wake timer、原版 `EaseSinWave` 纵向弹性与 `SOUND_WAKEUP` 边界，咖啡豆只负责等待、碎裂并对同格普通层调用单一 `BeginWakeUp`。品种通过 `OnWakeUp` 恢复自身能力轨；毁灭菇等特殊蘑菇必须进入与夜间种下相同的充能入口，不能统一硬切 `anim_idle`。睡眠 `Z` 是由 sleeping 派生的独立 Animator：睡着时懒创建，醒来或压扁时移除，植物失活后随宿主销毁；`RestoreSleepState` 只静默重建，不保存指针或随机相位。`Z.reanim` 没有 `anim_*` 包装轨时使用完整默认时间线循环，并按原版 6～8fps 与随机起相播放；默认更新和并行更新都要推进，常规植物与蹦极携带绘制都在本体之后提交。位置从 `GetVisualAnchorPosition()`、当前搬运视觉偏移和按品种映射后的局部偏移派生，禁止照抄 C# 左上角世界坐标。咖啡豆阶段/等待计时与目标 wake timer 都入档；加载使用无音效、无能力重触发的恢复入口，再由统一 Animator 恢复当前轨，避免重播咖啡声或充能声。专项覆盖 `Z` reanim/贴图资源闭环、睡眠显示与相对锚点、等待和碎裂中快照、醒后移除、音效请求不增加、普通蘑菇恢复 idle、特殊蘑菇正式结算，以及默认/`-NoInstance` 同步截图。
 18. **立即死亡必须先失活再登记延迟销毁**：`GameObjectManager::DestroyGameObject` 到下一次 `Update` 才真正移除对象，而 `StopAnimation()` 会把 Animator 重置到轨道起点。`Plant::Die()` 必须先防重入并 `SetActive(false)`，再停动画、释放格位和入销毁队列，否则死亡当帧仍会闪回起始姿态一次。需要保留残影的压扁态继续走 `Squish()`，不能套用立即死亡契约。
 19. **环境完全暂停要同时封住并行事件与串行动画**：只跳过 `PlantUpdate()` 不够，Animator 可能已在 `UpdateParallel` 产生帧事件并由串行阶段消费。离散技能统一调用 `Plant::ApplyShutdown`，重复施加取更长剩余时间并保存 `shutdownTimer`；连续区域场继续由 Board 声明式查询拥有，不能每帧刷新一个短计时冒充。`Plant::IsShutdown` 合并两类来源，植物在并行阶段不推进/不排事件，串行回退也把 `mAdvancedInParallel` 置位让公共更新跳过本帧 Animator，并让行动倍率返回 0。禁止用临时 `Pause/Play` 代替：一次性轨道会被公共自动结束检查误判，原本已暂停的花盆轨也可能被唤醒。专项同时断言计时状态重复施加、连续场选中/未选、活动阶段读档、结束恢复和新放置边界。
 20. **短展开防御要让植物声明能力与阶段、威胁负责结算时序**：由植物虚接口回答保护格、启动动作并返回 `INACTIVE/ACTIVATING/REFLECTING`，Board 只按逻辑格和稳定实体 ID 选择唯一保护者，禁止在篮球、蹦极等威胁侧维护植物类型表。需要等待展开的持续碰撞必须同时接 `onTriggerEnter + onTriggerStay`：`ACTIVATING` 不伤目标也不回收威胁，保持重叠宽限；`REFLECTING` 才原子消费威胁。无需等待的落地威胁可在其原版落地节点立即弹回。阶段与剩余时间入档，加载只按已恢复 Animator 修正终态，不重播声音或重触发威胁；专项覆盖保护范围内外、对角格、重叠选择、展开等待、存档无反馈重放和原威胁回归。
@@ -75,7 +81,7 @@ description: Use when adding ANY new plant (新增植物) to PvZ — 射手/生�
    图鉴/选卡卡片用 `GetIsInChooseCardUI()` 表示非实战上下文，这些场景可以没有 `CardSlotManager`。`CardDisplayComponent` 只有在具体实战卡面确实需要 `Board`（当前为活动路灯花状态）且该标志为 false 时才查询 manager；禁止为通用卡面绘制每帧全表重找，否则植物图鉴会按“每张卡×每帧”刷 `CardSlotManager host invalid`。专项从主菜单走真实点击进入植物图鉴并检查捕获 stdout 中目标警告为 0，再切 GameScene 截图确认活动路灯花卡仍显示挡位与燃料。
    修改卡槽悬停或点击落格时，预览与种植必须共用同一个“世界坐标 → 唯一 `Cell`”解析入口和相同的边界归属规则。`ColliderComponent::ContainsPoint` 的矩形四边都是闭区间，相邻格边缘会同时命中；禁止预览按行列扫描、点击却依赖 `ClickableComponent` 渲染顺序，否则边缘和四格交点会显示一格却种到另一格。
 3. **AutoTest 冒烟**：`autotest/scripts/smoke_<name>.json`，每阶段**只种一棵**（plants dump 顺序来自 unordered_map，多棵时下标不可靠），断言 `plants.0.track`；`plantDefinitions.<TYPE>.sunCost/cooldownMs` 可直接锁定基础 gamedata 数值，`simulationBaseHealth/simulationAttackDpsOn100/simulationAttackRowRadius/simulationSunPerSecondOn100/simulationFirstSunDelayMs/simulationPersistent` 用来锁定轻量推演画像。几何验收用 `animatedObjectsByTag.Plant.0` 的最终世界包围盒与相对 collider 投影，禁止把 C# 绝对坐标写成期望值。时序估算用僵尸判定矩形 `[x±25]×[y-65,y+35]`、步速 23~45px/s；验证帧事件时，等待值必须越过理论触发时刻至少一个逻辑步，不能把断言卡在“刚好到帧”的浮点边界。**exit 0 ≠ 通过**：必须逐张 Read 同步截图 + dump 数值核对（防假绿）。
-4. 蘑菇夜测用 level 10-18（九关制的 2-1..2-9）；白天睡觉断言 `anim_sleep`；魅惑僵尸清场用 `charm_zombie`（不触发输局）。
+4. 蘑菇夜测用 level 10-18（九关制的 2-1..2-9）；白天睡觉同时断言 `anim_sleep`、睡眠 `Z` 的资源/显示/相对锚点，醒后断言移除，并逐张检查同步截图；魅惑僵尸清场用 `charm_zombie`（不触发输局）。
    只能种水路的蘑菇改用夜间泳池 level 28+ 验活跃态，并另在日间泳池 level 19+ 验 `anim_sleep`。
 
 ## 特性侵入其他系统时（寒冰菇冻结、魅惑、穿透这类）

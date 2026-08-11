@@ -46,6 +46,7 @@ public:
 
 protected:
 	bool mIsSleeping = false;	// 白天蘑菇睡眠权威状态
+	std::shared_ptr<Animator> mSleepIndicatorAnimator; // 原版 Z.reanim 睡眠标识；由睡眠状态派生，不单独入档
 	float mWakeUpTimer = 0.0f;	// 咖啡豆唤醒倒计时，单位：秒；大于 0 时仍保持睡眠
 	float mShutdownTimer = 0.0f; // 通用停机剩余游戏秒；来源可以是天气、僵尸技能或其他机制
 	bool mIsPreview = false;
@@ -164,6 +165,9 @@ public:
 
 	// 获取睡觉状态
 	bool GetSleepState() const { return this->mIsSleeping; }
+	bool HasSleepIndicator() const { return mSleepIndicatorAnimator != nullptr; }
+	/** 返回 Z.reanim 的世界基点；以公共视觉锚点表达，跟随水面、花盆、台风和蹦极位移。 */
+	Vector GetSleepIndicatorPosition() const;
 	float GetWakeUpTimeRemaining() const { return mWakeUpTimer; }
 	bool IsWakingUp() const { return mWakeUpTimer > 0.0f; }
 	/**
@@ -184,8 +188,8 @@ public:
 	// 是否为预览植物（选卡预览用，不参与对战逻辑）
 	bool IsPreview() const { return this->mIsPreview; }
 
-	/** 切换睡眠状态；蘑菇覆写此入口以同步睡眠/清醒动画。 */
-	virtual void SetSleepState(bool sleep) { this->mIsSleeping = sleep; }
+	/** 切换睡眠权威状态并同步原版 Z 标识；蘑菇覆写此入口以切换本体睡眠/清醒动画。 */
+	virtual void SetSleepState(bool sleep);
 	/** 咖啡豆请求开始原版 1 秒唤醒流程；重复请求或非睡眠植物返回 false。 */
 	bool BeginWakeUp(float durationSeconds = 1.0f);
 	/** 存档恢复专用：只还原权威状态与表现，不播放唤醒音效或重新触发品种行为。 */
@@ -202,6 +206,10 @@ protected:
 	bool IsActionPaused() const;
 	/** 按当前唤醒倒计时重建蘑菇纵向弹性表现；读档与逐帧更新共用。 */
 	void ApplyWakeUpPresentation();
+	/** 按权威睡眠状态创建或移除独立 Z Animator；读档只重建表现，不保存随机相位。 */
+	void SyncSleepIndicator();
+	/** 在植物本体之后绘制 Z，保留原版 renderOrder+2 的前景语义。 */
+	void DrawSleepIndicator(Graphics* g);
 	/** 统一施加压扁态的暂停、碰撞、影子、占格和透明度表现。 */
 	void ApplySquishedPresentation();
 	/** 仅在格子仍指向自身 ID 时释放所属占格层，避免误清后来种下的植物。 */

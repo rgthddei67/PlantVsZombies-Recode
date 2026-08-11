@@ -246,6 +246,7 @@ namespace ResourceKeys
 		RKEY(IMAGE_REANIM_MARIGOLD_PETALS);
 		RKEY(IMAGE_REANIM_TOXICPEASHOOTER_HEAD);
 		RKEY(IMAGE_REANIM_TOXICPEASHOOTER_SPROUT);
+		RKEY(IMAGE_REANIM_Z);
 
 		// 植物图片（IMAGE_ + 大写文件名）
 		RKEY(IMAGE_PEASHOOTER);
@@ -506,6 +507,7 @@ namespace ResourceKeys
 	namespace Reanimations
 	{
 		inline const std::string REANIM_SUN = "Sun";
+		inline const std::string REANIM_SLEEPING = "Z";
 
 		inline const std::string REANIM_SUNFLOWER = "SunFlower";
 		inline const std::string REANIM_PEASHOOTER = "PeaShooter";

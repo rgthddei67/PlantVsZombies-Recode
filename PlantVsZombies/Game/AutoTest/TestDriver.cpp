@@ -2119,6 +2119,12 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_COFFEE);
 	out["plantWakeupSoundRequestCount"] =
 		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_WAKEUP);
+	out["sleepIndicatorResources"] = {
+		{ "reanimationLoaded", ResourceManager::GetInstance().HasReanimation(
+			ResourceKeys::Reanimations::REANIM_SLEEPING) },
+		{ "textureLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_REANIM_Z, false) != nullptr },
+	};
 	out["coffeeBeanResources"] = {
 		{ "reanimationLoaded", ResourceManager::GetInstance().HasReanimation(
 			ResourceKeys::Reanimations::REANIM_COFFEEBEAN) },
@@ -4110,6 +4116,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		const Vector plantPosition = p->GetPosition();
 		const Vector plantVisualPosition = p->GetVisualPosition();
 		const Vector plantVisualAnchor = p->GetVisualAnchorPosition();
+		const Vector sleepIndicatorPosition = p->GetSleepIndicatorPosition();
 		const Vector cellCenter = board->GetCellCenterPosition(p->mRow, p->mColumn);
 		nlohmann::json plantState = {
 			{ "id", id },
@@ -4121,6 +4128,11 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "eaterCount", p->mEaterCount },
 			{ "canBeEaten", p->CanBeEaten() },
 			{ "sleeping", p->GetSleepState() },
+			{ "sleepIndicatorVisible", p->HasSleepIndicator() },
+			{ "sleepIndicatorOffsetXOn1000", static_cast<int>(std::lround(
+				(sleepIndicatorPosition.x - plantVisualAnchor.x) * 1000.0f)) },
+			{ "sleepIndicatorOffsetYOn1000", static_cast<int>(std::lround(
+				(sleepIndicatorPosition.y - plantVisualAnchor.y) * 1000.0f)) },
 			{ "wakeUpTimeMs", static_cast<int>(std::lround(
 				p->GetWakeUpTimeRemaining() * 1000.0f)) },
 			{ "squished", p->IsSquished() },
