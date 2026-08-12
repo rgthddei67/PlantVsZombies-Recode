@@ -147,6 +147,11 @@
 [PLANT_MAGNETSHROOM_DESCRIPTION]
 磁力菇会吸走附近僵尸携带的铁桶、金属头盔、普通铁门、弹跳杆、普通小丑盒和普通矿工镐；加固铁门、精英小丑和爆破工头不受影响。每次吸取后需要15秒重新充能。磁力菇是夜间植物，白天会睡觉。
 
+[PLANT_GROUNDINGSHROOM]
+接地菇
+[PLANT_GROUNDINGSHROOM_DESCRIPTION]
+接地菇拥有500点生命，会为同一行自身与左右相邻一格内的植物导走一次黑夜屋顶雷荷，使它们免于停机。每次导电自身损失100点生命；若脚下正处湿坡则损失150点。范围内的绝缘僵尸不能承接雷荷或因此过载。接地菇是夜间植物，白天会睡觉。“电总得有地方去，”接地菇说，“我只是把路指向自己。”
+
 [PLANT_TOXICPEASHOOTER]
 毒囊射手
 [PLANT_TOXICPEASHOOTER_DESCRIPTION]

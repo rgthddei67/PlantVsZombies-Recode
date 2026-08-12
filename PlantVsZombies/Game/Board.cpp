@@ -259,8 +259,8 @@ namespace {
 	constexpr float kNightRoofChargeWarningDuration = 4.0f; // 满电锁定导电瓦路后的预警游戏秒数
 	constexpr float kNightRoofChargeDischargeDuration = 0.65f; // 基础坡面放电的可见游戏秒数
 	constexpr float kNightRoofOverchargeMaximum = 15.0f;   // 满电后最多截留给下一轮的余电点数
-	constexpr float kNightRoofPlantShutdownDuration = 2.5f; // 普通瓦面植物在放电快照中停机的游戏秒数
-	constexpr float kNightRoofWetPlantShutdownDuration = 5.0f; // 正在冲刷的湿坡面植物强导电停机秒数
+	constexpr float kNightRoofPlantShutdownDuration = 8.0f; // 普通瓦面植物在放电快照中停机的游戏秒数
+	constexpr float kNightRoofWetPlantShutdownDuration = 20.0f; // 正在冲刷的湿坡面植物强导电停机秒数
 	constexpr int kNightRoofZombieDamage = 75;             // 普通瓦面地面僵尸承受的环境伤害
 	constexpr int kNightRoofWetZombieDamage = 120;         // 正在冲刷的湿坡面地面僵尸承受的强导电伤害
 	constexpr float kNightRoofZombieParalysisDuration = 0.75f; // 普通瓦面非车辆僵尸的麻痹游戏秒数
@@ -2906,8 +2906,9 @@ void Board::AddNightRoofCharge(float amount)
 }
 
 /**
- * 放电只在 WARNING 转入 DISCHARGING 的边沿结算一次。植物与僵尸先按稳定 ID
- * 形成快照，再调用实体级通用状态接口；读档恢复 DISCHARGING 不会重复伤害。
+ * 放电只在 WARNING 转入 DISCHARGING 的边沿结算一次。植物先按稳定 ID 冻结
+ * 接地保护分配，僵尸再消费同一批仍有效的接地范围，最后统一结算植物反噬；
+ * 读档恢复 DISCHARGING 不会重复伤害。
  */
 void Board::ResolveNightRoofChargeDischarge()
 {
@@ -2918,6 +2919,8 @@ void Board::ResolveNightRoofChargeDischarge()
 	const bool wetRow = IsRoofRunoffFlowing() && IsRoofRunoffRowSelected(row);
 	std::vector<int> plantIDs = mEntityManager.GetAllPlantIDs();
 	std::sort(plantIDs.begin(), plantIDs.end());
+	std::vector<int> groundingProviderIDs;
+	std::unordered_set<int> groundingProviderSet;
 	for (const int id : plantIDs) {
 		Plant* plant = mEntityManager.GetPlant(id);
 		if (!plant || !plant->IsActive() || plant->IsPreview()
@@ -2926,13 +2929,32 @@ void Board::ResolveNightRoofChargeDischarge()
 			|| plant->mPlantType == PlantType::PLANT_FLOWERPOT) {
 			continue;
 		}
+
+		Plant* groundingProvider = nullptr;
+		int nearestColumnDistance = std::numeric_limits<int>::max();
+		for (const int providerID : plantIDs) {
+			Plant* candidate = mEntityManager.GetPlant(providerID);
+			if (!candidate || !candidate->CanGroundNightRoofChargeFor(plant)) continue;
+			const int columnDistance = std::abs(candidate->mColumn - plant->mColumn);
+			// plantIDs 已排序；同距时保留先遇到的较小稳定 ID。
+			if (columnDistance < nearestColumnDistance) {
+				nearestColumnDistance = columnDistance;
+				groundingProvider = candidate;
+			}
+		}
+		if (groundingProvider) {
+			if (groundingProviderSet.insert(groundingProvider->mPlantID).second) {
+				groundingProviderIDs.push_back(groundingProvider->mPlantID);
+			}
+			continue;
+		}
+
 		const bool onWetSlope = wetRow && plant->mColumn >= 0
 			&& plant->mColumn < kRoofSlopeColumnCount;
 		plant->ApplyShutdown(onWetSlope
 			? kNightRoofWetPlantShutdownDuration
 			: kNightRoofPlantShutdownDuration);
 	}
-
 	std::vector<int> zombieIDs = mEntityManager.GetAllZombieIDs();
 	std::sort(zombieIDs.begin(), zombieIDs.end());
 	for (const int id : zombieIDs) {
@@ -2970,6 +2992,30 @@ void Board::ResolveNightRoofChargeDischarge()
 		zombie->TakeNightRoofChargeImpact(
 			baseDamage, paralysisDuration, onWetSlope);
 	}
+
+	// 同次放电的植物与僵尸效果已经全部冻结；现在反噬死亡不会改变本次接地结果。
+	std::sort(groundingProviderIDs.begin(), groundingProviderIDs.end());
+	for (const int providerID : groundingProviderIDs) {
+		Plant* provider = mEntityManager.GetPlant(providerID);
+		if (!provider) continue;
+		const bool onWetSlope = wetRow && provider->mColumn >= 0
+			&& provider->mColumn < kRoofSlopeColumnCount;
+		provider->AbsorbGroundedNightRoofCharge(onWetSlope);
+	}
+}
+
+bool Board::IsNightRoofChargeProtectionSuppressed(const Zombie* zombie) const
+{
+	if (!zombie) return false;
+	std::vector<int> plantIDs = mEntityManager.GetAllPlantIDs();
+	std::sort(plantIDs.begin(), plantIDs.end());
+	for (const int id : plantIDs) {
+		const Plant* plant = mEntityManager.GetPlant(id);
+		if (plant && plant->SuppressesNightRoofChargeProtectionFor(zombie)) {
+			return true;
+		}
+	}
+	return false;
 }
 
 /**

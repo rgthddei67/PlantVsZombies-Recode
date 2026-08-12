@@ -79,7 +79,7 @@ namespace AdventureProgression
 		PlantType::PLANT_MARIGOLD,
 		PlantType::PLANT_MELONPULT,
 		NO_PLANT_REWARD,
-		NO_PLANT_REWARD,
+		PlantType::PLANT_GROUNDINGSHROOM,
 
 		// 6-1 ... 6-9（黑夜屋顶；植物奖励与专属编排后续逐关补充）
 		NO_PLANT_REWARD,
@@ -141,6 +141,7 @@ namespace AdventureProgression
 	static_assert(GetPlantReward(26) == PlantType::PLANT_TOXICPEASHOOTER);
 	static_assert(GetPlantReward(27) == PlantType::PLANT_SEASHROOM);
 	static_assert(GetPlantReward(35) == NO_PLANT_REWARD);
+	static_assert(GetPlantReward(45) == PlantType::PLANT_GROUNDINGSHROOM);
 	static_assert(GetAreaNumber(18) == 2 && GetLevelNumberInArea(18) == 9);
 	static_assert(GetAreaNumber(19) == 3 && GetLevelNumberInArea(19) == 1);
 	static_assert(IsBossLevel(AREA_FIVE_BOSS_LEVEL));

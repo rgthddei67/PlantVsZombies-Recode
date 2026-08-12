@@ -46,6 +46,7 @@
 #include "StarFruit.h"
 #include "PumpkinShell.h"
 #include "MagnetShroom.h"
+#include "GroundingShroom.h"
 #include "FlowerPot.h"
 #include "CabbagePult.h"
 #include "KernelPult.h"
@@ -316,6 +317,12 @@ void GameDataManager::InitializeHardcodedData() {
 		ResourceKeys::Textures::IMAGE_MAGNETSHROOM,
 		AnimationType::ANIM_MAGNETSHROOM,
 		ResourceKeys::Reanimations::REANIM_MAGNETSHROOM, &MakePlant<MagnetShroom>);
+
+	RegisterPlant(PlantType::PLANT_GROUNDINGSHROOM, "PLANT_GROUNDINGSHROOM",
+		ResourceKeys::Textures::IMAGE_GROUNDINGSHROOM,
+		AnimationType::ANIM_GROUNDINGSHROOM,
+		ResourceKeys::Reanimations::REANIM_GROUNDINGSHROOM,
+		&MakePlant<GroundingShroom>);
 
 	RegisterPlant(PlantType::PLANT_FLOWERPOT, "PLANT_FLOWERPOT",
 		ResourceKeys::Textures::IMAGE_FLOWERPOT,

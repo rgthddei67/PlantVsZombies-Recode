@@ -18,7 +18,7 @@ metadata:
 2026-07-18 收敛到 `Game/AdventureProgression.h`：
 
 - `LEVELS_PER_AREA=9`，显示与背景分段共用 `GetAreaNumber` / `GetLevelNumberInArea`；
-- `PLANT_REWARD_BY_LEVEL` 显式列出 1..54，每项为具体 `PlantType` 或 `NO_PLANT_REWARD`；第六大关九项目前均为占位的 `NO_PLANT_REWARD`；
+- `PLANT_REWARD_BY_LEVEL` 显式列出 1..54，每项为具体 `PlantType` 或 `NO_PLANT_REWARD`；5-9 现解锁接地菇，供 6-1 起使用；第六大关九项仍为占位的 `NO_PLANT_REWARD`；
 - 奖励按关显式配置，不再假设“每大关第 8 小关都为空”：当前 1-8、4-8、5-8 无植物，2-8 解锁精英胆小菇，3-8 解锁毒囊射手；各大关第 9 小关仍解锁下一场景首株植物；
 - `Trophy::AdvanceAdventureProgress` 无论有无植物都推进进度，仅在奖励不是 `NO_PLANT_REWARD` 时去重加入 `mHaveCards`；
 - 禁止再通过插入/挪动 `PlantType` 调奖励顺序：`PlayerInfo.json.havecards` 和关卡存档都按整数保存枚举，改值会破坏旧档。
@@ -30,7 +30,8 @@ metadata:
 `TrySummonAdventureBoss()`，只在 `mCurrentWave == mMaxWave == 15` 时额外创建一只中路、`x=1000`
 的 `ZOMBIE_ROOF_MARSHAL`。越过最终波的开发者直调不会重复创建，普通关和其他槽位 no-op。
 现有 `ZOMBIE_BOSS`（僵尸博士）不用于 5-9；主人计划暂放未来 6-9。2026-08-10 只接入第六大关
-46～54 的正式 `NIGHT_ROOF` 场景和无奖励占位；专属出怪表、植物、僵尸与 6-9 BOSS 仍未实现。
+46～54 的正式 `NIGHT_ROOF` 场景和无奖励占位。2026-08-12 已将 `PLANT_GROUNDINGSHROOM`
+登记为 5-9 奖励，专门供 6-1 起应对雷荷；其余第六大关植物奖励与 6-9 BOSS 仍待补充。
 
 `ZOMBIE_ROOF_MARSHAL` 的独立权重继续为 0，不进入普通波次随机池；正式最终波由 BOSS 槽位单独创建。
 完整素材、生存层、指挥召唤、换行/残血推进、天气命令、军帽随头飞出的专属掉头粒子与验证见

@@ -283,6 +283,7 @@ namespace {
 		PT(PLANT_WINTERMELON), PT(PLANT_GOLD_MAGNET), PT(PLANT_SPIKEROCK), PT(PLANT_COBCANNON),
 		PT(PLANT_IMITATER), PT(PLANT_EXPLODE_O_NUT), PT(PLANT_GIANT_WALLNUT), PT(PLANT_SPROUT),
 		PT(PLANT_LEFTPEATER), PT(PLANT_ELITE_SCAREDYSHROOM), PT(PLANT_TOXICPEASHOOTER),
+		PT(PLANT_GROUNDINGSHROOM),
 	};
 #undef PT
 #define BT(n) { #n, BulletType::n }
@@ -1137,6 +1138,23 @@ bool TestDriver::ExecuteCurrent() {
 			}
 			blover->SetBlowDirection(directionIt->second);
 		}
+		return true;
+	}
+	if (op == "set_plant_health") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) {
+			Fail("set_plant_health: 不在 GameScene 或 Board 为空");
+			return false;
+		}
+		const int row = cmd.value("row", 0);
+		const int col = cmd.value("col", 0);
+		Plant* plant = gs->GetBoard()->GetTopPlantAt(row, col);
+		const int health = cmd.value("value", 0);
+		if (!plant || health <= 0 || health > plant->mPlantMaxHealth) {
+			Fail("set_plant_health: 顶层植物不存在或生命值越界");
+			return false;
+		}
+		plant->mPlantHealth = health;
 		return true;
 	}
 	if (op == "assert_can_plant") {
@@ -2362,6 +2380,16 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			ResourceKeys::Textures::IMAGE_REANIM_ZOMBIE_ELITEJACKBOX_BOX, false) != nullptr },
 		{ "diggerPickaxeLoaded", ResourceManager::GetInstance().GetTexture(
 			ResourceKeys::Textures::IMAGE_ZOMBIE_DIGGER_PICKAXE, false) != nullptr },
+	};
+	out["groundingShroomResources"] = {
+		{ "reanimationLoaded", ResourceManager::GetInstance().HasReanimation(
+			ResourceKeys::Reanimations::REANIM_GROUNDINGSHROOM) },
+		{ "cardLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_GROUNDINGSHROOM, false) != nullptr },
+		{ "idlePoseLoaded", ResourceManager::GetInstance().GetTexture(
+			"IMAGE_REANIM_GROUNDINGSHROOM_IDLE", false) != nullptr },
+		{ "shockPoseLoaded", ResourceManager::GetInstance().GetTexture(
+			"IMAGE_REANIM_GROUNDINGSHROOM_SHOCK", false) != nullptr },
 	};
 	// 命中配方随机取七个分片；全部加载才能排除“偶尔抽到空纹理”的假绿。
 	const std::array<std::string, 7> toxicPeaHitTextureKeys = {

@@ -15,7 +15,7 @@ namespace {
 	constexpr int kFirstCrackThreshold = 800;           // 进入轻裂纹阶段的剩余生命阈值
 	constexpr int kHeavyCrackThreshold = 400;           // 进入重裂纹阶段的剩余生命阈值
 	constexpr float kWetLingeringSeconds = 6.0f;        // 离开冲刷坡面后的持续湿润时间
-	constexpr float kOverloadSeconds = 15.0f;            // 成功吸收放电后的过载时间
+	constexpr float kOverloadSeconds = 15.0f;           // 成功吸收放电后的过载时间
 	constexpr float kOverloadMoveMultiplier = 2.2f;     // 过载自主移动与动画倍率
 	constexpr float kOverloadBiteMultiplier = 2.0f;     // 过载啃咬倍率，50 点提升到 100 点
 	constexpr float kProtectionRadiusCells = 1.5f;      // 同排放电掩护的水平格距
@@ -189,6 +189,7 @@ bool InsulatorZombie::CanProtectFromNightRoofCharge(const Zombie* target) const
 {
 	if (!target || !IsActive() || mIsDead || mIsDying || IsWet()
 		|| mHelmType != HelmType::HELMTYPE_INSULATOR || mHelmHealth <= 0
+		|| (mBoard && mBoard->IsNightRoofChargeProtectionSuppressed(this))
 		|| !CanBeAffectedByGroundHazards() || !target->CanBeAffectedByGroundHazards()
 		|| target->mRow != mRow || target->IsMindControlled() != IsMindControlled()) {
 		return false;
@@ -216,7 +217,7 @@ void InsulatorZombie::TakeNightRoofChargeImpact(
 	if (IsWet()) {
 		if (IsActive() && !IsDying()) ApplyParalysis(paralysisDuration);
 	}
-	else {
+	else if (!mBoard || !mBoard->IsNightRoofChargeProtectionSuppressed(this)) {
 		BeginOverload();
 	}
 }

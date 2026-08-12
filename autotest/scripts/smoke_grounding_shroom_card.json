@@ -1,0 +1,11 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 46, "resetTestState": true },
+    { "op": "choose_cards", "cards": ["PLANT_GROUNDINGSHROOM"] },
+    { "op": "wait_state", "state": "GAME", "timeout": 15 },
+    { "op": "set_spawn_paused", "value": true },
+    { "op": "screenshot", "name": "01_grounding_card_scale_070.png" },
+    { "op": "dump_state", "name": "grounding_card_state.json" },
+    { "op": "quit" }
+  ]
+}

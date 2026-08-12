@@ -103,6 +103,7 @@ enum class AnimationType
 	ANIM_MARIGOLD, // 经典金盏花；追加在末尾避免旧动画枚举值错位
 	ANIM_MELONPULT, // 经典西瓜投手；追加在末尾避免旧动画枚举值错位
 	ANIM_ROOF_MARSHAL_ZOMBIE, // 5-9 屋脊督军独立军官材质；复用普通僵尸时间线
+	ANIM_GROUNDINGSHROOM, // 接地菇独立低精度整株时间线；追加在末尾避免旧动画枚举值错位
 };
 
 #endif

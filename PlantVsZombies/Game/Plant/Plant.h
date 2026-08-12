@@ -182,6 +182,12 @@ public:
 	float GetShutdownTimeRemaining() const { return mShutdownTimer; }
 	/** 品种可覆写通用停机免疫；默认所有正式存活植物都可停机。 */
 	virtual bool CanBeShutdown() const { return true; }
+	/** 当前植物是否能替指定植物导走本次黑夜屋顶雷荷；默认植物没有接地能力。 */
+	virtual bool CanGroundNightRoofChargeFor(const Plant*) const { return false; }
+	/** 当前植物是否让指定僵尸失去本次雷荷承接/过载能力；默认植物不干预僵尸。 */
+	virtual bool SuppressesNightRoofChargeProtectionFor(const Zombie*) const { return false; }
+	/** 完成一次冻结快照保护后的品种反噬入口；onWetSlope 取接地植物自身所在瓦面。 */
+	virtual void AbsorbGroundedNightRoofCharge(bool) {}
 	/** 存档恢复专用：钳制并还原剩余停机时间，不重放来源效果。 */
 	void RestoreShutdown(float remainingSeconds);
 

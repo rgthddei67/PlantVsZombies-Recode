@@ -733,6 +733,8 @@ public:
 	bool IsNightRoofChargeDischarging() const {
 		return mNightRoofChargePhase == NightRoofChargePhase::DISCHARGING;
 	}
+	/** 返回指定僵尸是否站在任一活动植物声明的接地范围内。 */
+	bool IsNightRoofChargeProtectionSuppressed(const Zombie* zombie) const;
 	/** 返回本次基础放电的 0～1 进度；非放电阶段为 0。 */
 	float GetNightRoofChargeDischargeProgress() const;
 	/** 夜间泳池场景是否拥有不依赖天气的基础迷雾。 */

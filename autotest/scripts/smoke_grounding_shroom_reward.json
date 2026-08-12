@@ -1,0 +1,21 @@
+{
+  "commands": [
+    { "op": "set_adventure_level", "level": 45 },
+    { "op": "goto_level", "level": 45, "resetTestState": true },
+    { "op": "choose_cards", "cards": [], "timeout": 20 },
+    { "op": "wait_state", "state": "GAME", "timeout": 15 },
+    { "op": "set_spawn_paused", "value": true },
+    { "op": "force_trophy" },
+    { "op": "wait_frames", "value": 2 },
+    { "op": "screenshot", "name": "01_grounding_reward_5_9.png" },
+    { "op": "click", "target": "trophy" },
+    { "op": "wait_frames", "value": 3 },
+    { "op": "assert_state", "path": "boardState", "equals": "WIN" },
+    { "op": "assert_state", "path": "adventureLevel", "equals": 46 },
+    { "op": "assert_state", "path": "haveCardCount", "equals": 2 },
+    { "op": "assert_state", "path": "haveCards.0", "equals": "PLANT_PEASHOOTER" },
+    { "op": "assert_state", "path": "haveCards.1", "equals": "PLANT_GROUNDINGSHROOM" },
+    { "op": "dump_state", "name": "grounding_reward_state.json" },
+    { "op": "quit" }
+  ]
+}

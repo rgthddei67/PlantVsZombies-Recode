@@ -51,7 +51,7 @@ private:
 	void RefreshArmorPresentation();
 	/** 仅扣胸甲且截断溢出；屋顶放电与掩护统一走该入口。 */
 	bool TakeArmorDamageNoOverflow(int damage);
-	/** 成功承接干燥放电后开始或刷新 6 秒过载。 */
+	/** 成功承接干燥放电后开始或刷新 15 秒过载。 */
 	void BeginOverload();
 
 	ArmorBrokenState mArmorStage = ArmorBrokenState::NO_BROKEN;
