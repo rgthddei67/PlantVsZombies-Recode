@@ -54,7 +54,7 @@ public:
 	/** 在场景顶层 UI 阶段绘制挡位菜单，确保它覆盖天气预报板。 */
 	void DrawPlanternGearMenu(Graphics* g);
 
-	bool CanAfford(int cost) const;   // 开发者作弊（无视阳光）守卫在 .cpp，避免头文件引 GameAPP.h
+	bool CanAfford(int cost) const;   // 开发者作弊（无视阳光）守卫在 .cpp，避免头文件引 GameApp.h
 	/** 同时检查阳光与该植物的本关累计种植次数。 */
 	bool CanUsePlant(PlantType type, int cost) const;
 	bool SpendSun(int cost);

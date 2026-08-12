@@ -1,6 +1,6 @@
 #include "ParticleEffect.h"
 #include "../DeltaTime.h"
-#include "../GameAPP.h"
+#include "../GameApp.h"
 #include <algorithm>
 #include <cmath>
 

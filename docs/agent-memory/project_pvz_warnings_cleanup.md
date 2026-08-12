@@ -11,6 +11,10 @@ metadata:
 主人确认全清)。clang-release clean 重建 **0 warning / 0 error**，三 preset 全 0 error，
 AutoTest exit 0 行为不变。17 文件改动、净 -13 行，**未 commit（等主人）**。
 
+2026-08-12 重新检出后再次暴露 `-Wnonportable-include-path`：Git 索引和磁盘文件名是
+`GameApp.h`，但 35 个源码/头文件仍引用 `GameAPP.h`。现已统一为 `GameApp.h`；
+`clang-release` 构建退出码 0、无编译器警告，Windows 7 导入门禁通过（378 项）。
+
 关键操作要点(以后会话避坑)：
 
 - **警告归零验证必须用 clang-release**：MSVC 默认配置**不报** `-Wnonportable-include-path`/
@@ -25,9 +29,10 @@ AutoTest exit 0 行为不变。17 文件改动、净 -13 行，**未 commit（�
   （CLAUDE.md 的 Build/Run/AutoTest 节已于本次更正：运行目录改 build/<preset>/、构建脚本改为
   Installer 先进 PATH 再导 VsDevCmd 以消除 `'vswhere.exe' is not recognized` 噪音。）
 
-- **大小写 only 改名**（如 `GameAPP.h`→`GameApp.h`）：git 索引可能早已是目标大小写、
-  只磁盘残留——`git mv` 报 "not under version control"，要用普通 `mv` 两步（临时名中转）
-  强制翻转，改完 `git status` 反而干净。
+- **include 大小写必须跟 Git 索引一致**：Windows 的大小写不敏感工作区可能让
+  `GameAPP.h` 引用 `GameApp.h` 暂时通过，重新检出后 Clang 会再次报告
+  `-Wnonportable-include-path`。若确实要做仅大小写重命名，必须用临时名中转并核对
+  `git ls-files`；本项目当前权威拼写是 `GameApp.h`。
 
 - **reorder-ctor 主人偏好**：改**类内默认成员初始化器**而非重排初始化列表；带参构造函数
   改函数体内赋值。见 [feedback_collaboration_style](feedback_collaboration_style.md)。

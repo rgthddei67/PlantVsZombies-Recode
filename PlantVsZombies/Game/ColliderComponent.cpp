@@ -2,7 +2,7 @@
 #include "TransformComponent.h"
 #include "GameObject.h"
 #include "Component.h"
-#include "../GameAPP.h"
+#include "../GameApp.h"
 #include <memory>
 
 Vector ColliderComponent::GetWorldPosition() const {

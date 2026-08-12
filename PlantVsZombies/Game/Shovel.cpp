@@ -5,7 +5,7 @@
 #include "GameObjectManager.h"
 #include "../ResourceManager.h"
 #include "../ResourceKeys.h"
-#include "../GameAPP.h"
+#include "../GameApp.h"
 #include <SDL2/SDL.h>
 
 namespace {

@@ -3,7 +3,7 @@
 #include "AudioSystem.h"
 #include "AdventureProgression.h"
 #include "BoardPresentation.h"
-#include "../GameAPP.h"
+#include "../GameApp.h"
 #include "../DeltaTime.h"
 #include "GameObjectManager.h"
 #include "../ResourceManager.h"

@@ -1,7 +1,7 @@
 #pragma once
 #ifndef _BUTTON_H
 #define _BUTTON_H
-#include "../GameAPP.h"
+#include "../GameApp.h"
 #include "../Graphics.h"
 #include <functional>
 #include <string>

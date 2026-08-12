@@ -1,6 +1,6 @@
 #include "ZombieAlmanacScene.h"
 #include "SceneManager.h"
-#include "../GameAPP.h"
+#include "../GameApp.h"
 #include "AdventureProgression.h"
 #include "Zombie/Zombie.h"
 #include "ClickableComponent.h"

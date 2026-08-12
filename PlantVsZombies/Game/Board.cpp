@@ -23,7 +23,7 @@
 #include "RenderOrder.h"
 #include "AudioSystem.h"
 #include "./Plant/GameDataManager.h"
-#include "../GameAPP.h"
+#include "../GameApp.h"
 #include "../FileManager.h"
 #include "../ResourceManager.h"
 #include "../ResourceKeys.h"

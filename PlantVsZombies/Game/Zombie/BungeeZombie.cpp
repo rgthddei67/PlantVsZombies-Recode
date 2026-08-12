@@ -5,7 +5,7 @@
 #include "../Plant/Plant.h"
 #include "../Plant/PlantType.h"
 #include "../ShadowComponent.h"
-#include "../../GameAPP.h"
+#include "../../GameApp.h"
 #include "../../ResourceManager.h"
 #include "../../ResourceKeys.h"
 

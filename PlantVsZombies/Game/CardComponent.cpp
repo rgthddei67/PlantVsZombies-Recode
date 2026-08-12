@@ -9,7 +9,7 @@
 #include "../DeltaTime.h"
 #include "./ChooseCardUI.h"
 #include "AudioSystem.h"
-#include "../GameAPP.h"
+#include "../GameApp.h"
 
 CardComponent::CardComponent(PlantType type, int cost, float cooldown)
 	: mPlantType(type), mSunCost(cost), mCooldownTime(cooldown)

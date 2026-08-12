@@ -7,7 +7,7 @@
 #include "../ShadowComponent.h"
 #include "../AnimatedObject.h"
 #include "../Cell.h"
-#include "../../GameAPP.h"
+#include "../../GameApp.h"
 #include "../../Logger.h"
 #include <algorithm>
 #include <cmath>

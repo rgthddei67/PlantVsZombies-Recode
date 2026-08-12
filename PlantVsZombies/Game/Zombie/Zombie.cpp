@@ -9,7 +9,7 @@
 #include "../GameObjectManager.h"
 #include "../Plant/GameDataManager.h"
 #include "../../ParticleSystem/ParticleSystem.h"
-#include "../../GameAPP.h"
+#include "../../GameApp.h"
 #include "../../ResourceKeys.h"
 #include <algorithm>
 #include <climits>

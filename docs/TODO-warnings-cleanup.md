@@ -1,15 +1,17 @@
-# 编译警告清零（✅ 2026-06-13 已完成）
+# 编译警告清零（✅ 2026-06-13 已完成，2026-08-12 复核）
 
 clang-release clean 重建 **0 warning / 0 error**；msvc-release / msvc-debug 亦 0 error；
 `demo_peashooter.json` AutoTest exit 0、state 与基线一致（行为不变）。
 
+2026-08-12 将残留的 `GameAPP.h` 源码引用统一为 Git 与磁盘使用的 `GameApp.h`；
+`clang-release` 构建退出码 0、无编译器警告，Windows 7 导入门禁通过（378 项）。
+
 ## TODO 原列 4 类（已修）
 
-1. **`-Wnonportable-include-path`**：磁盘文件名 `GameAPP.h`→`GameAPP.h`。
-   实为工作区大小写脱节——git 索引早已是 `GameAPP.h`，只磁盘残留大写；
-   `git mv` 会报 "not under version control"，需用普通 `mv` 两步（临时名中转）。
-   另：仓内有 5 处 include 写的是 `GameAPP.h`（GameApp.cpp/main.cpp/AnimatedObject.cpp/
-   TestDriver.cpp/GameMessageBox.cpp），已统一为 `GameAPP.h`（原 TODO "全仓不用改 include" 判断有误）。
+1. **`-Wnonportable-include-path`**：源码 include `GameAPP.h`→`GameApp.h`。
+   2026-08-12 再次核对确认：git 索引与磁盘文件名均为 `GameApp.h`，源码引用残留大写；
+   Windows 的大小写不敏感工作区会掩盖问题，重新检出后由 Clang 再次暴露。
+   仓内所有源码 include 已统一为 `GameApp.h`，避免 Windows 大小写不敏感掩盖跨平台问题。
 2. **C4477/C4267（CrashHandler.cpp）**：`strlen`→`static_cast<DWORD>`、
    `Rsp`(DWORD64)→`reinterpret_cast<void*>` 配 `%p`。
 3. **`-Wreorder-ctor` ×3**：按主人指示改**类内默认成员初始化器**（删构造函数初始化列表）：

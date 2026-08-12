@@ -1,6 +1,6 @@
 #include "ParticleEmitter.h"
 #include "../DeltaTime.h"
-#include "../GameAPP.h"
+#include "../GameApp.h"
 #include "../Game/Definit.h"
 #include "../GameRandom.h"
 #include "../ResourceManager.h"

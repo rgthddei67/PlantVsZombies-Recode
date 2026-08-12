@@ -4,7 +4,7 @@
 #include "../GameObjectManager.h"
 #include "../ShadowComponent.h"
 #include "GameDataManager.h"
-#include "../../GameAPP.h"	// GameAPP::mShowPlantHP / Graphics / DrawText
+#include "../../GameApp.h"	// GameAPP::mShowPlantHP / Graphics / DrawText
 #include "../../Logger.h"
 #include <cmath>
 

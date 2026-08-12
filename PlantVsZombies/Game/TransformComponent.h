@@ -4,7 +4,7 @@
 
 #include "Component.h"
 #include "GameObject.h"
-#include "../GameAPP.h"
+#include "../GameApp.h"
 
 class TransformComponent : public Component {
 private:

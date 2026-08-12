@@ -4,7 +4,7 @@
 #include "SaveSchema.h"
 #include <algorithm>
 #include <filesystem>
-#include "GameAPP.h"
+#include "GameApp.h"
 #include "./Game/Board.h"
 #include "./Game/BoardPresentation.h"
 #include "./Game/AudioSystem.h"

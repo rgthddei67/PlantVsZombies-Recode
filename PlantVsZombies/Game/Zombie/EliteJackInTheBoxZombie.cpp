@@ -5,7 +5,7 @@
 #include "../Plant/GameDataManager.h"
 #include "../Plant/Plant.h"
 #include "../../DeltaTime.h"
-#include "../../GameAPP.h"
+#include "../../GameApp.h"
 #include "../../GameRandom.h"
 #include "../../Graphics.h"
 #include "../../ParticleSystem/ParticleSystem.h"

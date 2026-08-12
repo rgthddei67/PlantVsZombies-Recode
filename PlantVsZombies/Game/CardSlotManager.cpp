@@ -12,7 +12,7 @@
 #include "./Plant/Blover.h"
 #include "./Plant/Plantern.h"
 #include "ShadowComponent.h"
-#include "../GameAPP.h"
+#include "../GameApp.h"
 
 namespace {
 	constexpr float kPlanternMenuTopOffset = 74.0f; // 挡位菜单相对卡片顶部的纵向偏移，单位：UI px

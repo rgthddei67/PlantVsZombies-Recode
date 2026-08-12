@@ -4,7 +4,7 @@
 #include "../ResourceKeys.h"
 #include "../DeltaTime.h"
 #include "../GameRandom.h"
-#include "../GameAPP.h"
+#include "../GameApp.h"
 #include "Coin.h"
 #include "Board.h"
 

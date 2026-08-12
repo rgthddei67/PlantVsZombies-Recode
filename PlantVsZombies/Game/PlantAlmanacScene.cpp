@@ -1,6 +1,6 @@
 #include "PlantAlmanacScene.h"
 #include "SceneManager.h"
-#include "../GameAPP.h"
+#include "../GameApp.h"
 #include "Plant/Plant.h"
 #include "ClickableComponent.h"
 #include "./Plant/GameDataManager.h"

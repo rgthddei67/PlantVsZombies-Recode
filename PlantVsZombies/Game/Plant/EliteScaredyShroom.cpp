@@ -1,6 +1,6 @@
 #include "EliteScaredyShroom.h"
 
-#include "../../GameAPP.h"
+#include "../../GameApp.h"
 #include "../../Reanimation/Animator.h"
 
 #include <algorithm>

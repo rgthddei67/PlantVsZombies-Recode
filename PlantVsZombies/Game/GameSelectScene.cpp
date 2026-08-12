@@ -1,6 +1,6 @@
 #include "GameSelectScene.h"
 #include "SceneManager.h"
-#include "../GameAPP.h"
+#include "../GameApp.h"
 #include "AudioSystem.h"
 #include "Board.h"
 #include "../Logger.h"

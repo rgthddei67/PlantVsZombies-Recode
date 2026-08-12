@@ -1,6 +1,6 @@
 #include "Animator.h"
 #include "../DeltaTime.h"
-#include "../GameAPP.h"
+#include "../GameApp.h"
 #include "../ResourceManager.h"
 #include "../Logger.h"
 #include <algorithm>

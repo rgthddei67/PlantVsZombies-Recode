@@ -4,7 +4,7 @@
 #include "GameObjectManager.h"
 #include "ShadowComponent.h"
 #include "../DeltaTime.h"
-#include "../GameAPP.h"
+#include "../GameApp.h"
 #include <algorithm>
 
 namespace {

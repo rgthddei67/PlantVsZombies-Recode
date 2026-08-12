@@ -2,7 +2,7 @@
 #include "ColliderComponent.h"
 #include "GameObjectManager.h"
 #include "../UI/InputHandler.h"
-#include "../GameAPP.h"
+#include "../GameApp.h"
 #include "GameObject.h"
 #include "../CursorManager.h"
 #include <algorithm>

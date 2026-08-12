@@ -12,7 +12,7 @@
 #include "ChooseCardUI.h"
 #include "../UI/GameMessageBox.h"
 #include "Perk/SurvivalPerkManager.h"
-#include "../GameAPP.h"
+#include "../GameApp.h"
 #include "../Graphics.h"
 #include "../Profiler.h"
 #include "./Shovel.h"
