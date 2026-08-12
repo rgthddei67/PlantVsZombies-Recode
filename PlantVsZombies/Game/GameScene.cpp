@@ -1025,9 +1025,7 @@ RoofMarshalBossHealthBarState GameScene::GetRoofMarshalBossHealthBarState() cons
 	state.y = kRoofMarshalBossBarY;
 	if (!mBoard || mBoard->mBoardState != BoardState::GAME) return state;
 
-	Zombie* zombie = mBoard->mEntityManager.GetFirstActiveZombieOfType(
-		ZombieType::ZOMBIE_ROOF_MARSHAL);
-	auto* marshal = dynamic_cast<RoofMarshalZombie*>(zombie);
+	const auto marshal = mBoard->mEntityManager.GetFirstActiveRoofMarshal();
 	if (!marshal || marshal->mBodyHealth <= 0 || marshal->mBodyMaxHealth <= 0) {
 		return state;
 	}

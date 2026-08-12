@@ -2,6 +2,7 @@
 #include "Plant/Plant.h"
 #include "Zombie/Zombie.h"
 #include "Zombie/GildedZamboniZombie.h"
+#include "Zombie/RoofMarshalZombie.h"
 #include "Bullet/Bullet.h"
 #include "Coin.h"
 #include "LawnMower.h"
@@ -35,6 +36,7 @@ int EntityManager::AddZombie(std::shared_ptr<Zombie> zombie) {
 	zombie->mZombieID = id;
 	mRowIndexDirty = true; // 同帧生成后，火球溅射等行查询必须立即看见新僵尸
 	TrackGoldenIceSource(id, zombie);
+	TrackRoofMarshal(id, zombie);
 	return id;
 }
 
@@ -54,21 +56,17 @@ std::vector<int> EntityManager::GetAllZombieIDs() const {
 	return ids;
 }
 
-Zombie* EntityManager::GetFirstActiveZombieOfType(ZombieType type) const {
-	Zombie* result = nullptr;
-	int resultID = mNextZombieID;
-	for (const auto& pair : mZombies) {
-		auto zombie = pair.second.lock();
-		if (!zombie || pair.first >= resultID
-			|| zombie->mZombieType != type || zombie->IsPreview()
-			|| !zombie->IsActive() || zombie->IsDying()
-			|| zombie->mBodyHealth <= 0) {
+std::shared_ptr<RoofMarshalZombie> EntityManager::GetFirstActiveRoofMarshal() const {
+	// std::map 已按实体 ID 排序；通常首个候选就是唯一督军，不再随全场僵尸数增长。
+	for (const auto& pair : mRoofMarshals) {
+		auto marshal = pair.second.lock();
+		if (!marshal || marshal->IsPreview() || !marshal->IsActive()
+			|| marshal->IsDying() || marshal->mBodyHealth <= 0) {
 			continue;
 		}
-		result = zombie.get();
-		resultID = pair.first;
+		return marshal;
 	}
-	return result;
+	return nullptr;
 }
 
 int EntityManager::AddBullet(std::shared_ptr<Bullet> bullet) {
@@ -168,6 +166,17 @@ void EntityManager::EnsureGoldenIceSourceSnapshot()
 	mGoldenIceSourceSnapshotDirty = false;
 }
 
+void EntityManager::TrackRoofMarshal(
+	int id, const std::shared_ptr<Zombie>& zombie)
+{
+	if (auto marshal = std::dynamic_pointer_cast<RoofMarshalZombie>(zombie)) {
+		mRoofMarshals[id] = std::move(marshal);
+	}
+	else {
+		mRoofMarshals.erase(id);
+	}
+}
+
 std::vector<int> EntityManager::CleanupExpired() {
 	std::vector<int> removedPlants;
 
@@ -213,6 +222,15 @@ std::vector<int> EntityManager::CleanupExpired() {
 			}
 		}
 
+		for (auto it = mRoofMarshals.begin(); it != mRoofMarshals.end(); ) {
+			if (it->second.expired()) {
+				it = mRoofMarshals.erase(it);
+			}
+			else {
+				++it;
+			}
+		}
+
 		for (auto it = mCoins.begin(); it != mCoins.end(); ) {
 			if (it->second.expired()) {
 				it = mCoins.erase(it);
@@ -249,6 +267,7 @@ int EntityManager::AddZombieWithID(std::shared_ptr<Zombie> zombie, int id) {
 	zombie->mZombieID = id;
 	mRowIndexDirty = true;
 	TrackGoldenIceSource(id, zombie);
+	TrackRoofMarshal(id, zombie);
 	if (id >= mNextZombieID) {
 		mNextZombieID = id + 1;
 	}

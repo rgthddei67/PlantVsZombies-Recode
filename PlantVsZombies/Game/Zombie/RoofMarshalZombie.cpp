@@ -499,7 +499,7 @@ int RoofMarshalZombie::GetCurrentHighThreatRollPercent() const
 	if (mBodyHealth <= kDesperateHealthThreshold) {
 		return kHighThreatRollEndPercent;
 	}
-	// 8000→4000 血把概率从 30% 线性抬到 100%；最终阶段因此不会再混入普通杂兵。
+	// 11000→5400 血把概率从 30% 线性抬到 100%；最终阶段因此不会再混入普通杂兵。
 	const int threatPhaseHealthSpan =
 		kHighThreatHealthThreshold - kDesperateHealthThreshold;
 	const int healthLostInThreatPhase =

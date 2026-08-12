@@ -1,6 +1,7 @@
 #pragma once
 #ifndef _ENTITYMANAGER_H
 #define _ENTITYMANAGER_H
+#include <map>
 #include <memory>
 #include <unordered_map>
 #include <vector>
@@ -9,6 +10,7 @@
 class Plant;
 class Zombie;
 class GildedZamboniZombie;
+class RoofMarshalZombie;
 class Coin;
 class Bullet;
 class Mower;
@@ -23,8 +25,8 @@ public:
 	int AddZombie(std::shared_ptr<Zombie> zombie);
 	Zombie* GetZombie(int id) const;
 	std::vector<int> GetAllZombieIDs() const;
-	/** 返回指定品种中实体 ID 最小的活跃战斗个体；不分配临时 ID 数组，适合逐帧展示查询。 */
-	Zombie* GetFirstActiveZombieOfType(ZombieType type) const;
+	/** 返回实体 ID 最小的活跃屋脊督军；查询只访问首领专用索引，不扫描全体僵尸。 */
+	std::shared_ptr<RoofMarshalZombie> GetFirstActiveRoofMarshal() const;
 
 	int AddBullet(std::shared_ptr<Bullet> bullet);
 	Bullet* GetBullet(int id) const;
@@ -116,6 +118,12 @@ private:
 	void TrackGoldenIceSource(int id, const std::shared_ptr<Zombie>& zombie);
 	/** 从专用弱索引生成本帧活跃来源快照，不扫描全体僵尸。 */
 	void EnsureGoldenIceSourceSnapshot();
+
+	// ── 屋脊督军独立索引（瞬态、按实体 ID 有序）──
+	// 首领血条每个渲染帧查询；只遍历极少数督军候选，并保持开发模式多实例时选择最小 ID 的契约。
+	std::map<int, std::weak_ptr<RoofMarshalZombie>> mRoofMarshals;
+	/** 登记或覆盖指定 ID 的屋脊督军；非督军类型会撤销同 ID 的旧登记。 */
+	void TrackRoofMarshal(int id, const std::shared_ptr<Zombie>& zombie);
 };
 
 #endif
