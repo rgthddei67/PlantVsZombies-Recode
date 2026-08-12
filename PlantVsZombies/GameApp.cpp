@@ -432,12 +432,21 @@ int GameAPP::Run()
 	// 主体与 UI GameObject 之间依次合成世界粒子、天气覆盖层和 Scene UI 贴图。
 	GameObjectManager::GetInstance().SetPreOverlayHook([this] {
 		// 世界粒子先参与战场合成，再由天气暗幕统一压暗。
-		if (g_particleSystem) {
-			g_particleSystem->DrawBelow(LAYER_UI);
+		{
+			PROFILE_SCOPE("8a.Draw_worldParticles");
+			if (g_particleSystem) {
+				g_particleSystem->DrawBelow(LAYER_UI);
+			}
 		}
-		SceneManager::GetInstance().DrawWorldOverlay(m_graphics.get());
+		{
+			PROFILE_SCOPE("8b.Draw_worldOverlay");
+			SceneManager::GetInstance().DrawWorldOverlay(m_graphics.get());
+		}
 		// Scene 的 UI 坐标贴图（当前为卡槽底板）必须在天气暗幕后、UI GameObject 前绘制。
-		SceneManager::GetInstance().DrawUITextures(m_graphics.get());
+		{
+			PROFILE_SCOPE("8c.Draw_sceneUITextures");
+			SceneManager::GetInstance().DrawUITextures(m_graphics.get());
+		}
 	});
 
 	auto& sceneManager = SceneManager::GetInstance();

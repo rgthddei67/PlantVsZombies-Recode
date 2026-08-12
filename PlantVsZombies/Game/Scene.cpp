@@ -52,6 +52,7 @@ void Scene::RegisterDrawCommand(const std::string& name,
 	}
 }
 
+/** 按层执行场景绘制命令，并在 -Profile 下按注册名暴露 GameObjectManager 外围耗时。 */
 void Scene::Draw(Graphics* g) {
 	if (!mDrawCommandsBuilt) {
 		BuildDrawCommands();
@@ -60,6 +61,7 @@ void Scene::Draw(Graphics* g) {
 	}
 	for (auto& cmd : mDrawCommands) {
 		if (cmd.drawFunc) {
+			ScopedProfile commandProfile(cmd.profileName.c_str());
 			cmd.drawFunc(g);
 		}
 	}

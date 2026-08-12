@@ -481,36 +481,55 @@ void GameScene::DrawWorldOverlay(Graphics* g)
 {
 	if (!g || !mBoard) return;
 	// 雾先遮住战场与世界粒子，随后再统一接受雨天暗幕；闪电最后照亮雾层但仍不覆盖 UI。
-	DrawFog(g);
-	DrawRoofRunoff(g);
-	const float alpha = mBoard->GetRainOverlayAlpha();
-	if (alpha > 0.0f) {
-		// 低成本雨天环境光：只做蓝灰半透明暗幕。该钩子在战场主体与世界粒子之后、UI overlay
-		// 之前调用，因而背景、实体和世界特效统一变暗，但卡片、按钮和文字保持清晰。
-		g->FillRect(-20.0f, 0.0f,
-			static_cast<float>(SCENE_WIDTH + 500), static_cast<float>(SCENE_HEIGHT),
-			glm::vec4(36.0f, 52.0f, 78.0f, alpha));		// -20 500的预留空间
+	{
+		PROFILE_SCOPE("8b1.Draw_fog");
+		DrawFog(g);
 	}
-	if (mBoard->IsStormyNightActive()) {
-		// 与 C# 4-10 相同：战场世界层常态全黑，闪电时降低黑幕并短暂叠加白光；UI 稍后绘制。
-		const float blackAlpha = mBoard->GetStormyNightBlackAlpha();
-		const float whiteAlpha = mBoard->GetStormyNightWhiteAlpha();
-		if (blackAlpha > 0.0f) {
-			g->FillRect(-1000.0f, -1000.0f,
-				static_cast<float>(SCENE_WIDTH + 2000),
-				static_cast<float>(SCENE_HEIGHT + 2000),
-				glm::vec4(0.0f, 0.0f, 0.0f, blackAlpha));
-		}
-		if (whiteAlpha > 0.0f) {
-			g->FillRect(-1000.0f, -1000.0f,
-				static_cast<float>(SCENE_WIDTH + 2000),
-				static_cast<float>(SCENE_HEIGHT + 2000),
-				glm::vec4(255.0f, 255.0f, 255.0f, whiteAlpha));
-		}
-		return;
+	{
+		PROFILE_SCOPE("8b2.Draw_roofRunoff");
+		DrawRoofRunoff(g);
 	}
-	DrawNightRoofCharge(g);
-	DrawLightningStrike(g);
+	{
+		PROFILE_SCOPE("8b3.Draw_rainOverlay");
+		const float alpha = mBoard->GetRainOverlayAlpha();
+		if (alpha > 0.0f) {
+			// 低成本雨天环境光：只做蓝灰半透明暗幕。该钩子在战场主体与世界粒子之后、UI overlay
+			// 之前调用，因而背景、实体和世界特效统一变暗，但卡片、按钮和文字保持清晰。
+			g->FillRect(-20.0f, 0.0f,
+				static_cast<float>(SCENE_WIDTH + 500), static_cast<float>(SCENE_HEIGHT),
+				glm::vec4(36.0f, 52.0f, 78.0f, alpha));		// -20 500的预留空间
+		}
+	}
+	const bool stormyNightActive = mBoard->IsStormyNightActive();
+	{
+		PROFILE_SCOPE("8b4.Draw_stormyNight");
+		if (stormyNightActive) {
+			// 与 C# 4-10 相同：战场世界层常态全黑，闪电时降低黑幕并短暂叠加白光；UI 稍后绘制。
+			const float blackAlpha = mBoard->GetStormyNightBlackAlpha();
+			const float whiteAlpha = mBoard->GetStormyNightWhiteAlpha();
+			if (blackAlpha > 0.0f) {
+				g->FillRect(-1000.0f, -1000.0f,
+					static_cast<float>(SCENE_WIDTH + 2000),
+					static_cast<float>(SCENE_HEIGHT + 2000),
+					glm::vec4(0.0f, 0.0f, 0.0f, blackAlpha));
+			}
+			if (whiteAlpha > 0.0f) {
+				g->FillRect(-1000.0f, -1000.0f,
+					static_cast<float>(SCENE_WIDTH + 2000),
+					static_cast<float>(SCENE_HEIGHT + 2000),
+					glm::vec4(255.0f, 255.0f, 255.0f, whiteAlpha));
+			}
+		}
+	}
+	if (stormyNightActive) return;
+	{
+		PROFILE_SCOPE("8b5.Draw_nightRoofCharge");
+		DrawNightRoofCharge(g);
+	}
+	{
+		PROFILE_SCOPE("8b6.Draw_lightning");
+		DrawLightningStrike(g);
+	}
 }
 
 float GameScene::GetRoofRainBackgroundAlpha() const

@@ -20,11 +20,13 @@ struct DrawCommand {
 	std::function<void(Graphics*)> drawFunc;
 	int renderOrder;
 	std::string name;
+	std::string profileName;
 
 	DrawCommand(std::function<void(Graphics*)> func = nullptr,
 		int order = 0,
 		const std::string& n = "")
-		: drawFunc(func), renderOrder(order), name(n) {
+		: drawFunc(func), renderOrder(order), name(n),
+		profileName("5.SceneCmd." + (n.empty() ? std::string("unnamed") : n)) {
 	}
 
 	bool operator<(const DrawCommand& other) const {
