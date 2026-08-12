@@ -269,6 +269,7 @@
 
   <!-- 音效文件 -->
   <Sounds>
+    <Sound>./resources/sounds/pause.ogg</Sound>
     <Sound>./resources/sounds/UI/bleep.ogg</Sound>
     <Sound>./resources/sounds/UI/buttonclick.ogg</Sound>
     <Sound>./resources/sounds/UI/ceramic.ogg</Sound>
@@ -336,7 +337,7 @@
     <Sound>./resources/sounds/Plant/frozen.ogg</Sound>
     <Sound>./resources/sounds/Plant/coffee.ogg</Sound>
     <Sound>./resources/sounds/Plant/magnetshroom.ogg</Sound>
-<Sound>./resources/sounds/Plant/snow_pea_sparkles.ogg</Sound>
+    <Sound>./resources/sounds/Plant/snow_pea_sparkles.ogg</Sound>
     <Sound>./resources/sounds/Plant/squash_hmm.ogg</Sound>
     <Sound>./resources/sounds/Plant/squash_hmm2.ogg</Sound>
     <Sound>./resources/sounds/Zombie/gargantuar_thump.ogg</Sound>

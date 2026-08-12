@@ -1531,6 +1531,11 @@ void GameScene::ToggleSpacePause()
 	if (mOpenMenu || mOpenRestartMenu || mOpenQuitMenu
 		|| mSurvivalPerkSelectActive || mPerkViewActive || mDevPanelActive) return;
 
+	if (!mSpacePauseActive)
+	{
+		AudioSystem::PlaySound("SOUND_PAUSE", 0.6f);
+	}
+
 	mSpacePauseActive = !mSpacePauseActive;
 	SyncSpacePauseInputPolicy();
 	DeltaTime::SetPaused(mSpacePauseActive);
