@@ -523,6 +523,14 @@ public:
 		const glm::vec4& color, float x, float y, float scale = 1.0f);
 
 	/**
+	 * @brief 按当前 letterbox 超采样口径测量文字的逻辑宽高。
+	 *        与 DrawText/DrawGlyphRun 使用同一物理字号，适合在逻辑 UI 矩形内精确居中短文本。
+	 * @return 成功时返回逻辑像素宽高；空文本、无效字号或字体测量失败时返回零向量。
+	 */
+	glm::vec2 MeasureTextSize(const std::string& text, const std::string& fontKey,
+		int fontSize, float scale = 1.0f) const;
+
+	/**
 	 * @brief 按当前 letterbox 超采样口径测量文字的逻辑宽度。
 	 *        与 DrawText/DrawGlyphRun 使用同一物理字号，适合在逻辑 UI 矩形内精确居中短文本。
 	 * @return 成功时返回逻辑像素宽度；空文本、无效字号或字体测量失败时返回 0。

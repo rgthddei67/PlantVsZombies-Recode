@@ -308,3 +308,7 @@ void ChooseCardUI::UpdateTargetPositions() {
 bool ChooseCardUI::IsCardSelected(Card* card) const {
 	return std::find(mSelectedCards.begin(), mSelectedCards.end(), card) != mSelectedCards.end();
 }
+
+float ChooseCardUI::GetGameSlotRightEdge() {
+	return SLOT_START_X + static_cast<float>((MAX_SELECTED - 1) * SLOT_SPACING + CARD_WIDTH);
+}

@@ -27,6 +27,32 @@
 #include <iterator>
 
 namespace {
+	constexpr float kSeedBankX = 130.0f;                  // 卡槽底板左边缘，单位：逻辑 px
+	constexpr float kSeedBankRestY = -10.0f;              // 卡槽停靠后的顶部 Y，单位：逻辑 px
+	constexpr float kSeedBankStartY = -100.0f;            // 卡槽滑入前的顶部 Y，单位：逻辑 px
+	constexpr float kSeedBankDefaultScaleX = 0.85f;       // 资源不可用时沿用的横向缩放兜底
+	constexpr float kSeedBankScaleY = 0.9f;               // 卡槽底板纵向缩放，保持现有高度
+	constexpr float kSeedBankRightPadding = 13.0f;        // 最后一张卡右侧到含圆角边框的总留白，单位：逻辑 px
+	constexpr float kSunPaperLeftInTexture = 7.0f;        // 阳光纸条文字区左边缘，单位：资源 px
+	constexpr float kSunPaperRightInTexture = 69.0f;      // 阳光纸条文字区右边缘，单位：资源 px
+	constexpr float kSunPaperTopInTexture = 55.0f;        // 阳光纸条文字区上边缘，单位：资源 px
+	constexpr float kSunPaperBottomInTexture = 86.0f;     // 阳光纸条文字区下边缘，单位：资源 px
+	constexpr float kSunTextInsetX = 2.0f;                // 数字相对纸条左右边缘的安全内缩，单位：逻辑 px
+	constexpr float kSunTextInsetY = 2.0f;                // 数字相对纸条上下边缘的安全内缩，单位：逻辑 px
+	constexpr int kSunTextMaxFontSize = 17;               // 短阳光数值允许使用的最大字号
+	constexpr int kSunTextMinFontSize = 11;               // 极端长数值仍需保持可读的最小字号
+
+	/** 按 11 个真实卡位的右边缘计算底板横向缩放，消除末端看似可放卡的空段。 */
+	float SeedBankScaleX()
+	{
+		const Texture* texture = ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_SEEDBANK_LONG, false);
+		if (!texture || texture->width <= 0) return kSeedBankDefaultScaleX;
+		const float targetRight = ChooseCardUI::GetGameSlotRightEdge()
+			+ kSeedBankRightPadding;
+		return (targetRight - kSeedBankX) / static_cast<float>(texture->width);
+	}
+
 	// 右下角关卡名/轮数显示。
 	// 冒险模式：沿用原左对齐（左端锚点 x=768，阴影 766），不改动既有观感。
 	// 生存模式：右对齐——右端锚点固定，文字越长越向左延伸，避免"第10面旗"等长文本撞到右侧"难度"文字。
@@ -1399,7 +1425,8 @@ void GameScene::OnEnter() {
 		mBoard->StartGame();
 
 		AddTexture(ResourceKeys::Textures::IMAGE_SEEDBANK_LONG,
-			130.0f, -10.0f, 0.85f, 0.9f, LAYER_UI, true);
+			kSeedBankX, kSeedBankRestY, SeedBankScaleX(), kSeedBankScaleY,
+			LAYER_UI, true);
 
 		mBoard->CompleteLoadRestore();
 	}
@@ -1683,8 +1710,8 @@ void GameScene::Update() {
 			// 首次进入时添加种子槽纹理（初始位置在屏幕外上方）
 			if (!mSeedbankAdded) {
 				AddTexture(ResourceKeys::Textures::IMAGE_SEEDBANK_LONG,
-					130.0f, -100.0f,            // 起始位置：x=130, y 上方
-					0.85f, 0.9f, LAYER_UI, true);
+					kSeedBankX, kSeedBankStartY,
+					SeedBankScaleX(), kSeedBankScaleY, LAYER_UI, true);
 				mSeedbankAdded = true;
 			}
 			// 选卡界面：首次进入或生存轮间（上一轮选完已销毁）时按需创建
@@ -1702,10 +1729,11 @@ void GameScene::Update() {
 			float t = mSeedbankAnimElapsed / mSeedbankAnimDuration;
 			float eased = static_cast<float>((1 - cos(t * M_PI)) / 2);
 
-			float startY = -100.0f, targetY = -10.0f;
+			float startY = kSeedBankStartY, targetY = kSeedBankRestY;
 
 			float currentY = startY + (targetY - startY) * eased;
-			SetTexturePosition(ResourceKeys::Textures::IMAGE_SEEDBANK_LONG, 130.0f, currentY);
+			SetTexturePosition(ResourceKeys::Textures::IMAGE_SEEDBANK_LONG,
+				kSeedBankX, currentY);
 
 			// --- 选卡界面动画 ---
 			if (!mChooseCardUIMoving) {
@@ -1846,8 +1874,36 @@ void GameScene::ShowSunCount()
 	if (mSunCounterRegistered) return;
 	RegisterDrawCommand("SunCounter",
 		[this](Graphics* g) {
-			GameAPP::GetInstance().DrawText(std::to_string(mBoard->GetSun()),
-				g->LogicalToWorld(142, 42), { 0,0,0,255 }, ResourceKeys::Fonts::FONT_FZCQ, 17);
+			if (!g || !mBoard) return;
+			const std::string text = std::to_string(mBoard->GetSun());
+			const float scaleX = SeedBankScaleX();
+			const float centerX = kSeedBankX
+				+ (kSunPaperLeftInTexture + kSunPaperRightInTexture) * 0.5f * scaleX;
+			const float centerY = kSeedBankRestY
+				+ (kSunPaperTopInTexture + kSunPaperBottomInTexture) * 0.5f
+				* kSeedBankScaleY;
+			const float maxWidth = (kSunPaperRightInTexture - kSunPaperLeftInTexture)
+				* scaleX - kSunTextInsetX * 2.0f;
+			const float maxHeight = (kSunPaperBottomInTexture - kSunPaperTopInTexture)
+				* kSeedBankScaleY - kSunTextInsetY * 2.0f;
+
+			int fontSize = kSunTextMinFontSize;
+			glm::vec2 textSize(0.0f);
+			for (int candidate = kSunTextMaxFontSize;
+				candidate >= kSunTextMinFontSize; --candidate) {
+				const glm::vec2 candidateSize = g->MeasureTextSize(text,
+					ResourceKeys::Fonts::FONT_FZCQ, candidate);
+				if (candidateSize.x <= 0.0f || candidateSize.y <= 0.0f) continue;
+				fontSize = candidate;
+				textSize = candidateSize;
+				if (candidateSize.x <= maxWidth && candidateSize.y <= maxHeight) break;
+			}
+
+			const Vector drawPosition = g->LogicalToWorld(
+				centerX - textSize.x * 0.5f,
+				centerY - textSize.y * 0.5f);
+			GameAPP::GetInstance().DrawText(text, drawPosition,
+				{ 0,0,0,255 }, ResourceKeys::Fonts::FONT_FZCQ, fontSize);
 		},
 		LAYER_UI + 100000);
 	SortDrawCommands();
@@ -2234,6 +2290,8 @@ void GameScene::ChooseCardComplete()
 {
 	LOG_INFO("GameScene") << "选卡完成，准备开始游戏";
 	if (mCurrentStage != IntroStage::COMPLETE) return;
+	// 提交入口也负责注册：AutoTest 可在 COMPLETE 首次可见时立即提交，早于该阶段下一帧 Update。
+	ShowSunCount();
 
 	if (mChooseCardUI) {
 		auto& gameApp = GameAPP::GetInstance();

@@ -1660,17 +1660,25 @@ static int ComputeTextRasterSize(int fontSize, float letterboxScale, float& outS
 	return phys;
 }
 
-float Graphics::MeasureTextWidth(const std::string& text, const std::string& fontKey,
+glm::vec2 Graphics::MeasureTextSize(const std::string& text, const std::string& fontKey,
 	int fontSize, float scale) const {
-	if (text.empty() || fontSize <= 0 || scale <= 0.0f) return 0.0f;
+	if (text.empty() || fontSize <= 0 || scale <= 0.0f) return glm::vec2(0.0f);
 
 	float superSample = 1.0f;
 	const int physicalSize = ComputeTextRasterSize(fontSize, m_letterboxScale, superSample);
 	TTF_Font* font = ResourceManager::GetInstance().GetFont(fontKey, physicalSize);
 	int width = 0;
 	int height = 0;
-	if (!font || TTF_SizeUTF8(font, text.c_str(), &width, &height) != 0) return 0.0f;
-	return static_cast<float>(width) * scale / superSample;
+	if (!font || TTF_SizeUTF8(font, text.c_str(), &width, &height) != 0) {
+		return glm::vec2(0.0f);
+	}
+	return glm::vec2(static_cast<float>(width), static_cast<float>(height))
+		* scale / superSample;
+}
+
+float Graphics::MeasureTextWidth(const std::string& text, const std::string& fontKey,
+	int fontSize, float scale) const {
+	return MeasureTextSize(text, fontKey, fontSize, scale).x;
 }
 
 uint32_t Graphics::GetOrCreateTextTexture(const std::string& text, const std::string& fontKey,

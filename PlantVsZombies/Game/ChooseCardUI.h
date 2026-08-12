@@ -54,6 +54,8 @@ public:
 	void TransferSelectedCardsTo(CardSlotManager* manager);
 	// 按植物类型查找选卡界面中的卡牌（AutoTest 程序化选卡用）；找不到返回 nullptr
 	Card* FindCardByType(PlantType type);
+	/** 返回满配卡组最后一张卡的右边缘，供卡槽底板按真实容量收口。 */
+	static float GetGameSlotRightEdge();
 
 private:
 	const Texture* mCardUITexture = nullptr;

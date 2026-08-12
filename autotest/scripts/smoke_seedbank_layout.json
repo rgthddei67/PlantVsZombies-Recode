@@ -1,0 +1,37 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 1 },
+    {
+      "op": "choose_cards",
+      "cards": [
+        "PLANT_PEASHOOTER",
+        "PLANT_SUNFLOWER",
+        "PLANT_WALLNUT",
+        "PLANT_CHERRYBOMB",
+        "PLANT_POTATOMINE",
+        "PLANT_SNOWPEA",
+        "PLANT_CHOMPER",
+        "PLANT_REPEATER",
+        "PLANT_PUFFSHROOM",
+        "PLANT_SUNSHROOM",
+        "PLANT_FUMESHROOM"
+      ],
+      "timeout": 20
+    },
+    { "op": "wait_state", "state": "GAME" },
+
+    { "op": "set_sun", "value": 50 },
+    { "op": "assert_state", "path": "sun", "equals": 50 },
+    { "op": "screenshot", "name": "sun_50_max_font.png" },
+
+    { "op": "set_sun", "value": 800 },
+    { "op": "assert_state", "path": "sun", "equals": 800 },
+    { "op": "screenshot", "name": "sun_800_centered.png" },
+
+    { "op": "set_sun", "value": 9990 },
+    { "op": "assert_state", "path": "sun", "equals": 9990 },
+    { "op": "screenshot", "name": "sun_9990_fitted.png" },
+    { "op": "dump_state", "name": "state.json" },
+    { "op": "quit" }
+  ]
+}

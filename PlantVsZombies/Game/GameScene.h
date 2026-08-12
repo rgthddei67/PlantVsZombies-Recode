@@ -122,6 +122,7 @@ public:
 	int GetPerkRefreshesRemaining() const { return mSurvivalPerkRefreshesRemaining; }
 	const std::vector<PerkPairing>& GetCurrentPerkOffer() const { return mCurrentPerkOffer; }
 
+	/** 注册玩家阳光 HUD；数字按纸条内框自动选字号并保持水平、垂直居中。 */
 	void ShowSunCount();
 
 	/** 添加图片提示；不会覆盖正在播放的其他提示。 */
