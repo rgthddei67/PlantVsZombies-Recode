@@ -1,0 +1,46 @@
+{
+  "commands": [
+    {
+      "op": "set_last_selected_cards",
+      "cards": [
+        "PLANT_PEASHOOTER",
+        "PLANT_SUNFLOWER",
+        "PLANT_PEASHOOTER",
+        "PLANT_REMOVED"
+      ]
+    },
+    { "op": "goto_level", "level": 1 },
+    { "op": "wait_seconds", "value": 5.0 },
+    { "op": "assert_state", "path": "chooseCardReady", "equals": true },
+    { "op": "assert_state", "path": "restoreLastSelectionEnabled", "equals": true },
+    { "op": "assert_state", "path": "restoreLastSelectionButton.centerXInt", "atLeast": 500, "atMost": 700 },
+    { "op": "assert_state", "path": "restoreLastSelectionButton.centerYInt", "atLeast": 80, "atMost": 120 },
+    { "op": "assert_state", "path": "restoreLastSelectionButton.relativeCenterXInt", "atLeast": 350, "atMost": 450 },
+    { "op": "assert_state", "path": "restoreLastSelectionButton.relativeCenterYInt", "atLeast": 10, "atMost": 25 },
+    { "op": "assert_state", "path": "chooseCardSelectedCount", "equals": 0 },
+
+    { "op": "click", "target": "restore_last_cards" },
+    { "op": "wait_frames", "value": 2 },
+    { "op": "assert_state", "path": "chooseCardSelectedCount", "equals": 1 },
+    { "op": "assert_state", "path": "chooseCardSelectedCards.0", "equals": "PLANT_PEASHOOTER" },
+    { "op": "assert_state", "path": "chooseCardSelectedMovingCount", "atLeast": 1 },
+    { "op": "screenshot", "name": "restore_selection_in_motion.png" },
+    { "op": "wait_seconds", "value": 1.0 },
+    { "op": "assert_state", "path": "chooseCardSelectedMovingCount", "equals": 0 },
+    { "op": "screenshot", "name": "restore_selection_complete.png" },
+
+    { "op": "click", "x": 430, "y": 570 },
+    { "op": "wait_state", "state": "GAME" },
+    { "op": "assert_state", "path": "lastSelectedCardCount", "equals": 1 },
+    { "op": "assert_state", "path": "lastSelectedCards.0", "equals": "PLANT_PEASHOOTER" },
+
+    { "op": "goto_level", "level": 2 },
+    { "op": "wait_seconds", "value": 5.0 },
+    { "op": "assert_state", "path": "restoreLastSelectionEnabled", "equals": true },
+    { "op": "click", "target": "restore_last_cards" },
+    { "op": "wait_frames", "value": 2 },
+    { "op": "assert_state", "path": "chooseCardSelectedCards.0", "equals": "PLANT_PEASHOOTER" },
+    { "op": "screenshot", "name": "restore_selection_next_game.png" },
+    { "op": "quit" }
+  ]
+}

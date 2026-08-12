@@ -57,6 +57,7 @@ public:
 	bool mFullscreen = false;   // 是否全屏（等比 letterbox，无边框桌面全屏）
 
 	std::vector<PlantType> mHaveCards;      // 玩家拥有的卡牌
+	std::vector<std::string> mLastSelectedCards; // 上一次已提交选卡的稳定植物枚举名（保持点击顺序）
 
 	GameInfoSaver mGameInfoSaver;
 

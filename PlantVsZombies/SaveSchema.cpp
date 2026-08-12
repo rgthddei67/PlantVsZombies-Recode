@@ -127,6 +127,15 @@ namespace {
 				upgraded["schemaVersion"] = version;
 				break;
 			}
+			case 3:
+				if (kind == DocumentKind::Player
+					&& !upgraded.contains("lastSelectedCards")) {
+					// 玩家 v4 新增上次已提交的选卡；旧档从空记录开始，不猜测历史关卡卡组。
+					upgraded["lastSelectedCards"] = nlohmann::json::array();
+				}
+				version = 4;
+				upgraded["schemaVersion"] = version;
+				break;
 			default:
 				error = std::string(documentName) + "存档缺少迁移路径";
 				return false;

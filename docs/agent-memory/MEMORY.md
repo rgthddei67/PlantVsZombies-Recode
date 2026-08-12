@@ -12,7 +12,8 @@
 - [黑夜屋顶雷荷与基础放电](project_pvz_night_roof_charge.md) — 2026-08-10 仅 `NIGHT_ROOF` 启用独立雷荷；满100锁行预警4秒再放电0.65秒，跨阈值溢出和活动期正向输入截留为最多15%余电并在结束后兑现；普通非花盆植物停机2.5秒、地面僵尸75伤害+0.75秒麻痹，冲刷湿坡升级为5秒/120+1.2秒；飞行地下免疫、车辆只受伤，余电及通用停机/麻痹余时已入档并有可见专项
 - [第六大关黑夜屋顶与延期设计](project_pvz_sixth_area_night_roof_backlog.md) — 2026-08-10 6-1～6-9 已接入正式黑夜屋顶场景和基础雷荷；新植物、僵尸、专属出怪、6-9僵尸博士及处决僵尸联动仍延期，既有反制和快照边界不变
 - [经典花盆与屋顶承载层](project_pvz_flowerpot.md) — 2026-08-03 `PLANT_FLOWERPOT` 25阳光/7.5秒/300生命/1秒无啃食；under+normal+南瓜分层、屋顶门禁、5-1/5-2/后续5/4/3列初始布局、覆盖暂停、5px视觉抬升、通用ShadowComponent 46px可见阴影、双向台风整组与存档均经默认/NoInstance可见专项
-- [架构边界、存档版本与技能审计门禁](project_pvz_architecture_boundaries.md) — 2026-08-11 `BoardPresentation` 取代 `Board::mGameScene`，Board 保持天气/波次/生存玩法唯一权威；`SceneManager` 明确单活动场景；玩家 schema v2 补发毒囊射手，v3 为旧档补默认关闭的高级暂停且保留已有选择；迁移保持事务式并有纯测试；每次任务提交前审计相关 skills
+- [上次选卡持久化与一键动画恢复](project_pvz_last_selected_cards.md) — 2026-08-12 最近一次正式提交卡组以稳定枚举名顺序写入 PlayerInfo；ChooseCardUI 右上角缩小 Button2 按钮过滤失效/未拥有/重复项并复用卡片飞行动画，跨下一局可再次恢复
+- [架构边界、存档版本与技能审计门禁](project_pvz_architecture_boundaries.md) — 2026-08-12 `BoardPresentation` 取代 `Board::mGameScene`，Board 保持天气/波次/生存玩法唯一权威；`SceneManager` 明确单活动场景；玩家 schema v2 补发毒囊射手、v3 加高级暂停、v4 加稳定枚举名上次选卡；迁移保持事务式并有纯测试；每次任务提交前审计相关 skills
 - [OpenGL 3.3 Core 兼容后端](project_pvz_opengl33_backend.md) — 2026-08-11 同一 EXE 的 `auto/vulkan/opengl` 双后端选择与完整回退；GL 走 GLSL 330、CPU 顶点/Reanimation 展开、单 sampler 动态 VBO/IBO Batch，禁用并行 Draw 但保留并行 Update；Pool、clip、文字、粒子、截图、全屏/VSync、no-AVX2 与 Win7 导入门禁闭环，Win7 真机仍待验证
 - [空格轻量暂停与可选高级暂停](project_pvz_space_pause_ui.md) — 2026-08-11 空格只显示上方中央“游戏暂停”；高级暂停默认关闭并只在主菜单控制台设置，关闭时卡槽/落种被门禁但已有手持预览仍跟随，开启时暂停中可选卡种植；Esc 完整菜单不展示该开关；暂停倍速仅待选、泳池相位冻结
 - [经典咖啡豆、蘑菇睡眠 Z 与唤醒](project_pvz_coffeebean.md) — 2026-08-11 白天沉睡植物以独立 `Z.reanim` 按原版6～8fps随机相位循环，位置适配当前视觉锚点且醒来/压扁/失活即移除；`PLANT_INSTANT_COFFEE` 仍以短时 overlay 等待1秒后碎裂并启动1秒唤醒，资源、存档、台风与默认/NoInstance可见专项闭环

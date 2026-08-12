@@ -7,6 +7,7 @@
 #include "../../DeltaTime.h"
 #include "../../Logger.h"
 #include "../../ResourceKeys.h"
+#include "../../UI/Button.h"
 #include "../SceneManager.h"
 #include "../GameScene.h"
 #include "../AdventureProgression.h"
@@ -702,6 +703,19 @@ bool TestDriver::ExecuteCurrent() {
 	if (op == "set_advanced_pause") {
 		GameAPP::GetInstance().mAdvancedPauseEnabled =
 			cmd.value("value", false);
+		return true;
+	}
+	if (op == "set_last_selected_cards") {
+		auto& rememberedCards = GameAPP::GetInstance().mLastSelectedCards;
+		rememberedCards.clear();
+		const auto& cards = cmd.value("cards", nlohmann::json::array());
+		for (const auto& value : cards) {
+			if (!value.is_string()) {
+				Fail("set_last_selected_cards: cards 只能包含字符串");
+				return false;
+			}
+			rememberedCards.push_back(value.get<std::string>());
+		}
 		return true;
 	}
 	if (op == "reset_test_state") {
@@ -2070,6 +2084,18 @@ bool TestDriver::ExecuteCurrent() {
 			x = pos.x;
 			y = pos.y;
 		}
+		else if (target == "restore_last_cards") {
+			GameScene* gs = CurrentGameScene();
+			ChooseCardUI* ui = gs ? gs->GetChooseCardUI() : nullptr;
+			auto button = ui ? ui->GetRestoreButton() : nullptr;
+			if (!button || !button->IsEnabled()) {
+				Fail("click target=restore_last_cards: 上次选卡按钮不存在或不可用");
+				return false;
+			}
+			const Vector center = button->GetCenter();
+			x = center.x;
+			y = center.y;
+		}
 		else if (!target.empty()) { Fail("未知 click target: " + target); return false; }
 		else {
 			// 显式查在：缺字段时不静默回落到 (0,0) 点击，分别精确报错
@@ -2127,6 +2153,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["encounteredEliteDancer"] = gameApp.HasEncounteredEliteDancer();
 	out["monteCarloAIEnabled"] = gameApp.mEnableMonteCarloAI;
 	out["advancedPauseEnabled"] = gameApp.mAdvancedPauseEnabled;
+	out["lastSelectedCards"] = gameApp.mLastSelectedCards;
+	out["lastSelectedCardCount"] = static_cast<int>(gameApp.mLastSelectedCards.size());
 	out["dolphinAppearSoundRequestCount"] =
 		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_DOLPHIN_APPEARS);
 	out["dolphinBeforeJumpSoundRequestCount"] =
@@ -2531,6 +2559,38 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 
 	out["boardState"] = BoardStateName(board->mBoardState);
 	out["chooseCardReady"] = gs->IsChooseCardReady();
+	out["chooseCardSelectedCards"] = nlohmann::json::array();
+	out["chooseCardSelectedCount"] = 0;
+	out["chooseCardSelectedMovingCount"] = 0;
+	out["restoreLastSelectionEnabled"] = false;
+	if (ChooseCardUI* chooseUI = gs->GetChooseCardUI()) {
+		for (Card* card : chooseUI->GetSelectedCards()) {
+			if (!card) continue;
+			CardComponent* component = card->GetCardComponent();
+			if (!component) continue;
+			out["chooseCardSelectedCards"].push_back(
+				PlantTypeName(component->GetPlantType()));
+			if (card->IsMoving()) {
+				out["chooseCardSelectedMovingCount"] =
+					out["chooseCardSelectedMovingCount"].get<int>() + 1;
+			}
+		}
+		out["chooseCardSelectedCount"] = static_cast<int>(
+			out["chooseCardSelectedCards"].size());
+		if (auto button = chooseUI->GetRestoreButton()) {
+			out["restoreLastSelectionEnabled"] = button->IsEnabled();
+			const Vector panelPosition = chooseUI->GetPosition();
+			const Vector buttonCenter = button->GetCenter();
+			out["restoreLastSelectionButton"] = {
+				{ "centerXInt", static_cast<int>(std::lround(buttonCenter.x)) },
+				{ "centerYInt", static_cast<int>(std::lround(buttonCenter.y)) },
+				{ "relativeCenterXInt", static_cast<int>(std::lround(
+					buttonCenter.x - panelPosition.x)) },
+				{ "relativeCenterYInt", static_cast<int>(std::lround(
+					buttonCenter.y - panelPosition.y)) },
+			};
+		}
+	}
 	out["paused"] = DeltaTime::IsPaused();
 	out["spacePauseActive"] = gs->IsSpacePauseActiveForTesting();
 	out["pauseMenuOpen"] = gs->IsPauseMenuOpenForTesting();

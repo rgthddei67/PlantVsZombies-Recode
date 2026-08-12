@@ -14,6 +14,7 @@ public:
 	ChooseCardUI(GameScene* gameScene);
 	~ChooseCardUI();
 
+	void Update() override;
 	void Draw(Graphics* g) override;
 
 	// 后续添加卡牌的方法
@@ -30,6 +31,8 @@ public:
 	Vector GetPosition() const {
 		return GetTransformComponent()->GetPosition();
 	}
+	/** 设置选卡面板逻辑坐标，并同步依附于面板右上角的按钮。 */
+	void SetPosition(const Vector& position);
 
 	// 切换卡牌选中状态，返回是否选中
 	bool ToggleCardSelection(Card* card);
@@ -37,8 +40,14 @@ public:
 	bool IsCardSelected(Card* card) const;
 	// 获取所有选中的卡牌
 	const std::vector<Card*>& GetSelectedCards() const { return mSelectedCards; }
+	/** 按玩家点击顺序导出当前选择，用于提交后记录上一次卡组。 */
+	std::vector<PlantType> GetSelectedCardTypes();
 	// 获取“一起摇滚吧”按钮
 	std::shared_ptr<Button> GetButton() const { return mButton.lock(); }
+	// 获取面板右上角的“上次选卡”按钮
+	std::shared_ptr<Button> GetRestoreButton() const { return mRestoreButton.lock(); }
+	/** 用当前仍拥有且已注册的卡恢复上一次选择，并复用卡片目标位置动画。 */
+	bool RestoreLastSelectedCards();
 	// 添加所有卡牌
 	void AddAllCard();
 	// 转换卡牌所有权给卡槽管理器
@@ -52,6 +61,7 @@ private:
 
 	TransformComponent* mTransform = nullptr;
 	std::weak_ptr<Button> mButton;
+	std::weak_ptr<Button> mRestoreButton;
 
 	std::vector<Card*> mCards;  // 存储选卡界面的卡牌（观察者，所有权在 GameObjectManager）
 	std::vector<Card*> mSelectedCards;   // 存储选中的卡牌对象
@@ -69,6 +79,9 @@ private:
 
 	// 更新所有卡牌的目标位置（根据选中状态）
 	void UpdateTargetPositions();
+	void SyncRestoreButtonPosition();
+	void RefreshRestoreButtonState();
+	std::vector<Card*> ResolveRestorableCards();
 };
 
 #endif

@@ -3,6 +3,7 @@
 #include "SaveMigration.h"
 #include "SaveSchema.h"
 #include <algorithm>
+#include <cstddef>
 #include <filesystem>
 #include "GameApp.h"
 #include "./Game/Board.h"
@@ -27,6 +28,7 @@
 
 namespace {
 	constexpr int kPoolGridSaveVersion = 2; // 第三大关六行+双植物槽及统一背景纵坐标的存档结构版本
+	constexpr std::size_t kMaxRememberedCardNames = 64; // 玩家存档容纳的历史选卡名上限，防止损坏档无限扩张
 	// ---- 存档根目录 -------------------------------------------------------------
 	// Windows 使用系统“保存的游戏”目录；Linux 暂沿用相对目录；Android 使用应用私有目录。
 	// AutoTest（包括 -AutoTestLoadSave）固定返回旧相对目录，确保只触碰构建目录里的测试档。
@@ -200,6 +202,7 @@ bool GameInfoSaver::SavePlayerInfoImpl()
 	j["autoCollected"] = gameApp.mAutoCollected;
 	j["enableMonteCarloAI"] = gameApp.mEnableMonteCarloAI;
 	j["advancedPauseEnabled"] = gameApp.mAdvancedPauseEnabled;
+	j["lastSelectedCards"] = gameApp.mLastSelectedCards;
 	j["soundVolume"] = AudioSystem::GetSoundVolume();
 	j["musicVolume"] = AudioSystem::GetMusicVolume();
 	j["havecards"] = gameApp.mHaveCards;
@@ -234,6 +237,15 @@ bool GameInfoSaver::LoadPlayerInfoImpl()
 	gameApp.mAutoCollected = j.value("autoCollected", true);
 	gameApp.mEnableMonteCarloAI = j.value("enableMonteCarloAI", true);
 	gameApp.mAdvancedPauseEnabled = j.value("advancedPauseEnabled", false);
+	gameApp.mLastSelectedCards.clear();
+	if (auto it = j.find("lastSelectedCards"); it != j.end() && it->is_array()) {
+		// 只接收字符串并限制数量；未知或已移除的枚举名留到选卡界面按当前注册表过滤。
+		for (const auto& cardName : *it) {
+			if (!cardName.is_string()) continue;
+			gameApp.mLastSelectedCards.push_back(cardName.get<std::string>());
+			if (gameApp.mLastSelectedCards.size() >= kMaxRememberedCardNames) break;
+		}
+	}
 	gameApp.mHaveCards = j.value("havecards",
 		std::vector<PlantType>{PlantType::PLANT_PEASHOOTER});
 

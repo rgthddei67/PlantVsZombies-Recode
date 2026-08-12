@@ -118,6 +118,35 @@ namespace {
 			"迁移不得覆盖玩家已有的高级暂停选择");
 	}
 
+	void TestVersionThreePlayerUpgradeAddsLastSelectedCards() {
+		nlohmann::json document = {
+			{ "schemaVersion", 3 },
+			{ "advancedPauseEnabled", true },
+			{ "havecards", { static_cast<int>(PlantType::PLANT_PEASHOOTER) } }
+		};
+		std::string error;
+
+		Expect(SaveSchema::UpgradePlayerDocument(document, error),
+			"v3 玩家档应升级到上次选卡版本");
+		Expect(document["schemaVersion"] == SaveSchema::kCurrentPlayerVersion,
+			"v3 玩家档应写入当前玩家版本");
+		Expect(document["lastSelectedCards"].is_array()
+			&& document["lastSelectedCards"].empty(),
+			"旧玩家没有历史选卡时应补为空数组");
+		Expect(document["advancedPauseEnabled"] == true,
+			"上次选卡迁移不得改写既有设置");
+
+		nlohmann::json prereleaseDocument = {
+			{ "schemaVersion", 3 },
+			{ "lastSelectedCards", { "PLANT_SUNFLOWER", "PLANT_PEASHOOTER" } }
+		};
+		Expect(SaveSchema::UpgradePlayerDocument(prereleaseDocument, error),
+			"已含上次选卡字段的 v3 玩家档应升级成功");
+		Expect(prereleaseDocument["lastSelectedCards"] == nlohmann::json::array({
+			"PLANT_SUNFLOWER", "PLANT_PEASHOOTER" }),
+			"迁移不得覆盖预发布玩家已有的选卡记录");
+	}
+
 	void TestCurrentLevelDocumentIsStable() {
 		nlohmann::json document = {
 			{ "schemaVersion", SaveSchema::kCurrentLevelVersion },
@@ -244,6 +273,7 @@ int main() {
 	TestMovedToxicRewardPlayerUpgrade();
 	TestCurrentPlayerDocumentIsStable();
 	TestVersionTwoPlayerUpgradeDefaultsToStrictPause();
+	TestVersionThreePlayerUpgradeAddsLastSelectedCards();
 	TestCurrentLevelDocumentIsStable();
 	TestLegacyLevelUpgradePreservesGameplayState();
 	TestVersionOneLevelUpgradeDefersFogInitializationToBoard();

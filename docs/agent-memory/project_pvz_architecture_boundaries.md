@@ -39,6 +39,10 @@
 选择。`SaveSchemaTests` 覆盖默认补值、既有 `true` 不被覆盖与其他设置保持不变，
 `save-schema` 1/1 通过。
 
+2026-08-12 玩家 schema 升至 v4，新增稳定枚举名数组 `lastSelectedCards`。旧档补空数组，
+预发布档已有值不覆盖；读取时只接收字符串并限制数量，具体植物有效性延后到 GameData 已加载的
+选卡界面过滤。最近一次正式提交选卡会立即写 PlayerInfo，因此进入战斗后直接退出仍可在下一局恢复。
+
 ## 所有权约束
 
 - `GameScene` 独占 `Board`；`BoardPresentation*` 仅为非拥有回调端口。

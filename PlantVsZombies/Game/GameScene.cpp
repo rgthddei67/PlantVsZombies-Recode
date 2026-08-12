@@ -17,6 +17,7 @@
 #include "../Profiler.h"
 #include "./Shovel.h"
 #include "ShovelBank.h"
+#include "Plant/GameDataManager.h"
 #include "Zombie/RoofMarshalZombie.h"
 #include "../Logger.h"
 #include <cmath>
@@ -1720,9 +1721,7 @@ void GameScene::Update() {
 				float t2 = mChooseCardUIAnimElapsed / mChooseCardUIAnimDuration;
 				float eased2 = static_cast<float>((1 - cos(t2 * M_PI)) / 2);
 				Vector currentPos = Vector::lerp(mChooseCardUIStartPos, mChooseCardUITargetPos, eased2);
-				if (auto transform = mChooseCardUI->GetComponent<TransformComponent>()) {
-					transform->SetPosition(currentPos);
-				}
+				mChooseCardUI->SetPosition(currentPos);
 			}
 
 			// 检查两个动画是否都完成
@@ -1730,9 +1729,7 @@ void GameScene::Update() {
 			bool chooseUIDone = (mChooseCardUIAnimElapsed >= mChooseCardUIAnimDuration);
 			if (seedbankDone && chooseUIDone) {
 				// 确保最终位置准确
-				if (auto transform = mChooseCardUI->GetComponent<TransformComponent>()) {
-					transform->SetPosition(mChooseCardUITargetPos);
-				}
+				mChooseCardUI->SetPosition(mChooseCardUITargetPos);
 				mChooseCardUI->AddAllCard();
 				// 启用按钮
 				if (mChooseCardUI && mChooseCardUI->GetButton()) {
@@ -2239,6 +2236,17 @@ void GameScene::ChooseCardComplete()
 	if (mCurrentStage != IntroStage::COMPLETE) return;
 
 	if (mChooseCardUI) {
+		auto& gameApp = GameAPP::GetInstance();
+		gameApp.mLastSelectedCards.clear();
+		for (PlantType type : mChooseCardUI->GetSelectedCardTypes()) {
+			const std::string enumName =
+				GameDataManager::GetInstance().PlantTypeToEnumName(type);
+			if (enumName != "PLANT_NONE") gameApp.mLastSelectedCards.push_back(enumName);
+		}
+		// 选卡提交即落盘；即使玩家随后直接退出，下一局也能恢复这组选择。
+		if (!gameApp.mGameInfoSaver.SavePlayerInfo()) {
+			LOG_ERROR("GameScene") << "保存上一次选卡失败，将在后续玩家存档点重试。";
+		}
 		mChooseCardUI->TransferSelectedCardsTo(mCardSlotManager);
 		mChooseCardUI->RemoveAllCards();
 		GameObjectManager::GetInstance().DestroyGameObject(mChooseCardUI);

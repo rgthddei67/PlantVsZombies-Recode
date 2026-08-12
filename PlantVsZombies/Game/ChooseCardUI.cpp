@@ -8,7 +8,17 @@
 #include "./AudioSystem.h"
 #include "../GameRandom.h"
 #include "CardSlotManager.h"
+#include "../GameApp.h"
+#include <algorithm>
 #include <memory>
+
+namespace {
+	constexpr float kRestoreButtonScale = 0.8f; // Button2 原图缩放倍率，避免遮挡面板右上角装饰
+	constexpr float kRestoreButtonTextureWidth = 111.0f; // SeedChooser_Button2 原图宽度，单位：UI px
+	constexpr float kRestoreButtonTextureHeight = 26.0f; // SeedChooser_Button2 原图高度，单位：UI px
+	constexpr float kRestoreButtonRightInset = 12.0f; // 按钮右边缘距选卡面板右边缘，单位：UI px
+	constexpr float kRestoreButtonTopInset = 8.0f; // 按钮上边缘距选卡面板上边缘，单位：UI px
+}
 
 ChooseCardUI::ChooseCardUI(GameScene* gameScene)
 {
@@ -39,12 +49,41 @@ ChooseCardUI::ChooseCardUI(GameScene* gameScene)
 			mGameScene->ChooseCardComplete();
 		}
 		});
+
+	auto restoreButton = mGameScene->GetUIManager().CreateButton(
+		Vector::zero(),
+		Vector(kRestoreButtonTextureWidth * kRestoreButtonScale,
+			kRestoreButtonTextureHeight * kRestoreButtonScale));
+	mRestoreButton = restoreButton;
+	restoreButton->SetAsCheckbox(false);
+	restoreButton->SetImageKeys(ResourceKeys::Textures::IMAGE_SEEDCHOOSER_BUTTON2,
+		ResourceKeys::Textures::IMAGE_SEEDCHOOSER_BUTTON2_GLOW,
+		ResourceKeys::Textures::IMAGE_SEEDCHOOSER_BUTTON2);
+	restoreButton->SetText(u8"上次选卡", ResourceKeys::Fonts::FONT_FZCQ, 13);
+	restoreButton->SetTextColor({ 42, 42, 90, 255 });
+	restoreButton->SetHoverTextColor({ 42, 42, 90, 255 });
+	restoreButton->SetEnabled(false);
+	restoreButton->SetClickCallBack([this](bool) {
+		RestoreLastSelectedCards();
+		});
+	SyncRestoreButtonPosition();
 }
 
 ChooseCardUI::~ChooseCardUI() {
 	SceneManager::GetInstance().GetCurrectSceneUIManager().RemoveButton(mButton.lock());
+	SceneManager::GetInstance().GetCurrectSceneUIManager().RemoveButton(mRestoreButton.lock());
 	mGameScene = nullptr;
 	// TODO: 物体析构的时候，如果有其他物体没有销毁，不要在这个时候销毁，因为没用
+}
+
+void ChooseCardUI::Update() {
+	GameObject::Update();
+	SyncRestoreButtonPosition();
+}
+
+void ChooseCardUI::SetPosition(const Vector& position) {
+	if (mTransform) mTransform->SetPosition(position);
+	SyncRestoreButtonPosition();
 }
 
 void ChooseCardUI::RemoveAllCards() {
@@ -139,6 +178,7 @@ void ChooseCardUI::AddAllCard() {
 		if (!gameData.HasPlant(card)) continue;
 		AddCard(card);
 	}
+	RefreshRestoreButtonState();
 }
 
 Card* ChooseCardUI::FindCardByType(PlantType type) {
@@ -168,6 +208,66 @@ bool ChooseCardUI::ToggleCardSelection(Card* card) {
 		mSelectedCards.push_back(card);
 		UpdateTargetPositions();
 		return true;
+	}
+}
+
+std::vector<PlantType> ChooseCardUI::GetSelectedCardTypes() {
+	std::vector<PlantType> types;
+	types.reserve(mSelectedCards.size());
+	for (Card* card : mSelectedCards) {
+		if (!card) continue;
+		auto* component = card->GetCardComponent();
+		if (component) types.push_back(component->GetPlantType());
+	}
+	return types;
+}
+
+std::vector<Card*> ChooseCardUI::ResolveRestorableCards() {
+	std::vector<Card*> cards;
+	cards.reserve(MAX_SELECTED);
+	std::vector<PlantType> seenTypes;
+	seenTypes.reserve(MAX_SELECTED);
+	auto& gameData = GameDataManager::GetInstance();
+	for (const std::string& cardName : GameAPP::GetInstance().mLastSelectedCards) {
+		const PlantType type = gameData.StringToPlantType(cardName);
+		if (type == PlantType::NUM_PLANT_TYPES
+			|| gameData.PlantTypeToEnumName(type) != cardName
+			|| std::find(seenTypes.begin(), seenTypes.end(), type) != seenTypes.end()) {
+			continue;
+		}
+		Card* card = FindCardByType(type);
+		if (!card) continue;
+		seenTypes.push_back(type);
+		cards.push_back(card);
+		if (cards.size() >= MAX_SELECTED) break;
+	}
+	return cards;
+}
+
+bool ChooseCardUI::RestoreLastSelectedCards() {
+	auto restoredCards = ResolveRestorableCards();
+	if (restoredCards.empty()) return false;
+
+	// 整组替换当前选择后只刷新一次目标位置，使全部卡片沿既有飞行动画进入对应槽位。
+	mSelectedCards = std::move(restoredCards);
+	UpdateTargetPositions();
+	return true;
+}
+
+void ChooseCardUI::SyncRestoreButtonPosition() {
+	auto button = mRestoreButton.lock();
+	if (!button || !mTransform || !mCardUITexture) return;
+	const Vector panelPosition = mTransform->GetPosition();
+	const float buttonWidth = kRestoreButtonTextureWidth * kRestoreButtonScale;
+	button->SetPosition(Vector(
+		panelPosition.x + static_cast<float>(mCardUITexture->width)
+			- buttonWidth - kRestoreButtonRightInset,
+		panelPosition.y + kRestoreButtonTopInset));
+}
+
+void ChooseCardUI::RefreshRestoreButtonState() {
+	if (auto button = mRestoreButton.lock()) {
+		button->SetEnabled(!ResolveRestorableCards().empty());
 	}
 }
 
