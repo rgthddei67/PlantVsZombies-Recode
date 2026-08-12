@@ -15,8 +15,8 @@ namespace {
 	constexpr int kFirstCrackThreshold = 800;           // 进入轻裂纹阶段的剩余生命阈值
 	constexpr int kHeavyCrackThreshold = 400;           // 进入重裂纹阶段的剩余生命阈值
 	constexpr float kWetLingeringSeconds = 6.0f;        // 离开冲刷坡面后的持续湿润时间
-	constexpr float kOverloadSeconds = 6.0f;            // 成功吸收放电后的过载时间
-	constexpr float kOverloadMoveMultiplier = 1.4f;     // 过载自主移动与动画倍率
+	constexpr float kOverloadSeconds = 15.0f;            // 成功吸收放电后的过载时间
+	constexpr float kOverloadMoveMultiplier = 2.2f;     // 过载自主移动与动画倍率
 	constexpr float kOverloadBiteMultiplier = 2.0f;     // 过载啃咬倍率，50 点提升到 100 点
 	constexpr float kProtectionRadiusCells = 1.5f;      // 同排放电掩护的水平格距
 	constexpr float kWetArmorPlantMultiplier = 1.5f;    // 湿润胸甲受到的植物伤害倍率
