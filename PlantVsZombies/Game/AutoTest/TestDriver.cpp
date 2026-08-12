@@ -77,6 +77,7 @@
 #include "../Zombie/ImpZombie.h"
 #include "../Zombie/PoolNormalZombie.h"
 #include "../Zombie/RoofMarshalZombie.h"
+#include "../Zombie/InsulatorZombie.h"
 #include "../Trophy.h"   // dump_state 输出奖杯坐标
 #include "../Crater.h"   // dump_state 输出毁灭菇弹坑
 #include "../../Reanimation/Animator.h"   // dump_state 查询轨道可见性（如铁门僵尸手臂）
@@ -212,6 +213,22 @@ namespace {
 		}
 	}
 
+	const char* ZombieHelmTypeName(HelmType type)
+	{
+		switch (type) {
+		case HelmType::HELMTYPE_NONE: return "HELMTYPE_NONE";
+		case HelmType::HELMTYPE_TRAFFIC_CONE: return "HELMTYPE_TRAFFIC_CONE";
+		case HelmType::HELMTYPE_BUCKET: return "HELMTYPE_BUCKET";
+		case HelmType::HELMTYPE_FOOTBALL: return "HELMTYPE_FOOTBALL";
+		case HelmType::HELMTYPE_DIGGER: return "HELMTYPE_DIGGER";
+		case HelmType::HELMTYPE_BOBSLED: return "HELMTYPE_BOBSLED";
+		case HelmType::HELMTYPE_WALLNUT: return "HELMTYPE_WALLNUT";
+		case HelmType::HELMTYPE_TALLNUT: return "HELMTYPE_TALLNUT";
+		case HelmType::HELMTYPE_INSULATOR: return "HELMTYPE_INSULATOR";
+		default: return "UNKNOWN";
+		}
+	}
+
 	const char* CatapultPhaseName(CatapultZombie::Phase phase)
 	{
 		switch (phase) {
@@ -290,6 +307,7 @@ namespace {
 		ZT(ZOMBIE_GARGANTUAR), ZT(ZOMBIE_IMP), ZT(ZOMBIE_BOSS), ZT(ZOMBIE_PEA_HEAD),
 		ZT(ZOMBIE_WALLNUT_HEAD), ZT(ZOMBIE_JALAPENO_HEAD), ZT(ZOMBIE_GATLING_HEAD),
 		ZT(ZOMBIE_SQUASH_HEAD), ZT(ZOMBIE_TALLNUT_HEAD), ZT(ZOMBIE_REDEYE_GARGANTUAR), ZT(ZOMBIE_ROOF_MARSHAL),
+		ZT(ZOMBIE_INSULATOR),
 	};
 #undef ZT
 #define PK(n) { #n, PerkType::n }
@@ -705,6 +723,7 @@ bool TestDriver::ExecuteCurrent() {
 			cmd.value("value", false);
 		return true;
 	}
+
 	if (op == "set_last_selected_cards") {
 		auto& rememberedCards = GameAPP::GetInstance().mLastSelectedCards;
 		rememberedCards.clear();
@@ -3186,6 +3205,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "elitePogosSpawnedThisWave", board->GetElitePogosSpawnedThisWave() },
 			{ "eliteLaddersSpawnedThisWave", board->GetEliteLaddersSpawnedThisWave() },
 			{ "eliteCatapultsSpawnedThisWave", board->GetEliteCatapultsSpawnedThisWave() },
+			{ "insulatorsSpawnedThisWave", board->GetInsulatorsSpawnedThisWave() },
 			{ "typhoonDecayRemaining", board->GetTyphoonStrengthTimer() },
 			{ "windDirection", WindDirectionName(board->GetWindDirection()) },
 			{ "windDirectionRemaining", board->GetWindDirectionTimer() },
@@ -3643,6 +3663,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				board->GetRoofRunoffZombieDriftVelocity(z->mRow, pos.x)
 				* z->GetRoofRunoffDriftMultiplier())) },
 			{ "attackDamage", z->mAttackDamage },
+			{ "currentBiteDamage", z->GetCurrentBiteDamage() },
 			{ "roofMarshalAssaultTimerMs", static_cast<int>(std::lround(
 				z->GetRoofMarshalAssaultTimer() * 1000.0f)) },
 			{ "roofMarshalAssaultMoveMultiplierPct", static_cast<int>(std::lround(
@@ -3651,6 +3672,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				z->GetRoofMarshalAssaultBiteMultiplier() * 100.0f)) },
 			{ "roofMarshalAssaultFlagAnimator", z->HasRoofMarshalAssaultFlagAnimator() },
 			{ "roofMarshalAssaultFlagVisible", z->IsRoofMarshalAssaultFlagVisible() },
+			{ "helmType", ZombieHelmTypeName(z->mHelmType) },
 			{ "helmHealth", z->mHelmHealth }, { "shieldHealth", z->mShieldHealth },
 			{ "fireResistant", z->IsFireResistant() },
 			{ "mindControlled", z->IsMindControlled() },
@@ -3743,6 +3765,27 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				elite->GetSummonTimer() * 1000.0f));
 			zombieState["eliteTyphoonSpeedPct"] = static_cast<int>(std::lround(
 				elite->GetTyphoonAbilitySpeedMultiplier() * 100.0f));
+		}
+		if (auto* insulator = dynamic_cast<InsulatorZombie*>(z)) {
+			zombieState["insulatorWet"] = insulator->IsWet();
+			zombieState["insulatorWetTimerMs"] = static_cast<int>(std::lround(
+				insulator->GetWetTimeRemaining() * 1000.0f));
+			zombieState["insulatorOverloaded"] = insulator->IsOverloaded();
+			zombieState["insulatorOverloadTimerMs"] = static_cast<int>(std::lround(
+				insulator->GetOverloadTimeRemaining() * 1000.0f));
+			zombieState["insulatorArmorStage"] = static_cast<int>(
+				insulator->GetArmorStage());
+			zombieState["insulatorArmorFollower"] = insulator->HasArmorFollower();
+			zombieState["insulatorArmorVisible"] = insulator->IsArmorVisible();
+			zombieState["insulatorArmorTexture1Loaded"] =
+				ResourceManager::GetInstance().GetTexture(
+					ResourceKeys::Textures::IMAGE_ZOMBIE_INSULATOR_ARMOR1, false) != nullptr;
+			zombieState["insulatorArmorTexture2Loaded"] =
+				ResourceManager::GetInstance().GetTexture(
+					ResourceKeys::Textures::IMAGE_ZOMBIE_INSULATOR_ARMOR2, false) != nullptr;
+			zombieState["insulatorArmorTexture3Loaded"] =
+				ResourceManager::GetInstance().GetTexture(
+					ResourceKeys::Textures::IMAGE_ZOMBIE_INSULATOR_ARMOR3, false) != nullptr;
 		}
 		if (auto* eliteLadder = dynamic_cast<EliteLadderZombie*>(z)) {
 			++eliteLadderZombieCount;

@@ -43,6 +43,8 @@ private:
 	bool TryStartMagnetizing();
 	/** 开始射击轨、15 秒总充能与离体物飞行；不依赖动画帧事件。 */
 	void BeginMagnetizing(MagneticItem item);
+	/** 在装备已完成卸除后精确扣除磁力菇本体生命，绕过南瓜与防御词条。 */
+	void ApplyExtractionBacklash(int damage);
 	/** 按原版每逻辑步靠近 5% 的指数曲线推进离体物。 */
 	void UpdateCapturedItem();
 	/** 充能完成后清空离体物并回到随机速率待机。 */

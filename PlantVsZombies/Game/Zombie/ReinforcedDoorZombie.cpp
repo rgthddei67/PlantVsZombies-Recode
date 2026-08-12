@@ -58,12 +58,12 @@ int ReinforcedDoorZombie::ModifyFumeDamage(int damage) const
 	return damage * kFumeDamageMultiplier;
 }
 
-int ReinforcedDoorZombie::ModifySpikeFrameDamage(int damage, bool bypassShield) const
+float ReinforcedDoorZombie::ModifySpikeFrameDamage(float damage, bool bypassShield) const
 {
 	if (mShieldType == ShieldType::SHIELDTYPE_NONE || bypassShield) {
 		return damage;
 	}
-	return std::min(damage, kShieldedSpikeFrameDamageCap);
+	return std::min(damage, static_cast<float>(kShieldedSpikeFrameDamageCap));
 }
 
 bool ReinforcedDoorZombie::TakePlantInstantKill()

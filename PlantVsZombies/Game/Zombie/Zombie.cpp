@@ -1582,6 +1582,11 @@ int Zombie::TakeHelmDamage(int damage)
 	return 0;
 }
 
+int Zombie::TakeHelmDamageFromSource(int damage, DamageSource)
+{
+	return TakeHelmDamage(damage);
+}
+
 void Zombie::TakeBodyDamage(int damage)
 {
 	mBodyHealth -= damage;
@@ -1643,7 +1648,7 @@ void Zombie::TakeDamage(
 	if (remainingDamage > 0 && mHelmType != HelmType::HELMTYPE_NONE)
 	{
 		const int helmHealthBeforeHit = mHelmHealth;
-		remainingDamage = TakeHelmDamage(remainingDamage);
+		remainingDamage = TakeHelmDamageFromSource(remainingDamage, source);
 		if (mHelmHealth < helmHealthBeforeHit) {
 			SetGlowingTimer(kHitGlowDuration);
 		}
@@ -1694,6 +1699,13 @@ void Zombie::HelmDrop()
 {
 	if (mHelmType == HelmType::HELMTYPE_NONE) return;
 	mHelmType = HelmType::HELMTYPE_NONE;
+}
+
+void Zombie::TakeNightRoofChargeImpact(
+	int damage, float paralysisDuration, bool)
+{
+	TakeDamage(damage, DamageSource::OTHER);
+	if (IsActive() && !IsDying()) ApplyParalysis(paralysisDuration);
 }
 
 void Zombie::Die()
@@ -1951,11 +1963,17 @@ bool Zombie::IsRoofMarshalAssaultFlagVisible() const
 		&& !mIsPreview && !mIsDead && !mIsDying;
 }
 
+int Zombie::GetCurrentBiteDamage() const
+{
+	return std::max(1, static_cast<int>(std::lround(
+		static_cast<double>(mAttackDamage) * GetRoofMarshalAssaultBiteMultiplier()
+			* GetAbilityBiteDamageMultiplier())));
+}
+
 void Zombie::EatTarget()
 {
 	if (mIsDying || mIsDead) return;
-	const int biteDamage = std::max(1, static_cast<int>(std::lround(
-		static_cast<double>(mAttackDamage) * GetRoofMarshalAssaultBiteMultiplier())));
+	const int biteDamage = GetCurrentBiteDamage();
 
 	if (mEatZombieID != NULL_ZOMBIE_ID && mHasHead)
 	{

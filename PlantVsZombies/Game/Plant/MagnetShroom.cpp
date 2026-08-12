@@ -121,7 +121,9 @@ bool MagnetShroom::TryStartMagnetizing()
 
 	MagneticItem item;
 	if (nearest && nearest->ExtractMagneticItem(item)) {
+		const int backlashDamage = item.extractorSelfDamage;
 		BeginMagnetizing(std::move(item));
+		ApplyExtractionBacklash(backlashDamage);
 		return true;
 	}
 
@@ -145,6 +147,14 @@ void MagnetShroom::BeginMagnetizing(MagneticItem item)
 		kChargingFps / kReanimationFps * attackSpeed, 0.0f);
 	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_MAGNETSHROOM,
 		kMagnetSoundVolume);
+}
+
+void MagnetShroom::ApplyExtractionBacklash(int damage)
+{
+	if (damage <= 0 || !IsActive()) return;
+	mPlantHealth = std::max(0, mPlantHealth - damage);
+	SetGlowingTimer(0.1f);
+	if (mPlantHealth <= 0) Die();
 }
 
 void MagnetShroom::UpdateCapturedItem()

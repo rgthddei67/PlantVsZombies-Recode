@@ -10,6 +10,7 @@
 #include "../../GameRandom.h"
 #include "../EntityManager.h"
 #include "../DamageSource.h"
+#include "../Bullet/BulletType.h"
 #include <nlohmann/json.hpp>
 #include <algorithm>
 #include <array>
@@ -163,13 +164,21 @@ public:
 	virtual bool BlocksFumePiercing() const { return false; }
 	/** 特殊弹丸主动请求无视二类护盾时，当前目标是否仍强制由护盾承伤。 */
 	virtual bool BlocksProjectileShieldBypass() const { return false; }
+	/** 按当前装备状态修正指定弹种的基础直击伤害；投掷物与火球默认不变。 */
+	virtual int ModifyProjectileDamage(int damage, BulletType) const { return damage; }
 	/** 调整大喷菇对本体的基础伤害；返回值随后统一进入词条与防具结算。 */
 	virtual int ModifyFumeDamage(int damage) const { return damage; }
 	/** 调整仙人掌尖刺每个 1x 碰撞帧的基础伤害；背击绕盾信息在倍速累计前一并传入。 */
-	virtual int ModifySpikeFrameDamage(int damage, bool /*bypassShield*/ = false) const { return damage; }
+	virtual float ModifySpikeFrameDamage(float damage,
+		bool /*bypassShield*/ = false) const { return damage; }
 
 	virtual int TakeShieldDamage(int damage);
 	virtual int TakeHelmDamage(int damage);
+	/**
+	 * 按伤害来源结算一类防具，并以原始伤害口径返回进入本体的余量。
+	 * 防具专属倍率必须覆写此入口，不能把放大后的破甲溢出灌入本体。
+	 */
+	virtual int TakeHelmDamageFromSource(int damage, DamageSource source);
 	virtual void TakeBodyDamage(int damage);
 	/** 词条缩放后的最终伤害修正点；用于按来源、命中面和当前防具状态实施每击上限。 */
 	virtual int AdjustIncomingDamage(int damage, DamageSource /*source*/, bool /*penetrateShield*/,
@@ -192,6 +201,8 @@ public:
 	virtual void StartEat(ColliderComponent* other);
 	virtual void StopEat(ColliderComponent* other);
 	virtual void EatTarget();	// 吃东西掉血的函数
+	/** 返回当前所有品种能力与突击令倍率叠加后的单口伤害。 */
+	int GetCurrentBiteDamage() const;
 	/** 与小推车接触时是否静默吞掉其他行小推车；当前行仍维持原版碰撞结算。 */
 	virtual bool ConsumesOtherMowersOnContact() const { return false; }
 
@@ -273,6 +284,13 @@ public:
 	 * 返回 false 表示装备已在同帧由其他路径移除，调用方不得开始充能。
 	 */
 	virtual bool ExtractMagneticItem(MagneticItem&) { return false; }
+	/** 当前实体能否替指定同排目标承接一次黑夜屋顶放电。 */
+	virtual bool CanProtectFromNightRoofCharge(const Zombie*) const { return false; }
+	/** 原子承接目标本应受到的基础放电伤害；成功后目标不再受伤或麻痹。 */
+	virtual bool AbsorbNightRoofChargeFor(Zombie*, int) { return false; }
+	/** 结算未被其他实体承接的放电命中；特殊防具可改写分层伤害。 */
+	virtual void TakeNightRoofChargeImpact(int damage, float paralysisDuration,
+		bool onWetSlope);
 	/** 本体、头盔或飞行额外生命层是否正处于受击白光期。 */
 	bool IsBodyHitFlashing() const { return mGlowingTimer > 0.0f; }
 	/** 二类护盾是否正处于独立受击白光期。 */
@@ -413,6 +431,8 @@ protected:
 	virtual float GetSlowAnimFactor() const { return 0.6f; }
 	// 僵尸自身最终提供的整体动画能力倍率；可由固定品种值、运行期状态或已持久化随机结果派生。
 	virtual float GetAbilityAnimSpeedMultiplier() const { return 1.0f; }
+	/** 僵尸自身状态对每口啃咬伤害的倍率；与突击令倍率相乘。 */
+	virtual float GetAbilityBiteDamageMultiplier() const { return 1.0f; }
 	/** 读取旧版根字段 extraSpeed；仅仍需实例随机倍率的派生类覆写，兼容完成后不再传播旧字段。 */
 	virtual void RestoreLegacyAbilityAnimSpeedMultiplier(float) {}
 	/** 返回经过黄色冰道叠层后的能力速度倍率；品种可覆写以施加自身上限。 */

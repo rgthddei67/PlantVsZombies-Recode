@@ -575,7 +575,8 @@ void Bullet::BulletHitZombie(Zombie* zombie)
 	}
 	// 风力先修正本发子弹的基础伤害，生存词条仍在 Zombie::TakeDamage 中统一且只缩放一次。
 	zombie->TakeProjectileDamage(
-		GetWindAdjustedDamage(), DamageSource::PLANT, mVelocityX,
+		zombie->ModifyProjectileDamage(GetWindAdjustedDamage(), mBulletType),
+		DamageSource::PLANT, mVelocityX,
 		/*penetrateShield=*/false, /*discardShieldOverflow=*/false,
 		requestsShieldBypass);
 	// 直击死亡、魅惑或对象已回收时不得留下延迟伤害；具体门禁由目标集中维护。
@@ -1001,11 +1002,14 @@ void Bullet::HandleZombieContact(ColliderComponent* other)
 		std::distance(mPiercedZombieIDs.begin(), idIt));
 	const bool reachedPierceLimit =
 		isNewZombie && mPiercedZombieIDs.size() >= kSpikePierceLimit;
-	const int frameDamage = zombie->ModifySpikeFrameDamage(mDamage, bypassShield);
+	const float frameDamage = zombie->ModifySpikeFrameDamage(
+		static_cast<float>(mDamage), bypassShield);
 
 	if (reachedPierceLimit) {
 		// 达到穿透上限的目标没有后续 Stay 可消费额度，因此固定承受 1x 的完整帧伤后再回收。
-		for (int i = 0; i < frameDamage && zombie->IsActive(); ++i) {
+		const int finalTargetDamage = std::max(1,
+			static_cast<int>(std::lround(frameDamage)));
+		for (int i = 0; i < finalTargetDamage && zombie->IsActive(); ++i) {
 			zombie->TakeProjectileDamage(1, DamageSource::PLANT, mVelocityX);
 		}
 		mHasHit = true;

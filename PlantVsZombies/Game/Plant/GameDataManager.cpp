@@ -93,6 +93,7 @@
 #include "../Zombie/ImpZombie.h"
 #include "../Zombie/RedeyeGargantuarZombie.h"
 #include "../Zombie/RoofMarshalZombie.h"
+#include "../Zombie/InsulatorZombie.h"
 
 namespace {
 	template<typename T>
@@ -559,6 +560,12 @@ void GameDataManager::InitializeHardcodedData() {
 		AnimationType::ANIM_ROOF_MARSHAL_ZOMBIE,
 		ResourceKeys::Reanimations::REANIM_ROOF_MARSHAL_ZOMBIE,
 		&MakeZombie<RoofMarshalZombie>);
+
+	// 绝缘僵尸复用普通僵尸骨架；陶瓷胸甲作为 Zombie_body 的末尾前景 follower。
+	RegisterZombie(ZombieType::ZOMBIE_INSULATOR, "ZOMBIE_INSULATOR",
+		AnimationType::ANIM_NORMAL_ZOMBIE,
+		ResourceKeys::Reanimations::REANIM_NORMAL_ZOMBIE,
+		&MakeZombie<InsulatorZombie>);
 
 	// ==================== 非植物/僵尸动画映射 ====================
 	mAnimToString[AnimationType::ANIM_SUN] = ResourceKeys::Reanimations::REANIM_SUN;

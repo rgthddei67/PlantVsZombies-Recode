@@ -12,7 +12,8 @@ enum class HelmType {
 	HELMTYPE_DIGGER,		//镐子
 	HELMTYPE_BOBSLED,		//雪橇
 	HELMTYPE_WALLNUT,		//坚果
-	HELMTYPE_TALLNUT		//高坚果
+	HELMTYPE_TALLNUT,		//高坚果
+	HELMTYPE_INSULATOR		//绝缘僵尸的陶瓷胸甲；一个完整的一类防具生命池
 };
 
 enum class ShieldType {
@@ -68,6 +69,7 @@ enum class ZombieType {
 	ZOMBIE_IMP,			// 经典小鬼：仅由巨人投出，不进入随机出怪权重池
 	ZOMBIE_REDEYE_GARGANTUAR,	// 红眼巨人：复用经典巨人全部行为，6000 生命且不进入出怪池
 	ZOMBIE_ROOF_MARSHAL,	// 5-9 屋脊督军视觉样机：普通僵尸骨架、独立军官材质，不进入随机出怪池
+	ZOMBIE_INSULATOR,		// 绝缘僵尸：第六大关陶瓷胸甲与黑夜屋顶放电交互
 
 	// ↓ 哨兵：置于全部已实现僵尸之后，使 [0,NUM_ZOMBIE_TYPES) 只覆盖已实现类型，
 	//   生存模式随机抽取据此绝不会抽到下方未实现僵尸。

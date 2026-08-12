@@ -25,6 +25,9 @@
     <Image>./resources/image/reanim/Zombie_gargantuar_head2.png</Image>
     <Image>./resources/image/reanim/Zombie_gargantuar_head_redeye.png</Image>
     <Image>./resources/image/reanim/Zombie_gargantuar_head2_redeye.png</Image>
+    <Image>./resources/image/reanim/Zombie_insulator_armor1.png</Image>
+    <Image>./resources/image/reanim/Zombie_insulator_armor2.png</Image>
+    <Image>./resources/image/reanim/Zombie_insulator_armor3.png</Image>
 
     <Image Column="8" Row="1">./resources/image/fog.png</Image>
     <Image>./resources/image/MistFuel.png</Image>

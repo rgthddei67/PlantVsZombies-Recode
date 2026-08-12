@@ -31,6 +31,6 @@ public:
 		return mShieldType != ShieldType::SHIELDTYPE_NONE;
 	}
 	int ModifyFumeDamage(int damage) const override;
-	int ModifySpikeFrameDamage(int damage, bool bypassShield = false) const override;
+	float ModifySpikeFrameDamage(float damage, bool bypassShield = false) const override;
 	bool TakePlantInstantKill() override;
 };

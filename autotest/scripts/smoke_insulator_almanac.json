@@ -1,0 +1,24 @@
+{
+  "commands": [
+    { "op": "set_adventure_level", "level": 47 },
+    { "op": "goto_zombie_almanac" },
+    { "op": "wait_frames", "value": 30 },
+    { "op": "assert_state", "path": "scene", "equals": "ZombieAlmanacScene" },
+    { "op": "assert_state", "path": "zombieAlmanacEntryCount", "equals": 31 },
+
+    { "op": "set_adventure_level", "level": 48 },
+    { "op": "goto_zombie_almanac" },
+    { "op": "wait_frames", "value": 30 },
+    { "op": "assert_state", "path": "scene", "equals": "ZombieAlmanacScene" },
+    { "op": "assert_state", "path": "zombieAlmanacEntryCount", "equals": 32 },
+    { "op": "assert_state", "path": "zombieAlmanacEntries.31", "equals": "ZOMBIE_INSULATOR" },
+    { "op": "move_mouse", "x": 674, "y": 402 },
+    { "op": "wait_frames", "value": 3 },
+    { "op": "click", "x": 674, "y": 402, "hold_frames": 2 },
+    { "op": "wait_frames", "value": 20 },
+    { "op": "assert_state", "path": "zombieAlmanacSelected", "equals": "ZOMBIE_INSULATOR" },
+    { "op": "screenshot", "name": "01_insulator_unlocked_after_6_2.png" },
+    { "op": "dump_state", "name": "insulator_almanac_state.json" },
+    { "op": "quit" }
+  ]
+}

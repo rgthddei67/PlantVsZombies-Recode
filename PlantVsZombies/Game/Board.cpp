@@ -166,6 +166,7 @@ namespace {
 	constexpr int kElitePogoMaxPerWave = 1;               // 每波最多正式生成的精英跳跳数量；超额候选直接跳过
 	constexpr int kEliteLadderMaxPerWave = 1;             // 每波最多正式生成的精英扶梯数量；超额候选直接跳过
 	constexpr int kEliteCatapultMaxPerWave = 1;           // 每波最多正式生成的导流投篮车数量；超额候选直接跳过
+	constexpr int kInsulatorMaxPerWave = 2;               // 每个正式波次最多成功生成的绝缘僵尸数量
 	constexpr int kEliteScaredyShroomPlantLimit = 4;      // 每个关卡累计最多种植的精英胆小菇数量
 	constexpr int kPumpkinProtectionCellRadius = 1;       // 南瓜头范围爆炸保护的逻辑格半径；1 表示自身九宫格
 	constexpr int kPumpkinAreaDamageMultiplier = 5;       // 特殊僵尸范围伤害被南瓜头拦截时的默认基础伤害倍率
@@ -2085,6 +2086,12 @@ void Board::RestoreEliteCatapultWaveSpawnCount(int count)
 		count, 0, kEliteCatapultMaxPerWave);
 }
 
+/** 夹紧并恢复当前波已经正式生成的绝缘僵尸数量。 */
+void Board::RestoreInsulatorWaveSpawnCount(int count)
+{
+	mInsulatorsSpawnedThisWave = std::clamp(count, 0, kInsulatorMaxPerWave);
+}
+
 /** 清空全部台风派生状态；中雨、小雨、晴天和旧档默认都以此为单位元。 */
 void Board::StopTyphoon()
 {
@@ -2262,6 +2269,12 @@ ZombieType Board::ResolveWaveZombieType(ZombieType selected, int mutationRoll)
 			return ZombieType::NUM_ZOMBIE_TYPES;
 		}
 		++mEliteCatapultsSpawnedThisWave;
+	}
+	if (selected == ZombieType::ZOMBIE_INSULATOR) {
+		if (mInsulatorsSpawnedThisWave >= kInsulatorMaxPerWave) {
+			return ZombieType::NUM_ZOMBIE_TYPES;
+		}
+		++mInsulatorsSpawnedThisWave;
 	}
 	return ResolveRainMutationType(selected, mutationRoll);
 }
@@ -2931,14 +2944,31 @@ void Board::ResolveNightRoofChargeDischarge()
 		}
 		const bool onWetSlope = wetRow
 			&& zombie->GetPosition().x <= GetRoofSlopeEndX();
-		zombie->TakeDamage(onWetSlope
-			? kNightRoofWetZombieDamage : kNightRoofZombieDamage,
-			DamageSource::OTHER);
-		if (zombie->IsActive() && !zombie->IsDying()) {
-			zombie->ApplyParalysis(onWetSlope
-				? kNightRoofWetZombieParalysisDuration
-				: kNightRoofZombieParalysisDuration);
+		const int baseDamage = onWetSlope
+			? kNightRoofWetZombieDamage : kNightRoofZombieDamage;
+		const float paralysisDuration = onWetSlope
+			? kNightRoofWetZombieParalysisDuration
+			: kNightRoofZombieParalysisDuration;
+
+		// 绝缘者按距离、再按稳定 ID 选出唯一承接者。自身若可承接以零距离优先；
+		// 湿润绝缘者会拒绝承接，随后走它自己的湿坡 360 点胸甲结算。
+		Zombie* protector = nullptr;
+		float nearestDistance = std::numeric_limits<float>::max();
+		for (const int providerID : zombieIDs) {
+			Zombie* candidate = mEntityManager.GetZombie(providerID);
+			if (!candidate || !candidate->CanProtectFromNightRoofCharge(zombie)) continue;
+			const float distance = std::abs(
+				candidate->GetPosition().x - zombie->GetPosition().x);
+			if (distance < nearestDistance) {
+				nearestDistance = distance;
+				protector = candidate;
+			}
 		}
+		if (protector && protector->AbsorbNightRoofChargeFor(zombie, baseDamage)) {
+			continue;
+		}
+		zombie->TakeNightRoofChargeImpact(
+			baseDamage, paralysisDuration, onWetSlope);
 	}
 }
 
@@ -4955,6 +4985,7 @@ void Board::SummonNextWave()
 	mElitePogosSpawnedThisWave = 0;
 	mEliteLaddersSpawnedThisWave = 0;
 	mEliteCatapultsSpawnedThisWave = 0;
+	mInsulatorsSpawnedThisWave = 0;
 	mMistFuelAssignedThisWave = 0;
 	if (mCurrentWave == 1)
 	{
@@ -5562,6 +5593,7 @@ void Board::OnSurvivalRoundClear()
 	mElitePogosSpawnedThisWave = 0;
 	mEliteLaddersSpawnedThisWave = 0;
 	mEliteCatapultsSpawnedThisWave = 0;
+	mInsulatorsSpawnedThisWave = 0;
 	RefreshZombieWeatherSpeeds();
 
 	// 重算难度（解锁更强僵尸）+ 刷新关卡名

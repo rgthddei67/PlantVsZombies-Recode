@@ -1,0 +1,63 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 46, "resetTestState": true },
+    { "op": "wait_state", "state": "CHOOSE_CARD", "timeout": 10 },
+    { "op": "assert_state", "path": "spawnList", "equals": ["ZOMBIE_NORMAL", "ZOMBIE_TRAFFIC_CONE", "ZOMBIE_BUCKET", "ZOMBIE_DOOR"] },
+
+    { "op": "goto_level", "level": 47, "resetTestState": true },
+    { "op": "wait_state", "state": "CHOOSE_CARD", "timeout": 10 },
+    { "op": "assert_state", "path": "spawnList", "equals": ["ZOMBIE_NORMAL", "ZOMBIE_TRAFFIC_CONE", "ZOMBIE_BUCKET", "ZOMBIE_INSULATOR"] },
+
+    { "op": "goto_level", "level": 48, "resetTestState": true },
+    { "op": "wait_state", "state": "CHOOSE_CARD", "timeout": 10 },
+    { "op": "assert_state", "path": "spawnList", "equals": ["ZOMBIE_NORMAL", "ZOMBIE_TRAFFIC_CONE", "ZOMBIE_POLEVAULTER", "ZOMBIE_NEWSPAPER", "ZOMBIE_INSULATOR"] },
+
+    { "op": "goto_level", "level": 49, "resetTestState": true },
+    { "op": "wait_state", "state": "CHOOSE_CARD", "timeout": 10 },
+    { "op": "assert_state", "path": "spawnList", "equals": ["ZOMBIE_NORMAL", "ZOMBIE_TRAFFIC_CONE", "ZOMBIE_BUCKET", "ZOMBIE_DOOR", "ZOMBIE_BUNGEE", "ZOMBIE_INSULATOR"] },
+
+    { "op": "goto_level", "level": 50, "resetTestState": true },
+    { "op": "wait_state", "state": "CHOOSE_CARD", "timeout": 10 },
+    { "op": "assert_state", "path": "spawnList", "equals": ["ZOMBIE_NORMAL", "ZOMBIE_TRAFFIC_CONE", "ZOMBIE_BUCKET", "ZOMBIE_FOOTBALL", "ZOMBIE_CATAPULT"] },
+
+    { "op": "goto_level", "level": 51, "resetTestState": true },
+    { "op": "wait_state", "state": "CHOOSE_CARD", "timeout": 10 },
+    { "op": "assert_state", "path": "spawnList", "equals": ["ZOMBIE_NORMAL", "ZOMBIE_TRAFFIC_CONE", "ZOMBIE_NEWSPAPER", "ZOMBIE_REINFORCED_DOOR", "ZOMBIE_LADDER", "ZOMBIE_INSULATOR"] },
+
+    { "op": "goto_level", "level": 52, "resetTestState": true },
+    { "op": "wait_state", "state": "CHOOSE_CARD", "timeout": 10 },
+    { "op": "assert_state", "path": "spawnList", "equals": ["ZOMBIE_NORMAL", "ZOMBIE_TRAFFIC_CONE", "ZOMBIE_BUCKET", "ZOMBIE_JACK_IN_THE_BOX", "ZOMBIE_BUNGEE", "ZOMBIE_ELITE_CATAPULT", "ZOMBIE_INSULATOR"] },
+
+    { "op": "goto_level", "level": 53, "resetTestState": true },
+    { "op": "wait_state", "state": "CHOOSE_CARD", "timeout": 10 },
+    { "op": "assert_state", "path": "spawnList", "equals": ["ZOMBIE_NORMAL", "ZOMBIE_TRAFFIC_CONE", "ZOMBIE_POLEVAULTER", "ZOMBIE_DOOR", "ZOMBIE_ELITE_JACK_IN_THE_BOX", "ZOMBIE_ELITE_LADDER", "ZOMBIE_GARGANTUAR"] },
+
+    { "op": "goto_level", "level": 54, "resetTestState": true },
+    { "op": "wait_state", "state": "CHOOSE_CARD", "timeout": 10 },
+    { "op": "assert_state", "path": "spawnList", "equals": ["ZOMBIE_NORMAL", "ZOMBIE_TRAFFIC_CONE", "ZOMBIE_BUCKET", "ZOMBIE_FOOTBALL", "ZOMBIE_REINFORCED_DOOR", "ZOMBIE_ELITE_POLEVAULTER", "ZOMBIE_JACK_IN_THE_BOX", "ZOMBIE_BUNGEE", "ZOMBIE_CATAPULT", "ZOMBIE_GARGANTUAR", "ZOMBIE_INSULATOR"] },
+
+    { "op": "goto_level", "level": 46, "resetTestState": true },
+    { "op": "choose_cards", "cards": [] },
+    { "op": "wait_state", "state": "GAME", "timeout": 15 },
+    { "op": "set_spawn_paused", "value": true },
+    { "op": "spawn_wave_zombie", "type": "ZOMBIE_INSULATOR", "mutationRoll": 50, "row": 0, "x": 900 },
+    { "op": "spawn_wave_zombie", "type": "ZOMBIE_INSULATOR", "mutationRoll": 50, "row": 1, "x": 900 },
+    { "op": "spawn_wave_zombie", "type": "ZOMBIE_INSULATOR", "mutationRoll": 50, "row": 2, "x": 900 },
+    { "op": "assert_state", "path": "zombieCount", "equals": 2 },
+    { "op": "assert_state", "path": "weather.insulatorsSpawnedThisWave", "equals": 2 },
+    { "op": "save_level_snapshot", "name": "insulator_wave_cap" },
+    { "op": "reload_level_snapshot", "name": "insulator_wave_cap" },
+    { "op": "assert_state", "path": "weather.insulatorsSpawnedThisWave", "equals": 2 },
+    { "op": "spawn_wave_zombie", "type": "ZOMBIE_INSULATOR", "mutationRoll": 50, "row": 2, "x": 900 },
+    { "op": "assert_state", "path": "zombieCount", "equals": 2 },
+    { "op": "spawn_zombie", "type": "ZOMBIE_INSULATOR", "row": 2, "x": 700, "stationary": true },
+    { "op": "assert_state", "path": "zombieCount", "equals": 3 },
+    { "op": "assert_state", "path": "weather.insulatorsSpawnedThisWave", "equals": 2 },
+    { "op": "summon_next_wave" },
+    { "op": "assert_state", "path": "weather.insulatorsSpawnedThisWave", "equals": 0 },
+    { "op": "spawn_wave_zombie", "type": "ZOMBIE_INSULATOR", "mutationRoll": 50, "row": 3, "x": 900 },
+    { "op": "assert_state", "path": "weather.insulatorsSpawnedThisWave", "equals": 1 },
+    { "op": "dump_state", "name": "insulator_spawnlists_wave_cap_state.json" },
+    { "op": "quit" }
+  ]
+}

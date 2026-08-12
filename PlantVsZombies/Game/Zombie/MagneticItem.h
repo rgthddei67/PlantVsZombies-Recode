@@ -15,4 +15,5 @@ struct MagneticItem {
 	Vector worldPosition;
 	Vector destinationOffset;
 	float drawScale = 0.8f;
+	int extractorSelfDamage = 0; // 成功卸下装备后由磁力菇直接承受的本体伤害；普通装备为 0
 };
