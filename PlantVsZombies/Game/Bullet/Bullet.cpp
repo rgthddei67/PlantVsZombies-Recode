@@ -19,7 +19,7 @@ namespace {
 	constexpr int kToxicPeaDamage = 15;               // 毒豆直击伤害；持续伤害由目标僵尸结算
 	constexpr int kFireballDamage = 40;               // 火豌豆基础伤害，原版为普通豌豆两倍
 	constexpr int kCabbageDamage = 40;                // 经典卷心菜直击伤害
-	constexpr int kMelonDamage = 80;                  // 经典西瓜直击伤害
+	constexpr int kMelonDamage = 120;                  // 经典西瓜直击伤害
 	constexpr int kButterDamage = 40;                 // 经典黄油直击伤害；玉米粒沿用普通 20 点
 	constexpr int kBasketballDamage = 75;             // 原版投篮车篮球单发伤害
 	constexpr int kSpikeFrameDamage = 2;              // 仙人掌尖刺在 1x 下每个逻辑碰撞帧的基础伤害
