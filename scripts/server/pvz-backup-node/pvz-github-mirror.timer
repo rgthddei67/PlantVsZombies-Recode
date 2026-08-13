@@ -1,0 +1,12 @@
+[Unit]
+Description=Daily PvZ GitHub mirror
+
+[Timer]
+OnCalendar=*-*-* 04:10:00 UTC
+RandomizedDelaySec=20m
+Persistent=true
+AccuracySec=1m
+Unit=pvz-github-mirror.service
+
+[Install]
+WantedBy=timers.target

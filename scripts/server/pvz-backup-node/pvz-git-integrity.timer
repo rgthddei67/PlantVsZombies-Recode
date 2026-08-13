@@ -1,0 +1,12 @@
+[Unit]
+Description=Weekly PvZ Git backup integrity check
+
+[Timer]
+OnCalendar=Sun *-*-* 05:10:00 UTC
+RandomizedDelaySec=30m
+Persistent=true
+AccuracySec=1m
+Unit=pvz-git-integrity.service
+
+[Install]
+WantedBy=timers.target

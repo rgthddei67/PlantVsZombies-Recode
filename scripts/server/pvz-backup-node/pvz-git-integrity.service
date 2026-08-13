@@ -1,0 +1,21 @@
+[Unit]
+Description=Verify the PvZ backup repository object database
+
+[Service]
+Type=oneshot
+User=git
+Group=git
+ExecStart=/usr/bin/git --git-dir=/srv/git/PlantsVsZombies.git fsck --full --strict
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+NoNewPrivileges=true
+PrivateDevices=true
+PrivateNetwork=true
+PrivateTmp=true
+ProtectControlGroups=true
+ProtectHome=true
+ProtectKernelLogs=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+ProtectSystem=strict

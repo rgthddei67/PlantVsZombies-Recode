@@ -1,0 +1,12 @@
+[Unit]
+Description=Daily PvZ backup node health report
+
+[Timer]
+OnCalendar=*-*-* 06:10:00 UTC
+RandomizedDelaySec=20m
+Persistent=true
+AccuracySec=1m
+Unit=pvz-server-health-report.service
+
+[Install]
+WantedBy=timers.target

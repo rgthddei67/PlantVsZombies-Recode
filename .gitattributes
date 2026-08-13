@@ -3,6 +3,9 @@
 ###############################################################################
 * text=auto
 
+# Linux backup-node units and scripts must remain LF after a Windows checkout.
+scripts/server/pvz-backup-node/* text eol=lf
+
 ###############################################################################
 # Set default behavior for command prompt diff.
 #

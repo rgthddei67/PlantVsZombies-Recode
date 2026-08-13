@@ -129,6 +129,7 @@
 - [CMake构建配置 ✅统一](project_pvz_cmake_migration.md) — CMake+vcpkg唯一；默认 `clang-release`（AVX2/LTO/无PDB），Win7 `0xC000001D` 用其余设置相同的 `clang-release-noavx2`，快速迭代/PDB/无LTO才用 `clang-playtest`；非默认 preset 用 NTFS Junction 共享 clang-release 单份 resources/font
 - [Build permission](feedback_build_permission_msbuild.md) — 主人解除构建限制:可直接命令行编译,不必F7不必核对时间戳(现用cmake preset)
 - [AutoTest套件 ✅](project_pvz_autotest_suite.md) — 2026-06-13完成;用法权威在CLAUDE.md AutoTest节(-AutoTest脚本+截图+dump_state闭环,-Seed确定性)
+- [PvZ轻量备份节点](project_pvz_backup_node.md) — 2026-08-13 Git SSH副本与GitHub独立镜像引用；AutoTest证据带提交/状态/逐文件SHA-256离机归档90天；每日健康报告、每周Git fsck；不替代Windows clang-release与可见AutoTest
 - [perf optimization](project_pvz_perf_optimization.md) — 最新2026-06-24:11000z@168.5FPS/5.94ms完全CPU-bound(Present0.14/replay0.03);**STOP停在此**;编译**O2非O3**;若重启ROI序=par-record视口剔除>2d串行地板(Amdahl)>collision;GPU instancing已落地(388a845)
 - [Collaboration style](feedback_collaboration_style.md) — measure-first, steady-state numbers, honest framing, user builds in VS, responds in Chinese
 - [Phase6 OpenGL cleanup ✅](project_pvz_phase6_opengl_cleanup.md) — 7Task全过;执行期修预存LNK2019(geom-batch死子系统);commits user-driven

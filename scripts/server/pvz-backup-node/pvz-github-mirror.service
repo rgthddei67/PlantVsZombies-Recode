@@ -1,0 +1,23 @@
+[Unit]
+Description=Mirror the public PvZ GitHub refs into protected backup refs
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=git
+Group=git
+ExecStart=/usr/bin/git --git-dir=/srv/git/PlantsVsZombies.git fetch --force github
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+NoNewPrivileges=true
+PrivateDevices=true
+PrivateTmp=true
+ProtectControlGroups=true
+ProtectHome=true
+ProtectKernelLogs=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+ProtectSystem=strict
+ReadWritePaths=/srv/git/PlantsVsZombies.git
