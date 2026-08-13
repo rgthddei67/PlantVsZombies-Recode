@@ -3113,11 +3113,13 @@ void Board::ResolveNightRoofHijackerExecution()
 		kNightRoofHijackerExecuteVolume);
 	caster->TakeHijackerExecution();
 
+	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_EXPLOSION, 0.7f);
+
 	for (const int id : plantTargets) {
 		Plant* plant = mEntityManager.GetPlant(id);
 		if (!plant || !plant->IsActive()) continue;
 		if (g_particleSystem) {
-			g_particleSystem->EmitEffect("HijackerElectricFlash", plant->GetVisualPosition());
+			g_particleSystem->EmitEffect("JackExplode", plant->GetVisualPosition());
 		}
 		plant->Die();
 	}
@@ -3125,7 +3127,8 @@ void Board::ResolveNightRoofHijackerExecution()
 		Zombie* zombie = mEntityManager.GetZombie(id);
 		if (!zombie || !zombie->IsActive() || zombie->IsDying()) continue;
 		if (g_particleSystem) {
-			g_particleSystem->EmitEffect("HijackerElectricFlash", zombie->GetVisualPosition());
+			g_particleSystem->EmitEffect("HijackerElectricFlash", zombie->GetVisualPosition() + 
+				Vector(23.0f, 27.0f));
 		}
 		zombie->TakeHijackerExecution();
 	}
