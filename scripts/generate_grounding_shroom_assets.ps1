@@ -41,6 +41,41 @@ function Get-VisibleBounds {
     return [System.Drawing.Rectangle]::FromLTRB($left, $top, $right + 1, $bottom + 1)
 }
 
+function Set-ShockArcPalette {
+    param([Parameter(Mandatory = $true)][System.Drawing.Bitmap]$Bitmap)
+
+    # 只包围震击姿势的六条灰白电弧；最终 112×120 像素坐标用于避免误染本体。
+    $arcRegions = @(
+        [System.Drawing.Rectangle]::new(25, 28, 14, 24),
+        [System.Drawing.Rectangle]::new(76, 28, 14, 24),
+        [System.Drawing.Rectangle]::new(22, 75, 16, 26),
+        [System.Drawing.Rectangle]::new(76, 75, 17, 26),
+        [System.Drawing.Rectangle]::new(35, 80, 16, 38),
+        [System.Drawing.Rectangle]::new(64, 80, 17, 38)
+    )
+
+    foreach ($region in $arcRegions) {
+        for ($y = $region.Top; $y -lt $region.Bottom; $y++) {
+            for ($x = $region.Left; $x -lt $region.Right; $x++) {
+                $color = $Bitmap.GetPixel($x, $y)
+                if ($color.A -le 8) { continue }
+
+                $maximum = [Math]::Max($color.R, [Math]::Max($color.G, $color.B))
+                $minimum = [Math]::Min($color.R, [Math]::Min($color.G, $color.B))
+                $brightness = ($color.R + $color.G + $color.B) / 3.0
+                if (($maximum - $minimum) -gt 28 -or $brightness -lt 24) { continue }
+
+                # 保留原抗锯齿明暗，暗边映射为紫罗兰，亮芯映射为浅薰衣草色。
+                $factor = [Math]::Min(1.0, $brightness / 255.0)
+                $red = [int][Math]::Round(82 + 164 * $factor)
+                $green = [int][Math]::Round(18 + 172 * $factor)
+                $blue = [int][Math]::Round(170 + 82 * $factor)
+                $Bitmap.SetPixel($x, $y, [System.Drawing.Color]::FromArgb($color.A, $red, $green, $blue))
+            }
+        }
+    }
+}
+
 function Export-Pose {
     param(
         [Parameter(Mandatory = $true)][System.Drawing.Bitmap]$Sheet,
@@ -49,7 +84,8 @@ function Export-Pose {
         [int]$CanvasWidth = 112,
         [int]$CanvasHeight = 120,
         [int]$VisibleHeight = 108,
-        [switch]$CenterVertically
+        [switch]$CenterVertically,
+        [switch]$TintShockArcs
     )
 
     $pose = $Sheet.Clone($Quadrant, [System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
@@ -85,6 +121,9 @@ function Export-Pose {
                     [System.Drawing.Rectangle]::new($left, $top, $width, $height),
                     0, 0, $cropped.Width, $cropped.Height,
                     [System.Drawing.GraphicsUnit]::Pixel)
+                if ($TintShockArcs) {
+                    Set-ShockArcPalette -Bitmap $result
+                }
                 $result.Save($DestinationPath, [System.Drawing.Imaging.ImageFormat]::Png)
             }
             finally {
@@ -112,9 +151,10 @@ try {
         @{ Name = 'GroundingShroom_recover.png'; Rect = [System.Drawing.Rectangle]::new($halfWidth, $halfHeight, $sheet.Width - $halfWidth, $sheet.Height - $halfHeight) }
     )
     foreach ($pose in $poses) {
+        $tintShockArcs = $pose.Name -eq 'GroundingShroom_shock.png'
         Export-Pose -Sheet $sheet -Quadrant $pose.Rect `
             -DestinationPath (Join-Path $reanimDirectory $pose.Name) `
-            -VisibleHeight $battleVisibleHeight
+            -VisibleHeight $battleVisibleHeight -TintShockArcs:$tintShockArcs
     }
 
     Export-Pose -Sheet $sheet -Quadrant $poses[0].Rect `

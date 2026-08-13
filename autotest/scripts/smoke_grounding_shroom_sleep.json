@@ -1,0 +1,22 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 45, "resetTestState": true },
+    { "op": "choose_cards", "cards": ["PLANT_GROUNDINGSHROOM"] },
+    { "op": "wait_state", "state": "GAME", "timeout": 15 },
+    { "op": "set_spawn_paused", "value": true },
+    { "op": "plant", "type": "PLANT_GROUNDINGSHROOM", "row": 2, "col": 2 },
+    { "op": "assert_state", "path": "topPlantsByCell.2_2.sleeping", "equals": true },
+    { "op": "assert_state", "path": "topPlantsByCell.2_2.track", "equals": "anim_sleep" },
+    { "op": "assert_state", "path": "topPlantsByCell.2_2.animFrame", "atLeast": 26, "atMost": 33 },
+    { "op": "screenshot", "name": "01_grounding_sleep_start.png" },
+    { "op": "wait_seconds", "value": 0.72 },
+    { "op": "assert_state", "path": "topPlantsByCell.2_2.animFrame", "atLeast": 26, "atMost": 33 },
+    { "op": "wait_seconds", "value": 0.72 },
+    { "op": "assert_state", "path": "topPlantsByCell.2_2.animFrame", "atLeast": 26, "atMost": 33 },
+    { "op": "wait_seconds", "value": 0.72 },
+    { "op": "assert_state", "path": "topPlantsByCell.2_2.animFrame", "atLeast": 26, "atMost": 33 },
+    { "op": "screenshot", "name": "02_grounding_sleep_after_cycles.png" },
+    { "op": "dump_state", "name": "grounding_sleep_state.json" },
+    { "op": "quit" }
+  ]
+}

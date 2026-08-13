@@ -13,7 +13,7 @@
 - [第六大关绝缘僵尸](project_pvz_insulator_zombie.md) — 2026-08-13 300本体+单层1200陶瓷胸甲；干燥轻弹/尖刺减半、1.5格同阵营放电承接后15秒2.2倍过载与100啃咬，湿润植物伤甲1.5倍且湿坡放电固定碎甲360无溢出；磁力菇整甲吸取自身扣150；胸甲为Zombie_body末尾前景follower，6-2首次、正式每波限2，专项与父回归可见闭环
 - [第六大关黑夜屋顶与延期设计](project_pvz_sixth_area_night_roof_backlog.md) — 2026-08-12 6-1～6-9 已接入正式黑夜屋顶、基础雷荷、绝缘僵尸与首株接地菇；其他僵尸、6-9僵尸博士及处决僵尸联动仍延期
 
-- [第六大关接地菇](project_pvz_grounding_shroom.md) — 2026-08-13 `PLANT_GROUNDINGSHROOM` 为5-9奖励：100阳光、20秒冷却、500生命；同排三格免一次雷荷停机，普通/湿坡每次直接反噬100/150且按冻结分配不回滚；范围内绝缘僵尸拒绝承接和过载；独立低精度整株动画约0.8倍、卡图约0.7倍
+- [第六大关接地菇](project_pvz_grounding_shroom.md) — 2026-08-13 `PLANT_GROUNDINGSHROOM` 为5-9奖励：100阳光、20秒冷却、500生命；同排三格免一次雷荷停机，普通/湿坡每次直接反噬100/150且按冻结分配不回滚；范围内绝缘僵尸拒绝承接和过载；独立低精度整株动画约0.8倍、卡图约0.7倍；白天睡眠轨从闭眼切图的第26帧起循环，绝不闪回第25帧睁眼图；震击电弧以紫罗兰暗边和浅紫亮芯抵抗缩放与黑夜暗化
 - [经典花盆与屋顶承载层](project_pvz_flowerpot.md) — 2026-08-03 `PLANT_FLOWERPOT` 25阳光/7.5秒/300生命/1秒无啃食；under+normal+南瓜分层、屋顶门禁、5-1/5-2/后续5/4/3列初始布局、覆盖暂停、5px视觉抬升、通用ShadowComponent 46px可见阴影、双向台风整组与存档均经默认/NoInstance可见专项
 - [上次选卡持久化与一键动画恢复](project_pvz_last_selected_cards.md) — 2026-08-12 最近一次正式提交卡组以稳定枚举名顺序写入 PlayerInfo；ChooseCardUI 右上角缩小 Button2 按钮过滤失效/未拥有/重复项并复用卡片飞行动画，跨下一局可再次恢复
 - [架构边界、存档版本与技能审计门禁](project_pvz_architecture_boundaries.md) — 2026-08-12 `BoardPresentation` 取代 `Board::mGameScene`，Board 保持天气/波次/生存玩法唯一权威；`SceneManager` 明确单活动场景；玩家 schema v2 补发毒囊射手、v3 加高级暂停、v4 加稳定枚举名上次选卡；迁移保持事务式并有纯测试；每次任务提交前审计相关 skills

@@ -28,18 +28,21 @@ metadata:
 ## 动画与资源
 
 - 独立 `GroundingShroom.reanim`，基础 12fps；包装轨为 `anim_idle`、`anim_shooting`、
-  `anim_sleep`，整株 `GroundingShroom_body` 轨负责低幅呼吸和图片切换。
+  `anim_sleep`，整株 `GroundingShroom_body` 轨负责低幅呼吸和图片切换。睡眠包装轨从第 26 帧开始，
+  与 body 切换闭眼图同帧，循环不得回到仍使用睁眼 idle 图的第 25 帧。
 - 放电直接 `PlayTrackOnce("anim_shooting", "anim_idle", ..., returnBlend=0)`，不使用帧事件；
   通用 Animator 存档可完整往返中途受电轨，因此无额外品种字段。
 - 四张战场姿势为 112×120 低分辨率透明图，整株按初版生成尺寸等比缩至约 0.8；卡图保持
   120×120 画布但整株独立等比缩至约 0.7 并居中。`scripts/generate_grounding_shroom_assets.ps1`
-  从去底源图确定性重建资源，二者都不压缩宽高比。
+  从去底源图确定性重建资源，二者都不压缩宽高比。生成器会把震击姿势六条灰白电弧按最终
+  112×120 坐标映射为紫罗兰暗边与浅紫亮芯，保证缩小并叠加黑夜雷击暗化后仍呈明确紫色。
 
 ## 数值背景与验证
 
 同批将基础雷荷停机从 2.5/5 秒提升为普通瓦面 8 秒、径流湿坡 20 秒；平台仍按普通档。
 专项应同时覆盖资源与数值、三格边界、湿/干反噬、死亡不回滚、径流暂停保留、中途动画存档、
-绝缘拒绝承接/过载、5-9 奖励，以及默认实例化与 `-NoInstance` 两条绘制路径。
+绝缘拒绝承接/过载、5-9 奖励、白天睡眠跨多轮循环始终闭眼，以及默认实例化与 `-NoInstance`
+两条绘制路径。
 
 ## 当前验证证据
 
@@ -51,3 +54,7 @@ metadata:
 - `smoke_grounding_shroom_card`、`smoke_grounding_shroom_reward`、
   `smoke_night_roof_charge_effects` 与 `smoke_insulator_charge` 均可见 exit 0；同步截图已目验战场
   可见框约 80×86、卡图约 72×78，均保持原宽高比。
+- 2026-08-13 睡眠闪帧与电弧验色修复后，`smoke_grounding_shroom_sleep` 默认/`-NoInstance`
+  各 18 条命令可见 exit 0：初始及跨三轮循环的 `animFrame` 始终为 26～33，前后截图均闭眼；
+  `smoke_grounding_shroom` 默认/`-NoInstance` 各 91 条命令可见 exit 0，专用后段截图目验六条近身
+  电弧在黑夜屋顶与放电暗化下仍为紫罗兰色。
