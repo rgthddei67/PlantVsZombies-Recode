@@ -23,7 +23,6 @@ namespace {
 	constexpr float kArcApexHeight = 210.0f;               // 相对起终点线性插值轨迹的最高拱高，单位 px
 	constexpr float kTargetHeightRatio = 0.35f;            // 瞄准碰撞箱上部身体，避开脚底与头顶空白
 	constexpr float kFallbackLandingOffsetY = -20.0f;      // 目标消失时相对同行地形基线的安全落点高度
-	constexpr int kMelonDamage = 80;                       // C# ProjectileType.Melon 直击伤害
 	constexpr float kShootSoundVolume = 0.3f;              // Throw/Throw2 发射 Foley 音量
 }
 
@@ -124,7 +123,6 @@ void MelonPult::FireMelon()
 	Bullet* melon = mBoard->CreateBullet(
 		BulletType::BULLET_MELON, mRow, launchPosition);
 	if (!melon) return;
-	melon->SetBulletDamage(kMelonDamage);
 	melon->ConfigureLobbedMotion(
 		landingPosition, kFlightDuration, kArcApexHeight);
 }
