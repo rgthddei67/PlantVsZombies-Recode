@@ -615,6 +615,7 @@ void TestDriver::ResetTestState() {
 	GameAPP::mDevSpawnPaused = false;
 	GameAPP::GetInstance().mEnableMonteCarloAI = true;
 	GameAPP::GetInstance().mAdvancedPauseEnabled = false;
+	GameAPP::GetInstance().mOpeningTyphoonProtectionEnabled = true;
 }
 
 void TestDriver::Update() {
@@ -724,6 +725,11 @@ bool TestDriver::ExecuteCurrent() {
 	if (op == "set_advanced_pause") {
 		GameAPP::GetInstance().mAdvancedPauseEnabled =
 			cmd.value("value", false);
+		return true;
+	}
+	if (op == "set_opening_typhoon_protection") {
+		GameAPP::GetInstance().mOpeningTyphoonProtectionEnabled =
+			cmd.value("value", true);
 		return true;
 	}
 
@@ -2214,6 +2220,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["encounteredEliteDancer"] = gameApp.HasEncounteredEliteDancer();
 	out["monteCarloAIEnabled"] = gameApp.mEnableMonteCarloAI;
 	out["advancedPauseEnabled"] = gameApp.mAdvancedPauseEnabled;
+	out["openingTyphoonProtectionEnabled"] =
+		gameApp.mOpeningTyphoonProtectionEnabled;
 	out["lastSelectedCards"] = gameApp.mLastSelectedCards;
 	out["lastSelectedCardCount"] = static_cast<int>(gameApp.mLastSelectedCards.size());
 	out["dolphinAppearSoundRequestCount"] =
@@ -3290,6 +3298,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "forecastPlausible", board->IsWeatherForecastPlausible() },
 			{ "forecastAccuracyPct", board->GetCurrentWeatherForecastAccuracyPercent() },
 			{ "pendingTyphoonPrepared", board->HasPendingHeavyTyphoon() },
+			{ "pendingTyphoonOpeningProtected", board->IsPendingHeavyTyphoonOpeningProtected() },
 			{ "pendingTyphoonStrength", TyphoonStrengthName(board->GetPendingHeavyTyphoonStrength()) },
 			{ "pendingPromptVariant", board->GetPendingHeavyRainPromptVariant() },
 			{ "heavyRainPromptShown", board->HasShownHeavyRainPrompt() },
@@ -3304,6 +3313,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "pressurePct", static_cast<int>(std::lround(weatherPressure * 100.0f)) },
 			{ "zombieSpeedPct", static_cast<int>(std::lround(zombieRain * 100.0f)) },
 			{ "typhoonStrength", TyphoonStrengthName(board->GetTyphoonStrength()) },
+			{ "openingTyphoonProtectionActive", board->IsOpeningTyphoonProtectionActive() },
 			{ "typhoonChancePct", board->GetCurrentTyphoonChancePercent() },
 			{ "heavyPhasesWithoutTyphoon", board->GetHeavyPhasesWithoutTyphoon() },
 			{ "eliteDancersSpawnedThisWave", board->GetEliteDancersSpawnedThisWave() },

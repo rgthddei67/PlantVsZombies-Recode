@@ -53,6 +53,7 @@ public:
 	bool mAutoCollected = true; // 自动收集
 	bool mEnableMonteCarloAI = true; // 轻量蒙特卡洛 AI；关闭后调用者走各自低配回退策略
 	bool mAdvancedPauseEnabled = false; // 高级暂停；开启后空格暂停期间仍可操作卡槽并种植
+	bool mOpeningTyphoonProtectionEnabled = true; // 开局台风保护；开启后首轮第 1～5 波不会附加台风
 	bool mVsync = false;    // 是否开启垂直同步
 	bool mFullscreen = false;   // 是否全屏（等比 letterbox，无边框桌面全屏）
 

@@ -184,6 +184,7 @@ namespace {
 	constexpr float kWeatherTransitionDuration = 2.0f;   // 雨势切换时倍率、暗幕与雨声音量的平滑过渡时长（游戏秒）
 	constexpr float kLateWeatherRampStart = 0.40f;       // 普通关波次进度超过该比例后开始增强后期天气（0～1）
 	constexpr float kAdventurePressureFullProgress = 0.7f; // 普通关到该波次进度时达到完整天气压力（0～1）
+	constexpr int kOpeningTyphoonFirstEligibleWave = 6;  // 默认开局保护结束波；进入第 6 波即可按正式规则抽取台风
 	constexpr int kSurvivalLateWeatherFullRound = 8;     // 黑夜无尽到该轮起按完整后期天气权重计算
 	constexpr int kSurvivalPressureStartRound = 8;       // 黑夜无尽从该轮起在基础雨势之上继续增加天气压力
 	constexpr int kSurvivalPressureFullRound = 20;       // 黑夜无尽到该轮达到完整天气压力，之后不再继续放大
@@ -873,9 +874,20 @@ float Board::GetZombieRainSpeedMultiplier() const
 	return previous + (ZombieSpeedForRain(mRainIntensity, pressure) - previous) * progress;
 }
 
-/** 当前新大雨若进行台风判定时的实际概率，包含波次成长与连续落空保底。 */
+/** 返回默认开局台风保护是否正在约束当前 Board；生存模式只保护第一轮。 */
+bool Board::IsOpeningTyphoonProtectionActive() const
+{
+	if (!GameAPP::GetInstance().mOpeningTyphoonProtectionEnabled || !SupportsWeather()) {
+		return false;
+	}
+	const bool isOpeningRound = !mIsSurvival || mSurvivalRound <= 1;
+	return isOpeningRound && mCurrentWave < kOpeningTyphoonFirstEligibleWave;
+}
+
+/** 当前新大雨若进行台风判定时的实际概率，包含开局保护、波次成长与连续落空保底。 */
 int Board::GetCurrentTyphoonChancePercent() const
 {
+	if (IsOpeningTyphoonProtectionActive()) return 0;
 	const int baseChance = LerpWeatherWeight(kTyphoonChanceEarlyPercent,
 		kTyphoonChanceLatePercent, GetWeatherDirectorFactor());
 	return std::min(kTyphoonChanceMaxPercent,
@@ -1807,6 +1819,8 @@ void Board::PreparePendingHeavyTyphoon(int chanceRoll, int strengthRoll)
 	mPendingHeavyWindGustTimer = 0.0f;
 	mPendingHeavyTyphoonGustsRemaining = 0;
 	mPendingHeavyRainPromptVariant = GameRandom::Range(0, 2);
+	mPendingHeavyTyphoonOpeningProtected = IsOpeningTyphoonProtectionActive();
+	if (mPendingHeavyTyphoonOpeningProtected) return;
 
 	const int chance = GetCurrentTyphoonChancePercent();
 	if (chanceRoll <= 0) chanceRoll = GameRandom::Range(1, 100);
@@ -1841,6 +1855,7 @@ void Board::PreparePendingHeavyTyphoon(int chanceRoll, int strengthRoll)
 void Board::ClearPendingHeavyRainWarning()
 {
 	mPendingHeavyTyphoonPrepared = false;
+	mPendingHeavyTyphoonOpeningProtected = false;
 	mPendingHeavyTyphoonStrength = TyphoonStrength::NONE;
 	mPendingHeavyWindDirection = WindDirection::NONE;
 	mPendingHeavyTyphoonStrengthTimer = 0.0f;
@@ -1918,6 +1933,8 @@ void Board::StartTyphoonForHeavyPhase(int chanceRoll, int strengthRoll,
 	WindDirection forcedDirection)
 {
 	StopTyphoon();
+	// 保护期不是一次随机落空，不能累计台风 pity，否则第 6 波会被反向推成近似必出。
+	if (IsOpeningTyphoonProtectionActive()) return;
 	const int chance = GetCurrentTyphoonChancePercent();
 	if (chanceRoll <= 0) chanceRoll = GameRandom::Range(1, 100);
 	if (chanceRoll > chance) {
@@ -1967,12 +1984,15 @@ void Board::ConsumePendingHeavyTyphoon()
 	const float gustTimer = mPendingHeavyWindGustTimer;
 	const float directionTimer = mPendingHeavyWindDirectionTimer;
 	const int gustsRemaining = mPendingHeavyTyphoonGustsRemaining;
+	const bool openingProtected = mPendingHeavyTyphoonOpeningProtected;
 	ClearPendingHeavyRainWarning();
 
 	if (strength == TyphoonStrength::NONE) {
 		StopTyphoon();
-		mHeavyPhasesWithoutTyphoon = std::min(
-			mHeavyPhasesWithoutTyphoon + 1, kTyphoonPityMaxMisses);
+		if (!openingProtected) {
+			mHeavyPhasesWithoutTyphoon = std::min(
+				mHeavyPhasesWithoutTyphoon + 1, kTyphoonPityMaxMisses);
+		}
 		return;
 	}
 	mHeavyPhasesWithoutTyphoon = 0;
@@ -1995,7 +2015,8 @@ void Board::RestoreTyphoonPity(int missedHeavyPhases)
 }
 
 /** 从存档恢复尚未生效的大雨台风结果；损坏组合只清空，不会在读档阶段重 roll。 */
-void Board::RestorePendingHeavyTyphoon(bool prepared, TyphoonStrength strength,
+void Board::RestorePendingHeavyTyphoon(bool prepared, bool openingProtected,
+	TyphoonStrength strength,
 	WindDirection direction, float strengthTimer, float gustTimer,
 	float directionTimer, int gustsRemaining, int promptVariant)
 {
@@ -2009,9 +2030,11 @@ void Board::RestorePendingHeavyTyphoon(bool prepared, TyphoonStrength strength,
 		? direction == WindDirection::NONE
 		: (direction == WindDirection::TOWARD_HOUSE
 			|| direction == WindDirection::TOWARD_FRONT);
-	if (!validStrength || !validDirection) return;
+	if (!validStrength || !validDirection
+		|| (openingProtected && strength != TyphoonStrength::NONE)) return;
 
 	mPendingHeavyTyphoonPrepared = true;
+	mPendingHeavyTyphoonOpeningProtected = openingProtected;
 	mPendingHeavyTyphoonStrength = strength;
 	mPendingHeavyWindDirection = direction;
 	mPendingHeavyTyphoonStrengthTimer = strength == TyphoonStrength::NONE
@@ -3257,6 +3280,7 @@ bool Board::SetPendingHeavyTyphoonForTesting(TyphoonStrength strength, int promp
 		return false;
 	}
 	mPendingHeavyTyphoonPrepared = true;
+	mPendingHeavyTyphoonOpeningProtected = false;
 	mPendingHeavyTyphoonStrength = strength;
 	mPendingHeavyWindDirection = strength == TyphoonStrength::NONE
 		? WindDirection::NONE : WindDirection::TOWARD_HOUSE;

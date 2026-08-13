@@ -202,6 +202,7 @@ bool GameInfoSaver::SavePlayerInfoImpl()
 	j["autoCollected"] = gameApp.mAutoCollected;
 	j["enableMonteCarloAI"] = gameApp.mEnableMonteCarloAI;
 	j["advancedPauseEnabled"] = gameApp.mAdvancedPauseEnabled;
+	j["openingTyphoonProtectionEnabled"] = gameApp.mOpeningTyphoonProtectionEnabled;
 	j["lastSelectedCards"] = gameApp.mLastSelectedCards;
 	j["soundVolume"] = AudioSystem::GetSoundVolume();
 	j["musicVolume"] = AudioSystem::GetMusicVolume();
@@ -237,6 +238,8 @@ bool GameInfoSaver::LoadPlayerInfoImpl()
 	gameApp.mAutoCollected = j.value("autoCollected", true);
 	gameApp.mEnableMonteCarloAI = j.value("enableMonteCarloAI", true);
 	gameApp.mAdvancedPauseEnabled = j.value("advancedPauseEnabled", false);
+	gameApp.mOpeningTyphoonProtectionEnabled =
+		j.value("openingTyphoonProtectionEnabled", true);
 	gameApp.mLastSelectedCards.clear();
 	if (auto it = j.find("lastSelectedCards"); it != j.end() && it->is_array()) {
 		// 只接收字符串并限制数量；未知或已移除的枚举名留到选卡界面按当前注册表过滤。
@@ -342,6 +345,8 @@ bool GameInfoSaver::SerializeLevelDataToPath(Board* board, CardSlotManager* mana
 	j["fogDispersal"] = board->mFogDispersal;
 	j["fogVisualOffsetX"] = board->mFogVisualOffsetX;
 	j["pendingHeavyTyphoonPrepared"] = board->mPendingHeavyTyphoonPrepared;
+	j["pendingHeavyTyphoonOpeningProtected"] =
+		board->mPendingHeavyTyphoonOpeningProtected;
 	j["pendingHeavyTyphoonStrength"] = static_cast<int>(board->mPendingHeavyTyphoonStrength);
 	j["pendingHeavyWindDirection"] = static_cast<int>(board->mPendingHeavyWindDirection);
 	j["pendingHeavyTyphoonStrengthTimer"] = board->mPendingHeavyTyphoonStrengthTimer;
@@ -898,6 +903,7 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 	// 预警期已经抽出的完整台风初态必须原样恢复；旧档缺字段时保持未准备，由后续 Update 补抽一次。
 	board->RestorePendingHeavyTyphoon(
 		j.value("pendingHeavyTyphoonPrepared", false),
+		j.value("pendingHeavyTyphoonOpeningProtected", false),
 		pendingTyphoonStrength, pendingWindDirection,
 		j.value("pendingHeavyTyphoonStrengthTimer", 0.0f),
 		j.value("pendingHeavyWindGustTimer", 0.0f),

@@ -4,6 +4,7 @@
     { "op": "choose_cards", "cards": ["PLANT_PEASHOOTER"] },
     { "op": "wait_state", "state": "GAME", "timeout": 15 },
     { "op": "set_sun", "value": 1000 },
+    { "op": "set_opening_typhoon_protection", "value": false },
     { "op": "set_weather", "intensity": "HEAVY", "duration": 90 },
 
     { "op": "assert_state", "path": "weather.rainEffect", "equals": "RainHeavy" },

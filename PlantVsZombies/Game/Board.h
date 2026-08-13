@@ -220,6 +220,7 @@ private:
 	int mMistFuelAssignedThisWave = 0; // 当前波已分配的雾火总量；只作预算闸门与观测
 
 	bool mPendingHeavyTyphoonPrepared = false; // 大雨预警期已锁定台风等级，切档时消费而不重 roll
+	bool mPendingHeavyTyphoonOpeningProtected = false; // 待生效大雨因开局保护锁定为无台风；消费时不累计落空保底
 	TyphoonStrength mPendingHeavyTyphoonStrength = TyphoonStrength::NONE; // 下一场大雨的待生效台风等级
 	WindDirection mPendingHeavyWindDirection = WindDirection::NONE; // 待生效台风初始吹向；与等级一并锁定
 	float mPendingHeavyTyphoonStrengthTimer = 0.0f; // 待生效台风首档维持时长（游戏秒）
@@ -350,7 +351,8 @@ private:
 	void StopTyphoon();
 	void RestoreWeakWeatherPity(int weakWeatherPhases);
 	void RestoreTyphoonPity(int missedHeavyPhases);
-	void RestorePendingHeavyTyphoon(bool prepared, TyphoonStrength strength,
+	void RestorePendingHeavyTyphoon(bool prepared, bool openingProtected,
+		TyphoonStrength strength,
 		WindDirection direction, float strengthTimer, float gustTimer,
 		float directionTimer, int gustsRemaining, int promptVariant);
 	void RestoreEliteDancerWaveSpawnCount(int count);
@@ -571,6 +573,9 @@ public:
 	/** 当前天气导演下进入大雾的概率（百分比）；只用于夜间泳池独立雾势抽取。 */
 	int GetDenseFogChancePercent() const;
 	bool HasPendingHeavyTyphoon() const { return mPendingHeavyTyphoonPrepared; }
+	bool IsPendingHeavyTyphoonOpeningProtected() const {
+		return mPendingHeavyTyphoonOpeningProtected;
+	}
 	TyphoonStrength GetPendingHeavyTyphoonStrength() const { return mPendingHeavyTyphoonStrength; }
 	int GetPendingHeavyRainPromptVariant() const { return mPendingHeavyRainPromptVariant; }
 	bool HasShownHeavyRainPrompt() const { return mHeavyRainPromptShown; }
@@ -583,6 +588,8 @@ public:
 	/** 当前天气导演下新天气的原始相对权重，不含弱天气保底覆盖。 */
 	int GetCurrentNewWeatherWeight(RainIntensity intensity) const;
 	bool HasTyphoon() const { return mTyphoonStrength != TyphoonStrength::NONE; }
+	/** 玩家开关开启时，首局或生存首轮第 1～5 波禁止新大雨附加台风。 */
+	bool IsOpeningTyphoonProtectionActive() const;
 	int GetCurrentTyphoonChancePercent() const;
 	TyphoonStrength GetTyphoonStrength() const { return mTyphoonStrength; }
 	WindDirection GetWindDirection() const { return mWindDirection; }

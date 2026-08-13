@@ -252,3 +252,22 @@ exit 0，覆盖上述边界、两秒过渡、无额外台风、后续受击不�
 `smoke_weather_pressure`/`smoke_weather_director` 仍按旧 75% 曲线结果 86% 和 90% 上限断言；
 `smoke_weather_forecast` 的末尾面板也会被随后自然生成的新预报重新拉回。未在首领任务中擅自改变
 这些平衡常量或旧脚本，后续专门整理天气导演时必须先让主人确认 70%/95% 是否为当前定案。
+
+## 2026-08-13 开局台风保护与控制台开关
+
+为减少玩家因早期强/超强台风反复刷开局，`PlayerInfo` 新增默认开启的
+`openingTyphoonProtectionEnabled`，主菜单“控制台”可随时关闭。开启时，冒险关和生存首轮的
+第 1～5 波仍允许正常晴雨循环，但新大雨附加台风概率固定为 0；进入第 6 波恢复现有天气导演概率，
+生存第二轮起不重复保护。关闭开关后从开局即完整使用原规则，满足主动追求高难度的玩家。
+
+保护期不是一次随机落空：直接大雨路径不增加 `heavyPhasesWithoutTyphoon`；预警期锁定的
+“保护性无台风”另以 `pendingHeavyTyphoonOpeningProtected` 随关卡档保存，揭晓后同样不累计 pity，
+避免第 6 波被保护期反向推成近似必出台风。旧玩家档缺开关字段时回到默认开启，旧关卡档缺 pending
+标志时按普通随机落空解释，两者都可由中性默认兼容，无需提升 schema。
+
+`clang-release` 完整配置/构建退出 0、零警告，Win7 x64 导入审计通过 378 项；`ctest` 的
+`save-migration` 与 `save-schema` 均通过。当前桌面可见 `smoke_opening_typhoon_protection` 59 条、
+更新后的 `smoke_mainmenu_console` 30 条和 `smoke_typhoon` 124 条命令均退出 0，窗口标题均确认，
+三份 `run.log` 均以 `script finished OK` 结束。控制台四张截图确认新增第三项默认勾选、关闭后重开
+保持未勾选且布局无重叠；台风父回归的强/超强阵风截图目验正常。`adding-rain-weather` 的核心契约、
+reference 与项目指南命令表已同步，并经 skill-creator `quick_validate.py` 校验通过。

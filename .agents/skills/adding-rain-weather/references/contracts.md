@@ -1,6 +1,6 @@
 # 雨天天气扩展契约
 
-本文件记录截至 2026-08-10 的当前实现。动手前用文中的搜索词核实源码；当前代码优先于本文件。
+本文件记录截至 2026-08-13 的当前实现。动手前用文中的搜索词核实源码；当前代码优先于本文件。
 
 涉及原版已有天气或视觉时，C# 只用来锁定玩家可感知的功能、时序和反馈；实现前仍须核对本项目 `Board` 所有权、独立天气维度、场景坐标、资源与存档契约，并以当前接口实现等价行为，禁止机械照搬类结构或绝对数值。
 
@@ -41,6 +41,12 @@ const bool isRaining = rain != RainIntensity::CLEAR;
 ```
 
 不要用 overlay alpha 推断是否下雨：它是视觉插值，雨转晴的两秒内仍大于 0。
+
+主菜单控制台的 `openingTyphoonProtectionEnabled` 是玩家全局偏好，旧 `PlayerInfo` 缺字段时默认
+开启。开启后，冒险关和生存首轮的第 1～5 波仍允许自然雨势，但新大雨附加台风的实际概率为 0；
+进入第 6 波恢复原天气导演概率，生存第二轮起不再重复保护。关闭开关则从开局起完整使用原规则。
+天气预警可能在阶段揭晓前锁定台风结果，因此“本次因开局保护锁定为无台风”由 Board pending
+标志进入关卡档；兑现时不增加 `heavyPhasesWithoutTyphoon`，避免第 6 波因保护期被伪计为连续落空。
 
 实体若能主动改变雨势，实体只保存施法次数/冷却或生命跨段，实际切档必须走 Board 的窄入口。
 入口要显式检查地图支持与关卡锁定，并规定强度优先级、同档续期和台风策略；默认只升不降，周期
@@ -301,6 +307,7 @@ Board 雾势、再恢复植物，所以 `RestoreFogState()` 只清空旧缓存�
 现有命令：
 
 - `set_weather`：固定天气并立即完成过渡；可传 `duration`、小雨的 `canIntensify`。
+- `set_opening_typhoon_protection`：在进程内开关默认启用的前 5 波台风保护，不触碰真实 `PlayerInfo`。
 - `set_roof_runoff`：昼夜屋顶可用；`phase=IDLE/WARNING/FLOWING`，活动阶段以非空 `rows` 数组固定行组，可选 `charge/remaining/retainedCharge`；单个 `row` 只作旧脚本兼容。
 - `weather.roofRunoff`：导出 `chargePct/retainedChargePct/phase/rowMask/rowCount/rows/phaseRemainingMs/flowProgressPct/zombieDriftSpeed/guideCandidateRow/guideCandidateSelected`；植物另导出 `roofRunoffPaused`，僵尸逐体导出 `roofRunoffGuideEligible/roofRunoffDriftMultiplierOn1000/roofRunoffDriftVelocity`。
 - `set_night_roof_charge`：只对黑夜屋顶可用；`phase=CHARGING/WARNING/DISCHARGING`，活动阶段用 `row` 固定路线，可选 `charge/remaining`。
