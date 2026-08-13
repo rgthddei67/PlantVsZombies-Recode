@@ -65,6 +65,7 @@ namespace ResourceKeys
 		RKEY(IMAGE_SEEDCHOOSER_BUTTON);
 		RKEY(IMAGE_SEEDCHOOSER_BUTTON_DISABLED);
 		RKEY(IMAGE_SEEDPACKETNORMAL);
+		RKEY(IMAGE_SEEDPACKETVARIANTS);
 		RKEY(IMAGE_BACKGROUND_DAY);
 		RKEY(IMAGE_BACKGROUND_NIGHT);
 		RKEY(IMAGE_BACKGROUND_POOL);
@@ -296,6 +297,7 @@ namespace ResourceKeys
 		RKEY(IMAGE_ZOMBIE_HEAD_GROSSOUT);
 		RKEY(IMAGE_SUNSHROOM);
 		RKEY(IMAGE_FUMESHROOM);
+		RKEY(IMAGE_GLOOMSHROOM);
 		RKEY(IMAGE_GRAVEBUSTER);
 		RKEY(IMAGE_HYPNOSHROOM);
 		RKEY(IMAGE_SCAREDYSHROOM);
@@ -547,6 +549,7 @@ namespace ResourceKeys
 		inline const std::string REANIM_UMBRELLALEAF = "Umbrellaleaf";
 		inline const std::string REANIM_MARIGOLD = "Marigold";
 		inline const std::string REANIM_MELONPULT = "Melonpult";
+		inline const std::string REANIM_GLOOMSHROOM = "GloomShroom";
 
 		inline const std::string REANIM_NORMAL_ZOMBIE = "NormalZombie";
 		inline const std::string REANIM_CONE_ZOMBIE = "ConeZombie";

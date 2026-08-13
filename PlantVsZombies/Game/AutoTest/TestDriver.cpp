@@ -46,6 +46,7 @@
 #include "../Plant/CabbagePult.h"
 #include "../Plant/KernelPult.h"
 #include "../Plant/MelonPult.h"
+#include "../Plant/GloomShroom.h"
 #include "../Plant/CoffeeBean.h"
 #include "../Plant/Garlic.h"
 #include "../Bullet/Bullet.h"
@@ -1378,6 +1379,28 @@ bool TestDriver::ExecuteCurrent() {
 		Fail("set_melonpult_shoot_cycle: 未找到目标西瓜投手");
 		return false;
 	}
+	if (op == "set_gloomshroom_shoot_cycle") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) {
+			Fail("set_gloomshroom_shoot_cycle: 不在 GameScene 或 Board 为空");
+			return false;
+		}
+		Board* board = gs->GetBoard();
+		const int row = cmd.value("row", -1);
+		const int col = cmd.value("col", -1);
+		for (int id : board->mEntityManager.GetAllPlantIDs()) {
+			auto* gloomShroom = dynamic_cast<GloomShroom*>(
+				board->mEntityManager.GetPlant(id));
+			if (!gloomShroom || (row >= 0 && gloomShroom->mRow != row)
+				|| (col >= 0 && gloomShroom->mColumn != col)) {
+				continue;
+			}
+			gloomShroom->SetShootCycleForTesting(cmd.value("elapsed", 1.99f));
+			return true;
+		}
+		Fail("set_gloomshroom_shoot_cycle: 未找到目标忧郁菇");
+		return false;
+	}
 	if (op == "spawn_zombie") {
 		GameScene* gs = CurrentGameScene();
 		if (!gs || !gs->GetBoard()) { Fail("spawn_zombie: 不在 GameScene 或 Board 为空"); return false; }
@@ -2390,6 +2413,38 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			"IMAGE_REANIM_GROUNDINGSHROOM_IDLE", false) != nullptr },
 		{ "shockPoseLoaded", ResourceManager::GetInstance().GetTexture(
 			"IMAGE_REANIM_GROUNDINGSHROOM_SHOCK", false) != nullptr },
+	};
+	// 转换版 reanim 实际引用 13 张分件；目录中的 blink1 未被轨道引用，不计入闭环。
+	const std::array<std::string, 13> gloomShroomTextureKeys = {
+		"IMAGE_REANIM_GLOOMSHROOM_BASE",
+		"IMAGE_REANIM_GLOOMSHROOM_BLINK2",
+		"IMAGE_REANIM_GLOOMSHROOM_FACE1",
+		"IMAGE_REANIM_GLOOMSHROOM_FACE2",
+		"IMAGE_REANIM_GLOOMSHROOM_HEAD",
+		"IMAGE_REANIM_GLOOMSHROOM_SHOOTER1",
+		"IMAGE_REANIM_GLOOMSHROOM_SHOOTER2",
+		"IMAGE_REANIM_GLOOMSHROOM_SHOOTER3",
+		"IMAGE_REANIM_GLOOMSHROOM_SHOOTER4",
+		"IMAGE_REANIM_GLOOMSHROOM_SHOOTER5",
+		"IMAGE_REANIM_GLOOMSHROOM_STEM1",
+		"IMAGE_REANIM_GLOOMSHROOM_STEM2",
+		"IMAGE_REANIM_GLOOMSHROOM_STEM3",
+	};
+	const int gloomShroomTexturePartsLoaded = static_cast<int>(std::count_if(
+		gloomShroomTextureKeys.begin(), gloomShroomTextureKeys.end(),
+		[](const std::string& key) {
+			return ResourceManager::GetInstance().GetTexture(key, false) != nullptr;
+		}));
+	out["gloomShroomResources"] = {
+		{ "reanimationLoaded", ResourceManager::GetInstance().HasReanimation(
+			ResourceKeys::Reanimations::REANIM_GLOOMSHROOM) },
+		{ "cardLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_GLOOMSHROOM, false) != nullptr },
+		{ "upgradeCardBackgroundLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_SEEDPACKETVARIANTS, false) != nullptr },
+		{ "referencedTexturePartsLoaded", gloomShroomTexturePartsLoaded },
+		{ "particleTextureLoaded", ResourceManager::GetInstance().GetTexture(
+			"IMAGE_PUFFSHROOM_PUFF1", false) != nullptr },
 	};
 	// 命中配方随机取七个分片；全部加载才能排除“偶尔抽到空纹理”的假绿。
 	const std::array<std::string, 7> toxicPeaHitTextureKeys = {
@@ -4547,6 +4602,15 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			plantState["melonShootIntervalMs"] = static_cast<int>(std::lround(
 				melonPult->GetShootInterval() * 1000.0f));
 		}
+		if (auto* gloomShroom = dynamic_cast<GloomShroom*>(p)) {
+			plantState["gloomShootTimerMs"] = static_cast<int>(std::lround(
+				gloomShroom->GetShootTimer() * 1000.0f));
+			plantState["gloomAttacking"] = gloomShroom->IsAttacking();
+			plantState["gloomAttackElapsedMs"] = static_cast<int>(std::lround(
+				gloomShroom->GetAttackElapsed() * 1000.0f));
+			plantState["gloomNextCloudIndex"] = gloomShroom->GetNextCloudIndex();
+			plantState["gloomNextDamageIndex"] = gloomShroom->GetNextDamageIndex();
+		}
 		if (auto* threePeater = dynamic_cast<ThreePeater*>(p)) {
 			if (const Animator* head1 = threePeater->GetHeadAnimator()) {
 				plantState["head1Track"] = head1->GetCurrentTrackName();
@@ -4642,6 +4706,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["particleEffectNameCounts"]["PlantingPool"] = 0;
 	out["particleEffectNameCounts"]["CatapultExplosion"] = 0;
 	out["particleEffectNameCounts"]["EliteCatapultExplosion"] = 0;
+	out["particleEffectNameCounts"]["GloomCloud"] = 0;
 	if (g_particleSystem) {
 		for (const auto& effect : g_particleSystem->GetEffectsForTesting()) {
 			if (!effect) continue;

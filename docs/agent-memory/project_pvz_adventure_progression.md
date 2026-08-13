@@ -4,7 +4,7 @@ description: 九关制冒险进度统一；显式植物奖励表、六大关背�
 metadata:
   node_type: memory
   type: project
-  updated_at: 2026-08-10
+  updated_at: 2026-08-13
 ---
 
 # 九关制冒险进度与植物奖励表
@@ -18,7 +18,7 @@ metadata:
 2026-07-18 收敛到 `Game/AdventureProgression.h`：
 
 - `LEVELS_PER_AREA=9`，显示与背景分段共用 `GetAreaNumber` / `GetLevelNumberInArea`；
-- `PLANT_REWARD_BY_LEVEL` 显式列出 1..54，每项为具体 `PlantType` 或 `NO_PLANT_REWARD`；5-9 现解锁接地菇，供 6-1 起使用；第六大关九项仍为占位的 `NO_PLANT_REWARD`；
+- `PLANT_REWARD_BY_LEVEL` 显式列出 1..54，每项为具体 `PlantType` 或 `NO_PLANT_REWARD`；5-9 现解锁接地菇，供 6-1 起使用；第六大关的 6-1 无奖励、6-2 解锁忧郁菇，6-3～6-9 暂为 `NO_PLANT_REWARD`；
 - 奖励按关显式配置，不再假设“每大关第 8 小关都为空”：当前 1-8、4-8、5-8 无植物，2-8 解锁精英胆小菇，3-8 解锁毒囊射手；各大关第 9 小关仍解锁下一场景首株植物；
 - `Trophy::AdvanceAdventureProgress` 无论有无植物都推进进度，仅在奖励不是 `NO_PLANT_REWARD` 时去重加入 `mHaveCards`；
 - 禁止再通过插入/挪动 `PlantType` 调奖励顺序：`PlayerInfo.json.havecards` 和关卡存档都按整数保存枚举，改值会破坏旧档。
@@ -30,8 +30,9 @@ metadata:
 `TrySummonAdventureBoss()`，只在 `mCurrentWave == mMaxWave == 15` 时额外创建一只中路、`x=1000`
 的 `ZOMBIE_ROOF_MARSHAL`。越过最终波的开发者直调不会重复创建，普通关和其他槽位 no-op。
 现有 `ZOMBIE_BOSS`（僵尸博士）不用于 5-9；主人计划暂放未来 6-9。2026-08-10 只接入第六大关
-46～54 的正式 `NIGHT_ROOF` 场景和无奖励占位。2026-08-12 已将 `PLANT_GROUNDINGSHROOM`
-登记为 5-9 奖励，专门供 6-1 起应对雷荷；其余第六大关植物奖励与 6-9 BOSS 仍待补充。
+46～54 的正式 `NIGHT_ROOF` 场景和奖励占位。2026-08-12 已将 `PLANT_GROUNDINGSHROOM`
+登记为 5-9 奖励，专门供 6-1 起应对雷荷；2026-08-13 又把原版紫卡 `PLANT_GLOOMSHROOM`
+登记为 6-2 奖励并显式锁定 6-1/6-3 为空。其余第六大关植物奖励与 6-9 BOSS 仍待补充。
 
 `ZOMBIE_ROOF_MARSHAL` 的独立权重继续为 0，不进入普通波次随机池；正式最终波由 BOSS 槽位单独创建。
 完整素材、生存层、指挥召唤、换行/残血推进、天气命令、军帽随头飞出的专属掉头粒子与验证见
@@ -40,6 +41,8 @@ metadata:
 验证：`smoke_adventure_progression.json` 使用 `set_adventure_level` + `force_trophy` 走真实 Trophy 点击结算，断言 1-8 只推进、1-9 解锁小喷菇、2-8 解锁精英胆小菇、3-8 解锁毒囊射手、4-8 只推进，并覆盖全部背景边界；`dump_state` 为此新增 level/background/adventureLevel/haveCards。2026-08-09 又增加 `isBossLevel/bossSlot` 投影和最小 `smoke_level_5_9_boss_slot.json`，现锁定 5-9 的白天屋顶、`ROOF_MARSHAL` 槽位、前 14 波不生成首领及第 15 波唯一正式督军。
 
 2026-08-10 可见 `smoke_adventure_progression.json` 进一步锁定内部 46/54 显示为 6-1/6-9 且背景均为 `NIGHT_ROOF`；可见 `smoke_sixth_area_night_roof.json` 逐关覆盖 46～54，并确认白天生存仍能启用通用天气。第六大关尚无专属出怪配置时沿用普通僵尸兜底，仅代表场景骨架可进入，不代表内容完成。
+
+2026-08-13 可见 `smoke_gloomshroom.json` 通过真实奖杯结算锁定内部 46（6-1）卡数不变、内部 47（6-2）新增 `PLANT_GLOOMSHROOM` 并推进到 48；既有 `smoke_grounding_shroom_reward.json` 仍确认 5-9 只解锁接地菇。
 
 2026-08-09 当前证据：`clang-release` 配置、编译与 LTO 链接退出 0；主人当前桌面可见
 `smoke_level_5_9_boss_slot.json`（11 条命令/6 项断言）与完整

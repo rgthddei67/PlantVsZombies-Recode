@@ -11,6 +11,7 @@
 #include "../GameApp.h"
 #include "./CardSlotManager.h"
 #include "./Plant/GameDataManager.h"
+#include "./Plant/PlantUpgradeRules.h"
 #include "./Plant/Plantern.h"
 #include <algorithm>
 #include <cmath>
@@ -23,6 +24,10 @@ namespace {
 	constexpr float kMelonPultCardImageScale = 0.80f;  // 西瓜投手卡图构图较饱满，只缩小卡片立绘
 	constexpr float kMelonPultCardImageOffsetX = -10.0f;  // 缩小后让透明画布内容居中，单位：UI px
 	constexpr float kMelonPultCardImageOffsetY = 1.0f;  // 缩小后把视觉重心微量下移，单位：UI px
+	constexpr float kUpgradeCardSourceX = 50.0f; // seeds.png 第二格紫卡底板的源 X，单位：纹理 px
+	constexpr float kUpgradeCardSourceY = 0.0f; // 紫卡底板的源 Y，单位：纹理 px
+	constexpr float kUpgradeCardSourceWidth = 50.0f; // 紫卡底板源区域宽度，单位：纹理 px
+	constexpr float kUpgradeCardSourceHeight = 70.0f; // 紫卡底板源区域高度，单位：纹理 px
 	constexpr float kPlanternLowFuelPulseSpeed = 8.0f; // 低燃料卡牌每未缩放秒的脉冲相位速度
 	constexpr float kPlanternGearLabelAreaWidth = 20.0f; // 卡牌左下挡位标签的水平布局宽度，单位：UI px
 	constexpr int kPlanternGearLabelFontSize = 14; // 卡牌挡位标签字号，单位：逻辑 px
@@ -125,6 +130,7 @@ void CardDisplayComponent::LoadTextures() {
 	// 加载卡牌背景纹理（返回 const Texture*）
 	cardBackground = resourceManager.GetTexture(ResourceKeys::Textures::IMAGE_CARD_BK);
 	cardNormal = resourceManager.GetTexture(ResourceKeys::Textures::IMAGE_SEEDPACKETNORMAL);
+	cardVariants = resourceManager.GetTexture(ResourceKeys::Textures::IMAGE_SEEDPACKETVARIANTS);
 
 	// 加载植物纹理
 	std::string plantKey = GetPlantTextureKey();
@@ -136,12 +142,26 @@ void CardDisplayComponent::LoadTextures() {
 	if (!cardNormal) {
 		LOG_ERROR("CardDisplayComponent") << "Failed to load card normal texture";
 	}
+	if (!cardVariants) {
+		LOG_ERROR("CardDisplayComponent") << "Failed to load card variant texture";
+	}
 	if (!plantTexture) {
 		LOG_ERROR("CardDisplayComponent") << "Failed to load plant texture: " << plantKey;
 	}
 }
 
 void CardDisplayComponent::DrawCardBackground(Graphics* g, const Vector& position, const glm::vec4& color) {
+	if (IsUpgradePlantType(plantType)) {
+		if (!cardVariants) return;
+		// 主人提供的原版 seeds.png 第二格就是紫卡底板；直接取区域，避免生成式重绘失真。
+		g->DrawTextureRegion(cardVariants,
+			kUpgradeCardSourceX, kUpgradeCardSourceY,
+			kUpgradeCardSourceWidth, kUpgradeCardSourceHeight,
+			position.x, position.y,
+			static_cast<float>(CARD_WIDTH), static_cast<float>(CARD_HEIGHT),
+			0.0f, color);
+		return;
+	}
 	if (!cardNormal) return;
 	g->DrawTexture(cardNormal,
 		position.x, position.y,

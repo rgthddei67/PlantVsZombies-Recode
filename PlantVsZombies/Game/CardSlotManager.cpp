@@ -331,7 +331,8 @@ void CardSlotManager::DrawPlanternGearMenu(Graphics* g)
 }
 
 bool CardSlotManager::CanUsePlant(PlantType type, int cost) const {
-	return mBoard && CanAfford(cost) && mBoard->HasPlantingQuota(type);
+	return mBoard && CanAfford(cost) && mBoard->HasPlantingQuota(type)
+		&& mBoard->HasPlantingRequirement(type);
 }
 
 bool CardSlotManager::SpendSun(int cost) {

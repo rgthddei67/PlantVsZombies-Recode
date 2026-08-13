@@ -42,6 +42,10 @@
 大喷菇
 [PLANT_FUMESHROOM_DESCRIPTION]
 穿透攻击的植物+1
+[PLANT_GLOOMSHROOM]
+忧郁菇
+[PLANT_GLOOMSHROOM_DESCRIPTION]
+忧郁菇必须种在大喷菇上。他会每2秒向周围喷出四轮孢子，每轮对自身与相邻两行、左右约一格半内的僵尸造成20点穿透伤害。忧郁菇是夜间植物，白天会睡觉。“我并没有不开心，”忧郁菇低声说，“我只是把情绪向八个方向平均分配了。”
 [PLANT_HYPNOSHROOM]
 魅惑菇
 [PLANT_HYPNOSHROOM_DESCRIPTION]

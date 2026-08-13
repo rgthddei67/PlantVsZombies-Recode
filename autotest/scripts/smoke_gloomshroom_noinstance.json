@@ -1,0 +1,26 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 10, "resetTestState": true },
+    { "op": "choose_cards", "cards": ["PLANT_FUMESHROOM", "PLANT_GLOOMSHROOM"] },
+    { "op": "wait_state", "state": "GAME", "timeout": 15 },
+    { "op": "set_spawn_paused", "value": true },
+    { "op": "set_sun", "value": 9000 },
+    { "op": "plant", "type": "PLANT_FUMESHROOM", "row": 2, "col": 3 },
+    { "op": "plant", "type": "PLANT_GLOOMSHROOM", "row": 2, "col": 3 },
+    { "op": "spawn_zombie", "type": "ZOMBIE_NORMAL", "row": 1, "x": 520, "stationary": true },
+    { "op": "set_gloomshroom_shoot_cycle", "row": 2, "col": 3, "elapsed": 1.99 },
+    { "op": "wait_seconds", "value": 0.70 },
+    { "op": "assert_state", "path": "topPlantsByCell.2_3.track", "equals": "anim_shooting" },
+    { "op": "assert_state", "path": "particleEffectNameCounts.GloomCloud", "atLeast": 1 },
+    { "op": "assert_state", "path": "particleEffectsByName.GloomCloud.0.activeParticleCount", "equals": 40 },
+    { "op": "assert_state", "path": "particleEffectsByName.GloomCloud.0.worldBounds.widthInt", "atLeast": 105 },
+    { "op": "assert_state", "path": "particleEffectsByName.GloomCloud.0.worldBounds.heightInt", "atLeast": 105 },
+    { "op": "screenshot", "name": "gloom_noinstance_cloud.png" },
+    { "op": "wait_seconds", "value": 0.12 },
+    { "op": "assert_state", "path": "particleEffectsByName.GloomCloud.0.activeParticleCount", "equals": 40 },
+    { "op": "assert_state", "path": "particleEffectsByName.GloomCloud.0.worldBounds.widthInt", "atLeast": 120 },
+    { "op": "screenshot", "name": "gloom_noinstance_cloud_spread.png" },
+    { "op": "dump_state", "name": "gloom_noinstance_state.json" },
+    { "op": "quit" }
+  ]
+}

@@ -771,6 +771,8 @@ public:
 	bool CanPlantAt(PlantType type, int row, int col);
 	/** 返回该植物是否仍有本关种植次数；无限制的植物恒为 true。 */
 	bool HasPlantingQuota(PlantType type) const;
+	/** 返回升级卡等额外在场种植前提是否满足；普通植物恒为 true。 */
+	bool HasPlantingRequirement(PlantType type) const;
 	int GetEliteScaredyShroomPlantLimit() const;
 	/** 返回格子最上层战斗目标：南瓜层、普通层、承载层依次优先；铲子另按点击区域选层。 */
 	Plant* GetTopPlantAt(int row, int col) const;

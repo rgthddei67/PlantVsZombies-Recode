@@ -71,6 +71,7 @@
     <Image>./resources/image/UI/SeedChooser_Button.png</Image>
     <Image>./resources/image/UI/SeedChooser_Button_Disabled.png</Image>
     <Image>./resources/image/UI/SeedPacketNormal.png</Image>
+    <Image>./resources/image/UI/SeedPacketVariants.png</Image>
     <Image>./resources/image/UI/Challenge_Background.png</Image>
     <Image>./resources/image/UI/Challenge_Window.png</Image>
     <Image>./resources/image/UI/Challenge_Window_Highlight.png</Image>
@@ -184,6 +185,20 @@
     <Image>./resources/image/Projectile_star.png</Image>
     <Image>./resources/image/PuffShroom_puff1.png</Image>
     <Image>./resources/image/PuffShroom_puff2.png</Image>
+    <Image>./resources/image/reanim/GloomShroom_base.png</Image>
+    <Image>./resources/image/reanim/GloomShroom_blink1.png</Image>
+    <Image>./resources/image/reanim/GloomShroom_blink2.png</Image>
+    <Image>./resources/image/reanim/GloomShroom_face1.png</Image>
+    <Image>./resources/image/reanim/GloomShroom_face2.png</Image>
+    <Image>./resources/image/reanim/GloomShroom_head.png</Image>
+    <Image>./resources/image/reanim/GloomShroom_shooter1.png</Image>
+    <Image>./resources/image/reanim/GloomShroom_shooter2.png</Image>
+    <Image>./resources/image/reanim/GloomShroom_shooter3.png</Image>
+    <Image>./resources/image/reanim/GloomShroom_shooter4.png</Image>
+    <Image>./resources/image/reanim/GloomShroom_shooter5.png</Image>
+    <Image>./resources/image/reanim/GloomShroom_stem1.png</Image>
+    <Image>./resources/image/reanim/GloomShroom_stem2.png</Image>
+    <Image>./resources/image/reanim/GloomShroom_stem3.png</Image>
     <Image>./resources/image/reanim/Melonpult_blink1.png</Image>
     <Image>./resources/image/reanim/Melonpult_blink2.png</Image>
     <Image>./resources/image/reanim/Melonpult_body.png</Image>
@@ -410,6 +425,7 @@
     <Reanimation name="PuffShroom">./resources/reanim/PuffShroom.reanim</Reanimation>
     <Reanimation name="SunShroom">./resources/reanim/SunShroom.reanim</Reanimation>
     <Reanimation name="FumeShroom">./resources/reanim/FumeShroom.reanim</Reanimation>
+    <Reanimation name="GloomShroom">./resources/reanim/GloomShroom.reanim</Reanimation>
     <Reanimation name="HypnoShroom">./resources/reanim/HypnoShroom.reanim</Reanimation>
     <Reanimation name="ScaredyShroom">./resources/reanim/ScaredyShroom.reanim</Reanimation>
     <Reanimation name="IceShroom">./resources/reanim/IceShroom.reanim</Reanimation>

@@ -14,6 +14,7 @@
 #include "CardComponent.h"
 #include "../GameRandom.h"
 #include "./Plant/Plant.h"
+#include "./Plant/PlantUpgradeRules.h"
 #include "./Plant/Plantern.h"
 #include "./Zombie/Zombie.h"
 #include "./Zombie/MagneticItem.h"
@@ -4500,6 +4501,13 @@ bool Board::CanPlantAt(PlantType type, int row, int col)
 			&& !normalPlant->IsWakingUp()
 			&& !normalPlant->IsBungeeTargeted();
 	}
+	if (IsUpgradePlantType(type)) {
+		// 紫卡占据基础植物的普通层；承载层与南瓜层在替换时原样保留。
+		return normalPlant && normalPlant->IsActive()
+			&& normalPlant->mPlantHealth > 0 && !normalPlant->IsSquished()
+			&& !normalPlant->IsBungeeTargeted()
+			&& normalPlant->mPlantType == GetUpgradeBasePlantType(type);
+	}
 	if (type == PlantType::PLANT_PUMPKINSHELL) {
 		// 南瓜有独立外壳层，但水路与屋顶仍分别要求正确的承载植物。
 		if (cell->GetPumpkinPlantID() != NULL_PLANT_ID) return false;
@@ -4547,6 +4555,20 @@ bool Board::HasPlantingQuota(PlantType type) const
 	}
 	return type != PlantType::PLANT_ELITE_SCAREDYSHROOM
 		|| mEliteScaredyShroomsPlanted < kEliteScaredyShroomPlantLimit;
+}
+
+bool Board::HasPlantingRequirement(PlantType type) const
+{
+	const PlantType baseType = GetUpgradeBasePlantType(type);
+	if (baseType == PlantType::NUM_PLANT_TYPES) return true;
+	for (const int plantID : mEntityManager.GetAllPlantIDs()) {
+		Plant* plant = mEntityManager.GetPlant(plantID);
+		if (plant && plant->IsActive() && !plant->IsSquished()
+			&& plant->mPlantHealth > 0 && plant->mPlantType == baseType) {
+			return true;
+		}
+	}
+	return false;
 }
 
 int Board::GetEliteScaredyShroomPlantLimit() const
@@ -4772,9 +4794,21 @@ Plant* Board::CreatePlant(PlantType plantType, int row, int column, bool skipset
 		return nullptr;
 	}
 	const bool isOverlayPlant = plantType == PlantType::PLANT_INSTANT_COFFEE;
+	const bool isUpgradePlant = IsUpgradePlantType(plantType);
 	if (isOverlayPlant && consumesPlantingQuota
 		&& !CanPlantAt(plantType, row, column)) {
 		return nullptr;
+	}
+
+	Plant* upgradeBasePlant = nullptr;
+	bool inheritedSleeping = false;
+	float inheritedWakeUpTimer = 0.0f;
+	if (isUpgradePlant && !isPreview && !skipsettings) {
+		if (!CanPlantAt(plantType, row, column)) return nullptr;
+		upgradeBasePlant = GetNormalPlantAt(row, column);
+		if (!upgradeBasePlant) return nullptr;
+		inheritedSleeping = upgradeBasePlant->GetSleepState();
+		inheritedWakeUpTimer = upgradeBasePlant->GetWakeUpTimeRemaining();
 	}
 
 	// 根据植物类型创建对应的植物
@@ -4789,7 +4823,9 @@ Plant* Board::CreatePlant(PlantType plantType, int row, int column, bool skipset
 			? cell->GetUnderPlantID()
 			: (isPumpkinPlant ? cell->GetPumpkinPlantID()
 				: (isOverlayPlant ? cell->GetOverlayPlantID() : cell->GetNormalPlantID()));
-		if (occupiedID != NULL_PLANT_ID) {
+		const bool replacesExpectedBase = isUpgradePlant && upgradeBasePlant
+			&& occupiedID == upgradeBasePlant->mPlantID;
+		if (occupiedID != NULL_PLANT_ID && !replacesExpectedBase) {
 			plant->Die();
 			return nullptr;
 		}
@@ -4800,6 +4836,17 @@ Plant* Board::CreatePlant(PlantType plantType, int row, int column, bool skipset
 		else if (isPumpkinPlant) cell->SetPumpkinPlantID(plant->mPlantID);
 		else if (isOverlayPlant) cell->SetOverlayPlantID(plant->mPlantID);
 		else cell->SetNormalPlantID(plant->mPlantID);
+		if (replacesExpectedBase) {
+			// 先把格子切到新 ID，再让旧株死亡；ReleaseGridSlot 只清自己的 ID，因此替换原子化。
+			upgradeBasePlant->Die();
+			if (inheritedSleeping) {
+				plant->SetSleepState(true);
+				plant->RestoreSleepState(true, inheritedWakeUpTimer);
+			}
+			else {
+				plant->SetSleepState(false);
+			}
+		}
 		RefreshPlantStackRenderOrder(cell);
 		if (plantType == PlantType::PLANT_ELITE_SCAREDYSHROOM && consumesPlantingQuota) {
 			++mEliteScaredyShroomsPlanted;

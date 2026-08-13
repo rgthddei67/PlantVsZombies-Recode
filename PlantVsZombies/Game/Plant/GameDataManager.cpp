@@ -24,6 +24,7 @@
 #include "PuffShroom.h"
 #include "SunShroom.h"
 #include "FumeShroom.h"
+#include "GloomShroom.h"
 #include "IceFumeShroom.h"
 #include "HypnoShroom.h"
 #include "ScaredyShroom.h"
@@ -211,6 +212,11 @@ void GameDataManager::InitializeHardcodedData() {
 		ResourceKeys::Textures::IMAGE_FUMESHROOM,
 		AnimationType::ANIM_FUMESHROOM,
 		"FumeShroom", &MakePlant<FumeShroom>);
+
+	RegisterPlant(PlantType::PLANT_GLOOMSHROOM, "PLANT_GLOOMSHROOM",
+		ResourceKeys::Textures::IMAGE_GLOOMSHROOM,
+		AnimationType::ANIM_GLOOMSHROOM,
+		ResourceKeys::Reanimations::REANIM_GLOOMSHROOM, &MakePlant<GloomShroom>);
 
 	RegisterPlant(PlantType::PLANT_HYPNOSHROOM, "PLANT_HYPNOSHROOM",
 		ResourceKeys::Textures::IMAGE_HYPNOSHROOM,

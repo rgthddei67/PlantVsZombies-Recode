@@ -25,6 +25,7 @@ private:
 	// 纹理资源（改为 const Texture*）
 	const Texture* cardBackground = nullptr;    // IMAGE_card_bk
 	const Texture* cardNormal = nullptr;        // IMAGE_SeedPacketNormal
+	const Texture* cardVariants = nullptr;      // IMAGE_SeedPacketVariants（含原版紫卡底板）
 	const Texture* plantTexture = nullptr;      // 植物图片
 
 	// 同 GameObject 内的兄弟组件，生命周期一致，直接缓存裸指针
