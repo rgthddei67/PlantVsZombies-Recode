@@ -80,6 +80,7 @@
 #include "../Zombie/PoolNormalZombie.h"
 #include "../Zombie/RoofMarshalZombie.h"
 #include "../Zombie/InsulatorZombie.h"
+#include "../Zombie/HijackerZombie.h"
 #include "../Trophy.h"   // dump_state 输出奖杯坐标
 #include "../Crater.h"   // dump_state 输出毁灭菇弹坑
 #include "../../Reanimation/Animator.h"   // dump_state 查询轨道可见性（如铁门僵尸手臂）
@@ -310,7 +311,7 @@ namespace {
 		ZT(ZOMBIE_GARGANTUAR), ZT(ZOMBIE_IMP), ZT(ZOMBIE_BOSS), ZT(ZOMBIE_PEA_HEAD),
 		ZT(ZOMBIE_WALLNUT_HEAD), ZT(ZOMBIE_JALAPENO_HEAD), ZT(ZOMBIE_GATLING_HEAD),
 		ZT(ZOMBIE_SQUASH_HEAD), ZT(ZOMBIE_TALLNUT_HEAD), ZT(ZOMBIE_REDEYE_GARGANTUAR), ZT(ZOMBIE_ROOF_MARSHAL),
-		ZT(ZOMBIE_INSULATOR),
+		ZT(ZOMBIE_INSULATOR), ZT(ZOMBIE_HIJACKER),
 	};
 #undef ZT
 #define PK(n) { #n, PerkType::n }
@@ -1433,6 +1434,13 @@ bool TestDriver::ExecuteCurrent() {
 		if (cmd.value("buttered", false) && !z->ApplyButter()) {
 			Fail("spawn_zombie: buttered=true 但目标不能进入黄油定身");
 			return false;
+		}
+		if (cmd.contains("paralyzedFor")) {
+			const float duration = cmd.value("paralyzedFor", 0.0f);
+			if (!z->ApplyParalysis(duration)) {
+				Fail("spawn_zombie: paralyzedFor 无效或目标不能进入麻痹");
+				return false;
+			}
 		}
 		return true;
 	}
@@ -3045,6 +3053,33 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			ResourceKeys::Particles::PARTICLE_ZOMBIE_ROOF_MARSHAL_HEAD,
 			false) != nullptr },
 	};
+	out["hijackerResources"] = {
+		{ "reanimationLoaded", ResourceManager::GetInstance().HasReanimation(
+			ResourceKeys::Reanimations::REANIM_HIJACKER_ZOMBIE) },
+		{ "bodyTextureLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_REANIM_ZOMBIE_HIJACKER_BODY1, false) != nullptr },
+		{ "receiverTexturesLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_REANIM_ZOMBIE_HIJACKER_BOX, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_REANIM_ZOMBIE_HIJACKER_BOX2, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_REANIM_ZOMBIE_HIJACKER_HANDLE, false) != nullptr },
+		{ "headTextureLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_REANIM_ZOMBIE_HIJACKER_HEAD, false) != nullptr },
+		{ "brokenArmTextureLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_REANIM_ZOMBIE_HIJACKER_OUTERARM_LOWER2,
+			false) != nullptr },
+		{ "headParticleTextureLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Particles::PARTICLE_ZOMBIE_HIJACKER_HEAD, false) != nullptr },
+		{ "armParticleTextureLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Particles::PARTICLE_ZOMBIE_HIJACKER_ARM, false) != nullptr },
+		{ "humSoundLoaded", ResourceManager::GetInstance().HasSound(
+			ResourceKeys::Sounds::SOUND_HIJACKER_HUM) },
+		{ "executeSoundLoaded", ResourceManager::GetInstance().HasSound(
+			ResourceKeys::Sounds::SOUND_HIJACKER_EXECUTE) },
+		{ "executeSoundPlayRequests", AudioSystem::GetSoundPlayRequestCount(
+			ResourceKeys::Sounds::SOUND_HIJACKER_EXECUTE) },
+	};
 	out["gargantuarResources"] = {
 		{ "reanimationLoaded", ResourceManager::GetInstance().HasReanimation(
 			ResourceKeys::Reanimations::REANIM_GARGANTUAR_ZOMBIE) },
@@ -3327,6 +3362,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "eliteLaddersSpawnedThisWave", board->GetEliteLaddersSpawnedThisWave() },
 			{ "eliteCatapultsSpawnedThisWave", board->GetEliteCatapultsSpawnedThisWave() },
 			{ "insulatorsSpawnedThisWave", board->GetInsulatorsSpawnedThisWave() },
+			{ "hijackersSpawnedThisWave", board->GetHijackersSpawnedThisWave() },
 			{ "typhoonDecayRemaining", board->GetTyphoonStrengthTimer() },
 			{ "windDirection", WindDirectionName(board->GetWindDirection()) },
 			{ "windDirectionRemaining", board->GetWindDirectionTimer() },
@@ -3416,6 +3452,15 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				board->GetNightRoofChargePhaseTimer() * 1000.0f)) },
 			{ "dischargeProgressPct", static_cast<int>(std::lround(
 				board->GetNightRoofChargeDischargeProgress() * 100.0f)) },
+			{ "hijackerSelectionAttempted", board->HasNightRoofHijackerSelectionAttempted() },
+			{ "hijackerID", board->GetNightRoofHijackerID() },
+			{ "hijackerCandidateCount", board->mEntityManager.GetActiveNightRoofHijackerCount() },
+			{ "hijackerWarningExtended", board->IsNightRoofHijackerWarningExtended() },
+			{ "hijackerFinalizing", board->IsNightRoofHijackerFinalizing() },
+			{ "executionLine", board->GetNightRoofExecutionLine() },
+			{ "hijackerPulseAlpha", static_cast<int>(std::lround(
+				board->GetNightRoofHijackerPulseAlpha())) },
+			{ "hijackersSpawnedThisWave", board->GetHijackersSpawnedThisWave() },
 		};
 	}
 	out["prompts"] = {
@@ -3775,6 +3820,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "canBeCharmed", z->CanBeCharmed() },
 			{ "canBeKilledByMower", z->CanBeKilledByMower() },
 			{ "resistsTangleKelpDrowning", z->ResistsTangleKelpDrowning() },
+			{ "countableExecutionHealth", z->GetCountableExecutionHealth() },
+			{ "hijackerDoomed", board->IsZombieThreatenedByNightRoofHijacker(z) },
 			{ "groundHazardEligible", z->CanBeAffectedByGroundHazards() },
 			{ "canBeParalyzed", z->CanBeParalyzed() },
 			{ "roofRunoffGuideEligible", z->CanGuideRoofRunoff() },
@@ -3907,6 +3954,13 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			zombieState["insulatorArmorTexture3Loaded"] =
 				ResourceManager::GetInstance().GetTexture(
 					ResourceKeys::Textures::IMAGE_ZOMBIE_INSULATOR_ARMOR3, false) != nullptr;
+		}
+		if (auto* hijacker = dynamic_cast<HijackerZombie*>(z)) {
+			zombieState["hijackerPhase"] = static_cast<int>(hijacker->GetPhase());
+			zombieState["hijackerCandidate"] =
+				hijacker->CanBeNightRoofHijackerCandidate();
+			zombieState["hijackerLocked"] =
+				board->GetNightRoofHijackerID() == hijacker->mZombieID;
 		}
 		if (auto* eliteLadder = dynamic_cast<EliteLadderZombie*>(z)) {
 			++eliteLadderZombieCount;

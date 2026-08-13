@@ -28,6 +28,7 @@ class Coin;
 class Plant;
 class Plantern;
 class Zombie;
+class HijackerZombie;
 class Bullet;
 class Trophy;
 class Crater;
@@ -203,6 +204,10 @@ private:
 	NightRoofChargePhase mNightRoofChargePhase = NightRoofChargePhase::CHARGING; // 当前积累、预警或放电阶段
 	float mNightRoofChargePhaseTimer = 0.0f; // 当前预警或放电阶段剩余游戏秒
 	int mNightRoofChargeRow = -1;       // 满电后一次锁定的导电瓦路行；积累阶段为 -1
+	bool mNightRoofHijackerSelectionAttempted = false; // 本轮是否已经在 75% 边沿完成唯一一次候选选择
+	int mNightRoofHijackerID = NULL_ZOMBIE_ID; // 本轮被锁定的劫持者稳定实体 ID；取消后保持空且不补选
+	bool mNightRoofHijackerWarningExtended = false; // 满电时是否由仍有效的劫持者把预警扩展到七秒
+	bool mNightRoofHijackerFinalizing = false; // 本轮劫持者是否已进入最后一秒的停走充能阶段
 
 	// 夜间泳池迷雾是独立于雨势的环境层：基础雾、增强雾势、预报与台风驱散均由 Board 持有。
 	FogWeatherIntensity mFogWeatherIntensity = FogWeatherIntensity::DEFAULT;
@@ -258,6 +263,7 @@ private:
 	int mEliteLaddersSpawnedThisWave = 0; // 当前波正式生成的精英扶梯数量；每波至多一只并进入存档
 	int mEliteCatapultsSpawnedThisWave = 0; // 当前波正式生成的导流投篮车数量；每波至多一只并进入存档
 	int mInsulatorsSpawnedThisWave = 0; // 当前波正式生成的绝缘僵尸数量；所有正式波次统一至多两只并进入存档
+	int mHijackersSpawnedThisWave = 0; // 当前波正式生成的劫持者数量；所有正式波次统一至多两只并进入存档
 	int mEliteScaredyShroomsPlanted = 0; // 本关累计种下的精英胆小菇数量；死亡或铲除不返还次数
 	int mLastTyphoonMovedPlants = 0;    // 最近一次阵风移动的植物数，仅供观测和测试
 	int mLastTyphoonLostPlants = 0;     // 最近一次阵风吹出棋盘或吹入弹坑的植物数，仅供观测和测试
@@ -298,11 +304,20 @@ private:
 	void AddNightRoofCharge(float amount);
 	/** 满电后抽取并锁定本次导电瓦路；锁定结果在活动阶段保持不变。 */
 	void BeginNightRoofChargeWarning();
+	/** 在本轮雷荷首次达到 75% 时从专用弱索引锁定唯一候选；本轮取消后不补选。 */
+	void TryLockNightRoofHijacker();
+	/** 返回仍能执行本轮能力的已锁定劫持者；只做稳定 ID 的 O(1) 查询。 */
+	HijackerZombie* GetValidNightRoofHijacker() const;
+	/** 在普通放电之前按同一帧快照批量处决，并先清除施法者权威引用以禁止连锁。 */
+	void ResolveNightRoofHijackerExecution();
+	/** 放电周期结束或场景不支持时清理本轮锁定状态。 */
+	void ResetNightRoofHijackerCycle();
 	/** 在预警转放电的唯一边沿快照目标，并结算通用停机、伤害与麻痹。 */
 	void ResolveNightRoofChargeDischarge();
 	/** 从存档恢复雷荷积累、余电、阶段、锁定行和倒计时，不重新抽取路线。 */
 	void RestoreNightRoofChargeState(float charge, NightRoofChargePhase phase,
-		int row, float phaseTimer, float overcharge);
+		int row, float phaseTimer, float overcharge, bool hijackerSelectionAttempted,
+		int hijackerID, bool hijackerWarningExtended, bool hijackerFinalizing);
 	void InitializeFogWeather();
 	void UpdateFog(float deltaTime);
 	void UpdateFogWeather(float deltaTime);
@@ -366,6 +381,7 @@ private:
 	void RestoreEliteLadderWaveSpawnCount(int count);
 	void RestoreEliteCatapultWaveSpawnCount(int count);
 	void RestoreInsulatorWaveSpawnCount(int count);
+	void RestoreHijackerWaveSpawnCount(int count);
 	void RestoreTyphoonState(TyphoonStrength strength, WindDirection direction,
 		float strengthTimer, float gustTimer, float directionTimer, int gustsRemaining);
 	void RestoreActiveTyphoonGust(bool active, TyphoonStrength strength,
@@ -627,6 +643,7 @@ public:
 	int GetEliteLaddersSpawnedThisWave() const { return mEliteLaddersSpawnedThisWave; }
 	int GetEliteCatapultsSpawnedThisWave() const { return mEliteCatapultsSpawnedThisWave; }
 	int GetInsulatorsSpawnedThisWave() const { return mInsulatorsSpawnedThisWave; }
+	int GetHijackersSpawnedThisWave() const { return mHijackersSpawnedThisWave; }
 	int GetLastTyphoonMovedPlants() const { return mLastTyphoonMovedPlants; }
 	int GetLastTyphoonLostPlants() const { return mLastTyphoonLostPlants; }
 	int GetLastTyphoonBlockedPlantSteps() const { return mLastTyphoonBlockedPlantSteps; }
@@ -740,6 +757,27 @@ public:
 	bool IsNightRoofChargeDischarging() const {
 		return mNightRoofChargePhase == NightRoofChargePhase::DISCHARGING;
 	}
+	/** 当前被锁定且仍有效的劫持者 ID；没有候选或已取消时为 NULL_ZOMBIE_ID。 */
+	int GetNightRoofHijackerID() const { return mNightRoofHijackerID; }
+	bool HasNightRoofHijackerSelectionAttempted() const {
+		return mNightRoofHijackerSelectionAttempted;
+	}
+	bool IsNightRoofHijackerWarningExtended() const {
+		return mNightRoofHijackerWarningExtended;
+	}
+	bool IsNightRoofHijackerFinalizing() const { return mNightRoofHijackerFinalizing; }
+	/** 返回 UI 与目标描边使用的实时处决线；生存模式封顶 1200。 */
+	int GetNightRoofExecutionLine() const;
+	/** 返回僵尸是否属于当前处决快照阈值；只读取锁定 ID 与当前生命，不遍历实体。 */
+	bool IsZombieThreatenedByNightRoofHijacker(const Zombie* zombie) const;
+	/** 返回植物是否属于当前逻辑格处决组；普通层和南瓜合并计血，承载层免疫。 */
+	bool IsPlantThreatenedByNightRoofHijacker(const Plant* plant) const;
+	/** 返回紫色脉冲透明度；最后一秒自动提高亮度。 */
+	float GetNightRoofHijackerPulseAlpha() const;
+	/** 死亡或掉头从实体侧取消锁定；不重选，也不改写普通放电倒计时。 */
+	void CancelNightRoofHijacker(int zombieID);
+	/** 实体读档全部完成后校验交叉引用并恢复声音、预警和最终动画。 */
+	void FinalizeNightRoofHijackerLoad();
 	/** 返回指定僵尸是否站在任一活动植物声明的接地范围内。 */
 	bool IsNightRoofChargeProtectionSuppressed(const Zombie* zombie) const;
 	/** 返回本次基础放电的 0～1 进度；非放电阶段为 0。 */

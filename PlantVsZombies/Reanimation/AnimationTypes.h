@@ -106,6 +106,7 @@ enum class AnimationType
 	ANIM_GROUNDINGSHROOM, // 接地菇独立低精度整株时间线；追加在末尾避免旧动画枚举值错位
 	ANIM_GLOOMSHROOM, // 经典忧郁菇；追加在末尾避免旧动画枚举值错位
 	ANIM_TWINSUNFLOWER, // 经典双子向日葵；追加在末尾避免旧动画枚举值错位
+	ANIM_HIJACKER_ZOMBIE, // 劫持者独立电工作业服与充能接收器；复用小丑时间线
 };
 
 #endif

@@ -11,6 +11,7 @@ class Plant;
 class Zombie;
 class GildedZamboniZombie;
 class RoofMarshalZombie;
+class HijackerZombie;
 class Coin;
 class Bullet;
 class Mower;
@@ -27,6 +28,10 @@ public:
 	std::vector<int> GetAllZombieIDs() const;
 	/** 返回实体 ID 最小的活跃屋脊督军；查询只访问首领专用索引，不扫描全体僵尸。 */
 	std::shared_ptr<RoofMarshalZombie> GetFirstActiveRoofMarshal() const;
+	/** 从劫持者专用索引选择当前可计生命最高的候选；最高值并列时按 ID 有序集合随机一次。 */
+	std::shared_ptr<HijackerZombie> SelectNightRoofHijacker() const;
+	/** 返回专用弱索引中当前仍满足锁定门禁的候选数，不扫描普通僵尸。 */
+	int GetActiveNightRoofHijackerCount() const;
 
 	int AddBullet(std::shared_ptr<Bullet> bullet);
 	Bullet* GetBullet(int id) const;
@@ -124,6 +129,12 @@ private:
 	std::map<int, std::weak_ptr<RoofMarshalZombie>> mRoofMarshals;
 	/** 登记或覆盖指定 ID 的屋脊督军；非督军类型会撤销同 ID 的旧登记。 */
 	void TrackRoofMarshal(int id, const std::shared_ptr<Zombie>& zombie);
+
+	// ── 劫持者独立索引（瞬态、按实体 ID 有序）──
+	// 仅在每轮雷荷跨过 75% 时遍历；总成本只随稀有候选数增长，不随全场普通僵尸数增长。
+	std::map<int, std::weak_ptr<HijackerZombie>> mHijackers;
+	/** 登记或覆盖指定 ID 的劫持者；非劫持者覆盖同 ID 时撤销旧登记。 */
+	void TrackHijacker(int id, const std::shared_ptr<Zombie>& zombie);
 };
 
 #endif

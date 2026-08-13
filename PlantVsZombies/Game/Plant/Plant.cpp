@@ -551,6 +551,16 @@ void Plant::Draw(Graphics* g)
 
 	AnimatedObject::Draw(g);	// 先画本体动画
 	DrawSleepIndicator(g);
+	// 劫持者目标提示只做当前格的常数次槽位查询；不为描边另起任何全场逐帧遍历。
+	if (g && !mIsPreview && mBoard
+		&& mBoard->IsPlantThreatenedByNightRoofHijacker(this) && mCollider) {
+		const SDL_FRect bounds = mCollider->GetBoundingBox();
+		const Vector visualDelta = GetVisualAnchorPosition() - GetPosition();
+		const float alpha = mBoard->GetNightRoofHijackerPulseAlpha();
+		g->DrawRect(bounds.x - 3.0f + visualDelta.x,
+			bounds.y - 3.0f + visualDelta.y, bounds.w + 6.0f, bounds.h + 6.0f,
+			glm::vec4(194.0f, 73.0f, 255.0f, alpha));
+	}
 
 	if (!g || mIsPreview || !GameAPP::GetInstance().mShowPlantHP) return;
 	// 视口剔除：屏外植物不画血量文字（与 Zombie::Draw 同构，省 batch VBO + CPU）。

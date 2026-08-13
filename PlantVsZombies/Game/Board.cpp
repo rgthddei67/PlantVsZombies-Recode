@@ -17,6 +17,7 @@
 #include "./Plant/PlantUpgradeRules.h"
 #include "./Plant/Plantern.h"
 #include "./Zombie/Zombie.h"
+#include "./Zombie/HijackerZombie.h"
 #include "./Zombie/MagneticItem.h"
 #include "MistFuel.h"
 
@@ -168,6 +169,9 @@ namespace {
 	constexpr int kEliteLadderMaxPerWave = 1;             // 每波最多正式生成的精英扶梯数量；超额候选直接跳过
 	constexpr int kEliteCatapultMaxPerWave = 1;           // 每波最多正式生成的导流投篮车数量；超额候选直接跳过
 	constexpr int kInsulatorMaxPerWave = 2;               // 每个正式波次最多成功生成的绝缘僵尸数量
+	constexpr int kHijackerMaxPerWave = 2;                // 每个正式波次最多成功生成的劫持者数量
+	constexpr int kHijackerTutorialLevel = 49;             // 内部 49 即 6-4，使用第七波固定单体教学
+	constexpr int kHijackerTutorialWave = 7;               // 6-4 首次登场的固定教学波
 	constexpr int kEliteScaredyShroomPlantLimit = 4;      // 每个关卡累计最多种植的精英胆小菇数量
 	constexpr int kPumpkinProtectionCellRadius = 1;       // 南瓜头范围爆炸保护的逻辑格半径；1 表示自身九宫格
 	constexpr int kPumpkinAreaDamageMultiplier = 5;       // 特殊僵尸范围伤害被南瓜头拦截时的默认基础伤害倍率
@@ -259,6 +263,11 @@ namespace {
 	constexpr float kNightRoofChargeClearLeakPerSecond = 0.5f; // 晴夜每游戏秒自然泄漏的黑夜屋顶电荷点数
 	constexpr float kNightRoofChargeLightningBonus = 18.0f; // 现有大雨闪电为黑夜屋顶一次注入的电荷点数
 	constexpr float kNightRoofChargeWarningDuration = 4.0f; // 满电锁定导电瓦路后的预警游戏秒数
+	constexpr float kNightRoofHijackerLockThreshold = 75.0f; // 每轮首次跨过此雷荷百分比时，从现存劫持者中锁定一次
+	constexpr float kNightRoofHijackerWarningDuration = 7.0f; // 满电且锁定仍有效时的全局预警游戏秒数
+	constexpr float kNightRoofHijackerFinalDuration = 1.0f; // 处决前停止移动和啃食、播放专属动画的游戏秒数
+	constexpr int kNightRoofHijackerSurvivalLineCap = 1200; // 生存模式处决线封顶，避免后期超高血量失去反制空间
+	constexpr float kNightRoofHijackerExecuteVolume = 0.55f; // 全场处决提交时的短促紫电碎裂声音量
 	constexpr float kNightRoofChargeDischargeDuration = 0.65f; // 基础坡面放电的可见游戏秒数
 	constexpr float kNightRoofOverchargeMaximum = 15.0f;   // 满电后最多截留给下一轮的余电点数
 	constexpr float kNightRoofPlantShutdownDuration = 8.0f; // 普通瓦面植物在放电快照中停机的游戏秒数
@@ -1419,6 +1428,10 @@ void Board::InitializeWeather()
 	mNightRoofChargePhase = NightRoofChargePhase::CHARGING;
 	mNightRoofChargePhaseTimer = 0.0f;
 	mNightRoofChargeRow = -1;
+	mNightRoofHijackerSelectionAttempted = false;
+	mNightRoofHijackerID = NULL_ZOMBIE_ID;
+	mNightRoofHijackerWarningExtended = false;
+	mNightRoofHijackerFinalizing = false;
 	StopTyphoon();
 	mWeatherTimer = SupportsWeather()
 		? GameRandom::Range(kFirstRainDelayMin, kFirstRainDelayMax)
@@ -2116,6 +2129,12 @@ void Board::RestoreInsulatorWaveSpawnCount(int count)
 	mInsulatorsSpawnedThisWave = std::clamp(count, 0, kInsulatorMaxPerWave);
 }
 
+/** 夹紧并恢复当前波已经正式生成的劫持者数量。 */
+void Board::RestoreHijackerWaveSpawnCount(int count)
+{
+	mHijackersSpawnedThisWave = std::clamp(count, 0, kHijackerMaxPerWave);
+}
+
 /** 清空全部台风派生状态；中雨、小雨、晴天和旧档默认都以此为单位元。 */
 void Board::StopTyphoon()
 {
@@ -2299,6 +2318,12 @@ ZombieType Board::ResolveWaveZombieType(ZombieType selected, int mutationRoll)
 			return ZombieType::NUM_ZOMBIE_TYPES;
 		}
 		++mInsulatorsSpawnedThisWave;
+	}
+	if (selected == ZombieType::ZOMBIE_HIJACKER) {
+		if (mHijackersSpawnedThisWave >= kHijackerMaxPerWave) {
+			return ZombieType::NUM_ZOMBIE_TYPES;
+		}
+		++mHijackersSpawnedThisWave;
 	}
 	return ResolveRainMutationType(selected, mutationRoll);
 }
@@ -2892,16 +2917,43 @@ void Board::RestoreRoofRunoffState(float charge, RoofRunoffPhase phase,
 		static_cast<float>(kRoofRunoffRetainedChargeMax));
 }
 
-/** 满电时只抽取一次导电瓦路；预警、放电和读档都沿用同一锁定行。 */
+/** 返回仍满足能力门禁的锁定实体；平时只按稳定 ID 查表，不扫描僵尸集合。 */
+HijackerZombie* Board::GetValidNightRoofHijacker() const
+{
+	if (mNightRoofHijackerID == NULL_ZOMBIE_ID) return nullptr;
+	auto* hijacker = dynamic_cast<HijackerZombie*>(
+		mEntityManager.GetZombie(mNightRoofHijackerID));
+	return hijacker && hijacker->CanBeNightRoofHijackerCandidate()
+		? hijacker : nullptr;
+}
+
+/** 75% 边沿只遍历稀有劫持者弱索引；即使没有候选，本轮也不会在之后补选。 */
+void Board::TryLockNightRoofHijacker()
+{
+	if (!SupportsNightRoofCharge() || mNightRoofHijackerSelectionAttempted) return;
+	mNightRoofHijackerSelectionAttempted = true;
+	auto hijacker = mEntityManager.SelectNightRoofHijacker();
+	if (!hijacker) return;
+	mNightRoofHijackerID = hijacker->mZombieID;
+	hijacker->BeginNightRoofLock();
+}
+
+/** 满电时只抽取一次导电瓦路；有效劫持者把同一预警窗口延长到七秒。 */
 void Board::BeginNightRoofChargeWarning()
 {
 	if (!SupportsNightRoofCharge()
 		|| mNightRoofChargePhase != NightRoofChargePhase::CHARGING
 		|| mRows <= 0) return;
+	if (!mNightRoofHijackerSelectionAttempted) TryLockNightRoofHijacker();
+	HijackerZombie* hijacker = GetValidNightRoofHijacker();
 	mNightRoofCharge = kNightRoofChargeMaximum;
 	mNightRoofChargePhase = NightRoofChargePhase::WARNING;
-	mNightRoofChargePhaseTimer = kNightRoofChargeWarningDuration;
+	mNightRoofHijackerWarningExtended = hijacker != nullptr;
+	mNightRoofHijackerFinalizing = false;
+	mNightRoofChargePhaseTimer = hijacker
+		? kNightRoofHijackerWarningDuration : kNightRoofChargeWarningDuration;
 	mNightRoofChargeRow = GameRandom::Range(0, mRows - 1);
+	if (hijacker) hijacker->BeginNightRoofWarning();
 }
 
 /**
@@ -2916,6 +2968,10 @@ void Board::AddNightRoofCharge(float amount)
 		const float combinedCharge = mNightRoofCharge + amount;
 		mNightRoofCharge = std::clamp(combinedCharge,
 			0.0f, kNightRoofChargeMaximum);
+		if (!mNightRoofHijackerSelectionAttempted
+			&& combinedCharge >= kNightRoofHijackerLockThreshold) {
+			TryLockNightRoofHijacker();
+		}
 		if (combinedCharge >= kNightRoofChargeMaximum) {
 			const float overflow = combinedCharge - kNightRoofChargeMaximum;
 			BeginNightRoofChargeWarning();
@@ -2927,6 +2983,152 @@ void Board::AddNightRoofCharge(float amount)
 	}
 	mNightRoofOvercharge = std::clamp(mNightRoofOvercharge + amount,
 		0.0f, kNightRoofOverchargeMaximum);
+}
+
+int Board::GetNightRoofExecutionLine() const
+{
+	const HijackerZombie* hijacker = GetValidNightRoofHijacker();
+	if (!hijacker) return 0;
+	const int currentHealth = hijacker->GetCountableExecutionHealth();
+	return mIsSurvival
+		? std::min(currentHealth, kNightRoofHijackerSurvivalLineCap)
+		: currentHealth;
+}
+
+bool Board::IsZombieThreatenedByNightRoofHijacker(const Zombie* zombie) const
+{
+	const int line = GetNightRoofExecutionLine();
+	return line > 0 && zombie && zombie->mZombieID != mNightRoofHijackerID
+		&& !zombie->IsPreview() && zombie->IsActive() && !zombie->IsDying()
+		&& zombie->GetCountableExecutionHealth() > 0
+		&& zombie->GetCountableExecutionHealth() <= line;
+}
+
+/** 普通层与南瓜壳合并计血；承载层永远不属于处决组，飞行覆盖层只随宿主一并清除。 */
+bool Board::IsPlantThreatenedByNightRoofHijacker(const Plant* plant) const
+{
+	const int line = GetNightRoofExecutionLine();
+	if (line <= 0 || !plant || !plant->IsActive() || plant->IsPreview()
+		|| plant->IsSquished() || plant->mRow < 0 || plant->mRow >= mRows
+		|| plant->mColumn < 0 || plant->mColumn >= mColumns) return false;
+	const Cell* cell = mCells[plant->mRow][plant->mColumn];
+	if (!cell || plant->mPlantID == cell->GetUnderPlantID()) return false;
+	if (plant->mPlantID != cell->GetNormalPlantID()
+		&& plant->mPlantID != cell->GetPumpkinPlantID()
+		&& plant->mPlantID != cell->GetOverlayPlantID()) return false;
+
+	int64_t groupHealth = 0;
+	bool hasHostLayer = false;
+	for (const int id : { cell->GetNormalPlantID(), cell->GetPumpkinPlantID() }) {
+		const Plant* member = mEntityManager.GetPlant(id);
+		if (!member || !member->IsActive() || member->IsPreview()
+			|| member->IsSquished()) continue;
+		hasHostLayer = true;
+		groupHealth += std::max(0, member->mPlantHealth);
+	}
+	return hasHostLayer && groupHealth > 0 && groupHealth <= line;
+}
+
+float Board::GetNightRoofHijackerPulseAlpha() const
+{
+	if (!GetValidNightRoofHijacker()) return 0.0f;
+	const float wave = 0.5f + 0.5f * std::sin(
+		static_cast<float>(mBoardFrame) * (mNightRoofHijackerFinalizing ? 0.55f : 0.20f));
+	return mNightRoofHijackerFinalizing
+		? 125.0f + 90.0f * wave : 45.0f + 75.0f * wave;
+}
+
+void Board::CancelNightRoofHijacker(int zombieID)
+{
+	if (zombieID == NULL_ZOMBIE_ID || zombieID != mNightRoofHijackerID) return;
+	auto* hijacker = dynamic_cast<HijackerZombie*>(mEntityManager.GetZombie(zombieID));
+	mNightRoofHijackerID = NULL_ZOMBIE_ID;
+	mNightRoofHijackerFinalizing = false;
+	if (hijacker) hijacker->ClearNightRoofLock();
+}
+
+void Board::ResetNightRoofHijackerCycle()
+{
+	if (auto* hijacker = dynamic_cast<HijackerZombie*>(
+		mEntityManager.GetZombie(mNightRoofHijackerID))) {
+		hijacker->ClearNightRoofLock();
+	}
+	mNightRoofHijackerSelectionAttempted = false;
+	mNightRoofHijackerID = NULL_ZOMBIE_ID;
+	mNightRoofHijackerWarningExtended = false;
+	mNightRoofHijackerFinalizing = false;
+}
+
+/**
+ * 目标先按格子和稳定 ID 完整快照，再统一死亡。这样植物槽位释放、施法者掉头和特殊僵尸
+ * 死亡回调都不能改变本次集合；气球额外生命不在 GetCountableExecutionHealth 中。
+ */
+void Board::ResolveNightRoofHijackerExecution()
+{
+	HijackerZombie* caster = GetValidNightRoofHijacker();
+	const int line = GetNightRoofExecutionLine();
+	if (!caster || line <= 0) return;
+
+	std::vector<int> plantTargets;
+	for (int row = 0; row < mRows; ++row) {
+		for (int column = 0; column < mColumns; ++column) {
+			const Cell* cell = mCells[row][column];
+			if (!cell) continue;
+			int64_t groupHealth = 0;
+			std::vector<int> group;
+			for (const int id : { cell->GetNormalPlantID(), cell->GetPumpkinPlantID() }) {
+				Plant* plant = mEntityManager.GetPlant(id);
+				if (!plant || !plant->IsActive() || plant->IsPreview()
+					|| plant->IsSquished()) continue;
+				groupHealth += std::max(0, plant->mPlantHealth);
+				group.push_back(id);
+			}
+			if (group.empty() || groupHealth <= 0 || groupHealth > line) continue;
+			plantTargets.insert(plantTargets.end(), group.begin(), group.end());
+			if (Plant* overlay = mEntityManager.GetPlant(cell->GetOverlayPlantID());
+				overlay && overlay->IsActive() && !overlay->IsPreview()) {
+				plantTargets.push_back(overlay->mPlantID);
+			}
+		}
+	}
+
+	std::vector<int> zombieTargets;
+	for (const int id : mEntityManager.GetAllZombieIDs()) {
+		Zombie* zombie = mEntityManager.GetZombie(id);
+		if (!zombie || id == caster->mZombieID || zombie->IsPreview()
+			|| !zombie->IsActive() || zombie->IsDying()) continue;
+		const int health = zombie->GetCountableExecutionHealth();
+		if (health > 0 && health <= line) zombieTargets.push_back(id);
+	}
+	std::sort(zombieTargets.begin(), zombieTargets.end());
+
+	// 先解除 Board 交叉引用，施法者掉头粒子和死亡回调便不会取消或重入这次批处理。
+	mNightRoofHijackerID = NULL_ZOMBIE_ID;
+	mNightRoofHijackerFinalizing = false;
+	if (g_particleSystem) {
+		g_particleSystem->EmitEffect("HijackerElectricFlash", caster->GetVisualPosition());
+	}
+	// 不按目标数量叠音；只在有效处决快照真正提交时给一次全场听觉落点。
+	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_HIJACKER_EXECUTE,
+		kNightRoofHijackerExecuteVolume);
+	caster->TakeHijackerExecution();
+
+	for (const int id : plantTargets) {
+		Plant* plant = mEntityManager.GetPlant(id);
+		if (!plant || !plant->IsActive()) continue;
+		if (g_particleSystem) {
+			g_particleSystem->EmitEffect("HijackerElectricFlash", plant->GetVisualPosition());
+		}
+		plant->Die();
+	}
+	for (const int id : zombieTargets) {
+		Zombie* zombie = mEntityManager.GetZombie(id);
+		if (!zombie || !zombie->IsActive() || zombie->IsDying()) continue;
+		if (g_particleSystem) {
+			g_particleSystem->EmitEffect("HijackerElectricFlash", zombie->GetVisualPosition());
+		}
+		zombie->TakeHijackerExecution();
+	}
 }
 
 /**
@@ -3049,6 +3251,7 @@ bool Board::IsNightRoofChargeProtectionSuppressed(const Zombie* zombie) const
 void Board::UpdateNightRoofCharge(float deltaTime)
 {
 	if (!SupportsNightRoofCharge()) {
+		ResetNightRoofHijackerCycle();
 		mNightRoofCharge = 0.0f;
 		mNightRoofOvercharge = 0.0f;
 		mNightRoofChargePhase = NightRoofChargePhase::CHARGING;
@@ -3078,13 +3281,27 @@ void Board::UpdateNightRoofCharge(float deltaTime)
 		|| mNightRoofChargePhase == NightRoofChargePhase::DISCHARGING) {
 		// 活动阶段只截留正向输入；晴夜泄漏要等余电兑现为下一轮主电荷后才重新生效。
 		if (chargeDelta > 0.0f) AddNightRoofCharge(chargeDelta * deltaTime);
+		if (mNightRoofChargePhase == NightRoofChargePhase::WARNING
+			&& mNightRoofHijackerID != NULL_ZOMBIE_ID
+			&& !GetValidNightRoofHijacker()) {
+			CancelNightRoofHijacker(mNightRoofHijackerID);
+		}
 		mNightRoofChargePhaseTimer = std::max(0.0f,
 			mNightRoofChargePhaseTimer - deltaTime);
+		if (mNightRoofChargePhase == NightRoofChargePhase::WARNING
+			&& !mNightRoofHijackerFinalizing
+			&& mNightRoofChargePhaseTimer <= kNightRoofHijackerFinalDuration) {
+			if (HijackerZombie* hijacker = GetValidNightRoofHijacker()) {
+				mNightRoofHijackerFinalizing = true;
+				hijacker->BeginNightRoofFinalization();
+			}
+		}
 		if (mNightRoofChargePhaseTimer > 0.0f) return;
 
 		if (mNightRoofChargePhase == NightRoofChargePhase::WARNING) {
 			mNightRoofChargePhase = NightRoofChargePhase::DISCHARGING;
 			mNightRoofChargePhaseTimer = kNightRoofChargeDischargeDuration;
+			ResolveNightRoofHijackerExecution();
 			ResolveNightRoofChargeDischarge();
 			AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_THUNDER,
 				kThunderSoundVolume);
@@ -3096,6 +3313,7 @@ void Board::UpdateNightRoofCharge(float deltaTime)
 		mNightRoofChargePhase = NightRoofChargePhase::CHARGING;
 		mNightRoofChargePhaseTimer = 0.0f;
 		mNightRoofChargeRow = -1;
+		ResetNightRoofHijackerCycle();
 		return;
 	}
 
@@ -3110,32 +3328,64 @@ void Board::UpdateNightRoofCharge(float deltaTime)
 
 /** 校验并恢复黑夜屋顶雷荷；损坏组合和其他背景都回到中性积累状态。 */
 void Board::RestoreNightRoofChargeState(float charge, NightRoofChargePhase phase,
-	int row, float phaseTimer, float overcharge)
+	int row, float phaseTimer, float overcharge, bool hijackerSelectionAttempted,
+	int hijackerID, bool hijackerWarningExtended, bool hijackerFinalizing)
 {
 	mNightRoofCharge = 0.0f;
 	mNightRoofOvercharge = 0.0f;
 	mNightRoofChargePhase = NightRoofChargePhase::CHARGING;
 	mNightRoofChargePhaseTimer = 0.0f;
 	mNightRoofChargeRow = -1;
+	mNightRoofHijackerSelectionAttempted = false;
+	mNightRoofHijackerID = NULL_ZOMBIE_ID;
+	mNightRoofHijackerWarningExtended = false;
+	mNightRoofHijackerFinalizing = false;
 	if (!SupportsNightRoofCharge() || !std::isfinite(charge)
 		|| !std::isfinite(phaseTimer) || !std::isfinite(overcharge)) return;
 
 	mNightRoofCharge = std::clamp(charge, 0.0f, kNightRoofChargeMaximum);
+	mNightRoofHijackerSelectionAttempted = hijackerSelectionAttempted;
+	mNightRoofHijackerID = hijackerSelectionAttempted
+		? hijackerID : NULL_ZOMBIE_ID;
 	if (phase == NightRoofChargePhase::CHARGING) return;
 	if ((phase != NightRoofChargePhase::WARNING
 		&& phase != NightRoofChargePhase::DISCHARGING)
 		|| row < 0 || row >= mRows || phaseTimer < 0.0f) {
 		mNightRoofCharge = 0.0f;
+		ResetNightRoofHijackerCycle();
 		return;
 	}
 	mNightRoofCharge = kNightRoofChargeMaximum;
 	mNightRoofChargePhase = phase;
+	mNightRoofHijackerWarningExtended = phase == NightRoofChargePhase::WARNING
+		&& hijackerWarningExtended;
+	mNightRoofHijackerFinalizing = mNightRoofHijackerWarningExtended
+		&& hijackerFinalizing && phaseTimer <= kNightRoofHijackerFinalDuration;
 	mNightRoofChargePhaseTimer = std::clamp(phaseTimer, 0.0f,
 		phase == NightRoofChargePhase::WARNING
-			? kNightRoofChargeWarningDuration : kNightRoofChargeDischargeDuration);
+			? (mNightRoofHijackerWarningExtended
+				? kNightRoofHijackerWarningDuration : kNightRoofChargeWarningDuration)
+			: kNightRoofChargeDischargeDuration);
 	mNightRoofChargeRow = row;
 	mNightRoofOvercharge = std::clamp(overcharge,
 		0.0f, kNightRoofOverchargeMaximum);
+	if (phase == NightRoofChargePhase::DISCHARGING) {
+		mNightRoofHijackerID = NULL_ZOMBIE_ID;
+		mNightRoofHijackerFinalizing = false;
+	}
+}
+
+void Board::FinalizeNightRoofHijackerLoad()
+{
+	if (mNightRoofHijackerID == NULL_ZOMBIE_ID) return;
+	HijackerZombie* hijacker = GetValidNightRoofHijacker();
+	if (!hijacker || mNightRoofChargePhase == NightRoofChargePhase::DISCHARGING) {
+		CancelNightRoofHijacker(mNightRoofHijackerID);
+		return;
+	}
+	const bool warning = mNightRoofChargePhase == NightRoofChargePhase::WARNING;
+	hijacker->RestoreNightRoofPhase(
+		true, warning && mNightRoofHijackerFinalizing, warning);
 }
 
 void Board::UpdateWeather(float deltaTime)
@@ -3412,7 +3662,10 @@ bool Board::SetNightRoofChargeForTesting(float charge, NightRoofChargePhase phas
 		phaseTimer = 0.0f;
 		overcharge = 0.0f;
 	}
-	RestoreNightRoofChargeState(charge, phase, row, phaseTimer, overcharge);
+	// AutoTest 可能在同一局中重设雷荷；参数校验后才解除旧锁定，失败调用不得改变局面。
+	ResetNightRoofHijackerCycle();
+	RestoreNightRoofChargeState(charge, phase, row, phaseTimer, overcharge,
+		false, NULL_ZOMBIE_ID, false, false);
 	return mNightRoofChargePhase == phase;
 }
 
@@ -5103,6 +5356,7 @@ void Board::SummonNextWave()
 	mEliteLaddersSpawnedThisWave = 0;
 	mEliteCatapultsSpawnedThisWave = 0;
 	mInsulatorsSpawnedThisWave = 0;
+	mHijackersSpawnedThisWave = 0;
 	mMistFuelAssignedThisWave = 0;
 	if (mCurrentWave == 1)
 	{
@@ -5392,10 +5646,25 @@ inline void Board::TrySummonZombie()
 {
 	if (mCurrentWave > mMaxWave) return;
 
+	float x = static_cast<float>(SCENE_WIDTH) + 40;
+	// 6-4 第七波是劫持者的整波单体教学，不受正常第九波出怪门槛限制。
+	if (!mIsSurvival && mLevel == kHijackerTutorialLevel
+		&& mCurrentWave == kHijackerTutorialWave) {
+		const ZombieType actualType = ResolveWaveZombieType(ZombieType::ZOMBIE_HIJACKER);
+		if (actualType != ZombieType::NUM_ZOMBIE_TYPES) {
+			const int row = SelectSpawnRow(actualType);
+			if (row >= 0) {
+				if (Zombie* zombie = CreateResolvedWaveZombie(actualType, row, x)) {
+					AssignMistFuelReward(zombie);
+				}
+			}
+		}
+		return;
+	}
+
 	int remainingPoints = CalculateWaveZombiePoints();
 	int zombiesSpawned = 0;
 	int candidatesExamined = 0;
-	float x = static_cast<float>(SCENE_WIDTH) + 40;
 
 	while (remainingPoints > 0 && zombiesSpawned < MAX_ZOMBIES_PER_WAVE
 		&& candidatesExamined < kWaveCandidateAttemptLimit)
@@ -5711,6 +5980,7 @@ void Board::OnSurvivalRoundClear()
 	mEliteLaddersSpawnedThisWave = 0;
 	mEliteCatapultsSpawnedThisWave = 0;
 	mInsulatorsSpawnedThisWave = 0;
+	mHijackersSpawnedThisWave = 0;
 	RefreshZombieWeatherSpeeds();
 
 	// 重算难度（解锁更强僵尸）+ 刷新关卡名

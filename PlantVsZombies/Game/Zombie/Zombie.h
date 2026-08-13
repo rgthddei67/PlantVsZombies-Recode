@@ -272,6 +272,10 @@ public:
 	bool IsGarlicYuckFaceVisible() const;
 	bool IsInPool() const { return this->mInPool; }
 	bool HasArm() const { return this->mHasArm; }
+	/** 返回处决机制统一使用的当前生命：本体、一类防具与二类护盾；飞行额外生命不计。 */
+	int GetCountableExecutionHealth() const;
+	/** 以本品种正常死亡表现结算劫持者处决；无死亡轨道的品种沿用自身立即死亡入口。 */
+	virtual void TakeHijackerExecution();
 	LadderClimbPhase GetLadderClimbPhase() const { return mLadderClimbPhase; }
 	float GetLadderAltitude() const { return mLadderAltitude; }
 	int GetUseLadderColumn() const { return mUseLadderColumn; }
@@ -411,6 +415,8 @@ protected:
 	// 子类自身的整体倍率只从 GetAbilityAnimSpeedMultiplier 返回；运行期状态变化后经此收敛，
 	// 禁止直调 SetExtraSpeedMultiplier，否则会把冻结停格顶掉或丢失天气组合。
 	void UpdateAnimSpeed();
+	/** Board 权威定时动作可返回非负倍率，临时绕过控制、天气和减速的动画速度组合。 */
+	virtual float GetForcedAnimSpeedMultiplier() const { return -1.0f; }
 	/** 清除黄油定身并按剩余状态恢复动画速度。 */
 	void ClearButter();
 	/** 清除通用麻痹并按剩余状态恢复动画与染色。 */

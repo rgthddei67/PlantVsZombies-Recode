@@ -1124,6 +1124,11 @@ void Zombie::UpdateLadderClimb(float scaledDelta, TransformComponent* transform)
 void Zombie::UpdateAnimSpeed()
 {
 	if (!mAnimator) return;
+	const float forcedMultiplier = GetForcedAnimSpeedMultiplier();
+	if (forcedMultiplier >= 0.0f) {
+		mAnimator->SetExtraSpeedMultiplier(forcedMultiplier);
+		return;
+	}
 	if (IsImmobilized())
 	{
 		mAnimator->SetExtraSpeedMultiplier(0.0f);   // 冻结/黄油/麻痹停格：状态层不改各轨道 base 速度
@@ -1139,6 +1144,60 @@ void Zombie::UpdateAnimSpeed()
 		* AmplifySpeedMultiplierForGoldenIce(
 			mCooldownTimer > 0.0f ? GetSlowAnimFactor() : 1.0f)
 		* AmplifySpeedMultiplierForGoldenIce(rainMultiplier));
+}
+
+int Zombie::GetCountableExecutionHealth() const
+{
+	const int64_t total = static_cast<int64_t>(std::max(0, mBodyHealth))
+		+ static_cast<int64_t>(std::max(0, mHelmHealth))
+		+ static_cast<int64_t>(std::max(0, mShieldHealth));
+	return total >= INT_MAX ? INT_MAX : static_cast<int>(total);
+}
+
+/** 强制清空可计生命后进入既有死亡轨；特殊品种没有死亡轨时退回自己的 Die。 */
+void Zombie::TakeHijackerExecution()
+{
+	if (mIsDead || mIsDying || !IsActive()) return;
+
+	mShieldHealth = 0;
+	ShieldDrop();
+	mHelmHealth = 0;
+	HelmDrop();
+	// 直接清本体，避免气球额外生命、免伤次数或品种伤害上限把处决变成普通伤害。
+	mBodyHealth = 0;
+	if (mHasArm) {
+		ArmDrop();
+		mHasArm = false;
+	}
+	if (mHasHead) {
+		HeadDrop();
+		mHasHead = false;
+	}
+
+	CancelGarlicRedirect(false);
+	if (mFrozenTimer > 0.0f) ClearFrozen();
+	if (mButterTimer > 0.0f) ClearButter();
+	if (mParalysisTimer > 0.0f) ClearParalysis();
+	if (mIsEating) {
+		if (mEatPlantID != NULL_PLANT_ID && mBoard) {
+			if (Plant* plant = mBoard->mEntityManager.GetPlant(mEatPlantID);
+				plant && plant->mEaterCount > 0) {
+				--plant->mEaterCount;
+			}
+		}
+		mIsEating = false;
+		mEatPlantID = NULL_PLANT_ID;
+		mEatZombieID = NULL_ZOMBIE_ID;
+		OnStopEating();
+	}
+
+	if (!ShouldPlayDeathAnimation()
+		|| !PlayTrack(GetDeathTrackName(), 1.3f, 0.1f)) {
+		Die();
+		return;
+	}
+	if (mCollider) mCollider->mEnabled = false;
+	mIsDying = true;
 }
 
 bool Zombie::ApplyButter()
@@ -2347,6 +2406,16 @@ void Zombie::Draw(Graphics* g)
 			// 普通僵尸仍压在脚底线；车辆覆写后可保持高度并横移到整车中央。
 			g->DrawTexture(tex, bottomAnchor.x - w * 0.5f, bottomAnchor.y - h, w, h);
 		}
+	}
+
+	// 与植物目标提示一样，只读取 Board 锁定 ID 和本实体生命；不会扫描僵尸或植物集合。
+	if (g && !mIsPreview && mBoard
+		&& mBoard->IsZombieThreatenedByNightRoofHijacker(this) && mCollider) {
+		const SDL_FRect bounds = mCollider->GetBoundingBox();
+		const float alpha = mBoard->GetNightRoofHijackerPulseAlpha();
+		g->DrawRect(bounds.x - 3.0f, bounds.y - 3.0f,
+			bounds.w + 6.0f, bounds.h + 6.0f,
+			glm::vec4(194.0f, 73.0f, 255.0f, alpha));
 	}
 
 	if (clipAtWaterline) {

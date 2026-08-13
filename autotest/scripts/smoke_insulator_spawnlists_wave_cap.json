@@ -2,23 +2,23 @@
   "commands": [
     { "op": "goto_level", "level": 46, "resetTestState": true },
     { "op": "wait_state", "state": "CHOOSE_CARD", "timeout": 10 },
-    { "op": "assert_state", "path": "spawnList", "equals": ["ZOMBIE_NORMAL", "ZOMBIE_TRAFFIC_CONE", "ZOMBIE_BUCKET", "ZOMBIE_DOOR"] },
+    { "op": "assert_state", "path": "spawnList", "equals": ["ZOMBIE_NORMAL", "ZOMBIE_TRAFFIC_CONE", "ZOMBIE_BUCKET", "ZOMBIE_DOOR", "ZOMBIE_DANCER"] },
 
     { "op": "goto_level", "level": 47, "resetTestState": true },
     { "op": "wait_state", "state": "CHOOSE_CARD", "timeout": 10 },
-    { "op": "assert_state", "path": "spawnList", "equals": ["ZOMBIE_NORMAL", "ZOMBIE_TRAFFIC_CONE", "ZOMBIE_BUCKET", "ZOMBIE_INSULATOR"] },
+    { "op": "assert_state", "path": "spawnList", "equals": ["ZOMBIE_NORMAL", "ZOMBIE_TRAFFIC_CONE", "ZOMBIE_BUCKET", "ZOMBIE_ELITE_JACK_IN_THE_BOX", "ZOMBIE_INSULATOR"] },
 
     { "op": "goto_level", "level": 48, "resetTestState": true },
     { "op": "wait_state", "state": "CHOOSE_CARD", "timeout": 10 },
-    { "op": "assert_state", "path": "spawnList", "equals": ["ZOMBIE_NORMAL", "ZOMBIE_TRAFFIC_CONE", "ZOMBIE_POLEVAULTER", "ZOMBIE_NEWSPAPER", "ZOMBIE_INSULATOR"] },
+    { "op": "assert_state", "path": "spawnList", "equals": ["ZOMBIE_NORMAL", "ZOMBIE_TRAFFIC_CONE", "ZOMBIE_POLEVAULTER", "ZOMBIE_REINFORCED_DOOR", "ZOMBIE_ELITE_POLEVAULTER", "ZOMBIE_ELITE_LADDER", "ZOMBIE_REDEYE_GARGANTUAR", "ZOMBIE_INSULATOR"] },
 
     { "op": "goto_level", "level": 49, "resetTestState": true },
     { "op": "wait_state", "state": "CHOOSE_CARD", "timeout": 10 },
-    { "op": "assert_state", "path": "spawnList", "equals": ["ZOMBIE_NORMAL", "ZOMBIE_TRAFFIC_CONE", "ZOMBIE_BUCKET", "ZOMBIE_DOOR", "ZOMBIE_BUNGEE", "ZOMBIE_INSULATOR"] },
+    { "op": "assert_state", "path": "spawnList", "equals": ["ZOMBIE_NORMAL", "ZOMBIE_TRAFFIC_CONE", "ZOMBIE_BUCKET", "ZOMBIE_DOOR", "ZOMBIE_HIJACKER"] },
 
     { "op": "goto_level", "level": 50, "resetTestState": true },
     { "op": "wait_state", "state": "CHOOSE_CARD", "timeout": 10 },
-    { "op": "assert_state", "path": "spawnList", "equals": ["ZOMBIE_NORMAL", "ZOMBIE_TRAFFIC_CONE", "ZOMBIE_BUCKET", "ZOMBIE_FOOTBALL", "ZOMBIE_CATAPULT"] },
+    { "op": "assert_state", "path": "spawnList", "equals": ["ZOMBIE_NORMAL", "ZOMBIE_TRAFFIC_CONE", "ZOMBIE_BUCKET", "ZOMBIE_FOOTBALL", "ZOMBIE_CATAPULT", "ZOMBIE_HIJACKER"] },
 
     { "op": "goto_level", "level": 51, "resetTestState": true },
     { "op": "wait_state", "state": "CHOOSE_CARD", "timeout": 10 },

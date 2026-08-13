@@ -202,7 +202,7 @@ namespace {
 		DEVZ(ZOMBIE_GARGANTUAR), DEVZ(ZOMBIE_IMP), DEVZ(ZOMBIE_BOSS), DEVZ(ZOMBIE_PEA_HEAD),
 		DEVZ(ZOMBIE_WALLNUT_HEAD), DEVZ(ZOMBIE_JALAPENO_HEAD), DEVZ(ZOMBIE_GATLING_HEAD),
 		DEVZ(ZOMBIE_SQUASH_HEAD), DEVZ(ZOMBIE_TALLNUT_HEAD), DEVZ(ZOMBIE_REDEYE_GARGANTUAR), DEVZ(ZOMBIE_ROOF_MARSHAL),
-		DEVZ(ZOMBIE_INSULATOR),
+		DEVZ(ZOMBIE_INSULATOR), DEVZ(ZOMBIE_HIJACKER),
 	};
 #undef DEVZ
 
@@ -352,7 +352,9 @@ namespace {
 			height += kWeatherPanelDetailLineHeight;
 		}
 		if (board->SupportsRoofRunoff()) height += kWeatherPanelGaugeLineHeight;
-		if (board->SupportsNightRoofCharge()) height += kWeatherPanelGaugeLineHeight;
+		if (board->SupportsNightRoofCharge()) {
+			height += kWeatherPanelGaugeLineHeight + kWeatherPanelDetailLineHeight;
+		}
 		if (board->HasTyphoon()) height += kWeatherPanelDetailLineHeight;
 		return height;
 	}
@@ -968,6 +970,22 @@ void GameScene::DrawWeatherPanel(Graphics* g) const
 			mBoard->GetNightRoofOverchargeRatio(),
 			glm::vec4(247.0f, 225.0f, 255.0f, alpha * warningPulse));
 		detailLineY += kWeatherPanelGaugeLineHeight;
+
+		const int executionLine = mBoard->GetNightRoofExecutionLine();
+		const std::string executionText = executionLine > 0
+			? std::string(u8"处决线：") + std::to_string(executionLine)
+			: std::string(u8"处决线：未锁定");
+		const float executionPulse = executionLine > 0
+			? 0.70f + 0.30f * std::sin(static_cast<float>(mBoard->mBoardFrame)
+				* (mBoard->IsNightRoofHijackerFinalizing() ? 0.55f : 0.20f))
+			: 1.0f;
+		const glm::vec4 executionColor(218.0f, 142.0f, 255.0f,
+			alpha * executionPulse);
+		g->DrawText(executionText, ResourceKeys::Fonts::FONT_FZCQ,
+			kWeatherWindFontSize, shadow, textX + 1.0f, detailLineY + 1.0f);
+		g->DrawText(executionText, ResourceKeys::Fonts::FONT_FZCQ,
+			kWeatherWindFontSize, executionColor, textX, detailLineY);
+		detailLineY += kWeatherPanelDetailLineHeight;
 	}
 
 	if (mBoard->HasTyphoon()) {

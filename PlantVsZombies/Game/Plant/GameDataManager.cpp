@@ -97,6 +97,7 @@
 #include "../Zombie/RedeyeGargantuarZombie.h"
 #include "../Zombie/RoofMarshalZombie.h"
 #include "../Zombie/InsulatorZombie.h"
+#include "../Zombie/HijackerZombie.h"
 
 namespace {
 	template<typename T>
@@ -586,6 +587,12 @@ void GameDataManager::InitializeHardcodedData() {
 		AnimationType::ANIM_NORMAL_ZOMBIE,
 		ResourceKeys::Reanimations::REANIM_NORMAL_ZOMBIE,
 		&MakeZombie<InsulatorZombie>);
+
+	// 劫持者独立复用小丑时间线，75% 锁定与处决计时全部由黑夜屋顶 Board 状态拥有。
+	RegisterZombie(ZombieType::ZOMBIE_HIJACKER, "ZOMBIE_HIJACKER",
+		AnimationType::ANIM_HIJACKER_ZOMBIE,
+		ResourceKeys::Reanimations::REANIM_HIJACKER_ZOMBIE,
+		&MakeZombie<HijackerZombie>);
 
 	// ==================== 非植物/僵尸动画映射 ====================
 	mAnimToString[AnimationType::ANIM_SUN] = ResourceKeys::Reanimations::REANIM_SUN;

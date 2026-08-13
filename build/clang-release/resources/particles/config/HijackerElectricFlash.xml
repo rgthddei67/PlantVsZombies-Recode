@@ -1,0 +1,34 @@
+<Emitter>
+  <Name>HijackerElectricFlash</Name>
+  <SpawnMinActive>1</SpawnMinActive>
+  <SpawnMaxLaunched>1</SpawnMaxLaunched>
+  <SpawnRate>0</SpawnRate>
+  <ParticleDuration>.34</ParticleDuration>
+  <ParticleAlpha>.96 .62,58 0,100</ParticleAlpha>
+  <ParticleRed>.76</ParticleRed>
+  <ParticleGreen>.25</ParticleGreen>
+  <ParticleBlue>1</ParticleBlue>
+  <ParticleBrightness>1</ParticleBrightness>
+  <ParticleScale>.72 1.48</ParticleScale>
+  <SystemDuration>.42</SystemDuration>
+  <Image>PARTICLE_RAIN_CIRCLE</Image>
+</Emitter>
+<Emitter>
+  <Name>HijackerElectricFlashSparks</Name>
+  <SpawnMinActive>12</SpawnMinActive>
+  <SpawnMaxLaunched>12</SpawnMaxLaunched>
+  <SpawnRate>0</SpawnRate>
+  <ParticleDuration>[.30 .55]</ParticleDuration>
+  <ParticleAlpha>1,76 0</ParticleAlpha>
+  <ParticleRed>.90 .45 0</ParticleRed>
+  <ParticleGreen>.48 .08 0</ParticleGreen>
+  <ParticleBlue>1 .72 0</ParticleBlue>
+  <ParticleScale>[.18 .34],78 0</ParticleScale>
+  <EmitterType>Circle</EmitterType>
+  <EmitterRadius>[8 34]</EmitterRadius>
+  <LaunchSpeed>[54 112]</LaunchSpeed>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <ParticleSpinSpeed>[-820 820]</ParticleSpinSpeed>
+  <SystemDuration>.62</SystemDuration>
+  <Image>PARTICLE_STAR40</Image>
+</Emitter>

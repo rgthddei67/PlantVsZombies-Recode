@@ -238,6 +238,8 @@
     <Texture Column="5" Row="1">./resources/particles/Zomboss_particles.png</Texture>
     <Texture>./resources/particles/ZombieJackboxArm.png</Texture>
     <Texture>./resources/particles/ZombieEliteJackboxArm.png</Texture>
+    <Texture>./resources/particles/ZombieHijackerHead.png</Texture>
+    <Texture>./resources/particles/ZombieHijackerArm.png</Texture>
     <Texture>./resources/particles/Sproing.png</Texture>
     <Texture>./resources/particles/ZombieBackupDancerHead.png</Texture>
     <Texture>./resources/particles/ZombieBackupDancerHead_disco.png</Texture>
@@ -336,6 +338,8 @@
     <Sound>./resources/sounds/Zombie/limbs_pop.ogg</Sound>
     <Sound>./resources/sounds/Zombie/boing.ogg</Sound>
     <Sound>./resources/sounds/Zombie/jackinthebox.ogg</Sound>
+    <Sound>./resources/sounds/Zombie/hijacker_hum.ogg</Sound>
+    <Sound>./resources/sounds/Zombie/hijacker_execute.ogg</Sound>
     <Sound>./resources/sounds/Zombie/jack_surprise.ogg</Sound>
     <Sound>./resources/sounds/Zombie/jack_surprise2.ogg</Sound>
     <Sound>./resources/sounds/Zombie/digger_zombie.ogg</Sound>
@@ -486,6 +490,7 @@
 
     <Reanimation name="ZombieJackBox">./resources/reanim/Zombie_JackBox.reanim</Reanimation>
     <Reanimation name="EliteJackBox">./resources/reanim/EliteJackBox.reanim</Reanimation>
+    <Reanimation name="ZombieHijacker">./resources/reanim/Zombie_Hijacker.reanim</Reanimation>
     <Reanimation name="ZombieBalloon">./resources/reanim/Zombie_balloon.reanim</Reanimation>
     <Reanimation name="ZombieDigger">./resources/reanim/Zombie_digger.reanim</Reanimation>
     <Reanimation name="EliteDigger">./resources/reanim/EliteDigger.reanim</Reanimation>

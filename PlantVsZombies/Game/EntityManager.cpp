@@ -3,6 +3,8 @@
 #include "Zombie/Zombie.h"
 #include "Zombie/GildedZamboniZombie.h"
 #include "Zombie/RoofMarshalZombie.h"
+#include "Zombie/HijackerZombie.h"
+#include "../GameRandom.h"
 #include "Bullet/Bullet.h"
 #include "Coin.h"
 #include "LawnMower.h"
@@ -37,6 +39,7 @@ int EntityManager::AddZombie(std::shared_ptr<Zombie> zombie) {
 	mRowIndexDirty = true; // 同帧生成后，火球溅射等行查询必须立即看见新僵尸
 	TrackGoldenIceSource(id, zombie);
 	TrackRoofMarshal(id, zombie);
+	TrackHijacker(id, zombie);
 	return id;
 }
 
@@ -67,6 +70,40 @@ std::shared_ptr<RoofMarshalZombie> EntityManager::GetFirstActiveRoofMarshal() co
 		return marshal;
 	}
 	return nullptr;
+}
+
+std::shared_ptr<HijackerZombie> EntityManager::SelectNightRoofHijacker() const
+{
+	int highestHealth = -1;
+	std::vector<std::shared_ptr<HijackerZombie>> tied;
+	for (const auto& pair : mHijackers) {
+		auto hijacker = pair.second.lock();
+		if (!hijacker || !hijacker->CanBeNightRoofHijackerCandidate()) continue;
+		const int health = hijacker->GetCountableExecutionHealth();
+		if (health > highestHealth) {
+			highestHealth = health;
+			tied.clear();
+			tied.push_back(std::move(hijacker));
+		}
+		else if (health == highestHealth) {
+			tied.push_back(std::move(hijacker));
+		}
+	}
+	if (tied.empty()) return nullptr;
+	// mHijackers 是按 ID 有序的 map，tied 继承同一稳定顺序；随机只在锁定边沿消费一次。
+	return tied[GameRandom::Range(0, static_cast<int>(tied.size()) - 1)];
+}
+
+int EntityManager::GetActiveNightRoofHijackerCount() const
+{
+	int count = 0;
+	for (const auto& pair : mHijackers) {
+		if (auto hijacker = pair.second.lock();
+			hijacker && hijacker->CanBeNightRoofHijackerCandidate()) {
+			++count;
+		}
+	}
+	return count;
 }
 
 int EntityManager::AddBullet(std::shared_ptr<Bullet> bullet) {
@@ -177,6 +214,17 @@ void EntityManager::TrackRoofMarshal(
 	}
 }
 
+void EntityManager::TrackHijacker(
+	int id, const std::shared_ptr<Zombie>& zombie)
+{
+	if (auto hijacker = std::dynamic_pointer_cast<HijackerZombie>(zombie)) {
+		mHijackers[id] = std::move(hijacker);
+	}
+	else {
+		mHijackers.erase(id);
+	}
+}
+
 std::vector<int> EntityManager::CleanupExpired() {
 	std::vector<int> removedPlants;
 
@@ -231,6 +279,15 @@ std::vector<int> EntityManager::CleanupExpired() {
 			}
 		}
 
+		for (auto it = mHijackers.begin(); it != mHijackers.end(); ) {
+			if (it->second.expired()) {
+				it = mHijackers.erase(it);
+			}
+			else {
+				++it;
+			}
+		}
+
 		for (auto it = mCoins.begin(); it != mCoins.end(); ) {
 			if (it->second.expired()) {
 				it = mCoins.erase(it);
@@ -268,6 +325,7 @@ int EntityManager::AddZombieWithID(std::shared_ptr<Zombie> zombie, int id) {
 	mRowIndexDirty = true;
 	TrackGoldenIceSource(id, zombie);
 	TrackRoofMarshal(id, zombie);
+	TrackHijacker(id, zombie);
 	if (id >= mNextZombieID) {
 		mNextZombieID = id + 1;
 	}

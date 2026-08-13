@@ -334,6 +334,10 @@ bool GameInfoSaver::SerializeLevelDataToPath(Board* board, CardSlotManager* mana
 	j["nightRoofChargePhase"] = static_cast<int>(board->mNightRoofChargePhase);
 	j["nightRoofChargePhaseTimer"] = board->mNightRoofChargePhaseTimer;
 	j["nightRoofChargeRow"] = board->mNightRoofChargeRow;
+	j["nightRoofHijackerSelectionAttempted"] = board->mNightRoofHijackerSelectionAttempted;
+	j["nightRoofHijackerID"] = board->mNightRoofHijackerID;
+	j["nightRoofHijackerWarningExtended"] = board->mNightRoofHijackerWarningExtended;
+	j["nightRoofHijackerFinalizing"] = board->mNightRoofHijackerFinalizing;
 	j["fogWeatherInitialized"] = board->mFogWeatherInitialized;
 	j["fogWeatherIntensity"] = static_cast<int>(board->mFogWeatherIntensity);
 	j["forecastFogWeatherIntensity"] =
@@ -381,6 +385,7 @@ bool GameInfoSaver::SerializeLevelDataToPath(Board* board, CardSlotManager* mana
 	j["eliteLaddersSpawnedThisWave"] = board->mEliteLaddersSpawnedThisWave;
 	j["eliteCatapultsSpawnedThisWave"] = board->mEliteCatapultsSpawnedThisWave;
 	j["insulatorsSpawnedThisWave"] = board->mInsulatorsSpawnedThisWave;
+	j["hijackersSpawnedThisWave"] = board->mHijackersSpawnedThisWave;
 	j["mistFuelDropAccumulator"] = board->mMistFuelDropAccumulator;
 	WeatherPresentationState weatherPresentation;
 	if (auto* presentation = board->GetPresentation()) {
@@ -846,7 +851,11 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 	board->RestoreNightRoofChargeState(j.value("nightRoofCharge", 0.0f),
 		nightRoofChargePhase, j.value("nightRoofChargeRow", -1),
 		j.value("nightRoofChargePhaseTimer", 0.0f),
-		j.value("nightRoofOvercharge", 0.0f));
+		j.value("nightRoofOvercharge", 0.0f),
+		j.value("nightRoofHijackerSelectionAttempted", false),
+		j.value("nightRoofHijackerID", NULL_ZOMBIE_ID),
+		j.value("nightRoofHijackerWarningExtended", false),
+		j.value("nightRoofHijackerFinalizing", false));
 	// 旧版天气存档没有该字段时按 false：少一次增强机会比读档后凭空再增强更稳妥。
 	board->mRainCanIntensify = board->mRainIntensity == RainIntensity::LIGHT
 		&& j.value("rainCanIntensify", false);
@@ -971,6 +980,8 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 		j.value("eliteCatapultsSpawnedThisWave", 0));
 	board->RestoreInsulatorWaveSpawnCount(
 		j.value("insulatorsSpawnedThisWave", 0));
+	board->RestoreHijackerWaveSpawnCount(
+		j.value("hijackersSpawnedThisWave", 0));
 	board->mRainVisualActive = false;   // 粒子不入存档，StartGame 按剩余时间重建
 	board->mMaxWave = j.value("maxWave", 10);
 	board->mZombieCountDown = j.value("zombieCountDown", 20.0f);
@@ -1116,6 +1127,8 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 		if (!zombie) continue;
 		zombie->ValidateEatingState(board->mEntityManager);
 	}
+	// Board 的锁定 ID 要等全部僵尸按稳定 ID 恢复后才能校验，避免加载顺序触发重新随机。
+	board->FinalizeNightRoofHijackerLoad();
 
 	// 恢复子弹
 	for (auto& b : j.value("bullets", nlohmann::json::array())) {
