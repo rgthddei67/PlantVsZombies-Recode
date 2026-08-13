@@ -37,8 +37,10 @@ void FlowerPot::PlantUpdate()
 	if (coveredNow != mCovered) {
 		// 原版在上层植物落下时把花盆 anim rate 设为 0，露出后恢复原待机动画。
 		mCovered = coveredNow;
-		if (mCovered) PauseAnimation();
-		else PlayAnimation();
+		if (PausesAnimationWhenCovered()) {
+			if (mCovered) PauseAnimation();
+			else PlayAnimation();
+		}
 	}
 }
 

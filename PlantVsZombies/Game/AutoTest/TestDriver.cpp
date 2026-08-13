@@ -286,7 +286,7 @@ namespace {
 		PT(PLANT_WINTERMELON), PT(PLANT_GOLD_MAGNET), PT(PLANT_SPIKEROCK), PT(PLANT_COBCANNON),
 		PT(PLANT_IMITATER), PT(PLANT_EXPLODE_O_NUT), PT(PLANT_GIANT_WALLNUT), PT(PLANT_SPROUT),
 		PT(PLANT_LEFTPEATER), PT(PLANT_ELITE_SCAREDYSHROOM), PT(PLANT_TOXICPEASHOOTER),
-		PT(PLANT_GROUNDINGSHROOM),
+		PT(PLANT_GROUNDINGSHROOM), PT(PLANT_LIGHTNINGRODPOT),
 	};
 #undef PT
 #define BT(n) { #n, BulletType::n }
@@ -1806,6 +1806,7 @@ bool TestDriver::ExecuteCurrent() {
 		const int row = cmd.value("row", -1);     // -1 = 不过滤行
 		const int col = cmd.value("col", -1);     // -1 = 不过滤列
 		const int index = cmd.value("index", 0);  // 过滤后按 ID 升序第 index 株
+		const std::string typeName = cmd.value("type", ""); // 可选：按稳定植物名筛选叠层
 		const int damage = cmd.value("damage", 0);
 		if (damage <= 0) { Fail("damage_plant: damage 必须大于 0"); return false; }
 		auto sourceIt = kDamageSourceNames.find(cmd.value("source", "OTHER"));
@@ -1816,13 +1817,15 @@ bool TestDriver::ExecuteCurrent() {
 			if (!p) continue;
 			if (row >= 0 && p->mRow != row) continue;
 			if (col >= 0 && p->mColumn != col) continue;
+			if (!typeName.empty() && PlantTypeName(p->mPlantType) != typeName) continue;
 			if (seen++ == index) {
 				p->TakeDamage(damage, sourceIt->second);
 				return true;
 			}
 		}
 		Fail("damage_plant: 未找到目标植物 (row=" + std::to_string(row)
-			+ ", col=" + std::to_string(col) + ", index=" + std::to_string(index) + ")");
+			+ ", col=" + std::to_string(col) + ", type=" + typeName
+			+ ", index=" + std::to_string(index) + ")");
 		return false;
 	}
 	if (op == "squish_plant") {
@@ -2430,6 +2433,16 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			"IMAGE_REANIM_GROUNDINGSHROOM_IDLE", false) != nullptr },
 		{ "shockPoseLoaded", ResourceManager::GetInstance().GetTexture(
 			"IMAGE_REANIM_GROUNDINGSHROOM_SHOCK", false) != nullptr },
+	};
+	out["lightningRodPotResources"] = {
+		{ "reanimationLoaded", ResourceManager::GetInstance().HasReanimation(
+			ResourceKeys::Reanimations::REANIM_LIGHTNINGRODPOT) },
+		{ "cardLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_LIGHTNINGRODPOT, false) != nullptr },
+		{ "bodyTextureLoaded", ResourceManager::GetInstance().GetTexture(
+			"IMAGE_REANIM_LIGHTNINGRODPOT_BODY", false) != nullptr },
+		{ "glowTextureLoaded", ResourceManager::GetInstance().GetTexture(
+			"IMAGE_REANIM_LIGHTNINGRODPOT_GLOW", false) != nullptr },
 	};
 	// 转换版 reanim 实际引用 13 张分件；目录中的 blink1 未被轨道引用，不计入闭环。
 	const std::array<std::string, 13> gloomShroomTextureKeys = {
@@ -4469,6 +4482,9 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 
 	out["plants"] = nlohmann::json::array();
 	out["topPlantsByCell"] = nlohmann::json::object();
+	out["underPlantsByCell"] = nlohmann::json::object();
+	out["normalPlantsByCell"] = nlohmann::json::object();
+	out["pumpkinPlantsByCell"] = nlohmann::json::object();
 	out["overlayPlantsByCell"] = nlohmann::json::object();
 	out["flowerPotsByCell"] = nlohmann::json::object();
 	out["scaredyShroomsByCell"] = nlohmann::json::object();
@@ -4540,7 +4556,18 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				AirborneDefenseStateName(p->GetAirborneDefenseState()) },
 			{ "airborneDefenseActivationMs", static_cast<int>(std::lround(
 				p->GetAirborneDefenseActivationTime() * 1000.0f)) },
+			{ "roofSupport", p->IsRoofSupportPlant() },
+			{ "nightRoofChargeZombieDamageMultiplierOn1000",
+				static_cast<int>(std::lround(
+					p->GetNightRoofChargeZombieDamageMultiplier() * 1000.0f)) },
 		};
+		if (p->IsRoofSupportPlant()) {
+			Plant* normal = board->GetNormalPlantAt(p->mRow, p->mColumn);
+			plantState["protectsNormalFromNightRoofCharge"] = normal
+				&& p->ProtectsSupportedPlantFromNightRoofCharge(normal);
+			plantState["protectsNormalFromNightRoofHijacker"] = normal
+				&& p->ProtectsSupportedPlantFromNightRoofHijacker(normal);
+		}
 		if (const auto* shadow = p->GetComponent<ShadowComponent>()) {
 			plantState["shadowOffsetXInt"] = static_cast<int>(std::lround(
 				shadow->GetOffset().x));
@@ -4762,6 +4789,17 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			const std::string cellKey =
 				std::to_string(p->mRow) + "_" + std::to_string(p->mColumn);
 			out["overlayPlantsByCell"][cellKey] = plantState;
+		}
+		const std::string cellKey =
+			std::to_string(p->mRow) + "_" + std::to_string(p->mColumn);
+		if (board->GetUnderPlantAt(p->mRow, p->mColumn) == p) {
+			out["underPlantsByCell"][cellKey] = plantState;
+		}
+		if (board->GetNormalPlantAt(p->mRow, p->mColumn) == p) {
+			out["normalPlantsByCell"][cellKey] = plantState;
+		}
+		if (board->GetPumpkinAt(p->mRow, p->mColumn) == p) {
+			out["pumpkinPlantsByCell"][cellKey] = plantState;
 		}
 		out["plants"].push_back(std::move(plantState));
 	}

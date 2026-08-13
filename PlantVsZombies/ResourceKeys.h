@@ -296,6 +296,7 @@ namespace ResourceKeys
 		RKEY(IMAGE_MAGNETSHROOM);
 		RKEY(IMAGE_GROUNDINGSHROOM);
 		RKEY(IMAGE_FLOWERPOT);
+		RKEY(IMAGE_LIGHTNINGRODPOT);
 		RKEY(IMAGE_CABBAGEPULT);
 		RKEY(IMAGE_CORNPULT);
 		RKEY(IMAGE_COFFEEBEAN);
@@ -560,6 +561,7 @@ namespace ResourceKeys
 		inline const std::string REANIM_MAGNETSHROOM = "Magnetshroom";
 		inline const std::string REANIM_GROUNDINGSHROOM = "GroundingShroom";
 		inline const std::string REANIM_FLOWERPOT = "Pot";
+		inline const std::string REANIM_LIGHTNINGRODPOT = "LightningRodPot";
 		inline const std::string REANIM_CABBAGEPULT = "Cabbagepult";
 		inline const std::string REANIM_KERNELPULT = "Cornpult";
 		inline const std::string REANIM_COFFEEBEAN = "Coffeebean";

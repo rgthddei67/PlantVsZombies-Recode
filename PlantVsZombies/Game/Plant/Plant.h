@@ -97,6 +97,8 @@ public:
 	virtual void OnZombieJumpBlocked(ZombieJumpType) {}
 	/** 是否在强/超强台风的逐格结算中锚定整个植物格；默认植物会随阵风移动。 */
 	virtual bool AnchorsPlantCellAgainstTyphoon() const { return false; }
+	/** 是否占据屋顶承载层并能托起普通植物；花盆及其承载层升级覆写。 */
+	virtual bool IsRoofSupportPlant() const { return false; }
 	/** 是否能保护指定逻辑格免受蹦极、篮球等来自上方的威胁。 */
 	virtual bool ProtectsCellFromAirborneThreat(int, int) const { return false; }
 	/** 请求启动或复用当前空中防御动作；默认植物不响应。 */
@@ -184,6 +186,14 @@ public:
 	virtual bool CanBeShutdown() const { return true; }
 	/** 当前植物是否能替指定植物导走本次黑夜屋顶雷荷；默认植物没有接地能力。 */
 	virtual bool CanGroundNightRoofChargeFor(const Plant*) const { return false; }
+	/** 承载植物是否让同格指定上层免于本次黑夜屋顶停机；默认承载物不保护。 */
+	virtual bool ProtectsSupportedPlantFromNightRoofCharge(const Plant*) const { return false; }
+	/** 承载植物是否让同格指定上层免于劫持者处决；默认承载物不保护。 */
+	virtual bool ProtectsSupportedPlantFromNightRoofHijacker(const Plant*) const { return false; }
+	/** 本次放电对同排普通地面僵尸的伤害倍率；Board 在结算边沿取同排最大值。 */
+	virtual float GetNightRoofChargeZombieDamageMultiplier() const { return 1.0f; }
+	/** 本次保护或增伤确实生效后的表现入口；不得在动画帧事件里承载玩法结算。 */
+	virtual void OnNightRoofChargeProtectionTriggered() {}
 	/** 当前植物是否让指定僵尸失去本次雷荷承接/过载能力；默认植物不干预僵尸。 */
 	virtual bool SuppressesNightRoofChargeProtectionFor(const Zombie*) const { return false; }
 	/** 完成一次冻结快照保护后的品种反噬入口；onWetSlope 取接地植物自身所在瓦面。 */

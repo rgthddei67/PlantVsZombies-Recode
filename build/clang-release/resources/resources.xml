@@ -149,6 +149,7 @@
     <Image>./resources/image/PlantImage/LilyPad.png</Image>
     <Image>./resources/image/PlantImage/Magnetshroom.png</Image>
     <Image>./resources/image/PlantImage/GroundingShroom.png</Image>
+    <Image>./resources/image/PlantImage/LightningRodPot.png</Image>
     <Image>./resources/image/PlantImage/Marigold.png</Image>
     <Image>./resources/image/PlantImage/Melonpult.png</Image>
     <Image>./resources/image/PlantImage/PeaShooter.png</Image>
@@ -455,6 +456,7 @@
     <Reanimation name="Pumpkin">./resources/reanim/Pumpkin.reanim</Reanimation>
     <Reanimation name="Magnetshroom">./resources/reanim/Magnetshroom.reanim</Reanimation>
     <Reanimation name="GroundingShroom">./resources/reanim/GroundingShroom.reanim</Reanimation>
+    <Reanimation name="LightningRodPot">./resources/reanim/LightningRodPot.reanim</Reanimation>
     <Reanimation name="Pot">./resources/reanim/Pot.reanim</Reanimation>
     <Reanimation name="Cabbagepult">./resources/reanim/Cabbagepult.reanim</Reanimation>
     <Reanimation name="Cornpult">./resources/reanim/Cornpult.reanim</Reanimation>

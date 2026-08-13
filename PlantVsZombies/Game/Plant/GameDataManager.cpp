@@ -50,6 +50,7 @@
 #include "MagnetShroom.h"
 #include "GroundingShroom.h"
 #include "FlowerPot.h"
+#include "LightningRodPot.h"
 #include "CabbagePult.h"
 #include "KernelPult.h"
 #include "CoffeeBean.h"
@@ -342,6 +343,12 @@ void GameDataManager::InitializeHardcodedData() {
 		ResourceKeys::Textures::IMAGE_FLOWERPOT,
 		AnimationType::ANIM_FLOWERPOT,
 		ResourceKeys::Reanimations::REANIM_FLOWERPOT, &MakePlant<FlowerPot>);
+
+	RegisterPlant(PlantType::PLANT_LIGHTNINGRODPOT, "PLANT_LIGHTNINGRODPOT",
+		ResourceKeys::Textures::IMAGE_LIGHTNINGRODPOT,
+		AnimationType::ANIM_LIGHTNINGRODPOT,
+		ResourceKeys::Reanimations::REANIM_LIGHTNINGRODPOT,
+		&MakePlant<LightningRodPot>);
 
 	RegisterPlant(PlantType::PLANT_CABBAGEPULT, "PLANT_CABBAGEPULT",
 		ResourceKeys::Textures::IMAGE_CABBAGEPULT,

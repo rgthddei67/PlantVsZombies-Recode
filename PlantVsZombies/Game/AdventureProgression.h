@@ -85,7 +85,7 @@ namespace AdventureProgression
 		NO_PLANT_REWARD,
 		PlantType::PLANT_GLOOMSHROOM,
 		PlantType::PLANT_TWINSUNFLOWER,
-		NO_PLANT_REWARD,
+		PlantType::PLANT_LIGHTNINGRODPOT,
 		NO_PLANT_REWARD,
 		NO_PLANT_REWARD,
 		NO_PLANT_REWARD,
@@ -145,6 +145,7 @@ namespace AdventureProgression
 	static_assert(GetPlantReward(46) == NO_PLANT_REWARD);
 	static_assert(GetPlantReward(47) == PlantType::PLANT_GLOOMSHROOM);
 	static_assert(GetPlantReward(48) == PlantType::PLANT_TWINSUNFLOWER);
+	static_assert(GetPlantReward(49) == PlantType::PLANT_LIGHTNINGRODPOT);
 	static_assert(GetAreaNumber(18) == 2 && GetLevelNumberInArea(18) == 9);
 	static_assert(GetAreaNumber(19) == 3 && GetLevelNumberInArea(19) == 1);
 	static_assert(IsBossLevel(AREA_FIVE_BOSS_LEVEL));

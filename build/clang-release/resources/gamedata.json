@@ -37,6 +37,7 @@
     "PLANT_MAGNETSHROOM":    { "cost": 100, "cooldown": 7.5,  "offset": [-37.6, -42.0], "scale": 1.0, "simulation": { "baseHealth": 300, "persistent": false } },
     "PLANT_GROUNDINGSHROOM": { "cost": 100, "cooldown": 20.0, "offset": [-56.0, -44.0], "scale": 1.0, "simulation": { "baseHealth": 500 } },
     "PLANT_FLOWERPOT":       { "cost": 25,  "cooldown": 7.5,  "offset": [-37.6, -18.0], "scale": 1.0, "simulation": { "baseHealth": 300 } },
+    "PLANT_LIGHTNINGRODPOT": { "cost": 150, "cooldown": 50.0, "offset": [-57.0, -116.0], "scale": 1.0, "simulation": { "baseHealth": 700 } },
     "PLANT_CABBAGEPULT":     { "cost": 100, "cooldown": 7.5,  "offset": [-37.6, -44.0], "scale": 1.0, "simulation": { "baseHealth": 300, "attackDps": 13.33 } },
     "PLANT_KERNELPULT":      { "cost": 100, "cooldown": 7.5,  "offset": [-37.6, -44.0], "scale": 1.0, "simulation": { "baseHealth": 300, "attackDps": 8.33 } },
     "PLANT_INSTANT_COFFEE":  { "cost": 75,  "cooldown": 7.5,  "offset": [-25.6, -54.0], "scale": 0.8, "simulation": { "baseHealth": 300, "persistent": false } },

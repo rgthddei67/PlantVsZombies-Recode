@@ -21,6 +21,7 @@ public:
 	bool CanBeEaten() const override;
 	bool IsBiteProtected() const { return mBiteProtectionTimer > 0.0f; }
 	bool IsCovered() const { return mCovered; }
+	bool IsRoofSupportPlant() const override { return true; }
 
 	void SaveExtraData(nlohmann::json& j) const override;
 	void LoadExtraData(const nlohmann::json& j) override;
@@ -30,4 +31,6 @@ public:
 protected:
 	/** 使用现有 ShadowComponent 复现原版花盆相对通用阴影的偏移。 */
 	void SetupPlant() override;
+	/** 普通花盆被上层遮住后冻结待机；高出上层的升级承载物可覆写为继续播放。 */
+	virtual bool PausesAnimationWhenCovered() const { return true; }
 };

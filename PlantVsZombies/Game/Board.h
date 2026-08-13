@@ -310,6 +310,10 @@ private:
 	HijackerZombie* GetValidNightRoofHijacker() const;
 	/** 在普通放电之前按同一帧快照批量处决，并先清除施法者权威引用以禁止连锁。 */
 	void ResolveNightRoofHijackerExecution();
+	/** O(1) 查询目标同格承载层是否提供雷荷停机保护；不做逐帧全场遍历。 */
+	Plant* GetNightRoofChargeSupportProtector(const Plant* target) const;
+	/** O(1) 查询目标同格承载层是否提供劫持者处决豁免。 */
+	Plant* GetNightRoofHijackerSupportProtector(const Plant* target) const;
 	/** 放电周期结束或场景不支持时清理本轮锁定状态。 */
 	void ResetNightRoofHijackerCycle();
 	/** 在预警转放电的唯一边沿快照目标，并结算通用停机、伤害与麻痹。 */

@@ -13,6 +13,7 @@
 - [第六大关绝缘僵尸](project_pvz_insulator_zombie.md) — 2026-08-13 300本体+单层1200陶瓷胸甲；干燥轻弹/尖刺减半、1.5格同阵营放电承接后15秒2.2倍过载与100啃咬，湿润植物伤甲1.5倍且湿坡放电固定碎甲360无溢出；磁力菇整甲吸取自身扣150；胸甲为Zombie_body末尾前景follower，6-2首次、正式每波限2，专项与父回归可见闭环
 - [第六大关劫持者僵尸](project_pvz_hijacker_zombie.md) — 2026-08-13 初始1000本体/首次锁定当前与最大生命各+1000/50啃咬/成本2000/每波限2；有效同类令雨中雷荷固定+1.5点每秒且多只不叠加；75%择最高当前可计生命锁定，满电7秒预警/最后1秒终局动作；释放以实时处决线同帧快照，生存封顶1200；6-4第7波教学、6-5组合、生存15轮
 - [第六大关黑夜屋顶与延期设计](project_pvz_sixth_area_night_roof_backlog.md) — 2026-08-13 6-1～6-9 已接入正式黑夜屋顶、基础雷荷、绝缘僵尸、劫持者、5-9接地菇、6-2忧郁菇与6-3双子向日葵；其他植物/僵尸及6-9僵尸博士仍延期
+- [第六大关避雷花盆](project_pvz_lightning_rod_pot.md) — 2026-08-13 `PLANT_LIGHTNINGRODPOT` 为6-4奖励：150阳光/50秒/700生命，under层原位升级花盆并保留上层；同格永久免普通雷荷停机与劫持者处决，有效承载时同排雷击伤害翻倍且多盆不叠加；只在结算边沿查询，无逐帧全场遍历
 
 - [第六大关接地菇](project_pvz_grounding_shroom.md) — 2026-08-13 `PLANT_GROUNDINGSHROOM` 为5-9奖励：100阳光、20秒冷却、500生命；同排三格免一次雷荷停机，普通/湿坡每次直接反噬100/150且按冻结分配不回滚；范围内绝缘僵尸拒绝承接和过载；独立低精度整株动画约0.8倍、卡图约0.7倍；白天睡眠轨从闭眼切图的第26帧起循环，绝不闪回第25帧睁眼图；震击电弧以紫罗兰暗边和浅紫亮芯抵抗缩放与黑夜暗化
 - [经典忧郁菇与紫卡升级](project_pvz_gloomshroom.md) — 2026-08-13 `PLANT_GLOOMSHROOM` 为6-2奖励：150阳光、50秒冷却、300生命；原子覆盖大喷菇并保留承载层/南瓜及睡眠唤醒进度；每2秒按原版0.64～1.58秒时间线发四轮八向云雾与20点环形伤害；紫卡裁取主人seeds.png第二格；八炮口各5颗按双重Offset规则贴口扩散，Vulkan/OpenGL专项与升级/存档/奖励父回归可见闭环
@@ -73,7 +74,7 @@
 - [土豆地雷出土触发与范围爆炸](project_pvz_potato_mine_trigger_blast.md) — 2026-07-20 修复埋地时已被啃导致出土后不爆：出土跃迁若 `mEaterCount>0` 主动补触发；爆炸按原版同排半径60圆×僵尸矩形一次结算全部非魅惑目标，不再只杀碰撞触发者；可见 `smoke_potatomine.json` 独立覆盖先啃后出土与已出土双目标范围爆炸
 - [加固铁门僵尸](project_pvz_reinforced_door_zombie.md) — 2026-08-01 当前源码为270本体/1030门；持门正面植物普通伤害最多10、灰烬最多320、仙人掌正面尖刺帧伤1且免化灰/直杀，背击子弹绕门并取消持门上限；4-5加入双向射手即时反制教学，4-6继续综合复习；水草束缚、免魅惑与大喷截断契约保持
 - [Bullet 地面阴影与跨对象绘制顺序](project_pvz_bullet_shadow.md) — 2026-07-19 对齐 C#：Pea 单格21×9、Snowpea 1.3×、Puff无影；对象池复用时按row/position重算；阴影由 BulletPool 在 GOM 主体前统一提交，不能靠 Component::SetDrawOrder 跨越植物/Bullet对象层；主人校对 Y 与同排豌豆射手影子一致；可见 `smoke_bullet_shadow.json` 验普通/寒冰子弹穿过坚果时本体在上、影子在下
-- [九关制冒险进度+显式植物奖励表](project_pvz_adventure_progression.md) — 2026-08-13 `AdventureProgression.h` 扩展为六大关54小关；5-9 为白天屋顶屋脊督军关并奖励接地菇，6-1～6-9 为黑夜屋顶，6-1空、6-2奖励忧郁菇、6-3奖励双子向日葵、6-4起暂空；6-9僵尸博士仍未接入
+- [九关制冒险进度+显式植物奖励表](project_pvz_adventure_progression.md) — 2026-08-13 `AdventureProgression.h` 扩展为六大关54小关；5-9 为白天屋顶屋脊督军关并奖励接地菇，6-1～6-9 为黑夜屋顶，6-1空、6-2奖励忧郁菇、6-3奖励双子向日葵、6-4奖励避雷花盆，6-5起暂空；6-9僵尸博士仍未接入
 - [5-9 屋脊督军完整首领](project_pvz_roof_marshal_prototype.md) — 2026-08-12 正式绑定第15波；15000生命、250啃食、1/6/4秒固定36种前五大关白名单，高威胁概率在11000～5400血间由30%线性升至100%、狂暴阶段不出普通杂兵；黄油1.25秒后免疫5秒；每两批跑向兵力最多行并强化10秒，目标带原版红旗且有中央警报；屏幕下方560×18黑金首领血条同步显示实际血量与11000/5400阶段线；血条查询使用督军专用有序弱索引，不再每帧扫描全体僵尸
 - [非整十波旗帜进度条](project_pvz_flag_meter_non_multiple_waves.md) — 2026-07-18 对齐 C# `DrawProgressMeter`：旗数=`总波数/10` 向下取整，第 k 面旗横向位置=`1-k*10/总波数`；旗子按第10/20/30波顺序存储，实时升旗和读档恢复均直接使用同一索引；可见 AutoTest 已覆盖15/25/35波布局与25波第10波升旗
 - [原版 MO3 动态分轨音乐 ✅Release 已编译](project_pvz_adaptive_mo3_music.md) — 2026-07-17 `AdaptiveMusicPlayer` 用 libopenmpt interactive API 并行解码主旋律/鼓组/踩镲，按原版 order+channel 表切分 DAY/NIGHT/POOL/FOG/ROOF；敌对存活僵尸≥10或一大波警告触发 burst，持续8s后<4淡出；2026-07-22 敌对数并入 `UpdateZombieMetrics` 的 0.5s 血量采样，取消每帧 O(n) 扫描；**许可证方案不用 stock vcpkg 的 mpg123(LGPL)，overlay 编入 libopenmpt 自带 minimp3(CC0)+stb_vorbis(MIT)+zlib**；MO3 来自本机原版素材库，放 build/<preset>/resources/music（不入 git）；主人要求不跑首版 AutoTest，首版已过 clang-release

@@ -2,6 +2,12 @@
 
 #include "PlantType.h"
 
+enum class PlantUpgradeLayer {
+	NONE,
+	NORMAL,
+	UNDER,
+};
+
 /** 返回升级植物要求的基础植物；非升级植物返回 NUM_PLANT_TYPES。 */
 constexpr PlantType GetUpgradeBasePlantType(PlantType type)
 {
@@ -10,8 +16,24 @@ constexpr PlantType GetUpgradeBasePlantType(PlantType type)
 		return PlantType::PLANT_SUNFLOWER;
 	case PlantType::PLANT_GLOOMSHROOM:
 		return PlantType::PLANT_FUMESHROOM;
+	case PlantType::PLANT_LIGHTNINGRODPOT:
+		return PlantType::PLANT_FLOWERPOT;
 	default:
 		return PlantType::NUM_PLANT_TYPES;
+	}
+}
+
+/** 返回紫卡原位替换的格子层；普通紫卡替换 normal，避雷花盆替换 under。 */
+constexpr PlantUpgradeLayer GetUpgradePlantLayer(PlantType type)
+{
+	switch (type) {
+	case PlantType::PLANT_TWINSUNFLOWER:
+	case PlantType::PLANT_GLOOMSHROOM:
+		return PlantUpgradeLayer::NORMAL;
+	case PlantType::PLANT_LIGHTNINGRODPOT:
+		return PlantUpgradeLayer::UNDER;
+	default:
+		return PlantUpgradeLayer::NONE;
 	}
 }
 
@@ -19,4 +41,12 @@ constexpr PlantType GetUpgradeBasePlantType(PlantType type)
 constexpr bool IsUpgradePlantType(PlantType type)
 {
 	return GetUpgradeBasePlantType(type) != PlantType::NUM_PLANT_TYPES;
+}
+
+/** 返回植物是否占用承载层；承载层紫卡必须与基础花盆共用该层。 */
+constexpr bool IsUnderPlantLayerType(PlantType type)
+{
+	return type == PlantType::PLANT_LILYPAD
+		|| type == PlantType::PLANT_FLOWERPOT
+		|| GetUpgradePlantLayer(type) == PlantUpgradeLayer::UNDER;
 }

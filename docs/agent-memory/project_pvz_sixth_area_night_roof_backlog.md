@@ -13,10 +13,10 @@ metadata:
 - 主人计划在原版第五大关之后新增完整第六大关，继续使用 `NIGHT_ROOF`，并加入原版没有的
   植物、僵尸及部分原版紫卡。
 - 第六大关 6-1～6-9（内部 46～54）已接入正式 `NIGHT_ROOF` 背景，并沿用三列初始花盆与坡面径流；
-  6-1 无植物奖励，6-2/6-3 依次奖励原版紫卡忧郁菇/双子向日葵，6-4～6-9 暂为空。专属敌人绝缘僵尸与
+  6-1 无植物奖励，6-2/6-3 依次奖励原版紫卡忧郁菇/双子向日葵，6-4 奖励自创紫卡避雷花盆，6-5～6-9 暂为空。专属敌人绝缘僵尸与
   劫持者及其出怪表已经落地；5-9 现奖励接地菇，供 6-1 起反制雷荷。其他专属植物、僵尸和 BOSS 仍延期；
   详细契约见 `project_pvz_insulator_zombie.md`、`project_pvz_grounding_shroom.md` 与
-  `project_pvz_gloomshroom.md`、`project_pvz_twin_sunflower.md` 与 `project_pvz_hijacker_zombie.md`。
+  `project_pvz_gloomshroom.md`、`project_pvz_twin_sunflower.md`、`project_pvz_lightning_rod_pot.md` 与 `project_pvz_hijacker_zombie.md`。
 - 5-9 已确定为白天屋顶 BOSS 关并使用屋脊督军，不使用僵尸博士；僵尸博士仍计划放在未来 6-9，
   但关卡号 54 当前没有 BOSS 运行逻辑。
 - 昼夜屋顶因共用斜坡几何而沿用同一套较轻“坡面径流”，见 `project_pvz_roof_runoff.md`；第六大关
@@ -39,8 +39,9 @@ metadata:
 
 - 基础放电的双刃效果已经落地；后续调参直接复用 `Plant::ApplyShutdown` 与
   `Zombie::ApplyParalysis`，不要再为某个新技能复制定时状态。花盆当前只保护自身，不替上层绝缘。
-- 前期接地菇已经落地；仍延期的候选包括把花盆升级为本行/本列避雷与反击节点的“避雷花盆”紫卡。
-  若实现花盆原位升级，必须先定义上层植物保留、铲除优先级、存档重建和台风整组搬运。
+- 前期接地菇和 6-4 避雷花盆已经落地。避雷花盆原位替换 under 层并保留上层，永久保护同格宿主免
+  普通雷荷停机与劫持者处决；有效承载时同排雷击伤害翻倍，多盆不叠加。权威契约见
+  `project_pvz_lightning_rod_pot.md`，不再属于延期候选。
 - 忧郁菇与双子向日葵已作为 6-2/6-3 奖励落地；仍适合在第六大关恢复的原版紫卡候选为冰瓜和玉米加农炮。钢地刺与当前
   地刺系禁止屋顶的规则冲突，除非另行修改承载与地形契约。
 - 天线僵尸仍是能把放电路线引向自身所在行并吸收雷击强化的延期候选。绝缘僵尸已定案并实现为

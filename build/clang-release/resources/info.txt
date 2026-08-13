@@ -170,6 +170,11 @@
 [PLANT_FLOWERPOT_DESCRIPTION]
 花盆可以让你在屋顶上种植植物。“我是用来种植物的花盆，”花盆说，“不过我自己也是植物。你的脑袋开花了吗？”
 
+[PLANT_LIGHTNINGRODPOT]
+避雷花盆
+[PLANT_LIGHTNINGRODPOT_DESCRIPTION]
+避雷花盆必须种在花盆上。它拥有700点生命，并永久保护盆中植物免受普通黑夜屋顶雷荷停机与劫持者处决；当锁定行内至少有一个正在承载植物的避雷花盆时，该行普通雷击对合格地面僵尸的伤害翻倍，多盆不叠加。能力不会消耗花盆生命，空盆也不会生效。“电路要讲规矩，”避雷花盆敲了敲铜箍，“先走地线，再谈去谁家。”
+
 [PLANT_CABBAGEPULT]
 卷心菜投手
 [PLANT_CABBAGEPULT_DESCRIPTION]

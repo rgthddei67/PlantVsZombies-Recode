@@ -977,7 +977,7 @@ bool Board::IsPlantPausedByRoofRunoff(const Plant* plant) const
 	if (!plant || !plant->IsActive() || !IsRoofRunoffFlowing()
 		|| !IsRoofRunoffRowSelected(plant->mRow) || plant->mColumn < 0
 		|| plant->mColumn >= kRoofSlopeColumnCount
-		|| plant->mPlantType == PlantType::PLANT_FLOWERPOT) return false;
+		|| plant->IsRoofSupportPlant()) return false;
 	if (plant->mRow < 0 || plant->mRow >= mRows
 		|| plant->mColumn >= mColumns) return false;
 
@@ -986,7 +986,7 @@ bool Board::IsPlantPausedByRoofRunoff(const Plant* plant) const
 		&& cell->GetPumpkinPlantID() != plant->mPlantID)) return false;
 	Plant* support = mEntityManager.GetPlant(cell->GetUnderPlantID());
 	return support && support->IsActive() && !support->IsSquished()
-		&& support->mPlantType == PlantType::PLANT_FLOWERPOT;
+		&& support->IsRoofSupportPlant();
 }
 
 float Board::GetRainOverlayAlpha() const
@@ -3017,6 +3017,7 @@ bool Board::IsPlantThreatenedByNightRoofHijacker(const Plant* plant) const
 	if (plant->mPlantID != cell->GetNormalPlantID()
 		&& plant->mPlantID != cell->GetPumpkinPlantID()
 		&& plant->mPlantID != cell->GetOverlayPlantID()) return false;
+	if (GetNightRoofHijackerSupportProtector(plant)) return false;
 
 	int64_t groupHealth = 0;
 	bool hasHostLayer = false;
@@ -3028,6 +3029,26 @@ bool Board::IsPlantThreatenedByNightRoofHijacker(const Plant* plant) const
 		groupHealth += std::max(0, member->mPlantHealth);
 	}
 	return hasHostLayer && groupHealth > 0 && groupHealth <= line;
+}
+
+Plant* Board::GetNightRoofChargeSupportProtector(const Plant* target) const
+{
+	if (!target) return nullptr;
+	Plant* support = GetUnderPlantAt(target->mRow, target->mColumn);
+	return support && support->IsActive() && support->mPlantHealth > 0
+		&& !support->IsPreview() && !support->IsSquished()
+		&& support->ProtectsSupportedPlantFromNightRoofCharge(target)
+		? support : nullptr;
+}
+
+Plant* Board::GetNightRoofHijackerSupportProtector(const Plant* target) const
+{
+	if (!target) return nullptr;
+	Plant* support = GetUnderPlantAt(target->mRow, target->mColumn);
+	return support && support->IsActive() && support->mPlantHealth > 0
+		&& !support->IsPreview() && !support->IsSquished()
+		&& support->ProtectsSupportedPlantFromNightRoofHijacker(target)
+		? support : nullptr;
 }
 
 float Board::GetNightRoofHijackerPulseAlpha() const
@@ -3071,6 +3092,7 @@ void Board::ResolveNightRoofHijackerExecution()
 	if (!caster || line <= 0) return;
 
 	std::vector<int> plantTargets;
+	std::unordered_set<int> protectedSupportIDs;
 	for (int row = 0; row < mRows; ++row) {
 		for (int column = 0; column < mColumns; ++column) {
 			const Cell* cell = mCells[row][column];
@@ -3085,6 +3107,11 @@ void Board::ResolveNightRoofHijackerExecution()
 				group.push_back(id);
 			}
 			if (group.empty() || groupHealth <= 0 || groupHealth > line) continue;
+			if (Plant* protector = GetNightRoofHijackerSupportProtector(
+				mEntityManager.GetPlant(group.front()))) {
+				protectedSupportIDs.insert(protector->mPlantID);
+				continue;
+			}
 			plantTargets.insert(plantTargets.end(), group.begin(), group.end());
 			if (Plant* overlay = mEntityManager.GetPlant(cell->GetOverlayPlantID());
 				overlay && overlay->IsActive() && !overlay->IsPreview()) {
@@ -3113,6 +3140,14 @@ void Board::ResolveNightRoofHijackerExecution()
 	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_HIJACKER_EXECUTE,
 		kNightRoofHijackerExecuteVolume);
 	caster->TakeHijackerExecution();
+	std::vector<int> sortedProtectedSupportIDs(
+		protectedSupportIDs.begin(), protectedSupportIDs.end());
+	std::sort(sortedProtectedSupportIDs.begin(), sortedProtectedSupportIDs.end());
+	for (const int supportID : sortedProtectedSupportIDs) {
+		if (Plant* support = mEntityManager.GetPlant(supportID)) {
+			support->OnNightRoofChargeProtectionTriggered();
+		}
+	}
 
 	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_EXPLOSION, 0.7f);
 
@@ -3151,12 +3186,27 @@ void Board::ResolveNightRoofChargeDischarge()
 	std::sort(plantIDs.begin(), plantIDs.end());
 	std::vector<int> groundingProviderIDs;
 	std::unordered_set<int> groundingProviderSet;
+	std::unordered_set<int> protectedSupportIDs;
+	float zombieDamageMultiplier = 1.0f;
+	for (int column = 0; column < mColumns; ++column) {
+		Plant* support = GetUnderPlantAt(row, column);
+		if (!support || !support->IsActive() || support->IsPreview()
+			|| support->mPlantHealth <= 0 || support->IsSquished()) {
+			continue;
+		}
+		const float multiplier = support->GetNightRoofChargeZombieDamageMultiplier();
+		zombieDamageMultiplier = std::max(zombieDamageMultiplier, multiplier);
+		if (multiplier > 1.0f) protectedSupportIDs.insert(support->mPlantID);
+	}
 	for (const int id : plantIDs) {
 		Plant* plant = mEntityManager.GetPlant(id);
 		if (!plant || !plant->IsActive() || plant->IsPreview()
 			|| plant->IsSquished() || plant->IsBungeeTargeted()
-			|| plant->mRow != row
-			|| plant->mPlantType == PlantType::PLANT_FLOWERPOT) {
+			|| plant->mRow != row || plant->IsRoofSupportPlant()) {
+			continue;
+		}
+		if (Plant* support = GetNightRoofChargeSupportProtector(plant)) {
+			protectedSupportIDs.insert(support->mPlantID);
 			continue;
 		}
 
@@ -3196,8 +3246,9 @@ void Board::ResolveNightRoofChargeDischarge()
 		}
 		const bool onWetSlope = wetRow
 			&& zombie->GetPosition().x <= GetRoofSlopeEndX();
-		const int baseDamage = onWetSlope
-			? kNightRoofWetZombieDamage : kNightRoofZombieDamage;
+		const int baseDamage = static_cast<int>(std::lround((onWetSlope
+			? kNightRoofWetZombieDamage : kNightRoofZombieDamage)
+			* zombieDamageMultiplier));
 		const float paralysisDuration = onWetSlope
 			? kNightRoofWetZombieParalysisDuration
 			: kNightRoofZombieParalysisDuration;
@@ -3221,6 +3272,15 @@ void Board::ResolveNightRoofChargeDischarge()
 		}
 		zombie->TakeNightRoofChargeImpact(
 			baseDamage, paralysisDuration, onWetSlope);
+	}
+
+	std::vector<int> sortedProtectedSupportIDs(
+		protectedSupportIDs.begin(), protectedSupportIDs.end());
+	std::sort(sortedProtectedSupportIDs.begin(), sortedProtectedSupportIDs.end());
+	for (const int supportID : sortedProtectedSupportIDs) {
+		if (Plant* support = mEntityManager.GetPlant(supportID)) {
+			support->OnNightRoofChargeProtectionTriggered();
+		}
 	}
 
 	// 同次放电的植物与僵尸效果已经全部冻结；现在反噬死亡不会改变本次接地结果。
@@ -4781,8 +4841,7 @@ bool Board::CanPlantAt(PlantType type, int row, int col)
 	Plant* normalPlant = mEntityManager.GetPlant(cell->GetNormalPlantID());
 	const bool hasLilyPad = underPlant
 		&& underPlant->mPlantType == PlantType::PLANT_LILYPAD;
-	const bool hasFlowerPot = underPlant
-		&& underPlant->mPlantType == PlantType::PLANT_FLOWERPOT;
+	const bool hasFlowerPot = underPlant && underPlant->IsRoofSupportPlant();
 	if (type == PlantType::PLANT_INSTANT_COFFEE) {
 		// 原版 flying layer：只允许覆盖仍睡眠、尚未进入唤醒且未被蹦极抓取的普通层蘑菇。
 		return cell->GetOverlayPlantID() == NULL_PLANT_ID
@@ -4791,11 +4850,13 @@ bool Board::CanPlantAt(PlantType type, int row, int col)
 			&& !normalPlant->IsBungeeTargeted();
 	}
 	if (IsUpgradePlantType(type)) {
-		// 紫卡占据基础植物的普通层；承载层与南瓜层在替换时原样保留。
-		return normalPlant && normalPlant->IsActive()
-			&& normalPlant->mPlantHealth > 0 && !normalPlant->IsSquished()
-			&& !normalPlant->IsBungeeTargeted()
-			&& normalPlant->mPlantType == GetUpgradeBasePlantType(type);
+		// 紫卡按规则选择 normal 或 under；承载层升级不会检查或覆盖上层植物。
+		Plant* basePlant = GetUpgradePlantLayer(type) == PlantUpgradeLayer::UNDER
+			? underPlant : normalPlant;
+		return basePlant && basePlant->IsActive()
+			&& basePlant->mPlantHealth > 0 && !basePlant->IsSquished()
+			&& !basePlant->IsBungeeTargeted()
+			&& basePlant->mPlantType == GetUpgradeBasePlantType(type);
 	}
 	if (type == PlantType::PLANT_PUMPKINSHELL) {
 		// 南瓜有独立外壳层，但水路与屋顶仍分别要求正确的承载植物。
@@ -5094,10 +5155,13 @@ Plant* Board::CreatePlant(PlantType plantType, int row, int column, bool skipset
 	float inheritedWakeUpTimer = 0.0f;
 	if (isUpgradePlant && !isPreview && !skipsettings) {
 		if (!CanPlantAt(plantType, row, column)) return nullptr;
-		upgradeBasePlant = GetNormalPlantAt(row, column);
+		upgradeBasePlant = GetUpgradePlantLayer(plantType) == PlantUpgradeLayer::UNDER
+			? GetUnderPlantAt(row, column) : GetNormalPlantAt(row, column);
 		if (!upgradeBasePlant) return nullptr;
-		inheritedSleeping = upgradeBasePlant->GetSleepState();
-		inheritedWakeUpTimer = upgradeBasePlant->GetWakeUpTimeRemaining();
+		if (GetUpgradePlantLayer(plantType) == PlantUpgradeLayer::NORMAL) {
+			inheritedSleeping = upgradeBasePlant->GetSleepState();
+			inheritedWakeUpTimer = upgradeBasePlant->GetWakeUpTimeRemaining();
+		}
 	}
 
 	// 根据植物类型创建对应的植物
@@ -5105,8 +5169,7 @@ Plant* Board::CreatePlant(PlantType plantType, int row, int column, bool skipset
 
 	if (plant && !isPreview && !skipsettings) {
 		Cell* cell = GetCell(row, column);
-		const bool isUnderPlant = plantType == PlantType::PLANT_LILYPAD
-			|| plantType == PlantType::PLANT_FLOWERPOT;
+		const bool isUnderPlant = IsUnderPlantLayerType(plantType);
 		const bool isPumpkinPlant = plantType == PlantType::PLANT_PUMPKINSHELL;
 		const int occupiedID = isUnderPlant
 			? cell->GetUnderPlantID()
@@ -5128,11 +5191,12 @@ Plant* Board::CreatePlant(PlantType plantType, int row, int column, bool skipset
 		if (replacesExpectedBase) {
 			// 先把格子切到新 ID，再让旧株死亡；ReleaseGridSlot 只清自己的 ID，因此替换原子化。
 			upgradeBasePlant->Die();
-			if (inheritedSleeping) {
+			if (GetUpgradePlantLayer(plantType) == PlantUpgradeLayer::NORMAL
+				&& inheritedSleeping) {
 				plant->SetSleepState(true);
 				plant->RestoreSleepState(true, inheritedWakeUpTimer);
 			}
-			else {
+			else if (GetUpgradePlantLayer(plantType) == PlantUpgradeLayer::NORMAL) {
 				plant->SetSleepState(false);
 			}
 		}
@@ -6137,8 +6201,7 @@ void Board::LoadSpawnListFromJson()
 
 Plant* Board::CreatePlantWithID(PlantType type, int row, int col, int id) {
 	Cell* cell = GetCell(row, col);
-	const bool isUnderPlant = type == PlantType::PLANT_LILYPAD
-		|| type == PlantType::PLANT_FLOWERPOT;
+	const bool isUnderPlant = IsUnderPlantLayerType(type);
 	const bool isPumpkinPlant = type == PlantType::PLANT_PUMPKINSHELL;
 	const bool isOverlayPlant = type == PlantType::PLANT_INSTANT_COFFEE;
 	if (cell && (isUnderPlant

@@ -18,7 +18,7 @@ metadata:
 2026-07-18 收敛到 `Game/AdventureProgression.h`：
 
 - `LEVELS_PER_AREA=9`，显示与背景分段共用 `GetAreaNumber` / `GetLevelNumberInArea`；
-- `PLANT_REWARD_BY_LEVEL` 显式列出 1..54，每项为具体 `PlantType` 或 `NO_PLANT_REWARD`；5-9 现解锁接地菇，供 6-1 起使用；第六大关的 6-1 无奖励、6-2 解锁忧郁菇、6-3 解锁双子向日葵，6-4～6-9 暂为 `NO_PLANT_REWARD`；
+- `PLANT_REWARD_BY_LEVEL` 显式列出 1..54，每项为具体 `PlantType` 或 `NO_PLANT_REWARD`；5-9 现解锁接地菇，供 6-1 起使用；第六大关的 6-1 无奖励、6-2 解锁忧郁菇、6-3 解锁双子向日葵、6-4 解锁避雷花盆，6-5～6-9 暂为 `NO_PLANT_REWARD`；
 - 奖励按关显式配置，不再假设“每大关第 8 小关都为空”：当前 1-8、4-8、5-8 无植物，2-8 解锁精英胆小菇，3-8 解锁毒囊射手；各大关第 9 小关仍解锁下一场景首株植物；
 - `Trophy::AdvanceAdventureProgress` 无论有无植物都推进进度，仅在奖励不是 `NO_PLANT_REWARD` 时去重加入 `mHaveCards`；
 - 禁止再通过插入/挪动 `PlantType` 调奖励顺序：`PlayerInfo.json.havecards` 和关卡存档都按整数保存枚举，改值会破坏旧档。
@@ -32,7 +32,8 @@ metadata:
 现有 `ZOMBIE_BOSS`（僵尸博士）不用于 5-9；主人计划暂放未来 6-9。2026-08-10 只接入第六大关
 46～54 的正式 `NIGHT_ROOF` 场景和奖励占位。2026-08-12 已将 `PLANT_GROUNDINGSHROOM`
 登记为 5-9 奖励，专门供 6-1 起应对雷荷；2026-08-13 又把原版紫卡 `PLANT_GLOOMSHROOM`
-与 `PLANT_TWINSUNFLOWER` 依次登记为 6-2/6-3 奖励，并显式锁定 6-1 为空。其余第六大关植物奖励与 6-9 BOSS 仍待补充。
+与 `PLANT_TWINSUNFLOWER` 依次登记为 6-2/6-3 奖励，并显式锁定 6-1 为空；同日把自创紫卡
+`PLANT_LIGHTNINGRODPOT` 登记为 6-4 奖励。6-5 之后植物与 6-9 BOSS 仍待补充。
 
 `ZOMBIE_ROOF_MARSHAL` 的独立权重继续为 0，不进入普通波次随机池；正式最终波由 BOSS 槽位单独创建。
 完整素材、生存层、指挥召唤、换行/残血推进、天气命令、军帽随头飞出的专属掉头粒子与验证见
@@ -46,6 +47,9 @@ metadata:
 
 2026-08-13 可见 `smoke_twin_sunflower.json` 通过真实奖杯结算锁定内部 48（6-3）新增
 `PLANT_TWINSUNFLOWER` 并推进到 49；卡数从 1 增至 2，新卡位为双子向日葵。
+
+2026-08-13 可见 `smoke_lightning_rod_pot_reward.json` 通过真实奖杯结算锁定内部 49（6-4）新增
+`PLANT_LIGHTNINGRODPOT` 并推进到 50（6-5）；17 条命令 exit 0，`run.log` 为 `script finished OK`。
 
 2026-08-09 当前证据：`clang-release` 配置、编译与 LTO 链接退出 0；主人当前桌面可见
 `smoke_level_5_9_boss_slot.json`（11 条命令/6 项断言）与完整
