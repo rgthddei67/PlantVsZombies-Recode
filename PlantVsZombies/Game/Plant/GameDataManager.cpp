@@ -15,6 +15,7 @@
 #include "PeaShooter.h"
 #include "ToxicPeaShooter.h"
 #include "SunFlower.h"
+#include "TwinSunflower.h"
 #include "CherryBomb.h"
 #include "WallNut.h"
 #include "PotatoMine.h"
@@ -157,6 +158,12 @@ void GameDataManager::InitializeHardcodedData() {
 		ResourceKeys::Textures::IMAGE_SUNFLOWER,
 		AnimationType::ANIM_SUNFLOWER,
 		ResourceKeys::Reanimations::REANIM_SUNFLOWER, &MakePlant<SunFlower>);
+
+	RegisterPlant(PlantType::PLANT_TWINSUNFLOWER, "PLANT_TWINSUNFLOWER",
+		ResourceKeys::Textures::IMAGE_TWINSUNFLOWER,
+		AnimationType::ANIM_TWINSUNFLOWER,
+		ResourceKeys::Reanimations::REANIM_TWINSUNFLOWER,
+		&MakePlant<TwinSunflower>);
 
 	RegisterPlant(PlantType::PLANT_PEASHOOTER, "PLANT_PEASHOOTER",
 		ResourceKeys::Textures::IMAGE_PEASHOOTER,

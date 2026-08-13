@@ -199,6 +199,9 @@
     <Image>./resources/image/reanim/GloomShroom_stem1.png</Image>
     <Image>./resources/image/reanim/GloomShroom_stem2.png</Image>
     <Image>./resources/image/reanim/GloomShroom_stem3.png</Image>
+    <Image>./resources/image/reanim/TwinSunflower_leaf.png</Image>
+    <Image>./resources/image/reanim/TwinSunflower_stem1.png</Image>
+    <Image>./resources/image/reanim/TwinSunflower_stem2.png</Image>
     <Image>./resources/image/reanim/Melonpult_blink1.png</Image>
     <Image>./resources/image/reanim/Melonpult_blink2.png</Image>
     <Image>./resources/image/reanim/Melonpult_body.png</Image>
@@ -414,6 +417,7 @@
     <Reanimation name="Sun">./resources/reanim/Sun.reanim</Reanimation>
 
     <Reanimation name="SunFlower">./resources/reanim/SunFlower.reanim</Reanimation>
+    <Reanimation name="TwinSunflower">./resources/reanim/TwinSunflower.reanim</Reanimation>
     <Reanimation name="PeaShooter">./resources/reanim/PeaShooter.reanim</Reanimation>
     <Reanimation name="ToxicPeaShooter">./resources/reanim/ToxicPeaShooter.reanim</Reanimation>
     <Reanimation name="CherryBomb">./resources/reanim/CherryBomb.reanim</Reanimation>

@@ -84,7 +84,7 @@ namespace AdventureProgression
 		// 6-1 ... 6-9（黑夜屋顶；植物奖励与专属编排后续逐关补充）
 		NO_PLANT_REWARD,
 		PlantType::PLANT_GLOOMSHROOM,
-		NO_PLANT_REWARD,
+		PlantType::PLANT_TWINSUNFLOWER,
 		NO_PLANT_REWARD,
 		NO_PLANT_REWARD,
 		NO_PLANT_REWARD,
@@ -144,7 +144,7 @@ namespace AdventureProgression
 	static_assert(GetPlantReward(45) == PlantType::PLANT_GROUNDINGSHROOM);
 	static_assert(GetPlantReward(46) == NO_PLANT_REWARD);
 	static_assert(GetPlantReward(47) == PlantType::PLANT_GLOOMSHROOM);
-	static_assert(GetPlantReward(48) == NO_PLANT_REWARD);
+	static_assert(GetPlantReward(48) == PlantType::PLANT_TWINSUNFLOWER);
 	static_assert(GetAreaNumber(18) == 2 && GetLevelNumberInArea(18) == 9);
 	static_assert(GetAreaNumber(19) == 3 && GetLevelNumberInArea(19) == 1);
 	static_assert(IsBossLevel(AREA_FIVE_BOSS_LEVEL));

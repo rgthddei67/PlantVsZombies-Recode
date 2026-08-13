@@ -6,6 +6,8 @@
 constexpr PlantType GetUpgradeBasePlantType(PlantType type)
 {
 	switch (type) {
+	case PlantType::PLANT_TWINSUNFLOWER:
+		return PlantType::PLANT_SUNFLOWER;
 	case PlantType::PLANT_GLOOMSHROOM:
 		return PlantType::PLANT_FUMESHROOM;
 	default:

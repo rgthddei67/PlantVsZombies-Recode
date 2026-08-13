@@ -26,6 +26,7 @@
 #include "../Plant/GameDataManager.h"
 #include "../Plant/PlantType.h"
 #include "../Plant/Plant.h"
+#include "../Plant/SunFlower.h"
 #include "../Plant/Plantern.h"
 #include "../Plant/WallNut.h"
 #include "../Plant/LilyPad.h"
@@ -2446,6 +2447,33 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		{ "particleTextureLoaded", ResourceManager::GetInstance().GetTexture(
 			"IMAGE_PUFFSHROOM_PUFF1", false) != nullptr },
 	};
+	const std::array<std::string, 11> twinSunflowerTextureKeys = {
+		"IMAGE_REANIM_PEASHOOTER_BACKLEAF",
+		"IMAGE_REANIM_PEASHOOTER_BACKLEAF_LEFTTIP",
+		"IMAGE_REANIM_PEASHOOTER_BACKLEAF_RIGHTTIP",
+		"IMAGE_REANIM_PEASHOOTER_FRONTLEAF",
+		"IMAGE_REANIM_PEASHOOTER_FRONTLEAF_LEFTTIP",
+		"IMAGE_REANIM_PEASHOOTER_FRONTLEAF_RIGHTTIP",
+		"IMAGE_REANIM_SUNFLOWER_DOUBLE_PETALS",
+		"IMAGE_REANIM_SUNFLOWER_HEAD",
+		ResourceKeys::Textures::IMAGE_REANIM_TWINSUNFLOWER_LEAF,
+		ResourceKeys::Textures::IMAGE_REANIM_TWINSUNFLOWER_STEM1,
+		ResourceKeys::Textures::IMAGE_REANIM_TWINSUNFLOWER_STEM2,
+	};
+	const int twinSunflowerTexturePartsLoaded = static_cast<int>(std::count_if(
+		twinSunflowerTextureKeys.begin(), twinSunflowerTextureKeys.end(),
+		[](const std::string& key) {
+			return ResourceManager::GetInstance().GetTexture(key, false) != nullptr;
+		}));
+	out["twinSunflowerResources"] = {
+		{ "reanimationLoaded", ResourceManager::GetInstance().HasReanimation(
+			ResourceKeys::Reanimations::REANIM_TWINSUNFLOWER) },
+		{ "cardLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_TWINSUNFLOWER, false) != nullptr },
+		{ "upgradeCardBackgroundLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_SEEDPACKETVARIANTS, false) != nullptr },
+		{ "referencedTexturePartsLoaded", twinSunflowerTexturePartsLoaded },
+	};
 	// 命中配方随机取七个分片；全部加载才能排除“偶尔抽到空纹理”的假绿。
 	const std::array<std::string, 7> toxicPeaHitTextureKeys = {
 		ResourceKeys::Particles::PARTICLE_TOXICPEA_SPLATS_PART_0,
@@ -4601,6 +4629,14 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				melonPult->GetShootTimer() * 1000.0f));
 			plantState["melonShootIntervalMs"] = static_cast<int>(std::lround(
 				melonPult->GetShootInterval() * 1000.0f));
+		}
+		if (auto* sunFlower = dynamic_cast<SunFlower*>(p)) {
+			plantState["produceTimerMs"] = static_cast<int>(std::lround(
+				sunFlower->GetProduceTimer() * 1000.0f));
+			plantState["produceIntervalMs"] = static_cast<int>(std::lround(
+				sunFlower->GetProduceInterval() * 1000.0f));
+			plantState["produceSunCount"] = sunFlower->GetProduceSunCount();
+			plantState["productionGlowing"] = sunFlower->IsGlowingForProduction();
 		}
 		if (auto* gloomShroom = dynamic_cast<GloomShroom*>(p)) {
 			plantState["gloomShootTimerMs"] = static_cast<int>(std::lround(

@@ -6,6 +6,10 @@
 向日葵
 [PLANT_SUNFLOWER_DESCRIPTION]
 向日葵是你收集额外阳光必不可少的植物。向日葵很有花的自觉。她说："我早上的时候跟太阳打声招呼，然后他就给了我一些额外的阳光作为回报。很简单。"
+[PLANT_TWINSUNFLOWER]
+双子向日葵
+[PLANT_TWINSUNFLOWER_DESCRIPTION]
+双子向日葵必须种在向日葵上。她们每次会同时生产两颗普通阳光，而且生产间隔比普通向日葵短5秒。两朵花异口同声地说："我们并没有抢着发言，这叫光合作用的立体声。"
 [PLANT_CHERRYBOMB]
 樱桃炸弹
 [PLANT_CHERRYBOMB_DESCRIPTION]
