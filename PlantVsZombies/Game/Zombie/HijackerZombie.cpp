@@ -10,6 +10,7 @@
 
 namespace {
 	constexpr int kBodyHealth = 1000;                    // 劫持者基础本体生命
+	constexpr int kLockHealthBoost = 1000;               // 首次被雷荷锁定时同时增加的当前与最大本体生命
 	constexpr float kGroundRootMotionRate = 12.0f;       // 小丑 _ground 时间线的根运动换算基准
 	constexpr float kWalkClip = 1.0f;                    // 把小丑快跑时间线压回普通僵尸中值步速
 	constexpr float kEatClip = 20.0f / 12.0f;            // 沿用小丑啃食每秒 20 帧节奏
@@ -60,6 +61,11 @@ bool HijackerZombie::CanBeNightRoofHijackerCandidate() const
 void HijackerZombie::BeginNightRoofLock()
 {
 	if (!CanBeNightRoofHijackerCandidate() || mPhase == Phase::FINALIZING) return;
+	if (!mLockHealthBoostApplied) {
+		mBodyHealth += kLockHealthBoost;
+		mBodyMaxHealth += kLockHealthBoost;
+		mLockHealthBoostApplied = true;
+	}
 	mPhase = Phase::LOCKED;
 	mWarningActive = false;
 	mAlarmPulseTimer = 0.0f;
@@ -239,6 +245,7 @@ void HijackerZombie::SaveExtraData(nlohmann::json& j) const
 	j["phase"] = static_cast<int>(mPhase);
 	j["warningActive"] = mWarningActive;
 	j["alarmPulseTimer"] = mAlarmPulseTimer;
+	j["lockHealthBoostApplied"] = mLockHealthBoostApplied;
 }
 
 void HijackerZombie::LoadExtraData(const nlohmann::json& j)
@@ -248,5 +255,6 @@ void HijackerZombie::LoadExtraData(const nlohmann::json& j)
 	mPhase = static_cast<Phase>(phase);
 	mWarningActive = j.value("warningActive", false);
 	mAlarmPulseTimer = std::max(0.0f, j.value("alarmPulseTimer", 0.0f));
+	mLockHealthBoostApplied = j.value("lockHealthBoostApplied", false);
 	// Board 交叉引用在全部僵尸按原 ID 登记后统一收敛；此处不声明声音或重播最终动画。
 }

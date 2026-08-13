@@ -19,7 +19,7 @@ public:
 
 	Phase GetPhase() const { return mPhase; }
 	bool CanBeNightRoofHijackerCandidate() const;
-	/** 75% 选择边沿调用；不改变生命、移动或当前啃食动作。 */
+	/** 75% 选择边沿调用；首次锁定增加本体耐久，但不打断移动或当前啃食动作。 */
 	void BeginNightRoofLock();
 	/** 满电进入延长预警时提高循环反馈，但仍允许普通行动。 */
 	void BeginNightRoofWarning();
@@ -58,4 +58,5 @@ private:
 	float mAlarmPulseTimer = 0.0f;
 	bool mWarningActive = false;
 	bool mLoopSoundClaimed = false;
+	bool mLockHealthBoostApplied = false;
 };

@@ -750,6 +750,8 @@ public:
 	float GetNightRoofOverchargeRatio() const { return mNightRoofOvercharge / 100.0f; }
 	NightRoofChargePhase GetNightRoofChargePhase() const { return mNightRoofChargePhase; }
 	float GetNightRoofChargePhaseTimer() const { return mNightRoofChargePhaseTimer; }
+	/** 返回当前由场上有效劫持者提供的雨中雷荷固定增量，晴天恒为零。 */
+	float GetNightRoofHijackerRainChargeBonusPerSecond() const;
 	int GetNightRoofChargeRow() const { return mNightRoofChargeRow; }
 	bool IsNightRoofChargeWarning() const {
 		return mNightRoofChargePhase == NightRoofChargePhase::WARNING;

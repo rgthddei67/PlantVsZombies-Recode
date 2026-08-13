@@ -3455,6 +3455,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "hijackerSelectionAttempted", board->HasNightRoofHijackerSelectionAttempted() },
 			{ "hijackerID", board->GetNightRoofHijackerID() },
 			{ "hijackerCandidateCount", board->mEntityManager.GetActiveNightRoofHijackerCount() },
+			{ "hijackerRainChargeBonusPerSecondOn1000", static_cast<int>(std::lround(
+				board->GetNightRoofHijackerRainChargeBonusPerSecond() * 1000.0f)) },
 			{ "hijackerWarningExtended", board->IsNightRoofHijackerWarningExtended() },
 			{ "hijackerFinalizing", board->IsNightRoofHijackerFinalizing() },
 			{ "executionLine", board->GetNightRoofExecutionLine() },

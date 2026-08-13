@@ -268,6 +268,7 @@ namespace {
 	constexpr float kNightRoofHijackerFinalDuration = 1.0f; // 处决前停止移动和啃食、播放专属动画的游戏秒数
 	constexpr int kNightRoofHijackerSurvivalLineCap = 1200; // 生存模式处决线封顶，避免后期超高血量失去反制空间
 	constexpr float kNightRoofHijackerExecuteVolume = 0.55f; // 全场处决提交时的短促紫电碎裂声音量
+	constexpr float kNightRoofHijackerRainChargeBonusPerSecond = 1.5f; // 场上至少一只有效劫持者时，雨中每秒额外增加的雷荷；多只不叠加
 	constexpr float kNightRoofChargeDischargeDuration = 0.65f; // 基础坡面放电的可见游戏秒数
 	constexpr float kNightRoofOverchargeMaximum = 15.0f;   // 满电后最多截留给下一轮的余电点数
 	constexpr float kNightRoofPlantShutdownDuration = 8.0f; // 普通瓦面植物在放电快照中停机的游戏秒数
@@ -3279,6 +3280,7 @@ void Board::UpdateNightRoofCharge(float deltaTime)
 		chargeDelta = kNightRoofChargeHeavyPerSecond;
 		break;
 	}
+	chargeDelta += GetNightRoofHijackerRainChargeBonusPerSecond();
 
 	if (mNightRoofChargePhase == NightRoofChargePhase::WARNING
 		|| mNightRoofChargePhase == NightRoofChargePhase::DISCHARGING) {
@@ -3376,6 +3378,13 @@ void Board::RestoreNightRoofChargeState(float charge, NightRoofChargePhase phase
 		mNightRoofHijackerID = NULL_ZOMBIE_ID;
 		mNightRoofHijackerFinalizing = false;
 	}
+}
+
+float Board::GetNightRoofHijackerRainChargeBonusPerSecond() const
+{
+	if (mRainIntensity == RainIntensity::CLEAR
+		|| !mEntityManager.HasActiveNightRoofHijacker()) return 0.0f;
+	return kNightRoofHijackerRainChargeBonusPerSecond;
 }
 
 void Board::FinalizeNightRoofHijackerLoad()

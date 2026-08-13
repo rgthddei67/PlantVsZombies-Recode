@@ -32,6 +32,8 @@ public:
 	std::shared_ptr<HijackerZombie> SelectNightRoofHijacker() const;
 	/** 返回专用弱索引中当前仍满足锁定门禁的候选数，不扫描普通僵尸。 */
 	int GetActiveNightRoofHijackerCount() const;
+	/** 热路径只检查劫持者专用弱索引并在首个有效候选处返回。 */
+	bool HasActiveNightRoofHijacker() const;
 
 	int AddBullet(std::shared_ptr<Bullet> bullet);
 	Bullet* GetBullet(int id) const;

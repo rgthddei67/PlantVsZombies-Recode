@@ -106,6 +106,15 @@ int EntityManager::GetActiveNightRoofHijackerCount() const
 	return count;
 }
 
+bool EntityManager::HasActiveNightRoofHijacker() const
+{
+	for (const auto& pair : mHijackers) {
+		if (auto hijacker = pair.second.lock();
+			hijacker && hijacker->CanBeNightRoofHijackerCandidate()) return true;
+	}
+	return false;
+}
+
 int EntityManager::AddBullet(std::shared_ptr<Bullet> bullet) {
 	int id = mNextBulletID++;
 	mBullets[id] = bullet;
