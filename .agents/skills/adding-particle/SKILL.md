@@ -124,6 +124,7 @@ description: Use when adding or tuning ANY particle effect (粒子特效) in PvZ
 17. **原版定向 `LaunchAngle` 不能直接移植**：本引擎没有该标签，`RandomLaunchSpin` 又只能在固定向右和 360° 随机间选择。单颗反弹飞行物需要稳定方向与弧线时，使用 `FieldType=Position` 的 X/Y 关键帧直接描述相对发射点的完整轨迹，再用 `ParticleRotation/ParticleSpinSpeed` 单独处理贴图朝向；发射点取实际飞行物中心，并用同步截图和 `originToRenderCenter*`/`nearestPlant.row,col` 验证方向与锚点。
 
 18. **经典变体先找原版专属素材再考虑程序染色**：搜索 C# 资源包及现有权威资源中的同名 PNG/XML；若原版已有独立帧条或碎屑图集，按原布局和哈希导入并只做当前引擎必需的时间、名称与注册适配，禁止重新生成或用基础粒子乘色冒充。只有确认没有专属素材且乘法染色能够保留目标通道时，才选择染色变体。
+19. **多 Emitter 仍只有首个 Name 是特效实例名**：第二个及后续 Emitter 会与首个一起生成粒子并增加实际 quad 数，但不会在 `particleEffectNameCounts` / `particleEffectsByName` 下形成独立效果键。负例零键只为真正独立调用的效果名预置；验证光环、芯层等附加发射器时，断言首个 Name 的实例数、总 quad 数与同步截图，不要伪造第二个 Emitter 的零键。
 
 ## 配方（照抄改数）
 

@@ -4,6 +4,7 @@
 #include "Zombie/GildedZamboniZombie.h"
 #include "Zombie/RoofMarshalZombie.h"
 #include "Zombie/HijackerZombie.h"
+#include "Zombie/HealerZombie.h"
 #include "../GameRandom.h"
 #include "Bullet/Bullet.h"
 #include "Coin.h"
@@ -40,6 +41,7 @@ int EntityManager::AddZombie(std::shared_ptr<Zombie> zombie) {
 	TrackGoldenIceSource(id, zombie);
 	TrackRoofMarshal(id, zombie);
 	TrackHijacker(id, zombie);
+	TrackHealer(id, zombie);
 	return id;
 }
 
@@ -111,6 +113,32 @@ bool EntityManager::HasActiveNightRoofHijacker() const
 	for (const auto& pair : mHijackers) {
 		if (auto hijacker = pair.second.lock();
 			hijacker && hijacker->CanBeNightRoofHijackerCandidate()) return true;
+	}
+	return false;
+}
+
+bool EntityManager::IsHealerFocusedTargetReserved(
+	int zombieID, int exceptHealerID) const
+{
+	if (zombieID == NULL_ZOMBIE_ID) return false;
+	for (const auto& pair : mHealers) {
+		if (pair.first == exceptHealerID) continue;
+		if (auto healer = pair.second.lock();
+			healer && healer->IsFocusedOnTarget(zombieID)) {
+			return true;
+		}
+	}
+	return false;
+}
+
+bool EntityManager::HasReadyHealerBefore(int healerID) const
+{
+	for (const auto& pair : mHealers) {
+		if (pair.first >= healerID) break;
+		if (auto healer = pair.second.lock();
+			healer && healer->IsReadyForTreatmentChoice()) {
+			return true;
+		}
 	}
 	return false;
 }
@@ -216,7 +244,8 @@ void EntityManager::TrackRoofMarshal(
 	int id, const std::shared_ptr<Zombie>& zombie)
 {
 	if (auto marshal = std::dynamic_pointer_cast<RoofMarshalZombie>(zombie)) {
-		mRoofMarshals[id] = std::move(marshal);
+		// 专用表只是附加 weak_ptr 索引；主表 mZombies 仍是所有僵尸的唯一全集。
+		mRoofMarshals[id] = marshal;
 	}
 	else {
 		mRoofMarshals.erase(id);
@@ -227,10 +256,21 @@ void EntityManager::TrackHijacker(
 	int id, const std::shared_ptr<Zombie>& zombie)
 {
 	if (auto hijacker = std::dynamic_pointer_cast<HijackerZombie>(zombie)) {
-		mHijackers[id] = std::move(hijacker);
+		mHijackers[id] = hijacker;
 	}
 	else {
 		mHijackers.erase(id);
+	}
+}
+
+void EntityManager::TrackHealer(
+	int id, const std::shared_ptr<Zombie>& zombie)
+{
+	if (auto healer = std::dynamic_pointer_cast<HealerZombie>(zombie)) {
+		mHealers[id] = healer;
+	}
+	else {
+		mHealers.erase(id);
 	}
 }
 
@@ -297,6 +337,15 @@ std::vector<int> EntityManager::CleanupExpired() {
 			}
 		}
 
+		for (auto it = mHealers.begin(); it != mHealers.end(); ) {
+			if (it->second.expired()) {
+				it = mHealers.erase(it);
+			}
+			else {
+				++it;
+			}
+		}
+
 		for (auto it = mCoins.begin(); it != mCoins.end(); ) {
 			if (it->second.expired()) {
 				it = mCoins.erase(it);
@@ -335,6 +384,7 @@ int EntityManager::AddZombieWithID(std::shared_ptr<Zombie> zombie, int id) {
 	TrackGoldenIceSource(id, zombie);
 	TrackRoofMarshal(id, zombie);
 	TrackHijacker(id, zombie);
+	TrackHealer(id, zombie);
 	if (id >= mNextZombieID) {
 		mNextZombieID = id + 1;
 	}

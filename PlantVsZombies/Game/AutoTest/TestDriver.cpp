@@ -81,6 +81,7 @@
 #include "../Zombie/RoofMarshalZombie.h"
 #include "../Zombie/InsulatorZombie.h"
 #include "../Zombie/HijackerZombie.h"
+#include "../Zombie/HealerZombie.h"
 #include "../Trophy.h"   // dump_state 输出奖杯坐标
 #include "../Crater.h"   // dump_state 输出毁灭菇弹坑
 #include "../../Reanimation/Animator.h"   // dump_state 查询轨道可见性（如铁门僵尸手臂）
@@ -216,6 +217,17 @@ namespace {
 		}
 	}
 
+	const char* HealerTreatmentStateName(HealerZombie::TreatmentState state)
+	{
+		switch (state) {
+		case HealerZombie::TreatmentState::IDLE: return "IDLE";
+		case HealerZombie::TreatmentState::AREA: return "AREA";
+		case HealerZombie::TreatmentState::FOCUSED: return "FOCUSED";
+		case HealerZombie::TreatmentState::DISABLED: return "DISABLED";
+		default: return "UNKNOWN";
+		}
+	}
+
 	const char* ZombieHelmTypeName(HelmType type)
 	{
 		switch (type) {
@@ -311,7 +323,7 @@ namespace {
 		ZT(ZOMBIE_GARGANTUAR), ZT(ZOMBIE_IMP), ZT(ZOMBIE_BOSS), ZT(ZOMBIE_PEA_HEAD),
 		ZT(ZOMBIE_WALLNUT_HEAD), ZT(ZOMBIE_JALAPENO_HEAD), ZT(ZOMBIE_GATLING_HEAD),
 		ZT(ZOMBIE_SQUASH_HEAD), ZT(ZOMBIE_TALLNUT_HEAD), ZT(ZOMBIE_REDEYE_GARGANTUAR), ZT(ZOMBIE_ROOF_MARSHAL),
-		ZT(ZOMBIE_INSULATOR), ZT(ZOMBIE_HIJACKER),
+		ZT(ZOMBIE_INSULATOR), ZT(ZOMBIE_HIJACKER), ZT(ZOMBIE_HEALER),
 	};
 #undef ZT
 #define PK(n) { #n, PerkType::n }
@@ -611,6 +623,7 @@ void TestDriver::Finish() {
 
 void TestDriver::ResetTestState() {
 	DeltaTime::SetTimeScale(1.0f);
+	GameAPP::GetInstance().Difficulty = 3;
 	GameAPP::mDevNoCooldown = false;
 	GameAPP::mDevFreePlant = false;
 	GameAPP::mDevSpawnPaused = false;
@@ -716,6 +729,15 @@ bool TestDriver::ExecuteCurrent() {
 	}
 	if (op == "set_timescale") {
 		DeltaTime::SetTimeScale(cmd.value("value", 1.0f));
+		return true;
+	}
+	if (op == "set_difficulty") {
+		const int difficulty = cmd.value("value", 3);
+		if (difficulty < 1 || difficulty > 4) {
+			Fail("set_difficulty: value 必须在 1～4");
+			return false;
+		}
+		GameAPP::GetInstance().Difficulty = difficulty;
 		return true;
 	}
 	if (op == "set_monte_carlo_ai") {
@@ -1494,6 +1516,30 @@ bool TestDriver::ExecuteCurrent() {
 		Fail("set_elite_ladder_scan_countdown: 未找到目标精英扶梯僵尸");
 		return false;
 	}
+	if (op == "make_healer_ready") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) {
+			Fail("make_healer_ready: 不在 GameScene 或 Board 为空");
+			return false;
+		}
+		const int row = cmd.value("row", -1);
+		const int index = cmd.value("index", 0);
+		int seen = 0;
+		std::vector<int> zombieIDs = gs->GetBoard()->mEntityManager.GetAllZombieIDs();
+		std::sort(zombieIDs.begin(), zombieIDs.end());
+		for (const int id : zombieIDs) {
+			auto* healer = dynamic_cast<HealerZombie*>(
+				gs->GetBoard()->mEntityManager.GetZombie(id));
+			if (!healer || !healer->IsActive()) continue;
+			if (row >= 0 && healer->mRow != row) continue;
+			if (seen++ != index) continue;
+			// 只把正式冷却压到决策边沿；目标选择、前摇、结算和音画仍走正常路径。
+			healer->MakeTreatmentReadyForTesting();
+			return true;
+		}
+		Fail("make_healer_ready: 未找到目标急救员僵尸");
+		return false;
+	}
 	if (op == "set_jack_pop_countdown") {
 		GameScene* gs = CurrentGameScene();
 		if (!gs || !gs->GetBoard()) {
@@ -1723,11 +1769,24 @@ bool TestDriver::ExecuteCurrent() {
 		if (damage <= 0) { Fail(op + ": damage 必须大于 0"); return false; }
 		auto sourceIt = kDamageSourceNames.find(cmd.value("source", "OTHER"));
 		if (sourceIt == kDamageSourceNames.end()) { Fail(op + ": source 必须是 PLANT/ZOMBIE/OTHER"); return false; }
+		ZombieType desiredType = ZombieType::NUM_ZOMBIE_TYPES;
+		if (cmd.contains("type")) {
+			auto typeIt = kZombieNames.find(cmd.value("type", ""));
+			if (typeIt == kZombieNames.end()) {
+				Fail(op + ": type 不是已注册僵尸名");
+				return false;
+			}
+			desiredType = typeIt->second;
+		}
 		int seen = 0;
-		for (int id : board->mEntityManager.GetAllZombieIDs()) {
+		std::vector<int> zombieIDs = board->mEntityManager.GetAllZombieIDs();
+		std::sort(zombieIDs.begin(), zombieIDs.end());
+		for (int id : zombieIDs) {
 			Zombie* z = board->mEntityManager.GetZombie(id);
 			if (!z) continue;
 			if (row >= 0 && z->mRow != row) continue;
+			if (desiredType != ZombieType::NUM_ZOMBIE_TYPES
+				&& z->mZombieType != desiredType) continue;
 			if (seen++ == index) {
 				// 走正式受伤链（来源词条/护盾/头盔/断肢断头/免伤），用于验证而非直接 Die。
 				if (op == "ash_damage_zombie") z->TakePlantAshDamage(damage);
@@ -1736,6 +1795,7 @@ bool TestDriver::ExecuteCurrent() {
 			}
 		}
 		Fail(op + ": 未找到目标僵尸 (row=" + std::to_string(row)
+			+ ", type=" + cmd.value("type", "")
 			+ ", index=" + std::to_string(index) + ")");
 		return false;
 	}
@@ -2230,6 +2290,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	auto& gameApp = GameAPP::GetInstance();
 	out["scene"] = currentScene->name;
 	out["adventureLevel"] = gameApp.mAdventureLevel;
+	out["difficulty"] = gameApp.Difficulty;
 	out["encounteredEliteDancer"] = gameApp.HasEncounteredEliteDancer();
 	out["monteCarloAIEnabled"] = gameApp.mEnableMonteCarloAI;
 	out["advancedPauseEnabled"] = gameApp.mAdvancedPauseEnabled;
@@ -2675,6 +2736,49 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["shooterShootSoundRequestCount"] =
 		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_SHOOTER_SHOOT)
 		+ AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_SHOOTER_SHOOT2);
+	out["healerCastSoundRequestCount"] =
+		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_BUTTONCLICK);
+	out["healerAreaSoundRequestCount"] =
+		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_COLLECTSUN);
+	out["healerFocusedSoundRequestCount"] =
+		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_CHOOSEPLANT1);
+	out["healerResources"] = {
+		{ "baseReanimationLoaded", ResourceManager::GetInstance().HasReanimation(
+			ResourceKeys::Reanimations::REANIM_NORMAL_ZOMBIE) },
+		{ "bodyLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_ZOMBIE_HEALER_BODY, false) != nullptr },
+		{ "idleGearLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_ZOMBIE_HEALER_GEAR_IDLE, false) != nullptr },
+		{ "areaGearLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_ZOMBIE_HEALER_GEAR_AREA, false) != nullptr },
+		{ "focusedGearLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_ZOMBIE_HEALER_GEAR_FOCUSED, false) != nullptr },
+		{ "disabledGearLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_ZOMBIE_HEALER_GEAR_DISABLED, false) != nullptr },
+		{ "plusParticleLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Particles::PARTICLE_HEALERPLUS, false) != nullptr },
+		{ "haloParticleLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Particles::PARTICLE_HEALERHALO, false) != nullptr },
+		{ "soundsLoaded",
+			ResourceManager::GetInstance().GetSound(
+				ResourceKeys::Sounds::SOUND_BUTTONCLICK) != nullptr
+			&& ResourceManager::GetInstance().GetSound(
+				ResourceKeys::Sounds::SOUND_COLLECTSUN) != nullptr
+			&& ResourceManager::GetInstance().GetSound(
+				ResourceKeys::Sounds::SOUND_CHOOSEPLANT1) != nullptr },
+	};
+	const Vector healerOffset = GameDataManager::GetInstance().GetZombieOffset(
+		ZombieType::ZOMBIE_HEALER);
+	out["healerGameData"] = {
+		{ "weight", GameDataManager::GetInstance().GetZombieWeight(
+			ZombieType::ZOMBIE_HEALER) },
+		{ "appearWave", GameDataManager::GetInstance().GetZombieAppearWave(
+			ZombieType::ZOMBIE_HEALER) },
+		{ "survivalRound", GameDataManager::GetInstance().GetZombieSurvivalRound(
+			ZombieType::ZOMBIE_HEALER) },
+		{ "offsetXInt", static_cast<int>(std::lround(healerOffset.x)) },
+		{ "offsetYInt", static_cast<int>(std::lround(healerOffset.y)) },
+	};
 
 	// 主菜单没有 Board，但仍允许测试读取上方 GameAPP 级设置，覆盖真实按钮切换路径。
 	if (currentScene->name == "MainMenuScene") {
@@ -2705,6 +2809,17 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				previewState["pogoPreviewBounceActive"] = pogo->IsPreviewBounceActive();
 				previewState["pogoAltitudeOn1000"] = static_cast<int>(std::lround(
 					pogo->GetPogoAltitude() * 1000.0f));
+			}
+			if (auto* healer = dynamic_cast<HealerZombie*>(preview)) {
+				previewState["healerTreatmentState"] =
+					HealerTreatmentStateName(healer->GetTreatmentState());
+				previewState["healerCooldownMs"] = static_cast<int>(std::lround(
+					healer->GetHealCooldownRemaining() * 1000.0f));
+				previewState["healerDisabled"] =
+					healer->IsHealingPermanentlyDisabled();
+				previewState["healerGearTextureKey"] =
+					healer->GetTreatmentGearTextureKey();
+				previewState["healerGearVisible"] = healer->IsTreatmentGearVisible();
 			}
 			out["zombieAlmanacPreview"] = std::move(previewState);
 		}
@@ -3774,6 +3889,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	int redEyeGargantuarZombieCount = 0;
 	int impZombieCount = 0;
 	int roofMarshalZombieCount = 0;
+	int healerZombieCount = 0;
+	int healerWave3Count = 0;
 	int roofMarshalAssaultBoostedZombieCount = 0;
 	int roofMarshalAssaultBoostedRowMask = 0;
 	int roofMarshalAssaultFlagAnimatorCount = 0;
@@ -3865,6 +3982,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "id", id },
 			{ "type", ZombieTypeName(z->mZombieType) },
 			{ "row", z->mRow },
+			{ "spawnWave", z->mSpawnWave },
 			{ "renderOrder", z->GetRenderOrder() },
 			{ "renderLayer", static_cast<int>(z->GetLayer()) },
 			{ "x", pos.x }, { "y", pos.y },
@@ -4018,6 +4136,26 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				hijacker->CanBeNightRoofHijackerCandidate();
 			zombieState["hijackerLocked"] =
 				board->GetNightRoofHijackerID() == hijacker->mZombieID;
+		}
+		if (auto* healer = dynamic_cast<HealerZombie*>(z)) {
+			++healerZombieCount;
+			if (healer->mSpawnWave == 3) ++healerWave3Count;
+			zombieState["healerTreatmentState"] =
+				HealerTreatmentStateName(healer->GetTreatmentState());
+			zombieState["healerCooldownMs"] = static_cast<int>(std::lround(
+				healer->GetHealCooldownRemaining() * 1000.0f));
+			zombieState["healerRetryMs"] = static_cast<int>(std::lround(
+				healer->GetRetryRemaining() * 1000.0f));
+			zombieState["healerCastRemainingMs"] = static_cast<int>(std::lround(
+				healer->GetCastRemaining() * 1000.0f));
+			zombieState["healerFocusedTargetID"] = healer->GetFocusedTargetID();
+			zombieState["healerLastTargetCount"] = healer->GetLastHealTargetCount();
+			zombieState["healerLastTotalAmount"] = healer->GetLastHealTotalAmount();
+			zombieState["healerDisabled"] = healer->IsHealingPermanentlyDisabled();
+			zombieState["healerGearFollower"] = healer->HasTreatmentGearFollower();
+			zombieState["healerGearVisible"] = healer->IsTreatmentGearVisible();
+			zombieState["healerGearTextureKey"] =
+				healer->GetTreatmentGearTextureKey();
 		}
 		if (auto* eliteLadder = dynamic_cast<EliteLadderZombie*>(z)) {
 			++eliteLadderZombieCount;
@@ -4448,6 +4586,34 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		out["zombies"].push_back(std::move(zombieState));
 	}
 	out["zombieCount"] = static_cast<int>(out["zombies"].size());
+	out["healerZombieCount"] = healerZombieCount;
+	out["healerWave3Count"] = healerWave3Count;
+	int healerRowIndexVisibleCount = 0;
+	for (int row = 0; row < board->mRows; ++row) {
+		board->mEntityManager.ForEachZombieInRow(row, [&](Zombie* zombie) {
+			if (zombie && zombie->mZombieType == ZombieType::ZOMBIE_HEALER) {
+				++healerRowIndexVisibleCount;
+			}
+		});
+	}
+	out["healerRowIndexVisibleCount"] = healerRowIndexVisibleCount;
+	out["healers"] = nlohmann::json::array();
+	std::vector<int> healerIDs = board->mEntityManager.GetAllZombieIDs();
+	std::sort(healerIDs.begin(), healerIDs.end());
+	for (const int id : healerIDs) {
+		auto* healer = dynamic_cast<HealerZombie*>(
+			board->mEntityManager.GetZombie(id));
+		if (!healer || !healer->IsActive()) continue;
+		out["healers"].push_back({
+			{ "id", id },
+			{ "row", healer->mRow },
+			{ "spawnWave", healer->mSpawnWave },
+			{ "state", HealerTreatmentStateName(healer->GetTreatmentState()) },
+			{ "focusedTargetID", healer->GetFocusedTargetID() },
+			{ "disabled", healer->IsHealingPermanentlyDisabled() },
+			{ "gearTextureKey", healer->GetTreatmentGearTextureKey() },
+		});
+	}
 	out["jackZombieCount"] = jackZombieCount;
 	out["eliteJackZombieCount"] = eliteJackZombieCount;
 	out["zamboniCount"] = zamboniCount;
@@ -4891,6 +5057,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["particleEffectNameCounts"]["CatapultExplosion"] = 0;
 	out["particleEffectNameCounts"]["EliteCatapultExplosion"] = 0;
 	out["particleEffectNameCounts"]["GloomCloud"] = 0;
+	out["particleEffectNameCounts"]["HealerAreaHeal"] = 0;
+	out["particleEffectNameCounts"]["HealerFocusedHeal"] = 0;
 	if (g_particleSystem) {
 		for (const auto& effect : g_particleSystem->GetEffectsForTesting()) {
 			if (!effect) continue;

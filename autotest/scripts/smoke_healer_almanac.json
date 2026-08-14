@@ -1,0 +1,36 @@
+{
+  "commands": [
+    { "op": "set_adventure_level", "level": 51 },
+    { "op": "goto_zombie_almanac" },
+    { "op": "wait_frames", "value": 30 },
+    { "op": "assert_state", "path": "scene", "equals": "ZombieAlmanacScene" },
+    { "op": "assert_state", "path": "zombieAlmanacEntryCount", "equals": 34 },
+
+    { "op": "set_adventure_level", "level": 52 },
+    { "op": "goto_zombie_almanac" },
+    { "op": "wait_frames", "value": 30 },
+    { "op": "assert_state", "path": "scene", "equals": "ZombieAlmanacScene" },
+    { "op": "assert_state", "path": "zombieAlmanacEntryCount", "equals": 35 },
+    { "op": "assert_state", "path": "zombieAlmanacEntries.34", "equals": "ZOMBIE_HEALER" },
+    { "op": "move_mouse", "x": 268, "y": 478 },
+    { "op": "wait_frames", "value": 3 },
+    { "op": "click", "x": 268, "y": 478, "hold_frames": 2 },
+    { "op": "wait_frames", "value": 20 },
+    { "op": "assert_state", "path": "zombieAlmanacSelected", "equals": "ZOMBIE_HEALER" },
+    { "op": "assert_state", "path": "zombieAlmanacPreview.type", "equals": "ZOMBIE_HEALER" },
+    { "op": "assert_state", "path": "zombieAlmanacPreview.healerTreatmentState", "equals": "IDLE" },
+    { "op": "assert_state", "path": "zombieAlmanacPreview.healerCooldownMs", "equals": 6000 },
+    { "op": "assert_state", "path": "zombieAlmanacPreview.healerDisabled", "equals": false },
+    { "op": "assert_state", "path": "zombieAlmanacPreview.healerGearTextureKey", "equals": "IMAGE_ZOMBIE_HEALER_GEAR_IDLE" },
+    { "op": "assert_state", "path": "zombieAlmanacPreview.healerGearVisible", "equals": true },
+    { "op": "wait_frames", "value": 420 },
+    { "op": "assert_state", "path": "zombieAlmanacPreview.healerTreatmentState", "equals": "IDLE" },
+    { "op": "assert_state", "path": "zombieAlmanacPreview.healerCooldownMs", "equals": 6000 },
+    { "op": "assert_state", "path": "healerCastSoundRequestCount", "equals": 0 },
+    { "op": "assert_state", "path": "healerAreaSoundRequestCount", "equals": 0 },
+    { "op": "assert_state", "path": "healerFocusedSoundRequestCount", "equals": 0 },
+    { "op": "screenshot", "name": "healer_almanac_preview.png" },
+    { "op": "dump_state", "name": "healer_almanac_state.json" },
+    { "op": "quit" }
+  ]
+}

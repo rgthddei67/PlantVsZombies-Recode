@@ -1,0 +1,33 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 1, "resetTestState": true, "background": "GROUND_DAY" },
+    { "op": "choose_cards", "cards": [] },
+    { "op": "wait_state", "state": "GAME", "timeout": 15 },
+    { "op": "set_spawn_paused", "value": true },
+    { "op": "spawn_zombie", "type": "ZOMBIE_HEALER", "row": 2, "x": 650, "stationary": true },
+    { "op": "spawn_zombie", "type": "ZOMBIE_BUCKET", "row": 1, "x": 620, "stationary": true },
+    { "op": "spawn_zombie", "type": "ZOMBIE_FOOTBALL", "row": 1, "x": 680, "stationary": true },
+    { "op": "spawn_zombie", "type": "ZOMBIE_NEWSPAPER", "row": 2, "x": 600, "stationary": true },
+    { "op": "spawn_zombie", "type": "ZOMBIE_REINFORCED_DOOR", "row": 2, "x": 700, "stationary": true },
+    { "op": "spawn_zombie", "type": "ZOMBIE_LADDER", "row": 3, "x": 650, "stationary": true },
+    { "op": "damage_zombie", "type": "ZOMBIE_BUCKET", "damage": 200 },
+    { "op": "damage_zombie", "type": "ZOMBIE_FOOTBALL", "damage": 200 },
+    { "op": "damage_zombie", "type": "ZOMBIE_NEWSPAPER", "damage": 200 },
+    { "op": "damage_zombie", "type": "ZOMBIE_REINFORCED_DOOR", "damage": 200 },
+    { "op": "damage_zombie", "type": "ZOMBIE_LADDER", "damage": 200 },
+    { "op": "make_healer_ready" },
+    { "op": "wait_frames", "value": 2 },
+    { "op": "assert_state", "path": "zombiesByType.ZOMBIE_HEALER.healerTreatmentState", "equals": "AREA" },
+    { "op": "wait_seconds", "value": 1.05 },
+    { "op": "assert_state", "path": "zombiesByType.ZOMBIE_BUCKET.helmHealth", "equals": 960 },
+    { "op": "assert_state", "path": "zombiesByType.ZOMBIE_FOOTBALL.helmHealth", "equals": 1260 },
+    { "op": "assert_state", "path": "zombiesByType.ZOMBIE_NEWSPAPER.shieldHealth", "equals": 360 },
+    { "op": "assert_state", "path": "zombiesByType.ZOMBIE_REINFORCED_DOOR.shieldHealth", "equals": 890 },
+    { "op": "assert_state", "path": "zombiesByType.ZOMBIE_LADDER.shieldHealth", "equals": 360 },
+    { "op": "assert_state", "path": "zombiesByType.ZOMBIE_HEALER.healerLastTargetCount", "equals": 5 },
+    { "op": "assert_state", "path": "zombiesByType.ZOMBIE_HEALER.healerLastTotalAmount", "equals": 300 },
+    { "op": "screenshot", "name": "healer_armor_group_resolve.png" },
+    { "op": "dump_state", "name": "healer_armor_group_state.json" },
+    { "op": "quit" }
+  ]
+}

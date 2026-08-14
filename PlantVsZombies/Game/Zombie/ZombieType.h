@@ -71,6 +71,7 @@ enum class ZombieType {
 	ZOMBIE_ROOF_MARSHAL,	// 5-9 屋脊督军视觉样机：普通僵尸骨架、独立军官材质，不进入随机出怪池
 	ZOMBIE_INSULATOR,		// 绝缘僵尸：第六大关陶瓷胸甲与黑夜屋顶放电交互
 	ZOMBIE_HIJACKER,		// 劫持者僵尸：75% 雷荷锁定后以当前生命生成全场处决线
+	ZOMBIE_HEALER,			// 急救员僵尸：按伤员密度自动切换群体或单体治疗
 
 	// ↓ 哨兵：置于全部已实现僵尸之后，使 [0,NUM_ZOMBIE_TYPES) 只覆盖已实现类型，
 	//   生存模式随机抽取据此绝不会抽到下方未实现僵尸。

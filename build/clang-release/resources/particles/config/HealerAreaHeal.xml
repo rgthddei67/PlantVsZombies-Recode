@@ -1,0 +1,16 @@
+<Emitter>
+  <Name>HealerAreaHeal</Name>
+  <SpawnMinActive>1</SpawnMinActive>
+  <SpawnMaxLaunched>1</SpawnMaxLaunched>
+  <SpawnRate>0</SpawnRate>
+  <ParticleDuration>.9</ParticleDuration>
+  <ParticleAlpha>1,72 0</ParticleAlpha>
+  <ParticleScale>.434 .546,58 .504,100</ParticleScale>
+  <ParticleRotation>0</ParticleRotation>
+  <SystemDuration>.92</SystemDuration>
+  <Image>PARTICLE_HEALERPLUS</Image>
+  <Field>
+    <FieldType>Position</FieldType>
+    <Y>0 -24</Y>
+  </Field>
+</Emitter>

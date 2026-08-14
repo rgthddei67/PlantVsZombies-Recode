@@ -355,6 +355,11 @@ float DiggerZombie::GetPickaxeWalkVelocity() const
 	return kBackwardWalkVelocity;
 }
 
+const std::string& DiggerZombie::GetFullHardhatTexture() const
+{
+	return ResourceKeys::Textures::IMAGE_ZOMBIE_DIGGER_HARDHAT;
+}
+
 const std::string& DiggerZombie::GetDamagedHardhatTexture(bool heavilyDamaged) const
 {
 	return heavilyDamaged
@@ -543,20 +548,16 @@ bool DiggerZombie::TryGetDrawClipBottom(float& clipBottom) const
 void DiggerZombie::CheckHelmImage()
 {
 	if (mHelmType == HelmType::HELMTYPE_NONE) return;
-	if (mHelmStage == ArmorBrokenState::NO_BROKEN
-		&& mHelmHealth <= static_cast<int64_t>(mHelmMaxHealth) * 2 / 3) {
-		mHelmStage = ArmorBrokenState::A_LITTLE_BROKEN;
-		mAnimator->SetTrackImage("Zombie_digger_hardhat",
-			ResourceManager::GetInstance().GetTexture(
-				GetDamagedHardhatTexture(false)));
-	}
-	if (mHelmStage == ArmorBrokenState::A_LITTLE_BROKEN
-		&& mHelmHealth <= mHelmMaxHealth / 3) {
-		mHelmStage = ArmorBrokenState::REALLY_BROKEN;
-		mAnimator->SetTrackImage("Zombie_digger_hardhat",
-			ResourceManager::GetInstance().GetTexture(
-				GetDamagedHardhatTexture(true)));
-	}
+	// 治疗允许伤势阶段向上恢复；外观必须完全由当前生命派生，不能只单向破损。
+	mHelmStage = mHelmHealth > static_cast<int64_t>(mHelmMaxHealth) * 2 / 3
+		? ArmorBrokenState::NO_BROKEN
+		: (mHelmHealth > mHelmMaxHealth / 3
+			? ArmorBrokenState::A_LITTLE_BROKEN : ArmorBrokenState::REALLY_BROKEN);
+	const std::string& textureKey = mHelmStage == ArmorBrokenState::NO_BROKEN
+		? GetFullHardhatTexture()
+		: GetDamagedHardhatTexture(mHelmStage == ArmorBrokenState::REALLY_BROKEN);
+	mAnimator->SetTrackImage("Zombie_digger_hardhat",
+		ResourceManager::GetInstance().GetTexture(textureKey));
 }
 
 void DiggerZombie::HelmDrop()

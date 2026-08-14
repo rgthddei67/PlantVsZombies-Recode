@@ -1,0 +1,32 @@
+<Emitter>
+  <Name>HealerFocusedHeal</Name>
+  <SpawnMinActive>1</SpawnMinActive>
+  <SpawnMaxLaunched>1</SpawnMaxLaunched>
+  <SpawnRate>0</SpawnRate>
+  <ParticleDuration>.9</ParticleDuration>
+  <ParticleAlpha>1,72 0</ParticleAlpha>
+  <ParticleScale>.651 .819,58 .756,100</ParticleScale>
+  <ParticleRotation>0</ParticleRotation>
+  <SystemDuration>.92</SystemDuration>
+  <Image>PARTICLE_HEALERPLUS</Image>
+  <Field>
+    <FieldType>Position</FieldType>
+    <Y>0 -24</Y>
+  </Field>
+</Emitter>
+<Emitter>
+  <Name>HealerFocusedHalo</Name>
+  <SpawnMinActive>1</SpawnMinActive>
+  <SpawnMaxLaunched>1</SpawnMaxLaunched>
+  <SpawnRate>0</SpawnRate>
+  <ParticleDuration>.9</ParticleDuration>
+  <ParticleAlpha>.62,72 0</ParticleAlpha>
+  <ParticleScale>.72 1.18,68 1.30,100</ParticleScale>
+  <ParticleRotation>0</ParticleRotation>
+  <SystemDuration>.92</SystemDuration>
+  <Image>PARTICLE_HEALERHALO</Image>
+  <Field>
+    <FieldType>Position</FieldType>
+    <Y>0 -24</Y>
+  </Field>
+</Emitter>

@@ -18,6 +18,7 @@ protected:
 	void OnPickaxeStunFinished() override;
 	void OnPickaxeLost(Phase previousPhase) override;
 	float GetPickaxeWalkVelocity() const override;
+	const std::string& GetFullHardhatTexture() const override;
 	const std::string& GetDamagedHardhatTexture(bool heavilyDamaged) const override;
 	const std::string& GetBrokenOuterArmTexture() const override;
 	const char* GetHelmDropEffectName() const override;

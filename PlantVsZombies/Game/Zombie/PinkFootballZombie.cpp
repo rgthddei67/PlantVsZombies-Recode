@@ -79,19 +79,12 @@ void PinkFootballZombie::EatTarget()
 void PinkFootballZombie::CheckHelmImage()
 {
 	if (mHelmType == HelmType::HELMTYPE_NONE) return;
-
-	if (mHelmStage == ArmorBrokenState::NO_BROKEN
-		&& mHelmHealth <= static_cast<int64_t>(mHelmMaxHealth) * 2 / 3) {
-		mHelmStage = ArmorBrokenState::A_LITTLE_BROKEN;
-		mAnimator->SetTrackImage("zombie_football_helmet", ResourceManager::GetInstance().
-			GetTexture("IMAGE_ZOMBIE_PINKFOOTBALL_HELMET2"));
-	}
-	if (mHelmStage == ArmorBrokenState::A_LITTLE_BROKEN
-		&& mHelmHealth <= mHelmMaxHealth / 3) {
-		mHelmStage = ArmorBrokenState::REALLY_BROKEN;
-		mAnimator->SetTrackImage("zombie_football_helmet", ResourceManager::GetInstance().
-			GetTexture("IMAGE_ZOMBIE_PINKFOOTBALL_HELMET3"));
-	}
+	mHelmStage = mHelmHealth > static_cast<int64_t>(mHelmMaxHealth) * 2 / 3
+		? ArmorBrokenState::NO_BROKEN
+		: (mHelmHealth > mHelmMaxHealth / 3
+			? ArmorBrokenState::A_LITTLE_BROKEN : ArmorBrokenState::REALLY_BROKEN);
+	mAnimator->SetTrackImage("zombie_football_helmet", ResourceManager::GetInstance().
+		GetTexture(GetMagneticHelmetImageKey()));
 }
 
 /**

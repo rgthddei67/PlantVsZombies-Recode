@@ -12,6 +12,7 @@ class Zombie;
 class GildedZamboniZombie;
 class RoofMarshalZombie;
 class HijackerZombie;
+class HealerZombie;
 class Coin;
 class Bullet;
 class Mower;
@@ -34,6 +35,10 @@ public:
 	int GetActiveNightRoofHijackerCount() const;
 	/** 热路径只检查劫持者专用弱索引并在首个有效候选处返回。 */
 	bool HasActiveNightRoofHijacker() const;
+	/** 单疗预留查询只遍历急救员稀有索引；exceptHealerID 的自身预留不算冲突。 */
+	bool IsHealerFocusedTargetReserved(int zombieID, int exceptHealerID) const;
+	/** 同帧选疗由实体 ID 小者先提交；较大 ID 至多等待一帧。 */
+	bool HasReadyHealerBefore(int healerID) const;
 
 	int AddBullet(std::shared_ptr<Bullet> bullet);
 	Bullet* GetBullet(int id) const;
@@ -137,6 +142,12 @@ private:
 	std::map<int, std::weak_ptr<HijackerZombie>> mHijackers;
 	/** 登记或覆盖指定 ID 的劫持者；非劫持者覆盖同 ID 时撤销旧登记。 */
 	void TrackHijacker(int id, const std::shared_ptr<Zombie>& zombie);
+
+	// ── 急救员独立索引（瞬态、按实体 ID 有序）──
+	// 只在六秒决策边沿协调单疗预留和同帧顺序，常态治疗候选扫描仍是低频事件。
+	std::map<int, std::weak_ptr<HealerZombie>> mHealers;
+	/** 登记或覆盖指定 ID 的急救员；非急救员覆盖同 ID 时撤销旧登记。 */
+	void TrackHealer(int id, const std::shared_ptr<Zombie>& zombie);
 };
 
 #endif

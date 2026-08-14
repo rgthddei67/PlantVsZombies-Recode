@@ -13,11 +13,11 @@ metadata:
 - 主人计划在原版第五大关之后新增完整第六大关，继续使用 `NIGHT_ROOF`，并加入原版没有的
   植物、僵尸及部分原版紫卡。
 - 第六大关 6-1～6-9（内部 46～54）已接入正式 `NIGHT_ROOF` 背景，并沿用三列初始花盆与坡面径流；
-  6-1 无植物奖励，6-2/6-3 依次奖励原版紫卡忧郁菇/双子向日葵，6-4 奖励自创紫卡避雷花盆，6-5 奖励原版紫卡冰瓜，6-6～6-9 暂为空。专属敌人绝缘僵尸与
-  劫持者及其出怪表已经落地；5-9 现奖励接地菇，供 6-1 起反制雷荷。其他专属植物、僵尸和 BOSS 仍延期；
+  6-1 无植物奖励，6-2/6-3 依次奖励原版紫卡忧郁菇/双子向日葵，6-4 奖励自创紫卡避雷花盆，6-5 奖励原版紫卡冰瓜，6-6～6-9 的植物奖励暂为空。专属敌人绝缘僵尸、
+  劫持者与 6-6 急救员及其出怪表已经落地；5-9 现奖励接地菇，供 6-1 起反制雷荷。6-7 新僵尸已按主人要求延期到 6-8 教学，其他专属植物、僵尸和 BOSS 仍延期；
   详细契约见 `project_pvz_insulator_zombie.md`、`project_pvz_grounding_shroom.md` 与
   `project_pvz_gloomshroom.md`、`project_pvz_twin_sunflower.md`、`project_pvz_lightning_rod_pot.md`、
-  `project_pvz_winter_melon.md` 与 `project_pvz_hijacker_zombie.md`。
+  `project_pvz_winter_melon.md`、`project_pvz_hijacker_zombie.md` 与 `project_pvz_healer_zombie.md`。
 - 5-9 已确定为白天屋顶 BOSS 关并使用屋脊督军，不使用僵尸博士；僵尸博士仍计划放在未来 6-9，
   但关卡号 54 当前没有 BOSS 运行逻辑。
 - 昼夜屋顶因共用斜坡几何而沿用同一套较轻“坡面径流”，见 `project_pvz_roof_runoff.md`；第六大关

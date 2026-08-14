@@ -407,6 +407,11 @@ public:
 	// 将本体/头盔/护盾的当前血量与上限整体按倍率缩放（与具体模式无关，由调用方决定倍率来源）。
 	// 倍率<=0 或 ==1 时不作处理；缩放后保持 current==max（同源同舍入）。
 	void ApplyHealthMultiplier(double multiplier);
+	/** 治疗等正向耐久变化后，按当前生命重新派生两类防具的破损贴图。 */
+	void RefreshEquipmentPresentationAfterRepair() {
+		CheckHelmImage();
+		CheckShieldImage();
+	}
 
 protected:
 	/** 把当前 Animator 轨道局部锚点换算为稳定世界坐标，供离体装备取得起点。 */

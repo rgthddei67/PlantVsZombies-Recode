@@ -100,6 +100,7 @@
 #include "../Zombie/RoofMarshalZombie.h"
 #include "../Zombie/InsulatorZombie.h"
 #include "../Zombie/HijackerZombie.h"
+#include "../Zombie/HealerZombie.h"
 
 namespace {
 	template<typename T>
@@ -606,6 +607,12 @@ void GameDataManager::InitializeHardcodedData() {
 		AnimationType::ANIM_HIJACKER_ZOMBIE,
 		ResourceKeys::Reanimations::REANIM_HIJACKER_ZOMBIE,
 		&MakeZombie<HijackerZombie>);
+
+	// 急救员复用普通僵尸时间线，以逻辑计时驱动双模式治疗并用身体 follower 区分状态。
+	RegisterZombie(ZombieType::ZOMBIE_HEALER, "ZOMBIE_HEALER",
+		AnimationType::ANIM_NORMAL_ZOMBIE,
+		ResourceKeys::Reanimations::REANIM_NORMAL_ZOMBIE,
+		&MakeZombie<HealerZombie>);
 
 	// ==================== 非植物/僵尸动画映射 ====================
 	mAnimToString[AnimationType::ANIM_SUN] = ResourceKeys::Reanimations::REANIM_SUN;

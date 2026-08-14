@@ -203,6 +203,11 @@
     <Image>./resources/image/reanim/TwinSunflower_leaf.png</Image>
     <Image>./resources/image/reanim/TwinSunflower_stem1.png</Image>
     <Image>./resources/image/reanim/TwinSunflower_stem2.png</Image>
+	<Image>./resources/image/reanim/Zombie_healer_body.png</Image>
+	<Image>./resources/image/reanim/Zombie_healer_gear_idle.png</Image>
+	<Image>./resources/image/reanim/Zombie_healer_gear_area.png</Image>
+	<Image>./resources/image/reanim/Zombie_healer_gear_focused.png</Image>
+	<Image>./resources/image/reanim/Zombie_healer_gear_disabled.png</Image>
     <Image>./resources/image/reanim/Melonpult_blink1.png</Image>
     <Image>./resources/image/reanim/Melonpult_blink2.png</Image>
     <Image>./resources/image/reanim/Melonpult_body.png</Image>
@@ -242,6 +247,8 @@
     <Texture>./resources/particles/ZombieEliteJackboxArm.png</Texture>
     <Texture>./resources/particles/ZombieHijackerHead.png</Texture>
     <Texture>./resources/particles/ZombieHijackerArm.png</Texture>
+	<Texture>./resources/particles/HealerPlus.png</Texture>
+	<Texture>./resources/particles/HealerHalo.png</Texture>
     <Texture>./resources/particles/Sproing.png</Texture>
     <Texture>./resources/particles/ZombieBackupDancerHead.png</Texture>
     <Texture>./resources/particles/ZombieBackupDancerHead_disco.png</Texture>

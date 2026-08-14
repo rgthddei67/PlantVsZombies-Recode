@@ -37,17 +37,12 @@ void BucketZombie::HelmDrop()
 void BucketZombie::CheckHelmImage()
 {
 	if (mHelmType == HelmType::HELMTYPE_NONE) return;
-	if (mHelmStage == ArmorBrokenState::NO_BROKEN && mHelmHealth <= static_cast<int64_t>(mHelmMaxHealth) * 2 / 3) {
-		mHelmStage = ArmorBrokenState::A_LITTLE_BROKEN;
-		mAnimator->SetTrackImage("anim_bucket", ResourceManager::GetInstance().
-			GetTexture("IMAGE_ZOMBIE_BUCKET2"));
-	}
-	if (mHelmStage == ArmorBrokenState::A_LITTLE_BROKEN &&
-		mHelmHealth <= mHelmMaxHealth / 3) {
-		mHelmStage = ArmorBrokenState::REALLY_BROKEN;
-		mAnimator->SetTrackImage("anim_bucket", ResourceManager::GetInstance().
-			GetTexture("IMAGE_ZOMBIE_BUCKET3"));
-	}
+	mHelmStage = mHelmHealth > static_cast<int64_t>(mHelmMaxHealth) * 2 / 3
+		? ArmorBrokenState::NO_BROKEN
+		: (mHelmHealth > mHelmMaxHealth / 3
+			? ArmorBrokenState::A_LITTLE_BROKEN : ArmorBrokenState::REALLY_BROKEN);
+	mAnimator->SetTrackImage("anim_bucket", ResourceManager::GetInstance().
+		GetTexture(BucketImageKey(mHelmStage)));
 }
 
 bool BucketZombie::HasMagneticItem() const

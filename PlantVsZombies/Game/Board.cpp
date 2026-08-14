@@ -172,6 +172,8 @@ namespace {
 	constexpr int kHijackerMaxPerWave = 2;                // 每个正式波次最多成功生成的劫持者数量
 	constexpr int kHijackerTutorialLevel = 49;             // 内部 49 即 6-4，使用第七波固定单体教学
 	constexpr int kHijackerTutorialWave = 7;               // 6-4 首次登场的固定教学波
+	constexpr int kHealerTutorialLevel = 51;               // 内部 51 即 6-6，使用第三波额外保底
+	constexpr int kHealerTutorialWave = 3;                 // 6-6 首次登场的额外保底波次
 	constexpr int kEliteScaredyShroomPlantLimit = 4;      // 每个关卡累计最多种植的精英胆小菇数量
 	constexpr int kPumpkinProtectionCellRadius = 1;       // 南瓜头范围爆炸保护的逻辑格半径；1 表示自身九宫格
 	constexpr int kPumpkinAreaDamageMultiplier = 5;       // 特殊僵尸范围伤害被南瓜头拦截时的默认基础伤害倍率
@@ -5736,6 +5738,19 @@ inline void Board::TrySummonZombie()
 			}
 		}
 		return;
+	}
+	// 6-6 第三波额外保底一只急救员；它不消耗正常预算，且普通池仍可自然再选中急救员。
+	if (!mIsSurvival && mLevel == kHealerTutorialLevel
+		&& mCurrentWave == kHealerTutorialWave) {
+		const ZombieType actualType = ResolveWaveZombieType(ZombieType::ZOMBIE_HEALER);
+		if (actualType != ZombieType::NUM_ZOMBIE_TYPES) {
+			const int row = SelectSpawnRow(actualType);
+			if (row >= 0) {
+				if (Zombie* zombie = CreateResolvedWaveZombie(actualType, row, x)) {
+					AssignMistFuelReward(zombie);
+				}
+			}
+		}
 	}
 
 	int remainingPoints = CalculateWaveZombiePoints();

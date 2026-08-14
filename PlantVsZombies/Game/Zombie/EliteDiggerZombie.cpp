@@ -50,6 +50,11 @@ float EliteDiggerZombie::GetPickaxeWalkVelocity() const
 	return kElitePickaxeWalkVelocity;
 }
 
+const std::string& EliteDiggerZombie::GetFullHardhatTexture() const
+{
+	return ResourceKeys::Textures::IMAGE_ZOMBIE_ELITEDIGGER_HARDHAT;
+}
+
 const std::string& EliteDiggerZombie::GetDamagedHardhatTexture(bool heavilyDamaged) const
 {
 	return heavilyDamaged

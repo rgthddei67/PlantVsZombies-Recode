@@ -35,16 +35,14 @@ void FastPaperZombie::CheckShieldImage()
 {
 	// 与 PaperZombie::CheckShieldImage 完全同构，只把报纸破碎贴图换成 FastZombie 版本。
 	if (mShieldType == ShieldType::SHIELDTYPE_NONE) return;
-
-	if (mShieldStage == ArmorBrokenState::NO_BROKEN && mShieldHealth <= static_cast<int64_t>(mShieldMaxHealth) * 2 / 3) {
-		mShieldStage = ArmorBrokenState::A_LITTLE_BROKEN;
-		mAnimator->SetTrackImage("Zombie_paper_paper", ResourceManager::GetInstance().
-			GetTexture("IMAGE_FASTZOMBIE_PAPER_PAPER2"));
-	}
-	if (mShieldStage == ArmorBrokenState::A_LITTLE_BROKEN &&
-		mShieldHealth <= mShieldMaxHealth / 3) {
-		mShieldStage = ArmorBrokenState::REALLY_BROKEN;
-		mAnimator->SetTrackImage("Zombie_paper_paper", ResourceManager::GetInstance().
-			GetTexture("IMAGE_FASTZOMBIE_PAPER_PAPER3"));
-	}
+	mShieldStage = mShieldHealth > static_cast<int64_t>(mShieldMaxHealth) * 2 / 3
+		? ArmorBrokenState::NO_BROKEN
+		: (mShieldHealth > mShieldMaxHealth / 3
+			? ArmorBrokenState::A_LITTLE_BROKEN : ArmorBrokenState::REALLY_BROKEN);
+	const char* imageKey = mShieldStage == ArmorBrokenState::NO_BROKEN
+		? "IMAGE_FASTZOMBIE_PAPER_PAPER1"
+		: (mShieldStage == ArmorBrokenState::A_LITTLE_BROKEN
+			? "IMAGE_FASTZOMBIE_PAPER_PAPER2" : "IMAGE_FASTZOMBIE_PAPER_PAPER3");
+	mAnimator->SetTrackImage("Zombie_paper_paper",
+		ResourceManager::GetInstance().GetTexture(imageKey));
 }

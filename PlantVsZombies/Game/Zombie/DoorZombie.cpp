@@ -109,14 +109,10 @@ void DoorZombie::ShowBrokenArm() const
 void DoorZombie::CheckShieldImage()
 {
 	if (mShieldType == ShieldType::SHIELDTYPE_NONE) return;
-
-	if (mShieldStage == ArmorBrokenState::NO_BROKEN && mShieldHealth <= static_cast<int64_t>(mShieldMaxHealth) * 2 / 3) {
-		mShieldStage = ArmorBrokenState::A_LITTLE_BROKEN;
-	}
-	if (mShieldStage == ArmorBrokenState::A_LITTLE_BROKEN &&
-		mShieldHealth <= mShieldMaxHealth / 3) {
-		mShieldStage = ArmorBrokenState::REALLY_BROKEN;
-	}
+	mShieldStage = mShieldHealth > static_cast<int64_t>(mShieldMaxHealth) * 2 / 3
+		? ArmorBrokenState::NO_BROKEN
+		: (mShieldHealth > mShieldMaxHealth / 3
+			? ArmorBrokenState::A_LITTLE_BROKEN : ArmorBrokenState::REALLY_BROKEN);
 	ApplyDoorImage();
 }
 

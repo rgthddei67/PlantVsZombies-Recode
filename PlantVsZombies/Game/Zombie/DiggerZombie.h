@@ -68,6 +68,7 @@ protected:
 	/** 丢镐后的变体入口；previousPhase 是丢镐发生前的状态。 */
 	virtual void OnPickaxeLost(Phase previousPhase);
 	virtual float GetPickaxeWalkVelocity() const;
+	virtual const std::string& GetFullHardhatTexture() const;
 	virtual const std::string& GetDamagedHardhatTexture(bool heavilyDamaged) const;
 	virtual const std::string& GetBrokenOuterArmTexture() const;
 	/** 返回当前矿工变体被磁力吸走的镐子贴图。 */

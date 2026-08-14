@@ -24,17 +24,16 @@ void PoolConeZombie::HelmDrop()
 void PoolConeZombie::CheckHelmImage()
 {
 	if (mHelmType == HelmType::HELMTYPE_NONE) return;
-	if (mHelmStage == ArmorBrokenState::NO_BROKEN &&
-		mHelmHealth <= static_cast<int64_t>(mHelmMaxHealth) * 2 / 3) {
-		mHelmStage = ArmorBrokenState::A_LITTLE_BROKEN;
-		mAnimator->SetTrackImage("anim_cone", ResourceManager::GetInstance().
-			GetTexture("IMAGE_ZOMBIE_CONE2"));
-	}
-	if (mHelmStage == ArmorBrokenState::A_LITTLE_BROKEN && mHelmHealth <= mHelmMaxHealth / 3) {
-		mHelmStage = ArmorBrokenState::REALLY_BROKEN;
-		mAnimator->SetTrackImage("anim_cone", ResourceManager::GetInstance().
-			GetTexture("IMAGE_ZOMBIE_CONE3"));
-	}
+	mHelmStage = mHelmHealth > static_cast<int64_t>(mHelmMaxHealth) * 2 / 3
+		? ArmorBrokenState::NO_BROKEN
+		: (mHelmHealth > mHelmMaxHealth / 3
+			? ArmorBrokenState::A_LITTLE_BROKEN : ArmorBrokenState::REALLY_BROKEN);
+	const char* imageKey = mHelmStage == ArmorBrokenState::NO_BROKEN
+		? "IMAGE_ZOMBIE_CONE1"
+		: (mHelmStage == ArmorBrokenState::A_LITTLE_BROKEN
+			? "IMAGE_ZOMBIE_CONE2" : "IMAGE_ZOMBIE_CONE3");
+	mAnimator->SetTrackImage("anim_cone",
+		ResourceManager::GetInstance().GetTexture(imageKey));
 }
 
 /** 组合保存泳池状态与头盔破损阶段。 */

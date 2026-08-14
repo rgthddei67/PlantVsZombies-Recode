@@ -1,0 +1,16 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 1, "resetTestState": true, "background": "GROUND_DAY" },
+    { "op": "choose_cards", "cards": [] },
+    { "op": "wait_state", "state": "GAME", "timeout": 15 },
+    { "op": "set_spawn_paused", "value": true },
+    { "op": "spawn_zombie", "type": "ZOMBIE_HEALER", "row": 2, "x": 650, "stationary": true },
+    { "op": "assert_state", "path": "zombiesByType.ZOMBIE_HEALER.bodyHealth", "equals": 800 },
+    { "op": "damage_zombie", "type": "ZOMBIE_HEALER", "damage": 1000 },
+    { "op": "wait_seconds", "value": 4.0 },
+    { "op": "assert_state", "path": "healerZombieCount", "equals": 0 },
+    { "op": "assert_state", "path": "healerRowIndexVisibleCount", "equals": 0 },
+    { "op": "dump_state", "name": "healer_death_state.json" },
+    { "op": "quit" }
+  ]
+}

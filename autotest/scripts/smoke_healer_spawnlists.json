@@ -1,0 +1,32 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 51, "resetTestState": true },
+    { "op": "wait_state", "state": "CHOOSE_CARD", "timeout": 10 },
+    { "op": "assert_state", "path": "spawnList", "equals": ["ZOMBIE_NORMAL", "ZOMBIE_TRAFFIC_CONE", "ZOMBIE_NEWSPAPER", "ZOMBIE_REINFORCED_DOOR", "ZOMBIE_LADDER", "ZOMBIE_INSULATOR", "ZOMBIE_HEALER"] },
+    { "op": "assert_state", "path": "healerGameData.weight", "equals": 2400 },
+    { "op": "assert_state", "path": "healerGameData.appearWave", "equals": 3 },
+    { "op": "assert_state", "path": "healerGameData.survivalRound", "equals": 7 },
+    { "op": "assert_state", "path": "healerGameData.offsetXInt", "equals": -50 },
+    { "op": "assert_state", "path": "healerGameData.offsetYInt", "equals": -85 },
+    { "op": "choose_cards", "cards": [] },
+    { "op": "wait_state", "state": "GAME", "timeout": 15 },
+    { "op": "set_spawn_paused", "value": true },
+    { "op": "summon_next_wave", "count": 3 },
+    { "op": "assert_state", "path": "healerWave3Count", "atLeast": 1 },
+
+    { "op": "goto_level", "level": 1, "resetTestState": true, "background": "GROUND_DAY" },
+    { "op": "choose_cards", "cards": [] },
+    { "op": "wait_state", "state": "GAME", "timeout": 15 },
+    { "op": "set_spawn_paused", "value": true },
+    { "op": "spawn_wave_zombie", "type": "ZOMBIE_HEALER", "mutationRoll": 50, "row": 0, "x": 900 },
+    { "op": "spawn_wave_zombie", "type": "ZOMBIE_HEALER", "mutationRoll": 50, "row": 0, "x": 900 },
+    { "op": "spawn_wave_zombie", "type": "ZOMBIE_HEALER", "mutationRoll": 50, "row": 1, "x": 900 },
+    { "op": "spawn_wave_zombie", "type": "ZOMBIE_HEALER", "mutationRoll": 50, "row": 2, "x": 900 },
+    { "op": "spawn_wave_zombie", "type": "ZOMBIE_HEALER", "mutationRoll": 50, "row": 3, "x": 900 },
+    { "op": "spawn_wave_zombie", "type": "ZOMBIE_HEALER", "mutationRoll": 50, "row": 4, "x": 900 },
+    { "op": "assert_state", "path": "healerZombieCount", "equals": 6 },
+    { "op": "assert_state", "path": "healerRowIndexVisibleCount", "equals": 6 },
+    { "op": "dump_state", "name": "healer_spawnlists_state.json" },
+    { "op": "quit" }
+  ]
+}
