@@ -14,7 +14,7 @@
     { "op": "assert_state", "path": "zombiesByType.ZOMBIE_HEALER.healerDecisionAction", "equals": "WAIT" },
     { "op": "assert_state", "path": "zombiesByType.ZOMBIE_HEALER.healerTreatmentState", "equals": "IDLE" },
     { "op": "assert_state", "path": "zombiesByType.ZOMBIE_HEALER.healerStrategicWaitMs", "equals": 500 },
-    { "op": "assert_state", "path": "zombiesByType.ZOMBIE_HEALER.healerMonteCarloRolloutCount", "equals": 128 },
+    { "op": "assert_state", "path": "zombiesByType.ZOMBIE_HEALER.healerMonteCarloRolloutCount", "equals": 40 },
     { "op": "assert_state", "path": "zombiesByType.ZOMBIE_HEALER.healerMonteCarloCandidateCount", "equals": 2 },
     { "op": "save_level_snapshot", "name": "healer_monte_carlo_wait" },
     { "op": "reload_level_snapshot", "name": "healer_monte_carlo_wait" },

@@ -96,7 +96,7 @@
     { "op": "make_healer_ready" },
     { "op": "wait_frames", "value": 2 },
     { "op": "assert_state", "path": "zombiesByType.ZOMBIE_HEALER.healerDecisionMode", "equals": "MONTE_CARLO" },
-    { "op": "assert_state", "path": "zombiesByType.ZOMBIE_HEALER.healerMonteCarloRolloutCount", "equals": 128 },
+    { "op": "assert_state", "path": "zombiesByType.ZOMBIE_HEALER.healerMonteCarloRolloutCount", "equals": 40 },
     { "op": "assert_state", "path": "zombiesByType.ZOMBIE_HEALER.healerMonteCarloCandidateCount", "equals": 32 },
     { "op": "assert_state", "path": "zombiesByType.ZOMBIE_HEALER.healerMonteCarloZombieCount", "equals": 16 },
     { "op": "screenshot", "name": "03_healer_sixteen_zombies.png" },

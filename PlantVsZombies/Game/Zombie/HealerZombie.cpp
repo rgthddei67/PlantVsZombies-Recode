@@ -355,9 +355,10 @@ void HealerZombie::ZombieUpdate(float scaledTime)
 		mRetryTimer = kRetryDelay;
 		return;
 	}
-	if (GameAPP::GetInstance().mEnableMonteCarloAI
-		&& SelectMonteCarloTreatment(areaTargets, focusedTargets)) {
-		return;
+	if (GameAPP::GetInstance().mEnableMonteCarloAI && !IsMindControlled()) {
+		// 多名急救员同时就绪时按实体 ID 分帧领取预算，避免动作边沿推演叠成单帧尖峰。
+		if (mBoard && !mBoard->TryClaimMonteCarloHealerDecisionSlot()) return;
+		if (SelectMonteCarloTreatment(areaTargets, focusedTargets)) return;
 	}
 
 	// 关闭总开关、魅惑侧暂不适用或推演失败时，完整保留原确定性规则。

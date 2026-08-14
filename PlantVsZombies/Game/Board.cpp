@@ -32,6 +32,7 @@
 #include "../ResourceKeys.h"
 #include "../ParticleSystem/ParticleSystem.h"
 #include "../Graphics.h"
+#include "../Profiler.h"
 #include <unordered_set>
 #include <climits>
 #include <array>
@@ -181,6 +182,7 @@ namespace {
 	constexpr int kPlantTargetMonteCarloRolloutCount = 48; // 蹦极与精英小丑长时域选点的每候选未来样本数
 	constexpr int kTreatmentMonteCarloRolloutCount = 40; // 急救员短时域选疗的每候选未来样本数
 	constexpr int kMonteCarloMaxZombies = 16;             // 单个样本最多推进的当前敌方僵尸数
+	constexpr int kMonteCarloHealerDecisionSpacingSteps = 3; // 两次急救员推演至少间隔的固定逻辑步数
 	constexpr float kMonteCarloHorizonSeconds = 16.0f;    // 植物防线短视推演时域，单位：游戏秒
 	constexpr float kMonteCarloStepSeconds = 0.25f;       // 纯数值推演固定步长，单位：游戏秒
 	constexpr float kMonteCarloPlantDecisionSeconds = 2.0f; // 样本内玩家尝试从实际卡槽种植的间隔秒数
@@ -4895,10 +4897,19 @@ bool Board::PickMonteCarloPlantRemovalTarget(
 		targetRow, targetPosition, stats, &eligiblePlantIDs, &targetPlantID);
 }
 
+bool Board::TryClaimMonteCarloHealerDecisionSlot()
+{
+	if (mMonteCarloHealerDecisionCooldownSteps > 0) return false;
+	mMonteCarloHealerDecisionCooldownSteps =
+		kMonteCarloHealerDecisionSpacingSteps;
+	return true;
+}
+
 bool Board::PickMonteCarloZombieTreatment(
 	const MonteCarloTreatmentRequest& request,
 	MonteCarloTreatmentDecision& decision, MonteCarloTargetStats* stats)
 {
+	PROFILE_SCOPE("MC.Healer.Total");
 	using namespace PlantDefenseMonteCarlo;
 	Zombie* source = mEntityManager.GetZombie(request.sourceZombieID);
 	if (!source || source->IsMindControlled() || !source->IsActive()
@@ -4910,7 +4921,12 @@ bool Board::PickMonteCarloZombieTreatment(
 	}
 
 	Snapshot snapshot;
-	if (!BuildMonteCarloCombatSnapshot(snapshot, false)) return false;
+	bool snapshotBuilt = false;
+	{
+		PROFILE_SCOPE("MC.Healer.Snapshot");
+		snapshotBuilt = BuildMonteCarloCombatSnapshot(snapshot, false);
+	}
+	if (!snapshotBuilt) return false;
 	std::unordered_set<int> areaTargetIDs(
 		request.areaTargetIDs.begin(), request.areaTargetIDs.end());
 	std::unordered_set<int> focusedTargetIDs(
@@ -5093,8 +5109,12 @@ bool Board::PickMonteCarloZombieTreatment(
 	mixSeed(static_cast<std::uint32_t>(mBoardFrame));
 	mixSeed(static_cast<std::uint32_t>(mCurrentWave));
 	mixSeed(static_cast<std::uint32_t>(request.sourceZombieID));
-	const TreatmentResult result = ChooseTreatment(
-		snapshot, candidates, pendingTreatments, config, seed);
+	TreatmentResult result;
+	{
+		PROFILE_SCOPE("MC.Healer.Rollouts");
+		result = ChooseTreatment(
+			snapshot, candidates, pendingTreatments, config, seed);
+	}
 	if (stats) {
 		stats->rolloutCount = result.rolloutCount;
 		stats->candidateCount = static_cast<int>(candidates.size());
@@ -6221,6 +6241,11 @@ inline void Board::UpdateZombieMetrics()
 
 void Board::Update()
 {
+	// 固定步预算不依赖渲染帧；间隔覆盖一次最多三步的追帧，避免同一渲染帧重叠推演。
+	if (DeltaTime::GetDeltaTime() > 0.0f
+		&& mMonteCarloHealerDecisionCooldownSteps > 0) {
+		--mMonteCarloHealerDecisionCooldownSteps;
+	}
 	// 节拍帧随游戏时间而非逻辑步推进：暂停时逻辑步照跑（UI 要消费点击）但 dt=0，
 	// 若无条件 ++，暂停中舞王/伴舞会随节拍翻转瞬间切轨；倍速下也与 Animator 的缩放 dt 同步。
 	mBoardFrameAccum += DeltaTime::GetDeltaTime() / DeltaTime::GetFixedStep();

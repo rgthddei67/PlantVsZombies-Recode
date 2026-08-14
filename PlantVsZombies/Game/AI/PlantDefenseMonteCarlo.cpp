@@ -896,17 +896,18 @@ namespace {
 			- TerminalZombiePressure(state, treatment);
 	}
 
-	// 治疗分支与现有攻击分支共用战斗推进，只额外插入施法、待结算治疗和劫持者处决边沿。
+	// 从同一 rollout 的初始状态副本推进治疗场景，避免每个候选重复构造共同随机样本。
 	ScenarioUtility RunTreatmentScenario(const Snapshot& snapshot,
+		const SimulationState& initialState,
 		const TreatmentConfig& treatmentConfig,
 		const std::vector<PendingTreatment>& pendingTreatments,
+		std::vector<unsigned char>& pendingResolved,
 		const TreatmentCandidate* candidate, std::uint32_t seed)
 	{
 		const Config& config = treatmentConfig.combat;
-		SimulationState state;
-		BuildInitialState(snapshot, config, seed, state);
+		SimulationState state = initialState;
 
-		std::vector<bool> pendingResolved(pendingTreatments.size(), false);
+		std::fill(pendingResolved.begin(), pendingResolved.end(), 0);
 		bool candidateResolved = candidate == nullptr;
 		bool hijackerResolved = treatmentConfig.hijackerExecutionSeconds < 0.0f;
 		std::minstd_rand random(seed ^ 0x9E3779B9u);
@@ -973,12 +974,12 @@ namespace {
 		return { total, TerminalBlockerUtility(state, config) };
 	}
 
-	// 执行一个固定时域场景；candidate 为空时即为同随机种子的无攻击基线。
-	ScenarioUtility RunScenario(const Snapshot& snapshot, const Config& config,
+	// 从同一 rollout 的初始状态副本推进攻击场景；candidate 为空时即为无攻击基线。
+	ScenarioUtility RunScenario(const Snapshot& snapshot,
+		const SimulationState& initialState, const Config& config,
 		const Candidate* candidate, std::uint32_t seed)
 	{
-		SimulationState state;
-		BuildInitialState(snapshot, config, seed, state);
+		SimulationState state = initialState;
 		if (candidate) ApplyCandidateImpact(state, *candidate, config);
 
 		std::minstd_rand random(seed ^ 0x9E3779B9u);
@@ -1031,12 +1032,26 @@ Result ChooseTarget(const Snapshot& snapshot, const Config& config, std::uint32_
 		return result;
 	}
 
-	std::vector<ScenarioUtility> baselineUtilities(result.rolloutCount);
+	std::vector<float> totalLosses(snapshot.candidates.size(), 0.0f);
+	std::vector<float> totalCoordinationLosses(snapshot.candidates.size(), 0.0f);
+	// 每个共同随机样本只排序、截取并扰动一次初始状态，再复制给基线和全部候选。
 	for (int rollout = 0; rollout < result.rolloutCount; ++rollout) {
 		const std::uint32_t rolloutSeed =
 			seed + static_cast<std::uint32_t>(rollout) * 0x85EBCA6Bu;
-		baselineUtilities[rollout] =
-			RunScenario(snapshot, config, nullptr, rolloutSeed);
+		SimulationState initialState;
+		BuildInitialState(snapshot, config, rolloutSeed, initialState);
+		const ScenarioUtility baselineUtility = RunScenario(
+			snapshot, initialState, config, nullptr, rolloutSeed);
+		for (std::size_t candidateIndex = 0;
+			candidateIndex < snapshot.candidates.size(); ++candidateIndex) {
+			const ScenarioUtility attackedUtility = RunScenario(
+				snapshot, initialState, config,
+				&snapshot.candidates[candidateIndex], rolloutSeed);
+			totalLosses[candidateIndex] +=
+				baselineUtility.total - attackedUtility.total;
+			totalCoordinationLosses[candidateIndex] +=
+				baselineUtility.coordination - attackedUtility.coordination;
+		}
 	}
 
 	float bestScore = std::numeric_limits<float>::lowest();
@@ -1044,23 +1059,11 @@ Result ChooseTarget(const Snapshot& snapshot, const Config& config, std::uint32_
 	int tiedBestCount = 0;
 	for (std::size_t candidateIndex = 0;
 		candidateIndex < snapshot.candidates.size(); ++candidateIndex) {
-		float totalLoss = 0.0f;
-		float totalCoordinationLoss = 0.0f;
-		for (int rollout = 0; rollout < result.rolloutCount; ++rollout) {
-			const std::uint32_t rolloutSeed =
-				seed + static_cast<std::uint32_t>(rollout) * 0x85EBCA6Bu;
-			const ScenarioUtility attackedUtility = RunScenario(
-				snapshot, config, &snapshot.candidates[candidateIndex], rolloutSeed);
-			totalLoss +=
-				baselineUtilities[rollout].total - attackedUtility.total;
-			totalCoordinationLoss +=
-				baselineUtilities[rollout].coordination
-				- attackedUtility.coordination;
-		}
 		const float averageLoss =
-			totalLoss / static_cast<float>(result.rolloutCount);
+			totalLosses[candidateIndex] / static_cast<float>(result.rolloutCount);
 		const float averageCoordinationLoss =
-			totalCoordinationLoss / static_cast<float>(result.rolloutCount);
+			totalCoordinationLosses[candidateIndex]
+			/ static_cast<float>(result.rolloutCount);
 		if (averageLoss > bestScore + kScoreTieEpsilon) {
 			bestScore = averageLoss;
 			tiedBestCount = 1;
@@ -1105,12 +1108,25 @@ TreatmentResult ChooseTreatment(const Snapshot& snapshot,
 		return result;
 	}
 
-	std::vector<ScenarioUtility> baselineUtilities(result.rolloutCount);
+	std::vector<float> totalLosses(candidates.size(), 0.0f);
+	std::vector<unsigned char> pendingResolved(pendingTreatments.size(), 0);
+	// 每个共同随机样本只构造一次初始状态；所有治疗候选共享它的截取与随机扰动。
 	for (int rollout = 0; rollout < result.rolloutCount; ++rollout) {
 		const std::uint32_t rolloutSeed =
 			seed + static_cast<std::uint32_t>(rollout) * 0x85EBCA6Bu;
-		baselineUtilities[rollout] = RunTreatmentScenario(
-			snapshot, config, pendingTreatments, nullptr, rolloutSeed);
+		SimulationState initialState;
+		BuildInitialState(snapshot, config.combat, rolloutSeed, initialState);
+		const ScenarioUtility baselineUtility = RunTreatmentScenario(
+			snapshot, initialState, config, pendingTreatments,
+			pendingResolved, nullptr, rolloutSeed);
+		for (std::size_t candidateIndex = 0;
+			candidateIndex < candidates.size(); ++candidateIndex) {
+			const ScenarioUtility treatedUtility = RunTreatmentScenario(
+				snapshot, initialState, config, pendingTreatments, pendingResolved,
+				&candidates[candidateIndex], rolloutSeed);
+			totalLosses[candidateIndex] +=
+				baselineUtility.total - treatedUtility.total;
+		}
 	}
 
 	float bestScore = std::numeric_limits<float>::lowest();
@@ -1118,16 +1134,8 @@ TreatmentResult ChooseTreatment(const Snapshot& snapshot,
 	int tiedBestCount = 0;
 	for (std::size_t candidateIndex = 0;
 		candidateIndex < candidates.size(); ++candidateIndex) {
-		float totalLoss = 0.0f;
-		for (int rollout = 0; rollout < result.rolloutCount; ++rollout) {
-			const std::uint32_t rolloutSeed =
-				seed + static_cast<std::uint32_t>(rollout) * 0x85EBCA6Bu;
-			const ScenarioUtility treatedUtility = RunTreatmentScenario(
-				snapshot, config, pendingTreatments,
-				&candidates[candidateIndex], rolloutSeed);
-			totalLoss += baselineUtilities[rollout].total - treatedUtility.total;
-		}
-		const float averageLoss = totalLoss / static_cast<float>(result.rolloutCount);
+		const float averageLoss = totalLosses[candidateIndex]
+			/ static_cast<float>(result.rolloutCount);
 		if (averageLoss > bestScore + kScoreTieEpsilon) {
 			bestScore = averageLoss;
 			tiedBestCount = 1;

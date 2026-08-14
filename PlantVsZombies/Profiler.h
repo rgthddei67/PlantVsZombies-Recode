@@ -30,6 +30,9 @@ public:
 	void Add(const std::string& name, double ms) {
 		if (!g_ProfileEnabled) return;
 		mAccum[name] += ms;
+		double& maximum = mMaxPerCall[name];
+		if (ms > maximum) maximum = ms;
+		++mCallCount[name];
 	}
 
 	// 在 Graphics::FlushBatch 真正提交时调用，verts = 本次刷新的顶点数
@@ -104,7 +107,12 @@ public:
 		std::printf("  total / frame        : %7.2f ms  (%.1f FPS)\n",
 			avgFrame, avgFrame > 0.0 ? 1000.0 / avgFrame : 0.0);
 		for (auto& kv : mAccum) {
-			std::printf("  %-20s : %7.2f ms\n", kv.first.c_str(), kv.second * inv);
+			const size_t calls = mCallCount[kv.first];
+			const double averagePerCall = calls > 0
+				? kv.second / static_cast<double>(calls) : 0.0;
+			std::printf("  %-30s : %7.2f ms/f | avg %7.2f | max %7.2f ms | %5zu calls\n",
+				kv.first.c_str(), kv.second * inv, averagePerCall,
+				mMaxPerCall[kv.first], calls);
 		}
 		// 诊断计数（每帧均值）：textRaster(miss) 高 → 缓存被击穿；flushBatch 高 → 逐行 draw call 地板。
 		std::printf("  %-20s : %7.1f /frame\n", "textDraw(lines)", mTextTotalAccum * inv);
@@ -125,6 +133,8 @@ public:
 		std::printf("============================================\n");
 
 		mAccum.clear();
+		mMaxPerCall.clear();
+		mCallCount.clear();
 		mFrameAccum = 0.0;
 		mFlushCountAccum = 0;
 		mFlushVertsAccum = 0;
@@ -144,6 +154,8 @@ public:
 private:
 	static constexpr int kReportFrames = 60;
 	std::map<std::string, double> mAccum;
+	std::map<std::string, double> mMaxPerCall; // 当前报告窗口内每个作用域的单次最大耗时
+	std::map<std::string, size_t> mCallCount;  // 当前报告窗口内每个作用域的调用次数
 	double mFrameAccum = 0.0;
 	Clock::time_point mLastFrame;
 	bool mHasLastFrame = false;

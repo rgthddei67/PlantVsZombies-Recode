@@ -37,7 +37,7 @@ public:
 	bool HasActiveNightRoofHijacker() const;
 	/** 单疗预留查询只遍历急救员稀有索引；exceptHealerID 的自身预留不算冲突。 */
 	bool IsHealerFocusedTargetReserved(int zombieID, int exceptHealerID) const;
-	/** 同帧选疗由实体 ID 小者先提交；较大 ID 至多等待一帧。 */
+	/** 多名急救员同时就绪时只允许实体 ID 最小者先尝试领取 Board 的分帧推演预算。 */
 	bool HasReadyHealerBefore(int healerID) const;
 
 	int AddBullet(std::shared_ptr<Bullet> bullet);

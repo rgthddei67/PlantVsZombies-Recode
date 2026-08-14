@@ -199,6 +199,7 @@ private:
 	/** 采集推演共用的植物、僵尸、卡槽和格子纯数值快照。 */
 	bool BuildMonteCarloCombatSnapshot(
 		PlantDefenseMonteCarlo::Snapshot& snapshot, bool mindControlledFaction);
+	int mMonteCarloHealerDecisionCooldownSteps = 0; // 下次急救员推演前需经过的固定逻辑步数，不入存档
 	std::vector<ZombieType> mSpawnZombieList;	// 本关出怪表
 	float mHugeWaveCountDown = 0.0f;	// 一大波倒计时
 	float mUpdateZombieMetricsTimer = 0.0f;	// 僵尸血量与音乐敌对数的合并采样计时器
@@ -490,6 +491,12 @@ public:
 		const MonteCarloTreatmentRequest& request,
 		MonteCarloTreatmentDecision& decision,
 		MonteCarloTargetStats* stats = nullptr);
+	/**
+	 * @brief 领取按固定逻辑步限流的急救员推演名额。
+	 *
+	 * 名额尚未恢复时调用者保持治疗就绪，后续按实体 ID 顺序尝试。
+	 */
+	bool TryClaimMonteCarloHealerDecisionSlot();
 	/** 完成一次读档恢复，并在实体全部还原后立即同步派生的逐格迷雾。 */
 	void CompleteLoadRestore();
 	/** 返回 Board 是否仍处于关卡存档恢复生命周期。 */

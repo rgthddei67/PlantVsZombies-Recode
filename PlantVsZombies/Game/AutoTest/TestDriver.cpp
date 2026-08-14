@@ -1541,6 +1541,7 @@ bool TestDriver::ExecuteCurrent() {
 		}
 		const int row = cmd.value("row", -1);
 		const int index = cmd.value("index", 0);
+		const bool makeAll = cmd.value("all", false);
 		int seen = 0;
 		std::vector<int> zombieIDs = gs->GetBoard()->mEntityManager.GetAllZombieIDs();
 		std::sort(zombieIDs.begin(), zombieIDs.end());
@@ -1549,11 +1550,18 @@ bool TestDriver::ExecuteCurrent() {
 				gs->GetBoard()->mEntityManager.GetZombie(id));
 			if (!healer || !healer->IsActive()) continue;
 			if (row >= 0 && healer->mRow != row) continue;
+			if (makeAll) {
+				// 压力测试必须在同一命令边沿同步放开全部目标，避免逐命令跨逻辑帧稀释尖峰。
+				healer->MakeTreatmentReadyForTesting();
+				++seen;
+				continue;
+			}
 			if (seen++ != index) continue;
 			// 只把正式冷却压到决策边沿；目标选择、前摇、结算和音画仍走正常路径。
 			healer->MakeTreatmentReadyForTesting();
 			return true;
 		}
+		if (makeAll && seen > 0) return true;
 		Fail("make_healer_ready: 未找到目标急救员僵尸");
 		return false;
 	}
