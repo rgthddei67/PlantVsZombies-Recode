@@ -210,6 +210,11 @@
 [PLANT_MELONPULT_DESCRIPTION]
 西瓜投手抛出沉重的西瓜，命中时对目标造成大量伤害，并溅射附近及相邻行的僵尸。“砸得准只是基本功，”西瓜投手说，“关键是让每一片瓜都不白飞。”
 
+[PLANT_WINTERMELON]
+冰瓜
+[PLANT_WINTERMELON_DESCRIPTION]
+冰瓜会砸伤目标并溅射上下相邻行，使被冰屑命中的僵尸集体减速。“冷静一点，”冰瓜说，“尤其是在我从天而降的时候。”
+
 [ZOMBIE_NORMAL]
 僵尸
 [ZOMBIE_NORMAL_DESCRIPTION]

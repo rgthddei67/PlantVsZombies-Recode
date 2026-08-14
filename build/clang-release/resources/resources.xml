@@ -232,6 +232,7 @@
     <Texture>./resources/particles/Star_splats.png</Texture>
     <Texture>./resources/particles/Star_particles.png</Texture>
     <Texture>./resources/particles/Melonpult_particles.png</Texture>
+    <Texture>./resources/particles/WinterMelon_particles.png</Texture>
     <Texture>./resources/particles/ExplosionCloud.png</Texture>
     <Texture>./resources/particles/ExplosionSpudow.png</Texture>
     <Texture Column="8" Row="2">./resources/particles/DirtSmall.png</Texture>
@@ -465,6 +466,7 @@
     <Reanimation name="Umbrellaleaf">./resources/reanim/Umbrellaleaf.reanim</Reanimation>
     <Reanimation name="Marigold">./resources/reanim/Marigold.reanim</Reanimation>
     <Reanimation name="Melonpult">./resources/reanim/Melonpult.reanim</Reanimation>
+    <Reanimation name="WinterMelon">./resources/reanim/WinterMelon.reanim</Reanimation>
 
     <Reanimation name="NormalZombie">./resources/reanim/NormalZombie.reanim</Reanimation>
     <Reanimation name="RoofMarshalZombie">./resources/reanim/RoofMarshal.reanim</Reanimation>

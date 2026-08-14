@@ -16,6 +16,8 @@ constexpr PlantType GetUpgradeBasePlantType(PlantType type)
 		return PlantType::PLANT_SUNFLOWER;
 	case PlantType::PLANT_GLOOMSHROOM:
 		return PlantType::PLANT_FUMESHROOM;
+	case PlantType::PLANT_WINTERMELON:
+		return PlantType::PLANT_MELONPULT;
 	case PlantType::PLANT_LIGHTNINGRODPOT:
 		return PlantType::PLANT_FLOWERPOT;
 	default:
@@ -29,6 +31,7 @@ constexpr PlantUpgradeLayer GetUpgradePlantLayer(PlantType type)
 	switch (type) {
 	case PlantType::PLANT_TWINSUNFLOWER:
 	case PlantType::PLANT_GLOOMSHROOM:
+	case PlantType::PLANT_WINTERMELON:
 		return PlantUpgradeLayer::NORMAL;
 	case PlantType::PLANT_LIGHTNINGRODPOT:
 		return PlantUpgradeLayer::UNDER;

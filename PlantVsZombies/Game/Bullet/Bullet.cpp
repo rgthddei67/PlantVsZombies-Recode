@@ -20,6 +20,7 @@ namespace {
 	constexpr int kFireballDamage = 40;               // 火豌豆基础伤害，原版为普通豌豆两倍
 	constexpr int kCabbageDamage = 40;                // 经典卷心菜直击伤害
 	constexpr int kMelonDamage = 120;                  // 经典西瓜直击伤害
+	constexpr int kWinterMelonDamage = 100;            // 主人确认：冰瓜较当前西瓜少 20 点直击伤害
 	constexpr int kButterDamage = 40;                 // 经典黄油直击伤害；玉米粒沿用普通 20 点
 	constexpr int kBasketballDamage = 75;             // 原版投篮车篮球单发伤害
 	constexpr int kSpikeFrameDamage = 2;              // 仙人掌尖刺在 1x 下每个逻辑碰撞帧的基础伤害
@@ -30,6 +31,7 @@ namespace {
 	constexpr float kMelonSplashWidth = 60.0f;        // C# Melon 弹丸溅射碰撞区的水平宽度，单位：像素
 	constexpr int kMelonSplashRowRadius = 1;           // 西瓜溅射覆盖命中行与上下相邻行
 	constexpr int kMelonSecondaryBudgetMultiplier = 7; // 原版次要目标总伤害上限是直击的七倍
+	constexpr float kWinterMelonSlowSeconds = 10.0f;   // C# ApplyChill(false) 的 1000cs 群体减速时长
 	constexpr float kFireballForwardOffsetX = -25.0f; // FirePea.reanim 相对向右飞子弹逻辑原点的 X 偏移
 	constexpr float kFireballBackwardOffsetX = 55.0f; // FirePea.reanim 相对向左飞子弹逻辑原点的 X 偏移
 	constexpr float kFireballOffsetY = -25.0f;        // FirePea.reanim 相对子弹逻辑原点的 Y 偏移
@@ -125,6 +127,7 @@ namespace {
 			|| type == BulletType::BULLET_TOXICFIREBALL) return kFireballDamage;
 		if (type == BulletType::BULLET_CABBAGE) return kCabbageDamage;
 		if (type == BulletType::BULLET_MELON) return kMelonDamage;
+		if (type == BulletType::BULLET_WINTERMELON) return kWinterMelonDamage;
 		if (type == BulletType::BULLET_BUTTER) return kButterDamage;
 		if (type == BulletType::BULLET_BASKETBALL) return kBasketballDamage;
 		if (type == BulletType::BULLET_SPIKE) return kSpikeFrameDamage;
@@ -132,11 +135,18 @@ namespace {
 		return kPeaDamage;
 	}
 
+	/** 返回投射物是否使用西瓜家族的三行溅射与解析抛物线。 */
+	bool IsMelonBullet(BulletType type)
+	{
+		return type == BulletType::BULLET_MELON
+			|| type == BulletType::BULLET_WINTERMELON;
+	}
+
 	/** 经典投手家族共用弹心绘制、解析阴影和上方绕盾语义。 */
 	bool IsClassicLobbedBullet(BulletType type)
 	{
 		return type == BulletType::BULLET_CABBAGE
-			|| type == BulletType::BULLET_MELON
+			|| IsMelonBullet(type)
 			|| type == BulletType::BULLET_KERNEL
 			|| type == BulletType::BULLET_BUTTER
 			|| type == BulletType::BULLET_BASKETBALL;
@@ -422,7 +432,7 @@ void Bullet::UpdateShadowLayout(const Vector& position)
 
 	// 主人校对：Y 与同一行豌豆射手的默认阴影中心一致，即格子中心 + 28。
 	// X 偏移沿用 C#：Pea +3，Snowpea -1，Fireball/Spike 为 0；西瓜按主人可见校对右移 6px。
-	const float shadowLeftOffset = mBulletType == BulletType::BULLET_MELON
+	const float shadowLeftOffset = IsMelonBullet(mBulletType)
 		? kMelonShadowOffsetX
 		: mBulletType == BulletType::BULLET_SNOWPEA
 			? -1.0f
@@ -540,7 +550,7 @@ void Bullet::EnableThreepeaterMotion(int sourceRow)
 void Bullet::BulletHitZombie(Zombie* zombie)
 {
 	if (!zombie) return;
-	if (mBulletType == BulletType::BULLET_MELON) {
+	if (IsMelonBullet(mBulletType)) {
 		HitMelonZombie(zombie);
 		return;
 	}
@@ -635,6 +645,7 @@ void Bullet::HitMelonZombie(Zombie* zombie)
 {
 	if (!zombie || !mBoard) return;
 
+	const bool isWinterMelon = mBulletType == BulletType::BULLET_WINTERMELON;
 	PlayMelonImpactSound();
 	const int directDamage = GetWindAdjustedDamage();
 	std::vector<int> secondaryIDs;
@@ -666,6 +677,16 @@ void Bullet::HitMelonZombie(Zombie* zombie)
 		directDamage, DamageSource::PLANT, mVelocityX,
 		/*penetrateShield=*/true, /*discardShieldOverflow=*/false,
 		/*requestsShieldBypass=*/false);
+	if (isWinterMelon && zombie->IsActive() && !zombie->IsDying()
+		&& zombie->CanBeChilled()) {
+		const bool wasSlowed = zombie->GetCooldownTimer() > 0.0f;
+		// Winter Melon 的 splash 已把伤害穿透到后层，因此这里显式绕过仍存在的二类盾门禁。
+		zombie->SetCooldown(kWinterMelonSlowSeconds, /*bypassShield=*/true);
+		if (!wasSlowed && zombie->GetCooldownTimer() > 0.0f) {
+			AudioSystem::PlaySound(
+				ResourceKeys::Sounds::SOUND_COOLDOWNZOMBIE, 0.22f);
+		}
+	}
 
 	const int nominalSecondaryDamage = std::max(1, directDamage / kSplashDamageDivisor);
 	const int secondaryDamage = secondaryIDs.empty()
@@ -680,10 +701,20 @@ void Bullet::HitMelonZombie(Zombie* zombie)
 			secondaryDamage, DamageSource::PLANT, mVelocityX,
 			/*penetrateShield=*/true, /*discardShieldOverflow=*/false,
 			/*requestsShieldBypass=*/false);
+		if (isWinterMelon && candidate->IsActive() && !candidate->IsDying()
+			&& candidate->CanBeChilled()) {
+			const bool wasSlowed = candidate->GetCooldownTimer() > 0.0f;
+			candidate->SetCooldown(kWinterMelonSlowSeconds, /*bypassShield=*/true);
+			if (!wasSlowed && candidate->GetCooldownTimer() > 0.0f) {
+				AudioSystem::PlaySound(
+					ResourceKeys::Sounds::SOUND_COOLDOWNZOMBIE, 0.22f);
+			}
+		}
 	}
 
 	if (g_particleSystem) {
-		g_particleSystem->EmitEffect("MelonSplash", GetPosition());
+		g_particleSystem->EmitEffect(
+			isWinterMelon ? "WinterMelonSplash" : "MelonSplash", GetPosition());
 	}
 }
 
@@ -730,6 +761,14 @@ void Bullet::ConfigurePresentation()
 	case BulletType::BULLET_MELON:
 		mTexture = resources.GetTexture(
 			ResourceKeys::Textures::IMAGE_REANIM_MELONPULT_MELON);
+		mScale = 1.0f;
+		mRotationDegrees = kMelonInitialRotation;
+		mRotationSpeedDegrees = GameRandom::Range(
+			kCabbageSpinSpeedMin, kCabbageSpinSpeedMax);
+		break;
+	case BulletType::BULLET_WINTERMELON:
+		mTexture = resources.GetTexture(
+			ResourceKeys::Textures::IMAGE_REANIM_WINTERMELON_PROJECTILE);
 		mScale = 1.0f;
 		mRotationDegrees = kMelonInitialRotation;
 		mRotationSpeedDegrees = GameRandom::Range(
@@ -873,10 +912,13 @@ void Bullet::HitLobbedGround()
 	if (mBulletType == BulletType::BULLET_KERNEL) {
 		PlayKernelImpactSound();
 	}
-	else if (mBulletType == BulletType::BULLET_MELON) {
+	else if (IsMelonBullet(mBulletType)) {
 		PlayMelonImpactSound();
 		if (g_particleSystem) {
-			g_particleSystem->EmitEffect("MelonSplash", GetPosition());
+			g_particleSystem->EmitEffect(
+				mBulletType == BulletType::BULLET_WINTERMELON
+					? "WinterMelonSplash" : "MelonSplash",
+				GetPosition());
 		}
 	}
 	else if (mBulletType == BulletType::BULLET_BUTTER) {

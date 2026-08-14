@@ -4,7 +4,7 @@ description: 黑夜屋顶雷荷的背景资格、积累状态机、放电实体�
 metadata:
   node_type: memory
   type: project
-  updated_at: 2026-08-10
+  updated_at: 2026-08-14
 ---
 
 # 黑夜屋顶基础雷荷
@@ -57,4 +57,4 @@ metadata:
 
 - 避雷花盆已实现，见 `project_pvz_lightning_rod_pot.md`；台风改向仍属延期内容。劫持者契约见
   `project_pvz_hijacker_zombie.md`，不得把它的全场处决混入普通锁定行伤害规则。
-- 第六大关目前已有绝缘僵尸与劫持者专属出怪编排，6-4 已奖励避雷花盆；6-5 之后植物与 6-9 BOSS 仍待补充。
+- 第六大关目前已有绝缘僵尸与劫持者专属出怪编排，6-4 已奖励避雷花盆、6-5 已奖励冰瓜；6-6 之后植物与 6-9 BOSS 仍待补充。

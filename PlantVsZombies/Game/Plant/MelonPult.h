@@ -2,10 +2,12 @@
 
 #include "Plant.h"
 
+enum class BulletType;
+
 /**
  * 经典西瓜投手：预判同行目标落点，投出会溅射相邻行的西瓜。
  */
-class MelonPult final : public Plant
+class MelonPult : public Plant
 {
 public:
 	using Plant::Plant;
@@ -24,6 +26,8 @@ public:
 protected:
 	/** 设置待机、随机首轮相位和主人确认的第 44 帧发射事件。 */
 	void SetupPlant() override;
+	/** 返回该西瓜投手品种创建的投射物类型。 */
+	virtual BulletType GetMelonBulletType() const;
 
 private:
 	float mShootTimer = 0.0f;

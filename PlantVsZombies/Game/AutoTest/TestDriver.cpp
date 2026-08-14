@@ -291,7 +291,7 @@ namespace {
 #undef PT
 #define BT(n) { #n, BulletType::n }
 	const std::unordered_map<std::string, BulletType> kBulletNames = {
-		BT(BULLET_PEA), BT(BULLET_SNOWPEA), BT(BULLET_CABBAGE), BT(BULLET_MELON), BT(BULLET_PUFF), BT(BULLET_FIREBALL),
+		BT(BULLET_PEA), BT(BULLET_SNOWPEA), BT(BULLET_CABBAGE), BT(BULLET_MELON), BT(BULLET_PUFF), BT(BULLET_WINTERMELON), BT(BULLET_FIREBALL),
 		BT(BULLET_SPIKE), BT(BULLET_STAR), BT(BULLET_BASKETBALL), BT(BULLET_KERNEL), BT(BULLET_BUTTER),
 		BT(BULLET_TOXICPEA), BT(BULLET_TOXICFIREBALL),
 	};
@@ -1376,7 +1376,9 @@ bool TestDriver::ExecuteCurrent() {
 		for (int id : board->mEntityManager.GetAllPlantIDs()) {
 			auto* melonPult = dynamic_cast<MelonPult*>(
 				board->mEntityManager.GetPlant(id));
-			if (!melonPult || (row >= 0 && melonPult->mRow != row)
+			// 紫卡升级同帧内旧株仍可能留在实体表；夹具只能布置当前活动的承接株。
+			if (!melonPult || !melonPult->IsActive()
+				|| (row >= 0 && melonPult->mRow != row)
 				|| (col >= 0 && melonPult->mColumn != col)) {
 				continue;
 			}
@@ -3013,6 +3015,44 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			&& ResourceManager::GetInstance().HasSound(
 				ResourceKeys::Sounds::SOUND_MELONIMPACT2) },
 	};
+	out["winterMelonResources"] = {
+		{ "reanimationLoaded", ResourceManager::GetInstance().HasReanimation(
+			ResourceKeys::Reanimations::REANIM_WINTERMELON) },
+		{ "cardTextureLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_WINTERMELON, false) != nullptr },
+		{ "projectileTextureLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_REANIM_WINTERMELON_PROJECTILE, false) != nullptr },
+		{ "bodyTexturesLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_REANIM_WINTERMELON_BASKET, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_REANIM_WINTERMELON_BASKET_OVERLAY, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_REANIM_WINTERMELON_BLINK1, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_REANIM_WINTERMELON_BLINK2, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_REANIM_WINTERMELON_EYEBROW, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_REANIM_WINTERMELON_MELON, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_REANIM_WINTERMELON_STALK, false) != nullptr },
+		{ "sharedLeafTexturesLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_REANIM_PEASHOOTER_FRONTLEAF, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_REANIM_PEASHOOTER_FRONTLEAF_LEFTTIP, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_REANIM_PEASHOOTER_FRONTLEAF_RIGHTTIP, false) != nullptr },
+		{ "particleTextureLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Particles::PARTICLE_WINTERMELON_PARTICLES, false) != nullptr },
+		{ "impactSoundsLoaded", ResourceManager::GetInstance().HasSound(
+			ResourceKeys::Sounds::SOUND_MELONIMPACT)
+			&& ResourceManager::GetInstance().HasSound(
+				ResourceKeys::Sounds::SOUND_MELONIMPACT2) },
+		{ "chillSoundsLoaded", ResourceManager::GetInstance().HasSound(
+			ResourceKeys::Sounds::SOUND_SNOW_PEA_SPARKLES)
+			&& ResourceManager::GetInstance().HasSound(
+				ResourceKeys::Sounds::SOUND_COOLDOWNZOMBIE) },
+	};
 	out["catapultResources"] = {
 		{ "reanimationLoaded", ResourceManager::GetInstance().HasReanimation(
 			ResourceKeys::Reanimations::REANIM_CATAPULT_ZOMBIE) },
@@ -3572,6 +3612,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		? g_particleSystem->GetEffectActiveParticleCount("EliteCatapultExplosion") : 0;
 	out["cooldownZombieSoundRequestCount"] =
 		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_COOLDOWNZOMBIE);
+	out["snowPeaSparklesSoundRequestCount"] =
+		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_SNOW_PEA_SPARKLES);
 	out["caltropTirePopSoundRequestCount"] =
 		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_BALLOON_POP);
 	out["basketballSoundRequestCount"] =
@@ -4813,6 +4855,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["particleEffectNameCounts"]["PeaBulletHit"] = 0;
 	out["particleEffectNameCounts"]["ToxicPeaBulletHit"] = 0;
 	out["particleEffectNameCounts"]["CabbageSplat"] = 0;
+	out["particleEffectNameCounts"]["MelonSplash"] = 0;
+	out["particleEffectNameCounts"]["WinterMelonSplash"] = 0;
 	out["particleEffectNameCounts"]["ButterSplat"] = 0;
 	out["particleEffectNameCounts"]["UmbrellaReflect"] = 0;
 	out["particleEffectNameCounts"]["ZombieArmOff"] = 0;
@@ -5175,6 +5219,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	int starSpinningBulletCount = 0;
 	int cabbageBulletCount = 0;
 	int melonBulletCount = 0;
+	int winterMelonBulletCount = 0;
 	int kernelBulletCount = 0;
 	int butterBulletCount = 0;
 	int basketballBulletCount = 0;
@@ -5227,6 +5272,9 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		}
 		else if (bullet->mBulletType == BulletType::BULLET_MELON) {
 			++melonBulletCount;
+		}
+		else if (bullet->mBulletType == BulletType::BULLET_WINTERMELON) {
+			++winterMelonBulletCount;
 		}
 		else if (bullet->mBulletType == BulletType::BULLET_KERNEL) {
 			++kernelBulletCount;
@@ -5316,6 +5364,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["starSpinningBulletCount"] = starSpinningBulletCount;
 	out["cabbageBulletCount"] = cabbageBulletCount;
 	out["melonBulletCount"] = melonBulletCount;
+	out["winterMelonBulletCount"] = winterMelonBulletCount;
 	out["kernelBulletCount"] = kernelBulletCount;
 	out["butterBulletCount"] = butterBulletCount;
 	out["basketballBulletCount"] = basketballBulletCount;

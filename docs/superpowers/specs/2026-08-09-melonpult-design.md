@@ -1,5 +1,10 @@
 # Melon-pult implementation design
 
+> 2026-08-14 current-balance note: the authoritative repository values are now 325 sun,
+> 10 seconds recharge, 120 direct damage, and 40 secondary splash. The 300/7.5/80/26
+> values below describe the original 2026-08-09 design snapshot and must not be used as
+> current AutoTest expectations.
+
 ## Scope
 
 Implement the classic Melon-pult as a normal placeable plant using the supplied `Melonpult.reanim`, the owner-confirmed global fire frame 44, and `Melonpult_melon.png`. The implementation includes its projectile, row-adjacent splash, resources, save state, object-pool reset, Adventure 5-7 reward integration, and focused AutoTest coverage.

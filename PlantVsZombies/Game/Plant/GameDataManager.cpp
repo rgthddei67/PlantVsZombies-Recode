@@ -58,6 +58,7 @@
 #include "UmbrellaLeaf.h"
 #include "Marigold.h"
 #include "MelonPult.h"
+#include "WinterMelon.h"
 
 #include "../Zombie/Zombie.h"
 #include "../Zombie/ConeZombie.h"
@@ -384,6 +385,11 @@ void GameDataManager::InitializeHardcodedData() {
 		ResourceKeys::Textures::IMAGE_MELONPULT,
 		AnimationType::ANIM_MELONPULT,
 		ResourceKeys::Reanimations::REANIM_MELONPULT, &MakePlant<MelonPult>);
+
+	RegisterPlant(PlantType::PLANT_WINTERMELON, "PLANT_WINTERMELON",
+		ResourceKeys::Textures::IMAGE_WINTERMELON,
+		AnimationType::ANIM_WINTERMELON,
+		ResourceKeys::Reanimations::REANIM_WINTERMELON, &MakePlant<WinterMelon>);
 
 	// 寒冰大喷菇：复用大喷菇 reanim（蓝色靠 overlay），仅卡图独立
 	RegisterPlant(PlantType::PLANT_ICEFUMESHROOM, "PLANT_ICEFUMESHROOM",

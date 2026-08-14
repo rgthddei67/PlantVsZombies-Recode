@@ -172,20 +172,22 @@ void CardDisplayComponent::DrawCardBackground(Graphics* g, const Vector& positio
 
 void CardDisplayComponent::DrawPlantImage(Graphics* g, const Vector& position, const glm::vec4& color) {
 	if (!plantTexture) return;
+	const bool isMelonFamily = plantType == PlantType::PLANT_MELONPULT
+		|| plantType == PlantType::PLANT_WINTERMELON;
 
 	const float typeScale = plantType == PlantType::PLANT_TALLNUT
 		? kTallNutCardImageScale
 		: plantType == PlantType::PLANT_BLOVER
 			? kBloverCardImageScale
-			: plantType == PlantType::PLANT_MELONPULT
+			: isMelonFamily
 				? kMelonPultCardImageScale
 				: 1.0f;
-	const float typeOffsetX = plantType == PlantType::PLANT_MELONPULT
+	const float typeOffsetX = isMelonFamily
 		? kMelonPultCardImageOffsetX
 		: 0.0f;
 	const float typeOffsetY = plantType == PlantType::PLANT_TALLNUT
 		? kTallNutCardImageOffsetY
-		: plantType == PlantType::PLANT_MELONPULT
+		: isMelonFamily
 			? kMelonPultCardImageOffsetY
 			: 0.0f;
 	const float baseW = plantTexture->width * kCardPlantImageScale;

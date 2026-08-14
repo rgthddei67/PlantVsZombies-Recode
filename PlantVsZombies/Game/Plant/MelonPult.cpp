@@ -120,11 +120,21 @@ void MelonPult::FireMelon()
 	AudioSystem::PlaySound(GameRandom::Chance()
 		? ResourceKeys::Sounds::SOUND_SHOOTER_SHOOT
 		: ResourceKeys::Sounds::SOUND_SHOOTER_SHOOT2, kShootSoundVolume);
+	const BulletType bulletType = GetMelonBulletType();
+	if (bulletType == BulletType::BULLET_WINTERMELON) {
+		AudioSystem::PlaySound(
+			ResourceKeys::Sounds::SOUND_SNOW_PEA_SPARKLES, kShootSoundVolume);
+	}
 	Bullet* melon = mBoard->CreateBullet(
-		BulletType::BULLET_MELON, mRow, launchPosition);
+		bulletType, mRow, launchPosition);
 	if (!melon) return;
 	melon->ConfigureLobbedMotion(
 		landingPosition, kFlightDuration, kArcApexHeight);
+}
+
+BulletType MelonPult::GetMelonBulletType() const
+{
+	return BulletType::BULLET_MELON;
 }
 
 void MelonPult::SaveExtraData(nlohmann::json& j) const
