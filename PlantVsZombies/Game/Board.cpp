@@ -178,8 +178,8 @@ namespace {
 	constexpr int kEliteScaredyShroomPlantLimit = 4;      // 每个关卡累计最多种植的精英胆小菇数量
 	constexpr int kPumpkinProtectionCellRadius = 1;       // 南瓜头范围爆炸保护的逻辑格半径；1 表示自身九宫格
 	constexpr int kPumpkinAreaDamageMultiplier = 5;       // 特殊僵尸范围伤害被南瓜头拦截时的默认基础伤害倍率
-	constexpr int kPlantTargetMonteCarloRolloutCount = 64; // 蹦极与精英小丑长时域选点的每候选未来样本数
-	constexpr int kTreatmentMonteCarloRolloutCount = 128; // 急救员短时域选疗的每候选未来样本数
+	constexpr int kPlantTargetMonteCarloRolloutCount = 48; // 蹦极与精英小丑长时域选点的每候选未来样本数
+	constexpr int kTreatmentMonteCarloRolloutCount = 40; // 急救员短时域选疗的每候选未来样本数
 	constexpr int kMonteCarloMaxZombies = 16;             // 单个样本最多推进的当前敌方僵尸数
 	constexpr float kMonteCarloHorizonSeconds = 16.0f;    // 植物防线短视推演时域，单位：游戏秒
 	constexpr float kMonteCarloStepSeconds = 0.25f;       // 纯数值推演固定步长，单位：游戏秒
