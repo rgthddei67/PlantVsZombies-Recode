@@ -26,6 +26,7 @@ metadata:
 - `clang-release` 配置/构建成功。主人当前桌面可见运行 `smoke_bungee_zombie.json`，窗口标题“植物大战僵尸中文版”、exit 0、`run.log` 为 `script finished OK`；覆盖资源、蒙特卡洛与原版随机分支、空中/落地承伤、尖叫、抓取禁用、快照恢复、快速上升、离场移除和抓取中死亡释放。该次携带截图使用 `cargoX=-12`，主人随后认为仍略偏右，最终 `cargoX=-20` 只重新完成 clang-release 编译，未按主人要求再跑 AutoTest。
 - `smoke_bungee_roof_visual.json` 在主人当前桌面可见运行 exit 0，屋顶截图确认绳索从顶部连续伸入僵尸背后，整身与目标花盆中心对齐；该验证不依赖之后只改携带植物的 `cargoX=-20`。
 - 共享蒙特卡洛回归 `smoke_elite_jack_monte_carlo_targeting.json` 同样在当前桌面可见运行 exit 0，原有爆炸候选的 32 rollout、候选数、目标行/X 与植物存活断言保持通过。
+- 2026-08-14 共享 rollout 硬上限从 12 提高到 16；`smoke_zombie_monte_carlo_cap` 以 15 只普通僵尸加蹦极在当前桌面可见断言样本数 16，`smoke_bungee_zombie` 父回归继续 exit 0。
 - 2026-08-08 接入叶子保护伞后，`smoke_bungee_zombie.json` 104 条命令再次在主人当前桌面可见运行 exit 0、`script finished OK`，携带坚果与随机/蒙特卡洛选点截图保持正常；`smoke_umbrella_leaf.json` 另断言保护区内蹦极空手上升、目标 300 生命保留、快照往返不重播伞声或 `boing`。
 
 ## 可复用契约

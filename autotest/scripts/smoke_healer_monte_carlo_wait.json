@@ -1,0 +1,32 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 1, "resetTestState": true, "background": "GROUND_DAY" },
+    { "op": "choose_cards", "cards": ["PLANT_PEASHOOTER"] },
+    { "op": "wait_state", "state": "GAME", "timeout": 15 },
+    { "op": "set_spawn_paused", "value": true },
+    { "op": "set_sun", "value": 9000 },
+    { "op": "plant", "type": "PLANT_PEASHOOTER", "row": 2, "col": 2 },
+    { "op": "spawn_zombie", "type": "ZOMBIE_HEALER", "row": 2, "x": 850, "stationary": true },
+    { "op": "damage_zombie", "type": "ZOMBIE_HEALER", "damage": 20 },
+    { "op": "make_healer_ready" },
+    { "op": "wait_frames", "value": 2 },
+    { "op": "assert_state", "path": "zombiesByType.ZOMBIE_HEALER.healerDecisionMode", "equals": "MONTE_CARLO" },
+    { "op": "assert_state", "path": "zombiesByType.ZOMBIE_HEALER.healerDecisionAction", "equals": "WAIT" },
+    { "op": "assert_state", "path": "zombiesByType.ZOMBIE_HEALER.healerTreatmentState", "equals": "IDLE" },
+    { "op": "assert_state", "path": "zombiesByType.ZOMBIE_HEALER.healerStrategicWaitMs", "equals": 500 },
+    { "op": "assert_state", "path": "zombiesByType.ZOMBIE_HEALER.healerMonteCarloRolloutCount", "equals": 32 },
+    { "op": "assert_state", "path": "zombiesByType.ZOMBIE_HEALER.healerMonteCarloCandidateCount", "equals": 2 },
+    { "op": "save_level_snapshot", "name": "healer_monte_carlo_wait" },
+    { "op": "reload_level_snapshot", "name": "healer_monte_carlo_wait" },
+    { "op": "assert_state", "path": "zombiesByType.ZOMBIE_HEALER.healerDecisionAction", "equals": "WAIT" },
+    { "op": "assert_state", "path": "zombiesByType.ZOMBIE_HEALER.healerStrategicWaitMs", "equals": 500 },
+    { "op": "wait_seconds", "value": 2.1, "timeout": 4 },
+    { "op": "assert_state", "path": "zombiesByType.ZOMBIE_HEALER.healerDecisionAction", "equals": "AREA" },
+    { "op": "assert_state", "path": "zombiesByType.ZOMBIE_HEALER.healerTreatmentState", "equals": "IDLE" },
+    { "op": "assert_state", "path": "zombiesByType.ZOMBIE_HEALER.healerStrategicWaitMs", "equals": 0 },
+    { "op": "assert_state", "path": "zombiesByType.ZOMBIE_HEALER.healerLastTargetCount", "equals": 1 },
+    { "op": "screenshot", "name": "healer_monte_carlo_bounded_wait_resolved.png" },
+    { "op": "dump_state", "name": "healer_monte_carlo_wait.json" },
+    { "op": "quit" }
+  ]
+}

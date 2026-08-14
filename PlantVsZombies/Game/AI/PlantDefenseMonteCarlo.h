@@ -26,6 +26,10 @@ struct PlantSnapshot {
 	float productionDelay = 0.0f;
 	Bounds bounds;
 	bool pumpkinShell = false;
+	int hijackerExecutionGroup = -1;
+	bool countsForHijackerExecution = false;
+	bool diesWithHijackerExecutionGroup = false;
+	bool protectedFromHijackerExecution = false;
 };
 
 struct ZombieSnapshot {
@@ -33,10 +37,14 @@ struct ZombieSnapshot {
 	int eatingPlantId = -1;
 	int row = 0;
 	float x = 0.0f;
+	float y = 0.0f;
 	float moveSpeed = 0.0f;
 	float bodyHealth = 0.0f;
+	float bodyMaxHealth = 0.0f;
 	float helmHealth = 0.0f;
+	float helmMaxHealth = 0.0f;
 	float shieldHealth = 0.0f;
+	float shieldMaxHealth = 0.0f;
 	float attackDamage = 0.0f;
 	bool isEating = false;
 };
@@ -85,7 +93,7 @@ struct Snapshot {
 
 struct Config {
 	int rolloutCount = 32;                  // 每个候选使用的短视未来样本数
-	int maxZombiesPerRollout = 12;          // 单次样本最多推进的当前敌方僵尸数
+	int maxZombiesPerRollout = 16;          // 单次样本最多推进的当前敌方僵尸数
 	float horizonSeconds = 16.0f;           // 单次样本向前推演的游戏秒
 	float stepSeconds = 0.25f;              // 固定数值步长，越小越精细但开销越高
 	float impactDamage = 50.0f;             // 候选动作在 t=0 对植物造成的伤害
@@ -110,11 +118,65 @@ struct Result {
 	float coordinationLoss = 0.0f;
 };
 
+enum class TreatmentAction {
+	AREA,
+	FOCUSED,
+};
+
+struct TreatmentCandidate {
+	TreatmentAction action = TreatmentAction::AREA;
+	int targetZombieId = -1;
+	float delaySeconds = 0.0f;
+	float overflowPressure = 0.0f;
+};
+
+struct PendingTreatment {
+	TreatmentAction action = TreatmentAction::AREA;
+	int sourceZombieId = -1;
+	int targetZombieId = -1;
+	float resolveSeconds = 0.0f;
+	float radius = 0.0f;
+	float healAmount = 0.0f;
+};
+
+struct TreatmentConfig {
+	Config combat;
+	int sourceZombieId = -1;
+	float castSeconds = 1.0f;
+	float areaRadius = 140.0f;
+	float focusedRadius = 280.0f;
+	float areaHealAmount = 60.0f;
+	float focusedHealAmount = 300.0f;
+	float terminalZombiePressurePerHealth = 0.08f;
+	int hijackerZombieId = -1;
+	float hijackerExecutionSeconds = -1.0f;
+	bool survivalMode = false;
+	float survivalExecutionLineCap = 1200.0f;
+};
+
+struct TreatmentResult {
+	int candidateIndex = -1;
+	float score = 0.0f;
+	int rolloutCount = 0;
+	int sampledZombieCount = 0;
+	int cardCount = 0;
+};
+
 /**
  * @brief 用当前实体和卡槽的轻量快照比较候选攻击，返回令玩家未来效用损失最大的落点。
  *
  * 每个候选与无攻击基线使用相同 rollout seed；函数只使用局部随机数，不推进游戏全局 RNG。
  */
 Result ChooseTarget(const Snapshot& snapshot, const Config& config, std::uint32_t seed);
+
+/**
+ * @brief 比较立即或延迟开始的群疗/单疗动作，返回令玩家未来效用损失最大的候选。
+ *
+ * 延迟候选仍在同一组 rollout seed 上比较；函数只推进纯数值副本，不消费游戏 RNG。
+ */
+TreatmentResult ChooseTreatment(const Snapshot& snapshot,
+	const std::vector<TreatmentCandidate>& candidates,
+	const std::vector<PendingTreatment>& pendingTreatments,
+	const TreatmentConfig& config, std::uint32_t seed);
 
 } // namespace PlantDefenseMonteCarlo

@@ -17,6 +17,8 @@ namespace {
 	constexpr float kFullHealCooldown = 6.0f;             // 成功治疗后的完整冷却，单位游戏秒
 	constexpr float kCastDuration = 1.0f;                 // 两种治疗共同的施法前摇，单位游戏秒
 	constexpr float kRetryDelay = 0.5f;                   // 目标失效或无伤员时的重试间隔，单位游戏秒
+	constexpr float kStrategicWaitStep = 0.5f;            // 蒙特卡洛一次等待候选延后的游戏秒
+	constexpr float kStrategicWaitMaximum = 2.0f;         // 单次治疗机会允许累计等待的上限游戏秒
 	constexpr float kAreaRadius = 140.0f;                 // 群疗判定与结算半径，单位像素
 	constexpr float kFocusedRadius = 280.0f;              // 单疗锁定与结算半径，单位像素
 	constexpr int kAreaWoundedThreshold = 3;              // 选择群疗所需的最少伤员数，包含施法者
@@ -56,6 +58,14 @@ void HealerZombie::SetupZombie()
 	mFocusedTargetID = NULL_ZOMBIE_ID;
 	mResumePlantID = NULL_PLANT_ID;
 	mResumeZombieID = NULL_ZOMBIE_ID;
+	mStrategicWaitElapsed = 0.0f;
+	mLastDecisionMode = DecisionMode::DETERMINISTIC;
+	mLastDecisionAction = DecisionAction::NONE;
+	mLastMonteCarloRolloutCount = 0;
+	mLastMonteCarloCandidateCount = 0;
+	mLastMonteCarloZombieCount = 0;
+	mLastMonteCarloCardCount = 0;
+	mLastMonteCarloBestScore = 0.0f;
 	mHealingPermanentlyDisabled = false;
 	ConfigureTreatmentPresentation();
 	ApplyTreatmentPresentation();
@@ -175,6 +185,22 @@ std::vector<int> HealerZombie::CollectAreaTargets(float radius) const
 	return result;
 }
 
+std::vector<int> HealerZombie::CollectFocusedTargets() const
+{
+	std::vector<int> result;
+	if (!mBoard) return result;
+	EntityManager& entities = mBoard->mEntityManager;
+	for (int zombieID : entities.GetAllZombieIDs()) {
+		Zombie* zombie = entities.GetZombie(zombieID);
+		if (zombie && IsValidTreatmentTarget(*zombie, kFocusedRadius, false)
+			&& !entities.IsHealerFocusedTargetReserved(zombieID, mZombieID)) {
+			result.push_back(zombieID);
+		}
+	}
+	std::sort(result.begin(), result.end());
+	return result;
+}
+
 int HealerZombie::SelectFocusedTarget() const
 {
 	if (!mBoard) return NULL_ZOMBIE_ID;
@@ -205,6 +231,61 @@ int HealerZombie::SelectFocusedTarget() const
 	return selectedID;
 }
 
+bool HealerZombie::SelectMonteCarloTreatment(
+	const std::vector<int>& areaTargets,
+	const std::vector<int>& focusedTargets)
+{
+	if (!mBoard || (areaTargets.empty() && focusedTargets.empty())) return false;
+	MonteCarloTreatmentRequest request;
+	request.sourceZombieID = mZombieID;
+	request.areaTargetIDs = areaTargets;
+	request.focusedTargetIDs = focusedTargets;
+	request.areaRadius = kAreaRadius;
+	request.focusedRadius = kFocusedRadius;
+	request.areaHealAmount = static_cast<float>(kAreaHealAmount);
+	request.focusedHealAmount = static_cast<float>(kFocusedHealAmount);
+	request.castSeconds = kCastDuration;
+	request.waitSeconds = kStrategicWaitStep;
+	request.allowWait = mStrategicWaitElapsed + kStrategicWaitStep
+		<= kStrategicWaitMaximum + 0.001f;
+
+	MonteCarloTreatmentDecision decision;
+	MonteCarloTargetStats stats;
+	if (!mBoard->PickMonteCarloZombieTreatment(request, decision, &stats)) {
+		return false;
+	}
+	mLastDecisionMode = DecisionMode::MONTE_CARLO;
+	mLastMonteCarloRolloutCount = stats.rolloutCount;
+	mLastMonteCarloCandidateCount = stats.candidateCount;
+	mLastMonteCarloZombieCount = stats.sampledZombieCount;
+	mLastMonteCarloCardCount = stats.cardCount;
+	mLastMonteCarloBestScore = stats.bestScore;
+	switch (decision.action) {
+	case MonteCarloTreatmentAction::WAIT:
+		mLastDecisionAction = DecisionAction::WAIT;
+		mStrategicWaitElapsed = std::min(
+			kStrategicWaitMaximum, mStrategicWaitElapsed + kStrategicWaitStep);
+		mRetryTimer = kStrategicWaitStep;
+		return true;
+	case MonteCarloTreatmentAction::AREA:
+		mLastDecisionAction = DecisionAction::AREA;
+		BeginTreatment(TreatmentState::AREA, NULL_ZOMBIE_ID);
+		return true;
+	case MonteCarloTreatmentAction::FOCUSED:
+		if (Zombie* target = mBoard->mEntityManager.GetZombie(
+			decision.targetZombieID);
+			target && IsValidTreatmentTarget(*target, kFocusedRadius, false)
+			&& !mBoard->mEntityManager.IsHealerFocusedTargetReserved(
+				decision.targetZombieID, mZombieID)) {
+			mLastDecisionAction = DecisionAction::FOCUSED;
+			BeginTreatment(TreatmentState::FOCUSED, decision.targetZombieID);
+			return true;
+		}
+		return false;
+	}
+	return false;
+}
+
 bool HealerZombie::IsReadyForTreatmentChoice() const
 {
 	return !mIsPreview && IsActive() && !mIsDead && !mIsDying && mHasHead
@@ -227,6 +308,7 @@ void HealerZombie::MakeTreatmentReadyForTesting()
 	if (mTreatmentState != TreatmentState::IDLE || mHealingPermanentlyDisabled) return;
 	mHealCooldown = 0.0f;
 	mRetryTimer = 0.0f;
+	mStrategicWaitElapsed = 0.0f;
 }
 
 void HealerZombie::Update()
@@ -266,15 +348,38 @@ void HealerZombie::ZombieUpdate(float scaledTime)
 	if (mBoard && mBoard->mEntityManager.HasReadyHealerBefore(mZombieID)) return;
 
 	const std::vector<int> areaTargets = CollectAreaTargets(kAreaRadius);
+	const std::vector<int> focusedTargets = CollectFocusedTargets();
+	if (areaTargets.empty() && focusedTargets.empty()) {
+		mStrategicWaitElapsed = 0.0f;
+		mLastDecisionAction = DecisionAction::NONE;
+		mRetryTimer = kRetryDelay;
+		return;
+	}
+	if (GameAPP::GetInstance().mEnableMonteCarloAI
+		&& SelectMonteCarloTreatment(areaTargets, focusedTargets)) {
+		return;
+	}
+
+	// 关闭总开关、魅惑侧暂不适用或推演失败时，完整保留原确定性规则。
+	mLastDecisionMode = DecisionMode::DETERMINISTIC;
+	mLastMonteCarloRolloutCount = 0;
+	mLastMonteCarloCandidateCount = 0;
+	mLastMonteCarloZombieCount = 0;
+	mLastMonteCarloCardCount = 0;
+	mLastMonteCarloBestScore = 0.0f;
 	if (static_cast<int>(areaTargets.size()) >= kAreaWoundedThreshold) {
+		mLastDecisionAction = DecisionAction::AREA;
 		BeginTreatment(TreatmentState::AREA, NULL_ZOMBIE_ID);
 		return;
 	}
 	const int focusedTargetID = SelectFocusedTarget();
 	if (focusedTargetID != NULL_ZOMBIE_ID) {
+		mLastDecisionAction = DecisionAction::FOCUSED;
 		BeginTreatment(TreatmentState::FOCUSED, focusedTargetID);
 		return;
 	}
+	mLastDecisionAction = DecisionAction::NONE;
+	mStrategicWaitElapsed = 0.0f;
 	mRetryTimer = kRetryDelay;
 }
 
@@ -286,6 +391,7 @@ void HealerZombie::BeginTreatment(
 	mTreatmentState = state;
 	mFocusedTargetID = state == TreatmentState::FOCUSED
 		? focusedTargetID : NULL_ZOMBIE_ID;
+	mStrategicWaitElapsed = 0.0f;
 	mCastRemaining = kCastDuration;
 	mLastHealTargetCount = 0;
 	mLastHealTotalAmount = 0;
@@ -380,6 +486,7 @@ void HealerZombie::CancelTreatment(bool permanent, bool resumeEating)
 		mHealingPermanentlyDisabled = true;
 		mTreatmentState = TreatmentState::DISABLED;
 		mRetryTimer = 0.0f;
+		mStrategicWaitElapsed = 0.0f;
 		mResumePlantID = NULL_PLANT_ID;
 		mResumeZombieID = NULL_ZOMBIE_ID;
 	}
@@ -489,6 +596,7 @@ void HealerZombie::OnMindControlled()
 	// 旧阵营啃食目标不能在治疗结束后复用；完整冷却保持原值。
 	mResumePlantID = NULL_PLANT_ID;
 	mResumeZombieID = NULL_ZOMBIE_ID;
+	mStrategicWaitElapsed = 0.0f;
 }
 
 void HealerZombie::HeadDrop()
@@ -534,6 +642,14 @@ void HealerZombie::SaveExtraData(nlohmann::json& j) const
 	j["focusedTargetID"] = mFocusedTargetID;
 	j["resumePlantID"] = mResumePlantID;
 	j["resumeZombieID"] = mResumeZombieID;
+	j["strategicWaitElapsed"] = mStrategicWaitElapsed;
+	j["lastDecisionMode"] = static_cast<int>(mLastDecisionMode);
+	j["lastDecisionAction"] = static_cast<int>(mLastDecisionAction);
+	j["mcRollouts"] = mLastMonteCarloRolloutCount;
+	j["mcCandidates"] = mLastMonteCarloCandidateCount;
+	j["mcZombies"] = mLastMonteCarloZombieCount;
+	j["mcCards"] = mLastMonteCarloCardCount;
+	j["mcBestScore"] = mLastMonteCarloBestScore;
 	j["healingPermanentlyDisabled"] = mHealingPermanentlyDisabled;
 }
 
@@ -550,6 +666,21 @@ void HealerZombie::LoadExtraData(const nlohmann::json& j)
 	mFocusedTargetID = j.value("focusedTargetID", NULL_ZOMBIE_ID);
 	mResumePlantID = j.value("resumePlantID", NULL_PLANT_ID);
 	mResumeZombieID = j.value("resumeZombieID", NULL_ZOMBIE_ID);
+	mStrategicWaitElapsed = std::clamp(
+		j.value("strategicWaitElapsed", 0.0f), 0.0f, kStrategicWaitMaximum);
+	const int decisionMode = std::clamp(j.value("lastDecisionMode", 0),
+		static_cast<int>(DecisionMode::DETERMINISTIC),
+		static_cast<int>(DecisionMode::MONTE_CARLO));
+	mLastDecisionMode = static_cast<DecisionMode>(decisionMode);
+	const int decisionAction = std::clamp(j.value("lastDecisionAction", 0),
+		static_cast<int>(DecisionAction::NONE),
+		static_cast<int>(DecisionAction::WAIT));
+	mLastDecisionAction = static_cast<DecisionAction>(decisionAction);
+	mLastMonteCarloRolloutCount = std::max(0, j.value("mcRollouts", 0));
+	mLastMonteCarloCandidateCount = std::max(0, j.value("mcCandidates", 0));
+	mLastMonteCarloZombieCount = std::max(0, j.value("mcZombies", 0));
+	mLastMonteCarloCardCount = std::max(0, j.value("mcCards", 0));
+	mLastMonteCarloBestScore = j.value("mcBestScore", 0.0f);
 	mHealingPermanentlyDisabled = j.value("healingPermanentlyDisabled", false);
 	if (mIsPreview) {
 		mTreatmentState = TreatmentState::IDLE;
@@ -559,6 +690,14 @@ void HealerZombie::LoadExtraData(const nlohmann::json& j)
 		mFocusedTargetID = NULL_ZOMBIE_ID;
 		mResumePlantID = NULL_PLANT_ID;
 		mResumeZombieID = NULL_ZOMBIE_ID;
+		mStrategicWaitElapsed = 0.0f;
+		mLastDecisionMode = DecisionMode::DETERMINISTIC;
+		mLastDecisionAction = DecisionAction::NONE;
+		mLastMonteCarloRolloutCount = 0;
+		mLastMonteCarloCandidateCount = 0;
+		mLastMonteCarloZombieCount = 0;
+		mLastMonteCarloCardCount = 0;
+		mLastMonteCarloBestScore = 0.0f;
 		mHealingPermanentlyDisabled = false;
 	}
 	else if (!mHasHead
@@ -567,6 +706,7 @@ void HealerZombie::LoadExtraData(const nlohmann::json& j)
 		mTreatmentState = TreatmentState::DISABLED;
 		mFocusedTargetID = NULL_ZOMBIE_ID;
 		mCastRemaining = 0.0f;
+		mStrategicWaitElapsed = 0.0f;
 	}
 	else if ((mTreatmentState == TreatmentState::AREA
 			|| mTreatmentState == TreatmentState::FOCUSED)

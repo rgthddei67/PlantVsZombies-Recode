@@ -38,6 +38,7 @@ struct MagneticItem;
 enum class MowerType;
 enum class PlanternGear : int;
 enum class ZombieJumpType;
+namespace PlantDefenseMonteCarlo { struct Snapshot; }
 
 struct MonteCarloTargetStats {
 	int rolloutCount = 0;
@@ -46,6 +47,30 @@ struct MonteCarloTargetStats {
 	int cardCount = 0;
 	float bestScore = 0.0f;
 	float coordinationLoss = 0.0f;
+};
+
+enum class MonteCarloTreatmentAction {
+	AREA,
+	FOCUSED,
+	WAIT,
+};
+
+struct MonteCarloTreatmentRequest {
+	int sourceZombieID = -1;
+	std::vector<int> areaTargetIDs;
+	std::vector<int> focusedTargetIDs;
+	float areaRadius = 0.0f;
+	float focusedRadius = 0.0f;
+	float areaHealAmount = 0.0f;
+	float focusedHealAmount = 0.0f;
+	float castSeconds = 0.0f;
+	float waitSeconds = 0.0f;
+	bool allowWait = false;
+};
+
+struct MonteCarloTreatmentDecision {
+	MonteCarloTreatmentAction action = MonteCarloTreatmentAction::AREA;
+	int targetZombieID = -1;
 };
 
 enum class Background {
@@ -169,6 +194,9 @@ public:
 private:
 	BoardPresentation* mPresentation = nullptr; // 非拥有；宿主场景的生命周期覆盖 Board
 	CardSlotManager* mCardSlotManager = nullptr; // 非拥有；由 GameScene 在 CardUI 创建后绑定
+	/** 采集推演共用的植物、僵尸、卡槽和格子纯数值快照。 */
+	bool BuildMonteCarloCombatSnapshot(
+		PlantDefenseMonteCarlo::Snapshot& snapshot, bool mindControlledFaction);
 	std::vector<ZombieType> mSpawnZombieList;	// 本关出怪表
 	float mHugeWaveCountDown = 0.0f;	// 一大波倒计时
 	float mUpdateZombieMetricsTimer = 0.0f;	// 僵尸血量与音乐敌对数的合并采样计时器
@@ -451,6 +479,15 @@ public:
 	bool PickMonteCarloPlantRemovalTarget(
 		const std::vector<int>& eligiblePlantIDs, int sourceZombieID,
 		int& targetPlantID, MonteCarloTargetStats* stats = nullptr);
+	/**
+	 * @brief 比较急救员当前全部群疗、单疗与一次延迟分支；魅惑侧不适用时返回 false。
+	 *
+	 * Board 是唯一读取实体、卡槽、待结算治疗与雷荷锁定状态的边界。
+	 */
+	bool PickMonteCarloZombieTreatment(
+		const MonteCarloTreatmentRequest& request,
+		MonteCarloTreatmentDecision& decision,
+		MonteCarloTargetStats* stats = nullptr);
 	/** 完成一次读档恢复，并在实体全部还原后立即同步派生的逐格迷雾。 */
 	void CompleteLoadRestore();
 	/** 返回 Board 是否仍处于关卡存档恢复生命周期。 */

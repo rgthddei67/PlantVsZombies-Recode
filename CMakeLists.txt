@@ -214,6 +214,21 @@ if(BUILD_TESTING)
         pvz_assert_win7_imports(SaveSchemaTests)
     endif()
     add_test(NAME save-schema COMMAND SaveSchemaTests)
+
+    # 共享蒙特卡洛器保持纯数值边界，单测无需启动 SDL 或构造 Board。
+    add_executable(PlantDefenseMonteCarloTests
+        tests/PlantDefenseMonteCarloTests.cpp
+        PlantVsZombies/Game/AI/PlantDefenseMonteCarlo.cpp
+    )
+    target_include_directories(PlantDefenseMonteCarloTests PRIVATE ${SRC_DIR})
+    target_compile_options(PlantDefenseMonteCarloTests PRIVATE /utf-8 /W3 /sdl /EHsc)
+    target_link_libraries(PlantDefenseMonteCarloTests PRIVATE
+        $<$<PLATFORM_ID:Windows>:pvz_win7_compat>
+    )
+    if(WIN32)
+        pvz_assert_win7_imports(PlantDefenseMonteCarloTests)
+    endif()
+    add_test(NAME plant-defense-monte-carlo COMMAND PlantDefenseMonteCarloTests)
 endif()
 
 # ---- GLSL → SPIR-V（复刻 vcxproj 的 CompileShaders Target，增量编译）----

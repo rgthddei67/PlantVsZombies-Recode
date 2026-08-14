@@ -4,6 +4,7 @@
     { "op": "choose_cards", "cards": [] },
     { "op": "wait_state", "state": "GAME", "timeout": 15 },
     { "op": "set_spawn_paused", "value": true },
+    { "op": "set_monte_carlo_ai", "value": false },
     { "op": "spawn_zombie", "type": "ZOMBIE_HEALER", "row": 2, "x": 650, "stationary": true },
     { "op": "spawn_zombie", "type": "ZOMBIE_BUCKET", "row": 1, "x": 620, "stationary": true },
     { "op": "spawn_zombie", "type": "ZOMBIE_FOOTBALL", "row": 1, "x": 680, "stationary": true },

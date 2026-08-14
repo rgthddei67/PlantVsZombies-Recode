@@ -5,7 +5,7 @@
 #include <vector>
 
 /**
- * 第六大关急救员僵尸：每六秒按伤员密度选择无上限群疗或带预留的高额单疗。
+ * 第六大关急救员僵尸：每六秒用可切换的推演/确定性策略选择无上限群疗或高额单疗。
  * 普通移动、啃食、断肢断头与死亡帧事件全部复用 `Zombie`。
  */
 class HealerZombie final : public Zombie {
@@ -17,6 +17,16 @@ public:
 		AREA,
 		FOCUSED,
 		DISABLED,
+	};
+	enum class DecisionMode {
+		DETERMINISTIC,
+		MONTE_CARLO,
+	};
+	enum class DecisionAction {
+		NONE,
+		AREA,
+		FOCUSED,
+		WAIT,
 	};
 
 	void Update() override;
@@ -35,6 +45,14 @@ public:
 	int GetFocusedTargetID() const { return mFocusedTargetID; }
 	int GetLastHealTargetCount() const { return mLastHealTargetCount; }
 	int GetLastHealTotalAmount() const { return mLastHealTotalAmount; }
+	float GetStrategicWaitElapsed() const { return mStrategicWaitElapsed; }
+	DecisionMode GetLastDecisionMode() const { return mLastDecisionMode; }
+	DecisionAction GetLastDecisionAction() const { return mLastDecisionAction; }
+	int GetLastMonteCarloRolloutCount() const { return mLastMonteCarloRolloutCount; }
+	int GetLastMonteCarloCandidateCount() const { return mLastMonteCarloCandidateCount; }
+	int GetLastMonteCarloZombieCount() const { return mLastMonteCarloZombieCount; }
+	int GetLastMonteCarloCardCount() const { return mLastMonteCarloCardCount; }
+	float GetLastMonteCarloBestScore() const { return mLastMonteCarloBestScore; }
 	bool IsHealingPermanentlyDisabled() const { return mHealingPermanentlyDisabled; }
 	bool HasTreatmentGearFollower() const { return mGearFollowerConfigured; }
 	bool IsTreatmentGearVisible() const;
@@ -63,7 +81,12 @@ private:
 	bool IsValidTreatmentTarget(const Zombie& zombie, float radius,
 		bool allowSelf) const;
 	std::vector<int> CollectAreaTargets(float radius) const;
+	/** 收集全部未被其他急救员预留的单疗候选，并按实体 ID 稳定排序。 */
+	std::vector<int> CollectFocusedTargets() const;
 	int SelectFocusedTarget() const;
+	/** 在群疗、全部单疗目标和有界等待间执行一次纯数值推演决策。 */
+	bool SelectMonteCarloTreatment(const std::vector<int>& areaTargets,
+		const std::vector<int>& focusedTargets);
 	void BeginTreatment(TreatmentState state, int focusedTargetID);
 	void ResolveTreatment();
 	int ApplyTreatment(Zombie& target, int amount, const char* effectName) const;
@@ -84,6 +107,14 @@ private:
 	int mResumeZombieID = NULL_ZOMBIE_ID;
 	int mLastHealTargetCount = 0;
 	int mLastHealTotalAmount = 0;
+	float mStrategicWaitElapsed = 0.0f;
+	DecisionMode mLastDecisionMode = DecisionMode::DETERMINISTIC;
+	DecisionAction mLastDecisionAction = DecisionAction::NONE;
+	int mLastMonteCarloRolloutCount = 0;
+	int mLastMonteCarloCandidateCount = 0;
+	int mLastMonteCarloZombieCount = 0;
+	int mLastMonteCarloCardCount = 0;
+	float mLastMonteCarloBestScore = 0.0f;
 	bool mHealingPermanentlyDisabled = false;
 	bool mGearFollowerConfigured = false;
 };

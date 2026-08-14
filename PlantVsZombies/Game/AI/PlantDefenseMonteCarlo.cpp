@@ -33,16 +33,25 @@ namespace {
 		float productionDelay = 0.0f;
 		Bounds bounds;
 		bool pumpkinShell = false;
+		int hijackerExecutionGroup = -1;
+		bool countsForHijackerExecution = false;
+		bool diesWithHijackerExecutionGroup = false;
+		bool protectedFromHijackerExecution = false;
 	};
 
 	struct SimZombie {
+		int id = -1;
 		int eatingPlantId = -1;
 		int row = 0;
 		float x = 0.0f;
+		float y = 0.0f;
 		float moveSpeed = 0.0f;
 		float bodyHealth = 0.0f;
+		float bodyMaxHealth = 0.0f;
 		float helmHealth = 0.0f;
+		float helmMaxHealth = 0.0f;
 		float shieldHealth = 0.0f;
+		float shieldMaxHealth = 0.0f;
 		float attackDamage = 0.0f;
 		float biteCharge = 0.0f;
 		bool breached = false;
@@ -62,6 +71,7 @@ namespace {
 		int cardCount = 0;
 		float sun = 0.0f;
 		float breachLoss = 0.0f;
+		float directPlayerUtilityAdjustment = 0.0f;
 		std::uint64_t reservedCells = 0;
 	};
 
@@ -150,7 +160,11 @@ namespace {
 				std::max(0.0f, source.sunPerSecond),
 				std::max(0.0f, source.productionDelay),
 				source.bounds,
-				source.pumpkinShell
+				source.pumpkinShell,
+				source.hijackerExecutionGroup,
+				source.countsForHijackerExecution,
+				source.diesWithHijackerExecutionGroup,
+				source.protectedFromHijackerExecution
 			};
 		}
 
@@ -193,13 +207,18 @@ namespace {
 			const float speedJitter =
 				1.0f + RandomSigned(random) * kMoveSpeedJitter;
 			state.zombies[i] = {
+				source.id,
 				source.eatingPlantId,
 				source.row,
 				source.x,
+				source.y,
 				std::max(0.0f, source.moveSpeed * speedJitter),
 				std::max(0.0f, source.bodyHealth),
+				std::max(0.0f, source.bodyMaxHealth),
 				std::max(0.0f, source.helmHealth),
+				std::max(0.0f, source.helmMaxHealth),
 				std::max(0.0f, source.shieldHealth),
+				std::max(0.0f, source.shieldMaxHealth),
 				std::max(0.0f, source.attackDamage),
 				source.isEating ? biteInterval : Random01(random) * biteInterval,
 				false
@@ -393,6 +412,11 @@ namespace {
 			cell.x - 40.0f, cell.y - 50.0f, 80.0f, 100.0f
 		};
 		plant.pumpkinShell = card.pumpkinShell;
+		// rollout 内新种层缺少正式 Cell 层级关系，不参与劫持者处决组近似，避免误杀承载层。
+		plant.hijackerExecutionGroup = -1;
+		plant.countsForHijackerExecution = false;
+		plant.diesWithHijackerExecutionGroup = false;
+		plant.protectedFromHijackerExecution = false;
 		// 初始合法性由正式 CanPlantAt 快照决定；这里只阻止同一 rollout 再占用新种格。
 		state.reservedCells |= (1ULL << bestCell);
 		state.sun -= static_cast<float>(card.cost);
@@ -457,13 +481,41 @@ namespace {
 		return target;
 	}
 
-	// 以统一速度、接触距离和等效啃咬间隔推进僵尸，不复制任何品种状态机。
-	void UpdateZombies(SimulationState& state, const Config& config, float deltaTime)
+	bool IsCastingTreatment(const SimZombie& zombie, float elapsed,
+		const TreatmentCandidate* candidate,
+		const std::vector<PendingTreatment>* pendingTreatments,
+		const TreatmentConfig* treatmentConfig)
+	{
+		if (candidate && treatmentConfig
+			&& zombie.id == treatmentConfig->sourceZombieId
+			&& elapsed + kMinimumHealth >= candidate->delaySeconds
+			&& elapsed < candidate->delaySeconds + treatmentConfig->castSeconds) {
+			return true;
+		}
+		if (!pendingTreatments) return false;
+		for (const PendingTreatment& pending : *pendingTreatments) {
+			if (zombie.id == pending.sourceZombieId
+				&& elapsed < pending.resolveSeconds) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	// 以统一速度、接触距离和等效啃咬间隔推进僵尸；治疗施法者在前摇内停止移动和啃食。
+	void UpdateZombies(SimulationState& state, const Config& config, float deltaTime,
+		float elapsed = 0.0f, const TreatmentCandidate* candidate = nullptr,
+		const std::vector<PendingTreatment>* pendingTreatments = nullptr,
+		const TreatmentConfig* treatmentConfig = nullptr)
 	{
 		const float biteInterval = std::max(0.1f, config.biteInterval);
 		for (int i = 0; i < state.zombieCount; ++i) {
 			SimZombie& zombie = state.zombies[i];
 			if (!IsAlive(zombie)) continue;
+			if (IsCastingTreatment(zombie, elapsed, candidate,
+				pendingTreatments, treatmentConfig)) {
+				continue;
+			}
 
 			const int plantIndex = FindFrontPlant(state, zombie);
 			if (plantIndex < 0) {
@@ -540,7 +592,8 @@ namespace {
 	// 把剩余阳光、植物战略价值和越线惩罚归一成候选之间可比较的玩家效用。
 	float PlayerUtility(const SimulationState& state)
 	{
-		float utility = state.sun * kSunUtilityMultiplier - state.breachLoss;
+		float utility = state.sun * kSunUtilityMultiplier - state.breachLoss
+			+ state.directPlayerUtilityAdjustment;
 		for (int i = 0; i < state.plantCount; ++i) {
 			const SimPlant& plant = state.plants[i];
 			if (!IsAlive(plant)) continue;
@@ -549,6 +602,228 @@ namespace {
 			utility += plant.strategicValue * healthFraction;
 		}
 		return utility;
+	}
+
+	SimZombie* FindZombie(SimulationState& state, int zombieId)
+	{
+		for (int i = 0; i < state.zombieCount; ++i) {
+			if (state.zombies[i].id == zombieId) return &state.zombies[i];
+		}
+		return nullptr;
+	}
+
+	float RepairPool(float& current, float maximum, float amount)
+	{
+		if (current <= kMinimumHealth || maximum <= kMinimumHealth
+			|| current >= maximum || amount <= 0.0f) {
+			return 0.0f;
+		}
+		const float before = current;
+		current = std::min(maximum, current + amount);
+		return current - before;
+	}
+
+	float ApplyTreatmentToZombie(SimZombie& zombie, float amount)
+	{
+		if (!IsAlive(zombie)) return 0.0f;
+		return RepairPool(zombie.bodyHealth, zombie.bodyMaxHealth, amount)
+			+ RepairPool(zombie.helmHealth, zombie.helmMaxHealth, amount)
+			+ RepairPool(zombie.shieldHealth, zombie.shieldMaxHealth, amount);
+	}
+
+	bool IsWithinTreatmentRadius(
+		const SimZombie& source, const SimZombie& target, float radius)
+	{
+		const float dx = target.x - source.x;
+		const float dy = target.y - source.y;
+		return dx * dx + dy * dy <= radius * radius;
+	}
+
+	float ApplyTreatmentEvent(SimulationState& state, TreatmentAction action,
+		int sourceZombieId, int targetZombieId, float radius, float amount,
+		float overflowPressure)
+	{
+		SimZombie* source = FindZombie(state, sourceZombieId);
+		if (!source || !IsAlive(*source)) return 0.0f;
+
+		float restored = 0.0f;
+		if (action == TreatmentAction::AREA) {
+			for (int i = 0; i < state.zombieCount; ++i) {
+				SimZombie& target = state.zombies[i];
+				if (IsAlive(target)
+					&& IsWithinTreatmentRadius(*source, target, radius)) {
+					restored += ApplyTreatmentToZombie(target, amount);
+				}
+			}
+			// 未详细推进的群疗对象只贡献有界终局压力，不改变实体数组与碰撞结果。
+			state.directPlayerUtilityAdjustment -= std::max(0.0f, overflowPressure);
+		}
+		else {
+			SimZombie* target = FindZombie(state, targetZombieId);
+			if (target && target->id != source->id && IsAlive(*target)
+				&& IsWithinTreatmentRadius(*source, *target, radius)) {
+				restored = ApplyTreatmentToZombie(*target, amount);
+			}
+		}
+		return restored;
+	}
+
+	float TerminalZombiePressure(
+		const SimulationState& state, const TreatmentConfig& config)
+	{
+		float pressure = 0.0f;
+		for (int i = 0; i < state.zombieCount; ++i) {
+			const SimZombie& zombie = state.zombies[i];
+			if (!IsAlive(zombie)) continue;
+			const float health = zombie.bodyHealth
+				+ zombie.helmHealth + zombie.shieldHealth;
+			const float attackFactor = 0.5f
+				+ std::max(0.0f, zombie.attackDamage) / 50.0f;
+			const float progressFactor = 1.0f
+				+ std::max(0.0f, 900.0f - zombie.x) / 900.0f;
+			pressure += health * attackFactor * progressFactor
+				* std::max(0.0f, config.terminalZombiePressurePerHealth);
+		}
+		return pressure;
+	}
+
+	// 按正式生命口径与格子层组在数值副本中提交一次已锁定劫持者处决。
+	void ApplyHijackerExecution(
+		SimulationState& state, const TreatmentConfig& config)
+	{
+		SimZombie* hijacker = FindZombie(state, config.hijackerZombieId);
+		if (!hijacker || !IsAlive(*hijacker)) return;
+		float executionLine = hijacker->bodyHealth
+			+ hijacker->helmHealth + hijacker->shieldHealth;
+		if (config.survivalMode) {
+			executionLine = std::min(executionLine,
+				std::max(0.0f, config.survivalExecutionLineCap));
+		}
+		if (executionLine <= kMinimumHealth) return;
+
+		std::array<float, 64> groupHealth{};
+		std::array<bool, 64> groupProtected{};
+		for (int i = 0; i < state.plantCount; ++i) {
+			const SimPlant& plant = state.plants[i];
+			const int group = plant.hijackerExecutionGroup;
+			if (!IsAlive(plant) || group < 0 || group >= 64) continue;
+			if (plant.countsForHijackerExecution) {
+				groupHealth[group] += plant.health;
+			}
+			if (plant.protectedFromHijackerExecution) {
+				groupProtected[group] = true;
+			}
+		}
+		std::array<bool, 64> killedGroups{};
+		for (int group = 0; group < 64; ++group) {
+			killedGroups[group] = !groupProtected[group]
+				&& groupHealth[group] > kMinimumHealth
+				&& groupHealth[group] <= executionLine;
+		}
+		for (int i = 0; i < state.plantCount; ++i) {
+			SimPlant& plant = state.plants[i];
+			const int group = plant.hijackerExecutionGroup;
+			if (plant.diesWithHijackerExecutionGroup
+				&& group >= 0 && group < 64 && killedGroups[group]) {
+				plant.health = 0.0f;
+			}
+		}
+		for (int i = 0; i < state.zombieCount; ++i) {
+			SimZombie& zombie = state.zombies[i];
+			if (!IsAlive(zombie) || zombie.id == hijacker->id) continue;
+			const float health = zombie.bodyHealth
+				+ zombie.helmHealth + zombie.shieldHealth;
+			if (health > kMinimumHealth && health <= executionLine) {
+				zombie.bodyHealth = 0.0f;
+			}
+		}
+		hijacker->bodyHealth = 0.0f;
+	}
+
+	// 治疗者选择以玩家效用损失为目标，因此终局僵尸压力从玩家效用中扣除。
+	float TreatmentPlayerUtility(
+		const SimulationState& state, const Config& combat,
+		const TreatmentConfig& treatment)
+	{
+		return PlayerUtility(state) + TerminalBlockerUtility(state, combat)
+			- TerminalZombiePressure(state, treatment);
+	}
+
+	// 治疗分支与现有攻击分支共用战斗推进，只额外插入施法、待结算治疗和劫持者处决边沿。
+	ScenarioUtility RunTreatmentScenario(const Snapshot& snapshot,
+		const TreatmentConfig& treatmentConfig,
+		const std::vector<PendingTreatment>& pendingTreatments,
+		const TreatmentCandidate* candidate, std::uint32_t seed)
+	{
+		const Config& config = treatmentConfig.combat;
+		SimulationState state;
+		BuildInitialState(snapshot, config, seed, state);
+
+		std::vector<bool> pendingResolved(pendingTreatments.size(), false);
+		bool candidateResolved = candidate == nullptr;
+		bool hijackerResolved = treatmentConfig.hijackerExecutionSeconds < 0.0f;
+		std::minstd_rand random(seed ^ 0x9E3779B9u);
+		const float deltaTime = std::max(0.1f, config.stepSeconds);
+		const int stepCount = std::max(
+			1, static_cast<int>(std::ceil(config.horizonSeconds / deltaTime)));
+		float nextPlantDecision = Random01(random)
+			* std::max(deltaTime, config.plantDecisionInterval);
+
+		for (int step = 0; step < stepCount; ++step) {
+			const float elapsed = static_cast<float>(step) * deltaTime;
+			const float nextElapsed = std::min(
+				config.horizonSeconds, elapsed + deltaTime);
+			const float remaining = std::max(
+				0.0f, config.horizonSeconds - elapsed);
+			UpdatePlantProduction(state, deltaTime);
+			UpdateCardCooldowns(state, deltaTime);
+			if (elapsed >= nextPlantDecision) {
+				TryPlantFromCards(snapshot, state, remaining, random);
+				nextPlantDecision += std::max(
+					deltaTime, config.plantDecisionInterval);
+			}
+			UpdatePlantAttacks(state, deltaTime, snapshot.rows);
+			UpdateZombies(state, config, deltaTime, elapsed, candidate,
+				&pendingTreatments, &treatmentConfig);
+
+			for (std::size_t i = 0; i < pendingTreatments.size(); ++i) {
+				const PendingTreatment& pending = pendingTreatments[i];
+				if (pendingResolved[i] || pending.resolveSeconds > nextElapsed) continue;
+				ApplyTreatmentEvent(state, pending.action, pending.sourceZombieId,
+					pending.targetZombieId, pending.radius, pending.healAmount, 0.0f);
+				pendingResolved[i] = true;
+			}
+			if (!candidateResolved && candidate
+				&& candidate->delaySeconds + treatmentConfig.castSeconds <= nextElapsed) {
+				const bool area = candidate->action == TreatmentAction::AREA;
+				ApplyTreatmentEvent(state, candidate->action,
+					treatmentConfig.sourceZombieId, candidate->targetZombieId,
+					area ? treatmentConfig.areaRadius : treatmentConfig.focusedRadius,
+					area ? treatmentConfig.areaHealAmount
+						: treatmentConfig.focusedHealAmount,
+					candidate->overflowPressure);
+				candidateResolved = true;
+			}
+			if (!hijackerResolved
+				&& treatmentConfig.hijackerExecutionSeconds <= nextElapsed) {
+				ApplyHijackerExecution(state, treatmentConfig);
+				hijackerResolved = true;
+			}
+		}
+
+		float total = TreatmentPlayerUtility(state, config, treatmentConfig);
+		if (!hijackerResolved
+			&& FindZombie(state, treatmentConfig.hijackerZombieId)) {
+			SimulationState executed = state;
+			ApplyHijackerExecution(executed, treatmentConfig);
+			const float executionSwing = TreatmentPlayerUtility(
+				executed, config, treatmentConfig) - total;
+			const float secondsBeyondHorizon = std::max(0.0f,
+				treatmentConfig.hijackerExecutionSeconds - config.horizonSeconds);
+			const float discount = 1.0f / (1.0f + secondsBeyondHorizon / 7.0f);
+			total += executionSwing * discount;
+		}
+		return { total, TerminalBlockerUtility(state, config) };
 	}
 
 	// 执行一个固定时域场景；candidate 为空时即为同随机种子的无攻击基线。
@@ -648,6 +923,80 @@ Result ChooseTarget(const Snapshot& snapshot, const Config& config, std::uint32_
 				result.candidateIndex = static_cast<int>(candidateIndex);
 				result.score = averageLoss;
 				result.coordinationLoss = averageCoordinationLoss;
+			}
+		}
+	}
+	return result;
+}
+
+TreatmentResult ChooseTreatment(const Snapshot& snapshot,
+	const std::vector<TreatmentCandidate>& candidates,
+	const std::vector<PendingTreatment>& pendingTreatments,
+	const TreatmentConfig& config, std::uint32_t seed)
+{
+	TreatmentResult result;
+	result.rolloutCount = std::max(1, config.combat.rolloutCount);
+	result.sampledZombieCount = std::min({
+		static_cast<int>(snapshot.zombies.size()),
+		std::max(0, config.combat.maxZombiesPerRollout),
+		kMaxSimulationZombies
+	});
+	result.cardCount = std::min(
+		static_cast<int>(snapshot.cards.size()), kMaxSimulationCards);
+	if (candidates.empty() || snapshot.zombies.empty()
+		|| snapshot.rows <= 0 || snapshot.columns <= 0
+		|| config.sourceZombieId < 0) {
+		return result;
+	}
+
+	std::vector<ScenarioUtility> baselineUtilities(result.rolloutCount);
+	for (int rollout = 0; rollout < result.rolloutCount; ++rollout) {
+		const std::uint32_t rolloutSeed =
+			seed + static_cast<std::uint32_t>(rollout) * 0x85EBCA6Bu;
+		baselineUtilities[rollout] = RunTreatmentScenario(
+			snapshot, config, pendingTreatments, nullptr, rolloutSeed);
+	}
+
+	float bestScore = std::numeric_limits<float>::lowest();
+	std::mt19937 tieRandom(seed ^ 0x7F4A7C15u);
+	int tiedBestCount = 0;
+	for (std::size_t candidateIndex = 0;
+		candidateIndex < candidates.size(); ++candidateIndex) {
+		float totalLoss = 0.0f;
+		for (int rollout = 0; rollout < result.rolloutCount; ++rollout) {
+			const std::uint32_t rolloutSeed =
+				seed + static_cast<std::uint32_t>(rollout) * 0x85EBCA6Bu;
+			const ScenarioUtility treatedUtility = RunTreatmentScenario(
+				snapshot, config, pendingTreatments,
+				&candidates[candidateIndex], rolloutSeed);
+			totalLoss += baselineUtilities[rollout].total - treatedUtility.total;
+		}
+		const float averageLoss = totalLoss / static_cast<float>(result.rolloutCount);
+		if (averageLoss > bestScore + kScoreTieEpsilon) {
+			bestScore = averageLoss;
+			tiedBestCount = 1;
+			result.candidateIndex = static_cast<int>(candidateIndex);
+			result.score = averageLoss;
+		}
+		else if (std::abs(averageLoss - bestScore) <= kScoreTieEpsilon) {
+			const bool candidateWaits = candidates[candidateIndex].delaySeconds > 0.0f;
+			const bool selectedWaits = result.candidateIndex >= 0
+				&& candidates[static_cast<std::size_t>(
+					result.candidateIndex)].delaySeconds > 0.0f;
+			// 同收益时立即动作严格优先，等待必须靠真实未来收益胜出而不能靠并列随机。
+			if (candidateWaits != selectedWaits) {
+				if (!candidateWaits) {
+					result.candidateIndex = static_cast<int>(candidateIndex);
+					result.score = averageLoss;
+					tiedBestCount = 1;
+				}
+				continue;
+			}
+			++tiedBestCount;
+			std::uniform_int_distribution<int> chooseTie(1, tiedBestCount);
+			if (chooseTie(tieRandom) == 1) {
+				result.candidateIndex = static_cast<int>(candidateIndex);
+				result.score = averageLoss;
 			}
 		}
 	}

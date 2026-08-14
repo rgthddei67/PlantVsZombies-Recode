@@ -228,6 +228,23 @@ namespace {
 		}
 	}
 
+	const char* HealerDecisionModeName(HealerZombie::DecisionMode mode)
+	{
+		return mode == HealerZombie::DecisionMode::MONTE_CARLO
+			? "MONTE_CARLO" : "DETERMINISTIC";
+	}
+
+	const char* HealerDecisionActionName(HealerZombie::DecisionAction action)
+	{
+		switch (action) {
+		case HealerZombie::DecisionAction::NONE: return "NONE";
+		case HealerZombie::DecisionAction::AREA: return "AREA";
+		case HealerZombie::DecisionAction::FOCUSED: return "FOCUSED";
+		case HealerZombie::DecisionAction::WAIT: return "WAIT";
+		default: return "UNKNOWN";
+		}
+	}
+
 	const char* ZombieHelmTypeName(HelmType type)
 	{
 		switch (type) {
@@ -4151,6 +4168,23 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			zombieState["healerFocusedTargetID"] = healer->GetFocusedTargetID();
 			zombieState["healerLastTargetCount"] = healer->GetLastHealTargetCount();
 			zombieState["healerLastTotalAmount"] = healer->GetLastHealTotalAmount();
+			zombieState["healerStrategicWaitMs"] = static_cast<int>(std::lround(
+				healer->GetStrategicWaitElapsed() * 1000.0f));
+			zombieState["healerDecisionMode"] =
+				HealerDecisionModeName(healer->GetLastDecisionMode());
+			zombieState["healerDecisionAction"] =
+				HealerDecisionActionName(healer->GetLastDecisionAction());
+			zombieState["healerMonteCarloRolloutCount"] =
+				healer->GetLastMonteCarloRolloutCount();
+			zombieState["healerMonteCarloCandidateCount"] =
+				healer->GetLastMonteCarloCandidateCount();
+			zombieState["healerMonteCarloZombieCount"] =
+				healer->GetLastMonteCarloZombieCount();
+			zombieState["healerMonteCarloCardCount"] =
+				healer->GetLastMonteCarloCardCount();
+			zombieState["healerMonteCarloBestScoreOn100"] =
+				static_cast<int>(std::lround(
+					healer->GetLastMonteCarloBestScore() * 100.0f));
 			zombieState["healerDisabled"] = healer->IsHealingPermanentlyDisabled();
 			zombieState["healerGearFollower"] = healer->HasTreatmentGearFollower();
 			zombieState["healerGearVisible"] = healer->IsTreatmentGearVisible();
@@ -4610,6 +4644,10 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "spawnWave", healer->mSpawnWave },
 			{ "state", HealerTreatmentStateName(healer->GetTreatmentState()) },
 			{ "focusedTargetID", healer->GetFocusedTargetID() },
+			{ "strategicWaitMs", static_cast<int>(std::lround(
+				healer->GetStrategicWaitElapsed() * 1000.0f)) },
+			{ "decisionMode", HealerDecisionModeName(healer->GetLastDecisionMode()) },
+			{ "decisionAction", HealerDecisionActionName(healer->GetLastDecisionAction()) },
 			{ "disabled", healer->IsHealingPermanentlyDisabled() },
 			{ "gearTextureKey", healer->GetTreatmentGearTextureKey() },
 		});

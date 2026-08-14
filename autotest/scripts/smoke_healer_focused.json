@@ -4,6 +4,7 @@
     { "op": "choose_cards", "cards": [] },
     { "op": "wait_state", "state": "GAME", "timeout": 15 },
     { "op": "set_spawn_paused", "value": true },
+    { "op": "set_monte_carlo_ai", "value": false },
 
     { "op": "assert_state", "path": "healerResources.baseReanimationLoaded", "equals": true },
     { "op": "assert_state", "path": "healerResources.bodyLoaded", "equals": true },

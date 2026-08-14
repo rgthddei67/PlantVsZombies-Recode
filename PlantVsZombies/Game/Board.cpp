@@ -17,6 +17,7 @@
 #include "./Plant/PlantUpgradeRules.h"
 #include "./Plant/Plantern.h"
 #include "./Zombie/Zombie.h"
+#include "./Zombie/HealerZombie.h"
 #include "./Zombie/HijackerZombie.h"
 #include "./Zombie/MagneticItem.h"
 #include "MistFuel.h"
@@ -178,7 +179,7 @@ namespace {
 	constexpr int kPumpkinProtectionCellRadius = 1;       // 南瓜头范围爆炸保护的逻辑格半径；1 表示自身九宫格
 	constexpr int kPumpkinAreaDamageMultiplier = 5;       // 特殊僵尸范围伤害被南瓜头拦截时的默认基础伤害倍率
 	constexpr int kMonteCarloRolloutCount = 32;           // 每个爆点的轻量未来样本数；低配可由 GameAPP 总开关完全跳过
-	constexpr int kMonteCarloMaxZombies = 12;             // 单个样本最多推进的当前敌方僵尸数
+	constexpr int kMonteCarloMaxZombies = 16;             // 单个样本最多推进的当前敌方僵尸数
 	constexpr float kMonteCarloHorizonSeconds = 16.0f;    // 植物防线短视推演时域，单位：游戏秒
 	constexpr float kMonteCarloStepSeconds = 0.25f;       // 纯数值推演固定步长，单位：游戏秒
 	constexpr float kMonteCarloPlantDecisionSeconds = 2.0f; // 样本内玩家尝试从实际卡槽种植的间隔秒数
@@ -186,6 +187,8 @@ namespace {
 	constexpr float kMonteCarloSunProducerFutureValue = 300.0f; // 当前产能植物的未来经济价值，单位：阳光分
 	constexpr float kMonteCarloTerminalBlockedSecondUtility = 12.0f; // 终局每秒剩余破墙时间对应的防守效用分
 	constexpr float kMonteCarloTerminalBlockedSecondsCap = 90.0f; // 单株终局破墙时间最多计入的秒数
+	constexpr float kTreatmentMonteCarloHorizonSeconds = 7.0f; // 急救员从当前选择推演到下一次最早决策的窗口，单位：游戏秒
+	constexpr float kTreatmentTerminalPressurePerHealth = 0.08f; // 时域末端每点僵尸生命折算的基础进攻压力
 	constexpr int kWaveCandidateAttemptLimit = MAX_ZOMBIES_PER_WAVE * 10; // 单波候选尝试上限，防止仅剩受限类型时死循环
 	constexpr float kWeatherTransitionDuration = 2.0f;   // 雨势切换时倍率、暗幕与雨声音量的平滑过渡时长（游戏秒）
 	constexpr float kLateWeatherRampStart = 0.40f;       // 普通关波次进度超过该比例后开始增强后期天气（0～1）
@@ -4589,22 +4592,12 @@ void Board::CreateTrophy(const Vector& position)
  * 从当前棋盘采集紧凑数值快照：实体提供真实生命/速度，卡槽提供未来种植候选，
  * 再把纯计算交给共享推演器。这里是唯一接触 GameObject 的边界。
  */
-bool Board::PickMonteCarloPlantBlastTarget(
-	int minRow, int maxRow, int damage, float radius, int sourceZombieID,
-	int& targetRow, Vector& targetPosition, MonteCarloTargetStats* stats,
-	const std::vector<int>* removalPlantIDs, int* selectedRemovalPlantID)
+bool Board::BuildMonteCarloCombatSnapshot(
+	PlantDefenseMonteCarlo::Snapshot& snapshot, bool mindControlledFaction)
 {
 	using namespace PlantDefenseMonteCarlo;
-	const bool removalMode = removalPlantIDs != nullptr;
-	if (mRows <= 0 || mColumns <= 0 || mColumns * mRows > 64
-		|| (removalMode ? removalPlantIDs->empty()
-			: (damage <= 0 || radius <= 0.0f))) {
-		return false;
-	}
-	minRow = std::clamp(minRow, 0, mRows - 1);
-	maxRow = std::clamp(maxRow, minRow, mRows - 1);
-
-	Snapshot snapshot;
+	if (mRows <= 0 || mColumns <= 0 || mColumns * mRows > 64) return false;
+	snapshot = Snapshot{};
 	snapshot.rows = mRows;
 	snapshot.columns = mColumns;
 	snapshot.initialSun = static_cast<float>(std::max(0, mSun));
@@ -4621,10 +4614,6 @@ bool Board::PickMonteCarloPlantBlastTarget(
 
 	const auto& gameData = GameDataManager::GetInstance();
 	const int backlineColumnCount = (mColumns + 1) / 2;
-	std::vector<std::pair<int, int>> candidateCells;
-	const std::unordered_set<int> eligibleRemovalIDs = removalMode
-		? std::unordered_set<int>(removalPlantIDs->begin(), removalPlantIDs->end())
-		: std::unordered_set<int>();
 	std::vector<int> plantIDs = mEntityManager.GetAllPlantIDs();
 	std::sort(plantIDs.begin(), plantIDs.end());
 	snapshot.plants.reserve(plantIDs.size());
@@ -4655,6 +4644,11 @@ bool Board::PickMonteCarloPlantBlastTarget(
 				plant->GetPosition().y - CELL_COLLIDER_SIZE_Y * 0.5f,
 				CELL_COLLIDER_SIZE_X, CELL_COLLIDER_SIZE_Y
 			};
+		const Cell* cell = GetCell(plant->mRow, plant->mColumn);
+		const bool isNormal = cell && cell->GetNormalPlantID() == plantID;
+		const bool isPumpkin = cell && cell->GetPumpkinPlantID() == plantID;
+		const bool isOverlay = cell && cell->GetOverlayPlantID() == plantID;
+		const bool executionLayer = isNormal || isPumpkin || isOverlay;
 		snapshot.plants.push_back({
 			plant->mPlantID,
 			plant->mRow,
@@ -4668,34 +4662,13 @@ bool Board::PickMonteCarloPlantBlastTarget(
 			sleeping ? 0.0f : profile.sunPerSecond,
 			0.0f,
 			{ bounds.x, bounds.y, bounds.w, bounds.h },
-			plant->mPlantType == PlantType::PLANT_PUMPKINSHELL
+			plant->mPlantType == PlantType::PLANT_PUMPKINSHELL,
+			executionLayer ? plant->mRow * mColumns + plant->mColumn : -1,
+			isNormal || isPumpkin,
+			executionLayer,
+			GetNightRoofHijackerSupportProtector(plant) != nullptr
 		});
-
-		if (removalMode && eligibleRemovalIDs.find(plantID) != eligibleRemovalIDs.end()) {
-			const Vector center = GetCellCenterPosition(plant->mRow, plant->mColumn);
-			snapshot.candidates.push_back({
-				plant->mRow, plant->mColumn, center.x, center.y, plantID
-			});
-		}
-		else if (!removalMode
-			&& plant->mRow >= minRow && plant->mRow <= maxRow) {
-			candidateCells.emplace_back(plant->mRow, plant->mColumn);
-		}
 	}
-	if (!removalMode) {
-		std::sort(candidateCells.begin(), candidateCells.end());
-		candidateCells.erase(
-			std::unique(candidateCells.begin(), candidateCells.end()),
-			candidateCells.end());
-		snapshot.candidates.reserve(candidateCells.size());
-		for (const auto& cell : candidateCells) {
-			const Vector center = GetCellCenterPosition(cell.first, cell.second);
-			snapshot.candidates.push_back({
-				cell.first, cell.second, center.x, center.y
-			});
-		}
-	}
-	if (snapshot.candidates.empty()) return false;
 
 	std::vector<int> zombieIDs = mEntityManager.GetAllZombieIDs();
 	std::sort(zombieIDs.begin(), zombieIDs.end());
@@ -4703,24 +4676,31 @@ bool Board::PickMonteCarloPlantBlastTarget(
 	for (const int zombieID : zombieIDs) {
 		const Zombie* zombie = mEntityManager.GetZombie(zombieID);
 		if (!zombie || !zombie->IsActive() || zombie->IsDying()
-			|| !zombie->HasHead() || zombie->IsMindControlled()
+			|| !zombie->HasHead()
+			|| zombie->IsMindControlled() != mindControlledFaction
 			|| zombie->mRow < 0 || zombie->mRow >= mRows) {
 			continue;
 		}
 		float centerX = zombie->GetPosition().x;
+		float centerY = zombie->GetPosition().y;
 		if (const ColliderComponent* collider = zombie->GetColliderComponent()) {
 			const SDL_FRect bounds = collider->GetBoundingBox();
 			centerX = bounds.x + bounds.w * 0.5f;
+			centerY = bounds.y + bounds.h * 0.5f;
 		}
 		snapshot.zombies.push_back({
 			zombie->mZombieID,
 			zombie->IsEating() ? zombie->GetEatingPlantID() : -1,
 			zombie->mRow,
 			centerX,
+			centerY,
 			zombie->GetCurrentHorizontalMoveSpeed(),
 			static_cast<float>(std::max(0, zombie->mBodyHealth)),
+			static_cast<float>(std::max(0, zombie->mBodyMaxHealth)),
 			static_cast<float>(std::max(0, zombie->mHelmHealth)),
+			static_cast<float>(std::max(0, zombie->mHelmMaxHealth)),
 			static_cast<float>(std::max(0, zombie->mShieldHealth)),
+			static_cast<float>(std::max(0, zombie->mShieldMaxHealth)),
 			static_cast<float>(std::max(0, zombie->mAttackDamage)),
 			zombie->IsEating()
 		});
@@ -4770,6 +4750,53 @@ bool Board::PickMonteCarloPlantBlastTarget(
 			});
 		}
 	}
+	return true;
+}
+
+bool Board::PickMonteCarloPlantBlastTarget(
+	int minRow, int maxRow, int damage, float radius, int sourceZombieID,
+	int& targetRow, Vector& targetPosition, MonteCarloTargetStats* stats,
+	const std::vector<int>* removalPlantIDs, int* selectedRemovalPlantID)
+{
+	using namespace PlantDefenseMonteCarlo;
+	const bool removalMode = removalPlantIDs != nullptr;
+	if (removalMode ? removalPlantIDs->empty()
+		: (damage <= 0 || radius <= 0.0f)) {
+		return false;
+	}
+	minRow = std::clamp(minRow, 0, std::max(0, mRows - 1));
+	maxRow = std::clamp(maxRow, minRow, std::max(0, mRows - 1));
+
+	Snapshot snapshot;
+	if (!BuildMonteCarloCombatSnapshot(snapshot, false)) return false;
+	std::vector<std::pair<int, int>> candidateCells;
+	const std::unordered_set<int> eligibleRemovalIDs = removalMode
+		? std::unordered_set<int>(removalPlantIDs->begin(), removalPlantIDs->end())
+		: std::unordered_set<int>();
+	for (const PlantSnapshot& plant : snapshot.plants) {
+		if (removalMode && eligibleRemovalIDs.find(plant.id) != eligibleRemovalIDs.end()) {
+			const Vector center = GetCellCenterPosition(plant.row, plant.column);
+			snapshot.candidates.push_back({
+				plant.row, plant.column, center.x, center.y, plant.id
+			});
+		}
+		else if (!removalMode && plant.row >= minRow && plant.row <= maxRow) {
+			candidateCells.emplace_back(plant.row, plant.column);
+		}
+	}
+	if (!removalMode) {
+		std::sort(candidateCells.begin(), candidateCells.end());
+		candidateCells.erase(
+			std::unique(candidateCells.begin(), candidateCells.end()),
+			candidateCells.end());
+		for (const auto& cell : candidateCells) {
+			const Vector center = GetCellCenterPosition(cell.first, cell.second);
+			snapshot.candidates.push_back({
+				cell.first, cell.second, center.x, center.y
+			});
+		}
+	}
+	if (snapshot.candidates.empty()) return false;
 
 	Config config;
 	config.rolloutCount = kMonteCarloRolloutCount;
@@ -4828,6 +4855,234 @@ bool Board::PickMonteCarloPlantRemovalTarget(
 	return PickMonteCarloPlantBlastTarget(
 		0, std::max(0, mRows - 1), 0, 0.0f, sourceZombieID,
 		targetRow, targetPosition, stats, &eligiblePlantIDs, &targetPlantID);
+}
+
+bool Board::PickMonteCarloZombieTreatment(
+	const MonteCarloTreatmentRequest& request,
+	MonteCarloTreatmentDecision& decision, MonteCarloTargetStats* stats)
+{
+	using namespace PlantDefenseMonteCarlo;
+	Zombie* source = mEntityManager.GetZombie(request.sourceZombieID);
+	if (!source || source->IsMindControlled() || !source->IsActive()
+		|| source->IsDying() || !source->HasHead()
+		|| request.castSeconds <= 0.0f
+		|| request.areaRadius <= 0.0f || request.focusedRadius <= 0.0f
+		|| request.areaHealAmount <= 0.0f || request.focusedHealAmount <= 0.0f) {
+		return false;
+	}
+
+	Snapshot snapshot;
+	if (!BuildMonteCarloCombatSnapshot(snapshot, false)) return false;
+	std::unordered_set<int> areaTargetIDs(
+		request.areaTargetIDs.begin(), request.areaTargetIDs.end());
+	std::unordered_set<int> focusedTargetIDs(
+		request.focusedTargetIDs.begin(), request.focusedTargetIDs.end());
+	std::unordered_set<int> forcedZombieIDs{ request.sourceZombieID };
+	const int lockedHijackerID = GetNightRoofHijackerID();
+	if (lockedHijackerID != NULL_ZOMBIE_ID) forcedZombieIDs.insert(lockedHijackerID);
+
+	std::vector<PendingTreatment> pendingTreatments;
+	for (const int zombieID : mEntityManager.GetAllZombieIDs()) {
+		auto* healer = dynamic_cast<HealerZombie*>(mEntityManager.GetZombie(zombieID));
+		if (!healer || healer->mZombieID == request.sourceZombieID
+			|| !healer->IsActive() || healer->IsDying()
+			|| healer->IsMindControlled() != source->IsMindControlled()) {
+			continue;
+		}
+		const HealerZombie::TreatmentState state = healer->GetTreatmentState();
+		if (state != HealerZombie::TreatmentState::AREA
+			&& state != HealerZombie::TreatmentState::FOCUSED) {
+			continue;
+		}
+		forcedZombieIDs.insert(healer->mZombieID);
+		if (state == HealerZombie::TreatmentState::FOCUSED) {
+			forcedZombieIDs.insert(healer->GetFocusedTargetID());
+		}
+		pendingTreatments.push_back({
+			state == HealerZombie::TreatmentState::AREA
+				? TreatmentAction::AREA : TreatmentAction::FOCUSED,
+			healer->mZombieID,
+			healer->GetFocusedTargetID(),
+			healer->GetCastRemaining(),
+			state == HealerZombie::TreatmentState::AREA
+				? request.areaRadius : request.focusedRadius,
+			state == HealerZombie::TreatmentState::AREA
+				? request.areaHealAmount : request.focusedHealAmount
+		});
+	}
+
+	struct RankedZombie {
+		ZombieSnapshot snapshot;
+		float priority = 0.0f;
+		bool forced = false;
+	};
+	std::vector<RankedZombie> ranked;
+	ranked.reserve(snapshot.zombies.size());
+	for (const ZombieSnapshot& zombie : snapshot.zombies) {
+		const float health = zombie.bodyHealth
+			+ zombie.helmHealth + zombie.shieldHealth;
+		const float distanceFactor = 1.0f
+			+ 400.0f / std::max(100.0f, zombie.x);
+		float priority = std::max(1.0f, health)
+			* std::max(1.0f, zombie.attackDamage)
+			* std::max(1.0f, zombie.moveSpeed) * distanceFactor;
+		if (zombie.id == request.sourceZombieID) {
+			priority = std::numeric_limits<float>::max();
+		}
+		else if (zombie.id == lockedHijackerID) {
+			priority = std::numeric_limits<float>::max() * 0.5f;
+		}
+		else if (focusedTargetIDs.find(zombie.id) != focusedTargetIDs.end()) {
+			priority *= 2.0f;
+		}
+		else if (areaTargetIDs.find(zombie.id) != areaTargetIDs.end()) {
+			priority *= 1.5f;
+		}
+		ranked.push_back({
+			zombie, priority,
+			forcedZombieIDs.find(zombie.id) != forcedZombieIDs.end()
+		});
+	}
+	std::sort(ranked.begin(), ranked.end(),
+		[](const RankedZombie& lhs, const RankedZombie& rhs) {
+			if (lhs.forced != rhs.forced) return lhs.forced;
+			if (lhs.priority != rhs.priority) return lhs.priority > rhs.priority;
+			return lhs.snapshot.id < rhs.snapshot.id;
+		});
+	if (ranked.size() > static_cast<std::size_t>(kMonteCarloMaxZombies)) {
+		ranked.resize(kMonteCarloMaxZombies);
+	}
+	snapshot.zombies.clear();
+	std::unordered_set<int> sampledZombieIDs;
+	for (const RankedZombie& zombie : ranked) {
+		snapshot.zombies.push_back(zombie.snapshot);
+		sampledZombieIDs.insert(zombie.snapshot.id);
+	}
+	if (sampledZombieIDs.find(request.sourceZombieID) == sampledZombieIDs.end()) {
+		return false;
+	}
+
+	float areaOverflowPressure = 0.0f;
+	for (const int zombieID : request.areaTargetIDs) {
+		if (sampledZombieIDs.find(zombieID) != sampledZombieIDs.end()) continue;
+		const Zombie* zombie = mEntityManager.GetZombie(zombieID);
+		if (!zombie || !zombie->IsActive() || zombie->IsDying()) continue;
+		auto repairPotential = [&request](int current, int maximum) {
+			if (current <= 0 || maximum <= 0 || current >= maximum) return 0.0f;
+			return std::min(request.areaHealAmount,
+				static_cast<float>(maximum - current));
+		};
+		const float restored = repairPotential(
+			zombie->mBodyHealth, zombie->mBodyMaxHealth)
+			+ repairPotential(zombie->mHelmHealth, zombie->mHelmMaxHealth)
+			+ repairPotential(zombie->mShieldHealth, zombie->mShieldMaxHealth);
+		const float attackFactor = 0.5f
+			+ static_cast<float>(std::max(0, zombie->mAttackDamage)) / 50.0f;
+		const float progressFactor = 1.0f + std::max(
+			0.0f, 900.0f - zombie->GetPosition().x) / 900.0f;
+		areaOverflowPressure += restored * attackFactor * progressFactor
+			* kTreatmentTerminalPressurePerHealth;
+	}
+
+	std::vector<TreatmentCandidate> candidates;
+	if (!request.areaTargetIDs.empty()) {
+		candidates.push_back({
+			TreatmentAction::AREA, NULL_ZOMBIE_ID, 0.0f, areaOverflowPressure
+		});
+	}
+	for (const int targetID : request.focusedTargetIDs) {
+		if (sampledZombieIDs.find(targetID) == sampledZombieIDs.end()) continue;
+		candidates.push_back({ TreatmentAction::FOCUSED, targetID, 0.0f, 0.0f });
+	}
+	if (candidates.empty()) return false;
+	if (request.allowWait && request.waitSeconds > 0.0f) {
+		const std::size_t immediateCount = candidates.size();
+		candidates.reserve(immediateCount * 2);
+		for (std::size_t i = 0; i < immediateCount; ++i) {
+			TreatmentCandidate delayed = candidates[i];
+			delayed.delaySeconds = request.waitSeconds;
+			candidates.push_back(delayed);
+		}
+	}
+
+	TreatmentConfig config;
+	config.combat.rolloutCount = kMonteCarloRolloutCount;
+	config.combat.maxZombiesPerRollout = kMonteCarloMaxZombies;
+	config.combat.horizonSeconds = kTreatmentMonteCarloHorizonSeconds;
+	config.combat.stepSeconds = kMonteCarloStepSeconds;
+	config.combat.plantDecisionInterval = kMonteCarloPlantDecisionSeconds;
+	config.combat.terminalBlockedSecondUtility =
+		kMonteCarloTerminalBlockedSecondUtility;
+	config.combat.terminalBlockedSecondsCap =
+		kMonteCarloTerminalBlockedSecondsCap;
+	config.sourceZombieId = request.sourceZombieID;
+	config.castSeconds = request.castSeconds;
+	config.areaRadius = request.areaRadius;
+	config.focusedRadius = request.focusedRadius;
+	config.areaHealAmount = request.areaHealAmount;
+	config.focusedHealAmount = request.focusedHealAmount;
+	config.terminalZombiePressurePerHealth = kTreatmentTerminalPressurePerHealth;
+	config.hijackerZombieId = lockedHijackerID;
+	config.survivalMode = mIsSurvival;
+	config.survivalExecutionLineCap =
+		static_cast<float>(kNightRoofHijackerSurvivalLineCap);
+	if (lockedHijackerID != NULL_ZOMBIE_ID) {
+		if (mNightRoofChargePhase == NightRoofChargePhase::WARNING) {
+			config.hijackerExecutionSeconds = mNightRoofChargePhaseTimer;
+		}
+		else if (mNightRoofChargePhase == NightRoofChargePhase::CHARGING) {
+			float chargePerSecond = 0.0f;
+			switch (mRainIntensity) {
+			case RainIntensity::LIGHT: chargePerSecond = kNightRoofChargeLightPerSecond; break;
+			case RainIntensity::MEDIUM: chargePerSecond = kNightRoofChargeMediumPerSecond; break;
+			case RainIntensity::HEAVY: chargePerSecond = kNightRoofChargeHeavyPerSecond; break;
+			default: break;
+			}
+			chargePerSecond += GetNightRoofHijackerRainChargeBonusPerSecond();
+			if (chargePerSecond > 0.0f) {
+				config.hijackerExecutionSeconds = std::max(
+					0.0f, (kNightRoofChargeMaximum - mNightRoofCharge)
+						/ chargePerSecond) + kNightRoofHijackerWarningDuration;
+			}
+		}
+	}
+
+	std::uint32_t seed = 2166136261u;
+	auto mixSeed = [&seed](std::uint32_t value) {
+		seed ^= value;
+		seed *= 16777619u;
+	};
+	mixSeed(static_cast<std::uint32_t>(mBoardFrame));
+	mixSeed(static_cast<std::uint32_t>(mCurrentWave));
+	mixSeed(static_cast<std::uint32_t>(request.sourceZombieID));
+	const TreatmentResult result = ChooseTreatment(
+		snapshot, candidates, pendingTreatments, config, seed);
+	if (stats) {
+		stats->rolloutCount = result.rolloutCount;
+		stats->candidateCount = static_cast<int>(candidates.size());
+		stats->sampledZombieCount = result.sampledZombieCount;
+		stats->cardCount = result.cardCount;
+		stats->bestScore = result.score;
+		stats->coordinationLoss = 0.0f;
+	}
+	if (result.candidateIndex < 0
+		|| result.candidateIndex >= static_cast<int>(candidates.size())) {
+		return false;
+	}
+	const TreatmentCandidate& chosen = candidates[result.candidateIndex];
+	if (chosen.delaySeconds > 0.0f) {
+		decision.action = MonteCarloTreatmentAction::WAIT;
+		decision.targetZombieID = NULL_ZOMBIE_ID;
+	}
+	else if (chosen.action == TreatmentAction::AREA) {
+		decision.action = MonteCarloTreatmentAction::AREA;
+		decision.targetZombieID = NULL_ZOMBIE_ID;
+	}
+	else {
+		decision.action = MonteCarloTreatmentAction::FOCUSED;
+		decision.targetZombieID = chosen.targetZombieId;
+	}
+	return true;
 }
 
 bool Board::CanPlantAt(PlantType type, int row, int col)
