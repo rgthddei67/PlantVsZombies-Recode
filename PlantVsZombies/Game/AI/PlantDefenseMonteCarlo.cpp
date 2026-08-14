@@ -9,6 +9,7 @@
 namespace PlantDefenseMonteCarlo {
 namespace {
 	constexpr int kMaxSimulationPlants = 128; // 当前植物与短视未来新种植物的固定数组容量
+	constexpr int kMaxSimulationSupports = 64; // 普通花盆/睡莲按每格一株保存，不占详细植物容量
 	constexpr int kMaxSnapshotZombies = 64;  // 候选抽样前接受的当前敌方僵尸快照上限
 	constexpr int kMaxSimulationZombies = 16; // 单个 rollout 的硬上限，Config 只能在此范围内下调
 	constexpr int kMaxSimulationCards = 16;  // 当前卡槽的固定数组容量
@@ -37,6 +38,20 @@ namespace {
 		bool countsForHijackerExecution = false;
 		bool diesWithHijackerExecutionGroup = false;
 		bool protectedFromHijackerExecution = false;
+		int eatingLayerPriority = 1;
+		bool canBeEaten = true;
+	};
+
+	struct SimSupport {
+		int id = -1;
+		int row = 0;
+		int column = 0;
+		float x = 0.0f;
+		float health = 0.0f;
+		float maxHealth = 1.0f;
+		float strategicValue = 0.0f;
+		Bounds bounds;
+		bool canBeEaten = true;
 	};
 
 	struct SimZombie {
@@ -64,9 +79,11 @@ namespace {
 
 	struct SimulationState {
 		std::array<SimPlant, kMaxSimulationPlants> plants;
+		std::array<SimSupport, kMaxSimulationSupports> supports;
 		std::array<SimZombie, kMaxSimulationZombies> zombies;
 		std::array<SimCard, kMaxSimulationCards> cards;
 		int plantCount = 0;
+		int supportCount = 0;
 		int zombieCount = 0;
 		int cardCount = 0;
 		float sun = 0.0f;
@@ -106,6 +123,11 @@ namespace {
 	bool IsAlive(const SimPlant& plant)
 	{
 		return plant.health > kMinimumHealth;
+	}
+
+	bool IsAlive(const SimSupport& support)
+	{
+		return support.health > kMinimumHealth;
 	}
 
 	bool IsAlive(const SimZombie& zombie)
@@ -164,7 +186,26 @@ namespace {
 				source.hijackerExecutionGroup,
 				source.countsForHijackerExecution,
 				source.diesWithHijackerExecutionGroup,
-				source.protectedFromHijackerExecution
+				source.protectedFromHijackerExecution,
+				source.eatingLayerPriority,
+				source.canBeEaten
+			};
+		}
+
+		state.supportCount = std::min(
+			static_cast<int>(snapshot.supports.size()), kMaxSimulationSupports);
+		for (int i = 0; i < state.supportCount; ++i) {
+			const SupportSnapshot& source = snapshot.supports[i];
+			state.supports[i] = {
+				source.id,
+				source.row,
+				source.column,
+				source.x,
+				std::max(0.0f, source.health),
+				std::max(1.0f, source.maxHealth),
+				std::max(0.0f, source.strategicValue),
+				source.bounds,
+				source.canBeEaten
 			};
 		}
 
@@ -226,7 +267,48 @@ namespace {
 		}
 	}
 
-	// 与正式范围伤害一致：每个命中层稳定选择九宫格内最近南瓜，外壳按 ID 归并承伤。
+	// 为命中层稳定选择九宫格内最近南瓜；自身是南瓜时直接由自身承伤。
+	int FindPumpkinProtector(const SimulationState& state, int row, int column,
+		int selfPlantIndex, const Config& config)
+	{
+		if (selfPlantIndex >= 0 && selfPlantIndex < state.plantCount
+			&& state.plants[selfPlantIndex].pumpkinShell) {
+			return selfPlantIndex;
+		}
+
+		int pumpkinIndex = -1;
+		int bestDistanceSquared = std::numeric_limits<int>::max();
+		for (int candidateIndex = 0;
+			candidateIndex < state.plantCount; ++candidateIndex) {
+			const SimPlant& candidatePlant = state.plants[candidateIndex];
+			if (!IsAlive(candidatePlant) || !candidatePlant.pumpkinShell) continue;
+			const int rowDelta = candidatePlant.row - row;
+			const int columnDelta = candidatePlant.column - column;
+			if (std::abs(rowDelta) > config.pumpkinProtectionCellRadius
+				|| std::abs(columnDelta) > config.pumpkinProtectionCellRadius) {
+				continue;
+			}
+
+			const int distanceSquared = rowDelta * rowDelta
+				+ columnDelta * columnDelta;
+			const SimPlant* best = pumpkinIndex >= 0
+				? &state.plants[pumpkinIndex] : nullptr;
+			const bool stableTieBreak = best
+				&& distanceSquared == bestDistanceSquared
+				&& (candidatePlant.row < best->row
+					|| (candidatePlant.row == best->row
+						&& (candidatePlant.column < best->column
+							|| (candidatePlant.column == best->column
+								&& candidatePlant.id < best->id))));
+			if (!best || distanceSquared < bestDistanceSquared || stableTieBreak) {
+				pumpkinIndex = candidateIndex;
+				bestDistanceSquared = distanceSquared;
+			}
+		}
+		return pumpkinIndex;
+	}
+
+	// 与正式范围伤害一致：详细层和压缩支撑层都先解析保护南瓜，外壳按 ID 归并承伤。
 	void ApplyCandidateImpact(
 		SimulationState& state, const Candidate& candidate, const Config& config)
 	{
@@ -238,11 +320,19 @@ namespace {
 					return;
 				}
 			}
+			for (int i = 0; i < state.supportCount; ++i) {
+				SimSupport& support = state.supports[i];
+				if (IsAlive(support) && support.id == candidate.targetPlantId) {
+					support.health = 0.0f;
+					return;
+				}
+			}
 			return;
 		}
 
 		std::array<bool, kMaxSimulationPlants> normalHits{};
 		std::array<bool, kMaxSimulationPlants> pumpkinHits{};
+		std::array<bool, kMaxSimulationSupports> supportHits{};
 		for (int i = 0; i < state.plantCount; ++i) {
 			const SimPlant& plant = state.plants[i];
 			if (!IsAlive(plant)
@@ -250,40 +340,21 @@ namespace {
 				continue;
 			}
 
-			int pumpkinIndex = plant.pumpkinShell ? i : -1;
-			int bestDistanceSquared = plant.pumpkinShell ? 0
-				: std::numeric_limits<int>::max();
-			for (int candidateIndex = 0;
-				!plant.pumpkinShell && candidateIndex < state.plantCount;
-				++candidateIndex) {
-				const SimPlant& candidatePlant = state.plants[candidateIndex];
-				if (!IsAlive(candidatePlant) || !candidatePlant.pumpkinShell) continue;
-				const int rowDelta = candidatePlant.row - plant.row;
-				const int columnDelta = candidatePlant.column - plant.column;
-				if (std::abs(rowDelta) > config.pumpkinProtectionCellRadius
-					|| std::abs(columnDelta) > config.pumpkinProtectionCellRadius) {
-					continue;
-				}
-
-				const int distanceSquared = rowDelta * rowDelta
-					+ columnDelta * columnDelta;
-				const SimPlant* best = pumpkinIndex >= 0
-					? &state.plants[pumpkinIndex] : nullptr;
-				const bool stableTieBreak = best
-					&& distanceSquared == bestDistanceSquared
-					&& (candidatePlant.row < best->row
-						|| (candidatePlant.row == best->row
-							&& (candidatePlant.column < best->column
-								|| (candidatePlant.column == best->column
-									&& candidatePlant.id < best->id))));
-				if (!best || distanceSquared < bestDistanceSquared
-					|| stableTieBreak) {
-					pumpkinIndex = candidateIndex;
-					bestDistanceSquared = distanceSquared;
-				}
-			}
+			const int pumpkinIndex = FindPumpkinProtector(
+				state, plant.row, plant.column, i, config);
 			if (pumpkinIndex >= 0) pumpkinHits[pumpkinIndex] = true;
 			else normalHits[i] = true;
+		}
+		for (int i = 0; i < state.supportCount; ++i) {
+			const SimSupport& support = state.supports[i];
+			if (!IsAlive(support)
+				|| !CircleOverlapsBounds(candidate, config.impactRadius, support.bounds)) {
+				continue;
+			}
+			const int pumpkinIndex = FindPumpkinProtector(
+				state, support.row, support.column, -1, config);
+			if (pumpkinIndex >= 0) pumpkinHits[pumpkinIndex] = true;
+			else supportHits[i] = true;
 		}
 
 		for (int i = 0; i < state.plantCount; ++i) {
@@ -293,6 +364,13 @@ namespace {
 				: (normalHits[i] ? config.impactDamage : 0.0f);
 			if (damage > 0.0f) {
 				plant.health = std::max(0.0f, plant.health - damage);
+			}
+		}
+		for (int i = 0; i < state.supportCount; ++i) {
+			if (supportHits[i]) {
+				SimSupport& support = state.supports[i];
+				support.health = std::max(
+					0.0f, support.health - config.impactDamage);
 			}
 		}
 	}
@@ -417,6 +495,8 @@ namespace {
 		plant.countsForHijackerExecution = false;
 		plant.diesWithHijackerExecutionGroup = false;
 		plant.protectedFromHijackerExecution = false;
+		plant.eatingLayerPriority = card.eatingLayerPriority;
+		plant.canBeEaten = true;
 		// 初始合法性由正式 CanPlantAt 快照决定；这里只阻止同一 rollout 再占用新种格。
 		state.reservedCells |= (1ULL << bestCell);
 		state.sun -= static_cast<float>(card.cost);
@@ -453,30 +533,75 @@ namespace {
 		}
 	}
 
-	// 同 X 叠层时让活动南瓜层胜出；外壳被打破后自然回落到同格内层。
-	int FindFrontPlant(const SimulationState& state, const SimZombie& zombie)
+	struct BlockerRef {
+		int index = -1;
+		bool support = false;
+
+		bool IsValid() const { return index >= 0; }
+	};
+
+	int BlockerID(const SimulationState& state, const BlockerRef& blocker)
+	{
+		return blocker.support
+			? state.supports[blocker.index].id
+			: state.plants[blocker.index].id;
+	}
+
+	float BlockerX(const SimulationState& state, const BlockerRef& blocker)
+	{
+		return blocker.support
+			? state.supports[blocker.index].x
+			: state.plants[blocker.index].x;
+	}
+
+	float& BlockerHealth(SimulationState& state, const BlockerRef& blocker)
+	{
+		return blocker.support
+			? state.supports[blocker.index].health
+			: state.plants[blocker.index].health;
+	}
+
+	// 保留正式已锁定目标；重新索敌时严格按 pumpkin > normal > under 解析同格层级。
+	BlockerRef FindFrontBlocker(
+		const SimulationState& state, const SimZombie& zombie)
 	{
 		if (zombie.eatingPlantId >= 0) {
 			for (int i = 0; i < state.plantCount; ++i) {
 				const SimPlant& plant = state.plants[i];
 				if (IsAlive(plant) && plant.id == zombie.eatingPlantId) {
-					return i;
+					return { i, false };
+				}
+			}
+			for (int i = 0; i < state.supportCount; ++i) {
+				const SimSupport& support = state.supports[i];
+				if (IsAlive(support) && support.id == zombie.eatingPlantId) {
+					return { i, true };
 				}
 			}
 		}
 
-		int target = -1;
+		BlockerRef target;
 		float frontX = std::numeric_limits<float>::lowest();
+		int layerPriority = std::numeric_limits<int>::lowest();
+		auto consider = [&](float x, int priority, int index, bool support) {
+			if (x > zombie.x + 10.0f || x < frontX) return;
+			const bool samePosition = std::abs(x - frontX) <= kMinimumHealth;
+			if (samePosition && target.IsValid() && priority <= layerPriority) return;
+			frontX = x;
+			layerPriority = priority;
+			target = { index, support };
+		};
 		for (int i = 0; i < state.plantCount; ++i) {
 			const SimPlant& plant = state.plants[i];
-			if (!IsAlive(plant) || plant.row != zombie.row
-				|| plant.x > zombie.x + 10.0f || plant.x < frontX) {
-				continue;
-			}
-			if (plant.x == frontX && target >= 0
-				&& (!plant.pumpkinShell || state.plants[target].pumpkinShell)) continue;
-			frontX = plant.x;
-			target = i;
+			if (!IsAlive(plant) || !plant.canBeEaten
+				|| plant.eatingLayerPriority < 0 || plant.row != zombie.row) continue;
+			consider(plant.x, plant.eatingLayerPriority, i, false);
+		}
+		for (int i = 0; i < state.supportCount; ++i) {
+			const SimSupport& support = state.supports[i];
+			if (!IsAlive(support) || !support.canBeEaten
+				|| support.row != zombie.row) continue;
+			consider(support.x, 0, i, true);
 		}
 		return target;
 	}
@@ -517,27 +642,27 @@ namespace {
 				continue;
 			}
 
-			const int plantIndex = FindFrontPlant(state, zombie);
-			if (plantIndex < 0) {
+			const BlockerRef blocker = FindFrontBlocker(state, zombie);
+			if (!blocker.IsValid()) {
 				zombie.x -= zombie.moveSpeed * deltaTime;
 			}
 			else {
-				SimPlant& plant = state.plants[plantIndex];
-				const float distance = zombie.x - plant.x;
+				float& blockerHealth = BlockerHealth(state, blocker);
+				const float distance = zombie.x - BlockerX(state, blocker);
 				const bool lockedEatingTarget =
 					zombie.eatingPlantId >= 0
-					&& zombie.eatingPlantId == plant.id;
+					&& zombie.eatingPlantId == BlockerID(state, blocker);
 				if (!lockedEatingTarget && distance > config.contactDistance) {
 					zombie.x = std::max(
-						plant.x + config.contactDistance,
+						BlockerX(state, blocker) + config.contactDistance,
 						zombie.x - zombie.moveSpeed * deltaTime);
 				}
 				else {
 					zombie.biteCharge += deltaTime;
 					while (zombie.biteCharge >= biteInterval
-						&& IsAlive(plant)) {
-						plant.health = std::max(
-							0.0f, plant.health - zombie.attackDamage);
+						&& blockerHealth > kMinimumHealth) {
+						blockerHealth = std::max(
+							0.0f, blockerHealth - zombie.attackDamage);
 						zombie.biteCharge -= biteInterval;
 					}
 				}
@@ -555,24 +680,29 @@ namespace {
 		const SimulationState& state, const Config& config)
 	{
 		std::array<float, kMaxSimulationPlants> biteDps{};
+		std::array<float, kMaxSimulationSupports> supportBiteDps{};
 		const float biteInterval = std::max(0.1f, config.biteInterval);
 		for (int zombieIndex = 0;
 			zombieIndex < state.zombieCount; ++zombieIndex) {
 			const SimZombie& zombie = state.zombies[zombieIndex];
 			if (!IsAlive(zombie) || zombie.attackDamage <= 0.0f) continue;
-			const int plantIndex = FindFrontPlant(state, zombie);
-			if (plantIndex < 0) continue;
-			const SimPlant& plant = state.plants[plantIndex];
-			const float distance = zombie.x - plant.x;
+			const BlockerRef blocker = FindFrontBlocker(state, zombie);
+			if (!blocker.IsValid()) continue;
+			const float distance = zombie.x - BlockerX(state, blocker);
 			const bool lockedEatingTarget =
 				zombie.eatingPlantId >= 0
-				&& zombie.eatingPlantId == plant.id;
+				&& zombie.eatingPlantId == BlockerID(state, blocker);
 			if (!lockedEatingTarget
 				&& (distance > config.contactDistance + 1.0f
 					|| distance < -10.0f)) {
 				continue;
 			}
-			biteDps[plantIndex] += zombie.attackDamage / biteInterval;
+			if (blocker.support) {
+				supportBiteDps[blocker.index] += zombie.attackDamage / biteInterval;
+			}
+			else {
+				biteDps[blocker.index] += zombie.attackDamage / biteInterval;
+			}
 		}
 
 		float utility = 0.0f;
@@ -583,6 +713,16 @@ namespace {
 			const float remainingBlockedSeconds = std::min(
 				std::max(0.0f, config.terminalBlockedSecondsCap),
 				plant.health / biteDps[plantIndex]);
+			utility += remainingBlockedSeconds
+				* std::max(0.0f, config.terminalBlockedSecondUtility);
+		}
+		for (int supportIndex = 0;
+			supportIndex < state.supportCount; ++supportIndex) {
+			const SimSupport& support = state.supports[supportIndex];
+			if (!IsAlive(support) || supportBiteDps[supportIndex] <= 0.0f) continue;
+			const float remainingBlockedSeconds = std::min(
+				std::max(0.0f, config.terminalBlockedSecondsCap),
+				support.health / supportBiteDps[supportIndex]);
 			utility += remainingBlockedSeconds
 				* std::max(0.0f, config.terminalBlockedSecondUtility);
 		}
@@ -600,6 +740,13 @@ namespace {
 			const float healthFraction = std::clamp(
 				plant.health / std::max(1.0f, plant.maxHealth), 0.0f, 1.0f);
 			utility += plant.strategicValue * healthFraction;
+		}
+		for (int i = 0; i < state.supportCount; ++i) {
+			const SimSupport& support = state.supports[i];
+			if (!IsAlive(support)) continue;
+			const float healthFraction = std::clamp(
+				support.health / std::max(1.0f, support.maxHealth), 0.0f, 1.0f);
+			utility += support.strategicValue * healthFraction;
 		}
 		return utility;
 	}
@@ -872,9 +1019,14 @@ Result ChooseTarget(const Snapshot& snapshot, const Config& config, std::uint32_
 		std::max(0, config.maxZombiesPerRollout),
 		kMaxSimulationZombies
 	});
+	result.sampledPlantCount = std::min(
+		static_cast<int>(snapshot.plants.size()), kMaxSimulationPlants);
+	result.supportPlantCount = std::min(
+		static_cast<int>(snapshot.supports.size()), kMaxSimulationSupports);
 	result.cardCount = std::min(
 		static_cast<int>(snapshot.cards.size()), kMaxSimulationCards);
-	if (snapshot.candidates.empty() || snapshot.plants.empty()
+	if (snapshot.candidates.empty()
+		|| (snapshot.plants.empty() && snapshot.supports.empty())
 		|| snapshot.rows <= 0 || snapshot.columns <= 0) {
 		return result;
 	}
@@ -941,6 +1093,10 @@ TreatmentResult ChooseTreatment(const Snapshot& snapshot,
 		std::max(0, config.combat.maxZombiesPerRollout),
 		kMaxSimulationZombies
 	});
+	result.sampledPlantCount = std::min(
+		static_cast<int>(snapshot.plants.size()), kMaxSimulationPlants);
+	result.supportPlantCount = std::min(
+		static_cast<int>(snapshot.supports.size()), kMaxSimulationSupports);
 	result.cardCount = std::min(
 		static_cast<int>(snapshot.cards.size()), kMaxSimulationCards);
 	if (candidates.empty() || snapshot.zombies.empty()

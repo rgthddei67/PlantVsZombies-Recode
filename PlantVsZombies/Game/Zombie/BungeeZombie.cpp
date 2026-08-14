@@ -438,6 +438,8 @@ void BungeeZombie::SaveExtraData(nlohmann::json& j) const
 	j["mcRollouts"] = mMonteCarloStats.rolloutCount;
 	j["mcCandidates"] = mMonteCarloStats.candidateCount;
 	j["mcSampledZombies"] = mMonteCarloStats.sampledZombieCount;
+	j["mcSampledPlants"] = mMonteCarloStats.sampledPlantCount;
+	j["mcSupportPlants"] = mMonteCarloStats.supportPlantCount;
 	j["mcCards"] = mMonteCarloStats.cardCount;
 	j["mcBestScore"] = mMonteCarloStats.bestScore;
 	j["mcCoordinationLoss"] = mMonteCarloStats.coordinationLoss;
@@ -461,6 +463,8 @@ void BungeeZombie::LoadExtraData(const nlohmann::json& j)
 	mMonteCarloStats.rolloutCount = j.value("mcRollouts", 0);
 	mMonteCarloStats.candidateCount = j.value("mcCandidates", 0);
 	mMonteCarloStats.sampledZombieCount = j.value("mcSampledZombies", 0);
+	mMonteCarloStats.sampledPlantCount = j.value("mcSampledPlants", 0);
+	mMonteCarloStats.supportPlantCount = j.value("mcSupportPlants", 0);
 	mMonteCarloStats.cardCount = j.value("mcCards", 0);
 	mMonteCarloStats.bestScore = j.value("mcBestScore", 0.0f);
 	mMonteCarloStats.coordinationLoss = j.value("mcCoordinationLoss", 0.0f);

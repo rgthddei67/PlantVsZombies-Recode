@@ -5,6 +5,7 @@
     { "op": "assert_state", "path": "plantDefinitions.PLANT_LIGHTNINGRODPOT.cooldownMs", "equals": 50000 },
     { "op": "assert_state", "path": "plantDefinitions.PLANT_LIGHTNINGRODPOT.simulationBaseHealth", "equals": 700 },
     { "op": "assert_state", "path": "plantDefinitions.PLANT_LIGHTNINGRODPOT.simulationPersistent", "equals": true },
+    { "op": "assert_state", "path": "plantDefinitions.PLANT_LIGHTNINGRODPOT.simulationSupportOnly", "equals": false },
     { "op": "assert_state", "path": "lightningRodPotResources.reanimationLoaded", "equals": true },
     { "op": "assert_state", "path": "lightningRodPotResources.cardLoaded", "equals": true },
     { "op": "assert_state", "path": "lightningRodPotResources.bodyTextureLoaded", "equals": true },

@@ -767,6 +767,15 @@ bool GameDataManager::LoadNumbersFromJson() {
 					out.persistent = simulation["persistent"].get<bool>();
 				}
 			}
+			if (simulation.contains("supportOnly")) {
+				if (!simulation["supportOnly"].is_boolean()) {
+					errors.push_back(who
+						+ ".simulation 的 \"supportOnly\" 须为布尔值");
+				}
+				else {
+					out.supportOnly = simulation["supportOnly"].get<bool>();
+				}
+			}
 			if (out.baseHealth <= 0 || out.attackDps < 0.0f
 				|| out.attackRowRadius < 0 || out.sunPerSecond < 0.0f
 				|| out.firstSunDelay < 0.0f) {

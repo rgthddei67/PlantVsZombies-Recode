@@ -4618,6 +4618,8 @@ bool Board::BuildMonteCarloCombatSnapshot(
 	std::vector<int> plantIDs = mEntityManager.GetAllPlantIDs();
 	std::sort(plantIDs.begin(), plantIDs.end());
 	snapshot.plants.reserve(plantIDs.size());
+	snapshot.supports.reserve(std::min<std::size_t>(
+		plantIDs.size(), static_cast<std::size_t>(mRows * mColumns)));
 	for (const int plantID : plantIDs) {
 		const Plant* plant = mEntityManager.GetPlant(plantID);
 		if (!plant || !plant->IsActive() || plant->IsSquished()
@@ -4646,10 +4648,26 @@ bool Board::BuildMonteCarloCombatSnapshot(
 				CELL_COLLIDER_SIZE_X, CELL_COLLIDER_SIZE_Y
 			};
 		const Cell* cell = GetCell(plant->mRow, plant->mColumn);
+		const bool isUnder = cell && cell->GetUnderPlantID() == plantID;
 		const bool isNormal = cell && cell->GetNormalPlantID() == plantID;
 		const bool isPumpkin = cell && cell->GetPumpkinPlantID() == plantID;
 		const bool isOverlay = cell && cell->GetOverlayPlantID() == plantID;
 		const bool executionLayer = isNormal || isPumpkin || isOverlay;
+		if (profile.supportOnly) {
+			// 普通花盆/睡莲只保留第二层阻挡所需数据，不占 128 株详细画像容量。
+			snapshot.supports.push_back({
+				plant->mPlantID,
+				plant->mRow,
+				plant->mColumn,
+				plant->GetPosition().x,
+				static_cast<float>(std::max(0, plant->mPlantHealth)),
+				static_cast<float>(std::max(1, plant->mPlantMaxHealth)),
+				strategicValue,
+				{ bounds.x, bounds.y, bounds.w, bounds.h },
+				true
+			});
+			continue;
+		}
 		snapshot.plants.push_back({
 			plant->mPlantID,
 			plant->mRow,
@@ -4667,7 +4685,9 @@ bool Board::BuildMonteCarloCombatSnapshot(
 			executionLayer ? plant->mRow * mColumns + plant->mColumn : -1,
 			isNormal || isPumpkin,
 			executionLayer,
-			GetNightRoofHijackerSupportProtector(plant) != nullptr
+			GetNightRoofHijackerSupportProtector(plant) != nullptr,
+			isPumpkin ? 2 : (isNormal ? 1 : (isUnder ? 0 : -1)),
+			plant->CanBeEaten() || isUnder
 		});
 	}
 
@@ -4717,7 +4737,7 @@ bool Board::BuildMonteCarloCombatSnapshot(
 			const PlantType type = component->GetPlantType();
 			const PlantSimulationProfile& profile =
 				gameData.GetPlantSimulationProfile(type);
-			if (!profile.persistent) continue;
+			if (!profile.persistent || profile.supportOnly) continue;
 
 			std::uint64_t legalCellMask = 0;
 			for (int row = 0; row < mRows; ++row) {
@@ -4747,7 +4767,9 @@ bool Board::BuildMonteCarloCombatSnapshot(
 				profile.sunPerSecond,
 				profile.firstSunDelay,
 				legalCellMask,
-				type == PlantType::PLANT_PUMPKINSHELL
+				type == PlantType::PLANT_PUMPKINSHELL,
+				type == PlantType::PLANT_PUMPKINSHELL ? 2
+					: (IsUnderPlantLayerType(type) ? 0 : 1)
 			});
 		}
 	}
@@ -4783,6 +4805,19 @@ bool Board::PickMonteCarloPlantBlastTarget(
 		}
 		else if (!removalMode && plant.row >= minRow && plant.row <= maxRow) {
 			candidateCells.emplace_back(plant.row, plant.column);
+		}
+	}
+	for (const SupportSnapshot& support : snapshot.supports) {
+		if (removalMode
+			&& eligibleRemovalIDs.find(support.id) != eligibleRemovalIDs.end()) {
+			const Vector center = GetCellCenterPosition(support.row, support.column);
+			snapshot.candidates.push_back({
+				support.row, support.column, center.x, center.y, support.id
+			});
+		}
+		else if (!removalMode
+			&& support.row >= minRow && support.row <= maxRow) {
+			candidateCells.emplace_back(support.row, support.column);
 		}
 	}
 	if (!removalMode) {
@@ -4829,6 +4864,8 @@ bool Board::PickMonteCarloPlantBlastTarget(
 		stats->candidateCount =
 			static_cast<int>(snapshot.candidates.size());
 		stats->sampledZombieCount = result.sampledZombieCount;
+		stats->sampledPlantCount = result.sampledPlantCount;
+		stats->supportPlantCount = result.supportPlantCount;
 		stats->cardCount = result.cardCount;
 		stats->bestScore = result.score;
 		stats->coordinationLoss = result.coordinationLoss;
@@ -5062,6 +5099,8 @@ bool Board::PickMonteCarloZombieTreatment(
 		stats->rolloutCount = result.rolloutCount;
 		stats->candidateCount = static_cast<int>(candidates.size());
 		stats->sampledZombieCount = result.sampledZombieCount;
+		stats->sampledPlantCount = result.sampledPlantCount;
+		stats->supportPlantCount = result.supportPlantCount;
 		stats->cardCount = result.cardCount;
 		stats->bestScore = result.score;
 		stats->coordinationLoss = 0.0f;

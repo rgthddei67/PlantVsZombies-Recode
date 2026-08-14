@@ -34,3 +34,4 @@ metadata:
 - 6-6 内部关卡 51 的第 3 波在正常预算外额外保底一只，普通池仍可自然选中；没有每波硬上限。图鉴在通关 6-6 后解锁，详情预览无逻辑副作用。
 - 2026-08-14 蒙特卡洛接入后，`clang-release` 构建、Win7 导入审计与三项 CTest 均通过。当前桌面可见 `smoke_healer_focused/area/difficulty/coordination/eating_charm/armor_group/cancel` 回归继续 exit 0；`smoke_healer_monte_carlo_wait` 锁定首次 WAIT、500ms 等待读档和后续重推演群疗，`smoke_zombie_monte_carlo_cap` 锁定 32 rollout/32 候选/16 只样本并保存同步截图，日志均无 ERROR/WARN。纯数值测试另覆盖延迟胜出、立即动作赢等分、劫持者处决收益和 16 只硬上限。
 - 2026-08-14 主人以 24 只急救员实机确认当前性能余量后，将短时域选疗独立提高到 128 rollout，长时域植物选点另设 64 rollout，16 只详细样本上限不变；`clang-release`、378 项 Win7 导入审计与三项 CTest 通过。主人明确本次数值调整无需 AutoTest，相关脚本预期已同步但未执行。
+- 2026-08-14 普通花盆/睡莲改由 gamedata `simulation.supportOnly` 进入独立 64 格支撑数组，不再占 128 株详细植物容量；避雷花盆仍完整模拟。范围伤害、蹦极实体移除、当前啃食锁定与终局阻挡同时消费两层数组，同格重索敌固定为南瓜 > 普通层 > under。纯数值三项新增覆盖容量、纯支撑移除和层级；可见 `smoke_monte_carlo_support_compression` 断言屋顶 15 个初始花盆时详细数 0/支撑数 15，加入豌豆与避雷花盆后为详细数 2/支撑数 14；蹦极、治疗者等待和精英小丑三条共享推演回归均 exit 0。

@@ -1,5 +1,6 @@
 #include "Game/AI/PlantDefenseMonteCarlo.h"
 
+#include <cmath>
 #include <iostream>
 #include <stdexcept>
 #include <string>
@@ -144,6 +145,111 @@ namespace {
 		Require(Config{}.maxZombiesPerRollout == 16,
 			"the shared default rollout cap must remain 16");
 	}
+
+	void TestSupportPlantsUseSeparateCapacity()
+	{
+		Snapshot snapshot = MakeTreatmentSnapshot();
+		for (int id = 1; id <= 140; ++id) {
+			PlantSnapshot plant;
+			plant.id = id;
+			plant.row = id % 5;
+			plant.column = id % 9;
+			plant.x = 300.0f + static_cast<float>(plant.column) * 80.0f;
+			plant.health = 300.0f;
+			plant.maxHealth = 300.0f;
+			plant.strategicValue = 25.0f;
+			plant.bounds = { plant.x - 40.0f, 200.0f, 80.0f, 100.0f };
+			snapshot.plants.push_back(plant);
+		}
+		for (int id = 1001; id <= 1064; ++id) {
+			SupportSnapshot support;
+			support.id = id;
+			support.row = (id - 1001) % 5;
+			support.column = (id - 1001) % 9;
+			support.x = 300.0f + static_cast<float>(support.column) * 80.0f;
+			support.health = 300.0f;
+			support.maxHealth = 300.0f;
+			support.strategicValue = 25.0f;
+			support.bounds = { support.x - 40.0f, 200.0f, 80.0f, 100.0f };
+			snapshot.supports.push_back(support);
+		}
+		snapshot.candidates.push_back({ 0, 0, 300.0f, 250.0f, 1 });
+
+		Config config;
+		config.rolloutCount = 1;
+		config.horizonSeconds = 0.1f;
+		config.stepSeconds = 0.1f;
+		const Result result = ChooseTarget(snapshot, config, 0x10203040u);
+		Require(result.sampledPlantCount == 128,
+			"detailed plants must retain their independent 128-entry cap");
+		Require(result.supportPlantCount == 64,
+			"ordinary support plants must use the separate per-cell capacity");
+	}
+
+	void TestSupportOnlySnapshotStillSupportsRemoval()
+	{
+		Snapshot snapshot = MakeTreatmentSnapshot();
+		SupportSnapshot support;
+		support.id = 7;
+		support.row = 2;
+		support.column = 4;
+		support.x = 500.0f;
+		support.health = 300.0f;
+		support.maxHealth = 300.0f;
+		support.strategicValue = 25.0f;
+		support.bounds = { 460.0f, 250.0f, 80.0f, 100.0f };
+		snapshot.supports.push_back(support);
+		snapshot.candidates.push_back({ 2, 4, 500.0f, 300.0f, 7 });
+
+		Config config;
+		config.rolloutCount = 1;
+		config.horizonSeconds = 0.1f;
+		config.stepSeconds = 0.1f;
+		const Result result = ChooseTarget(snapshot, config, 0x50607080u);
+		Require(result.candidateIndex == 0 && result.score > 0.0f,
+			"a support-only board must still model bungee removal as meaningful");
+	}
+
+	void TestNormalPlantBlocksBeforeCompressedSupport()
+	{
+		Snapshot snapshot = MakeTreatmentSnapshot();
+		PlantSnapshot normal;
+		normal.id = 20;
+		normal.row = 2;
+		normal.column = 4;
+		normal.x = 500.0f;
+		normal.health = 1000.0f;
+		normal.maxHealth = 1000.0f;
+		normal.bounds = { 460.0f, 250.0f, 80.0f, 100.0f };
+		normal.eatingLayerPriority = 1;
+		snapshot.plants.push_back(normal);
+
+		SupportSnapshot support;
+		support.id = 10;
+		support.row = 2;
+		support.column = 4;
+		support.x = 500.0f;
+		support.health = 100.0f;
+		support.maxHealth = 100.0f;
+		support.bounds = normal.bounds;
+		snapshot.supports.push_back(support);
+		snapshot.zombies.push_back(MakeZombie(
+			1, 555.0f, 300.0f, 100.0f, 100.0f));
+		snapshot.zombies.back().moveSpeed = 0.0f;
+		snapshot.zombies.back().attackDamage = 1.0f;
+		snapshot.candidates.push_back({ 2, 4, 500.0f, 300.0f, 10 });
+
+		Config config;
+		config.rolloutCount = 1;
+		config.horizonSeconds = 0.1f;
+		config.stepSeconds = 0.1f;
+		config.biteInterval = 100.0f;
+		config.terminalBlockedSecondUtility = 1.0f;
+		config.terminalBlockedSecondsCap = 200000.0f;
+		const Result result = ChooseTarget(snapshot, config, 0x90ABCDEFu);
+		Require(std::abs(result.coordinationLoss) < 0.001f,
+			"removing the under support must not change the current normal-layer blocker");
+	}
 }
 
 int main()
@@ -153,6 +259,9 @@ int main()
 		TestImmediateCandidateWinsExactDelayTie();
 		TestHealingHijackerChangesExecutionValue();
 		TestSixteenZombieHardLimit();
+		TestSupportPlantsUseSeparateCapacity();
+		TestSupportOnlySnapshotStillSupportsRemoval();
+		TestNormalPlantBlocksBeforeCompressedSupport();
 		std::cout << "PlantDefenseMonteCarloTests passed\n";
 		return 0;
 	}

@@ -12,7 +12,7 @@
 - [黑夜屋顶雷荷与基础放电](project_pvz_night_roof_charge.md) — 2026-08-13 仅 `NIGHT_ROOF` 启用独立雷荷；晴/小/中/大雨基础为-0.5/1/2/3点每秒，场上有效劫持者令雨中固定再+1.5且多只不叠加；满100锁行预警4秒再放电0.65秒，活动期正向输入截留为最多15%余电；普通/湿坡放电与接地菇契约保持
 - [第六大关绝缘僵尸](project_pvz_insulator_zombie.md) — 2026-08-13 300本体+单层1200陶瓷胸甲；干燥轻弹/尖刺减半、1.5格同阵营放电承接后15秒2.2倍过载与100啃咬，湿润植物伤甲1.5倍且湿坡放电固定碎甲360无溢出；磁力菇整甲吸取自身扣150；胸甲为Zombie_body末尾前景follower，6-2首次、正式每波限2，专项与父回归可见闭环
 - [第六大关劫持者僵尸](project_pvz_hijacker_zombie.md) — 2026-08-13 初始1000本体/首次锁定当前与最大生命各+1000/50啃咬/成本2000/每波限2；有效同类令雨中雷荷固定+1.5点每秒且多只不叠加；75%择最高当前可计生命锁定，满电7秒预警/最后1秒终局动作；释放以实时处决线同帧快照，生存封顶1200；6-4第7波教学、6-5组合、生存15轮
-- [第六大关急救员僵尸](project_pvz_healer_zombie.md) — 2026-08-14 800本体/50啃咬/6秒共享冷却；MC开启时以128 rollout/7秒/最多16只自行比较无上限群疗、全部单疗目标与0.5秒有界等待，并建模待结算治疗和已锁定劫持者处决；关闭或不适用时回退3伤员群疗/劫持者优先单疗；本体/头盔/盾牌同时修复，难度断臂与6-6第3波保底等原合同保持
+- [第六大关急救员僵尸](project_pvz_healer_zombie.md) — 2026-08-14 800本体/50啃咬/6秒共享冷却；MC开启时以128 rollout/7秒/最多16只自行比较无上限群疗、全部单疗目标与0.5秒有界等待，并建模待结算治疗和已锁定劫持者处决；详细植物容量128，普通花盆/睡莲另压缩为64格支撑层，避雷花盆保留完整画像；关闭或不适用时回退3伤员群疗/劫持者优先单疗；本体/头盔/盾牌同时修复，难度断臂与6-6第3波保底等原合同保持
 - [第六大关黑夜屋顶与延期设计](project_pvz_sixth_area_night_roof_backlog.md) — 2026-08-14 6-1～6-9 已接入正式黑夜屋顶、基础雷荷、绝缘僵尸、劫持者、5-9接地菇、6-2忧郁菇、6-3双子向日葵、6-4避雷花盆与6-5冰瓜；其他植物/僵尸及6-9僵尸博士仍延期
 - [第六大关避雷花盆](project_pvz_lightning_rod_pot.md) — 2026-08-13 `PLANT_LIGHTNINGRODPOT` 为6-4奖励：150阳光/50秒/700生命，under层原位升级花盆并保留上层；同格永久免普通雷荷停机与劫持者处决，有效承载时同排雷击伤害翻倍且多盆不叠加；只在结算边沿查询，无逐帧全场遍历
 - [第六大关冰瓜](project_pvz_winter_melon.md) — 2026-08-14 `PLANT_WINTERMELON` 为6-5奖励：200阳光/50秒/300生命，普通层原位升级西瓜；第44帧投出100直击/33三行溅射并让实际命中目标减速10秒，穿透二类盾后层状态语义、独立冰瓜弹与九帧冰屑资源、默认/NoInstance可见专项闭环
@@ -20,7 +20,7 @@
 - [第六大关接地菇](project_pvz_grounding_shroom.md) — 2026-08-13 `PLANT_GROUNDINGSHROOM` 为5-9奖励：100阳光、20秒冷却、500生命；同排三格免一次雷荷停机，普通/湿坡每次直接反噬100/150且按冻结分配不回滚；范围内绝缘僵尸拒绝承接和过载；独立低精度整株动画约0.8倍、卡图约0.7倍；白天睡眠轨从闭眼切图的第26帧起循环，绝不闪回第25帧睁眼图；震击电弧以紫罗兰暗边和浅紫亮芯抵抗缩放与黑夜暗化
 - [经典忧郁菇与紫卡升级](project_pvz_gloomshroom.md) — 2026-08-13 `PLANT_GLOOMSHROOM` 为6-2奖励：150阳光、50秒冷却、300生命；原子覆盖大喷菇并保留承载层/南瓜及睡眠唤醒进度；每2秒按原版0.64～1.58秒时间线发四轮八向云雾与20点环形伤害；紫卡裁取主人seeds.png第二格；八炮口各5颗按双重Offset规则贴口扩散，Vulkan/OpenGL专项与升级/存档/奖励父回归可见闭环
 - [经典双子向日葵与生产型紫卡升级](project_pvz_twin_sunflower.md) — 2026-08-13 `PLANT_TWINSUNFLOWER` 为6-3奖励：150阳光、50秒冷却、300生命；原子覆盖向日葵并保留承载层/南瓜，15秒一轮同时生产2颗普通阳光，发光中途存档不重复；默认与NoInstance专项可见闭环
-- [经典花盆与屋顶承载层](project_pvz_flowerpot.md) — 2026-08-03 `PLANT_FLOWERPOT` 25阳光/7.5秒/300生命/1秒无啃食；under+normal+南瓜分层、屋顶门禁、5-1/5-2/后续5/4/3列初始布局、覆盖暂停、5px视觉抬升、通用ShadowComponent 46px可见阴影、双向台风整组与存档均经默认/NoInstance可见专项
+- [经典花盆与屋顶承载层](project_pvz_flowerpot.md) — 2026-08-14 `PLANT_FLOWERPOT` 25阳光/7.5秒/300生命/1秒无啃食；under+normal+南瓜分层、屋顶门禁、5-1/5-2/后续5/4/3列初始布局、覆盖暂停、5px视觉抬升、通用ShadowComponent 46px可见阴影、双向台风整组与存档；MC 中与睡莲压缩进独立64格支撑层，不占128株详细植物容量
 - [上次选卡持久化与一键动画恢复](project_pvz_last_selected_cards.md) — 2026-08-12 最近一次正式提交卡组以稳定枚举名顺序写入 PlayerInfo；ChooseCardUI 右上角缩小 Button2 按钮过滤失效/未拥有/重复项并复用卡片飞行动画，跨下一局可再次恢复
 - [架构边界、存档版本与技能审计门禁](project_pvz_architecture_boundaries.md) — 2026-08-12 `BoardPresentation` 取代 `Board::mGameScene`，Board 保持天气/波次/生存玩法唯一权威；`SceneManager` 明确单活动场景；玩家 schema v2 补发毒囊射手、v3 加高级暂停、v4 加稳定枚举名上次选卡；迁移保持事务式并有纯测试；每次任务提交前审计相关 skills
 - [OpenGL 3.3 Core 兼容后端](project_pvz_opengl33_backend.md) — 2026-08-11 同一 EXE 的 `auto/vulkan/opengl` 双后端选择与完整回退；GL 走 GLSL 330、CPU 顶点/Reanimation 展开、单 sampler 动态 VBO/IBO Batch，禁用并行 Draw 但保留并行 Update；Pool、clip、文字、粒子、截图、全屏/VSync、no-AVX2 与 Win7 导入门禁闭环，Win7 真机仍待验证
@@ -93,7 +93,7 @@
 - [金盏花最小观赏版本](project_pvz_marigold_minimal.md) — 2026-08-09 `Marigold : Plant` 只播 `anim_idle`，不吐钱；费用 `-100`、冷却 25 秒，正式卡槽实测阳光 `0→100`；blink1/2 只用通用 `IMAGE_*` 键，默认与 `-NoInstance` 可见专项及整数 worldBounds 一致
 - [主菜单石碑排版、命中仲裁、控制台与2-1跳关](project_pvz_mainmenu_button_arbitration.md) — 2026-08-11 右下「控制台」打开全屏模态设置页，以 CheckBox 控制蒙特卡洛 AI 与默认关闭的高级暂停并屏蔽/隐藏背景入口；高级暂停不重复放进战斗 Esc 菜单；左下未到2-1时仍显示跳关；石碑紧贴重叠由ButtonManager中心最近仲裁
 - [血量字形worker侧instance化 ✅已push](project_pvz_glyph_run_worker_instancing.md) — 2026-07-07(db5c3e6) 20000可见血量行defer到串行replay逐行flush=N×ε聚合致死(51.9→9.7ms/19→103FPS)；修=RecordDrawGlyphRun快路径直写InstanceRecord切片(与reanim同管线,z-order不变)；foot-gun=textDraw(lines)计数器不覆盖字形路径(盲区误导两轮,已加glyphRun等-Profile探针)、glyphAtlasBuild失败无negative cache会每帧重建循环
-- [gamedata.json 数值外置 ✅已push](project_pvz_gamedata_json.md) — 2026-07-07(9f3e3ca+0b37e9f) JSON唯一数值来源+缺任一基础字段即拒启动(-6)+AutoTest不弹窗守卫；2026-07-31 植物增加轻量防线推演 simulation 画像并纳入 adding-plant；2026-07-22 起只改 clang-release 权威资源，其他 preset 用 Junction 共享；foot-gun=文件名GameApp.cpp非GameAPP.cpp、后台PowerShell不继承VS环境
+- [gamedata.json 数值外置 ✅已push](project_pvz_gamedata_json.md) — 2026-08-14 JSON唯一数值来源+缺任一基础字段即拒启动(-6)+AutoTest不弹窗守卫；植物轻量防线推演 `simulation` 增加 `supportOnly`，普通花盆/睡莲由数据声明压缩、特殊支撑保持完整画像；只改 clang-release 权威资源，其他 preset 用 Junction 共享；foot-gun=文件名GameApp.cpp非GameAPP.cpp、后台PowerShell不继承VS环境
 - [幽灵僵尸射手空射修复 ✅已push](project_pvz_ghost_zombie_shooter_fix.md) — 2026-07-06(b1cec54) 行索引过滤IsActive/IsDying+Die()防重入(同帧双Die双扣计数)+DestroyGameObject(raw)静默失败留WARN；再见"计数0仍开火"先查GOM WARN
 - [固定步长主循环 ✅已push](project_pvz_fixed_timestep.md) — 2026-07-06(729356e) 逻辑60Hz+封顶3步丢债；AutoTest同Seed全产物逐字节复现；foot-gun=追帧第2/3步前必须补poll否则合成输入按下沿湮灭、wait_frames语义变逻辑步、验证防空对空假阳性
 

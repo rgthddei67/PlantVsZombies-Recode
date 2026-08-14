@@ -11,6 +11,7 @@
     { "op": "assert_state", "path": "plantDefinitions.PLANT_FLOWERPOT.cooldownMs", "equals": 7500 },
     { "op": "assert_state", "path": "plantDefinitions.PLANT_FLOWERPOT.simulationBaseHealth", "equals": 300 },
     { "op": "assert_state", "path": "plantDefinitions.PLANT_FLOWERPOT.simulationPersistent", "equals": true },
+    { "op": "assert_state", "path": "plantDefinitions.PLANT_FLOWERPOT.simulationSupportOnly", "equals": true },
     { "op": "assert_state", "path": "plants.0.row", "equals": 0 },
     { "op": "assert_state", "path": "plants.0.col", "equals": 0 },
     { "op": "assert_state", "path": "plants.1.row", "equals": 1 },

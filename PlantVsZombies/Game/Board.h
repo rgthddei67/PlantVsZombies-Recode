@@ -44,6 +44,8 @@ struct MonteCarloTargetStats {
 	int rolloutCount = 0;
 	int candidateCount = 0;
 	int sampledZombieCount = 0;
+	int sampledPlantCount = 0;
+	int supportPlantCount = 0;
 	int cardCount = 0;
 	float bestScore = 0.0f;
 	float coordinationLoss = 0.0f;

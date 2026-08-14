@@ -30,6 +30,23 @@ struct PlantSnapshot {
 	bool countsForHijackerExecution = false;
 	bool diesWithHijackerExecutionGroup = false;
 	bool protectedFromHijackerExecution = false;
+	int eatingLayerPriority = 1; // 正式战斗层级：under=0、normal=1、pumpkin=2；负数不参与啃食
+	bool canBeEaten = true;
+};
+
+/**
+ * @brief 每格至多一株的普通承载植物摘要；不占详细植物数组容量。
+ */
+struct SupportSnapshot {
+	int id = -1;
+	int row = 0;
+	int column = 0;
+	float x = 0.0f;
+	float health = 0.0f;
+	float maxHealth = 1.0f;
+	float strategicValue = 0.0f;
+	Bounds bounds;
+	bool canBeEaten = true;
 };
 
 struct ZombieSnapshot {
@@ -62,6 +79,7 @@ struct CardSnapshot {
 	float firstSunDelay = 0.0f;
 	std::uint64_t legalCellMask = 0;
 	bool pumpkinShell = false;
+	int eatingLayerPriority = 1;
 };
 
 struct CellSnapshot {
@@ -85,6 +103,7 @@ struct Snapshot {
 	int columns = 0;
 	float initialSun = 0.0f;
 	std::vector<PlantSnapshot> plants;
+	std::vector<SupportSnapshot> supports;
 	std::vector<ZombieSnapshot> zombies;
 	std::vector<CardSnapshot> cards;
 	std::vector<CellSnapshot> cells;
@@ -114,6 +133,8 @@ struct Result {
 	float score = 0.0f;
 	int rolloutCount = 0;
 	int sampledZombieCount = 0;
+	int sampledPlantCount = 0;
+	int supportPlantCount = 0;
 	int cardCount = 0;
 	float coordinationLoss = 0.0f;
 };
@@ -159,6 +180,8 @@ struct TreatmentResult {
 	float score = 0.0f;
 	int rolloutCount = 0;
 	int sampledZombieCount = 0;
+	int sampledPlantCount = 0;
+	int supportPlantCount = 0;
 	int cardCount = 0;
 };
 

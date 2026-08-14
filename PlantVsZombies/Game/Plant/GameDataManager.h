@@ -29,6 +29,7 @@ struct PlantSimulationProfile {
 	float sunPerSecond = 0.0f;        // 简化后的长期产光速率，单位：阳光/游戏秒
 	float firstSunDelay = 0.0f;       // 新种下后开始贡献长期产能前的等待秒数
 	bool persistent = true;           // false=一次性/复杂能力牌，不参与未来种植推演
+	bool supportOnly = false;          // true=普通承载层压缩进每格支撑快照，也不作为未来种植候选
 };
 
 // 植物信息

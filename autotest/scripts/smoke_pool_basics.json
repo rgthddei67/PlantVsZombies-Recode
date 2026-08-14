@@ -1,6 +1,7 @@
 {
   "commands": [
     { "op": "goto_level", "level": 19 },
+    { "op": "assert_state", "path": "plantDefinitions.PLANT_LILYPAD.simulationSupportOnly", "equals": true },
     { "op": "assert_state", "path": "boardState", "equals": "CHOOSE_CARD" },
     { "op": "assert_state", "path": "background", "equals": "WATER_POOL" },
     { "op": "assert_state", "path": "rows", "equals": 6 },

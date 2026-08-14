@@ -3089,6 +3089,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "simulationFirstSunDelayMs", static_cast<int>(
 				std::lround(simulation.firstSunDelay * 1000.0f)) },
 			{ "simulationPersistent", simulation.persistent },
+			{ "simulationSupportOnly", simulation.supportOnly },
 		};
 	}
 	out["flowerPotResources"] = {
@@ -4312,6 +4313,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			zombieState["bungeeMonteCarloRolloutCount"] = stats.rolloutCount;
 			zombieState["bungeeMonteCarloCandidateCount"] = stats.candidateCount;
 			zombieState["bungeeMonteCarloZombieCount"] = stats.sampledZombieCount;
+			zombieState["bungeeMonteCarloPlantCount"] = stats.sampledPlantCount;
+			zombieState["bungeeMonteCarloSupportCount"] = stats.supportPlantCount;
 			zombieState["bungeeMonteCarloCardCount"] = stats.cardCount;
 			zombieState["bungeeMonteCarloBestScoreOn100"] =
 				static_cast<int>(std::lround(stats.bestScore * 100.0f));
