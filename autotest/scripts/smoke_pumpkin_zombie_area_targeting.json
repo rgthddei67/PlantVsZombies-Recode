@@ -37,7 +37,7 @@
     { "op": "set_elite_jack_throw_countdown", "row": 2, "value": 0.05 },
     { "op": "wait_seconds", "value": 0.15, "timeout": 3 },
     { "op": "assert_state", "path": "eliteJack.eliteJackTargetingMode", "equals": "MONTE_CARLO" },
-    { "op": "assert_state", "path": "eliteJack.eliteJackMonteCarloRolloutCount", "equals": 32 },
+    { "op": "assert_state", "path": "eliteJack.eliteJackMonteCarloRolloutCount", "equals": 64 },
     { "op": "assert_state", "path": "eliteJack.eliteJackMonteCarloCandidateCount", "equals": 2 },
     { "op": "assert_state", "path": "eliteJack.eliteJackTargetRow", "equals": 3 },
     { "op": "assert_state", "path": "eliteJack.eliteJackTargetXInt", "equals": 842 },

@@ -17,7 +17,7 @@ metadata:
 
 ## 选点与资源
 
-- `GameAPP::mEnableMonteCarloAI=false` 时复刻原版网格加权随机：未被别只蹦极预订的有植物格权重 10000、空格权重 1，并保留最后一株未被预订向日葵；同 Seed 42 的专项锁定普通豌豆格。开关为 true 时，`Board::PickMonteCarloPlantRemovalTarget` 为每个候选格按 normal → pumpkin → under 选实际会带走的一株，用 `PlantDefenseMonteCarlo::Candidate::targetPlantId` 在推演起点精确移除该实体，选择对僵尸方未来收益最大的目标；失败回退原版随机。并列最高分使用局部 seeded RNG，不消费正式 `GameRandom`。
+- `GameAPP::mEnableMonteCarloAI=false` 时复刻原版网格加权随机：未被别只蹦极预订的有植物格权重 10000、空格权重 1，并保留最后一株未被预订向日葵；同 Seed 42 的专项锁定普通豌豆格。开关为 true 时，`Board::PickMonteCarloPlantRemovalTarget` 以 64 rollout、16 秒时域和最多 16 只当前僵尸，为每个候选格按 normal → pumpkin → under 选实际会带走的一株，用 `PlantDefenseMonteCarlo::Candidate::targetPlantId` 在推演起点精确移除该实体，选择对僵尸方未来收益最大的目标；失败回退原版随机。并列最高分使用局部 seeded RNG，不消费正式 `GameRandom`。
 - C# 参考和年度版素材库补齐 `ZombieBungi.reanim` 已有注册所需资源：`BungeeCord.png`、`BungeeTarget.png`、`grassstep.ogg` 与三条 `bungee_scream*.ogg`。权威注册位于 `build/clang-release/resources/resources.xml`，资源键位于 `ResourceKeys.h`；运行专项逐项断言 reanim、贴图和音效可加载。
 - gamedata 当前为 `weight=1800`、`appearWave=10`、`survivalRound=15`、`offset=[-46,-92]`、`scale=1.0`。主人屋顶实机图指出本体略偏左与绳索断口后，整身向右调 6px，绳索末端由视觉原点 `-38` 延到 `+24`，多余绳段在本体后方遮住。同格组合植物由 normal 层优先，其次 pumpkin、最后 under；各蹦极之间按目标格和实体 ID 排他预订。
 
@@ -27,6 +27,7 @@ metadata:
 - `smoke_bungee_roof_visual.json` 在主人当前桌面可见运行 exit 0，屋顶截图确认绳索从顶部连续伸入僵尸背后，整身与目标花盆中心对齐；该验证不依赖之后只改携带植物的 `cargoX=-20`。
 - 共享蒙特卡洛回归 `smoke_elite_jack_monte_carlo_targeting.json` 同样在当前桌面可见运行 exit 0，原有爆炸候选的 32 rollout、候选数、目标行/X 与植物存活断言保持通过。
 - 2026-08-14 共享 rollout 硬上限从 12 提高到 16；`smoke_zombie_monte_carlo_cap` 以 15 只普通僵尸加蹦极在当前桌面可见断言样本数 16，`smoke_bungee_zombie` 父回归继续 exit 0。
+- 2026-08-14 植物选点预算与急救员选疗拆分后，蹦极改为 64 rollout，16 秒时域和 16 只详细样本上限不变；`clang-release`、378 项 Win7 导入审计与三项 CTest 通过。本次数值调整按主人要求未运行 AutoTest，脚本预期已同步到 64。
 - 2026-08-08 接入叶子保护伞后，`smoke_bungee_zombie.json` 104 条命令再次在主人当前桌面可见运行 exit 0、`script finished OK`，携带坚果与随机/蒙特卡洛选点截图保持正常；`smoke_umbrella_leaf.json` 另断言保护区内蹦极空手上升、目标 300 生命保留、快照往返不重播伞声或 `boing`。
 
 ## 可复用契约

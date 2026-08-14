@@ -21,7 +21,7 @@
     { "op": "assert_state", "path": "zombies.0.bungeeTargetInitialized", "equals": true },
     { "op": "assert_state", "path": "zombies.0.bungeeTargetableGround", "equals": false },
     { "op": "assert_state", "path": "zombies.0.colliderEnabled", "equals": false },
-    { "op": "assert_state", "path": "zombies.0.bungeeMonteCarloRolloutCount", "equals": 32 },
+    { "op": "assert_state", "path": "zombies.0.bungeeMonteCarloRolloutCount", "equals": 64 },
     { "op": "assert_state", "path": "zombies.0.bungeeMonteCarloCandidateCount", "equals": 2 },
     { "op": "assert_state", "path": "zombies.0.bungeeTargetRow", "equals": 1 },
     { "op": "assert_state", "path": "zombies.0.bungeeTargetColumn", "equals": 2 },

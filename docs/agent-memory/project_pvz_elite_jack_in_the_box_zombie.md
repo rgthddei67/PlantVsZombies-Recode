@@ -16,7 +16,7 @@ metadata:
 - 每次随机等待 5～7 游戏秒后只投 1 个盒子；冻结、无头或死亡动画阻止开始新投掷，
   已离手盒子仍以 0.75 秒、120px 高抛物线飞完。未魅惑时枚举自身与相邻有效行的
   植物占用格。2026-07-31 起默认由 `Board::PickMonteCarloPlantBlastTarget` 采集
-  当前实体、实际卡槽/冷却和正式合法格，再由纯数值模块以 32 rollout、16 秒时域、
+  当前实体、实际卡槽/冷却和正式合法格，再由纯数值模块以 64 rollout、16 秒时域、
   0.25 秒步长、最多 16 只当前僵尸比较“不投盒”与各爆点的玩家效用损失。僵尸只按
   真实行/X/移速/分层生命/攻击力模拟，不按品种写状态机；当前啃食关系用植物实体 ID
   精确保留，避免简化碰撞距离把正式状态误判为尚未接触。未来植物只来自玩家已选卡，
@@ -73,6 +73,9 @@ metadata:
 - 2026-08-14 共享 rollout 硬上限从 12 提高到 16；`smoke_zombie_monte_carlo_cap`
   以 15 只普通僵尸加精英小丑在当前桌面可见断言样本数 16，原
   `smoke_elite_jack_monte_carlo_targeting` 父回归继续 exit 0。
+- 2026-08-14 植物选点预算与急救员选疗拆分后，精英小丑改为 64 rollout，16 秒时域和
+  16 只详细样本上限不变；`clang-release`、378 项 Win7 导入审计与三项 CTest 通过。
+  本次数值调整按主人要求未运行 AutoTest，相关脚本预期已同步到 64。
 - `smoke_mainmenu_console` 从真实右下入口打开控制台，截图锁定全屏背景、启用/禁用
   CheckBox 视觉，断言 `monteCarloAIEnabled` 从 true 切到 false 且关闭重开仍保持；
   `MainMenuScene` 因此支持导出 GameAPP 级根状态。2026-07-31 `clang-playtest`
