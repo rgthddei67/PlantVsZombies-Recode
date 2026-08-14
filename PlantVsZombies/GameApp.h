@@ -43,7 +43,7 @@ enum class Background;
 class GameAPP
 {
 public:
-	int Difficulty = 1; // 难度系数
+	int Difficulty = 3; // 难度系数
 	int mAdventureLevel = 1;    // 玩到的冒险模式关卡
 	bool mEncounteredEliteDancer = false; // 是否曾由正式波次实际刷出精英舞王
 	int mDeveloperSelectedLevel = 1; // 开发者面板上次选择的关卡号
@@ -54,7 +54,7 @@ public:
 	bool mEnableMonteCarloAI = true; // 轻量蒙特卡洛 AI；关闭后调用者走各自低配回退策略
 	bool mAdvancedPauseEnabled = false; // 高级暂停；开启后空格暂停期间仍可操作卡槽并种植
 	bool mOpeningTyphoonProtectionEnabled = true; // 开局台风保护；开启后首轮第 1～5 波不会附加台风
-	bool mVsync = false;    // 是否开启垂直同步
+	bool mVsync = true;    // 是否开启垂直同步
 	bool mFullscreen = false;   // 是否全屏（等比 letterbox，无边框桌面全屏）
 
 	std::vector<PlantType> mHaveCards;      // 玩家拥有的卡牌
