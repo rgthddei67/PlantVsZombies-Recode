@@ -14,7 +14,7 @@
 
 namespace {
 	constexpr int kBodyHealth = 800;                       // 急救员本体生命
-	constexpr float kFullHealCooldown = 6.0f;             // 成功治疗后的完整冷却，单位游戏秒
+	constexpr float kFullHealCooldown = 5.0f;             // 成功治疗后的完整冷却，单位游戏秒
 	constexpr float kCastDuration = 1.0f;                 // 两种治疗共同的施法前摇，单位游戏秒
 	constexpr float kRetryDelay = 0.5f;                   // 目标失效或无伤员时的重试间隔，单位游戏秒
 	constexpr float kStrategicWaitStep = 0.5f;            // 蒙特卡洛一次等待候选延后的游戏秒
@@ -22,8 +22,8 @@ namespace {
 	constexpr float kAreaRadius = 140.0f;                 // 群疗判定与结算半径，单位像素
 	constexpr float kFocusedRadius = 280.0f;              // 单疗锁定与结算半径，单位像素
 	constexpr int kAreaWoundedThreshold = 3;              // 选择群疗所需的最少伤员数，包含施法者
-	constexpr int kAreaHealAmount = 60;                   // 群疗对每个现存生命层的恢复量
-	constexpr int kFocusedHealAmount = 300;               // 单疗对每个现存生命层的恢复量
+	constexpr int kAreaHealAmount = 100;                  // 群疗对每个现存生命层的恢复量
+	constexpr int kFocusedHealAmount = 400;               // 单疗对每个现存生命层的恢复量
 	constexpr int kArmDisableDifficulty = 2;              // 难度不高于此值时断臂永久禁疗
 	constexpr float kBiteRetentionGap = 6.0f;             // 治疗后恢复原啃食目标允许的最大碰撞箱间隙，单位像素
 	constexpr float kGearFollowerOffsetX = 34.0f;         // 急救包/标志相对身体轨道的局部水平偏移

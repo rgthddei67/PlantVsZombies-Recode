@@ -166,8 +166,8 @@ struct TreatmentConfig {
 	float castSeconds = 1.0f;
 	float areaRadius = 140.0f;
 	float focusedRadius = 280.0f;
-	float areaHealAmount = 60.0f;
-	float focusedHealAmount = 300.0f;
+	float areaHealAmount = 100.0f;
+	float focusedHealAmount = 400.0f;
 	float terminalZombiePressurePerHealth = 0.08f;
 	int hijackerZombieId = -1;
 	float hijackerExecutionSeconds = -1.0f;

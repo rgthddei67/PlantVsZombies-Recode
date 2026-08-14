@@ -21,7 +21,7 @@
     { "op": "assert_state", "path": "healers.0.focusedTargetID", "equals": 4 },
     { "op": "assert_state", "path": "healers.1.focusedTargetID", "equals": 3 },
     { "op": "wait_seconds", "value": 1.05 },
-    { "op": "assert_state", "path": "zombiesByType.ZOMBIE_BUCKET.helmHealth", "equals": 800 },
+    { "op": "assert_state", "path": "zombiesByType.ZOMBIE_BUCKET.helmHealth", "equals": 900 },
     { "op": "assert_state", "path": "zombiesByType.ZOMBIE_NORMAL.bodyHealth", "equals": 270 },
     { "op": "assert_state", "path": "particleEffectNameCounts.HealerFocusedHeal", "equals": 2 },
 
@@ -45,7 +45,7 @@
     { "op": "assert_state", "path": "healers.1.state", "equals": "AREA" },
     { "op": "wait_seconds", "value": 1.05 },
     { "op": "assert_state", "path": "zombiesByType.ZOMBIE_NORMAL.bodyHealth", "equals": 270 },
-    { "op": "assert_state", "path": "particleEffectNameCounts.HealerAreaHeal", "equals": 6 },
+    { "op": "assert_state", "path": "particleEffectNameCounts.HealerAreaHeal", "equals": 3 },
     { "op": "screenshot", "name": "01_healer_group_stack.png" },
 
     { "op": "goto_level", "level": 49, "resetTestState": true },
