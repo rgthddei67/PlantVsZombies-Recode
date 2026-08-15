@@ -21,6 +21,8 @@ public:
 	void Update() override;
 	void ZombieUpdate(float scaledTime) override;
 	void TakeBodyDamage(int damage) override;
+	/** 巨人拒绝被大嘴花吞食；攻击者随后按统一规则结算小额咬伤。 */
+	bool TakePlantInstantKill() override;
 	void StartEat(ColliderComponent* other) override;
 	void Charred() override;
 	void ZombieItemUpdate() const override;

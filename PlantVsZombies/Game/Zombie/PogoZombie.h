@@ -46,6 +46,8 @@ public:
 	bool CanBeGrabbedByTangleKelp() const override { return false; }
 	bool CanTriggerPotatoMine() const override { return !mHasPogo; }
 	bool TakePlantInstantKill() override;
+	/** 持杆时位于大嘴花咬合范围之外，因此拒吞后不承受咬击伤害。 */
+	int AdjustRejectedChomperBiteDamage(int damage) const override;
 	bool HasMagneticItem() const override { return mHasPogo; }
 	bool ExtractMagneticItem(MagneticItem& item) override;
 

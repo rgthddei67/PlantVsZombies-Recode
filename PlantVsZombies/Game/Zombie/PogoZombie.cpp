@@ -460,6 +460,11 @@ bool PogoZombie::TakePlantInstantKill()
 	return Zombie::TakePlantInstantKill();
 }
 
+int PogoZombie::AdjustRejectedChomperBiteDamage(int damage) const
+{
+	return mHasPogo ? 0 : damage;
+}
+
 void PogoZombie::SaveExtraData(nlohmann::json& j) const
 {
 	j["phase"] = static_cast<int>(mPhase);

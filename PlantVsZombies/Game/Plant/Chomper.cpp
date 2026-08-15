@@ -47,8 +47,14 @@ void Chomper::OnBiteKillFrame()
 	bool swallowedTarget = false;
 	if (mBoard) {
 		if (auto* z = mBoard->mEntityManager.GetZombie(mTargetZombieID)) {
-			// 直杀统一走僵尸入口：特殊目标可把咬杀降级为数值伤害，并拒绝进入消化状态。
+			// 目标只决定是否接受吞食；拒绝时默认结算小额咬伤，特殊品种可调整数值。
 			swallowedTarget = z->TakePlantInstantKill();
+			if (!swallowedTarget) {
+				// 继续走正式植物伤害链，让目标自身防具、抗性和词条保持有效。
+				const int rejectedDamage =
+					z->AdjustRejectedChomperBiteDamage(REJECTED_BITE_DAMAGE);
+				z->TakeDamage(rejectedDamage, DamageSource::PLANT);
+			}
 		}
 	}
 	mTargetZombieID = NULL_ZOMBIE_ID;

@@ -12,6 +12,8 @@ public:
 	void Update() override;
 	void TakeBodyDamage(int damage) override;
 	bool TakePlantInstantKill() override;
+	/** 保留鎏金冰车拒吞时的 50 点特殊基础伤害。 */
+	int AdjustRejectedChomperBiteDamage(int damage) const override;
 	bool HandleCaltropHit(Caltrop& caltrop) override;
 	void SetCooldown(float timer, bool bypassShield = false) override {
 		Zombie::SetCooldown(timer, bypassShield);

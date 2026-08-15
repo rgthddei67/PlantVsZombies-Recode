@@ -313,6 +313,12 @@ void GargantuarZombie::TakeBodyDamage(int damage)
 	}
 }
 
+bool GargantuarZombie::TakePlantInstantKill()
+{
+	// 红眼巨人继承同一拒吞契约；统一的 20 点基础咬伤由大嘴花结算。
+	return false;
+}
+
 void GargantuarZombie::OnMindControlled()
 {
 	AbortAction(true);

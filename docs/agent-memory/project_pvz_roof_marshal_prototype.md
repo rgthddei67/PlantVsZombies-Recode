@@ -1,10 +1,10 @@
 ---
 name: project_pvz_roof_marshal_prototype
-description: 2026-08-12 5-9 屋脊督军完整首领；15000 生命、6/4秒渐强召唤、10秒突击令、抗黄油连控、改天技能与专用血条索引
+description: 2026-08-15 5-9 屋脊督军完整首领；15000 生命、拒绝大嘴花吞食且每口20、6/4秒渐强召唤、10秒突击令、抗黄油连控、改天技能与专用血条索引
 metadata:
   node_type: memory
   type: project
-  updated_at: 2026-08-12
+  updated_at: 2026-08-15
 ---
 
 # 5-9 屋脊督军首领
@@ -39,8 +39,8 @@ metadata:
 进入 `anim_death` 并在事件终点回收。
 
 生存契约：普通灰烬基础伤害仍为 1800；`TakePlantAshDamage()` 先把土豆雷传入的 `INT32_MAX` 等高值
-压到 1800，再进入基类伤害链，因此生存词条仍能正常缩放。大嘴花每次完整咬合改为 1800 基础植物伤害，
-返回 false 而不吞下首领。首领不可魅惑；缠绕水草只原地束缚 5 秒后自毁并释放首领，不拖沉、不扣血。
+压到 1800，再进入基类伤害链，因此生存词条仍能正常缩放。大嘴花不会吞下首领，拒吞后使用统一默认值，
+每次完整咬合经正式 `PLANT` 伤害链造成 20。首领不可魅惑；缠绕水草只原地束缚 5 秒后自毁并释放首领，不拖沉、不扣血。
 `Zombie::CanBeKilledByMower()` 默认 true，屋脊督军覆写为 false；5-9 屋顶清洁车接触它仍正常启动并
 消耗，但从首领身上驶过不造成伤害，普通僵尸对照仍被秒杀。首领拒绝普通烧焦残影，致死灰烬仍走
 本体常规死亡时间线与专属军帽掉头粒子。
@@ -96,11 +96,10 @@ metadata:
 通过，同样覆盖专属掉头与死亡回收。`smoke_level_5_9_boss_slot.json` exit 0，
 锁定白天屋顶、15 波、三只普通预览、`ROOF_MARSHAL` 槽位及最终波唯一正式首领。
 
-生存层验证：`clang-release` 重建 exit 0；主人当前桌面可见
-`smoke_roof_marshal_survivability.json` 覆盖樱桃炸弹一次 1800、土豆雷限制为 1800、大嘴花两口各 1800、
-魅惑免疫、水草束缚/释放、5-9 `ROOF` 清洁车启动后首领保持 12000，以及普通僵尸仍被草地推车秒杀。
-默认与 `-NoInstance` 视觉脚本已按 12000 致死伤害同步回归；`smoke_reinforced_door.json` 综合回归
-继续通过，证明普通小推车和既有植物直杀抗性未被首领接口改坏。
+2026-08-15 生存层复核：`clang-release` 重建 exit 0，378 项 Win7 导入审计通过；主人当前桌面可见
+`smoke_roof_marshal_survivability.json` 105 条命令通过，覆盖樱桃炸弹一次 1800、土豆雷限制为 1800、
+大嘴花两口后首领 `15000→14960`、魅惑免疫、水草束缚/释放、5-9 `ROOF` 清洁车启动且不伤首领，
+以及普通僵尸仍被草地推车秒杀。同步截图确认大嘴花咬合后首领仍在场且血条为 `14960/15000`。
 
 完整指挥与天气验证：`clang-release` 配置、编译和 LTO 链接 exit 0。主人当前桌面可见
 `smoke_roof_marshal_command`、`smoke_roof_marshal_weather`、`smoke_roof_marshal_visual`、

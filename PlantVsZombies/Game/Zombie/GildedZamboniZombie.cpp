@@ -13,7 +13,7 @@ namespace {
 	constexpr float kSecondAccelerationTime = 10.0f;      // 第二次加速门槛；满足主人 10 秒为 x4 的示例
 	constexpr float kThirdAccelerationTime = 14.0f;       // 第三次加速门槛；最终速度封顶 x8
 	constexpr int kCaltropHitDamage = 100;                 // 地刺每次扎中鎏金冰车造成的固定基础伤害
-	constexpr int kChomperBiteDamage = 50;                 // 大嘴花每次咬中但无法吞食时造成的固定基础伤害
+	constexpr int kChomperBiteDamage = 50;                 // 鎏金冰车拒吞时保留的特殊基础伤害
 	constexpr float kPreviewDriveAnimSpeedMin = 0.50f;    // 慢速车辆驾驶动画最小基础倍率
 	constexpr float kPreviewDriveAnimSpeedMax = 0.65f;    // 慢速车辆驾驶动画最大基础倍率
 	constexpr float kMutualInfluenceLeftPadding = 80.0f;  // 活车速度场向车辆左侧包住车身的距离，单位 px；允许近邻冰车互相覆盖
@@ -71,9 +71,13 @@ void GildedZamboniZombie::TakeBodyDamage(int damage)
 
 bool GildedZamboniZombie::TakePlantInstantKill()
 {
-	// 大嘴花完成咬合，但车辆不会被吞下，也不会让大嘴花进入消化状态。
-	TakeDamage(kChomperBiteDamage, DamageSource::PLANT);
+	// 车辆只拒绝吞食；实际数值由专属伤害调整入口保留为 50。
 	return false;
+}
+
+int GildedZamboniZombie::AdjustRejectedChomperBiteDamage(int /*damage*/) const
+{
+	return kChomperBiteDamage;
 }
 
 bool GildedZamboniZombie::HandleCaltropHit(Caltrop& /*caltrop*/)

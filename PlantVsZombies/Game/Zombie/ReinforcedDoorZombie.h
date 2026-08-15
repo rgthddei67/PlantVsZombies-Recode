@@ -33,4 +33,6 @@ public:
 	int ModifyFumeDamage(int damage) const override;
 	float ModifySpikeFrameDamage(float damage, bool bypassShield = false) const override;
 	bool TakePlantInstantKill() override;
+	/** 持门拒吞时保留 10 点特殊基础伤害；破门后会被正常吞下而不调用此入口。 */
+	int AdjustRejectedChomperBiteDamage(int damage) const override;
 };

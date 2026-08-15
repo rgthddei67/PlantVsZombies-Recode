@@ -8,7 +8,7 @@ namespace {
 	constexpr int kAshDamageCap = 320;                  // 灰烬/爆炸伤害的最终单次上限
 	constexpr int kFumeDamageMultiplier = 2;            // 大喷菇与寒冰大喷菇基础伤害倍率
 	constexpr int kShieldedSpikeFrameDamageCap = 1;     // 持门时仙人掌尖刺每个 1x 碰撞帧的基础伤害上限
-	constexpr int kPlantInstantKillFallbackDamage = 10; // 大嘴花等植物直杀失败后结算的普通伤害（最终也是10）
+	constexpr int kPlantInstantKillFallbackDamage = 10; // 持门拒吞时保留的特殊基础伤害
 }
 
 void ReinforcedDoorZombie::SetupZombie()
@@ -68,17 +68,18 @@ float ReinforcedDoorZombie::ModifySpikeFrameDamage(float damage, bool bypassShie
 
 bool ReinforcedDoorZombie::TakePlantInstantKill()
 {
-	// 直杀不能绕过耐久；持门时最终只结算 10 点，且明确告知大嘴花本次没有吞掉目标。
+	// 破门后恢复普通吞食；持门时只拒绝吞食，攻击者再走正式伤害链结算咬伤。
 	if (mShieldType == ShieldType::SHIELDTYPE_NONE)
 	{
 		this->Die();
 		return true;
 	}
-	else 
-	{
-		TakeDamage(kPlantInstantKillFallbackDamage, DamageSource::PLANT);
-		return false;
-	}
+	return false;
+}
+
+int ReinforcedDoorZombie::AdjustRejectedChomperBiteDamage(int /*damage*/) const
+{
+	return kPlantInstantKillFallbackDamage;
 }
 
 bool ReinforcedDoorZombie::CanBeCharred() const

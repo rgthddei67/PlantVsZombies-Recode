@@ -16,7 +16,8 @@ private:
 	static constexpr float CHOMP_RANGE_X = 1.7f * 95.0f; // 1.5 * CELL_COLLIDER_SIZE_X
 	static constexpr float DIGEST_DURATION = 30.0f;        // 吞噬后冷却 30s
 	static constexpr float DETECTION_INTERVAL = 0.2f;
-	static constexpr int   BITE_KILL_FRAME = 43;           // anim_bite 中触发 Die() 的帧
+	static constexpr int   BITE_KILL_FRAME = 43;           // anim_bite 中触发吞食或拒吞咬伤结算的帧
+	static constexpr int   REJECTED_BITE_DAMAGE = 20;      // 目标拒绝被吞食时结算的基础植物伤害
 
 	int  FindTargetZombieID();
 	void StartBite(int zombieID);

@@ -13,7 +13,6 @@ namespace {
 	constexpr int kBodyHealth = 15000;                    // 主人确认的首领本体生命值
 	constexpr int kBiteDamageMultiplier = 5;              // 督军每口啃食伤害相对普通僵尸的倍率
 	constexpr int kPlantAshDamageCap = 1800;              // 灰烬与土豆雷的单次基础伤害上限
-	constexpr int kPlantInstantKillFallbackDamage = 1800; // 大嘴花直杀失败后结算的单次基础伤害
 	constexpr float kBossVisualScale = 1.2f;              // 须与 gamedata.json 的督军 scale 同改；影子按此倍率同步放大
 	constexpr int kHighThreatHealthThreshold = 11000;      // 低于此本体生命后，高威胁原版池开始参与抽取
 	constexpr int kDesperateHealthThreshold = 5400;       // 低于此本体生命后，切换 4 秒四只的最终阶段
@@ -637,8 +636,7 @@ void RoofMarshalZombie::TakePlantAshDamage(int damage)
 
 bool RoofMarshalZombie::TakePlantInstantKill()
 {
-	// 大嘴花不进入消化状态，但这次完整咬合仍通过正式植物伤害链造成伤害。
-	TakeDamage(kPlantInstantKillFallbackDamage, DamageSource::PLANT);
+	// 首领拒绝被吞食，并使用大嘴花统一的 20 点基础咬伤。
 	return false;
 }
 

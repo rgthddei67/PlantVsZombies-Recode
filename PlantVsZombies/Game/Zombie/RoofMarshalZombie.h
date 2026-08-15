@@ -29,7 +29,7 @@ public:
 
 	/** @brief 将所有植物灰烬伤害限制为首领单次伤害上限，土豆雷也不能绕过耐久。 */
 	void TakePlantAshDamage(int damage) override;
-	/** @brief 大嘴花完成咬合但不能吞下首领，改为结算一次固定基础伤害。 */
+	/** @brief 大嘴花不能吞下首领；攻击者随后按统一规则结算小额咬伤。 */
 	bool TakePlantInstantKill() override;
 	/** @brief 首领始终走本体受伤与常规死亡表现，不生成普通僵尸烧焦残影。 */
 	bool CanBeCharred() const override { return false; }

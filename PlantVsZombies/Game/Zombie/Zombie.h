@@ -146,8 +146,10 @@ public:
 		bool requestsShieldBypass = false);
 	/** 植物爆炸的统一入口：默认按原版阈值化灰，否则走带 PLANT_ASH 分类的普通扣血链。 */
 	virtual void TakePlantAshDamage(int damage);
-	/** 大嘴花等植物直杀的统一入口；返回是否确实吞掉目标，以决定是否进入消化状态。 */
+	/** 大嘴花等植物直杀的统一入口；只返回是否确实吞掉目标，拒吞后的伤害由攻击者结算。 */
 	virtual bool TakePlantInstantKill();
+	/** 调整拒绝大嘴花吞食后的基础伤害；默认保持攻击者给出的 20 点，特殊品种可覆写。 */
+	virtual int AdjustRejectedChomperBiteDamage(int damage) const { return damage; }
 	/** 当前状态是否允许作为已出土地雷的接触触发目标。 */
 	virtual bool CanTriggerPotatoMine() const { return true; }
 	/** 小推车碰撞是否允许直接处决；首领可拒绝处决，但小推车仍正常启动并驶离。 */
