@@ -877,6 +877,8 @@ public:
 	 */
 	bool ResolvePlantPlacementAnchor(PlantType type, int row, int col,
 		int& anchorRow, int& anchorColumn) const;
+	/** 返回空手状态下指定格的加农炮是否已装填并可进入落点模式。 */
+	bool CanBeginCobCannonTargeting(int row, int col) const;
 	/** 点击任一占格选择一株已装填加农炮，并进入独占落点模式。 */
 	bool BeginCobCannonTargeting(int row, int col);
 	/** 让当前已选加农炮向点击世界点开火；成功或目标失效都会退出落点模式。 */

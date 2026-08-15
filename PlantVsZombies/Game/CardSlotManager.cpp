@@ -13,6 +13,7 @@
 #include "./Plant/Plantern.h"
 #include "ShadowComponent.h"
 #include "../GameApp.h"
+#include "../CursorManager.h"
 
 namespace {
 	constexpr float kPlanternMenuTopOffset = 74.0f; // 挡位菜单相对卡片顶部的纵向偏移，单位：UI px
@@ -73,6 +74,7 @@ void CardSlotManager::Update() {
 	static int lastSun = 0;
 	const bool bloverDirectionChanged = UpdateBloverDirectionInput();
 	UpdatePlanternGearMenuInput();
+	UpdateCobCannonHoverCursor();
 	if (mBoard && mBoard->IsCobCannonTargeting()
 		&& GameAPP::GetInstance().GetInputHandler()
 			.IsMouseButtonPressed(SDL_BUTTON_RIGHT)) {
@@ -107,6 +109,22 @@ void CardSlotManager::Draw(Graphics* g) {
 
 		// 更新预览位置
 		UpdatePlantPreviewPosition(g, mouseScreen);
+	}
+}
+
+void CardSlotManager::UpdateCobCannonHoverCursor() const
+{
+	// 拿着植物、铲子或其他场景手持物时，格子点击有更高语义，不能提示或触发炮击。
+	if (!mBoard || mPauseGameplayInputBlocked || selectedCard
+		|| mBoard->mCursorObjectManager.GetActiveType() != CursorObjectType::NONE) {
+		return;
+	}
+	const Vector mouseWorld =
+		GameAPP::GetInstance().GetInputHandler().GetMouseWorldPosition();
+	const Cell* hoveredCell = FindCellAtWorldPosition(mouseWorld);
+	if (hoveredCell && mBoard->CanBeginCobCannonTargeting(
+		hoveredCell->mRow, hoveredCell->mColumn)) {
+		CursorManager::GetInstance().IncrementHoverCount();
 	}
 }
 

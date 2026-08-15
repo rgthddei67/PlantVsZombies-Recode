@@ -13,7 +13,8 @@ metadata:
 
 - `PLANT_COBCANNON` 是 6-6（内部 51）奖励：500 阳光、50 秒卡槽冷却、300 生命；需要同排相邻两株
   活动玉米投手，点击其中任一株都能升级。首次 5 秒后进入装填，发射后 30 秒再次装填；就绪后点击本体
-  进入落点瞄准，右键或 Esc 取消。
+  进入落点瞄准，右键或 Esc 取消。只有已装填且玩家空手、玩法输入未被暂停门禁时，鼠标悬停任一占格
+  才显示手型光标并允许点击；拿着植物、铲子或其他手持物时不提示也不抢占原格子操作。
 - 加农炮是左格锚定的单一实体。`PlantFootprint` 声明 `(0,0)/(0,1)` 两个排他普通层占格，两个 Cell 的
   normal ID 都指向同一个 `Plant`；因此任一半的 `GetNormalPlantAt/GetPlantAt`、啃食、铲除、生命、死亡和
   存档都返回或修改同一实体。两格 under 承载层继续独立，但普通层、南瓜和 overlay 均不能再叠种。
@@ -39,3 +40,6 @@ metadata:
 - `clang-release` 编译、LTO 链接与 Win7 导入审计通过。可见 `smoke_cob_cannon_core.json` 默认与
   `-NoInstance` 各 100 命令通过；`smoke_cob_cannon_footprint_hazards.json` 162 命令通过；
   `smoke_cob_cannon_night_roof.json` 87 命令通过，覆盖双侧避雷花盆、无保护停机、存档与 6-6 奖励推进。
+- 2026-08-15 增加 READY+空手时任一占格的手型悬停提示；复用卡槽正式点击门禁和唯一 Cell 解析，
+  拿卡、铲子、其他手持物或暂停输入时不提示。`clang-release`、LTO 与 Win7 378 项导入审计通过；按主人
+  明确要求本次未运行 AutoTest。

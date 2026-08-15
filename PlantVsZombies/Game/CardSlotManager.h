@@ -95,6 +95,8 @@ private:
 	void PlacePlantInCell(int row, int col);
 	Card* FindPlanternCard() const;
 	void UpdatePlanternGearMenuInput();
+	/** 空手悬停于已装填加农炮时请求手型光标；资格与正式点击入口保持一致。 */
+	void UpdateCobCannonHoverCursor() const;
 	/** 右键命中三叶草卡槽时切换方向；返回是否消费了本次右键。 */
 	bool UpdateBloverDirectionInput();
 	void ApplySelectedBloverDirection(Plant* plant) const;

@@ -5476,14 +5476,20 @@ bool Board::HasPlantingQuota(PlantType type) const
 
 bool Board::BeginCobCannonTargeting(int row, int col)
 {
-	if (mCursorObjectManager.GetActiveType() != CursorObjectType::NONE) return false;
+	if (!CanBeginCobCannonTargeting(row, col)) return false;
 	auto* cannon = dynamic_cast<CobCannon*>(GetNormalPlantAt(row, col));
-	if (!cannon || !cannon->IsActive() || !cannon->IsReady()) return false;
 	mTargetingCobCannonID = cannon->mPlantID;
 	mCursorObjectManager.Activate(CursorObjectType::COB_CANNON_TARGET, [this]() {
 		mTargetingCobCannonID = NULL_PLANT_ID;
 	});
 	return true;
+}
+
+bool Board::CanBeginCobCannonTargeting(int row, int col) const
+{
+	if (mCursorObjectManager.GetActiveType() != CursorObjectType::NONE) return false;
+	const auto* cannon = dynamic_cast<const CobCannon*>(GetNormalPlantAt(row, col));
+	return cannon && cannon->IsActive() && cannon->IsReady();
 }
 
 bool Board::FireTargetedCobCannonAt(const Vector& target, int targetRow)
