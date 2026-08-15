@@ -38,3 +38,14 @@ metadata:
 - 随植物格附着的 Board 对象必须加入植物阵风的唯一逐格结算点，并共享宿主视觉偏移；只更新对象逻辑格会在 0.45 秒追赶期提前跳到目标，只共享视觉偏移而不换格则会永久浮在源格。
 - 把 C# 单目标轮询改成多碰撞回调时，任何“停止当前动作”的分支都必须先验证当前动作目标与本次回调对象是同一实体或同一格；相邻旧通路只能跳过自身宿主，不能清掉下一目标状态。回归应在两格碰撞重叠窗口内断言状态和动画，而不是长等到最终仍会开吃。
 - C# `EatingOrder` 返回物理顶层不等于物理顶层永远遮挡下层；`CanTargetPlant(Chew)` 会递归验证顶层资格。组合格回归必须覆盖上层临时离地、下层 collider 仍活跃的逐帧窗口，同时观察 `isEating/eatPlantID/animFrame/X`，只看最终截图或单帧 track 会漏掉“停吃→走一步→同帧重开”的振荡。
+
+## 2026-08-15 植物爆炸清除扶梯
+
+- 原版 `Board::KillAllZombiesInRadius` 对僵尸使用像素圆与行范围，却把扶梯另按爆心所在格的方形
+  `rowRange` 清除：樱桃炸弹和玉米加农炮为中心格 ±1，毁灭菇为 ±3。当前实现收口到
+  `Board::RemoveLaddersInBlastSquare`，以显式逻辑行和爆点 X 解析中心格，避免泳池美术下沉或屋顶坡面
+  把梯子范围带偏。
+- `smoke_cherry_explosion_spread` 从 4 把清到 2 把并保留 `(0,4)/(2,7)`；
+  `smoke_doomshroom` 保留水平距离 4 格的 `(2,0)/(2,8)`；`smoke_cob_cannon_core` 保留
+  `(0,4)/(2,7)`。三份脚本均在 `clang-release` 当前桌面可见运行、exit 0、`status=passed`，
+  `run.log` 为 `script finished OK`，同步截图与状态一致。

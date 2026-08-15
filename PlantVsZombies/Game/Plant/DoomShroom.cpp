@@ -52,8 +52,8 @@ void DoomShroom::TakeDamage(int damage, DamageSource source)
 void DoomShroom::Explode()
 {
 	if (!mBoard) return;
-	// 音效 + Doom 粒子（蘑菇云/DOOM 字样/紫屏闪）+ 半径 250 圆形结算都在 CreateDoomBoom 内
-	mBoard->CreateDoomBoom(GetPosition());
+	// 音效、Doom 粒子、半径 250 圆形僵尸结算和 7x7 扶梯清除都在 CreateDoomBoom 内统一处理。
+	mBoard->CreateDoomBoom(GetPosition(), mRow);
 	KillOtherPlantsInCell();
 	mBoard->AddCrater(mRow, mColumn, Crater::CRATER_DURATION);
 	Die();

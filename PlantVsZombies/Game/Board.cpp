@@ -4532,9 +4532,11 @@ void Board::CreateBoom(const Vector& position, int plantRow, int damage)
 			}
 		});
 	}
+	// 原版对僵尸使用圆形命中，但扶梯另按爆心格的 3x3 方形范围清除。
+	RemoveLaddersInBlastSquare(position, plantRow, 1);
 }
 
-void Board::CreateDoomBoom(const Vector& position, int damage)
+void Board::CreateDoomBoom(const Vector& position, int plantRow, int damage)
 {
 	g_particleSystem->EmitEffect("Doom", position);
 	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_DOOMSHROOM, 0.5f);
@@ -4558,6 +4560,8 @@ void Board::CreateDoomBoom(const Vector& position, int damage)
 			}
 		}
 	}
+	// 毁灭菇沿用原版 rowRange=3，清除爆心格周围 7x7 方形范围内的扶梯。
+	RemoveLaddersInBlastSquare(position, plantRow, 3);
 }
 
 void Board::ShakeBoard(float amountX, float amountY, float durationSeconds, int oscillations)
@@ -4655,6 +4659,34 @@ int Board::RemoveLaddersInRow(int row)
 	for (int column = 0; column < mColumns; ++column) {
 		if (RemoveLadderAt(row, column)) ++removed;
 	}
+	return removed;
+}
+
+int Board::RemoveLaddersInBlastSquare(
+	const Vector& position, int centerRow, int cellRange)
+{
+	if (mRows <= 0 || mColumns <= 0) return 0;
+	const int range = std::max(0, cellRange);
+	const int blastRow = std::clamp(centerRow, 0, mRows - 1);
+	// PixelToGridXKeepOnBoard 的当前场景等价换算：以格子左边界分段并钳在棋盘内。
+	const int blastColumn = std::clamp(static_cast<int>(std::floor(
+		(position.x - CELL_INITALIZE_POS_X) / CELL_COLLIDER_SIZE_X)),
+		0, mColumns - 1);
+
+	int removed = 0;
+	mLadders.erase(std::remove_if(mLadders.begin(), mLadders.end(),
+		[&](const std::weak_ptr<Ladder>& weak) {
+			auto ladder = weak.lock();
+			if (!ladder || !ladder->IsActive()) return true;
+			if (std::abs(ladder->mRow - blastRow) > range
+				|| std::abs(ladder->mColumn - blastColumn) > range) {
+				return false;
+			}
+			ladder->SetActive(false);
+			GameObjectManager::GetInstance().DestroyGameObject(ladder.get());
+			++removed;
+			return true;
+		}), mLadders.end());
 	return removed;
 }
 
@@ -4949,6 +4981,8 @@ void Board::CreateCobCannonExplosion(const Vector& position, int targetRow, int 
 			}
 		});
 	}
+	// 原版玉米炮与樱桃炸弹相同：扶梯按爆心格周围 3x3 方形范围清除。
+	RemoveLaddersInBlastSquare(position, targetRow, 1);
 }
 
 bool Board::PickMonteCarloPlantBlastTarget(

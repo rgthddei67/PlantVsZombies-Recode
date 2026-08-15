@@ -34,3 +34,10 @@ metadata:
 `anim_sleep`，目标唤醒倒计时归零后才播放 reverse explosion 并进入 `anim_explode`。日间泳池
 专项在睡莲上唤醒毁灭菇，随后确认同格睡莲与咖啡豆层均清空并生成水上白天弹坑；原有夜间充能、
 白天沉睡和同格睡莲清除两条专项继续可见退出 0。
+
+## 2026-08-15 爆炸清除扶梯
+
+`CreateDoomBoom` 现在接收施法者逻辑行，并按原版 `KillAllZombiesInRadius(..., rowRange=3)` 调用
+Board 统一清梯入口：僵尸仍按 250px 圆形判定，扶梯独立按爆心格 ±3 的 7×7 方形范围清除。
+`smoke_doomshroom` 用范围内 `(0,1)/(4,7)` 与范围外 `(2,0)/(2,8)` 锁定边界；当前桌面可见
+`clang-release` 运行 exit 0、53 条命令全过，弹坑、伤害与白天睡眠父回归保持通过。

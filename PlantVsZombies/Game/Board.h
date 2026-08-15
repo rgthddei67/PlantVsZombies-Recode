@@ -977,7 +977,7 @@ public:
 	void CreateBoom(const Vector& position, int plantRow, int damage = 1800);
 
 	// 毁灭菇爆炸：半径 250 圆形判定、波及全部行、跳过魅惑僵尸；Charred 阈值逻辑同 CreateBoom
-	void CreateDoomBoom(const Vector& position, int damage = 1800);
+	void CreateDoomBoom(const Vector& position, int plantRow, int damage = 1800);
 	/** 玉米加农炮落点爆炸：半径 115px、目标行上下各一行，只命中合法地面敌人。 */
 	void CreateCobCannonExplosion(const Vector& position, int targetRow, int damage = 1800);
 
@@ -994,6 +994,8 @@ public:
 	bool RemoveLadderAt(int row, int column);
 	/** 移除指定行全部扶梯，返回移除数量。 */
 	int RemoveLaddersInRow(int row);
+	/** 按爆心所在格的方形格范围移除扶梯；范围口径与原版 KillAllZombiesInRadius 一致。 */
+	int RemoveLaddersInBlastSquare(const Vector& position, int centerRow, int cellRange);
 	/** 按 C# 两格评分选择并移除最近扶梯，构造磁力菇离体物。 */
 	bool ExtractNearestLadderForMagnet(int plantRow, int plantColumn, MagneticItem& item);
 

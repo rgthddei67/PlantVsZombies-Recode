@@ -17,7 +17,7 @@
 - [第六大关黑夜屋顶与延期设计](project_pvz_sixth_area_night_roof_backlog.md) — 2026-08-15 6-1～6-9 已接入正式黑夜屋顶、基础雷荷、绝缘僵尸、劫持者、急救员、5-9接地菇及6-2～6-6植物奖励；6-7～6-9植物、6-8延期新僵尸及6-9僵尸博士仍待实现
 - [第六大关避雷花盆](project_pvz_lightning_rod_pot.md) — 2026-08-15 `PLANT_LIGHTNINGRODPOT` 为6-4奖励：150阳光/50秒/700生命，under层原位升级花盆并保留上层；单格宿主要求同格，多格宿主任一占格下的有效盆都保护整株免普通雷荷停机与劫持者处决；有效承载时同排雷击伤害翻倍且多盆不叠加
 - [第六大关冰瓜](project_pvz_winter_melon.md) — 2026-08-14 `PLANT_WINTERMELON` 为6-5奖励：200阳光/50秒/300生命，普通层原位升级西瓜；第44帧投出100直击/33三行溅射并让实际命中目标减速10秒，穿透二类盾后层状态语义、独立冰瓜弹与九帧冰屑资源、默认/NoInstance可见专项闭环
-- [经典玉米加农炮与双格植物占用](project_pvz_cob_cannon.md) — 2026-08-15 `PLANT_COBCANNON` 为6-6奖励：双玉米投手升级为一个ID别名占两格的单实体；5秒首次装填/30秒重装，只有READY且空手时任一占格显示手型并允许瞄准；第78帧发射1.4秒定点炮弹，115px半径三行1800灰烬伤害；双格查询、危险去重、台风原子搬移、双侧避雷花盆和飞行存档专项闭环
+- [经典玉米加农炮与双格植物占用](project_pvz_cob_cannon.md) — 2026-08-15 `PLANT_COBCANNON` 为6-6奖励：双玉米投手升级为一个ID别名占两格的单实体；5秒首次装填/30秒重装，只有READY且空手时任一占格显示手型并允许瞄准；第78帧发射2.0秒定点炮弹，115px半径三行1800灰烬伤害，爆心格3×3扶梯清除；双格查询、危险去重、台风原子搬移、双侧避雷花盆和飞行存档专项闭环
 
 - [第六大关接地菇](project_pvz_grounding_shroom.md) — 2026-08-13 `PLANT_GROUNDINGSHROOM` 为5-9奖励：100阳光、20秒冷却、500生命；同排三格免一次雷荷停机，普通/湿坡每次直接反噬100/150且按冻结分配不回滚；范围内绝缘僵尸拒绝承接和过载；独立低精度整株动画约0.8倍、卡图约0.7倍；白天睡眠轨从闭眼切图的第26帧起循环，绝不闪回第25帧睁眼图；震击电弧以紫罗兰暗边和浅紫亮芯抵抗缩放与黑夜暗化
 - [经典忧郁菇与紫卡升级](project_pvz_gloomshroom.md) — 2026-08-13 `PLANT_GLOOMSHROOM` 为6-2奖励：150阳光、50秒冷却、300生命；原子覆盖大喷菇并保留承载层/南瓜及睡眠唤醒进度；每2秒按原版0.64～1.58秒时间线发四轮八向云雾与20点环形伤害；紫卡裁取主人seeds.png第二格；八炮口各5颗按双重Offset规则贴口扩散，Vulkan/OpenGL专项与升级/存档/奖励父回归可见闭环
@@ -42,7 +42,7 @@
 - [经典南瓜头与第三植物层](project_pvz_pumpkin_shell.md) — 2026-08-05 `PLANT_PUMPKINSHELL`：100 阳光、30 秒冷却、4000 生命；独立 pumpkin 层可包住普通植物，战斗顶层优先啃食，但非阻拦外壳不会遮蔽内层高坚果的跳跃阻拦能力；铲子按中心/外圈任选内层或南瓜；精英小丑与粉色橄榄球范围伤害由命中植物九宫格内最近南瓜按保护者归并一次并输入 5 倍，爆破工头独立 4 倍，普通小丑仍直接清场；前后片夹层、叠层血量、水池三层、存档、台风与专项闭环
 - [经典磁力菇与僵尸装备剥离契约](project_pvz_magnetshroom.md) — 2026-08-12 `PLANT_MAGNETSHROOM`：100 阳光、7.5 秒卡冷却、15 秒吸取充能；目标侧虚接口原子剥离装备并可返回提取者本体反噬，绝缘胸甲一次吸取扣磁力菇150且第二次可致死不回滚；离体贴图、充能与存档完整，当前可见父回归通过
 - [经典气球僵尸](project_pvz_balloon_zombie.md) — 2026-07-30 `ZOMBIE_BALLOON` 为20气球层+270本体、空中/爆裂/步行三阶段、独立螺旋桨附件、70/80啃食帧和152死亡帧；水道击破与致死灰烬都直接移除，非致死灰烬仍按额外层和本体扣血；专属掉头/掉臂、4-3与生存出怪均有可见专项
-- [经典扶梯僵尸与共享扶梯](project_pvz_ladder_zombie.md) — 2026-08-04 `ZOMBIE_LADDER` 为500本体+500扶梯护盾，85/194啃食、131死亡；携梯/放置/普通三阶段与 Board 共享扶梯闭环；动画冻结仍位移有两类独立原因：旧梯子回调误停相邻啃食，以及空中倭瓜被物理顶层反复选回；后者已按 C# NotOnGround 与最高有效 EatingOrder 修复并通过 clang-release，待主人用 level37 实机验证
+- [经典扶梯僵尸与共享扶梯](project_pvz_ladder_zombie.md) — 2026-08-15 `ZOMBIE_LADDER` 为500本体+500扶梯护盾，85/194啃食、131死亡；携梯/放置/普通三阶段与 Board 共享扶梯闭环；植物死亡/压扁、磁吸、台风及爆炸生命周期统一由 Board 管理，樱桃/玉米炮按爆心格±1、毁灭菇按±3方形范围清梯；三份可见 `clang-release` 专项锁定范围内非宿主格清除和范围外保留
 - [精英扶梯僵尸](project_pvz_elite_ladder_zombie.md) — 2026-08-06 `ZOMBIE_ELITE_LADDER` 为650本体+500银灰扶梯、正式波次每波限1；出场5秒一次性扫描同行当前植物生命与投手/射手数量，严格触发无限金梯/2倍动画/+500本体/2倍扶梯；无限换色保留破损档位并贯通放置、磁吸、掉落粒子和存档；断头/垂死时中断 `PLACING` 并自愈旧档坏状态；投手预判按当前活动片段平均根速度，不再被双速步态的单帧位移波动放大。
 - [经典跳跳僵尸](project_pvz_pogo_zombie.md) — 2026-08-15 `ZOMBIE_POGO` 为500本体、普通/高跳/前跳/弃杆步行四阶段；86/107啃食、154死亡；高坚果击落跳杆，持杆免冻结/魅惑和地面秒杀，且因高度躲过大嘴花咬击、拒吞伤害为0，掉杆后恢复普通吞食；持杆动画和整段空中运动不受寒冰拖慢、下落按真实游戏时间2.0倍推进，泳池正式出怪仅限陆路；4-7首次教学、4-8复习；选卡与图鉴详情走无副作用原地弹跳，网格缩略图仍暂停
 - [精英跳跳僵尸](project_pvz_elite_pogo_zombie.md) — 2026-08-02 `ZOMBIE_ELITE_POGO` 为850本体、1.15倍率、黑金碳纤维杆与紫青运动装；磁力菇免疫，首次撞高坚果造成600伤害并消耗存档缓冲、第二次折杆；每波限1，4-9以30波六类型池首次登场；独立资源、选卡/图鉴预览与可见专项闭环
@@ -83,7 +83,7 @@
 - [非整十波旗帜进度条](project_pvz_flag_meter_non_multiple_waves.md) — 2026-07-18 对齐 C# `DrawProgressMeter`：旗数=`总波数/10` 向下取整，第 k 面旗横向位置=`1-k*10/总波数`；旗子按第10/20/30波顺序存储，实时升旗和读档恢复均直接使用同一索引；可见 AutoTest 已覆盖15/25/35波布局与25波第10波升旗
 - [原版 MO3 动态分轨音乐 ✅Release 已编译](project_pvz_adaptive_mo3_music.md) — 2026-07-17 `AdaptiveMusicPlayer` 用 libopenmpt interactive API 并行解码主旋律/鼓组/踩镲，按原版 order+channel 表切分 DAY/NIGHT/POOL/FOG/ROOF；敌对存活僵尸≥10或一大波警告触发 burst，持续8s后<4淡出；2026-07-22 敌对数并入 `UpdateZombieMetrics` 的 0.5s 血量采样，取消每帧 O(n) 扫描；**许可证方案不用 stock vcpkg 的 mpg123(LGPL)，overlay 编入 libopenmpt 自带 minimp3(CC0)+stb_vorbis(MIT)+zlib**；MO3 来自本机原版素材库，放 build/<preset>/resources/music（不入 git）；主人要求不跑首版 AutoTest，首版已过 clang-release
 - [屏幕抖动ShakeBoard ✅commit未push](project_pvz_screen_shake.md) — 2026-07-16(f3e87b4+修复f09abb3) **全屏视觉效果必须走相机SetCameraPosition(projView)而非变换栈——reanim/字形instancing快路径不消费栈,栈方案下植物僵尸全体不动(主人抓出)**；相机勿每帧无条件写(开场平移也用它)；樱桃(3,-4)原版单跳/毁灭菇(6,-9)0.5s衰减正弦5半周期；SAD验证须分管线选区对测(初版全测batch区假绿,紫闪帧不可光学测)；2026-07-29 已把旧 `smoke_doomshroom` 的不可靠坐标 click 对照改成正式 `assert_can_plant` 双向断言并恢复全绿
-- [毁灭菇+弹坑](project_pvz_doomshroom_crater.md) — 2026-07-29 Crater 按当前陆地/水格及昼夜、寿命阶段选择贴图并随水面浮动，屋顶资源仅预留、白天水格为咖啡豆留 TODO；毁灭菇引爆清除同格全部其他植物（含睡莲）但不伤邻格；`add_crater` 与两条专项 AutoTest 补齐贴图加载、同格清除和邻格保留，完整 `smoke_doomshroom` 也恢复全绿
+- [毁灭菇+弹坑](project_pvz_doomshroom_crater.md) — 2026-08-15 Crater 按当前陆地/水格及昼夜、寿命阶段选择贴图并随水面浮动；毁灭菇引爆清除同格全部其他植物并按爆心格±3的7×7方形范围清梯，僵尸仍按250px圆形受击；`smoke_doomshroom` 可见通过并锁定范围外水平第4格扶梯保留、弹坑/伤害/睡眠父回归
 - [寒冰大喷菇 ✅commit未push](project_pvz_icefumeshroom.md) — 2026-07-15(a70506b+de5e528削弱) FumeShroom模板方法化+蓝overlay/蓝粒子/染色卡图；**数值主人已裁定中档=150阳光/间隔2.5s/10伤/减速2.0s**；旧Trophy枚举值解锁耦合已由AdventureProgression显式表取代；穿透=护盾照掉血且全额透体；msvc-debug的info.txt曾整体陈旧
 - [帧事件帧号口径](feedback_frame_event_numbering.md) — 主人定死：AddFrameEvent真实帧号=预览帧号-1；**主人报的帧号默认已-1过，直接用不许再减**；已写进两个skill
 - [寒冰菇+黑夜spawnlists ✅完成](project_pvz_iceshroom_freeze.md) — 2026-07-14(bea4fa2..21227e2) StartFrozen+UpdateAnimSpeed单点收敛extra层(加新速度状态先grep它)；读档主人已验证；spawnlists 首次补全10-18(9关一大关,2-9=18收官30波+sun1500字段)，2026-07-21 的整大关节奏重排见独立主题；foot-gun=视觉勿耦合别的效果、豁免连伤害不吃、resources.xml双preset加音效
