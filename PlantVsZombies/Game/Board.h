@@ -610,7 +610,7 @@ public:
 	int GetBaseFogLeftColumn() const;
 	/** 合并当前雾势扩展后的目标最左列，不受短时台风透明度影响。 */
 	int GetEffectiveFogLeftColumn() const;
-	/** 当前雾场用于绘制的行数；泳池六行外再保留一条底部收边。 */
+	/** 当前雾场用于绘制的行数；战场行外再保留一条底部收边。 */
 	int GetFogDrawRowCount() const { return SupportsStageFog() ? mRows + 1 : 0; }
 	/** 返回指定雾格平滑后的 alpha（0～255）。 */
 	float GetFogCellAlpha(int row, int col) const;
@@ -867,9 +867,9 @@ public:
 	bool IsNightRoofChargeProtectionSuppressed(const Zombie* zombie) const;
 	/** 返回本次基础放电的 0～1 进度；非放电阶段为 0。 */
 	float GetNightRoofChargeDischargeProgress() const;
-	/** 夜间泳池场景是否拥有不依赖天气的基础迷雾。 */
+	/** 当前关卡是否拥有不依赖雨势的基础迷雾；额外固定关由 AdventureProgression 集中登记。 */
 	bool SupportsStageFog() const;
-	/** 仅夜间泳池背景抽取独立增强雾势；资格不依赖冒险关卡号。 */
+	/** 当前基础迷雾关卡是否抽取独立增强雾势。 */
 	bool SupportsFogWeather() const;
 	bool IsPoolRow(int row) const;
 	bool IsPoolSquare(int row, int col) const;

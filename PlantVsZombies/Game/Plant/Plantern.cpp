@@ -45,7 +45,7 @@ void Plantern::PlantUpdate()
 {
 	const float deltaTime = DeltaTime::GetDeltaTime();
 	mFuelFullHintTimer = std::max(0.0f, mFuelFullHintTimer - deltaTime);
-	// 4-1 只承担迷雾视觉教学；从 4-2 起才启用燃料经济与索敌压力。
+	// 4-1 只承担迷雾视觉教学；4-2～4-9 与复用完整雾机制的 6-9 启用燃料和索敌压力。
 	if (!mBoard || !mBoard->SupportsPlanternMechanics()
 		|| mGear == PlanternGear::OFF || mFuel <= 0.0f) {
 		return;

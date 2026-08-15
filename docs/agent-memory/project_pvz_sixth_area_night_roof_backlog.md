@@ -20,7 +20,10 @@ metadata:
   `project_pvz_winter_melon.md`、`project_pvz_cob_cannon.md`、`project_pvz_gold_magnet.md`、`project_pvz_hijacker_zombie.md` 与
   `project_pvz_healer_zombie.md` 与 `project_pvz_grounding_zombie.md`。
 - 5-9 已确定为白天屋顶 BOSS 关并使用屋脊督军，不使用僵尸博士；僵尸博士仍计划放在未来 6-9，
-  但关卡号 54 当前没有 BOSS 运行逻辑。
+  但关卡号 54 当前没有 BOSS 运行逻辑。6-9 现通过
+  `AdventureProgression::HasLevelSpecificFogMechanics()` 单关复用完整迷雾：默认雾与动态
+  小雾/普通迷雾/大雾照常循环，路灯花燃料、逐格照明/索敌和正式波次雾火掉落同步启用；6-1～6-8
+  仍保持无雾。
 - 昼夜屋顶因共用斜坡几何而沿用同一套较轻“坡面径流”，见 `project_pvz_roof_runoff.md`；第六大关
   已在径流之上叠加独立基础雷荷系统，两套机制并存而非互相替换。
 

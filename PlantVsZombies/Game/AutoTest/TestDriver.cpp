@@ -901,7 +901,7 @@ bool TestDriver::ExecuteCurrent() {
 		if (it == kFogWeatherIntensityNames.end()
 			|| !gs->GetBoard()->SetFogWeatherForTesting(
 				it->second, cmd.value("duration", 30.0f))) {
-			Fail("set_fog_weather: intensity 必须是 DEFAULT/SMALL/NORMAL/DENSE，且当前必须是四大关");
+			Fail("set_fog_weather: intensity 必须是 DEFAULT/SMALL/NORMAL/DENSE，且当前必须是迷雾关卡");
 			return false;
 		}
 		return true;
@@ -918,7 +918,7 @@ bool TestDriver::ExecuteCurrent() {
 			|| actualIt == kFogWeatherIntensityNames.end()
 			|| !gs->GetBoard()->SetFogWeatherForecastForTesting(
 				forecastIt->second, actualIt->second, cmd.value("revealIn", 1.0f))) {
-			Fail("set_fog_forecast: forecast/actual 必须是 DEFAULT/SMALL/NORMAL/DENSE，且当前必须是已初始化的四大关");
+			Fail("set_fog_forecast: forecast/actual 必须是 DEFAULT/SMALL/NORMAL/DENSE，且当前必须是已初始化的迷雾关卡");
 			return false;
 		}
 		return true;
@@ -927,7 +927,7 @@ bool TestDriver::ExecuteCurrent() {
 		GameScene* gs = CurrentGameScene();
 		if (!gs || !gs->GetBoard()
 			|| !gs->GetBoard()->SetFogDispersalForTesting(cmd.value("value", -1.0f))) {
-			Fail("set_fog_dispersal: value 必须是有限数值，且当前必须是已初始化的四大关");
+			Fail("set_fog_dispersal: value 必须是有限数值，且当前必须是已初始化的迷雾关卡");
 			return false;
 		}
 		return true;

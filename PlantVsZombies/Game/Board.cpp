@@ -1465,7 +1465,7 @@ void Board::InitializeWeather()
 		: 0.0f;
 }
 
-/** 初始化夜间泳池背景的独立雾势；基础雾线仍可由关内进度调节。 */
+/** 初始化当前迷雾关卡的独立雾势；基础雾线仍可由关内进度调节。 */
 void Board::InitializeFogWeather()
 {
 	const bool supportsFog = SupportsStageFog();
@@ -1660,7 +1660,7 @@ void Board::UpdateFogCellAlpha(float deltaTime, bool snapToTarget)
 	}
 }
 
-/** 推进夜间泳池雾势、台风驱散与纹理呼吸；其他背景保持零开销。 */
+/** 推进当前迷雾关卡的雾势、台风驱散与纹理呼吸；其他关卡保持零开销。 */
 void Board::UpdateFog(float deltaTime)
 {
 	if (!mFogWeatherInitialized || deltaTime <= 0.0f || !SupportsStageFog()) return;
@@ -4237,22 +4237,26 @@ float Board::GetNightRoofChargeDischargeProgress() const
 
 bool Board::SupportsStageFog() const
 {
-	return mBackGround == Background::NIGHT_WATER_POOL;
+	// 第四大关继续由背景提供通用雾场；其他背景的固定关卡统一由冒险进度表登记。
+	return mBackGround == Background::NIGHT_WATER_POOL
+		|| AdventureProgression::HasLevelSpecificFogMechanics(mLevel);
 }
 
 bool Board::SupportsPlanternMechanics() const
 {
-	return SupportsStageFog()
-		&& AdventureProgression::GetLevelNumberInArea(mLevel) >= 2;
+	if (!SupportsStageFog()) return false;
+	// 4-1 仍只教学基础雾；固定复用关卡始终包含路灯花燃料、照明、索敌与雾火闭环。
+	return AdventureProgression::HasLevelSpecificFogMechanics(mLevel)
+		|| AdventureProgression::GetLevelNumberInArea(mLevel) >= 2;
 }
 
 bool Board::SupportsFogWeather() const
 {
-	// 雾势资格由场景背景决定；雨势与雾势仍保持两个独立开关。
+	// 雾势沿用基础雾场的单一门禁；雨势与雾势仍保持两个独立开关。
 	return SupportsStageFog();
 }
 
-/** 按当前九关制流程换算 C# 的 4-1 / 4-2～4-6 / 4-7～末关覆盖曲线。 */
+/** 按九关制关内进度换算原版覆盖曲线；6-9 复用末关基准，便于集中调难。 */
 int Board::GetBaseFogLeftColumn() const
 {
 	if (!SupportsStageFog()) return mColumns;

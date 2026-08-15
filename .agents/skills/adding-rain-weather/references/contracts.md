@@ -152,7 +152,11 @@ pending 并清空，不能临时重抽。`GameScene` 的累计条与坡面水膜
 方向必须同步更新，并重新取得完整方向持续阶段、重启方向相关视觉。该入口只改方向，不改台风
 强度、阵风预算/剩余时长、已经完成的植物换格或迷雾驱散；没有台风时保持 no-op。
 
-夜间泳池雾线分两层语义：资格只看 `NIGHT_WATER_POOL` 背景，关卡号只负责现有冒险曲线。
+迷雾关卡分两层资格：`NIGHT_WATER_POOL` 继续由背景提供通用雾场；明确复用完整迷雾的固定冒险关
+由 `AdventureProgression::HasLevelSpecificFogMechanics()` 集中登记；当前仅正式背景为 `NIGHT_ROOF`
+的 6-9。固定关卡不能只打开绘制：`SupportsStageFog()`、`SupportsFogWeather()` 与
+`SupportsPlanternMechanics()` 必须共同覆盖，使默认雾、动态小雾/普通迷雾/大雾、路灯花燃料/照明/
+索敌和正式波次雾火掉落保持同一套机制；以后新增同类关卡只扩展关卡判定函数。
 
 - `GetBaseFogLeftColumn()` 保存由关卡编号换算的原版基准。
 - `GetEffectiveFogLeftColumn()` 再应用当前平衡扩展；默认雾不扩格，小雾/普通迷雾/大雾依次多 1/2/3 格。
@@ -165,7 +169,7 @@ pending 并清空，不能临时重抽。`GameScene` 的累计条与坡面水膜
 优先增加消费同一逐格 alpha 的错位冷灰雾片补洞，不要改逻辑层数、索敌阈值或铺纯色矩形。
 同步截图必须成对检查“无照明浓雾确实藏住目标”和“路灯花照亮区仍清楚”。
 
-4-2 起逐格 alpha 还承担雾中远程索敌权威。路灯花用
+4-2 起以及固定复用完整迷雾的关卡中，逐格 alpha 还承担雾中远程索敌权威。路灯花用
 `Board::GetPlanternIllumination(row,col)` 在 `UpdateFogCellAlpha()` 目标值中削减雾，
 索敌再读取同一个平滑后的 `GetFogCellAlpha()`；不要另造“逻辑照明范围”绕开可见雾，
 否则刚点亮/熄灭时画面与玩法会不同步。近身感知是统一入口中的显式例外，已在飞行的子弹不撤销。
@@ -335,7 +339,7 @@ Board 雾势、再恢复植物，所以 `RestoreFogState()` 只清空旧缓存�
 - `set_weather_forecast`：固定公开/真实天气和揭晓时刻。
 - `advance_weather_phase`：用权重落点强制结束雨段，并立即完成过渡。
 - `trigger_lightning`：只允许大雨；普通大雨同步播放 `SOUND_THUNDER` 并生成程序化主干/分叉；暴风雨夜改走 C# 风格全屏短闪，且不得同时激活普通局部闪电。
-- `set_fog_weather`：固定 `NIGHT_WATER_POOL` 背景的 `DEFAULT/SMALL/NORMAL/DENSE` 雾势与持续时间。
+- `set_fog_weather`：固定当前合格迷雾关卡的 `DEFAULT/SMALL/NORMAL/DENSE` 雾势与持续时间。
 - `set_fog_forecast`：固定公开/真实雾势与揭晓时刻；当前雾势预报保持准确。
 - `set_fog_dispersal`：固定 `0..1` 驱散比例，供存档与渲染状态测试。
 - `set_plantern_gear` / `set_plantern_fuel` / `award_plantern_fuel`：固定挡位和燃料边界。

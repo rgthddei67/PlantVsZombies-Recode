@@ -424,7 +424,7 @@ void GameScene::DrawSpacePauseLabel(Graphics* g) const
 		glm::vec4(255.0f, 244.0f, 196.0f, 255.0f), centerX, kSpacePauseLabelY);
 }
 
-/** 绘制四大关逐格迷雾；玩法状态完全来自 Board，UI 继续位于雾层之上。 */
+/** 绘制当前迷雾关卡的逐格雾场；玩法状态完全来自 Board，UI 继续位于雾层之上。 */
 void GameScene::DrawFog(Graphics* g) const
 {
 	if (!g || !mBoard || !mBoard->SupportsStageFog()) return;

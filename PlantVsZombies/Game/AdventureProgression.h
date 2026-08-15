@@ -11,6 +11,7 @@ namespace AdventureProgression
 	inline constexpr int ADVENTURE_AREA_COUNT = 6;
 	inline constexpr int LAST_ADVENTURE_LEVEL = LEVELS_PER_AREA * ADVENTURE_AREA_COUNT;
 	inline constexpr int AREA_FIVE_BOSS_LEVEL = LEVELS_PER_AREA * 5;
+	inline constexpr int AREA_SIX_FINAL_LEVEL = LEVELS_PER_AREA * 6;
 
 	/** 冒险关的 BOSS 槽位；枚举值同时是关卡编排选择，不直接承担实体所有权。 */
 	enum class BossSlot {
@@ -111,6 +112,17 @@ namespace AdventureProgression
 		return level >= 1 && level <= LAST_ADVENTURE_LEVEL;
 	}
 
+	/** 判断不依赖夜间泳池背景、但明确复用完整迷雾与路灯花机制的固定冒险关。 */
+	constexpr bool HasLevelSpecificFogMechanics(int level)
+	{
+		switch (level) {
+		case AREA_SIX_FINAL_LEVEL:
+			return true;
+		default:
+			return false;
+		}
+	}
+
 	/** 查询当前已登记的 BOSS 槽位。 */
 	constexpr BossSlot GetBossSlot(int level)
 	{
@@ -157,5 +169,7 @@ namespace AdventureProgression
 	static_assert(IsAdventureLevel(46) && IsAdventureLevel(54));
 	static_assert(GetAreaNumber(46) == 6 && GetLevelNumberInArea(46) == 1);
 	static_assert(GetAreaNumber(54) == 6 && GetLevelNumberInArea(54) == 9);
+	static_assert(!HasLevelSpecificFogMechanics(53));
+	static_assert(HasLevelSpecificFogMechanics(54));
 	static_assert(GetPlantReward(54) == NO_PLANT_REWARD);
 }
