@@ -15,7 +15,7 @@ namespace {
 	constexpr float kChargeFramesPerSecond = 12.0f;     // anim_charge 播放帧率，单位：fps
 	constexpr float kShootingFramesPerSecond = 12.0f;   // anim_shooting 播放帧率，单位：fps
 	constexpr float kTrackBlendSeconds = 0.0f;          // 原版机械动作硬切，避免跨轨重影
-	constexpr float kCobFlightSeconds = 1.4f;           // 玉米棒升空到落地的总游戏时间，单位：秒
+	constexpr float kCobFlightSeconds = 2.0f;           // 玉米棒升空到落地的总游戏时间，单位：秒
 	constexpr int kCobDamage = 1800;                    // 爆心范围内的灰烬伤害
 	const Vector kLaunchOffset(37.2f, -145.9f);         // CobCannon_cob 第 77 帧最终仿射四边形中心，相对本体 Animator 基点，单位：px
 	constexpr float kShoopVolume = 0.45f;               // 开始机械装填的音效音量
