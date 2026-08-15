@@ -551,14 +551,39 @@ void GameScene::DrawWorldOverlay(Graphics* g)
 			}
 		}
 	}
-	if (stormyNightActive) return;
-	{
-		PROFILE_SCOPE("8b5.Draw_nightRoofCharge");
-		DrawNightRoofCharge(g);
+	if (!stormyNightActive) {
+		{
+			PROFILE_SCOPE("8b5.Draw_nightRoofCharge");
+			DrawNightRoofCharge(g);
+		}
+		{
+			PROFILE_SCOPE("8b6.Draw_lightning");
+			DrawLightningStrike(g);
+		}
 	}
-	{
-		PROFILE_SCOPE("8b6.Draw_lightning");
-		DrawLightningStrike(g);
+	DrawCobCannonTarget(g);
+}
+
+void GameScene::DrawCobCannonTarget(Graphics* g) const
+{
+	if (!g || !mBoard || !mBoard->IsCobCannonTargeting()) return;
+	const Vector target = GameAPP::GetInstance().GetInputHandler().GetMouseWorldPosition();
+	auto& resources = ResourceManager::GetInstance();
+	const Texture* shadow = resources.GetTexture(
+		ResourceKeys::Textures::IMAGE_COBCANNON_TARGET_SHADOW, false);
+	const Texture* marker = resources.GetTexture(
+		ResourceKeys::Textures::IMAGE_COBCANNON_TARGET, false);
+	if (shadow) {
+		g->DrawTexture(shadow,
+			target.x - static_cast<float>(shadow->width) * 0.5f,
+			target.y - static_cast<float>(shadow->height) * 0.5f,
+			static_cast<float>(shadow->width), static_cast<float>(shadow->height));
+	}
+	if (marker) {
+		g->DrawTexture(marker,
+			target.x - static_cast<float>(marker->width) * 0.5f,
+			target.y - static_cast<float>(marker->height) * 0.5f,
+			static_cast<float>(marker->width), static_cast<float>(marker->height));
 	}
 }
 
@@ -1679,7 +1704,11 @@ void GameScene::Update() {
 		else if (mBoard->mBoardState != BoardState::LOSE_GAME
 			&& !mOpenRestartMenu && !mOpenQuitMenu && !devConsumedEsc
 			&& input.IsKeyPressed(SDLK_ESCAPE)) {
-			if (mOpenMenu) {
+			if (mBoard->IsCobCannonTargeting()) {
+				mBoard->mCursorObjectManager.ClearActive();
+				devConsumedEsc = true;
+			}
+			else if (mOpenMenu) {
 				mOpenMenu = false;
 				DeltaTime::SetPaused(false);
 				GameObjectManager::GetInstance().DestroyGameObject(mMenu.lock());

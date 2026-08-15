@@ -19,7 +19,7 @@ protected:
 	bool PausesAnimationWhenCovered() const override { return false; }
 
 private:
-	/** 返回目标是否仍属于自身同格的上层植物栈，且该栈具有正式宿主层。 */
+	/** 返回自身格是否属于目标 footprint，且该格的上层植物栈仍引用该目标。 */
 	bool ProtectsSupportedLayer(const Plant* target) const;
 	/** 空盆不提供同排伤害倍率；普通层或南瓜层任一有效即视为正在承载。 */
 	bool HasActiveSupportedHost() const;

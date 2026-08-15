@@ -53,6 +53,7 @@
 #include "LightningRodPot.h"
 #include "CabbagePult.h"
 #include "KernelPult.h"
+#include "CobCannon.h"
 #include "CoffeeBean.h"
 #include "Garlic.h"
 #include "UmbrellaLeaf.h"
@@ -361,6 +362,11 @@ void GameDataManager::InitializeHardcodedData() {
 		ResourceKeys::Textures::IMAGE_CORNPULT,
 		AnimationType::ANIM_KERNELPULT,
 		ResourceKeys::Reanimations::REANIM_KERNELPULT, &MakePlant<KernelPult>);
+
+	RegisterPlant(PlantType::PLANT_COBCANNON, "PLANT_COBCANNON",
+		ResourceKeys::Textures::IMAGE_COBCANNON,
+		AnimationType::ANIM_COBCANNON,
+		ResourceKeys::Reanimations::REANIM_COBCANNON, &MakePlant<CobCannon>);
 
 	RegisterPlant(PlantType::PLANT_INSTANT_COFFEE, "PLANT_INSTANT_COFFEE",
 		ResourceKeys::Textures::IMAGE_COFFEEBEAN,

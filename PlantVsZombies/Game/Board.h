@@ -311,9 +311,15 @@ private:
 	float mShakeAmountX = 0.0f;       // 峰值位移（原版符号约定）
 	float mShakeAmountY = 0.0f;
 	int   mShakeOscillations = 1;     // 1=原版三角弹跳；>1=衰减正弦来回甩
+	int mTargetingCobCannonID = NULL_PLANT_ID; // 当前等待玩家指定落点的加农炮；纯 UI 瞬态不入存档
 
 	void LoadSpawnListFromJson();
 	void RefreshPlantStackRenderOrder(Cell* cell);
+	/** 校验双玉米投手、两格外壳与边界，供加农炮放置和卡片可用性共用。 */
+	bool IsValidCobCannonAnchor(int row, int anchorColumn) const;
+	/** 把同一普通层植物 ID 原子写入其全部排他占格；任一格冲突时不修改棋盘。 */
+	bool OccupyPlantFootprint(PlantType type, int row, int anchorColumn, int plantID,
+		const std::vector<int>& replacePlantIDs = {});
 	void InitializeRows();
 	/** 按地形与行平滑权重选择正式出生行；没有合法行时返回 -1。 */
 	inline int SelectSpawnRow(ZombieType type);
@@ -866,6 +872,22 @@ public:
 
 	/** UI 与测试共用的正式种植判定，不含阳光与卡片冷却。 */
 	bool CanPlantAt(PlantType type, int row, int col);
+	/**
+	 * 把点击格解析为植物左侧逻辑锚点；普通植物原样返回，双格升级可从任一基础植物点击。
+	 */
+	bool ResolvePlantPlacementAnchor(PlantType type, int row, int col,
+		int& anchorRow, int& anchorColumn) const;
+	/** 点击任一占格选择一株已装填加农炮，并进入独占落点模式。 */
+	bool BeginCobCannonTargeting(int row, int col);
+	/** 让当前已选加农炮向点击世界点开火；成功或目标失效都会退出落点模式。 */
+	bool FireTargetedCobCannonAt(const Vector& target, int targetRow);
+	/** 植物死亡或场景切换时按稳定 ID 取消仍指向它的落点模式。 */
+	void CancelCobCannonTargeting(int plantID);
+	bool IsCobCannonTargeting() const {
+		return mCursorObjectManager.IsActive(CursorObjectType::COB_CANNON_TARGET)
+			&& mTargetingCobCannonID != NULL_PLANT_ID;
+	}
+	int GetTargetingCobCannonID() const { return mTargetingCobCannonID; }
 	/** 返回该植物是否仍有本关种植次数；无限制的植物恒为 true。 */
 	bool HasPlantingQuota(PlantType type) const;
 	/** 返回升级卡等额外在场种植前提是否满足；普通植物恒为 true。 */
@@ -954,6 +976,8 @@ public:
 
 	// 毁灭菇爆炸：半径 250 圆形判定、波及全部行、跳过魅惑僵尸；Charred 阈值逻辑同 CreateBoom
 	void CreateDoomBoom(const Vector& position, int damage = 1800);
+	/** 玉米加农炮落点爆炸：半径 115px、目标行上下各一行，只命中合法地面敌人。 */
+	void CreateCobCannonExplosion(const Vector& position, int targetRow, int damage = 1800);
 
 	// 添加/查询弹坑（毁灭菇）。AddCrater 由爆炸与读档共用；timeLeft 读档时传剩余值
 	Crater* AddCrater(int row, int column, float timeLeft);

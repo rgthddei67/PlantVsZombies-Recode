@@ -49,6 +49,12 @@ protected:
 	float mLobElapsed = 0.0f; // 已飞行游戏时间，单位：秒
 	float mLobDuration = 0.0f; // 到达预测落点所需游戏时间，单位：秒
 	float mLobApexHeight = 0.0f; // 相对起终点连线的最高拱高，单位：像素
+	bool mCobCannonMotion = false; // 玉米棒先升空、移到落点上方再垂直落下的专属轨迹
+	Vector mCobStart = Vector::zero(); // 玉米加农炮发射点，逻辑弹心坐标
+	Vector mCobTarget = Vector::zero(); // 玩家点击后冻结的爆心坐标
+	float mCobElapsed = 0.0f; // 玉米棒已飞行游戏时间，单位：秒
+	float mCobDuration = 0.0f; // 玉米棒从发射到爆炸的总游戏时间，单位：秒
+	int mCobTargetRow = -1; // 点击落点的逻辑行；爆炸严格覆盖上下相邻行
 	BulletType mPoolType = BulletType::NUM_BULLETS; // 对象池槽位的固定类型；火炬树桩只改变当前表现类型
 	int mHitTorchwoodColumn = -1; // 最近处理过本子弹的火炬树桩列，防止同列反复转换
 	std::vector<int> mPiercedZombieIDs; // 尖刺已接触的不同僵尸实体 ID；按玩法穿透上限截断
@@ -93,6 +99,8 @@ protected:
 	bool UpdateLobbedMotion(float deltaTime);
 	/** 抛射物到达无目标落点后的粒子与回收入口。 */
 	void HitLobbedGround();
+	/** 推进玉米棒升空/换位/垂降三段轨迹；爆炸并回收时返回 false。 */
+	bool UpdateCobCannonMotion(float deltaTime);
 
 public:
 	Bullet(Board* board, BulletType bulletType, int row, const Vector& colliderRadius,
@@ -131,6 +139,7 @@ public:
 	void SetVelocityY(float y) { this->mVelocityY = y; }
 	float GetRotationDegrees() const { return mRotationDegrees; }
 	float GetRotationSpeedDegrees() const { return mRotationSpeedDegrees; }
+	float GetDrawScale() const { return mScale; }
 	void SetRotationDegrees(float degrees) { mRotationDegrees = degrees; }
 	void SetRotationSpeedDegrees(float degreesPerSecond) {
 		mRotationSpeedDegrees = degreesPerSecond;
@@ -188,6 +197,18 @@ public:
 	float GetLobApexHeight() const { return mLobApexHeight; }
 	float GetLobProgress() const;
 	float GetLobArcHeight() const;
+	/** 配置玉米加农炮专属轨迹；目标由玩家点击冻结，不再追踪实体。 */
+	void ConfigureCobCannonMotion(const Vector& target, int targetRow,
+		float durationSeconds = 1.4f);
+	/** 按存档恢复在途玉米棒；不会重放已经过去的发射音效。 */
+	void RestoreCobCannonMotion(const Vector& start, const Vector& target,
+		int targetRow, float elapsedSeconds, float durationSeconds);
+	bool IsCobCannonMotion() const { return mCobCannonMotion; }
+	const Vector& GetCobStart() const { return mCobStart; }
+	const Vector& GetCobTarget() const { return mCobTarget; }
+	float GetCobElapsed() const { return mCobElapsed; }
+	float GetCobDuration() const { return mCobDuration; }
+	int GetCobTargetRow() const { return mCobTargetRow; }
 
 	int GetSortingKey() const override { return this->mRow; }
 	TransformComponent* GetTransformComponent() const { return mTransform; }

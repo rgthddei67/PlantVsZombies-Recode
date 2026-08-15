@@ -217,6 +217,8 @@ private:
 	void DrawRoofRunoff(Graphics* g) const;
 	/** 在世界层绘制黑夜屋顶已锁定导电瓦路的预警节点或基础放电。 */
 	void DrawNightRoofCharge(Graphics* g) const;
+	/** 在世界 UI 顶层绘制当前玉米加农炮落点标记；黑夜全黑幕也不能遮住它。 */
+	void DrawCobCannonTarget(Graphics* g) const;
 	void UpdateWeatherUi(float deltaTime);
 	void DrawFog(Graphics* g) const;
 	void DrawWeatherPanel(Graphics* g) const;

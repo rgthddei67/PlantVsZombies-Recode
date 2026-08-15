@@ -1,0 +1,158 @@
+#include "CobCannon.h"
+
+#include "../Board.h"
+#include "../Bullet/Bullet.h"
+#include "../ShadowComponent.h"
+#include "../../ResourceKeys.h"
+
+#include <algorithm>
+
+namespace {
+	constexpr int kLaunchFrame = 78;                    // 主人给出的 AddFrameEvent 全局发射帧，直接使用
+	constexpr float kInitialArmingSeconds = 5.0f;       // 刚升级完成到首次充能的等待时间，单位：游戏秒
+	constexpr float kReloadArmingSeconds = 30.0f;       // 每次发射后到下一次充能的等待时间，单位：游戏秒
+	constexpr float kReanimationFramesPerSecond = 12.0f; // CobCannon.reanim 基础帧率，单位：fps
+	constexpr float kChargeFramesPerSecond = 12.0f;     // anim_charge 播放帧率，单位：fps
+	constexpr float kShootingFramesPerSecond = 12.0f;   // anim_shooting 播放帧率，单位：fps
+	constexpr float kTrackBlendSeconds = 0.0f;          // 原版机械动作硬切，避免跨轨重影
+	constexpr float kCobFlightSeconds = 1.4f;           // 玉米棒升空到落地的总游戏时间，单位：秒
+	constexpr int kCobDamage = 1800;                    // 爆心范围内的灰烬伤害
+	const Vector kLaunchOffset(37.2f, -145.9f);         // CobCannon_cob 第 77 帧最终仿射四边形中心，相对本体 Animator 基点，单位：px
+	constexpr float kShoopVolume = 0.45f;               // 开始机械装填的音效音量
+	constexpr float kLaunchVolume = 0.55f;              // 第 78 帧发射音效音量
+}
+
+void CobCannon::SetupPlant()
+{
+	Plant::SetupPlant();
+	if (mCollider) {
+		mCollider->size = Vector(140.0f, 80.0f);
+		mCollider->offset = Vector(-30.0f, -35.0f);
+	}
+	RemoveComponent<ShadowComponent>();
+
+	if (!mAnimator) return;
+	mAnimator->AddFrameEvent(kLaunchFrame, [this]() {
+		if (mPhase == Phase::FIRING
+			&& GetCurrentTrackName() == "anim_shooting") LaunchCob();
+	}, true);
+
+	if (mIsPreview) {
+		mPhase = Phase::READY;
+		mArmingTime = 0.0f;
+		PlayTrack("anim_idle", 1.0f);
+		return;
+	}
+	mPhase = Phase::ARMING;
+	mArmingTime = kInitialArmingSeconds;
+	mShotLaunched = false;
+	PlayTrack("anim_unarmed_idle", 1.0f);
+}
+
+void CobCannon::PlantUpdate()
+{
+	if (!mAnimator || mIsPreview) return;
+	const std::string track = GetCurrentTrackName();
+	if (mPhase == Phase::ARMING) {
+		mArmingTime = std::max(0.0f, mArmingTime - GetWeatherActionDeltaTime());
+		if (mArmingTime <= 0.0f) BeginCharge();
+		return;
+	}
+	if (mPhase == Phase::CHARGING && track == "anim_idle") {
+		mPhase = Phase::READY;
+		return;
+	}
+	if (mPhase == Phase::FIRING && track == "anim_unarmed_idle") {
+		mPhase = Phase::ARMING;
+		mArmingTime = kReloadArmingSeconds;
+		mPendingTargetRow = -1;
+	}
+}
+
+void CobCannon::BeginCharge()
+{
+	mPhase = Phase::CHARGING;
+	const float speed = (kChargeFramesPerSecond / kReanimationFramesPerSecond)
+		* GetWeatherActionSpeedMultiplier();
+	PlayTrackOnce("anim_charge", "anim_idle", speed,
+		kTrackBlendSeconds, speed, kTrackBlendSeconds);
+	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_SHOOP, kShoopVolume);
+}
+
+bool CobCannon::FireAt(const Vector& target, int targetRow)
+{
+	if (mIsPreview || !mBoard || !mAnimator || mPhase != Phase::READY
+		|| targetRow < 0 || targetRow >= mBoard->mRows) return false;
+	mPendingTarget = target;
+	mPendingTargetRow = targetRow;
+	mShotLaunched = false;
+	mPhase = Phase::FIRING;
+	const float speed = (kShootingFramesPerSecond / kReanimationFramesPerSecond)
+		* GetWeatherActionSpeedMultiplier();
+	if (PlayTrackOnce("anim_shooting", "anim_unarmed_idle", speed,
+		kTrackBlendSeconds, speed, kTrackBlendSeconds)) {
+		return true;
+	}
+	// 资源轨道异常时保留可点击的就绪态，不能吞掉本次完整充能。
+	mPhase = Phase::READY;
+	mPendingTargetRow = -1;
+	return false;
+}
+
+void CobCannon::LaunchCob()
+{
+	if (mShotLaunched || !mBoard || mPendingTargetRow < 0) return;
+	mShotLaunched = true;
+	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_COBLAUNCH, kLaunchVolume);
+	Bullet* cob = mBoard->CreateBullet(BulletType::BULLET_COBBIG, mPendingTargetRow,
+		GetVisualPosition() + kLaunchOffset);
+	if (!cob) return;
+	cob->SetBulletDamage(kCobDamage);
+	cob->ConfigureCobCannonMotion(
+		mPendingTarget, mPendingTargetRow, kCobFlightSeconds);
+}
+
+void CobCannon::Die()
+{
+	if (mBoard) mBoard->CancelCobCannonTargeting(mPlantID);
+	Plant::Die();
+}
+
+void CobCannon::SaveExtraData(nlohmann::json& j) const
+{
+	j["phase"] = static_cast<int>(mPhase);
+	j["armingTime"] = mArmingTime;
+	j["targetX"] = mPendingTarget.x;
+	j["targetY"] = mPendingTarget.y;
+	j["targetRow"] = mPendingTargetRow;
+	j["shotLaunched"] = mShotLaunched;
+}
+
+void CobCannon::LoadExtraData(const nlohmann::json& j)
+{
+	const int phase = std::clamp(j.value("phase", 0), 0,
+		static_cast<int>(Phase::FIRING));
+	mPhase = static_cast<Phase>(phase);
+	mArmingTime = std::clamp(j.value("armingTime", kInitialArmingSeconds),
+		0.0f, kReloadArmingSeconds);
+	mPendingTarget = Vector(
+		j.value("targetX", GetPosition().x), j.value("targetY", GetPosition().y));
+	mPendingTargetRow = j.value("targetRow", -1);
+	mShotLaunched = j.value("shotLaunched", false);
+
+	const std::string track = GetCurrentTrackName();
+	if (mPhase == Phase::CHARGING
+		&& track != "anim_charge" && track != "anim_idle") {
+		BeginCharge();
+	}
+	else if (mPhase == Phase::READY && track != "anim_idle") {
+		PlayTrack("anim_idle", 1.0f);
+	}
+	else if (mPhase == Phase::FIRING
+		&& track != "anim_shooting" && track != "anim_unarmed_idle") {
+		mPhase = Phase::ARMING;
+		mArmingTime = kReloadArmingSeconds;
+		mShotLaunched = false;
+		PlayTrack("anim_unarmed_idle", 1.0f);
+	}
+}

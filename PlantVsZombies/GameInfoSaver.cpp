@@ -535,6 +535,16 @@ bool GameInfoSaver::SerializeLevelDataToPath(Board* board, CardSlotManager* mana
 			b["lobDuration"] = bullet->GetLobDuration();
 			b["lobApexHeight"] = bullet->GetLobApexHeight();
 		}
+		b["cobCannonMotion"] = bullet->IsCobCannonMotion();
+		if (bullet->IsCobCannonMotion()) {
+			b["cobStartX"] = bullet->GetCobStart().x;
+			b["cobStartY"] = bullet->GetCobStart().y;
+			b["cobTargetX"] = bullet->GetCobTarget().x;
+			b["cobTargetY"] = bullet->GetCobTarget().y;
+			b["cobTargetRow"] = bullet->GetCobTargetRow();
+			b["cobElapsed"] = bullet->GetCobElapsed();
+			b["cobDuration"] = bullet->GetCobDuration();
+		}
 		bulletsArr.push_back(b);
 	}
 	j["bullets"] = bulletsArr;
@@ -1175,6 +1185,14 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 					b.value("lobElapsed", 0.0f),
 					b.value("lobDuration", 1.2f),
 					b.value("lobApexHeight", 0.0f));
+			}
+			if (b.value("cobCannonMotion", false)) {
+				bullet->RestoreCobCannonMotion(
+					Vector(b.value("cobStartX", x), b.value("cobStartY", y)),
+					Vector(b.value("cobTargetX", x), b.value("cobTargetY", y)),
+					b.value("cobTargetRow", row),
+					b.value("cobElapsed", 0.0f),
+					b.value("cobDuration", 1.4f));
 			}
 		}
 	}

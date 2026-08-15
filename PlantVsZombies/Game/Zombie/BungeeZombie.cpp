@@ -142,11 +142,15 @@ bool BungeeZombie::SelectTarget()
 bool BungeeZombie::SelectMonteCarloTarget()
 {
 	std::vector<int> eligiblePlantIDs;
+	std::unordered_set<int> eligiblePlantIDSet;
 	for (int row = 0; row < mBoard->mRows; ++row) {
 		for (int column = 0; column < mBoard->mColumns; ++column) {
 			if (IsCellReserved(row, column)) continue;
 			if (Plant* plant = ResolveBungeePlantAt(row, column)) {
-				eligiblePlantIDs.push_back(plant->mPlantID);
+				// footprint 会让同一实体出现在多个 Cell；蒙特卡洛候选必须按实体去重。
+				if (eligiblePlantIDSet.insert(plant->mPlantID).second) {
+					eligiblePlantIDs.push_back(plant->mPlantID);
+				}
 			}
 		}
 	}
@@ -165,22 +169,14 @@ bool BungeeZombie::SelectMonteCarloTarget()
 
 bool BungeeZombie::SelectOriginalRandomTarget()
 {
-	std::unordered_set<int> reservedCells;
-	for (const int zombieID : mBoard->mEntityManager.GetAllZombieIDs()) {
-		auto* other = dynamic_cast<BungeeZombie*>(
-			mBoard->mEntityManager.GetZombie(zombieID));
-		if (!other || other == this || !other->HasSelectedTarget()) continue;
-		reservedCells.insert(
-			other->GetTargetRow() * mBoard->mColumns + other->GetTargetColumn());
-	}
-
 	int untargetedSunflowers = 0;
+	std::unordered_set<int> sunflowerIDs;
 	for (int row = 0; row < mBoard->mRows; ++row) {
 		for (int column = 0; column < mBoard->mColumns; ++column) {
-			if (reservedCells.find(row * mBoard->mColumns + column)
-				!= reservedCells.end()) continue;
+			if (IsCellReserved(row, column)) continue;
 			Plant* plant = ResolveBungeePlantAt(row, column);
-			if (plant && plant->mPlantType == PlantType::PLANT_SUNFLOWER) {
+			if (plant && plant->mPlantType == PlantType::PLANT_SUNFLOWER
+				&& sunflowerIDs.insert(plant->mPlantID).second) {
 				++untargetedSunflowers;
 			}
 		}
@@ -188,11 +184,12 @@ bool BungeeZombie::SelectOriginalRandomTarget()
 
 	std::vector<CellCandidate> candidates;
 	std::vector<float> weights;
+	std::unordered_set<int> candidatePlantIDs;
 	for (int row = 0; row < mBoard->mRows; ++row) {
 		for (int column = 0; column < mBoard->mColumns; ++column) {
-			if (reservedCells.find(row * mBoard->mColumns + column)
-				!= reservedCells.end()) continue;
+			if (IsCellReserved(row, column)) continue;
 			Plant* plant = ResolveBungeePlantAt(row, column);
+			if (plant && !candidatePlantIDs.insert(plant->mPlantID).second) continue;
 			if (plant && plant->mPlantType == PlantType::PLANT_SUNFLOWER
 				&& untargetedSunflowers <= 1) {
 				continue;
@@ -230,7 +227,7 @@ Plant* BungeeZombie::ResolveBungeePlantAt(int row, int column) const
 	};
 	for (Plant* plant : layers) {
 		if (plant && plant->IsActive() && !plant->IsSquished()
-			&& !plant->IsBungeeTargeted()) {
+			&& !plant->IsBungeeTargeted() && plant->CanBeTargetedByBungee()) {
 			return plant;
 		}
 	}
@@ -239,12 +236,15 @@ Plant* BungeeZombie::ResolveBungeePlantAt(int row, int column) const
 
 bool BungeeZombie::IsCellReserved(int row, int column) const
 {
+	Plant* candidate = ResolveBungeePlantAt(row, column);
+	const int candidatePlantID = candidate ? candidate->mPlantID : NULL_PLANT_ID;
 	for (const int zombieID : mBoard->mEntityManager.GetAllZombieIDs()) {
 		auto* other = dynamic_cast<BungeeZombie*>(
 			mBoard->mEntityManager.GetZombie(zombieID));
-		if (other && other != this && other->HasSelectedTarget()
-			&& other->GetTargetRow() == row
-			&& other->GetTargetColumn() == column) {
+		if (!other || other == this || !other->HasSelectedTarget()) continue;
+		if ((other->GetTargetRow() == row && other->GetTargetColumn() == column)
+			|| (candidatePlantID != NULL_PLANT_ID
+				&& other->GetTargetPlantID() == candidatePlantID)) {
 			return true;
 		}
 	}

@@ -15,6 +15,8 @@
     <Image>./resources/image/golden_ice_cap.png</Image>
     <Image>./resources/image/BungeeCord.png</Image>
     <Image>./resources/image/BungeeTarget.png</Image>
+    <Image>./resources/image/CobCannon_target.png</Image>
+    <Image>./resources/image/CobCannon_target_shadow.png</Image>
     <Image>./resources/image/reanim/Zombie_gargantuar_telephonepole.png</Image>
     <Image>./resources/image/reanim/Zombie_gargantuar_duckxing.png</Image>
     <Image>./resources/image/reanim/Zombie_gargantuar_zombie.png</Image>
@@ -199,6 +201,7 @@
     <Image>./resources/image/reanim/GloomShroom_shooter5.png</Image>
     <Image>./resources/image/reanim/GloomShroom_stem1.png</Image>
     <Image>./resources/image/reanim/GloomShroom_stem2.png</Image>
+    <Image>./resources/image/reanim/CobCannon_cob.png</Image>
     <Image>./resources/image/reanim/GloomShroom_stem3.png</Image>
     <Image>./resources/image/reanim/TwinSunflower_leaf.png</Image>
     <Image>./resources/image/reanim/TwinSunflower_stem1.png</Image>
@@ -238,6 +241,8 @@
     <Texture>./resources/particles/Star_particles.png</Texture>
     <Texture>./resources/particles/Melonpult_particles.png</Texture>
     <Texture>./resources/particles/WinterMelon_particles.png</Texture>
+    <Texture Column="5" Row="1">./resources/particles/CobCannon_popcorn.png</Texture>
+    <Texture>./resources/particles/BlastMark.png</Texture>
     <Texture>./resources/particles/ExplosionCloud.png</Texture>
     <Texture>./resources/particles/ExplosionSpudow.png</Texture>
     <Texture Column="8" Row="2">./resources/particles/DirtSmall.png</Texture>
@@ -389,6 +394,8 @@
     <Sound>./resources/sounds/Plant/PlantShoot/melonimpact2.ogg</Sound>
     <Sound>./resources/sounds/Plant/cherrybomb.ogg</Sound>
     <Sound>./resources/sounds/Plant/doomshroom.ogg</Sound>
+    <Sound>./resources/sounds/Plant/coblaunch.ogg</Sound>
+    <Sound>./resources/sounds/Plant/shoop.ogg</Sound>
     <Sound>./resources/sounds/Plant/reverse_explosion.ogg</Sound>
     <Sound>./resources/sounds/Plant/jalapeno.ogg</Sound>
     <Sound>./resources/sounds/Plant/juicy.ogg</Sound>
@@ -474,6 +481,7 @@
     <Reanimation name="Marigold">./resources/reanim/Marigold.reanim</Reanimation>
     <Reanimation name="Melonpult">./resources/reanim/Melonpult.reanim</Reanimation>
     <Reanimation name="WinterMelon">./resources/reanim/WinterMelon.reanim</Reanimation>
+    <Reanimation name="CobCannon">./resources/reanim/CobCannon.reanim</Reanimation>
 
     <Reanimation name="NormalZombie">./resources/reanim/NormalZombie.reanim</Reanimation>
     <Reanimation name="RoofMarshalZombie">./resources/reanim/RoofMarshal.reanim</Reanimation>

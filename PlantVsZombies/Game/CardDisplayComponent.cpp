@@ -24,6 +24,8 @@ namespace {
 	constexpr float kMelonPultCardImageScale = 0.80f;  // 西瓜投手卡图构图较饱满，只缩小卡片立绘
 	constexpr float kMelonPultCardImageOffsetX = -10.0f;  // 缩小后让透明画布内容居中，单位：UI px
 	constexpr float kMelonPultCardImageOffsetY = 1.0f;  // 缩小后把视觉重心微量下移，单位：UI px
+	constexpr float kCobCannonCardImageScale = 0.60f;  // 双格炮卡图源画布为 200x120，缩到与其他卡面相近的内容高度
+	constexpr float kCobCannonCardImageOffsetX = -20.0f;  // 修正炮体在宽画布中偏右的视觉重心，单位：UI px
 	constexpr float kUpgradeCardSourceX = 50.0f; // seeds.png 第二格紫卡底板的源 X，单位：纹理 px
 	constexpr float kUpgradeCardSourceY = 0.0f; // 紫卡底板的源 Y，单位：纹理 px
 	constexpr float kUpgradeCardSourceWidth = 50.0f; // 紫卡底板源区域宽度，单位：纹理 px
@@ -174,6 +176,7 @@ void CardDisplayComponent::DrawPlantImage(Graphics* g, const Vector& position, c
 	if (!plantTexture) return;
 	const bool isMelonFamily = plantType == PlantType::PLANT_MELONPULT
 		|| plantType == PlantType::PLANT_WINTERMELON;
+	const bool isCobCannon = plantType == PlantType::PLANT_COBCANNON;
 
 	const float typeScale = plantType == PlantType::PLANT_TALLNUT
 		? kTallNutCardImageScale
@@ -181,10 +184,14 @@ void CardDisplayComponent::DrawPlantImage(Graphics* g, const Vector& position, c
 			? kBloverCardImageScale
 			: isMelonFamily
 				? kMelonPultCardImageScale
-				: 1.0f;
-	const float typeOffsetX = isMelonFamily
-		? kMelonPultCardImageOffsetX
-		: 0.0f;
+				: isCobCannon
+					? kCobCannonCardImageScale
+					: 1.0f;
+	const float typeOffsetX = isCobCannon
+		? kCobCannonCardImageOffsetX
+		: isMelonFamily
+			? kMelonPultCardImageOffsetX
+			: 0.0f;
 	const float typeOffsetY = plantType == PlantType::PLANT_TALLNUT
 		? kTallNutCardImageOffsetY
 		: isMelonFamily

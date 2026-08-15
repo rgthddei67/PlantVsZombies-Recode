@@ -4,6 +4,7 @@
 #include "../GameObjectManager.h"
 #include "../ShadowComponent.h"
 #include "GameDataManager.h"
+#include "PlantFootprint.h"
 #include "../../GameApp.h"	// GameAPP::mShowPlantHP / Graphics / DrawText
 #include "../../Logger.h"
 #include <cmath>
@@ -156,9 +157,14 @@ void Plant::Die() {
 	// StopAnimation 重置到轨道起点的姿态，也让重复死亡调用保持幂等。
 	if (!IsActive()) return;
 	mShutdownTimer = 0.0f;
-	// C# 只有飞行的咖啡豆死亡不影响地面扶梯；其余植物死亡都会拆掉同格梯子。
+	// C# 只有飞行的咖啡豆死亡不影响地面扶梯；其余植物死亡都会拆掉完整占格上的梯子。
 	if (!mIsPreview && mBoard && mPlantType != PlantType::PLANT_INSTANT_COFFEE) {
-		mBoard->RemoveLadderAt(mRow, mColumn);
+		const PlantFootprint footprint = GetPlantFootprint(mPlantType);
+		for (std::size_t i = 0; i < footprint.count; ++i) {
+			mBoard->RemoveLadderAt(
+				mRow + footprint.cells[i].rowOffset,
+				mColumn + footprint.cells[i].columnOffset);
+		}
 	}
 	SetActive(false);
 	StopAnimation();
@@ -334,18 +340,16 @@ void Plant::ApplySquishedPresentation()
 void Plant::ReleaseGridSlot()
 {
 	if (!mBoard) return;
-	auto cell = mBoard->GetCell(mRow, mColumn);
-	if (cell && cell->GetUnderPlantID() == mPlantID) {
-		cell->ClearUnderPlantID();
-	}
-	if (cell && cell->GetNormalPlantID() == mPlantID) {
-		cell->ClearNormalPlantID();
-	}
-	if (cell && cell->GetPumpkinPlantID() == mPlantID) {
-		cell->ClearPumpkinPlantID();
-	}
-	if (cell && cell->GetOverlayPlantID() == mPlantID) {
-		cell->ClearOverlayPlantID();
+	const PlantFootprint footprint = GetPlantFootprint(mPlantType);
+	for (std::size_t i = 0; i < footprint.count; ++i) {
+		const PlantFootprintCell& occupied = footprint.cells[i];
+		auto* cell = mBoard->GetCell(
+			mRow + occupied.rowOffset, mColumn + occupied.columnOffset);
+		if (!cell) continue;
+		if (cell->GetUnderPlantID() == mPlantID) cell->ClearUnderPlantID();
+		if (cell->GetNormalPlantID() == mPlantID) cell->ClearNormalPlantID();
+		if (cell->GetPumpkinPlantID() == mPlantID) cell->ClearPumpkinPlantID();
+		if (cell->GetOverlayPlantID() == mPlantID) cell->ClearOverlayPlantID();
 	}
 }
 

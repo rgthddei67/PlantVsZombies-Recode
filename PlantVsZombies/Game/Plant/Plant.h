@@ -87,6 +87,8 @@ public:
 	virtual bool CanBeEaten() const {
 		return !mIsSquished && mBungeeState == PlantBungeeState::NONE;
 	}
+	/** 是否能被蹦极僵尸选中并抱走；跨格重型植物可覆写为 false。 */
+	virtual bool CanBeTargetedByBungee() const { return true; }
 	/** 僵尸正式啃食命中时的植物侧反馈入口；默认植物不产生专属碎屑。 */
 	virtual void OnZombieBite(const Vector&) {}
 	/** 是否能在当前跳跃类别的判定节点阻拦僵尸；高坚果等阻拦植物覆写此接口。 */

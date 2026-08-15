@@ -50,6 +50,8 @@
 #include "../Plant/GloomShroom.h"
 #include "../Plant/CoffeeBean.h"
 #include "../Plant/Garlic.h"
+#include "../Plant/CobCannon.h"
+#include "../Plant/PlantFootprint.h"
 #include "../Bullet/Bullet.h"
 #include "../Zombie/ZombieType.h"
 #include "../Zombie/Zombie.h"
@@ -213,6 +215,17 @@ namespace {
 		case LadderClimbPhase::NONE: return "NONE";
 		case LadderClimbPhase::CLIMBING: return "CLIMBING";
 		case LadderClimbPhase::FALLING: return "FALLING";
+		default: return "UNKNOWN";
+		}
+	}
+
+	const char* CobCannonPhaseName(CobCannon::Phase phase)
+	{
+		switch (phase) {
+		case CobCannon::Phase::ARMING: return "ARMING";
+		case CobCannon::Phase::CHARGING: return "CHARGING";
+		case CobCannon::Phase::READY: return "READY";
+		case CobCannon::Phase::FIRING: return "FIRING";
 		default: return "UNKNOWN";
 		}
 	}
@@ -1186,6 +1199,60 @@ bool TestDriver::ExecuteCurrent() {
 			}
 			blover->SetBlowDirection(directionIt->second);
 		}
+		return true;
+	}
+	if (op == "set_cob_cannon_arming") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) {
+			Fail("set_cob_cannon_arming: 不在 GameScene 或 Board 为空");
+			return false;
+		}
+		auto* cannon = dynamic_cast<CobCannon*>(gs->GetBoard()->GetNormalPlantAt(
+			cmd.value("row", -1), cmd.value("col", -1)));
+		const float seconds = cmd.value("value", -1.0f);
+		if (!cannon || seconds < 0.0f || seconds > 30.0f) {
+			Fail("set_cob_cannon_arming: 两侧格子均可定位炮体，value 必须在 0～30 秒");
+			return false;
+		}
+		// 只压缩正式装填倒计时；充能轨、音效和 READY 边沿仍由游戏逻辑推进。
+		cannon->SetArmingTimeForTesting(seconds);
+		return true;
+	}
+	if (op == "begin_cob_cannon_targeting") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()
+			|| !gs->GetBoard()->BeginCobCannonTargeting(
+				cmd.value("row", -1), cmd.value("col", -1))) {
+			Fail("begin_cob_cannon_targeting: 指定格不是已就绪玉米加农炮的任一侧");
+			return false;
+		}
+		return true;
+	}
+	if (op == "fire_targeted_cob_cannon") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()
+			|| !gs->GetBoard()->FireTargetedCobCannonAt(
+				Vector(cmd.value("x", -1.0f), cmd.value("y", -1.0f)),
+				cmd.value("row", -1))) {
+			Fail("fire_targeted_cob_cannon: 当前未瞄准、目标行非法或炮体不再可发射");
+			return false;
+		}
+		return true;
+	}
+	if (op == "shovel_plant_at") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) {
+			Fail("shovel_plant_at: 不在 GameScene 或 Board 为空");
+			return false;
+		}
+		Plant* plant = gs->GetBoard()->GetTopPlantAt(
+			cmd.value("row", -1), cmd.value("col", -1));
+		if (!plant) {
+			Fail("shovel_plant_at: 指定格没有可铲植物");
+			return false;
+		}
+		// 走植物统一死亡入口，验证任一占格命中后都会原子释放完整 footprint。
+		plant->Die();
 		return true;
 	}
 	if (op == "set_plant_health") {
@@ -2532,6 +2599,40 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		{ "glowTextureLoaded", ResourceManager::GetInstance().GetTexture(
 			"IMAGE_REANIM_LIGHTNINGRODPOT_GLOW", false) != nullptr },
 	};
+	out["cobCannonResources"] = {
+		{ "reanimationLoaded", ResourceManager::GetInstance().HasReanimation(
+			ResourceKeys::Reanimations::REANIM_COBCANNON) },
+		{ "cardLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_COBCANNON, false) != nullptr },
+		{ "cobLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_COBCANNON_COB, false) != nullptr },
+		{ "targetLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_COBCANNON_TARGET, false) != nullptr },
+		{ "targetShadowLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_COBCANNON_TARGET_SHADOW, false) != nullptr },
+		{ "popcornLoaded",
+			ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Particles::PARTICLE_COBCANNON_POPCORN_PART_0, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Particles::PARTICLE_COBCANNON_POPCORN_PART_1, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Particles::PARTICLE_COBCANNON_POPCORN_PART_2, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Particles::PARTICLE_COBCANNON_POPCORN_PART_3, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Particles::PARTICLE_COBCANNON_POPCORN_PART_4, false) != nullptr },
+		{ "blastMarkLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Particles::PARTICLE_BLASTMARK, false) != nullptr },
+		{ "soundsLoaded",
+			ResourceManager::GetInstance().GetSound(
+				ResourceKeys::Sounds::SOUND_COBLAUNCH) != nullptr
+			&& ResourceManager::GetInstance().GetSound(
+				ResourceKeys::Sounds::SOUND_SHOOP) != nullptr },
+	};
+	out["cobLaunchSoundRequestCount"] = AudioSystem::GetSoundPlayRequestCount(
+		ResourceKeys::Sounds::SOUND_COBLAUNCH);
+	out["cobChargeSoundRequestCount"] = AudioSystem::GetSoundPlayRequestCount(
+		ResourceKeys::Sounds::SOUND_SHOOP);
 	// 转换版 reanim 实际引用 13 张分件；目录中的 blink1 未被轨道引用，不计入闭环。
 	const std::array<std::string, 13> gloomShroomTextureKeys = {
 		"IMAGE_REANIM_GLOOMSHROOM_BASE",
@@ -2859,6 +2960,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	Board* board = gs->GetBoard();
 
 	out["boardState"] = BoardStateName(board->mBoardState);
+	out["cobCannonTargeting"] = board->IsCobCannonTargeting();
+	out["targetingCobCannonID"] = board->GetTargetingCobCannonID();
 	out["chooseCardReady"] = gs->IsChooseCardReady();
 	out["chooseCardSelectedCards"] = nlohmann::json::array();
 	out["chooseCardSelectedCount"] = 0;
@@ -4809,6 +4912,9 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				p->GetShutdownTimeRemaining() * 1000.0f)) },
 			{ "bungeeState", PlantBungeeStateName(p->GetBungeeState()) },
 			{ "bungeeOwnerZombieID", p->GetBungeeOwnerZombieID() },
+			{ "canBeTargetedByBungee", p->CanBeTargetedByBungee() },
+			{ "footprintCellCount", static_cast<int>(
+				GetPlantFootprint(p->mPlantType).count) },
 			{ "airborneDefenseState",
 				AirborneDefenseStateName(p->GetAirborneDefenseState()) },
 			{ "airborneDefenseActivationMs", static_cast<int>(std::lround(
@@ -5036,27 +5142,43 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			plantState["coffeeBeanPhase"] = coffeeBean->GetPhaseName();
 			plantState["coffeeBeanWaitMs"] = coffeeBean->GetWaitTimeRemainingMs();
 		}
-		// 水池叠种会让 plants 数组索引依赖实体顺序；按格子额外导出顶层植物供稳定断言。
-		if (board->GetTopPlantAt(p->mRow, p->mColumn) == p) {
-			const std::string cellKey =
-				std::to_string(p->mRow) + "_" + std::to_string(p->mColumn);
-			out["topPlantsByCell"][cellKey] = plantState;
+		if (auto* cannon = dynamic_cast<CobCannon*>(p)) {
+			plantState["cobPhase"] = CobCannonPhaseName(cannon->GetPhase());
+			plantState["cobArmingTimeMs"] = static_cast<int>(std::lround(
+				cannon->GetArmingTimeRemaining() * 1000.0f));
+			plantState["cobShotLaunched"] = cannon->HasLaunchedCurrentShot();
+			plantState["cobTargetRow"] = cannon->GetPendingTargetRow();
+			plantState["cobTargetXInt"] = static_cast<int>(std::lround(
+				cannon->GetPendingTarget().x));
+			plantState["cobTargetYInt"] = static_cast<int>(std::lround(
+				cannon->GetPendingTarget().y));
 		}
-		if (board->GetOverlayPlantAt(p->mRow, p->mColumn) == p) {
-			const std::string cellKey =
-				std::to_string(p->mRow) + "_" + std::to_string(p->mColumn);
-			out["overlayPlantsByCell"][cellKey] = plantState;
-		}
-		const std::string cellKey =
-			std::to_string(p->mRow) + "_" + std::to_string(p->mColumn);
-		if (board->GetUnderPlantAt(p->mRow, p->mColumn) == p) {
-			out["underPlantsByCell"][cellKey] = plantState;
-		}
-		if (board->GetNormalPlantAt(p->mRow, p->mColumn) == p) {
-			out["normalPlantsByCell"][cellKey] = plantState;
-		}
-		if (board->GetPumpkinAt(p->mRow, p->mColumn) == p) {
-			out["pumpkinPlantsByCell"][cellKey] = plantState;
+		// 同一实体可占多个格；逐 footprint 查询公共 Board getter，能同时验证所有别名
+		// 都返回同一 Plant*，又保持 plants 实体数组只导出一次。
+		const PlantFootprint footprint = GetPlantFootprint(p->mPlantType);
+		for (std::size_t footprintIndex = 0;
+			footprintIndex < footprint.count; ++footprintIndex) {
+			const int occupiedRow = p->mRow
+				+ footprint.cells[footprintIndex].rowOffset;
+			const int occupiedColumn = p->mColumn
+				+ footprint.cells[footprintIndex].columnOffset;
+			const std::string cellKey = std::to_string(occupiedRow)
+				+ "_" + std::to_string(occupiedColumn);
+			if (board->GetTopPlantAt(occupiedRow, occupiedColumn) == p) {
+				out["topPlantsByCell"][cellKey] = plantState;
+			}
+			if (board->GetOverlayPlantAt(occupiedRow, occupiedColumn) == p) {
+				out["overlayPlantsByCell"][cellKey] = plantState;
+			}
+			if (board->GetUnderPlantAt(occupiedRow, occupiedColumn) == p) {
+				out["underPlantsByCell"][cellKey] = plantState;
+			}
+			if (board->GetNormalPlantAt(occupiedRow, occupiedColumn) == p) {
+				out["normalPlantsByCell"][cellKey] = plantState;
+			}
+			if (board->GetPumpkinAt(occupiedRow, occupiedColumn) == p) {
+				out["pumpkinPlantsByCell"][cellKey] = plantState;
+			}
 		}
 		out["plants"].push_back(std::move(plantState));
 	}
@@ -5081,6 +5203,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["particleEffectNameCounts"]["EliteDolphinRiderHeadOff"] = 0;
 	out["particleEffectNameCounts"]["JackExplode"] = 0;
 	out["particleEffectNameCounts"]["CherryBomb"] = 0;
+	out["particleEffectNameCounts"]["CobCannonPopcorn"] = 0;
+	out["particleEffectNameCounts"]["CobCannonBlastMark"] = 0;
 	out["particleEffectNameCounts"]["ZombieJackboxArmOff"] = 0;
 	out["particleEffectNameCounts"]["ZombieEliteJackboxArmOff"] = 0;
 	out["particleEffectNameCounts"]["WallnutEatSmall"] = 0;
@@ -5403,13 +5527,18 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				{ "centerXInt", static_cast<int>(std::lround(center.x)) },
 				{ "centerYInt", static_cast<int>(std::lround(center.y)) },
 				{ "under", under ? PlantTypeName(under->mPlantType) : "NONE" },
+				{ "underID", under ? under->mPlantID : NULL_PLANT_ID },
 				{ "underHealth", under ? under->mPlantHealth : 0 },
 				{ "normal", normal ? PlantTypeName(normal->mPlantType) : "NONE" },
+				{ "normalID", normal ? normal->mPlantID : NULL_PLANT_ID },
 				{ "normalHealth", normal ? normal->mPlantHealth : 0 },
 				{ "pumpkin", pumpkin ? PlantTypeName(pumpkin->mPlantType) : "NONE" },
+				{ "pumpkinID", pumpkin ? pumpkin->mPlantID : NULL_PLANT_ID },
 				{ "pumpkinHealth", pumpkin ? pumpkin->mPlantHealth : 0 },
 				{ "overlay", overlay ? PlantTypeName(overlay->mPlantType) : "NONE" },
+				{ "overlayID", overlay ? overlay->mPlantID : NULL_PLANT_ID },
 				{ "top", top ? PlantTypeName(top->mPlantType) : "NONE" },
+				{ "topID", top ? top->mPlantID : NULL_PLANT_ID },
 				{ "topHealth", top ? top->mPlantHealth : 0 },
 			});
 		}
@@ -5533,6 +5662,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				bullet->GetRotationDegrees())) },
 			{ "rotationSpeedDegrees", static_cast<int>(std::lround(
 				bullet->GetRotationSpeedDegrees())) },
+			{ "drawScaleOn1000", static_cast<int>(std::lround(
+				bullet->GetDrawScale() * 1000.0f)) },
 			{ "windVelocityX", static_cast<int>(std::lround(bullet->GetWindAdjustedVelocityX())) },
 			{ "baseDamage", bullet->GetBulletDamage() },
 			{ "windDamage", bullet->GetWindAdjustedDamage() },
@@ -5561,6 +5692,16 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				bullet->GetLobTarget().x)) },
 			{ "lobTargetYInt", static_cast<int>(std::lround(
 				bullet->GetLobTarget().y)) },
+			{ "cobCannonMotion", bullet->IsCobCannonMotion() },
+			{ "cobElapsedMs", static_cast<int>(std::lround(
+				bullet->GetCobElapsed() * 1000.0f)) },
+			{ "cobDurationMs", static_cast<int>(std::lround(
+				bullet->GetCobDuration() * 1000.0f)) },
+			{ "cobTargetRow", bullet->GetCobTargetRow() },
+			{ "cobTargetXInt", static_cast<int>(std::lround(
+				bullet->GetCobTarget().x)) },
+			{ "cobTargetYInt", static_cast<int>(std::lround(
+				bullet->GetCobTarget().y)) },
 		});
 	}
 	out["bulletCount"] = static_cast<int>(out["bullets"].size());

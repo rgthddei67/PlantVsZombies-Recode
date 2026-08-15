@@ -15,7 +15,9 @@
 #include "../GameRandom.h"
 #include "./Plant/Plant.h"
 #include "./Plant/PlantUpgradeRules.h"
+#include "./Plant/PlantFootprint.h"
 #include "./Plant/Plantern.h"
+#include "./Plant/CobCannon.h"
 #include "./Zombie/Zombie.h"
 #include "./Zombie/HealerZombie.h"
 #include "./Zombie/HijackerZombie.h"
@@ -2563,6 +2565,122 @@ void Board::TriggerTyphoonPlantMove(TyphoonStrength strength, WindDirection dire
 					overlay = nullptr;
 				}
 				if (!under && !normal && !pumpkin && !overlay) continue;
+
+				if (normal && IsMultiCellPlantType(normal->mPlantType)) {
+					// 次级占格只是一株实体的别名；整株只在逻辑锚点处原子结算一次。
+					if (normal->mRow != row || normal->mColumn != column) continue;
+					struct FootprintStack {
+						Cell* cell = nullptr;
+						int row = -1;
+						int column = -1;
+						std::array<int, 4> ids{};
+						std::array<Plant*, 4> plants{};
+						Ladder* ladder = nullptr;
+					};
+					const PlantFootprint footprint = GetPlantFootprint(normal->mPlantType);
+					std::vector<FootprintStack> stacks;
+					stacks.reserve(footprint.count);
+					std::unordered_set<int> sourcePlantIDs;
+					bool anchored = false;
+					for (std::size_t i = 0; i < footprint.count; ++i) {
+						FootprintStack stack;
+						stack.row = row + footprint.cells[i].rowOffset;
+						stack.column = column + footprint.cells[i].columnOffset;
+						stack.cell = GetCell(stack.row, stack.column);
+						if (!stack.cell) continue;
+						stack.ids = { stack.cell->GetUnderPlantID(),
+							stack.cell->GetNormalPlantID(), stack.cell->GetPumpkinPlantID(),
+							stack.cell->GetOverlayPlantID() };
+						for (std::size_t layer = 0; layer < stack.ids.size(); ++layer) {
+							Plant* member = mEntityManager.GetPlant(stack.ids[layer]);
+							if (!member || !member->IsActive()) {
+								stack.ids[layer] = NULL_PLANT_ID;
+								continue;
+							}
+							stack.plants[layer] = member;
+							sourcePlantIDs.insert(member->mPlantID);
+							anchored = anchored || member->AnchorsPlantCellAgainstTyphoon();
+						}
+						stack.ladder = GetLadderAt(stack.row, stack.column);
+						stacks.push_back(stack);
+					}
+					if (stacks.size() != footprint.count || anchored) continue;
+
+					bool lost = false;
+					bool blocked = false;
+					Plant* blockingAnchor = nullptr;
+					for (const FootprintStack& stack : stacks) {
+						const int targetColumn = stack.column + columnDelta;
+						if (targetColumn < 0 || targetColumn >= mColumns
+							|| HasCraterAt(stack.row, targetColumn)) {
+							lost = true;
+							break;
+						}
+						Cell* target = GetCell(stack.row, targetColumn);
+						if (!target) {
+							blocked = true;
+							break;
+						}
+						for (const int targetID : { target->GetUnderPlantID(),
+							target->GetNormalPlantID(), target->GetPumpkinPlantID(),
+							target->GetOverlayPlantID() }) {
+							if (targetID != NULL_PLANT_ID
+								&& sourcePlantIDs.find(targetID) == sourcePlantIDs.end()) {
+								blocked = true;
+								blockingAnchor = GetTopPlantAt(stack.row, targetColumn);
+								break;
+							}
+						}
+						if (blocked) break;
+					}
+					if (lost) {
+						for (const int id : sourcePlantIDs) {
+							if (Plant* member = mEntityManager.GetPlant(id)) {
+								lostPlantIDs.insert(id);
+								member->Die();
+							}
+						}
+						continue;
+					}
+					if (blocked) {
+						if (blockingAnchor && blockingAnchor->AnchorsPlantCellAgainstTyphoon()) {
+							const bool showFeedback = anchorFeedbackPlantIDs
+								.insert(blockingAnchor->mPlantID).second;
+							blockingAnchor->OnTyphoonPlantImpact(showFeedback);
+							++mLastTyphoonBlockedPlantSteps;
+						}
+						continue;
+					}
+
+					// 先清空全部源格，再按相对格映射写入目标，避免相邻格重叠时覆盖尚未搬走的承载物。
+					for (const FootprintStack& stack : stacks) {
+						if (stack.cell->GetUnderPlantID() == stack.ids[0]) stack.cell->ClearUnderPlantID();
+						if (stack.cell->GetNormalPlantID() == stack.ids[1]) stack.cell->ClearNormalPlantID();
+						if (stack.cell->GetPumpkinPlantID() == stack.ids[2]) stack.cell->ClearPumpkinPlantID();
+						if (stack.cell->GetOverlayPlantID() == stack.ids[3]) stack.cell->ClearOverlayPlantID();
+					}
+					std::unordered_set<int> repositionedPlantIDs;
+					for (const FootprintStack& stack : stacks) {
+						const int targetColumn = stack.column + columnDelta;
+						Cell* target = GetCell(stack.row, targetColumn);
+						if (stack.ids[0] != NULL_PLANT_ID) target->SetUnderPlantID(stack.ids[0]);
+						if (stack.ids[1] != NULL_PLANT_ID) target->SetNormalPlantID(stack.ids[1]);
+						if (stack.ids[2] != NULL_PLANT_ID) target->SetPumpkinPlantID(stack.ids[2]);
+						if (stack.ids[3] != NULL_PLANT_ID) target->SetOverlayPlantID(stack.ids[3]);
+						for (Plant* member : stack.plants) {
+							if (member && repositionedPlantIDs.insert(member->mPlantID).second) {
+								const int memberTargetColumn = member == normal
+									? normal->mColumn + columnDelta : targetColumn;
+								member->MoveToGridCell(stack.row, memberTargetColumn,
+									kTyphoonPlantSlideDuration);
+								movedPlantIDs.insert(member->mPlantID);
+							}
+						}
+						if (stack.ladder) stack.ladder->MoveToGridCell(stack.row, targetColumn);
+						RefreshPlantStackRenderOrder(target);
+					}
+					continue;
+				}
 				const Plant* sourceAnchor = pumpkin && pumpkin->AnchorsPlantCellAgainstTyphoon()
 					? pumpkin
 					: (normal && normal->AnchorsPlantCellAgainstTyphoon()
@@ -3042,21 +3160,35 @@ bool Board::IsPlantThreatenedByNightRoofHijacker(const Plant* plant) const
 Plant* Board::GetNightRoofChargeSupportProtector(const Plant* target) const
 {
 	if (!target) return nullptr;
-	Plant* support = GetUnderPlantAt(target->mRow, target->mColumn);
-	return support && support->IsActive() && support->mPlantHealth > 0
-		&& !support->IsPreview() && !support->IsSquished()
-		&& support->ProtectsSupportedPlantFromNightRoofCharge(target)
-		? support : nullptr;
+	const PlantFootprint footprint = GetPlantFootprint(target->mPlantType);
+	for (std::size_t i = 0; i < footprint.count; ++i) {
+		Plant* support = GetUnderPlantAt(
+			target->mRow + footprint.cells[i].rowOffset,
+			target->mColumn + footprint.cells[i].columnOffset);
+		if (support && support->IsActive() && support->mPlantHealth > 0
+			&& !support->IsPreview() && !support->IsSquished()
+			&& support->ProtectsSupportedPlantFromNightRoofCharge(target)) {
+			return support;
+		}
+	}
+	return nullptr;
 }
 
 Plant* Board::GetNightRoofHijackerSupportProtector(const Plant* target) const
 {
 	if (!target) return nullptr;
-	Plant* support = GetUnderPlantAt(target->mRow, target->mColumn);
-	return support && support->IsActive() && support->mPlantHealth > 0
-		&& !support->IsPreview() && !support->IsSquished()
-		&& support->ProtectsSupportedPlantFromNightRoofHijacker(target)
-		? support : nullptr;
+	const PlantFootprint footprint = GetPlantFootprint(target->mPlantType);
+	for (std::size_t i = 0; i < footprint.count; ++i) {
+		Plant* support = GetUnderPlantAt(
+			target->mRow + footprint.cells[i].rowOffset,
+			target->mColumn + footprint.cells[i].columnOffset);
+		if (support && support->IsActive() && support->mPlantHealth > 0
+			&& !support->IsPreview() && !support->IsSquished()
+			&& support->ProtectsSupportedPlantFromNightRoofHijacker(target)) {
+			return support;
+		}
+	}
+	return nullptr;
 }
 
 float Board::GetNightRoofHijackerPulseAlpha() const
@@ -3099,12 +3231,16 @@ void Board::ResolveNightRoofHijackerExecution()
 	const int line = GetNightRoofExecutionLine();
 	if (!caster || line <= 0) return;
 
-	std::vector<int> plantTargets;
+	std::unordered_set<int> plantTargetIDs;
 	std::unordered_set<int> protectedSupportIDs;
+	std::unordered_set<int> processedNormalPlantIDs;
 	for (int row = 0; row < mRows; ++row) {
 		for (int column = 0; column < mColumns; ++column) {
 			const Cell* cell = mCells[row][column];
 			if (!cell) continue;
+			const int normalID = cell->GetNormalPlantID();
+			if (normalID != NULL_PLANT_ID
+				&& !processedNormalPlantIDs.insert(normalID).second) continue;
 			int64_t groupHealth = 0;
 			std::vector<int> group;
 			for (const int id : { cell->GetNormalPlantID(), cell->GetPumpkinPlantID() }) {
@@ -3120,13 +3256,15 @@ void Board::ResolveNightRoofHijackerExecution()
 				protectedSupportIDs.insert(protector->mPlantID);
 				continue;
 			}
-			plantTargets.insert(plantTargets.end(), group.begin(), group.end());
+			plantTargetIDs.insert(group.begin(), group.end());
 			if (Plant* overlay = mEntityManager.GetPlant(cell->GetOverlayPlantID());
 				overlay && overlay->IsActive() && !overlay->IsPreview()) {
-				plantTargets.push_back(overlay->mPlantID);
+				plantTargetIDs.insert(overlay->mPlantID);
 			}
 		}
 	}
+	std::vector<int> plantTargets(plantTargetIDs.begin(), plantTargetIDs.end());
+	std::sort(plantTargets.begin(), plantTargets.end());
 
 	std::vector<int> zombieTargets;
 	for (const int id : mEntityManager.GetAllZombieIDs()) {
@@ -4778,6 +4916,41 @@ bool Board::BuildMonteCarloCombatSnapshot(
 	return true;
 }
 
+void Board::CreateCobCannonExplosion(const Vector& position, int targetRow, int damage)
+{
+	constexpr float kCobBlastRadius = 115.0f; // 原版 CobBig 爆心半径，单位：px
+	if (g_particleSystem) {
+		g_particleSystem->EmitEffect("CobCannonBlastMark", position);
+		g_particleSystem->EmitEffect("CobCannonPopcorn", position);
+	}
+	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_DOOMSHROOM, 0.5f);
+	ShakeBoard(3.0f, -4.0f);
+
+	for (int row = targetRow - 1; row <= targetRow + 1; ++row) {
+		mEntityManager.ForEachZombieInRow(row, [&](Zombie* zombie) {
+			if (!zombie || !zombie->IsActive() || zombie->IsDying()
+				|| zombie->IsMindControlled()
+				|| !zombie->CanBeAffectedByGroundHazards()) return;
+			SDL_FRect bounds{};
+			if (const ColliderComponent* collider = zombie->GetColliderComponent()) {
+				bounds = collider->GetBoundingBox();
+			}
+			else {
+				const Vector zombiePosition = zombie->GetPosition();
+				bounds = { zombiePosition.x - 25.0f, zombiePosition.y - 65.0f,
+					50.0f, 100.0f };
+			}
+			const float nearestX = std::clamp(position.x, bounds.x, bounds.x + bounds.w);
+			const float nearestY = std::clamp(position.y, bounds.y, bounds.y + bounds.h);
+			const float dx = position.x - nearestX;
+			const float dy = position.y - nearestY;
+			if (dx * dx + dy * dy <= kCobBlastRadius * kCobBlastRadius) {
+				zombie->TakePlantAshDamage(damage);
+			}
+		});
+	}
+}
+
 bool Board::PickMonteCarloPlantBlastTarget(
 	int minRow, int maxRow, int damage, float radius, int sourceZombieID,
 	int& targetRow, Vector& targetPosition, MonteCarloTargetStats* stats,
@@ -5145,11 +5318,87 @@ bool Board::PickMonteCarloZombieTreatment(
 	return true;
 }
 
+bool Board::IsValidCobCannonAnchor(int row, int anchorColumn) const
+{
+	const PlantFootprint footprint = GetPlantFootprint(PlantType::PLANT_COBCANNON);
+	for (std::size_t i = 0; i < footprint.count; ++i) {
+		const int occupiedRow = row + footprint.cells[i].rowOffset;
+		const int occupiedColumn = anchorColumn + footprint.cells[i].columnOffset;
+		if (occupiedRow < 0 || occupiedRow >= mRows
+			|| occupiedColumn < 0 || occupiedColumn >= mColumns) {
+			return false;
+		}
+		Plant* kernel = GetNormalPlantAt(occupiedRow, occupiedColumn);
+		if (!kernel || !kernel->IsActive() || kernel->mPlantHealth <= 0
+			|| kernel->IsSquished() || kernel->IsBungeeTargeted()
+			|| kernel->mPlantType != PlantType::PLANT_KERNELPULT
+			|| GetPumpkinAt(occupiedRow, occupiedColumn)
+			|| GetOverlayPlantAt(occupiedRow, occupiedColumn)) {
+			return false;
+		}
+	}
+	return true;
+}
+
+bool Board::ResolvePlantPlacementAnchor(PlantType type, int row, int col,
+	int& anchorRow, int& anchorColumn) const
+{
+	anchorRow = row;
+	anchorColumn = col;
+	if (type != PlantType::PLANT_COBCANNON) {
+		return row >= 0 && row < mRows && col >= 0 && col < mColumns;
+	}
+	if (IsValidCobCannonAnchor(row, col)) return true;
+	if (IsValidCobCannonAnchor(row, col - 1)) {
+		anchorColumn = col - 1;
+		return true;
+	}
+	return false;
+}
+
+bool Board::OccupyPlantFootprint(PlantType type, int row, int anchorColumn,
+	int plantID, const std::vector<int>& replacePlantIDs)
+{
+	const PlantFootprint footprint = GetPlantFootprint(type);
+	for (std::size_t i = 0; i < footprint.count; ++i) {
+		Cell* cell = GetCell(row + footprint.cells[i].rowOffset,
+			anchorColumn + footprint.cells[i].columnOffset);
+		if (!cell) return false;
+		const int occupiedID = cell->GetNormalPlantID();
+		if (occupiedID != NULL_PLANT_ID
+			&& std::find(replacePlantIDs.begin(), replacePlantIDs.end(), occupiedID)
+				== replacePlantIDs.end()) {
+			return false;
+		}
+	}
+	// 校验全部成功后才写入，避免半株植物残留在棋盘上。
+	for (std::size_t i = 0; i < footprint.count; ++i) {
+		GetCell(row + footprint.cells[i].rowOffset,
+			anchorColumn + footprint.cells[i].columnOffset)->SetNormalPlantID(plantID);
+	}
+	return true;
+}
+
 bool Board::CanPlantAt(PlantType type, int row, int col)
 {
 	if (!HasPlantingQuota(type)) return false;
-	if (IsIceAt(row, col)) return false;
+	int anchorRow = row;
+	int anchorColumn = col;
+	if (!ResolvePlantPlacementAnchor(type, row, col, anchorRow, anchorColumn)) return false;
+	if (IsIceAt(anchorRow, anchorColumn)) return false;
+	if (type == PlantType::PLANT_COBCANNON) {
+		const PlantFootprint footprint = GetPlantFootprint(type);
+		for (std::size_t i = 0; i < footprint.count; ++i) {
+			const int occupiedRow = anchorRow + footprint.cells[i].rowOffset;
+			const int occupiedColumn = anchorColumn + footprint.cells[i].columnOffset;
+			if (IsIceAt(occupiedRow, occupiedColumn)
+				|| HasCraterAt(occupiedRow, occupiedColumn)) return false;
+		}
+		return IsValidCobCannonAnchor(anchorRow, anchorColumn);
+	}
 
+	row = anchorRow;
+	col = anchorColumn;
 	Cell* cell = GetCell(row, col);
 	if (!cell || HasCraterAt(row, col)) return false;
 
@@ -5178,6 +5427,7 @@ bool Board::CanPlantAt(PlantType type, int row, int col)
 	if (type == PlantType::PLANT_PUMPKINSHELL) {
 		// 南瓜有独立外壳层，但水路与屋顶仍分别要求正确的承载植物。
 		if (cell->GetPumpkinPlantID() != NULL_PLANT_ID) return false;
+		if (normalPlant && IsMultiCellPlantType(normalPlant->mPlantType)) return false;
 		if (isWater) return hasLilyPad;
 		if (IsRoofBackground()) return hasFlowerPot;
 		return true;
@@ -5224,8 +5474,45 @@ bool Board::HasPlantingQuota(PlantType type) const
 		|| mEliteScaredyShroomsPlanted < kEliteScaredyShroomPlantLimit;
 }
 
+bool Board::BeginCobCannonTargeting(int row, int col)
+{
+	if (mCursorObjectManager.GetActiveType() != CursorObjectType::NONE) return false;
+	auto* cannon = dynamic_cast<CobCannon*>(GetNormalPlantAt(row, col));
+	if (!cannon || !cannon->IsActive() || !cannon->IsReady()) return false;
+	mTargetingCobCannonID = cannon->mPlantID;
+	mCursorObjectManager.Activate(CursorObjectType::COB_CANNON_TARGET, [this]() {
+		mTargetingCobCannonID = NULL_PLANT_ID;
+	});
+	return true;
+}
+
+bool Board::FireTargetedCobCannonAt(const Vector& target, int targetRow)
+{
+	if (!IsCobCannonTargeting()) return false;
+	auto* cannon = dynamic_cast<CobCannon*>(
+		mEntityManager.GetPlant(mTargetingCobCannonID));
+	const bool fired = cannon && cannon->IsActive()
+		&& cannon->FireAt(target, targetRow);
+	mCursorObjectManager.ClearActive();
+	return fired;
+}
+
+void Board::CancelCobCannonTargeting(int plantID)
+{
+	if (plantID == NULL_PLANT_ID || plantID != mTargetingCobCannonID) return;
+	mCursorObjectManager.ClearActive();
+}
+
 bool Board::HasPlantingRequirement(PlantType type) const
 {
+	if (type == PlantType::PLANT_COBCANNON) {
+		for (int row = 0; row < mRows; ++row) {
+			for (int column = 0; column < mColumns - 1; ++column) {
+				if (IsValidCobCannonAnchor(row, column)) return true;
+			}
+		}
+		return false;
+	}
 	const PlantType baseType = GetUpgradeBasePlantType(type);
 	if (baseType == PlantType::NUM_PLANT_TYPES) return true;
 	for (const int plantID : mEntityManager.GetAllPlantIDs()) {
@@ -5448,6 +5735,13 @@ void Board::RefreshPlantStackRenderOrder(Cell* cell)
 
 Plant* Board::CreatePlant(PlantType plantType, int row, int column, bool skipsettings, bool isPreview)
 {
+	const int requestedRow = row;
+	const int requestedColumn = column;
+	if (!isPreview && !skipsettings
+		&& !ResolvePlantPlacementAnchor(plantType, requestedRow, requestedColumn,
+			row, column)) {
+		return nullptr;
+	}
 	// 检查行列是否有效
 	if (row < 0 || row >= mRows || column < 0 || column >= mColumns) {
 		LOG_ERROR("Board") << "无效的行列位置: (" << row << ", " << column << ")";
@@ -5468,6 +5762,7 @@ Plant* Board::CreatePlant(PlantType plantType, int row, int column, bool skipset
 	}
 
 	Plant* upgradeBasePlant = nullptr;
+	std::vector<Plant*> upgradeBasePlants;
 	bool inheritedSleeping = false;
 	float inheritedWakeUpTimer = 0.0f;
 	if (isUpgradePlant && !isPreview && !skipsettings) {
@@ -5475,6 +5770,12 @@ Plant* Board::CreatePlant(PlantType plantType, int row, int column, bool skipset
 		upgradeBasePlant = GetUpgradePlantLayer(plantType) == PlantUpgradeLayer::UNDER
 			? GetUnderPlantAt(row, column) : GetNormalPlantAt(row, column);
 		if (!upgradeBasePlant) return nullptr;
+		upgradeBasePlants.push_back(upgradeBasePlant);
+		if (plantType == PlantType::PLANT_COBCANNON) {
+			Plant* rearKernel = GetNormalPlantAt(row, column + 1);
+			if (!rearKernel || rearKernel == upgradeBasePlant) return nullptr;
+			upgradeBasePlants.push_back(rearKernel);
+		}
 		if (GetUpgradePlantLayer(plantType) == PlantUpgradeLayer::NORMAL) {
 			inheritedSleeping = upgradeBasePlant->GetSleepState();
 			inheritedWakeUpTimer = upgradeBasePlant->GetWakeUpTimeRemaining();
@@ -5504,10 +5805,23 @@ Plant* Board::CreatePlant(PlantType plantType, int row, int column, bool skipset
 		if (isUnderPlant) cell->SetUnderPlantID(plant->mPlantID);
 		else if (isPumpkinPlant) cell->SetPumpkinPlantID(plant->mPlantID);
 		else if (isOverlayPlant) cell->SetOverlayPlantID(plant->mPlantID);
-		else cell->SetNormalPlantID(plant->mPlantID);
+		else {
+			std::vector<int> replacePlantIDs;
+			replacePlantIDs.reserve(upgradeBasePlants.size());
+			for (Plant* base : upgradeBasePlants) {
+				if (base) replacePlantIDs.push_back(base->mPlantID);
+			}
+			if (!OccupyPlantFootprint(plantType, row, column,
+				plant->mPlantID, replacePlantIDs)) {
+				plant->Die();
+				return nullptr;
+			}
+		}
 		if (replacesExpectedBase) {
 			// 先把格子切到新 ID，再让旧株死亡；ReleaseGridSlot 只清自己的 ID，因此替换原子化。
-			upgradeBasePlant->Die();
+			for (Plant* base : upgradeBasePlants) {
+				if (base) base->Die();
+			}
 			if (GetUpgradePlantLayer(plantType) == PlantUpgradeLayer::NORMAL
 				&& inheritedSleeping) {
 				plant->SetSleepState(true);
@@ -5517,7 +5831,14 @@ Plant* Board::CreatePlant(PlantType plantType, int row, int column, bool skipset
 				plant->SetSleepState(false);
 			}
 		}
-		RefreshPlantStackRenderOrder(cell);
+		const PlantFootprint footprint = GetPlantFootprint(plantType);
+		for (std::size_t i = 0; i < footprint.count; ++i) {
+			if (Cell* occupiedCell = GetCell(
+				row + footprint.cells[i].rowOffset,
+				column + footprint.cells[i].columnOffset)) {
+				RefreshPlantStackRenderOrder(occupiedCell);
+			}
+		}
 		if (plantType == PlantType::PLANT_ELITE_SCAREDYSHROOM && consumesPlantingQuota) {
 			++mEliteScaredyShroomsPlanted;
 		}
@@ -6545,6 +6866,16 @@ Plant* Board::CreatePlantWithID(PlantType type, int row, int col, int id) {
 			: (isOverlayPlant ? cell->GetOverlayPlantID() : cell->GetNormalPlantID()))) != NULL_PLANT_ID) {
 		return nullptr;
 	}
+	if (!isUnderPlant && !isPumpkinPlant && !isOverlayPlant) {
+		const PlantFootprint footprint = GetPlantFootprint(type);
+		for (std::size_t i = 0; i < footprint.count; ++i) {
+			Cell* occupiedCell = GetCell(row + footprint.cells[i].rowOffset,
+				col + footprint.cells[i].columnOffset);
+			if (!occupiedCell || occupiedCell->GetNormalPlantID() != NULL_PLANT_ID) {
+				return nullptr;
+			}
+		}
+	}
 	// 走 GameApp 工厂拿 shared_ptr 用于 EntityManager 注册
 	if (row < 0 || row >= mRows || col < 0 || col >= mColumns) {
 		LOG_ERROR("Board") << "无效的行列位置: (" << row << ", " << col << ")";
@@ -6557,8 +6888,17 @@ Plant* Board::CreatePlantWithID(PlantType type, int row, int col, int id) {
 			if (isUnderPlant) cell->SetUnderPlantID(id);
 			else if (isPumpkinPlant) cell->SetPumpkinPlantID(id);
 			else if (isOverlayPlant) cell->SetOverlayPlantID(id);
-			else cell->SetNormalPlantID(id);
-			RefreshPlantStackRenderOrder(cell);
+			else if (!OccupyPlantFootprint(type, row, col, id)) {
+				plant->Die();
+				return nullptr;
+			}
+			const PlantFootprint footprint = GetPlantFootprint(type);
+			for (std::size_t i = 0; i < footprint.count; ++i) {
+				if (Cell* occupiedCell = GetCell(row + footprint.cells[i].rowOffset,
+					col + footprint.cells[i].columnOffset)) {
+					RefreshPlantStackRenderOrder(occupiedCell);
+				}
+			}
 		}
 		if (type == PlantType::PLANT_PLANTERN) {
 			mActivePlanternID = id;

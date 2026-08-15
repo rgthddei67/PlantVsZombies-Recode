@@ -23,6 +23,7 @@ namespace {
 	constexpr int kWinterMelonDamage = 100;            // 主人确认：冰瓜较当前西瓜少 20 点直击伤害
 	constexpr int kButterDamage = 40;                 // 经典黄油直击伤害；玉米粒沿用普通 20 点
 	constexpr int kBasketballDamage = 75;             // 原版投篮车篮球单发伤害
+	constexpr int kCobCannonDamage = 1800;            // 原版 CobBig 爆炸伤害
 	constexpr int kSpikeFrameDamage = 2;              // 仙人掌尖刺在 1x 下每个逻辑碰撞帧的基础伤害
 	constexpr std::size_t kSpikePierceLimit = 4;       // 尖刺接触第四只不同僵尸后消失
 	constexpr float kFireballSplashWidth = 100.0f;    // 火球命中后沿飞行方向的同排溅射宽度，单位：像素
@@ -58,6 +59,7 @@ namespace {
 	constexpr float kKernelDrawScale = 0.95f;            // C# 玉米粒弹丸绘制缩放
 	constexpr float kButterDrawScale = 0.8f;             // C# 黄油弹丸绘制缩放
 	constexpr float kBasketballDrawScale = 1.1f;         // C# 篮球弹丸绘制缩放
+	constexpr float kCobCannonDrawScale = 0.90f;         // 对齐 CobCannon_cob 在发射前第 77 帧的 sx/sy，避免炮膛到弹丸尺寸跳变
 	constexpr float kBasketballSpinSpeedMin = 286.0f;    // 原版 0.05rad/厘秒换算后的最小自旋，单位：度/秒
 	constexpr float kBasketballSpinSpeedMax = 573.0f;    // 原版 0.10rad/厘秒换算后的最大自旋，单位：度/秒
 	constexpr float kKernelImpactVolume = 0.3f;          // 玉米粒命中或落空 Foley 音量
@@ -67,6 +69,9 @@ namespace {
 	constexpr float kLobLandingGrace = 0.08f;           // 到达预测点后留给碰撞系统的命中宽限，单位：秒
 	constexpr float kLobShadowHeightScale = 200.0f;     // 经典投掷物阴影随高度缩小公式的高度尺度，单位：px
 	constexpr float kMelonShadowOffsetX = 6.0f;         // 西瓜弹丸地面阴影相对通用投掷物的右移量，单位：px
+	constexpr float kCobRiseEndProgress = 0.42f;        // 玉米棒升到画面上方所占总飞行进度
+	constexpr float kCobTransferEndProgress = 0.58f;    // 画面外横移到目标上方所占总飞行进度
+	constexpr float kCobSkyY = -120.0f;                 // 升空与垂降衔接高度，单位：世界 px
 
 	enum class BulletWindResponse {
 		NONE,
@@ -130,6 +135,7 @@ namespace {
 		if (type == BulletType::BULLET_WINTERMELON) return kWinterMelonDamage;
 		if (type == BulletType::BULLET_BUTTER) return kButterDamage;
 		if (type == BulletType::BULLET_BASKETBALL) return kBasketballDamage;
+		if (type == BulletType::BULLET_COBBIG) return kCobCannonDamage;
 		if (type == BulletType::BULLET_SPIKE) return kSpikeFrameDamage;
 		if (type == BulletType::BULLET_TOXICPEA) return kToxicPeaDamage;
 		return kPeaDamage;
@@ -254,6 +260,12 @@ void Bullet::Reset(Board* board, int row,
 	mLobElapsed = 0.0f;
 	mLobDuration = 0.0f;
 	mLobApexHeight = 0.0f;
+	mCobCannonMotion = false;
+	mCobStart = Vector::zero();
+	mCobTarget = Vector::zero();
+	mCobElapsed = 0.0f;
+	mCobDuration = 0.0f;
+	mCobTargetRow = -1;
 	mHitTorchwoodColumn = -1;
 	mPiercedZombieIDs.clear();
 	mSpikeDamageRemainders.clear();
@@ -325,6 +337,9 @@ void Bullet::Update()
 		if (mLobbedMotion) {
 			if (!UpdateLobbedMotion(deltaTime)) return;
 		}
+		else if (mCobCannonMotion) {
+			if (!UpdateCobCannonMotion(deltaTime)) return;
+		}
 		else {
 			transform->Translate(
 				GetWindAdjustedVelocityX() * deltaTime, mVelocityY * deltaTime);
@@ -377,14 +392,31 @@ void Bullet::Draw(Graphics* g)
 
 	if (mTexture) {
 		Vector position = GetPosition();
+		float drawWidth = static_cast<float>(mTexture->width) * mScale;
+		float drawHeight = static_cast<float>(mTexture->height) * mScale;
+		if (mCobCannonMotion) {
+			if (mCobElapsed / std::max(0.01f, mCobDuration) >= kCobTransferEndProgress) {
+				if (const Texture* targetShadow = ResourceManager::GetInstance().GetTexture(
+					ResourceKeys::Textures::IMAGE_COBCANNON_TARGET_SHADOW, false)) {
+					const float width = static_cast<float>(targetShadow->width);
+					const float height = static_cast<float>(targetShadow->height);
+					g->DrawTexture(targetShadow, mCobTarget.x - width * 0.5f,
+						mCobTarget.y - height * 0.5f, width, height);
+				}
+			}
+			// DrawTexture 的非方形旋转会先按目标框缩放；90 度炮弹须交换目标宽高，
+			// 才能保持炮膛内 CobCannon_cob 的原始长宽比而不是横向拉伸。
+			drawWidth = static_cast<float>(mTexture->height) * mScale;
+			drawHeight = static_cast<float>(mTexture->width) * mScale;
+			position.x -= drawWidth * 0.5f;
+			position.y -= drawHeight * 0.5f;
+		}
 		if (IsClassicLobbedBullet(mBulletType)) {
-			position.x -= static_cast<float>(mTexture->width) * mScale * 0.5f;
-			position.y -= static_cast<float>(mTexture->height) * mScale * 0.5f;
+			position.x -= drawWidth * 0.5f;
+			position.y -= drawHeight * 0.5f;
 		}
 		g->DrawTexture(mTexture, position.x, position.y,
-			static_cast<float>(mTexture->width * mScale),
-			static_cast<float>(mTexture->height) * mScale,
-			mRotationDegrees);
+			drawWidth, drawHeight, mRotationDegrees);
 	}
 }
 
@@ -799,6 +831,11 @@ void Bullet::ConfigurePresentation()
 			kBasketballSpinSpeedMin, kBasketballSpinSpeedMax);
 		if (GameRandom::Chance()) mRotationSpeedDegrees = -mRotationSpeedDegrees;
 		break;
+	case BulletType::BULLET_COBBIG:
+		mTexture = resources.GetTexture(ResourceKeys::Textures::IMAGE_COBCANNON_COB);
+		mScale = kCobCannonDrawScale;
+		mRotationDegrees = 90.0f;
+		break;
 	case BulletType::BULLET_FIREBALL:
 	case BulletType::BULLET_TOXICFIREBALL: {
 		auto reanim = resources.GetReanimation(
@@ -840,6 +877,66 @@ void Bullet::ConfigureLobbedMotion(
 		- 4.0f * mLobApexHeight / mLobDuration;
 	if (mCollider) mCollider->mEnabled = false;
 	UpdateShadowLayout(mLobStart);
+}
+
+void Bullet::ConfigureCobCannonMotion(
+	const Vector& target, int targetRow, float durationSeconds)
+{
+	if (!mTransform) return;
+	mCobCannonMotion = true;
+	mLobbedMotion = false;
+	mCobStart = mTransform->GetPosition();
+	mCobTarget = target;
+	mCobElapsed = 0.0f;
+	mCobDuration = std::max(0.1f, durationSeconds);
+	mCobTargetRow = targetRow;
+	mRotationDegrees = -90.0f;
+	if (mCollider) mCollider->mEnabled = false;
+	if (mShadow) mShadow->mEnabled = false;
+}
+
+void Bullet::RestoreCobCannonMotion(const Vector& start, const Vector& target,
+	int targetRow, float elapsedSeconds, float durationSeconds)
+{
+	ConfigureCobCannonMotion(target, targetRow, durationSeconds);
+	mCobStart = start;
+	mCobElapsed = std::clamp(elapsedSeconds, 0.0f, mCobDuration);
+	// 以零增量重建当前位置，不会跨过爆炸边沿。
+	UpdateCobCannonMotion(0.0f);
+}
+
+bool Bullet::UpdateCobCannonMotion(float deltaTime)
+{
+	if (!mTransform || mCobDuration <= 0.0f) return true;
+	mCobElapsed = std::min(mCobDuration, mCobElapsed + std::max(0.0f, deltaTime));
+	const float progress = std::clamp(mCobElapsed / mCobDuration, 0.0f, 1.0f);
+	mRotationDegrees = progress <= kCobTransferEndProgress ? -90.0f : 90.0f;
+	Vector position = mCobStart;
+	if (progress <= kCobRiseEndProgress) {
+		const float t = progress / kCobRiseEndProgress;
+		position.y = mCobStart.y + (kCobSkyY - mCobStart.y) * t;
+	}
+	else if (progress <= kCobTransferEndProgress) {
+		const float t = (progress - kCobRiseEndProgress)
+			/ (kCobTransferEndProgress - kCobRiseEndProgress);
+		position.x = mCobStart.x + (mCobTarget.x - mCobStart.x) * t;
+		position.y = kCobSkyY;
+	}
+	else {
+		const float t = (progress - kCobTransferEndProgress)
+			/ (1.0f - kCobTransferEndProgress);
+		position.x = mCobTarget.x;
+		position.y = kCobSkyY + (mCobTarget.y - kCobSkyY) * t;
+	}
+	mTransform->SetPosition(position);
+	if (mCobElapsed < mCobDuration) return true;
+	if (!mHasHit) {
+		mHasHit = true;
+		if (mBoard) mBoard->CreateCobCannonExplosion(
+			mCobTarget, mCobTargetRow, mDamage);
+	}
+	Die();
+	return false;
 }
 
 void Bullet::RestoreLobbedMotion(const Vector& start, const Vector& target,

@@ -73,6 +73,11 @@ void CardSlotManager::Update() {
 	static int lastSun = 0;
 	const bool bloverDirectionChanged = UpdateBloverDirectionInput();
 	UpdatePlanternGearMenuInput();
+	if (mBoard && mBoard->IsCobCannonTargeting()
+		&& GameAPP::GetInstance().GetInputHandler()
+			.IsMouseButtonPressed(SDL_BUTTON_RIGHT)) {
+		mBoard->mCursorObjectManager.ClearActive();
+	}
 
 	// 如果有选中的卡牌，更新鼠标悬停的Cell
 	auto* selected = selectedCard;
@@ -384,10 +389,16 @@ void CardSlotManager::CreateCellPlantPreview(PlantType plantType, Cell* cell) {
 	DestroyCellPlantPreview();
 
 	if (mBoard && cell) {
+		int anchorRow = cell->mRow;
+		int anchorColumn = cell->mColumn;
+		if (!mBoard->ResolvePlantPlacementAnchor(plantType, cell->mRow, cell->mColumn,
+			anchorRow, anchorColumn)) return;
+		Cell* anchorCell = mBoard->GetCell(anchorRow, anchorColumn);
+		if (!anchorCell) return;
 		cellPlantPreview = mBoard->CreatePlant(plantType, 0, 0, true, true);
 		if (cellPlantPreview) {
-			Vector centerPos = cell->GetCenterPosition();          // 世界坐标
-			Plant* supportPlant = mBoard->GetUnderPlantAt(cell->mRow, cell->mColumn);
+			Vector centerPos = anchorCell->GetCenterPosition();          // 世界坐标
+			Plant* supportPlant = mBoard->GetUnderPlantAt(anchorRow, anchorColumn);
 			if (!cellPlantPreview->IsRoofSupportPlant() && supportPlant
 				&& supportPlant->IsRoofSupportPlant()) {
 				// 预览实体没有真实 row/column，需在落点处显式复用花盆抬升口径。
@@ -395,7 +406,7 @@ void CardSlotManager::CreateCellPlantPreview(PlantType plantType, Cell* cell) {
 			}
 
 			// 落点幽灵必须盖在该格已有承载植物之上，否则睡莲会遮住待种植物。
-			Plant* topPlant = mBoard->GetTopPlantAt(cell->mRow, cell->mColumn);
+			Plant* topPlant = mBoard->GetTopPlantAt(anchorRow, anchorColumn);
 			const int previewRenderOrder = topPlant
 				? topPlant->GetRenderOrder() + 1 : LAYER_GAME_PLANT;
 			cellPlantPreview->SetRenderOrder(previewRenderOrder);
@@ -449,8 +460,14 @@ void CardSlotManager::UpdatePlantPreviewPosition(Graphics* g, const Vector& mous
 	}
 
 	if (cellPlantPreview && hoveredCell) {
-		if (selected->GetComponent<CardComponent>()) {
-			Vector centerPos = hoveredCell->GetCenterPosition();               // 世界坐标
+		if (auto* cardComp = selected->GetComponent<CardComponent>()) {
+			int anchorRow = hoveredCell->mRow;
+			int anchorColumn = hoveredCell->mColumn;
+			if (!mBoard->ResolvePlantPlacementAnchor(cardComp->GetPlantType(),
+				hoveredCell->mRow, hoveredCell->mColumn, anchorRow, anchorColumn)) return;
+			Cell* anchorCell = mBoard->GetCell(anchorRow, anchorColumn);
+			if (!anchorCell) return;
+			Vector centerPos = anchorCell->GetCenterPosition();               // 世界坐标
 
 			if (auto transform = cellPlantPreview->GetTransformComponent()) {
 				transform->SetPosition(centerPos);                         // 设置世界坐标
@@ -502,9 +519,18 @@ void CardSlotManager::UpdatePreviewToCell(Cell* cell) {
 }
 
 void CardSlotManager::HandleCellClick(int row, int col) {
-	if (!selectedCard || mPauseGameplayInputBlocked) return;
+	if (mPauseGameplayInputBlocked || !mBoard) return;
+	if (mBoard->IsCobCannonTargeting()) {
+		mBoard->FireTargetedCobCannonAt(
+			GameAPP::GetInstance().GetInputHandler().GetMouseWorldPosition(), row);
+		return;
+	}
+	if (!selectedCard) {
+		mBoard->BeginCobCannonTargeting(row, col);
+		return;
+	}
 
-	Cell* cell = mBoard ? mBoard->GetCell(row, col) : nullptr;
+	Cell* cell = mBoard->GetCell(row, col);
 	if (!cell) return;
 
 	if (CanPlaceInCell(cell)) {

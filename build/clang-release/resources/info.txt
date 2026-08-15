@@ -185,6 +185,11 @@
 [PLANT_KERNELPULT_DESCRIPTION]
 玉米投手可以投掷玉米粒和黄油。玉米粒造成轻微伤害，黄油造成中等伤害并暂时固定僵尸。“玉米投手是兄弟中的老大，”邻居们说，“也是唯一会记生日的那个——虽然日期总有一点偏差。”
 
+[PLANT_COBCANNON]
+玉米加农炮
+[PLANT_COBCANNON_DESCRIPTION]
+玉米加农炮必须种在横向相邻的两株玉米投手上。装填完毕后点击它，再点击战场指定落点，玉米棒会从天而降并轰炸附近三行的地面僵尸。“坐标报清楚，”玉米加农炮敲了敲轮子，“这根玉米不接受临时改道。”
+
 [PLANT_INSTANT_COFFEE]
 咖啡豆
 [PLANT_INSTANT_COFFEE_DESCRIPTION]

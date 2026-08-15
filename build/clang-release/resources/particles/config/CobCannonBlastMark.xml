@@ -1,0 +1,7 @@
+<Emitter>
+    <Name>CobCannonBlastMark</Name>
+    <SpawnMinActive>1</SpawnMinActive>
+    <SystemDuration>1.0</SystemDuration>
+    <SystemAlpha>1,80 0</SystemAlpha>
+    <Image>PARTICLE_BLASTMARK</Image>
+</Emitter>

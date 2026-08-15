@@ -1,6 +1,7 @@
 #include "LightningRodPot.h"
 
 #include "../Board.h"
+#include "PlantFootprint.h"
 
 namespace {
 	constexpr int kLightningRodPotHealth = 700;            // 避雷花盆的基础生命值，仅承受外部正常伤害
@@ -36,10 +37,21 @@ bool LightningRodPot::HasActiveSupportedHost() const
 bool LightningRodPot::ProtectsSupportedLayer(const Plant* target) const
 {
 	if (!target || !HasActiveSupportedHost()
-		|| target->mRow != mRow || target->mColumn != mColumn
 		|| !target->IsActive() || target->IsPreview() || target->IsSquished()) {
 		return false;
 	}
+	// 双格植物仍只有一个锚点；承载层必须按 footprint 判断“同格”，
+	// 否则放在非锚点一侧的避雷花盆会错误拒绝它所承载的同一实体。
+	const PlantFootprint footprint = GetPlantFootprint(target->mPlantType);
+	bool occupiesSupportCell = false;
+	for (std::size_t i = 0; i < footprint.count; ++i) {
+		if (target->mRow + footprint.cells[i].rowOffset == mRow
+			&& target->mColumn + footprint.cells[i].columnOffset == mColumn) {
+			occupiesSupportCell = true;
+			break;
+		}
+	}
+	if (!occupiesSupportCell) return false;
 	return target == mBoard->GetNormalPlantAt(mRow, mColumn)
 		|| target == mBoard->GetPumpkinAt(mRow, mColumn)
 		|| target == mBoard->GetOverlayPlantAt(mRow, mColumn);
