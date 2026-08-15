@@ -1,0 +1,29 @@
+---
+name: project_pvz_choose_card_pagination
+description: ChooseCardUI 48 张分页、跨页选择、Zen_NextGarden 导航与 AutoTest 契约
+metadata:
+  node_type: memory
+  type: project
+  updated_at: 2026-08-15
+---
+
+# 选卡界面 48/1 翻页
+
+2026-08-15 当前正式冒险奖励顺序会形成 49 张已实装卡；既有 `ChooseCardUI` 网格为 8 列×6 行，
+因此固定每页 48 张，磁暴菇作为当前最后获得的第 49 张卡独占第二页。页归属只由 `mCards` 稳定顺序
+派生，不复制 `GameAPP::mHaveCards` 或改玩家存档。
+
+导航复用 60×60 `Zen_NextGarden.png`：第一页在面板右侧中央以 0 度朝右，第二页在“一起摇滚吧！”
+左侧运行时旋转 180 度。卡池不超过 48 张时按钮禁用且不绘制。`Button` 的图片旋转只改变绕目标矩形
+中心的绘制，轴对齐命中框不变。
+
+翻页时，已选卡绕过页限制并继续在顶部槽位活动；非当前页未选卡 `SetActive(false)`，因此同时停止
+绘制、更新与点击。跨页取消选卡时先立即恢复所属页原位再停用，避免切回来源页后补播过时的飞行动画。
+“上次选卡”仍可从全部面板卡中恢复跨页卡，并复用既有飞入顶部槽位动画。
+
+`set_all_owned_cards` 只在 AutoTest 进程内按正式奖励顺序布置完整已实装卡池；状态导出包含当前页、
+总页数、实际活动/隐藏植物列表及按钮资源、角度和锚点。`smoke_choose_card_pagination.json` 在主人当前
+桌面可见 Vulkan `clang-release` 运行 exit 0，39 条命令与三张同步截图通过；第一页48/隐藏1、
+第二页1/隐藏48、返回恢复，纹理已加载。`smoke_last_selected_cards.json` 同样可见运行 exit 0，
+34 条命令与三张截图通过，并额外锁定单页时分页按钮不显示。`clang-release` LTO 构建零警告，
+Win7 导入审计通过 378 项。

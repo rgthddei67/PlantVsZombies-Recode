@@ -800,6 +800,23 @@ bool TestDriver::ExecuteCurrent() {
 		}
 		return true;
 	}
+	if (op == "set_all_owned_cards") {
+		// 只在 AutoTest 内存中按正式冒险奖励顺序布置完整卡池，不读写真实 PlayerInfo。
+		auto& ownedCards = GameAPP::GetInstance().mHaveCards;
+		ownedCards.clear();
+		ownedCards.push_back(PlantType::PLANT_PEASHOOTER);
+		auto& gameData = GameDataManager::GetInstance();
+		for (PlantType reward : AdventureProgression::PLANT_REWARD_BY_LEVEL) {
+			if (reward == AdventureProgression::NO_PLANT_REWARD
+				|| !gameData.HasPlant(reward)
+				|| std::find(ownedCards.begin(), ownedCards.end(), reward)
+					!= ownedCards.end()) {
+				continue;
+			}
+			ownedCards.push_back(reward);
+		}
+		return true;
+	}
 	if (op == "reset_test_state") {
 		ResetTestState();
 		return true;
@@ -2398,6 +2415,18 @@ bool TestDriver::ExecuteCurrent() {
 			x = center.x;
 			y = center.y;
 		}
+		else if (target == "choose_card_page") {
+			GameScene* gs = CurrentGameScene();
+			ChooseCardUI* ui = gs ? gs->GetChooseCardUI() : nullptr;
+			auto button = ui ? ui->GetPageButton() : nullptr;
+			if (!button || !button->IsEnabled() || button->IsSkipDraw()) {
+				Fail("click target=choose_card_page: 选卡翻页按钮不存在或不可用");
+				return false;
+			}
+			const Vector center = button->GetCenter();
+			x = center.x;
+			y = center.y;
+		}
 		else if (!target.empty()) { Fail("未知 click target: " + target); return false; }
 		else {
 			// 显式查在：缺字段时不静默回落到 (0,0) 点击，分别精确报错
@@ -3071,6 +3100,13 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["chooseCardSelectedCount"] = 0;
 	out["chooseCardSelectedMovingCount"] = 0;
 	out["restoreLastSelectionEnabled"] = false;
+	out["chooseCardPageIndex"] = 0;
+	out["chooseCardPageNumber"] = 0;
+	out["chooseCardPageCount"] = 0;
+	out["chooseCardVisibleCards"] = nlohmann::json::array();
+	out["chooseCardHiddenCards"] = nlohmann::json::array();
+	out["chooseCardVisibleCardCount"] = 0;
+	out["chooseCardHiddenCardCount"] = 0;
 	if (ChooseCardUI* chooseUI = gs->GetChooseCardUI()) {
 		for (Card* card : chooseUI->GetSelectedCards()) {
 			if (!card) continue;
@@ -3085,11 +3121,42 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		}
 		out["chooseCardSelectedCount"] = static_cast<int>(
 			out["chooseCardSelectedCards"].size());
+		out["chooseCardPageIndex"] = chooseUI->GetCurrentPage();
+		out["chooseCardPageNumber"] = chooseUI->GetCurrentPage() + 1;
+		out["chooseCardPageCount"] = chooseUI->GetPageCount();
+		for (PlantType type : chooseUI->GetVisibleCardTypes()) {
+			out["chooseCardVisibleCards"].push_back(PlantTypeName(type));
+		}
+		for (PlantType type : chooseUI->GetHiddenCardTypes()) {
+			out["chooseCardHiddenCards"].push_back(PlantTypeName(type));
+		}
+		out["chooseCardVisibleCardCount"] = static_cast<int>(
+			out["chooseCardVisibleCards"].size());
+		out["chooseCardHiddenCardCount"] = static_cast<int>(
+			out["chooseCardHiddenCards"].size());
 		if (auto button = chooseUI->GetRestoreButton()) {
 			out["restoreLastSelectionEnabled"] = button->IsEnabled();
 			const Vector panelPosition = chooseUI->GetPosition();
 			const Vector buttonCenter = button->GetCenter();
 			out["restoreLastSelectionButton"] = {
+				{ "centerXInt", static_cast<int>(std::lround(buttonCenter.x)) },
+				{ "centerYInt", static_cast<int>(std::lround(buttonCenter.y)) },
+				{ "relativeCenterXInt", static_cast<int>(std::lround(
+					buttonCenter.x - panelPosition.x)) },
+				{ "relativeCenterYInt", static_cast<int>(std::lround(
+					buttonCenter.y - panelPosition.y)) },
+			};
+		}
+		if (auto button = chooseUI->GetPageButton()) {
+			const Vector panelPosition = chooseUI->GetPosition();
+			const Vector buttonCenter = button->GetCenter();
+			out["chooseCardPageButton"] = {
+				{ "enabled", button->IsEnabled() },
+				{ "visible", !button->IsSkipDraw() },
+				{ "textureLoaded", ResourceManager::GetInstance().GetTexture(
+					ResourceKeys::Textures::IMAGE_ZEN_NEXTGARDEN, false) != nullptr },
+				{ "rotationDegrees", static_cast<int>(std::lround(
+					button->GetImageRotationDegrees())) },
 				{ "centerXInt", static_cast<int>(std::lround(buttonCenter.x)) },
 				{ "centerYInt", static_cast<int>(std::lround(buttonCenter.y)) },
 				{ "relativeCenterXInt", static_cast<int>(std::lround(

@@ -158,7 +158,8 @@ void Button::Draw(Graphics* g) const
 		if (texture != nullptr)
 		{
 			Vector pos = g->LogicalToWorld(position.x, position.y);
-			g->DrawTexture(texture, pos.x, pos.y, size.x, size.y);
+			g->DrawTexture(texture, pos.x, pos.y, size.x, size.y,
+				mImageRotationDegrees);
 		}
 	}
 	else

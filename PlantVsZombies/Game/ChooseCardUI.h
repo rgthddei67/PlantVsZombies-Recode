@@ -46,6 +46,8 @@ public:
 	std::shared_ptr<Button> GetButton() const { return mButton.lock(); }
 	// 获取面板右上角的“上次选卡”按钮
 	std::shared_ptr<Button> GetRestoreButton() const { return mRestoreButton.lock(); }
+	// 获取当前两页之间切换方向的按钮
+	std::shared_ptr<Button> GetPageButton() const { return mPageButton.lock(); }
 	/** 用当前仍拥有且已注册的卡恢复上一次选择，并复用卡片目标位置动画。 */
 	bool RestoreLastSelectedCards();
 	// 添加所有卡牌
@@ -54,6 +56,12 @@ public:
 	void TransferSelectedCardsTo(CardSlotManager* manager);
 	// 按植物类型查找选卡界面中的卡牌（AutoTest 程序化选卡用）；找不到返回 nullptr
 	Card* FindCardByType(PlantType type);
+	/** 返回当前 0-based 页码与总页数，供 UI 状态检查和 AutoTest 使用。 */
+	int GetCurrentPage() const { return mCurrentPage; }
+	int GetPageCount() const;
+	/** 按拥有顺序导出实际活动/隐藏的卡，验证分页没有留下可点击的叠卡。 */
+	std::vector<PlantType> GetVisibleCardTypes() const;
+	std::vector<PlantType> GetHiddenCardTypes() const;
 	/** 返回满配卡组最后一张卡的右边缘，供卡槽底板按真实容量收口。 */
 	static float GetGameSlotRightEdge();
 
@@ -64,9 +72,11 @@ private:
 	TransformComponent* mTransform = nullptr;
 	std::weak_ptr<Button> mButton;
 	std::weak_ptr<Button> mRestoreButton;
+	std::weak_ptr<Button> mPageButton;
 
 	std::vector<Card*> mCards;  // 存储选卡界面的卡牌（观察者，所有权在 GameObjectManager）
 	std::vector<Card*> mSelectedCards;   // 存储选中的卡牌对象
+	int mCurrentPage = 0; // 0-based 当前页；现有完整卡池为两页
 
 	static constexpr int MAX_SELECTED = 11;              // 最大选择数量
 	static constexpr float SLOT_START_X = 195;                  // 槽位起始 X 屏幕坐标
@@ -74,6 +84,9 @@ private:
 	static constexpr int SLOT_SPACING = CARD_WIDTH + 3;       // 槽位间距
 
 	static constexpr int MAX_CARDS_PER_ROW = 8;      // 每行最多8张
+	static constexpr int MAX_CARD_ROWS_PER_PAGE = 6; // 每页保持现有六行完整可见区域
+	static constexpr int CARDS_PER_PAGE =
+		MAX_CARDS_PER_ROW * MAX_CARD_ROWS_PER_PAGE; // 每页 48 张
 	static constexpr int CARD_HORIZONTAL_SPACING = 3; // 水平间距
 	static constexpr int CARD_VERTICAL_SPACING = 4;   // 垂直间距（
 	static constexpr float START_X = 210;                 // 第一张卡牌的起始X坐标 屏幕坐标
@@ -82,7 +95,11 @@ private:
 	// 更新所有卡牌的目标位置（根据选中状态）
 	void UpdateTargetPositions();
 	void SyncRestoreButtonPosition();
+	void SyncPageButtonPosition();
 	void RefreshRestoreButtonState();
+	void RefreshPageButtonState();
+	void SyncCardPageVisibility();
+	void TogglePage();
 	std::vector<Card*> ResolveRestorableCards();
 };
 

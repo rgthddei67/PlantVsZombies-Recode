@@ -13,11 +13,20 @@
 #include <memory>
 
 namespace {
+	constexpr float kStartButtonX = 360.0f; // “一起摇滚吧”按钮左上角 X，单位：UI px
+	constexpr float kStartButtonY = 550.0f; // “一起摇滚吧”按钮左上角 Y，单位：UI px
+	constexpr float kStartButtonWidth = 156.0f * 0.9f; // “一起摇滚吧”按钮宽度，单位：UI px
+	constexpr float kStartButtonHeight = 42.0f * 0.9f; // “一起摇滚吧”按钮高度，单位：UI px
 	constexpr float kRestoreButtonScale = 0.8f; // Button2 原图缩放倍率，避免遮挡面板右上角装饰
 	constexpr float kRestoreButtonTextureWidth = 111.0f; // SeedChooser_Button2 原图宽度，单位：UI px
 	constexpr float kRestoreButtonTextureHeight = 26.0f; // SeedChooser_Button2 原图高度，单位：UI px
 	constexpr float kRestoreButtonRightInset = 12.0f; // 按钮右边缘距选卡面板右边缘，单位：UI px
 	constexpr float kRestoreButtonTopInset = 8.0f; // 按钮上边缘距选卡面板上边缘，单位：UI px
+	constexpr float kPageButtonSize = 60.0f; // Zen_NextGarden 原图边长，单位：UI px
+	constexpr float kPageButtonRightGap = 10.0f; // 第一页箭头与面板右边缘间距，单位：UI px
+	constexpr float kPageButtonStartGap = 10.0f; // 第二页返回箭头与开始按钮左边缘间距，单位：UI px
+	constexpr float kPageForwardRotation = 0.0f; // 第一页向右箭头旋转角度，单位：度
+	constexpr float kPageBackRotation = 180.0f; // 第二页向左箭头旋转角度，单位：度
 }
 
 ChooseCardUI::ChooseCardUI(GameScene* gameScene)
@@ -32,9 +41,9 @@ ChooseCardUI::ChooseCardUI(GameScene* gameScene)
 
 	mCardUITexture = ResourceManager::GetInstance().
 		GetTexture(ResourceKeys::Textures::IMAGE_SEEDCHOOSER_BACKGROUND);
-	auto button = mGameScene->GetUIManager().CreateButton
-	(Vector(360, 550),
-		Vector(156 * 0.9f, 42 * 0.9f));
+	auto button = mGameScene->GetUIManager().CreateButton(
+		Vector(kStartButtonX, kStartButtonY),
+		Vector(kStartButtonWidth, kStartButtonHeight));
 	mButton = button;
 	button->SetAsCheckbox(false);
 	button->SetImageKeys(ResourceKeys::Textures::IMAGE_SEEDCHOOSER_BUTTON_DISABLED,
@@ -66,12 +75,27 @@ ChooseCardUI::ChooseCardUI(GameScene* gameScene)
 	restoreButton->SetClickCallBack([this](bool) {
 		RestoreLastSelectedCards();
 		});
+
+	auto pageButton = mGameScene->GetUIManager().CreateButton(
+		Vector::zero(), Vector(kPageButtonSize, kPageButtonSize));
+	mPageButton = pageButton;
+	pageButton->SetAsCheckbox(false);
+	pageButton->SetImageKeys(ResourceKeys::Textures::IMAGE_ZEN_NEXTGARDEN,
+		ResourceKeys::Textures::IMAGE_ZEN_NEXTGARDEN,
+		ResourceKeys::Textures::IMAGE_ZEN_NEXTGARDEN);
+	pageButton->SetEnabled(false);
+	pageButton->SetSkipDraw(true);
+	pageButton->SetClickCallBack([this](bool) {
+		TogglePage();
+		});
 	SyncRestoreButtonPosition();
+	SyncPageButtonPosition();
 }
 
 ChooseCardUI::~ChooseCardUI() {
 	SceneManager::GetInstance().GetCurrectSceneUIManager().RemoveButton(mButton.lock());
 	SceneManager::GetInstance().GetCurrectSceneUIManager().RemoveButton(mRestoreButton.lock());
+	SceneManager::GetInstance().GetCurrectSceneUIManager().RemoveButton(mPageButton.lock());
 	mGameScene = nullptr;
 	// TODO: 物体析构的时候，如果有其他物体没有销毁，不要在这个时候销毁，因为没用
 }
@@ -79,11 +103,13 @@ ChooseCardUI::~ChooseCardUI() {
 void ChooseCardUI::Update() {
 	GameObject::Update();
 	SyncRestoreButtonPosition();
+	SyncPageButtonPosition();
 }
 
 void ChooseCardUI::SetPosition(const Vector& position) {
 	if (mTransform) mTransform->SetPosition(position);
 	SyncRestoreButtonPosition();
+	SyncPageButtonPosition();
 }
 
 void ChooseCardUI::RemoveAllCards() {
@@ -92,6 +118,8 @@ void ChooseCardUI::RemoveAllCards() {
 	}
 	mCards.clear();
 	mSelectedCards.clear();
+	mCurrentPage = 0;
+	RefreshPageButtonState();
 }
 
 void ChooseCardUI::TransferSelectedCardsTo(CardSlotManager* manager) {
@@ -113,6 +141,8 @@ void ChooseCardUI::TransferSelectedCardsTo(CardSlotManager* manager) {
 		}
 	}
 	mSelectedCards.clear();
+	RefreshPageButtonState();
+	SyncCardPageVisibility();
 }
 
 void ChooseCardUI::Draw(Graphics* g) {
@@ -132,8 +162,9 @@ void ChooseCardUI::Draw(Graphics* g) {
 void ChooseCardUI::AddCard(PlantType type) {
 	// 计算当前卡牌数量对应的行列
 	int cardCount = static_cast<int>(mCards.size());
-	int row = cardCount / MAX_CARDS_PER_ROW;
-	int col = cardCount % MAX_CARDS_PER_ROW;
+	int pageSlot = cardCount % CARDS_PER_PAGE;
+	int row = pageSlot / MAX_CARDS_PER_ROW;
+	int col = pageSlot % MAX_CARDS_PER_ROW;
 
 	// 计算位置
 	float posX = START_X + col * (CARD_WIDTH + CARD_HORIZONTAL_SPACING);
@@ -151,6 +182,8 @@ void ChooseCardUI::AddCard(PlantType type) {
 	card->SetOriginalPosition(Vector(posX, posY));
 	card->mIsUI = true;
 	mCards.push_back(card);
+	RefreshPageButtonState();
+	SyncCardPageVisibility();
 }
 
 void ChooseCardUI::RemoveCard(Card* card)
@@ -168,6 +201,8 @@ void ChooseCardUI::RemoveCard(Card* card)
 	}
 
 	GameObjectManager::GetInstance().DestroyGameObject(card);
+	RefreshPageButtonState();
+	SyncCardPageVisibility();
 }
 
 void ChooseCardUI::AddAllCard() {
@@ -179,6 +214,8 @@ void ChooseCardUI::AddAllCard() {
 		AddCard(card);
 	}
 	RefreshRestoreButtonState();
+	RefreshPageButtonState();
+	SyncCardPageVisibility();
 }
 
 Card* ChooseCardUI::FindCardByType(PlantType type) {
@@ -254,6 +291,34 @@ bool ChooseCardUI::RestoreLastSelectedCards() {
 	return true;
 }
 
+int ChooseCardUI::GetPageCount() const {
+	if (mCards.empty()) return 1;
+	return (static_cast<int>(mCards.size()) + CARDS_PER_PAGE - 1)
+		/ CARDS_PER_PAGE;
+}
+
+std::vector<PlantType> ChooseCardUI::GetVisibleCardTypes() const {
+	std::vector<PlantType> types;
+	for (Card* card : mCards) {
+		if (!card || !card->IsActive()) continue;
+		if (auto* component = card->GetCardComponent()) {
+			types.push_back(component->GetPlantType());
+		}
+	}
+	return types;
+}
+
+std::vector<PlantType> ChooseCardUI::GetHiddenCardTypes() const {
+	std::vector<PlantType> types;
+	for (Card* card : mCards) {
+		if (!card || card->IsActive()) continue;
+		if (auto* component = card->GetCardComponent()) {
+			types.push_back(component->GetPlantType());
+		}
+	}
+	return types;
+}
+
 void ChooseCardUI::SyncRestoreButtonPosition() {
 	auto button = mRestoreButton.lock();
 	if (!button || !mTransform || !mCardUITexture) return;
@@ -265,10 +330,68 @@ void ChooseCardUI::SyncRestoreButtonPosition() {
 		panelPosition.y + kRestoreButtonTopInset));
 }
 
+void ChooseCardUI::SyncPageButtonPosition() {
+	auto button = mPageButton.lock();
+	if (!button) return;
+
+	// 首页的“继续”方向放在面板右侧；次页的“返回”方向贴近开始按钮左侧。
+	if (mCurrentPage == 0) {
+		if (!mTransform || !mCardUITexture) return;
+		const Vector panelPosition = mTransform->GetPosition();
+		button->SetPosition(Vector(
+			panelPosition.x + static_cast<float>(mCardUITexture->width)
+				+ kPageButtonRightGap,
+			panelPosition.y + (static_cast<float>(mCardUITexture->height)
+				- kPageButtonSize) * 0.5f));
+		button->SetImageRotationDegrees(kPageForwardRotation);
+	}
+	else {
+		button->SetPosition(Vector(
+			kStartButtonX - kPageButtonStartGap - kPageButtonSize,
+			kStartButtonY + (kStartButtonHeight - kPageButtonSize) * 0.5f));
+		button->SetImageRotationDegrees(kPageBackRotation);
+	}
+}
+
 void ChooseCardUI::RefreshRestoreButtonState() {
 	if (auto button = mRestoreButton.lock()) {
 		button->SetEnabled(!ResolveRestorableCards().empty());
 	}
+}
+
+void ChooseCardUI::RefreshPageButtonState() {
+	const int pageCount = GetPageCount();
+	if (mCurrentPage >= pageCount) mCurrentPage = pageCount - 1;
+	if (mCurrentPage < 0) mCurrentPage = 0;
+
+	if (auto button = mPageButton.lock()) {
+		const bool hasNextPage = pageCount > 1;
+		button->SetEnabled(hasNextPage);
+		button->SetSkipDraw(!hasNextPage);
+	}
+	SyncPageButtonPosition();
+}
+
+void ChooseCardUI::SyncCardPageVisibility() {
+	// 已选卡脱离网格页限制并留在顶部；其余卡只有所属页活动，避免隐藏叠卡继续响应点击。
+	for (size_t i = 0; i < mCards.size(); ++i) {
+		Card* card = mCards[i];
+		if (!card) continue;
+		const bool selected = IsCardSelected(card);
+		const bool belongsToCurrentPage =
+			static_cast<int>(i / CARDS_PER_PAGE) == mCurrentPage;
+		const bool visible = selected || belongsToCurrentPage;
+		if (!visible) card->SnapToOriginalPosition();
+		card->SetActive(visible);
+	}
+}
+
+void ChooseCardUI::TogglePage() {
+	if (GetPageCount() <= 1) return;
+	// 当前完整卡池只有两页；同一个箭头在首页前进、次页返回。
+	mCurrentPage = mCurrentPage == 0 ? 1 : 0;
+	SyncCardPageVisibility();
+	SyncPageButtonPosition();
 }
 
 void ChooseCardUI::UpdateTargetPositions() {
@@ -303,6 +426,7 @@ void ChooseCardUI::UpdateTargetPositions() {
 		// 设置目标位置，启动动画
 		card->SetTargetPosition(targetPos);
 	}
+	SyncCardPageVisibility();
 }
 
 bool ChooseCardUI::IsCardSelected(Card* card) const {

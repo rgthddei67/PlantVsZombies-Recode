@@ -27,6 +27,8 @@ public:
 	Vector GetOriginalPosition() const { return m_originalPos; }
 
 	void SetTargetPosition(const Vector& target);
+	/** 立即回到选卡网格原位并结束移动，用于隐藏非当前页的未选卡。 */
+	void SnapToOriginalPosition();
 	bool IsMoving() const { return m_isMoving; }
 
 	void Update() override;

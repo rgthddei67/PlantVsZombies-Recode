@@ -40,6 +40,7 @@ private:
 
 	bool mEnabled = true;
 	bool m_skipDraw = false;
+	float mImageRotationDegrees = 0.0f;
 
 public:
 	Button(Vector createPosition = Vector::zero(), Vector btnSize = Vector(40, 40));
@@ -62,6 +63,9 @@ public:
 	// 跳过自己按钮的绘制，让别的玩意去绘制
 	void SetSkipDraw(bool skip) { m_skipDraw = skip; }
 	bool IsSkipDraw() const { return m_skipDraw; }
+	/** 设置按钮图片绕目标矩形中心旋转的角度；命中框保持轴对齐。 */
+	void SetImageRotationDegrees(float degrees) { mImageRotationDegrees = degrees; }
+	float GetImageRotationDegrees() const { return mImageRotationDegrees; }
 
 	void ForceResetHoverState();
 

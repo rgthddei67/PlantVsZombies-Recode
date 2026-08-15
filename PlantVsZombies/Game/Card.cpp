@@ -36,6 +36,12 @@ void Card::SetTargetPosition(const Vector& target) {
 	m_isMoving = true;
 }
 
+void Card::SnapToOriginalPosition() {
+	if (mTransform) mTransform->SetPosition(m_originalPos);
+	m_targetPos = m_originalPos;
+	m_isMoving = false;
+}
+
 void Card::Update() {
 	GameObject::Update(); // 调用基类更新
 
