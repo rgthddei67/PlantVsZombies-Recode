@@ -16,7 +16,8 @@
     { "op": "assert_state", "path": "chooseCardPageButton.visible", "equals": true },
     { "op": "assert_state", "path": "chooseCardPageButton.textureLoaded", "equals": true },
     { "op": "assert_state", "path": "chooseCardPageButton.rotationDegrees", "equals": 0 },
-    { "op": "assert_state", "path": "chooseCardPageButton.relativeCenterXInt", "atLeast": 490, "atMost": 510 },
+    { "op": "assert_state", "path": "chooseCardPageButton.centerXInt", "atLeast": 535, "atMost": 545 },
+    { "op": "assert_state", "path": "chooseCardPageButton.centerYInt", "atLeast": 564, "atMost": 574 },
     { "op": "screenshot", "name": "choose_card_page_1.png" },
 
     { "op": "click", "target": "choose_card_page" },

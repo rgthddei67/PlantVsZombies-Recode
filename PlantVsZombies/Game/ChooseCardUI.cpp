@@ -23,8 +23,7 @@ namespace {
 	constexpr float kRestoreButtonRightInset = 12.0f; // 按钮右边缘距选卡面板右边缘，单位：UI px
 	constexpr float kRestoreButtonTopInset = 8.0f; // 按钮上边缘距选卡面板上边缘，单位：UI px
 	constexpr float kPageButtonSize = 60.0f; // Zen_NextGarden 原图边长，单位：UI px
-	constexpr float kPageButtonRightGap = 10.0f; // 第一页箭头与面板右边缘间距，单位：UI px
-	constexpr float kPageButtonStartGap = 10.0f; // 第二页返回箭头与开始按钮左边缘间距，单位：UI px
+	constexpr float kPageButtonStartGap = 10.0f; // 翻页箭头与开始按钮边缘间距，单位：UI px
 	constexpr float kPageForwardRotation = 0.0f; // 第一页向右箭头旋转角度，单位：度
 	constexpr float kPageBackRotation = 180.0f; // 第二页向左箭头旋转角度，单位：度
 }
@@ -334,21 +333,19 @@ void ChooseCardUI::SyncPageButtonPosition() {
 	auto button = mPageButton.lock();
 	if (!button) return;
 
-	// 首页的“继续”方向放在面板右侧；次页的“返回”方向贴近开始按钮左侧。
+	// 两页箭头围绕开始按钮对称放置：首页向右继续，次页向左返回。
+	const float buttonY =
+		kStartButtonY + (kStartButtonHeight - kPageButtonSize) * 0.5f;
 	if (mCurrentPage == 0) {
-		if (!mTransform || !mCardUITexture) return;
-		const Vector panelPosition = mTransform->GetPosition();
 		button->SetPosition(Vector(
-			panelPosition.x + static_cast<float>(mCardUITexture->width)
-				+ kPageButtonRightGap,
-			panelPosition.y + (static_cast<float>(mCardUITexture->height)
-				- kPageButtonSize) * 0.5f));
+			kStartButtonX + kStartButtonWidth + kPageButtonStartGap,
+			buttonY));
 		button->SetImageRotationDegrees(kPageForwardRotation);
 	}
 	else {
 		button->SetPosition(Vector(
 			kStartButtonX - kPageButtonStartGap - kPageButtonSize,
-			kStartButtonY + (kStartButtonHeight - kPageButtonSize) * 0.5f));
+			buttonY));
 		button->SetImageRotationDegrees(kPageBackRotation);
 	}
 }
