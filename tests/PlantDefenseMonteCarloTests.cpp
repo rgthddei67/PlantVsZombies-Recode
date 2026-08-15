@@ -63,7 +63,8 @@ namespace {
 		config.combat.horizonSeconds = 3.0f;
 		config.combat.stepSeconds = 0.25f;
 		config.combat.plantDecisionInterval = 10.0f;
-		config.guideImmunitySeconds = 10.0f;
+		config.guideImmunitySeconds = 30.0f;
+		config.guideImmunityRadius = 130.0f;
 		return config;
 	}
 
@@ -284,7 +285,7 @@ namespace {
 		snapshot.plants.push_back(MakeRoutePlant(10, 2, 300.0f, 100.0f, 1000.0f));
 		ZombieSnapshot guide = MakeZombie(1, 355.0f, 300.0f, 150.0f, 270.0f);
 		guide.helmHealth = 40.0f;
-		guide.helmMaxHealth = 430.0f;
+		guide.helmMaxHealth = 1200.0f;
 		snapshot.zombies.push_back(guide);
 
 		NightRoofChargeCandidate ordinary;
@@ -308,8 +309,8 @@ namespace {
 		snapshot.plants.push_back(producer);
 		ZombieSnapshot guide = MakeZombie(1, 900.0f, 300.0f, 270.0f, 270.0f);
 		guide.row = 2;
-		guide.helmHealth = 430.0f;
-		guide.helmMaxHealth = 430.0f;
+		guide.helmHealth = 1200.0f;
+		guide.helmMaxHealth = 1200.0f;
 		guide.simulatedCombatant = false;
 		snapshot.zombies.push_back(guide);
 
@@ -327,33 +328,40 @@ namespace {
 			"the planner must keep ordinary rows when their plant shutdown is more valuable");
 	}
 
-	void TestGuidedRouteModelsPendingFreezeAndHardControlImmunity()
+	void TestGuidedRouteValuesNearbyControlImmunityAura()
 	{
 		Snapshot snapshot = MakeTreatmentSnapshot();
 		snapshot.plants.push_back(MakeRoutePlant(10, 2, 300.0f, 100.0f, 1000.0f));
 		PlantSnapshot iceSource = MakeRoutePlant(11, 0, 300.0f, 300.0f, 0.0f);
 		snapshot.plants.push_back(iceSource);
-		ZombieSnapshot guide = MakeZombie(1, 355.0f, 300.0f, 270.0f, 270.0f);
-		guide.helmHealth = 430.0f;
-		guide.helmMaxHealth = 430.0f;
-		snapshot.zombies.push_back(guide);
+		ZombieSnapshot farGuide = MakeZombie(1, 700.0f, 300.0f, 270.0f, 270.0f);
+		farGuide.helmHealth = 1200.0f;
+		farGuide.helmMaxHealth = 1200.0f;
+		farGuide.simulatedCombatant = false;
+		snapshot.zombies.push_back(farGuide);
+		ZombieSnapshot nearGuide = farGuide;
+		nearGuide.id = 2;
+		nearGuide.x = 400.0f;
+		snapshot.zombies.push_back(nearGuide);
+		ZombieSnapshot ally = MakeZombie(3, 470.0f, 300.0f, 600.0f, 600.0f);
+		ally.attackDamage = 80.0f;
+		snapshot.zombies.push_back(ally);
 
-		NightRoofChargeCandidate ordinary;
-		ordinary.row = 2;
-		ordinary.resolveSeconds = 0.0f;
-		ordinary.zombieDamage = 0.0f;
-		ordinary.paralysisSeconds = 0.0f;
-		NightRoofChargeCandidate guided = ordinary;
-		guided.guided = true;
-		guided.guideZombieId = 1;
+		NightRoofChargeCandidate farGuided;
+		farGuided.row = 2;
+		farGuided.resolveSeconds = 0.0f;
+		farGuided.guided = true;
+		farGuided.guideZombieId = 1;
+		NightRoofChargeCandidate nearGuided = farGuided;
+		nearGuided.guideZombieId = 2;
 		NightRoofChargeConfig config = MakeNightRoofRouteConfig();
 		config.pendingControlEvents.push_back({
 			11, 0.5f, 20.0f, 20.0f, 4.0f, 4.0f
 		});
 		const NightRoofChargeResult result = ChooseNightRoofChargeRoute(
-			snapshot, { ordinary, guided }, config, 0x16180339u);
+			snapshot, { farGuided, nearGuided }, config, 0x16180339u);
 		Require(result.candidateIndex == 1,
-			"pending IceShroom freeze and the guide immunity window must affect route value");
+			"the planner must prefer the guide whose 130px aura protects a nearby attacker");
 	}
 }
 
@@ -369,7 +377,7 @@ int main()
 		TestNormalPlantBlocksBeforeCompressedSupport();
 		TestGuidedRoutePreservesZombiePressure();
 		TestOrdinaryRowCanBeatUnhelpfulGuide();
-		TestGuidedRouteModelsPendingFreezeAndHardControlImmunity();
+		TestGuidedRouteValuesNearbyControlImmunityAura();
 		std::cout << "PlantDefenseMonteCarloTests passed\n";
 		return 0;
 	}

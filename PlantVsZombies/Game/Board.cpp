@@ -198,7 +198,12 @@ namespace {
 	constexpr float kTreatmentMonteCarloHorizonSeconds = 7.0f; // 急救员从当前选择推演到下一次最早决策的窗口，单位：游戏秒
 	constexpr int kNightRoofRouteMonteCarloRolloutCount = 32; // 满雷路线每个候选共享的短视未来样本数
 	constexpr float kNightRoofRouteMonteCarloHorizonSeconds = 10.0f; // 满雷路线从预警起推演的游戏秒数
-	constexpr float kGroundingZombieControlImmunityDuration = 10.0f; // 成功引雷后硬控免疫的游戏秒数
+	constexpr float kGroundingZombieControlImmunityDuration = 30.0f; // 成功引雷后范围免控的游戏秒数
+	constexpr float kGroundingZombieControlImmunityRadius = 130.0f; // 成功引雷后减速/冻结/黄油免疫的圆形半径，单位：像素
+	constexpr ZombieControlMask kGroundingZombieControlImmunityMask =
+		ZombieControlBit(ZombieControlEffect::SLOW)
+		| ZombieControlBit(ZombieControlEffect::FROZEN)
+		| ZombieControlBit(ZombieControlEffect::BUTTER); // 接地编队免疫三类植物控制，保留麻痹和伤害反制
 	constexpr float kTreatmentTerminalPressurePerHealth = 0.08f; // 时域末端每点僵尸生命折算的基础进攻压力
 	constexpr int kWaveCandidateAttemptLimit = MAX_ZOMBIES_PER_WAVE * 10; // 单波候选尝试上限，防止仅剩受限类型时死循环
 	constexpr float kWeatherTransitionDuration = 2.0f;   // 雨势切换时倍率、暗幕与雨声音量的平滑过渡时长（游戏秒）
@@ -3207,6 +3212,7 @@ void Board::ChooseNightRoofChargeRoute(float warningSeconds)
 		config.survivalExecutionLineCap =
 			static_cast<float>(kNightRoofHijackerSurvivalLineCap);
 		config.guideImmunitySeconds = kGroundingZombieControlImmunityDuration;
+		config.guideImmunityRadius = kGroundingZombieControlImmunityRadius;
 
 		for (const int plantID : mEntityManager.GetAllPlantIDs()) {
 			const Plant* plant = mEntityManager.GetPlant(plantID);
@@ -3512,7 +3518,8 @@ void Board::ResolveNightRoofHijackerExecution()
 
 /**
  * 放电只在 WARNING 转入 DISCHARGING 的边沿结算一次。植物先按稳定 ID 冻结
- * 接地保护分配，僵尸再消费同一批仍有效的接地范围，最后统一结算植物反噬；
+ * 接地保护分配，引导路线再按放电时位置发放编队免控，普通路线中的僵尸随后消费
+ * 同一批仍有效的接地范围，最后统一结算植物反噬；
  * 读档恢复 DISCHARGING 不会重复伤害。
  */
 void Board::ResolveNightRoofChargeDischarge()
@@ -3522,11 +3529,38 @@ void Board::ResolveNightRoofChargeDischarge()
 
 	const int row = mNightRoofChargeRow;
 	const bool wetRow = IsRoofRunoffFlowing() && IsRoofRunoffRowSelected(row);
+	std::vector<int> zombieIDs = mEntityManager.GetAllZombieIDs();
+	std::sort(zombieIDs.begin(), zombieIDs.end());
 	if (mNightRoofChargeGuided) {
 		Zombie* guide = mEntityManager.GetZombie(mNightRoofChargeGuideID);
 		if (guide && guide->CanGuideNightRoofCharge()) {
-			guide->GrantControlImmunity(ZOMBIE_CONTROL_HARD_MASK,
-				kGroundingZombieControlImmunityDuration, true);
+			auto getColliderCenter = [](const Zombie* zombie) {
+				Vector center = zombie->GetPosition();
+				if (const ColliderComponent* collider = zombie->GetColliderComponent()) {
+					const SDL_FRect bounds = collider->GetBoundingBox();
+					center = Vector(bounds.x + bounds.w * 0.5f,
+						bounds.y + bounds.h * 0.5f);
+				}
+				return center;
+			};
+			const Vector guideCenter = getColliderCenter(guide);
+			const float radiusSquared = kGroundingZombieControlImmunityRadius
+				* kGroundingZombieControlImmunityRadius;
+			// 放电边沿冻结稳定 ID 快照；同阵营目标一经获得免控，随后走出范围也保留余时。
+			for (const int id : zombieIDs) {
+				Zombie* target = mEntityManager.GetZombie(id);
+				if (!target || !target->IsActive() || target->IsDying()
+					|| target->IsPreview()
+					|| target->IsMindControlled() != guide->IsMindControlled()) {
+					continue;
+				}
+				const Vector targetCenter = getColliderCenter(target);
+				const float dx = targetCenter.x - guideCenter.x;
+				const float dy = targetCenter.y - guideCenter.y;
+				if (dx * dx + dy * dy > radiusSquared) continue;
+				target->GrantControlImmunity(kGroundingZombieControlImmunityMask,
+					kGroundingZombieControlImmunityDuration, true);
+			}
 			Vector anchor;
 			if (g_particleSystem && guide->TryGetNightRoofChargeGuideAnchor(anchor)) {
 				g_particleSystem->EmitEffect("GroundingZombieLightning", anchor);
@@ -3586,8 +3620,6 @@ void Board::ResolveNightRoofChargeDischarge()
 			? kNightRoofWetPlantShutdownDuration
 			: kNightRoofPlantShutdownDuration);
 	}
-	std::vector<int> zombieIDs = mEntityManager.GetAllZombieIDs();
-	std::sort(zombieIDs.begin(), zombieIDs.end());
 	for (const int id : zombieIDs) {
 		if (mNightRoofChargeGuided) break;
 		Zombie* zombie = mEntityManager.GetZombie(id);
@@ -5182,6 +5214,7 @@ bool Board::BuildMonteCarloCombatSnapshot(
 				&& IsNightRoofChargeProtectionSuppressed(zombie),
 			canProtectNightRoofCharge
 				? 1.5f * CELL_COLLIDER_SIZE_X : 0.0f,
+			zombie->IsMindControlled(),
 			simulatedCombatant,
 			false
 		});

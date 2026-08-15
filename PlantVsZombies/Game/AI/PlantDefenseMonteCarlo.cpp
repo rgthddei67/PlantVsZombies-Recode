@@ -96,6 +96,7 @@ namespace {
 		bool canProtectFromNightRoofCharge = false;
 		bool nightRoofProtectionSuppressed = false;
 		float nightRoofProtectionRadius = 0.0f;
+		bool mindControlled = false;
 		bool simulatedCombatant = true;
 	};
 
@@ -320,6 +321,7 @@ namespace {
 				source.canProtectFromNightRoofCharge,
 				source.nightRoofProtectionSuppressed,
 				std::max(0.0f, source.nightRoofProtectionRadius),
+				source.mindControlled,
 				source.simulatedCombatant
 			};
 		}
@@ -1204,16 +1206,25 @@ namespace {
 		if (candidate.guided) {
 			SimZombie* guide = FindZombie(state, candidate.guideZombieId);
 			if (!guide || !IsAlive(*guide) || guide->helmHealth <= kMinimumHealth) return;
-			guide->frozenRemaining = 0.0f;
-			guide->butterRemaining = 0.0f;
-			guide->paralysisRemaining = 0.0f;
 			const float immunity = std::max(0.0f, config.guideImmunitySeconds);
-			guide->frozenImmunityRemaining = std::max(
-				guide->frozenImmunityRemaining, immunity);
-			guide->butterImmunityRemaining = std::max(
-				guide->butterImmunityRemaining, immunity);
-			guide->paralysisImmunityRemaining = std::max(
-				guide->paralysisImmunityRemaining, immunity);
+			const float radius = std::max(0.0f, config.guideImmunityRadius);
+			const float radiusSquared = radius * radius;
+			for (int i = 0; i < state.zombieCount; ++i) {
+				SimZombie& target = state.zombies[i];
+				if (!IsAlive(target) || target.mindControlled != guide->mindControlled) continue;
+				const float dx = target.x - guide->x;
+				const float dy = target.y - guide->y;
+				if (dx * dx + dy * dy > radiusSquared) continue;
+				target.slowRemaining = 0.0f;
+				target.frozenRemaining = 0.0f;
+				target.butterRemaining = 0.0f;
+				target.slowImmunityRemaining = std::max(
+					target.slowImmunityRemaining, immunity);
+				target.frozenImmunityRemaining = std::max(
+					target.frozenImmunityRemaining, immunity);
+				target.butterImmunityRemaining = std::max(
+					target.butterImmunityRemaining, immunity);
+			}
 			return;
 		}
 

@@ -90,6 +90,7 @@ struct ZombieSnapshot {
 	bool canProtectFromNightRoofCharge = false;
 	bool nightRoofProtectionSuppressed = false;
 	float nightRoofProtectionRadius = 0.0f;
+	bool mindControlled = false;
 	bool simulatedCombatant = true;
 	bool forcedForDecision = false;
 };
@@ -253,7 +254,8 @@ struct NightRoofChargeConfig {
 	float hijackerExecutionSeconds = -1.0f;
 	bool survivalMode = false;
 	float survivalExecutionLineCap = 1200.0f;
-	float guideImmunitySeconds = 10.0f;
+	float guideImmunitySeconds = 30.0f;
+	float guideImmunityRadius = 130.0f;
 };
 
 struct NightRoofChargeResult {
