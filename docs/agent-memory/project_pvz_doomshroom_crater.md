@@ -41,3 +41,7 @@ metadata:
 Board 统一清梯入口：僵尸仍按 250px 圆形判定，扶梯独立按爆心格 ±3 的 7×7 方形范围清除。
 `smoke_doomshroom` 用范围内 `(0,1)/(4,7)` 与范围外 `(2,0)/(2,8)` 锁定边界；当前桌面可见
 `clang-release` 运行 exit 0、53 条命令全过，弹坑、伤害与白天睡眠父回归保持通过。
+
+## 2026-08-15 巨人锤击反应
+
+`DoomShroom::ResolveGargantuarSmash()` 只在清醒且正播放 `anim_explode` 时立即复用正式 `Explode()`；因此跳过剩余充能动画但完整保留伤害、白闪、同格清理、弹坑和音效。白天 `anim_sleep` 毁灭菇仍走通用压扁。可见 `smoke_gargantuar_special_plant_smash.json` 在命中后的 10 个逻辑帧内分别断言清醒毁灭菇已生成目标格弹坑、睡眠毁灭菇只压扁且无弹坑；`smoke_doomshroom.json` 自然充能父回归仍 exit 0。

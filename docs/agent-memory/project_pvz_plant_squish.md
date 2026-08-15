@@ -2,7 +2,7 @@
 
 ## 当前实现（2026-07-26）
 
-- `Plant::Squish()` 是巨人砸击、冰车和投篮车共用的植物侧入口；冰车、投篮车与巨人均已成为正式调用方，巨人在 `anim_smash` 第 93 帧压扁目标格全部活动植物层。
+- `Plant::Squish()` 是通用压扁残影入口；冰车和投篮车直接使用，巨人在 `anim_smash` 第 93 帧改为逐层派发 `Plant::ResolveGargantuarSmash()`，其默认实现再调用 `Squish()`。特殊植物因此能立即正式结算或忽略锤击，且不影响同格其他层独立受击。
 - 进入压扁态时冻结当前视觉坐标和动画，跳过植物行为与承伤，禁用碰撞、隐藏影子并释放上下层占格。残影销毁时只清仍指向自身的 ID，不会误删同格后来种下的植物。
 - 表现对齐 C#：X 保持 `1.0`，Y 压到 `0.5`，以冻结视觉原点下方一个当前地图格高为底边锚点；随机播放现有 `SOUND_ZOMBIE_EAT` / `SOUND_ZOMBIE_EAT2`。
 - 主人将总保留时间从约 8.33 秒调整为 5 秒，末段仍占 20%，即最后 1 秒线性渐隐。计时只在 `BoardState::GAME` 推进。
@@ -24,3 +24,5 @@
 - `before_squish.png`、`squished.png`、`squished_fading.png` 已逐张检查，头、茎、叶整体以底边锚点同步压扁。
 
 递归实例化收口后同脚本默认与 `-NoInstance` 均可见退出 0；默认截图逐张检查通过，静止/压扁图与慢路径最大通道差 1。`smoke_animator_recursive_instancing.json` 另行验证父身体与子头部同步 glow、恢复后轨道仍为 `anim_idle` / `anim_head_idle`。
+
+2026-08-15 `clang-release` 可见 `smoke_gargantuar_special_plant_smash.json` 与 `smoke_gargantuar_actions.json` 均 exit 0：普通植物仍压扁，索敌倭瓜不压扁但花盆独立压扁，睡眠毁灭菇保留普通压扁；三类引爆植物不生成压扁残影。

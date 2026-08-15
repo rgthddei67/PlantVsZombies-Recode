@@ -113,6 +113,14 @@ bool Squash::CanBeEaten() const
 		&& mState != State::LANDED;
 }
 
+void Squash::ResolveGargantuarSmash()
+{
+	// C# 的 Plant::Squish 只允许尚未索敌的 Notready 倭瓜进入压扁态。
+	if (mState == State::IDLE) {
+		Plant::ResolveGargantuarSmash();
+	}
+}
+
 int Squash::FindTargetZombieID() const
 {
 	if (!mBoard) return NULL_ZOMBIE_ID;

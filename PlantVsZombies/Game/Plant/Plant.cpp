@@ -280,6 +280,11 @@ void Plant::PlantUpdate()
 {
 }
 
+void Plant::ResolveGargantuarSmash()
+{
+	Squish();
+}
+
 void Plant::Squish()
 {
 	if (mIsPreview || mIsSquished) return;

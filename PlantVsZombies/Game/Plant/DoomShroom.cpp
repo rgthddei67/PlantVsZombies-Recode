@@ -49,6 +49,15 @@ void DoomShroom::TakeDamage(int damage, DamageSource source)
 	Plant::TakeDamage(damage, source);
 }
 
+void DoomShroom::ResolveGargantuarSmash()
+{
+	if (!mIsSleeping && GetCurrentTrackName() == "anim_explode") {
+		Explode();
+		return;
+	}
+	Plant::ResolveGargantuarSmash();
+}
+
 void DoomShroom::Explode()
 {
 	if (!mBoard) return;

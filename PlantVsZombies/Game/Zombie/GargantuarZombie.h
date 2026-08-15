@@ -61,7 +61,7 @@ protected:
 private:
 	/** 从行走态进入一次砸击，并冻结本次植物格或敌对僵尸目标。 */
 	void BeginSmash(int row, int column, int zombieID);
-	/** 主人指定的第 93 帧回调：压扁目标格植物或重击敌对僵尸。 */
+	/** 主人指定的第 93 帧回调：逐层结算目标格植物的锤击反应或重击敌对僵尸。 */
 	void ApplySmashImpact();
 	/** 半血且位置允许时开始唯一一次投掷。 */
 	void TryBeginThrow();

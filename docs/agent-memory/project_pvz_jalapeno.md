@@ -44,3 +44,7 @@ metadata:
   随后冰道消失且该格恢复可种植。
 
 全部最终截图已人工检查；主人明确确认从 `CELL_INITALIZE_POS_X` 开始的火焰位置正确。
+
+## 2026-08-15 巨人锤击反应
+
+正在 `anim_explode` 的辣椒收到巨人锤击时由 `Jalapeno::ResolveGargantuarSmash()` 立即复用正式 `IgniteRow()`，跳过剩余本体充能动画但不跳过整行火焰表现与正式伤害/除冰/音效。可见 `smoke_gargantuar_special_plant_smash.json` 在不足自然点燃时间的 10 个逻辑帧内断言植物消失、同行普通僵尸死亡、12 段火焰存在；`smoke_jalapeno.json` 既有 72 条自然结算回归仍 exit 0。

@@ -69,6 +69,15 @@ void Jalapeno::TakeDamage(int /*damage*/, DamageSource /*source*/)
 	SetGlowingTimer(0.1f);
 }
 
+void Jalapeno::ResolveGargantuarSmash()
+{
+	if (GetCurrentTrackName() == "anim_explode") {
+		IgniteRow();
+		return;
+	}
+	Plant::ResolveGargantuarSmash();
+}
+
 void Jalapeno::IgniteRow()
 {
 	if (!mBoard) {

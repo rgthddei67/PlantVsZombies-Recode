@@ -1632,6 +1632,34 @@ bool TestDriver::ExecuteCurrent() {
 		Fail("make_healer_ready: 未找到目标急救员僵尸");
 		return false;
 	}
+	if (op == "make_gargantuar_smash_ready") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) {
+			Fail("make_gargantuar_smash_ready: 不在 GameScene 或 Board 为空");
+			return false;
+		}
+		const int row = cmd.value("row", -1);
+		const int index = cmd.value("index", 0);
+		int seen = 0;
+		std::vector<int> zombieIDs = gs->GetBoard()->mEntityManager.GetAllZombieIDs();
+		std::sort(zombieIDs.begin(), zombieIDs.end());
+		for (const int id : zombieIDs) {
+			auto* gargantuar = dynamic_cast<GargantuarZombie*>(
+				gs->GetBoard()->mEntityManager.GetZombie(id));
+			if (!gargantuar || !gargantuar->IsActive()
+				|| gargantuar->GetPhase() != GargantuarZombie::Phase::SMASHING
+				|| gargantuar->HasAppliedSmash()) {
+				continue;
+			}
+			if (row >= 0 && gargantuar->mRow != row) continue;
+			if (seen++ != index) continue;
+			// 只推进到既有第 93 帧事件前；目标快照、植物反应和命中音画仍走正式路径。
+			gargantuar->SetCurrentFrame(92.0f);
+			return true;
+		}
+		Fail("make_gargantuar_smash_ready: 未找到尚未结算砸击的目标巨人僵尸");
+		return false;
+	}
 	if (op == "set_jack_pop_countdown") {
 		GameScene* gs = CurrentGameScene();
 		if (!gs || !gs->GetBoard()) {

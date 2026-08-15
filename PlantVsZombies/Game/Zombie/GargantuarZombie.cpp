@@ -244,7 +244,7 @@ void GargantuarZombie::ApplySmashImpact()
 			mBoard->GetUnderPlantAt(mTargetRow, mTargetColumn),
 		};
 		for (Plant* plant : plants) {
-			if (plant && plant->IsActive()) plant->Squish();
+			if (plant && plant->IsActive()) plant->ResolveGargantuarSmash();
 		}
 	}
 

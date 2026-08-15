@@ -11,6 +11,8 @@ public:
 
 	/** 蓄力期间免疫啃食伤害，只保留受击闪光。 */
 	void TakeDamage(int damage, DamageSource source) override;
+	/** 巨人锤击命中引爆中的辣椒时立即点燃整行，不生成压扁残影。 */
+	void ResolveGargantuarSmash() override;
 
 protected:
 	/** 切到主人裁定的爆炸轨，并在全局第 19 帧结算。 */
