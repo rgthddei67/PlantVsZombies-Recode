@@ -110,6 +110,7 @@ enum class AnimationType
 	ANIM_LIGHTNINGRODPOT, // 避雷花盆独立陶盆、铜带与避雷针时间线
 	ANIM_WINTERMELON, // 经典冰瓜；追加在末尾避免旧动画枚举值错位
 	ANIM_COBCANNON, // 经典玉米加农炮；双格单实体，追加在末尾保持旧动画枚举值
+	ANIM_GROUNDING_ZOMBIE, // 接地僵尸独立电紫天线路障；复用普通路障时间线
 };
 
 #endif

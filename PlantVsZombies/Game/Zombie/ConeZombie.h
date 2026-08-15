@@ -19,25 +19,15 @@ public:
 			);
 	}
 
-	void ZombieItemUpdate() const override {
-		Zombie::ZombieItemUpdate();
-
-		if (mHelmStage == ArmorBrokenState::NONE || mHelmType == HelmType::HELMTYPE_NONE) {
-			mAnimator->SetTrackVisible("anim_cone", false);
-		}
-		else if (mHelmStage == ArmorBrokenState::A_LITTLE_BROKEN) {
-			mAnimator->SetTrackImage("anim_cone", ResourceManager::GetInstance().
-				GetTexture("IMAGE_ZOMBIE_CONE2"));
-		}
-		else if (mHelmStage == ArmorBrokenState::REALLY_BROKEN) {
-			mAnimator->SetTrackImage("anim_cone", ResourceManager::GetInstance().
-				GetTexture("IMAGE_ZOMBIE_CONE3"));
-		}
-	}
+	void ZombieItemUpdate() const override;
 
 protected:
 	void SetupZombie() override;
 	void CheckHelmImage() override;
+	/** 返回当前路障阶段的运行时纹理键，供数值变体只替换护具图。 */
+	virtual const std::string& GetConeTextureKey(ArmorBrokenState stage) const;
+	/** 返回路障脱落粒子配置名，供数值变体保持掉落表现与自身贴图一致。 */
+	virtual const char* GetConeDropEffectName() const { return "ZombieConeOff"; }
 };
 
 #endif

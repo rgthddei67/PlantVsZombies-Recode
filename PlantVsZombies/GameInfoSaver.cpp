@@ -334,6 +334,8 @@ bool GameInfoSaver::SerializeLevelDataToPath(Board* board, CardSlotManager* mana
 	j["nightRoofChargePhase"] = static_cast<int>(board->mNightRoofChargePhase);
 	j["nightRoofChargePhaseTimer"] = board->mNightRoofChargePhaseTimer;
 	j["nightRoofChargeRow"] = board->mNightRoofChargeRow;
+	j["nightRoofChargeGuided"] = board->mNightRoofChargeGuided;
+	j["nightRoofChargeGuideID"] = board->mNightRoofChargeGuideID;
 	j["nightRoofHijackerSelectionAttempted"] = board->mNightRoofHijackerSelectionAttempted;
 	j["nightRoofHijackerID"] = board->mNightRoofHijackerID;
 	j["nightRoofHijackerWarningExtended"] = board->mNightRoofHijackerWarningExtended;
@@ -386,6 +388,7 @@ bool GameInfoSaver::SerializeLevelDataToPath(Board* board, CardSlotManager* mana
 	j["eliteCatapultsSpawnedThisWave"] = board->mEliteCatapultsSpawnedThisWave;
 	j["insulatorsSpawnedThisWave"] = board->mInsulatorsSpawnedThisWave;
 	j["hijackersSpawnedThisWave"] = board->mHijackersSpawnedThisWave;
+	j["groundingZombiesSpawnedThisWave"] = board->mGroundingZombiesSpawnedThisWave;
 	j["mistFuelDropAccumulator"] = board->mMistFuelDropAccumulator;
 	WeatherPresentationState weatherPresentation;
 	if (auto* presentation = board->GetPresentation()) {
@@ -865,7 +868,9 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 		j.value("nightRoofHijackerSelectionAttempted", false),
 		j.value("nightRoofHijackerID", NULL_ZOMBIE_ID),
 		j.value("nightRoofHijackerWarningExtended", false),
-		j.value("nightRoofHijackerFinalizing", false));
+		j.value("nightRoofHijackerFinalizing", false),
+		j.value("nightRoofChargeGuided", false),
+		j.value("nightRoofChargeGuideID", NULL_ZOMBIE_ID));
 	// 旧版天气存档没有该字段时按 false：少一次增强机会比读档后凭空再增强更稳妥。
 	board->mRainCanIntensify = board->mRainIntensity == RainIntensity::LIGHT
 		&& j.value("rainCanIntensify", false);
@@ -992,6 +997,8 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 		j.value("insulatorsSpawnedThisWave", 0));
 	board->RestoreHijackerWaveSpawnCount(
 		j.value("hijackersSpawnedThisWave", 0));
+	board->RestoreGroundingZombieWaveSpawnCount(
+		j.value("groundingZombiesSpawnedThisWave", 0));
 	board->mRainVisualActive = false;   // 粒子不入存档，StartGame 按剩余时间重建
 	board->mMaxWave = j.value("maxWave", 10);
 	board->mZombieCountDown = j.value("zombieCountDown", 20.0f);

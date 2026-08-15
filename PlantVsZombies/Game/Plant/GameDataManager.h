@@ -28,6 +28,14 @@ struct PlantSimulationProfile {
 	int attackRowRadius = 0;          // 攻击覆盖自身行上下各几行；0=仅本行
 	float sunPerSecond = 0.0f;        // 简化后的长期产光速率，单位：阳光/游戏秒
 	float firstSunDelay = 0.0f;       // 新种下后开始贡献长期产能前的等待秒数
+	float slowApplicationsPerSecond = 0.0f; // 对当前等效攻击目标施加减速的平均频率
+	float slowDuration = 0.0f;        // 每次减速命中的持续游戏秒数
+	float frozenApplicationsPerSecond = 0.0f; // 对当前等效攻击目标施加冻结的平均频率
+	float frozenDuration = 0.0f;      // 每次冻结命中的持续游戏秒数
+	float butterApplicationsPerSecond = 0.0f; // 对当前等效攻击目标施加黄油的平均频率
+	float butterDuration = 0.0f;      // 每次黄油命中的持续游戏秒数
+	float paralysisApplicationsPerSecond = 0.0f; // 对当前等效攻击目标施加麻痹的平均频率
+	float paralysisDuration = 0.0f;   // 每次麻痹命中的持续游戏秒数
 	bool persistent = true;           // false=一次性/复杂能力牌，不参与未来种植推演
 	bool supportOnly = false;          // true=普通承载层压缩进每格支撑快照，也不作为未来种植候选
 };

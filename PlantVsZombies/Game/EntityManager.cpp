@@ -41,6 +41,7 @@ int EntityManager::AddZombie(std::shared_ptr<Zombie> zombie) {
 	TrackGoldenIceSource(id, zombie);
 	TrackRoofMarshal(id, zombie);
 	TrackHijacker(id, zombie);
+	TrackNightRoofChargeGuide(id, zombie);
 	TrackHealer(id, zombie);
 	return id;
 }
@@ -115,6 +116,29 @@ bool EntityManager::HasActiveNightRoofHijacker() const
 			hijacker && hijacker->CanBeNightRoofHijackerCandidate()) return true;
 	}
 	return false;
+}
+
+std::vector<std::shared_ptr<Zombie>>
+EntityManager::GetNightRoofChargeGuideCandidates() const
+{
+	std::vector<std::shared_ptr<Zombie>> candidates;
+	for (const auto& pair : mNightRoofChargeGuides) {
+		auto zombie = pair.second.lock();
+		if (zombie && zombie->CanGuideNightRoofCharge()) {
+			candidates.push_back(std::move(zombie));
+		}
+	}
+	return candidates;
+}
+
+int EntityManager::GetActiveNightRoofChargeGuideCount() const
+{
+	int count = 0;
+	for (const auto& pair : mNightRoofChargeGuides) {
+		if (auto zombie = pair.second.lock();
+			zombie && zombie->CanGuideNightRoofCharge()) ++count;
+	}
+	return count;
 }
 
 bool EntityManager::IsHealerFocusedTargetReserved(
@@ -263,6 +287,17 @@ void EntityManager::TrackHijacker(
 	}
 }
 
+void EntityManager::TrackNightRoofChargeGuide(
+	int id, const std::shared_ptr<Zombie>& zombie)
+{
+	if (zombie && zombie->IsNightRoofChargeGuideType()) {
+		mNightRoofChargeGuides[id] = zombie;
+	}
+	else {
+		mNightRoofChargeGuides.erase(id);
+	}
+}
+
 void EntityManager::TrackHealer(
 	int id, const std::shared_ptr<Zombie>& zombie)
 {
@@ -337,6 +372,12 @@ std::vector<int> EntityManager::CleanupExpired() {
 			}
 		}
 
+		for (auto it = mNightRoofChargeGuides.begin();
+			it != mNightRoofChargeGuides.end(); ) {
+			if (it->second.expired()) it = mNightRoofChargeGuides.erase(it);
+			else ++it;
+		}
+
 		for (auto it = mHealers.begin(); it != mHealers.end(); ) {
 			if (it->second.expired()) {
 				it = mHealers.erase(it);
@@ -384,6 +425,7 @@ int EntityManager::AddZombieWithID(std::shared_ptr<Zombie> zombie, int id) {
 	TrackGoldenIceSource(id, zombie);
 	TrackRoofMarshal(id, zombie);
 	TrackHijacker(id, zombie);
+	TrackNightRoofChargeGuide(id, zombie);
 	TrackHealer(id, zombie);
 	if (id >= mNextZombieID) {
 		mNextZombieID = id + 1;

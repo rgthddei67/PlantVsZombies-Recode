@@ -1,0 +1,34 @@
+<Emitter>
+  <Name>GroundingZombieLightning</Name>
+  <SpawnMinActive>1</SpawnMinActive>
+  <SpawnMaxLaunched>1</SpawnMaxLaunched>
+  <SpawnRate>0</SpawnRate>
+  <ParticleDuration>.28</ParticleDuration>
+  <ParticleAlpha>.90 .45,68 0,100</ParticleAlpha>
+  <ParticleRed>.70</ParticleRed>
+  <ParticleGreen>.34</ParticleGreen>
+  <ParticleBlue>1</ParticleBlue>
+  <ParticleBrightness>1</ParticleBrightness>
+  <ParticleScale>.30 .72</ParticleScale>
+  <SystemDuration>.34</SystemDuration>
+  <Image>PARTICLE_RAIN_CIRCLE</Image>
+</Emitter>
+<Emitter>
+  <Name>GroundingZombieLightningSparks</Name>
+  <SpawnMinActive>5</SpawnMinActive>
+  <SpawnMaxLaunched>5</SpawnMaxLaunched>
+  <SpawnRate>0</SpawnRate>
+  <ParticleDuration>[.16 .30]</ParticleDuration>
+  <ParticleAlpha>.92,70 0</ParticleAlpha>
+  <ParticleRed>.82 .40 0</ParticleRed>
+  <ParticleGreen>.52 .10 0</ParticleGreen>
+  <ParticleBlue>1 .78 0</ParticleBlue>
+  <ParticleScale>[.09 .17],76 0</ParticleScale>
+  <EmitterType>Circle</EmitterType>
+  <EmitterRadius>[3 12]</EmitterRadius>
+  <LaunchSpeed>[24 54]</LaunchSpeed>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <ParticleSpinSpeed>[-620 620]</ParticleSpinSpeed>
+  <SystemDuration>.34</SystemDuration>
+  <Image>PARTICLE_STAR40</Image>
+</Emitter>

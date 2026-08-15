@@ -102,6 +102,7 @@
 #include "../Zombie/InsulatorZombie.h"
 #include "../Zombie/HijackerZombie.h"
 #include "../Zombie/HealerZombie.h"
+#include "../Zombie/GroundingZombie.h"
 
 namespace {
 	template<typename T>
@@ -620,6 +621,12 @@ void GameDataManager::InitializeHardcodedData() {
 		ResourceKeys::Reanimations::REANIM_NORMAL_ZOMBIE,
 		&MakeZombie<HealerZombie>);
 
+	// 接地僵尸复用路障时间线，仅把三阶段护具换成带铜天线的独立电紫资源。
+	RegisterZombie(ZombieType::ZOMBIE_GROUNDING, "ZOMBIE_GROUNDING",
+		AnimationType::ANIM_GROUNDING_ZOMBIE,
+		ResourceKeys::Reanimations::REANIM_GROUNDING_ZOMBIE,
+		&MakeZombie<GroundingZombie>);
+
 	// ==================== 非植物/僵尸动画映射 ====================
 	mAnimToString[AnimationType::ANIM_SUN] = ResourceKeys::Reanimations::REANIM_SUN;
 
@@ -764,6 +771,14 @@ bool GameDataManager::LoadNumbersFromJson() {
 			readOptionalInt("attackRowRadius", out.attackRowRadius);
 			readOptionalFloat("sunPerSecond", out.sunPerSecond);
 			readOptionalFloat("firstSunDelay", out.firstSunDelay);
+			readOptionalFloat("slowApplicationsPerSecond", out.slowApplicationsPerSecond);
+			readOptionalFloat("slowDuration", out.slowDuration);
+			readOptionalFloat("frozenApplicationsPerSecond", out.frozenApplicationsPerSecond);
+			readOptionalFloat("frozenDuration", out.frozenDuration);
+			readOptionalFloat("butterApplicationsPerSecond", out.butterApplicationsPerSecond);
+			readOptionalFloat("butterDuration", out.butterDuration);
+			readOptionalFloat("paralysisApplicationsPerSecond", out.paralysisApplicationsPerSecond);
+			readOptionalFloat("paralysisDuration", out.paralysisDuration);
 			if (simulation.contains("persistent")) {
 				if (!simulation["persistent"].is_boolean()) {
 					errors.push_back(who
@@ -784,7 +799,12 @@ bool GameDataManager::LoadNumbersFromJson() {
 			}
 			if (out.baseHealth <= 0 || out.attackDps < 0.0f
 				|| out.attackRowRadius < 0 || out.sunPerSecond < 0.0f
-				|| out.firstSunDelay < 0.0f) {
+				|| out.firstSunDelay < 0.0f
+				|| out.slowApplicationsPerSecond < 0.0f || out.slowDuration < 0.0f
+				|| out.frozenApplicationsPerSecond < 0.0f || out.frozenDuration < 0.0f
+				|| out.butterApplicationsPerSecond < 0.0f || out.butterDuration < 0.0f
+				|| out.paralysisApplicationsPerSecond < 0.0f
+				|| out.paralysisDuration < 0.0f) {
 				errors.push_back(who + ".simulation 含越界负数或零生命");
 			}
 		};

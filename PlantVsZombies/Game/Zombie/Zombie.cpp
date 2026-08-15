@@ -208,6 +208,7 @@ void Zombie::SaveProtectedData(nlohmann::json& j) const {
 	j["frozenTimer"] = mFrozenTimer;
 	j["butterTimer"] = mButterTimer;
 	j["paralysisTimer"] = mParalysisTimer;
+	j["controlImmunityTimers"] = mControlImmunityTimers;
 	j["roofMarshalAssaultTimer"] = mRoofMarshalAssaultTimer;
 	j["roofMarshalAssaultMoveMultiplier"] = mRoofMarshalAssaultMoveMultiplier;
 	j["roofMarshalAssaultBiteMultiplier"] = mRoofMarshalAssaultBiteMultiplier;
@@ -278,6 +279,31 @@ void Zombie::LoadProtectedData(const nlohmann::json& j) {
 	if (!CanBeParalyzed()) mParalysisTimer = 0.0f;
 	if (mParalysisTimer > 0.0f && mAnimator) {
 		UpdateAnimSpeed();
+	}
+	mControlImmunityTimers.fill(0.0f);
+	if (const auto it = j.find("controlImmunityTimers");
+		it != j.end() && it->is_array()) {
+		const std::size_t count = std::min(
+			it->size(), mControlImmunityTimers.size());
+		for (std::size_t index = 0; index < count; ++index) {
+			mControlImmunityTimers[index] = std::clamp(
+				(*it)[index].get<float>(), 0.0f, 3600.0f);
+		}
+	}
+	// 临时免疫是读档后的权威状态；旧档或损坏档不能同时保留被免疫的定身。
+	if (IsControlImmune(ZombieControlEffect::SLOW) && mCooldownTimer > 0.0f) {
+		mCooldownTimer = 0.0f;
+		UpdateAnimSpeed();
+		UpdateStatusOverlay();
+	}
+	if (IsControlImmune(ZombieControlEffect::FROZEN) && mFrozenTimer > 0.0f) {
+		ClearFrozen();
+	}
+	if (IsControlImmune(ZombieControlEffect::BUTTER) && mButterTimer > 0.0f) {
+		ClearButter();
+	}
+	if (IsControlImmune(ZombieControlEffect::PARALYSIS) && mParalysisTimer > 0.0f) {
+		ClearParalysis();
 	}
 
 	mToxinLayerTimers.fill(0.0f);
@@ -454,6 +480,7 @@ void Zombie::Update()
 		if (!IsActive()) return;
 
 		// 突击令按游戏时间衰减，不因啃食、冻结或品种行为早退而变成永久增益。
+		UpdateControlImmunity(deltaTime);
 		if (mRoofMarshalAssaultTimer > 0.0f) {
 			mRoofMarshalAssaultTimer = std::max(0.0f,
 				mRoofMarshalAssaultTimer - deltaTime);
@@ -1047,7 +1074,8 @@ void Zombie::ZombieMove(float scaledDelta, TransformComponent* transform)
 
 void Zombie::SetCooldown(float timer, bool bypassShield)
 {
-	if (!mAnimator || (mShieldType != ShieldType::SHIELDTYPE_NONE && !bypassShield)) return;
+	if (!mAnimator || IsControlImmune(ZombieControlEffect::SLOW)
+		|| (mShieldType != ShieldType::SHIELDTYPE_NONE && !bypassShield)) return;
 
 	// 已在减速中则取 max，避免短射缩短减速
 	mCooldownTimer = std::max(mCooldownTimer, timer);
@@ -1203,7 +1231,8 @@ void Zombie::TakeHijackerExecution()
 bool Zombie::ApplyButter()
 {
 	if (!mHasHead || mIsPreview || mIsDead || mIsDying || mIsMindControlled
-		|| !IsActive() || !CanBeFrozen() || IsFlying()
+		|| !IsActive() || !CanBeButtered()
+		|| IsControlImmune(ZombieControlEffect::BUTTER) || IsFlying()
 		|| mTangleKelpPlantID != NULL_PLANT_ID
 		|| mZombieType == ZombieType::ZOMBIE_ZAMBONI
 		|| mZombieType == ZombieType::ZOMBIE_GILDED_ZAMBONI
@@ -1221,7 +1250,8 @@ bool Zombie::ApplyParalysis(float durationSeconds)
 {
 	if (!std::isfinite(durationSeconds) || durationSeconds <= 0.0f
 		|| mIsPreview || mIsDead || mIsDying || !IsActive()
-		|| !CanBeParalyzed()) {
+		|| !CanBeParalyzed()
+		|| IsControlImmune(ZombieControlEffect::PARALYSIS)) {
 		return false;
 	}
 	mParalysisTimer = std::max(mParalysisTimer,
@@ -1307,6 +1337,65 @@ bool Zombie::CanBeChilled() const
 	return !mIsPreview && !mIsDead && !mIsDying && !mIsMindControlled;
 }
 
+bool Zombie::IsControlImmune(ZombieControlEffect effect) const
+{
+	const std::size_t index = static_cast<std::size_t>(effect);
+	if (index >= mControlImmunityTimers.size()) return false;
+	return mControlImmunityTimers[index] > 0.0f
+		|| (GetPermanentControlImmunityMask() & ZombieControlBit(effect)) != 0;
+}
+
+float Zombie::GetControlImmunityTimeRemaining(ZombieControlEffect effect) const
+{
+	const std::size_t index = static_cast<std::size_t>(effect);
+	return index < mControlImmunityTimers.size()
+		? mControlImmunityTimers[index] : 0.0f;
+}
+
+ZombieControlMask Zombie::GetActiveControlImmunityMask() const
+{
+	ZombieControlMask mask = GetPermanentControlImmunityMask();
+	for (std::size_t index = 0; index < mControlImmunityTimers.size(); ++index) {
+		if (mControlImmunityTimers[index] > 0.0f) {
+			mask |= ZombieControlMask{ 1 } << index;
+		}
+	}
+	return mask;
+}
+
+void Zombie::GrantControlImmunity(
+	ZombieControlMask mask, float durationSeconds, bool clearExisting)
+{
+	if (!std::isfinite(durationSeconds) || durationSeconds <= 0.0f
+		|| mIsPreview || mIsDead || mIsDying || !IsActive()) return;
+	for (std::size_t index = 0; index < mControlImmunityTimers.size(); ++index) {
+		if ((mask & (ZombieControlMask{ 1 } << index)) == 0) continue;
+		mControlImmunityTimers[index] = std::max(
+			mControlImmunityTimers[index], durationSeconds);
+	}
+	if (!clearExisting) return;
+	if ((mask & ZombieControlBit(ZombieControlEffect::SLOW)) != 0
+		&& mCooldownTimer > 0.0f) {
+		mCooldownTimer = 0.0f;
+		UpdateAnimSpeed();
+		UpdateStatusOverlay();
+	}
+	if ((mask & ZombieControlBit(ZombieControlEffect::FROZEN)) != 0
+		&& mFrozenTimer > 0.0f) ClearFrozen();
+	if ((mask & ZombieControlBit(ZombieControlEffect::BUTTER)) != 0
+		&& mButterTimer > 0.0f) ClearButter();
+	if ((mask & ZombieControlBit(ZombieControlEffect::PARALYSIS)) != 0
+		&& mParalysisTimer > 0.0f) ClearParalysis();
+}
+
+void Zombie::UpdateControlImmunity(float deltaTime)
+{
+	if (!std::isfinite(deltaTime) || deltaTime <= 0.0f) return;
+	for (float& timer : mControlImmunityTimers) {
+		timer = std::max(0.0f, timer - deltaTime);
+	}
+}
+
 bool Zombie::StartFrozen()
 {
 	if (!CanBeChilled()) return false;
@@ -1314,6 +1403,11 @@ bool Zombie::StartFrozen()
 	const bool wasSlowedOrFrozen = (mCooldownTimer > 0.0f || mFrozenTimer > 0.0f);
 	SetCooldown(20.0f);               // 减速尾巴（原版 ApplyChill 2000cs）；持盾守卫在其内部
 	if (!CanBeFrozen()) return false; // 撑杆跳跃中等：只吃减速不定身
+	if (IsControlImmune(ZombieControlEffect::FROZEN)) {
+		// 免疫只挡冻结定身；寒冰菇的固定伤害和不在 mask 内的减速尾巴仍照常结算。
+		TakeDamage(20, DamageSource::PLANT);
+		return false;
+	}
 
 	mFrozenTimer = wasSlowedOrFrozen
 		? GameRandom::Range(3.0f, 4.0f)    // 已减速/已冻再冻缩短（原版 300~400cs，防连放无限定身）
@@ -1776,6 +1870,7 @@ void Zombie::Die()
 	CancelGarlicRedirect(false);
 	mButterTimer = 0.0f;
 	mParalysisTimer = 0.0f;
+	mControlImmunityTimers.fill(0.0f);
 	SetButterSplatFollowerVisible(false);
 	mRoofMarshalAssaultTimer = 0.0f;
 	mRoofMarshalAssaultMoveMultiplier = 1.0f;
@@ -2331,6 +2426,24 @@ float Zombie::GetCurrentHorizontalMoveSpeed() const
 	if (mCooldownTimer > 0.0f) velocity *= 0.5f;
 	if (mBoard) {
 		// 与 ZombieMove 使用同一场地放大顺序，避免黄色冰道上的预测和实际风速分叉。
+		velocity *= AmplifySpeedMultiplierForGoldenIce(
+			mBoard->GetZombieWindMoveMultiplier(IsMovingRight()));
+	}
+	velocity *= GetRoofMarshalAssaultMoveMultiplier();
+	return std::max(0.0f, velocity);
+}
+
+float Zombie::GetUncontrolledHorizontalMoveSpeed() const
+{
+	if (mIsDying || mIsDead || !mHasHead || mTangleKelpPlantID != NULL_PLANT_ID
+		|| IsGarlicRedirectPaused() || !mAnimator || !mAnimator->IsPlaying()) {
+		return 0.0f;
+	}
+	const float trackSpeed = mGroundTrackIndex >= 0
+		? mAnimator->GetTrackAverageVelocity(mGroundTrackIndex)
+		: mAnimator->GetTrackAverageVelocity("_ground");
+	float velocity = std::fabs(trackSpeed * mSpeed);
+	if (mBoard) {
 		velocity *= AmplifySpeedMultiplierForGoldenIce(
 			mBoard->GetZombieWindMoveMultiplier(IsMovingRight()));
 	}

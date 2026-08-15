@@ -32,6 +32,16 @@ struct PlantSnapshot {
 	bool protectedFromHijackerExecution = false;
 	int eatingLayerPriority = 1; // 正式战斗层级：under=0、normal=1、pumpkin=2；负数不参与啃食
 	bool canBeEaten = true;
+	float shutdownRemaining = 0.0f;
+	bool protectedFromNightRoofCharge = false;
+	float slowApplicationsPerSecond = 0.0f;
+	float slowDuration = 0.0f;
+	float frozenApplicationsPerSecond = 0.0f;
+	float frozenDuration = 0.0f;
+	float butterApplicationsPerSecond = 0.0f;
+	float butterDuration = 0.0f;
+	float paralysisApplicationsPerSecond = 0.0f;
+	float paralysisDuration = 0.0f;
 };
 
 /**
@@ -64,6 +74,24 @@ struct ZombieSnapshot {
 	float shieldMaxHealth = 0.0f;
 	float attackDamage = 0.0f;
 	bool isEating = false;
+	float slowRemaining = 0.0f;
+	float frozenRemaining = 0.0f;
+	float butterRemaining = 0.0f;
+	float paralysisRemaining = 0.0f;
+	float slowImmunityRemaining = 0.0f;
+	float frozenImmunityRemaining = 0.0f;
+	float butterImmunityRemaining = 0.0f;
+	float paralysisImmunityRemaining = 0.0f;
+	bool canBeChilled = true;
+	bool canBeFrozen = true;
+	bool canBeButtered = true;
+	bool canBeParalyzed = true;
+	bool canBeAffectedByNightRoofCharge = true;
+	bool canProtectFromNightRoofCharge = false;
+	bool nightRoofProtectionSuppressed = false;
+	float nightRoofProtectionRadius = 0.0f;
+	bool simulatedCombatant = true;
+	bool forcedForDecision = false;
 };
 
 struct CardSnapshot {
@@ -80,6 +108,14 @@ struct CardSnapshot {
 	std::uint64_t legalCellMask = 0;
 	bool pumpkinShell = false;
 	int eatingLayerPriority = 1;
+	float slowApplicationsPerSecond = 0.0f;
+	float slowDuration = 0.0f;
+	float frozenApplicationsPerSecond = 0.0f;
+	float frozenDuration = 0.0f;
+	float butterApplicationsPerSecond = 0.0f;
+	float butterDuration = 0.0f;
+	float paralysisApplicationsPerSecond = 0.0f;
+	float paralysisDuration = 0.0f;
 };
 
 struct CellSnapshot {
@@ -185,6 +221,51 @@ struct TreatmentResult {
 	int cardCount = 0;
 };
 
+struct PendingControlEvent {
+	int sourcePlantId = -1;
+	float resolveSeconds = 0.0f;
+	float damage = 0.0f;
+	float slowDuration = 0.0f;
+	float frozenDurationMin = 0.0f;
+	float frozenDurationMax = 0.0f;
+};
+
+struct NightRoofChargeCandidate {
+	int row = 0;
+	int guideZombieId = -1;
+	float resolveSeconds = 4.0f;
+	float plantShutdownSeconds = 8.0f;
+	float wetPlantShutdownSeconds = 20.0f;
+	int wetSlopeColumnCount = 5;
+	float zombieDamage = 200.0f;
+	float wetZombieDamage = 600.0f;
+	float paralysisSeconds = 1.5f;
+	float wetParalysisSeconds = 5.5f;
+	float wetSlopeEndX = 0.0f;
+	bool wetRow = false;
+	bool guided = false;
+};
+
+struct NightRoofChargeConfig {
+	Config combat;
+	std::vector<PendingControlEvent> pendingControlEvents;
+	int hijackerZombieId = -1;
+	float hijackerExecutionSeconds = -1.0f;
+	bool survivalMode = false;
+	float survivalExecutionLineCap = 1200.0f;
+	float guideImmunitySeconds = 10.0f;
+};
+
+struct NightRoofChargeResult {
+	int candidateIndex = -1;
+	float score = 0.0f;
+	int rolloutCount = 0;
+	int sampledZombieCount = 0;
+	int sampledPlantCount = 0;
+	int supportPlantCount = 0;
+	int cardCount = 0;
+};
+
 /**
  * @brief 用当前实体和卡槽的轻量快照比较候选攻击，返回令玩家未来效用损失最大的落点。
  *
@@ -201,5 +282,12 @@ TreatmentResult ChooseTreatment(const Snapshot& snapshot,
 	const std::vector<TreatmentCandidate>& candidates,
 	const std::vector<PendingTreatment>& pendingTreatments,
 	const TreatmentConfig& config, std::uint32_t seed);
+
+/**
+ * @brief 统一比较普通行放电与接地引导路线；植物停机、僵尸友伤和控制状态均延迟到正式放电边沿。
+ */
+NightRoofChargeResult ChooseNightRoofChargeRoute(const Snapshot& snapshot,
+	const std::vector<NightRoofChargeCandidate>& candidates,
+	const NightRoofChargeConfig& config, std::uint32_t seed);
 
 } // namespace PlantDefenseMonteCarlo

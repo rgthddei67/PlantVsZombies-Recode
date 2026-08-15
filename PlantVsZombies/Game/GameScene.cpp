@@ -203,6 +203,7 @@ namespace {
 		DEVZ(ZOMBIE_WALLNUT_HEAD), DEVZ(ZOMBIE_JALAPENO_HEAD), DEVZ(ZOMBIE_GATLING_HEAD),
 		DEVZ(ZOMBIE_SQUASH_HEAD), DEVZ(ZOMBIE_TALLNUT_HEAD), DEVZ(ZOMBIE_REDEYE_GARGANTUAR), DEVZ(ZOMBIE_ROOF_MARSHAL),
 		DEVZ(ZOMBIE_INSULATOR), DEVZ(ZOMBIE_HIJACKER), DEVZ(ZOMBIE_HEALER),
+		DEVZ(ZOMBIE_GROUNDING),
 	};
 #undef DEVZ
 
@@ -706,6 +707,8 @@ void GameScene::DrawNightRoofCharge(Graphics* g) const
 		- kNightRoofChargeRouteInsetX;
 	const BlendMode previousBlend = g->GetBlendMode();
 	g->SetBlendMode(BlendMode::Add);
+	Vector guideAnchor;
+	const bool hasGuideAnchor = mBoard->TryGetNightRoofChargeGuideAnchor(guideAnchor);
 
 	if (mBoard->IsNightRoofChargeWarning()) {
 		const float pulse = 0.62f + 0.38f * std::sin(
@@ -727,6 +730,22 @@ void GameScene::DrawNightRoofCharge(Graphics* g) const
 					glm::vec4(183.0f, 163.0f, 255.0f, 118.0f));
 				g->DrawLine(x - 1.0f, y - 5.0f, x + 5.0f, y + 3.0f,
 					glm::vec4(237.0f, 229.0f, 255.0f, 170.0f));
+			}
+		}
+		if (hasGuideAnchor) {
+			const float flicker = 0.72f + 0.28f * std::sin(
+				static_cast<float>(mBoard->mBoardFrame) * 0.47f);
+			g->FillCircle(guideAnchor.x, guideAnchor.y, 6.0f,
+				glm::vec4(169.0f, 92.0f, 255.0f, 78.0f * flicker), 14);
+			g->FillCircle(guideAnchor.x, guideAnchor.y, 2.0f,
+				glm::vec4(241.0f, 222.0f, 255.0f, 205.0f * flicker), 10);
+			for (int branch = 0; branch < 2; ++branch) {
+				const float phase = static_cast<float>(mBoard->mBoardFrame) * 0.31f
+					+ static_cast<float>(branch) * 2.4f;
+				const glm::vec2 middle(guideAnchor.x + std::sin(phase) * 5.0f,
+					guideAnchor.y - 8.0f - branch * 3.0f);
+				g->DrawLine(guideAnchor.x, guideAnchor.y, middle.x, middle.y,
+					glm::vec4(218.0f, 188.0f, 255.0f, 155.0f * flicker));
 			}
 		}
 		g->SetBlendMode(previousBlend);
@@ -763,6 +782,19 @@ void GameScene::DrawNightRoofCharge(Graphics* g) const
 			g->FillCircle(x, mBoard->GetRowCenterYAtX(row, x),
 				5.0f + 3.0f * pulse,
 				glm::vec4(190.0f, 166.0f, 255.0f, 92.0f * pulse), 18);
+		}
+		if (hasGuideAnchor) {
+			glm::vec2 previous(guideAnchor.x - 4.0f, guideAnchor.y - 32.0f);
+			for (int segment = 1; segment <= 4; ++segment) {
+				const float t = static_cast<float>(segment) / 4.0f;
+				const float x = guideAnchor.x
+					+ std::sin(static_cast<float>(segment) * 4.1f) * 4.0f * (1.0f - t);
+				const float y = guideAnchor.y - 32.0f * (1.0f - t);
+				const glm::vec2 current(x, y);
+				DrawLightningSegment(g, previous, current,
+					2.2f, 18.0f * pulse, 185.0f * pulse);
+				previous = current;
+			}
 		}
 	}
 	g->SetBlendMode(previousBlend);

@@ -14,6 +14,7 @@
 #include <nlohmann/json.hpp>
 #include <algorithm>
 #include <array>
+#include <cstdint>
 
 class Board;
 class Plant;
@@ -26,6 +27,27 @@ enum class LadderClimbPhase {
 	CLIMBING,
 	FALLING,
 };
+
+/** 可独立计时或声明永久免疫的僵尸控制类型。 */
+enum class ZombieControlEffect : std::uint8_t {
+	SLOW,
+	FROZEN,
+	BUTTER,
+	PARALYSIS,
+	COUNT,
+};
+
+using ZombieControlMask = std::uint32_t;
+constexpr std::size_t ZOMBIE_CONTROL_EFFECT_COUNT =
+	static_cast<std::size_t>(ZombieControlEffect::COUNT);
+constexpr ZombieControlMask ZombieControlBit(ZombieControlEffect effect)
+{
+	return ZombieControlMask{ 1 } << static_cast<std::uint8_t>(effect);
+}
+constexpr ZombieControlMask ZOMBIE_CONTROL_HARD_MASK =
+	ZombieControlBit(ZombieControlEffect::FROZEN)
+	| ZombieControlBit(ZombieControlEffect::BUTTER)
+	| ZombieControlBit(ZombieControlEffect::PARALYSIS);
 
 class Zombie : public AnimatedObject {
 public:
@@ -64,6 +86,7 @@ protected:
 	float mFrozenTimer = 0.0f;		// 冻结剩余秒数（寒冰菇完全定身），0=未冻结
 	float mButterTimer = 0.0f;		// 黄油定身剩余秒数，0=未被黄油固定
 	float mParalysisTimer = 0.0f;   // 通用麻痹剩余游戏秒；来源可以是天气、植物或其他机制
+	std::array<float, ZOMBIE_CONTROL_EFFECT_COUNT> mControlImmunityTimers{}; // 各控制类型独立的临时免疫游戏秒数
 	float mRoofMarshalAssaultTimer = 0.0f; // 突击令剩余游戏秒数；独立于天气与寒冷状态
 	float mRoofMarshalAssaultMoveMultiplier = 1.0f; // 突击令自主水平推进倍率
 	float mRoofMarshalAssaultBiteMultiplier = 1.0f; // 突击令每口伤害倍率
@@ -229,6 +252,8 @@ public:
 	void SetPosition(const Vector& position);
 	/** 返回当前动画片段的平均根运动速度，并折算减速、冻结、天气和场地状态，单位：像素/游戏秒。 */
 	virtual float GetCurrentHorizontalMoveSpeed() const;
+	/** 轻量推演使用的未受减速或硬控影响水平速度；品种、天气和场地倍率仍保留。 */
+	float GetUncontrolledHorizontalMoveSpeed() const;
 	/** 按当前碰撞矩形中心与片段平均行走速度预测水平落点，供投手和倭瓜复刻 ZombieTargetLeadX。 */
 	float GetTargetLeadX(float seconds) const;
 	/** 当前自主行走是否朝战场前线（世界坐标 +X）；反向品种覆写后由位移、风速与预测共用。 */
@@ -297,6 +322,12 @@ public:
 	/** 结算未被其他实体承接的放电命中；特殊防具可改写分层伤害。 */
 	virtual void TakeNightRoofChargeImpact(int damage, float paralysisDuration,
 		bool onWetSlope);
+	/** 品种是否属于黑夜屋顶可引雷单位；装备损毁后仍保持类型身份供弱索引管理。 */
+	virtual bool IsNightRoofChargeGuideType() const { return false; }
+	/** 当前实例是否仍能为满电决策提供植物专属引导候选。 */
+	virtual bool CanGuideNightRoofCharge() const { return false; }
+	/** 返回引雷附件的世界锚点；附件不存在时返回 false。 */
+	virtual bool TryGetNightRoofChargeGuideAnchor(Vector&) const { return false; }
 	/** 本体、头盔或飞行额外生命层是否正处于受击白光期。 */
 	bool IsBodyHitFlashing() const { return mGlowingTimer > 0.0f; }
 	/** 二类护盾是否正处于独立受击白光期。 */
@@ -321,6 +352,18 @@ public:
 	float GetFrozenTimer() const { return this->mFrozenTimer; }
 	bool IsButtered() const { return mButterTimer > 0.0f; }
 	float GetButterTimer() const { return mButterTimer; }
+	/** 返回指定控制是否正被临时计时或品种永久规则免疫。 */
+	bool IsControlImmune(ZombieControlEffect effect) const;
+	/** 返回指定控制的临时免疫剩余游戏秒；永久免疫不伪造有限计时。 */
+	float GetControlImmunityTimeRemaining(ZombieControlEffect effect) const;
+	/** 返回当前临时与永久免疫的控制位集合。 */
+	ZombieControlMask GetActiveControlImmunityMask() const;
+	/**
+	 * 同时发放一组临时控制免疫；重复来源逐类型保留更长时长。
+	 * clearExisting 为 true 时，只清除 mask 覆盖的既有控制，不影响减速等未选类型。
+	 */
+	void GrantControlImmunity(ZombieControlMask mask, float durationSeconds,
+		bool clearExisting = true);
 	/** @brief 施加或刷新屋脊督军突击令；重复命令只延长并保留较强倍率。 */
 	void ApplyRoofMarshalAssault(float duration, float moveMultiplier, float biteMultiplier);
 	bool IsRoofMarshalAssaultActive() const { return mRoofMarshalAssaultTimer > 0.0f; }
@@ -348,6 +391,8 @@ public:
 	float GetParalysisTimeRemaining() const { return mParalysisTimer; }
 	/** 车辆等永久免疫麻痹的品种覆写此接口；伤害资格与它相互独立。 */
 	virtual bool CanBeParalyzed() const { return true; }
+	/** 品种或阶段是否接受黄油定身；默认沿用冻结阶段门禁。 */
+	virtual bool CanBeButtered() const { return CanBeFrozen(); }
 	/** 地面区域危害的通用命中资格；飞行单位默认免疫，特殊阶段可进一步收紧。 */
 	virtual bool CanBeAffectedByGroundHazards() const { return !IsFlying(); }
 	/** 黄油弹命中入口；返回 false 表示当前品种或阶段免疫定身。 */
@@ -385,8 +430,9 @@ public:
 	float GetTangleKelpGrabFrame() const;
 
 	// 冻结唯一入口（寒冰菇）：先上 20s 减速尾巴（SetCooldown，其持盾守卫保留——持盾照冻不吃减速），
-	// 再完全定身（首冻 4~6s / 已减速或已冻再冻 3~4s，原版 HitIceTrap 语义）。伤害由调用方另行结算。
-	// 返回 true=进入冻结；豁免（魅惑/濒死/预览/CanBeFrozen 覆写）返回 false。
+	// 再完全定身（首冻 4~6s / 已减速或已冻再冻 3~4s）并结算 20 点固定伤害。
+	// 返回 true=进入冻结；豁免（魅惑/濒死/预览/CanBeFrozen 覆写/当前冻结免疫）返回 false；
+	// 当前冻结免疫仍保留固定伤害和未被单独免疫的减速尾巴。
 	bool StartFrozen();
 	// 行为守卫放虚函数（skill 教训：勿放 lambda）。Chilled=减速+冻结的总闸（魅惑免疫在基类）；
 	// Frozen=仅豁免定身、减速尾巴照上（如撑杆跳跃中，原版 CanBeFrozen 语义）。
@@ -424,6 +470,10 @@ protected:
 	void UpdateAnimSpeed();
 	/** Board 权威定时动作可返回非负倍率，临时绕过控制、天气和减速的动画速度组合。 */
 	virtual float GetForcedAnimSpeedMultiplier() const { return -1.0f; }
+	/** 品种固有的永久控制免疫集合；默认没有，未来免控僵尸覆写即可。 */
+	virtual ZombieControlMask GetPermanentControlImmunityMask() const { return 0; }
+	/** 按未减速游戏时间推进全部临时控制免疫。 */
+	void UpdateControlImmunity(float deltaTime);
 	/** 清除黄油定身并按剩余状态恢复动画速度。 */
 	void ClearButter();
 	/** 清除通用麻痹并按剩余状态恢复动画与染色。 */

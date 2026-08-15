@@ -30,6 +30,9 @@
     <Image>./resources/image/reanim/Zombie_insulator_armor1.png</Image>
     <Image>./resources/image/reanim/Zombie_insulator_armor2.png</Image>
     <Image>./resources/image/reanim/Zombie_insulator_armor3.png</Image>
+    <Image>./resources/image/reanim/Zombie_grounding_cone1.png</Image>
+    <Image>./resources/image/reanim/Zombie_grounding_cone2.png</Image>
+    <Image>./resources/image/reanim/Zombie_grounding_cone3.png</Image>
 
     <Image Column="8" Row="1">./resources/image/fog.png</Image>
     <Image>./resources/image/MistFuel.png</Image>
@@ -487,6 +490,7 @@
     <Reanimation name="RoofMarshalZombie">./resources/reanim/RoofMarshal.reanim</Reanimation>
     <Reanimation name="RoofMarshalAssaultFlag">./resources/reanim/RoofMarshalAssaultFlag.reanim</Reanimation>
     <Reanimation name="ConeZombie">./resources/reanim/ConeZombie.reanim</Reanimation>
+    <Reanimation name="GroundingZombie">./resources/reanim/GroundingZombie.reanim</Reanimation>
     <Reanimation name="PolevaulterZombie">./resources/reanim/Polevaulter.reanim</Reanimation>
     <Reanimation name="ElitePolevaulterZombie">./resources/reanim/ElitePolevaulter.reanim</Reanimation>
     <Reanimation name="BucketZombie">./resources/reanim/BucketZombie.reanim</Reanimation>

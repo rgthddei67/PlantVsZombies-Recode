@@ -21,6 +21,7 @@
 #include "./Zombie/Zombie.h"
 #include "./Zombie/HealerZombie.h"
 #include "./Zombie/HijackerZombie.h"
+#include "./Zombie/InsulatorZombie.h"
 #include "./Zombie/MagneticItem.h"
 #include "MistFuel.h"
 
@@ -41,6 +42,7 @@
 #include <algorithm>   // std::max, std::swap
 #include <cmath>       // std::lround
 #include <cstdint>
+#include <chrono>
 #include <limits>
 
 namespace {
@@ -174,6 +176,7 @@ namespace {
 	constexpr int kEliteCatapultMaxPerWave = 1;           // 每波最多正式生成的导流投篮车数量；超额候选直接跳过
 	constexpr int kInsulatorMaxPerWave = 2;               // 每个正式波次最多成功生成的绝缘僵尸数量
 	constexpr int kHijackerMaxPerWave = 2;                // 每个正式波次最多成功生成的劫持者数量
+	constexpr int kGroundingZombieMaxPerWave = 2;         // 每个正式波次最多成功生成的接地僵尸数量
 	constexpr int kHijackerTutorialLevel = 49;             // 内部 49 即 6-4，使用第七波固定单体教学
 	constexpr int kHijackerTutorialWave = 7;               // 6-4 首次登场的固定教学波
 	constexpr int kHealerTutorialLevel = 51;               // 内部 51 即 6-6，使用第三波额外保底
@@ -193,6 +196,9 @@ namespace {
 	constexpr float kMonteCarloTerminalBlockedSecondUtility = 12.0f; // 终局每秒剩余破墙时间对应的防守效用分
 	constexpr float kMonteCarloTerminalBlockedSecondsCap = 90.0f; // 单株终局破墙时间最多计入的秒数
 	constexpr float kTreatmentMonteCarloHorizonSeconds = 7.0f; // 急救员从当前选择推演到下一次最早决策的窗口，单位：游戏秒
+	constexpr int kNightRoofRouteMonteCarloRolloutCount = 32; // 满雷路线每个候选共享的短视未来样本数
+	constexpr float kNightRoofRouteMonteCarloHorizonSeconds = 10.0f; // 满雷路线从预警起推演的游戏秒数
+	constexpr float kGroundingZombieControlImmunityDuration = 10.0f; // 成功引雷后硬控免疫的游戏秒数
 	constexpr float kTreatmentTerminalPressurePerHealth = 0.08f; // 时域末端每点僵尸生命折算的基础进攻压力
 	constexpr int kWaveCandidateAttemptLimit = MAX_ZOMBIES_PER_WAVE * 10; // 单波候选尝试上限，防止仅剩受限类型时死循环
 	constexpr float kWeatherTransitionDuration = 2.0f;   // 雨势切换时倍率、暗幕与雨声音量的平滑过渡时长（游戏秒）
@@ -1439,6 +1445,11 @@ void Board::InitializeWeather()
 	mNightRoofChargePhase = NightRoofChargePhase::CHARGING;
 	mNightRoofChargePhaseTimer = 0.0f;
 	mNightRoofChargeRow = -1;
+	mNightRoofChargeGuided = false;
+	mNightRoofChargeGuideID = NULL_ZOMBIE_ID;
+	mNightRoofChargeRouteUsedMonteCarlo = false;
+	mNightRoofChargeRouteStats = {};
+	mNightRoofChargeRouteDecisionMicros = 0;
 	mNightRoofHijackerSelectionAttempted = false;
 	mNightRoofHijackerID = NULL_ZOMBIE_ID;
 	mNightRoofHijackerWarningExtended = false;
@@ -2146,6 +2157,13 @@ void Board::RestoreHijackerWaveSpawnCount(int count)
 	mHijackersSpawnedThisWave = std::clamp(count, 0, kHijackerMaxPerWave);
 }
 
+/** 夹紧并恢复当前波已经正式生成的接地僵尸数量。 */
+void Board::RestoreGroundingZombieWaveSpawnCount(int count)
+{
+	mGroundingZombiesSpawnedThisWave = std::clamp(
+		count, 0, kGroundingZombieMaxPerWave);
+}
+
 /** 清空全部台风派生状态；中雨、小雨、晴天和旧档默认都以此为单位元。 */
 void Board::StopTyphoon()
 {
@@ -2335,6 +2353,12 @@ ZombieType Board::ResolveWaveZombieType(ZombieType selected, int mutationRoll)
 			return ZombieType::NUM_ZOMBIE_TYPES;
 		}
 		++mHijackersSpawnedThisWave;
+	}
+	if (selected == ZombieType::ZOMBIE_GROUNDING) {
+		if (mGroundingZombiesSpawnedThisWave >= kGroundingZombieMaxPerWave) {
+			return ZombieType::NUM_ZOMBIE_TYPES;
+		}
+		++mGroundingZombiesSpawnedThisWave;
 	}
 	return ResolveRainMutationType(selected, mutationRoll);
 }
@@ -3065,7 +3089,7 @@ void Board::TryLockNightRoofHijacker()
 	hijacker->BeginNightRoofLock();
 }
 
-/** 满电时只抽取一次导电瓦路；有效劫持者把同一预警窗口延长到七秒。 */
+/** 满电时统一推演普通行与接地路线；有效劫持者把同一预警窗口延长到七秒。 */
 void Board::BeginNightRoofChargeWarning()
 {
 	if (!SupportsNightRoofCharge()
@@ -3079,8 +3103,178 @@ void Board::BeginNightRoofChargeWarning()
 	mNightRoofHijackerFinalizing = false;
 	mNightRoofChargePhaseTimer = hijacker
 		? kNightRoofHijackerWarningDuration : kNightRoofChargeWarningDuration;
-	mNightRoofChargeRow = GameRandom::Range(0, mRows - 1);
+	ChooseNightRoofChargeRoute(mNightRoofChargePhaseTimer);
 	if (hijacker) hijacker->BeginNightRoofWarning();
+}
+
+/**
+ * 在满电这一低频边沿采集纯数值快照，令所有普通行与每只现存接地僵尸共享同组 rollout。
+ * 路线、行和稳定 ID 在这里一次锁定；后续死亡、换行、破甲或新出生都不会触发重选。
+ */
+void Board::ChooseNightRoofChargeRoute(float warningSeconds)
+{
+	using namespace PlantDefenseMonteCarlo;
+	const auto decisionStarted = std::chrono::steady_clock::now();
+	auto recordDecisionTime = [this, decisionStarted]() {
+		const auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(
+			std::chrono::steady_clock::now() - decisionStarted).count();
+		mNightRoofChargeRouteDecisionMicros = static_cast<int>(std::clamp<int64_t>(
+			elapsed, 0, std::numeric_limits<int>::max()));
+	};
+	mNightRoofChargeGuided = false;
+	mNightRoofChargeGuideID = NULL_ZOMBIE_ID;
+	mNightRoofChargeRouteUsedMonteCarlo = false;
+	mNightRoofChargeRouteStats = {};
+	mNightRoofChargeRouteDecisionMicros = 0;
+	mNightRoofChargeRow = -1;
+	if (mRows <= 0) {
+		recordDecisionTime();
+		return;
+	}
+
+	const std::vector<std::shared_ptr<Zombie>> guides =
+		mEntityManager.GetNightRoofChargeGuideCandidates();
+	std::vector<NightRoofChargeCandidate> candidates;
+	candidates.reserve(static_cast<std::size_t>(mRows) + guides.size());
+	for (int row = 0; row < mRows; ++row) {
+		float damageMultiplier = 1.0f;
+		for (int column = 0; column < mColumns; ++column) {
+			const Plant* support = GetUnderPlantAt(row, column);
+			if (support && support->IsActive() && !support->IsPreview()
+				&& support->mPlantHealth > 0 && !support->IsSquished()) {
+				damageMultiplier = std::max(damageMultiplier,
+					support->GetNightRoofChargeZombieDamageMultiplier());
+			}
+		}
+		NightRoofChargeCandidate candidate;
+		candidate.row = row;
+		candidate.resolveSeconds = warningSeconds;
+		candidate.plantShutdownSeconds = kNightRoofPlantShutdownDuration;
+		candidate.wetPlantShutdownSeconds = kNightRoofWetPlantShutdownDuration;
+		candidate.wetSlopeColumnCount = kRoofSlopeColumnCount;
+		candidate.zombieDamage = kNightRoofZombieDamage * damageMultiplier;
+		candidate.wetZombieDamage = kNightRoofWetZombieDamage * damageMultiplier;
+		candidate.paralysisSeconds = kNightRoofZombieParalysisDuration;
+		candidate.wetParalysisSeconds = kNightRoofWetZombieParalysisDuration;
+		candidate.wetSlopeEndX = GetRoofSlopeEndX();
+		candidate.wetRow = IsRoofRunoffFlowing() && IsRoofRunoffRowSelected(row);
+		candidates.push_back(candidate);
+	}
+	for (const std::shared_ptr<Zombie>& guide : guides) {
+		if (!guide) continue;
+		NightRoofChargeCandidate candidate;
+		candidate.row = guide->mRow;
+		candidate.guideZombieId = guide->mZombieID;
+		candidate.resolveSeconds = warningSeconds;
+		candidate.plantShutdownSeconds = kNightRoofPlantShutdownDuration;
+		candidate.wetPlantShutdownSeconds = kNightRoofWetPlantShutdownDuration;
+		candidate.wetSlopeColumnCount = kRoofSlopeColumnCount;
+		candidate.wetRow = IsRoofRunoffFlowing()
+			&& IsRoofRunoffRowSelected(guide->mRow);
+		candidate.guided = true;
+		candidates.push_back(candidate);
+	}
+
+	Snapshot snapshot;
+	bool snapshotBuilt = false;
+	if (GameAPP::GetInstance().mEnableMonteCarloAI) {
+		PROFILE_SCOPE("MC.NightRoofRoute.Snapshot");
+		snapshotBuilt = BuildMonteCarloCombatSnapshot(snapshot, false, true);
+	}
+	if (snapshotBuilt) {
+		std::unordered_set<int> guideIDs;
+		for (const std::shared_ptr<Zombie>& guide : guides) {
+			if (guide) guideIDs.insert(guide->mZombieID);
+		}
+		for (ZombieSnapshot& zombie : snapshot.zombies) {
+			zombie.forcedForDecision = guideIDs.find(zombie.id) != guideIDs.end();
+		}
+
+		NightRoofChargeConfig config;
+		config.combat.rolloutCount = kNightRoofRouteMonteCarloRolloutCount;
+		config.combat.maxZombiesPerRollout = kMonteCarloMaxZombies;
+		config.combat.horizonSeconds = kNightRoofRouteMonteCarloHorizonSeconds;
+		config.combat.stepSeconds = kMonteCarloStepSeconds;
+		config.combat.plantDecisionInterval = kMonteCarloPlantDecisionSeconds;
+		config.combat.terminalBlockedSecondUtility =
+			kMonteCarloTerminalBlockedSecondUtility;
+		config.combat.terminalBlockedSecondsCap =
+			kMonteCarloTerminalBlockedSecondsCap;
+		config.hijackerZombieId = GetNightRoofHijackerID();
+		config.hijackerExecutionSeconds = config.hijackerZombieId != NULL_ZOMBIE_ID
+			? warningSeconds : -1.0f;
+		config.survivalMode = mIsSurvival;
+		config.survivalExecutionLineCap =
+			static_cast<float>(kNightRoofHijackerSurvivalLineCap);
+		config.guideImmunitySeconds = kGroundingZombieControlImmunityDuration;
+
+		for (const int plantID : mEntityManager.GetAllPlantIDs()) {
+			const Plant* plant = mEntityManager.GetPlant(plantID);
+			if (!plant || !plant->IsActive() || plant->IsPreview()
+				|| plant->IsSquished() || plant->GetSleepState()
+				|| plant->mPlantType != PlantType::PLANT_ICESHROOM
+				|| plant->GetCurrentTrackName() != "anim_idle") continue;
+			const float currentFrame = plant->GetCurrentFrame();
+			const float speed = plant->GetAnimationSpeed();
+			if (currentFrame >= 16.0f || speed <= 0.0f) continue;
+			config.pendingControlEvents.push_back({
+				plantID,
+				std::max(0.0f, (16.0f - currentFrame) / (12.0f * speed)),
+				20.0f,
+				20.0f,
+				4.0f,
+				6.0f
+			});
+		}
+
+		std::uint32_t seed = 2166136261u;
+		auto mixSeed = [&seed](std::uint32_t value) {
+			seed ^= value;
+			seed *= 16777619u;
+		};
+		mixSeed(static_cast<std::uint32_t>(mBoardFrame));
+		mixSeed(static_cast<std::uint32_t>(mCurrentWave));
+		mixSeed(static_cast<std::uint32_t>(mNightRoofHijackerID));
+		NightRoofChargeResult result;
+		{
+			PROFILE_SCOPE("MC.NightRoofRoute.Rollouts");
+			result = PlantDefenseMonteCarlo::ChooseNightRoofChargeRoute(
+				snapshot, candidates, config, seed);
+		}
+		mNightRoofChargeRouteStats.rolloutCount = result.rolloutCount;
+		mNightRoofChargeRouteStats.candidateCount =
+			static_cast<int>(candidates.size());
+		mNightRoofChargeRouteStats.sampledZombieCount = result.sampledZombieCount;
+		mNightRoofChargeRouteStats.sampledPlantCount = result.sampledPlantCount;
+		mNightRoofChargeRouteStats.supportPlantCount = result.supportPlantCount;
+		mNightRoofChargeRouteStats.cardCount = result.cardCount;
+		mNightRoofChargeRouteStats.bestScore = result.score;
+		if (result.candidateIndex >= 0
+			&& result.candidateIndex < static_cast<int>(candidates.size())) {
+			const NightRoofChargeCandidate& chosen = candidates[result.candidateIndex];
+			mNightRoofChargeRow = chosen.row;
+			mNightRoofChargeGuided = chosen.guided;
+			mNightRoofChargeGuideID = chosen.guided
+				? chosen.guideZombieId : NULL_ZOMBIE_ID;
+			mNightRoofChargeRouteUsedMonteCarlo = true;
+			recordDecisionTime();
+			return;
+		}
+	}
+
+	// 推演不可用时才消费正式 RNG：有接地候选就只在稳定 ID 候选集中均匀选，否则随机普通行。
+	if (!guides.empty()) {
+		const int index = GameRandom::Range(0, static_cast<int>(guides.size()) - 1);
+		const std::shared_ptr<Zombie>& guide = guides[static_cast<std::size_t>(index)];
+		if (guide) {
+			mNightRoofChargeRow = guide->mRow;
+			mNightRoofChargeGuided = true;
+			mNightRoofChargeGuideID = guide->mZombieID;
+		}
+	} else {
+		mNightRoofChargeRow = GameRandom::Range(0, mRows - 1);
+	}
+	recordDecisionTime();
 }
 
 /**
@@ -3328,6 +3522,17 @@ void Board::ResolveNightRoofChargeDischarge()
 
 	const int row = mNightRoofChargeRow;
 	const bool wetRow = IsRoofRunoffFlowing() && IsRoofRunoffRowSelected(row);
+	if (mNightRoofChargeGuided) {
+		Zombie* guide = mEntityManager.GetZombie(mNightRoofChargeGuideID);
+		if (guide && guide->CanGuideNightRoofCharge()) {
+			guide->GrantControlImmunity(ZOMBIE_CONTROL_HARD_MASK,
+				kGroundingZombieControlImmunityDuration, true);
+			Vector anchor;
+			if (g_particleSystem && guide->TryGetNightRoofChargeGuideAnchor(anchor)) {
+				g_particleSystem->EmitEffect("GroundingZombieLightning", anchor);
+			}
+		}
+	}
 	std::vector<int> plantIDs = mEntityManager.GetAllPlantIDs();
 	std::sort(plantIDs.begin(), plantIDs.end());
 	std::vector<int> groundingProviderIDs;
@@ -3384,6 +3589,7 @@ void Board::ResolveNightRoofChargeDischarge()
 	std::vector<int> zombieIDs = mEntityManager.GetAllZombieIDs();
 	std::sort(zombieIDs.begin(), zombieIDs.end());
 	for (const int id : zombieIDs) {
+		if (mNightRoofChargeGuided) break;
 		Zombie* zombie = mEntityManager.GetZombie(id);
 		if (!zombie || !zombie->IsActive() || zombie->IsDying()
 			|| zombie->mRow != row
@@ -3467,6 +3673,8 @@ void Board::UpdateNightRoofCharge(float deltaTime)
 		mNightRoofChargePhase = NightRoofChargePhase::CHARGING;
 		mNightRoofChargePhaseTimer = 0.0f;
 		mNightRoofChargeRow = -1;
+		mNightRoofChargeGuided = false;
+		mNightRoofChargeGuideID = NULL_ZOMBIE_ID;
 		return;
 	}
 	if (deltaTime <= 0.0f) return;
@@ -3524,6 +3732,8 @@ void Board::UpdateNightRoofCharge(float deltaTime)
 		mNightRoofChargePhase = NightRoofChargePhase::CHARGING;
 		mNightRoofChargePhaseTimer = 0.0f;
 		mNightRoofChargeRow = -1;
+		mNightRoofChargeGuided = false;
+		mNightRoofChargeGuideID = NULL_ZOMBIE_ID;
 		ResetNightRoofHijackerCycle();
 		return;
 	}
@@ -3540,13 +3750,19 @@ void Board::UpdateNightRoofCharge(float deltaTime)
 /** 校验并恢复黑夜屋顶雷荷；损坏组合和其他背景都回到中性积累状态。 */
 void Board::RestoreNightRoofChargeState(float charge, NightRoofChargePhase phase,
 	int row, float phaseTimer, float overcharge, bool hijackerSelectionAttempted,
-	int hijackerID, bool hijackerWarningExtended, bool hijackerFinalizing)
+	int hijackerID, bool hijackerWarningExtended, bool hijackerFinalizing,
+	bool guided, int guideID)
 {
 	mNightRoofCharge = 0.0f;
 	mNightRoofOvercharge = 0.0f;
 	mNightRoofChargePhase = NightRoofChargePhase::CHARGING;
 	mNightRoofChargePhaseTimer = 0.0f;
 	mNightRoofChargeRow = -1;
+	mNightRoofChargeGuided = false;
+	mNightRoofChargeGuideID = NULL_ZOMBIE_ID;
+	mNightRoofChargeRouteUsedMonteCarlo = false;
+	mNightRoofChargeRouteStats = {};
+	mNightRoofChargeRouteDecisionMicros = 0;
 	mNightRoofHijackerSelectionAttempted = false;
 	mNightRoofHijackerID = NULL_ZOMBIE_ID;
 	mNightRoofHijackerWarningExtended = false;
@@ -3578,6 +3794,8 @@ void Board::RestoreNightRoofChargeState(float charge, NightRoofChargePhase phase
 				? kNightRoofHijackerWarningDuration : kNightRoofChargeWarningDuration)
 			: kNightRoofChargeDischargeDuration);
 	mNightRoofChargeRow = row;
+	mNightRoofChargeGuided = guided;
+	mNightRoofChargeGuideID = guided ? guideID : NULL_ZOMBIE_ID;
 	mNightRoofOvercharge = std::clamp(overcharge,
 		0.0f, kNightRoofOverchargeMaximum);
 	if (phase == NightRoofChargePhase::DISCHARGING) {
@@ -3883,7 +4101,7 @@ bool Board::SetNightRoofChargeForTesting(float charge, NightRoofChargePhase phas
 	// AutoTest 可能在同一局中重设雷荷；参数校验后才解除旧锁定，失败调用不得改变局面。
 	ResetNightRoofHijackerCycle();
 	RestoreNightRoofChargeState(charge, phase, row, phaseTimer, overcharge,
-		false, NULL_ZOMBIE_ID, false, false);
+		false, NULL_ZOMBIE_ID, false, false, false, NULL_ZOMBIE_ID);
 	return mNightRoofChargePhase == phase;
 }
 
@@ -4536,6 +4754,15 @@ void Board::CreateBoom(const Vector& position, int plantRow, int damage)
 	RemoveLaddersInBlastSquare(position, plantRow, 1);
 }
 
+bool Board::TryGetNightRoofChargeGuideAnchor(Vector& anchor) const
+{
+	if (!mNightRoofChargeGuided || mNightRoofChargeGuideID == NULL_ZOMBIE_ID) {
+		return false;
+	}
+	const Zombie* guide = mEntityManager.GetZombie(mNightRoofChargeGuideID);
+	return guide && guide->TryGetNightRoofChargeGuideAnchor(anchor);
+}
+
 void Board::CreateDoomBoom(const Vector& position, int plantRow, int damage)
 {
 	g_particleSystem->EmitEffect("Doom", position);
@@ -4766,7 +4993,8 @@ void Board::CreateTrophy(const Vector& position)
  * 再把纯计算交给共享推演器。这里是唯一接触 GameObject 的边界。
  */
 bool Board::BuildMonteCarloCombatSnapshot(
-	PlantDefenseMonteCarlo::Snapshot& snapshot, bool mindControlledFaction)
+	PlantDefenseMonteCarlo::Snapshot& snapshot, bool mindControlledFaction,
+	bool includeNightRoofChargeDetails)
 {
 	using namespace PlantDefenseMonteCarlo;
 	if (mRows <= 0 || mColumns <= 0 || mColumns * mRows > 64) return false;
@@ -4840,6 +5068,20 @@ bool Board::BuildMonteCarloCombatSnapshot(
 			});
 			continue;
 		}
+		bool protectedFromNightRoofCharge = false;
+		if (includeNightRoofChargeDetails) {
+			protectedFromNightRoofCharge =
+				GetNightRoofChargeSupportProtector(plant) != nullptr;
+			if (!protectedFromNightRoofCharge) {
+				for (const int providerID : plantIDs) {
+					const Plant* provider = mEntityManager.GetPlant(providerID);
+					if (provider && provider->CanGroundNightRoofChargeFor(plant)) {
+						protectedFromNightRoofCharge = true;
+						break;
+					}
+				}
+			}
+		}
 		snapshot.plants.push_back({
 			plant->mPlantID,
 			plant->mRow,
@@ -4859,7 +5101,17 @@ bool Board::BuildMonteCarloCombatSnapshot(
 			executionLayer,
 			GetNightRoofHijackerSupportProtector(plant) != nullptr,
 			isPumpkin ? 2 : (isNormal ? 1 : (isUnder ? 0 : -1)),
-			plant->CanBeEaten() || isUnder
+			plant->CanBeEaten() || isUnder,
+			plant->GetShutdownTimeRemaining(),
+			protectedFromNightRoofCharge,
+			sleeping ? 0.0f : profile.slowApplicationsPerSecond,
+			profile.slowDuration,
+			sleeping ? 0.0f : profile.frozenApplicationsPerSecond,
+			profile.frozenDuration,
+			sleeping ? 0.0f : profile.butterApplicationsPerSecond,
+			profile.butterDuration,
+			sleeping ? 0.0f : profile.paralysisApplicationsPerSecond,
+			profile.paralysisDuration
 		});
 	}
 
@@ -4870,10 +5122,26 @@ bool Board::BuildMonteCarloCombatSnapshot(
 		const Zombie* zombie = mEntityManager.GetZombie(zombieID);
 		if (!zombie || !zombie->IsActive() || zombie->IsDying()
 			|| !zombie->HasHead()
-			|| zombie->IsMindControlled() != mindControlledFaction
+			|| (zombie->IsMindControlled() != mindControlledFaction
+				&& !(includeNightRoofChargeDetails
+					&& zombie->IsNightRoofChargeGuideType()))
 			|| zombie->mRow < 0 || zombie->mRow >= mRows) {
 			continue;
 		}
+		const bool simulatedCombatant =
+			zombie->IsMindControlled() == mindControlledFaction;
+		const auto* insulator = dynamic_cast<const InsulatorZombie*>(zombie);
+		const bool canProtectNightRoofCharge = includeNightRoofChargeDetails
+			&& insulator && !insulator->IsWet()
+			&& zombie->mHelmHealth > 0
+			&& zombie->CanBeAffectedByGroundHazards();
+		auto getSimulatedImmunityRemaining = [zombie](ZombieControlEffect effect) {
+			const float timed = zombie->GetControlImmunityTimeRemaining(effect);
+			// 永久免疫没有有限计时；用最大 float 让纯数值时域自然保持门禁。
+			return timed > 0.0f ? timed
+				: (zombie->IsControlImmune(effect)
+					? std::numeric_limits<float>::max() : 0.0f);
+		};
 		float centerX = zombie->GetPosition().x;
 		float centerY = zombie->GetPosition().y;
 		if (const ColliderComponent* collider = zombie->GetColliderComponent()) {
@@ -4887,7 +5155,7 @@ bool Board::BuildMonteCarloCombatSnapshot(
 			zombie->mRow,
 			centerX,
 			centerY,
-			zombie->GetCurrentHorizontalMoveSpeed(),
+			zombie->GetUncontrolledHorizontalMoveSpeed(),
 			static_cast<float>(std::max(0, zombie->mBodyHealth)),
 			static_cast<float>(std::max(0, zombie->mBodyMaxHealth)),
 			static_cast<float>(std::max(0, zombie->mHelmHealth)),
@@ -4895,7 +5163,27 @@ bool Board::BuildMonteCarloCombatSnapshot(
 			static_cast<float>(std::max(0, zombie->mShieldHealth)),
 			static_cast<float>(std::max(0, zombie->mShieldMaxHealth)),
 			static_cast<float>(std::max(0, zombie->mAttackDamage)),
-			zombie->IsEating()
+			zombie->IsEating(),
+			zombie->GetCooldownTimer(),
+			zombie->GetFrozenTimer(),
+			zombie->GetButterTimer(),
+			zombie->GetParalysisTimeRemaining(),
+			getSimulatedImmunityRemaining(ZombieControlEffect::SLOW),
+			getSimulatedImmunityRemaining(ZombieControlEffect::FROZEN),
+			getSimulatedImmunityRemaining(ZombieControlEffect::BUTTER),
+			getSimulatedImmunityRemaining(ZombieControlEffect::PARALYSIS),
+			zombie->CanBeChilled(),
+			zombie->CanBeFrozen(),
+			zombie->CanBeButtered(),
+			zombie->CanBeParalyzed(),
+			zombie->CanBeAffectedByGroundHazards(),
+			canProtectNightRoofCharge,
+			includeNightRoofChargeDetails
+				&& IsNightRoofChargeProtectionSuppressed(zombie),
+			canProtectNightRoofCharge
+				? 1.5f * CELL_COLLIDER_SIZE_X : 0.0f,
+			simulatedCombatant,
+			false
 		});
 	}
 
@@ -4941,7 +5229,15 @@ bool Board::BuildMonteCarloCombatSnapshot(
 				legalCellMask,
 				type == PlantType::PLANT_PUMPKINSHELL,
 				type == PlantType::PLANT_PUMPKINSHELL ? 2
-					: (IsUnderPlantLayerType(type) ? 0 : 1)
+					: (IsUnderPlantLayerType(type) ? 0 : 1),
+				profile.slowApplicationsPerSecond,
+				profile.slowDuration,
+				profile.frozenApplicationsPerSecond,
+				profile.frozenDuration,
+				profile.butterApplicationsPerSecond,
+				profile.butterDuration,
+				profile.paralysisApplicationsPerSecond,
+				profile.paralysisDuration
 			});
 		}
 	}
@@ -6111,6 +6407,7 @@ void Board::SummonNextWave()
 	mEliteCatapultsSpawnedThisWave = 0;
 	mInsulatorsSpawnedThisWave = 0;
 	mHijackersSpawnedThisWave = 0;
+	mGroundingZombiesSpawnedThisWave = 0;
 	mMistFuelAssignedThisWave = 0;
 	if (mCurrentWave == 1)
 	{
@@ -6753,6 +7050,7 @@ void Board::OnSurvivalRoundClear()
 	mEliteCatapultsSpawnedThisWave = 0;
 	mInsulatorsSpawnedThisWave = 0;
 	mHijackersSpawnedThisWave = 0;
+	mGroundingZombiesSpawnedThisWave = 0;
 	RefreshZombieWeatherSpeeds();
 
 	// 重算难度（解锁更强僵尸）+ 刷新关卡名

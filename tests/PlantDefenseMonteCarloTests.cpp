@@ -55,6 +55,33 @@ namespace {
 		return config;
 	}
 
+	NightRoofChargeConfig MakeNightRoofRouteConfig()
+	{
+		NightRoofChargeConfig config;
+		config.combat.rolloutCount = 1;
+		config.combat.maxZombiesPerRollout = 16;
+		config.combat.horizonSeconds = 3.0f;
+		config.combat.stepSeconds = 0.25f;
+		config.combat.plantDecisionInterval = 10.0f;
+		config.guideImmunitySeconds = 10.0f;
+		return config;
+	}
+
+	PlantSnapshot MakeRoutePlant(int id, int row, float x,
+		float health, float strategicValue)
+	{
+		PlantSnapshot plant;
+		plant.id = id;
+		plant.row = row;
+		plant.column = 2;
+		plant.x = x;
+		plant.health = health;
+		plant.maxHealth = health;
+		plant.strategicValue = strategicValue;
+		plant.bounds = { x - 40.0f, 250.0f, 80.0f, 100.0f };
+		return plant;
+	}
+
 	void TestDelayedCandidateCanWin()
 	{
 		Snapshot snapshot = MakeTreatmentSnapshot();
@@ -250,6 +277,84 @@ namespace {
 		Require(std::abs(result.coordinationLoss) < 0.001f,
 			"removing the under support must not change the current normal-layer blocker");
 	}
+
+	void TestGuidedRoutePreservesZombiePressure()
+	{
+		Snapshot snapshot = MakeTreatmentSnapshot();
+		snapshot.plants.push_back(MakeRoutePlant(10, 2, 300.0f, 100.0f, 1000.0f));
+		ZombieSnapshot guide = MakeZombie(1, 355.0f, 300.0f, 150.0f, 270.0f);
+		guide.helmHealth = 40.0f;
+		guide.helmMaxHealth = 430.0f;
+		snapshot.zombies.push_back(guide);
+
+		NightRoofChargeCandidate ordinary;
+		ordinary.row = 2;
+		ordinary.resolveSeconds = 0.0f;
+		ordinary.zombieDamage = 200.0f;
+		NightRoofChargeCandidate guided = ordinary;
+		guided.guided = true;
+		guided.guideZombieId = 1;
+		const NightRoofChargeResult result = ChooseNightRoofChargeRoute(
+			snapshot, { ordinary, guided }, MakeNightRoofRouteConfig(), 0x31415926u);
+		Require(result.candidateIndex == 1,
+			"a guided route must value preserving zombie pressure instead of friendly fire");
+	}
+
+	void TestOrdinaryRowCanBeatUnhelpfulGuide()
+	{
+		Snapshot snapshot = MakeTreatmentSnapshot();
+		PlantSnapshot producer = MakeRoutePlant(10, 1, 300.0f, 300.0f, 100.0f);
+		producer.sunPerSecond = 100.0f;
+		snapshot.plants.push_back(producer);
+		ZombieSnapshot guide = MakeZombie(1, 900.0f, 300.0f, 270.0f, 270.0f);
+		guide.row = 2;
+		guide.helmHealth = 430.0f;
+		guide.helmMaxHealth = 430.0f;
+		guide.simulatedCombatant = false;
+		snapshot.zombies.push_back(guide);
+
+		NightRoofChargeCandidate ordinary;
+		ordinary.row = 1;
+		ordinary.resolveSeconds = 0.0f;
+		NightRoofChargeCandidate guided;
+		guided.row = 2;
+		guided.resolveSeconds = 0.0f;
+		guided.guided = true;
+		guided.guideZombieId = 1;
+		const NightRoofChargeResult result = ChooseNightRoofChargeRoute(
+			snapshot, { ordinary, guided }, MakeNightRoofRouteConfig(), 0x27182818u);
+		Require(result.candidateIndex == 0,
+			"the planner must keep ordinary rows when their plant shutdown is more valuable");
+	}
+
+	void TestGuidedRouteModelsPendingFreezeAndHardControlImmunity()
+	{
+		Snapshot snapshot = MakeTreatmentSnapshot();
+		snapshot.plants.push_back(MakeRoutePlant(10, 2, 300.0f, 100.0f, 1000.0f));
+		PlantSnapshot iceSource = MakeRoutePlant(11, 0, 300.0f, 300.0f, 0.0f);
+		snapshot.plants.push_back(iceSource);
+		ZombieSnapshot guide = MakeZombie(1, 355.0f, 300.0f, 270.0f, 270.0f);
+		guide.helmHealth = 430.0f;
+		guide.helmMaxHealth = 430.0f;
+		snapshot.zombies.push_back(guide);
+
+		NightRoofChargeCandidate ordinary;
+		ordinary.row = 2;
+		ordinary.resolveSeconds = 0.0f;
+		ordinary.zombieDamage = 0.0f;
+		ordinary.paralysisSeconds = 0.0f;
+		NightRoofChargeCandidate guided = ordinary;
+		guided.guided = true;
+		guided.guideZombieId = 1;
+		NightRoofChargeConfig config = MakeNightRoofRouteConfig();
+		config.pendingControlEvents.push_back({
+			11, 0.5f, 20.0f, 20.0f, 4.0f, 4.0f
+		});
+		const NightRoofChargeResult result = ChooseNightRoofChargeRoute(
+			snapshot, { ordinary, guided }, config, 0x16180339u);
+		Require(result.candidateIndex == 1,
+			"pending IceShroom freeze and the guide immunity window must affect route value");
+	}
 }
 
 int main()
@@ -262,6 +367,9 @@ int main()
 		TestSupportPlantsUseSeparateCapacity();
 		TestSupportOnlySnapshotStillSupportsRemoval();
 		TestNormalPlantBlocksBeforeCompressedSupport();
+		TestGuidedRoutePreservesZombiePressure();
+		TestOrdinaryRowCanBeatUnhelpfulGuide();
+		TestGuidedRouteModelsPendingFreezeAndHardControlImmunity();
 		std::cout << "PlantDefenseMonteCarloTests passed\n";
 		return 0;
 	}

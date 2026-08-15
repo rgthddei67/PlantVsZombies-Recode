@@ -35,6 +35,10 @@ public:
 	int GetActiveNightRoofHijackerCount() const;
 	/** 热路径只检查劫持者专用弱索引并在首个有效候选处返回。 */
 	bool HasActiveNightRoofHijacker() const;
+	/** 返回按稳定实体 ID 排序的当前有效引雷候选；只遍历稀有弱索引。 */
+	std::vector<std::shared_ptr<Zombie>> GetNightRoofChargeGuideCandidates() const;
+	/** 返回当前有效引雷候选数，不扫描普通僵尸。 */
+	int GetActiveNightRoofChargeGuideCount() const;
 	/** 单疗预留查询只遍历急救员稀有索引；exceptHealerID 的自身预留不算冲突。 */
 	bool IsHealerFocusedTargetReserved(int zombieID, int exceptHealerID) const;
 	/** 多名急救员同时就绪时只允许实体 ID 最小者先尝试领取 Board 的分帧推演预算。 */
@@ -142,6 +146,12 @@ private:
 	std::map<int, std::weak_ptr<HijackerZombie>> mHijackers;
 	/** 登记或覆盖指定 ID 的劫持者；非劫持者覆盖同 ID 时撤销旧登记。 */
 	void TrackHijacker(int id, const std::shared_ptr<Zombie>& zombie);
+
+	// ── 黑夜屋顶引雷单位独立索引（瞬态、按实体 ID 有序）──
+	// 类型通过 Zombie 虚接口声明，未来新增引雷僵尸无需再为每个品种复制一套索引。
+	std::map<int, std::weak_ptr<Zombie>> mNightRoofChargeGuides;
+	/** 登记或覆盖指定 ID 的引雷类型；装备损毁只影响候选门禁，不撤销类型索引。 */
+	void TrackNightRoofChargeGuide(int id, const std::shared_ptr<Zombie>& zombie);
 
 	// ── 急救员独立索引（瞬态、按实体 ID 有序）──
 	// 只在六秒决策边沿协调单疗预留和同帧顺序，常态治疗候选扫描仍是低频事件。

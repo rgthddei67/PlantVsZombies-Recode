@@ -40,6 +40,16 @@ namespace {
 		bool protectedFromHijackerExecution = false;
 		int eatingLayerPriority = 1;
 		bool canBeEaten = true;
+		float shutdownRemaining = 0.0f;
+		bool protectedFromNightRoofCharge = false;
+		float slowApplicationsPerSecond = 0.0f;
+		float slowDuration = 0.0f;
+		float frozenApplicationsPerSecond = 0.0f;
+		float frozenDuration = 0.0f;
+		float butterApplicationsPerSecond = 0.0f;
+		float butterDuration = 0.0f;
+		float paralysisApplicationsPerSecond = 0.0f;
+		float paralysisDuration = 0.0f;
 	};
 
 	struct SimSupport {
@@ -70,6 +80,23 @@ namespace {
 		float attackDamage = 0.0f;
 		float biteCharge = 0.0f;
 		bool breached = false;
+		float slowRemaining = 0.0f;
+		float frozenRemaining = 0.0f;
+		float butterRemaining = 0.0f;
+		float paralysisRemaining = 0.0f;
+		float slowImmunityRemaining = 0.0f;
+		float frozenImmunityRemaining = 0.0f;
+		float butterImmunityRemaining = 0.0f;
+		float paralysisImmunityRemaining = 0.0f;
+		bool canBeChilled = true;
+		bool canBeFrozen = true;
+		bool canBeButtered = true;
+		bool canBeParalyzed = true;
+		bool canBeAffectedByNightRoofCharge = true;
+		bool canProtectFromNightRoofCharge = false;
+		bool nightRoofProtectionSuppressed = false;
+		float nightRoofProtectionRadius = 0.0f;
+		bool simulatedCombatant = true;
 	};
 
 	struct SimCard {
@@ -149,6 +176,7 @@ namespace {
 
 	float ZombieThreat(const ZombieSnapshot& zombie)
 	{
+		if (!zombie.simulatedCombatant) return 0.0f;
 		const float totalHealth = zombie.bodyHealth
 			+ zombie.helmHealth + zombie.shieldHealth;
 		const float distanceFactor = 1.0f
@@ -188,7 +216,17 @@ namespace {
 				source.diesWithHijackerExecutionGroup,
 				source.protectedFromHijackerExecution,
 				source.eatingLayerPriority,
-				source.canBeEaten
+				source.canBeEaten,
+				std::max(0.0f, source.shutdownRemaining),
+				source.protectedFromNightRoofCharge,
+				std::max(0.0f, source.slowApplicationsPerSecond),
+				std::max(0.0f, source.slowDuration),
+				std::max(0.0f, source.frozenApplicationsPerSecond),
+				std::max(0.0f, source.frozenDuration),
+				std::max(0.0f, source.butterApplicationsPerSecond),
+				std::max(0.0f, source.butterDuration),
+				std::max(0.0f, source.paralysisApplicationsPerSecond),
+				std::max(0.0f, source.paralysisDuration)
 			};
 		}
 
@@ -220,6 +258,7 @@ namespace {
 		struct RankedZombie {
 			int index = 0;
 			float priority = 0.0f;
+			bool forced = false;
 		};
 		std::array<RankedZombie, kMaxSnapshotZombies> ranked{};
 		const int snapshotZombieCount = std::min(
@@ -228,11 +267,13 @@ namespace {
 			ranked[i] = {
 				i,
 				ZombieThreat(snapshot.zombies[i])
-					* (0.75f + Random01(random) * 0.5f)
+					* (0.75f + Random01(random) * 0.5f),
+				snapshot.zombies[i].forcedForDecision
 			};
 		}
 		std::sort(ranked.begin(), ranked.begin() + snapshotZombieCount,
 			[](const RankedZombie& lhs, const RankedZombie& rhs) {
+				if (lhs.forced != rhs.forced) return lhs.forced;
 				return lhs.priority > rhs.priority;
 			});
 
@@ -262,7 +303,24 @@ namespace {
 				std::max(0.0f, source.shieldMaxHealth),
 				std::max(0.0f, source.attackDamage),
 				source.isEating ? biteInterval : Random01(random) * biteInterval,
-				false
+				false,
+				std::max(0.0f, source.slowRemaining),
+				std::max(0.0f, source.frozenRemaining),
+				std::max(0.0f, source.butterRemaining),
+				std::max(0.0f, source.paralysisRemaining),
+				std::max(0.0f, source.slowImmunityRemaining),
+				std::max(0.0f, source.frozenImmunityRemaining),
+				std::max(0.0f, source.butterImmunityRemaining),
+				std::max(0.0f, source.paralysisImmunityRemaining),
+				source.canBeChilled,
+				source.canBeFrozen,
+				source.canBeButtered,
+				source.canBeParalyzed,
+				source.canBeAffectedByNightRoofCharge,
+				source.canProtectFromNightRoofCharge,
+				source.nightRoofProtectionSuppressed,
+				std::max(0.0f, source.nightRoofProtectionRadius),
+				source.simulatedCombatant
 			};
 		}
 	}
@@ -379,13 +437,22 @@ namespace {
 	{
 		for (int i = 0; i < state.plantCount; ++i) {
 			SimPlant& plant = state.plants[i];
-			if (!IsAlive(plant) || plant.sunPerSecond <= 0.0f) continue;
+			if (!IsAlive(plant) || plant.shutdownRemaining > 0.0f
+				|| plant.sunPerSecond <= 0.0f) continue;
 			if (plant.productionDelay > 0.0f) {
 				plant.productionDelay =
 					std::max(0.0f, plant.productionDelay - deltaTime);
 				continue;
 			}
 			state.sun += plant.sunPerSecond * deltaTime;
+		}
+	}
+
+	void UpdatePlantShutdowns(SimulationState& state, float deltaTime)
+	{
+		for (int i = 0; i < state.plantCount; ++i) {
+			state.plants[i].shutdownRemaining = std::max(
+				0.0f, state.plants[i].shutdownRemaining - deltaTime);
 		}
 	}
 
@@ -402,7 +469,8 @@ namespace {
 		float threat = 0.0f;
 		for (int i = 0; i < state.zombieCount; ++i) {
 			const SimZombie& zombie = state.zombies[i];
-			if (!IsAlive(zombie) || zombie.row != row) continue;
+			if (!IsAlive(zombie) || !zombie.simulatedCombatant
+				|| zombie.row != row) continue;
 			const float health = zombie.bodyHealth
 				+ zombie.helmHealth + zombie.shieldHealth;
 			threat += std::max(1.0f, health)
@@ -497,6 +565,16 @@ namespace {
 		plant.protectedFromHijackerExecution = false;
 		plant.eatingLayerPriority = card.eatingLayerPriority;
 		plant.canBeEaten = true;
+		plant.shutdownRemaining = 0.0f;
+		plant.protectedFromNightRoofCharge = false;
+		plant.slowApplicationsPerSecond = card.slowApplicationsPerSecond;
+		plant.slowDuration = card.slowDuration;
+		plant.frozenApplicationsPerSecond = card.frozenApplicationsPerSecond;
+		plant.frozenDuration = card.frozenDuration;
+		plant.butterApplicationsPerSecond = card.butterApplicationsPerSecond;
+		plant.butterDuration = card.butterDuration;
+		plant.paralysisApplicationsPerSecond = card.paralysisApplicationsPerSecond;
+		plant.paralysisDuration = card.paralysisDuration;
 		// 初始合法性由正式 CanPlantAt 快照决定；这里只阻止同一 rollout 再占用新种格。
 		state.reservedCells |= (1ULL << bestCell);
 		state.sun -= static_cast<float>(card.cost);
@@ -504,12 +582,51 @@ namespace {
 			std::max(0.0f, card.cooldownTime);
 	}
 
-	// 将配置画像中的等效 DPS 分派给每个覆盖行最靠近房屋的存活僵尸。
-	void UpdatePlantAttacks(SimulationState& state, float deltaTime, int rows)
+	void ApplyPlantControl(
+		const SimPlant& plant, SimZombie& zombie, float deltaTime,
+		std::minstd_rand& random)
+	{
+		auto triggered = [&](float applicationsPerSecond) {
+			if (applicationsPerSecond <= 0.0f) return false;
+			const float probability = 1.0f
+				- std::exp(-applicationsPerSecond * deltaTime);
+			return Random01(random) < probability;
+		};
+		if (zombie.canBeChilled && zombie.slowImmunityRemaining <= 0.0f
+			&& triggered(plant.slowApplicationsPerSecond)) {
+			zombie.slowRemaining = std::max(
+				zombie.slowRemaining, plant.slowDuration);
+		}
+		if (zombie.canBeChilled && zombie.canBeFrozen
+			&& zombie.frozenImmunityRemaining <= 0.0f
+			&& triggered(plant.frozenApplicationsPerSecond)) {
+			zombie.frozenRemaining = std::max(
+				zombie.frozenRemaining, plant.frozenDuration);
+		}
+		if (zombie.canBeButtered && zombie.butterImmunityRemaining <= 0.0f
+			&& triggered(plant.butterApplicationsPerSecond)) {
+			zombie.butterRemaining = std::max(
+				zombie.butterRemaining, plant.butterDuration);
+		}
+		if (zombie.canBeParalyzed && zombie.paralysisImmunityRemaining <= 0.0f
+			&& triggered(plant.paralysisApplicationsPerSecond)) {
+			zombie.paralysisRemaining = std::max(
+				zombie.paralysisRemaining, plant.paralysisDuration);
+		}
+	}
+
+	// 将配置画像中的等效 DPS 与控制频率分派给每个覆盖行最靠近房屋的存活僵尸。
+	void UpdatePlantAttacks(SimulationState& state, float deltaTime, int rows,
+		std::minstd_rand& random)
 	{
 		for (int plantIndex = 0; plantIndex < state.plantCount; ++plantIndex) {
 			const SimPlant& plant = state.plants[plantIndex];
-			if (!IsAlive(plant) || plant.attackDps <= 0.0f) continue;
+			if (!IsAlive(plant) || plant.shutdownRemaining > 0.0f
+				|| (plant.attackDps <= 0.0f
+					&& plant.slowApplicationsPerSecond <= 0.0f
+					&& plant.frozenApplicationsPerSecond <= 0.0f
+					&& plant.butterApplicationsPerSecond <= 0.0f
+					&& plant.paralysisApplicationsPerSecond <= 0.0f)) continue;
 			const int minRow = std::max(0, plant.row - plant.attackRowRadius);
 			const int maxRow = std::min(rows - 1, plant.row + plant.attackRowRadius);
 			for (int row = minRow; row <= maxRow; ++row) {
@@ -518,7 +635,7 @@ namespace {
 				for (int zombieIndex = 0;
 					zombieIndex < state.zombieCount; ++zombieIndex) {
 					const SimZombie& zombie = state.zombies[zombieIndex];
-					if (!IsAlive(zombie) || zombie.row != row
+					if (!IsAlive(zombie) || !zombie.simulatedCombatant || zombie.row != row
 						|| zombie.x + 10.0f < plant.x || zombie.x >= closestX) {
 						continue;
 					}
@@ -528,6 +645,10 @@ namespace {
 				if (targetIndex >= 0) {
 					ApplyZombieDamage(
 						state.zombies[targetIndex], plant.attackDps * deltaTime);
+					if (IsAlive(state.zombies[targetIndex])) {
+						ApplyPlantControl(plant, state.zombies[targetIndex],
+							deltaTime, random);
+					}
 				}
 			}
 		}
@@ -636,15 +757,32 @@ namespace {
 		const float biteInterval = std::max(0.1f, config.biteInterval);
 		for (int i = 0; i < state.zombieCount; ++i) {
 			SimZombie& zombie = state.zombies[i];
-			if (!IsAlive(zombie)) continue;
+			if (!IsAlive(zombie) || !zombie.simulatedCombatant) continue;
+			zombie.slowRemaining = std::max(0.0f, zombie.slowRemaining - deltaTime);
+			zombie.frozenRemaining = std::max(0.0f, zombie.frozenRemaining - deltaTime);
+			zombie.butterRemaining = std::max(0.0f, zombie.butterRemaining - deltaTime);
+			zombie.paralysisRemaining = std::max(
+				0.0f, zombie.paralysisRemaining - deltaTime);
+			zombie.slowImmunityRemaining = std::max(
+				0.0f, zombie.slowImmunityRemaining - deltaTime);
+			zombie.frozenImmunityRemaining = std::max(
+				0.0f, zombie.frozenImmunityRemaining - deltaTime);
+			zombie.butterImmunityRemaining = std::max(
+				0.0f, zombie.butterImmunityRemaining - deltaTime);
+			zombie.paralysisImmunityRemaining = std::max(
+				0.0f, zombie.paralysisImmunityRemaining - deltaTime);
 			if (IsCastingTreatment(zombie, elapsed, candidate,
 				pendingTreatments, treatmentConfig)) {
 				continue;
 			}
+			if (zombie.frozenRemaining > 0.0f || zombie.butterRemaining > 0.0f
+				|| zombie.paralysisRemaining > 0.0f) continue;
+			const float effectiveMoveSpeed = zombie.moveSpeed
+				* (zombie.slowRemaining > 0.0f ? 0.5f : 1.0f);
 
 			const BlockerRef blocker = FindFrontBlocker(state, zombie);
 			if (!blocker.IsValid()) {
-				zombie.x -= zombie.moveSpeed * deltaTime;
+				zombie.x -= effectiveMoveSpeed * deltaTime;
 			}
 			else {
 				float& blockerHealth = BlockerHealth(state, blocker);
@@ -655,7 +793,7 @@ namespace {
 				if (!lockedEatingTarget && distance > config.contactDistance) {
 					zombie.x = std::max(
 						BlockerX(state, blocker) + config.contactDistance,
-						zombie.x - zombie.moveSpeed * deltaTime);
+						zombie.x - effectiveMoveSpeed * deltaTime);
 				}
 				else {
 					zombie.biteCharge += deltaTime;
@@ -685,7 +823,8 @@ namespace {
 		for (int zombieIndex = 0;
 			zombieIndex < state.zombieCount; ++zombieIndex) {
 			const SimZombie& zombie = state.zombies[zombieIndex];
-			if (!IsAlive(zombie) || zombie.attackDamage <= 0.0f) continue;
+			if (!IsAlive(zombie) || !zombie.simulatedCombatant
+				|| zombie.attackDamage <= 0.0f) continue;
 			const BlockerRef blocker = FindFrontBlocker(state, zombie);
 			if (!blocker.IsValid()) continue;
 			const float distance = zombie.x - BlockerX(state, blocker);
@@ -835,16 +974,16 @@ namespace {
 	}
 
 	// 按正式生命口径与格子层组在数值副本中提交一次已锁定劫持者处决。
-	void ApplyHijackerExecution(
-		SimulationState& state, const TreatmentConfig& config)
+	void ApplyHijackerExecution(SimulationState& state, int hijackerZombieId,
+		bool survivalMode, float survivalExecutionLineCap)
 	{
-		SimZombie* hijacker = FindZombie(state, config.hijackerZombieId);
+		SimZombie* hijacker = FindZombie(state, hijackerZombieId);
 		if (!hijacker || !IsAlive(*hijacker)) return;
 		float executionLine = hijacker->bodyHealth
 			+ hijacker->helmHealth + hijacker->shieldHealth;
-		if (config.survivalMode) {
+		if (survivalMode) {
 			executionLine = std::min(executionLine,
-				std::max(0.0f, config.survivalExecutionLineCap));
+				std::max(0.0f, survivalExecutionLineCap));
 		}
 		if (executionLine <= kMinimumHealth) return;
 
@@ -887,6 +1026,13 @@ namespace {
 		hijacker->bodyHealth = 0.0f;
 	}
 
+	void ApplyHijackerExecution(
+		SimulationState& state, const TreatmentConfig& config)
+	{
+		ApplyHijackerExecution(state, config.hijackerZombieId,
+			config.survivalMode, config.survivalExecutionLineCap);
+	}
+
 	// 治疗者选择以玩家效用损失为目标，因此终局僵尸压力从玩家效用中扣除。
 	float TreatmentPlayerUtility(
 		const SimulationState& state, const Config& combat,
@@ -923,6 +1069,7 @@ namespace {
 				config.horizonSeconds, elapsed + deltaTime);
 			const float remaining = std::max(
 				0.0f, config.horizonSeconds - elapsed);
+			UpdatePlantShutdowns(state, deltaTime);
 			UpdatePlantProduction(state, deltaTime);
 			UpdateCardCooldowns(state, deltaTime);
 			if (elapsed >= nextPlantDecision) {
@@ -930,7 +1077,7 @@ namespace {
 				nextPlantDecision += std::max(
 					deltaTime, config.plantDecisionInterval);
 			}
-			UpdatePlantAttacks(state, deltaTime, snapshot.rows);
+			UpdatePlantAttacks(state, deltaTime, snapshot.rows, random);
 			UpdateZombies(state, config, deltaTime, elapsed, candidate,
 				&pendingTreatments, &treatmentConfig);
 
@@ -993,6 +1140,7 @@ namespace {
 			const float elapsed = static_cast<float>(step) * deltaTime;
 			const float remaining = std::max(
 				0.0f, config.horizonSeconds - elapsed);
+			UpdatePlantShutdowns(state, deltaTime);
 			UpdatePlantProduction(state, deltaTime);
 			UpdateCardCooldowns(state, deltaTime);
 			if (elapsed >= nextPlantDecision) {
@@ -1000,7 +1148,7 @@ namespace {
 				nextPlantDecision += std::max(
 					deltaTime, config.plantDecisionInterval);
 			}
-			UpdatePlantAttacks(state, deltaTime, snapshot.rows);
+			UpdatePlantAttacks(state, deltaTime, snapshot.rows, random);
 			UpdateZombies(state, config, deltaTime);
 		}
 		const float coordination = TerminalBlockerUtility(state, config);
@@ -1008,6 +1156,168 @@ namespace {
 			PlayerUtility(state) + coordination,
 			coordination
 		};
+	}
+
+	void ApplyPendingControlEvent(SimulationState& state,
+		const PendingControlEvent& event, std::minstd_rand& random)
+	{
+		for (int i = 0; i < state.plantCount; ++i) {
+			if (state.plants[i].id == event.sourcePlantId) {
+				state.plants[i].health = 0.0f;
+				break;
+			}
+		}
+		for (int i = 0; i < state.zombieCount; ++i) {
+			SimZombie& zombie = state.zombies[i];
+			if (!IsAlive(zombie) || !zombie.canBeChilled) continue;
+			if (zombie.slowImmunityRemaining <= 0.0f) {
+				zombie.slowRemaining = std::max(
+					zombie.slowRemaining, std::max(0.0f, event.slowDuration));
+			}
+			// 寒冰菇沿用正式 StartFrozen 门禁：阶段免冻者只吃减速尾巴，连伤害也豁免。
+			if (!zombie.canBeFrozen) continue;
+			ApplyZombieDamage(zombie, event.damage);
+			if (!IsAlive(zombie) || zombie.frozenImmunityRemaining > 0.0f) continue;
+			const float durationRange = std::max(
+				0.0f, event.frozenDurationMax - event.frozenDurationMin);
+			zombie.frozenRemaining = std::max(zombie.frozenRemaining,
+				std::max(0.0f, event.frozenDurationMin)
+					+ Random01(random) * durationRange);
+		}
+	}
+
+	void ApplyNightRoofChargeEvent(SimulationState& state,
+		const NightRoofChargeCandidate& candidate,
+		const NightRoofChargeConfig& config)
+	{
+		for (int i = 0; i < state.plantCount; ++i) {
+			SimPlant& plant = state.plants[i];
+			if (!IsAlive(plant) || plant.row != candidate.row
+				|| plant.protectedFromNightRoofCharge) continue;
+			const bool wetSlope = candidate.wetRow && plant.column >= 0
+				&& plant.column < candidate.wetSlopeColumnCount;
+			plant.shutdownRemaining = std::max(plant.shutdownRemaining,
+				wetSlope ? candidate.wetPlantShutdownSeconds
+					: candidate.plantShutdownSeconds);
+		}
+
+		if (candidate.guided) {
+			SimZombie* guide = FindZombie(state, candidate.guideZombieId);
+			if (!guide || !IsAlive(*guide) || guide->helmHealth <= kMinimumHealth) return;
+			guide->frozenRemaining = 0.0f;
+			guide->butterRemaining = 0.0f;
+			guide->paralysisRemaining = 0.0f;
+			const float immunity = std::max(0.0f, config.guideImmunitySeconds);
+			guide->frozenImmunityRemaining = std::max(
+				guide->frozenImmunityRemaining, immunity);
+			guide->butterImmunityRemaining = std::max(
+				guide->butterImmunityRemaining, immunity);
+			guide->paralysisImmunityRemaining = std::max(
+				guide->paralysisImmunityRemaining, immunity);
+			return;
+		}
+
+		for (int i = 0; i < state.zombieCount; ++i) {
+			SimZombie& zombie = state.zombies[i];
+			if (!IsAlive(zombie) || zombie.row != candidate.row
+				|| !zombie.canBeAffectedByNightRoofCharge) continue;
+			const bool wetSlope = candidate.wetRow
+				&& zombie.x <= candidate.wetSlopeEndX;
+			const float damage = wetSlope
+				? candidate.wetZombieDamage : candidate.zombieDamage;
+			const float paralysis = wetSlope
+				? candidate.wetParalysisSeconds : candidate.paralysisSeconds;
+
+			SimZombie* protector = nullptr;
+			float nearestDistance = std::numeric_limits<float>::max();
+			for (int providerIndex = 0;
+				providerIndex < state.zombieCount; ++providerIndex) {
+				SimZombie& provider = state.zombies[providerIndex];
+				if (!IsAlive(provider) || provider.row != zombie.row
+					|| provider.helmHealth <= kMinimumHealth
+					|| !provider.canProtectFromNightRoofCharge
+					|| provider.nightRoofProtectionSuppressed) continue;
+				const float distance = std::abs(provider.x - zombie.x);
+				if (distance <= provider.nightRoofProtectionRadius
+					&& distance < nearestDistance) {
+					nearestDistance = distance;
+					protector = &provider;
+				}
+			}
+			if (protector) {
+				protector->helmHealth = std::max(
+					0.0f, protector->helmHealth - std::max(0.0f, damage));
+				continue;
+			}
+			ApplyZombieDamage(zombie, damage);
+			if (IsAlive(zombie) && zombie.canBeParalyzed
+				&& zombie.paralysisImmunityRemaining <= 0.0f) {
+				zombie.paralysisRemaining = std::max(
+					zombie.paralysisRemaining, std::max(0.0f, paralysis));
+			}
+		}
+	}
+
+	ScenarioUtility RunNightRoofChargeScenario(const Snapshot& snapshot,
+		const SimulationState& initialState,
+		const NightRoofChargeConfig& routeConfig,
+		const NightRoofChargeCandidate* candidate, std::uint32_t seed)
+	{
+		const Config& config = routeConfig.combat;
+		SimulationState state = initialState;
+		std::vector<unsigned char> controlResolved(
+			routeConfig.pendingControlEvents.size(), 0);
+		bool candidateResolved = candidate == nullptr;
+		bool hijackerResolved = routeConfig.hijackerExecutionSeconds < 0.0f;
+		std::minstd_rand random(seed ^ 0xC2B2AE35u);
+		const float deltaTime = std::max(0.1f, config.stepSeconds);
+		const int stepCount = std::max(
+			1, static_cast<int>(std::ceil(config.horizonSeconds / deltaTime)));
+		float nextPlantDecision = Random01(random)
+			* std::max(deltaTime, config.plantDecisionInterval);
+
+		for (int step = 0; step < stepCount; ++step) {
+			const float elapsed = static_cast<float>(step) * deltaTime;
+			const float nextElapsed = std::min(
+				config.horizonSeconds, elapsed + deltaTime);
+			const float remaining = std::max(
+				0.0f, config.horizonSeconds - elapsed);
+			UpdatePlantShutdowns(state, deltaTime);
+			UpdatePlantProduction(state, deltaTime);
+			UpdateCardCooldowns(state, deltaTime);
+			if (elapsed >= nextPlantDecision) {
+				TryPlantFromCards(snapshot, state, remaining, random);
+				nextPlantDecision += std::max(
+					deltaTime, config.plantDecisionInterval);
+			}
+			for (std::size_t i = 0;
+				i < routeConfig.pendingControlEvents.size(); ++i) {
+				if (controlResolved[i]
+					|| routeConfig.pendingControlEvents[i].resolveSeconds > nextElapsed) {
+					continue;
+				}
+				ApplyPendingControlEvent(
+					state, routeConfig.pendingControlEvents[i], random);
+				controlResolved[i] = 1;
+			}
+			if (!hijackerResolved
+				&& routeConfig.hijackerExecutionSeconds <= nextElapsed) {
+				ApplyHijackerExecution(state, routeConfig.hijackerZombieId,
+					routeConfig.survivalMode,
+					routeConfig.survivalExecutionLineCap);
+				hijackerResolved = true;
+			}
+			if (!candidateResolved && candidate
+				&& candidate->resolveSeconds <= nextElapsed) {
+				ApplyNightRoofChargeEvent(state, *candidate, routeConfig);
+				candidateResolved = true;
+			}
+			UpdatePlantAttacks(state, deltaTime, snapshot.rows, random);
+			UpdateZombies(state, config, deltaTime);
+		}
+
+		const float coordination = TerminalBlockerUtility(state, config);
+		return { PlayerUtility(state) + coordination, coordination };
 	}
 }
 
@@ -1156,6 +1466,69 @@ TreatmentResult ChooseTreatment(const Snapshot& snapshot,
 				}
 				continue;
 			}
+			++tiedBestCount;
+			std::uniform_int_distribution<int> chooseTie(1, tiedBestCount);
+			if (chooseTie(tieRandom) == 1) {
+				result.candidateIndex = static_cast<int>(candidateIndex);
+				result.score = averageLoss;
+			}
+		}
+	}
+	return result;
+}
+
+NightRoofChargeResult ChooseNightRoofChargeRoute(const Snapshot& snapshot,
+	const std::vector<NightRoofChargeCandidate>& candidates,
+	const NightRoofChargeConfig& config, std::uint32_t seed)
+{
+	NightRoofChargeResult result;
+	result.rolloutCount = std::max(1, config.combat.rolloutCount);
+	result.sampledZombieCount = std::min({
+		static_cast<int>(snapshot.zombies.size()),
+		std::max(0, config.combat.maxZombiesPerRollout),
+		kMaxSimulationZombies
+	});
+	result.sampledPlantCount = std::min(
+		static_cast<int>(snapshot.plants.size()), kMaxSimulationPlants);
+	result.supportPlantCount = std::min(
+		static_cast<int>(snapshot.supports.size()), kMaxSimulationSupports);
+	result.cardCount = std::min(
+		static_cast<int>(snapshot.cards.size()), kMaxSimulationCards);
+	if (candidates.empty() || snapshot.rows <= 0 || snapshot.columns <= 0) {
+		return result;
+	}
+
+	std::vector<float> totalLosses(candidates.size(), 0.0f);
+	for (int rollout = 0; rollout < result.rolloutCount; ++rollout) {
+		const std::uint32_t rolloutSeed =
+			seed + static_cast<std::uint32_t>(rollout) * 0x85EBCA6Bu;
+		SimulationState initialState;
+		BuildInitialState(snapshot, config.combat, rolloutSeed, initialState);
+		const ScenarioUtility baseline = RunNightRoofChargeScenario(
+			snapshot, initialState, config, nullptr, rolloutSeed);
+		for (std::size_t candidateIndex = 0;
+			candidateIndex < candidates.size(); ++candidateIndex) {
+			const ScenarioUtility routed = RunNightRoofChargeScenario(
+				snapshot, initialState, config,
+				&candidates[candidateIndex], rolloutSeed);
+			totalLosses[candidateIndex] += baseline.total - routed.total;
+		}
+	}
+
+	float bestScore = std::numeric_limits<float>::lowest();
+	std::mt19937 tieRandom(seed ^ 0x27D4EB2Fu);
+	int tiedBestCount = 0;
+	for (std::size_t candidateIndex = 0;
+		candidateIndex < candidates.size(); ++candidateIndex) {
+		const float averageLoss = totalLosses[candidateIndex]
+			/ static_cast<float>(result.rolloutCount);
+		if (averageLoss > bestScore + kScoreTieEpsilon) {
+			bestScore = averageLoss;
+			tiedBestCount = 1;
+			result.candidateIndex = static_cast<int>(candidateIndex);
+			result.score = averageLoss;
+		}
+		else if (std::abs(averageLoss - bestScore) <= kScoreTieEpsilon) {
 			++tiedBestCount;
 			std::uniform_int_distribution<int> chooseTie(1, tiedBestCount);
 			if (chooseTie(tieRandom) == 1) {

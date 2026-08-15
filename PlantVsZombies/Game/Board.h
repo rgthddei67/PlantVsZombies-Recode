@@ -198,7 +198,8 @@ private:
 	CardSlotManager* mCardSlotManager = nullptr; // 非拥有；由 GameScene 在 CardUI 创建后绑定
 	/** 采集推演共用的植物、僵尸、卡槽和格子纯数值快照。 */
 	bool BuildMonteCarloCombatSnapshot(
-		PlantDefenseMonteCarlo::Snapshot& snapshot, bool mindControlledFaction);
+		PlantDefenseMonteCarlo::Snapshot& snapshot, bool mindControlledFaction,
+		bool includeNightRoofChargeDetails = false);
 	int mMonteCarloHealerDecisionCooldownSteps = 0; // 下次急救员推演前需经过的固定逻辑步数，不入存档
 	std::vector<ZombieType> mSpawnZombieList;	// 本关出怪表
 	float mHugeWaveCountDown = 0.0f;	// 一大波倒计时
@@ -235,6 +236,11 @@ private:
 	NightRoofChargePhase mNightRoofChargePhase = NightRoofChargePhase::CHARGING; // 当前积累、预警或放电阶段
 	float mNightRoofChargePhaseTimer = 0.0f; // 当前预警或放电阶段剩余游戏秒
 	int mNightRoofChargeRow = -1;       // 满电后一次锁定的导电瓦路行；积累阶段为 -1
+	bool mNightRoofChargeGuided = false; // 本轮是否锁定为接地僵尸引导路线；锁定后不因实体失效改写
+	int mNightRoofChargeGuideID = NULL_ZOMBIE_ID; // 本轮接地路线锁定的稳定实体 ID
+	bool mNightRoofChargeRouteUsedMonteCarlo = false; // 最近一次满电路线是否由统一短视推演选出，仅供观测
+	MonteCarloTargetStats mNightRoofChargeRouteStats; // 最近一次满电路线推演规模与得分，仅供观测
+	int mNightRoofChargeRouteDecisionMicros = 0; // 最近一次满电路线选择的墙钟微秒，仅供性能观测
 	bool mNightRoofHijackerSelectionAttempted = false; // 本轮是否已经在 75% 边沿完成唯一一次候选选择
 	int mNightRoofHijackerID = NULL_ZOMBIE_ID; // 本轮被锁定的劫持者稳定实体 ID；取消后保持空且不补选
 	bool mNightRoofHijackerWarningExtended = false; // 满电时是否由仍有效的劫持者把预警扩展到七秒
@@ -295,6 +301,7 @@ private:
 	int mEliteCatapultsSpawnedThisWave = 0; // 当前波正式生成的导流投篮车数量；每波至多一只并进入存档
 	int mInsulatorsSpawnedThisWave = 0; // 当前波正式生成的绝缘僵尸数量；所有正式波次统一至多两只并进入存档
 	int mHijackersSpawnedThisWave = 0; // 当前波正式生成的劫持者数量；所有正式波次统一至多两只并进入存档
+	int mGroundingZombiesSpawnedThisWave = 0; // 当前波正式生成的接地僵尸数量；所有正式波次统一至多两只并进入存档
 	int mEliteScaredyShroomsPlanted = 0; // 本关累计种下的精英胆小菇数量；死亡或铲除不返还次数
 	int mLastTyphoonMovedPlants = 0;    // 最近一次阵风移动的植物数，仅供观测和测试
 	int mLastTyphoonLostPlants = 0;     // 最近一次阵风吹出棋盘或吹入弹坑的植物数，仅供观测和测试
@@ -341,6 +348,8 @@ private:
 	void AddNightRoofCharge(float amount);
 	/** 满电后抽取并锁定本次导电瓦路；锁定结果在活动阶段保持不变。 */
 	void BeginNightRoofChargeWarning();
+	/** 用统一短视推演比较全部普通行与现存接地候选；失败时走正式 RNG 回退。 */
+	void ChooseNightRoofChargeRoute(float warningSeconds);
 	/** 在本轮雷荷首次达到 75% 时从专用弱索引锁定唯一候选；本轮取消后不补选。 */
 	void TryLockNightRoofHijacker();
 	/** 返回仍能执行本轮能力的已锁定劫持者；只做稳定 ID 的 O(1) 查询。 */
@@ -358,7 +367,8 @@ private:
 	/** 从存档恢复雷荷积累、余电、阶段、锁定行和倒计时，不重新抽取路线。 */
 	void RestoreNightRoofChargeState(float charge, NightRoofChargePhase phase,
 		int row, float phaseTimer, float overcharge, bool hijackerSelectionAttempted,
-		int hijackerID, bool hijackerWarningExtended, bool hijackerFinalizing);
+		int hijackerID, bool hijackerWarningExtended, bool hijackerFinalizing,
+		bool guided, int guideID);
 	void InitializeFogWeather();
 	void UpdateFog(float deltaTime);
 	void UpdateFogWeather(float deltaTime);
@@ -423,6 +433,7 @@ private:
 	void RestoreEliteCatapultWaveSpawnCount(int count);
 	void RestoreInsulatorWaveSpawnCount(int count);
 	void RestoreHijackerWaveSpawnCount(int count);
+	void RestoreGroundingZombieWaveSpawnCount(int count);
 	void RestoreTyphoonState(TyphoonStrength strength, WindDirection direction,
 		float strengthTimer, float gustTimer, float directionTimer, int gustsRemaining);
 	void RestoreActiveTyphoonGust(bool active, TyphoonStrength strength,
@@ -700,6 +711,9 @@ public:
 	int GetEliteCatapultsSpawnedThisWave() const { return mEliteCatapultsSpawnedThisWave; }
 	int GetInsulatorsSpawnedThisWave() const { return mInsulatorsSpawnedThisWave; }
 	int GetHijackersSpawnedThisWave() const { return mHijackersSpawnedThisWave; }
+	int GetGroundingZombiesSpawnedThisWave() const {
+		return mGroundingZombiesSpawnedThisWave;
+	}
 	int GetLastTyphoonMovedPlants() const { return mLastTyphoonMovedPlants; }
 	int GetLastTyphoonLostPlants() const { return mLastTyphoonLostPlants; }
 	int GetLastTyphoonBlockedPlantSteps() const { return mLastTyphoonBlockedPlantSteps; }
@@ -809,6 +823,19 @@ public:
 	/** 返回当前由场上有效劫持者提供的雨中雷荷固定增量，晴天恒为零。 */
 	float GetNightRoofHijackerRainChargeBonusPerSecond() const;
 	int GetNightRoofChargeRow() const { return mNightRoofChargeRow; }
+	bool IsNightRoofChargeGuided() const { return mNightRoofChargeGuided; }
+	int GetNightRoofChargeGuideID() const { return mNightRoofChargeGuideID; }
+	bool DidNightRoofChargeRouteUseMonteCarlo() const {
+		return mNightRoofChargeRouteUsedMonteCarlo;
+	}
+	const MonteCarloTargetStats& GetNightRoofChargeRouteStats() const {
+		return mNightRoofChargeRouteStats;
+	}
+	int GetNightRoofChargeRouteDecisionMicros() const {
+		return mNightRoofChargeRouteDecisionMicros;
+	}
+	/** 仅视觉读取已锁定引雷附件位置；实体失效时返回 false，绝不重选。 */
+	bool TryGetNightRoofChargeGuideAnchor(Vector& anchor) const;
 	bool IsNightRoofChargeWarning() const {
 		return mNightRoofChargePhase == NightRoofChargePhase::WARNING;
 	}

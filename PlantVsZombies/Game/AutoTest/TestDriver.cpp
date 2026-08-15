@@ -354,6 +354,7 @@ namespace {
 		ZT(ZOMBIE_WALLNUT_HEAD), ZT(ZOMBIE_JALAPENO_HEAD), ZT(ZOMBIE_GATLING_HEAD),
 		ZT(ZOMBIE_SQUASH_HEAD), ZT(ZOMBIE_TALLNUT_HEAD), ZT(ZOMBIE_REDEYE_GARGANTUAR), ZT(ZOMBIE_ROOF_MARSHAL),
 		ZT(ZOMBIE_INSULATOR), ZT(ZOMBIE_HIJACKER), ZT(ZOMBIE_HEALER),
+		ZT(ZOMBIE_GROUNDING),
 	};
 #undef ZT
 #define PK(n) { #n, PerkType::n }
@@ -1947,6 +1948,47 @@ bool TestDriver::ExecuteCurrent() {
 		Fail("butter_zombie: 未找到目标僵尸");
 		return false;
 	}
+	if (op == "apply_zombie_control") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) {
+			Fail("apply_zombie_control: 不在 GameScene 或 Board 为空");
+			return false;
+		}
+		Board* board = gs->GetBoard();
+		std::vector<int> zombieIDs = board->mEntityManager.GetAllZombieIDs();
+		std::sort(zombieIDs.begin(), zombieIDs.end());
+		const int row = cmd.value("row", -1);
+		const int index = cmd.value("index", 0);
+		const std::string effect = cmd.value("effect", "");
+		const float duration = cmd.value("duration", 4.0f);
+		const bool expected = cmd.value("expectedApplied", true);
+		int seen = 0;
+		for (int id : zombieIDs) {
+			Zombie* zombie = board->mEntityManager.GetZombie(id);
+			if (!zombie || !zombie->IsActive()) continue;
+			if (row >= 0 && zombie->mRow != row) continue;
+			if (seen++ != index) continue;
+			bool applied = false;
+			if (effect == "SLOW") {
+				zombie->SetCooldown(duration);
+				applied = zombie->GetCooldownTimer() > 0.0f;
+			}
+			else if (effect == "FROZEN") applied = zombie->StartFrozen();
+			else if (effect == "BUTTER") applied = zombie->ApplyButter();
+			else if (effect == "PARALYSIS") applied = zombie->ApplyParalysis(duration);
+			else {
+				Fail("apply_zombie_control: effect 必须是 SLOW/FROZEN/BUTTER/PARALYSIS");
+				return false;
+			}
+			if (applied != expected) {
+				Fail("apply_zombie_control: 控制施加结果与 expectedApplied 不符");
+				return false;
+			}
+			return true;
+		}
+		Fail("apply_zombie_control: 未找到目标僵尸");
+		return false;
+	}
 	if (op == "set_zombie_mist_fuel_reward" || op == "kill_zombie") {
 		GameScene* gs = CurrentGameScene();
 		if (!gs || !gs->GetBoard()) {
@@ -2933,6 +2975,30 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		{ "offsetXInt", static_cast<int>(std::lround(healerOffset.x)) },
 		{ "offsetYInt", static_cast<int>(std::lround(healerOffset.y)) },
 	};
+	out["groundingZombieResources"] = {
+		{ "reanimationLoaded", ResourceManager::GetInstance().HasReanimation(
+			ResourceKeys::Reanimations::REANIM_GROUNDING_ZOMBIE) },
+		{ "coneTexturesLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_ZOMBIE_GROUNDING_CONE1, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_ZOMBIE_GROUNDING_CONE2, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_ZOMBIE_GROUNDING_CONE3, false) != nullptr },
+		{ "reanimConeTextureLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_REANIM_ZOMBIE_GROUNDING_CONE1, false) != nullptr },
+	};
+	const Vector groundingZombieOffset = GameDataManager::GetInstance().GetZombieOffset(
+		ZombieType::ZOMBIE_GROUNDING);
+	out["groundingZombieGameData"] = {
+		{ "weight", GameDataManager::GetInstance().GetZombieWeight(
+			ZombieType::ZOMBIE_GROUNDING) },
+		{ "appearWave", GameDataManager::GetInstance().GetZombieAppearWave(
+			ZombieType::ZOMBIE_GROUNDING) },
+		{ "survivalRound", GameDataManager::GetInstance().GetZombieSurvivalRound(
+			ZombieType::ZOMBIE_GROUNDING) },
+		{ "offsetXInt", static_cast<int>(std::lround(groundingZombieOffset.x)) },
+		{ "offsetYInt", static_cast<int>(std::lround(groundingZombieOffset.y)) },
+	};
 
 	// 主菜单没有 Board，但仍允许测试读取上方 GameAPP 级设置，覆盖真实按钮切换路径。
 	if (currentScene->name == "MainMenuScene") {
@@ -3688,6 +3754,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "eliteCatapultsSpawnedThisWave", board->GetEliteCatapultsSpawnedThisWave() },
 			{ "insulatorsSpawnedThisWave", board->GetInsulatorsSpawnedThisWave() },
 			{ "hijackersSpawnedThisWave", board->GetHijackersSpawnedThisWave() },
+			{ "groundingZombiesSpawnedThisWave",
+				board->GetGroundingZombiesSpawnedThisWave() },
 			{ "typhoonDecayRemaining", board->GetTyphoonStrengthTimer() },
 			{ "windDirection", WindDirectionName(board->GetWindDirection()) },
 			{ "windDirectionRemaining", board->GetWindDirectionTimer() },
@@ -3773,6 +3841,16 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				board->GetNightRoofOvercharge())) },
 			{ "phase", NightRoofChargePhaseName(board->GetNightRoofChargePhase()) },
 			{ "row", board->GetNightRoofChargeRow() },
+			{ "guided", board->IsNightRoofChargeGuided() },
+			{ "guideID", board->GetNightRoofChargeGuideID() },
+			{ "guideCandidateCount", board->mEntityManager.GetActiveNightRoofChargeGuideCount() },
+			{ "routeUsedMonteCarlo", board->DidNightRoofChargeRouteUseMonteCarlo() },
+			{ "routeDecisionMicros", board->GetNightRoofChargeRouteDecisionMicros() },
+			{ "routeRolloutCount", board->GetNightRoofChargeRouteStats().rolloutCount },
+			{ "routeCandidateCount", board->GetNightRoofChargeRouteStats().candidateCount },
+			{ "routeSampledZombieCount", board->GetNightRoofChargeRouteStats().sampledZombieCount },
+			{ "routeSampledPlantCount", board->GetNightRoofChargeRouteStats().sampledPlantCount },
+			{ "routeBestScore", board->GetNightRoofChargeRouteStats().bestScore },
 			{ "phaseRemainingMs", static_cast<int>(std::lround(
 				board->GetNightRoofChargePhaseTimer() * 1000.0f)) },
 			{ "dischargeProgressPct", static_cast<int>(std::lround(
@@ -4204,6 +4282,22 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "paralyzed", z->IsParalyzed() },
 			{ "paralysisTimerMs", static_cast<int>(std::lround(
 				z->GetParalysisTimeRemaining() * 1000.0f)) },
+			{ "controlImmunityMask", static_cast<std::uint32_t>(
+				z->GetActiveControlImmunityMask()) },
+			{ "slowImmunityTimerMs", static_cast<int>(std::lround(
+				z->GetControlImmunityTimeRemaining(
+					ZombieControlEffect::SLOW) * 1000.0f)) },
+			{ "frozenImmunityTimerMs", static_cast<int>(std::lround(
+				z->GetControlImmunityTimeRemaining(
+					ZombieControlEffect::FROZEN) * 1000.0f)) },
+			{ "butterImmunityTimerMs", static_cast<int>(std::lround(
+				z->GetControlImmunityTimeRemaining(
+					ZombieControlEffect::BUTTER) * 1000.0f)) },
+			{ "paralysisImmunityTimerMs", static_cast<int>(std::lround(
+				z->GetControlImmunityTimeRemaining(
+					ZombieControlEffect::PARALYSIS) * 1000.0f)) },
+			{ "nightRoofChargeGuideType", z->IsNightRoofChargeGuideType() },
+			{ "nightRoofChargeGuideEligible", z->CanGuideNightRoofCharge() },
 			{ "butterSplatTrack", z->GetButterSplatTrackName() },
 			{ "butterSplatAfterAllTracks", z->ShouldDrawButterSplatAfterAllTracks() },
 			{ "butterSplatFollowerConfigured", z->IsButterSplatFollowerConfigured() },

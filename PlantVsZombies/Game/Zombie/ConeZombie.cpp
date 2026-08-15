@@ -1,5 +1,7 @@
 #include "ConeZombie.h"
 
+#include "../../ResourceKeys.h"
+
 void ConeZombie::SetupZombie()
 {
 	Zombie::SetupZombie();
@@ -14,9 +16,31 @@ void ConeZombie::HelmDrop()
 	mHelmStage = ArmorBrokenState::NONE;
 	mAnimator->SetTrackVisible("anim_cone", false);
 	if (g_particleSystem) {
-		g_particleSystem->EmitEffect("ZombieConeOff",
+		g_particleSystem->EmitEffect(GetConeDropEffectName(),
 			GetPosition());
 	}
+}
+
+const std::string& ConeZombie::GetConeTextureKey(ArmorBrokenState stage) const
+{
+	static const std::string kCone1 = "IMAGE_ZOMBIE_CONE1";
+	static const std::string kCone2 = "IMAGE_ZOMBIE_CONE2";
+	static const std::string kCone3 = "IMAGE_ZOMBIE_CONE3";
+	if (stage == ArmorBrokenState::A_LITTLE_BROKEN) return kCone2;
+	if (stage == ArmorBrokenState::REALLY_BROKEN) return kCone3;
+	return kCone1;
+}
+
+void ConeZombie::ZombieItemUpdate() const
+{
+	Zombie::ZombieItemUpdate();
+	if (mHelmStage == ArmorBrokenState::NONE
+		|| mHelmType == HelmType::HELMTYPE_NONE) {
+		mAnimator->SetTrackVisible("anim_cone", false);
+		return;
+	}
+	mAnimator->SetTrackImage("anim_cone",
+		ResourceManager::GetInstance().GetTexture(GetConeTextureKey(mHelmStage)));
 }
 
 void ConeZombie::CheckHelmImage()
@@ -26,10 +50,6 @@ void ConeZombie::CheckHelmImage()
 		? ArmorBrokenState::NO_BROKEN
 		: (mHelmHealth > mHelmMaxHealth / 3
 			? ArmorBrokenState::A_LITTLE_BROKEN : ArmorBrokenState::REALLY_BROKEN);
-	const char* imageKey = mHelmStage == ArmorBrokenState::NO_BROKEN
-		? "IMAGE_ZOMBIE_CONE1"
-		: (mHelmStage == ArmorBrokenState::A_LITTLE_BROKEN
-			? "IMAGE_ZOMBIE_CONE2" : "IMAGE_ZOMBIE_CONE3");
 	mAnimator->SetTrackImage("anim_cone",
-		ResourceManager::GetInstance().GetTexture(imageKey));
+		ResourceManager::GetInstance().GetTexture(GetConeTextureKey(mHelmStage)));
 }

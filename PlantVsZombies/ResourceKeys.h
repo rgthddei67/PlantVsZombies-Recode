@@ -174,6 +174,10 @@ namespace ResourceKeys
 		RKEY(IMAGE_ZOMBIE_HEALER_GEAR_AREA);
 		RKEY(IMAGE_ZOMBIE_HEALER_GEAR_FOCUSED);
 		RKEY(IMAGE_ZOMBIE_HEALER_GEAR_DISABLED);
+		RKEY(IMAGE_ZOMBIE_GROUNDING_CONE1);
+		RKEY(IMAGE_ZOMBIE_GROUNDING_CONE2);
+		RKEY(IMAGE_ZOMBIE_GROUNDING_CONE3);
+		RKEY(IMAGE_REANIM_ZOMBIE_GROUNDING_CONE1);
 		RKEY(IMAGE_REANIM_ZOMBIE_HIJACKER_BODY1);
 		RKEY(IMAGE_REANIM_ZOMBIE_HIJACKER_BOX);
 		RKEY(IMAGE_REANIM_ZOMBIE_HIJACKER_BOX2);
@@ -637,6 +641,7 @@ namespace ResourceKeys
 		inline const std::string REANIM_ROOF_MARSHAL_ZOMBIE = "RoofMarshalZombie";
 		inline const std::string REANIM_ROOF_MARSHAL_ASSAULT_FLAG = "RoofMarshalAssaultFlag";
 		inline const std::string REANIM_HIJACKER_ZOMBIE = "ZombieHijacker";
+		inline const std::string REANIM_GROUNDING_ZOMBIE = "GroundingZombie";
 		inline const std::string REANIM_DIGGER_RISING_DIRT = "DiggerRisingDirt";
 		inline const std::string REANIM_DIGGER_CHARRED = "DiggerCharred";
 		inline const std::string REANIM_ZOMBIE_SURPRISE = "ZombieSurprise";

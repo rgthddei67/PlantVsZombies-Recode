@@ -7,7 +7,7 @@
     "PLANT_CHERRYBOMB":      { "cost": 150, "cooldown": 50.0, "offset": [-37.6, -44.0], "scale": 1.0, "simulation": { "baseHealth": 300, "persistent": false } },
     "PLANT_WALLNUT":         { "cost": 50,  "cooldown": 25.0, "offset": [-37.6, -44.0], "scale": 1.0, "simulation": { "baseHealth": 4000 } },
     "PLANT_POTATOMINE":      { "cost": 25,  "cooldown": 20.0,  "offset": [-30.0, -35.2], "scale": 0.8, "simulation": { "baseHealth": 300, "persistent": false } },
-    "PLANT_SNOWPEASHOOTER":  { "cost": 175, "cooldown": 7.5,  "offset": [-37.6, -44.0], "scale": 1.0, "simulation": { "baseHealth": 300, "attackDps": 13.33 } },
+    "PLANT_SNOWPEASHOOTER":  { "cost": 175, "cooldown": 7.5,  "offset": [-37.6, -44.0], "scale": 1.0, "simulation": { "baseHealth": 300, "attackDps": 13.33, "slowApplicationsPerSecond": 0.667, "slowDuration": 7.5 } },
     "PLANT_CHOMPER":         { "cost": 150, "cooldown": 7.5,  "offset": [-37.6, -44.0], "scale": 1.0, "simulation": { "baseHealth": 300, "persistent": false } },
     "PLANT_REPEATER":        { "cost": 200, "cooldown": 7.5,  "offset": [-37.6, -44.0], "scale": 1.0, "simulation": { "baseHealth": 300, "attackDps": 26.67 } },
     "PLANT_PUFFSHROOM":      { "cost": 5,   "cooldown": 7.5,  "offset": [-37.6, -28.0], "scale": 1.0, "simulation": { "baseHealth": 300, "attackDps": 13.33 } },
@@ -17,7 +17,7 @@
     "PLANT_SCAREDYSHROOM":   { "cost": 25,  "cooldown": 7.5,  "offset": [-37.6, -42.0], "scale": 1.0, "simulation": { "baseHealth": 300, "attackDps": 13.33 } },
     "PLANT_ELITE_SCAREDYSHROOM": { "cost": 200, "cooldown": 10.0, "offset": [-37.6, -42.0], "scale": 1.0, "simulation": { "baseHealth": 500, "attackDps": 18.0 } },
     "PLANT_ICESHROOM":       { "cost": 75,  "cooldown": 50.0, "offset": [-37.6, -42.0], "scale": 1.0, "simulation": { "baseHealth": 300, "persistent": false } },
-    "PLANT_ICEFUMESHROOM":   { "cost": 150, "cooldown": 7.5,  "offset": [-37.6, -36.0], "scale": 0.92, "simulation": { "baseHealth": 300, "attackDps": 20.0 } },
+    "PLANT_ICEFUMESHROOM":   { "cost": 150, "cooldown": 7.5,  "offset": [-37.6, -36.0], "scale": 0.92, "simulation": { "baseHealth": 300, "attackDps": 20.0, "slowApplicationsPerSecond": 1.0, "slowDuration": 2.2 } },
     "PLANT_DOOMSHROOM":      { "cost": 150, "cooldown": 50.0, "offset": [-37.6, -42.0], "scale": 1.0, "simulation": { "baseHealth": 300, "persistent": false } },
     "PLANT_LILYPAD":         { "cost": 25,  "cooldown": 7.5,  "offset": [-37.6, -19.0], "scale": 1.0, "simulation": { "baseHealth": 300, "supportOnly": true } },
     "PLANT_SQUASH":          { "cost": 50,  "cooldown": 30.0, "offset": [-37.6, -44.0], "scale": 1.0, "simulation": { "baseHealth": 300, "persistent": false } },
@@ -39,14 +39,14 @@
     "PLANT_FLOWERPOT":       { "cost": 25,  "cooldown": 7.5,  "offset": [-37.6, -18.0], "scale": 1.0, "simulation": { "baseHealth": 300, "supportOnly": true } },
     "PLANT_LIGHTNINGRODPOT": { "cost": 150, "cooldown": 50.0, "offset": [-57.0, -116.0], "scale": 1.0, "simulation": { "baseHealth": 700 } },
     "PLANT_CABBAGEPULT":     { "cost": 100, "cooldown": 7.5,  "offset": [-37.6, -44.0], "scale": 1.0, "simulation": { "baseHealth": 300, "attackDps": 13.33 } },
-    "PLANT_KERNELPULT":      { "cost": 100, "cooldown": 7.5,  "offset": [-37.6, -44.0], "scale": 1.0, "simulation": { "baseHealth": 300, "attackDps": 8.33 } },
+    "PLANT_KERNELPULT":      { "cost": 100, "cooldown": 7.5,  "offset": [-37.6, -44.0], "scale": 1.0, "simulation": { "baseHealth": 300, "attackDps": 8.33, "butterApplicationsPerSecond": 0.0833, "butterDuration": 4.0 } },
     "PLANT_COBCANNON":       { "cost": 500, "cooldown": 50.0, "offset": [-37.6, -44.0], "scale": 1.0, "simulation": { "baseHealth": 300, "persistent": false } },
     "PLANT_INSTANT_COFFEE":  { "cost": 75,  "cooldown": 7.5,  "offset": [-25.6, -54.0], "scale": 0.8, "simulation": { "baseHealth": 300, "persistent": false } },
     "PLANT_GARLIC":          { "cost": 50,  "cooldown": 7.5,  "offset": [-37.6, -44.0], "scale": 1.0, "simulation": { "baseHealth": 400 } },
     "PLANT_UMBRELLA":        { "cost": 100, "cooldown": 7.5,  "offset": [-37.6, -44.0], "scale": 1.0, "simulation": { "baseHealth": 300 } },
     "PLANT_MARIGOLD":        { "cost": -100, "cooldown": 25.0, "offset": [-37.6, -44.0], "scale": 1.0, "simulation": { "baseHealth": 300 } },
     "PLANT_MELONPULT":       { "cost": 325, "cooldown": 10.0,  "offset": [-37.6, -44.0], "scale": 1.0, "simulation": { "baseHealth": 300, "attackDps": 40.0, "attackRowRadius": 1 } },
-    "PLANT_WINTERMELON":     { "cost": 200, "cooldown": 50.0,  "offset": [-37.6, -44.0], "scale": 1.0, "simulation": { "baseHealth": 300, "attackDps": 33.33, "attackRowRadius": 1 } },
+    "PLANT_WINTERMELON":     { "cost": 200, "cooldown": 50.0,  "offset": [-37.6, -44.0], "scale": 1.0, "simulation": { "baseHealth": 300, "attackDps": 33.33, "attackRowRadius": 1, "slowApplicationsPerSecond": 0.417, "slowDuration": 10.0 } },
     "PLANT_GLOOMSHROOM":     { "cost": 150, "cooldown": 50.0, "offset": [-40.0, -44.0], "scale": 1.0, "simulation": { "baseHealth": 300, "attackDps": 40.0, "attackRowRadius": 1 } }
   },
   "zombies": {
@@ -90,6 +90,7 @@
     "ZOMBIE_ROOF_MARSHAL":        { "weight": 0,    "appearWave": 15, "survivalRound": 9999, "offset": [-60.0, -102.0], "scale": 1.2 },
     "ZOMBIE_INSULATOR":           { "weight": 1900, "appearWave": 4,  "survivalRound": 12, "offset": [-50.0, -85.0], "scale": 1.0 },
     "ZOMBIE_HIJACKER":            { "weight": 2000, "appearWave": 9,  "survivalRound": 15, "offset": [-50.0, -85.0], "scale": 1.0 },
-    "ZOMBIE_HEALER":              { "weight": 2400, "appearWave": 3,  "survivalRound": 7,  "offset": [-50.0, -85.0], "scale": 1.0 }
+    "ZOMBIE_HEALER":              { "weight": 2400, "appearWave": 3,  "survivalRound": 7,  "offset": [-50.0, -85.0], "scale": 1.0 },
+    "ZOMBIE_GROUNDING":           { "weight": 1800, "appearWave": 5,  "survivalRound": 14, "offset": [-50.0, -85.0], "scale": 1.0 }
   }
 }

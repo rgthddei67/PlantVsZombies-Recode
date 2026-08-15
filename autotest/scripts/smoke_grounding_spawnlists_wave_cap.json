@@ -1,0 +1,34 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 53, "resetTestState": true },
+    { "op": "wait_state", "state": "CHOOSE_CARD", "timeout": 10 },
+    { "op": "assert_state", "path": "spawnList", "equals": ["ZOMBIE_NORMAL", "ZOMBIE_TRAFFIC_CONE", "ZOMBIE_POLEVAULTER", "ZOMBIE_DOOR", "ZOMBIE_ELITE_JACK_IN_THE_BOX", "ZOMBIE_ELITE_LADDER", "ZOMBIE_GARGANTUAR", "ZOMBIE_GROUNDING"] },
+
+    { "op": "goto_level", "level": 54, "resetTestState": true },
+    { "op": "wait_state", "state": "CHOOSE_CARD", "timeout": 10 },
+    { "op": "assert_state", "path": "spawnList", "equals": ["ZOMBIE_NORMAL", "ZOMBIE_TRAFFIC_CONE", "ZOMBIE_BUCKET", "ZOMBIE_FOOTBALL", "ZOMBIE_REINFORCED_DOOR", "ZOMBIE_ELITE_POLEVAULTER", "ZOMBIE_JACK_IN_THE_BOX", "ZOMBIE_BUNGEE", "ZOMBIE_CATAPULT", "ZOMBIE_GARGANTUAR", "ZOMBIE_INSULATOR", "ZOMBIE_GROUNDING"] },
+    { "op": "choose_cards", "cards": [] },
+    { "op": "wait_state", "state": "GAME", "timeout": 15 },
+    { "op": "set_spawn_paused", "value": true },
+    { "op": "set_weather", "intensity": "CLEAR", "duration": 90 },
+    { "op": "spawn_wave_zombie", "type": "ZOMBIE_GROUNDING", "mutationRoll": 50, "row": 0, "x": 900 },
+    { "op": "spawn_wave_zombie", "type": "ZOMBIE_GROUNDING", "mutationRoll": 50, "row": 1, "x": 900 },
+    { "op": "spawn_wave_zombie", "type": "ZOMBIE_GROUNDING", "mutationRoll": 50, "row": 2, "x": 900 },
+    { "op": "assert_state", "path": "zombieCount", "equals": 2 },
+    { "op": "assert_state", "path": "weather.groundingZombiesSpawnedThisWave", "equals": 2 },
+    { "op": "save_level_snapshot", "name": "grounding_zombie_wave_cap" },
+    { "op": "reload_level_snapshot", "name": "grounding_zombie_wave_cap" },
+    { "op": "assert_state", "path": "weather.groundingZombiesSpawnedThisWave", "equals": 2 },
+    { "op": "spawn_wave_zombie", "type": "ZOMBIE_GROUNDING", "mutationRoll": 50, "row": 3, "x": 900 },
+    { "op": "assert_state", "path": "zombieCount", "equals": 2 },
+    { "op": "spawn_zombie", "type": "ZOMBIE_GROUNDING", "row": 3, "x": 700, "stationary": true },
+    { "op": "assert_state", "path": "zombieCount", "equals": 3 },
+    { "op": "assert_state", "path": "weather.groundingZombiesSpawnedThisWave", "equals": 2 },
+    { "op": "summon_next_wave" },
+    { "op": "assert_state", "path": "weather.groundingZombiesSpawnedThisWave", "equals": 0 },
+    { "op": "spawn_wave_zombie", "type": "ZOMBIE_GROUNDING", "mutationRoll": 50, "row": 4, "x": 900 },
+    { "op": "assert_state", "path": "weather.groundingZombiesSpawnedThisWave", "equals": 1 },
+    { "op": "dump_state", "name": "grounding_spawnlists_wave_cap_state.json" },
+    { "op": "quit" }
+  ]
+}
