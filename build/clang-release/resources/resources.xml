@@ -473,6 +473,7 @@
     <Reanimation name="Starfruit">./resources/reanim/Starfruit.reanim</Reanimation>
     <Reanimation name="Pumpkin">./resources/reanim/Pumpkin.reanim</Reanimation>
     <Reanimation name="Magnetshroom">./resources/reanim/Magnetshroom.reanim</Reanimation>
+    <Reanimation name="GoldMagnet">./resources/reanim/GoldMagnet.reanim</Reanimation>
     <Reanimation name="GroundingShroom">./resources/reanim/GroundingShroom.reanim</Reanimation>
     <Reanimation name="LightningRodPot">./resources/reanim/LightningRodPot.reanim</Reanimation>
     <Reanimation name="Pot">./resources/reanim/Pot.reanim</Reanimation>

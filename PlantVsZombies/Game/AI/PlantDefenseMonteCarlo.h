@@ -42,6 +42,15 @@ struct PlantSnapshot {
 	float butterDuration = 0.0f;
 	float paralysisApplicationsPerSecond = 0.0f;
 	float paralysisDuration = 0.0f;
+	float y = 0.0f;
+	float abilityCooldownRemaining = 0.0f;
+	float magneticPulseCooldown = 0.0f;
+	float magneticPulseRadius = 0.0f;
+	float magneticPulseParalysisDuration = 0.0f;
+	int magneticSearchRowRadius = 0;
+	float magneticSearchRadius = 0.0f;
+	float magneticEatingSearchRadius = 0.0f;
+	float magneticRowDistancePenalty = 0.0f;
 };
 
 /**
@@ -93,6 +102,10 @@ struct ZombieSnapshot {
 	bool mindControlled = false;
 	bool simulatedCombatant = true;
 	bool forcedForDecision = false;
+	Bounds bounds;
+	bool magneticItemAvailable = false;
+	bool magneticRemovesHelm = false;
+	bool magneticRemovesShield = false;
 };
 
 struct CardSnapshot {
@@ -117,6 +130,13 @@ struct CardSnapshot {
 	float butterDuration = 0.0f;
 	float paralysisApplicationsPerSecond = 0.0f;
 	float paralysisDuration = 0.0f;
+	float magneticPulseCooldown = 0.0f;
+	float magneticPulseRadius = 0.0f;
+	float magneticPulseParalysisDuration = 0.0f;
+	int magneticSearchRowRadius = 0;
+	float magneticSearchRadius = 0.0f;
+	float magneticEatingSearchRadius = 0.0f;
+	float magneticRowDistancePenalty = 0.0f;
 };
 
 struct CellSnapshot {
@@ -138,6 +158,7 @@ struct Candidate {
 struct Snapshot {
 	int rows = 0;
 	int columns = 0;
+	float sceneWidth = 0.0f;
 	float initialSun = 0.0f;
 	std::vector<PlantSnapshot> plants;
 	std::vector<SupportSnapshot> supports;

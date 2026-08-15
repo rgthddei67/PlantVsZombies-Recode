@@ -4,6 +4,14 @@
 
 #include <string>
 
+/** 轻量推演在成功磁吸时应移除的正式生命层；工具不直接提供额外生命。 */
+enum class MagneticSimulationLayer {
+	NONE,
+	HELM,
+	SHIELD,
+	TOOL,
+};
+
 /**
  * @brief 僵尸交给磁力菇的离体金属物表现数据。
  *

@@ -2649,6 +2649,16 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		{ "diggerPickaxeLoaded", ResourceManager::GetInstance().GetTexture(
 			ResourceKeys::Textures::IMAGE_ZOMBIE_DIGGER_PICKAXE, false) != nullptr },
 	};
+	out["goldMagnetResources"] = {
+		{ "reanimationLoaded", ResourceManager::GetInstance().HasReanimation(
+			ResourceKeys::Reanimations::REANIM_GOLDMAGNET) },
+		{ "cardLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_GOLDMAGNET, false) != nullptr },
+		{ "stemLoaded", ResourceManager::GetInstance().GetTexture(
+			"IMAGE_REANIM_GOLDMAGNET_STEM", false) != nullptr },
+		{ "headLoaded", ResourceManager::GetInstance().GetTexture(
+			"IMAGE_REANIM_GOLDMAGNET_HEAD1", false) != nullptr },
+	};
 	out["groundingShroomResources"] = {
 		{ "reanimationLoaded", ResourceManager::GetInstance().HasReanimation(
 			ResourceKeys::Reanimations::REANIM_GROUNDINGSHROOM) },
@@ -3293,6 +3303,18 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				std::lround(simulation.sunPerSecond * 100.0f)) },
 			{ "simulationFirstSunDelayMs", static_cast<int>(
 				std::lround(simulation.firstSunDelay * 1000.0f)) },
+			{ "simulationMagneticPulseCooldownMs", static_cast<int>(
+				std::lround(simulation.magneticPulseCooldown * 1000.0f)) },
+			{ "simulationMagneticPulseRadius", static_cast<int>(
+				std::lround(simulation.magneticPulseRadius)) },
+			{ "simulationMagneticPulseParalysisMs", static_cast<int>(
+				std::lround(simulation.magneticPulseParalysisDuration * 1000.0f)) },
+			{ "simulationMagneticSearchRowRadius", simulation.magneticSearchRowRadius },
+			{ "simulationMagneticSearchRadiusOn1000", static_cast<int>(
+				std::lround(simulation.magneticSearchRadiusInCells * 1000.0f)) },
+			{ "simulationMagneticEatingSearchRadiusOn1000", static_cast<int>(
+				std::lround(simulation.magneticEatingSearchRadiusInCells * 1000.0f)) },
+			{ "simulationDaytimeDormant", simulation.daytimeDormant },
 			{ "simulationPersistent", simulation.persistent },
 			{ "simulationSupportOnly", simulation.supportOnly },
 		};
@@ -5046,6 +5068,24 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				static_cast<int>(std::lround(
 					p->GetNightRoofChargeZombieDamageMultiplier() * 1000.0f)) },
 		};
+		if (const auto animator = p->GetAnimatorInternal()) {
+			const AnimatorRenderProbe& probe = animator->GetLastRenderProbe();
+			plantState["renderProbeReady"] = probe.hasGeometry;
+			if (probe.hasGeometry) {
+				const float centerX = (probe.minX + probe.maxX) * 0.5f;
+				const float centerY = (probe.minY + probe.maxY) * 0.5f;
+				plantState["renderBoundsCenterFromLogicalXInt"] =
+					static_cast<int>(std::lround(centerX - plantPosition.x));
+				plantState["renderBoundsCenterFromLogicalYInt"] =
+					static_cast<int>(std::lround(centerY - plantPosition.y));
+				plantState["renderBoundsBottomFromLogicalYInt"] =
+					static_cast<int>(std::lround(probe.maxY - plantPosition.y));
+				plantState["renderBoundsWidthInt"] = static_cast<int>(
+					std::lround(probe.maxX - probe.minX));
+				plantState["renderBoundsHeightInt"] = static_cast<int>(
+					std::lround(probe.maxY - probe.minY));
+			}
+		}
 		if (p->IsRoofSupportPlant()) {
 			Plant* normal = board->GetNormalPlantAt(p->mRow, p->mColumn);
 			plantState["protectsNormalFromNightRoofCharge"] = normal
@@ -5354,6 +5394,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["particleEffectNameCounts"]["GloomCloud"] = 0;
 	out["particleEffectNameCounts"]["HealerAreaHeal"] = 0;
 	out["particleEffectNameCounts"]["HealerFocusedHeal"] = 0;
+	out["particleEffectNameCounts"]["GoldMagnetEMP"] = 0;
 	if (g_particleSystem) {
 		for (const auto& effect : g_particleSystem->GetEffectsForTesting()) {
 			if (!effect) continue;

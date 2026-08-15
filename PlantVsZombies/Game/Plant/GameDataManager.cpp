@@ -48,6 +48,7 @@
 #include "StarFruit.h"
 #include "PumpkinShell.h"
 #include "MagnetShroom.h"
+#include "GoldMagnet.h"
 #include "GroundingShroom.h"
 #include "FlowerPot.h"
 #include "LightningRodPot.h"
@@ -336,6 +337,11 @@ void GameDataManager::InitializeHardcodedData() {
 		ResourceKeys::Textures::IMAGE_MAGNETSHROOM,
 		AnimationType::ANIM_MAGNETSHROOM,
 		ResourceKeys::Reanimations::REANIM_MAGNETSHROOM, &MakePlant<MagnetShroom>);
+
+	RegisterPlant(PlantType::PLANT_GOLD_MAGNET, "PLANT_GOLD_MAGNET",
+		ResourceKeys::Textures::IMAGE_GOLDMAGNET,
+		AnimationType::ANIM_GOLD_MAGNET,
+		ResourceKeys::Reanimations::REANIM_GOLDMAGNET, &MakePlant<GoldMagnet>);
 
 	RegisterPlant(PlantType::PLANT_GROUNDINGSHROOM, "PLANT_GROUNDINGSHROOM",
 		ResourceKeys::Textures::IMAGE_GROUNDINGSHROOM,
@@ -779,6 +785,21 @@ bool GameDataManager::LoadNumbersFromJson() {
 			readOptionalFloat("butterDuration", out.butterDuration);
 			readOptionalFloat("paralysisApplicationsPerSecond", out.paralysisApplicationsPerSecond);
 			readOptionalFloat("paralysisDuration", out.paralysisDuration);
+			readOptionalFloat("magneticPulseCooldown", out.magneticPulseCooldown);
+			readOptionalFloat("magneticPulseRadius", out.magneticPulseRadius);
+			readOptionalFloat("magneticPulseParalysisDuration", out.magneticPulseParalysisDuration);
+			readOptionalInt("magneticSearchRowRadius", out.magneticSearchRowRadius);
+			readOptionalFloat("magneticSearchRadiusInCells", out.magneticSearchRadiusInCells);
+			readOptionalFloat("magneticEatingSearchRadiusInCells", out.magneticEatingSearchRadiusInCells);
+			if (simulation.contains("daytimeDormant")) {
+				if (!simulation["daytimeDormant"].is_boolean()) {
+					errors.push_back(who
+						+ ".simulation 的 \"daytimeDormant\" 须为布尔值");
+				}
+				else {
+					out.daytimeDormant = simulation["daytimeDormant"].get<bool>();
+				}
+			}
 			if (simulation.contains("persistent")) {
 				if (!simulation["persistent"].is_boolean()) {
 					errors.push_back(who
@@ -804,7 +825,13 @@ bool GameDataManager::LoadNumbersFromJson() {
 				|| out.frozenApplicationsPerSecond < 0.0f || out.frozenDuration < 0.0f
 				|| out.butterApplicationsPerSecond < 0.0f || out.butterDuration < 0.0f
 				|| out.paralysisApplicationsPerSecond < 0.0f
-				|| out.paralysisDuration < 0.0f) {
+				|| out.paralysisDuration < 0.0f
+				|| out.magneticPulseCooldown < 0.0f
+				|| out.magneticPulseRadius < 0.0f
+				|| out.magneticPulseParalysisDuration < 0.0f
+				|| out.magneticSearchRowRadius < 0
+				|| out.magneticSearchRadiusInCells < 0.0f
+				|| out.magneticEatingSearchRadiusInCells < 0.0f) {
 				errors.push_back(who + ".simulation 含越界负数或零生命");
 			}
 		};

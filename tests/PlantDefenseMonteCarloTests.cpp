@@ -279,6 +279,70 @@ namespace {
 			"removing the under support must not change the current normal-layer blocker");
 	}
 
+	Snapshot MakeMagneticPulseSnapshot(bool magneticItemAvailable,
+		float cooldownRemaining)
+	{
+		Snapshot snapshot = MakeTreatmentSnapshot();
+		PlantSnapshot magnet = MakeRoutePlant(10, 2, 300.0f, 300.0f, 0.0f);
+		magnet.y = 300.0f;
+		magnet.canBeEaten = false;
+		magnet.eatingLayerPriority = -1;
+		magnet.abilityCooldownRemaining = cooldownRemaining;
+		magnet.magneticPulseCooldown = 12.0f;
+		magnet.magneticPulseRadius = 100.0f;
+		magnet.magneticPulseParalysisDuration = 2.5f;
+		magnet.magneticSearchRowRadius = 2;
+		magnet.magneticSearchRadius = 270.0f;
+		magnet.magneticEatingSearchRadius = 320.0f;
+		magnet.magneticRowDistancePenalty = 80.0f;
+		snapshot.plants.push_back(magnet);
+
+		ZombieSnapshot zombie = MakeZombie(1, 350.0f, 300.0f, 270.0f, 270.0f);
+		zombie.moveSpeed = 100.0f;
+		zombie.bounds = { 310.0f, 250.0f, 80.0f, 100.0f };
+		zombie.magneticItemAvailable = magneticItemAvailable;
+		zombie.magneticRemovesHelm = magneticItemAvailable;
+		zombie.helmHealth = magneticItemAvailable ? 1100.0f : 0.0f;
+		zombie.helmMaxHealth = zombie.helmHealth;
+		snapshot.zombies.push_back(zombie);
+		snapshot.candidates.push_back({ 2, 2, 300.0f, 300.0f, 10 });
+		return snapshot;
+	}
+
+	Config MakeMagneticPulseConfig()
+	{
+		Config config;
+		config.rolloutCount = 1;
+		config.horizonSeconds = 3.0f;
+		config.stepSeconds = 0.25f;
+		config.plantDecisionInterval = 10.0f;
+		config.houseX = 110.0f;
+		return config;
+	}
+
+	void TestMagneticPulseRequiresConsumableTarget()
+	{
+		const Result withItem = ChooseTarget(
+			MakeMagneticPulseSnapshot(true, 0.0f),
+			MakeMagneticPulseConfig(), 0x11223344u);
+		const Result withoutItem = ChooseTarget(
+			MakeMagneticPulseSnapshot(false, 0.0f),
+			MakeMagneticPulseConfig(), 0x11223344u);
+		Require(withItem.score > 1000.0f,
+			"a ready magnetic pulse must delay a consumable target before breach");
+		Require(std::abs(withoutItem.score) < 0.001f,
+			"a magnetic plant without a consumable item must contribute no phantom control");
+	}
+
+	void TestMagneticPulseUsesCurrentCooldown()
+	{
+		const Result coolingDown = ChooseTarget(
+			MakeMagneticPulseSnapshot(true, 4.0f),
+			MakeMagneticPulseConfig(), 0x55667788u);
+		Require(std::abs(coolingDown.score) < 0.001f,
+			"an in-field magnetic plant must preserve its remaining cooldown in rollouts");
+	}
+
 	void TestGuidedRoutePreservesZombiePressure()
 	{
 		Snapshot snapshot = MakeTreatmentSnapshot();
@@ -375,6 +439,8 @@ int main()
 		TestSupportPlantsUseSeparateCapacity();
 		TestSupportOnlySnapshotStillSupportsRemoval();
 		TestNormalPlantBlocksBeforeCompressedSupport();
+		TestMagneticPulseRequiresConsumableTarget();
+		TestMagneticPulseUsesCurrentCooldown();
 		TestGuidedRoutePreservesZombiePressure();
 		TestOrdinaryRowCanBeatUnhelpfulGuide();
 		TestGuidedRouteValuesNearbyControlImmunityAura();

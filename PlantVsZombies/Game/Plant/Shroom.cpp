@@ -20,7 +20,7 @@ void Shroom::SetSleepState(bool sleep)
 	if (mIsSleeping == sleep) return;
 	Plant::SetSleepState(sleep);
 	if (sleep) {
-		PlayTrack("anim_sleep");
+		PlayTrack(GetSleepTrackName());
 		return;
 	}
 	mWakeUpTimer = 0.0f;
@@ -29,5 +29,5 @@ void Shroom::SetSleepState(bool sleep)
 
 void Shroom::OnWakeUp()
 {
-	PlayTrack("anim_idle");
+	PlayTrack(GetAwakeIdleTrackName());
 }

@@ -50,6 +50,15 @@ namespace {
 		float butterDuration = 0.0f;
 		float paralysisApplicationsPerSecond = 0.0f;
 		float paralysisDuration = 0.0f;
+		float y = 0.0f;
+		float abilityCooldownRemaining = 0.0f;
+		float magneticPulseCooldown = 0.0f;
+		float magneticPulseRadius = 0.0f;
+		float magneticPulseParalysisDuration = 0.0f;
+		int magneticSearchRowRadius = 0;
+		float magneticSearchRadius = 0.0f;
+		float magneticEatingSearchRadius = 0.0f;
+		float magneticRowDistancePenalty = 0.0f;
 	};
 
 	struct SimSupport {
@@ -98,6 +107,10 @@ namespace {
 		float nightRoofProtectionRadius = 0.0f;
 		bool mindControlled = false;
 		bool simulatedCombatant = true;
+		Bounds bounds;
+		bool magneticItemAvailable = false;
+		bool magneticRemovesHelm = false;
+		bool magneticRemovesShield = false;
 	};
 
 	struct SimCard {
@@ -118,6 +131,8 @@ namespace {
 		float breachLoss = 0.0f;
 		float directPlayerUtilityAdjustment = 0.0f;
 		std::uint64_t reservedCells = 0;
+		float sceneWidth = 0.0f;
+		int magneticItemCount = 0;
 	};
 
 	struct ScenarioUtility {
@@ -193,6 +208,7 @@ namespace {
 	{
 		std::minstd_rand random(seed);
 		state.sun = std::max(0.0f, snapshot.initialSun);
+		state.sceneWidth = std::max(0.0f, snapshot.sceneWidth);
 
 		state.plantCount = std::min(
 			static_cast<int>(snapshot.plants.size()), kMaxSimulationPlants);
@@ -229,6 +245,24 @@ namespace {
 				std::max(0.0f, source.paralysisApplicationsPerSecond),
 				std::max(0.0f, source.paralysisDuration)
 			};
+			SimPlant& target = state.plants[i];
+			target.y = source.y;
+			target.abilityCooldownRemaining = std::max(
+				0.0f, source.abilityCooldownRemaining);
+			target.magneticPulseCooldown = std::max(
+				0.0f, source.magneticPulseCooldown);
+			target.magneticPulseRadius = std::max(
+				0.0f, source.magneticPulseRadius);
+			target.magneticPulseParalysisDuration = std::max(
+				0.0f, source.magneticPulseParalysisDuration);
+			target.magneticSearchRowRadius = std::max(
+				0, source.magneticSearchRowRadius);
+			target.magneticSearchRadius = std::max(
+				0.0f, source.magneticSearchRadius);
+			target.magneticEatingSearchRadius = std::max(
+				0.0f, source.magneticEatingSearchRadius);
+			target.magneticRowDistancePenalty = std::max(
+				0.0f, source.magneticRowDistancePenalty);
 		}
 
 		state.supportCount = std::min(
@@ -324,6 +358,15 @@ namespace {
 				source.mindControlled,
 				source.simulatedCombatant
 			};
+			SimZombie& target = state.zombies[i];
+			target.bounds = source.bounds;
+			target.magneticItemAvailable = source.magneticItemAvailable;
+			target.magneticRemovesHelm = source.magneticRemovesHelm;
+			target.magneticRemovesShield = source.magneticRemovesShield;
+			if (target.magneticItemAvailable && target.simulatedCombatant
+				&& !target.mindControlled) {
+				++state.magneticItemCount;
+			}
 		}
 	}
 
@@ -577,6 +620,16 @@ namespace {
 		plant.butterDuration = card.butterDuration;
 		plant.paralysisApplicationsPerSecond = card.paralysisApplicationsPerSecond;
 		plant.paralysisDuration = card.paralysisDuration;
+		plant.y = cell.y;
+		plant.abilityCooldownRemaining = 0.0f;
+		plant.magneticPulseCooldown = card.magneticPulseCooldown;
+		plant.magneticPulseRadius = card.magneticPulseRadius;
+		plant.magneticPulseParalysisDuration =
+			card.magneticPulseParalysisDuration;
+		plant.magneticSearchRowRadius = card.magneticSearchRowRadius;
+		plant.magneticSearchRadius = card.magneticSearchRadius;
+		plant.magneticEatingSearchRadius = card.magneticEatingSearchRadius;
+		plant.magneticRowDistancePenalty = card.magneticRowDistancePenalty;
 		// 初始合法性由正式 CanPlantAt 快照决定；这里只阻止同一 rollout 再占用新种格。
 		state.reservedCells |= (1ULL << bestCell);
 		state.sun -= static_cast<float>(card.cost);
@@ -652,6 +705,94 @@ namespace {
 							deltaTime, random);
 					}
 				}
+			}
+		}
+	}
+
+	/**
+	 * 只在存在实时磁性目标时推进一次条件脉冲；装备资格与对应护甲层在副本中原子消费。
+	 */
+	void UpdateMagneticPulses(SimulationState& state, float deltaTime)
+	{
+		for (int plantIndex = 0; plantIndex < state.plantCount; ++plantIndex) {
+			SimPlant& plant = state.plants[plantIndex];
+			if (!IsAlive(plant) || plant.shutdownRemaining > 0.0f
+				|| plant.magneticPulseCooldown <= 0.0f
+				|| plant.magneticPulseRadius <= 0.0f
+				|| plant.magneticPulseParalysisDuration <= 0.0f
+				|| plant.magneticSearchRadius <= 0.0f) {
+				continue;
+			}
+			plant.abilityCooldownRemaining = std::max(
+				0.0f, plant.abilityCooldownRemaining - deltaTime);
+			if (plant.abilityCooldownRemaining > 0.0f) continue;
+			if (state.magneticItemCount <= 0) continue;
+
+			int targetIndex = -1;
+			float bestScore = std::numeric_limits<float>::max();
+			for (int zombieIndex = 0;
+				zombieIndex < state.zombieCount; ++zombieIndex) {
+				const SimZombie& zombie = state.zombies[zombieIndex];
+				if (!IsAlive(zombie) || !zombie.simulatedCombatant
+					|| zombie.mindControlled || !zombie.magneticItemAvailable
+					|| std::abs(zombie.row - plant.row)
+						> plant.magneticSearchRowRadius) {
+					continue;
+				}
+				const float radius = zombie.eatingPlantId >= 0
+					? plant.magneticEatingSearchRadius
+					: plant.magneticSearchRadius;
+				const Bounds currentBounds{
+					zombie.x - zombie.bounds.width * 0.5f,
+					zombie.y - zombie.bounds.height * 0.5f,
+					zombie.bounds.width,
+					zombie.bounds.height
+				};
+				if (state.sceneWidth > 0.0f
+					&& currentBounds.x > state.sceneWidth) continue;
+				const Candidate center{ plant.row, plant.column, plant.x, plant.y, -1 };
+				if (!CircleOverlapsBounds(center, radius, currentBounds)) continue;
+				const float dx = zombie.x - plant.x;
+				const float dy = zombie.y - plant.y;
+				const float score = std::sqrt(dx * dx + dy * dy)
+					+ static_cast<float>(std::abs(zombie.row - plant.row))
+						* plant.magneticRowDistancePenalty;
+				if (score < bestScore
+					|| (std::abs(score - bestScore) <= kScoreTieEpsilon
+						&& targetIndex >= 0
+						&& zombie.id < state.zombies[targetIndex].id)) {
+					bestScore = score;
+					targetIndex = zombieIndex;
+				}
+			}
+			if (targetIndex < 0) continue;
+
+			SimZombie& source = state.zombies[targetIndex];
+			source.magneticItemAvailable = false;
+			state.magneticItemCount = std::max(0, state.magneticItemCount - 1);
+			if (source.magneticRemovesHelm) source.helmHealth = 0.0f;
+			else if (source.magneticRemovesShield) source.shieldHealth = 0.0f;
+			plant.abilityCooldownRemaining = plant.magneticPulseCooldown;
+
+			for (int zombieIndex = 0;
+				zombieIndex < state.zombieCount; ++zombieIndex) {
+				SimZombie& target = state.zombies[zombieIndex];
+				if (!IsAlive(target) || !target.simulatedCombatant
+					|| target.mindControlled || !target.canBeParalyzed
+					|| target.paralysisImmunityRemaining > 0.0f) continue;
+				const Bounds currentBounds{
+					target.x - target.bounds.width * 0.5f,
+					target.y - target.bounds.height * 0.5f,
+					target.bounds.width,
+					target.bounds.height
+				};
+				const Candidate pulseCenter{
+					source.row, 0, source.x, source.y, -1
+				};
+				if (!CircleOverlapsBounds(
+					pulseCenter, plant.magneticPulseRadius, currentBounds)) continue;
+				target.paralysisRemaining = std::max(target.paralysisRemaining,
+					plant.magneticPulseParalysisDuration);
 			}
 		}
 	}
@@ -1079,6 +1220,7 @@ namespace {
 				nextPlantDecision += std::max(
 					deltaTime, config.plantDecisionInterval);
 			}
+			UpdateMagneticPulses(state, deltaTime);
 			UpdatePlantAttacks(state, deltaTime, snapshot.rows, random);
 			UpdateZombies(state, config, deltaTime, elapsed, candidate,
 				&pendingTreatments, &treatmentConfig);
@@ -1150,6 +1292,7 @@ namespace {
 				nextPlantDecision += std::max(
 					deltaTime, config.plantDecisionInterval);
 			}
+			UpdateMagneticPulses(state, deltaTime);
 			UpdatePlantAttacks(state, deltaTime, snapshot.rows, random);
 			UpdateZombies(state, config, deltaTime);
 		}
@@ -1323,6 +1466,7 @@ namespace {
 				ApplyNightRoofChargeEvent(state, *candidate, routeConfig);
 				candidateResolved = true;
 			}
+			UpdateMagneticPulses(state, deltaTime);
 			UpdatePlantAttacks(state, deltaTime, snapshot.rows, random);
 			UpdateZombies(state, config, deltaTime);
 		}

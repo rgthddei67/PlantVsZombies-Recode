@@ -36,6 +36,13 @@ struct PlantSimulationProfile {
 	float butterDuration = 0.0f;      // 每次黄油命中的持续游戏秒数
 	float paralysisApplicationsPerSecond = 0.0f; // 对当前等效攻击目标施加麻痹的平均频率
 	float paralysisDuration = 0.0f;   // 每次麻痹命中的持续游戏秒数
+	float magneticPulseCooldown = 0.0f; // 成功消费一个磁性目标后的条件能力冷却，单位：游戏秒
+	float magneticPulseRadius = 0.0f; // 条件磁吸脉冲的圆形作用半径，单位：px
+	float magneticPulseParalysisDuration = 0.0f; // 条件磁吸脉冲的麻痹时长，单位：游戏秒
+	int magneticSearchRowRadius = 0; // 磁吸目标搜索覆盖自身行上下各几行
+	float magneticSearchRadiusInCells = 0.0f; // 非啃食目标搜索半径，单位：格宽
+	float magneticEatingSearchRadiusInCells = 0.0f; // 啃食目标搜索半径，单位：格宽
+	bool daytimeDormant = false;       // true=白天新种后只作为阻挡体，不模拟主动能力
 	bool persistent = true;           // false=一次性/复杂能力牌，不参与未来种植推演
 	bool supportOnly = false;          // true=普通承载层压缩进每格支撑快照，也不作为未来种植候选
 };

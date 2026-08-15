@@ -12,6 +12,9 @@ public:
 
 protected:
 	void SetupPlant() override;
+	/** 返回睡眠与清醒待机包装轨；升级蘑菇可适配原版资源的不同轨名。 */
+	virtual const char* GetSleepTrackName() const { return "anim_sleep"; }
+	virtual const char* GetAwakeIdleTrackName() const { return "anim_idle"; }
 	/** 咖啡豆倒计时归零后的品种激活入口；默认回到 anim_idle。 */
 	virtual void OnWakeUp();
 };

@@ -18,7 +18,7 @@ namespace {
 	constexpr float kIdleMaxFps = 15.0f;                      // C# 待机随机帧率上界
 	constexpr float kShootingFps = 12.0f;                     // C# anim_shooting 播放帧率
 	constexpr float kChargingFps = 2.0f;                      // C# anim_nonactive_idle2 充能帧率
-	constexpr float kRechargeSeconds = 15.0f;                 // C# mStateCountdown=1500cs，从吸取当帧开始计时
+	constexpr float kBaseRechargeSeconds = 15.0f;             // C# mStateCountdown=1500cs，从吸取当帧开始计时
 	constexpr int kTargetRowRadius = 2;                       // 原版最多搜索上下各两行
 	constexpr float kNormalRadiusInCells = 3.375f;            // 原版 270px / 80px 格宽
 	constexpr float kEatingRadiusInCells = 4.0f;              // 原版啃食目标 320px / 80px 格宽
@@ -49,6 +49,11 @@ const char* MagnetShroom::GetPhaseName() const
 	return "READY";
 }
 
+float MagnetShroom::GetRechargeSeconds() const
+{
+	return kBaseRechargeSeconds;
+}
+
 void MagnetShroom::SetupPlant()
 {
 	if (auto* shadow = GetComponent<ShadowComponent>()) {
@@ -62,7 +67,7 @@ void MagnetShroom::SetupPlant()
 	mPhase = Phase::READY;
 	mRechargeTime = 0.0f;
 	mHasCapturedItem = false;
-	if (!mIsSleeping) PlayTrack("anim_idle");
+	if (!mIsSleeping) PlayTrack(GetAwakeIdleTrackName());
 }
 
 void MagnetShroom::PlantUpdate()
@@ -77,7 +82,7 @@ void MagnetShroom::PlantUpdate()
 	mRechargeTime = std::max(0.0f, mRechargeTime
 		- DeltaTime::GetDeltaTime() * GetAttackSpeedMultiplier());
 	if (mPhase == Phase::SUCKING
-		&& GetCurrentTrackName() == "anim_nonactive_idle2") {
+		&& GetCurrentTrackName() == GetChargingTrackName()) {
 		mPhase = Phase::CHARGING;
 	}
 	if (mPhase == Phase::CHARGING && mRechargeTime <= 0.0f) {
@@ -120,11 +125,23 @@ bool MagnetShroom::TryStartMagnetizing()
 	}
 
 	MagneticItem item;
-	if (nearest && nearest->ExtractMagneticItem(item)) {
-		const int backlashDamage = item.extractorSelfDamage;
-		BeginMagnetizing(std::move(item));
-		ApplyExtractionBacklash(backlashDamage);
-		return true;
+	if (nearest) {
+		const int targetRow = nearest->mRow;
+		const ColliderComponent* collider = nearest->GetColliderComponent();
+		Vector targetCenter = nearest->GetPosition();
+		if (collider) {
+			const SDL_FRect targetBounds = collider->GetBoundingBox();
+			targetCenter = Vector(
+				targetBounds.x + targetBounds.w * 0.5f,
+				targetBounds.y + targetBounds.h * 0.5f);
+		}
+		if (nearest->ExtractMagneticItem(item)) {
+			const int backlashDamage = item.extractorSelfDamage;
+			BeginMagnetizing(std::move(item));
+			OnZombieMagneticItemExtracted(mCapturedItem, targetCenter, targetRow);
+			ApplyExtractionBacklash(backlashDamage);
+			return true;
+		}
 	}
 
 	// C# 仅在附近没有可吸僵尸装备时，按两格 Chebyshev 距离搜索场景扶梯。
@@ -138,11 +155,11 @@ bool MagnetShroom::TryStartMagnetizing()
 void MagnetShroom::BeginMagnetizing(MagneticItem item)
 {
 	mPhase = Phase::SUCKING;
-	mRechargeTime = kRechargeSeconds;
+	mRechargeTime = GetRechargeSeconds();
 	mHasCapturedItem = true;
 	mCapturedItem = std::move(item);
 	const float attackSpeed = GetAttackSpeedMultiplier();
-	PlayTrackOnce("anim_shooting", "anim_nonactive_idle2",
+	PlayTrackOnce(GetShootingTrackName(), GetChargingTrackName(),
 		kShootingFps / kReanimationFps * attackSpeed, 0.0f,
 		kChargingFps / kReanimationFps * attackSpeed, 0.0f);
 	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_MAGNETSHROOM,
@@ -180,7 +197,7 @@ void MagnetShroom::FinishRecharge()
 	mCapturedItem = MagneticItem{};
 	SetAnimationSpeed(GameRandom::Range(
 		kIdleMinFps / kReanimationFps, kIdleMaxFps / kReanimationFps));
-	PlayTrack("anim_idle", 0.0f, 0.0f);
+	PlayTrack(GetAwakeIdleTrackName(), 0.0f, 0.0f);
 }
 
 Vector MagnetShroom::GetCapturedItemDestination() const
@@ -246,7 +263,7 @@ void MagnetShroom::LoadExtraData(const nlohmann::json& j)
 		static_cast<int>(Phase::CHARGING));
 	mPhase = static_cast<Phase>(phase);
 	mRechargeTime = std::clamp(j.value("rechargeTime", 0.0f),
-		0.0f, kRechargeSeconds);
+		0.0f, GetRechargeSeconds());
 	mHasCapturedItem = j.value("hasCapturedItem", false);
 	if (mHasCapturedItem) {
 		mCapturedItem.textureKey = j.value("capturedTextureKey", std::string{});

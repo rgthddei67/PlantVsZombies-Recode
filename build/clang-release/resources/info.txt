@@ -155,6 +155,11 @@
 [PLANT_MAGNETSHROOM_DESCRIPTION]
 磁力菇会吸走附近僵尸携带的铁桶、金属头盔、普通铁门、弹跳杆、普通小丑盒和普通矿工镐；加固铁门、精英小丑和爆破工头不受影响。每次吸取后需要15秒重新充能。磁力菇是夜间植物，白天会睡觉。
 
+[PLANT_GOLD_MAGNET]
+磁暴菇
+[PLANT_GOLD_MAGNET_DESCRIPTION]
+磁暴菇必须种在磁力菇上。它每12秒最多吸走附近僵尸的一件金属装备，并在装备离体时释放100像素的紫色电磁脉冲，使周围敌方僵尸麻痹2.5秒；脉冲没有直接伤害，也不会拆除接地僵尸的天线路障。磁暴菇是夜间植物，白天会睡觉。“要找避雷针请去隔壁，”磁暴菇说，“我负责让雷留下来。”
+
 [PLANT_GROUNDINGSHROOM]
 接地菇
 [PLANT_GROUNDINGSHROOM_DESCRIPTION]

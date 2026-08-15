@@ -5033,6 +5033,7 @@ bool Board::BuildMonteCarloCombatSnapshot(
 	snapshot = Snapshot{};
 	snapshot.rows = mRows;
 	snapshot.columns = mColumns;
+	snapshot.sceneWidth = static_cast<float>(SCENE_WIDTH);
 	snapshot.initialSun = static_cast<float>(std::max(0, mSun));
 	snapshot.cells.reserve(static_cast<std::size_t>(mRows * mColumns));
 	for (int row = 0; row < mRows; ++row) {
@@ -5145,6 +5146,22 @@ bool Board::BuildMonteCarloCombatSnapshot(
 			sleeping ? 0.0f : profile.paralysisApplicationsPerSecond,
 			profile.paralysisDuration
 		});
+		PlantDefenseMonteCarlo::PlantSnapshot& plantSnapshot =
+			snapshot.plants.back();
+		plantSnapshot.y = plant->GetPosition().y;
+		plantSnapshot.abilityCooldownRemaining = sleeping
+			? 0.0f : plant->GetSimulationAbilityCooldownRemaining();
+		plantSnapshot.magneticPulseCooldown = sleeping
+			? 0.0f : profile.magneticPulseCooldown;
+		plantSnapshot.magneticPulseRadius = profile.magneticPulseRadius;
+		plantSnapshot.magneticPulseParalysisDuration =
+			profile.magneticPulseParalysisDuration;
+		plantSnapshot.magneticSearchRowRadius = profile.magneticSearchRowRadius;
+		plantSnapshot.magneticSearchRadius =
+			profile.magneticSearchRadiusInCells * CELL_COLLIDER_SIZE_X;
+		plantSnapshot.magneticEatingSearchRadius =
+			profile.magneticEatingSearchRadiusInCells * CELL_COLLIDER_SIZE_X;
+		plantSnapshot.magneticRowDistancePenalty = CELL_COLLIDER_SIZE_X;
 	}
 
 	std::vector<int> zombieIDs = mEntityManager.GetAllZombieIDs();
@@ -5176,10 +5193,16 @@ bool Board::BuildMonteCarloCombatSnapshot(
 		};
 		float centerX = zombie->GetPosition().x;
 		float centerY = zombie->GetPosition().y;
+		SDL_FRect zombieBounds{
+			centerX - CELL_COLLIDER_SIZE_X * 0.5f,
+			centerY - CELL_COLLIDER_SIZE_Y * 0.5f,
+			CELL_COLLIDER_SIZE_X,
+			CELL_COLLIDER_SIZE_Y
+		};
 		if (const ColliderComponent* collider = zombie->GetColliderComponent()) {
-			const SDL_FRect bounds = collider->GetBoundingBox();
-			centerX = bounds.x + bounds.w * 0.5f;
-			centerY = bounds.y + bounds.h * 0.5f;
+			zombieBounds = collider->GetBoundingBox();
+			centerX = zombieBounds.x + zombieBounds.w * 0.5f;
+			centerY = zombieBounds.y + zombieBounds.h * 0.5f;
 		}
 		snapshot.zombies.push_back({
 			zombie->mZombieID,
@@ -5218,6 +5241,19 @@ bool Board::BuildMonteCarloCombatSnapshot(
 			simulatedCombatant,
 			false
 		});
+		PlantDefenseMonteCarlo::ZombieSnapshot& zombieSnapshot =
+			snapshot.zombies.back();
+		zombieSnapshot.bounds = {
+			zombieBounds.x, zombieBounds.y, zombieBounds.w, zombieBounds.h
+		};
+		zombieSnapshot.magneticItemAvailable =
+			zombie->CanBeTargetedByMagnetShroom();
+		const MagneticSimulationLayer magneticLayer =
+			zombie->GetMagneticSimulationLayer();
+		zombieSnapshot.magneticRemovesHelm =
+			magneticLayer == MagneticSimulationLayer::HELM;
+		zombieSnapshot.magneticRemovesShield =
+			magneticLayer == MagneticSimulationLayer::SHIELD;
 	}
 
 	if (mCardSlotManager) {
@@ -5231,6 +5267,8 @@ bool Board::BuildMonteCarloCombatSnapshot(
 			const PlantSimulationProfile& profile =
 				gameData.GetPlantSimulationProfile(type);
 			if (!profile.persistent || profile.supportOnly) continue;
+			const bool dormant = profile.daytimeDormant
+				&& !GameAPP::GetInstance().GetBackgroundIsNight(mBackGround);
 
 			std::uint64_t legalCellMask = 0;
 			for (int row = 0; row < mRows; ++row) {
@@ -5245,7 +5283,7 @@ bool Board::BuildMonteCarloCombatSnapshot(
 
 			const int cost = component->GetSunCost();
 			float strategicValue = static_cast<float>(cost);
-			if (profile.sunPerSecond > 0.0f) {
+			if (!dormant && profile.sunPerSecond > 0.0f) {
 				strategicValue += kMonteCarloSunProducerFutureValue;
 			}
 			snapshot.cards.push_back({
@@ -5255,23 +5293,36 @@ bool Board::BuildMonteCarloCombatSnapshot(
 				component->GetCooldownTime(),
 				static_cast<float>(profile.baseHealth),
 				strategicValue,
-				profile.attackDps,
+				dormant ? 0.0f : profile.attackDps,
 				profile.attackRowRadius,
-				profile.sunPerSecond,
+				dormant ? 0.0f : profile.sunPerSecond,
 				profile.firstSunDelay,
 				legalCellMask,
 				type == PlantType::PLANT_PUMPKINSHELL,
 				type == PlantType::PLANT_PUMPKINSHELL ? 2
 					: (IsUnderPlantLayerType(type) ? 0 : 1),
-				profile.slowApplicationsPerSecond,
+				dormant ? 0.0f : profile.slowApplicationsPerSecond,
 				profile.slowDuration,
-				profile.frozenApplicationsPerSecond,
+				dormant ? 0.0f : profile.frozenApplicationsPerSecond,
 				profile.frozenDuration,
-				profile.butterApplicationsPerSecond,
+				dormant ? 0.0f : profile.butterApplicationsPerSecond,
 				profile.butterDuration,
-				profile.paralysisApplicationsPerSecond,
+				dormant ? 0.0f : profile.paralysisApplicationsPerSecond,
 				profile.paralysisDuration
 			});
+			PlantDefenseMonteCarlo::CardSnapshot& cardSnapshot =
+				snapshot.cards.back();
+			cardSnapshot.magneticPulseCooldown = dormant
+				? 0.0f : profile.magneticPulseCooldown;
+			cardSnapshot.magneticPulseRadius = profile.magneticPulseRadius;
+			cardSnapshot.magneticPulseParalysisDuration =
+				profile.magneticPulseParalysisDuration;
+			cardSnapshot.magneticSearchRowRadius = profile.magneticSearchRowRadius;
+			cardSnapshot.magneticSearchRadius =
+				profile.magneticSearchRadiusInCells * CELL_COLLIDER_SIZE_X;
+			cardSnapshot.magneticEatingSearchRadius =
+				profile.magneticEatingSearchRadiusInCells * CELL_COLLIDER_SIZE_X;
+			cardSnapshot.magneticRowDistancePenalty = CELL_COLLIDER_SIZE_X;
 		}
 	}
 	return true;

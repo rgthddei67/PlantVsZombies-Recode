@@ -20,6 +20,8 @@ constexpr PlantType GetUpgradeBasePlantType(PlantType type)
 		return PlantType::PLANT_MELONPULT;
 	case PlantType::PLANT_COBCANNON:
 		return PlantType::PLANT_KERNELPULT;
+	case PlantType::PLANT_GOLD_MAGNET:
+		return PlantType::PLANT_MAGNETSHROOM;
 	case PlantType::PLANT_LIGHTNINGRODPOT:
 		return PlantType::PLANT_FLOWERPOT;
 	default:
@@ -35,6 +37,7 @@ constexpr PlantUpgradeLayer GetUpgradePlantLayer(PlantType type)
 	case PlantType::PLANT_GLOOMSHROOM:
 	case PlantType::PLANT_WINTERMELON:
 	case PlantType::PLANT_COBCANNON:
+	case PlantType::PLANT_GOLD_MAGNET:
 		return PlantUpgradeLayer::NORMAL;
 	case PlantType::PLANT_LIGHTNINGRODPOT:
 		return PlantUpgradeLayer::UNDER;

@@ -8,7 +8,7 @@
 /**
  * @brief 经典磁力菇：周期性吸走附近僵尸的一件金属防具或工具。
  */
-class MagnetShroom final : public Shroom {
+class MagnetShroom : public Shroom {
 public:
 	using Shroom::Shroom;
 
@@ -37,11 +37,18 @@ public:
 protected:
 	void SetupPlant() override;
 	void PlantUpdate() override;
+	/** 返回从成功吸取当帧开始计算的总充能秒数。 */
+	virtual float GetRechargeSeconds() const;
+	virtual const char* GetShootingTrackName() const { return "anim_shooting"; }
+	virtual const char* GetChargingTrackName() const { return "anim_nonactive_idle2"; }
+	/** 僵尸装备已原子剥离且由植物接管后触发；场景扶梯不调用。 */
+	virtual void OnZombieMagneticItemExtracted(
+		const MagneticItem&, const Vector&, int) {}
 
 private:
 	/** 搜索原版上下两行范围内最近的合法金属目标并原子开始一次吸取。 */
 	bool TryStartMagnetizing();
-	/** 开始射击轨、15 秒总充能与离体物飞行；不依赖动画帧事件。 */
+	/** 开始射击轨、品种总充能与离体物飞行；不依赖动画帧事件。 */
 	void BeginMagnetizing(MagneticItem item);
 	/** 在装备已完成卸除后精确扣除磁力菇本体生命，绕过南瓜与防御词条。 */
 	void ApplyExtractionBacklash(int damage);

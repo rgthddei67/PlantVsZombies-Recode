@@ -29,6 +29,10 @@ public:
 	/** 磁力菇与 AutoTest 共用的原版丢镐入口。 */
 	void LosePickaxe();
 	bool HasMagneticItem() const override;
+	MagneticSimulationLayer GetMagneticSimulationLayer() const override {
+		return HasMagneticItem()
+			? MagneticSimulationLayer::TOOL : MagneticSimulationLayer::NONE;
+	}
 	bool ExtractMagneticItem(MagneticItem& item) override;
 
 	void PlaySpawnSound() override;

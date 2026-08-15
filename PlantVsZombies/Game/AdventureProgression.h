@@ -88,7 +88,7 @@ namespace AdventureProgression
 		PlantType::PLANT_LIGHTNINGRODPOT,
 		PlantType::PLANT_WINTERMELON,
 		PlantType::PLANT_COBCANNON,
-		NO_PLANT_REWARD,
+		PlantType::PLANT_GOLD_MAGNET,
 		NO_PLANT_REWARD,
 		NO_PLANT_REWARD,
 	};
@@ -148,6 +148,7 @@ namespace AdventureProgression
 	static_assert(GetPlantReward(49) == PlantType::PLANT_LIGHTNINGRODPOT);
 	static_assert(GetPlantReward(50) == PlantType::PLANT_WINTERMELON);
 	static_assert(GetPlantReward(51) == PlantType::PLANT_COBCANNON);
+	static_assert(GetPlantReward(52) == PlantType::PLANT_GOLD_MAGNET);
 	static_assert(GetAreaNumber(18) == 2 && GetLevelNumberInArea(18) == 9);
 	static_assert(GetAreaNumber(19) == 3 && GetLevelNumberInArea(19) == 1);
 	static_assert(IsBossLevel(AREA_FIVE_BOSS_LEVEL));

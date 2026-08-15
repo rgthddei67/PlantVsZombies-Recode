@@ -1,0 +1,34 @@
+<Emitter>
+  <Name>GoldMagnetEMP</Name>
+  <SpawnMinActive>1</SpawnMinActive>
+  <SpawnMaxLaunched>1</SpawnMaxLaunched>
+  <SpawnRate>0</SpawnRate>
+  <ParticleDuration>.30</ParticleDuration>
+  <ParticleAlpha>.86 .40,72 0,100</ParticleAlpha>
+  <ParticleRed>.72</ParticleRed>
+  <ParticleGreen>.34</ParticleGreen>
+  <ParticleBlue>1</ParticleBlue>
+  <ParticleBrightness>1</ParticleBrightness>
+  <ParticleScale>.20 .46</ParticleScale>
+  <SystemDuration>.36</SystemDuration>
+  <Image>PARTICLE_RAIN_CIRCLE</Image>
+</Emitter>
+<Emitter>
+  <Name>GoldMagnetEMPSparks</Name>
+  <SpawnMinActive>6</SpawnMinActive>
+  <SpawnMaxLaunched>6</SpawnMaxLaunched>
+  <SpawnRate>0</SpawnRate>
+  <ParticleDuration>[.14 .28]</ParticleDuration>
+  <ParticleAlpha>.92,72 0</ParticleAlpha>
+  <ParticleRed>.84 .34 0</ParticleRed>
+  <ParticleGreen>.52 .08 0</ParticleGreen>
+  <ParticleBlue>1 .72 0</ParticleBlue>
+  <ParticleScale>[.07 .14],78 0</ParticleScale>
+  <EmitterType>Circle</EmitterType>
+  <EmitterRadius>[4 14]</EmitterRadius>
+  <LaunchSpeed>[26 58]</LaunchSpeed>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <ParticleSpinSpeed>[-700 700]</ParticleSpinSpeed>
+  <SystemDuration>.36</SystemDuration>
+  <Image>PARTICLE_STAR40</Image>
+</Emitter>

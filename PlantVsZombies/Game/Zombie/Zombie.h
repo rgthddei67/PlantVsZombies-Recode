@@ -311,6 +311,15 @@ public:
 	/** 品种是否仍持有可被磁力菇吸取的装备；派生类只声明装备状态。 */
 	virtual bool HasMagneticItem() const { return false; }
 	/**
+	 * 返回轻量推演在吸取时移除的生命层；特殊品种可覆写默认的盾牌/头盔/工具推断。
+	 */
+	virtual MagneticSimulationLayer GetMagneticSimulationLayer() const {
+		if (!HasMagneticItem()) return MagneticSimulationLayer::NONE;
+		if (mShieldHealth > 0) return MagneticSimulationLayer::SHIELD;
+		if (mHelmHealth > 0) return MagneticSimulationLayer::HELM;
+		return MagneticSimulationLayer::TOOL;
+	}
+	/**
 	 * 立即卸下当前金属装备，并把离体表现交给磁力菇。
 	 * 返回 false 表示装备已在同帧由其他路径移除，调用方不得开始充能。
 	 */
