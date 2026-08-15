@@ -14,11 +14,15 @@ public:
 	using Shroom::Shroom;
 
 	void TakeDamage(int damage, DamageSource source) override;
+	/** 清醒引爆中的寒冰菇被巨人锤击时立即冻结全场；睡眠态仍走普通压扁。 */
+	void ResolveGargantuarSmash() override;
 
 protected:
 	void SetupPlant() override;
 
 private:
+	/** 统一执行自然到帧与巨人锤击触发的完整冻结结算。 */
+	void Freeze();
 	void FreezeAllZombies();
 };
 

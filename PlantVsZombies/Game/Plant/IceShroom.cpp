@@ -18,12 +18,7 @@ void IceShroom::SetupPlant()
 	// 第 16 帧全场冻结（主人指定，帧号已按代码口径 = 预览帧号-1，直接使用）。
 	// 存档在触发前：SetupPlant 读档时重新注册，RestoreAnimState 恢复的帧在其前，穿过时照常触发。
 	mAnimator->AddFrameEvent(16, [this]() {
-		if (!mBoard) return;
-		AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_FROZEN, 0.5f);
-		if (mBoard->GetPresentation())
-			mBoard->GetPresentation()->ShowScreenFlash(0.5f);
-		FreezeAllZombies();
-		Die();
+		Freeze();
 		});
 }
 
@@ -35,6 +30,27 @@ void IceShroom::TakeDamage(int damage, DamageSource source)
 		return;
 	}
 	Plant::TakeDamage(damage, source);
+}
+
+void IceShroom::ResolveGargantuarSmash()
+{
+	// 原版 Squish 对所有未睡眠的寒冰菇直接调用 DoSpecial，不等待剩余充能动画。
+	if (!mIsSleeping) {
+		Freeze();
+		return;
+	}
+	Plant::ResolveGargantuarSmash();
+}
+
+void IceShroom::Freeze()
+{
+	if (!IsActive() || !mBoard) return;
+	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_FROZEN, 0.5f);
+	if (mBoard->GetPresentation()) {
+		mBoard->GetPresentation()->ShowScreenFlash(0.5f);
+	}
+	FreezeAllZombies();
+	Die();
 }
 
 void IceShroom::FreezeAllZombies()
