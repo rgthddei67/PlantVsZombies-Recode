@@ -3,7 +3,7 @@
 #include "../../ResourceKeys.h"
 
 namespace {
-	constexpr int kGroundingConeHealth = 430;      // 天线路障的一类防具生命
+	constexpr int kGroundingConeHealth = 1200;      // 天线路障的一类防具生命
 	constexpr float kAntennaAnchorOffsetX = 20.0f; // 天线端点相对 anim_cone 贴图左上原点的缩放后水平像素
 	constexpr float kAntennaAnchorOffsetY = 1.0f;  // 天线端点相对 anim_cone 贴图左上原点的缩放后垂直像素
 }
