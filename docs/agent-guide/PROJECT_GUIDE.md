@@ -135,14 +135,24 @@ GameObject（基类：组件系统、渲染顺序、激活状态）
 Bullet（独立类型；通过 BulletPool 使用对象池）
 ```
 
-### 组件系统
+### 架构决策：继承式玩法对象
 
-`GameObject` 使用 `std::unordered_map<std::type_index, shared_ptr<Component>>` 保存组件。标准组件包括：
+自 2026-08-16 起，本项目正式采用**继承式玩法对象**作为植物、僵尸及其他有独立生命周期玩法实体的主模型：公共状态与流程收敛在稳定基类，品种差异通过派生类、窄虚接口和注册式工厂表达。不得仅为追求形式统一，把植物或僵尸能力拆成通用 ECS 组件、复制一套平行状态，或让组件组合取代现有 `Plant` / `Zombie` 生命周期、动画与存档契约。
+
+现有 `Component` 容器属于早期框架遗留的可选附件机制，不是项目未来的玩法对象模型。迁移完成前继续保持其现有运行契约；新增代码默认不再扩充 `Component` 派生类，只有同时满足“跨多个无继承关系宿主复用、确实可选、生命周期可由宿主独立管理”的横切附件，经过架构审计后才可例外。渐进收缩方案见 `docs/superpowers/specs/2026-08-16-inheritance-gameplay-object-architecture-design.md` 与 `docs/superpowers/plans/2026-08-16-component-system-contraction.md`。
+
+`EntityManager` 与上述组件容器相互独立：它是 Board 范围内的稳定实体 ID 注册表和查询索引，服务跨对象引用、存档恢复与热路径检索，不是 ECS，组件收缩期间不得删除或把其职责重新塞回对象指针。
+
+### 遗留组件容器（渐进收缩）
+
+`GameObject` 当前使用 `std::unordered_map<std::type_index, std::unique_ptr<Component>>` 保存组件，并维护待初始化、可更新和可绘制的非拥有视图。现有组件包括：
 
 - `TransformComponent`：位置（x、y）、旋转、缩放。
 - `ColliderComponent`：碰撞框，以及 `onTriggerEnter/Stay/Exit`、`onCollisionEnter/Exit` 回调。
 - `ClickableComponent`：鼠标交互。
 - `ShadowComponent`：阴影渲染。
+- `CardComponent` / `CardDisplayComponent`：卡片玩法状态与显示。
+- `CardSlotManager`：当前作为组件挂载的场景级卡槽控制器。
 
 通过 `AddComponent<T>(args...)` 添加组件，通过 `GetComponent<T>()` 获取组件。
 

@@ -66,3 +66,7 @@ metadata:
 
 ## 相关
 [pvz-perf-optimization](project_pvz_perf_optimization.md) · [pvz-parallel-update-phase2](project_pvz_parallel_update_phase2.md) · [pvz-parallel-update-phase1](project_pvz_parallel_update_phase1.md) · [collaboration-style](feedback_collaboration_style.md)
+
+## 2026-08-16 后续架构决策
+
+主人已明确采用继承式玩法对象，现有 `Component` 容器改视为早期框架遗留并按独立阶段收缩；本主题记录的 `NeedsUpdate + mUpdatableComponents` 仍是迁移完成前的有效现状，不再代表鼓励继续扩充 Component 派生类。执行收缩前必须重测当前基线，不能用 2026-05-23 数据承诺收益。详见 [project_pvz_inheritance_gameplay_architecture](project_pvz_inheritance_gameplay_architecture.md)。
