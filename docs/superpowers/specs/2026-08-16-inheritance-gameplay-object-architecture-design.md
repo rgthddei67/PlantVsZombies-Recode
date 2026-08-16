@@ -2,7 +2,7 @@
 
 日期：2026-08-16
 
-状态：主人已批准架构方向；仅记录决策，尚未实施迁移
+状态：主人已批准架构方向；Card 专属状态与显示组件已完成迁移，其余阶段待实施
 
 ## 1. 决策
 
@@ -14,7 +14,7 @@
 - 现有 `Component` 容器视为早期框架遗留的横切附件机制，按阶段收缩，不再作为新玩法系统的默认扩展点。
 - `EntityManager` 是稳定 ID 注册表与查询索引，不属于待收缩的组件系统。
 
-这是一项架构边界决策，不表示今天开始迁移；当前运行代码与存档格式保持不变。
+这是一项架构边界决策。2026-08-16 已完成第一阶段：`CardComponent` 与 `CardDisplayComponent` 并入 `Card`；存档格式保持不变，后续组件仍按独立阶段迁移。
 
 ## 2. 当前事实
 
@@ -28,11 +28,13 @@ GameObject
     └── Coin / Mower / 其他动画对象
 ```
 
-`GameObject` 另有一个按 `type_index` 索引 `unique_ptr<Component>` 的容器。全项目当前只有七种 `Component` 派生类：
+`GameObject` 另有一个按 `type_index` 索引 `unique_ptr<Component>` 的容器。Card 第一阶段完成后，全项目当前只有五种 `Component` 派生类：
 
 - 被动通用数据：`TransformComponent`、`ColliderComponent`。
 - 可选横切附件：`ShadowComponent`、`ClickableComponent`。
-- 卡片域对象：`CardComponent`、`CardDisplayComponent`、`CardSlotManager`。
+- 场景级卡片控制器：`CardSlotManager`。
+
+单张卡的冷却、选中、方向、可用性、主线程文本缓存与绘制职责已由 `Card` 直接拥有；它不再通过组件容器参与通用 Component 生命周期。
 
 它不具备典型 ECS 的数据布局和执行方式：实体不是轻量 ID，组件不在按类型连续存储中，System 也不按组件签名批量查询。植物、僵尸和子弹在创建组件后普遍缓存 `mTransform` / `mCollider` 裸指针，主要行为仍由派生类虚函数驱动。碰撞与点击各自维护专用注册表，`GameObject` 还显式识别 `ColliderComponent` 完成注册。
 
@@ -97,8 +99,8 @@ Transform 是绝大多数世界对象的基础空间数据，不需要多态生�
 
 ### 6.5 卡片域
 
-- `CardComponent` 的冷却、选中、方向和可用性状态并入 `Card` 或由 `Card` 直接拥有的非 Component 状态对象。
-- `CardDisplayComponent` 变成 `Card` 的直接绘制职责或非多态 `CardView`。
+- `CardComponent` 的冷却、选中、方向和可用性状态已并入 `Card`。
+- `CardDisplayComponent` 的主线程缓存与绘制职责已并入 `Card::Start/Update/Draw`。
 - `CardSlotManager` 变成 `GameScene` 明确拥有的场景控制器，不再挂在匿名 `GameObject` 上借用组件生命周期。
 - 卡片存档字段、选卡/生存轮次、路灯花菜单、三叶草方向、开发者模式和图鉴无场景宿主路径保持不变。
 

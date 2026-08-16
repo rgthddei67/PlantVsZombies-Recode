@@ -4,7 +4,6 @@
 #include "GameObject.h"
 #include "GameObjectManager.h"
 #include "Card.h"
-#include "CardComponent.h"
 #include "../UI/InputHandler.h"
 #include "./Plant/GameDataManager.h"
 #include "AudioSystem.h"
@@ -131,20 +130,7 @@ void CardSlotManager::UpdateCobCannonHoverCursor() const
 void CardSlotManager::UpdateAllCardsState() {
 	for (auto* card : cards) {
 		if (!card) continue;
-		if (auto cardComp = card->GetComponent<CardComponent>()) {
-			// 如果卡牌正在冷却，不强制更新状态，只更新冷却进度
-			if (cardComp->IsCooldown()) {
-				// 只更新冷却进度显示
-				if (auto display = cardComp->GetCardDisplayComponent()) {
-					float progress = 1.0f - (cardComp->GetCooldownProgress());
-					display->SetCooldownProgress(progress);
-				}
-			}
-			else {
-				// 不在冷却状态，才更新状态
-				cardComp->ForceStateUpdate();
-			}
-		}
+		card->ForceStateUpdate();
 	}
 }
 
@@ -162,21 +148,15 @@ void CardSlotManager::ClearAllCards() {
 	selectedCard = nullptr;
 }
 
-void CardSlotManager::SelectCard(GameObject* card) {
+void CardSlotManager::SelectCard(Card* card) {
 	if (!card || mPauseGameplayInputBlocked) return;
 
-	auto cardComp = card->GetComponent<CardComponent>();
-	if (!cardComp) {
-		LOG_ERROR("CardSlotManager") << "Card has no CardComponent";
-		return;
-	}
-
-	if (!cardComp->IsReady()) {
+	if (!card->IsReady()) {
 		return;
 	}
 
 	// 数量用尽时与阳光不足一样禁止选中，避免拿起一张全场都无法落下的卡。
-	if (!CanUsePlant(cardComp->GetPlantType(), cardComp->GetSunCost())) {
+	if (!CanUsePlant(card->GetPlantType(), card->GetSunCost())) {
 		return;
 	}
 
@@ -188,9 +168,7 @@ void CardSlotManager::SelectCard(GameObject* card) {
 
 	// 取消之前的选择
 	if (selectedCard) {
-		if (auto prevCardComp = selectedCard->GetComponent<CardComponent>()) {
-			prevCardComp->SetSelected(false);
-		}
+		selectedCard->SetSelected(false);
 	}
 
 	// 通过 CursorObjectManager 清除当前手持物（如铲子）
@@ -200,15 +178,13 @@ void CardSlotManager::SelectCard(GameObject* card) {
 
 	// 选择新卡牌
 	selectedCard = card;
-	cardComp->SetSelected(true);
-	CreatePlantPreview(cardComp->GetPlantType());
+	card->SetSelected(true);
+	CreatePlantPreview(card->GetPlantType());
 }
 
 void CardSlotManager::DeselectCard() {
 	if (selectedCard) {
-		if (auto cardComp = selectedCard->GetComponent<CardComponent>()) {
-			cardComp->SetSelected(false);
-		}
+		selectedCard->SetSelected(false);
 		selectedCard = nullptr;
 		mHoveredCell = nullptr;
 	}
@@ -237,8 +213,7 @@ Card* CardSlotManager::FindPlanternCard() const
 {
 	for (Card* card : cards) {
 		if (!card) continue;
-		CardComponent* component = card->GetCardComponent();
-		if (component && component->GetPlantType() == PlantType::PLANT_PLANTERN) {
+		if (card->GetPlantType() == PlantType::PLANT_PLANTERN) {
 			return card;
 		}
 	}
@@ -285,10 +260,8 @@ bool CardSlotManager::UpdateBloverDirectionInput()
 	for (auto it = cards.rbegin(); it != cards.rend(); ++it) {
 		Card* card = *it;
 		if (!card || !card->IsActive()) continue;
-		auto* component = card->GetCardComponent();
 		auto* collider = card->GetComponent<ColliderComponent>();
-		if (!component || !collider
-			|| component->GetPlantType() != PlantType::PLANT_BLOVER
+		if (!collider || card->GetPlantType() != PlantType::PLANT_BLOVER
 			|| !collider->mEnabled || !collider->ContainsPoint(mouse)) {
 			continue;
 		}
@@ -297,7 +270,7 @@ bool CardSlotManager::UpdateBloverDirectionInput()
 			DeselectCard();
 			if (mBoard) mBoard->mCursorObjectManager.ClearActive();
 		}
-		component->ToggleBloverDirection();
+		card->ToggleBloverDirection();
 		ApplySelectedBloverDirection(plantPreview);
 		ApplySelectedBloverDirection(cellPlantPreview);
 		mPlanternGearMenuOpen = false;
@@ -310,11 +283,9 @@ bool CardSlotManager::UpdateBloverDirectionInput()
 void CardSlotManager::ApplySelectedBloverDirection(Plant* plant) const
 {
 	auto* blover = dynamic_cast<Blover*>(plant);
-	auto* cardComponent = selectedCard
-		? selectedCard->GetComponent<CardComponent>() : nullptr;
-	if (blover && cardComponent
-		&& cardComponent->GetPlantType() == PlantType::PLANT_BLOVER) {
-		blover->SetBlowDirection(cardComponent->GetBloverDirection());
+	if (blover && selectedCard
+		&& selectedCard->GetPlantType() == PlantType::PLANT_BLOVER) {
+		blover->SetBlowDirection(selectedCard->GetBloverDirection());
 	}
 }
 
@@ -454,10 +425,8 @@ void CardSlotManager::UpdatePlantPreviewPosition(Graphics* g, const Vector& mous
 
 	bool isOverCellWithPlant = false;
 	if (hoveredCell && mBoard) {
-		if (auto cardComp = selected->GetComponent<CardComponent>()) {
-			isOverCellWithPlant = !mBoard->CanPlantAt(cardComp->GetPlantType(),
-				hoveredCell->mRow, hoveredCell->mColumn);
-		}
+		isOverCellWithPlant = !mBoard->CanPlantAt(selected->GetPlantType(),
+			hoveredCell->mRow, hoveredCell->mColumn);
 	}
 
 	if (isOverCellWithPlant) {
@@ -469,27 +438,23 @@ void CardSlotManager::UpdatePlantPreviewPosition(Graphics* g, const Vector& mous
 		DestroyCellPlantPreview();
 
 		if (hoveredCell) {
-			if (auto cardComp = selected->GetComponent<CardComponent>()) {
-				CreateCellPlantPreview(cardComp->GetPlantType(), hoveredCell);
-			}
+			CreateCellPlantPreview(selected->GetPlantType(), hoveredCell);
 		}
 
 		mHoveredCell = hoveredCell;
 	}
 
 	if (cellPlantPreview && hoveredCell) {
-		if (auto* cardComp = selected->GetComponent<CardComponent>()) {
-			int anchorRow = hoveredCell->mRow;
-			int anchorColumn = hoveredCell->mColumn;
-			if (!mBoard->ResolvePlantPlacementAnchor(cardComp->GetPlantType(),
-				hoveredCell->mRow, hoveredCell->mColumn, anchorRow, anchorColumn)) return;
-			Cell* anchorCell = mBoard->GetCell(anchorRow, anchorColumn);
-			if (!anchorCell) return;
-			Vector centerPos = anchorCell->GetCenterPosition();               // 世界坐标
+		int anchorRow = hoveredCell->mRow;
+		int anchorColumn = hoveredCell->mColumn;
+		if (!mBoard->ResolvePlantPlacementAnchor(selected->GetPlantType(),
+			hoveredCell->mRow, hoveredCell->mColumn, anchorRow, anchorColumn)) return;
+		Cell* anchorCell = mBoard->GetCell(anchorRow, anchorColumn);
+		if (!anchorCell) return;
+		Vector centerPos = anchorCell->GetCenterPosition();               // 世界坐标
 
-			if (auto transform = cellPlantPreview->GetTransformComponent()) {
-				transform->SetPosition(centerPos);                         // 设置世界坐标
-			}
+		if (auto transform = cellPlantPreview->GetTransformComponent()) {
+			transform->SetPosition(centerPos);                         // 设置世界坐标
 		}
 	}
 
@@ -560,12 +525,10 @@ bool CardSlotManager::CanPlaceInCell(Cell* cell) const {
 	if (!selectedCard || !cell || mPauseGameplayInputBlocked) return false;
 
 	// 检查阳光是否足够
-	if (auto cardComp = selectedCard->GetComponent<CardComponent>()) {
-		if (!mBoard || !mBoard->CanPlantAt(cardComp->GetPlantType(),
-			cell->mRow, cell->mColumn)) return false;
-		if (!CanAfford(cardComp->GetSunCost())) {
-			return false;
-		}
+	if (!mBoard || !mBoard->CanPlantAt(selectedCard->GetPlantType(),
+		cell->mRow, cell->mColumn)) return false;
+	if (!CanAfford(selectedCard->GetSunCost())) {
+		return false;
 	}
 
 	return true;
@@ -574,13 +537,10 @@ bool CardSlotManager::CanPlaceInCell(Cell* cell) const {
 void CardSlotManager::PlacePlantInCell(int row, int col) {
 	if (!selectedCard || !mBoard) return;
 
-	auto cardComp = selectedCard->GetComponent<CardComponent>();
-	if (!cardComp) return;
-
 	Cell* cell = mBoard->GetCell(row, col);
 	if (!cell) return;
 
-	if (!SpendSun(cardComp->GetSunCost())) {
+	if (!SpendSun(selectedCard->GetSunCost())) {
 		return;
 	}
 
@@ -591,13 +551,13 @@ void CardSlotManager::PlacePlantInCell(int row, int col) {
 		: ResourceKeys::Sounds::SOUND_PLANT, 0.5f);
 
 	// 创建植物
-	Plant* plant = mBoard->CreatePlant(cardComp->GetPlantType(), row, col);
+	Plant* plant = mBoard->CreatePlant(selectedCard->GetPlantType(), row, col);
 
 	if (plant) {
 		if (auto* blover = dynamic_cast<Blover*>(plant)) {
-			blover->SetBlowDirection(cardComp->GetBloverDirection());
+			blover->SetBlowDirection(selectedCard->GetBloverDirection());
 		}
-		cardComp->StartCooldown();
+		selectedCard->StartCooldown();
 	}
 
 	// 取消选择
@@ -606,10 +566,6 @@ void CardSlotManager::PlacePlantInCell(int row, int col) {
 }
 
 PlantType CardSlotManager::GetSelectedPlantType() const {
-	if (selectedCard) {
-		if (auto cardComp = selectedCard->GetComponent<CardComponent>()) {
-			return cardComp->GetPlantType();
-		}
-	}
+	if (selectedCard) return selectedCard->GetPlantType();
 	return PlantType::NUM_PLANT_TYPES;
 }

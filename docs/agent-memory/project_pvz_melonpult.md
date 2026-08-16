@@ -26,7 +26,7 @@ metadata:
   伤害；不是卷心菜的“绕过不伤盾”。头盔仍走普通一类防具逻辑。
 - 命中与落空都随机播放 `melonimpact/melonimpact2`，并发射 `MelonSplash`。粒子图是
   9 帧水平条带，按 `PARTICLE_MELONPULT_PARTICLES` 在 `ParticleTextures` 注册。
-- 卡片内立绘仅在 `CardDisplayComponent` 使用 0.80 独立倍率，最终相对通用布局偏移
+- 卡片内立绘仅在 `Card::DrawPlantImage` 使用 0.80 独立倍率，最终相对通用布局偏移
   `(+3,+1)` UI px；不改 gamedata 的战场缩放/偏移。西瓜弹丸地面阴影单独向右 6px。
 - 用户放入的 `Melonpult.reanim` 和六张部件图全部通过 `resources.xml` 与精确
   `IMAGE_REANIM_MELONPULT_*` 键注册；卡图、子弹、粒子、音效与 reanim 由 AutoTest 闭环断言。

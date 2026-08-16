@@ -117,7 +117,7 @@ struct CachedText {
 	// 像素光栅化以保持锐利；绘制时用它把 width/height 除回逻辑尺寸，保证屏幕布局不变。
 	float superSample = 1.0f;
 	// pinned 缓存代际号：AcquireTextTexture 时打上当时的 m_textGeneration。letterbox 变化
-	// 清 pinned 缓存会递增代际号，使所有持有旧副本的消费者（如 CardDisplayComponent）能
+	// 清 pinned 缓存会递增代际号，使所有持有旧副本的消费者（如 Card）能
 	// 用 IsCachedTextStale 察觉自己手里的句柄已失效，避免读已销毁的后端纹理 binding。
 	uint32_t generation = 0;
 };

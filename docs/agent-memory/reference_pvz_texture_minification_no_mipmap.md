@@ -14,5 +14,5 @@ metadata:
 **How to apply:**
 - mip 正确性前提 = staging 时预乘 alpha（rgb*=a，见 [project_pvz_premultiplied_alpha](project_pvz_premultiplied_alpha.md)）——若改上传管线勿破坏此顺序，否则 mip 级会渗白边。
 - barrier 编排=逐级放行（i-1 级 DST→SRC→blit→SHADER_READ；mipLevels==1 退化为旧单 barrier 路径）；再动此文件必开 validation（msvc-debug 即 _DEBUG 自动开）。
-- 小字号文字锐化另有解：AcquireTextTexture 2× 光栅化 + DrawCachedText scale=0.5（CardDisplayComponent kSunTextRasterSize=28）。
+- 小字号文字锐化另有解：AcquireTextTexture 2× 光栅化 + DrawCachedText scale=0.5（`Card` 绘制路径的 `kSunTextRasterSize=28`）。
 - resources 不在 git；改/覆盖资产前必须备份或先问主人（auto 分类器也会拦原地覆盖）。

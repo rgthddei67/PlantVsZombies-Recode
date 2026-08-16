@@ -20,7 +20,6 @@
 #include "../LawnMower.h"
 #include "../AudioSystem.h"
 #include "../Card.h"
-#include "../CardComponent.h"
 #include "../CardSlotManager.h"
 #include "../ShadowComponent.h"
 #include "../Plant/GameDataManager.h"
@@ -3110,10 +3109,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	if (ChooseCardUI* chooseUI = gs->GetChooseCardUI()) {
 		for (Card* card : chooseUI->GetSelectedCards()) {
 			if (!card) continue;
-			CardComponent* component = card->GetCardComponent();
-			if (!component) continue;
 			out["chooseCardSelectedCards"].push_back(
-				PlantTypeName(component->GetPlantType()));
+				PlantTypeName(card->GetPlantType()));
 			if (card->IsMoving()) {
 				out["chooseCardSelectedMovingCount"] =
 					out["chooseCardSelectedMovingCount"].get<int>() + 1;
@@ -3614,22 +3611,21 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	if (CardSlotManager* cardManager = gs->GetCardSlotManager()) {
 		for (Card* card : cardManager->GetCards()) {
 			if (!card) continue;
-			CardComponent* component = card->GetCardComponent();
 			TransformComponent* transform = card->GetTransform();
-			if (!component || !transform) continue;
+			if (!transform) continue;
 			nlohmann::json cardState = {
-				{ "type", PlantTypeName(component->GetPlantType()) },
+				{ "type", PlantTypeName(card->GetPlantType()) },
 				{ "xInt", static_cast<int>(std::lround(
 					transform->GetPosition().x)) },
 				{ "yInt", static_cast<int>(std::lround(
 					transform->GetPosition().y)) },
-				{ "ready", component->IsReady() },
-				{ "selected", component->IsSelected() },
-				{ "cooldown", component->IsCooldown() },
+				{ "ready", card->IsReady() },
+				{ "selected", card->IsSelected() },
+				{ "cooldown", card->IsCooldown() },
 			};
-			if (component->GetPlantType() == PlantType::PLANT_BLOVER) {
+			if (card->GetPlantType() == PlantType::PLANT_BLOVER) {
 				cardState["bloverDirection"] =
-					WindDirectionName(component->GetBloverDirection());
+					WindDirectionName(card->GetBloverDirection());
 			}
 			out["cards"].push_back(std::move(cardState));
 		}

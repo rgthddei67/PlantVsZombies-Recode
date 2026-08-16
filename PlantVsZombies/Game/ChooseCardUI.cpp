@@ -125,10 +125,6 @@ void ChooseCardUI::TransferSelectedCardsTo(CardSlotManager* manager) {
 	for (auto* card : mSelectedCards) {
 		// 设置卡牌状态为游戏内
 		card->SetIsInChooseCardUI(false);
-		if (auto comp = card->GetCardComponent()) {
-			comp->SetIsInChooseCardUI(false);
-			comp->SetCardGameClick(card);
-		}
 		// 添加到卡槽管理器
 		if (manager) {
 			manager->AddCard(card);
@@ -220,8 +216,7 @@ void ChooseCardUI::AddAllCard() {
 Card* ChooseCardUI::FindCardByType(PlantType type) {
 	for (auto* card : mCards) {
 		if (!card) continue;
-		auto* comp = card->GetCardComponent();
-		if (comp && comp->GetPlantType() == type) return card;
+		if (card->GetPlantType() == type) return card;
 	}
 	return nullptr;
 }
@@ -252,8 +247,7 @@ std::vector<PlantType> ChooseCardUI::GetSelectedCardTypes() {
 	types.reserve(mSelectedCards.size());
 	for (Card* card : mSelectedCards) {
 		if (!card) continue;
-		auto* component = card->GetCardComponent();
-		if (component) types.push_back(component->GetPlantType());
+		types.push_back(card->GetPlantType());
 	}
 	return types;
 }
@@ -300,9 +294,7 @@ std::vector<PlantType> ChooseCardUI::GetVisibleCardTypes() const {
 	std::vector<PlantType> types;
 	for (Card* card : mCards) {
 		if (!card || !card->IsActive()) continue;
-		if (auto* component = card->GetCardComponent()) {
-			types.push_back(component->GetPlantType());
-		}
+		types.push_back(card->GetPlantType());
 	}
 	return types;
 }
@@ -311,9 +303,7 @@ std::vector<PlantType> ChooseCardUI::GetHiddenCardTypes() const {
 	std::vector<PlantType> types;
 	for (Card* card : mCards) {
 		if (!card || card->IsActive()) continue;
-		if (auto* component = card->GetCardComponent()) {
-			types.push_back(component->GetPlantType());
-		}
+		types.push_back(card->GetPlantType());
 	}
 	return types;
 }

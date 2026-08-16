@@ -20,7 +20,6 @@
 #include "./Game/Bullet/BulletType.h"
 #include "./Game/CardSlotManager.h"
 #include "./Game/Card.h"
-#include "./Game/CardComponent.h"
 #include "./Game/TransformComponent.h"
 #include "./Game/GameObjectManager.h"
 #include "./Game/AnimatedObject.h"
@@ -612,21 +611,19 @@ bool GameInfoSaver::SerializeLevelDataToPath(Board* board, CardSlotManager* mana
 	if (manager && board->mBoardState == BoardState::GAME) {
 		for (auto* card : manager->GetCards()) {
 			if (!card) continue;
-			auto comp = card->GetComponent<CardComponent>();
-			if (!comp) continue;
 			auto transform = card->GetComponent<TransformComponent>();
 			if (!transform) continue;
 			nlohmann::json c;
-			c["plantType"] = static_cast<int>(comp->GetPlantType());
+			c["plantType"] = static_cast<int>(card->GetPlantType());
 			c["posX"] = transform->GetPosition().x;
 			c["posY"] = transform->GetPosition().y;
-			c["sunCost"] = comp->GetSunCost();
-			c["cooldownTime"] = comp->GetCooldownTime();
-			c["isCooldown"] = comp->IsCooldown();
-			c["cooldownTimer"] = comp->GetCooldownTimer();
-			if (comp->GetPlantType() == PlantType::PLANT_BLOVER) {
+			c["sunCost"] = card->GetSunCost();
+			c["cooldownTime"] = card->GetCooldownTime();
+			c["isCooldown"] = card->IsCooldown();
+			c["cooldownTimer"] = card->GetCooldownTimer();
+			if (card->GetPlantType() == PlantType::PLANT_BLOVER) {
 				c["bloverDirection"] =
-					static_cast<int>(comp->GetBloverDirection());
+					static_cast<int>(card->GetBloverDirection());
 			}
 			cardsArr.push_back(c);
 		}
@@ -1271,15 +1268,12 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 				transform->SetPosition(Vector(posX, posY));
 			}
 			if (isCooldown) {
-				if (auto comp = card->GetComponent<CardComponent>()) {
-					comp->RestoreCooldown(cooldownTimer, cooldownTime);
-				}
+				card->RestoreCooldown(cooldownTimer, cooldownTime);
 			}
-			if (auto comp = card->GetComponent<CardComponent>();
-				comp && plantType == PlantType::PLANT_BLOVER) {
+			if (plantType == PlantType::PLANT_BLOVER) {
 				const int direction = c.value("bloverDirection",
 					static_cast<int>(WindDirection::TOWARD_FRONT));
-				comp->SetBloverDirection(
+				card->SetBloverDirection(
 					direction == static_cast<int>(WindDirection::TOWARD_HOUSE)
 					? WindDirection::TOWARD_HOUSE
 					: WindDirection::TOWARD_FRONT);

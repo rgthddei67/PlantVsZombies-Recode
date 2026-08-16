@@ -26,7 +26,7 @@ description: Use when adding or tuning any 生存模式词条 (survival perk) in
 | `PLANT_ATTACK_SPEED` | 植物 | 开火速度 +15%/层 | 8 | `Shooter`、`Repeater`、`PuffShroom`、`FumeShroom`、`ScaredyShroom` 的射击间隔与动画速度 |
 | `PLANT_DAMAGE_REDUCTION` | 植物 | 承伤 -3%/层 | 15，最低承伤 55% | `Plant::TakeDamage` |
 | `PLANT_SUN_BONUS` | 植物 | 收集阳光 +15%/层 | 10 | `Board::AddSun`；不缩放 `set_sun`、开局值和消费 |
-| `PLANT_CARD_RECHARGE` | 植物 | 卡片冷却速度 +12%/层 | 10 | `CardComponent::Update`，经 `CardSlotManager::GetBoard()` 取 manager |
+| `PLANT_CARD_RECHARGE` | 植物 | 卡片冷却速度 +12%/层 | 10 | `Card::UpdateCooldown`，经 `CardSlotManager::GetBoard()` 取 manager |
 
 数值以 `SurvivalPerkManager.cpp` 的 `kPerks[]` 和聚合 getter 为准；表格若与源码不同，先更新本技能再继续。
 

@@ -3,7 +3,6 @@
 #include "SceneManager.h"
 #include "../ResourceManager.h"
 #include "./CardSlotManager.h"
-#include "./CardComponent.h"
 #include "../ResourceKeys.h"
 #include "../DeltaTime.h"
 #include "./AudioSystem.h"
@@ -2005,10 +2004,9 @@ void GameScene::BeginSurvivalPerkSelect()
 	if (mCardSlotManager) {
 		for (auto* card : mCardSlotManager->GetCards()) {
 			if (!card) continue;
-			auto comp = card->GetComponent<CardComponent>();
-			if (comp && comp->IsCooldown()) {
-				mSurvivalCardCooldowns[comp->GetPlantType()] =
-					{ comp->GetCooldownTimer(), comp->GetCooldownTime() };
+			if (card->IsCooldown()) {
+				mSurvivalCardCooldowns[card->GetPlantType()] =
+					{ card->GetCooldownTimer(), card->GetCooldownTime() };
 			}
 		}
 	}
@@ -2400,11 +2398,9 @@ void GameScene::ChooseCardComplete()
 	if (!mSurvivalCardCooldowns.empty() && mCardSlotManager) {
 		for (auto* card : mCardSlotManager->GetCards()) {
 			if (!card) continue;
-			auto comp = card->GetComponent<CardComponent>();
-			if (!comp) continue;
-			auto it = mSurvivalCardCooldowns.find(comp->GetPlantType());
+			auto it = mSurvivalCardCooldowns.find(card->GetPlantType());
 			if (it != mSurvivalCardCooldowns.end()) {
-				comp->RestoreCooldown(it->second.first, it->second.second);
+				card->RestoreCooldown(it->second.first, it->second.second);
 			}
 		}
 		mSurvivalCardCooldowns.clear();

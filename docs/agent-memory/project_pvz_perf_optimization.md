@@ -259,11 +259,11 @@ THREAD → main thread `ReplayAndEndParallel`. Threshold: serial fallback if
 **HARD CONSTRAINT (will recur):** every Graphics entry that touches GL or a
 shared cache MUST have an `if (tl_record) {...}` worker guard (defer or skip).
 All `DrawXxx` have it; `AcquireTextTexture` was the ONE that didn't →
-`CardDisplayComponent::DrawSunCost` called it on a worker thread → GL calls with
+the old `CardDisplayComponent::DrawSunCost` called it on a worker thread → GL calls with
 no context + concurrent `m_pinnedTextCache` writes → sun-cost numbers rendered
 as garbage/other textures. FIX (applied, not committed): added `tl_record` guard
 to `AcquireTextTexture` (skip on worker) + pre-warm `mSunTextCache` on main
-thread in `CardDisplayComponent::Start()`. When auditing future worker-thread
+thread in the old `CardDisplayComponent::Start()` (now `Card::Start/Update`). When auditing future worker-thread
 Draw code, check for any other un-guarded GL/shared-state call sites.
 
 ## BUILD CONFIG FIX (2026-05-16) — Release|x64 had NO explicit `<Optimization>`

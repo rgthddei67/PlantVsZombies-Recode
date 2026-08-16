@@ -17,7 +17,7 @@ class Plant;
 class CardSlotManager : public Component {
 private:
 	std::vector<Card*> cards;  // 卡牌列表（观察者，所有权在 GameObjectManager）
-	GameObject* selectedCard = nullptr;       // 当前选中的卡牌（观察者）
+	Card* selectedCard = nullptr;       // 当前选中的卡牌（观察者）
 	Plant* plantPreview = nullptr;          // 植物预览（观察者，所有权在 GameObjectManager）
 	Plant* cellPlantPreview = nullptr;
 
@@ -43,7 +43,7 @@ public:
 	void AddCard(Card* card);
 	// 清空所有卡槽卡牌（销毁 GameObject）。用于生存模式轮间空槽重选。
 	void ClearAllCards();
-	void SelectCard(GameObject* card);
+	void SelectCard(Card* card);
 	void DeselectCard();
 	/** 设置普通空格暂停的玩法输入门禁；不会销毁进入暂停前已拿起的植物预览。 */
 	void SetPauseGameplayInputBlocked(bool blocked) { mPauseGameplayInputBlocked = blocked; }
@@ -72,7 +72,7 @@ public:
 	PlantType GetSelectedPlantType() const;
 
 	// 获取卡牌信息
-	GameObject* GetSelectedCard() const { return selectedCard; }
+	Card* GetSelectedCard() const { return selectedCard; }
 	int GetCurrentSun() const { return mBoard ? mBoard->GetSun() : 0; }
 	Board* GetBoard() const { return mBoard; }
 	const std::vector<Card*>& GetCards() const { return cards; }

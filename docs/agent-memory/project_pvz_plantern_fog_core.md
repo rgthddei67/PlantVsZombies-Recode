@@ -42,7 +42,7 @@ metadata:
   `GameScene::BuildDrawCommands` 在天气面板与失败提示之后注册独立 UI 命令，确保视觉位于其上。
   卡牌当前挡位和槽下四个挡位标签均通过 `Graphics::MeasureTextWidth` 按实际比例字体宽度在各自
   布局矩形内居中，不再按字符数量分组硬编码 X 偏移。
-- 图鉴/选卡卡片属于非实战上下文，可以没有 `CardSlotManager`。`CardDisplayComponent::Draw`
+- 图鉴/选卡卡片属于非实战上下文，可以没有 `CardSlotManager`。`Card::Draw`
   只在实战路灯花卡需要活动实体状态时查询 manager/Board，避免植物图鉴为每张卡每帧重查 host
   并刷 `CardSlotManager host invalid`；实战卡仍保留挡位、燃料和比例条显示。
 - 正式燃料消耗从不低于 10 跌破 10 时只触发一次 `SOUND_CLICKFAILED`，并通过

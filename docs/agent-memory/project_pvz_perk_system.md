@@ -50,7 +50,7 @@ metadata:
 
 **2026-07-18 平衡批次 + 3 个新植物词条**：主人反馈每轮必须连带一个僵尸诅咒，十几轮后植物侧偏弱，并授权词条数量与数值自行决定。spec/plan：`docs/superpowers/{specs,plans}/2026-07-18-survival-perk-balance-and-spawn-variety*`。
 
-- 新增原型 A：`PLANT_DAMAGE_REDUCTION`（植物承伤 -3%/层，max15，夹底55%）、`PLANT_SUN_BONUS`（收集阳光 +15%/层，max10）、`PLANT_CARD_RECHARGE`（卡片冷却速度 +12%/层，max10）。钟点分别在 `Plant::TakeDamage`、唯一正常阳光收益入口 `Board::AddSun`、`CardComponent::Update`；0层均返回单位元，非生存关自动 no-op。
+- 新增原型 A：`PLANT_DAMAGE_REDUCTION`（植物承伤 -3%/层，max15，夹底55%）、`PLANT_SUN_BONUS`（收集阳光 +15%/层，max10）、`PLANT_CARD_RECHARGE`（卡片冷却速度 +12%/层，max10）。钟点分别在 `Plant::TakeDamage`、唯一正常阳光收益入口 `Board::AddSun`、`Card::UpdateCooldown`；0层均返回单位元，非生存关自动 no-op。
 - 平衡：`PLANT_DAMAGE_UP` 与 `ZOMBIE_HEALTH_UP` 同为 +12%/层不限层；`ZOMBIE_DAMAGE_RESIST` 从 -5%×18(最低承伤10%) 收敛为 -3%×15(最低承伤55%)；`ZOMBIE_INVULN_HITS` 从 10×2 降为 4×2。旧档加载时现有 maxStacks 夹紧机制会把过高免伤层数夹到15。
 - 卡片加速不改基础 cooldown/剩余秒数存档，只在每帧倒计时乘 manager 倍率；为此 `CardSlotManager` 只新增只读 `GetBoard()`。阳光增产只缩放 `AddSun`，AutoTest `set_sun`、开局值和花费不缩放。
 - AutoTest：新 `smoke_perks_balance.json` 闭合断言 136/112/55/8/55/130/806；更新 `smoke_perks.json` 与 invuln 实体断言。旧词条、regen、attack speed、zombie damage、perk select/view 全回归通过；选择 UI 截图确认新描述未溢出。

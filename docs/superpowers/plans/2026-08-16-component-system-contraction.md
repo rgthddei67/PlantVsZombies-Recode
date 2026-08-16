@@ -2,7 +2,7 @@
 
 日期：2026-08-16
 
-状态：已规划，暂缓执行；主人今天不实施
+状态：执行中；Card 专属状态与显示组件已完成，CardSlotManager 及后续阶段待实施
 
 **目标：** 在保持继承式植物/僵尸、现有运行行为、存档、输入和绘制契约的前提下，分阶段移除通用 `Component` 容器；保留并显式化 Transform、Collider、Shadow、Clickable 与卡片能力。
 
@@ -18,7 +18,7 @@
 
 **只读审计：**
 
-- [ ] 列出全部 `Component` 派生类以及 `AddComponent/GetComponent/RemoveComponent` 调用点，确认仍为 Transform、Collider、Clickable、Shadow、Card、CardDisplay、CardSlotManager 七类。
+- [ ] 列出全部 `Component` 派生类以及 `AddComponent/GetComponent/RemoveComponent` 调用点；计划建立时为七类，Card 第一阶段后应核实只剩 Transform、Collider、Clickable、Shadow、CardSlotManager 五类。
 - [ ] 逐项记录运行期动态增删：植物/僵尸预览去影、无碰撞品种、图鉴 Clickable、ShovelBank 在 `Start` 后加组件、BulletPool 回收与 Shadow 特殊绘制。
 - [ ] 记录 `GameObject::Start/Update/Draw/DestroyAllComponents`、Collider 注册注销、Clickable 自注册和 `Component::SetDrawOrder` 的当前顺序。
 - [ ] 记录卡片存档字段和调用方：`GameInfoSaver`、`ChooseCardUI`、生存轮次冷却、路灯花菜单、三叶草方向、开发者模式。
@@ -35,42 +35,44 @@
 
 ---
 
-## Task 1：把 CardComponent 状态并入 Card
+## Task 1：把 CardComponent 与 CardDisplayComponent 并入 Card
 
 **主要文件：**
 
 - `PlantVsZombies/Game/Card.h/.cpp`
 - `PlantVsZombies/Game/CardComponent.h/.cpp`
+- `PlantVsZombies/Game/CardDisplayComponent.h/.cpp`
 - `PlantVsZombies/Game/ChooseCardUI.cpp`
 - `PlantVsZombies/Game/CardSlotManager.cpp`
 - `PlantVsZombies/Game/GameScene.cpp`
+- `PlantVsZombies/Game/Board.cpp`
 - `PlantVsZombies/GameInfoSaver.cpp`
+- `PlantVsZombies/Game/AutoTest/TestDriver.cpp`
 
 **步骤：**
 
-- [ ] 在 `Card` 中建立冷却、选中、选卡上下文、阳光成本、三叶草方向等权威状态；接口名称先兼容现有调用方。
-- [ ] 把 `CardComponent::Start/Update/StartCooldown/RestoreCooldown/ForceStateUpdate` 迁到 `Card`，保持开发者无冷却和生存词条倍率入口。
-- [ ] 把点击回调安装改为 `Card` 直接配置 Clickable；选卡与实战两种上下文仍走各自入口。
-- [ ] 将调用方从 `GetComponent<CardComponent>()` 改为 `Card` 直接接口；迁移完成后删除 `CardComponent`。
-- [ ] 保持存档 JSON 字段和值域不变；本阶段不得因内部所有权变化升级 schema。
-- [ ] 审计并同步 `.agents/skills/adding-plant/SKILL.md` 中 `CardComponent` 权威状态、三叶草方向和卡片存档接口；改过技能后运行 skill-creator `quick_validate.py`。
+- [x] 在 `Card` 中建立冷却、选中、选卡上下文、阳光成本、三叶草方向等权威状态；接口名称先兼容现有调用方。
+- [x] 把 `CardComponent::Start/Update/StartCooldown/RestoreCooldown/ForceStateUpdate` 迁到 `Card`，保持开发者无冷却和生存词条倍率入口。
+- [x] 把 `CardDisplayComponent` 的纹理/文字缓存、状态遮罩、紫卡底板、路灯花状态和三叶草方向绘制迁到 `Card::Start/Update/Draw`。
+- [x] 把点击回调安装改为 `Card` 直接配置 Clickable；选卡与实战两种上下文仍走各自入口。
+- [x] 将调用方从两个 Card 专属组件改为 `Card` 直接接口；迁移完成后删除 `CardComponent` 与 `CardDisplayComponent`。
+- [x] 保持存档 JSON 字段和值域不变；本阶段没有因内部所有权变化升级 schema。
+- [x] 审计并同步 `.agents/skills/adding-plant/SKILL.md` 与 `.agents/skills/adding-survival-perk/SKILL.md` 的 Card 状态、显示和冷却倍率接口；改过技能后运行 skill-creator `quick_validate.py`。
 
 **验证：**
 
-- [ ] 构建 `clang-release`。
-- [ ] 可见运行 `smoke_crater_card_select.json`、`smoke_last_selected_cards.json`、`smoke_grounding_shroom_card.json`。
-- [ ] 专项覆盖冷却快照往返、三叶草方向、路灯花卡片状态、开发者模式双条件门禁。
-- [ ] 检查运行源码、存档实现和有效技能中不再引用 `CardComponent`；历史设计/记忆可保留并明确为旧接口。
-- [ ] 独立提交，禁止与 CardDisplay 或 Transform 迁移混在一个提交。
+- [x] 构建 `clang-release`。
+- [x] 可见运行 `smoke_crater_card_select.json`、`smoke_choose_card_pagination.json`、`smoke_last_selected_cards.json`、`smoke_grounding_shroom_card.json`、`smoke_plant_almanac_card_host.json`、`smoke_perks_balance.json`。
+- [x] 专项覆盖冷却快照往返、三叶草方向与存档、路灯花卡片状态、开发者模式双条件门禁；`smoke_blover` 完整通过，开发者全脚本在 Card 门禁段通过后仍有一条独立出怪数量历史断言失败，详见项目记忆，不记作全绿。
+- [x] 检查运行源码、存档实现和有效技能中不再引用 `CardComponent` / `CardDisplayComponent`；历史记录只保留明确的旧接口说明。
+- [x] 独立提交，禁止与 Transform 迁移混在一个提交。
 
 ---
 
-## Task 2：CardDisplay 变为 Card 的直接 View，CardSlotManager 归 GameScene 所有
+## Task 2：CardSlotManager 归 GameScene 所有
 
 **主要文件：**
 
-- `PlantVsZombies/Game/Card.h/.cpp`
-- `PlantVsZombies/Game/CardDisplayComponent.h/.cpp`
 - `PlantVsZombies/Game/CardSlotManager.h/.cpp`
 - `PlantVsZombies/Game/GameScene.h/.cpp`
 - `PlantVsZombies/Game/Board.h/.cpp`
@@ -78,19 +80,17 @@
 
 **步骤：**
 
-- [ ] 将 CardDisplay 改为 `Card` 直接拥有的非 Component `CardView`，或把绘制职责直接并入 `Card::Draw`；保留文本缓存释放、紫卡底板、冷却遮罩、路灯花状态和三叶草方向显示。
-- [ ] 删除兄弟组件互查；Card 状态变化直接通知自身 View。
 - [ ] 将 `CardSlotManager` 从 `Component` 改成普通场景控制器，由 `GameScene` 使用 `unique_ptr` 明确拥有。
 - [ ] `GameScene` 在固定阶段显式调用其 Start/Update/Draw，保持输入相对 GameObject 更新、Clickable 处理、Collision 更新的先后顺序。
 - [ ] `Board`、`GameInfoSaver` 和 `ChooseCardUI` 继续持有窄观察指针/参数，不把场景 UI 所有权移入 Board。
-- [ ] 删除匿名 `CardUI` GameObject 宿主以及 CardDisplay/CardSlotManager 两个 Component 派生类。
-- [ ] 审计并同步 `.agents/skills/adding-plant/SKILL.md` 中 CardDisplay、CardSlotManager、图鉴宿主和卡槽菜单路径；改过技能后运行 skill-creator `quick_validate.py`。
+- [ ] 删除匿名 `CardUI` GameObject 宿主及 `CardSlotManager` Component 派生关系。
+- [ ] 审计并同步 `.agents/skills/adding-plant/SKILL.md` 中 CardSlotManager、图鉴宿主和卡槽菜单路径；改过技能后运行 skill-creator `quick_validate.py`。
 
 **验证：**
 
 - [ ] 构建 `clang-release`。
 - [ ] 可见运行 `smoke_choose_card_pagination.json`、`smoke_last_selected_cards.json`、`smoke_plant_almanac_card_host.json`。
-- [ ] 截图核对卡图、阳光数字、冷却遮罩、分页过场和活动路灯花菜单层级。
+- [ ] 截图核对分页过场和活动路灯花菜单层级；卡图、阳光数字和冷却遮罩已在 Task 1 验证。
 - [ ] 快照覆盖 `GAME` 与生存 `CHOOSE_CARD` 两种卡牌保存门禁。
 - [ ] 检查本阶段结束后，仅 Clickable 仍需通用 `Component::Update`；若还有其他更新组件，停止并补审计。
 - [ ] 独立提交。
@@ -226,4 +226,4 @@
 - 每个 Task 提交前都要审计本阶段相关的 `.agents/skills/` 与 references；发现接口、路径或所有权已经变化就同步更新，所有改过的技能都运行 skill-creator `quick_validate.py`，不能推迟到最终删除阶段一次处理。
 - 新工作若需要添加动画帧事件，必须先询问主人；本计划预期不需要新增帧事件。
 - 任何阶段发现必须改变存档字段、外部行为或 Board 所有权时，先暂停并更新设计，经主人确认后继续。
-- 今天只落地本计划与架构决策，不执行任何代码 Task。
+- Card 专属状态与显示组件已按主人后续指令落地；其余 Task 仍须逐项重新核实后执行。

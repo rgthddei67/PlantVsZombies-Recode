@@ -11,7 +11,6 @@
 #include "AI/PlantDefenseMonteCarlo.h"
 #include "CardSlotManager.h"
 #include "Card.h"
-#include "CardComponent.h"
 #include "../GameRandom.h"
 #include "./Plant/Plant.h"
 #include "./Plant/PlantUpgradeRules.h"
@@ -5265,9 +5264,7 @@ bool Board::BuildMonteCarloCombatSnapshot(
 		snapshot.cards.reserve(cards.size());
 		for (Card* card : cards) {
 			if (!card) continue;
-			const CardComponent* component = card->GetCardComponent();
-			if (!component) continue;
-			const PlantType type = component->GetPlantType();
+			const PlantType type = card->GetPlantType();
 			const PlantSimulationProfile& profile =
 				gameData.GetPlantSimulationProfile(type);
 			if (!profile.persistent || profile.supportOnly) continue;
@@ -5285,7 +5282,7 @@ bool Board::BuildMonteCarloCombatSnapshot(
 			}
 			if (legalCellMask == 0) continue;
 
-			const int cost = component->GetSunCost();
+			const int cost = card->GetSunCost();
 			float strategicValue = static_cast<float>(cost);
 			if (!dormant && profile.sunPerSecond > 0.0f) {
 				strategicValue += kMonteCarloSunProducerFutureValue;
@@ -5293,8 +5290,8 @@ bool Board::BuildMonteCarloCombatSnapshot(
 			snapshot.cards.push_back({
 				static_cast<int>(type),
 				cost,
-				component->GetCooldownTimer(),
-				component->GetCooldownTime(),
+				card->GetCooldownTimer(),
+				card->GetCooldownTime(),
 				static_cast<float>(profile.baseHealth),
 				strategicValue,
 				dormant ? 0.0f : profile.attackDps,
