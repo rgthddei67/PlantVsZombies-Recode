@@ -3,7 +3,6 @@
 #define _CARD_SLOT_MANAGER_H
 
 #include "Card.h"
-#include "Component.h"
 #include "./Plant/PlantType.h"
 #include "Board.h"
 #include "Cell.h"
@@ -14,7 +13,8 @@
 class GameObject;
 class Plant;
 
-class CardSlotManager : public Component {
+/** GameScene 独占的卡槽、手持预览与落种输入控制器。 */
+class CardSlotManager {
 private:
 	std::vector<Card*> cards;  // 卡牌列表（观察者，所有权在 GameObjectManager）
 	Card* selectedCard = nullptr;       // 当前选中的卡牌（观察者）
@@ -28,14 +28,18 @@ private:
 	Cell* mHoveredCell = nullptr;     // 当前鼠标悬停的Cell（观察者）
 	bool mPlanternGearMenuOpen = false; // 纯 UI 瞬态；不进入关卡存档
 	bool mPauseGameplayInputBlocked = false; // 普通空格暂停仅冻结卡槽/落种，手持预览仍跟随鼠标
+	int mLastSun = 0; // 上次同步卡牌灰态的阳光值，按场景实例隔离
 
 public:
 	CardSlotManager(Board* board);
+	~CardSlotManager();
 
-	void Start() override;
-	void Update() override;
-	bool NeedsUpdate() const override { return true; }
-	void Draw(Graphics* g) override;
+	/** 安装 Cell 点击入口；由 GameScene 在 Board 完成构造后调用一次。 */
+	void Start();
+	/** 更新卡槽输入与手持预览；调用时序由 Scene::UpdateAfterGameObjects 保证。 */
+	void Update();
+	/** 在 UI 绘制阶段同步需经 Graphics 转换的手持与落点预览位置。 */
+	void Draw(Graphics* g);
 	void UpdateAllCardsState();
 	void UpdatePreviewToMouse(const Vector& mousePos);
 

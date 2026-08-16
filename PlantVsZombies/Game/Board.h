@@ -195,7 +195,7 @@ public:
 
 private:
 	BoardPresentation* mPresentation = nullptr; // 非拥有；宿主场景的生命周期覆盖 Board
-	CardSlotManager* mCardSlotManager = nullptr; // 非拥有；由 GameScene 在 CardUI 创建后绑定
+	CardSlotManager* mCardSlotManager = nullptr; // 非拥有；由 GameScene 的场景控制器绑定
 	/** 采集推演共用的植物、僵尸、卡槽和格子纯数值快照。 */
 	bool BuildMonteCarloCombatSnapshot(
 		PlantDefenseMonteCarlo::Snapshot& snapshot, bool mindControlledFaction,

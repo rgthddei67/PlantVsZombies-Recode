@@ -151,11 +151,10 @@ Bullet（独立类型；通过 BulletPool 使用对象池）
 - `ColliderComponent`：碰撞框，以及 `onTriggerEnter/Stay/Exit`、`onCollisionEnter/Exit` 回调。
 - `ClickableComponent`：鼠标交互。
 - `ShadowComponent`：阴影渲染。
-- `CardSlotManager`：当前作为组件挂载的场景级卡槽控制器。
 
 通过 `AddComponent<T>(args...)` 添加组件，通过 `GetComponent<T>()` 获取组件。
 
-`Card` 已直接拥有单卡的冷却、选中、三叶草方向、可用性和显示缓存，并在 `Card::Start/Update/Draw` 中显式管理点击回调、玩法更新与卡面绘制。不要重新引入 `CardComponent` / `CardDisplayComponent`，也不要通过组件容器查询单卡状态；场景级多卡仲裁仍由 `CardSlotManager` 负责。
+`Card` 已直接拥有单卡的冷却、选中、三叶草方向、可用性和显示缓存，并在 `Card::Start/Update/Draw` 中显式管理点击回调、玩法更新与卡面绘制。不要重新引入 `CardComponent` / `CardDisplayComponent`，也不要通过组件容器查询单卡状态。场景级多卡仲裁由 `GameScene` 通过 `unique_ptr<CardSlotManager>` 明确拥有；实战 `Card` 由该控制器直接绑定非拥有指针，禁止恢复匿名 `CardUI` 宿主或每帧扫描组件表定位 manager。
 
 ### 关键系统类
 

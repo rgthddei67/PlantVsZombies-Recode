@@ -67,7 +67,6 @@ void Card::Start()
 	GameObject::Start();
 	LoadTextures();
 	UpdateSunTextCache();
-	mCardSlotManagerHost = FindCardSlotManagerHost();
 	ConfigureClickHandler();
 }
 
@@ -283,6 +282,14 @@ void Card::ToggleBloverDirection()
 		? WindDirection::TOWARD_FRONT : WindDirection::TOWARD_HOUSE;
 }
 
+void Card::BindCardSlotManager(CardSlotManager* manager)
+{
+	mCardSlotManager = manager;
+	if (mCardSlotManager && mStarted && !mIsInChooseCardUI) {
+		ForceStateUpdate();
+	}
+}
+
 void Card::StartCooldown()
 {
 	if (GameAPP::mDevelopMode && GameAPP::mDevNoCooldown) return;
@@ -314,29 +321,6 @@ float Card::GetCooldownProgress() const
 {
 	if (!mIsCooldown || mCooldownTime <= 0.0f) return 1.0f;
 	return 1.0f - (mCooldownTimer / mCooldownTime);
-}
-
-GameObject* Card::FindCardSlotManagerHost() const
-{
-	for (const auto& object : GameObjectManager::GetInstance().GetAllGameObjects()) {
-		if (object && object->GetComponent<CardSlotManager>()) return object.get();
-	}
-	return nullptr;
-}
-
-CardSlotManager* Card::GetCardSlotManager() const
-{
-	if (mCardSlotManagerHost) {
-		if (auto* manager = mCardSlotManagerHost->GetComponent<CardSlotManager>()) {
-			return manager;
-		}
-	}
-
-	LOG_WARN("Card") << "CardSlotManager host invalid, re-finding...";
-	auto* host = FindCardSlotManagerHost();
-	if (!host) return nullptr;
-	mCardSlotManagerHost = host;
-	return host->GetComponent<CardSlotManager>();
 }
 
 void Card::SetTargetPosition(const Vector& target)

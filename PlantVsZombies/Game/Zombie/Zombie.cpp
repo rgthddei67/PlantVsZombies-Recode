@@ -847,6 +847,9 @@ void Zombie::CommitRow(int row)
 {
 	const int previousRow = mRow;
 	mRow = row;
+	if (mBoard && previousRow != row) {
+		mBoard->mEntityManager.InvalidateZombieRowIndex();
+	}
 	GameObjectManager::GetInstance().RefreshRenderOrderForSortingKey(
 		this, previousRow);
 }
@@ -1899,6 +1902,10 @@ void Zombie::Die()
 		mCollider->mEnabled = false;
 	}
 	this->mActive = false;
+	if (mBoard) {
+		// GOM 会到下一帧开头才释放对象；先让行索引丢弃可能指向本对象的裸指针桶。
+		mBoard->mEntityManager.InvalidateZombieRowIndex();
+	}
 	GameObjectManager::GetInstance().DestroyGameObject(this);
 }
 

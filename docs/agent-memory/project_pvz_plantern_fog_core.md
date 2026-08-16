@@ -38,13 +38,13 @@ metadata:
   限制，避免炸弹把跨波携带者一次兑现到满仓，抵达灯芯时才正式到账。
 - 卡牌在路灯花存活时显示挡位、取整燃料值和比例条；点击卡牌/本体展开
   `CardSlotManager` 持有的 0/I/II/III 瞬态菜单。菜单直接对齐路灯花卡槽下方，允许覆盖天气
-  面板，不属于天气栏目且不进入存档。菜单不再随 CardUI 的普通对象绘制，而由
+  面板，不属于天气栏目且不进入存档。CardSlotManager 由 GameScene 独占；菜单由
   `GameScene::BuildDrawCommands` 在天气面板与失败提示之后注册独立 UI 命令，确保视觉位于其上。
   卡牌当前挡位和槽下四个挡位标签均通过 `Graphics::MeasureTextWidth` 按实际比例字体宽度在各自
   布局矩形内居中，不再按字符数量分组硬编码 X 偏移。
-- 图鉴/选卡卡片属于非实战上下文，可以没有 `CardSlotManager`。`Card::Draw`
-  只在实战路灯花卡需要活动实体状态时查询 manager/Board，避免植物图鉴为每张卡每帧重查 host
-  并刷 `CardSlotManager host invalid`；实战卡仍保留挡位、燃料和比例条显示。
+- 图鉴/选卡卡片属于非实战上下文，可以没有 `CardSlotManager`。实战 Card 由 GameScene 的
+  manager 在转入卡槽时直接绑定非拥有引用；`Card::Draw` 只在实战路灯花卡需要活动实体状态时
+  查询 manager/Board，不再每帧扫描 GameObject 组件宿主；实战卡仍保留挡位、燃料和比例条显示。
 - 正式燃料消耗从不低于 10 跌破 10 时只触发一次 `SOUND_CLICKFAILED`，并通过
   `BoardPresentation::ShowPlanternLowFuelWarning()` 显示约 3 秒、46 号红字中央警报；
   提示按未缩放时间推进，高倍速不缩短。挡位开启且燃料低于 10 时，卡牌数字变红并持续显示

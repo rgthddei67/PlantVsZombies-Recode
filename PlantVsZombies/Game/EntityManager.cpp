@@ -235,6 +235,11 @@ void EntityManager::EnsureZombieRowIndex() {
 	mRowIndexDirty = false;
 }
 
+bool EntityManager::IsZombieTargetable(const Zombie* zombie)
+{
+	return zombie && zombie->IsActive() && !zombie->IsDying();
+}
+
 void EntityManager::TrackGoldenIceSource(
 	int id, const std::shared_ptr<Zombie>& zombie)
 {
@@ -312,8 +317,8 @@ void EntityManager::TrackHealer(
 std::vector<int> EntityManager::CleanupExpired() {
 	std::vector<int> removedPlants;
 
-	// 每帧标脏：僵尸的增/删/换行都会改变按行分布，统一靠"下一帧首次查询时重建"兜住，
-	// 无需在 Add/Die/换行各处接线（重建只在真的有人 ForEachZombieInRow 查询的帧才触发）。
+	// 每帧兜底标脏；Die/CommitRow 还会在生命周期边沿立即标脏，避免 GOM 在本函数运行前
+	// 已释放僵尸，而此前构建的按行裸指针桶仍被植物索敌复用。
 	mRowIndexDirty = true;
 	// 释放上一帧的强引用并让首个黄色冰道查询从专用弱索引重建安全快照。
 	mGoldenIceSourceSnapshot.clear();

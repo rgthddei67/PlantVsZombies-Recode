@@ -92,7 +92,7 @@ public:
 	// AutoTest 经由它们配合 ChooseCardComplete()（与 UI 共用）驱动选卡流程。
 	Board* GetBoard() const { return mBoard.get(); }
 	ChooseCardUI* GetChooseCardUI() const { return mChooseCardUI; }
-	CardSlotManager* GetCardSlotManager() const { return mCardSlotManager; }
+	CardSlotManager* GetCardSlotManager() const { return mCardSlotManager.get(); }
 	// 选卡界面是否就绪（卡牌已铺开、"一起摇滚吧"可点）
 	bool IsChooseCardReady() const {
 		return mCurrentStage == IntroStage::COMPLETE && mChooseCardUI != nullptr;
@@ -208,6 +208,8 @@ public:
 	}
 
 protected:
+	/** 保持卡槽控制器位于 GameObject 更新后、点击和碰撞分发前。 */
+	void UpdateAfterGameObjects() override;
 	void BuildDrawCommands() override;
 
 private:
@@ -257,7 +259,7 @@ private:
 	int  mDevZombieIndex    = 0;      // kDevZombieTable 下标
 	int  mDevLevelSel       = 1;      // 面板选中的关卡号
 	int  mDevPendingLevel   = -1;     // >=0 时 Update 尾部执行跳关（回调内不可 SwitchTo 销毁自身）
-	CardSlotManager* mCardSlotManager = nullptr;  // 由 CardUI GameObject 持有 unique_ptr，本字段仅缓存指针
+	std::unique_ptr<CardSlotManager> mCardSlotManager; // 场景独占的卡槽、手持预览与落种控制器
 	ChooseCardUI* mChooseCardUI = nullptr;        // 所有权在 GameObjectManager
 	GameProgress* mGameProgress = nullptr;        // 所有权在 GameObjectManager
 

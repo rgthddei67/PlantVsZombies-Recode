@@ -49,7 +49,9 @@ public:
 	/** 仅供三叶草卡槽右键在屋后/前线之间切换。 */
 	void ToggleBloverDirection();
 
-	CardSlotManager* GetCardSlotManager() const;
+	/** 绑定 GameScene 独占的卡槽控制器；Card 不拥有该对象。 */
+	void BindCardSlotManager(CardSlotManager* manager);
+	CardSlotManager* GetCardSlotManager() const { return mCardSlotManager; }
 
 	void SetOriginalPosition(const Vector& pos) { mOriginalPos = pos; }
 	Vector GetOriginalPosition() const { return mOriginalPos; }
@@ -67,7 +69,7 @@ private:
 	};
 
 	TransformComponent* mTransform = nullptr; // 同对象组件，由 GameObject 持有
-	mutable GameObject* mCardSlotManagerHost = nullptr; // 场景级组件宿主，非拥有观察指针
+	CardSlotManager* mCardSlotManager = nullptr; // GameScene 独占，Card 仅保存非拥有观察指针
 
 	PlantType mPlantType = PlantType::PLANT_PEASHOOTER;
 	int mSunCost = 0;
@@ -107,7 +109,6 @@ private:
 	void ConfigureClickHandler();
 	void SetCardGameClick();
 	void SetCardChooseClick();
-	GameObject* FindCardSlotManagerHost() const;
 
 	void LoadTextures();
 	void TransitionToWaitingSun();

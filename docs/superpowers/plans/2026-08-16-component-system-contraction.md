@@ -2,7 +2,7 @@
 
 日期：2026-08-16
 
-状态：执行中；Card 专属状态与显示组件已完成，CardSlotManager 及后续阶段待实施
+状态：执行中；Card 专属组件与 CardSlotManager 已完成，Transform 及后续阶段待实施
 
 **目标：** 在保持继承式植物/僵尸、现有运行行为、存档、输入和绘制契约的前提下，分阶段移除通用 `Component` 容器；保留并显式化 Transform、Collider、Shadow、Clickable 与卡片能力。
 
@@ -18,7 +18,7 @@
 
 **只读审计：**
 
-- [ ] 列出全部 `Component` 派生类以及 `AddComponent/GetComponent/RemoveComponent` 调用点；计划建立时为七类，Card 第一阶段后应核实只剩 Transform、Collider、Clickable、Shadow、CardSlotManager 五类。
+- [x] 列出全部 `Component` 派生类以及 `AddComponent/GetComponent/RemoveComponent` 调用点；计划建立时为七类，Card 前两阶段后已核实只剩 Transform、Collider、Clickable、Shadow 四类。
 - [ ] 逐项记录运行期动态增删：植物/僵尸预览去影、无碰撞品种、图鉴 Clickable、ShovelBank 在 `Start` 后加组件、BulletPool 回收与 Shadow 特殊绘制。
 - [ ] 记录 `GameObject::Start/Update/Draw/DestroyAllComponents`、Collider 注册注销、Clickable 自注册和 `Component::SetDrawOrder` 的当前顺序。
 - [ ] 记录卡片存档字段和调用方：`GameInfoSaver`、`ChooseCardUI`、生存轮次冷却、路灯花菜单、三叶草方向、开发者模式。
@@ -80,20 +80,20 @@
 
 **步骤：**
 
-- [ ] 将 `CardSlotManager` 从 `Component` 改成普通场景控制器，由 `GameScene` 使用 `unique_ptr` 明确拥有。
-- [ ] `GameScene` 在固定阶段显式调用其 Start/Update/Draw，保持输入相对 GameObject 更新、Clickable 处理、Collision 更新的先后顺序。
-- [ ] `Board`、`GameInfoSaver` 和 `ChooseCardUI` 继续持有窄观察指针/参数，不把场景 UI 所有权移入 Board。
-- [ ] 删除匿名 `CardUI` GameObject 宿主及 `CardSlotManager` Component 派生关系。
-- [ ] 审计并同步 `.agents/skills/adding-plant/SKILL.md` 中 CardSlotManager、图鉴宿主和卡槽菜单路径；改过技能后运行 skill-creator `quick_validate.py`。
+- [x] 将 `CardSlotManager` 从 `Component` 改成普通场景控制器，由 `GameScene` 使用 `unique_ptr` 明确拥有。
+- [x] `GameScene` 在固定阶段显式调用其 Start/Update/Draw，保持输入相对 GameObject 更新、Clickable 处理、Collision 更新的先后顺序。
+- [x] `Board`、`GameInfoSaver` 和 `ChooseCardUI` 继续持有窄观察指针/参数，不把场景 UI 所有权移入 Board。
+- [x] 删除匿名 `CardUI` GameObject 宿主及 `CardSlotManager` Component 派生关系。
+- [x] 审计并同步 `.agents/skills/adding-plant/SKILL.md` 中 CardSlotManager、图鉴宿主和卡槽菜单路径；改过技能后运行 skill-creator `quick_validate.py`。
 
 **验证：**
 
-- [ ] 构建 `clang-release`。
-- [ ] 可见运行 `smoke_choose_card_pagination.json`、`smoke_last_selected_cards.json`、`smoke_plant_almanac_card_host.json`。
-- [ ] 截图核对分页过场和活动路灯花菜单层级；卡图、阳光数字和冷却遮罩已在 Task 1 验证。
-- [ ] 快照覆盖 `GAME` 与生存 `CHOOSE_CARD` 两种卡牌保存门禁。
-- [ ] 检查本阶段结束后，仅 Clickable 仍需通用 `Component::Update`；若还有其他更新组件，停止并补审计。
-- [ ] 独立提交。
+- [x] 构建 `clang-release`，LTO 链接与 Win7 import audit 通过。
+- [x] 可见运行 `smoke_zombie_row_index_lifetime.json`、`smoke_plantern_fog_core.json`、`smoke_choose_card_pagination.json`、`smoke_last_selected_cards.json`、`smoke_plant_almanac_card_host.json`、`smoke_blover.json`、`smoke_crater_card_select.json`，均为 `status=passed`、退出码 0。
+- [x] 截图核对分页过场、活动路灯花卡/菜单层级、图鉴卡片和轮间弹坑场景；卡图、阳光数字和冷却遮罩保持正常。
+- [x] `smoke_plantern_fog_core` / `smoke_blover` 覆盖 `GAME` 快照，`smoke_crater_card_select` 覆盖生存 `CHOOSE_CARD` 保存门禁。
+- [x] 检查本阶段结束后，Component 派生类仅剩 Transform、Collider、Shadow、Clickable，且仅 Clickable 仍声明 `NeedsUpdate()`。
+- [x] 独立提交，不与 Transform 迁移混合。
 
 ---
 

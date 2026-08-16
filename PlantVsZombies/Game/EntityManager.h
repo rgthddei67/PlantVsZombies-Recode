@@ -81,15 +81,21 @@ public:
 	// 植物每帧扫（用于 cell 同步），僵尸/coin/mower 每 CLEANUP_FULL_INTERVAL 帧扫一次（纯内存 hygiene）
 	std::vector<int> CleanupExpired();
 
+	/** 僵尸死亡或换行时立即废弃按行裸指针缓存，防止延迟销毁后留下悬空引用。 */
+	void InvalidateZombieRowIndex() { mRowIndexDirty = true; }
+
 	// 按行遍历存活僵尸，避免射手/嗅食类植物每次都全表扫描 + 双重 weak_ptr.lock。
-	// 索引是"惰性、每帧重建"的（参照 CollisionSystem 的按行分桶）：唯一真相源是僵尸的 mRow。
-	// 因此僵尸换行（如后期的大蒜）只需改 mRow，下一帧首次查询时索引自动归位，无需任何额外通知。
+	// 索引是惰性重建的（参照 CollisionSystem 的按行分桶）：唯一真相源是僵尸的 mRow。
+	// 僵尸死亡或换行入口必须先标脏，确保下次查询从 weak_ptr 主表重建。
 	// fn 签名为 void(Zombie*)；只回调本行存活僵尸。
 	template<typename Fn>
 	void ForEachZombieInRow(int row, Fn&& fn) {
 		if (row < 0 || row >= kMaxRows) return;
 		EnsureZombieRowIndex();
-		for (Zombie* z : mZombiesByRow[row]) fn(z);
+		for (Zombie* z : mZombiesByRow[row]) {
+			// 回调之间仍可能让其他候选进入垂死态；不必为这种同帧状态边沿重建整桶。
+			if (IsZombieTargetable(z)) fn(z);
+		}
 	}
 
 	// 遍历本帧仍可作为黄色冰道来源的鎏金冰车；候选集只含该品种，不再让每只僵尸扫描相邻行全体。
@@ -118,12 +124,13 @@ private:
 	std::unordered_map<int, std::weak_ptr<Mower>> mMowers;
 
 	// ── 僵尸按行空间索引（瞬态、每帧惰性重建）──
-	// 与 CollisionSystem::MAX_ROWS 取同值：行号上界，桶用裸指针（删除在 GameObjectManager
-	// 里延迟到帧末统一处理，故同帧内裸指针有效，无悬垂）。
+	// 与 CollisionSystem::MAX_ROWS 取同值：行号上界。桶用裸指针降低热路径引用计数开销；
+	// Zombie 的死亡/换行入口必须立即标脏，保证 GOM 真正释放对象前不再复用旧桶。
 	static constexpr int kMaxRows = 8;
 	std::array<std::vector<Zombie*>, kMaxRows> mZombiesByRow;
-	bool mRowIndexDirty = true;  // 每帧由 CleanupExpired 置脏；首次 ForEachZombieInRow 查询时重建
+	bool mRowIndexDirty = true;  // 生命周期边沿及 CleanupExpired 置脏；首次行查询时重建
 	void EnsureZombieRowIndex();
+	static bool IsZombieTargetable(const Zombie* zombie);
 
 	// ── 黄色冰道独立来源索引（瞬态、每帧惰性快照）──
 	// 弱索引按实体 ID 覆盖普通生成与读档恢复；快照用 shared_ptr 把回调期间的来源生命周期钉住。

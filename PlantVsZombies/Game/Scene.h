@@ -105,6 +105,12 @@ protected:
 	UIManager mUIManager;
 	bool mDrawCommandsBuilt = false;
 
+	/**
+	 * @brief 更新由派生场景直接拥有的控制器。
+	 * @details 在全部 GameObject 更新后、Clickable 与碰撞分发前调用，默认无操作。
+	 */
+	virtual void UpdateAfterGameObjects() {}
+
 	// 构建绘制命令
 	virtual void BuildDrawCommands();
 

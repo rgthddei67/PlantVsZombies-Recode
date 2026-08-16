@@ -68,6 +68,7 @@ namespace {
 	constexpr int kWeatherCurrentFontSize = 18;           // 第一行“当前天气”字号
 	constexpr int kWeatherForecastFontSize = 16;          // 第二行“天气预警”字号
 	constexpr int kWeatherWindFontSize = 15;              // 台风期间第三行“风向实况”字号
+	constexpr int kCardPreviewSyncRenderOrder = LAYER_UI - 1; // 保持手持预览坐标同步晚于 GameObject、早于 UI 绘制
 	constexpr int kPlanternGearMenuRenderOrder = LAYER_UI + 700; // 路灯花菜单盖过天气板/失败提示且低于全屏提示
 	constexpr float kWeatherPanelDetailLineHeight = 30.0f; // 雾势预报或风向实况每增加一行的面板高度
 	constexpr float kWeatherPanelGaugeLineHeight = 38.0f; // 累计条文字与 8px 进度槽合计占用的面板高度
@@ -386,6 +387,11 @@ GameScene::GameScene() {
 }
 
 GameScene::~GameScene() {
+}
+
+void GameScene::UpdateAfterGameObjects()
+{
+	if (mCardSlotManager) mCardSlotManager->Update();
 }
 
 void GameScene::Draw(Graphics* g)
@@ -1336,6 +1342,11 @@ void GameScene::BuildDrawCommands()
 	}
 
 	if (mBoard) {
+		RegisterDrawCommand("CardPreviewSync",
+			[this](Graphics* g) {
+				if (mCardSlotManager) mCardSlotManager->Draw(g);
+			},
+			kCardPreviewSyncRenderOrder);
 		RegisterDrawCommand("WeatherPanel",
 			[this](Graphics* g) { DrawWeatherPanel(g); },
 			LAYER_UI + 500);
@@ -1411,11 +1422,9 @@ void GameScene::OnEnter() {
 	int enterLevel = std::stoi(SceneManager::GetInstance().GetGlobalData("EnterLevel"));
 
 	mBoard = std::make_unique<Board>(this, ResolveEnterBackground(enterLevel), enterLevel);
-	auto CardUI = GameObjectManager::GetInstance().CreateGameObjectImmediate<GameObject>(
-		LAYER_UI);
-	CardUI->SetName("CardUI");
-	mCardSlotManager = CardUI->AddComponent<CardSlotManager>(mBoard.get());
-	mBoard->BindCardSlotManager(mCardSlotManager);
+	mCardSlotManager = std::make_unique<CardSlotManager>(mBoard.get());
+	mBoard->BindCardSlotManager(mCardSlotManager.get());
+	mCardSlotManager->Start();
 
 	mGameProgress = GameObjectManager::GetInstance().CreateGameObjectImmediate<GameProgress>(
 		LAYER_UI, mBoard.get());
@@ -1473,7 +1482,8 @@ void GameScene::OnEnter() {
 	}
 
 	// 原版在选卡前铺好屋顶初始花盆；只给没有关卡存档的新局生成，避免读档重复叠加。
-	GameAPP::GetInstance().mGameInfoSaver.LoadLevelData(mBoard.get(), mCardSlotManager);
+	GameAPP::GetInstance().mGameInfoSaver.LoadLevelData(
+		mBoard.get(), mCardSlotManager.get());
 	// AutoTest 的无存档路径按契约返回 true，但不会置 mIsLoadSave；以读档生命周期标记判定新局。
 	if (!mBoard->IsLoadRestoreActive()) {
 		mBoard->InitializeStartingFlowerPots();
@@ -1531,10 +1541,12 @@ void GameScene::OnExit() {
 		(mBoard->mIsSurvival && mBoard->mBoardState == BoardState::CHOOSE_CARD);
 	if (saveState && !mReadyToRestart) {
 		gameApp.mGameInfoSaver.SaveLevelData
-		(mBoard.get(), mCardSlotManager);
+		(mBoard.get(), mCardSlotManager.get());
 	}
 	gameApp.mGameInfoSaver.SavePlayerInfo();
 
+	mBoard->BindCardSlotManager(nullptr);
+	mCardSlotManager.reset();
 	Scene::OnExit();
 	mShovelUI = nullptr;
 	mBoard.reset();
@@ -1542,7 +1554,6 @@ void GameScene::OnExit() {
 	mMainMenuButton.reset();
 	mPerkViewButton.reset();
 	mGameProgress = nullptr;
-	mCardSlotManager = nullptr;
 	mChooseCardUI = nullptr;
 }
 
@@ -1695,7 +1706,8 @@ void GameScene::Update() {
 		// 触发轮清的那只濒死僵尸此刻仍在 EntityManager 中，由 SaveLevelData 内的 IsActive() 过滤排除。
 		if (mPendingSurvivalSave) {
 			mPendingSurvivalSave = false;
-			GameAPP::GetInstance().mGameInfoSaver.SaveLevelData(mBoard.get(), mCardSlotManager);
+			GameAPP::GetInstance().mGameInfoSaver.SaveLevelData(
+				mBoard.get(), mCardSlotManager.get());
 		}
 
 		auto& input = GameAPP::GetInstance().GetInputHandler();
@@ -2388,7 +2400,7 @@ void GameScene::ChooseCardComplete()
 		if (!gameApp.mGameInfoSaver.SavePlayerInfo()) {
 			LOG_ERROR("GameScene") << "保存上一次选卡失败，将在后续玩家存档点重试。";
 		}
-		mChooseCardUI->TransferSelectedCardsTo(mCardSlotManager);
+		mChooseCardUI->TransferSelectedCardsTo(mCardSlotManager.get());
 		mChooseCardUI->RemoveAllCards();
 		GameObjectManager::GetInstance().DestroyGameObject(mChooseCardUI);
 		mChooseCardUI = nullptr;

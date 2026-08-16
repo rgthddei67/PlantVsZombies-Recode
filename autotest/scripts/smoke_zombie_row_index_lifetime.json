@@ -1,0 +1,23 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 1 },
+    { "op": "choose_cards", "cards": ["PLANT_PEASHOOTER"], "timeout": 20 },
+    { "op": "wait_state", "state": "GAME" },
+    { "op": "set_spawn_paused", "value": true },
+    { "op": "set_sun", "value": 500 },
+    { "op": "plant", "type": "PLANT_PEASHOOTER", "row": 2, "col": 1 },
+    { "op": "set_timescale", "value": 0.0 },
+    { "op": "spawn_zombie", "type": "ZOMBIE_NORMAL", "row": 2, "x": 700.0, "stationary": true },
+    { "op": "spawn_zombie", "type": "ZOMBIE_NORMAL", "row": 2, "x": 760.0, "stationary": true },
+    { "op": "assert_can_target", "plantType": "PLANT_PEASHOOTER", "plantRow": 2, "plantCol": 1, "zombieRow": 2, "zombieIndex": 0, "expected": true },
+    { "op": "assert_can_target", "plantType": "PLANT_PEASHOOTER", "plantRow": 2, "plantCol": 1, "zombieRow": 2, "zombieIndex": 1, "expected": true },
+    { "op": "kill_zombie", "row": 2, "index": 0 },
+    { "op": "kill_zombie", "row": 2, "index": 0 },
+    { "op": "set_timescale", "value": 5.0 },
+    { "op": "wait_frames", "value": 3 },
+    { "op": "set_timescale", "value": 0.0 },
+    { "op": "assert_state", "path": "zombieCount", "equals": 0 },
+    { "op": "dump_state", "name": "row_index_lifetime.json" },
+    { "op": "quit" }
+  ]
+}

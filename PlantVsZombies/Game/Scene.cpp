@@ -83,6 +83,7 @@ void Scene::Update()
 		mUIManager.UpdateAll(input);
 	}
 	GameObjectManager::GetInstance().Update();
+	UpdateAfterGameObjects();
 	{
 		PROFILE_SCOPE("1b.Clickable");
 		ClickableComponent::ProcessMouseEvents();

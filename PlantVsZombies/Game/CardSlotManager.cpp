@@ -38,6 +38,34 @@ CardSlotManager::CardSlotManager(Board* board)
 	}
 }
 
+/** 先解除所有捕获本控制器的回调，再断开 Card/Board 的非拥有引用。 */
+CardSlotManager::~CardSlotManager()
+{
+	if (mBoard && mBoard->mCursorObjectManager.IsActive(CursorObjectType::PLANT_PREVIEW)) {
+		mBoard->mCursorObjectManager.ClearActive();
+	}
+	else {
+		DeselectCard();
+	}
+	mPlanternGearMenuOpen = false;
+
+	if (mBoard) {
+		for (int row = 0; row < mBoard->mRows; ++row) {
+			for (int col = 0; col < mBoard->mColumns; ++col) {
+				if (Cell* cell = mBoard->GetCell(row, col)) {
+					cell->SetClickCallback({});
+				}
+			}
+		}
+	}
+	for (Card* card : cards) {
+		if (card) card->BindCardSlotManager(nullptr);
+	}
+	cards.clear();
+	selectedCard = nullptr;
+	mBoard = nullptr;
+}
+
 void CardSlotManager::Start() {
 	// 为所有Cell设置点击回调
 	if (mBoard) {
@@ -70,7 +98,6 @@ void CardSlotManager::Update() {
 		return;
 	}
 
-	static int lastSun = 0;
 	const bool bloverDirectionChanged = UpdateBloverDirectionInput();
 	UpdatePlanternGearMenuInput();
 	UpdateCobCannonHoverCursor();
@@ -96,8 +123,8 @@ void CardSlotManager::Update() {
 	}
 
 	// 检测阳光变化，更新所有卡牌状态
-	if (mBoard && lastSun != mBoard->GetSun()) {
-		lastSun = mBoard->GetSun();
+	if (mBoard && mLastSun != mBoard->GetSun()) {
+		mLastSun = mBoard->GetSun();
 		UpdateAllCardsState();
 	}
 }
@@ -135,14 +162,18 @@ void CardSlotManager::UpdateAllCardsState() {
 }
 
 void CardSlotManager::AddCard(Card* card) {
-	if (card) cards.push_back(card);
+	if (!card) return;
+	card->BindCardSlotManager(this);
+	cards.push_back(card);
 }
 
 void CardSlotManager::ClearAllCards() {
 	DeselectCard();
 	mPlanternGearMenuOpen = false;
 	for (auto* card : cards) {
-		if (card) GameObjectManager::GetInstance().DestroyGameObject(card);
+		if (!card) continue;
+		card->BindCardSlotManager(nullptr);
+		GameObjectManager::GetInstance().DestroyGameObject(card);
 	}
 	cards.clear();
 	selectedCard = nullptr;
