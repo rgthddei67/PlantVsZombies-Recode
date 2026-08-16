@@ -63,7 +63,7 @@ private:
 	void BeginSmash(int row, int column, int zombieID);
 	/** 主人指定的第 93 帧回调：逐层结算目标格植物的锤击反应或重击敌对僵尸。 */
 	void ApplySmashImpact();
-	/** 半血且位置允许时开始唯一一次投掷。 */
+	/** 半血且仍在原版投掷半场外侧时开始唯一一次投掷。 */
 	void TryBeginThrow();
 	/** 主人确认的第 131 帧回调：生成小鬼、继承阵营与剩余减速。 */
 	void ReleaseImp();

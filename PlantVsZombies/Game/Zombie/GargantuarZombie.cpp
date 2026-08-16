@@ -33,7 +33,7 @@ namespace {
 	constexpr float kColliderOffsetY = -130.0f;                // 原版碰撞框上缘相对逻辑原点 Y，单位 px
 	constexpr float kColliderWidth = 125.0f;                  // 原版巨人碰撞框宽度，单位 px
 	constexpr float kColliderHeight = 170.0f;                 // 原版巨人碰撞框高度，单位 px
-	constexpr float kThrowAnchorMinDistance = 40.0f;          // 巨人离投掷锚点至少该距离才允许投掷，单位 px
+	constexpr float kThrowAnchorMinDistance = 40.0f;          // 巨人须位于投掷半场线外至少该距离才允许投掷，单位 px
 	constexpr float kRoofThrowDistanceReduction = 180.0f;     // 原版屋顶投掷距离缩短量，单位 px
 	constexpr float kImpReleaseOffsetX = 133.0f;              // 小鬼逻辑出生点相对巨人原点的水平距离，单位 px
 	constexpr float kButterSplatScaleMultiplier = 1.2f;      // 巨人头部黄油相对普通僵尸尺寸的倍率
@@ -258,7 +258,8 @@ void GargantuarZombie::TryBeginThrow()
 	if (!mHasImp || mBodyHealth > mBodyMaxHealth / 2 || !mBoard || !mAnimator) return;
 	const int anchorColumn = std::min(5, mBoard->mColumns - 1);
 	const float anchorX = mBoard->GetCellCenterPosition(mRow, anchorColumn).x;
-	float distance = std::abs(GetPosition().x - anchorX);
+	// 原版只允许巨人在房屋对面的半场起手；必须保留方向，越线后不能因绝对距离增大而重新获准投掷。
+	float distance = GetPosition().x - anchorX;
 	if (distance <= kThrowAnchorMinDistance) return;
 	if (mBoard->IsRoofBackground()) distance -= kRoofThrowDistanceReduction;
 	mThrowDistance = std::max(kThrowAnchorMinDistance, distance);

@@ -8,7 +8,7 @@
     { "op": "charm_zombie", "row": 2, "index": 0 },
     { "op": "wait_frames", "value": 2 },
     { "op": "damage_zombie", "row": 2, "index": 0, "damage": 1501 },
-    { "op": "wait_seconds", "value": 0.9 },
+    { "op": "wait_seconds", "value": 1.1 },
     { "op": "assert_state", "path": "gargantuarZombieCount", "equals": 1 },
     { "op": "assert_state", "path": "impZombieCount", "equals": 1 },
     { "op": "assert_state", "path": "zombies.0.mindControlled", "equals": true },
