@@ -6,7 +6,7 @@
 
     { "op": "goto_level", "level": 54, "resetTestState": true },
     { "op": "wait_state", "state": "CHOOSE_CARD", "timeout": 10 },
-    { "op": "assert_state", "path": "spawnList", "equals": ["ZOMBIE_NORMAL", "ZOMBIE_TRAFFIC_CONE", "ZOMBIE_BUCKET", "ZOMBIE_FOOTBALL", "ZOMBIE_REINFORCED_DOOR", "ZOMBIE_ELITE_POLEVAULTER", "ZOMBIE_JACK_IN_THE_BOX", "ZOMBIE_BUNGEE", "ZOMBIE_CATAPULT", "ZOMBIE_GARGANTUAR", "ZOMBIE_INSULATOR", "ZOMBIE_GROUNDING"] },
+    { "op": "assert_state", "path": "spawnList", "equals": ["ZOMBIE_NORMAL", "ZOMBIE_TRAFFIC_CONE", "ZOMBIE_BUCKET", "ZOMBIE_FOOTBALL", "ZOMBIE_REINFORCED_DOOR", "ZOMBIE_JACK_IN_THE_BOX", "ZOMBIE_BUNGEE", "ZOMBIE_CATAPULT", "ZOMBIE_GARGANTUAR", "ZOMBIE_INSULATOR", "ZOMBIE_HIJACKER", "ZOMBIE_HEALER", "ZOMBIE_GROUNDING"] },
     { "op": "choose_cards", "cards": [] },
     { "op": "wait_state", "state": "GAME", "timeout": 15 },
     { "op": "set_spawn_paused", "value": true },
