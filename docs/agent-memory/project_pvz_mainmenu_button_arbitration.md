@@ -57,3 +57,17 @@ true→false、重开仍为 false，保存状态 JSON 并截图启用/禁用两�
 主菜单控制台；战斗 Esc/右上“主菜单”的完整菜单明确不重复展示。控制台仍沿用全屏模态
 与统一背景入口屏蔽。`smoke_mainmenu_console` 现同时真实点击蒙特卡洛与高级暂停两项，
 关闭重开后断言 `false/true` 保持，并以当前桌面可见 `clang-release` 运行 exit 0。
+
+## 2026-08-22：模态窗口保留背景入口绘制
+
+主菜单选项框或控制台打开时，入口按钮仍由 `DrawButton` 在 `LAYER_UI - 100` 提交；
+`SetMainMenuButtonsEnabled(false)` 只关闭命中并清除残留 hover/pressed 状态。活动
+`GameMessageBox` 由 `UIManager` 在普通按钮和滑块之后绘制，因此背景入口不会反盖弹框，
+也不再用 `overlayOpen` 条件整组消失。关框后重新启用输入，视觉无需额外重建。
+
+`mainmenu_options_shot` 现会在选项框打开后点击背景冒险入口，断言场景仍为
+`MainMenuScene`，分别截图弹框、背景点击后和关闭恢复态，再真实进入 `CHOOSE_CARD`
+证明入口已重新启用。当前 `clang-release` LTO 与
+Win7 378 项导入审计通过；桌面可见运行该专项、`smoke_mainmenu_buttons`、
+`smoke_mainmenu_console`、`pause_menu_shot`、`smoke_particle_layers` 均退出 0 且
+`status=passed`，截图确认背景入口保留、模态层最高及世界粒子仍在暂停框下方。

@@ -97,7 +97,7 @@
 - [粉色橄榄球僵尸 ✅](project_pvz_pink_football_zombie.md) — 2026-08-02 黑夜专属轻装变体：220本体/900头盔、速度1.85/1.95、减速动画系数0.7，首口400后续40；掉盔对半径120圆内无壳植物造成50，南瓜格只让外壳承受300，水路内层与睡莲安全；2-9 出怪、圆内/圆外及水路三层均有可见专项
 - [胆小菇+adding-plant skill ✅已push](project_pvz_scaredyshroom_and_adding_plant_skill.md) — 2026-08-05 四态害怕状态机；南瓜免疫须在节流前清空旧 `mScaredCached` 并保持检查到期，否则旧 true 会驱动反复缩头；既有 foot-gun 仍包括帧事件帧号必问主人、站位/影子两套 offset 分居 gamedata 与代码、读档首帧必须真算
 - [金盏花最小观赏版本](project_pvz_marigold_minimal.md) — 2026-08-09 `Marigold : Plant` 只播 `anim_idle`，不吐钱；费用 `-100`、冷却 25 秒，正式卡槽实测阳光 `0→100`；blink1/2 只用通用 `IMAGE_*` 键，默认与 `-NoInstance` 可见专项及整数 worldBounds 一致
-- [主菜单石碑排版、命中仲裁、控制台与2-1跳关](project_pvz_mainmenu_button_arbitration.md) — 2026-08-11 右下「控制台」打开全屏模态设置页，以 CheckBox 控制蒙特卡洛 AI 与默认关闭的高级暂停并屏蔽/隐藏背景入口；高级暂停不重复放进战斗 Esc 菜单；左下未到2-1时仍显示跳关；石碑紧贴重叠由ButtonManager中心最近仲裁
+- [主菜单石碑排版、命中仲裁、控制台与2-1跳关](project_pvz_mainmenu_button_arbitration.md) — 2026-08-22 主菜单模态只禁用背景入口命中并清除 hover/pressed，入口继续在 MessageBox 下方绘制；右下控制台承载蒙特卡洛 AI、高级暂停与开局台风保护；左下未到2-1时仍显示跳关；石碑重叠由ButtonManager中心最近仲裁
 - [血量字形worker侧instance化 ✅已push](project_pvz_glyph_run_worker_instancing.md) — 2026-07-07(db5c3e6) 20000可见血量行defer到串行replay逐行flush=N×ε聚合致死(51.9→9.7ms/19→103FPS)；修=RecordDrawGlyphRun快路径直写InstanceRecord切片(与reanim同管线,z-order不变)；foot-gun=textDraw(lines)计数器不覆盖字形路径(盲区误导两轮,已加glyphRun等-Profile探针)、glyphAtlasBuild失败无negative cache会每帧重建循环
 - [gamedata.json 数值外置 ✅已push](project_pvz_gamedata_json.md) — 2026-08-14 JSON唯一数值来源+缺任一基础字段即拒启动(-6)+AutoTest不弹窗守卫；植物轻量防线推演 `simulation` 增加 `supportOnly`，普通花盆/睡莲由数据声明压缩、特殊支撑保持完整画像；只改 clang-release 权威资源，其他 preset 用 Junction 共享；foot-gun=文件名GameApp.cpp非GameAPP.cpp、后台PowerShell不继承VS环境
 - [幽灵僵尸射手空射修复 ✅已push](project_pvz_ghost_zombie_shooter_fix.md) — 2026-07-06(b1cec54) 行索引过滤IsActive/IsDying+Die()防重入(同帧双Die双扣计数)+DestroyGameObject(raw)静默失败留WARN；再见"计数0仍开火"先查GOM WARN
@@ -108,7 +108,7 @@
 - [AutoTest assert_state 命令 ✅已push](project_pvz_autotest_assert_state_todo.md) — 2026-07-04 dump字段断言(path点分+数字段=数组下标,equals严格==,不匹配exit1)；BuildStateJson抽取两op共用；smoke_develop/smoke_perks已补断言,不带-develop假绿已根治；foot-gun=浮点字段勿equals用整数投影字段
 - [AutoTest 同步截图、状态复位与隔离快照](project_pvz_autotest_harness_enhancements.md) — 2026-07-27 截图 ticket 仅在 PNG 成功落盘后完成；显式 `reset_test_state` / `goto_level.resetTestState`；脚本输出目录内复用正式 GameInfoSaver 做新 GameScene 往返，禁止关闭 AutoTest 模式绕过保护；动画子弹存档保留 poolType
 
-- [GameMessageBox Builder 化简 ✅已push](project_pvz_messagebox_builder.md) — 2026-07-04 流式Builder替9参构造/.Panel/.Checkbox(initChecked)灭friend槽位戳,7调用点迁完删UIManager::CreateMessageBox；foot-gun=Builder默认背景须IMAGE_MESSAGEBOX非空串、smoke_develop须-develop且热键已是rshift(不带也exit 0假绿)
+- [GameMessageBox Builder 与 UIManager 模态生命周期](project_pvz_messagebox_builder.md) — 2026-08-22 Builder 接口不变，UIManager 直接拥有并遍历后清理；普通控件先绘制、活动 MessageBox 最后绘制，调用方禁用而不隐藏背景输入控件；foot-gun=Builder默认背景须IMAGE_MESSAGEBOX非空串
 
 - [粒子按RenderOrder分层](project_pvz_particle_render_layer.md) — 世界层粒子走 GameObjectManager pre-overlay hook（非场景槽，因 MessageBox 在 GameObjects 命令内部）；2026-07-21 雨天改为“世界粒子 → 暗幕 → UI”；EmitEffect 默认 LAYER_EFFECTS_WORLD=35000，显式顶层粒子仍走 DrawFrom
 

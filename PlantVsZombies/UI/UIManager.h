@@ -112,12 +112,12 @@ public:
 
 	void DrawAll(Graphics* g) const
 	{
-		// 模态背景先于普通 UI 控件绘制；弹窗内部控件由其自身按配置顺序绘制。
+		// 普通控件先绘制；模态框连同其自有控件最后提交，稳定覆盖场景内其他 UI。
+		buttonManager.DrawAll(g);
+		sliderManager.DrawAll(g);
 		for (const auto& messageBox : messageBoxes) {
 			if (messageBox && messageBox->IsActive()) messageBox->Draw(g);
 		}
-		buttonManager.DrawAll(g);
-		sliderManager.DrawAll(g);
 	}
 
 	void ResetAllFrameStates()

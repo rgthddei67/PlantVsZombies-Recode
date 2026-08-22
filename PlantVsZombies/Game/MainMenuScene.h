@@ -48,7 +48,7 @@ private:
 	void CloseConsole();
 
 protected:
-	/** 构建主菜单背景、入口及模态页期间的条件绘制命令。 */
+	/** 构建主菜单背景与入口绘制命令；入口先于 UIManager 的模态层提交。 */
 	void BuildDrawCommands() override;
 };
 
@@ -115,11 +115,18 @@ public:
 			});
 	}
 
+	/** 切换四个入口的命中能力；禁用时同步清除残留的悬停和按压状态。 */
 	void SetEnabled(bool enabled) {
-		if (auto btn = mAdventure.lock()) btn->SetEnabled(enabled);
-		if (auto btn = mMiniGames.lock()) btn->SetEnabled(enabled);
-		if (auto btn = mPizzle.lock()) btn->SetEnabled(enabled);
-		if (auto btn = mSurvival.lock()) btn->SetEnabled(enabled);
+		auto setEnabled = [enabled](const std::weak_ptr<Button>& weakButton) {
+			if (auto button = weakButton.lock()) {
+				button->SetEnabled(enabled);
+				if (!enabled) button->ForceResetHoverState();
+			}
+		};
+		setEnabled(mAdventure);
+		setEnabled(mMiniGames);
+		setEnabled(mPizzle);
+		setEnabled(mSurvival);
 	}
 
 	void Draw(Graphics* g) {

@@ -4,6 +4,15 @@
     { "op": "click", "x": 740, "y": 501 },
     { "op": "wait_frames", "value": 40 },
     { "op": "screenshot", "name": "options_menu" },
+    { "op": "click", "x": 710, "y": 145, "hold_frames": 2 },
+    { "op": "wait_frames", "value": 5 },
+    { "op": "assert_state", "path": "scene", "equals": "MainMenuScene" },
+    { "op": "screenshot", "name": "options_background_click_blocked" },
+    { "op": "click", "x": 580, "y": 480, "hold_frames": 2 },
+    { "op": "wait_frames", "value": 10 },
+    { "op": "screenshot", "name": "options_closed_buttons_restored" },
+    { "op": "click", "x": 710, "y": 145, "hold_frames": 2 },
+    { "op": "wait_state", "state": "CHOOSE_CARD", "timeout": 15 },
     { "op": "quit" }
   ]
 }

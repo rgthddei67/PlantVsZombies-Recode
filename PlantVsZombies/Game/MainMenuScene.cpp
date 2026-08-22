@@ -94,27 +94,27 @@ void MainMenuScene::BuildDrawCommands()
 		LAYER_UI + 10000);
 	RegisterDrawCommand("DrawButton",
 		[this](Graphics* g) {
-			const bool overlayOpen = mOpenMenu || mOpenConsole;
-			if (!overlayOpen && mMainMenuButtons) {
+			// 模态窗口只接管输入；背景入口仍先绘制，再由 UIManager 把 MessageBox 盖在最上层。
+			if (mMainMenuButtons) {
 				mMainMenuButtons->Draw(g);
 			}
-			if (!overlayOpen && mOpitionButton) {
+			if (mOpitionButton) {
 				mOpitionButton->Draw(g);
 			}
-			if (!overlayOpen && mConsoleButton) {
+			if (mConsoleButton) {
 				mConsoleButton->Draw(g);
 			}
-			if (!overlayOpen && mAlmanacButton) {
+			if (mAlmanacButton) {
 				mAlmanacButton->Draw(g);
 			}
-			if (!overlayOpen && mSkipToSecondAreaButton) {
+			if (mSkipToSecondAreaButton) {
 				mSkipToSecondAreaButton->Draw(g);
 			}
-			if (!overlayOpen && mExitButton) {
+			if (mExitButton) {
 				mExitButton->Draw(g);
 			}
 		},
-		LAYER_UI + 100);
+		LAYER_UI - 100);
 
 	SortDrawCommands();
 
@@ -229,11 +229,16 @@ void MainMenuScene::SkipToSecondArea()
 
 void MainMenuScene::SetMainMenuButtonsEnabled(bool enabled)
 {
-	if (mAlmanacButton) mAlmanacButton->SetEnabled(enabled);
-	if (mOpitionButton) mOpitionButton->SetEnabled(enabled);
-	if (mConsoleButton) mConsoleButton->SetEnabled(enabled);
-	if (mExitButton) mExitButton->SetEnabled(enabled);
-	if (mSkipToSecondAreaButton) mSkipToSecondAreaButton->SetEnabled(enabled);
+	auto setEnabled = [enabled](const std::shared_ptr<Button>& button) {
+		if (!button) return;
+		button->SetEnabled(enabled);
+		if (!enabled) button->ForceResetHoverState();
+	};
+	setEnabled(mAlmanacButton);
+	setEnabled(mOpitionButton);
+	setEnabled(mConsoleButton);
+	setEnabled(mExitButton);
+	setEnabled(mSkipToSecondAreaButton);
 	if (mMainMenuButtons) mMainMenuButtons->SetEnabled(enabled);
 }
 

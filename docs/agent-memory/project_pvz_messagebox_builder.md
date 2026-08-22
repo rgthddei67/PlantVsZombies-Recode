@@ -19,3 +19,7 @@ metadata:
 ## 2026-08-22 所有权后记
 
 Builder 调用接口不变，但 `Show()` 现在把普通 `GameMessageBox` 注册给当前场景 `UIManager`，不再创建 UI 类型 GameObject。`Close()` 立即失活并只记录关闭请求；UIManager 在 Button/Slider 更新结束后解除旧框控件并释放自身所有权，`ClearAll()` 也会先断开控件和 owner，因此外部共享引用不会误操作后续场景。回调内重建新框的安全性来自 UIManager 的遍历后清理阶段，不再依赖 GOM 帧末销毁。
+
+绘制契约同步固定为“普通 Button/Slider → 活动 GameMessageBox”；弹框自有控件保持
+`skipDraw`，由 `GameMessageBox::Draw()` 在背景和文字之后自行提交。这样模态框稳定盖住
+其他 UI，调用方只需禁用背景控件的输入，不应再把背景控件从绘制路径删掉。

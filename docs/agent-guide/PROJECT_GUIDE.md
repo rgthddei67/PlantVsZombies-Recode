@@ -183,7 +183,7 @@ Clickable 也由 `GameObject` 用 `unique_ptr<ClickableComponent>` 显式可选�
 
 ### 所有权与场景边界
 
-- `SceneManager` 只持有一个 `unique_ptr<Scene>`。`SwitchTo()` 会先执行当前场景的 `OnExit()` 再销毁；本项目的 `Scene::OnExit()` 会清理全局 `GameObjectManager`，因此不支持把旧场景压栈后恢复。需要覆盖式 UI 时应留在当前场景内：`UIManager` 直接拥有 `Button`、`Slider` 和 `GameMessageBox`，模态框关闭请求在控件遍历结束后统一清理，不得再借用 `GameObjectManager` 的玩法对象生命周期。
+- `SceneManager` 只持有一个 `unique_ptr<Scene>`。`SwitchTo()` 会先执行当前场景的 `OnExit()` 再销毁；本项目的 `Scene::OnExit()` 会清理全局 `GameObjectManager`，因此不支持把旧场景压栈后恢复。需要覆盖式 UI 时应留在当前场景内：`UIManager` 直接拥有 `Button`、`Slider` 和 `GameMessageBox`，模态框关闭请求在控件遍历结束后统一清理，不得再借用 `GameObjectManager` 的玩法对象生命周期。普通控件先于活动 `GameMessageBox` 绘制；调用方通过禁用背景控件屏蔽命中，不能通过停止绘制背景控件来伪造模态效果。
 - `GameScene` 用 `unique_ptr` 独占 `Board`；多数运行对象由 `GameObjectManager` 的 `shared_ptr` 持有。`Board` 中的 `Cell*`、预览僵尸指针以及场景缓存指针均为非拥有索引，奖杯、弹坑等可失效引用优先使用 `weak_ptr`。
 - `Board` 不依赖具体 `GameScene`，只保存非拥有的 `BoardPresentation*`。天气、波次和生存模式玩法状态只能由 `Board` 持有；场景只实现提示、闪屏、进度条和 UI 计时快照。新增展示请求应扩充这个窄端口，不能重新加入 `Board::mGameScene` 或在场景复制玩法状态。
 
