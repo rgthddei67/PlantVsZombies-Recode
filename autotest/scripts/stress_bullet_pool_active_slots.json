@@ -1,0 +1,52 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 1, "resetTestState": true },
+    { "op": "choose_cards", "cards": [] },
+    { "op": "wait_state", "state": "GAME", "timeout": 15 },
+    { "op": "set_spawn_paused", "value": true },
+
+    { "op": "assert_state", "path": "bulletPoolStorageCount", "equals": 0 },
+    { "op": "assert_state", "path": "bulletPoolActiveCount", "equals": 0 },
+    { "op": "assert_state", "path": "bulletPoolPeakCount", "equals": 0 },
+    { "op": "assert_state", "path": "bulletPoolHitCount", "equals": 0 },
+    { "op": "assert_state", "path": "bulletPoolMissCount", "equals": 0 },
+    { "op": "assert_state", "path": "bulletPoolActiveSlotsValid", "equals": true },
+
+    { "op": "spawn_bullet", "type": "BULLET_PEA", "row": 2, "x": 1150, "y": 308,
+      "velocityX": 0, "count": 256 },
+    { "op": "assert_state", "path": "bulletCount", "equals": 256 },
+    { "op": "assert_state", "path": "bulletPoolStorageCount", "equals": 256 },
+    { "op": "assert_state", "path": "bulletPoolActiveCount", "equals": 256 },
+    { "op": "assert_state", "path": "bulletPoolPeakCount", "equals": 256 },
+    { "op": "assert_state", "path": "bulletPoolHitCount", "equals": 0 },
+    { "op": "assert_state", "path": "bulletPoolMissCount", "equals": 256 },
+    { "op": "assert_state", "path": "bulletPoolHitRateOn1000", "equals": 0 },
+    { "op": "assert_state", "path": "bulletPoolActiveSlotsValid", "equals": true },
+
+    { "op": "wait_seconds", "value": 1.1 },
+    { "op": "assert_state", "path": "bulletCount", "equals": 0 },
+    { "op": "assert_state", "path": "bulletPoolStorageCount", "equals": 256 },
+    { "op": "assert_state", "path": "bulletPoolActiveCount", "equals": 0 },
+    { "op": "assert_state", "path": "bulletPoolPeakCount", "equals": 256 },
+    { "op": "assert_state", "path": "bulletPoolHitCount", "equals": 0 },
+    { "op": "assert_state", "path": "bulletPoolMissCount", "equals": 256 },
+    { "op": "assert_state", "path": "bulletPoolActiveSlotsValid", "equals": true },
+
+    { "op": "spawn_bullet", "type": "BULLET_PEA", "row": 2, "x": 400, "y": 308,
+      "velocityX": 0, "count": 64, "xStep": 5 },
+    { "op": "assert_state", "path": "bulletCount", "equals": 64 },
+    { "op": "assert_state", "path": "bulletPoolStorageCount", "equals": 256 },
+    { "op": "assert_state", "path": "bulletPoolActiveCount", "equals": 64 },
+    { "op": "assert_state", "path": "bulletPoolPeakCount", "equals": 256 },
+    { "op": "assert_state", "path": "bulletPoolHitCount", "equals": 64 },
+    { "op": "assert_state", "path": "bulletPoolMissCount", "equals": 256 },
+    { "op": "assert_state", "path": "bulletPoolHitRateOn1000", "equals": 200 },
+    { "op": "assert_state", "path": "bulletPoolActiveSlotsValid", "equals": true },
+    { "op": "wait_frames", "value": 120 },
+    { "op": "assert_state", "path": "bulletPoolActiveCount", "equals": 64 },
+    { "op": "assert_state", "path": "bulletPoolActiveSlotsValid", "equals": true },
+    { "op": "screenshot", "name": "reused_active_slots.png" },
+    { "op": "dump_state", "name": "reused_active_slots.json" },
+    { "op": "quit" }
+  ]
+}

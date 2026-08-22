@@ -4,6 +4,8 @@
 #include "../GameObjectManager.h"
 #include "../../Logger.h"
 
+#include <algorithm>
+
 namespace {
 	// 只接受已有完整表现和碰撞合同的弹型；僵尸豌豆仍是尚未接入工厂的预留枚举。
 	bool IsSupportedPooledBulletType(BulletType type)
@@ -40,10 +42,19 @@ void BulletPool::Initialize(int initialCapacity, int warningThreshold) {
 	mPool.reserve(initialCapacity);
 	mFreeByType.assign(static_cast<int>(BulletType::NUM_BULLETS), {});
 	mBulletIndexMap.clear();
-	mActiveCount = 0;
+	mActiveIndices.clear();
+	mActiveIndices.reserve(initialCapacity);
 	mPeakCount = 0;
 	mHitCount = 0;
 	mMissCount = 0;
+}
+
+void BulletPool::ActivateSlot(int poolIndex) {
+	auto& pooled = mPool[poolIndex];
+	pooled.active = true;
+	pooled.activeListIndex = static_cast<int>(mActiveIndices.size());
+	mActiveIndices.push_back(poolIndex);
+	mPeakCount = std::max(mPeakCount, GetActiveCount());
 }
 
 std::shared_ptr<Bullet> BulletPool::AcquireShared(Board* board, BulletType type, int row,
@@ -66,11 +77,9 @@ std::shared_ptr<Bullet> BulletPool::AcquireShared(Board* board, BulletType type,
 			if (bullet->mBulletID != NULL_BULLET_ID) {
 				board->mEntityRegistry.RemoveBullet(bullet->mBulletID);
 			}
-			pooled.active = true;
 			bullet->SetActive(true);
 			bullet->Reset(board, row, colliderRadius, position);
-			mActiveCount++;
-			if (mActiveCount > mPeakCount) mPeakCount = mActiveCount;
+			ActivateSlot(idx);
 			mHitCount++;
 			return bullet;
 		}
@@ -80,7 +89,7 @@ std::shared_ptr<Bullet> BulletPool::AcquireShared(Board* board, BulletType type,
 	// 2. 没有空闲对象，创建新对象并添加到池中（自动扩容）
 	PooledBullet pooled;
 	pooled.type = type;
-	pooled.active = true;
+	mMissCount++;
 
 	// 所有弹型共用同一具体存储类型；差异由 BulletType 与 Reset 合同完整表达。
 	std::shared_ptr<Bullet> bullet =
@@ -94,9 +103,7 @@ std::shared_ptr<Bullet> BulletPool::AcquireShared(Board* board, BulletType type,
 		int idx = static_cast<int>(mPool.size());
 		mPool.push_back(pooled);
 		mBulletIndexMap[bullet.get()] = idx;
-		mActiveCount++;
-		if (mActiveCount > mPeakCount) mPeakCount = mActiveCount;
-		mHitCount++;
+		ActivateSlot(idx);
 
 		// 警告：池大小超过阈值
 		if (static_cast<int>(mPool.size()) > mWarningThreshold) {
@@ -126,9 +133,27 @@ void BulletPool::Release(Bullet* bullet) {
 
 	int idx = it->second;
 	auto& pooled = mPool[idx];
+	if (!pooled.active) {
+		LOG_WARN("BulletPool") << "忽略重复回收的池对象，槽位: " << idx;
+		return;
+	}
+
+	const int activeListIndex = pooled.activeListIndex;
+	if (activeListIndex < 0
+		|| activeListIndex >= static_cast<int>(mActiveIndices.size())
+		|| mActiveIndices[activeListIndex] != idx) {
+		LOG_ERROR("BulletPool") << "活跃槽位索引损坏，拒绝回收槽位: " << idx;
+		return;
+	}
+
+	// 与末项交换后弹出，避免回收时移动其余活跃槽位。
+	const int movedPoolIndex = mActiveIndices.back();
+	mActiveIndices[activeListIndex] = movedPoolIndex;
+	mPool[movedPoolIndex].activeListIndex = activeListIndex;
+	mActiveIndices.pop_back();
 	pooled.active = false;
+	pooled.activeListIndex = -1;
 	bullet->SetActive(false);
-	mActiveCount--;
 	mFreeByType[static_cast<int>(pooled.type)].push_back(idx);
 }
 
@@ -144,27 +169,53 @@ void BulletPool::Clear() {
 	mPool.clear();
 	for (auto& fl : mFreeByType) fl.clear();
 	mBulletIndexMap.clear();
-	mActiveCount = 0;
+	mActiveIndices.clear();
 	mPeakCount = 0;
 	mHitCount = 0;
 	mMissCount = 0;
 }
 
 void BulletPool::DrawShadows(Graphics* g) const {
-	for (const auto& pooled : mPool) {
-		if (!pooled.active) continue;
+	for (int poolIndex : mActiveIndices) {
+		const auto& pooled = mPool[poolIndex];
 		if (auto bullet = pooled.bullet.lock()) {
 			bullet->DrawShadow(g);
 		}
 	}
 }
 
+bool BulletPool::HasConsistentActiveSlotsForTesting() const {
+	if (mActiveIndices.size() > mPool.size()) return false;
+
+	std::vector<bool> seen(mPool.size(), false);
+	for (int activeListIndex = 0;
+		activeListIndex < static_cast<int>(mActiveIndices.size()); ++activeListIndex) {
+		const int poolIndex = mActiveIndices[activeListIndex];
+		if (poolIndex < 0 || poolIndex >= static_cast<int>(mPool.size())) return false;
+		const auto& pooled = mPool[poolIndex];
+		if (seen[poolIndex] || !pooled.active
+			|| pooled.activeListIndex != activeListIndex
+			|| pooled.bullet.expired()) {
+			return false;
+		}
+		seen[poolIndex] = true;
+	}
+
+	for (int poolIndex = 0; poolIndex < static_cast<int>(mPool.size()); ++poolIndex) {
+		const auto& pooled = mPool[poolIndex];
+		if (pooled.active != seen[poolIndex]) return false;
+		if (!pooled.active && pooled.activeListIndex != -1) return false;
+	}
+	return true;
+}
+
 void BulletPool::PrintStats() const {
 	LOG_DEBUG("BulletPool") << "=== BulletPool 统计信息 ===";
 	LOG_DEBUG("BulletPool") << "池大小: " << mPool.size() << " (初始容量: " << mInitialCapacity
 		<< ", 警告阈值: " << mWarningThreshold << ")";
-	LOG_DEBUG("BulletPool") << "活跃对象: " << mActiveCount;
+	LOG_DEBUG("BulletPool") << "活跃对象: " << GetActiveCount();
 	LOG_DEBUG("BulletPool") << "峰值对象: " << mPeakCount;
 	LOG_DEBUG("BulletPool") << "命中次数: " << mHitCount;
+	LOG_DEBUG("BulletPool") << "未命中次数: " << mMissCount;
 	LOG_DEBUG("BulletPool") << "命中率: " << (GetHitRate() * 100.0f) << "%";
 }

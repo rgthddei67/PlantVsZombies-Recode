@@ -11,6 +11,7 @@
 #include "../../UI/Button.h"
 #include "../SceneManager.h"
 #include "../GameScene.h"
+#include "../GameObjectManager.h"
 #include "../AdventureProgression.h"
 #include "../AnimatedObject.h"
 #include "../ZombieAlmanacScene.h"
@@ -1418,17 +1419,28 @@ bool TestDriver::ExecuteCurrent() {
 			Fail("spawn_bullet: 不支持的子弹类型");
 			return false;
 		}
-		Bullet* bullet = gs->GetBoard()->CreateBullet(it->second, cmd.value("row", 0),
-			Vector(cmd.value("x", 100.0f), cmd.value("y", 300.0f)));
-		if (!bullet) { Fail("spawn_bullet: CreateBullet 返回空"); return false; }
-		bullet->SetVelocityX(cmd.value("velocityX", 290.0f));
-		bullet->SetVelocityY(cmd.value("velocityY", 0.0f));
-		bullet->SetBulletDamage(cmd.value("damage", bullet->GetBulletDamage()));
-		bullet->SetTargetsFlying(cmd.value("targetsFlying", false));
-		if (cmd.contains("lobTargetX") && cmd.contains("lobTargetY")) {
-			bullet->ConfigureLobbedMotion(
-				Vector(cmd["lobTargetX"].get<float>(), cmd["lobTargetY"].get<float>()),
-				cmd.value("lobDuration", 1.2f), cmd.value("lobApexHeight", 210.0f));
+		const int count = cmd.value("count", 1);
+		if (count < 1 || count > 512) {
+			Fail("spawn_bullet: count 必须在 1..512 范围内");
+			return false;
+		}
+		const float startX = cmd.value("x", 100.0f);
+		const float startY = cmd.value("y", 300.0f);
+		const float xStep = cmd.value("xStep", 0.0f);
+		const float yStep = cmd.value("yStep", 0.0f);
+		for (int i = 0; i < count; ++i) {
+			Bullet* bullet = gs->GetBoard()->CreateBullet(it->second, cmd.value("row", 0),
+				Vector(startX + xStep * i, startY + yStep * i));
+			if (!bullet) { Fail("spawn_bullet: CreateBullet 返回空"); return false; }
+			bullet->SetVelocityX(cmd.value("velocityX", 290.0f));
+			bullet->SetVelocityY(cmd.value("velocityY", 0.0f));
+			bullet->SetBulletDamage(cmd.value("damage", bullet->GetBulletDamage()));
+			bullet->SetTargetsFlying(cmd.value("targetsFlying", false));
+			if (cmd.contains("lobTargetX") && cmd.contains("lobTargetY")) {
+				bullet->ConfigureLobbedMotion(
+					Vector(cmd["lobTargetX"].get<float>(), cmd["lobTargetY"].get<float>()),
+					cmd.value("lobDuration", 1.2f), cmd.value("lobApexHeight", 210.0f));
+			}
 		}
 		return true;
 	}
@@ -5989,6 +6001,17 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	// 绝对 X 会随测试取证时点变化；整数化相对跨度用于稳定断言同帧同速弹丸。
 	out["bulletXSpreadMilli"] = hasBulletX
 		? static_cast<int>(std::lround((maxBulletX - minBulletX) * 1000.0f)) : 0;
+	if (BulletPool* bulletPool = GameObjectManager::GetInstance().GetBulletPool()) {
+		out["bulletPoolStorageCount"] = bulletPool->GetStorageCount();
+		out["bulletPoolActiveCount"] = bulletPool->GetActiveCount();
+		out["bulletPoolPeakCount"] = bulletPool->GetPeakCount();
+		out["bulletPoolHitCount"] = bulletPool->GetHitCount();
+		out["bulletPoolMissCount"] = bulletPool->GetMissCount();
+		out["bulletPoolHitRateOn1000"] = static_cast<int>(std::lround(
+			bulletPool->GetHitRate() * 1000.0f));
+		out["bulletPoolActiveSlotsValid"] =
+			bulletPool->HasConsistentActiveSlotsForTesting();
+	}
 	out["repeatingShootingHeadCount"] = repeatingShootingHeadCount;
 
 	{
