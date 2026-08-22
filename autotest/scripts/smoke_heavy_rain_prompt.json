@@ -5,6 +5,15 @@
     { "op": "wait_state", "state": "GAME", "timeout": 15 },
 
     { "op": "set_weather", "intensity": "CLEAR", "duration": 60.0 },
+    { "op": "set_weather_forecast", "forecast": "MEDIUM", "actual": "HEAVY", "revealIn": 5.4, "typhoonStrength": "SUPER", "promptVariant": 2 },
+    { "op": "assert_state", "path": "weather.forecastReady", "equals": true },
+    { "op": "assert_state", "path": "weather.pendingTyphoonPrepared", "equals": true },
+    { "op": "wait_seconds", "value": 0.7, "timeout": 2 },
+    { "op": "assert_state", "path": "weather.heavyRainPromptShown", "equals": false },
+    { "op": "assert_state", "path": "prompts.activeCount", "equals": 0 },
+    { "op": "screenshot", "name": "wrong_forecast_heavy_prompt_hidden.png" },
+
+    { "op": "set_weather", "intensity": "CLEAR", "duration": 60.0 },
     { "op": "show_image_prompt", "image": "HUGE_WAVE" },
     { "op": "set_weather_forecast", "forecast": "HEAVY", "actual": "HEAVY", "revealIn": 5.4, "typhoonStrength": "NONE", "promptVariant": 0 },
     { "op": "assert_state", "path": "weather.pendingTyphoonPrepared", "equals": true },

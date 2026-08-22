@@ -270,7 +270,7 @@ private:
 	float mPendingHeavyWindGustTimer = 0.0f; // 待生效台风首次阵风倒计时（游戏秒）
 	int mPendingHeavyTyphoonGustsRemaining = 0; // 待生效台风首档阵风预算
 	int mPendingHeavyRainPromptVariant = 0; // 同等级三句古风警报中的锁定编号（0～2）
-	bool mHeavyRainPromptShown = false; // 当前锁定预报是否已经弹出过提前 5 秒的大雨警报
+	bool mHeavyRainPromptShown = false; // 当前锁定且报准的大雨预报是否已经弹出过提前 5 秒警报
 	bool mRainVisualActive = false;     // 纯运行期标记，防读档/生存轮间重复发射同一场雨
 	std::string mRainVisualEffectName;  // 当前雨丝特效名；风向切换时只停止旧雨而不清空其他粒子
 	float mWindParticleTimer = 0.0f;    // 距下一批风线粒子的游戏秒数；瞬态视觉不入存档

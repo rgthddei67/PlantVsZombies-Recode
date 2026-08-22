@@ -1905,11 +1905,12 @@ void Board::ClearPendingHeavyRainWarning()
 	mHeavyRainPromptShown = false;
 }
 
-/** 在倒计时进入最后 5 个游戏秒时显示一次已锁定等级的风暴警报。 */
+/** 预报报准大雨时，在倒计时最后 5 个游戏秒显示一次已锁定等级的风暴警报。 */
 void Board::MaybeShowHeavyRainPrompt()
 {
 	if (mHeavyRainPromptShown || !mWeatherForecastReady
 		|| mActualForecastRainIntensity != RainIntensity::HEAVY
+		|| mForecastRainIntensity != mActualForecastRainIntensity
 		|| mRainIntensity == RainIntensity::HEAVY
 		|| mWeatherTimer > kHeavyRainPromptLeadTime || !mPresentation) return;
 	if (!mPendingHeavyTyphoonPrepared) PreparePendingHeavyTyphoon();

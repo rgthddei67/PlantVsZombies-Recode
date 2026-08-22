@@ -67,7 +67,7 @@
 - [Windows 中央存档目录与旧档安全迁移](project_pvz_save_location_migration.md) — 2026-07-21 Windows 正式存档改到 `FOLDERID_SavedGames/PlantsVsZombies/saves`；首次访问旧 `./saves` 时复制、逐字节校验、再删源文件，冲突不覆盖、失败逐文件回退；AutoTest/`-AutoTestLoadSave` 继续隔离在构建目录
 - [第三大关泳池基础系统](project_pvz_pool_basics.md) — 2026-08-03 当前范围 3-1～3-9：`WATER_POOL` 六行网格、原版 15×5 三层 GPU 动态水面、睡莲双层占格及上层植物本体/影子共享水面浮动视觉锚点、前4波仅陆路、`Zombie` 通用水线裁剪与 `Splash.reanim + PlantingPool` 进出水反馈、海豚派生节点、普通/路障/铁桶水路版本、水中爆炸无烧焦残影、PoolCleaner 与旧档边界；3-5普通冰车、3-6鎏金冰车、3-7普通海豚、3-8精英海豚、3-9为200初始阳光与10种敌人的30波分阶段综合；日间天降普通阳光14秒，泳池另每13秒生成15点小阳光；水路 Transform +30px美术下沉而碰撞仍回归逻辑行
 - [通用 shader ClipRect](project_pvz_shader_clip_rect.md) — 2026-07-23 `PushClipRect/PopClipRect` 全部改为逐顶点/逐实例 framebuffer 矩形裁剪；不再 flush、切 draw、录 worker 状态命令或动态改 scissor；覆盖水路、伴舞出土、图鉴格窗、粒子阻断，含延迟文字继承与无裁剪片元快路径
-- [冒险第二大关起雨势天气与独立迷雾](project_pvz_night_rain_weather.md) — 2026-08-15 Board 仍是唯一天气权威；夜间泳池保留通用雾场，6-9 经集中关卡判定单关复用默认雾、动态大雾、完整路灯花与雾存档，6-1～6-8 无雾；通用雨势、4-9 暴风雨夜与昼夜屋顶雨景见主题
+- [冒险第二大关起雨势天气与独立迷雾](project_pvz_night_rain_weather.md) — 2026-08-22 大雨分级文字警报只在公开预报与真实下一天气报准且均为大雨时提前 5 秒显示，误报仍锁定待生效台风但隐藏文字；Board 仍是唯一天气权威，独立迷雾、4-9 暴风雨夜与昼夜屋顶雨景见主题
 - [路灯花与迷雾核心](project_pvz_plantern_fog_core.md) — 2026-08-22 唯一路灯花以25/100雾火维持四挡逐格照明/索敌与产光；本体交互改由CardSlotManager和Cell唯一解析，空手悬停显示手型并可开菜单，拿植物/铲子/炮击准星时不显示手型、不展开菜单且不截断同格南瓜头或under层避雷花盆放置；燃料曲线、6-9动态雾和存档合同保持
 - [雾夜第四大关4-1至4-9出怪节奏](project_pvz_fog_spawnlist_pacing.md) — 2026-08-03 4-8当前为普通/精英海豚、气球、跳跳三高度池；4-9为12类型暴风雨终局综合池并以普通/精英跳跳收尾；权威资源未改，4-7～4-9有序池与预览专项已同步并可见通过
 - [经典小丑僵尸](project_pvz_jack_in_the_box_zombie.md) — 2026-08-02 `ZOMBIE_JACK_IN_THE_BOX`：500 HP、0.66～0.68速度、随机开盒与共享循环声；第45帧啃食、第66帧爆炸、第89帧死亡，爆炸只伤敌对阵营僵尸（未魅惑侧直接清除爆区全部植物层），明确不受南瓜范围拦截影响；专属大范围爆炸、原版普通完整掉头、残肢和存档均有可见回归
