@@ -45,10 +45,10 @@ Card::Card(PlantType plantType, int sunCost, float cooldown, bool isInChooseCard
 	SetupComponents();
 }
 
-/** 创建仍待后续阶段迁移的碰撞、点击和空间附件。 */
+/** 创建卡片的空间值以及仍待后续阶段迁移的碰撞、点击附件。 */
 void Card::SetupComponents()
 {
-	mTransform = AddComponent<TransformComponent>();
+	CreateTransform();
 	auto* collision = AddComponent<ColliderComponent>(Vector(CARD_WIDTH, CARD_HEIGHT));
 	collision->isStatic = true;
 	collision->isTrigger = true;
@@ -219,24 +219,24 @@ void Card::UpdateCooldown()
 
 void Card::UpdateMovement()
 {
-	if (!mIsMoving || !mTransform) return;
+	if (!mIsMoving || !GetTransform()) return;
 
-	const Vector currentPos = mTransform->GetPosition();
+	const Vector currentPos = GetTransform()->GetPosition();
 	const Vector dir = mTargetPos - currentPos;
 	const float dist = dir.magnitude();
 	if (dist < 0.1f) {
-		mTransform->SetPosition(mTargetPos);
+		GetTransform()->SetPosition(mTargetPos);
 		mIsMoving = false;
 		return;
 	}
 
 	const float step = mMoveSpeed * DeltaTime::GetDeltaTime();
 	if (step >= dist) {
-		mTransform->SetPosition(mTargetPos);
+		GetTransform()->SetPosition(mTargetPos);
 		mIsMoving = false;
 		return;
 	}
-	mTransform->SetPosition(currentPos + dir.normalized() * step);
+	GetTransform()->SetPosition(currentPos + dir.normalized() * step);
 }
 
 void Card::ForceStateUpdate()
@@ -331,7 +331,7 @@ void Card::SetTargetPosition(const Vector& target)
 
 void Card::SnapToOriginalPosition()
 {
-	if (mTransform) mTransform->SetPosition(mOriginalPos);
+	if (GetTransform()) GetTransform()->SetPosition(mOriginalPos);
 	mTargetPos = mOriginalPos;
 	mIsMoving = false;
 }
@@ -384,9 +384,9 @@ void Card::Draw(Graphics* g)
 {
 	if (!mActive || !mStarted || !g) return;
 	GameObject::Draw(g);
-	if (!mTransform) return;
+	if (!GetTransform()) return;
 
-	const Vector logical = mTransform->GetPosition();
+	const Vector logical = GetTransform()->GetPosition();
 	const Vector position = g->LogicalToWorld(logical.x, logical.y);
 	Board* board = nullptr;
 	if (mPlantType == PlantType::PLANT_PLANTERN && !mIsInChooseCardUI) {

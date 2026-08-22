@@ -291,13 +291,13 @@ void PogoZombie::ZombieUpdate(float scaledTime)
 	if (mBounceRemaining <= 0.0f) ResolveBounceLanding();
 }
 
-void PogoZombie::MovePogoDistance(float distance, TransformComponent* transform)
+void PogoZombie::MovePogoDistance(float distance, Transform* transform)
 {
 	if (!transform || distance <= 0.0f) return;
 	transform->Translate(IsMovingRight() ? distance : -distance, 0.0f);
 }
 
-void PogoZombie::ZombieMove(float scaledDelta, TransformComponent* transform)
+void PogoZombie::ZombieMove(float scaledDelta, Transform* transform)
 {
 	if (!mHasPogo || mPhase == Phase::WALKING) {
 		Zombie::ZombieMove(scaledDelta, transform);

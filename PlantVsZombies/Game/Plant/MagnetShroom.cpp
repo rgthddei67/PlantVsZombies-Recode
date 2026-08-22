@@ -1,4 +1,5 @@
 #include "MagnetShroom.h"
+#include "../../GameApp.h"
 
 #include "../AudioSystem.h"
 #include "../Board.h"

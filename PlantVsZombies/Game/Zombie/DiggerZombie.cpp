@@ -213,7 +213,7 @@ void DiggerZombie::ZombieUpdate(float scaledTime)
 	UpdateFacing();
 }
 
-void DiggerZombie::ZombieMove(float scaledDelta, TransformComponent* transform)
+void DiggerZombie::ZombieMove(float scaledDelta, Transform* transform)
 {
 	if (!transform || scaledDelta <= 0.0f) return;
 	if (mPhase == Phase::TUNNELING) {

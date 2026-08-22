@@ -46,8 +46,8 @@ void GameObject::Start() {
 void GameObject::Update() {
 	if (!mActive || !mStarted) return;
 
-	// 阶段三：仅 iterate mUpdatableComponents 视图（通常 size 0-1）
-	// zombie/plant/bullet 上挂的 Transform/Collider/Shadow 都 NeedsUpdate()=false，视图为空，outer loop 直接退出
+	// 阶段三：仅 iterate mUpdatableComponents 视图（通常 size 0-1）。Transform 已是宿主值，
+	// zombie/plant/bullet 仅挂的 Collider/Shadow 都 NeedsUpdate()=false，视图为空，outer loop 直接退出。
 	for (Component* c : mUpdatableComponents) {
 		if (c->mEnabled) c->Update();
 	}

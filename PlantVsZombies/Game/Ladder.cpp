@@ -36,16 +36,16 @@ Ladder::Ladder(Board* board, int row, int column, LadderStyle style)
 {
 	SetTag("Ladder");
 	SetName("Ladder_" + std::to_string(row) + "_" + std::to_string(column));
-	mTransform = AddComponent<TransformComponent>(LadderDrawPosition(mBoard, row, column));
+	CreateTransform(LadderDrawPosition(mBoard, row, column));
 }
 
 void Ladder::Draw(Graphics* g)
 {
-	if (!g || !mTransform) return;
+	if (!g || !GetTransform()) return;
 	const Texture* texture = ResourceManager::GetInstance().GetTexture(
 		GetTextureKey(), false);
 	if (!texture) return;
-	const Vector position = mTransform->GetPosition() + GetGridMoveVisualOffset();
+	const Vector position = GetTransform()->GetPosition() + GetGridMoveVisualOffset();
 	g->DrawTexture(texture, position.x, position.y,
 		static_cast<float>(texture->width) * kLadderDrawScale,
 		static_cast<float>(texture->height) * kLadderDrawScale);
@@ -59,7 +59,7 @@ void Ladder::MoveToGridCell(int row, int column)
 	GameObjectManager::GetInstance().RefreshRenderOrderForSortingKey(
 		this, previousRow);
 	SetName("Ladder_" + std::to_string(row) + "_" + std::to_string(column));
-	if (mTransform) mTransform->SetPosition(LadderDrawPosition(mBoard, row, column));
+	if (GetTransform()) GetTransform()->SetPosition(LadderDrawPosition(mBoard, row, column));
 }
 
 Vector Ladder::GetGridMoveVisualOffset() const
@@ -71,8 +71,8 @@ Vector Ladder::GetGridMoveVisualOffset() const
 
 Vector Ladder::GetVisualCenter() const
 {
-	const Vector position = mTransform
-		? mTransform->GetPosition() + GetGridMoveVisualOffset()
+	const Vector position = GetTransform()
+		? GetTransform()->GetPosition() + GetGridMoveVisualOffset()
 		: Vector::zero();
 	const Texture* texture = ResourceManager::GetInstance().GetTexture(
 		GetTextureKey(), false);

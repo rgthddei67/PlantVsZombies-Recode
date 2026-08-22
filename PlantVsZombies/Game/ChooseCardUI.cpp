@@ -36,7 +36,7 @@ ChooseCardUI::ChooseCardUI(GameScene* gameScene)
 	mSelectedCards.reserve(16);
 	mGameScene = gameScene;
 	if (!mGameScene) return;
-	mTransform = AddComponent<TransformComponent>(60.0f, 800.0f);
+	CreateTransform(60.0f, 800.0f);
 
 	mCardUITexture = ResourceManager::GetInstance().
 		GetTexture(ResourceKeys::Textures::IMAGE_SEEDCHOOSER_BACKGROUND);
@@ -106,7 +106,7 @@ void ChooseCardUI::Update() {
 }
 
 void ChooseCardUI::SetPosition(const Vector& position) {
-	if (mTransform) mTransform->SetPosition(position);
+	if (GetTransform()) GetTransform()->SetPosition(position);
 	SyncRestoreButtonPosition();
 	SyncPageButtonPosition();
 }
@@ -171,7 +171,7 @@ void ChooseCardUI::AddCard(PlantType type) {
 		CreateGameObjectImmediate<Card>(LAYER_UI, type,
 			gameMgr.GetPlantSunCost(type), gameMgr.GetPlantCooldown(type), true);
 
-	if (auto transform = card->GetComponent<TransformComponent>()) {
+	if (auto transform = card->GetTransform()) {
 		transform->SetPosition(Vector(posX, posY));
 	}
 	card->SetOriginalPosition(Vector(posX, posY));
@@ -310,8 +310,8 @@ std::vector<PlantType> ChooseCardUI::GetHiddenCardTypes() const {
 
 void ChooseCardUI::SyncRestoreButtonPosition() {
 	auto button = mRestoreButton.lock();
-	if (!button || !mTransform || !mCardUITexture) return;
-	const Vector panelPosition = mTransform->GetPosition();
+	if (!button || !GetTransform() || !mCardUITexture) return;
+	const Vector panelPosition = GetTransform()->GetPosition();
 	const float buttonWidth = kRestoreButtonTextureWidth * kRestoreButtonScale;
 	button->SetPosition(Vector(
 		panelPosition.x + static_cast<float>(mCardUITexture->width)

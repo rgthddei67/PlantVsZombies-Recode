@@ -52,7 +52,7 @@ protected:
 	void LoadExtraData(const nlohmann::json& j) override;
 	void SetupZombie() override;
 	void ZombieUpdate(float scaledTime) override;
-	void ZombieMove(float scaledDelta, TransformComponent* transform) override;
+	void ZombieMove(float scaledDelta, Transform* transform) override;
 
 	/** @brief 恢复稳态 anim_walk；跳跃中拒绝介质切换抢占 anim_jump。 */
 	void PlayWalkAnimation(float blendTime) override;

@@ -1,4 +1,5 @@
 #include "PoolConeZombie.h"
+#include "../../ParticleSystem/ParticleSystem.h"
 
 /** 初始化路障耐久，同时保留泳池僵尸的事件与稳态轨道设置。 */
 void PoolConeZombie::SetupZombie()

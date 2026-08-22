@@ -48,7 +48,7 @@ public:
 protected:
 	void SetupZombie() override;
 	void RegisterFrameEvents() override;
-	void ZombieMove(float scaledDelta, TransformComponent* transform) override;
+	void ZombieMove(float scaledDelta, Transform* transform) override;
 	void PlayWalkAnimation(float blendTime) override;
 	void OnStartEating() override;
 	void SaveExtraData(nlohmann::json& j) const override;

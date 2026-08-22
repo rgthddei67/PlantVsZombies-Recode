@@ -84,7 +84,7 @@ public:
 protected:
 	void SetupZombie() override;
 	/** @brief 指挥姿势期间停止自主移动，其余阶段复用普通僵尸移动。 */
-	void ZombieMove(float scaledDelta, TransformComponent* transform) override;
+	void ZombieMove(float scaledDelta, Transform* transform) override;
 	/** @brief 高血量稳态使用 idle2；换行和 4000 以下阶段才播放普通走路。 */
 	void PlayWalkAnimation(float blendTime) override;
 	/** @brief 隐藏普通头部组并发射军帽与头一体的专属掉落粒子。 */

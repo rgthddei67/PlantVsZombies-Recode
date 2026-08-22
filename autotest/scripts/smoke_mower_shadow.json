@@ -1,6 +1,7 @@
 {
   "commands": [
     { "op": "goto_level", "level": 1 },
+    { "op": "choose_cards", "cards": ["PLANT_PEASHOOTER"], "timeout": 20 },
     { "op": "wait_state", "state": "GAME", "timeout": 20 },
     { "op": "set_sun", "value": 500 },
     { "op": "plant", "type": "PLANT_PEASHOOTER", "row": 2, "col": 0 },

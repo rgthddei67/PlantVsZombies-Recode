@@ -3,7 +3,7 @@
 #define _TROPHY_H
 
 #include "GameObject.h"
-#include "TransformComponent.h"
+#include "Transform.h"
 #include "ColliderComponent.h"
 #include "ClickableComponent.h"
 
@@ -14,7 +14,6 @@ class Board;
 class Trophy : public GameObject {
 private:
 	Board* mBoard = nullptr;
-	TransformComponent* mTransform = nullptr;
 
 	// 入场缩放动画（三次缓入 APPEAR_START_SCALE → BASE_SCALE）
 	bool mAppearing = true;

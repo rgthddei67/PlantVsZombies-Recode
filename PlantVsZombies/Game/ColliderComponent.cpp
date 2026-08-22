@@ -1,5 +1,5 @@
 #include "ColliderComponent.h"
-#include "TransformComponent.h"
+#include "Transform.h"
 #include "GameObject.h"
 #include "Component.h"
 #include "../GameApp.h"
@@ -53,9 +53,9 @@ bool ColliderComponent::ContainsPoint(const Vector& point) const {
 	return false;
 }
 
-TransformComponent* ColliderComponent::GetTransform() const {
+Transform* ColliderComponent::GetTransform() const {
 	if (auto* gameObj = GetGameObject()) {
-		return gameObj->GetComponent<TransformComponent>();
+		return gameObj->GetTransform();
 	}
 	return nullptr;
 }

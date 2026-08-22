@@ -8,7 +8,7 @@
 #include <functional>
 #include <cstdint>
 
-class TransformComponent;
+class Transform;
 
 // 碰撞形状类型
 enum class ColliderType {
@@ -50,7 +50,7 @@ public:
 	SDL_Color debugColor = { 255, 0, 0, 255 }; // 调试颜色（红色）
 
 	// 帧缓存：由 CollisionSystem::Update 在帧首一次性写入，CheckCollision 直接读取，
-	// 避免每次检测都走 GetComponent<TransformComponent>() 的 unordered_map 查找。
+	// 避免每次窄相检测都重复组合宿主 Transform 与碰撞体局部几何。
 	SDL_FRect cachedBounds{ 0, 0, 0, 0 };
 	Vector    cachedWorldPos;
 
@@ -83,7 +83,7 @@ public:
 	void DrawCircleCollider(Graphics* g, const Vector& center, float radius);
 
 private:
-	TransformComponent* GetTransform() const;
+	Transform* GetTransform() const;
 };
 
 #endif

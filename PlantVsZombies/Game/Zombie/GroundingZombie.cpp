@@ -26,8 +26,8 @@ bool GroundingZombie::TryGetNightRoofChargeGuideAnchor(Vector& anchor) const
 {
 	if (!CanGuideNightRoofCharge() || !mAnimator
 		|| !mAnimator->HasTrack("anim_cone")) return false;
-	const float scale = GetTransformComponent()
-		? GetTransformComponent()->GetScale() : 1.0f;
+	const float scale = GetTransform()
+		? GetTransform()->GetScale() : 1.0f;
 	anchor = GetTrackWorldPosition("anim_cone")
 		+ Vector(kAntennaAnchorOffsetX * scale, kAntennaAnchorOffsetY * scale);
 	return true;

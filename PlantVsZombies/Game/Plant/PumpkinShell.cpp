@@ -73,7 +73,7 @@ void PumpkinShell::DrawStackBackground(Graphics* g)
 		mAnimator->GetRenderScaleX(), mAnimator->GetRenderScaleY(),
 		mAnimator->GetRenderPivotX(), mAnimator->GetRenderPivotY());
 	const Vector position = GetVisualPosition();
-	const float scale = mTransform ? mTransform->GetScale() : 1.0f;
+	const float scale = GetTransform() ? GetTransform()->GetScale() : 1.0f;
 	mBackAnimator->Draw(g, position.x, position.y, scale);
 }
 

@@ -12,7 +12,7 @@
 #include "../EntityManager.h"
 #include "BulletType.h"
 #include "../../ParticleSystem/ParticleSystem.h"
-#include "../TransformComponent.h"
+#include "../Transform.h"
 #include "../ColliderComponent.h"
 #include "../AudioSystem.h"
 #include "../Zombie/Zombie.h"
@@ -62,7 +62,6 @@ protected:
 	std::shared_ptr<Animator> mProjectileAnimator;
 	bool mAnimatorAdvancedInParallel = false;
 
-	TransformComponent* mTransform = nullptr;
 	ColliderComponent* mCollider = nullptr;
 	ShadowComponent* mShadow = nullptr;
 
@@ -211,8 +210,7 @@ public:
 	int GetCobTargetRow() const { return mCobTargetRow; }
 
 	int GetSortingKey() const override { return this->mRow; }
-	TransformComponent* GetTransformComponent() const { return mTransform; }
-	Vector GetPosition() const { return GetTransformComponent()->GetPosition(); }
+	Vector GetPosition() const { return GetTransform()->GetPosition(); }
 	ColliderComponent* GetColliderComponent() const { return mCollider; }
 };
 

@@ -4,7 +4,7 @@
 
 #include "GameObject.h"
 #include "./Plant/PlantType.h"
-#include "TransformComponent.h"
+#include "Transform.h"
 #include "WeatherTypes.h"
 
 constexpr float CARD_SCALE = 0.5f; // 卡牌缩放比例（≤0.5 会超过双线性 2:1 缩小上限而发糊）
@@ -22,7 +22,6 @@ public:
 	void Update() override;
 	void Draw(Graphics* g) override;
 
-	TransformComponent* GetTransform() { return mTransform; }
 	bool GetIsInChooseCardUI() const { return mIsInChooseCardUI; }
 	/** 切换选卡/实战上下文，并在对象已启动时同步点击行为。 */
 	void SetIsInChooseCardUI(bool isInChooseCardUI);
@@ -68,7 +67,6 @@ private:
 		Click,
 	};
 
-	TransformComponent* mTransform = nullptr; // 同对象组件，由 GameObject 持有
 	CardSlotManager* mCardSlotManager = nullptr; // GameScene 独占，Card 仅保存非拥有观察指针
 
 	PlantType mPlantType = PlantType::PLANT_PEASHOOTER;

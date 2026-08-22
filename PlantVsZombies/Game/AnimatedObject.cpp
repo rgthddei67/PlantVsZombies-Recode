@@ -23,10 +23,9 @@ AnimatedObject::AnimatedObject(ObjectType type,
 	// mIsPlaying(false) / mLoopType(PLAY_REPEAT) 均由头文件就地初始化
 	SetTag(tag);
 
-	auto* transform = AddComponent<TransformComponent>();
+	auto* transform = CreateTransform();
 	transform->SetPosition(position);
 	transform->SetScale(scale);
-	mTransform = transform;
 
 	if (colliderSize.x > 0 && colliderSize.y > 0) {
 		mCollider = AddComponent<ColliderComponent>(colliderSize, colliderOffset, colliderType);
@@ -50,8 +49,8 @@ AnimatedObject::AnimatedObject(ObjectType type,
 }
 
 Vector AnimatedObject::GetVisualPosition() const {
-	if (mTransform) {
-		return mTransform->GetPosition();
+	if (GetTransform()) {
+		return GetTransform()->GetPosition();
 	}
 	return Vector::zero();
 }
@@ -85,7 +84,7 @@ void AnimatedObject::Draw(Graphics* g) {
 	GameObject::Draw(g);
 	if (!mAnimator) return;
 	Vector pos = GetVisualPosition();
-	float scale = mTransform ? mTransform->GetScale() : 1.0f;
+	float scale = GetTransform() ? GetTransform()->GetScale() : 1.0f;
 	mAnimator->Draw(g, pos.x, pos.y, scale);
 }
 
@@ -111,27 +110,27 @@ void AnimatedObject::StopAnimation() {
 }
 
 void AnimatedObject::SetAnimationPosition(const Vector& position) {
-	if (mTransform) {
-		mTransform->SetPosition(position);
+	if (GetTransform()) {
+		GetTransform()->SetPosition(position);
 	}
 }
 
 Vector AnimatedObject::GetAnimationPosition() const {
-	if (mTransform) {
-		return mTransform->GetPosition();
+	if (GetTransform()) {
+		return GetTransform()->GetPosition();
 	}
 	return Vector::zero();
 }
 
 void AnimatedObject::SetAnimationScale(float scale) {
-	if (mTransform) {
-		mTransform->SetScale(scale);
+	if (GetTransform()) {
+		GetTransform()->SetScale(scale);
 	}
 }
 
 float AnimatedObject::GetAnimationScale() const {
-	if (mTransform) {
-		return mTransform->GetScale();
+	if (GetTransform()) {
+		return GetTransform()->GetScale();
 	}
 	return 1.0f;
 }
@@ -291,10 +290,6 @@ void AnimatedObject::SetCurrentFrame(float frameIndex) {
 	if (mAnimator) {
 		mAnimator->SetCurrentFrame(frameIndex);
 	}
-}
-
-TransformComponent* AnimatedObject::GetTransformComponent() const {
-	return mTransform;
 }
 
 ColliderComponent* AnimatedObject::GetColliderComponent() const {

@@ -3,7 +3,7 @@
 #define _CRATER_H
 
 #include "GameObject.h"
-#include "TransformComponent.h"
+#include "Transform.h"
 #include <string>
 
 class Board;
@@ -31,7 +31,6 @@ private:
 	static constexpr float FADE_OUT_TIME = 0.25f;	// 原版 counter<25cs 起 alpha 线性淡出
 
 	Board* mBoard = nullptr;
-	TransformComponent* mTransform = nullptr;
 };
 
 #endif

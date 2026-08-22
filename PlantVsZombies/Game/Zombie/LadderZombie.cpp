@@ -187,7 +187,7 @@ void LadderZombie::ZombieUpdate(float)
 	}
 }
 
-void LadderZombie::ZombieMove(float scaledDelta, TransformComponent* transform)
+void LadderZombie::ZombieMove(float scaledDelta, Transform* transform)
 {
 	if (mPhase == Phase::PLACING) return;
 	Zombie::ZombieMove(scaledDelta, transform);

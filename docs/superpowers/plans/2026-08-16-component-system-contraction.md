@@ -2,7 +2,7 @@
 
 日期：2026-08-16
 
-状态：执行中；Card 专属组件与 CardSlotManager 已完成，Transform 及后续阶段待实施
+状态：执行中；Card 专属组件、CardSlotManager 与 Transform 已完成并独立验证，下一阶段为纯 UI 所有权或 Collider
 
 **目标：** 在保持继承式植物/僵尸、现有运行行为、存档、输入和绘制契约的前提下，分阶段移除通用 `Component` 容器；保留并显式化 Transform、Collider、Shadow、Clickable 与卡片能力。
 
@@ -103,25 +103,38 @@
 
 - `PlantVsZombies/Game/GameObject.h/.cpp`
 - `PlantVsZombies/Game/AnimatedObject.h/.cpp`
-- `PlantVsZombies/Game/TransformComponent.h`
+- `PlantVsZombies/Game/Transform.h`（替代已删除的 `TransformComponent.h`）
 - 所有 `GetComponent<TransformComponent>` / `AddComponent<TransformComponent>` 调用方
 
 **步骤：**
 
-- [ ] 统计无 Transform 的 GameObject，决定使用基类直接值成员还是 `SpatialGameObject`；不得凭名称假设全部对象都有空间数据。
-- [ ] 引入非多态 `Transform` 值对象，保持 position/scale/rotation 语义和单位不变。
-- [ ] 先提供兼容 `GetTransform()`/位置访问器并迁移调用方，避免一次修改与删除交叉。
-- [ ] Collider、Shadow、Animator 和存档统一读取新 Transform 权威值，禁止保留双写镜像。
-- [ ] 所有调用点迁移后删除 `TransformComponent`，并确认对象池复用会重置完整 Transform 状态。
-- [ ] 审计 adding-plant、adding-zombie 及其 references 中 `Transform`/坐标权威描述；只改接口名称，不削弱逻辑位置与视觉偏移分离契约，并校验改过技能。
+- [x] 统计无 Transform 的 GameObject：`GameMessageBox`、`GameButton`、`MistFuel`、`Shovel`；采用 `GameObject` 内可选值，避免凭名称强制所有对象拥有空间数据。
+- [x] 引入非多态 `Transform` 值对象，保持 position/scale/rotation 语义和单位不变。
+- [x] 提供 `CreateTransform()` / `GetTransform()` 并迁移全部调用方，不保留旧组件访问器。
+- [x] Collider、Shadow、Animator 和存档统一读取新 Transform 权威值，未保留双写镜像。
+- [x] 删除 `TransformComponent`；BulletPool 复用时通过 `Transform::Reset` 一次恢复位置、缩放和旋转。
+- [x] 审计 adding-plant、adding-zombie 及其 references 中 `Transform`/坐标权威描述；只改接口名称，不削弱逻辑位置与视觉偏移分离契约，并校验改过技能。
 
 **验证：**
 
-- [ ] 构建 `clang-release`。
-- [ ] 可见运行普通草地、泳池和屋顶最小专项，核对植物、僵尸、子弹、割草机、弹坑、卡片和 UI 位置。
-- [ ] 同步截图核对 `smoke_bullet_shadow.json`、`smoke_pool_plant_shadow_bob.json`、屋顶地形专项。
-- [ ] 存档快照往返后断言位置、行列和视觉偏移未被混成同一字段。
-- [ ] 独立提交。
+- [x] 构建 `clang-release`，LTO 链接与 Win7 import audit 通过。
+- [x] 可见运行普通草地、泳池和屋顶专项，核对植物、僵尸、子弹、割草机、弹坑、卡片和 UI 位置；`smoke_gameplay`、`smoke_mower_shadow`、`smoke_choose_card_pagination` 均退出 0、`status=passed`。
+- [x] 同步截图核对 `smoke_bullet_shadow`、`smoke_pool_plant_shadow_bob` 默认与 `-NoInstance`、`smoke_roof_terrain_consumers`，各脚本退出 0、`status=passed`。
+- [x] `smoke_roof_terrain_consumers` 经正式 `save_level_snapshot` / `reload_level_snapshot` 锁定植物、小推车、屋顶地形与视觉偏移；`smoke_zombie_row_index_lifetime` 同时确认僵尸行索引生命周期无回归。
+- [x] 独立提交。
+
+---
+
+## Task 3A（独立后续）：UI 对象脱离 GameObjectManager
+
+该阶段来自 2026-08-22 的架构复核，必须在 Transform 提交后单独实施，不能与空间数据迁移混成一个回归面。
+
+- [ ] 将无 Transform、无 Collider/Shadow/Clickable 的 `GameButton` 改为 `MainMenuScene` 直接拥有的普通 UI 控制器，继续通过 `UIManager` 创建和启停四个入口按钮。
+- [ ] 将 `GameMessageBox` 改为 `UIManager` 拥有的模态对象，不再借用 `GameObjectManager` 的 Start/Draw/延迟删除；保留 Builder、弱引用调用方、回调内自动关闭、绘制层和场景退出清理语义。
+- [ ] 为 UIManager 增加回调安全的延迟移除队列，禁止在 Button/Slider 回调遍历期间立即销毁模态对象。
+- [ ] 保持主菜单、暂停菜单、控制台、生存词条和开发者面板的坐标、输入遮挡、按钮状态与画面不变。
+- [ ] 用当前最小可见 UI 专项覆盖主菜单四入口、选项/控制台、游戏暂停、词条选择和场景切换；独立构建、截图、提交。
+- [ ] 该阶段以所有权清晰为首要收益，同时去掉 UI 对象进入全局 GOM 更新/排序/绘制遍历的固定开销；没有同场景 A/B 数据时不宣称 FPS 数字。
 
 ---
 

@@ -24,7 +24,7 @@ protected:
 
 	void CheckShieldImage() override;
 
-	void ZombieMove(float scaledDelta, TransformComponent* transform) override;
+	void ZombieMove(float scaledDelta, Transform* transform) override;
 	float GetAbilityAnimSpeedMultiplier() const override;
 
 public:

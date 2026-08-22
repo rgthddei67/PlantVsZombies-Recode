@@ -47,7 +47,7 @@ public:
 protected:
 	void SetupZombie() override;
 	void RegisterFrameEvents() override;
-	void ZombieMove(float scaledDelta, TransformComponent* transform) override;
+	void ZombieMove(float scaledDelta, Transform* transform) override;
 	void PlayWalkAnimation(float blendTime) override;
 	float GetAbilityAnimSpeedMultiplier() const override;
 	void OnMindControlled() override;

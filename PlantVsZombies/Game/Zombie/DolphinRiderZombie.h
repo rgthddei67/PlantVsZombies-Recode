@@ -47,7 +47,7 @@ protected:
 	void SetupZombie() override;
 	void RegisterFrameEvents() override;
 	void ZombieUpdate(float scaledTime) override;
-	void ZombieMove(float scaledDelta, TransformComponent* transform) override;
+	void ZombieMove(float scaledDelta, Transform* transform) override;
 	void PlayWalkAnimation(float blendTime) override;
 	void SaveExtraData(nlohmann::json& j) const override;
 	void LoadExtraData(const nlohmann::json& j) override;
@@ -67,7 +67,7 @@ private:
 	void FinishJump(bool blocked, Plant* blockingPlant = nullptr);
 	void ApplyPhasePresentation() const;
 	void CheckDeferredArmDrop();
-	void MoveManually(float speed, float scaledDelta, TransformComponent* transform);
+	void MoveManually(float speed, float scaledDelta, Transform* transform);
 
 	Phase mPhase = Phase::APPROACHING;
 	int mJumpTargetPlantID = NULL_PLANT_ID;

@@ -1,4 +1,5 @@
 #include "FastBucketZombie.h"
+#include "../../ParticleSystem/ParticleSystem.h"
 
 namespace
 {

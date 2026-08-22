@@ -471,7 +471,7 @@ void Zombie::Update()
 	if (mTangleKelpGrabFront) mTangleKelpGrabFront->Update();
 	if (!mIsPreview) {
 		float deltaTime = DeltaTime::GetDeltaTime();
-		auto* transform = this->GetTransformComponent();
+		auto* transform = this->GetTransform();
 
 		if (!transform || !mBoard) return;
 
@@ -710,7 +710,7 @@ void Zombie::FinalizeProtectedLoad()
  * 屋顶高度是 Board 拥有的地形数据。所有普通、飞行、地下和特殊移动品种都只提交 X，
  * 基类再把逻辑落脚点贴到连续坡面，避免各品种复制一套斜坡公式。
  */
-void Zombie::SyncToRoofTerrain(TransformComponent* transform)
+void Zombie::SyncToRoofTerrain(Transform* transform)
 {
 	if (!transform || !mBoard || mIsPreview || !mBoard->IsRoofBackground()) return;
 	// 大蒜换行期间 Y 正向目标行平滑收敛；坡面同步若同帧硬贴目标行会抹掉这段过渡。
@@ -872,7 +872,7 @@ void Zombie::CancelGarlicRedirect(bool stopEating)
 
 	// 当前引擎没有原版每帧通用 Y 收敛；中途打断必须落到已提交行，不能把碰撞箱留在行间。
 	if (mGarlicRowChanged && mBoard) {
-		if (TransformComponent* transform = GetTransformComponent()) {
+		if (Transform* transform = GetTransform()) {
 			Vector position = transform->GetPosition();
 			const float targetY = mBoard->GetZombieSpawnY(mRow, position.x);
 			if (targetY >= 0.0f) {
@@ -888,7 +888,7 @@ void Zombie::CancelGarlicRedirect(bool stopEating)
 	UpdateAnimSpeed();
 }
 
-void Zombie::UpdateGarlicRedirect(float deltaTime, TransformComponent* transform)
+void Zombie::UpdateGarlicRedirect(float deltaTime, Transform* transform)
 {
 	if (!mGarlicRedirectActive || !mBoard || !transform || mIsPreview || mIsDying || mIsDead) return;
 	// 对齐原版 Animate 的定身早退：冻结和黄油都暂停嫌恶计时，解控后从原节点继续。
@@ -947,7 +947,7 @@ void Zombie::UpdateGarlicRedirect(float deltaTime, TransformComponent* transform
  * 将 Board 给出的有符号阵风速度直接叠加到世界坐标。吹向前线时在出生边界内钳位，
  * 避免阵风把刚生成的僵尸推过现有清理线；吹向房屋则保留其真实危险性。
  */
-void Zombie::ApplyTyphoonGustDrift(float deltaTime, TransformComponent* transform)
+void Zombie::ApplyTyphoonGustDrift(float deltaTime, Transform* transform)
 {
 	if (!transform || !mBoard || mIsDying || deltaTime <= 0.0f
 		|| !CanBeMovedByTyphoonGust()) return;
@@ -967,7 +967,7 @@ void Zombie::ApplyTyphoonGustDrift(float deltaTime, TransformComponent* transfor
  * 坡面径流与自主行走正交，即使僵尸正在啃食或被定身也会被水推走；飞行、地下、
  * 弹跳中及明确拒绝台风物理位移的品种不属于屋面地面单位，因此保持原位。
  */
-void Zombie::ApplyRoofRunoffDrift(float deltaTime, TransformComponent* transform)
+void Zombie::ApplyRoofRunoffDrift(float deltaTime, Transform* transform)
 {
 	if (!transform || !mBoard || mIsDying || deltaTime <= 0.0f
 		|| !CanBeMovedByTyphoonGust() || !CanUseGroundPoolState() || IsFlying()) return;
@@ -1046,7 +1046,7 @@ void Zombie::UpdatePoolVisualState() const
 	}
 }
 
-void Zombie::ZombieMove(float scaledDelta, TransformComponent* transform)
+void Zombie::ZombieMove(float scaledDelta, Transform* transform)
 {
 	float speed = 0.0f;
 	// 尝试从 _ground 轨道获取速度
@@ -1116,7 +1116,7 @@ bool Zombie::TryStartLadderClimb(Plant* plant)
 	return true;
 }
 
-void Zombie::UpdateLadderClimb(float scaledDelta, TransformComponent* transform)
+void Zombie::UpdateLadderClimb(float scaledDelta, Transform* transform)
 {
 	if (scaledDelta <= 0.0f || !transform) return;
 	constexpr float kLadderClimbSpeed = 80.0f; // C# 每厘秒上升 0.8px，折算为 px/s
@@ -1910,14 +1910,14 @@ void Zombie::Die()
 }
 
 Vector Zombie::GetVisualPosition() const {
-	return GetTransformComponent()->GetPosition()
+	return GetTransform()->GetPosition()
 		+ mVisualOffset + Vector(0.0f, mTangleKelpSinkOffset - mLadderAltitude);
 }
 
 Vector Zombie::GetButterSplatAnchor() const
 {
-	const float scale = GetTransformComponent()
-		? GetTransformComponent()->GetScale() : 1.0f;
+	const float scale = GetTransform()
+		? GetTransform()->GetScale() : 1.0f;
 	const char* trackName = GetButterSplatTrackName();
 	return mAnimator && trackName && mAnimator->HasTrack(trackName)
 		? GetTrackWorldPosition(trackName)
@@ -1977,8 +1977,8 @@ bool Zombie::CanBeTargetedByMagnetShroom() const
 
 Vector Zombie::GetTrackWorldPosition(const std::string& trackName) const
 {
-	const float scale = GetTransformComponent()
-		? GetTransformComponent()->GetScale() : 1.0f;
+	const float scale = GetTransform()
+		? GetTransform()->GetScale() : 1.0f;
 	const Vector local = mAnimator
 		? mAnimator->GetTrackPosition(trackName) : Vector::zero();
 	return GetVisualPosition() + local * scale;
@@ -2411,12 +2411,12 @@ void Zombie::StopEat(ColliderComponent* other)
 
 Vector Zombie::GetPosition() const
 {
-	return GetTransformComponent()->GetPosition();
+	return GetTransform()->GetPosition();
 }
 
 void Zombie::SetPosition(const Vector& position)
 {
-	this->GetTransformComponent()->SetPosition(position);
+	this->GetTransform()->SetPosition(position);
 }
 
 float Zombie::GetCurrentHorizontalMoveSpeed() const
@@ -2486,8 +2486,8 @@ void Zombie::Draw(Graphics* g)
 
 	const Vector grabPosition = GetVisualPosition()
 		+ Vector(kTangleKelpGrabOffsetX, kTangleKelpGrabOffsetY);
-	const float scale = GetTransformComponent()
-		? GetTransformComponent()->GetScale()
+	const float scale = GetTransform()
+		? GetTransform()->GetScale()
 		: 1.0f;
 	if (mTangleKelpGrabBack) {
 		mTangleKelpGrabBack->Draw(g, grabPosition.x, grabPosition.y, scale);

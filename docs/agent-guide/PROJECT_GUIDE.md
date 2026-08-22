@@ -126,7 +126,7 @@ Vulkan 运行时把 dynamic rendering 与 synchronization2 **分别**选路：Vu
 ### 对象层次
 
 ```text
-GameObject（基类：组件系统、渲染顺序、激活状态）
+GameObject（基类：可选 Transform、遗留附件、渲染顺序、激活状态）
 └── AnimatedObject（增加 Animator 精灵动画）
     ├── Plant → Shooter → PeaShooter
     │          SunFlower、WallNut、CherryBomb……
@@ -145,14 +145,15 @@ Bullet（独立类型；通过 BulletPool 使用对象池）
 
 ### 遗留组件容器（渐进收缩）
 
-`GameObject` 当前使用 `std::unordered_map<std::type_index, std::unique_ptr<Component>>` 保存组件，并维护待初始化、可更新和可绘制的非拥有视图。现有组件包括：
+`GameObject` 通过 `std::optional<Transform>` 直接保存非多态空间值；只有空间对象才调用 `CreateTransform()`，调用方用 `GetTransform()` 读取唯一权威的位置、旋转和缩放。该值不再进入通用组件表，也没有独立堆分配、类型哈希或 Component 生命周期。
 
-- `TransformComponent`：位置（x、y）、旋转、缩放。
+遗留组件容器仍使用 `std::unordered_map<std::type_index, std::unique_ptr<Component>>`，并维护待初始化、可更新和可绘制的非拥有视图。现有组件只剩：
+
 - `ColliderComponent`：碰撞框，以及 `onTriggerEnter/Stay/Exit`、`onCollisionEnter/Exit` 回调。
 - `ClickableComponent`：鼠标交互。
 - `ShadowComponent`：阴影渲染。
 
-通过 `AddComponent<T>(args...)` 添加组件，通过 `GetComponent<T>()` 获取组件。
+其余附件通过 `AddComponent<T>(args...)` 添加、通过 `GetComponent<T>()` 获取；不得把 Transform 或新玩法状态重新放回该容器。
 
 `Card` 已直接拥有单卡的冷却、选中、三叶草方向、可用性和显示缓存，并在 `Card::Start/Update/Draw` 中显式管理点击回调、玩法更新与卡面绘制。不要重新引入 `CardComponent` / `CardDisplayComponent`，也不要通过组件容器查询单卡状态。场景级多卡仲裁由 `GameScene` 通过 `unique_ptr<CardSlotManager>` 明确拥有；实战 `Card` 由该控制器直接绑定非拥有指针，禁止恢复匿名 `CardUI` 宿主或每帧扫描组件表定位 manager。
 
@@ -262,7 +263,7 @@ Windows 首次发生真实存档访问时，会把当前工作目录旧 `./saves
 ## 编码约定
 
 - 视觉偏移使用 `mVisualOffset`，与逻辑网格位置分离。
-- `mRow`、`mColumn` 表示游戏网格单元；像素位置存放在 `TransformComponent`。
+- `mRow`、`mColumn` 表示游戏网格单元；像素位置存放在宿主唯一的 `Transform`，视觉偏移继续单独使用 `mVisualOffset`。
 - 代码文件统一使用 UTF-8（无 BOM），由根目录 `.editorconfig` 约束；中文 UI 字符串使用 UTF-8。
 - **头文件保护（每个 `.h`）：** 每个头文件必须以 `#pragma once` 开头。旧有的 `#pragma once` + `#ifndef _NAME_H` 双重形式也可接受。运行 `cmake --preset` 时会安装 `.githooks/pre-commit` hook（`git config core.hooksPath .githooks`），拒绝暂存区中缺少保护的头文件；同一配置步骤也会用 WARNING 列出仓库里已有的无保护头文件。检查支持 BOM：在前 512 字节内匹配 token，而不是锚定 `^`，因此 UTF-8 BOM 不会造成误报。原因是迁移掉 `.sln` 后，VS 的“添加新项”模板不再自动插入保护。
 

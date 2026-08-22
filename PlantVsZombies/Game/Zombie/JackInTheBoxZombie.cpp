@@ -259,7 +259,7 @@ void JackInTheBoxZombie::OnStartEating()
 }
 
 void JackInTheBoxZombie::ZombieMove(
-	float scaledDelta, TransformComponent* transform)
+	float scaledDelta, Transform* transform)
 {
 	if (mPhase == Phase::POPPING) return;
 	Zombie::ZombieMove(scaledDelta, transform);

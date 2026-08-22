@@ -70,7 +70,7 @@ protected:
 	void SetupZombie() override;
 	void RegisterFrameEvents() override {}
 	void ZombieUpdate(float scaledTime) override;
-	void ZombieMove(float, TransformComponent*) override {}
+	void ZombieMove(float, Transform*) override {}
 	void TakeBodyDamage(int damage) override;
 	void SaveExtraData(nlohmann::json& j) const override;
 	void LoadExtraData(const nlohmann::json& j) override;

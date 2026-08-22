@@ -1,4 +1,5 @@
 #include "Polevaulter.h"
+#include "../../ParticleSystem/ParticleSystem.h"
 #include "../Board.h"
 #include "../ShadowComponent.h"
 #include "../Plant/Plant.h"
@@ -190,7 +191,7 @@ float Polevaulter::GetVaultProgress() const
 
 void Polevaulter::JumpMove(float distance)
 {
-	auto transform = GetTransformComponent();
+	auto transform = GetTransform();
 	if (!transform) return;
 
 	if (mIsMindControlled) {
@@ -320,7 +321,7 @@ void Polevaulter::FinishBlockedVault(Plant& blockingPlant)
 	mVaultTargetPlantID = NULL_PLANT_ID;
 }
 
-void Polevaulter::ZombieMove(float scaledDelta, TransformComponent* transform)
+void Polevaulter::ZombieMove(float scaledDelta, Transform* transform)
 {
 	if (mVaultState == VaultState::JUMPING) {
 		const float targetExtraDistance =

@@ -172,16 +172,16 @@ void Mower::Die()
 
 Vector Mower::GetPosition() const
 {
-	if (mTransform) {
-		return mTransform->GetPosition();
+	if (GetTransform()) {
+		return GetTransform()->GetPosition();
 	}
 	return Vector::zero();
 }
 
 void Mower::SetPosition(const Vector& position)
 {
-	if (mTransform) {
-		mTransform->SetPosition(position);
+	if (GetTransform()) {
+		GetTransform()->SetPosition(position);
 	}
 }
 

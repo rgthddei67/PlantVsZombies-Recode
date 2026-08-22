@@ -81,7 +81,7 @@ void EliteDancerZombie::EatTarget()
 }
 
 /** 始终调用僵尸基础移动，不进入普通舞王打响指和定身阶段。 */
-void EliteDancerZombie::ZombieMove(float scaledDelta, TransformComponent* transform)
+void EliteDancerZombie::ZombieMove(float scaledDelta, Transform* transform)
 {
 	Zombie::ZombieMove(scaledDelta, transform);
 }

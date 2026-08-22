@@ -42,7 +42,7 @@ protected:
 	void SetupZombie() override;
 	void RegisterFrameEvents() override;
 	void ZombieUpdate(float scaledTime) override;
-	void ZombieMove(float scaledDelta, TransformComponent* transform) override;
+	void ZombieMove(float scaledDelta, Transform* transform) override;
 	void PlayWalkAnimation(float blendTime) override;
 	void CheckShieldImage() override;
 	/** 成功放梯后是否保留携梯护盾与继续放梯能力；经典扶梯只使用一次。 */

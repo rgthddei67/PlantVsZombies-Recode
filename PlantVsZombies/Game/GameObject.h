@@ -3,6 +3,7 @@
 #define _GAMEOBJECT_H
 
 #include "RenderOrder.h"
+#include "Transform.h"
 #include "../Graphics.h"
 #include "DeferredEvent.h"
 #include <memory>
@@ -11,6 +12,8 @@
 #include <typeindex>
 #include <string>
 #include <algorithm>
+#include <optional>
+#include <utility>
 
 enum class ObjectType {
 	OBJECT_NONE,
@@ -36,6 +39,7 @@ protected:
 	bool mStarted = false;   // 标记
 	bool mHasClipRect = false;
 	ClipRect mClipRect;
+	std::optional<Transform> mTransform; // 仅空间对象显式创建；非空间 UI/控制对象保持为空
 	std::vector<Component*> mComponentsToInitialize; // 待初始化的组件（裸指针指向 mComponents 内的对象）
 	std::unordered_map<std::type_index, std::unique_ptr<Component>> mComponents; // 包含的组件
 	// 阶段三：仅缓存 NeedsUpdate()=true 的 Component 视图，避免每帧 iterate mComponents 全表
@@ -59,6 +63,19 @@ public:
 	GameObject(ObjectType type = ObjectType::OBJECT_NONE);
 
 	virtual ~GameObject();
+
+	/** @brief 为当前宿主创建或重建唯一的空间值，并返回稳定的非拥有指针。 */
+	template<typename... Args>
+	Transform* CreateTransform(Args&&... args) {
+		return &mTransform.emplace(std::forward<Args>(args)...);
+	}
+
+	Transform* GetTransform() {
+		return mTransform ? &*mTransform : nullptr;
+	}
+	const Transform* GetTransform() const {
+		return mTransform ? &*mTransform : nullptr;
+	}
 
 	// 添加组件 若是刚刚创建的对象，则不能使用，因为还没有
 	template<typename T, typename... Args>

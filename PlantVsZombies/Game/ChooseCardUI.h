@@ -24,12 +24,8 @@ public:
 
 	void RemoveAllCards();
 
-	TransformComponent* GetTransformComponent() const {
-		return mTransform;
-	}
-
 	Vector GetPosition() const {
-		return GetTransformComponent()->GetPosition();
+		return GetTransform()->GetPosition();
 	}
 	/** 设置选卡面板逻辑坐标，并同步依附于面板右上角的按钮。 */
 	void SetPosition(const Vector& position);
@@ -69,7 +65,6 @@ private:
 	const Texture* mCardUITexture = nullptr;
 	GameScene* mGameScene = nullptr;
 
-	TransformComponent* mTransform = nullptr;
 	std::weak_ptr<Button> mButton;
 	std::weak_ptr<Button> mRestoreButton;
 	std::weak_ptr<Button> mPageButton;

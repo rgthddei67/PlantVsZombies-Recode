@@ -418,8 +418,8 @@ void BungeeZombie::Draw(Graphics* g)
 		mFrontArmAnimator->SetCurrentFrame(GetCurrentFrame());
 		mFrontArmAnimator->SetAlpha(GetAlpha());
 		const Vector visual = GetVisualPosition();
-		const float scale = GetTransformComponent()
-			? GetTransformComponent()->GetScale() : 1.0f;
+		const float scale = GetTransform()
+			? GetTransform()->GetScale() : 1.0f;
 		mFrontArmAnimator->Draw(g, visual.x, visual.y, scale);
 	}
 }

@@ -1,4 +1,5 @@
 #include "GargantuarZombie.h"
+#include "../../GameApp.h"
 
 #include "GargantuarCharred.h"
 #include "ImpZombie.h"
@@ -135,7 +136,7 @@ void GargantuarZombie::Update()
 	}
 }
 
-void GargantuarZombie::ZombieMove(float scaledDelta, TransformComponent* transform)
+void GargantuarZombie::ZombieMove(float scaledDelta, Transform* transform)
 {
 	if (mPhase != Phase::WALKING) return;
 	Zombie::ZombieMove(scaledDelta, transform);

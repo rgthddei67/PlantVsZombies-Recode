@@ -1,4 +1,5 @@
 #include "Cactus.h"
+#include "../../GameApp.h"
 
 #include "../../ResourceKeys.h"
 #include "../Board.h"

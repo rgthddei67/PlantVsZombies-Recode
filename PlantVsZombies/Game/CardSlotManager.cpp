@@ -431,7 +431,7 @@ void CardSlotManager::CreateCellPlantPreview(PlantType plantType, Cell* cell) {
 				? topPlant->GetRenderOrder() + 1 : LAYER_GAME_PLANT;
 			cellPlantPreview->SetRenderOrder(previewRenderOrder);
 
-			if (auto transform = cellPlantPreview->GetTransformComponent()) {
+			if (auto transform = cellPlantPreview->GetTransform()) {
 				transform->SetPosition(centerPos);             // 设置为世界坐标
 			}
 
@@ -484,7 +484,7 @@ void CardSlotManager::UpdatePlantPreviewPosition(Graphics* g, const Vector& mous
 		if (!anchorCell) return;
 		Vector centerPos = anchorCell->GetCenterPosition();               // 世界坐标
 
-		if (auto transform = cellPlantPreview->GetTransformComponent()) {
+		if (auto transform = cellPlantPreview->GetTransform()) {
 			transform->SetPosition(centerPos);                         // 设置世界坐标
 		}
 	}
@@ -514,7 +514,7 @@ Cell* CardSlotManager::FindCellAtWorldPosition(const Vector& position) const {
 
 void CardSlotManager::UpdatePreviewToMouse(const Vector& mouseWorld) {
 	if (plantPreview) {
-		if (auto transform = plantPreview->GetTransformComponent()) {
+		if (auto transform = plantPreview->GetTransform()) {
 			transform->SetPosition(mouseWorld);      // 世界坐标
 		}
 
@@ -526,7 +526,7 @@ void CardSlotManager::UpdatePreviewToMouse(const Vector& mouseWorld) {
 void CardSlotManager::UpdatePreviewToCell(Cell* cell) {
 	if (plantPreview && cell) {
 		Vector centerPos = cell->GetCenterPosition();      // 世界坐标
-		if (auto transform = plantPreview->GetTransformComponent()) {
+		if (auto transform = plantPreview->GetTransform()) {
 			transform->SetPosition(centerPos);                  // 世界坐标
 		}
 	}

@@ -114,8 +114,8 @@ void EliteJackInTheBoxZombie::Draw(Graphics* g)
 	if (!texture) return;
 
 	const Vector position = GetThrownBoxPosition();
-	const float scale = (GetTransformComponent()
-		? GetTransformComponent()->GetScale() : 1.0f) * kBoxDrawScale;
+	const float scale = (GetTransform()
+		? GetTransform()->GetScale() : 1.0f) * kBoxDrawScale;
 	const float width = static_cast<float>(texture->width) * scale;
 	const float height = static_cast<float>(texture->height) * scale;
 	const float rotation = GetBoxFlightProgress() * kBoxSpinDegrees;
@@ -230,8 +230,8 @@ void EliteJackInTheBoxZombie::DamageEnemyZombiesAtImpact() const
 
 Vector EliteJackInTheBoxZombie::GetHeldBoxWorldPosition() const
 {
-	const float scale = GetTransformComponent()
-		? GetTransformComponent()->GetScale() : 1.0f;
+	const float scale = GetTransform()
+		? GetTransform()->GetScale() : 1.0f;
 	const Vector local = mAnimator
 		? mAnimator->GetTrackPosition("Zombie_jackbox_box") : Vector::zero();
 	return GetVisualPosition() + local * scale;

@@ -581,7 +581,7 @@ void HealerZombie::StartEat(ColliderComponent* other)
 	Zombie::StartEat(other);
 }
 
-void HealerZombie::ZombieMove(float scaledDelta, TransformComponent* transform)
+void HealerZombie::ZombieMove(float scaledDelta, Transform* transform)
 {
 	if (mTreatmentState == TreatmentState::AREA
 		|| mTreatmentState == TreatmentState::FOCUSED) return;

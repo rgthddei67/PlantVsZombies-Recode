@@ -194,7 +194,7 @@ void ZombieAlmanacScene::CreateAllZombieEntries()
 		zombie->PauseAnimation();
 		zombie->mIsUI = true;
 		zombie->SetRenderOrder(LAYER_UI + 51);
-		if (auto transform = zombie->GetComponent<TransformComponent>()) {
+		if (auto transform = zombie->GetTransform()) {
 			float s = 0.7f;
 			transform->SetScale(s);
 		}

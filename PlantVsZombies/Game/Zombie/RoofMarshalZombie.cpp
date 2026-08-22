@@ -1,4 +1,5 @@
 #include "RoofMarshalZombie.h"
+#include "../../GameApp.h"
 
 #include "../AudioSystem.h"
 #include "../Board.h"
@@ -223,7 +224,7 @@ void RoofMarshalZombie::StartEat(ColliderComponent* other)
 	Zombie::StartEat(other);
 }
 
-void RoofMarshalZombie::ZombieMove(float scaledDelta, TransformComponent* transform)
+void RoofMarshalZombie::ZombieMove(float scaledDelta, Transform* transform)
 {
 	if (mCommandPhase == CommandPhase::COMMANDING
 		|| mBodyHealth >= kDesperateHealthThreshold) return;
@@ -427,7 +428,7 @@ bool RoofMarshalZombie::BeginLaneSwitchTo(int destination)
 		|| !mBoard->CanSpawnZombieInRow(mZombieType, destination)) {
 		return false;
 	}
-	TransformComponent* transform = GetTransformComponent();
+	Transform* transform = GetTransform();
 	if (!transform) return false;
 	Vector position = transform->GetPosition();
 	const float oldTerrainY = mBoard->GetZombieSpawnY(mRow, position.x);

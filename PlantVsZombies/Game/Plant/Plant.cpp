@@ -491,12 +491,12 @@ float Plant::GetAttackSpeedMultiplier() const
 
 Vector Plant::GetPosition() const
 {
-	return GetTransformComponent()->GetPosition();
+	return GetTransform()->GetPosition();
 }
 
 void Plant::SetPosition(const Vector& position)
 {
-	this->GetTransformComponent()->SetPosition(position);
+	this->GetTransform()->SetPosition(position);
 }
 
 void Plant::MoveToGridCell(int row, int column, float visualDuration)

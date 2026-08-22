@@ -29,7 +29,7 @@ public:
 
 protected:
 	void SetupZombie() override;
-	void ZombieMove(float scaledDelta, TransformComponent* transform) override;
+	void ZombieMove(float scaledDelta, Transform* transform) override;
 	// Zombie_Jackson.reanim 无 anim_walk2：稳态“走路”按阶段选 moonwalk/point/节拍舞
 	void PlayWalkAnimation(float blendTime) override;
 	void OnStartEating() override;

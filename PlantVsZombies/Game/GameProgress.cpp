@@ -24,7 +24,7 @@ GameProgress::GameProgress(Board* board)
 		return;
 	}
 
-	mTransform = this->AddComponent<TransformComponent>(createPosition);
+	this->CreateTransform(createPosition);
 
 	m_flagMeter = std::make_unique<FlagMeter>(createPosition, 1.0f);
 

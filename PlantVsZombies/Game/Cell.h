@@ -4,7 +4,7 @@
 #include "Definit.h"
 #include "ClickableComponent.h"
 #include "ColliderComponent.h"
-#include "TransformComponent.h"
+#include "Transform.h"
 #include "GameObject.h"
 #include "GameObjectManager.h"
 #include "./Plant/PlantType.h"
@@ -18,7 +18,6 @@ class Cell : public GameObject {
 private:
 	std::function<void(int, int)> OnCellClicked;
 	ColliderComponent* mCollider = nullptr;
-	TransformComponent* mTransform = nullptr;
 	Vector mColliderSize = Vector(CELL_COLLIDER_SIZE_X, CELL_COLLIDER_SIZE_Y);
 	int mUnderPlantID = NULL_PLANT_ID;
 	int mNormalPlantID = NULL_PLANT_ID;
@@ -38,7 +37,7 @@ public:
 		SetTag(tag);
 		SetName("Cell_" + std::to_string(row) + "_" + std::to_string(column));
 
-		mTransform = this->AddComponent<TransformComponent>(position);
+		this->CreateTransform(position);
 		mCollider = this->AddComponent<ColliderComponent>(mColliderSize);
 		mCollider->isTrigger = true;
 		mCollider->isStatic = true;
@@ -57,9 +56,9 @@ public:
 	// 获取格子世界位置
 	Vector GetWorldPosition() const
 	{
-		if (mTransform)
+		if (GetTransform())
 		{
-			return mTransform->GetPosition();
+			return GetTransform()->GetPosition();
 		}
 
 		float x = CELL_INITALIZE_POS_X + mColumn * CELL_COLLIDER_SIZE_X;

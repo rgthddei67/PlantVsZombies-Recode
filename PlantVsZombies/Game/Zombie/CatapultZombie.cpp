@@ -98,7 +98,7 @@ void CatapultZombie::SetupZombie()
 	ApplyBasketballPresentation();
 }
 
-void CatapultZombie::ZombieMove(float scaledDelta, TransformComponent* transform)
+void CatapultZombie::ZombieMove(float scaledDelta, Transform* transform)
 {
 	if (!transform || scaledDelta <= 0.0f || mPhase != Phase::WALKING) return;
 	float speed = mDriveSpeed * GetAmplifiedAbilitySpeedMultiplier();

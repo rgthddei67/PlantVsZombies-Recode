@@ -222,7 +222,7 @@ Bullet::Bullet(Board* board, BulletType bulletType, int row, const Vector& colli
 	this->mRow = row;
 	if (!mBoard) return;
 
-	mTransform = AddComponent<TransformComponent>(position);
+	CreateTransform(position);
 	mCollider = AddComponent<ColliderComponent>
 		(colliderRadius, Vector(0, 0), ColliderType::CIRCLE);
 
@@ -273,10 +273,8 @@ void Bullet::Reset(Board* board, int row,
 	ConfigurePresentation();
 	ConfigureCollisionTarget();
 
-	// 重置 Transform
-	if (mTransform) {
-		mTransform->SetPosition(position);
-	}
+	// Transform 也是对象池状态；位置、缩放和旋转必须一起恢复中性值。
+	if (GetTransform()) GetTransform()->Reset(position);
 	UpdateShadowLayout(position);
 
 	// 重置 Collider
@@ -318,7 +316,7 @@ void Bullet::Update()
 		}
 	}
 
-	auto* transform = GetTransformComponent();
+	auto* transform = GetTransform();
 	float deltaTime = DeltaTime::GetDeltaTime();
 	if (transform)
 	{
@@ -574,8 +572,8 @@ void Bullet::EnableThreepeaterMotion(int sourceRow)
 	const float verticalSpeed =
 		kThreepeaterVerticalSpeed * rowHeight / CELL_COLLIDER_SIZE_Y;
 	mVelocityY = mRow < sourceRow ? -verticalSpeed : verticalSpeed;
-	if (mTransform) {
-		UpdateShadowLayout(mTransform->GetPosition());
+	if (GetTransform()) {
+		UpdateShadowLayout(GetTransform()->GetPosition());
 	}
 }
 
@@ -865,9 +863,9 @@ void Bullet::ConfigurePresentation()
 void Bullet::ConfigureLobbedMotion(
 	const Vector& target, float durationSeconds, float apexHeight)
 {
-	if (!mTransform) return;
+	if (!GetTransform()) return;
 	mLobbedMotion = true;
-	mLobStart = mTransform->GetPosition();
+	mLobStart = GetTransform()->GetPosition();
 	mLobTarget = target;
 	mLobElapsed = 0.0f;
 	mLobDuration = std::max(0.01f, durationSeconds);
@@ -882,10 +880,10 @@ void Bullet::ConfigureLobbedMotion(
 void Bullet::ConfigureCobCannonMotion(
 	const Vector& target, int targetRow, float durationSeconds)
 {
-	if (!mTransform) return;
+	if (!GetTransform()) return;
 	mCobCannonMotion = true;
 	mLobbedMotion = false;
-	mCobStart = mTransform->GetPosition();
+	mCobStart = GetTransform()->GetPosition();
 	mCobTarget = target;
 	mCobElapsed = 0.0f;
 	mCobDuration = std::max(0.1f, durationSeconds);
@@ -907,7 +905,7 @@ void Bullet::RestoreCobCannonMotion(const Vector& start, const Vector& target,
 
 bool Bullet::UpdateCobCannonMotion(float deltaTime)
 {
-	if (!mTransform || mCobDuration <= 0.0f) return true;
+	if (!GetTransform() || mCobDuration <= 0.0f) return true;
 	mCobElapsed = std::min(mCobDuration, mCobElapsed + std::max(0.0f, deltaTime));
 	const float progress = std::clamp(mCobElapsed / mCobDuration, 0.0f, 1.0f);
 	mRotationDegrees = progress <= kCobTransferEndProgress ? -90.0f : 90.0f;
@@ -928,7 +926,7 @@ bool Bullet::UpdateCobCannonMotion(float deltaTime)
 		position.x = mCobTarget.x;
 		position.y = kCobSkyY + (mCobTarget.y - kCobSkyY) * t;
 	}
-	mTransform->SetPosition(position);
+	GetTransform()->SetPosition(position);
 	if (mCobElapsed < mCobDuration) return true;
 	if (!mHasHit) {
 		mHasHit = true;
@@ -954,7 +952,7 @@ void Bullet::RestoreLobbedMotion(const Vector& start, const Vector& target,
 		mLobStart.x + (mLobTarget.x - mLobStart.x) * progress,
 		mLobStart.y + (mLobTarget.y - mLobStart.y) * progress
 			- GetLobArcHeight());
-	if (mTransform) mTransform->SetPosition(position);
+	if (GetTransform()) GetTransform()->SetPosition(position);
 	mVelocityX = (mLobTarget.x - mLobStart.x) / mLobDuration;
 	mVelocityY = (mLobTarget.y - mLobStart.y) / mLobDuration
 		- (4.0f * mLobApexHeight / mLobDuration) * (1.0f - 2.0f * progress);
@@ -979,14 +977,14 @@ float Bullet::GetLobArcHeight() const
 
 bool Bullet::UpdateLobbedMotion(float deltaTime)
 {
-	if (!mTransform || mLobDuration <= 0.0f) return true;
+	if (!GetTransform() || mLobDuration <= 0.0f) return true;
 	mLobElapsed += deltaTime;
 	const float progress = GetLobProgress();
 	const float arcHeight = GetLobArcHeight();
 	const Vector position(
 		mLobStart.x + (mLobTarget.x - mLobStart.x) * progress,
 		mLobStart.y + (mLobTarget.y - mLobStart.y) * progress - arcHeight);
-	mTransform->SetPosition(position);
+	GetTransform()->SetPosition(position);
 	mVelocityX = (mLobTarget.x - mLobStart.x) / mLobDuration;
 	mVelocityY = (mLobTarget.y - mLobStart.y) / mLobDuration
 		- (4.0f * mLobApexHeight / mLobDuration) * (1.0f - 2.0f * progress);
@@ -1194,8 +1192,8 @@ void Bullet::ConvertToFireball(int torchwoodColumn)
 	mDamage = kFireballDamage;
 	mHitTorchwoodColumn = torchwoodColumn;
 	ConfigurePresentation();
-	if (mTransform) {
-		UpdateShadowLayout(mTransform->GetPosition());
+	if (GetTransform()) {
+		UpdateShadowLayout(GetTransform()->GetPosition());
 	}
 	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_FIREPEA, 0.35f);
 }
@@ -1211,8 +1209,8 @@ void Bullet::ConvertSnowPeaToPea(int torchwoodColumn)
 	mDamage = kPeaDamage;
 	mHitTorchwoodColumn = torchwoodColumn;
 	ConfigurePresentation();
-	if (mTransform) {
-		UpdateShadowLayout(mTransform->GetPosition());
+	if (GetTransform()) {
+		UpdateShadowLayout(GetTransform()->GetPosition());
 	}
 	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_SHOOTER_SHOOT, 0.2f);
 }
@@ -1267,8 +1265,8 @@ void Bullet::RestoreSavedPresentationState(BulletType currentType, int hitTorchw
 	mBulletType = currentType;
 	mHitTorchwoodColumn = hitTorchwoodColumn;
 	ConfigurePresentation();
-	if (mTransform) {
-		UpdateShadowLayout(mTransform->GetPosition());
+	if (GetTransform()) {
+		UpdateShadowLayout(GetTransform()->GetPosition());
 	}
 }
 

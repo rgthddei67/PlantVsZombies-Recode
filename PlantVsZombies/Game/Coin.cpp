@@ -127,23 +127,23 @@ void Coin::OnReachTargetBack()
 
 Vector Coin::GetPosition() const
 {
-	if (mTransform) {
-		return mTransform->GetPosition();
+	if (GetTransform()) {
+		return GetTransform()->GetPosition();
 	}
 	return Vector::zero();
 }
 
 void Coin::SetPosition(const Vector& newPos)
 {
-	if (mTransform) {
-		mTransform->SetPosition(newPos);
+	if (GetTransform()) {
+		GetTransform()->SetPosition(newPos);
 	}
 }
 
 void Coin::SetScale(float scale)
 {
-	if (mTransform) {
-		mTransform->SetScale(scale);
+	if (GetTransform()) {
+		GetTransform()->SetScale(scale);
 	}
 }
 

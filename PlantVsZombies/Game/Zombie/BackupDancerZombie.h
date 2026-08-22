@@ -37,7 +37,7 @@ public:
 
 protected:
 	void SetupZombie() override;
-	void ZombieMove(float scaledDelta, TransformComponent* transform) override;
+	void ZombieMove(float scaledDelta, Transform* transform) override;
 	// Zombie_dancer.reanim 无 anim_walk2：稳态“走路”=按全局节拍选 anim_walk/anim_armraise
 	void PlayWalkAnimation(float blendTime) override;
 	void OnStartEating() override;

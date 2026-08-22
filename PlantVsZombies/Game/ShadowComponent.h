@@ -3,7 +3,7 @@
 #define _SHADOW_COMPONENT_H
 
 #include "Component.h"
-#include "TransformComponent.h"
+#include "Transform.h"
 #include "../ResourceKeys.h"
 #include "../ResourceManager.h"
 #include "Definit.h"

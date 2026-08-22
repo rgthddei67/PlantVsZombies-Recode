@@ -3611,7 +3611,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	if (CardSlotManager* cardManager = gs->GetCardSlotManager()) {
 		for (Card* card : cardManager->GetCards()) {
 			if (!card) continue;
-			TransformComponent* transform = card->GetTransform();
+			Transform* transform = card->GetTransform();
 			if (!transform) continue;
 			nlohmann::json cardState = {
 				{ "type", PlantTypeName(card->GetPlantType()) },

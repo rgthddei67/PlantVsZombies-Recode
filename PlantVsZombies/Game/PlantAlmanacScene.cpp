@@ -92,7 +92,7 @@ void PlantAlmanacScene::CreateAllCards()
 			gameMgr.GetPlantCooldown(plantType),
 			true);
 
-		if (auto transform = card->GetComponent<TransformComponent>()) {
+		if (auto transform = card->GetTransform()) {
 			transform->SetPosition(Vector(posX, posY));
 		}
 		card->SetOriginalPosition(Vector(posX, posY));

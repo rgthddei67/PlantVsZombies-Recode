@@ -46,7 +46,7 @@ public:
 
 protected:
 	void SetupZombie() override;
-	void ZombieMove(float scaledDelta, TransformComponent* transform) override;
+	void ZombieMove(float scaledDelta, Transform* transform) override;
 	void SaveExtraData(nlohmann::json& j) const override;
 	void LoadExtraData(const nlohmann::json& j) override;
 	/** 按损坏阶段选择侧板材质，使精英子类复用完整车辆状态机。 */

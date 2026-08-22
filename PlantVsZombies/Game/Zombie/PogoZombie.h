@@ -55,7 +55,7 @@ protected:
 	void SetupZombie() override;
 	void RegisterFrameEvents() override;
 	void ZombieUpdate(float scaledTime) override;
-	void ZombieMove(float scaledDelta, TransformComponent* transform) override;
+	void ZombieMove(float scaledDelta, Transform* transform) override;
 	void PlayWalkAnimation(float blendTime) override;
 	void SaveExtraData(nlohmann::json& j) const override;
 	void LoadExtraData(const nlohmann::json& j) override;
@@ -80,7 +80,7 @@ private:
 	void UpdatePreviewBounce();
 	void ApplyArmDamagePresentation() const;
 	void BreakPogo(bool emitParticle = true);
-	void MovePogoDistance(float distance, TransformComponent* transform);
+	void MovePogoDistance(float distance, Transform* transform);
 	Plant* ResolveContactPlant() const;
 	Plant* ResolveForwardTarget() const;
 

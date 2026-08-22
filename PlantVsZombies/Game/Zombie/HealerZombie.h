@@ -68,7 +68,7 @@ public:
 protected:
 	void SetupZombie() override;
 	void ZombieUpdate(float scaledTime) override;
-	void ZombieMove(float scaledDelta, TransformComponent* transform) override;
+	void ZombieMove(float scaledDelta, Transform* transform) override;
 	void OnMindControlled() override;
 
 private:

@@ -25,7 +25,7 @@ public:
 
 protected:
 	void SetupZombie() override;
-	void ZombieMove(float scaledDelta, TransformComponent* transform) override;
+	void ZombieMove(float scaledDelta, Transform* transform) override;
 	float GetAbilityAnimSpeedMultiplier() const override;
 
 	// 保留80%动画速度

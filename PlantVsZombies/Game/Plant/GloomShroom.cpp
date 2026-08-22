@@ -1,4 +1,5 @@
 #include "GloomShroom.h"
+#include "../../ParticleSystem/ParticleSystem.h"
 
 #include "../Board.h"
 #include "../Zombie/Zombie.h"

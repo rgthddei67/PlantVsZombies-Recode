@@ -2,7 +2,7 @@
 #include "Board.h"
 #include "Shovel.h"
 #include "ClickableComponent.h"
-#include "TransformComponent.h"
+#include "Transform.h"
 #include "GameObjectManager.h"
 #include "../ResourceManager.h"
 #include "../ResourceKeys.h"
@@ -16,7 +16,7 @@ ShovelBank::ShovelBank(Board* board)
 	mIsUI = true;
 	SetRenderOrder(LAYER_UI + 49000);
 
-	AddComponent<TransformComponent>(850.0f, 30.0f);
+	CreateTransform(850.0f, 30.0f);
 }
 
 void ShovelBank::Start()
@@ -50,7 +50,7 @@ void ShovelBank::Draw(Graphics* g)
 {
 	if (!mTexture || !g) return;
 
-	auto transform = GetComponent<TransformComponent>();
+	auto transform = GetTransform();
 	if (!transform) return;
 
 	Vector pos = transform->GetPosition();

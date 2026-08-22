@@ -91,7 +91,7 @@ void ImpZombie::ConfigureThrown(float throwDistance, bool movingRight,
 	ApplyPhasePresentation();
 }
 
-void ImpZombie::ZombieMove(float scaledDelta, TransformComponent* transform)
+void ImpZombie::ZombieMove(float scaledDelta, Transform* transform)
 {
 	if (mPhase == Phase::THROWN) {
 		if (!transform || scaledDelta <= 0.0f) return;

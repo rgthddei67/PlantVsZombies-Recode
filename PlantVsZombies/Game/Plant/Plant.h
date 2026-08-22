@@ -7,7 +7,7 @@
 #include <nlohmann/json.hpp>
 #include "./PlantType.h"
 #include "../ColliderComponent.h"
-#include "../TransformComponent.h"
+#include "../Transform.h"
 #include "../AnimatedObject.h"
 #include "../AudioSystem.h"
 #include "../../GameRandom.h"

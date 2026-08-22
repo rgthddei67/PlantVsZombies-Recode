@@ -1,4 +1,5 @@
 #include "BalloonZombie.h"
+#include "../../GameApp.h"
 
 #include "../AudioSystem.h"
 #include "../Board.h"
@@ -105,7 +106,7 @@ void BalloonZombie::KeepPropellerIndependent() const
 	}
 }
 
-void BalloonZombie::ZombieMove(float scaledDelta, TransformComponent* transform)
+void BalloonZombie::ZombieMove(float scaledDelta, Transform* transform)
 {
 	if (mPhase == Phase::FLYING) {
 		if (!transform) return;

@@ -1,4 +1,5 @@
 #include "PaperZombie.h"
+#include "../../ParticleSystem/ParticleSystem.h"
 #include "../Plant/Plant.h"
 
 namespace {
@@ -201,7 +202,7 @@ void PaperZombie::PlayWalkAnimation(float blendTime)
 		PlayTrack("anim_walk_nopaper", kNoPaperWalkClip, blendTime);
 }
 
-void PaperZombie::ZombieMove(float scaledDelta, TransformComponent* transform)
+void PaperZombie::ZombieMove(float scaledDelta, Transform* transform)
 {
 	if (!mIsGasp) {
 		Zombie::ZombieMove(scaledDelta, transform);

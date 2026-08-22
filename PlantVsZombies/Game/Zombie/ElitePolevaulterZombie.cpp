@@ -39,7 +39,7 @@ void ElitePolevaulterZombie::OnVaultLanded()
 {
 	if (!mBoard || mIsPreview || mIsDying) return;
 
-	const auto* transform = GetTransformComponent();
+	const auto* transform = GetTransform();
 	if (!transform) return;
 
 	mBoard->CreateZombie(ZombieType::ZOMBIE_POLEVAULTER, mRow, transform->GetPosition().x);
@@ -52,7 +52,7 @@ void ElitePolevaulterZombie::OnVaultBlocked(Plant& blockingPlant)
 {
 	if (!mBoard || mIsPreview || mIsDying) return;
 
-	const auto* transform = GetTransformComponent();
+	const auto* transform = GetTransform();
 	if (!transform) return;
 
 	mBoard->CreateZombie(ZombieType::ZOMBIE_POLEVAULTER, mRow, transform->GetPosition().x);

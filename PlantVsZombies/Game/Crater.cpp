@@ -29,7 +29,7 @@ Crater::Crater(Board* board, int row, int column, float timeLeft)
 		: Vector(CELL_INITALIZE_POS_X + column * CELL_COLLIDER_SIZE_X + 40.0f,
 			CELL_INITALIZE_POS_Y + row * CELL_COLLIDER_SIZE_Y + 50.0f);
 	const float cellHeight = mBoard ? mBoard->GetCellHeight() : CELL_COLLIDER_SIZE_Y;
-	mTransform = AddComponent<TransformComponent>(
+	CreateTransform(
 		Vector(center.x - 48.0f, center.y - cellHeight * 0.5f + 40.0f));
 }
 
@@ -59,7 +59,7 @@ void Crater::Draw(Graphics* g)
 		alpha = 255.0f * std::max(0.0f, mTimeLeft / FADE_OUT_TIME);
 	}
 
-	Vector pos = mTransform ? mTransform->GetPosition() : Vector::zero();
+	Vector pos = GetTransform() ? GetTransform()->GetPosition() : Vector::zero();
 	if (mBoard && mBoard->IsPoolSquare(mRow, mColumn)) {
 		// 水格弹坑与水面植物共用同一相位口径，避免贴图静止在浮动的睡莲之下。
 		const float phase = static_cast<float>(mBoard->mBoardFrame) * kPoolBobRadiansPerFrame

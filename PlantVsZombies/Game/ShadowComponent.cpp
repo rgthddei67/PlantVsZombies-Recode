@@ -36,9 +36,9 @@ void ShadowComponent::Draw(Graphics* g) {
 	// 计算阴影位置（在物体下方，加上偏移）
 	ObjectType type = gameObject->GetObjectType();
 	Vector shadowPos = Vector(0, 0);
-	auto transform = gameObject->GetComponent<TransformComponent>();
+	auto transform = gameObject->GetTransform();
 	if (!transform) {
-		LOG_ERROR("ShadowComponent") << "GameObject has no TransformComponent.";
+		LOG_ERROR("ShadowComponent") << "GameObject has no Transform.";
 		return;
 	}
 	Vector objPos = transform->GetPosition();

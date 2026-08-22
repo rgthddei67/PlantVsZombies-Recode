@@ -1,4 +1,5 @@
 #include "FootballZombie.h"
+#include "../../ParticleSystem/ParticleSystem.h"
 #include "../AudioSystem.h"
 
 namespace {

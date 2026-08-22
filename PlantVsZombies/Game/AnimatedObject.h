@@ -4,7 +4,7 @@
 
 #include "Component.h"
 #include "GameObject.h"
-#include "TransformComponent.h"
+#include "Transform.h"
 #include "ColliderComponent.h"
 #include "../Reanimation/Animator.h"
 #include "../Reanimation/ReanimTypes.h"
@@ -18,7 +18,6 @@ protected:
 	Board* mBoard = nullptr;
 	float mGlowingTimer = 0.0f;
 
-	TransformComponent* mTransform = nullptr;
 	ColliderComponent* mCollider = nullptr;
 	std::shared_ptr<Animator> mAnimator;
 
@@ -95,8 +94,7 @@ public:
 	float GetTargetTrackSpeed() const;
 	float GetTargetTrackBlendTime() const;
 
-	// 组件获取
-	TransformComponent* GetTransformComponent() const;
+	// 可选附件获取
 	ColliderComponent* GetColliderComponent() const;
 
 	// 获取视觉绘制位置

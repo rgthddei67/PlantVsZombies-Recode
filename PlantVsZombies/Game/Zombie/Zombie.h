@@ -527,13 +527,13 @@ protected:
 	void UpdateStatusOverlay();
 
 	/** 叠加活动阵风的物理漂移；不依赖自主行走、啃食、冻结或魅惑方向。 */
-	void ApplyTyphoonGustDrift(float deltaTime, TransformComponent* transform);
+	void ApplyTyphoonGustDrift(float deltaTime, Transform* transform);
 	/** 叠加昼夜屋顶目标行的顺坡径流；只移动仍处于地面的可移动品种。 */
-	void ApplyRoofRunoffDrift(float deltaTime, TransformComponent* transform);
+	void ApplyRoofRunoffDrift(float deltaTime, Transform* transform);
 	/** 把所有僵尸品种的 Transform Y 收敛到当前 X 对应的屋顶连续坡面。 */
-	void SyncToRoofTerrain(TransformComponent* transform);
+	void SyncToRoofTerrain(Transform* transform);
 	/** 推进大蒜嫌恶反应，并在原版节点停止啃食、选择同介质相邻行和恢复移动。 */
-	void UpdateGarlicRedirect(float deltaTime, TransformComponent* transform);
+	void UpdateGarlicRedirect(float deltaTime, Transform* transform);
 	/** 首口命中大蒜后建立独立嫌恶阶段，并立即冻结当前啃食动画。 */
 	void StartGarlicRedirect();
 	/** 立即结束大蒜嫌恶反应；报纸狂暴与死亡用它原子清理脸图、啃食和纵向过渡。 */
@@ -568,7 +568,7 @@ protected:
 	/** 由放梯者在成功放置的同帧直接进入攀爬。 */
 	void BeginLadderClimb(int column);
 	/** 推进攀爬/下落高度和慢速僵尸的额外前移。 */
-	void UpdateLadderClimb(float scaledDelta, TransformComponent* transform);
+	void UpdateLadderClimb(float scaledDelta, Transform* transform);
 	/** 按通用入水状态隐藏陆地阴影；水面以下裁剪在 Draw 内与其他 Clip 嵌套。 */
 	void UpdatePoolVisualState() const;
 	/**
@@ -577,7 +577,7 @@ protected:
 	 * 默认只裁剪已经处于水中的僵尸；特殊入水演出可覆写时间窗而不改变其他品种。
 	 */
 	virtual bool TryGetDrawClipBottom(float& clipBottom) const;
-	virtual void ZombieMove(float scaledDelta, TransformComponent* transform);
+	virtual void ZombieMove(float scaledDelta, Transform* transform);
 
 	// 这才是设置僵尸
 	virtual void SetupZombie();

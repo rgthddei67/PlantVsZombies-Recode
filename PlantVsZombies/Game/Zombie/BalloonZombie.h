@@ -52,7 +52,7 @@ public:
 protected:
 	void SetupZombie() override;
 	void RegisterFrameEvents() override;
-	void ZombieMove(float scaledDelta, TransformComponent* transform) override;
+	void ZombieMove(float scaledDelta, Transform* transform) override;
 	void ZombieUpdate(float scaledTime) override;
 	void PlayWalkAnimation(float blendTime) override;
 	void OnStartEating() override;

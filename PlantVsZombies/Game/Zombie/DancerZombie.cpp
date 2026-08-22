@@ -96,7 +96,7 @@ void DancerZombie::UpdateDanceTrack(float blendTime)
 		PlayTrack("anim_walk", 0.0f, blendTime);
 }
 
-void DancerZombie::ZombieMove(float scaledDelta, TransformComponent* transform)
+void DancerZombie::ZombieMove(float scaledDelta, Transform* transform)
 {
 	// 打响指/定身跳舞阶段不移动；其余阶段始终沿阵营方向推进。
 	if (mPhase == DancerPhase::SNAPPING || mPhase == DancerPhase::HOLD) return;

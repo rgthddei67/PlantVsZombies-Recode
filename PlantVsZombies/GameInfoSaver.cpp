@@ -20,7 +20,7 @@
 #include "./Game/Bullet/BulletType.h"
 #include "./Game/CardSlotManager.h"
 #include "./Game/Card.h"
-#include "./Game/TransformComponent.h"
+#include "./Game/Transform.h"
 #include "./Game/GameObjectManager.h"
 #include "./Game/AnimatedObject.h"
 #include "Logger.h"
@@ -611,7 +611,7 @@ bool GameInfoSaver::SerializeLevelDataToPath(Board* board, CardSlotManager* mana
 	if (manager && board->mBoardState == BoardState::GAME) {
 		for (auto* card : manager->GetCards()) {
 			if (!card) continue;
-			auto transform = card->GetComponent<TransformComponent>();
+			auto transform = card->GetTransform();
 			if (!transform) continue;
 			nlohmann::json c;
 			c["plantType"] = static_cast<int>(card->GetPlantType());
@@ -1264,7 +1264,7 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 				LAYER_UI, plantType, sunCost, cooldownTime, false);
 			if (!card) continue;
 
-			if (auto transform = card->GetComponent<TransformComponent>()) {
+			if (auto transform = card->GetTransform()) {
 				transform->SetPosition(Vector(posX, posY));
 			}
 			if (isCooldown) {

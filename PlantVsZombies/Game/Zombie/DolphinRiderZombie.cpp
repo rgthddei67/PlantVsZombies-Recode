@@ -157,7 +157,7 @@ void DolphinRiderZombie::BeginEnteringPool()
 void DolphinRiderZombie::FinishEnteringPool()
 {
 	if (mPhase != Phase::ENTERING_POOL) return;
-	if (auto* transform = GetTransformComponent()) {
+	if (auto* transform = GetTransform()) {
 		transform->Translate(mIsMindControlled ? kEntryWorldShift : -kEntryWorldShift, 0.0f);
 	}
 	mPhase = Phase::RIDING;
@@ -198,7 +198,7 @@ void DolphinRiderZombie::FinishJump(bool blocked, Plant* blockingPlant)
 			SetPosition(position);
 		}
 	}
-	else if (auto* transform = GetTransformComponent()) {
+	else if (auto* transform = GetTransform()) {
 		const float worldShift = mJumpRetainsDolphinOnLanding
 			? kRetainedJumpWorldShift
 			: kDismountJumpWorldShift;
@@ -293,7 +293,7 @@ void DolphinRiderZombie::ZombieUpdate(float)
 }
 
 void DolphinRiderZombie::MoveManually(
-	float speed, float scaledDelta, TransformComponent* transform)
+	float speed, float scaledDelta, Transform* transform)
 {
 	if (!transform || !mAnimator) return;
 	float multiplier = mAnimator->GetExtraSpeedMultiplier();
@@ -305,7 +305,7 @@ void DolphinRiderZombie::MoveManually(
 	transform->Translate(mIsMindControlled ? distance : -distance, 0.0f);
 }
 
-void DolphinRiderZombie::ZombieMove(float scaledDelta, TransformComponent* transform)
+void DolphinRiderZombie::ZombieMove(float scaledDelta, Transform* transform)
 {
 	if (mPhase == Phase::ENTERING_POOL) return;
 	if (mPhase == Phase::RIDING) {

@@ -1,4 +1,5 @@
 #include "ConeZombie.h"
+#include "../../ParticleSystem/ParticleSystem.h"
 
 #include "../../ResourceKeys.h"
 

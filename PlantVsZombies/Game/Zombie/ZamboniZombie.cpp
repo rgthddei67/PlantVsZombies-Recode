@@ -90,7 +90,7 @@ void ZamboniZombie::SetupZombie()
 	}
 }
 
-void ZamboniZombie::ZombieMove(float scaledDelta, TransformComponent* transform)
+void ZamboniZombie::ZombieMove(float scaledDelta, Transform* transform)
 {
 	if (!transform || scaledDelta <= 0.0f || mPuncturedByCaltrop) return;
 

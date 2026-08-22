@@ -1,7 +1,7 @@
 #pragma once
 
 #include "GameObject.h"
-#include "TransformComponent.h"
+#include "Transform.h"
 
 class Board;
 
@@ -37,6 +37,5 @@ public:
 
 private:
 	Board* mBoard = nullptr;
-	TransformComponent* mTransform = nullptr;
 	LadderStyle mStyle = LadderStyle::CLASSIC;
 };

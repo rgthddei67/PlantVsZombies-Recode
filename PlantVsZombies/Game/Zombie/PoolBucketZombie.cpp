@@ -1,4 +1,5 @@
 #include "PoolBucketZombie.h"
+#include "../../ParticleSystem/ParticleSystem.h"
 
 namespace {
 	constexpr float kMagnetDestinationX = 25.0f; // 铁桶吸附到磁力菇头部附近的局部 X

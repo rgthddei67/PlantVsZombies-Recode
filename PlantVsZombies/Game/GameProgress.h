@@ -2,7 +2,7 @@
 #include "GameObject.h"
 #include "FlagMeter.h"
 #include <memory>
-#include "TransformComponent.h"
+#include "Transform.h"
 
 class Board;
 
@@ -41,5 +41,4 @@ private:
 	Vector createPosition = Vector(870, 575);
 
 	std::unique_ptr<FlagMeter> m_flagMeter;
-	TransformComponent* mTransform = nullptr;
 };

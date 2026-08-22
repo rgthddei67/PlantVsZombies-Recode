@@ -18,8 +18,8 @@ Trophy::Trophy(Board* board, const Vector& position)
 {
 	SetTag("Trophy");
 
-	mTransform = AddComponent<TransformComponent>();
-	mTransform->SetPosition(position);
+	CreateTransform();
+	GetTransform()->SetPosition(position);
 	SetScale(BASE_SCALE);
 
 	// 碰撞体仅供 ClickableComponent 做点击命中，不参与碰撞系统
@@ -133,7 +133,7 @@ void Trophy::UpdateAppearScale()
 
 void Trophy::Draw(Graphics* g)
 {
-	auto* transform = mTransform;
+	auto* transform = GetTransform();
 	float scale = transform ? transform->GetScale() : 1.0f;
 	Vector pos = GetPosition();
 
@@ -170,22 +170,22 @@ void Trophy::Draw(Graphics* g)
 
 Vector Trophy::GetPosition() const
 {
-	if (mTransform) {
-		return mTransform->GetPosition();
+	if (GetTransform()) {
+		return GetTransform()->GetPosition();
 	}
 	return Vector::zero();
 }
 
 void Trophy::SetPosition(const Vector& newPos)
 {
-	if (mTransform) {
-		mTransform->SetPosition(newPos);
+	if (GetTransform()) {
+		GetTransform()->SetPosition(newPos);
 	}
 }
 
 void Trophy::SetScale(float scale)
 {
-	if (mTransform) {
-		mTransform->SetScale(scale);
+	if (GetTransform()) {
+		GetTransform()->SetScale(scale);
 	}
 }

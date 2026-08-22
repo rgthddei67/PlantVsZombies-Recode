@@ -147,7 +147,7 @@ void HijackerZombie::StartEat(ColliderComponent* other)
 	Zombie::StartEat(other);
 }
 
-void HijackerZombie::ZombieMove(float scaledDelta, TransformComponent* transform)
+void HijackerZombie::ZombieMove(float scaledDelta, Transform* transform)
 {
 	if (mPhase == Phase::FINALIZING) return;
 	Zombie::ZombieMove(scaledDelta, transform);

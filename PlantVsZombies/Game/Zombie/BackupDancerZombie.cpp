@@ -1,4 +1,5 @@
 #include "BackupDancerZombie.h"
+#include "../../GameApp.h"
 #include "../Board.h"
 #include "../ShadowComponent.h"
 #include "../../ParticleSystem/ParticleSystem.h"
@@ -86,7 +87,7 @@ void BackupDancerZombie::UpdateDanceTrack(float blendTime)
 		PlayTrack("anim_walk", 0.0f, blendTime);
 }
 
-void BackupDancerZombie::ZombieMove(float scaledDelta, TransformComponent* transform)
+void BackupDancerZombie::ZombieMove(float scaledDelta, Transform* transform)
 {
 	if (mPhase == BackupPhase::RISING) return;	// 升起中不推进
 	Zombie::ZombieMove(scaledDelta, transform);
