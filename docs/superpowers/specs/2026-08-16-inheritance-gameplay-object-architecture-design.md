@@ -2,7 +2,7 @@
 
 日期：2026-08-16
 
-状态：主人已批准架构方向；Card、CardSlotManager、Transform、纯 UI、Collider 与 Shadow 阶段已完成，下一阶段为 Clickable
+状态：主人已批准架构方向；Card、CardSlotManager、Transform、纯 UI、Collider、Shadow 与 Clickable 阶段已完成，下一阶段为删除通用 Component 框架
 
 ## 1. 决策
 
@@ -14,7 +14,7 @@
 - 现有 `Component` 容器视为早期框架遗留的横切附件机制，按阶段收缩，不再作为新玩法系统的默认扩展点。
 - `EntityManager` 是稳定 ID 注册表与查询索引，不属于待收缩的组件系统。
 
-这是一项架构边界决策。2026-08-16 已完成前两阶段：`CardComponent` 与 `CardDisplayComponent` 并入 `Card`，`CardSlotManager` 改由 `GameScene` 明确拥有；2026-08-22 又把 Transform 从组件表迁为 `GameObject` 的可选值，让纯 UI 脱离 `GameObjectManager`，并把 Collider 改为宿主显式拥有的可选对象。存档格式保持不变，后续附件仍按独立阶段迁移。
+这是一项架构边界决策。2026-08-16 已完成前两阶段：`CardComponent` 与 `CardDisplayComponent` 并入 `Card`，`CardSlotManager` 改由 `GameScene` 明确拥有；2026-08-22 又把 Transform 从组件表迁为 `GameObject` 的可选值，让纯 UI 脱离 `GameObjectManager`，并把 Collider、Shadow、Clickable 依次改为宿主显式拥有的可选对象。存档格式保持不变，当前只待删除已经没有派生类型的通用 Component 框架。
 
 ## 2. 当前事实
 
@@ -28,13 +28,11 @@ GameObject
     └── Coin / Mower / 其他动画对象
 ```
 
-`GameObject` 直接拥有按需创建的 `std::optional<Transform>` 和 `unique_ptr<ColliderComponent>`：前者是空间对象唯一的位置、缩放和旋转权威值，后者是唯一可选碰撞附件。另有一个按 `type_index` 索引 `unique_ptr<Component>` 的遗留容器；Collider 阶段完成后，全项目当前只有两种 `Component` 派生类：
-
-- 显式可选横切附件：宿主独占的 `ShadowComponent`、待迁移的 `ClickableComponent`。
+`GameObject` 直接拥有按需创建的 `std::optional<Transform>`，并分别用 `unique_ptr` 独占可选的 Collider、Shadow 与 Clickable。全项目当前已没有 `Component` 派生类；按 `type_index` 索引 `unique_ptr<Component>` 的遗留容器及其待初始化、更新和绘制视图仍为空壳保留，等待下一阶段整体删除。
 
 单张卡的冷却、选中、方向、可用性、主线程文本缓存与绘制职责已由 `Card` 直接拥有；`CardSlotManager` 是 `GameScene` 独占的普通控制器。二者都不再通过组件容器参与通用 Component 生命周期。
 
-它不具备典型 ECS 的数据布局和执行方式：实体不是轻量 ID，组件不在按类型连续存储中，System 也不按组件签名批量查询。植物、僵尸和子弹直接访问宿主 Transform/Collider，主要行为继续由派生类虚函数驱动。碰撞与点击各自维护专用注册表；Collider 已不经过类型表、`dynamic_cast` 或通用 Component 生命周期。
+它不具备典型 ECS 的数据布局和执行方式：实体不是轻量 ID，附件不在按类型连续存储中，System 也不按组件签名批量查询。植物、僵尸和子弹直接访问宿主 Transform/Collider，主要行为继续由派生类虚函数驱动。碰撞与点击各自维护专用注册表；Collider、Shadow 与 Clickable 均不再经过类型表、`dynamic_cast` 或通用 Component 生命周期。
 
 因此当前结构应准确称为“继承式对象 + 遗留组件附件”，而不是两套并行 ECS/OO 玩法架构。
 
@@ -103,7 +101,7 @@ Transform 是绝大多数世界对象的基础空间数据，不需要多态生�
 - Shadow 保留独立参数、可见性与最终提交取证；植物动态视觉锚点、BulletPool 跨对象绘制顺序、默认实例化/`-NoInstance` 双路径都必须保持。
 - Clickable 保留稀疏自注册表、渲染顺序仲裁、事件消费和光标计数；不得退回每帧扫描全部 GameObject。
 
-2026-08-22 当前实现中，Shadow 已由 `GameObject` 通过 `unique_ptr` 显式独占，并统一使用 `CreateShadow()` / `GetShadow()` / `RemoveShadow()`；普通对象在固定本体前阶段绘制，BulletPool 继续保留跨对象地面阶段。`ShadowComponent` 只是过渡名称，不再继承或进入通用 `Component` 容器。
+2026-08-22 当前实现中，Shadow 已由 `GameObject` 通过 `unique_ptr` 显式独占，并统一使用 `CreateShadow()` / `GetShadow()` / `RemoveShadow()`；普通对象在固定本体前阶段绘制，BulletPool 继续保留跨对象地面阶段。Clickable 同样由宿主用 `unique_ptr` 独占，并统一使用 `CreateClickable()` / `GetClickable()` / `RemoveClickable()`；创建时先保证 Collider 完整就绪，移除 Collider 时同步注销 Clickable，单纯替换 Collider 则保持注册有效。两类过渡名称都不再继承或进入通用 `Component` 容器。
 
 ### 6.5 卡片域
 

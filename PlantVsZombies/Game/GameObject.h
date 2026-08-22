@@ -29,6 +29,7 @@ enum class ObjectType {
 
 class Component;
 class ShadowComponent;
+class ClickableComponent;
 
 class GameObject {
 public:
@@ -44,6 +45,7 @@ protected:
 	std::optional<Transform> mTransform; // 仅空间对象显式创建；非空间 UI/控制对象保持为空
 	std::unique_ptr<ColliderComponent> mCollider; // 可选碰撞附件；由宿主独占并通过唯一入口注册/注销
 	std::unique_ptr<ShadowComponent> mShadow; // 可选阴影附件；由宿主独占并在固定绘制阶段提交
+	std::unique_ptr<ClickableComponent> mClickable; // 可选点击附件；由宿主独占并维护稀疏注册
 	std::vector<Component*> mComponentsToInitialize; // 待初始化的组件（裸指针指向 mComponents 内的对象）
 	std::unordered_map<std::type_index, std::unique_ptr<Component>> mComponents; // 包含的组件
 	// 阶段三：仅缓存 NeedsUpdate()=true 的 Component 视图，避免每帧 iterate mComponents 全表
@@ -93,6 +95,16 @@ public:
 
 	/** @brief 注销并销毁当前宿主的 Collider；不存在时安全 no-op。 */
 	bool RemoveCollider();
+
+	/**
+	 * @brief 创建或重建当前宿主唯一的点击附件。
+	 * @details 缺少 Collider 时先创建 50x50 默认触发器，保证注册表内对象始终可安全命中测试。
+	 */
+	ClickableComponent* CreateClickable();
+	ClickableComponent* GetClickable() { return mClickable.get(); }
+	const ClickableComponent* GetClickable() const { return mClickable.get(); }
+	/** @brief 注销并销毁当前宿主的点击附件；不存在时安全 no-op。 */
+	bool RemoveClickable();
 
 	/** @brief 创建或重建当前宿主唯一的阴影附件。 */
 	ShadowComponent* CreateShadow(
@@ -228,6 +240,7 @@ public:
 
 	// 获取物体的激活状态
 	bool IsActive() const { return mActive; }
+	bool HasStarted() const { return mStarted; }
 
 	// 设置物体的激活状态
 	void SetActive(bool state) { mActive = state; }

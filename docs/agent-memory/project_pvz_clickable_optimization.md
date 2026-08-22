@@ -1,13 +1,21 @@
 ---
 name: project-pvz-clickable-optimization
-description: 2026-05-24 ClickableComponent 自注册表替换全场扫描；1b.Clickable 1.22→0.01ms (-122×)；揭示 GetAllGameObjects per-frame scan 是本仓库 stress-test 下的 foot-gun
+description: Clickable 稀疏自注册与显式宿主所有权契约；保留 2026-05-24 历史热点数据，并记录 2026-08-22 脱离 Component 容器后的生命周期
 metadata:
   node_type: memory
   type: project
   originSessionId: 1de960cb-8dd0-42ad-a37e-19114f7a21fd
 ---
 
-2026-05-24 同会话完成 ClickableComponent 优化（commit 待用户 push）。
+2026-05-24 同会话完成 ClickableComponent 稀疏注册优化；以下数字只代表当时压力基线，不得当作当前架构迁移的性能实测。
+
+## 2026-08-22 当前契约
+
+- `ClickableComponent` 已不再继承 `Component`，由 `GameObject` 通过 `unique_ptr` 显式独占；调用方只用 `CreateClickable()` / `GetClickable()` / `RemoveClickable()`。
+- `CreateClickable()` 先确保唯一 Collider 完整就绪再构造并注册；`RemoveCollider()` 先注销 Clickable，单纯替换 Collider 则保持 Clickable 注册有效，不暴露半初始化窗口。
+- 构造注册、析构注销和 `s_allClickables` 稀疏表保持不变；`ProcessMouseEvents()` 仍是 O(可点击对象)，按宿主渲染顺序降序处理并保留事件消费、光标计数以及 UI/世界坐标分流。
+- 显式所有权使 Clickable 早于旧 Component `Start()` 注册，因此输入阶段必须跳过 `!owner->HasStarted()`，保持新宿主在完成 Start 前不可点击的旧时序。
+- `clang-release` LTO、378 项 Win7 import audit 与五个可见点击专项通过；本阶段未做相同压力场景 A/B，不宣称新的 FPS 数字。
 
 ## 改动一句话
 `ClickableComponent::ProcessMouseEvents` 从每帧扫 `GameObjectManager::GetAllGameObjects()` 全表（11000 zombies）+ per-object `GetComponent<ClickableComponent>()` 查表，改成遍历静态自注册表 `s_allClickables`（数量 ≈ 10）。顺手修了一个 dead duplicate `ContainsPoint`+push 的正确性 bug，并删掉 shared_ptr 拷贝。

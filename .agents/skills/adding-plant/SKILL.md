@@ -11,7 +11,7 @@ description: Use when adding ANY new plant (新增植物) to PvZ — 射手/生�
 
 - C# 参考实现是玩家可感知功能的证据：先提取状态、触发顺序、时长、数值、目标规则、音效和资源表现；未获主人批准时，这些行为必须与原版一致。
 - C# 不是本项目的架构模板。动手前逐项核对当前植物类型体系、Board/实体所有权、更新与 Animator 时序、占格/碰撞、绘制路径、资源键以及存读档入口，再接入现有最窄扩展点；禁止为了贴近 C# 类结构复制平行状态或旁路系统。
-- 玩法对象架构固定为继承式：新增植物继续选择 `Plant` / `Shooter` / `Shroom` 等最窄共同基类，并用窄虚接口表达品种差异；不得为植物能力新增玩法 `Component`、把品种状态拆进通用组件表，或为形式统一复制基类生命周期。空间数据由宿主 `CreateTransform()` 创建并通过 `GetTransform()` 访问，禁止重新引入 `TransformComponent`。Collider 已脱离组件容器：宿主只用 `CreateCollider()` / `GetCollider()` / `RemoveCollider()` 管理唯一可选碰撞附件，预览/overlay 无碰撞也必须走 `RemoveCollider()`；禁止恢复 `AddComponent/GetComponent/RemoveComponent<ColliderComponent>` 或缓存一份可独立失效的 Collider 裸指针。Shadow/Clickable 在后续阶段完成前按当前源码接口使用。
+- 玩法对象架构固定为继承式：新增植物继续选择 `Plant` / `Shooter` / `Shroom` 等最窄共同基类，并用窄虚接口表达品种差异；不得为植物能力新增玩法 `Component`、把品种状态拆进通用组件表，或为形式统一复制基类生命周期。空间数据由宿主 `CreateTransform()` 创建并通过 `GetTransform()` 访问，禁止重新引入 `TransformComponent`。Collider、Shadow 与 Clickable 均已脱离组件容器：宿主分别通过 `CreateCollider()` / `GetCollider()` / `RemoveCollider()`、`CreateShadow()` / `GetShadow()` / `RemoveShadow()`、`CreateClickable()` / `GetClickable()` / `RemoveClickable()` 管理唯一可选附件，禁止恢复对应的 `AddComponent/GetComponent/RemoveComponent<T>` 或缓存一份可独立失效的附件裸指针。`CreateClickable()` 保证 Collider 已就绪；`RemoveCollider()` 会同步注销 Clickable，运行时替换 Collider 则保持 Clickable 注册有效。
 - 坐标和资源按下述当前项目契约换算。工程实现可以不同，但必须用 AutoTest 状态、音效请求、默认与 `-NoInstance` 截图证明功能等价；验证失败时先修适配，不能用“原版就是这样写的”合理化当前项目中的错误表现。
 
 ## 坐标换算铁律

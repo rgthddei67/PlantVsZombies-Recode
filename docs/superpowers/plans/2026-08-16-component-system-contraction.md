@@ -2,7 +2,7 @@
 
 日期：2026-08-16
 
-状态：执行中；Card 专属组件、CardSlotManager、Transform、纯 UI、Collider 与 Shadow 已完成并独立验证，下一阶段为 Clickable
+状态：执行中；Card 专属组件、CardSlotManager、Transform、纯 UI、Collider、Shadow 与 Clickable 已完成并独立验证，下一阶段为删除通用 Component 框架
 
 **目标：** 在保持继承式植物/僵尸、现有运行行为、存档、输入和绘制契约的前提下，分阶段移除通用 `Component` 容器；保留并显式化 Transform、Collider、Shadow、Clickable 与卡片能力。
 
@@ -18,9 +18,9 @@
 
 **只读审计：**
 
-- [x] 列出全部 `Component` 派生类以及 `AddComponent/GetComponent/RemoveComponent` 调用点；计划建立时为七类，Collider 阶段后已核实只剩 Clickable、Shadow 两类。
-- [ ] 逐项记录运行期动态增删：植物/僵尸预览去影、无碰撞品种、图鉴 Clickable、ShovelBank 在 `Start` 后加组件、BulletPool 回收与 Shadow 特殊绘制。
-- [ ] 记录 `GameObject::Start/Update/Draw/DestroyAllComponents`、Collider 注册注销、Clickable 自注册和 `Component::SetDrawOrder` 的当前顺序。
+- [x] 列出全部 `Component` 派生类以及 `AddComponent/GetComponent/RemoveComponent` 调用点；计划建立时为七类，Clickable 阶段后已核实运行源码中派生类为零，只剩空通用框架。
+- [x] 逐项记录运行期动态增删：植物/僵尸预览去影、无碰撞品种、图鉴 Clickable、ShovelBank 在 `Start` 后创建 Collider、BulletPool 回收与 Shadow 特殊绘制。
+- [x] 记录 `GameObject::Start/Update/Draw/DestroyAllComponents`、Collider 注册注销、Clickable 自注册和原 Component 绘制顺序；迁移后都已落到显式阶段。
 - [ ] 记录卡片存档字段和调用方：`GameInfoSaver`、`ChooseCardUI`、生存轮次冷却、路灯花菜单、三叶草方向、开发者模式。
 - [ ] 记录 `EntityManager` 当前 Add/AddWithID、next ID、CleanupExpired、行索引和稀有索引入口，明确不随组件迁移改变。
 
@@ -181,16 +181,18 @@
 
 **Clickable：**
 
-- [ ] 将 Clickable 改为宿主明确拥有的可选对象/注册句柄，不再继承 `Component`。
-- [ ] 保留构造注册、析构注销、渲染顺序降序、ConsumeEvent、悬停光标计数和 UI/世界坐标选择。
-- [ ] 明确 Clickable 与 Collider 的绑定时机，不允许出现已注册 Clickable 持有未初始化 Collider。
-- [ ] 保留 O(可点击对象) 自注册表，禁止恢复 `GetAllGameObjects()` 每帧全表扫描。
-- [ ] 用 `almanac_click.json`、`smoke_choose_card_pagination.json` 和真实卡片/格子边界点击回归。
-- [ ] 审计 adding-plant、adding-zombie 中 Shadow/Clickable 现行接口、输入仲裁和视觉取证描述，更新并校验改过技能。
+- [x] 将 Clickable 改为宿主明确拥有的可选对象/注册句柄，不再继承 `Component`。
+- [x] 保留构造注册、析构注销、渲染顺序降序、ConsumeEvent、悬停光标计数和 UI/世界坐标选择。
+- [x] 明确 Clickable 与 Collider 的绑定时机：创建 Clickable 先保证 Collider 就绪，移除 Collider 同步注销 Clickable，替换 Collider 保持注册有效。
+- [x] 保留 O(可点击对象) 自注册表，禁止恢复 `GetAllGameObjects()` 每帧全表扫描。
+- [x] 用 `almanac_click.json`、`smoke_choose_card_pagination.json`、`smoke_collider_ownership.json`、`smoke_zombie_almanac_progression.json` 与新增 `smoke_clickable_ownership.json` 做真实点击回归；均退出 0、`status=passed`、`script finished OK`。
+- [x] 审计 adding-plant、adding-zombie 中 Shadow/Clickable 现行接口、输入仲裁和视觉取证描述，更新并校验改过技能。
+
+**Clickable 验证：** `clang-release` LTO 构建与 378 项 Win7 import audit 通过；五个可见专项共 56 条断言全部通过。新增专项真实点击路灯花本体并选择 III 挡，再真实点击 Trophy 进入胜利状态；格子边界专项锁定当前窗口坐标换算后的唯一 Cell 归属，僵尸图鉴专项真实点击第二个条目并确认路障僵尸详情。相关截图已逐张目验。
 
 **提交：**
 
-- [ ] Shadow 与 Clickable 分成两个提交；任一视觉或输入回归时可以单独回退。
+- [x] Shadow 与 Clickable 分成两个提交；任一视觉或输入回归时可以单独回退。
 
 ---
 

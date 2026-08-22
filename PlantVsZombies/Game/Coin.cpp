@@ -30,7 +30,7 @@ void Coin::Start()
 	else {
 		SetScale(mTargetScale);
 	}
-	auto clickableComponent = AddComponent<ClickableComponent>();
+	auto clickableComponent = CreateClickable();
 
 	clickableComponent->ConsumeEvent = true;
 
@@ -91,7 +91,7 @@ void Coin::StartMoveToTarget(const Vector& target, float fastSpeed,
 	float slowSpeed, float slowdownDist)
 {
 	PauseAnimation();
-	if (auto clickable = GetComponent<ClickableComponent>()) {
+	if (auto clickable = GetClickable()) {
 		clickable->IsClickable = false;
 	}
 	targetPos = target;

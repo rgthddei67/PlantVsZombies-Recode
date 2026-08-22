@@ -23,7 +23,7 @@ void ShovelBank::Start()
 {
 	GameObject::Start();
 
-	auto clickComponent = AddComponent<ClickableComponent>();
+	auto clickComponent = CreateClickable();
 	if (clickComponent) {
 		clickComponent->IsClickable = true;
 		clickComponent->ConsumeEvent = true;

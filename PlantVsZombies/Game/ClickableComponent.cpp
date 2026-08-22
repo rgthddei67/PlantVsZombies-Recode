@@ -7,7 +7,8 @@
 #include "../CursorManager.h"
 #include <algorithm>
 
-ClickableComponent::ClickableComponent() {
+ClickableComponent::ClickableComponent(GameObject* owner)
+	: mGameObject(owner) {
 	s_allClickables.push_back(this);
 }
 
@@ -44,7 +45,8 @@ void ClickableComponent::ProcessMouseEvents() {
 		if (!clickable->IsClickable) continue;
 
 		auto* obj = clickable->GetGameObject();
-		if (!obj || !obj->IsActive()) continue;
+		// 显式附件在宿主构造期已经有 owner；仍保持旧 Component 在 Start 前不可命中的语义。
+		if (!obj || !obj->HasStarted() || !obj->IsActive()) continue;
 
 		auto* collider = obj->GetCollider();
 		if (!collider || !collider->mEnabled) continue;
@@ -113,14 +115,6 @@ void ClickableComponent::ProcessMouseEvents() {
 			s_processedEvents.insert(clickable);
 		}
 		clickableObjects[i].second->Update();
-	}
-}
-
-void ClickableComponent::Start() {
-	if (auto* gameObject = this->GetGameObject()) {
-		auto* collider = gameObject->GetCollider();
-		if (!collider) collider = gameObject->CreateCollider(Vector(50, 50));
-		collider->isTrigger = true;
 	}
 }
 

@@ -45,7 +45,7 @@ Card::Card(PlantType plantType, int sunCost, float cooldown, bool isInChooseCard
 	SetupComponents();
 }
 
-/** 创建卡片的空间值、显式 Collider 以及仍待后续阶段迁移的点击附件。 */
+/** 创建卡片的空间值、Collider 与显式点击附件。 */
 void Card::SetupComponents()
 {
 	CreateTransform();
@@ -54,7 +54,7 @@ void Card::SetupComponents()
 	collision->isTrigger = true;
 	collision->layerMask = CollisionLayer::NONE;
 	collision->collisionMask = CollisionLayer::NONE;
-	auto* clickable = AddComponent<ClickableComponent>();
+	auto* clickable = CreateClickable();
 	clickable->ConsumeEvent = true;
 
 	SetName("PlantCard");
@@ -85,7 +85,7 @@ void Card::ConfigureClickHandler()
 
 void Card::SetCardChooseClick()
 {
-	auto* clickable = GetComponent<ClickableComponent>();
+	auto* clickable = GetClickable();
 	if (!clickable) return;
 
 	clickable->onClick = [this]() {
@@ -108,7 +108,7 @@ void Card::SetCardChooseClick()
 
 void Card::SetCardGameClick()
 {
-	auto* clickable = GetComponent<ClickableComponent>();
+	auto* clickable = GetClickable();
 	if (!clickable) return;
 
 	clickable->onClick = [this]() {

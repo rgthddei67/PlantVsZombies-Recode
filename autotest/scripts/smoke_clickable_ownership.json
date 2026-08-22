@@ -1,0 +1,29 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 29, "resetTestState": true },
+    { "op": "choose_cards", "cards": ["PLANT_PLANTERN"] },
+    { "op": "wait_state", "state": "GAME", "timeout": 15 },
+    { "op": "set_spawn_paused", "value": true },
+    { "op": "plant", "type": "PLANT_PLANTERN", "row": 1, "col": 3 },
+    { "op": "assert_state", "path": "plantern.gear", "equals": "LOW" },
+    { "op": "move_mouse", "x": 522, "y": 213 },
+    { "op": "wait_frames", "value": 3 },
+    { "op": "click", "x": 522, "y": 213, "hold_frames": 2 },
+    { "op": "wait_frames", "value": 3 },
+    { "op": "click", "x": 220, "y": 151, "hold_frames": 2 },
+    { "op": "wait_frames", "value": 2 },
+    { "op": "assert_state", "path": "plantern.gear", "equals": "HIGH" },
+    { "op": "screenshot", "name": "01_plantern_body_click.png" },
+
+    { "op": "goto_level", "level": 1, "resetTestState": true },
+    { "op": "choose_cards", "cards": ["PLANT_PEASHOOTER"] },
+    { "op": "wait_state", "state": "GAME", "timeout": 15 },
+    { "op": "force_trophy" },
+    { "op": "wait_frames", "value": 2 },
+    { "op": "click", "target": "trophy", "hold_frames": 2 },
+    { "op": "wait_frames", "value": 5 },
+    { "op": "assert_state", "path": "boardState", "equals": "WIN" },
+    { "op": "screenshot", "name": "02_trophy_click.png" },
+    { "op": "quit" }
+  ]
+}

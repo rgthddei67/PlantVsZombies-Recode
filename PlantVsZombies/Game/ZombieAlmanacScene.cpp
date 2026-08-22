@@ -199,7 +199,7 @@ void ZombieAlmanacScene::CreateAllZombieEntries()
 			transform->SetScale(s);
 		}
 
-		auto clickable = zombie->AddComponent<ClickableComponent>();
+		auto clickable = zombie->CreateClickable();
 		clickable->SetClickArea(Vector(ZOMBIE_WINDOW_SIZE, ZOMBIE_WINDOW_SIZE));
 		clickable->SetClickOffset(Vector(
 			offset.x - ZOMBIE_WINDOW_SIZE / 2.0f,

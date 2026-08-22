@@ -34,7 +34,7 @@ void Trophy::Start()
 	SetScale(APPEAR_START_SCALE);  // 出现时从缩放起始值开始
 
 	// 注册点击组件
-	auto clickComponent = AddComponent<ClickableComponent>();
+	auto clickComponent = CreateClickable();
 	if (clickComponent)
 	{
 		clickComponent->IsClickable = true;
@@ -62,7 +62,7 @@ void Trophy::SetOnClickBack(ClickableComponent* click)
 		gameApp.mGameInfoSaver.SavePlayerInfo();
 
 		// 禁用点击，防止重复触发
-		if (auto c = GetComponent<ClickableComponent>())
+		if (auto c = GetClickable())
 			c->IsClickable = false;
 		};
 }

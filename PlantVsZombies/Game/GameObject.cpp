@@ -3,6 +3,7 @@
 #include "CollisionSystem.h"
 #include "ColliderComponent.h"
 #include "ShadowComponent.h"
+#include "ClickableComponent.h"
 
 // 定义在此（而非 Component.h inline）：需要完整的 GameObject 类型来回调 MarkDrawableSortDirty，
 // 而 Component.h 与 GameObject.h 互相依赖、无法在 inline 处看到完整 GameObject。
@@ -19,6 +20,7 @@ GameObject::GameObject(ObjectType type)
 
 GameObject::~GameObject()
 {
+	RemoveClickable();
 	RemoveShadow();
 	RemoveCollider();
 	for (auto& [type, component] : mComponents) {
@@ -41,7 +43,7 @@ void GameObject::Start() {
 				component->Start();
 			}
 		}
-		// Clickable 等附件可能在自己的 Start 中按需创建 Collider；再次幂等注册覆盖该路径。
+		// 兼容仍可能在 Component::Start 中创建 Collider 的过渡代码；重复注册由 CollisionSystem 幂等处理。
 		RegisterColliderIfNeeded();
 		mStarted = true;
 	}
@@ -50,8 +52,10 @@ void GameObject::Start() {
 void GameObject::Update() {
 	if (!mActive || !mStarted) return;
 
-	// 仅 iterate mUpdatableComponents 视图（通常 size 0-1）。Transform/Collider/Shadow 已由宿主显式拥有，
-	// 当前只剩 Clickable 可能进入该视图；无可更新附件时直接退出。
+	// Clickable 已脱离通用 Component 视图，但保持宿主更新后、场景统一命中处理前重置状态的时序。
+	if (mClickable) mClickable->Update();
+
+	// 迁移期保留通用 Component 视图；运行源码已无派生类，下一阶段统一删除框架。
 	for (Component* c : mUpdatableComponents) {
 		if (c->mEnabled) c->Update();
 	}
@@ -93,6 +97,7 @@ void GameObject::InitializeComponent(Component* component) {
 }
 
 void GameObject::DestroyAllComponents() {
+	RemoveClickable();
 	RemoveShadow();
 	RemoveCollider();
 	for (auto& [type, component] : mComponents) {
@@ -107,17 +112,35 @@ void GameObject::DestroyAllComponents() {
 
 ColliderComponent* GameObject::CreateCollider(
 	const Vector& size, const Vector& offset, ColliderType type) {
-	RemoveCollider();
-	mCollider = std::unique_ptr<ColliderComponent>(
+	// 先完成新对象分配，再替换旧对象；这样已注册 Clickable 不会观察到半初始化 Collider。
+	auto replacement = std::unique_ptr<ColliderComponent>(
 		new ColliderComponent(this, size, offset, type));
+	if (mCollider) CollisionSystem::GetInstance().UnregisterCollider(mCollider.get());
+	mCollider = std::move(replacement);
 	if (mStarted) RegisterColliderIfNeeded();
 	return mCollider.get();
 }
 
 bool GameObject::RemoveCollider() {
+	// Clickable 的命中几何由 Collider 唯一提供；显式移除几何时同步撤销点击注册。
+	RemoveClickable();
 	if (!mCollider) return false;
 	CollisionSystem::GetInstance().UnregisterCollider(mCollider.get());
 	mCollider.reset();
+	return true;
+}
+
+ClickableComponent* GameObject::CreateClickable() {
+	if (!mCollider) CreateCollider(Vector(50, 50));
+	mCollider->isTrigger = true;
+	RemoveClickable();
+	mClickable = std::unique_ptr<ClickableComponent>(new ClickableComponent(this));
+	return mClickable.get();
+}
+
+bool GameObject::RemoveClickable() {
+	if (!mClickable) return false;
+	mClickable.reset();
 	return true;
 }
 

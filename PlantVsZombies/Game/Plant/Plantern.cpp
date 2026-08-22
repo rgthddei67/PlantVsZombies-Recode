@@ -30,7 +30,7 @@ void Plantern::SetupPlant()
 	if (mIsPreview) return;
 
 	// 本体点击只发出展示请求；挡位按钮和菜单生命周期仍由卡槽 UI 持有。
-	auto* clickable = AddComponent<ClickableComponent>();
+	auto* clickable = CreateClickable();
 	clickable->ConsumeEvent = true;
 	clickable->onClick = [this]() {
 		if (!mBoard || IsSquished()

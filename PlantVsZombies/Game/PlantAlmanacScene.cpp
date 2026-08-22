@@ -98,7 +98,7 @@ void PlantAlmanacScene::CreateAllCards()
 		card->SetOriginalPosition(Vector(posX, posY));
 		card->mIsUI = true;
 
-		if (auto clickable = card->GetComponent<ClickableComponent>()) {
+		if (auto clickable = card->GetClickable()) {
 			clickable->onClick = [this, plantType]() {
 				OnCardClicked(plantType);
 				};

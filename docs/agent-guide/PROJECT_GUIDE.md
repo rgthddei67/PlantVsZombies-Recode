@@ -126,7 +126,7 @@ Vulkan 运行时把 dynamic rendering 与 synchronization2 **分别**选路：Vu
 ### 对象层次
 
 ```text
-GameObject（基类：可选 Transform/Collider、遗留附件、渲染顺序、激活状态）
+GameObject（基类：显式可选 Transform/Collider/Shadow/Clickable、渲染顺序、激活状态）
 └── AnimatedObject（增加 Animator 精灵动画）
     ├── Plant → Shooter → PeaShooter
     │          SunFlower、WallNut、CherryBomb……
@@ -143,17 +143,15 @@ Bullet（独立类型；通过 BulletPool 使用对象池）
 
 `EntityManager` 与上述组件容器相互独立：它是 Board 范围内的稳定实体 ID 注册表和查询索引，服务跨对象引用、存档恢复与热路径检索，不是 ECS，组件收缩期间不得删除或把其职责重新塞回对象指针。
 
-### 遗留组件容器（渐进收缩）
+### 显式附件与待删除组件容器
 
 `GameObject` 通过 `std::optional<Transform>` 直接保存非多态空间值；只有空间对象才调用 `CreateTransform()`，调用方用 `GetTransform()` 读取唯一权威的位置、旋转和缩放。Collider 也已脱离通用组件表，由宿主用 `unique_ptr` 可选独占；只能通过 `CreateCollider()` / `GetCollider()` / `RemoveCollider()` 创建、访问或移除，入口原子维护 owner、CollisionSystem 注册、ID 与缓存，场景销毁和运行时移除都不得直接重置字段。`ColliderComponent` 仅保留过渡名称，不再继承 `Component`，Debug 绘制由 `GameObject::Draw()` 显式提交。
 
 Shadow 同样由 `GameObject` 用 `unique_ptr<ShadowComponent>` 显式可选独占；`ShadowComponent` 仅保留过渡名称、不再继承 `Component`。创建、访问和移除统一走 `CreateShadow()` / `GetShadow()` / `RemoveShadow()`；介质/出土等生命周期显隐用 `SetVisible()`，跳跃/投掷等动作阶段门控用 `SetEnabled()`，两者独立并取 AND，禁止互相覆盖。普通对象由 `GameObject::Draw()` 在本体前固定提交；Bullet 不调用该阶段，仍由 `BulletPool::DrawShadows()` 在植物层前跨对象提交。默认实例路径必须使用 `DrawTextureInstanced()` 与 reanim 保序，`-NoInstance` 继续走普通批次兜底。
 
-遗留组件容器仍使用 `std::unordered_map<std::type_index, std::unique_ptr<Component>>`，并维护待初始化、可更新和可绘制的非拥有视图。现有组件只剩：
+Clickable 也由 `GameObject` 用 `unique_ptr<ClickableComponent>` 显式可选独占；创建、访问和移除统一走 `CreateClickable()` / `GetClickable()` / `RemoveClickable()`。`CreateClickable()` 会先保证 Collider 完整就绪再注册，`RemoveCollider()` 会同步注销 Clickable；仅替换 Collider 时保持 Clickable 注册有效。Clickable 继续使用主线程稀疏自注册表，输入处理保持渲染顺序降序、`ConsumeEvent`、悬停光标计数以及 UI/世界坐标选择，禁止退回每帧扫描全部 GameObject。
 
-- `ClickableComponent`：鼠标交互。
-
-Clickable 暂时仍通过 `AddComponent<T>(args...)` 添加、通过 `GetComponent<T>()` 获取；不得把 Transform、Collider、Shadow 或新玩法状态重新放回该容器。
+当前运行源码已没有 `Component` 派生类；遗留的 `std::unordered_map<std::type_index, std::unique_ptr<Component>>`、待初始化/更新/绘制视图和通用模板接口暂时为空，只等待下一阶段整体删除。不得把 Transform、Collider、Shadow、Clickable 或新玩法状态重新放回该容器。
 
 `Card` 已直接拥有单卡的冷却、选中、三叶草方向、可用性和显示缓存，并在 `Card::Start/Update/Draw` 中显式管理点击回调、玩法更新与卡面绘制。不要重新引入 `CardComponent` / `CardDisplayComponent`，也不要通过组件容器查询单卡状态。场景级多卡仲裁由 `GameScene` 通过 `unique_ptr<CardSlotManager>` 明确拥有；实战 `Card` 由该控制器直接绑定非拥有指针，禁止恢复匿名 `CardUI` 宿主或每帧扫描组件表定位 manager。
 

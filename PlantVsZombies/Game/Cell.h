@@ -42,7 +42,7 @@ public:
 		collider->isStatic = true;
 		collider->layerMask = CollisionLayer::NONE;
 		collider->collisionMask = CollisionLayer::NONE;
-		auto* clickable = this->AddComponent<ClickableComponent>();
+		auto* clickable = this->CreateClickable();
 		if (!clickable) return;
 		clickable->ChangeCursorOnHover = false;
 		clickable->onClick = [this]() {
