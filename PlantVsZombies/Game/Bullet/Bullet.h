@@ -210,6 +210,10 @@ public:
 	Vector GetPosition() const { return GetTransform()->GetPosition(); }
 	ColliderComponent* GetColliderComponent() { return GetCollider(); }
 	const ColliderComponent* GetColliderComponent() const { return GetCollider(); }
+
+private:
+	friend class BulletPool;
+	int mPoolSlotIndex = -1; // 运行时稳定池槽位；不进入存档，供 Release 直接定位
 };
 
 #endif

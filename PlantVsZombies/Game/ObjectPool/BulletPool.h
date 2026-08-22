@@ -4,7 +4,6 @@
 
 #include <vector>
 #include <memory>
-#include <unordered_map>
 #include "../Bullet/Bullet.h"
 #include "../Bullet/BulletType.h"
 
@@ -13,7 +12,7 @@ class Board;
 class BulletPool {
 private:
 	struct PooledBullet {
-		std::weak_ptr<Bullet> bullet;  // 使用 weak_ptr 避免循环引用
+		std::shared_ptr<Bullet> bullet;  // 池与 GOM 共同持有；Bullet 不反向持池，不构成循环
 		bool active = false;
 		BulletType type = BulletType::NUM_BULLETS;
 		int activeListIndex = -1;  // 在 mActiveIndices 中的位置，供 O(1) 稠密移除
@@ -21,7 +20,6 @@ private:
 
 	std::vector<PooledBullet> mPool;
 	std::vector<std::vector<int>> mFreeByType;         // 各类型空闲槽位下标，Acquire O(1)
-	std::unordered_map<Bullet*, int> mBulletIndexMap;  // 指针→下标，Release O(1)
 	std::vector<int> mActiveIndices;                   // 仅保存活跃槽位，绘制成本不受历史峰值影响
 	int mInitialCapacity = 250;   // 初始容量
 	int mWarningThreshold = 500;  // 警告阈值
@@ -45,7 +43,7 @@ public:
 	Bullet* Acquire(Board* board, BulletType type, int row,
 		const Vector& colliderRadius, const Vector& position);
 
-	// shared_ptr 版本：仅当调用方需要把 weak_ptr 注册到 EntityRegistry 时使用
+	// shared_ptr 版本：调用方需把弹丸 weak_ptr 注册到 EntityRegistry 时使用
 	std::shared_ptr<Bullet> AcquireShared(Board* board, BulletType type, int row,
 		const Vector& colliderRadius, const Vector& position);
 
@@ -61,6 +59,7 @@ public:
 	// 获取统计信息
 	int GetStorageCount() const { return static_cast<int>(mPool.size()); }
 	int GetActiveCount() const { return static_cast<int>(mActiveIndices.size()); }
+	int GetInactiveCount() const { return GetStorageCount() - GetActiveCount(); }
 	int GetPeakCount() const { return mPeakCount; }
 	int GetHitCount() const { return mHitCount; }
 	int GetMissCount() const { return mMissCount; }

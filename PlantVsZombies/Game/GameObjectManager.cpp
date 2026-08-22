@@ -143,9 +143,12 @@ void GameObjectManager::Update() {
 	{
 		PROFILE_SCOPE("2b.GOM_objUpdateLoop(serial)");
 		const int total = static_cast<int>(mGameObjects.size());
-		constexpr int kParallelUpdateThreshold = 200;            // 与并行 Draw 阈值同量级
+		const int inactivePooledBullets = mBulletPool ? mBulletPool->GetInactiveCount() : 0;
+		const int parallelCandidateCount = std::max(0, total - inactivePooledBullets);
+		constexpr int kParallelUpdateThreshold = 200; // 实际会更新的对象达到此量级才支付调度成本
 
-		if (mThreadPool && total >= kParallelUpdateThreshold) {
+		// 休眠弹丸仍留在 GOM 维持稳定所有权，但不应把小场景误判为并行更新场景。
+		if (mThreadPool && parallelCandidateCount >= kParallelUpdateThreshold) {
 			int numWorkers = static_cast<int>(std::thread::hardware_concurrency());
 			if (numWorkers < 1) numWorkers = 1;
 			if (numWorkers > total) numWorkers = total;
@@ -258,8 +261,11 @@ void GameObjectManager::DrawAll(Graphics* g) {
 		splitIdx = static_cast<int>(it - mGameObjects.begin());
 	}
 	const int parallelCount = splitIdx;  // [0, splitIdx) 走并行；[splitIdx, total) overlay 串行
+	const int inactivePooledBullets = mBulletPool ? mBulletPool->GetInactiveCount() : 0;
+	const int parallelCandidateCount = std::max(0, parallelCount - inactivePooledBullets);
 
-	if (!g->IsParallelDrawEnabled() || parallelCount < kParallelDrawThreshold) {
+	// 休眠弹丸仍在线性表内但不会提交绘制；阈值只看真正可能产生命令的对象。
+	if (!g->IsParallelDrawEnabled() || parallelCandidateCount < kParallelDrawThreshold) {
 		// 串行 fallback：主体 → 世界粒子/天气覆盖/Scene UI 贴图 → UI GameObject。
 		PROFILE_SCOPE("6.Draw_submit(serial-fallback)");
 		drawSerialRange(0, splitIdx);
@@ -333,6 +339,9 @@ std::shared_ptr<GameObject> GameObjectManager::FindGameObjectWithTag(const std::
 }
 
 void GameObjectManager::ClearAll() {
+	// BulletPool 现在共同持有强引用；任何全清入口都必须先解除池所有权与槽位元数据。
+	if (mBulletPool) mBulletPool->Clear();
+
 	for (auto& obj : mGameObjects) {
 		if (obj) {
 			obj->DestroyAttachments();

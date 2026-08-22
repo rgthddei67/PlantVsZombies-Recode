@@ -41,7 +41,6 @@ void BulletPool::Initialize(int initialCapacity, int warningThreshold) {
 	mPool.clear();
 	mPool.reserve(initialCapacity);
 	mFreeByType.assign(static_cast<int>(BulletType::NUM_BULLETS), {});
-	mBulletIndexMap.clear();
 	mActiveIndices.clear();
 	mActiveIndices.reserve(initialCapacity);
 	mPeakCount = 0;
@@ -72,7 +71,7 @@ std::shared_ptr<Bullet> BulletPool::AcquireShared(Board* board, BulletType type,
 		int idx = freeList.back();
 		freeList.pop_back();
 		auto& pooled = mPool[idx];
-		auto bullet = pooled.bullet.lock();
+		auto bullet = pooled.bullet;
 		if (bullet) {
 			if (bullet->mBulletID != NULL_BULLET_ID) {
 				board->mEntityRegistry.RemoveBullet(bullet->mBulletID);
@@ -83,7 +82,7 @@ std::shared_ptr<Bullet> BulletPool::AcquireShared(Board* board, BulletType type,
 			mHitCount++;
 			return bullet;
 		}
-		// weak_ptr 已失效（理论上不应发生），丢弃该槽位
+		// 空槽位理论上只可能来自损坏状态；跳过后允许本次 Acquire 自愈新建。
 	}
 
 	// 2. 没有空闲对象，创建新对象并添加到池中（自动扩容）
@@ -99,10 +98,10 @@ std::shared_ptr<Bullet> BulletPool::AcquireShared(Board* board, BulletType type,
 
 	if (bullet) {
 		bullet->SetFromPool(true);
-		pooled.bullet = bullet;
 		int idx = static_cast<int>(mPool.size());
-		mPool.push_back(pooled);
-		mBulletIndexMap[bullet.get()] = idx;
+		bullet->mPoolSlotIndex = idx;
+		pooled.bullet = bullet;
+		mPool.push_back(std::move(pooled));
 		ActivateSlot(idx);
 
 		// 警告：池大小超过阈值
@@ -125,13 +124,14 @@ Bullet* BulletPool::Acquire(Board* board, BulletType type, int row,
 void BulletPool::Release(Bullet* bullet) {
 	if (!bullet) return;
 
-	auto it = mBulletIndexMap.find(bullet);
-	if (it == mBulletIndexMap.end()) {
+	// 槽位随 Bullet 生命周期固定，避免为每颗弹丸维护独立哈希节点与桶数组。
+	const int idx = bullet->mPoolSlotIndex;
+	if (idx < 0 || idx >= static_cast<int>(mPool.size())
+		|| mPool[idx].bullet.get() != bullet) {
 		LOG_WARN("BulletPool") << "Release 找不到对应的池对象";
 		return;
 	}
 
-	int idx = it->second;
 	auto& pooled = mPool[idx];
 	if (!pooled.active) {
 		LOG_WARN("BulletPool") << "忽略重复回收的池对象，槽位: " << idx;
@@ -160,15 +160,14 @@ void BulletPool::Release(Bullet* bullet) {
 void BulletPool::Clear() {
 	// 销毁所有池中的对象
 	for (auto& pooled : mPool) {
-		auto bullet = pooled.bullet.lock();
-		if (bullet) {
-			GameObjectManager::GetInstance().DestroyGameObject(bullet);
+		if (pooled.bullet) {
+			pooled.bullet->mPoolSlotIndex = -1;
+			GameObjectManager::GetInstance().DestroyGameObject(pooled.bullet);
 		}
 	}
 
 	mPool.clear();
 	for (auto& fl : mFreeByType) fl.clear();
-	mBulletIndexMap.clear();
 	mActiveIndices.clear();
 	mPeakCount = 0;
 	mHitCount = 0;
@@ -178,9 +177,7 @@ void BulletPool::Clear() {
 void BulletPool::DrawShadows(Graphics* g) const {
 	for (int poolIndex : mActiveIndices) {
 		const auto& pooled = mPool[poolIndex];
-		if (auto bullet = pooled.bullet.lock()) {
-			bullet->DrawShadow(g);
-		}
+		pooled.bullet->DrawShadow(g);
 	}
 }
 
@@ -195,7 +192,8 @@ bool BulletPool::HasConsistentActiveSlotsForTesting() const {
 		const auto& pooled = mPool[poolIndex];
 		if (seen[poolIndex] || !pooled.active
 			|| pooled.activeListIndex != activeListIndex
-			|| pooled.bullet.expired()) {
+			|| !pooled.bullet
+			|| pooled.bullet->mPoolSlotIndex != poolIndex) {
 			return false;
 		}
 		seen[poolIndex] = true;
@@ -203,6 +201,7 @@ bool BulletPool::HasConsistentActiveSlotsForTesting() const {
 
 	for (int poolIndex = 0; poolIndex < static_cast<int>(mPool.size()); ++poolIndex) {
 		const auto& pooled = mPool[poolIndex];
+		if (!pooled.bullet || pooled.bullet->mPoolSlotIndex != poolIndex) return false;
 		if (pooled.active != seen[poolIndex]) return false;
 		if (!pooled.active && pooled.activeListIndex != -1) return false;
 	}

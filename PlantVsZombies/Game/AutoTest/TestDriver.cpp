@@ -6004,6 +6004,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	if (BulletPool* bulletPool = GameObjectManager::GetInstance().GetBulletPool()) {
 		out["bulletPoolStorageCount"] = bulletPool->GetStorageCount();
 		out["bulletPoolActiveCount"] = bulletPool->GetActiveCount();
+		out["bulletPoolInactiveCount"] = bulletPool->GetInactiveCount();
 		out["bulletPoolPeakCount"] = bulletPool->GetPeakCount();
 		out["bulletPoolHitCount"] = bulletPool->GetHitCount();
 		out["bulletPoolMissCount"] = bulletPool->GetMissCount();
