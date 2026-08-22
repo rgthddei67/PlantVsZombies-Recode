@@ -5,11 +5,14 @@
 #include "../UI/GameMessageBox.h"
 #include "../DeltaTime.h"
 #include "SceneManager.h"
-#include "GameObject.h"
 #include "Scene.h"
+#include <memory>
+
+class MainMenuButtons;
 
 class MainMenuScene : public Scene {
 public:
+	~MainMenuScene() override;
 	void OnEnter() override;
 	void OnExit() override;
 	void Update() override;
@@ -20,7 +23,7 @@ public:
 	bool mReadyToSwitchSurvival = false;
 
 private:
-	class GameButton* mGameButton = nullptr;   // 所有权在 GameObjectManager
+	std::unique_ptr<MainMenuButtons> mMainMenuButtons;
 	std::shared_ptr<Button> mSkipToSecondAreaButton;
 	std::shared_ptr<Button> mOpitionButton;
 	std::shared_ptr<Button> mConsoleButton;
@@ -49,8 +52,8 @@ protected:
 	void BuildDrawCommands() override;
 };
 
-// 主菜单4个按钮
-class GameButton : public GameObject {
+/** 由 MainMenuScene 直接拥有的四个主入口按钮控制器。 */
+class MainMenuButtons {
 private:
 	MainMenuScene* mMainMenuScene = nullptr;
 	UIManager* mUIManager = nullptr;
@@ -60,15 +63,15 @@ private:
 	std::weak_ptr<Button> mSurvival;
 
 public:
-	GameButton(UIManager* manager, MainMenuScene* mainMenuScene) : GameObject(ObjectType::OBJECT_UI)
+	MainMenuButtons(UIManager* manager, MainMenuScene* mainMenuScene)
 	{
 		this->mUIManager = manager;
 		this->mMainMenuScene = mainMenuScene;
 	}
 
-	void Start() override
+	/** 创建四个按钮并把生命周期交给场景的 UIManager。 */
+	void Initialize()
 	{
-		GameObject::Start();
 		auto adventure = mUIManager->CreateButton(Vector(545, 85), Vector(330 * 1.00f, 120 * 1.00f));
 		mAdventure = adventure;
 		adventure->SetAsCheckbox(false);
@@ -119,8 +122,7 @@ public:
 		if (auto btn = mSurvival.lock()) btn->SetEnabled(enabled);
 	}
 
-	void Draw(Graphics* g) override {
-		GameObject::Draw(g);
+	void Draw(Graphics* g) {
 		if (auto adventure = mAdventure.lock())
 		{
 			adventure->Draw(g);

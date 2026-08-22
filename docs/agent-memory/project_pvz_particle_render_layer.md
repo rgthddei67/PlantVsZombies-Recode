@@ -10,7 +10,7 @@ metadata:
 2026-07-03 完成粒子图层统一（方案A"按层可控"，spec/plan 在 docs/superpowers/ 下 2026-07-03-particle-render-layer*）。
 
 - `ParticleEffect` 携带 `renderOrder`；`EmitEffect(name,pos,renderOrder=LAYER_EFFECTS_WORLD=35000)`（19 个旧调用点零改动）。`DrawAll` 已删，拆为 `DrawBelow(order)`/`DrawFrom(order)`。
-- **世界层粒子接入点不是场景命令槽**：GameMessageBox 在 "GameObjects" 命令内部的 overlay 段（splitIdx≥LAYER_UI）绘制，所以世界粒子必须画在 GameObjectManager::DrawAll 的主体与 overlay 之间——用 `SetPreOverlayHook(std::function)`（GameApp.cpp 注入 `DrawBelow(LAYER_UI)`），串行 fallback 与并行 replay 两条路径都插了。雨天场景在同一 hook 内按“世界粒子 → 世界暗幕”合成，再进入 UI overlay。
+- **世界层粒子接入点不是场景命令槽**：世界粒子必须画在 GameObjectManager::DrawAll 的主体与 overlay 之间——用 `SetPreOverlayHook(std::function)`（GameApp.cpp 注入 `DrawBelow(LAYER_UI)`），串行 fallback 与并行 replay 两条路径都插了。雨天场景在同一 hook 内按“世界粒子 → 世界暗幕”合成，再进入 UI overlay。2026-08-22 起 `GameMessageBox` 已移到后续的 UIManager 场景命令，但这不改变世界粒子必须先于雨天暗幕和全部 UI 的层级契约。
 - 顶层粒子（显式传 ≥LAYER_UI）走原 "ParticleSystem" 场景槽 `DrawFrom(LAYER_UI)`，排序后在 UIManager Button 之后 → 盖住全部 UI。
 - 顺手修：`Scene::Draw` lazy build 后调用 `SortDrawCommands()`（基类四命令此前靠插入顺序碰巧对）。
 

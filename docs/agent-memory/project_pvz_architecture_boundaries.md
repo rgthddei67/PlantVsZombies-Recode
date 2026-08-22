@@ -18,7 +18,7 @@
 `Scene::OnExit()` 会清空 UI、粒子和全局 `GameObjectManager`，所以旧
 `SceneManager::PushScene/PopScene` 的“保留并恢复旧场景”语义并不成立，而且仓库没有调用方。
 `SceneManager` 现明确只持有一个 `unique_ptr<Scene>`；覆盖式界面应由当前场景内的
-`UIManager` / `GameMessageBox` 管理。若未来真的需要场景栈，必须先把对象管理器和资源清理
+`UIManager` 管理，`GameMessageBox` 是其直接拥有的普通模态对象，关闭请求在控件遍历后统一清理。若未来真的需要场景栈，必须先把对象管理器和资源清理
 改成场景作用域，不能直接恢复旧 API。
 
 ## 存档 schema

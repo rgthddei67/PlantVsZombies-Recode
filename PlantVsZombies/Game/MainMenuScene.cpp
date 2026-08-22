@@ -3,7 +3,6 @@
 #include "../DeltaTime.h"
 #include "AudioSystem.h"
 #include "../ResourceKeys.h"
-#include "GameObjectManager.h"
 #include "../UI/GameMessageBox.h"
 #include "Board.h"
 #include "AdventureProgression.h"
@@ -18,24 +17,26 @@ namespace
 	const Vector kConsoleButtonSize(150.0f, 40.0f); // 控制台入口按钮尺寸，单位：逻辑像素
 }
 
+MainMenuScene::~MainMenuScene() = default;
+
 void MainMenuScene::OnEnter()
 {
 	Scene::OnEnter();
-	mGameButton = GameObjectManager::GetInstance().CreateGameObject<GameButton>(LAYER_UI
-		, &mUIManager, this);
+	mMainMenuButtons = std::make_unique<MainMenuButtons>(&mUIManager, this);
+	mMainMenuButtons->Initialize();
 	AudioSystem::PlayMusic(ResourceKeys::Music::MUSIC_MAINMENU, -1);
 }
 
 void MainMenuScene::OnExit()
 {
-	GameObjectManager::GetInstance().DestroyGameObject(mGameButton);
-	mGameButton = nullptr;
 	mSkipToSecondAreaButton.reset();
 	mOpitionButton.reset();
 	mConsoleButton.reset();
 	mExitButton.reset();
 	mAlmanacButton.reset();
 	Scene::OnExit();
+	// UIManager 先销毁捕获控制器 this 的 Button 回调，再释放控制器本身。
+	mMainMenuButtons.reset();
 }
 
 void MainMenuScene::Update()
@@ -94,6 +95,9 @@ void MainMenuScene::BuildDrawCommands()
 	RegisterDrawCommand("DrawButton",
 		[this](Graphics* g) {
 			const bool overlayOpen = mOpenMenu || mOpenConsole;
+			if (!overlayOpen && mMainMenuButtons) {
+				mMainMenuButtons->Draw(g);
+			}
 			if (!overlayOpen && mOpitionButton) {
 				mOpitionButton->Draw(g);
 			}
@@ -230,7 +234,7 @@ void MainMenuScene::SetMainMenuButtonsEnabled(bool enabled)
 	if (mConsoleButton) mConsoleButton->SetEnabled(enabled);
 	if (mExitButton) mExitButton->SetEnabled(enabled);
 	if (mSkipToSecondAreaButton) mSkipToSecondAreaButton->SetEnabled(enabled);
-	if (mGameButton) mGameButton->SetEnabled(enabled);
+	if (mMainMenuButtons) mMainMenuButtons->SetEnabled(enabled);
 }
 
 void MainMenuScene::OpenMenu()

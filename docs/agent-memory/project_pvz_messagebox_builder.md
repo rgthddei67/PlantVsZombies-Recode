@@ -15,3 +15,7 @@ metadata:
 - 循环内动态加按钮/文字的站点（词条选择/查看、开发者面板）不能纯链式：`GameMessageBox::Builder builder{pos};` 局部变量 + 循环里 builder.Button/Text（用花括号初始化避 most vexing parse）。
 
 新增验证脚本：`pause_menu_shot.json`（ESC 暂停菜单截图）、`mainmenu_options_shot.json`（点 (740,501) 开主菜单选项）。第二刀候选（未做）：title/message 统一进 TextConfig、删 Draw 里 (-230,-180) 魔法偏移。spec/plan 在 docs/superpowers/{specs,plans}/2026-07-04-messagebox-builder*。
+
+## 2026-08-22 所有权后记
+
+Builder 调用接口不变，但 `Show()` 现在把普通 `GameMessageBox` 注册给当前场景 `UIManager`，不再创建 UI 类型 GameObject。`Close()` 立即失活并只记录关闭请求；UIManager 在 Button/Slider 更新结束后解除旧框控件并释放自身所有权，`ClearAll()` 也会先断开控件和 owner，因此外部共享引用不会误操作后续场景。回调内重建新框的安全性来自 UIManager 的遍历后清理阶段，不再依赖 GOM 帧末销毁。

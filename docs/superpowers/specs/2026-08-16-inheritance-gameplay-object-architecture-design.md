@@ -2,7 +2,7 @@
 
 日期：2026-08-16
 
-状态：主人已批准架构方向；Card、CardSlotManager 与 Transform 阶段已完成实现，后续附件阶段待实施
+状态：主人已批准架构方向；Card、CardSlotManager、Transform 与纯 UI 所有权阶段已完成实现，后续附件阶段待实施
 
 ## 1. 决策
 
@@ -14,7 +14,7 @@
 - 现有 `Component` 容器视为早期框架遗留的横切附件机制，按阶段收缩，不再作为新玩法系统的默认扩展点。
 - `EntityManager` 是稳定 ID 注册表与查询索引，不属于待收缩的组件系统。
 
-这是一项架构边界决策。2026-08-16 已完成前两阶段：`CardComponent` 与 `CardDisplayComponent` 并入 `Card`，`CardSlotManager` 改由 `GameScene` 明确拥有；2026-08-22 又把 Transform 从组件表迁为 `GameObject` 的可选值。存档格式保持不变，后续附件仍按独立阶段迁移。
+这是一项架构边界决策。2026-08-16 已完成前两阶段：`CardComponent` 与 `CardDisplayComponent` 并入 `Card`，`CardSlotManager` 改由 `GameScene` 明确拥有；2026-08-22 又把 Transform 从组件表迁为 `GameObject` 的可选值，并让纯 UI 脱离 `GameObjectManager`。存档格式保持不变，后续附件仍按独立阶段迁移。
 
 ## 2. 当前事实
 
@@ -38,6 +38,8 @@ GameObject
 它不具备典型 ECS 的数据布局和执行方式：实体不是轻量 ID，组件不在按类型连续存储中，System 也不按组件签名批量查询。植物、僵尸和子弹直接访问宿主 Transform，仍可能缓存 Collider 裸指针，主要行为继续由派生类虚函数驱动。碰撞与点击各自维护专用注册表，`GameObject` 还显式识别 `ColliderComponent` 完成注册。
 
 因此当前结构应准确称为“继承式对象 + 遗留组件附件”，而不是两套并行 ECS/OO 玩法架构。
+
+纯 UI 走独立边界：`MainMenuScene` 直接拥有 `MainMenuButtons` 控制器，`UIManager` 直接拥有按钮、滑块和模态 `GameMessageBox`。弹窗关闭请求在 Button/Slider 完成本帧遍历后统一解除控件注册，不再进入 GOM 的玩法对象更新、排序和绘制生命周期。
 
 ## 3. 目标
 
@@ -70,6 +72,11 @@ Board（玩法权威）
         ├── Collider（碰撞注册与回调）
         ├── Clickable（输入注册与回调）
         └── Shadow（绘制参数与可见性）
+
+Scene（展示生命周期）
+└── UIManager
+    ├── Button / Slider
+    └── GameMessageBox（模态对象，回调后安全清理）
 ```
 
 目标中的“附件”是宿主明确拥有的字段或小对象，不再依赖 `unordered_map<type_index, unique_ptr<Component>>`、通用 `Component::Start/Update/Draw` 虚生命周期或运行时 `GetComponent<T>()` 服务定位。
@@ -84,7 +91,7 @@ Board（玩法权威）
 
 ### 6.2 Transform
 
-Transform 是绝大多数世界对象的基础空间数据，不需要多态生命周期。当前由 `GameObject` 直接持有 `std::optional<Transform>`：空间对象显式调用 `CreateTransform()`，其余调用方统一通过 `GetTransform()` 访问；`GameMessageBox`、`GameButton`、`MistFuel`、`Shovel` 等无空间对象保持为空。该取舍移除了每个 Transform 的独立堆分配、类型哈希与 Component 生命周期，同时避免为现有对象树增加一层 `SpatialGameObject` 和大范围多继承改造。
+Transform 是绝大多数世界对象的基础空间数据，不需要多态生命周期。当前由 `GameObject` 直接持有 `std::optional<Transform>`：空间对象显式调用 `CreateTransform()`，其余调用方统一通过 `GetTransform()` 访问；仍属于 GOM 的 `MistFuel`、`Shovel` 等无空间对象保持为空，`GameMessageBox` 与主菜单按钮则已移出 GOM。该取舍移除了每个 Transform 的独立堆分配、类型哈希与 Component 生命周期，同时避免为现有对象树增加一层 `SpatialGameObject` 和大范围多继承改造。
 
 ### 6.3 Collider
 
@@ -104,7 +111,13 @@ Transform 是绝大多数世界对象的基础空间数据，不需要多态生�
 - `CardSlotManager` 变成 `GameScene` 明确拥有的场景控制器，不再挂在匿名 `GameObject` 上借用组件生命周期。
 - 卡片存档字段、选卡/生存轮次、路灯花菜单、三叶草方向、开发者模式和图鉴无场景宿主路径保持不变。
 
-### 6.6 EntityManager
+### 6.6 UI
+
+- `MainMenuButtons` 是 `MainMenuScene` 独占的普通控制器；其具体按钮仍由场景 `UIManager` 统一输入仲裁。
+- `GameMessageBox::Builder` 保持调用接口，但 `Show()` 将模态对象注册给当前场景 `UIManager`。`Close()` 只请求关闭并立即失活，UIManager 在控件遍历后解除按钮/滑块注册并释放自身所有权。
+- 场景退出时 UIManager 先解除所有模态对象与控件的关联，因此外部 `weak_ptr/shared_ptr` 不会让旧场景控件泄漏到新场景。
+
+### 6.7 EntityManager
 
 组件收缩不触碰其核心职责。未来可单独重命名为 `EntityRegistry`，并在体积继续增长时把僵尸按行与稀有品种索引拆成独立查询索引，但稳定 ID、读档指定 ID、过期弱引用清理和查询复杂度不得倒退。
 

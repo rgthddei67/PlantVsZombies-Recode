@@ -96,7 +96,7 @@ description: Use when adding or tuning any 生存模式词条 (survival perk) in
 
 ### 消息框生命周期
 
-词条候选、“刷新”和“放弃本次”按钮的 `autoClose` 必须为 `false`；**关闭权统一由 `GameScene` 的选择流程持有**。`ApplyPerkSelection()` 和 `RefreshSurvivalPerkSelection()` 都通过 `CloseSurvivalPerkSelectBox()` 先把旧框设为 inactive 后再 `Close()`，然后刷新下一步、重抽当前步或结束流程。立即失活用于消除延迟销毁期间的一帧双框残影；真实点击与 AutoTest 直接调用走同一生命周期。
+词条候选、“刷新”和“放弃本次”按钮的 `autoClose` 必须为 `false`；**选择流程的关闭权统一由 `GameScene` 持有，弹窗内存与控件注册由当前场景 `UIManager` 持有**。`ApplyPerkSelection()` 和 `RefreshSurvivalPerkSelection()` 都通过 `CloseSurvivalPerkSelectBox()` 先把旧框设为 inactive 后再 `Close()`，然后刷新下一步、重抽当前步或结束流程。立即失活用于消除同帧重建的一帧双框残影；`Close()` 只提交关闭请求，UIManager 会在 Button/Slider 完成本帧遍历后安全解除旧框控件。真实点击与 AutoTest 直接调用走同一生命周期。
 
 若修改选择次数、候选数或按钮语义，必须同步 `GameScene` 常量/计数/标题、`TestDriver.cpp` 的 `perkSelect` dump、两个选择脚本、本技能和项目记忆。
 

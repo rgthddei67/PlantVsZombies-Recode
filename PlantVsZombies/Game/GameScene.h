@@ -232,7 +232,7 @@ private:
 	void DrawPrompts(Graphics* g) const;
 	// 按当前 mSurvivalPerkStepsCompleted 重新 roll 并构建第 N/2 次选择框。
 	void RenderSurvivalPerkSelectStep();
-	// 立即停用并延迟销毁当前选择框，避免刷新或进入下一步时出现一帧双框。
+	// 立即停用并请求 UIManager 在控件遍历后清理，避免刷新或进入下一步时出现一帧双框。
 	void CloseSurvivalPerkSelectBox();
 
 	std::unique_ptr<Board> mBoard = nullptr;
@@ -343,7 +343,7 @@ private:
 	// ---- 开发者模式 ----
 	void OpenDevPanel();
 	void CloseDevPanel();
-	void RenderDevPanel();        // 状态变化即整体重建（autoClose 帧末自毁旧盒）
+	void RenderDevPanel();        // 状态变化即整体重建（autoClose 在控件遍历后清理旧盒）
 	void BeginDevSpawnMode();     // 进入召唤放置模式
 	void RestoreDevPanelSelection(); // 从 PlayerInfo 恢复稳定的关卡号与僵尸枚举名
 	void PersistDevPanelSelection(); // 选择变化时立即写入 PlayerInfo

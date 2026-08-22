@@ -1754,7 +1754,7 @@ void GameScene::Update() {
 			else if (mOpenMenu) {
 				mOpenMenu = false;
 				DeltaTime::SetPaused(false);
-				GameObjectManager::GetInstance().DestroyGameObject(mMenu.lock());
+				if (auto menu = mMenu.lock()) menu->Close();
 				mMenu.reset();
 			}
 			else {
@@ -2182,7 +2182,7 @@ void GameScene::ApplyPerkSelection(int index)
 	// 选择与放弃都会消耗当前机会；步骤进度不能再由实际获得的词条数推导。
 	++mSurvivalPerkStepsCompleted;
 
-	// 先失活可避免延迟销毁期间与下一步新框重叠一帧；真实按钮与 AutoTest 共用此生命周期。
+	// 先失活可避免遍历后清理前与下一步新框重叠一帧；真实按钮与 AutoTest 共用此生命周期。
 	CloseSurvivalPerkSelectBox();
 
 	if (mSurvivalPerkStepsCompleted < SURVIVAL_PERK_PICKS_PER_ROUND) {
@@ -2553,8 +2553,7 @@ void GameScene::OpenDevPanel()
 
 void GameScene::CloseDevPanel()
 {
-	if (auto box = mDevPanelBox.lock())
-		GameObjectManager::GetInstance().DestroyGameObject(box);
+	if (auto box = mDevPanelBox.lock()) box->Close();
 	mDevPanelBox.reset();
 	mDevPanelActive = false;
 	DeltaTime::SetPaused(false);
@@ -2562,7 +2561,7 @@ void GameScene::CloseDevPanel()
 
 void GameScene::RenderDevPanel()
 {
-	// 状态变化即整体重建：旧盒由被点按钮 autoClose=true 帧末自毁，这里只管建新盒
+	// 状态变化即整体重建：旧盒由被点按钮 autoClose=true 在本帧控件遍历后关闭，这里只管建新盒。
 	const float cx = static_cast<float>(SCENE_WIDTH) / 2.0f;    // 550
 	const float cy = static_cast<float>(SCENE_HEIGHT) / 2.0f;   // 300
 	const Vector boxSize(520.0f, 400.0f);
@@ -2644,7 +2643,7 @@ void GameScene::BeginDevSpawnMode()
 {
 	mDevPanelActive = false;
 	DeltaTime::SetPaused(false);
-	mDevPanelBox.reset();          // 盒子由按钮 autoClose 帧末自毁
+	mDevPanelBox.reset();          // 盒子由按钮 autoClose 在本帧控件遍历后清理
 	mDevSpawnMode = true;
 	if (mCardSlotManager) mCardSlotManager->DeselectCard();   // 防手持卡与召唤点击叠加种植
 

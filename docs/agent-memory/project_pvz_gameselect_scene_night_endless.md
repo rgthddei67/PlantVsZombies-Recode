@@ -15,7 +15,7 @@ metadata:
 
 **黑夜无尽（新模式）**：原本只有 `SURVIVAL_ENDLESS_LEVEL=1000`(白天)。新增 `SURVIVAL_ENDLESS_NIGHT_LEVEL=1001`(Board.h)；`Board::mIsSurvival` 放宽为 `==1000||==1001`(Board.cpp:26)——**`mIsSurvival` 是唯一行为闸**(波次/词条/GameInfoSaver/血量倍率全查它,非 `==1000`)，放宽一行即全覆盖，两关 level 号不同存档天然分离(`level{1000/1001}_data.json`)；`GetBackgroundID(1001)→GROUND_NIGHT`(GameApp.cpp)，复用现有夜晚机制(蘑菇夜醒/天上不掉阳光)。
 
-**入口接线**：主菜单「生存模式」按钮(GameButton::Start,MainMenuScene.h)→`mReadyToSwitchSurvival`→`MainMenuScene::Update` 改为 `SwitchTo("GameSelectScene")`(不再直进无尽关)。GameSelectScene 卡1「白天无尽」→1000、卡2「黑夜无尽」→1001：点击置 `mPendingEnterLevel`，`Update` 里 `SetGlobalData("EnterLevel",N)+SwitchTo("GameScene")`（不在回调内切场景，沿用本仓库惯例）。其余 7 张卡 **注释保留**待后续模式接入(取消注释 makeCard+同步 kLabels/kRow2Y 即可)。
+**入口接线**：主菜单「生存模式」按钮（现由 `MainMenuScene` 独占的 `MainMenuButtons::Initialize` 创建）→`mReadyToSwitchSurvival`→`MainMenuScene::Update` 改为 `SwitchTo("GameSelectScene")`(不再直进无尽关)。GameSelectScene 卡1「白天无尽」→1000、卡2「黑夜无尽」→1001：点击置 `mPendingEnterLevel`，`Update` 里 `SetGlobalData("EnterLevel",N)+SwitchTo("GameScene")`（不在回调内切场景，沿用本仓库惯例）。其余 7 张卡 **注释保留**待后续模式接入(取消注释 makeCard+同步 kLabels/kRow2Y 即可)。
 
 **卡片地面预览**(commit 1834a5a)：两无尽卡图标开口下各垫地面图(卡1 `Almanac_GroundDay` 绿/卡2 `Almanac_GroundNight` 暗,键用字面量 `IMAGE_ALMANAC_GROUND{DAY,NIGHT}`)。靠 `AddTexture(...,drawOrder=-900,...)` 夹在羊皮纸(-1000)与卡框(LAYER_UI)之间——**复用基类分层,无需新渲染队列/裁剪**;地面填入卡框透明开口(实测 native x[20..96] y[8..66] of 118×120,×kCardScale+2px bleed),溢出被不透明边框/标签条吃掉。
 

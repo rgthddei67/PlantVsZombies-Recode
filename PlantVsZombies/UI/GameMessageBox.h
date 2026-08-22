@@ -2,8 +2,8 @@
 #ifndef _H_MESSAGEBOX_H
 #define _H_MESSAGEBOX_H
 
-#include "../Game/GameObject.h"
 #include "../Graphics.h"
+#include "../ResourceKeys.h"
 #include "Button.h"
 #include "Slider.h"
 #include <SDL2/SDL.h>
@@ -12,7 +12,11 @@
 #include <memory>
 #include <vector>
 
-class GameMessageBox : public GameObject {
+class UIManager;
+
+// 场景级模态面板。生命周期与控件注册均由创建它的 UIManager 管理，
+// 不参与玩法对象的 GameObject/Component 调度。
+class GameMessageBox {
 public:
 	class Builder;
 
@@ -46,7 +50,8 @@ public:
 		std::string font = ResourceKeys::Fonts::FONT_FZCQ;
 	};
 
-	GameMessageBox(const Vector& pos,
+	GameMessageBox(UIManager* owner,
+		const Vector& pos,
 		const std::string& message,
 		const std::vector<ButtonConfig>& buttons,
 		const std::vector<SliderConfig>& sliders,
@@ -58,12 +63,18 @@ public:
 
 	~GameMessageBox();
 
-	virtual void Start() override;
-	virtual void Draw(Graphics* g) override;
+	void Draw(Graphics* g);
 
+	void SetActive(bool active);
+	bool IsActive() const { return m_active; }
 	void Close();
 
 private:
+	friend class UIManager;
+
+	UIManager* m_owner = nullptr;   // 非拥有指针；UIManager::ClearAll 会在销毁前解除关联
+	bool m_active = true;
+	bool m_closeRequested = false;
 	Vector m_position;
 	float m_scale = 1.0f;
 	Vector m_size;
@@ -81,6 +92,9 @@ private:
 	glm::vec4 m_textColor = { 245, 214, 127, 255 };
 	glm::vec4 m_titleColor = { 53, 191, 61, 255 };
 
+	void InitializeControls();
+	void DetachControls();
+	bool IsCloseRequested() const { return m_closeRequested; }
 	Vector GetBackgroundOriginalSize() const;
 };
 
@@ -133,7 +147,7 @@ public:
 
 	Builder& Scale(float s) { m_scale = s; return *this; }
 
-	std::shared_ptr<GameMessageBox> Show();   // 实现在 .cpp（依赖 GameObjectManager）
+	std::shared_ptr<GameMessageBox> Show();   // 实现在 .cpp（注册到当前场景 UIManager）
 
 private:
 	Vector m_pos;

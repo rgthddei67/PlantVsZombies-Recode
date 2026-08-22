@@ -1,8 +1,8 @@
 #include "GameMessageBox.h"
 #include "../ResourceManager.h"
 #include "../GameApp.h"
-#include "../Game/GameObjectManager.h"
 #include "InputHandler.h"
+#include "UIManager.h"
 #include "../ResourceKeys.h"
 #include "../Game/SceneManager.h"
 #include "../Logger.h"
@@ -17,7 +17,8 @@ namespace {
 	const Vector MESSAGE_OFFSET = Vector(-190, -25);
 }
 
-GameMessageBox::GameMessageBox(const Vector& pos,
+GameMessageBox::GameMessageBox(UIManager* owner,
+	const Vector& pos,
 	const std::string& message,
 	const std::vector<ButtonConfig>& buttons,
 	const std::vector<SliderConfig>& sliders,
@@ -26,7 +27,7 @@ GameMessageBox::GameMessageBox(const Vector& pos,
 	const std::string& backgroundImageKey,
 	float scale,
 	const Vector& explicitSize)
-	: GameObject(ObjectType::OBJECT_UI)
+	: m_owner(owner)
 	, m_position(pos)
 	, m_scale(scale)
 	, m_explicitSize(explicitSize)
@@ -37,31 +38,16 @@ GameMessageBox::GameMessageBox(const Vector& pos,
 	, m_sliderConfigs(sliders)
 	, m_textConfigs(texts)
 {
-	mIsUI = true;
-
 	Vector originalSize = GetBackgroundOriginalSize();
 	if (explicitSize.x > 0.0f && explicitSize.y > 0.0f)
 		m_size = explicitSize;                 // 自动决定大小：直接用调用方算好的尺寸
 	else
 		m_size = originalSize * scale;
-	this->SetRenderOrder(LAYER_UI + 500000);
+	InitializeControls();
 }
 
 GameMessageBox::~GameMessageBox() {
-	auto& ui = SceneManager::GetInstance().GetCurrectSceneUIManager();
-	for (size_t i = 0; i < m_buttons.size(); i++)
-	{
-		auto button = m_buttons[i];
-		if (button)
-			ui.RemoveButton(button);
-	}
-
-	for (size_t i = 0; i < m_sliders.size(); i++)
-	{
-		auto slider = m_sliders[i];
-		if (slider)
-			ui.RemoveSlider(slider);
-	}
+	DetachControls();
 }
 
 Vector GameMessageBox::GetBackgroundOriginalSize() const
@@ -79,15 +65,14 @@ Vector GameMessageBox::GetBackgroundOriginalSize() const
 	return DEFAULT_SIZE;
 }
 
-void GameMessageBox::Start()
+void GameMessageBox::InitializeControls()
 {
-	GameObject::Start();
+	if (!m_owner) return;
 
 	for (const auto& config : m_buttonConfigs) {
 		Vector btnSize = config.size * m_scale;
 
-		auto button = SceneManager::GetInstance().GetCurrectSceneUIManager().
-			CreateButton(config.pos, btnSize);
+		auto button = m_owner->CreateButton(config.pos, btnSize);
 
 		int fontSize = static_cast<int>(config.fontsize * m_scale);
 		if (fontSize < 8) fontSize = 8;
@@ -109,7 +94,7 @@ void GameMessageBox::Start()
 			(config.texture, config.texture, config.texture, config.texture);
 		}
 
-		// 销毁是延迟到帧末，回调期间 this 一定有效
+		// UIManager 会在 ButtonManager 完成本帧遍历后处理关闭，回调期间 this 始终有效。
 		button->SetClickCallBack([this, config](bool) {
 			if (config.callback) config.callback();
 			if (config.autoClose) {
@@ -123,8 +108,7 @@ void GameMessageBox::Start()
 	}
 
 	for (const auto& config : m_sliderConfigs) {
-		auto slider = SceneManager::GetInstance().GetCurrectSceneUIManager().
-			CreateSlider
+		auto slider = m_owner->CreateSlider
 			(config.pos, config.size * m_scale, config.min, config.max, config.initValue);
 
 		slider->SetIntegerOnly(config.integerOnly);
@@ -141,7 +125,7 @@ void GameMessageBox::Start()
 
 void GameMessageBox::Draw(Graphics* g)
 {
-	if (!mActive) return;
+	if (!m_active) return;
 
 	const bool autoSized = (m_explicitSize.x > 0.0f && m_explicitSize.y > 0.0f);
 	if (m_backgroundImageKey.empty() && autoSized) {
@@ -204,14 +188,49 @@ void GameMessageBox::Draw(Graphics* g)
 	}
 }
 
+void GameMessageBox::SetActive(bool active)
+{
+	if (active && m_closeRequested) return;
+
+	m_active = active;
+	for (size_t i = 0; i < m_buttons.size(); ++i) {
+		if (m_buttons[i]) {
+			const bool configuredEnabled = i < m_buttonConfigs.size() && m_buttonConfigs[i].enabled;
+			m_buttons[i]->SetEnabled(active && configuredEnabled);
+		}
+	}
+	for (const auto& slider : m_sliders) {
+		if (slider) slider->SetDrag(active);
+	}
+}
+
 void GameMessageBox::Close()
 {
-	GameObjectManager::GetInstance().DestroyGameObject(this);
+	if (m_closeRequested) return;
+	SetActive(false);
+	m_closeRequested = true;
+}
+
+void GameMessageBox::DetachControls()
+{
+	if (m_owner) {
+		for (const auto& button : m_buttons) {
+			if (button) m_owner->RemoveButton(button);
+		}
+		for (const auto& slider : m_sliders) {
+			if (slider) m_owner->RemoveSlider(slider);
+		}
+	}
+	m_buttons.clear();
+	m_sliders.clear();
+	m_owner = nullptr;
 }
 
 std::shared_ptr<GameMessageBox> GameMessageBox::Builder::Show()
 {
-	return GameObjectManager::GetInstance().CreateGameObjectImmediateAsShared<GameMessageBox>(
-		LAYER_UI, m_pos, m_message, m_buttons, m_sliders, m_texts,
-		m_title, m_bgKey, m_scale, m_explicitSize);
+	auto& ui = SceneManager::GetInstance().GetCurrectSceneUIManager();
+	auto messageBox = std::make_shared<GameMessageBox>(&ui, m_pos, m_message,
+		m_buttons, m_sliders, m_texts, m_title, m_bgKey, m_scale, m_explicitSize);
+	ui.AddMessageBox(messageBox);
+	return messageBox;
 }

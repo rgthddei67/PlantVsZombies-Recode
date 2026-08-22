@@ -2,7 +2,7 @@
 
 日期：2026-08-16
 
-状态：执行中；Card 专属组件、CardSlotManager 与 Transform 已完成并独立验证，下一阶段为纯 UI 所有权或 Collider
+状态：执行中；Card 专属组件、CardSlotManager、Transform 与纯 UI 所有权已完成并独立验证，下一阶段为 Collider
 
 **目标：** 在保持继承式植物/僵尸、现有运行行为、存档、输入和绘制契约的前提下，分阶段移除通用 `Component` 容器；保留并显式化 Transform、Collider、Shadow、Clickable 与卡片能力。
 
@@ -129,12 +129,14 @@
 
 该阶段来自 2026-08-22 的架构复核，必须在 Transform 提交后单独实施，不能与空间数据迁移混成一个回归面。
 
-- [ ] 将无 Transform、无 Collider/Shadow/Clickable 的 `GameButton` 改为 `MainMenuScene` 直接拥有的普通 UI 控制器，继续通过 `UIManager` 创建和启停四个入口按钮。
-- [ ] 将 `GameMessageBox` 改为 `UIManager` 拥有的模态对象，不再借用 `GameObjectManager` 的 Start/Draw/延迟删除；保留 Builder、弱引用调用方、回调内自动关闭、绘制层和场景退出清理语义。
-- [ ] 为 UIManager 增加回调安全的延迟移除队列，禁止在 Button/Slider 回调遍历期间立即销毁模态对象。
-- [ ] 保持主菜单、暂停菜单、控制台、生存词条和开发者面板的坐标、输入遮挡、按钮状态与画面不变。
-- [ ] 用当前最小可见 UI 专项覆盖主菜单四入口、选项/控制台、游戏暂停、词条选择和场景切换；独立构建、截图、提交。
-- [ ] 该阶段以所有权清晰为首要收益，同时去掉 UI 对象进入全局 GOM 更新/排序/绘制遍历的固定开销；没有同场景 A/B 数据时不宣称 FPS 数字。
+- [x] 将无 Transform、无 Collider/Shadow/Clickable 的 `GameButton` 改为 `MainMenuScene` 直接拥有的 `MainMenuButtons` 普通 UI 控制器，继续通过 `UIManager` 创建和启停四个入口按钮。
+- [x] 将 `GameMessageBox` 改为 `UIManager` 拥有的模态对象，不再借用 `GameObjectManager` 的 Start/Draw/延迟删除；保留 Builder、弱引用调用方、回调内自动关闭、绘制层和场景退出清理语义。
+- [x] 为 UIManager 增加回调安全的关闭请求清理阶段，禁止在 Button/Slider 回调遍历期间立即销毁模态对象或修改被遍历的控件容器。
+- [x] 保持主菜单、暂停菜单、控制台、生存词条和开发者面板的坐标、输入遮挡、按钮状态与画面不变。
+- [x] 用当前最小可见 UI 专项覆盖主菜单四入口、选项/控制台、游戏暂停、词条选择和场景切换；独立构建、截图、提交。
+- [x] 该阶段以所有权清晰为首要收益，同时去掉 UI 对象进入全局 GOM 更新/排序/绘制遍历的固定开销；没有同场景 A/B 数据，不宣称 FPS 数字。
+
+**验证：** `clang-release` LTO 构建与 378 项 Win7 import audit 通过；主人当前桌面可见运行 `smoke_mainmenu_buttons`、`smoke_mainmenu_console`、`pause_menu_shot`、`smoke_particle_layers`、`smoke_perk_select`、`smoke_perk_select_skip_all`、`smoke_perk_select_skip_then_pick`、`smoke_perk_view`、`smoke_dev_panel_lifecycle -develop`，均退出 0、`status=passed`、`script finished OK`。已目验主菜单、控制台、暂停框、词条刷新/翻页、开发者面板重建/召唤模式往返及关闭后画面。旧综合 `smoke_develop` 在 UI 路径通过后仍停于 cmd#35 的 `wave` 期望 2、实际 0，不能记作全绿，也不替代本阶段的确定性专项。
 
 ---
 

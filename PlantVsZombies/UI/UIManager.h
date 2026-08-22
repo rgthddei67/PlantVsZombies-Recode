@@ -6,13 +6,31 @@
 #include "SliderManager.h"
 #include "GameMessageBox.h"
 #include "../Graphics.h"
-#include "../Game/GameObjectManager.h"
+#include <algorithm>
+#include <vector>
 
 class UIManager
 {
 private:
 	ButtonManager buttonManager;
 	SliderManager sliderManager;
+	std::vector<std::shared_ptr<GameMessageBox>> messageBoxes;
+
+	// 控件回调可能请求关闭弹窗；统一等 Button/Slider 完成遍历后再解除注册。
+	void FlushClosedMessageBoxes()
+	{
+		for (const auto& messageBox : messageBoxes) {
+			if (messageBox && messageBox->IsCloseRequested()) {
+				messageBox->DetachControls();
+			}
+		}
+		messageBoxes.erase(
+			std::remove_if(messageBoxes.begin(), messageBoxes.end(),
+				[](const std::shared_ptr<GameMessageBox>& messageBox) {
+					return !messageBox || messageBox->IsCloseRequested();
+				}),
+			messageBoxes.end());
+	}
 
 public:
 	~UIManager()
@@ -23,6 +41,11 @@ public:
 	std::shared_ptr<Button> CreateButton(Vector pos = Vector::zero(), Vector size = Vector(40, 40))
 	{
 		return buttonManager.CreateButton(pos, size);
+	}
+
+	void AddMessageBox(const std::shared_ptr<GameMessageBox>& messageBox)
+	{
+		if (messageBox) messageBoxes.push_back(messageBox);
 	}
 
 	void RemoveButton(std::shared_ptr<Button> button)
@@ -84,10 +107,15 @@ public:
 	{
 		buttonManager.UpdateAll(input);
 		sliderManager.UpdateAll(input);
+		FlushClosedMessageBoxes();
 	}
 
 	void DrawAll(Graphics* g) const
 	{
+		// 模态背景先于普通 UI 控件绘制；弹窗内部控件由其自身按配置顺序绘制。
+		for (const auto& messageBox : messageBoxes) {
+			if (messageBox && messageBox->IsActive()) messageBox->Draw(g);
+		}
 		buttonManager.DrawAll(g);
 		sliderManager.DrawAll(g);
 	}
@@ -99,6 +127,10 @@ public:
 
 	void ClearAll()
 	{
+		for (const auto& messageBox : messageBoxes) {
+			if (messageBox) messageBox->DetachControls();
+		}
+		messageBoxes.clear();
 		buttonManager.ClearAllButtons();
 		sliderManager.ClearAllSliders();
 	}
