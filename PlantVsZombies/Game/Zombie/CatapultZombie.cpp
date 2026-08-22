@@ -80,9 +80,9 @@ void CatapultZombie::SetupZombie()
 		mCollider->size = Vector(150.0f, 140.0f);
 		mCollider->offset = mVisualOffset
 			+ Vector(kColliderFromVisualX, kColliderFromVisualY);
-		mCollider->onTriggerEnter = [this](ColliderComponent* other) { StartEat(other); };
-		mCollider->onTriggerStay = [this](ColliderComponent* other) { StartEat(other); };
-		mCollider->onTriggerExit = nullptr;
+		mCollider->SetTriggerEnterCallback([this](ColliderComponent* other) { StartEat(other); });
+		mCollider->SetTriggerStayCallback([this](ColliderComponent* other) { StartEat(other); });
+		mCollider->SetTriggerExitCallback(nullptr);
 	}
 	RemoveShadow();
 

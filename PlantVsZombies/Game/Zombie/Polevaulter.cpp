@@ -34,7 +34,7 @@ void Polevaulter::SetupZombie()
 		// 重写碰撞回调：RUNNING状态碰到植物触发跳跃，WALKING状态走基类吃植物逻辑
 		auto collider = GetColliderComponent();
 		if (collider) {
-			collider->onTriggerEnter = [this](ColliderComponent* other) {
+			collider->SetTriggerEnterCallback([this](ColliderComponent* other) {
 				if (mIsPreview || mIsDying) return;
 
 				auto* gameObject = other->GetGameObject();
@@ -63,7 +63,7 @@ void Polevaulter::SetupZombie()
 					// 跳跃后走基类吃植物逻辑
 					StartEat(other);
 				}
-				};
+				});
 		}
 	}
 	this->mSpeed = GameRandom::Range(15.0f, 18.0f);

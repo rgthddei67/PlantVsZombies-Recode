@@ -15,6 +15,7 @@
 #include <algorithm>
 #include <array>
 #include <cstdint>
+#include <memory>
 
 class Board;
 class Plant;
@@ -50,8 +51,10 @@ constexpr ZombieControlMask ZOMBIE_CONTROL_HARD_MASK =
 	| ZombieControlBit(ZombieControlEffect::PARALYSIS);
 
 class Zombie : public AnimatedObject {
+private:
+	struct ToxinState;
+
 public:
-	Board* mBoard = nullptr;
 	ZombieType mZombieType = ZombieType::NUM_ZOMBIE_TYPES;
 
 	int mRow = -1;
@@ -92,8 +95,7 @@ protected:
 	float mRoofMarshalAssaultBiteMultiplier = 1.0f; // 突击令每口伤害倍率
 	std::shared_ptr<Animator> mRoofMarshalAssaultFlagAnimator; // 复用原版红旗的轨道内警示附件；纯展示派生状态不入档
 	bool mButterSplatFollowerConfigured = false; // 当前 reanim 是否已绑定语义头部轨道黄油；纯展示派生状态不入档
-	std::array<float, 20> mToxinLayerTimers{};	// 每层独立剩余秒数；二十格即每只僵尸的共享上限
-	float mToxinDamageRemainder = 0.0f;	// 跨帧保留未满 1 点的持续伤害，保证倍速下总量稳定
+	std::unique_ptr<ToxinState> mToxinState; // 仅中毒时分配，避免普通僵尸常驻二十层计时器
 
 	bool mIsMindControlled = false;	//有没有被魅惑
 	bool mInPool = false;	// 水路介质状态；由基类双探针统一维护，所有僵尸共享
@@ -147,7 +149,7 @@ private:
 public:
 	Zombie(Board* board, ZombieType zombieType, float x, float y, int row,
 		AnimationType animType, float scale = 1.0f, bool isPreview = false);
-	~Zombie() = default;
+	~Zombie() override;
 
 	void Start() override;
 	void Update() override;
@@ -415,7 +417,7 @@ public:
 	void ClearToxin();
 	int GetToxinLayerCount() const;
 	float GetToxinMaxRemaining() const;
-	float GetToxinDamageRemainder() const { return mToxinDamageRemainder; }
+	float GetToxinDamageRemainder() const;
 	bool IsGoldenIceSpeedActive() const { return mGoldenIceEffectStacks > 0; }
 	int GetGoldenIceEffectStacks() const { return mGoldenIceEffectStacks; }
 	/** 同时清除减速与冻结，并恢复当前天气/能力组合后的动画速度。 */

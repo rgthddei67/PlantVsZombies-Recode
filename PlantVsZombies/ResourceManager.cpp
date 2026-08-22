@@ -551,14 +551,9 @@ std::shared_ptr<Reanimation> ResourceManager::LoadReanimation(const std::string&
 std::shared_ptr<Reanimation> ResourceManager::GetReanimation(const std::string& key) {
 	auto it = mReanimations.find(key);
 	if (it != mReanimations.end()) {
-		// 返回新的实例（深拷贝）
+		// 播放状态由 Animator 持有；Reanimation 实例只共享不可变的轨道资源与名称索引。
 		auto cachedReanim = it->second;
-		auto newReanim = std::make_shared<Reanimation>();
-		newReanim->mFPS = cachedReanim->mFPS;
-		newReanim->mIsLoaded = cachedReanim->mIsLoaded;
-		newReanim->mResourceManager = cachedReanim->mResourceManager;
-		newReanim->mTracks = cachedReanim->mTracks;
-		return newReanim;
+		return std::make_shared<Reanimation>(*cachedReanim);
 	}
 	LOG_ERROR("ResourceManager") << "GetReanimation 未找到: " << key;
 	return nullptr;

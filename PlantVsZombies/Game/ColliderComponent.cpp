@@ -3,6 +3,91 @@
 #include "GameObject.h"
 #include "../Graphics.h"
 #include "../GameApp.h"
+#include <utility>
+
+void ColliderComponent::SetTriggerEnterCallback(CollisionCallback callback) {
+	if (callback && !mTriggerCallbacks) mTriggerCallbacks = std::make_unique<TriggerCallbacks>();
+	if (mTriggerCallbacks) mTriggerCallbacks->enter = std::move(callback);
+	ReleaseEmptyCallbackState();
+}
+
+void ColliderComponent::SetTriggerStayCallback(CollisionCallback callback) {
+	if (callback && !mTriggerCallbacks) mTriggerCallbacks = std::make_unique<TriggerCallbacks>();
+	if (mTriggerCallbacks) mTriggerCallbacks->stay = std::move(callback);
+	ReleaseEmptyCallbackState();
+}
+
+void ColliderComponent::SetTriggerExitCallback(CollisionCallback callback) {
+	if (callback && !mTriggerCallbacks) mTriggerCallbacks = std::make_unique<TriggerCallbacks>();
+	if (mTriggerCallbacks) mTriggerCallbacks->exit = std::move(callback);
+	ReleaseEmptyCallbackState();
+}
+
+void ColliderComponent::SetCollisionEnterCallback(CollisionCallback callback) {
+	if (callback && !mCollisionCallbacks) {
+		mCollisionCallbacks = std::make_unique<CollisionCallbacks>();
+	}
+	if (mCollisionCallbacks) mCollisionCallbacks->enter = std::move(callback);
+	ReleaseEmptyCallbackState();
+}
+
+void ColliderComponent::SetCollisionExitCallback(CollisionCallback callback) {
+	if (callback && !mCollisionCallbacks) {
+		mCollisionCallbacks = std::make_unique<CollisionCallbacks>();
+	}
+	if (mCollisionCallbacks) mCollisionCallbacks->exit = std::move(callback);
+	ReleaseEmptyCallbackState();
+}
+
+bool ColliderComponent::HasTriggerEnterCallback() const {
+	return mTriggerCallbacks && mTriggerCallbacks->enter;
+}
+
+bool ColliderComponent::HasTriggerStayCallback() const {
+	return mTriggerCallbacks && mTriggerCallbacks->stay;
+}
+
+bool ColliderComponent::HasTriggerExitCallback() const {
+	return mTriggerCallbacks && mTriggerCallbacks->exit;
+}
+
+bool ColliderComponent::HasCollisionEnterCallback() const {
+	return mCollisionCallbacks && mCollisionCallbacks->enter;
+}
+
+bool ColliderComponent::HasCollisionExitCallback() const {
+	return mCollisionCallbacks && mCollisionCallbacks->exit;
+}
+
+void ColliderComponent::InvokeTriggerEnter(ColliderComponent* other) const {
+	if (HasTriggerEnterCallback()) mTriggerCallbacks->enter(other);
+}
+
+void ColliderComponent::InvokeTriggerStay(ColliderComponent* other) const {
+	if (HasTriggerStayCallback()) mTriggerCallbacks->stay(other);
+}
+
+void ColliderComponent::InvokeTriggerExit(ColliderComponent* other) const {
+	if (HasTriggerExitCallback()) mTriggerCallbacks->exit(other);
+}
+
+void ColliderComponent::InvokeCollisionEnter(ColliderComponent* other) const {
+	if (HasCollisionEnterCallback()) mCollisionCallbacks->enter(other);
+}
+
+void ColliderComponent::InvokeCollisionExit(ColliderComponent* other) const {
+	if (HasCollisionExitCallback()) mCollisionCallbacks->exit(other);
+}
+
+void ColliderComponent::ReleaseEmptyCallbackState() {
+	if (mTriggerCallbacks && !mTriggerCallbacks->enter
+		&& !mTriggerCallbacks->stay && !mTriggerCallbacks->exit) {
+		mTriggerCallbacks.reset();
+	}
+	if (mCollisionCallbacks && !mCollisionCallbacks->enter && !mCollisionCallbacks->exit) {
+		mCollisionCallbacks.reset();
+	}
+}
 
 Vector ColliderComponent::GetWorldPosition() const {
 	if (auto transform = GetTransform()) {

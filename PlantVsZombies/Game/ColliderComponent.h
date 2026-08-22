@@ -6,6 +6,7 @@
 #include <SDL2/SDL.h>
 #include <functional>
 #include <cstdint>
+#include <memory>
 
 class Transform;
 class GameObject;
@@ -35,6 +36,8 @@ namespace CollisionLayer {
  */
 class ColliderComponent {
 public:
+	using CollisionCallback = std::function<void(ColliderComponent*)>;
+
 	Vector offset = Vector::zero();    // 相对于游戏对象的偏移
 	Vector size = Vector(50, 40);        // 尺寸（矩形为宽高，圆形为直径）
 	ColliderType colliderType = ColliderType::BOX;
@@ -45,13 +48,6 @@ public:
 	uint16_t collisionMask = CollisionLayer::ALL;
 	bool mEnabled = true;
 
-	// 碰撞的事件（回调函数） —— 裸指针 other，回调阶段保证对象活
-	std::function<void(ColliderComponent*)> onTriggerEnter;
-	std::function<void(ColliderComponent*)> onTriggerStay;
-	std::function<void(ColliderComponent*)> onTriggerExit;
-	std::function<void(ColliderComponent*)> onCollisionEnter;
-	std::function<void(ColliderComponent*)> onCollisionExit;
-
 	SDL_Color debugColor = { 255, 0, 0, 255 }; // 调试颜色（红色）
 
 	// 帧缓存：由 CollisionSystem::Update 在帧首一次性写入，CheckCollision 直接读取，
@@ -60,6 +56,17 @@ public:
 	Vector    cachedWorldPos;
 
 	GameObject* GetGameObject() const { return mGameObject; }
+
+	/** 设置触发器进入回调；空回调会释放不再使用的冷状态。 */
+	void SetTriggerEnterCallback(CollisionCallback callback);
+	/** 设置触发器持续回调；空回调会释放不再使用的冷状态。 */
+	void SetTriggerStayCallback(CollisionCallback callback);
+	/** 设置触发器离开回调；空回调会释放不再使用的冷状态。 */
+	void SetTriggerExitCallback(CollisionCallback callback);
+	/** 设置实体碰撞进入回调；空回调会释放不再使用的冷状态。 */
+	void SetCollisionEnterCallback(CollisionCallback callback);
+	/** 设置实体碰撞离开回调；空回调会释放不再使用的冷状态。 */
+	void SetCollisionExitCallback(CollisionCallback callback);
 
 	// 获取世界空间位置
 	Vector GetWorldPosition() const;
@@ -90,12 +97,34 @@ private:
 	GameObject* mGameObject = nullptr; // 非拥有；生命周期严格短于宿主
 	uint32_t colliderID = 0;
 	bool mRegistered = false;
+	struct TriggerCallbacks {
+		CollisionCallback enter;
+		CollisionCallback stay;
+		CollisionCallback exit;
+	};
+	struct CollisionCallbacks {
+		CollisionCallback enter;
+		CollisionCallback exit;
+	};
+	std::unique_ptr<TriggerCallbacks> mTriggerCallbacks;
+	std::unique_ptr<CollisionCallbacks> mCollisionCallbacks;
 
 	ColliderComponent(GameObject* owner, const Vector& size,
 		const Vector& offset, ColliderType type)
 		: offset(offset), size(size), colliderType(type), mGameObject(owner) {}
 
 	Transform* GetTransform() const;
+	bool HasTriggerEnterCallback() const;
+	bool HasTriggerStayCallback() const;
+	bool HasTriggerExitCallback() const;
+	bool HasCollisionEnterCallback() const;
+	bool HasCollisionExitCallback() const;
+	void InvokeTriggerEnter(ColliderComponent* other) const;
+	void InvokeTriggerStay(ColliderComponent* other) const;
+	void InvokeTriggerExit(ColliderComponent* other) const;
+	void InvokeCollisionEnter(ColliderComponent* other) const;
+	void InvokeCollisionExit(ColliderComponent* other) const;
+	void ReleaseEmptyCallbackState();
 };
 
 #endif

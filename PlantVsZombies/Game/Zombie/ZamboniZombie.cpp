@@ -78,9 +78,9 @@ void ZamboniZombie::SetupZombie()
 		mCollider->offset = mVisualOffset
 			+ Vector(kColliderFromVisualX, kColliderFromVisualY);
 		// 冰车不进入啃食状态；碾压由 ZombieUpdate 的原版攻击矩形统一结算。
-		mCollider->onTriggerEnter = [this](ColliderComponent* other) { StartEat(other); };
-		mCollider->onTriggerStay = [this](ColliderComponent* other) { StartEat(other); };
-		mCollider->onTriggerExit = nullptr;
+		mCollider->SetTriggerEnterCallback([this](ColliderComponent* other) { StartEat(other); });
+		mCollider->SetTriggerStayCallback([this](ColliderComponent* other) { StartEat(other); });
+		mCollider->SetTriggerExitCallback(nullptr);
 	}
 	RemoveShadow();
 

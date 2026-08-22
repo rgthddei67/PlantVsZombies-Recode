@@ -41,7 +41,7 @@
 - [经典卷心菜投手与解析抛物线](project_pvz_cabbagepult.md) — 2026-08-06 `PLANT_CABBAGEPULT`：100阳光、7.5秒、40伤、第43帧发射；1.2秒/210px解析抛物线使用目标当前活动片段的平均 `_ground` 根速度预判，避免变速步态按单帧采样随机前后偏移；直击绕过普通二类护盾但由加固铁门目标侧否决；末段碰撞、对象池、存档、CabbageSplat、屋顶与默认/NoInstance闭环
 - [经典玉米投手、黄油弹与定身](project_pvz_kernelpult.md) — 2026-08-09 `PLANT_KERNELPULT`：100阳光、7.5秒、第30帧发射；75%玉米粒20伤、25%黄油40伤并定身4秒；普通二类护盾绕过、加固铁门否决，手持弹型/飞行/黄油时间入档，0.8头贴改走全僵尸虚语义 follower 与默认最高层策略，屋顶、对象池及双绘制路径可见专项闭环
 - [经典西瓜投手、三行溅射与卡图布局](project_pvz_melonpult.md) — 2026-08-14 当前 `PLANT_MELONPULT`：325阳光/10秒、第44帧发射，120直击/40相邻行溅射；二类护盾与本体同伤，1.2秒/210px解析抛物线、对象池、存档、落空 Foley/粒子和 5-7 解锁闭环；卡图 0.80倍并偏移 `(+3,+1)`，弹丸阴影右移 6px
-- [毒囊射手与目标级叠毒](project_pvz_toxic_peashooter.md) — 2026-08-03 `PLANT_TOXICPEASHOOTER` 为3-8奖励：125阳光、15直击、每层6秒/0.4秒1伤、每目标共享上限20层；第二十一发刷新最短层，火炬转独立紫焰毒火豆，30px内直击/溅射目标均附毒，魅惑清毒；二十层计时/余量入档，纯紫子弹/命中粒子、盾牌/倍速/对象池专项
+- [毒囊射手与目标级叠毒](project_pvz_toxic_peashooter.md) — 2026-08-22 `PLANT_TOXICPEASHOOTER` 为3-8奖励：125阳光、15直击、每层6秒/0.2秒1伤、每目标共享上限20层；第二十一发刷新最短层，火炬转独立紫焰毒火豆，30px内直击/溅射目标均附毒，魅惑清毒；二十层状态改为中毒时才分配的紧凑侧车，原定长存档形状、盾牌/倍速/对象池专项保持
 - [经典南瓜头与第三植物层](project_pvz_pumpkin_shell.md) — 2026-08-05 `PLANT_PUMPKINSHELL`：100 阳光、30 秒冷却、4000 生命；独立 pumpkin 层可包住普通植物，战斗顶层优先啃食，但非阻拦外壳不会遮蔽内层高坚果的跳跃阻拦能力；铲子按中心/外圈任选内层或南瓜；精英小丑与粉色橄榄球范围伤害由命中植物九宫格内最近南瓜按保护者归并一次并输入 5 倍，爆破工头独立 4 倍，普通小丑仍直接清场；前后片夹层、叠层血量、水池三层、存档、台风与专项闭环
 - [经典磁力菇与僵尸装备剥离契约](project_pvz_magnetshroom.md) — 2026-08-12 `PLANT_MAGNETSHROOM`：100 阳光、7.5 秒卡冷却、15 秒吸取充能；目标侧虚接口原子剥离装备并可返回提取者本体反噬，绝缘胸甲一次吸取扣磁力菇150且第二次可致死不回滚；离体贴图、充能与存档完整，当前可见父回归通过
 - [经典气球僵尸](project_pvz_balloon_zombie.md) — 2026-07-30 `ZOMBIE_BALLOON` 为20气球层+270本体、空中/爆裂/步行三阶段、独立螺旋桨附件、70/80啃食帧和152死亡帧；水道击破与致死灰烬都直接移除，非致死灰烬仍按额外层和本体扣血；专属掉头/掉臂、4-3与生存出怪均有可见专项
@@ -147,6 +147,7 @@
 - [并行Update phase-2 ✅](project_pvz_parallel_update_phase2.md) — 292f68e 整Animator::Update并行+deferred events;-3.44ms/69.3→91FPS
 - [phase-3 component-update skipping ✅](project_pvz_phase3_component_update_skipping.md) — c435a57 NeedsUpdate virtual+mUpdatableComponents视图;FPS91→100;PROFILE_SCOPE自污染~4.6ms
 - [继承式玩法对象与组件容器收缩 ✅](project_pvz_inheritance_gameplay_architecture.md) — Card 专属状态/显示、CardSlotManager、显式 Transform、纯 UI 与 Collider/Shadow/Clickable 显式附件均已完成；通用 Component 基类、类型表、模板接口和生命周期视图已删除；稳定 ID 注册与查询类已由 EntityManager 语义重命名为 EntityRegistry；Shadow 绘制、Clickable O(可点击对象) 输入仲裁和僵尸行桶 Die/CommitRow 即时失效契约保持
+- [实体冷热内存布局与僵尸常驻收缩](project_pvz_entity_memory_layout.md) — 2026-08-22 不引入 ZombiePool；Collider 回调按触发/实体碰撞分侧车，Animator 轨道 follower/子动画改稀疏状态并共享名称索引，Zombie 去除重复 Board 指针且毒层按需分配；当前 ABI 普通26轨僵尸静态下限约5.24→1.81KiB（-65.4%），只代表布局、不冒充 FPS
 - [预计算动画(放弃)](project_pvz_precomputed_animation.md) — 2026-05-23 TrackInfo::mFrames已密集per-frame,关键帧搜索不存在,ROI不足
 - [GPU instancing reanim ✅](project_pvz_gpu_instancing_reanim.md) — 2026-05-24(388a845)reanim→InstanceRecord;-1.39ms/98.4→114FPS；postscript修glow状态污染+双队列Z-order；2026-07-24 `ShadowComponent` 默认也写 instance 队列，修复并行阈值后“睡莲本体反盖上层植物影子”，`-NoInstance` 仍走 batch 兜底
 - [Clickable 稀疏注册与显式所有权 ✅](project_pvz_clickable_optimization.md) — 2026-05-24 自注册表替换全场扫描，历史 1.22→0.01ms(-122×)；2026-08-22 脱离 Component 容器并保留 O(可点击对象)、渲染顺序/事件消费及 Collider 原子绑定契约；`GetAllGameObjects()` per-frame scan 仍是仓库 foot-gun

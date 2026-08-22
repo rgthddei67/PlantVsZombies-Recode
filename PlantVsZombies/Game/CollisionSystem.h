@@ -476,35 +476,35 @@ private:
 
 	// 处理碰撞开始
 	void HandleCollisionEnter(ColliderComponent* a, ColliderComponent* b) {
-		if (a->isTrigger && a->onTriggerEnter) {
-			a->onTriggerEnter(b);
+		if (a->isTrigger && a->HasTriggerEnterCallback()) {
+			a->InvokeTriggerEnter(b);
 		}
-		else if (a->onCollisionEnter) {
-			a->onCollisionEnter(b);
+		else if (a->HasCollisionEnterCallback()) {
+			a->InvokeCollisionEnter(b);
 		}
 
-		if (b->isTrigger && b->onTriggerEnter) {
-			b->onTriggerEnter(a);
+		if (b->isTrigger && b->HasTriggerEnterCallback()) {
+			b->InvokeTriggerEnter(a);
 		}
-		else if (b->onCollisionEnter) {
-			b->onCollisionEnter(a);
+		else if (b->HasCollisionEnterCallback()) {
+			b->InvokeCollisionEnter(a);
 		}
 	}
 
 	// 处理碰撞结束
 	void HandleCollisionExit(ColliderComponent* a, ColliderComponent* b) {
-		if (a->isTrigger && a->onTriggerExit) {
-			a->onTriggerExit(b);
+		if (a->isTrigger && a->HasTriggerExitCallback()) {
+			a->InvokeTriggerExit(b);
 		}
-		else if (a->onCollisionExit) {
-			a->onCollisionExit(b);
+		else if (a->HasCollisionExitCallback()) {
+			a->InvokeCollisionExit(b);
 		}
 
-		if (b->isTrigger && b->onTriggerExit) {
-			b->onTriggerExit(a);
+		if (b->isTrigger && b->HasTriggerExitCallback()) {
+			b->InvokeTriggerExit(a);
 		}
-		else if (b->onCollisionExit) {
-			b->onCollisionExit(a);
+		else if (b->HasCollisionExitCallback()) {
+			b->InvokeCollisionExit(a);
 		}
 	}
 
@@ -515,11 +515,11 @@ private:
 			currentCollisions.insert(pairKey);
 		}
 		else {
-			if (a->isTrigger && a->onTriggerStay) {
-				a->onTriggerStay(b);
+			if (a->isTrigger && a->HasTriggerStayCallback()) {
+				a->InvokeTriggerStay(b);
 			}
-			if (b->isTrigger && b->onTriggerStay) {
-				b->onTriggerStay(a);
+			if (b->isTrigger && b->HasTriggerStayCallback()) {
+				b->InvokeTriggerStay(a);
 			}
 		}
 	}

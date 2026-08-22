@@ -1039,26 +1039,26 @@ void Bullet::ConfigureCollisionTarget()
 	if (!mCollider) return;
 	mCollider->isTrigger = true;
 	mCollider->layerMask = CollisionLayer::BULLET;
-	mCollider->onTriggerStay = nullptr;
+	mCollider->SetTriggerStayCallback(nullptr);
 	if (mPoolType == BulletType::BULLET_BASKETBALL) {
 		mCollider->collisionMask = CollisionLayer::PLANT;
-		mCollider->onTriggerEnter = [this](ColliderComponent* other) {
+		mCollider->SetTriggerEnterCallback([this](ColliderComponent* other) {
 			HandlePlantContact(other);
-		};
-		mCollider->onTriggerStay = [this](ColliderComponent* other) {
+		});
+		mCollider->SetTriggerStayCallback([this](ColliderComponent* other) {
 			HandlePlantContact(other);
-		};
+		});
 		return;
 	}
 
 	mCollider->collisionMask = CollisionLayer::ZOMBIE;
-	mCollider->onTriggerEnter = [this](ColliderComponent* other) {
+	mCollider->SetTriggerEnterCallback([this](ColliderComponent* other) {
 		HandleZombieContact(other);
-	};
+	});
 	if (mPoolType == BulletType::BULLET_SPIKE) {
-		mCollider->onTriggerStay = [this](ColliderComponent* other) {
+		mCollider->SetTriggerStayCallback([this](ColliderComponent* other) {
 			HandleZombieContact(other);
-		};
+		});
 	}
 }
 

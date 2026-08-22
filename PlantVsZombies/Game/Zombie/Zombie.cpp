@@ -38,6 +38,7 @@ namespace {
 	constexpr float kToxinLayerDuration = 6.0f;            // 单层毒素持续时间，单位：游戏秒
 	constexpr float kToxinDamageInterval = 0.2f;           // 每层积满 1 点毒伤的游戏时间间隔，单位：秒
 	constexpr float kToxinDamageEpsilon = 0.0001f;         // 浮点取整容差，避免整点伤害因误差延迟一帧
+	constexpr std::size_t kMaxToxinLayers = 20;             // 单只僵尸同时承载的最大毒素层数
 	constexpr float kButterDuration = 4.0f;                // C# mButteredCounter=400 厘秒的黄油定身时长
 	constexpr float kMaximumParalysisDuration = 600.0f;    // 通用麻痹单次/读档允许的最大剩余秒数，防损坏档永久停格
 	constexpr float kButterSplatOffsetY = -6.0f;           // C# DrawButter 相对头部轨道的贴图纵向偏移，单位：像素
@@ -91,6 +92,12 @@ namespace {
 	};
 }
 
+struct Zombie::ToxinState {
+	std::array<float, kMaxToxinLayers> mLayerTimers{};
+	float mDamageRemainder = 0.0f;
+	std::uint8_t mActiveLayerCount = 0;
+};
+
 Zombie::Zombie(Board* board, ZombieType zombieType, float x, float y, int row,
 	AnimationType animType, float scale, bool isPreview)
 	: AnimatedObject(ObjectType::OBJECT_ZOMBIE, board,
@@ -103,7 +110,6 @@ Zombie::Zombie(Board* board, ZombieType zombieType, float x, float y, int row,
 		"Zombie",
 		false)
 {
-	mBoard = board;
 	mZombieType = zombieType;
 	mRow = row;
 	mIsPreview = isPreview;
@@ -129,15 +135,15 @@ Zombie::Zombie(Board* board, ZombieType zombieType, float x, float y, int row,
 	collider->isTrigger = true;
 	collider->layerMask = CollisionLayer::ZOMBIE;
 	collider->collisionMask = CollisionLayer::PLANT | CollisionLayer::BULLET | CollisionLayer::MOWER;
-	collider->onTriggerEnter = [this](ColliderComponent* other) {
+	collider->SetTriggerEnterCallback([this](ColliderComponent* other) {
 		this->StartEat(other);
-		};
-	collider->onTriggerStay = [this](ColliderComponent* other) {
+		});
+	collider->SetTriggerStayCallback([this](ColliderComponent* other) {
 		this->StartEat(other);
-		};
-	collider->onTriggerExit = [this](ColliderComponent* other) {
+		});
+	collider->SetTriggerExitCallback([this](ColliderComponent* other) {
 		this->StopEat(other);
-		};
+		});
 
 	mGroundTrackIndex = mAnimator->GetFirstTrackIndexByName("_ground");
 }
@@ -161,6 +167,8 @@ void Zombie::SetupZombie()
 	else
 		this->PlayTrack("anim_walk2");
 }
+
+Zombie::~Zombie() = default;
 
 /** 注册普通僵尸 reanim 的死亡终点与两次啃食命中帧。 */
 void Zombie::RegisterFrameEvents()
@@ -212,8 +220,15 @@ void Zombie::SaveProtectedData(nlohmann::json& j) const {
 	j["roofMarshalAssaultTimer"] = mRoofMarshalAssaultTimer;
 	j["roofMarshalAssaultMoveMultiplier"] = mRoofMarshalAssaultMoveMultiplier;
 	j["roofMarshalAssaultBiteMultiplier"] = mRoofMarshalAssaultBiteMultiplier;
-	j["toxinLayerTimers"] = mToxinLayerTimers;
-	j["toxinDamageRemainder"] = mToxinDamageRemainder;
+	std::array<float, kMaxToxinLayers> toxinLayerTimers{};
+	float toxinDamageRemainder = 0.0f;
+	if (mToxinState) {
+		std::copy_n(mToxinState->mLayerTimers.begin(), mToxinState->mActiveLayerCount,
+			toxinLayerTimers.begin());
+		toxinDamageRemainder = mToxinState->mDamageRemainder;
+	}
+	j["toxinLayerTimers"] = toxinLayerTimers;
+	j["toxinDamageRemainder"] = toxinDamageRemainder;
 	j["dyingTimer"] = mDyingTimer;
 	j["tangleKelpPlantID"] = mTangleKelpPlantID;
 	j["draggedUnderByTangleKelp"] = mDraggedUnderByTangleKelp;
@@ -306,23 +321,29 @@ void Zombie::LoadProtectedData(const nlohmann::json& j) {
 		ClearParalysis();
 	}
 
-	mToxinLayerTimers.fill(0.0f);
+	mToxinState.reset();
 	if (const auto it = j.find("toxinLayerTimers"); it != j.end() && it->is_array()) {
-		const std::size_t count = std::min(it->size(), mToxinLayerTimers.size());
+		const std::size_t count = std::min(it->size(), kMaxToxinLayers);
 		for (std::size_t index = 0; index < count; ++index) {
-			mToxinLayerTimers[index] = std::clamp(
+			const float timer = std::clamp(
 				(*it)[index].get<float>(), 0.0f, kToxinLayerDuration);
+			if (timer <= 0.0f) continue;
+			if (!mToxinState) mToxinState = std::make_unique<ToxinState>();
+			mToxinState->mLayerTimers[mToxinState->mActiveLayerCount++] = timer;
 		}
 	}
-	mToxinDamageRemainder = std::clamp(
+	const float toxinDamageRemainder = std::clamp(
 		j.value("toxinDamageRemainder", 0.0f), 0.0f, 0.9999f);
+	if (toxinDamageRemainder > 0.0f) {
+		if (!mToxinState) mToxinState = std::make_unique<ToxinState>();
+		mToxinState->mDamageRemainder = toxinDamageRemainder;
+	}
 	// 魅惑状态不允许携带任何敌对植物的延迟伤害；旧档也在这里归一化。
 	if (mIsMindControlled) {
 		mCooldownTimer = 0.0f;
 		mFrozenTimer = 0.0f;
 		mButterTimer = 0.0f;
-		mToxinLayerTimers.fill(0.0f);
-		mToxinDamageRemainder = 0.0f;
+		mToxinState.reset();
 		UpdateAnimSpeed();
 		ApplyCharmEffects();
 	}
@@ -1441,25 +1462,34 @@ void Zombie::RemoveColdEffects()
 
 int Zombie::GetToxinLayerCount() const
 {
-	return static_cast<int>(std::count_if(
-		mToxinLayerTimers.begin(), mToxinLayerTimers.end(),
-		[](float timer) { return timer > 0.0f; }));
+	return mToxinState ? mToxinState->mActiveLayerCount : 0;
 }
 
 float Zombie::GetToxinMaxRemaining() const
 {
-	return *std::max_element(mToxinLayerTimers.begin(), mToxinLayerTimers.end());
+	if (!mToxinState || mToxinState->mActiveLayerCount == 0) return 0.0f;
+	return *std::max_element(mToxinState->mLayerTimers.begin(),
+		mToxinState->mLayerTimers.begin() + mToxinState->mActiveLayerCount);
+}
+
+float Zombie::GetToxinDamageRemainder() const
+{
+	return mToxinState ? mToxinState->mDamageRemainder : 0.0f;
 }
 
 bool Zombie::ApplyToxinStack()
 {
 	if (mIsPreview || mIsDead || mIsDying || mIsMindControlled || !IsActive()) return false;
 
-	auto slot = std::find_if(mToxinLayerTimers.begin(), mToxinLayerTimers.end(),
-		[](float timer) { return timer <= 0.0f; });
-	if (slot == mToxinLayerTimers.end()) {
+	if (!mToxinState) mToxinState = std::make_unique<ToxinState>();
+	float* slot = nullptr;
+	if (mToxinState->mActiveLayerCount < kMaxToxinLayers) {
+		slot = &mToxinState->mLayerTimers[mToxinState->mActiveLayerCount++];
+	}
+	else {
 		// 满层后只刷新最早到期的一层，所有毒囊射手共同受此目标级上限约束。
-		slot = std::min_element(mToxinLayerTimers.begin(), mToxinLayerTimers.end());
+		slot = &*std::min_element(mToxinState->mLayerTimers.begin(),
+			mToxinState->mLayerTimers.end());
 	}
 	*slot = kToxinLayerDuration;
 	UpdateStatusOverlay();
@@ -1468,14 +1498,13 @@ bool Zombie::ApplyToxinStack()
 
 void Zombie::ClearToxin()
 {
-	mToxinLayerTimers.fill(0.0f);
-	mToxinDamageRemainder = 0.0f;
+	mToxinState.reset();
 	UpdateStatusOverlay();
 }
 
 void Zombie::UpdateToxin(float deltaTime)
 {
-	if (GetToxinLayerCount() == 0) return;
+	if (!mToxinState || mToxinState->mActiveLayerCount == 0) return;
 	if (mIsDead || mIsDying || mIsMindControlled) {
 		ClearToxin();
 		return;
@@ -1483,17 +1512,27 @@ void Zombie::UpdateToxin(float deltaTime)
 	if (deltaTime <= 0.0f) return;
 
 	float activeLayerSeconds = 0.0f;
-	for (float& timer : mToxinLayerTimers) {
-		if (timer <= 0.0f) continue;
+	std::size_t layerIndex = 0;
+	while (layerIndex < mToxinState->mActiveLayerCount) {
+		float& timer = mToxinState->mLayerTimers[layerIndex];
 		activeLayerSeconds += std::min(timer, deltaTime);
 		timer = std::max(0.0f, timer - deltaTime);
+		if (timer <= 0.0f) {
+			const std::size_t lastIndex = --mToxinState->mActiveLayerCount;
+			timer = mToxinState->mLayerTimers[lastIndex];
+			mToxinState->mLayerTimers[lastIndex] = 0.0f;
+		}
+		else {
+			++layerIndex;
+		}
 	}
 
-	mToxinDamageRemainder += activeLayerSeconds / kToxinDamageInterval;
+	mToxinState->mDamageRemainder += activeLayerSeconds / kToxinDamageInterval;
 	const int damage = static_cast<int>(
-		std::floor(mToxinDamageRemainder + kToxinDamageEpsilon));
+		std::floor(mToxinState->mDamageRemainder + kToxinDamageEpsilon));
 	if (damage > 0) {
-		mToxinDamageRemainder = std::max(0.0f, mToxinDamageRemainder - damage);
+		mToxinState->mDamageRemainder = std::max(
+			0.0f, mToxinState->mDamageRemainder - damage);
 		// 速度 0 表示从正面命中当前防护层；毒伤永不以背击规则绕过门板。
 		// 每点分别走正式链，避免高倍速长帧把多次毒跳合并成一次免伤/词条结算。
 		for (int point = 0; point < damage; ++point) {
@@ -1501,8 +1540,8 @@ void Zombie::UpdateToxin(float deltaTime)
 			if (!IsActive()) return;
 		}
 	}
-	if (GetToxinLayerCount() == 0) {
-		mToxinDamageRemainder = 0.0f;
+	if (mToxinState->mActiveLayerCount == 0) {
+		mToxinState.reset();
 	}
 	UpdateStatusOverlay();
 }
@@ -1876,8 +1915,7 @@ void Zombie::Die()
 	mRoofMarshalAssaultMoveMultiplier = 1.0f;
 	mRoofMarshalAssaultBiteMultiplier = 1.0f;
 	SetRoofMarshalAssaultFlagVisible(false);
-	mToxinLayerTimers.fill(0.0f);
-	mToxinDamageRemainder = 0.0f;
+	mToxinState.reset();
 
 	// 若死亡时仍在啃食植物，手动清理啃食状态（防止 mEaterCount 无法归零）
 	if (mIsEating && mEatPlantID != NULL_PLANT_ID && mBoard) {

@@ -21,8 +21,8 @@ void PotatoMine::SetupPlant()
 
 	if (mIsPreview) return;
 
-	GetColliderComponent()->onCollisionEnter =
-		([this](ColliderComponent* other) {
+	GetColliderComponent()->SetCollisionEnterCallback(
+		[this](ColliderComponent* other) {
 		if (!mIsRise) return;
 
 		auto* gameObject = other->GetGameObject();

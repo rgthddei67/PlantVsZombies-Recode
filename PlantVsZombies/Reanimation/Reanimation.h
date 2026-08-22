@@ -4,13 +4,17 @@
 
 #include "ReanimTypes.h"
 #include <memory>
-#include <vector>
 #include <set>
+#include <unordered_map>
+#include <vector>
 
 constexpr float REANIM_MISSING_FIELD_FLOAT = -1024;
 constexpr int REANIM_MISSING_FIELD_INT = -1024;
 
 class Reanimation {
+private:
+	std::shared_ptr<std::unordered_map<std::string, int>> mFirstTrackIndices;
+
 public:
 	float mFPS = 12.0f;
 	std::shared_ptr<std::vector<TrackInfo>> mTracks = nullptr;
@@ -19,6 +23,7 @@ public:
 
 public:
 	Reanimation();
+	Reanimation(const Reanimation&) = default;
 	~Reanimation();
 
 	// 鍔犺浇reanim鏂囦欢
@@ -28,6 +33,8 @@ public:
 	size_t GetTrackCount() const;
 	TrackInfo* GetTrack(int index);
 	TrackInfo* GetTrack(const std::string& trackName);
+	/** 返回第一个同名轨道的索引；索引表由同一资源的全部实例共享。 */
+	int GetFirstTrackIndex(const std::string& trackName) const;
 
 	// 鑾峰彇鎬诲抚鏁?
 	int GetTotalFrames() const;

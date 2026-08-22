@@ -47,14 +47,14 @@ Animator::~Animator() {
 
 void Animator::Die() {
 	// 先让所有附加的子动画死亡
-	for (size_t i = 0; i < mExtraInfos.size(); i++) {
-		for (size_t j = 0; j < mExtraInfos[i].mAttachedReanims.size(); j++) {
-			auto child = mExtraInfos[i].mAttachedReanims[j].lock();
+	for (auto& sparse : mSparseTrackStates) {
+		for (auto& weakChild : sparse.mAttachedReanims) {
+			auto child = weakChild.lock();
 			if (child) {
 				child->Die();
 			}
 		}
-		mExtraInfos[i].mAttachedReanims.clear();
+		sparse.mAttachedReanims.clear();
 	}
 	mFrameEvents.clear();
 	mIsPlaying = false;
@@ -64,13 +64,12 @@ void Animator::Init(std::shared_ptr<Reanimation> reanim) {
 	mReanim = reanim;
 	if (reanim) {
 		mFPS = reanim->mFPS;
-		mTrackIndicesMap.clear();
 		mExtraInfos.clear();
+		mSparseTrackStates.clear();
 		mFrameEvents.clear();
 		for (int i = 0; i < reanim->GetTrackCount(); i++) {
 			auto track = reanim->GetTrack(i);
 			if (track) {
-				mTrackIndicesMap.try_emplace(track->mTrackName, i);
 				TrackExtraInfo extra;
 				mExtraInfos.push_back(extra);
 			}
@@ -149,8 +148,8 @@ void Animator::Pause() {
 
 void Animator::PauseSubtree() {
 	Pause();
-	for (auto& extra : mExtraInfos) {
-		for (auto& weakChild : extra.mAttachedReanims) {
+	for (auto& sparse : mSparseTrackStates) {
+		for (auto& weakChild : sparse.mAttachedReanims) {
 			if (auto child = weakChild.lock()) {
 				child->PauseSubtree();
 			}
@@ -259,9 +258,9 @@ void Animator::Update() {
 		if (mReanimBlendCounter < 0) mReanimBlendCounter = 0;
 	}
 
-	for (size_t i = 0; i < mExtraInfos.size(); i++) {
-		for (size_t j = 0; j < mExtraInfos[i].mAttachedReanims.size(); j++) {
-			auto child = mExtraInfos[i].mAttachedReanims[j].lock();
+	for (auto& sparse : mSparseTrackStates) {
+		for (auto& weakChild : sparse.mAttachedReanims) {
+			auto child = weakChild.lock();
 			if (child) {
 				child->Update();
 			}
@@ -358,9 +357,9 @@ void Animator::UpdateParallelDeferred(std::vector<DeferredEvent>& outBuf) {
 		if (mReanimBlendCounter < 0) mReanimBlendCounter = 0;
 	}
 
-	for (size_t i = 0; i < mExtraInfos.size(); i++) {
-		for (size_t j = 0; j < mExtraInfos[i].mAttachedReanims.size(); j++) {
-			auto child = mExtraInfos[i].mAttachedReanims[j].lock();
+	for (auto& sparse : mSparseTrackStates) {
+		for (auto& weakChild : sparse.mAttachedReanims) {
+			auto child = weakChild.lock();
 			if (child) {
 				child->UpdateParallelDeferred(outBuf);
 			}
@@ -406,6 +405,7 @@ void Animator::DrawInternalInstanced(Graphics* g, float baseX, float baseY, floa
 	InstanceRecord firstDeferredFollowerInstance{};
 	bool hasDeferredFollowerInstance = false;
 	std::vector<InstanceRecord> deferredFollowerOverflow;
+	size_t sparseIndex = 0;
 
 	float blendRatio = 0.0f;
 	if (mReanimBlendCounter > 0.0f)
@@ -414,6 +414,13 @@ void Animator::DrawInternalInstanced(Graphics* g, float baseX, float baseY, floa
 	for (int i = 0; i < static_cast<int>(mReanim->GetTrackCount()); ++i) {
 		auto track = mReanim->GetTrack(i);
 		if (!track || !track->mAvailable || track->mFrames.empty()) continue;
+		while (sparseIndex < mSparseTrackStates.size()
+			&& mSparseTrackStates[sparseIndex].mTrackIndex < i) {
+			++sparseIndex;
+		}
+		const SparseTrackState* sparse = sparseIndex < mSparseTrackStates.size()
+			&& mSparseTrackStates[sparseIndex].mTrackIndex == i
+			? &mSparseTrackStates[sparseIndex] : nullptr;
 
 		const TrackFrameTransform transform = GetInterpolatedTransform(i, blendRatio);
 		const TrackExtraInfo* extra = i < static_cast<int>(mExtraInfos.size())
@@ -422,13 +429,13 @@ void Animator::DrawInternalInstanced(Graphics* g, float baseX, float baseY, floa
 		const Texture* image = shouldDrawSelf
 			? (extra->mImage ? extra->mImage : transform.image)
 			: nullptr;
-		const Texture* followerImage = extra && extra->mVisible
-			&& extra->mFollowerVisible && transform.f != -1
-			? extra->mFollowerImage : nullptr;
+		const Texture* followerImage = extra && extra->mVisible && sparse
+			&& sparse->mFollowerVisible && transform.f != -1
+			? sparse->mFollowerImage : nullptr;
 
 		// 无本体、跟随贴图和附件的轨道不需要仿射数据；保住隐藏轨道的实例快路径。
 		if (!image && !followerImage
-			&& (!extra || extra->mAttachedReanims.empty())) continue;
+			&& (!sparse || sparse->mAttachedReanims.empty())) continue;
 
 		// CPU still computes the trig — GATE A measured this is ~6 ms CPU sum across
 		// 165k tracks/frame; the GPU instancing win comes from removing per-call mat4
@@ -505,18 +512,18 @@ void Animator::DrawInternalInstanced(Graphics* g, float baseX, float baseY, floa
 		}
 
 		if (followerImage) {
-			const float followerX = tx + tA * extra->mFollowerOffsetX
-				+ tC * extra->mFollowerOffsetY;
-			const float followerY = ty + tB * extra->mFollowerOffsetX
-				+ tD * extra->mFollowerOffsetY;
+			const float followerX = tx + tA * sparse->mFollowerOffsetX
+				+ tC * sparse->mFollowerOffsetY;
+			const float followerY = ty + tB * sparse->mFollowerOffsetX
+				+ tD * sparse->mFollowerOffsetY;
 			const float w = static_cast<float>(followerImage->width);
 			const float h = static_cast<float>(followerImage->height);
 
 			InstanceRecord rec;
-			rec.tA = tA * w * Scale * extra->mFollowerScaleX;
-			rec.tB = tB * w * Scale * extra->mFollowerScaleX;
-			rec.tC = tC * h * Scale * extra->mFollowerScaleY;
-			rec.tD = tD * h * Scale * extra->mFollowerScaleY;
+			rec.tA = tA * w * Scale * sparse->mFollowerScaleX;
+			rec.tB = tB * w * Scale * sparse->mFollowerScaleX;
+			rec.tC = tC * h * Scale * sparse->mFollowerScaleY;
+			rec.tD = tD * h * Scale * sparse->mFollowerScaleY;
 			rec.tx = baseX + followerX * Scale;
 			rec.ty = baseY + followerY * Scale;
 			if (mFlipX) {
@@ -537,7 +544,7 @@ void Animator::DrawInternalInstanced(Graphics* g, float baseX, float baseY, floa
 			const float alpha = std::clamp(transform.a * mAlpha, 0.0f, 1.0f);
 			rec.colorRGBA8 = PackRGBA8(255, 255, 255,
 				static_cast<uint8_t>(alpha * 255.0f));
-			if (extra->mFollowerDrawAfterAllTracks) {
+			if (sparse->mFollowerDrawAfterAllTracks) {
 				if (!hasDeferredFollowerInstance) {
 					firstDeferredFollowerInstance = rec;
 					hasDeferredFollowerInstance = true;
@@ -551,11 +558,11 @@ void Animator::DrawInternalInstanced(Graphics* g, float baseX, float baseY, floa
 			}
 		}
 
-		if (!extra) continue;
+		if (!sparse) continue;
 
 		// 在当前父轨道实例之后立即递归，既保持 reanim 轨道交错顺序，也让任意深度附件
 		// 继续写入同一实例流；不可见的父轨道仍可作为附件锚点，与慢路径语义一致。
-		for (const auto& weakChild : extra->mAttachedReanims) {
+		for (const auto& weakChild : sparse->mAttachedReanims) {
 			auto child = weakChild.lock();
 			if (!child || !child->mReanim) continue;
 
@@ -594,6 +601,7 @@ void Animator::DrawInternal(Graphics* g, float baseX, float baseY, float Scale) 
 	DeferredFollowerDraw firstDeferredFollowerDraw{};
 	bool hasDeferredFollowerDraw = false;
 	std::vector<DeferredFollowerDraw> deferredFollowerOverflow;
+	size_t sparseIndex = 0;
 
 	// 预计算混合比例，避免在轨道循环内每次做浮点除法
 	float blendRatio = 0.0f;
@@ -603,6 +611,13 @@ void Animator::DrawInternal(Graphics* g, float baseX, float baseY, float Scale) 
 	for (int i = 0; i < static_cast<int>(mReanim->GetTrackCount()); ++i) {
 		auto track = mReanim->GetTrack(i);
 		if (!track || !track->mAvailable || track->mFrames.empty()) continue;
+		while (sparseIndex < mSparseTrackStates.size()
+			&& mSparseTrackStates[sparseIndex].mTrackIndex < i) {
+			++sparseIndex;
+		}
+		const SparseTrackState* sparse = sparseIndex < mSparseTrackStates.size()
+			&& mSparseTrackStates[sparseIndex].mTrackIndex == i
+			? &mSparseTrackStates[sparseIndex] : nullptr;
 
 		TrackFrameTransform transform = GetInterpolatedTransform(i, blendRatio);
 
@@ -627,9 +642,9 @@ void Animator::DrawInternal(Graphics* g, float baseX, float baseY, float Scale) 
 			image = extra->mImage ? extra->mImage : transform.image;
 			shouldDrawSelf = (image != nullptr);
 		}
-		const Texture* followerImage = extra && extra->mVisible
-			&& extra->mFollowerVisible && transform.f != -1
-			? extra->mFollowerImage : nullptr;
+		const Texture* followerImage = extra && extra->mVisible && sparse
+			&& sparse->mFollowerVisible && transform.f != -1
+			? sparse->mFollowerImage : nullptr;
 		const float tx = transform.x + (extra ? extra->mOffsetX : 0.0f);
 		const float ty = transform.y + (extra ? extra->mOffsetY : 0.0f);
 
@@ -686,17 +701,17 @@ void Animator::DrawInternal(Graphics* g, float baseX, float baseY, float Scale) 
 		}
 
 		if (followerImage) {
-			const float followerX = tx + tA * extra->mFollowerOffsetX
-				+ tC * extra->mFollowerOffsetY;
-			const float followerY = ty + tB * extra->mFollowerOffsetX
-				+ tD * extra->mFollowerOffsetY;
+			const float followerX = tx + tA * sparse->mFollowerOffsetX
+				+ tC * sparse->mFollowerOffsetY;
+			const float followerY = ty + tB * sparse->mFollowerOffsetX
+				+ tD * sparse->mFollowerOffsetY;
 			const float w = static_cast<float>(followerImage->width);
 			const float h = static_cast<float>(followerImage->height);
 			glm::mat4 mat(
-				tA * w * Scale * extra->mFollowerScaleX,
-				tB * w * Scale * extra->mFollowerScaleX, 0.0f, 0.0f,
-				tC * h * Scale * extra->mFollowerScaleY,
-				tD * h * Scale * extra->mFollowerScaleY, 0.0f, 0.0f,
+				tA * w * Scale * sparse->mFollowerScaleX,
+				tB * w * Scale * sparse->mFollowerScaleX, 0.0f, 0.0f,
+				tC * h * Scale * sparse->mFollowerScaleY,
+				tD * h * Scale * sparse->mFollowerScaleY, 0.0f, 0.0f,
 				0.0f, 0.0f, 1.0f, 0.0f,
 				baseX + followerX * Scale, baseY + followerY * Scale, 0.0f, 1.0f);
 			if (mFlipX) {
@@ -709,7 +724,7 @@ void Animator::DrawInternal(Graphics* g, float baseX, float baseY, float Scale) 
 				mat[0][0], mat[0][1], mat[1][0], mat[1][1], mat[3][0], mat[3][1]);
 			const float alpha = std::clamp(transform.a * mAlpha, 0.0f, 1.0f);
 			const glm::vec4 color(255.0f, 255.0f, 255.0f, alpha * 255.0f);
-			if (extra->mFollowerDrawAfterAllTracks) {
+			if (sparse->mFollowerDrawAfterAllTracks) {
 				const DeferredFollowerDraw draw{ followerImage, mat, color };
 				if (!hasDeferredFollowerDraw) {
 					firstDeferredFollowerDraw = draw;
@@ -726,8 +741,8 @@ void Animator::DrawInternal(Graphics* g, float baseX, float baseY, float Scale) 
 		}
 
 		// 子动画
-		if (extra) {
-			for (const auto& weakChild : extra->mAttachedReanims) {
+		if (sparse) {
+			for (const auto& weakChild : sparse->mAttachedReanims) {
 				auto child = weakChild.lock();
 				if (!child || !child->mReanim) continue;
 
@@ -760,9 +775,9 @@ void Animator::DrawInternal(Graphics* g, float baseX, float baseY, float Scale) 
 void Animator::SetSpeed(float speed) {
 	this->mSpeed = speed;
 
-	for (size_t i = 0; i < mExtraInfos.size(); i++) {
-		for (size_t j = 0; j < mExtraInfos[i].mAttachedReanims.size(); j++) {
-			auto child = mExtraInfos[i].mAttachedReanims[j].lock();
+	for (auto& sparse : mSparseTrackStates) {
+		for (auto& weakChild : sparse.mAttachedReanims) {
+			auto child = weakChild.lock();
 			if (child) {
 				child->SetSpeed(speed);
 			}
@@ -775,9 +790,9 @@ void Animator::SetClipSpeed(float clipSpeed) {
 
 	// 递归到附加子动画，复刻旧 SetSpeed 的传播语义：
 	// 父轨道切到 eat(2.1)/walk(回落) 时，附加配件同步同样的速度
-	for (size_t i = 0; i < mExtraInfos.size(); i++) {
-		for (size_t j = 0; j < mExtraInfos[i].mAttachedReanims.size(); j++) {
-			auto child = mExtraInfos[i].mAttachedReanims[j].lock();
+	for (auto& sparse : mSparseTrackStates) {
+		for (auto& weakChild : sparse.mAttachedReanims) {
+			auto child = weakChild.lock();
 			if (child) {
 				child->SetClipSpeed(clipSpeed);
 			}
@@ -788,9 +803,9 @@ void Animator::SetClipSpeed(float clipSpeed) {
 void Animator::SetAlpha(float alpha) {
 	this->mAlpha = alpha;
 
-	for (size_t i = 0; i < mExtraInfos.size(); i++) {
-		for (size_t j = 0; j < mExtraInfos[i].mAttachedReanims.size(); j++) {
-			auto child = mExtraInfos[i].mAttachedReanims[j].lock();
+	for (auto& sparse : mSparseTrackStates) {
+		for (auto& weakChild : sparse.mAttachedReanims) {
+			auto child = weakChild.lock();
 			if (child) {
 				child->SetAlpha(alpha);
 			}
@@ -801,9 +816,9 @@ void Animator::SetAlpha(float alpha) {
 void Animator::SetGlowColor(Uint8 r, Uint8 g, Uint8 b, Uint8 a) {
 	this->mExtraAdditiveColor = { r, g, b, a };
 
-	for (size_t i = 0; i < mExtraInfos.size(); i++) {
-		for (size_t j = 0; j < mExtraInfos[i].mAttachedReanims.size(); j++) {
-			auto child = mExtraInfos[i].mAttachedReanims[j].lock();
+	for (auto& sparse : mSparseTrackStates) {
+		for (auto& weakChild : sparse.mAttachedReanims) {
+			auto child = weakChild.lock();
 			if (child) {
 				child->SetGlowColor(r, g, b, a);
 			}
@@ -814,9 +829,9 @@ void Animator::SetGlowColor(Uint8 r, Uint8 g, Uint8 b, Uint8 a) {
 void Animator::SetOverlayColor(Uint8 r, Uint8 g, Uint8 b, Uint8 a) {
 	this->mExtraOverlayColor = { r, g, b, a };
 
-	for (size_t i = 0; i < mExtraInfos.size(); i++) {
-		for (size_t j = 0; j < mExtraInfos[i].mAttachedReanims.size(); j++) {
-			auto child = mExtraInfos[i].mAttachedReanims[j].lock();
+	for (auto& sparse : mSparseTrackStates) {
+		for (auto& weakChild : sparse.mAttachedReanims) {
+			auto child = weakChild.lock();
 			if (child) {
 				child->SetOverlayColor(r, g, b, a);
 			}
@@ -827,9 +842,9 @@ void Animator::SetOverlayColor(Uint8 r, Uint8 g, Uint8 b, Uint8 a) {
 void Animator::EnableGlowEffect(bool enable) {
 	this->mEnableExtraAdditiveDraw = enable;
 
-	for (size_t i = 0; i < mExtraInfos.size(); i++) {
-		for (size_t j = 0; j < mExtraInfos[i].mAttachedReanims.size(); j++) {
-			auto child = mExtraInfos[i].mAttachedReanims[j].lock();
+	for (auto& sparse : mSparseTrackStates) {
+		for (auto& weakChild : sparse.mAttachedReanims) {
+			auto child = weakChild.lock();
 			if (child) {
 				child->EnableGlowEffect(enable);
 			}
@@ -840,9 +855,9 @@ void Animator::EnableGlowEffect(bool enable) {
 void Animator::EnableOverlayEffect(bool enable) {
 	this->mEnableExtraOverlayDraw = enable;
 
-	for (size_t i = 0; i < mExtraInfos.size(); i++) {
-		for (size_t j = 0; j < mExtraInfos[i].mAttachedReanims.size(); j++) {
-			auto child = mExtraInfos[i].mAttachedReanims[j].lock();
+	for (auto& sparse : mSparseTrackStates) {
+		for (auto& weakChild : sparse.mAttachedReanims) {
+			auto child = weakChild.lock();
 			if (child) {
 				child->EnableOverlayEffect(enable);
 			}
@@ -878,20 +893,24 @@ void Animator::SetTrackOffset(const std::string& trackName, float x, float y) {
 
 void Animator::SetTrackFollowerImage(const std::string& trackName, const Texture* image,
 	float offsetX, float offsetY, float scaleX, float scaleY, bool drawAfterAllTracks) {
-	for (auto& extra : GetTrackExtrasByName(trackName)) {
-		extra->mFollowerImage = image;
-		extra->mFollowerOffsetX = offsetX;
-		extra->mFollowerOffsetY = offsetY;
-		extra->mFollowerScaleX = scaleX;
-		extra->mFollowerScaleY = scaleY;
-		extra->mFollowerDrawAfterAllTracks = drawAfterAllTracks;
-		if (!image) extra->mFollowerVisible = false;
+	for (const int trackIndex : GetTrackIndicesByName(trackName)) {
+		SparseTrackState* existing = FindSparseTrackState(trackIndex);
+		if (!image && !existing) continue;
+		SparseTrackState& sparse = existing ? *existing : GetOrCreateSparseTrackState(trackIndex);
+		sparse.mFollowerImage = image;
+		sparse.mFollowerOffsetX = offsetX;
+		sparse.mFollowerOffsetY = offsetY;
+		sparse.mFollowerScaleX = scaleX;
+		sparse.mFollowerScaleY = scaleY;
+		sparse.mFollowerDrawAfterAllTracks = drawAfterAllTracks;
+		if (!image) sparse.mFollowerVisible = false;
 	}
 }
 
 void Animator::SetTrackFollowerVisible(const std::string& trackName, bool visible) {
-	for (auto& extra : GetTrackExtrasByName(trackName)) {
-		extra->mFollowerVisible = visible && extra->mFollowerImage;
+	for (const int trackIndex : GetTrackIndicesByName(trackName)) {
+		SparseTrackState* sparse = FindSparseTrackState(trackIndex);
+		if (sparse) sparse->mFollowerVisible = visible && sparse->mFollowerImage;
 	}
 }
 
@@ -916,8 +935,8 @@ void Animator::SetRenderScale(float scaleX, float scaleY, float pivotX, float pi
 	mRenderPivotY = pivotY;
 
 	// 子 Animator 可能继续拥有自己的附件；递归同步后所有层级走同一世界锚点。
-	for (auto& extra : mExtraInfos) {
-		for (auto& weakChild : extra.mAttachedReanims) {
+	for (auto& sparse : mSparseTrackStates) {
+		for (auto& weakChild : sparse.mAttachedReanims) {
 			if (auto child = weakChild.lock()) {
 				child->SetRenderScale(scaleX, scaleY, pivotX, pivotY);
 			}
@@ -959,15 +978,16 @@ bool Animator::AttachAnimator(const std::string& trackName, std::shared_ptr<Anim
 		return false;
 	}
 
-	auto extras = GetTrackExtrasByName(trackName);
-	if (extras.empty()) {
+	auto trackIndices = GetTrackIndicesByName(trackName);
+	if (trackIndices.empty()) {
 		return false;
 	}
 
-	for (auto* extra : extras) {
+	for (const int trackIndex : trackIndices) {
+		auto& sparse = GetOrCreateSparseTrackState(trackIndex);
 		// 避免重复添加
 		bool alreadyExists = false;
-		for (const auto& weak : extra->mAttachedReanims) {
+		for (const auto& weak : sparse.mAttachedReanims) {
 			if (auto existing = weak.lock()) {
 				if (existing == child) {
 					alreadyExists = true;
@@ -976,7 +996,7 @@ bool Animator::AttachAnimator(const std::string& trackName, std::shared_ptr<Anim
 			}
 		}
 		if (!alreadyExists) {
-			extra->mAttachedReanims.push_back(child);
+			sparse.mAttachedReanims.push_back(child);
 		}
 	}
 	// 若父 Animator 已处于压扁等世界绘制变换，新挂件从第一帧起继承，避免短暂弹回原形。
@@ -985,9 +1005,10 @@ bool Animator::AttachAnimator(const std::string& trackName, std::shared_ptr<Anim
 }
 
 void Animator::DetachAnimator(const std::string& trackName, std::shared_ptr<Animator> child) {
-	auto extras = GetTrackExtrasByName(trackName);
-	for (auto* extra : extras) {
-		auto& vec = extra->mAttachedReanims;
+	for (const int trackIndex : GetTrackIndicesByName(trackName)) {
+		auto* sparse = FindSparseTrackState(trackIndex);
+		if (!sparse) continue;
+		auto& vec = sparse->mAttachedReanims;
 		vec.erase(std::remove_if(vec.begin(), vec.end(),
 			[&child](const std::weak_ptr<Animator>& weak) {
 				auto sp = weak.lock();
@@ -998,8 +1019,8 @@ void Animator::DetachAnimator(const std::string& trackName, std::shared_ptr<Anim
 }
 
 void Animator::DetachAllAnimators() {
-	for (auto& extra : mExtraInfos) {
-		extra.mAttachedReanims.clear();
+	for (auto& sparse : mSparseTrackStates) {
+		sparse.mAttachedReanims.clear();
 	}
 }
 
@@ -1124,9 +1145,9 @@ float Animator::GetTrackAverageVelocity(int trackIndex) const {
 void Animator::SetExtraSpeedMultiplier(float mul) {
 	mExtraSpeedMultiplier = mul;
 
-	for (size_t i = 0; i < mExtraInfos.size(); i++) {
-		for (size_t j = 0; j < mExtraInfos[i].mAttachedReanims.size(); j++) {
-			auto child = mExtraInfos[i].mAttachedReanims[j].lock();
+	for (auto& sparse : mSparseTrackStates) {
+		for (auto& weakChild : sparse.mAttachedReanims) {
+			auto child = weakChild.lock();
 			if (child) {
 				child->SetExtraSpeedMultiplier(mul);
 			}
@@ -1185,7 +1206,8 @@ bool Animator::GetTrackFollowerVisible(const std::string& trackName) const {
 	const int index = GetFirstTrackIndexByName(trackName);
 	if (index >= 0 && index < static_cast<int>(mExtraInfos.size())) {
 		const TrackExtraInfo& extra = mExtraInfos[index];
-		return extra.mVisible && extra.mFollowerVisible && extra.mFollowerImage;
+		const SparseTrackState* sparse = FindSparseTrackState(index);
+		return extra.mVisible && sparse && sparse->mFollowerVisible && sparse->mFollowerImage;
 	}
 	return false;
 }
@@ -1247,9 +1269,39 @@ std::vector<TrackExtraInfo*> Animator::GetTrackExtrasByName(const std::string& t
 	return result;
 }
 
+std::vector<int> Animator::GetTrackIndicesByName(const std::string& trackName) const {
+	std::vector<int> result;
+	if (!mReanim) return result;
+	for (int i = 0; i < static_cast<int>(mReanim->GetTrackCount()); ++i) {
+		const auto track = mReanim->GetTrack(i);
+		if (track && track->mTrackName == trackName) result.push_back(i);
+	}
+	return result;
+}
+
+Animator::SparseTrackState* Animator::FindSparseTrackState(int trackIndex) {
+	const auto it = std::lower_bound(mSparseTrackStates.begin(), mSparseTrackStates.end(), trackIndex,
+		[](const SparseTrackState& sparse, int index) { return sparse.mTrackIndex < index; });
+	return it != mSparseTrackStates.end() && it->mTrackIndex == trackIndex ? &*it : nullptr;
+}
+
+const Animator::SparseTrackState* Animator::FindSparseTrackState(int trackIndex) const {
+	const auto it = std::lower_bound(mSparseTrackStates.begin(), mSparseTrackStates.end(), trackIndex,
+		[](const SparseTrackState& sparse, int index) { return sparse.mTrackIndex < index; });
+	return it != mSparseTrackStates.end() && it->mTrackIndex == trackIndex ? &*it : nullptr;
+}
+
+Animator::SparseTrackState& Animator::GetOrCreateSparseTrackState(int trackIndex) {
+	const auto it = std::lower_bound(mSparseTrackStates.begin(), mSparseTrackStates.end(), trackIndex,
+		[](const SparseTrackState& sparse, int index) { return sparse.mTrackIndex < index; });
+	if (it != mSparseTrackStates.end() && it->mTrackIndex == trackIndex) return *it;
+	SparseTrackState sparse;
+	sparse.mTrackIndex = trackIndex;
+	return *mSparseTrackStates.insert(it, std::move(sparse));
+}
+
 int Animator::GetFirstTrackIndexByName(const std::string& trackName) const {
-	auto it = mTrackIndicesMap.find(trackName);
-	return (it != mTrackIndicesMap.end()) ? it->second : -1;
+	return mReanim ? mReanim->GetFirstTrackIndex(trackName) : -1;
 }
 
 bool Animator::HasTrack(const std::string& trackName) const {

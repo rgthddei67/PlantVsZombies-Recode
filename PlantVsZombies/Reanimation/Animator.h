@@ -72,8 +72,21 @@ private:
 
 	bool mIsPlaying = false;                   ///< 是否正在播放
 	PlayState mPlayingState = PlayState::PLAY_NONE;  ///< 播放状态
-	std::vector<TrackExtraInfo> mExtraInfos;   ///< 每个轨道的额外信息 (可见性、自定义纹理、附加子动画等)
-	std::unordered_map<std::string, int> mTrackIndicesMap;  ///< 轨道名称到索引的映射
+	std::vector<TrackExtraInfo> mExtraInfos;   ///< 每个轨道都会使用的热状态（可见性、自定义纹理与偏移）
+
+	/** 只有 follower 或子 Animator 的轨道才分配冷状态，按轨道索引排序。 */
+	struct SparseTrackState {
+		int mTrackIndex = -1;
+		bool mFollowerVisible = false;
+		bool mFollowerDrawAfterAllTracks = false;
+		float mFollowerOffsetX = 0.0f;
+		float mFollowerOffsetY = 0.0f;
+		float mFollowerScaleX = 1.0f;
+		float mFollowerScaleY = 1.0f;
+		const Texture* mFollowerImage = nullptr;
+		std::vector<std::weak_ptr<Animator>> mAttachedReanims;
+	};
+	std::vector<SparseTrackState> mSparseTrackStates;
 
 	bool mEnableExtraAdditiveDraw = false;     ///< 是否启用高亮 (叠加混合) 效果
 	bool mEnableExtraOverlayDraw = false;      ///< 是否启用附加覆盖效果
@@ -564,6 +577,13 @@ private:
 	 * @return 指针数组
 	 */
 	std::vector<TrackExtraInfo*> GetTrackExtrasByName(const std::string& trackName);
+	/** 返回全部同名轨道索引，以保持旧接口对重复轨道名的广播语义。 */
+	std::vector<int> GetTrackIndicesByName(const std::string& trackName) const;
+	/** 查询已存在的轨道冷状态；不会在读取路径产生分配。 */
+	SparseTrackState* FindSparseTrackState(int trackIndex);
+	const SparseTrackState* FindSparseTrackState(int trackIndex) const;
+	/** 按轨道索引创建或返回冷状态，并保持容器有序供绘制线性合并。 */
+	SparseTrackState& GetOrCreateSparseTrackState(int trackIndex);
 
 	/**
 	 * @brief Draw 的内部递归分派：默认走实例化附件树，-NoInstance 时走矩阵慢路径。
