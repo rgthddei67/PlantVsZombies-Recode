@@ -4,13 +4,14 @@ description: 第六大关磁暴菇的装备触发EMP、通用条件蒙特卡洛�
 metadata:
   node_type: memory
   type: project
-  updated_at: 2026-08-15
+  updated_at: 2026-08-22
 ---
 
 # 第六大关磁暴菇与条件磁吸推演
 
 `PLANT_GOLD_MAGNET` 是 6-7（内部 52）通关奖励，6-8 起可选；由磁力菇 normal 层原位升级，
-追加 75 阳光，卡冷却 50 秒，300 生命。它保留夜间蘑菇语义，白天睡眠并可由咖啡豆完整唤醒。
+追加 75 阳光，卡冷却 50 秒，300 生命。按 C# 原版 `IsNocturnal` 分类，它不是夜间植物：白天和夜晚
+都直接工作，不需要咖啡豆，也不提供不存在的睡眠动画。
 
 ## 正式战斗合同
 
@@ -28,7 +29,7 @@ metadata:
 ## 全局轻量推演合同
 
 - `PlantSimulationProfile` 保存通用磁吸范围、冷却和麻痹参数；场上 `PlantSnapshot` 复制真实剩余
-  充能，新种卡牌从就绪态开始。白天用通用 `daytimeDormant` 让候选卡只保留阻挡生命，不虚构主动能力。
+  充能，新种卡牌从就绪态开始。磁暴菇的 `daytimeDormant=false`，白天推演继续使用真实主动能力。
 - `ZombieSnapshot` 复用正式 `CanBeTargetedByMagnetShroom()`，再由
   `GetMagneticSimulationLayer()` 声明 `HELM/SHIELD/TOOL`；矿工必须覆写为工具，避免把非磁性硬帽
   误当本次消费层。推演成功后原子消费资格并清对应生命层，同件装备不能重复贡献。
@@ -50,3 +51,6 @@ metadata:
   `-NoInstance` 慢路径均为 96 条命令、exit 0，`smoke_gold_magnet_reward`、
   `smoke_magnetshroom`、`smoke_insulator_magnet` 与 `smoke_grounding_zombie` 也均 exit 0。
   两条渲染路径日志、状态 JSON 与最终实盆截图均已复核。
+- 2026-08-22 `GoldMagnet` 明确拒绝 Setup、紫卡替换继承和读档恢复写入睡眠；图鉴说明与推演画像同步。
+  当前桌面可见 `smoke_gold_magnet` exit 0：日间卡组不含咖啡豆，升级后 `sleeping=false`、直接进入
+  `SUCKING/anim_attract`、铁桶归零并释放一次 EMP；截图 `02_gold_magnet_day_active_without_coffee.png` 已目验。

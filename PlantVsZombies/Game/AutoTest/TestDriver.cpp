@@ -7,6 +7,7 @@
 #include "../../DeltaTime.h"
 #include "../../Logger.h"
 #include "../../ResourceKeys.h"
+#include "../../CursorManager.h"
 #include "../../UI/Button.h"
 #include "../SceneManager.h"
 #include "../GameScene.h"
@@ -216,6 +217,21 @@ namespace {
 		case LadderClimbPhase::FALLING: return "FALLING";
 		default: return "UNKNOWN";
 		}
+	}
+
+	const char* CursorTypeName(CursorType type)
+	{
+		switch (type) {
+		case CursorType::ARROW: return "ARROW";
+		case CursorType::HAND: return "HAND";
+		case CursorType::IBEAM: return "IBEAM";
+		case CursorType::CROSSHAIR: return "CROSSHAIR";
+		case CursorType::WAIT: return "WAIT";
+		case CursorType::SIZE_ALL: return "SIZE_ALL";
+		case CursorType::NO: return "NO";
+		case CursorType::CUSTOM: return "CUSTOM";
+		}
+		return "UNKNOWN";
 	}
 
 	const char* CobCannonPhaseName(CobCannon::Phase phase)
@@ -2484,6 +2500,9 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["encounteredEliteDancer"] = gameApp.HasEncounteredEliteDancer();
 	out["monteCarloAIEnabled"] = gameApp.mEnableMonteCarloAI;
 	out["advancedPauseEnabled"] = gameApp.mAdvancedPauseEnabled;
+	out["cursorType"] = CursorTypeName(
+		CursorManager::GetInstance().GetCurrentCursorType());
+	out["cursorHoverCount"] = CursorManager::GetInstance().GetHoverCount();
 	out["openingTyphoonProtectionEnabled"] =
 		gameApp.mOpeningTyphoonProtectionEnabled;
 	out["lastSelectedCards"] = gameApp.mLastSelectedCards;
@@ -3732,6 +3751,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		out["plantern"] = {
 			{ "supported", board->SupportsPlanternMechanics() },
 			{ "active", plantern != nullptr },
+			{ "menuOpen", gs->GetCardSlotManager()
+				&& gs->GetCardSlotManager()->IsPlanternGearMenuOpen() },
 			{ "id", plantern ? plantern->mPlantID : NULL_PLANT_ID },
 			{ "fuelTenths", static_cast<int>(std::lround(
 				board->GetPlanternFuel() * 10.0f)) },
@@ -4837,6 +4858,12 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			zombieState["gargantuarDamageStage"] = gargantuar->GetDamageStage();
 			zombieState["gargantuarHeadTextureKey"] =
 				gargantuar->GetCurrentHeadTextureKey();
+			zombieState["gargantuarBodyTextureKey"] =
+				gargantuar->GetCurrentBodyTextureKey();
+			zombieState["gargantuarOuterArmTextureKey"] =
+				gargantuar->GetCurrentOuterArmTextureKey();
+			zombieState["gargantuarFootTextureKey"] =
+				gargantuar->GetCurrentFootTextureKey();
 			zombieState["gargantuarHeldImpVisible"] = anim
 				&& anim->GetTrackVisible("Zombie_imp_head")
 				&& anim->GetTrackVisible("Zombie_imp_body1")

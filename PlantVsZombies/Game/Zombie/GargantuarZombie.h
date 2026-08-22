@@ -21,6 +21,10 @@ public:
 	void Update() override;
 	void ZombieUpdate(float scaledTime) override;
 	void TakeBodyDamage(int damage) override;
+	/** 劫持者处决清空可计生命后走巨人专属死亡轨，不生成普通僵尸断肢贴图。 */
+	void TakeHijackerExecution() override;
+	/** 治疗后按当前本体生命重建身体、手臂、脚和头部的可逆伤势贴图。 */
+	void RefreshEquipmentPresentationAfterRepair() override;
 	/** 巨人拒绝被大嘴花吞食；攻击者随后按统一规则结算小额咬伤。 */
 	bool TakePlantInstantKill() override;
 	void StartEat(ColliderComponent* other) override;
@@ -43,6 +47,9 @@ public:
 	int GetDamageStage() const;
 	/** 返回当前伤势阶段实际应使用的头部贴图键，供表现重建与测试取证共用。 */
 	const std::string& GetCurrentHeadTextureKey() const;
+	const std::string& GetCurrentBodyTextureKey() const;
+	const std::string& GetCurrentOuterArmTextureKey() const;
+	const std::string& GetCurrentFootTextureKey() const;
 
 protected:
 	void SetupZombie() override;

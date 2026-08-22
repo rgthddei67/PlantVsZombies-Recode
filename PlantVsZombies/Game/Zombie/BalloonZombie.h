@@ -43,6 +43,7 @@ public:
 	void ArmDrop() override;
 	void ZombieItemUpdate() const override;
 	bool IsFlying() const override { return mPhase != Phase::WALKING; }
+	bool CanBeAffectedByCobCannonExplosion() const override { return true; }
 	bool CanBeTargetedByProjectile(bool targetsFlying) const override;
 	bool CanBeFrozen() const override { return mPhase == Phase::WALKING; }
 	bool CanBeCharred() const override {

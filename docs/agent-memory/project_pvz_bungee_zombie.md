@@ -1,6 +1,6 @@
 ---
 name: project_pvz_bungee_zombie
-description: 2026-08-03 蹦极僵尸的原版随机与蒙特卡洛单株移除、抱取绘制、资源、存档和可见 AutoTest
+description: 2026-08-22 蹦极僵尸的原版随机与蒙特卡洛单株移除、跨格植物承载层门禁、抱取绘制、存档和可见 AutoTest
 metadata:
   node_type: memory
   type: project
@@ -17,7 +17,8 @@ metadata:
 
 ## 选点与资源
 
-- `GameAPP::mEnableMonteCarloAI=false` 时复刻原版网格加权随机：未被别只蹦极预订的有植物格权重 10000、空格权重 1，并保留最后一株未被预订向日葵；同 Seed 42 的专项锁定普通豌豆格。开关为 true 时，`Board::PickMonteCarloPlantRemovalTarget` 以 64 rollout、16 秒时域和最多 16 只当前僵尸，为每个候选格按 normal → pumpkin → under 选实际会带走的一株，用 `PlantDefenseMonteCarlo::Candidate::targetPlantId` 在推演起点精确移除该实体，选择对僵尸方未来收益最大的目标；失败回退原版随机。并列最高分使用局部 seeded RNG，不消费正式 `GameRandom`。
+- `GameAPP::mEnableMonteCarloAI=false` 时复刻原版网格加权随机：未被别只蹦极预订的有植物格权重 10000、空格权重 1，并保留最后一株未被预订向日葵；同 Seed 42 的专项锁定普通豌豆格。开关为 true 时，`Board::PickMonteCarloPlantRemovalTarget` 以 48 rollout、16 秒时域和最多 16 只当前僵尸，为每个候选格按 normal → pumpkin → under 选实际会带走的一株，用 `PlantDefenseMonteCarlo::Candidate::targetPlantId` 在推演起点精确移除该实体，选择对僵尸方未来收益最大的目标；失败回退原版随机。并列最高分使用局部 seeded RNG，不消费正式 `GameRandom`。
+- 2026-08-22 起，普通层若存在活动且明确 `CanBeTargetedByBungee()==false` 的植物，该实体会遮住同格下方承载层，蹦极不得越过双格玉米加农炮去抱走任一花盆；这只改变蹦极选层，不改变巨人逐层砸击。
 - C# 参考和年度版素材库补齐 `ZombieBungi.reanim` 已有注册所需资源：`BungeeCord.png`、`BungeeTarget.png`、`grassstep.ogg` 与三条 `bungee_scream*.ogg`。权威注册位于 `build/clang-release/resources/resources.xml`，资源键位于 `ResourceKeys.h`；运行专项逐项断言 reanim、贴图和音效可加载。
 - gamedata 当前为 `weight=1800`、`appearWave=10`、`survivalRound=15`、`offset=[-46,-92]`、`scale=1.0`。主人屋顶实机图指出本体略偏左与绳索断口后，整身向右调 6px，绳索末端由视觉原点 `-38` 延到 `+24`，多余绳段在本体后方遮住。同格组合植物由 normal 层优先，其次 pumpkin、最后 under；各蹦极之间按目标格和实体 ID 排他预订。
 
@@ -29,8 +30,10 @@ metadata:
 - 2026-08-14 共享 rollout 硬上限从 12 提高到 16；`smoke_zombie_monte_carlo_cap` 以 15 只普通僵尸加蹦极在当前桌面可见断言样本数 16，`smoke_bungee_zombie` 父回归继续 exit 0。
 - 2026-08-14 植物选点预算与急救员选疗拆分后，蹦极改为 64 rollout，16 秒时域和 16 只详细样本上限不变；`clang-release`、378 项 Win7 导入审计与三项 CTest 通过。本次数值调整按主人要求未运行 AutoTest，脚本预期已同步到 64。
 - 2026-08-08 接入叶子保护伞后，`smoke_bungee_zombie.json` 104 条命令再次在主人当前桌面可见运行 exit 0、`script finished OK`，携带坚果与随机/蒙特卡洛选点截图保持正常；`smoke_umbrella_leaf.json` 另断言保护区内蹦极空手上升、目标 300 生命保留、快照往返不重播伞声或 `boing`。
+- 2026-08-22 `clang-release`、LTO 与 378 项 Win7 导入审计通过；当前桌面可见 `smoke_bungee_zombie.json` 124 条命令 exit 0。6-8 初始 15 个花盆仍为合法候选，玉米炮下新增两只花盆不增加候选数且保持活动，截图 `04_bungee_cob_support_blocked.png` 已目验。
 
 ## 可复用契约
 
 - 单株移除能力不能复用半径爆炸近似：候选必须携带目标实体 ID，数值模拟只删除那一株；关闭蒙特卡洛开关时必须回到品种自己的原版选择算法。
+- 分层选取不能把“顶层明确拒绝此能力”理解成“继续向下找下一层”；跨格重型植物的拒选能力同时遮蔽其 footprint 下的支撑层。
 - 跨对象“身体后层/植物/前臂”夹层必须由持有者在一次 Draw 中显式提交；对象 draw order 无法表达同一僵尸内部的夹层。读档后需同时重建显式 Shadow 附件和 reanim 自带地面轨显隐，避免空中残留黑影。

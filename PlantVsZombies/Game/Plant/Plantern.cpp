@@ -3,8 +3,6 @@
 #include "../AudioSystem.h"
 #include "../Board.h"
 #include "../BoardPresentation.h"
-#include "../ClickableComponent.h"
-#include "../CursorObjectManager.h"
 #include "../ShadowComponent.h"
 #include "../../ResourceKeys.h"
 #include "../../DeltaTime.h"
@@ -27,18 +25,6 @@ void Plantern::SetupPlant()
 		shadow->SetScale(Vector(0.82f, 0.82f));
 		shadow->SetOffset(Vector(0.0f, 29.0f));
 	}
-	if (mIsPreview) return;
-
-	// 本体点击只发出展示请求；挡位按钮和菜单生命周期仍由卡槽 UI 持有。
-	auto* clickable = CreateClickable();
-	clickable->ConsumeEvent = true;
-	clickable->onClick = [this]() {
-		if (!mBoard || IsSquished()
-			|| mBoard->mCursorObjectManager.GetActiveType() != CursorObjectType::NONE) {
-			return;
-		}
-		mBoard->TogglePlanternGearMenu();
-	};
 }
 
 void Plantern::PlantUpdate()

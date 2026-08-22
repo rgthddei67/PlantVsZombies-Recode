@@ -218,7 +218,7 @@ public:
 	/** 咖啡豆请求开始原版 1 秒唤醒流程；重复请求或非睡眠植物返回 false。 */
 	bool BeginWakeUp(float durationSeconds = 1.0f);
 	/** 存档恢复专用：只还原权威状态与表现，不播放唤醒音效或重新触发品种行为。 */
-	void RestoreSleepState(bool sleep, float wakeUpTimeRemaining);
+	virtual void RestoreSleepState(bool sleep, float wakeUpTimeRemaining);
 
 protected:
 	/** 推进阵风换格的纯视觉插值；暂停时 DeltaTime 为 0，逻辑占格不受影响。 */

@@ -100,6 +100,7 @@ void CardSlotManager::Update() {
 
 	const bool bloverDirectionChanged = UpdateBloverDirectionInput();
 	UpdatePlanternGearMenuInput();
+	UpdatePlanternHoverCursor();
 	UpdateCobCannonHoverCursor();
 	if (mBoard && mBoard->IsCobCannonTargeting()
 		&& GameAPP::GetInstance().GetInputHandler()
@@ -135,6 +136,31 @@ void CardSlotManager::Draw(Graphics* g) {
 
 		// 更新预览位置
 		UpdatePlantPreviewPosition(g, mouseScreen);
+	}
+}
+
+bool CardSlotManager::HasInteractablePlanternAt(int row, int col) const
+{
+	if (!mBoard) return false;
+	Plant* plant = mBoard->GetNormalPlantAt(row, col);
+	return plant && plant->IsActive() && !plant->IsSquished()
+		&& plant->mPlantType == PlantType::PLANT_PLANTERN
+		&& FindPlanternCard();
+}
+
+void CardSlotManager::UpdatePlanternHoverCursor() const
+{
+	// 手持植物、铲子或炮击准星时，路灯花不覆盖当前操作，也不把鼠标改成手型。
+	if (!mBoard || mPauseGameplayInputBlocked || selectedCard
+		|| mBoard->mCursorObjectManager.GetActiveType() != CursorObjectType::NONE) {
+		return;
+	}
+	const Vector mouseWorld =
+		GameAPP::GetInstance().GetInputHandler().GetMouseWorldPosition();
+	const Cell* hoveredCell = FindCellAtWorldPosition(mouseWorld);
+	if (hoveredCell && HasInteractablePlanternAt(
+		hoveredCell->mRow, hoveredCell->mColumn)) {
+		CursorManager::GetInstance().IncrementHoverCount();
 	}
 }
 
@@ -540,6 +566,11 @@ void CardSlotManager::HandleCellClick(int row, int col) {
 		return;
 	}
 	if (!selectedCard) {
+		if (mBoard->mCursorObjectManager.GetActiveType() == CursorObjectType::NONE
+			&& HasInteractablePlanternAt(row, col)) {
+			TogglePlanternGearMenu();
+			return;
+		}
 		mBoard->BeginCobCannonTargeting(row, col);
 		return;
 	}

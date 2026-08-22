@@ -91,6 +91,7 @@ description: Use when adding ANY new plant (新增植物) to PvZ — 射手/生�
 3. **AutoTest 冒烟**：`autotest/scripts/smoke_<name>.json`，每阶段**只种一棵**（plants dump 顺序来自 unordered_map，多棵时下标不可靠），断言 `plants.0.track`；`plantDefinitions.<TYPE>.sunCost/cooldownMs` 可直接锁定基础 gamedata 数值，`simulationBaseHealth/simulationAttackDpsOn100/simulationAttackRowRadius/simulationSunPerSecondOn100/simulationFirstSunDelayMs/simulationPersistent/simulationSupportOnly` 用来锁定轻量推演画像。几何验收用 `animatedObjectsByTag.Plant.0` 的最终世界包围盒与相对 collider 投影，禁止把 C# 绝对坐标写成期望值。时序估算用僵尸判定矩形 `[x±25]×[y-65,y+35]`、步速 23~45px/s；验证帧事件时，等待值必须越过理论触发时刻至少一个逻辑步，不能把断言卡在“刚好到帧”的浮点边界。若脚本等待到关卡 20 秒以后又要精确断言碰撞目标或僵尸数量，除非本来就在测自然波，否则进入 `GAME` 后立即 `set_spawn_paused=true`，避免首波污染专项计数。**exit 0 ≠ 通过**：必须逐张 Read 同步截图 + dump 数值核对（防假绿）。
 4. 蘑菇夜测用 level 10-18（九关制的 2-1..2-9）；白天睡觉同时断言 `anim_sleep`、睡眠 `Z` 的资源/显示/相对锚点，醒后断言移除，并逐张检查同步截图；魅惑僵尸清场用 `charm_zombie`（不触发输局）。
    只能种水路的蘑菇改用夜间泳池 level 28+ 验活跃态，并另在日间泳池 level 19+ 验 `anim_sleep`。
+	复用 `Shroom`/蘑菇升级链不等于品种一定是夜间植物；先按 C# 原版分类或主人规格确认。白天仍工作的升级品种必须拒绝 Setup、紫卡替换继承和存档恢复三条路径写入睡眠，轻量推演的 `daytimeDormant` 同步为 false，并在日间用“不带咖啡豆的卡组”断言能力直接结算。
 
 紫卡升级同帧内，旧基础株已失活但可能尚未从实体表移除；所有按格布置状态的 AutoTest 夹具必须过滤 `IsActive()`，断言优先用 `normalPlantsByCell/topPlantsByCell.<row>_<col>`，不能让 `plants.N` 或实体枚举顺序选中旧株。
 

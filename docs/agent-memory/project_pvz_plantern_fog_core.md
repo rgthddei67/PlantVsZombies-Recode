@@ -77,4 +77,9 @@ metadata:
   `plantern.supported=true`，路灯花可种在既有屋顶花盆上，一档两游戏秒把燃料 25.0 消耗到 24.0；
   照明目标格 alpha 为 0、相邻未照明格保持 255；关灯时远处雾中僵尸不可索敌，III 档把目标格
   alpha 压到阈值内后恢复索敌，关灯进入大雾后再次阻断，截图确认屋顶雾边与索敌行为一致。
+- 2026-08-22 路灯花本体不再创建会消费事件的独立 `ClickableComponent`；空手悬停与点击统一由
+  `CardSlotManager` 使用正式世界坐标到 Cell 解析，显示手型并切换菜单。拿植物、铲子、炮击准星或其他
+  手持物时路灯花不请求手型也不展开菜单，底层 Cell 继续处理南瓜头和避雷花盆放置。可见
+  `smoke_clickable_ownership` exit 0，锁定空手 `HAND/menuOpen=true`、手持时 `ARROW/menuOpen=false`，
+  同格路灯花、南瓜和 under 层避雷花盆均保留，截图已目验。
 - 设计定稿见 `docs/superpowers/specs/2026-07-29-plantern-fog-core-design.md`。

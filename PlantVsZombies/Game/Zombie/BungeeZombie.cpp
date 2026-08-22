@@ -220,8 +220,14 @@ void BungeeZombie::ApplySelectedCell(const CellCandidate& candidate)
 
 Plant* BungeeZombie::ResolveBungeePlantAt(int row, int column) const
 {
+	Plant* normalPlant = mBoard->GetNormalPlantAt(row, column);
+	// 玉米加农炮等明确拒绝蹦极选中的普通层会遮住下方承载层；否则蹦极会越过炮身抱走花盆。
+	if (normalPlant && normalPlant->IsActive() && !normalPlant->IsSquished()
+		&& !normalPlant->CanBeTargetedByBungee()) {
+		return nullptr;
+	}
 	const std::array<Plant*, 3> layers = {
-		mBoard->GetNormalPlantAt(row, column),
+		normalPlant,
 		mBoard->GetPumpkinAt(row, column),
 		mBoard->GetUnderPlantAt(row, column),
 	};

@@ -22,6 +22,16 @@ namespace {
 	}
 }
 
+void GoldMagnet::SetSleepState(bool)
+{
+	MagnetShroom::SetSleepState(false);
+}
+
+void GoldMagnet::RestoreSleepState(bool, float)
+{
+	Plant::RestoreSleepState(false, 0.0f);
+}
+
 float GoldMagnet::GetRechargeSeconds() const
 {
 	return kRechargeSeconds;

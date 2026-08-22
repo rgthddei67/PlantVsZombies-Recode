@@ -17,6 +17,7 @@
 #include <cmath>
 
 namespace {
+	const std::string kDefaultTrackTextureKey = "DEFAULT";
 	constexpr int kBodyHealth = 3000;                         // 原版经典巨人本体生命
 	constexpr int kSmashFrame = 93;                           // 主人指定的砸击结算全局帧
 	constexpr int kThrowReleaseFrame = 131;                   // 主人确认的小鬼脱手全局帧
@@ -315,6 +316,23 @@ void GargantuarZombie::TakeBodyDamage(int damage)
 	}
 }
 
+void GargantuarZombie::TakeHijackerExecution()
+{
+	if (mIsDead || mIsDying || !IsActive()) return;
+	mShieldHealth = 0;
+	ShieldDrop();
+	mHelmHealth = 0;
+	HelmDrop();
+	// 让巨人自己的本体伤害入口接管死亡轨、碰撞体和动作中断，避免基类普通断肢污染贴图。
+	TakeBodyDamage(std::max(1, mBodyHealth));
+}
+
+void GargantuarZombie::RefreshEquipmentPresentationAfterRepair()
+{
+	Zombie::RefreshEquipmentPresentationAfterRepair();
+	ApplyDamagePresentation();
+}
+
 bool GargantuarZombie::TakePlantInstantKill()
 {
 	// 红眼巨人继承同一拒吞契约；统一的 20 点基础咬伤由大嘴花结算。
@@ -375,6 +393,28 @@ const std::string& GargantuarZombie::GetCurrentHeadTextureKey() const
 	return GetHeadTextureKey(GetDamageStage());
 }
 
+const std::string& GargantuarZombie::GetCurrentBodyTextureKey() const
+{
+	const int stage = GetDamageStage();
+	if (stage >= 2) return ResourceKeys::Textures::IMAGE_ZOMBIE_GARGANTUAR_BODY1_3;
+	if (stage >= 1) return ResourceKeys::Textures::IMAGE_ZOMBIE_GARGANTUAR_BODY1_2;
+	return kDefaultTrackTextureKey;
+}
+
+const std::string& GargantuarZombie::GetCurrentOuterArmTextureKey() const
+{
+	return GetDamageStage() >= 1
+		? ResourceKeys::Textures::IMAGE_ZOMBIE_GARGANTUAR_OUTERARM_LOWER2
+		: kDefaultTrackTextureKey;
+}
+
+const std::string& GargantuarZombie::GetCurrentFootTextureKey() const
+{
+	return GetDamageStage() >= 2
+		? ResourceKeys::Textures::IMAGE_ZOMBIE_GARGANTUAR_FOOT2
+		: kDefaultTrackTextureKey;
+}
+
 const std::string& GargantuarZombie::GetHeadTextureKey(int damageStage) const
 {
 	return damageStage >= 2
@@ -386,21 +426,18 @@ void GargantuarZombie::ApplyDamagePresentation() const
 {
 	if (!mAnimator) return;
 	const int stage = GetDamageStage();
-	if (stage >= 1) {
-		mAnimator->SetTrackImage("Zombie_gargantua_body1",
-			ResourceManager::GetInstance().GetTexture(
-				stage >= 2
-					? ResourceKeys::Textures::IMAGE_ZOMBIE_GARGANTUAR_BODY1_3
-					: ResourceKeys::Textures::IMAGE_ZOMBIE_GARGANTUAR_BODY1_2));
-		mAnimator->SetTrackImage("Zombie_gargantuar_outerarm_lower",
-			ResourceManager::GetInstance().GetTexture(
-				ResourceKeys::Textures::IMAGE_ZOMBIE_GARGANTUAR_OUTERARM_LOWER2));
-	}
-	if (stage >= 2) {
-		mAnimator->SetTrackImage("Zombie_gargantuar_outerleg_foot",
-			ResourceManager::GetInstance().GetTexture(
-				ResourceKeys::Textures::IMAGE_ZOMBIE_GARGANTUAR_FOOT2));
-	}
+	auto resolveTexture = [](const std::string& key) {
+		return key == kDefaultTrackTextureKey
+			? static_cast<const Texture*>(nullptr)
+			: ResourceManager::GetInstance().GetTexture(key);
+	};
+	// nullptr 明确清除 Animator 的轨道换图，治疗跨回阈值时才能恢复资源默认贴图。
+	mAnimator->SetTrackImage("Zombie_gargantua_body1",
+		resolveTexture(GetCurrentBodyTextureKey()));
+	mAnimator->SetTrackImage("Zombie_gargantuar_outerarm_lower",
+		resolveTexture(GetCurrentOuterArmTextureKey()));
+	mAnimator->SetTrackImage("Zombie_gargantuar_outerleg_foot",
+		resolveTexture(GetCurrentFootTextureKey()));
 	// 头部选择独立于其他伤势材质，使同时间线换色变体在健康、轻伤、重伤和读档后保持一致。
 	mAnimator->SetTrackImage("anim_head1", ResourceManager::GetInstance().GetTexture(
 		GetHeadTextureKey(stage)));

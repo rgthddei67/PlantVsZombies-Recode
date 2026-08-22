@@ -5343,7 +5343,7 @@ void Board::CreateCobCannonExplosion(const Vector& position, int targetRow, int 
 		mEntityRegistry.ForEachZombieInRow(row, [&](Zombie* zombie) {
 			if (!zombie || !zombie->IsActive() || zombie->IsDying()
 				|| zombie->IsMindControlled()
-				|| !zombie->CanBeAffectedByGroundHazards()) return;
+				|| !zombie->CanBeAffectedByCobCannonExplosion()) return;
 			SDL_FRect bounds{};
 			if (const ColliderComponent* collider = zombie->GetColliderComponent()) {
 				bounds = collider->GetBoundingBox();

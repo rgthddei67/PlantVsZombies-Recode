@@ -403,6 +403,10 @@ public:
 	virtual bool CanBeButtered() const { return CanBeFrozen(); }
 	/** 地面区域危害的通用命中资格；飞行单位默认免疫，特殊阶段可进一步收紧。 */
 	virtual bool CanBeAffectedByGroundHazards() const { return !IsFlying(); }
+	/** 玉米加农炮爆炸的品种/阶段命中资格；默认沿用地面危害，飞行品种可单独放行。 */
+	virtual bool CanBeAffectedByCobCannonExplosion() const {
+		return CanBeAffectedByGroundHazards();
+	}
 	/** 黄油弹命中入口；返回 false 表示当前品种或阶段免疫定身。 */
 	virtual bool ApplyButter();
 	/** 命中时增加毒层；满二十层则刷新剩余时间最短的一层。 */
@@ -463,8 +467,8 @@ public:
 	// 将本体/头盔/护盾的当前血量与上限整体按倍率缩放（与具体模式无关，由调用方决定倍率来源）。
 	// 倍率<=0 或 ==1 时不作处理；缩放后保持 current==max（同源同舍入）。
 	void ApplyHealthMultiplier(double multiplier);
-	/** 治疗等正向耐久变化后，按当前生命重新派生两类防具的破损贴图。 */
-	void RefreshEquipmentPresentationAfterRepair() {
+	/** 治疗等正向耐久变化后，按当前生命重新派生本品种全部可逆破损贴图。 */
+	virtual void RefreshEquipmentPresentationAfterRepair() {
 		CheckHelmImage();
 		CheckShieldImage();
 	}

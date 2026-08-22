@@ -99,6 +99,10 @@ private:
 	void PlacePlantInCell(int row, int col);
 	Card* FindPlanternCard() const;
 	void UpdatePlanternGearMenuInput();
+	/** 空手悬停于有效路灯花格时请求手型光标；手持状态保留格子原本的落种或工具语义。 */
+	void UpdatePlanternHoverCursor() const;
+	/** 路灯花本体交互与悬停共用的格子资格判定。 */
+	bool HasInteractablePlanternAt(int row, int col) const;
 	/** 空手悬停于已装填加农炮时请求手型光标；资格与正式点击入口保持一致。 */
 	void UpdateCobCannonHoverCursor() const;
 	/** 右键命中三叶草卡槽时切换方向；返回是否消费了本次右键。 */
