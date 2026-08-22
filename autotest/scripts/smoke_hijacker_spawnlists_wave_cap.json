@@ -2,7 +2,7 @@
   "commands": [
     { "op": "goto_level", "level": 49, "resetTestState": true },
     { "op": "wait_state", "state": "CHOOSE_CARD", "timeout": 10 },
-    { "op": "assert_state", "path": "spawnList", "equals": ["ZOMBIE_NORMAL", "ZOMBIE_TRAFFIC_CONE", "ZOMBIE_BUCKET", "ZOMBIE_DOOR", "ZOMBIE_HIJACKER"] },
+    { "op": "assert_state", "path": "spawnList", "equals": ["ZOMBIE_NORMAL", "ZOMBIE_TRAFFIC_CONE", "ZOMBIE_BUCKET", "ZOMBIE_DOOR", "ZOMBIE_PINK_FOOTBALL", "ZOMBIE_BUNGEE", "ZOMBIE_HIJACKER"] },
     { "op": "choose_cards", "cards": [] },
     { "op": "wait_state", "state": "GAME", "timeout": 15 },
     { "op": "set_spawn_paused", "value": true },
@@ -13,7 +13,7 @@
 
     { "op": "goto_level", "level": 50, "resetTestState": true },
     { "op": "wait_state", "state": "CHOOSE_CARD", "timeout": 10 },
-    { "op": "assert_state", "path": "spawnList", "equals": ["ZOMBIE_NORMAL", "ZOMBIE_TRAFFIC_CONE", "ZOMBIE_BUCKET", "ZOMBIE_FOOTBALL", "ZOMBIE_CATAPULT", "ZOMBIE_HIJACKER"] },
+    { "op": "assert_state", "path": "spawnList", "equals": ["ZOMBIE_NORMAL", "ZOMBIE_TRAFFIC_CONE", "ZOMBIE_BUCKET", "ZOMBIE_FOOTBALL", "ZOMBIE_CATAPULT", "ZOMBIE_INSULATOR", "ZOMBIE_HIJACKER"] },
     { "op": "choose_cards", "cards": [] },
     { "op": "wait_state", "state": "GAME", "timeout": 15 },
     { "op": "set_spawn_paused", "value": true },

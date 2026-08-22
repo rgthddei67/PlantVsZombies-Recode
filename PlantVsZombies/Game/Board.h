@@ -301,6 +301,8 @@ private:
 	int mEliteCatapultsSpawnedThisWave = 0; // 当前波正式生成的导流投篮车数量；每波至多一只并进入存档
 	int mInsulatorsSpawnedThisWave = 0; // 当前波正式生成的绝缘僵尸数量；所有正式波次统一至多两只并进入存档
 	int mHijackersSpawnedThisWave = 0; // 当前波正式生成的劫持者数量；所有正式波次统一至多两只并进入存档
+	int mHijackerSpawnCooldownWavesRemaining = 0; // 当前波之后仍需封锁劫持者刷新的完整正式波次数
+	bool mHijackerSpawnBlockedThisWave = false; // 当前波是否承接成功处决后的刷新封锁；与剩余波数一起入档
 	int mGroundingZombiesSpawnedThisWave = 0; // 当前波正式生成的接地僵尸数量；所有正式波次统一至多两只并进入存档
 	int mEliteScaredyShroomsPlanted = 0; // 本关累计种下的精英胆小菇数量；死亡或铲除不返还次数
 	int mLastTyphoonMovedPlants = 0;    // 最近一次阵风移动的植物数，仅供观测和测试
@@ -433,7 +435,12 @@ private:
 	void RestoreEliteCatapultWaveSpawnCount(int count);
 	void RestoreInsulatorWaveSpawnCount(int count);
 	void RestoreHijackerWaveSpawnCount(int count);
+	void RestoreHijackerSpawnCooldown(int wavesRemaining, bool blockedThisWave);
 	void RestoreGroundingZombieWaveSpawnCount(int count);
+	/** 成功处决后立即封锁本波后续候选，并预留后续完整波次的刷新冷却。 */
+	void BeginHijackerSpawnCooldown();
+	/** 新波开始时把一份未来冷却转为覆盖整个当前波的封锁。 */
+	void AdvanceHijackerSpawnCooldownForNewWave();
 	void RestoreTyphoonState(TyphoonStrength strength, WindDirection direction,
 		float strengthTimer, float gustTimer, float directionTimer, int gustsRemaining);
 	void RestoreActiveTyphoonGust(bool active, TyphoonStrength strength,
@@ -711,6 +718,14 @@ public:
 	int GetEliteCatapultsSpawnedThisWave() const { return mEliteCatapultsSpawnedThisWave; }
 	int GetInsulatorsSpawnedThisWave() const { return mInsulatorsSpawnedThisWave; }
 	int GetHijackersSpawnedThisWave() const { return mHijackersSpawnedThisWave; }
+	int GetHijackerSpawnCooldownWavesRemaining() const {
+		return mHijackerSpawnCooldownWavesRemaining;
+	}
+	bool IsHijackerSpawnBlockedThisWave() const { return mHijackerSpawnBlockedThisWave; }
+	bool IsHijackerSpawnBlocked() const {
+		return mHijackerSpawnBlockedThisWave
+			|| mHijackerSpawnCooldownWavesRemaining > 0;
+	}
 	int GetGroundingZombiesSpawnedThisWave() const {
 		return mGroundingZombiesSpawnedThisWave;
 	}

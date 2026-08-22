@@ -175,6 +175,7 @@ namespace {
 	constexpr int kEliteCatapultMaxPerWave = 1;           // 每波最多正式生成的导流投篮车数量；超额候选直接跳过
 	constexpr int kInsulatorMaxPerWave = 2;               // 每个正式波次最多成功生成的绝缘僵尸数量
 	constexpr int kHijackerMaxPerWave = 2;                // 每个正式波次最多成功生成的劫持者数量
+	constexpr int kHijackerSpawnCooldownWaves = 2;        // 成功处决后封锁的后续完整正式波次数
 	constexpr int kGroundingZombieMaxPerWave = 2;         // 每个正式波次最多成功生成的接地僵尸数量
 	constexpr int kHijackerTutorialLevel = 49;             // 内部 49 即 6-4，使用第七波固定单体教学
 	constexpr int kHijackerTutorialWave = 7;               // 6-4 首次登场的固定教学波
@@ -2162,6 +2163,30 @@ void Board::RestoreHijackerWaveSpawnCount(int count)
 	mHijackersSpawnedThisWave = std::clamp(count, 0, kHijackerMaxPerWave);
 }
 
+/** 恢复成功处决后的波次冷却；旧档缺字段时由调用方传入中性零值。 */
+void Board::RestoreHijackerSpawnCooldown(int wavesRemaining, bool blockedThisWave)
+{
+	mHijackerSpawnCooldownWavesRemaining = std::clamp(
+		wavesRemaining, 0, kHijackerSpawnCooldownWaves);
+	mHijackerSpawnBlockedThisWave = blockedThisWave;
+}
+
+/** 成功释放立即封锁本波余下候选，并从下一波起完整跳过两波。 */
+void Board::BeginHijackerSpawnCooldown()
+{
+	mHijackerSpawnCooldownWavesRemaining = kHijackerSpawnCooldownWaves;
+	mHijackerSpawnBlockedThisWave = true;
+}
+
+/** 在正式生成前消费一份未来冷却，封锁标志保留到下一次换波。 */
+void Board::AdvanceHijackerSpawnCooldownForNewWave()
+{
+	mHijackerSpawnBlockedThisWave = mHijackerSpawnCooldownWavesRemaining > 0;
+	if (mHijackerSpawnCooldownWavesRemaining > 0) {
+		--mHijackerSpawnCooldownWavesRemaining;
+	}
+}
+
 /** 夹紧并恢复当前波已经正式生成的接地僵尸数量。 */
 void Board::RestoreGroundingZombieWaveSpawnCount(int count)
 {
@@ -2354,7 +2379,11 @@ ZombieType Board::ResolveWaveZombieType(ZombieType selected, int mutationRoll)
 		++mInsulatorsSpawnedThisWave;
 	}
 	if (selected == ZombieType::ZOMBIE_HIJACKER) {
-		if (mHijackersSpawnedThisWave >= kHijackerMaxPerWave) {
+		const bool forcedTutorialWave = !mIsSurvival
+			&& mLevel == kHijackerTutorialLevel
+			&& mCurrentWave == kHijackerTutorialWave;
+		if ((!forcedTutorialWave && IsHijackerSpawnBlocked())
+			|| mHijackersSpawnedThisWave >= kHijackerMaxPerWave) {
 			return ZombieType::NUM_ZOMBIE_TYPES;
 		}
 		++mHijackersSpawnedThisWave;
@@ -3476,6 +3505,8 @@ void Board::ResolveNightRoofHijackerExecution()
 	}
 	std::sort(zombieTargets.begin(), zombieTargets.end());
 
+	// 成功释放从这一提交边沿开始封锁本波余下候选，并跳过后续两个完整波次。
+	BeginHijackerSpawnCooldown();
 	// 先解除 Board 交叉引用，施法者掉头粒子和死亡回调便不会取消或重入这次批处理。
 	mNightRoofHijackerID = NULL_ZOMBIE_ID;
 	mNightRoofHijackerFinalizing = false;
@@ -6474,6 +6505,8 @@ void Board::UpdateLevel()
 void Board::SummonNextWave()
 {
 	mCurrentWave++;
+	// 在本波任何候选解析前承接冷却，保证整个波次（含稍后的显式正式候选）都保持封锁。
+	AdvanceHijackerSpawnCooldownForNewWave();
 	mZombieCountDown = IsStormyNightActive()
 		? kStormyNightNextWaveSeconds : NEXTWAVE_COUNT_MAX;
 	if (IsStormyNightActive() && !mStormyNightInitialized) {

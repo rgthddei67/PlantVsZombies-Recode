@@ -387,6 +387,9 @@ bool GameInfoSaver::SerializeLevelDataToPath(Board* board, CardSlotManager* mana
 	j["eliteCatapultsSpawnedThisWave"] = board->mEliteCatapultsSpawnedThisWave;
 	j["insulatorsSpawnedThisWave"] = board->mInsulatorsSpawnedThisWave;
 	j["hijackersSpawnedThisWave"] = board->mHijackersSpawnedThisWave;
+	j["hijackerSpawnCooldownWavesRemaining"] =
+		board->mHijackerSpawnCooldownWavesRemaining;
+	j["hijackerSpawnBlockedThisWave"] = board->mHijackerSpawnBlockedThisWave;
 	j["groundingZombiesSpawnedThisWave"] = board->mGroundingZombiesSpawnedThisWave;
 	j["mistFuelDropAccumulator"] = board->mMistFuelDropAccumulator;
 	WeatherPresentationState weatherPresentation;
@@ -994,6 +997,9 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 		j.value("insulatorsSpawnedThisWave", 0));
 	board->RestoreHijackerWaveSpawnCount(
 		j.value("hijackersSpawnedThisWave", 0));
+	board->RestoreHijackerSpawnCooldown(
+		j.value("hijackerSpawnCooldownWavesRemaining", 0),
+		j.value("hijackerSpawnBlockedThisWave", false));
 	board->RestoreGroundingZombieWaveSpawnCount(
 		j.value("groundingZombiesSpawnedThisWave", 0));
 	board->mRainVisualActive = false;   // 粒子不入存档，StartGame 按剩余时间重建
