@@ -2,7 +2,7 @@
 
 日期：2026-08-16
 
-状态：执行中；Card 专属组件、CardSlotManager、Transform 与纯 UI 所有权已完成并独立验证，下一阶段为 Collider
+状态：执行中；Card 专属组件、CardSlotManager、Transform、纯 UI 所有权与 Collider 已完成并独立验证，下一阶段为 Shadow
 
 **目标：** 在保持继承式植物/僵尸、现有运行行为、存档、输入和绘制契约的前提下，分阶段移除通用 `Component` 容器；保留并显式化 Transform、Collider、Shadow、Clickable 与卡片能力。
 
@@ -18,7 +18,7 @@
 
 **只读审计：**
 
-- [x] 列出全部 `Component` 派生类以及 `AddComponent/GetComponent/RemoveComponent` 调用点；计划建立时为七类，Card 前两阶段后已核实只剩 Transform、Collider、Clickable、Shadow 四类。
+- [x] 列出全部 `Component` 派生类以及 `AddComponent/GetComponent/RemoveComponent` 调用点；计划建立时为七类，Collider 阶段后已核实只剩 Clickable、Shadow 两类。
 - [ ] 逐项记录运行期动态增删：植物/僵尸预览去影、无碰撞品种、图鉴 Clickable、ShovelBank 在 `Start` 后加组件、BulletPool 回收与 Shadow 特殊绘制。
 - [ ] 记录 `GameObject::Start/Update/Draw/DestroyAllComponents`、Collider 注册注销、Clickable 自注册和 `Component::SetDrawOrder` 的当前顺序。
 - [ ] 记录卡片存档字段和调用方：`GameInfoSaver`、`ChooseCardUI`、生存轮次冷却、路灯花菜单、三叶草方向、开发者模式。
@@ -151,21 +151,22 @@
 
 **步骤：**
 
-- [ ] 将 Collider 改为宿主明确拥有的可选对象；可保留 `ColliderComponent` 名称作为过渡，但先移除对 `Component` 生命周期的依赖。
-- [ ] 提供唯一 `CreateCollider/RemoveCollider` 入口，原子完成 owner 绑定、注册/注销、collider ID 和缓存初始化。
-- [ ] 删除 `GameObject::RegisterComponentIfNeeded/UnregisterComponentIfNeeded` 的 `dynamic_cast` 特判。
-- [ ] 审计构造时创建、Start 后创建、运行时移除、对象销毁、场景清理和 BulletPool 回收六条路径。
-- [ ] 保持回调对象存活期、Enter/Stay/Exit 顺序、layer/mask、按行分桶和 Debug 绘制。
-- [ ] 审计 adding-plant、adding-zombie 中 collider、相对几何、啃食/碰撞回调与 AutoTest 投影接口，更新并校验改过技能。
+- [x] 将 Collider 改为宿主明确拥有的可选对象；保留 `ColliderComponent` 名称作为过渡，但已移除对 `Component` 生命周期的依赖。
+- [x] 提供唯一 `CreateCollider/RemoveCollider` 入口，原子完成 owner 绑定、注册/注销、collider ID 和缓存初始化。
+- [x] 删除 `GameObject::RegisterComponentIfNeeded/UnregisterComponentIfNeeded` 的 `dynamic_cast` 特判。
+- [x] 审计构造时创建、Start 后创建、运行时移除、对象销毁、场景清理和 BulletPool 回收六条路径。
+- [x] 保持回调对象存活期、Enter/Stay/Exit 顺序、layer/mask、按行分桶和 Debug 绘制。
+- [x] 审计 adding-plant、adding-zombie 中 collider、相对几何、啃食/碰撞回调与 AutoTest 投影接口，更新并校验改过技能。
 
 **验证：**
 
-- [ ] 构建 `clang-release`。
-- [ ] 可见运行 `smoke_gameplay.json`、`smoke_crater_card_select.json` 及代表植物/僵尸接触、子弹命中、割草机碰撞的最小专项。
-- [ ] `-Debug` 显示碰撞框，截图核对位置和大小。
-- [ ] 场景退出与大量对象销毁后检查无悬空 Collider、重复 ID 或残留回调。
+- [x] 构建 `clang-release`，LTO 链接与 378 项 Win7 import audit 通过。
+- [x] 可见运行 `smoke_gameplay`、`smoke_potatomine`、`smoke_torchwood`、`smoke_pool_cleaner`、`smoke_crater_card_select`、`smoke_coffeebean`、`smoke_zombie_row_index_lifetime`、`smoke_blover`、`smoke_plant_almanac_card_host` 与 `smoke_collider_ownership`，均退出 0、`status=passed`。
+- [x] `smoke_potatomine -Debug` 与 `smoke_collider_ownership -Debug` 显示碰撞框，截图核对 Card、Cell、植物、僵尸和场景格边界位置。
+- [x] 新增 Collider 所有权专项覆盖 Card/Cell 点击、ShovelBank 在 Start 后按需创建默认 Collider、运行时移除和第二次场景重建；无悬空 Collider、重复命中或残留回调。
 - [ ] 压力场景确认 Collision 总帧时间和 sweep 计数没有复杂度倒退。
-- [ ] 独立提交。
+- [x] 静态核对 Collision sweep/行桶算法未改；本阶段没有同场景 A/B 数字，不宣称 FPS 收益。
+- [x] 独立提交。
 
 ---
 

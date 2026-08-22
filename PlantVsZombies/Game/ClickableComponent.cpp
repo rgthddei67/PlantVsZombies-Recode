@@ -46,7 +46,7 @@ void ClickableComponent::ProcessMouseEvents() {
 		auto* obj = clickable->GetGameObject();
 		if (!obj || !obj->IsActive()) continue;
 
-		auto* collider = clickable->mCollider;
+		auto* collider = obj->GetCollider();
 		if (!collider || !collider->mEnabled) continue;
 
 		Vector testPoint = obj->mIsUI ? mouseScreen : mouseWorld;
@@ -118,14 +118,9 @@ void ClickableComponent::ProcessMouseEvents() {
 
 void ClickableComponent::Start() {
 	if (auto* gameObject = this->GetGameObject()) {
-		mCollider = gameObject->GetComponent<ColliderComponent>();
-		if (!mCollider) {
-			mCollider = gameObject->AddComponent<ColliderComponent>(Vector(50, 50));
-			mCollider->isTrigger = true;
-		}
-		else {
-			mCollider->isTrigger = true;
-		}
+		auto* collider = gameObject->GetCollider();
+		if (!collider) collider = gameObject->CreateCollider(Vector(50, 50));
+		collider->isTrigger = true;
 	}
 }
 
@@ -143,9 +138,13 @@ void ClickableComponent::Update() {
 }
 
 void ClickableComponent::SetClickArea(const Vector& size) {
-	if (mCollider) mCollider->size = size;
+	if (auto* gameObject = GetGameObject()) {
+		if (auto* collider = gameObject->GetCollider()) collider->size = size;
+	}
 }
 
 void ClickableComponent::SetClickOffset(const Vector& offset) {
-	if (mCollider) mCollider->offset = offset;
+	if (auto* gameObject = GetGameObject()) {
+		if (auto* collider = gameObject->GetCollider()) collider->offset = offset;
+	}
 }

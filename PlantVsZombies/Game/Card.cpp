@@ -45,11 +45,11 @@ Card::Card(PlantType plantType, int sunCost, float cooldown, bool isInChooseCard
 	SetupComponents();
 }
 
-/** 创建卡片的空间值以及仍待后续阶段迁移的碰撞、点击附件。 */
+/** 创建卡片的空间值、显式 Collider 以及仍待后续阶段迁移的点击附件。 */
 void Card::SetupComponents()
 {
 	CreateTransform();
-	auto* collision = AddComponent<ColliderComponent>(Vector(CARD_WIDTH, CARD_HEIGHT));
+	auto* collision = CreateCollider(Vector(CARD_WIDTH, CARD_HEIGHT));
 	collision->isStatic = true;
 	collision->isTrigger = true;
 	collision->layerMask = CollisionLayer::NONE;

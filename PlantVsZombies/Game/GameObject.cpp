@@ -18,8 +18,8 @@ GameObject::GameObject(ObjectType type)
 
 GameObject::~GameObject()
 {
+	RemoveCollider();
 	for (auto& [type, component] : mComponents) {
-		UnregisterComponentIfNeeded(component.get());
 		component->OnDestroy();
 	}
 	mComponents.clear();
@@ -32,13 +32,15 @@ void GameObject::Start() {
 		}
 		mComponentsToInitialize.clear();
 
-		RegisterAllColliders();
+		RegisterColliderIfNeeded();
 
 		for (auto& [type, component] : mComponents) {
 			if (component->mEnabled) {
 				component->Start();
 			}
 		}
+		// Clickable 等附件可能在自己的 Start 中按需创建 Collider；再次幂等注册覆盖该路径。
+		RegisterColliderIfNeeded();
 		mStarted = true;
 	}
 }
@@ -46,8 +48,8 @@ void GameObject::Start() {
 void GameObject::Update() {
 	if (!mActive || !mStarted) return;
 
-	// 阶段三：仅 iterate mUpdatableComponents 视图（通常 size 0-1）。Transform 已是宿主值，
-	// zombie/plant/bullet 仅挂的 Collider/Shadow 都 NeedsUpdate()=false，视图为空，outer loop 直接退出。
+	// 仅 iterate mUpdatableComponents 视图（通常 size 0-1）。Transform/Collider 已由宿主显式拥有，
+	// zombie/plant/bullet 若只剩 Shadow，其 NeedsUpdate()=false，视图为空时直接退出。
 	for (Component* c : mUpdatableComponents) {
 		if (c->mEnabled) c->Update();
 	}
@@ -73,6 +75,9 @@ void GameObject::Draw(Graphics* g) {
 			component->Draw(g);
 		}
 	}
+
+	// Collider 不再进入 Component 绘制视图；仅在 Debug 开关开启时提交碰撞框。
+	if (mCollider) mCollider->Draw(g);
 }
 
 void GameObject::InitializeComponent(Component* component) {
@@ -83,8 +88,8 @@ void GameObject::InitializeComponent(Component* component) {
 }
 
 void GameObject::DestroyAllComponents() {
+	RemoveCollider();
 	for (auto& [type, component] : mComponents) {
-		UnregisterComponentIfNeeded(component.get());
 		component->OnDestroy();
 	}
 	mComponents.clear();
@@ -94,20 +99,22 @@ void GameObject::DestroyAllComponents() {
 	mDrawableSortDirty = false;
 }
 
-void GameObject::RegisterAllColliders() {
-	for (auto& [type, component] : mComponents) {
-		RegisterComponentIfNeeded(component.get());
-	}
+ColliderComponent* GameObject::CreateCollider(
+	const Vector& size, const Vector& offset, ColliderType type) {
+	RemoveCollider();
+	mCollider = std::unique_ptr<ColliderComponent>(
+		new ColliderComponent(this, size, offset, type));
+	if (mStarted) RegisterColliderIfNeeded();
+	return mCollider.get();
 }
 
-void GameObject::RegisterComponentIfNeeded(Component* component) {
-	if (auto* collider = dynamic_cast<ColliderComponent*>(component)) {
-		CollisionSystem::GetInstance().RegisterCollider(collider);
-	}
+bool GameObject::RemoveCollider() {
+	if (!mCollider) return false;
+	CollisionSystem::GetInstance().UnregisterCollider(mCollider.get());
+	mCollider.reset();
+	return true;
 }
 
-void GameObject::UnregisterComponentIfNeeded(Component* component) {
-	if (auto* collider = dynamic_cast<ColliderComponent*>(component)) {
-		CollisionSystem::GetInstance().UnregisterCollider(collider);
-	}
+void GameObject::RegisterColliderIfNeeded() {
+	if (mCollider) CollisionSystem::GetInstance().RegisterCollider(mCollider.get());
 }

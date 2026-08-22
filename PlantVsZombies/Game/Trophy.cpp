@@ -23,7 +23,7 @@ Trophy::Trophy(Board* board, const Vector& position)
 	SetScale(BASE_SCALE);
 
 	// 碰撞体仅供 ClickableComponent 做点击命中，不参与碰撞系统
-	auto* collider = AddComponent<ColliderComponent>(Vector(60, 60), Vector(0, 0), ColliderType::CIRCLE);
+	auto* collider = CreateCollider(Vector(60, 60), Vector(0, 0), ColliderType::CIRCLE);
 	collider->layerMask = CollisionLayer::NONE;
 	collider->collisionMask = CollisionLayer::NONE;
 }

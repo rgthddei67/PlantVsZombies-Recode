@@ -2,7 +2,7 @@
 
 日期：2026-08-16
 
-状态：主人已批准架构方向；Card、CardSlotManager、Transform 与纯 UI 所有权阶段已完成实现，后续附件阶段待实施
+状态：主人已批准架构方向；Card、CardSlotManager、Transform、纯 UI 所有权与 Collider 阶段已完成，下一阶段为 Shadow
 
 ## 1. 决策
 
@@ -14,7 +14,7 @@
 - 现有 `Component` 容器视为早期框架遗留的横切附件机制，按阶段收缩，不再作为新玩法系统的默认扩展点。
 - `EntityManager` 是稳定 ID 注册表与查询索引，不属于待收缩的组件系统。
 
-这是一项架构边界决策。2026-08-16 已完成前两阶段：`CardComponent` 与 `CardDisplayComponent` 并入 `Card`，`CardSlotManager` 改由 `GameScene` 明确拥有；2026-08-22 又把 Transform 从组件表迁为 `GameObject` 的可选值，并让纯 UI 脱离 `GameObjectManager`。存档格式保持不变，后续附件仍按独立阶段迁移。
+这是一项架构边界决策。2026-08-16 已完成前两阶段：`CardComponent` 与 `CardDisplayComponent` 并入 `Card`，`CardSlotManager` 改由 `GameScene` 明确拥有；2026-08-22 又把 Transform 从组件表迁为 `GameObject` 的可选值，让纯 UI 脱离 `GameObjectManager`，并把 Collider 改为宿主显式拥有的可选对象。存档格式保持不变，后续附件仍按独立阶段迁移。
 
 ## 2. 当前事实
 
@@ -28,14 +28,13 @@ GameObject
     └── Coin / Mower / 其他动画对象
 ```
 
-`GameObject` 直接拥有一个按需创建的 `std::optional<Transform>`，作为空间对象唯一的位置、缩放和旋转权威值。另有一个按 `type_index` 索引 `unique_ptr<Component>` 的遗留容器；Transform 阶段完成后，全项目当前只有三种 `Component` 派生类：
+`GameObject` 直接拥有按需创建的 `std::optional<Transform>` 和 `unique_ptr<ColliderComponent>`：前者是空间对象唯一的位置、缩放和旋转权威值，后者是唯一可选碰撞附件。另有一个按 `type_index` 索引 `unique_ptr<Component>` 的遗留容器；Collider 阶段完成后，全项目当前只有两种 `Component` 派生类：
 
-- 被动通用数据：`ColliderComponent`。
 - 可选横切附件：`ShadowComponent`、`ClickableComponent`。
 
 单张卡的冷却、选中、方向、可用性、主线程文本缓存与绘制职责已由 `Card` 直接拥有；`CardSlotManager` 是 `GameScene` 独占的普通控制器。二者都不再通过组件容器参与通用 Component 生命周期。
 
-它不具备典型 ECS 的数据布局和执行方式：实体不是轻量 ID，组件不在按类型连续存储中，System 也不按组件签名批量查询。植物、僵尸和子弹直接访问宿主 Transform，仍可能缓存 Collider 裸指针，主要行为继续由派生类虚函数驱动。碰撞与点击各自维护专用注册表，`GameObject` 还显式识别 `ColliderComponent` 完成注册。
+它不具备典型 ECS 的数据布局和执行方式：实体不是轻量 ID，组件不在按类型连续存储中，System 也不按组件签名批量查询。植物、僵尸和子弹直接访问宿主 Transform/Collider，主要行为继续由派生类虚函数驱动。碰撞与点击各自维护专用注册表；Collider 已不经过类型表、`dynamic_cast` 或通用 Component 生命周期。
 
 因此当前结构应准确称为“继承式对象 + 遗留组件附件”，而不是两套并行 ECS/OO 玩法架构。
 
@@ -95,7 +94,7 @@ Transform 是绝大多数世界对象的基础空间数据，不需要多态生�
 
 ### 6.3 Collider
 
-碰撞功能与 `CollisionSystem` 必须保留。Collider 改为宿主显式拥有的可选对象，由明确的创建/销毁入口完成注册和注销；不得丢失 collider ID、触发回调顺序、行桶、对象池复位及调试绘制。
+碰撞功能与 `CollisionSystem` 必须保留。当前 Collider 由 `GameObject` 通过 `unique_ptr` 显式独占，`CreateCollider()` / `RemoveCollider()` 原子处理 owner、注册/注销、collider ID 与缓存；调用方只通过 `GetCollider()` 或兼容的窄访问器取非拥有指针。构造期、Start 后按需创建、预览/咖啡豆运行时移除、对象销毁、场景清理和 BulletPool 复用均走同一入口；触发回调顺序、layer/mask、行桶和 Debug 绘制保持不变。
 
 ### 6.4 Shadow 与 Clickable
 

@@ -108,6 +108,9 @@ public:
 			}
 
 			collider->mRegistered = false;
+			collider->colliderID = 0;
+			collider->cachedBounds = { 0, 0, 0, 0 };
+			collider->cachedWorldPos = Vector::zero();
 			colliders.erase(it);
 		}
 	}
@@ -415,7 +418,12 @@ public:
 
 	// 清空所有碰撞体
 	void ClearAll() {
-		for (auto* col : colliders) col->mRegistered = false;
+		for (auto* col : colliders) {
+			col->mRegistered = false;
+			col->colliderID = 0;
+			col->cachedBounds = { 0, 0, 0, 0 };
+			col->cachedWorldPos = Vector::zero();
+		}
 		colliders.clear();
 		currentCollisions.clear();
 		mNextColliderID = 1;

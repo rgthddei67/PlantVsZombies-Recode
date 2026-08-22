@@ -291,7 +291,7 @@ bool CardSlotManager::UpdateBloverDirectionInput()
 	for (auto it = cards.rbegin(); it != cards.rend(); ++it) {
 		Card* card = *it;
 		if (!card || !card->IsActive()) continue;
-		auto* collider = card->GetComponent<ColliderComponent>();
+		auto* collider = card->GetCollider();
 		if (!collider || card->GetPlantType() != PlantType::PLANT_BLOVER
 			|| !collider->mEnabled || !collider->ContainsPoint(mouse)) {
 			continue;
@@ -503,7 +503,7 @@ Cell* CardSlotManager::FindCellAtWorldPosition(const Vector& position) const {
 			Cell* cell = mBoard->GetCell(row, col);
 			if (!cell) continue;
 
-			auto* collider = cell->GetComponent<ColliderComponent>();
+			auto* collider = cell->GetCollider();
 			if (collider && collider->mEnabled && collider->ContainsPoint(position)) {
 				return cell;
 			}

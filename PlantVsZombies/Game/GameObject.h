@@ -4,6 +4,7 @@
 
 #include "RenderOrder.h"
 #include "Transform.h"
+#include "ColliderComponent.h"
 #include "../Graphics.h"
 #include "DeferredEvent.h"
 #include <memory>
@@ -40,6 +41,7 @@ protected:
 	bool mHasClipRect = false;
 	ClipRect mClipRect;
 	std::optional<Transform> mTransform; // 仅空间对象显式创建；非空间 UI/控制对象保持为空
+	std::unique_ptr<ColliderComponent> mCollider; // 可选碰撞附件；由宿主独占并通过唯一入口注册/注销
 	std::vector<Component*> mComponentsToInitialize; // 待初始化的组件（裸指针指向 mComponents 内的对象）
 	std::unordered_map<std::type_index, std::unique_ptr<Component>> mComponents; // 包含的组件
 	// 阶段三：仅缓存 NeedsUpdate()=true 的 Component 视图，避免每帧 iterate mComponents 全表
@@ -55,9 +57,7 @@ protected:
 	int mSortingKey = -1; // 可选的行深度键；普通对象保持 -1，按行残影可在构造期继承来源行
 
 private:
-	void RegisterAllColliders();
-	void RegisterComponentIfNeeded(Component* component);
-	void UnregisterComponentIfNeeded(Component* component);
+	void RegisterColliderIfNeeded();
 
 public:
 	GameObject(ObjectType type = ObjectType::OBJECT_NONE);
@@ -76,6 +76,21 @@ public:
 	const Transform* GetTransform() const {
 		return mTransform ? &*mTransform : nullptr;
 	}
+
+	/**
+	 * @brief 创建或重建当前宿主唯一的 Collider。
+	 * @details owner 绑定、旧 Collider 注销以及已启动宿主的注册均在此原子完成。
+	 */
+	ColliderComponent* CreateCollider(
+		const Vector& size,
+		const Vector& offset = Vector(0, 0),
+		ColliderType type = ColliderType::BOX);
+
+	ColliderComponent* GetCollider() { return mCollider.get(); }
+	const ColliderComponent* GetCollider() const { return mCollider.get(); }
+
+	/** @brief 注销并销毁当前宿主的 Collider；不存在时安全 no-op。 */
+	bool RemoveCollider();
 
 	// 添加组件 若是刚刚创建的对象，则不能使用，因为还没有
 	template<typename T, typename... Args>
@@ -97,7 +112,6 @@ public:
 		// 如果对象已启动，立即初始化组件
 		if (mStarted) {
 			InitializeComponent(raw);
-			RegisterComponentIfNeeded(raw);
 		}
 
 		return raw;
@@ -120,9 +134,6 @@ public:
 		auto typeIndex = std::type_index(typeid(T));
 		auto it = mComponents.find(typeIndex);
 		if (it != mComponents.end()) {
-			// 如果是碰撞器组件，从碰撞系统中注销
-			// TODO: 以后若还有别的大系统，也要这么做
-			UnregisterComponentIfNeeded(it->second.get());
 			it->second->OnDestroy();
 			// 同步从 pending 列表中移除（防止删除后还有人对它做 InitializeComponent）
 			mComponentsToInitialize.erase(

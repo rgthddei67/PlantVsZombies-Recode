@@ -111,8 +111,7 @@ void Plant::Start()
 {
 	GameObject::Start();
 	if (this->mIsPreview) {
-		RemoveComponent<ColliderComponent>();
-		mCollider = nullptr;  // 缓存的裸指针随之失效，显式置空
+		RemoveCollider();
 	}
 
 	this->PlayTrack("anim_idle");

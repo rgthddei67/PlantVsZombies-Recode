@@ -62,7 +62,6 @@ protected:
 	std::shared_ptr<Animator> mProjectileAnimator;
 	bool mAnimatorAdvancedInParallel = false;
 
-	ColliderComponent* mCollider = nullptr;
 	ShadowComponent* mShadow = nullptr;
 
 	// 子弹击中僵尸的效果
@@ -211,7 +210,8 @@ public:
 
 	int GetSortingKey() const override { return this->mRow; }
 	Vector GetPosition() const { return GetTransform()->GetPosition(); }
-	ColliderComponent* GetColliderComponent() const { return mCollider; }
+	ColliderComponent* GetColliderComponent() { return GetCollider(); }
+	const ColliderComponent* GetColliderComponent() const { return GetCollider(); }
 };
 
 #endif

@@ -330,7 +330,7 @@ void Zombie::LoadProtectedData(const nlohmann::json& j) {
 	UpdateStatusOverlay();
 	SetButterSplatFollowerVisible(mButterTimer > 0.0f && mHasHead && !mIsPreview);
 
-	// 如果播放死亡动画，禁用碰撞箱（判空与 Die/预览路径一致：预览僵尸已移除碰撞箱、mCollider=null）
+	// 如果播放死亡动画，禁用碰撞箱（预览僵尸已通过宿主入口移除 Collider）。
 	if (mIsDying && mCollider) {
 		mCollider->mEnabled = false;
 	}
@@ -420,8 +420,7 @@ void Zombie::Start()
 	mPoolShadow = shadowcomponent;
 	shadowcomponent->SetDrawOrder(-80);
 	if (this->mIsPreview) {
-		RemoveComponent<ColliderComponent>();
-		mCollider = nullptr;  // 缓存的裸指针随之失效，显式置空
+		RemoveCollider();
 	}
 	SetAnimationSpeed(GameRandom::Range(1.1f, 1.4f));
 	SetupZombie();

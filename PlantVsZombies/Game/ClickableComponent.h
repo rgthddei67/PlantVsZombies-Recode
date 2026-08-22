@@ -35,8 +35,6 @@ public:
 	static void ClearProcessedEvents();
 
 private:
-	ColliderComponent* mCollider = nullptr;
-
 	// 所有 ClickableComponent 的自注册表，避免每帧扫全场 GameObject
 	inline static std::vector<ClickableComponent*> s_allClickables;
 

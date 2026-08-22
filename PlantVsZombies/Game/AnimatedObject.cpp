@@ -28,7 +28,7 @@ AnimatedObject::AnimatedObject(ObjectType type,
 	transform->SetScale(scale);
 
 	if (colliderSize.x > 0 && colliderSize.y > 0) {
-		mCollider = AddComponent<ColliderComponent>(colliderSize, colliderOffset, colliderType);
+		CreateCollider(colliderSize, colliderOffset, colliderType);
 	}
 
 	ResourceManager& resMgr = ResourceManager::GetInstance();
@@ -290,10 +290,6 @@ void AnimatedObject::SetCurrentFrame(float frameIndex) {
 	if (mAnimator) {
 		mAnimator->SetCurrentFrame(frameIndex);
 	}
-}
-
-ColliderComponent* AnimatedObject::GetColliderComponent() const {
-	return mCollider;
 }
 
 std::shared_ptr<Animator> AnimatedObject::GetAnimatorInternal() const {

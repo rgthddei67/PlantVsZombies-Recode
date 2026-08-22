@@ -18,7 +18,6 @@ protected:
 	Board* mBoard = nullptr;
 	float mGlowingTimer = 0.0f;
 
-	ColliderComponent* mCollider = nullptr;
 	std::shared_ptr<Animator> mAnimator;
 
 	AnimationType mAnimType = AnimationType::ANIM_NONE;
@@ -95,7 +94,8 @@ public:
 	float GetTargetTrackBlendTime() const;
 
 	// 可选附件获取
-	ColliderComponent* GetColliderComponent() const;
+	ColliderComponent* GetColliderComponent() { return GetCollider(); }
+	const ColliderComponent* GetColliderComponent() const { return GetCollider(); }
 
 	// 获取视觉绘制位置
 	virtual Vector GetVisualPosition() const;

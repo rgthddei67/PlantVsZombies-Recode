@@ -1,0 +1,33 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 29 },
+    { "op": "choose_cards", "cards": ["PLANT_SUNFLOWER", "PLANT_PEASHOOTER"] },
+    { "op": "wait_state", "state": "GAME" },
+    { "op": "set_spawn_paused", "value": true },
+    { "op": "set_sun", "value": 500 },
+    { "op": "assert_state", "path": "cards.0.type", "equals": "PLANT_SUNFLOWER" },
+    { "op": "assert_state", "path": "cards.0.xInt", "equals": 195 },
+    { "op": "assert_state", "path": "cards.0.ready", "equals": true },
+    { "op": "assert_state", "path": "cells.0.2.normal", "equals": "NONE" },
+
+    { "op": "click", "x": 220, "y": 25 },
+    { "op": "wait_frames", "value": 2 },
+    { "op": "assert_state", "path": "cards.0.selected", "equals": true },
+    { "op": "click", "x": 442, "y": 128 },
+    { "op": "wait_frames", "value": 2 },
+    { "op": "assert_state", "path": "cells.0.2.normal", "equals": "PLANT_SUNFLOWER" },
+
+    { "op": "click", "x": 850, "y": 30 },
+    { "op": "wait_frames", "value": 2 },
+    { "op": "click", "x": 442, "y": 128 },
+    { "op": "wait_frames", "value": 2 },
+    { "op": "assert_state", "path": "cells.0.2.normal", "equals": "NONE" },
+    { "op": "screenshot", "name": "card_cell_shovel_clicks.png" },
+
+    { "op": "goto_level", "level": 29 },
+    { "op": "choose_cards", "cards": ["PLANT_SUNFLOWER", "PLANT_PEASHOOTER"] },
+    { "op": "wait_state", "state": "GAME" },
+    { "op": "assert_state", "path": "cells.0.2.normal", "equals": "NONE" },
+    { "op": "quit" }
+  ]
+}

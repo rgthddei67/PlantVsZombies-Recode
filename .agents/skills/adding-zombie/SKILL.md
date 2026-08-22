@@ -13,7 +13,7 @@ description: Use when adding or tuning any PvZ zombie, or integrating zombies in
 
 - C# 参考实现用于确定玩家可感知的功能契约：状态机与触发顺序、时长和数值、目标规则、断肢/死亡结果、音效及资源表现；没有主人批准时不得自行改变这些行为。
 - C# 不是本项目的类图或字段模板。实现前逐项核对当前僵尸继承体系、Board/实体所有权、碰撞回调、Animator 与根运动、绘制层、资源轨道、魅惑/死亡生命周期和存读档，再复用现有最窄入口；禁止复制平行状态或绕过公共系统。
-- 玩法对象架构固定为继承式：新增僵尸继续选择 `Zombie` 或最窄既有派生基类，并用窄虚接口表达品种差异；不得为僵尸能力新增玩法 `Component`、把品种状态拆进通用组件表，或为形式统一复制基类生命周期。空间数据由宿主 `CreateTransform()` 创建并通过 `GetTransform()` 访问，禁止重新引入 `TransformComponent`；其余横切附件在组件收缩完成前按当前源码接口使用。
+- 玩法对象架构固定为继承式：新增僵尸继续选择 `Zombie` 或最窄既有派生基类，并用窄虚接口表达品种差异；不得为僵尸能力新增玩法 `Component`、把品种状态拆进通用组件表，或为形式统一复制基类生命周期。空间数据由宿主 `CreateTransform()` 创建并通过 `GetTransform()` 访问，禁止重新引入 `TransformComponent`。Collider 已脱离组件容器：宿主只用 `CreateCollider()` / `GetCollider()` / `RemoveCollider()` 管理唯一可选碰撞附件，预览对象无碰撞必须走 `RemoveCollider()`；禁止恢复 `AddComponent/GetComponent/RemoveComponent<ColliderComponent>` 或缓存一份可独立失效的 Collider 裸指针。Shadow/Clickable 在后续阶段完成前按当前源码接口使用。
 - 架构、坐标或资源差异必须做适配，并用状态投影、音效计数、默认与 `-NoInstance` 可见截图证明功能等价。原版资源版本与当前 reanim 不一致时，以玩家结果忠实为目标，具体轨道方案按当前资产确认；需要改变行为时再询问主人。
 
 ## 坐标换算铁律
@@ -159,7 +159,7 @@ description: Use when adding or tuning any PvZ zombie, or integrating zombies in
 1. 默认按仓库契约配置并构建 `clang-release`，保持 0 warning；新 .cpp 未被编译先 `cmake --preset clang-release` reconfigure。只有主人要求快速迭代/PDB/无 LTO，或 Release 崩溃确需符号栈时才用 `clang-playtest`；诊断完成后仍须回到 `clang-release` 做最终验证。
 2. **AutoTest 冒烟**：`autotest/scripts/smoke_<name>.json`。默认按 `PROJECT_GUIDE.md` 的“当前桌面可见启动”方案运行：从 `build/<preset>/` 工作目录，用提升权限的 `Start-Process -WindowStyle Normal -PassThru` 启动并等待退出；普通沙箱 shell 即使写了 `WindowStyle Normal` 也可能落在隔离会话，主人桌面完全看不到。首次直造前断言 `HasReanimation`，运行时帽子/残肢/粒子贴图用 `GetTexture(key,false)` 导出加载状态；Release WARN 不保证写进 `run.log`，manifest 也不能替代这些断言。状态断言用 `zombies.N.type/hasArm/armVisible/hasHead/track/mindControlled`；几何断言用 `animatedObjectsByTag.Zombie.N` 的最终世界包围盒及相对 collider 投影，禁止把 C# 绝对坐标写成期望值。**exit 0 ≠ 通过**：逐张 Read 同步截图（断肢前后、编队站位、出土中段——换色变体必须截取真正使用 `rise*` 合成图的中段；注意升起初期整体在地面线下被裁掉是正确的，截图要卡升起 60% 时点）。
 3. **死亡消失必须专门测**（末-1 帧陷阱专项）：豌豆打死→dump 确认该 type 消失+run.log 无 WATCHDOG。炸弹类走 Die() 直杀路径，**测不到**死亡帧事件。若品种有出生随机动画倍率，等待上限必须按倍率范围下限计算并在 WATCHDOG 前留裕量，禁止沿用平均速度或旧固定秒数导致慢实例假失败。
-4. 时序：`wait_seconds` 是游戏秒；关卡 20 秒起第一波普通僵尸会混入 dump，别断言"场上为空"。
+4. 时序：`wait_seconds` 是游戏秒；关卡 20 秒起第一波普通僵尸会混入 dump。精确断言碰撞目标或僵尸数量的隔离专项应在进入 `GAME` 后立即 `set_spawn_paused=true`；只有测试自然波本身时才保留生成，不能把首波当固定对照数。
 5. 站位/影子不对 → 本体调 gamedata offset（免编译）、影子调代码 `ShadowComponent`。
 6. 父类测试钩子或状态投影使用 `dynamic_cast` 时会同时命中派生精英；先判断具体派生类，或以 `mZombieType` 排除变体，避免普通品种计数和命令误操作精英。
 7. Release Fatal Error / Access Violation 先保留崩溃报告与最小脚本；需要堆栈时用同脚本在 `clang-playtest` 复现，优先检查资源注册/键和首个空对象来源。修复后重跑 Release 的新类型脚本和父类回归，禁止只交付 playtest 结果。

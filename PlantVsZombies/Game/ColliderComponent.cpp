@@ -1,9 +1,8 @@
 #include "ColliderComponent.h"
 #include "Transform.h"
 #include "GameObject.h"
-#include "Component.h"
+#include "../Graphics.h"
 #include "../GameApp.h"
-#include <memory>
 
 Vector ColliderComponent::GetWorldPosition() const {
 	if (auto transform = GetTransform()) {

@@ -17,7 +17,6 @@ constexpr float CELL_INITALIZE_POS_Y = 88.0f;
 class Cell : public GameObject {
 private:
 	std::function<void(int, int)> OnCellClicked;
-	ColliderComponent* mCollider = nullptr;
 	Vector mColliderSize = Vector(CELL_COLLIDER_SIZE_X, CELL_COLLIDER_SIZE_Y);
 	int mUnderPlantID = NULL_PLANT_ID;
 	int mNormalPlantID = NULL_PLANT_ID;
@@ -38,11 +37,11 @@ public:
 		SetName("Cell_" + std::to_string(row) + "_" + std::to_string(column));
 
 		this->CreateTransform(position);
-		mCollider = this->AddComponent<ColliderComponent>(mColliderSize);
-		mCollider->isTrigger = true;
-		mCollider->isStatic = true;
-		mCollider->layerMask = CollisionLayer::NONE;
-		mCollider->collisionMask = CollisionLayer::NONE;
+		auto* collider = CreateCollider(mColliderSize);
+		collider->isTrigger = true;
+		collider->isStatic = true;
+		collider->layerMask = CollisionLayer::NONE;
+		collider->collisionMask = CollisionLayer::NONE;
 		auto* clickable = this->AddComponent<ClickableComponent>();
 		if (!clickable) return;
 		clickable->ChangeCursorOnHover = false;
@@ -111,20 +110,14 @@ public:
 	// 检查点是否在格子内
 	bool ContainsPoint(const Vector& point) const
 	{
-		if (mCollider)
+		if (const auto* collider = GetCollider())
 		{
-			return mCollider->ContainsPoint(point);
+			return collider->ContainsPoint(point);
 		}
 		else
 		{
 			return false;
 		}
-	}
-
-	// 获取碰撞体
-	ColliderComponent* GetCollider() const
-	{
-		return mCollider;
 	}
 
 	// 设置点击回调

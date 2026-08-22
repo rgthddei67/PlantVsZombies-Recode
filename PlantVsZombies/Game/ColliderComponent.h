@@ -2,13 +2,15 @@
 #ifndef _COLLIDER_COMPONENT_H
 #define _COLLIDER_COMPONENT_H
 
-#include "Component.h"
 #include "Definit.h"
 #include <SDL2/SDL.h>
 #include <functional>
 #include <cstdint>
 
 class Transform;
+class GameObject;
+class Graphics;
+class CollisionSystem;
 
 // 碰撞形状类型
 enum class ColliderType {
@@ -27,7 +29,11 @@ namespace CollisionLayer {
 	constexpr uint16_t ALL = 0xFFFF;
 }
 
-class ColliderComponent : public Component {
+/**
+ * @brief GameObject 显式拥有的可选碰撞附件。
+ * @details 只能由 GameObject::CreateCollider 创建；不参与通用 Component 生命周期。
+ */
+class ColliderComponent {
 public:
 	Vector offset = Vector::zero();    // 相对于游戏对象的偏移
 	Vector size = Vector(50, 40);        // 尺寸（矩形为宽高，圆形为直径）
@@ -37,8 +43,7 @@ public:
 
 	uint16_t layerMask = CollisionLayer::ALL;
 	uint16_t collisionMask = CollisionLayer::ALL;
-	uint32_t colliderID = 0;
-	bool     mRegistered = false;
+	bool mEnabled = true;
 
 	// 碰撞的事件（回调函数） —— 裸指针 other，回调阶段保证对象活
 	std::function<void(ColliderComponent*)> onTriggerEnter;
@@ -54,11 +59,7 @@ public:
 	SDL_FRect cachedBounds{ 0, 0, 0, 0 };
 	Vector    cachedWorldPos;
 
-	ColliderComponent(const Vector& size, const Vector& offset = Vector(0, 0), ColliderType type = ColliderType::BOX) {
-		this->size = size;
-		this->offset = offset;
-		this->colliderType = type;
-	}
+	GameObject* GetGameObject() const { return mGameObject; }
 
 	// 获取世界空间位置
 	Vector GetWorldPosition() const;
@@ -74,7 +75,7 @@ public:
 		return ContainsPoint(Vector(x, y));
 	}
 
-	void Draw(Graphics* g) override;
+	void Draw(Graphics* g);
 
 	// 绘制矩形碰撞框
 	void DrawBoxCollider(Graphics* g, const SDL_FRect& rect);
@@ -83,6 +84,17 @@ public:
 	void DrawCircleCollider(Graphics* g, const Vector& center, float radius);
 
 private:
+	friend class GameObject;
+	friend class CollisionSystem;
+
+	GameObject* mGameObject = nullptr; // 非拥有；生命周期严格短于宿主
+	uint32_t colliderID = 0;
+	bool mRegistered = false;
+
+	ColliderComponent(GameObject* owner, const Vector& size,
+		const Vector& offset, ColliderType type)
+		: offset(offset), size(size), colliderType(type), mGameObject(owner) {}
+
 	Transform* GetTransform() const;
 };
 

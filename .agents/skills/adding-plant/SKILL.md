@@ -11,7 +11,7 @@ description: Use when adding ANY new plant (新增植物) to PvZ — 射手/生�
 
 - C# 参考实现是玩家可感知功能的证据：先提取状态、触发顺序、时长、数值、目标规则、音效和资源表现；未获主人批准时，这些行为必须与原版一致。
 - C# 不是本项目的架构模板。动手前逐项核对当前植物类型体系、Board/实体所有权、更新与 Animator 时序、占格/碰撞、绘制路径、资源键以及存读档入口，再接入现有最窄扩展点；禁止为了贴近 C# 类结构复制平行状态或旁路系统。
-- 玩法对象架构固定为继承式：新增植物继续选择 `Plant` / `Shooter` / `Shroom` 等最窄共同基类，并用窄虚接口表达品种差异；不得为植物能力新增玩法 `Component`、把品种状态拆进通用组件表，或为形式统一复制基类生命周期。空间数据由宿主 `CreateTransform()` 创建并通过 `GetTransform()` 访问，禁止重新引入 `TransformComponent`；其余横切附件在组件收缩完成前按当前源码接口使用。
+- 玩法对象架构固定为继承式：新增植物继续选择 `Plant` / `Shooter` / `Shroom` 等最窄共同基类，并用窄虚接口表达品种差异；不得为植物能力新增玩法 `Component`、把品种状态拆进通用组件表，或为形式统一复制基类生命周期。空间数据由宿主 `CreateTransform()` 创建并通过 `GetTransform()` 访问，禁止重新引入 `TransformComponent`。Collider 已脱离组件容器：宿主只用 `CreateCollider()` / `GetCollider()` / `RemoveCollider()` 管理唯一可选碰撞附件，预览/overlay 无碰撞也必须走 `RemoveCollider()`；禁止恢复 `AddComponent/GetComponent/RemoveComponent<ColliderComponent>` 或缓存一份可独立失效的 Collider 裸指针。Shadow/Clickable 在后续阶段完成前按当前源码接口使用。
 - 坐标和资源按下述当前项目契约换算。工程实现可以不同，但必须用 AutoTest 状态、音效请求、默认与 `-NoInstance` 截图证明功能等价；验证失败时先修适配，不能用“原版就是这样写的”合理化当前项目中的错误表现。
 
 ## 坐标换算铁律
@@ -88,7 +88,7 @@ description: Use when adding ANY new plant (新增植物) to PvZ — 射手/生�
    修改卡槽悬停或点击落格时，预览与种植必须共用同一个“世界坐标 → 唯一 `Cell`”解析入口和相同的边界归属规则。`ColliderComponent::ContainsPoint` 的矩形四边都是闭区间，相邻格边缘会同时命中；禁止预览按行列扫描、点击却依赖 `ClickableComponent` 渲染顺序，否则边缘和四格交点会显示一格却种到另一格。
    可由玩家直接点击的战场植物若需要手型悬停提示，应由现有输入/UI 管理器复用正式点击资格与同一个世界坐标格子解析入口；提示必须同时受“无选中卡、无铲子或其他手持物、玩法输入未暂停”等门禁约束。若正式点击仍由底层 Cell 负责，不要给植物新增会消费事件的 `ClickableComponent`，否则会截断铲除、种植或双格植物另一半的点击链。
    新增“上次选卡/预设卡组”时只在玩家正式提交后记录，PlayerInfo 保存稳定植物枚举名及点击顺序并随结构变化升级 schema；恢复必须从当前选卡面板已有卡中解析、去重、过滤未知/未注册/未拥有项并遵守槽位上限。`ChooseCardUI` 按钮必须按明确布局语义选择锚点：面板内按钮相对面板并随其过场移动；围绕“一起摇滚吧”这类固定操作按钮的导航，从该按钮矩形派生左右位置和同一垂直中心，禁止把“右侧”偷换为面板右侧中央。一键恢复复用 `Card::SetTargetPosition` 的现有飞行动画，禁止直接写最终坐标。选卡网格分页按稳定拥有顺序和固定页容量派生；已选卡绕过页面隐藏并留在顶部槽位，非当前页未选卡必须同时停止绘制、更新和点击，跨页取消时先立即归回所属页原位。AutoTest 用正式奖励顺序的隔离内存夹具和真实按钮点击，断言页码、实际活动/隐藏植物列表、按钮资源/方向/锚点，并逐页截图；上次选卡专项另回归单页时导航按钮不出现。默认隔离模式只布置内存状态、不写真实 PlayerInfo。
-3. **AutoTest 冒烟**：`autotest/scripts/smoke_<name>.json`，每阶段**只种一棵**（plants dump 顺序来自 unordered_map，多棵时下标不可靠），断言 `plants.0.track`；`plantDefinitions.<TYPE>.sunCost/cooldownMs` 可直接锁定基础 gamedata 数值，`simulationBaseHealth/simulationAttackDpsOn100/simulationAttackRowRadius/simulationSunPerSecondOn100/simulationFirstSunDelayMs/simulationPersistent/simulationSupportOnly` 用来锁定轻量推演画像。几何验收用 `animatedObjectsByTag.Plant.0` 的最终世界包围盒与相对 collider 投影，禁止把 C# 绝对坐标写成期望值。时序估算用僵尸判定矩形 `[x±25]×[y-65,y+35]`、步速 23~45px/s；验证帧事件时，等待值必须越过理论触发时刻至少一个逻辑步，不能把断言卡在“刚好到帧”的浮点边界。**exit 0 ≠ 通过**：必须逐张 Read 同步截图 + dump 数值核对（防假绿）。
+3. **AutoTest 冒烟**：`autotest/scripts/smoke_<name>.json`，每阶段**只种一棵**（plants dump 顺序来自 unordered_map，多棵时下标不可靠），断言 `plants.0.track`；`plantDefinitions.<TYPE>.sunCost/cooldownMs` 可直接锁定基础 gamedata 数值，`simulationBaseHealth/simulationAttackDpsOn100/simulationAttackRowRadius/simulationSunPerSecondOn100/simulationFirstSunDelayMs/simulationPersistent/simulationSupportOnly` 用来锁定轻量推演画像。几何验收用 `animatedObjectsByTag.Plant.0` 的最终世界包围盒与相对 collider 投影，禁止把 C# 绝对坐标写成期望值。时序估算用僵尸判定矩形 `[x±25]×[y-65,y+35]`、步速 23~45px/s；验证帧事件时，等待值必须越过理论触发时刻至少一个逻辑步，不能把断言卡在“刚好到帧”的浮点边界。若脚本等待到关卡 20 秒以后又要精确断言碰撞目标或僵尸数量，除非本来就在测自然波，否则进入 `GAME` 后立即 `set_spawn_paused=true`，避免首波污染专项计数。**exit 0 ≠ 通过**：必须逐张 Read 同步截图 + dump 数值核对（防假绿）。
 4. 蘑菇夜测用 level 10-18（九关制的 2-1..2-9）；白天睡觉同时断言 `anim_sleep`、睡眠 `Z` 的资源/显示/相对锚点，醒后断言移除，并逐张检查同步截图；魅惑僵尸清场用 `charm_zombie`（不触发输局）。
    只能种水路的蘑菇改用夜间泳池 level 28+ 验活跃态，并另在日间泳池 level 19+ 验 `anim_sleep`。
 

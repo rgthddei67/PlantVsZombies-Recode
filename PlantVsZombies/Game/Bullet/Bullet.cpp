@@ -223,7 +223,7 @@ Bullet::Bullet(Board* board, BulletType bulletType, int row, const Vector& colli
 	if (!mBoard) return;
 
 	CreateTransform(position);
-	mCollider = AddComponent<ColliderComponent>
+	CreateCollider
 		(colliderRadius, Vector(0, 0), ColliderType::CIRCLE);
 
 	// C# Projectile.DrawShadow 明确让 Puff 直接返回；其余现有子弹使用豌豆阴影，
