@@ -5,6 +5,7 @@
 #include "RenderOrder.h"
 #include "Transform.h"
 #include "ColliderComponent.h"
+#include "../InternedString.h"
 #include "../Graphics.h"
 #include "DeferredEvent.h"
 #include <memory>
@@ -42,8 +43,8 @@ protected:
 	std::unique_ptr<ColliderComponent> mCollider; // 可选碰撞附件；由宿主独占并通过唯一入口注册/注销
 	std::unique_ptr<ShadowComponent> mShadow; // 可选阴影附件；由宿主独占并在固定绘制阶段提交
 	std::unique_ptr<ClickableComponent> mClickable; // 可选点击附件；由宿主独占并维护稀疏注册
-	std::string mTag = "Untagged";
-	std::string mName = "GameObject";
+	const std::string* mTag = nullptr; // 指向进程期驻留字符串；高数量实体不再各带 32B std::string
+	const std::string* mName = nullptr; // 名称同样驻留；动态格子名仍按内容去重并保持稳定引用
 	int mSortingKey = -1; // 可选的行深度键；普通对象保持 -1，按行残影可在构造期继承来源行
 
 private:
@@ -142,16 +143,16 @@ public:
 	virtual void Draw(Graphics* g);
 
 	// 获取物体的标签
-	const std::string& GetTag() const { return mTag; }
+	const std::string& GetTag() const { return *mTag; }
 
 	// 设置物体的标签
-	void SetTag(const std::string& newTag) { mTag = newTag; }
+	void SetTag(const std::string& newTag) { mTag = &InternRuntimeString(newTag); }
 
 	// 获取物体的名字
-	const std::string& GetName() const { return mName; }
+	const std::string& GetName() const { return *mName; }
 
 	// 设置物体的名字
-	void SetName(const std::string& newName) { mName = newName; }
+	void SetName(const std::string& newName) { mName = &InternRuntimeString(newName); }
 
 	// 获取物体的激活状态
 	bool IsActive() const { return mActive; }

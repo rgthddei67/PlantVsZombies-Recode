@@ -10,6 +10,7 @@
 #include "../../GameApp.h"
 #include "../../Logger.h"
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstddef>
 #include <vector>
@@ -212,6 +213,12 @@ namespace {
 	};
 }
 
+struct Bullet::SpikeState {
+	std::array<int, kSpikePierceLimit> zombieIDs{};
+	std::array<float, kSpikePierceLimit> damageRemainders{};
+	std::size_t count = 0;
+};
+
 Bullet::Bullet(Board* board, BulletType bulletType, int row, const Vector& colliderRadius,
 	const Vector& position) : GameObject(ObjectType::OBJECT_BULLET)
 {
@@ -237,6 +244,27 @@ Bullet::Bullet(Board* board, BulletType bulletType, int row, const Vector& colli
 	ConfigureCollisionTarget();
 }
 
+Bullet::~Bullet() = default;
+
+int Bullet::GetPiercedZombieCount() const
+{
+	return mSpikeState ? static_cast<int>(mSpikeState->count) : 0;
+}
+
+std::vector<int> Bullet::GetPiercedZombieIDs() const
+{
+	if (!mSpikeState) return {};
+	return std::vector<int>(mSpikeState->zombieIDs.begin(),
+		mSpikeState->zombieIDs.begin() + mSpikeState->count);
+}
+
+std::vector<float> Bullet::GetSpikeDamageRemainders() const
+{
+	if (!mSpikeState) return {};
+	return std::vector<float>(mSpikeState->damageRemainders.begin(),
+		mSpikeState->damageRemainders.begin() + mSpikeState->count);
+}
+
 void Bullet::Reset(Board* board, int row,
 	const Vector& colliderRadius, const Vector& position) {
 	mBoard = board;
@@ -254,21 +282,9 @@ void Bullet::Reset(Board* board, int row,
 	mRotationSpeedDegrees = 0.0f;
 	mThreepeaterMotion = false;
 	mTargetsFlying = false;
-	mLobbedMotion = false;
-	mLobStart = Vector::zero();
-	mLobTarget = Vector::zero();
-	mLobElapsed = 0.0f;
-	mLobDuration = 0.0f;
-	mLobApexHeight = 0.0f;
-	mCobCannonMotion = false;
-	mCobStart = Vector::zero();
-	mCobTarget = Vector::zero();
-	mCobElapsed = 0.0f;
-	mCobDuration = 0.0f;
-	mCobTargetRow = -1;
+	mTrajectory = TrajectoryState{};
 	mHitTorchwoodColumn = -1;
-	mPiercedZombieIDs.clear();
-	mSpikeDamageRemainders.clear();
+	if (mSpikeState) mSpikeState->count = 0;
 	mAnimatorAdvancedInParallel = false;
 	ConfigurePresentation();
 	ConfigureCollisionTarget();
@@ -332,10 +348,10 @@ void Bullet::Update()
 				return;
 			}
 		}
-		if (mLobbedMotion) {
+		if (IsLobbedMotion()) {
 			if (!UpdateLobbedMotion(deltaTime)) return;
 		}
-		else if (mCobCannonMotion) {
+		else if (IsCobCannonMotion()) {
 			if (!UpdateCobCannonMotion(deltaTime)) return;
 		}
 		else {
@@ -359,7 +375,7 @@ void Bullet::Update()
 			HitRoofTerrain();
 			return;
 		}
-		if (mThreepeaterMotion && !mLobbedMotion) {
+		if (mThreepeaterMotion && !IsLobbedMotion()) {
 			// 用指数折算保持不同固定步长下与 C# “每 10ms ×0.97”相同的弧线。
 			mVelocityY *= std::pow(
 				kThreepeaterDampingPerTick, deltaTime / kOriginalTickSeconds);
@@ -392,14 +408,15 @@ void Bullet::Draw(Graphics* g)
 		Vector position = GetPosition();
 		float drawWidth = static_cast<float>(mTexture->width) * mScale;
 		float drawHeight = static_cast<float>(mTexture->height) * mScale;
-		if (mCobCannonMotion) {
-			if (mCobElapsed / std::max(0.01f, mCobDuration) >= kCobTransferEndProgress) {
+		if (IsCobCannonMotion()) {
+			if (mTrajectory.elapsed / std::max(0.01f, mTrajectory.duration)
+				>= kCobTransferEndProgress) {
 				if (const Texture* targetShadow = ResourceManager::GetInstance().GetTexture(
 					ResourceKeys::Textures::IMAGE_COBCANNON_TARGET_SHADOW, false)) {
 					const float width = static_cast<float>(targetShadow->width);
 					const float height = static_cast<float>(targetShadow->height);
-					g->DrawTexture(targetShadow, mCobTarget.x - width * 0.5f,
-						mCobTarget.y - height * 0.5f, width, height);
+					g->DrawTexture(targetShadow, mTrajectory.target.x - width * 0.5f,
+						mTrajectory.target.y - height * 0.5f, width, height);
 				}
 			}
 			// DrawTexture 的非方形旋转会先按目标框缩放；90 度炮弹须交换目标宽高，
@@ -443,7 +460,7 @@ void Bullet::UpdateShadowLayout(const Vector& position)
 		typeScale = 1.4f;
 	}
 	else if (IsClassicLobbedBullet(mBulletType)) {
-		const float height = mLobbedMotion
+		const float height = IsLobbedMotion()
 			? GetLobArcHeight()
 			: std::max(0.0f, GetTerrainShadowY(position) - position.y);
 		typeScale = std::clamp(
@@ -865,30 +882,29 @@ void Bullet::ConfigureLobbedMotion(
 	const Vector& target, float durationSeconds, float apexHeight)
 {
 	if (!GetTransform()) return;
-	mLobbedMotion = true;
-	mLobStart = GetTransform()->GetPosition();
-	mLobTarget = target;
-	mLobElapsed = 0.0f;
-	mLobDuration = std::max(0.01f, durationSeconds);
-	mLobApexHeight = std::max(0.0f, apexHeight);
-	mVelocityX = (mLobTarget.x - mLobStart.x) / mLobDuration;
-	mVelocityY = (mLobTarget.y - mLobStart.y) / mLobDuration
-		- 4.0f * mLobApexHeight / mLobDuration;
+	mTrajectory.kind = TrajectoryKind::LOBBED;
+	mTrajectory.start = GetTransform()->GetPosition();
+	mTrajectory.target = target;
+	mTrajectory.elapsed = 0.0f;
+	mTrajectory.duration = std::max(0.01f, durationSeconds);
+	mTrajectory.apexHeight = std::max(0.0f, apexHeight);
+	mVelocityX = (mTrajectory.target.x - mTrajectory.start.x) / mTrajectory.duration;
+	mVelocityY = (mTrajectory.target.y - mTrajectory.start.y) / mTrajectory.duration
+		- 4.0f * mTrajectory.apexHeight / mTrajectory.duration;
 	if (mCollider) mCollider->mEnabled = false;
-	UpdateShadowLayout(mLobStart);
+	UpdateShadowLayout(mTrajectory.start);
 }
 
 void Bullet::ConfigureCobCannonMotion(
 	const Vector& target, int targetRow, float durationSeconds)
 {
 	if (!GetTransform()) return;
-	mCobCannonMotion = true;
-	mLobbedMotion = false;
-	mCobStart = GetTransform()->GetPosition();
-	mCobTarget = target;
-	mCobElapsed = 0.0f;
-	mCobDuration = std::max(0.1f, durationSeconds);
-	mCobTargetRow = targetRow;
+	mTrajectory.kind = TrajectoryKind::COB_CANNON;
+	mTrajectory.start = GetTransform()->GetPosition();
+	mTrajectory.target = target;
+	mTrajectory.elapsed = 0.0f;
+	mTrajectory.duration = std::max(0.1f, durationSeconds);
+	mTrajectory.targetRow = targetRow;
 	mRotationDegrees = -90.0f;
 	if (mCollider) mCollider->mEnabled = false;
 	if (auto* shadow = GetShadow()) shadow->SetEnabled(false);
@@ -898,41 +914,46 @@ void Bullet::RestoreCobCannonMotion(const Vector& start, const Vector& target,
 	int targetRow, float elapsedSeconds, float durationSeconds)
 {
 	ConfigureCobCannonMotion(target, targetRow, durationSeconds);
-	mCobStart = start;
-	mCobElapsed = std::clamp(elapsedSeconds, 0.0f, mCobDuration);
+	mTrajectory.start = start;
+	mTrajectory.elapsed = std::clamp(
+		elapsedSeconds, 0.0f, mTrajectory.duration);
 	// 以零增量重建当前位置，不会跨过爆炸边沿。
 	UpdateCobCannonMotion(0.0f);
 }
 
 bool Bullet::UpdateCobCannonMotion(float deltaTime)
 {
-	if (!GetTransform() || mCobDuration <= 0.0f) return true;
-	mCobElapsed = std::min(mCobDuration, mCobElapsed + std::max(0.0f, deltaTime));
-	const float progress = std::clamp(mCobElapsed / mCobDuration, 0.0f, 1.0f);
+	if (!GetTransform() || mTrajectory.duration <= 0.0f) return true;
+	mTrajectory.elapsed = std::min(mTrajectory.duration,
+		mTrajectory.elapsed + std::max(0.0f, deltaTime));
+	const float progress = std::clamp(
+		mTrajectory.elapsed / mTrajectory.duration, 0.0f, 1.0f);
 	mRotationDegrees = progress <= kCobTransferEndProgress ? -90.0f : 90.0f;
-	Vector position = mCobStart;
+	Vector position = mTrajectory.start;
 	if (progress <= kCobRiseEndProgress) {
 		const float t = progress / kCobRiseEndProgress;
-		position.y = mCobStart.y + (kCobSkyY - mCobStart.y) * t;
+		position.y = mTrajectory.start.y
+			+ (kCobSkyY - mTrajectory.start.y) * t;
 	}
 	else if (progress <= kCobTransferEndProgress) {
 		const float t = (progress - kCobRiseEndProgress)
 			/ (kCobTransferEndProgress - kCobRiseEndProgress);
-		position.x = mCobStart.x + (mCobTarget.x - mCobStart.x) * t;
+		position.x = mTrajectory.start.x
+			+ (mTrajectory.target.x - mTrajectory.start.x) * t;
 		position.y = kCobSkyY;
 	}
 	else {
 		const float t = (progress - kCobTransferEndProgress)
 			/ (1.0f - kCobTransferEndProgress);
-		position.x = mCobTarget.x;
-		position.y = kCobSkyY + (mCobTarget.y - kCobSkyY) * t;
+		position.x = mTrajectory.target.x;
+		position.y = kCobSkyY + (mTrajectory.target.y - kCobSkyY) * t;
 	}
 	GetTransform()->SetPosition(position);
-	if (mCobElapsed < mCobDuration) return true;
+	if (mTrajectory.elapsed < mTrajectory.duration) return true;
 	if (!mHasHit) {
 		mHasHit = true;
 		if (mBoard) mBoard->CreateCobCannonExplosion(
-			mCobTarget, mCobTargetRow, mDamage);
+			mTrajectory.target, mTrajectory.targetRow, mDamage);
 	}
 	Die();
 	return false;
@@ -941,22 +962,25 @@ bool Bullet::UpdateCobCannonMotion(float deltaTime)
 void Bullet::RestoreLobbedMotion(const Vector& start, const Vector& target,
 	float elapsedSeconds, float durationSeconds, float apexHeight)
 {
-	mLobbedMotion = true;
-	mLobStart = start;
-	mLobTarget = target;
-	mLobDuration = std::max(0.01f, durationSeconds);
-	mLobElapsed = std::clamp(
-		elapsedSeconds, 0.0f, mLobDuration + kLobLandingGrace);
-	mLobApexHeight = std::max(0.0f, apexHeight);
+	mTrajectory.kind = TrajectoryKind::LOBBED;
+	mTrajectory.start = start;
+	mTrajectory.target = target;
+	mTrajectory.duration = std::max(0.01f, durationSeconds);
+	mTrajectory.elapsed = std::clamp(
+		elapsedSeconds, 0.0f, mTrajectory.duration + kLobLandingGrace);
+	mTrajectory.apexHeight = std::max(0.0f, apexHeight);
 	const float progress = GetLobProgress();
 	const Vector position(
-		mLobStart.x + (mLobTarget.x - mLobStart.x) * progress,
-		mLobStart.y + (mLobTarget.y - mLobStart.y) * progress
+		mTrajectory.start.x
+			+ (mTrajectory.target.x - mTrajectory.start.x) * progress,
+		mTrajectory.start.y
+			+ (mTrajectory.target.y - mTrajectory.start.y) * progress
 			- GetLobArcHeight());
 	if (GetTransform()) GetTransform()->SetPosition(position);
-	mVelocityX = (mLobTarget.x - mLobStart.x) / mLobDuration;
-	mVelocityY = (mLobTarget.y - mLobStart.y) / mLobDuration
-		- (4.0f * mLobApexHeight / mLobDuration) * (1.0f - 2.0f * progress);
+	mVelocityX = (mTrajectory.target.x - mTrajectory.start.x) / mTrajectory.duration;
+	mVelocityY = (mTrajectory.target.y - mTrajectory.start.y) / mTrajectory.duration
+		- (4.0f * mTrajectory.apexHeight / mTrajectory.duration)
+		* (1.0f - 2.0f * progress);
 	if (mCollider) {
 		mCollider->mEnabled = progress >= 0.5f
 			&& GetLobArcHeight() <= kLobCollisionArcHeight;
@@ -966,35 +990,39 @@ void Bullet::RestoreLobbedMotion(const Vector& start, const Vector& target,
 
 float Bullet::GetLobProgress() const
 {
-	if (!mLobbedMotion || mLobDuration <= 0.0f) return 0.0f;
-	return std::clamp(mLobElapsed / mLobDuration, 0.0f, 1.0f);
+	if (!IsLobbedMotion() || mTrajectory.duration <= 0.0f) return 0.0f;
+	return std::clamp(
+		mTrajectory.elapsed / mTrajectory.duration, 0.0f, 1.0f);
 }
 
 float Bullet::GetLobArcHeight() const
 {
 	const float progress = GetLobProgress();
-	return 4.0f * mLobApexHeight * progress * (1.0f - progress);
+	return 4.0f * mTrajectory.apexHeight * progress * (1.0f - progress);
 }
 
 bool Bullet::UpdateLobbedMotion(float deltaTime)
 {
-	if (!GetTransform() || mLobDuration <= 0.0f) return true;
-	mLobElapsed += deltaTime;
+	if (!GetTransform() || mTrajectory.duration <= 0.0f) return true;
+	mTrajectory.elapsed += deltaTime;
 	const float progress = GetLobProgress();
 	const float arcHeight = GetLobArcHeight();
 	const Vector position(
-		mLobStart.x + (mLobTarget.x - mLobStart.x) * progress,
-		mLobStart.y + (mLobTarget.y - mLobStart.y) * progress - arcHeight);
+		mTrajectory.start.x
+			+ (mTrajectory.target.x - mTrajectory.start.x) * progress,
+		mTrajectory.start.y
+			+ (mTrajectory.target.y - mTrajectory.start.y) * progress - arcHeight);
 	GetTransform()->SetPosition(position);
-	mVelocityX = (mLobTarget.x - mLobStart.x) / mLobDuration;
-	mVelocityY = (mLobTarget.y - mLobStart.y) / mLobDuration
-		- (4.0f * mLobApexHeight / mLobDuration) * (1.0f - 2.0f * progress);
+	mVelocityX = (mTrajectory.target.x - mTrajectory.start.x) / mTrajectory.duration;
+	mVelocityY = (mTrajectory.target.y - mTrajectory.start.y) / mTrajectory.duration
+		- (4.0f * mTrajectory.apexHeight / mTrajectory.duration)
+		* (1.0f - 2.0f * progress);
 	if (mCollider) {
 		// 只在下降末段打开碰撞，飞越前排目标时不会在高空误触。
 		mCollider->mEnabled = progress >= 0.5f
 			&& arcHeight <= kLobCollisionArcHeight;
 	}
-	if (mLobElapsed >= mLobDuration + kLobLandingGrace) {
+	if (mTrajectory.elapsed >= mTrajectory.duration + kLobLandingGrace) {
 		HitLobbedGround();
 		return false;
 	}
@@ -1124,22 +1152,28 @@ void Bullet::HandleZombieContact(ColliderComponent* other)
 		return;
 	}
 
-	const bool isNewZombie = std::find(
-		mPiercedZombieIDs.begin(), mPiercedZombieIDs.end(), zombie->mZombieID)
-		== mPiercedZombieIDs.end();
+	if (!mSpikeState) mSpikeState = std::make_unique<SpikeState>();
+	auto& spike = *mSpikeState;
+	auto idIt = std::find(spike.zombieIDs.begin(),
+		spike.zombieIDs.begin() + spike.count, zombie->mZombieID);
+	const bool isNewZombie = idIt == spike.zombieIDs.begin() + spike.count;
+	std::size_t targetIndex = static_cast<std::size_t>(
+		std::distance(spike.zombieIDs.begin(), idIt));
 	if (isNewZombie) {
-		mPiercedZombieIDs.push_back(zombie->mZombieID);
-		mSpikeDamageRemainders.push_back(0.0f);
+		if (spike.count >= kSpikePierceLimit) {
+			mHasHit = true;
+			Die();
+			return;
+		}
+		targetIndex = spike.count++;
+		spike.zombieIDs[targetIndex] = zombie->mZombieID;
+		spike.damageRemainders[targetIndex] = 0.0f;
 		// 帧伤本身不能每帧重播撞击声；每只不同目标只在首次接触时反馈一次。
 		PlayStandardImpactSound(zombie, bypassShield);
 	}
 
-	const auto idIt = std::find(
-		mPiercedZombieIDs.begin(), mPiercedZombieIDs.end(), zombie->mZombieID);
-	const std::size_t targetIndex = static_cast<std::size_t>(
-		std::distance(mPiercedZombieIDs.begin(), idIt));
 	const bool reachedPierceLimit =
-		isNewZombie && mPiercedZombieIDs.size() >= kSpikePierceLimit;
+		isNewZombie && spike.count >= kSpikePierceLimit;
 	const float frameDamage = zombie->ModifySpikeFrameDamage(
 		static_cast<float>(mDamage), bypassShield);
 
@@ -1157,7 +1191,7 @@ void Bullet::HandleZombieContact(ColliderComponent* other)
 
 	// 固定逻辑步的回调次数不随倍速改变；用缩放逻辑时间累计额度，保证同样游戏时长
 	// 在 0.5x/1x/2x 下按当前基础帧伤等比例推进，整数承伤总量保持一致。
-	float& damageRemainder = mSpikeDamageRemainders[targetIndex];
+	float& damageRemainder = spike.damageRemainders[targetIndex];
 	damageRemainder += static_cast<float>(frameDamage)
 		* DeltaTime::GetDeltaTime() / DeltaTime::GetFixedStep();
 	const int damageToApply = static_cast<int>(std::floor(damageRemainder + 1e-6f));
@@ -1274,22 +1308,26 @@ void Bullet::RestoreSavedPresentationState(BulletType currentType, int hitTorchw
 void Bullet::RestorePiercedZombieState(const std::vector<int>& zombieIDs,
 	const std::vector<float>& damageRemainders)
 {
-	mPiercedZombieIDs.clear();
-	mSpikeDamageRemainders.clear();
+	if (mSpikeState) mSpikeState->count = 0;
 	if (mBulletType != BulletType::BULLET_SPIKE) return;
 
 	for (std::size_t i = 0; i < zombieIDs.size(); ++i) {
 		const int id = zombieIDs[i];
-		if (std::find(mPiercedZombieIDs.begin(), mPiercedZombieIDs.end(), id)
-			!= mPiercedZombieIDs.end()) {
+		if (!mSpikeState) mSpikeState = std::make_unique<SpikeState>();
+		auto& spike = *mSpikeState;
+		if (std::find(spike.zombieIDs.begin(),
+			spike.zombieIDs.begin() + spike.count, id)
+			!= spike.zombieIDs.begin() + spike.count) {
 			continue;
 		}
-		mPiercedZombieIDs.push_back(id);
+		const std::size_t targetIndex = spike.count++;
+		spike.zombieIDs[targetIndex] = id;
 		const float remainder = i < damageRemainders.size()
 			? damageRemainders[i] : 0.0f;
-		mSpikeDamageRemainders.push_back(std::clamp(remainder, 0.0f, 0.999999f));
+		spike.damageRemainders[targetIndex] =
+			std::clamp(remainder, 0.0f, 0.999999f);
 		// 活跃子弹一旦达到穿透上限就已回收，因此合法存档至多包含上限减一只。
-		if (mPiercedZombieIDs.size() + 1 >= kSpikePierceLimit) break;
+		if (spike.count + 1 >= kSpikePierceLimit) break;
 	}
 }
 

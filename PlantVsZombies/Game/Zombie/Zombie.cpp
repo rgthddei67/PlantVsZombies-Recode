@@ -98,6 +98,20 @@ struct Zombie::ToxinState {
 	std::uint8_t mActiveLayerCount = 0;
 };
 
+struct Zombie::RoofMarshalAssaultState {
+	float mTimer = 0.0f;
+	float mMoveMultiplier = 1.0f;
+	float mBiteMultiplier = 1.0f;
+	std::shared_ptr<Animator> mFlagAnimator;
+};
+
+struct Zombie::TangleKelpState {
+	bool mDraggedUnder = false;
+	float mSinkOffset = 0.0f;
+	std::shared_ptr<Animator> mGrabBack;
+	std::shared_ptr<Animator> mGrabFront;
+};
+
 Zombie::Zombie(Board* board, ZombieType zombieType, float x, float y, int row,
 	AnimationType animType, float scale, bool isPreview)
 	: AnimatedObject(ObjectType::OBJECT_ZOMBIE, board,
@@ -170,6 +184,44 @@ void Zombie::SetupZombie()
 
 Zombie::~Zombie() = default;
 
+bool Zombie::IsRoofMarshalAssaultActive() const
+{
+	return mRoofMarshalAssaultState && mRoofMarshalAssaultState->mTimer > 0.0f;
+}
+
+float Zombie::GetRoofMarshalAssaultTimer() const
+{
+	return mRoofMarshalAssaultState ? mRoofMarshalAssaultState->mTimer : 0.0f;
+}
+
+float Zombie::GetRoofMarshalAssaultMoveMultiplier() const
+{
+	return IsRoofMarshalAssaultActive()
+		? mRoofMarshalAssaultState->mMoveMultiplier : 1.0f;
+}
+
+float Zombie::GetRoofMarshalAssaultBiteMultiplier() const
+{
+	return IsRoofMarshalAssaultActive()
+		? mRoofMarshalAssaultState->mBiteMultiplier : 1.0f;
+}
+
+bool Zombie::HasRoofMarshalAssaultFlagAnimator() const
+{
+	return mRoofMarshalAssaultState
+		&& static_cast<bool>(mRoofMarshalAssaultState->mFlagAnimator);
+}
+
+bool Zombie::IsDraggedUnderByTangleKelp() const
+{
+	return mTangleKelpState && mTangleKelpState->mDraggedUnder;
+}
+
+float Zombie::GetTangleKelpSinkOffset() const
+{
+	return mTangleKelpState ? mTangleKelpState->mSinkOffset : 0.0f;
+}
+
 /** 注册普通僵尸 reanim 的死亡终点与两次啃食命中帧。 */
 void Zombie::RegisterFrameEvents()
 {
@@ -217,9 +269,9 @@ void Zombie::SaveProtectedData(nlohmann::json& j) const {
 	j["butterTimer"] = mButterTimer;
 	j["paralysisTimer"] = mParalysisTimer;
 	j["controlImmunityTimers"] = mControlImmunityTimers;
-	j["roofMarshalAssaultTimer"] = mRoofMarshalAssaultTimer;
-	j["roofMarshalAssaultMoveMultiplier"] = mRoofMarshalAssaultMoveMultiplier;
-	j["roofMarshalAssaultBiteMultiplier"] = mRoofMarshalAssaultBiteMultiplier;
+	j["roofMarshalAssaultTimer"] = GetRoofMarshalAssaultTimer();
+	j["roofMarshalAssaultMoveMultiplier"] = GetRoofMarshalAssaultMoveMultiplier();
+	j["roofMarshalAssaultBiteMultiplier"] = GetRoofMarshalAssaultBiteMultiplier();
 	std::array<float, kMaxToxinLayers> toxinLayerTimers{};
 	float toxinDamageRemainder = 0.0f;
 	if (mToxinState) {
@@ -231,8 +283,8 @@ void Zombie::SaveProtectedData(nlohmann::json& j) const {
 	j["toxinDamageRemainder"] = toxinDamageRemainder;
 	j["dyingTimer"] = mDyingTimer;
 	j["tangleKelpPlantID"] = mTangleKelpPlantID;
-	j["draggedUnderByTangleKelp"] = mDraggedUnderByTangleKelp;
-	j["tangleKelpSinkOffset"] = mTangleKelpSinkOffset;
+	j["draggedUnderByTangleKelp"] = IsDraggedUnderByTangleKelp();
+	j["tangleKelpSinkOffset"] = GetTangleKelpSinkOffset();
 	j["tangleKelpGrabFrame"] = GetTangleKelpGrabFrame();
 	j["mistFuelReward"] = mMistFuelReward;
 	j["mistFuelRewardClaimed"] = mMistFuelRewardClaimed;
@@ -255,15 +307,18 @@ void Zombie::LoadProtectedData(const nlohmann::json& j) {
 	mIsDying = j.value("isDying", false);
 	mInPool = j.value("inPool", false);
 	mSpeed = j.value("speed", 10.0f);
-	mRoofMarshalAssaultTimer = std::clamp(
+	const float roofMarshalAssaultTimer = std::clamp(
 		j.value("roofMarshalAssaultTimer", 0.0f), 0.0f, 60.0f);
-	mRoofMarshalAssaultMoveMultiplier = std::clamp(
+	const float roofMarshalAssaultMoveMultiplier = std::clamp(
 		j.value("roofMarshalAssaultMoveMultiplier", 1.0f), 1.0f, 4.0f);
-	mRoofMarshalAssaultBiteMultiplier = std::clamp(
+	const float roofMarshalAssaultBiteMultiplier = std::clamp(
 		j.value("roofMarshalAssaultBiteMultiplier", 1.0f), 1.0f, 4.0f);
-	if (mRoofMarshalAssaultTimer <= 0.0f) {
-		mRoofMarshalAssaultMoveMultiplier = 1.0f;
-		mRoofMarshalAssaultBiteMultiplier = 1.0f;
+	mRoofMarshalAssaultState.reset();
+	if (roofMarshalAssaultTimer > 0.0f) {
+		mRoofMarshalAssaultState = std::make_unique<RoofMarshalAssaultState>();
+		mRoofMarshalAssaultState->mTimer = roofMarshalAssaultTimer;
+		mRoofMarshalAssaultState->mMoveMultiplier = roofMarshalAssaultMoveMultiplier;
+		mRoofMarshalAssaultState->mBiteMultiplier = roofMarshalAssaultBiteMultiplier;
 	}
 
 	// 旧档把品种能力倍率放在根字段 extraSpeed；只有仍需实例随机值的派生类消费它。
@@ -358,8 +413,14 @@ void Zombie::LoadProtectedData(const nlohmann::json& j) {
 
 	mDyingTimer = j.value("dyingTimer", 0.0f);
 	mTangleKelpPlantID = j.value("tangleKelpPlantID", NULL_PLANT_ID);
-	mDraggedUnderByTangleKelp = j.value("draggedUnderByTangleKelp", false);
-	mTangleKelpSinkOffset = std::max(0.0f, j.value("tangleKelpSinkOffset", 0.0f));
+	mTangleKelpState.reset();
+	if (mTangleKelpPlantID != NULL_PLANT_ID) {
+		mTangleKelpState = std::make_unique<TangleKelpState>();
+		mTangleKelpState->mDraggedUnder =
+			j.value("draggedUnderByTangleKelp", false);
+		mTangleKelpState->mSinkOffset =
+			std::max(0.0f, j.value("tangleKelpSinkOffset", 0.0f));
+	}
 	mMistFuelReward = std::max(0.0f, j.value("mistFuelReward", 0.0f));
 	mMistFuelRewardClaimed = j.value("mistFuelRewardClaimed", false);
 	const int ladderPhase = std::clamp(j.value("ladderClimbPhase", 0), 0,
@@ -485,8 +546,12 @@ void Zombie::Update()
 {
 	AnimatedObject::Update();
 	UpdateShieldHitGlow();
-	if (mTangleKelpGrabBack) mTangleKelpGrabBack->Update();
-	if (mTangleKelpGrabFront) mTangleKelpGrabFront->Update();
+	if (mTangleKelpState && mTangleKelpState->mGrabBack) {
+		mTangleKelpState->mGrabBack->Update();
+	}
+	if (mTangleKelpState && mTangleKelpState->mGrabFront) {
+		mTangleKelpState->mGrabFront->Update();
+	}
 	if (!mIsPreview) {
 		float deltaTime = DeltaTime::GetDeltaTime();
 		auto* transform = this->GetTransform();
@@ -499,12 +564,12 @@ void Zombie::Update()
 
 		// 突击令按游戏时间衰减，不因啃食、冻结或品种行为早退而变成永久增益。
 		UpdateControlImmunity(deltaTime);
-		if (mRoofMarshalAssaultTimer > 0.0f) {
-			mRoofMarshalAssaultTimer = std::max(0.0f,
-				mRoofMarshalAssaultTimer - deltaTime);
-			if (mRoofMarshalAssaultTimer <= 0.0f) {
-				mRoofMarshalAssaultMoveMultiplier = 1.0f;
-				mRoofMarshalAssaultBiteMultiplier = 1.0f;
+		if (IsRoofMarshalAssaultActive()) {
+			mRoofMarshalAssaultState->mTimer = std::max(0.0f,
+				mRoofMarshalAssaultState->mTimer - deltaTime);
+			if (mRoofMarshalAssaultState->mTimer <= 0.0f) {
+				mRoofMarshalAssaultState->mMoveMultiplier = 1.0f;
+				mRoofMarshalAssaultState->mBiteMultiplier = 1.0f;
 				SetRoofMarshalAssaultFlagVisible(false);
 			}
 		}
@@ -513,8 +578,8 @@ void Zombie::Update()
 			&& !mBoard->mEntityRegistry.GetPlant(mTangleKelpPlantID)) {
 			ClearOrphanedTangleKelpGrab();
 		}
-		if (mDraggedUnderByTangleKelp) {
-			mTangleKelpSinkOffset += kTangleKelpSinkSpeed * deltaTime;
+		if (IsDraggedUnderByTangleKelp()) {
+			mTangleKelpState->mSinkOffset += kTangleKelpSinkSpeed * deltaTime;
 		}
 
 		if (mIsDying)
@@ -1911,10 +1976,8 @@ void Zombie::Die()
 	mParalysisTimer = 0.0f;
 	mControlImmunityTimers.fill(0.0f);
 	SetButterSplatFollowerVisible(false);
-	mRoofMarshalAssaultTimer = 0.0f;
-	mRoofMarshalAssaultMoveMultiplier = 1.0f;
-	mRoofMarshalAssaultBiteMultiplier = 1.0f;
 	SetRoofMarshalAssaultFlagVisible(false);
+	mRoofMarshalAssaultState.reset();
 	mToxinState.reset();
 
 	// 若死亡时仍在啃食植物，手动清理啃食状态（防止 mEaterCount 无法归零）
@@ -1946,7 +2009,7 @@ void Zombie::Die()
 
 Vector Zombie::GetVisualPosition() const {
 	return GetTransform()->GetPosition()
-		+ mVisualOffset + Vector(0.0f, mTangleKelpSinkOffset - mLadderAltitude);
+		+ mVisualOffset + Vector(0.0f, GetTangleKelpSinkOffset() - mLadderAltitude);
 }
 
 Vector Zombie::GetButterSplatAnchor() const
@@ -2030,7 +2093,8 @@ bool Zombie::StartTangleKelpGrab(int plantID)
 {
 	if (plantID == NULL_PLANT_ID) return false;
 	if (mTangleKelpPlantID == plantID) {
-		if (!mTangleKelpGrabBack || !mTangleKelpGrabFront) {
+		if (!mTangleKelpState || !mTangleKelpState->mGrabBack
+			|| !mTangleKelpState->mGrabFront) {
 			CreateTangleKelpGrabAnimators();
 		}
 		if (ResistsTangleKelpDrowning()) {
@@ -2041,8 +2105,7 @@ bool Zombie::StartTangleKelpGrab(int plantID)
 	if (!CanBeTargetedByTangleKelp()) return false;
 
 	mTangleKelpPlantID = plantID;
-	mDraggedUnderByTangleKelp = false;
-	mTangleKelpSinkOffset = 0.0f;
+	mTangleKelpState = std::make_unique<TangleKelpState>();
 	CreateTangleKelpGrabAnimators();
 	if (ResistsTangleKelpDrowning()) {
 		StopEatingForTangleKelp();
@@ -2052,8 +2115,9 @@ bool Zombie::StartTangleKelpGrab(int plantID)
 
 void Zombie::DragUnderByTangleKelp(int plantID)
 {
-	if (mTangleKelpPlantID != plantID || mDraggedUnderByTangleKelp) return;
-	mDraggedUnderByTangleKelp = true;
+	if (mTangleKelpPlantID != plantID || IsDraggedUnderByTangleKelp()) return;
+	if (!mTangleKelpState) mTangleKelpState = std::make_unique<TangleKelpState>();
+	mTangleKelpState->mDraggedUnder = true;
 	StopEatingForTangleKelp();
 }
 
@@ -2085,30 +2149,29 @@ void Zombie::CreateTangleKelpGrabAnimators(float savedFrame)
 		ResourceKeys::Reanimations::REANIM_TANGLEKELP);
 	if (!reanim) return;
 
-	mTangleKelpGrabBack = std::make_shared<Animator>(reanim);
-	mTangleKelpGrabFront = std::make_shared<Animator>(reanim);
-	for (const auto& animator : { mTangleKelpGrabBack, mTangleKelpGrabFront }) {
+	if (!mTangleKelpState) mTangleKelpState = std::make_unique<TangleKelpState>();
+	mTangleKelpState->mGrabBack = std::make_shared<Animator>(reanim);
+	mTangleKelpState->mGrabFront = std::make_shared<Animator>(reanim);
+	for (const auto& animator : {
+		mTangleKelpState->mGrabBack, mTangleKelpState->mGrabFront }) {
 		animator->PlayTrackOnce("anim_grab", "", kTangleKelpGrabSpeed);
 		animator->SetCurrentFrame(std::clamp(
 			savedFrame, kTangleKelpGrabStartFrame, kTangleKelpGrabEndFrame));
 	}
-	mTangleKelpGrabBack->SetTrackVisible("Layer 32", false);
-	mTangleKelpGrabFront->SetTrackVisible("Layer 29", false);
+	mTangleKelpState->mGrabBack->SetTrackVisible("Layer 32", false);
+	mTangleKelpState->mGrabFront->SetTrackVisible("Layer 29", false);
 }
 
 void Zombie::ClearOrphanedTangleKelpGrab()
 {
 	mTangleKelpPlantID = NULL_PLANT_ID;
-	mDraggedUnderByTangleKelp = false;
-	mTangleKelpSinkOffset = 0.0f;
-	mTangleKelpGrabBack.reset();
-	mTangleKelpGrabFront.reset();
+	mTangleKelpState.reset();
 }
 
 float Zombie::GetTangleKelpGrabFrame() const
 {
-	return mTangleKelpGrabFront
-		? mTangleKelpGrabFront->GetCurrentFrame()
+	return mTangleKelpState && mTangleKelpState->mGrabFront
+		? mTangleKelpState->mGrabFront->GetCurrentFrame()
 		: kTangleKelpGrabStartFrame;
 }
 
@@ -2116,17 +2179,24 @@ void Zombie::ApplyRoofMarshalAssault(
 	float duration, float moveMultiplier, float biteMultiplier)
 {
 	if (duration <= 0.0f || mIsDead || mIsDying) return;
-	mRoofMarshalAssaultTimer = std::max(mRoofMarshalAssaultTimer, duration);
-	mRoofMarshalAssaultMoveMultiplier = std::max(
-		mRoofMarshalAssaultMoveMultiplier, std::max(1.0f, moveMultiplier));
-	mRoofMarshalAssaultBiteMultiplier = std::max(
-		mRoofMarshalAssaultBiteMultiplier, std::max(1.0f, biteMultiplier));
+	if (!mRoofMarshalAssaultState) {
+		mRoofMarshalAssaultState = std::make_unique<RoofMarshalAssaultState>();
+	}
+	mRoofMarshalAssaultState->mTimer = std::max(
+		mRoofMarshalAssaultState->mTimer, duration);
+	mRoofMarshalAssaultState->mMoveMultiplier = std::max(
+		mRoofMarshalAssaultState->mMoveMultiplier, std::max(1.0f, moveMultiplier));
+	mRoofMarshalAssaultState->mBiteMultiplier = std::max(
+		mRoofMarshalAssaultState->mBiteMultiplier, std::max(1.0f, biteMultiplier));
 	SetRoofMarshalAssaultFlagVisible(true);
 }
 
 void Zombie::ConfigureRoofMarshalAssaultFlag()
 {
-	if (mRoofMarshalAssaultFlagAnimator || !mAnimator) return;
+	if (!mRoofMarshalAssaultState) {
+		mRoofMarshalAssaultState = std::make_unique<RoofMarshalAssaultState>();
+	}
+	if (mRoofMarshalAssaultState->mFlagAnimator || !mAnimator) return;
 	const char* trackName = GetButterSplatTrackName();
 	if (!trackName || !mAnimator->HasTrack(trackName)) return;
 
@@ -2138,24 +2208,24 @@ void Zombie::ConfigureRoofMarshalAssaultFlag()
 	flagAnimator->SetLocalPosition(kRoofMarshalFlagOffsetX, kRoofMarshalFlagOffsetY);
 	flagAnimator->SetAlpha(0.0f);
 	if (!mAnimator->AttachAnimator(trackName, flagAnimator)) return;
-	mRoofMarshalAssaultFlagAnimator = std::move(flagAnimator);
+	mRoofMarshalAssaultState->mFlagAnimator = std::move(flagAnimator);
 }
 
 void Zombie::SetRoofMarshalAssaultFlagVisible(bool visible)
 {
-	if (visible && !mRoofMarshalAssaultFlagAnimator) {
+	if (visible && !HasRoofMarshalAssaultFlagAnimator()) {
 		ConfigureRoofMarshalAssaultFlag();
 	}
-	if (mRoofMarshalAssaultFlagAnimator) {
-		mRoofMarshalAssaultFlagAnimator->SetAlpha(
+	if (mRoofMarshalAssaultState && mRoofMarshalAssaultState->mFlagAnimator) {
+		mRoofMarshalAssaultState->mFlagAnimator->SetAlpha(
 			visible && !mIsPreview && !mIsDead && !mIsDying ? 1.0f : 0.0f);
 	}
 }
 
 bool Zombie::IsRoofMarshalAssaultFlagVisible() const
 {
-	return IsRoofMarshalAssaultActive() && mRoofMarshalAssaultFlagAnimator
-		&& mRoofMarshalAssaultFlagAnimator->GetAlpha() > 0.01f
+	return IsRoofMarshalAssaultActive() && HasRoofMarshalAssaultFlagAnimator()
+		&& mRoofMarshalAssaultState->mFlagAnimator->GetAlpha() > 0.01f
 		&& !mIsPreview && !mIsDead && !mIsDying;
 }
 
@@ -2524,12 +2594,12 @@ void Zombie::Draw(Graphics* g)
 	const float scale = GetTransform()
 		? GetTransform()->GetScale()
 		: 1.0f;
-	if (mTangleKelpGrabBack) {
-		mTangleKelpGrabBack->Draw(g, grabPosition.x, grabPosition.y, scale);
+	if (mTangleKelpState && mTangleKelpState->mGrabBack) {
+		mTangleKelpState->mGrabBack->Draw(g, grabPosition.x, grabPosition.y, scale);
 	}
 	AnimatedObject::Draw(g);	// 水草后层之后画僵尸本体
-	if (mTangleKelpGrabFront) {
-		mTangleKelpGrabFront->Draw(g, grabPosition.x, grabPosition.y, scale);
+	if (mTangleKelpState && mTangleKelpState->mGrabFront) {
+		mTangleKelpState->mGrabFront->Draw(g, grabPosition.x, grabPosition.y, scale);
 	}
 
 	// 缺少语义头部轨道的未来异形资源才走旧锚点后绘；当前常规品种均由 reanim 内分层。

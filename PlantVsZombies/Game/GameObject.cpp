@@ -5,7 +5,9 @@
 #include "ClickableComponent.h"
 
 GameObject::GameObject(ObjectType type)
-	: mObjectType(type)
+	: mObjectType(type),
+	  mTag(&InternRuntimeString("Untagged")),
+	  mName(&InternRuntimeString("GameObject"))
 {
 }
 

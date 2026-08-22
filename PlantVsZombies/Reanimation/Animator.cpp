@@ -77,15 +77,54 @@ void Animator::Init(std::shared_ptr<Reanimation> reanim) {
 
 		mPlayingState = PlayState::PLAY_REPEAT;
 		mIsPlaying = false;
-		mTargetTrack = "";
+		mTargetTrack = &InternRuntimeString("");
 		mTargetTrackSpeed = 0.0f;
 		mTargetTrackBlendTime = 0.5f;
 	}
 }
 
-void Animator::AddFrameEvent(int frameIndex, std::function<void()> callback, bool persistent) {
-	if (callback) {
-		mFrameEvents.insert({ frameIndex, FrameEvent{ std::move(callback), persistent } });
+void Animator::AddFrameEventInternal(
+	int frameIndex, InlineFrameCallback callback, bool persistent)
+{
+	if (!callback) return;
+	// 现有 Animator 最多注册 4 个事件；首次预留一次即可覆盖普通僵尸的三个节点。
+	if (mFrameEvents.empty()) mFrameEvents.reserve(4);
+	const auto insertionPoint = std::upper_bound(
+		mFrameEvents.begin(), mFrameEvents.end(), frameIndex,
+		[](int frame, const FrameEvent& event) {
+			return frame < event.frameIndex;
+		});
+	mFrameEvents.insert(insertionPoint,
+		FrameEvent{ std::move(callback), frameIndex, persistent });
+}
+
+void Animator::ProcessFrameEventsAt(
+	int frameIndex, std::vector<DeferredEvent>* outBuf)
+{
+	auto event = std::lower_bound(
+		mFrameEvents.begin(), mFrameEvents.end(), frameIndex,
+		[](const FrameEvent& candidate, int frame) {
+			return candidate.frameIndex < frame;
+		});
+	while (event != mFrameEvents.end() && event->frameIndex == frameIndex) {
+		InlineFrameCallback callback = event->callback;
+		if (event->persistent) {
+			++event;
+		}
+		else {
+			event = mFrameEvents.erase(event);
+		}
+
+		if (outBuf) outBuf->push_back({ std::move(callback) });
+		else callback();
+	}
+}
+
+void Animator::ProcessFrameEventRange(
+	int firstFrame, int lastFrame, std::vector<DeferredEvent>* outBuf)
+{
+	for (int frame = firstFrame; frame <= lastFrame; ++frame) {
+		ProcessFrameEventsAt(frame, outBuf);
 	}
 }
 
@@ -118,7 +157,7 @@ bool Animator::PlayTrack(const std::string& trackName, float speed, float blendT
 
 	mIsPlaying = true;
 	mPlayingState = PlayState::PLAY_REPEAT;
-	mCurrentTrackName = trackName;
+	mCurrentTrackName = &InternRuntimeString(trackName);
 
 	return true;
 }
@@ -130,7 +169,7 @@ bool Animator::PlayTrackOnce(const std::string& trackName, const std::string& re
 	}
 
 	mPlayingState = PlayState::PLAY_ONCE_TO;
-	mTargetTrack = returnTrack;
+	mTargetTrack = &InternRuntimeString(returnTrack);
 	mTargetTrackSpeed = returnSpeed;   // 回切时用，0=回落 base（保持旧行为）
 	mTargetTrackBlendTime = returnTrackBlendTime;
 
@@ -186,10 +225,10 @@ void Animator::Update() {
 		case PlayState::PLAY_ONCE_TO:
 			mFrameIndexNow = mFrameIndexEnd;
 			mIsPlaying = false;
-			if (!mTargetTrack.empty()) {
-				PlayTrack(mTargetTrack, mTargetTrackSpeed, mTargetTrackBlendTime);
+			if (!mTargetTrack->empty()) {
+				PlayTrack(*mTargetTrack, mTargetTrackSpeed, mTargetTrackBlendTime);
 			}
-			mTargetTrack = "";
+			mTargetTrack = &InternRuntimeString("");
 			mTargetTrackSpeed = 0.0f;
 			mTargetTrackBlendTime = 0.5f;
 			break;
@@ -209,47 +248,14 @@ void Animator::Update() {
 
 	if (newInt >= oldInt) {
 		// 正常前进或不变
-		for (int f = oldInt + 1; f <= newInt; ++f) {
-			auto range = mFrameEvents.equal_range(f);
-			for (auto it = range.first; it != range.second;) {
-				it->second.callback();
-				if (it->second.persistent) {
-					++it;
-				}
-				else {
-					it = mFrameEvents.erase(it);
-				}
-			}
-		}
+		ProcessFrameEventRange(oldInt + 1, newInt, nullptr);
 	}
 	else {
 		// 发生了回绕（循环播放）
 		int endInt = static_cast<int>(mFrameIndexEnd);
-		for (int f = oldInt + 1; f <= endInt; ++f) {
-			auto range = mFrameEvents.equal_range(f);
-			for (auto it = range.first; it != range.second;) {
-				it->second.callback();
-				if (it->second.persistent) {
-					++it;
-				}
-				else {
-					it = mFrameEvents.erase(it);
-				}
-			}
-		}
+		ProcessFrameEventRange(oldInt + 1, endInt, nullptr);
 		int beginInt = static_cast<int>(mFrameIndexBegin);
-		for (int f = beginInt; f <= newInt; ++f) {
-			auto range = mFrameEvents.equal_range(f);
-			for (auto it = range.first; it != range.second;) {
-				it->second.callback();
-				if (it->second.persistent) {
-					++it;
-				}
-				else {
-					it = mFrameEvents.erase(it);
-				}
-			}
-		}
+		ProcessFrameEventRange(beginInt, newInt, nullptr);
 	}
 
 	// 更新混合计时器
@@ -290,10 +296,10 @@ void Animator::UpdateParallelDeferred(std::vector<DeferredEvent>& outBuf) {
 		case PlayState::PLAY_ONCE_TO:
 			mFrameIndexNow = mFrameIndexEnd;
 			mIsPlaying = false;
-			if (!mTargetTrack.empty()) {
-				PlayTrack(mTargetTrack, mTargetTrackSpeed, mTargetTrackBlendTime);
+			if (!mTargetTrack->empty()) {
+				PlayTrack(*mTargetTrack, mTargetTrackSpeed, mTargetTrackBlendTime);
 			}
-			mTargetTrack = "";
+			mTargetTrack = &InternRuntimeString("");
 			mTargetTrackSpeed = 0.0f;
 			mTargetTrackBlendTime = 0.5f;
 			break;
@@ -310,46 +316,13 @@ void Animator::UpdateParallelDeferred(std::vector<DeferredEvent>& outBuf) {
 	int newInt = static_cast<int>(mFrameIndexNow);
 
 	if (newInt >= oldInt) {
-		for (int f = oldInt + 1; f <= newInt; ++f) {
-			auto range = mFrameEvents.equal_range(f);
-			for (auto it = range.first; it != range.second;) {
-				outBuf.push_back({ it->second.callback });
-				if (it->second.persistent) {
-					++it;
-				}
-				else {
-					it = mFrameEvents.erase(it);
-				}
-			}
-		}
+		ProcessFrameEventRange(oldInt + 1, newInt, &outBuf);
 	}
 	else {
 		int endInt = static_cast<int>(mFrameIndexEnd);
-		for (int f = oldInt + 1; f <= endInt; ++f) {
-			auto range = mFrameEvents.equal_range(f);
-			for (auto it = range.first; it != range.second;) {
-				outBuf.push_back({ it->second.callback });
-				if (it->second.persistent) {
-					++it;
-				}
-				else {
-					it = mFrameEvents.erase(it);
-				}
-			}
-		}
+		ProcessFrameEventRange(oldInt + 1, endInt, &outBuf);
 		int beginInt = static_cast<int>(mFrameIndexBegin);
-		for (int f = beginInt; f <= newInt; ++f) {
-			auto range = mFrameEvents.equal_range(f);
-			for (auto it = range.first; it != range.second;) {
-				outBuf.push_back({ it->second.callback });
-				if (it->second.persistent) {
-					++it;
-				}
-				else {
-					it = mFrameEvents.erase(it);
-				}
-			}
-		}
+		ProcessFrameEventRange(beginInt, newInt, &outBuf);
 	}
 
 	if (mReanimBlendCounter > 0) {

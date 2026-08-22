@@ -4,13 +4,12 @@
 
 #include "ReanimTypes.h"
 #include "Reanimation.h"
+#include "../InternedString.h"
 #include "../Graphics.h"
 #include "../Game/DeferredEvent.h"
 #include <algorithm>
-#include <functional>
-#include <unordered_map>
-#include <map>
 #include <memory>
+#include <utility>
 #include <vector>
 #include <glm/glm.hpp>
 #include <iostream>
@@ -93,18 +92,25 @@ private:
 	SDL_Color mExtraAdditiveColor = { 255, 255, 255, 128 };  ///< 高亮颜色
 	SDL_Color mExtraOverlayColor = { 255, 255, 255, 64 };    ///< 覆盖层颜色
 
-	std::string mCurrentTrackName = "";         ///< 当前正在播放的轨道名
+	const std::string* mCurrentTrackName = &InternRuntimeString(""); ///< 当前正在播放的驻留轨道名
 
 	// 过渡目标
-	std::string mTargetTrack = "";              ///< 播放一次后要切换到的轨道名
+	const std::string* mTargetTrack = &InternRuntimeString(""); ///< 播放一次后要切换到的驻留轨道名
 	float mTargetTrackSpeed = 0.0f;             ///< 回切到 mTargetTrack 时用的 clip 速度（0=回落 base），由 PlayTrackOnce 指定
 	float mTargetTrackBlendTime = 0.5f;         ///< 回切到 mTargetTrack 时的混合秒数，默认保留历史 0.5 秒
 
 	struct FrameEvent {
-		std::function<void()> callback;
+		InlineFrameCallback callback;
+		int frameIndex;
 		bool persistent;   ///< false=一次性，触发后移除；true=每次穿过该帧都触发
 	};
-	std::unordered_multimap<int, FrameEvent> mFrameEvents;  ///< 帧事件表
+	std::vector<FrameEvent> mFrameEvents;  ///< 按帧号排序的小事件表；连续存储避免逐事件哈希节点
+
+	void AddFrameEventInternal(
+		int frameIndex, InlineFrameCallback callback, bool persistent);
+	void ProcessFrameEventsAt(int frameIndex, std::vector<DeferredEvent>* outBuf);
+	void ProcessFrameEventRange(
+		int firstFrame, int lastFrame, std::vector<DeferredEvent>* outBuf);
 
 public:
 	/**
@@ -159,7 +165,12 @@ public:
 	 * @param callback 回调函数
 	 * @param persistent false=一次性，触发后自动移除（默认）；true=持久事件，每次帧索引穿过该帧都触发，仅在 Die()/Init() 时清空
 	 */
-	void AddFrameEvent(int frameIndex, std::function<void()> callback, bool persistent = false);
+	template<typename Callback>
+	void AddFrameEvent(int frameIndex, Callback&& callback, bool persistent = false)
+	{
+		AddFrameEventInternal(frameIndex,
+			InlineFrameCallback(std::forward<Callback>(callback)), persistent);
+	}
 
 	/**
 	 * @brief 播放指定轨道动画，支持过渡效果
@@ -293,7 +304,7 @@ public:
 	/**
 	 * @brief 获取当前正在播放的轨道名
 	 */
-	const std::string& GetCurrentTrackName() const { return mCurrentTrackName; }
+	const std::string& GetCurrentTrackName() const { return *mCurrentTrackName; }
 
 	/**
 	 * @brief 获取当前播放状态 (循环 / 一次性 / 一次性后切换)。
@@ -305,7 +316,7 @@ public:
 	/**
 	 * @brief 获取 PlayTrackOnce 播完后要切换到的目标轨道名 (空=播完即停，不切换)
 	 */
-	const std::string& GetTargetTrack() const { return mTargetTrack; }
+	const std::string& GetTargetTrack() const { return *mTargetTrack; }
 
 	/**
 	 * @brief 获取回切到目标轨道时使用的 clip 速度 (0=回落 base)

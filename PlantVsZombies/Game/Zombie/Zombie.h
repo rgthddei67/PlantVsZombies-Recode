@@ -53,6 +53,8 @@ constexpr ZombieControlMask ZOMBIE_CONTROL_HARD_MASK =
 class Zombie : public AnimatedObject {
 private:
 	struct ToxinState;
+	struct RoofMarshalAssaultState;
+	struct TangleKelpState;
 
 public:
 	ZombieType mZombieType = ZombieType::NUM_ZOMBIE_TYPES;
@@ -90,10 +92,7 @@ protected:
 	float mButterTimer = 0.0f;		// 黄油定身剩余秒数，0=未被黄油固定
 	float mParalysisTimer = 0.0f;   // 通用麻痹剩余游戏秒；来源可以是天气、植物或其他机制
 	std::array<float, ZOMBIE_CONTROL_EFFECT_COUNT> mControlImmunityTimers{}; // 各控制类型独立的临时免疫游戏秒数
-	float mRoofMarshalAssaultTimer = 0.0f; // 突击令剩余游戏秒数；独立于天气与寒冷状态
-	float mRoofMarshalAssaultMoveMultiplier = 1.0f; // 突击令自主水平推进倍率
-	float mRoofMarshalAssaultBiteMultiplier = 1.0f; // 突击令每口伤害倍率
-	std::shared_ptr<Animator> mRoofMarshalAssaultFlagAnimator; // 复用原版红旗的轨道内警示附件；纯展示派生状态不入档
+	std::unique_ptr<RoofMarshalAssaultState> mRoofMarshalAssaultState; // 首次受突击令时分配，含计时、倍率和红旗表现
 	bool mButterSplatFollowerConfigured = false; // 当前 reanim 是否已绑定语义头部轨道黄油；纯展示派生状态不入档
 	std::unique_ptr<ToxinState> mToxinState; // 仅中毒时分配，避免普通僵尸常驻二十层计时器
 
@@ -118,10 +117,7 @@ protected:
 	float mSpeed = 10.0f;
 	int mGroundTrackIndex = -1;
 	int mTangleKelpPlantID = NULL_PLANT_ID;	// 正在抓住本僵尸的水草 ID；保证一只僵尸只能被一株水草锁定
-	bool mDraggedUnderByTangleKelp = false;	// 51cs 节点后置位，停止啃食并开始下沉
-	float mTangleKelpSinkOffset = 0.0f;		// 拖沉阶段叠加到视觉 Y 的位移，单位：像素
-	std::shared_ptr<Animator> mTangleKelpGrabBack;	// anim_grab 后层，绘制在僵尸本体之后
-	std::shared_ptr<Animator> mTangleKelpGrabFront;	// anim_grab 前层，绘制在僵尸本体之前
+	std::unique_ptr<TangleKelpState> mTangleKelpState; // 仅被抓目标分配，含拖沉进度及前后层 anim_grab
 	LadderClimbPhase mLadderClimbPhase = LadderClimbPhase::NONE;
 	float mLadderAltitude = 0.0f;	// 相对地面的扶梯攀爬高度，单位：像素
 	int mUseLadderColumn = -1;	// 最近使用的扶梯列；防止落地后反复攀爬同一架梯
@@ -376,18 +372,12 @@ public:
 		bool clearExisting = true);
 	/** @brief 施加或刷新屋脊督军突击令；重复命令只延长并保留较强倍率。 */
 	void ApplyRoofMarshalAssault(float duration, float moveMultiplier, float biteMultiplier);
-	bool IsRoofMarshalAssaultActive() const { return mRoofMarshalAssaultTimer > 0.0f; }
-	float GetRoofMarshalAssaultTimer() const { return mRoofMarshalAssaultTimer; }
-	float GetRoofMarshalAssaultMoveMultiplier() const {
-		return IsRoofMarshalAssaultActive() ? mRoofMarshalAssaultMoveMultiplier : 1.0f;
-	}
-	float GetRoofMarshalAssaultBiteMultiplier() const {
-		return IsRoofMarshalAssaultActive() ? mRoofMarshalAssaultBiteMultiplier : 1.0f;
-	}
+	bool IsRoofMarshalAssaultActive() const;
+	float GetRoofMarshalAssaultTimer() const;
+	float GetRoofMarshalAssaultMoveMultiplier() const;
+	float GetRoofMarshalAssaultBiteMultiplier() const;
 	/** 突击令红旗附件是否成功创建；用于资源闭环与 AutoTest。 */
-	bool HasRoofMarshalAssaultFlagAnimator() const {
-		return static_cast<bool>(mRoofMarshalAssaultFlagAnimator);
-	}
+	bool HasRoofMarshalAssaultFlagAnimator() const;
 	/** 突击令红旗当前是否随目标僵尸显示。 */
 	bool IsRoofMarshalAssaultFlagVisible() const;
 	/** 冻结、黄油或通用麻痹任一生效时，统一视为完全定身。 */
@@ -439,8 +429,8 @@ public:
 	bool IsTangleKelpTarget() const { return mTangleKelpPlantID != NULL_PLANT_ID; }
 	bool IsTangleKelpTargetOf(int plantID) const { return mTangleKelpPlantID == plantID; }
 	int GetTangleKelpPlantID() const { return mTangleKelpPlantID; }
-	bool IsDraggedUnderByTangleKelp() const { return mDraggedUnderByTangleKelp; }
-	float GetTangleKelpSinkOffset() const { return mTangleKelpSinkOffset; }
+	bool IsDraggedUnderByTangleKelp() const;
+	float GetTangleKelpSinkOffset() const;
 	float GetTangleKelpGrabFrame() const;
 
 	// 冻结唯一入口（寒冰菇）：先上 20s 减速尾巴（SetCooldown，其持盾守卫保留——持盾照冻不吃减速），

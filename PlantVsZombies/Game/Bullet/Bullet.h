@@ -3,6 +3,7 @@
 #define _BULLET_H
 
 #include <SDL2/SDL.h>
+#include <cstdint>
 #include <memory>
 #include <vector>
 #include "../../DeltaTime.h"
@@ -24,6 +25,30 @@ class ShadowComponent;
 
 class Bullet final : public GameObject
 {
+private:
+	enum class TrajectoryKind : std::uint8_t {
+		LINEAR,
+		LOBBED,
+		COB_CANNON,
+	};
+
+	/** 解析抛射与玉米棒轨迹互斥，共用起终点和时间轴以免普通子弹常驻两套状态。 */
+	struct TrajectoryState {
+		Vector start = Vector::zero();
+		Vector target = Vector::zero();
+		float elapsed = 0.0f;
+		float duration = 0.0f;
+		union {
+			float apexHeight;
+			int targetRow;
+		};
+		TrajectoryKind kind = TrajectoryKind::LINEAR;
+
+		TrajectoryState() : apexHeight(0.0f) {}
+	};
+
+	struct SpikeState;
+
 public:
 	BulletType mBulletType = BulletType::NUM_BULLETS;
 	float mScale = 0.9f;
@@ -43,22 +68,10 @@ protected:
 	float mRotationSpeedDegrees = 0.0f; // 星弹随机自旋速度，单位：度/游戏秒
 	bool mThreepeaterMotion = false; // 三线射手斜向豌豆按原版逐步衰减纵向速度
 	bool mTargetsFlying = false; // 高姿态仙人掌尖刺为 true；对象池与存档必须显式复位
-	bool mLobbedMotion = false; // 解析抛射物状态；对象池复用必须显式清空
-	Vector mLobStart = Vector::zero(); // 抛射起点，逻辑弹心坐标
-	Vector mLobTarget = Vector::zero(); // 发射时预测并冻结的落点，逻辑弹心坐标
-	float mLobElapsed = 0.0f; // 已飞行游戏时间，单位：秒
-	float mLobDuration = 0.0f; // 到达预测落点所需游戏时间，单位：秒
-	float mLobApexHeight = 0.0f; // 相对起终点连线的最高拱高，单位：像素
-	bool mCobCannonMotion = false; // 玉米棒先升空、移到落点上方再垂直落下的专属轨迹
-	Vector mCobStart = Vector::zero(); // 玉米加农炮发射点，逻辑弹心坐标
-	Vector mCobTarget = Vector::zero(); // 玩家点击后冻结的爆心坐标
-	float mCobElapsed = 0.0f; // 玉米棒已飞行游戏时间，单位：秒
-	float mCobDuration = 0.0f; // 玉米棒从发射到爆炸的总游戏时间，单位：秒
-	int mCobTargetRow = -1; // 点击落点的逻辑行；爆炸严格覆盖上下相邻行
+	TrajectoryState mTrajectory; // 轨迹类型与互斥参数；对象池复用必须整体重置
 	BulletType mPoolType = BulletType::NUM_BULLETS; // 对象池槽位的固定类型；火炬树桩只改变当前表现类型
 	int mHitTorchwoodColumn = -1; // 最近处理过本子弹的火炬树桩列，防止同列反复转换
-	std::vector<int> mPiercedZombieIDs; // 尖刺已接触的不同僵尸实体 ID；按玩法穿透上限截断
-	std::vector<float> mSpikeDamageRemainders; // 与穿透 ID 对齐的未结算小数伤害额度
+	std::unique_ptr<SpikeState> mSpikeState; // 仅尖刺首次接触目标时分配，固定四槽且随池槽复用
 	std::shared_ptr<Animator> mProjectileAnimator;
 	bool mAnimatorAdvancedInParallel = false;
 
@@ -101,6 +114,7 @@ protected:
 public:
 	Bullet(Board* board, BulletType bulletType, int row, const Vector& colliderRadius,
 		const Vector& position);
+	~Bullet() override;
 
 	// 重置子弹状态（用于对象池复用）
 	void Reset(Board* board, int row,
@@ -155,13 +169,9 @@ public:
 		return mBulletType == BulletType::BULLET_TOXICFIREBALL;
 	}
 	/** 返回尖刺已接触的不同僵尸数量；其他子弹恒为 0。 */
-	int GetPiercedZombieCount() const {
-		return static_cast<int>(mPiercedZombieIDs.size());
-	}
-	const std::vector<int>& GetPiercedZombieIDs() const { return mPiercedZombieIDs; }
-	const std::vector<float>& GetSpikeDamageRemainders() const {
-		return mSpikeDamageRemainders;
-	}
+	int GetPiercedZombieCount() const;
+	std::vector<int> GetPiercedZombieIDs() const;
+	std::vector<float> GetSpikeDamageRemainders() const;
 	/** 按存档恢复尖刺穿透目标和小数伤害额度；会去重并截断到玩法上限。 */
 	void RestorePiercedZombieState(const std::vector<int>& zombieIDs,
 		const std::vector<float>& damageRemainders);
@@ -185,12 +195,16 @@ public:
 	/** 按存档恢复在途解析抛物线，并重建速度、位置与末段碰撞门禁。 */
 	void RestoreLobbedMotion(const Vector& start, const Vector& target,
 		float elapsedSeconds, float durationSeconds, float apexHeight);
-	bool IsLobbedMotion() const { return mLobbedMotion; }
-	const Vector& GetLobStart() const { return mLobStart; }
-	const Vector& GetLobTarget() const { return mLobTarget; }
-	float GetLobElapsed() const { return mLobElapsed; }
-	float GetLobDuration() const { return mLobDuration; }
-	float GetLobApexHeight() const { return mLobApexHeight; }
+	bool IsLobbedMotion() const { return mTrajectory.kind == TrajectoryKind::LOBBED; }
+	Vector GetLobStart() const {
+		return IsLobbedMotion() ? mTrajectory.start : Vector::zero();
+	}
+	Vector GetLobTarget() const {
+		return IsLobbedMotion() ? mTrajectory.target : Vector::zero();
+	}
+	float GetLobElapsed() const { return IsLobbedMotion() ? mTrajectory.elapsed : 0.0f; }
+	float GetLobDuration() const { return IsLobbedMotion() ? mTrajectory.duration : 0.0f; }
+	float GetLobApexHeight() const { return IsLobbedMotion() ? mTrajectory.apexHeight : 0.0f; }
 	float GetLobProgress() const;
 	float GetLobArcHeight() const;
 	/** 配置玉米加农炮专属轨迹；目标由玩家点击冻结，不再追踪实体。 */
@@ -199,12 +213,24 @@ public:
 	/** 按存档恢复在途玉米棒；不会重放已经过去的发射音效。 */
 	void RestoreCobCannonMotion(const Vector& start, const Vector& target,
 		int targetRow, float elapsedSeconds, float durationSeconds);
-	bool IsCobCannonMotion() const { return mCobCannonMotion; }
-	const Vector& GetCobStart() const { return mCobStart; }
-	const Vector& GetCobTarget() const { return mCobTarget; }
-	float GetCobElapsed() const { return mCobElapsed; }
-	float GetCobDuration() const { return mCobDuration; }
-	int GetCobTargetRow() const { return mCobTargetRow; }
+	bool IsCobCannonMotion() const {
+		return mTrajectory.kind == TrajectoryKind::COB_CANNON;
+	}
+	Vector GetCobStart() const {
+		return IsCobCannonMotion() ? mTrajectory.start : Vector::zero();
+	}
+	Vector GetCobTarget() const {
+		return IsCobCannonMotion() ? mTrajectory.target : Vector::zero();
+	}
+	float GetCobElapsed() const {
+		return IsCobCannonMotion() ? mTrajectory.elapsed : 0.0f;
+	}
+	float GetCobDuration() const {
+		return IsCobCannonMotion() ? mTrajectory.duration : 0.0f;
+	}
+	int GetCobTargetRow() const {
+		return IsCobCannonMotion() ? mTrajectory.targetRow : -1;
+	}
 
 	int GetSortingKey() const override { return this->mRow; }
 	Vector GetPosition() const { return GetTransform()->GetPosition(); }
