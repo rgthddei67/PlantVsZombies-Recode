@@ -102,7 +102,7 @@ void DolphinRiderZombie::SetupZombie()
 	mNeedDropArm = false;
 	SetAnimationSpeed(1.0f);
 
-	if (auto* shadow = GetComponent<ShadowComponent>()) {
+	if (auto* shadow = GetShadow()) {
 		shadow->SetOffset(Vector(8.0f, 42.0f));
 	}
 	if (mIsPreview) {
@@ -446,8 +446,8 @@ void DolphinRiderZombie::ApplyPhasePresentation() const
 			&& mPhase != Phase::ENTERING_POOL
 			&& mPhase != Phase::JUMPING;
 	}
-	if (mPoolShadow) {
-		mPoolShadow->mEnabled = mPhase != Phase::ENTERING_POOL && mPhase != Phase::JUMPING;
+	if (auto* shadow = GetShadow()) {
+		shadow->SetEnabled(mPhase != Phase::ENTERING_POOL && mPhase != Phase::JUMPING);
 	}
 }
 

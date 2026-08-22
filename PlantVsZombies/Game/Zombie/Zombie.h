@@ -115,7 +115,6 @@ protected:
 
 	float mSpeed = 10.0f;
 	int mGroundTrackIndex = -1;
-	ShadowComponent* mPoolShadow = nullptr;	// Start 创建的非所有权阴影缓存，入水时统一隐藏
 	int mTangleKelpPlantID = NULL_PLANT_ID;	// 正在抓住本僵尸的水草 ID；保证一只僵尸只能被一株水草锁定
 	bool mDraggedUnderByTangleKelp = false;	// 51cs 节点后置位，停止啃食并开始下沉
 	float mTangleKelpSinkOffset = 0.0f;		// 拖沉阶段叠加到视觉 Y 的位移，单位：像素

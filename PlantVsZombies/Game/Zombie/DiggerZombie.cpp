@@ -209,7 +209,7 @@ void DiggerZombie::ZombieUpdate(float scaledTime)
 		break;
 	}
 	// 通用介质状态或读档恢复不得让出土中的矿工提前出现地面投影。
-	if (mPoolShadow) mPoolShadow->SetVisible(IsInteractivePhase());
+	if (auto* shadow = GetShadow()) shadow->SetVisible(IsInteractivePhase());
 	UpdateFacing();
 }
 
@@ -422,8 +422,8 @@ void DiggerZombie::ApplyPhasePresentation()
 	ApplyAltitude();
 	const bool interactive = IsInteractivePhase() && !mIsDying && !mIsDead;
 	if (mCollider) mCollider->mEnabled = interactive;
-	if (mPoolShadow) {
-		mPoolShadow->SetVisible(interactive);
+	if (auto* shadow = GetShadow()) {
+		shadow->SetVisible(interactive);
 	}
 	// reanim 自带 _ground 轨道不参与绘制，统一使用 ShadowComponent 管理出现时机。
 	mAnimator->SetTrackVisible("_ground", false);

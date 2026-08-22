@@ -19,7 +19,7 @@ namespace {
 void CoffeeBean::SetupPlant()
 {
 	// 原版 InstantCoffee 属于 flying plant；叠在目标上时没有落地阴影或啃食碰撞。
-	RemoveComponent<ShadowComponent>();
+	RemoveShadow();
 	if (!mIsPreview) {
 		RemoveCollider();
 	}

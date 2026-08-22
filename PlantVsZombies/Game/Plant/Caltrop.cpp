@@ -24,7 +24,7 @@ namespace {
 void Caltrop::SetupPlant()
 {
 	// 原版地刺贴地绘制，不投射普通植物阴影。
-	RemoveComponent<ShadowComponent>();
+	RemoveShadow();
 
 	if (mIsPreview || !mAnimator) return;
 

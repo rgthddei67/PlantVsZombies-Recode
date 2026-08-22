@@ -80,7 +80,7 @@
 - [精英胆小菇](project_pvz_elite_scaredyshroom.md) — 2026-07-23 冒险 2-8 紫色奖励植物：500生命、10伤起步，每5发间隔乘0.85、每10发伤害+1，最终15伤/0.2秒；受惊全清，白天每发只长0.6；每关累计最多种3株且损失不返还，高速吐弹用pending防重播吞弹
 - [土豆地雷出土触发与范围爆炸](project_pvz_potato_mine_trigger_blast.md) — 2026-07-20 修复埋地时已被啃导致出土后不爆：出土跃迁若 `mEaterCount>0` 主动补触发；爆炸按原版同排半径60圆×僵尸矩形一次结算全部非魅惑目标，不再只杀碰撞触发者；可见 `smoke_potatomine.json` 独立覆盖先啃后出土与已出土双目标范围爆炸
 - [加固铁门僵尸](project_pvz_reinforced_door_zombie.md) — 2026-08-01 当前源码为270本体/1030门；持门正面植物普通伤害最多10、灰烬最多320、仙人掌正面尖刺帧伤1且免化灰/直杀，背击子弹绕门并取消持门上限；4-5加入双向射手即时反制教学，4-6继续综合复习；水草束缚、免魅惑与大喷截断契约保持
-- [Bullet 地面阴影与跨对象绘制顺序](project_pvz_bullet_shadow.md) — 2026-07-19 对齐 C#：Pea 单格21×9、Snowpea 1.3×、Puff无影；对象池复用时按row/position重算；阴影由 BulletPool 在 GOM 主体前统一提交，不能靠 Component::SetDrawOrder 跨越植物/Bullet对象层；主人校对 Y 与同排豌豆射手影子一致；可见 `smoke_bullet_shadow.json` 验普通/寒冰子弹穿过坚果时本体在上、影子在下
+- [Bullet 地面阴影与跨对象绘制顺序](project_pvz_bullet_shadow.md) — 2026-07-19 对齐 C#：Pea 单格21×9、Snowpea 1.3×、Puff无影；2026-08-22 改为宿主显式 Shadow 附件且对象池复用仍按row/position重算；阴影由 BulletPool 在 GOM 主体前统一提交，宿主固定绘制阶段不能跨越植物/Bullet对象层；主人校对 Y 与同排豌豆射手影子一致；可见默认/NoInstance `smoke_bullet_shadow.json` 验本体在上、影子在下
 - [九关制冒险进度+显式植物奖励表](project_pvz_adventure_progression.md) — 2026-08-14 `AdventureProgression.h` 扩展为六大关54小关；5-9 为白天屋顶屋脊督军关并奖励接地菇，6-1～6-9 为黑夜屋顶，6-1空、6-2奖励忧郁菇、6-3奖励双子向日葵、6-4奖励避雷花盆、6-5奖励冰瓜，6-6起暂空；6-9僵尸博士仍未接入
 - [5-9 屋脊督军完整首领](project_pvz_roof_marshal_prototype.md) — 2026-08-12 正式绑定第15波；15000生命、250啃食、1/6/4秒固定36种前五大关白名单，高威胁概率在11000～5400血间由30%线性升至100%、狂暴阶段不出普通杂兵；黄油1.25秒后免疫5秒；每两批跑向兵力最多行并强化10秒，目标带原版红旗且有中央警报；屏幕下方560×18黑金首领血条同步显示实际血量与11000/5400阶段线；血条查询使用督军专用有序弱索引，不再每帧扫描全体僵尸
 - [非整十波旗帜进度条](project_pvz_flag_meter_non_multiple_waves.md) — 2026-07-18 对齐 C# `DrawProgressMeter`：旗数=`总波数/10` 向下取整，第 k 面旗横向位置=`1-k*10/总波数`；旗子按第10/20/30波顺序存储，实时升旗和读档恢复均直接使用同一索引；可见 AutoTest 已覆盖15/25/35波布局与25波第10波升旗
@@ -145,7 +145,7 @@
 - [并行Update phase-1 已REVERT](project_pvz_parallel_update_phase1.md) — Animator帧推进仅占Update12%(plan误判80%),dispatch0.05ms非瓶颈
 - [并行Update phase-2 ✅](project_pvz_parallel_update_phase2.md) — 292f68e 整Animator::Update并行+deferred events;-3.44ms/69.3→91FPS
 - [phase-3 component-update skipping ✅](project_pvz_phase3_component_update_skipping.md) — c435a57 NeedsUpdate virtual+mUpdatableComponents视图;FPS91→100;PROFILE_SCOPE自污染~4.6ms
-- [继承式玩法对象与组件容器收缩](project_pvz_inheritance_gameplay_architecture.md) — Card 专属组件、CardSlotManager、显式 Transform、纯 UI 所有权与 Collider 显式所有权均已完成；组件容器只剩 Shadow/Clickable，下一阶段为 Shadow；僵尸行桶仍遵守 Die/CommitRow 即时失效契约
+- [继承式玩法对象与组件容器收缩](project_pvz_inheritance_gameplay_architecture.md) — Card 专属组件、CardSlotManager、显式 Transform、纯 UI、Collider 与 Shadow 显式所有权均已完成；组件容器只剩 Clickable，下一阶段迁移 Clickable 后删除 Component 框架；Shadow 默认实例/NoInstance、BulletPool 跨对象阶段与动态视觉锚点契约保持；僵尸行桶仍遵守 Die/CommitRow 即时失效契约
 - [预计算动画(放弃)](project_pvz_precomputed_animation.md) — 2026-05-23 TrackInfo::mFrames已密集per-frame,关键帧搜索不存在,ROI不足
 - [GPU instancing reanim ✅](project_pvz_gpu_instancing_reanim.md) — 2026-05-24(388a845)reanim→InstanceRecord;-1.39ms/98.4→114FPS；postscript修glow状态污染+双队列Z-order；2026-07-24 `ShadowComponent` 默认也写 instance 队列，修复并行阈值后“睡莲本体反盖上层植物影子”，`-NoInstance` 仍走 batch 兜底
 - [Clickable优化 ✅](project_pvz_clickable_optimization.md) — 2026-05-24 自注册表替换全场扫描;1.22→0.01ms(-122×);**GetAllGameObjects() per-frame scan是本仓库foot-gun**

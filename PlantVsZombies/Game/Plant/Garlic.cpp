@@ -13,7 +13,7 @@ void Garlic::SetupPlant()
 	Plant::SetupPlant();
 	mPlantHealth = kGarlicHealth;
 	mPlantMaxHealth = kGarlicHealth;
-	if (auto* shadow = GetComponent<ShadowComponent>()) {
+	if (auto* shadow = GetShadow()) {
 		shadow->SetOffset(Vector(4.0f, kGarlicShadowOffsetY));
 	}
 	ApplyDamagePresentation();

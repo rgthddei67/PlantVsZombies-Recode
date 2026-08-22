@@ -71,7 +71,7 @@ void Polevaulter::SetupZombie()
 	this->mBodyMaxHealth = 500;
 	this->mBodyHealth = 500;
 
-	if (auto shadowComponent = GetComponent<ShadowComponent>()) {
+	if (auto shadowComponent = GetShadow()) {
 		shadowComponent->SetOffset(Vector(4, 42));
 	}
 }
@@ -138,8 +138,8 @@ void Polevaulter::StartJump(Plant* target)
 	if (auto collider = GetColliderComponent()) {
 		collider->mEnabled = false;
 	}
-	if (auto shadow = GetComponent<ShadowComponent>()) {
-		shadow->mEnabled = false;
+	if (auto shadow = GetShadow()) {
+		shadow->SetEnabled(false);
 	}
 }
 
@@ -168,8 +168,8 @@ void Polevaulter::EndJump()
 	if (auto collider = GetColliderComponent()) {
 		collider->mEnabled = true;
 	}
-	if (auto shadow = GetComponent<ShadowComponent>()) {
-		shadow->mEnabled = true;
+	if (auto shadow = GetShadow()) {
+		shadow->SetEnabled(true);
 	}
 
 	// 派生能力必须看到最终落点与已恢复的碰撞状态。
@@ -308,8 +308,8 @@ void Polevaulter::FinishBlockedVault(Plant& blockingPlant)
 	if (mCollider) {
 		mCollider->mEnabled = true;
 	}
-	if (auto* shadow = GetComponent<ShadowComponent>()) {
-		shadow->mEnabled = true;
+	if (auto* shadow = GetShadow()) {
+		shadow->SetEnabled(true);
 	}
 
 	blockingPlant.OnZombieJumpBlocked(ZombieJumpType::POLEVAULT);
@@ -381,8 +381,8 @@ void Polevaulter::LoadExtraData(const nlohmann::json& j)
 	else if (mVaultState == VaultState::JUMPING) {
 		// Animator 已恢复原跳跃帧；继续推进到 60% 阻拦节点，不能读档后直接越过高坚果。
 		if (mCollider) mCollider->mEnabled = false;
-		if (auto* shadow = GetComponent<ShadowComponent>()) {
-			shadow->mEnabled = false;
+		if (auto* shadow = GetShadow()) {
+			shadow->SetEnabled(false);
 		}
 	}
 }

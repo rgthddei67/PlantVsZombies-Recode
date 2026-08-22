@@ -35,10 +35,9 @@ Mower::Mower(Board* board, MowerType type, AnimationType animType, float x, floa
 	this->mRow = row;
 	this->mMowerType = type;
 
-	auto shadowcomponent = AddComponent<ShadowComponent>
+	auto shadowcomponent = CreateShadow
 		(ResourceManager::GetInstance().GetTexture
 		(ResourceKeys::Textures::IMAGE_PLANTSHADOW));
-	shadowcomponent->SetDrawOrder(-80);
 	shadowcomponent->SetOffset(Vector(40, 50));
 	shadowcomponent->SetScale(Vector(1.0f, 1.0f));
 
@@ -129,7 +128,7 @@ void Mower::Update()
 			PlayAnimation();
 		}
 		// 待机缓存帧与启动 reanim 的车身 Y 相差 36px；影子必须按状态同步，否则启动后会留在车顶。
-		if (auto shadow = GetComponent<ShadowComponent>()) {
+		if (auto shadow = GetShadow()) {
 			shadow->SetOffset(Vector(
 				mState == MowerState::IDLE
 					? kRoofCleanerIdleShadowOffsetX : kRoofCleanerMovingShadowOffsetX,
@@ -272,7 +271,7 @@ void Mower::PlayPoolMowAnimation()
 
 void Mower::UpdatePoolShadowVisibility()
 {
-	if (auto* shadow = GetComponent<ShadowComponent>()) {
+	if (auto* shadow = GetShadow()) {
 		shadow->SetVisible(mMowerHeight == MowerHeight::LAND);
 	}
 }

@@ -190,7 +190,7 @@ void ZombieAlmanacScene::CreateAllZombieEntries()
 			continue;
 		}
 
-		zombie->RemoveComponent<ShadowComponent>();
+		zombie->RemoveShadow();
 		zombie->PauseAnimation();
 		zombie->mIsUI = true;
 		zombie->SetRenderOrder(LAYER_UI + 51);

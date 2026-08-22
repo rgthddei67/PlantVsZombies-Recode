@@ -2,7 +2,7 @@
 
 日期：2026-08-16
 
-状态：主人已批准架构方向；Card、CardSlotManager、Transform、纯 UI 所有权与 Collider 阶段已完成，下一阶段为 Shadow
+状态：主人已批准架构方向；Card、CardSlotManager、Transform、纯 UI、Collider 与 Shadow 阶段已完成，下一阶段为 Clickable
 
 ## 1. 决策
 
@@ -30,7 +30,7 @@ GameObject
 
 `GameObject` 直接拥有按需创建的 `std::optional<Transform>` 和 `unique_ptr<ColliderComponent>`：前者是空间对象唯一的位置、缩放和旋转权威值，后者是唯一可选碰撞附件。另有一个按 `type_index` 索引 `unique_ptr<Component>` 的遗留容器；Collider 阶段完成后，全项目当前只有两种 `Component` 派生类：
 
-- 可选横切附件：`ShadowComponent`、`ClickableComponent`。
+- 显式可选横切附件：宿主独占的 `ShadowComponent`、待迁移的 `ClickableComponent`。
 
 单张卡的冷却、选中、方向、可用性、主线程文本缓存与绘制职责已由 `Card` 直接拥有；`CardSlotManager` 是 `GameScene` 独占的普通控制器。二者都不再通过组件容器参与通用 Component 生命周期。
 
@@ -102,6 +102,8 @@ Transform 是绝大多数世界对象的基础空间数据，不需要多态生�
 
 - Shadow 保留独立参数、可见性与最终提交取证；植物动态视觉锚点、BulletPool 跨对象绘制顺序、默认实例化/`-NoInstance` 双路径都必须保持。
 - Clickable 保留稀疏自注册表、渲染顺序仲裁、事件消费和光标计数；不得退回每帧扫描全部 GameObject。
+
+2026-08-22 当前实现中，Shadow 已由 `GameObject` 通过 `unique_ptr` 显式独占，并统一使用 `CreateShadow()` / `GetShadow()` / `RemoveShadow()`；普通对象在固定本体前阶段绘制，BulletPool 继续保留跨对象地面阶段。`ShadowComponent` 只是过渡名称，不再继承或进入通用 `Component` 容器。
 
 ### 6.5 卡片域
 

@@ -57,7 +57,7 @@ float MagnetShroom::GetRechargeSeconds() const
 
 void MagnetShroom::SetupPlant()
 {
-	if (auto* shadow = GetComponent<ShadowComponent>()) {
+	if (auto* shadow = GetShadow()) {
 		shadow->SetScale(Vector(kShadowScale, kShadowScale));
 		shadow->SetOffset(Vector(0.0f, kShadowOffsetY));
 	}

@@ -23,7 +23,7 @@ void GroundingShroom::SetupPlant()
 	Shroom::SetupPlant();
 	mPlantHealth = kGroundingShroomHealth;
 	mPlantMaxHealth = kGroundingShroomHealth;
-	if (auto* shadow = GetComponent<ShadowComponent>()) {
+	if (auto* shadow = GetShadow()) {
 		shadow->SetScale(Vector(kShadowScale, kShadowScale));
 		shadow->SetOffset(Vector(0.0f, kShadowOffsetY));
 	}

@@ -2,7 +2,7 @@
 
 日期：2026-08-16
 
-状态：执行中；Card 专属组件、CardSlotManager、Transform、纯 UI 所有权与 Collider 已完成并独立验证，下一阶段为 Shadow
+状态：执行中；Card 专属组件、CardSlotManager、Transform、纯 UI、Collider 与 Shadow 已完成并独立验证，下一阶段为 Clickable
 
 **目标：** 在保持继承式植物/僵尸、现有运行行为、存档、输入和绘制契约的前提下，分阶段移除通用 `Component` 容器；保留并显式化 Transform、Collider、Shadow、Clickable 与卡片能力。
 
@@ -174,10 +174,10 @@
 
 **Shadow：**
 
-- [ ] 将 Shadow 改为宿主明确拥有的可选对象或参数结构，由对象固定绘制阶段提交。
-- [ ] 把 `RemoveComponent<ShadowComponent>` 改为显式禁用/移除，保持预览、入水、出土、异形品种和 AutoTest 取证。
-- [ ] 保留植物动态视觉锚点、BulletPool 的跨对象阴影阶段、实例化队列与 `-NoInstance` fallback。
-- [ ] 用 `smoke_bullet_shadow.json`、`smoke_pool_instanced_shadows.json`、`smoke_pool_plant_shadow_bob.json`、`smoke_mower_shadow.json` 做可见回归。
+- [x] 将 Shadow 改为宿主明确拥有的可选对象或参数结构，由对象固定绘制阶段提交。
+- [x] 把 `RemoveComponent<ShadowComponent>` 改为显式禁用/移除，保持预览、入水、出土、异形品种和 AutoTest 取证。
+- [x] 保留植物动态视觉锚点、BulletPool 的跨对象阴影阶段、实例化队列与 `-NoInstance` fallback。
+- [x] 用 `smoke_bullet_shadow.json`、`smoke_pool_instanced_shadows.json`、`smoke_pool_plant_shadow_bob.json`、`smoke_mower_shadow.json` 做默认与 `-NoInstance` 可见回归。
 
 **Clickable：**
 

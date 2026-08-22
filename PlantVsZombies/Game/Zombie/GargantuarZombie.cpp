@@ -70,7 +70,7 @@ void GargantuarZombie::SetupZombie()
 		mCollider->offset = Vector(kColliderOffsetX, kColliderOffsetY);
 	}
 
-	if (auto* shadow = GetComponent<ShadowComponent>()) {
+	if (auto* shadow = GetShadow()) {
 		shadow->SetScale(Vector(1.34f, 1.34f));
 	}
 

@@ -38,8 +38,8 @@ void BackupDancerZombie::SetupZombie()
 		: GetPosition().y;
 	SetClipRect(0, 0, SCENE_WIDTH,
 		static_cast<int>(groundY) + kGroundClipMargin);
-	// 人还在土里，地面不该有影子；出土完成后恢复（影子组件在 Zombie::Start 中先于本函数挂上）
-	if (auto shadow = GetComponent<ShadowComponent>()) shadow->SetVisible(false);
+	// 人还在土里，地面不该有影子；Zombie::Start 已先创建显式 Shadow 附件，出土完成后再恢复。
+	if (auto shadow = GetShadow()) shadow->SetVisible(false);
 	// 只暂停 Animator 播放头，不把基础/extra 速度写成 0：若升起时死亡，PlayTrack(anim_death)
 	// 会自动把 Animator 重新置为 playing，死亡帧事件仍可正常越过。
 	PlayTrack("anim_armraise", kArmraiseClip);
@@ -62,7 +62,7 @@ void BackupDancerZombie::ZombieUpdate(float scaledTime)
 			mVisualOffset.y = mBaseOffsetY;
 			mPhase = BackupPhase::DANCING;
 			ClearClipRect();	// 完全出土，解除地面线裁剪
-			if (auto shadow = GetComponent<ShadowComponent>()) shadow->SetVisible(true);
+			if (auto shadow = GetShadow()) shadow->SetVisible(true);
 		}
 		else {
 			mVisualOffset.y = mBaseOffsetY + kRiseDepth * (1.0f - t);
@@ -189,7 +189,7 @@ void BackupDancerZombie::LoadExtraData(const nlohmann::json& j)
 	if (mPhase == BackupPhase::DANCING) {
 		mVisualOffset.y = mBaseOffsetY;
 		ClearClipRect();
-		if (auto shadow = GetComponent<ShadowComponent>()) shadow->SetVisible(true);
+		if (auto shadow = GetShadow()) shadow->SetVisible(true);
 	}
 	else {
 		// RestoreAnimState 会恢复播放状态；RISING 存档必须重新暂停，维持出土静态姿势。

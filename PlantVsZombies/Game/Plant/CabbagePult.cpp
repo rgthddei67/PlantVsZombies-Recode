@@ -39,7 +39,7 @@ void CabbagePult::SetupPlant()
 	mShootInterval = kInitialShootInterval;
 	mShootTimer = GameRandom::Range(0.0f, kInitialShootInterval);
 
-	if (auto* shadow = GetComponent<ShadowComponent>()) {
+	if (auto* shadow = GetShadow()) {
 		shadow->SetOffset(Vector(2.0f, 24.0f));
 	}
 

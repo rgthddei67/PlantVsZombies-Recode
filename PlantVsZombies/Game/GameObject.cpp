@@ -2,6 +2,7 @@
 #include "Component.h"
 #include "CollisionSystem.h"
 #include "ColliderComponent.h"
+#include "ShadowComponent.h"
 
 // 定义在此（而非 Component.h inline）：需要完整的 GameObject 类型来回调 MarkDrawableSortDirty，
 // 而 Component.h 与 GameObject.h 互相依赖、无法在 inline 处看到完整 GameObject。
@@ -18,6 +19,7 @@ GameObject::GameObject(ObjectType type)
 
 GameObject::~GameObject()
 {
+	RemoveShadow();
 	RemoveCollider();
 	for (auto& [type, component] : mComponents) {
 		component->OnDestroy();
@@ -48,8 +50,8 @@ void GameObject::Start() {
 void GameObject::Update() {
 	if (!mActive || !mStarted) return;
 
-	// 仅 iterate mUpdatableComponents 视图（通常 size 0-1）。Transform/Collider 已由宿主显式拥有，
-	// zombie/plant/bullet 若只剩 Shadow，其 NeedsUpdate()=false，视图为空时直接退出。
+	// 仅 iterate mUpdatableComponents 视图（通常 size 0-1）。Transform/Collider/Shadow 已由宿主显式拥有，
+	// 当前只剩 Clickable 可能进入该视图；无可更新附件时直接退出。
 	for (Component* c : mUpdatableComponents) {
 		if (c->mEnabled) c->Update();
 	}
@@ -57,6 +59,9 @@ void GameObject::Update() {
 
 void GameObject::Draw(Graphics* g) {
 	if (!mActive || !mStarted) return;
+
+	// 阴影固定先于宿主本体和剩余附件提交；Bullet 不调用本入口，改由 BulletPool 的地面阶段显式绘制。
+	if (mShadow) mShadow->Draw(g);
 
 	// Draw 视图已在增删组件时预建。仅当 dirty（增删组件 / 运行时 SetDrawOrder）才重排一次，
 	// 消除旧实现每帧 new vector + 遍历 unordered_map + stable_sort 的 per-frame 开销。
@@ -88,6 +93,7 @@ void GameObject::InitializeComponent(Component* component) {
 }
 
 void GameObject::DestroyAllComponents() {
+	RemoveShadow();
 	RemoveCollider();
 	for (auto& [type, component] : mComponents) {
 		component->OnDestroy();
@@ -112,6 +118,19 @@ bool GameObject::RemoveCollider() {
 	if (!mCollider) return false;
 	CollisionSystem::GetInstance().UnregisterCollider(mCollider.get());
 	mCollider.reset();
+	return true;
+}
+
+ShadowComponent* GameObject::CreateShadow(
+	const Texture* texture, const Vector& offset, float alpha) {
+	mShadow = std::unique_ptr<ShadowComponent>(
+		new ShadowComponent(this, texture, offset, alpha));
+	return mShadow.get();
+}
+
+bool GameObject::RemoveShadow() {
+	if (!mShadow) return false;
+	mShadow.reset();
 	return true;
 }
 

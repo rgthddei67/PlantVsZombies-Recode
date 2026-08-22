@@ -18,7 +18,7 @@ void WallNut::SetupPlant()
 	this->mPlantHealth = kWallNutHealth;
 	this->mPlantMaxHealth = kWallNutHealth;
 
-	if (auto shadowComponent = GetComponent<ShadowComponent>()) {
+	if (auto shadowComponent = GetShadow()) {
 		shadowComponent->SetOffset(Vector(4, 26));
 	}
 }

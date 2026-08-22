@@ -414,11 +414,9 @@ bool Zombie::TakePlantInstantKill()
 void Zombie::Start()
 {
 	AnimatedObject::Start();
-	auto shadowcomponent = AddComponent<ShadowComponent>
+	CreateShadow
 		(ResourceManager::GetInstance().GetTexture
 		(ResourceKeys::Textures::IMAGE_PLANTSHADOW));
-	mPoolShadow = shadowcomponent;
-	shadowcomponent->SetDrawOrder(-80);
 	if (this->mIsPreview) {
 		RemoveCollider();
 	}
@@ -1040,8 +1038,8 @@ void Zombie::PlayPoolTransitionFeedback(bool entering) const
 /** 水中不绘制陆地投影；实际水面裁剪在 Draw 内压入 Graphics 裁剪栈。 */
 void Zombie::UpdatePoolVisualState() const
 {
-	if (mPoolShadow) {
-		mPoolShadow->SetVisible(!mInPool);
+	if (auto* shadow = GetShadow()) {
+		shadow->SetVisible(!mInPool);
 	}
 }
 

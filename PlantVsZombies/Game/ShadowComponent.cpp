@@ -1,36 +1,32 @@
 #include "ShadowComponent.h"
 #include "../Logger.h"
+#include "../ResourceKeys.h"
 #include "../ResourceManager.h"
 #include "GameObject.h"
 #include <algorithm>
 #include "Plant/Plant.h"
 #include "Zombie/Zombie.h"
 
-ShadowComponent::ShadowComponent(const Texture* shadowTexture,
+ShadowComponent::ShadowComponent(GameObject* gameObject,
+	const Texture* shadowTexture,
 	const Vector& offset,
 	float alpha)
-	: mShadowTexture(shadowTexture)
+	: mGameObject(gameObject)
+	, mShadowTexture(shadowTexture)
 	, mOffset(offset)
 	, mAlpha(alpha) {
 }
 
-ShadowComponent::~ShadowComponent() {
-	mShadowTexture = nullptr;
-}
-
-void ShadowComponent::Start() {
+void ShadowComponent::Draw(Graphics* g) {
+	mLastDrawReady = false;
+	if (!mEnabled || !mVisible) return;
 	if (!mShadowTexture) {
 		LOG_DEBUG("ShadowComponent") << "No shadow texture set, using default texture.";
 		mShadowTexture = ResourceManager::GetInstance().GetTexture(
 			ResourceKeys::Textures::IMAGE_PLANTSHADOW);
 	}
-}
 
-void ShadowComponent::Draw(Graphics* g) {
-	mLastDrawReady = false;
-	if (!mVisible) return;
-
-	auto gameObject = GetGameObject();
+	auto* gameObject = mGameObject;
 	if (!gameObject) return;
 
 	// 计算阴影位置（在物体下方，加上偏移）

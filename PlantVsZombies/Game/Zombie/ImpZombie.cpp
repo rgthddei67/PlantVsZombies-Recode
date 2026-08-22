@@ -40,7 +40,7 @@ void ImpZombie::SetupZombie()
 	mPhase = Phase::WALKING;
 	mAltitude = 0.0f;
 
-	if (auto* shadow = GetComponent<ShadowComponent>()) {
+	if (auto* shadow = GetShadow()) {
 		shadow->SetScale(Vector(0.6f, 0.6f));
 		shadow->SetOffset(Vector(16.0f, 38.0f));
 	}
@@ -199,8 +199,8 @@ void ImpZombie::ApplyPhasePresentation() const
 	if (mCollider) {
 		mCollider->mEnabled = mPhase == Phase::WALKING && !mIsDying && !mIsDead;
 	}
-	if (mPoolShadow) {
-		mPoolShadow->mEnabled = mPhase != Phase::THROWN && !mInPool;
+	if (auto* shadow = GetShadow()) {
+		shadow->SetEnabled(mPhase != Phase::THROWN && !mInPool);
 	}
 }
 

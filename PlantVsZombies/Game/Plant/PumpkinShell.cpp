@@ -28,7 +28,7 @@ void PumpkinShell::SetupPlant()
 		mCollider->size.x = kPumpkinColliderWidth;
 		mCollider->offset.x = kPumpkinColliderOffsetX;
 	}
-	if (auto* shadow = GetComponent<ShadowComponent>()) {
+	if (auto* shadow = GetShadow()) {
 		shadow->SetOffset(Vector(0.0f, kPumpkinShadowOffsetY));
 		shadow->SetScale(Vector(kPumpkinShadowScaleX, kPumpkinShadowScaleY));
 	}

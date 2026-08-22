@@ -21,7 +21,7 @@ namespace {
 
 void TangleKelp::SetupPlant()
 {
-	RemoveComponent<ShadowComponent>();
+	RemoveShadow();
 	if (mCollider) {
 		mCollider->size = Vector(kAttackRectWidth, kAttackRectHeight);
 		mCollider->offset = Vector(kAttackRectLeft, kAttackRectTop);

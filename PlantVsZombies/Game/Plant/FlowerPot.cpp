@@ -13,7 +13,7 @@ namespace {
 void FlowerPot::SetupPlant()
 {
 	Plant::SetupPlant();
-	if (auto* shadow = GetComponent<ShadowComponent>()) {
+	if (auto* shadow = GetShadow()) {
 		shadow->SetOffset(Vector(kFlowerPotShadowOffsetX, kFlowerPotShadowOffsetY));
 		// C# TodDrawImageCenterScaledF 使用 1:1 比例；通用组件默认的纵向 0.75 压缩会让阴影几乎全被盆底遮住。
 		shadow->SetScale(Vector(1.0f, 1.0f));

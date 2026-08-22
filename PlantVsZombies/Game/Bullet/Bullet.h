@@ -62,8 +62,6 @@ protected:
 	std::shared_ptr<Animator> mProjectileAnimator;
 	bool mAnimatorAdvancedInParallel = false;
 
-	ShadowComponent* mShadow = nullptr;
-
 	// 子弹击中僵尸的效果
 	virtual void BulletHitZombie(Zombie* zombie);
 	/**

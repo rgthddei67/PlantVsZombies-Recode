@@ -82,8 +82,7 @@ void ZamboniZombie::SetupZombie()
 		mCollider->onTriggerStay = [this](ColliderComponent* other) { StartEat(other); };
 		mCollider->onTriggerExit = nullptr;
 	}
-	RemoveComponent<ShadowComponent>();
-	mPoolShadow = nullptr;
+	RemoveShadow();
 
 	if (!mIsPreview) {
 		AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_ZAMBONI, 0.35f);

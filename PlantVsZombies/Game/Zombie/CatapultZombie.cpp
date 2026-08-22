@@ -84,8 +84,7 @@ void CatapultZombie::SetupZombie()
 		mCollider->onTriggerStay = [this](ColliderComponent* other) { StartEat(other); };
 		mCollider->onTriggerExit = nullptr;
 	}
-	RemoveComponent<ShadowComponent>();
-	mPoolShadow = nullptr;
+	RemoveShadow();
 
 	if (!mAnimator) return;
 	SetAnimationSpeed(1.0f);

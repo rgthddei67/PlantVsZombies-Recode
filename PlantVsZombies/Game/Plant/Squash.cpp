@@ -50,7 +50,7 @@ namespace {
 void Squash::SetupPlant()
 {
 	SetAnimationSpeed(GameRandom::Range(10.0f / 12.0f, 15.0f / 12.0f));
-	if (auto* shadow = GetComponent<ShadowComponent>()) {
+	if (auto* shadow = GetShadow()) {
 		shadow->SetOffset(Vector(kShadowOffsetX, kShadowOffsetY));
 		shadow->SetScale(Vector(1.3f, 1.3f));
 	}
@@ -349,7 +349,7 @@ void Squash::UpdateFallingPosition()
 void Squash::UpdateShadowOffset()
 {
 	if (!mBoard) return;
-	if (auto* shadow = GetComponent<ShadowComponent>()) {
+	if (auto* shadow = GetShadow()) {
 		const float groundY = mBoard->GetCellCenterPosition(mRow, mColumn).y;
 		shadow->SetOffset(Vector(kShadowOffsetX,
 			kShadowOffsetY + groundY - GetPosition().y));

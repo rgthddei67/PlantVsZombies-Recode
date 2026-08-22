@@ -29,8 +29,8 @@ metadata:
   `CreateZombie` / AutoTest `spawn_zombie` 保留按指定行直造，便于隔离验证地下状态机。
 - 出土共 1.3 秒：持镐先 `anim_drill`，最后 0.3 秒 `anim_landing`，随后
   `anim_dizzy` 两轮；无镐地下暂停 2 秒，0.5 秒后显示问号，再走同一高度曲线。
-  地下与出土阶段同时隐藏 `ShadowComponent` 和 reanim `_ground` 轨，完整站起后才显示
-  组件影子；`ZombieItemUpdate()` 与 Load 均重建该边界。
+  地下与出土阶段同时隐藏显式 `ShadowComponent` 附件和 reanim `_ground` 轨，完整站起后才显示
+  两层地面投影；`ZombieItemUpdate()` 与 Load 均重建该边界。
 - 主人给出的全局帧直接注册：啃食 66/81，普通死亡 127；灰烬有镐
   `anim_crumble` 第 36 帧回收，无镐 `anim_crumble_noaxe` 第 73 帧回收。地下、出土与
   无镐停顿阶段遇到灰烬直接回收，不让安全帽截断灰烬伤害。

@@ -29,7 +29,7 @@ void CobCannon::SetupPlant()
 		mCollider->size = Vector(140.0f, 80.0f);
 		mCollider->offset = Vector(-30.0f, -35.0f);
 	}
-	RemoveComponent<ShadowComponent>();
+	RemoveShadow();
 
 	if (!mAnimator) return;
 	mAnimator->AddFrameEvent(kLaunchFrame, [this]() {

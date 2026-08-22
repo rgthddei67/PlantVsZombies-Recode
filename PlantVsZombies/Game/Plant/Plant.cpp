@@ -79,10 +79,9 @@ Plant::Plant(Board* board, PlantType plantType, int row, int column,
 	GameDataManager& plantMgr = GameDataManager::GetInstance();
 
 	mVisualOffset = plantMgr.GetPlantOffset(plantType);
-	auto shadowcomponent = AddComponent<ShadowComponent>
+	CreateShadow
 		(ResourceManager::GetInstance().GetTexture
 		(ResourceKeys::Textures::IMAGE_PLANTSHADOW));
-	shadowcomponent->SetDrawOrder(-80);
 
 	// 设置植物在格子中的位置
 	if (!mIsPreview) {
@@ -330,7 +329,7 @@ void Plant::ApplySquishedPresentation()
 	if (mCollider) {
 		mCollider->mEnabled = false;
 	}
-	if (auto* shadow = GetComponent<ShadowComponent>()) {
+	if (auto* shadow = GetShadow()) {
 		shadow->SetVisible(false);
 	}
 	ReleaseGridSlot();
@@ -595,7 +594,7 @@ bool Plant::BeginBungeeGrab(int zombieID)
 	mBungeeOwnerZombieID = zombieID;
 	mBungeeVisualOffset = Vector::zero();
 	if (mCollider) mCollider->mEnabled = false;
-	if (auto* shadow = GetComponent<ShadowComponent>()) shadow->SetVisible(false);
+	if (auto* shadow = GetShadow()) shadow->SetVisible(false);
 	return true;
 }
 
@@ -616,7 +615,7 @@ void Plant::CancelBungeeGrab(int zombieID)
 	mBungeeOwnerZombieID = NULL_ZOMBIE_ID;
 	mBungeeVisualOffset = Vector::zero();
 	if (mCollider) mCollider->mEnabled = true;
-	if (auto* shadow = GetComponent<ShadowComponent>()) shadow->SetVisible(true);
+	if (auto* shadow = GetShadow()) shadow->SetVisible(true);
 }
 
 void Plant::SetBungeeVisualOffset(int zombieID, const Vector& offset)

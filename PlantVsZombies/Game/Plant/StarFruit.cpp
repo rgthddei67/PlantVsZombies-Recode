@@ -32,7 +32,7 @@ void StarFruit::SetupPlant()
 {
 	Plant::SetupPlant();
 	// 原版杨桃资源本体自带贴地明暗，不再叠加通用植物影子。
-	RemoveComponent<ShadowComponent>();
+	RemoveShadow();
 	if (!mAnimator) return;
 
 	mAnimator->PlayTrack("anim_idle");

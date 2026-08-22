@@ -131,9 +131,9 @@ void RoofMarshalZombie::SetupZombie()
 	mLastAssaultRow = -1;
 	mLastAssaultAffectedCount = 0;
 	mLastSummonedTypes.fill(ZombieType::NUM_ZOMBIE_TYPES);
-	if (mPoolShadow) {
+	if (auto* shadow = GetShadow()) {
 		// 普通影子默认 (1.0, 0.75)；保持扁率并同步 1.2 倍本体，脚底中心仍由逻辑 Transform 决定。
-		mPoolShadow->SetScale(Vector(kBossVisualScale, 0.75f * kBossVisualScale));
+		shadow->SetScale(Vector(kBossVisualScale, 0.75f * kBossVisualScale));
 	}
 	if (!mIsPreview) PlayTrack("anim_idle2", 0.0f, 0.0f);
 }

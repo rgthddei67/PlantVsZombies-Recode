@@ -3316,7 +3316,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		const Vector mowerPosition = mower->GetPosition();
 		const float terrainY = board->GetMowerTerrainY(
 			mower->mRow, mowerPosition.x + 40.0f);
-		const auto* mowerShadow = mower->GetComponent<ShadowComponent>();
+		const auto* mowerShadow = mower->GetShadow();
 		const Vector mowerShadowOffset = mowerShadow
 			? mowerShadow->GetOffset() : Vector::zero();
 		out["mowers"].push_back({
@@ -4283,7 +4283,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		const Vector pos = z->GetPosition();
 		const float terrainY = board->GetZombieSpawnY(z->mRow, pos.x);
 		const auto anim = z->GetAnimatorInternal();
-		const auto* zombieShadow = z->GetComponent<ShadowComponent>();
+		const auto* zombieShadow = z->GetShadow();
 		float colliderCenterX = pos.x;
 		if (const ColliderComponent* collider = z->GetColliderComponent()) {
 			const SDL_FRect bounds = collider->GetBoundingBox();
@@ -4729,7 +4729,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				anim && anim->GetTrackVisible("hat");
 		}
 		if (auto* digger = dynamic_cast<DiggerZombie*>(z)) {
-			const auto* shadow = z->GetComponent<ShadowComponent>();
+			const auto* shadow = z->GetShadow();
 			zombieState["diggerPhase"] = DiggerPhaseName(digger->GetPhase());
 			zombieState["diggerHasPickaxe"] = digger->HasPickaxe();
 			zombieState["diggerSurpriseShown"] = digger->HasShownSurprise();
@@ -4843,7 +4843,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				&& anim->GetTrackVisible("Zombie_gargantuar_whiterope");
 		}
 		if (auto* imp = dynamic_cast<ImpZombie*>(z)) {
-			const auto* shadow = imp->GetComponent<ShadowComponent>();
+			const auto* shadow = imp->GetShadow();
 			zombieState["impPhase"] = ImpPhaseName(imp->GetPhase());
 			zombieState["impAltitudeOn1000"] = static_cast<int>(std::lround(
 				imp->GetThrowAltitude() * 1000.0f));
@@ -5110,7 +5110,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				(plantPosition.x - cellCenter.x) * 1000.0f)) },
 			{ "terrainYOffsetOn1000", static_cast<int>(std::lround(
 				(plantPosition.y - cellCenter.y) * 1000.0f)) },
-			{ "hasShadow", p->GetComponent<ShadowComponent>() != nullptr },
+			{ "hasShadow", p->GetShadow() != nullptr },
 			{ "sunProductionMultiplierPct", static_cast<int>(std::lround(
 				board->GetPlanternSunProductionMultiplier(p) * 100.0f)) },
 			{ "roofRunoffPaused", board->IsPlantPausedByRoofRunoff(p) },
@@ -5156,7 +5156,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			plantState["protectsNormalFromNightRoofHijacker"] = normal
 				&& p->ProtectsSupportedPlantFromNightRoofHijacker(normal);
 		}
-		if (const auto* shadow = p->GetComponent<ShadowComponent>()) {
+		if (const auto* shadow = p->GetShadow()) {
 			plantState["shadowOffsetXInt"] = static_cast<int>(std::lround(
 				shadow->GetOffset().x));
 			plantState["shadowOffsetYInt"] = static_cast<int>(std::lround(

@@ -229,7 +229,7 @@ Bullet::Bullet(Board* board, BulletType bulletType, int row, const Vector& colli
 	// C# Projectile.DrawShadow 明确让 Puff 直接返回；其余现有子弹使用豌豆阴影，
 	// Snowpea 再按原版放大到 1.3 倍。实际提交由 BulletPool 的地面阴影阶段负责。
 	if (mBulletType != BulletType::BULLET_PUFF) {
-		mShadow = AddComponent<ShadowComponent>(ResourceManager::GetInstance().GetTexture(
+		CreateShadow(ResourceManager::GetInstance().GetTexture(
 			ResourceKeys::Textures::IMAGE_PLANTSHADOW));
 		UpdateShadowLayout(position);
 	}
@@ -420,14 +420,15 @@ void Bullet::Draw(Graphics* g)
 
 void Bullet::DrawShadow(Graphics* g)
 {
-	if (mShadow && mShadow->mEnabled) {
-		mShadow->Draw(g);
+	if (auto* shadow = GetShadow()) {
+		shadow->Draw(g);
 	}
 }
 
 void Bullet::UpdateShadowLayout(const Vector& position)
 {
-	if (!mShadow) return;
+	auto* shadow = GetShadow();
+	if (!shadow) return;
 
 	// 原分辨率 IMAGE_PEA_SHADOWS 是 42x9 的日/夜两格图，因此单格为 21x9；
 	// C# Snowpea 分支把两轴统一放大 1.3 倍。
@@ -455,7 +456,7 @@ void Bullet::UpdateShadowLayout(const Vector& position)
 	const Texture* shadowTexture = ResourceManager::GetInstance().GetTexture(
 		ResourceKeys::Textures::IMAGE_PLANTSHADOW);
 	if (shadowTexture && shadowTexture->width > 0 && shadowTexture->height > 0) {
-		mShadow->SetScale(Vector(
+		shadow->SetScale(Vector(
 			shadowWidth / static_cast<float>(shadowTexture->width),
 			shadowHeight / static_cast<float>(shadowTexture->height)));
 	}
@@ -473,7 +474,7 @@ void Bullet::UpdateShadowLayout(const Vector& position)
 					|| mBulletType == BulletType::BULLET_SPIKE
 					|| IsClassicLobbedBullet(mBulletType)) ? 0.0f : 3.0f));
 	const float shadowOffsetY = GetTerrainShadowY(position) - position.y;
-	mShadow->SetOffset(Vector(
+	shadow->SetOffset(Vector(
 		shadowLeftOffset + shadowWidth * 0.5f,
 		shadowOffsetY));
 }
@@ -890,7 +891,7 @@ void Bullet::ConfigureCobCannonMotion(
 	mCobTargetRow = targetRow;
 	mRotationDegrees = -90.0f;
 	if (mCollider) mCollider->mEnabled = false;
-	if (mShadow) mShadow->mEnabled = false;
+	if (auto* shadow = GetShadow()) shadow->SetEnabled(false);
 }
 
 void Bullet::RestoreCobCannonMotion(const Vector& start, const Vector& target,

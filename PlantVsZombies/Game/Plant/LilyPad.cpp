@@ -5,7 +5,7 @@
 void LilyPad::SetupPlant()
 {
 	// 睡莲贴在水面上，原版 DrawShadow 对该类型直接返回。
-	RemoveComponent<ShadowComponent>();
+	RemoveShadow();
 }
 
 void LilyPad::PlantUpdate()

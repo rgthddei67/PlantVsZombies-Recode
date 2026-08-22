@@ -15,7 +15,7 @@ namespace {
 
 void PotatoMine::SetupPlant()
 {
-	if (auto shadow = GetComponent<ShadowComponent>()) {
+	if (auto shadow = GetShadow()) {
 		shadow->SetOffset(Vector(0, 23));
 	}
 

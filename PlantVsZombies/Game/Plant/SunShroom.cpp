@@ -4,7 +4,7 @@
 
 void SunShroom::SetupPlant()
 {
-	auto shadow = GetComponent<ShadowComponent>();
+	auto shadow = GetShadow();
 	shadow->SetScale(Vector(0.62f, 0.62f));
 	shadow->SetOffset(Vector(2, 32));
 	Shroom::SetupPlant();

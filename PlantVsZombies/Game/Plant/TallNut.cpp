@@ -23,7 +23,7 @@ void TallNut::SetupPlant()
 		// 保持普通植物左边缘，只把迎敌面的判定加宽，贴合原版 Tallnut PlantRect。
 		mCollider->size.x = kTallNutColliderWidth;
 	}
-	if (auto* shadow = GetComponent<ShadowComponent>()) {
+	if (auto* shadow = GetShadow()) {
 		shadow->SetOffset(Vector(4.0f, kTallNutShadowOffsetY));
 		shadow->SetScale(Vector(kTallNutShadowScaleX, 0.75f));
 	}

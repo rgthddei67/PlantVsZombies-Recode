@@ -6,7 +6,7 @@
 
 void DoomShroom::SetupPlant()
 {
-	auto shadow = GetComponent<ShadowComponent>();
+	auto shadow = GetShadow();
 	shadow->SetScale(Vector(1.0f, 1.0f));   // 宽扁大伞盖，比小蘑菇系(0.6)大一档（主人校对）
 	shadow->SetOffset(Vector(2, 30));       // 较其他蘑菇右移 6px（主人校对：本体略偏右）
 

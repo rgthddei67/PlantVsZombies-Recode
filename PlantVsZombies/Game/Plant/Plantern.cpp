@@ -23,7 +23,7 @@ namespace {
 void Plantern::SetupPlant()
 {
 	Plant::SetupPlant();
-	if (auto* shadow = GetComponent<ShadowComponent>()) {
+	if (auto* shadow = GetShadow()) {
 		shadow->SetScale(Vector(0.82f, 0.82f));
 		shadow->SetOffset(Vector(0.0f, 29.0f));
 	}

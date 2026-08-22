@@ -11,7 +11,7 @@ namespace
 void SeaShroom::SetupPlant()
 {
 	// 原版海蘑菇漂在水面上，不绘制落在草地上的植物阴影。
-	RemoveComponent<ShadowComponent>();
+	RemoveShadow();
 	Shroom::SetupPlant();
 
 	if (mIsPreview) return;

@@ -24,7 +24,7 @@ void UmbrellaLeaf::SetupPlant()
 	Plant::SetupPlant();
 	mPlantHealth = kUmbrellaHealth;
 	mPlantMaxHealth = kUmbrellaHealth;
-	if (auto* shadow = GetComponent<ShadowComponent>()) {
+	if (auto* shadow = GetShadow()) {
 		shadow->SetOffset(Vector(kShadowOffsetX, kShadowOffsetY));
 		shadow->SetScale(Vector(kShadowScale, kShadowScale));
 	}

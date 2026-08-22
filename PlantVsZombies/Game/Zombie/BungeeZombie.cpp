@@ -54,7 +54,7 @@ void BungeeZombie::SetupZombie()
 	mPhase = Phase::DIVING;
 	mAltitude = kInitialAltitudeBase;
 
-	if (auto* shadow = GetComponent<ShadowComponent>()) {
+	if (auto* shadow = GetShadow()) {
 		shadow->SetVisible(false);
 	}
 	if (mCollider) {
@@ -82,7 +82,7 @@ void BungeeZombie::ZombieItemUpdate() const
 {
 	Zombie::ZombieItemUpdate();
 	// 通用读档恢复会按地面僵尸重新打开阴影；蹦极全阶段都由绳索悬挂，不应留下地面黑影。
-	if (mPoolShadow) mPoolShadow->SetVisible(false);
+	if (auto* shadow = GetShadow()) shadow->SetVisible(false);
 }
 
 void BungeeZombie::ZombieUpdate(float scaledTime)

@@ -28,6 +28,7 @@ enum class ObjectType {
 };
 
 class Component;
+class ShadowComponent;
 
 class GameObject {
 public:
@@ -42,6 +43,7 @@ protected:
 	ClipRect mClipRect;
 	std::optional<Transform> mTransform; // 仅空间对象显式创建；非空间 UI/控制对象保持为空
 	std::unique_ptr<ColliderComponent> mCollider; // 可选碰撞附件；由宿主独占并通过唯一入口注册/注销
+	std::unique_ptr<ShadowComponent> mShadow; // 可选阴影附件；由宿主独占并在固定绘制阶段提交
 	std::vector<Component*> mComponentsToInitialize; // 待初始化的组件（裸指针指向 mComponents 内的对象）
 	std::unordered_map<std::type_index, std::unique_ptr<Component>> mComponents; // 包含的组件
 	// 阶段三：仅缓存 NeedsUpdate()=true 的 Component 视图，避免每帧 iterate mComponents 全表
@@ -91,6 +93,16 @@ public:
 
 	/** @brief 注销并销毁当前宿主的 Collider；不存在时安全 no-op。 */
 	bool RemoveCollider();
+
+	/** @brief 创建或重建当前宿主唯一的阴影附件。 */
+	ShadowComponent* CreateShadow(
+		const Texture* texture = nullptr,
+		const Vector& offset = Vector(0, 28),
+		float alpha = 0.9f);
+	ShadowComponent* GetShadow() { return mShadow.get(); }
+	const ShadowComponent* GetShadow() const { return mShadow.get(); }
+	/** @brief 销毁当前宿主的阴影附件；不存在时安全 no-op。 */
+	bool RemoveShadow();
 
 	// 添加组件 若是刚刚创建的对象，则不能使用，因为还没有
 	template<typename T, typename... Args>

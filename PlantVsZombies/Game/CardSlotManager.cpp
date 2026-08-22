@@ -400,7 +400,7 @@ void CardSlotManager::CreatePlantPreview(PlantType plantType) {
 		plantPreview = mBoard->CreatePlant(plantType, 0, 0, true, true);
 		plantPreview->PauseAnimation();
 		plantPreview->SetRenderOrder(LAYER_EFFECTS + 10000);
-		plantPreview->RemoveComponent<ShadowComponent>();
+		plantPreview->RemoveShadow();
 		ApplySelectedBloverDirection(plantPreview);
 	}
 }
@@ -436,7 +436,7 @@ void CardSlotManager::CreateCellPlantPreview(PlantType plantType, Cell* cell) {
 			}
 
 			cellPlantPreview->SetAlpha(0.35f);
-			cellPlantPreview->RemoveComponent<ShadowComponent>();
+			cellPlantPreview->RemoveShadow();
 			cellPlantPreview->PauseAnimation();
 			ApplySelectedBloverDirection(cellPlantPreview);
 		}
