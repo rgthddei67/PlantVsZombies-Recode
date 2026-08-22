@@ -9,10 +9,7 @@
 #include "DeferredEvent.h"
 #include <memory>
 #include <vector>
-#include <unordered_map>
-#include <typeindex>
 #include <string>
-#include <algorithm>
 #include <optional>
 #include <utility>
 
@@ -27,7 +24,6 @@ enum class ObjectType {
 	OBJECT_PARTICLE,    // 可能废弃
 };
 
-class Component;
 class ShadowComponent;
 class ClickableComponent;
 
@@ -46,16 +42,6 @@ protected:
 	std::unique_ptr<ColliderComponent> mCollider; // 可选碰撞附件；由宿主独占并通过唯一入口注册/注销
 	std::unique_ptr<ShadowComponent> mShadow; // 可选阴影附件；由宿主独占并在固定绘制阶段提交
 	std::unique_ptr<ClickableComponent> mClickable; // 可选点击附件；由宿主独占并维护稀疏注册
-	std::vector<Component*> mComponentsToInitialize; // 待初始化的组件（裸指针指向 mComponents 内的对象）
-	std::unordered_map<std::type_index, std::unique_ptr<Component>> mComponents; // 包含的组件
-	// 阶段三：仅缓存 NeedsUpdate()=true 的 Component 视图，避免每帧 iterate mComponents 全表
-	// 非所有权 raw ptr 视图，所有权仍在 mComponents 的 unique_ptr
-	std::vector<Component*> mUpdatableComponents;
-	// Draw 视图：预建并按 mDrawOrder 预排序的可绘制组件，消除 GameObject::Draw 每帧
-	// new vector / 遍历 unordered_map / stable_sort 三重 per-frame 开销（与 mUpdatableComponents 同构）。
-	// 非所有权 raw ptr，所有权仍在 mComponents。mDrawableSortDirty：仅增删组件或 SetDrawOrder 时为真，懒排序。
-	std::vector<Component*> mDrawableComponents;
-	bool mDrawableSortDirty = false;
 	std::string mTag = "Untagged";
 	std::string mName = "GameObject";
 	int mSortingKey = -1; // 可选的行深度键；普通对象保持 -1，按行残影可在构造期继承来源行
@@ -116,77 +102,6 @@ public:
 	/** @brief 销毁当前宿主的阴影附件；不存在时安全 no-op。 */
 	bool RemoveShadow();
 
-	// 添加组件 若是刚刚创建的对象，则不能使用，因为还没有
-	template<typename T, typename... Args>
-	T* AddComponent(Args&&... args) {
-		static_assert(std::is_base_of<Component, T>::value, "T must be a Component");
-
-		auto component = std::make_unique<T>(std::forward<Args>(args)...);
-		T* raw = component.get();
-
-		auto typeIndex = std::type_index(typeid(T));
-		mComponents[typeIndex] = std::move(component);
-		if (raw->NeedsUpdate()) mUpdatableComponents.push_back(raw);
-		// Draw 视图：所有组件都可能 Draw（默认 Draw() 为空），与旧实现一致地全部纳入；排序延后到首次 Draw。
-		mDrawableComponents.push_back(raw);
-		mDrawableSortDirty = true;
-
-		mComponentsToInitialize.push_back(raw);
-
-		// 如果对象已启动，立即初始化组件
-		if (mStarted) {
-			InitializeComponent(raw);
-		}
-
-		return raw;
-	}
-
-	// 获取组件
-	template<typename T>
-	T* GetComponent() {
-		auto typeIndex = std::type_index(typeid(T));
-		auto it = mComponents.find(typeIndex);
-		if (it != mComponents.end()) {
-			return static_cast<T*>(it->second.get());
-		}
-		return nullptr;
-	}
-
-	// 移除组件
-	template<typename T>
-	bool RemoveComponent() {
-		auto typeIndex = std::type_index(typeid(T));
-		auto it = mComponents.find(typeIndex);
-		if (it != mComponents.end()) {
-			it->second->OnDestroy();
-			// 同步从 pending 列表中移除（防止删除后还有人对它做 InitializeComponent）
-			mComponentsToInitialize.erase(
-				std::remove(mComponentsToInitialize.begin(), mComponentsToInitialize.end(), it->second.get()),
-				mComponentsToInitialize.end());
-			// 阶段三：同步从 mUpdatableComponents 视图移除（vector 通常长度 0-1，扫描成本 O(0)~O(1)）
-			mUpdatableComponents.erase(
-				std::remove(mUpdatableComponents.begin(), mUpdatableComponents.end(), it->second.get()),
-				mUpdatableComponents.end());
-			// Draw 视图同步移除（移除不破坏剩余元素相对顺序，无需置 dirty）
-			mDrawableComponents.erase(
-				std::remove(mDrawableComponents.begin(), mDrawableComponents.end(), it->second.get()),
-				mDrawableComponents.end());
-			mComponents.erase(it);
-			return true;
-		}
-		return false;
-	}
-
-	// 检查是否有某组件
-	template<typename T>
-	bool HasComponent() {
-		return GetComponent<T>() != nullptr;
-	}
-
-	// 标记 Draw 视图需要重排：由 Component::SetDrawOrder 在运行时改变绘制顺序时回调，
-	// 以保持"旧代码每帧重排"的语义（setup 期的 SetDrawOrder 已被 AddComponent 的置 dirty 覆盖）。
-	void MarkDrawableSortDirty() { mDrawableSortDirty = true; }
-
 	virtual void Start();
 
 	virtual void Update();
@@ -223,7 +138,7 @@ public:
 		else return LAYER_DEBUG;
 	}
 
-	// 绘制所有组件
+	/** @brief 按固定顺序绘制宿主显式附件；派生类随后提交自身内容。 */
 	virtual void Draw(Graphics* g);
 
 	// 获取物体的标签
@@ -245,10 +160,10 @@ public:
 	// 设置物体的激活状态
 	void SetActive(bool state) { mActive = state; }
 
-	// 初始化单个组件
-	void InitializeComponent(Component* component);
-
-	// 销毁所有组件
-	void DestroyAllComponents();
+	/**
+	 * @brief 注销并销毁全部显式附件。
+	 * @details GOM 在移除对象所有权时立即调用，避免外部 shared_ptr 延长对象生命并遗留输入或碰撞注册。
+	 */
+	void DestroyAttachments();
 };
 #endif

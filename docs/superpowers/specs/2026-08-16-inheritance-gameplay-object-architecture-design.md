@@ -2,7 +2,7 @@
 
 日期：2026-08-16
 
-状态：主人已批准架构方向；Card、CardSlotManager、Transform、纯 UI、Collider、Shadow 与 Clickable 阶段已完成，下一阶段为删除通用 Component 框架
+状态：已完成；Card、CardSlotManager、Transform、纯 UI、Collider、Shadow、Clickable 与通用 Component 框架删除均已落地
 
 ## 1. 决策
 
@@ -11,10 +11,10 @@
 - `Plant` / `Zombie` 基类拥有共享生命周期、动画、碰撞、状态与存档契约。
 - 具体品种继续通过派生类、窄虚接口和注册式工厂表达差异。
 - 不为追求“全项目都是 ECS”的形式统一而把品种状态机拆成组件组合。
-- 现有 `Component` 容器视为早期框架遗留的横切附件机制，按阶段收缩，不再作为新玩法系统的默认扩展点。
+- 早期 `Component` 容器已删除，不再作为玩法系统扩展点；可选横切能力由宿主显式拥有。
 - `EntityManager` 是稳定 ID 注册表与查询索引，不属于待收缩的组件系统。
 
-这是一项架构边界决策。2026-08-16 已完成前两阶段：`CardComponent` 与 `CardDisplayComponent` 并入 `Card`，`CardSlotManager` 改由 `GameScene` 明确拥有；2026-08-22 又把 Transform 从组件表迁为 `GameObject` 的可选值，让纯 UI 脱离 `GameObjectManager`，并把 Collider、Shadow、Clickable 依次改为宿主显式拥有的可选对象。存档格式保持不变，当前只待删除已经没有派生类型的通用 Component 框架。
+这是一项架构边界决策。2026-08-16 已完成前两阶段：`CardComponent` 与 `CardDisplayComponent` 并入 `Card`，`CardSlotManager` 改由 `GameScene` 明确拥有；2026-08-22 又把 Transform 从组件表迁为 `GameObject` 的可选值，让纯 UI 脱离 `GameObjectManager`，把 Collider、Shadow、Clickable 依次改为宿主显式拥有的可选对象，并最终删除没有派生类型的通用 Component 基类、类型表与生命周期视图。存档格式保持不变。
 
 ## 2. 当前事实
 
@@ -28,13 +28,13 @@ GameObject
     └── Coin / Mower / 其他动画对象
 ```
 
-`GameObject` 直接拥有按需创建的 `std::optional<Transform>`，并分别用 `unique_ptr` 独占可选的 Collider、Shadow 与 Clickable。全项目当前已没有 `Component` 派生类；按 `type_index` 索引 `unique_ptr<Component>` 的遗留容器及其待初始化、更新和绘制视图仍为空壳保留，等待下一阶段整体删除。
+`GameObject` 直接拥有按需创建的 `std::optional<Transform>`，并分别用 `unique_ptr` 独占可选的 Collider、Shadow 与 Clickable。全项目已没有通用 `Component` 基类、派生类、按 `type_index` 索引的类型表，以及待初始化、更新和绘制视图。
 
 单张卡的冷却、选中、方向、可用性、主线程文本缓存与绘制职责已由 `Card` 直接拥有；`CardSlotManager` 是 `GameScene` 独占的普通控制器。二者都不再通过组件容器参与通用 Component 生命周期。
 
 它不具备典型 ECS 的数据布局和执行方式：实体不是轻量 ID，附件不在按类型连续存储中，System 也不按组件签名批量查询。植物、僵尸和子弹直接访问宿主 Transform/Collider，主要行为继续由派生类虚函数驱动。碰撞与点击各自维护专用注册表；Collider、Shadow 与 Clickable 均不再经过类型表、`dynamic_cast` 或通用 Component 生命周期。
 
-因此当前结构应准确称为“继承式对象 + 遗留组件附件”，而不是两套并行 ECS/OO 玩法架构。
+因此当前结构应准确称为“继承式对象 + 显式附件”，而不是两套并行 ECS/OO 玩法架构。`ColliderComponent`、`ShadowComponent`、`ClickableComponent` 只保留过渡类名，不代表通用组件系统仍然存在。
 
 纯 UI 走独立边界：`MainMenuScene` 直接拥有 `MainMenuButtons` 控制器，`UIManager` 直接拥有按钮、滑块和模态 `GameMessageBox`。弹窗关闭请求在 Button/Slider 完成本帧遍历后统一解除控件注册，不再进入 GOM 的玩法对象更新、排序和绘制生命周期。
 

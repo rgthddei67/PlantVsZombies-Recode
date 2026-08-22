@@ -12,7 +12,7 @@ struct Texture;
 
 /**
  * @brief GameObject 显式拥有的可选阴影附件。
- * @details 不参与通用 Component 生命周期；宿主负责创建、固定阶段绘制和销毁。
+ * @details 宿主负责创建、固定阶段绘制和销毁，不经过额外的通用生命周期。
  */
 class ShadowComponent {
 private:

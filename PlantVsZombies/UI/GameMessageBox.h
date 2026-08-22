@@ -15,7 +15,7 @@
 class UIManager;
 
 // 场景级模态面板。生命周期与控件注册均由创建它的 UIManager 管理，
-// 不参与玩法对象的 GameObject/Component 调度。
+// 不参与玩法对象的 GameObject 调度。
 class GameMessageBox {
 public:
 	class Builder;

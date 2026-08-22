@@ -2,7 +2,6 @@
 #ifndef _ANIMATED_OBJECT_H
 #define _ANIMATED_OBJECT_H
 
-#include "Component.h"
 #include "GameObject.h"
 #include "Transform.h"
 #include "ColliderComponent.h"

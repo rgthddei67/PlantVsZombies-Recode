@@ -2,7 +2,7 @@
 
 日期：2026-08-16
 
-状态：执行中；Card 专属组件、CardSlotManager、Transform、纯 UI、Collider、Shadow 与 Clickable 已完成并独立验证，下一阶段为删除通用 Component 框架
+状态：功能迁移已完成；Task 1～6 均已落地并独立验证，未执行同场景性能 A/B，故不宣称 FPS 收益
 
 **目标：** 在保持继承式植物/僵尸、现有运行行为、存档、输入和绘制契约的前提下，分阶段移除通用 `Component` 容器；保留并显式化 Transform、Collider、Shadow、Clickable 与卡片能力。
 
@@ -26,10 +26,10 @@
 
 **基线验证：**
 
-- [ ] `cmake --preset clang-release`。
-- [ ] `cmake --build --preset clang-release`。
-- [ ] 可见运行卡片基线：`smoke_crater_card_select.json`、`smoke_choose_card_pagination.json`、`smoke_last_selected_cards.json`、`smoke_plant_almanac_card_host.json`。
-- [ ] 可见运行基础对象基线：`smoke_gameplay.json`、`almanac_click.json`、`smoke_bullet_shadow.json`、`smoke_pool_instanced_shadows.json`、`smoke_mower_shadow.json`。
+- [x] `cmake --preset clang-release`。
+- [x] `cmake --build --preset clang-release`。
+- [x] 可见运行卡片基线：`smoke_crater_card_select.json`、`smoke_choose_card_pagination.json`、`smoke_last_selected_cards.json`、`smoke_plant_almanac_card_host.json`。
+- [x] 可见运行基础对象基线：`smoke_gameplay.json`、`almanac_click.json`、`smoke_bullet_shadow.json`、`smoke_pool_instanced_shadows.json`、`smoke_mower_shadow.json`。
 - [ ] 使用当前仓库既有压力场景记录端到端 FPS/总帧时间、内存和对象数量；不要在每对象路径新增高频 profiler scope。
 - [ ] 保存基线提交、脚本、状态 JSON 和截图路径；若基线已有失败，先停下并单独处理，不能把既有失败带进迁移。
 
@@ -206,22 +206,24 @@
 
 **步骤：**
 
-- [ ] 反向审计所有 `: public Component`、`AddComponent/GetComponent/RemoveComponent` 和 `Component*`，运行源码必须为零。
-- [ ] 删除 `mComponents`、`mComponentsToInitialize`、`mUpdatableComponents`、`mDrawableComponents` 和 `mDrawableSortDirty`。
-- [ ] 删除通用 Component Start/Update/Draw/OnDestroy/NeedsUpdate/SetDrawOrder 生命周期。
-- [ ] 将仍需的绘制顺序写成对象 Draw 的明确阶段，不能用删除组件排序掩盖视觉差异。
-- [ ] 删除 Component 源文件并清理失效 include、注释和历史 TODO；源码由 GLOB 自动收集，无需手改构建列表。
+- [x] 反向审计所有 `: public Component`、`AddComponent/GetComponent/RemoveComponent` 和 `Component*`，运行源码为零。
+- [x] 删除 `mComponents`、`mComponentsToInitialize`、`mUpdatableComponents`、`mDrawableComponents` 和 `mDrawableSortDirty`。
+- [x] 删除通用 Component Start/Update/Draw/OnDestroy/NeedsUpdate/SetDrawOrder 生命周期。
+- [x] 将仍需的绘制顺序写成对象 Draw 的明确阶段：Shadow 固定先提交，Collider 仅走 Debug 绘制，Clickable 只走更新/输入注册。
+- [x] 删除 Component 源文件并清理失效 include、注释和历史 TODO；源码由 GLOB 自动收集，无需手改构建列表。
 
 **完整验证：**
 
-- [ ] `cmake --preset clang-release`。
-- [ ] `cmake --build --preset clang-release`。
-- [ ] 重跑 Task 0 的全部可见 AutoTest，并逐项核对退出码、日志、状态与截图。
-- [ ] 默认实例化和 `-NoInstance` 各跑阴影/卡片视觉专项。
-- [ ] 快照往返覆盖卡片、植物、僵尸、子弹、金币和割草机。
+- [x] `cmake --preset clang-release`。
+- [x] `cmake --build --preset clang-release`。
+- [x] 重跑 Task 0 的全部可见 AutoTest，并逐项核对退出码、日志、状态与截图。
+- [x] 默认实例化和 `-NoInstance` 各跑阴影/卡片视觉专项。
+- [x] 快照往返覆盖卡片、植物、僵尸、子弹、金币和割草机。
 - [ ] 用与 Task 0 相同压力场景比较 FPS/总帧时间和内存；性能无提升可以接受，但不得显著回退。任何结论只引用本次 A/B 数据。
-- [ ] 更新项目指南，组件章节改为已完成迁移；更新相关技能路径与接口，并用 skill-creator `quick_validate.py` 校验改过的技能。
-- [ ] 独立提交完整移除；工作树干净后再决定是否 push。
+- [x] 更新项目指南，组件章节改为已完成迁移；更新相关技能路径与接口，并用 skill-creator `quick_validate.py` 校验改过的技能。
+- [x] 独立提交完整移除；验证完成且上游可常规 fast-forward，随该阶段一并 push。
+
+**Task 6 验证：** `clang-release` 完整配置、123 单元重编译、LTO 链接与 378 项 Win7 import audit 通过。主人当前桌面可见运行 Task 0 全集及 `smoke_clickable_ownership`、`smoke_collider_ownership`、`smoke_autotest_harness`、`smoke_roof_terrain_consumers`、`smoke_zombie_row_index_lifetime`、`smoke_blover`、`smoke_digger`、`smoke_twin_sunflower`，均退出 0、`status=passed`、`script finished OK`；默认与 `-NoInstance` 的 Bullet/Pool/Mower 阴影及选卡分页截图已目验。快照证据分别覆盖 Card/Plant（Blover）、Zombie（Digger）、Plant/Bullet（harness）、现场 Coin（双子向日葵新增两阳光往返断言）和 Mower（屋顶专项）。本阶段没有迁移前同提交压力基线，保持性能项未勾选，不使用 2026-05 的旧数据宣称收益。
 
 ---
 

@@ -139,11 +139,11 @@ Bullet（独立类型；通过 BulletPool 使用对象池）
 
 自 2026-08-16 起，本项目正式采用**继承式玩法对象**作为植物、僵尸及其他有独立生命周期玩法实体的主模型：公共状态与流程收敛在稳定基类，品种差异通过派生类、窄虚接口和注册式工厂表达。不得仅为追求形式统一，把植物或僵尸能力拆成通用 ECS 组件、复制一套平行状态，或让组件组合取代现有 `Plant` / `Zombie` 生命周期、动画与存档契约。
 
-现有 `Component` 容器属于早期框架遗留的可选附件机制，不是项目未来的玩法对象模型。迁移完成前继续保持其现有运行契约；新增代码默认不再扩充 `Component` 派生类，只有同时满足“跨多个无继承关系宿主复用、确实可选、生命周期可由宿主独立管理”的横切附件，经过架构审计后才可例外。渐进收缩方案见 `docs/superpowers/specs/2026-08-16-inheritance-gameplay-object-architecture-design.md` 与 `docs/superpowers/plans/2026-08-16-component-system-contraction.md`。
+早期通用 `Component` 容器已于 2026-08-22 完整删除，不是项目未来的玩法对象模型。新增代码不得恢复 `Component` 基类、按 `type_index` 索引的类型表、`Add/Get/RemoveComponent<T>` 服务定位或通用 Start/Update/Draw 生命周期；跨多个无继承关系宿主复用且确实可选的横切能力，应由宿主用命名明确的值或小对象显式拥有。最终迁移契约见 `docs/superpowers/specs/2026-08-16-inheritance-gameplay-object-architecture-design.md` 与 `docs/superpowers/plans/2026-08-16-component-system-contraction.md`。
 
 `EntityManager` 与上述组件容器相互独立：它是 Board 范围内的稳定实体 ID 注册表和查询索引，服务跨对象引用、存档恢复与热路径检索，不是 ECS，组件收缩期间不得删除或把其职责重新塞回对象指针。
 
-### 显式附件与待删除组件容器
+### 显式附件
 
 `GameObject` 通过 `std::optional<Transform>` 直接保存非多态空间值；只有空间对象才调用 `CreateTransform()`，调用方用 `GetTransform()` 读取唯一权威的位置、旋转和缩放。Collider 也已脱离通用组件表，由宿主用 `unique_ptr` 可选独占；只能通过 `CreateCollider()` / `GetCollider()` / `RemoveCollider()` 创建、访问或移除，入口原子维护 owner、CollisionSystem 注册、ID 与缓存，场景销毁和运行时移除都不得直接重置字段。`ColliderComponent` 仅保留过渡名称，不再继承 `Component`，Debug 绘制由 `GameObject::Draw()` 显式提交。
 
@@ -151,7 +151,7 @@ Shadow 同样由 `GameObject` 用 `unique_ptr<ShadowComponent>` 显式可选独�
 
 Clickable 也由 `GameObject` 用 `unique_ptr<ClickableComponent>` 显式可选独占；创建、访问和移除统一走 `CreateClickable()` / `GetClickable()` / `RemoveClickable()`。`CreateClickable()` 会先保证 Collider 完整就绪再注册，`RemoveCollider()` 会同步注销 Clickable；仅替换 Collider 时保持 Clickable 注册有效。Clickable 继续使用主线程稀疏自注册表，输入处理保持渲染顺序降序、`ConsumeEvent`、悬停光标计数以及 UI/世界坐标选择，禁止退回每帧扫描全部 GameObject。
 
-当前运行源码已没有 `Component` 派生类；遗留的 `std::unordered_map<std::type_index, std::unique_ptr<Component>>`、待初始化/更新/绘制视图和通用模板接口暂时为空，只等待下一阶段整体删除。不得把 Transform、Collider、Shadow、Clickable 或新玩法状态重新放回该容器。
+当前运行源码已不存在通用 `Component` 基类、派生类、类型表、待初始化/更新/绘制视图或模板访问接口。`ColliderComponent`、`ShadowComponent`、`ClickableComponent` 的 `Component` 后缀仅是兼容性的过渡命名：它们是 `GameObject` 通过具名 API 显式独占的附件，不构成组件系统。不得把 Transform、Collider、Shadow、Clickable 或新玩法状态重新抽回通用容器。
 
 `Card` 已直接拥有单卡的冷却、选中、三叶草方向、可用性和显示缓存，并在 `Card::Start/Update/Draw` 中显式管理点击回调、玩法更新与卡面绘制。不要重新引入 `CardComponent` / `CardDisplayComponent`，也不要通过组件容器查询单卡状态。场景级多卡仲裁由 `GameScene` 通过 `unique_ptr<CardSlotManager>` 明确拥有；实战 `Card` 由该控制器直接绑定非拥有指针，禁止恢复匿名 `CardUI` 宿主或每帧扫描组件表定位 manager。
 

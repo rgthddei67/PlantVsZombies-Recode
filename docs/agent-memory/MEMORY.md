@@ -145,7 +145,7 @@
 - [并行Update phase-1 已REVERT](project_pvz_parallel_update_phase1.md) — Animator帧推进仅占Update12%(plan误判80%),dispatch0.05ms非瓶颈
 - [并行Update phase-2 ✅](project_pvz_parallel_update_phase2.md) — 292f68e 整Animator::Update并行+deferred events;-3.44ms/69.3→91FPS
 - [phase-3 component-update skipping ✅](project_pvz_phase3_component_update_skipping.md) — c435a57 NeedsUpdate virtual+mUpdatableComponents视图;FPS91→100;PROFILE_SCOPE自污染~4.6ms
-- [继承式玩法对象与组件容器收缩](project_pvz_inheritance_gameplay_architecture.md) — Card 专属组件、CardSlotManager、显式 Transform、纯 UI、Collider、Shadow 与 Clickable 显式所有权均已完成；运行源码已无 Component 派生类，下一阶段删除空类型表、生命周期视图和 Component 基类；Shadow 绘制与 Clickable O(可点击对象) 输入仲裁契约保持，僵尸行桶仍遵守 Die/CommitRow 即时失效契约
+- [继承式玩法对象与组件容器收缩 ✅](project_pvz_inheritance_gameplay_architecture.md) — Card 专属状态/显示、CardSlotManager、显式 Transform、纯 UI 与 Collider/Shadow/Clickable 显式附件均已完成；通用 Component 基类、类型表、模板接口和生命周期视图已删除；Shadow 绘制与 Clickable O(可点击对象) 输入仲裁契约保持，僵尸行桶仍遵守 Die/CommitRow 即时失效契约
 - [预计算动画(放弃)](project_pvz_precomputed_animation.md) — 2026-05-23 TrackInfo::mFrames已密集per-frame,关键帧搜索不存在,ROI不足
 - [GPU instancing reanim ✅](project_pvz_gpu_instancing_reanim.md) — 2026-05-24(388a845)reanim→InstanceRecord;-1.39ms/98.4→114FPS；postscript修glow状态污染+双队列Z-order；2026-07-24 `ShadowComponent` 默认也写 instance 队列，修复并行阈值后“睡莲本体反盖上层植物影子”，`-NoInstance` 仍走 batch 兜底
 - [Clickable 稀疏注册与显式所有权 ✅](project_pvz_clickable_optimization.md) — 2026-05-24 自注册表替换全场扫描，历史 1.22→0.01ms(-122×)；2026-08-22 脱离 Component 容器并保留 O(可点击对象)、渲染顺序/事件消费及 Collider 原子绑定契约；`GetAllGameObjects()` per-frame scan 仍是仓库 foot-gun

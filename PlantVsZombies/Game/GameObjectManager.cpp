@@ -73,21 +73,21 @@ void GameObjectManager::DestroyAllGameObjects() {
 
 	for (auto& obj : mGameObjects) {
 		if (obj) {
-			obj->DestroyAllComponents();
+			obj->DestroyAttachments();
 		}
 	}
 	mGameObjects.clear();
 
 	for (auto& obj : mObjectsToAdd) {
 		if (obj) {
-			obj->DestroyAllComponents();
+			obj->DestroyAttachments();
 		}
 	}
 	mObjectsToAdd.clear();
 
 	for (auto& obj : mObjectsToRemove) {
 		if (obj) {
-			obj->DestroyAllComponents();
+			obj->DestroyAttachments();
 		}
 	}
 	mObjectsToRemove.clear();
@@ -111,12 +111,12 @@ void GameObjectManager::Update() {
 		std::unordered_set<GameObject*> toRemove;
 		toRemove.reserve(mObjectsToRemove.size() * 2);
 		// 下标循环 + 每次重读 size：保持旧实现的 realloc 安全性——
-		// 若 DestroyAllComponents 期间回调又 DestroyGameObject() 追加新项，本帧一并处理。
+		// 若附件销毁期间未来新增的回调又追加移除项，本帧仍一并处理。
 		// （拷贝 shared_ptr 而非引用，避免 vector 重新分配后引用失效。）
 		for (size_t i = 0; i < mObjectsToRemove.size(); i++) {
 			auto obj = mObjectsToRemove[i];
 			if (obj) {
-				obj->DestroyAllComponents();
+				obj->DestroyAttachments();
 				toRemove.insert(obj.get());
 			}
 		}
@@ -335,21 +335,21 @@ std::shared_ptr<GameObject> GameObjectManager::FindGameObjectWithTag(const std::
 void GameObjectManager::ClearAll() {
 	for (auto& obj : mGameObjects) {
 		if (obj) {
-			obj->DestroyAllComponents();
+			obj->DestroyAttachments();
 		}
 	}
 	mGameObjects.clear();
 
 	for (auto& obj : mObjectsToAdd) {
 		if (obj) {
-			obj->DestroyAllComponents();
+			obj->DestroyAttachments();
 		}
 	}
 	mObjectsToAdd.clear();
 
 	for (auto& obj : mObjectsToRemove) {
 		if (obj) {
-			obj->DestroyAllComponents();
+			obj->DestroyAttachments();
 		}
 	}
 	mObjectsToRemove.clear();

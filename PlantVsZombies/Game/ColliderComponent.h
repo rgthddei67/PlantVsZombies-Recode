@@ -31,7 +31,7 @@ namespace CollisionLayer {
 
 /**
  * @brief GameObject 显式拥有的可选碰撞附件。
- * @details 只能由 GameObject::CreateCollider 创建；不参与通用 Component 生命周期。
+ * @details 只能由 GameObject::CreateCollider 创建，所有权与注册生命周期都由宿主显式管理。
  */
 class ColliderComponent {
 public:

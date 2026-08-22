@@ -1,6 +1,6 @@
 ---
 name: project-pvz-inheritance-gameplay-architecture
-description: 继承式玩法对象正式架构；Card、CardSlotManager、显式 Transform、纯 UI、Collider、Shadow 与 Clickable 所有权已完成，后续删除空通用 Component 框架
+description: 继承式玩法对象正式架构；Card、CardSlotManager、显式 Transform、纯 UI 与显式附件迁移完成，通用 Component 框架已删除
 metadata:
   node_type: memory
   type: project
@@ -11,7 +11,7 @@ metadata:
 
 2026-08-16 主人确认：植物、僵尸及其他有独立生命周期的玩法实体正式采用继承式对象模型。共享流程留在稳定基类，品种差异通过派生类、窄虚接口和 `GameDataManager` 注册式工厂表达；不为形式统一把植物/僵尸改写成 ECS 或复制平行状态。
 
-当前 `GameObject` 的 `unordered_map<type_index, unique_ptr<Component>>` 是早期框架遗留的横切附件容器，不再作为新玩法系统的默认扩展点。2026-08-16 已把 `CardComponent` 与 `CardDisplayComponent` 的状态、主线程缓存和绘制职责直接并入 `Card`，并把 `CardSlotManager` 从组件改为 `GameScene` 独占的普通控制器；存档 JSON 字段不变。2026-08-22 又依次把 Transform 改为 `GameObject` 内按需创建的 `std::optional<Transform>`，把 Collider、Shadow 与 Clickable 改为 `GameObject` 的显式可选所有权并脱离 Component 生命周期。运行源码当前已没有 Component 派生类，遗留类型表与生命周期视图为空，只待整体删除。
+`GameObject` 早期的 `unordered_map<type_index, unique_ptr<Component>>` 横切附件容器已删除，不再作为玩法系统扩展点。2026-08-16 已把 `CardComponent` 与 `CardDisplayComponent` 的状态、主线程缓存和绘制职责直接并入 `Card`，并把 `CardSlotManager` 从组件改为 `GameScene` 独占的普通控制器；存档 JSON 字段不变。2026-08-22 又依次把 Transform 改为 `GameObject` 内按需创建的 `std::optional<Transform>`，把 Collider、Shadow 与 Clickable 改为 `GameObject` 的显式可选所有权，最后删除 Component 基类、类型表、模板接口和通用生命周期视图。`*Component` 后缀目前只属于三个显式附件的过渡名称。
 
 已批准的顺序：
 
@@ -19,7 +19,9 @@ metadata:
 2. Transform 已改为显式空间值；纯 UI 已脱离 GameObjectManager。
 3. Collider 已改为宿主显式拥有并原子注册/注销。
 4. Shadow 与 Clickable 已分别改为显式可选附件，稀疏点击注册能力和阴影绘制阶段保持不变。
-5. 下一阶段删除空类型表、更新/绘制视图和 Component 基类。
+5. 空类型表、更新/绘制视图和 Component 基类已删除；迁移完成。
+
+通用框架删除后的契约：`GameObject::Start/Update/Draw/DestroyAttachments` 只显式处理 Collider、Shadow 与 Clickable，不提供按类型查询或任意附件生命周期。Shadow 固定在宿主本体前提交，Collider 只在 Debug 路径绘制，Clickable 保持稀疏注册和宿主更新时序。新增横切能力必须先确定宿主所有权与明确调度阶段，不能恢复通用组件容器。
 
 `EntityManager` 不属于 ECS 组件系统。它保留稳定实体 ID、指定 ID 读档、弱引用清理、按行和稀有品种热查询；未来可单独重命名 `EntityRegistry` 或拆 `ZombieQueryIndex`，但不得随组件收缩删除。
 
@@ -52,3 +54,5 @@ Collider 阶段的 2026-08-22 当前证据：`clang-release` LTO 与 378 项 Win
 Shadow 阶段的 2026-08-22 当前证据：`clang-release` LTO 与 378 项 Win7 import audit 通过。`smoke_bullet_shadow`、`smoke_pool_instanced_shadows`、`smoke_pool_plant_shadow_bob`、`smoke_mower_shadow` 在默认实例路径和 `-NoInstance` 各可见运行一次，8 次均退出 0、`status=passed`、`script finished OK`，截图确认子弹跨对象层、泳池 8 组叠层、三相位浮动锚点和割草机落点。补充可见回归中 `smoke_coffeebean`、`smoke_seashroom`、`smoke_digger`、`smoke_dolphin_rider`、`smoke_catapult_zombie`、`smoke_zamboni` 通过；`smoke_starfruit` 的本阶段 `hasShadow=false` 已通过后停在既有星弹风力期望，`smoke_imp_zombie` 停在肢体粒子包围盒，`smoke_bungee_zombie` 停在 rollout 64/48 期望漂移，三者不得记作全绿，也不在 Shadow 阶段顺手修改玩法或测试语义。
 
 Clickable 阶段的 2026-08-22 当前证据：`clang-release` LTO 与 378 项 Win7 import audit 通过；可见运行 `almanac_click`、`smoke_choose_card_pagination`、`smoke_collider_ownership`、`smoke_zombie_almanac_progression` 与新增 `smoke_clickable_ownership`，均退出 0、`status=passed`、`script finished OK`，合计 56 条断言无失败。截图已核对主图鉴入口、选卡分页、共享格边界与铲除、僵尸图鉴第二条路障详情、路灯花本体点击/III 挡菜单以及 Trophy 点击后的胜利状态。共享格边界应断言窗口坐标转换后的正式唯一格解析结果，不要直接把逻辑边界 X 当成像素完全等价；旧僵尸图鉴 UI 进入路径已漂移，专项用既有 `goto_zombie_almanac` 稳定进入后再真实点击目标条目。
+
+通用 Component 删除阶段的 2026-08-22 当前证据：`clang-release` 完整配置、123 单元重编译、LTO 链接和 378 项 Win7 import audit 通过；运行源码中 `Component` 基类/派生、类型表、模板访问器、初始化/更新/绘制视图及 `NeedsUpdate/SetDrawOrder` 为零。主人当前桌面可见运行 Task 0 全集，并补跑 Collider/Clickable 所有权、AutoTest harness、屋顶对象、Blover、Digger、双子向日葵存档专项，均退出 0、`status=passed`、`script finished OK`；默认与 `-NoInstance` 的阴影、选卡分页截图均已目验。双子向日葵新增现场两枚阳光 Coin 的保存/全新 `GameScene` 重载断言，连同 Blover、Digger、harness 和屋顶专项覆盖 Card、Plant、Zombie、Bullet、Coin、Mower 往返。本阶段没有迁移前同提交压力 A/B，不能引用 2026-05 phase-3 数据宣称当前 FPS 收益。

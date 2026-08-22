@@ -45,7 +45,7 @@ void ClickableComponent::ProcessMouseEvents() {
 		if (!clickable->IsClickable) continue;
 
 		auto* obj = clickable->GetGameObject();
-		// 显式附件在宿主构造期已经有 owner；仍保持旧 Component 在 Start 前不可命中的语义。
+		// 显式附件在宿主构造期已经有 owner；仍保持旧延迟初始化阶段在 Start 前不可命中的语义。
 		if (!obj || !obj->HasStarted() || !obj->IsActive()) continue;
 
 		auto* collider = obj->GetCollider();
