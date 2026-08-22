@@ -79,7 +79,7 @@ void PotatoMine::KillZombiesInBlastRadius()
 	const float radiusSquared = kBlastRadius * kBlastRadius;
 
 	// 镜像原版 KillAllZombiesInRadius：同排、圆形爆区，一次结算全部目标而非只杀碰撞触发者。
-	mBoard->mEntityManager.ForEachZombieInRow(mRow, [&](Zombie* zombie) {
+	mBoard->mEntityRegistry.ForEachZombieInRow(mRow, [&](Zombie* zombie) {
 		if (zombie->IsMindControlled() || zombie->IsDying()
 			|| !zombie->CanBeTargetedByProjectile(false)) return;
 		auto* collider = zombie->GetColliderComponent();

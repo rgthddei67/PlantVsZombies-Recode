@@ -47,7 +47,7 @@ bool FumeShroom::HasZombieInRow()
 			// 按行索引：只遍历本行僵尸，mRow 过滤已由桶保证。
 			const float thisX = GetPosition().x;
 			bool found = false;
-			mBoard->mEntityManager.ForEachZombieInRow(mRow, [&](Zombie* zombie) {
+			mBoard->mEntityRegistry.ForEachZombieInRow(mRow, [&](Zombie* zombie) {
 				if (found) return;  // 已命中，跳过本行其余
 				float dx = zombie->GetPosition().x - thisX;
 				// 跳过魅惑僵尸：全行只剩魅惑时不触发喷射动画（与 Chomper/PotatoMine 索敌跳过魅惑同一惯例）
@@ -68,7 +68,7 @@ float FumeShroom::FumeAttack()
 
 	const float thisX = GetPosition().x;
 	std::vector<Zombie*> targets;
-	mBoard->mEntityManager.ForEachZombieInRow(mRow, [&](Zombie* zombie) {
+	mBoard->mEntityRegistry.ForEachZombieInRow(mRow, [&](Zombie* zombie) {
 		const float dx = zombie->GetPosition().x - thisX;
 		// 豁免魅惑僵尸：原版 DoRowAreaDamage(20, 2U) 的 damageRangeFlags 不含 bit7（不炸魅惑目标）
 		if (dx >= 0 && dx <= mFumeReach && zombie->HasHead()

@@ -59,7 +59,7 @@ public:
 	const std::string& GetTreatmentGearTextureKey() const {
 		return TreatmentGearTextureKey();
 	}
-	/** EntityManager 的 ID 顺序门禁只询问稀有急救员索引，不扫描全体僵尸。 */
+	/** EntityRegistry 的 ID 顺序门禁只询问稀有急救员索引，不扫描全体僵尸。 */
 	bool IsReadyForTreatmentChoice() const;
 	bool IsFocusedOnTarget(int zombieID) const;
 	/** AutoTest 只压缩等待时间，不越过正常决策、前摇和结算路径。 */

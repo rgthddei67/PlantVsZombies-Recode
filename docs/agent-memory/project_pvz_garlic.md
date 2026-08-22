@@ -13,7 +13,7 @@ metadata:
 
 首口啃食照常造成 50 伤并播放普通 Chomp，随后在 `Zombie` 建立独立嫌恶状态，不能依赖仍存在的植物目标。普通脸品种在 0.7 秒停吃并显示 grossout，1.7 秒从同介质有效相邻行中选行、恢复走路，2.7 秒结束；缺专属脸的品种在 0.2 秒短停后直达换行节点。冻结和黄油暂停计时，寒冰减速不改时间轴。
 
-换行直接修改权威 `mRow`；`EntityManager` 行桶和碰撞桶下一帧按当前行重建，无需增量通知。Transform Y 以 100px/游戏秒追赶 `Board::GetZombieSpawnY`，泳池不跨介质，屋顶按当前 X 的坡面目标收敛。phase、elapsed、是否已换行和中途 Y 全部入档，读档后重建停格速度层与恶心脸。
+换行直接修改权威 `mRow`；`EntityRegistry` 行桶和碰撞桶下一帧按当前行重建，无需增量通知。Transform Y 以 100px/游戏秒追赶 `Board::GetZombieSpawnY`，泳池不跨介质，屋顶按当前 X 的坡面目标收敛。phase、elapsed、是否已换行和中途 Y 全部入档，读档后重建停格速度层与恶心脸。
 
 交互约束：停止啃食必须走统一目标清理以归零 `eaterCount`；破报纸先原子取消嫌恶状态再进入 `anim_gasp`；已经触发后被魅惑仍完成既定换行；死亡清理状态。通用 `Zombie_head_grossout` 比普通头图多 15px 顶部透明留白，只对 `anim_head1` 设 -15px 局部 Y offset，并在所有退出路径恢复原图、offset 和附属轨道。
 

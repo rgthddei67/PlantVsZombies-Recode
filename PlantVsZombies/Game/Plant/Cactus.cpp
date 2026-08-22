@@ -134,7 +134,7 @@ void Cactus::UpdateTargetCache()
 	const float cactusX = GetPosition().x;
 	mHasGroundTarget = false;
 	mHasFlyingTarget = false;
-	mBoard->mEntityManager.ForEachZombieInRow(mRow, [&](Zombie* zombie) {
+	mBoard->mEntityRegistry.ForEachZombieInRow(mRow, [&](Zombie* zombie) {
 		if (!zombie || !zombie->IsActive()) return;
 		const float zombieX = zombie->GetPosition().x;
 		if (!zombie->IsMindControlled() && zombie->HasHead()

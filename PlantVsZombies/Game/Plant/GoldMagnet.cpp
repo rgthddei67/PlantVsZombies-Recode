@@ -39,7 +39,7 @@ void GoldMagnet::OnZombieMagneticItemExtracted(
 
 	// EMP由实际被吸装备的僵尸位置结算；魅惑方与垂死实体不借此获得友军控制。
 	for (int row = 0; row < mBoard->mRows; ++row) {
-		mBoard->mEntityManager.ForEachZombieInRow(row, [&](Zombie* zombie) {
+		mBoard->mEntityRegistry.ForEachZombieInRow(row, [&](Zombie* zombie) {
 			if (!zombie || !zombie->IsActive() || zombie->IsDying()
 				|| zombie->IsMindControlled()) return;
 			const ColliderComponent* collider = zombie->GetColliderComponent();

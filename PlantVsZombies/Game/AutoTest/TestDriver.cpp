@@ -1156,8 +1156,8 @@ bool TestDriver::ExecuteCurrent() {
 		if (!gs || !gs->GetBoard()) { Fail("trigger_mower: 不在 GameScene 或 Board 为空"); return false; }
 		Board* board = gs->GetBoard();
 		const int row = cmd.value("row", -1);
-		for (int id : board->mEntityManager.GetAllMowerIDs()) {
-			Mower* mower = board->mEntityManager.GetMower(id);
+		for (int id : board->mEntityRegistry.GetAllMowerIDs()) {
+			Mower* mower = board->mEntityRegistry.GetMower(id);
 			if (mower && mower->mRow == row) {
 				mower->Trigger();
 				return true;
@@ -1359,8 +1359,8 @@ bool TestDriver::ExecuteCurrent() {
 			return false;
 		}
 		Plant* plant = nullptr;
-		for (int id : board->mEntityManager.GetAllPlantIDs()) {
-			Plant* candidate = board->mEntityManager.GetPlant(id);
+		for (int id : board->mEntityRegistry.GetAllPlantIDs()) {
+			Plant* candidate = board->mEntityRegistry.GetPlant(id);
 			if (candidate && candidate->mPlantType == typeIt->second
 				&& candidate->mRow == cmd.value("plantRow", -1)
 				&& candidate->mColumn == cmd.value("plantCol", -1)) {
@@ -1368,14 +1368,14 @@ bool TestDriver::ExecuteCurrent() {
 				break;
 			}
 		}
-		std::vector<int> zombieIDs = board->mEntityManager.GetAllZombieIDs();
+		std::vector<int> zombieIDs = board->mEntityRegistry.GetAllZombieIDs();
 		std::sort(zombieIDs.begin(), zombieIDs.end());
 		Zombie* zombie = nullptr;
 		int seen = 0;
 		const int zombieRow = cmd.value("zombieRow", -1);
 		const int zombieIndex = cmd.value("zombieIndex", 0);
 		for (int id : zombieIDs) {
-			Zombie* candidate = board->mEntityManager.GetZombie(id);
+			Zombie* candidate = board->mEntityRegistry.GetZombie(id);
 			if (!candidate || !candidate->IsActive()) continue;
 			if (zombieRow >= 0 && candidate->mRow != zombieRow) continue;
 			if (seen++ == zombieIndex) {
@@ -1425,9 +1425,9 @@ bool TestDriver::ExecuteCurrent() {
 		Board* board = gs->GetBoard();
 		const int row = cmd.value("row", -1);
 		const int col = cmd.value("col", -1);
-		for (int id : board->mEntityManager.GetAllPlantIDs()) {
+		for (int id : board->mEntityRegistry.GetAllPlantIDs()) {
 			auto* starFruit = dynamic_cast<StarFruit*>(
-				board->mEntityManager.GetPlant(id));
+				board->mEntityRegistry.GetPlant(id));
 			if (!starFruit || (row >= 0 && starFruit->mRow != row)
 				|| (col >= 0 && starFruit->mColumn != col)) {
 				continue;
@@ -1448,9 +1448,9 @@ bool TestDriver::ExecuteCurrent() {
 		Board* board = gs->GetBoard();
 		const int row = cmd.value("row", -1);
 		const int col = cmd.value("col", -1);
-		for (int id : board->mEntityManager.GetAllPlantIDs()) {
+		for (int id : board->mEntityRegistry.GetAllPlantIDs()) {
 			auto* cabbagePult = dynamic_cast<CabbagePult*>(
-				board->mEntityManager.GetPlant(id));
+				board->mEntityRegistry.GetPlant(id));
 			if (!cabbagePult || (row >= 0 && cabbagePult->mRow != row)
 				|| (col >= 0 && cabbagePult->mColumn != col)) {
 				continue;
@@ -1473,9 +1473,9 @@ bool TestDriver::ExecuteCurrent() {
 		const int col = cmd.value("col", -1);
 		int forcedShot = -1;
 		if (cmd.contains("butter")) forcedShot = cmd.value("butter", false) ? 1 : 0;
-		for (int id : board->mEntityManager.GetAllPlantIDs()) {
+		for (int id : board->mEntityRegistry.GetAllPlantIDs()) {
 			auto* kernelPult = dynamic_cast<KernelPult*>(
-				board->mEntityManager.GetPlant(id));
+				board->mEntityRegistry.GetPlant(id));
 			if (!kernelPult || (row >= 0 && kernelPult->mRow != row)
 				|| (col >= 0 && kernelPult->mColumn != col)) {
 				continue;
@@ -1496,9 +1496,9 @@ bool TestDriver::ExecuteCurrent() {
 		Board* board = gs->GetBoard();
 		const int row = cmd.value("row", -1);
 		const int col = cmd.value("col", -1);
-		for (int id : board->mEntityManager.GetAllPlantIDs()) {
+		for (int id : board->mEntityRegistry.GetAllPlantIDs()) {
 			auto* melonPult = dynamic_cast<MelonPult*>(
-				board->mEntityManager.GetPlant(id));
+				board->mEntityRegistry.GetPlant(id));
 			// 紫卡升级同帧内旧株仍可能留在实体表；夹具只能布置当前活动的承接株。
 			if (!melonPult || !melonPult->IsActive()
 				|| (row >= 0 && melonPult->mRow != row)
@@ -1521,9 +1521,9 @@ bool TestDriver::ExecuteCurrent() {
 		Board* board = gs->GetBoard();
 		const int row = cmd.value("row", -1);
 		const int col = cmd.value("col", -1);
-		for (int id : board->mEntityManager.GetAllPlantIDs()) {
+		for (int id : board->mEntityRegistry.GetAllPlantIDs()) {
 			auto* gloomShroom = dynamic_cast<GloomShroom*>(
-				board->mEntityManager.GetPlant(id));
+				board->mEntityRegistry.GetPlant(id));
 			if (!gloomShroom || (row >= 0 && gloomShroom->mRow != row)
 				|| (col >= 0 && gloomShroom->mColumn != col)) {
 				continue;
@@ -1603,11 +1603,11 @@ bool TestDriver::ExecuteCurrent() {
 		const int row = cmd.value("row", -1);
 		const int index = cmd.value("index", 0);
 		int seen = 0;
-		std::vector<int> zombieIDs = gs->GetBoard()->mEntityManager.GetAllZombieIDs();
+		std::vector<int> zombieIDs = gs->GetBoard()->mEntityRegistry.GetAllZombieIDs();
 		std::sort(zombieIDs.begin(), zombieIDs.end());
 		for (const int id : zombieIDs) {
 			auto* elite = dynamic_cast<EliteLadderZombie*>(
-				gs->GetBoard()->mEntityManager.GetZombie(id));
+				gs->GetBoard()->mEntityRegistry.GetZombie(id));
 			if (!elite || !elite->IsActive()) continue;
 			if (row >= 0 && elite->mRow != row) continue;
 			if (seen++ != index) continue;
@@ -1627,11 +1627,11 @@ bool TestDriver::ExecuteCurrent() {
 		const int index = cmd.value("index", 0);
 		const bool makeAll = cmd.value("all", false);
 		int seen = 0;
-		std::vector<int> zombieIDs = gs->GetBoard()->mEntityManager.GetAllZombieIDs();
+		std::vector<int> zombieIDs = gs->GetBoard()->mEntityRegistry.GetAllZombieIDs();
 		std::sort(zombieIDs.begin(), zombieIDs.end());
 		for (const int id : zombieIDs) {
 			auto* healer = dynamic_cast<HealerZombie*>(
-				gs->GetBoard()->mEntityManager.GetZombie(id));
+				gs->GetBoard()->mEntityRegistry.GetZombie(id));
 			if (!healer || !healer->IsActive()) continue;
 			if (row >= 0 && healer->mRow != row) continue;
 			if (makeAll) {
@@ -1658,11 +1658,11 @@ bool TestDriver::ExecuteCurrent() {
 		const int row = cmd.value("row", -1);
 		const int index = cmd.value("index", 0);
 		int seen = 0;
-		std::vector<int> zombieIDs = gs->GetBoard()->mEntityManager.GetAllZombieIDs();
+		std::vector<int> zombieIDs = gs->GetBoard()->mEntityRegistry.GetAllZombieIDs();
 		std::sort(zombieIDs.begin(), zombieIDs.end());
 		for (const int id : zombieIDs) {
 			auto* gargantuar = dynamic_cast<GargantuarZombie*>(
-				gs->GetBoard()->mEntityManager.GetZombie(id));
+				gs->GetBoard()->mEntityRegistry.GetZombie(id));
 			if (!gargantuar || !gargantuar->IsActive()
 				|| gargantuar->GetPhase() != GargantuarZombie::Phase::SMASHING
 				|| gargantuar->HasAppliedSmash()) {
@@ -1688,14 +1688,14 @@ bool TestDriver::ExecuteCurrent() {
 			Fail("set_jack_pop_countdown: value 必须在 0～60 秒");
 			return false;
 		}
-		std::vector<int> zombieIDs = gs->GetBoard()->mEntityManager.GetAllZombieIDs();
+		std::vector<int> zombieIDs = gs->GetBoard()->mEntityRegistry.GetAllZombieIDs();
 		std::sort(zombieIDs.begin(), zombieIDs.end());
 		const int row = cmd.value("row", -1);
 		const int index = cmd.value("index", 0);
 		int seen = 0;
 		for (const int id : zombieIDs) {
 			auto* jack = dynamic_cast<JackInTheBoxZombie*>(
-				gs->GetBoard()->mEntityManager.GetZombie(id));
+				gs->GetBoard()->mEntityRegistry.GetZombie(id));
 			if (!jack || !jack->IsActive()
 				|| jack->mZombieType != ZombieType::ZOMBIE_JACK_IN_THE_BOX) {
 				continue;
@@ -1719,14 +1719,14 @@ bool TestDriver::ExecuteCurrent() {
 			Fail("set_pogo_bounce_remaining: value 必须在 0～1.333334 秒");
 			return false;
 		}
-		std::vector<int> zombieIDs = gs->GetBoard()->mEntityManager.GetAllZombieIDs();
+		std::vector<int> zombieIDs = gs->GetBoard()->mEntityRegistry.GetAllZombieIDs();
 		std::sort(zombieIDs.begin(), zombieIDs.end());
 		const int row = cmd.value("row", -1);
 		const int index = cmd.value("index", 0);
 		int seen = 0;
 		for (const int id : zombieIDs) {
 			auto* pogo = dynamic_cast<PogoZombie*>(
-				gs->GetBoard()->mEntityManager.GetZombie(id));
+				gs->GetBoard()->mEntityRegistry.GetZombie(id));
 			if (!pogo || !pogo->IsActive()) continue;
 			if (row >= 0 && pogo->mRow != row) continue;
 			if (seen++ != index) continue;
@@ -1751,11 +1751,11 @@ bool TestDriver::ExecuteCurrent() {
 		}
 		int seen = 0;
 		std::vector<int> zombieIDs =
-			gs->GetBoard()->mEntityManager.GetAllZombieIDs();
+			gs->GetBoard()->mEntityRegistry.GetAllZombieIDs();
 		std::sort(zombieIDs.begin(), zombieIDs.end());
 		for (const int id : zombieIDs) {
 			auto* bungee = dynamic_cast<BungeeZombie*>(
-				gs->GetBoard()->mEntityManager.GetZombie(id));
+				gs->GetBoard()->mEntityRegistry.GetZombie(id));
 			if (!bungee || !bungee->IsActive()) continue;
 			if (row >= 0 && bungee->mRow != row) continue;
 			if (seen++ != index) continue;
@@ -1790,11 +1790,11 @@ bool TestDriver::ExecuteCurrent() {
 			desiredType = typeIt->second;
 		}
 		int seen = 0;
-		std::vector<int> zombieIDs = gs->GetBoard()->mEntityManager.GetAllZombieIDs();
+		std::vector<int> zombieIDs = gs->GetBoard()->mEntityRegistry.GetAllZombieIDs();
 		std::sort(zombieIDs.begin(), zombieIDs.end());
 		for (const int id : zombieIDs) {
 			auto* digger = dynamic_cast<DiggerZombie*>(
-				gs->GetBoard()->mEntityManager.GetZombie(id));
+				gs->GetBoard()->mEntityRegistry.GetZombie(id));
 			if (!digger || !digger->IsActive()
 				|| digger->mZombieType != desiredType) continue;
 			if (row >= 0 && digger->mRow != row) continue;
@@ -1826,11 +1826,11 @@ bool TestDriver::ExecuteCurrent() {
 		}
 		const int index = cmd.value("index", 0);
 		int seen = 0;
-		std::vector<int> zombieIDs = board->mEntityManager.GetAllZombieIDs();
+		std::vector<int> zombieIDs = board->mEntityRegistry.GetAllZombieIDs();
 		std::sort(zombieIDs.begin(), zombieIDs.end());
 		for (const int id : zombieIDs) {
 			auto* elite = dynamic_cast<EliteJackInTheBoxZombie*>(
-				board->mEntityManager.GetZombie(id));
+				board->mEntityRegistry.GetZombie(id));
 			if (!elite || !elite->IsActive()) continue;
 			if (sourceRow >= 0 && elite->mRow != sourceRow) continue;
 			if (seen++ != index) continue;
@@ -1916,10 +1916,10 @@ bool TestDriver::ExecuteCurrent() {
 			desiredType = typeIt->second;
 		}
 		int seen = 0;
-		std::vector<int> zombieIDs = board->mEntityManager.GetAllZombieIDs();
+		std::vector<int> zombieIDs = board->mEntityRegistry.GetAllZombieIDs();
 		std::sort(zombieIDs.begin(), zombieIDs.end());
 		for (int id : zombieIDs) {
-			Zombie* z = board->mEntityManager.GetZombie(id);
+			Zombie* z = board->mEntityRegistry.GetZombie(id);
 			if (!z) continue;
 			if (row >= 0 && z->mRow != row) continue;
 			if (desiredType != ZombieType::NUM_ZOMBIE_TYPES
@@ -1943,14 +1943,14 @@ bool TestDriver::ExecuteCurrent() {
 			return false;
 		}
 		Board* board = gs->GetBoard();
-		std::vector<int> zombieIDs = board->mEntityManager.GetAllZombieIDs();
+		std::vector<int> zombieIDs = board->mEntityRegistry.GetAllZombieIDs();
 		std::sort(zombieIDs.begin(), zombieIDs.end());
 		const int row = cmd.value("row", -1);
 		const int index = cmd.value("index", 0);
 		const bool expected = cmd.value("expectedApplied", true);
 		int seen = 0;
 		for (int id : zombieIDs) {
-			Zombie* zombie = board->mEntityManager.GetZombie(id);
+			Zombie* zombie = board->mEntityRegistry.GetZombie(id);
 			if (!zombie || !zombie->IsActive()) continue;
 			if (row >= 0 && zombie->mRow != row) continue;
 			if (seen++ != index) continue;
@@ -1971,7 +1971,7 @@ bool TestDriver::ExecuteCurrent() {
 			return false;
 		}
 		Board* board = gs->GetBoard();
-		std::vector<int> zombieIDs = board->mEntityManager.GetAllZombieIDs();
+		std::vector<int> zombieIDs = board->mEntityRegistry.GetAllZombieIDs();
 		std::sort(zombieIDs.begin(), zombieIDs.end());
 		const int row = cmd.value("row", -1);
 		const int index = cmd.value("index", 0);
@@ -1980,7 +1980,7 @@ bool TestDriver::ExecuteCurrent() {
 		const bool expected = cmd.value("expectedApplied", true);
 		int seen = 0;
 		for (int id : zombieIDs) {
-			Zombie* zombie = board->mEntityManager.GetZombie(id);
+			Zombie* zombie = board->mEntityRegistry.GetZombie(id);
 			if (!zombie || !zombie->IsActive()) continue;
 			if (row >= 0 && zombie->mRow != row) continue;
 			if (seen++ != index) continue;
@@ -2012,13 +2012,13 @@ bool TestDriver::ExecuteCurrent() {
 			return false;
 		}
 		Board* board = gs->GetBoard();
-		std::vector<int> zombieIDs = board->mEntityManager.GetAllZombieIDs();
+		std::vector<int> zombieIDs = board->mEntityRegistry.GetAllZombieIDs();
 		std::sort(zombieIDs.begin(), zombieIDs.end());
 		const int row = cmd.value("row", -1);
 		const int index = cmd.value("index", 0);
 		int seen = 0;
 		for (int id : zombieIDs) {
-			Zombie* zombie = board->mEntityManager.GetZombie(id);
+			Zombie* zombie = board->mEntityRegistry.GetZombie(id);
 			if (!zombie || !zombie->IsActive()) continue;
 			if (row >= 0 && zombie->mRow != row) continue;
 			if (seen++ != index) continue;
@@ -2052,8 +2052,8 @@ bool TestDriver::ExecuteCurrent() {
 		auto sourceIt = kDamageSourceNames.find(cmd.value("source", "OTHER"));
 		if (sourceIt == kDamageSourceNames.end()) { Fail("damage_plant: source 必须是 PLANT/ZOMBIE/OTHER"); return false; }
 		int seen = 0;
-		for (int id : board->mEntityManager.GetAllPlantIDs()) {
-			Plant* p = board->mEntityManager.GetPlant(id);
+		for (int id : board->mEntityRegistry.GetAllPlantIDs()) {
+			Plant* p = board->mEntityRegistry.GetPlant(id);
 			if (!p) continue;
 			if (row >= 0 && p->mRow != row) continue;
 			if (col >= 0 && p->mColumn != col) continue;
@@ -2076,10 +2076,10 @@ bool TestDriver::ExecuteCurrent() {
 		const int col = cmd.value("col", -1);     // -1 = 不过滤列
 		const int index = cmd.value("index", 0);  // 过滤后按 ID 升序第 index 株
 		int seen = 0;
-		auto plantIDs = board->mEntityManager.GetAllPlantIDs();
+		auto plantIDs = board->mEntityRegistry.GetAllPlantIDs();
 		std::sort(plantIDs.begin(), plantIDs.end());
 		for (int id : plantIDs) {
-			Plant* p = board->mEntityManager.GetPlant(id);
+			Plant* p = board->mEntityRegistry.GetPlant(id);
 			if (!p) continue;
 			if (row >= 0 && p->mRow != row) continue;
 			if (col >= 0 && p->mColumn != col) continue;
@@ -2139,10 +2139,10 @@ bool TestDriver::ExecuteCurrent() {
 		const int row = cmd.value("row", -1);     // -1 = 不过滤行
 		const int index = cmd.value("index", 0);  // 行过滤后按 ID 升序第 index 只
 		int seen = 0;
-		std::vector<int> zombieIDs = board->mEntityManager.GetAllZombieIDs();
+		std::vector<int> zombieIDs = board->mEntityRegistry.GetAllZombieIDs();
 		std::sort(zombieIDs.begin(), zombieIDs.end());
 		for (int id : zombieIDs) {
-			Zombie* z = board->mEntityManager.GetZombie(id);
+			Zombie* z = board->mEntityRegistry.GetZombie(id);
 			if (!z || !z->IsActive()) continue;
 			if (row >= 0 && z->mRow != row) continue;
 			if (seen++ == index) {
@@ -3282,8 +3282,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	int normalSunCount = 0;
 	int smallSunCount = 0;
 	out["suns"] = nlohmann::json::array();
-	for (int id : board->mEntityManager.GetAllCoinIDs()) {
-		Coin* coin = board->mEntityManager.GetCoin(id);
+	for (int id : board->mEntityRegistry.GetAllCoinIDs()) {
+		Coin* coin = board->mEntityRegistry.GetCoin(id);
 		auto* sun = dynamic_cast<Sun*>(coin);
 		if (!sun) continue;
 		const bool isSmall = dynamic_cast<SmallSun*>(sun) != nullptr;
@@ -3305,11 +3305,11 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["waveZombiePoints"] = board->GetCurrentWaveZombiePoints();
 	out["zombieNumber"] = board->mZombieNumber;
 	out["hostileZombieCountForMusic"] = board->GetHostileZombieCountForMusic();
-	out["mowerCount"] = static_cast<int>(board->mEntityManager.GetAllMowerIDs().size());
+	out["mowerCount"] = static_cast<int>(board->mEntityRegistry.GetAllMowerIDs().size());
 	int movingMowerCount = 0;
 	out["mowers"] = nlohmann::json::array();
-	for (int id : board->mEntityManager.GetAllMowerIDs()) {
-		Mower* mower = board->mEntityManager.GetMower(id);
+	for (int id : board->mEntityRegistry.GetAllMowerIDs()) {
+		Mower* mower = board->mEntityRegistry.GetMower(id);
 		if (!mower) continue;
 		const bool moving = mower->mState == MowerState::MOVING;
 		if (moving) ++movingMowerCount;
@@ -3928,7 +3928,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "row", board->GetNightRoofChargeRow() },
 			{ "guided", board->IsNightRoofChargeGuided() },
 			{ "guideID", board->GetNightRoofChargeGuideID() },
-			{ "guideCandidateCount", board->mEntityManager.GetActiveNightRoofChargeGuideCount() },
+			{ "guideCandidateCount", board->mEntityRegistry.GetActiveNightRoofChargeGuideCount() },
 			{ "routeUsedMonteCarlo", board->DidNightRoofChargeRouteUseMonteCarlo() },
 			{ "routeDecisionMicros", board->GetNightRoofChargeRouteDecisionMicros() },
 			{ "routeRolloutCount", board->GetNightRoofChargeRouteStats().rolloutCount },
@@ -3942,7 +3942,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				board->GetNightRoofChargeDischargeProgress() * 100.0f)) },
 			{ "hijackerSelectionAttempted", board->HasNightRoofHijackerSelectionAttempted() },
 			{ "hijackerID", board->GetNightRoofHijackerID() },
-			{ "hijackerCandidateCount", board->mEntityManager.GetActiveNightRoofHijackerCount() },
+			{ "hijackerCandidateCount", board->mEntityRegistry.GetActiveNightRoofHijackerCount() },
 			{ "hijackerRainChargeBonusPerSecondOn1000", static_cast<int>(std::lround(
 				board->GetNightRoofHijackerRainChargeBonusPerSecond() * 1000.0f)) },
 			{ "hijackerWarningExtended", board->IsNightRoofHijackerWarningExtended() },
@@ -4222,9 +4222,9 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	int slowedZombieCount = 0;
 	int toxicZombieCount = 0;
 	int fireResistantZombieCount = 0;
-	for (int id : board->mEntityManager.GetAllZombieIDs()) {
-		Zombie* z = board->mEntityManager.GetZombie(id);
-		// Die() 会立即把对象标为 inactive，EntityManager 的 weak 引用到下一次清理才过期；
+	for (int id : board->mEntityRegistry.GetAllZombieIDs()) {
+		Zombie* z = board->mEntityRegistry.GetZombie(id);
+		// Die() 会立即把对象标为 inactive，EntityRegistry 的 weak 引用到下一次清理才过期；
 		// 状态快照只导出画面上仍存在的实体，才能验证冰车等“本帧直接消失”的死亡契约。
 		if (!z || !z->IsActive()) continue;
 		if (board->IsPoolRow(z->mRow)) {
@@ -4945,7 +4945,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["healerWave3Count"] = healerWave3Count;
 	int healerRowIndexVisibleCount = 0;
 	for (int row = 0; row < board->mRows; ++row) {
-		board->mEntityManager.ForEachZombieInRow(row, [&](Zombie* zombie) {
+		board->mEntityRegistry.ForEachZombieInRow(row, [&](Zombie* zombie) {
 			if (zombie && zombie->mZombieType == ZombieType::ZOMBIE_HEALER) {
 				++healerRowIndexVisibleCount;
 			}
@@ -4953,11 +4953,11 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	}
 	out["healerRowIndexVisibleCount"] = healerRowIndexVisibleCount;
 	out["healers"] = nlohmann::json::array();
-	std::vector<int> healerIDs = board->mEntityManager.GetAllZombieIDs();
+	std::vector<int> healerIDs = board->mEntityRegistry.GetAllZombieIDs();
 	std::sort(healerIDs.begin(), healerIDs.end());
 	for (const int id : healerIDs) {
 		auto* healer = dynamic_cast<HealerZombie*>(
-			board->mEntityManager.GetZombie(id));
+			board->mEntityRegistry.GetZombie(id));
 		if (!healer || !healer->IsActive()) continue;
 		out["healers"].push_back({
 			{ "id", id },
@@ -5056,8 +5056,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["flowerPotsByCell"] = nlohmann::json::object();
 	out["scaredyShroomsByCell"] = nlohmann::json::object();
 	int repeatingShootingHeadCount = 0;
-	for (int id : board->mEntityManager.GetAllPlantIDs()) {
-		Plant* p = board->mEntityManager.GetPlant(id);
+	for (int id : board->mEntityRegistry.GetAllPlantIDs()) {
+		Plant* p = board->mEntityRegistry.GetPlant(id);
 		if (!p) continue;
 		const Vector plantPosition = p->GetPosition();
 		const Vector plantVisualPosition = p->GetVisualPosition();
@@ -5519,8 +5519,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 
 				float nearestZombieDistanceSq = std::numeric_limits<float>::max();
 				nlohmann::json nearestZombie = nullptr;
-				for (int id : board->mEntityManager.GetAllZombieIDs()) {
-					Zombie* zombie = board->mEntityManager.GetZombie(id);
+				for (int id : board->mEntityRegistry.GetAllZombieIDs()) {
+					Zombie* zombie = board->mEntityRegistry.GetZombie(id);
 					if (!zombie || !zombie->IsActive() || zombie->IsDying()) continue;
 					const ColliderComponent* collider = zombie->GetColliderComponent();
 					if (!collider) continue;
@@ -5545,8 +5545,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 
 				float nearestPlantDistanceSq = std::numeric_limits<float>::max();
 				nlohmann::json nearestPlant = nullptr;
-				for (int id : board->mEntityManager.GetAllPlantIDs()) {
-					Plant* plant = board->mEntityManager.GetPlant(id);
+				for (int id : board->mEntityRegistry.GetAllPlantIDs()) {
+					Plant* plant = board->mEntityRegistry.GetPlant(id);
 					if (!plant || !plant->IsActive()) continue;
 					const ColliderComponent* collider = plant->GetColliderComponent();
 					if (!collider) continue;
@@ -5674,8 +5674,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 
 			float nearestZombieDistanceSq = std::numeric_limits<float>::max();
 			nlohmann::json nearestZombie = nullptr;
-			for (int id : board->mEntityManager.GetAllZombieIDs()) {
-				Zombie* zombie = board->mEntityManager.GetZombie(id);
+			for (int id : board->mEntityRegistry.GetAllZombieIDs()) {
+				Zombie* zombie = board->mEntityRegistry.GetZombie(id);
 				if (!zombie || !zombie->IsActive() || zombie->IsDying()) continue;
 				const ColliderComponent* collider = zombie->GetColliderComponent();
 				if (!collider) continue;
@@ -5700,8 +5700,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 
 			float nearestPlantDistanceSq = std::numeric_limits<float>::max();
 			nlohmann::json nearestPlant = nullptr;
-			for (int id : board->mEntityManager.GetAllPlantIDs()) {
-				Plant* plant = board->mEntityManager.GetPlant(id);
+			for (int id : board->mEntityRegistry.GetAllPlantIDs()) {
+				Plant* plant = board->mEntityRegistry.GetPlant(id);
 				if (!plant || !plant->IsActive()) continue;
 				const ColliderComponent* collider = plant->GetColliderComponent();
 				if (!collider) continue;
@@ -5744,10 +5744,10 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		for (int col = 0; col < board->mColumns; ++col) {
 			Cell* cell = board->GetCell(row, col);
 			const Vector center = board->GetCellCenterPosition(row, col);
-			Plant* under = cell ? board->mEntityManager.GetPlant(cell->GetUnderPlantID()) : nullptr;
-			Plant* normal = cell ? board->mEntityManager.GetPlant(cell->GetNormalPlantID()) : nullptr;
-			Plant* pumpkin = cell ? board->mEntityManager.GetPlant(cell->GetPumpkinPlantID()) : nullptr;
-			Plant* overlay = cell ? board->mEntityManager.GetPlant(cell->GetOverlayPlantID()) : nullptr;
+			Plant* under = cell ? board->mEntityRegistry.GetPlant(cell->GetUnderPlantID()) : nullptr;
+			Plant* normal = cell ? board->mEntityRegistry.GetPlant(cell->GetNormalPlantID()) : nullptr;
+			Plant* pumpkin = cell ? board->mEntityRegistry.GetPlant(cell->GetPumpkinPlantID()) : nullptr;
+			Plant* overlay = cell ? board->mEntityRegistry.GetPlant(cell->GetOverlayPlantID()) : nullptr;
 			Plant* top = board->GetTopPlantAt(row, col);
 			rowState.push_back({
 				{ "centerXInt", static_cast<int>(std::lround(center.x)) },
@@ -5802,8 +5802,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	int groundTargetSpikePiercedZombieCount = 0;
 	int torchwoodProtectedPeaCount = 0;
 	int animatedBulletCount = 0;
-	for (int id : board->mEntityManager.GetAllBulletIDs()) {
-		Bullet* bullet = board->mEntityManager.GetBullet(id);
+	for (int id : board->mEntityRegistry.GetAllBulletIDs()) {
+		Bullet* bullet = board->mEntityRegistry.GetBullet(id);
 		if (!bullet) continue;
 		const Vector pos = bullet->GetPosition();
 		if (!hasBulletX) {

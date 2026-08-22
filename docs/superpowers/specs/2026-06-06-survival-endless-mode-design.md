@@ -97,7 +97,7 @@
 ### 7.1 保存（`GameInfoSaver::SaveLevelData`）
 - 放宽门槛：现为 `if (board->mBoardState != BoardState::GAME) return false;`。survival 时允许 `GAME` 或 `CHOOSE_CARD` 都保存。
 - 新增字段：`isSurvival`、`survivalRound`。
-- 轮间（CHOOSE_CARD）也持久化：场上植物（已有逻辑遍历 EntityManager）、阳光、`survivalRound`；卡牌槽轮间通常为空（空槽重选），按现状序列化即可。
+- 轮间（CHOOSE_CARD）也持久化：场上植物（已有逻辑遍历 EntityRegistry）、阳光、`survivalRound`；卡牌槽轮间通常为空（空槽重选），按现状序列化即可。
 - 文件名：复用 `level1000_data.json`（特殊 level 号方案）。
 
 ### 7.2 读取（`GameInfoSaver::LoadLevelData` + `GameScene::OnEnter`）

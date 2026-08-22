@@ -46,7 +46,7 @@ Zombie_dancer（时间线 0–101，12fps）：
 | HOLD | 定格 2 秒 | 计时到 → DANCING |
 | DANCING | 恢复移动，按 §1 节拍映射切 walk/armraise | （驻留；见补充召唤） |
 
-- **补充召唤**：DANCING 中每帧检查——存在空位（`EntityManager::GetZombie(mFollowerID[i]) == nullptr` 且该位行合法）&& `mHasHead` && `x < DANCE_LIMIT_X`（取 700，可调）&& 节拍帧 == 12 → 回到 SNAPPING 重播 `anim_point`，播完只补空位。
+- **补充召唤**：DANCING 中每帧检查——存在空位（`EntityRegistry::GetZombie(mFollowerID[i]) == nullptr` 且该位行合法）&& `mHasHead` && `x < DANCE_LIMIT_X`（取 700，可调）&& 节拍帧 == 12 → 回到 SNAPPING 重播 `anim_point`，播完只补空位。
 - **啃食**：`mIsEating` 时状态机整体暂停（update 首行 guard，原版同）；啃食动画走基类。
 - **无头**：`mHasHead == false` 后永不再召唤，其余走基类流血死亡。
 - 帧事件：`EatTarget` @ **90、99**（repeating）；`Die()` @ **146**。（帧号主人指定）
@@ -74,7 +74,7 @@ Zombie_dancer（时间线 0–101，12fps）：
 | 3 | mRow | 舞王 x + 100 | — |
 
 - 走 `mBoard->CreateZombie(ZOMBIE_BACKUP_DANCER, row, x)`（y 由 row 派生，引擎既有约定）。
-- 创建后：伴舞记 `mLeaderID`，舞王记 `mFollowerID[i]`（均 EntityManager 整型 ID；死亡后 `GetZombie` 自动返回 nullptr，即天然空位，无需死亡回调）。
+- 创建后：伴舞记 `mLeaderID`，舞王记 `mFollowerID[i]`（均 EntityRegistry 整型 ID；死亡后 `GetZombie` 自动返回 nullptr，即天然空位，无需死亡回调）。
 - 舞王被魅惑状态下召唤的伴舞：创建后补调 `StartMindControlled()` 继承阵营。
 - **舞王死后**：伴舞照常按节拍跳舞前进（原版即如此，不转换为普通僵尸——C# 的 `ConvertToNormalZombie` 从未被调用）。
 

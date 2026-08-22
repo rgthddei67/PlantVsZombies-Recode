@@ -159,7 +159,7 @@ git commit -m "refactor(zombie): 基类引入 PlayWalkAnimation+OnStart/OnStopEa
 ```cpp
 	void ResumeWalkAfterEat(float blendTime) override;
 	...
-	void ValidateEatingState(EntityManager& em) override;
+	void ValidateEatingState(EntityRegistry& em) override;
 	void StartEat(ColliderComponent* other) override;
 	void StopEat(ColliderComponent* other) override;
 ```
@@ -232,7 +232,7 @@ git commit -m "refactor(zombie): DoorZombie 四覆写→OnStart/OnStopEating 对
 
 删除：
 ```cpp
-	void ValidateEatingState(EntityManager& em) override;
+	void ValidateEatingState(EntityRegistry& em) override;
 	...
 	void StopEat(ColliderComponent* other) override;
 ```
@@ -343,7 +343,7 @@ git commit -m "refactor(zombie): PaperZombie ResumeWalkAfterEat→PlayWalkAnimat
 ```cpp
 	void StopEat(ColliderComponent* other) override;
 	...
-	void ValidateEatingState(EntityManager& em) override;
+	void ValidateEatingState(EntityRegistry& em) override;
 	...
 	const char* WalkTrackAfterEat() const override { return "anim_walk"; }
 ```

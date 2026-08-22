@@ -175,8 +175,8 @@ std::vector<int> HealerZombie::CollectAreaTargets(float radius) const
 {
 	std::vector<int> result;
 	if (!mBoard) return result;
-	for (int zombieID : mBoard->mEntityManager.GetAllZombieIDs()) {
-		Zombie* zombie = mBoard->mEntityManager.GetZombie(zombieID);
+	for (int zombieID : mBoard->mEntityRegistry.GetAllZombieIDs()) {
+		Zombie* zombie = mBoard->mEntityRegistry.GetZombie(zombieID);
 		if (zombie && IsValidTreatmentTarget(*zombie, radius, true)) {
 			result.push_back(zombieID);
 		}
@@ -189,7 +189,7 @@ std::vector<int> HealerZombie::CollectFocusedTargets() const
 {
 	std::vector<int> result;
 	if (!mBoard) return result;
-	EntityManager& entities = mBoard->mEntityManager;
+	EntityRegistry& entities = mBoard->mEntityRegistry;
 	for (int zombieID : entities.GetAllZombieIDs()) {
 		Zombie* zombie = entities.GetZombie(zombieID);
 		if (zombie && IsValidTreatmentTarget(*zombie, kFocusedRadius, false)
@@ -204,7 +204,7 @@ std::vector<int> HealerZombie::CollectFocusedTargets() const
 int HealerZombie::SelectFocusedTarget() const
 {
 	if (!mBoard) return NULL_ZOMBIE_ID;
-	EntityManager& entities = mBoard->mEntityManager;
+	EntityRegistry& entities = mBoard->mEntityRegistry;
 	const int lockedHijackerID = mBoard->GetNightRoofHijackerID();
 	if (Zombie* hijacker = entities.GetZombie(lockedHijackerID);
 		hijacker && IsValidTreatmentTarget(*hijacker, kFocusedRadius, false)
@@ -272,10 +272,10 @@ bool HealerZombie::SelectMonteCarloTreatment(
 		BeginTreatment(TreatmentState::AREA, NULL_ZOMBIE_ID);
 		return true;
 	case MonteCarloTreatmentAction::FOCUSED:
-		if (Zombie* target = mBoard->mEntityManager.GetZombie(
+		if (Zombie* target = mBoard->mEntityRegistry.GetZombie(
 			decision.targetZombieID);
 			target && IsValidTreatmentTarget(*target, kFocusedRadius, false)
-			&& !mBoard->mEntityManager.IsHealerFocusedTargetReserved(
+			&& !mBoard->mEntityRegistry.IsHealerFocusedTargetReserved(
 				decision.targetZombieID, mZombieID)) {
 			mLastDecisionAction = DecisionAction::FOCUSED;
 			BeginTreatment(TreatmentState::FOCUSED, decision.targetZombieID);
@@ -345,7 +345,7 @@ void HealerZombie::ZombieUpdate(float scaledTime)
 		mRetryTimer = std::max(0.0f, mRetryTimer - scaledTime);
 		if (mRetryTimer > 0.0f) return;
 	}
-	if (mBoard && mBoard->mEntityManager.HasReadyHealerBefore(mZombieID)) return;
+	if (mBoard && mBoard->mEntityRegistry.HasReadyHealerBefore(mZombieID)) return;
 
 	const std::vector<int> areaTargets = CollectAreaTargets(kAreaRadius);
 	const std::vector<int> focusedTargets = CollectFocusedTargets();
@@ -434,7 +434,7 @@ void HealerZombie::ResolveTreatment()
 		targetIDs = CollectAreaTargets(kAreaRadius);
 	}
 	else if (resolvingState == TreatmentState::FOCUSED) {
-		if (Zombie* target = mBoard->mEntityManager.GetZombie(mFocusedTargetID);
+		if (Zombie* target = mBoard->mEntityRegistry.GetZombie(mFocusedTargetID);
 			target && IsValidTreatmentTarget(*target, kFocusedRadius, false)) {
 			targetIDs.push_back(mFocusedTargetID);
 		}
@@ -448,7 +448,7 @@ void HealerZombie::ResolveTreatment()
 	int totalAmount = 0;
 	int healedTargets = 0;
 	for (int zombieID : targetIDs) {
-		Zombie* target = mBoard->mEntityManager.GetZombie(zombieID);
+		Zombie* target = mBoard->mEntityRegistry.GetZombie(zombieID);
 		if (!target) continue;
 		const int repaired = ApplyTreatment(*target, amount, effectName);
 		if (repaired <= 0) continue;
@@ -511,7 +511,7 @@ void HealerZombie::StopEatingForTreatment()
 	mResumeZombieID = mIsEating ? mEatZombieID : NULL_ZOMBIE_ID;
 	if (!mIsEating) return;
 	if (mEatPlantID != NULL_PLANT_ID && mBoard) {
-		if (Plant* plant = mBoard->mEntityManager.GetPlant(mEatPlantID);
+		if (Plant* plant = mBoard->mEntityRegistry.GetPlant(mEatPlantID);
 			plant && plant->mEaterCount > 0) {
 			--plant->mEaterCount;
 		}
@@ -548,7 +548,7 @@ void HealerZombie::ResumeEatingAfterTreatment()
 		|| mTreatmentState != TreatmentState::IDLE) {
 		return;
 	}
-	if (Plant* plant = mBoard->mEntityManager.GetPlant(plantID);
+	if (Plant* plant = mBoard->mEntityRegistry.GetPlant(plantID);
 		plant && IsPlantValidEatTarget(plant) && IsResumeTargetInBiteRange(*plant)) {
 		mIsEating = true;
 		mEatPlantID = plantID;
@@ -558,7 +558,7 @@ void HealerZombie::ResumeEatingAfterTreatment()
 		OnStartEating();
 		return;
 	}
-	if (Zombie* zombie = mBoard->mEntityManager.GetZombie(zombieID);
+	if (Zombie* zombie = mBoard->mEntityRegistry.GetZombie(zombieID);
 		zombie && zombie->IsActive() && !zombie->IsDying()
 		&& zombie->mBodyHealth > 0 && zombie->HasHead()
 		&& zombie->mRow == mRow

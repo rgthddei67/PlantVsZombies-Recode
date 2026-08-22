@@ -103,7 +103,7 @@ bool ScaredyShroom::HasZombieInRow()
 	// 按行索引：只遍历本行僵尸。全行射程，不设 300px 上限（与小喷菇的差异点）。
 	const float thisX = GetPosition().x;
 	bool found = false;
-	mBoard->mEntityManager.ForEachZombieInRow(mRow, [&](Zombie* zombie) {
+	mBoard->mEntityRegistry.ForEachZombieInRow(mRow, [&](Zombie* zombie) {
 		if (found) return;
 		const float dx = zombie->GetPosition().x - thisX;
 		if (!zombie->IsMindControlled() && dx >= 0 && zombie->HasHead()
@@ -138,7 +138,7 @@ bool ScaredyShroom::HasZombieNearby()
 	bool found = false;
 	for (int row = mRow - 1; row <= mRow + 1 && !found; ++row) {
 		// 行索引已排除失活/濒死僵尸（原版也不吓垂死僵尸）
-		mBoard->mEntityManager.ForEachZombieInRow(row, [&](Zombie* zombie) {
+		mBoard->mEntityRegistry.ForEachZombieInRow(row, [&](Zombie* zombie) {
 			if (found) return;
 			if (zombie->IsMindControlled()) return;   // 魅惑僵尸不吓
 			auto collider = zombie->GetColliderComponent();

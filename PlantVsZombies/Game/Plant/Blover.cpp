@@ -47,7 +47,7 @@ void Blover::TriggerBlow()
 
 	// 全场逐行消费既有行桶；只处理仍在 FLYING 的气球，爆裂/落地阶段不受影响。
 	for (int row = 0; row < mBoard->mRows; ++row) {
-		mBoard->mEntityManager.ForEachZombieInRow(row, [this](Zombie* zombie) {
+		mBoard->mEntityRegistry.ForEachZombieInRow(row, [this](Zombie* zombie) {
 			auto* balloon = dynamic_cast<BalloonZombie*>(zombie);
 			if (balloon) balloon->BlowAway(mBlowDirection);
 			});

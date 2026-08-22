@@ -161,7 +161,7 @@ bool BungeeZombie::SelectMonteCarloTarget()
 		eligiblePlantIDs, mZombieID, plantID, &mMonteCarloStats)) {
 		return false;
 	}
-	Plant* plant = mBoard->mEntityManager.GetPlant(plantID);
+	Plant* plant = mBoard->mEntityRegistry.GetPlant(plantID);
 	if (!plant || plant->IsBungeeTargeted()) return false;
 	ApplySelectedCell({ plant->mRow, plant->mColumn, plantID });
 	return true;
@@ -238,9 +238,9 @@ bool BungeeZombie::IsCellReserved(int row, int column) const
 {
 	Plant* candidate = ResolveBungeePlantAt(row, column);
 	const int candidatePlantID = candidate ? candidate->mPlantID : NULL_PLANT_ID;
-	for (const int zombieID : mBoard->mEntityManager.GetAllZombieIDs()) {
+	for (const int zombieID : mBoard->mEntityRegistry.GetAllZombieIDs()) {
 		auto* other = dynamic_cast<BungeeZombie*>(
-			mBoard->mEntityManager.GetZombie(zombieID));
+			mBoard->mEntityRegistry.GetZombie(zombieID));
 		if (!other || other == this || !other->HasSelectedTarget()) continue;
 		if ((other->GetTargetRow() == row && other->GetTargetColumn() == column)
 			|| (candidatePlantID != NULL_PLANT_ID
@@ -286,7 +286,7 @@ void BungeeZombie::BeginGrab()
 
 void BungeeZombie::BeginRise()
 {
-	Plant* plant = mBoard->mEntityManager.GetPlant(mTargetPlantID);
+	Plant* plant = mBoard->mEntityRegistry.GetPlant(mTargetPlantID);
 	if (plant && !plant->BeginBungeeLift(mZombieID)) {
 		mTargetPlantID = NULL_PLANT_ID;
 		plant = nullptr;
@@ -301,7 +301,7 @@ void BungeeZombie::BeginRise()
 
 void BungeeZombie::UpdateCargoOffset()
 {
-	Plant* plant = mBoard->mEntityManager.GetPlant(mTargetPlantID);
+	Plant* plant = mBoard->mEntityRegistry.GetPlant(mTargetPlantID);
 	if (!plant) return;
 	plant->SetBungeeVisualOffset(mZombieID,
 		Vector(kCargoOffsetX, kCargoOffsetY - mAltitude));
@@ -346,7 +346,7 @@ bool BungeeZombie::CanBeChilled() const
 void BungeeZombie::Die()
 {
 	if (mBoard && mTargetPlantID != NULL_PLANT_ID) {
-		if (Plant* plant = mBoard->mEntityManager.GetPlant(mTargetPlantID)) {
+		if (Plant* plant = mBoard->mEntityRegistry.GetPlant(mTargetPlantID)) {
 			if (mPhase == Phase::RISING) plant->Die();
 			else plant->CancelBungeeGrab(mZombieID);
 		}
@@ -410,7 +410,7 @@ void BungeeZombie::Draw(Graphics* g)
 	DrawCordAndTarget(g);
 	Zombie::Draw(g);
 	if (mBoard && mPhase == Phase::RISING) {
-		if (Plant* plant = mBoard->mEntityManager.GetPlant(mTargetPlantID)) {
+		if (Plant* plant = mBoard->mEntityRegistry.GetPlant(mTargetPlantID)) {
 			plant->DrawAsBungeeCargo(g);
 		}
 	}
@@ -470,7 +470,7 @@ void BungeeZombie::LoadExtraData(const nlohmann::json& j)
 	mMonteCarloStats.coordinationLoss = j.value("mcCoordinationLoss", 0.0f);
 	if (mCollider) mCollider->mEnabled = IsVulnerable();
 
-	Plant* plant = mBoard ? mBoard->mEntityManager.GetPlant(mTargetPlantID) : nullptr;
+	Plant* plant = mBoard ? mBoard->mEntityRegistry.GetPlant(mTargetPlantID) : nullptr;
 	if (plant && (mPhase == Phase::GRABBING || mPhase == Phase::RISING)) {
 		if (plant->BeginBungeeGrab(mZombieID) && mPhase == Phase::RISING) {
 			plant->BeginBungeeLift(mZombieID);

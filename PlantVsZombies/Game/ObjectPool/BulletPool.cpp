@@ -36,7 +36,7 @@ std::shared_ptr<Bullet> BulletPool::AcquireShared(Board* board, BulletType type,
 		auto bullet = pooled.bullet.lock();
 		if (bullet) {
 			if (bullet->mBulletID != NULL_BULLET_ID) {
-				board->mEntityManager.RemoveBullet(bullet->mBulletID);
+				board->mEntityRegistry.RemoveBullet(bullet->mBulletID);
 			}
 			pooled.active = true;
 			bullet->SetActive(true);

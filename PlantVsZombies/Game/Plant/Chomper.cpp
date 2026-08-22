@@ -12,7 +12,7 @@ int Chomper::FindTargetZombieID()
 	Vector myPos = GetPosition();
 
 	// 按行索引：只遍历本行僵尸，mRow 过滤已由桶保证。
-	mBoard->mEntityManager.ForEachZombieInRow(mRow, [&](Zombie* z) {
+	mBoard->mEntityRegistry.ForEachZombieInRow(mRow, [&](Zombie* z) {
 		if (z->IsMindControlled()) return;
 		if (!z->HasHead()) return;
 		if (!z->CanBeTargetedByProjectile(false)) return;
@@ -46,7 +46,7 @@ void Chomper::OnBiteKillFrame()
 {
 	bool swallowedTarget = false;
 	if (mBoard) {
-		if (auto* z = mBoard->mEntityManager.GetZombie(mTargetZombieID)) {
+		if (auto* z = mBoard->mEntityRegistry.GetZombie(mTargetZombieID)) {
 			// 目标只决定是否接受吞食；拒绝时默认结算小额咬伤，特殊品种可调整数值。
 			swallowedTarget = z->TakePlantInstantKill();
 			if (!swallowedTarget) {
@@ -119,7 +119,7 @@ void Chomper::LoadExtraData(const nlohmann::json& j)
 	mDigestTimer = j.value("digestTimer", 0.0f);
 	mTargetZombieID = j.value("targetZombieID", NULL_ZOMBIE_ID);
 
-	// 注意：GameInfoSaver 先恢复植物再恢复僵尸，此时 EntityManager 里还没有
+	// 注意：GameInfoSaver 先恢复植物再恢复僵尸，此时 EntityRegistry 里还没有
 	// 目标僵尸；不能在这里验证 mTargetZombieID 是否存活。BITE_KILL_FRAME 回调
 	// 触发时 GetZombie 拿不到会自然跳过 Die()，由此天然兜底。
 

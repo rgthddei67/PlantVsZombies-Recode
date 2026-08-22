@@ -129,7 +129,7 @@ void Zombie::StartMindControlled()
 
 	// 正在啃植物：先解除（平衡 mEaterCount）。掩码换掉后与植物不再成对，onTriggerExit 不会补触发。
 	if (mIsEating && mEatPlantID != NULL_PLANT_ID && mBoard) {
-		if (auto* plant = mBoard->mEntityManager.GetPlant(mEatPlantID)) {
+		if (auto* plant = mBoard->mEntityRegistry.GetPlant(mEatPlantID)) {
 			plant->mEaterCount--;
 		}
 		mIsEating = false;
@@ -205,7 +205,7 @@ Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>
 - Modify: `CLAUDE.md`（AutoTest 命令集清单补 `charm_zombie` 一词）
 
 **Interfaces:**
-- Consumes: Task 1 的 `Zombie::StartMindControlled()` / `IsMindControlled()`；既有 `kZombieNames`、`mEntityManager.GetAllZombieIDs()/GetZombie(id)`。
+- Consumes: Task 1 的 `Zombie::StartMindControlled()` / `IsMindControlled()`；既有 `kZombieNames`、`mEntityRegistry.GetAllZombieIDs()/GetZombie(id)`。
 - Produces: AutoTest op `charm_zombie`：`{ "op":"charm_zombie", "row":0, "index":0 }`（row 省略或 -1 = 不过滤行；index = 过滤后按 ID 升序第 N 只，默认 0）；dump_state 僵尸对象新增 `"mindControlled": bool` 字段。
 
 - [ ] **Step 1: 先写脚本（会失败——op 未实现）**
@@ -258,8 +258,8 @@ Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>
 		const int row = cmd.value("row", -1);     // -1 = 不过滤行
 		const int index = cmd.value("index", 0);  // 行过滤后按 ID 升序第 index 只
 		int seen = 0;
-		for (int id : board->mEntityManager.GetAllZombieIDs()) {
-			Zombie* z = board->mEntityManager.GetZombie(id);
+		for (int id : board->mEntityRegistry.GetAllZombieIDs()) {
+			Zombie* z = board->mEntityRegistry.GetZombie(id);
 			if (!z) continue;
 			if (row >= 0 && z->mRow != row) continue;
 			if (seen++ == index) {
@@ -319,7 +319,7 @@ Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>
 - Create: `autotest/scripts/smoke_charm_bite.json`
 
 **Interfaces:**
-- Consumes: Task 1 的 `WalkTrackAfterEat()`；Task 2 的 `charm_zombie` op；`EntityManager::GetZombie(int)`、`NULL_ZOMBIE_ID`。
+- Consumes: Task 1 的 `WalkTrackAfterEat()`；Task 2 的 `charm_zombie` op；`EntityRegistry::GetZombie(int)`、`NULL_ZOMBIE_ID`。
 - Produces: `int Zombie::mEatZombieID`（protected，默认 `NULL_ZOMBIE_ID`，**不持久化**）；StartEat/StopEat/EatTarget 均能处理 `ObjectType::OBJECT_ZOMBIE`。
 
 - [ ] **Step 1: 先写脚本（当前会失败——互啃不存在，血量不掉）**
@@ -420,7 +420,7 @@ Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>
 ```cpp
 	if (mEatZombieID != NULL_ZOMBIE_ID && mHasHead)
 	{
-		Zombie* target = mBoard ? mBoard->mEntityManager.GetZombie(mEatZombieID) : nullptr;
+		Zombie* target = mBoard ? mBoard->mEntityRegistry.GetZombie(mEatZombieID) : nullptr;
 		if (!target || target->mIsDying) {
 			// 目标没了/垂死：正常由 onTriggerExit 收尾，这里兜底（含读档后目标失效）
 			mIsEating = false;
@@ -475,7 +475,7 @@ Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>
 存档只存 `isEating` 不存 `mEatZombieID` → 啃僵尸进行时存档、读档后 `mIsEating=true` 且两 ID 全空，`Update` 的 `if (mIsEating) return;` 会把僵尸永久冻结。在 `Zombie::ValidateEatingState`（`Zombie.cpp:619`）加 else-if：
 
 ```cpp
-void Zombie::ValidateEatingState(EntityManager& em)
+void Zombie::ValidateEatingState(EntityRegistry& em)
 {
 	if (mIsEating && mEatPlantID != NULL_PLANT_ID) {
 		auto plant = em.GetPlant(mEatPlantID);

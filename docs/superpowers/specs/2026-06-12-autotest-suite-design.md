@@ -48,7 +48,7 @@ JSON 结构：`{ "commands": [ { "op": "...", ...参数 }, ... ] }`。
 | `wait_frames` | `value` | 帧计数 |
 | `wait_state` | `state`（BoardState 名） | 轮询 `Board::mBoardState` 直到匹配，受超时约束 |
 | `screenshot` | `name` | 见截图管线；落盘 `./autotest/out/<脚本名>/<name>` |
-| `dump_state` | `name` | 遍历 EntityManager：僵尸+植物的 type、row、x、y、HP（含头盔/护盾）、当前动画 track 名与速度 → JSON 落盘 |
+| `dump_state` | `name` | 遍历 EntityRegistry：僵尸+植物的 type、row、x、y、HP（含头盔/护盾）、当前动画 track 名与速度 → JSON 落盘 |
 | `quit` | — | `GameAPP::SetRunning(false)` |
 
 类型名→枚举映射：PlantType/ZombieType 用字符串名解析（建一张名字表；新类型加表即可）。

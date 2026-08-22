@@ -9,7 +9,7 @@ metadata:
 
 2026-07-10(d14a526..3f7c504) 舞王(Zombie_Jackson)+伴舞(Zombie_dancer)实现完毕，7 smoke全绿；**skill已写(.claude/skills/adding-zombie, CLAUDE.md僵尸节已改指向)**。2026-07-11 536c424 起全部已push到origin/master。
 
-架构：`Board::mBoardFrame`(入存档；536c424起按GetDeltaTime/固定步长折算推进——暂停dt=0冻结、倍速与Animator同拍，亚帧余量mBoardFrameAccum不入存档) → `GetDanceBeatFrame()`=0~22拍(12步/拍)；舞王/伴舞都按拍映射 anim_walk(0~11)/anim_armraise(12~22)，全队零通信齐舞。舞王四阶段 DANCING_IN(碰植物啃一口后转SNAPPING：EatTarget覆写首口结算后强停啃食=平衡mEaterCount/清目标ID复刻StartMindControlled规范；SNAPPING/HOLD期StartEat守卫不开吃,onTriggerStay进DANCING后自然续啃)→SNAPPING(anim_point播完定格,IsPlaying轮询收尾召唤)→HOLD(1.2s保持举手定格,=伴舞kRiseDuration须同改)→DANCING(节拍12缺人补召,x<700,加scaledTime>0守卫防暂停中瞬切举手)。关联=EntityManager整型ID(舞王mFollowerID[4]/伴舞mLeaderID)。
+架构：`Board::mBoardFrame`(入存档；536c424起按GetDeltaTime/固定步长折算推进——暂停dt=0冻结、倍速与Animator同拍，亚帧余量mBoardFrameAccum不入存档) → `GetDanceBeatFrame()`=0~22拍(12步/拍)；舞王/伴舞都按拍映射 anim_walk(0~11)/anim_armraise(12~22)，全队零通信齐舞。舞王四阶段 DANCING_IN(碰植物啃一口后转SNAPPING：EatTarget覆写首口结算后强停啃食=平衡mEaterCount/清目标ID复刻StartMindControlled规范；SNAPPING/HOLD期StartEat守卫不开吃,onTriggerStay进DANCING后自然续啃)→SNAPPING(anim_point播完定格,IsPlaying轮询收尾召唤)→HOLD(1.2s保持举手定格,=伴舞kRiseDuration须同改)→DANCING(节拍12缺人补召,x<700,加scaledTime>0守卫防暂停中瞬切举手)。关联=EntityRegistry整型ID(舞王mFollowerID[4]/伴舞mLeaderID)。
 
 2026-07-11打磨(4b114ed)：①伴舞出土隐影=ShadowComponent新增SetVisible(Draw首行early-return)，SetupZombie藏/升完+读档DANCING恢复(影子组件在Zombie::Start先于SetupZombie挂上,可直接GetComponent)；②舞王举手改`PlayTrackOnce(track,"")`=原版PlayOnceAndHold(播完mFrameIndexNow=end+mIsPlaying=false定格末帧,后续任意PlayTrack自动复活,不踩定格卡死)；③**召唤触发弃36帧帧事件改SNAPPING轮询`!mAnimator->IsPlaying()`**(同C#查mLoopCount)——末帧定格clamp时帧事件不保证触发；啃食中ZombieUpdate整个不跑(Zombie.cpp mIsEating早退)故轮询无误触发。
 

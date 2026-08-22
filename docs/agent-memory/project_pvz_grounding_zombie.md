@@ -13,7 +13,7 @@ metadata:
 
 - `ZOMBIE_GROUNDING` 在 6-8（内部 53）首次出现，6-9 继续加入综合池；本体 270、啃咬 50、普通速度，天线路障 1200，成本 2000、`appearWave=6`、`survivalRound=9`，正式波次每波最多 2 只。
 - 独立 `GroundingZombie.reanim` 复用普通路障全部时间线，只替换三阶段护具图；电紫/靛紫路障带铜色短天线、绝缘座和紫白端点。`scripts/generate_grounding_zombie_assets.ps1` 从普通路障确定性生成三图并锁 SHA-256，不新增动画帧事件。
-- `GroundingZombie` 通过基类虚接口声明引雷类型身份、当前资格和天线世界锚点。仍戴着有耐久的天线路障、实体活动且未垂死才是新一轮候选；魅惑不取消资格。`EntityManager` 用按稳定 ID 有序的 `weak_ptr` 稀有索引收集候选，掉帽只让资格查询失败，不破坏类型索引。
+- `GroundingZombie` 通过基类虚接口声明引雷类型身份、当前资格和天线世界锚点。仍戴着有耐久的天线路障、实体活动且未垂死才是新一轮候选；魅惑不取消资格。`EntityRegistry` 用按稳定 ID 有序的 `weak_ptr` 稀有索引收集候选，掉帽只让资格查询失败，不破坏类型索引。
 
 ## 统一满电选路
 

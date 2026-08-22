@@ -41,7 +41,7 @@ public:
 	Bullet* Acquire(Board* board, BulletType type, int row,
 		const Vector& colliderRadius, const Vector& position);
 
-	// shared_ptr 版本：仅当调用方需要把 weak_ptr 注册到 EntityManager 时使用
+	// shared_ptr 版本：仅当调用方需要把 weak_ptr 注册到 EntityRegistry 时使用
 	std::shared_ptr<Bullet> AcquireShared(Board* board, BulletType type, int row,
 		const Vector& colliderRadius, const Vector& position);
 

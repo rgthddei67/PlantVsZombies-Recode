@@ -29,7 +29,7 @@
 - 生命周期天然 = 一局生存（= Board 生命周期）。无全局可变状态，无需手动跨关 reset。
 - 三个修正钟点（chokepoint）都已持有 `Board* mBoard`（`Zombie.h:18`、`Bullet.h:32`），可直接 `mBoard->GetPerkManager()` 读取。
 - **中性默认即自动失效**：聚合 getter 在无词条时返回乘法单位元（1.0 / 原值），令非生存关、未获取的词条在各钟点自动 no-op，避免到处写 `if (mIsSurvival)`。
-- 匹配本仓库既有范式：硬编码元数据表照 `GameDataManager`，Board 持有子系统照 `mEntityManager`。
+- 匹配本仓库既有范式：硬编码元数据表照 `GameDataManager`，Board 持有子系统照 `mEntityRegistry`。
 
 ### 被否决的方案
 

@@ -24,7 +24,7 @@
 #include "./Zombie/MagneticItem.h"
 #include "MistFuel.h"
 
-#include "EntityManager.h"
+#include "EntityRegistry.h"
 #include "RenderOrder.h"
 #include "AudioSystem.h"
 #include "./Plant/GameDataManager.h"
@@ -1004,7 +1004,7 @@ bool Board::IsPlantPausedByRoofRunoff(const Plant* plant) const
 	Cell* cell = mCells[plant->mRow][plant->mColumn];
 	if (!cell || (cell->GetNormalPlantID() != plant->mPlantID
 		&& cell->GetPumpkinPlantID() != plant->mPlantID)) return false;
-	Plant* support = mEntityManager.GetPlant(cell->GetUnderPlantID());
+	Plant* support = mEntityRegistry.GetPlant(cell->GetUnderPlantID());
 	return support && support->IsActive() && !support->IsSquished()
 		&& support->IsRoofSupportPlant();
 }
@@ -1694,8 +1694,8 @@ void Board::RestoreFogState(bool initialized, FogWeatherIntensity intensity,
 
 void Board::RefreshZombieWeatherSpeeds()
 {
-	for (int id : mEntityManager.GetAllZombieIDs()) {
-		Zombie* zombie = mEntityManager.GetZombie(id);
+	for (int id : mEntityRegistry.GetAllZombieIDs()) {
+		Zombie* zombie = mEntityRegistry.GetZombie(id);
 		if (zombie) zombie->RefreshAnimSpeedForWeather();
 	}
 }
@@ -2572,10 +2572,10 @@ void Board::TriggerTyphoonPlantMove(TyphoonStrength strength, WindDirection dire
 				const int normalID = source->GetNormalPlantID();
 				const int pumpkinID = source->GetPumpkinPlantID();
 				const int overlayID = source->GetOverlayPlantID();
-				Plant* under = mEntityManager.GetPlant(underID);
-				Plant* normal = mEntityManager.GetPlant(normalID);
-				Plant* pumpkin = mEntityManager.GetPlant(pumpkinID);
-				Plant* overlay = mEntityManager.GetPlant(overlayID);
+				Plant* under = mEntityRegistry.GetPlant(underID);
+				Plant* normal = mEntityRegistry.GetPlant(normalID);
+				Plant* pumpkin = mEntityRegistry.GetPlant(pumpkinID);
+				Plant* overlay = mEntityRegistry.GetPlant(overlayID);
 				if (!under || !under->IsActive()) {
 					source->ClearUnderPlantID();
 					under = nullptr;
@@ -2620,7 +2620,7 @@ void Board::TriggerTyphoonPlantMove(TyphoonStrength strength, WindDirection dire
 							stack.cell->GetNormalPlantID(), stack.cell->GetPumpkinPlantID(),
 							stack.cell->GetOverlayPlantID() };
 						for (std::size_t layer = 0; layer < stack.ids.size(); ++layer) {
-							Plant* member = mEntityManager.GetPlant(stack.ids[layer]);
+							Plant* member = mEntityRegistry.GetPlant(stack.ids[layer]);
 							if (!member || !member->IsActive()) {
 								stack.ids[layer] = NULL_PLANT_ID;
 								continue;
@@ -2663,7 +2663,7 @@ void Board::TriggerTyphoonPlantMove(TyphoonStrength strength, WindDirection dire
 					}
 					if (lost) {
 						for (const int id : sourcePlantIDs) {
-							if (Plant* member = mEntityManager.GetPlant(id)) {
+							if (Plant* member = mEntityRegistry.GetPlant(id)) {
 								lostPlantIDs.insert(id);
 								member->Die();
 							}
@@ -3026,8 +3026,8 @@ int Board::GetRoofRunoffGuideCandidateRow() const
 	int bestRow = -1;
 	int bestID = NULL_ZOMBIE_ID;
 	float bestX = std::numeric_limits<float>::max();
-	for (const int id : mEntityManager.GetAllZombieIDs()) {
-		const Zombie* zombie = mEntityManager.GetZombie(id);
+	for (const int id : mEntityRegistry.GetAllZombieIDs()) {
+		const Zombie* zombie = mEntityRegistry.GetZombie(id);
 		if (!zombie || zombie->mRow < 0 || zombie->mRow >= mRows
 			|| !zombie->CanGuideRoofRunoff()) {
 			continue;
@@ -3077,7 +3077,7 @@ HijackerZombie* Board::GetValidNightRoofHijacker() const
 {
 	if (mNightRoofHijackerID == NULL_ZOMBIE_ID) return nullptr;
 	auto* hijacker = dynamic_cast<HijackerZombie*>(
-		mEntityManager.GetZombie(mNightRoofHijackerID));
+		mEntityRegistry.GetZombie(mNightRoofHijackerID));
 	return hijacker && hijacker->CanBeNightRoofHijackerCandidate()
 		? hijacker : nullptr;
 }
@@ -3087,7 +3087,7 @@ void Board::TryLockNightRoofHijacker()
 {
 	if (!SupportsNightRoofCharge() || mNightRoofHijackerSelectionAttempted) return;
 	mNightRoofHijackerSelectionAttempted = true;
-	auto hijacker = mEntityManager.SelectNightRoofHijacker();
+	auto hijacker = mEntityRegistry.SelectNightRoofHijacker();
 	if (!hijacker) return;
 	mNightRoofHijackerID = hijacker->mZombieID;
 	hijacker->BeginNightRoofLock();
@@ -3137,7 +3137,7 @@ void Board::ChooseNightRoofChargeRoute(float warningSeconds)
 	}
 
 	const std::vector<std::shared_ptr<Zombie>> guides =
-		mEntityManager.GetNightRoofChargeGuideCandidates();
+		mEntityRegistry.GetNightRoofChargeGuideCandidates();
 	std::vector<NightRoofChargeCandidate> candidates;
 	candidates.reserve(static_cast<std::size_t>(mRows) + guides.size());
 	for (int row = 0; row < mRows; ++row) {
@@ -3213,8 +3213,8 @@ void Board::ChooseNightRoofChargeRoute(float warningSeconds)
 		config.guideImmunitySeconds = kGroundingZombieControlImmunityDuration;
 		config.guideImmunityRadius = kGroundingZombieControlImmunityRadius;
 
-		for (const int plantID : mEntityManager.GetAllPlantIDs()) {
-			const Plant* plant = mEntityManager.GetPlant(plantID);
+		for (const int plantID : mEntityRegistry.GetAllPlantIDs()) {
+			const Plant* plant = mEntityRegistry.GetPlant(plantID);
 			if (!plant || !plant->IsActive() || plant->IsPreview()
 				|| plant->IsSquished() || plant->GetSleepState()
 				|| plant->mPlantType != PlantType::PLANT_ICESHROOM
@@ -3347,7 +3347,7 @@ bool Board::IsPlantThreatenedByNightRoofHijacker(const Plant* plant) const
 	int64_t groupHealth = 0;
 	bool hasHostLayer = false;
 	for (const int id : { cell->GetNormalPlantID(), cell->GetPumpkinPlantID() }) {
-		const Plant* member = mEntityManager.GetPlant(id);
+		const Plant* member = mEntityRegistry.GetPlant(id);
 		if (!member || !member->IsActive() || member->IsPreview()
 			|| member->IsSquished()) continue;
 		hasHostLayer = true;
@@ -3402,7 +3402,7 @@ float Board::GetNightRoofHijackerPulseAlpha() const
 void Board::CancelNightRoofHijacker(int zombieID)
 {
 	if (zombieID == NULL_ZOMBIE_ID || zombieID != mNightRoofHijackerID) return;
-	auto* hijacker = dynamic_cast<HijackerZombie*>(mEntityManager.GetZombie(zombieID));
+	auto* hijacker = dynamic_cast<HijackerZombie*>(mEntityRegistry.GetZombie(zombieID));
 	mNightRoofHijackerID = NULL_ZOMBIE_ID;
 	mNightRoofHijackerFinalizing = false;
 	if (hijacker) hijacker->ClearNightRoofLock();
@@ -3411,7 +3411,7 @@ void Board::CancelNightRoofHijacker(int zombieID)
 void Board::ResetNightRoofHijackerCycle()
 {
 	if (auto* hijacker = dynamic_cast<HijackerZombie*>(
-		mEntityManager.GetZombie(mNightRoofHijackerID))) {
+		mEntityRegistry.GetZombie(mNightRoofHijackerID))) {
 		hijacker->ClearNightRoofLock();
 	}
 	mNightRoofHijackerSelectionAttempted = false;
@@ -3443,7 +3443,7 @@ void Board::ResolveNightRoofHijackerExecution()
 			int64_t groupHealth = 0;
 			std::vector<int> group;
 			for (const int id : { cell->GetNormalPlantID(), cell->GetPumpkinPlantID() }) {
-				Plant* plant = mEntityManager.GetPlant(id);
+				Plant* plant = mEntityRegistry.GetPlant(id);
 				if (!plant || !plant->IsActive() || plant->IsPreview()
 					|| plant->IsSquished()) continue;
 				groupHealth += std::max(0, plant->mPlantHealth);
@@ -3451,12 +3451,12 @@ void Board::ResolveNightRoofHijackerExecution()
 			}
 			if (group.empty() || groupHealth <= 0 || groupHealth > line) continue;
 			if (Plant* protector = GetNightRoofHijackerSupportProtector(
-				mEntityManager.GetPlant(group.front()))) {
+				mEntityRegistry.GetPlant(group.front()))) {
 				protectedSupportIDs.insert(protector->mPlantID);
 				continue;
 			}
 			plantTargetIDs.insert(group.begin(), group.end());
-			if (Plant* overlay = mEntityManager.GetPlant(cell->GetOverlayPlantID());
+			if (Plant* overlay = mEntityRegistry.GetPlant(cell->GetOverlayPlantID());
 				overlay && overlay->IsActive() && !overlay->IsPreview()) {
 				plantTargetIDs.insert(overlay->mPlantID);
 			}
@@ -3466,8 +3466,8 @@ void Board::ResolveNightRoofHijackerExecution()
 	std::sort(plantTargets.begin(), plantTargets.end());
 
 	std::vector<int> zombieTargets;
-	for (const int id : mEntityManager.GetAllZombieIDs()) {
-		Zombie* zombie = mEntityManager.GetZombie(id);
+	for (const int id : mEntityRegistry.GetAllZombieIDs()) {
+		Zombie* zombie = mEntityRegistry.GetZombie(id);
 		if (!zombie || id == caster->mZombieID || zombie->IsPreview()
 			|| !zombie->IsActive() || zombie->IsDying()) continue;
 		const int health = zombie->GetCountableExecutionHealth();
@@ -3489,7 +3489,7 @@ void Board::ResolveNightRoofHijackerExecution()
 		protectedSupportIDs.begin(), protectedSupportIDs.end());
 	std::sort(sortedProtectedSupportIDs.begin(), sortedProtectedSupportIDs.end());
 	for (const int supportID : sortedProtectedSupportIDs) {
-		if (Plant* support = mEntityManager.GetPlant(supportID)) {
+		if (Plant* support = mEntityRegistry.GetPlant(supportID)) {
 			support->OnNightRoofChargeProtectionTriggered();
 		}
 	}
@@ -3497,7 +3497,7 @@ void Board::ResolveNightRoofHijackerExecution()
 	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_EXPLOSION, 0.7f);
 
 	for (const int id : plantTargets) {
-		Plant* plant = mEntityManager.GetPlant(id);
+		Plant* plant = mEntityRegistry.GetPlant(id);
 		if (!plant || !plant->IsActive()) continue;
 		if (g_particleSystem) {
 			g_particleSystem->EmitEffect("JackExplode", plant->GetVisualPosition());
@@ -3505,7 +3505,7 @@ void Board::ResolveNightRoofHijackerExecution()
 		plant->Die();
 	}
 	for (const int id : zombieTargets) {
-		Zombie* zombie = mEntityManager.GetZombie(id);
+		Zombie* zombie = mEntityRegistry.GetZombie(id);
 		if (!zombie || !zombie->IsActive() || zombie->IsDying()) continue;
 		if (g_particleSystem) {
 			g_particleSystem->EmitEffect("HijackerElectricFlash", zombie->GetVisualPosition() + 
@@ -3528,10 +3528,10 @@ void Board::ResolveNightRoofChargeDischarge()
 
 	const int row = mNightRoofChargeRow;
 	const bool wetRow = IsRoofRunoffFlowing() && IsRoofRunoffRowSelected(row);
-	std::vector<int> zombieIDs = mEntityManager.GetAllZombieIDs();
+	std::vector<int> zombieIDs = mEntityRegistry.GetAllZombieIDs();
 	std::sort(zombieIDs.begin(), zombieIDs.end());
 	if (mNightRoofChargeGuided) {
-		Zombie* guide = mEntityManager.GetZombie(mNightRoofChargeGuideID);
+		Zombie* guide = mEntityRegistry.GetZombie(mNightRoofChargeGuideID);
 		if (guide && guide->CanGuideNightRoofCharge()) {
 			auto getColliderCenter = [](const Zombie* zombie) {
 				Vector center = zombie->GetPosition();
@@ -3547,7 +3547,7 @@ void Board::ResolveNightRoofChargeDischarge()
 				* kGroundingZombieControlImmunityRadius;
 			// 放电边沿冻结稳定 ID 快照；同阵营目标一经获得免控，随后走出范围也保留余时。
 			for (const int id : zombieIDs) {
-				Zombie* target = mEntityManager.GetZombie(id);
+				Zombie* target = mEntityRegistry.GetZombie(id);
 				if (!target || !target->IsActive() || target->IsDying()
 					|| target->IsPreview()
 					|| target->IsMindControlled() != guide->IsMindControlled()) {
@@ -3566,7 +3566,7 @@ void Board::ResolveNightRoofChargeDischarge()
 			}
 		}
 	}
-	std::vector<int> plantIDs = mEntityManager.GetAllPlantIDs();
+	std::vector<int> plantIDs = mEntityRegistry.GetAllPlantIDs();
 	std::sort(plantIDs.begin(), plantIDs.end());
 	std::vector<int> groundingProviderIDs;
 	std::unordered_set<int> groundingProviderSet;
@@ -3583,7 +3583,7 @@ void Board::ResolveNightRoofChargeDischarge()
 		if (multiplier > 1.0f) protectedSupportIDs.insert(support->mPlantID);
 	}
 	for (const int id : plantIDs) {
-		Plant* plant = mEntityManager.GetPlant(id);
+		Plant* plant = mEntityRegistry.GetPlant(id);
 		if (!plant || !plant->IsActive() || plant->IsPreview()
 			|| plant->IsSquished() || plant->IsBungeeTargeted()
 			|| plant->mRow != row || plant->IsRoofSupportPlant()) {
@@ -3597,7 +3597,7 @@ void Board::ResolveNightRoofChargeDischarge()
 		Plant* groundingProvider = nullptr;
 		int nearestColumnDistance = std::numeric_limits<int>::max();
 		for (const int providerID : plantIDs) {
-			Plant* candidate = mEntityManager.GetPlant(providerID);
+			Plant* candidate = mEntityRegistry.GetPlant(providerID);
 			if (!candidate || !candidate->CanGroundNightRoofChargeFor(plant)) continue;
 			const int columnDistance = std::abs(candidate->mColumn - plant->mColumn);
 			// plantIDs 已排序；同距时保留先遇到的较小稳定 ID。
@@ -3621,7 +3621,7 @@ void Board::ResolveNightRoofChargeDischarge()
 	}
 	for (const int id : zombieIDs) {
 		if (mNightRoofChargeGuided) break;
-		Zombie* zombie = mEntityManager.GetZombie(id);
+		Zombie* zombie = mEntityRegistry.GetZombie(id);
 		if (!zombie || !zombie->IsActive() || zombie->IsDying()
 			|| zombie->mRow != row
 			|| !zombie->CanBeAffectedByGroundHazards()) {
@@ -3641,7 +3641,7 @@ void Board::ResolveNightRoofChargeDischarge()
 		Zombie* protector = nullptr;
 		float nearestDistance = std::numeric_limits<float>::max();
 		for (const int providerID : zombieIDs) {
-			Zombie* candidate = mEntityManager.GetZombie(providerID);
+			Zombie* candidate = mEntityRegistry.GetZombie(providerID);
 			if (!candidate || !candidate->CanProtectFromNightRoofCharge(zombie)) continue;
 			const float distance = std::abs(
 				candidate->GetPosition().x - zombie->GetPosition().x);
@@ -3661,7 +3661,7 @@ void Board::ResolveNightRoofChargeDischarge()
 		protectedSupportIDs.begin(), protectedSupportIDs.end());
 	std::sort(sortedProtectedSupportIDs.begin(), sortedProtectedSupportIDs.end());
 	for (const int supportID : sortedProtectedSupportIDs) {
-		if (Plant* support = mEntityManager.GetPlant(supportID)) {
+		if (Plant* support = mEntityRegistry.GetPlant(supportID)) {
 			support->OnNightRoofChargeProtectionTriggered();
 		}
 	}
@@ -3669,7 +3669,7 @@ void Board::ResolveNightRoofChargeDischarge()
 	// 同次放电的植物与僵尸效果已经全部冻结；现在反噬死亡不会改变本次接地结果。
 	std::sort(groundingProviderIDs.begin(), groundingProviderIDs.end());
 	for (const int providerID : groundingProviderIDs) {
-		Plant* provider = mEntityManager.GetPlant(providerID);
+		Plant* provider = mEntityRegistry.GetPlant(providerID);
 		if (!provider) continue;
 		const bool onWetSlope = wetRow && provider->mColumn >= 0
 			&& provider->mColumn < kRoofSlopeColumnCount;
@@ -3680,10 +3680,10 @@ void Board::ResolveNightRoofChargeDischarge()
 bool Board::IsNightRoofChargeProtectionSuppressed(const Zombie* zombie) const
 {
 	if (!zombie) return false;
-	std::vector<int> plantIDs = mEntityManager.GetAllPlantIDs();
+	std::vector<int> plantIDs = mEntityRegistry.GetAllPlantIDs();
 	std::sort(plantIDs.begin(), plantIDs.end());
 	for (const int id : plantIDs) {
-		const Plant* plant = mEntityManager.GetPlant(id);
+		const Plant* plant = mEntityRegistry.GetPlant(id);
 		if (plant && plant->SuppressesNightRoofChargeProtectionFor(zombie)) {
 			return true;
 		}
@@ -3838,7 +3838,7 @@ void Board::RestoreNightRoofChargeState(float charge, NightRoofChargePhase phase
 float Board::GetNightRoofHijackerRainChargeBonusPerSecond() const
 {
 	if (mRainIntensity == RainIntensity::CLEAR
-		|| !mEntityManager.HasActiveNightRoofHijacker()) return 0.0f;
+		|| !mEntityRegistry.HasActiveNightRoofHijacker()) return 0.0f;
 	return kNightRoofHijackerRainChargeBonusPerSecond;
 }
 
@@ -4302,7 +4302,7 @@ float Board::GetFogCellAlpha(int row, int col) const
 
 Plantern* Board::GetActivePlantern() const
 {
-	Plant* plant = mEntityManager.GetPlant(mActivePlanternID);
+	Plant* plant = mEntityRegistry.GetPlant(mActivePlanternID);
 	auto* plantern = dynamic_cast<Plantern*>(plant);
 	return plantern && !plantern->IsSquished() ? plantern : nullptr;
 }
@@ -4777,7 +4777,7 @@ void Board::CreateBoom(const Vector& position, int plantRow, int damage)
 
 	// 水路僵尸的 Transform 含美术下沉，纵向命中必须使用僵尸与植物的逻辑行。
 	for (int row = plantRow - 1; row <= plantRow + 1; ++row) {
-		mEntityManager.ForEachZombieInRow(row, [&](Zombie* zombie) {
+		mEntityRegistry.ForEachZombieInRow(row, [&](Zombie* zombie) {
 			if (zombie->IsMindControlled()) return;
 			if (std::abs(zombie->GetPosition().x - position.x) <= 130.0f) {
 				// 统一灰烬入口内部决定化灰或数值扣血；特殊僵尸可拒绝化灰并限制每次灰烬伤害。
@@ -4794,7 +4794,7 @@ bool Board::TryGetNightRoofChargeGuideAnchor(Vector& anchor) const
 	if (!mNightRoofChargeGuided || mNightRoofChargeGuideID == NULL_ZOMBIE_ID) {
 		return false;
 	}
-	const Zombie* guide = mEntityManager.GetZombie(mNightRoofChargeGuideID);
+	const Zombie* guide = mEntityRegistry.GetZombie(mNightRoofChargeGuideID);
 	return guide && guide->TryGetNightRoofChargeGuideAnchor(anchor);
 }
 
@@ -4804,10 +4804,10 @@ void Board::CreateDoomBoom(const Vector& position, int plantRow, int damage)
 	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_DOOMSHROOM, 0.5f);
 	// 比樱桃更剧烈：双倍振幅 + 0.5s 衰减正弦来回甩 5 个半周期（原版两者同为 3,-4，主人要求毁灭菇加强）
 	ShakeBoard(6.0f, -9.0f, 0.5f, 5);
-	std::vector<int> zombieIDs = mEntityManager.GetAllZombieIDs();
+	std::vector<int> zombieIDs = mEntityRegistry.GetAllZombieIDs();
 	for (auto zombieID : zombieIDs)
 	{
-		if (auto zombie = mEntityManager.GetZombie(zombieID)) {
+		if (auto zombie = mEntityRegistry.GetZombie(zombieID)) {
 			if (zombie->IsMindControlled()) continue;
 			// 圆(半径 250) vs 僵尸判定矩形 [x±25]×[y-65,y+35]，镜像原版 GetCircleRectOverlap；
 			// 250 纵向天然覆盖 ±2 行有余，无需再按行数过滤
@@ -4988,7 +4988,7 @@ Sun* Board::CreateSun(const Vector& position, bool needAnimation)
 		(LAYER_GAME_COIN, this, position, 0.85f, "Sun",
 			needAnimation, true);
 	if (sun) {
-		mEntityManager.AddCoin(sun);
+		mEntityRegistry.AddCoin(sun);
 	}
 
 	return sun.get();
@@ -5004,7 +5004,7 @@ SmallSun* Board::CreateSmallSun(const Vector& position, bool needAnimation)
 		(LAYER_GAME_COIN, this, position, 0.6f, "SmallSun",
 			needAnimation, true);
 	if (sun) {
-		mEntityManager.AddCoin(sun);
+		mEntityRegistry.AddCoin(sun);
 	}
 
 	return sun.get();
@@ -5051,13 +5051,13 @@ bool Board::BuildMonteCarloCombatSnapshot(
 
 	const auto& gameData = GameDataManager::GetInstance();
 	const int backlineColumnCount = (mColumns + 1) / 2;
-	std::vector<int> plantIDs = mEntityManager.GetAllPlantIDs();
+	std::vector<int> plantIDs = mEntityRegistry.GetAllPlantIDs();
 	std::sort(plantIDs.begin(), plantIDs.end());
 	snapshot.plants.reserve(plantIDs.size());
 	snapshot.supports.reserve(std::min<std::size_t>(
 		plantIDs.size(), static_cast<std::size_t>(mRows * mColumns)));
 	for (const int plantID : plantIDs) {
-		const Plant* plant = mEntityManager.GetPlant(plantID);
+		const Plant* plant = mEntityRegistry.GetPlant(plantID);
 		if (!plant || !plant->IsActive() || plant->IsSquished()
 			|| plant->mRow < 0 || plant->mRow >= mRows
 			|| plant->mColumn < 0 || plant->mColumn >= mColumns) {
@@ -5110,7 +5110,7 @@ bool Board::BuildMonteCarloCombatSnapshot(
 				GetNightRoofChargeSupportProtector(plant) != nullptr;
 			if (!protectedFromNightRoofCharge) {
 				for (const int providerID : plantIDs) {
-					const Plant* provider = mEntityManager.GetPlant(providerID);
+					const Plant* provider = mEntityRegistry.GetPlant(providerID);
 					if (provider && provider->CanGroundNightRoofChargeFor(plant)) {
 						protectedFromNightRoofCharge = true;
 						break;
@@ -5167,11 +5167,11 @@ bool Board::BuildMonteCarloCombatSnapshot(
 		plantSnapshot.magneticRowDistancePenalty = CELL_COLLIDER_SIZE_X;
 	}
 
-	std::vector<int> zombieIDs = mEntityManager.GetAllZombieIDs();
+	std::vector<int> zombieIDs = mEntityRegistry.GetAllZombieIDs();
 	std::sort(zombieIDs.begin(), zombieIDs.end());
 	snapshot.zombies.reserve(zombieIDs.size());
 	for (const int zombieID : zombieIDs) {
-		const Zombie* zombie = mEntityManager.GetZombie(zombieID);
+		const Zombie* zombie = mEntityRegistry.GetZombie(zombieID);
 		if (!zombie || !zombie->IsActive() || zombie->IsDying()
 			|| !zombie->HasHead()
 			|| (zombie->IsMindControlled() != mindControlledFaction
@@ -5340,7 +5340,7 @@ void Board::CreateCobCannonExplosion(const Vector& position, int targetRow, int 
 	ShakeBoard(3.0f, -4.0f);
 
 	for (int row = targetRow - 1; row <= targetRow + 1; ++row) {
-		mEntityManager.ForEachZombieInRow(row, [&](Zombie* zombie) {
+		mEntityRegistry.ForEachZombieInRow(row, [&](Zombie* zombie) {
 			if (!zombie || !zombie->IsActive() || zombie->IsDying()
 				|| zombie->IsMindControlled()
 				|| !zombie->CanBeAffectedByGroundHazards()) return;
@@ -5499,7 +5499,7 @@ bool Board::PickMonteCarloZombieTreatment(
 {
 	PROFILE_SCOPE("MC.Healer.Total");
 	using namespace PlantDefenseMonteCarlo;
-	Zombie* source = mEntityManager.GetZombie(request.sourceZombieID);
+	Zombie* source = mEntityRegistry.GetZombie(request.sourceZombieID);
 	if (!source || source->IsMindControlled() || !source->IsActive()
 		|| source->IsDying() || !source->HasHead()
 		|| request.castSeconds <= 0.0f
@@ -5524,8 +5524,8 @@ bool Board::PickMonteCarloZombieTreatment(
 	if (lockedHijackerID != NULL_ZOMBIE_ID) forcedZombieIDs.insert(lockedHijackerID);
 
 	std::vector<PendingTreatment> pendingTreatments;
-	for (const int zombieID : mEntityManager.GetAllZombieIDs()) {
-		auto* healer = dynamic_cast<HealerZombie*>(mEntityManager.GetZombie(zombieID));
+	for (const int zombieID : mEntityRegistry.GetAllZombieIDs()) {
+		auto* healer = dynamic_cast<HealerZombie*>(mEntityRegistry.GetZombie(zombieID));
 		if (!healer || healer->mZombieID == request.sourceZombieID
 			|| !healer->IsActive() || healer->IsDying()
 			|| healer->IsMindControlled() != source->IsMindControlled()) {
@@ -5607,7 +5607,7 @@ bool Board::PickMonteCarloZombieTreatment(
 	float areaOverflowPressure = 0.0f;
 	for (const int zombieID : request.areaTargetIDs) {
 		if (sampledZombieIDs.find(zombieID) != sampledZombieIDs.end()) continue;
-		const Zombie* zombie = mEntityManager.GetZombie(zombieID);
+		const Zombie* zombie = mEntityRegistry.GetZombie(zombieID);
 		if (!zombie || !zombie->IsActive() || zombie->IsDying()) continue;
 		auto repairPotential = [&request](int current, int maximum) {
 			if (current <= 0 || maximum <= 0 || current >= maximum) return 0.0f;
@@ -5818,8 +5818,8 @@ bool Board::CanPlantAt(PlantType type, int row, int col)
 	if (!cell || HasCraterAt(row, col)) return false;
 
 	const bool isWater = IsPoolSquare(row, col);
-	Plant* underPlant = mEntityManager.GetPlant(cell->GetUnderPlantID());
-	Plant* normalPlant = mEntityManager.GetPlant(cell->GetNormalPlantID());
+	Plant* underPlant = mEntityRegistry.GetPlant(cell->GetUnderPlantID());
+	Plant* normalPlant = mEntityRegistry.GetPlant(cell->GetNormalPlantID());
 	const bool hasLilyPad = underPlant
 		&& underPlant->mPlantType == PlantType::PLANT_LILYPAD;
 	const bool hasFlowerPot = underPlant && underPlant->IsRoofSupportPlant();
@@ -5911,7 +5911,7 @@ bool Board::FireTargetedCobCannonAt(const Vector& target, int targetRow)
 {
 	if (!IsCobCannonTargeting()) return false;
 	auto* cannon = dynamic_cast<CobCannon*>(
-		mEntityManager.GetPlant(mTargetingCobCannonID));
+		mEntityRegistry.GetPlant(mTargetingCobCannonID));
 	const bool fired = cannon && cannon->IsActive()
 		&& cannon->FireAt(target, targetRow);
 	mCursorObjectManager.ClearActive();
@@ -5936,8 +5936,8 @@ bool Board::HasPlantingRequirement(PlantType type) const
 	}
 	const PlantType baseType = GetUpgradeBasePlantType(type);
 	if (baseType == PlantType::NUM_PLANT_TYPES) return true;
-	for (const int plantID : mEntityManager.GetAllPlantIDs()) {
-		Plant* plant = mEntityManager.GetPlant(plantID);
+	for (const int plantID : mEntityRegistry.GetAllPlantIDs()) {
+		Plant* plant = mEntityRegistry.GetPlant(plantID);
 		if (plant && plant->IsActive() && !plant->IsSquished()
 			&& plant->mPlantHealth > 0 && plant->mPlantType == baseType) {
 			return true;
@@ -5955,7 +5955,7 @@ Plant* Board::GetTopPlantAt(int row, int col) const
 {
 	if (row < 0 || row >= mRows || col < 0 || col >= mColumns) return nullptr;
 	Cell* cell = mCells[row][col];
-	return cell ? mEntityManager.GetPlant(cell->GetTopPlantID()) : nullptr;
+	return cell ? mEntityRegistry.GetPlant(cell->GetTopPlantID()) : nullptr;
 }
 
 Plant* Board::GetCatapultTargetPlantAt(int row, int col) const
@@ -5980,10 +5980,10 @@ Plant* Board::FindAirborneThreatProtector(int row, int col) const
 	if (row < 0 || row >= mRows || col < 0 || col >= mColumns) return nullptr;
 
 	// 原版按植物容器顺序返回第一株；实体 ID 保留种植先后，排序后可在重叠保护区稳定复刻。
-	std::vector<int> plantIDs = mEntityManager.GetAllPlantIDs();
+	std::vector<int> plantIDs = mEntityRegistry.GetAllPlantIDs();
 	std::sort(plantIDs.begin(), plantIDs.end());
 	for (const int plantID : plantIDs) {
-		Plant* plant = mEntityManager.GetPlant(plantID);
+		Plant* plant = mEntityRegistry.GetPlant(plantID);
 		if (plant && plant->ProtectsCellFromAirborneThreat(row, col)) return plant;
 	}
 	return nullptr;
@@ -6010,28 +6010,28 @@ Plant* Board::GetUnderPlantAt(int row, int col) const
 {
 	if (row < 0 || row >= mRows || col < 0 || col >= mColumns) return nullptr;
 	Cell* cell = mCells[row][col];
-	return cell ? mEntityManager.GetPlant(cell->GetUnderPlantID()) : nullptr;
+	return cell ? mEntityRegistry.GetPlant(cell->GetUnderPlantID()) : nullptr;
 }
 
 Plant* Board::GetNormalPlantAt(int row, int col) const
 {
 	if (row < 0 || row >= mRows || col < 0 || col >= mColumns) return nullptr;
 	Cell* cell = mCells[row][col];
-	return cell ? mEntityManager.GetPlant(cell->GetNormalPlantID()) : nullptr;
+	return cell ? mEntityRegistry.GetPlant(cell->GetNormalPlantID()) : nullptr;
 }
 
 Plant* Board::GetPumpkinAt(int row, int col) const
 {
 	if (row < 0 || row >= mRows || col < 0 || col >= mColumns) return nullptr;
 	Cell* cell = mCells[row][col];
-	return cell ? mEntityManager.GetPlant(cell->GetPumpkinPlantID()) : nullptr;
+	return cell ? mEntityRegistry.GetPlant(cell->GetPumpkinPlantID()) : nullptr;
 }
 
 Plant* Board::GetOverlayPlantAt(int row, int col) const
 {
 	if (row < 0 || row >= mRows || col < 0 || col >= mColumns) return nullptr;
 	Cell* cell = mCells[row][col];
-	return cell ? mEntityManager.GetPlant(cell->GetOverlayPlantID()) : nullptr;
+	return cell ? mEntityRegistry.GetPlant(cell->GetOverlayPlantID()) : nullptr;
 }
 
 /**
@@ -6100,8 +6100,8 @@ void Board::ApplyPumpkinProtectedZombieAreaDamage(int baseDamage,
 
 	std::vector<int> unprotectedPlantIDs;
 	std::unordered_set<int> protectedPumpkinIDSet;
-	for (const int plantID : mEntityManager.GetAllPlantIDs()) {
-		Plant* plant = mEntityManager.GetPlant(plantID);
+	for (const int plantID : mEntityRegistry.GetAllPlantIDs()) {
+		Plant* plant = mEntityRegistry.GetPlant(plantID);
 		if (!plant || !plant->IsActive() || !overlapsArea(*plant)) continue;
 
 		if (Plant* pumpkin = FindPumpkinAreaProtector(*plant)) {
@@ -6114,7 +6114,7 @@ void Board::ApplyPumpkinProtectedZombieAreaDamage(int baseDamage,
 
 	// 无外壳格保持旧行为：范围实际命中的 under/normal 各自吃一次基础伤害。
 	for (const int plantID : unprotectedPlantIDs) {
-		Plant* plant = mEntityManager.GetPlant(plantID);
+		Plant* plant = mEntityRegistry.GetPlant(plantID);
 		if (plant && plant->IsActive()) {
 			plant->TakeDamage(baseDamage, DamageSource::ZOMBIE);
 		}
@@ -6126,7 +6126,7 @@ void Board::ApplyPumpkinProtectedZombieAreaDamage(int baseDamage,
 		protectedPumpkinIDSet.begin(), protectedPumpkinIDSet.end());
 	std::sort(protectedPumpkinIDs.begin(), protectedPumpkinIDs.end());
 	for (const int pumpkinID : protectedPumpkinIDs) {
-		Plant* pumpkin = mEntityManager.GetPlant(pumpkinID);
+		Plant* pumpkin = mEntityRegistry.GetPlant(pumpkinID);
 		if (pumpkin && pumpkin->IsActive()) {
 			pumpkin->TakeDamage(pumpkinDamage, DamageSource::ZOMBIE);
 		}
@@ -6136,10 +6136,10 @@ void Board::ApplyPumpkinProtectedZombieAreaDamage(int baseDamage,
 void Board::RefreshPlantStackRenderOrder(Cell* cell)
 {
 	if (!cell) return;
-	Plant* under = mEntityManager.GetPlant(cell->GetUnderPlantID());
-	Plant* normal = mEntityManager.GetPlant(cell->GetNormalPlantID());
-	Plant* pumpkin = mEntityManager.GetPlant(cell->GetPumpkinPlantID());
-	Plant* overlay = mEntityManager.GetPlant(cell->GetOverlayPlantID());
+	Plant* under = mEntityRegistry.GetPlant(cell->GetUnderPlantID());
+	Plant* normal = mEntityRegistry.GetPlant(cell->GetNormalPlantID());
+	Plant* pumpkin = mEntityRegistry.GetPlant(cell->GetPumpkinPlantID());
+	Plant* overlay = mEntityRegistry.GetPlant(cell->GetOverlayPlantID());
 	std::vector<int> orders;
 	if (under) orders.push_back(under->GetRenderOrder());
 	if (normal) orders.push_back(normal->GetRenderOrder());
@@ -6220,7 +6220,7 @@ Plant* Board::CreatePlant(PlantType plantType, int row, int column, bool skipset
 			plant->Die();
 			return nullptr;
 		}
-		mEntityManager.AddPlant(plant);
+		mEntityRegistry.AddPlant(plant);
 
 		// 将植物与格子关联
 		if (isUnderPlant) cell->SetUnderPlantID(plant->mPlantID);
@@ -6283,7 +6283,7 @@ Zombie* Board::CreateZombie(ZombieType zombieType, int row, float x, bool skipse
 	mZombieNumber++;
 
 	if (!isPreview && !skipsettings) {
-		mEntityManager.AddZombie(zombie);
+		mEntityRegistry.AddZombie(zombie);
 		zombie->mSpawnWave = this->mCurrentWave;
 		// 按当前难度来源对整只僵尸血量施加全局倍率（默认 1，目前由生存模式按轮次提供）。
 		// 仅在此波次生成路径施加；读档走 CreateZombieWithID 直接还原已含倍率的存档血量，不重复缩放。
@@ -6305,12 +6305,12 @@ Bullet* Board::CreateBullet(BulletType bulletType, int row, const Vector& positi
 		return nullptr;
 	}
 
-	// 从对象池获取子弹（shared_ptr 局部变量，用于把 weak_ptr 注册进 EntityManager）
+	// 从对象池获取子弹（shared_ptr 局部变量，用于把 weak_ptr 注册进 EntityRegistry）
 	std::shared_ptr<Bullet> bullet = bulletPool->AcquireShared
 	(this, bulletType, row, Vector(10, 10), position);
 
 	if (bullet && !skipsettings) {
-		mEntityManager.AddBullet(bullet);
+		mEntityRegistry.AddBullet(bullet);
 	}
 
 	return bullet.get();
@@ -6320,7 +6320,7 @@ inline void Board::CleanupExpiredObjects()
 {
 	// 清理已过期的植物ID映射
 	// TODO 如果其他地方也有存储植物ID,也要删除
-	std::vector<int> removedPlants = mEntityManager.CleanupExpired();
+	std::vector<int> removedPlants = mEntityRegistry.CleanupExpired();
 
 	// 遍历被清理的植物ID，清除对应Cell中的植物ID
 	for (int plantID : removedPlants) {
@@ -6396,9 +6396,9 @@ void Board::UpdateLevel()
 		int heal = mPerkManager.GetPlantRegenPerPulse();
 		if (heal > 0)
 		{
-			for (int id : mEntityManager.GetAllPlantIDs())
+			for (int id : mEntityRegistry.GetAllPlantIDs())
 			{
-				Plant* p = mEntityManager.GetPlant(id);
+				Plant* p = mEntityRegistry.GetPlant(id);
 				if (!p || p->IsPreview()) continue;
 				int cap = mPerkManager.GetPlantRegenHpCap(p->mPlantMaxHealth);
 				if (p->mPlantHealth < cap)
@@ -6956,9 +6956,9 @@ inline void Board::UpdateZombieMetrics()
 {
 	int64_t TotalHP = 0, CurrectWaveHP = 0;
 	int hostileZombieCountForMusic = 0;
-	for (auto zombieID : mEntityManager.GetAllZombieIDs())
+	for (auto zombieID : mEntityRegistry.GetAllZombieIDs())
 	{
-		if (auto zombie = mEntityManager.GetZombie(zombieID))
+		if (auto zombie = mEntityRegistry.GetZombie(zombieID))
 		{
 			if (zombie->IsMindControlled()) continue;	// 判断是不是魅惑
 			if (!zombie->IsDying() && zombie->HasHead())
@@ -7299,14 +7299,14 @@ Plant* Board::CreatePlantWithID(PlantType type, int row, int col, int id) {
 			}
 		}
 	}
-	// 走 GameApp 工厂拿 shared_ptr 用于 EntityManager 注册
+	// 走 GameApp 工厂拿 shared_ptr 用于 EntityRegistry 注册
 	if (row < 0 || row >= mRows || col < 0 || col >= mColumns) {
 		LOG_ERROR("Board") << "无效的行列位置: (" << row << ", " << col << ")";
 		return nullptr;
 	}
 	std::shared_ptr<Plant> plant = GameAPP::GetInstance().InstantiatePlant(type, this, row, col, false);
 	if (plant) {
-		mEntityManager.AddPlantWithID(plant, id);
+		mEntityRegistry.AddPlantWithID(plant, id);
 		if (cell) {
 			if (isUnderPlant) cell->SetUnderPlantID(id);
 			else if (isPumpkinPlant) cell->SetPumpkinPlantID(id);
@@ -7339,7 +7339,7 @@ Zombie* Board::CreateZombieWithID(ZombieType type, int row, float x, int id) {
 	(type, this, x, y, row, false);
 	if (!zombie) return nullptr;
 	mZombieNumber++;
-	mEntityManager.AddZombieWithID(zombie, id);
+	mEntityRegistry.AddZombieWithID(zombie, id);
 	zombie->mSpawnWave = this->mCurrentWave;
 	return zombie.get();
 }
@@ -7352,7 +7352,7 @@ Bullet* Board::CreateBulletWithID(BulletType type, int row, const Vector& pos, i
 	}
 	std::shared_ptr<Bullet> bullet = bulletPool->AcquireShared(this, type, row, Vector(10, 10), pos);
 	if (bullet) {
-		mEntityManager.AddBulletWithID(bullet, id);
+		mEntityRegistry.AddBulletWithID(bullet, id);
 	}
 	return bullet.get();
 }
@@ -7362,7 +7362,7 @@ Sun* Board::CreateSunWithID(const Vector& pos, bool fromSky, int id) {
 		(LAYER_GAME_COIN, this, pos, 0.85f, "Sun",
 			fromSky, true);
 	if (sun) {
-		mEntityManager.AddCoinWithID(sun, id);
+		mEntityRegistry.AddCoinWithID(sun, id);
 	}
 	return sun.get();
 }
@@ -7372,7 +7372,7 @@ SmallSun* Board::CreateSmallSunWithID(const Vector& pos, bool fromSky, int id) {
 		(LAYER_GAME_COIN, this, pos, 0.6f, "SmallSun",
 			fromSky, true);
 	if (sun) {
-		mEntityManager.AddCoinWithID(sun, id);
+		mEntityRegistry.AddCoinWithID(sun, id);
 	}
 	return sun.get();
 }
@@ -7411,7 +7411,7 @@ Mower* Board::CreateMower(MowerType type, int row)
 		LAYER_GAME_OBJECT, this, type, animType, x, y, row, scale);
 
 	if (mower) {
-		mEntityManager.AddMower(mower);
+		mEntityRegistry.AddMower(mower);
 	}
 	return mower.get();
 }
@@ -7432,7 +7432,7 @@ Mower* Board::CreateMowerWithID(MowerType type, int row, float x, float y, int i
 		LAYER_GAME_OBJECT, this, type, animType, x, y, row, scale);
 
 	if (mower) {
-		mEntityManager.AddMowerWithID(mower, id);
+		mEntityRegistry.AddMowerWithID(mower, id);
 	}
 	return mower.get();
 }
@@ -7449,10 +7449,10 @@ void Board::InitializeMowers()
 /** 复制 ID 后逐一销毁其他小推车，避免 Die() 延迟回收期间修改遍历来源。 */
 void Board::RemoveOtherMowersWithoutTrigger(int preservedMowerID)
 {
-	const std::vector<int> mowerIDs = mEntityManager.GetAllMowerIDs();
+	const std::vector<int> mowerIDs = mEntityRegistry.GetAllMowerIDs();
 	for (int id : mowerIDs) {
 		if (id == preservedMowerID) continue;
-		Mower* mower = mEntityManager.GetMower(id);
+		Mower* mower = mEntityRegistry.GetMower(id);
 		if (!mower) continue;
 		SetRowLoseMower(mower->mRow);
 		mower->Die();

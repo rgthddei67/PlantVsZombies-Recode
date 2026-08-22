@@ -141,7 +141,7 @@ Bullet（独立类型；通过 BulletPool 使用对象池）
 
 早期通用 `Component` 容器已于 2026-08-22 完整删除，不是项目未来的玩法对象模型。新增代码不得恢复 `Component` 基类、按 `type_index` 索引的类型表、`Add/Get/RemoveComponent<T>` 服务定位或通用 Start/Update/Draw 生命周期；跨多个无继承关系宿主复用且确实可选的横切能力，应由宿主用命名明确的值或小对象显式拥有。最终迁移契约见 `docs/superpowers/specs/2026-08-16-inheritance-gameplay-object-architecture-design.md` 与 `docs/superpowers/plans/2026-08-16-component-system-contraction.md`。
 
-`EntityManager` 与上述组件容器相互独立：它是 Board 范围内的稳定实体 ID 注册表和查询索引，服务跨对象引用、存档恢复与热路径检索，不是 ECS，组件收缩期间不得删除或把其职责重新塞回对象指针。
+`EntityRegistry` 与上述组件容器相互独立：它是 Board 范围内的稳定实体 ID 注册表和查询索引，服务跨对象引用、存档恢复与热路径检索，不是 ECS，组件收缩期间不得删除或把其职责重新塞回对象指针。
 
 ### 显式附件
 
@@ -163,7 +163,7 @@ Clickable 也由 `GameObject` 用 `unique_ptr<ClickableComponent>` 显式可选�
 | `BoardPresentation` | `Game/BoardPresentation.h` | `Board` 到宿主场景的窄展示端口：提示、进度条及 UI 瞬态存取 |
 | `GameObjectManager` | `Game/GameObjectManager` | 创建/销毁对象、渲染顺序、线程池 |
 | `CollisionSystem` | `Game/CollisionSystem` | 每帧碰撞检测与回调 |
-| `EntityManager` | `Game/EntityManager` | 按 ID 跟踪实体（存档系统使用） |
+| `EntityRegistry` | `Game/EntityRegistry` | 按 ID 跟踪实体（存档系统使用） |
 | `SceneManager` | `Game/SceneManager` | 持有唯一活动场景并在各场景间切换；场景在 `GameApp.cpp` 注册 |
 | `ResourceManager` | `ResourceManager` | 加载/缓存资源；资源键定义在 `ResourceKeys.h` |
 | `Graphics` | `Graphics.cpp` | 游戏公共绘制入口；Vulkan 保留 bindless/InstanceRecord/worker 快路，OpenGL 3.3 使用 CPU 展开和动态 VBO/IBO Batch；资源通过后端无关 `RenderTexture`/`TextureBackend` 生命周期接入 |

@@ -14,7 +14,7 @@
 ## 背景 / 现状
 
 - `Sun : public Coin`（`Game/Sun.h`，header-only，逻辑全部 inline）。`SunPoint = 25`，构造函数把固定点击碰撞箱 `Vector(55,55)` 传给 `Coin`，`scale` 仅影响视觉。
-- `Board::CreateSun(...)` 三连（`Vector` 版 / `float x,y` 版 / `CreateSunWithID`）创建普通阳光，scale 写死 `0.85`，通过 `mEntityManager.AddCoin` / `AddCoinWithID` 注册。
+- `Board::CreateSun(...)` 三连（`Vector` 版 / `float x,y` 版 / `CreateSunWithID`）创建普通阳光，scale 写死 `0.85`，通过 `mEntityRegistry.AddCoin` / `AddCoinWithID` 注册。
 - `SunShroom`（新增、未提交）当前在 `PlantUpdate` 中无条件调用 `mBoard->CreateSun(...)`。经典 PvZ 中幼年阳光菇产小阳光、成熟后产普通阳光。
 - `GameInfoSaver`：序列化时遍历所有 coin，用 `dynamic_cast<Sun*>(coin)` 识别阳光、`dynamic_cast<Trophy*>(coin)` 识别奖杯；读档时按 `id` 走 `CreateSunWithID` 或 `CreateSun` 重建，并恢复 `animTrack` / `animFrame`。
 
@@ -28,7 +28,7 @@
 
 ### 2. `Board` 创建函数（镜像现有 `CreateSun` 三连）
 
-- `SmallSun* CreateSmallSun(const Vector& position, bool needAnimation = false)` — scale 0.6，经 `mEntityManager.AddCoin` 注册
+- `SmallSun* CreateSmallSun(const Vector& position, bool needAnimation = false)` — scale 0.6，经 `mEntityRegistry.AddCoin` 注册
 - `SmallSun* CreateSmallSun(float x, float y, bool needAnimation = false)` — 重载，转调上一个
 - `SmallSun* CreateSmallSunWithID(const Vector& pos, bool fromSky, int id)` — 走 `AddCoinWithID`（读档重建路径）
 

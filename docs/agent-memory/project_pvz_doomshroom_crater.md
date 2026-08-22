@@ -22,7 +22,7 @@ metadata:
 
 - Crater 现在每帧按**当前格子地形**选择外观：泳池背景的陆地行继续使用普通昼/夜 `crater`，两条水路使用 `crater_water_day/night`；四套资源均按 `PART_0=完整、PART_1=后半程消退` 消费。水格弹坑与水面植物共用 2px 振幅及 row/column 相位的两秒浮动周期。
 - 屋顶左右两套资源和 `ResourceKeys` 已入库但暂不接运行逻辑；`Crater.cpp` 留有 `TODO(roof)`。白天水格分支已于 2026-08-04 通过咖啡豆唤醒毁灭菇完成端到端覆盖，详见 [project_pvz_coffeebean](project_pvz_coffeebean.md)。
-- 毁灭菇引爆前按 EntityManager 全部植物 ID 快照过滤同一逻辑 `row/column`，排除自身后逐株 `Die()`；因此同格睡莲也会死亡，邻格组合不受影响。不能只读取当前 Cell 的 under/normal 两层，否则未来南瓜等额外层会漏结算。
+- 毁灭菇引爆前按 EntityRegistry 全部植物 ID 快照过滤同一逻辑 `row/column`，排除自身后逐株 `Die()`；因此同格睡莲也会死亡，邻格组合不受影响。不能只读取当前 Cell 的 under/normal 两层，否则未来南瓜等额外层会漏结算。
 - 新增 AutoTest `add_crater` 命令和 `craters.N.textureKey/textureLoaded` 抓手。`smoke_crater_terrain_visuals` 覆盖昼/夜泳池的陆地、水格完整、水格消退；`smoke_doomshroom_same_cell_plants` 覆盖同格睡莲死亡、邻格“睡莲+小喷菇”保留和水格弹坑。旧 `smoke_doomshroom` 的坐标 click 对照存在假绿风险，已改为 `assert_can_plant` 对弹坑格 false/旁格 true 的正式入口断言，再直接种旁格对照。
 - 当前 `clang-playtest` 配置/全量构建和后续增量构建均退出码 0、无警告；上述三个脚本均在当前桌面可见运行、窗口标题确认且退出码 0，状态 JSON、run.log 与截图一致。
 

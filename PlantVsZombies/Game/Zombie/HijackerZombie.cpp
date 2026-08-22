@@ -168,7 +168,7 @@ void HijackerZombie::StopEatingForFinalization()
 {
 	if (!mIsEating) return;
 	if (mEatPlantID != NULL_PLANT_ID && mBoard) {
-		if (Plant* plant = mBoard->mEntityManager.GetPlant(mEatPlantID);
+		if (Plant* plant = mBoard->mEntityRegistry.GetPlant(mEatPlantID);
 			plant && plant->mEaterCount > 0) {
 			--plant->mEaterCount;
 		}

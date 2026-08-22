@@ -4,7 +4,7 @@
 
 **Goal:** 实现舞王僵尸（入场月球漫步→打响指召唤十字4伴舞→全队随全局节拍齐舞，死伴舞按拍补位）与伴舞僵尸（出土升起→齐舞），含断手/断头/掉头粒子/魅惑/存档。
 
-**Architecture:** Board 全局逻辑帧计数器推导"舞蹈节拍帧"（0~22 循环），舞王/伴舞都从它映射动画轨道 → 全队天然同步、领队死亡不影响。舞王四阶段状态机（DANCING_IN→SNAPPING→HOLD→DANCING），召唤经 `Board::CreateZombie`，僵尸间关联用 EntityManager 整型 ID（死亡自动失效）。断手无材质替换（MJ 版 reanim 无残肢轨道，藏小臂+手保大臂）。
+**Architecture:** Board 全局逻辑帧计数器推导"舞蹈节拍帧"（0~22 循环），舞王/伴舞都从它映射动画轨道 → 全队天然同步、领队死亡不影响。舞王四阶段状态机（DANCING_IN→SNAPPING→HOLD→DANCING），召唤经 `Board::CreateZombie`，僵尸间关联用 EntityRegistry 整型 ID（死亡自动失效）。断手无材质替换（MJ 版 reanim 无残肢轨道，藏小臂+手保大臂）。
 
 **Tech Stack:** C++17 / 自研引擎（Animator reanim 骨骼动画、nlohmann/json 存档、AutoTest JSON 驱动验证）。
 
@@ -484,7 +484,7 @@ git commit -m "新增伴舞僵尸：出土升起+节拍齐舞+断手藏两轨無
 - Create: `autotest/scripts/smoke_dancer_summon.json`
 
 **Interfaces:**
-- Consumes: `Board::GetDanceBeatFrame()`（Task 1）；`BackupDancerZombie` 与其 public `mLeaderID`（Task 2）；`Board::CreateZombie(ZombieType, int row, float x)`；`EntityManager::GetZombie(int)`（死亡返回 nullptr）；`Zombie::mZombieID`。
+- Consumes: `Board::GetDanceBeatFrame()`（Task 1）；`BackupDancerZombie` 与其 public `mLeaderID`（Task 2）；`Board::CreateZombie(ZombieType, int row, float x)`；`EntityRegistry::GetZombie(int)`（死亡返回 nullptr）；`Zombie::mZombieID`。
 - Produces: `class DancerZombie : public Zombie`（`enum class DancerPhase { DANCING_IN, SNAPPING, HOLD, DANCING }`）。无下游消费者。
 
 - [ ] **Step 1: 先写测试脚本（会失败）**
@@ -716,7 +716,7 @@ void DancerZombie::SummonBackupDancers()
 		{ mRow,     x + kSummonSideDist },    // 同行后方
 	};
 	for (int i = 0; i < 4; ++i) {
-		if (mBoard->mEntityManager.GetZombie(mFollowerID[i])) continue;	// 该位还活着
+		if (mBoard->mEntityRegistry.GetZombie(mFollowerID[i])) continue;	// 该位还活着
 		mFollowerID[i] = NULL_ZOMBIE_ID;
 		if (slots[i].row < 0 || slots[i].row >= mBoard->mRows) continue;
 		if (i == 2 && x < kSummonFrontMinX) continue;
@@ -740,7 +740,7 @@ bool DancerZombie::NeedsMoreBackupDancers() const
 		if (i == 0 && mRow - 1 < 0) continue;
 		if (i == 1 && mRow + 1 >= mBoard->mRows) continue;
 		if (i == 2 && GetPosition().x < kSummonFrontMinX) continue;
-		if (mBoard->mEntityManager.GetZombie(mFollowerID[i]) == nullptr) return true;
+		if (mBoard->mEntityRegistry.GetZombie(mFollowerID[i]) == nullptr) return true;
 	}
 	return false;
 }

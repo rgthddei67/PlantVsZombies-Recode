@@ -1,4 +1,4 @@
-#include "EntityManager.h"
+#include "EntityRegistry.h"
 #include "Plant/Plant.h"
 #include "Zombie/Zombie.h"
 #include "Zombie/GildedZamboniZombie.h"
@@ -10,21 +10,21 @@
 #include "Coin.h"
 #include "LawnMower.h"
 
-int EntityManager::AddPlant(std::shared_ptr<Plant> plant) {
+int EntityRegistry::AddPlant(std::shared_ptr<Plant> plant) {
 	int id = mNextPlantID++;
 	mPlants[id] = plant;
 	plant->mPlantID = id;
 	return id;
 }
 
-Plant* EntityManager::GetPlant(int id) const {
+Plant* EntityRegistry::GetPlant(int id) const {
 	auto it = mPlants.find(id);
 	if (it != mPlants.end())
 		return it->second.lock().get();
 	return nullptr;
 }
 
-std::vector<int> EntityManager::GetAllPlantIDs() const {
+std::vector<int> EntityRegistry::GetAllPlantIDs() const {
 	std::vector<int> ids;
 	for (const auto& pair : mPlants) {
 		if (pair.second.lock())
@@ -33,7 +33,7 @@ std::vector<int> EntityManager::GetAllPlantIDs() const {
 	return ids;
 }
 
-int EntityManager::AddZombie(std::shared_ptr<Zombie> zombie) {
+int EntityRegistry::AddZombie(std::shared_ptr<Zombie> zombie) {
 	int id = mNextZombieID++;
 	mZombies[id] = zombie;
 	zombie->mZombieID = id;
@@ -46,14 +46,14 @@ int EntityManager::AddZombie(std::shared_ptr<Zombie> zombie) {
 	return id;
 }
 
-Zombie* EntityManager::GetZombie(int id) const {
+Zombie* EntityRegistry::GetZombie(int id) const {
 	auto it = mZombies.find(id);
 	if (it != mZombies.end())
 		return it->second.lock().get();
 	return nullptr;
 }
 
-std::vector<int> EntityManager::GetAllZombieIDs() const {
+std::vector<int> EntityRegistry::GetAllZombieIDs() const {
 	std::vector<int> ids;
 	for (const auto& pair : mZombies) {
 		if (pair.second.lock())
@@ -62,7 +62,7 @@ std::vector<int> EntityManager::GetAllZombieIDs() const {
 	return ids;
 }
 
-std::shared_ptr<RoofMarshalZombie> EntityManager::GetFirstActiveRoofMarshal() const {
+std::shared_ptr<RoofMarshalZombie> EntityRegistry::GetFirstActiveRoofMarshal() const {
 	// std::map 已按实体 ID 排序；通常首个候选就是唯一督军，不再随全场僵尸数增长。
 	for (const auto& pair : mRoofMarshals) {
 		auto marshal = pair.second.lock();
@@ -75,7 +75,7 @@ std::shared_ptr<RoofMarshalZombie> EntityManager::GetFirstActiveRoofMarshal() co
 	return nullptr;
 }
 
-std::shared_ptr<HijackerZombie> EntityManager::SelectNightRoofHijacker() const
+std::shared_ptr<HijackerZombie> EntityRegistry::SelectNightRoofHijacker() const
 {
 	int highestHealth = -1;
 	std::vector<std::shared_ptr<HijackerZombie>> tied;
@@ -97,7 +97,7 @@ std::shared_ptr<HijackerZombie> EntityManager::SelectNightRoofHijacker() const
 	return tied[GameRandom::Range(0, static_cast<int>(tied.size()) - 1)];
 }
 
-int EntityManager::GetActiveNightRoofHijackerCount() const
+int EntityRegistry::GetActiveNightRoofHijackerCount() const
 {
 	int count = 0;
 	for (const auto& pair : mHijackers) {
@@ -109,7 +109,7 @@ int EntityManager::GetActiveNightRoofHijackerCount() const
 	return count;
 }
 
-bool EntityManager::HasActiveNightRoofHijacker() const
+bool EntityRegistry::HasActiveNightRoofHijacker() const
 {
 	for (const auto& pair : mHijackers) {
 		if (auto hijacker = pair.second.lock();
@@ -119,7 +119,7 @@ bool EntityManager::HasActiveNightRoofHijacker() const
 }
 
 std::vector<std::shared_ptr<Zombie>>
-EntityManager::GetNightRoofChargeGuideCandidates() const
+EntityRegistry::GetNightRoofChargeGuideCandidates() const
 {
 	std::vector<std::shared_ptr<Zombie>> candidates;
 	for (const auto& pair : mNightRoofChargeGuides) {
@@ -131,7 +131,7 @@ EntityManager::GetNightRoofChargeGuideCandidates() const
 	return candidates;
 }
 
-int EntityManager::GetActiveNightRoofChargeGuideCount() const
+int EntityRegistry::GetActiveNightRoofChargeGuideCount() const
 {
 	int count = 0;
 	for (const auto& pair : mNightRoofChargeGuides) {
@@ -141,7 +141,7 @@ int EntityManager::GetActiveNightRoofChargeGuideCount() const
 	return count;
 }
 
-bool EntityManager::IsHealerFocusedTargetReserved(
+bool EntityRegistry::IsHealerFocusedTargetReserved(
 	int zombieID, int exceptHealerID) const
 {
 	if (zombieID == NULL_ZOMBIE_ID) return false;
@@ -155,7 +155,7 @@ bool EntityManager::IsHealerFocusedTargetReserved(
 	return false;
 }
 
-bool EntityManager::HasReadyHealerBefore(int healerID) const
+bool EntityRegistry::HasReadyHealerBefore(int healerID) const
 {
 	for (const auto& pair : mHealers) {
 		if (pair.first >= healerID) break;
@@ -167,21 +167,21 @@ bool EntityManager::HasReadyHealerBefore(int healerID) const
 	return false;
 }
 
-int EntityManager::AddBullet(std::shared_ptr<Bullet> bullet) {
+int EntityRegistry::AddBullet(std::shared_ptr<Bullet> bullet) {
 	int id = mNextBulletID++;
 	mBullets[id] = bullet;
 	bullet->mBulletID = id;
 	return id;
 }
 
-Bullet* EntityManager::GetBullet(int id) const {
+Bullet* EntityRegistry::GetBullet(int id) const {
 	auto it = mBullets.find(id);
 	if (it != mBullets.end())
 		return it->second.lock().get();
 	return nullptr;
 }
 
-std::vector<int> EntityManager::GetAllBulletIDs() const {
+std::vector<int> EntityRegistry::GetAllBulletIDs() const {
 	std::vector<int> ids;
 	for (const auto& pair : mBullets) {
 		auto bullet = pair.second.lock();
@@ -191,25 +191,25 @@ std::vector<int> EntityManager::GetAllBulletIDs() const {
 	return ids;
 }
 
-void EntityManager::RemoveBullet(int id) {
+void EntityRegistry::RemoveBullet(int id) {
 	mBullets.erase(id);
 }
 
-int EntityManager::AddCoin(std::shared_ptr<Coin> coin) {
+int EntityRegistry::AddCoin(std::shared_ptr<Coin> coin) {
 	int id = mNextCoinID++;
 	mCoins[id] = coin;
 	coin->mCoinID = id;
 	return id;
 }
 
-Coin* EntityManager::GetCoin(int id) const {
+Coin* EntityRegistry::GetCoin(int id) const {
 	auto it = mCoins.find(id);
 	if (it != mCoins.end())
 		return it->second.lock().get();
 	return nullptr;
 }
 
-std::vector<int> EntityManager::GetAllCoinIDs() const {
+std::vector<int> EntityRegistry::GetAllCoinIDs() const {
 	std::vector<int> ids;
 	for (const auto& pair : mCoins) {
 		if (pair.second.lock())
@@ -218,7 +218,7 @@ std::vector<int> EntityManager::GetAllCoinIDs() const {
 	return ids;
 }
 
-void EntityManager::EnsureZombieRowIndex() {
+void EntityRegistry::EnsureZombieRowIndex() {
 	if (!mRowIndexDirty) return;
 	// clear() 保留各桶 capacity，跨帧复用，避免反复堆分配。
 	for (auto& bucket : mZombiesByRow) bucket.clear();
@@ -235,12 +235,12 @@ void EntityManager::EnsureZombieRowIndex() {
 	mRowIndexDirty = false;
 }
 
-bool EntityManager::IsZombieTargetable(const Zombie* zombie)
+bool EntityRegistry::IsZombieTargetable(const Zombie* zombie)
 {
 	return zombie && zombie->IsActive() && !zombie->IsDying();
 }
 
-void EntityManager::TrackGoldenIceSource(
+void EntityRegistry::TrackGoldenIceSource(
 	int id, const std::shared_ptr<Zombie>& zombie)
 {
 	if (auto gilded = std::dynamic_pointer_cast<GildedZamboniZombie>(zombie)) {
@@ -252,7 +252,7 @@ void EntityManager::TrackGoldenIceSource(
 	}
 }
 
-void EntityManager::EnsureGoldenIceSourceSnapshot()
+void EntityRegistry::EnsureGoldenIceSourceSnapshot()
 {
 	if (!mGoldenIceSourceSnapshotDirty) return;
 
@@ -269,7 +269,7 @@ void EntityManager::EnsureGoldenIceSourceSnapshot()
 	mGoldenIceSourceSnapshotDirty = false;
 }
 
-void EntityManager::TrackRoofMarshal(
+void EntityRegistry::TrackRoofMarshal(
 	int id, const std::shared_ptr<Zombie>& zombie)
 {
 	if (auto marshal = std::dynamic_pointer_cast<RoofMarshalZombie>(zombie)) {
@@ -281,7 +281,7 @@ void EntityManager::TrackRoofMarshal(
 	}
 }
 
-void EntityManager::TrackHijacker(
+void EntityRegistry::TrackHijacker(
 	int id, const std::shared_ptr<Zombie>& zombie)
 {
 	if (auto hijacker = std::dynamic_pointer_cast<HijackerZombie>(zombie)) {
@@ -292,7 +292,7 @@ void EntityManager::TrackHijacker(
 	}
 }
 
-void EntityManager::TrackNightRoofChargeGuide(
+void EntityRegistry::TrackNightRoofChargeGuide(
 	int id, const std::shared_ptr<Zombie>& zombie)
 {
 	if (zombie && zombie->IsNightRoofChargeGuideType()) {
@@ -303,7 +303,7 @@ void EntityManager::TrackNightRoofChargeGuide(
 	}
 }
 
-void EntityManager::TrackHealer(
+void EntityRegistry::TrackHealer(
 	int id, const std::shared_ptr<Zombie>& zombie)
 {
 	if (auto healer = std::dynamic_pointer_cast<HealerZombie>(zombie)) {
@@ -314,7 +314,7 @@ void EntityManager::TrackHealer(
 	}
 }
 
-std::vector<int> EntityManager::CleanupExpired() {
+std::vector<int> EntityRegistry::CleanupExpired() {
 	std::vector<int> removedPlants;
 
 	// 每帧兜底标脏；Die/CommitRow 还会在生命周期边沿立即标脏，避免 GOM 在本函数运行前
@@ -414,7 +414,7 @@ std::vector<int> EntityManager::CleanupExpired() {
 	return removedPlants;
 }
 
-int EntityManager::AddPlantWithID(std::shared_ptr<Plant> plant, int id) {
+int EntityRegistry::AddPlantWithID(std::shared_ptr<Plant> plant, int id) {
 	mPlants[id] = plant;
 	plant->mPlantID = id;
 	if (id >= mNextPlantID) {
@@ -423,7 +423,7 @@ int EntityManager::AddPlantWithID(std::shared_ptr<Plant> plant, int id) {
 	return id;
 }
 
-int EntityManager::AddZombieWithID(std::shared_ptr<Zombie> zombie, int id) {
+int EntityRegistry::AddZombieWithID(std::shared_ptr<Zombie> zombie, int id) {
 	mZombies[id] = zombie;
 	zombie->mZombieID = id;
 	mRowIndexDirty = true;
@@ -438,7 +438,7 @@ int EntityManager::AddZombieWithID(std::shared_ptr<Zombie> zombie, int id) {
 	return id;
 }
 
-int EntityManager::AddBulletWithID(std::shared_ptr<Bullet> bullet, int id) {
+int EntityRegistry::AddBulletWithID(std::shared_ptr<Bullet> bullet, int id) {
 	mBullets[id] = bullet;
 	bullet->mBulletID = id;
 	if (id >= mNextBulletID) {
@@ -447,7 +447,7 @@ int EntityManager::AddBulletWithID(std::shared_ptr<Bullet> bullet, int id) {
 	return id;
 }
 
-int EntityManager::AddCoinWithID(std::shared_ptr<Coin> coin, int id) {
+int EntityRegistry::AddCoinWithID(std::shared_ptr<Coin> coin, int id) {
 	mCoins[id] = coin;
 	coin->mCoinID = id;
 	if (id >= mNextCoinID) {
@@ -456,21 +456,21 @@ int EntityManager::AddCoinWithID(std::shared_ptr<Coin> coin, int id) {
 	return id;
 }
 
-int EntityManager::AddMower(std::shared_ptr<Mower> mower) {
+int EntityRegistry::AddMower(std::shared_ptr<Mower> mower) {
 	int id = mNextMowerID++;
 	mMowers[id] = mower;
 	mower->mMowerID = id;
 	return id;
 }
 
-Mower* EntityManager::GetMower(int id) const {
+Mower* EntityRegistry::GetMower(int id) const {
 	auto it = mMowers.find(id);
 	if (it != mMowers.end())
 		return it->second.lock().get();
 	return nullptr;
 }
 
-std::vector<int> EntityManager::GetAllMowerIDs() const {
+std::vector<int> EntityRegistry::GetAllMowerIDs() const {
 	std::vector<int> ids;
 	for (const auto& pair : mMowers) {
 		if (pair.second.lock())
@@ -479,7 +479,7 @@ std::vector<int> EntityManager::GetAllMowerIDs() const {
 	return ids;
 }
 
-int EntityManager::AddMowerWithID(std::shared_ptr<Mower> mower, int id) {
+int EntityRegistry::AddMowerWithID(std::shared_ptr<Mower> mower, int id) {
 	mMowers[id] = mower;
 	mower->mMowerID = id;
 	if (id >= mNextMowerID) {

@@ -2,11 +2,11 @@
 
 日期：2026-08-16
 
-状态：功能迁移已完成；Task 1～6 均已落地并独立验证，未执行同场景性能 A/B，故不宣称 FPS 收益
+状态：功能迁移与 Task 7 语义重命名已完成；未执行同场景性能 A/B，故不宣称 FPS 收益
 
 **目标：** 在保持继承式植物/僵尸、现有运行行为、存档、输入和绘制契约的前提下，分阶段移除通用 `Component` 容器；保留并显式化 Transform、Collider、Shadow、Clickable 与卡片能力。
 
-**架构：** 玩法对象继续走 `Plant` / `Zombie` 派生体系。横切能力改为宿主明确拥有的值或可选小对象。`EntityManager` 不属于本计划的删除范围；最后的重命名/拆分是独立可选阶段。
+**架构：** 玩法对象继续走 `Plant` / `Zombie` 派生体系。横切能力改为宿主明确拥有的值或可选小对象。稳定 ID 注册表已命名为 `EntityRegistry`，不属于组件系统；索引拆分仍是独立的按需优化。
 
 **默认验证：** 所有运行阶段使用 `clang-release`。涉及游戏或 AutoTest 时从 `build/clang-release/` 以主人当前桌面可见窗口运行，并核对退出码、`run.log`、状态 JSON、断言和截图。旧性能记录不充当当前证据。
 
@@ -22,7 +22,7 @@
 - [x] 逐项记录运行期动态增删：植物/僵尸预览去影、无碰撞品种、图鉴 Clickable、ShovelBank 在 `Start` 后创建 Collider、BulletPool 回收与 Shadow 特殊绘制。
 - [x] 记录 `GameObject::Start/Update/Draw/DestroyAllComponents`、Collider 注册注销、Clickable 自注册和原 Component 绘制顺序；迁移后都已落到显式阶段。
 - [ ] 记录卡片存档字段和调用方：`GameInfoSaver`、`ChooseCardUI`、生存轮次冷却、路灯花菜单、三叶草方向、开发者模式。
-- [ ] 记录 `EntityManager` 当前 Add/AddWithID、next ID、CleanupExpired、行索引和稀有索引入口，明确不随组件迁移改变。
+- [x] 记录 `EntityRegistry` 当前 Add/AddWithID、next ID、CleanupExpired、行索引和稀有索引入口，明确不随组件迁移改变。
 
 **基线验证：**
 
@@ -227,15 +227,17 @@
 
 ---
 
-## Task 7（可选、独立）：EntityManager 重命名与索引拆分
+## Task 7：EntityRegistry 语义重命名（索引拆分保留为按需优化）
 
-本阶段不属于删除组件的完成条件，建议另开设计与计划，不与 Task 1～6 混做。
+本阶段不属于删除组件的完成条件，作为 Task 1～6 完成后的独立纯语义重命名执行。
 
-- [ ] 评估只重命名为 `EntityRegistry` 是否已足够降低“它是 ECS”的认知混淆。
+- [x] 将原 `EntityManager`、`mEntityManager` 及对应文件统一重命名为 `EntityRegistry`、`mEntityRegistry`，明确它不是 ECS 管理器。
 - [ ] 若类继续增长，再把僵尸按行、黄色冰道、督军、劫持者、引雷单位、急救员等查询结构拆成 `ZombieQueryIndex`，主注册表仍是唯一实体全集。
-- [ ] 保持所有 next ID、AddWithID、过期清理、同帧索引失效和查询复杂度。
-- [ ] 存档字段不因 C++ 类型重命名变化；无 schema 变化就不升级版本。
-- [ ] 单独构建、AutoTest、提交和性能验证。
+- [x] 保持所有 next ID、AddWithID、过期清理、同帧索引失效和查询复杂度，机械等价性审计无额外代码变化。
+- [x] 存档字段不因 C++ 类型重命名变化；无 schema 变化，不升级版本。
+- [x] 单独完成 `clang-release` 构建、相关 AutoTest、提交；纯语义重命名不宣称性能收益，不单独做 A/B。
+
+**Task 7 验证：** 全仓 93 个既有修改文件在补充当前文档前逐文件核对，除 `EntityManager → EntityRegistry`、`mEntityManager → mEntityRegistry`、`entityManager → entityRegistry` 外无其他内容变化；新 `.cpp/.h` 也分别与旧文件机械等价，运行源码旧名为零。`clang-release` 完整配置与 120 步编译/链接通过，构建图只收集 `EntityRegistry.cpp`，378 项 Win7 import audit 通过。主人当前桌面可见运行 `smoke_zombie_row_index_lifetime`、`smoke_autotest_harness`、`smoke_roof_marshal_boss_bar`、`smoke_healer_coordination`，共 177 条命令、60 个状态断言、9 张同步截图，均退出 0、`status=passed`、`script finished OK`；截图已核对快照恢复、督军血条与急救员群组。三份受影响技能经 skill-creator `quick_validate.py` 校验通过。
 
 ---
 

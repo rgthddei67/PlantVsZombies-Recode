@@ -8,7 +8,7 @@
 #include "./Plant/PlantType.h"
 #include "./Zombie/ZombieType.h"
 #include "./Bullet/BulletType.h"
-#include "EntityManager.h"
+#include "EntityRegistry.h"
 #include "CursorObjectManager.h"
 #include "Perk/SurvivalPerkManager.h"
 #include "WeatherTypes.h"
@@ -147,7 +147,7 @@ public:
 	int mSun = 50;
 	float mSunCountDown = 5.0f;
 	float mPoolSunCountDown = POOL_SUN_SPAWN_TIME;
-	EntityManager mEntityManager;
+	EntityRegistry mEntityRegistry;
 	int mCurrentWave = 0;			// 当前波
 	int mMaxWave = 10;		// 关卡总波数
 	float mZombieCountDown = 20.0f;		// 下一波僵尸倒计时

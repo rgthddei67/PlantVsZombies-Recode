@@ -65,7 +65,7 @@ XML/资源键静态校验，最终视觉由主人复验。
 随后还要遍历三行候选并逐个 `dynamic_cast`。即使场上没有鎏金冰车，这项能力也会把
 通用行索引拉进每帧热路径。
 
-现在 `EntityManager` 在 `AddZombie()` 与 `AddZombieWithID()` 统一登记鎏金冰车的
+现在 `EntityRegistry` 在 `AddZombie()` 与 `AddZombieWithID()` 统一登记鎏金冰车的
 ID→弱引用专用索引，每帧首查只从这张稀疏表生成活跃来源强引用快照；
 `CleanupExpired()` 每帧释放快照，并随原有 30 帧清理周期裁掉过期弱引用。
 目标仍即时复核来源当前行、活跃/死亡状态及 `ProvidesGoldenIceEffectAt()` 的精确覆盖，

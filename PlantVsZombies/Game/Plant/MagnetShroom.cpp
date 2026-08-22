@@ -101,7 +101,7 @@ bool MagnetShroom::TryStartMagnetizing()
 	const int lastRow = std::min(mBoard->mRows - 1, mRow + kTargetRowRadius);
 
 	for (int row = firstRow; row <= lastRow; ++row) {
-		mBoard->mEntityManager.ForEachZombieInRow(row, [&](Zombie* zombie) {
+		mBoard->mEntityRegistry.ForEachZombieInRow(row, [&](Zombie* zombie) {
 			if (!zombie || !zombie->CanBeTargetedByMagnetShroom()) return;
 			const ColliderComponent* collider = zombie->GetColliderComponent();
 			// 地下矿工关闭常规碰撞体门禁，但 C# 仍允许磁力菇吸镐；包围盒只用于量距。

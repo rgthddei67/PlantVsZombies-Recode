@@ -688,7 +688,7 @@ void Bullet::HitMelonZombie(Zombie* zombie)
 	// 行桶已表达垂直溅射范围；只沿 X 比较原版 60px 命中窗口，
 	// 避免把 800x600 左上坐标系的绝对 Y 碰撞框搬进当前 Board 网格。
 	for (int row = firstRow; row <= lastRow; ++row) {
-		mBoard->mEntityManager.ForEachZombieInRow(row, [&](Zombie* candidate) {
+		mBoard->mEntityRegistry.ForEachZombieInRow(row, [&](Zombie* candidate) {
 			if (!candidate || candidate == zombie || !candidate->IsActive()
 				|| candidate->IsDying() || candidate->IsMindControlled()
 				|| !candidate->CanBeTargetedByProjectile(false)) {
@@ -726,7 +726,7 @@ void Bullet::HitMelonZombie(Zombie* zombie)
 			directDamage * kMelonSecondaryBudgetMultiplier
 				/ static_cast<int>(secondaryIDs.size())));
 	for (const int id : secondaryIDs) {
-		Zombie* candidate = mBoard->mEntityManager.GetZombie(id);
+		Zombie* candidate = mBoard->mEntityRegistry.GetZombie(id);
 		if (!candidate || !candidate->IsActive() || candidate->IsDying()) continue;
 		candidate->TakeProjectileDamage(
 			secondaryDamage, DamageSource::PLANT, mVelocityX,
@@ -1321,7 +1321,7 @@ void Bullet::HitFireballZombie(Zombie* zombie)
 	const float splashRight = mVelocityX < 0.0f
 		? impactX : impactX + splashWidth;
 	if (mBoard) {
-		mBoard->mEntityManager.ForEachZombieInRow(mRow, [&](Zombie* candidate) {
+		mBoard->mEntityRegistry.ForEachZombieInRow(mRow, [&](Zombie* candidate) {
 			if (!candidate || candidate == zombie || !candidate->IsActive()
 				|| candidate->IsDying() || candidate->IsMindControlled()
 				|| candidate->IsFireResistant()) {

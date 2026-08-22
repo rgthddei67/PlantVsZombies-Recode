@@ -53,7 +53,7 @@ Zombie* TangleKelp::FindTargetZombie() const
 
 	Zombie* best = nullptr;
 	float bestX = 0.0f;
-	mBoard->mEntityManager.ForEachZombieInRow(mRow, [&](Zombie* zombie) {
+	mBoard->mEntityRegistry.ForEachZombieInRow(mRow, [&](Zombie* zombie) {
 		if (!zombie->CanBeTargetedByTangleKelp()) return;
 		auto* collider = zombie->GetColliderComponent();
 		if (!collider || !collider->mEnabled) return;
@@ -94,7 +94,7 @@ void TangleKelp::UpdateGrab()
 		return;
 	}
 
-	Zombie* target = mBoard->mEntityManager.GetZombie(mTargetZombieID);
+	Zombie* target = mBoard->mEntityRegistry.GetZombie(mTargetZombieID);
 	if (!target || !target->IsTangleKelpTargetOf(mPlantID)) {
 		mTargetZombieID = NULL_ZOMBIE_ID;
 		Die();
@@ -149,7 +149,7 @@ void TangleKelp::Die()
 	const int targetID = mTargetZombieID;
 	mTargetZombieID = NULL_ZOMBIE_ID;
 	if (mBoard && targetID != NULL_ZOMBIE_ID) {
-		if (Zombie* target = mBoard->mEntityManager.GetZombie(targetID);
+		if (Zombie* target = mBoard->mEntityRegistry.GetZombie(targetID);
 			target && target->IsTangleKelpTargetOf(mPlantID)) {
 			if (mTargetResistsDrowning || target->ResistsTangleKelpDrowning()) {
 				target->ReleaseTangleKelpGrab(mPlantID);

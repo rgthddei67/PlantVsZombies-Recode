@@ -53,7 +53,7 @@ bool GloomShroom::HasTargetInRange() const
 	bool found = false;
 	for (int row = std::max(0, mRow - 1);
 		row <= std::min(mBoard->mRows - 1, mRow + 1) && !found; ++row) {
-		mBoard->mEntityManager.ForEachZombieInRow(row, [&](Zombie* zombie) {
+		mBoard->mEntityRegistry.ForEachZombieInRow(row, [&](Zombie* zombie) {
 			if (!found && IsTargetInRange(zombie)) found = true;
 		});
 	}
@@ -132,7 +132,7 @@ void GloomShroom::ApplyDamagePulse() const
 	if (!mBoard) return;
 	for (int row = std::max(0, mRow - 1);
 		row <= std::min(mBoard->mRows - 1, mRow + 1); ++row) {
-		mBoard->mEntityManager.ForEachZombieInRow(row, [&](Zombie* zombie) {
+		mBoard->mEntityRegistry.ForEachZombieInRow(row, [&](Zombie* zombie) {
 			if (!IsTargetInRange(zombie)) return;
 
 			// 加固门只改变自身这一击的盾牌语义；环形云雾不会被它截断其他方向。

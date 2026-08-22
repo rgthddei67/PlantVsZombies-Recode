@@ -158,7 +158,7 @@ Board 通过实体 ID驱动 `LOCKED` 与 `FINALIZING`；僵尸在死亡、掉头
 
 ## 专用索引与性能契约
 
-`EntityManager` 新增按 ID 有序的劫持者弱索引：
+`EntityRegistry` 新增按 ID 有序的劫持者弱索引：
 
 - `AddZombie` 和 `AddZombieWithID` 都以相同 ID 登记或覆盖。
 - 非劫持者覆盖同一 ID 时撤销旧登记。

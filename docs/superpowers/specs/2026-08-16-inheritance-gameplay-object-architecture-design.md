@@ -12,7 +12,7 @@
 - 具体品种继续通过派生类、窄虚接口和注册式工厂表达差异。
 - 不为追求“全项目都是 ECS”的形式统一而把品种状态机拆成组件组合。
 - 早期 `Component` 容器已删除，不再作为玩法系统扩展点；可选横切能力由宿主显式拥有。
-- `EntityManager` 是稳定 ID 注册表与查询索引，不属于待收缩的组件系统。
+- `EntityRegistry` 是稳定 ID 注册表与查询索引，不属于待收缩的组件系统。
 
 这是一项架构边界决策。2026-08-16 已完成前两阶段：`CardComponent` 与 `CardDisplayComponent` 并入 `Card`，`CardSlotManager` 改由 `GameScene` 明确拥有；2026-08-22 又把 Transform 从组件表迁为 `GameObject` 的可选值，让纯 UI 脱离 `GameObjectManager`，把 Collider、Shadow、Clickable 依次改为宿主显式拥有的可选对象，并最终删除没有派生类型的通用 Component 基类、类型表与生命周期视图。存档格式保持不变。
 
@@ -50,7 +50,7 @@ GameObject
 
 - 不把现有植物或僵尸重写为 ECS。
 - 不把派生类差异集中回 `PlantType` / `ZombieType` 大型 switch。
-- 不删除 `EntityManager`、实体 ID 或稀有品种/按行索引。
+- 不删除 `EntityRegistry`、实体 ID 或稀有品种/按行索引。
 - 不在本次规划中改变存档 schema、关卡行为、资源键或动画帧事件。
 - 不承诺删除组件容器一定带来可见 FPS 提升；历史性能数据只能作为线索，执行前必须重测当前 `clang-release` 基线。
 
@@ -58,7 +58,7 @@ GameObject
 
 ```text
 Board（玩法权威）
-├── EntityRegistry（现 EntityManager：稳定 ID、弱索引、存档枚举）
+├── EntityRegistry（稳定 ID、弱索引、存档枚举）
 ├── GameObjectManager（对象所有权、生命周期、更新与绘制顺序）
 └── 继承式玩法对象
     ├── Plant / 具体植物
@@ -116,9 +116,9 @@ Transform 是绝大多数世界对象的基础空间数据，不需要多态生�
 - `GameMessageBox::Builder` 保持调用接口，但 `Show()` 将模态对象注册给当前场景 `UIManager`。`Close()` 只请求关闭并立即失活，UIManager 在控件遍历后解除按钮/滑块注册并释放自身所有权。
 - 场景退出时 UIManager 先解除所有模态对象与控件的关联，因此外部 `weak_ptr/shared_ptr` 不会让旧场景控件泄漏到新场景。
 
-### 6.7 EntityManager
+### 6.7 EntityRegistry
 
-组件收缩不触碰其核心职责。未来可单独重命名为 `EntityRegistry`，并在体积继续增长时把僵尸按行与稀有品种索引拆成独立查询索引，但稳定 ID、读档指定 ID、过期弱引用清理和查询复杂度不得倒退。
+组件收缩不触碰其核心职责。2026-08-22 已将原 `EntityManager` 纯语义重命名为 `EntityRegistry`，以明确它是 Board 范围内的稳定 ID 注册表与查询索引，不是 ECS 管理器；存档 schema 和运行行为均不随类型名变化。若体积继续增长，可再把僵尸按行与稀有品种索引拆成独立 `ZombieQueryIndex`，但稳定 ID、读档指定 ID、过期弱引用清理和查询复杂度不得倒退。
 
 ## 7. 迁移原则
 
@@ -135,7 +135,7 @@ Transform 是绝大多数世界对象的基础空间数据，不需要多态生�
 - 组件内绘制顺序迁移为明确的对象绘制阶段；阴影不能因为失去 `SetDrawOrder` 而跨对象层错序。
 - Clickable 数量级保持 O(可点击对象)，不能退回 O(全场对象)。
 - 卡片冷却、卡片自定义状态及生存轮次恢复保持原字段语义；若无需 schema 变化，不得无故升级 schema。
-- `EntityManager` 的所有 Add/AddWithID/cleanup/索引失效入口保持闭环。
+- `EntityRegistry` 的所有 Add/AddWithID/cleanup/索引失效入口保持闭环。
 
 ## 9. 完成标准
 

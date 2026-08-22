@@ -36,8 +36,8 @@
 
 **Files**
 
-- Modify: `PlantVsZombies/Game/EntityManager.h`
-- Modify: `PlantVsZombies/Game/EntityManager.cpp`
+- Modify: `PlantVsZombies/Game/EntityRegistry.h`
+- Modify: `PlantVsZombies/Game/EntityRegistry.cpp`
 - Modify: `PlantVsZombies/Game/Board.h`
 - Modify: `PlantVsZombies/Game/Board.cpp`
 

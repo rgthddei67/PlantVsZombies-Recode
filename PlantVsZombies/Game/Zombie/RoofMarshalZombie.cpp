@@ -344,7 +344,7 @@ void RoofMarshalZombie::IssueAssaultCommand()
 	int highestCount = 0;
 	for (int row = 0; row < mBoard->mRows
 		&& row < static_cast<int>(rowCounts.size()); ++row) {
-		mBoard->mEntityManager.ForEachZombieInRow(row, [&](Zombie* zombie) {
+		mBoard->mEntityRegistry.ForEachZombieInRow(row, [&](Zombie* zombie) {
 			if (!zombie || zombie == this || zombie->mZombieType == ZombieType::ZOMBIE_ROOF_MARSHAL
 				|| zombie->IsMindControlled() || zombie->IsDying()) {
 				return;
@@ -367,7 +367,7 @@ void RoofMarshalZombie::IssueAssaultCommand()
 		GameRandom::Range(0, tiedRowCount - 1))];
 	// 先提交目标逻辑行并播放跨行走路，再向该行部队下令；红旗与强化共享 10 秒寿命。
 	BeginLaneSwitchTo(mLastAssaultRow);
-	mBoard->mEntityManager.ForEachZombieInRow(mLastAssaultRow, [&](Zombie* zombie) {
+	mBoard->mEntityRegistry.ForEachZombieInRow(mLastAssaultRow, [&](Zombie* zombie) {
 		if (!zombie || zombie == this || zombie->mZombieType == ZombieType::ZOMBIE_ROOF_MARSHAL
 			|| zombie->IsMindControlled() || zombie->IsDying()) {
 			return;

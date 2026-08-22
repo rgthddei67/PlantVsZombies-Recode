@@ -11,7 +11,7 @@
 - `PlantType::PLANT_GARLIC`、AutoTest 植物名称表和 5-4 奖励位已经存在。
 - 主人已放入 `Garlic.reanim`、卡片图、三档身体、三根茎和臭气贴图，并在 `resources.xml` 注册 reanim。
 - 通用恶心脸 `Zombie_head_grossout.png` 已在权威资源目录；普通、路障、铁桶、铁门、泳圈三型与读报系可复用。缺少独立恶心脸的特殊品种按原版无图分支使用短停顿，不以相近贴图替代。
-- `EntityManager` 的僵尸行索引按当前 `mRow` 每帧惰性重建；大蒜换行只需更新权威行号，不增加增量维护钩子。
+- `EntityRegistry` 的僵尸行索引按当前 `mRow` 每帧惰性重建；大蒜换行只需更新权威行号，不增加增量维护钩子。
 
 ## 植物
 

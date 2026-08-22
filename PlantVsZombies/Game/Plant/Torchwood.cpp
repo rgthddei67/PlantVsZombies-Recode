@@ -17,8 +17,8 @@ void Torchwood::PlantUpdate()
 
 	const float attackLeft = GetPosition().x + kTorchwoodAttackOffsetX;
 	const float attackRight = attackLeft + kTorchwoodAttackWidth;
-	for (int bulletID : mBoard->mEntityManager.GetAllBulletIDs()) {
-		Bullet* bullet = mBoard->mEntityManager.GetBullet(bulletID);
+	for (int bulletID : mBoard->mEntityRegistry.GetAllBulletIDs()) {
+		Bullet* bullet = mBoard->mEntityRegistry.GetBullet(bulletID);
 		if (!bullet || !bullet->IsActive() || bullet->mRow != mRow) continue;
 		if (bullet->mBulletType != BulletType::BULLET_PEA
 			&& bullet->mBulletType != BulletType::BULLET_TOXICPEA

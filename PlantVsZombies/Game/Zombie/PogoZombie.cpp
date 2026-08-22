@@ -158,7 +158,7 @@ void PogoZombie::BeginForwardBounce(Plant& plant)
 Plant* PogoZombie::ResolveContactPlant() const
 {
 	if (!mBoard || mContactPlantID == NULL_PLANT_ID) return nullptr;
-	Plant* plant = mBoard->mEntityManager.GetPlant(mContactPlantID);
+	Plant* plant = mBoard->mEntityRegistry.GetPlant(mContactPlantID);
 	if (plant) {
 		if (Plant* top = mBoard->GetTopPlantAt(plant->mRow, plant->mColumn)) {
 			plant = top;
@@ -182,7 +182,7 @@ Plant* PogoZombie::ResolveContactPlant() const
 Plant* PogoZombie::ResolveForwardTarget() const
 {
 	if (!mBoard || mForwardTargetPlantID == NULL_PLANT_ID) return nullptr;
-	Plant* plant = mBoard->mEntityManager.GetPlant(mForwardTargetPlantID);
+	Plant* plant = mBoard->mEntityRegistry.GetPlant(mForwardTargetPlantID);
 	if (plant) {
 		if (Plant* top = mBoard->GetTopPlantAt(plant->mRow, plant->mColumn)) {
 			plant = top;

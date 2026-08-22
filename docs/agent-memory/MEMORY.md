@@ -145,7 +145,7 @@
 - [并行Update phase-1 已REVERT](project_pvz_parallel_update_phase1.md) — Animator帧推进仅占Update12%(plan误判80%),dispatch0.05ms非瓶颈
 - [并行Update phase-2 ✅](project_pvz_parallel_update_phase2.md) — 292f68e 整Animator::Update并行+deferred events;-3.44ms/69.3→91FPS
 - [phase-3 component-update skipping ✅](project_pvz_phase3_component_update_skipping.md) — c435a57 NeedsUpdate virtual+mUpdatableComponents视图;FPS91→100;PROFILE_SCOPE自污染~4.6ms
-- [继承式玩法对象与组件容器收缩 ✅](project_pvz_inheritance_gameplay_architecture.md) — Card 专属状态/显示、CardSlotManager、显式 Transform、纯 UI 与 Collider/Shadow/Clickable 显式附件均已完成；通用 Component 基类、类型表、模板接口和生命周期视图已删除；Shadow 绘制与 Clickable O(可点击对象) 输入仲裁契约保持，僵尸行桶仍遵守 Die/CommitRow 即时失效契约
+- [继承式玩法对象与组件容器收缩 ✅](project_pvz_inheritance_gameplay_architecture.md) — Card 专属状态/显示、CardSlotManager、显式 Transform、纯 UI 与 Collider/Shadow/Clickable 显式附件均已完成；通用 Component 基类、类型表、模板接口和生命周期视图已删除；稳定 ID 注册与查询类已由 EntityManager 语义重命名为 EntityRegistry；Shadow 绘制、Clickable O(可点击对象) 输入仲裁和僵尸行桶 Die/CommitRow 即时失效契约保持
 - [预计算动画(放弃)](project_pvz_precomputed_animation.md) — 2026-05-23 TrackInfo::mFrames已密集per-frame,关键帧搜索不存在,ROI不足
 - [GPU instancing reanim ✅](project_pvz_gpu_instancing_reanim.md) — 2026-05-24(388a845)reanim→InstanceRecord;-1.39ms/98.4→114FPS；postscript修glow状态污染+双队列Z-order；2026-07-24 `ShadowComponent` 默认也写 instance 队列，修复并行阈值后“睡莲本体反盖上层植物影子”，`-NoInstance` 仍走 batch 兜底
 - [Clickable 稀疏注册与显式所有权 ✅](project_pvz_clickable_optimization.md) — 2026-05-24 自注册表替换全场扫描，历史 1.22→0.01ms(-122×)；2026-08-22 脱离 Component 容器并保留 O(可点击对象)、渲染顺序/事件消费及 Collider 原子绑定契约；`GetAllGameObjects()` per-frame scan 仍是仓库 foot-gun
@@ -158,7 +158,7 @@
 - [改进backlog](project_pvz_improvement_backlog.md) — 2026-05-31剩#2数值JSON化#3 RAII#5测试#6魔法数字#8 inline误用;#1工厂✅#4日志✅#7 Vector加explicit✅(Vector=位置词汇类型602处不全改vec2)
 - [统一日志系统 ✅#4](project_pvz_logging_system.md) — 2026-06-06 Logger.h/.cpp流式带级别宏;Debug五级/Release裁到WARN+ERROR;迁~193 cout+29 fprintf;扩展只改Logger.cpp::Write
 - [注册式工厂 ✅#1](project_pvz_factory_registry.md) — 2026-05-31消除两Instantiate switch→GameDataManager数据驱动(函数指针factory字段);函数指针非std::function/集中注册;指引在InitializeHardcodedData顶部
-- [僵尸按行与稀有品种索引 ✅](project_pvz_zombie_row_index.md) — 2026-08-12 EntityManager加ForEachZombieInRow替GetAllZombieIDs全表扫；通用桶惰性每帧重建承接任意换行，同帧新增会置脏；黄色冰道与屋脊督军血条使用品种专用弱索引，逐帧稀有类型查询不得扫描全体；foot-gun=取全集或全表按类型过滤
+- [僵尸按行与稀有品种索引 ✅](project_pvz_zombie_row_index.md) — 2026-08-12 EntityRegistry加ForEachZombieInRow替GetAllZombieIDs全表扫；通用桶惰性每帧重建承接任意换行，同帧新增会置脏；黄色冰道与屋脊督军血条使用品种专用弱索引，逐帧稀有类型查询不得扫描全体；foot-gun=取全集或全表按类型过滤
 - [vcpkg缓存删除代价](feedback_vcpkg_cache_deletion.md) — vcpkg-master整目录不能删(toolchainFile指向);"可再生"≠"删了免费"(重装全量联网);清缓存前确认不reconfigure
 - [生存词条系统](project_pvz_perk_system.md) — 2026-07-20 共10词条(6植4僵)：阵营增伤由必填 `DamageSource` 在双方 `TakeDamage` 按来源结算，承伤词条仍覆盖所有来源；每轮2次独立选择，共享3次整批刷新；词条页退出存档避免重进叠卡
 - [资产/worktree/AutoTest坑](reference_pvz_assets_worktree_autotest_gotchas.md) — ①clang-release持有单份resources/font，playtest/debug用Junction；新worktree只需补一次权威原版资产 ②AutoTest wait字段名是"value"非frames ③状态切换后settle>30帧 ④蘑菇夜测goto 10-18 ⑤产阳光验证看dump sun字段

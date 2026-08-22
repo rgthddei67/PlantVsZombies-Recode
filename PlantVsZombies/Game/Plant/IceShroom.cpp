@@ -59,7 +59,7 @@ void IceShroom::FreezeAllZombies()
 	// 定身+减速尾巴+20 点伤害全在 StartFrozen 内统一结算（镜像原版 HitIceTrap：
 	// 豁免者——魅惑/出土伴舞/跳跃中撑杆——连伤害也不吃）。
 	for (int row = 0; row < mBoard->mRows; ++row) {
-		mBoard->mEntityManager.ForEachZombieInRow(row, [](Zombie* zombie) {
+		mBoard->mEntityRegistry.ForEachZombieInRow(row, [](Zombie* zombie) {
 			zombie->StartFrozen();
 			});
 	}

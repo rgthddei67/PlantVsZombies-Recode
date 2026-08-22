@@ -94,7 +94,7 @@ bool SplitPea::HasTargetInDirection(bool forward) const
 
 	const float plantX = GetPosition().x;
 	bool found = false;
-	mBoard->mEntityManager.ForEachZombieInRow(mRow, [&](Zombie* zombie) {
+	mBoard->mEntityRegistry.ForEachZombieInRow(mRow, [&](Zombie* zombie) {
 		if (found || !zombie || zombie->IsMindControlled() || !zombie->HasHead()) return;
 
 		const float zombieX = zombie->GetPosition().x;

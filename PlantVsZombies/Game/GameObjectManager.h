@@ -66,7 +66,7 @@ public:
 		return CreateGameObjectImmediateAsShared<T>(layer, std::forward<Args>(args)...).get();
 	}
 
-	// shared_ptr 版本：仅在调用方需要把对象登记到 weak_ptr 容器（如 EntityManager / BulletPool）时使用
+	// shared_ptr 版本：仅在调用方需要把对象登记到 weak_ptr 容器（如 EntityRegistry / BulletPool）时使用
 	template<typename T, typename... Args>
 	std::shared_ptr<T> CreateGameObjectAsShared(RenderLayer layer, Args&&... args) {
 		static_assert(std::is_base_of<GameObject, T>::value, "T must be a GameObject");

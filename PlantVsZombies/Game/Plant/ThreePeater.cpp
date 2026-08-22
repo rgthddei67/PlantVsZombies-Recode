@@ -93,7 +93,7 @@ bool ThreePeater::HasTargetInRow(int row) const
 
 	const float plantX = GetPosition().x;
 	bool found = false;
-	mBoard->mEntityManager.ForEachZombieInRow(row, [&](Zombie* zombie) {
+	mBoard->mEntityRegistry.ForEachZombieInRow(row, [&](Zombie* zombie) {
 		if (found || !zombie) return;
 		const float zombieX = zombie->GetPosition().x;
 		if (!zombie->IsMindControlled()

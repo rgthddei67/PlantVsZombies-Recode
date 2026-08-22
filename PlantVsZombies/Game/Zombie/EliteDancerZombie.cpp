@@ -117,7 +117,7 @@ void EliteDancerZombie::CleanupFollowers()
 	}
 	mFollowerIDs.erase(std::remove_if(mFollowerIDs.begin(), mFollowerIDs.end(),
 		[this](int id) {
-			Zombie* follower = mBoard->mEntityManager.GetZombie(id);
+			Zombie* follower = mBoard->mEntityRegistry.GetZombie(id);
 			return !follower || follower->IsMindControlled() != mIsMindControlled;
 		}), mFollowerIDs.end());
 }
@@ -155,7 +155,7 @@ int EliteDancerZombie::GetActiveBackupCount() const
 	if (!mBoard) return 0;
 	return static_cast<int>(std::count_if(mFollowerIDs.begin(), mFollowerIDs.end(),
 		[this](int id) {
-			Zombie* follower = mBoard->mEntityManager.GetZombie(id);
+			Zombie* follower = mBoard->mEntityRegistry.GetZombie(id);
 			return follower && follower->IsMindControlled() == mIsMindControlled;
 		}));
 }

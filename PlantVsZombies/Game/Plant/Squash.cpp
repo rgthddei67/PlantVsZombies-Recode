@@ -63,7 +63,7 @@ void Squash::PlantUpdate()
 	switch (mState) {
 	case State::IDLE:
 		if (mBoard) {
-			if (Zombie* target = mBoard->mEntityManager.GetZombie(FindTargetZombieID())) {
+			if (Zombie* target = mBoard->mEntityRegistry.GetZombie(FindTargetZombieID())) {
 				StartLooking(target);
 			}
 		}
@@ -125,14 +125,14 @@ int Squash::FindTargetZombieID() const
 {
 	if (!mBoard) return NULL_ZOMBIE_ID;
 
-	if (Zombie* current = mBoard->mEntityManager.GetZombie(mTargetZombieID)) {
+	if (Zombie* current = mBoard->mEntityRegistry.GetZombie(mTargetZombieID)) {
 		float ignoredScore = 0.0f;
 		if (IsValidTarget(current, ignoredScore)) return current->mZombieID;
 	}
 
 	int closestID = NULL_ZOMBIE_ID;
 	float closestScore = FLT_MAX;
-	mBoard->mEntityManager.ForEachZombieInRow(mRow, [&](Zombie* zombie) {
+	mBoard->mEntityRegistry.ForEachZombieInRow(mRow, [&](Zombie* zombie) {
 		float score = 0.0f;
 		if (!IsValidTarget(zombie, score)) return;
 		if (score < closestScore) {
@@ -180,8 +180,8 @@ bool Squash::IsValidTarget(Zombie* zombie, float& score) const
 bool Squash::IsTargetedByOtherSquash(int zombieID) const
 {
 	if (!mBoard || zombieID == NULL_ZOMBIE_ID) return false;
-	for (int plantID : mBoard->mEntityManager.GetAllPlantIDs()) {
-		Plant* plant = mBoard->mEntityManager.GetPlant(plantID);
+	for (int plantID : mBoard->mEntityRegistry.GetAllPlantIDs()) {
+		Plant* plant = mBoard->mEntityRegistry.GetPlant(plantID);
 		auto* squash = dynamic_cast<Squash*>(plant);
 		if (squash && squash != this && squash->mTargetZombieID == zombieID) {
 			return true;
@@ -215,7 +215,7 @@ void Squash::StartPreLaunch()
 void Squash::StartRising()
 {
 	if (mBoard) {
-		if (Zombie* target = mBoard->mEntityManager.GetZombie(FindTargetZombieID())) {
+		if (Zombie* target = mBoard->mEntityRegistry.GetZombie(FindTargetZombieID())) {
 			mTargetZombieID = target->mZombieID;
 			mTargetX = target->GetTargetLeadX(kTargetLeadSeconds);
 		}
@@ -276,7 +276,7 @@ void Squash::ApplySquashDamage()
 		kAttackRectWidth,
 		80.0f,
 	};
-	mBoard->mEntityManager.ForEachZombieInRow(mRow, [&](Zombie* zombie) {
+	mBoard->mEntityRegistry.ForEachZombieInRow(mRow, [&](Zombie* zombie) {
 		if (!zombie || zombie->IsMindControlled() || zombie->IsDying()
 			|| !zombie->CanBeTargetedByProjectile(false)) return;
 		auto* collider = zombie->GetColliderComponent();

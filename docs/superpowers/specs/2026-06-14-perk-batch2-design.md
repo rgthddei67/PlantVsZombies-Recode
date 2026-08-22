@@ -105,7 +105,7 @@ int    GetPlantRegenHpCap(int maxHealth) const;  // 满层→maxHealth*3 解锁�
 
 ### 编译依赖
 
-无新增头依赖。`Board.cpp` 已 include `SurvivalPerkManager.h`（经 `Board.h`）与 `EntityManager`；`Zombie.cpp` 已可达 `mBoard->GetPerkManager()`。
+无新增头依赖。`Board.cpp` 已 include `SurvivalPerkManager.h`（经 `Board.h`）与 `EntityRegistry`；`Zombie.cpp` 已可达 `mBoard->GetPerkManager()`。
 
 ## 5. 存档
 

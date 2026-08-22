@@ -9,7 +9,7 @@
 #include "../GameObject.h"
 #include "../../GameRandom.h"
 #include "../../ResourceManager.h"
-#include "../EntityManager.h"
+#include "../EntityRegistry.h"
 #include "BulletType.h"
 #include "../../ParticleSystem/ParticleSystem.h"
 #include "../Transform.h"

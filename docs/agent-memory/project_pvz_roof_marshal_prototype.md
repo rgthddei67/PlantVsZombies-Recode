@@ -82,7 +82,7 @@ metadata:
 与 Board 现有存档字段。僵尸只保存其 `commandCount` 等施法节奏，绝不复制雨势或天气倒计时。
 
 首领血条：`GameScene` 在 Board 的 `GAME` 状态下从当前存活、非预览、非垂死的
-`ZOMBIE_ROOF_MARSHAL` 实体即时派生表现状态，不在场景或存档复制生命。`EntityManager` 为此维护
+`ZOMBIE_ROOF_MARSHAL` 实体即时派生表现状态，不在场景或存档复制生命。`EntityRegistry` 为此维护
 按实体 ID 有序的专用弱索引，并以最小实体 ID 保证多实例开发测试时结果稳定。最终版血槽居中为 560×18，左上角
 `(270,556)`；黑金装甲底板从 Y=529 延伸至 Y=588，主动覆盖可牺牲的关卡文字区域，避免遮住第五路主要作战区。
 槽内绘制实际生命 `current / max`，并直接读取督军 getter 在 11000、5400 处画“精锐/狂暴”黑金铭牌和
@@ -139,7 +139,7 @@ exit 0、46 条命令通过，断袖资源已加载，7999 血实时断臂和快
 精英扶梯、普通扶梯和气球，未混入标准池杂兵，快照重载后仍保持 4/4。
 
 2026-08-12 首领血条性能修复：原 `GetFirstActiveZombieOfType()` 虽无临时数组，仍在每个渲染帧扫描
-全体僵尸；20,000 僵尸压测中 `SceneCmd.RoofMarshalBossHealthBar` 实测约 1.49ms。`EntityManager` 现维护
+全体僵尸；20,000 僵尸压测中 `SceneCmd.RoofMarshalBossHealthBar` 实测约 1.49ms。`EntityRegistry` 现维护
 按实体 ID 有序的屋脊督军专用弱索引，由正常生成与 `AddZombieWithID` 读档恢复共同登记，并沿既有周期
 清理过期项；血条只遍历督军候选、即时复核活动/垂死/生命状态，并用 `shared_ptr` 保证读取期间生命周期。
 正常 0～1 个首领时查询不再随普通僵尸数量增长，开发模式多实例仍稳定选择最小实体 ID。

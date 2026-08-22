@@ -212,9 +212,9 @@ void EliteJackInTheBoxZombie::DamagePlantsAtImpact() const
 void EliteJackInTheBoxZombie::DamageEnemyZombiesAtImpact() const
 {
 	if (!mBoard) return;
-	const std::vector<int> zombieIDs = mBoard->mEntityManager.GetAllZombieIDs();
+	const std::vector<int> zombieIDs = mBoard->mEntityRegistry.GetAllZombieIDs();
 	for (const int zombieID : zombieIDs) {
-		Zombie* zombie = mBoard->mEntityManager.GetZombie(zombieID);
+		Zombie* zombie = mBoard->mEntityRegistry.GetZombie(zombieID);
 		if (!zombie || zombie == this || !zombie->IsActive() || zombie->IsDying()) {
 			continue;
 		}
@@ -317,9 +317,9 @@ bool EliteJackInTheBoxZombie::PickGreedyPlantTarget(
 	const int maxRow = std::min(mBoard->mRows - 1, mRow + 1);
 
 	std::vector<std::pair<int, int>> candidateCells;
-	const std::vector<int> plantIDs = mBoard->mEntityManager.GetAllPlantIDs();
+	const std::vector<int> plantIDs = mBoard->mEntityRegistry.GetAllPlantIDs();
 	for (const int plantID : plantIDs) {
-		const Plant* plant = mBoard->mEntityManager.GetPlant(plantID);
+		const Plant* plant = mBoard->mEntityRegistry.GetPlant(plantID);
 		if (!plant || !plant->IsActive() || plant->IsSquished()
 			|| plant->mRow < minRow || plant->mRow > maxRow
 			|| plant->mColumn < 0 || plant->mColumn >= mBoard->mColumns) {
@@ -364,9 +364,9 @@ float EliteJackInTheBoxZombie::ScorePlantBlastAt(
 	const int backlineColumnCount = (mBoard->mColumns + 1) / 2;
 	const auto& gameData = GameDataManager::GetInstance();
 	std::vector<int> scoredPumpkinIDs;
-	const std::vector<int> plantIDs = mBoard->mEntityManager.GetAllPlantIDs();
+	const std::vector<int> plantIDs = mBoard->mEntityRegistry.GetAllPlantIDs();
 	for (const int plantID : plantIDs) {
-		const Plant* plant = mBoard->mEntityManager.GetPlant(plantID);
+		const Plant* plant = mBoard->mEntityRegistry.GetPlant(plantID);
 		if (!plant || !plant->IsActive() || plant->IsSquished()) continue;
 		const ColliderComponent* collider = plant->GetColliderComponent();
 		if (!collider || !CircleOverlapsRect(
@@ -404,9 +404,9 @@ bool EliteJackInTheBoxZombie::PickRandomEnemyZombieTarget(
 	const int maxRow = std::min(mBoard->mRows - 1, mRow + 1);
 	std::vector<Zombie*> candidates;
 	const std::vector<int> zombieIDs =
-		mBoard->mEntityManager.GetAllZombieIDs();
+		mBoard->mEntityRegistry.GetAllZombieIDs();
 	for (const int zombieID : zombieIDs) {
-		Zombie* zombie = mBoard->mEntityManager.GetZombie(zombieID);
+		Zombie* zombie = mBoard->mEntityRegistry.GetZombie(zombieID);
 		if (!zombie || zombie == this || !zombie->IsActive()
 			|| zombie->IsDying()
 			|| zombie->IsMindControlled() == mIsMindControlled

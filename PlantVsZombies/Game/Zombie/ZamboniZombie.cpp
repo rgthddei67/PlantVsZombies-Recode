@@ -272,8 +272,8 @@ void ZamboniZombie::CrushPlants()
 		kAttackHeight,
 	};
 
-	for (int id : mBoard->mEntityManager.GetAllPlantIDs()) {
-		Plant* plant = mBoard->mEntityManager.GetPlant(id);
+	for (int id : mBoard->mEntityRegistry.GetAllPlantIDs()) {
+		Plant* plant = mBoard->mEntityRegistry.GetPlant(id);
 		if (!CanCrushPlant(plant)) continue;
 		ColliderComponent* collider = plant->GetColliderComponent();
 		if (!collider) continue;

@@ -12,7 +12,7 @@
 #include "../AudioSystem.h"
 #include "../../GameRandom.h"
 #include "../../DeltaTime.h"
-#include "../EntityManager.h"
+#include "../EntityRegistry.h"
 #include "../DamageSource.h"
 #include "../Zombie/ZombieJumpType.h"
 #include "../Zombie/ZombieType.h"

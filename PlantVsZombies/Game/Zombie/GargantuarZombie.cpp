@@ -231,7 +231,7 @@ void GargantuarZombie::ApplySmashImpact()
 	mSmashApplied = true;
 
 	if (mTargetZombieID != NULL_ZOMBIE_ID) {
-		if (Zombie* target = mBoard->mEntityManager.GetZombie(mTargetZombieID);
+		if (Zombie* target = mBoard->mEntityRegistry.GetZombie(mTargetZombieID);
 			target && target->IsActive() && !target->IsDying()
 			&& target->IsMindControlled() != mIsMindControlled) {
 			target->TakeDamage(kSmashZombieDamage, DamageSource::ZOMBIE);

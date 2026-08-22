@@ -405,17 +405,17 @@ bool GameInfoSaver::SerializeLevelDataToPath(Board* board, CardSlotManager* mana
 	j["currentWaveZombieHP"] = board->mCurrectWaveZombieHP;
 	j["nextWaveSpawnZombieHP"] = board->mNextWaveSpawnZombieHP;
 
-	// 保存 EntityManager 的 ID 计数器
-	j["nextPlantID"] = board->mEntityManager.GetNextPlantID();
-	j["nextZombieID"] = board->mEntityManager.GetNextZombieID();
-	j["nextBulletID"] = board->mEntityManager.GetNextBulletID();
-	j["nextCoinID"] = board->mEntityManager.GetNextCoinID();
-	j["nextMowerID"] = board->mEntityManager.GetNextMowerID();
+	// 保存 EntityRegistry 的 ID 计数器
+	j["nextPlantID"] = board->mEntityRegistry.GetNextPlantID();
+	j["nextZombieID"] = board->mEntityRegistry.GetNextZombieID();
+	j["nextBulletID"] = board->mEntityRegistry.GetNextBulletID();
+	j["nextCoinID"] = board->mEntityRegistry.GetNextCoinID();
+	j["nextMowerID"] = board->mEntityRegistry.GetNextMowerID();
 
 	// 植物
 	nlohmann::json plantsArr = nlohmann::json::array();
-	for (int id : board->mEntityManager.GetAllPlantIDs()) {
-		auto plant = board->mEntityManager.GetPlant(id);
+	for (int id : board->mEntityRegistry.GetAllPlantIDs()) {
+		auto plant = board->mEntityRegistry.GetPlant(id);
 		if (!plant) continue;
 		nlohmann::json p;
 		p["id"] = id;
@@ -448,8 +448,8 @@ bool GameInfoSaver::SerializeLevelDataToPath(Board* board, CardSlotManager* mana
 
 	// 小推车
 	nlohmann::json mowersArr = nlohmann::json::array();
-	for (int id : board->mEntityManager.GetAllMowerIDs()) {
-		auto* mower = board->mEntityManager.GetMower(id);
+	for (int id : board->mEntityRegistry.GetAllMowerIDs()) {
+		auto* mower = board->mEntityRegistry.GetMower(id);
 		if (!mower) continue;
 		nlohmann::json m;
 		m["id"] = id;
@@ -468,8 +468,8 @@ bool GameInfoSaver::SerializeLevelDataToPath(Board* board, CardSlotManager* mana
 
 	// 僵尸
 	nlohmann::json zombiesArr = nlohmann::json::array();
-	for (int id : board->mEntityManager.GetAllZombieIDs()) {
-		auto zombie = board->mEntityManager.GetZombie(id);
+	for (int id : board->mEntityRegistry.GetAllZombieIDs()) {
+		auto zombie = board->mEntityRegistry.GetZombie(id);
 		// 濒死僵尸 Die() 后 shared_ptr 仍滞留在 GameObjectManager 的待删队列中（要到下一帧 flush 才释放），
 		// 其 weak_ptr 此刻仍可 lock，会被 GetAllZombieIDs 返回。mActive 已在 Die() 置 false，借此排除，
 		// 避免把触发轮清的那只死尸序列化进存档（否则重载会复活成血量≤0 的幽灵僵尸）。
@@ -507,8 +507,8 @@ bool GameInfoSaver::SerializeLevelDataToPath(Board* board, CardSlotManager* mana
 
 	// 子弹
 	nlohmann::json bulletsArr = nlohmann::json::array();
-	for (int id : board->mEntityManager.GetAllBulletIDs()) {
-		auto bullet = board->mEntityManager.GetBullet(id);
+	for (int id : board->mEntityRegistry.GetAllBulletIDs()) {
+		auto bullet = board->mEntityRegistry.GetBullet(id);
 		if (!bullet) continue;
 		nlohmann::json b;
 		b["type"] = static_cast<int>(bullet->mBulletType);
@@ -553,8 +553,8 @@ bool GameInfoSaver::SerializeLevelDataToPath(Board* board, CardSlotManager* mana
 
 	// 太阳
 	nlohmann::json sunsArr = nlohmann::json::array();
-	for (int id : board->mEntityManager.GetAllCoinIDs()) {
-		auto* coin = board->mEntityManager.GetCoin(id);
+	for (int id : board->mEntityRegistry.GetAllCoinIDs()) {
+		auto* coin = board->mEntityRegistry.GetCoin(id);
 		if (!coin) continue;
 		auto* sun = dynamic_cast<Sun*>(coin);
 		if (sun) {
@@ -1003,12 +1003,12 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 	board->mCurrectWaveZombieHP = j.value("currentWaveZombieHP", 0LL);
 	board->mNextWaveSpawnZombieHP = j.value("nextWaveSpawnZombieHP", 0LL);
 
-	// 恢复 EntityManager 的 ID 计数器（向后兼容：旧存档没有则使用默认值）
-	board->mEntityManager.SetNextPlantID(j.value("nextPlantID", 1));
-	board->mEntityManager.SetNextZombieID(j.value("nextZombieID", 1));
-	board->mEntityManager.SetNextBulletID(j.value("nextBulletID", 1));
-	board->mEntityManager.SetNextCoinID(j.value("nextCoinID", 1));
-	board->mEntityManager.SetNextMowerID(j.value("nextMowerID", 1));
+	// 恢复 EntityRegistry 的 ID 计数器（向后兼容：旧存档没有则使用默认值）
+	board->mEntityRegistry.SetNextPlantID(j.value("nextPlantID", 1));
+	board->mEntityRegistry.SetNextZombieID(j.value("nextZombieID", 1));
+	board->mEntityRegistry.SetNextBulletID(j.value("nextBulletID", 1));
+	board->mEntityRegistry.SetNextCoinID(j.value("nextCoinID", 1));
+	board->mEntityRegistry.SetNextMowerID(j.value("nextMowerID", 1));
 
 	// 压扁残影与后来补种的植物可以同格共存。先恢复并释放残影占格，再恢复正常植物，
 	// 避免无序存档数组令残影的创建过程覆盖同格新植物 ID。
@@ -1136,10 +1136,10 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 	}
 
 	// 验证僵尸进食状态（防止植物不存在时崩溃）
-	for (int id : board->mEntityManager.GetAllZombieIDs()) {
-		auto zombie = board->mEntityManager.GetZombie(id);
+	for (int id : board->mEntityRegistry.GetAllZombieIDs()) {
+		auto zombie = board->mEntityRegistry.GetZombie(id);
 		if (!zombie) continue;
-		zombie->ValidateEatingState(board->mEntityManager);
+		zombie->ValidateEatingState(board->mEntityRegistry);
 	}
 	// Board 的锁定 ID 要等全部僵尸按稳定 ID 恢复后才能校验，避免加载顺序触发重新随机。
 	board->FinalizeNightRoofHijackerLoad();

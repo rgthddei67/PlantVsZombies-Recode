@@ -1,6 +1,6 @@
 #pragma once
-#ifndef _ENTITYMANAGER_H
-#define _ENTITYMANAGER_H
+#ifndef _ENTITYREGISTRY_H
+#define _ENTITYREGISTRY_H
 #include <map>
 #include <memory>
 #include <unordered_map>
@@ -18,7 +18,7 @@ class Bullet;
 class Mower;
 enum class ZombieType;
 
-class EntityManager {
+class EntityRegistry {
 public:
 	int AddPlant(std::shared_ptr<Plant> plant);
 	Plant* GetPlant(int id) const;

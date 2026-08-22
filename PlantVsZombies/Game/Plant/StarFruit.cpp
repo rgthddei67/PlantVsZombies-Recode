@@ -77,7 +77,7 @@ bool StarFruit::HasStarFruitTarget() const
 	const Vector targetOrigin = GetPosition() + Vector(0.0f, kTargetOriginOffsetY);
 	bool found = false;
 	for (int row = 0; row < mBoard->mRows && !found; ++row) {
-		mBoard->mEntityManager.ForEachZombieInRow(row, [&](Zombie* zombie) {
+		mBoard->mEntityRegistry.ForEachZombieInRow(row, [&](Zombie* zombie) {
 			if (found || !zombie || !zombie->IsActive() || zombie->IsDying()
 				|| zombie->IsMindControlled() || !zombie->HasHead()
 				|| !mBoard->CanPlantAcquireZombie(this, zombie)) {

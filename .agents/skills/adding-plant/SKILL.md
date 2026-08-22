@@ -104,7 +104,7 @@ description: Use when adding ANY new plant (新增植物) to PvZ — 射手/生�
 | **全场即时结算**（寒冰菇式） | `IceShroom`（帧事件→音效+白闪+逐行结算→`Die()`，仿 CherryBomb 骨架） | 植物先检查 `mBoard->GetPresentation()`，再用 `ShowScreenFlash(...)` 请求全屏效果；由 `GameScene` 实现 `BoardPresentation` 并注册绘制，禁止植物或 `Board` 恢复具体 `GameScene` 依赖；**isPreview 特判否则图鉴也结算**（主人叮嘱） |
 | **格子占用系统**（弹坑/墓碑类） | `Crater`（毁灭菇弹坑，阻种 180s） | 轻量 GameObject（Trophy 先例，LAYER_GAME_OBJECT=背景上植物下）+Board weak_ptr 簿记+存档数组（旧档兼容=无字段则空）；**占格判定有两处独立口径都要改**：`CanPlaceInCell`（阻种）+`UpdatePlantPreviewPosition`（落点预览隐藏——漏改=悬停占用格仍显示预览，主人验收抓出）。AutoTest `plant` op 直连 CreatePlant **绕过闸门**：基础规则用 `assert_can_plant` 同时断言占用格 false 与旁格 true；若改了卡槽/悬停 UI，再补 `click` 真实路径与同步截图 |
 | **外部附着格对象生命周期**（扶梯等） | `Ladder` → `Plant::Die/Squish` | 对象由 Board 提供唯一格接口与可选存档数组，植物只在正式死亡/压扁入口通知 Board，不持对象指针；悬浮 overlay 等原版豁免必须显式列出，行级清除能力在自身结算点调用 Board 同行接口。原版 `KillAllZombiesInRadius` 对僵尸按像素圆命中，却另按爆心所在格的方形 `rowRange` 清扶梯：樱桃/玉米炮为 ±1 格，毁灭菇为 ±3 格；统一收口到 Board 爆炸清梯入口，专项必须覆盖范围内非同格扶梯清除和边界外保留，不能让植物自身死亡清同格造成假绿。专项分别覆盖普通死亡、压扁、豁免层、同行/异行保留与快照往返，避免只测部署者而漏掉被附着植物的生命周期。 |
-| **清除同格组合植物** | DoomShroom→`KillOtherPlantsInCell` | 按 EntityManager 的全部植物 ID 快照遍历，以逻辑 `row/column` 过滤并排除施法者，再逐株 `Die()`；不要只写死当前 under/normal 两层，否则以后南瓜等额外层会留在结算后的弹坑里 |
+| **清除同格组合植物** | DoomShroom→`KillOtherPlantsInCell` | 按 EntityRegistry 的全部植物 ID 快照遍历，以逻辑 `row/column` 过滤并排除施法者，再逐株 `Die()`；不要只写死当前 under/normal 两层，否则以后南瓜等额外层会留在结算后的弹坑里 |
 | **引爆倒计时无敌** | CherryBomb / DoomShroom 的 `TakeDamage` 覆写 | 只 `SetGlowingTimer(0.1f)` 不掉血；**有睡觉态的要放行睡觉分支**（白天=普通蘑菇照常被啃，毁灭菇实证） |
 | **新子弹/运行时变种** | `PuffBullet`；Torchwood→FirePea | `BulletType` + BulletPool；动画子弹可在 `Bullet` 组合独立 Animator，但命中语义必须按“当前类型”分派，不能依赖分配时的 C++ 子类 |
 | **新粒子特效/染色变种** | IceFumeCloud（寒冰大喷菇） | XML 标签全参考在 **adding-particle skill**，勿再读 ParticleSystem 源码 |
@@ -144,7 +144,7 @@ description: Use when adding ANY new plant (新增植物) to PvZ — 射手/生�
 1. 对象池槽位保留不可变的“分配类型”，另存可变的“当前类型”；`Reset()` 必须恢复类型、基础伤害、转换防重标记、纹理/Animator、速度和阴影。否则点燃过的 Pea 槽位会以 Fireball 身份污染下一发。
 2. Animator 组合要镜像 `AnimatedObject` 的并行推进握手：`UpdateParallelDeferred` 成功后串行 `Update` 只清标记，没走并行时才回退 `Animator::Update()`；Draw 直接走 Animator，默认实例化与 `-NoInstance` 都要截图。
 3. 存档同时保存不可变 `poolType`、可变“当前类型”和会影响后续转换的防重字段；读档按 `poolType` 走 `BulletPool::AcquireShared`，再恢复当前表现，**不得把 `mFromPool` 改回 false**。专项快照断言 bullet 的 `fromPool=true`、`poolType` 和转换列，防止动画变种读回错误池槽。
-4. 同帧 AutoTest 可能先构建行索引再 `spawn_zombie`；`EntityManager::AddZombie/AddZombieWithID` 必须置 `mRowIndexDirty=true`，否则随后同帧的范围弹只看见旧桶。
+4. 同帧 AutoTest 可能先构建行索引再 `spawn_zombie`；`EntityRegistry::AddZombie/AddZombieWithID` 必须置 `mRowIndexDirty=true`，否则随后同帧的范围弹只看见旧桶。
 5. `dump_state` 为类型数量、动画表现和防重状态加聚合整数抓手；不要依赖 `unordered_map` 导出的 `bullets.N` 顺序。运动弹仍断言相对量，不断言绝对 X/Y。
 6. `onTriggerStay` 的逐碰撞逻辑帧伤害不受渲染 FPS 波动影响，但固定逻辑步的回调次数不会随 `timeScale` 改变；若直接每次扣固定整数，移动弹在 0.5x/2.0x 下会因重叠帧数反向变化而失衡。默认按目标累计 `damage × GetDeltaTime()/GetFixedStep()` 的小数额度再取整结算，并把每个整数额度分别走一次 1 点正式承伤链，禁止合并成 `TakeDamage(N)` 而改变免伤次数/逐击取整。若特定目标要修改“每帧总基础伤害”，必须先由目标侧虚钩子修正 `damage` 再累计；不能依赖后续普通单击上限，因为拆开的每次输入已经只有 1 点。专项断言 0.5x 60 帧、1x 30 帧、2.0x 15 帧的同目标总伤害完全一致，并覆盖特殊目标的有/无防具两态。
 7. 持续命中且限制穿透数的子弹要按稳定实体 ID 记录不同目标：首次接触才登记并播放反馈，`stay` 只继续伤害；达到上限时先让最后目标承伤再回收。目标名单和逐目标小数伤害余额必须一起随存档恢复，并在对象池 `Reset()` 清空；专项至少覆盖“上限减一”目标后的存读档、达到上限消弹、倍速等伤和复用槽位归零，禁止把测试写死在某个穿透数。

@@ -489,7 +489,7 @@ void Zombie::Update()
 		}
 
 		if (mTangleKelpPlantID != NULL_PLANT_ID
-			&& !mBoard->mEntityManager.GetPlant(mTangleKelpPlantID)) {
+			&& !mBoard->mEntityRegistry.GetPlant(mTangleKelpPlantID)) {
 			ClearOrphanedTangleKelpGrab();
 		}
 		if (mDraggedUnderByTangleKelp) {
@@ -656,7 +656,7 @@ void Zombie::Update()
 					// 也避免植物的 eaterCount 一直等到死亡动画末帧才归零。
 					if (mIsEating) {
 						if (mEatPlantID != NULL_PLANT_ID && mBoard) {
-							if (Plant* plant = mBoard->mEntityManager.GetPlant(mEatPlantID);
+							if (Plant* plant = mBoard->mEntityRegistry.GetPlant(mEatPlantID);
 								plant && plant->mEaterCount > 0) {
 								--plant->mEaterCount;
 							}
@@ -795,8 +795,8 @@ void Zombie::PlayGarlicYuckSound() const
 
 	// 这是每次大蒜反应至多一次的冷路径；按原版只统计仍有头、未魅惑且可见的活动僵尸。
 	int zombiesOnScreen = 0;
-	for (int id : mBoard->mEntityManager.GetAllZombieIDs()) {
-		const Zombie* zombie = mBoard->mEntityManager.GetZombie(id);
+	for (int id : mBoard->mEntityRegistry.GetAllZombieIDs()) {
+		const Zombie* zombie = mBoard->mEntityRegistry.GetZombie(id);
 		if (!zombie || !zombie->IsActive() || !zombie->mHasHead
 			|| zombie->mIsDying || zombie->mIsMindControlled) {
 			continue;
@@ -845,7 +845,7 @@ void Zombie::CommitRow(int row)
 	const int previousRow = mRow;
 	mRow = row;
 	if (mBoard && previousRow != row) {
-		mBoard->mEntityManager.InvalidateZombieRowIndex();
+		mBoard->mEntityRegistry.InvalidateZombieRowIndex();
 	}
 	GameObjectManager::GetInstance().RefreshRenderOrderForSortingKey(
 		this, previousRow);
@@ -1100,7 +1100,7 @@ bool Zombie::TryStartLadderClimb(Plant* plant)
 	// 原版只会对本次 FindPlantTarget 找到的梯子格 StopEating；碰撞回调可能同帧还扫到
 	// 已经爬过的相邻梯子格，不能因此取消正在啃食的下一格植物并反复重播走路动画。
 	if (mIsEating && mEatPlantID != NULL_PLANT_ID) {
-		Plant* eatingTarget = mBoard->mEntityManager.GetPlant(mEatPlantID);
+		Plant* eatingTarget = mBoard->mEntityRegistry.GetPlant(mEatPlantID);
 		if (eatingTarget && eatingTarget->mRow == plant->mRow
 			&& eatingTarget->mColumn == plant->mColumn) {
 			StopEatingInvalidPlantTarget(0.0f);
@@ -1208,7 +1208,7 @@ void Zombie::TakeHijackerExecution()
 	if (mParalysisTimer > 0.0f) ClearParalysis();
 	if (mIsEating) {
 		if (mEatPlantID != NULL_PLANT_ID && mBoard) {
-			if (Plant* plant = mBoard->mEntityManager.GetPlant(mEatPlantID);
+			if (Plant* plant = mBoard->mEntityRegistry.GetPlant(mEatPlantID);
 				plant && plant->mEaterCount > 0) {
 				--plant->mEaterCount;
 			}
@@ -1303,7 +1303,7 @@ int Zombie::ComputeGoldenIceEffectStacks() const
 	const bool targetIsGilded = dynamic_cast<const GildedZamboniZombie*>(this) != nullptr;
 	const int firstSourceRow = std::max(0, mRow - 1);
 	const int lastSourceRow = std::min(mBoard->mRows - 1, mRow + 1);
-	mBoard->mEntityManager.ForEachGoldenIceSource(
+	mBoard->mEntityRegistry.ForEachGoldenIceSource(
 		[&](GildedZamboniZombie* gilded) {
 			if (!gilded || gilded->mRow < firstSourceRow
 				|| gilded->mRow > lastSourceRow
@@ -1593,7 +1593,7 @@ void Zombie::StartMindControlled()
 
 	// 正在啃植物：先解除（平衡 mEaterCount）。掩码换掉后与植物不再成对，onTriggerExit 不会补触发。
 	if (mIsEating && mEatPlantID != NULL_PLANT_ID && mBoard) {
-		if (auto* plant = mBoard->mEntityManager.GetPlant(mEatPlantID)) {
+		if (auto* plant = mBoard->mEntityRegistry.GetPlant(mEatPlantID)) {
 			plant->mEaterCount--;
 		}
 		mIsEating = false;
@@ -1881,7 +1881,7 @@ void Zombie::Die()
 
 	// 若死亡时仍在啃食植物，手动清理啃食状态（防止 mEaterCount 无法归零）
 	if (mIsEating && mEatPlantID != NULL_PLANT_ID && mBoard) {
-		if (auto* plant = mBoard->mEntityManager.GetPlant(mEatPlantID)) {
+		if (auto* plant = mBoard->mEntityRegistry.GetPlant(mEatPlantID)) {
 			plant->mEaterCount--;
 		}
 		mIsEating = false;
@@ -1901,7 +1901,7 @@ void Zombie::Die()
 	this->mActive = false;
 	if (mBoard) {
 		// GOM 会到下一帧开头才释放对象；先让行索引丢弃可能指向本对象的裸指针桶。
-		mBoard->mEntityManager.InvalidateZombieRowIndex();
+		mBoard->mEntityRegistry.InvalidateZombieRowIndex();
 	}
 	GameObjectManager::GetInstance().DestroyGameObject(this);
 }
@@ -2029,7 +2029,7 @@ void Zombie::StopEatingForTangleKelp()
 {
 	if (mIsEating) {
 		if (mEatPlantID != NULL_PLANT_ID && mBoard) {
-			if (Plant* plant = mBoard->mEntityManager.GetPlant(mEatPlantID);
+			if (Plant* plant = mBoard->mEntityRegistry.GetPlant(mEatPlantID);
 			plant && plant->mEaterCount > 0) {
 				--plant->mEaterCount;
 			}
@@ -2135,7 +2135,7 @@ void Zombie::EatTarget()
 
 	if (mEatZombieID != NULL_ZOMBIE_ID && mHasHead)
 	{
-		Zombie* target = mBoard ? mBoard->mEntityManager.GetZombie(mEatZombieID) : nullptr;
+		Zombie* target = mBoard ? mBoard->mEntityRegistry.GetZombie(mEatZombieID) : nullptr;
 		if (!target || target->mIsDying) {
 			// 目标没了/垂死：正常由 onTriggerExit 收尾，这里兜底（含读档后目标失效）
 			mIsEating = false;
@@ -2156,7 +2156,7 @@ void Zombie::EatTarget()
 	if (mGarlicRedirectActive) return;
 	if (mEatPlantID != NULL_PLANT_ID && mHasHead)
 	{
-		if (auto* plant = mBoard->mEntityManager.GetPlant(mEatPlantID)) {
+		if (auto* plant = mBoard->mEntityRegistry.GetPlant(mEatPlantID)) {
 			// C# 原版在每次啃食伤害前重新 FindPlantTarget；这里在伤害帧兜底检查同格最高有效层，
 			// 避免可啃上层刚种下时仍伤到支撑层，同时让已离地的倭瓜不再遮挡花盆。
 			if (Plant* topPlant = mBoard->GetTopPlantAt(plant->mRow, plant->mColumn);
@@ -2299,7 +2299,7 @@ bool Zombie::RetargetPlantWithinCell(Plant* plant)
 		return false;
 	}
 
-	Plant* current = mBoard->mEntityManager.GetPlant(mEatPlantID);
+	Plant* current = mBoard->mEntityRegistry.GetPlant(mEatPlantID);
 	if (!current || current == plant
 		|| current->mRow != plant->mRow || current->mColumn != plant->mColumn) {
 		return false;
@@ -2319,7 +2319,7 @@ bool Zombie::IsCurrentPlantEatingTargetValid()
 		return false;
 	}
 
-	Plant* plant = mBoard->mEntityManager.GetPlant(mEatPlantID);
+	Plant* plant = mBoard->mEntityRegistry.GetPlant(mEatPlantID);
 	if (!plant || !plant->IsActive() || plant->mPlantHealth <= 0) {
 		return false;
 	}
@@ -2364,7 +2364,7 @@ void Zombie::StopEatingInvalidPlantTarget(float blendTime)
 {
 	if (!mIsEating || mEatPlantID == NULL_PLANT_ID) return;
 	if (mBoard) {
-		if (Plant* plant = mBoard->mEntityManager.GetPlant(mEatPlantID);
+		if (Plant* plant = mBoard->mEntityRegistry.GetPlant(mEatPlantID);
 			plant && plant->mEaterCount > 0) {
 			--plant->mEaterCount;
 		}
@@ -2569,7 +2569,7 @@ void Zombie::Draw(Graphics* g)
 		drawLine(u8"二类: " + std::to_string(mShieldHealth) + u8"/" + std::to_string(mShieldMaxHealth));
 }
 
-void Zombie::ValidateEatingState(EntityManager& em)
+void Zombie::ValidateEatingState(EntityRegistry& em)
 {
 	// 旧档可能把“正在啃食”与加固铁门的水草束缚同时保存；关系恢复后必须立即结束啃食。
 	if (mTangleKelpPlantID != NULL_PLANT_ID && ResistsTangleKelpDrowning()) {

@@ -190,9 +190,9 @@ void JackInTheBoxZombie::Explode()
 	mBoard->ShakeBoard(4.0f, -6.0f);
 
 	// 复制 ID 后再结算，避免 Charred/Die 的延迟销毁改变遍历来源。
-	const std::vector<int> zombieIDs = mBoard->mEntityManager.GetAllZombieIDs();
+	const std::vector<int> zombieIDs = mBoard->mEntityRegistry.GetAllZombieIDs();
 	for (const int zombieID : zombieIDs) {
-		Zombie* zombie = mBoard->mEntityManager.GetZombie(zombieID);
+		Zombie* zombie = mBoard->mEntityRegistry.GetZombie(zombieID);
 		if (!zombie || zombie == this || !zombie->IsActive()) continue;
 		// 小丑爆炸只伤害敌对阵营；魅惑状态改变爆炸所属阵营而非扩大目标范围。
 		if (zombie->IsMindControlled() == mIsMindControlled) continue;
@@ -210,9 +210,9 @@ void JackInTheBoxZombie::Explode()
 	}
 
 	if (!mIsMindControlled) {
-		const std::vector<int> plantIDs = mBoard->mEntityManager.GetAllPlantIDs();
+		const std::vector<int> plantIDs = mBoard->mEntityRegistry.GetAllPlantIDs();
 		for (const int plantID : plantIDs) {
-			Plant* plant = mBoard->mEntityManager.GetPlant(plantID);
+			Plant* plant = mBoard->mEntityRegistry.GetPlant(plantID);
 			if (!plant || !plant->IsActive()) continue;
 			const ColliderComponent* collider = plant->GetColliderComponent();
 			if (collider && CircleOverlapsRect(center, kPlantBlastRadius,
@@ -228,7 +228,7 @@ void JackInTheBoxZombie::StopEatingForPop()
 {
 	if (!mIsEating) return;
 	if (mEatPlantID != NULL_PLANT_ID && mBoard) {
-		if (Plant* plant = mBoard->mEntityManager.GetPlant(mEatPlantID);
+		if (Plant* plant = mBoard->mEntityRegistry.GetPlant(mEatPlantID);
 			plant && plant->mEaterCount > 0) {
 			--plant->mEaterCount;
 		}

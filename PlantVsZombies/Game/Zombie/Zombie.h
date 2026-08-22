@@ -8,7 +8,7 @@
 #include "../Plant/PlantType.h"
 #include "../../DeltaTime.h"
 #include "../../GameRandom.h"
-#include "../EntityManager.h"
+#include "../EntityRegistry.h"
 #include "../DamageSource.h"
 #include "../Bullet/BulletType.h"
 #include <nlohmann/json.hpp>
@@ -131,7 +131,7 @@ private:
 	float mCheckPositionTimer = 0.0f;
 	float mSubHealthTimer = 0.0f;	
 	float mDyingTimer = 0.0f;	// mIsDying 持续时间，超过 10s 强制 Die 防止卡 BUG
-	float mCheckGoldenIceTimer = 0.0f;	// 每秒检查一次黄色冰道速度场层数，避免每帧都查 EntityManager
+	float mCheckGoldenIceTimer = 0.0f;	// 每秒检查一次黄色冰道速度场层数，避免每帧都查 EntityRegistry
 	float mShieldHitGlowTimer = 0.0f;	// 二类护盾独立受击白光剩余秒数；本体白光继续复用 AnimatedObject
 	ShieldType mShieldHitGlowType = ShieldType::SHIELDTYPE_NONE;	// 白光计时期间保留已掉落护盾的轨道类型
 
@@ -458,7 +458,7 @@ public:
 	/** 派生读档与装备外观恢复完成后，重建大蒜脸覆盖和动画停走层。 */
 	void FinalizeProtectedLoad();
 
-	void ValidateEatingState(EntityManager& em);
+	void ValidateEatingState(EntityRegistry& em);
 
 	// 将本体/头盔/护盾的当前血量与上限整体按倍率缩放（与具体模式无关，由调用方决定倍率来源）。
 	// 倍率<=0 或 ==1 时不作处理；缩放后保持 current==max（同源同舍入）。

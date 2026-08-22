@@ -55,7 +55,7 @@ C# 不使用动画帧事件，而用 100 厘秒倒计时：
 
 `TangleKelp : Plant` 只有 `IDLE` / `GRABBING` 两态。
 
-- 待机时仅通过 `EntityManager::ForEachZombieInRow` 检查本行。
+- 待机时仅通过 `EntityRegistry::ForEachZombieInRow` 检查本行。
 - 攻击矩形为 C# `mX/mY/mWidth/mHeight = 80×80`，换算成本项目格子中心坐标后是 `[-40,+40]×[-50,+30]`。
 - 目标必须仍存活、非濒死、有头、非魅惑、已进入泳池、未被其他水草锁定，且当前特殊阶段允许被水草抓取。
 - 同一帧多个候选按 C# 规则选择最靠左（离房子最近）的有效僵尸。

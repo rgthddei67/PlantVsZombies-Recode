@@ -270,7 +270,7 @@ void DolphinRiderZombie::ZombieUpdate(float)
 	if (!mJumpBlockChecked && progress >= kJumpBlockProgress) {
 		mJumpBlockChecked = true;
 		if (mBoard) {
-			Plant* plant = mBoard->mEntityManager.GetPlant(mJumpTargetPlantID);
+			Plant* plant = mBoard->mEntityRegistry.GetPlant(mJumpTargetPlantID);
 			if (plant) {
 				plant = mBoard->GetJumpBlockingPlantAt(
 					plant->mRow, plant->mColumn, ZombieJumpType::DOLPHIN_RIDER);

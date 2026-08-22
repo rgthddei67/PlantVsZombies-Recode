@@ -81,7 +81,7 @@ Zombie* KernelPult::FindTarget() const
 	Zombie* closest = nullptr;
 	float closestX = std::numeric_limits<float>::max();
 	const float plantX = GetPosition().x;
-	mBoard->mEntityManager.ForEachZombieInRow(mRow, [&](Zombie* zombie) {
+	mBoard->mEntityRegistry.ForEachZombieInRow(mRow, [&](Zombie* zombie) {
 		if (!zombie || !zombie->IsActive() || zombie->IsDying()
 			|| zombie->IsMindControlled() || !zombie->HasHead()
 			|| !mBoard->CanPlantAcquireZombie(this, zombie)) {

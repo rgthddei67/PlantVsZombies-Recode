@@ -9,7 +9,7 @@ metadata:
 
 2026-07-06(b1cec54, master未push) 修主人报告的"僵尸数量=0、本行无僵尸、Shooter却一直发射，重进关卡就好"。
 
-**根因分析**：`Shooter::HasZombieInRow` 每0.6s新鲜扫描不缓存，持续开火⇒`EntityManager`行桶里真有活对象。僵尸存亡有4份真相（mZombieNumber计数/mActive渲染/EntityManager索敌/GOM生命周期），`Die()`失败或重入即产生"计数已扣+隐身+对象仍在"的幽灵。两条具体路径：
+**根因分析**：`Shooter::HasZombieInRow` 每0.6s新鲜扫描不缓存，持续开火⇒`EntityRegistry`行桶里真有活对象。僵尸存亡有4份真相（mZombieNumber计数/mActive渲染/EntityRegistry索敌/GOM生命周期），`Die()`失败或重入即产生"计数已扣+隐身+对象仍在"的幽灵。两条具体路径：
 1. `GameObjectManager::DestroyGameObject(GameObject* raw)` 在 mGameObjects/mObjectsToAdd 都找不到时**静默no-op**→shared_ptr泄漏；
 2. 同帧双Die（大嘴花OnBiteKillFrame按ID直接z->Die() + 僵尸自身anim_death第216帧事件，此刻weak_ptr未过期）→mZombieNumber双扣提前归零。
 

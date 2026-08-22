@@ -1133,7 +1133,7 @@ RoofMarshalBossHealthBarState GameScene::GetRoofMarshalBossHealthBarState() cons
 	state.y = kRoofMarshalBossBarY;
 	if (!mBoard || mBoard->mBoardState != BoardState::GAME) return state;
 
-	const auto marshal = mBoard->mEntityManager.GetFirstActiveRoofMarshal();
+	const auto marshal = mBoard->mEntityRegistry.GetFirstActiveRoofMarshal();
 	if (!marshal || marshal->mBodyHealth <= 0 || marshal->mBodyMaxHealth <= 0) {
 		return state;
 	}
@@ -1503,7 +1503,7 @@ void GameScene::OnEnter() {
 		// 第 2 轮起小推车从第 1 轮保留、已在存档中，不进此分支（mIsLoadSave 维持 true，绝不重建）。
 		if (mBoard->mIsSurvival && mBoard->mSurvivalRound == 1
 			&& mBoard->mCurrentWave == 0
-			&& mBoard->mEntityManager.GetAllMowerIDs().empty()) {
+			&& mBoard->mEntityRegistry.GetAllMowerIDs().empty()) {
 			mBoard->CompleteLoadRestore();
 		}
 
@@ -1703,7 +1703,7 @@ void GameScene::Update() {
 		UpdateWeatherUi(DeltaTime::GetUnscaledDeltaTime());
 
 		// 轮清后存档：BeginSurvivalCardSelect 置位，在 Board::Update 返回后（已脱离 Die() 调用栈）执行。
-		// 触发轮清的那只濒死僵尸此刻仍在 EntityManager 中，由 SaveLevelData 内的 IsActive() 过滤排除。
+		// 触发轮清的那只濒死僵尸此刻仍在 EntityRegistry 中，由 SaveLevelData 内的 IsActive() 过滤排除。
 		if (mPendingSurvivalSave) {
 			mPendingSurvivalSave = false;
 			GameAPP::GetInstance().mGameInfoSaver.SaveLevelData(
@@ -2376,7 +2376,7 @@ void GameScene::BeginSurvivalCardSelect()
 	mCurrentStage = IntroStage::BACKGROUND_MOVE;
 
 	// 轮间存档点：延后一帧执行（见 mPendingSurvivalSave）。
-	// 本函数由最后一只僵尸的 Die() 中途调用，该僵尸此刻仍在 EntityManager 中、
+	// 本函数由最后一只僵尸的 Die() 中途调用，该僵尸此刻仍在 EntityRegistry 中、
 	// 尚未被 GameObjectManager 清理；若此处同帧存档会把濒死僵尸误序列化进存档。
 	mPendingSurvivalSave = true;
 }

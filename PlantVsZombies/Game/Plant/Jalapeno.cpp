@@ -104,7 +104,7 @@ void Jalapeno::IgniteRow()
 	}
 
 	// 原版 BurnRow 先解冻/解减速，再按灰烬入口烧毁本行；魅惑僵尸不属于植物武器目标。
-	mBoard->mEntityManager.ForEachZombieInRow(mRow, [](Zombie* zombie) {
+	mBoard->mEntityRegistry.ForEachZombieInRow(mRow, [](Zombie* zombie) {
 		if (!zombie || zombie->IsMindControlled()) return;
 		zombie->RemoveColdEffects();
 		zombie->TakePlantAshDamage(kJalapenoDamage);

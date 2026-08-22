@@ -73,10 +73,10 @@ void DoomShroom::KillOtherPlantsInCell()
 	if (!mBoard) return;
 	// 原版按全部植物的逻辑 row/column 过滤；保留这一口径可覆盖以后新增的南瓜等额外层。
 	// 先复制 ID 列表，避免 Plant::Die 释放格位及延迟销毁时改变遍历来源。
-	const std::vector<int> plantIDs = mBoard->mEntityManager.GetAllPlantIDs();
+	const std::vector<int> plantIDs = mBoard->mEntityRegistry.GetAllPlantIDs();
 	for (const int plantID : plantIDs) {
 		if (plantID == mPlantID) continue;
-		Plant* plant = mBoard->mEntityManager.GetPlant(plantID);
+		Plant* plant = mBoard->mEntityRegistry.GetPlant(plantID);
 		if (plant && plant->IsActive()
 			&& plant->mRow == mRow && plant->mColumn == mColumn) {
 			plant->Die();

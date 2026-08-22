@@ -23,7 +23,7 @@ metadata:
 
 通用框架删除后的契约：`GameObject::Start/Update/Draw/DestroyAttachments` 只显式处理 Collider、Shadow 与 Clickable，不提供按类型查询或任意附件生命周期。Shadow 固定在宿主本体前提交，Collider 只在 Debug 路径绘制，Clickable 保持稀疏注册和宿主更新时序。新增横切能力必须先确定宿主所有权与明确调度阶段，不能恢复通用组件容器。
 
-`EntityManager` 不属于 ECS 组件系统。它保留稳定实体 ID、指定 ID 读档、弱引用清理、按行和稀有品种热查询；未来可单独重命名 `EntityRegistry` 或拆 `ZombieQueryIndex`，但不得随组件收缩删除。
+`EntityRegistry` 不属于 ECS 组件系统。2026-08-22 已把原 `EntityManager` 及 Board 成员纯语义重命名为 `EntityRegistry` / `mEntityRegistry`；稳定实体 ID、指定 ID 读档、弱引用清理、按行和稀有品种热查询全部保持。若类继续增长，可按需拆出 `ZombieQueryIndex`，但主注册表仍是唯一实体全集，不能复制所有权或倒退查询复杂度。
 
 Transform 当前契约：只有空间对象调用 `CreateTransform()`，所有消费者用 `GetTransform()` 访问唯一权威值；仍属于 GOM 的无空间对象 `MistFuel`、`Shovel` 保持 optional 为空。该取舍以每个 GameObject 少量内联空间换掉每个空间对象的一次堆分配、`type_index` 哈希节点和组件生命周期；BulletPool 的 `Reset` 必须同时恢复位置、缩放和旋转。逻辑 `row/column` 与 `mVisualOffset` 继续独立，Transform 不自动消费屋顶坡面。
 
@@ -37,7 +37,7 @@ Clickable 当前契约：`GameObject` 用 `unique_ptr<ClickableComponent>` 独�
 
 CardSlotManager 的当前契约：`GameScene` 用 `unique_ptr` 覆盖整个 Board 生命周期；`Board`、`GameInfoSaver`、`ChooseCardUI` 与实战 `Card` 只持窄非拥有引用。`Scene::UpdateAfterGameObjects()` 在全部 GameObject 更新后、Clickable/Collision 前调用控制器更新；绘制阶段在 `LAYER_UI - 1` 同步手持/落点预览坐标，路灯花挡位菜单仍用独立的晚层 UI 命令。退出场景时先清 Cell 回调、预览和 Card 绑定，再销毁 Board。
 
-本阶段的 `smoke_plantern_fog_core` 还暴露了一个与 Card 语义无关、但被堆布局变化稳定触发的旧生命周期漏洞：`EntityManager::mZombiesByRow` 保存裸指针，若同帧先构建行桶再 `Zombie::Die()`，下一帧 GOM 会在 Board 的兜底 `CleanupExpired()` 前释放对象。修复契约是死亡与 `CommitRow()` 立即调用 `InvalidateZombieRowIndex()`，行遍历同时复核 active/dying；不能再假设“延迟删除天然保证裸指针到下一次查询都有效”。
+本阶段的 `smoke_plantern_fog_core` 还暴露了一个与 Card 语义无关、但被堆布局变化稳定触发的旧生命周期漏洞：`EntityRegistry::mZombiesByRow` 保存裸指针，若同帧先构建行桶再 `Zombie::Die()`，下一帧 GOM 会在 Board 的兜底 `CleanupExpired()` 前释放对象。修复契约是死亡与 `CommitRow()` 立即调用 `InvalidateZombieRowIndex()`，行遍历同时复核 active/dying；不能再假设“延迟删除天然保证裸指针到下一次查询都有效”。
 
 设计：`docs/superpowers/specs/2026-08-16-inheritance-gameplay-object-architecture-design.md`
 
@@ -56,3 +56,5 @@ Shadow 阶段的 2026-08-22 当前证据：`clang-release` LTO 与 378 项 Win7 
 Clickable 阶段的 2026-08-22 当前证据：`clang-release` LTO 与 378 项 Win7 import audit 通过；可见运行 `almanac_click`、`smoke_choose_card_pagination`、`smoke_collider_ownership`、`smoke_zombie_almanac_progression` 与新增 `smoke_clickable_ownership`，均退出 0、`status=passed`、`script finished OK`，合计 56 条断言无失败。截图已核对主图鉴入口、选卡分页、共享格边界与铲除、僵尸图鉴第二条路障详情、路灯花本体点击/III 挡菜单以及 Trophy 点击后的胜利状态。共享格边界应断言窗口坐标转换后的正式唯一格解析结果，不要直接把逻辑边界 X 当成像素完全等价；旧僵尸图鉴 UI 进入路径已漂移，专项用既有 `goto_zombie_almanac` 稳定进入后再真实点击目标条目。
 
 通用 Component 删除阶段的 2026-08-22 当前证据：`clang-release` 完整配置、123 单元重编译、LTO 链接和 378 项 Win7 import audit 通过；运行源码中 `Component` 基类/派生、类型表、模板访问器、初始化/更新/绘制视图及 `NeedsUpdate/SetDrawOrder` 为零。主人当前桌面可见运行 Task 0 全集，并补跑 Collider/Clickable 所有权、AutoTest harness、屋顶对象、Blover、Digger、双子向日葵存档专项，均退出 0、`status=passed`、`script finished OK`；默认与 `-NoInstance` 的阴影、选卡分页截图均已目验。双子向日葵新增现场两枚阳光 Coin 的保存/全新 `GameScene` 重载断言，连同 Blover、Digger、harness 和屋顶专项覆盖 Card、Plant、Zombie、Bullet、Coin、Mower 往返。本阶段没有迁移前同提交压力 A/B，不能引用 2026-05 phase-3 数据宣称当前 FPS 收益。
+
+`EntityRegistry` 语义重命名阶段的 2026-08-22 当前证据：全仓逐文件机械等价性审计确认运行代码只改变类型、文件、Board 成员和局部变量名，`EntityRegistry.cpp/.h` 与旧实现等价，源码旧名为零；存档字段、ID 计数器、AddWithID、CleanupExpired、行索引失效和稀有弱索引均未改变。`clang-release` 完整配置、120 步编译/链接和 378 项 Win7 import audit 通过，构建图只包含新文件。主人当前桌面可见运行 `smoke_zombie_row_index_lifetime`、`smoke_autotest_harness`、`smoke_roof_marshal_boss_bar`、`smoke_healer_coordination`，共 177 条命令、60 个状态断言、9 张同步截图，均退出 0、`status=passed`、`script finished OK`，快照恢复、督军血条与急救员群组截图已目验。三份受影响技能均通过 skill-creator `quick_validate.py`。本阶段没有运行行为或复杂度变化，不宣称性能收益；`ZombieQueryIndex` 拆分仅在注册表继续增长并出现明确维护收益时再做。

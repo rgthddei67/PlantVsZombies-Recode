@@ -917,8 +917,8 @@ git commit -m "feat(autotest): Vulkan swapchain 回读截图 (screenshot 命令)
 		out["zombieNumber"] = board->mZombieNumber;
 
 		out["zombies"] = nlohmann::json::array();
-		for (int id : board->mEntityManager.GetAllZombieIDs()) {
-			Zombie* z = board->mEntityManager.GetZombie(id);
+		for (int id : board->mEntityRegistry.GetAllZombieIDs()) {
+			Zombie* z = board->mEntityRegistry.GetZombie(id);
 			if (!z) continue;
 			const Vector pos = z->GetPosition();
 			out["zombies"].push_back({
@@ -935,8 +935,8 @@ git commit -m "feat(autotest): Vulkan swapchain 回读截图 (screenshot 命令)
 		}
 
 		out["plants"] = nlohmann::json::array();
-		for (int id : board->mEntityManager.GetAllPlantIDs()) {
-			Plant* p = board->mEntityManager.GetPlant(id);
+		for (int id : board->mEntityRegistry.GetAllPlantIDs()) {
+			Plant* p = board->mEntityRegistry.GetPlant(id);
 			if (!p) continue;
 			out["plants"].push_back({
 				{ "id", id },

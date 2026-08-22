@@ -1,14 +1,14 @@
 ---
 name: project-pvz-zombie-row-index
-description: EntityManager 按行索引 ForEachZombieInRow 替代 GetAllZombieIDs 全表扫+双lock；惰性每帧重建；大蒜/子弹换行免维护
+description: EntityRegistry 按行索引 ForEachZombieInRow 替代 GetAllZombieIDs 全表扫+双lock；惰性每帧重建；大蒜/子弹换行免维护
 metadata:
   node_type: memory
   type: project
   originSessionId: 9e81cc04-5ff9-4abd-a71e-4383e3968e61
-  updated_at: 2026-08-12
+  updated_at: 2026-08-22
 ---
 
-2026-06-06 完成（用户实跑验证功能一致后 commit/push）：给 `EntityManager` 加僵尸**按行空间索引**，治掉射手类索敌的热路径反模式。
+2026-06-06 完成（用户实跑验证功能一致后 commit/push）：给当时名为 `EntityManager`、现名为 `EntityRegistry` 的注册表加僵尸**按行空间索引**，治掉射手类索敌的热路径反模式。2026-08-22 只做类型、文件与成员名的语义重命名，下面的索引与生命周期契约没有改变。
 
 **根因**：`Shooter::HasZombieInRow` / `PuffShroom::HasZombieInRow` / `Chomper::FindTargetZombieID` 三处同款——每个植物每 0.6s 调 `GetAllZombieIDs()`（堆分配 `vector<int>` + 遍历整张僵尸 `unordered_map` + 对每个 `weak_ptr.lock()` 判活），再逐 ID `GetZombie()`（二次哈希查找 + 二次 lock），最后用 `z->mRow == mRow` 过滤。O(射手数 × 全场僵尸) + 双重 lock + 每次分配。**这是 [project-pvz-clickable-optimization](project_pvz_clickable_optimization.md) 同族 foot-gun**：本仓库 stress-test 下"取全集再逐个过滤"必须警觉。
 
@@ -32,7 +32,7 @@ metadata:
 ## 2026-07-27 稀有来源查询脱钩
 
 黄色冰道层数曾由每只僵尸逐帧调用 `ForEachZombieInRow()`，因而即使没有鎏金冰车也会触发
-本帧首次 O(Z) 行桶重建。该查询现改用 `EntityManager` 中只登记鎏金冰车的 ID→弱引用索引，
+本帧首次 O(Z) 行桶重建。该查询现改用 `EntityRegistry` 中只登记鎏金冰车的 ID→弱引用索引，
 每帧首查生成活跃来源强引用快照，目标再复核当前行、生命周期和精确覆盖。
 通用行索引仍保留“每帧标脏、首查重建”以可靠承接未集中通知的换行；不要仅为这项优化把它
 改成容易漏钩子的全局增量索引。以后若热查询只关心极少数特殊品种，可采用同类专用候选索引，

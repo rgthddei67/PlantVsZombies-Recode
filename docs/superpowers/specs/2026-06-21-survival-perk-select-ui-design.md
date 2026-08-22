@@ -97,7 +97,7 @@ if (mGameScene) mGameScene->BeginSurvivalPerkSelect();
 ```
 
 `OnSurvivalRoundClear` 由最后一只僵尸 `Zombie::Die()` 中途调用。`BeginSurvivalPerkSelect`
-只创建一个 UI 框（不遍历僵尸、不触碰 EntityManager），在该调用栈里安全。重活
+只创建一个 UI 框（不遍历僵尸、不触碰 EntityRegistry），在该调用栈里安全。重活
 （相机平移、重建选卡 UI、延后存档）仍在玩家点击后的 `BeginSurvivalCardSelect` 里发生，
 此时已远离濒死僵尸调用栈——比现状更安全。
 

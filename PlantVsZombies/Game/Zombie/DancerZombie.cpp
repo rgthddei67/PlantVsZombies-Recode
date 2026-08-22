@@ -173,7 +173,7 @@ void DancerZombie::EatTarget()
 	// 强停啃食复刻 StartMindControlled 的规范：平衡 mEaterCount → 清目标 → 模板方法收尾。
 	if (!resolvedPlantBite || mPhase != DancerPhase::DANCING_IN || !mHasHead || mIsDying) return;
 	if (mIsEating && mEatPlantID != NULL_PLANT_ID && mBoard) {
-		if (auto* plant = mBoard->mEntityManager.GetPlant(mEatPlantID)) plant->mEaterCount--;
+		if (auto* plant = mBoard->mEntityRegistry.GetPlant(mEatPlantID)) plant->mEaterCount--;
 	}
 	mEatPlantID = NULL_PLANT_ID;
 	mEatZombieID = NULL_ZOMBIE_ID;
@@ -195,7 +195,7 @@ void DancerZombie::SummonBackupDancers()
 	};
 	for (int i = 0; i < 4; ++i) {
 		// 槽位有效 = 活着且与领队同阵营（伴舞被魅惑后不清领队侧槽位，只能在此按阵营判失效）
-		if (Zombie* f = mBoard->mEntityManager.GetZombie(mFollowerID[i])) {
+		if (Zombie* f = mBoard->mEntityRegistry.GetZombie(mFollowerID[i])) {
 			if (f->IsMindControlled() == mIsMindControlled) continue;
 		}
 		mFollowerID[i] = NULL_ZOMBIE_ID;
@@ -221,7 +221,7 @@ bool DancerZombie::NeedsMoreBackupDancers() const
 		if (i == 0 && mRow - 1 < 0) continue;
 		if (i == 1 && mRow + 1 >= mBoard->mRows) continue;
 		if (i == 2 && GetPosition().x < kSummonFrontMinX) continue;
-		Zombie* follower = mBoard->mEntityManager.GetZombie(mFollowerID[i]);
+		Zombie* follower = mBoard->mEntityRegistry.GetZombie(mFollowerID[i]);
 		// 死亡或阵营不同（被魅惑脱队）都算缺人
 		if (!follower || follower->IsMindControlled() != mIsMindControlled) return true;
 	}
