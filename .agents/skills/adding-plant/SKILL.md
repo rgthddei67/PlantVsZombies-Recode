@@ -107,7 +107,7 @@ description: Use when adding ANY new plant (新增植物) to PvZ — 射手/生�
 | **外部附着格对象生命周期**（扶梯等） | `Ladder` → `Plant::Die/Squish` | 对象由 Board 提供唯一格接口与可选存档数组，植物只在正式死亡/压扁入口通知 Board，不持对象指针；悬浮 overlay 等原版豁免必须显式列出，行级清除能力在自身结算点调用 Board 同行接口。原版 `KillAllZombiesInRadius` 对僵尸按像素圆命中，却另按爆心所在格的方形 `rowRange` 清扶梯：樱桃/玉米炮为 ±1 格，毁灭菇为 ±3 格；统一收口到 Board 爆炸清梯入口，专项必须覆盖范围内非同格扶梯清除和边界外保留，不能让植物自身死亡清同格造成假绿。专项分别覆盖普通死亡、压扁、豁免层、同行/异行保留与快照往返，避免只测部署者而漏掉被附着植物的生命周期。 |
 | **清除同格组合植物** | DoomShroom→`KillOtherPlantsInCell` | 按 EntityRegistry 的全部植物 ID 快照遍历，以逻辑 `row/column` 过滤并排除施法者，再逐株 `Die()`；不要只写死当前 under/normal 两层，否则以后南瓜等额外层会留在结算后的弹坑里 |
 | **引爆倒计时无敌** | CherryBomb / DoomShroom 的 `TakeDamage` 覆写 | 只 `SetGlowingTimer(0.1f)` 不掉血；**有睡觉态的要放行睡觉分支**（白天=普通蘑菇照常被啃，毁灭菇实证） |
-| **新子弹/运行时变种** | `PuffBullet`；Torchwood→FirePea | `BulletType` + BulletPool；动画子弹可在 `Bullet` 组合独立 Animator，但命中语义必须按“当前类型”分派，不能依赖分配时的 C++ 子类 |
+| **新子弹/运行时变种** | `Bullet final`；Torchwood→FirePea | `BulletType` + BulletPool；所有已接入弹型共用单一具体 `Bullet`，不要创建只继承构造函数的标记子类。动画子弹可组合独立 Animator，但命中语义必须按“当前类型”分派，不能依赖分配时的 C++ 子类 |
 | **新粒子特效/染色变种** | IceFumeCloud（寒冰大喷菇） | XML 标签全参考在 **adding-particle skill**，勿再读 ParticleSystem 源码 |
 | **TakeDamage 类钩子** | FumeShroom 的 `penetrateShield` 参数 | 穿透只对二类护盾（门/报纸），不穿头盔；改签名先看全部调用点 |
 | **即时/范围结算** | CherryBomb/大喷菇锥形 | 帧事件触发结算帧（帧号问主人），范围判定用行桶不全扫 |
@@ -142,7 +142,7 @@ description: Use when adding ANY new plant (新增植物) to PvZ — 射手/生�
 
 **动画子弹与对象池附加清单**（Torchwood/FirePea 实证）：
 
-1. 对象池槽位保留不可变的“分配类型”，另存可变的“当前类型”；`Reset()` 必须恢复类型、基础伤害、转换防重标记、纹理/Animator、速度和阴影。否则点燃过的 Pea 槽位会以 Fireball 身份污染下一发。
+1. 所有已接入弹型共用单一 `Bullet final`，禁止为名称建立只继承构造函数、没有覆写或专属状态的空派生类。对象池槽位保留不可变的“分配类型”，另存可变的“当前类型”；`Reset()` 必须恢复类型、基础伤害、转换防重标记、纹理/Animator、速度和阴影。否则点燃过的 Pea 槽位会以 Fireball 身份污染下一发。
 2. Animator 组合要镜像 `AnimatedObject` 的并行推进握手：`UpdateParallelDeferred` 成功后串行 `Update` 只清标记，没走并行时才回退 `Animator::Update()`；Draw 直接走 Animator，默认实例化与 `-NoInstance` 都要截图。
 3. 存档同时保存不可变 `poolType`、可变“当前类型”和会影响后续转换的防重字段；读档按 `poolType` 走 `BulletPool::AcquireShared`，再恢复当前表现，**不得把 `mFromPool` 改回 false**。专项快照断言 bullet 的 `fromPool=true`、`poolType` 和转换列，防止动画变种读回错误池槽。
 4. 同帧 AutoTest 可能先构建行索引再 `spawn_zombie`；`EntityRegistry::AddZombie/AddZombieWithID` 必须置 `mRowIndexDirty=true`，否则随后同帧的范围弹只看见旧桶。
@@ -150,7 +150,7 @@ description: Use when adding ANY new plant (新增植物) to PvZ — 射手/生�
 6. `onTriggerStay` 的逐碰撞逻辑帧伤害不受渲染 FPS 波动影响，但固定逻辑步的回调次数不会随 `timeScale` 改变；若直接每次扣固定整数，移动弹在 0.5x/2.0x 下会因重叠帧数反向变化而失衡。默认按目标累计 `damage × GetDeltaTime()/GetFixedStep()` 的小数额度再取整结算，并把每个整数额度分别走一次 1 点正式承伤链，禁止合并成 `TakeDamage(N)` 而改变免伤次数/逐击取整。若特定目标要修改“每帧总基础伤害”，必须先由目标侧虚钩子修正 `damage` 再累计；不能依赖后续普通单击上限，因为拆开的每次输入已经只有 1 点。专项断言 0.5x 60 帧、1x 30 帧、2.0x 15 帧的同目标总伤害完全一致，并覆盖特殊目标的有/无防具两态。
 7. 持续命中且限制穿透数的子弹要按稳定实体 ID 记录不同目标：首次接触才登记并播放反馈，`stay` 只继续伤害；达到上限时先让最后目标承伤再回收。目标名单和逐目标小数伤害余额必须一起随存档恢复，并在对象池 `Reset()` 清空；专项至少覆盖“上限减一”目标后的存读档、达到上限消弹、倍速等伤和复用槽位归零，禁止把测试写死在某个穿透数。
 8. 纹理子弹若新增旋转、纵向速度或其他影响命中与表现的运动状态，必须在 `BulletPool::Reset()` 归零、在存档中往返，并让读档恢复值覆盖表现初始化时的随机值。跨行直线弹按移动后的 Board 网格更新 `mRow`，再走统一碰撞链；场景上下边界用 `SCENE_HEIGHT`，横向仍沿用通用回收边界。专项用方向聚合断言同帧齐发数量，用直接 `spawn_bullet` 覆盖跨行、命中、对象池和存读档，不依赖运动弹的绝对坐标或数组顺序。
-9. 运行时转换产物若拥有独立伤害、状态或表现语义，追加独立的当前 `BulletType`，不要再从 `mPoolType` 猜玩法身份；`mPoolType` 只负责对象池回收归属，`mBulletType` 统一驱动命中分派、表现和存档。新类型在枚举末尾追加，并同步穷举风力表、默认伤害、碰撞入口、表现/阴影、对象池直接创建分支及 AutoTest 名称/聚合计数；专项同时断言转换后当前类型、原池类型、存读档、回收复位和普通变种未串型。
+9. 运行时转换产物若拥有独立伤害、状态或表现语义，追加独立的当前 `BulletType`，不要再从 `mPoolType` 猜玩法身份；`mPoolType` 只负责对象池回收归属，`mBulletType` 统一驱动命中分派、表现和存档。新类型在枚举末尾追加，并同步穷举风力表、默认伤害、碰撞入口、表现/阴影、`BulletPool` 支持类型验证及 AutoTest 名称/聚合计数；专项同时断言转换后当前类型、原池类型、存读档、回收复位和普通变种未串型。
 10. 派生溅射弹若以缩小范围换取次要目标状态，范围和状态分派都按当前 `BulletType` 决定，基础弹保留原范围；只给实际进入溅射集合且仍有效的目标施加状态。专项在同一行放置直击、范围内和范围外目标，逐只断言状态与生命，并回归基础弹的原溅射宽度，禁止只用总数或总伤害掩盖边界选错目标。
 11. 换色子弹还要审计命中粒子 XML 的每个固定 `<Image>` 键；本体贴图换色不会自动改变飞溅/碎屑。需要独立配色时按当前 `BulletType` 分派独立效果名，并按 adding-particle 的资源闭环注册同布局图集；专项同步截图后同时断言派生效果存在、基础效果计数为 0，再跑基础子弹回归防止串色。
 12. 屋顶平射遮挡按子弹类型的视觉离地高度与 `Board::GetRowCenterYAtX(row, bulletX)` 比较；豌豆、孢子、尖刺、星星等阈值可不同，投掷物不进入这条判定。遮挡时先走对应命中反馈再回收，不能把子弹本体强制贴坡冒充遮挡；阴影若存在则可独立采样当前 X 的地面。专项在坡段与平台各放正/负例，并回归草地地图不受影响。

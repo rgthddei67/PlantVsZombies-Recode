@@ -22,7 +22,7 @@ class Board;
 class BulletPool;
 class ShadowComponent;
 
-class Bullet : public GameObject
+class Bullet final : public GameObject
 {
 public:
 	BulletType mBulletType = BulletType::NUM_BULLETS;
@@ -63,7 +63,7 @@ protected:
 	bool mAnimatorAdvancedInParallel = false;
 
 	// 子弹击中僵尸的效果
-	virtual void BulletHitZombie(Zombie* zombie);
+	void BulletHitZombie(Zombie* zombie);
 	/**
 	 * 处理一次子弹与僵尸的碰撞帧；普通弹只消费首次 Enter，尖刺在 Enter/Stay 均结算。
 	 */
@@ -103,7 +103,7 @@ public:
 		const Vector& position);
 
 	// 重置子弹状态（用于对象池复用）
-	virtual void Reset(Board* board, int row,
+	void Reset(Board* board, int row,
 		const Vector& colliderRadius, const Vector& position);
 
 	// 设置是否来自对象池

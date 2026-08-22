@@ -1,14 +1,37 @@
 #include "BulletPool.h"
 
-#include "../Bullet/PeaBullet.h"
-#include "../Bullet/SnowPea.h"
-#include "../Bullet/PuffBullet.h"
-#include "../Bullet/FirePeaBullet.h"
-#include "../Bullet/SpikeBullet.h"
-
 #include "../Board.h"
 #include "../GameObjectManager.h"
 #include "../../Logger.h"
+
+namespace {
+	// 只接受已有完整表现和碰撞合同的弹型；僵尸豌豆仍是尚未接入工厂的预留枚举。
+	bool IsSupportedPooledBulletType(BulletType type)
+	{
+		switch (type) {
+		case BulletType::BULLET_PEA:
+		case BulletType::BULLET_SNOWPEA:
+		case BulletType::BULLET_CABBAGE:
+		case BulletType::BULLET_MELON:
+		case BulletType::BULLET_PUFF:
+		case BulletType::BULLET_WINTERMELON:
+		case BulletType::BULLET_FIREBALL:
+		case BulletType::BULLET_STAR:
+		case BulletType::BULLET_SPIKE:
+		case BulletType::BULLET_BASKETBALL:
+		case BulletType::BULLET_KERNEL:
+		case BulletType::BULLET_COBBIG:
+		case BulletType::BULLET_BUTTER:
+		case BulletType::BULLET_TOXICPEA:
+		case BulletType::BULLET_TOXICFIREBALL:
+			return true;
+		case BulletType::BULLET_ZOMBIE_PEA:
+		case BulletType::NUM_BULLETS:
+			return false;
+		}
+		return false;
+	}
+}
 
 void BulletPool::Initialize(int initialCapacity, int warningThreshold) {
 	mInitialCapacity = initialCapacity;
@@ -26,6 +49,11 @@ void BulletPool::Initialize(int initialCapacity, int warningThreshold) {
 std::shared_ptr<Bullet> BulletPool::AcquireShared(Board* board, BulletType type, int row,
 	const Vector& colliderRadius, const Vector& position) {
 	int typeIdx = static_cast<int>(type);
+	if (typeIdx < 0 || typeIdx >= static_cast<int>(mFreeByType.size())
+		|| !IsSupportedPooledBulletType(type)) {
+		LOG_ERROR("BulletPool") << "Acquire 不支持的子弹类型: " << typeIdx;
+		return nullptr;
+	}
 
 	// 1. 从对应类型的空闲列表直接取槽位，O(1)
 	auto& freeList = mFreeByType[typeIdx];
@@ -54,53 +82,11 @@ std::shared_ptr<Bullet> BulletPool::AcquireShared(Board* board, BulletType type,
 	pooled.type = type;
 	pooled.active = true;
 
-	std::shared_ptr<Bullet> bullet = nullptr;
-
-	// TODO: 新增子弹修改我
-	switch (type) {
-	case BulletType::BULLET_PEA:
-	case BulletType::BULLET_TOXICPEA:
-		bullet = GameObjectManager::GetInstance().CreateGameObjectImmediateAsShared<PeaBullet>(
+	// 所有弹型共用同一具体存储类型；差异由 BulletType 与 Reset 合同完整表达。
+	std::shared_ptr<Bullet> bullet =
+		GameObjectManager::GetInstance().CreateGameObjectImmediateAsShared<Bullet>(
 			LAYER_GAME_BULLET,
 			board, type, row, colliderRadius, position);
-		break;
-	case BulletType::BULLET_SNOWPEA:
-		bullet = GameObjectManager::GetInstance().CreateGameObjectImmediateAsShared<SnowPeaBullet>(
-			LAYER_GAME_BULLET,
-			board, type, row, colliderRadius, position);
-		break;
-	case BulletType::BULLET_PUFF:
-		bullet = GameObjectManager::GetInstance().CreateGameObjectImmediateAsShared<PuffBullet>(
-			LAYER_GAME_BULLET,
-			board, type, row, colliderRadius, position);
-		break;
-	case BulletType::BULLET_FIREBALL:
-	case BulletType::BULLET_TOXICFIREBALL:
-		bullet = GameObjectManager::GetInstance().CreateGameObjectImmediateAsShared<FirePeaBullet>(
-			LAYER_GAME_BULLET,
-			board, type, row, colliderRadius, position);
-		break;
-	case BulletType::BULLET_SPIKE:
-		bullet = GameObjectManager::GetInstance().CreateGameObjectImmediateAsShared<SpikeBullet>(
-			LAYER_GAME_BULLET,
-			board, type, row, colliderRadius, position);
-		break;
-	case BulletType::BULLET_STAR:
-	case BulletType::BULLET_CABBAGE:
-	case BulletType::BULLET_MELON:
-	case BulletType::BULLET_WINTERMELON:
-	case BulletType::BULLET_BASKETBALL:
-	case BulletType::BULLET_KERNEL:
-	case BulletType::BULLET_COBBIG:
-	case BulletType::BULLET_BUTTER:
-		bullet = GameObjectManager::GetInstance().CreateGameObjectImmediateAsShared<Bullet>(
-			LAYER_GAME_BULLET,
-			board, type, row, colliderRadius, position);
-		break;
-	default:
-		LOG_ERROR("BulletPool") << "Acquire 未知的子弹类型";
-		return nullptr;
-	}
 
 	if (bullet) {
 		bullet->SetFromPool(true);
