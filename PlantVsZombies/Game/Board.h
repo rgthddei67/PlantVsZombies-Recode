@@ -261,16 +261,16 @@ private:
 	float mMistFuelDropAccumulator = 0.0f; // 正式波次雾火随机的保底累计值；影响未来抽取，进入存档
 	int mMistFuelAssignedThisWave = 0; // 当前波已分配的雾火总量；只作预算闸门与观测
 
-	bool mPendingHeavyTyphoonPrepared = false; // 大雨预警期已锁定台风等级，切档时消费而不重 roll
-	bool mPendingHeavyTyphoonOpeningProtected = false; // 待生效大雨因开局保护锁定为无台风；消费时不累计落空保底
-	TyphoonStrength mPendingHeavyTyphoonStrength = TyphoonStrength::NONE; // 下一场大雨的待生效台风等级
-	WindDirection mPendingHeavyWindDirection = WindDirection::NONE; // 待生效台风初始吹向；与等级一并锁定
-	float mPendingHeavyTyphoonStrengthTimer = 0.0f; // 待生效台风首档维持时长（游戏秒）
-	float mPendingHeavyWindDirectionTimer = 0.0f; // 待生效台风首次重抽风向倒计时（游戏秒）
-	float mPendingHeavyWindGustTimer = 0.0f; // 待生效台风首次阵风倒计时（游戏秒）
-	int mPendingHeavyTyphoonGustsRemaining = 0; // 待生效台风首档阵风预算
+	bool mPendingHeavyTyphoonPrepared = false; // 已锁定公开大雨警报等级；真实新大雨时同为待生效台风初态
+	bool mPendingHeavyTyphoonOpeningProtected = false; // 本次等级因开局保护锁定为无台风；真实消费时不累计落空保底
+	TyphoonStrength mPendingHeavyTyphoonStrength = TyphoonStrength::NONE; // 警报等级；真实新大雨时也是待生效台风等级
+	WindDirection mPendingHeavyWindDirection = WindDirection::NONE; // 锁定等级配套风向；真实新大雨时待生效
+	float mPendingHeavyTyphoonStrengthTimer = 0.0f; // 锁定等级首档时长；真实新大雨时待生效（游戏秒）
+	float mPendingHeavyWindDirectionTimer = 0.0f; // 锁定等级首次重抽风向倒计时（游戏秒）
+	float mPendingHeavyWindGustTimer = 0.0f; // 锁定等级首次阵风倒计时（游戏秒）
+	int mPendingHeavyTyphoonGustsRemaining = 0; // 锁定等级首档阵风预算；真实新大雨时待生效
 	int mPendingHeavyRainPromptVariant = 0; // 同等级三句古风警报中的锁定编号（0～2）
-	bool mHeavyRainPromptShown = false; // 当前锁定且报准的大雨预报是否已经弹出过提前 5 秒警报
+	bool mHeavyRainPromptShown = false; // 当前公开大雨预报是否已经弹出过提前 5 秒警报
 	bool mRainVisualActive = false;     // 纯运行期标记，防读档/生存轮间重复发射同一场雨
 	std::string mRainVisualEffectName;  // 当前雨丝特效名；风向切换时只停止旧雨而不清空其他粒子
 	float mWindParticleTimer = 0.0f;    // 距下一批风线粒子的游戏秒数；瞬态视觉不入存档
@@ -405,6 +405,7 @@ private:
 	RainIntensity RollNextWeather(int forcedRoll = 0);
 	void PrepareWeatherForecast(int weatherRoll = 0);
 	void ConsumeWeatherForecast();
+	bool NeedsPendingHeavyForecastState() const;
 	void PreparePendingHeavyTyphoon(int chanceRoll = 0, int strengthRoll = 0);
 	void ClearPendingHeavyRainWarning();
 	void MaybeShowHeavyRainPrompt();

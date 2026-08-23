@@ -110,7 +110,7 @@ namespace {
 	constexpr float kLateMediumRainTailMin = 30.0f;      // 满压力下尾段中雨最短持续时间（秒）
 	constexpr float kLateMediumRainTailMax = 50.0f;      // 满压力下尾段中雨最长持续时间（秒）
 	constexpr float kWeatherForecastLeadTime = 15.0f;    // 阶段结束前多少秒预抽取并展示下一天气
-	constexpr float kHeavyRainPromptLeadTime = 5.0f;     // 真正进入新大雨前弹出分级文字警报的提前量（游戏秒）
+	constexpr float kHeavyRainPromptLeadTime = 5.0f;     // 公开预报揭晓前弹出大雨分级文字警报的提前量（游戏秒）
 	constexpr int kWeatherForecastAccuracyPercent = 75;  // 前期天气预警准确率（百分比）
 	constexpr int kLateWeatherForecastAccuracyPercent = 95; // 满压力天气预警准确率上限（百分比）
 	constexpr float kFirstFogWeatherDelayMin = 45.0f;    // 夜间泳池开局到首次独立雾势抽取的最短游戏秒
@@ -1841,15 +1841,22 @@ void Board::PrepareWeatherForecast(int weatherRoll)
 	PreparePendingHeavyTyphoon();
 }
 
+/** 判断本次预警是否需要锁定大雨等级：公开报大雨用于真假一致的警报，真实新大雨用于切档。 */
+bool Board::NeedsPendingHeavyForecastState() const
+{
+	return mWeatherForecastReady
+		&& (mForecastRainIntensity == RainIntensity::HEAVY
+			|| (mActualForecastRainIntensity == RainIntensity::HEAVY
+				&& mRainIntensity != RainIntensity::HEAVY));
+}
+
 /**
- * 在公开预报锁定后提前锁定下一场大雨的完整台风初始状态。
- * 这里只消费随机数，不提前改变当前天气、台风保底或玩法倍率；真正切档时才兑现结果。
+ * 公开预报为大雨时锁定同分布的警报等级；真实下一段为新大雨时同一状态也是待生效台风初态。
+ * 这里只消费随机数，不提前改变当前天气、台风保底或玩法倍率；只有真实新大雨切档才兑现结果。
  */
 void Board::PreparePendingHeavyTyphoon(int chanceRoll, int strengthRoll)
 {
-	if (mPendingHeavyTyphoonPrepared || !mWeatherForecastReady
-		|| mActualForecastRainIntensity != RainIntensity::HEAVY
-		|| mRainIntensity == RainIntensity::HEAVY) return;
+	if (mPendingHeavyTyphoonPrepared || !NeedsPendingHeavyForecastState()) return;
 
 	mPendingHeavyTyphoonPrepared = true;
 	mPendingHeavyTyphoonStrength = TyphoonStrength::NONE;
@@ -1906,13 +1913,11 @@ void Board::ClearPendingHeavyRainWarning()
 	mHeavyRainPromptShown = false;
 }
 
-/** 预报报准大雨时，在倒计时最后 5 个游戏秒显示一次已锁定等级的风暴警报。 */
+/** 公开预报为大雨时，在揭晓前最后 5 个游戏秒显示一次已锁定等级的风暴警报。 */
 void Board::MaybeShowHeavyRainPrompt()
 {
 	if (mHeavyRainPromptShown || !mWeatherForecastReady
-		|| mActualForecastRainIntensity != RainIntensity::HEAVY
-		|| mForecastRainIntensity != mActualForecastRainIntensity
-		|| mRainIntensity == RainIntensity::HEAVY
+		|| mForecastRainIntensity != RainIntensity::HEAVY
 		|| mWeatherTimer > kHeavyRainPromptLeadTime || !mPresentation) return;
 	if (!mPendingHeavyTyphoonPrepared) PreparePendingHeavyTyphoon();
 	if (!mPendingHeavyTyphoonPrepared) return;
@@ -2055,16 +2060,14 @@ void Board::RestoreTyphoonPity(int missedHeavyPhases)
 		missedHeavyPhases, 0, kTyphoonPityMaxMisses);
 }
 
-/** 从存档恢复尚未生效的大雨台风结果；损坏组合只清空，不会在读档阶段重 roll。 */
+/** 从存档恢复大雨预报警报等级或尚未生效的真实台风结果；损坏组合只清空，不重 roll。 */
 void Board::RestorePendingHeavyTyphoon(bool prepared, bool openingProtected,
 	TyphoonStrength strength,
 	WindDirection direction, float strengthTimer, float gustTimer,
 	float directionTimer, int gustsRemaining, int promptVariant)
 {
 	ClearPendingHeavyRainWarning();
-	if (!prepared || !mWeatherForecastReady
-		|| mActualForecastRainIntensity != RainIntensity::HEAVY
-		|| mRainIntensity == RainIntensity::HEAVY) return;
+	if (!prepared || !NeedsPendingHeavyForecastState()) return;
 	const bool validStrength = strength >= TyphoonStrength::NONE
 		&& strength <= TyphoonStrength::SUPER;
 	const bool validDirection = strength == TyphoonStrength::NONE
@@ -4019,11 +4022,10 @@ bool Board::SetWeatherForecastForTesting(RainIntensity forecast, RainIntensity a
 	return true;
 }
 
-/** 用确定性台风初态覆盖测试预报；NONE 同样表示已经锁定，而不是尚未抽取。 */
+/** 用确定性等级覆盖大雨预报警报或真实台风初态；NONE 同样表示已锁定。 */
 bool Board::SetPendingHeavyTyphoonForTesting(TyphoonStrength strength, int promptVariant)
 {
-	if (!mWeatherForecastReady || mActualForecastRainIntensity != RainIntensity::HEAVY
-		|| mRainIntensity == RainIntensity::HEAVY
+	if (!NeedsPendingHeavyForecastState()
 		|| strength < TyphoonStrength::NONE || strength > TyphoonStrength::SUPER
 		|| promptVariant < -1 || promptVariant > 2) {
 		return false;

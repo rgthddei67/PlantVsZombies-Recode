@@ -924,7 +924,7 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 		pendingWindValue >= static_cast<int>(WindDirection::NONE)
 		&& pendingWindValue <= static_cast<int>(WindDirection::TOWARD_FRONT)
 		? static_cast<WindDirection>(pendingWindValue) : WindDirection::NONE;
-	// 预警期已经抽出的完整台风初态必须原样恢复；旧档缺字段时保持未准备，由后续 Update 补抽一次。
+	// 公开大雨警报等级或真实新大雨台风初态必须原样恢复；旧档缺字段时由后续 Update 补抽一次。
 	board->RestorePendingHeavyTyphoon(
 		j.value("pendingHeavyTyphoonPrepared", false),
 		j.value("pendingHeavyTyphoonOpeningProtected", false),

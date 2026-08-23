@@ -1070,7 +1070,7 @@ bool TestDriver::ExecuteCurrent() {
 			if (typhoonIt == kTyphoonStrengthNames.end()
 				|| !gs->GetBoard()->SetPendingHeavyTyphoonForTesting(
 					typhoonIt->second, cmd.value("promptVariant", -1))) {
-				Fail("set_weather_forecast: typhoonStrength 仅允许在待揭晓大雨中使用 NONE/TYPHOON/SEVERE/SUPER，promptVariant 必须为 0..2");
+				Fail("set_weather_forecast: typhoonStrength 仅允许在公开预报或真实下一天气涉及大雨时使用 NONE/TYPHOON/SEVERE/SUPER，promptVariant 必须为 0..2");
 				return false;
 			}
 		}
