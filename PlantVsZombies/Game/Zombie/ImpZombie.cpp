@@ -17,7 +17,7 @@ namespace {
 	constexpr int kEatFrameOne = 44;                         // 主人指定的第一处啃食结算全局帧
 	constexpr int kEatFrameTwo = 55;                         // 主人指定的第二处啃食结算全局帧
 	constexpr int kDeathFrame = 81;                          // 主人指定的普通死亡回收全局帧
-	constexpr float kThrownClipSpeed = 18.0f / 12.0f;        // 原版抛出循环 18fps 相对资源 12fps
+	constexpr float kThrownClipSpeed = 18.0f / 12.0f;        // 原版一次性抛出动作 18fps 相对资源 12fps
 	constexpr float kLandClipSpeed = 24.0f / 12.0f;          // 原版落地 24fps 相对资源 12fps
 	constexpr float kEatClipSpeed = 24.0f / 12.0f;           // 小鬼啃食轨采用原版常用 24fps
 	constexpr float kHorizontalThrowSpeed = 300.0f;          // 原版每厘秒 3px，折算 px/s
@@ -86,7 +86,8 @@ void ImpZombie::ConfigureThrown(float throwDistance, bool movingRight,
 	// 水平速度不变，以目标落地时刻反算初速，使实际水平飞行距离稳定放大 1.3 倍。
 	mVerticalVelocity = (0.5f * kThrowGravity * targetFlightSeconds * targetFlightSeconds
 		- kInitialAltitude) / targetFlightSeconds;
-	PlayTrack("anim_thrown", kThrownClipSpeed);
+	// 原版是 PlayOnceAndHold；飞行长于剪辑时停在末帧，不能回绕首帧造成空中回弹。
+	PlayTrackOnce("anim_thrown", "", kThrownClipSpeed, 0.0f);
 	if (inheritedCooldown > 0.0f) SetCooldown(inheritedCooldown);
 	ApplyPhasePresentation();
 }
@@ -253,8 +254,15 @@ void ImpZombie::LoadExtraData(const nlohmann::json& j)
 		mAltitude = 0.0f;
 		mVerticalVelocity = 0.0f;
 	}
-	else if (mPhase == Phase::THROWN && GetCurrentTrackName() != "anim_thrown") {
-		PlayTrack("anim_thrown", kThrownClipSpeed);
+	else if (mPhase == Phase::THROWN) {
+		if (GetCurrentTrackName() != "anim_thrown") {
+			// 修复旧档轨道不匹配时也恢复一次播放并停在末帧的原版表现。
+			PlayTrackOnce("anim_thrown", "", kThrownClipSpeed, 0.0f);
+		}
+		else if (GetPlayingState() == PlayState::PLAY_REPEAT) {
+			// 旧档没有 animPlayState 时会按循环恢复；保留当前帧，只修正为播完停住。
+			mAnimator->Play(PlayState::PLAY_ONCE_TO);
+		}
 	}
 	else if (mPhase == Phase::LANDING && GetCurrentTrackName() != "anim_land") {
 		PlayTrackOnce("anim_land", "", kLandClipSpeed, 0.0f);

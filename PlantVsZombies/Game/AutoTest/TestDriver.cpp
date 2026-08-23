@@ -4436,6 +4436,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "animFrame", anim ? anim->GetCurrentFrame() : -1 },
 			{ "flipX", anim && anim->GetFlipX() },
 			{ "animPlaying", anim && anim->IsPlaying() },
+			{ "animPlayState", PlayStateName(z->GetPlayingState()) },
 			{ "animExtraSpeedPct", anim
 				? static_cast<int>(std::lround(anim->GetExtraSpeedMultiplier() * 100.0f)) : 0 },
 			{ "effectiveAnimSpeed", anim ? anim->EffectiveSpeed() : 0.0f },

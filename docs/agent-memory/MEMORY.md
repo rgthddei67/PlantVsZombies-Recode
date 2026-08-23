@@ -3,7 +3,7 @@
 > Codex routing: required always-on rules live in `../../AGENTS.md`; detailed build, AutoTest, architecture, resource, and implementation guidance lives in `../agent-guide/PROJECT_GUIDE.md`. The entries below are historical subsystem context and should be read only when relevant.
 
 - [大嘴花拒吞伤害契约](project_pvz_chomper_rejected_bite.md) — 2026-08-15 `TakePlantInstantKill()` 只报告是否确实吞下；拒吞默认由大嘴花经正式 `PLANT` 伤害链造成20，巨人/红眼/屋脊督军使用默认值；既有特殊值为加固铁门10、镀金冰车50，持杆跳跳因高度咬不到为0且掉杆后恢复普通吞食
-- [经典巨人、红眼巨人与小鬼](project_pvz_gargantuar_zombie.md) — 2026-08-22 普通/红眼巨人按3000/6000本体生命的2/3与1/3派生可逆身体、外臂、脚和头部伤势；治疗跨回完整阶段显式清除轨道换图；劫持者处决走巨人专属本体死亡入口并保留头臂标志，不生成普通断肢贴图；第93帧逐层派发植物锤击反应，第131帧按有符号半场距离唯一投出112px高度、1.3倍距离的小鬼；随机武器、0.5～0.7动画倍率、动作与飞行存档合同保持
+- [经典巨人、红眼巨人与小鬼](project_pvz_gargantuar_zombie.md) — 2026-08-23 普通/红眼巨人按3000/6000本体生命的2/3与1/3派生可逆伤势；劫持者处决保留头臂；第93帧逐层派发锤击，第131帧按有符号半场距离唯一投出112px高度、1.3倍距离的小鬼；`anim_thrown` 一次播放并停末帧，旧档循环态保帧修复，消除物理飞行长于剪辑时的空中回弹；随机武器、0.5～0.7动画倍率与动作/飞行存档合同保持
 - [全僵尸黄油头贴跟随与绘制层级](project_pvz_zombie_butter_overlay.md) — 2026-08-09 基类虚语义轨道默认 `anim_head1`，异形/车辆只覆写专属头轨；普通品种在 Animator 内延迟 follower record 到最高层，巨人保留父轨后立即提交的跨层遮挡；实例化仍用原 bindless InstanceRecord 队列，NoInstance 同序矩阵 batch，生命周期/存档兜底及36种资源审计由双路径可见专项闭环
 - [经典叶子保护伞与空中威胁防御](project_pvz_umbrella_leaf.md) — 2026-08-08 `PLANT_UMBRELLA` 100阳光/7.5秒/300生命，以能力接口覆盖自身及周围八格；0.05秒展开后反弹75伤篮球并让蹦极立即空手上升，阶段/计时入档且不重播反馈；无新增动画帧事件，默认/NoInstance专项及蹦极/投篮车回归可见通过
 - [经典投篮车与导流投篮车僵尸](project_pvz_catapult_zombie.md) — 2026-08-08 普通型850生命/十二发75伤篮球/第46帧/3秒装填；导流精英1000生命并完整继承弹药状态机，屋顶自然锁行时最近房屋的坡段候选只替换一条随机行，行掩码锁后不因死亡重抽，只有自身径流从-60放大到-100且爆胎回退；正式每波最多一只并入档，5-6在普通投篮车之后首次登场；独立青蓝资源/爆炸与共享篮球键已闭环，专项、上限、出怪表和父回归均可见通过且日志0 ERROR/WARN
