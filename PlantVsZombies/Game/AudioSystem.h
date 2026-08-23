@@ -64,12 +64,20 @@ public:
 	/** 查询指定循环环境音当前是否仍占用并播放其 SDL_mixer 声道。 */
 	static bool IsLoopingSoundPlaying(const std::string& soundKey);
 
+	/** 在不打断当前音乐的前提下，后台预构建关卡动态音乐。 */
+	static void PrepareMusic(const std::string& musicKey);
 	static void PlayMusic(const std::string& musicKey, int loops = -1);
 	static void StopMusic();
 	static void PauseMusic();
 	static void ResumeMusic();
 	static void UpdateAdaptiveMusic(float deltaTime, int hostileZombieCount);
 	static void StartMusicBurst();
+	static bool IsAdaptiveMusicPlaying();
+	static int GetAdaptiveMusicCurrentTune();
+	static int GetAdaptiveMusicPreparedTune();
+	static bool DidAdaptiveMusicLastPlayStartImmediately();
+	static int GetAdaptiveMusicLastPreparationMilliseconds();
+	static int GetAdaptiveMusicLastPlayHandoffMicroseconds();
 
 	// 工具方法
 	static bool IsAudioAvailable();

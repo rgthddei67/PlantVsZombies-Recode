@@ -60,7 +60,7 @@ bool AudioSystem::Initialize()
 }
 
 void AudioSystem::Shutdown() {
-	AdaptiveMusicPlayer::GetInstance().Stop();
+	AdaptiveMusicPlayer::GetInstance().Shutdown();
 	Mix_HaltChannel(-1);
 	Mix_HaltMusic();
 
@@ -188,6 +188,16 @@ void AudioSystem::PlaySound(const std::string& soundKey, float volume, int loops
 	}
 }
 
+/** 只发布后台预构建请求；菜单等非关卡 key 不改变当前准备状态。 */
+void AudioSystem::PrepareMusic(const std::string& musicKey)
+{
+	if (!IsAudioAvailable()) return;
+	const AdaptiveMusicTune tune = GetAdaptiveTune(musicKey);
+	if (tune != AdaptiveMusicTune::NONE) {
+		AdaptiveMusicPlayer::GetInstance().Prepare(tune);
+	}
+}
+
 // 播放音乐（带音量控制）
 void AudioSystem::PlayMusic(const std::string& musicKey, int loops)
 {
@@ -200,10 +210,13 @@ void AudioSystem::PlayMusic(const std::string& musicKey, int loops)
 		adaptiveMusic.SetVolume(masterVolume * musicVolume);
 		if (adaptiveMusic.Play(tune)) return;
 	}
+	else
+	{
+		// 菜单/选卡音乐明确取消“准备完成后接管”请求；后台缓存本身可留给随后关卡复用。
+		adaptiveMusic.Stop();
+	}
 
-	// 非关卡音乐和 MO3 加载失败都继续使用现有 OGG 播放路径。
-	adaptiveMusic.Stop();
-
+	// 关卡预构建尚未完成或失败时先播放现有 OGG；成功结果会由 Board::Update 接管。
 	Mix_Music* music = ResourceManager::GetInstance().GetMusic(musicKey);
 	if (music)
 	{
@@ -311,6 +324,36 @@ void AudioSystem::UpdateAdaptiveMusic(float deltaTime, int hostileZombieCount)
 void AudioSystem::StartMusicBurst()
 {
 	AdaptiveMusicPlayer::GetInstance().StartBurst();
+}
+
+bool AudioSystem::IsAdaptiveMusicPlaying()
+{
+	return AdaptiveMusicPlayer::GetInstance().IsPlaying();
+}
+
+int AudioSystem::GetAdaptiveMusicCurrentTune()
+{
+	return static_cast<int>(AdaptiveMusicPlayer::GetInstance().GetCurrentTune());
+}
+
+int AudioSystem::GetAdaptiveMusicPreparedTune()
+{
+	return static_cast<int>(AdaptiveMusicPlayer::GetInstance().GetPreparedTune());
+}
+
+bool AudioSystem::DidAdaptiveMusicLastPlayStartImmediately()
+{
+	return AdaptiveMusicPlayer::GetInstance().DidLastPlayStartImmediately();
+}
+
+int AudioSystem::GetAdaptiveMusicLastPreparationMilliseconds()
+{
+	return AdaptiveMusicPlayer::GetInstance().GetLastPreparationMilliseconds();
+}
+
+int AudioSystem::GetAdaptiveMusicLastPlayHandoffMicroseconds()
+{
+	return AdaptiveMusicPlayer::GetInstance().GetLastPlayHandoffMicroseconds();
 }
 
 void AudioSystem::UpdateVolume()

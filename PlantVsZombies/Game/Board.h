@@ -1097,6 +1097,8 @@ public:
 	void GameOver();
 
 	// 根据场景播放音乐
+	/** 选卡期间后台预构建当前地形的动态音乐，避免 StartGame 同步解析 MO3。 */
+	void PrepareBackgroundMusic();
 	void PlayBackgroundMusic();
 
 	// 生存模式：一轮（一面旗）清空后推进到下一轮并回到选卡

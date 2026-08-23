@@ -2547,6 +2547,17 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		gameApp.mOpeningTyphoonProtectionEnabled;
 	out["lastSelectedCards"] = gameApp.mLastSelectedCards;
 	out["lastSelectedCardCount"] = static_cast<int>(gameApp.mLastSelectedCards.size());
+	out["adaptiveMusic"] = {
+		{ "playing", AudioSystem::IsAdaptiveMusicPlaying() },
+		{ "currentTune", AudioSystem::GetAdaptiveMusicCurrentTune() },
+		{ "preparedTune", AudioSystem::GetAdaptiveMusicPreparedTune() },
+		{ "lastPlayStartedImmediately",
+			AudioSystem::DidAdaptiveMusicLastPlayStartImmediately() },
+		{ "lastPreparationMilliseconds",
+			AudioSystem::GetAdaptiveMusicLastPreparationMilliseconds() },
+		{ "lastPlayHandoffMicroseconds",
+			AudioSystem::GetAdaptiveMusicLastPlayHandoffMicroseconds() },
+	};
 	out["dolphinAppearSoundRequestCount"] =
 		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_DOLPHIN_APPEARS);
 	out["dolphinBeforeJumpSoundRequestCount"] =

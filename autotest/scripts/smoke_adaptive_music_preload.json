@@ -1,0 +1,25 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 1, "resetTestState": true },
+    { "op": "choose_cards", "cards": [], "timeout": 20 },
+    { "op": "wait_state", "state": "GAME", "timeout": 20 },
+    { "op": "assert_state", "path": "adaptiveMusic.playing", "equals": true },
+    { "op": "assert_state", "path": "adaptiveMusic.currentTune", "equals": 1 },
+    { "op": "assert_state", "path": "adaptiveMusic.lastPlayStartedImmediately", "equals": true },
+    { "op": "assert_state", "path": "adaptiveMusic.lastPreparationMilliseconds", "atLeast": 0 },
+    { "op": "assert_state", "path": "adaptiveMusic.lastPlayHandoffMicroseconds", "atMost": 100000 },
+    { "op": "screenshot", "name": "adaptive_day_started.png" },
+
+    { "op": "goto_level", "level": 19, "resetTestState": true },
+    { "op": "choose_cards", "cards": [], "timeout": 20 },
+    { "op": "wait_state", "state": "GAME", "timeout": 20 },
+    { "op": "assert_state", "path": "adaptiveMusic.playing", "equals": true },
+    { "op": "assert_state", "path": "adaptiveMusic.currentTune", "equals": 3 },
+    { "op": "assert_state", "path": "adaptiveMusic.lastPlayStartedImmediately", "equals": true },
+    { "op": "assert_state", "path": "adaptiveMusic.lastPreparationMilliseconds", "atLeast": 0 },
+    { "op": "assert_state", "path": "adaptiveMusic.lastPlayHandoffMicroseconds", "atMost": 100000 },
+    { "op": "screenshot", "name": "adaptive_pool_started.png" },
+    { "op": "dump_state", "name": "adaptive_music_state.json" },
+    { "op": "quit" }
+  ]
+}

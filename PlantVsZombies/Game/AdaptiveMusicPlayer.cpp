@@ -6,7 +6,9 @@
 #include <libopenmpt/libopenmpt_ext.hpp>
 #include <algorithm>
 #include <atomic>
+#include <chrono>
 #include <cmath>
+#include <condition_variable>
 #include <cstdint>
 #include <cstring>
 #include <fstream>
@@ -15,6 +17,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <thread>
 #include <utility>
 #include <vector>
 
@@ -27,6 +30,7 @@ namespace
 	constexpr float NIGHT_BURST_FINISH_SECONDS = 11.0f;
 	constexpr float DRUMS_FADE_OUT_SECONDS = 0.5f;
 	constexpr float NIGHT_DRUMS_FADE_OUT_SECONDS = 8.0f;
+	constexpr int SLOW_HANDOFF_WARNING_MICROSECONDS = 100000; // 预构建结果接管超过 100ms 时保留发布版诊断
 
 	constexpr int DAY_START_ORDER = 0;
 	constexpr int NIGHT_MAIN_START_ORDER = 0x30;
@@ -119,6 +123,15 @@ struct AdaptiveMusicPlayer::Impl
 	std::unique_ptr<Playback> playback;
 	std::vector<std::uint8_t> mainMusicData;
 	std::vector<std::uint8_t> hihatsData;
+	std::mutex preparationMutex;
+	std::condition_variable preparationCv;
+	bool preparationShutdown = false;
+	AdaptiveMusicTune requestedTune = AdaptiveMusicTune::NONE;
+	AdaptiveMusicTune preparingTune = AdaptiveMusicTune::NONE;
+	AdaptiveMusicTune preparedTune = AdaptiveMusicTune::NONE;
+	AdaptiveMusicTune pendingPlayTune = AdaptiveMusicTune::NONE;
+	std::uint64_t preparationGeneration = 0;
+	std::unique_ptr<Playback> preparedPlayback;
 
 	std::atomic<bool> playing{ false };
 	std::atomic<bool> paused{ false };
@@ -128,7 +141,11 @@ struct AdaptiveMusicPlayer::Impl
 	std::atomic<float> hihatsVolume{ 0.0f };
 	std::atomic<int> mainOrder{ -1 };
 	std::atomic<int> pendingDrumsJumpOrder{ -1 };
-
+	std::atomic<int> preparedTuneValue{ static_cast<int>(AdaptiveMusicTune::NONE) };
+	std::atomic<int> currentTuneValue{ static_cast<int>(AdaptiveMusicTune::NONE) };
+	std::atomic<bool> lastPlayStartedImmediately{ false };
+	std::atomic<int> lastPreparationMilliseconds{ -1 };
+	std::atomic<int> lastPlayHandoffMicroseconds{ -1 };
 	AdaptiveMusicTune tune = AdaptiveMusicTune::NONE;
 	BurstState burstState = BurstState::OFF;
 	DrumsState drumsState = DrumsState::OFF;
@@ -139,6 +156,17 @@ struct AdaptiveMusicPlayer::Impl
 	int sampleRate = 44100;
 	SDL_AudioFormat outputFormat = AUDIO_S16SYS;
 	int outputChannels = 2;
+	std::thread preparationThread;
+
+	Impl()
+		: preparationThread([this]() { PreparationLoop(); })
+	{
+	}
+
+	~Impl()
+	{
+		ShutdownPreparation();
+	}
 
 	bool IsNightScheme() const
 	{
@@ -272,6 +300,188 @@ struct AdaptiveMusicPlayer::Impl
 		target->hihats = AddLayer(*target,
 			CreateLayer(LayerRole::HIHATS, hihatsData, startOrder, hihatsRanges));
 		return target;
+	}
+
+	/**
+	 * 单 worker 串行解析 libopenmpt；新请求只发布最新 generation，过期结果在 worker 线程销毁。
+	 * 构建过程不调用 SDL_mixer，因此不会触碰音频回调或主线程持有的 active Playback。
+	 */
+	void PreparationLoop()
+	{
+		for (;;)
+		{
+			AdaptiveMusicTune targetTune = AdaptiveMusicTune::NONE;
+			std::uint64_t targetGeneration = 0;
+			{
+				std::unique_lock<std::mutex> lock(preparationMutex);
+				preparationCv.wait(lock, [this]() {
+					return preparationShutdown || requestedTune != AdaptiveMusicTune::NONE;
+					});
+				if (preparationShutdown) return;
+
+				targetTune = requestedTune;
+				targetGeneration = preparationGeneration;
+				requestedTune = AdaptiveMusicTune::NONE;
+				preparingTune = targetTune;
+			}
+
+			const auto startedAt = std::chrono::steady_clock::now();
+			std::unique_ptr<Playback> candidate;
+			try
+			{
+				if (EnsureAssetsLoaded()) candidate = BuildPlayback(targetTune);
+			}
+			catch (const std::exception& exception)
+			{
+				LOG_ERROR("AdaptiveMusic") << "MO3 后台预构建失败: " << exception.what();
+			}
+			const int elapsedMilliseconds = static_cast<int>(
+				std::chrono::duration_cast<std::chrono::milliseconds>(
+					std::chrono::steady_clock::now() - startedAt).count());
+
+			std::unique_ptr<Playback> supersededPlayback;
+			bool published = false;
+			{
+				std::lock_guard<std::mutex> lock(preparationMutex);
+				preparingTune = AdaptiveMusicTune::NONE;
+				if (!preparationShutdown && targetGeneration == preparationGeneration)
+				{
+					supersededPlayback = std::move(preparedPlayback);
+					preparedPlayback = std::move(candidate);
+					preparedTune = preparedPlayback ? targetTune : AdaptiveMusicTune::NONE;
+					preparedTuneValue.store(static_cast<int>(preparedTune), std::memory_order_relaxed);
+					lastPreparationMilliseconds.store(elapsedMilliseconds, std::memory_order_relaxed);
+					published = preparedPlayback != nullptr;
+				}
+			}
+
+			if (published)
+			{
+				LOG_INFO("AdaptiveMusic") << "MO3 后台预构建完成，tune="
+					<< static_cast<int>(targetTune) << " elapsedMs=" << elapsedMilliseconds;
+			}
+		}
+	}
+
+	/** 发布新的预构建目标；调用者从不等待正在进行的 libopenmpt 解析。 */
+	void RequestPreparation(AdaptiveMusicTune newTune)
+	{
+		if (newTune == AdaptiveMusicTune::NONE) return;
+		{
+			std::lock_guard<std::mutex> lock(preparationMutex);
+			if (preparationShutdown) return;
+			if ((preparedTune == newTune && preparedPlayback)
+				|| requestedTune == newTune
+				|| (preparingTune == newTune && requestedTune == AdaptiveMusicTune::NONE)) {
+				return;
+			}
+			requestedTune = newTune;
+			++preparationGeneration;
+		}
+		preparationCv.notify_one();
+	}
+
+	std::unique_ptr<Playback> TakePreparedPlayback(AdaptiveMusicTune requested)
+	{
+		std::lock_guard<std::mutex> lock(preparationMutex);
+		if (preparedTune != requested || !preparedPlayback) return nullptr;
+		preparedTune = AdaptiveMusicTune::NONE;
+		preparedTuneValue.store(static_cast<int>(AdaptiveMusicTune::NONE), std::memory_order_relaxed);
+		return std::move(preparedPlayback);
+	}
+
+	void SetPendingPlay(AdaptiveMusicTune requested)
+	{
+		std::lock_guard<std::mutex> lock(preparationMutex);
+		pendingPlayTune = requested;
+	}
+
+	void ClearPendingPlay()
+	{
+		std::lock_guard<std::mutex> lock(preparationMutex);
+		pendingPlayTune = AdaptiveMusicTune::NONE;
+	}
+
+	std::pair<AdaptiveMusicTune, std::unique_ptr<Playback>> TakePendingPreparedPlayback()
+	{
+		std::lock_guard<std::mutex> lock(preparationMutex);
+		if (pendingPlayTune == AdaptiveMusicTune::NONE
+			|| preparedTune != pendingPlayTune || !preparedPlayback) {
+			return { AdaptiveMusicTune::NONE, nullptr };
+		}
+
+		const AdaptiveMusicTune readyTune = pendingPlayTune;
+		pendingPlayTune = AdaptiveMusicTune::NONE;
+		preparedTune = AdaptiveMusicTune::NONE;
+		preparedTuneValue.store(static_cast<int>(AdaptiveMusicTune::NONE), std::memory_order_relaxed);
+		return { readyTune, std::move(preparedPlayback) };
+	}
+
+	/** 卸下 SDL 回调后再释放 active Playback，避免音频线程读取已经销毁的 module。 */
+	void StopActivePlayback()
+	{
+		const bool wasPlaying = playing.exchange(false, std::memory_order_acq_rel);
+		if (wasPlaying) Mix_HookMusic(nullptr, nullptr);
+		{
+			std::lock_guard<std::mutex> lock(playbackMutex);
+			playback.reset();
+		}
+		paused.store(false, std::memory_order_relaxed);
+		tune = AdaptiveMusicTune::NONE;
+		currentTuneValue.store(static_cast<int>(AdaptiveMusicTune::NONE), std::memory_order_relaxed);
+		ResetBurstState();
+	}
+
+	/** 只在主线程接管已完成的 Playback；这里不再执行文件读取或 tracker 解析。 */
+	bool ActivatePlayback(AdaptiveMusicTune newTune, std::unique_ptr<Playback> newPlayback)
+	{
+		if (!newPlayback) return false;
+
+		int frequency = 0;
+		SDL_AudioFormat format = 0;
+		int channels = 0;
+		if (!Mix_QuerySpec(&frequency, &format, &channels)) return false;
+		if (format != AUDIO_S16SYS || channels != 2)
+		{
+			LOG_ERROR("AdaptiveMusic") << "不支持当前 SDL 混音格式，MO3 需要 S16 双声道";
+			return false;
+		}
+
+		StopActivePlayback();
+		Mix_HaltMusic();
+		{
+			std::lock_guard<std::mutex> lock(playbackMutex);
+			playback = std::move(newPlayback);
+		}
+
+		sampleRate = frequency;
+		outputFormat = format;
+		outputChannels = channels;
+		tune = newTune;
+		currentTuneValue.store(static_cast<int>(newTune), std::memory_order_relaxed);
+		ResetBurstState();
+		paused.store(false, std::memory_order_relaxed);
+		playing.store(true, std::memory_order_release);
+		Mix_HookMusic(&Impl::MusicCallback, this);
+		return true;
+	}
+
+	void ShutdownPreparation()
+	{
+		{
+			std::lock_guard<std::mutex> lock(preparationMutex);
+			if (preparationShutdown) return;
+			preparationShutdown = true;
+			requestedTune = AdaptiveMusicTune::NONE;
+			pendingPlayTune = AdaptiveMusicTune::NONE;
+		}
+		preparationCv.notify_one();
+		if (preparationThread.joinable()) preparationThread.join();
+
+		std::lock_guard<std::mutex> lock(preparationMutex);
+		preparedPlayback.reset();
+		preparedTune = AdaptiveMusicTune::NONE;
+		preparedTuneValue.store(static_cast<int>(AdaptiveMusicTune::NONE), std::memory_order_relaxed);
 	}
 
 	static void SDLCALL MusicCallback(void* userData, Uint8* stream, int length)
@@ -518,69 +728,72 @@ AdaptiveMusicPlayer::AdaptiveMusicPlayer()
 
 AdaptiveMusicPlayer::~AdaptiveMusicPlayer()
 {
-	Stop();
+	Shutdown();
+}
+
+void AdaptiveMusicPlayer::Prepare(AdaptiveMusicTune tune)
+{
+	if (mImpl) mImpl->RequestPreparation(tune);
 }
 
 bool AdaptiveMusicPlayer::Play(AdaptiveMusicTune tune)
 {
-	if (tune == AdaptiveMusicTune::NONE || !mImpl->EnsureAssetsLoaded()) return false;
+	if (!mImpl || tune == AdaptiveMusicTune::NONE) return false;
+	const auto startedAt = std::chrono::steady_clock::now();
 
-	int frequency = 0;
-	SDL_AudioFormat format = 0;
-	int channels = 0;
-	if (!Mix_QuerySpec(&frequency, &format, &channels)) return false;
-	if (format != AUDIO_S16SYS || channels != 2)
+	if (mImpl->playing.load(std::memory_order_acquire) && mImpl->tune == tune)
 	{
-		LOG_ERROR("AdaptiveMusic") << "不支持当前 SDL 混音格式，MO3 需要 S16 双声道";
-		return false;
-	}
-
-	try
-	{
-		auto newPlayback = mImpl->BuildPlayback(tune);
-		if (!newPlayback) return false;
-
-		Mix_HaltMusic();
-		{
-			std::lock_guard<std::mutex> lock(mImpl->playbackMutex);
-			mImpl->playback = std::move(newPlayback);
-		}
-
-		mImpl->sampleRate = frequency;
-		mImpl->outputFormat = format;
-		mImpl->outputChannels = channels;
-		mImpl->tune = tune;
-		mImpl->ResetBurstState();
-		mImpl->paused.store(false, std::memory_order_relaxed);
-		mImpl->playing.store(true, std::memory_order_relaxed);
-		Mix_HookMusic(&Impl::MusicCallback, mImpl.get());
-
-		LOG_INFO("AdaptiveMusic") << "MO3 动态音乐已启动，tune=" << static_cast<int>(tune);
+		mImpl->lastPlayStartedImmediately.store(true, std::memory_order_relaxed);
+		mImpl->lastPlayHandoffMicroseconds.store(0, std::memory_order_relaxed);
 		return true;
 	}
-	catch (const std::exception& exception)
+
+	auto prepared = mImpl->TakePreparedPlayback(tune);
+	if (!prepared)
 	{
-		LOG_ERROR("AdaptiveMusic") << "MO3 加载失败: " << exception.what();
-		Stop();
+		// 极快提交或读档直入时绝不回到同步解析：先让 AudioSystem 播放 OGG，完成后由 Update 接管。
+		mImpl->StopActivePlayback();
+		mImpl->SetPendingPlay(tune);
+		mImpl->RequestPreparation(tune);
+		mImpl->lastPlayStartedImmediately.store(false, std::memory_order_relaxed);
+		mImpl->lastPlayHandoffMicroseconds.store(static_cast<int>(
+			std::chrono::duration_cast<std::chrono::microseconds>(
+				std::chrono::steady_clock::now() - startedAt).count()), std::memory_order_relaxed);
 		return false;
 	}
+
+	mImpl->ClearPendingPlay();
+	const bool started = mImpl->ActivatePlayback(tune, std::move(prepared));
+	const int handoffMicroseconds = static_cast<int>(
+		std::chrono::duration_cast<std::chrono::microseconds>(
+			std::chrono::steady_clock::now() - startedAt).count());
+	mImpl->lastPlayStartedImmediately.store(started, std::memory_order_relaxed);
+	mImpl->lastPlayHandoffMicroseconds.store(handoffMicroseconds, std::memory_order_relaxed);
+	if (started)
+	{
+		LOG_INFO("AdaptiveMusic") << "MO3 动态音乐已从预构建结果启动，tune="
+			<< static_cast<int>(tune) << " handoffUs=" << handoffMicroseconds;
+		if (handoffMicroseconds > SLOW_HANDOFF_WARNING_MICROSECONDS)
+		{
+			LOG_WARN("AdaptiveMusic") << "MO3 预构建接管过慢，tune="
+				<< static_cast<int>(tune) << " handoffUs=" << handoffMicroseconds;
+		}
+	}
+	return started;
 }
 
 void AdaptiveMusicPlayer::Stop()
 {
 	if (!mImpl) return;
-	const bool wasPlaying = mImpl->playing.exchange(false, std::memory_order_relaxed);
-	if (wasPlaying)
-	{
-		Mix_HookMusic(nullptr, nullptr);
-	}
-	{
-		std::lock_guard<std::mutex> lock(mImpl->playbackMutex);
-		mImpl->playback.reset();
-	}
-	mImpl->paused.store(false, std::memory_order_relaxed);
-	mImpl->tune = AdaptiveMusicTune::NONE;
-	mImpl->ResetBurstState();
+	mImpl->ClearPendingPlay();
+	mImpl->StopActivePlayback();
+}
+
+void AdaptiveMusicPlayer::Shutdown()
+{
+	if (!mImpl) return;
+	Stop();
+	mImpl->ShutdownPreparation();
 }
 
 void AdaptiveMusicPlayer::Pause(bool paused)
@@ -595,6 +808,12 @@ void AdaptiveMusicPlayer::SetVolume(float volume)
 
 void AdaptiveMusicPlayer::Update(float deltaTime, int hostileZombieCount)
 {
+	auto ready = mImpl->TakePendingPreparedPlayback();
+	if (ready.second && mImpl->ActivatePlayback(ready.first, std::move(ready.second)))
+	{
+		LOG_INFO("AdaptiveMusic") << "OGG 临时回退后已切换到 MO3，tune="
+			<< static_cast<int>(ready.first);
+	}
 	mImpl->UpdateBurst(deltaTime, hostileZombieCount);
 }
 
@@ -606,4 +825,31 @@ void AdaptiveMusicPlayer::StartBurst()
 bool AdaptiveMusicPlayer::IsPlaying() const
 {
 	return mImpl->playing.load(std::memory_order_relaxed);
+}
+
+AdaptiveMusicTune AdaptiveMusicPlayer::GetCurrentTune() const
+{
+	return static_cast<AdaptiveMusicTune>(
+		mImpl->currentTuneValue.load(std::memory_order_relaxed));
+}
+
+AdaptiveMusicTune AdaptiveMusicPlayer::GetPreparedTune() const
+{
+	return static_cast<AdaptiveMusicTune>(
+		mImpl->preparedTuneValue.load(std::memory_order_relaxed));
+}
+
+bool AdaptiveMusicPlayer::DidLastPlayStartImmediately() const
+{
+	return mImpl->lastPlayStartedImmediately.load(std::memory_order_relaxed);
+}
+
+int AdaptiveMusicPlayer::GetLastPreparationMilliseconds() const
+{
+	return mImpl->lastPreparationMilliseconds.load(std::memory_order_relaxed);
+}
+
+int AdaptiveMusicPlayer::GetLastPlayHandoffMicroseconds() const
+{
+	return mImpl->lastPlayHandoffMicroseconds.load(std::memory_order_relaxed);
 }

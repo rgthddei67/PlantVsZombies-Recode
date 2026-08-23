@@ -45,6 +45,27 @@
 #include <limits>
 
 namespace {
+	/** 返回当前地形唯一的关卡音乐资源键，供预构建与正式播放共用。 */
+	const std::string& BackgroundMusicKey(Background background)
+	{
+		switch (background)
+		{
+		case Background::GROUND_DAY:
+			return ResourceKeys::Music::MUSIC_DAY;
+		case Background::GROUND_NIGHT:
+			return ResourceKeys::Music::MUSIC_NIGHT;
+		case Background::WATER_POOL:
+			return ResourceKeys::Music::MUSIC_POOL;
+		case Background::NIGHT_WATER_POOL:
+			return ResourceKeys::Music::MUSIC_FOG;
+		case Background::ROOF:
+			return ResourceKeys::Music::MUSIC_ROOF;
+		case Background::NIGHT_ROOF:
+			return ResourceKeys::Music::MUSIC_NIGHT;
+		}
+		return ResourceKeys::Music::MUSIC_DAY;
+	}
+
 	/** 集中保留地刺系的背景地形规则；屋顶必须拒绝无法放入花盆的地刺系。 */
 	bool IsSpikeweedTerrainRestricted(Background background)
 	{
@@ -7119,29 +7140,14 @@ void Board::InitializeStartingFlowerPots()
 	}
 }
 
+void Board::PrepareBackgroundMusic()
+{
+	AudioSystem::PrepareMusic(BackgroundMusicKey(mBackGround));
+}
+
 void Board::PlayBackgroundMusic()
 {
-	switch (mBackGround)
-	{
-	case Background::GROUND_DAY:
-		AudioSystem::PlayMusic(ResourceKeys::Music::MUSIC_DAY, -1);
-		break;
-	case Background::GROUND_NIGHT:
-		AudioSystem::PlayMusic(ResourceKeys::Music::MUSIC_NIGHT, -1);
-		break;
-	case Background::WATER_POOL:
-		AudioSystem::PlayMusic(ResourceKeys::Music::MUSIC_POOL, -1);
-		break;
-	case Background::NIGHT_WATER_POOL:
-		AudioSystem::PlayMusic(ResourceKeys::Music::MUSIC_FOG, -1);
-		break;
-	case Background::ROOF:
-		AudioSystem::PlayMusic(ResourceKeys::Music::MUSIC_ROOF, -1);
-		break;
-	case Background::NIGHT_ROOF:
-		AudioSystem::PlayMusic(ResourceKeys::Music::MUSIC_NIGHT, -1);
-		break;
-	}
+	AudioSystem::PlayMusic(BackgroundMusicKey(mBackGround), -1);
 }
 
 void Board::GameOver()

@@ -1540,6 +1540,8 @@ void GameScene::OnEnter() {
 	if (!mBoard->IsLoadRestoreActive()) {
 		mBoard->InitializeStartingFlowerPots();
 	}
+	// 地形在 Board 构造与读档后已经确定；选卡/镜头演出期间后台解析完整 MO3 分轨。
+	mBoard->PrepareBackgroundMusic();
 
 	if (mBoard->mBoardState == BoardState::GAME) {
 		// 跳过选卡和开场动画，直接进入游戏
@@ -2403,6 +2405,7 @@ void GameScene::BeginSurvivalCardSelect()
 
 	// 轮间选卡：切到选卡背景音乐，进入下一轮时切回战斗音乐（见 READY_SET_PLANT 轮间分支）
 	AudioSystem::PlayMusic(ResourceKeys::Music::MUSIC_CHOOSEYOURSEEDS, -1);
+	mBoard->PrepareBackgroundMusic();
 
 	// 选卡阶段隐藏铲子（不可用），进入下一轮时再恢复（见 READY_SET_PLANT 轮间分支）
 	if (mShovelUI) mShovelUI->SetActive(false);
