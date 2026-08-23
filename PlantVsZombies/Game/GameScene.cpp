@@ -73,6 +73,17 @@ namespace {
 	constexpr float kWeatherPanelGaugeLineHeight = 38.0f; // 累计条文字与 8px 进度槽合计占用的面板高度
 	constexpr float kWeatherGaugeWidth = 314.0f;          // 天气累计条可用宽度，左右与正文对齐
 	constexpr float kWeatherGaugeHeight = 8.0f;           // 天气累计条槽高，避免长期遮挡过多战场
+	constexpr float kWinterThermometerFrameX = 0.0f;      // 独立温度计贴图左缘，单位：逻辑像素
+	constexpr float kWinterThermometerFrameY = 154.0f;    // 温度计位于天气面板下方且不侵入种子槽，单位：逻辑像素
+	constexpr float kWinterThermometerFrameWidth = 100.0f; // 温度计贴图目标宽度，按低分辨率 HUD 可读性确定
+	constexpr float kWinterThermometerFrameHeight = 223.0f; // 温度计贴图目标高度，保持原始资源纵横比
+	constexpr float kWinterThermometerTubeCenterX = 50.0f; // 透明管腔中心的屏幕 X，单位：逻辑像素
+	constexpr float kWinterThermometerTubeTopY = 181.0f;   // +6°C 液柱顶点的屏幕 Y，单位：逻辑像素
+	constexpr float kWinterThermometerTubeBottomY = 318.0f; // -12°C 液柱颈部的屏幕 Y，单位：逻辑像素
+	constexpr float kWinterThermometerBulbCenterY = 348.0f; // 透明球腔中心的屏幕 Y，单位：逻辑像素
+	constexpr float kWinterThermometerLabelX = 90.0f;      // 三条阈值文字的左缘，单位：逻辑像素
+	constexpr int kWinterThermometerScaleFontSize = 13;    // 上限、冰点与下限刻度字号
+	constexpr int kWinterThermometerCurrentFontSize = 15;  // 温度计下方当前温度字号
 	constexpr float kRoofRunoffSlopeStartX = CELL_INITALIZE_POS_X; // 径流世界特效从房屋侧第一列边缘开始
 	constexpr float kRoofRunoffSheetSliceWidth = 4.0f;    // 水膜按窄竖片贴合连续坡面，单位像素；片间重叠避免出现轮廓线
 	constexpr float kRoofRunoffDropletTravelPerFlow = 240.0f; // 单次冲刷期间零散水珠朝屋檐行进的视觉距离，单位像素
@@ -244,7 +255,8 @@ namespace {
 	/** 低温冬日花园沿用同一降水强度，但把玩家可见名称改为雪。 */
 	const char* PrecipitationDisplayName(const Board* board, RainIntensity intensity) {
 		const bool snow = board && board->SupportsWinterTemperature()
-			&& board->GetAmbientTemperatureC() <= 0.0f
+			&& board->GetAmbientTemperatureC()
+				<= board->GetWinterFreezingTemperatureC()
 			&& intensity != RainIntensity::CLEAR;
 		if (!snow) return RainIntensityDisplayName(intensity);
 		switch (intensity) {
@@ -252,17 +264,6 @@ namespace {
 		case RainIntensity::MEDIUM: return u8"中雪";
 		case RainIntensity::HEAVY:  return u8"大雪";
 		case RainIntensity::CLEAR:  return u8"晴天";
-		}
-		return u8"未知";
-	}
-
-	/** 把独立寒潮阶段转换为天气面板使用的短名称。 */
-	const char* ColdWavePhaseDisplayName(ColdWavePhase phase) {
-		switch (phase) {
-		case ColdWavePhase::CALM:    return u8"间歇";
-		case ColdWavePhase::COOLING: return u8"降温中";
-		case ColdWavePhase::COLD:    return u8"寒潮中";
-		case ColdWavePhase::THAWING: return u8"回暖中";
 		}
 		return u8"未知";
 	}
@@ -422,9 +423,6 @@ namespace {
 			if (ShouldDisplayNightRoofExecutionLine(board)) {
 				height += kWeatherPanelDetailLineHeight;
 			}
-		}
-		if (board->SupportsWinterTemperature()) {
-			height += kWeatherPanelDetailLineHeight;
 		}
 		if (board->HasTyphoon()) height += kWeatherPanelDetailLineHeight;
 		return height;
@@ -968,6 +966,89 @@ void GameScene::UpdateWeatherUi(float deltaTime)
 	}
 }
 
+/** 在天气栏之外常驻绘制冬日花园温度计，并明确标出三条玩法阈值。 */
+void GameScene::DrawWinterThermometer(Graphics* g) const
+{
+	if (!g || !mBoard || mBoard->mBoardState != BoardState::GAME
+		|| !mBoard->SupportsWinterTemperature()) return;
+	const Texture* frame = ResourceManager::GetInstance().GetTexture(
+		ResourceKeys::Textures::IMAGE_WINTER_THERMOMETER_FRAME_V1, false);
+	if (!frame) return;
+
+	const float gaugeRatio = mBoard->GetWinterTemperatureGaugeRatio();
+	const float fillTopY = kWinterThermometerTubeBottomY
+		- (kWinterThermometerTubeBottomY - kWinterThermometerTubeTopY)
+			* gaugeRatio;
+	const bool frozen = mBoard->GetAmbientTemperatureC()
+		<= mBoard->GetWinterFreezingTemperatureC();
+	const glm::vec4 liquidColor = frozen
+		? glm::vec4(64.0f, 177.0f, 244.0f, 248.0f)
+		: glm::vec4(235.0f, 104.0f, 54.0f, 248.0f);
+	const glm::vec4 liquidHighlight = frozen
+		? glm::vec4(181.0f, 235.0f, 255.0f, 205.0f)
+		: glm::vec4(255.0f, 205.0f, 112.0f, 205.0f);
+
+	// 液体先画入贴图的透明管腔；球泡略扩到木框下方，让贴图的平滑内缘裁掉程序圆边。
+	g->FillCircle(kWinterThermometerTubeCenterX,
+		kWinterThermometerBulbCenterY, 21.0f, liquidColor, 64);
+	g->FillRect(kWinterThermometerTubeCenterX - 5.0f, fillTopY, 10.0f,
+		kWinterThermometerBulbCenterY - fillTopY, liquidColor);
+	g->FillRect(kWinterThermometerTubeCenterX - 2.5f, fillTopY + 2.0f, 2.0f,
+		std::max(0.0f, kWinterThermometerBulbCenterY - fillTopY - 8.0f),
+		liquidHighlight);
+	g->DrawTexture(frame, kWinterThermometerFrameX, kWinterThermometerFrameY,
+		kWinterThermometerFrameWidth, kWinterThermometerFrameHeight);
+
+	const float minimum = mBoard->GetWinterMinimumTemperatureC();
+	const float maximum = mBoard->GetWinterMaximumTemperatureC();
+	const float freezing = mBoard->GetWinterFreezingTemperatureC();
+	const float freezingRatio = std::clamp((freezing - minimum)
+		/ (maximum - minimum), 0.0f, 1.0f);
+	const float freezingY = kWinterThermometerTubeBottomY
+		- (kWinterThermometerTubeBottomY - kWinterThermometerTubeTopY)
+			* freezingRatio;
+	const glm::vec4 tickColor(242.0f, 232.0f, 194.0f, 235.0f);
+	const glm::vec4 textColor(242.0f, 241.0f, 223.0f, 255.0f);
+	const glm::vec4 shadow(22.0f, 18.0f, 13.0f, 220.0f);
+	const auto drawScaleLabel = [g, &tickColor, &textColor, &shadow](
+		float y, const std::string& text) {
+		g->FillRect(77.0f, y - 1.5f, 10.0f, 3.0f, shadow);
+		g->FillRect(77.0f, y - 1.0f, 10.0f, 2.0f, tickColor);
+		g->DrawText(text, ResourceKeys::Fonts::FONT_FZCQ,
+			kWinterThermometerScaleFontSize, shadow,
+			kWinterThermometerLabelX + 1.0f, y - 8.0f + 1.0f);
+		g->DrawText(text, ResourceKeys::Fonts::FONT_FZCQ,
+			kWinterThermometerScaleFontSize, textColor,
+			kWinterThermometerLabelX, y - 8.0f);
+	};
+	drawScaleLabel(kWinterThermometerTubeTopY, u8"+6° 上限");
+	drawScaleLabel(freezingY, u8"0° 结冰");
+	drawScaleLabel(kWinterThermometerTubeBottomY, u8"-12° 下限");
+
+	const int current = static_cast<int>(std::lround(mBoard->GetAmbientTemperatureC()));
+	const std::string currentText = std::string(u8"当前 ")
+		+ (current > 0 ? "+" : "") + std::to_string(current) + u8"°C";
+	constexpr float kCurrentPlateX = 3.0f;  // 当前温度底板左缘，单位：逻辑像素
+	constexpr float kCurrentPlateY = 381.0f; // 当前温度底板顶缘，单位：逻辑像素
+	constexpr float kCurrentPlateWidth = 144.0f; // 当前温度底板宽度，覆盖完整中文数值
+	constexpr float kCurrentPlateHeight = 26.0f; // 当前温度底板高度，单位：逻辑像素
+	g->FillRect(kCurrentPlateX + 2.0f, kCurrentPlateY + 2.0f,
+		kCurrentPlateWidth, kCurrentPlateHeight,
+		glm::vec4(0.0f, 0.0f, 0.0f, 92.0f));
+	g->FillRect(kCurrentPlateX, kCurrentPlateY,
+		kCurrentPlateWidth, kCurrentPlateHeight,
+		glm::vec4(69.0f, 50.0f, 30.0f, 205.0f));
+	g->DrawRect(kCurrentPlateX, kCurrentPlateY,
+		kCurrentPlateWidth, kCurrentPlateHeight,
+		glm::vec4(214.0f, 175.0f, 92.0f, 225.0f));
+	DrawCenteredUiText(g, currentText, kWinterThermometerCurrentFontSize,
+		shadow, kCurrentPlateX + kCurrentPlateWidth * 0.5f + 1.0f,
+		kCurrentPlateY + 4.0f + 1.0f);
+	DrawCenteredUiText(g, currentText, kWinterThermometerCurrentFontSize,
+		textColor, kCurrentPlateX + kCurrentPlateWidth * 0.5f,
+		kCurrentPlateY + 4.0f);
+}
+
 /** 在左上角绘制当前天气与已锁定的下一天气预警。 */
 void GameScene::DrawWeatherPanel(Graphics* g) const
 {
@@ -1034,22 +1115,6 @@ void GameScene::DrawWeatherPanel(Graphics* g) const
 		forecastColor, textX, kWeatherPanelY + 41.0f);
 
 	float detailLineY = kWeatherPanelY + 69.0f;
-	if (mBoard->SupportsWinterTemperature()) {
-		const int temperature = static_cast<int>(std::lround(
-			mBoard->GetAmbientTemperatureC()));
-		std::string temperatureLine = std::string(u8"温度：")
-			+ (temperature > 0 ? "+" : "") + std::to_string(temperature)
-			+ u8"°C · " + ColdWavePhaseDisplayName(mBoard->GetColdWavePhase())
-			+ u8" · 冻土" + std::to_string(mBoard->GetFrozenColumnCount()) + u8"列";
-		const glm::vec4 temperatureColor = temperature <= 0
-			? glm::vec4(178.0f, 229.0f, 255.0f, alpha)
-			: glm::vec4(224.0f, 236.0f, 213.0f, alpha);
-		g->DrawText(temperatureLine, ResourceKeys::Fonts::FONT_FZCQ,
-			kWeatherWindFontSize, shadow, textX + 1.0f, detailLineY + 1.0f);
-		g->DrawText(temperatureLine, ResourceKeys::Fonts::FONT_FZCQ,
-			kWeatherWindFontSize, temperatureColor, textX, detailLineY);
-		detailLineY += kWeatherPanelDetailLineHeight;
-	}
 	if (!stormyNightForecast && mBoard->HasFogWeatherForecast()) {
 		const int fogSeconds = std::max(0,
 			static_cast<int>(std::ceil(mBoard->GetFogWeatherTimer())));
@@ -1455,6 +1520,9 @@ void GameScene::BuildDrawCommands()
 	}
 
 	if (mBoard) {
+		RegisterDrawCommand("WinterThermometer",
+			[this](Graphics* g) { DrawWinterThermometer(g); },
+			LAYER_UI + 450);
 		RegisterDrawCommand("WeatherPanel",
 			[this](Graphics* g) { DrawWeatherPanel(g); },
 			LAYER_UI + 500);

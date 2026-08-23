@@ -237,6 +237,8 @@ private:
 	void DrawCobCannonTarget(Graphics* g) const;
 	void UpdateWeatherUi(float deltaTime);
 	void DrawFog(Graphics* g) const;
+	/** 在天气面板之外绘制冬日花园常驻温度计与玩法阈值。 */
+	void DrawWinterThermometer(Graphics* g) const;
 	void DrawWeatherPanel(Graphics* g) const;
 	void DrawWeatherForecastFailure(Graphics* g) const;
 	void DrawLightningStrike(Graphics* g) const;

@@ -111,6 +111,7 @@ namespace {
 	constexpr float kFirstRainDelayMin = 90.0f;          // 开局到首场雨的最短等待时间（秒）
 	constexpr float kFirstRainDelayMax = 105.0f;          // 开局到首场雨的最长等待时间（秒）
 	constexpr float kWinterWarmTemperatureC = 6.0f;      // 寒潮外冬日花园的稳定环境温度（摄氏度）
+	constexpr float kWinterFreezeTemperatureC = 0.0f;    // 降水转雪并开始冻结最右列的冰点（摄氏度）
 	constexpr float kWinterColdTemperatureC = -12.0f;    // 寒潮最冷阶段的稳定环境温度（摄氏度）
 	constexpr float kColdWaveCalmDurationMin = 35.0f;    // 两次寒潮之间温暖间隔的最短游戏秒数
 	constexpr float kColdWaveCalmDurationMax = 60.0f;    // 两次寒潮之间温暖间隔的最长游戏秒数
@@ -1279,7 +1280,8 @@ float Board::GetWeatherTransitionProgress() const
 /** 雨声音量与暗幕、玩法倍率共用同一平滑进度。 */
 float Board::GetRainAudioVolume() const
 {
-	if (SupportsWinterTemperature() && mAmbientTemperatureC <= 0.0f) return 0.0f;
+	if (SupportsWinterTemperature()
+		&& mAmbientTemperatureC <= kWinterFreezeTemperatureC) return 0.0f;
 	const float progress = GetWeatherTransitionProgress();
 	const float previous = RainVolumeForIntensity(mPreviousRainIntensity);
 	return previous + (RainVolumeForIntensity(mRainIntensity) - previous) * progress;
@@ -1912,7 +1914,8 @@ bool Board::IsRainEffectEmitting() const
 
 void Board::StartRainAudio()
 {
-	if (SupportsWinterTemperature() && mAmbientTemperatureC <= 0.0f) {
+	if (SupportsWinterTemperature()
+		&& mAmbientTemperatureC <= kWinterFreezeTemperatureC) {
 		StopRainAudio();
 		return;
 	}
@@ -4460,10 +4463,33 @@ bool Board::SupportsTyphoon() const
 	return SupportsWeather() && mBackGround != Background::WINTER_GARDEN;
 }
 
+/** 提供温度计与测试共用的归一化液柱高度，避免 UI 复制寒潮温区。 */
+float Board::GetWinterTemperatureGaugeRatio() const
+{
+	return std::clamp((mAmbientTemperatureC - kWinterColdTemperatureC)
+		/ (kWinterWarmTemperatureC - kWinterColdTemperatureC), 0.0f, 1.0f);
+}
+
+float Board::GetWinterMinimumTemperatureC() const
+{
+	return kWinterColdTemperatureC;
+}
+
+float Board::GetWinterMaximumTemperatureC() const
+{
+	return kWinterWarmTemperatureC;
+}
+
+float Board::GetWinterFreezingTemperatureC() const
+{
+	return kWinterFreezeTemperatureC;
+}
+
 /** 温度每越过两个负温档，冻土从最右侧多推进一列；左侧三列温室区永远安全。 */
 int Board::GetFrozenColumnCount() const
 {
-	if (!SupportsWinterTemperature() || mAmbientTemperatureC > 0.0f) return 0;
+	if (!SupportsWinterTemperature()
+		|| mAmbientTemperatureC > kWinterFreezeTemperatureC) return 0;
 	const int maximumFrozen = std::max(0, mColumns - kWinterSafeColumnCount);
 	const int coldBand = static_cast<int>(std::floor(-mAmbientTemperatureC / 2.0f)) + 1;
 	return std::clamp(coldBand, 1, maximumFrozen);
@@ -4493,7 +4519,8 @@ bool Board::IsPlantFootprintFrozen(PlantType type, int row, int anchorColumn) co
 
 bool Board::IsWinterPrecipitationSnow() const
 {
-	return SupportsWinterTemperature() && mAmbientTemperatureC <= 0.0f
+	return SupportsWinterTemperature()
+		&& mAmbientTemperatureC <= kWinterFreezeTemperatureC
 		&& mRainIntensity != RainIntensity::CLEAR;
 }
 
@@ -7784,8 +7811,16 @@ void Board::ActivateShovel()
 	}
 }
 
+bool Board::CanHaveMowerInRow(int row) const
+{
+	return row >= 0 && row < mRows
+		&& (!SupportsWinterTemperature() || row >= 2);
+}
+
+/** 创建当前地形允许的小推车；冬日花园温室遮挡行直接返回空。 */
 Mower* Board::CreateMower(MowerType type, int row)
 {
+	if (!CanHaveMowerInRow(row)) return nullptr;
 	if (IsRoofBackground()) type = MowerType::ROOF;
 	float x = 160.0f;
 	float y = GetMowerTerrainY(row, x + 40.0f);
@@ -7806,6 +7841,8 @@ Mower* Board::CreateMower(MowerType type, int row)
 
 Mower* Board::CreateMowerWithID(MowerType type, int row, float x, float y, int id)
 {
+	// 旧冬日花园存档可能仍含前两行小推车；加载时按当前地形契约静默丢弃。
+	if (!CanHaveMowerInRow(row)) return nullptr;
 	// 屋顶开发期旧存档曾把清洁车保存成 LAWN；按当前地图规范化即可无版本迁移兼容。
 	if (IsRoofBackground()) {
 		type = MowerType::ROOF;
@@ -7828,6 +7865,7 @@ Mower* Board::CreateMowerWithID(MowerType type, int row, float x, float y, int i
 void Board::InitializeMowers()
 {
 	for (int row = 0; row < mRows; row++) {
+		if (!CanHaveMowerInRow(row)) continue;
 		CreateMower(IsRoofBackground()
 			? MowerType::ROOF
 			: (IsPoolRow(row) ? MowerType::WATER : MowerType::LAWN), row);

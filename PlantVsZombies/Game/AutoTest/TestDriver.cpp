@@ -3390,6 +3390,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		ResourceKeys::Textures::IMAGE_BACKGROUND_WINTERGARDEN, false) != nullptr;
 	out["winterFrostOverlayLoaded"] = ResourceManager::GetInstance().GetTexture(
 		ResourceKeys::Textures::IMAGE_WINTER_FROST_OVERLAY_V2, false) != nullptr;
+	out["winterThermometerLoaded"] = ResourceManager::GetInstance().GetTexture(
+		ResourceKeys::Textures::IMAGE_WINTER_THERMOMETER_FRAME_V1, false) != nullptr;
 	out["isBossLevel"] = AdventureProgression::IsBossLevel(board->mLevel);
 	out["bossSlot"] = BossSlotName(AdventureProgression::GetBossSlot(board->mLevel));
 	out["poolEffectCounter"] = gs->GetPoolEffectCounter();
@@ -4125,6 +4127,16 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		out["weather"]["winter"] = {
 			{ "supported", board->SupportsWinterTemperature() },
 			{ "initialized", board->IsWinterTemperatureInitialized() },
+			{ "thermometerVisible", board->mBoardState == BoardState::GAME
+				&& board->SupportsWinterTemperature() },
+			{ "thermometerMinimumTenths", static_cast<int>(std::lround(
+				board->GetWinterMinimumTemperatureC() * 10.0f)) },
+			{ "thermometerMaximumTenths", static_cast<int>(std::lround(
+				board->GetWinterMaximumTemperatureC() * 10.0f)) },
+			{ "thermometerFreezingTenths", static_cast<int>(std::lround(
+				board->GetWinterFreezingTemperatureC() * 10.0f)) },
+			{ "thermometerFillPct", static_cast<int>(std::lround(
+				board->GetWinterTemperatureGaugeRatio() * 100.0f)) },
 			{ "temperatureTenths", static_cast<int>(std::lround(
 				board->GetAmbientTemperatureC() * 10.0f)) },
 			{ "phase", ColdWavePhaseName(board->GetColdWavePhase()) },

@@ -613,6 +613,11 @@ public:
 	ColdWavePhase GetColdWavePhase() const { return mColdWavePhase; }
 	float GetColdWaveTimer() const { return mColdWaveTimer; }
 	float GetAmbientTemperatureC() const { return mAmbientTemperatureC; }
+	/** 把当前温度映射到温度计液柱比例；0 为最低温，1 为最高温。 */
+	float GetWinterTemperatureGaugeRatio() const;
+	float GetWinterMinimumTemperatureC() const;
+	float GetWinterMaximumTemperatureC() const;
+	float GetWinterFreezingTemperatureC() const;
 	int GetFrozenColumnCount() const;
 	int GetFirstFrozenColumn() const;
 	bool IsCellFrozen(int row, int col) const;
@@ -1178,6 +1183,8 @@ public:
 	void SetRowLoseMower(int row);
 
 	// 小推车
+	/** 查询该逻辑行是否允许拥有小推车；冬日花园前两行由温室实体阻挡。 */
+	bool CanHaveMowerInRow(int row) const;
 	Mower* CreateMower(MowerType type, int row);
 	Mower* CreateMowerWithID(MowerType type, int row, float x, float y, int id);
 	void InitializeMowers();
