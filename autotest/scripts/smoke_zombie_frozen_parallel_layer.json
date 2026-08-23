@@ -1,0 +1,41 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 1, "resetTestState": true },
+    { "op": "choose_cards", "cards": [] },
+    { "op": "wait_state", "state": "GAME", "timeout": 15 },
+    { "op": "set_spawn_paused", "value": true },
+    { "op": "spawn_zombie", "type": "ZOMBIE_NORMAL", "row": 2, "x": 600, "stationary": true, "frozen": true },
+    { "op": "spawn_zombie", "type": "ZOMBIE_NORMAL", "row": 3, "x": 760, "stationary": true, "buttered": true },
+    { "op": "spawn_zombie", "type": "ZOMBIE_CATAPULT", "row": 4, "x": 700, "stationary": true, "frozen": true },
+    { "op": "spawn_bullet", "type": "BULLET_PEA", "row": 0, "x": 1050, "y": 40, "velocityX": 0, "velocityY": 0, "damage": 0, "count": 256 },
+    { "op": "wait_seconds", "value": 0.2 },
+    { "op": "set_timescale", "value": 0.0 },
+    { "op": "assert_state", "path": "zombieCount", "equals": 3 },
+    { "op": "assert_state", "path": "bulletCount", "equals": 256 },
+    { "op": "assert_state", "path": "zombies.0.frozen", "equals": true },
+    { "op": "assert_state", "path": "zombies.1.buttered", "equals": true },
+    { "op": "assert_state", "path": "zombies.1.butterSplatFollowerConfigured", "equals": true },
+    { "op": "assert_state", "path": "zombies.1.butterSplatFollowerVisible", "equals": true },
+    { "op": "assert_state", "path": "zombies.2.frozen", "equals": true },
+    { "op": "assert_state", "path": "zombies.2.catapultIceTrapBottomFromVisualXOn1000", "equals": 95000 },
+    { "op": "assert_state", "path": "zombies.2.catapultIceTrapBottomFromVisualYOn1000", "equals": 143000 },
+    { "op": "assert_state", "path": "zombies.0.hitFlashMask", "equals": 0 },
+    { "op": "screenshot", "name": "frozen_parallel_without_glow.png" },
+
+    { "op": "damage_zombie", "row": 2, "index": 0, "damage": 1, "source": "PLANT" },
+    { "op": "assert_state", "path": "zombies.0.hitFlashMask", "equals": 1 },
+    { "op": "assert_state", "path": "zombies.0.renderedHitGlowMask", "equals": 1 },
+    { "op": "screenshot", "name": "frozen_parallel_with_glow.png" },
+
+    { "op": "set_timescale", "value": 1.0 },
+    { "op": "wait_seconds", "value": 0.2 },
+    { "op": "set_timescale", "value": 0.0 },
+    { "op": "assert_state", "path": "zombies.0.frozen", "equals": true },
+    { "op": "assert_state", "path": "zombies.0.hitFlashMask", "equals": 0 },
+    { "op": "assert_state", "path": "zombies.0.renderedHitGlowMask", "equals": 0 },
+    { "op": "screenshot", "name": "frozen_parallel_after_glow.png" },
+    { "op": "wait_frames", "value": 60 },
+    { "op": "dump_state", "name": "frozen_parallel_state.json" },
+    { "op": "quit" }
+  ]
+}

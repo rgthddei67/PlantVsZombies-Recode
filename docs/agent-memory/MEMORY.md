@@ -149,7 +149,7 @@
 - [继承式玩法对象与组件容器收缩 ✅](project_pvz_inheritance_gameplay_architecture.md) — Card 专属状态/显示、CardSlotManager、显式 Transform、纯 UI 与 Collider/Shadow/Clickable 显式附件均已完成；通用 Component 基类、类型表、模板接口和生命周期视图已删除；稳定 ID 注册与查询类已由 EntityManager 语义重命名为 EntityRegistry；Shadow 绘制、Clickable O(可点击对象) 输入仲裁和僵尸行桶 Die/CommitRow 即时失效契约保持
 - [高频实体、动画事件与运行时字符串冷热布局](project_pvz_entity_memory_layout.md) — 2026-08-22 不引入 ZombiePool；Collider 回调与 Zombie 稀有状态按需侧车，Animator 帧事件连续化并使用 24B 内联回调，GameObject/轨名共享驻留，Bullet 复用互斥弹道且尖刺固定槽位按需分配；当前 ABI 普通26轨僵尸静态下限约5.24→1.63KiB（-68.9%），只代表布局、不冒充 FPS
 - [预计算动画(放弃)](project_pvz_precomputed_animation.md) — 2026-05-23 TrackInfo::mFrames已密集per-frame,关键帧搜索不存在,ROI不足
-- [GPU instancing reanim ✅](project_pvz_gpu_instancing_reanim.md) — 2026-05-24(388a845)reanim→InstanceRecord;-1.39ms/98.4→114FPS；postscript修glow状态污染+双队列Z-order；2026-07-24 `ShadowComponent` 默认也写 instance 队列，修复并行阈值后“睡莲本体反盖上层植物影子”，`-NoInstance` 仍走 batch 兜底
+- [GPU instancing reanim ✅](project_pvz_gpu_instancing_reanim.md) — 2026-05-24(388a845)reanim→InstanceRecord;-1.39ms/98.4→114FPS；postscript修glow状态污染+双队列Z-order；2026-07-24 `ShadowComponent` 默认写 instance 队列；2026-08-23 僵尸冰晶与缺轨黄油兜底同样按实例/NoInstance双路径保序
 - [Clickable 稀疏注册与显式所有权 ✅](project_pvz_clickable_optimization.md) — 2026-05-24 自注册表替换全场扫描，历史 1.22→0.01ms(-122×)；2026-08-22 脱离 Component 容器并保留 O(可点击对象)、渲染顺序/事件消费及 Collider 原子绑定契约；`GetAllGameObjects()` per-frame scan 仍是仓库 foot-gun
 - [Dual-queue保序foot-gun](feedback_dual_queue_order_preservation.md) — dual-queue加新队列时serial fallback跨队列保序必审;worker replay有emitUpTo兜底serial没有
 - [预乘alpha管线](project_pvz_premultiplied_alpha.md) — 2026-05-30修白边:契约跨三层(UploadPixels rgb*=a/混合srcColor=ONE/frag预乘vColor.a);加纹理/混合模式必守;glslc重编spv拷Debug+Release

@@ -2622,7 +2622,7 @@ void Zombie::Draw(Graphics* g)
 		mTangleKelpState->mGrabFront->Draw(g, grabPosition.x, grabPosition.y, scale);
 	}
 
-	// 缺少语义头部轨道的未来异形资源才走旧锚点后绘；当前常规品种均由 reanim 内分层。
+	// 缺少语义头部轨道的未来异形资源才走锚点后绘；当前常规品种均由 reanim 内分层。
 	if (g && mButterTimer > 0.0f && mHasHead && !mIsPreview
 		&& !mButterSplatFollowerConfigured) {
 		if (const Texture* tex = ResourceManager::GetInstance().GetTexture(
@@ -2630,14 +2630,22 @@ void Zombie::Draw(Graphics* g)
 			const Vector headAnchor = GetButterSplatAnchor();
 			const float butterScale = scale * kButterSplatScale
 				* GetButterSplatScaleMultiplier();
-			g->DrawTexture(tex, headAnchor.x,
-				headAnchor.y + kButterSplatOffsetY * scale,
-				static_cast<float>(tex->width) * butterScale,
-				static_cast<float>(tex->height) * butterScale);
+			const float drawY = headAnchor.y + kButterSplatOffsetY * scale;
+			const float drawW = static_cast<float>(tex->width) * butterScale;
+			const float drawH = static_cast<float>(tex->height) * butterScale;
+			if (g->IsInstancePathEnabled()) {
+				// 兜底黄油同样必须跟本体共享实例流，避免并行 replay 把后绘 batch 压到本体下层。
+				g->DrawTextureInstanced(tex, headAnchor.x, drawY, drawW, drawH);
+			}
+			else {
+				g->DrawTexture(tex, headAnchor.x, drawY, drawW, drawH);
+			}
 		}
 	}
 
-	// 冻结冰晶（icetrap.png）：画在本体之后=前景，垫在僵尸脚底
+	// 冻结冰晶（icetrap.png）：画在本体之后=前景，垫在僵尸脚底。
+	// 默认路径必须与 reanim 本体进入同一实例流；否则并行 replay 会把同段 batch
+	// 提前到 instance 之前，冰晶便会被本体反盖。-NoInstance 保留普通批次兜底。
 	// （原版分前后两张 ICETRAP/ICETRAP2，本项目单图取前层简化）
 	if (g && mFrozenTimer > 0.0f && !mIsPreview)
 	{
@@ -2649,7 +2657,14 @@ void Zombie::Draw(Graphics* g)
 			const float w = static_cast<float>(tex->width) * iceTrapScale;
 			const float h = static_cast<float>(tex->height) * iceTrapScale;
 			// 普通僵尸仍压在脚底线；车辆覆写后可保持高度并横移到整车中央。
-			g->DrawTexture(tex, bottomAnchor.x - w * 0.5f, bottomAnchor.y - h, w, h);
+			const float drawX = bottomAnchor.x - w * 0.5f;
+			const float drawY = bottomAnchor.y - h;
+			if (g->IsInstancePathEnabled()) {
+				g->DrawTextureInstanced(tex, drawX, drawY, w, h);
+			}
+			else {
+				g->DrawTexture(tex, drawX, drawY, w, h);
+			}
 		}
 	}
 

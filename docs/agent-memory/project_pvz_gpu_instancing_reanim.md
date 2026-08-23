@@ -194,3 +194,33 @@ flush 两队列，不是根因。
 陆地僵尸稳定跨过并行阈值。修复前默认路径截图 8 个影子全部被盖；修复后默认与 `-NoInstance` 均显示
 全部 8 个影子，两个可见运行均 exit 0，`plantCount=16`、`zombieCount=140`、draw call 14、
 scissor change 0，日志无 ERROR/FAIL/WATCHDOG。
+
+---
+
+## 2026-08-23：冻结冰晶仅在受击发光时位于前景
+
+### 症状与根因
+
+`level48_data.json` 接近 `GameObjectManager::DrawAll` 的 200 对象并行阈值。僵尸本体由 reanim 写入
+instance 流，`Zombie::Draw` 随后却用 `DrawTexture` 把 `IMAGE_ICETRAP` 写入 batch 流；同一 Alpha
+段 replay 固定先 batch 后 instance，导致调用上后画的冰晶实际先提交并被本体反盖。受击白光会插入
+Alpha/Add blend 分段，提前提交本体，反而让冰晶在 glow 期间暂时恢复前景，因此现象表现为“只有发光
+时层级正确”。串行与 `-NoInstance` 的 cross-flush 原本正确，所以低对象数关卡难以复现。
+
+### 修复契约
+
+- 默认实例路径的脚底冰晶改用 `DrawTextureInstanced`，与僵尸本体共享同一有序 instance 流；
+  `-NoInstance` 保留 `DrawTexture`，不改变慢路径和 OpenGL 兼容路径。
+- 现有正式僵尸的黄油均由 Animator follower 分层，本来就在同一有序流，不受该 bug 影响；仅把
+  缺少语义头轨的未来资源兜底同步改为默认 instance / `-NoInstance` batch，关闭潜在同类缺口。
+- 禁止为此全局颠倒 replay 的 batch-first 顺序；影子→本体等既有层级依赖该约定。相对本体前后绘制
+  的贴图应选择与本体同一队列，而不是增加逐对象 flush。
+
+### 验证
+
+新增 `smoke_zombie_frozen_parallel_layer.json`：以 256 发零速重叠子弹稳定形成 309 个活动绘制对象和
+24 个 record slot，同时放置普通冻结僵尸、黄油 follower 僵尸与冻结投篮车。默认实例与
+`-NoInstance` 可见运行均 exit 0；无 glow、glow 中、glow 结束三张同步截图里普通/车辆冰晶始终位于
+本体前景，黄油保持头部层级，投篮车冰晶锚点仍为相对视觉原点 `[+95,+143]`。既有
+`smoke_zombie_butter_layers` 默认与 `-NoInstance` 各 172 条命令通过，`smoke_catapult_zombie`
+143 条命令通过，日志无 FAIL/WATCHDOG/资源缺失。

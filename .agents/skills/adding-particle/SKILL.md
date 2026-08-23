@@ -38,7 +38,7 @@ description: Use when adding or tuning ANY particle effect (粒子特效) in PvZ
 - 池沿、地形边界等状态切换特效必须复用决定切换的同一几何：通用僵尸入水用前后探针中点作 X、水面裁剪底线作 Y，禁止另抄一组 C# 800×600 点位。若原版表现同时含短 `AnimatedObject` reanim 与 ParticleSystem XML（`PoolSplash` 实证），两层保持独立资源与生命周期；AutoTest 分别断言 `animatedObjectTagCounts` 和 `particleEffectNameCounts`，不能只证明其中一层。
 - XML 的 `EmitterOffsetX/Y` 仍有“双倍生效”陷阱，但“除以 2”只能用于**完成坐标系换算后的局部偏移**，不能把 800×600 原值直接减半搬入。
 - 触发后先执行同步 `screenshot`，再用 `particleEffectsByName.<Name>.0` 的 `renderProbeReady/worldBounds/originToRenderCenterD*Int/nearestPlant/nearestZombie` 断言本项目实际提交的粒子矩形相对发射原点与实体 collider 的关系；随机范围用宽容区间而非单点值。
-- 先确认视觉对象是不是 ParticleSystem XML：若代码用 `AnimatedObject(ObjectType::OBJECT_PARTICLE)` 播 reanim，它不会出现在 `particleEffectsByName`，应按自定义 tag 从 `animatedObjectsByTag` 取证。方向性命中特效的局部 X 偏移要按来源速度符号镜像，并断言 `nearestZombie.centerDxInt/boundsIntersect`，不能只凭截图估计。
+- 先确认视觉对象是不是 ParticleSystem XML：若代码用 `AnimatedObject(ObjectType::OBJECT_PARTICLE)` 播 reanim，它不会出现在 `particleEffectsByName`，应按自定义 tag 从 `animatedObjectsByTag` 取证；若只是实体 `Draw()` 中直绘的状态贴图（如僵尸脚底冰晶），则既不属于 ParticleSystem，也不会出现在这两类投影。后一类必须审计普通 batch 与 reanim instance 的跨队列顺序：默认实例路径的相对层级贴图用 `DrawTextureInstanced`，`-NoInstance` 才用 `DrawTexture`，并在对象数跨并行阈值后做无 glow/glow/结束三态截图。方向性命中特效的局部 X 偏移要按来源速度符号镜像，并断言 `nearestZombie.centerDxInt/boundsIntersect`，不能只凭截图估计。
 - `clipRightXInt` 是裁剪语义，`worldBounds` 是裁剪前提交几何；两者分开断言。运动对象瞬时绝对 X/Y 只供诊断，不作稳定断言。
 
 ## 数值语法（三种，核心）
