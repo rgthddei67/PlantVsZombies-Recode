@@ -371,10 +371,44 @@ namespace {
 			| (static_cast<uint32_t>(b) << 16)
 			| (static_cast<uint32_t>(a) << 24);
 	}
+
+	struct ReanimBasis {
+		float tA;
+		float tB;
+		float tC;
+		float tD;
+	};
+
+	/**
+	 * @brief 把 Reanim 的双轴角度与缩放转换成 2x2 仿射基。
+	 *
+	 * 普通旋转轨道会把同一角度同时写入 kx/ky；相等时复用同一组 sin/cos，
+	 * 保持结果与分别计算完全一致，同时避免热绘制路径重复调用三角函数。
+	 */
+	inline ReanimBasis ComputeReanimBasis(const TrackFrameTransform& transform) {
+		constexpr float kDegreesToRadians = 3.14159265358979323846f / 180.0f;
+		const float angleX = -transform.kx * kDegreesToRadians;
+		const float cosX = cosf(angleX);
+		const float sinX = sinf(angleX);
+
+		float cosY = cosX;
+		float sinY = sinX;
+		if (transform.kx != transform.ky) {
+			const float angleY = -transform.ky * kDegreesToRadians;
+			cosY = cosf(angleY);
+			sinY = sinf(angleY);
+		}
+
+		return {
+			cosX * transform.sx,
+			-sinX * transform.sx,
+			sinY * transform.sy,
+			cosY * transform.sy,
+		};
+	}
 }
 
 void Animator::DrawInternalInstanced(Graphics* g, float baseX, float baseY, float Scale) const {
-	static constexpr float DEG_TO_RAD = 3.14159265358979323846f / 180.0f;
 	InstanceRecord firstDeferredFollowerInstance{};
 	bool hasDeferredFollowerInstance = false;
 	std::vector<InstanceRecord> deferredFollowerOverflow;
@@ -410,20 +444,13 @@ void Animator::DrawInternalInstanced(Graphics* g, float baseX, float baseY, floa
 		if (!image && !followerImage
 			&& (!sparse || sparse->mAttachedReanims.empty())) continue;
 
-		// CPU still computes the trig — GATE A measured this is ~6 ms CPU sum across
-		// 165k tracks/frame; the GPU instancing win comes from removing per-call mat4
-		// construction + 6-vertex inflation + write traffic (7× write bandwidth reduction).
-		// 附件定位复用同一组结果，确保父轨道本体与子 Animator 不重复计算三角函数。
-		const float angleX = -transform.kx * DEG_TO_RAD;
-		const float angleY = -transform.ky * DEG_TO_RAD;
-		const float cosX = cosf(angleX);
-		const float sinX = sinf(angleX);
-		const float cosY = cosf(angleY);
-		const float sinY = sinf(angleY);
-		const float tA = cosX * transform.sx;
-		const float tB = -sinX * transform.sx;
-		const float tC = sinY * transform.sy;
-		const float tD = cosY * transform.sy;
+		// GATE A 曾测得重复双轴三角计算约占 6 ms CPU sum；相等角度现在只算一组。
+		// 附件定位继续复用同一结果，确保父轨道本体与子 Animator 不重复计算。
+		const ReanimBasis basis = ComputeReanimBasis(transform);
+		const float tA = basis.tA;
+		const float tB = basis.tB;
+		const float tC = basis.tC;
+		const float tD = basis.tD;
 		const float tx = transform.x + (extra ? extra->mOffsetX : 0.0f);
 		const float ty = transform.y + (extra ? extra->mOffsetY : 0.0f);
 
@@ -565,7 +592,6 @@ void Animator::DrawInternal(Graphics* g, float baseX, float baseY, float Scale) 
 		return;
 	}
 
-	static constexpr float DEG_TO_RAD = 3.14159265358979323846f / 180.0f;
 	struct DeferredFollowerDraw {
 		const Texture* image;
 		glm::mat4 transform;
@@ -595,16 +621,11 @@ void Animator::DrawInternal(Graphics* g, float baseX, float baseY, float Scale) 
 		TrackFrameTransform transform = GetInterpolatedTransform(i, blendRatio);
 
 		// 对本轨道 transform 只计算一次三角，自绘块和子动画块共用
-		float angleX = -transform.kx * DEG_TO_RAD;
-		float angleY = -transform.ky * DEG_TO_RAD;
-		float cosX = cosf(angleX);
-		float sinX = sinf(angleX);
-		float cosY = cosf(angleY);
-		float sinY = sinf(angleY);
-		float tA = cosX * transform.sx;
-		float tB = -sinX * transform.sx;
-		float tC = sinY * transform.sy;
-		float tD = cosY * transform.sy;
+		const ReanimBasis basis = ComputeReanimBasis(transform);
+		const float tA = basis.tA;
+		const float tB = basis.tB;
+		const float tC = basis.tC;
+		const float tD = basis.tD;
 
 		const TrackExtraInfo* extra = i < static_cast<int>(mExtraInfos.size())
 			? &mExtraInfos[i] : nullptr;

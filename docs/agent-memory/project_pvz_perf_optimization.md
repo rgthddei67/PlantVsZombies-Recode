@@ -1,6 +1,6 @@
 ---
 name: pvz-perf-optimization
-description: "PvZ C++ perf log — LATEST(2026-06-24): 11000 zombies @ 168 FPS / 5.94 ms fully CPU-bound, STOP reaffirmed; history covers atlas/parallel-update/GPU-instancing experiments & verdicts"
+description: "PvZ C++ perf log — LATEST(2026-08-23): 20000 visible zombies, exact same-angle trig reuse cuts reanim draw worker CPU about 5.6%; history covers atlas/parallel-update/GPU-instancing experiments & verdicts"
 metadata:
   node_type: memory
   type: project
@@ -498,3 +498,48 @@ balance 几乎没升，说明不能再凭“更多切片必定更均衡”盲目
 `stress_bullet_pool_active_slots`，54/54 命令、exit 0、status passed、512→0→64 池状态断言与截图
 通过，`drawWorkers=12` / `drawRecordSlots=24` 且无 slice overflow。该小场景 worker 仅约
 0.05ms，balance 受计时粒度支配，不作为 20000 僵尸性能证据。
+
+## 20000 可见僵尸：Animator 同角度三角函数精确复用（2026-08-23）
+
+主人提供的 VS CPU Sampling `.diagsession` 已能用 `clang-release` PDB 完整符号化；28.7 秒内
+18453 个样本显示 `Animator::DrawInternalInstanced` inclusive 43.0% / self 16.86%，
+`Graphics::AppendReanimInstance` self 10.73%，`cosf` self 6.76%，
+`Animator::GetInterpolatedTransform` self 5.98%。`Zombie::Draw` inclusive 69.61% 但 self 仅
+2.48%，所以瓶颈是僵尸复合动画，不是 Zombie 业务层。`operator new` inclusive 5.76% 但 self
+仅 0.04%，不能据 inclusive 数字继续追堆分配。采样时开启了血量数字，`DrawGlyphRun` inclusive
+12.51% / self 5.71%，因此后续 A/B 也保持 HP overlay 开启。
+
+精确解析只读副本 `level46_data.json`：20000 只均为普通僵尸且都在 `anim_walk2`，当前帧共
+380000 个可绘轨道样本；其中插值前后 `kx==ky` 的样本 337654 个（88.86%）。旧绘制每轨分别
+计算 X/Y 两轴的两组 sin/cos，估算 1520000 次调用/帧；同角度只算一组可精确省掉 675308 次
+（44.43%），无需 LUT、角度量化、近似数学或 GPU readback。
+
+实现只在 `Animator.cpp` 增加 `ComputeReanimBasis`：`kx==ky` 时复用 X 轴的 sin/cos，双轴不等
+时完全走旧计算；默认实例渲染和 `-NoInstance` 共用该 helper。浮点角度、缩放、提交顺序、
+InstanceRecord ABI 和存档均不变。
+
+固定比较 Profile 的第 7–14 个 60-frame 窗口；每个窗口都保持 20050 active、590071 instances。
+较长基线在第 17 个窗口开始出现小推车接触和实例数变化，全部排除，后续脚本缩短为 8 秒：
+
+| 指标 | 24-slot 基线 | 最终同角度复用 | 变化 |
+|---|---:|---:|---:|
+| total/frame | 9.256 ms | 9.183 ms | -0.073 ms (-0.8%) |
+| GameObjects | 3.864 ms | 3.636 ms | **-0.228 ms (-5.9%)** |
+| Draw_submit | 3.805 ms | 3.581 ms | **-0.224 ms (-5.9%)** |
+| worker elapsed sum | 36.114 ms | 34.106 ms | **-2.008 ms (-5.6%)** |
+| longest worker | 3.704 ms | 3.465 ms | **-0.239 ms (-6.5%)** |
+| BeginFrame acquire | 2.568 ms | 2.670 ms | +0.102 ms（回压吸收部分 CPU 余量） |
+
+两个附带实验均因低于噪声而撤回：把轨道/整数帧上下文传入 `GetInterpolatedTransform`，以及在
+`GetDeltaTransform` 内复用同轴角度插值。教训是 VS 的函数 self 样本仍可能主要是必要工作；
+小型源码去重必须经过同场 A/B，不能因看起来少了索引或算术就保留。
+
+最终验证：`clang-release` + LTO 构建和 378 项 Win7 导入审计通过；当前桌面可见运行
+`smoke_animator_recursive_instancing` 默认与 `-NoInstance`，两者 20/20 命令、3 项状态断言、
+status passed，三张对应截图逐通道最大差 1–2 且目视一致；最终 8 秒 20000 僵尸脚本
+5/5 命令、frame 481、status passed。中央存档 SHA-256 仍为
+`201F46B01C89E8736CD67FF6426925EA7BDD7FDC86597E0C4CF6F71314577648`。
+
+下一潜在大项是 `AppendReanimInstance` 的必要写流量：56B × 590071 约 33.0 MB（31.5 MiB）/帧。
+压成 48B 虽理论节省 14.3%，但会改变 shader/std430 ABI 和逐实例 clip 语义，也影响字形与附件；
+没有 cache-miss/GPU counter 和专项设计前不应以微优化方式直接修改。
