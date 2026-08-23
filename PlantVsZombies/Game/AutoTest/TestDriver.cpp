@@ -1705,6 +1705,34 @@ bool TestDriver::ExecuteCurrent() {
 		Fail("make_gargantuar_smash_ready: 未找到尚未结算砸击的目标巨人僵尸");
 		return false;
 	}
+	if (op == "make_gargantuar_throw_ready") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) {
+			Fail("make_gargantuar_throw_ready: 不在 GameScene 或 Board 为空");
+			return false;
+		}
+		const int row = cmd.value("row", -1);
+		const int index = cmd.value("index", 0);
+		int seen = 0;
+		std::vector<int> zombieIDs = gs->GetBoard()->mEntityRegistry.GetAllZombieIDs();
+		std::sort(zombieIDs.begin(), zombieIDs.end());
+		for (const int id : zombieIDs) {
+			auto* gargantuar = dynamic_cast<GargantuarZombie*>(
+				gs->GetBoard()->mEntityRegistry.GetZombie(id));
+			if (!gargantuar || !gargantuar->IsActive()
+				|| gargantuar->GetPhase() != GargantuarZombie::Phase::THROWING
+				|| gargantuar->HasReleasedImp()) {
+				continue;
+			}
+			if (row >= 0 && gargantuar->mRow != row) continue;
+			if (seen++ != index) continue;
+			// 只推进到既有第 131 帧脱手事件前；生成、阵营继承与视觉锚点对齐仍走正式路径。
+			gargantuar->SetCurrentFrame(130.99f);
+			return true;
+		}
+		Fail("make_gargantuar_throw_ready: 未找到尚未脱手的目标巨人僵尸");
+		return false;
+	}
 	if (op == "set_jack_pop_countdown") {
 		GameScene* gs = CurrentGameScene();
 		if (!gs || !gs->GetBoard()) {
@@ -4261,6 +4289,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	int slowedZombieCount = 0;
 	int toxicZombieCount = 0;
 	int fireResistantZombieCount = 0;
+	const GargantuarZombie* releasedGargantuar = nullptr;
+	const ImpZombie* thrownImp = nullptr;
 	for (int id : board->mEntityRegistry.GetAllZombieIDs()) {
 		Zombie* z = board->mEntityRegistry.GetZombie(id);
 		// Die() 会立即把对象标为 inactive，EntityRegistry 的 weak 引用到下一次清理才过期；
@@ -4863,6 +4893,9 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			}
 		}
 		if (auto* gargantuar = dynamic_cast<GargantuarZombie*>(z)) {
+			if (!releasedGargantuar && gargantuar->HasReleasedImp()) {
+				releasedGargantuar = gargantuar;
+			}
 			zombieState["gargantuarPhase"] = GargantuarPhaseName(gargantuar->GetPhase());
 			zombieState["gargantuarHasImp"] = gargantuar->HasImp();
 			zombieState["gargantuarSmashApplied"] = gargantuar->HasAppliedSmash();
@@ -4889,6 +4922,9 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				&& anim->GetTrackVisible("Zombie_gargantuar_whiterope");
 		}
 		if (auto* imp = dynamic_cast<ImpZombie*>(z)) {
+			if (!thrownImp && imp->GetPhase() == ImpZombie::Phase::THROWN) {
+				thrownImp = imp;
+			}
 			const auto* shadow = imp->GetShadow();
 			zombieState["impPhase"] = ImpPhaseName(imp->GetPhase());
 			zombieState["impAltitudeOn1000"] = static_cast<int>(std::lround(
@@ -4985,6 +5021,15 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		// 专项脚本中的异品种靶子可按语义类型稳定取证；同品种多只时仍使用 zombies 全量数组。
 		out["zombiesByType"][ZombieTypeName(z->mZombieType)] = zombieState;
 		out["zombies"].push_back(std::move(zombieState));
+	}
+	if (releasedGargantuar && thrownImp
+		&& releasedGargantuar->mRow == thrownImp->mRow) {
+		const Vector heldAnchor = releasedGargantuar->GetHeldImpBodyRenderAnchor();
+		const Vector thrownAnchor = thrownImp->GetThrowBodyRenderAnchor();
+		out["gargantuarImpReleaseBodyAnchorDxOn1000"] = static_cast<int>(std::lround(
+			(thrownAnchor.x - heldAnchor.x) * 1000.0f));
+		out["gargantuarImpReleaseBodyAnchorDyOn1000"] = static_cast<int>(std::lround(
+			(thrownAnchor.y - heldAnchor.y) * 1000.0f));
 	}
 	out["zombieCount"] = static_cast<int>(out["zombies"].size());
 	out["healerZombieCount"] = healerZombieCount;

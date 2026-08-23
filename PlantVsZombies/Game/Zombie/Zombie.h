@@ -468,6 +468,8 @@ public:
 protected:
 	/** 把当前 Animator 轨道局部锚点换算为稳定世界坐标，供离体装备取得起点。 */
 	Vector GetTrackWorldPosition(const std::string& trackName) const;
+	/** 把轨道原点按 Animator 水平镜像和最终渲染缩放换算为画面世界坐标。 */
+	Vector GetRenderedTrackWorldPosition(const std::string& trackName) const;
 	// 统一重算动画 extra 速度层：冻结/黄油/麻痹(0) > 品种能力 × 减速 × 雨势。
 	// 子类自身的整体倍率只从 GetAbilityAnimSpeedMultiplier 返回；运行期状态变化后经此收敛，
 	// 禁止直调 SetExtraSpeedMultiplier，否则会把冻结停格顶掉或丢失天气组合。

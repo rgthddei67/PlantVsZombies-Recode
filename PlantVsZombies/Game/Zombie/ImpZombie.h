@@ -40,6 +40,10 @@ public:
 	float GetThrowVerticalVelocity() const { return mVerticalVelocity; }
 	float GetThrowHorizontalVelocity() const { return mHorizontalVelocity; }
 	bool IsThrowMovingRight() const { return mThrowMovingRight; }
+	/** 返回 anim_thrown 当前帧身体原点的实际渲染世界坐标。 */
+	Vector GetThrowBodyRenderAnchor() const {
+		return GetRenderedTrackWorldPosition("Zombie_imp_body1");
+	}
 	Vector GetHeadParticleAnchor() const { return GetTrackWorldPosition("anim_head1"); }
 	Vector GetArmParticleAnchor() const {
 		return GetTrackWorldPosition("Zombie_imp_outerarm_upper");

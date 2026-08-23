@@ -2082,6 +2082,26 @@ Vector Zombie::GetTrackWorldPosition(const std::string& trackName) const
 	return GetVisualPosition() + local * scale;
 }
 
+Vector Zombie::GetRenderedTrackWorldPosition(const std::string& trackName) const
+{
+	const float scale = GetTransform()
+		? GetTransform()->GetScale() : 1.0f;
+	Vector local = mAnimator
+		? mAnimator->GetTrackPosition(trackName) : Vector::zero();
+	// Animator 的水平翻转只发生在提交渲染时；这里复现同一支点反射，供跨 reanim 接续锚点。
+	if (mAnimator && mAnimator->GetFlipX()) {
+		local.x = 2.0f * mAnimator->GetFlipPivotX() - local.x;
+	}
+	Vector world = GetVisualPosition() + local * scale;
+	if (mAnimator) {
+		world.x = mAnimator->GetRenderPivotX()
+			+ (world.x - mAnimator->GetRenderPivotX()) * mAnimator->GetRenderScaleX();
+		world.y = mAnimator->GetRenderPivotY()
+			+ (world.y - mAnimator->GetRenderPivotY()) * mAnimator->GetRenderScaleY();
+	}
+	return world;
+}
+
 bool Zombie::CanBeTargetedByTangleKelp() const
 {
 	return !mIsPreview && !mIsDead && !mIsDying && !mIsMindControlled

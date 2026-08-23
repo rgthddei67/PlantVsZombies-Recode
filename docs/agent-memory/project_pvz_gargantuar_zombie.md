@@ -10,7 +10,7 @@
 - 右手武器每次正式创建按原版 65% 电线杆、25% 鸭子过街路牌、10% 普通僵尸随机，并保存具体结果；图鉴、预览和 5-8 不设特殊武器判断。巨人整体视觉偏移为 `[-62,-107]`，碰撞框继续锚定逻辑原点 `(-17,-38,125,154)`，避免视觉校准改变砸击范围。
 - 每只巨人出生时独立抽取 `0.5～0.7` 的整体动画倍率，统一叠加行走、砸击、投掷、死亡及环境状态速度；具体结果随关卡存档恢复。显式 Shadow 附件缩放为 `1.3`，与本体视觉偏移相互独立。
 - 通用黄油 follower 默认延迟到整个 Animator 末尾作为最高层；巨人单独覆写为紧随 `anim_head1` 提交，继承插值后的位移、旋转和缩放，并由后续下巴、武器和前臂轨道自然遮挡。实际轨道倍率为 `1.08`（普通黄油 `0.8 × 1.35`）；脚底冻结冰晶仍以独立虚倍率放大为普通尺寸的 `1.35` 倍。通用生命周期、批次与兜底契约见 `project_pvz_zombie_butter_overlay.md`。
-- `ZOMBIE_IMP` 为 270 生命，状态为 `THROWN -> LANDING -> WALKING`；最新脱手初始高度为 `112px`（原版 88px 上抬 24px），水平速度保持 `300px/s`，以旧轨迹落地时长的 `1.3` 倍作为新目标时长反算竖直初速，因此实际水平飞行距离稳定乘 `1.3`。`anim_thrown` 对齐原版 `PlayOnceAndHold`：一次播完后停在末帧，物理飞行较长时不再回绕首帧造成空中回弹；旧档若按循环恢复则保留当前帧只修播放状态。飞行位移、高度、重力和落地动画均消费减速后的时间；飞行/落地期间关闭地面碰撞、啃食、地雷、水草、冻结、黄油和地面弹丸命中，完整保存 phase、高度、水平/竖直速度与方向。
+- `ZOMBIE_IMP` 为 270 生命，状态为 `THROWN -> LANDING -> WALKING`；最新脱手初始高度为 `112px`（原版 88px 上抬 24px），水平速度保持 `300px/s`，以旧轨迹落地时长的 `1.3` 倍作为新目标时长反算竖直初速，因此实际水平飞行距离稳定乘 `1.3`。巨人仍以原版 `133px` 逻辑量创建小鬼，但在完成 `anim_thrown`、阵营和镜像配置后，以两套 reanim 的 `Zombie_imp_body1` 实际渲染世界锚点补偿水平原点差，消除第 130 帧内嵌姿势到独立实体首帧约 `101.7px` 的跳变；竖直高度与弹道合同不变。`anim_thrown` 对齐原版 `PlayOnceAndHold`：一次播完后停在末帧，物理飞行较长时不再回绕首帧造成空中回弹；旧档若按循环恢复则保留当前帧只修播放状态。飞行位移、高度、重力和落地动画均消费减速后的时间；飞行/落地期间关闭地面碰撞、啃食、地雷、水草、冻结、黄油和地面弹丸命中，完整保存 phase、高度、水平/竖直速度与方向。
 - 小鬼啃食帧为 44/55，普通死亡第 81 帧、化灰第 34 帧；巨人化灰第 42 帧。小鬼断头/断手粒子分别从 `anim_head1` 与 `Zombie_imp_outerarm_upper` 的世界轨道锚点发射，XML 不再叠固定实体偏移。
 
 ## 冒险与验证
@@ -24,3 +24,4 @@
 - 2026-08-22 巨人覆写劫持者处决入口：清空盾/盔后把剩余本体交给 `TakeBodyDamage`，由巨人自己的动作中断、碰撞关闭和 `anim_death` 接管，不调用普通 `ArmDrop/HeadDrop`。`smoke_hijacker_execution` 默认与 `-NoInstance` 均 exit 0，处决后巨人保留 `hasHead/hasArm=true` 且处于专属死亡轨，截图已目验。
 - 2026-08-22 `ApplyDamagePresentation()` 改为按当前生命完整重建身体、外臂、脚和头部；健康阶段用 `SetTrackImage(..., nullptr)` 清除旧 override。治疗后的普通巨人从轻伤跨回健康时三处均恢复 `DEFAULT`，红眼从重伤跨回轻伤时脚恢复默认而身体/外臂保持轻伤；`smoke_healer_armor_group` 默认与 `-NoInstance` 均 exit 0。
 - 2026-08-23 修复小鬼空中回弹：`ConfigureThrown` 与读档轨道修复统一使用 `PlayTrackOnce("anim_thrown", "", ...)`，并对缺播放状态的旧档保帧改为一次性播放。`clang-release` 构建与 378 项 Win7 导入审计通过；当前桌面可见 `smoke_gargantuar_zombie.json` 默认实例化与 `-NoInstance` 均 104 条命令、exit 0、`script finished OK`，在原回绕时点锁定 `THROWN + anim_thrown + animPlaying=false + PLAY_ONCE_TO + altitude>0`，正常/减速飞行快照和三张同步截图均已目验。
+- 2026-08-23 补齐小鬼脱手首帧连续性：第 131 帧生成前读取巨人内嵌 `Zombie_imp_body1` 最后可见原点，独立小鬼完成 `anim_thrown` 和魅惑镜像后按实际渲染世界 X 对齐；保留此前一次播放停末帧修复、`133px` 创建基准和全部弹道参数。`clang-release` 构建与 378 项 Win7 导入审计通过；当前桌面可见 `smoke_gargantuar_zombie.json` 与 `smoke_gargantuar_charmed_throw.json` 在默认实例化/`-NoInstance` 四次运行均 exit 0，首个运动帧相对锚点 X 分别为 `-5px/+5px`，等于 300px/s 的单帧位移，四条日志均 `script finished OK`，普通与魅惑同步截图已目验。

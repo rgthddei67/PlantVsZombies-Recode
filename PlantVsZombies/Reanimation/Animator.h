@@ -562,6 +562,8 @@ public:
 	 */
 	void SetFlipX(bool flip, float pivotX = 0.0f);
 	bool GetFlipX() const { return mFlipX; }
+	/** 返回当前仅渲染水平镜像使用的动画局部 X 支点。 */
+	float GetFlipPivotX() const { return mFlipPivotX; }
 
 private:
 	// 子动画相对于父轨道的本地变换

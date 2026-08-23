@@ -94,6 +94,7 @@ Vulkan 运行时把 dynamic rendering 与 synchronization2 **分别**选路：Vu
 - **天气预报夹具补充：** 上述命令集中的 `actual=HEAVY` 限制是旧口径；当前只要公开预报或真实下一天气涉及 `HEAVY`，`set_weather_forecast` 就可用 `typhoonStrength=NONE/TYPHOON/SEVERE/SUPER` 与 `promptVariant=0..2` 固定共享的公开警报/待生效等级。`weather.forecastDisplayText` 导出面板实际公开文案，`weather.panelHeight` 与 `weather.nightRoofCharge.executionLineVisible` 用于锁定动态详情行。
 - **完整选卡夹具：** `set_all_owned_cards` 只在进程内按正式冒险奖励顺序布置当前全部已实装卡，供完整选卡面板专项使用，不改冒险进度或真实 `PlayerInfo.json`。选卡状态投影导出当前页、总页数、实际活动/隐藏植物列表及分页按钮的资源、角度和相对锚点；`click target=choose_card_page` 在执行时解析当前分页按钮中心并走真实输入路径。
 - **巨人锤击测试夹具：** `make_gargantuar_smash_ready` 按 `row/index` 选择处于 `SMASHING` 且尚未结算命中的巨人，把正式 `anim_smash` 推进到既有第 93 帧事件前；后续等待逻辑帧仍走目标快照、植物分层反应和命中音画的正式路径。
+- **巨人投掷测试夹具：** `make_gargantuar_throw_ready` 按 `row/index` 选择处于 `THROWING` 且尚未脱手的巨人，把正式 `anim_throw` 推进到既有第 131 帧事件前；后续等待逻辑帧仍走生成、阵营继承、视觉锚点对齐和音画的正式路径。
 - **急救员测试夹具：** `set_difficulty` 用 `value=1..4` 设置当前进程测试难度；`make_healer_ready` 只把活动急救员的冷却与重试归零，仍走正式选疗、前摇和结算，传 `all=true` 时在同一命令边沿同步放开全部匹配行的急救员，专用于动作边沿性能压力测试。`damage_zombie` 可选 `type` 先筛僵尸品种，再按稳定实体 ID 应用 `index`，适合同场多种防具的确定性修复验证。
 - **植物伤害测试参数：** `damage_plant` 按 `row/col` 选择目标，可选 `type` 先筛植物品种，再用 `index` 打破并列；用于同格多层植物的确定性外伤验证。
 - **麻痹测试参数：** `spawn_zombie` 可用 `paralyzedFor` 设置通过正式入口施加的麻痹秒数；用于验证中立控制与品种状态机的并行计时，非法时长或免疫目标会让命令失败。

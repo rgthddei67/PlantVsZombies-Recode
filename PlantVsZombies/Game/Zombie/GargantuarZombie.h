@@ -50,6 +50,10 @@ public:
 	const std::string& GetCurrentBodyTextureKey() const;
 	const std::string& GetCurrentOuterArmTextureKey() const;
 	const std::string& GetCurrentFootTextureKey() const;
+	/** 返回投掷时间线上内嵌小鬼身体原点的实际渲染世界坐标。 */
+	Vector GetHeldImpBodyRenderAnchor() const {
+		return GetRenderedTrackWorldPosition("Zombie_imp_body1");
+	}
 
 protected:
 	void SetupZombie() override;
@@ -72,7 +76,7 @@ private:
 	void ApplySmashImpact();
 	/** 半血且仍在原版投掷半场外侧时开始唯一一次投掷。 */
 	void TryBeginThrow();
-	/** 主人确认的第 131 帧回调：生成小鬼、继承阵营与剩余减速。 */
+	/** 主人确认的第 131 帧回调：生成小鬼、对齐脱手锚点并继承阵营与剩余减速。 */
 	void ReleaseImp();
 	/** 原子清理移动抑制动作；死亡入口可保留随后接管的死亡轨。 */
 	void AbortAction(bool playWalkingTrack);

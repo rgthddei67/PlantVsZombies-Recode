@@ -8,7 +8,9 @@
     { "op": "charm_zombie", "row": 2, "index": 0 },
     { "op": "wait_frames", "value": 2 },
     { "op": "damage_zombie", "row": 2, "index": 0, "damage": 1501 },
-    { "op": "wait_seconds", "value": 1.1 },
+    { "op": "wait_frames", "value": 2 },
+    { "op": "make_gargantuar_throw_ready", "row": 2 },
+    { "op": "wait_frames", "value": 2 },
     { "op": "assert_state", "path": "gargantuarZombieCount", "equals": 1 },
     { "op": "assert_state", "path": "impZombieCount", "equals": 1 },
     { "op": "assert_state", "path": "zombies.0.mindControlled", "equals": true },
@@ -16,6 +18,8 @@
     { "op": "assert_state", "path": "zombies.1.mindControlled", "equals": true },
     { "op": "assert_state", "path": "zombies.1.impPhase", "equals": "THROWN" },
     { "op": "assert_state", "path": "zombies.1.impThrowMovingRight", "equals": true },
+    { "op": "assert_state", "path": "gargantuarImpReleaseBodyAnchorDxOn1000", "atLeast": -10000, "atMost": 10000 },
+    { "op": "dump_state", "name": "charmed_imp_release_alignment.json" },
     { "op": "screenshot", "name": "charmed_gargantuar_imp_inherits.png" },
     { "op": "quit" }
   ]

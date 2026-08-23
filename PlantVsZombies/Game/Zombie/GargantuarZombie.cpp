@@ -276,6 +276,8 @@ void GargantuarZombie::ReleaseImp()
 		|| mIsDying || mIsDead || mBodyHealth <= 0) {
 		return;
 	}
+	// 第 130 帧是内嵌小鬼最后一个可见姿势；第 131 帧只把轨道隐藏，仍保留该轨道原点。
+	const Vector heldImpBodyAnchor = GetHeldImpBodyRenderAnchor();
 	const bool movingRight = IsMovingRight();
 	const float releaseX = GetPosition().x
 		+ (movingRight ? kImpReleaseOffsetX : -kImpReleaseOffsetX);
@@ -285,6 +287,12 @@ void GargantuarZombie::ReleaseImp()
 
 	imp->ConfigureThrown(mThrowDistance, movingRight, mCooldownTimer,
 		mIsMindControlled);
+	if (Transform* impTransform = imp->GetTransform()) {
+		// 133px 是原版逻辑出生量；两套 reanim 的视觉原点不同，须把同名身体轨道水平接续。
+		const float anchorCorrectionX = heldImpBodyAnchor.x
+			- imp->GetThrowBodyRenderAnchor().x;
+		impTransform->Translate(anchorCorrectionX, 0.0f);
+	}
 	mHasImp = false;
 	mThrowReleased = true;
 	ApplyHeldImpPresentation();
