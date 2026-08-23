@@ -172,6 +172,12 @@ public:
 	/** 从关卡存档恢复当前天气展板的剩余显示时间；异常值会限制到 0～5 秒。 */
 	void RestoreCurrentWeatherNotice(float remaining);
 	float GetWeatherPanelSlide() const { return mWeatherPanelSlide; }
+	/** 返回天气面板当前实际绘制的公开预报文字，供展示与 AutoTest 共用口径。 */
+	std::string GetWeatherForecastPanelText() const;
+	/** 当前有效劫持者已锁定时才显示处决线。 */
+	bool IsNightRoofExecutionLineVisible() const;
+	/** 返回按当前可见详情动态计算的天气面板高度。 */
+	float GetWeatherPanelHeight() const;
 	float GetCurrentWeatherNoticeTimer() const { return mCurrentWeatherNoticeTimer; }
 	bool IsCurrentWeatherNoticeActive() const { return mCurrentWeatherNoticeTimer > 0.0f; }
 	bool IsWeatherForecastFailureActive() const { return mWeatherForecastFailureTimer > 0.0f; }

@@ -3917,6 +3917,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "lightningBranchSegments", gs->GetLightningBranchSegmentCount() },
 			{ "lightningStrikeX", static_cast<int>(std::lround(gs->GetLightningStrikeX())) },
 			{ "panelSlidePct", static_cast<int>(std::lround(gs->GetWeatherPanelSlide() * 100.0f)) },
+			{ "panelHeight", static_cast<int>(std::lround(gs->GetWeatherPanelHeight())) },
+			{ "forecastDisplayText", gs->GetWeatherForecastPanelText() },
 			{ "currentNoticeOn", gs->IsCurrentWeatherNoticeActive() },
 			{ "currentNoticeRemainingMs", static_cast<int>(std::lround(
 				gs->GetCurrentWeatherNoticeTimer() * 1000.0f)) },
@@ -3984,6 +3986,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "hijackerWarningExtended", board->IsNightRoofHijackerWarningExtended() },
 			{ "hijackerFinalizing", board->IsNightRoofHijackerFinalizing() },
 			{ "executionLine", board->GetNightRoofExecutionLine() },
+			{ "executionLineVisible", gs->IsNightRoofExecutionLineVisible() },
 			{ "hijackerPulseAlpha", static_cast<int>(std::lround(
 				board->GetNightRoofHijackerPulseAlpha())) },
 			{ "hijackersSpawnedThisWave", board->GetHijackersSpawnedThisWave() },

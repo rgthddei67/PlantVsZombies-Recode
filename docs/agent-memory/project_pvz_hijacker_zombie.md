@@ -4,7 +4,7 @@ description: 第六大关劫持者的雷荷锁定、全场处决、出怪、资�
 metadata:
   node_type: memory
   type: project
-  updated_at: 2026-08-22
+  updated_at: 2026-08-23
 ---
 
 # 第六大关劫持者僵尸
@@ -25,7 +25,7 @@ metadata:
 
 ## 处决快照
 
-- 释放边沿先读取施法者当时当前可计生命，生存模式处决线上限 1200；气球等额外生命不计入。UI 在锁定期间实时显示 `处决线：N`，削血会同步降低。
+- 释放边沿先读取施法者当时当前可计生命，生存模式处决线上限 1200；气球等额外生命不计入。UI 只在 Board 仍有有效锁定劫持者时实时显示 `处决线：N`，削血会同步降低；未锁定时不画“未锁定”占位文案，也不为该行保留面板高度。
 - 同一前放电帧先快照所有目标再批量死亡。植物按格归并活动 `normal + pumpkin`，符合时两者一起死亡；`under` 层花盆/睡莲不参与也保留。僵尸按 `body + helm + shield` 比较，不区分阵营、品种、飞行/地下/蹦极阶段；符合者走虚处决入口，由普通品种使用通用死亡轨，巨人等异形品种交给自身死亡合同，禁止通用处决强制生成普通断头/断臂贴图。
 - 施法者在结算前先从 Board 清除锁定 ID，再逻辑死亡、关闭碰撞与索敌；另一只劫持者被批量处决不会连锁。普通放电继续在同一边沿按既有稳定 ID 快照结算。
 
@@ -40,3 +40,4 @@ metadata:
 - `GameInfoSaver` 保存 Board 的选择已尝试、劫持者 ID、预警延长、终局阶段、本波已生成数、未来冷却波数与当前波封锁标志；实体保存自身 phase、警报状态与锁定生命增量是否已应用。全部僵尸按原 ID 恢复后才 finalize Board 交叉引用，不重抽、不转移、不重复加血、不重播一次性反馈；旧档缺冷却字段默认 0/false。
 - 专项脚本为 `smoke_hijacker_execution.json`、`smoke_hijacker_cancel.json`、`smoke_hijacker_spawn_cooldown.json` 与 `smoke_hijacker_spawnlists_wave_cap.json`；分别覆盖魅惑+中立麻痹、75% 锁定加血与读档不重复、7 秒/1 秒时序、同帧处决与粒子，两只同场的雨中 +4.1 不叠加/晴天归零、取消不启动冷却，成功释放后的本波/两完整波封锁、快照往返与第 3 波恢复，以及 6-4/6-5 出怪池、教学波、每波上限和上限读档。
 - 2026-08-22 `smoke_hijacker_execution` 加入 1900 生命巨人：处决后为 `anim_death`、碰撞关闭且头臂标志保持，不再混入普通僵尸断肢贴图；默认实例化与 `-NoInstance` 可见运行均 exit 0，最终截图已目验。
+- 2026-08-23 `smoke_hijacker_execution` 扩为 104 条命令并在当前桌面可见运行 exit 0、`script finished OK`：未锁定时 `executionLineVisible=false`、面板高度 148，锁定并快照往返后为 `true`/178；两张同步截图确认处决线及其底板高度只随有效锁定出现。`clang-release` 配置与优化/LTO 构建 exit 0，Win7 378 项导入审计通过。

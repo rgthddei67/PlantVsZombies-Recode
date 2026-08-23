@@ -263,6 +263,34 @@ namespace {
 		return u8"未知台风";
 	}
 
+	/** 只从公开预报及其已锁定警报等级构建玩家可见文案，隐藏的真实天气不得参与。 */
+	std::string WeatherForecastPanelText(const Board* board) {
+		if (!board) return u8"天气预报：暂无";
+		if (board->IsStormyNightForecastActive() || board->IsStormyNightActive()) {
+			return u8"天气预报：暴风雨";
+		}
+		if (!board->HasWeatherForecast()) return u8"天气预报：暂无";
+
+		const int seconds = std::max(0,
+			static_cast<int>(std::ceil(board->GetWeatherTimer())));
+		const RainIntensity forecast = board->GetForecastRainIntensity();
+		std::string line = std::string(u8"天气预报（") + std::to_string(seconds)
+			+ u8"秒）：" + RainIntensityDisplayName(forecast);
+		if (forecast == board->GetRainIntensity()) line += u8"（持续）";
+		if (forecast == RainIntensity::HEAVY && board->HasPendingHeavyTyphoon()) {
+			const TyphoonStrength strength = board->GetPendingHeavyTyphoonStrength();
+			if (strength != TyphoonStrength::NONE) {
+				line += std::string(u8"·") + TyphoonStrengthDisplayName(strength);
+			}
+		}
+		return line;
+	}
+
+	/** 处决线只属于当前仍有效的劫持者锁定，不为未锁定状态预留文字行。 */
+	bool ShouldDisplayNightRoofExecutionLine(const Board* board) {
+		return board && board->GetNightRoofExecutionLine() > 0;
+	}
+
 	/** 风向使用“吹向”而不是气象来向，箭头与植物实际位移方向始终一致。 */
 	const char* WindDirectionDisplayName(WindDirection direction) {
 		switch (direction) {
@@ -354,7 +382,10 @@ namespace {
 		}
 		if (board->SupportsRoofRunoff()) height += kWeatherPanelGaugeLineHeight;
 		if (board->SupportsNightRoofCharge()) {
-			height += kWeatherPanelGaugeLineHeight + kWeatherPanelDetailLineHeight;
+			height += kWeatherPanelGaugeLineHeight;
+			if (ShouldDisplayNightRoofExecutionLine(board)) {
+				height += kWeatherPanelDetailLineHeight;
+			}
 		}
 		if (board->HasTyphoon()) height += kWeatherPanelDetailLineHeight;
 		return height;
@@ -387,6 +418,21 @@ GameScene::GameScene() {
 }
 
 GameScene::~GameScene() {
+}
+
+std::string GameScene::GetWeatherForecastPanelText() const
+{
+	return WeatherForecastPanelText(mBoard.get());
+}
+
+bool GameScene::IsNightRoofExecutionLineVisible() const
+{
+	return ShouldDisplayNightRoofExecutionLine(mBoard.get());
+}
+
+float GameScene::GetWeatherPanelHeight() const
+{
+	return WeatherPanelHeight(mBoard.get());
 }
 
 void GameScene::UpdateAfterGameObjects()
@@ -917,19 +963,12 @@ void GameScene::DrawWeatherPanel(Graphics* g) const
 				+ TyphoonStrengthDisplayName(mBoard->GetTyphoonStrength());
 		}
 	}
-	std::string forecastLine = u8"天气预报：暂无";
+	const std::string forecastLine = WeatherForecastPanelText(mBoard.get());
 	glm::vec4 forecastColor(166.0f, 178.0f, 196.0f, alpha);
 	if (stormyNightForecast) {
-		forecastLine = u8"天气预报：暴风雨";
 		forecastColor = StormyNightTextColor(alpha);
 	}
 	else if (mBoard->HasWeatherForecast()) {
-		const int seconds = std::max(0, static_cast<int>(std::ceil(mBoard->GetWeatherTimer())));
-		forecastLine = std::string(u8"天气预报（") + std::to_string(seconds)
-			+ u8"秒）：" + RainIntensityDisplayName(mBoard->GetForecastRainIntensity());
-		if (mBoard->GetForecastRainIntensity() == mBoard->GetRainIntensity()) {
-			forecastLine += u8"（持续）";
-		}
 		forecastColor = RainIntensityTextColor(mBoard->GetForecastRainIntensity(), alpha);
 	}
 
@@ -1034,20 +1073,20 @@ void GameScene::DrawWeatherPanel(Graphics* g) const
 		detailLineY += kWeatherPanelGaugeLineHeight;
 
 		const int executionLine = mBoard->GetNightRoofExecutionLine();
-		const std::string executionText = executionLine > 0
-			? std::string(u8"处决线：") + std::to_string(executionLine)
-			: std::string(u8"处决线：未锁定");
-		const float executionPulse = executionLine > 0
-			? 0.70f + 0.30f * std::sin(static_cast<float>(mBoard->mBoardFrame)
-				* (mBoard->IsNightRoofHijackerFinalizing() ? 0.55f : 0.20f))
-			: 1.0f;
-		const glm::vec4 executionColor(218.0f, 142.0f, 255.0f,
-			alpha * executionPulse);
-		g->DrawText(executionText, ResourceKeys::Fonts::FONT_FZCQ,
-			kWeatherWindFontSize, shadow, textX + 1.0f, detailLineY + 1.0f);
-		g->DrawText(executionText, ResourceKeys::Fonts::FONT_FZCQ,
-			kWeatherWindFontSize, executionColor, textX, detailLineY);
-		detailLineY += kWeatherPanelDetailLineHeight;
+		if (executionLine > 0) {
+			const std::string executionText = std::string(u8"处决线：")
+				+ std::to_string(executionLine);
+			const float executionPulse = 0.70f + 0.30f * std::sin(
+				static_cast<float>(mBoard->mBoardFrame)
+				* (mBoard->IsNightRoofHijackerFinalizing() ? 0.55f : 0.20f));
+			const glm::vec4 executionColor(218.0f, 142.0f, 255.0f,
+				alpha * executionPulse);
+			g->DrawText(executionText, ResourceKeys::Fonts::FONT_FZCQ,
+				kWeatherWindFontSize, shadow, textX + 1.0f, detailLineY + 1.0f);
+			g->DrawText(executionText, ResourceKeys::Fonts::FONT_FZCQ,
+				kWeatherWindFontSize, executionColor, textX, detailLineY);
+			detailLineY += kWeatherPanelDetailLineHeight;
+		}
 	}
 
 	if (mBoard->HasTyphoon()) {

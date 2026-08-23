@@ -5,6 +5,11 @@
     { "op": "wait_state", "state": "GAME", "timeout": 15 },
     { "op": "set_spawn_paused", "value": true },
     { "op": "set_weather", "intensity": "HEAVY", "duration": 90 },
+    { "op": "wait_seconds", "value": 0.4, "timeout": 2 },
+    { "op": "assert_state", "path": "weather.nightRoofCharge.executionLine", "equals": 0 },
+    { "op": "assert_state", "path": "weather.nightRoofCharge.executionLineVisible", "equals": false },
+    { "op": "assert_state", "path": "weather.panelHeight", "equals": 148 },
+    { "op": "screenshot", "name": "00_hijacker_unlocked_line_hidden.png" },
 
     { "op": "plant", "type": "PLANT_FLOWERPOT", "row": 2, "col": 7 },
     { "op": "plant", "type": "PLANT_PEASHOOTER", "row": 2, "col": 7 },
@@ -49,6 +54,10 @@
     { "op": "assert_state", "path": "zombiesByType.ZOMBIE_HIJACKER.bodyHealth", "equals": 2000 },
     { "op": "assert_state", "path": "zombiesByType.ZOMBIE_HIJACKER.hijackerLocked", "equals": true },
     { "op": "assert_state", "path": "zombiesByType.ZOMBIE_HIJACKER.mindControlled", "equals": true },
+    { "op": "assert_state", "path": "weather.nightRoofCharge.executionLineVisible", "equals": true },
+    { "op": "assert_state", "path": "weather.panelHeight", "equals": 178 },
+    { "op": "wait_seconds", "value": 0.4, "timeout": 2 },
+    { "op": "screenshot", "name": "00_hijacker_locked_line_shown.png" },
 
     { "op": "trigger_lightning" },
     { "op": "assert_state", "path": "weather.nightRoofCharge.phase", "equals": "WARNING" },
