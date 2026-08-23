@@ -29,7 +29,7 @@
 - [上次选卡持久化与一键动画恢复](project_pvz_last_selected_cards.md) — 2026-08-12 最近一次正式提交卡组以稳定枚举名顺序写入 PlayerInfo；ChooseCardUI 右上角缩小 Button2 按钮过滤失效/未拥有/重复项并复用卡片飞行动画，跨下一局可再次恢复
 - [架构边界、存档版本与技能审计门禁](project_pvz_architecture_boundaries.md) — 2026-08-12 `BoardPresentation` 取代 `Board::mGameScene`，Board 保持天气/波次/生存玩法唯一权威；`SceneManager` 明确单活动场景；玩家 schema v2 补发毒囊射手、v3 加高级暂停、v4 加稳定枚举名上次选卡；迁移保持事务式并有纯测试；每次任务提交前审计相关 skills
 - [OpenGL 3.3 Core 兼容后端](project_pvz_opengl33_backend.md) — 2026-08-11 同一 EXE 的 `auto/vulkan/opengl` 双后端选择与完整回退；GL 走 GLSL 330、CPU 顶点/Reanimation 展开、单 sampler 动态 VBO/IBO Batch，禁用并行 Draw 但保留并行 Update；Pool、clip、文字、粒子、截图、全屏/VSync、no-AVX2 与 Win7 导入门禁闭环，Win7 真机仍待验证
-- [空格轻量暂停与可选高级暂停](project_pvz_space_pause_ui.md) — 2026-08-11 空格只显示上方中央“游戏暂停”；高级暂停默认关闭并只在主菜单控制台设置，关闭时卡槽/落种被门禁但已有手持预览仍跟随，开启时暂停中可选卡种植；Esc 完整菜单不展示该开关；暂停倍速仅待选、泳池相位冻结
+- [空格轻量暂停、可选高级暂停与粒子冻结](project_pvz_space_pause_ui.md) — 2026-08-23 暂停仍保留 UI 零 dt 逻辑步，但 ParticleEmitter 完整冻结上一游戏帧，Shake 不重抽、Friction 不衰减；空格只显示上方中央“游戏暂停”，高级暂停默认关闭且只在主菜单控制台设置，暂停倍速仅待选，泳池相位同样冻结
 - [经典咖啡豆、蘑菇睡眠 Z 与唤醒](project_pvz_coffeebean.md) — 2026-08-11 白天沉睡植物以独立 `Z.reanim` 按原版6～8fps随机相位循环，位置适配当前视觉锚点且醒来/压扁/失活即移除；`PLANT_INSTANT_COFFEE` 仍以短时 overlay 等待1秒后碎裂并启动1秒唤醒，资源、存档、台风与默认/NoInstance可见专项闭环
 - [植物立即死亡的可见生命周期](project_pvz_plant_die_visibility.md) — 2026-08-04 `Plant::Die()` 在延迟销毁前立即失活，避免 `StopAnimation()` 重置轨道后仍被当帧绘制；咖啡豆、倭瓜等瞬时消耗植物不再闪回起始姿态；`clang-release` 编译通过，按主人要求未跑 AutoTest、待亲自目验
 - [经典海蘑菇](project_pvz_seashroom.md) — 2026-07-29 `PLANT_SEASHROOM`：0 阳光、10 秒冷却，只能直接种在空水格且占 normal 层；复用小喷菇 1.5 秒间隔/300px 短程孢子，第 33 帧发射，无陆地阴影并随水面浮动；白天睡眠与双绘制路径可见专项通过

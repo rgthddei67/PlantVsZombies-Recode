@@ -85,8 +85,8 @@ description: Use when adding or tuning ANY particle effect (粒子特效) in PvZ
 | FieldType | 实证语义 |
 |---|---|
 | `Position` | **绝对偏移**（非累加）：`fieldOffset = 轨迹值`，叠加在物理位置上绘制。区间关键帧→逐粒子随机轨道（铺开的云/喷雾主力） |
-| `Shake` | 每帧在 ±X/±Y 内均匀随机抖动（绘制偏移，不动物理位置） |
-| `Friction` | 每帧 `v *= (1-x)`——**帧率相关**的衰减，0.1 就已经很强 |
+| `Shake` | 每个推进游戏时间的逻辑步在 ±X/±Y 内均匀随机抖动（绘制偏移，不动物理位置）；暂停时保留最后一次采样，不随 UI 更新重抽 |
+| `Friction` | 每个推进游戏时间的逻辑步 `v *= (1-x)`——**逻辑步率相关**的衰减，0.1 就已经很强；暂停时不继续衰减 |
 | `Acceleration` | `v += x*dt`，帧率无关的恒加速（比 Gravity 多了 X 分量） |
 
 ### 解析了但引擎不消费（写了无效，勿浪费时间调）
@@ -101,7 +101,7 @@ description: Use when adding or tuning ANY particle effect (粒子特效) in PvZ
 - `EmitEffect` 第三参默认 `LAYER_EFFECTS_WORLD`(35000)=世界层（植物/僵尸之上、UI 之下，GameAPP `DrawBelow(LAYER_UI)`）；传 `>= LAYER_UI` 的值则画在 UI 之上（Scene `DrawFrom(LAYER_UI)`）。
 - `EmitEffect` 第五参 `clipRightX` 默认 -1（不裁剪）；传非负世界 X 后，本特效会与现有裁剪栈相交并仅绘制 `x<=clipRightX`。横向喷雾遇实体阻断时，先按传播顺序结算并取阻断者 collider 左沿，再把同一 X 传给粒子；**不要**改 Position 轨迹或维护多份长度 XML。
 - `EmitEffect` 创建后的特效保存世界坐标，不会自动跟随发射者 Transform。移动实体的尘土/尾迹应按短间隔在当前稳定视觉原点重复发射短寿命爆发；不要用长 `durationOverride` 生成一个停在旧世界原点的持续效果。
-- 粒子更新吃 DeltaTime：暂停/倍速/timescale 自动正确。
+- 发射、寿命、物理、动画和全部 Field 都只在缩放后的游戏时间推进时更新；暂停期间仍会运行 UI 逻辑步，但 `ParticleEmitter::Update` 必须完整保留粒子状态，尤其不能让 `Shake` 重抽或 `Friction` 继续衰减。倍速/timescale 仍由 DeltaTime 驱动。
 
 ## Foot-guns（血泪汇总）
 

@@ -1,0 +1,65 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 10, "resetTestState": true },
+    { "op": "choose_cards", "cards": ["PLANT_DOOMSHROOM"] },
+    { "op": "wait_state", "state": "GAME", "timeout": 15 },
+    { "op": "set_spawn_paused", "value": true },
+    { "op": "set_sun", "value": 1000 },
+    { "op": "plant", "type": "PLANT_DOOMSHROOM", "row": 2, "col": 4 },
+    { "op": "wait_seconds", "value": 1.50 },
+    { "op": "assert_state", "path": "particleEffectNameCounts.Doom", "equals": 1 },
+    { "op": "assert_state", "path": "particleEffectsByName.Doom.0.activeParticleCount", "atLeast": 1 },
+
+    { "op": "key", "name": "space" },
+    { "op": "wait_frames", "value": 3 },
+    { "op": "assert_state", "path": "paused", "equals": true },
+    { "op": "assert_state", "path": "timeScaleOn1000", "equals": 0 },
+    { "op": "assert_state", "path": "particleEffectNameCounts.Doom", "equals": 1 },
+    { "op": "screenshot", "name": "paused_particle_start.png" },
+    { "op": "dump_state", "name": "paused_particle_start.json" },
+
+    { "op": "wait_frames", "value": 45 },
+    { "op": "assert_state", "path": "paused", "equals": true },
+    { "op": "assert_state", "path": "particleEffectNameCounts.Doom", "equals": 1 },
+    { "op": "screenshot", "name": "paused_particle_end.png" },
+    { "op": "dump_state", "name": "paused_particle_end.json" },
+
+    { "op": "key", "name": "space" },
+    { "op": "wait_frames", "value": 3 },
+    { "op": "assert_state", "path": "paused", "equals": false },
+    { "op": "wait_seconds", "value": 1.70 },
+    { "op": "assert_state", "path": "particleEffectCount", "equals": 0 },
+
+    { "op": "goto_level", "level": 10, "resetTestState": true },
+    { "op": "choose_cards", "cards": ["PLANT_FUMESHROOM", "PLANT_GLOOMSHROOM"] },
+    { "op": "wait_state", "state": "GAME", "timeout": 15 },
+    { "op": "set_spawn_paused", "value": true },
+    { "op": "set_sun", "value": 1000 },
+    { "op": "plant", "type": "PLANT_FUMESHROOM", "row": 2, "col": 3 },
+    { "op": "plant", "type": "PLANT_GLOOMSHROOM", "row": 2, "col": 3 },
+    { "op": "spawn_zombie", "type": "ZOMBIE_NORMAL", "row": 2, "x": 520, "stationary": true },
+    { "op": "set_gloomshroom_shoot_cycle", "row": 2, "col": 3, "elapsed": 1.99 },
+    { "op": "wait_seconds", "value": 0.70 },
+    { "op": "assert_state", "path": "particleEffectNameCounts.GloomCloud", "equals": 1 },
+    { "op": "assert_state", "path": "particleEffectsByName.GloomCloud.0.activeParticleCount", "equals": 40 },
+
+    { "op": "key", "name": "space" },
+    { "op": "wait_frames", "value": 3 },
+    { "op": "assert_state", "path": "paused", "equals": true },
+    { "op": "assert_state", "path": "timeScaleOn1000", "equals": 0 },
+    { "op": "screenshot", "name": "paused_gloom_start.png" },
+    { "op": "dump_state", "name": "paused_gloom_start.json" },
+
+    { "op": "wait_frames", "value": 45 },
+    { "op": "assert_state", "path": "paused", "equals": true },
+    { "op": "assert_state", "path": "particleEffectNameCounts.GloomCloud", "equals": 1 },
+    { "op": "assert_state", "path": "particleEffectsByName.GloomCloud.0.activeParticleCount", "equals": 40 },
+    { "op": "screenshot", "name": "paused_gloom_end.png" },
+    { "op": "dump_state", "name": "paused_gloom_end.json" },
+
+    { "op": "key", "name": "space" },
+    { "op": "wait_frames", "value": 3 },
+    { "op": "assert_state", "path": "paused", "equals": false },
+    { "op": "quit" }
+  ]
+}

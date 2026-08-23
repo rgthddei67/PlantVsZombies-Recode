@@ -65,7 +65,11 @@ void ParticleEmitter::Initialize(const EmitterConfig& config, const Vector& pos)
 }
 
 void ParticleEmitter::Update() {
-	float deltaTime = DeltaTime::GetDeltaTime();
+	const float deltaTime = DeltaTime::GetDeltaTime();
+	if (deltaTime <= 0.0f) {
+		// 暂停期间仍会执行 UI 逻辑步；不能让 Shake 重抽或 Friction 继续改变粒子状态。
+		return;
+	}
 
 	if (active) {
 		systemTimer += deltaTime;

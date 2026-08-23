@@ -63,6 +63,9 @@ public:
 	Vector GetPosition() const { return position; }
 	const ParticleRenderProbe& GetLastRenderProbe() const { return mLastRenderProbe; }
 
+	/**
+	 * 按缩放后的游戏时间推进发射、粒子属性和 Field；暂停时完整保留上一游戏帧状态。
+	 */
 	void Update();
 	void Draw();
 
