@@ -75,7 +75,7 @@ description: Use when adding ANY new plant (新增植物) to PvZ — 射手/生�
 
 ## 验证（缺一不可）
 
-1. 默认用 `clang-release` 完成带 LTO 的 0 warning 构建；只有主人特殊要求快速迭代、PDB 或无 LTO 时才改用 `clang-playtest`，特殊要求 Debug CRT/Debug 语义时才用 `msvc-debug`。
+1. 默认用 `clang-release` 完成带 LTO、完整 PDB 的 0 warning 构建；只有主人特殊要求快速迭代、无 LTO 或更易断点调试的符号布局时才改用 `clang-playtest`，特殊要求 Debug CRT/Debug 语义时才用 `msvc-debug`。
 2. **站位+影子截图校对**（写完必做，别等主人指出）：临时脚本把新植物与小喷菇/向日葵种同一行，截图比脚底基线。先从原版实现/画面确认该品种是否有影子；原版不画影子的品种即使是陆生植物也要在 `SetupPlant()` 显式 `RemoveShadow()`，并断言 `hasShadow=false`，不能因落在草地就沿用基类默认影子。需要影子时再校对两套独立坐标：**本体 = gamedata.json 的 offset**（改无需重编译）；**影子 = 代码里 `GetShadow()->SetOffset(...)`**（改要重编译）。C# `DrawShadow` 的 `num2/num3` 是最终局部落点，不是相对本项目阴影默认值的增量：例如花盆为 `Y=51-5=46` 且 1:1，不能误写成 `28-5` 或继续套纵向 0.75 压缩；除状态探针外必须以截图确认肉眼可见。抄同类植物的值大概率不准。
 
    花盆这类承载植物还要让上层本体与落点预览共同消费一个 5px 视觉抬升常量，逻辑位置/碰撞箱不变；上层存在时暂停花盆 idle，移除或台风换格/读档后按当前 Cell 派生状态恢复。台风必须遍历同格全部活跃层（当前含 `under + normal + pumpkin + overlay`）作为一个组合移动、丢失或受阻，不能只搬顶层。

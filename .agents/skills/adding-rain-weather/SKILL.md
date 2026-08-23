@@ -47,7 +47,7 @@ description: Use when adding or tuning ANY rain-weather-dependent feature or Boa
    - 新字段能用中性默认值表示旧档时保持兼容；结构或语义变化无法只靠默认值表达时，提升 `SaveSchema::kCurrentLevelVersion`，增加逐版本迁移和 `SaveSchemaTests`。JSON 必须先升级成功，再修改 `Board`。
 6. 增加 AutoTest 可观测字段与最小脚本，覆盖晴天、目标雨势、放晴、减速/冻结组合，以及随机变异的固定种子结果。
 7. 更新对应天气/场景主题、相关僵尸/植物主题和 `docs/agent-memory/MEMORY.md`。
-8. 按项目指南默认完成 `clang-release` 与范围最小的可见 AutoTest；只有主人明确要求快速迭代、PDB 或无 LTO 时才用 `clang-playtest`。仅改技能文档时无需构建游戏。
+8. 按项目指南默认完成带 LTO 与完整 PDB 的 `clang-release` 及范围最小的可见 AutoTest；只有主人明确要求快速迭代、无 LTO 或更易断点调试的符号布局时才用 `clang-playtest`。仅改技能文档时无需构建游戏。
 
 ## 不可破坏的契约
 

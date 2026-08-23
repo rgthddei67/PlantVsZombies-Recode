@@ -134,7 +134,7 @@ description: Use when adding or tuning any 生存模式词条 (survival perk) in
 ## 构建与交付
 
 - 按 `docs/agent-guide/PROJECT_GUIDE.md` 导入 x64 Visual Studio 环境。
-- 默认依次运行 `cmake --preset clang-release`、`cmake --build --preset clang-release`；只有主人明确要求快速迭代、PDB 或无 LTO 时才用 `clang-playtest`，需要 Debug CRT/Debug 语义时才用 `msvc-debug`。
+- 默认依次运行 `cmake --preset clang-release`、`cmake --build --preset clang-release`；该预设保留 LTO 并生成完整 PDB。只有主人明确要求快速迭代、无 LTO 或更易断点调试的符号布局时才用 `clang-playtest`，需要 Debug CRT/Debug 语义时才用 `msvc-debug`。
 - 从 `build/<preset>/` 运行 `PlantsVsZombies.exe -AutoTest ...`，不要使用根目录旧的 `x64/Release` 产物。
 - 若 sandbox 阻止 vcpkg 写外部 `buildtrees`，先报告真实阻塞；只有已有且可信的 Ninja 图时，才可把按图全量重编和链接作为当前工作区验证补充，不能把它写成标准构建方式。
 - 功能、测试、技能和项目记忆一起复核后再提交。

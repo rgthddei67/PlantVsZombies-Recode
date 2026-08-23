@@ -46,17 +46,18 @@
     },
     {
       "name": "clang-release",
-      "displayName": "Clang Release（发布：/O2 + AVX2 + fast-math + LTO，无 PDB）",
+      "displayName": "Clang Release（发布：/O2 + AVX2 + fast-math + LTO + 完整 PDB）",
       "inherits": "clang-base",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
         "PVZ_ENABLE_LTO": "ON",
-        "PVZ_ENABLE_AVX2": "ON"
+        "PVZ_ENABLE_AVX2": "ON",
+        "PVZ_ENABLE_PDB": "ON"
       }
     },
     {
       "name": "clang-release-noavx2",
-      "displayName": "Clang Release No AVX2（Win7 兼容：/O2 + fast-math + LTO，无 PDB）",
+      "displayName": "Clang Release No AVX2（Win7 兼容：/O2 + fast-math + LTO + 完整 PDB）",
       "inherits": "clang-release",
       "cacheVariables": {
         "PVZ_ENABLE_AVX2": "OFF",

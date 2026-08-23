@@ -25,7 +25,7 @@
   cmd /c "`"$vs\Common7\Tools\VsDevCmd.bat`" -arch=x64 -no_logo && set" |
     ForEach-Object { if ($_ -match '^([^=]+)=(.*)$') { Set-Item "env:$($matches[1])" $matches[2] } }
 
-  # 2) 默认构建：Release 级优化 + LTO，不生成 PDB
+  # 2) 默认构建：Release 级优化 + LTO + 与优化机器码匹配的完整 PDB
   cmake --preset clang-release
   cmake --build --preset clang-release
 
@@ -33,14 +33,14 @@
   cmake --preset clang-release-noavx2
   cmake --build --preset clang-release-noavx2
 
-  # 仅在主人特殊要求快速迭代、PDB 或无 LTO 时使用
+  # 仅在主人特殊要求快速迭代、无 LTO 或更易断点调试的符号布局时使用
   cmake --preset clang-playtest
   cmake --build --preset clang-playtest
   ```
 
-  四个预设各司其职：`clang-release` 是编译、逻辑验证、AutoTest、F5 与正式发布的默认预设（`/O2`、AVX2、fast-math、LTO、无 PDB）；`clang-release-noavx2` 只为 Win7/旧环境的 `0xC000001D` 非法指令提供同配置发布版，除关闭 `PVZ_ENABLE_AVX2` 外保持 `/O2`、fast-math、LTO、静态运行时和无 PDB；`clang-playtest` 只在主人特殊要求快速迭代、PDB 或无 LTO 时使用；`msvc-debug` 只在主人特殊要求或确实需要 Debug CRT/断点语义时使用。三个 Clang 预设都会报告 `-Wnonportable-include-path`、`-Wreorder-ctor`、`-Wunused-*`、`-Wswitch` 等诊断，并应保持零警告。
+  四个预设各司其职：`clang-release` 是编译、逻辑验证、AutoTest、F5 与正式发布的默认预设（`/O2`、AVX2、fast-math、LTO、完整 PDB）；`clang-release-noavx2` 只为 Win7/旧环境的 `0xC000001D` 非法指令提供同配置发布版，除关闭 `PVZ_ENABLE_AVX2` 外保持 `/O2`、fast-math、LTO、静态运行时和完整 PDB；`clang-playtest` 只在主人特殊要求快速迭代、无 LTO 或更易断点调试的符号布局时使用；`msvc-debug` 只在主人特殊要求或确实需要 Debug CRT/断点语义时使用。三个 Clang 预设都会报告 `-Wnonportable-include-path`、`-Wreorder-ctor`、`-Wunused-*`、`-Wswitch` 等诊断，并应保持零警告。
 
-- **Release 崩溃取证：** `clang-release` 的 Fatal Error / Access Violation 先保留 `crash_report_*.txt`、现场资源 WARN、触发脚本和崩溃阶段，不凭异常地址猜源码。确需函数栈时才构建 `clang-playtest`，用同一最小 AutoTest 在可见桌面复现，并确保 EXE/PDB 来自同一次构建。新动画对象若在构造或首帧崩溃，先查 reanim 注册、动画类型映射和轨道资源；不要在 `Zombie`/`AnimatedObject` 基类添加宽泛空 Animator 早退，这通常只会把崩溃推迟到 `Start()`/`SetupZombie()` 并掩盖强制资源缺失。修复后回到 `clang-release` 重建并重跑原失败脚本及父类回归。
+- **Release 崩溃取证：** `clang-release` 的 Fatal Error / Access Violation 先保留 `crash_report_*.txt`、现场资源 WARN、触发脚本和崩溃阶段，不凭异常地址猜源码；其完整 PDB 可直接符号化同次优化构建。只有 LTO 内联/合并使断点或调用栈难以定位时，才用 `clang-playtest` 复现同一路径；无论使用哪个预设，都必须确保 EXE/PDB 来自同一次构建。新动画对象若在构造或首帧崩溃，先查 reanim 注册、动画类型映射和轨道资源；不要在 `Zombie`/`AnimatedObject` 基类添加宽泛空 Animator 早退，这通常只会把崩溃推迟到 `Start()`/`SetupZombie()` 并掩盖强制资源缺失。修复后回到 `clang-release` 重建并重跑原失败脚本及父类回归。
 
 - **运行：** 可执行文件位于 `build\<preset>\PlantsVsZombies.exe`。`build\clang-release\resources` 与同级 `font` 是唯一实体目录；`clang-release-noavx2`、`clang-playtest`、`msvc-debug` 在首次配置时只创建 NTFS 目录联接，不复制资源。Shader、存档与 AutoTest 输出仍由各预设独立持有。运行游戏或 AutoTest 时，**必须以 exe 所在的 `build\<preset>\` 本身作为工作目录**：`Push-Location build\clang-release; .\PlantsVsZombies.exe -AutoTest <absolute-path>.json`。（⚠️ 根目录的 `x64\Release` 是陈旧产物，**禁止使用**。）
 - **在 VS 中开发：** 用 Visual Studio 的“打开文件夹”打开项目根目录，VS 会自动识别 CMakePresets。根目录 `launch.vs.json` 已包含 F5 调试配置、工作目录和 `-Debug` 变体。
