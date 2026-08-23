@@ -136,7 +136,7 @@
 - [Volk动态 Vulkan loader + 1.2兼容矩阵 ✅](project_pvz_volk_dynamic_loader.md) — SDL2 loader→Volk动态分发；运行时优先1.3核心，并对 dynamic rendering / synchronization2 分别选择1.2 KHR或RenderPass/传统同步回退；Win7回退版已越过非法指令但一台实机的系统loader在首次枚举扩展时返回HOST_MEMORY，尚待同机vulkaninfo/loader/驱动诊断
 - [Windows 7 x64 系统 API 兼容层 + 导入门禁 ✅](project_pvz_win7_yy_thunks.md) — 仓库 overlay port 固定 YY-Thunks 1.2.2；LLD 用替代 import libs、MSVC 用官方 Win7 obj；PE subsystem 6.01，所有 EXE 链接后逐项核对 Win7 x64 导出表；另有同优化/LTO的`clang-release-noavx2`排除Win7 `0xC000001D`
 - [编译警告清零 ✅](project_pvz_warnings_cleanup.md) — 2026-06-13 clang-release 0warn；2026-08-12 将35处 `GameAPP.h` 引用统一为索引/磁盘的 `GameApp.h`，clang-release 复核无编译器警告；验证须用clang(msvc默认不报)
-- [CMake构建配置 ✅统一](project_pvz_cmake_migration.md) — CMake+vcpkg唯一；普通任务用 `msvc-debug` 做增量编译/F5/最小诊断 AutoTest，完成后整体 `clang-release` 并用其回归交付；性能、布局、并发、编译器优化与 Release-only 任务全程 `clang-release`（AVX2/LTO/完整PDB）；Win7 `0xC000001D` 用 `clang-release-noavx2`，`clang-playtest` 仅用于明确需要 Clang 无 LTO/符号布局；非默认 preset 以 NTFS Junction 共享单份 resources/font
+- [CMake构建配置 ✅统一](project_pvz_cmake_migration.md) — 2026-08-23 四个 preset 全部统一为 `clang-cl + lld-link`；普通任务用 `clang-debug`（`/Od /RTC1 -MTd -Zi`）做增量编译/F5/最小诊断 AutoTest，完成后整体 `clang-release` 并用其回归交付；旧 `msvc-debug` preset 已删除；Win7 无 AVX2与无 LTO 优化诊断仍分别用 `clang-release-noavx2`/`clang-playtest`，非默认 preset 以 NTFS Junction 共享单份 resources/font
 - [Build permission](feedback_build_permission_msbuild.md) — 主人解除构建限制:可直接命令行编译,不必F7不必核对时间戳(现用cmake preset)
 - [AutoTest套件 ✅](project_pvz_autotest_suite.md) — 2026-06-13完成;用法权威在CLAUDE.md AutoTest节(-AutoTest脚本+截图+dump_state闭环,-Seed确定性)
 - [PvZ轻量备份节点](project_pvz_backup_node.md) — 2026-08-13 Git SSH副本与GitHub独立镜像引用；AutoTest证据带提交/状态/逐文件SHA-256离机归档90天；每日健康报告、每周Git fsck；不替代Windows clang-release与可见AutoTest

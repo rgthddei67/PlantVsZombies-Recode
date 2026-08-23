@@ -114,7 +114,7 @@ description: Use when adding or tuning ANY particle effect (粒子特效) in PvZ
 7. XML 只放权威 `build/clang-release/resources/particles/config/`；改完**重启**游戏才生效（启动时一次性加载）。
 8. **长持续天气不要用总配额硬撑时长**：调用 `EmitEffect` 时传正的 `durationOverride`，引擎会把发射器切成循环池；`SpawnMaxLaunched` 按 `SpawnMinActive + SpawnRate × ParticleDuration` 的峰值并留余量即可。否则巨大配额会让每帧遍历成千上万个空粒子。
 9. **负数随机区间写升序** `[-300 -200]`：原版 XML 里的 `[-200 -300]` 直接照抄会把 min/max 反着喂给 GameRandom::Range，行为未定义。
-10. **移植原版 XML 只改权威资源**：贴图和 `resources.xml` 都放 `build/clang-release/resources/`，禁止再创建 msvc-debug 副本；配置其他 preset 后用 Junction 属性确认共享即可。
+10. **移植原版 XML 只改权威资源**：贴图和 `resources.xml` 都放 `build/clang-release/resources/`，禁止再创建 `clang-debug` 副本；配置其他 preset 后用 Junction 属性确认共享即可。
 11. **换色实体的部件粒子必须逐键审计**：reanim 换色不会改写死亡/受击粒子 XML 中固定的 `<Image>`。若爆炸会抛出车盖、车轮、帽子或手臂等部件，为变体建立独立效果名和配置，并把所有实体部件键换为变体资源；触发端的父类虚入口必须同时选择本体残留材质与飞出粒子，读档重建也复用该材质入口，避免受伤/读档回普通配色。普通烟云可用 RGB 轨迹统一染色。
 12. **爆炸云的原版高阻力曲线不能直抄**：本引擎 `Friction` 是逐帧相乘，`.15,40 1` 会在极少数帧内把速度压到零，即使 `LaunchSpeed` 很高也只会聚成中心小团。需要持续向外扩散的云优先用约 `0.015～0.02` 的低恒定阻力，再以发射半径、速度和寿命调覆盖面；高阻力只留给需要立刻刹停的命中碎屑。
 13. **粒子配置是多根 XML 片段**：一个文件可直接并列多个顶层 `<Emitter>`，因此用 PowerShell `[xml]` 或普通单根 XML validator 会报“已有 DocumentElement”。不要给实际配置包一层虚构根节点；静态校验时只在内存字符串外临时包 `<Root>...</Root>`，最终仍以 `ParticleXMLLoader` 启动加载和 AutoTest 发射为准。

@@ -17,7 +17,7 @@
 - 本项目是面向 x64 Windows 的 C++17 CMake/vcpkg 项目。Codex 可以自主构建。
 - 主人已长期授权本项目正常构建所需的 vcpkg 依赖安装、CMake 配置/生成和编译；若沙箱阻止写入工作区外的 vcpkg 目录，直接申请提升权限执行，无需再次询问是否允许构建。该授权不包含删除 vcpkg、清空缓存或其他破坏性操作。
 - CMake 已加入系统 `PATH`，直接使用 `cmake` 命令，不要再定位或硬编码 Visual Studio 自带的 `cmake.exe`。运行 CMake 前仍需先把 Visual Studio Installer 目录加入 `PATH`，用 `vswhere` 定位 VS，再导入 `VsDevCmd.bat -arch=x64 -no_logo`；准确的 PowerShell 步骤见项目指南。
-- 普通功能、逻辑、UI、资源和存档任务在修改过程中，编译、F5 与范围最小的诊断 AutoTest 默认使用 `msvc-debug`，以缩短增量构建时间并保留 Debug CRT/Debug 语义。功能完成后必须再整体配置、编译 `clang-release`，并用该产物完成最终相关回归；Debug 证据不能取代交付证据。`clang-playtest` 只用于明确需要 Clang 且无 LTO 的诊断。
+- 普通功能、逻辑、UI、资源和存档任务在修改过程中，编译、F5 与范围最小的诊断 AutoTest 默认使用 `clang-debug`，以缩短增量构建时间并保留 Debug CRT/Debug 语义；该预设使用 `clang-cl + lld-link`，不再保留 MSVC 编译器预设。功能完成后必须再整体配置、编译 `clang-release`，并用该产物完成最终相关回归；Debug 证据不能取代交付证据。`clang-playtest` 只用于明确需要 Clang 且无 LTO 的诊断。
 - 与性能、内存布局、并发调度、编译器优化、LTO 或 Release-only 行为相关的修改，从首次构建到最终验证全程使用 `clang-release`；它启用 Release 级优化与 LTO，并生成与优化机器码匹配的完整 PDB。不存在 MSVC Release 预设。
 - `clang-release` 出现 Fatal Error / Access Violation 时先保留崩溃报告、资源警告和最小复现脚本，并用同次构建的 EXE/PDB 符号化；只有 LTO 内联/合并使断点或调用栈难以定位时才用 `clang-playtest` 复现同一路径，修复后必须回到 `clang-release` 完成最终构建与相关回归，不能把诊断预设当成交付证据。
 - 必须从 `build\<preset>\` 运行；可执行文件为 `build\<preset>\PlantsVsZombies.exe`。禁止使用根目录下陈旧的 `x64\Release` 产物。
@@ -29,7 +29,7 @@
 
 - 源文件由 `GLOB_RECURSE CONFIGURE_DEPENDS` 自动收集；新增 `.cpp` 无需手动修改构建列表。
 - 每个新 `.h` 必须以 `#pragma once` 开头；pre-commit hook 会自动检查。
-- `build\clang-release\resources` 与同级 `font` 是唯一实体运行资产；`clang-playtest`、`msvc-debug` 通过 NTFS 目录联接共享。资源只修改权威目录，禁止复制或维护其他 preset 的资源副本。
+- `build\clang-release\resources` 与同级 `font` 是唯一实体运行资产；`clang-playtest`、`clang-debug` 通过 NTFS 目录联接共享。资源只修改权威目录，禁止复制或维护其他 preset 的资源副本。
 - `manifest.txt` 中出现文件不等于资源已按预期注册或能用目标键取得。新增或修改 reanim、运行时换图、粒子贴图时，必须核对“文件/清单 → 对应 loader 或 `resources.xml` 注册 → 实际资源键 → `HasReanimation`/`GetTexture(key,false)` AutoTest 断言”闭环；强制资源缺失应修注册或键来源，禁止用通用空 Animator/空纹理兜底掩盖根因。
 - 代码文件统一使用 UTF-8（无 BOM），由根目录 `.editorconfig` 约束；中文文本保持 UTF-8。逻辑网格位置与视觉偏移（`mVisualOffset`）必须分离。
 - 当前任务指令、当前源码/Git 状态和当前构建/测试证据优先于历史记忆。

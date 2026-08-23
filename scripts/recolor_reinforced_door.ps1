@@ -59,11 +59,9 @@ function Convert-ToReinforcedDoorColor {
     }
 }
 
-foreach ($preset in @("clang-release", "msvc-debug")) {
-    $imageDirectory = Join-Path $RepositoryRoot "build/$preset/resources/image/reanim"
-    foreach ($stage in 1..3) {
-        Convert-ToReinforcedDoorColor `
-            -SourcePath (Join-Path $imageDirectory "Zombie_screendoor$stage.png") `
-            -DestinationPath (Join-Path $imageDirectory "Zombie_reinforced_screendoor$stage.png")
-    }
+$imageDirectory = Join-Path $RepositoryRoot 'build/clang-release/resources/image/reanim'
+foreach ($stage in 1..3) {
+    Convert-ToReinforcedDoorColor `
+        -SourcePath (Join-Path $imageDirectory "Zombie_screendoor$stage.png") `
+        -DestinationPath (Join-Path $imageDirectory "Zombie_reinforced_screendoor$stage.png")
 }

@@ -98,25 +98,23 @@ function Convert-RedMaterialToPink {
     }
 }
 
-foreach ($preset in @('clang-release', 'msvc-debug')) {
-    $resourceRoot = Join-Path $RepositoryRoot "build\$preset\resources"
-    $imageDirectory = Join-Path $resourceRoot 'image\reanim'
-    $sourceReanim = Join-Path $resourceRoot 'reanim\FootballZombie.reanim'
-    $targetReanim = Join-Path $resourceRoot 'reanim\PinkFootballZombie.reanim'
+$resourceRoot = Join-Path $RepositoryRoot 'build\clang-release\resources'
+$imageDirectory = Join-Path $resourceRoot 'image\reanim'
+$sourceReanim = Join-Path $resourceRoot 'reanim\FootballZombie.reanim'
+$targetReanim = Join-Path $resourceRoot 'reanim\PinkFootballZombie.reanim'
 
-    Get-ChildItem -LiteralPath $imageDirectory -Filter '*football*.png' |
-        Where-Object { $_.Name -notmatch '_glow\.png$' -and $_.Name -notmatch 'pinkfootball' } |
-        ForEach-Object {
-            $targetName = [regex]::Replace(
-                $_.Name, 'football', 'pinkfootball',
-                [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
-            Convert-RedMaterialToPink -SourcePath $_.FullName `
-                -DestinationPath (Join-Path $imageDirectory $targetName)
-        }
+Get-ChildItem -LiteralPath $imageDirectory -Filter '*football*.png' |
+    Where-Object { $_.Name -notmatch '_glow\.png$' -and $_.Name -notmatch 'pinkfootball' } |
+    ForEach-Object {
+        $targetName = [regex]::Replace(
+            $_.Name, 'football', 'pinkfootball',
+            [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
+        Convert-RedMaterialToPink -SourcePath $_.FullName `
+            -DestinationPath (Join-Path $imageDirectory $targetName)
+    }
 
-    $reanimText = [System.IO.File]::ReadAllText($sourceReanim, [System.Text.Encoding]::UTF8)
-    $reanimText = $reanimText.Replace('IMAGE_REANIM_ZOMBIE_FOOTBALL_',
-        'IMAGE_REANIM_ZOMBIE_PINKFOOTBALL_')
-    [System.IO.File]::WriteAllText($targetReanim, $reanimText,
-        [System.Text.UTF8Encoding]::new($false))
-}
+$reanimText = [System.IO.File]::ReadAllText($sourceReanim, [System.Text.Encoding]::UTF8)
+$reanimText = $reanimText.Replace('IMAGE_REANIM_ZOMBIE_FOOTBALL_',
+    'IMAGE_REANIM_ZOMBIE_PINKFOOTBALL_')
+[System.IO.File]::WriteAllText($targetReanim, $reanimText,
+    [System.Text.UTF8Encoding]::new($false))

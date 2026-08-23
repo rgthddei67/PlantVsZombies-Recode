@@ -1,6 +1,6 @@
 ---
 name: pvz-cmake-migration
-description: CMake+vcpkg 唯一构建系统；普通任务用 msvc-debug 快速迭代并以 clang-release 交付，优化任务全程 clang-release，其他 preset 用目录联接共享单份运行资源
+description: CMake+vcpkg 唯一构建系统；四个 preset 统一使用 clang-cl+lld-link，普通任务用 clang-debug 快速迭代并以 clang-release 交付
 metadata:
   node_type: memory
   type: project
@@ -8,14 +8,17 @@ metadata:
 ---
 
 **2026-08-23 当前构建契约（取代下方迁移初期的 preset/运行目录描述）：**
-- 普通功能、逻辑、UI、资源和存档任务的修改过程中，使用 `msvc-debug` 做增量编译、F5 和范围最小的诊断 AutoTest，以获得更快的迭代速度及 Debug CRT/Debug 语义；任务完成后必须整体配置并编译一次 `clang-release`，最终相关回归也以该产物为交付证据，Debug 结果不能替代 Release 结果。
+- `clang-debug`、`clang-release`、`clang-release-noavx2`、`clang-playtest` 四个 preset 全部继承 `clang-base`，统一使用 VS LLVM 的 `clang-cl + lld-link`；旧 `msvc-debug` preset 已删除，不再配置 `cl.exe` 编译器。
+- 普通功能、逻辑、UI、资源和存档任务的修改过程中，使用 `clang-debug` 做增量编译、F5 和范围最小的诊断 AutoTest；它保留 `/Ob0 /Od /RTC1 -MTd -Zi`、Debug CRT、断言与 PDB。任务完成后必须整体配置并编译一次 `clang-release`，最终相关回归也以该产物为交付证据，Debug 结果不能替代 Release 结果。
 - 性能、内存布局、并发、编译器优化、LTO 或仅在 Release 出现的问题属于优化相关任务，修改、验证与交付全程使用 `clang-release`：Clang `/O2` + AVX2 + fast-math + LTO，并以 `/Z7 + /DEBUG:FULL` 生成与优化机器码匹配的完整 PDB，供 VS Sampling Profiler 和崩溃符号化使用。
 - `clang-release-noavx2` 是 Win7/旧环境发生 `0xC000001D` 时的独立发布预设；只把 `PVZ_ENABLE_AVX2` 关掉，仍保留 `/O2`、fast-math、LTO、静态运行时和完整 PDB，不能取代默认预设。
 - 该开关约束游戏自己的编译单元，不保证最终静态 EXE 逐字节不含 AVX：libjpeg-turbo 等依赖仍可能内置由运行时能力检测保护的多套 SIMD 实现。验收应同时核对游戏 152 条编译命令无 `/arch:AVX2` 与目标 Win7 实机不再触发 `0xC000001D`，不能只对最终 EXE 搜指令助记符。
 - `clang-playtest` 不再承担普通快速迭代；仅在主人明确要求 Clang 无 LTO，或确实需要更易断点调试的 Clang 符号布局时使用。
-- `clang-release-noavx2`、`clang-playtest` 与 `msvc-debug` 的 `resources`/`font` 是指向 `build/clang-release/` 同名实体目录的 NTFS Junction；配置只创建一次联接，不复制资产。Shader、存档与 AutoTest 输出仍按 preset 隔离。
+- `clang-release-noavx2`、`clang-playtest` 与 `clang-debug` 的 `resources`/`font` 是指向 `build/clang-release/` 同名实体目录的 NTFS Junction；配置只创建一次联接，不复制资产。Shader、存档与 AutoTest 输出仍按 preset 隔离。
 - Visual Studio `launch.vs.json` 使用 `${cmake.binaryDir}` 作为工作目录；所有运行仍从 exe 自己的 `build/<preset>/` 启动。
 - `find_package(Vulkan)` 可能优先命中 vcpkg `vulkan-headers`；VMA 头固定从 `$ENV{VULKAN_SDK}/Include/vma/vk_mem_alloc.h` 取得，不能再通过 `Vulkan_INCLUDE_DIR` 间接推导。
+
+本次迁移证据：从不存在的 `build/clang-debug` 全新配置并完成 180 步全量构建，CMake 识别 `Clang 22.1.3 with MSVC-like command-line`；实际游戏编译命令为 `clang-cl.exe /Ob0 /Od /RTC1 -MTd -Zi`，实际链接命令为 `lld-link.exe /debug`，生成约 121 MB `PlantsVsZombies.pdb`。游戏与三个测试目标的 Win7 导入审计分别通过，`resources`/`font` Junction 指向唯一 `build/clang-release` 实体。`clang-debug` 与重新配置后的 `clang-release` 各自 3 个 CTest 全部通过，当前桌面可见 `smoke_quit` 两次均退出 0、`status=passed`、Vulkan 正常初始化并 `script finished OK`。三个权威资源生成脚本同步收敛为只写 `build/clang-release/resources`，不再按 Debug preset 重复写同一 Junction。
 
 2026-06-13 完成（4edb6c8 接入 → **a14a26c 统一**，主人主动要求"搞2套太乱"）：
 .sln/.vcxproj/.filters 已删，**CMake 是唯一构建系统**。

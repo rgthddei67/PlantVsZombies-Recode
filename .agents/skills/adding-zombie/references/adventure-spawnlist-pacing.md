@@ -30,7 +30,7 @@
 
 1. 权威 `spawnlists.json` 可解析，目标关卡各出现一次，`zombies` 非空且内部无重复。
 2. 每个 ID 都落在 `[0, NUM_ZOMBIE_TYPES)`，并能映射到已注册工厂；池中不存在 `weight <= 0` 类型。
-3. `clang-playtest`/`msvc-debug` 的 `resources` 路径必须是指向 clang-release 权威目录的 Junction，不再比较或提交副本。权威 JSON 位于默认忽略目录，提交时使用 `git add -f` 并检查 staged diff。
+3. `clang-playtest`/`clang-debug` 的 `resources` 路径必须是指向 clang-release 权威目录的 Junction，不再比较或提交副本。权威 JSON 位于默认忽略目录，提交时使用 `git add -f` 并检查 staged diff。
 4. 输出一张“关卡｜波数｜首次主题｜完整池｜进入时可用关键植物”的最终表，人工检查首次登场与综合间距。
 
 ## AutoTest 与可见验收

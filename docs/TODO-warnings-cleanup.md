@@ -1,6 +1,6 @@
 # 编译警告清零（✅ 2026-06-13 已完成，2026-08-12 复核）
 
-clang-release clean 重建 **0 warning / 0 error**；msvc-release / msvc-debug 亦 0 error；
+clang-release clean 重建 **0 warning / 0 error**；2026-08-23 新 `clang-debug` 全量 180 步构建亦 0 warning / 0 error；
 `demo_peashooter.json` AutoTest exit 0、state 与基线一致（行为不变）。
 
 2026-08-12 将残留的 `GameAPP.h` 源码引用统一为 Git 与磁盘使用的 `GameApp.h`；

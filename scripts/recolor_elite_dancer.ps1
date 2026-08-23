@@ -105,24 +105,22 @@ $suitParts = @(
     'innerleg_lower', 'innerleg_upper', 'outerleg_lower', 'outerleg_upper'
 )
 
-foreach ($preset in @('clang-release', 'msvc-debug')) {
-    $resourceRoot = Join-Path $RepositoryRoot "build\$preset\resources"
-    $imageDirectory = Join-Path $resourceRoot 'image\reanim'
+$resourceRoot = Join-Path $RepositoryRoot 'build\clang-release\resources'
+$imageDirectory = Join-Path $resourceRoot 'image\reanim'
 
-    foreach ($part in $suitParts) {
-        Convert-RedMaterialToPurple -SourcePath (Join-Path $imageDirectory "Zombie_Jackson_$part.png") `
-            -DestinationPath (Join-Path $imageDirectory "Zombie_EliteJackson_$part.png")
-    }
-
-    $sourceReanim = Join-Path $resourceRoot 'reanim\Zombie_Jackson.reanim'
-    $targetReanim = Join-Path $resourceRoot 'reanim\Zombie_EliteJackson.reanim'
-    $reanimText = [System.IO.File]::ReadAllText($sourceReanim, [System.Text.Encoding]::UTF8)
-    foreach ($part in $suitParts) {
-        $suffix = $part.ToUpperInvariant()
-        $reanimText = $reanimText.Replace(
-            "IMAGE_REANIM_ZOMBIE_JACKSON_$suffix",
-            "IMAGE_REANIM_ZOMBIE_ELITEJACKSON_$suffix")
-    }
-    [System.IO.File]::WriteAllText($targetReanim, $reanimText,
-        [System.Text.UTF8Encoding]::new($false))
+foreach ($part in $suitParts) {
+    Convert-RedMaterialToPurple -SourcePath (Join-Path $imageDirectory "Zombie_Jackson_$part.png") `
+        -DestinationPath (Join-Path $imageDirectory "Zombie_EliteJackson_$part.png")
 }
+
+$sourceReanim = Join-Path $resourceRoot 'reanim\Zombie_Jackson.reanim'
+$targetReanim = Join-Path $resourceRoot 'reanim\Zombie_EliteJackson.reanim'
+$reanimText = [System.IO.File]::ReadAllText($sourceReanim, [System.Text.Encoding]::UTF8)
+foreach ($part in $suitParts) {
+    $suffix = $part.ToUpperInvariant()
+    $reanimText = $reanimText.Replace(
+        "IMAGE_REANIM_ZOMBIE_JACKSON_$suffix",
+        "IMAGE_REANIM_ZOMBIE_ELITEJACKSON_$suffix")
+}
+[System.IO.File]::WriteAllText($targetReanim, $reanimText,
+    [System.Text.UTF8Encoding]::new($false))
