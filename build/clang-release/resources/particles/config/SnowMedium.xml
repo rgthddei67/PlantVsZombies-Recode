@@ -1,0 +1,25 @@
+<Emitter>
+  <Name>SnowMedium</Name>
+  <SpawnMinActive>66</SpawnMinActive>
+  <SpawnRate>38</SpawnRate>
+  <SpawnMaxLaunched>190</SpawnMaxLaunched>
+  <ParticleDuration>[3.0 4.0]</ParticleDuration>
+  <ParticleAlpha>0,0 .84,10 .72,84 0,100</ParticleAlpha>
+  <ParticleScale>[1.4 2.6]</ParticleScale>
+  <ParticleBrightness>[.92 1.0]</ParticleBrightness>
+  <ParticleRed>.9</ParticleRed>
+  <ParticleGreen>.96</ParticleGreen>
+  <ParticleBlue>1</ParticleBlue>
+  <EmitterType>Box</EmitterType>
+  <EmitterBoxX>[-610 610]</EmitterBoxX>
+  <EmitterBoxY>[-22 22]</EmitterBoxY>
+  <SystemDuration>60</SystemDuration>
+  <Image>PARTICLE_WHITEPIXEL</Image>
+  <Field>
+    <FieldType>Position</FieldType>
+    <X>0 [-80 80]</X>
+    <Y>0 [680 760]</Y>
+  </Field>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <ParticleSpinSpeed>[-95 95]</ParticleSpinSpeed>
+</Emitter>

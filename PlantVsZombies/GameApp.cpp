@@ -723,6 +723,9 @@ Background GameAPP::GetBackgroundID(int level) const
 	case 6:
 		// 第六大关完整使用黑夜屋顶；雷荷与坡面径流均由场景能力自动启用。
 		return Background::NIGHT_ROOF;
+	case 7:
+		// 第七大关使用平地冬日花园；寒潮、冻融线与雨雪表现由 Board 独立管理。
+		return Background::WINTER_GARDEN;
 	default:
 		return Background::GROUND_DAY;
 	}

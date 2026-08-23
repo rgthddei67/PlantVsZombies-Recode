@@ -82,7 +82,8 @@ enum class Background {
 	WATER_POOL,
 	NIGHT_WATER_POOL,
 	ROOF,
-	NIGHT_ROOF
+	NIGHT_ROOF,
+	WINTER_GARDEN
 };
 
 struct RowInfo {
@@ -233,6 +234,10 @@ private:
 	bool mStormyNightInitialized = false; // 4-9 第 23 波暴风雨夜是否已经正式初始化，防读档重置阵风额度
 	int mStormyNightFlashPattern = 0;   // 原版 4-10 三种闪光节奏（1～3）；0 表示尚未启用
 	float mStormyNightFlashTimer = 0.0f; // 当前闪光节奏剩余游戏秒；黑屏等待也包含在此计时内
+	bool mWinterTemperatureInitialized = false; // 冬日花园寒潮状态是否已初始化；旧档由 StartGame 补齐
+	ColdWavePhase mColdWavePhase = ColdWavePhase::CALM; // 当前寒潮阶段，与雨势完全正交
+	float mColdWaveTimer = 0.0f;        // 当前寒潮阶段剩余游戏秒
+	float mAmbientTemperatureC = 6.0f;  // 当前环境温度，单位摄氏度；只由寒潮状态机写入
 	float mRoofRunoffCharge = 0.0f;     // 昼夜屋顶坡面径流积累值（0～100）
 	float mRoofRunoffRetainedCharge = 0.0f; // 本次冲刷结束后兑现的预抽残留湿度（30～60）
 	RoofRunoffPhase mRoofRunoffPhase = RoofRunoffPhase::IDLE; // 当前径流所处的待机、预警或冲刷阶段
@@ -346,6 +351,11 @@ private:
 	inline ZombieType GetCheapestZombie();
 	void InitializeWeather();
 	void UpdateWeather(float deltaTime);
+	/** 初始化并推进冬日花园独立寒潮；雨势和台风不得改写温度。 */
+	void InitializeWinterTemperature();
+	void UpdateWinterTemperature(float deltaTime);
+	/** 冻土只阻止新落种；读档与已经存在的植物不受影响。 */
+	bool IsPlantFootprintFrozen(PlantType type, int row, int anchorColumn) const;
 	/** 推进昼夜屋顶雨水积累、锁行预警与短时冲刷状态机。 */
 	void UpdateRoofRunoff(float deltaTime);
 	/** 从存档恢复已经判定的积累值、阶段、锁定行、残留湿度与剩余时间，不重新抽取。 */
@@ -597,6 +607,20 @@ public:
 	float GetWeatherTransitionTimer() const { return mWeatherTransitionTimer; }
 	bool IsWeatherTransitionActive() const { return mWeatherTransitionTimer > 0.0f; }
 	float GetLightningTimer() const { return mLightningTimer; }
+	/** 冬日花园独立温度与冻融线查询；非冬日地图始终返回温暖、中性结果。 */
+	bool SupportsWinterTemperature() const { return mBackGround == Background::WINTER_GARDEN; }
+	bool IsWinterTemperatureInitialized() const { return mWinterTemperatureInitialized; }
+	ColdWavePhase GetColdWavePhase() const { return mColdWavePhase; }
+	float GetColdWaveTimer() const { return mColdWaveTimer; }
+	float GetAmbientTemperatureC() const { return mAmbientTemperatureC; }
+	int GetFrozenColumnCount() const;
+	int GetFirstFrozenColumn() const;
+	bool IsCellFrozen(int row, int col) const;
+	/** 当前低温会把同一雨势的视觉改为雪；雨势强度和玩法倍率保持原值。 */
+	bool IsWinterPrecipitationSnow() const;
+	/** AutoTest 固定寒潮阶段和温度；生产逻辑只走 UpdateWinterTemperature。 */
+	bool SetWinterTemperatureForTesting(float temperatureC, ColdWavePhase phase,
+		float remaining = 30.0f);
 	bool IsWeatherInitialized() const { return mWeatherInitialized; }
 	bool CanRainIntensify() const { return mRainCanIntensify; }
 	bool CanRainHold() const { return mRainCanHold; }
@@ -686,6 +710,8 @@ public:
 	/** 当前天气导演下新天气的原始相对权重，不含弱天气保底覆盖。 */
 	int GetCurrentNewWeatherWeight(RainIntensity intensity) const;
 	bool HasTyphoon() const { return mTyphoonStrength != TyphoonStrength::NONE; }
+	/** 冬日花园明确禁用台风；其大雪不复用风向、阵风或位移机制。 */
+	bool SupportsTyphoon() const;
 	/** 玩家开关开启时，首局或生存首轮第 1～5 波禁止新大雨附加台风。 */
 	bool IsOpeningTyphoonProtectionActive() const;
 	int GetCurrentTyphoonChancePercent() const;
@@ -919,6 +945,8 @@ public:
 	float GetIceTrailRightX() const;
 	/** 在背景和游戏对象之间绘制全部活动冰道；重叠区黄色冰道覆盖普通冰道。 */
 	void DrawIceTrails(Graphics* g) const;
+	/** 在冬日花园草坪实体下方绘制当前冻土覆盖与冻融边界。 */
+	void DrawWinterFrost(Graphics* g) const;
 
 	/** UI 与测试共用的正式种植判定，不含阳光与卡片冷却。 */
 	bool CanPlantAt(PlantType type, int row, int col);

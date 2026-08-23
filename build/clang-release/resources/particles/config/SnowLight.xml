@@ -1,0 +1,25 @@
+<Emitter>
+  <Name>SnowLight</Name>
+  <SpawnMinActive>46</SpawnMinActive>
+  <SpawnRate>24</SpawnRate>
+  <SpawnMaxLaunched>150</SpawnMaxLaunched>
+  <ParticleDuration>[4.0 5.2]</ParticleDuration>
+  <ParticleAlpha>0,0 .78,12 .68,82 0,100</ParticleAlpha>
+  <ParticleScale>[1.2 2.2]</ParticleScale>
+  <ParticleBrightness>[.9 1.0]</ParticleBrightness>
+  <ParticleRed>.88</ParticleRed>
+  <ParticleGreen>.95</ParticleGreen>
+  <ParticleBlue>1</ParticleBlue>
+  <EmitterType>Box</EmitterType>
+  <EmitterBoxX>[-600 600]</EmitterBoxX>
+  <EmitterBoxY>[-18 18]</EmitterBoxY>
+  <SystemDuration>60</SystemDuration>
+  <Image>PARTICLE_WHITEPIXEL</Image>
+  <Field>
+    <FieldType>Position</FieldType>
+    <X>0 [-55 55]</X>
+    <Y>0 [650 730]</Y>
+  </Field>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <ParticleSpinSpeed>[-70 70]</ParticleSpinSpeed>
+</Emitter>

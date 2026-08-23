@@ -1,0 +1,25 @@
+<Emitter>
+  <Name>SnowHeavy</Name>
+  <SpawnMinActive>92</SpawnMinActive>
+  <SpawnRate>58</SpawnRate>
+  <SpawnMaxLaunched>240</SpawnMaxLaunched>
+  <ParticleDuration>[2.2 3.1]</ParticleDuration>
+  <ParticleAlpha>0,0 .9,8 .76,86 0,100</ParticleAlpha>
+  <ParticleScale>[2.0 4.2]</ParticleScale>
+  <ParticleBrightness>[.94 1.0]</ParticleBrightness>
+  <ParticleRed>.92</ParticleRed>
+  <ParticleGreen>.97</ParticleGreen>
+  <ParticleBlue>1</ParticleBlue>
+  <EmitterType>Box</EmitterType>
+  <EmitterBoxX>[-620 620]</EmitterBoxX>
+  <EmitterBoxY>[-26 26]</EmitterBoxY>
+  <SystemDuration>60</SystemDuration>
+  <Image>PARTICLE_WHITEPIXEL</Image>
+  <Field>
+    <FieldType>Position</FieldType>
+    <X>0 [-110 110]</X>
+    <Y>0 [720 820]</Y>
+  </Field>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <ParticleSpinSpeed>[-125 125]</ParticleSpinSpeed>
+</Emitter>

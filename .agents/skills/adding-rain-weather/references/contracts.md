@@ -1,12 +1,13 @@
 # 雨天天气扩展契约
 
-本文件记录截至 2026-08-23 的当前实现。动手前用文中的搜索词核实源码；当前代码优先于本文件。
+本文件记录截至 2026-08-24 的当前实现。动手前用文中的搜索词核实源码；当前代码优先于本文件。
 
 涉及原版已有天气或视觉时，C# 只用来锁定玩家可感知的功能、时序和反馈；实现前仍须核对本项目 `Board` 所有权、独立天气维度、场景坐标、资源与存档契约，并以当前接口实现等价行为，禁止机械照搬类结构或绝对数值。
 
 ## 目录
 
 - [天气状态与时间语义](#天气状态与时间语义)
+- [并行环境维度与降水表现](#并行环境维度与降水表现)
 - [波次锁定的复合天气](#波次锁定的复合天气)
 - [地图专属天气积累器](#地图专属天气积累器)
 - [独立雾势与跨天气联动](#独立雾势与跨天气联动)
@@ -44,6 +45,12 @@
 揭晓失败必须比较这个完整公开组合：预报/实际雨势或台风等级任一不同都显示失败。当大雨预报大雨续期时，
 新锁定等级只是公开预报，不会被同档 `BeginRain` 消费；实际等级必须读揭晓时仍在生效的 `mTyphoonStrength`。
 因此即使雨势同为大雨，“预报强台风、实际超强台风”也必须报错，失败卡片显示两边的完整文案；这四个雨势/台风值和余时一起经 `WeatherPresentationState` 入档。
+
+## 并行环境维度与降水表现
+
+温度、雾势、积雪等与雨势可并存的环境维度由 `Board` 独立持有、计时和持久化；它们不能扩充或改写 `RainIntensity`。若温度只负责把降雨画成降雪，雨势仍是强度、持续时间、植物/僵尸倍率和天气导演的唯一来源，统一查询再由“当前雨势 + 当前温度”得到 `RainLight/Medium/Heavy` 或 `SnowLight/Medium/Heavy`。跨过 0°C 等表现阈值时，立即停止旧降水效果并按当前雨势重建，避免雨雪叠加；快照只保存可决定未来行为的温度阶段、计时和温度，粒子不入档，读档按状态重建。
+
+雪天的雨声、地面水花、局部闪电/雷声等不能靠换粒子名隐式处理，应在各自唯一触发点读取同一派生查询并显式 no-op。地图若禁用台风，集中 `SupportsTyphoon()` 一类资格接口，并让预报/pending 消费、启动、逐帧更新、恢复旧档、AutoTest 强制入口和概率投影全部服从；进入不支持地图时还应清理已保存的活动/待生效台风，不能仅把新抽取概率设为 0。
 
 离散能力默认这样判断：
 
@@ -340,6 +347,7 @@ Board 雾势、再恢复植物，所以 `RestoreFogState()` 只清空旧缓存�
 现有命令：
 
 - `set_weather`：固定天气并立即完成过渡；可传 `duration`、小雨的 `canIntensify`。
+- `set_cold_wave`：对支持温度的地图固定 `CALM/COOLING/COLD/THAWING`、温度与阶段余时；状态投影应同时导出温度整数、冻土列数/首列、是否下雪、实际降水特效名和台风资格。
 - `set_opening_typhoon_protection`：在进程内开关默认启用的前 5 波台风保护，不触碰真实 `PlayerInfo`。
 - `set_roof_runoff`：昼夜屋顶可用；`phase=IDLE/WARNING/FLOWING`，活动阶段以非空 `rows` 数组固定行组，可选 `charge/remaining/retainedCharge`；单个 `row` 只作旧脚本兼容。
 - `weather.roofRunoff`：导出 `chargePct/retainedChargePct/phase/rowMask/rowCount/rows/phaseRemainingMs/flowProgressPct/zombieDriftSpeed/guideCandidateRow/guideCandidateSelected`；植物另导出 `roofRunoffPaused`，僵尸逐体导出 `roofRunoffGuideEligible/roofRunoffDriftMultiplierOn1000/roofRunoffDriftVelocity`。

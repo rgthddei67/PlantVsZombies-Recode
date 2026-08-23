@@ -1,0 +1,65 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 55 },
+    { "op": "choose_cards", "cards": ["PLANT_PEASHOOTER"] },
+    { "op": "wait_state", "state": "GAME", "timeout": 15 },
+
+    { "op": "assert_state", "path": "levelName", "equals": "关卡 7-1" },
+    { "op": "assert_state", "path": "background", "equals": "WINTER_GARDEN" },
+    { "op": "assert_state", "path": "rows", "equals": 5 },
+    { "op": "assert_state", "path": "columns", "equals": 9 },
+    { "op": "assert_state", "path": "winterGardenBackgroundLoaded", "equals": true },
+    { "op": "assert_state", "path": "winterFrostOverlayLoaded", "equals": true },
+    { "op": "assert_state", "path": "weather.winter.supported", "equals": true },
+    { "op": "assert_state", "path": "weather.winter.typhoonSupported", "equals": false },
+    { "op": "assert_state", "path": "weather.typhoonChancePct", "equals": 0 },
+
+    { "op": "set_cold_wave", "phase": "CALM", "temperature": 6, "remaining": 30 },
+    { "op": "assert_state", "path": "weather.winter.frozenColumns", "equals": 0 },
+
+    { "op": "set_cold_wave", "phase": "COOLING", "temperature": 0, "remaining": 10 },
+    { "op": "assert_state", "path": "weather.winter.frozenColumns", "equals": 1 },
+    { "op": "assert_state", "path": "weather.winter.firstFrozenColumn", "equals": 8 },
+    { "op": "screenshot", "name": "winter_garden_frost_frontier.png" },
+
+    { "op": "set_cold_wave", "phase": "CALM", "temperature": 6, "remaining": 30 },
+    { "op": "plant", "type": "PLANT_PEASHOOTER", "row": 2, "col": 8 },
+    { "op": "assert_state", "path": "plantCount", "equals": 1 },
+
+    { "op": "set_cold_wave", "phase": "COLD", "temperature": -12, "remaining": 30 },
+    { "op": "assert_state", "path": "weather.winter.temperatureTenths", "equals": -120 },
+    { "op": "assert_state", "path": "weather.winter.frozenColumns", "equals": 6 },
+    { "op": "assert_state", "path": "weather.winter.firstFrozenColumn", "equals": 3 },
+    { "op": "assert_state", "path": "plantCount", "equals": 1 },
+    { "op": "assert_can_plant", "type": "PLANT_PEASHOOTER", "row": 1, "col": 8, "expected": false },
+    { "op": "assert_can_plant", "type": "PLANT_PEASHOOTER", "row": 1, "col": 2, "expected": true },
+
+    { "op": "set_weather", "intensity": "HEAVY", "duration": 60 },
+    { "op": "wait_seconds", "value": 1.2, "timeout": 3 },
+    { "op": "assert_state", "path": "weather.intensity", "equals": "HEAVY" },
+    { "op": "assert_state", "path": "weather.winter.snowing", "equals": true },
+    { "op": "assert_state", "path": "weather.winter.precipitationEffect", "equals": "SnowHeavy" },
+    { "op": "assert_state", "path": "particleEffectNameCounts.SnowHeavy", "atLeast": 1 },
+    { "op": "assert_state", "path": "weather.typhoonStrength", "equals": "NONE" },
+    { "op": "assert_state", "path": "weather.lightningRemaining", "equals": 0 },
+    { "op": "assert_state", "path": "weather.rainSoundPlaying", "equals": false },
+    { "op": "screenshot", "name": "winter_garden_heavy_snow.png" },
+
+    { "op": "save_level_snapshot", "name": "winter_garden_cold_wave" },
+    { "op": "set_cold_wave", "phase": "CALM", "temperature": 6, "remaining": 30 },
+    { "op": "wait_seconds", "value": 0.2, "timeout": 2 },
+    { "op": "assert_state", "path": "weather.winter.snowing", "equals": false },
+    { "op": "assert_state", "path": "weather.winter.precipitationEffect", "equals": "RainHeavy" },
+    { "op": "reload_level_snapshot", "name": "winter_garden_cold_wave" },
+    { "op": "wait_seconds", "value": 0.4, "timeout": 3 },
+    { "op": "assert_state", "path": "background", "equals": "WINTER_GARDEN" },
+    { "op": "assert_state", "path": "weather.winter.phase", "equals": "COLD" },
+    { "op": "assert_state", "path": "weather.winter.temperatureTenths", "equals": -120 },
+    { "op": "assert_state", "path": "weather.winter.snowing", "equals": true },
+    { "op": "assert_state", "path": "weather.winter.precipitationEffect", "equals": "SnowHeavy" },
+    { "op": "assert_state", "path": "weather.typhoonStrength", "equals": "NONE" },
+    { "op": "screenshot", "name": "winter_garden_cold_wave_reloaded.png" },
+    { "op": "dump_state", "name": "winter_garden_state.json" },
+    { "op": "quit" }
+  ]
+}

@@ -64,6 +64,8 @@ namespace {
 			return ResourceKeys::Music::MUSIC_ROOF;
 		case Background::NIGHT_ROOF:
 			return ResourceKeys::Music::MUSIC_NIGHT;
+		case Background::WINTER_GARDEN:
+			return ResourceKeys::Music::MUSIC_DAY;
 		}
 		return ResourceKeys::Music::MUSIC_DAY;
 	}
@@ -108,6 +110,15 @@ namespace {
 	constexpr float kIceTrailTopOffset = 20.0f;           // 冰道相对逻辑行顶的绘制偏移，单位 px
 	constexpr float kFirstRainDelayMin = 90.0f;          // 开局到首场雨的最短等待时间（秒）
 	constexpr float kFirstRainDelayMax = 105.0f;          // 开局到首场雨的最长等待时间（秒）
+	constexpr float kWinterWarmTemperatureC = 6.0f;      // 寒潮外冬日花园的稳定环境温度（摄氏度）
+	constexpr float kWinterColdTemperatureC = -12.0f;    // 寒潮最冷阶段的稳定环境温度（摄氏度）
+	constexpr float kColdWaveCalmDurationMin = 35.0f;    // 两次寒潮之间温暖间隔的最短游戏秒数
+	constexpr float kColdWaveCalmDurationMax = 60.0f;    // 两次寒潮之间温暖间隔的最长游戏秒数
+	constexpr float kColdWaveCoolingDuration = 12.0f;    // 寒潮把温度从温暖线性降到最低温的游戏秒数
+	constexpr float kColdWaveHoldDurationMin = 45.0f;    // 最低温寒潮维持的最短游戏秒数
+	constexpr float kColdWaveHoldDurationMax = 70.0f;    // 最低温寒潮维持的最长游戏秒数
+	constexpr float kColdWaveThawDuration = 15.0f;       // 寒潮结束后回暖到常温的游戏秒数
+	constexpr int kWinterSafeColumnCount = 3;            // 温室侧永不冻结的安全列数
 	constexpr int kStormyNightLevel = 36;                 // 暴风雨夜专属冒险关：内部 level 36 即 4-9
 	constexpr int kStormyNightForecastWave = 22;          // 第 22 波开始固定发布“暴风雨”预报
 	constexpr int kStormyNightStartWave = 23;             // 第 23 波正式进入暴风雨夜，持续到第 30 波
@@ -390,9 +401,18 @@ namespace {
 	constexpr float kSuperTailwindBulletDamage = 1.20f;   // 超强台风顺风轻型植物子弹命中伤害倍率
 	constexpr float kSuperHeadwindBulletDamage = 0.80f;   // 超强台风逆风轻型植物子弹命中伤害倍率
 
-	/** 返回雨势与实时风向共同决定的雨丝特效名；台风只存在于大雨。 */
-	const char* RainEffectName(RainIntensity intensity, WindDirection direction)
+	/** 返回雨势、低温形态与实时风向共同决定的降水特效名。 */
+	const char* PrecipitationEffectName(RainIntensity intensity,
+		WindDirection direction, bool snow)
 	{
+		if (snow) {
+			switch (intensity) {
+			case RainIntensity::LIGHT:  return "SnowLight";
+			case RainIntensity::MEDIUM: return "SnowMedium";
+			case RainIntensity::HEAVY:  return "SnowHeavy";
+			case RainIntensity::CLEAR:  return "";
+			}
+		}
 		switch (intensity) {
 		case RainIntensity::LIGHT:  return "RainLight";
 		case RainIntensity::MEDIUM: return "RainMedium";
@@ -931,7 +951,7 @@ float Board::GetZombieRainSpeedMultiplier() const
 /** 返回默认开局台风保护是否正在约束当前 Board；生存模式只保护第一轮。 */
 bool Board::IsOpeningTyphoonProtectionActive() const
 {
-	if (!GameAPP::GetInstance().mOpeningTyphoonProtectionEnabled || !SupportsWeather()) {
+	if (!GameAPP::GetInstance().mOpeningTyphoonProtectionEnabled || !SupportsTyphoon()) {
 		return false;
 	}
 	const bool isOpeningRound = !mIsSurvival || mSurvivalRound <= 1;
@@ -941,6 +961,7 @@ bool Board::IsOpeningTyphoonProtectionActive() const
 /** 当前新大雨若进行台风判定时的实际概率，包含开局保护、波次成长与连续落空保底。 */
 int Board::GetCurrentTyphoonChancePercent() const
 {
+	if (!SupportsTyphoon()) return 0;
 	if (IsOpeningTyphoonProtectionActive()) return 0;
 	const int baseChance = LerpWeatherWeight(kTyphoonChanceEarlyPercent,
 		kTyphoonChanceLatePercent, GetWeatherDirectorFactor());
@@ -1258,6 +1279,7 @@ float Board::GetWeatherTransitionProgress() const
 /** 雨声音量与暗幕、玩法倍率共用同一平滑进度。 */
 float Board::GetRainAudioVolume() const
 {
+	if (SupportsWinterTemperature() && mAmbientTemperatureC <= 0.0f) return 0.0f;
 	const float progress = GetWeatherTransitionProgress();
 	const float previous = RainVolumeForIntensity(mPreviousRainIntensity);
 	return previous + (RainVolumeForIntensity(mRainIntensity) - previous) * progress;
@@ -1486,6 +1508,96 @@ void Board::InitializeWeather()
 	mWeatherTimer = SupportsWeather()
 		? GameRandom::Range(kFirstRainDelayMin, kFirstRainDelayMax)
 		: 0.0f;
+}
+
+/** 建立冬日花园独立寒潮初态；其他地图保持温暖单位元。 */
+void Board::InitializeWinterTemperature()
+{
+	if (!SupportsWinterTemperature()) {
+		mWinterTemperatureInitialized = false;
+		mColdWavePhase = ColdWavePhase::CALM;
+		mColdWaveTimer = 0.0f;
+		mAmbientTemperatureC = kWinterWarmTemperatureC;
+		return;
+	}
+	if (mWinterTemperatureInitialized) return;
+	mWinterTemperatureInitialized = true;
+	mColdWavePhase = ColdWavePhase::CALM;
+	mColdWaveTimer = GameRandom::Range(
+		kColdWaveCalmDurationMin, kColdWaveCalmDurationMax);
+	mAmbientTemperatureC = kWinterWarmTemperatureC;
+}
+
+/**
+ * 推进寒潮降温、低温维持与回暖；降水只在跨过冰点时重建视觉，绝不参与温度计算。
+ */
+void Board::UpdateWinterTemperature(float deltaTime)
+{
+	if (!SupportsWinterTemperature()) {
+		InitializeWinterTemperature();
+		return;
+	}
+	if (!mWinterTemperatureInitialized) InitializeWinterTemperature();
+	if (deltaTime <= 0.0f) return;
+
+	const bool wasSnowing = IsWinterPrecipitationSnow();
+	mColdWaveTimer = std::max(0.0f, mColdWaveTimer - deltaTime);
+	switch (mColdWavePhase) {
+	case ColdWavePhase::CALM:
+		mAmbientTemperatureC = kWinterWarmTemperatureC;
+		if (mColdWaveTimer <= 0.0f) {
+			mColdWavePhase = ColdWavePhase::COOLING;
+			mColdWaveTimer = kColdWaveCoolingDuration;
+		}
+		break;
+	case ColdWavePhase::COOLING:
+	{
+		const float progress = std::clamp(1.0f
+			- mColdWaveTimer / kColdWaveCoolingDuration, 0.0f, 1.0f);
+		mAmbientTemperatureC = kWinterWarmTemperatureC
+			+ (kWinterColdTemperatureC - kWinterWarmTemperatureC) * progress;
+		if (mColdWaveTimer <= 0.0f) {
+			mColdWavePhase = ColdWavePhase::COLD;
+			mColdWaveTimer = GameRandom::Range(
+				kColdWaveHoldDurationMin, kColdWaveHoldDurationMax);
+			mAmbientTemperatureC = kWinterColdTemperatureC;
+		}
+		break;
+	}
+	case ColdWavePhase::COLD:
+		mAmbientTemperatureC = kWinterColdTemperatureC;
+		if (mColdWaveTimer <= 0.0f) {
+			mColdWavePhase = ColdWavePhase::THAWING;
+			mColdWaveTimer = kColdWaveThawDuration;
+		}
+		break;
+	case ColdWavePhase::THAWING:
+	{
+		const float progress = std::clamp(1.0f
+			- mColdWaveTimer / kColdWaveThawDuration, 0.0f, 1.0f);
+		mAmbientTemperatureC = kWinterColdTemperatureC
+			+ (kWinterWarmTemperatureC - kWinterColdTemperatureC) * progress;
+		if (mColdWaveTimer <= 0.0f) {
+			mColdWavePhase = ColdWavePhase::CALM;
+			mColdWaveTimer = GameRandom::Range(
+				kColdWaveCalmDurationMin, kColdWaveCalmDurationMax);
+			mAmbientTemperatureC = kWinterWarmTemperatureC;
+		}
+		break;
+	}
+	}
+
+	const bool isSnowing = IsWinterPrecipitationSnow();
+	if (wasSnowing == isSnowing) return;
+	if (!mRainVisualEffectName.empty() && g_particleSystem) {
+		g_particleSystem->StopEffect(mRainVisualEffectName);
+	}
+	mRainVisualActive = false;
+	if (mRainIntensity != RainIntensity::CLEAR && mWeatherTimer > 0.0f) {
+		EmitRainEffect(mWeatherTimer);
+	}
+	if (isSnowing) StopRainAudio();
+	else StartRainAudio();
 }
 
 /** 初始化当前迷雾关卡的独立雾势；基础雾线仍可由关内进度调节。 */
@@ -1727,7 +1839,8 @@ void Board::RefreshZombieWeatherSpeeds()
 void Board::EmitRainEffect(float duration)
 {
 	if (!g_particleSystem || mRainIntensity == RainIntensity::CLEAR || duration <= 0.0f) return;
-	const std::string effectName = RainEffectName(mRainIntensity, mWindDirection);
+	const std::string effectName = PrecipitationEffectName(
+		mRainIntensity, mWindDirection, IsWinterPrecipitationSnow());
 	if (effectName.empty()) return;
 	if (!mRainVisualEffectName.empty() && mRainVisualEffectName != effectName) {
 		// 风向或雨势切换时只停旧雨的发射器；在途雨丝保留到自然淡出。
@@ -1781,7 +1894,7 @@ void Board::TriggerRainGroundSplash()
 /** 推进地面水花节奏；计时器是纯视觉状态，雨势切换和读档后都会重新起拍。 */
 void Board::UpdateRainGroundSplash(float deltaTime)
 {
-	if (mRainIntensity == RainIntensity::CLEAR) return;
+	if (mRainIntensity == RainIntensity::CLEAR || IsWinterPrecipitationSnow()) return;
 	mRainSplashTimer -= deltaTime;
 	if (mRainSplashTimer > 0.0f) return;
 
@@ -1793,11 +1906,16 @@ bool Board::IsRainEffectEmitting() const
 {
 	return g_particleSystem && mRainIntensity != RainIntensity::CLEAR
 		&& g_particleSystem->IsEffectEmitting(
-			RainEffectName(mRainIntensity, mWindDirection));
+			PrecipitationEffectName(mRainIntensity, mWindDirection,
+				IsWinterPrecipitationSnow()));
 }
 
 void Board::StartRainAudio()
 {
+	if (SupportsWinterTemperature() && mAmbientTemperatureC <= 0.0f) {
+		StopRainAudio();
+		return;
+	}
 	if (mRainIntensity == RainIntensity::CLEAR
 		&& (mWeatherTransitionTimer <= 0.0f
 			|| mPreviousRainIntensity == RainIntensity::CLEAR)) return;
@@ -1889,6 +2007,7 @@ void Board::PreparePendingHeavyTyphoon(int chanceRoll, int strengthRoll)
 	mPendingHeavyWindGustTimer = 0.0f;
 	mPendingHeavyTyphoonGustsRemaining = 0;
 	mPendingHeavyRainPromptVariant = GameRandom::Range(0, 2);
+	if (!SupportsTyphoon()) return;
 	mPendingHeavyTyphoonOpeningProtected = IsOpeningTyphoonProtectionActive();
 	if (mPendingHeavyTyphoonOpeningProtected) return;
 
@@ -2014,6 +2133,7 @@ void Board::StartTyphoonForHeavyPhase(int chanceRoll, int strengthRoll,
 	WindDirection forcedDirection)
 {
 	StopTyphoon();
+	if (!SupportsTyphoon()) return;
 	// 保护期不是一次随机落空，不能累计台风 pity，否则第 6 波会被反向推成近似必出。
 	if (IsOpeningTyphoonProtectionActive()) return;
 	const int chance = GetCurrentTyphoonChancePercent();
@@ -2055,6 +2175,11 @@ void Board::StartTyphoonForHeavyPhase(int chanceRoll, int strengthRoll,
  */
 void Board::ConsumePendingHeavyTyphoon()
 {
+	if (!SupportsTyphoon()) {
+		ClearPendingHeavyRainWarning();
+		StopTyphoon();
+		return;
+	}
 	if (!mPendingHeavyTyphoonPrepared) {
 		StartTyphoonForHeavyPhase();
 		return;
@@ -2103,6 +2228,11 @@ void Board::RestorePendingHeavyTyphoon(bool prepared, bool openingProtected,
 {
 	ClearPendingHeavyRainWarning();
 	if (!prepared || !NeedsPendingHeavyForecastState()) return;
+	if (!SupportsTyphoon()) {
+		mPendingHeavyTyphoonPrepared = true;
+		mPendingHeavyRainPromptVariant = std::clamp(promptVariant, 0, 2);
+		return;
+	}
 	const bool validStrength = strength >= TyphoonStrength::NONE
 		&& strength <= TyphoonStrength::SUPER;
 	const bool validDirection = strength == TyphoonStrength::NONE
@@ -2260,6 +2390,7 @@ void Board::RestoreTyphoonState(TyphoonStrength strength, WindDirection directio
 	float strengthTimer, float gustTimer, float directionTimer, int gustsRemaining)
 {
 	StopTyphoon();
+	if (!SupportsTyphoon()) return;
 	const bool validStrength = strength == TyphoonStrength::TYPHOON
 		|| strength == TyphoonStrength::SEVERE || strength == TyphoonStrength::SUPER;
 	const bool validDirection = direction == WindDirection::TOWARD_HOUSE
@@ -2511,6 +2642,10 @@ void Board::UpdateTyphoonWindVisual(float deltaTime)
  */
 void Board::UpdateTyphoon(float deltaTime)
 {
+	if (!SupportsTyphoon()) {
+		if (HasTyphoon()) StopTyphoon();
+		return;
+	}
 	if (!HasTyphoon()) return;
 	if (mRainIntensity != RainIntensity::HEAVY) {
 		StopTyphoon();
@@ -2549,7 +2684,7 @@ void Board::UpdateTyphoon(float deltaTime)
  */
 bool Board::BeginTyphoonGust(bool consumeBudget, float forcedPlantMoveIn)
 {
-	if (!HasTyphoon() || mRainIntensity != RainIntensity::HEAVY
+	if (!SupportsTyphoon() || !HasTyphoon() || mRainIntensity != RainIntensity::HEAVY
 		|| mWindDirection == WindDirection::NONE || mTyphoonGustActive) return false;
 	mLastTyphoonMovedPlants = 0;
 	mLastTyphoonLostPlants = 0;
@@ -2905,7 +3040,8 @@ void Board::BeginRain(RainIntensity intensity, float duration, bool canIntensify
 	mRainCanHold = canHold && intensity != RainIntensity::LIGHT;
 	mWeatherForecastReady = false;
 	mRainSplashTimer = RandomRainSplashDelay(intensity);
-	mLightningTimer = (intensity == RainIntensity::HEAVY)
+	mLightningTimer = (intensity == RainIntensity::HEAVY
+		&& !IsWinterPrecipitationSnow())
 		? GameRandom::Range(kLightningDelayMin, kLightningDelayMax)
 		: 0.0f;
 	mRainVisualActive = false;
@@ -2983,7 +3119,7 @@ void Board::EndRain()
 
 void Board::TriggerLightning()
 {
-	if (mRainIntensity != RainIntensity::HEAVY) return;
+	if (mRainIntensity != RainIntensity::HEAVY || IsWinterPrecipitationSnow()) return;
 	// 黑夜屋顶把现有大雨闪电作为独立雷荷的一次增量；不改变雨势或坡面径流。
 	AddNightRoofCharge(kNightRoofChargeLightningBonus);
 	if (IsStormyNightActive()) {
@@ -3928,6 +4064,7 @@ void Board::FinalizeNightRoofHijackerLoad()
 void Board::UpdateWeather(float deltaTime)
 {
 	if (!mWeatherInitialized || deltaTime <= 0.0f) return;
+	UpdateWinterTemperature(deltaTime);
 	// 场景积累器只由背景资格决定；通用天气的冒险进度门槛不能反向关闭屋顶固有机制。
 	UpdateRoofRunoff(deltaTime);
 	UpdateNightRoofCharge(deltaTime);
@@ -3939,7 +4076,7 @@ void Board::UpdateWeather(float deltaTime)
 			mRainVisualActive = false;
 			EmitRainEffect(kStormyNightLockedDuration);
 		}
-		UpdateRainGroundSplash(deltaTime);
+		if (!IsWinterPrecipitationSnow()) UpdateRainGroundSplash(deltaTime);
 		UpdateTyphoon(deltaTime);
 		UpdateStormyNightFlash(deltaTime);
 		return;
@@ -3959,15 +4096,21 @@ void Board::UpdateWeather(float deltaTime)
 		mRainVisualActive = false;
 		EmitRainEffect(mWeatherTimer);
 	}
-	if (mRainIntensity != RainIntensity::CLEAR && mWeatherTimer > 0.0f) {
+	if (mRainIntensity != RainIntensity::CLEAR && mWeatherTimer > 0.0f
+		&& !IsWinterPrecipitationSnow()) {
 		UpdateRainGroundSplash(deltaTime);
 	}
 	if (mRainIntensity == RainIntensity::HEAVY && mWeatherTimer > 0.0f) {
 		UpdateTyphoon(deltaTime);
-		mLightningTimer -= deltaTime;
-		if (mLightningTimer <= 0.0f) {
-			TriggerLightning();
-			mLightningTimer = GameRandom::Range(kLightningRepeatMin, kLightningRepeatMax);
+		if (!IsWinterPrecipitationSnow()) {
+			mLightningTimer -= deltaTime;
+			if (mLightningTimer <= 0.0f) {
+				TriggerLightning();
+				mLightningTimer = GameRandom::Range(kLightningRepeatMin, kLightningRepeatMax);
+			}
+		}
+		else {
+			mLightningTimer = 0.0f;
 		}
 	}
 
@@ -4113,7 +4256,7 @@ bool Board::AdvanceRainPhaseForTesting(int transitionRoll)
 
 bool Board::TriggerLightningForTesting()
 {
-	if (mRainIntensity != RainIntensity::HEAVY) return false;
+	if (mRainIntensity != RainIntensity::HEAVY || IsWinterPrecipitationSnow()) return false;
 	TriggerLightning();
 	return true;
 }
@@ -4122,6 +4265,7 @@ bool Board::SetTyphoonForTesting(TyphoonStrength strength, WindDirection directi
 	float gustIn, float directionIn, int gustsRemaining, float decayIn)
 {
 	if (mRainIntensity != RainIntensity::HEAVY) return false;
+	if (!SupportsTyphoon() && strength != TyphoonStrength::NONE) return false;
 	if (strength == TyphoonStrength::NONE) {
 		StopTyphoon();
 		RestartRainVisualForWindChange();
@@ -4144,7 +4288,8 @@ bool Board::RollTyphoonForTesting(int chanceRoll, int strengthRoll, WindDirectio
 	const int totalWeight = BuildTyphoonWeights(GetWeatherDirectorFactor()).Total();
 	const bool validDirection = direction == WindDirection::TOWARD_HOUSE
 		|| direction == WindDirection::TOWARD_FRONT;
-	if (mRainIntensity != RainIntensity::HEAVY || chanceRoll < 1 || chanceRoll > 100
+	if (!SupportsTyphoon() || mRainIntensity != RainIntensity::HEAVY
+		|| chanceRoll < 1 || chanceRoll > 100
 		|| strengthRoll < 1 || strengthRoll > totalWeight || !validDirection) return false;
 	StartTyphoonForHeavyPhase(chanceRoll, strengthRoll, direction);
 	RestartRainVisualForWindChange();
@@ -4308,6 +4453,78 @@ bool Board::SupportsStageFog() const
 	// 第四大关继续由背景提供通用雾场；其他背景的固定关卡统一由冒险进度表登记。
 	return mBackGround == Background::NIGHT_WATER_POOL
 		|| AdventureProgression::HasLevelSpecificFogMechanics(mLevel);
+}
+
+bool Board::SupportsTyphoon() const
+{
+	return SupportsWeather() && mBackGround != Background::WINTER_GARDEN;
+}
+
+/** 温度每越过两个负温档，冻土从最右侧多推进一列；左侧三列温室区永远安全。 */
+int Board::GetFrozenColumnCount() const
+{
+	if (!SupportsWinterTemperature() || mAmbientTemperatureC > 0.0f) return 0;
+	const int maximumFrozen = std::max(0, mColumns - kWinterSafeColumnCount);
+	const int coldBand = static_cast<int>(std::floor(-mAmbientTemperatureC / 2.0f)) + 1;
+	return std::clamp(coldBand, 1, maximumFrozen);
+}
+
+int Board::GetFirstFrozenColumn() const
+{
+	return mColumns - GetFrozenColumnCount();
+}
+
+bool Board::IsCellFrozen(int row, int col) const
+{
+	return row >= 0 && row < mRows && col >= 0 && col < mColumns
+		&& GetFrozenColumnCount() > 0 && col >= GetFirstFrozenColumn();
+}
+
+bool Board::IsPlantFootprintFrozen(PlantType type, int row, int anchorColumn) const
+{
+	if (!SupportsWinterTemperature()) return false;
+	const PlantFootprint footprint = GetPlantFootprint(type);
+	for (std::size_t i = 0; i < footprint.count; ++i) {
+		if (IsCellFrozen(row + footprint.cells[i].rowOffset,
+			anchorColumn + footprint.cells[i].columnOffset)) return true;
+	}
+	return false;
+}
+
+bool Board::IsWinterPrecipitationSnow() const
+{
+	return SupportsWinterTemperature() && mAmbientTemperatureC <= 0.0f
+		&& mRainIntensity != RainIntensity::CLEAR;
+}
+
+bool Board::SetWinterTemperatureForTesting(float temperatureC,
+	ColdWavePhase phase, float remaining)
+{
+	if (!SupportsWinterTemperature() || !std::isfinite(temperatureC)
+		|| !std::isfinite(remaining)
+		|| phase < ColdWavePhase::CALM || phase > ColdWavePhase::THAWING) {
+		return false;
+	}
+	const bool wasSnowing = IsWinterPrecipitationSnow();
+	mWinterTemperatureInitialized = true;
+	mColdWavePhase = phase;
+	mColdWaveTimer = std::max(0.0f, remaining);
+	mAmbientTemperatureC = std::clamp(temperatureC,
+		kWinterColdTemperatureC, kWinterWarmTemperatureC);
+	StopTyphoon();
+	const bool isSnowing = IsWinterPrecipitationSnow();
+	if (wasSnowing != isSnowing) {
+		if (!mRainVisualEffectName.empty() && g_particleSystem) {
+			g_particleSystem->StopEffect(mRainVisualEffectName);
+		}
+		mRainVisualActive = false;
+		if (mRainIntensity != RainIntensity::CLEAR && mWeatherTimer > 0.0f) {
+			EmitRainEffect(mWeatherTimer);
+		}
+		if (isSnowing) StopRainAudio();
+		else StartRainAudio();
+	}
+	return true;
 }
 
 bool Board::SupportsPlanternMechanics() const
@@ -4856,6 +5073,32 @@ void Board::CreateBoom(const Vector& position, int plantRow, int damage)
 	}
 	// 原版对僵尸使用圆形命中，但扶梯另按爆心格的 3x3 方形范围清除。
 	RemoveLaddersInBlastSquare(position, plantRow, 1);
+}
+
+/** 绘制从僵尸侧向温室推进的连续霜雪纹理；逻辑按列，视觉不暴露格线。 */
+void Board::DrawWinterFrost(Graphics* g) const
+{
+	if (!g || !SupportsWinterTemperature()) return;
+	const int frozenColumns = GetFrozenColumnCount();
+	if (frozenColumns <= 0) return;
+	const Texture* frost = ResourceManager::GetInstance().GetTexture(
+		ResourceKeys::Textures::IMAGE_WINTER_FROST_OVERLAY_V2, false);
+	if (!frost) return;
+
+	const int firstColumn = GetFirstFrozenColumn();
+	const float boundaryX = CELL_INITALIZE_POS_X
+		+ static_cast<float>(firstColumn) * CELL_COLLIDER_SIZE_X;
+	constexpr float kFrostFrontierBleed = 24.0f; // 不规则霜枝越过逻辑冻融线的最大视觉宽度，单位像素
+	const float left = boundaryX - kFrostFrontierBleed;
+	const float width = static_cast<float>(frozenColumns) * CELL_COLLIDER_SIZE_X
+		+ kFrostFrontierBleed;
+	const float height = static_cast<float>(mRows) * mCellHeight;
+	const float coldRatio = std::clamp(
+		-mAmbientTemperatureC / -kWinterColdTemperatureC, 0.0f, 1.0f);
+	const float alpha = 75.0f + 170.0f * coldRatio;
+	// 纹理本身包含透明间隙、雪斑与参差左缘；整张缩放可避免每列重复和接缝。
+	g->DrawTexture(frost, left, mCellInitialY, width, height, 0.0f,
+		glm::vec4(255.0f, 255.0f, 255.0f, alpha));
 }
 
 bool Board::TryGetNightRoofChargeGuideAnchor(Vector& anchor) const
@@ -5869,6 +6112,7 @@ bool Board::CanPlantAt(PlantType type, int row, int col)
 	int anchorRow = row;
 	int anchorColumn = col;
 	if (!ResolvePlantPlacementAnchor(type, row, col, anchorRow, anchorColumn)) return false;
+	if (IsPlantFootprintFrozen(type, anchorRow, anchorColumn)) return false;
 	if (IsIceAt(anchorRow, anchorColumn)) return false;
 	if (type == PlantType::PLANT_COBCANNON) {
 		const PlantFootprint footprint = GetPlantFootprint(type);
@@ -6262,6 +6506,10 @@ Plant* Board::CreatePlantInternal(PlantType actualType, PlantType placementType,
 	// 读档实体恢复由已保存的累计计数约束，不能在逐株重建时重复消耗次数。
 	const bool consumesPlantingQuota = !isPreview && !skipsettings && !mIsLoadSave;
 	if (consumesPlantingQuota && !HasPlantingQuota(placementType)) {
+		return nullptr;
+	}
+	if (consumesPlantingQuota
+		&& IsPlantFootprintFrozen(placementType, row, column)) {
 		return nullptr;
 	}
 	const bool isOverlayPlant = placementType == PlantType::PLANT_INSTANT_COFFEE;
@@ -7159,6 +7407,7 @@ void Board::StartGame()
 	}
 	mBoardState = BoardState::GAME;
 	InitializeWeather();
+	InitializeWinterTemperature();
 	InitializeFogWeather();
 	EnforceStormyNightWeather();
 	// 读档恢复到一场雨中时，玩法状态已经由存档还原；粒子是瞬态资源，需按剩余时间重建一次。

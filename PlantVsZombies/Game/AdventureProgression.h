@@ -8,10 +8,11 @@
 namespace AdventureProgression
 {
 	inline constexpr int LEVELS_PER_AREA = 9;
-	inline constexpr int ADVENTURE_AREA_COUNT = 6;
+	inline constexpr int ADVENTURE_AREA_COUNT = 7;
 	inline constexpr int LAST_ADVENTURE_LEVEL = LEVELS_PER_AREA * ADVENTURE_AREA_COUNT;
 	inline constexpr int AREA_FIVE_BOSS_LEVEL = LEVELS_PER_AREA * 5;
 	inline constexpr int AREA_SIX_FINAL_LEVEL = LEVELS_PER_AREA * 6;
+	inline constexpr int AREA_SEVEN_FINAL_LEVEL = LEVELS_PER_AREA * 7;
 
 	/** 冒险关的 BOSS 槽位；枚举值同时是关卡编排选择，不直接承担实体所有权。 */
 	enum class BossSlot {
@@ -92,6 +93,17 @@ namespace AdventureProgression
 		PlantType::PLANT_GOLD_MAGNET,
 		PlantType::PLANT_IMITATER,
 		NO_PLANT_REWARD,
+
+		// 7-1 ... 7-9（冬日花园；特色植物与僵尸奖励后续逐关补充）
+		NO_PLANT_REWARD,
+		NO_PLANT_REWARD,
+		NO_PLANT_REWARD,
+		NO_PLANT_REWARD,
+		NO_PLANT_REWARD,
+		NO_PLANT_REWARD,
+		NO_PLANT_REWARD,
+		NO_PLANT_REWARD,
+		NO_PLANT_REWARD,
 	};
 
 	/** 返回内部关卡号对应的大关编号；非正数关卡返回 0。 */
@@ -106,7 +118,7 @@ namespace AdventureProgression
 		return level > 0 ? (level - 1) % LEVELS_PER_AREA + 1 : 0;
 	}
 
-	/** 判断关卡号是否属于当前六大关冒险流程。 */
+	/** 判断关卡号是否属于当前七大关冒险流程。 */
 	constexpr bool IsAdventureLevel(int level)
 	{
 		return level >= 1 && level <= LAST_ADVENTURE_LEVEL;
@@ -173,4 +185,8 @@ namespace AdventureProgression
 	static_assert(!HasLevelSpecificFogMechanics(53));
 	static_assert(HasLevelSpecificFogMechanics(54));
 	static_assert(GetPlantReward(54) == NO_PLANT_REWARD);
+	static_assert(IsAdventureLevel(55) && IsAdventureLevel(63));
+	static_assert(GetAreaNumber(55) == 7 && GetLevelNumberInArea(55) == 1);
+	static_assert(GetAreaNumber(63) == 7 && GetLevelNumberInArea(63) == 9);
+	static_assert(GetPlantReward(63) == NO_PLANT_REWARD);
 }

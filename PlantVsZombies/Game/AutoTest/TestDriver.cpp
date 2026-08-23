@@ -396,6 +396,10 @@ namespace {
 		{ "CLEAR", RainIntensity::CLEAR }, { "LIGHT", RainIntensity::LIGHT },
 		{ "MEDIUM", RainIntensity::MEDIUM }, { "HEAVY", RainIntensity::HEAVY },
 	};
+	const std::unordered_map<std::string, ColdWavePhase> kColdWavePhaseNames = {
+		{ "CALM", ColdWavePhase::CALM }, { "COOLING", ColdWavePhase::COOLING },
+		{ "COLD", ColdWavePhase::COLD }, { "THAWING", ColdWavePhase::THAWING },
+	};
 	const std::unordered_map<std::string, FogWeatherIntensity> kFogWeatherIntensityNames = {
 		{ "DEFAULT", FogWeatherIntensity::DEFAULT },
 		{ "SMALL", FogWeatherIntensity::SMALL },
@@ -475,6 +479,10 @@ namespace {
 		for (const auto& [k, v] : kRainIntensityNames) if (v == intensity) return k;
 		return "UNKNOWN";
 	}
+	std::string ColdWavePhaseName(ColdWavePhase phase) {
+		for (const auto& [k, v] : kColdWavePhaseNames) if (v == phase) return k;
+		return "UNKNOWN";
+	}
 	std::string FogWeatherIntensityName(FogWeatherIntensity intensity) {
 		switch (intensity) {
 		case FogWeatherIntensity::DEFAULT: return "DEFAULT";
@@ -526,6 +534,7 @@ namespace {
 		case Background::NIGHT_WATER_POOL: return "NIGHT_WATER_POOL";
 		case Background::ROOF:             return "ROOF";
 		case Background::NIGHT_ROOF:       return "NIGHT_ROOF";
+		case Background::WINTER_GARDEN:    return "WINTER_GARDEN";
 		}
 		return "UNKNOWN";
 	}
@@ -535,7 +544,8 @@ namespace {
 			|| name == "WATER_POOL"
 			|| name == "NIGHT_WATER_POOL"
 			|| name == "ROOF"
-			|| name == "NIGHT_ROOF";
+			|| name == "NIGHT_ROOF"
+			|| name == "WINTER_GARDEN";
 	}
 	const char* BossSlotName(AdventureProgression::BossSlot slot) {
 		switch (slot) {
@@ -905,6 +915,22 @@ bool TestDriver::ExecuteCurrent() {
 			cmd.value("canIntensify", false));
 		if (gs->GetBoard()->GetRainIntensity() != it->second) {
 			Fail("set_weather: 当前关卡不支持天气，天气未生效");
+			return false;
+		}
+		return true;
+	}
+	if (op == "set_cold_wave") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) {
+			Fail("set_cold_wave: 不在 GameScene 或 Board 为空");
+			return false;
+		}
+		auto phaseIt = kColdWavePhaseNames.find(cmd.value("phase", ""));
+		if (phaseIt == kColdWavePhaseNames.end()
+			|| !gs->GetBoard()->SetWinterTemperatureForTesting(
+				cmd.value("temperature", 6.0f), phaseIt->second,
+				cmd.value("remaining", 30.0f))) {
+			Fail("set_cold_wave: 仅冬日花园可用，phase 必须是 CALM/COOLING/COLD/THAWING");
 			return false;
 		}
 		return true;
@@ -3360,6 +3386,10 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["level"] = board->mLevel;
 	out["levelName"] = board->mLevelName;
 	out["background"] = BackgroundName(board->mBackGround);
+	out["winterGardenBackgroundLoaded"] = ResourceManager::GetInstance().GetTexture(
+		ResourceKeys::Textures::IMAGE_BACKGROUND_WINTERGARDEN, false) != nullptr;
+	out["winterFrostOverlayLoaded"] = ResourceManager::GetInstance().GetTexture(
+		ResourceKeys::Textures::IMAGE_WINTER_FROST_OVERLAY_V2, false) != nullptr;
 	out["isBossLevel"] = AdventureProgression::IsBossLevel(board->mLevel);
 	out["bossSlot"] = BossSlotName(AdventureProgression::GetBossSlot(board->mLevel));
 	out["poolEffectCounter"] = gs->GetPoolEffectCounter();
@@ -4091,6 +4121,20 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				TyphoonStrengthName(gs->GetFailedForecastTyphoonStrength()) },
 			{ "actualForecastTyphoonStrength",
 				TyphoonStrengthName(gs->GetActualForecastTyphoonStrength()) },
+		};
+		out["weather"]["winter"] = {
+			{ "supported", board->SupportsWinterTemperature() },
+			{ "initialized", board->IsWinterTemperatureInitialized() },
+			{ "temperatureTenths", static_cast<int>(std::lround(
+				board->GetAmbientTemperatureC() * 10.0f)) },
+			{ "phase", ColdWavePhaseName(board->GetColdWavePhase()) },
+			{ "phaseRemainingMs", static_cast<int>(std::lround(
+				board->GetColdWaveTimer() * 1000.0f)) },
+			{ "frozenColumns", board->GetFrozenColumnCount() },
+			{ "firstFrozenColumn", board->GetFirstFrozenColumn() },
+			{ "snowing", board->IsWinterPrecipitationSnow() },
+			{ "typhoonSupported", board->SupportsTyphoon() },
+			{ "precipitationEffect", board->GetRainVisualEffectName() },
 		};
 		nlohmann::json runoffRows = nlohmann::json::array();
 		int firstRunoffRow = -1;
@@ -5706,6 +5750,9 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["particleEffectNameCounts"]["HealerFocusedHeal"] = 0;
 	out["particleEffectNameCounts"]["GoldMagnetEMP"] = 0;
 	out["particleEffectNameCounts"]["ImitaterMorph"] = 0;
+	out["particleEffectNameCounts"]["SnowLight"] = 0;
+	out["particleEffectNameCounts"]["SnowMedium"] = 0;
+	out["particleEffectNameCounts"]["SnowHeavy"] = 0;
 	if (g_particleSystem) {
 		for (const auto& effect : g_particleSystem->GetEffectsForTesting()) {
 			if (!effect) continue;

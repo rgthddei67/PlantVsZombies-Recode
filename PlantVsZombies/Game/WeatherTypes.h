@@ -8,6 +8,14 @@ enum class RainIntensity {
 	HEAVY
 };
 
+/** 冬日花园独立寒潮阶段；温度只由这套状态机推进，不读取雨势或台风。 */
+enum class ColdWavePhase {
+	CALM,
+	COOLING,
+	COLD,
+	THAWING
+};
+
 /**
  * 四大关独立雾势；它与雨势正交，因此任意雾势可以和任意雨档、台风同时存在。
  * DEFAULT 对应原版基础覆盖，SMALL/NORMAL/DENSE 依次增加覆盖距离。

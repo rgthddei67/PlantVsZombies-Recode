@@ -153,6 +153,7 @@ namespace {
 		if (overrideName == "NIGHT_WATER_POOL") return Background::NIGHT_WATER_POOL;
 		if (overrideName == "ROOF") return Background::ROOF;
 		if (overrideName == "NIGHT_ROOF") return Background::NIGHT_ROOF;
+		if (overrideName == "WINTER_GARDEN") return Background::WINTER_GARDEN;
 		return configured;
 	}
 
@@ -240,6 +241,32 @@ namespace {
 		return u8"未知";
 	}
 
+	/** 低温冬日花园沿用同一降水强度，但把玩家可见名称改为雪。 */
+	const char* PrecipitationDisplayName(const Board* board, RainIntensity intensity) {
+		const bool snow = board && board->SupportsWinterTemperature()
+			&& board->GetAmbientTemperatureC() <= 0.0f
+			&& intensity != RainIntensity::CLEAR;
+		if (!snow) return RainIntensityDisplayName(intensity);
+		switch (intensity) {
+		case RainIntensity::LIGHT:  return u8"小雪";
+		case RainIntensity::MEDIUM: return u8"中雪";
+		case RainIntensity::HEAVY:  return u8"大雪";
+		case RainIntensity::CLEAR:  return u8"晴天";
+		}
+		return u8"未知";
+	}
+
+	/** 把独立寒潮阶段转换为天气面板使用的短名称。 */
+	const char* ColdWavePhaseDisplayName(ColdWavePhase phase) {
+		switch (phase) {
+		case ColdWavePhase::CALM:    return u8"间歇";
+		case ColdWavePhase::COOLING: return u8"降温中";
+		case ColdWavePhase::COLD:    return u8"寒潮中";
+		case ColdWavePhase::THAWING: return u8"回暖中";
+		}
+		return u8"未知";
+	}
+
 	/** 把独立雾势转换为天气面板名称。 */
 	const char* FogWeatherDisplayName(FogWeatherIntensity intensity) {
 		switch (intensity) {
@@ -284,7 +311,7 @@ namespace {
 			static_cast<int>(std::ceil(board->GetWeatherTimer())));
 		const RainIntensity forecast = board->GetForecastRainIntensity();
 		std::string line = std::string(u8"天气预报（") + std::to_string(seconds)
-			+ u8"秒）：" + RainIntensityDisplayName(forecast);
+			+ u8"秒）：" + PrecipitationDisplayName(board, forecast);
 		if (forecast == board->GetRainIntensity()) line += u8"（持续）";
 		if (forecast == RainIntensity::HEAVY && board->HasPendingHeavyTyphoon()) {
 			const TyphoonStrength strength = board->GetPendingHeavyTyphoonStrength();
@@ -395,6 +422,9 @@ namespace {
 			if (ShouldDisplayNightRoofExecutionLine(board)) {
 				height += kWeatherPanelDetailLineHeight;
 			}
+		}
+		if (board->SupportsWinterTemperature()) {
+			height += kWeatherPanelDetailLineHeight;
 		}
 		if (board->HasTyphoon()) height += kWeatherPanelDetailLineHeight;
 		return height;
@@ -968,7 +998,8 @@ void GameScene::DrawWeatherPanel(Graphics* g) const
 
 	std::string currentLine = mBoard->IsStormyNightActive()
 		? std::string(u8"当前天气：暴风雨")
-		: std::string(u8"当前天气：") + RainIntensityDisplayName(mBoard->GetRainIntensity());
+		: std::string(u8"当前天气：")
+			+ PrecipitationDisplayName(mBoard.get(), mBoard->GetRainIntensity());
 	if (!mBoard->IsStormyNightActive()) {
 		if (mBoard->SupportsStageFog()) {
 			currentLine += std::string(u8" · ")
@@ -1003,6 +1034,22 @@ void GameScene::DrawWeatherPanel(Graphics* g) const
 		forecastColor, textX, kWeatherPanelY + 41.0f);
 
 	float detailLineY = kWeatherPanelY + 69.0f;
+	if (mBoard->SupportsWinterTemperature()) {
+		const int temperature = static_cast<int>(std::lround(
+			mBoard->GetAmbientTemperatureC()));
+		std::string temperatureLine = std::string(u8"温度：")
+			+ (temperature > 0 ? "+" : "") + std::to_string(temperature)
+			+ u8"°C · " + ColdWavePhaseDisplayName(mBoard->GetColdWavePhase())
+			+ u8" · 冻土" + std::to_string(mBoard->GetFrozenColumnCount()) + u8"列";
+		const glm::vec4 temperatureColor = temperature <= 0
+			? glm::vec4(178.0f, 229.0f, 255.0f, alpha)
+			: glm::vec4(224.0f, 236.0f, 213.0f, alpha);
+		g->DrawText(temperatureLine, ResourceKeys::Fonts::FONT_FZCQ,
+			kWeatherWindFontSize, shadow, textX + 1.0f, detailLineY + 1.0f);
+		g->DrawText(temperatureLine, ResourceKeys::Fonts::FONT_FZCQ,
+			kWeatherWindFontSize, temperatureColor, textX, detailLineY);
+		detailLineY += kWeatherPanelDetailLineHeight;
+	}
 	if (!stormyNightForecast && mBoard->HasFogWeatherForecast()) {
 		const int fogSeconds = std::max(0,
 			static_cast<int>(std::ceil(mBoard->GetFogWeatherTimer())));
@@ -1349,6 +1396,10 @@ void GameScene::BuildDrawCommands()
 		AddTexture(ResourceKeys::Textures::IMAGE_BACKGROUND_NIGHTROOF,
 			mStartX, mBackgroundY, 1.0f, 1.0f, LAYER_BACKGROUND, false);
 	}
+	else if (background == Background::WINTER_GARDEN) {
+		AddTexture(ResourceKeys::Textures::IMAGE_BACKGROUND_WINTERGARDEN,
+			mStartX, mBackgroundY, 1.0f, 1.0f, LAYER_BACKGROUND, false);
+	}
 
 	if ((background == Background::ROOF || background == Background::NIGHT_ROOF) && mBoard) {
 		RegisterDrawCommand("RoofRainBackground",
@@ -1378,6 +1429,11 @@ void GameScene::BuildDrawCommands()
 	}
 
 	if (mBoard) {
+		if (background == Background::WINTER_GARDEN) {
+			RegisterDrawCommand("WinterFrost",
+				[this](Graphics* g) { mBoard->DrawWinterFrost(g); },
+				LAYER_BACKGROUND + 1);
+		}
 		RegisterDrawCommand("IceTrails",
 			[this](Graphics* g) { mBoard->DrawIceTrails(g); },
 			LAYER_BACKGROUND + 2);
@@ -3076,6 +3132,23 @@ void GameScene::ShowHeavyRainWarning(TyphoonStrength strength, int variant)
 	const int selected = std::clamp(variant, 0, 2);
 	const char* text = nullptr;
 	glm::vec4 color(112.0f, 210.0f, 255.0f, 255.0f);
+	if (mBoard && mBoard->SupportsWinterTemperature()
+		&& mBoard->GetAmbientTemperatureC() <= 0.0f
+		&& strength == TyphoonStrength::NONE) {
+		constexpr const char* kSnowLines[] = {
+			u8"朔雪压园寒色重，冻云垂野夜无声",
+			u8"寒潮过境霜华结，万点飞琼覆故园",
+			"THE COLD DESCENDS — THE GARDEN FREEZES",
+		};
+		text = kSnowLines[selected];
+	}
+	if (text) {
+		ShowTextPrompt(text, color, kHeavyRainPromptFontSize,
+			kHeavyRainPromptAppearDuration,
+			kHeavyRainPromptHoldDuration,
+			kHeavyRainPromptFadeDuration);
+		return;
+	}
 	switch (strength) {
 	case TyphoonStrength::NONE:
 	{

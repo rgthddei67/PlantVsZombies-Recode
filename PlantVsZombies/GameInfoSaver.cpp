@@ -320,6 +320,10 @@ bool GameInfoSaver::SerializeLevelDataToPath(Board* board, CardSlotManager* mana
 	j["rainCanIntensify"] = board->mRainCanIntensify;
 	j["rainCanHold"] = board->mRainCanHold;
 	j["weatherForecastReady"] = board->mWeatherForecastReady;
+	j["winterTemperatureInitialized"] = board->mWinterTemperatureInitialized;
+	j["coldWavePhase"] = static_cast<int>(board->mColdWavePhase);
+	j["coldWaveTimer"] = board->mColdWaveTimer;
+	j["ambientTemperatureC"] = board->mAmbientTemperatureC;
 	j["stormyNightInitialized"] = board->mStormyNightInitialized;
 	j["stormyNightFlashPattern"] = board->mStormyNightFlashPattern;
 	j["stormyNightFlashTimer"] = board->mStormyNightFlashTimer;
@@ -810,6 +814,19 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 		? static_cast<RainIntensity>(forecastRainValue) : RainIntensity::CLEAR;
 	board->mActualForecastRainIntensity = board->mWeatherForecastReady
 		? static_cast<RainIntensity>(actualForecastRainValue) : RainIntensity::CLEAR;
+	const int coldWavePhaseValue = j.value("coldWavePhase",
+		static_cast<int>(ColdWavePhase::CALM));
+	const bool validColdWavePhase = coldWavePhaseValue >= static_cast<int>(ColdWavePhase::CALM)
+		&& coldWavePhaseValue <= static_cast<int>(ColdWavePhase::THAWING);
+	board->mWinterTemperatureInitialized = board->SupportsWinterTemperature()
+		&& validColdWavePhase && j.value("winterTemperatureInitialized", false);
+	board->mColdWavePhase = board->mWinterTemperatureInitialized
+		? static_cast<ColdWavePhase>(coldWavePhaseValue) : ColdWavePhase::CALM;
+	board->mColdWaveTimer = board->mWinterTemperatureInitialized
+		? std::max(0.0f, j.value("coldWaveTimer", 0.0f)) : 0.0f;
+	board->mAmbientTemperatureC = board->mWinterTemperatureInitialized
+		? std::clamp(j.value("ambientTemperatureC", 6.0f), -12.0f, 6.0f)
+		: 6.0f;
 	if (auto* presentation = board->GetPresentation()) {
 		// 缺字段的旧档按 0 秒恢复，避免读入雨中存档时把已消失的展板重新显示 5 秒。
 		const int failedForecastRainValue = j.value("failedForecastRainIntensity",
