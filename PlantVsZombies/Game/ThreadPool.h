@@ -28,6 +28,8 @@ public:
 		for (auto& t : mWorkers) t.join();
 	}
 
+	int GetWorkerCount() const { return static_cast<int>(mWorkers.size()); }
+
 	void Dispatch(int totalItems, std::function<void(int, int)> func) {
 		if (totalItems <= 0) return;
 		int n = static_cast<int>(mWorkers.size());

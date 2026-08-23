@@ -140,7 +140,7 @@
 - [Build permission](feedback_build_permission_msbuild.md) — 主人解除构建限制:可直接命令行编译,不必F7不必核对时间戳(现用cmake preset)
 - [AutoTest套件 ✅](project_pvz_autotest_suite.md) — 2026-06-13完成;用法权威在CLAUDE.md AutoTest节(-AutoTest脚本+截图+dump_state闭环,-Seed确定性)
 - [PvZ轻量备份节点](project_pvz_backup_node.md) — 2026-08-13 Git SSH副本与GitHub独立镜像引用；AutoTest证据带提交/状态/逐文件SHA-256离机归档90天；每日健康报告、每周Git fsck；不替代Windows clang-release与可见AutoTest
-- [perf optimization](project_pvz_perf_optimization.md) — 最新2026-06-24:11000z@168.5FPS/5.94ms完全CPU-bound(Present0.14/replay0.03);**STOP停在此**;编译**O2非O3**;若重启ROI序=par-record视口剔除>2d串行地板(Amdahl)>collision;GPU instancing已落地(388a845)
+- [perf optimization](project_pvz_perf_optimization.md) — 最新2026-08-23:20000可见僵尸诊断为20050对象/590071实例；BeginFrame主要等acquire而非fence，低Present不能单独证明无显示回压；并行Draw从12固定切片改24有序动态切片，submit 4.39→3.42ms(-22.1%)、105.1→110FPS，工作量与z-order不变；balance仅78.1→79.8%，保守停2×，再优化先拆worker内Animator而非0.02ms replay
 - [Collaboration style](feedback_collaboration_style.md) — measure-first, steady-state numbers, honest framing, user builds in VS, responds in Chinese
 - [Phase6 OpenGL cleanup ✅](project_pvz_phase6_opengl_cleanup.md) — 7Task全过;执行期修预存LNK2019(geom-batch死子系统);commits user-driven
 - [并行Update phase-1 已REVERT](project_pvz_parallel_update_phase1.md) — Animator帧推进仅占Update12%(plan误判80%),dispatch0.05ms非瓶颈

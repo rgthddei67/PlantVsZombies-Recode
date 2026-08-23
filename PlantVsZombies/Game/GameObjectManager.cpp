@@ -2,6 +2,7 @@
 #include "../Logger.h"
 #include "../Profiler.h"
 #include "AnimatedObject.h"
+#include <atomic>
 #include <cstdio>
 #include <unordered_set>
 
@@ -11,6 +12,7 @@ namespace {
 		LAYER_GAME_BULLET - LAYER_GAME_PLANT;
 	constexpr int kBattlefieldMaximumRows =
 		kBattlefieldOrderCapacity / kBattlefieldRowStride;
+	constexpr int kParallelDrawRecordSlotsPerWorker = 2;  // 每个物理 worker 的有序录制切片数；越高越均衡但调度/回放开销越大
 
 	// 植物与僵尸共用战场深度区间；同排植物在前、僵尸在后，下一排再整体覆盖上一排。
 	bool UsesBattlefieldRowDepth(RenderLayer layer, int key)
@@ -274,37 +276,78 @@ void GameObjectManager::DrawAll(Graphics* g) {
 		return;
 	}
 
-	// 并行 record + replay（只覆盖 [0, parallelCount) 的游戏对象主体）
-	// workers 数和 ThreadPool 内部 numActive 必须保持一致，否则 slot 索引推导（start/chunkSize）
-	// 可能错位。ThreadPool::Dispatch 把 numActive 钳到 min(线程数, parallelCount)，这里同步钳一下。
-	int numWorkers = static_cast<int>(std::thread::hardware_concurrency());
-	if (numWorkers < 1) numWorkers = 1;
+	// 并行 record + replay（只覆盖 [0, parallelCount) 的游戏对象主体）。录制切片数量高于物理
+	// worker 数，worker 动态领取连续对象区间，减少复杂动画集中在某个固定区间造成的长尾；
+	// Replay 仍严格按 record slot 递增回放，所以全局 z-order 与原串行 Draw 等价。
+	int numWorkers = mThreadPool ? mThreadPool->GetWorkerCount() : 1;
 	if (numWorkers > parallelCount) numWorkers = parallelCount;
+	const int recordSlotCount = std::min(parallelCount,
+		numWorkers * kParallelDrawRecordSlotsPerWorker);
+	const bool profileDrawWorkers = g_ProfileEnabled;
+	if (profileDrawWorkers) {
+		mDrawWorkerProfileSamples.resize(numWorkers);
+		std::fill(mDrawWorkerProfileSamples.begin(), mDrawWorkerProfileSamples.end(),
+			DrawWorkerProfileSample{});
+	}
 
 	{
 		PROFILE_SCOPE("6.Draw_submit(par-record)");
-		g->BeginParallelRecord(numWorkers);
+		g->BeginParallelRecord(recordSlotCount);
+		std::atomic<int> nextRecordSlot{ 0 };
 
-		mThreadPool->Dispatch(parallelCount, [this, g, parallelCount, numWorkers](int start, int end) {
-			const int chunkSize = (parallelCount + numWorkers - 1) / numWorkers;
-			const int slot = (chunkSize > 0) ? (start / chunkSize) : 0;
+		// totalItems=numWorkers 让 ThreadPool 的每个物理线程只进入一次回调；回调内部再动态领切片。
+		mThreadPool->Dispatch(numWorkers,
+			[this, g, parallelCount, recordSlotCount, profileDrawWorkers, &nextRecordSlot](int start, int) {
+			const int workerSlot = start;
+			const auto workerStart = profileDrawWorkers ? Profiler::Clock::now() : Profiler::Clock::time_point{};
+			size_t activeObjects = 0;
 
-			g->SetWorkerSlot(slot);
-			for (int i = start; i < end; ++i) {
-				auto* obj = mGameObjects[i].get();
-				if (!obj->IsActive()) continue;
-				const bool clipped = obj->HasClipRect();
-				if (clipped) {
-					const auto& cr = obj->GetClipRect();
-					g->PushClipRect(cr.x, cr.y, cr.w, cr.h);
+			for (;;) {
+				const int recordSlot = nextRecordSlot.fetch_add(1, std::memory_order_relaxed);
+				if (recordSlot >= recordSlotCount) break;
+				const int rangeBegin = static_cast<int>(
+					static_cast<long long>(parallelCount) * recordSlot / recordSlotCount);
+				const int rangeEnd = static_cast<int>(
+					static_cast<long long>(parallelCount) * (recordSlot + 1) / recordSlotCount);
+
+				g->SetWorkerSlot(recordSlot);
+				for (int i = rangeBegin; i < rangeEnd; ++i) {
+					auto* obj = mGameObjects[i].get();
+					if (!obj->IsActive()) continue;
+					if (profileDrawWorkers) ++activeObjects;
+					const bool clipped = obj->HasClipRect();
+					if (clipped) {
+						const auto& cr = obj->GetClipRect();
+						g->PushClipRect(cr.x, cr.y, cr.w, cr.h);
+					}
+					obj->Draw(g);
+					if (clipped) {
+						g->PopClipRect();
+					}
 				}
-				obj->Draw(g);
-				if (clipped) {
-					g->PopClipRect();
-				}
+				g->ClearWorkerSlot();
 			}
-			g->ClearWorkerSlot();
+
+			if (profileDrawWorkers) {
+				auto& sample = mDrawWorkerProfileSamples[workerSlot];
+				sample.elapsedMs = std::chrono::duration<double, std::milli>(
+					Profiler::Clock::now() - workerStart).count();
+				sample.activeObjects = activeObjects;
+			}
 			});
+	}
+	if (profileDrawWorkers) {
+		size_t activeObjects = 0;
+		double workerElapsedSumMs = 0.0;
+		double longestWorkerMs = 0.0;
+		for (int slot = 0; slot < numWorkers; ++slot) {
+			const auto& sample = mDrawWorkerProfileSamples[slot];
+			activeObjects += sample.activeObjects;
+			workerElapsedSumMs += sample.elapsedMs;
+			longestWorkerMs = std::max(longestWorkerMs, sample.elapsedMs);
+		}
+		Profiler::Get().CountParallelDraw(activeObjects, numWorkers, recordSlotCount,
+			workerElapsedSumMs, longestWorkerMs);
 	}
 
 	{

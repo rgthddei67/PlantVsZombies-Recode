@@ -3,6 +3,7 @@
 #include "VulkanPipeline.h"
 #include "VulkanBuffer.h"
 #include "../Logger.h"
+#include "../Profiler.h"
 #include <SDL2/SDL_image.h>
 #include <vector>
 #include <cstring>
@@ -160,13 +161,20 @@ namespace pvz {
 		VkDevice dev = mCtx->Device();
 		PerFrame& frame = mFrames[mFrameIdx];
 
-		// 1) 等本帧上一次 GPU 提交结束
-		vkWaitForFences(dev, 1, &frame.inFlight, VK_TRUE, UINT64_MAX);
+		// 1) 等本帧上一次 GPU 提交结束。独立统计以区分 GPU 背压与 CPU 命令准备成本。
+		{
+			PROFILE_SCOPE("C1a.BeginFrame_waitFence");
+			vkWaitForFences(dev, 1, &frame.inFlight, VK_TRUE, UINT64_MAX);
+		}
 
 		// 2) 拿下一张 swapchain image
-		VkResult acquireResult = vkAcquireNextImageKHR(
-			dev, mCtx->Swapchain(), UINT64_MAX,
-			frame.imageAvailable, VK_NULL_HANDLE, &mAcquiredImageIdx);
+		VkResult acquireResult;
+		{
+			PROFILE_SCOPE("C1b.BeginFrame_acquire");
+			acquireResult = vkAcquireNextImageKHR(
+				dev, mCtx->Swapchain(), UINT64_MAX,
+				frame.imageAvailable, VK_NULL_HANDLE, &mAcquiredImageIdx);
+		}
 		if (acquireResult == VK_ERROR_OUT_OF_DATE_KHR) {
 			// swapchain 失效：标记需要重建，本帧跳过。fence 没 reset，下次照样能 wait。
 			mSwapchainNeedsRebuild = true;
@@ -181,66 +189,69 @@ namespace pvz {
 			mSwapchainNeedsRebuild = true;
 		}
 
-		// 拿到 image 后才能 reset fence（避免死锁）
-		vkResetFences(dev, 1, &frame.inFlight);
+		{
+			PROFILE_SCOPE("C1c.BeginFrame_cmdSetup");
+			// 拿到 image 后才能 reset fence（避免死锁）
+			vkResetFences(dev, 1, &frame.inFlight);
 
-		// 3) 重置命令池并 begin
-		vkResetCommandPool(dev, frame.cmdPool, 0);
+			// 3) 重置命令池并 begin
+			vkResetCommandPool(dev, frame.cmdPool, 0);
 
-		VkCommandBufferBeginInfo bi{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
-		bi.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-		VK_CHECK(vkBeginCommandBuffer(frame.cmdBuffer, &bi));
+			VkCommandBufferBeginInfo bi{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
+			bi.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+			VK_CHECK(vkBeginCommandBuffer(frame.cmdBuffer, &bi));
 
-		VkImage swapImage = mCtx->SwapchainImages()[mAcquiredImageIdx];
-		const VkImageSubresourceRange colorRange{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
-		mCtx->CmdImageBarrier(frame.cmdBuffer, swapImage,
-			VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT, 0,
-			VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-			VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-			VK_IMAGE_LAYOUT_UNDEFINED,
-			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, colorRange);
+			VkImage swapImage = mCtx->SwapchainImages()[mAcquiredImageIdx];
+			const VkImageSubresourceRange colorRange{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+			mCtx->CmdImageBarrier(frame.cmdBuffer, swapImage,
+				VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT, 0,
+				VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+				VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+				VK_IMAGE_LAYOUT_UNDEFINED,
+				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, colorRange);
 
-		if (mCtx->UsesDynamicRendering()) {
-			VkRenderingAttachmentInfo color{ VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO };
-			color.imageView = mCtx->SwapchainImageViews()[mAcquiredImageIdx];
-			color.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-			color.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-			color.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-			color.clearValue.color = { { r, g, b, a } };
+			if (mCtx->UsesDynamicRendering()) {
+				VkRenderingAttachmentInfo color{ VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO };
+				color.imageView = mCtx->SwapchainImageViews()[mAcquiredImageIdx];
+				color.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+				color.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+				color.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+				color.clearValue.color = { { r, g, b, a } };
 
-			VkRenderingInfo renderingInfo{ VK_STRUCTURE_TYPE_RENDERING_INFO };
-			renderingInfo.renderArea = { {0, 0}, mCtx->SwapchainExtent() };
-			renderingInfo.layerCount = 1;
-			renderingInfo.colorAttachmentCount = 1;
-			renderingInfo.pColorAttachments = &color;
-			mCtx->CmdBeginRendering(frame.cmdBuffer, renderingInfo);
+				VkRenderingInfo renderingInfo{ VK_STRUCTURE_TYPE_RENDERING_INFO };
+				renderingInfo.renderArea = { {0, 0}, mCtx->SwapchainExtent() };
+				renderingInfo.layerCount = 1;
+				renderingInfo.colorAttachmentCount = 1;
+				renderingInfo.pColorAttachments = &color;
+				mCtx->CmdBeginRendering(frame.cmdBuffer, renderingInfo);
+			}
+			else {
+				VkClearValue clearValue{};
+				clearValue.color = { { r, g, b, a } };
+				VkRenderPassBeginInfo renderPassInfo{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
+				renderPassInfo.renderPass = mCtx->LegacyRenderPass();
+				renderPassInfo.framebuffer = mCtx->LegacyFramebuffer(mAcquiredImageIdx);
+				renderPassInfo.renderArea = { {0, 0}, mCtx->SwapchainExtent() };
+				renderPassInfo.clearValueCount = 1;
+				renderPassInfo.pClearValues = &clearValue;
+				vkCmdBeginRenderPass(frame.cmdBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+			}
+
+			// 默认 viewport / scissor 固定整帧；对象级 ClipRect 随顶点/实例进入 fragment shader。
+			// 负高度 viewport：Vulkan 1.1+ 支持，效果是把 clip-space Y 翻转，让 PVZ 沿用
+			// 的 GL 风格正交矩阵 (top=0, bottom=h) 渲染到 framebuffer 时方向正确。
+			// y 偏到 height，height 取负，等价于绕屏幕水平线翻转。
+			VkViewport vp{};
+			vp.x = 0.0f;
+			vp.y = (float)mCtx->SwapchainExtent().height;
+			vp.width = (float)mCtx->SwapchainExtent().width;
+			vp.height = -(float)mCtx->SwapchainExtent().height;
+			vp.minDepth = 0.0f;
+			vp.maxDepth = 1.0f;
+			VkRect2D scissorRect{ {0, 0}, mCtx->SwapchainExtent() };
+			vkCmdSetViewport(frame.cmdBuffer, 0, 1, &vp);
+			vkCmdSetScissor(frame.cmdBuffer, 0, 1, &scissorRect);
 		}
-		else {
-			VkClearValue clearValue{};
-			clearValue.color = { { r, g, b, a } };
-			VkRenderPassBeginInfo renderPassInfo{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
-			renderPassInfo.renderPass = mCtx->LegacyRenderPass();
-			renderPassInfo.framebuffer = mCtx->LegacyFramebuffer(mAcquiredImageIdx);
-			renderPassInfo.renderArea = { {0, 0}, mCtx->SwapchainExtent() };
-			renderPassInfo.clearValueCount = 1;
-			renderPassInfo.pClearValues = &clearValue;
-			vkCmdBeginRenderPass(frame.cmdBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-		}
-
-		// 默认 viewport / scissor 固定整帧；对象级 ClipRect 随顶点/实例进入 fragment shader。
-		// 负高度 viewport：Vulkan 1.1+ 支持，效果是把 clip-space Y 翻转，让 PVZ 沿用
-		// 的 GL 风格正交矩阵 (top=0, bottom=h) 渲染到 framebuffer 时方向正确。
-		// y 偏到 height，height 取负，等价于绕屏幕水平线翻转。
-		VkViewport vp{};
-		vp.x = 0.0f;
-		vp.y = (float)mCtx->SwapchainExtent().height;
-		vp.width = (float)mCtx->SwapchainExtent().width;
-		vp.height = -(float)mCtx->SwapchainExtent().height;
-		vp.minDepth = 0.0f;
-		vp.maxDepth = 1.0f;
-		VkRect2D scissorRect{ {0, 0}, mCtx->SwapchainExtent() };
-		vkCmdSetViewport(frame.cmdBuffer, 0, 1, &vp);
-		vkCmdSetScissor(frame.cmdBuffer, 0, 1, &scissorRect);
 
 		mFrameActive = true;
 		return true;

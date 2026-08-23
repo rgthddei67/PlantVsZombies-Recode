@@ -646,12 +646,15 @@ bool Graphics::BeginFrame() {
 	// grow-on-demand：此刻本帧 fence 已被 renderer->BeginFrame 等过，GPU 不再引用本帧缓冲，
 	// 可安全销毁重建到目标容量（grow 或 shrink）。ssbo/inst 是描述符绑定，重建后重写描述符；
 	// vbo 是顶点缓冲，每帧 replay 现读 Handle()，无需重写。
-	ResizeBufferIfNeeded(m_vk->ctx, fr.vbo, fr.vboCap, m_vk->desiredVboCap,
-		VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_NULL_HANDLE, m_vk->growFailWarned);
-	ResizeBufferIfNeeded(m_vk->ctx, fr.ssbo, fr.ssboCap, m_vk->desiredSsboCap,
-		VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, fr.matrixSet, m_vk->growFailWarned);
-	ResizeBufferIfNeeded(m_vk->ctx, fr.instBuf, fr.instCap, m_vk->desiredInstCap,
-		VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, fr.instSet, m_vk->growFailWarned);
+	{
+		PROFILE_SCOPE("C1d.BeginFrame_bufferResize");
+		ResizeBufferIfNeeded(m_vk->ctx, fr.vbo, fr.vboCap, m_vk->desiredVboCap,
+			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_NULL_HANDLE, m_vk->growFailWarned);
+		ResizeBufferIfNeeded(m_vk->ctx, fr.ssbo, fr.ssboCap, m_vk->desiredSsboCap,
+			VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, fr.matrixSet, m_vk->growFailWarned);
+		ResizeBufferIfNeeded(m_vk->ctx, fr.instBuf, fr.instCap, m_vk->desiredInstCap,
+			VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, fr.instSet, m_vk->growFailWarned);
+	}
 
 	fr.vboCursor = 0;
 	fr.ssboCursor = 0;
@@ -2426,15 +2429,14 @@ void Graphics::FillCircle(float cx, float cy, float radius, const glm::vec4& col
 //
 // 关键不变量：
 //   1. tl_record 只在 worker 线程上非空，主线程上始终为 nullptr。
-//   2. 每个 slot 一份的 WorkerRecord / WorkerThreadState 由该 slot 绑定的 worker
-//      线程独占写入，无 lock 必要。
-	//   3. Replay 在主线程串行执行；该 mapped-buffer 路径只由 Vulkan 启用。
-//   4. 顺序保证：ThreadPool 按 idx 把 [idx*chunk, idx*chunk+chunk) 分给 worker
-//      idx，slot 也取这个 idx。回放循环 slot = 0..N-1，slot 内按 cmd push 顺序
-//      重放，整体绝对顺序与原串行 Draw 等价。
+//   2. 每个 slot 一份的 WorkerRecord / WorkerThreadState 同一时刻只由领取该 slot 的
+//      一个 worker 独占写入，无 lock 必要；物理 worker 可依次处理多个 slot。
+//   3. Replay 在主线程串行执行；该 mapped-buffer 路径只由 Vulkan 启用。
+//   4. 顺序保证：每个 slot 对应 mGameObjects 的一个连续且不重叠区间；物理 worker 的领取
+//      次序不影响结果。回放循环 slot = 0..N-1，整体绝对顺序与原串行 Draw 等价。
 
-void Graphics::BeginParallelRecord(int numWorkers) {
-	if (numWorkers <= 0) {
+void Graphics::BeginParallelRecord(int numRecordSlots) {
+	if (numRecordSlots <= 0) {
 		m_numActiveWorkers = 0;
 		return;
 	}
@@ -2444,9 +2446,9 @@ void Graphics::BeginParallelRecord(int numWorkers) {
 	FlushBatch();
 	FlushInstances();  // Task 4: 同步刷新主线程 instance 缓冲，保证 instCursor 在并行区起始干净
 
-	// 确保 records 与 states 都有 numWorkers 份
-	if ((int)m_workerRecords.size() < numWorkers) m_workerRecords.resize(numWorkers);
-	if ((int)m_workerStates.size() < numWorkers) m_workerStates.resize(numWorkers);
+	// 确保 records 与 states 都有 numRecordSlots 份
+	if ((int)m_workerRecords.size() < numRecordSlots) m_workerRecords.resize(numRecordSlots);
+	if ((int)m_workerStates.size() < numRecordSlots) m_workerStates.resize(numRecordSlots);
 
 	// 当前 Graphics 状态作为每个 worker 的初始基线
 	const glm::mat4& curTop = m_transformStack.back();
@@ -2454,7 +2456,7 @@ void Graphics::BeginParallelRecord(int numWorkers) {
 
 	// 默认把所有 slot 的切片置为"零容量 / 空指针"——SliceHasRoom 会直接拒绝写入，
 	// 工作线程不会 crash。下面如果检测到帧合法 + 容量充足，会重新填充实际指针。
-	for (int i = 0; i < numWorkers; ++i) {
+	for (int i = 0; i < numRecordSlots; ++i) {
 		WorkerRecord& r = m_workerRecords[i];
 		r.Reset();
 		if (r.cmds.capacity() == 0) {
@@ -2471,7 +2473,7 @@ void Graphics::BeginParallelRecord(int numWorkers) {
 	}
 	m_parallelBaseVbo = m_parallelBaseSsbo = m_parallelBaseInst = 0;
 	m_parallelVboBytes = m_parallelSsboBytes = m_parallelInstBytes = 0;
-	m_numActiveWorkers = numWorkers;  // 永远 set —— 调用方（GameObjectManager）依赖此值 dispatch
+	m_numActiveWorkers = numRecordSlots;  // 永远 set；Replay 依赖此值遍历全部有序切片
 
 	// 没活动帧（构造期 / shutdown 期 / 切场景瞬间）就跳过切片填充——
 	// SliceHasRoom 在 worker 端会拒绝所有写入，replay 也会早退。
@@ -2498,13 +2500,13 @@ void Graphics::BeginParallelRecord(int numWorkers) {
 	const uint64_t ssboUsable = (ssboRemain > POST_PARALLEL_RESERVE_SSBO) ? (ssboRemain - POST_PARALLEL_RESERVE_SSBO) : 0;
 	const uint64_t instUsable = (instRemain > POST_PARALLEL_RESERVE_INST) ? (instRemain - POST_PARALLEL_RESERVE_INST) : 0;
 
-	// 硬门槛：连"每 worker 一个 stride 的等分"都放不下，说明本帧已被主线程画满。
+	// 硬门槛：连"每 record slot 一个 stride 的等分"都放不下，说明本帧已被主线程画满。
 	// 与旧逻辑语义一致——slot 切片保持零容量，worker 写入会被静默丢弃。
-	const uint64_t equalVboBytes = (vboUsable / numWorkers / sizeof(BatchVertex)) * sizeof(BatchVertex);
-	const uint64_t equalSsboBytes = (ssboUsable / numWorkers / sizeof(glm::mat4)) * sizeof(glm::mat4);
-	const uint64_t equalInstBytes = (instUsable / numWorkers / sizeof(InstanceRecord)) * sizeof(InstanceRecord);
+	const uint64_t equalVboBytes = (vboUsable / numRecordSlots / sizeof(BatchVertex)) * sizeof(BatchVertex);
+	const uint64_t equalSsboBytes = (ssboUsable / numRecordSlots / sizeof(glm::mat4)) * sizeof(glm::mat4);
+	const uint64_t equalInstBytes = (instUsable / numRecordSlots / sizeof(InstanceRecord)) * sizeof(InstanceRecord);
 	if (equalVboBytes == 0 || equalSsboBytes == 0 || equalInstBytes == 0) {
-		// 哪个缓冲连"每 worker 一个 stride 的等分"都放不下，就标哪个溢出（驱动 EndFrame 只翻倍它）。
+		// 哪个缓冲连"每 slot 一个 stride 的等分"都放不下，就标哪个溢出（驱动 EndFrame 只翻倍它）。
 		if (equalVboBytes == 0)  fr.vboOverflow = true;
 		if (equalSsboBytes == 0) fr.ssboOverflow = true;
 		if (equalInstBytes == 0) fr.instOverflow = true;
@@ -2521,7 +2523,7 @@ void Graphics::BeginParallelRecord(int numWorkers) {
 	// 自适应加权切片：用上一并行帧各 slot 的占用作权重，按比例瓜分 usable。
 	// 每个 slot 先保底一块地板（让上帧空、本帧突然变重的 slot 不至于 0 容量直接丢，
 	// 撑过一帧后权重就会把它放大）；剩余弹性容量按权重分配。Σ ≤ usable 由构造保证。
-	// 无历史（首并行帧 / numWorkers 变化）则退回等分，1~2 帧内自动收敛。
+	// 无历史（首并行帧 / numRecordSlots 变化）则退回等分，1~2 帧内自动收敛。
 	auto floorTo = [](uint64_t v, uint64_t stride) { return (v / stride) * stride; };
 	const uint64_t VSTRIDE = sizeof(BatchVertex);
 	const uint64_t MSTRIDE = sizeof(glm::mat4);
@@ -2530,23 +2532,23 @@ void Graphics::BeginParallelRecord(int numWorkers) {
 	const uint64_t minSsbo = floorTo(512ull * MSTRIDE, MSTRIDE);  // ~32 KB/slot 地板
 	const uint64_t minInst = floorTo(1024ull * ISTRIDE, ISTRIDE);  // ~48 KB/slot 地板
 
-	std::vector<uint64_t> vboSlice(numWorkers), ssboSlice(numWorkers), instSlice(numWorkers);
+	std::vector<uint64_t> vboSlice(numRecordSlots), ssboSlice(numRecordSlots), instSlice(numRecordSlots);
 	auto splitWeighted = [&](uint64_t usable, uint64_t stride, uint64_t minBytes,
 		const std::vector<uint32_t>& hist,
 		std::vector<uint64_t>& out) {
-			const bool haveHist = (hist.size() == (size_t)numWorkers);
-			const uint64_t totalMin = (uint64_t)numWorkers * minBytes;
+			const bool haveHist = (hist.size() == (size_t)numRecordSlots);
+			const uint64_t totalMin = (uint64_t)numRecordSlots * minBytes;
 			// 地板都放不下 → 退回纯等分（极端兜底，实测 56MB vs ~1MB 地板不会触发）。
 			if (!haveHist || totalMin >= usable) {
-				const uint64_t eq = floorTo(usable / numWorkers, stride);
-				for (int i = 0; i < numWorkers; ++i) out[i] = eq;
+				const uint64_t eq = floorTo(usable / numRecordSlots, stride);
+				for (int i = 0; i < numRecordSlots; ++i) out[i] = eq;
 				return;
 			}
 			const uint64_t elastic = usable - totalMin;
 			double sumW = 0.0;
-			std::vector<double> w(numWorkers);
-			for (int i = 0; i < numWorkers; ++i) { w[i] = std::max<double>(1.0, (double)hist[i]); sumW += w[i]; }
-			for (int i = 0; i < numWorkers; ++i)
+			std::vector<double> w(numRecordSlots);
+			for (int i = 0; i < numRecordSlots; ++i) { w[i] = std::max<double>(1.0, (double)hist[i]); sumW += w[i]; }
+			for (int i = 0; i < numRecordSlots; ++i)
 				out[i] = minBytes + floorTo((uint64_t)((double)elastic * (w[i] / sumW)), stride);
 		};
 	splitWeighted(vboUsable, VSTRIDE, minVbo, m_prevSliceVboDemand, vboSlice);
@@ -2562,7 +2564,7 @@ void Graphics::BeginParallelRecord(int numWorkers) {
 
 	// 切片在区域内连续排布（前缀和偏移），无空洞；vbo / ssbo / inst 各自独立排布。
 	uint64_t vOff = 0, mOff = 0, iOff = 0;
-	for (int i = 0; i < numWorkers; ++i) {
+	for (int i = 0; i < numRecordSlots; ++i) {
 		VkWorkerSlice& sl = m_workerRecords[i].slice;
 		sl.vboPtr = reinterpret_cast<BatchVertex*>(vboBaseMap + vOff);
 		sl.ssboPtr = reinterpret_cast<glm::mat4*>(ssboBaseMap + mOff);
@@ -2842,15 +2844,23 @@ void Graphics::ReplayAndEndParallel() {
 	if ((int)m_prevSliceSsboDemand.size() != m_numActiveWorkers) m_prevSliceSsboDemand.assign(m_numActiveWorkers, 0);
 	if ((int)m_prevSliceInstDemand.size() != m_numActiveWorkers) m_prevSliceInstDemand.assign(m_numActiveWorkers, 0);   // Task 3
 	uint64_t vboDemandBytes = 0, ssboDemandBytes = 0, instDemandBytes = 0;
+	size_t recordCommands = 0;
 	for (int slot = 0; slot < m_numActiveWorkers; ++slot) {
-		const VkWorkerSlice& sl = m_workerRecords[slot].slice;
+		const WorkerRecord& record = m_workerRecords[slot];
+		const VkWorkerSlice& sl = record.slice;
 		m_prevSliceVboDemand[slot]  = sl.vboDemand;
 		m_prevSliceSsboDemand[slot] = sl.ssboDemand;
 		m_prevSliceInstDemand[slot] = sl.instDemand;                                                                  // Task 3
 		vboDemandBytes  += (uint64_t)sl.vboDemand  * sizeof(BatchVertex);
 		ssboDemandBytes += (uint64_t)sl.ssboDemand * sizeof(glm::mat4);
 		instDemandBytes += (uint64_t)sl.instDemand * sizeof(InstanceRecord);
+		recordCommands += record.cmds.size();
 	}
+	Profiler::Get().CountParallelRecord(
+		static_cast<size_t>(vboDemandBytes / sizeof(BatchVertex)),
+		static_cast<size_t>(ssboDemandBytes / sizeof(glm::mat4)),
+		static_cast<size_t>(instDemandBytes / sizeof(InstanceRecord)),
+		recordCommands);
 	if (m_vk && m_vk->frameOpen) {
 		// 并行区真实需求 = 区前主线程已占用(base) + 各 slot 想写的总量。
 		m_vk->frameVboDemand  = std::max<uint64_t>(m_vk->frameVboDemand,  m_parallelBaseVbo  + vboDemandBytes);

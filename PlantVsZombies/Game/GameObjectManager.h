@@ -41,6 +41,13 @@ private:
 
 	std::vector<std::vector<DeferredEvent>> mDeferredEventBuffers;  // size = numWorkers，跨帧 capacity 复用
 
+	struct alignas(64) DrawWorkerProfileSample {
+		double elapsedMs = 0.0;
+		size_t activeObjects = 0;
+	};
+	// 只在 -Profile 下写入；每个 worker 独占一个槽位，Dispatch 完成后由主线程汇总。
+	std::vector<DrawWorkerProfileSample> mDrawWorkerProfileSamples;
+
 	// 对象池
 	std::unique_ptr<BulletPool> mBulletPool;
 

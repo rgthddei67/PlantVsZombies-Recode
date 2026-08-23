@@ -443,5 +443,58 @@ ROI 远低于过去 phase-2/3 的回报曲线。
   清理候选。
 - Evaluate off-screen culling / overdraw（如果未来 GPU side 成为瓶颈）。
 
-Build workflow: user builds manually in Visual Studio 2026 (CLAUDE.md forbids me
-building); I deliver code, user runs and pastes profile numbers. See [collaboration-style](feedback_collaboration_style.md).
+Historical build note above is obsolete：当前以根目录 `AGENTS.md` 为准，Codex 默认自主使用
+`clang-release` 构建和可见 AutoTest；主人仍负责提供其本机 20000 僵尸同场 Profile A/B。
+
+## 20000 可见僵尸：BeginFrame 归因与并行 Draw 有序细切片（2026-08-23）
+
+主人确认压力场景的 20000 只僵尸全部位于可见草坪内，场外对象已有删除机制；因此本轮不做
+视口剔除，也不引入 ZombiePool。永久 `-Profile` 诊断新增：
+
+- Vulkan `BeginFrame` 拆成 `waitFence` / `acquire` / `cmdSetup`，Graphics 另记缓冲 resize；
+- worker 线程只写 64B 对齐的私有采样槽，Dispatch 结束后由主线程汇总 active objects、物理
+  worker、逻辑 record slots、worker elapsed sum / longest / balance；禁止在 worker 调用非线程安全
+  的 `Profiler::Add`；
+- Replay 主线程汇总 worker slice 的 batch vertex / matrix / InstanceRecord / command demand。
+
+首份 20000 僵尸诊断（20050 active、12 workers、590071 instances、batch/cmd=0）：
+
+| 指标 | 12 固定切片基线 |
+|---|---:|
+| total/frame | 9.52 ms / 105.1 FPS |
+| 6.Draw_submit(par-record) | 4.39 ms |
+| worker elapsed sum / longest / balance | 38.01 ms / 4.12 ms / 78.1% |
+| C1 BeginFrame / waitFence / acquire / cmdSetup | 2.42 / 0.18 / 2.19 / 0.04 ms |
+| replay | 0.02 ms |
+
+由此可排除 replay、batch 合并和 fence 等待作为首要瓶颈；场景几乎是纯 Reanimation instance
+录制。`Present=0.14ms` 本身不能再被解释成“GPU/显示一定不构成等待”，因为真正的交换链等待
+发生在下一帧 `vkAcquireNextImageKHR`。低 fence wait 只能说明复用该 frame slot 时前次 GPU submit
+通常已经完成；acquire 仍可能受 present mode、compositor 或显示节拍回压。
+
+实现：物理 worker 仍为 ThreadPool 的真实 12 线程；逻辑 record slot 改为 `workers*2=24`。
+24 个 slot 各自对应稳定、连续、不重叠的对象区间，物理 worker 用 relaxed atomic 动态领取；
+每个 slot 的 WorkerRecord/WorkerThreadState/映射缓冲切片保持独占，Replay 仍按 slot 0..23 顺序，
+所以全局 z-order 与原串行 Draw 等价。上一帧 demand 加权容量也继续按稳定逻辑 slot 生效。
+
+主人同工作量复测（active/instances/worker 完全相同，`drawRecordSlots=24`）：
+
+| 指标 | 12 固定切片 | 24 有序动态切片 | 变化 |
+|---|---:|---:|---:|
+| total/frame | 9.52 ms | 9.09 ms | -0.43 ms / 105.1→110.0 FPS |
+| 6.Draw_submit | 4.39 ms | 3.42 ms | **-0.97 ms (-22.1%)** |
+| GameObjects | 4.44 ms | 3.47 ms | **-0.97 ms** |
+| worker elapsed sum | 38.01 ms | 31.69 ms | -16.6% |
+| longest worker | 4.12 ms | 3.32 ms | -19.4% |
+| worker balance | 78.1% | 79.8% | 仅 +1.7pp |
+| acquire | 2.19 ms | 3.02 ms | +0.83 ms（显示/交换链吸收 CPU 余量） |
+
+扣除 acquire 后帧内工作约 7.33→6.07 ms（-1.26 ms）；总帧收益被 acquire 回压部分遮蔽。
+balance 几乎没升，说明不能再凭“更多切片必定更均衡”盲目上 4×；2× 的确定收益更可能来自
+尾部粒度、缓冲切片和缓存/调度的综合效果，保守停在 2×。下一步若继续优化，应先在 worker 内
+用私有计数拆 Animator 插值/transform/InstanceRecord 写入，不能再碰已经只有 0.02ms 的 replay。
+
+验证：`clang-release` + LTO 构建通过，Win7 x64 导入审计 378 项通过；当前桌面可见运行
+`stress_bullet_pool_active_slots`，54/54 命令、exit 0、status passed、512→0→64 池状态断言与截图
+通过，`drawWorkers=12` / `drawRecordSlots=24` 且无 slice overflow。该小场景 worker 仅约
+0.05ms，balance 受计时粒度支配，不作为 20000 僵尸性能证据。

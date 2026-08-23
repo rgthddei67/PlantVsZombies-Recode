@@ -830,11 +830,13 @@ public:
 	// ==================== 多线程录制 / 回放（Record / Replay） ====================
 	//
 	// 用法（GameObjectManager::DrawAll 内）：
-	//   g->BeginParallelRecord(N);                          // 主线程
-	//   threadPool->Dispatch(total, [](int s, int e){
-	//       g->SetWorkerSlot(slot);
-	//       for (i in [s,e)) { ... obj->Draw(g); ... }
-	//       g->ClearWorkerSlot();
+	//   g->BeginParallelRecord(N);                          // 主线程，N 为有序录制切片数
+	//   threadPool->Dispatch(workers, [](int s, int e){
+	//       while (claim(slot)) {
+	//           g->SetWorkerSlot(slot);
+	//           for (i in slot 对应的连续对象区间) { ... obj->Draw(g); ... }
+	//           g->ClearWorkerSlot();
+	//       }
 	//   });
 	//   g->ReplayAndEndParallel();                          // 主线程
 	//
@@ -842,17 +844,17 @@ public:
 	// 都会被 Graphics 内部 thread_local 检测拦截到 record 路径，不调任何后端 API。
 
 	/**
-	 * @brief 主线程：开启并行录制阶段，确保有 numWorkers 个 WorkerRecord，
+	 * @brief 主线程：开启并行录制阶段，确保有 numRecordSlots 个 WorkerRecord，
 	 *        Reset 每个 record 并把当前 Graphics 状态（变换栈顶、裁剪栈、混合模式）
 	 *        快照到每个 record 的 initial* 字段。首次调用会按推荐容量预分配以避
 	 *        免运行中 realloc。
 	 */
-	void BeginParallelRecord(int numWorkers);
+	void BeginParallelRecord(int numRecordSlots);
 
 	/**
 	 * @brief worker 线程：把本线程的 thread_local 指针指向 slot 对应的 WorkerRecord
 	 *        与 WorkerThreadState；用 record 的 initial* 字段初始化 thread-local 的
-	 *        变换栈与裁剪栈。slot 必须在 [0, numWorkers)。
+	 *        变换栈与裁剪栈。slot 必须在 [0, numRecordSlots)。
 	 */
 	void SetWorkerSlot(int slot);
 

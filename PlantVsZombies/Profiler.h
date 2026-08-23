@@ -72,6 +72,43 @@ public:
 		mGlyphLineAccum++;
 	}
 
+	/**
+	 * @brief 记录并行绘制 worker 的负载与有效对象数。
+	 *
+	 * 只能在 Dispatch 全部结束后由主线程调用；recordSlots 是保持顺序的逻辑切片数，
+	 * workerElapsedSumMs 是各物理 worker 墙钟耗时之和，longestWorkerMs 是其中最长者。
+	 * 两者用于区分录制本身昂贵与 worker 负载不均。
+	 */
+	void CountParallelDraw(size_t activeObjects, size_t workers, size_t recordSlots,
+		double workerElapsedSumMs, double longestWorkerMs) {
+		if (!g_ProfileEnabled) return;
+		mDrawActiveObjectAccum += activeObjects;
+		mDrawWorkerCountAccum += workers;
+		mDrawRecordSlotCountAccum += recordSlots;
+		mDrawWorkerElapsedSumMs += workerElapsedSumMs;
+		mDrawLongestWorkerMs += longestWorkerMs;
+		if (longestWorkerMs > mDrawLongestWorkerMaxMs) mDrawLongestWorkerMaxMs = longestWorkerMs;
+		if (workers > 0 && longestWorkerMs > 0.0) {
+			mDrawWorkerBalanceAccum += workerElapsedSumMs
+				/ (static_cast<double>(workers) * longestWorkerMs);
+		}
+	}
+
+	/**
+	 * @brief 记录并行绘制实际生成的 GPU 数据与命令数量。
+	 *
+	 * 由 ReplayAndEndParallel 在主线程汇总各 worker slice 后调用；demand 包含因容量不足而
+	 * 被拒绝的写入，因此即使溢出也能反映真实工作量。
+	 */
+	void CountParallelRecord(size_t batchVertices, size_t matrices,
+		size_t instances, size_t commands) {
+		if (!g_ProfileEnabled) return;
+		mDrawBatchVertexAccum += batchVertices;
+		mDrawMatrixAccum += matrices;
+		mDrawInstanceAccum += instances;
+		mDrawCommandAccum += commands;
+	}
+
 	// 诊断：碰撞 sweep-and-prune 每帧统计。iter=行内层扫描总迭代次数（O(k²) 退化项），
 	// reject=被层掩码 CanCollide 拒绝（纯浪费的迭代），check=真正做了 AABB 检测，
 	// hit=检出的碰撞对。由 CollisionSystem::Update 在并行派发结束后于主线程调用一次。
@@ -130,6 +167,19 @@ public:
 		std::printf("  %-20s : %12.0f /frame\n", "sweepReject", static_cast<double>(mSweepRejectAccum) * inv);
 		std::printf("  %-20s : %12.0f /frame\n", "sweepCheck", static_cast<double>(mSweepCheckAccum) * inv);
 		std::printf("  %-20s : %12.0f /frame\n", "sweepHit", static_cast<double>(mSweepHitAccum) * inv);
+		// 并行绘制诊断：longest 接近 6.Draw_submit 而 balance 高，说明 worker record 是主成本；
+		// balance 低则优先处理切片负载不均。实例/矩阵/顶点数用于把耗时归一化到真实提交量。
+		std::printf("  %-20s : %12.0f /frame\n", "drawActiveObjects", static_cast<double>(mDrawActiveObjectAccum) * inv);
+		std::printf("  %-20s : %12.1f /frame\n", "drawWorkers", static_cast<double>(mDrawWorkerCountAccum) * inv);
+		std::printf("  %-20s : %12.1f /frame\n", "drawRecordSlots", static_cast<double>(mDrawRecordSlotCountAccum) * inv);
+		std::printf("  %-20s : %12.2f ms/frame\n", "drawWorkerElapsedSum", mDrawWorkerElapsedSumMs * inv);
+		std::printf("  %-20s : %12.2f ms/frame | max %7.2f ms\n",
+			"drawLongestWorker", mDrawLongestWorkerMs * inv, mDrawLongestWorkerMaxMs);
+		std::printf("  %-20s : %11.1f %%\n", "drawWorkerBalance", mDrawWorkerBalanceAccum * inv * 100.0);
+		std::printf("  %-20s : %12.0f /frame\n", "recordBatchVertices", static_cast<double>(mDrawBatchVertexAccum) * inv);
+		std::printf("  %-20s : %12.0f /frame\n", "recordMatrices", static_cast<double>(mDrawMatrixAccum) * inv);
+		std::printf("  %-20s : %12.0f /frame\n", "recordInstances", static_cast<double>(mDrawInstanceAccum) * inv);
+		std::printf("  %-20s : %12.0f /frame\n", "recordCommands", static_cast<double>(mDrawCommandAccum) * inv);
 		std::printf("============================================\n");
 
 		mAccum.clear();
@@ -148,6 +198,17 @@ public:
 		mSweepRejectAccum = 0;
 		mSweepCheckAccum = 0;
 		mSweepHitAccum = 0;
+		mDrawActiveObjectAccum = 0;
+		mDrawWorkerCountAccum = 0;
+		mDrawRecordSlotCountAccum = 0;
+		mDrawWorkerElapsedSumMs = 0.0;
+		mDrawLongestWorkerMs = 0.0;
+		mDrawLongestWorkerMaxMs = 0.0;
+		mDrawWorkerBalanceAccum = 0.0;
+		mDrawBatchVertexAccum = 0;
+		mDrawMatrixAccum = 0;
+		mDrawInstanceAccum = 0;
+		mDrawCommandAccum = 0;
 		mFrames = 0;
 	}
 
@@ -174,6 +235,17 @@ private:
 	size_t mSweepRejectAccum = 0; // 诊断：窗口内被 CanCollide 拒绝的迭代次数
 	size_t mSweepCheckAccum = 0;  // 诊断：窗口内真正做 AABB 检测的次数
 	size_t mSweepHitAccum = 0;    // 诊断：窗口内检出的碰撞对数
+	size_t mDrawActiveObjectAccum = 0; // 诊断：窗口内参与并行 Draw 的有效对象数
+	size_t mDrawWorkerCountAccum = 0;  // 诊断：窗口内参与并行 Draw 的 worker 数
+	size_t mDrawRecordSlotCountAccum = 0; // 诊断：窗口内按顺序回放的逻辑录制切片数
+	double mDrawWorkerElapsedSumMs = 0.0; // 诊断：窗口内各 worker 墙钟耗时之和
+	double mDrawLongestWorkerMs = 0.0;    // 诊断：窗口内每帧最长 worker 耗时之和
+	double mDrawLongestWorkerMaxMs = 0.0; // 诊断：窗口内单帧最长 worker 的最大耗时
+	double mDrawWorkerBalanceAccum = 0.0; // 诊断：sum/(workers*longest)，1 表示完全均衡
+	size_t mDrawBatchVertexAccum = 0; // 诊断：窗口内 worker 想写入的 batch 顶点数
+	size_t mDrawMatrixAccum = 0;      // 诊断：窗口内 worker 想写入的矩阵数
+	size_t mDrawInstanceAccum = 0;    // 诊断：窗口内 worker 想写入的实例数
+	size_t mDrawCommandAccum = 0;     // 诊断：窗口内 worker 录制的状态/延迟文字命令数
 };
 
 // RAII 计时：作用域结束时把耗时累加到对应名字
