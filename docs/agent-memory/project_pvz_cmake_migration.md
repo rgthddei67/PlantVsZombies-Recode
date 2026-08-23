@@ -1,6 +1,6 @@
 ---
 name: pvz-cmake-migration
-description: CMake+vcpkg 唯一构建系统；2026-07-31 默认 clang-release，其他 preset 用目录联接共享单份运行资源
+description: CMake+vcpkg 唯一构建系统；普通任务用 msvc-debug 快速迭代并以 clang-release 交付，优化任务全程 clang-release，其他 preset 用目录联接共享单份运行资源
 metadata:
   node_type: memory
   type: project
@@ -8,10 +8,11 @@ metadata:
 ---
 
 **2026-08-23 当前构建契约（取代下方迁移初期的 preset/运行目录描述）：**
-- 主人改定 `clang-release` 为编译、逻辑验证、AutoTest、F5 与正式发布的默认预设：Clang `/O2` + AVX2 + fast-math + LTO，并以 `/Z7 + /DEBUG:FULL` 生成与优化机器码匹配的完整 PDB，供 VS Sampling Profiler 和崩溃符号化使用。
+- 普通功能、逻辑、UI、资源和存档任务的修改过程中，使用 `msvc-debug` 做增量编译、F5 和范围最小的诊断 AutoTest，以获得更快的迭代速度及 Debug CRT/Debug 语义；任务完成后必须整体配置并编译一次 `clang-release`，最终相关回归也以该产物为交付证据，Debug 结果不能替代 Release 结果。
+- 性能、内存布局、并发、编译器优化、LTO 或仅在 Release 出现的问题属于优化相关任务，修改、验证与交付全程使用 `clang-release`：Clang `/O2` + AVX2 + fast-math + LTO，并以 `/Z7 + /DEBUG:FULL` 生成与优化机器码匹配的完整 PDB，供 VS Sampling Profiler 和崩溃符号化使用。
 - `clang-release-noavx2` 是 Win7/旧环境发生 `0xC000001D` 时的独立发布预设；只把 `PVZ_ENABLE_AVX2` 关掉，仍保留 `/O2`、fast-math、LTO、静态运行时和完整 PDB，不能取代默认预设。
 - 该开关约束游戏自己的编译单元，不保证最终静态 EXE 逐字节不含 AVX：libjpeg-turbo 等依赖仍可能内置由运行时能力检测保护的多套 SIMD 实现。验收应同时核对游戏 152 条编译命令无 `/arch:AVX2` 与目标 Win7 实机不再触发 `0xC000001D`，不能只对最终 EXE 搜指令助记符。
-- `clang-playtest` 只在主人特殊要求快速迭代、无 LTO 或更易断点调试的符号布局时使用；`msvc-debug` 只在主人特殊要求或确实需要 Debug CRT/Debug 语义时使用。
+- `clang-playtest` 不再承担普通快速迭代；仅在主人明确要求 Clang 无 LTO，或确实需要更易断点调试的 Clang 符号布局时使用。
 - `clang-release-noavx2`、`clang-playtest` 与 `msvc-debug` 的 `resources`/`font` 是指向 `build/clang-release/` 同名实体目录的 NTFS Junction；配置只创建一次联接，不复制资产。Shader、存档与 AutoTest 输出仍按 preset 隔离。
 - Visual Studio `launch.vs.json` 使用 `${cmake.binaryDir}` 作为工作目录；所有运行仍从 exe 自己的 `build/<preset>/` 启动。
 - `find_package(Vulkan)` 可能优先命中 vcpkg `vulkan-headers`；VMA 头固定从 `$ENV{VULKAN_SDK}/Include/vma/vk_mem_alloc.h` 取得，不能再通过 `Vulkan_INCLUDE_DIR` 间接推导。

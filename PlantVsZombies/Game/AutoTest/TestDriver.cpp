@@ -3955,6 +3955,10 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				gs->GetWeatherForecastFailureTimer() * 1000.0f)) },
 			{ "failedForecastIntensity", RainIntensityName(gs->GetFailedForecastRainIntensity()) },
 			{ "actualForecastIntensity", RainIntensityName(gs->GetActualForecastRainIntensity()) },
+			{ "failedForecastTyphoonStrength",
+				TyphoonStrengthName(gs->GetFailedForecastTyphoonStrength()) },
+			{ "actualForecastTyphoonStrength",
+				TyphoonStrengthName(gs->GetActualForecastTyphoonStrength()) },
 		};
 		nlohmann::json runoffRows = nlohmann::json::array();
 		int firstRunoffRow = -1;

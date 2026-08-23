@@ -161,12 +161,14 @@ public:
 		return static_cast<int>(mLightningBranches.size());
 	}
 	float GetLightningStrikeX() const { return mLightningStrikePoint.x; }
-	/** 天气阶段揭晓与公开预报不一致时，显示一个不会暂停战斗的失败提示。 */
+	/** 天气或台风等级揭晓与公开预报不一致时，显示一个不会暂停战斗的失败提示。 */
 	void ShowWeatherForecastFailure(
-		RainIntensity forecast, RainIntensity actual) override;
-	/** 从关卡存档恢复失败提示的剩余时间及预报/实际天气。 */
+		RainIntensity forecast, RainIntensity actual,
+		TyphoonStrength forecastTyphoon, TyphoonStrength actualTyphoon) override;
+	/** 从关卡存档恢复失败提示的剩余时间及预报/实际复合天气。 */
 	void RestoreWeatherForecastFailure(float remaining,
-		RainIntensity forecast, RainIntensity actual);
+		RainIntensity forecast, RainIntensity actual,
+		TyphoonStrength forecastTyphoon, TyphoonStrength actualTyphoon);
 	/** 天气发生变化后短暂显示当前结果，持续时间由天气 UI 常量统一控制。 */
 	void ShowCurrentWeatherNotice() override;
 	/** 从关卡存档恢复当前天气展板的剩余显示时间；异常值会限制到 0～5 秒。 */
@@ -184,6 +186,12 @@ public:
 	float GetWeatherForecastFailureTimer() const { return mWeatherForecastFailureTimer; }
 	RainIntensity GetFailedForecastRainIntensity() const { return mFailedForecastRainIntensity; }
 	RainIntensity GetActualForecastRainIntensity() const { return mActualForecastRainIntensity; }
+	TyphoonStrength GetFailedForecastTyphoonStrength() const {
+		return mFailedForecastTyphoonStrength;
+	}
+	TyphoonStrength GetActualForecastTyphoonStrength() const {
+		return mActualForecastTyphoonStrength;
+	}
 	int GetPoolEffectCounter() const { return mPoolEffectCounter; }
 	bool IsSpacePauseActiveForTesting() const { return mSpacePauseActive; }
 	bool IsPauseMenuOpenForTesting() const { return mOpenMenu; }
@@ -284,6 +292,8 @@ private:
 	float mWeatherForecastFailureTimer = 0.0f; // 错误预报揭晓提示的剩余显示时间（秒，未缩放）
 	RainIntensity mFailedForecastRainIntensity = RainIntensity::CLEAR; // 最近一次错误的公开预报
 	RainIntensity mActualForecastRainIntensity = RainIntensity::CLEAR; // 最近一次错误预报对应的真实天气
+	TyphoonStrength mFailedForecastTyphoonStrength = TyphoonStrength::NONE; // 最近一次错误公开预报中的台风等级
+	TyphoonStrength mActualForecastTyphoonStrength = TyphoonStrength::NONE; // 最近一次失败揭晓时的实际台风等级
 	// 轮间空槽重选时，快照冷却中卡牌的 {植物类型 → (已计时, 总时长)}，选完后还原到重选回的同种卡
 	SurvivalCardCooldownMap mSurvivalCardCooldowns;
 	bool mLendToAlmanacScene = false;

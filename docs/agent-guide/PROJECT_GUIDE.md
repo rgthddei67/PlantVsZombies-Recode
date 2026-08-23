@@ -25,7 +25,11 @@
   cmd /c "`"$vs\Common7\Tools\VsDevCmd.bat`" -arch=x64 -no_logo && set" |
     ForEach-Object { if ($_ -match '^([^=]+)=(.*)$') { Set-Item "env:$($matches[1])" $matches[2] } }
 
-  # 2) 默认构建：Release 级优化 + LTO + 与优化机器码匹配的完整 PDB
+  # 2) 普通功能修改的迭代构建：Debug CRT/Debug 语义，适合快速增量编译和诊断
+  cmake --preset msvc-debug
+  cmake --build --preset msvc-debug
+
+  # 3) 最终交付构建；优化/性能相关任务则从首次构建起就全程使用它
   cmake --preset clang-release
   cmake --build --preset clang-release
 
@@ -33,12 +37,12 @@
   cmake --preset clang-release-noavx2
   cmake --build --preset clang-release-noavx2
 
-  # 仅在主人特殊要求快速迭代、无 LTO 或更易断点调试的符号布局时使用
+  # 仅在明确需要 Clang 且无 LTO 的诊断时使用
   cmake --preset clang-playtest
   cmake --build --preset clang-playtest
   ```
 
-  四个预设各司其职：`clang-release` 是编译、逻辑验证、AutoTest、F5 与正式发布的默认预设（`/O2`、AVX2、fast-math、LTO、完整 PDB）；`clang-release-noavx2` 只为 Win7/旧环境的 `0xC000001D` 非法指令提供同配置发布版，除关闭 `PVZ_ENABLE_AVX2` 外保持 `/O2`、fast-math、LTO、静态运行时和完整 PDB；`clang-playtest` 只在主人特殊要求快速迭代、无 LTO 或更易断点调试的符号布局时使用；`msvc-debug` 只在主人特殊要求或确实需要 Debug CRT/断点语义时使用。三个 Clang 预设都会报告 `-Wnonportable-include-path`、`-Wreorder-ctor`、`-Wunused-*`、`-Wswitch` 等诊断，并应保持零警告。
+  四个预设各司其职：普通功能、逻辑、UI、资源和存档任务在修改过程中默认用 `msvc-debug` 进行编译、F5 和最小诊断 AutoTest，利用快速增量构建与 Debug CRT/Debug 语义定位问题；任务完成后必须整体配置/编译 `clang-release` 并用它跑最终相关回归。性能、内存布局、并发调度、编译器优化、LTO 或 Release-only 行为相关任务则全程使用 `clang-release`（`/O2`、AVX2、fast-math、LTO、完整 PDB）。`clang-release-noavx2` 只为 Win7/旧环境的 `0xC000001D` 提供同配置发布版；`clang-playtest` 只用于明确需要 Clang 且无 LTO 的诊断。三个 Clang 预设都会报告 `-Wnonportable-include-path`、`-Wreorder-ctor`、`-Wunused-*`、`-Wswitch` 等诊断，并应保持零警告。
 
 - **Release 崩溃取证：** `clang-release` 的 Fatal Error / Access Violation 先保留 `crash_report_*.txt`、现场资源 WARN、触发脚本和崩溃阶段，不凭异常地址猜源码；其完整 PDB 可直接符号化同次优化构建。只有 LTO 内联/合并使断点或调用栈难以定位时，才用 `clang-playtest` 复现同一路径；无论使用哪个预设，都必须确保 EXE/PDB 来自同一次构建。新动画对象若在构造或首帧崩溃，先查 reanim 注册、动画类型映射和轨道资源；不要在 `Zombie`/`AnimatedObject` 基类添加宽泛空 Animator 早退，这通常只会把崩溃推迟到 `Start()`/`SetupZombie()` 并掩盖强制资源缺失。修复后回到 `clang-release` 重建并重跑原失败脚本及父类回归。
 
@@ -71,7 +75,7 @@ Vulkan 运行时把 dynamic rendering 与 synchronization2 **分别**选路：Vu
 - **运行方式（工作目录必须是 exe 所在的 `build\<preset>\`）：** Codex 默认必须让窗口显示在主人当前桌面。GUI 启动属于沙箱外桌面操作，调用 shell 时使用 `sandbox_permissions="require_escalated"`；仅写 `-WindowStyle Normal` 而不提升权限，进程仍可能落入隔离会话、主人看不到。推荐命令：
 
   ```powershell
-  Push-Location build\clang-release   # 默认预设；必须作为 WorkingDirectory
+  Push-Location build\clang-release   # 最终交付回归；迭代诊断可按上述规则换成 msvc-debug
   $exe = (Resolve-Path '.\PlantsVsZombies.exe').Path
   $script = (Resolve-Path '..\..\autotest\scripts\demo_peashooter.json').Path
   $process = Start-Process -FilePath $exe `
@@ -91,7 +95,7 @@ Vulkan 运行时把 dynamic rendering 与 synchronization2 **分别**选路：Vu
 - **BulletPool 压力夹具：** `spawn_bullet` 可用 `count=1..512` 批量创建同型弹丸，并用 `xStep/yStep` 给每发位置递增；缺省仍只创建一发。状态根节点导出 `bulletPoolStorageCount/ActiveCount/PeakCount/HitCount/MissCount/HitRateOn1000/ActiveSlotsValid`，其中 hit 只表示复用空闲对象，miss 表示必须新建。`stress_bullet_pool_active_slots.json` 以 256 发新建→全部回收→64 发复用锁定稠密活跃表、统计和阴影表现；性能取证加 `-Profile` 并读取 `5a.Draw_bulletShadows`，不能只凭结构变化声称帧率提升。
 - **忧郁菇夹具：** `set_gloomshroom_shoot_cycle` 按 `row/col` 把已累计攻击周期固定为 `elapsed` 秒并清理未完成攻击；状态投影导出攻击内时间及下一云雾/伤害序号，供四段原版时间点和中途读档续播做确定性断言。
 - **命令集：** `goto_level` / `choose_cards` / `wait_state` / `set_sun` / `set_weather` / `set_opening_typhoon_protection` / `set_roof_runoff` / `set_typhoon` / `roll_typhoon` / `reroll_typhoon_direction` / `trigger_typhoon_gust` / `set_weather_forecast` / `show_image_prompt` / `roll_weather_forecast` / `advance_weather_phase` / `trigger_lightning` / `set_adventure_level` / `force_trophy` / `add_crater` / `force_survival_round` / `force_survival_round_clear` / `summon_next_wave` / `plant` / `assert_can_plant` / `set_plantern_gear` / `set_plantern_fuel` / `award_plantern_fuel` / `toggle_plantern_menu` / `assert_can_target` / `spawn_bullet` / `set_starfruit_shoot_cycle` / `set_cabbagepult_shoot_cycle` / `set_kernelpult_shoot_cycle` / `spawn_zombie` / `apply_zombie_control` / `make_gargantuar_smash_ready` / `set_jack_pop_countdown` / `set_elite_jack_throw_countdown` / `spawn_wave_zombie` / `set_zombie_mist_fuel_reward` / `kill_zombie` / `damage_plant` / `squish_plant` / `damage_zombie` / `add_perk` / `survival_perk_open` / `survival_perk_pick` / `survival_perk_refresh` / `show_plant_hp` / `show_zombie_hp` / `wait_seconds` / `wait_frames` / `set_timescale` / `reset_test_state` / `set_last_selected_cards` / `save_level_snapshot` / `reload_level_snapshot` / `charm_zombie` / `move_mouse` / `click` / `key` / `screenshot` / `dump_state` / `assert_state` / `quit`。等待类命令接受 `timeout`（默认 15 秒）。`set_opening_typhoon_protection` 只在进程内切换默认开启的前 5 波台风保护，不触碰真实 `PlayerInfo.json`；专项用它覆盖高难度玩家关闭保护后的原概率路径。`set_last_selected_cards` 只在进程内布置稳定植物枚举名数组，不触碰真实 `PlayerInfo.json`，供选卡恢复按钮和失效名称过滤专项使用。`plant` 对 `PLANT_BLOVER` 可选 `bloverDirection=HOUSE/FRONT`，用于固定实例方向；`assert_can_plant` 用 `type/row/col/expected` 直接断言正式 `Board::CanPlantAt`，适合覆盖睡莲承载层、水路禁种与弹坑等网格规则。`add_crater` 用 `row/col` 在当前棋盘直接创建弹坑，可选 `timeLeft` 固定剩余秒数，专用于验证不同格子地形和寿命阶段的绘制资源。`set_plantern_gear`、`set_plantern_fuel`、`award_plantern_fuel` 与 `toggle_plantern_menu` 固定路灯花玩法/UI 状态；`assert_can_target` 直接断言统一雾中索敌许可；`set_zombie_mist_fuel_reward` + `kill_zombie` 用确定性奖励走正式死亡发起入口，先断言 `pendingFuelTenths`、再等待飞行结束断言实际到账，避免用概率用例验证到账/丢弃边界。`set_roof_runoff` 对昼夜屋顶生效，用 `phase=IDLE/WARNING/FLOWING`、`charge`、活动阶段非空 `rows` 数组和可选 `remaining/retainedCharge` 固定径流状态；旧脚本的单个 `row` 仍兼容。`set_weather_forecast` 固定公开预报、真实天气和揭晓倒计时，只用于天气 UI/失败提示的确定性测试；当 `actual=HEAVY` 时可用 `typhoonStrength=NONE/TYPHOON/SEVERE/SUPER` 与 `promptVariant=0..2` 固定待生效台风和同级预警文案。`show_image_prompt` 用 `image=HUGE_WAVE/FINAL_WAVE` 显示既有图片提示，供多提示并存与绘制顺序测试。`roll_weather_forecast` 只在晴天用 1-based `weatherRoll` 走正式动态权重与弱天气保底，再发布必定准确的锁定预报，可用 `revealIn` 固定揭晓倒计时。`set_typhoon` 只在大雨中生效，用 `strength=NONE/TYPHOON/SEVERE/SUPER`、`direction=NONE/HOUSE/FRONT` 固定台风状态；可选 `gustIn`、`directionIn`、`gustsRemaining` 和 `decayIn` 固定阵风、转向、预算与衰减计时，`roll_typhoon` 用 1-based `chanceRoll`/`strengthRoll` 和固定方向走正式概率、连续落空保底与动态强度边界。`reroll_typhoon_direction` 用 `directionRoll=1..2` 走正式风向二选一重抽，确定性覆盖继续同向与切换方向。`trigger_typhoon_gust` 启动一次不消费自动预算的正式阵风，可用 `plantMoveIn` 固定阵风开始后多少游戏秒结算植物（默认 0 保持旧脚本的立即结算），活动期间仍会连续吹动僵尸。`force_survival_round` 直接定位测试轮次、重建出怪池并刷新轮次派生的天气速度；`force_survival_round_clear` 走正式轮清入口。`summon_next_wave` 直接走正式 `Board::SummonNextWave()`，可用 `count=1..100` 连续推进并验证波次派生状态；`spawn_zombie` 可加 `frozen=true` 让新目标立即走正式冻结入口；`set_jack_pop_countdown` 按 `row/index/value` 只覆盖 RUNNING 普通小丑的剩余开盒秒数；`set_elite_jack_throw_countdown` 按 `row/index/value` 选择精英小丑，可用 `targetRow/targetColumn` 固定下一只盒子的地图合法落点，供飞行、边界行、伤害与存档做确定性验证；`spawn_wave_zombie` 额外要求 `mutationRoll=1..100`，以正式天气变异解析器创建波次候选，用于确定性测试条件变异和每波上限；候选超过上限时命令成功但不创建回退类型，与正式挑选循环的 `continue` 一致。`spawn_bullet` 直接创建对象池子弹，可固定 `velocityX/velocityY/damage` 以及投掷物的 `lobTargetX/lobTargetY/lobDuration/lobApexHeight`，用于断言风力、伤害、解析抛物线与对象池复位；名称表同时开放豌豆系、孢子、尖刺、星弹、卷心菜、玉米粒和黄油。`set_starfruit_shoot_cycle`、`set_cabbagepult_shoot_cycle` 与 `set_kernelpult_shoot_cycle` 都按 `row/col` 固定植物已累计时间与本轮间隔，只布置正式射击周期，不直接触发动画或发弹；玉米投手命令另可用 `butter=true/false` 固定下一发。`damage_plant` 按 `row/col/index`、`damage_zombie` 按 `row/index` 选目标并走正式 `TakeDamage` 链；两者的 `source` 可取 `PLANT/ZOMBIE/OTHER`（默认 `OTHER`），后者另可选 `penetrateShield`，用于来源词条、护盾、断肢和死亡动画测试。`squish_plant` 按 `row/col/index` 调用植物基类正式压扁入口，供绕过巨人/冰车/投篮车攻击时序独立验证植物侧表现。`show_plant_hp` 与 `show_zombie_hp` 用可选 `on` 布置同层血量文字，供截图验证组合实体布局。`set_adventure_level` 与 `force_trophy` 仅用于冒险进度结算测试；`survival_perk_refresh` 消耗本轮共享的一次刷新额度并重抽当前全部词条候选。植物/僵尸类型直接使用枚举标识符（例如 `PLANT_PEASHOOTER`、`ZOMBIE_FASTPAPER`），新增类型需要在 `Game/AutoTest/TestDriver.cpp` 的名称表中添加一行。
-- **天气预报夹具补充：** 上述命令集中的 `actual=HEAVY` 限制是旧口径；当前只要公开预报或真实下一天气涉及 `HEAVY`，`set_weather_forecast` 就可用 `typhoonStrength=NONE/TYPHOON/SEVERE/SUPER` 与 `promptVariant=0..2` 固定共享的公开警报/待生效等级。`weather.forecastDisplayText` 导出面板实际公开文案，`weather.panelHeight` 与 `weather.nightRoofCharge.executionLineVisible` 用于锁定动态详情行。
+- **天气预报夹具补充：** 上述命令集中的 `actual=HEAVY` 限制是旧口径；当前只要公开预报或真实下一天气涉及 `HEAVY`，`set_weather_forecast` 就可用 `typhoonStrength=NONE/TYPHOON/SEVERE/SUPER` 与 `promptVariant=0..2` 固定公开警报/新大雨待生效等级。当前已是大雨且预报同档续期时，`typhoonStrength` 只固定公开预报，当前 Board 台风是揭晓实况；两者不同也会激活失败提示。`weather.forecastDisplayText`、`weather.failedForecastTyphoonStrength/actualForecastTyphoonStrength` 导出公开文案及失败卡片两边的台风等级，`weather.panelHeight` 与 `weather.nightRoofCharge.executionLineVisible` 用于锁定动态详情行。
 - **完整选卡夹具：** `set_all_owned_cards` 只在进程内按正式冒险奖励顺序布置当前全部已实装卡，供完整选卡面板专项使用，不改冒险进度或真实 `PlayerInfo.json`。选卡状态投影导出当前页、总页数、实际活动/隐藏植物列表及分页按钮的资源、角度和相对锚点；`click target=choose_card_page` 在执行时解析当前分页按钮中心并走真实输入路径。
 - **巨人锤击测试夹具：** `make_gargantuar_smash_ready` 按 `row/index` 选择处于 `SMASHING` 且尚未结算命中的巨人，把正式 `anim_smash` 推进到既有第 93 帧事件前；后续等待逻辑帧仍走目标快照、植物分层反应和命中音画的正式路径。
 - **巨人投掷测试夹具：** `make_gargantuar_throw_ready` 按 `row/index` 选择处于 `THROWING` 且尚未脱手的巨人，把正式 `anim_throw` 推进到既有第 131 帧事件前；后续等待逻辑帧仍走生成、阵营继承、视觉锚点对齐和音画的正式路径。

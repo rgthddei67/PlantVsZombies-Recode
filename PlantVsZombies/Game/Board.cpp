@@ -1938,14 +1938,26 @@ bool Board::IsWeatherForecastPlausible() const
 		mForecastRainIntensity) != plausible.begin() + plausibleCount;
 }
 
-/** 揭晓锁定的真实天气；预报错误时通知场景显示非模态失败提示。 */
+/** 揭晓锁定的真实天气；雨势或台风等级错误时通知场景显示非模态失败提示。 */
 void Board::ConsumeWeatherForecast()
 {
 	if (!mWeatherForecastReady) PrepareWeatherForecast();
 	const RainIntensity forecast = mForecastRainIntensity;
 	const RainIntensity next = mActualForecastRainIntensity;
-	if (forecast != next && mPresentation) {
-		mPresentation->ShowWeatherForecastFailure(forecast, next);
+	// 大雨续期不会兑现新抽取的 pending 台风，实际等级仍是揭晓时正在生效的台风。
+	// 新大雨则会消费同一份 pending 初态，因此预报和实际等级在正常路径中保持一致。
+	const TyphoonStrength forecastTyphoon = forecast == RainIntensity::HEAVY
+		&& mPendingHeavyTyphoonPrepared
+		? mPendingHeavyTyphoonStrength : TyphoonStrength::NONE;
+	const TyphoonStrength actualTyphoon = next == RainIntensity::HEAVY
+		? (mRainIntensity == RainIntensity::HEAVY
+			? mTyphoonStrength
+			: (mPendingHeavyTyphoonPrepared
+				? mPendingHeavyTyphoonStrength : TyphoonStrength::NONE))
+		: TyphoonStrength::NONE;
+	if ((forecast != next || forecastTyphoon != actualTyphoon) && mPresentation) {
+		mPresentation->ShowWeatherForecastFailure(
+			forecast, next, forecastTyphoon, actualTyphoon);
 	}
 	mWeatherForecastReady = false;
 	mForecastRainIntensity = RainIntensity::CLEAR;

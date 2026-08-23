@@ -47,7 +47,7 @@ description: Use when adding or tuning ANY rain-weather-dependent feature or Boa
    - 新字段能用中性默认值表示旧档时保持兼容；结构或语义变化无法只靠默认值表达时，提升 `SaveSchema::kCurrentLevelVersion`，增加逐版本迁移和 `SaveSchemaTests`。JSON 必须先升级成功，再修改 `Board`。
 6. 增加 AutoTest 可观测字段与最小脚本，覆盖晴天、目标雨势、放晴、减速/冻结组合，以及随机变异的固定种子结果。
 7. 更新对应天气/场景主题、相关僵尸/植物主题和 `docs/agent-memory/MEMORY.md`。
-8. 按项目指南默认完成带 LTO 与完整 PDB 的 `clang-release` 及范围最小的可见 AutoTest；只有主人明确要求快速迭代、无 LTO 或更易断点调试的符号布局时才用 `clang-playtest`。仅改技能文档时无需构建游戏。
+8. 按项目指南选预设：普通天气功能在修改过程中用 `msvc-debug` 快速编译和诊断，收尾再整体编译带 LTO/完整 PDB 的 `clang-release` 并用它完成范围最小的最终可见 AutoTest；优化、性能、内存布局、并发、LTO 或 Release-only 行为相关的天气任务全程使用 `clang-release`。仅改技能文档时无需构建游戏。
 
 ## 不可破坏的契约
 
@@ -74,6 +74,7 @@ description: Use when adding or tuning ANY rain-weather-dependent feature or Boa
 - 不要按天气改写持久的 `mSpawnZombieList`。生存模式会保存该列表，预览僵尸也使用它；天气变异应是波次生成时的一次性解析。
 - 随机变异只 roll 一次，并把实际类型或结果标志保存。禁止在 `Update()`、绘制、读档或每次技能检查中重 roll。
 - 若改动真实天气转移，必须同步 `BuildPlausibleForecasts()`；公开错误预报只能来自真实可达候选，无候选时强制报准。
+- 天气预报揭晓的失败判定要比较玩家实际看到的完整组合：雨势或公开台风等级任一与揭晓实况不同都算失败。大雨同档续期不会消费新抽的 pending 台风，因此实际等级必须取揭晓时正在生效的 Board 台风；失败卡片及其 UI 存档同时保留两边的雨势和台风等级。
 - 玩家可选的开局台风保护属于 `PlayerInfo` 全局偏好，缺字段必须回到产品默认值；实际资格仍由 `Board` 按当前波次和生存轮次派生。预警期已锁定的“保护性无台风”要以独立标志随关卡档保存，消费时不得累计台风落空保底，否则保护结束波会被反向推成近似必出。保护默认只覆盖首局/生存首轮，避免每轮重置波次时重复降难；关闭开关后保持原天气导演概率和强度权重。
 - 实体直接强制雨势不得绕过 Board 私有状态写字段。默认只允许升档，避免中雨命令把自然大雨降级；周期技能默认不续同档以防永久锁雨，一次性阶段技能若允许补足同档余时必须显式传参。是否抽取/保留台风也必须由入口规定，不能意外消费预报期已锁定的台风随机结果。若复用现有 `BeginRain` 已完整保存的状态，不再给实体复制雨势字段或提升 schema。
 - 新增可调权重、概率、持续时间和倍率时，集中放在 `Board.cpp` 匿名命名空间，并在声明行末写中文用途/单位注释。

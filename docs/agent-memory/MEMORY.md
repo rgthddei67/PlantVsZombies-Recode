@@ -67,7 +67,7 @@
 - [Windows 中央存档目录与旧档安全迁移](project_pvz_save_location_migration.md) — 2026-07-21 Windows 正式存档改到 `FOLDERID_SavedGames/PlantsVsZombies/saves`；首次访问旧 `./saves` 时复制、逐字节校验、再删源文件，冲突不覆盖、失败逐文件回退；AutoTest/`-AutoTestLoadSave` 继续隔离在构建目录
 - [第三大关泳池基础系统](project_pvz_pool_basics.md) — 2026-08-03 当前范围 3-1～3-9：`WATER_POOL` 六行网格、原版 15×5 三层 GPU 动态水面、睡莲双层占格及上层植物本体/影子共享水面浮动视觉锚点、前4波仅陆路、`Zombie` 通用水线裁剪与 `Splash.reanim + PlantingPool` 进出水反馈、海豚派生节点、普通/路障/铁桶水路版本、水中爆炸无烧焦残影、PoolCleaner 与旧档边界；3-5普通冰车、3-6鎏金冰车、3-7普通海豚、3-8精英海豚、3-9为200初始阳光与10种敌人的30波分阶段综合；日间天降普通阳光14秒，泳池另每13秒生成15点小阳光；水路 Transform +30px美术下沉而碰撞仍回归逻辑行
 - [通用 shader ClipRect](project_pvz_shader_clip_rect.md) — 2026-07-23 `PushClipRect/PopClipRect` 全部改为逐顶点/逐实例 framebuffer 矩形裁剪；不再 flush、切 draw、录 worker 状态命令或动态改 scissor；覆盖水路、伴舞出土、图鉴格窗、粒子阻断，含延迟文字继承与无裁剪片元快路径
-- [冒险第二大关起雨势天气与独立迷雾](project_pvz_night_rain_weather.md) — 2026-08-23 大雨警报和预报台风后缀只跟公开预报走：预报大雨显示同分布等级以掩护误报，预报非大雨隐藏真实大雨警报与待生效台风；真实台风仍由真实下一天气消费，Board 仍是唯一天气权威，独立迷雾、4-9 暴风雨夜与昼夜屋顶雨景见主题
+- [冒险第二大关起雨势天气与独立迷雾](project_pvz_night_rain_weather.md) — 2026-08-23 大雨警报和预报台风后缀只跟公开预报走；揭晓按公开/实际“雨势 + 台风等级”完整比较，`HEAVY → HEAVY` 的实际等级取 Board 当前台风，失败 UI 与快照保存两侧等级；真实台风仍由真实下一天气消费，Board 仍是唯一天气权威，独立迷雾、4-9 暴风雨夜与昼夜屋顶雨景见主题
 - [路灯花与迷雾核心](project_pvz_plantern_fog_core.md) — 2026-08-22 唯一路灯花以25/100雾火维持四挡逐格照明/索敌与产光；本体交互改由CardSlotManager和Cell唯一解析，空手悬停显示手型并可开菜单，拿植物/铲子/炮击准星时不显示手型、不展开菜单且不截断同格南瓜头或under层避雷花盆放置；燃料曲线、6-9动态雾和存档合同保持
 - [雾夜第四大关4-1至4-9出怪节奏](project_pvz_fog_spawnlist_pacing.md) — 2026-08-03 4-8当前为普通/精英海豚、气球、跳跳三高度池；4-9为12类型暴风雨终局综合池并以普通/精英跳跳收尾；权威资源未改，4-7～4-9有序池与预览专项已同步并可见通过
 - [经典小丑僵尸](project_pvz_jack_in_the_box_zombie.md) — 2026-08-02 `ZOMBIE_JACK_IN_THE_BOX`：500 HP、0.66～0.68速度、随机开盒与共享循环声；第45帧啃食、第66帧爆炸、第89帧死亡，爆炸只伤敌对阵营僵尸（未魅惑侧直接清除爆区全部植物层），明确不受南瓜范围拦截影响；专属大范围爆炸、原版普通完整掉头、残肢和存档均有可见回归
@@ -136,7 +136,7 @@
 - [Volk动态 Vulkan loader + 1.2兼容矩阵 ✅](project_pvz_volk_dynamic_loader.md) — SDL2 loader→Volk动态分发；运行时优先1.3核心，并对 dynamic rendering / synchronization2 分别选择1.2 KHR或RenderPass/传统同步回退；Win7回退版已越过非法指令但一台实机的系统loader在首次枚举扩展时返回HOST_MEMORY，尚待同机vulkaninfo/loader/驱动诊断
 - [Windows 7 x64 系统 API 兼容层 + 导入门禁 ✅](project_pvz_win7_yy_thunks.md) — 仓库 overlay port 固定 YY-Thunks 1.2.2；LLD 用替代 import libs、MSVC 用官方 Win7 obj；PE subsystem 6.01，所有 EXE 链接后逐项核对 Win7 x64 导出表；另有同优化/LTO的`clang-release-noavx2`排除Win7 `0xC000001D`
 - [编译警告清零 ✅](project_pvz_warnings_cleanup.md) — 2026-06-13 clang-release 0warn；2026-08-12 将35处 `GameAPP.h` 引用统一为索引/磁盘的 `GameApp.h`，clang-release 复核无编译器警告；验证须用clang(msvc默认不报)
-- [CMake构建配置 ✅统一](project_pvz_cmake_migration.md) — CMake+vcpkg唯一；默认 `clang-release`（AVX2/LTO/完整PDB），Win7 `0xC000001D` 用其余设置相同的 `clang-release-noavx2`；快速迭代/无LTO/更易断点调试的符号布局才用 `clang-playtest`；非默认 preset 用 NTFS Junction 共享 clang-release 单份 resources/font
+- [CMake构建配置 ✅统一](project_pvz_cmake_migration.md) — CMake+vcpkg唯一；普通任务用 `msvc-debug` 做增量编译/F5/最小诊断 AutoTest，完成后整体 `clang-release` 并用其回归交付；性能、布局、并发、编译器优化与 Release-only 任务全程 `clang-release`（AVX2/LTO/完整PDB）；Win7 `0xC000001D` 用 `clang-release-noavx2`，`clang-playtest` 仅用于明确需要 Clang 无 LTO/符号布局；非默认 preset 以 NTFS Junction 共享单份 resources/font
 - [Build permission](feedback_build_permission_msbuild.md) — 主人解除构建限制:可直接命令行编译,不必F7不必核对时间戳(现用cmake preset)
 - [AutoTest套件 ✅](project_pvz_autotest_suite.md) — 2026-06-13完成;用法权威在CLAUDE.md AutoTest节(-AutoTest脚本+截图+dump_state闭环,-Seed确定性)
 - [PvZ轻量备份节点](project_pvz_backup_node.md) — 2026-08-13 Git SSH副本与GitHub独立镜像引用；AutoTest证据带提交/状态/逐文件SHA-256离机归档90天；每日健康报告、每周Git fsck；不替代Windows clang-release与可见AutoTest

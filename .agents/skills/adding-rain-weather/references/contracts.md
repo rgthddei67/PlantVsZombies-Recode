@@ -41,6 +41,9 @@
 天气预报行若同时显示台风等级，也只能消费这份玩家可见的锁定警报等级：公开预报为大雨且等级
 不是 `NONE` 时追加“台风/强台风/超强台风”；公开误报大雨显示同分布诱饵等级，公开预报非大雨
 则不得显示隐藏的真实待生效台风。当前天气行仍只在台风真正生效后显示实况等级与风向。
+揭晓失败必须比较这个完整公开组合：预报/实际雨势或台风等级任一不同都显示失败。当大雨预报大雨续期时，
+新锁定等级只是公开预报，不会被同档 `BeginRain` 消费；实际等级必须读揭晓时仍在生效的 `mTyphoonStrength`。
+因此即使雨势同为大雨，“预报强台风、实际超强台风”也必须报错，失败卡片显示两边的完整文案；这四个雨势/台风值和余时一起经 `WeatherPresentationState` 入档。
 
 离散能力默认这样判断：
 
@@ -345,7 +348,7 @@ Board 雾势、再恢复植物，所以 `RestoreFogState()` 只清空旧缓存�
 - `roofResources.rainBackgroundLoaded`：白天屋顶雨景变体已按 `IMAGE_BACKGROUND_ROOF_RAIN` 完成注册与加载。
 - `roofResources.nightRainBackgroundLoaded`：夜间屋顶雨景变体已按 `IMAGE_BACKGROUND_NIGHTROOF_RAIN` 完成注册与加载。
 - `weather.roofRainBackgroundAlpha`：昼夜屋顶雨景变体的整数 alpha；两者当前晴/小/中/大雨均为 `0/96/149/255`，非屋顶恒为 `0`。
-- `set_weather_forecast`：固定公开/真实天气和揭晓时刻；公开预报或真实下一天气涉及大雨时可用 `typhoonStrength` 固定共享的警报/待生效等级。`weather.forecastDisplayText` 导出面板实际公开文案，须成对断言误报大雨显示诱饵台风、非大雨预报隐藏真实台风。
+- `set_weather_forecast`：固定公开/真实天气和揭晓时刻；公开预报或真实下一天气涉及大雨时可用 `typhoonStrength` 固定公开警报/新大雨待生效等级。已处于大雨且预报同档续期时，该值只是公开等级，当前 Board 台风才是揭晓实况。`weather.forecastDisplayText` 导出面板实际公开文案，须成对断言误报大雨显示诱饵台风、非大雨预报隐藏真实台风。`weather.failedForecastTyphoonStrength/actualForecastTyphoonStrength` 导出失败卡片两边的台风等级，同雨势不同台风等级的专项要覆盖关卡快照往返。
 - `advance_weather_phase`：用权重落点强制结束雨段，并立即完成过渡。
 - `trigger_lightning`：只允许大雨；普通大雨同步播放 `SOUND_THUNDER` 并生成程序化主干/分叉；暴风雨夜改走 C# 风格全屏短闪，且不得同时激活普通局部闪电。
 - `set_fog_weather`：固定当前合格迷雾关卡的 `DEFAULT/SMALL/NORMAL/DENSE` 雾势与持续时间。

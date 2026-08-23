@@ -263,6 +263,16 @@ namespace {
 		return u8"未知台风";
 	}
 
+	/** 失败提示使用与天气面板相同的台风后缀，避免大雨续期失准时只显示“大雨 → 大雨”。 */
+	std::string ForecastOutcomeDisplayName(
+		RainIntensity rain, TyphoonStrength typhoon) {
+		std::string name = RainIntensityDisplayName(rain);
+		if (rain == RainIntensity::HEAVY && typhoon != TyphoonStrength::NONE) {
+			name += std::string(u8"·") + TyphoonStrengthDisplayName(typhoon);
+		}
+		return name;
+	}
+
 	/** 只从公开预报及其已锁定警报等级构建玩家可见文案，隐藏的真实天气不得参与。 */
 	std::string WeatherForecastPanelText(const Board* board) {
 		if (!board) return u8"天气预报：暂无";
@@ -1149,8 +1159,10 @@ void GameScene::DrawWeatherForecastFailure(Graphics* g) const
 
 	const std::string title = u8"天气预报失败！";
 	const std::string detail = std::string(u8"预报：")
-		+ RainIntensityDisplayName(mFailedForecastRainIntensity)
-		+ u8"  →  实际：" + RainIntensityDisplayName(mActualForecastRainIntensity);
+		+ ForecastOutcomeDisplayName(
+			mFailedForecastRainIntensity, mFailedForecastTyphoonStrength)
+		+ u8"  →  实际：" + ForecastOutcomeDisplayName(
+			mActualForecastRainIntensity, mActualForecastTyphoonStrength);
 	const float textX = x + 18.0f;
 	const glm::vec4 shadow(0.0f, 0.0f, 0.0f, 185.0f * visibility);
 	g->DrawText(title, ResourceKeys::Fonts::FONT_FZCQ, kForecastFailureTitleFontSize,
@@ -2825,23 +2837,31 @@ void GameScene::ShowLightningStrike(float duration)
 	}
 }
 
-void GameScene::ShowWeatherForecastFailure(RainIntensity forecast, RainIntensity actual)
+void GameScene::ShowWeatherForecastFailure(
+	RainIntensity forecast, RainIntensity actual,
+	TyphoonStrength forecastTyphoon, TyphoonStrength actualTyphoon)
 {
-	RestoreWeatherForecastFailure(kForecastFailureDuration, forecast, actual);
+	RestoreWeatherForecastFailure(kForecastFailureDuration,
+		forecast, actual, forecastTyphoon, actualTyphoon);
 }
 
 void GameScene::RestoreWeatherForecastFailure(float remaining,
-	RainIntensity forecast, RainIntensity actual)
+	RainIntensity forecast, RainIntensity actual,
+	TyphoonStrength forecastTyphoon, TyphoonStrength actualTyphoon)
 {
 	mWeatherForecastFailureTimer = std::clamp(remaining, 0.0f,
 		kForecastFailureDuration);
 	if (mWeatherForecastFailureTimer <= 0.0f) {
 		mFailedForecastRainIntensity = RainIntensity::CLEAR;
 		mActualForecastRainIntensity = RainIntensity::CLEAR;
+		mFailedForecastTyphoonStrength = TyphoonStrength::NONE;
+		mActualForecastTyphoonStrength = TyphoonStrength::NONE;
 		return;
 	}
 	mFailedForecastRainIntensity = forecast;
 	mActualForecastRainIntensity = actual;
+	mFailedForecastTyphoonStrength = forecastTyphoon;
+	mActualForecastTyphoonStrength = actualTyphoon;
 }
 
 void GameScene::ShowCurrentWeatherNotice()
@@ -2861,7 +2881,9 @@ WeatherPresentationState GameScene::CaptureWeatherPresentationState() const
 		mCurrentWeatherNoticeTimer,
 		mWeatherForecastFailureTimer,
 		mFailedForecastRainIntensity,
-		mActualForecastRainIntensity
+		mActualForecastRainIntensity,
+		mFailedForecastTyphoonStrength,
+		mActualForecastTyphoonStrength
 	};
 }
 
@@ -2870,7 +2892,8 @@ void GameScene::RestoreWeatherPresentationState(
 {
 	RestoreCurrentWeatherNotice(state.currentWeatherNoticeTimer);
 	RestoreWeatherForecastFailure(state.forecastFailureTimer,
-		state.failedForecast, state.actualForecast);
+		state.failedForecast, state.actualForecast,
+		state.failedForecastTyphoon, state.actualForecastTyphoon);
 }
 
 /**

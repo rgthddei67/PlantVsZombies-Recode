@@ -402,6 +402,10 @@ bool GameInfoSaver::SerializeLevelDataToPath(Board* board, CardSlotManager* mana
 		static_cast<int>(weatherPresentation.failedForecast);
 	j["weatherForecastFailureActualIntensity"] =
 		static_cast<int>(weatherPresentation.actualForecast);
+	j["failedForecastTyphoonStrength"] =
+		static_cast<int>(weatherPresentation.failedForecastTyphoon);
+	j["weatherForecastFailureActualTyphoonStrength"] =
+		static_cast<int>(weatherPresentation.actualForecastTyphoon);
 	j["maxWave"] = board->mMaxWave;
 	j["zombieCountDown"] = board->mZombieCountDown;
 	j["totalZombieHP"] = board->mTotalZombieHP;
@@ -808,21 +812,41 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 			static_cast<int>(RainIntensity::CLEAR));
 		const int failureActualRainValue = j.value("weatherForecastFailureActualIntensity",
 			static_cast<int>(RainIntensity::CLEAR));
+		const int failedForecastTyphoonValue = j.value("failedForecastTyphoonStrength",
+			static_cast<int>(TyphoonStrength::NONE));
+		const int failureActualTyphoonValue = j.value(
+			"weatherForecastFailureActualTyphoonStrength",
+			static_cast<int>(TyphoonStrength::NONE));
 		const bool validFailedForecastRain = failedForecastRainValue >= static_cast<int>(RainIntensity::CLEAR)
 			&& failedForecastRainValue <= static_cast<int>(RainIntensity::HEAVY);
 		const bool validFailureActualRain = failureActualRainValue >= static_cast<int>(RainIntensity::CLEAR)
 			&& failureActualRainValue <= static_cast<int>(RainIntensity::HEAVY);
+		const bool validFailedForecastTyphoon = failedForecastTyphoonValue
+			>= static_cast<int>(TyphoonStrength::NONE)
+			&& failedForecastTyphoonValue <= static_cast<int>(TyphoonStrength::SUPER);
+		const bool validFailureActualTyphoon = failureActualTyphoonValue
+			>= static_cast<int>(TyphoonStrength::NONE)
+			&& failureActualTyphoonValue <= static_cast<int>(TyphoonStrength::SUPER);
 		// 旧档或损坏字段按 0 秒恢复，已经消失的失败提示不会在读档后重播。
 		presentation->RestoreWeatherPresentationState(WeatherPresentationState{
 			j.value("currentWeatherNoticeTimer", 0.0f),
 			validFailedForecastRain && validFailureActualRain
+				&& validFailedForecastTyphoon && validFailureActualTyphoon
 				? j.value("weatherForecastFailureTimer", 0.0f) : 0.0f,
 			validFailedForecastRain
 				? static_cast<RainIntensity>(failedForecastRainValue)
 				: RainIntensity::CLEAR,
 			validFailureActualRain
 				? static_cast<RainIntensity>(failureActualRainValue)
-				: RainIntensity::CLEAR
+				: RainIntensity::CLEAR,
+			validFailedForecastTyphoon
+				&& failedForecastRainValue == static_cast<int>(RainIntensity::HEAVY)
+				? static_cast<TyphoonStrength>(failedForecastTyphoonValue)
+				: TyphoonStrength::NONE,
+			validFailureActualTyphoon
+				&& failureActualRainValue == static_cast<int>(RainIntensity::HEAVY)
+				? static_cast<TyphoonStrength>(failureActualTyphoonValue)
+				: TyphoonStrength::NONE
 		});
 	}
 	board->mWeatherTimer = std::max(0.0f, j.value("weatherTimer", 0.0f));

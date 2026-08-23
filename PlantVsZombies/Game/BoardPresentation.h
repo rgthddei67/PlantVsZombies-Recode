@@ -15,6 +15,8 @@ struct WeatherPresentationState {
 	float forecastFailureTimer = 0.0f;
 	RainIntensity failedForecast = RainIntensity::CLEAR;
 	RainIntensity actualForecast = RainIntensity::CLEAR;
+	TyphoonStrength failedForecastTyphoon = TyphoonStrength::NONE;
+	TyphoonStrength actualForecastTyphoon = TyphoonStrength::NONE;
 };
 
 /**
@@ -29,7 +31,8 @@ public:
 
 	virtual void ShowHeavyRainWarning(TyphoonStrength strength, int variant) = 0;
 	virtual void ShowWeatherForecastFailure(
-		RainIntensity forecast, RainIntensity actual) = 0;
+		RainIntensity forecast, RainIntensity actual,
+		TyphoonStrength forecastTyphoon, TyphoonStrength actualTyphoon) = 0;
 	virtual void ShowCurrentWeatherNotice() = 0;
 	virtual void ShowLightningStrike(float duration = 0.42f) = 0;
 	virtual void ShowScreenFlash(
