@@ -1,6 +1,6 @@
 ---
 name: project_pvz_screen_shake
-description: "屏幕抖动已落地(f3e87b4+修复f09abb3,未push)；全屏视觉效果必须走相机projView而非变换栈(instancing快路径不消费栈)；SAD截图验证法+其教训；附带发现smoke_doomshroom在master基线就失败(非抖动回归)"
+description: "屏幕抖动已落地；全屏视觉效果必须走相机projView，逻辑鼠标锚定的世界层手持预览须在最终相机后、世界绘制前单次换算；含同步截图与实际提交探针验证契约"
 metadata:
   node_type: memory
   type: project
@@ -25,3 +25,7 @@ metadata:
 - Add-Type 内联 C# LockBits SAD 搜 ±10px 整数平移。**教训：必须分管线选区域对测**——初版验证区域全是 batch 内容（房屋背景/UI 按钮），假绿放过了 reanim 不动；修复后用"割草机柱"（纯 reanim）与背景区对测三方吻合才算数。非零残差（21/110/129）本身就是"部分内容没动"的指纹，别忽略。毁灭菇爆炸后 ~15+ 帧全屏紫闪把画面冲成近纯色，闪内帧不可光学测（连 UI 区都会给错值），选闪后帧或靠 dump 断言。区域坐标从图像边缘内缩 range px 防越界。
 
 **附带发现（已于 2026-07-29 收口，非抖动回归）：** smoke_doomshroom.json 曾在 master 基线稳定 FAIL at cmd#32；复查确认脚本的卡槽坐标 click 没有可靠选中/落下小喷菇，原阻种断言也可能假绿。现改为 `assert_can_plant` 正式断言弹坑格 false、旁格 true，再直接种旁格对照；完整脚本当前桌面可见运行退出码 0。见 [project_pvz_doomshroom_crater](project_pvz_doomshroom_crater.md)。
+
+**2026-08-23 手持植物预览与相机同步：** 预览输入来自 InputHandler 的逻辑屏幕鼠标，本体却是世界层 Plant。旧路径在 `CardSlotManager::Update` 直接把逻辑坐标写入世界 `Transform`，又在 `GameObjects` 已画完后的 `LAYER_UI - 1` 命令用 `LogicalToWorld` 补写；实际绘制与下一逻辑帧交替消费两套坐标，开场横移时表现为左右横跳，暂停冻结非零震屏相机后表现为持续上下抖动。当前契约是在 `GameScene::Draw` 先确定开场/震屏最终相机，再于 `Scene::Draw` 前调用 CardSlotManager 单次换算，Update 不再写预览位置，也不保留晚层补写命令。AutoTest 从同帧 Animator 实际提交基点扣除植物静态视觉偏移，经同一相机投回逻辑坐标，不能用下一逻辑帧的 Transform 或相机状态冒充绘制证据；专项同时覆盖 `READY_SET_PLANT` 横移和毁灭菇震屏中暂停，默认实例与 `-NoInstance` 都须配合同步截图。
+
+当前验证证据：`clang-release` LTO 构建与 378 项 Win7 import audit 通过；桌面可见 `smoke_plant_preview_camera` 在默认 Vulkan 实例和 `-NoInstance` 两条路径均为 `status=passed`、退出码 0，开场横移及暂停震屏时实际提交锚点相对鼠标均为 `(0,0)`，四张对应截图已目验。父回归 `smoke_advanced_pause`（64 命令）与 `smoke_pool_visual_fixes`（32 命令）通过。旧 `smoke_screen_shake` 仍把樱桃仅 0.12 秒的震动开始硬夹在第 16～20 帧：当前 Release 在第 16 帧已开始而旧断言仍期望 0，Debug 又可能到第 20 帧仍未开始，因此该脚本的时序红灯不能冒充本次行为回归；本次真实震屏集成证据以 0.5 秒毁灭菇窗口专项为准。

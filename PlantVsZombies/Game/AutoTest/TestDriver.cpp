@@ -4222,6 +4222,14 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			out["cellPlantPreview"] = std::move(previewState);
 		}
 		else {
+			if (CardSlotManager* cardManager = gs->GetCardSlotManager()) {
+				previewState["renderProbeReady"] =
+					cardManager->IsPreviewRenderProbeReady();
+				previewState["renderMouseOffsetXInt"] =
+					cardManager->GetPreviewRenderMouseOffsetX();
+				previewState["renderMouseOffsetYInt"] =
+					cardManager->GetPreviewRenderMouseOffsetY();
+			}
 			++plantPreviewCount;
 			out["plantPreview"] = std::move(previewState);
 		}

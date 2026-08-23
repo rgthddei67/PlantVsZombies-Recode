@@ -13,6 +13,7 @@
 #include "ShadowComponent.h"
 #include "../GameApp.h"
 #include "../CursorManager.h"
+#include <cmath>
 
 namespace {
 	constexpr float kPlanternMenuTopOffset = 74.0f; // 挡位菜单相对卡片顶部的纵向偏移，单位：UI px
@@ -89,12 +90,8 @@ void CardSlotManager::Start() {
 }
 
 void CardSlotManager::Update() {
-	// 普通暂停只保留已有手持预览的鼠标跟随；卡槽附属操作、取消与落种均等待恢复。
+	// 普通暂停保留已有手持预览；位置仍在绘制前按本帧最终相机同步。
 	if (mPauseGameplayInputBlocked) {
-		if (selectedCard) {
-			UpdatePreviewToMouse(
-				GameAPP::GetInstance().GetInputHandler().GetMousePosition());
-		}
 		return;
 	}
 
@@ -112,9 +109,6 @@ void CardSlotManager::Update() {
 	auto* selected = selectedCard;
 	if (selected) {
 		auto& input = GameAPP::GetInstance().GetInputHandler();
-		Vector mouseScreen = input.GetMousePosition();  // 屏幕坐标
-
-		UpdatePreviewToMouse(mouseScreen);              // 传入屏幕坐标
 		// 右键取消选择
 		if (!bloverDirectionChanged
 			&& input.IsMouseButtonPressed(SDL_BUTTON_RIGHT)) {
@@ -130,13 +124,40 @@ void CardSlotManager::Update() {
 	}
 }
 
-void CardSlotManager::Draw(Graphics* g) {
+void CardSlotManager::PrepareDraw(Graphics* g) {
 	if (selectedCard) {
 		Vector mouseScreen = GameAPP::GetInstance().GetInputHandler().GetMousePosition();
 
-		// 更新预览位置
+		// 只在本帧最终相机确定后写一次世界坐标，随后 GameObjectManager 直接提交该位置。
 		UpdatePlantPreviewPosition(g, mouseScreen);
 	}
+}
+
+void CardSlotManager::CapturePreviewRenderState(Graphics* g)
+{
+	mPreviewRenderProbeReady = false;
+	mPreviewRenderMouseOffsetX = 0;
+	mPreviewRenderMouseOffsetY = 0;
+	if (!g || !plantPreview) return;
+
+	const auto animator = plantPreview->GetAnimatorInternal();
+	if (!animator) return;
+	const AnimatorRenderProbe& probe = animator->GetLastRenderProbe();
+	if (!probe.hasGeometry) return;
+
+	// 使用本帧真正提交的视觉基点和仍生效的同一相机反投影；这能区分“变换已在
+	// 绘制后修正”与“画面实际贴住鼠标”，不会让下一帧 Transform 状态制造假绿。
+	const Vector renderedAnchorWorld =
+		Vector(probe.baseX, probe.baseY) - plantPreview->GetStaticVisualOffset();
+	const Vector renderedLogical = g->WorldToLogical(
+		renderedAnchorWorld.x, renderedAnchorWorld.y);
+	const Vector mouseLogical =
+		GameAPP::GetInstance().GetInputHandler().GetMousePosition();
+	mPreviewRenderMouseOffsetX = static_cast<int>(std::lround(
+		renderedLogical.x - mouseLogical.x));
+	mPreviewRenderMouseOffsetY = static_cast<int>(std::lround(
+		renderedLogical.y - mouseLogical.y));
+	mPreviewRenderProbeReady = true;
 }
 
 bool CardSlotManager::HasInteractablePlanternAt(int row, int col) const
@@ -546,15 +567,6 @@ void CardSlotManager::UpdatePreviewToMouse(const Vector& mouseWorld) {
 
 		plantPreview->mRow = -1;
 		plantPreview->mColumn = -1;
-	}
-}
-
-void CardSlotManager::UpdatePreviewToCell(Cell* cell) {
-	if (plantPreview && cell) {
-		Vector centerPos = cell->GetCenterPosition();      // 世界坐标
-		if (auto transform = plantPreview->GetTransform()) {
-			transform->SetPosition(centerPos);                  // 世界坐标
-		}
 	}
 }
 

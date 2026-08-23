@@ -29,6 +29,9 @@ private:
 	bool mPlanternGearMenuOpen = false; // 纯 UI 瞬态；不进入关卡存档
 	bool mPauseGameplayInputBlocked = false; // 普通空格暂停仅冻结卡槽/落种，手持预览仍跟随鼠标
 	int mLastSun = 0; // 上次同步卡牌灰态的阳光值，按场景实例隔离
+	bool mPreviewRenderProbeReady = false; // AutoTest：最近一帧是否真正提交了手持预览
+	int mPreviewRenderMouseOffsetX = 0; // AutoTest：实际提交锚点相对鼠标 X，单位：逻辑 px
+	int mPreviewRenderMouseOffsetY = 0; // AutoTest：实际提交锚点相对鼠标 Y，单位：逻辑 px
 
 public:
 	CardSlotManager(Board* board);
@@ -36,12 +39,16 @@ public:
 
 	/** 安装 Cell 点击入口；由 GameScene 在 Board 完成构造后调用一次。 */
 	void Start();
-	/** 更新卡槽输入与手持预览；调用时序由 Scene::UpdateAfterGameObjects 保证。 */
+	/** 更新卡槽输入与卡牌状态；手持预览位置由 PrepareDraw 按最终相机同步。 */
 	void Update();
-	/** 在 UI 绘制阶段同步需经 Graphics 转换的手持与落点预览位置。 */
-	void Draw(Graphics* g);
+	/** 在本帧相机确定后、GameObject 绘制前同步手持与落点预览。 */
+	void PrepareDraw(Graphics* g);
+	/** AutoTest 在绘制结束后记录手持预览实际提交位置与鼠标的逻辑像素差。 */
+	void CapturePreviewRenderState(Graphics* g);
+	bool IsPreviewRenderProbeReady() const { return mPreviewRenderProbeReady; }
+	int GetPreviewRenderMouseOffsetX() const { return mPreviewRenderMouseOffsetX; }
+	int GetPreviewRenderMouseOffsetY() const { return mPreviewRenderMouseOffsetY; }
 	void UpdateAllCardsState();
-	void UpdatePreviewToMouse(const Vector& mousePos);
 
 	// 卡牌操作
 	void AddCard(Card* card);
@@ -69,9 +76,6 @@ public:
 	// 处理Cell点击
 	void HandleCellClick(int row, int col);
 
-	// 移动预览到指定Cell
-	void UpdatePreviewToCell(Cell* cell);
-
 	// 获取当前选中的植物类型
 	PlantType GetSelectedPlantType() const;
 
@@ -84,6 +88,7 @@ public:
 private:
 	void CreatePlantPreview(PlantType plantType);
 	void UpdatePlantPreviewPosition(Graphics* g, const Vector& position);
+	void UpdatePreviewToMouse(const Vector& mouseWorld);
 	/** 将世界坐标解析为唯一格子；重叠边界固定按行列顺序归属。 */
 	Cell* FindCellAtWorldPosition(const Vector& position) const;
 

@@ -4,7 +4,7 @@ description: 继承式玩法对象正式架构；Card、CardSlotManager、显式
 metadata:
   node_type: memory
   type: project
-  updated_at: 2026-08-22
+  updated_at: 2026-08-23
 ---
 
 # 继承式玩法对象与组件容器收缩
@@ -35,7 +35,7 @@ Clickable 当前契约：`GameObject` 用 `unique_ptr<ClickableComponent>` 独�
 
 纯 UI 阶段已完成：`GameButton` 收敛为 `MainMenuScene` 独占的 `MainMenuButtons` 普通控制器；`GameMessageBox` 由场景 `UIManager` 直接拥有，保留 Builder 和弱引用调用方。`Close()` 立即失活并请求关闭，UIManager 在 Button/Slider 遍历结束后解除控件注册，场景退出也先断开外部引用；弹窗不再进入全局 GOM 更新、排序和绘制遍历。该阶段只宣称所有权清晰和固定调度减少，没有 A/B 数据，不宣称 FPS 数字。
 
-CardSlotManager 的当前契约：`GameScene` 用 `unique_ptr` 覆盖整个 Board 生命周期；`Board`、`GameInfoSaver`、`ChooseCardUI` 与实战 `Card` 只持窄非拥有引用。`Scene::UpdateAfterGameObjects()` 在全部 GameObject 更新后、Clickable/Collision 前调用控制器更新；绘制阶段在 `LAYER_UI - 1` 同步手持/落点预览坐标，路灯花挡位菜单仍用独立的晚层 UI 命令。退出场景时先清 Cell 回调、预览和 Card 绑定，再销毁 Board。
+CardSlotManager 的当前契约：`GameScene` 用 `unique_ptr` 覆盖整个 Board 生命周期；`Board`、`GameInfoSaver`、`ChooseCardUI` 与实战 `Card` 只持窄非拥有引用。`Scene::UpdateAfterGameObjects()` 在全部 GameObject 更新后、Clickable/Collision 前调用控制器更新；手持植物预览以逻辑鼠标为锚，但本体属于世界层，因此须由 `GameScene::Draw` 在本帧最终相机确定后、`GameObjectManager` 绘制前只做一次 `LogicalToWorld` 同步，不能在 Update 写逻辑坐标后再由晚层命令二次修正。路灯花挡位菜单仍用独立的晚层 UI 命令。退出场景时先清 Cell 回调、预览和 Card 绑定，再销毁 Board。
 
 本阶段的 `smoke_plantern_fog_core` 还暴露了一个与 Card 语义无关、但被堆布局变化稳定触发的旧生命周期漏洞：`EntityRegistry::mZombiesByRow` 保存裸指针，若同帧先构建行桶再 `Zombie::Die()`，下一帧 GOM 会在 Board 的兜底 `CleanupExpired()` 前释放对象。修复契约是死亡与 `CommitRow()` 立即调用 `InvalidateZombieRowIndex()`，行遍历同时复核 active/dying；不能再假设“延迟删除天然保证裸指针到下一次查询都有效”。
 
@@ -60,3 +60,5 @@ Clickable 阶段的 2026-08-22 当前证据：`clang-release` LTO 与 378 项 Wi
 通用 Component 删除阶段的 2026-08-22 当前证据：`clang-release` 完整配置、123 单元重编译、LTO 链接和 378 项 Win7 import audit 通过；运行源码中 `Component` 基类/派生、类型表、模板访问器、初始化/更新/绘制视图及 `NeedsUpdate/SetDrawOrder` 为零。主人当前桌面可见运行 Task 0 全集，并补跑 Collider/Clickable 所有权、AutoTest harness、屋顶对象、Blover、Digger、双子向日葵存档专项，均退出 0、`status=passed`、`script finished OK`；默认与 `-NoInstance` 的阴影、选卡分页截图均已目验。双子向日葵新增现场两枚阳光 Coin 的保存/全新 `GameScene` 重载断言，连同 Blover、Digger、harness 和屋顶专项覆盖 Card、Plant、Zombie、Bullet、Coin、Mower 往返。本阶段没有迁移前同提交压力 A/B，不能引用 2026-05 phase-3 数据宣称当前 FPS 收益。
 
 `EntityRegistry` 语义重命名阶段的 2026-08-22 当前证据：全仓逐文件机械等价性审计确认运行代码只改变类型、文件、Board 成员和局部变量名，`EntityRegistry.cpp/.h` 与旧实现等价，源码旧名为零；存档字段、ID 计数器、AddWithID、CleanupExpired、行索引失效和稀有弱索引均未改变。`clang-release` 完整配置、120 步编译/链接和 378 项 Win7 import audit 通过，构建图只包含新文件。主人当前桌面可见运行 `smoke_zombie_row_index_lifetime`、`smoke_autotest_harness`、`smoke_roof_marshal_boss_bar`、`smoke_healer_coordination`，共 177 条命令、60 个状态断言、9 张同步截图，均退出 0、`status=passed`、`script finished OK`，快照恢复、督军血条与急救员群组截图已目验。三份受影响技能均通过 skill-creator `quick_validate.py`。本阶段没有运行行为或复杂度变化，不宣称性能收益；`ZombieQueryIndex` 拆分仅在注册表继续增长并出现明确维护收益时再做。
+
+CardSlotManager 相机同步修复的 2026-08-23 当前证据：`clang-release` LTO 与 378 项 Win7 import audit 通过；桌面可见 `smoke_plant_preview_camera` 默认实例/`-NoInstance`、`smoke_advanced_pause`、`smoke_pool_visual_fixes` 均退出 0 且 `status=passed`。专项以 Animator 同帧实际提交基点反投影，锁定开场横移与暂停震屏两处预览相对鼠标均为 `(0,0)`，同步截图已目验。旧 `smoke_screen_shake` 的 0.12 秒樱桃起震窗口在不同预设跨越原 16～20 帧硬边界，当前 Release 失败于“第 16 帧仍应为 0”的过期时序断言；这条已知测试漂移不作为预览修复失败，也不能记作全绿。

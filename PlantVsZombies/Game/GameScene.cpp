@@ -68,7 +68,6 @@ namespace {
 	constexpr int kWeatherCurrentFontSize = 18;           // 第一行“当前天气”字号
 	constexpr int kWeatherForecastFontSize = 16;          // 第二行“天气预警”字号
 	constexpr int kWeatherWindFontSize = 15;              // 台风期间第三行“风向实况”字号
-	constexpr int kCardPreviewSyncRenderOrder = LAYER_UI - 1; // 保持手持预览坐标同步晚于 GameObject、早于 UI 绘制
 	constexpr int kPlanternGearMenuRenderOrder = LAYER_UI + 700; // 路灯花菜单盖过天气板/失败提示且低于全屏提示
 	constexpr float kWeatherPanelDetailLineHeight = 30.0f; // 雾势预报或风向实况每增加一行的面板高度
 	constexpr float kWeatherPanelGaugeLineHeight = 38.0f; // 累计条文字与 8px 进度槽合计占用的面板高度
@@ -471,7 +470,14 @@ void GameScene::Draw(Graphics* g)
 		g->SetCameraPosition(0.0f, 0.0f);
 		mShakeCameraApplied = false;
 	}
+	// 手持植物属于世界层 GameObject，却以鼠标逻辑坐标为锚点。必须在开场平移/抖动
+	// 已确定本帧相机后、GameObjectManager 提交前完成唯一一次逆变换，避免更新/绘制
+	// 两阶段用不同坐标反复覆盖而在逻辑帧与渲染帧交错时横跳。
+	if (mCardSlotManager) mCardSlotManager->PrepareDraw(g);
 	Scene::Draw(g);
+	if (GameAPP::GetInstance().mAutoTestMode && mCardSlotManager) {
+		mCardSlotManager->CapturePreviewRenderState(g);
+	}
 }
 
 /** 只在空格键轻量暂停期间绘制紧凑提示，不为其他模态暂停重复叠字。 */
@@ -1393,11 +1399,6 @@ void GameScene::BuildDrawCommands()
 	}
 
 	if (mBoard) {
-		RegisterDrawCommand("CardPreviewSync",
-			[this](Graphics* g) {
-				if (mCardSlotManager) mCardSlotManager->Draw(g);
-			},
-			kCardPreviewSyncRenderOrder);
 		RegisterDrawCommand("WeatherPanel",
 			[this](Graphics* g) { DrawWeatherPanel(g); },
 			LAYER_UI + 500);
