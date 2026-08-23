@@ -88,6 +88,8 @@ description: Use when adding or tuning ANY particle effect (粒子特效) in PvZ
 | `Shake` | 每个推进游戏时间的逻辑步在 ±X/±Y 内均匀随机抖动（绘制偏移，不动物理位置）；暂停时保留最后一次采样，不随 UI 更新重抽 |
 | `Friction` | 每个推进游戏时间的逻辑步 `v *= (1-x)`——**逻辑步率相关**的衰减，0.1 就已经很强；暂停时不继续衰减 |
 | `Acceleration` | `v += x*dt`，帧率无关的恒加速（比 Gravity 多了 X 分量） |
+| `Circle` | 相对发射器系统中心沿单位切线推进 `(X + radius*Y)*dt`；负 X 与 `Away` 组合可形成原版模仿烟的旋转扩散，出生点必须先有非零半径 |
+| `Away` | 相对发射器系统中心沿单位径向推进 `(X + radius*Y)*dt`；正 X 向外扩散、负 X 向内收拢 |
 
 ### 解析了但引擎不消费（写了无效，勿浪费时间调）
 
@@ -125,6 +127,7 @@ description: Use when adding or tuning ANY particle effect (粒子特效) in PvZ
 
 18. **经典变体先找原版专属素材再考虑程序染色**：搜索 C# 资源包及现有权威资源中的同名 PNG/XML；若原版已有独立帧条或碎屑图集，按原布局和哈希导入并只做当前引擎必需的时间、名称与注册适配，禁止重新生成或用基础粒子乘色冒充。只有确认没有专属素材且乘法染色能够保留目标通道时，才选择染色变体。
 19. **多 Emitter 仍只有首个 Name 是特效实例名**：第二个及后续 Emitter 会与首个一起生成粒子并增加实际 quad 数，但不会在 `particleEffectNameCounts` / `particleEffectsByName` 下形成独立效果键。负例零键只为真正独立调用的效果名预置；验证光环、芯层等附加发射器时，断言首个 Name 的实例数、总 quad 数与同步截图，不要伪造第二个 Emitter 的零键。
+20. **原版 `Circle`/`Away` 不是坐标轴场**：两者分别绕系统中心沿切线、径向直接推进位置；禁止为了通过现有解析器把它们改写成 `Position`/`Acceleration`，否则 `Circle X=[-140 -70]` 会被误画成左移 70～140px 的脱体烟团。未知 `FieldType` 必须告警并按 INVALID 忽略，不能静默降级成 Position。
 
 ## 配方（照抄改数）
 

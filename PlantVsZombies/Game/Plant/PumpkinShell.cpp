@@ -90,6 +90,13 @@ void PumpkinShell::TakeDamage(int damage, DamageSource source)
 	UpdateDamageTexture();
 }
 
+void PumpkinShell::SetImitatedAppearance(bool imitated)
+{
+	Plant::SetImitatedAppearance(imitated);
+	if (!mBackAnimator) return;
+	mBackAnimator->EnableWashedOutEffect(imitated);
+}
+
 void PumpkinShell::LoadExtraData(const nlohmann::json&)
 {
 	// 破损阶段完全由通用存档中的生命值派生；读档只恢复终态，不产生音画反馈。

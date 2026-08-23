@@ -225,6 +225,11 @@
 [PLANT_WINTERMELON_DESCRIPTION]
 冰瓜会砸伤目标并溅射上下相邻行，使被冰屑命中的僵尸集体减速。“冷静一点，”冰瓜说，“尤其是在我从天而降的时候。”
 
+[PLANT_IMITATER]
+模仿者
+[PLANT_IMITATER_DESCRIPTION]
+模仿者可以复制一张已拥有的植物卡。复制卡使用目标植物的阳光与种植条件，但保留一套独立冷却；种下后模仿者会短暂现身，再变成一株泛白的目标植物。“做自己当然很好，”模仿者说，“不过今天的自己可以先借用一下别人的样子。”
+
 [ZOMBIE_NORMAL]
 僵尸
 [ZOMBIE_NORMAL_DESCRIPTION]

@@ -5,6 +5,7 @@
 #include "GameScene.h"
 #include "./Plant/PlantType.h"
 #include "./Plant/GameDataManager.h"
+#include "./Plant/PlantUpgradeRules.h"
 #include "./AudioSystem.h"
 #include "../GameRandom.h"
 #include "CardSlotManager.h"
@@ -26,7 +27,42 @@ namespace {
 	constexpr float kPageButtonStartGap = 10.0f; // 翻页箭头与开始按钮边缘间距，单位：UI px
 	constexpr float kPageForwardRotation = 0.0f; // 第一页向右箭头旋转角度，单位：度
 	constexpr float kPageBackRotation = 180.0f; // 第二页向左箭头旋转角度，单位：度
+	constexpr float kImitaterDialogX = 290.0f; // 模仿者目标面板左上角 X，单位：UI px
+	constexpr float kImitaterDialogY = 42.0f; // 模仿者目标面板左上角 Y，单位：UI px
+	constexpr float kImitaterDialogWidth = 520.0f; // 模仿者目标面板宽度，单位：UI px
+	constexpr float kImitaterDialogHeight = 496.0f; // 模仿者目标面板高度，单位：UI px
+	constexpr float kImitaterCancelX = 718.0f; // 模态取消按钮左上角 X，单位：UI px
+	constexpr float kImitaterCancelY = 50.0f; // 模态取消按钮左上角 Y，单位：UI px
+	constexpr float kImitaterCancelWidth = 76.0f; // 模态取消按钮宽度，单位：UI px
+	constexpr float kImitaterCancelHeight = 25.0f; // 模态取消按钮高度，单位：UI px
+	constexpr float kImitaterCardX = 673.0f; // AddOn 左缘=665，精确贴住选卡面板右边缘，单位：UI px
+	constexpr float kImitaterCardY = 511.0f; // AddOn 底缘=593，与选卡面板底边对齐，单位：UI px
+	constexpr float kImitaterAddOnX = 665.0f; // 固定背景左缘紧贴选卡面板，单位：UI px
+	constexpr float kImitaterAddOnY = 500.0f; // 固定背景顶缘，单位：UI px
+	constexpr float kImitaterAddOnWidth = 66.0f; // 原始 AddOn 宽度，禁止拉伸，单位：UI px
+	constexpr float kImitaterAddOnHeight = 93.0f; // 原始 AddOn 高度，禁止拉伸，单位：UI px
+	constexpr RenderLayer kImitaterDialogLayer =
+		static_cast<RenderLayer>(LAYER_UI + 1000); // 高于同层全部主卡，低于 Scene UI 按钮
+	constexpr RenderLayer kImitaterDialogCardLayer =
+		static_cast<RenderLayer>(LAYER_UI + 2000); // 临时目标卡位于模态背景之上
 }
+
+/** 把模态遮罩放在普通选卡 Card 之上、临时目标 Card 之下。 */
+class ImitaterDialogOverlay final : public GameObject {
+public:
+	explicit ImitaterDialogOverlay(ChooseCardUI* owner) : mOwner(owner) {
+		mIsUI = true;
+	}
+
+	void Draw(Graphics* g) override {
+		if (mOwner) mOwner->DrawImitaterDialog(g);
+	}
+
+	void DetachOwner() { mOwner = nullptr; }
+
+private:
+	ChooseCardUI* mOwner = nullptr; // ChooseCardUI 管理本对象生命周期
+};
 
 ChooseCardUI::ChooseCardUI(GameScene* gameScene)
 {
@@ -34,12 +70,15 @@ ChooseCardUI::ChooseCardUI(GameScene* gameScene)
 	this->SetName("ChooseCardUI");
 	mCards.reserve(64);
 	mSelectedCards.reserve(16);
+	mImitaterDialogCards.reserve(48);
 	mGameScene = gameScene;
 	if (!mGameScene) return;
 	CreateTransform(60.0f, 800.0f);
 
 	mCardUITexture = ResourceManager::GetInstance().
 		GetTexture(ResourceKeys::Textures::IMAGE_SEEDCHOOSER_BACKGROUND);
+	mImitaterAddOnTexture = ResourceManager::GetInstance().GetTexture(
+		ResourceKeys::Textures::IMAGE_SEEDCHOOSER_IMITATERADDON);
 	auto button = mGameScene->GetUIManager().CreateButton(
 		Vector(kStartButtonX, kStartButtonY),
 		Vector(kStartButtonWidth, kStartButtonHeight));
@@ -87,15 +126,38 @@ ChooseCardUI::ChooseCardUI(GameScene* gameScene)
 	pageButton->SetClickCallBack([this](bool) {
 		TogglePage();
 		});
+
+	auto cancelButton = mGameScene->GetUIManager().CreateButton(
+		Vector(kImitaterCancelX, kImitaterCancelY),
+		Vector(kImitaterCancelWidth, kImitaterCancelHeight));
+	mImitaterCancelButton = cancelButton;
+	cancelButton->SetAsCheckbox(false);
+	cancelButton->SetImageKeys(ResourceKeys::Textures::IMAGE_SEEDCHOOSER_BUTTON2,
+		ResourceKeys::Textures::IMAGE_SEEDCHOOSER_BUTTON2_GLOW,
+		ResourceKeys::Textures::IMAGE_SEEDCHOOSER_BUTTON2);
+	cancelButton->SetText(u8"取消", ResourceKeys::Fonts::FONT_FZCQ, 14);
+	cancelButton->SetEnabled(false);
+	cancelButton->SetSkipDraw(true);
+	cancelButton->SetClickCallBack([this](bool) {
+		CloseImitaterDialog();
+		});
 	SyncRestoreButtonPosition();
 	SyncPageButtonPosition();
 }
 
 ChooseCardUI::~ChooseCardUI() {
+	DestroyImitaterDialogCards();
+	DestroyImitaterDialogOverlay();
 	SceneManager::GetInstance().GetCurrectSceneUIManager().RemoveButton(mButton.lock());
 	SceneManager::GetInstance().GetCurrectSceneUIManager().RemoveButton(mRestoreButton.lock());
 	SceneManager::GetInstance().GetCurrectSceneUIManager().RemoveButton(mPageButton.lock());
+	SceneManager::GetInstance().GetCurrectSceneUIManager().RemoveButton(
+		mImitaterCancelButton.lock());
 	mGameScene = nullptr;
+	for (Card* card : mCards) {
+		if (card) card->BindChooseCardUI(nullptr);
+	}
+	if (mImitaterCard) mImitaterCard->BindChooseCardUI(nullptr);
 	// TODO: 物体析构的时候，如果有其他物体没有销毁，不要在这个时候销毁，因为没用
 }
 
@@ -112,10 +174,17 @@ void ChooseCardUI::SetPosition(const Vector& position) {
 }
 
 void ChooseCardUI::RemoveAllCards() {
+	if (mImitaterDialogOpen) CloseImitaterDialog();
 	for (auto* card : mCards) {
+		if (card) card->BindChooseCardUI(nullptr);
 		GameObjectManager::GetInstance().DestroyGameObject(card);
 	}
 	mCards.clear();
+	if (mImitaterCard) {
+		mImitaterCard->BindChooseCardUI(nullptr);
+		GameObjectManager::GetInstance().DestroyGameObject(mImitaterCard);
+		mImitaterCard = nullptr;
+	}
 	mSelectedCards.clear();
 	mCurrentPage = 0;
 	RefreshPageButtonState();
@@ -123,6 +192,7 @@ void ChooseCardUI::RemoveAllCards() {
 
 void ChooseCardUI::TransferSelectedCardsTo(CardSlotManager* manager) {
 	for (auto* card : mSelectedCards) {
+		card->BindChooseCardUI(nullptr);
 		// 设置卡牌状态为游戏内
 		card->SetIsInChooseCardUI(false);
 		// 添加到卡槽管理器
@@ -134,6 +204,7 @@ void ChooseCardUI::TransferSelectedCardsTo(CardSlotManager* manager) {
 		if (it != mCards.end()) {
 			mCards.erase(it);
 		}
+		if (card == mImitaterCard) mImitaterCard = nullptr;
 	}
 	mSelectedCards.clear();
 	RefreshPageButtonState();
@@ -141,6 +212,7 @@ void ChooseCardUI::TransferSelectedCardsTo(CardSlotManager* manager) {
 }
 
 void ChooseCardUI::Draw(Graphics* g) {
+	if (!g) return;
 	// 绘制背景
 	if (mCardUITexture) {
 		Vector pos = this->GetPosition();
@@ -152,9 +224,39 @@ void ChooseCardUI::Draw(Graphics* g) {
 			newpos.x, newpos.y,
 			static_cast<float>(w), static_cast<float>(h));
 	}
+	// 原版 AddOn 属于 SeedChooser 背景：模仿卡飞到卡槽后，右侧木框仍留在原处。
+	if (mImitaterAddOnTexture && mImitaterCard) {
+		const Vector addOn = g->LogicalToWorld(kImitaterAddOnX, kImitaterAddOnY);
+		g->DrawTexture(mImitaterAddOnTexture, addOn.x, addOn.y,
+			kImitaterAddOnWidth, kImitaterAddOnHeight);
+	}
+}
+
+void ChooseCardUI::DrawImitaterDialog(Graphics* g) const
+{
+	if (!mImitaterDialogOpen || !g) return;
+	const Vector screenTopLeft = g->LogicalToWorld(0.0f, 0.0f);
+	g->FillRect(screenTopLeft.x, screenTopLeft.y, 1100.0f, 600.0f,
+		glm::vec4(18.0f, 10.0f, 7.0f, 178.0f));
+	const Vector panel = g->LogicalToWorld(kImitaterDialogX, kImitaterDialogY);
+	g->FillRect(panel.x, panel.y, kImitaterDialogWidth, kImitaterDialogHeight,
+		glm::vec4(104.0f, 48.0f, 24.0f, 248.0f));
+	g->DrawRect(panel.x, panel.y, kImitaterDialogWidth, kImitaterDialogHeight,
+		glm::vec4(244.0f, 145.0f, 48.0f, 255.0f));
+	g->DrawRect(panel.x + 3.0f, panel.y + 3.0f,
+		kImitaterDialogWidth - 6.0f, kImitaterDialogHeight - 6.0f,
+		glm::vec4(74.0f, 29.0f, 16.0f, 255.0f));
+	const std::string title = u8"选择模仿的植物";
+	const float titleWidth = g->MeasureTextWidth(
+		title, ResourceKeys::Fonts::FONT_FZCQ, 24);
+	g->DrawGlyphRun(title, ResourceKeys::Fonts::FONT_FZCQ, 24,
+		glm::vec4(255.0f, 198.0f, 62.0f, 255.0f),
+		panel.x + (kImitaterDialogWidth - titleWidth) * 0.5f,
+		panel.y + 9.0f);
 }
 
 void ChooseCardUI::AddCard(PlantType type) {
+	if (type == PlantType::PLANT_IMITATER && mImitaterCard) return;
 	// 计算当前卡牌数量对应的行列
 	int cardCount = static_cast<int>(mCards.size());
 	int pageSlot = cardCount % CARDS_PER_PAGE;
@@ -162,8 +264,10 @@ void ChooseCardUI::AddCard(PlantType type) {
 	int col = pageSlot % MAX_CARDS_PER_ROW;
 
 	// 计算位置
-	float posX = START_X + col * (CARD_WIDTH + CARD_HORIZONTAL_SPACING);
-	float posY = START_Y + row * (CARD_HEIGHT + CARD_VERTICAL_SPACING);
+	float posX = type == PlantType::PLANT_IMITATER
+		? kImitaterCardX : START_X + col * (CARD_WIDTH + CARD_HORIZONTAL_SPACING);
+	float posY = type == PlantType::PLANT_IMITATER
+		? kImitaterCardY : START_Y + row * (CARD_HEIGHT + CARD_VERTICAL_SPACING);
 
 	auto& gameMgr = GameDataManager::GetInstance();
 
@@ -175,16 +279,20 @@ void ChooseCardUI::AddCard(PlantType type) {
 		transform->SetPosition(Vector(posX, posY));
 	}
 	card->SetOriginalPosition(Vector(posX, posY));
+	card->BindChooseCardUI(this);
 	card->mIsUI = true;
-	mCards.push_back(card);
+	if (type == PlantType::PLANT_IMITATER) mImitaterCard = card;
+	else mCards.push_back(card);
 	RefreshPageButtonState();
 	SyncCardPageVisibility();
 }
 
 void ChooseCardUI::RemoveCard(Card* card)
 {
+	if (card == mImitaterCard) mImitaterCard = nullptr;
 	auto it = std::find(mCards.begin(), mCards.end(), card);
 	if (it != mCards.end()) {
+		card->BindChooseCardUI(nullptr);
 		mCards.erase(it);
 	}
 
@@ -214,6 +322,15 @@ void ChooseCardUI::AddAllCard() {
 }
 
 Card* ChooseCardUI::FindCardByType(PlantType type) {
+	if (mImitaterDialogOpen) {
+		for (Card* option : mImitaterDialogCards) {
+			if (option && option->HasImitaterTarget()
+				&& option->GetImitaterTarget() == type) {
+				return option;
+			}
+		}
+	}
+	if (type == PlantType::PLANT_IMITATER) return mImitaterCard;
 	for (auto* card : mCards) {
 		if (!card) continue;
 		if (card->GetPlantType() == type) return card;
@@ -228,6 +345,9 @@ bool ChooseCardUI::ToggleCardSelection(Card* card) {
 	if (it != mSelectedCards.end()) {
 		// 已选中 -> 移除
 		mSelectedCards.erase(it);
+		if (card->GetPlantType() == PlantType::PLANT_IMITATER) {
+			card->ClearImitaterTarget();
+		}
 		UpdateTargetPositions();
 		return false;
 	}
@@ -242,6 +362,20 @@ bool ChooseCardUI::ToggleCardSelection(Card* card) {
 	}
 }
 
+bool ChooseCardUI::HandleCardClick(Card* card)
+{
+	if (!card) return false;
+	if (mImitaterDialogOpen) return SelectImitaterTarget(card);
+	if (card->GetPlantType() != PlantType::PLANT_IMITATER) {
+		return ToggleCardSelection(card);
+	}
+	if (IsCardSelected(card)) {
+		ToggleCardSelection(card);
+		return false;
+	}
+	return OpenImitaterDialog(card);
+}
+
 std::vector<PlantType> ChooseCardUI::GetSelectedCardTypes() {
 	std::vector<PlantType> types;
 	types.reserve(mSelectedCards.size());
@@ -252,13 +386,36 @@ std::vector<PlantType> ChooseCardUI::GetSelectedCardTypes() {
 	return types;
 }
 
-std::vector<Card*> ChooseCardUI::ResolveRestorableCards() {
+std::vector<std::string> ChooseCardUI::GetSelectedCardKeys() const
+{
+	std::vector<std::string> keys;
+	keys.reserve(mSelectedCards.size());
+	auto& gameData = GameDataManager::GetInstance();
+	for (const Card* card : mSelectedCards) {
+		if (!card) continue;
+		const std::string identity = gameData.PlantTypeToEnumName(card->GetPlantType());
+		if (identity == "PLANT_NONE") continue;
+		if (card->GetPlantType() == PlantType::PLANT_IMITATER
+			&& card->HasImitaterTarget()) {
+			keys.push_back(identity + ":"
+				+ gameData.PlantTypeToEnumName(card->GetImitaterTarget()));
+		}
+		else {
+			keys.push_back(identity);
+		}
+	}
+	return keys;
+}
+
+std::vector<Card*> ChooseCardUI::ResolveRestorableCards(bool applyImitaterTargets) {
 	std::vector<Card*> cards;
 	cards.reserve(MAX_SELECTED);
 	std::vector<PlantType> seenTypes;
 	seenTypes.reserve(MAX_SELECTED);
 	auto& gameData = GameDataManager::GetInstance();
-	for (const std::string& cardName : GameAPP::GetInstance().mLastSelectedCards) {
+	for (const std::string& cardKey : GameAPP::GetInstance().mLastSelectedCards) {
+		const std::size_t separator = cardKey.find(':');
+		const std::string cardName = cardKey.substr(0, separator);
 		const PlantType type = gameData.StringToPlantType(cardName);
 		if (type == PlantType::NUM_PLANT_TYPES
 			|| gameData.PlantTypeToEnumName(type) != cardName
@@ -267,6 +424,20 @@ std::vector<Card*> ChooseCardUI::ResolveRestorableCards() {
 		}
 		Card* card = FindCardByType(type);
 		if (!card) continue;
+		if (type == PlantType::PLANT_IMITATER) {
+			if (separator == std::string::npos) continue;
+			const std::string targetName = cardKey.substr(separator + 1);
+			const PlantType target = gameData.StringToPlantType(targetName);
+			if (target == PlantType::NUM_PLANT_TYPES
+				|| gameData.PlantTypeToEnumName(target) != targetName
+				|| target == PlantType::PLANT_IMITATER
+				|| IsUpgradePlantType(target)
+				|| !gameData.HasPlant(target)
+				|| !FindCardByType(target)) {
+				continue;
+			}
+			if (applyImitaterTargets && !card->SetImitaterTarget(target)) continue;
+		}
 		seenTypes.push_back(type);
 		cards.push_back(card);
 		if (cards.size() >= MAX_SELECTED) break;
@@ -275,9 +446,15 @@ std::vector<Card*> ChooseCardUI::ResolveRestorableCards() {
 }
 
 bool ChooseCardUI::RestoreLastSelectedCards() {
-	auto restoredCards = ResolveRestorableCards();
+	auto restoredCards = ResolveRestorableCards(true);
 	if (restoredCards.empty()) return false;
 
+	// 整组替换若不再包含模仿者，也要清掉旧目标，保持右侧入口卡恢复原貌。
+	if (mImitaterCard
+		&& std::find(restoredCards.begin(), restoredCards.end(), mImitaterCard)
+			== restoredCards.end()) {
+		mImitaterCard->ClearImitaterTarget();
+	}
 	// 整组替换当前选择后只刷新一次目标位置，使全部卡片沿既有飞行动画进入对应槽位。
 	mSelectedCards = std::move(restoredCards);
 	UpdateTargetPositions();
@@ -304,6 +481,16 @@ std::vector<PlantType> ChooseCardUI::GetHiddenCardTypes() const {
 	for (Card* card : mCards) {
 		if (!card || card->IsActive()) continue;
 		types.push_back(card->GetPlantType());
+	}
+	return types;
+}
+
+std::vector<PlantType> ChooseCardUI::GetImitaterDialogOptionTypes() const
+{
+	std::vector<PlantType> types;
+	if (!mImitaterDialogOpen) return types;
+	for (const Card* card : mImitaterDialogCards) {
+		if (card && card->HasImitaterTarget()) types.push_back(card->GetImitaterTarget());
 	}
 	return types;
 }
@@ -342,7 +529,7 @@ void ChooseCardUI::SyncPageButtonPosition() {
 
 void ChooseCardUI::RefreshRestoreButtonState() {
 	if (auto button = mRestoreButton.lock()) {
-		button->SetEnabled(!ResolveRestorableCards().empty());
+		button->SetEnabled(!ResolveRestorableCards(false).empty());
 	}
 }
 
@@ -360,7 +547,8 @@ void ChooseCardUI::RefreshPageButtonState() {
 }
 
 void ChooseCardUI::SyncCardPageVisibility() {
-	// 已选卡脱离网格页限制并留在顶部；其余卡只有所属页活动，避免隐藏叠卡继续响应点击。
+	// 已选卡脱离网格页限制并留在顶部；其余卡只有所属页活动。模态窗打开时
+	// 仍保留这些卡的绘制和移动，只关闭碰撞，让它们透过遮罩留在目标窗下面。
 	for (size_t i = 0; i < mCards.size(); ++i) {
 		Card* card = mCards[i];
 		if (!card) continue;
@@ -370,6 +558,16 @@ void ChooseCardUI::SyncCardPageVisibility() {
 		const bool visible = selected || belongsToCurrentPage;
 		if (!visible) card->SnapToOriginalPosition();
 		card->SetActive(visible);
+		card->SetChooseCardInputEnabled(visible && !mImitaterDialogOpen);
+	}
+	if (mImitaterCard) {
+		mImitaterCard->SetActive(true);
+		mImitaterCard->SetChooseCardInputEnabled(!mImitaterDialogOpen);
+	}
+	for (Card* card : mImitaterDialogCards) {
+		if (!card) continue;
+		card->SetActive(mImitaterDialogOpen);
+		card->SetChooseCardInputEnabled(mImitaterDialogOpen);
 	}
 }
 
@@ -381,18 +579,18 @@ void ChooseCardUI::TogglePage() {
 	SyncPageButtonPosition();
 }
 
-void ChooseCardUI::UpdateTargetPositions() {
+void ChooseCardUI::UpdateTargetPositions(bool playSound) {
 	// 为所有卡牌计算目标位置
-	int random = GameRandom::Range(0, 1);
-	if (random == 0)
-	{
-		AudioSystem::PlaySound
-		(ResourceKeys::Sounds::SOUND_CHOOSEPLANT1, 0.4f);
-	}
-	else
-	{
-		AudioSystem::PlaySound
-		(ResourceKeys::Sounds::SOUND_CHOOSEPLANT2, 0.4f);
+	if (playSound) {
+		int random = GameRandom::Range(0, 1);
+		if (random == 0) {
+			AudioSystem::PlaySound
+			(ResourceKeys::Sounds::SOUND_CHOOSEPLANT1, 0.4f);
+		}
+		else {
+			AudioSystem::PlaySound
+			(ResourceKeys::Sounds::SOUND_CHOOSEPLANT2, 0.4f);
+		}
 	}
 
 	for (size_t i = 0; i < mCards.size(); i++) {
@@ -413,7 +611,132 @@ void ChooseCardUI::UpdateTargetPositions() {
 		// 设置目标位置，启动动画
 		card->SetTargetPosition(targetPos);
 	}
+	if (mImitaterCard) {
+		Vector targetPos = mImitaterCard->GetOriginalPosition();
+		auto it = std::find(mSelectedCards.begin(), mSelectedCards.end(), mImitaterCard);
+		if (it != mSelectedCards.end()) {
+			const int index = static_cast<int>(it - mSelectedCards.begin());
+			targetPos = Vector(SLOT_START_X + index * SLOT_SPACING, SLOT_START_Y);
+		}
+		mImitaterCard->SetTargetPosition(targetPos);
+	}
 	SyncCardPageVisibility();
+}
+
+bool ChooseCardUI::OpenImitaterDialog(Card* imitaterCard)
+{
+	if (mImitaterDialogOpen || !imitaterCard
+		|| imitaterCard->GetPlantType() != PlantType::PLANT_IMITATER
+		|| mSelectedCards.size() >= MAX_SELECTED) {
+		return false;
+	}
+	mImitaterDialogOpen = true;
+	mPendingImitaterCard = imitaterCard;
+	DestroyImitaterDialogCards();
+	DestroyImitaterDialogOverlay();
+	mImitaterDialogOverlay = GameObjectManager::GetInstance().
+		CreateGameObjectImmediate<ImitaterDialogOverlay>(kImitaterDialogLayer, this);
+	auto& gameData = GameDataManager::GetInstance();
+	int optionIndex = 0;
+	for (const Card* sourceCard : mCards) {
+		if (!sourceCard) continue;
+		const PlantType target = sourceCard->GetPlantType();
+		// C# SeedPacketsWidget 的模仿模式只遍历前 44 张基础卡，不包含紫卡升级。
+		if (target == PlantType::PLANT_IMITATER || IsUpgradePlantType(target)) continue;
+		const int row = optionIndex / IMITATER_DIALOG_CARDS_PER_ROW;
+		const int column = optionIndex % IMITATER_DIALOG_CARDS_PER_ROW;
+		Card* option = GameObjectManager::GetInstance().CreateGameObjectImmediate<Card>(
+			kImitaterDialogCardLayer, PlantType::PLANT_IMITATER,
+			gameData.GetPlantSunCost(PlantType::PLANT_IMITATER),
+			gameData.GetPlantCooldown(PlantType::PLANT_IMITATER), true);
+		if (!option->SetImitaterTarget(target)) {
+			GameObjectManager::GetInstance().DestroyGameObject(option);
+			continue;
+		}
+		const Vector position(
+			IMITATER_DIALOG_START_X + column * (CARD_WIDTH + CARD_HORIZONTAL_SPACING),
+			IMITATER_DIALOG_START_Y + row * (CARD_HEIGHT + CARD_VERTICAL_SPACING));
+		option->SetPositionImmediate(position);
+		option->SetOriginalPosition(position);
+		option->BindChooseCardUI(this);
+		option->mIsUI = true;
+		mImitaterDialogCards.push_back(option);
+		++optionIndex;
+	}
+	SyncCardPageVisibility();
+	RefreshImitaterDialogControls();
+	return true;
+}
+
+void ChooseCardUI::CloseImitaterDialog()
+{
+	if (!mImitaterDialogOpen) return;
+	mImitaterDialogOpen = false;
+	mPendingImitaterCard = nullptr;
+	DestroyImitaterDialogCards();
+	DestroyImitaterDialogOverlay();
+	RefreshImitaterDialogControls();
+	UpdateTargetPositions(false);
+}
+
+void ChooseCardUI::DestroyImitaterDialogCards()
+{
+	for (Card* card : mImitaterDialogCards) {
+		if (!card) continue;
+		card->SetActive(false);
+		card->BindChooseCardUI(nullptr);
+		GameObjectManager::GetInstance().DestroyGameObject(card);
+	}
+	mImitaterDialogCards.clear();
+}
+
+void ChooseCardUI::DestroyImitaterDialogOverlay()
+{
+	if (!mImitaterDialogOverlay) return;
+	mImitaterDialogOverlay->DetachOwner();
+	mImitaterDialogOverlay->SetActive(false);
+	GameObjectManager::GetInstance().DestroyGameObject(mImitaterDialogOverlay);
+	mImitaterDialogOverlay = nullptr;
+}
+
+bool ChooseCardUI::SelectImitaterTarget(Card* targetCard)
+{
+	if (!mImitaterDialogOpen || !mPendingImitaterCard || !targetCard
+		|| !targetCard->HasImitaterTarget()) {
+		return false;
+	}
+	const PlantType target = targetCard->GetImitaterTarget();
+	if (IsUpgradePlantType(target)) return false;
+	Card* imitaterCard = mPendingImitaterCard;
+	if (!imitaterCard->SetImitaterTarget(target)) return false;
+	CloseImitaterDialog();
+	return ToggleCardSelection(imitaterCard);
+}
+
+void ChooseCardUI::RefreshImitaterDialogControls()
+{
+	if (auto button = mButton.lock()) {
+		button->SetEnabled(!mImitaterDialogOpen);
+		button->SetSkipDraw(mImitaterDialogOpen);
+	}
+	if (auto button = mRestoreButton.lock()) {
+		button->SetSkipDraw(mImitaterDialogOpen);
+		button->SetEnabled(!mImitaterDialogOpen
+			&& !ResolveRestorableCards(false).empty());
+	}
+	if (auto button = mPageButton.lock()) {
+		if (mImitaterDialogOpen) {
+			button->SetEnabled(false);
+			button->SetSkipDraw(true);
+		}
+		else {
+			RefreshPageButtonState();
+		}
+	}
+	if (auto button = mImitaterCancelButton.lock()) {
+		button->SetEnabled(mImitaterDialogOpen);
+		button->SetSkipDraw(!mImitaterDialogOpen);
+	}
 }
 
 bool ChooseCardUI::IsCardSelected(Card* card) const {

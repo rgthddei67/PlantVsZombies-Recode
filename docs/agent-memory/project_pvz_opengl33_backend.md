@@ -19,6 +19,7 @@ metadata:
 - OpenGL 纹理统一上传预乘 RGBA8，支持运行时子区更新、线性/三线性过滤、CLAMP、完整 mip 链、销毁和截图回读。Reanimation 资源在 GL 下按稳定顺序打入带 2px 边缘外扩的图集；Vulkan 仍使用原 bindless 纹理，不为接口统一增加图集成本。
 - OpenGL Pool 使用独立 `pool.vert/frag.glsl`，波形、三层颜色与焦散算法参考 `D:\PVZ\OpenGL-PoolEffect-only`，再适配当前 1100×600、对象矩阵、逐顶点 clip 和预乘 Alpha 契约。
 - 全屏/窗口切换必须在重算 letterbox 前用 `SDL_GL_GetDrawableSize` 刷新高 DPI framebuffer；截图从 back buffer 回读并翻转 Y；VSync 走 `SDL_GL_SetSwapInterval`。
+- 2026-08-23 为模仿者增加 `WashedOut` / `LessWashedOut` 两个 GLSL 330 fragment program；CPU 展开和原提交顺序不变，只按 blend/filter 边界切换 program。两条滤镜与 Vulkan 使用相同 HSL 参数，并遵守预乘 alpha 的“还原 RGB→滤色→重新预乘”契约，不能以纯白叠层近似。
 
 ## 诊断与验证证据
 

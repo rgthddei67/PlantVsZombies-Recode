@@ -19,6 +19,8 @@ public:
 	void DrawStackBackground(Graphics* g) override;
 	/** 走通用承伤链，并立即同步破损外观和完整外壳高亮。 */
 	void TakeDamage(int damage, DamageSource source) override;
+	/** 同步模仿者泛白到前脸与独立背片，避免组合绘制出现双色外壳。 */
+	void SetImitatedAppearance(bool imitated = true) override;
 	int GetDamageStage() const { return mDamageStage; }
 	bool HasBackAnimator() const { return mBackAnimator != nullptr; }
 

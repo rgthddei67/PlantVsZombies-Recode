@@ -58,20 +58,28 @@ struct ValueRange {
 
 // 场效果类型
 enum class ParticleFieldType {
+	INVALID,          // 未识别的场类型（不参与更新，避免静默误作位置场）
 	POSITION,         // 位置场（影响粒子位置）
 	SHAKE,            // 抖动场（随机抖动）
 	SYSTEM_POSITION,  // 系统位置场（影响发射器位置）
 	FRICTION,         // 摩擦力场（使粒子减速）
-	ACCELERATION      // 加速度场（按时间累加到速度）
+	ACCELERATION,     // 加速度场（按时间累加到速度）
+	CIRCLE,           // 绕系统中心切向运动（原版 Circle field）
+	AWAY              // 沿系统中心径向运动（原版 Away field）
 };
 
 // 场效果
 struct ParticleField {
-	ParticleFieldType type = ParticleFieldType::POSITION;
+	ParticleFieldType type = ParticleFieldType::INVALID;
 	InterpolationTrack xTrack;
 	InterpolationTrack yTrack;
 
-	ParticleField() = default;
+	ParticleField()
+	{
+		// 场未写某一轴时原版按 0 处理，不能沿用通用轨迹的视觉乘数默认值 1。
+		xTrack.constantValue = 0.0f;
+		yTrack.constantValue = 0.0f;
+	}
 };
 
 // 发射器形状类型

@@ -26,6 +26,7 @@ class Sun;
 class SmallSun;
 class Coin;
 class Plant;
+class Imitater;
 class Plantern;
 class Zombie;
 class HijackerZombie;
@@ -209,6 +210,12 @@ private:
 	bool mHasHugeWaveSound = false;		// 有无放过一大波音乐
 	bool mHasHugeWaveMusicBurst = false;	// 本次一大波警告是否已强制加入鼓组
 	bool mIsLoadSave = false;	// 是否正在加载存档
+	/** 用独立的实体身份和落种语义创建植物；普通入口传入相同类型。 */
+	Plant* CreatePlantInternal(PlantType actualType, PlantType placementType,
+		int row, int column, bool skipsettings, bool isPreview);
+	/** 读档版双类型创建；调用方必须先从模仿者 extraData 取得目标。 */
+	Plant* CreatePlantWithIDInternal(PlantType actualType, PlantType placementType,
+		int row, int col, int id);
 
 	// 黑夜随机天气。weatherTimer 在 CLEAR 时表示距下一场雨，在下雨时表示本场剩余时间。
 	RainIntensity mRainIntensity = RainIntensity::CLEAR;
@@ -1006,6 +1013,10 @@ public:
 
 	// 创建植物
 	Plant* CreatePlant(PlantType plantType, int row, int column, bool skipsettings = false, bool isPreview = false);
+	/** 创建按目标占层/占格的模仿者占位；卡槽只在目标有效时调用。 */
+	Plant* CreateImitaterPlant(PlantType targetType, int row, int column);
+	/** 把已完成 anim_explode 的模仿者原子替换为同 ID 的泛白目标。 */
+	Plant* MorphImitater(Imitater* imitater);
 
 	// 创建铲子（保持 weak_ptr：mShovel 是跨帧成员，需要悬垂检测）
 	std::weak_ptr<Shovel> CreateShovel();
@@ -1052,6 +1063,8 @@ public:
 
 	// 带指定 ID 创建实体（用于读档）
 	Plant* CreatePlantWithID(PlantType type, int row, int col, int id);
+	/** 读档恢复按目标占层/占格的模仿者占位。 */
+	Plant* CreateImitaterPlantWithID(PlantType targetType, int row, int col, int id);
 	Zombie* CreateZombieWithID(ZombieType type, int row, float x, int id);
 	Bullet* CreateBulletWithID(BulletType type, int row, const Vector& pos, int id);
 	Sun* CreateSunWithID(const Vector& pos, bool fromSky, int id);

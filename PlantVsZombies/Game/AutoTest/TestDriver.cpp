@@ -26,7 +26,9 @@
 #include "../ShadowComponent.h"
 #include "../Plant/GameDataManager.h"
 #include "../Plant/PlantType.h"
+#include "../Plant/PlantUpgradeRules.h"
 #include "../Plant/Plant.h"
+#include "../Plant/Imitater.h"
 #include "../Plant/SunFlower.h"
 #include "../Plant/Plantern.h"
 #include "../Plant/WallNut.h"
@@ -1219,8 +1221,21 @@ bool TestDriver::ExecuteCurrent() {
 		if (!gs || !gs->GetBoard()) { Fail("plant: 不在 GameScene 或 Board 为空"); return false; }
 		auto it = kPlantNames.find(cmd.value("type", ""));
 		if (it == kPlantNames.end()) { Fail("未知植物类型: " + cmd.value("type", "")); return false; }
-		Plant* p = gs->GetBoard()->CreatePlant(it->second,
-			cmd.value("row", 0), cmd.value("col", 0));
+		Plant* p = nullptr;
+		if (it->second == PlantType::PLANT_IMITATER) {
+			auto targetIt = kPlantNames.find(cmd.value("imitaterTarget", ""));
+			if (targetIt == kPlantNames.end()
+				|| targetIt->second == PlantType::PLANT_IMITATER) {
+				Fail("plant: 模仿者必须提供合法 imitaterTarget");
+				return false;
+			}
+			p = gs->GetBoard()->CreateImitaterPlant(targetIt->second,
+				cmd.value("row", 0), cmd.value("col", 0));
+		}
+		else {
+			p = gs->GetBoard()->CreatePlant(it->second,
+				cmd.value("row", 0), cmd.value("col", 0));
+		}
 		if (!p) { Fail("CreatePlant 返回空（格子非法或被占？）"); return false; }
 		if (auto* blover = dynamic_cast<Blover*>(p);
 			blover && cmd.contains("bloverDirection")) {
@@ -1232,6 +1247,18 @@ bool TestDriver::ExecuteCurrent() {
 				return false;
 			}
 			blover->SetBlowDirection(directionIt->second);
+		}
+		if (auto* imitater = dynamic_cast<Imitater*>(p);
+			imitater && imitater->GetImitaterTarget() == PlantType::PLANT_BLOVER
+			&& cmd.contains("bloverDirection")) {
+			auto directionIt = kWindDirectionNames.find(
+				cmd["bloverDirection"].get<std::string>());
+			if (directionIt == kWindDirectionNames.end()
+				|| directionIt->second == WindDirection::NONE) {
+				Fail("plant: bloverDirection 必须是 HOUSE/FRONT");
+				return false;
+			}
+			imitater->SetInheritedBloverDirection(directionIt->second);
 		}
 		return true;
 	}
@@ -2482,6 +2509,23 @@ bool TestDriver::ExecuteCurrent() {
 			x = center.x;
 			y = center.y;
 		}
+		else if (target == "choose_card") {
+			GameScene* gs = CurrentGameScene();
+			ChooseCardUI* ui = gs ? gs->GetChooseCardUI() : nullptr;
+			const std::string plantName = cmd.value("plantType", "");
+			auto typeIt = kPlantNames.find(plantName);
+			Card* card = ui && typeIt != kPlantNames.end()
+				? ui->FindCardByType(typeIt->second) : nullptr;
+			Transform* transform = card ? card->GetTransform() : nullptr;
+			if (!card || !card->IsActive() || !transform) {
+				Fail("click target=choose_card: 卡牌不存在、当前页不可见或未激活: "
+					+ plantName);
+				return false;
+			}
+			const Vector topLeft = transform->GetPosition();
+			x = topLeft.x + CARD_WIDTH * 0.5f;
+			y = topLeft.y + CARD_HEIGHT * 0.5f;
+		}
 		else if (!target.empty()) { Fail("未知 click target: " + target); return false; }
 		else {
 			// 显式查在：缺字段时不静默回落到 (0,0) 点击，分别精确报错
@@ -2495,14 +2539,18 @@ bool TestDriver::ExecuteCurrent() {
 		if (bit == kMouseButtonNames.end()) { Fail("未知鼠标按钮: " + btnName); return false; }
 		const Uint8 button = bit->second;
 		const int holdFrames = std::max(1, cmd.value("hold_frames", 1));
+		auto pushMouseMotion = [x, y]() {
+			SDL_Event move{};
+			move.type = SDL_MOUSEMOTION;
+			move.motion.x = static_cast<Sint32>(x);
+			move.motion.y = static_cast<Sint32>(y);
+			SDL_PushEvent(&move);
+		};
 
-		// 跨帧状态机：mInputPhase<0 推 移动+按下并置剩余保持帧；>0 递减保持；==0 推松开完成。
+		// 跨帧状态机：保持与释放帧都重新钉住目标点，避免可见 AutoTest 期间真实鼠标事件
+		// 把合成按下与释放拆到不同对象上；整条路径仍经过 SDL、Collider 与 Clickable。
 		if (mInputPhase < 0) {
-			SDL_Event mv{};
-			mv.type = SDL_MOUSEMOTION;
-			mv.motion.x = static_cast<Sint32>(x);   // AutoTest 窗口 scale=1，逻辑坐标即屏幕像素
-			mv.motion.y = static_cast<Sint32>(y);
-			SDL_PushEvent(&mv);
+			pushMouseMotion(); // AutoTest 窗口 scale=1，逻辑坐标即屏幕像素
 
 			SDL_Event down{};
 			down.type = SDL_MOUSEBUTTONDOWN;
@@ -2514,8 +2562,13 @@ bool TestDriver::ExecuteCurrent() {
 			mInputPhase = holdFrames;
 			return false;
 		}
-		if (mInputPhase > 0) { --mInputPhase; return false; }
+		if (mInputPhase > 0) {
+			pushMouseMotion();
+			--mInputPhase;
+			return false;
+		}
 
+		pushMouseMotion();
 		SDL_Event up{};
 		up.type = SDL_MOUSEBUTTONUP;
 		up.button.button = button;
@@ -2623,6 +2676,33 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			ResourceKeys::Textures::IMAGE_COFFEEBEAN, false) != nullptr },
 		{ "soundLoaded", ResourceManager::GetInstance().GetSound(
 			ResourceKeys::Sounds::SOUND_COFFEE) != nullptr },
+	};
+	out["imitaterResources"] = {
+		{ "reanimationLoaded", ResourceManager::GetInstance().HasReanimation(
+			ResourceKeys::Reanimations::REANIM_IMITATER) },
+		{ "cardLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_IMITATER, false) != nullptr },
+		{ "chooserFrameLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_SEEDCHOOSER_IMITATERADDON, false) != nullptr },
+		{ "particlePartsLoaded",
+			ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Particles::PARTICLE_IMITATERCLOUDS, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Particles::PARTICLE_IMITATERPUFFS_PART_0, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Particles::PARTICLE_IMITATERPUFFS_PART_1, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Particles::PARTICLE_IMITATERPUFFS_PART_2, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Particles::PARTICLE_IMITATERPUFFS_PART_3, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Particles::PARTICLE_IMITATERPUFFS_PART_4, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Particles::PARTICLE_IMITATERPUFFS_PART_5, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Particles::PARTICLE_IMITATERPUFFS_PART_6, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Particles::PARTICLE_IMITATERPUFFS_PART_7, false) != nullptr },
 	};
 	out["garlicYuckSoundRequestCount"] =
 		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_YUCK)
@@ -3166,6 +3246,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["targetingCobCannonID"] = board->GetTargetingCobCannonID();
 	out["chooseCardReady"] = gs->IsChooseCardReady();
 	out["chooseCardSelectedCards"] = nlohmann::json::array();
+	out["chooseCardSelectedCardKeys"] = nlohmann::json::array();
 	out["chooseCardSelectedCount"] = 0;
 	out["chooseCardSelectedMovingCount"] = 0;
 	out["restoreLastSelectionEnabled"] = false;
@@ -3176,6 +3257,12 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["chooseCardHiddenCards"] = nlohmann::json::array();
 	out["chooseCardVisibleCardCount"] = 0;
 	out["chooseCardHiddenCardCount"] = 0;
+	out["chooseCardImitaterDialogOpen"] = false;
+	out["chooseCardImitaterDialogOptions"] = nlohmann::json::array();
+	out["chooseCardImitaterDialogOptionCount"] = 0;
+	out["chooseCardImitaterDialogHasUpgradeOption"] = false;
+	out["chooseCardImitaterSidebarVisible"] = false;
+	out["chooseCardImitaterTarget"] = nullptr;
 	if (ChooseCardUI* chooseUI = gs->GetChooseCardUI()) {
 		for (Card* card : chooseUI->GetSelectedCards()) {
 			if (!card) continue;
@@ -3188,6 +3275,36 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		}
 		out["chooseCardSelectedCount"] = static_cast<int>(
 			out["chooseCardSelectedCards"].size());
+		for (const std::string& key : chooseUI->GetSelectedCardKeys()) {
+			out["chooseCardSelectedCardKeys"].push_back(key);
+		}
+		out["chooseCardImitaterDialogOpen"] = chooseUI->IsImitaterDialogOpen();
+		for (PlantType type : chooseUI->GetImitaterDialogOptionTypes()) {
+			out["chooseCardImitaterDialogOptions"].push_back(PlantTypeName(type));
+			if (IsUpgradePlantType(type)) {
+				out["chooseCardImitaterDialogHasUpgradeOption"] = true;
+			}
+		}
+		out["chooseCardImitaterDialogOptionCount"] = static_cast<int>(
+			out["chooseCardImitaterDialogOptions"].size());
+		if (Card* imitaterCard = chooseUI->GetImitaterCard()) {
+			out["chooseCardImitaterSidebarVisible"] =
+				true; // AddOn 是固定背景，目标选定和弹窗期间都不随 Card 消失
+			out["chooseCardImitaterEntryCardVisible"] = imitaterCard->IsActive();
+			if (imitaterCard->HasImitaterTarget()) {
+				out["chooseCardImitaterTarget"] =
+					PlantTypeName(imitaterCard->GetImitaterTarget());
+			}
+			if (Transform* transform = imitaterCard->GetTransform()) {
+				out["chooseCardImitaterCard"] = {
+					{ "active", imitaterCard->IsActive() },
+					{ "xInt", static_cast<int>(std::lround(
+						transform->GetPosition().x)) },
+					{ "yInt", static_cast<int>(std::lround(
+						transform->GetPosition().y)) },
+				};
+			}
+		}
 		out["chooseCardPageIndex"] = chooseUI->GetCurrentPage();
 		out["chooseCardPageNumber"] = chooseUI->GetCurrentPage() + 1;
 		out["chooseCardPageCount"] = chooseUI->GetPageCount();
@@ -3685,6 +3802,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			if (!transform) continue;
 			nlohmann::json cardState = {
 				{ "type", PlantTypeName(card->GetPlantType()) },
+				{ "gameplayType", PlantTypeName(card->GetGameplayPlantType()) },
 				{ "xInt", static_cast<int>(std::lround(
 					transform->GetPosition().x)) },
 				{ "yInt", static_cast<int>(std::lround(
@@ -3693,7 +3811,10 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				{ "selected", card->IsSelected() },
 				{ "cooldown", card->IsCooldown() },
 			};
-			if (card->GetPlantType() == PlantType::PLANT_BLOVER) {
+			if (card->GetPlantType() == PlantType::PLANT_IMITATER) {
+				cardState["imitaterTarget"] = PlantTypeName(card->GetImitaterTarget());
+			}
+			if (card->GetGameplayPlantType() == PlantType::PLANT_BLOVER) {
 				cardState["bloverDirection"] =
 					WindDirectionName(card->GetBloverDirection());
 			}
@@ -4218,6 +4339,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		const Vector pos = preview->GetPosition();
 		nlohmann::json previewState = {
 			{ "type", PlantTypeName(preview->mPlantType) },
+			{ "imitated", preview->IsImitated() },
 			{ "renderOrder", preview->GetRenderOrder() },
 			{ "xInt", static_cast<int>(std::lround(pos.x)) },
 			{ "yInt", static_cast<int>(std::lround(pos.y)) },
@@ -5181,6 +5303,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		nlohmann::json plantState = {
 			{ "id", id },
 			{ "type", PlantTypeName(p->mPlantType) },
+			{ "placementType", PlantTypeName(p->GetPlacementType()) },
+			{ "imitated", p->IsImitated() },
 			{ "row", p->mRow }, { "col", p->mColumn },
 			{ "renderOrder", p->GetRenderOrder() },
 			{ "renderLayer", static_cast<int>(p->GetLayer()) },
@@ -5235,7 +5359,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "bungeeOwnerZombieID", p->GetBungeeOwnerZombieID() },
 			{ "canBeTargetedByBungee", p->CanBeTargetedByBungee() },
 			{ "footprintCellCount", static_cast<int>(
-				GetPlantFootprint(p->mPlantType).count) },
+				GetPlantFootprint(p->GetPlacementType()).count) },
 			{ "airborneDefenseState",
 				AirborneDefenseStateName(p->GetAirborneDefenseState()) },
 			{ "airborneDefenseActivationMs", static_cast<int>(std::lround(
@@ -5425,6 +5549,15 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			plantState["melonShootIntervalMs"] = static_cast<int>(std::lround(
 				melonPult->GetShootInterval() * 1000.0f));
 		}
+		if (auto* imitater = dynamic_cast<Imitater*>(p)) {
+			plantState["imitaterTarget"] = PlantTypeName(
+				imitater->GetImitaterTarget());
+			plantState["imitaterMorphCountdownMs"] = static_cast<int>(std::lround(
+				imitater->GetMorphCountdown() * 1000.0f));
+			plantState["imitaterMorphing"] = imitater->IsMorphing();
+			plantState["imitaterParticleEmitted"] =
+				imitater->HasEmittedMorphParticle();
+		}
 		if (auto* sunFlower = dynamic_cast<SunFlower*>(p)) {
 			plantState["produceTimerMs"] = static_cast<int>(std::lround(
 				sunFlower->GetProduceTimer() * 1000.0f));
@@ -5494,7 +5627,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		}
 		// 同一实体可占多个格；逐 footprint 查询公共 Board getter，能同时验证所有别名
 		// 都返回同一 Plant*，又保持 plants 实体数组只导出一次。
-		const PlantFootprint footprint = GetPlantFootprint(p->mPlantType);
+		const PlantFootprint footprint = GetPlantFootprint(p->GetPlacementType());
 		for (std::size_t footprintIndex = 0;
 			footprintIndex < footprint.count; ++footprintIndex) {
 			const int occupiedRow = p->mRow
@@ -5572,6 +5705,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["particleEffectNameCounts"]["HealerAreaHeal"] = 0;
 	out["particleEffectNameCounts"]["HealerFocusedHeal"] = 0;
 	out["particleEffectNameCounts"]["GoldMagnetEMP"] = 0;
+	out["particleEffectNameCounts"]["ImitaterMorph"] = 0;
 	if (g_particleSystem) {
 		for (const auto& effect : g_particleSystem->GetEffectsForTesting()) {
 			if (!effect) continue;

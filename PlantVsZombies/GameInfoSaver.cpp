@@ -435,6 +435,7 @@ bool GameInfoSaver::SerializeLevelDataToPath(Board* board, CardSlotManager* mana
 		p["isSleeping"] = plant->GetSleepState();
 		p["wakeUpTimer"] = plant->GetWakeUpTimeRemaining();
 		p["shutdownTimer"] = plant->GetShutdownTimeRemaining();
+		if (plant->IsImitated()) p["imitated"] = true;
 		p["isSquished"] = plant->IsSquished();
 		if (plant->IsSquished()) {
 			const Vector squishVisual = plant->GetSquishVisualPosition();
@@ -628,7 +629,10 @@ bool GameInfoSaver::SerializeLevelDataToPath(Board* board, CardSlotManager* mana
 			c["cooldownTime"] = card->GetCooldownTime();
 			c["isCooldown"] = card->IsCooldown();
 			c["cooldownTimer"] = card->GetCooldownTimer();
-			if (card->GetPlantType() == PlantType::PLANT_BLOVER) {
+			if (card->GetPlantType() == PlantType::PLANT_IMITATER) {
+				c["imitaterTarget"] = static_cast<int>(card->GetImitaterTarget());
+			}
+			if (card->GetGameplayPlantType() == PlantType::PLANT_BLOVER) {
 				c["bloverDirection"] =
 					static_cast<int>(card->GetBloverDirection());
 			}
@@ -1053,7 +1057,15 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 		int id = p.value("id", NULL_PLANT_ID);
 
 		Plant* plant = nullptr;
-		if (id != NULL_PLANT_ID) {
+		if (type == PlantType::PLANT_IMITATER && p.contains("extraData")) {
+			const PlantType targetType = static_cast<PlantType>(
+				p["extraData"].value("targetType",
+					static_cast<int>(PlantType::NUM_PLANT_TYPES)));
+			plant = id != NULL_PLANT_ID
+				? board->CreateImitaterPlantWithID(targetType, row, col, id)
+				: board->CreateImitaterPlant(targetType, row, col);
+		}
+		else if (id != NULL_PLANT_ID) {
 			plant = board->CreatePlantWithID(type, row, col, id);
 		}
 		else {
@@ -1070,6 +1082,9 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 			RestoreAnimState(p, plant);
 			if (p.contains("extraData")) {
 				plant->LoadExtraData(p["extraData"]);
+			}
+			if (p.value("imitated", false)) {
+				plant->SetImitatedAppearance(true);
 			}
 			// 派生类读档可能重播专属轨道；最后恢复压扁态，确保终态仍暂停且不占格。
 			if (p.value("isSquished", false)) {
@@ -1293,6 +1308,14 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 			auto card = GameObjectManager::GetInstance().CreateGameObjectImmediate<Card>(
 				LAYER_UI, plantType, sunCost, cooldownTime, false);
 			if (!card) continue;
+			if (plantType == PlantType::PLANT_IMITATER) {
+				const PlantType targetType = static_cast<PlantType>(c.value(
+					"imitaterTarget", static_cast<int>(PlantType::NUM_PLANT_TYPES)));
+				if (!card->SetImitaterTarget(targetType)) {
+					GameObjectManager::GetInstance().DestroyGameObject(card);
+					continue;
+				}
+			}
 
 			if (auto transform = card->GetTransform()) {
 				transform->SetPosition(Vector(posX, posY));
@@ -1300,7 +1323,7 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 			if (isCooldown) {
 				card->RestoreCooldown(cooldownTimer, cooldownTime);
 			}
-			if (plantType == PlantType::PLANT_BLOVER) {
+			if (card->GetGameplayPlantType() == PlantType::PLANT_BLOVER) {
 				const int direction = c.value("bloverDirection",
 					static_cast<int>(WindDirection::TOWARD_FRONT));
 				card->SetBloverDirection(

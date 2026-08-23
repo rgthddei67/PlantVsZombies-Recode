@@ -156,8 +156,9 @@ void Plant::Die() {
 	if (!IsActive()) return;
 	mShutdownTimer = 0.0f;
 	// C# 只有飞行的咖啡豆死亡不影响地面扶梯；其余植物死亡都会拆掉完整占格上的梯子。
-	if (!mIsPreview && mBoard && mPlantType != PlantType::PLANT_INSTANT_COFFEE) {
-		const PlantFootprint footprint = GetPlantFootprint(mPlantType);
+	const PlantType placementType = GetPlacementType();
+	if (!mIsPreview && mBoard && placementType != PlantType::PLANT_INSTANT_COFFEE) {
+		const PlantFootprint footprint = GetPlantFootprint(placementType);
 		for (std::size_t i = 0; i < footprint.count; ++i) {
 			mBoard->RemoveLadderAt(
 				mRow + footprint.cells[i].rowOffset,
@@ -286,7 +287,7 @@ void Plant::ResolveGargantuarSmash()
 void Plant::Squish()
 {
 	if (mIsPreview || mIsSquished) return;
-	if (mBoard && mPlantType != PlantType::PLANT_INSTANT_COFFEE) {
+	if (mBoard && GetPlacementType() != PlantType::PLANT_INSTANT_COFFEE) {
 		mBoard->RemoveLadderAt(mRow, mColumn);
 	}
 
@@ -343,7 +344,7 @@ void Plant::ApplySquishedPresentation()
 void Plant::ReleaseGridSlot()
 {
 	if (!mBoard) return;
-	const PlantFootprint footprint = GetPlantFootprint(mPlantType);
+	const PlantFootprint footprint = GetPlantFootprint(GetPlacementType());
 	for (std::size_t i = 0; i < footprint.count; ++i) {
 		const PlantFootprintCell& occupied = footprint.cells[i];
 		auto* cell = mBoard->GetCell(
@@ -354,6 +355,31 @@ void Plant::ReleaseGridSlot()
 		if (cell->GetPumpkinPlantID() == mPlantID) cell->ClearPumpkinPlantID();
 		if (cell->GetOverlayPlantID() == mPlantID) cell->ClearOverlayPlantID();
 	}
+}
+
+void Plant::RetireAfterReplacement()
+{
+	if (!IsActive()) return;
+	SetActive(false);
+	StopAnimation();
+	if (mCollider) mCollider->mEnabled = false;
+	GameObjectManager::GetInstance().DestroyGameObject(this);
+}
+
+void Plant::SetImitatedAppearance(bool imitated)
+{
+	mIsImitated = imitated;
+	if (!mAnimator) return;
+	if (!mIsImitated) {
+		mAnimator->EnableWashedOutEffect(false);
+		return;
+	}
+	const bool useLighterWash = mPlantType == PlantType::PLANT_HYPNOSHROOM
+		|| mPlantType == PlantType::PLANT_SQUASH
+		|| mPlantType == PlantType::PLANT_POTATOMINE
+		|| mPlantType == PlantType::PLANT_GARLIC
+		|| mPlantType == PlantType::PLANT_LILYPAD;
+	mAnimator->EnableWashedOutEffect(true, useLighterWash);
 }
 
 bool Plant::BeginWakeUp(float durationSeconds)

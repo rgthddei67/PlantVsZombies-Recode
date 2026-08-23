@@ -1,0 +1,37 @@
+<Emitter>
+  <Name>ImitaterMorph</Name>
+  <SpawnMinActive>1</SpawnMinActive>
+  <SpawnMaxLaunched>1</SpawnMaxLaunched>
+  <ParticleAlpha>1,70 0,90</ParticleAlpha>
+  <ParticleScale>.3 1.2</ParticleScale>
+  <ParticleDuration>.6</ParticleDuration>
+  <SystemDuration>.6</SystemDuration>
+  <Image>PARTICLE_IMITATERCLOUDS</Image>
+  <ImageFrames>2</ImageFrames>
+  <AnimationRate>12</AnimationRate>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <ParticleSpinSpeed>200</ParticleSpinSpeed>
+</Emitter>
+<Emitter>
+  <Name>ImitaterPuffs</Name>
+  <SpawnMinActive>10</SpawnMinActive>
+  <SpawnMaxLaunched>10</SpawnMaxLaunched>
+  <ParticleAlpha>0 1,20</ParticleAlpha>
+  <ParticleScale>[0.6 .8] [1.2 1.5]</ParticleScale>
+  <SystemAlpha>1,60 0</SystemAlpha>
+  <EmitterType>Circle</EmitterType>
+  <EmitterRadius>[1 10]</EmitterRadius>
+  <ParticleDuration>.6</ParticleDuration>
+  <SystemDuration>.6</SystemDuration>
+  <Image>PARTICLE_IMITATERPUFFS_PART_0,PARTICLE_IMITATERPUFFS_PART_1,PARTICLE_IMITATERPUFFS_PART_2,PARTICLE_IMITATERPUFFS_PART_3,PARTICLE_IMITATERPUFFS_PART_4,PARTICLE_IMITATERPUFFS_PART_5,PARTICLE_IMITATERPUFFS_PART_6,PARTICLE_IMITATERPUFFS_PART_7</Image>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <ParticleSpinSpeed>[300 400]</ParticleSpinSpeed>
+  <Field>
+    <FieldType>Circle</FieldType>
+    <X>[-140 -70]</X>
+  </Field>
+  <Field>
+    <FieldType>Away</FieldType>
+    <X>[100 150]</X>
+  </Field>
+</Emitter>

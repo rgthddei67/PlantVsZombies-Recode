@@ -1,13 +1,13 @@
 ---
 name: project_pvz_choose_card_pagination
-description: ChooseCardUI 48 张分页、跨页选择、Zen_NextGarden 导航与 AutoTest 契约
+description: ChooseCardUI 普通卡 48 张分页、模仿者独立入口、跨页选择、Zen_NextGarden 导航与 AutoTest 契约
 metadata:
   node_type: memory
   type: project
-  updated_at: 2026-08-15
+updated_at: 2026-08-23
 ---
 
-# 选卡界面 48/1 翻页
+# 选卡界面普通卡 48/1 翻页与模仿者独立入口
 
 2026-08-15 当前正式冒险奖励顺序会形成 49 张已实装卡；既有 `ChooseCardUI` 网格为 8 列×6 行，
 因此固定每页 48 张，磁暴菇作为当前最后获得的第 49 张卡独占第二页。页归属只由 `mCards` 稳定顺序
@@ -30,3 +30,8 @@ Win7 导入审计通过 378 项。
 
 2026-08-15 主人目测发现首版把首页箭头误解为“选卡面板右侧中央”；现已改为开始按钮右侧，和第二页
 左侧返回箭头形成同排左右布局。此次主人明确自行目测，不运行 AutoTest；只保留同步后的坐标断言供后续回归。
+
+2026-08-23 加入模仿者后，`PLANT_IMITATER` 不进入上述普通卡分页：选卡面板仍按 48 张容量分页普通植物，
+模仿者使用紧贴面板右下角的固定 66×93 `SeedChooser_ImitaterAddOn` 背景和独立 Card。打开目标选择窗时，
+候选全部是该窗新建的临时 Card，紫色升级卡不进入候选；选定目标后固定木框仍保留，只有 Card 飞入顶部槽位。
+因此“全部拥有”现为 50 张注册植物、49 张普通分页卡和 1 张独立模仿者卡，磁暴菇仍独占普通卡第二页。

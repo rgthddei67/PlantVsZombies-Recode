@@ -22,11 +22,12 @@
 - [经典玉米加农炮与双格植物占用](project_pvz_cob_cannon.md) — 2026-08-22 `PLANT_COBCANNON` 为6-6奖励：双玉米投手升级为一个ID别名占两格的单实体；5秒首次装填/30秒重装，READY且空手时任一占格显示手型；第78帧发射2.0秒定点炮弹，115px半径三行1800灰烬伤害并通过独立爆炸资格命中飞行气球，爆心格3×3清梯；蹦极拒选炮身时同时遮蔽两格下方花盆，巨人逐层砸击不变
 
 - [第六大关接地菇](project_pvz_grounding_shroom.md) — 2026-08-13 `PLANT_GROUNDINGSHROOM` 为5-9奖励：100阳光、20秒冷却、500生命；同排三格免一次雷荷停机，普通/湿坡每次直接反噬100/150且按冻结分配不回滚；范围内绝缘僵尸拒绝承接和过载；独立低精度整株动画约0.8倍、卡图约0.7倍；白天睡眠轨从闭眼切图的第26帧起循环，绝不闪回第25帧睁眼图；震击电弧以紫罗兰暗边和浅紫亮芯抵抗缩放与黑夜暗化
-- [选卡界面 48/1 翻页](project_pvz_choose_card_pagination.md) — 2026-08-15 `ChooseCardUI` 每页8×6共48张；全冒险49张时磁暴菇独占第二页，第一页右侧使用 `Zen_NextGarden` 向右箭头，第二页旋转180度并移到开始按钮左侧；已选卡跨页留在顶部，非当前页未选卡停用，分页专项与上次选卡回归均在可见 `clang-release` 通过
+- [选卡界面普通卡 48/1 翻页与模仿者独立入口](project_pvz_choose_card_pagination.md) — 2026-08-23 50 张注册植物中 49 张普通卡按 48 张分页、磁暴菇独占第二页；模仿者使用紧贴面板右下角的固定 AddOn 背景与独立 Card，选择窗新建临时 Card 并排除紫卡
+- [经典模仿者与原版褪色滤镜](project_pvz_imitater.md) — 2026-08-23 模仿者独立选卡入口、固定 AddOn、临时目标 Card、紫卡门禁、复合上次选卡身份与同 ID 原地变身闭环；普通/较轻 HSL 褪色贯通 Vulkan batch/instance、NoInstance 和 OpenGL 3.3；变身烟保留 Circle/Away 切向/径向场并用几何探针锁定居中
 - [经典忧郁菇与紫卡升级](project_pvz_gloomshroom.md) — 2026-08-13 `PLANT_GLOOMSHROOM` 为6-2奖励：150阳光、50秒冷却、300生命；原子覆盖大喷菇并保留承载层/南瓜及睡眠唤醒进度；每2秒按原版0.64～1.58秒时间线发四轮八向云雾与20点环形伤害；紫卡裁取主人seeds.png第二格；八炮口各5颗按双重Offset规则贴口扩散，Vulkan/OpenGL专项与升级/存档/奖励父回归可见闭环
 - [经典双子向日葵与生产型紫卡升级](project_pvz_twin_sunflower.md) — 2026-08-13 `PLANT_TWINSUNFLOWER` 为6-3奖励：150阳光、50秒冷却、300生命；原子覆盖向日葵并保留承载层/南瓜，15秒一轮同时生产2颗普通阳光，发光中途存档不重复；默认与NoInstance专项可见闭环
 - [经典花盆与屋顶承载层](project_pvz_flowerpot.md) — 2026-08-14 `PLANT_FLOWERPOT` 25阳光/7.5秒/300生命/1秒无啃食；under+normal+南瓜分层、屋顶门禁、5-1/5-2/后续5/4/3列初始布局、覆盖暂停、5px视觉抬升、通用ShadowComponent 46px可见阴影、双向台风整组与存档；MC 中与睡莲压缩进独立64格支撑层，不占128株详细植物容量
-- [上次选卡持久化与一键动画恢复](project_pvz_last_selected_cards.md) — 2026-08-12 最近一次正式提交卡组以稳定枚举名顺序写入 PlayerInfo；ChooseCardUI 右上角缩小 Button2 按钮过滤失效/未拥有/重复项并复用卡片飞行动画，跨下一局可再次恢复
+- [上次选卡持久化与一键动画恢复](project_pvz_last_selected_cards.md) — 2026-08-23 普通卡继续保存稳定枚举名；模仿者以 `PLANT_IMITATER:PLANT_TARGET` 保存代理身份与目标，恢复时重新验证目标资格并复用飞入动画
 - [架构边界、存档版本与技能审计门禁](project_pvz_architecture_boundaries.md) — 2026-08-12 `BoardPresentation` 取代 `Board::mGameScene`，Board 保持天气/波次/生存玩法唯一权威；`SceneManager` 明确单活动场景；玩家 schema v2 补发毒囊射手、v3 加高级暂停、v4 加稳定枚举名上次选卡；迁移保持事务式并有纯测试；每次任务提交前审计相关 skills
 - [OpenGL 3.3 Core 兼容后端](project_pvz_opengl33_backend.md) — 2026-08-11 同一 EXE 的 `auto/vulkan/opengl` 双后端选择与完整回退；GL 走 GLSL 330、CPU 顶点/Reanimation 展开、单 sampler 动态 VBO/IBO Batch，禁用并行 Draw 但保留并行 Update；Pool、clip、文字、粒子、截图、全屏/VSync、no-AVX2 与 Win7 导入门禁闭环，Win7 真机仍待验证
 - [空格轻量暂停、可选高级暂停与粒子冻结](project_pvz_space_pause_ui.md) — 2026-08-23 暂停仍保留 UI 零 dt 逻辑步，但 ParticleEmitter 完整冻结上一游戏帧，Shake 不重抽、Friction 不衰减；空格只显示上方中央“游戏暂停”，高级暂停默认关闭且只在主菜单控制台设置，暂停倍速仅待选，泳池相位同样冻结

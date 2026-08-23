@@ -8,6 +8,7 @@
 
 class Button;
 class GameScene;
+class ImitaterDialogOverlay;
 
 class ChooseCardUI : public GameObject {
 public:
@@ -32,12 +33,16 @@ public:
 
 	// 切换卡牌选中状态，返回是否选中
 	bool ToggleCardSelection(Card* card);
+	/** Card 的统一点击入口；模仿者在这里打开独立目标选择层。 */
+	bool HandleCardClick(Card* card);
 	// 判断卡牌是否已选中
 	bool IsCardSelected(Card* card) const;
 	// 获取所有选中的卡牌
 	const std::vector<Card*>& GetSelectedCards() const { return mSelectedCards; }
 	/** 按玩家点击顺序导出当前选择，用于提交后记录上一次卡组。 */
 	std::vector<PlantType> GetSelectedCardTypes();
+	/** 导出含模仿目标的稳定记忆键；普通卡仍是原枚举名。 */
+	std::vector<std::string> GetSelectedCardKeys() const;
 	// 获取“一起摇滚吧”按钮
 	std::shared_ptr<Button> GetButton() const { return mButton.lock(); }
 	// 获取面板右上角的“上次选卡”按钮
@@ -52,26 +57,39 @@ public:
 	void TransferSelectedCardsTo(CardSlotManager* manager);
 	// 按植物类型查找选卡界面中的卡牌（AutoTest 程序化选卡用）；找不到返回 nullptr
 	Card* FindCardByType(PlantType type);
+	/** 返回选卡面板右侧独立模仿者入口；它不参与普通卡池分页。 */
+	Card* GetImitaterCard() const { return mImitaterCard; }
 	/** 返回当前 0-based 页码与总页数，供 UI 状态检查和 AutoTest 使用。 */
 	int GetCurrentPage() const { return mCurrentPage; }
 	int GetPageCount() const;
 	/** 按拥有顺序导出实际活动/隐藏的卡，验证分页没有留下可点击的叠卡。 */
 	std::vector<PlantType> GetVisibleCardTypes() const;
 	std::vector<PlantType> GetHiddenCardTypes() const;
+	bool IsImitaterDialogOpen() const { return mImitaterDialogOpen; }
+	/** 返回当前模态层临时 Card 所代表的目标类型，供 UI 回归验证。 */
+	std::vector<PlantType> GetImitaterDialogOptionTypes() const;
 	/** 返回满配卡组最后一张卡的右边缘，供卡槽底板按真实容量收口。 */
 	static float GetGameSlotRightEdge();
 
 private:
+	friend class ImitaterDialogOverlay;
 	const Texture* mCardUITexture = nullptr;
+	const Texture* mImitaterAddOnTexture = nullptr; // 固定右侧背景，不属于会移动的 Card
 	GameScene* mGameScene = nullptr;
 
 	std::weak_ptr<Button> mButton;
 	std::weak_ptr<Button> mRestoreButton;
 	std::weak_ptr<Button> mPageButton;
+	std::weak_ptr<Button> mImitaterCancelButton;
 
 	std::vector<Card*> mCards;  // 存储选卡界面的卡牌（观察者，所有权在 GameObjectManager）
+	Card* mImitaterCard = nullptr; // 原版右侧独立入口，不计入普通卡池分页
+	ImitaterDialogOverlay* mImitaterDialogOverlay = nullptr; // 位于主卡之上、临时卡之下的模态背景
+	std::vector<Card*> mImitaterDialogCards; // 弹窗临时灰卡；不移动主选卡 Card
 	std::vector<Card*> mSelectedCards;   // 存储选中的卡牌对象
 	int mCurrentPage = 0; // 0-based 当前页；现有完整卡池为两页
+	bool mImitaterDialogOpen = false; // 独立目标选择层是否正在接管 Card 输入
+	Card* mPendingImitaterCard = nullptr; // 等待目标的模仿者卡；观察者
 
 	static constexpr int MAX_SELECTED = 11;              // 最大选择数量
 	static constexpr float SLOT_START_X = 195;                  // 槽位起始 X 屏幕坐标
@@ -86,16 +104,33 @@ private:
 	static constexpr int CARD_VERTICAL_SPACING = 4;   // 垂直间距（
 	static constexpr float START_X = 210;                 // 第一张卡牌的起始X坐标 屏幕坐标
 	static constexpr float START_Y = 115;                // 第一行起始Y坐标  屏幕坐标
+	static constexpr int IMITATER_DIALOG_CARDS_PER_ROW = 9; // 基础植物目标在六行内完整展示
+	static constexpr float IMITATER_DIALOG_START_X = 310.0f; // 模态目标网格首列 X，单位：UI px
+	static constexpr float IMITATER_DIALOG_START_Y = 90.0f; // 模态目标网格首行 Y，单位：UI px
 
 	// 更新所有卡牌的目标位置（根据选中状态）
-	void UpdateTargetPositions();
+	void UpdateTargetPositions(bool playSound = true);
 	void SyncRestoreButtonPosition();
 	void SyncPageButtonPosition();
 	void RefreshRestoreButtonState();
 	void RefreshPageButtonState();
 	void SyncCardPageVisibility();
 	void TogglePage();
-	std::vector<Card*> ResolveRestorableCards();
+	std::vector<Card*> ResolveRestorableCards(bool applyImitaterTargets);
+	/** 打开模仿目标模态层，并为每个合法目标创建独立临时 Card。 */
+	bool OpenImitaterDialog(Card* imitaterCard);
+	/** 关闭目标模态层，销毁临时对象并恢复主选卡输入。 */
+	void CloseImitaterDialog();
+	/** 统一停用并延迟销毁本轮目标 Card。 */
+	void DestroyImitaterDialogCards();
+	/** 把临时 Card 的目标提交到主模仿者 Card。 */
+	bool SelectImitaterTarget(Card* targetCard);
+	/** 按模态状态同步开始、恢复、分页与取消按钮。 */
+	void RefreshImitaterDialogControls();
+	/** 在主选卡 Card 之后绘制遮罩、面板和标题。 */
+	void DrawImitaterDialog(Graphics* g) const;
+	/** 停用并延迟销毁独立模态背景对象。 */
+	void DestroyImitaterDialogOverlay();
 };
 
 #endif

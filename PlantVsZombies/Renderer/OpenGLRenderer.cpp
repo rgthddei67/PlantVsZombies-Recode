@@ -106,10 +106,14 @@ namespace pvz {
 		if (mApi.DeleteVertexArrays && mVao) mApi.DeleteVertexArrays(1, &mVao);
 		if (mApi.DeleteProgram) {
 			if (mBatchProgram.id) mApi.DeleteProgram(mBatchProgram.id);
+			if (mBatchColorizeProgram.id) mApi.DeleteProgram(mBatchColorizeProgram.id);
+			if (mBatchLessColorizeProgram.id) mApi.DeleteProgram(mBatchLessColorizeProgram.id);
 			if (mPoolProgram.id) mApi.DeleteProgram(mPoolProgram.id);
 		}
 		mVbo = mIbo = mVao = 0;
 		mBatchProgram = {};
+		mBatchColorizeProgram = {};
+		mBatchLessColorizeProgram = {};
 		mPoolProgram = {};
 		mVboCapacity = mIboCapacity = 0;
 		mSequentialIndices.clear();
@@ -189,6 +193,10 @@ namespace pvz {
 	bool OpenGLRenderer::CreatePrograms(std::string& error) {
 		return CreateProgram("batch", "Shader/opengl/batch.vert.glsl",
 			"Shader/opengl/batch.frag.glsl", mBatchProgram, error)
+			&& CreateProgram("batch_colorize", "Shader/opengl/batch.vert.glsl",
+				"Shader/opengl/batch_colorize.frag.glsl", mBatchColorizeProgram, error)
+			&& CreateProgram("batch_less_colorize", "Shader/opengl/batch.vert.glsl",
+				"Shader/opengl/batch_less_colorize.frag.glsl", mBatchLessColorizeProgram, error)
 			&& CreateProgram("pool", "Shader/opengl/pool.vert.glsl",
 				"Shader/opengl/pool.frag.glsl", mPoolProgram, error);
 	}
@@ -306,12 +314,15 @@ namespace pvz {
 		return mApi.GetError() == GL_NO_ERROR;
 	}
 
-	bool OpenGLRenderer::SubmitBatch(std::uint32_t texture, bool additive,
+	bool OpenGLRenderer::SubmitBatch(std::uint32_t texture, bool additive, bool washedOut,
+		bool lessWashedOut,
 		const OpenGLVertex* vertices, std::size_t vertexCount,
 		const glm::mat4& projectionView, bool textureBoundary, bool stateBoundary) {
 		if (textureBoundary) ++mFrameStats.textureFlushCount;
 		if (stateBoundary) ++mFrameStats.stateFlushCount;
-		return UploadAndDraw(mBatchProgram, texture, additive, vertices, vertexCount, projectionView);
+		Program& program = lessWashedOut ? mBatchLessColorizeProgram
+			: washedOut ? mBatchColorizeProgram : mBatchProgram;
+		return UploadAndDraw(program, texture, additive, vertices, vertexCount, projectionView);
 	}
 
 	bool OpenGLRenderer::SubmitPoolLayer(std::uint32_t texture, int layer, float poolCounter,

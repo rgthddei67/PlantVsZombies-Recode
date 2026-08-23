@@ -75,7 +75,7 @@ struct BatchVertex {
 	uint32_t texIndex;     // 当前后端的纹理 binding（Vulkan 为 bindless 槽，GL 为 texture name）
 	uint32_t matrixIndex;  // CPU 矩阵列表索引；Vulkan 提交时转成 SSBO 绝对槽位
 	float r, g, b, a;    // 顶点颜色（预乘色调）
-	float blendMode;     // 混合模式（0.0 = Alpha, 1.0 = Additive），仅 CPU 侧分段使用
+	float blendMode;     // 绘制模式（0=Alpha, 1=Additive, 2=WashedOut, 3=LessWashedOut），仅 CPU 侧分段使用
 	uint32_t clipMinXY = DRAW_CLIP_MIN_DISABLED;  // 帧缓冲 left/top，各占 16 bit
 	uint32_t clipMaxXY = DRAW_CLIP_MAX_DISABLED;  // 帧缓冲 right/bottom，各占 16 bit
 };
@@ -165,7 +165,9 @@ struct ClipRect {
 enum class BlendMode {
 	None,   // 不启用混合
 	Alpha,  // 预乘 Alpha 混合：ONE, ONE_MINUS_SRC_ALPHA
-	Add     // 预乘叠加混合：ONE, ONE
+	Add,    // 预乘叠加混合：ONE, ONE
+	WashedOut,     // 原版模仿者滤镜：HSL 亮度×1.8、饱和度×0.2
+	LessWashedOut  // 原版较弱模仿滤镜：HSL 亮度×1.2、饱和度×0.3
 };
 
 // ==================== 多线程录制（Record / Replay）相关结构 ====================

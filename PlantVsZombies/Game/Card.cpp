@@ -15,6 +15,7 @@
 #include "../ResourceManager.h"
 #include <algorithm>
 #include <cmath>
+#include <glm/gtc/matrix_transform.hpp>
 
 namespace {
 	constexpr float kCardPlantImageScale = 0.64f; // 普通植物卡图相对原始贴图的统一绘制倍率
@@ -30,9 +31,22 @@ namespace {
 	constexpr float kUpgradeCardSourceY = 0.0f; // seeds.png 紫卡底板源 Y，单位：纹理 px
 	constexpr float kUpgradeCardSourceWidth = 50.0f; // 紫卡底板源宽度，单位：纹理 px
 	constexpr float kUpgradeCardSourceHeight = 70.0f; // 紫卡底板源高度，单位：纹理 px
+	constexpr float kImitaterCardSourceX = 0.0f; // seeds.png 灰卡底板源 X，单位：纹理 px
 	constexpr float kPlanternLowFuelPulseSpeed = 8.0f; // 低燃料描边每未缩放秒的脉冲相位速度
 	constexpr float kPlanternGearLabelAreaWidth = 20.0f; // 路灯花挡位标签布局宽度，单位：UI px
 	constexpr int kPlanternGearLabelFontSize = 14; // 路灯花挡位标签字号，单位：逻辑 px
+
+	/** 用原版 HSL 参数直接绘制模仿卡图，避免纯白覆盖吞掉轮廓。 */
+	void DrawImitaterPlantImage(Graphics* g, const Texture* texture,
+		float x, float y, float width, float height, const glm::vec4& color,
+		bool lighter)
+	{
+		glm::mat4 transform(1.0f);
+		transform = glm::translate(transform, glm::vec3(x, y, 0.0f));
+		transform = glm::scale(transform, glm::vec3(width, height, 1.0f));
+		g->DrawTextureMatrix(texture, transform, 0.0f, 0.0f,
+			color, lighter ? BlendMode::LessWashedOut : BlendMode::WashedOut);
+	}
 }
 
 Card::Card(PlantType plantType, int sunCost, float cooldown, bool isInChooseCardUI)
@@ -91,18 +105,11 @@ void Card::SetCardChooseClick()
 	clickable->onClick = [this]() {
 		if (IsMoving()) return;
 
-		ChooseCardUI* chooseUI = nullptr;
-		for (const auto& object : GameObjectManager::GetInstance().GetAllGameObjects()) {
-			if (object && object->GetName() == "ChooseCardUI") {
-				chooseUI = dynamic_cast<ChooseCardUI*>(object.get());
-				break;
-			}
-		}
-		if (!chooseUI) {
+		if (!mChooseCardUI) {
 			LOG_ERROR("Card") << "ChooseCardUI not found!";
 			return;
 		}
-		chooseUI->ToggleCardSelection(this);
+		mChooseCardUI->HandleCardClick(this);
 	};
 }
 
@@ -114,13 +121,14 @@ void Card::SetCardGameClick()
 	clickable->onClick = [this]() {
 		auto* manager = GetCardSlotManager();
 		if (!manager || !manager->CanAcceptGameplayInput()) return;
-		if (mPlantType == PlantType::PLANT_PLANTERN
+		const PlantType gameplayType = GetGameplayPlantType();
+		if (gameplayType == PlantType::PLANT_PLANTERN
 			&& manager->GetBoard() && manager->GetBoard()->GetActivePlantern()) {
 			manager->TogglePlanternGearMenu();
 			AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_CLICKSEED, 0.5f);
 			return;
 		}
-		if (!IsReady() || !manager->CanUsePlant(mPlantType, mSunCost)) {
+		if (!IsReady() || !manager->CanUsePlant(gameplayType, mSunCost)) {
 			AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_CLICKFAILED, 0.5f);
 			return;
 		}
@@ -166,7 +174,7 @@ void Card::UpdateVisualState()
 		if (mIsCooldown) {
 			mMaskFillAmount = 1.0f - GetCooldownProgress();
 		}
-		else if (manager->CanUsePlant(mPlantType, mSunCost)) {
+		else if (manager->CanUsePlant(GetGameplayPlantType(), mSunCost)) {
 			TransitionToReady();
 		}
 		else {
@@ -175,7 +183,7 @@ void Card::UpdateVisualState()
 		return;
 	}
 
-	const bool usable = manager->CanUsePlant(mPlantType, mSunCost);
+	const bool usable = manager->CanUsePlant(GetGameplayPlantType(), mSunCost);
 	switch (mVisualState) {
 	case VisualState::Ready:
 		if (!usable) TransitionToWaitingSun();
@@ -247,7 +255,7 @@ void Card::ForceStateUpdate()
 	}
 
 	auto* manager = GetCardSlotManager();
-	if (manager && manager->CanUsePlant(mPlantType, mSunCost)) {
+	if (manager && manager->CanUsePlant(GetGameplayPlantType(), mSunCost)) {
 		TransitionToReady();
 	}
 	else {
@@ -336,6 +344,18 @@ void Card::SnapToOriginalPosition()
 	mIsMoving = false;
 }
 
+void Card::SetPositionImmediate(const Vector& position)
+{
+	if (GetTransform()) GetTransform()->SetPosition(position);
+	mTargetPos = position;
+	mIsMoving = false;
+}
+
+void Card::SetChooseCardInputEnabled(bool enabled)
+{
+	if (auto* collider = GetCollider()) collider->mEnabled = enabled;
+}
+
 void Card::TransitionToWaitingSun()
 {
 	mVisualState = VisualState::WaitingSun;
@@ -389,10 +409,11 @@ void Card::Draw(Graphics* g)
 	const Vector logical = GetTransform()->GetPosition();
 	const Vector position = g->LogicalToWorld(logical.x, logical.y);
 	Board* board = nullptr;
-	if (mPlantType == PlantType::PLANT_PLANTERN && !mIsInChooseCardUI) {
+	const PlantType displayType = GetDisplayPlantType();
+	if (displayType == PlantType::PLANT_PLANTERN && !mIsInChooseCardUI) {
 		if (auto* manager = GetCardSlotManager()) board = manager->GetBoard();
 	}
-	const bool isActivePlantern = mPlantType == PlantType::PLANT_PLANTERN
+	const bool isActivePlantern = displayType == PlantType::PLANT_PLANTERN
 		&& board && board->GetActivePlantern();
 	const glm::vec4 color = isActivePlantern ? mReadyColor : GetCurrentColor();
 
@@ -403,7 +424,7 @@ void Card::Draw(Graphics* g)
 	}
 	if (isActivePlantern) DrawPlanternStatus(g, position);
 	else DrawSunCost(g, position);
-	if (mPlantType == PlantType::PLANT_BLOVER && !mIsInChooseCardUI) {
+	if (displayType == PlantType::PLANT_BLOVER && !mIsInChooseCardUI) {
 		DrawBloverDirection(g, position);
 	}
 	if (mIsSelected) DrawSelectionHighlight(g, position);
@@ -415,7 +436,7 @@ void Card::LoadTextures()
 	mCardBackground = resources.GetTexture(ResourceKeys::Textures::IMAGE_CARD_BK);
 	mCardNormal = resources.GetTexture(ResourceKeys::Textures::IMAGE_SEEDPACKETNORMAL);
 	mCardVariants = resources.GetTexture(ResourceKeys::Textures::IMAGE_SEEDPACKETVARIANTS);
-	mPlantTexture = resources.GetTexture(GetPlantTextureKey());
+	ReloadPlantTexture();
 
 	if (!mCardBackground) LOG_ERROR("Card") << "Failed to load card background texture";
 	if (!mCardNormal) LOG_ERROR("Card") << "Failed to load card normal texture";
@@ -428,6 +449,16 @@ void Card::LoadTextures()
 void Card::DrawCardBackground(
 	Graphics* g, const Vector& position, const glm::vec4& color)
 {
+	if (mPlantType == PlantType::PLANT_IMITATER) {
+		if (!mCardVariants) return;
+		g->DrawTextureRegion(mCardVariants,
+			kImitaterCardSourceX, kUpgradeCardSourceY,
+			kUpgradeCardSourceWidth, kUpgradeCardSourceHeight,
+			position.x, position.y,
+			static_cast<float>(CARD_WIDTH), static_cast<float>(CARD_HEIGHT),
+			0.0f, color);
+		return;
+	}
 	if (IsUpgradePlantType(mPlantType)) {
 		if (!mCardVariants) return;
 		g->DrawTextureRegion(mCardVariants,
@@ -448,12 +479,13 @@ void Card::DrawPlantImage(
 	Graphics* g, const Vector& position, const glm::vec4& color)
 {
 	if (!mPlantTexture) return;
-	const bool isMelonFamily = mPlantType == PlantType::PLANT_MELONPULT
-		|| mPlantType == PlantType::PLANT_WINTERMELON;
-	const bool isCobCannon = mPlantType == PlantType::PLANT_COBCANNON;
-	const float typeScale = mPlantType == PlantType::PLANT_TALLNUT
+	const PlantType displayType = GetDisplayPlantType();
+	const bool isMelonFamily = displayType == PlantType::PLANT_MELONPULT
+		|| displayType == PlantType::PLANT_WINTERMELON;
+	const bool isCobCannon = displayType == PlantType::PLANT_COBCANNON;
+	const float typeScale = displayType == PlantType::PLANT_TALLNUT
 		? kTallNutCardImageScale
-		: mPlantType == PlantType::PLANT_BLOVER
+		: displayType == PlantType::PLANT_BLOVER
 			? kBloverCardImageScale
 			: isMelonFamily
 				? kMelonPultCardImageScale
@@ -461,7 +493,7 @@ void Card::DrawPlantImage(
 	const float typeOffsetX = isCobCannon
 		? kCobCannonCardImageOffsetX
 		: isMelonFamily ? kMelonPultCardImageOffsetX : 0.0f;
-	const float typeOffsetY = mPlantType == PlantType::PLANT_TALLNUT
+	const float typeOffsetY = displayType == PlantType::PLANT_TALLNUT
 		? kTallNutCardImageOffsetY
 		: isMelonFamily ? kMelonPultCardImageOffsetY : 0.0f;
 	const float baseW = mPlantTexture->width * kCardPlantImageScale;
@@ -471,20 +503,34 @@ void Card::DrawPlantImage(
 	const float drawX = position.x - 13.0f + (baseW - drawW) * 0.5f + typeOffsetX;
 	const float drawY = position.y - 9.0f + (baseH - drawH) * 0.5f + typeOffsetY;
 
-	const bool flipBlover = mPlantType == PlantType::PLANT_BLOVER
+	const bool flipBlover = displayType == PlantType::PLANT_BLOVER
 		&& !mIsInChooseCardUI
 		&& mBloverDirection == WindDirection::TOWARD_HOUSE;
+	const bool imitaterTarget = mPlantType == PlantType::PLANT_IMITATER && HasImitaterTarget();
+	const bool useLighterWash = displayType == PlantType::PLANT_HYPNOSHROOM
+		|| displayType == PlantType::PLANT_SQUASH
+		|| displayType == PlantType::PLANT_POTATOMINE
+		|| displayType == PlantType::PLANT_GARLIC
+		|| displayType == PlantType::PLANT_LILYPAD;
 	if (flipBlover) {
 		const float centerX = drawX + drawW * 0.5f;
 		g->PushTransform();
 		g->Translate(centerX, 0.0f);
 		g->Scale(-1.0f, 1.0f);
 		g->Translate(-centerX, 0.0f);
-		g->DrawTexture(mPlantTexture, drawX, drawY, drawW, drawH, 0.0f, color);
+		if (imitaterTarget) {
+			DrawImitaterPlantImage(g, mPlantTexture, drawX, drawY, drawW, drawH,
+				color, useLighterWash);
+		}
+		else g->DrawTexture(mPlantTexture, drawX, drawY, drawW, drawH, 0.0f, color);
 		g->PopTransform();
 		return;
 	}
-	g->DrawTexture(mPlantTexture, drawX, drawY, drawW, drawH, 0.0f, color);
+	if (imitaterTarget) {
+		DrawImitaterPlantImage(g, mPlantTexture, drawX, drawY, drawW, drawH,
+			color, useLighterWash);
+	}
+	else g->DrawTexture(mPlantTexture, drawX, drawY, drawW, drawH, 0.0f, color);
 }
 
 void Card::DrawPlanternStatus(Graphics* g, const Vector& position)
@@ -590,5 +636,63 @@ void Card::DrawSelectionHighlight(Graphics* g, const Vector& position)
 
 std::string Card::GetPlantTextureKey() const
 {
-	return GameDataManager::GetInstance().GetPlantTextureKey(mPlantType);
+	return GameDataManager::GetInstance().GetPlantTextureKey(GetDisplayPlantType());
+}
+
+PlantType Card::GetDisplayPlantType() const
+{
+	return HasImitaterTarget() ? mImitaterTarget : mPlantType;
+}
+
+PlantType Card::GetGameplayPlantType() const
+{
+	return mPlantType == PlantType::PLANT_IMITATER
+		? mImitaterTarget : mPlantType;
+}
+
+bool Card::HasImitaterTarget() const
+{
+	return mPlantType == PlantType::PLANT_IMITATER
+		&& mImitaterTarget != PlantType::PLANT_IMITATER
+		&& !IsUpgradePlantType(mImitaterTarget)
+		&& GameDataManager::GetInstance().HasPlant(mImitaterTarget);
+}
+
+bool Card::SetImitaterTarget(PlantType target)
+{
+	if (mPlantType != PlantType::PLANT_IMITATER
+		|| target == PlantType::PLANT_IMITATER
+		|| IsUpgradePlantType(target)
+		|| !GameDataManager::GetInstance().HasPlant(target)) {
+		return false;
+	}
+	mImitaterTarget = target;
+	auto& gameData = GameDataManager::GetInstance();
+	mSunCost = gameData.GetPlantSunCost(target);
+	mCooldownTime = gameData.GetPlantCooldown(target);
+	mCachedSunValue = -1;
+	if (mStarted) {
+		ReloadPlantTexture();
+		UpdateSunTextCache();
+	}
+	return true;
+}
+
+void Card::ClearImitaterTarget()
+{
+	if (mPlantType != PlantType::PLANT_IMITATER) return;
+	mImitaterTarget = PlantType::NUM_PLANT_TYPES;
+	auto& gameData = GameDataManager::GetInstance();
+	mSunCost = gameData.GetPlantSunCost(mPlantType);
+	mCooldownTime = gameData.GetPlantCooldown(mPlantType);
+	mCachedSunValue = -1;
+	if (mStarted) {
+		ReloadPlantTexture();
+		UpdateSunTextCache();
+	}
+}
+
+void Card::ReloadPlantTexture()
+{
+	mPlantTexture = ResourceManager::GetInstance().GetTexture(GetPlantTextureKey());
 }

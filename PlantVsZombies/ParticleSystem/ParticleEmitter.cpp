@@ -145,6 +145,31 @@ void ParticleEmitter::Update() {
 					particle.velocity.x += xValue * deltaTime;
 					particle.velocity.y += yValue * deltaTime;
 				}
+				else if (field.type == ParticleFieldType::CIRCLE
+					|| field.type == ParticleFieldType::AWAY) {
+					// 原版 Circle/Away 每厘秒直接改一次位置；换算为秒制后以 dt 缩放，
+					// 分别沿系统中心的切线/径向推进，不能误当成绝对 X 偏移或世界加速度。
+					const Vector fromCenter = particle.position - position;
+					const float radius = std::sqrt(fromCenter.x * fromCenter.x
+						+ fromCenter.y * fromCenter.y);
+					if (radius > 0.0001f) {
+						const float radialX = fromCenter.x / radius;
+						const float radialY = fromCenter.y / radius;
+						const float randomizedX = field.xTrack.GetValueRandomized(
+							normalizedTime, particle.fieldRandomX);
+						const float randomizedY = field.yTrack.GetValueRandomized(
+							normalizedTime, particle.fieldRandomY);
+						const float distance = (randomizedX + radius * randomizedY) * deltaTime;
+						if (field.type == ParticleFieldType::CIRCLE) {
+							particle.position.x += -radialY * distance;
+							particle.position.y += radialX * distance;
+						}
+						else {
+							particle.position.x += radialX * distance;
+							particle.position.y += radialY * distance;
+						}
+					}
+				}
 			}
 
 			particle.Update();

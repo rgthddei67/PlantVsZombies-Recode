@@ -4,7 +4,7 @@
     { "op": "goto_level", "level": 1 },
     { "op": "wait_seconds", "value": 5.0 },
     { "op": "assert_state", "path": "chooseCardReady", "equals": true },
-    { "op": "assert_state", "path": "haveCardCount", "equals": 49 },
+    { "op": "assert_state", "path": "haveCardCount", "equals": 50 },
     { "op": "assert_state", "path": "chooseCardPageIndex", "equals": 0 },
     { "op": "assert_state", "path": "chooseCardPageNumber", "equals": 1 },
     { "op": "assert_state", "path": "chooseCardPageCount", "equals": 2 },

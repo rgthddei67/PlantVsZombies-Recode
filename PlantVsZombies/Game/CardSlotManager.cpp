@@ -9,6 +9,7 @@
 #include "AudioSystem.h"
 #include "./Plant/Plant.h"
 #include "./Plant/Blover.h"
+#include "./Plant/Imitater.h"
 #include "./Plant/Plantern.h"
 #include "ShadowComponent.h"
 #include "../GameApp.h"
@@ -234,7 +235,7 @@ void CardSlotManager::SelectCard(Card* card) {
 	}
 
 	// 数量用尽时与阳光不足一样禁止选中，避免拿起一张全场都无法落下的卡。
-	if (!CanUsePlant(card->GetPlantType(), card->GetSunCost())) {
+	if (!CanUsePlant(card->GetGameplayPlantType(), card->GetSunCost())) {
 		return;
 	}
 
@@ -257,7 +258,7 @@ void CardSlotManager::SelectCard(Card* card) {
 	// 选择新卡牌
 	selectedCard = card;
 	card->SetSelected(true);
-	CreatePlantPreview(card->GetPlantType());
+	CreatePlantPreview(card->GetGameplayPlantType());
 }
 
 void CardSlotManager::DeselectCard() {
@@ -291,7 +292,7 @@ Card* CardSlotManager::FindPlanternCard() const
 {
 	for (Card* card : cards) {
 		if (!card) continue;
-		if (card->GetPlantType() == PlantType::PLANT_PLANTERN) {
+		if (card->GetGameplayPlantType() == PlantType::PLANT_PLANTERN) {
 			return card;
 		}
 	}
@@ -339,7 +340,7 @@ bool CardSlotManager::UpdateBloverDirectionInput()
 		Card* card = *it;
 		if (!card || !card->IsActive()) continue;
 		auto* collider = card->GetCollider();
-		if (!collider || card->GetPlantType() != PlantType::PLANT_BLOVER
+		if (!collider || card->GetGameplayPlantType() != PlantType::PLANT_BLOVER
 			|| !collider->mEnabled || !collider->ContainsPoint(mouse)) {
 			continue;
 		}
@@ -362,7 +363,7 @@ void CardSlotManager::ApplySelectedBloverDirection(Plant* plant) const
 {
 	auto* blover = dynamic_cast<Blover*>(plant);
 	if (blover && selectedCard
-		&& selectedCard->GetPlantType() == PlantType::PLANT_BLOVER) {
+		&& selectedCard->GetGameplayPlantType() == PlantType::PLANT_BLOVER) {
 		blover->SetBlowDirection(selectedCard->GetBloverDirection());
 	}
 }
@@ -445,6 +446,11 @@ void CardSlotManager::CreatePlantPreview(PlantType plantType) {
 
 	if (mBoard) {
 		plantPreview = mBoard->CreatePlant(plantType, 0, 0, true, true);
+		if (plantPreview && selectedCard
+			&& selectedCard->GetPlantType() == PlantType::PLANT_IMITATER) {
+			plantPreview->SetImitatedAppearance(true);
+		}
+		if (!plantPreview) return;
 		plantPreview->PauseAnimation();
 		plantPreview->SetRenderOrder(LAYER_EFFECTS + 10000);
 		plantPreview->RemoveShadow();
@@ -464,6 +470,10 @@ void CardSlotManager::CreateCellPlantPreview(PlantType plantType, Cell* cell) {
 		if (!anchorCell) return;
 		cellPlantPreview = mBoard->CreatePlant(plantType, 0, 0, true, true);
 		if (cellPlantPreview) {
+			if (selectedCard
+				&& selectedCard->GetPlantType() == PlantType::PLANT_IMITATER) {
+				cellPlantPreview->SetImitatedAppearance(true);
+			}
 			Vector centerPos = anchorCell->GetCenterPosition();          // 世界坐标
 			Plant* supportPlant = mBoard->GetUnderPlantAt(anchorRow, anchorColumn);
 			if (!cellPlantPreview->IsRoofSupportPlant() && supportPlant
@@ -503,7 +513,7 @@ void CardSlotManager::UpdatePlantPreviewPosition(Graphics* g, const Vector& mous
 
 	bool isOverCellWithPlant = false;
 	if (hoveredCell && mBoard) {
-		isOverCellWithPlant = !mBoard->CanPlantAt(selected->GetPlantType(),
+		isOverCellWithPlant = !mBoard->CanPlantAt(selected->GetGameplayPlantType(),
 			hoveredCell->mRow, hoveredCell->mColumn);
 	}
 
@@ -516,7 +526,7 @@ void CardSlotManager::UpdatePlantPreviewPosition(Graphics* g, const Vector& mous
 		DestroyCellPlantPreview();
 
 		if (hoveredCell) {
-			CreateCellPlantPreview(selected->GetPlantType(), hoveredCell);
+			CreateCellPlantPreview(selected->GetGameplayPlantType(), hoveredCell);
 		}
 
 		mHoveredCell = hoveredCell;
@@ -525,7 +535,7 @@ void CardSlotManager::UpdatePlantPreviewPosition(Graphics* g, const Vector& mous
 	if (cellPlantPreview && hoveredCell) {
 		int anchorRow = hoveredCell->mRow;
 		int anchorColumn = hoveredCell->mColumn;
-		if (!mBoard->ResolvePlantPlacementAnchor(selected->GetPlantType(),
+		if (!mBoard->ResolvePlantPlacementAnchor(selected->GetGameplayPlantType(),
 			hoveredCell->mRow, hoveredCell->mColumn, anchorRow, anchorColumn)) return;
 		Cell* anchorCell = mBoard->GetCell(anchorRow, anchorColumn);
 		if (!anchorCell) return;
@@ -599,7 +609,7 @@ bool CardSlotManager::CanPlaceInCell(Cell* cell) const {
 	if (!selectedCard || !cell || mPauseGameplayInputBlocked) return false;
 
 	// 检查阳光是否足够
-	if (!mBoard || !mBoard->CanPlantAt(selectedCard->GetPlantType(),
+	if (!mBoard || !mBoard->CanPlantAt(selectedCard->GetGameplayPlantType(),
 		cell->mRow, cell->mColumn)) return false;
 	if (!CanAfford(selectedCard->GetSunCost())) {
 		return false;
@@ -625,11 +635,16 @@ void CardSlotManager::PlacePlantInCell(int row, int col) {
 		: ResourceKeys::Sounds::SOUND_PLANT, 0.5f);
 
 	// 创建植物
-	Plant* plant = mBoard->CreatePlant(selectedCard->GetPlantType(), row, col);
+	Plant* plant = selectedCard->GetPlantType() == PlantType::PLANT_IMITATER
+		? mBoard->CreateImitaterPlant(selectedCard->GetImitaterTarget(), row, col)
+		: mBoard->CreatePlant(selectedCard->GetPlantType(), row, col);
 
 	if (plant) {
 		if (auto* blover = dynamic_cast<Blover*>(plant)) {
 			blover->SetBlowDirection(selectedCard->GetBloverDirection());
+		}
+		if (auto* imitater = dynamic_cast<Imitater*>(plant)) {
+			imitater->SetInheritedBloverDirection(selectedCard->GetBloverDirection());
 		}
 		selectedCard->StartCooldown();
 	}
@@ -640,6 +655,6 @@ void CardSlotManager::PlacePlantInCell(int row, int col) {
 }
 
 PlantType CardSlotManager::GetSelectedPlantType() const {
-	if (selectedCard) return selectedCard->GetPlantType();
+	if (selectedCard) return selectedCard->GetGameplayPlantType();
 	return PlantType::NUM_PLANT_TYPES;
 }

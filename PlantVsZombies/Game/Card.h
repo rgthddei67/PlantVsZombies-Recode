@@ -12,6 +12,7 @@ constexpr int CARD_WIDTH = static_cast<int>(100 * CARD_SCALE); // 宽度
 constexpr int CARD_HEIGHT = static_cast<int>(140 * CARD_SCALE); // 高度
 
 class CardSlotManager;
+class ChooseCardUI;
 
 /** 单张植物卡牌；直接拥有玩法、输入、绘制、缓存和移动状态。 */
 class Card : public GameObject {
@@ -30,6 +31,14 @@ public:
 	bool IsCooldown() const { return mIsCooldown; }
 	bool IsSelected() const { return mIsSelected; }
 	PlantType GetPlantType() const { return mPlantType; }
+	/** 返回实战费用、合法性、预览和落种使用的类型；普通卡与身份相同。 */
+	PlantType GetGameplayPlantType() const;
+	PlantType GetImitaterTarget() const { return mImitaterTarget; }
+	bool HasImitaterTarget() const;
+	/** 设置模仿目标并同步目标当前 cost/cooldown/卡图；仅模仿者卡接受。 */
+	bool SetImitaterTarget(PlantType target);
+	/** 取消复制选择并恢复右侧入口的原始模仿者卡面。 */
+	void ClearImitaterTarget();
 	int GetSunCost() const { return mSunCost; }
 	float GetCooldownTimer() const { return mCooldownTimer; }
 	float GetCooldownTime() const { return mCooldownTime; }
@@ -50,6 +59,10 @@ public:
 
 	/** 绑定 GameScene 独占的卡槽控制器；Card 不拥有该对象。 */
 	void BindCardSlotManager(CardSlotManager* manager);
+	/** 绑定选卡界面输入宿主；Card 不拥有该对象。 */
+	void BindChooseCardUI(ChooseCardUI* chooseCardUI) { mChooseCardUI = chooseCardUI; }
+	/** 只开关选卡碰撞，不影响绘制与移动；模态目标窗用它保留底层卡面。 */
+	void SetChooseCardInputEnabled(bool enabled);
 	CardSlotManager* GetCardSlotManager() const { return mCardSlotManager; }
 
 	void SetOriginalPosition(const Vector& pos) { mOriginalPos = pos; }
@@ -57,6 +70,8 @@ public:
 	void SetTargetPosition(const Vector& target);
 	/** 立即回到选卡网格原位并结束移动，用于隐藏非当前页的未选卡。 */
 	void SnapToOriginalPosition();
+	/** 立即移动到模态目标网格，不改主选卡页原位。 */
+	void SetPositionImmediate(const Vector& position);
 	bool IsMoving() const { return mIsMoving; }
 
 private:
@@ -68,8 +83,10 @@ private:
 	};
 
 	CardSlotManager* mCardSlotManager = nullptr; // GameScene 独占，Card 仅保存非拥有观察指针
+	ChooseCardUI* mChooseCardUI = nullptr; // ChooseCardUI 所有期覆盖选卡 Card
 
 	PlantType mPlantType = PlantType::PLANT_PEASHOOTER;
+	PlantType mImitaterTarget = PlantType::NUM_PLANT_TYPES;
 	int mSunCost = 0;
 	float mCooldownTimer = 0.0f;
 	float mCooldownTime = 0.0f;
@@ -115,6 +132,8 @@ private:
 	void TransitionToClick();
 	glm::vec4 GetCurrentColor() const;
 	std::string GetPlantTextureKey() const;
+	PlantType GetDisplayPlantType() const;
+	void ReloadPlantTexture();
 	void DrawCardBackground(Graphics* g, const Vector& position, const glm::vec4& color);
 	void DrawPlantImage(Graphics* g, const Vector& position, const glm::vec4& color);
 	void DrawCooldownMask(Graphics* g, const Vector& position);

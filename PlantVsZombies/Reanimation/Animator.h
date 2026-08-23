@@ -89,6 +89,8 @@ private:
 
 	bool mEnableExtraAdditiveDraw = false;     ///< 是否启用高亮 (叠加混合) 效果
 	bool mEnableExtraOverlayDraw = false;      ///< 是否启用附加覆盖效果
+	bool mEnableWashedOutEffect = false;       ///< 是否用模仿者 HSL 滤镜绘制本体
+	bool mUseLessWashedOutEffect = false;      ///< 是否使用原版 LessWashedOut 较弱参数
 	SDL_Color mExtraAdditiveColor = { 255, 255, 255, 128 };  ///< 高亮颜色
 	SDL_Color mExtraOverlayColor = { 255, 255, 255, 64 };    ///< 覆盖层颜色
 
@@ -447,6 +449,13 @@ public:
 	 * @param enable true=启用
 	 */
 	void EnableOverlayEffect(bool enable);
+
+	/**
+	 * @brief 启用/禁用原版模仿者 HSL 滤镜，并递归应用到附件动画。
+	 * @param enable true=启用，false=关闭
+	 * @param lighter true=使用 LessWashedOut 参数，false=使用普通 WashedOut
+	 */
+	void EnableWashedOutEffect(bool enable, bool lighter = false);
 
 	/**
 	 * @brief 设置覆盖层颜色

@@ -2445,12 +2445,7 @@ void GameScene::ChooseCardComplete()
 
 	if (mChooseCardUI) {
 		auto& gameApp = GameAPP::GetInstance();
-		gameApp.mLastSelectedCards.clear();
-		for (PlantType type : mChooseCardUI->GetSelectedCardTypes()) {
-			const std::string enumName =
-				GameDataManager::GetInstance().PlantTypeToEnumName(type);
-			if (enumName != "PLANT_NONE") gameApp.mLastSelectedCards.push_back(enumName);
-		}
+		gameApp.mLastSelectedCards = mChooseCardUI->GetSelectedCardKeys();
 		// 选卡提交即落盘；即使玩家随后直接退出，下一局也能恢复这组选择。
 		if (!gameApp.mGameInfoSaver.SavePlayerInfo()) {
 			LOG_ERROR("GameScene") << "保存上一次选卡失败，将在后续玩家存档点重试。";

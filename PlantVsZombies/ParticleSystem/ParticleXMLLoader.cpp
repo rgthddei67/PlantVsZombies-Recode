@@ -369,7 +369,14 @@ ParticleFieldType ParticleXMLLoader::ParseFieldType(const std::string& typeStr) 
 	else if (typeStr == "Acceleration") {
 		return ParticleFieldType::ACCELERATION;
 	}
-	return ParticleFieldType::POSITION;
+	else if (typeStr == "Circle") {
+		return ParticleFieldType::CIRCLE;
+	}
+	else if (typeStr == "Away") {
+		return ParticleFieldType::AWAY;
+	}
+	LOG_WARN("Particle") << "未识别的 FieldType: " << typeStr;
+	return ParticleFieldType::INVALID;
 }
 
 EmitterType ParticleXMLLoader::ParseEmitterType(const std::string& typeStr) {

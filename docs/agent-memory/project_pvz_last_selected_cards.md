@@ -1,10 +1,10 @@
 ---
 name: project_pvz_last_selected_cards
-description: PlayerInfo 上次选卡持久化、ChooseCardUI 一键动画恢复与 AutoTest 契约
+description: PlayerInfo 上次选卡持久化、代理卡复合身份、ChooseCardUI 一键动画恢复与 AutoTest 契约
 metadata:
   node_type: memory
   type: project
-  updated_at: 2026-08-12
+updated_at: 2026-08-23
 ---
 
 # 上次选卡持久化与一键动画恢复
@@ -23,3 +23,8 @@ metadata:
 再次恢复；2026-08-12 主人当前桌面可见 Vulkan 运行 exit 0，31 条命令全部完成，三张同步截图已检查，
 `run.log` 以 `script finished OK` 结束且无 ERROR/WARN。`clang-release` 配置、LTO 链接和 Win7 导入
 审计通过，`save-schema` 1/1 通过。
+
+2026-08-23 模仿者需要把稳定卡牌身份与被模仿目标一起保存；序列化格式扩展为
+`PLANT_IMITATER:PLANT_<TARGET>`，普通卡仍只写单个稳定枚举名。恢复时先按左侧身份查找面板中唯一的模仿者 Card，
+再验证目标已注册、已拥有、不是模仿者且不是紫色升级卡，最后写入 target 并走既有飞入动画。取消该卡后 target 清空，
+卡面恢复原始模仿者；不允许把目标植物误当成独立卡恢复或与普通目标卡去重。

@@ -67,7 +67,8 @@ namespace pvz {
 		void RefreshDrawableSize();
 
 		/** 连续同纹理、同混合状态的一段三角形；内部用 orphan + subdata 上传动态 VBO/IBO。 */
-		bool SubmitBatch(std::uint32_t texture, bool additive,
+		bool SubmitBatch(std::uint32_t texture, bool additive, bool washedOut,
+			bool lessWashedOut,
 			const OpenGLVertex* vertices, std::size_t vertexCount,
 			const glm::mat4& projectionView,
 			bool textureBoundary, bool stateBoundary);
@@ -120,6 +121,8 @@ namespace pvz {
 		SDL_GLContext mContext = nullptr;
 		OpenGLApi mApi;
 		Program mBatchProgram;
+		Program mBatchColorizeProgram;
+		Program mBatchLessColorizeProgram;
 		Program mPoolProgram;
 		unsigned int mVao = 0;
 		unsigned int mVbo = 0;

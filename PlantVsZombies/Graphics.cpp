@@ -115,6 +115,8 @@ struct Graphics::VulkanGraphicsState {
 
 	std::unique_ptr<pvz::VulkanPipeline> pipeBatchAlpha;
 	std::unique_ptr<pvz::VulkanPipeline> pipeBatchAdd;
+	std::unique_ptr<pvz::VulkanPipeline> pipeBatchColorize;
+	std::unique_ptr<pvz::VulkanPipeline> pipeBatchLessColorize;
 	std::unique_ptr<pvz::VulkanPipeline> pipePool;
 
 	// Phase 4 — instance pipelines for reanim sprites (consumed by Task 5).
@@ -124,6 +126,8 @@ struct Graphics::VulkanGraphicsState {
 	VkDescriptorPool                      instancePool = VK_NULL_HANDLE;
 	std::unique_ptr<pvz::VulkanPipeline>  pipeInstAlpha;
 	std::unique_ptr<pvz::VulkanPipeline>  pipeInstAdd;
+	std::unique_ptr<pvz::VulkanPipeline>  pipeInstColorize;
+	std::unique_ptr<pvz::VulkanPipeline>  pipeInstLessColorize;
 
 	// 1x1 白色纹理：FillRect / DrawText 等"无纹理但走 batch 路径"的画法用它的 bindless 槽。
 	pvz::VulkanTexture* whiteTex = nullptr;
@@ -150,6 +154,22 @@ namespace {
 	thread_local std::vector<PackedClipRect>* tl_packedClipStack = nullptr;
 	thread_local BlendMode               tl_blend = BlendMode::None;
 
+	/** 把公开绘制模式编码到 BatchVertex 的 CPU 分段字段。 */
+	constexpr float EncodeBatchBlendMode(BlendMode mode) {
+		if (mode == BlendMode::Add) return 1.0f;
+		if (mode == BlendMode::WashedOut) return 2.0f;
+		if (mode == BlendMode::LessWashedOut) return 3.0f;
+		return 0.0f;
+	}
+
+	/** 解码 BatchVertex 的稳定枚举值；未知值保守回落到普通 Alpha。 */
+	constexpr BlendMode DecodeBatchBlendMode(float mode) {
+		if (mode == 1.0f) return BlendMode::Add;
+		if (mode == 2.0f) return BlendMode::WashedOut;
+		if (mode == 3.0f) return BlendMode::LessWashedOut;
+		return BlendMode::Alpha;
+	}
+
 	// Phase 5：worker 直接把绝对 bindless 槽位写进 BatchVertex.texIndex、把
 	// (slice.ssboBaseMat + slice.ssboCount) 写进 BatchVertex.matrixIndex，replay 不再
 	// 做任何索引重映射，所以 InternTex / InternMat 已删除。
@@ -167,6 +187,7 @@ namespace {
 		uint32_t firstVert, uint32_t vertCount,
 		const BatchVertex* scan,
 		pvz::VulkanPipeline* pipeAlpha, pvz::VulkanPipeline* pipeAdd,
+		pvz::VulkanPipeline* pipeColorize, pvz::VulkanPipeline* pipeLessColorize,
 		const VkDescriptorSet sets[2],
 		const glm::mat4& projView,
 		uint32_t* drawCallCount)
@@ -178,7 +199,10 @@ namespace {
 
 		auto emit = [&](uint32_t segStart, uint32_t segEnd, float bm) {
 			if (segEnd <= segStart) return;
-			pvz::VulkanPipeline* pipe = (bm >= 0.5f) ? pipeAdd : pipeAlpha;
+			const BlendMode mode = DecodeBatchBlendMode(bm);
+			pvz::VulkanPipeline* pipe = mode == BlendMode::Add ? pipeAdd
+				: mode == BlendMode::WashedOut ? pipeColorize
+				: mode == BlendMode::LessWashedOut ? pipeLessColorize : pipeAlpha;
 			vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, pipe->Handle());
 			vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, pipe->Layout(),
 				0, 2, sets, 0, nullptr);
@@ -393,7 +417,7 @@ bool Graphics::InitializeVulkan(pvz::VulkanContext* ctx,
 		vkUpdateDescriptorSets(dev, 1, &wInst, 0, nullptr);
 	}
 
-	// 4) 两条 batch pipeline（alpha / additive），共享 layout 形状但各自单独 create
+	// 4) 四条 batch pipeline（alpha / additive / 两档 WashedOut），共享 layout 形状。
 	{
 		const VkDescriptorSetLayout sets[2] = {
 			state->matrixSetLayout,        // set=0 matrix SSBO
@@ -423,6 +447,17 @@ bool Graphics::InitializeVulkan(pvz::VulkanContext* ctx,
 		state->pipeBatchAdd = std::make_unique<pvz::VulkanPipeline>();
 		if (!state->pipeBatchAdd->Initialize(ctx, desc)) return false;
 
+		// 两档 WashedOut 与 Alpha 共用预乘混合方程，只替换片元着色器。
+		desc.fragSpvPath = "Shader/spv/batch_colorize.frag.spv";
+		desc.alphaBlend = true;
+		desc.additiveBlend = false;
+		state->pipeBatchColorize = std::make_unique<pvz::VulkanPipeline>();
+		if (!state->pipeBatchColorize->Initialize(ctx, desc)) return false;
+
+		desc.fragSpvPath = "Shader/spv/batch_less_colorize.frag.spv";
+		state->pipeBatchLessColorize = std::make_unique<pvz::VulkanPipeline>();
+		if (!state->pipeBatchLessColorize->Initialize(ctx, desc)) return false;
+
 		// PoolEffect 复用 BatchVertex 与同一组 matrix/bindless descriptors，但由专用
 		// shader 在 GPU 上计算三层水波和焦散，避免逐帧生成、上传动态纹理。
 		desc.vertSpvPath = "Shader/spv/pool.vert.spv";
@@ -438,7 +473,7 @@ bool Graphics::InitializeVulkan(pvz::VulkanContext* ctx,
 		}
 	}
 
-	// 4b) 两条 instance pipeline（alpha / additive）。
+	// 4b) 四条 instance pipeline（alpha / additive / 两档 WashedOut）。
 	//     使用独立的 instanceSetLayout (set=0 binding=0 = InstanceRecord SSBO)；
 	//     与 batch 共用 set=1 (bindless textures)。无 vertex input — gl_VertexIndex
 	//     + gl_InstanceIndex 由 shader 自展开 6 顶点。Task 3 创建 per-frame instance
@@ -475,6 +510,22 @@ bool Graphics::InitializeVulkan(pvz::VulkanContext* ctx,
 		state->pipeInstAdd = std::make_unique<pvz::VulkanPipeline>();
 		if (!state->pipeInstAdd->Initialize(ctx, desc)) {
 			LOG_ERROR("Graphics") << "pipeInstAdd 创建失败";
+			return false;
+		}
+
+		desc.fragSpvPath = "Shader/spv/reanim_inst_colorize.frag.spv";
+		desc.alphaBlend = true;
+		desc.additiveBlend = false;
+		state->pipeInstColorize = std::make_unique<pvz::VulkanPipeline>();
+		if (!state->pipeInstColorize->Initialize(ctx, desc)) {
+			LOG_ERROR("Graphics") << "pipeInstColorize 创建失败";
+			return false;
+		}
+
+		desc.fragSpvPath = "Shader/spv/reanim_inst_less_colorize.frag.spv";
+		state->pipeInstLessColorize = std::make_unique<pvz::VulkanPipeline>();
+		if (!state->pipeInstLessColorize->Initialize(ctx, desc)) {
+			LOG_ERROR("Graphics") << "pipeInstLessColorize 创建失败";
 			return false;
 		}
 	}
@@ -515,9 +566,13 @@ void Graphics::ShutdownVulkan() {
 
 	m_vk->pipeBatchAlpha.reset();
 	m_vk->pipeBatchAdd.reset();
+	m_vk->pipeBatchColorize.reset();
+	m_vk->pipeBatchLessColorize.reset();
 	m_vk->pipePool.reset();
 	m_vk->pipeInstAlpha.reset();
 	m_vk->pipeInstAdd.reset();
+	m_vk->pipeInstColorize.reset();
+	m_vk->pipeInstLessColorize.reset();
 
 	for (auto& fr : m_vk->frames) {
 		fr.vbo.reset();
@@ -951,7 +1006,10 @@ void Graphics::FlushBatch() {
 				&& segmentTexture != m_batchVertices[segmentStart - 1].texIndex;
 			const bool stateBoundary = !firstSegment
 				&& segmentBlend != m_batchVertices[segmentStart - 1].blendMode;
-			m_gl->SubmitBatch(segmentTexture, segmentBlend >= 0.5f,
+			const BlendMode mode = DecodeBatchBlendMode(segmentBlend);
+			m_gl->SubmitBatch(segmentTexture,
+				mode == BlendMode::Add, mode == BlendMode::WashedOut,
+				mode == BlendMode::LessWashedOut,
 				expanded.data() + segmentStart, end - segmentStart,
 				projectionView, textureBoundary, stateBoundary);
 			firstSegment = false;
@@ -1041,6 +1099,7 @@ void Graphics::FlushBatch() {
 		EmitDrawRange(cb, firstVertex, (uint32_t)vertCount,
 			m_batchVertices.data(),
 			m_vk->pipeBatchAlpha.get(), m_vk->pipeBatchAdd.get(),
+			m_vk->pipeBatchColorize.get(), m_vk->pipeBatchLessColorize.get(),
 			sets, projView, &m_frameDrawCallCount);
 	}
 
@@ -1086,9 +1145,12 @@ void Graphics::FlushInstances() {
 	// DrawTexture/DrawTextureMatrix 等读作 per-vert bm 默认值的全局态）。这两者必须
 	// 分离，否则 Animator 的 glow Append 会污染同帧后续 shadow 的 bm，把影子打成 Add
 	// 不可见——参见 AppendReanimInstance 主线程分支的同条注释。
-	pvz::VulkanPipeline* pipe = (m_queuedInstanceBlend == BlendMode::Add)
+	pvz::VulkanPipeline* pipe = m_queuedInstanceBlend == BlendMode::Add
 		? m_vk->pipeInstAdd.get()
-		: m_vk->pipeInstAlpha.get();
+		: m_queuedInstanceBlend == BlendMode::WashedOut
+			? m_vk->pipeInstColorize.get()
+			: m_queuedInstanceBlend == BlendMode::LessWashedOut
+				? m_vk->pipeInstLessColorize.get() : m_vk->pipeInstAlpha.get();
 
 	vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, pipe->Handle());
 	vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, pipe->Layout(),
@@ -1187,7 +1249,7 @@ void Graphics::DrawTexture(const Texture* tex, float x, float y, float width, fl
 	glm::vec4 normalizedTint = NormalizeColor(tint);
 
 	// 构建两个三角形（6个顶点）的批处理顶点数据
-	float bm = (m_currentBlendMode == BlendMode::Add) ? 1.0f : 0.0f;
+	float bm = EncodeBatchBlendMode(m_currentBlendMode);
 	BatchVertex vertices[6] = {
 		{0.0f, 1.0f, 0.0f, 1.0f, (uint32_t)texIndex, (uint32_t)matrixIndex, normalizedTint.r , normalizedTint.g , normalizedTint.b , normalizedTint.a, bm},
 		{1.0f, 1.0f, 1.0f, 1.0f, (uint32_t)texIndex, (uint32_t)matrixIndex, normalizedTint.r, normalizedTint.g , normalizedTint.b, normalizedTint.a, bm},
@@ -1515,7 +1577,7 @@ void Graphics::DrawTextureMatrix(const Texture* tex, const glm::mat4& transform,
 
 	// 确定实际混合模式：None 表示使用当前全局混合模式
 	BlendMode actualMode = (blendMode == BlendMode::None) ? m_currentBlendMode : blendMode;
-	float bm = (actualMode == BlendMode::Add) ? 1.0f : 0.0f;
+	float bm = EncodeBatchBlendMode(actualMode);
 
 	BatchVertex vertices[6] = {
 		{0.0f, 1.0f, u0, v1, (uint32_t)texIndex, (uint32_t)matrixIndex, normalizedTint.r, normalizedTint.g, normalizedTint.b, normalizedTint.a, bm},
@@ -1624,7 +1686,7 @@ void Graphics::DrawTextureRegion(const Texture* tex,
 	// 转换颜色为 0-1 格式
 	glm::vec4 normalizedTint = NormalizeColor(tint);
 
-	float bm = (m_currentBlendMode == BlendMode::Add) ? 1.0f : 0.0f;
+	float bm = EncodeBatchBlendMode(m_currentBlendMode);
 	BatchVertex vertices[6] = {
 		{0.0f, 1.0f, u0, v1, (uint32_t)texIndex, (uint32_t)matrixIndex, normalizedTint.r, normalizedTint.g, normalizedTint.b, normalizedTint.a, bm},
 		{1.0f, 1.0f, u1, v1, (uint32_t)texIndex, (uint32_t)matrixIndex, normalizedTint.r, normalizedTint.g, normalizedTint.b, normalizedTint.a, bm},
@@ -2276,7 +2338,7 @@ void Graphics::DrawLine(float x1, float y1, float x2, float y2, const glm::vec4&
 
 	int texIndex = BindTexture(m_whiteTexture);
 	int matIndex = AddMatrix(glm::mat4(1.0f));
-	float bm = (m_currentBlendMode == BlendMode::Add) ? 1.0f : 0.0f;
+	float bm = EncodeBatchBlendMode(m_currentBlendMode);
 
 	BatchVertex verts[6] = {
 		{p0.x + nx, p0.y + ny, 0.5f, 0.5f, (uint32_t)texIndex, (uint32_t)matIndex, r,g,b,a, bm},
@@ -2307,7 +2369,7 @@ void Graphics::DrawRect(float x, float y, float width, float height, const glm::
 
 	int texIndex = BindTexture(m_whiteTexture);
 	int matIndex = AddMatrix(glm::mat4(1.0f));
-	float bm = (m_currentBlendMode == BlendMode::Add) ? 1.0f : 0.0f;
+	float bm = EncodeBatchBlendMode(m_currentBlendMode);
 
 	for (int i = 0; i < 4; ++i) {
 		float ax = p[i].x, ay = p[i].y;
@@ -2343,7 +2405,7 @@ void Graphics::FillRect(float x, float y, float width, float height, const glm::
 	int matrixIndex = AddMatrix(finalMatrix);
 
 	glm::vec4 nc = NormalizeColor(color);
-	float bm = (m_currentBlendMode == BlendMode::Add) ? 1.0f : 0.0f;
+	float bm = EncodeBatchBlendMode(m_currentBlendMode);
 	BatchVertex vertices[6] = {
 		{0.0f, 1.0f, 0.0f, 1.0f, (uint32_t)texIndex, (uint32_t)matrixIndex, nc.r, nc.g, nc.b, nc.a, bm},
 		{1.0f, 1.0f, 1.0f, 1.0f, (uint32_t)texIndex, (uint32_t)matrixIndex, nc.r, nc.g, nc.b, nc.a, bm},
@@ -2367,7 +2429,7 @@ void Graphics::DrawCircle(float cx, float cy, float radius, const glm::vec4& col
 
 	int texIndex = BindTexture(m_whiteTexture);
 	int matIndex = AddMatrix(glm::mat4(1.0f));
-	float bm = (m_currentBlendMode == BlendMode::Add) ? 1.0f : 0.0f;
+	float bm = EncodeBatchBlendMode(m_currentBlendMode);
 
 	for (int i = 0; i < segments; ++i) {
 		float angle0 = 2.0f * glm::pi<float>() * i / segments;
@@ -2405,7 +2467,7 @@ void Graphics::FillCircle(float cx, float cy, float radius, const glm::vec4& col
 
 	int texIndex = BindTexture(m_whiteTexture);
 	int matIndex = AddMatrix(glm::mat4(1.0f));
-	float bm = (m_currentBlendMode == BlendMode::Add) ? 1.0f : 0.0f;
+	float bm = EncodeBatchBlendMode(m_currentBlendMode);
 
 	for (int i = 0; i < segments; ++i) {
 		float angle0 = 2.0f * glm::pi<float>() * i / segments;
@@ -2684,13 +2746,21 @@ void Graphics::ReplayAndEndParallel() {
 	const VkDescriptorSet sets[2] = { fr.matrixSet, m_vk->texPool->DescriptorSet() };
 
 	// 跨 slot 复用的 pipeline binding 状态：用一个"还没绑过"哨兵值，第一次 emit 时强制绑。
-	enum class BoundPipe : uint8_t { None, BatchAlpha, BatchAdd, InstAlpha, InstAdd };
+	enum class BoundPipe : uint8_t {
+		None, BatchAlpha, BatchAdd, BatchColorize, BatchLessColorize,
+		InstAlpha, InstAdd, InstColorize, InstLessColorize
+	};
 	BoundPipe boundPipe = BoundPipe::None;
 
 	auto bindBatchForBlend = [&](BlendMode bm) {
-		const BoundPipe want = (bm == BlendMode::Add) ? BoundPipe::BatchAdd : BoundPipe::BatchAlpha;
+		const BoundPipe want = bm == BlendMode::Add ? BoundPipe::BatchAdd
+			: bm == BlendMode::WashedOut ? BoundPipe::BatchColorize
+			: bm == BlendMode::LessWashedOut ? BoundPipe::BatchLessColorize
+			: BoundPipe::BatchAlpha;
 		if (want == boundPipe) return;
-		pvz::VulkanPipeline* pipe = (want == BoundPipe::BatchAdd) ? m_vk->pipeBatchAdd.get()
+		pvz::VulkanPipeline* pipe = want == BoundPipe::BatchAdd ? m_vk->pipeBatchAdd.get()
+			: want == BoundPipe::BatchColorize ? m_vk->pipeBatchColorize.get()
+			: want == BoundPipe::BatchLessColorize ? m_vk->pipeBatchLessColorize.get()
 			: m_vk->pipeBatchAlpha.get();
 		vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, pipe->Handle());
 		vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, pipe->Layout(),
@@ -2702,9 +2772,14 @@ void Graphics::ReplayAndEndParallel() {
 
 	// 6.2: Instance pipeline bind helper — uses fr.instSet at set=0 (not fr.matrixSet).
 	auto bindInstForBlend = [&](BlendMode bm) {
-		const BoundPipe want = (bm == BlendMode::Add) ? BoundPipe::InstAdd : BoundPipe::InstAlpha;
+		const BoundPipe want = bm == BlendMode::Add ? BoundPipe::InstAdd
+			: bm == BlendMode::WashedOut ? BoundPipe::InstColorize
+			: bm == BlendMode::LessWashedOut ? BoundPipe::InstLessColorize
+			: BoundPipe::InstAlpha;
 		if (want == boundPipe) return;
-		pvz::VulkanPipeline* pipe = (want == BoundPipe::InstAdd) ? m_vk->pipeInstAdd.get()
+		pvz::VulkanPipeline* pipe = want == BoundPipe::InstAdd ? m_vk->pipeInstAdd.get()
+			: want == BoundPipe::InstColorize ? m_vk->pipeInstColorize.get()
+			: want == BoundPipe::InstLessColorize ? m_vk->pipeInstLessColorize.get()
 			: m_vk->pipeInstAlpha.get();
 		const VkDescriptorSet instSets[2] = { fr.instSet, m_vk->texPool->DescriptorSet() };
 		vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, pipe->Handle());
@@ -2980,7 +3055,7 @@ void Graphics::RecordDrawTexture(WorkerRecord& r,
 	const uint32_t matAbs = PushSliceMatrix(sl, finalMatrix);
 
 	const glm::vec4 nt = NormalizeColor(tint);
-	const float bm = (tl_blend == BlendMode::Add) ? 1.0f : 0.0f;
+	const float bm = EncodeBatchBlendMode(tl_blend);
 	EmitQuad(sl, 0.0f, 0.0f, 1.0f, 1.0f, tex->BindingId(), matAbs, nt.r, nt.g, nt.b, nt.a, bm);
 }
 
@@ -3033,7 +3108,7 @@ void Graphics::RecordDrawTextureMatrix(WorkerRecord& r,
 
 	const glm::vec4 nt = NormalizeColor(tint);
 	const BlendMode actualMode = (blendMode == BlendMode::None) ? tl_blend : blendMode;
-	const float bm = (actualMode == BlendMode::Add) ? 1.0f : 0.0f;
+	const float bm = EncodeBatchBlendMode(actualMode);
 	EmitQuad(sl, u0, v0, u1, v1, bindTex->BindingId(), matAbs, nt.r, nt.g, nt.b, nt.a, bm);
 
 	if (needSwitch) {
@@ -3069,7 +3144,7 @@ void Graphics::RecordDrawTextureRegion(WorkerRecord& r,
 	const uint32_t matAbs = PushSliceMatrix(sl, finalMatrix);
 
 	const glm::vec4 nt = NormalizeColor(tint);
-	const float bm = (tl_blend == BlendMode::Add) ? 1.0f : 0.0f;
+	const float bm = EncodeBatchBlendMode(tl_blend);
 	EmitQuad(sl, u0, v0, u1, v1, tex->BindingId(), matAbs, nt.r, nt.g, nt.b, nt.a, bm);
 }
 
@@ -3093,7 +3168,7 @@ void Graphics::RecordDrawCachedText(WorkerRecord& r,
 	const glm::mat4 finalMatrix = curId ? local : (tl_transformStack->back() * local);
 	const uint32_t matAbs = PushSliceMatrix(sl, finalMatrix);
 
-	const float bm = (tl_blend == BlendMode::Add) ? 1.0f : 0.0f;
+	const float bm = EncodeBatchBlendMode(tl_blend);
 	EmitQuad(sl, 0.0f, 0.0f, 1.0f, 1.0f, handle.BindingId(), matAbs, 1.0f, 1.0f, 1.0f, 1.0f, bm);
 }
 
@@ -3173,7 +3248,8 @@ void Graphics::RecordDrawGlyphRun(WorkerRecord& r,
 		// 字形走 Alpha 混合；与 AppendReanimInstance 相同的 SetBlend 包夹 + 恢复模式，
 		// 防止污染同 slot 后续记录的 bm。
 		const BlendMode savedBlend = tl_blend;
-		const bool needSwitch = (savedBlend == BlendMode::Add);
+		const bool needSwitch = savedBlend != BlendMode::None
+			&& savedBlend != BlendMode::Alpha;
 		if (needSwitch) RecordSetBlendMode(r, BlendMode::Alpha);
 
 		// r=lsb, a=msb，同 reanim_inst.vert.glsl 的解包约定（颜色是 0..255 约定）。
@@ -3268,7 +3344,7 @@ void Graphics::RecordFillRect(WorkerRecord& r,
 	const uint32_t matAbs = PushSliceMatrix(sl, finalMatrix);
 
 	const glm::vec4 nc = NormalizeColor(color);
-	const float bm = (tl_blend == BlendMode::Add) ? 1.0f : 0.0f;
+	const float bm = EncodeBatchBlendMode(tl_blend);
 	EmitQuad(sl, 0.0f, 0.0f, 1.0f, 1.0f, m_whiteTexture, matAbs, nc.r, nc.g, nc.b, nc.a, bm);
 }
 
@@ -3286,7 +3362,7 @@ void Graphics::RecordDrawLine(WorkerRecord& r,
 	// 顶点本身已经是世界坐标，所以矩阵走单位阵（shader 用它做 model 变换会等价 no-op）。
 	const uint32_t matAbs = PushSliceMatrix(sl, glm::mat4(1.0f));
 	const glm::vec4 nc = NormalizeColor(color);
-	const float bm = (tl_blend == BlendMode::Add) ? 1.0f : 0.0f;
+	const float bm = EncodeBatchBlendMode(tl_blend);
 	EmitEdgeQuad(sl, p0.x, p0.y, p1.x, p1.y, m_whiteTexture, matAbs, nc.r, nc.g, nc.b, nc.a, bm);
 }
 
@@ -3306,7 +3382,7 @@ void Graphics::RecordDrawRect(WorkerRecord& r,
 	};
 	const uint32_t matAbs = PushSliceMatrix(sl, glm::mat4(1.0f));
 	const glm::vec4 nc = NormalizeColor(color);
-	const float bm = (tl_blend == BlendMode::Add) ? 1.0f : 0.0f;
+	const float bm = EncodeBatchBlendMode(tl_blend);
 
 	for (int i = 0; i < 4; ++i) {
 		const int j = (i + 1) % 4;
@@ -3326,7 +3402,7 @@ void Graphics::RecordDrawCircle(WorkerRecord& r,
 	const glm::mat4& transform = tl_transformStack->back();
 	const uint32_t matAbs = PushSliceMatrix(sl, glm::mat4(1.0f));
 	const glm::vec4 nc = NormalizeColor(color);
-	const float bm = (tl_blend == BlendMode::Add) ? 1.0f : 0.0f;
+	const float bm = EncodeBatchBlendMode(tl_blend);
 
 	for (int i = 0; i < segments; ++i) {
 		const float a0 = 2.0f * glm::pi<float>() * i / segments;
@@ -3353,7 +3429,7 @@ void Graphics::RecordFillCircle(WorkerRecord& r,
 	const glm::vec4 center = transform * glm::vec4(cx, cy, 0.0f, 1.0f);
 	const uint32_t matAbs = PushSliceMatrix(sl, glm::mat4(1.0f));
 	const glm::vec4 nc = NormalizeColor(color);
-	const float bm = (tl_blend == BlendMode::Add) ? 1.0f : 0.0f;
+	const float bm = EncodeBatchBlendMode(tl_blend);
 	const PackedClipRect clip = CurrentPackedClipRect();
 
 	for (int i = 0; i < segments; ++i) {

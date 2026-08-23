@@ -13,6 +13,8 @@
 #include "Card.h"
 #include "../GameRandom.h"
 #include "./Plant/Plant.h"
+#include "./Plant/Imitater.h"
+#include "./Plant/Blover.h"
 #include "./Plant/PlantUpgradeRules.h"
 #include "./Plant/PlantFootprint.h"
 #include "./Plant/Plantern.h"
@@ -5950,7 +5952,8 @@ bool Board::CanPlantAt(PlantType type, int row, int col)
 bool Board::HasPlantingQuota(PlantType type) const
 {
 	if (type == PlantType::PLANT_PLANTERN) {
-		return GetActivePlantern() == nullptr;
+		// 模仿者占位虽然还不是 Plantern 实例，也必须预留唯一名额。
+		return mActivePlanternID == NULL_PLANT_ID;
 	}
 	return type != PlantType::PLANT_ELITE_SCAREDYSHROOM
 		|| mEliteScaredyShroomsPlanted < kEliteScaredyShroomPlantLimit;
@@ -6221,12 +6224,31 @@ void Board::RefreshPlantStackRenderOrder(Cell* cell)
 	if (overlay) overlay->SetRenderOrder(orders[index]);
 }
 
-Plant* Board::CreatePlant(PlantType plantType, int row, int column, bool skipsettings, bool isPreview)
+Plant* Board::CreatePlant(PlantType plantType, int row, int column,
+	bool skipsettings, bool isPreview)
+{
+	return CreatePlantInternal(plantType, plantType, row, column,
+		skipsettings, isPreview);
+}
+
+Plant* Board::CreateImitaterPlant(PlantType targetType, int row, int column)
+{
+	if (targetType == PlantType::PLANT_IMITATER
+		|| IsUpgradePlantType(targetType)
+		|| !GameDataManager::GetInstance().HasPlant(targetType)) {
+		return nullptr;
+	}
+	return CreatePlantInternal(PlantType::PLANT_IMITATER, targetType,
+		row, column, false, false);
+}
+
+Plant* Board::CreatePlantInternal(PlantType actualType, PlantType placementType,
+	int row, int column, bool skipsettings, bool isPreview)
 {
 	const int requestedRow = row;
 	const int requestedColumn = column;
 	if (!isPreview && !skipsettings
-		&& !ResolvePlantPlacementAnchor(plantType, requestedRow, requestedColumn,
+		&& !ResolvePlantPlacementAnchor(placementType, requestedRow, requestedColumn,
 			row, column)) {
 		return nullptr;
 	}
@@ -6239,13 +6261,13 @@ Plant* Board::CreatePlant(PlantType plantType, int row, int column, bool skipset
 	// 正式创建入口也执行累计次数闸门，覆盖 AutoTest/develop 等绕过 CanPlantAt 的调用者。
 	// 读档实体恢复由已保存的累计计数约束，不能在逐株重建时重复消耗次数。
 	const bool consumesPlantingQuota = !isPreview && !skipsettings && !mIsLoadSave;
-	if (consumesPlantingQuota && !HasPlantingQuota(plantType)) {
+	if (consumesPlantingQuota && !HasPlantingQuota(placementType)) {
 		return nullptr;
 	}
-	const bool isOverlayPlant = plantType == PlantType::PLANT_INSTANT_COFFEE;
-	const bool isUpgradePlant = IsUpgradePlantType(plantType);
+	const bool isOverlayPlant = placementType == PlantType::PLANT_INSTANT_COFFEE;
+	const bool isUpgradePlant = IsUpgradePlantType(placementType);
 	if (isOverlayPlant && consumesPlantingQuota
-		&& !CanPlantAt(plantType, row, column)) {
+		&& !CanPlantAt(placementType, row, column)) {
 		return nullptr;
 	}
 
@@ -6254,29 +6276,33 @@ Plant* Board::CreatePlant(PlantType plantType, int row, int column, bool skipset
 	bool inheritedSleeping = false;
 	float inheritedWakeUpTimer = 0.0f;
 	if (isUpgradePlant && !isPreview && !skipsettings) {
-		if (!CanPlantAt(plantType, row, column)) return nullptr;
-		upgradeBasePlant = GetUpgradePlantLayer(plantType) == PlantUpgradeLayer::UNDER
+		if (!CanPlantAt(placementType, row, column)) return nullptr;
+		upgradeBasePlant = GetUpgradePlantLayer(placementType) == PlantUpgradeLayer::UNDER
 			? GetUnderPlantAt(row, column) : GetNormalPlantAt(row, column);
 		if (!upgradeBasePlant) return nullptr;
 		upgradeBasePlants.push_back(upgradeBasePlant);
-		if (plantType == PlantType::PLANT_COBCANNON) {
+		if (placementType == PlantType::PLANT_COBCANNON) {
 			Plant* rearKernel = GetNormalPlantAt(row, column + 1);
 			if (!rearKernel || rearKernel == upgradeBasePlant) return nullptr;
 			upgradeBasePlants.push_back(rearKernel);
 		}
-		if (GetUpgradePlantLayer(plantType) == PlantUpgradeLayer::NORMAL) {
+		if (GetUpgradePlantLayer(placementType) == PlantUpgradeLayer::NORMAL) {
 			inheritedSleeping = upgradeBasePlant->GetSleepState();
 			inheritedWakeUpTimer = upgradeBasePlant->GetWakeUpTimeRemaining();
 		}
 	}
 
 	// 根据植物类型创建对应的植物
-	std::shared_ptr<Plant> plant = GameAPP::GetInstance().InstantiatePlant(plantType, this, row, column, isPreview);
+	std::shared_ptr<Plant> plant = GameAPP::GetInstance().InstantiatePlant(
+		actualType, this, row, column, isPreview);
+	if (auto imitater = std::dynamic_pointer_cast<Imitater>(plant)) {
+		imitater->SetImitaterTarget(placementType);
+	}
 
 	if (plant && !isPreview && !skipsettings) {
 		Cell* cell = GetCell(row, column);
-		const bool isUnderPlant = IsUnderPlantLayerType(plantType);
-		const bool isPumpkinPlant = plantType == PlantType::PLANT_PUMPKINSHELL;
+		const bool isUnderPlant = IsUnderPlantLayerType(placementType);
+		const bool isPumpkinPlant = placementType == PlantType::PLANT_PUMPKINSHELL;
 		const int occupiedID = isUnderPlant
 			? cell->GetUnderPlantID()
 			: (isPumpkinPlant ? cell->GetPumpkinPlantID()
@@ -6299,7 +6325,7 @@ Plant* Board::CreatePlant(PlantType plantType, int row, int column, bool skipset
 			for (Plant* base : upgradeBasePlants) {
 				if (base) replacePlantIDs.push_back(base->mPlantID);
 			}
-			if (!OccupyPlantFootprint(plantType, row, column,
+			if (!OccupyPlantFootprint(placementType, row, column,
 				plant->mPlantID, replacePlantIDs)) {
 				plant->Die();
 				return nullptr;
@@ -6310,16 +6336,18 @@ Plant* Board::CreatePlant(PlantType plantType, int row, int column, bool skipset
 			for (Plant* base : upgradeBasePlants) {
 				if (base) base->Die();
 			}
-			if (GetUpgradePlantLayer(plantType) == PlantUpgradeLayer::NORMAL
+			if (actualType != PlantType::PLANT_IMITATER
+				&& GetUpgradePlantLayer(placementType) == PlantUpgradeLayer::NORMAL
 				&& inheritedSleeping) {
 				plant->SetSleepState(true);
 				plant->RestoreSleepState(true, inheritedWakeUpTimer);
 			}
-			else if (GetUpgradePlantLayer(plantType) == PlantUpgradeLayer::NORMAL) {
+			else if (actualType != PlantType::PLANT_IMITATER
+				&& GetUpgradePlantLayer(placementType) == PlantUpgradeLayer::NORMAL) {
 				plant->SetSleepState(false);
 			}
 		}
-		const PlantFootprint footprint = GetPlantFootprint(plantType);
+		const PlantFootprint footprint = GetPlantFootprint(placementType);
 		for (std::size_t i = 0; i < footprint.count; ++i) {
 			if (Cell* occupiedCell = GetCell(
 				row + footprint.cells[i].rowOffset,
@@ -6327,15 +6355,50 @@ Plant* Board::CreatePlant(PlantType plantType, int row, int column, bool skipset
 				RefreshPlantStackRenderOrder(occupiedCell);
 			}
 		}
-		if (plantType == PlantType::PLANT_ELITE_SCAREDYSHROOM && consumesPlantingQuota) {
+		if (placementType == PlantType::PLANT_ELITE_SCAREDYSHROOM && consumesPlantingQuota) {
 			++mEliteScaredyShroomsPlanted;
 		}
-		if (plantType == PlantType::PLANT_PLANTERN) {
+		if (placementType == PlantType::PLANT_PLANTERN) {
 			mActivePlanternID = plant->mPlantID;
 		}
 	}
 
 	return plant.get();
+}
+
+Plant* Board::MorphImitater(Imitater* imitater)
+{
+	if (!imitater || !imitater->IsActive() || imitater->mBoard != this
+		|| !imitater->HasValidTarget()) {
+		return nullptr;
+	}
+
+	const PlantType targetType = imitater->GetImitaterTarget();
+	const int plantID = imitater->mPlantID;
+	const int row = imitater->mRow;
+	const int column = imitater->mColumn;
+	std::shared_ptr<Plant> replacement = GameAPP::GetInstance().InstantiatePlant(
+		targetType, this, row, column, false);
+	if (!replacement) return nullptr;
+
+	// Cell 继续保存同一个 ID；先覆盖注册表，再静默回收旧对象，避免 ReleaseGridSlot
+	// 把刚刚移交给目标植物的层或双格 footprint 清空。
+	mEntityRegistry.AddPlantWithID(replacement, plantID);
+	replacement->SetImitatedAppearance(true);
+	if (auto* blover = dynamic_cast<Blover*>(replacement.get())) {
+		blover->SetBlowDirection(imitater->GetInheritedBloverDirection());
+	}
+	if (targetType == PlantType::PLANT_PLANTERN) {
+		mActivePlanternID = plantID;
+	}
+	const PlantFootprint footprint = GetPlantFootprint(targetType);
+	for (std::size_t i = 0; i < footprint.count; ++i) {
+		RefreshPlantStackRenderOrder(GetCell(
+			row + footprint.cells[i].rowOffset,
+			column + footprint.cells[i].columnOffset));
+	}
+	imitater->RetireAfterReplacement();
+	return replacement.get();
 }
 
 Zombie* Board::CreateZombie(ZombieType zombieType, int row, float x, bool skipsettings, bool isPreview) {
@@ -7333,10 +7396,28 @@ void Board::LoadSpawnListFromJson()
 }
 
 Plant* Board::CreatePlantWithID(PlantType type, int row, int col, int id) {
+	return CreatePlantWithIDInternal(type, type, row, col, id);
+}
+
+Plant* Board::CreateImitaterPlantWithID(
+	PlantType targetType, int row, int col, int id)
+{
+	if (targetType == PlantType::PLANT_IMITATER
+		|| IsUpgradePlantType(targetType)
+		|| !GameDataManager::GetInstance().HasPlant(targetType)) {
+		return nullptr;
+	}
+	return CreatePlantWithIDInternal(
+		PlantType::PLANT_IMITATER, targetType, row, col, id);
+}
+
+Plant* Board::CreatePlantWithIDInternal(PlantType actualType,
+	PlantType placementType, int row, int col, int id)
+{
 	Cell* cell = GetCell(row, col);
-	const bool isUnderPlant = IsUnderPlantLayerType(type);
-	const bool isPumpkinPlant = type == PlantType::PLANT_PUMPKINSHELL;
-	const bool isOverlayPlant = type == PlantType::PLANT_INSTANT_COFFEE;
+	const bool isUnderPlant = IsUnderPlantLayerType(placementType);
+	const bool isPumpkinPlant = placementType == PlantType::PLANT_PUMPKINSHELL;
+	const bool isOverlayPlant = placementType == PlantType::PLANT_INSTANT_COFFEE;
 	if (cell && (isUnderPlant
 		? cell->GetUnderPlantID()
 		: (isPumpkinPlant ? cell->GetPumpkinPlantID()
@@ -7344,7 +7425,7 @@ Plant* Board::CreatePlantWithID(PlantType type, int row, int col, int id) {
 		return nullptr;
 	}
 	if (!isUnderPlant && !isPumpkinPlant && !isOverlayPlant) {
-		const PlantFootprint footprint = GetPlantFootprint(type);
+		const PlantFootprint footprint = GetPlantFootprint(placementType);
 		for (std::size_t i = 0; i < footprint.count; ++i) {
 			Cell* occupiedCell = GetCell(row + footprint.cells[i].rowOffset,
 				col + footprint.cells[i].columnOffset);
@@ -7358,18 +7439,22 @@ Plant* Board::CreatePlantWithID(PlantType type, int row, int col, int id) {
 		LOG_ERROR("Board") << "无效的行列位置: (" << row << ", " << col << ")";
 		return nullptr;
 	}
-	std::shared_ptr<Plant> plant = GameAPP::GetInstance().InstantiatePlant(type, this, row, col, false);
+	std::shared_ptr<Plant> plant = GameAPP::GetInstance().InstantiatePlant(
+		actualType, this, row, col, false);
+	if (auto imitater = std::dynamic_pointer_cast<Imitater>(plant)) {
+		imitater->SetImitaterTarget(placementType);
+	}
 	if (plant) {
 		mEntityRegistry.AddPlantWithID(plant, id);
 		if (cell) {
 			if (isUnderPlant) cell->SetUnderPlantID(id);
 			else if (isPumpkinPlant) cell->SetPumpkinPlantID(id);
 			else if (isOverlayPlant) cell->SetOverlayPlantID(id);
-			else if (!OccupyPlantFootprint(type, row, col, id)) {
+			else if (!OccupyPlantFootprint(placementType, row, col, id)) {
 				plant->Die();
 				return nullptr;
 			}
-			const PlantFootprint footprint = GetPlantFootprint(type);
+			const PlantFootprint footprint = GetPlantFootprint(placementType);
 			for (std::size_t i = 0; i < footprint.count; ++i) {
 				if (Cell* occupiedCell = GetCell(row + footprint.cells[i].rowOffset,
 					col + footprint.cells[i].columnOffset)) {
@@ -7377,7 +7462,7 @@ Plant* Board::CreatePlantWithID(PlantType type, int row, int col, int id) {
 				}
 			}
 		}
-		if (type == PlantType::PLANT_PLANTERN) {
+		if (placementType == PlantType::PLANT_PLANTERN) {
 			mActivePlanternID = id;
 		}
 	}

@@ -409,6 +409,8 @@ namespace {
 }
 
 void Animator::DrawInternalInstanced(Graphics* g, float baseX, float baseY, float Scale) const {
+	const BlendMode baseBlend = !mEnableWashedOutEffect ? BlendMode::Alpha
+		: mUseLessWashedOutEffect ? BlendMode::LessWashedOut : BlendMode::WashedOut;
 	InstanceRecord firstDeferredFollowerInstance{};
 	bool hasDeferredFollowerInstance = false;
 	std::vector<InstanceRecord> deferredFollowerOverflow;
@@ -489,7 +491,7 @@ void Animator::DrawInternalInstanced(Graphics* g, float baseX, float baseY, floa
 			const float baseAlpha = std::clamp(transform.a * mAlpha, 0.0f, 1.0f);
 			const uint8_t alpha8 = static_cast<uint8_t>(baseAlpha * 255.0f);
 			rec.colorRGBA8 = PackRGBA8(255, 255, 255, alpha8);
-			g->AppendReanimInstance(rec, BlendMode::Alpha);
+			g->AppendReanimInstance(rec, baseBlend);
 
 			if (mEnableExtraOverlayDraw) {
 				InstanceRecord ov = rec;
@@ -554,7 +556,7 @@ void Animator::DrawInternalInstanced(Graphics* g, float baseX, float baseY, floa
 				}
 			}
 			else {
-				g->AppendReanimInstance(rec, BlendMode::Alpha);
+				g->AppendReanimInstance(rec, baseBlend);
 			}
 		}
 
@@ -575,15 +577,17 @@ void Animator::DrawInternalInstanced(Graphics* g, float baseX, float baseY, floa
 	}
 
 	if (hasDeferredFollowerInstance) {
-		g->AppendReanimInstance(firstDeferredFollowerInstance, BlendMode::Alpha);
+		g->AppendReanimInstance(firstDeferredFollowerInstance, baseBlend);
 	}
 	for (const InstanceRecord& rec : deferredFollowerOverflow) {
-		g->AppendReanimInstance(rec, BlendMode::Alpha);
+		g->AppendReanimInstance(rec, baseBlend);
 	}
 }
 
 void Animator::DrawInternal(Graphics* g, float baseX, float baseY, float Scale) const {
 	if (!mReanim) return;
+	const BlendMode baseBlend = !mEnableWashedOutEffect ? BlendMode::Alpha
+		: mUseLessWashedOutEffect ? BlendMode::LessWashedOut : BlendMode::WashedOut;
 
 	// 生产路径统一递归实例化整棵 Animator 附件树；慢路径只由 -NoInstance 显式保留，
 	// 用作视觉 A/B 与故障兜底，不再因存在子 Animator 让整棵父级退化成逐顶点提交。
@@ -668,9 +672,9 @@ void Animator::DrawInternal(Graphics* g, float baseX, float baseY, float Scale) 
 			float combinedAlpha = transform.a * mAlpha;
 			float baseAlpha = std::clamp(combinedAlpha, 0.0f, 1.0f);
 
-			// 正常绘制
+			// 模仿者直接替换本体采样颜色，避免在半透明边缘重复叠绘产生白边。
 			glm::vec4 baseColor(255.0f, 255.0f, 255.0f, baseAlpha * 255.0f);
-			g->DrawTextureMatrix(image, mat, 0.0f, 0.0f, baseColor, BlendMode::Alpha);
+			g->DrawTextureMatrix(image, mat, 0.0f, 0.0f, baseColor, baseBlend);
 
 			// 覆盖层效果（Alpha 混合，颜色需乘以基础透明度）。
 			// 必须排在下面的发光之前：高 alpha 的覆盖层（如冰冻减速 a=240）若画在发光之后，
@@ -730,7 +734,7 @@ void Animator::DrawInternal(Graphics* g, float baseX, float baseY, float Scale) 
 			}
 			else {
 				g->DrawTextureMatrix(followerImage, mat, 0.0f, 0.0f,
-					color, BlendMode::Alpha);
+					color, baseBlend);
 			}
 		}
 
@@ -758,11 +762,11 @@ void Animator::DrawInternal(Graphics* g, float baseX, float baseY, float Scale) 
 	if (hasDeferredFollowerDraw) {
 		g->DrawTextureMatrix(firstDeferredFollowerDraw.image,
 			firstDeferredFollowerDraw.transform, 0.0f, 0.0f,
-			firstDeferredFollowerDraw.color, BlendMode::Alpha);
+			firstDeferredFollowerDraw.color, baseBlend);
 	}
 	for (const DeferredFollowerDraw& draw : deferredFollowerOverflow) {
 		g->DrawTextureMatrix(draw.image, draw.transform, 0.0f, 0.0f,
-			draw.color, BlendMode::Alpha);
+			draw.color, baseBlend);
 	}
 }
 
@@ -898,6 +902,18 @@ void Animator::SetTrackFollowerImage(const std::string& trackName, const Texture
 		sparse.mFollowerScaleY = scaleY;
 		sparse.mFollowerDrawAfterAllTracks = drawAfterAllTracks;
 		if (!image) sparse.mFollowerVisible = false;
+	}
+}
+
+void Animator::EnableWashedOutEffect(bool enable, bool lighter) {
+	mEnableWashedOutEffect = enable;
+	mUseLessWashedOutEffect = enable && lighter;
+
+	for (auto& sparse : mSparseTrackStates) {
+		for (auto& weakChild : sparse.mAttachedReanims) {
+			auto child = weakChild.lock();
+			if (child) child->EnableWashedOutEffect(enable, lighter);
+		}
 	}
 }
 

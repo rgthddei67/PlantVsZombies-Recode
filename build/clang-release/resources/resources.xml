@@ -74,6 +74,7 @@
     <Image>./resources/image/UI/card_bk.jpg</Image>
     <Image>./resources/image/UI/SeedBank_Long.png</Image>
     <Image>./resources/image/UI/SeedChooser_Background.png</Image>
+    <Image>./resources/image/UI/SeedChooser_ImitaterAddOn.png</Image>
     <Image>./resources/image/UI/SeedChooser_Button.png</Image>
     <Image>./resources/image/UI/SeedChooser_Button_Disabled.png</Image>
     <Image>./resources/image/UI/SeedPacketNormal.png</Image>
@@ -291,6 +292,8 @@
     <Texture>./resources/particles/Dust_puffs.png</Texture>
     <Texture Column="6" Row="1">./resources/particles/waterparticle.png</Texture>
     <Texture>./resources/particles/WindStreak.png</Texture>
+    <Texture>./resources/particles/ImitaterClouds.png</Texture>
+    <Texture Column="8" Row="1">./resources/particles/ImitaterPuffs.png</Texture>
     <Texture>./resources/image/reanim/Rain_circle.png</Texture>
     <Texture>./resources/image/reanim/Rain_splash1.png</Texture>
     <Texture>./resources/image/reanim/Rain_splash2.png</Texture>
@@ -487,6 +490,7 @@
     <Reanimation name="Melonpult">./resources/reanim/Melonpult.reanim</Reanimation>
     <Reanimation name="WinterMelon">./resources/reanim/WinterMelon.reanim</Reanimation>
     <Reanimation name="CobCannon">./resources/reanim/CobCannon.reanim</Reanimation>
+    <Reanimation name="Imitater">./resources/reanim/Imitater.reanim</Reanimation>
 
     <Reanimation name="NormalZombie">./resources/reanim/NormalZombie.reanim</Reanimation>
     <Reanimation name="RoofMarshalZombie">./resources/reanim/RoofMarshal.reanim</Reanimation>

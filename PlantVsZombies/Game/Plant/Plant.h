@@ -79,6 +79,8 @@ public:
 	int GetSortingKey() const override { return this->mRow; }
 
 	virtual void PlantUpdate();		// 子类重写Update用这个
+	/** 返回占层、占格与落种契约使用的类型；模仿者占位时返回其目标。 */
+	virtual PlantType GetPlacementType() const { return mPlantType; }
 	/** 绘制需要夹在承载/普通层与本体前层之间的格子背景；默认植物没有这一层。 */
 	virtual void DrawStackBackground(Graphics*) {}
 	// 统一结算植物承伤；source 必填，使僵尸增伤只作用于僵尸来源。
@@ -150,6 +152,9 @@ public:
 	Vector GetGridMoveVisualOffset() const { return mGridMoveVisualOffset; }
 	/** 返回 gamedata 配置的品种静态视觉偏移，不包含任何逐帧动态量。 */
 	Vector GetStaticVisualOffset() const { return mVisualOffset; }
+	/** 为模仿者变身后的目标启用原版泛白滤镜；状态进入通用植物存档。 */
+	virtual void SetImitatedAppearance(bool imitated = true);
+	bool IsImitated() const { return mIsImitated; }
 	void SetPosition(const Vector& position);
 	/**
 	 * 立即把逻辑格与碰撞箱切到目标格，再用纯视觉偏移平滑追赶。
@@ -221,6 +226,8 @@ public:
 	virtual void RestoreSleepState(bool sleep, float wakeUpTimeRemaining);
 
 protected:
+	friend class Board;
+	bool mIsImitated = false; // 变身后目标的持久视觉身份；不改变实际 PlantType
 	/** 推进阵风换格的纯视觉插值；暂停时 DeltaTime 为 0，逻辑占格不受影响。 */
 	void UpdateGridMoveVisual();
 	/** 推进压扁残影的保留与渐隐计时，到期后销毁。 */
@@ -239,6 +246,8 @@ protected:
 	void ApplySquishedPresentation();
 	/** 仅在格子仍指向自身 ID 时释放所属占格层，避免误清后来种下的植物。 */
 	void ReleaseGridSlot();
+	/** Board 原子替换实体后回收旧对象；格位和同 ID 注册关系已移交，禁止再次释放。 */
+	void RetireAfterReplacement();
 	/** 雨势对正向植物行动的倍率；不包含生存攻速词条。 */
 	float GetWeatherActionSpeedMultiplier() const;
 	/** 仅供攻击/生产/成长/恢复计时使用，禁止替代整个 Plant::Update 的 deltaTime。 */
