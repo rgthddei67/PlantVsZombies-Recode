@@ -5454,12 +5454,15 @@ int Board::RemoveLaddersInRow(int row)
 }
 
 IceWall* Board::AddIceWall(int row, float centerX,
-	int health, int maxHealth, float thawDamageRemainder)
+	int health, int maxHealth, float thawDamageRemainder,
+	bool constructionComplete, int builderZombieID)
 {
-	if (row < 0 || row >= mRows || GetIceWall()) return nullptr;
+	if (row < 0 || row >= mRows || GetIceWall()
+		|| (!constructionComplete && builderZombieID == NULL_ZOMBIE_ID)) return nullptr;
 	auto wall = GameObjectManager::GetInstance().CreateGameObjectAsShared<IceWall>(
 		LAYER_GAME_ZOMBIE, this, row, centerX,
-		health, maxHealth, thawDamageRemainder);
+		health, maxHealth, thawDamageRemainder,
+		constructionComplete, builderZombieID);
 	if (!wall) return nullptr;
 	mIceWall = wall;
 	return wall.get();

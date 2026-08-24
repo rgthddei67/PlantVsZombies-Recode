@@ -1825,7 +1825,9 @@ bool TestDriver::ExecuteCurrent() {
 		if (!board->AddIceWall(row, cmd.value("x", 700.0f),
 			cmd.value("health", IceWall::kDefaultHealth),
 			cmd.value("maxHealth", IceWall::kDefaultHealth),
-			cmd.value("thawDamageRemainder", 0.0f))) {
+			cmd.value("thawDamageRemainder", 0.0f),
+			cmd.value("constructionComplete", true),
+			cmd.value("builderZombieID", NULL_ZOMBIE_ID))) {
 			Fail("add_ice_wall: Board 未能创建唯一冰墙");
 			return false;
 		}
@@ -4874,6 +4876,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "centerXInt", static_cast<int>(std::lround(wall->GetCenterX())) },
 			{ "health", wall->GetHealth() },
 			{ "maxHealth", wall->GetMaxHealth() },
+			{ "constructionComplete", wall->IsConstructionComplete() },
+			{ "builderZombieID", wall->GetBuilderZombieID() },
 			{ "thawDamageRemainderOn1000", static_cast<int>(std::lround(
 				wall->GetThawDamageRemainder() * 1000.0f)) },
 			{ "aimXInt", static_cast<int>(std::lround(
@@ -5719,6 +5723,19 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			zombieState["buildWallCenterXInt"] = static_cast<int>(std::lround(
 				engineer->GetBuildWallCenterX()));
 			zombieState["constructionUsed"] = engineer->HasUsedConstruction();
+			if (const ColliderComponent* collider = engineer->GetColliderComponent();
+				collider && board->GetFrozenColumnCount() > 0) {
+				const SDL_FRect bounds = collider->GetBoundingBox();
+				const float battlefieldRightX = CELL_INITALIZE_POS_X
+					+ static_cast<float>(board->mColumns) * CELL_COLLIDER_SIZE_X;
+				const float frontierX = board->GetCellCenterPosition(
+					engineer->mRow, board->GetFirstFrozenColumn()).x
+					- CELL_COLLIDER_SIZE_X * 0.5f;
+				zombieState["fullyEnteredBattlefield"] =
+					bounds.x + bounds.w <= battlefieldRightX;
+				zombieState["frontEdgeToFrostFrontierInt"] =
+					static_cast<int>(std::lround(bounds.x - frontierX));
+			}
 		}
 		// 专项脚本中的异品种靶子可按语义类型稳定取证；同品种多只时仍使用 zombies 全量数组。
 		out["zombiesByType"][ZombieTypeName(z->mZombieType)] = zombieState;

@@ -3,7 +3,7 @@
 #include "ConeZombie.h"
 
 /**
- * 冰墙工程师：到达冬日花园霜线后进行可中断施工，完工后留下与自身生命独立的唯一冰墙。
+ * 冰墙工程师：完全进入冬日花园后就地部署可中断施工墙，完工后墙体独立向房屋推进。
  * 行走、啃食、断肢断头和死亡事件全部复用路障僵尸时间轴。
  */
 class IceWallEngineerZombie final : public ConeZombie {
@@ -19,6 +19,7 @@ public:
 	void SaveExtraData(nlohmann::json& j) const override;
 	void LoadExtraData(const nlohmann::json& j) override;
 	void ZombieItemUpdate() const override;
+	void Update() override;
 
 	ConstructionPhase GetConstructionPhase() const { return mConstructionPhase; }
 	float GetConstructionRemaining() const { return mConstructionRemaining; }
@@ -41,7 +42,7 @@ protected:
 private:
 	bool CanBeginConstruction() const;
 	bool ShouldAbortConstruction() const;
-	void BeginConstruction(float frontierX);
+	bool BeginConstruction(float wallCenterX);
 	void CancelConstruction(bool consumeAbility);
 	void CompleteConstruction();
 	void ApplyEngineerEquipmentTextures() const;

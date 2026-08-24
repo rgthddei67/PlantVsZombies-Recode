@@ -1119,10 +1119,12 @@ public:
 	bool HasLadderAt(int row, int column) { return GetLadderAt(row, column) != nullptr; }
 	/** 移除指定格扶梯；返回是否确实移除。 */
 	bool RemoveLadderAt(int row, int column);
-	/** 创建全场唯一冰墙；已有活动墙时返回 nullptr，不覆盖其状态。 */
+	/** 创建或恢复全场唯一冰墙；未完成墙必须携带有效施工者 ID。 */
 	IceWall* AddIceWall(int row, float centerX,
 		int health = 1800, int maxHealth = 1800,
-		float thawDamageRemainder = 0.0f);
+		float thawDamageRemainder = 0.0f,
+		bool constructionComplete = true,
+		int builderZombieID = NULL_ZOMBIE_ID);
 	/** 返回活动冰墙并惰性清理失效弱引用。 */
 	IceWall* GetIceWall();
 	IceWall* GetIceWallInRow(int row);

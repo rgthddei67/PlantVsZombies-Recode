@@ -3,6 +3,7 @@
 #include "Board.h"
 #include "GameObjectManager.h"
 #include "Plant/Plant.h"
+#include "Zombie/Zombie.h"
 #include "../DeltaTime.h"
 #include "../Graphics.h"
 #include "../ParticleSystem/ParticleSystem.h"
@@ -22,13 +23,16 @@ namespace {
 }
 
 IceWall::IceWall(Board* board, int row, float centerX,
-	int health, int maxHealth, float thawDamageRemainder)
+	int health, int maxHealth, float thawDamageRemainder,
+	bool constructionComplete, int builderZombieID)
 	: GameObject(ObjectType::OBJECT_NONE)
 	, mBoard(board)
 	, mRow(row)
 	, mHealth(std::max(1, health))
 	, mMaxHealth(std::max(1, maxHealth))
 	, mThawDamageRemainder(std::clamp(thawDamageRemainder, 0.0f, 0.999999f))
+	, mConstructionComplete(constructionComplete)
+	, mBuilderZombieID(constructionComplete ? NULL_ZOMBIE_ID : builderZombieID)
 {
 	mHealth = std::min(mHealth, mMaxHealth);
 	SetTag("IceWall");
@@ -45,6 +49,15 @@ void IceWall::Update()
 {
 	GameObject::Update();
 	if (!mBoard || !GetTransform() || !IsActive()) return;
+	if (!mConstructionComplete) {
+		const Zombie* builder = mBoard->mEntityRegistry.GetZombie(mBuilderZombieID);
+		if (!builder || !builder->IsActive() || builder->IsDying()
+			|| builder->IsMindControlled() || !builder->HasHead()
+			|| mBoard->GetFrozenColumnCount() <= 0) {
+			Break();
+		}
+		return;
+	}
 
 	const float deltaTime = DeltaTime::GetDeltaTime();
 	const bool thawing = mBoard->GetColdWavePhase() == ColdWavePhase::THAWING
@@ -64,6 +77,12 @@ void IceWall::Update()
 	const float nextX = std::max(stopCenterX, currentX - kWallMoveSpeed * deltaTime);
 	GetTransform()->SetPosition(Vector(nextX, 0.0f));
 	if (nextX <= kWallRemoveCenterX) Break();
+}
+
+bool IceWall::IsUnderConstructionBy(int zombieID) const
+{
+	return IsActive() && !mConstructionComplete
+		&& zombieID != NULL_ZOMBIE_ID && mBuilderZombieID == zombieID;
 }
 
 void IceWall::Draw(Graphics* g)
@@ -96,6 +115,26 @@ Vector IceWall::GetProjectileAimPosition() const
 	const float bottomY = mBoard->GetZombieCollisionY(mRow, GetCenterX())
 		+ kWallDrawBottomOffsetY;
 	return Vector(GetCenterX(), bottomY - kProjectileAimHeight);
+}
+
+bool IceWall::CompleteConstruction(int builderZombieID)
+{
+	if (!IsUnderConstructionBy(builderZombieID)) return false;
+	mConstructionComplete = true;
+	mBuilderZombieID = NULL_ZOMBIE_ID;
+	mHealth = mMaxHealth;
+	mThawDamageRemainder = 0.0f;
+	if (g_particleSystem) {
+		g_particleSystem->EmitEffect("IceWallBuild", GetProjectileAimPosition());
+	}
+	return true;
+}
+
+bool IceWall::AbortConstruction(int builderZombieID)
+{
+	if (!IsUnderConstructionBy(builderZombieID)) return false;
+	Break();
+	return true;
 }
 
 int IceWall::TakeProjectileDamage(int damage, bool fireDamage)
@@ -170,6 +209,7 @@ float IceWall::FindPlantStopCenterX() const
 const std::string& IceWall::GetTextureKey() const
 {
 	using namespace ResourceKeys::Textures;
+	if (!mConstructionComplete) return IMAGE_ICE_WALL_CRACKED2;
 	if (mHealth * 3 <= mMaxHealth) return IMAGE_ICE_WALL_CRACKED2;
 	if (mHealth * 3 <= mMaxHealth * 2) return IMAGE_ICE_WALL_CRACKED1;
 	return IMAGE_ICE_WALL;

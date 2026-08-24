@@ -11,7 +11,7 @@
 namespace {
 	constexpr int kEngineerBodyHealth = 800;              // 工程师本体生命；威胁主体仍是施工而非纯耐久
 	constexpr float kConstructionDuration = 4.0f;         // 从停步到冰墙原子提交的施工游戏秒数
-	constexpr float kFrontierTriggerPadding = 18.0f;      // 僵尸前缘越入霜线多少像素后开始施工
+	constexpr float kConstructionWallGap = 58.0f;         // 墙与 collider 前缘错开以露出施工装饰，单位 px
 	constexpr float kBuildParticleInterval = 0.45f;       // 施工碎冰反馈间隔，单位游戏秒
 }
 
@@ -30,27 +30,41 @@ void IceWallEngineerZombie::SetupZombie()
 	if (mIsPreview) PlayTrack("anim_idle");
 }
 
+void IceWallEngineerZombie::Update()
+{
+	ConeZombie::Update();
+	// 基类会在冻结、黄油和麻痹时跳过 ZombieUpdate；墙体若在此期间碎裂，
+	// 施工者仍须当帧收口，避免存档留下 BUILDING 但无半成品墙的组合。
+	if (mConstructionPhase == ConstructionPhase::BUILDING
+		&& ShouldAbortConstruction()) {
+		CancelConstruction(true);
+	}
+}
+
 void IceWallEngineerZombie::ZombieMove(float scaledDelta, Transform* transform)
 {
 	if (!transform) return;
 	if (mConstructionPhase == ConstructionPhase::BUILDING) {
-		if (ShouldAbortConstruction()) CancelConstruction(false);
+		if (ShouldAbortConstruction()) CancelConstruction(true);
 		else return;
 	}
 	if (!mConstructionUsed && CanBeginConstruction() && mCollider) {
-		const int firstFrozen = mBoard->GetFirstFrozenColumn();
-		const float frontierX = mBoard->GetCellCenterPosition(mRow, firstFrozen).x
-			- CELL_COLLIDER_SIZE_X * 0.5f;
 		const SDL_FRect bounds = mCollider->GetBoundingBox();
-		if (bounds.x <= frontierX + kFrontierTriggerPadding) {
+		const float battlefieldRightX = CELL_INITALIZE_POS_X
+			+ static_cast<float>(mBoard->mColumns) * CELL_COLLIDER_SIZE_X;
+		if (bounds.x + bounds.w <= battlefieldRightX) {
 			if (mBoard->HasIceWall()) {
-				// 到达施工点时已有全场唯一墙，本工程师不在墙碎后回头补建。
+				// 完全进场时已有全场唯一墙，本工程师不在旧墙破裂后补建。
 				mConstructionUsed = true;
 				mConstructionPhase = ConstructionPhase::COMPLETED;
 			}
 			else {
-				BeginConstruction(frontierX);
-				return;
+				const float desiredCenterX = bounds.x - kConstructionWallGap
+					- IceWall::kBlockHalfWidth;
+				const float wallCenterX = std::clamp(desiredCenterX,
+					CELL_INITALIZE_POS_X + IceWall::kBlockHalfWidth,
+					battlefieldRightX - IceWall::kBlockHalfWidth);
+				if (BeginConstruction(wallCenterX)) return;
 			}
 		}
 	}
@@ -61,7 +75,7 @@ void IceWallEngineerZombie::ZombieUpdate(float scaledTime)
 {
 	if (mConstructionPhase != ConstructionPhase::BUILDING) return;
 	if (ShouldAbortConstruction()) {
-		CancelConstruction(false);
+		CancelConstruction(true);
 		return;
 	}
 
@@ -88,23 +102,34 @@ bool IceWallEngineerZombie::CanBeginConstruction() const
 
 bool IceWallEngineerZombie::ShouldAbortConstruction() const
 {
-	return !mBoard || !IsActive() || mIsDying || IsMindControlled() || !HasHead()
+	if (!mBoard || !IsActive() || mIsDying || IsMindControlled() || !HasHead()
 		|| !mBoard->SupportsWinterTemperature()
-		|| mBoard->GetFrozenColumnCount() <= 0 || mBoard->HasIceWall();
+		|| mBoard->GetFrozenColumnCount() <= 0) return true;
+	const IceWall* wall = mBoard->GetIceWall();
+	return !wall || !wall->IsUnderConstructionBy(mZombieID);
 }
 
-void IceWallEngineerZombie::BeginConstruction(float frontierX)
+bool IceWallEngineerZombie::BeginConstruction(float wallCenterX)
 {
+	if (!mBoard || !mBoard->AddIceWall(mRow, wallCenterX,
+		IceWall::kConstructionHealth, IceWall::kDefaultHealth, 0.0f,
+		false, mZombieID)) return false;
 	mConstructionPhase = ConstructionPhase::BUILDING;
 	mConstructionRemaining = kConstructionDuration;
-	mBuildWallCenterX = frontierX + IceWall::kBlockHalfWidth;
+	mBuildWallCenterX = wallCenterX;
 	mBuildParticleTimer = 0.0f;
 	PlayTrack("anim_idle", 1.0f, 0.1f);
+	return true;
 }
 
 void IceWallEngineerZombie::CancelConstruction(bool consumeAbility)
 {
 	if (mConstructionPhase != ConstructionPhase::BUILDING) return;
+	if (mBoard) {
+		if (IceWall* wall = mBoard->GetIceWall()) {
+			wall->AbortConstruction(mZombieID);
+		}
+	}
 	mConstructionUsed = mConstructionUsed || consumeAbility;
 	mConstructionPhase = mConstructionUsed
 		? ConstructionPhase::COMPLETED : ConstructionPhase::MOVING;
@@ -116,11 +141,12 @@ void IceWallEngineerZombie::CancelConstruction(bool consumeAbility)
 void IceWallEngineerZombie::CompleteConstruction()
 {
 	if (ShouldAbortConstruction()) {
-		CancelConstruction(false);
+		CancelConstruction(true);
 		return;
 	}
-	if (!mBoard->AddIceWall(mRow, mBuildWallCenterX)) {
-		CancelConstruction(false);
+	IceWall* wall = mBoard->GetIceWall();
+	if (!wall || !wall->CompleteConstruction(mZombieID)) {
+		CancelConstruction(true);
 		return;
 	}
 	mConstructionUsed = true;

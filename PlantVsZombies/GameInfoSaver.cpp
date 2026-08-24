@@ -646,7 +646,7 @@ bool GameInfoSaver::SerializeLevelDataToPath(Board* board, CardSlotManager* mana
 	}
 	if (!laddersArr.empty()) j["ladders"] = laddersArr;
 
-	// 冰墙与工程师生命独立；全场唯一实体保存连续位置、生命和回暖小数伤害余量。
+	// 完整墙与工程师生命独立；施工墙额外保存完成态和施工者 ID，用于读档后继续或孤儿回收。
 	if (auto wall = board->mIceWall.lock(); wall && wall->IsActive()) {
 		j["iceWall"] = {
 			{ "row", wall->GetRow() },
@@ -654,6 +654,8 @@ bool GameInfoSaver::SerializeLevelDataToPath(Board* board, CardSlotManager* mana
 			{ "health", wall->GetHealth() },
 			{ "maxHealth", wall->GetMaxHealth() },
 			{ "thawDamageRemainder", wall->GetThawDamageRemainder() },
+			{ "constructionComplete", wall->IsConstructionComplete() },
+			{ "builderZombieID", wall->GetBuilderZombieID() },
 		};
 	}
 
@@ -1430,12 +1432,14 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 			static_cast<LadderStyle>(savedStyle));
 	}
 
-	// 旧档无 iceWall 字段时保持空；损坏档由 Board 行门禁和 IceWall 构造夹紧。
+	// 旧档无施工字段时按既有完整墙恢复；未完成墙由施工者 ID 在首帧继续或孤儿回收。
 	if (const auto it = j.find("iceWall"); it != j.end() && it->is_object()) {
 		board->AddIceWall(it->value("row", 0), it->value("centerX", 0.0f),
 			it->value("health", IceWall::kDefaultHealth),
 			it->value("maxHealth", IceWall::kDefaultHealth),
-			it->value("thawDamageRemainder", 0.0f));
+			it->value("thawDamageRemainder", 0.0f),
+			it->value("constructionComplete", true),
+			it->value("builderZombieID", NULL_ZOMBIE_ID));
 	}
 
 	// 恢复生存轮间冷却快照（见 SaveLevelData 同名字段注释）。必须在 ChooseCardComplete 还原冷却之前就位，
