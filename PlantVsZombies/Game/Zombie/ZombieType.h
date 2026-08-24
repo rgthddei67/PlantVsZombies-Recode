@@ -73,6 +73,7 @@ enum class ZombieType {
 	ZOMBIE_HIJACKER,		// 劫持者僵尸：75% 雷荷锁定后以当前生命生成全场处决线
 	ZOMBIE_HEALER,			// 急救员僵尸：按伤员密度自动切换群体或单体治疗
 	ZOMBIE_GROUNDING,		// 接地僵尸：天线路障为满电推演增加植物专属引导候选
+	ZOMBIE_BOBSLED_TEAM,	// 雪橇车队：四人共乘冻土雪橇，碰撞后跨行散开
 
 	// ↓ 哨兵：置于全部已实现僵尸之后，使 [0,NUM_ZOMBIE_TYPES) 只覆盖已实现类型，
 	//   生存模式随机抽取据此绝不会抽到下方未实现僵尸。

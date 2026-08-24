@@ -17,7 +17,7 @@ metadata:
 
 奖励顺序固定为 7-1 雪锚果、7-2 融雪投手、7-4 伏霜雷、7-6 警铃草、7-7 炉芯花；7-3、7-5、7-8 和 7-9 无植物奖励。对应的首次可用关为 7-2、7-3、7-5、7-7、7-8。7-6 首次让气象干扰僵尸在玩家没有警铃草时完整生效一次；7-7 首次让玩家只凭警铃草处理冰像处刑者，通关后才获得炉芯花。
 
-完整设计规格见 `docs/superpowers/specs/2026-08-24-winter-area-plants-design.md`。尚未实现的四株植物和五种僵尸不得用临时枚举或伪出怪占位。
+完整设计规格见 `docs/superpowers/specs/2026-08-24-winter-area-plants-design.md`。尚未实现的四株植物和四种僵尸不得用临时枚举或伪出怪占位；雪橇车队已按下方真实契约接入。
 
 ## 雪锚果首版契约
 
@@ -30,3 +30,7 @@ metadata:
 雪锚果已作为独立 `SnowAnchorNut` / `PLANT_SNOWANCHORNUT` 接入，使用独立卡图、reanim 和普通/锚定各三档生命贴图；可复现资源由 `scripts/generate_snow_anchor_nut_assets.ps1` 生成。7-1 奖励已写入显式奖励表。实现没有预置五种僵尸枚举，正式敌人接入时消费 `WinterGroundImpactResponse` 即可。
 
 `smoke_snow_anchor_nut.json` 共 82 条命令，覆盖资源注册与键加载、100/30/3000 调参、普通植物中性响应、冻土资格、冻结格拒种、雪橇/地裂两种原子响应、重复请求、三档受损材质、解冻/再冻结、快照往返与 7-1 奖杯奖励。`clang-release` 全量 LTO 构建零警告，主程序 Win7 导入审计通过 378 项，`SaveSchemaTests` 通过；专项在当前桌面可见的默认 Vulkan 实例路径和 `-NoInstance` 路径均执行至 command 81、exit 0、`status=passed`、`script finished OK`，两路径截图均目验锚爪、裂纹和解冻回切。既有 `smoke_winter_garden.json` 同次 Release 默认 Vulkan 可见回归执行 144 条命令至 command 143 并通过，暖态、霜线、暴雪和读档截图正常。
+
+## 2026-08-24 雪橇车队实现
+
+`ZOMBIE_BOBSLED_TEAM` 已接入 7-2、7-3、7-5、7-7、7-8、7-9。一次正式候选生成队长与三名跟随者，雪锚果的 `WinterGroundImpactResponse` 现已由真实车辆碰撞消费：普通路径跨行散开，锚定路径四人保持在植物右侧同一行。完整行为、资源、存档和验证证据见 `project_pvz_bobsled_team_zombie.md`。

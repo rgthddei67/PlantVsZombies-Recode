@@ -106,6 +106,7 @@
 #include "../Zombie/HijackerZombie.h"
 #include "../Zombie/HealerZombie.h"
 #include "../Zombie/GroundingZombie.h"
+#include "../Zombie/BobsledTeamZombie.h"
 
 namespace {
 	template<typename T>
@@ -645,6 +646,12 @@ void GameDataManager::InitializeHardcodedData() {
 		AnimationType::ANIM_GROUNDING_ZOMBIE,
 		ResourceKeys::Reanimations::REANIM_GROUNDING_ZOMBIE,
 		&MakeZombie<GroundingZombie>);
+
+	// 一次正式出怪由队长在首更新补齐三名同类型跟随者；跟随者不重复消费波次预算。
+	RegisterZombie(ZombieType::ZOMBIE_BOBSLED_TEAM, "ZOMBIE_BOBSLED_TEAM",
+		AnimationType::ANIM_BOBSLED_TEAM_ZOMBIE,
+		ResourceKeys::Reanimations::REANIM_BOBSLED_TEAM_ZOMBIE,
+		&MakeZombie<BobsledTeamZombie>);
 
 	// ==================== 非植物/僵尸动画映射 ====================
 	mAnimToString[AnimationType::ANIM_SUN] = ResourceKeys::Reanimations::REANIM_SUN;

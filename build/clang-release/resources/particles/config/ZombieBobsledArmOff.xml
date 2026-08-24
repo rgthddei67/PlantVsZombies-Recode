@@ -1,0 +1,15 @@
+<Emitter>
+  <Name>ZombieBobsledArmOff</Name>
+  <SpawnMinActive>1</SpawnMinActive>
+  <SpawnMaxLaunched>1</SpawnMaxLaunched>
+  <SpawnRate>0</SpawnRate>
+  <ParticleDuration>1.0</ParticleDuration>
+  <ParticleAlpha>1,90 0</ParticleAlpha>
+  <ParticleScale>.72</ParticleScale>
+  <LaunchSpeed>[62 98]</LaunchSpeed>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <ParticleGravity>142</ParticleGravity>
+  <ParticleSpinSpeed>[-240 240]</ParticleSpinSpeed>
+  <SystemDuration>1.1</SystemDuration>
+  <Image>IMAGE_ZOMBIE_BOBSLED_OUTERARM_HAND</Image>
+</Emitter>

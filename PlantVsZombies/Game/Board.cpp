@@ -236,6 +236,7 @@ namespace {
 	constexpr int kHijackerMaxPerWave = 2;                // 每个正式波次最多成功生成的劫持者数量
 	constexpr int kHijackerSpawnCooldownWaves = 2;        // 成功处决后封锁的后续完整正式波次数
 	constexpr int kGroundingZombieMaxPerWave = 2;         // 每个正式波次最多成功生成的接地僵尸数量
+	constexpr int kBobsledTeamMaxPerWave = 1;             // 一次候选四人同乘；正式波次最多接纳一队
 	constexpr int kHijackerTutorialLevel = 49;             // 内部 49 即 6-4，使用第七波固定单体教学
 	constexpr int kHijackerTutorialWave = 7;               // 6-4 首次登场的固定教学波
 	constexpr int kHealerTutorialLevel = 51;               // 内部 51 即 6-6，使用第三波额外保底
@@ -2449,6 +2450,12 @@ void Board::RestoreGroundingZombieWaveSpawnCount(int count)
 		count, 0, kGroundingZombieMaxPerWave);
 }
 
+/** 夹紧并恢复当前波已经正式生成的雪橇车队数量；三名跟随者不计入此值。 */
+void Board::RestoreBobsledTeamWaveSpawnCount(int count)
+{
+	mBobsledTeamsSpawnedThisWave = std::clamp(count, 0, kBobsledTeamMaxPerWave);
+}
+
 /** 清空全部台风派生状态；中雨、小雨、晴天和旧档默认都以此为单位元。 */
 void Board::StopTyphoon()
 {
@@ -2649,6 +2656,12 @@ ZombieType Board::ResolveWaveZombieType(ZombieType selected, int mutationRoll)
 			return ZombieType::NUM_ZOMBIE_TYPES;
 		}
 		++mGroundingZombiesSpawnedThisWave;
+	}
+	if (selected == ZombieType::ZOMBIE_BOBSLED_TEAM) {
+		if (mBobsledTeamsSpawnedThisWave >= kBobsledTeamMaxPerWave) {
+			return ZombieType::NUM_ZOMBIE_TYPES;
+		}
+		++mBobsledTeamsSpawnedThisWave;
 	}
 	return ResolveRainMutationType(selected, mutationRoll);
 }
@@ -4985,6 +4998,7 @@ bool Board::CanZombieTypeSpawnInPool(ZombieType type) const
 	case ZombieType::ZOMBIE_ELITE_POGO:
 	case ZombieType::ZOMBIE_DIGGER:
 	case ZombieType::ZOMBIE_ELITE_DIGGER:
+	case ZombieType::ZOMBIE_BOBSLED_TEAM:
 	case ZombieType::NUM_ZOMBIE_TYPES:
 		return false;
 	default:
@@ -7042,6 +7056,7 @@ void Board::SummonNextWave()
 	mInsulatorsSpawnedThisWave = 0;
 	mHijackersSpawnedThisWave = 0;
 	mGroundingZombiesSpawnedThisWave = 0;
+	mBobsledTeamsSpawnedThisWave = 0;
 	mMistFuelAssignedThisWave = 0;
 	if (mCurrentWave == 1)
 	{
@@ -7671,6 +7686,7 @@ void Board::OnSurvivalRoundClear()
 	mInsulatorsSpawnedThisWave = 0;
 	mHijackersSpawnedThisWave = 0;
 	mGroundingZombiesSpawnedThisWave = 0;
+	mBobsledTeamsSpawnedThisWave = 0;
 	RefreshZombieWeatherSpeeds();
 
 	// 重算难度（解锁更强僵尸）+ 刷新关卡名

@@ -63,6 +63,7 @@
 #include "../Zombie/ZamboniCharred.h"
 #include "../Zombie/ZamboniZombie.h"
 #include "../Zombie/GildedZamboniZombie.h"
+#include "../Zombie/BobsledTeamZombie.h"
 #include "../Zombie/EliteDancerZombie.h"
 #include "../Zombie/Polevaulter.h"
 #include "../Zombie/DolphinRiderZombie.h"
@@ -374,7 +375,7 @@ namespace {
 		ZT(ZOMBIE_WALLNUT_HEAD), ZT(ZOMBIE_JALAPENO_HEAD), ZT(ZOMBIE_GATLING_HEAD),
 		ZT(ZOMBIE_SQUASH_HEAD), ZT(ZOMBIE_TALLNUT_HEAD), ZT(ZOMBIE_REDEYE_GARGANTUAR), ZT(ZOMBIE_ROOF_MARSHAL),
 		ZT(ZOMBIE_INSULATOR), ZT(ZOMBIE_HIJACKER), ZT(ZOMBIE_HEALER),
-		ZT(ZOMBIE_GROUNDING),
+		ZT(ZOMBIE_GROUNDING), ZT(ZOMBIE_BOBSLED_TEAM),
 	};
 #undef ZT
 #define PK(n) { #n, PerkType::n }
@@ -2922,6 +2923,40 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		{ "shockPoseLoaded", ResourceManager::GetInstance().GetTexture(
 			"IMAGE_REANIM_GROUNDINGSHROOM_SHOCK", false) != nullptr },
 	};
+	out["bobsledTeamResources"] = {
+		{ "reanimationLoaded", ResourceManager::GetInstance().HasReanimation(
+			ResourceKeys::Reanimations::REANIM_BOBSLED_TEAM_ZOMBIE) },
+		{ "insideLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_ZOMBIE_BOBSLED_INSIDE, false) != nullptr },
+		{ "vehicleTexturesLoaded",
+			ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_ZOMBIE_BOBSLED1, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_ZOMBIE_BOBSLED2, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_ZOMBIE_BOBSLED3, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_ZOMBIE_BOBSLED4, false) != nullptr },
+		{ "brokenArmLoaded",
+			ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_ZOMBIE_BOBSLED_OUTERARM_UPPER2, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_ZOMBIE_BOBSLED_OUTERARM_HAND, false) != nullptr },
+		{ "headParticleTextureLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Particles::PARTICLE_ZOMBIE_BOBSLEDHEAD, false) != nullptr },
+	};
+	const Vector bobsledOffset = GameDataManager::GetInstance().GetZombieOffset(
+		ZombieType::ZOMBIE_BOBSLED_TEAM);
+	out["bobsledTeamGameData"] = {
+		{ "weight", GameDataManager::GetInstance().GetZombieWeight(
+			ZombieType::ZOMBIE_BOBSLED_TEAM) },
+		{ "appearWave", GameDataManager::GetInstance().GetZombieAppearWave(
+			ZombieType::ZOMBIE_BOBSLED_TEAM) },
+		{ "survivalRound", GameDataManager::GetInstance().GetZombieSurvivalRound(
+			ZombieType::ZOMBIE_BOBSLED_TEAM) },
+		{ "offsetXInt", static_cast<int>(std::lround(bobsledOffset.x)) },
+		{ "offsetYInt", static_cast<int>(std::lround(bobsledOffset.y)) },
+	};
 	out["lightningRodPotResources"] = {
 		{ "reanimationLoaded", ResourceManager::GetInstance().HasReanimation(
 			ResourceKeys::Reanimations::REANIM_LIGHTNINGRODPOT) },
@@ -3303,6 +3338,13 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				previewState["healerGearTextureKey"] =
 					healer->GetTreatmentGearTextureKey();
 				previewState["healerGearVisible"] = healer->IsTreatmentGearVisible();
+			}
+			if (auto* bobsled = dynamic_cast<BobsledTeamZombie*>(preview)) {
+				previewState["bobsledRole"] = bobsled->GetBobsledRole()
+					== BobsledTeamZombie::Role::LEADER ? "LEADER" : "FOLLOWER";
+				previewState["bobsledPhase"] = bobsled->GetBobsledPhase()
+					== BobsledTeamZombie::Phase::RIDING ? "RIDING" : "WALKING";
+				previewState["bobsledSlot"] = bobsled->GetBobsledSlot();
 			}
 			out["zombieAlmanacPreview"] = std::move(previewState);
 		}
@@ -4140,6 +4182,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "hijackerSpawnBlockedThisWave", board->IsHijackerSpawnBlockedThisWave() },
 			{ "groundingZombiesSpawnedThisWave",
 				board->GetGroundingZombiesSpawnedThisWave() },
+			{ "bobsledTeamsSpawnedThisWave",
+				board->GetBobsledTeamsSpawnedThisWave() },
 			{ "typhoonDecayRemaining", board->GetTyphoonStrengthTimer() },
 			{ "windDirection", WindDirectionName(board->GetWindDirection()) },
 			{ "windDirectionRemaining", board->GetWindDirectionTimer() },
@@ -4326,9 +4370,14 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["survivalRound"] = board->mIsSurvival ? board->mSurvivalRound : -1;
 	// 出怪池不分模式都 dump：冒险关卡验证 spawnlists.json 也要抓手（原先只在生存模式导出）
 	out["spawnList"] = nlohmann::json::array();
-	for (ZombieType t : board->GetSpawnZombieList())
+	bool spawnListHasBobsledTeam = false;
+	for (ZombieType t : board->GetSpawnZombieList()) {
 		out["spawnList"].push_back(ZombieTypeName(t));
+		spawnListHasBobsledTeam = spawnListHasBobsledTeam
+			|| t == ZombieType::ZOMBIE_BOBSLED_TEAM;
+	}
 	out["spawnTypeCount"] = static_cast<int>(board->GetSpawnZombieList().size());
+	out["spawnListHasBobsledTeam"] = spawnListHasBobsledTeam;
 
 	int charredZombieCount = 0;
 	int zamboniCharredCount = 0;
@@ -4414,6 +4463,10 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		? g_particleSystem->GetEffectActiveParticleCount("ImpZombieHeadOff") : 0;
 	out["impArmParticleCount"] = g_particleSystem
 		? g_particleSystem->GetEffectActiveParticleCount("ImpZombieArmOff") : 0;
+	out["bobsledHeadParticleCount"] = g_particleSystem
+		? g_particleSystem->GetEffectActiveParticleCount("ZombieBobsledHeadOff") : 0;
+	out["bobsledArmParticleCount"] = g_particleSystem
+		? g_particleSystem->GetEffectActiveParticleCount("ZombieBobsledArmOff") : 0;
 	out["puffSoundRequestCount"] =
 		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_PUFF);
 	out["firePeaSoundRequestCount"] =
@@ -4545,6 +4598,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 
 	out["zombies"] = nlohmann::json::array();
 	out["zombiesByType"] = nlohmann::json::object();
+	out["bobsledTeam"] = nlohmann::json::array();
 	out["jack"] = nullptr;
 	out["eliteJack"] = nullptr;
 	int jackZombieCount = 0;
@@ -4564,6 +4618,13 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	int impZombieCount = 0;
 	int roofMarshalZombieCount = 0;
 	int healerZombieCount = 0;
+	int bobsledTeamZombieCount = 0;
+	int bobsledRidingCount = 0;
+	int bobsledLandingCount = 0;
+	int bobsledWalkingCount = 0;
+	int bobsledRowMask = 0;
+	float bobsledMinX = std::numeric_limits<float>::max();
+	float bobsledMaxX = std::numeric_limits<float>::lowest();
 	int healerWave3Count = 0;
 	int roofMarshalAssaultBoostedZombieCount = 0;
 	int roofMarshalAssaultBoostedRowMask = 0;
@@ -5305,6 +5366,49 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			zombieState["roofMarshalLastSummonHighThreatCount"] = highThreatCount;
 			out["roofMarshal"] = zombieState;
 		}
+		if (auto* bobsled = dynamic_cast<BobsledTeamZombie*>(z)) {
+			++bobsledTeamZombieCount;
+			bobsledMinX = std::min(bobsledMinX, pos.x);
+			bobsledMaxX = std::max(bobsledMaxX, pos.x);
+			if (z->mRow >= 0 && z->mRow < board->mRows) {
+				bobsledRowMask |= 1 << z->mRow;
+			}
+			const char* phase = "RIDING";
+			switch (bobsled->GetBobsledPhase()) {
+			case BobsledTeamZombie::Phase::RIDING:
+				++bobsledRidingCount;
+				phase = "RIDING";
+				break;
+			case BobsledTeamZombie::Phase::LANDING:
+				++bobsledLandingCount;
+				phase = "LANDING";
+				break;
+			case BobsledTeamZombie::Phase::WALKING:
+				++bobsledWalkingCount;
+				phase = "WALKING";
+				break;
+			}
+			zombieState["bobsledRole"] = bobsled->GetBobsledRole()
+				== BobsledTeamZombie::Role::LEADER ? "LEADER" : "FOLLOWER";
+			zombieState["bobsledPhase"] = phase;
+			zombieState["bobsledSlot"] = bobsled->GetBobsledSlot();
+			zombieState["bobsledLeaderID"] = bobsled->GetBobsledLeaderID();
+			zombieState["bobsledLiveMemberCount"] = bobsled->GetLiveTeamMemberCount();
+			zombieState["bobsledScatterContained"] = bobsled->WasScatterContained();
+			zombieState["bobsledLandingMs"] = static_cast<int>(std::lround(
+				bobsled->GetLandingTimeRemaining() * 1000.0f));
+			zombieState["bobsledMemberIDs"] = bobsled->GetBobsledMemberIDs();
+			zombieState["bobsledShadowOffsetYInt"] = z->GetShadow()
+				? static_cast<int>(std::lround(z->GetShadow()->GetOffset().y)) : 0;
+			if (const ColliderComponent* collider = z->GetColliderComponent()) {
+				const SDL_FRect bounds = collider->GetBoundingBox();
+				zombieState["bobsledColliderWidthInt"] =
+					static_cast<int>(std::lround(bounds.w));
+				zombieState["bobsledColliderHeightInt"] =
+					static_cast<int>(std::lround(bounds.h));
+			}
+			out["bobsledTeam"].push_back(zombieState);
+		}
 		// 专项脚本中的异品种靶子可按语义类型稳定取证；同品种多只时仍使用 zombies 全量数组。
 		out["zombiesByType"][ZombieTypeName(z->mZombieType)] = zombieState;
 		out["zombies"].push_back(std::move(zombieState));
@@ -5319,6 +5423,18 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			(thrownAnchor.y - heldAnchor.y) * 1000.0f));
 	}
 	out["zombieCount"] = static_cast<int>(out["zombies"].size());
+	out["bobsledTeamZombieCount"] = bobsledTeamZombieCount;
+	out["bobsledRidingCount"] = bobsledRidingCount;
+	out["bobsledLandingCount"] = bobsledLandingCount;
+	out["bobsledWalkingCount"] = bobsledWalkingCount;
+	out["bobsledRowMask"] = bobsledRowMask;
+	out["bobsledXSpanOn1000"] = bobsledTeamZombieCount > 0
+		? static_cast<int>(std::lround((bobsledMaxX - bobsledMinX) * 1000.0f)) : 0;
+	int bobsledDistinctRowCount = 0;
+	for (int mask = bobsledRowMask; mask != 0; mask >>= 1) {
+		bobsledDistinctRowCount += mask & 1;
+	}
+	out["bobsledDistinctRowCount"] = bobsledDistinctRowCount;
 	out["healerZombieCount"] = healerZombieCount;
 	out["healerWave3Count"] = healerWave3Count;
 	int healerRowIndexVisibleCount = 0;

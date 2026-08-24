@@ -322,6 +322,7 @@ private:
 	int mHijackerSpawnCooldownWavesRemaining = 0; // 当前波之后仍需封锁劫持者刷新的完整正式波次数
 	bool mHijackerSpawnBlockedThisWave = false; // 当前波是否承接成功处决后的刷新封锁；与剩余波数一起入档
 	int mGroundingZombiesSpawnedThisWave = 0; // 当前波正式生成的接地僵尸数量；所有正式波次统一至多两只并进入存档
+	int mBobsledTeamsSpawnedThisWave = 0; // 当前波正式生成的雪橇车队数量；跟随者不重复计数
 	int mEliteScaredyShroomsPlanted = 0; // 本关累计种下的精英胆小菇数量；死亡或铲除不返还次数
 	int mLastTyphoonMovedPlants = 0;    // 最近一次阵风移动的植物数，仅供观测和测试
 	int mLastTyphoonLostPlants = 0;     // 最近一次阵风吹出棋盘或吹入弹坑的植物数，仅供观测和测试
@@ -463,6 +464,7 @@ private:
 	void RestoreHijackerWaveSpawnCount(int count);
 	void RestoreHijackerSpawnCooldown(int wavesRemaining, bool blockedThisWave);
 	void RestoreGroundingZombieWaveSpawnCount(int count);
+	void RestoreBobsledTeamWaveSpawnCount(int count);
 	/** 成功处决后立即封锁本波后续候选，并预留后续完整波次的刷新冷却。 */
 	void BeginHijackerSpawnCooldown();
 	/** 新波开始时把一份未来冷却转为覆盖整个当前波的封锁。 */
@@ -793,6 +795,7 @@ public:
 	int GetGroundingZombiesSpawnedThisWave() const {
 		return mGroundingZombiesSpawnedThisWave;
 	}
+	int GetBobsledTeamsSpawnedThisWave() const { return mBobsledTeamsSpawnedThisWave; }
 	int GetLastTyphoonMovedPlants() const { return mLastTyphoonMovedPlants; }
 	int GetLastTyphoonLostPlants() const { return mLastTyphoonLostPlants; }
 	int GetLastTyphoonBlockedPlantSteps() const { return mLastTyphoonBlockedPlantSteps; }

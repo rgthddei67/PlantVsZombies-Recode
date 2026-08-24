@@ -1,0 +1,15 @@
+<Emitter>
+  <Name>ZombieBobsledHeadOff</Name>
+  <SpawnMinActive>1</SpawnMinActive>
+  <SpawnMaxLaunched>1</SpawnMaxLaunched>
+  <SpawnRate>0</SpawnRate>
+  <ParticleDuration>1.05</ParticleDuration>
+  <ParticleAlpha>1,88 0</ParticleAlpha>
+  <ParticleScale>.82</ParticleScale>
+  <LaunchSpeed>[72 108]</LaunchSpeed>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <ParticleGravity>145</ParticleGravity>
+  <ParticleSpinSpeed>[-210 210]</ParticleSpinSpeed>
+  <SystemDuration>1.15</SystemDuration>
+  <Image>PARTICLE_ZOMBIEBOBSLEDHEAD</Image>
+</Emitter>
