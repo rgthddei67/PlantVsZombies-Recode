@@ -285,9 +285,12 @@ void Card::SetBloverDirection(WindDirection direction)
 
 void Card::ToggleBloverDirection()
 {
-	if (mPlantType != PlantType::PLANT_BLOVER) return;
-	mBloverDirection = mBloverDirection == WindDirection::TOWARD_HOUSE
-		? WindDirection::TOWARD_FRONT : WindDirection::TOWARD_HOUSE;
+	if (mPlantType == PlantType::PLANT_BLOVER || (HasImitaterTarget() && mImitaterTarget == 
+		PlantType::PLANT_BLOVER))
+	{
+		mBloverDirection = mBloverDirection == WindDirection::TOWARD_HOUSE
+			? WindDirection::TOWARD_FRONT : WindDirection::TOWARD_HOUSE;
+	}
 }
 
 void Card::BindCardSlotManager(CardSlotManager* manager)
