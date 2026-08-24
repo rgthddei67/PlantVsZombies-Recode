@@ -18,6 +18,7 @@
 #include "TwinSunflower.h"
 #include "CherryBomb.h"
 #include "WallNut.h"
+#include "SnowAnchorNut.h"
 #include "PotatoMine.h"
 #include "SnowPeaShooter.h"
 #include "Chomper.h"
@@ -192,6 +193,12 @@ void GameDataManager::InitializeHardcodedData() {
 		ResourceKeys::Textures::IMAGE_WALLNUT,
 		AnimationType::ANIM_WALLNUT,
 		ResourceKeys::Reanimations::REANIM_WALLNUT, &MakePlant<WallNut>);
+
+	RegisterPlant(PlantType::PLANT_SNOWANCHORNUT, "PLANT_SNOWANCHORNUT",
+		ResourceKeys::Textures::IMAGE_SNOWANCHORNUT,
+		AnimationType::ANIM_SNOWANCHORNUT,
+		ResourceKeys::Reanimations::REANIM_SNOWANCHORNUT,
+		&MakePlant<SnowAnchorNut>);
 
 	RegisterPlant(PlantType::PLANT_POTATOMINE, "PLANT_POTATOMINE",
 		ResourceKeys::Textures::IMAGE_POTATOMINE,

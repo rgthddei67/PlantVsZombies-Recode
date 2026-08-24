@@ -64,6 +64,7 @@ enum class PlantType
 	PLANT_TOXICPEASHOOTER,	// 毒囊射手；继续追加在末尾以保持旧存档植物整数 ID
 	PLANT_GROUNDINGSHROOM,	// 接地菇；5-9 奖励，追加在末尾以保持旧存档植物整数 ID
 	PLANT_LIGHTNINGRODPOT,	// 避雷花盆；6-4 奖励，花盆承载层紫卡升级
+	PLANT_SNOWANCHORNUT,	// 雪锚果；7-1 奖励，在真实冻土中提供一次冬季冲击整形
 	NUM_PLANT_TYPES,
 };
 

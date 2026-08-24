@@ -37,6 +37,8 @@ protected:
 	virtual const std::string& GetCrackedTextureKey(int damageStage) const;
 	virtual const char* GetDamageTrackName() const { return "anim_face"; }
 	virtual float GetCrackParticleOffsetY() const { return -40.0f; }
+	/** 品种外观条件变化时强制下一次 UpdateTexture 重新选择当前阶段材质。 */
+	void InvalidateDamageTexture() { mDamageStage = -1; }
 };
 
 #endif

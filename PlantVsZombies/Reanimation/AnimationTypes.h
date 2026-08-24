@@ -113,6 +113,7 @@ enum class AnimationType
 	ANIM_GROUNDING_ZOMBIE, // 接地僵尸独立电紫天线路障；复用普通路障时间线
 	ANIM_GOLD_MAGNET, // 磁暴菇独立金属紫电时间线；追加在末尾避免旧动画枚举值错位
 	ANIM_IMITATER, // 经典模仿者等待与变身时间线；追加在末尾避免旧动画枚举值错位
+	ANIM_SNOWANCHORNUT, // 雪锚果独立冰蓝坚果时间线；追加在末尾避免旧动画枚举值错位
 };
 
 #endif

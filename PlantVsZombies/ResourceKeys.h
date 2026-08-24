@@ -308,6 +308,13 @@ namespace ResourceKeys
 		RKEY(IMAGE_TALLNUT_BODY);
 		RKEY(IMAGE_TALLNUT_CRACKED1);
 		RKEY(IMAGE_TALLNUT_CRACKED2);
+		RKEY(IMAGE_SNOWANCHORNUT);
+		RKEY(IMAGE_SNOWANCHORNUT_BODY);
+		RKEY(IMAGE_SNOWANCHORNUT_CRACKED1);
+		RKEY(IMAGE_SNOWANCHORNUT_CRACKED2);
+		RKEY(IMAGE_SNOWANCHORNUT_BRACED_BODY);
+		RKEY(IMAGE_SNOWANCHORNUT_BRACED_CRACKED1);
+		RKEY(IMAGE_SNOWANCHORNUT_BRACED_CRACKED2);
 		RKEY(IMAGE_POTATOMINE);
 		RKEY(IMAGE_SNOWPEASHOOTER);
 		RKEY(IMAGE_CHOMPER);
@@ -596,6 +603,7 @@ namespace ResourceKeys
 		inline const std::string REANIM_CHERRYBOMB = "CherryBomb";
 		inline const std::string REANIM_WALLNUT = "Wallnut";
 		inline const std::string REANIM_TALLNUT = "Tallnut";
+		inline const std::string REANIM_SNOWANCHORNUT = "SnowAnchorNut";
 		inline const std::string REANIM_POTATOMINE = "PotatoMine";
 		inline const std::string REANIM_SNOWPEASHOOTER = "SnowPeaShooter";
 		inline const std::string REANIM_LILYPAD = "LilyPad";

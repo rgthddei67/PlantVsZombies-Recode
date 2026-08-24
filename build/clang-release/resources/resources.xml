@@ -189,6 +189,13 @@
     <Image>./resources/image/PlantImage/TwinSunflower.png</Image>
     <Image>./resources/image/PlantImage/Umbrellaleaf.png</Image>
     <Image>./resources/image/PlantImage/WallNut.png</Image>
+    <Image>./resources/image/PlantImage/SnowAnchorNut.png</Image>
+    <Image>./resources/image/reanim/SnowAnchorNut_body.png</Image>
+    <Image>./resources/image/reanim/SnowAnchorNut_cracked1.png</Image>
+    <Image>./resources/image/reanim/SnowAnchorNut_cracked2.png</Image>
+    <Image>./resources/image/reanim/SnowAnchorNut_braced_body.png</Image>
+    <Image>./resources/image/reanim/SnowAnchorNut_braced_cracked1.png</Image>
+    <Image>./resources/image/reanim/SnowAnchorNut_braced_cracked2.png</Image>
     <Image>./resources/image/PlantImage/WinterMelon.png</Image>
 
     <Image>./resources/image/ProjectileCactus.png</Image>
@@ -454,6 +461,7 @@
     <Reanimation name="ToxicPeaShooter">./resources/reanim/ToxicPeaShooter.reanim</Reanimation>
     <Reanimation name="CherryBomb">./resources/reanim/CherryBomb.reanim</Reanimation>
     <Reanimation name="Wallnut">./resources/reanim/Wallnut.reanim</Reanimation>
+    <Reanimation name="SnowAnchorNut">./resources/reanim/SnowAnchorNut.reanim</Reanimation>
     <Reanimation name="PotatoMine">./resources/reanim/PotatoMine.reanim</Reanimation>
     <Reanimation name="SnowPeaShooter">./resources/reanim/SnowPeaShooter.reanim</Reanimation>
     <Reanimation name="Chomper">./resources/reanim/Chomper.reanim</Reanimation>

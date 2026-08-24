@@ -32,6 +32,19 @@ enum class AirborneDefenseState {
 	REFLECTING,
 };
 
+/** 会沿冻土传播或撞击植物格的冬季地面威胁类别。 */
+enum class WinterGroundImpactKind {
+	COLLISION,
+	GROUND_CRACK,
+};
+
+/** 植物对一次冬季地面冲击的原子响应；伤害和动作时序仍由威胁方拥有。 */
+struct WinterGroundImpactResponse {
+	bool intercepted = false;
+	bool containsScatter = false;
+	float downstreamDamageMultiplier = 1.0f;
+};
+
 class Plant : public AnimatedObject {
 public:
 	Board* mBoard = nullptr;
@@ -120,6 +133,16 @@ public:
 	 * showFeedback 在同一阵风首次撞击时为 true，供品种合并同帧音画而不合并逐格伤害。
 	 */
 	virtual void OnTyphoonPlantImpact(bool showFeedback) {}
+	/** 当前是否能消费一次冬季地面冲击；默认植物不具备锚定能力。 */
+	virtual bool IsWinterGroundAnchorReady() const { return false; }
+	/** 是否已经消费本实体唯一的冬季锚定次数；无此能力的植物保持 false。 */
+	virtual bool HasSpentWinterGroundAnchor() const { return false; }
+	/**
+	 * 原子消费一次冬季地面冲击并返回传播/散射语义。
+	 * 调用方继续拥有自身伤害、动作提交、音画和乘员落点。
+	 */
+	virtual WinterGroundImpactResponse ResolveWinterGroundImpact(
+		WinterGroundImpactKind) { return {}; }
 	virtual void SaveExtraData(nlohmann::json& j) const {}
 	virtual void LoadExtraData(const nlohmann::json& j) {}
 	/** 立即退出更新、碰撞与绘制，并登记到下一帧安全销毁。 */

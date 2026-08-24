@@ -32,6 +32,7 @@
 #include "../Plant/SunFlower.h"
 #include "../Plant/Plantern.h"
 #include "../Plant/WallNut.h"
+#include "../Plant/SnowAnchorNut.h"
 #include "../Plant/LilyPad.h"
 #include "../Plant/Squash.h"
 #include "../Plant/ThreePeater.h"
@@ -347,6 +348,7 @@ namespace {
 		PT(PLANT_IMITATER), PT(PLANT_EXPLODE_O_NUT), PT(PLANT_GIANT_WALLNUT), PT(PLANT_SPROUT),
 		PT(PLANT_LEFTPEATER), PT(PLANT_ELITE_SCAREDYSHROOM), PT(PLANT_TOXICPEASHOOTER),
 		PT(PLANT_GROUNDINGSHROOM), PT(PLANT_LIGHTNINGRODPOT),
+		PT(PLANT_SNOWANCHORNUT),
 	};
 #undef PT
 #define BT(n) { #n, BulletType::n }
@@ -1372,6 +1374,38 @@ bool TestDriver::ExecuteCurrent() {
 			return false;
 		}
 		plant->mPlantHealth = health;
+		return true;
+	}
+	if (op == "resolve_winter_ground_impact") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) {
+			Fail("resolve_winter_ground_impact: 不在 GameScene 或 Board 为空");
+			return false;
+		}
+		Plant* plant = gs->GetBoard()->GetTopPlantAt(
+			cmd.value("row", -1), cmd.value("col", -1));
+		const std::string kindName = cmd.value("kind", "");
+		WinterGroundImpactKind kind;
+		if (kindName == "COLLISION") kind = WinterGroundImpactKind::COLLISION;
+		else if (kindName == "GROUND_CRACK") kind = WinterGroundImpactKind::GROUND_CRACK;
+		else {
+			Fail("resolve_winter_ground_impact: kind 必须是 COLLISION 或 GROUND_CRACK");
+			return false;
+		}
+		if (!plant) {
+			Fail("resolve_winter_ground_impact: 指定格没有植物");
+			return false;
+		}
+		const WinterGroundImpactResponse response =
+			plant->ResolveWinterGroundImpact(kind);
+		const int multiplierOn1000 = static_cast<int>(std::lround(
+			response.downstreamDamageMultiplier * 1000.0f));
+		if (response.intercepted != cmd.value("expectedIntercepted", true)
+			|| response.containsScatter != cmd.value("expectedContainsScatter", false)
+			|| multiplierOn1000 != cmd.value("expectedDownstreamMultiplierOn1000", 1000)) {
+			Fail("resolve_winter_ground_impact: 植物响应与预期不符");
+			return false;
+		}
 		return true;
 	}
 	if (op == "assert_can_plant") {
@@ -3411,6 +3445,24 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		ResourceKeys::Textures::IMAGE_WINTER_FROST_FRONTIER_VARIANT_2, false) != nullptr;
 	out["winterThermometerLoaded"] = ResourceManager::GetInstance().GetTexture(
 		ResourceKeys::Textures::IMAGE_WINTER_THERMOMETER_FRAME_V1, false) != nullptr;
+	out["snowAnchorNutResources"] = {
+		{ "reanimationLoaded", ResourceManager::GetInstance().HasReanimation(
+			ResourceKeys::Reanimations::REANIM_SNOWANCHORNUT) },
+		{ "cardTextureLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_SNOWANCHORNUT, false) != nullptr },
+		{ "bodyTexturesLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_SNOWANCHORNUT_BODY, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_SNOWANCHORNUT_CRACKED1, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_SNOWANCHORNUT_CRACKED2, false) != nullptr },
+		{ "bracedTexturesLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_SNOWANCHORNUT_BRACED_BODY, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_SNOWANCHORNUT_BRACED_CRACKED1, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_SNOWANCHORNUT_BRACED_CRACKED2, false) != nullptr },
+	};
 	out["isBossLevel"] = AdventureProgression::IsBossLevel(board->mLevel);
 	out["bossSlot"] = BossSlotName(AdventureProgression::GetBossSlot(board->mLevel));
 	out["poolEffectCounter"] = gs->GetPoolEffectCounter();
@@ -5458,6 +5510,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "nightRoofChargeZombieDamageMultiplierOn1000",
 				static_cast<int>(std::lround(
 					p->GetNightRoofChargeZombieDamageMultiplier() * 1000.0f)) },
+			{ "winterGroundAnchorReady", p->IsWinterGroundAnchorReady() },
+			{ "winterGroundAnchorSpent", p->HasSpentWinterGroundAnchor() },
 		};
 		if (const auto animator = p->GetAnimatorInternal()) {
 			const AnimatorRenderProbe& probe = animator->GetLastRenderProbe();

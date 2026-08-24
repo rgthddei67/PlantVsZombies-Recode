@@ -18,7 +18,7 @@ metadata:
 2026-07-18 收敛到 `Game/AdventureProgression.h`：
 
 - `LEVELS_PER_AREA=9`，显示与背景分段共用 `GetAreaNumber` / `GetLevelNumberInArea`；
-- `PLANT_REWARD_BY_LEVEL` 显式列出 1..63，每项为具体 `PlantType` 或 `NO_PLANT_REWARD`；5-9 现解锁接地菇，供 6-1 起使用；第六大关的 6-1 无奖励、6-2 解锁忧郁菇、6-3 解锁双子向日葵、6-4 解锁避雷花盆、6-5 解锁冰瓜、6-6 解锁玉米加农炮、6-7 解锁磁暴菇、6-8 解锁模仿者，6-9 暂为 `NO_PLANT_REWARD`；第七大关 7-1～7-9 当前均为 `NO_PLANT_REWARD`；
+- `PLANT_REWARD_BY_LEVEL` 显式列出 1..63，每项为具体 `PlantType` 或 `NO_PLANT_REWARD`；5-9 现解锁接地菇，供 6-1 起使用；第六大关的 6-1 无奖励、6-2 解锁忧郁菇、6-3 解锁双子向日葵、6-4 解锁避雷花盆、6-5 解锁冰瓜、6-6 解锁玉米加农炮、6-7 解锁磁暴菇、6-8 解锁模仿者，6-9 暂为 `NO_PLANT_REWARD`；第七大关规划为 7-1 雪锚果、7-2 融雪投手、7-4 伏霜雷、7-6 警铃草、7-7 炉芯花，其余关无植物奖励，当前首先接入雪锚果；
 - 奖励按关显式配置，不再假设“每大关第 8 小关都为空”：当前 1-8、4-8、5-8 无植物，2-8 解锁精英胆小菇，3-8 解锁毒囊射手；各大关第 9 小关仍解锁下一场景首株植物；
 - `Trophy::AdvanceAdventureProgress` 无论有无植物都推进进度，仅在奖励不是 `NO_PLANT_REWARD` 时去重加入 `mHaveCards`；
 - 禁止再通过插入/挪动 `PlantType` 调奖励顺序：`PlayerInfo.json.havecards` 和关卡存档都按整数保存枚举，改值会破坏旧档。
@@ -64,6 +64,11 @@ metadata:
 2026-08-15 可见 `smoke_gold_magnet_reward.json` 通过真实奖杯结算锁定内部 52（6-7）新增
 `PLANT_GOLD_MAGNET` 并推进到 53（6-8）；17 条命令 exit 0、`status.json=passed`，完整能力与资源
 契约见 `project_pvz_gold_magnet.md`。
+
+2026-08-24 `PLANT_SNOWANCHORNUT` 已正式登记为内部 55（7-1）奖励。Release 专项
+`smoke_snow_anchor_nut.json` 通过真实奖杯点击把进度推进到 56（7-2），并锁定初始仅有豌豆射手时
+卡数从 1 增至 2、新卡为雪锚果；默认 Vulkan 实例路径与 `-NoInstance` 两次可见运行均为 82 条命令、
+exit 0、`status=passed`、`script finished OK`。
 
 2026-08-09 当前证据：`clang-release` 配置、编译与 LTO 链接退出 0；主人当前桌面可见
 `smoke_level_5_9_boss_slot.json`（11 条命令/6 项断言）与完整
