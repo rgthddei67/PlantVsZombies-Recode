@@ -1,0 +1,16 @@
+<Emitter>
+  <Name>IceWallBuild</Name>
+  <SpawnMinActive>[5 8]</SpawnMinActive>
+  <SpawnMaxLaunched>8</SpawnMaxLaunched>
+  <ParticleDuration>0.55</ParticleDuration>
+  <ParticleAlpha>1,75 0</ParticleAlpha>
+  <ParticleScale>[0.7 1.1]</ParticleScale>
+  <EmitterType>Circle</EmitterType>
+  <EmitterRadius>[0 10]</EmitterRadius>
+  <LaunchSpeed>[35 70]</LaunchSpeed>
+  <ParticleGravity>75</ParticleGravity>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <ParticleSpinSpeed>[-150 150]</ParticleSpinSpeed>
+  <SystemDuration>0.6</SystemDuration>
+  <Image>PARTICLE_SNOWPEA_PARTICLES_PART_0,PARTICLE_SNOWPEA_PARTICLES_PART_1,PARTICLE_SNOWPEA_PARTICLES_PART_2</Image>
+</Emitter>

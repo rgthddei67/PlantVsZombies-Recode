@@ -34,6 +34,14 @@
     <Image>./resources/image/reanim/Zombie_grounding_cone1.png</Image>
     <Image>./resources/image/reanim/Zombie_grounding_cone2.png</Image>
     <Image>./resources/image/reanim/Zombie_grounding_cone3.png</Image>
+    <Image>./resources/image/reanim/Zombie_icewall_engineer_body.png</Image>
+    <Image>./resources/image/reanim/Zombie_icewall_engineer_toolstrap.png</Image>
+    <Image>./resources/image/reanim/Zombie_icewall_engineer_hat1.png</Image>
+    <Image>./resources/image/reanim/Zombie_icewall_engineer_hat2.png</Image>
+    <Image>./resources/image/reanim/Zombie_icewall_engineer_hat3.png</Image>
+    <Image>./resources/image/reanim/Ice_Wall.png</Image>
+    <Image>./resources/image/reanim/Ice_Wall_cracked1.png</Image>
+    <Image>./resources/image/reanim/Ice_Wall_cracked2.png</Image>
     <Image>./resources/image/reanim/Zombie_bobsled_outerarm_hand.png</Image>
     <Image>./resources/image/reanim/Zombie_bobsled_outerarm_upper2.png</Image>
     <Image>./resources/image/Zombie_bobsled_inside.png</Image>

@@ -1,0 +1,16 @@
+<Emitter>
+  <Name>IceWallBreak</Name>
+  <SpawnMinActive>[14 20]</SpawnMinActive>
+  <SpawnMaxLaunched>20</SpawnMaxLaunched>
+  <ParticleDuration>0.9</ParticleDuration>
+  <ParticleAlpha>1,78 0</ParticleAlpha>
+  <ParticleScale>[0.8 1.35]</ParticleScale>
+  <EmitterType>Circle</EmitterType>
+  <EmitterRadius>[4 24]</EmitterRadius>
+  <LaunchSpeed>[80 150]</LaunchSpeed>
+  <ParticleGravity>120</ParticleGravity>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <ParticleSpinSpeed>[-210 210]</ParticleSpinSpeed>
+  <SystemDuration>0.95</SystemDuration>
+  <Image>PARTICLE_SNOWPEA_PARTICLES_PART_0,PARTICLE_SNOWPEA_PARTICLES_PART_1,PARTICLE_SNOWPEA_PARTICLES_PART_2</Image>
+</Emitter>

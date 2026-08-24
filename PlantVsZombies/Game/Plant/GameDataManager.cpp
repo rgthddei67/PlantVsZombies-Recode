@@ -108,6 +108,7 @@
 #include "../Zombie/HealerZombie.h"
 #include "../Zombie/GroundingZombie.h"
 #include "../Zombie/BobsledTeamZombie.h"
+#include "../Zombie/IceWallEngineerZombie.h"
 
 namespace {
 	template<typename T>
@@ -659,6 +660,12 @@ void GameDataManager::InitializeHardcodedData() {
 		AnimationType::ANIM_BOBSLED_TEAM_ZOMBIE,
 		ResourceKeys::Reanimations::REANIM_BOBSLED_TEAM_ZOMBIE,
 		&MakeZombie<BobsledTeamZombie>);
+
+	// 工程师复用路障完整时间轴；逻辑计时施工不增加死亡或啃食帧事件。
+	RegisterZombie(ZombieType::ZOMBIE_ICE_WALL_ENGINEER, "ZOMBIE_ICE_WALL_ENGINEER",
+		AnimationType::ANIM_CONE_ZOMBIE,
+		ResourceKeys::Reanimations::REANIM_CONE_ZOMBIE,
+		&MakeZombie<IceWallEngineerZombie>);
 
 	// ==================== 非植物/僵尸动画映射 ====================
 	mAnimToString[AnimationType::ANIM_SUN] = ResourceKeys::Reanimations::REANIM_SUN;

@@ -108,6 +108,10 @@ protected:
 	bool UpdateLobbedMotion(float deltaTime);
 	/** 抛射物到达无目标落点后的粒子与回收入口。 */
 	void HitLobbedGround();
+	/** 平射移动后优先结算同行冰墙；返回 true 表示本弹已被墙消费。 */
+	bool HitIceWallIfNeeded(float fromX, float toX);
+	/** 盐晶轨迹是否锁定当前同行冰墙，用于跳过墙后僵尸的末段触发器。 */
+	bool IsSaltTargetingIceWall() const;
 	/** 推进玉米棒升空/换位/垂降三段轨迹；爆炸并回收时返回 false。 */
 	bool UpdateCobCannonMotion(float deltaTime);
 

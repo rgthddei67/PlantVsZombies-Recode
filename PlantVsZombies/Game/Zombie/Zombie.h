@@ -193,7 +193,7 @@ public:
 	 * 品种实现必须在冰层耗尽处截断，剩余腐蚀不得灌入僵尸本体。
 	 */
 	virtual bool ApplyWinterCorrosion(int) { return false; }
-	// TODO(winter-area): 冰墙工程师、冰制护甲等正式实现时覆写该入口并导出剩余冰层耐久。
+	// TODO(winter-area): 未来冰制护甲品种覆写该入口并导出剩余冰层耐久；独立冰墙走自身结算入口。
 	/** 调整大喷菇对本体的基础伤害；返回值随后统一进入词条与防具结算。 */
 	virtual int ModifyFumeDamage(int damage) const { return damage; }
 	/** 调整仙人掌尖刺每个 1x 碰撞帧的基础伤害；背击绕盾信息在倍速累计前一并传入。 */

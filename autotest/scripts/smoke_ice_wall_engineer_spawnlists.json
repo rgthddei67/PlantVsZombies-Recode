@@ -1,0 +1,41 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 55, "resetTestState": true },
+    { "op": "wait_state", "state": "CHOOSE_CARD", "timeout": 10 },
+    { "op": "assert_state", "path": "spawnListHasIceWallEngineer", "equals": false },
+
+    { "op": "goto_level", "level": 56, "resetTestState": true },
+    { "op": "wait_state", "state": "CHOOSE_CARD", "timeout": 10 },
+    { "op": "assert_state", "path": "spawnListHasIceWallEngineer", "equals": false },
+
+    { "op": "goto_level", "level": 57, "resetTestState": true },
+    { "op": "wait_state", "state": "CHOOSE_CARD", "timeout": 10 },
+    { "op": "assert_state", "path": "spawnListHasIceWallEngineer", "equals": true },
+
+    { "op": "goto_level", "level": 58, "resetTestState": true },
+    { "op": "wait_state", "state": "CHOOSE_CARD", "timeout": 10 },
+    { "op": "assert_state", "path": "spawnListHasIceWallEngineer", "equals": true },
+
+    { "op": "goto_level", "level": 59, "resetTestState": true },
+    { "op": "wait_state", "state": "CHOOSE_CARD", "timeout": 10 },
+    { "op": "assert_state", "path": "spawnListHasIceWallEngineer", "equals": true },
+
+    { "op": "goto_level", "level": 60, "resetTestState": true },
+    { "op": "wait_state", "state": "CHOOSE_CARD", "timeout": 10 },
+    { "op": "assert_state", "path": "spawnListHasIceWallEngineer", "equals": false },
+
+    { "op": "goto_level", "level": 61, "resetTestState": true },
+    { "op": "wait_state", "state": "CHOOSE_CARD", "timeout": 10 },
+    { "op": "assert_state", "path": "spawnListHasIceWallEngineer", "equals": false },
+
+    { "op": "goto_level", "level": 62, "resetTestState": true },
+    { "op": "wait_state", "state": "CHOOSE_CARD", "timeout": 10 },
+    { "op": "assert_state", "path": "spawnListHasIceWallEngineer", "equals": true },
+
+    { "op": "goto_level", "level": 63, "resetTestState": true },
+    { "op": "wait_state", "state": "CHOOSE_CARD", "timeout": 10 },
+    { "op": "assert_state", "path": "spawnListHasIceWallEngineer", "equals": true },
+    { "op": "dump_state", "name": "ice_wall_engineer_spawnlists_state.json" },
+    { "op": "quit" }
+  ]
+}

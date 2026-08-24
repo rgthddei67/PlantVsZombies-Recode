@@ -33,6 +33,7 @@ class HijackerZombie;
 class Bullet;
 class Trophy;
 class Crater;
+class IceWall;
 class Shovel;
 class Mower;
 struct MagneticItem;
@@ -178,6 +179,8 @@ public:
 	std::vector<std::weak_ptr<Crater>> mCraters;
 	// 已放置扶梯：所有权在 GameObjectManager；Board 只保留格子查询与存档所需的弱引用。
 	std::vector<std::weak_ptr<Ladder>> mLadders;
+	// 冰墙工程师建筑：全场至多一堵；所有权在 GameObjectManager，Board 只做 O(1) 寻址与存档。
+	std::weak_ptr<IceWall> mIceWall;
 
 	bool mIsSurvival = false;     // 是否为生存模式（无尽）
 	int  mSurvivalRound = 1;      // 当前第几面旗（轮次，从 1 起）
@@ -324,6 +327,7 @@ private:
 	bool mHijackerSpawnBlockedThisWave = false; // 当前波是否承接成功处决后的刷新封锁；与剩余波数一起入档
 	int mGroundingZombiesSpawnedThisWave = 0; // 当前波正式生成的接地僵尸数量；所有正式波次统一至多两只并进入存档
 	int mBobsledTeamsSpawnedThisWave = 0; // 当前波正式生成的雪橇车队数量；跟随者不重复计数
+	int mIceWallEngineersSpawnedThisWave = 0; // 当前波正式生成的冰墙工程师数量；所有正式波次统一至多一只
 	int mEliteScaredyShroomsPlanted = 0; // 本关累计种下的精英胆小菇数量；死亡或铲除不返还次数
 	int mLastTyphoonMovedPlants = 0;    // 最近一次阵风移动的植物数，仅供观测和测试
 	int mLastTyphoonLostPlants = 0;     // 最近一次阵风吹出棋盘或吹入弹坑的植物数，仅供观测和测试
@@ -466,6 +470,7 @@ private:
 	void RestoreHijackerSpawnCooldown(int wavesRemaining, bool blockedThisWave);
 	void RestoreGroundingZombieWaveSpawnCount(int count);
 	void RestoreBobsledTeamWaveSpawnCount(int count);
+	void RestoreIceWallEngineerWaveSpawnCount(int count);
 	/** 成功处决后立即封锁本波后续候选，并预留后续完整波次的刷新冷却。 */
 	void BeginHijackerSpawnCooldown();
 	/** 新波开始时把一份未来冷却转为覆盖整个当前波的封锁。 */
@@ -800,6 +805,9 @@ public:
 		return mGroundingZombiesSpawnedThisWave;
 	}
 	int GetBobsledTeamsSpawnedThisWave() const { return mBobsledTeamsSpawnedThisWave; }
+	int GetIceWallEngineersSpawnedThisWave() const {
+		return mIceWallEngineersSpawnedThisWave;
+	}
 	int GetLastTyphoonMovedPlants() const { return mLastTyphoonMovedPlants; }
 	int GetLastTyphoonLostPlants() const { return mLastTyphoonLostPlants; }
 	int GetLastTyphoonBlockedPlantSteps() const { return mLastTyphoonBlockedPlantSteps; }
@@ -1111,6 +1119,16 @@ public:
 	bool HasLadderAt(int row, int column) { return GetLadderAt(row, column) != nullptr; }
 	/** 移除指定格扶梯；返回是否确实移除。 */
 	bool RemoveLadderAt(int row, int column);
+	/** 创建全场唯一冰墙；已有活动墙时返回 nullptr，不覆盖其状态。 */
+	IceWall* AddIceWall(int row, float centerX,
+		int health = 1800, int maxHealth = 1800,
+		float thawDamageRemainder = 0.0f);
+	/** 返回活动冰墙并惰性清理失效弱引用。 */
+	IceWall* GetIceWall();
+	IceWall* GetIceWallInRow(int row);
+	bool HasIceWall() { return GetIceWall() != nullptr; }
+	/** 只允许目标墙回收自身；不会误删后来创建的新墙。 */
+	bool RemoveIceWall(IceWall* wall);
 	/** 移除指定行全部扶梯，返回移除数量。 */
 	int RemoveLaddersInRow(int row);
 	/** 按爆心所在格的方形格范围移除扶梯；范围口径与原版 KillAllZombiesInRadius 一致。 */

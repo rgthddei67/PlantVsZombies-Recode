@@ -7,6 +7,7 @@
 #include "../ShadowComponent.h"
 #include "../AnimatedObject.h"
 #include "../Cell.h"
+#include "../IceWall.h"
 #include "../../GameApp.h"
 #include "../../Logger.h"
 #include <algorithm>
@@ -341,6 +342,7 @@ void Bullet::Update()
 	float deltaTime = DeltaTime::GetDeltaTime();
 	if (transform)
 	{
+		const Vector previousPosition = transform->GetPosition();
 		mCheckPositionTimer += deltaTime;
 		if (mCheckPositionTimer >= 1.0f)
 		{
@@ -374,6 +376,11 @@ void Bullet::Update()
 				return;
 			}
 			UpdateStarRow(position);
+		}
+		// 平射墙判定必须早于 CollisionSystem 的僵尸回调，保证同帧穿越时墙先承伤。
+		if (!IsLobbedMotion() && !IsCobCannonMotion()
+			&& HitIceWallIfNeeded(previousPosition.x, position.x)) {
+			return;
 		}
 		UpdateShadowLayout(position);
 		if (HitsRoofTerrain(position)) {
@@ -1068,6 +1075,19 @@ void Bullet::HitLobbedGround()
 {
 	if (mHasHit) return;
 	mHasHit = true;
+	if (mBulletType == BulletType::BULLET_SALT_CRYSTAL && IsSaltTargetingIceWall()) {
+		if (IceWall* wall = mBoard->GetIceWallInRow(mRow)) {
+			wall->TakeProjectileDamage(GetWindAdjustedDamage(), false);
+			if (wall->IsActive()) {
+				wall->ApplyWinterCorrosion(GetWinterCorrosionDamage());
+			}
+			if (g_particleSystem) {
+				g_particleSystem->EmitEffect("SaltCrystalHit", GetPosition());
+			}
+			Die();
+			return;
+		}
+	}
 	if (mBulletType == BulletType::BULLET_KERNEL) {
 		PlayKernelImpactSound();
 	}
@@ -1105,6 +1125,33 @@ void Bullet::HitLobbedGround()
 		g_particleSystem->EmitEffect("CabbageSplat", GetPosition());
 	}
 	Die();
+}
+
+bool Bullet::HitIceWallIfNeeded(float fromX, float toX)
+{
+	if (!mBoard || !IsActive() || mBulletType == BulletType::BULLET_BASKETBALL) {
+		return false;
+	}
+	IceWall* wall = mBoard->GetIceWallInRow(mRow);
+	if (!wall || !wall->IntersectsHorizontalSegment(fromX, toX)) return false;
+	const bool fireDamage = mBulletType == BulletType::BULLET_FIREBALL
+		|| mBulletType == BulletType::BULLET_TOXICFIREBALL;
+	wall->TakeProjectileDamage(GetWindAdjustedDamage(), fireDamage);
+	mHasHit = true;
+	if (mCollider) mCollider->mEnabled = false;
+	Die();
+	return true;
+}
+
+bool Bullet::IsSaltTargetingIceWall() const
+{
+	if (!mBoard || mBulletType != BulletType::BULLET_SALT_CRYSTAL
+		|| !IsLobbedMotion()) return false;
+	IceWall* wall = mBoard->GetIceWallInRow(mRow);
+	if (!wall) return false;
+	// 墙在 1.2 秒飞行中会缓慢左移；半墙宽外再留移动余量，仍不会误接远处僵尸落点。
+	return std::fabs(mTrajectory.target.x - wall->GetCenterX())
+		<= IceWall::kBlockHalfWidth + 24.0f;
 }
 
 void Bullet::ConfigureCollisionTarget()
@@ -1179,6 +1226,7 @@ void Bullet::HandlePlantContact(ColliderComponent* other)
 void Bullet::HandleZombieContact(ColliderComponent* other)
 {
 	if (!IsActive() || !other) return;
+	if (IsSaltTargetingIceWall()) return;
 	auto* otherGameObject = other->GetGameObject();
 	if (!otherGameObject || otherGameObject->GetObjectType() != ObjectType::OBJECT_ZOMBIE) {
 		return;

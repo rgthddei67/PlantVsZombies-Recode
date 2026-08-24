@@ -5,6 +5,7 @@
 #include "../Board.h"
 #include "../Bullet/Bullet.h"
 #include "../Zombie/Zombie.h"
+#include "../IceWall.h"
 #include "../ShadowComponent.h"
 
 #include <algorithm>
@@ -67,7 +68,7 @@ void MeltSnowPult::PlantUpdate()
 	mShootTimer = 0.0f;
 	mShootInterval = GameRandom::Range(
 		kRepeatShootIntervalMin, kRepeatShootIntervalMax);
-	if (!FindTarget() || !mAnimator) return;
+	if ((!FindTarget() && !FindSaltWallTarget()) || !mAnimator) return;
 
 	BeginShot();
 	const float shootSpeed =
@@ -117,6 +118,11 @@ Zombie* MeltSnowPult::FindTarget() const
 	return closest;
 }
 
+IceWall* MeltSnowPult::FindSaltWallTarget() const
+{
+	return mBoard && mSaltAmmo > 0 ? mBoard->GetIceWallInRow(mRow) : nullptr;
+}
+
 void MeltSnowPult::BeginShot()
 {
 	if (mForcedShotForTesting >= 0) {
@@ -152,7 +158,10 @@ void MeltSnowPult::FireProjectile()
 		static_cast<float>(SCENE_WIDTH + 20),
 		mBoard->GetRowCenterYAtX(mRow, static_cast<float>(SCENE_WIDTH))
 			+ kFallbackLandingOffsetY);
-	if (Zombie* target = FindTarget()) {
+	if (IceWall* wall = fireSalt ? mBoard->GetIceWallInRow(mRow) : nullptr) {
+		landingPosition = wall->GetProjectileAimPosition();
+	}
+	else if (Zombie* target = FindTarget()) {
 		if (const ColliderComponent* collider = target->GetColliderComponent()) {
 			const SDL_FRect bounds = collider->GetBoundingBox();
 			const float currentTargetX = bounds.x + bounds.w * 0.5f;

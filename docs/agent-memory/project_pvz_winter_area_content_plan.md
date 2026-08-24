@@ -1,6 +1,6 @@
 ---
 name: project_pvz_winter_area_content_plan
-description: 第七大关五种组合型僵尸、五株寒潮植物、获取顺序及雪锚果、融雪投手实现契约
+description: 第七大关五种组合型僵尸、五株寒潮植物、获取顺序及已实现寒潮内容契约
 metadata:
   node_type: memory
   type: project
@@ -17,7 +17,7 @@ metadata:
 
 奖励顺序固定为 7-1 雪锚果、7-2 融雪投手、7-4 伏霜雷、7-6 警铃草、7-7 炉芯花；7-3、7-5、7-8 和 7-9 无植物奖励。对应的首次可用关为 7-2、7-3、7-5、7-7、7-8。7-6 首次让气象干扰僵尸在玩家没有警铃草时完整生效一次；7-7 首次让玩家只凭警铃草处理冰像处刑者，通关后才获得炉芯花。
 
-完整设计规格见 `docs/superpowers/specs/2026-08-24-winter-area-plants-design.md`。尚未实现的三株植物和四种僵尸不得用临时枚举或伪出怪占位；只允许由已实现内容提供目标拥有的窄接口，并在接口旁留下可搜索 TODO。雪橇车队与融雪投手已按下方真实契约接入。
+完整设计规格见 `docs/superpowers/specs/2026-08-24-winter-area-plants-design.md`。尚未实现的三株植物和三种僵尸不得用临时枚举或伪出怪占位；只允许由已实现内容提供目标拥有的窄接口，并在接口旁留下可搜索 TODO。雪橇车队、融雪投手与冰墙工程师已按下方真实契约接入。
 
 ## 雪锚果首版契约
 
@@ -39,6 +39,14 @@ metadata:
 
 `PLANT_MELTSNOWPULT` 是 7-2 通关奖励，当前调参为 125 阳光、7.5 秒冷却、300 生命、约 2.86～3.0 秒一次投掷。普通融雪团和盐晶均造成 20 点本体伤害；一次准确寒潮预报的出现沿把每株库存直接补至上限 3，新种下的融雪投手若正处于有效预报也从 3 发开始。气象干扰通过 Board 唯一入口让本轮预报失效，并清空所有已落地植物的库存与尚未出手盐晶；已经离手的盐晶仍独立飞行和入档。
 
-盐晶额外携带 200 点独立冰制层腐蚀值，由目标虚接口 `Zombie::ApplyWinterCorrosion` 消费且不得把未用完的腐蚀折算为本体伤害。当前尚无冰墙工程师或冰制护甲僵尸，因此基类保持中性返回，并在接口旁保留 `TODO(winter-area)`；没有为未来僵尸预置枚举、工厂、出怪表或伪生命层。Board 的 `coldWaveForecastDisrupted` 与融雪投手库存、蓄力状态、空中盐晶均进入正式关卡快照。
+盐晶额外携带 200 点独立冰制层腐蚀值，不得把未用完的腐蚀折算为本体伤害。同行存在冰墙时盐晶优先瞄准墙体，并结算 20 直击＋200 腐蚀；未来冰制护甲僵尸仍通过 `Zombie::ApplyWinterCorrosion` 的中性虚接口接入。Board 的 `coldWaveForecastDisrupted` 与融雪投手库存、蓄力状态、空中盐晶均进入正式关卡快照。
 
 独立卡图、reanim、盐晶和两套命中粒子由 `scripts/generate_melt_snow_pult_assets.ps1` 可复现生成。`smoke_melt_snow_pult.json` 共 92 条命令，覆盖资源键、125/7.5/300/20 调参、预报补满、种植初始库存、干扰清库存与蓄力、空中盐晶跨干扰及读档存活、普通目标只承受 20 本体伤害、200 腐蚀投影、粒子、库存快照与 7-2 奖励。`clang-release` 全量 LTO 构建及 `SaveSchemaTests` 通过；专项在当前桌面可见的默认 Vulkan 实例路径和 `-NoInstance` 路径均执行至 command 91、exit 0、`status=passed`、`script finished OK`，同步截图目验全株冷色资源、空中盐晶和蓝白命中提示。同次 `smoke_winter_garden.json` 至 command 143、`smoke_cabbagepult.json` 至 command 172，均在 Release 默认 Vulkan 可见回归通过。
+
+## 2026-08-24 冰墙工程师实现
+
+`ZOMBIE_ICE_WALL_ENGINEER` 为 800 本体＋370 安全帽，复用路障死亡/啃食时间轴而不新增帧事件。抵达当前霜线后停步施工 4 秒；施工受冻结、黄油与麻痹自然暂停，断头、死亡和魅惑走原子中止。完工留下与工程师生命独立、全场唯一的 1800 生命冰墙，工程师死亡不拆墙。
+
+冰墙每游戏秒向房屋推进 14px，在同行最近植物 collider 右侧保留间隙停住；`THAWING` 或高于冻结温度时每秒融化 120。同行平射弹在僵尸碰撞前命中墙体，抛射弹越墙；火焰伤害两倍，融雪投手盐晶优先墙体并结算 20 直击＋200 独立腐蚀。工程师每正式波最多一只，接入 7-3、7-4、7-5、7-8、7-9，7-6/7-7 留给其他机制教学。
+
+安全帽、橙黄反光背带、工具带和双箍制冰罐随既有身体/领带/路障轨道运动；墙体三档贴图与四套粒子由 `scripts/generate_ice_wall_engineer_assets.ps1` 确定性生成并锁定 SHA-256。施工阶段、计时、目标墙位、能力消费、墙体位置/生命/融化余量及每波计数均进入正式快照。`clang-release` 全量 LTO、378 项 Win7 导入、`SaveSchemaTests`、`SaveMigrationTests` 通过；`smoke_ice_wall_engineer.json` 99 条命令在默认 Vulkan 与 `-NoInstance` 可见执行通过，覆盖直射/抛射、火焰、盐晶、施工存档、工程师死亡后留墙、回暖融化、波次上限和植物停点。出怪表、融雪投手及冬日花园父回归同次 Release 通过。

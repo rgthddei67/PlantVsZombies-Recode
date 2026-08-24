@@ -19,6 +19,7 @@
 #include "../ChooseCardUI.h"
 #include "../Board.h"
 #include "../Ladder.h"
+#include "../IceWall.h"
 #include "../Sun.h"
 #include "../LawnMower.h"
 #include "../AudioSystem.h"
@@ -66,6 +67,7 @@
 #include "../Zombie/ZamboniZombie.h"
 #include "../Zombie/GildedZamboniZombie.h"
 #include "../Zombie/BobsledTeamZombie.h"
+#include "../Zombie/IceWallEngineerZombie.h"
 #include "../Zombie/EliteDancerZombie.h"
 #include "../Zombie/Polevaulter.h"
 #include "../Zombie/DolphinRiderZombie.h"
@@ -379,7 +381,7 @@ namespace {
 		ZT(ZOMBIE_WALLNUT_HEAD), ZT(ZOMBIE_JALAPENO_HEAD), ZT(ZOMBIE_GATLING_HEAD),
 		ZT(ZOMBIE_SQUASH_HEAD), ZT(ZOMBIE_TALLNUT_HEAD), ZT(ZOMBIE_REDEYE_GARGANTUAR), ZT(ZOMBIE_ROOF_MARSHAL),
 		ZT(ZOMBIE_INSULATOR), ZT(ZOMBIE_HIJACKER), ZT(ZOMBIE_HEALER),
-		ZT(ZOMBIE_GROUNDING), ZT(ZOMBIE_BOBSLED_TEAM),
+		ZT(ZOMBIE_GROUNDING), ZT(ZOMBIE_BOBSLED_TEAM), ZT(ZOMBIE_ICE_WALL_ENGINEER),
 	};
 #undef ZT
 #define PK(n) { #n, PerkType::n }
@@ -1808,6 +1810,92 @@ bool TestDriver::ExecuteCurrent() {
 		}
 		return true;
 	}
+	if (op == "add_ice_wall") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) {
+			Fail("add_ice_wall: 不在 GameScene 或 Board 为空");
+			return false;
+		}
+		Board* board = gs->GetBoard();
+		const int row = cmd.value("row", -1);
+		if (row < 0 || row >= board->mRows) {
+			Fail("add_ice_wall: row 超出当前地图");
+			return false;
+		}
+		if (!board->AddIceWall(row, cmd.value("x", 700.0f),
+			cmd.value("health", IceWall::kDefaultHealth),
+			cmd.value("maxHealth", IceWall::kDefaultHealth),
+			cmd.value("thawDamageRemainder", 0.0f))) {
+			Fail("add_ice_wall: Board 未能创建唯一冰墙");
+			return false;
+		}
+		return true;
+	}
+	if (op == "damage_ice_wall") {
+		GameScene* gs = CurrentGameScene();
+		IceWall* wall = gs && gs->GetBoard() ? gs->GetBoard()->GetIceWall() : nullptr;
+		if (!wall) {
+			Fail("damage_ice_wall: 未找到活动冰墙");
+			return false;
+		}
+		const int directDamage = cmd.value("damage", 0);
+		const int corrosion = cmd.value("corrosion", 0);
+		if (directDamage > 0) {
+			wall->TakeProjectileDamage(directDamage, cmd.value("fire", false));
+		}
+		if (wall->IsActive() && corrosion > 0) wall->ApplyWinterCorrosion(corrosion);
+		return true;
+	}
+	if (op == "set_ice_wall_state") {
+		GameScene* gs = CurrentGameScene();
+		IceWall* wall = gs && gs->GetBoard() ? gs->GetBoard()->GetIceWall() : nullptr;
+		if (!wall) {
+			Fail("set_ice_wall_state: 未找到活动冰墙");
+			return false;
+		}
+		wall->SetStateForTesting(cmd.value("x", wall->GetCenterX()),
+			cmd.value("health", wall->GetHealth()),
+			cmd.value("thawDamageRemainder", wall->GetThawDamageRemainder()));
+		return true;
+	}
+	if (op == "set_ice_wall_engineer_state") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) {
+			Fail("set_ice_wall_engineer_state: 不在 GameScene 或 Board 为空");
+			return false;
+		}
+		const std::string phaseName = cmd.value("phase", "MOVING");
+		IceWallEngineerZombie::ConstructionPhase phase =
+			IceWallEngineerZombie::ConstructionPhase::MOVING;
+		if (phaseName == "BUILDING") {
+			phase = IceWallEngineerZombie::ConstructionPhase::BUILDING;
+		}
+		else if (phaseName == "COMPLETED") {
+			phase = IceWallEngineerZombie::ConstructionPhase::COMPLETED;
+		}
+		else if (phaseName != "MOVING") {
+			Fail("set_ice_wall_engineer_state: phase 必须为 MOVING/BUILDING/COMPLETED");
+			return false;
+		}
+		const int row = cmd.value("row", -1);
+		const int index = cmd.value("index", 0);
+		int seen = 0;
+		std::vector<int> zombieIDs = gs->GetBoard()->mEntityRegistry.GetAllZombieIDs();
+		std::sort(zombieIDs.begin(), zombieIDs.end());
+		for (const int id : zombieIDs) {
+			auto* engineer = dynamic_cast<IceWallEngineerZombie*>(
+				gs->GetBoard()->mEntityRegistry.GetZombie(id));
+			if (!engineer || !engineer->IsActive()) continue;
+			if (row >= 0 && engineer->mRow != row) continue;
+			if (seen++ != index) continue;
+			engineer->SetConstructionStateForTesting(phase,
+				cmd.value("remaining", 4.0f), cmd.value("wallX", 700.0f),
+				cmd.value("used", false));
+			return true;
+		}
+		Fail("set_ice_wall_engineer_state: 未找到目标冰墙工程师");
+		return false;
+	}
 	if (op == "set_elite_ladder_scan_countdown") {
 		GameScene* gs = CurrentGameScene();
 		if (!gs || !gs->GetBoard()) {
@@ -3058,6 +3146,42 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			ZombieType::ZOMBIE_BOBSLED_TEAM) },
 		{ "offsetXInt", static_cast<int>(std::lround(bobsledOffset.x)) },
 		{ "offsetYInt", static_cast<int>(std::lround(bobsledOffset.y)) },
+	};
+	out["iceWallEngineerResources"] = {
+		{ "coneReanimationLoaded", ResourceManager::GetInstance().HasReanimation(
+			ResourceKeys::Reanimations::REANIM_CONE_ZOMBIE) },
+		{ "bodyTextureLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_ZOMBIE_ICEWALL_ENGINEER_BODY, false) != nullptr },
+		{ "toolStrapTextureLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_ZOMBIE_ICEWALL_ENGINEER_TOOLSTRAP, false) != nullptr },
+		{ "hatTexturesLoaded",
+			ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_ZOMBIE_ICEWALL_ENGINEER_HAT1, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_ZOMBIE_ICEWALL_ENGINEER_HAT2, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_ZOMBIE_ICEWALL_ENGINEER_HAT3, false) != nullptr },
+		{ "wallTexturesLoaded",
+			ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_ICE_WALL, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_ICE_WALL_CRACKED1, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_ICE_WALL_CRACKED2, false) != nullptr },
+		{ "particleTexturesLoaded", ResourceManager::GetInstance().GetTexture(
+			"PARTICLE_SNOWPEA_PARTICLES_PART_0", false) != nullptr },
+	};
+	const Vector iceWallEngineerOffset = GameDataManager::GetInstance().GetZombieOffset(
+		ZombieType::ZOMBIE_ICE_WALL_ENGINEER);
+	out["iceWallEngineerGameData"] = {
+		{ "weight", GameDataManager::GetInstance().GetZombieWeight(
+			ZombieType::ZOMBIE_ICE_WALL_ENGINEER) },
+		{ "appearWave", GameDataManager::GetInstance().GetZombieAppearWave(
+			ZombieType::ZOMBIE_ICE_WALL_ENGINEER) },
+		{ "survivalRound", GameDataManager::GetInstance().GetZombieSurvivalRound(
+			ZombieType::ZOMBIE_ICE_WALL_ENGINEER) },
+		{ "offsetXInt", static_cast<int>(std::lround(iceWallEngineerOffset.x)) },
+		{ "offsetYInt", static_cast<int>(std::lround(iceWallEngineerOffset.y)) },
 	};
 	out["lightningRodPotResources"] = {
 		{ "reanimationLoaded", ResourceManager::GetInstance().HasReanimation(
@@ -4323,6 +4447,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				board->GetGroundingZombiesSpawnedThisWave() },
 			{ "bobsledTeamsSpawnedThisWave",
 				board->GetBobsledTeamsSpawnedThisWave() },
+			{ "iceWallEngineersSpawnedThisWave",
+				board->GetIceWallEngineersSpawnedThisWave() },
 			{ "typhoonDecayRemaining", board->GetTyphoonStrengthTimer() },
 			{ "windDirection", WindDirectionName(board->GetWindDirection()) },
 			{ "windDirectionRemaining", board->GetWindDirectionTimer() },
@@ -4511,13 +4637,17 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	// 出怪池不分模式都 dump：冒险关卡验证 spawnlists.json 也要抓手（原先只在生存模式导出）
 	out["spawnList"] = nlohmann::json::array();
 	bool spawnListHasBobsledTeam = false;
+	bool spawnListHasIceWallEngineer = false;
 	for (ZombieType t : board->GetSpawnZombieList()) {
 		out["spawnList"].push_back(ZombieTypeName(t));
 		spawnListHasBobsledTeam = spawnListHasBobsledTeam
 			|| t == ZombieType::ZOMBIE_BOBSLED_TEAM;
+		spawnListHasIceWallEngineer = spawnListHasIceWallEngineer
+			|| t == ZombieType::ZOMBIE_ICE_WALL_ENGINEER;
 	}
 	out["spawnTypeCount"] = static_cast<int>(board->GetSpawnZombieList().size());
 	out["spawnListHasBobsledTeam"] = spawnListHasBobsledTeam;
+	out["spawnListHasIceWallEngineer"] = spawnListHasIceWallEngineer;
 
 	int charredZombieCount = 0;
 	int zamboniCharredCount = 0;
@@ -4737,6 +4867,21 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		}
 	}
 	out["ladderCount"] = static_cast<int>(out["ladders"].size());
+	out["iceWall"] = nullptr;
+	if (IceWall* wall = board->GetIceWall()) {
+		out["iceWall"] = {
+			{ "row", wall->GetRow() },
+			{ "centerXInt", static_cast<int>(std::lround(wall->GetCenterX())) },
+			{ "health", wall->GetHealth() },
+			{ "maxHealth", wall->GetMaxHealth() },
+			{ "thawDamageRemainderOn1000", static_cast<int>(std::lround(
+				wall->GetThawDamageRemainder() * 1000.0f)) },
+			{ "aimXInt", static_cast<int>(std::lround(
+				wall->GetProjectileAimPosition().x)) },
+			{ "aimYInt", static_cast<int>(std::lround(
+				wall->GetProjectileAimPosition().y)) },
+		};
+	}
 
 	out["zombies"] = nlohmann::json::array();
 	out["zombiesByType"] = nlohmann::json::object();
@@ -5556,6 +5701,25 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			}
 			out["bobsledTeam"].push_back(zombieState);
 		}
+		if (auto* engineer = dynamic_cast<IceWallEngineerZombie*>(z)) {
+			const char* phase = "MOVING";
+			switch (engineer->GetConstructionPhase()) {
+			case IceWallEngineerZombie::ConstructionPhase::MOVING:
+				break;
+			case IceWallEngineerZombie::ConstructionPhase::BUILDING:
+				phase = "BUILDING";
+				break;
+			case IceWallEngineerZombie::ConstructionPhase::COMPLETED:
+				phase = "COMPLETED";
+				break;
+			}
+			zombieState["constructionPhase"] = phase;
+			zombieState["constructionRemainingMs"] = static_cast<int>(std::lround(
+				engineer->GetConstructionRemaining() * 1000.0f));
+			zombieState["buildWallCenterXInt"] = static_cast<int>(std::lround(
+				engineer->GetBuildWallCenterX()));
+			zombieState["constructionUsed"] = engineer->HasUsedConstruction();
+		}
 		// 专项脚本中的异品种靶子可按语义类型稳定取证；同品种多只时仍使用 zombies 全量数组。
 		out["zombiesByType"][ZombieTypeName(z->mZombieType)] = zombieState;
 		out["zombies"].push_back(std::move(zombieState));
@@ -6133,6 +6297,10 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["particleEffectNameCounts"]["SnowMedium"] = 0;
 	out["particleEffectNameCounts"]["SnowHeavy"] = 0;
 	out["particleEffectNameCounts"]["ZombieBobsledPlantImpact"] = 0;
+	out["particleEffectNameCounts"]["IceWallBuild"] = 0;
+	out["particleEffectNameCounts"]["IceWallHit"] = 0;
+	out["particleEffectNameCounts"]["IceWallBreak"] = 0;
+	out["particleEffectNameCounts"]["IceWallEngineerHardhatOff"] = 0;
 	if (g_particleSystem) {
 		for (const auto& effect : g_particleSystem->GetEffectsForTesting()) {
 			if (!effect) continue;

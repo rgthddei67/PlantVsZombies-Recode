@@ -44,6 +44,8 @@ private:
 	void UpdateForecastAmmo();
 	/** 返回同行最近的合法地面目标；未找到时返回 nullptr。 */
 	class Zombie* FindTarget() const;
+	/** 仅盐晶库存可用时返回同行活动冰墙；普通雪团不会为墙单独开火。 */
+	class IceWall* FindSaltWallTarget() const;
 	/** 在攻击开始时锁定并消费本发盐晶库存。 */
 	void BeginShot();
 	/** 同步手持雪团轨道使用的普通/盐晶纹理。 */

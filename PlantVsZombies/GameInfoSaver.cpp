@@ -17,6 +17,7 @@
 #include "./Game/Trophy.h"
 #include "./Game/Crater.h"
 #include "./Game/Ladder.h"
+#include "./Game/IceWall.h"
 #include "./Game/Bullet/BulletType.h"
 #include "./Game/CardSlotManager.h"
 #include "./Game/Card.h"
@@ -422,6 +423,7 @@ bool GameInfoSaver::SerializeLevelDataToPath(Board* board, CardSlotManager* mana
 	j["hijackerSpawnBlockedThisWave"] = board->mHijackerSpawnBlockedThisWave;
 	j["groundingZombiesSpawnedThisWave"] = board->mGroundingZombiesSpawnedThisWave;
 	j["bobsledTeamsSpawnedThisWave"] = board->mBobsledTeamsSpawnedThisWave;
+	j["iceWallEngineersSpawnedThisWave"] = board->mIceWallEngineersSpawnedThisWave;
 	j["mistFuelDropAccumulator"] = board->mMistFuelDropAccumulator;
 	WeatherPresentationState weatherPresentation;
 	if (auto* presentation = board->GetPresentation()) {
@@ -643,6 +645,17 @@ bool GameInfoSaver::SerializeLevelDataToPath(Board* board, CardSlotManager* mana
 		});
 	}
 	if (!laddersArr.empty()) j["ladders"] = laddersArr;
+
+	// 冰墙与工程师生命独立；全场唯一实体保存连续位置、生命和回暖小数伤害余量。
+	if (auto wall = board->mIceWall.lock(); wall && wall->IsActive()) {
+		j["iceWall"] = {
+			{ "row", wall->GetRow() },
+			{ "centerX", wall->GetCenterX() },
+			{ "health", wall->GetHealth() },
+			{ "maxHealth", wall->GetMaxHealth() },
+			{ "thawDamageRemainder", wall->GetThawDamageRemainder() },
+		};
+	}
 
 	// 卡牌只在 GAME 中代表已提交卡组。CHOOSE_CARD 中的卡槽必须为空；即便未来流程意外留下
 	// 旧卡，也不能把它序列化成下一轮已提交卡组，否则读档后再次选卡会叠出两套卡牌。
@@ -1102,6 +1115,8 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 		j.value("groundingZombiesSpawnedThisWave", 0));
 	board->RestoreBobsledTeamWaveSpawnCount(
 		j.value("bobsledTeamsSpawnedThisWave", 0));
+	board->RestoreIceWallEngineerWaveSpawnCount(
+		j.value("iceWallEngineersSpawnedThisWave", 0));
 	board->mRainVisualActive = false;   // 粒子不入存档，StartGame 按剩余时间重建
 	board->mMaxWave = j.value("maxWave", 10);
 	board->mZombieCountDown = j.value("zombieCountDown", 20.0f);
@@ -1413,6 +1428,14 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 			static_cast<int>(LadderStyle::ELITE));
 		board->AddLadder(ladder.value("row", 0), ladder.value("column", 0),
 			static_cast<LadderStyle>(savedStyle));
+	}
+
+	// 旧档无 iceWall 字段时保持空；损坏档由 Board 行门禁和 IceWall 构造夹紧。
+	if (const auto it = j.find("iceWall"); it != j.end() && it->is_object()) {
+		board->AddIceWall(it->value("row", 0), it->value("centerX", 0.0f),
+			it->value("health", IceWall::kDefaultHealth),
+			it->value("maxHealth", IceWall::kDefaultHealth),
+			it->value("thawDamageRemainder", 0.0f));
 	}
 
 	// 恢复生存轮间冷却快照（见 SaveLevelData 同名字段注释）。必须在 ChooseCardComplete 还原冷却之前就位，
