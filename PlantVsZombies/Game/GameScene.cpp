@@ -268,6 +268,15 @@ namespace {
 		return u8"未知";
 	}
 
+	const char* ColdWaveStrengthDisplayName(ColdWaveStrength strength) {
+		switch (strength) {
+		case ColdWaveStrength::WEAK:   return u8"弱寒潮";
+		case ColdWaveStrength::NORMAL: return u8"普通寒潮";
+		case ColdWaveStrength::STRONG: return u8"强寒潮";
+		}
+		return u8"寒潮";
+	}
+
 	/** 把独立雾势转换为天气面板名称。 */
 	const char* FogWeatherDisplayName(FogWeatherIntensity intensity) {
 		switch (intensity) {
@@ -323,28 +332,30 @@ namespace {
 		return line;
 	}
 
-	/** 寒潮预报与实况只读取 Board 确定性阶段，不复用允许误报的雨势预报。 */
+	/** 寒潮预报与实况只读取 Board 已锁定计划，不复用允许误报的雨势预报。 */
 	std::string ColdWavePanelText(const Board* board) {
 		if (!board || (!board->HasColdWaveForecast() && !board->IsColdWaveActive())) {
 			return {};
 		}
 		const int seconds = std::max(0,
 			static_cast<int>(std::ceil(board->GetColdWaveTimer())));
+		const std::string strength = ColdWaveStrengthDisplayName(
+			board->GetColdWaveStrength());
 		if (board->HasColdWaveForecast()) {
 			const int minimum = static_cast<int>(std::lround(
-				board->GetWinterMinimumTemperatureC()));
-			return std::string(u8"寒潮预报（") + std::to_string(seconds)
-				+ u8"秒）：气温将降至 " + std::to_string(minimum) + u8"°C";
+				board->GetColdWaveTargetTemperatureC()));
+			return strength + u8"预报（" + std::to_string(seconds)
+				+ u8"秒）：最低 " + std::to_string(minimum) + u8"°C";
 		}
 		switch (board->GetColdWavePhase()) {
 		case ColdWavePhase::COOLING:
-			return std::string(u8"寒潮实况：降温中（")
+			return strength + u8"实况：降温中（"
 				+ std::to_string(seconds) + u8"秒）";
 		case ColdWavePhase::COLD:
-			return std::string(u8"寒潮实况：低温持续（")
+			return strength + u8"实况：低温持续（"
 				+ std::to_string(seconds) + u8"秒）";
 		case ColdWavePhase::THAWING:
-			return std::string(u8"寒潮实况：回暖中（")
+			return strength + u8"实况：回暖中（"
 				+ std::to_string(seconds) + u8"秒）";
 		case ColdWavePhase::CALM:
 			break;

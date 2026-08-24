@@ -116,10 +116,32 @@ namespace {
 	constexpr float kColdWaveCalmDurationMin = 35.0f;    // 两次寒潮之间温暖间隔的最短游戏秒数
 	constexpr float kColdWaveCalmDurationMax = 60.0f;    // 两次寒潮之间温暖间隔的最长游戏秒数
 	constexpr float kColdWaveForecastLeadTime = 20.0f;   // 寒潮降温前开始显示准确预报的游戏秒数
-	constexpr float kColdWaveCoolingDuration = 20.0f;    // 寒潮把温度从温暖线性降到最低温的游戏秒数
-	constexpr float kColdWaveHoldDurationMin = 45.0f;    // 最低温寒潮维持的最短游戏秒数
-	constexpr float kColdWaveHoldDurationMax = 70.0f;    // 最低温寒潮维持的最长游戏秒数
-	constexpr float kColdWaveThawDuration = 32.0f;       // 寒潮结束后回暖到常温的游戏秒数
+	constexpr int kColdWaveWeakWeight = 35;              // 弱寒潮抽取权重（百分比）
+	constexpr int kColdWaveNormalWeight = 45;            // 普通寒潮抽取权重（百分比）
+	constexpr float kWeakColdWaveTargetC = -5.0f;        // 弱寒潮最低温基准（摄氏度）
+	constexpr float kNormalColdWaveTargetC = -8.0f;      // 普通寒潮最低温基准（摄氏度）
+	constexpr float kStrongColdWaveTargetC = -11.0f;     // 强寒潮最低温基准（摄氏度）
+	constexpr int kColdWaveTargetJitterMin = -1;         // 同强度最低温随机偏移下限（摄氏度）
+	constexpr int kColdWaveTargetJitterMax = 1;          // 同强度最低温随机偏移上限（摄氏度）
+	constexpr float kWeakColdWaveCoolingMin = 21.0f;     // 弱寒潮最短降温时长（游戏秒）
+	constexpr float kWeakColdWaveCoolingMax = 25.0f;     // 弱寒潮最长降温时长（游戏秒）
+	constexpr float kWeakColdWaveHoldMin = 35.0f;        // 弱寒潮最短低温维持时长（游戏秒）
+	constexpr float kWeakColdWaveHoldMax = 50.0f;        // 弱寒潮最长低温维持时长（游戏秒）
+	constexpr float kWeakColdWaveThawMin = 24.0f;        // 弱寒潮最短回暖时长（游戏秒）
+	constexpr float kWeakColdWaveThawMax = 30.0f;        // 弱寒潮最长回暖时长（游戏秒）
+	constexpr float kNormalColdWaveCoolingMin = 18.0f;   // 普通寒潮最短降温时长（游戏秒）
+	constexpr float kNormalColdWaveCoolingMax = 22.0f;   // 普通寒潮最长降温时长（游戏秒）
+	constexpr float kNormalColdWaveHoldMin = 45.0f;      // 普通寒潮最短低温维持时长（游戏秒）
+	constexpr float kNormalColdWaveHoldMax = 65.0f;      // 普通寒潮最长低温维持时长（游戏秒）
+	constexpr float kNormalColdWaveThawMin = 28.0f;      // 普通寒潮最短回暖时长（游戏秒）
+	constexpr float kNormalColdWaveThawMax = 36.0f;      // 普通寒潮最长回暖时长（游戏秒）
+	constexpr float kStrongColdWaveCoolingMin = 15.0f;   // 强寒潮最短降温时长（游戏秒）
+	constexpr float kStrongColdWaveCoolingMax = 19.0f;   // 强寒潮最长降温时长（游戏秒）
+	constexpr float kStrongColdWaveHoldMin = 55.0f;      // 强寒潮最短低温维持时长（游戏秒）
+	constexpr float kStrongColdWaveHoldMax = 75.0f;      // 强寒潮最长低温维持时长（游戏秒）
+	constexpr float kStrongColdWaveThawMin = 34.0f;      // 强寒潮最短回暖时长（游戏秒）
+	constexpr float kStrongColdWaveThawMax = 44.0f;      // 强寒潮最长回暖时长（游戏秒）
+	constexpr int kWinterFrostVariantCount = 2;          // 原图与纵向镜像组成的稳定冻融线轮廓数量
 	constexpr int kWinterSafeColumnCount = 3;            // 温室侧永不冻结的安全列数
 	constexpr int kStormyNightLevel = 36;                 // 暴风雨夜专属冒险关：内部 level 36 即 4-9
 	constexpr int kStormyNightForecastWave = 22;          // 第 22 波开始固定发布“暴风雨”预报
@@ -1521,6 +1543,12 @@ void Board::InitializeWinterTemperature()
 		mColdWavePhase = ColdWavePhase::CALM;
 		mColdWaveTimer = 0.0f;
 		mAmbientTemperatureC = kWinterWarmTemperatureC;
+		mColdWaveStrength = ColdWaveStrength::STRONG;
+		mColdWaveTargetTemperatureC = kWinterColdTemperatureC;
+		mColdWaveCoolingDuration = 20.0f;
+		mColdWaveHoldDuration = 57.5f;
+		mColdWaveThawDuration = 32.0f;
+		mWinterFrostVariant = 0;
 		return;
 	}
 	if (mWinterTemperatureInitialized) return;
@@ -1529,6 +1557,60 @@ void Board::InitializeWinterTemperature()
 	mColdWaveTimer = GameRandom::Range(
 		kColdWaveCalmDurationMin, kColdWaveCalmDurationMax);
 	mAmbientTemperatureC = kWinterWarmTemperatureC;
+	RollNextColdWave();
+}
+
+/**
+ * 在寒潮开始前一次性抽完所有随机量，保证预报、存档和本轮冻融线外观始终一致。
+ */
+void Board::RollNextColdWave()
+{
+	const int strengthRoll = GameRandom::Range(1, 100);
+	if (strengthRoll <= kColdWaveWeakWeight) {
+		mColdWaveStrength = ColdWaveStrength::WEAK;
+	} else if (strengthRoll <= kColdWaveWeakWeight + kColdWaveNormalWeight) {
+		mColdWaveStrength = ColdWaveStrength::NORMAL;
+	} else {
+		mColdWaveStrength = ColdWaveStrength::STRONG;
+	}
+
+	float targetBase = kNormalColdWaveTargetC;
+	float coolingMin = kNormalColdWaveCoolingMin;
+	float coolingMax = kNormalColdWaveCoolingMax;
+	float holdMin = kNormalColdWaveHoldMin;
+	float holdMax = kNormalColdWaveHoldMax;
+	float thawMin = kNormalColdWaveThawMin;
+	float thawMax = kNormalColdWaveThawMax;
+	switch (mColdWaveStrength) {
+	case ColdWaveStrength::WEAK:
+		targetBase = kWeakColdWaveTargetC;
+		coolingMin = kWeakColdWaveCoolingMin;
+		coolingMax = kWeakColdWaveCoolingMax;
+		holdMin = kWeakColdWaveHoldMin;
+		holdMax = kWeakColdWaveHoldMax;
+		thawMin = kWeakColdWaveThawMin;
+		thawMax = kWeakColdWaveThawMax;
+		break;
+	case ColdWaveStrength::NORMAL:
+		break;
+	case ColdWaveStrength::STRONG:
+		targetBase = kStrongColdWaveTargetC;
+		coolingMin = kStrongColdWaveCoolingMin;
+		coolingMax = kStrongColdWaveCoolingMax;
+		holdMin = kStrongColdWaveHoldMin;
+		holdMax = kStrongColdWaveHoldMax;
+		thawMin = kStrongColdWaveThawMin;
+		thawMax = kStrongColdWaveThawMax;
+		break;
+	}
+
+	mColdWaveTargetTemperatureC = std::clamp(targetBase + static_cast<float>(
+		GameRandom::Range(kColdWaveTargetJitterMin, kColdWaveTargetJitterMax)),
+		kWinterColdTemperatureC, kWinterFreezeTemperatureC);
+	mColdWaveCoolingDuration = GameRandom::Range(coolingMin, coolingMax);
+	mColdWaveHoldDuration = GameRandom::Range(holdMin, holdMax);
+	mColdWaveThawDuration = GameRandom::Range(thawMin, thawMax);
+	mWinterFrostVariant = GameRandom::Range(0, kWinterFrostVariantCount - 1);
 }
 
 /**
@@ -1550,41 +1632,41 @@ void Board::UpdateWinterTemperature(float deltaTime)
 		mAmbientTemperatureC = kWinterWarmTemperatureC;
 		if (mColdWaveTimer <= 0.0f) {
 			mColdWavePhase = ColdWavePhase::COOLING;
-			mColdWaveTimer = kColdWaveCoolingDuration;
+			mColdWaveTimer = mColdWaveCoolingDuration;
 		}
 		break;
 	case ColdWavePhase::COOLING:
 	{
 		const float progress = std::clamp(1.0f
-			- mColdWaveTimer / kColdWaveCoolingDuration, 0.0f, 1.0f);
+			- mColdWaveTimer / mColdWaveCoolingDuration, 0.0f, 1.0f);
 		mAmbientTemperatureC = kWinterWarmTemperatureC
-			+ (kWinterColdTemperatureC - kWinterWarmTemperatureC) * progress;
+			+ (mColdWaveTargetTemperatureC - kWinterWarmTemperatureC) * progress;
 		if (mColdWaveTimer <= 0.0f) {
 			mColdWavePhase = ColdWavePhase::COLD;
-			mColdWaveTimer = GameRandom::Range(
-				kColdWaveHoldDurationMin, kColdWaveHoldDurationMax);
-			mAmbientTemperatureC = kWinterColdTemperatureC;
+			mColdWaveTimer = mColdWaveHoldDuration;
+			mAmbientTemperatureC = mColdWaveTargetTemperatureC;
 		}
 		break;
 	}
 	case ColdWavePhase::COLD:
-		mAmbientTemperatureC = kWinterColdTemperatureC;
+		mAmbientTemperatureC = mColdWaveTargetTemperatureC;
 		if (mColdWaveTimer <= 0.0f) {
 			mColdWavePhase = ColdWavePhase::THAWING;
-			mColdWaveTimer = kColdWaveThawDuration;
+			mColdWaveTimer = mColdWaveThawDuration;
 		}
 		break;
 	case ColdWavePhase::THAWING:
 	{
 		const float progress = std::clamp(1.0f
-			- mColdWaveTimer / kColdWaveThawDuration, 0.0f, 1.0f);
-		mAmbientTemperatureC = kWinterColdTemperatureC
-			+ (kWinterWarmTemperatureC - kWinterColdTemperatureC) * progress;
+			- mColdWaveTimer / mColdWaveThawDuration, 0.0f, 1.0f);
+		mAmbientTemperatureC = mColdWaveTargetTemperatureC
+			+ (kWinterWarmTemperatureC - mColdWaveTargetTemperatureC) * progress;
 		if (mColdWaveTimer <= 0.0f) {
 			mColdWavePhase = ColdWavePhase::CALM;
 			mColdWaveTimer = GameRandom::Range(
 				kColdWaveCalmDurationMin, kColdWaveCalmDurationMax);
 			mAmbientTemperatureC = kWinterWarmTemperatureC;
+			RollNextColdWave();
 		}
 		break;
 	}
@@ -4552,10 +4634,15 @@ bool Board::IsWinterPrecipitationSnow() const
 }
 
 bool Board::SetWinterTemperatureForTesting(float temperatureC,
-	ColdWavePhase phase, float remaining)
+	ColdWavePhase phase, float remaining, ColdWaveStrength strength,
+	float targetTemperatureC, float coolingDuration, float holdDuration,
+	float thawDuration, int frostVariant)
 {
 	if (!SupportsWinterTemperature() || !std::isfinite(temperatureC)
-		|| !std::isfinite(remaining)
+		|| !std::isfinite(remaining) || !std::isfinite(targetTemperatureC)
+		|| !std::isfinite(coolingDuration) || coolingDuration <= 0.0f
+		|| !std::isfinite(holdDuration) || holdDuration <= 0.0f
+		|| !std::isfinite(thawDuration) || thawDuration <= 0.0f
 		|| phase < ColdWavePhase::CALM || phase > ColdWavePhase::THAWING) {
 		return false;
 	}
@@ -4563,6 +4650,14 @@ bool Board::SetWinterTemperatureForTesting(float temperatureC,
 	mWinterTemperatureInitialized = true;
 	mColdWavePhase = phase;
 	mColdWaveTimer = std::max(0.0f, remaining);
+	mColdWaveStrength = std::clamp(strength,
+		ColdWaveStrength::WEAK, ColdWaveStrength::STRONG);
+	mColdWaveTargetTemperatureC = std::clamp(targetTemperatureC,
+		kWinterColdTemperatureC, kWinterFreezeTemperatureC);
+	mColdWaveCoolingDuration = coolingDuration;
+	mColdWaveHoldDuration = holdDuration;
+	mColdWaveThawDuration = thawDuration;
+	mWinterFrostVariant = std::clamp(frostVariant, 0, kWinterFrostVariantCount - 1);
 	mAmbientTemperatureC = std::clamp(temperatureC,
 		kWinterColdTemperatureC, kWinterWarmTemperatureC);
 	StopTyphoon();
@@ -5152,9 +5247,15 @@ void Board::DrawWinterFrost(Graphics* g) const
 		? 75.0f * visualColumns
 		: 75.0f + 170.0f * std::clamp(
 			(visualColumns - 1.0f) / (maximumFrozen - 1.0f), 0.0f, 1.0f);
-	// 纹理本身包含透明间隙、雪斑与参差左缘；连续缩放保留有机边缘并消除整列跳变。
-	g->DrawTexture(frost, left, mCellInitialY, width, height, 0.0f,
-		glm::vec4(255.0f, 255.0f, 255.0f, alpha));
+	const glm::vec4 tint(255.0f, 255.0f, 255.0f, alpha);
+	// 每轮只锁一次纵向方向；镜像会重排参差前缘，但不会在更新或绘制时闪跳。
+	if (mWinterFrostVariant == 0) {
+		g->DrawTexture(frost, left, mCellInitialY, width, height, 0.0f, tint);
+	} else {
+		g->DrawTextureRegion(frost, 0.0f, static_cast<float>(frost->height),
+			static_cast<float>(frost->width), -static_cast<float>(frost->height),
+			left, mCellInitialY, width, height, 0.0f, tint);
+	}
 }
 
 bool Board::TryGetNightRoofChargeGuideAnchor(Vector& anchor) const

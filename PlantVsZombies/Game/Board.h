@@ -238,6 +238,12 @@ private:
 	ColdWavePhase mColdWavePhase = ColdWavePhase::CALM; // 当前寒潮阶段，与雨势完全正交
 	float mColdWaveTimer = 0.0f;        // 当前寒潮阶段剩余游戏秒
 	float mAmbientTemperatureC = 6.0f;  // 当前环境温度，单位摄氏度；只由寒潮状态机写入
+	ColdWaveStrength mColdWaveStrength = ColdWaveStrength::STRONG; // 已锁定寒潮强度；预报与揭晓共用
+	float mColdWaveTargetTemperatureC = -12.0f; // 已锁定最低温，单位摄氏度
+	float mColdWaveCoolingDuration = 20.0f; // 已锁定降温总时长，单位游戏秒
+	float mColdWaveHoldDuration = 57.5f; // 已锁定低温维持总时长，单位游戏秒
+	float mColdWaveThawDuration = 32.0f; // 已锁定回暖总时长，单位游戏秒
+	int mWinterFrostVariant = 0;       // 本轮寒潮稳定使用的冻融线轮廓变体（0～1）
 	float mRoofRunoffCharge = 0.0f;     // 昼夜屋顶坡面径流积累值（0～100）
 	float mRoofRunoffRetainedCharge = 0.0f; // 本次冲刷结束后兑现的预抽残留湿度（30～60）
 	RoofRunoffPhase mRoofRunoffPhase = RoofRunoffPhase::IDLE; // 当前径流所处的待机、预警或冲刷阶段
@@ -353,6 +359,8 @@ private:
 	void UpdateWeather(float deltaTime);
 	/** 初始化并推进冬日花园独立寒潮；雨势和台风不得改写温度。 */
 	void InitializeWinterTemperature();
+	/** 一次性抽取并锁定下一场寒潮的强度、最低温、阶段时长与冻融线外观。 */
+	void RollNextColdWave();
 	void UpdateWinterTemperature(float deltaTime);
 	/** 冻土只阻止新落种；读档与已经存在的植物不受影响。 */
 	bool IsPlantFootprintFrozen(PlantType type, int row, int anchorColumn) const;
@@ -611,7 +619,13 @@ public:
 	bool SupportsWinterTemperature() const { return mBackGround == Background::WINTER_GARDEN; }
 	bool IsWinterTemperatureInitialized() const { return mWinterTemperatureInitialized; }
 	ColdWavePhase GetColdWavePhase() const { return mColdWavePhase; }
+	ColdWaveStrength GetColdWaveStrength() const { return mColdWaveStrength; }
 	float GetColdWaveTimer() const { return mColdWaveTimer; }
+	float GetColdWaveTargetTemperatureC() const { return mColdWaveTargetTemperatureC; }
+	float GetColdWaveCoolingDuration() const { return mColdWaveCoolingDuration; }
+	float GetColdWaveHoldDuration() const { return mColdWaveHoldDuration; }
+	float GetColdWaveThawDuration() const { return mColdWaveThawDuration; }
+	int GetWinterFrostVariant() const { return mWinterFrostVariant; }
 	float GetAmbientTemperatureC() const { return mAmbientTemperatureC; }
 	/** 把当前温度映射到温度计液柱比例；0 为最低温，1 为最高温。 */
 	float GetWinterTemperatureGaugeRatio() const;
@@ -628,9 +642,15 @@ public:
 	bool IsCellFrozen(int row, int col) const;
 	/** 当前低温会把同一雨势的视觉改为雪；雨势强度和玩法倍率保持原值。 */
 	bool IsWinterPrecipitationSnow() const;
-	/** AutoTest 固定寒潮阶段和温度；生产逻辑只走 UpdateWinterTemperature。 */
+	/** AutoTest 固定一轮完整寒潮计划；生产逻辑只走 RollNextColdWave 与 UpdateWinterTemperature。 */
 	bool SetWinterTemperatureForTesting(float temperatureC, ColdWavePhase phase,
-		float remaining = 30.0f);
+		float remaining = 30.0f,
+		ColdWaveStrength strength = ColdWaveStrength::STRONG,
+		float targetTemperatureC = -12.0f,
+		float coolingDuration = 20.0f,
+		float holdDuration = 57.5f,
+		float thawDuration = 32.0f,
+		int frostVariant = 0);
 	bool IsWeatherInitialized() const { return mWeatherInitialized; }
 	bool CanRainIntensify() const { return mRainCanIntensify; }
 	bool CanRainHold() const { return mRainCanHold; }

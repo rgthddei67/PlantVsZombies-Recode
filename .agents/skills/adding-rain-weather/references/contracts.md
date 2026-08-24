@@ -48,13 +48,13 @@
 
 ## 并行环境维度与降水表现
 
-温度、雾势、积雪等与雨势可并存的环境维度由 `Board` 独立持有、计时和持久化；它们不能扩充或改写 `RainIntensity`。若温度只负责把降雨画成降雪，雨势仍是强度、持续时间、植物/僵尸倍率和天气导演的唯一来源，统一查询再由“当前雨势 + 当前温度”得到 `RainLight/Medium/Heavy` 或 `SnowLight/Medium/Heavy`。跨过 0°C 等表现阈值时，立即停止旧降水效果并按当前雨势重建，避免雨雪叠加；快照只保存可决定未来行为的温度阶段、计时和温度，粒子不入档，读档按状态重建。
+温度、雾势、积雪等与雨势可并存的环境维度由 `Board` 独立持有、计时和持久化；它们不能扩充或改写 `RainIntensity`。若温度只负责把降雨画成降雪，雨势仍是强度、持续时间、植物/僵尸倍率和天气导演的唯一来源，统一查询再由“当前雨势 + 当前温度”得到 `RainLight/Medium/Heavy` 或 `SnowLight/Medium/Heavy`。跨过 0°C 等表现阈值时，立即停止旧降水效果并按当前雨势重建，避免雨雪叠加；快照保存所有可决定未来行为的环境状态和已锁定随机结果，粒子不入档，读档按状态重建。
 
-确定性并行环境预报应直接读取 Board 同一阶段与余时派生，不能复制下一阶段、目标值或另一套 UI 计时。它不进入允许误报的雨势候选、pending 或 `ShowWeatherForecastFailure` 比较；这样准确性来自单一权威状态，而不是另存一个“必准结果”。预报行与活动实况行可以共用显示位置，但 UI 只把 Board getter 格式化成文字。
+确定性并行环境预报应直接读取 Board 同一阶段、余时和预报前已锁定的目标计划，不能在 UI 复制目标值或另建展示计时。它不进入允许误报的雨势候选、pending 或 `ShowWeatherForecastFailure` 比较；这样准确性来自单一权威状态，而不是展示层另存一个“必准结果”。预报行与活动实况行可以共用显示位置，但 UI 只把 Board getter 格式化成文字。若事件包含随机强度、目标值、阶段时长或视觉变体，必须在预报出现前一次抽完并随 Board 入档，更新、绘制和读档都不得重 roll。
 
 温度一类持续玩法维度不能只塞进短暂出现的天气预报栏。若玩家必须持续判断上限、下限和触发线，`GameScene` 另画常驻仪表，但温区、冰点和归一化液柱比例均由 `Board` getter 提供；风格化贴图只做框体和透明开口，精确刻度与 AutoTest 投影不得复制常量。若地图美术实体遮挡前几行小推车等防线，实际创建资格同样属于 `Board`：初始化、显式创建和旧档 `Create*WithID` 恢复共用同一门禁，不能只在绘制端隐藏。
 
-格子冻结等玩法资格可继续使用整数列，而冻融前沿应从连续温度派生浮点视觉宽度，在每个整数交点与玩法格线对齐。该视觉值不入档，也不得反向决定能否种植；AutoTest 同时导出整数冻结列与千分整数视觉列数，覆盖相邻温度下逻辑列不变但视觉边界连续变化。
+格子冻结等玩法资格可继续使用整数列，而冻融前沿应从连续温度派生浮点视觉宽度，在每个整数交点与玩法格线对齐。冻结资格只看当前实际温度，不直接读取寒潮强度；强度只通过目标温区与降温速度间接改变冻结范围。连续视觉值不入档，也不得反向决定能否种植；若同一覆盖纹理需要轮廓随机，只在事件锁定时选择稳定变体并保存，禁止逐帧抖动。AutoTest 同时导出整数冻结列与千分整数视觉列数，覆盖相邻温度下逻辑列不变但视觉边界连续变化。
 
 雪天的雨声、地面水花、局部闪电/雷声等不能靠换粒子名隐式处理，应在各自唯一触发点读取同一派生查询并显式 no-op。地图若禁用台风，集中 `SupportsTyphoon()` 一类资格接口，并让预报/pending 消费、启动、逐帧更新、恢复旧档、AutoTest 强制入口和概率投影全部服从；进入不支持地图时还应清理已保存的活动/待生效台风，不能仅把新抽取概率设为 0。
 
@@ -345,6 +345,7 @@ Board 雾势、再恢复植物，所以 `RestoreFogState()` 只清空旧缓存�
 - 关卡 JSON 根节点包含 `schemaVersion`。结构或语义变化无法只靠中性默认值表达时，提升 `SaveSchema::kCurrentLevelVersion`，增加连续迁移步骤和 `SaveSchemaTests`；升级事务必须在任何 `Board` 状态变更前成功。
 - 通用僵尸核心状态优先 `SaveProtectedData/LoadProtectedData`；某个派生类独有状态用其 `SaveExtraData/LoadExtraData`，不要让另一个类解释该字段。
 - 若修改 Board 天气未来行为，保存所有会影响下一次抽取的资格和计时；瞬态粒子、水花不存档。
+- 准确预报已经公开的随机环境事件必须保存完整锁定计划，例如强度、目标环境值、各阶段总时长和稳定视觉变体；旧档缺字段时用可安全完成旧事件的兼容计划，结束后再进入新抽样规则。
 - 关卡/波次派生事件的 active 布尔通常不存，但“是否完成一次性初始化”、闪光节奏/余时、阵风余额等未来状态必须保存；旧档默认未初始化，新档读回后禁止重复初始化。
 - 天气 UI 的计时与展示状态经 `BoardPresentation` 捕获/恢复；它们是可重建瞬态，不能反向成为天气玩法权威。
 
@@ -353,7 +354,7 @@ Board 雾势、再恢复植物，所以 `RestoreFogState()` 只清空旧缓存�
 现有命令：
 
 - `set_weather`：固定天气并立即完成过渡；可传 `duration`、小雨的 `canIntensify`。
-- `set_cold_wave`：对支持温度的地图固定 `CALM/COOLING/COLD/THAWING`、温度与阶段余时；状态投影应同时导出温度整数、冻土列数/首列、千分整数视觉冻土列数、准确预报/活动标志及面板实文、是否下雪、实际降水特效名和台风资格。斜率专项用正式阶段余时推进，并断言温度与剩余时间范围，不能只把任意温度塞进测试入口。
+- `set_cold_wave`：对支持温度的地图固定 `CALM/COOLING/COLD/THAWING`、当前温度、阶段余时及可选 `WEAK/NORMAL/STRONG`、目标温度、降温/维持/回暖总时长和稳定霜线变体；状态投影应同时导出完整锁定计划、温度整数、冻土列数/首列、千分整数视觉冻土列数、准确预报/活动标志及面板实文、是否下雪、实际降水特效名和台风资格。斜率专项用正式阶段余时推进，并断言温度与剩余时间范围；另用不同实际温度断言冻土范围，不能只按强度枚举断言。
 - `set_opening_typhoon_protection`：在进程内开关默认启用的前 5 波台风保护，不触碰真实 `PlayerInfo`。
 - `set_roof_runoff`：昼夜屋顶可用；`phase=IDLE/WARNING/FLOWING`，活动阶段以非空 `rows` 数组固定行组，可选 `charge/remaining/retainedCharge`；单个 `row` 只作旧脚本兼容。
 - `weather.roofRunoff`：导出 `chargePct/retainedChargePct/phase/rowMask/rowCount/rows/phaseRemainingMs/flowProgressPct/zombieDriftSpeed/guideCandidateRow/guideCandidateSelected`；植物另导出 `roofRunoffPaused`，僵尸逐体导出 `roofRunoffGuideEligible/roofRunoffDriftMultiplierOn1000/roofRunoffDriftVelocity`。

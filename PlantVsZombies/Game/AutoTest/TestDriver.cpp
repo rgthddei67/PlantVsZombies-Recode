@@ -400,6 +400,10 @@ namespace {
 		{ "CALM", ColdWavePhase::CALM }, { "COOLING", ColdWavePhase::COOLING },
 		{ "COLD", ColdWavePhase::COLD }, { "THAWING", ColdWavePhase::THAWING },
 	};
+	const std::unordered_map<std::string, ColdWaveStrength> kColdWaveStrengthNames = {
+		{ "WEAK", ColdWaveStrength::WEAK }, { "NORMAL", ColdWaveStrength::NORMAL },
+		{ "STRONG", ColdWaveStrength::STRONG },
+	};
 	const std::unordered_map<std::string, FogWeatherIntensity> kFogWeatherIntensityNames = {
 		{ "DEFAULT", FogWeatherIntensity::DEFAULT },
 		{ "SMALL", FogWeatherIntensity::SMALL },
@@ -481,6 +485,10 @@ namespace {
 	}
 	std::string ColdWavePhaseName(ColdWavePhase phase) {
 		for (const auto& [k, v] : kColdWavePhaseNames) if (v == phase) return k;
+		return "UNKNOWN";
+	}
+	std::string ColdWaveStrengthName(ColdWaveStrength strength) {
+		for (const auto& [k, v] : kColdWaveStrengthNames) if (v == strength) return k;
 		return "UNKNOWN";
 	}
 	std::string FogWeatherIntensityName(FogWeatherIntensity intensity) {
@@ -926,11 +934,18 @@ bool TestDriver::ExecuteCurrent() {
 			return false;
 		}
 		auto phaseIt = kColdWavePhaseNames.find(cmd.value("phase", ""));
+		auto strengthIt = kColdWaveStrengthNames.find(cmd.value("strength", "STRONG"));
 		if (phaseIt == kColdWavePhaseNames.end()
+			|| strengthIt == kColdWaveStrengthNames.end()
 			|| !gs->GetBoard()->SetWinterTemperatureForTesting(
 				cmd.value("temperature", 6.0f), phaseIt->second,
-				cmd.value("remaining", 30.0f))) {
-			Fail("set_cold_wave: 仅冬日花园可用，phase 必须是 CALM/COOLING/COLD/THAWING");
+				cmd.value("remaining", 30.0f), strengthIt->second,
+				cmd.value("targetTemperature", -12.0f),
+				cmd.value("coolingDuration", 20.0f),
+				cmd.value("holdDuration", 57.5f),
+				cmd.value("thawDuration", 32.0f),
+				cmd.value("frostVariant", 0))) {
+			Fail("set_cold_wave: 仅冬日花园可用，phase/strength 或寒潮计划参数无效");
 			return false;
 		}
 		return true;
@@ -4143,6 +4158,16 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "temperatureTenths", static_cast<int>(std::lround(
 				board->GetAmbientTemperatureC() * 10.0f)) },
 			{ "phase", ColdWavePhaseName(board->GetColdWavePhase()) },
+			{ "strength", ColdWaveStrengthName(board->GetColdWaveStrength()) },
+			{ "targetTemperatureTenths", static_cast<int>(std::lround(
+				board->GetColdWaveTargetTemperatureC() * 10.0f)) },
+			{ "coolingDurationMs", static_cast<int>(std::lround(
+				board->GetColdWaveCoolingDuration() * 1000.0f)) },
+			{ "holdDurationMs", static_cast<int>(std::lround(
+				board->GetColdWaveHoldDuration() * 1000.0f)) },
+			{ "thawDurationMs", static_cast<int>(std::lround(
+				board->GetColdWaveThawDuration() * 1000.0f)) },
+			{ "frostVariant", board->GetWinterFrostVariant() },
 			{ "phaseRemainingMs", static_cast<int>(std::lround(
 				board->GetColdWaveTimer() * 1000.0f)) },
 			{ "frozenColumns", board->GetFrozenColumnCount() },

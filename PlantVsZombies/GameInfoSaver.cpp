@@ -322,8 +322,14 @@ bool GameInfoSaver::SerializeLevelDataToPath(Board* board, CardSlotManager* mana
 	j["weatherForecastReady"] = board->mWeatherForecastReady;
 	j["winterTemperatureInitialized"] = board->mWinterTemperatureInitialized;
 	j["coldWavePhase"] = static_cast<int>(board->mColdWavePhase);
+	j["coldWaveStrength"] = static_cast<int>(board->mColdWaveStrength);
 	j["coldWaveTimer"] = board->mColdWaveTimer;
 	j["ambientTemperatureC"] = board->mAmbientTemperatureC;
+	j["coldWaveTargetTemperatureC"] = board->mColdWaveTargetTemperatureC;
+	j["coldWaveCoolingDuration"] = board->mColdWaveCoolingDuration;
+	j["coldWaveHoldDuration"] = board->mColdWaveHoldDuration;
+	j["coldWaveThawDuration"] = board->mColdWaveThawDuration;
+	j["winterFrostVariant"] = board->mWinterFrostVariant;
 	j["stormyNightInitialized"] = board->mStormyNightInitialized;
 	j["stormyNightFlashPattern"] = board->mStormyNightFlashPattern;
 	j["stormyNightFlashTimer"] = board->mStormyNightFlashTimer;
@@ -818,15 +824,38 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 		static_cast<int>(ColdWavePhase::CALM));
 	const bool validColdWavePhase = coldWavePhaseValue >= static_cast<int>(ColdWavePhase::CALM)
 		&& coldWavePhaseValue <= static_cast<int>(ColdWavePhase::THAWING);
+	const int coldWaveStrengthValue = j.value("coldWaveStrength",
+		static_cast<int>(ColdWaveStrength::STRONG));
+	const bool validColdWaveStrength = coldWaveStrengthValue
+		>= static_cast<int>(ColdWaveStrength::WEAK)
+		&& coldWaveStrengthValue <= static_cast<int>(ColdWaveStrength::STRONG);
 	board->mWinterTemperatureInitialized = board->SupportsWinterTemperature()
-		&& validColdWavePhase && j.value("winterTemperatureInitialized", false);
+		&& validColdWavePhase && validColdWaveStrength
+		&& j.value("winterTemperatureInitialized", false);
 	board->mColdWavePhase = board->mWinterTemperatureInitialized
 		? static_cast<ColdWavePhase>(coldWavePhaseValue) : ColdWavePhase::CALM;
+	board->mColdWaveStrength = board->mWinterTemperatureInitialized
+		? static_cast<ColdWaveStrength>(coldWaveStrengthValue) : ColdWaveStrength::STRONG;
 	board->mColdWaveTimer = board->mWinterTemperatureInitialized
 		? std::max(0.0f, j.value("coldWaveTimer", 0.0f)) : 0.0f;
 	board->mAmbientTemperatureC = board->mWinterTemperatureInitialized
 		? std::clamp(j.value("ambientTemperatureC", 6.0f), -12.0f, 6.0f)
 		: 6.0f;
+	// 旧档缺少计划字段时沿用此前 -12°C/20s/32s 行为，平稳结束当前一轮后再进入新随机规则。
+	board->mColdWaveTargetTemperatureC = board->mWinterTemperatureInitialized
+		? std::clamp(j.value("coldWaveTargetTemperatureC", -12.0f), -12.0f, 0.0f)
+		: -12.0f;
+	board->mColdWaveCoolingDuration = board->mWinterTemperatureInitialized
+		? std::clamp(j.value("coldWaveCoolingDuration", 20.0f), 1.0f, 120.0f)
+		: 20.0f;
+	board->mColdWaveHoldDuration = board->mWinterTemperatureInitialized
+		? std::clamp(j.value("coldWaveHoldDuration", 57.5f), 1.0f, 180.0f)
+		: 57.5f;
+	board->mColdWaveThawDuration = board->mWinterTemperatureInitialized
+		? std::clamp(j.value("coldWaveThawDuration", 32.0f), 1.0f, 120.0f)
+		: 32.0f;
+	board->mWinterFrostVariant = board->mWinterTemperatureInitialized
+		? std::clamp(j.value("winterFrostVariant", 0), 0, 1) : 0;
 	if (auto* presentation = board->GetPresentation()) {
 		// 缺字段的旧档按 0 秒恢复，避免读入雨中存档时把已消失的展板重新显示 5 秒。
 		const int failedForecastRainValue = j.value("failedForecastRainIntensity",

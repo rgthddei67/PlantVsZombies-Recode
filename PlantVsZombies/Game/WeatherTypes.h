@@ -16,6 +16,13 @@ enum class ColdWavePhase {
 	THAWING
 };
 
+/** 单次寒潮锁定的强度档；它决定目标温区和各阶段时长范围。 */
+enum class ColdWaveStrength {
+	WEAK,
+	NORMAL,
+	STRONG
+};
+
 /**
  * 四大关独立雾势；它与雨势正交，因此任意雾势可以和任意雨档、台风同时存在。
  * DEFAULT 对应原版基础覆盖，SMALL/NORMAL/DENSE 依次增加覆盖距离。
