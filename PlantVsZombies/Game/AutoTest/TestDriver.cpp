@@ -2944,6 +2944,11 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				ResourceKeys::Textures::IMAGE_ZOMBIE_BOBSLED_OUTERARM_HAND, false) != nullptr },
 		{ "headParticleTextureLoaded", ResourceManager::GetInstance().GetTexture(
 			ResourceKeys::Particles::PARTICLE_ZOMBIE_BOBSLEDHEAD, false) != nullptr },
+		{ "impactParticleTexturesLoaded",
+			ResourceManager::GetInstance().GetTexture(
+				"PARTICLE_SNOWPEA_SPLATS_PART_0", false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				"PARTICLE_SNOWPEA_PARTICLES_PART_0", false) != nullptr },
 	};
 	const Vector bobsledOffset = GameDataManager::GetInstance().GetZombieOffset(
 		ZombieType::ZOMBIE_BOBSLED_TEAM);
@@ -4467,6 +4472,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		? g_particleSystem->GetEffectActiveParticleCount("ZombieBobsledHeadOff") : 0;
 	out["bobsledArmParticleCount"] = g_particleSystem
 		? g_particleSystem->GetEffectActiveParticleCount("ZombieBobsledArmOff") : 0;
+	out["bobsledPlantImpactParticleCount"] = g_particleSystem
+		? g_particleSystem->GetEffectActiveParticleCount("ZombieBobsledPlantImpact") : 0;
 	out["puffSoundRequestCount"] =
 		AudioSystem::GetSoundPlayRequestCount(ResourceKeys::Sounds::SOUND_PUFF);
 	out["firePeaSoundRequestCount"] =
@@ -5398,6 +5405,11 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			zombieState["bobsledLandingMs"] = static_cast<int>(std::lround(
 				bobsled->GetLandingTimeRemaining() * 1000.0f));
 			zombieState["bobsledMemberIDs"] = bobsled->GetBobsledMemberIDs();
+			zombieState["bobsledDetachedArmVisible"] = anim
+				&& (anim->GetTrackVisible("Zombie_outerarm_lower")
+					|| anim->GetTrackVisible("Zombie_outerarm_hand")
+					|| anim->GetTrackVisible("Zombie_outerarm_lowereating")
+					|| anim->GetTrackVisible("Zombie_outerarm_handeating"));
 			zombieState["bobsledShadowOffsetYInt"] = z->GetShadow()
 				? static_cast<int>(std::lround(z->GetShadow()->GetOffset().y)) : 0;
 			if (const ColliderComponent* collider = z->GetColliderComponent()) {
@@ -5969,6 +5981,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["particleEffectNameCounts"]["SnowLight"] = 0;
 	out["particleEffectNameCounts"]["SnowMedium"] = 0;
 	out["particleEffectNameCounts"]["SnowHeavy"] = 0;
+	out["particleEffectNameCounts"]["ZombieBobsledPlantImpact"] = 0;
 	if (g_particleSystem) {
 		for (const auto& effect : g_particleSystem->GetEffectsForTesting()) {
 			if (!effect) continue;

@@ -76,6 +76,7 @@ description: Use when adding or tuning any PvZ zombie, or integrating zombies in
 
 - 覆写 `ArmDrop()/HeadDrop()`（不调基类——基类隐藏的是普通僵尸轨道名）+ 基类阈值自动触发（臂≤2/3、头≤1/3，由 `mNeedDropArm/Head` 门控）。
 - 无残肢轨道的 reanim：藏 `outerarm_lower`+`outerarm_hand`、保 `outerarm_upper` 当残端、**不换材质**（disco 伴舞式）；有 `_bone`/`UPPER2` 的才做显示残肢/换图。
+- 同一语义部件可能按动作烘焙成多套独立轨道（雪橇队员的 `outerarm_lower/hand` 与 `outerarm_lowereating/handeating` 实证）；逐片段审计走路、啃食和其他稳态使用的全部部件轨，把隐藏与残端换图收敛到同一 helper，并在 `OnStartEating`/`PlayWalkAnimation` 切轨后按当前断肢状态重放，禁止只隐藏当前最常见的一套轨道。
 - 断头隐藏头部组全体**含挂件**（hair/earing/tongue…逐 reanim 数）。
 - 主人指定头部挂件“随头一起飞”时，把头与挂件预合成为一张专属粒子贴图并只发一颗粒子；`HeadDrop()` 在隐藏头部组前读取头轨世界锚点，再同步隐藏挂件轨。不要用两颗独立随机粒子冒充固定连接，否则旋转和弹道会立刻错位。
 - **`ZombieItemUpdate()` 与 Arm/HeadDrop 的轨道操作严格一致**（读档重建残肢的唯一路径，漏一轨=读档后幽灵部件）。

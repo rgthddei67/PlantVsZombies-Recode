@@ -86,6 +86,8 @@ private:
 	void KillAttachedTeam();
 	/** 恢复雪橇阶段的大碰撞框或普通地面碰撞框。 */
 	void ConfigureColliderForPhase();
+	/** 隐藏走路与啃食两套断落手臂轨道，并应用上臂残端材质。 */
+	void ApplyDetachedArmVisuals() const;
 	/** 绘制原版雪橇内层或当前耐久/坠毁前层。 */
 	void DrawSledLayer(Graphics* g, bool drawInside, bool drawFront) const;
 	/** 返回当前雪橇前层贴图。 */

@@ -267,11 +267,17 @@ void BobsledTeamZombie::StartEat(ColliderComponent* other)
 	ColliderComponent* plantCollider = plant->GetColliderComponent();
 	if (!plantCollider || !plantCollider->mEnabled) return;
 	const SDL_FRect plantBounds = plantCollider->GetBoundingBox();
+	const Vector impactAnchor(
+		plantBounds.x + plantBounds.w * 0.5f,
+		plantBounds.y + plantBounds.h * 0.5f);
 	const float landingBaseX = plantBounds.x + plantBounds.w + kLandingFrontGap;
 
 	// 锚定消费必须先于重伤；即便伤害随后击杀植物，本次约束结果也不会回滚或改落点。
 	const WinterGroundImpactResponse response = plant->ResolveWinterGroundImpact(
 		WinterGroundImpactKind::COLLISION);
+	if (g_particleSystem) {
+		g_particleSystem->EmitEffect("ZombieBobsledPlantImpact", impactAnchor);
+	}
 	plant->TakeDamage(kCollisionDamage, DamageSource::ZOMBIE);
 	BeginTeamLanding(response.intercepted && response.containsScatter, landingBaseX);
 }
@@ -482,13 +488,22 @@ void BobsledTeamZombie::ArmDrop()
 	if (!mHasArm) return;
 	const Vector anchor = mAnimator && mAnimator->HasTrack("Zombie_outerarm_lower")
 		? GetTrackWorldPosition("Zombie_outerarm_lower") : GetPosition();
+	ApplyDetachedArmVisuals();
+	if (g_particleSystem) g_particleSystem->EmitEffect("ZombieBobsledArmOff", anchor);
+	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_ARM_HEAD_DROP, kDismemberSoundVolume);
+}
+
+void BobsledTeamZombie::ApplyDetachedArmVisuals() const
+{
+	if (!mAnimator) return;
+	// 原版资源为啃食姿态另烘焙了一套小臂和手，断臂必须同时隐藏两套轨道。
 	mAnimator->SetTrackVisible("Zombie_outerarm_lower", false);
 	mAnimator->SetTrackVisible("Zombie_outerarm_hand", false);
+	mAnimator->SetTrackVisible("Zombie_outerarm_lowereating", false);
+	mAnimator->SetTrackVisible("Zombie_outerarm_handeating", false);
 	mAnimator->SetTrackImage("Zombie_dolphinrider_outerarm_upper",
 		ResourceManager::GetInstance().GetTexture(
 			ResourceKeys::Textures::IMAGE_ZOMBIE_BOBSLED_OUTERARM_UPPER2));
-	if (g_particleSystem) g_particleSystem->EmitEffect("ZombieBobsledArmOff", anchor);
-	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_ARM_HEAD_DROP, kDismemberSoundVolume);
 }
 
 void BobsledTeamZombie::ZombieItemUpdate() const
@@ -499,11 +514,7 @@ void BobsledTeamZombie::ZombieItemUpdate() const
 		mAnimator->SetTrackVisible("anim_head2", false);
 	}
 	if (!mHasArm) {
-		mAnimator->SetTrackVisible("Zombie_outerarm_lower", false);
-		mAnimator->SetTrackVisible("Zombie_outerarm_hand", false);
-		mAnimator->SetTrackImage("Zombie_dolphinrider_outerarm_upper",
-			ResourceManager::GetInstance().GetTexture(
-				ResourceKeys::Textures::IMAGE_ZOMBIE_BOBSLED_OUTERARM_UPPER2));
+		ApplyDetachedArmVisuals();
 	}
 	const_cast<BobsledTeamZombie*>(this)->ConfigureColliderForPhase();
 }
@@ -550,11 +561,13 @@ void BobsledTeamZombie::Charred()
 void BobsledTeamZombie::PlayWalkAnimation(float blendTime)
 {
 	PlayTrack("anim_walk", 0.0f, blendTime);
+	if (!mHasArm) ApplyDetachedArmVisuals();
 }
 
 void BobsledTeamZombie::OnStartEating()
 {
 	PlayTrack("anim_eat", kEatClipSpeed, kEatBlendTime);
+	if (!mHasArm) ApplyDetachedArmVisuals();
 }
 
 const Texture* BobsledTeamZombie::GetSledFrontTexture() const
