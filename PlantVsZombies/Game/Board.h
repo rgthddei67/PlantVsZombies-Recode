@@ -618,7 +618,12 @@ public:
 	float GetWinterMinimumTemperatureC() const;
 	float GetWinterMaximumTemperatureC() const;
 	float GetWinterFreezingTemperatureC() const;
+	/** 寒潮进入降温前的固定准确预报；它不参与雨势预报的误报与失败判定。 */
+	bool HasColdWaveForecast() const;
+	bool IsColdWaveActive() const;
 	int GetFrozenColumnCount() const;
+	/** 返回从僵尸侧连续推进的视觉霜冻列数；玩法冻结资格仍使用整数列。 */
+	float GetWinterFrostVisualColumnCount() const;
 	int GetFirstFrozenColumn() const;
 	bool IsCellFrozen(int row, int col) const;
 	/** 当前低温会把同一雨势的视觉改为雪；雨势强度和玩法倍率保持原值。 */

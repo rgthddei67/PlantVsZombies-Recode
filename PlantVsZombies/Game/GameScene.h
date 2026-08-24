@@ -176,6 +176,8 @@ public:
 	float GetWeatherPanelSlide() const { return mWeatherPanelSlide; }
 	/** 返回天气面板当前实际绘制的公开预报文字，供展示与 AutoTest 共用口径。 */
 	std::string GetWeatherForecastPanelText() const;
+	/** 返回寒潮准确预报或当前阶段文字；无需显示时为空。 */
+	std::string GetColdWavePanelText() const;
 	/** 当前有效劫持者已锁定时才显示处决线。 */
 	bool IsNightRoofExecutionLineVisible() const;
 	/** 返回按当前可见详情动态计算的天气面板高度。 */

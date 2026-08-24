@@ -4127,6 +4127,9 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		out["weather"]["winter"] = {
 			{ "supported", board->SupportsWinterTemperature() },
 			{ "initialized", board->IsWinterTemperatureInitialized() },
+			{ "coldWaveForecastActive", board->HasColdWaveForecast() },
+			{ "coldWaveActive", board->IsColdWaveActive() },
+			{ "coldWaveDisplayText", gs->GetColdWavePanelText() },
 			{ "thermometerVisible", board->mBoardState == BoardState::GAME
 				&& board->SupportsWinterTemperature() },
 			{ "thermometerMinimumTenths", static_cast<int>(std::lround(
@@ -4143,6 +4146,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "phaseRemainingMs", static_cast<int>(std::lround(
 				board->GetColdWaveTimer() * 1000.0f)) },
 			{ "frozenColumns", board->GetFrozenColumnCount() },
+			{ "frostVisualColumnsOn1000", static_cast<int>(std::lround(
+				board->GetWinterFrostVisualColumnCount() * 1000.0f)) },
 			{ "firstFrozenColumn", board->GetFirstFrozenColumn() },
 			{ "snowing", board->IsWinterPrecipitationSnow() },
 			{ "typhoonSupported", board->SupportsTyphoon() },

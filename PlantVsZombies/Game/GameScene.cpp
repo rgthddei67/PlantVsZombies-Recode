@@ -323,6 +323,35 @@ namespace {
 		return line;
 	}
 
+	/** 寒潮预报与实况只读取 Board 确定性阶段，不复用允许误报的雨势预报。 */
+	std::string ColdWavePanelText(const Board* board) {
+		if (!board || (!board->HasColdWaveForecast() && !board->IsColdWaveActive())) {
+			return {};
+		}
+		const int seconds = std::max(0,
+			static_cast<int>(std::ceil(board->GetColdWaveTimer())));
+		if (board->HasColdWaveForecast()) {
+			const int minimum = static_cast<int>(std::lround(
+				board->GetWinterMinimumTemperatureC()));
+			return std::string(u8"寒潮预报（") + std::to_string(seconds)
+				+ u8"秒）：气温将降至 " + std::to_string(minimum) + u8"°C";
+		}
+		switch (board->GetColdWavePhase()) {
+		case ColdWavePhase::COOLING:
+			return std::string(u8"寒潮实况：降温中（")
+				+ std::to_string(seconds) + u8"秒）";
+		case ColdWavePhase::COLD:
+			return std::string(u8"寒潮实况：低温持续（")
+				+ std::to_string(seconds) + u8"秒）";
+		case ColdWavePhase::THAWING:
+			return std::string(u8"寒潮实况：回暖中（")
+				+ std::to_string(seconds) + u8"秒）";
+		case ColdWavePhase::CALM:
+			break;
+		}
+		return {};
+	}
+
 	/** 处决线只属于当前仍有效的劫持者锁定，不为未锁定状态预留文字行。 */
 	bool ShouldDisplayNightRoofExecutionLine(const Board* board) {
 		return board && board->GetNightRoofExecutionLine() > 0;
@@ -417,6 +446,9 @@ namespace {
 		if (!stormyNight && board->HasFogWeatherForecast()) {
 			height += kWeatherPanelDetailLineHeight;
 		}
+		if (!ColdWavePanelText(board).empty()) {
+			height += kWeatherPanelDetailLineHeight;
+		}
 		if (board->SupportsRoofRunoff()) height += kWeatherPanelGaugeLineHeight;
 		if (board->SupportsNightRoofCharge()) {
 			height += kWeatherPanelGaugeLineHeight;
@@ -460,6 +492,11 @@ GameScene::~GameScene() {
 std::string GameScene::GetWeatherForecastPanelText() const
 {
 	return WeatherForecastPanelText(mBoard.get());
+}
+
+std::string GameScene::GetColdWavePanelText() const
+{
+	return ColdWavePanelText(mBoard.get());
 }
 
 bool GameScene::IsNightRoofExecutionLineVisible() const
@@ -1115,6 +1152,18 @@ void GameScene::DrawWeatherPanel(Graphics* g) const
 		forecastColor, textX, kWeatherPanelY + 41.0f);
 
 	float detailLineY = kWeatherPanelY + 69.0f;
+	const std::string coldWaveLine = ColdWavePanelText(mBoard.get());
+	if (!coldWaveLine.empty()) {
+		const glm::vec4 coldWaveColor = mBoard->GetColdWavePhase() == ColdWavePhase::THAWING
+			? glm::vec4(247.0f, 193.0f, 112.0f, alpha)
+			: glm::vec4(143.0f, 220.0f, 255.0f, alpha);
+		g->DrawText(coldWaveLine, ResourceKeys::Fonts::FONT_FZCQ, kWeatherWindFontSize,
+			shadow, textX + 1.0f, detailLineY + 1.0f);
+		g->DrawText(coldWaveLine, ResourceKeys::Fonts::FONT_FZCQ, kWeatherWindFontSize,
+			coldWaveColor, textX, detailLineY);
+		detailLineY += kWeatherPanelDetailLineHeight;
+	}
+
 	if (!stormyNightForecast && mBoard->HasFogWeatherForecast()) {
 		const int fogSeconds = std::max(0,
 			static_cast<int>(std::ceil(mBoard->GetFogWeatherTimer())));

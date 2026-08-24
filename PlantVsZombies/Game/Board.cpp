@@ -115,10 +115,11 @@ namespace {
 	constexpr float kWinterColdTemperatureC = -12.0f;    // 寒潮最冷阶段的稳定环境温度（摄氏度）
 	constexpr float kColdWaveCalmDurationMin = 35.0f;    // 两次寒潮之间温暖间隔的最短游戏秒数
 	constexpr float kColdWaveCalmDurationMax = 60.0f;    // 两次寒潮之间温暖间隔的最长游戏秒数
-	constexpr float kColdWaveCoolingDuration = 12.0f;    // 寒潮把温度从温暖线性降到最低温的游戏秒数
+	constexpr float kColdWaveForecastLeadTime = 20.0f;   // 寒潮降温前开始显示准确预报的游戏秒数
+	constexpr float kColdWaveCoolingDuration = 20.0f;    // 寒潮把温度从温暖线性降到最低温的游戏秒数
 	constexpr float kColdWaveHoldDurationMin = 45.0f;    // 最低温寒潮维持的最短游戏秒数
 	constexpr float kColdWaveHoldDurationMax = 70.0f;    // 最低温寒潮维持的最长游戏秒数
-	constexpr float kColdWaveThawDuration = 15.0f;       // 寒潮结束后回暖到常温的游戏秒数
+	constexpr float kColdWaveThawDuration = 32.0f;       // 寒潮结束后回暖到常温的游戏秒数
 	constexpr int kWinterSafeColumnCount = 3;            // 温室侧永不冻结的安全列数
 	constexpr int kStormyNightLevel = 36;                 // 暴风雨夜专属冒险关：内部 level 36 即 4-9
 	constexpr int kStormyNightForecastWave = 22;          // 第 22 波开始固定发布“暴风雨”预报
@@ -4485,6 +4486,20 @@ float Board::GetWinterFreezingTemperatureC() const
 	return kWinterFreezeTemperatureC;
 }
 
+/** 寒潮预报直接读取同一个确定性阶段计时，保证揭晓结果准确且不进入雨势误报流程。 */
+bool Board::HasColdWaveForecast() const
+{
+	return SupportsWinterTemperature() && mWinterTemperatureInitialized
+		&& mColdWavePhase == ColdWavePhase::CALM
+		&& mColdWaveTimer > 0.0f && mColdWaveTimer <= kColdWaveForecastLeadTime;
+}
+
+bool Board::IsColdWaveActive() const
+{
+	return SupportsWinterTemperature() && mWinterTemperatureInitialized
+		&& mColdWavePhase != ColdWavePhase::CALM;
+}
+
 /** 温度每越过两个负温档，冻土从最右侧多推进一列；左侧三列温室区永远安全。 */
 int Board::GetFrozenColumnCount() const
 {
@@ -4493,6 +4508,18 @@ int Board::GetFrozenColumnCount() const
 	const int maximumFrozen = std::max(0, mColumns - kWinterSafeColumnCount);
 	const int coldBand = static_cast<int>(std::floor(-mAmbientTemperatureC / 2.0f)) + 1;
 	return std::clamp(coldBand, 1, maximumFrozen);
+}
+
+/**
+ * 在相邻两档玩法冻结列之间按温度线性插值，让霜线平滑移动；整数交点仍与正式格线一致。
+ */
+float Board::GetWinterFrostVisualColumnCount() const
+{
+	if (!SupportsWinterTemperature()) return 0.0f;
+	const float maximumFrozen = static_cast<float>(
+		std::max(0, mColumns - kWinterSafeColumnCount));
+	return std::clamp(1.0f - mAmbientTemperatureC / 2.0f,
+		0.0f, maximumFrozen);
 }
 
 int Board::GetFirstFrozenColumn() const
@@ -5106,24 +5133,26 @@ void Board::CreateBoom(const Vector& position, int plantRow, int damage)
 void Board::DrawWinterFrost(Graphics* g) const
 {
 	if (!g || !SupportsWinterTemperature()) return;
-	const int frozenColumns = GetFrozenColumnCount();
-	if (frozenColumns <= 0) return;
+	const float visualColumns = GetWinterFrostVisualColumnCount();
+	if (visualColumns <= 0.0f) return;
 	const Texture* frost = ResourceManager::GetInstance().GetTexture(
 		ResourceKeys::Textures::IMAGE_WINTER_FROST_OVERLAY_V2, false);
 	if (!frost) return;
 
-	const int firstColumn = GetFirstFrozenColumn();
-	const float boundaryX = CELL_INITALIZE_POS_X
-		+ static_cast<float>(firstColumn) * CELL_COLLIDER_SIZE_X;
 	constexpr float kFrostFrontierBleed = 24.0f; // 不规则霜枝越过逻辑冻融线的最大视觉宽度，单位像素
+	const float boundaryX = CELL_INITALIZE_POS_X
+		+ (static_cast<float>(mColumns) - visualColumns) * CELL_COLLIDER_SIZE_X;
 	const float left = boundaryX - kFrostFrontierBleed;
-	const float width = static_cast<float>(frozenColumns) * CELL_COLLIDER_SIZE_X
+	const float width = visualColumns * CELL_COLLIDER_SIZE_X
 		+ kFrostFrontierBleed;
 	const float height = static_cast<float>(mRows) * mCellHeight;
-	const float coldRatio = std::clamp(
-		-mAmbientTemperatureC / -kWinterColdTemperatureC, 0.0f, 1.0f);
-	const float alpha = 75.0f + 170.0f * coldRatio;
-	// 纹理本身包含透明间隙、雪斑与参差左缘；整张缩放可避免每列重复和接缝。
+	const float maximumFrozen = static_cast<float>(
+		std::max(1, mColumns - kWinterSafeColumnCount));
+	const float alpha = visualColumns <= 1.0f
+		? 75.0f * visualColumns
+		: 75.0f + 170.0f * std::clamp(
+			(visualColumns - 1.0f) / (maximumFrozen - 1.0f), 0.0f, 1.0f);
+	// 纹理本身包含透明间隙、雪斑与参差左缘；连续缩放保留有机边缘并消除整列跳变。
 	g->DrawTexture(frost, left, mCellInitialY, width, height, 0.0f,
 		glm::vec4(255.0f, 255.0f, 255.0f, alpha));
 }
