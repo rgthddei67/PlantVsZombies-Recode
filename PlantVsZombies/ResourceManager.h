@@ -88,6 +88,12 @@ public:
 
 	// 加载纹理，返回纹理信息指针，失败返回 nullptr
 	const Texture* LoadTexture(const std::string& filepath, const std::string& key = "");
+	/**
+	 * @brief 按顺序尝试多个等价纹理路径，全部失败时才记录一条错误。
+	 * @details 用于 `.png` / `.jpg` 等合法扩展名回退，避免把前一个候选不存在误报成错误。
+	 */
+	const Texture* LoadTextureFromCandidates(
+		const std::vector<std::string>& filepaths, const std::string& key);
 	// 获取已加载的纹理，不存在返回 nullptr。
 	// warnOnMiss=false 供"存在性探测"调用方使用（如 Reanimation 加载时先查后载），
 	// 这类 miss 是预期的正常路径，由调用方自行处理，不应记 WARN。

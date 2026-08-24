@@ -31,7 +31,8 @@
 - [经典双子向日葵与生产型紫卡升级](project_pvz_twin_sunflower.md) — 2026-08-13 `PLANT_TWINSUNFLOWER` 为6-3奖励：150阳光、50秒冷却、300生命；原子覆盖向日葵并保留承载层/南瓜，15秒一轮同时生产2颗普通阳光，发光中途存档不重复；默认与NoInstance专项可见闭环
 - [经典花盆与屋顶承载层](project_pvz_flowerpot.md) — 2026-08-14 `PLANT_FLOWERPOT` 25阳光/7.5秒/300生命/1秒无啃食；under+normal+南瓜分层、屋顶门禁、5-1/5-2/后续5/4/3列初始布局、覆盖暂停、5px视觉抬升、通用ShadowComponent 46px可见阴影、双向台风整组与存档；MC 中与睡莲压缩进独立64格支撑层，不占128株详细植物容量
 - [上次选卡持久化与一键动画恢复](project_pvz_last_selected_cards.md) — 2026-08-23 普通卡继续保存稳定枚举名；模仿者以 `PLANT_IMITATER:PLANT_TARGET` 保存代理身份与目标，恢复时重新验证目标资格并复用飞入动画
-- [架构边界、存档版本与技能审计门禁](project_pvz_architecture_boundaries.md) — 2026-08-12 `BoardPresentation` 取代 `Board::mGameScene`，Board 保持天气/波次/生存玩法唯一权威；`SceneManager` 明确单活动场景；玩家 schema v2 补发毒囊射手、v3 加高级暂停、v4 加稳定枚举名上次选卡；迁移保持事务式并有纯测试；每次任务提交前审计相关 skills
+- [疯狂戴夫关卡闲聊与隐性机制提示](project_pvz_crazy_dave_tutorial_dialog.md) — 2026-08-24 2-1、4-1、4-2、4-9、5-1、6-1、6-9、7-1 以原版风格闲聊含蓄提示天气、雾、燃料、屋顶、雷荷与寒潮；全新进关前模态播放，完成/跳过一次记录，玩家 schema v5、原版 JPG 灰度 alpha 遮罩、Vulkan 实例/NoInstance/OpenGL 3.3 可见专项闭环；1-1、3-1不出现
+- [架构边界、存档版本与技能审计门禁](project_pvz_architecture_boundaries.md) — 2026-08-24 `BoardPresentation` 取代 `Board::mGameScene`，Board 保持天气/波次/生存玩法唯一权威；`SceneManager` 明确单活动场景；玩家 schema v2 补发毒囊射手、v3 加高级暂停、v4 加稳定枚举名上次选卡、v5 加戴夫闲聊已读关卡；迁移保持事务式并有纯测试；每次任务提交前审计相关 skills
 - [OpenGL 3.3 Core 兼容后端](project_pvz_opengl33_backend.md) — 2026-08-11 同一 EXE 的 `auto/vulkan/opengl` 双后端选择与完整回退；GL 走 GLSL 330、CPU 顶点/Reanimation 展开、单 sampler 动态 VBO/IBO Batch，禁用并行 Draw 但保留并行 Update；Pool、clip、文字、粒子、截图、全屏/VSync、no-AVX2 与 Win7 导入门禁闭环，Win7 真机仍待验证
 - [空格轻量暂停、可选高级暂停与粒子冻结](project_pvz_space_pause_ui.md) — 2026-08-23 暂停仍保留 UI 零 dt 逻辑步，但 ParticleEmitter 完整冻结上一游戏帧，Shake 不重抽、Friction 不衰减；空格只显示上方中央“游戏暂停”，高级暂停默认关闭且只在主菜单控制台设置，暂停倍速仅待选，泳池相位同样冻结
 - [经典咖啡豆、蘑菇睡眠 Z 与唤醒](project_pvz_coffeebean.md) — 2026-08-11 白天沉睡植物以独立 `Z.reanim` 按原版6～8fps随机相位循环，位置适配当前视觉锚点且醒来/压扁/失活即移除；`PLANT_INSTANT_COFFEE` 仍以短时 overlay 等待1秒后碎裂并启动1秒唤醒，资源、存档、台风与默认/NoInstance可见专项闭环

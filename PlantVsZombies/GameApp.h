@@ -46,6 +46,7 @@ public:
 	int Difficulty = 3; // 难度系数
 	int mAdventureLevel = 1;    // 玩到的冒险模式关卡
 	bool mEncounteredEliteDancer = false; // 是否曾由正式波次实际刷出精英舞王
+	std::vector<int> mCrazyDaveTutorialsSeen; // 已完整看过或主动跳过的关卡闲聊（稳定冒险关卡号）
 	int mDeveloperSelectedLevel = 1; // 开发者面板上次选择的关卡号
 	std::string mDeveloperSelectedZombie = "ZOMBIE_NORMAL"; // 开发者面板上次选择的召唤僵尸枚举名
 	bool mShowPlantHP = false;  // 植物显示血量
@@ -148,6 +149,10 @@ public:
 	/** 永久记录一次实际刷出的精英舞王，并立即尝试写入 PlayerInfo。 */
 	void RecordEliteDancerEncounter();
 	bool HasEncounteredEliteDancer() const { return mEncounteredEliteDancer; }
+	/** 查询指定冒险关的戴夫闲聊是否已经完成。 */
+	bool HasSeenCrazyDaveTutorial(int level) const;
+	/** 永久记录指定冒险关的戴夫闲聊已完成，并立即尝试写入 PlayerInfo。 */
+	void MarkCrazyDaveTutorialSeen(int level);
 
 	// 世界坐标绘制文本 UTF8编码
 	void DrawText(const std::string& text,

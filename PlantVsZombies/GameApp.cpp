@@ -37,6 +37,7 @@
 
 #include <chrono>
 #include <cstdio>
+#include <algorithm>
 
 GameAPP::GameAPP()
 	: mInputHandler(nullptr)
@@ -66,6 +67,26 @@ void GameAPP::RecordEliteDancerEncounter()
 	// 首次遭遇是低频永久进度；当场保存可避免玩家在离开关卡前退出而丢失解锁。
 	if (!mGameInfoSaver.SavePlayerInfo()) {
 		LOG_ERROR("GameApp") << "无法立即保存精英舞王遭遇记录，将在后续存档时重试。";
+	}
+}
+
+bool GameAPP::HasSeenCrazyDaveTutorial(int level) const
+{
+	return std::binary_search(mCrazyDaveTutorialsSeen.begin(),
+		mCrazyDaveTutorialsSeen.end(), level);
+}
+
+void GameAPP::MarkCrazyDaveTutorialSeen(int level)
+{
+	if (!AdventureProgression::IsAdventureLevel(level)) return;
+	const auto it = std::lower_bound(mCrazyDaveTutorialsSeen.begin(),
+		mCrazyDaveTutorialsSeen.end(), level);
+	if (it != mCrazyDaveTutorialsSeen.end() && *it == level) return;
+
+	mCrazyDaveTutorialsSeen.insert(it, level);
+	// 闲聊完成是低频永久进度；当场保存，防止离开关卡前退出导致下次重复。
+	if (!mGameInfoSaver.SavePlayerInfo()) {
+		LOG_ERROR("GameApp") << "无法立即保存疯狂戴夫闲聊记录，将在后续存档时重试。";
 	}
 }
 

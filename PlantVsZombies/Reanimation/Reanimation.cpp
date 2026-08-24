@@ -101,16 +101,13 @@ bool Reanimation::LoadFromFile(const std::string& filePath) {
 								
 								if (imageName.find("IMAGE_REANIM_") == 0) {
 									std::string fileName = imageName.substr(13);
-									// 存在性探测：未缓存是首次加载的正常路径，紧接着由下方 LoadTexture 加载；
-									// 故关闭 miss 告警，真正"磁盘上找不到图片"的失败由 LoadTexture 分支单独提示。
-									const Texture* tex = mResourceManager->GetTexture(fileName, /*warnOnMiss=*/false);
+									// reanim 使用完整 imageName 作为缓存键；未缓存时再统一尝试 PNG/JPG，
+									// 前一个合法候选不存在不应产生误导性的 ERROR。
+									const Texture* tex = mResourceManager->GetTexture(imageName, /*warnOnMiss=*/false);
 									if (!tex) {
 										std::string filePath = "./resources/image/reanim/" + fileName;
-
-										tex = mResourceManager->LoadTexture(filePath + ".png", imageName);
-										if (!tex) {
-											tex = mResourceManager->LoadTexture(filePath + ".jpg", imageName);
-										}
+										tex = mResourceManager->LoadTextureFromCandidates(
+											{ filePath + ".png", filePath + ".jpg" }, imageName);
 
 										if (tex) {
 											// 新加载成功，更新 prevImage

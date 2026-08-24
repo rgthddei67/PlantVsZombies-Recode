@@ -22,6 +22,80 @@ namespace {
 		std::string error;
 	};
 
+	/**
+	 * @brief 为原版“JPG 彩色图 + 同名 _.png 灰度遮罩”恢复透明通道。
+	 * @details 遮罩不存在是普通 JPG 的合法路径；遮罩存在但损坏或尺寸不符才算加载失败。
+	 */
+	bool ApplyLegacyJpegAlphaMask(SDL_Surface* color,
+		const std::string& filepath, std::string& error)
+	{
+		const std::size_t dot = filepath.find_last_of('.');
+		if (!color || dot == std::string::npos) return true;
+		std::string extension = filepath.substr(dot);
+		std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
+		if (extension != ".jpg" && extension != ".jpeg") return true;
+
+		const std::string maskPath = filepath.substr(0, dot) + "_.png";
+		SDL_RWops* maskRw = SDL_RWFromFile(maskPath.c_str(), "rb");
+		if (!maskRw) return true;
+
+		SDL_Surface* loadedMask = IMG_Load_RW(maskRw, 1);
+		if (!loadedMask) {
+			error = "LoadTexture 无法加载 JPG 透明遮罩: " + maskPath
+				+ " - " + IMG_GetError();
+			return false;
+		}
+		SDL_Surface* mask = SDL_ConvertSurfaceFormat(
+			loadedMask, SDL_PIXELFORMAT_ABGR8888, 0);
+		SDL_FreeSurface(loadedMask);
+		if (!mask) {
+			error = "LoadTexture 无法转换 JPG 透明遮罩: " + maskPath;
+			return false;
+		}
+		if (mask->w != color->w || mask->h != color->h) {
+			error = "LoadTexture JPG 透明遮罩尺寸不匹配: " + filepath
+				+ " vs " + maskPath;
+			SDL_FreeSurface(mask);
+			return false;
+		}
+
+		if (SDL_LockSurface(color) != 0) {
+			error = "LoadTexture 无法锁定 JPG 表面: " + filepath;
+			SDL_FreeSurface(mask);
+			return false;
+		}
+		if (SDL_LockSurface(mask) != 0) {
+			error = "LoadTexture 无法锁定 JPG 透明遮罩: " + maskPath;
+			SDL_UnlockSurface(color);
+			SDL_FreeSurface(mask);
+			return false;
+		}
+
+		for (int y = 0; y < color->h; ++y) {
+			auto* colorRow = reinterpret_cast<Uint32*>(
+				static_cast<Uint8*>(color->pixels) + y * color->pitch);
+			auto* maskRow = reinterpret_cast<Uint32*>(
+				static_cast<Uint8*>(mask->pixels) + y * mask->pitch);
+			for (int x = 0; x < color->w; ++x) {
+				Uint8 colorR = 0, colorG = 0, colorB = 0, colorA = 0;
+				Uint8 maskR = 0, maskG = 0, maskB = 0, maskA = 0;
+				SDL_GetRGBA(colorRow[x], color->format,
+					&colorR, &colorG, &colorB, &colorA);
+				SDL_GetRGBA(maskRow[x], mask->format,
+					&maskR, &maskG, &maskB, &maskA);
+				const unsigned int luminance = (static_cast<unsigned int>(maskR)
+					+ maskG + maskB) / 3U;
+				const Uint8 alpha = static_cast<Uint8>(luminance * maskA / 255U);
+				colorRow[x] = SDL_MapRGBA(color->format,
+					colorR, colorG, colorB, alpha);
+			}
+		}
+		SDL_UnlockSurface(mask);
+		SDL_UnlockSurface(color);
+		SDL_FreeSurface(mask);
+		return true;
+	}
+
 	DecodedImage DecodeImageFile(const std::string& filepath) {
 		DecodedImage out;
 		SDL_RWops* rw = SDL_RWFromFile(filepath.c_str(), "rb");
@@ -39,6 +113,10 @@ namespace {
 		SDL_FreeSurface(surface);
 		if (!converted) {
 			out.error = "LoadTexture 无法转换图片格式: " + filepath;
+			return out;
+		}
+		if (!ApplyLegacyJpegAlphaMask(converted, filepath, out.error)) {
+			SDL_FreeSurface(converted);
 			return out;
 		}
 		out.surface = converted;
@@ -78,6 +156,32 @@ const Texture* ResourceManager::LoadTexture(const std::string& filepath, const s
 		return nullptr;
 	}
 	return UploadDecodedTexture(decoded.surface, actualKey, filepath);
+}
+
+const Texture* ResourceManager::LoadTextureFromCandidates(
+	const std::vector<std::string>& filepaths, const std::string& key)
+{
+	if (filepaths.empty()) return nullptr;
+	const std::string actualKey = key.empty() ? filepaths.front() : key;
+	if (auto it = mTextures.find(actualKey); it != mTextures.end()) {
+		return &it->second;
+	}
+
+	std::vector<std::string> errors;
+	errors.reserve(filepaths.size());
+	for (const std::string& filepath : filepaths) {
+		DecodedImage decoded = DecodeImageFile(filepath);
+		if (decoded.surface) {
+			return UploadDecodedTexture(decoded.surface, actualKey, filepath);
+		}
+		errors.push_back(std::move(decoded.error));
+	}
+
+	// 一个逻辑资源允许有多种扩展名；只有全部候选失败才是需要玩家处理的资源错误。
+	std::string combined = "LoadTexture 所有候选路径均加载失败: " + actualKey;
+	for (const std::string& error : errors) combined += " | " + error;
+	LOG_ERROR("ResourceManager") << combined;
+	return nullptr;
 }
 
 const Texture* ResourceManager::UploadDecodedTexture(SDL_Surface* converted, const std::string& key, const std::string& filepath) {

@@ -11,6 +11,7 @@
 #include "../../UI/Button.h"
 #include "../SceneManager.h"
 #include "../GameScene.h"
+#include "../CrazyDaveDialog.h"
 #include "../GameObjectManager.h"
 #include "../AdventureProgression.h"
 #include "../AnimatedObject.h"
@@ -700,6 +701,7 @@ void TestDriver::ResetTestState() {
 	GameAPP::GetInstance().mEnableMonteCarloAI = true;
 	GameAPP::GetInstance().mAdvancedPauseEnabled = false;
 	GameAPP::GetInstance().mOpeningTyphoonProtectionEnabled = true;
+	GameAPP::GetInstance().mCrazyDaveTutorialsSeen.clear();
 }
 
 void TestDriver::Update() {
@@ -1303,6 +1305,31 @@ bool TestDriver::ExecuteCurrent() {
 				return false;
 			}
 			imitater->SetInheritedBloverDirection(directionIt->second);
+		}
+		return true;
+	}
+	if (op == "show_crazy_dave_dialog") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs) { Fail("show_crazy_dave_dialog: 不在 GameScene"); return false; }
+		if (!gs->StartCrazyDaveDialogForTesting(cmd.value("force", true))) {
+			Fail("show_crazy_dave_dialog: 当前关卡未配置闲聊、已读且 force=false，或资源不完整");
+			return false;
+		}
+		return true;
+	}
+	if (op == "advance_crazy_dave_dialog") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->AdvanceCrazyDaveDialogForTesting()) {
+			Fail("advance_crazy_dave_dialog: 当前没有可推进的戴夫闲聊");
+			return false;
+		}
+		return true;
+	}
+	if (op == "skip_crazy_dave_dialog") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->SkipCrazyDaveDialogForTesting()) {
+			Fail("skip_crazy_dave_dialog: 当前没有可跳过的戴夫闲聊");
+			return false;
 		}
 		return true;
 	}
@@ -2676,6 +2703,13 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		gameApp.mOpeningTyphoonProtectionEnabled;
 	out["lastSelectedCards"] = gameApp.mLastSelectedCards;
 	out["lastSelectedCardCount"] = static_cast<int>(gameApp.mLastSelectedCards.size());
+	out["crazyDaveTutorialsSeen"] = gameApp.mCrazyDaveTutorialsSeen;
+	out["crazyDaveResources"] = {
+		{ "reanimationLoaded", ResourceManager::GetInstance().HasReanimation(
+			ResourceKeys::Reanimations::REANIM_CRAZY_DAVE) },
+		{ "requiredTextureCount", CrazyDaveDialog::GetRequiredTextureCount() },
+		{ "loadedTextureCount", CrazyDaveDialog::GetLoadedRequiredTextureCount() },
+	};
 	out["adaptiveMusic"] = {
 		{ "playing", AudioSystem::IsAdaptiveMusicPlaying() },
 		{ "currentTune", AudioSystem::GetAdaptiveMusicCurrentTune() },
@@ -3362,6 +3396,22 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		return false;
 	}
 	Board* board = gs->GetBoard();
+	out["crazyDave"] = {
+		{ "supported", gs->IsCrazyDaveDialogSupported() },
+		{ "active", gs->IsCrazyDaveDialogActive() },
+		{ "phase", gs->GetCrazyDaveDialogPhaseName() },
+		{ "level", board->mLevel },
+		{ "messageIndex", gs->GetCrazyDaveDialogMessageIndex() },
+		{ "messageNumber", gs->IsCrazyDaveDialogActive()
+			? gs->GetCrazyDaveDialogMessageIndex() + 1 : 0 },
+		{ "messageCount", gs->GetCrazyDaveDialogMessageCount() },
+		{ "text", gs->GetCrazyDaveDialogText() },
+		{ "track", gs->GetCrazyDaveDialogTrackName() },
+		{ "seen", gameApp.HasSeenCrazyDaveTutorial(board->mLevel) },
+		{ "renderQuadCount", gs->GetCrazyDaveDialogRenderedQuadCount() },
+		{ "renderedGeometry", gs->HasCrazyDaveDialogRenderedGeometry() },
+		{ "usedInstancePath", gs->DidCrazyDaveDialogUseInstancePath() },
+	};
 
 	out["boardState"] = BoardStateName(board->mBoardState);
 	out["cobCannonTargeting"] = board->IsCobCannonTargeting();

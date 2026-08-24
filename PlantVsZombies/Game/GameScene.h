@@ -12,6 +12,7 @@
 
 class ChooseCardUI;
 class CardSlotManager;
+class CrazyDaveDialog;
 class GameProgress;
 class ShovelBank;
 
@@ -97,6 +98,20 @@ public:
 	bool IsChooseCardReady() const {
 		return mCurrentStage == IntroStage::COMPLETE && mChooseCardUI != nullptr;
 	}
+	/** AutoTest 显式打开当前关卡的戴夫闲聊；force=true 时忽略已读状态。 */
+	bool StartCrazyDaveDialogForTesting(bool force = true);
+	bool AdvanceCrazyDaveDialogForTesting();
+	bool SkipCrazyDaveDialogForTesting();
+	bool IsCrazyDaveDialogSupported() const;
+	bool IsCrazyDaveDialogActive() const;
+	std::string GetCrazyDaveDialogPhaseName() const;
+	int GetCrazyDaveDialogMessageIndex() const;
+	int GetCrazyDaveDialogMessageCount() const;
+	std::string GetCrazyDaveDialogText() const;
+	std::string GetCrazyDaveDialogTrackName() const;
+	int GetCrazyDaveDialogRenderedQuadCount() const;
+	bool HasCrazyDaveDialogRenderedGeometry() const;
+	bool DidCrazyDaveDialogUseInstancePath() const;
 
 	GameProgress* GetGameProgress() const;
 
@@ -252,8 +267,11 @@ private:
 	void RenderSurvivalPerkSelectStep();
 	// 立即停用并请求 UIManager 在控件遍历后清理，避免刷新或进入下一步时出现一帧双框。
 	void CloseSurvivalPerkSelectBox();
+	/** 按当前关卡与玩家已读状态尝试打开戴夫闲聊。 */
+	bool TryStartCrazyDaveDialog(bool force);
 
 	std::unique_ptr<Board> mBoard = nullptr;
+	std::unique_ptr<CrazyDaveDialog> mCrazyDaveDialog;
 	std::weak_ptr<Button> mMainMenuButton;
 	std::weak_ptr<Button> mSpeedSettingsButton;
 	ShovelBank* mShovelUI = nullptr;   // 所有权在 GameObjectManager

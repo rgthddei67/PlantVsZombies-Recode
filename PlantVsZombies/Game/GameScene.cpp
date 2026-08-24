@@ -1,4 +1,5 @@
 #include "GameScene.h"
+#include "CrazyDaveDialog.h"
 #include "CursorObjectManager.h"
 #include "SceneManager.h"
 #include "../ResourceManager.h"
@@ -498,6 +499,96 @@ GameScene::GameScene() {
 }
 
 GameScene::~GameScene() {
+}
+
+bool GameScene::TryStartCrazyDaveDialog(bool force)
+{
+	if (!mBoard || mBoard->mIsSurvival
+		|| !CrazyDaveDialog::SupportsLevel(mBoard->mLevel)
+		|| (mCrazyDaveDialog && mCrazyDaveDialog->IsActive())) {
+		return false;
+	}
+
+	auto& gameApp = GameAPP::GetInstance();
+	const int level = mBoard->mLevel;
+	if (!force && gameApp.HasSeenCrazyDaveTutorial(level)) return false;
+
+	// 对话按屏幕坐标构图；直切 GameScene 的测试或上个场景遗留相机都不能把气泡推离画面。
+	gameApp.GetGraphics().SetCameraPosition(0.0f, 0.0f);
+	mShakeCameraApplied = false;
+	auto dialog = std::make_unique<CrazyDaveDialog>();
+	if (!dialog->Start(level, [level]() {
+		GameAPP::GetInstance().MarkCrazyDaveTutorialSeen(level);
+		})) {
+		return false;
+	}
+	mCrazyDaveDialog = std::move(dialog);
+	return true;
+}
+
+bool GameScene::StartCrazyDaveDialogForTesting(bool force)
+{
+	return TryStartCrazyDaveDialog(force);
+}
+
+bool GameScene::AdvanceCrazyDaveDialogForTesting()
+{
+	return mCrazyDaveDialog && mCrazyDaveDialog->Advance();
+}
+
+bool GameScene::SkipCrazyDaveDialogForTesting()
+{
+	return mCrazyDaveDialog && mCrazyDaveDialog->Skip();
+}
+
+bool GameScene::IsCrazyDaveDialogSupported() const
+{
+	return mBoard && CrazyDaveDialog::SupportsLevel(mBoard->mLevel);
+}
+
+bool GameScene::IsCrazyDaveDialogActive() const
+{
+	return mCrazyDaveDialog && mCrazyDaveDialog->IsActive();
+}
+
+std::string GameScene::GetCrazyDaveDialogPhaseName() const
+{
+	return mCrazyDaveDialog ? mCrazyDaveDialog->GetPhaseName() : "INACTIVE";
+}
+
+int GameScene::GetCrazyDaveDialogMessageIndex() const
+{
+	return mCrazyDaveDialog ? mCrazyDaveDialog->GetMessageIndex() : 0;
+}
+
+int GameScene::GetCrazyDaveDialogMessageCount() const
+{
+	return mCrazyDaveDialog ? mCrazyDaveDialog->GetMessageCount() : 0;
+}
+
+std::string GameScene::GetCrazyDaveDialogText() const
+{
+	return mCrazyDaveDialog ? mCrazyDaveDialog->GetCurrentText() : std::string();
+}
+
+std::string GameScene::GetCrazyDaveDialogTrackName() const
+{
+	return mCrazyDaveDialog ? mCrazyDaveDialog->GetCurrentTrackName() : std::string();
+}
+
+int GameScene::GetCrazyDaveDialogRenderedQuadCount() const
+{
+	return mCrazyDaveDialog ? mCrazyDaveDialog->GetRenderedQuadCount() : 0;
+}
+
+bool GameScene::HasCrazyDaveDialogRenderedGeometry() const
+{
+	return mCrazyDaveDialog && mCrazyDaveDialog->HasRenderedGeometry();
+}
+
+bool GameScene::DidCrazyDaveDialogUseInstancePath() const
+{
+	return mCrazyDaveDialog && mCrazyDaveDialog->UsedInstanceRenderPath();
 }
 
 std::string GameScene::GetWeatherForecastPanelText() const
@@ -1649,6 +1740,12 @@ void GameScene::BuildDrawCommands()
 			ShowSunCount();
 		}
 	}
+
+	RegisterDrawCommand("CrazyDaveDialog",
+		[this](Graphics* g) {
+			if (mCrazyDaveDialog) mCrazyDaveDialog->Draw(g);
+		},
+		LAYER_UI + 90000);
 }
 
 void GameScene::OnEnter() {
@@ -1763,9 +1860,17 @@ void GameScene::OnEnter() {
 			mBoard->CompleteLoadRestore();
 		}
 	}
+
+	// 戴夫只在新开冒险关的选卡演出之前闲聊；读档、生存模式和常规 AutoTest 均不自动打断。
+	if (mBoard->mBoardState == BoardState::CHOOSE_CARD
+		&& !mBoard->mIsSurvival && !GameAPP::mAutoTestMode) {
+		TryStartCrazyDaveDialog(false);
+	}
 }
 
 void GameScene::OnExit() {
+	// 中途退出不触发完成回调；玩家下次进入仍能看到尚未读完的闲聊。
+	mCrazyDaveDialog.reset();
 	auto& gameApp = GameAPP::GetInstance();
 	// 生存模式：玩家已点"一起摇滚吧"进入回移过场（READY_SET_PLANT）、但 mBoardState 要等过场结束
 	// 才翻成 GAME 的这 3 秒窗口里退出——此刻卡已提交、本轮在即，逻辑上已"进入游戏"。
@@ -1918,6 +2023,11 @@ void GameScene::OpenQuitMenu()
 }
 
 void GameScene::Update() {
+	// 戴夫闲聊独占本帧输入和逻辑更新；结束输入不会穿透到选卡、暂停或战场。
+	if (mCrazyDaveDialog && mCrazyDaveDialog->IsActive()) {
+		mCrazyDaveDialog->Update();
+		return;
+	}
 	Scene::Update();
 
 	// 水面沿用原版逐 Update 计数器，保持与游戏倍速和天气 DeltaTime 解耦；全局暂停仍冻结画面。

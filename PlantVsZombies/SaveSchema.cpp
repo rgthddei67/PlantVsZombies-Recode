@@ -136,6 +136,15 @@ namespace {
 				version = 4;
 				upgraded["schemaVersion"] = version;
 				break;
+			case 4:
+				if (kind == DocumentKind::Player
+					&& !upgraded.contains("crazyDaveTutorialsSeen")) {
+					// 玩家 v5 新增按冒险关卡号保存的戴夫闲聊已读集合；旧档从未读开始。
+					upgraded["crazyDaveTutorialsSeen"] = nlohmann::json::array();
+				}
+				version = 5;
+				upgraded["schemaVersion"] = version;
+				break;
 			default:
 				error = std::string(documentName) + "存档缺少迁移路径";
 				return false;

@@ -601,6 +601,7 @@ namespace ResourceKeys
 	{
 		inline const std::string REANIM_SUN = "Sun";
 		inline const std::string REANIM_SLEEPING = "Z";
+		inline const std::string REANIM_CRAZY_DAVE = "CrazyDave";
 
 		inline const std::string REANIM_SUNFLOWER = "SunFlower";
 		inline const std::string REANIM_TWINSUNFLOWER = "TwinSunflower";

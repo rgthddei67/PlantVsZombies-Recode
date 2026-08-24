@@ -23,6 +23,7 @@
 #include "./Game/Transform.h"
 #include "./Game/GameObjectManager.h"
 #include "./Game/AnimatedObject.h"
+#include "./Game/AdventureProgression.h"
 #include "Logger.h"
 
 namespace {
@@ -194,6 +195,7 @@ bool GameInfoSaver::SavePlayerInfoImpl()
 	j["difficulty"] = gameApp.Difficulty;
 	j["adventureLevel"] = gameApp.mAdventureLevel;
 	j["encounteredEliteDancer"] = gameApp.mEncounteredEliteDancer;
+	j["crazyDaveTutorialsSeen"] = gameApp.mCrazyDaveTutorialsSeen;
 	j["developerSelectedLevel"] = gameApp.mDeveloperSelectedLevel;
 	j["developerSelectedZombie"] = gameApp.mDeveloperSelectedZombie;
 	j["showPlantHP"] = gameApp.mShowPlantHP;
@@ -229,6 +231,23 @@ bool GameInfoSaver::LoadPlayerInfoImpl()
 	gameApp.Difficulty = j.value("difficulty", 1);
 	gameApp.mAdventureLevel = j.value("adventureLevel", 1);
 	gameApp.mEncounteredEliteDancer = j.value("encounteredEliteDancer", false);
+	gameApp.mCrazyDaveTutorialsSeen.clear();
+	if (auto it = j.find("crazyDaveTutorialsSeen"); it != j.end() && it->is_array()) {
+		// 旧档没有该字段时自然为空；损坏档只接收当前冒险流程内的整数关卡号。
+		for (const auto& savedLevel : *it) {
+			if (!savedLevel.is_number_integer()) continue;
+			const int level = savedLevel.get<int>();
+			if (AdventureProgression::IsAdventureLevel(level)) {
+				gameApp.mCrazyDaveTutorialsSeen.push_back(level);
+			}
+		}
+		std::sort(gameApp.mCrazyDaveTutorialsSeen.begin(),
+			gameApp.mCrazyDaveTutorialsSeen.end());
+		gameApp.mCrazyDaveTutorialsSeen.erase(
+			std::unique(gameApp.mCrazyDaveTutorialsSeen.begin(),
+				gameApp.mCrazyDaveTutorialsSeen.end()),
+			gameApp.mCrazyDaveTutorialsSeen.end());
+	}
 	gameApp.mDeveloperSelectedLevel = std::max(1, j.value("developerSelectedLevel", 1));
 	gameApp.mDeveloperSelectedZombie =
 		j.value("developerSelectedZombie", std::string("ZOMBIE_NORMAL"));

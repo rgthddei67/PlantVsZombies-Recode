@@ -461,6 +461,7 @@
   <!-- 动画资源 此处的name要与ResourceKey里面的一样-->
   <Reanimations>
     <Reanimation name="Sun">./resources/reanim/Sun.reanim</Reanimation>
+    <Reanimation name="CrazyDave">./resources/reanim/CrazyDave.reanim</Reanimation>
 
     <Reanimation name="SunFlower">./resources/reanim/SunFlower.reanim</Reanimation>
     <Reanimation name="TwinSunflower">./resources/reanim/TwinSunflower.reanim</Reanimation>

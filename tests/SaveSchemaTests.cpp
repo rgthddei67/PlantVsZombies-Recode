@@ -147,6 +147,35 @@ namespace {
 			"迁移不得覆盖预发布玩家已有的选卡记录");
 	}
 
+	void TestVersionFourPlayerUpgradeAddsCrazyDaveTutorialsSeen() {
+		nlohmann::json document = {
+			{ "schemaVersion", 4 },
+			{ "lastSelectedCards", { "PLANT_SUNFLOWER" } }
+		};
+		std::string error;
+
+		Expect(SaveSchema::UpgradePlayerDocument(document, error),
+			"v4 玩家档应升级到戴夫闲聊已读版本");
+		Expect(document["schemaVersion"] == SaveSchema::kCurrentPlayerVersion,
+			"v4 玩家档应写入当前玩家版本");
+		Expect(document["crazyDaveTutorialsSeen"].is_array()
+			&& document["crazyDaveTutorialsSeen"].empty(),
+			"旧玩家没有戴夫闲聊记录时应补为空数组");
+		Expect(document["lastSelectedCards"] == nlohmann::json::array({
+			"PLANT_SUNFLOWER" }),
+			"戴夫闲聊迁移不得改写既有选卡记录");
+
+		nlohmann::json prereleaseDocument = {
+			{ "schemaVersion", 4 },
+			{ "crazyDaveTutorialsSeen", { 10, 29, 55 } }
+		};
+		Expect(SaveSchema::UpgradePlayerDocument(prereleaseDocument, error),
+			"已含戴夫闲聊记录的 v4 玩家档应升级成功");
+		Expect(prereleaseDocument["crazyDaveTutorialsSeen"]
+			== nlohmann::json::array({ 10, 29, 55 }),
+			"迁移不得覆盖预发布玩家已有的戴夫闲聊记录");
+	}
+
 	void TestCurrentLevelDocumentIsStable() {
 		nlohmann::json document = {
 			{ "schemaVersion", SaveSchema::kCurrentLevelVersion },
@@ -274,6 +303,7 @@ int main() {
 	TestCurrentPlayerDocumentIsStable();
 	TestVersionTwoPlayerUpgradeDefaultsToStrictPause();
 	TestVersionThreePlayerUpgradeAddsLastSelectedCards();
+	TestVersionFourPlayerUpgradeAddsCrazyDaveTutorialsSeen();
 	TestCurrentLevelDocumentIsStable();
 	TestLegacyLevelUpgradePreservesGameplayState();
 	TestVersionOneLevelUpgradeDefersFogInitializationToBoard();
