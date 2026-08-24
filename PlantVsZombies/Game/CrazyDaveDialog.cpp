@@ -1,11 +1,13 @@
 #include "CrazyDaveDialog.h"
 
 #include "../DeltaTime.h"
+#include "../GameRandom.h"
 #include "../GameApp.h"
 #include "../Graphics.h"
 #include "../Logger.h"
 #include "../ResourceKeys.h"
 #include "../ResourceManager.h"
+#include "AudioSystem.h"
 #include "../UI/InputHandler.h"
 #include "../Reanimation/Animator.h"
 
@@ -119,6 +121,38 @@ namespace {
 		"IMAGE_REANIM_CRAZYDAVE_POT_INSIDE",
 	}};
 
+	// 原版 Foley 分组：短/长/超长各随机三条，疯狂语气固定一条；两条尖叫留给未来特殊台词。
+	const std::array<const std::string*, 12> kRequiredVoiceSoundKeys = {{
+		&ResourceKeys::Sounds::SOUND_CRAZYDAVESHORT1,
+		&ResourceKeys::Sounds::SOUND_CRAZYDAVESHORT2,
+		&ResourceKeys::Sounds::SOUND_CRAZYDAVESHORT3,
+		&ResourceKeys::Sounds::SOUND_CRAZYDAVELONG1,
+		&ResourceKeys::Sounds::SOUND_CRAZYDAVELONG2,
+		&ResourceKeys::Sounds::SOUND_CRAZYDAVELONG3,
+		&ResourceKeys::Sounds::SOUND_CRAZYDAVEEXTRALONG1,
+		&ResourceKeys::Sounds::SOUND_CRAZYDAVEEXTRALONG2,
+		&ResourceKeys::Sounds::SOUND_CRAZYDAVEEXTRALONG3,
+		&ResourceKeys::Sounds::SOUND_CRAZYDAVECRAZY,
+		&ResourceKeys::Sounds::SOUND_CRAZYDAVESCREAM,
+		&ResourceKeys::Sounds::SOUND_CRAZYDAVESCREAM2,
+	}};
+
+	const std::string& SelectVoiceSoundKey(const std::string& talkTrack)
+	{
+		if (talkTrack == "anim_crazy") return *kRequiredVoiceSoundKeys[9];
+		const int groupStart = talkTrack == "anim_blahblah" ? 6
+			: talkTrack == "anim_mediumtalk" ? 3 : 0;
+		return *kRequiredVoiceSoundKeys[groupStart + GameRandom::Range(0, 2)];
+	}
+
+	std::string VoiceGroupName(const std::string& talkTrack)
+	{
+		if (talkTrack == "anim_crazy") return "CRAZY";
+		if (talkTrack == "anim_blahblah") return "EXTRALONG";
+		if (talkTrack == "anim_mediumtalk") return "LONG";
+		return "SHORT";
+	}
+
 	const Conversation* FindConversation(int level)
 	{
 		const auto it = std::find_if(kConversations.begin(), kConversations.end(),
@@ -191,7 +225,10 @@ namespace {
 	}
 }
 
-CrazyDaveDialog::~CrazyDaveDialog() = default;
+CrazyDaveDialog::~CrazyDaveDialog()
+{
+	StopCurrentVoice();
+}
 
 bool CrazyDaveDialog::SupportsLevel(int level)
 {
@@ -213,16 +250,42 @@ int CrazyDaveDialog::GetLoadedRequiredTextureCount()
 	return loaded;
 }
 
+int CrazyDaveDialog::GetRequiredVoiceSoundCount()
+{
+	return static_cast<int>(kRequiredVoiceSoundKeys.size());
+}
+
+int CrazyDaveDialog::GetLoadedRequiredVoiceSoundCount()
+{
+	int loaded = 0;
+	auto& resources = ResourceManager::GetInstance();
+	for (const std::string* key : kRequiredVoiceSoundKeys) {
+		if (resources.HasSound(*key)) ++loaded;
+	}
+	return loaded;
+}
+
+int CrazyDaveDialog::GetVoicePlayRequestCount()
+{
+	int requests = 0;
+	for (const std::string* key : kRequiredVoiceSoundKeys) {
+		requests += AudioSystem::GetSoundPlayRequestCount(*key);
+	}
+	return requests;
+}
+
 bool CrazyDaveDialog::Start(int level, CompletionCallback onCompleted)
 {
 	const Conversation* conversation = FindConversation(level);
 	auto& resources = ResourceManager::GetInstance();
 	if (!conversation
 		|| !resources.HasReanimation(ResourceKeys::Reanimations::REANIM_CRAZY_DAVE)
-		|| GetLoadedRequiredTextureCount() != GetRequiredTextureCount()) {
+		|| GetLoadedRequiredTextureCount() != GetRequiredTextureCount()
+		|| GetLoadedRequiredVoiceSoundCount() != GetRequiredVoiceSoundCount()) {
 		LOG_ERROR("CrazyDave") << "无法开始关卡闲聊：配置或 CrazyDave 资源闭环不完整，level="
 			<< level << " parts=" << GetLoadedRequiredTextureCount()
-			<< "/" << GetRequiredTextureCount();
+			<< "/" << GetRequiredTextureCount() << " voices="
+			<< GetLoadedRequiredVoiceSoundCount() << "/" << GetRequiredVoiceSoundCount();
 		return false;
 	}
 
@@ -243,6 +306,8 @@ bool CrazyDaveDialog::Start(int level, CompletionCallback onCompleted)
 		mMessages.push_back({ message.text, message.talkTrack });
 	}
 	mOnCompleted = std::move(onCompleted);
+	mCurrentVoiceSoundKey.clear();
+	mCurrentVoiceGroupName.clear();
 	mPhase = Phase::ENTERING;
 	return true;
 }
@@ -387,19 +452,41 @@ void CrazyDaveDialog::BeginCurrentMessage()
 	if (!mAnimator->PlayTrackOnce(talkTrack, "anim_idle", 1.0f, 0.08f, 1.0f, 0.12f)) {
 		mAnimator->PlayTrack("anim_idle", 1.0f, 0.0f);
 	}
+	PlayCurrentVoice();
 }
 
 void CrazyDaveDialog::BeginLeaving()
 {
+	StopCurrentVoice();
 	mPhase = Phase::LEAVING;
 	if (!mAnimator || !mAnimator->PlayTrackOnce("anim_leave", "", 1.0f, 0.08f)) {
 		Finish();
 	}
 }
 
+void CrazyDaveDialog::PlayCurrentVoice()
+{
+	StopCurrentVoice();
+	if (mMessageIndex < 0 || mMessageIndex >= static_cast<int>(mMessages.size())) return;
+	const std::string& talkTrack = mMessages[mMessageIndex].talkTrack;
+	mCurrentVoiceGroupName = VoiceGroupName(talkTrack);
+	mCurrentVoiceSoundKey = SelectVoiceSoundKey(talkTrack);
+	AudioSystem::PlaySound(mCurrentVoiceSoundKey);
+}
+
+void CrazyDaveDialog::StopCurrentVoice()
+{
+	if (!mCurrentVoiceSoundKey.empty()) {
+		AudioSystem::StopSound(mCurrentVoiceSoundKey);
+	}
+	mCurrentVoiceSoundKey.clear();
+	mCurrentVoiceGroupName.clear();
+}
+
 void CrazyDaveDialog::Finish()
 {
 	if (!IsActive()) return;
+	StopCurrentVoice();
 	mPhase = Phase::INACTIVE;
 	mAnimator.reset();
 	auto callback = std::move(mOnCompleted);

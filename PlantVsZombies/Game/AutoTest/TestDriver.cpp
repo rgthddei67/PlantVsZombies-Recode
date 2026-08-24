@@ -2709,6 +2709,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			ResourceKeys::Reanimations::REANIM_CRAZY_DAVE) },
 		{ "requiredTextureCount", CrazyDaveDialog::GetRequiredTextureCount() },
 		{ "loadedTextureCount", CrazyDaveDialog::GetLoadedRequiredTextureCount() },
+		{ "requiredVoiceSoundCount", CrazyDaveDialog::GetRequiredVoiceSoundCount() },
+		{ "loadedVoiceSoundCount", CrazyDaveDialog::GetLoadedRequiredVoiceSoundCount() },
 	};
 	out["adaptiveMusic"] = {
 		{ "playing", AudioSystem::IsAdaptiveMusicPlaying() },
@@ -3407,6 +3409,9 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		{ "messageCount", gs->GetCrazyDaveDialogMessageCount() },
 		{ "text", gs->GetCrazyDaveDialogText() },
 		{ "track", gs->GetCrazyDaveDialogTrackName() },
+		{ "voiceSoundKey", gs->GetCrazyDaveDialogVoiceSoundKey() },
+		{ "voiceGroup", gs->GetCrazyDaveDialogVoiceGroupName() },
+		{ "voicePlayRequestCount", CrazyDaveDialog::GetVoicePlayRequestCount() },
 		{ "seen", gameApp.HasSeenCrazyDaveTutorial(board->mLevel) },
 		{ "renderQuadCount", gs->GetCrazyDaveDialogRenderedQuadCount() },
 		{ "renderedGeometry", gs->HasCrazyDaveDialogRenderedGeometry() },

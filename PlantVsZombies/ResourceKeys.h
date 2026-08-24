@@ -492,6 +492,18 @@ namespace ResourceKeys
 		RKEY(SOUND_POOL_CLEANER);
 		RKEY(SOUND_READYSETPLANT);
 		RKEY(SOUND_WINMUSIC);
+		RKEY(SOUND_CRAZYDAVESHORT1);       // 疯狂戴夫短句语音一
+		RKEY(SOUND_CRAZYDAVESHORT2);       // 疯狂戴夫短句语音二
+		RKEY(SOUND_CRAZYDAVESHORT3);       // 疯狂戴夫短句语音三
+		RKEY(SOUND_CRAZYDAVELONG1);        // 疯狂戴夫长句语音一
+		RKEY(SOUND_CRAZYDAVELONG2);        // 疯狂戴夫长句语音二
+		RKEY(SOUND_CRAZYDAVELONG3);        // 疯狂戴夫长句语音三
+		RKEY(SOUND_CRAZYDAVEEXTRALONG1);   // 疯狂戴夫超长句语音一
+		RKEY(SOUND_CRAZYDAVEEXTRALONG2);   // 疯狂戴夫超长句语音二
+		RKEY(SOUND_CRAZYDAVEEXTRALONG3);   // 疯狂戴夫超长句语音三
+		RKEY(SOUND_CRAZYDAVECRAZY);        // 疯狂戴夫疯狂语气
+		RKEY(SOUND_CRAZYDAVESCREAM);       // 疯狂戴夫尖叫一，保留给特殊台词
+		RKEY(SOUND_CRAZYDAVESCREAM2);      // 疯狂戴夫尖叫二，保留给特殊台词
 		inline const std::string SOUND_ZOMBIE_EAT = "SOUND_CHOMP";
 		inline const std::string SOUND_ZOMBIE_EAT2 = "SOUND_CHOMP2";
 		inline const std::string SOUND_ZOMBIE_EAT_SOFT = "SOUND_CHOMPSOFT"; // 坚果、大坚果与南瓜头的原版软啃声

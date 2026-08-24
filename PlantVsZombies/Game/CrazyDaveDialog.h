@@ -32,6 +32,12 @@ public:
 	static int GetRequiredTextureCount();
 	/** 返回当前已按 reanim 资源键加载的部件数。 */
 	static int GetLoadedRequiredTextureCount();
+	/** 返回原版戴夫语音资源总数，含当前闲聊与未来特殊语气所需资源。 */
+	static int GetRequiredVoiceSoundCount();
+	/** 返回当前成功加载的原版戴夫语音资源数。 */
+	static int GetLoadedRequiredVoiceSoundCount();
+	/** 返回本进程发起的全部戴夫语音播放请求数，供 AutoTest 锁定逐句触发。 */
+	static int GetVoicePlayRequestCount();
 
 	/**
 	 * @brief 开始指定关卡的闲聊；资源或配置不完整时返回 false，不阻塞正常开局。
@@ -54,6 +60,8 @@ public:
 	int GetMessageCount() const { return static_cast<int>(mMessages.size()); }
 	const std::string& GetCurrentText() const;
 	std::string GetCurrentTrackName() const;
+	const std::string& GetCurrentVoiceSoundKey() const { return mCurrentVoiceSoundKey; }
+	const std::string& GetCurrentVoiceGroupName() const { return mCurrentVoiceGroupName; }
 	int GetRenderedQuadCount() const;
 	bool HasRenderedGeometry() const;
 	bool UsedInstanceRenderPath() const;
@@ -66,6 +74,8 @@ private:
 
 	void BeginCurrentMessage();
 	void BeginLeaving();
+	void PlayCurrentVoice();
+	void StopCurrentVoice();
 	void Finish();
 
 	int mLevel = 0;
@@ -73,5 +83,7 @@ private:
 	Phase mPhase = Phase::INACTIVE;
 	std::vector<Message> mMessages;
 	std::shared_ptr<Animator> mAnimator;
+	std::string mCurrentVoiceSoundKey;
+	std::string mCurrentVoiceGroupName;
 	CompletionCallback mOnCompleted;
 };

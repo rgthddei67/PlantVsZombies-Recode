@@ -26,6 +26,20 @@ AutoTest 提供 `show_crazy_dave_dialog`、`advance_crazy_dave_dialog`、
 空 Animator、空纹理或把黑底直接当身体像素来兜底。reanim 的 PNG/JPG 回退只在候选全部
 失败时记录 ERROR，JPG 正常命中不能先留下一个误导性的 PNG 缺失错误。
 
+## 2026-08-24 原版语音
+
+戴夫闲聊接入原版 `crazydaveshort1..3`、`crazydavelong1..3`、
+`crazydaveextralong1..3`、`crazydavecrazy`、`crazydavescream` 与
+`crazydavescream2` 共 12 段 OGG；素材逐字节取自本地原版解包目录
+`D:\PVZ\原！版！Test\sounds`。当前台词随既有动画轨道使用短句、长句、超长句和疯狂语气，
+前三组各在三段原版 Foley 中随机选择，疯狂语气使用固定音效；两段尖叫仅完成注册，留给未来
+特殊台词。切页、跳过、离场和析构都停止当前戴夫语音，防止上一句与下一句重叠。
+
+运行前资源闭环扩展为 reanimation、32 个图片键和 12 个音效键；强制语音缺失会拒绝打开闲聊，
+不能以静音降级掩盖打包遗漏。AutoTest 的 `crazyDaveResources` 导出所需/已加载语音数，
+`crazyDave` 导出当前音效键、语音组和进程累计播放请求数。专项固定 Seed 后锁定三种长度组、
+疯狂语气和全部 25 句逐句触发。
+
 ## 验证
 
 - `clang-debug` 编译及 `save-schema` 1/1 通过；可见专项全部通过。
@@ -35,3 +49,10 @@ AutoTest 提供 `show_crazy_dave_dialog`、`advance_crazy_dave_dialog`、
   对话框、中文换行和全部关卡布局正常。
 - Debug 与 Release 的启动输出均确认 `[ERROR]` 为 0，且不再出现误探测的
   `CRAZYDAVE_BODY1.png` 路径。
+- 原版语音增补后的 `clang-debug` 可见 Vulkan 专项 128 条命令通过：12/12 音效加载、
+  25/25 句播放请求、退出码 0，启动输出 `[ERROR]`/`[FATAL]` 均为 0；首句保留 1.5 秒供
+  当前桌面直接听取，截图复核戴夫透明身体和对话布局无回归。
+- 最终 `clang-release` 全量构建、Win7 378 项导入审计和 CTest 3/3 通过；当前桌面可见
+  Vulkan 专项同样完成 128 条命令，12/12 音效加载、25/25 句播放请求、退出码 0，启动输出
+  `[ERROR]`/`[FATAL]` 均为 0，`run.log` 以 `script finished OK` 结束。同步截图再次确认戴夫
+  透明身体、中文台词和对话框无视觉回归。

@@ -6,7 +6,7 @@ project(PlantsVsZombies LANGUAGES CXX)
 
 option(PVZ_ENABLE_LTO "为发布构建启用 Clang LTO" OFF)
 option(PVZ_ENABLE_AVX2 "允许游戏目标生成 AVX/AVX2 指令" ON)
-option(PVZ_ENABLE_PDB "为优化构建生成采样分析器可读取的完整 PDB" OFF)
+option(PVZ_ENABLE_PDB "为优化构建生成函数栈与源码行可读的精简 PDB" OFF)
 set(PVZ_SHARED_RUNTIME_ROOT "" CACHE PATH
     "共享 resources/font 的权威运行目录；留空表示当前构建持有实体目录")
 
@@ -167,10 +167,10 @@ else()
 endif()
 
 if(PVZ_ENABLE_PDB)
-    # /Z7 把 CodeView 调试信息留在各对象文件中，适合 Ninja 并行编译；LLD 最终生成
-    # 与优化/LTO 后实际机器码匹配的完整 PDB，供 VS Sampling Profiler 符号化。
-    target_compile_options(PlantsVsZombies PRIVATE /Z7)
-    target_link_options(PlantsVsZombies PRIVATE /DEBUG:FULL)
+    # 只生成符号化回溯所需的函数/行表，不写变量与类型；GHASH 缩短 LLD 合并时间。
+    # 信息最终进入外置 PDB；EXE 仅保留定位记录，且不泄露本机构建绝对路径。
+    target_compile_options(PlantsVsZombies PRIVATE /Z7 -gline-tables-only -gcodeview-ghash)
+    target_link_options(PlantsVsZombies PRIVATE /DEBUG:GHASH /PDBALTPATH:PlantsVsZombies.pdb)
     set_target_properties(PlantsVsZombies PROPERTIES
         PDB_NAME "PlantsVsZombies"
         PDB_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"

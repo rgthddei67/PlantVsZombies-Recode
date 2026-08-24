@@ -31,7 +31,7 @@
 - [经典双子向日葵与生产型紫卡升级](project_pvz_twin_sunflower.md) — 2026-08-13 `PLANT_TWINSUNFLOWER` 为6-3奖励：150阳光、50秒冷却、300生命；原子覆盖向日葵并保留承载层/南瓜，15秒一轮同时生产2颗普通阳光，发光中途存档不重复；默认与NoInstance专项可见闭环
 - [经典花盆与屋顶承载层](project_pvz_flowerpot.md) — 2026-08-14 `PLANT_FLOWERPOT` 25阳光/7.5秒/300生命/1秒无啃食；under+normal+南瓜分层、屋顶门禁、5-1/5-2/后续5/4/3列初始布局、覆盖暂停、5px视觉抬升、通用ShadowComponent 46px可见阴影、双向台风整组与存档；MC 中与睡莲压缩进独立64格支撑层，不占128株详细植物容量
 - [上次选卡持久化与一键动画恢复](project_pvz_last_selected_cards.md) — 2026-08-23 普通卡继续保存稳定枚举名；模仿者以 `PLANT_IMITATER:PLANT_TARGET` 保存代理身份与目标，恢复时重新验证目标资格并复用飞入动画
-- [疯狂戴夫关卡闲聊与隐性机制提示](project_pvz_crazy_dave_tutorial_dialog.md) — 2026-08-24 2-1、4-1、4-2、4-9、5-1、6-1、6-9、7-1 以原版风格闲聊含蓄提示天气、雾、燃料、屋顶、雷荷与寒潮；全新进关前模态播放，完成/跳过一次记录，玩家 schema v5、原版 JPG 灰度 alpha 遮罩、Vulkan 实例/NoInstance/OpenGL 3.3 可见专项闭环；1-1、3-1不出现
+- [疯狂戴夫关卡闲聊与隐性机制提示](project_pvz_crazy_dave_tutorial_dialog.md) — 2026-08-24 2-1、4-1、4-2、4-9、5-1、6-1、6-9、7-1 以原版风格闲聊含蓄提示天气、雾、燃料、屋顶、雷荷与寒潮；全新进关前模态播放，完成/跳过一次记录，玩家 schema v5、原版 JPG 灰度 alpha 遮罩、原版 12 段短/长/超长/疯狂语音及切页停声、Vulkan 实例/NoInstance/OpenGL 3.3 可见专项闭环；1-1、3-1不出现
 - [架构边界、存档版本与技能审计门禁](project_pvz_architecture_boundaries.md) — 2026-08-24 `BoardPresentation` 取代 `Board::mGameScene`，Board 保持天气/波次/生存玩法唯一权威；`SceneManager` 明确单活动场景；玩家 schema v2 补发毒囊射手、v3 加高级暂停、v4 加稳定枚举名上次选卡、v5 加戴夫闲聊已读关卡；迁移保持事务式并有纯测试；每次任务提交前审计相关 skills
 - [OpenGL 3.3 Core 兼容后端](project_pvz_opengl33_backend.md) — 2026-08-11 同一 EXE 的 `auto/vulkan/opengl` 双后端选择与完整回退；GL 走 GLSL 330、CPU 顶点/Reanimation 展开、单 sampler 动态 VBO/IBO Batch，禁用并行 Draw 但保留并行 Update；Pool、clip、文字、粒子、截图、全屏/VSync、no-AVX2 与 Win7 导入门禁闭环，Win7 真机仍待验证
 - [空格轻量暂停、可选高级暂停与粒子冻结](project_pvz_space_pause_ui.md) — 2026-08-23 暂停仍保留 UI 零 dt 逻辑步，但 ParticleEmitter 完整冻结上一游戏帧，Shake 不重抽、Friction 不衰减；空格只显示上方中央“游戏暂停”，高级暂停默认关闭且只在主菜单控制台设置，暂停倍速仅待选，泳池相位同样冻结
@@ -141,7 +141,7 @@
 - [Volk动态 Vulkan loader + 1.2兼容矩阵 ✅](project_pvz_volk_dynamic_loader.md) — SDL2 loader→Volk动态分发；运行时优先1.3核心，并对 dynamic rendering / synchronization2 分别选择1.2 KHR或RenderPass/传统同步回退；Win7回退版已越过非法指令但一台实机的系统loader在首次枚举扩展时返回HOST_MEMORY，尚待同机vulkaninfo/loader/驱动诊断
 - [Windows 7 x64 系统 API 兼容层 + 导入门禁 ✅](project_pvz_win7_yy_thunks.md) — 仓库 overlay port 固定 YY-Thunks 1.2.2；LLD 用替代 import libs、MSVC 用官方 Win7 obj；PE subsystem 6.01，所有 EXE 链接后逐项核对 Win7 x64 导出表；另有同优化/LTO的`clang-release-noavx2`排除Win7 `0xC000001D`
 - [编译警告清零 ✅](project_pvz_warnings_cleanup.md) — 2026-06-13 clang-release 0warn；2026-08-12 将35处 `GameAPP.h` 引用统一为索引/磁盘的 `GameApp.h`，clang-release 复核无编译器警告；验证须用clang(msvc默认不报)
-- [CMake构建配置 ✅统一](project_pvz_cmake_migration.md) — 2026-08-23 四个 preset 全部统一为 `clang-cl + lld-link`；普通任务用 `clang-debug`（`/Od /RTC1 -MTd -Zi`）做增量编译/F5/最小诊断 AutoTest，完成后整体 `clang-release` 并用其回归交付；旧 `msvc-debug` preset 已删除；Win7 无 AVX2与无 LTO 优化诊断仍分别用 `clang-release-noavx2`/`clang-playtest`，非默认 preset 以 NTFS Junction 共享单份 resources/font
+- [CMake构建配置 ✅统一](project_pvz_cmake_migration.md) — 2026-08-24 四个 preset 统一为 `clang-cl + lld-link`；普通任务用 `clang-debug` 增量诊断后以 `clang-release` 回归交付；Release 用最小 CodeView 行表 + GHASH 生成仅供函数栈/源码行符号化的精简外置 PDB，EXE 不嵌入符号或本机构建路径；完整调试信息仍由无 LTO 的 `clang-playtest` 提供，非默认 preset 以 NTFS Junction 共享单份 resources/font
 - [Build permission](feedback_build_permission_msbuild.md) — 主人解除构建限制:可直接命令行编译,不必F7不必核对时间戳(现用cmake preset)
 - [AutoTest套件 ✅](project_pvz_autotest_suite.md) — 2026-06-13完成;用法权威在CLAUDE.md AutoTest节(-AutoTest脚本+截图+dump_state闭环,-Seed确定性)
 - [PvZ轻量备份节点](project_pvz_backup_node.md) — 2026-08-13 Git SSH副本与GitHub独立镜像引用；AutoTest证据带提交/状态/逐文件SHA-256离机归档90天；每日健康报告、每周Git fsck；不替代Windows clang-release与可见AutoTest

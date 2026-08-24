@@ -109,6 +109,8 @@ public:
 	int GetCrazyDaveDialogMessageCount() const;
 	std::string GetCrazyDaveDialogText() const;
 	std::string GetCrazyDaveDialogTrackName() const;
+	std::string GetCrazyDaveDialogVoiceSoundKey() const;
+	std::string GetCrazyDaveDialogVoiceGroupName() const;
 	int GetCrazyDaveDialogRenderedQuadCount() const;
 	bool HasCrazyDaveDialogRenderedGeometry() const;
 	bool DidCrazyDaveDialogUseInstancePath() const;

@@ -6,6 +6,7 @@
 
 namespace
 {
+	constexpr int kMixerChannelCount = 128; // 一次性音效与循环环境声共用的 SDL_mixer 声道总数
 	std::unordered_map<std::string, int> gSoundPlayRequestCounts;
 
 	/** 判断声道当前播放的资源是否仍是预期循环，避免仅凭声道编号操作已复用的音效。 */
@@ -55,7 +56,7 @@ bool AudioSystem::Initialize()
 		return false;
 	}
 
-	Mix_AllocateChannels(128);
+	Mix_AllocateChannels(kMixerChannelCount);
 	return true;
 }
 
@@ -185,6 +186,20 @@ void AudioSystem::PlaySound(const std::string& soundKey, float volume, int loops
 
 		const int playedChannel = Mix_PlayChannel(channel, sound, loops);
 		ResetChannelVolume(playedChannel);
+	}
+}
+
+void AudioSystem::StopSound(const std::string& soundKey)
+{
+	if (!IsAudioAvailable()) return;
+	Mix_Chunk* sound = ResourceManager::GetInstance().GetSound(soundKey);
+	if (!sound) return;
+
+	// 普通一次性音效不独占固定声道；按实际 Chunk 匹配，不能误停随后复用同编号的其他声音。
+	for (int channel = 0; channel < kMixerChannelCount; ++channel) {
+		if (!ChannelOwnsChunk(channel, sound)) continue;
+		Mix_HaltChannel(channel);
+		ResetChannelVolume(channel);
 	}
 }
 

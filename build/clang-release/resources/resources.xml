@@ -353,6 +353,18 @@
     <Sound>./resources/sounds/readysetplant.ogg</Sound>
     <Sound>./resources/sounds/rain.ogg</Sound>
     <Sound>./resources/sounds/winmusic.ogg</Sound>
+    <Sound>./resources/sounds/CrazyDave/crazydaveshort1.ogg</Sound>
+    <Sound>./resources/sounds/CrazyDave/crazydaveshort2.ogg</Sound>
+    <Sound>./resources/sounds/CrazyDave/crazydaveshort3.ogg</Sound>
+    <Sound>./resources/sounds/CrazyDave/crazydavelong1.ogg</Sound>
+    <Sound>./resources/sounds/CrazyDave/crazydavelong2.ogg</Sound>
+    <Sound>./resources/sounds/CrazyDave/crazydavelong3.ogg</Sound>
+    <Sound>./resources/sounds/CrazyDave/crazydaveextralong1.ogg</Sound>
+    <Sound>./resources/sounds/CrazyDave/crazydaveextralong2.ogg</Sound>
+    <Sound>./resources/sounds/CrazyDave/crazydaveextralong3.ogg</Sound>
+    <Sound>./resources/sounds/CrazyDave/crazydavecrazy.ogg</Sound>
+    <Sound>./resources/sounds/CrazyDave/crazydavescream.ogg</Sound>
+    <Sound>./resources/sounds/CrazyDave/crazydavescream2.ogg</Sound>
     <Sound>./resources/sounds/Zombie/chomp.ogg</Sound>
     <Sound>./resources/sounds/Zombie/chomp2.ogg</Sound>
     <Sound>./resources/sounds/Zombie/chompsoft.ogg</Sound>

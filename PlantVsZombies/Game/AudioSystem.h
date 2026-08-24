@@ -54,6 +54,8 @@ public:
 	static void PlaySound(const std::string& soundKey, float volume, int loops = 0);
 	// 可以指定播放时的音量和声道
 	static void PlaySound(const std::string& soundKey, float volume, int loops, int channel);
+	/** 停止当前所有正在播放的指定一次性音效，不影响同声道后来复用的其他资源。 */
+	static void StopSound(const std::string& soundKey);
 	/** 返回本进程请求播放指定音效的次数，供 AutoTest 验证静音分支。 */
 	static int GetSoundPlayRequestCount(const std::string& soundKey);
 

@@ -18,7 +18,7 @@
 - 主人已长期授权本项目正常构建所需的 vcpkg 依赖安装、CMake 配置/生成和编译；若沙箱阻止写入工作区外的 vcpkg 目录，直接申请提升权限执行，无需再次询问是否允许构建。该授权不包含删除 vcpkg、清空缓存或其他破坏性操作。
 - CMake 已加入系统 `PATH`，直接使用 `cmake` 命令，不要再定位或硬编码 Visual Studio 自带的 `cmake.exe`。运行 CMake 前仍需先把 Visual Studio Installer 目录加入 `PATH`，用 `vswhere` 定位 VS，再导入 `VsDevCmd.bat -arch=x64 -no_logo`；准确的 PowerShell 步骤见项目指南。
 - 普通功能、逻辑、UI、资源和存档任务在修改过程中，编译、F5 与范围最小的诊断 AutoTest 默认使用 `clang-debug`，以缩短增量构建时间并保留 Debug CRT/Debug 语义；该预设使用 `clang-cl + lld-link`，不再保留 MSVC 编译器预设。功能完成后必须再整体配置、编译 `clang-release`，并用该产物完成最终相关回归；Debug 证据不能取代交付证据。`clang-playtest` 只用于明确需要 Clang 且无 LTO 的诊断。
-- 与性能、内存布局、并发调度、编译器优化、LTO 或 Release-only 行为相关的修改，从首次构建到最终验证全程使用 `clang-release`；它启用 Release 级优化与 LTO，并生成与优化机器码匹配的完整 PDB。不存在 MSVC Release 预设。
+- 与性能、内存布局、并发调度、编译器优化、LTO 或 Release-only 行为相关的修改，从首次构建到最终验证全程使用 `clang-release`；它启用 Release 级优化与 LTO，并以 CodeView 最小行表 + GHASH 生成只供函数栈/源码行符号化的精简外置 PDB，不保留变量和类型。EXE 只保留 PDB 定位记录，不嵌入调试符号或本机构建绝对路径。不存在 MSVC Release 预设。
 - `clang-release` 出现 Fatal Error / Access Violation 时先保留崩溃报告、资源警告和最小复现脚本，并用同次构建的 EXE/PDB 符号化；只有 LTO 内联/合并使断点或调用栈难以定位时才用 `clang-playtest` 复现同一路径，修复后必须回到 `clang-release` 完成最终构建与相关回归，不能把诊断预设当成交付证据。
 - 必须从 `build\<preset>\` 运行；可执行文件为 `build\<preset>\PlantsVsZombies.exe`。禁止使用根目录下陈旧的 `x64\Release` 产物。
 - Codex 启动任何需要主人看到的游戏或 AutoTest 窗口时，必须以 `build\<preset>\` 为工作目录，通过申请 `sandbox_permissions="require_escalated"` 的 shell 使用 `Start-Process -WindowStyle Normal -PassThru` 启动到主人当前桌面；普通沙箱 shell 即使指定 Normal 也不算可见运行。完整命令见项目指南。

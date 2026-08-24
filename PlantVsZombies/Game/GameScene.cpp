@@ -576,6 +576,16 @@ std::string GameScene::GetCrazyDaveDialogTrackName() const
 	return mCrazyDaveDialog ? mCrazyDaveDialog->GetCurrentTrackName() : std::string();
 }
 
+std::string GameScene::GetCrazyDaveDialogVoiceSoundKey() const
+{
+	return mCrazyDaveDialog ? mCrazyDaveDialog->GetCurrentVoiceSoundKey() : std::string();
+}
+
+std::string GameScene::GetCrazyDaveDialogVoiceGroupName() const
+{
+	return mCrazyDaveDialog ? mCrazyDaveDialog->GetCurrentVoiceGroupName() : std::string();
+}
+
 int GameScene::GetCrazyDaveDialogRenderedQuadCount() const
 {
 	return mCrazyDaveDialog ? mCrazyDaveDialog->GetRenderedQuadCount() : 0;
