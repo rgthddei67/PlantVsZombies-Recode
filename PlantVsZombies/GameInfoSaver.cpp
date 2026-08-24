@@ -855,7 +855,7 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 		? std::clamp(j.value("coldWaveThawDuration", 32.0f), 1.0f, 120.0f)
 		: 32.0f;
 	board->mWinterFrostVariant = board->mWinterTemperatureInitialized
-		? std::clamp(j.value("winterFrostVariant", 0), 0, 1) : 0;
+		? std::clamp(j.value("winterFrostVariant", 0), 0, 2) : 0;
 	if (auto* presentation = board->GetPresentation()) {
 		// 缺字段的旧档按 0 秒恢复，避免读入雨中存档时把已消失的展板重新显示 5 秒。
 		const int failedForecastRainValue = j.value("failedForecastRainIntensity",

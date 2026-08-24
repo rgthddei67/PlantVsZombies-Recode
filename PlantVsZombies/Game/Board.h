@@ -243,7 +243,7 @@ private:
 	float mColdWaveCoolingDuration = 20.0f; // 已锁定降温总时长，单位游戏秒
 	float mColdWaveHoldDuration = 57.5f; // 已锁定低温维持总时长，单位游戏秒
 	float mColdWaveThawDuration = 32.0f; // 已锁定回暖总时长，单位游戏秒
-	int mWinterFrostVariant = 0;       // 本轮寒潮稳定使用的冻融线轮廓变体（0～1）
+	int mWinterFrostVariant = 0;       // 本轮寒潮稳定使用的冻融线轮廓变体（0～2）
 	float mRoofRunoffCharge = 0.0f;     // 昼夜屋顶坡面径流积累值（0～100）
 	float mRoofRunoffRetainedCharge = 0.0f; // 本次冲刷结束后兑现的预抽残留湿度（30～60）
 	RoofRunoffPhase mRoofRunoffPhase = RoofRunoffPhase::IDLE; // 当前径流所处的待机、预警或冲刷阶段
@@ -975,7 +975,7 @@ public:
 	float GetIceTrailRightX() const;
 	/** 在背景和游戏对象之间绘制全部活动冰道；重叠区黄色冰道覆盖普通冰道。 */
 	void DrawIceTrails(Graphics* g) const;
-	/** 在冬日花园草坪实体下方绘制当前冻土覆盖与冻融边界。 */
+	/** 在冬日花园草坪实体下方绘制当前冻土覆盖，以及本轮锁定的不规则冻融边界。 */
 	void DrawWinterFrost(Graphics* g) const;
 
 	/** UI 与测试共用的正式种植判定，不含阳光与卡片冷却。 */

@@ -3405,6 +3405,10 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		ResourceKeys::Textures::IMAGE_BACKGROUND_WINTERGARDEN, false) != nullptr;
 	out["winterFrostOverlayLoaded"] = ResourceManager::GetInstance().GetTexture(
 		ResourceKeys::Textures::IMAGE_WINTER_FROST_OVERLAY_V2, false) != nullptr;
+	out["winterFrostFrontierVariant1Loaded"] = ResourceManager::GetInstance().GetTexture(
+		ResourceKeys::Textures::IMAGE_WINTER_FROST_FRONTIER_VARIANT_1, false) != nullptr;
+	out["winterFrostFrontierVariant2Loaded"] = ResourceManager::GetInstance().GetTexture(
+		ResourceKeys::Textures::IMAGE_WINTER_FROST_FRONTIER_VARIANT_2, false) != nullptr;
 	out["winterThermometerLoaded"] = ResourceManager::GetInstance().GetTexture(
 		ResourceKeys::Textures::IMAGE_WINTER_THERMOMETER_FRAME_V1, false) != nullptr;
 	out["isBossLevel"] = AdventureProgression::IsBossLevel(board->mLevel);

@@ -141,7 +141,8 @@ namespace {
 	constexpr float kStrongColdWaveHoldMax = 75.0f;      // 强寒潮最长低温维持时长（游戏秒）
 	constexpr float kStrongColdWaveThawMin = 34.0f;      // 强寒潮最短回暖时长（游戏秒）
 	constexpr float kStrongColdWaveThawMax = 44.0f;      // 强寒潮最长回暖时长（游戏秒）
-	constexpr int kWinterFrostVariantCount = 2;          // 原图与纵向镜像组成的稳定冻融线轮廓数量
+	constexpr int kWinterFrostVariantCount = 3;          // 基础冻融线与两张霜枝贴图组成的稳定轮廓数量
+	constexpr float kWinterFrostFrontierAlphaScale = 1.0f; // 附加霜枝相对基础冻土透明度的亮度倍率
 	constexpr int kWinterSafeColumnCount = 3;            // 温室侧永不冻结的安全列数
 	constexpr int kStormyNightLevel = 36;                 // 暴风雨夜专属冒险关：内部 level 36 即 4-9
 	constexpr int kStormyNightForecastWave = 22;          // 第 22 波开始固定发布“暴风雨”预报
@@ -5224,7 +5225,7 @@ void Board::CreateBoom(const Vector& position, int plantRow, int damage)
 	RemoveLaddersInBlastSquare(position, plantRow, 1);
 }
 
-/** 绘制从僵尸侧向温室推进的连续霜雪纹理；逻辑按列，视觉不暴露格线。 */
+/** 绘制从僵尸侧向温室推进的连续霜雪纹理，并按本轮锁定变体叠加不规则霜枝。 */
 void Board::DrawWinterFrost(Graphics* g) const
 {
 	if (!g || !SupportsWinterTemperature()) return;
@@ -5248,14 +5249,25 @@ void Board::DrawWinterFrost(Graphics* g) const
 		: 75.0f + 170.0f * std::clamp(
 			(visualColumns - 1.0f) / (maximumFrozen - 1.0f), 0.0f, 1.0f);
 	const glm::vec4 tint(255.0f, 255.0f, 255.0f, alpha);
-	// 每轮只锁一次纵向方向；镜像会重排参差前缘，但不会在更新或绘制时闪跳。
-	if (mWinterFrostVariant == 0) {
-		g->DrawTexture(frost, left, mCellInitialY, width, height, 0.0f, tint);
-	} else {
-		g->DrawTextureRegion(frost, 0.0f, static_cast<float>(frost->height),
-			static_cast<float>(frost->width), -static_cast<float>(frost->height),
-			left, mCellInitialY, width, height, 0.0f, tint);
+	const BlendMode previousBlend = g->GetBlendMode();
+	g->SetBlendMode(BlendMode::Alpha);
+	g->DrawTexture(frost, left, mCellInitialY, width, height, 0.0f, tint);
+
+	// 变体贴图使用纯黑底加色混合：黑色不覆盖草坪，只把左侧冻融前缘的霜枝提亮。
+	if (mWinterFrostVariant > 0) {
+		const std::string& frontierKey = mWinterFrostVariant == 1
+			? ResourceKeys::Textures::IMAGE_WINTER_FROST_FRONTIER_VARIANT_1
+			: ResourceKeys::Textures::IMAGE_WINTER_FROST_FRONTIER_VARIANT_2;
+		const Texture* frontier = ResourceManager::GetInstance().GetTexture(
+			frontierKey, false);
+		if (frontier) {
+			g->SetBlendMode(BlendMode::Add);
+			g->DrawTexture(frontier, left, mCellInitialY, width, height, 0.0f,
+				glm::vec4(255.0f, 255.0f, 255.0f,
+					alpha * kWinterFrostFrontierAlphaScale));
+		}
 	}
+	g->SetBlendMode(previousBlend);
 }
 
 bool Board::TryGetNightRoofChargeGuideAnchor(Vector& anchor) const
