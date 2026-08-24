@@ -188,6 +188,12 @@ public:
 	virtual bool BlocksProjectileShieldBypass() const { return false; }
 	/** 按当前装备状态修正指定弹种的基础直击伤害；投掷物与火球默认不变。 */
 	virtual int ModifyProjectileDamage(int damage, BulletType) const { return damage; }
+	/**
+	 * 尝试把盐晶腐蚀结算到当前可腐蚀冰制层；普通目标返回 false。
+	 * 品种实现必须在冰层耗尽处截断，剩余腐蚀不得灌入僵尸本体。
+	 */
+	virtual bool ApplyWinterCorrosion(int) { return false; }
+	// TODO(winter-area): 冰墙工程师、冰制护甲等正式实现时覆写该入口并导出剩余冰层耐久。
 	/** 调整大喷菇对本体的基础伤害；返回值随后统一进入词条与防具结算。 */
 	virtual int ModifyFumeDamage(int damage) const { return damage; }
 	/** 调整仙人掌尖刺每个 1x 碰撞帧的基础伤害；背击绕盾信息在倍速累计前一并传入。 */

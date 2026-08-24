@@ -1,0 +1,39 @@
+<Emitter>
+  <Name>SaltCrystalHit</Name>
+  <SpawnMinActive>[2 3]</SpawnMinActive>
+  <SpawnMaxLaunched>3</SpawnMaxLaunched>
+  <ParticleDuration>0.7</ParticleDuration>
+  <ParticleAlpha>1 0</ParticleAlpha>
+  <ParticleScale>[0.9 1.35] 0.35</ParticleScale>
+  <ParticleGravity>12</ParticleGravity>
+  <LaunchSpeed>[18 35]</LaunchSpeed>
+  <SystemDuration>0.75</SystemDuration>
+  <Image>PARTICLE_SALT_CRYSTAL_SPLATS_PART_0,PARTICLE_SALT_CRYSTAL_SPLATS_PART_1,PARTICLE_SALT_CRYSTAL_SPLATS_PART_2,PARTICLE_SALT_CRYSTAL_SPLATS_PART_3</Image>
+  <Field>
+    <FieldType>Position</FieldType>
+    <Y>8</Y>
+  </Field>
+</Emitter>
+<Emitter>
+  <Name>SaltCrystalHitBits</Name>
+  <SpawnMinActive>[8 12]</SpawnMinActive>
+  <ParticleAlpha>1,80 0</ParticleAlpha>
+  <ParticleScale>[0.65 1.0]</ParticleScale>
+  <EmitterType>Circle</EmitterType>
+  <EmitterRadius>[0 9]</EmitterRadius>
+  <LaunchSpeed>[75]</LaunchSpeed>
+  <ParticleDuration>0.55</ParticleDuration>
+  <SystemDuration>0.65</SystemDuration>
+  <Image>PARTICLE_SALT_CRYSTAL_PARTICLES_PART_0,PARTICLE_SALT_CRYSTAL_PARTICLES_PART_1,PARTICLE_SALT_CRYSTAL_PARTICLES_PART_2</Image>
+  <Field>
+    <FieldType>Friction</FieldType>
+    <X>0.0,10 0.1</X>
+    <Y>0.0,10 0.1</Y>
+  </Field>
+  <Field>
+    <FieldType>Acceleration</FieldType>
+    <Y>6</Y>
+  </Field>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <ParticleSpinSpeed>[-180 180]</ParticleSpinSpeed>
+</Emitter>

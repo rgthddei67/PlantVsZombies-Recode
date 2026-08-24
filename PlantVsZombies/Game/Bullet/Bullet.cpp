@@ -24,6 +24,7 @@ namespace {
 	constexpr int kWinterMelonDamage = 100;            // 主人确认：冰瓜较当前西瓜少 20 点直击伤害
 	constexpr int kButterDamage = 40;                 // 经典黄油直击伤害；玉米粒沿用普通 20 点
 	constexpr int kBasketballDamage = 75;             // 原版投篮车篮球单发伤害
+	constexpr int kSaltCrystalCorrosion = 200;        // 盐晶弹对目标当前冰制层的独立腐蚀值；不得溢出本体
 	constexpr int kCobCannonDamage = 1800;            // 原版 CobBig 爆炸伤害
 	constexpr int kSpikeFrameDamage = 2;              // 仙人掌尖刺在 1x 下每个逻辑碰撞帧的基础伤害
 	constexpr std::size_t kSpikePierceLimit = 4;       // 尖刺接触第四只不同僵尸后消失
@@ -102,6 +103,8 @@ namespace {
 		{ BulletType::BULLET_ZOMBIE_PEA, BulletWindResponse::LIGHT_PROJECTILE },
 		{ BulletType::BULLET_TOXICPEA,   BulletWindResponse::LIGHT_PROJECTILE },
 		{ BulletType::BULLET_TOXICFIREBALL, BulletWindResponse::LIGHT_PROJECTILE },
+		{ BulletType::BULLET_MELT_SNOW,  BulletWindResponse::NONE },
+		{ BulletType::BULLET_SALT_CRYSTAL, BulletWindResponse::NONE },
 	};
 
 	constexpr bool BulletWindProfilesCoverEveryType()
@@ -156,6 +159,8 @@ namespace {
 			|| IsMelonBullet(type)
 			|| type == BulletType::BULLET_KERNEL
 			|| type == BulletType::BULLET_BUTTER
+			|| type == BulletType::BULLET_MELT_SNOW
+			|| type == BulletType::BULLET_SALT_CRYSTAL
 			|| type == BulletType::BULLET_BASKETBALL;
 	}
 
@@ -631,6 +636,10 @@ void Bullet::BulletHitZombie(Zombie* zombie)
 	else {
 		PlayStandardImpactSound(zombie, bypassShield);
 	}
+	// 腐蚀先由目标当前冰层消费；即使冰层不足也绝不把余量换算为本体伤害。
+	if (mBulletType == BulletType::BULLET_SALT_CRYSTAL) {
+		zombie->ApplyWinterCorrosion(GetWinterCorrosionDamage());
+	}
 	// 风力先修正本发子弹的基础伤害，生存词条仍在 Zombie::TakeDamage 中统一且只缩放一次。
 	zombie->TakeProjectileDamage(
 		zombie->ModifyProjectileDamage(GetWindAdjustedDamage(), mBulletType),
@@ -680,6 +689,16 @@ void Bullet::BulletHitZombie(Zombie* zombie)
 	else if (mBulletType == BulletType::BULLET_CABBAGE) {
 		if (g_particleSystem) {
 			g_particleSystem->EmitEffect("CabbageSplat", GetPosition());
+		}
+	}
+	else if (mBulletType == BulletType::BULLET_MELT_SNOW) {
+		if (g_particleSystem) {
+			g_particleSystem->EmitEffect("MeltSnowPultHit", GetPosition());
+		}
+	}
+	else if (mBulletType == BulletType::BULLET_SALT_CRYSTAL) {
+		if (g_particleSystem) {
+			g_particleSystem->EmitEffect("SaltCrystalHit", GetPosition());
 		}
 	}
 	else if (mBulletType == BulletType::BULLET_BUTTER) {
@@ -801,6 +820,22 @@ void Bullet::ConfigurePresentation()
 	case BulletType::BULLET_CABBAGE:
 		mTexture = resources.GetTexture(
 			ResourceKeys::Textures::IMAGE_REANIM_CABBAGEPULT_CABBAGE);
+		mScale = 1.0f;
+		mRotationDegrees = kCabbageInitialRotation;
+		mRotationSpeedDegrees = GameRandom::Range(
+			kCabbageSpinSpeedMin, kCabbageSpinSpeedMax);
+		break;
+	case BulletType::BULLET_MELT_SNOW:
+		mTexture = resources.GetTexture(
+			ResourceKeys::Textures::IMAGE_REANIM_MELTSNOWPULT_SNOWCLOD);
+		mScale = 1.0f;
+		mRotationDegrees = kCabbageInitialRotation;
+		mRotationSpeedDegrees = GameRandom::Range(
+			kCabbageSpinSpeedMin, kCabbageSpinSpeedMax);
+		break;
+	case BulletType::BULLET_SALT_CRYSTAL:
+		mTexture = resources.GetTexture(
+			ResourceKeys::Textures::IMAGE_MELTSNOWPULT_SALTCRYSTAL);
 		mScale = 1.0f;
 		mRotationDegrees = kCabbageInitialRotation;
 		mRotationSpeedDegrees = GameRandom::Range(
@@ -1055,6 +1090,16 @@ void Bullet::HitLobbedGround()
 	else if (mBulletType == BulletType::BULLET_BASKETBALL) {
 		AudioSystem::PlaySound(
 			ResourceKeys::Sounds::SOUND_PEABULLET_HIT_BODY1, 0.2f);
+	}
+	else if (mBulletType == BulletType::BULLET_MELT_SNOW) {
+		if (g_particleSystem) {
+			g_particleSystem->EmitEffect("MeltSnowPultHit", GetPosition());
+		}
+	}
+	else if (mBulletType == BulletType::BULLET_SALT_CRYSTAL) {
+		if (g_particleSystem) {
+			g_particleSystem->EmitEffect("SaltCrystalHit", GetPosition());
+		}
 	}
 	else if (g_particleSystem) {
 		g_particleSystem->EmitEffect("CabbageSplat", GetPosition());
@@ -1418,4 +1463,11 @@ int Bullet::GetWindAdjustedDamage() const
 	if (!IsTyphoonWindAffected() || !mBoard || mDamage <= 0 || mVelocityX == 0.0f) return mDamage;
 	const float multiplier = mBoard->GetPlantBulletWindDamageMultiplier(mVelocityX > 0.0f);
 	return std::max(1, static_cast<int>(std::lround(static_cast<float>(mDamage) * multiplier)));
+}
+
+/** 盐晶腐蚀与直击伤害分离，供目标冰层和 AutoTest 共用同一个类型契约。 */
+int Bullet::GetWinterCorrosionDamage() const
+{
+	return mBulletType == BulletType::BULLET_SALT_CRYSTAL
+		? kSaltCrystalCorrosion : 0;
 }

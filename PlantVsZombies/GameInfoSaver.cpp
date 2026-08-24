@@ -348,6 +348,7 @@ bool GameInfoSaver::SerializeLevelDataToPath(Board* board, CardSlotManager* mana
 	j["coldWaveCoolingDuration"] = board->mColdWaveCoolingDuration;
 	j["coldWaveHoldDuration"] = board->mColdWaveHoldDuration;
 	j["coldWaveThawDuration"] = board->mColdWaveThawDuration;
+	j["coldWaveForecastDisrupted"] = board->mColdWaveForecastDisrupted;
 	j["winterFrostVariant"] = board->mWinterFrostVariant;
 	j["stormyNightInitialized"] = board->mStormyNightInitialized;
 	j["stormyNightFlashPattern"] = board->mStormyNightFlashPattern;
@@ -874,6 +875,9 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 	board->mColdWaveThawDuration = board->mWinterTemperatureInitialized
 		? std::clamp(j.value("coldWaveThawDuration", 32.0f), 1.0f, 120.0f)
 		: 32.0f;
+	board->mColdWaveForecastDisrupted = board->mWinterTemperatureInitialized
+		&& board->mColdWavePhase == ColdWavePhase::CALM
+		&& j.value("coldWaveForecastDisrupted", false);
 	board->mWinterFrostVariant = board->mWinterTemperatureInitialized
 		? std::clamp(j.value("winterFrostVariant", 0), 0, 2) : 0;
 	if (auto* presentation = board->GetPresentation()) {

@@ -65,6 +65,7 @@ enum class PlantType
 	PLANT_GROUNDINGSHROOM,	// 接地菇；5-9 奖励，追加在末尾以保持旧存档植物整数 ID
 	PLANT_LIGHTNINGRODPOT,	// 避雷花盆；6-4 奖励，花盆承载层紫卡升级
 	PLANT_SNOWANCHORNUT,	// 雪锚果；7-1 奖励，在真实冻土中提供一次冬季冲击整形
+	PLANT_MELTSNOWPULT,	// 融雪投手；7-2 奖励，准确寒潮预报装填三发盐晶弹
 	NUM_PLANT_TYPES,
 };
 

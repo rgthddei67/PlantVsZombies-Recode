@@ -26,6 +26,8 @@ namespace {
 		case BulletType::BULLET_BUTTER:
 		case BulletType::BULLET_TOXICPEA:
 		case BulletType::BULLET_TOXICFIREBALL:
+		case BulletType::BULLET_MELT_SNOW:
+		case BulletType::BULLET_SALT_CRYSTAL:
 			return true;
 		case BulletType::BULLET_ZOMBIE_PEA:
 		case BulletType::NUM_BULLETS:

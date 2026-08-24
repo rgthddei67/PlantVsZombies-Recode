@@ -96,7 +96,7 @@ namespace AdventureProgression
 
 		// 7-1 ... 7-9（冬日花园；首株寒潮植物在 7-1 通关后解锁）
 		PlantType::PLANT_SNOWANCHORNUT,
-		NO_PLANT_REWARD,
+		PlantType::PLANT_MELTSNOWPULT,
 		NO_PLANT_REWARD,
 		NO_PLANT_REWARD,
 		NO_PLANT_REWARD,
@@ -188,6 +188,7 @@ namespace AdventureProgression
 	static_assert(IsAdventureLevel(55) && IsAdventureLevel(63));
 	static_assert(GetAreaNumber(55) == 7 && GetLevelNumberInArea(55) == 1);
 	static_assert(GetPlantReward(55) == PlantType::PLANT_SNOWANCHORNUT);
+	static_assert(GetPlantReward(56) == PlantType::PLANT_MELTSNOWPULT);
 	static_assert(GetAreaNumber(63) == 7 && GetLevelNumberInArea(63) == 9);
 	static_assert(GetPlantReward(63) == NO_PLANT_REWARD);
 }

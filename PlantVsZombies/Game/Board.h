@@ -243,6 +243,7 @@ private:
 	float mColdWaveCoolingDuration = 20.0f; // 已锁定降温总时长，单位游戏秒
 	float mColdWaveHoldDuration = 57.5f; // 已锁定低温维持总时长，单位游戏秒
 	float mColdWaveThawDuration = 32.0f; // 已锁定回暖总时长，单位游戏秒
+	bool mColdWaveForecastDisrupted = false; // 本轮准确预报是否已被干扰；下一轮重新开放
 	int mWinterFrostVariant = 0;       // 本轮寒潮稳定使用的冻融线轮廓变体（0～2）
 	float mRoofRunoffCharge = 0.0f;     // 昼夜屋顶坡面径流积累值（0～100）
 	float mRoofRunoffRetainedCharge = 0.0f; // 本次冲刷结束后兑现的预抽残留湿度（30～60）
@@ -636,6 +637,9 @@ public:
 	float GetWinterFreezingTemperatureC() const;
 	/** 寒潮进入降温前的固定准确预报；它不参与雨势预报的误报与失败判定。 */
 	bool HasColdWaveForecast() const;
+	bool IsColdWaveForecastDisrupted() const { return mColdWaveForecastDisrupted; }
+	/** 使当前已公开寒潮预报失效，并通知依赖预报的植物清除准备状态。 */
+	bool DisruptColdWaveForecast();
 	bool IsColdWaveActive() const;
 	int GetFrozenColumnCount() const;
 	/** 返回从僵尸侧连续推进的视觉霜冻列数；玩法冻结资格仍使用整数列。 */

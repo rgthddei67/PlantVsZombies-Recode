@@ -50,6 +50,7 @@
 #include "../Plant/MagnetShroom.h"
 #include "../Plant/FlowerPot.h"
 #include "../Plant/CabbagePult.h"
+#include "../Plant/MeltSnowPult.h"
 #include "../Plant/KernelPult.h"
 #include "../Plant/MelonPult.h"
 #include "../Plant/GloomShroom.h"
@@ -351,6 +352,7 @@ namespace {
 		PT(PLANT_LEFTPEATER), PT(PLANT_ELITE_SCAREDYSHROOM), PT(PLANT_TOXICPEASHOOTER),
 		PT(PLANT_GROUNDINGSHROOM), PT(PLANT_LIGHTNINGRODPOT),
 		PT(PLANT_SNOWANCHORNUT),
+		PT(PLANT_MELTSNOWPULT),
 	};
 #undef PT
 #define BT(n) { #n, BulletType::n }
@@ -358,6 +360,7 @@ namespace {
 		BT(BULLET_PEA), BT(BULLET_SNOWPEA), BT(BULLET_CABBAGE), BT(BULLET_MELON), BT(BULLET_PUFF), BT(BULLET_WINTERMELON), BT(BULLET_FIREBALL),
 		BT(BULLET_SPIKE), BT(BULLET_STAR), BT(BULLET_BASKETBALL), BT(BULLET_KERNEL), BT(BULLET_BUTTER),
 		BT(BULLET_TOXICPEA), BT(BULLET_TOXICFIREBALL),
+		BT(BULLET_MELT_SNOW), BT(BULLET_SALT_CRYSTAL),
 	};
 #undef BT
 #define ZT(n) { #n, ZombieType::n }
@@ -951,6 +954,19 @@ bool TestDriver::ExecuteCurrent() {
 				cmd.value("thawDuration", 32.0f),
 				cmd.value("frostVariant", 0))) {
 			Fail("set_cold_wave: 仅冬日花园可用，phase/strength 或寒潮计划参数无效");
+			return false;
+		}
+		return true;
+	}
+	if (op == "disrupt_cold_wave_forecast") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) {
+			Fail("disrupt_cold_wave_forecast: 不在 GameScene 或 Board 为空");
+			return false;
+		}
+		const bool disrupted = gs->GetBoard()->DisruptColdWaveForecast();
+		if (disrupted != cmd.value("expected", true)) {
+			Fail("disrupt_cold_wave_forecast: 正式干扰结果与 expected 不符");
 			return false;
 		}
 		return true;
@@ -1668,6 +1684,51 @@ bool TestDriver::ExecuteCurrent() {
 			return true;
 		}
 		Fail("set_melonpult_shoot_cycle: 未找到目标西瓜投手");
+		return false;
+	}
+	if (op == "set_melt_snow_pult_shoot_cycle") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) {
+			Fail("set_melt_snow_pult_shoot_cycle: 不在 GameScene 或 Board 为空");
+			return false;
+		}
+		Board* board = gs->GetBoard();
+		const int row = cmd.value("row", -1);
+		const int col = cmd.value("col", -1);
+		int forcedShot = -1;
+		if (cmd.contains("salt")) forcedShot = cmd.value("salt", false) ? 1 : 0;
+		for (int id : board->mEntityRegistry.GetAllPlantIDs()) {
+			auto* meltSnowPult = dynamic_cast<MeltSnowPult*>(
+				board->mEntityRegistry.GetPlant(id));
+			if (!meltSnowPult || (row >= 0 && meltSnowPult->mRow != row)
+				|| (col >= 0 && meltSnowPult->mColumn != col)) continue;
+			meltSnowPult->SetShootCycleForTesting(
+				cmd.value("elapsed", 2.99f), cmd.value("interval", 3.0f), forcedShot);
+			return true;
+		}
+		Fail("set_melt_snow_pult_shoot_cycle: 未找到目标融雪投手");
+		return false;
+	}
+	if (op == "set_melt_snow_pult_salt_state") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) {
+			Fail("set_melt_snow_pult_salt_state: 不在 GameScene 或 Board 为空");
+			return false;
+		}
+		Board* board = gs->GetBoard();
+		const int row = cmd.value("row", -1);
+		const int col = cmd.value("col", -1);
+		for (int id : board->mEntityRegistry.GetAllPlantIDs()) {
+			auto* meltSnowPult = dynamic_cast<MeltSnowPult*>(
+				board->mEntityRegistry.GetPlant(id));
+			if (!meltSnowPult || (row >= 0 && meltSnowPult->mRow != row)
+				|| (col >= 0 && meltSnowPult->mColumn != col)) continue;
+			meltSnowPult->SetSaltStateForTesting(
+				cmd.value("ammo", 0), cmd.value("pending", false),
+				cmd.value("observedForecast", false));
+			return true;
+		}
+		Fail("set_melt_snow_pult_salt_state: 未找到目标融雪投手");
 		return false;
 	}
 	if (op == "set_gloomshroom_shoot_cycle") {
@@ -3565,6 +3626,24 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			&& ResourceManager::GetInstance().GetTexture(
 				ResourceKeys::Textures::IMAGE_SNOWANCHORNUT_BRACED_CRACKED2, false) != nullptr },
 	};
+	out["meltSnowPultResources"] = {
+		{ "reanimationLoaded", ResourceManager::GetInstance().HasReanimation(
+			ResourceKeys::Reanimations::REANIM_MELTSNOWPULT) },
+		{ "cardTextureLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_MELTSNOWPULT, false) != nullptr },
+		{ "snowClodTextureLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_REANIM_MELTSNOWPULT_SNOWCLOD, false) != nullptr },
+		{ "saltCrystalTextureLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_MELTSNOWPULT_SALTCRYSTAL, false) != nullptr },
+		{ "hitParticleTexturesLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Particles::PARTICLE_MELT_SNOW_SPLATS_PART_0, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Particles::PARTICLE_MELT_SNOW_PARTICLES_PART_0, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Particles::PARTICLE_SALT_CRYSTAL_SPLATS_PART_0, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Particles::PARTICLE_SALT_CRYSTAL_PARTICLES_PART_0, false) != nullptr },
+	};
 	out["isBossLevel"] = AdventureProgression::IsBossLevel(board->mLevel);
 	out["bossSlot"] = BossSlotName(AdventureProgression::GetBossSlot(board->mLevel));
 	out["poolEffectCounter"] = gs->GetPoolEffectCounter();
@@ -4303,6 +4382,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "supported", board->SupportsWinterTemperature() },
 			{ "initialized", board->IsWinterTemperatureInitialized() },
 			{ "coldWaveForecastActive", board->HasColdWaveForecast() },
+			{ "coldWaveForecastDisrupted", board->IsColdWaveForecastDisrupted() },
 			{ "coldWaveActive", board->IsColdWaveActive() },
 			{ "coldWaveDisplayText", gs->GetColdWavePanelText() },
 			{ "thermometerVisible", board->mBoardState == BoardState::GAME
@@ -5616,6 +5696,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["overlayPlantsByCell"] = nlohmann::json::object();
 	out["flowerPotsByCell"] = nlohmann::json::object();
 	out["scaredyShroomsByCell"] = nlohmann::json::object();
+	out["meltSnowPultsByCell"] = nlohmann::json::object();
 	int repeatingShootingHeadCount = 0;
 	for (int id : board->mEntityRegistry.GetAllPlantIDs()) {
 		Plant* p = board->mEntityRegistry.GetPlant(id);
@@ -5876,6 +5957,19 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			plantState["melonShootIntervalMs"] = static_cast<int>(std::lround(
 				melonPult->GetShootInterval() * 1000.0f));
 		}
+		if (auto* meltSnowPult = dynamic_cast<MeltSnowPult*>(p)) {
+			plantState["meltSnowShootTimerMs"] = static_cast<int>(std::lround(
+				meltSnowPult->GetShootTimer() * 1000.0f));
+			plantState["meltSnowShootIntervalMs"] = static_cast<int>(std::lround(
+				meltSnowPult->GetShootInterval() * 1000.0f));
+			plantState["saltAmmo"] = meltSnowPult->GetSaltAmmo();
+			plantState["saltShotPending"] = meltSnowPult->IsSaltShotPending();
+			plantState["observedColdWaveForecast"] =
+				meltSnowPult->HasObservedColdWaveForecast();
+			const std::string cellKey =
+				std::to_string(p->mRow) + "_" + std::to_string(p->mColumn);
+			out["meltSnowPultsByCell"][cellKey] = plantState;
+		}
 		if (auto* imitater = dynamic_cast<Imitater*>(p)) {
 			plantState["imitaterTarget"] = PlantTypeName(
 				imitater->GetImitaterTarget());
@@ -5991,6 +6085,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["particleEffectNameCounts"]["PeaBulletHit"] = 0;
 	out["particleEffectNameCounts"]["ToxicPeaBulletHit"] = 0;
 	out["particleEffectNameCounts"]["CabbageSplat"] = 0;
+	out["particleEffectNameCounts"]["MeltSnowPultHit"] = 0;
+	out["particleEffectNameCounts"]["SaltCrystalHit"] = 0;
 	out["particleEffectNameCounts"]["MelonSplash"] = 0;
 	out["particleEffectNameCounts"]["WinterMelonSplash"] = 0;
 	out["particleEffectNameCounts"]["ButterSplat"] = 0;
@@ -6369,6 +6465,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	int starDownRightBulletCount = 0;
 	int starSpinningBulletCount = 0;
 	int cabbageBulletCount = 0;
+	int meltSnowBulletCount = 0;
+	int saltCrystalBulletCount = 0;
 	int melonBulletCount = 0;
 	int winterMelonBulletCount = 0;
 	int kernelBulletCount = 0;
@@ -6421,6 +6519,12 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		else if (bullet->mBulletType == BulletType::BULLET_CABBAGE) {
 			++cabbageBulletCount;
 		}
+		else if (bullet->mBulletType == BulletType::BULLET_MELT_SNOW) {
+			++meltSnowBulletCount;
+		}
+		else if (bullet->mBulletType == BulletType::BULLET_SALT_CRYSTAL) {
+			++saltCrystalBulletCount;
+		}
 		else if (bullet->mBulletType == BulletType::BULLET_MELON) {
 			++melonBulletCount;
 		}
@@ -6452,6 +6556,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		out["bullets"].push_back({
 			{ "id", id },
 			{ "type", static_cast<int>(bullet->mBulletType) },
+			{ "typeName", BulletTypeName(bullet->mBulletType) },
 			{ "row", bullet->mRow },
 			{ "renderOrder", bullet->GetRenderOrder() },
 			{ "renderLayer", static_cast<int>(bullet->GetLayer()) },
@@ -6472,6 +6577,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "windVelocityX", static_cast<int>(std::lround(bullet->GetWindAdjustedVelocityX())) },
 			{ "baseDamage", bullet->GetBulletDamage() },
 			{ "windDamage", bullet->GetWindAdjustedDamage() },
+			{ "winterCorrosionDamage", bullet->GetWinterCorrosionDamage() },
 			{ "threepeaterMotion", bullet->IsThreepeaterMotion() },
 			{ "targetsFlying", bullet->TargetsFlying() },
 			{ "hitTorchwoodColumn", bullet->GetHitTorchwoodColumn() },
@@ -6526,6 +6632,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["starDownRightBulletCount"] = starDownRightBulletCount;
 	out["starSpinningBulletCount"] = starSpinningBulletCount;
 	out["cabbageBulletCount"] = cabbageBulletCount;
+	out["meltSnowBulletCount"] = meltSnowBulletCount;
+	out["saltCrystalBulletCount"] = saltCrystalBulletCount;
 	out["melonBulletCount"] = melonBulletCount;
 	out["winterMelonBulletCount"] = winterMelonBulletCount;
 	out["kernelBulletCount"] = kernelBulletCount;

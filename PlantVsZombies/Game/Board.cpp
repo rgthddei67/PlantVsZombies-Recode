@@ -1550,12 +1550,14 @@ void Board::InitializeWinterTemperature()
 		mColdWaveCoolingDuration = 20.0f;
 		mColdWaveHoldDuration = 57.5f;
 		mColdWaveThawDuration = 32.0f;
+		mColdWaveForecastDisrupted = false;
 		mWinterFrostVariant = 0;
 		return;
 	}
 	if (mWinterTemperatureInitialized) return;
 	mWinterTemperatureInitialized = true;
 	mColdWavePhase = ColdWavePhase::CALM;
+	mColdWaveForecastDisrupted = false;
 	mColdWaveTimer = GameRandom::Range(
 		kColdWaveCalmDurationMin, kColdWaveCalmDurationMax);
 	mAmbientTemperatureC = kWinterWarmTemperatureC;
@@ -1567,6 +1569,7 @@ void Board::InitializeWinterTemperature()
  */
 void Board::RollNextColdWave()
 {
+	mColdWaveForecastDisrupted = false;
 	const int strengthRoll = GameRandom::Range(1, 100);
 	if (strengthRoll <= kColdWaveWeakWeight) {
 		mColdWaveStrength = ColdWaveStrength::WEAK;
@@ -4586,8 +4589,23 @@ float Board::GetWinterFreezingTemperatureC() const
 bool Board::HasColdWaveForecast() const
 {
 	return SupportsWinterTemperature() && mWinterTemperatureInitialized
+		&& !mColdWaveForecastDisrupted
 		&& mColdWavePhase == ColdWavePhase::CALM
 		&& mColdWaveTimer > 0.0f && mColdWaveTimer <= kColdWaveForecastLeadTime;
+}
+
+/** 让一次已公开预报在本轮内失效，并按稳定植物 ID 原子清除所有依赖准备。 */
+bool Board::DisruptColdWaveForecast()
+{
+	if (!HasColdWaveForecast()) return false;
+	mColdWaveForecastDisrupted = true;
+	std::vector<int> plantIDs = mEntityRegistry.GetAllPlantIDs();
+	std::sort(plantIDs.begin(), plantIDs.end());
+	for (int plantID : plantIDs) {
+		Plant* plant = mEntityRegistry.GetPlant(plantID);
+		if (plant && plant->IsActive()) plant->OnColdWaveForecastDisrupted();
+	}
+	return true;
 }
 
 bool Board::IsColdWaveActive() const
@@ -4662,6 +4680,7 @@ bool Board::SetWinterTemperatureForTesting(float temperatureC,
 	}
 	const bool wasSnowing = IsWinterPrecipitationSnow();
 	mWinterTemperatureInitialized = true;
+	mColdWaveForecastDisrupted = false;
 	mColdWavePhase = phase;
 	mColdWaveTimer = std::max(0.0f, remaining);
 	mColdWaveStrength = std::clamp(strength,
