@@ -16,6 +16,11 @@ description: Use when adding or tuning any PvZ zombie, or integrating zombies in
 - 玩法对象架构固定为继承式：新增僵尸继续选择 `Zombie` 或最窄既有派生基类，并用窄虚接口表达品种差异；不得为僵尸能力恢复通用 `Component` 基类/类型表、把品种状态拆成任意组件组合，或为形式统一复制基类生命周期。空间数据由宿主 `CreateTransform()` 创建并通过 `GetTransform()` 访问。Collider、Shadow 与 Clickable 是宿主显式独占的具名附件：分别通过 `CreateCollider()` / `GetCollider()` / `RemoveCollider()`、`CreateShadow()` / `GetShadow()` / `RemoveShadow()`、`CreateClickable()` / `GetClickable()` / `RemoveClickable()` 管理，禁止恢复 `AddComponent/GetComponent/RemoveComponent<T>` 或缓存可独立失效的附件裸指针。三个类的 `Component` 后缀只是过渡命名，不代表组件系统。`CreateClickable()` 保证 Collider 已就绪；`RemoveCollider()` 会同步注销 Clickable，运行时替换 Collider 则保持 Clickable 注册有效。
 - 架构、坐标或资源差异必须做适配，并用状态投影、音效计数、默认与 `-NoInstance` 可见截图证明功能等价。原版资源版本与当前 reanim 不一致时，以玩家结果忠实为目标，具体轨道方案按当前资产确认；需要改变行为时再询问主人。
 
+## 视觉识别底线
+
+- 机制或身份特征明显的新僵尸不得只靠全身换色表达。至少提供一个能改变低分辨率轮廓的独立装备/部件，以及与机制阶段同步的动作、破损或脱落反馈；巡航、能力前摇、破层、死亡与图鉴中都应让玩家快速辨认。染色只能作为辅助色彩语言，不能成为唯一识别手段。
+- 独立部件必须按实际握持、背负或安装关系选择稳定语义锚点和绘制层级。主人指出附件漂移、过大或遮挡错误时，要在最终实机合成中校准尺寸、锚点、父轨及前后遮挡；轻微机械颤动不得继承手臂等大幅摆动轨。默认实例化与 `-NoInstance` 各用同步截图验收，不能只看高分辨率源图或单张贴图。
+
 ## 坐标换算铁律
 
 **C# 原版逻辑场景是 800×600，本项目是 `SCENE_WIDTH=1100`、`SCENE_HEIGHT=600`。原版任何绝对 X/Y、碰撞框偏移、绘制偏移、粒子触发点和屏幕边界都只能当语义参考，禁止直接抄入代码。**

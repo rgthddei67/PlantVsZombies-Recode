@@ -8,6 +8,7 @@
 #include "Crater.h"
 #include "Ladder.h"
 #include "IceWall.h"
+#include "GroundRift.h"
 #include "AdventureProgression.h"
 #include "AI/PlantDefenseMonteCarlo.h"
 #include "CardSlotManager.h"
@@ -239,6 +240,7 @@ namespace {
 	constexpr int kGroundingZombieMaxPerWave = 2;         // 每个正式波次最多成功生成的接地僵尸数量
 	constexpr int kBobsledTeamMaxPerWave = 1;             // 一次候选四人同乘；正式波次最多接纳一队
 	constexpr int kIceWallEngineerMaxPerWave = 1;         // 每个正式波次最多成功生成一只冰墙工程师
+	constexpr int kIceCrackDrillMaxPerWave = 1;           // 每个正式波次最多成功生成一只冰裂钻机
 	constexpr int kHijackerTutorialLevel = 49;             // 内部 49 即 6-4，使用第七波固定单体教学
 	constexpr int kHijackerTutorialWave = 7;               // 6-4 首次登场的固定教学波
 	constexpr int kHealerTutorialLevel = 51;               // 内部 51 即 6-6，使用第三波额外保底
@@ -2468,6 +2470,13 @@ void Board::RestoreIceWallEngineerWaveSpawnCount(int count)
 		count, 0, kIceWallEngineerMaxPerWave);
 }
 
+/** 夹紧并恢复当前波已经正式生成的冰裂钻机数量。 */
+void Board::RestoreIceCrackDrillWaveSpawnCount(int count)
+{
+	mIceCrackDrillsSpawnedThisWave = std::clamp(
+		count, 0, kIceCrackDrillMaxPerWave);
+}
+
 /** 清空全部台风派生状态；中雨、小雨、晴天和旧档默认都以此为单位元。 */
 void Board::StopTyphoon()
 {
@@ -2680,6 +2689,12 @@ ZombieType Board::ResolveWaveZombieType(ZombieType selected, int mutationRoll)
 			return ZombieType::NUM_ZOMBIE_TYPES;
 		}
 		++mIceWallEngineersSpawnedThisWave;
+	}
+	if (selected == ZombieType::ZOMBIE_ICE_CRACK_DRILL) {
+		if (mIceCrackDrillsSpawnedThisWave >= kIceCrackDrillMaxPerWave) {
+			return ZombieType::NUM_ZOMBIE_TYPES;
+		}
+		++mIceCrackDrillsSpawnedThisWave;
 	}
 	return ResolveRainMutationType(selected, mutationRoll);
 }
@@ -5494,6 +5509,48 @@ bool Board::RemoveIceWall(IceWall* wall)
 	return true;
 }
 
+GroundRift* Board::AddGroundRift(int row, float frontX, int nextColumn,
+	float downstreamDamageMultiplier)
+{
+	if (row < 0 || row >= mRows || mColumns <= 0 || !std::isfinite(frontX)
+		|| !std::isfinite(downstreamDamageMultiplier)) return nullptr;
+	auto rift = GameObjectManager::GetInstance().CreateGameObjectAsShared<GroundRift>(
+		LAYER_GAME_PLANT, this, row, frontX,
+		std::clamp(nextColumn, -1, mColumns - 1),
+		std::clamp(downstreamDamageMultiplier, 0.0f, 1.0f));
+	if (!rift) return nullptr;
+	mGroundRifts.emplace_back(rift);
+	return rift.get();
+}
+
+std::vector<GroundRift*> Board::GetGroundRifts()
+{
+	std::vector<GroundRift*> active;
+	mGroundRifts.erase(std::remove_if(mGroundRifts.begin(), mGroundRifts.end(),
+		[&active](const std::weak_ptr<GroundRift>& weak) {
+			auto rift = weak.lock();
+			if (!rift || !rift->IsActive()) return true;
+			active.push_back(rift.get());
+			return false;
+		}), mGroundRifts.end());
+	return active;
+}
+
+bool Board::RemoveGroundRift(GroundRift* rift)
+{
+	if (!rift) return false;
+	for (auto it = mGroundRifts.begin(); it != mGroundRifts.end(); ++it) {
+		auto current = it->lock();
+		if (!current || !current->IsActive()) continue;
+		if (current.get() != rift) continue;
+		mGroundRifts.erase(it);
+		current->SetActive(false);
+		GameObjectManager::GetInstance().DestroyGameObject(current);
+		return true;
+	}
+	return false;
+}
+
 int Board::RemoveLaddersInBlastSquare(
 	const Vector& position, int centerRow, int cellRange)
 {
@@ -7133,6 +7190,7 @@ void Board::SummonNextWave()
 	mGroundingZombiesSpawnedThisWave = 0;
 	mBobsledTeamsSpawnedThisWave = 0;
 	mIceWallEngineersSpawnedThisWave = 0;
+	mIceCrackDrillsSpawnedThisWave = 0;
 	mMistFuelAssignedThisWave = 0;
 	if (mCurrentWave == 1)
 	{
@@ -7764,6 +7822,7 @@ void Board::OnSurvivalRoundClear()
 	mGroundingZombiesSpawnedThisWave = 0;
 	mBobsledTeamsSpawnedThisWave = 0;
 	mIceWallEngineersSpawnedThisWave = 0;
+	mIceCrackDrillsSpawnedThisWave = 0;
 	RefreshZombieWeatherSpeeds();
 
 	// 重算难度（解锁更强僵尸）+ 刷新关卡名

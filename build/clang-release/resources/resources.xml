@@ -42,6 +42,22 @@
     <Image>./resources/image/reanim/Ice_Wall.png</Image>
     <Image>./resources/image/reanim/Ice_Wall_cracked1.png</Image>
     <Image>./resources/image/reanim/Ice_Wall_cracked2.png</Image>
+    <Image>./resources/image/reanim/Zombie_icecrack_drill_helmet1.png</Image>
+    <Image>./resources/image/reanim/Zombie_icecrack_drill_helmet2.png</Image>
+    <Image>./resources/image/reanim/Zombie_icecrack_drill_helmet3.png</Image>
+    <Image>./resources/image/reanim/Zombie_icecrack_drill_rig1_spin0.png</Image>
+    <Image>./resources/image/reanim/Zombie_icecrack_drill_rig1_spin1.png</Image>
+    <Image>./resources/image/reanim/Zombie_icecrack_drill_rig1_spin2.png</Image>
+    <Image>./resources/image/reanim/Zombie_icecrack_drill_rig1_spin3.png</Image>
+    <Image>./resources/image/reanim/Zombie_icecrack_drill_rig2_spin0.png</Image>
+    <Image>./resources/image/reanim/Zombie_icecrack_drill_rig2_spin1.png</Image>
+    <Image>./resources/image/reanim/Zombie_icecrack_drill_rig2_spin2.png</Image>
+    <Image>./resources/image/reanim/Zombie_icecrack_drill_rig2_spin3.png</Image>
+    <Image>./resources/image/reanim/Zombie_icecrack_drill_rig3_spin0.png</Image>
+    <Image>./resources/image/reanim/Zombie_icecrack_drill_rig3_spin1.png</Image>
+    <Image>./resources/image/reanim/Zombie_icecrack_drill_rig3_spin2.png</Image>
+    <Image>./resources/image/reanim/Zombie_icecrack_drill_rig3_spin3.png</Image>
+    <Image>./resources/image/reanim/IceCrackDrillRift.png</Image>
     <Image>./resources/image/reanim/Zombie_bobsled_outerarm_hand.png</Image>
     <Image>./resources/image/reanim/Zombie_bobsled_outerarm_upper2.png</Image>
     <Image>./resources/image/Zombie_bobsled_inside.png</Image>
@@ -262,6 +278,7 @@
 
   <!-- 粒子纹理 -->
   <ParticleTextures>
+    <Texture Column="4" Row="1">./resources/particles/IceCrackDrillShards.png</Texture>
     <Texture Column="4" Row="1">./resources/particles/pea_splats.png</Texture>
     <Texture Column="3" Row="1">./resources/particles/pea_particles.png</Texture>
     <Texture Column="4" Row="1">./resources/particles/toxicpea_splats.png</Texture>
@@ -543,6 +560,7 @@
     <Reanimation name="NormalZombie">./resources/reanim/NormalZombie.reanim</Reanimation>
     <Reanimation name="RoofMarshalZombie">./resources/reanim/RoofMarshal.reanim</Reanimation>
     <Reanimation name="RoofMarshalAssaultFlag">./resources/reanim/RoofMarshalAssaultFlag.reanim</Reanimation>
+    <Reanimation name="IceCrackDrillRig">./resources/reanim/IceCrackDrillRig.reanim</Reanimation>
     <Reanimation name="ConeZombie">./resources/reanim/ConeZombie.reanim</Reanimation>
     <Reanimation name="GroundingZombie">./resources/reanim/GroundingZombie.reanim</Reanimation>
     <Reanimation name="ZombieBobsled">./resources/reanim/Zombie_bobsled.reanim</Reanimation>

@@ -255,6 +255,42 @@ namespace {
 			"雾势枚举迁移不得改变预报锁定状态");
 	}
 
+	void TestVersionThreeLevelUpgradeAddsIceCrackDrillState() {
+		nlohmann::json document = {
+			{ "schemaVersion", 3 },
+			{ "currentWave", 7 },
+			{ "zombies", nlohmann::json::array() }
+		};
+		std::string error;
+
+		Expect(SaveSchema::UpgradeLevelDocument(document, error),
+			"v3 关卡档应升级到冰裂钻机持久化结构");
+		Expect(document["schemaVersion"] == SaveSchema::kCurrentLevelVersion,
+			"v3 关卡档应写入当前版本");
+		Expect(document["iceCrackDrillsSpawnedThisWave"] == 0,
+			"旧档没有冰裂钻机波次预算时应补零");
+		Expect(document["groundRifts"].is_array() && document["groundRifts"].empty(),
+			"旧档没有已提交地裂时应补空数组");
+		Expect(document["currentWave"] == 7 && document["zombies"].empty(),
+			"冰裂钻机迁移不得改写既有关卡状态");
+
+		nlohmann::json prereleaseDocument = {
+			{ "schemaVersion", 3 },
+			{ "iceCrackDrillsSpawnedThisWave", 1 },
+			{ "groundRifts", nlohmann::json::array({ {
+				{ "row", 2 }, { "frontX", 720.0f }, { "nextColumn", 5 },
+				{ "downstreamDamageMultiplier", 0.5f }
+			} }) }
+		};
+		Expect(SaveSchema::UpgradeLevelDocument(prereleaseDocument, error),
+			"已含冰裂钻机字段的 v3 预发布档应升级成功");
+		Expect(prereleaseDocument["iceCrackDrillsSpawnedThisWave"] == 1,
+			"迁移不得覆盖预发布档的钻机波次预算");
+		Expect(prereleaseDocument["groundRifts"].size() == 1
+			&& prereleaseDocument["groundRifts"][0]["nextColumn"] == 5,
+			"迁移不得覆盖预发布档的地裂传播前沿");
+	}
+
 	void TestFutureVersionIsRejectedTransactionally() {
 		nlohmann::json document = {
 			{ "schemaVersion", SaveSchema::kCurrentLevelVersion + 1 },
@@ -308,6 +344,7 @@ int main() {
 	TestLegacyLevelUpgradePreservesGameplayState();
 	TestVersionOneLevelUpgradeDefersFogInitializationToBoard();
 	TestVersionTwoLevelUpgradePreservesFogStrength();
+	TestVersionThreeLevelUpgradeAddsIceCrackDrillState();
 	TestFutureVersionIsRejectedTransactionally();
 	TestInvalidRootAndVersionAreRejected();
 

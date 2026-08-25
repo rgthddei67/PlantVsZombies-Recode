@@ -34,6 +34,7 @@ class Bullet;
 class Trophy;
 class Crater;
 class IceWall;
+class GroundRift;
 class Shovel;
 class Mower;
 struct MagneticItem;
@@ -181,6 +182,8 @@ public:
 	std::vector<std::weak_ptr<Ladder>> mLadders;
 	// 冰墙工程师建筑：全场至多一堵；所有权在 GameObjectManager，Board 只做 O(1) 寻址与存档。
 	std::weak_ptr<IceWall> mIceWall;
+	// 冰裂钻机提交的同行地裂：所有权在 GameObjectManager，Board 只做存档与测试寻址。
+	std::vector<std::weak_ptr<GroundRift>> mGroundRifts;
 
 	bool mIsSurvival = false;     // 是否为生存模式（无尽）
 	int  mSurvivalRound = 1;      // 当前第几面旗（轮次，从 1 起）
@@ -328,6 +331,7 @@ private:
 	int mGroundingZombiesSpawnedThisWave = 0; // 当前波正式生成的接地僵尸数量；所有正式波次统一至多两只并进入存档
 	int mBobsledTeamsSpawnedThisWave = 0; // 当前波正式生成的雪橇车队数量；跟随者不重复计数
 	int mIceWallEngineersSpawnedThisWave = 0; // 当前波正式生成的冰墙工程师数量；所有正式波次统一至多一只
+	int mIceCrackDrillsSpawnedThisWave = 0; // 当前波正式生成的冰裂钻机数量；所有正式波次统一至多一只
 	int mEliteScaredyShroomsPlanted = 0; // 本关累计种下的精英胆小菇数量；死亡或铲除不返还次数
 	int mLastTyphoonMovedPlants = 0;    // 最近一次阵风移动的植物数，仅供观测和测试
 	int mLastTyphoonLostPlants = 0;     // 最近一次阵风吹出棋盘或吹入弹坑的植物数，仅供观测和测试
@@ -471,6 +475,7 @@ private:
 	void RestoreGroundingZombieWaveSpawnCount(int count);
 	void RestoreBobsledTeamWaveSpawnCount(int count);
 	void RestoreIceWallEngineerWaveSpawnCount(int count);
+	void RestoreIceCrackDrillWaveSpawnCount(int count);
 	/** 成功处决后立即封锁本波后续候选，并预留后续完整波次的刷新冷却。 */
 	void BeginHijackerSpawnCooldown();
 	/** 新波开始时把一份未来冷却转为覆盖整个当前波的封锁。 */
@@ -808,6 +813,9 @@ public:
 	int GetIceWallEngineersSpawnedThisWave() const {
 		return mIceWallEngineersSpawnedThisWave;
 	}
+	int GetIceCrackDrillsSpawnedThisWave() const {
+		return mIceCrackDrillsSpawnedThisWave;
+	}
 	int GetLastTyphoonMovedPlants() const { return mLastTyphoonMovedPlants; }
 	int GetLastTyphoonLostPlants() const { return mLastTyphoonLostPlants; }
 	int GetLastTyphoonBlockedPlantSteps() const { return mLastTyphoonBlockedPlantSteps; }
@@ -1131,6 +1139,13 @@ public:
 	bool HasIceWall() { return GetIceWall() != nullptr; }
 	/** 只允许目标墙回收自身；不会误删后来创建的新墙。 */
 	bool RemoveIceWall(IceWall* wall);
+	/** 创建或恢复一条已提交地裂；nextColumn 是下一待结算列。 */
+	GroundRift* AddGroundRift(int row, float frontX, int nextColumn,
+		float downstreamDamageMultiplier = 1.0f);
+	/** 返回全部活动地裂并惰性清理失效弱引用。 */
+	std::vector<GroundRift*> GetGroundRifts();
+	/** 只允许目标地裂回收自身，不影响同排其他裂缝。 */
+	bool RemoveGroundRift(GroundRift* rift);
 	/** 移除指定行全部扶梯，返回移除数量。 */
 	int RemoveLaddersInRow(int row);
 	/** 按爆心所在格的方形格范围移除扶梯；范围口径与原版 KillAllZombiesInRadius 一致。 */

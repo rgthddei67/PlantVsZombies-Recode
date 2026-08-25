@@ -18,6 +18,7 @@
 #include "./Game/Crater.h"
 #include "./Game/Ladder.h"
 #include "./Game/IceWall.h"
+#include "./Game/GroundRift.h"
 #include "./Game/Bullet/BulletType.h"
 #include "./Game/CardSlotManager.h"
 #include "./Game/Card.h"
@@ -424,6 +425,7 @@ bool GameInfoSaver::SerializeLevelDataToPath(Board* board, CardSlotManager* mana
 	j["groundingZombiesSpawnedThisWave"] = board->mGroundingZombiesSpawnedThisWave;
 	j["bobsledTeamsSpawnedThisWave"] = board->mBobsledTeamsSpawnedThisWave;
 	j["iceWallEngineersSpawnedThisWave"] = board->mIceWallEngineersSpawnedThisWave;
+	j["iceCrackDrillsSpawnedThisWave"] = board->mIceCrackDrillsSpawnedThisWave;
 	j["mistFuelDropAccumulator"] = board->mMistFuelDropAccumulator;
 	WeatherPresentationState weatherPresentation;
 	if (auto* presentation = board->GetPresentation()) {
@@ -658,6 +660,19 @@ bool GameInfoSaver::SerializeLevelDataToPath(Board* board, CardSlotManager* mana
 			{ "builderZombieID", wall->GetBuilderZombieID() },
 		};
 	}
+
+	// 已提交地裂与来源僵尸完全独立；保存传播前沿、下一列和雪锚累计倍率即可无重播恢复。
+	nlohmann::json groundRifts = nlohmann::json::array();
+	for (GroundRift* rift : board->GetGroundRifts()) {
+		if (!rift || !rift->IsActive()) continue;
+		groundRifts.push_back({
+			{ "row", rift->GetRow() },
+			{ "frontX", rift->GetFrontX() },
+			{ "nextColumn", rift->GetNextColumn() },
+			{ "downstreamDamageMultiplier", rift->GetDownstreamDamageMultiplier() },
+		});
+	}
+	if (!groundRifts.empty()) j["groundRifts"] = std::move(groundRifts);
 
 	// 卡牌只在 GAME 中代表已提交卡组。CHOOSE_CARD 中的卡槽必须为空；即便未来流程意外留下
 	// 旧卡，也不能把它序列化成下一轮已提交卡组，否则读档后再次选卡会叠出两套卡牌。
@@ -1119,6 +1134,8 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 		j.value("bobsledTeamsSpawnedThisWave", 0));
 	board->RestoreIceWallEngineerWaveSpawnCount(
 		j.value("iceWallEngineersSpawnedThisWave", 0));
+	board->RestoreIceCrackDrillWaveSpawnCount(
+		j.value("iceCrackDrillsSpawnedThisWave", 0));
 	board->mRainVisualActive = false;   // 粒子不入存档，StartGame 按剩余时间重建
 	board->mMaxWave = j.value("maxWave", 10);
 	board->mZombieCountDown = j.value("zombieCountDown", 20.0f);
@@ -1440,6 +1457,14 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 			it->value("thawDamageRemainder", 0.0f),
 			it->value("constructionComplete", true),
 			it->value("builderZombieID", NULL_ZOMBIE_ID));
+	}
+	for (const auto& rift : j.value("groundRifts", nlohmann::json::array())) {
+		if (!rift.is_object()) continue;
+		board->AddGroundRift(
+			rift.value("row", 0),
+			rift.value("frontX", 0.0f),
+			rift.value("nextColumn", -1),
+			rift.value("downstreamDamageMultiplier", 1.0f));
 	}
 
 	// 恢复生存轮间冷却快照（见 SaveLevelData 同名字段注释）。必须在 ChooseCardComplete 还原冷却之前就位，

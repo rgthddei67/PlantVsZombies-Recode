@@ -109,6 +109,7 @@
 #include "../Zombie/GroundingZombie.h"
 #include "../Zombie/BobsledTeamZombie.h"
 #include "../Zombie/IceWallEngineerZombie.h"
+#include "../Zombie/IceCrackDrillZombie.h"
 
 namespace {
 	template<typename T>
@@ -666,6 +667,12 @@ void GameDataManager::InitializeHardcodedData() {
 		AnimationType::ANIM_CONE_ZOMBIE,
 		ResourceKeys::Reanimations::REANIM_CONE_ZOMBIE,
 		&MakeZombie<IceWallEngineerZombie>);
+
+	// 钻机复用路障骨骼和帧事件；独立附着 reanim 负责四相钻齿与三档破损轮廓。
+	RegisterZombie(ZombieType::ZOMBIE_ICE_CRACK_DRILL, "ZOMBIE_ICE_CRACK_DRILL",
+		AnimationType::ANIM_ICE_CRACK_DRILL_ZOMBIE,
+		ResourceKeys::Reanimations::REANIM_CONE_ZOMBIE,
+		&MakeZombie<IceCrackDrillZombie>);
 
 	// ==================== 非植物/僵尸动画映射 ====================
 	mAnimToString[AnimationType::ANIM_SUN] = ResourceKeys::Reanimations::REANIM_SUN;

@@ -4,7 +4,7 @@ description: 第七大关冰墙工程师、独立移动冰墙、弹道优先级�
 metadata:
   node_type: memory
   type: project
-  updated_at: 2026-08-24
+  updated_at: 2026-08-25
 ---
 
 # 冰墙工程师与独立冰墙
@@ -32,3 +32,5 @@ metadata:
 工程师额外保存施工阶段、剩余时间、目标墙中心、粒子节拍和能力是否消费；读档会修复断头、魅惑或零剩余时间的非法施工态。Board 保存每波工程师计数；墙保存行、连续中心 X、当前/最大生命、融化小数余量、完成态和施工者 ID。旧档缺施工墙字段时按既有完整墙恢复，缺整个墙字段时保持空墙。
 
 `smoke_ice_wall_engineer.json` 在 `clang-release` 默认 Vulkan 与 `-NoInstance` 可见路径均执行 129 条命令至 command 128、exit 0、`status=passed`；覆盖资源键、数值、完全进场且距霜线仍超过 50px 时开工、600 生命施工墙立即挡豌豆、施工者死亡拆墙、施工者麻痹时墙碎仍立即收口、施工快照、硬化回满、完工后工程师死亡留墙、抛射越墙、火焰双倍、盐晶 20＋200、回暖融化、每波上限和中心 X=519 的植物停点。两个渲染路径的施工截图均目验墙体前置且工程师装饰完整可见。`smoke_ice_wall_engineer_spawnlists.json` 覆盖 7-1～7-9 分布；融雪投手和冬日花园父回归同次 Release 通过。全量 LTO 编译、378 项 Win7 导入、`SaveSchemaTests` 与 `SaveMigrationTests` 均通过。
+
+2026-08-25 视觉校正：矿工安全帽原图面向右行，套在向左走的工程师上会让帽檐落到后脑。生成器现先水平镜像到脸侧，再把帽体整体前移 3px，并更新三档确定性哈希；Release 默认 Vulkan 与 `-NoInstance` 专项均再次执行至 `commandIndex=128` 并通过，完整帽与破损帽截图目验位置一致。

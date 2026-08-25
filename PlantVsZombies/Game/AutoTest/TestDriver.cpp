@@ -20,6 +20,7 @@
 #include "../Board.h"
 #include "../Ladder.h"
 #include "../IceWall.h"
+#include "../GroundRift.h"
 #include "../Sun.h"
 #include "../LawnMower.h"
 #include "../AudioSystem.h"
@@ -68,6 +69,7 @@
 #include "../Zombie/GildedZamboniZombie.h"
 #include "../Zombie/BobsledTeamZombie.h"
 #include "../Zombie/IceWallEngineerZombie.h"
+#include "../Zombie/IceCrackDrillZombie.h"
 #include "../Zombie/EliteDancerZombie.h"
 #include "../Zombie/Polevaulter.h"
 #include "../Zombie/DolphinRiderZombie.h"
@@ -382,6 +384,7 @@ namespace {
 		ZT(ZOMBIE_SQUASH_HEAD), ZT(ZOMBIE_TALLNUT_HEAD), ZT(ZOMBIE_REDEYE_GARGANTUAR), ZT(ZOMBIE_ROOF_MARSHAL),
 		ZT(ZOMBIE_INSULATOR), ZT(ZOMBIE_HIJACKER), ZT(ZOMBIE_HEALER),
 		ZT(ZOMBIE_GROUNDING), ZT(ZOMBIE_BOBSLED_TEAM), ZT(ZOMBIE_ICE_WALL_ENGINEER),
+		ZT(ZOMBIE_ICE_CRACK_DRILL),
 	};
 #undef ZT
 #define PK(n) { #n, PerkType::n }
@@ -1898,6 +1901,83 @@ bool TestDriver::ExecuteCurrent() {
 		Fail("set_ice_wall_engineer_state: 未找到目标冰墙工程师");
 		return false;
 	}
+	if (op == "set_ice_crack_drill_state") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) {
+			Fail("set_ice_crack_drill_state: 不在 GameScene 或 Board 为空");
+			return false;
+		}
+		const std::string phaseName = cmd.value("phase", "MOVING");
+		IceCrackDrillZombie::DrillPhase phase = IceCrackDrillZombie::DrillPhase::MOVING;
+		if (phaseName == "CHARGING") {
+			phase = IceCrackDrillZombie::DrillPhase::CHARGING;
+		}
+		else if (phaseName == "SPENT") {
+			phase = IceCrackDrillZombie::DrillPhase::SPENT;
+		}
+		else if (phaseName != "MOVING") {
+			Fail("set_ice_crack_drill_state: phase 必须为 MOVING/CHARGING/SPENT");
+			return false;
+		}
+		const int row = cmd.value("row", -1);
+		const int index = cmd.value("index", 0);
+		int seen = 0;
+		std::vector<int> zombieIDs = gs->GetBoard()->mEntityRegistry.GetAllZombieIDs();
+		std::sort(zombieIDs.begin(), zombieIDs.end());
+		for (const int id : zombieIDs) {
+			auto* drill = dynamic_cast<IceCrackDrillZombie*>(
+				gs->GetBoard()->mEntityRegistry.GetZombie(id));
+			if (!drill || !drill->IsActive()) continue;
+			if (row >= 0 && drill->mRow != row) continue;
+			if (seen++ != index) continue;
+			drill->SetDrillStateForTesting(phase,
+				cmd.value("remaining", 3.5f), cmd.value("used", false));
+			return true;
+		}
+		Fail("set_ice_crack_drill_state: 未找到目标冰裂钻机");
+		return false;
+	}
+	if (op == "interrupt_zombie_special_action"
+		|| op == "apply_winter_corrosion_to_zombie") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) {
+			Fail(op + ": 不在 GameScene 或 Board 为空");
+			return false;
+		}
+		ZombieType desiredType = ZombieType::NUM_ZOMBIE_TYPES;
+		if (cmd.contains("type")) {
+			auto typeIt = kZombieNames.find(cmd.value("type", ""));
+			if (typeIt == kZombieNames.end()) {
+				Fail(op + ": 未知僵尸类型");
+				return false;
+			}
+			desiredType = typeIt->second;
+		}
+		const int row = cmd.value("row", -1);
+		const int index = cmd.value("index", 0);
+		int seen = 0;
+		std::vector<int> zombieIDs = gs->GetBoard()->mEntityRegistry.GetAllZombieIDs();
+		std::sort(zombieIDs.begin(), zombieIDs.end());
+		for (const int id : zombieIDs) {
+			Zombie* zombie = gs->GetBoard()->mEntityRegistry.GetZombie(id);
+			if (!zombie || !zombie->IsActive()) continue;
+			if (row >= 0 && zombie->mRow != row) continue;
+			if (desiredType != ZombieType::NUM_ZOMBIE_TYPES
+				&& zombie->mZombieType != desiredType) continue;
+			if (seen++ != index) continue;
+			const bool changed = op == "interrupt_zombie_special_action"
+				? zombie->InterruptUncommittedSpecialAction()
+				: zombie->ApplyWinterCorrosion(cmd.value("corrosion", 0));
+			if (cmd.contains("expectedChanged")
+				&& changed != cmd.value("expectedChanged", false)) {
+				Fail(op + ": changed 与 expectedChanged 不符");
+				return false;
+			}
+			return true;
+		}
+		Fail(op + ": 未找到目标僵尸");
+		return false;
+	}
 	if (op == "set_elite_ladder_scan_countdown") {
 		GameScene* gs = CurrentGameScene();
 		if (!gs || !gs->GetBoard()) {
@@ -3185,6 +3265,47 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		{ "offsetXInt", static_cast<int>(std::lround(iceWallEngineerOffset.x)) },
 		{ "offsetYInt", static_cast<int>(std::lround(iceWallEngineerOffset.y)) },
 	};
+	out["iceCrackDrillResources"] = {
+		{ "rigReanimationLoaded", ResourceManager::GetInstance().HasReanimation(
+			ResourceKeys::Reanimations::REANIM_ICE_CRACK_DRILL_RIG) },
+		{ "helmetTexturesLoaded",
+			ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_ZOMBIE_ICECRACK_DRILL_HELMET1, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_ZOMBIE_ICECRACK_DRILL_HELMET2, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_ZOMBIE_ICECRACK_DRILL_HELMET3, false) != nullptr },
+		{ "rigTexturesLoaded",
+			ResourceManager::GetInstance().GetTexture(
+				"IMAGE_REANIM_ZOMBIE_ICECRACK_DRILL_RIG1_SPIN0", false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_ZOMBIE_ICECRACK_DRILL_RIG3_SPIN0, false) != nullptr },
+		{ "riftTextureLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_ICECRACKDRILLRIFT, false) != nullptr },
+		{ "particleTexturesLoaded",
+			ResourceManager::GetInstance().GetTexture(
+				"PARTICLE_ICECRACKDRILLSHARDS_PART_0", false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				"PARTICLE_ICECRACKDRILLSHARDS_PART_3", false) != nullptr },
+	};
+	const Vector iceCrackDrillOffset = GameDataManager::GetInstance().GetZombieOffset(
+		ZombieType::ZOMBIE_ICE_CRACK_DRILL);
+	out["iceCrackDrillGameData"] = {
+		{ "weight", GameDataManager::GetInstance().GetZombieWeight(
+			ZombieType::ZOMBIE_ICE_CRACK_DRILL) },
+		{ "appearWave", GameDataManager::GetInstance().GetZombieAppearWave(
+			ZombieType::ZOMBIE_ICE_CRACK_DRILL) },
+		{ "survivalRound", GameDataManager::GetInstance().GetZombieSurvivalRound(
+			ZombieType::ZOMBIE_ICE_CRACK_DRILL) },
+		{ "offsetXInt", static_cast<int>(std::lround(iceCrackDrillOffset.x)) },
+		{ "offsetYInt", static_cast<int>(std::lround(iceCrackDrillOffset.y)) },
+	};
+	out["iceCrackDrillChargeSoundRequestCount"] = AudioSystem::GetSoundPlayRequestCount(
+		ResourceKeys::Sounds::SOUND_ZAMBONI);
+	out["iceCrackDrillRiftSoundRequestCount"] = AudioSystem::GetSoundPlayRequestCount(
+		ResourceKeys::Sounds::SOUND_DIRT_RISE);
+	out["iceCrackDrillRigDropSoundRequestCount"] = AudioSystem::GetSoundPlayRequestCount(
+		ResourceKeys::Sounds::SOUND_ARM_HEAD_DROP);
 	out["lightningRodPotResources"] = {
 		{ "reanimationLoaded", ResourceManager::GetInstance().HasReanimation(
 			ResourceKeys::Reanimations::REANIM_LIGHTNINGRODPOT) },
@@ -3573,6 +3694,10 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				previewState["bobsledPhase"] = bobsled->GetBobsledPhase()
 					== BobsledTeamZombie::Phase::RIDING ? "RIDING" : "WALKING";
 				previewState["bobsledSlot"] = bobsled->GetBobsledSlot();
+			}
+			if (auto* drill = dynamic_cast<IceCrackDrillZombie*>(preview)) {
+				previewState["drillRigAnimatorReady"] = drill->HasDrillRigAnimator();
+				previewState["drillRigVisible"] = drill->IsDrillRigVisible();
 			}
 			out["zombieAlmanacPreview"] = std::move(previewState);
 		}
@@ -4451,6 +4576,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				board->GetBobsledTeamsSpawnedThisWave() },
 			{ "iceWallEngineersSpawnedThisWave",
 				board->GetIceWallEngineersSpawnedThisWave() },
+			{ "iceCrackDrillsSpawnedThisWave",
+				board->GetIceCrackDrillsSpawnedThisWave() },
 			{ "typhoonDecayRemaining", board->GetTyphoonStrengthTimer() },
 			{ "windDirection", WindDirectionName(board->GetWindDirection()) },
 			{ "windDirectionRemaining", board->GetWindDirectionTimer() },
@@ -4640,16 +4767,20 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["spawnList"] = nlohmann::json::array();
 	bool spawnListHasBobsledTeam = false;
 	bool spawnListHasIceWallEngineer = false;
+	bool spawnListHasIceCrackDrill = false;
 	for (ZombieType t : board->GetSpawnZombieList()) {
 		out["spawnList"].push_back(ZombieTypeName(t));
 		spawnListHasBobsledTeam = spawnListHasBobsledTeam
 			|| t == ZombieType::ZOMBIE_BOBSLED_TEAM;
 		spawnListHasIceWallEngineer = spawnListHasIceWallEngineer
 			|| t == ZombieType::ZOMBIE_ICE_WALL_ENGINEER;
+		spawnListHasIceCrackDrill = spawnListHasIceCrackDrill
+			|| t == ZombieType::ZOMBIE_ICE_CRACK_DRILL;
 	}
 	out["spawnTypeCount"] = static_cast<int>(board->GetSpawnZombieList().size());
 	out["spawnListHasBobsledTeam"] = spawnListHasBobsledTeam;
 	out["spawnListHasIceWallEngineer"] = spawnListHasIceWallEngineer;
+	out["spawnListHasIceCrackDrill"] = spawnListHasIceCrackDrill;
 
 	int charredZombieCount = 0;
 	int zamboniCharredCount = 0;
@@ -5737,6 +5868,27 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 					static_cast<int>(std::lround(bounds.x - frontierX));
 			}
 		}
+		if (auto* drill = dynamic_cast<IceCrackDrillZombie*>(z)) {
+			const char* phase = "MOVING";
+			switch (drill->GetDrillPhase()) {
+			case IceCrackDrillZombie::DrillPhase::MOVING:
+				break;
+			case IceCrackDrillZombie::DrillPhase::CHARGING:
+				phase = "CHARGING";
+				break;
+			case IceCrackDrillZombie::DrillPhase::SPENT:
+				phase = "SPENT";
+				break;
+			}
+			zombieState["drillPhase"] = phase;
+			zombieState["drillChargeRemainingMs"] = static_cast<int>(std::lround(
+				drill->GetChargeRemaining() * 1000.0f));
+			zombieState["drillUsed"] = drill->HasUsedDrill();
+			zombieState["drillRigAnimatorReady"] = drill->HasDrillRigAnimator();
+			zombieState["drillRigVisible"] = drill->IsDrillRigVisible();
+			zombieState["interruptibleSpecialRemainingMs"] = static_cast<int>(std::lround(
+				drill->GetInterruptibleSpecialActionRemaining() * 1000.0f));
+		}
 		// 专项脚本中的异品种靶子可按语义类型稳定取证；同品种多只时仍使用 zombies 全量数组。
 		out["zombiesByType"][ZombieTypeName(z->mZombieType)] = zombieState;
 		out["zombies"].push_back(std::move(zombieState));
@@ -5758,6 +5910,18 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["bobsledRowMask"] = bobsledRowMask;
 	out["bobsledXSpanOn1000"] = bobsledTeamZombieCount > 0
 		? static_cast<int>(std::lround((bobsledMaxX - bobsledMinX) * 1000.0f)) : 0;
+	out["groundRifts"] = nlohmann::json::array();
+	for (GroundRift* rift : board->GetGroundRifts()) {
+		if (!rift || !rift->IsActive()) continue;
+		out["groundRifts"].push_back({
+			{ "row", rift->GetRow() },
+			{ "frontXInt", static_cast<int>(std::lround(rift->GetFrontX())) },
+			{ "nextColumn", rift->GetNextColumn() },
+			{ "downstreamDamageMultiplierPct", static_cast<int>(std::lround(
+				rift->GetDownstreamDamageMultiplier() * 100.0f)) },
+		});
+	}
+	out["groundRiftCount"] = static_cast<int>(out["groundRifts"].size());
 	int bobsledDistinctRowCount = 0;
 	for (int mask = bobsledRowMask; mask != 0; mask >>= 1) {
 		bobsledDistinctRowCount += mask & 1;
@@ -6318,6 +6482,9 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["particleEffectNameCounts"]["IceWallHit"] = 0;
 	out["particleEffectNameCounts"]["IceWallBreak"] = 0;
 	out["particleEffectNameCounts"]["IceWallEngineerHardhatOff"] = 0;
+	out["particleEffectNameCounts"]["IceCrackDrillCharge"] = 0;
+	out["particleEffectNameCounts"]["IceCrackDrillRift"] = 0;
+	out["particleEffectNameCounts"]["IceCrackDrillRigOff"] = 0;
 	if (g_particleSystem) {
 		for (const auto& effect : g_particleSystem->GetEffectsForTesting()) {
 			if (!effect) continue;

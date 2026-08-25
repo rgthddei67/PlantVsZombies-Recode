@@ -1,0 +1,14 @@
+<Emitter>
+  <Name>IceCrackDrillCharge</Name>
+  <SpawnMinActive>[3 5]</SpawnMinActive>
+  <SpawnMaxLaunched>5</SpawnMaxLaunched>
+  <ParticleDuration>[.28 .48]</ParticleDuration>
+  <ParticleAlpha>1,70 0</ParticleAlpha>
+  <ParticleScale>[.32 .56] 0.12</ParticleScale>
+  <LaunchSpeed>[35 85]</LaunchSpeed>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <ParticleGravity>95</ParticleGravity>
+  <ParticleSpinSpeed>[-150 150]</ParticleSpinSpeed>
+  <SystemDuration>.55</SystemDuration>
+  <Image>PARTICLE_ICECRACKDRILLSHARDS_PART_0,PARTICLE_ICECRACKDRILLSHARDS_PART_1,PARTICLE_ICECRACKDRILLSHARDS_PART_2,PARTICLE_ICECRACKDRILLSHARDS_PART_3</Image>
+</Emitter>

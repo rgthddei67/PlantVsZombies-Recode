@@ -1,0 +1,29 @@
+<Emitter>
+  <Name>IceCrackDrillRift</Name>
+  <SpawnMinActive>[7 11]</SpawnMinActive>
+  <SpawnMaxLaunched>11</SpawnMaxLaunched>
+  <ParticleDuration>[.45 .85]</ParticleDuration>
+  <ParticleAlpha>1,72 0</ParticleAlpha>
+  <ParticleScale>[.45 .9] .15</ParticleScale>
+  <LaunchSpeed>[65 145]</LaunchSpeed>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <ParticleGravity>180</ParticleGravity>
+  <ParticleSpinSpeed>[-190 190]</ParticleSpinSpeed>
+  <SystemDuration>.95</SystemDuration>
+  <Image>PARTICLE_ICECRACKDRILLSHARDS_PART_0,PARTICLE_ICECRACKDRILLSHARDS_PART_1,PARTICLE_ICECRACKDRILLSHARDS_PART_2,PARTICLE_ICECRACKDRILLSHARDS_PART_3</Image>
+</Emitter>
+<Emitter>
+  <Name>IceCrackDrillRiftDust</Name>
+  <SpawnMinActive>[5 8]</SpawnMinActive>
+  <SpawnMaxLaunched>8</SpawnMaxLaunched>
+  <ParticleDuration>[.35 .65]</ParticleDuration>
+  <ParticleAlpha>.55,55 0</ParticleAlpha>
+  <ParticleScale>[.35 .65] 1.15</ParticleScale>
+  <LaunchSpeed>[15 45]</LaunchSpeed>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <SystemDuration>.75</SystemDuration>
+  <ParticleRed>.58</ParticleRed>
+  <ParticleGreen>.8</ParticleGreen>
+  <ParticleBlue>1</ParticleBlue>
+  <Image>PARTICLE_SNOWPEA_PARTICLES_PART_0,PARTICLE_SNOWPEA_PARTICLES_PART_1,PARTICLE_SNOWPEA_PARTICLES_PART_2</Image>
+</Emitter>

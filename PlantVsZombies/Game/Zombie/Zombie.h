@@ -194,6 +194,10 @@ public:
 	 */
 	virtual bool ApplyWinterCorrosion(int) { return false; }
 	// TODO(winter-area): 未来冰制护甲品种覆写该入口并导出剩余冰层耐久；独立冰墙走自身结算入口。
+	/** 返回尚未提交且可被外部工具打断的特殊动作剩余秒；负数表示当前没有。 */
+	virtual float GetInterruptibleSpecialActionRemaining() const { return -1.0f; }
+	/** 打断当前尚未提交的特殊动作；已提交或没有动作时返回 false。 */
+	virtual bool InterruptUncommittedSpecialAction() { return false; }
 	/** 调整大喷菇对本体的基础伤害；返回值随后统一进入词条与防具结算。 */
 	virtual int ModifyFumeDamage(int damage) const { return damage; }
 	/** 调整仙人掌尖刺每个 1x 碰撞帧的基础伤害；背击绕盾信息在倍速累计前一并传入。 */

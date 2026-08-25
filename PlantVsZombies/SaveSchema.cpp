@@ -128,10 +128,20 @@ namespace {
 				break;
 			}
 			case 3:
-				if (kind == DocumentKind::Player
-					&& !upgraded.contains("lastSelectedCards")) {
-					// 玩家 v4 新增上次已提交的选卡；旧档从空记录开始，不猜测历史关卡卡组。
-					upgraded["lastSelectedCards"] = nlohmann::json::array();
+				if (kind == DocumentKind::Player) {
+					if (!upgraded.contains("lastSelectedCards")) {
+						// 玩家 v4 新增上次已提交的选卡；旧档从空记录开始，不猜测历史关卡卡组。
+						upgraded["lastSelectedCards"] = nlohmann::json::array();
+					}
+				}
+				else {
+					// 关卡 v4 新增冰裂钻机每波预算和独立地裂；旧档没有已提交威胁，从单位元恢复。
+					if (!upgraded.contains("iceCrackDrillsSpawnedThisWave")) {
+						upgraded["iceCrackDrillsSpawnedThisWave"] = 0;
+					}
+					if (!upgraded.contains("groundRifts")) {
+						upgraded["groundRifts"] = nlohmann::json::array();
+					}
 				}
 				version = 4;
 				upgraded["schemaVersion"] = version;
