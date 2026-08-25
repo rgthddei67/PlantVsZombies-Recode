@@ -134,7 +134,7 @@ description: Use when adding or tuning any 生存模式词条 (survival perk) in
 ## 构建与交付
 
 - 按 `docs/agent-guide/PROJECT_GUIDE.md` 导入 x64 Visual Studio 环境。
-- 普通词条功能迭代先用 `clang-debug`（`clang-cl + lld-link`、Debug CRT/Debug 语义），收尾必须整体配置、编译 `clang-release`，并用该产物完成最终相关回归；性能、内存布局、并发、LTO 或 Release-only 行为从一开始就全程使用 `clang-release`。
+- 所有生存词条任务的编译、F5、范围最小 AutoTest 和最终相关回归都默认直接使用 `clang-release`。同一份当前源码已用该产物完成相关验证时，不再重复编译 Debug 或重跑同一轮 AutoTest。只有主人明确要求 Debug CRT/Debug 语义，或 Release 问题确实需要辅助诊断时，才显式切换 `clang-debug`。
 - 从 `build/<preset>/` 运行 `PlantsVsZombies.exe -AutoTest ...`，不要使用根目录旧的 `x64/Release` 产物。
 - 若 sandbox 阻止 vcpkg 写外部 `buildtrees`，先报告真实阻塞；只有已有且可信的 Ninja 图时，才可把按图全量重编和链接作为当前工作区验证补充，不能把它写成标准构建方式。
 - 功能、测试、技能和项目记忆一起复核后再提交。

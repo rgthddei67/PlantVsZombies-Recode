@@ -1,21 +1,22 @@
 ---
 name: pvz-cmake-migration
-description: CMake+vcpkg 唯一构建系统；三个 preset 统一使用 clang-cl+lld-link，普通任务用 clang-debug 快速迭代并以 clang-release 交付
+description: CMake+vcpkg 唯一构建系统；三个 preset 统一使用 clang-cl+lld-link，所有常规构建、F5 与 AutoTest 默认直接使用 clang-release
 metadata:
   node_type: memory
   type: project
   originSessionId: 83b50c95-5f75-4a56-8bd0-5051666fb921
 ---
 
-**2026-08-24 当前构建契约（取代下方迁移初期的 preset/运行目录描述）：**
+**2026-08-25 当前构建契约（取代下方迁移初期的 preset/运行目录描述）：**
 - 2026-08-25 起，Clang Release 仅对 `Game/AutoTest/TestDriver.cpp` 在目标级 `/O2 ... -flto` 之后追加 `/Od`：保持 `-MT`、`_HAS_ITERATOR_DEBUGGING=0`、AVX2、`-flto` 与精简行表 PDB，不启用 Debug CRT 或 `_DEBUG`。普通游戏每逻辑步只执行单例取址与 `mActive` 早退；文件级名称映射仍按现状在启动构造，AutoTest JSON 命令重逻辑允许未优化。
 - `clang-debug`、`clang-release`、`clang-release-noavx2` 三个 preset 全部继承 `clang-base`，统一使用 VS LLVM 的 `clang-cl + lld-link`；旧 `msvc-debug` 与 `clang-playtest` preset 均已删除。
-- 普通功能、逻辑、UI、资源和存档任务的修改过程中，使用 `clang-debug` 做增量编译、F5 和范围最小的诊断 AutoTest；它保留 `/Ob0 /Od /RTC1 -MTd -Zi`、Debug CRT、断言与 PDB。任务完成后必须整体配置并编译一次 `clang-release`，最终相关回归也以该产物为交付证据，Debug 结果不能替代 Release 结果。
-- 性能、内存布局、并发、编译器优化、LTO 或仅在 Release 出现的问题属于优化相关任务，修改、验证与交付全程使用 `clang-release`：Clang `/O2` + AVX2 + fast-math + LTO，并以 `/Z7 -gline-tables-only -gcodeview-ghash` + `/DEBUG:GHASH` 生成与优化机器码匹配的精简外置 PDB。它只保留符号化函数栈、内联关系和源码行所需的信息，不包含变量、变量位置或类型；LLVM 文档明确把 `-gline-tables-only` 定义为可生成符号化回溯的最小信息。
+- 所有普通功能、逻辑、UI、资源、存档、性能与架构任务，编译、F5、范围最小诊断 AutoTest 和最终相关回归都默认直接使用 `clang-release`。同一份当前源码已用该产物完成相关验证时，不再必须先编译 Debug 或为交付重跑同一轮 AutoTest。
+- `clang-release` 使用 Clang `/O2` + AVX2 + fast-math + LTO，并以 `/Z7 -gline-tables-only -gcodeview-ghash` + `/DEBUG:GHASH` 生成与优化机器码匹配的精简外置 PDB。它只保留符号化函数栈、内联关系和源码行所需的信息，不包含变量、变量位置或类型；LLVM 文档明确把 `-gline-tables-only` 定义为可生成符号化回溯的最小信息。
+- `clang-debug` 仅在主人明确要求 Debug CRT/Debug 语义，或 Release 问题确实需要辅助诊断时显式使用；它保留 `/Ob0 /Od /RTC1 -MTd -Zi`、Debug CRT、断言与 PDB，但不再是常规必跑阶段。
 - GHASH 让 LLD 复用 CodeView 哈希以缩短合并；Release EXE 不嵌入调试符号，只保留匹配外置 PDB 所需的约百字节 CodeView 定位记录，`/PDBALTPATH:PlantsVsZombies.pdb` 保证其中没有本机构建绝对路径。`CrashHandler` 的异常地址和调用栈保存合同不变。
 - `clang-release-noavx2` 是 Win7/旧环境发生 `0xC000001D` 时的独立发布预设；只把 `PVZ_ENABLE_AVX2` 关掉，仍保留 `/O2`、fast-math、LTO、静态运行时和精简行表 PDB，不能取代默认预设。
 - 该开关约束游戏自己的编译单元，不保证最终静态 EXE 逐字节不含 AVX：libjpeg-turbo 等依赖仍可能内置由运行时能力检测保护的多套 SIMD 实现。验收应同时核对游戏 152 条编译命令无 `/arch:AVX2` 与目标 Win7 实机不再触发 `0xC000001D`，不能只对最终 EXE 搜指令助记符。
-- 2026-08-25 主人确认完整 Release 重编已缩至一分钟内且 20000 僵尸存档仍约 110 FPS，随后删除用途重叠的无 LTO `clang-playtest`；Release 难定位问题改用同次精简 PDB、最小状态投影/日志/断言，能在 `clang-debug` 复现时再用它辅助诊断。
+- 2026-08-25 主人确认完整 Release 重编已缩至一分钟内且 20000 僵尸存档仍约 110 FPS，随后删除用途重叠的无 LTO `clang-playtest`，并进一步确认所有常规编译、F5 与 AutoTest 默认直接使用 `clang-release`。Release 难定位问题改用同次精简 PDB、最小状态投影/日志/断言，能在 `clang-debug` 复现时再显式用它辅助诊断。
 - `clang-release-noavx2` 与 `clang-debug` 的 `resources`/`font` 是指向 `build/clang-release/` 同名实体目录的 NTFS Junction；配置只创建一次联接，不复制资产。Shader、存档与 AutoTest 输出仍按 preset 隔离。
 - Visual Studio `launch.vs.json` 使用 `${cmake.binaryDir}` 作为工作目录；所有运行仍从 exe 自己的 `build/<preset>/` 启动。
 - `find_package(Vulkan)` 可能优先命中 vcpkg `vulkan-headers`；VMA 头固定从 `$ENV{VULKAN_SDK}/Include/vma/vk_mem_alloc.h` 取得，不能再通过 `Vulkan_INCLUDE_DIR` 间接推导。

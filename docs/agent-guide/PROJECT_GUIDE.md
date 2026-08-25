@@ -25,23 +25,23 @@
   cmd /c "`"$vs\Common7\Tools\VsDevCmd.bat`" -arch=x64 -no_logo && set" |
     ForEach-Object { if ($_ -match '^([^=]+)=(.*)$') { Set-Item "env:$($matches[1])" $matches[2] } }
 
-  # 2) 普通功能修改的迭代构建：Debug CRT/Debug 语义，适合快速增量编译和诊断
-  cmake --preset clang-debug
-  cmake --build --preset clang-debug
-
-  # 3) 最终交付构建；优化/性能相关任务则从首次构建起就全程使用它
+  # 2) 所有任务的默认构建、F5 和 AutoTest 产物
   cmake --preset clang-release
   cmake --build --preset clang-release
 
-  # Win7/旧环境出现 0xC000001D 时的同配置无 AVX2 发布版
+  # 3) 只有明确需要 Debug CRT/Debug 语义或辅助定位 Release 问题时才切换
+  cmake --preset clang-debug
+  cmake --build --preset clang-debug
+
+  # 4) Win7/旧环境出现 0xC000001D 时的同配置无 AVX2 发布版
   cmake --preset clang-release-noavx2
   cmake --build --preset clang-release-noavx2
 
   ```
 
-  三个预设统一使用 `clang-cl + lld-link`，各司其职：普通功能、逻辑、UI、资源和存档任务在修改过程中默认用 `clang-debug` 进行编译、F5 和最小诊断 AutoTest，利用快速增量构建与 Debug CRT/Debug 语义定位问题；任务完成后必须整体配置/编译 `clang-release` 并用它跑最终相关回归。性能、内存布局、并发调度、编译器优化、LTO 或 Release-only 行为相关任务则全程使用 `clang-release`（`/O2`、AVX2、fast-math、LTO、精简外置 PDB）。`clang-release`/`clang-release-noavx2` 用 `/Z7 -gline-tables-only -gcodeview-ghash` 与 `/DEBUG:GHASH`，只保留符号化函数栈和源码行所需的信息，不写变量/类型，并缩短 LLD 合并；EXE 只保留同目录 PDB 文件名的定位记录，不嵌入调试符号或本机构建绝对路径。三个 Clang 预设都会报告 `-Wnonportable-include-path`、`-Wreorder-ctor`、`-Wunused-*`、`-Wswitch` 等诊断，并应保持零警告。
+  三个预设统一使用 `clang-cl + lld-link`。`clang-release` 是所有普通功能、逻辑、UI、资源、存档、性能和架构任务的唯一默认预设：直接用它迭代、F5、跑范围最小的 AutoTest 并交付。同一份当前源码已用 Release 产物完成相关验证时，不再必跑一轮 Debug 构建或重复 AutoTest。`clang-debug` 仅在主人明确要求 Debug CRT/Debug 语义，或 Release 问题确实需要辅助诊断时显式使用；`clang-release-noavx2` 仅用于 Win7/旧 CPU 兼容诊断。`clang-release`/`clang-release-noavx2` 用 `/Z7 -gline-tables-only -gcodeview-ghash` 与 `/DEBUG:GHASH`，只保留符号化函数栈和源码行所需的信息，不写变量/类型，并缩短 LLD 合并；EXE 只保留同目录 PDB 文件名的定位记录，不嵌入调试符号或本机构建绝对路径。三个 Clang 预设都会报告 `-Wnonportable-include-path`、`-Wreorder-ctor`、`-Wunused-*`、`-Wswitch` 等诊断，并应保持零警告。
 
-- **Release 崩溃取证：** `clang-release` 的 Fatal Error / Access Violation 先保留 `crash_report_*.txt`、现场资源 WARN、触发脚本和崩溃阶段，不凭异常地址猜源码；同次构建的精简 PDB 可符号化函数栈、内联关系和源码行，但不能检查变量或类型。若 LTO 内联/合并使调用栈仍难以定位，优先给最小复现补充针对性的状态投影、日志或断言；同一路径能在 `clang-debug` 复现时可用其辅助诊断，但 Debug 证据不能取代最终 Release 回归。新动画对象若在构造或首帧崩溃，先查 reanim 注册、动画类型映射和轨道资源；不要在 `Zombie`/`AnimatedObject` 基类添加宽泛空 Animator 早退，这通常只会把崩溃推迟到 `Start()`/`SetupZombie()` 并掩盖强制资源缺失。修复后回到 `clang-release` 重建并重跑原失败脚本及父类回归。
+- **Release 崩溃取证：** `clang-release` 的 Fatal Error / Access Violation 先保留 `crash_report_*.txt`、现场资源 WARN、触发脚本和崩溃阶段，不凭异常地址猜源码；同次构建的精简 PDB 可符号化函数栈、内联关系和源码行，但不能检查变量或类型。若 LTO 内联/合并使调用栈仍难以定位，优先给最小复现补充针对性的状态投影、日志或断言；同一路径能在 `clang-debug` 复现时可显式用其辅助诊断。新动画对象若在构造或首帧崩溃，先查 reanim 注册、动画类型映射和轨道资源；不要在 `Zombie`/`AnimatedObject` 基类添加宽泛空 Animator 早退，这通常只会把崩溃推迟到 `Start()`/`SetupZombie()` 并掩盖强制资源缺失。修复后用 `clang-release` 重建并重跑原失败脚本及父类回归。
 
 - **运行：** 可执行文件位于 `build\<preset>\PlantsVsZombies.exe`。`build\clang-release\resources` 与同级 `font` 是唯一实体目录；`clang-release-noavx2`、`clang-debug` 在首次配置时只创建 NTFS 目录联接，不复制资源。Shader、存档与 AutoTest 输出仍由各预设独立持有。运行游戏或 AutoTest 时，**必须以 exe 所在的 `build\<preset>\` 本身作为工作目录**：`Push-Location build\clang-release; .\PlantsVsZombies.exe -AutoTest <absolute-path>.json`。（⚠️ 根目录的 `x64\Release` 是陈旧产物，**禁止使用**。）
 - **在 VS 中开发：** 用 Visual Studio 的“打开文件夹”打开项目根目录，VS 会自动识别 CMakePresets。根目录 `launch.vs.json` 已包含 F5 调试配置、工作目录和 `-Debug` 变体。
@@ -76,7 +76,7 @@ Vulkan 运行时把 dynamic rendering 与 synchronization2 **分别**选路：Vu
 - **运行方式（工作目录必须是 exe 所在的 `build\<preset>\`）：** Codex 默认必须让窗口显示在主人当前桌面。GUI 启动属于沙箱外桌面操作，调用 shell 时使用 `sandbox_permissions="require_escalated"`；仅写 `-WindowStyle Normal` 而不提升权限，进程仍可能落入隔离会话、主人看不到。推荐命令：
 
   ```powershell
-  Push-Location build\clang-release   # 最终交付回归；迭代诊断可按上述规则换成 clang-debug
+  Push-Location build\clang-release   # 默认构建、迭代诊断与交付回归
   $exe = (Resolve-Path '.\PlantsVsZombies.exe').Path
   $script = (Resolve-Path '..\..\autotest\scripts\demo_peashooter.json').Path
   $process = Start-Process -FilePath $exe `

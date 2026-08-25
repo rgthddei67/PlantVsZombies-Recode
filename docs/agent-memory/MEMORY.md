@@ -144,7 +144,7 @@
 - [Volk动态 Vulkan loader + 1.2兼容矩阵 ✅](project_pvz_volk_dynamic_loader.md) — SDL2 loader→Volk动态分发；运行时优先1.3核心，并对 dynamic rendering / synchronization2 分别选择1.2 KHR或RenderPass/传统同步回退；Win7回退版已越过非法指令但一台实机的系统loader在首次枚举扩展时返回HOST_MEMORY，尚待同机vulkaninfo/loader/驱动诊断
 - [Windows 7 x64 系统 API 兼容层 + 导入门禁 ✅](project_pvz_win7_yy_thunks.md) — 仓库 overlay port 固定 YY-Thunks 1.2.2；LLD 用替代 import libs、MSVC 用官方 Win7 obj；PE subsystem 6.01，所有 EXE 链接后逐项核对 Win7 x64 导出表；另有同优化/LTO的`clang-release-noavx2`排除Win7 `0xC000001D`
 - [编译警告清零 ✅](project_pvz_warnings_cleanup.md) — 2026-06-13 clang-release 0warn；2026-08-12 将35处 `GameAPP.h` 引用统一为索引/磁盘的 `GameApp.h`，clang-release 复核无编译器警告；验证须用clang(msvc默认不报)
-- [CMake构建配置 ✅统一](project_pvz_cmake_migration.md) — 2026-08-25 三个 preset 统一为 `clang-cl + lld-link`，无 LTO 的 `clang-playtest` 已删除；普通任务用 `clang-debug` 增量诊断后以 `clang-release` 回归交付；Release 用最小 CodeView 行表 + GHASH，且仅 TestDriver 保留正式 ABI/LTO 而追加 `/Od`，对象编译实测 440.47秒→4.12秒；非默认 preset 以 NTFS Junction 共享单份 resources/font
+- [CMake构建配置 ✅统一](project_pvz_cmake_migration.md) — 2026-08-25 三个 preset 统一为 `clang-cl + lld-link`，无 LTO 的 `clang-playtest` 已删除；所有常规编译、F5、诊断 AutoTest 与交付回归默认直接使用 `clang-release`，不再必跑 Debug 或重复 AutoTest；Release 用最小 CodeView 行表 + GHASH，且仅 TestDriver 保留正式 ABI/LTO 而追加 `/Od`，对象编译实测 440.47秒→4.12秒；非默认 preset 以 NTFS Junction 共享单份 resources/font
 - [Build permission](feedback_build_permission_msbuild.md) — 主人解除构建限制:可直接命令行编译,不必F7不必核对时间戳(现用cmake preset)
 - [AutoTest套件 ✅](project_pvz_autotest_suite.md) — 2026-06-13完成;用法权威在CLAUDE.md AutoTest节(-AutoTest脚本+截图+dump_state闭环,-Seed确定性)
 - [PvZ轻量备份节点](project_pvz_backup_node.md) — 2026-08-13 Git SSH副本与GitHub独立镜像引用；AutoTest证据带提交/状态/逐文件SHA-256离机归档90天；每日健康报告、每周Git fsck；不替代Windows clang-release与可见AutoTest
@@ -171,7 +171,7 @@
 - [僵尸按行与稀有品种索引 ✅](project_pvz_zombie_row_index.md) — 2026-08-12 EntityRegistry加ForEachZombieInRow替GetAllZombieIDs全表扫；通用桶惰性每帧重建承接任意换行，同帧新增会置脏；黄色冰道与屋脊督军血条使用品种专用弱索引，逐帧稀有类型查询不得扫描全体；foot-gun=取全集或全表按类型过滤
 - [vcpkg缓存删除代价](feedback_vcpkg_cache_deletion.md) — vcpkg-master整目录不能删(toolchainFile指向);"可再生"≠"删了免费"(重装全量联网);清缓存前确认不reconfigure
 - [生存词条系统](project_pvz_perk_system.md) — 2026-07-20 共10词条(6植4僵)：阵营增伤由必填 `DamageSource` 在双方 `TakeDamage` 按来源结算，承伤词条仍覆盖所有来源；每轮2次独立选择，共享3次整批刷新；词条页退出存档避免重进叠卡
-- [资产/worktree/AutoTest坑](reference_pvz_assets_worktree_autotest_gotchas.md) — ①clang-release持有单份resources/font，playtest/debug用Junction；新worktree只需补一次权威原版资产 ②AutoTest wait字段名是"value"非frames ③状态切换后settle>30帧 ④蘑菇夜测goto 10-18 ⑤产阳光验证看dump sun字段
+- [资产/worktree/AutoTest坑](reference_pvz_assets_worktree_autotest_gotchas.md) — ①clang-release持有单份resources/font，debug/noavx2用Junction；新worktree只需补一次权威原版资产 ②AutoTest wait字段名是"value"非frames ③状态切换后settle>30帧 ④蘑菇夜测goto 10-18 ⑤产阳光验证看dump sun字段
 - [Animator三层速度模型 ✅push](project_pvz_animator_clip_speed.md) — 2026-06-07(e74bc76)EffectiveSpeed=(clip!=0?clip:base)*extra;clip绝对覆盖(非乘数)/0回落base;删mOriginalSpeed两步舞;存档animClipSpeed
 - [跨平台phase-1审查 ✅push](project_pvz_xplat_phase1_review.md) — 2026-06-25 FF合master(b3ff1da);load_file×2收编走FileManager;**目录枚举×2留phase-3(SDL/AAssetManager无列举API)**
 - [跨平台phase-3资源清单 ✅已push](project_pvz_xplat_phase3_manifest.md) — 2026-06-25(c50db1e)构建期gen_manifest.cmake glob生成manifest.txt+FileManager::ListResourceFiles经SDL_RWops读;**裁决:迁SDL3拿APK列目录是陷阱→清单方案库无关,SDL2栈即可用**

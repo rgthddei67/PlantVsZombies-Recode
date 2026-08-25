@@ -35,8 +35,19 @@
       }
     },
     {
+      "name": "clang-release",
+      "displayName": "Clang Release（默认：/O2 + AVX2 + fast-math + LTO + 精简行表 PDB）",
+      "inherits": "clang-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "PVZ_ENABLE_LTO": "ON",
+        "PVZ_ENABLE_AVX2": "ON",
+        "PVZ_ENABLE_PDB": "ON"
+      }
+    },
+    {
       "name": "clang-debug",
-      "displayName": "Clang Debug（/Od + /MTd + Debug CRT/PDB）",
+      "displayName": "Clang Debug（仅显式诊断：/Od + /MTd + Debug CRT/PDB）",
       "inherits": "clang-base",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
@@ -44,17 +55,6 @@
         "PVZ_ENABLE_AVX2": "OFF",
         "PVZ_ENABLE_PDB": "OFF",
         "PVZ_SHARED_RUNTIME_ROOT": "${sourceDir}/build/clang-release"
-      }
-    },
-    {
-      "name": "clang-release",
-      "displayName": "Clang Release（发布：/O2 + AVX2 + fast-math + LTO + 精简行表 PDB）",
-      "inherits": "clang-base",
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release",
-        "PVZ_ENABLE_LTO": "ON",
-        "PVZ_ENABLE_AVX2": "ON",
-        "PVZ_ENABLE_PDB": "ON"
       }
     },
     {
@@ -68,8 +68,8 @@
     }
   ],
   "buildPresets": [
-    { "name": "clang-debug", "configurePreset": "clang-debug" },
     { "name": "clang-release", "configurePreset": "clang-release" },
+    { "name": "clang-debug", "configurePreset": "clang-debug" },
     { "name": "clang-release-noavx2", "configurePreset": "clang-release-noavx2" }
   ]
 }

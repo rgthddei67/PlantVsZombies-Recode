@@ -48,7 +48,7 @@ description: Use when adding or tuning ANY rain-weather-dependent feature or Boa
    - 新字段能用中性默认值表示旧档时保持兼容；结构或语义变化无法只靠默认值表达时，提升 `SaveSchema::kCurrentLevelVersion`，增加逐版本迁移和 `SaveSchemaTests`。JSON 必须先升级成功，再修改 `Board`。
 6. 增加 AutoTest 可观测字段与最小脚本，覆盖晴天、目标雨势、放晴、减速/冻结组合，以及随机变异的固定种子结果。
 7. 更新对应天气/场景主题、相关僵尸/植物主题和 `docs/agent-memory/MEMORY.md`。
-8. 按项目指南选预设：普通天气功能在修改过程中用 `clang-debug`（`clang-cl + lld-link`、Debug CRT/Debug 语义）快速编译和诊断，收尾再整体编译带 LTO/完整 PDB 的 `clang-release` 并用它完成范围最小的最终可见 AutoTest；优化、性能、内存布局、并发、LTO 或 Release-only 行为相关的天气任务全程使用 `clang-release`。仅改技能文档时无需构建游戏。
+8. 所有天气任务的编译、F5、范围最小可见 AutoTest 和最终相关回归都默认直接使用带 LTO/精简行表 PDB 的 `clang-release`。同一份当前源码已用该产物完成相关验证时，不再重复编译 Debug 或重跑同一轮 AutoTest。只有主人明确要求 Debug CRT/Debug 语义，或 Release 问题确实需要辅助诊断时，才显式切换 `clang-debug`。仅改技能文档时无需构建游戏。
 
 ## 不可破坏的契约
 
