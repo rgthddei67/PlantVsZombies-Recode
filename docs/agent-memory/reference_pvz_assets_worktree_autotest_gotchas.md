@@ -10,8 +10,8 @@ metadata:
 2026-06-22 在 git worktree 里做生存词条查看面板、跑 AutoTest 验证时踩到的两个坑（都耗了时间，且第一个直接和 CLAUDE.md 写的相矛盾）：
 
 **① 运行资产只有一份实体：`build/clang-release/resources` 与 `font`。**
-- 2026-07-22 起，`clang-playtest`、`msvc-debug` 首次 configure 会自动创建指向上述实体目录的 NTFS Junction；后续构建不会复制 40MB 资源。每个 preset 的 Shader、存档和 AutoTest 输出仍独立。
-- 新增或修改 `gamedata.json`、`spawnlists.json`、`info.txt`、粒子配置、贴图等，只改 clang-release 的权威资源。不要再维护或提交 `build/msvc-debug/resources` 副本。
+- 当前 `clang-debug`、`clang-release-noavx2` 首次 configure 会自动创建指向上述实体目录的 NTFS Junction；后续构建不会复制 40MB 资源。每个 preset 的 Shader、存档和 AutoTest 输出仍独立。
+- 新增或修改 `gamedata.json`、`spawnlists.json`、`info.txt`、粒子配置、贴图等，只改 clang-release 的权威资源。不要再维护或提交其他 preset 的资源副本。
 - 新 worktree 仍没有原版未跟踪资产：先把主仓库的 `build/clang-release/resources` 与 `font` 各复制一次到新 worktree 的 `build/clang-release/`，随后 configure 其他 preset 会自动建立联接。缺资产时仍会在初始化阶段 exit -6/250。
 
 **② AutoTest `wait_frames` 的 JSON 字段名是 `"value"` 不是 `"frames"`。**
