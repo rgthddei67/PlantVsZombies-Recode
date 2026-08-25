@@ -520,6 +520,8 @@ protected:
 	virtual bool IsAlwaysAffectedByGoldenIce() const { return false; }
 	/** 当前品种是否接受台风的水平漂移；定点悬挂单位可关闭。 */
 	virtual bool CanBeMovedByTyphoonGust() const { return true; }
+	/** 当前逻辑位置是否已经越过世界回收边界；编队可覆写为共享位置权威。 */
+	virtual bool IsOutsideWorldCleanupBounds(const Vector& position) const;
 	/** 统计当前点由多少辆仍存活的鎏金冰车覆盖；仅剩持久冰道时至少返回一层。 */
 	int ComputeGoldenIceEffectStacks() const;
 	/** 每层黄色冰道把加速倍率乘二、减速倍率除二；中性倍率 1.0 保持不变。 */

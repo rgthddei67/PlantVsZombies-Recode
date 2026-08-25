@@ -228,6 +228,21 @@ void BobsledTeamZombie::ZombieMove(float scaledDelta, Transform* transform)
 	transform->Translate(-speed * scaledDelta, 0.0f);
 }
 
+/** 乘车与落地仍是一支编队，统一按队长 X 回收，避免后排槽位在出生区误杀整队。 */
+bool BobsledTeamZombie::IsOutsideWorldCleanupBounds(const Vector& position) const
+{
+	if (mPhase == Phase::WALKING) {
+		return Zombie::IsOutsideWorldCleanupBounds(position);
+	}
+
+	const BobsledTeamZombie* leader = mRole == Role::LEADER ? this : ResolveLeader();
+	if (!leader) {
+		// 损坏引用先由品种状态机安全下车；步行后再恢复独立回收。
+		return false;
+	}
+	return Zombie::IsOutsideWorldCleanupBounds(leader->GetPosition());
+}
+
 void BobsledTeamZombie::CheckFrozenFrontier()
 {
 	if (!mBoard || mPhase != Phase::RIDING || mRole != Role::LEADER) return;

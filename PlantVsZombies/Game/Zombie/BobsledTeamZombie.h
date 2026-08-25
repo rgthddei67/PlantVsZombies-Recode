@@ -64,6 +64,7 @@ protected:
 	void LoadExtraData(const nlohmann::json& j) override;
 	bool CanUseGroundPoolState() const override { return mPhase == Phase::WALKING; }
 	bool CanBeMovedByTyphoonGust() const override { return mPhase == Phase::WALKING; }
+	bool IsOutsideWorldCleanupBounds(const Vector& position) const override;
 
 private:
 	/** 队长首更新创建三名跟随者，并把稳定 ID 数组复制给整队。 */

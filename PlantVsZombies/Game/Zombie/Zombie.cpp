@@ -642,7 +642,7 @@ void Zombie::Update()
 			{
 				mBoard->GameOver();
 			}
-			if (position.x > static_cast<float>(SCENE_WIDTH + 65) || position.x < -20.0f)
+			if (IsOutsideWorldCleanupBounds(position))
 			{
 				this->Die();
 			}
@@ -1127,6 +1127,11 @@ void Zombie::UpdatePoolVisualState() const
 	if (auto* shadow = GetShadow()) {
 		shadow->SetVisible(!mInPool);
 	}
+}
+
+bool Zombie::IsOutsideWorldCleanupBounds(const Vector& position) const
+{
+	return position.x > static_cast<float>(SCENE_WIDTH + 65) || position.x < -20.0f;
 }
 
 void Zombie::ZombieMove(float scaledDelta, Transform* transform)
