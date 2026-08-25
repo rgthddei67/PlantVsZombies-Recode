@@ -109,6 +109,7 @@
     { "op": "assert_state", "path": "zombiesByType.ZOMBIE_ICE_CRACK_DRILL.helmHealth", "equals": 0 },
     { "op": "assert_state", "path": "zombiesByType.ZOMBIE_ICE_CRACK_DRILL.bodyHealth", "equals": 650 },
     { "op": "assert_state", "path": "zombiesByType.ZOMBIE_ICE_CRACK_DRILL.drillPhase", "equals": "SPENT" },
+    { "op": "assert_state", "path": "zombiesByType.ZOMBIE_ICE_CRACK_DRILL.drillRigAnimatorReady", "equals": false },
     { "op": "assert_state", "path": "zombiesByType.ZOMBIE_ICE_CRACK_DRILL.drillRigVisible", "equals": false },
     { "op": "assert_state", "path": "particleEffectNameCounts.IceCrackDrillRigOff", "equals": 1 },
     { "op": "assert_state", "path": "iceCrackDrillRigDropSoundRequestCount", "equals": 1 },

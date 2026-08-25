@@ -66,7 +66,7 @@ private:
 	float mChargeRemaining = 0.0f;
 	float mChargeParticleTimer = 0.0f;
 	bool mDrillUsed = false;
-	std::shared_ptr<Animator> mDrillRigAnimator;
+	mutable std::shared_ptr<Animator> mDrillRigAnimator;
 	mutable ArmorBrokenState mPresentedRigStage = ArmorBrokenState::NONE;
 	mutable DrillPhase mPresentedRigPhase = DrillPhase::SPENT;
 };

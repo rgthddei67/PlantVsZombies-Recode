@@ -190,7 +190,7 @@ void IceCrackDrillZombie::HelmDrop()
 	if (mHelmType == HelmType::HELMTYPE_NONE) return;
 	CancelCharge(true);
 	ConeZombie::HelmDrop();
-	if (mDrillRigAnimator) mDrillRigAnimator->SetAlpha(0.0f);
+	SyncDrillRigPresentation();
 	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_ARM_HEAD_DROP, 0.35f);
 }
 
@@ -298,8 +298,15 @@ void IceCrackDrillZombie::SyncDrillRigPresentation(bool restartTrack) const
 	if (!mDrillRigAnimator) return;
 	const bool visible = mHelmType != HelmType::HELMTYPE_NONE && mHelmHealth > 0
 		&& mHelmStage != ArmorBrokenState::NONE && !mIsDead;
-	mDrillRigAnimator->SetAlpha(visible ? 1.0f : 0.0f);
-	if (!visible) return;
+	if (!visible) {
+		// 永久破甲后直接销毁子 Animator；仅设 Alpha=0 仍可能被父级受击加色绘出幽灵轮廓。
+		if (mAnimator) {
+			mAnimator->DetachAnimator(kRigAttachTrack, mDrillRigAnimator);
+		}
+		mDrillRigAnimator.reset();
+		return;
+	}
+	mDrillRigAnimator->SetAlpha(1.0f);
 	if (!restartTrack && mPresentedRigStage == mHelmStage
 		&& mPresentedRigPhase == mDrillPhase) return;
 	mDrillRigAnimator->PlayTrack(GetDrillTrackName(),
