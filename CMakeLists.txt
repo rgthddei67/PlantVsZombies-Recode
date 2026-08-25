@@ -152,6 +152,11 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     if(PVZ_ENABLE_LTO)
         target_compile_options(PlantsVsZombies PRIVATE $<$<CONFIG:Release>:-flto>)
     endif()
+    # TestDriver 只在 AutoTest 模式执行重逻辑；Release 保持正式 ABI 与 LTO，
+    # 但跳过这个超大 JSON 命令翻译单元的前端优化，缩短日常完整构建尾部耗时。
+    set_property(SOURCE PlantVsZombies/Game/AutoTest/TestDriver.cpp APPEND PROPERTY
+        COMPILE_OPTIONS $<$<CONFIG:Release>:/Od>
+    )
     target_link_options(PlantsVsZombies PRIVATE
         $<$<OR:$<CONFIG:Release>,$<CONFIG:RelWithDebInfo>>:/OPT:REF /OPT:ICF>
     )

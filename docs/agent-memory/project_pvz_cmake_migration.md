@@ -8,6 +8,7 @@ metadata:
 ---
 
 **2026-08-24 当前构建契约（取代下方迁移初期的 preset/运行目录描述）：**
+- 2026-08-25 起，Clang Release 仅对 `Game/AutoTest/TestDriver.cpp` 在目标级 `/O2 ... -flto` 之后追加 `/Od`：保持 `-MT`、`_HAS_ITERATOR_DEBUGGING=0`、AVX2、`-flto` 与精简行表 PDB，不启用 Debug CRT 或 `_DEBUG`。普通游戏每逻辑步只执行单例取址与 `mActive` 早退；文件级名称映射仍按现状在启动构造，AutoTest JSON 命令重逻辑允许未优化。
 - `clang-debug`、`clang-release`、`clang-release-noavx2`、`clang-playtest` 四个 preset 全部继承 `clang-base`，统一使用 VS LLVM 的 `clang-cl + lld-link`；旧 `msvc-debug` preset 已删除，不再配置 `cl.exe` 编译器。
 - 普通功能、逻辑、UI、资源和存档任务的修改过程中，使用 `clang-debug` 做增量编译、F5 和范围最小的诊断 AutoTest；它保留 `/Ob0 /Od /RTC1 -MTd -Zi`、Debug CRT、断言与 PDB。任务完成后必须整体配置并编译一次 `clang-release`，最终相关回归也以该产物为交付证据，Debug 结果不能替代 Release 结果。
 - 性能、内存布局、并发、编译器优化、LTO 或仅在 Release 出现的问题属于优化相关任务，修改、验证与交付全程使用 `clang-release`：Clang `/O2` + AVX2 + fast-math + LTO，并以 `/Z7 -gline-tables-only -gcodeview-ghash` + `/DEBUG:GHASH` 生成与优化机器码匹配的精简外置 PDB。它只保留符号化函数栈、内联关系和源码行所需的信息，不包含变量、变量位置或类型；LLVM 文档明确把 `-gline-tables-only` 定义为可生成符号化回溯的最小信息。
@@ -28,6 +29,8 @@ metadata:
 确认 EXE 没有 `.debug` 符号节，仍有 x64 栈展开所需 `.pdata`；CodeView 定位数据仅 44 字节，
 PDB 路径为相对文件名 `PlantsVsZombies.pdb`。Release 全量构建与 Win7 378 项导入审计通过，
 CTest 3/3 通过。
+
+2026-08-25 TestDriver 编译特例证据：上一次相同机器、相同 `clang-release` 的 Ninja 日志记录 `TestDriver.cpp.obj` 为 440.47 秒；追加源文件级 `/Od` 且明确保留 `-flto` 后为 4.12 秒，约快 107 倍。旧 EXE 的 LTO 链接及后处理为 76.49 秒，新对象重链为 43.07 秒；对象加链接尾部由约 516.96 秒降至 47.19 秒。完整 Release 链接 exit 0，Win7 导入审计通过 378 项；当前桌面可见 `smoke_quit` 执行 4 条命令，exit 0、`status=passed`、默认 Vulkan 初始化并记录 `script finished OK`。
 
 2026-06-13 完成（4edb6c8 接入 → **a14a26c 统一**，主人主动要求"搞2套太乱"）：
 .sln/.vcxproj/.filters 已删，**CMake 是唯一构建系统**。

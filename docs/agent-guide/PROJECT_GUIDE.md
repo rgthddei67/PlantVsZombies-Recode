@@ -61,6 +61,10 @@ Vulkan 运行时把 dynamic rendering 与 synchronization2 **分别**选路：Vu
 
 工具链：C++17；源码使用 `/utf-8` 编码（中文 UI 字符串所必需）；Unicode 字符集；vcpkg 静态链接。无头运行时，`CrashHandler` 通过 Windows Vectored Exception Handler 生成的崩溃对话框不会出现在 stderr。
 
+### TestDriver 的 Release 编译例外
+
+`PlantVsZombies/Game/AutoTest/TestDriver.cpp` 只在 AutoTest 模式执行重逻辑；Clang Release 对该翻译单元保留正式 ABI、AVX2、`-flto` 和精简行表 PDB，但在源文件级最后追加 `/Od`，覆盖目标级 `/O2`。这不会切换 Debug CRT、定义 `_DEBUG` 或退出正式 LTO 链路；普通游戏每个逻辑步只多保留一次未优化的单例取址与 `mActive` 早退，现有名称映射仍在启动时构造，但不进入 JSON 命令重逻辑。2026-08-25 同机 Ninja 日志实测对象编译由 440.47 秒降至 4.12 秒，随后 LTO 链接及后处理为 43.07 秒，Win7 378 项导入审计与可见 `smoke_quit` 均通过。若调整此例外，必须分别比较对象与最终链接耗时，不能只用整次并行构建墙钟时间判断。
+
 ## 版本控制
 
 - Codex 负责提交已完成且验证通过的工作，然后根据当前风险和仓库状态决定是否 push。
