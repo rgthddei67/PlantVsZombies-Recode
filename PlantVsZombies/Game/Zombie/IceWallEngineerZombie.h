@@ -20,6 +20,8 @@ public:
 	void LoadExtraData(const nlohmann::json& j) override;
 	void ZombieItemUpdate() const override;
 	void Update() override;
+	float GetInterruptibleSpecialActionRemaining() const override;
+	bool InterruptUncommittedSpecialAction() override;
 
 	ConstructionPhase GetConstructionPhase() const { return mConstructionPhase; }
 	float GetConstructionRemaining() const { return mConstructionRemaining; }

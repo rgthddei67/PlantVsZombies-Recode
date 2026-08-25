@@ -56,6 +56,7 @@
 #include "CabbagePult.h"
 #include "MeltSnowPult.h"
 #include "FrostMine.h"
+#include "AlarmBellFlower.h"
 #include "KernelPult.h"
 #include "CobCannon.h"
 #include "CoffeeBean.h"
@@ -390,6 +391,12 @@ void GameDataManager::InitializeHardcodedData() {
 		AnimationType::ANIM_FROSTMINE,
 		ResourceKeys::Reanimations::REANIM_FROSTMINE,
 		&MakePlant<FrostMine>);
+
+	RegisterPlant(PlantType::PLANT_ALARMBELLFLOWER, "PLANT_ALARMBELLFLOWER",
+		ResourceKeys::Textures::IMAGE_ALARMBELLFLOWER,
+		AnimationType::ANIM_ALARMBELLFLOWER,
+		ResourceKeys::Reanimations::REANIM_ALARMBELLFLOWER,
+		&MakePlant<AlarmBellFlower>);
 
 	RegisterPlant(PlantType::PLANT_KERNELPULT, "PLANT_KERNELPULT",
 		ResourceKeys::Textures::IMAGE_CORNPULT,

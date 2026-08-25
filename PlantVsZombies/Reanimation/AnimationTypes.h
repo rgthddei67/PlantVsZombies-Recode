@@ -118,6 +118,7 @@ enum class AnimationType
 	ANIM_MELTSNOWPULT, // 融雪投手独立冰蓝投手时间线；追加在末尾避免旧动画枚举值错位
 	ANIM_ICE_CRACK_DRILL_ZOMBIE, // 冰裂钻机复用路障骨骼并挂载独立钻机 reanim
 	ANIM_FROSTMINE, // 伏霜雷独立三态完整立绘时间线；追加在末尾避免旧动画枚举值错位
+	ANIM_ALARMBELLFLOWER, // 警铃草复用 Blover 弯折时间轴并替换分件；追加在末尾避免旧动画枚举值错位
 };
 
 #endif

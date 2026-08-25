@@ -54,6 +54,7 @@
 #include "../Plant/CabbagePult.h"
 #include "../Plant/MeltSnowPult.h"
 #include "../Plant/FrostMine.h"
+#include "../Plant/AlarmBellFlower.h"
 #include "../Plant/KernelPult.h"
 #include "../Plant/MelonPult.h"
 #include "../Plant/GloomShroom.h"
@@ -360,6 +361,7 @@ namespace {
 		PT(PLANT_SNOWANCHORNUT),
 		PT(PLANT_MELTSNOWPULT),
 		PT(PLANT_FROSTMINE),
+		PT(PLANT_ALARMBELLFLOWER),
 	};
 #undef PT
 #define BT(n) { #n, BulletType::n }
@@ -1925,7 +1927,9 @@ bool TestDriver::ExecuteCurrent() {
 		}
 		const int row = cmd.value("row", -1);
 		const int index = cmd.value("index", 0);
+		const bool setAll = cmd.value("all", false);
 		int seen = 0;
+		int changedCount = 0;
 		std::vector<int> zombieIDs = gs->GetBoard()->mEntityRegistry.GetAllZombieIDs();
 		std::sort(zombieIDs.begin(), zombieIDs.end());
 		for (const int id : zombieIDs) {
@@ -1933,11 +1937,13 @@ bool TestDriver::ExecuteCurrent() {
 				gs->GetBoard()->mEntityRegistry.GetZombie(id));
 			if (!drill || !drill->IsActive()) continue;
 			if (row >= 0 && drill->mRow != row) continue;
-			if (seen++ != index) continue;
+			if (!setAll && seen++ != index) continue;
 			drill->SetDrillStateForTesting(phase,
 				cmd.value("remaining", 3.5f), cmd.value("used", false));
-			return true;
+			++changedCount;
+			if (!setAll) return true;
 		}
+		if (setAll && changedCount > 0) return true;
 		Fail("set_ice_crack_drill_state: 未找到目标冰裂钻机");
 		return false;
 	}
@@ -3984,6 +3990,24 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			&& ResourceManager::GetInstance().GetTexture(
 				ResourceKeys::Particles::PARTICLE_FROSTMINEPULSE, false) != nullptr },
 	};
+	out["alarmBellFlowerResources"] = {
+		{ "reanimationLoaded", ResourceManager::GetInstance().HasReanimation(
+			ResourceKeys::Reanimations::REANIM_ALARMBELLFLOWER) },
+		{ "cardTextureLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_ALARMBELLFLOWER, false) != nullptr },
+		{ "rigTexturesLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_REANIM_ALARMBELLFLOWER_HEAD_READY, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_REANIM_ALARMBELLFLOWER_HEAD_RINGING, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_REANIM_ALARMBELLFLOWER_HEAD_FADING, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_REANIM_ALARMBELLFLOWER_CLAPPER, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_REANIM_ALARMBELLFLOWER_BASE, false) != nullptr },
+		{ "particleTextureLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Particles::PARTICLE_ALARMBELLROWPULSE, false) != nullptr },
+	};
 	out["isBossLevel"] = AdventureProgression::IsBossLevel(board->mLevel);
 	out["bossSlot"] = BossSlotName(AdventureProgression::GetBossSlot(board->mLevel));
 	out["poolEffectCounter"] = gs->GetPoolEffectCounter();
@@ -5980,6 +6004,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			zombieState["buildWallCenterXInt"] = static_cast<int>(std::lround(
 				engineer->GetBuildWallCenterX()));
 			zombieState["constructionUsed"] = engineer->HasUsedConstruction();
+			zombieState["interruptibleSpecialRemainingMs"] = static_cast<int>(std::lround(
+				engineer->GetInterruptibleSpecialActionRemaining() * 1000.0f));
 			if (const ColliderComponent* collider = engineer->GetColliderComponent();
 				collider && board->GetFrozenColumnCount() > 0) {
 				const SDL_FRect bounds = collider->GetBoundingBox();
@@ -6477,6 +6503,15 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				std::to_string(p->mRow) + "_" + std::to_string(p->mColumn);
 			out["frostMinesByCell"][cellKey] = plantState;
 		}
+		if (auto* alarmBell = dynamic_cast<AlarmBellFlower*>(p)) {
+			plantState["alarmBellPulseTriggered"] = alarmBell->HasTriggeredPulse();
+			plantState["alarmBellPulseSucceeded"] = alarmBell->DidInterruptAction();
+			plantState["alarmBellAfterglowRemainingMs"] = static_cast<int>(std::lround(
+				alarmBell->GetAfterglowRemaining() * 1000.0f));
+			const std::string cellKey =
+				std::to_string(p->mRow) + "_" + std::to_string(p->mColumn);
+			out["alarmBellFlowersByCell"][cellKey] = plantState;
+		}
 		if (auto* imitater = dynamic_cast<Imitater*>(p)) {
 			plantState["imitaterTarget"] = PlantTypeName(
 				imitater->GetImitaterTarget());
@@ -6658,6 +6693,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["particleEffectNameCounts"]["IceCrackDrillRift"] = 0;
 	out["particleEffectNameCounts"]["IceCrackDrillRigOff"] = 0;
 	out["particleEffectNameCounts"]["FrostMineBurst"] = 0;
+	out["particleEffectNameCounts"]["AlarmBellRowPulse"] = 0;
 	if (g_particleSystem) {
 		for (const auto& effect : g_particleSystem->GetEffectsForTesting()) {
 			if (!effect) continue;

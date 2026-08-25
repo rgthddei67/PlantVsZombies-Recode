@@ -43,6 +43,7 @@
     "PLANT_CABBAGEPULT":     { "cost": 100, "cooldown": 7.5,  "offset": [-37.6, -44.0], "scale": 1.0, "simulation": { "baseHealth": 300, "attackDps": 13.33 } },
     "PLANT_MELTSNOWPULT":    { "cost": 125, "cooldown": 7.5,  "offset": [-37.6, -44.0], "scale": 1.0, "simulation": { "baseHealth": 300, "attackDps": 6.67 } },
     "PLANT_FROSTMINE":       { "cost": 50,  "cooldown": 30.0, "offset": [-42.0, -44.0], "scale": 1.0, "simulation": { "baseHealth": 300, "persistent": false } },
+    "PLANT_ALARMBELLFLOWER": { "cost": 25,  "cooldown": 50.0, "offset": [-42.0, -58.0], "scale": 1.0, "simulation": { "baseHealth": 300, "persistent": false } },
     "PLANT_KERNELPULT":      { "cost": 100, "cooldown": 7.5,  "offset": [-37.6, -44.0], "scale": 1.0, "simulation": { "baseHealth": 300, "attackDps": 8.33, "butterApplicationsPerSecond": 0.0833, "butterDuration": 4.0 } },
     "PLANT_COBCANNON":       { "cost": 500, "cooldown": 50.0, "offset": [-37.6, -44.0], "scale": 1.0, "simulation": { "baseHealth": 300, "persistent": false } },
     "PLANT_INSTANT_COFFEE":  { "cost": 75,  "cooldown": 7.5,  "offset": [-25.6, -54.0], "scale": 0.8, "simulation": { "baseHealth": 300, "persistent": false } },

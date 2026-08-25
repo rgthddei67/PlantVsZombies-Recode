@@ -93,6 +93,20 @@ void IceWallEngineerZombie::ZombieUpdate(float scaledTime)
 	if (mConstructionRemaining <= 0.0f) CompleteConstruction();
 }
 
+float IceWallEngineerZombie::GetInterruptibleSpecialActionRemaining() const
+{
+	return mConstructionPhase == ConstructionPhase::BUILDING
+		? mConstructionRemaining : -1.0f;
+}
+
+bool IceWallEngineerZombie::InterruptUncommittedSpecialAction()
+{
+	if (mConstructionPhase != ConstructionPhase::BUILDING) return false;
+	// 外部工具只撤销这次未完成施工；墙体和动作状态在同一入口原子回退，能力可重试。
+	CancelConstruction(false);
+	return true;
+}
+
 bool IceWallEngineerZombie::CanBeginConstruction() const
 {
 	return mBoard && !mIsPreview && IsActive() && !mIsDying
