@@ -25,9 +25,11 @@ metadata:
 
 ## 地裂与雪锚
 
-蓄力提交后由 Board 创建独立 `GroundRift`，来源僵尸死亡、魅惑或回暖都不回滚。地裂以 180px/游戏秒向房屋传播，跨大步长仍按列从右到左各结算一次；每格优先普通层、缺失时才取顶层，造成 500 点僵尸来源伤害并发射裂缝粒子。
+蓄力提交后由 Board 创建独立 `GroundRift`，来源僵尸死亡、魅惑或回暖都不回滚。地裂以 180px/游戏秒向房屋传播，跨大步长仍按列从右到左各结算一次；Board 的 `ForEachActivePlantInCell` 统一按 `overlay/pumpkin/normal/under` 快照并重新解析活动实体，`ApplyWinterGroundImpactToCell` 在同一入口之上先选定拦截响应、再逐层伤害。咖啡豆、南瓜、普通植物和花盆/睡莲均各自承受当前倍率下的 500 点僵尸来源伤害，并发射裂缝粒子；咖啡豆只对 `GROUND_CRACK` 走正式承伤，其他普通地面伤害免疫不变。
 
-雪锚果以 `WinterGroundImpactKind::GROUND_CRACK` 原子响应：自身先承受当前完整伤害，再把后续倍率乘 0.5，左侧植物因此承受 250。`GameObjectManager` 强持有地裂，Board 只持弱引用；关卡快照保存行、连续前沿 X、下一待结算列和后续倍率，读档不重播提交音效或首段粒子。Save Schema v4 为旧关卡档补每波预算 0 与空地裂数组。
+雪锚果以 `WinterGroundImpactKind::GROUND_CRACK` 原子响应：当前格全部植物层仍承受当前完整伤害，结算完该格后才把后续倍率乘 0.5，左侧各层植物因此承受 250。`GameObjectManager` 强持有地裂，Board 只持弱引用；关卡快照保存行、连续前沿 X、下一待结算列和后续倍率，读档不重播提交音效或首段粒子。Save Schema v4 为旧关卡档补每波预算 0 与空地裂数组。
+
+2026-08-25 整格伤害修正按主人要求不运行 AutoTest，只完成源码审计与 `clang-debug`/`clang-release` 编译；四层实际受击表现由主人实机验收。
 
 ## 2026-08-25 验证
 

@@ -15,6 +15,9 @@ public:
 	bool CanBeEaten() const override { return false; }
 	/** 原版 flying 咖啡豆不参与地面植物伤害结算；等待和碎裂阶段均忽略伤害。 */
 	void TakeDamage(int damage, DamageSource source) override;
+	/** 地裂明确命中整个植物格，因此咖啡豆对此类别例外地走基类正式承伤链。 */
+	void TakeWinterGroundImpactDamage(WinterGroundImpactKind kind,
+		int damage, DamageSource source) override;
 	void SaveExtraData(nlohmann::json& j) const override;
 	void LoadExtraData(const nlohmann::json& j) override;
 

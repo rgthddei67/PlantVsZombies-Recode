@@ -6663,6 +6663,67 @@ Plant* Board::GetOverlayPlantAt(int row, int col) const
 	return cell ? mEntityRegistry.GetPlant(cell->GetOverlayPlantID()) : nullptr;
 }
 
+/** 快照格内分层实体 ID 后逐一重新解析，允许回调安全结束植物生命周期。 */
+void Board::ForEachActivePlantInCell(int row, int col,
+	const std::function<void(Plant&)>& action)
+{
+	if (!action || row < 0 || row >= mRows || col < 0 || col >= mColumns) return;
+	const Cell* cell = mCells[row][col];
+	if (!cell) return;
+
+	const std::array<int, 4> plantIDs = {
+		cell->GetOverlayPlantID(),
+		cell->GetPumpkinPlantID(),
+		cell->GetNormalPlantID(),
+		cell->GetUnderPlantID(),
+	};
+	for (const int plantID : plantIDs) {
+		Plant* plant = mEntityRegistry.GetPlant(plantID);
+		if (!plant || !plant->IsActive() || plant->IsPreview()
+			|| plant->IsSquished() || plant->mPlantHealth <= 0) {
+			continue;
+		}
+		action(*plant);
+	}
+}
+
+/** 先冻结同格目标集合与拦截语义，再逐层承伤，避免上层死亡改变本次命中集合。 */
+WinterGroundImpactResponse Board::ApplyWinterGroundImpactToCell(int row, int col,
+	WinterGroundImpactKind kind, int damage, DamageSource source)
+{
+	std::array<int, 4> plantIDs{};
+	std::size_t plantCount = 0;
+	ForEachActivePlantInCell(row, col, [&](Plant& plant) {
+		plantIDs[plantCount++] = plant.mPlantID;
+	});
+
+	WinterGroundImpactResponse response;
+	for (std::size_t i = 0; i < plantCount; ++i) {
+		Plant* plant = mEntityRegistry.GetPlant(plantIDs[i]);
+		if (!plant || !plant->IsActive() || plant->IsPreview()
+			|| plant->IsSquished() || plant->mPlantHealth <= 0) {
+			continue;
+		}
+		const WinterGroundImpactResponse candidate =
+			plant->ResolveWinterGroundImpact(kind);
+		if (candidate.intercepted) {
+			response = candidate;
+			break;
+		}
+	}
+
+	if (damage <= 0) return response;
+	for (std::size_t i = 0; i < plantCount; ++i) {
+		Plant* plant = mEntityRegistry.GetPlant(plantIDs[i]);
+		if (!plant || !plant->IsActive() || plant->IsPreview()
+			|| plant->IsSquished() || plant->mPlantHealth <= 0) {
+			continue;
+		}
+		plant->TakeWinterGroundImpactDamage(kind, damage, source);
+	}
+	return response;
+}
+
 /**
  * 在目标九宫格中稳定选择最近的活动南瓜头；南瓜本体只由自己承伤，避免外壳连锁保护。
  */

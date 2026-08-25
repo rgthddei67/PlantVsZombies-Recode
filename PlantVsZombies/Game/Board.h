@@ -38,8 +38,11 @@ class GroundRift;
 class Shovel;
 class Mower;
 struct MagneticItem;
+struct WinterGroundImpactResponse;
+enum class DamageSource;
 enum class MowerType;
 enum class PlanternGear : int;
+enum class WinterGroundImpactKind;
 enum class ZombieJumpType;
 namespace PlantDefenseMonteCarlo { struct Snapshot; }
 
@@ -1042,6 +1045,21 @@ public:
 	Plant* GetPumpkinAt(int row, int col) const;
 	/** 返回指定格短时飞行覆盖层；当前由咖啡豆占用，不参与顶层啃食或铲子选择。 */
 	Plant* GetOverlayPlantAt(int row, int col) const;
+	/**
+	 * 按飞行覆盖、南瓜、普通、承载层顺序访问指定格全部活动植物。
+	 *
+	 * 访问前会快照实体 ID，并在每次回调前重新验证实体；回调可使植物死亡或释放格位，
+	 * 但本次遍历不会纳入回调期间新进入该格的植物。
+	 */
+	void ForEachActivePlantInCell(int row, int col,
+		const std::function<void(Plant&)>& action);
+	/**
+	 * 对指定格全部活动植物结算一次冬季地面冲击，并返回首个拦截响应。
+	 *
+	 * 先选定传播响应，再让同格各层共享调用时给定的伤害；响应倍率由调用方从后续格应用。
+	 */
+	WinterGroundImpactResponse ApplyWinterGroundImpactToCell(int row, int col,
+		WinterGroundImpactKind kind, int damage, DamageSource source);
 	/**
 	 * 返回能替目标植物承受僵尸范围爆炸的南瓜头。
 	 *

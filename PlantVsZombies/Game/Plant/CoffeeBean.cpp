@@ -44,6 +44,13 @@ void CoffeeBean::TakeDamage(int, DamageSource)
 	// flying 覆盖层没有地面受击语义；目标蘑菇仍由普通层独立结算伤害。
 }
 
+void CoffeeBean::TakeWinterGroundImpactDamage(WinterGroundImpactKind kind,
+	int damage, DamageSource source)
+{
+	if (kind != WinterGroundImpactKind::GROUND_CRACK) return;
+	Plant::TakeDamage(damage, source);
+}
+
 void CoffeeBean::StartCrumbling()
 {
 	if (mPhase == Phase::CRUMBLING) return;

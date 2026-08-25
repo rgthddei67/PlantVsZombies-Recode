@@ -143,6 +143,11 @@ public:
 	 */
 	virtual WinterGroundImpactResponse ResolveWinterGroundImpact(
 		WinterGroundImpactKind) { return {}; }
+	/**
+	 * 结算冬季地面冲击伤害；默认复用正式承伤链，悬浮覆盖层可按冲击类别声明窄例外。
+	 */
+	virtual void TakeWinterGroundImpactDamage(WinterGroundImpactKind,
+		int damage, DamageSource source) { TakeDamage(damage, source); }
 	/** 本轮寒潮预报被敌方干扰时，清除依赖预报保留的准备状态。 */
 	virtual void OnColdWaveForecastDisrupted() {}
 	virtual void SaveExtraData(nlohmann::json& j) const {}

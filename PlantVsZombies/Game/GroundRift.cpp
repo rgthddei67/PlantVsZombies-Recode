@@ -80,21 +80,16 @@ void GroundRift::ResolveCrossedColumns(float newFrontX)
 void GroundRift::ResolveColumn(int column)
 {
 	if (!mBoard || column < 0 || column >= mBoard->mColumns) return;
-	Plant* target = mBoard->GetNormalPlantAt(mRow, column);
-	if (!target) target = mBoard->GetTopPlantAt(mRow, column);
-	if (target && target->IsActive() && !target->IsPreview()
-		&& !target->IsSquished()) {
-		const WinterGroundImpactResponse response =
-			target->ResolveWinterGroundImpact(WinterGroundImpactKind::GROUND_CRACK);
-		const int damage = std::max(1, static_cast<int>(std::lround(
-			static_cast<float>(kPlantDamage) * mDownstreamDamageMultiplier)));
-		target->TakeDamage(damage, DamageSource::ZOMBIE);
-		if (response.intercepted) {
-			mDownstreamDamageMultiplier = std::clamp(
-				mDownstreamDamageMultiplier
-					* response.downstreamDamageMultiplier,
-				0.0f, 1.0f);
-		}
+	const int damage = std::max(1, static_cast<int>(std::lround(
+		static_cast<float>(kPlantDamage) * mDownstreamDamageMultiplier)));
+	const WinterGroundImpactResponse response =
+		mBoard->ApplyWinterGroundImpactToCell(mRow, column,
+			WinterGroundImpactKind::GROUND_CRACK, damage, DamageSource::ZOMBIE);
+	// 雪锚等拦截只改变后续左侧格；当前格四层共享命中前的同一伤害倍率。
+	if (response.intercepted) {
+		mDownstreamDamageMultiplier = std::clamp(
+			mDownstreamDamageMultiplier * response.downstreamDamageMultiplier,
+			0.0f, 1.0f);
 	}
 
 	if (g_particleSystem) {
