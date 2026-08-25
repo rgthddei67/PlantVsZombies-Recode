@@ -1,0 +1,18 @@
+{
+  "commands": [
+    { "op": "set_adventure_level", "level": 57 },
+    { "op": "goto_zombie_almanac" },
+    { "op": "wait_frames", "value": 40 },
+    { "op": "assert_state", "path": "zombieAlmanacEntries.36", "equals": "ZOMBIE_BOBSLED_TEAM" },
+    { "op": "move_mouse", "x": 428, "y": 478 },
+    { "op": "wait_frames", "value": 10 },
+    { "op": "click", "x": 428, "y": 478, "hold_frames": 2 },
+    { "op": "wait_frames", "value": 20 },
+    { "op": "assert_state", "path": "zombieAlmanacSelected", "equals": "ZOMBIE_BOBSLED_TEAM" },
+    { "op": "assert_state", "path": "zombieAlmanacPreview.bobsledMemberCount", "equals": 4 },
+    { "op": "assert_state", "path": "zombieAlmanacPreview.bobsledSlotMask", "equals": 15 },
+    { "op": "assert_state", "path": "zombieAlmanacPreview.bobsledXSpanOn1000", "equals": 150000 },
+    { "op": "screenshot", "name": "bobsled_team_almanac_full_preview.png" },
+    { "op": "quit" }
+  ]
+}

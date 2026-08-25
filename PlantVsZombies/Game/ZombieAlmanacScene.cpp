@@ -3,6 +3,7 @@
 #include "../GameApp.h"
 #include "AdventureProgression.h"
 #include "Zombie/Zombie.h"
+#include "Zombie/BobsledTeamZombie.h"
 #include "ClickableComponent.h"
 #include "ShadowComponent.h"
 #include "./Plant/GameDataManager.h"
@@ -21,6 +22,7 @@ constexpr int   ZOMBIE_V_SPACING = 4;
 
 constexpr float PREVIEW_ZOMBIE_X = 900.0f;
 constexpr float PREVIEW_ZOMBIE_Y = 280.0f;
+constexpr float PREVIEW_BOBSLED_LEADER_X = 850.0f; // 四人雪橇详情预览左移，给 150px 编队跨度留出卡片空间
 
 // 描述书写区（羊皮纸内沿，屏幕坐标）。卡片图 IMAGE_ALMANAC_ZOMBIECARD 绘于 (745,110)，
 // 324x497；僵尸预览窗更大，书写区比植物卡更靠下、更矮。
@@ -228,18 +230,38 @@ void ZombieAlmanacScene::OnZombieClicked(ZombieType type)
 
 void ZombieAlmanacScene::CreatePreviewZombie(ZombieType type)
 {
+	const float previewX = type == ZombieType::ZOMBIE_BOBSLED_TEAM
+		? PREVIEW_BOBSLED_LEADER_X : PREVIEW_ZOMBIE_X;
 	auto zombie = GameAPP::GetInstance().InstantiateZombieFree(
-		type, nullptr, PREVIEW_ZOMBIE_X, PREVIEW_ZOMBIE_Y);
+		type, nullptr, previewX, PREVIEW_ZOMBIE_Y);
 	if (!zombie) return;
 	mPreviewZombie = zombie;
+	mPreviewZombieMembers.push_back(zombie);
+
+	if (auto* leader = dynamic_cast<BobsledTeamZombie*>(zombie.get())) {
+		leader->ConfigurePreviewTeamMember(0);
+		for (int slot = 1; slot < 4; ++slot) {
+			auto member = GameAPP::GetInstance().InstantiateZombieFree(
+				type, nullptr,
+				previewX + BobsledTeamZombie::GetPreviewMemberOffsetX(slot),
+				PREVIEW_ZOMBIE_Y);
+			if (member) mPreviewZombieMembers.push_back(member);
+			if (auto* rider = dynamic_cast<BobsledTeamZombie*>(member.get())) {
+				rider->ConfigurePreviewTeamMember(slot);
+			}
+		}
+	}
 }
 
 void ZombieAlmanacScene::DestroyPreviewZombie()
 {
-	if (auto zombie = mPreviewZombie.lock()) {
-		GameObjectManager::GetInstance().DestroyGameObject(zombie);
-		mPreviewZombie.reset();
+	for (const auto& weakMember : mPreviewZombieMembers) {
+		if (auto member = weakMember.lock()) {
+			GameObjectManager::GetInstance().DestroyGameObject(member);
+		}
 	}
+	mPreviewZombieMembers.clear();
+	mPreviewZombie.reset();
 }
 
 void ZombieAlmanacScene::Update()
@@ -270,6 +292,7 @@ void ZombieAlmanacScene::OnExit()
 	mGridPositions.clear();
 	mDisplayedZombieTypes.clear();
 	mPreviewZombie.reset();
+	mPreviewZombieMembers.clear();
 	mBackMenuButton.reset();
 	mInfoMap.clear();
 	mCurrentZombieName.clear();

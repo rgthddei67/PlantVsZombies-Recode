@@ -9,6 +9,8 @@
     { "op": "set_cold_wave", "phase": "COLD", "temperature": -4, "remaining": 30, "strength": "WEAK", "targetTemperature": -4, "coolingDuration": 23, "holdDuration": 42, "thawDuration": 27 },
     { "op": "wait_frames", "value": 2 },
 
+    { "op": "assert_state", "path": "zombieCount", "equals": 0 },
+    { "op": "assert_state", "path": "zombieNumber", "equals": 0 },
     { "op": "assert_state", "path": "background", "equals": "WINTER_GARDEN" },
     { "op": "assert_state", "path": "spawnListHasBobsledTeam", "equals": true },
     { "op": "assert_state", "path": "bobsledTeamResources.reanimationLoaded", "equals": true },
@@ -35,6 +37,8 @@
     { "op": "kill_zombie", "row": 2, "index": 0 },
     { "op": "wait_frames", "value": 2 },
     { "op": "assert_state", "path": "bobsledTeamZombieCount", "equals": 0 },
+    { "op": "assert_state", "path": "zombieCount", "equals": 0 },
+    { "op": "assert_state", "path": "zombieNumber", "equals": 0 },
 
     { "op": "spawn_wave_zombie", "type": "ZOMBIE_BOBSLED_TEAM", "mutationRoll": 50, "row": 2, "x": 900 },
     { "op": "wait_frames", "value": 2 },
@@ -175,6 +179,9 @@
     { "op": "assert_state", "path": "zombieAlmanacPreview.type", "equals": "ZOMBIE_BOBSLED_TEAM" },
     { "op": "assert_state", "path": "zombieAlmanacPreview.bobsledRole", "equals": "LEADER" },
     { "op": "assert_state", "path": "zombieAlmanacPreview.bobsledPhase", "equals": "RIDING" },
+    { "op": "assert_state", "path": "zombieAlmanacPreview.bobsledMemberCount", "equals": 4 },
+    { "op": "assert_state", "path": "zombieAlmanacPreview.bobsledSlotMask", "equals": 15 },
+    { "op": "assert_state", "path": "zombieAlmanacPreview.bobsledXSpanOn1000", "equals": 150000 },
     { "op": "screenshot", "name": "07_bobsled_team_almanac.png" },
     { "op": "dump_state", "name": "bobsled_team_final_state.json" },
     { "op": "quit" }

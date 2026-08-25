@@ -19,6 +19,7 @@ private:
 	std::vector<Vector> mGridPositions;
 	std::vector<ZombieType> mDisplayedZombieTypes;
 	std::weak_ptr<Zombie> mPreviewZombie;
+	std::vector<std::weak_ptr<Zombie>> mPreviewZombieMembers;
 
 	ZombieType mCurrentZombieType = ZombieType::NUM_ZOMBIE_TYPES;
 	std::unordered_map<std::string, std::string> mInfoMap;
@@ -33,7 +34,9 @@ private:
 	/** 为已遭遇类型创建可点击的图鉴网格和裁剪预览。 */
 	void CreateAllZombieEntries();
 	void OnZombieClicked(ZombieType type);
+	/** 创建详情窗预览；编队类型会同时创建全部纯展示成员。 */
 	void CreatePreviewZombie(ZombieType type);
+	/** 销毁详情窗当前预览组，避免切换条目后遗留编队成员。 */
 	void DestroyPreviewZombie();
 	void LoadInfoFile();
 	void UpdateZombieInfo(ZombieType type);
@@ -57,6 +60,10 @@ public:
 	Zombie* GetPreviewZombie() const {
 		const auto zombie = mPreviewZombie.lock();
 		return zombie.get();
+	}
+	/** 返回详情窗当前展示的全部实体；编队类型可包含多个仅表现成员。 */
+	const std::vector<std::weak_ptr<Zombie>>& GetPreviewZombieMembers() const {
+		return mPreviewZombieMembers;
 	}
 
 	bool mReadyToSwitchAlmanacScene = false;

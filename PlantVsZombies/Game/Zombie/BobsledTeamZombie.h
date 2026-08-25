@@ -53,6 +53,10 @@ public:
 	int GetLiveTeamMemberCount() const;
 	bool WasScatterContained() const { return mScatterContained; }
 	float GetLandingTimeRemaining() const;
+	/** 将选卡展示实体配置为指定骑乘槽位；不注册正式队伍 ID 或生成玩法实体。 */
+	void ConfigurePreviewTeamMember(int slot);
+	/** 返回选卡展示中指定骑乘槽位相对队长的水平偏移，单位 px。 */
+	static float GetPreviewMemberOffsetX(int slot);
 
 protected:
 	void SetupZombie() override;
@@ -83,7 +87,7 @@ private:
 	void BeginOrphanLanding();
 	/** 冻土左边界或冻土消失时触发普通散开。 */
 	void CheckFrozenFrontier();
-	/** 车上任一成员死亡时，由队长一次性回收所有仍存活成员。 */
+	/** 车上任一成员死亡时，由队长一次性回收自身和所有已登记的存活成员。 */
 	void KillAttachedTeam();
 	/** 恢复雪橇阶段的大碰撞框或普通地面碰撞框。 */
 	void ConfigureColliderForPhase();

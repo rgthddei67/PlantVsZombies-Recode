@@ -1,0 +1,20 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 56, "resetTestState": true },
+    { "op": "wait_state", "state": "CHOOSE_CARD", "timeout": 15 },
+    { "op": "wait_frames", "value": 240 },
+    { "op": "assert_state", "path": "previewBobsledMemberCount", "equals": 4 },
+    { "op": "assert_state", "path": "previewBobsledSlotMask", "equals": 15 },
+    { "op": "assert_state", "path": "previewBobsledXSpanOn1000", "equals": 150000 },
+    { "op": "screenshot", "name": "bobsled_preview_full_team.png" },
+    { "op": "choose_cards", "cards": ["PLANT_PEASHOOTER"] },
+    { "op": "wait_state", "state": "GAME", "timeout": 15 },
+    { "op": "set_spawn_paused", "value": true },
+    { "op": "wait_frames", "value": 2 },
+    { "op": "assert_state", "path": "zombieCount", "equals": 0 },
+    { "op": "screenshot", "name": "bobsled_preview_count_after_start.png" },
+    { "op": "assert_state", "path": "zombieNumber", "equals": 0 },
+    { "op": "dump_state", "name": "bobsled_preview_count_final_state.json" },
+    { "op": "quit" }
+  ]
+}

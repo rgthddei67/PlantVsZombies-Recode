@@ -22,6 +22,7 @@
 #include "./Plant/Plantern.h"
 #include "./Plant/CobCannon.h"
 #include "./Zombie/Zombie.h"
+#include "./Zombie/BobsledTeamZombie.h"
 #include "./Zombie/HealerZombie.h"
 #include "./Zombie/HijackerZombie.h"
 #include "./Zombie/InsulatorZombie.h"
@@ -7317,6 +7318,7 @@ void Board::TrySummonAdventureBoss()
 	}
 }
 
+/** 为每个出怪候选创建选卡展示对象，并为编队候选补充无玩法注册的纯展示成员。 */
 void Board::CreatePreviewZombies()
 {
 	if (mBoardState != BoardState::CHOOSE_CARD || !mPreviewZombieList.empty()
@@ -7343,9 +7345,32 @@ void Board::CreatePreviewZombies()
 				zombieType, this, spawnX, spawnY);
 		}
 		if (!preview) continue;
-		// 与 Zombie::Die 中的 mZombieNumber-- 保持平衡（预览僵尸 board == this，销毁时会递减）。
-		mZombieNumber++;
-		mPreviewZombieList.push_back(preview.get());
+		auto addPreview = [this](const std::shared_ptr<Zombie>& member) {
+			if (!member) return;
+			// 与 Zombie::Die 中的 mZombieNumber-- 保持平衡（预览僵尸 board == this，销毁时会递减）。
+			mZombieNumber++;
+			mPreviewZombieList.push_back(member.get());
+		};
+
+		if (auto* leader = dynamic_cast<BobsledTeamZombie*>(preview.get())) {
+			// 出怪表仍只有一个正式候选；选卡宣传画面单独补齐三名无 ID、无碰撞的展示队员。
+			leader->ConfigurePreviewTeamMember(0);
+			addPreview(preview);
+			const Vector leaderPosition = preview->GetPosition();
+			for (int slot = 1; slot < 4; ++slot) {
+				auto member = GameAPP::GetInstance().InstantiateZombieFree(
+					zombieType, this,
+					leaderPosition.x + BobsledTeamZombie::GetPreviewMemberOffsetX(slot),
+					leaderPosition.y);
+				if (member) addPreview(member);
+				if (auto* rider = dynamic_cast<BobsledTeamZombie*>(member.get())) {
+					rider->ConfigurePreviewTeamMember(slot);
+				}
+			}
+			continue;
+		}
+
+		addPreview(preview);
 	}
 }
 

@@ -1,0 +1,15 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 56, "resetTestState": true },
+    { "op": "wait_state", "state": "GAME", "timeout": 15 },
+    { "op": "wait_frames", "value": 2 },
+    { "op": "assert_state", "path": "wave", "equals": 30 },
+    { "op": "assert_state", "path": "maxWave", "equals": 30 },
+    { "op": "assert_state", "path": "zombieCount", "equals": 0 },
+    { "op": "assert_state", "path": "zombieNumber", "equals": 0 },
+    { "op": "assert_state", "path": "trophy.x", "atLeast": 0, "atMost": 1100 },
+    { "op": "screenshot", "name": "level56_zero_count_save_trophy.png" },
+    { "op": "dump_state", "name": "level56_zero_count_save_final_state.json" },
+    { "op": "quit" }
+  ]
+}

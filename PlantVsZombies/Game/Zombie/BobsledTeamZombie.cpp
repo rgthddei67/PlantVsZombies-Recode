@@ -139,6 +139,28 @@ void BobsledTeamZombie::ConfigureFollower(int leaderID, int slot)
 	PlayTrack("anim_push", 1.0f, 0.0f);
 }
 
+void BobsledTeamZombie::ConfigurePreviewTeamMember(int slot)
+{
+	if (!mIsPreview) return;
+	mSlot = std::clamp(slot, 0, 3);
+	mRole = mSlot == 0 ? Role::LEADER : Role::FOLLOWER;
+	mLeaderID = NULL_ZOMBIE_ID;
+	mMemberIDs.fill(NULL_ZOMBIE_ID);
+	mTeamSpawned = true;
+	if (mRole == Role::FOLLOWER) {
+		mHelmType = HelmType::HELMTYPE_NONE;
+		mHelmHealth = 0;
+		mHelmMaxHealth = 0;
+	}
+	ConfigureColliderForPhase();
+	PlayTrack("anim_push", 1.0f, 0.0f);
+}
+
+float BobsledTeamZombie::GetPreviewMemberOffsetX(int slot)
+{
+	return kRiderSpacing * static_cast<float>(std::clamp(slot, 0, 3));
+}
+
 BobsledTeamZombie* BobsledTeamZombie::ResolveLeader() const
 {
 	if (!mBoard) return nullptr;
@@ -545,9 +567,13 @@ void BobsledTeamZombie::KillAttachedTeam()
 
 	leader->mTeamTeardown = true;
 	std::array<BobsledTeamZombie*, 4> members{};
-	for (int slot = 0; slot < static_cast<int>(members.size()); ++slot) {
+	// 预览队长和首帧尚未登记队员 ID 的正式队长也必须完成基础死亡，否则 Board 计数会永久多 1。
+	members[0] = leader;
+	for (int slot = 1; slot < static_cast<int>(members.size()); ++slot) {
 		members[slot] = leader->ResolveMember(slot);
-		if (members[slot]) members[slot]->mTeamTeardown = true;
+	}
+	for (BobsledTeamZombie* member : members) {
+		if (member) member->mTeamTeardown = true;
 	}
 	for (BobsledTeamZombie* member : members) {
 		if (member && !member->mIsDead) member->Zombie::Die();
@@ -587,9 +613,14 @@ void BobsledTeamZombie::OnStartEating()
 
 const Texture* BobsledTeamZombie::GetSledFrontTexture() const
 {
-	const BobsledTeamZombie* leader = mRole == Role::LEADER ? this : ResolveLeader();
+	const bool previewTeamAnchor = mIsPreview && mTeamSpawned;
+	const BobsledTeamZombie* leader = previewTeamAnchor
+		? this : (mRole == Role::LEADER ? this : ResolveLeader());
 	if (!leader) return nullptr;
 	auto& resources = ResourceManager::GetInstance();
+	if (previewTeamAnchor) {
+		return resources.GetTexture(ResourceKeys::Textures::IMAGE_ZOMBIE_BOBSLED1, false);
+	}
 	if (leader->mPhase == Phase::LANDING) {
 		return resources.GetTexture(ResourceKeys::Textures::IMAGE_ZOMBIE_BOBSLED4, false);
 	}
@@ -607,10 +638,16 @@ void BobsledTeamZombie::DrawSledLayer(
 	Graphics* g, bool drawInside, bool drawFront) const
 {
 	if (!g || (!drawInside && !drawFront)) return;
-	const BobsledTeamZombie* leader = mRole == Role::LEADER ? this : ResolveLeader();
+	const bool previewTeamAnchor = mIsPreview && mTeamSpawned;
+	const BobsledTeamZombie* leader = previewTeamAnchor
+		? this : (mRole == Role::LEADER ? this : ResolveLeader());
 	if (!leader) return;
-	const Vector base = leader->Zombie::GetVisualPosition()
-		+ Vector(kSledDrawOffsetX, kSledDrawOffsetY);
+	Vector leaderVisualPosition = leader->Zombie::GetVisualPosition();
+	if (previewTeamAnchor) {
+		// 展示队员没有注册 ID；由负责分层的槽位反推队长原点，避免伪造玩法引用。
+		leaderVisualPosition.x -= GetPreviewMemberOffsetX(mSlot);
+	}
+	const Vector base = leaderVisualPosition + Vector(kSledDrawOffsetX, kSledDrawOffsetY);
 	const float scale = leader->GetTransform()
 		? leader->GetTransform()->GetScale() : 1.0f;
 	float alpha = 255.0f;
@@ -640,10 +677,11 @@ void BobsledTeamZombie::DrawSledLayer(
 
 void BobsledTeamZombie::Draw(Graphics* g)
 {
-	const bool preview = mIsPreview;
+	// 图鉴等单体预览仍自行包住一辆雪橇；选卡完整编队沿用正式四槽的单车分层。
+	const bool singlePreview = mIsPreview && !mTeamSpawned;
 	const float landingT = mPhase == Phase::LANDING
 		? std::clamp(mLandingElapsed / kLandingDuration, 0.0f, 1.0f) : 0.0f;
-	if (preview) {
+	if (singlePreview) {
 		DrawSledLayer(g, true, false);
 	}
 	else if (mPhase == Phase::RIDING && mSlot == 2) {
@@ -658,7 +696,7 @@ void BobsledTeamZombie::Draw(Graphics* g)
 
 	Zombie::Draw(g);
 
-	if (preview) {
+	if (singlePreview) {
 		DrawSledLayer(g, false, true);
 	}
 	else if (mPhase == Phase::LANDING && landingT >= 0.5f

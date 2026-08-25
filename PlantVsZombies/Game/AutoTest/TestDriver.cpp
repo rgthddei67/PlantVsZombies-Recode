@@ -3696,6 +3696,24 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				previewState["bobsledPhase"] = bobsled->GetBobsledPhase()
 					== BobsledTeamZombie::Phase::RIDING ? "RIDING" : "WALKING";
 				previewState["bobsledSlot"] = bobsled->GetBobsledSlot();
+				int memberCount = 0;
+				int slotMask = 0;
+				float minX = std::numeric_limits<float>::max();
+				float maxX = std::numeric_limits<float>::lowest();
+				for (const auto& weakMember : almanac->GetPreviewZombieMembers()) {
+					const auto member = weakMember.lock();
+					auto* rider = dynamic_cast<BobsledTeamZombie*>(member.get());
+					if (!rider || !rider->IsActive()) continue;
+					const float x = rider->GetPosition().x;
+					++memberCount;
+					slotMask |= 1 << rider->GetBobsledSlot();
+					minX = std::min(minX, x);
+					maxX = std::max(maxX, x);
+				}
+				previewState["bobsledMemberCount"] = memberCount;
+				previewState["bobsledSlotMask"] = slotMask;
+				previewState["bobsledXSpanOn1000"] = memberCount > 0
+					? static_cast<int>(std::lround((maxX - minX) * 1000.0f)) : 0;
 			}
 			if (auto* drill = dynamic_cast<IceCrackDrillZombie*>(preview)) {
 				previewState["drillRigAnimatorReady"] = drill->HasDrillRigAnimator();
@@ -3956,21 +3974,39 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			ResourceKeys::Reanimations::REANIM_ROOF_CLEANER) },
 	};
 	out["previewZombies"] = nlohmann::json::array();
+	int previewBobsledMemberCount = 0;
+	int previewBobsledSlotMask = 0;
+	float previewBobsledMinX = std::numeric_limits<float>::max();
+	float previewBobsledMaxX = std::numeric_limits<float>::lowest();
 	for (Zombie* preview : board->mPreviewZombieList) {
 		if (!preview || !preview->IsActive()) continue;
 		const Vector pos = preview->GetPosition();
 		const float terrainY = preview->mRow >= 0
 			? board->GetZombieSpawnY(preview->mRow, pos.x) : pos.y;
-		out["previewZombies"].push_back({
+		nlohmann::json previewState = {
 			{ "type", ZombieTypeName(preview->mZombieType) },
 			{ "row", preview->mRow },
 			{ "xInt", static_cast<int>(std::lround(pos.x)) },
 			{ "yInt", static_cast<int>(std::lround(pos.y)) },
 			{ "terrainYOffsetOn1000", static_cast<int>(std::lround(
 				(pos.y - terrainY) * 1000.0f)) },
-		});
+		};
+		if (auto* bobsled = dynamic_cast<BobsledTeamZombie*>(preview)) {
+			const int slot = bobsled->GetBobsledSlot();
+			previewState["bobsledSlot"] = slot;
+			++previewBobsledMemberCount;
+			previewBobsledSlotMask |= 1 << slot;
+			previewBobsledMinX = std::min(previewBobsledMinX, pos.x);
+			previewBobsledMaxX = std::max(previewBobsledMaxX, pos.x);
+		}
+		out["previewZombies"].push_back(std::move(previewState));
 	}
 	out["previewZombieCount"] = static_cast<int>(out["previewZombies"].size());
+	out["previewBobsledMemberCount"] = previewBobsledMemberCount;
+	out["previewBobsledSlotMask"] = previewBobsledSlotMask;
+	out["previewBobsledXSpanOn1000"] = previewBobsledMemberCount > 0
+		? static_cast<int>(std::lround((previewBobsledMaxX - previewBobsledMinX) * 1000.0f))
+		: 0;
 	out["supportsWeather"] = board->SupportsWeather();
 	out["poolRows"] = nlohmann::json::array();
 	for (int row = 0; row < board->mRows; ++row) {
