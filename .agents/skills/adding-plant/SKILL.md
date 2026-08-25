@@ -32,7 +32,7 @@ description: Use when adding ANY new plant (新增植物) to PvZ — 射手/生�
 2. **读 C# 参考并主动盘点音效**：`D:\PVZ\PlantsVsZombies.NET-master\Lawn_Shared\Lawn\Plant\Plant.cs`，grep 植物名，读专属 Update 函数 + 发射物类型 + mShootingCounter/state 分支，先记录必须忠实的行为与数值，再按本项目现有所有权、坐标、更新、绘制和存档契约实现；同时收集相关路径的全部 `PlayFoley` / `PlaySample`，不要等主人听出缺声才补。受啃、受击等由外部对象触发的反馈还必须搜索消费方（例如 `Zombie::AnimateChewSound` 会按植物类型选择 `ChompSoft`），不能只读 `Plant.cs`。沿 `FoleyType → Sexy.TodLib/Foley/TodFoley.cs → Resources.SOUND_*` 得到精确资源键，以资源键去掉 `SOUND_` 后的小写名到 `D:\PVZ\中文年度加强版完整版\Test\sounds\` 查同名 `.ogg`。找到后复制到唯一权威 `build/clang-release/resources/sounds/` 合理子目录，并同步 `resources.xml` 与 `ResourceKeys.h`；找不到才问主人，禁止用相近声音静默替代。构建后检查 `manifest.txt` 和启动日志无 missing sound，并用可见行为路径及 `GetSoundPlayRequestCount` 投影验证触发次数（含读档不得重响）。
 3. **盘点已就位的基建**（常常提前有了，别重复加）：`PlantType.h` 枚举、`TestDriver.cpp` kPlantNames、`ResourceKeys.h` RKEY、`AnimationTypes.h`、卡片图 `PlantImage/<Name>.png`、reanim 部件图。缺哪补哪。
    如果植物枚举、冒险解锁位或 AutoTest 名称表已经预置但尚未注册，保留现有位置与整数 ID，只补缺失接线；动画枚举仍追加在末尾，禁止为追求排列整齐移动旧值或再加重复项。
-   `image/reanim/` 全目录预加载生成 `IMAGE_<文件名大写>`；只有被 reanim XML 的 `<i>` 直接引用的部件才会额外获得 `IMAGE_REANIM_*` 别名。运行时动态换入、但不在 XML 时间线出现的受伤材质必须用前者。更新派生阶段时先确认 `GetTexture` 非空，再提交阶段缓存，避免“状态断言通过、画面仍是旧图”的假绿。
+   `image/reanim/` 全目录预加载生成 `IMAGE_<文件名大写>`；只有被 reanim XML 的 `<i>` 直接引用的部件才会额外获得 `IMAGE_REANIM_*` 别名。运行时动态换入、但不在 XML 时间线出现的受伤材质必须用前者。若完整状态图需要在启动预加载阶段就以 `IMAGE_REANIM_X` 取得，文件 stem 本身必须写成 `REANIM_X`（或让 reanim 确实引用并加载该键），不能把 `FrostMine_dormant.png` 误当成会自动注册 `IMAGE_REANIM_FROSTMINE_DORMANT`。更新派生阶段时先确认 `GetTexture` 非空，再提交阶段缓存，避免“状态断言通过、画面仍是旧图”的假绿。
    派生换色必须逐个核对目标 reanim 的实际 `<i>` 资源键，不能从 track 名或文件名猜部件归属：名字像 `backleaf` 的轨道可能属于地面叶座，头后小叶反而可能引用共享 `ANIM_SPROUT`。只给真正需要变色的共享部件派生独立纹理并替换新 reanim 的键，原植物仍保留共享资源；AutoTest 为该独立键增加 `GetTexture(key,false)` 断言并截图。
 
 ## 实现清单
@@ -65,6 +65,8 @@ description: Use when adding ANY new plant (新增植物) to PvZ — 射手/生�
 24. **外部攻击只派发植物语义钩子，不在攻击者侧堆类型表**：巨人第 93 帧按 `overlay/pumpkin/normal/under` 快照逐层调用 `Plant::ResolveGargantuarSmash()`；基类默认 `Squish()`，特殊植物自己决定立即结算或忽略。正在 `anim_explode` 的樱桃、辣椒和清醒毁灭菇必须复用各自正式爆炸入口并立即死亡；清醒寒冰菇同样立即复用正式冻结入口（音效、白闪、全场 `StartFrozen` 与自身死亡），跳过剩余动画。禁止快进 Animator、补播压扁残影或复制伤害/音画；睡眠毁灭菇和寒冰菇仍走默认压扁。倭瓜只在 `IDLE` 接受压扁，`LOOKING` 起的攻击流程忽略锤击并保留完整观察→预备→起跳→砸落动画；这不妨碍同格花盆等其他层独立受击。AutoTest 用命中帧前夹具在不足自然结算时长内断言正式特效/伤害，并同时覆盖普通植物、睡眠态、倭瓜与下层支撑。
 25. **天气条件式一次防御只保存消费结果，不复制天气资格**：植物从 `Board` 当前真实格况（如 `IsCellFrozen`）派生是否可用，并通过通用语义接口原子返回拦截、散射收束或后续伤害倍率；来袭僵尸/环境威胁继续拥有自身伤害、动作时序、音画与乘员落点，禁止按植物类型分支。若每实体一生只能触发一次，只保存 `spent`，解冻/再冻结不得返还；加载用中性默认兼容旧档并静默重建当前材质。专项覆盖未满足天气、满足天气、首次消费、重复请求、解冻/再冻结、快照往返、基类中性响应和条件外观截图。
 26. **预报装填植物只观察 Board 公开预报的上升沿**：库存补充语义若是“补至上限”就直接赋上限，不在现有库存上累加；`SetupPlant` 也读取当前预报，使预报期新种植物立即获得同等待遇。植物保存库存、已经锁定的待发弹型与是否已观察本次预报；干扰由 Board 保存“本轮预报已失效”，按稳定植物 ID 调用通用 `OnColdWaveForecastDisrupted` 清除库存和仍在前摇的待发弹，但已经创建并进入对象池/存档的空中弹丸保持独立。下一轮计划锁定时才重置 Board 干扰态，禁止干扰后同轮靠每帧观察重新装填。专项覆盖放置时装填、重复观察不累加、前摇清弹、空中弹保留、干扰态与植物/弹丸快照往返。
+
+27. **预报准备态与实际兑现态必须分开提交**：按格预判先由 Board 从本轮锁定的目标温度复用实际霜线分档公式，植物只查询“本格是否在准确预报覆盖内”，不得复制温度阈值。预报期进入 `CALIBRATED`，气象干扰只把尚未兑现的校准退回中性；本格真正冻结后原子进入 `ARMED` 等已提交态，此后回暖、下一轮预报和干扰均不得撤销。阶段完整入档，旧档默认中性，加载只同步终态材质。接触型结算同时接碰撞回调与同行稳定 ID 主动扫描，覆盖武装前已重叠的目标；地面/飞行、魅惑、死亡等资格由目标通用虚入口声明，植物侧不维护僵尸类型表。专项覆盖预报边界、干扰后实际冻结仍不触发、兑现后回暖、快照往返、已有重叠、飞行负例及特殊目标尚未提交动作的中断顺序。
 
 - **整格植物效果使用 Board 统一遍历入口**：`ForEachActivePlantInCell` 按 `overlay/pumpkin/normal/under` 快照实体 ID，并在每次动作前重新解析活动实体；适合中毒、冻结、治疗等通用 `std::function<void(Plant&)>` 动作。若效果还要聚合拦截、传播倍率或固定时序，另设语义明确的窄入口并在内部复用遍历，不能把状态归并责任交给任意回调。
 

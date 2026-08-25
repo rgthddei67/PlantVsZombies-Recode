@@ -1,0 +1,21 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 59, "resetTestState": true },
+    { "op": "choose_cards", "cards": ["PLANT_FROSTMINE"] },
+    { "op": "wait_state", "state": "GAME", "timeout": 15 },
+    { "op": "set_spawn_paused", "value": true },
+    { "op": "set_sun", "value": 9000 },
+    { "op": "set_cold_wave", "phase": "CALM", "temperature": 6, "remaining": 20, "targetTemperature": -6 },
+    { "op": "plant", "type": "PLANT_FROSTMINE", "row": 2, "col": 4 },
+    { "op": "plant", "type": "PLANT_FROSTMINE", "row": 2, "col": 5 },
+    { "op": "wait_frames", "value": 2 },
+    { "op": "assert_state", "path": "frostMinesByCell.2_4.frostMinePhase", "equals": "DORMANT" },
+    { "op": "assert_state", "path": "frostMinesByCell.2_5.frostMinePhase", "equals": "CALIBRATED" },
+    { "op": "screenshot", "name": "01_noinstance_dormant_calibrated.png" },
+    { "op": "set_cold_wave", "phase": "COLD", "temperature": -6, "remaining": 30, "strength": "WEAK", "targetTemperature": -6 },
+    { "op": "wait_frames", "value": 2 },
+    { "op": "assert_state", "path": "frostMinesByCell.2_5.frostMinePhase", "equals": "ARMED" },
+    { "op": "screenshot", "name": "02_noinstance_dormant_armed.png" },
+    { "op": "quit" }
+  ]
+}

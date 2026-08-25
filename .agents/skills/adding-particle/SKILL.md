@@ -131,6 +131,7 @@ description: Use when adding or tuning ANY particle effect (粒子特效) in PvZ
 20. **原版 `Circle`/`Away` 不是坐标轴场**：两者分别绕系统中心沿切线、径向直接推进位置；禁止为了通过现有解析器把它们改写成 `Position`/`Acceleration`，否则 `Circle X=[-140 -70]` 会被误画成左移 70～140px 的脱体烟团。未知 `FieldType` 必须告警并按 INVALID 忽略，不能静默降级成 Position。
 21. **全屏降水要按实际场景高度验位移**：发射器放在屏幕上沿时，`Position Y` 的寿命末位移必须覆盖 600px 战场并留出出生框余量；只增加粒子数而位移不足，会让雨雪长期挤在顶边。天气由另一环境维度切换雨/雪时，触发端先停止旧效果、再用同一雨势的持续时长重建新效果；地面水花、雷电和环境音由各自系统显式门禁，不能指望粒子 XML 一并关闭。
 22. **同轨迹的语义变体仍使用独立图集键和首个效果名**：普通弹与特殊弹可以复用分片列数、寿命和 Field 几何，但可复现脚本应生成不同文件名的图集，分别登记 `<ParticleTextures>` 并让两份 XML 的首个 `Name`/`<Image>` 全部独立；否则运行时换色或后续调参会串改另一弹型。AutoTest 同时断言两组关键分片加载、普通/特殊命中计数互斥，并在同步截图确认颜色与目标锚点。
+23. **新增、改名或删除资源文件后先刷新 manifest 再启动**：`LoadAllImagesFromPath` 不直接枚举 NTFS，而是按 `resources/manifest.txt` 扫描；只改 PNG/XML 而不构建会让旧清单继续打开已改名文件，启动最终以资源失败退出，即使 `resources.xml` 已是新路径。正常流程至少执行一次会生成清单的目标构建；只做纯资源诊断时可用 `cmake/gen_manifest.cmake` 按当前权威 `build/clang-release/resources` 立即重建，再核对新键存在且旧路径消失。其他 preset 经 Junction 读取同一份清单，禁止各自维护副本。
 
 ## 配方（照抄改数）
 

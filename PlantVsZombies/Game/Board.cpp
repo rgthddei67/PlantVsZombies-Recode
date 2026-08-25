@@ -4654,6 +4654,17 @@ int Board::GetFrozenColumnCount() const
 	return std::clamp(coldBand, 1, maximumFrozen);
 }
 
+/** 预报与实际霜线共用同一温度分档公式，但只读取本轮已经锁定的最低温。 */
+int Board::GetForecastFrozenColumnCount() const
+{
+	if (!HasColdWaveForecast()
+		|| mColdWaveTargetTemperatureC > kWinterFreezeTemperatureC) return 0;
+	const int maximumFrozen = std::max(0, mColumns - kWinterSafeColumnCount);
+	const int coldBand = static_cast<int>(
+		std::floor(-mColdWaveTargetTemperatureC / 2.0f)) + 1;
+	return std::clamp(coldBand, 1, maximumFrozen);
+}
+
 /**
  * 在相邻两档玩法冻结列之间按温度线性插值，让霜线平滑移动；整数交点仍与正式格线一致。
  */
@@ -4675,6 +4686,13 @@ bool Board::IsCellFrozen(int row, int col) const
 {
 	return row >= 0 && row < mRows && col >= 0 && col < mColumns
 		&& GetFrozenColumnCount() > 0 && col >= GetFirstFrozenColumn();
+}
+
+bool Board::IsCellInColdWaveForecast(int row, int col) const
+{
+	const int frozenColumns = GetForecastFrozenColumnCount();
+	return row >= 0 && row < mRows && col >= 0 && col < mColumns
+		&& frozenColumns > 0 && col >= mColumns - frozenColumns;
 }
 
 bool Board::IsPlantFootprintFrozen(PlantType type, int row, int anchorColumn) const

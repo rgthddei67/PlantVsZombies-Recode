@@ -655,10 +655,14 @@ public:
 	bool DisruptColdWaveForecast();
 	bool IsColdWaveActive() const;
 	int GetFrozenColumnCount() const;
+	/** 返回当前准确寒潮预报在最低温时会冻结的列数；无有效预报时返回 0。 */
+	int GetForecastFrozenColumnCount() const;
 	/** 返回从僵尸侧连续推进的视觉霜冻列数；玩法冻结资格仍使用整数列。 */
 	float GetWinterFrostVisualColumnCount() const;
 	int GetFirstFrozenColumn() const;
 	bool IsCellFrozen(int row, int col) const;
+	/** 当前准确预报的最低温是否会覆盖该格；预报干扰后立即返回 false。 */
+	bool IsCellInColdWaveForecast(int row, int col) const;
 	/** 当前低温会把同一雨势的视觉改为雪；雨势强度和玩法倍率保持原值。 */
 	bool IsWinterPrecipitationSnow() const;
 	/** AutoTest 固定一轮完整寒潮计划；生产逻辑只走 RollNextColdWave 与 UpdateWinterTemperature。 */

@@ -117,6 +117,7 @@ enum class AnimationType
 	ANIM_BOBSLED_TEAM_ZOMBIE, // 原版雪橇车队推车、下车、走路、啃食与死亡时间线
 	ANIM_MELTSNOWPULT, // 融雪投手独立冰蓝投手时间线；追加在末尾避免旧动画枚举值错位
 	ANIM_ICE_CRACK_DRILL_ZOMBIE, // 冰裂钻机复用路障骨骼并挂载独立钻机 reanim
+	ANIM_FROSTMINE, // 伏霜雷独立三态完整立绘时间线；追加在末尾避免旧动画枚举值错位
 };
 
 #endif

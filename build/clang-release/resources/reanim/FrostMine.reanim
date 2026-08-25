@@ -1,0 +1,15 @@
+<fps>12</fps>
+<track>
+<name>anim_idle</name>
+<t></t><t></t><t></t><t></t><t></t><t></t><t></t><t></t>
+<t></t><t></t><t></t><t></t><t></t><t></t><t></t><t></t>
+</track>
+<track>
+<name>FrostMine_body</name>
+<t><x>8</x><y>8</y><sx>0.840</sx><sy>0.840</sy><i>IMAGE_REANIM_FROSTMINE_DORMANT</i></t>
+<t><y>7.7</y><sy>0.842</sy></t><t><y>7.4</y><sy>0.844</sy></t><t><y>7.1</y><sy>0.846</sy></t>
+<t><y>6.8</y><sy>0.848</sy></t><t><y>7.1</y><sy>0.846</sy></t><t><y>7.4</y><sy>0.844</sy></t>
+<t><y>7.7</y><sy>0.842</sy></t><t><y>8</y><sy>0.840</sy></t><t><y>8.2</y><sy>0.839</sy></t>
+<t><y>8.4</y><sy>0.838</sy></t><t><y>8.6</y><sy>0.837</sy></t><t><y>8.8</y><sy>0.836</sy></t>
+<t><y>8.6</y><sy>0.837</sy></t><t><y>8.4</y><sy>0.838</sy></t><t><y>8.2</y><sy>0.839</sy></t>
+</track>

@@ -223,6 +223,10 @@
     <Image>./resources/image/PlantImage/SnowAnchorNut.png</Image>
 	<Image>./resources/image/PlantImage/MeltSnowPult.png</Image>
 	<Image>./resources/image/reanim/MeltSnowPult_saltcrystal.png</Image>
+	<Image>./resources/image/PlantImage/FrostMine.png</Image>
+	<Image>./resources/image/reanim/REANIM_FROSTMINE_DORMANT.png</Image>
+	<Image>./resources/image/reanim/REANIM_FROSTMINE_CALIBRATED.png</Image>
+	<Image>./resources/image/reanim/REANIM_FROSTMINE_ARMED.png</Image>
     <Image>./resources/image/reanim/SnowAnchorNut_body.png</Image>
     <Image>./resources/image/reanim/SnowAnchorNut_cracked1.png</Image>
     <Image>./resources/image/reanim/SnowAnchorNut_cracked2.png</Image>
@@ -289,6 +293,8 @@
 	<Texture Column="3" Row="1">./resources/particles/melt_snow_particles.png</Texture>
 	<Texture Column="4" Row="1">./resources/particles/salt_crystal_splats.png</Texture>
 	<Texture Column="3" Row="1">./resources/particles/salt_crystal_particles.png</Texture>
+	<Texture Column="4" Row="1">./resources/particles/FrostMineShards.png</Texture>
+	<Texture>./resources/particles/FrostMinePulse.png</Texture>
     <Texture Column="5" Row="1">./resources/particles/WallnutParticlesSmall.png</Texture>
     <Texture Column="5" Row="1">./resources/particles/WallnutParticlesLarge.png</Texture>
     <Texture>./resources/particles/Star40.png</Texture>
@@ -547,6 +553,7 @@
     <Reanimation name="Pot">./resources/reanim/Pot.reanim</Reanimation>
     <Reanimation name="Cabbagepult">./resources/reanim/Cabbagepult.reanim</Reanimation>
 	<Reanimation name="MeltSnowPult">./resources/reanim/MeltSnowPult.reanim</Reanimation>
+	<Reanimation name="FrostMine">./resources/reanim/FrostMine.reanim</Reanimation>
     <Reanimation name="Cornpult">./resources/reanim/Cornpult.reanim</Reanimation>
     <Reanimation name="Coffeebean">./resources/reanim/Coffeebean.reanim</Reanimation>
     <Reanimation name="Garlic">./resources/reanim/Garlic.reanim</Reanimation>

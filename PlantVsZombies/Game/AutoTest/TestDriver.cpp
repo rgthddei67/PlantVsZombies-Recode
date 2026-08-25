@@ -53,6 +53,7 @@
 #include "../Plant/FlowerPot.h"
 #include "../Plant/CabbagePult.h"
 #include "../Plant/MeltSnowPult.h"
+#include "../Plant/FrostMine.h"
 #include "../Plant/KernelPult.h"
 #include "../Plant/MelonPult.h"
 #include "../Plant/GloomShroom.h"
@@ -357,6 +358,7 @@ namespace {
 		PT(PLANT_GROUNDINGSHROOM), PT(PLANT_LIGHTNINGRODPOT),
 		PT(PLANT_SNOWANCHORNUT),
 		PT(PLANT_MELTSNOWPULT),
+		PT(PLANT_FROSTMINE),
 	};
 #undef PT
 #define BT(n) { #n, BulletType::n }
@@ -3895,6 +3897,24 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			&& ResourceManager::GetInstance().GetTexture(
 				ResourceKeys::Particles::PARTICLE_SALT_CRYSTAL_PARTICLES_PART_0, false) != nullptr },
 	};
+	out["frostMineResources"] = {
+		{ "reanimationLoaded", ResourceManager::GetInstance().HasReanimation(
+			ResourceKeys::Reanimations::REANIM_FROSTMINE) },
+		{ "cardTextureLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_FROSTMINE, false) != nullptr },
+		{ "stateTexturesLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_REANIM_FROSTMINE_DORMANT, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_REANIM_FROSTMINE_CALIBRATED, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_REANIM_FROSTMINE_ARMED, false) != nullptr },
+		{ "particleTexturesLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Particles::PARTICLE_FROSTMINESHARDS_PART_0, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Particles::PARTICLE_FROSTMINESHARDS_PART_3, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Particles::PARTICLE_FROSTMINEPULSE, false) != nullptr },
+	};
 	out["isBossLevel"] = AdventureProgression::IsBossLevel(board->mLevel);
 	out["bossSlot"] = BossSlotName(AdventureProgression::GetBossSlot(board->mLevel));
 	out["poolEffectCounter"] = gs->GetPoolEffectCounter();
@@ -4666,6 +4686,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "phaseRemainingMs", static_cast<int>(std::lround(
 				board->GetColdWaveTimer() * 1000.0f)) },
 			{ "frozenColumns", board->GetFrozenColumnCount() },
+			{ "forecastFrozenColumns", board->GetForecastFrozenColumnCount() },
 			{ "frostVisualColumnsOn1000", static_cast<int>(std::lround(
 				board->GetWinterFrostVisualColumnCount() * 1000.0f)) },
 			{ "firstFrozenColumn", board->GetFirstFrozenColumn() },
@@ -6042,6 +6063,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["flowerPotsByCell"] = nlohmann::json::object();
 	out["scaredyShroomsByCell"] = nlohmann::json::object();
 	out["meltSnowPultsByCell"] = nlohmann::json::object();
+	out["frostMinesByCell"] = nlohmann::json::object();
 	int repeatingShootingHeadCount = 0;
 	for (int id : board->mEntityRegistry.GetAllPlantIDs()) {
 		Plant* p = board->mEntityRegistry.GetPlant(id);
@@ -6315,6 +6337,14 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				std::to_string(p->mRow) + "_" + std::to_string(p->mColumn);
 			out["meltSnowPultsByCell"][cellKey] = plantState;
 		}
+		if (auto* frostMine = dynamic_cast<FrostMine*>(p)) {
+			plantState["frostMinePhase"] = frostMine->GetPhaseName();
+			plantState["frostMineCalibrated"] = frostMine->IsCalibrated();
+			plantState["frostMineArmed"] = frostMine->IsArmed();
+			const std::string cellKey =
+				std::to_string(p->mRow) + "_" + std::to_string(p->mColumn);
+			out["frostMinesByCell"][cellKey] = plantState;
+		}
 		if (auto* imitater = dynamic_cast<Imitater*>(p)) {
 			plantState["imitaterTarget"] = PlantTypeName(
 				imitater->GetImitaterTarget());
@@ -6485,6 +6515,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["particleEffectNameCounts"]["IceCrackDrillCharge"] = 0;
 	out["particleEffectNameCounts"]["IceCrackDrillRift"] = 0;
 	out["particleEffectNameCounts"]["IceCrackDrillRigOff"] = 0;
+	out["particleEffectNameCounts"]["FrostMineBurst"] = 0;
 	if (g_particleSystem) {
 		for (const auto& effect : g_particleSystem->GetEffectsForTesting()) {
 			if (!effect) continue;

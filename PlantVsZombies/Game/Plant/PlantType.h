@@ -66,6 +66,7 @@ enum class PlantType
 	PLANT_LIGHTNINGRODPOT,	// 避雷花盆；6-4 奖励，花盆承载层紫卡升级
 	PLANT_SNOWANCHORNUT,	// 雪锚果；7-1 奖励，在真实冻土中提供一次冬季冲击整形
 	PLANT_MELTSNOWPULT,	// 融雪投手；7-2 奖励，准确寒潮预报装填三发盐晶弹
+	PLANT_FROSTMINE,	// 伏霜雷；7-4 奖励，预报校准并在实际冻土中埋伏地面目标
 	NUM_PLANT_TYPES,
 };
 

@@ -1,0 +1,47 @@
+<Emitter>
+  <Name>FrostMineBurst</Name>
+  <SpawnMinActive>[8 11]</SpawnMinActive>
+  <SpawnMaxLaunched>11</SpawnMaxLaunched>
+  <EmitterType>Circle</EmitterType>
+  <EmitterRadius>[2 9]</EmitterRadius>
+  <ParticleDuration>[.42 .68]</ParticleDuration>
+  <ParticleAlpha>1,72 0</ParticleAlpha>
+  <ParticleScale>[.58 .92] .2</ParticleScale>
+  <LaunchSpeed>[70 125]</LaunchSpeed>
+  <ParticleGravity>135</ParticleGravity>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <ParticleSpinSpeed>[-220 220]</ParticleSpinSpeed>
+  <SystemDuration>.78</SystemDuration>
+  <Image>PARTICLE_FROSTMINESHARDS_PART_0,PARTICLE_FROSTMINESHARDS_PART_1,PARTICLE_FROSTMINESHARDS_PART_2,PARTICLE_FROSTMINESHARDS_PART_3</Image>
+  <Field>
+    <FieldType>Friction</FieldType>
+    <X>.018</X>
+    <Y>.018</Y>
+  </Field>
+</Emitter>
+<Emitter>
+  <Name>FrostMineBurstPulse</Name>
+  <SpawnMinActive>1</SpawnMinActive>
+  <SpawnMaxLaunched>1</SpawnMaxLaunched>
+  <ParticleDuration>.42</ParticleDuration>
+  <ParticleAlpha>.95 0</ParticleAlpha>
+  <ParticleScale>.5 1.25</ParticleScale>
+  <SystemDuration>.48</SystemDuration>
+  <Image>PARTICLE_FROSTMINEPULSE</Image>
+</Emitter>
+<Emitter>
+  <Name>FrostMineBurstSnow</Name>
+  <SpawnMinActive>[5 8]</SpawnMinActive>
+  <SpawnMaxLaunched>8</SpawnMaxLaunched>
+  <EmitterType>Circle</EmitterType>
+  <EmitterRadius>[0 7]</EmitterRadius>
+  <ParticleDuration>[.32 .55]</ParticleDuration>
+  <ParticleAlpha>.72,70 0</ParticleAlpha>
+  <ParticleScale>[.45 .72] .25</ParticleScale>
+  <LaunchSpeed>[28 65]</LaunchSpeed>
+  <ParticleGravity>45</ParticleGravity>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <ParticleSpinSpeed>[-120 120]</ParticleSpinSpeed>
+  <SystemDuration>.62</SystemDuration>
+  <Image>PARTICLE_SNOWPEA_PARTICLES_PART_0,PARTICLE_SNOWPEA_PARTICLES_PART_1,PARTICLE_SNOWPEA_PARTICLES_PART_2</Image>
+</Emitter>
