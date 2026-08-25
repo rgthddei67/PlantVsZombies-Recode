@@ -4645,6 +4645,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "panelInterferenceActive", board->IsWeatherPanelInterferenceActive() },
 			{ "panelInterferenceRemainingMs", static_cast<int>(std::lround(
 				board->GetWeatherPanelInterferenceTimer() * 1000.0f)) },
+			{ "panelInterferenceMaximumMs", static_cast<int>(std::lround(
+				board->GetMaximumWeatherPanelInterferenceDuration() * 1000.0f)) },
 			{ "forecastIntensity", RainIntensityName(board->GetForecastRainIntensity()) },
 			{ "lockedActualIntensity", RainIntensityName(board->GetActualForecastRainIntensity()) },
 			{ "forecastPlausible", board->IsWeatherForecastPlausible() },

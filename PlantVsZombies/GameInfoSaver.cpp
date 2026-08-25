@@ -878,9 +878,10 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 		? static_cast<RainIntensity>(actualForecastRainValue) : RainIntensity::CLEAR;
 	board->mWeatherForecastDisrupted = board->mWeatherForecastReady
 		&& j.value("weatherForecastDisrupted", false);
-	// 旧档缺字段时没有整栏黑障；损坏值有界夹紧，避免无限遮蔽天气信息。
+	// 旧档缺字段时没有整栏黑障；损坏值夹紧到与运行时叠加相同的剩余时长上限。
 	board->mWeatherPanelInterferenceTimer = board->SupportsWeatherPanelInterference()
-		? std::clamp(j.value("weatherPanelInterferenceTimer", 0.0f), 0.0f, 300.0f)
+		? std::clamp(j.value("weatherPanelInterferenceTimer", 0.0f), 0.0f,
+			board->GetMaximumWeatherPanelInterferenceDuration())
 		: 0.0f;
 	const int coldWavePhaseValue = j.value("coldWavePhase",
 		static_cast<int>(ColdWavePhase::CALM));

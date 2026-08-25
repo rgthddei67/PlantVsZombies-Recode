@@ -241,7 +241,7 @@ private:
 	bool mRainCanHold = false;          // 新雨首段为中/大雨时允许一次同档续期，避免无限维持
 	bool mWeatherForecastReady = false; // true 表示公开预报与真实下一天气均已锁定、等待揭晓
 	bool mWeatherForecastDisrupted = false; // 当前雨雪及待生效台风预警已被隐藏；真实锁定结果仍保留
-	float mWeatherPanelInterferenceTimer = 0.0f; // 整个气象栏目主动黑障的剩余游戏秒；期间新广播也会被截获
+	float mWeatherPanelInterferenceTimer = 0.0f; // 整个气象栏目主动黑障的可叠加剩余游戏秒；期间新广播也会被截获
 	bool mStormyNightInitialized = false; // 4-9 第 23 波暴风雨夜是否已经正式初始化，防读档重置阵风额度
 	int mStormyNightFlashPattern = 0;   // 原版 4-10 三种闪光节奏（1～3）；0 表示尚未启用
 	float mStormyNightFlashTimer = 0.0f; // 当前闪光节奏剩余游戏秒；黑屏等待也包含在此计时内
@@ -717,10 +717,12 @@ public:
 	int DisruptWeatherForecastPanel();
 	/** 当前地图是否拥有可被气象干扰设备遮蔽的天气栏目。 */
 	bool SupportsWeatherPanelInterference() const;
-	/** 是否可开始一轮新的整栏主动黑障；已有黑障期间不会叠加或浪费设备。 */
+	/** 当前地图支持整栏黑障，且累计剩余时长尚未达到安全上限时返回 true。 */
 	bool CanBeginWeatherPanelInterference() const;
-	/** 开启整栏主动黑障并截获当前公开预报；成功结果额外包含 bit3。 */
+	/** 将 duration 追加到整栏主动黑障并截获当前公开预报；成功结果额外包含 bit3。 */
 	int BeginWeatherPanelInterference(float duration);
+	/** 多次提交后允许同时保留的最大黑障剩余游戏秒数。 */
+	float GetMaximumWeatherPanelInterferenceDuration() const;
 	/** 主动黑障是否仍在生效。 */
 	bool IsWeatherPanelInterferenceActive() const {
 		return mWeatherPanelInterferenceTimer > 0.0f;

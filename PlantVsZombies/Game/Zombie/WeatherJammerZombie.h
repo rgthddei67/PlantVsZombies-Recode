@@ -7,8 +7,8 @@
 class Animator;
 
 /**
- * @brief 气象干扰僵尸：铁桶本体携带非磁性设备，停步开启三十秒整栏天气黑障。
- * @details 完全进场即主动施法；黑障会截获期间新广播但不改真实天气，且施法优先于移动和啃食。
+ * @brief 气象干扰僵尸：铁桶本体携带非磁性设备，停步为整栏天气黑障追加三十秒。
+ * @details 完全进场即主动施法；黑障可由多只同类补时并截获期间新广播，但不改真实天气，且施法优先于移动和啃食。
  */
 class WeatherJammerZombie final : public BucketZombie {
 public:

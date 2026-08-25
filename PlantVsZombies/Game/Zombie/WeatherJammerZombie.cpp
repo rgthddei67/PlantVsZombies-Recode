@@ -11,7 +11,7 @@
 namespace {
 	constexpr float kChannelDuration = 4.0f;              // 停步至全栏目原子提交的游戏秒数
 	constexpr float kRebootDuration = 5.0f;               // 外部打断后允许边走边啃的设备重启时长，单位游戏秒
-	constexpr float kPanelInterferenceDuration = 30.0f;   // 成功提交后整个气象栏目持续黑障的游戏秒数
+	constexpr float kPanelInterferenceDuration = 30.0f;   // 每次成功提交向整个气象栏目追加的黑障游戏秒数
 	constexpr float kPackAttachOffsetX = 27.0f;            // 背包相对身体稳定锚点的后侧偏移，单位局部 px
 	constexpr float kPackAttachOffsetY = 3.0f;             // 背包相对身体稳定锚点的垂直偏移，单位局部 px
 	constexpr float kTerminalAttachOffsetX = -22.0f;       // 终端相对外前臂稳定锚点、与低垂手掌形成重叠的局部 X，单位 px
@@ -67,7 +67,7 @@ void WeatherJammerZombie::ZombieUpdate(float scaledTime)
 		return;
 	}
 	if (!mBoard || !mBoard->CanBeginWeatherPanelInterference()) {
-		// 另一轮黑障抢先提交时不浪费设备；等待窗口结束后重新尝试。
+		// 并行提交把累计余时填满上限时不浪费设备；有余量后重新尝试。
 		CancelChannelForRetry(false);
 		return;
 	}

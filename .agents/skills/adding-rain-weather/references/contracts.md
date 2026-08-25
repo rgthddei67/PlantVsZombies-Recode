@@ -48,8 +48,10 @@
 
 有时限整栏天气干扰只改变玩家可见性：`Board` 保存按游戏时间推进的活动窗口，并为雨雪/待生效
 台风警报、寒潮和雾势分别保存 disrupted 代际；原公开值、锁定实况、pending 台风和揭晓计时都继续
-推进。提交入口即使当帧没有公开预报也能成功开启窗口，并返回可区分窗口提交与各维度截获的 bitmask；
-活动窗口内每帧截获后来公开的预报。同类来源不叠加或刷新窗口。雨雪和雾势在各自预报揭晓或清理时
+推进。提交入口即使当帧没有公开预报也能成功新增或延长窗口，并返回可区分窗口补时与各维度截获的 bitmask；
+活动窗口内每帧截获后来公开的预报。气象干扰僵尸每次成功提交都向当前剩余窗口追加 30 游戏秒；
+Board 将当前同时余时饱和在 300 游戏秒，达到上限的来源等待有余量后再起手。300 秒只限制当下剩余
+时长，不改变每波一只的正式生成上限，也不限制整局累计成功次数。雨雪和雾势在各自预报揭晓或清理时
 清除 disrupted；寒潮沿用 `DisruptColdWaveForecast()` 通知全部依赖植物撤销尚未提交的准备。UI 在
 窗口期间压缩为只显示统一故障文案，栏内当前雨雪、台风、寒潮、雾势与其他实况都隐藏；独立场地仪表
 可保留。被干扰的公开大雨不再显示分级警报或揭晓失败，提交时已经显示的大雨/暴雪专用中央预警、
@@ -240,7 +242,7 @@ Board 雾势、再恢复植物，所以 `RestoreFogState()` 只清空旧缓存�
 | 权重、持续时间、倍率 | `Board.cpp` 匿名命名空间 `k*Rain*` | 调参常量同行中文注释 |
 | 随机下一天气 | `Board::RollNextWeather` / `RainTransitionForRoll` | 与合法预报候选保持同构 |
 | 合法公开预报 | `BuildPlausibleForecasts` | 错误预报也必须真实可达 |
-| 整栏预报干扰 | `BeginWeatherPanelInterference` / `UpdateWeatherPanelInterference` / `DisruptWeatherForecastPanel` | Board 持时限窗口并截获期间新广播；只改可见性，不改锁定实况 |
+| 整栏预报干扰 | `BeginWeatherPanelInterference` / `UpdateWeatherPanelInterference` / `DisruptWeatherForecastPanel` | Board 持可叠加时限窗口并截获期间新广播；只改可见性，不改锁定实况 |
 | 正式切档 | `BeginRain` / `EndRain` / `BeginWeatherTransition` | 目标枚举先变，倍率再插值 |
 | 实体主动改天 | `TriggerRoofMarshalWeather` 或同类 Board 窄入口 | 实体只发请求；入口规定只升不降、同档续期与台风策略 |
 | 天气逐帧推进 | `Board::UpdateWeather` | 全局场景状态，不属于波次更新 |

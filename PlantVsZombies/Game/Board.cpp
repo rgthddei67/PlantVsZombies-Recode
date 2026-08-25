@@ -173,6 +173,7 @@ namespace {
 	constexpr float kLateMediumRainTailMax = 50.0f;      // 满压力下尾段中雨最长持续时间（秒）
 	constexpr float kWeatherForecastLeadTime = 15.0f;    // 阶段结束前多少秒预抽取并展示下一天气
 	constexpr float kHeavyRainPromptLeadTime = 5.0f;     // 公开预报揭晓前弹出大雨分级文字警报的提前量（游戏秒）
+	constexpr float kMaximumWeatherPanelInterferenceDuration = 300.0f; // 多次整栏黑障叠加后的当前剩余时长上限（游戏秒）
 	constexpr int kWeatherForecastAccuracyPercent = 75;  // 前期天气预警准确率（百分比）
 	constexpr int kLateWeatherForecastAccuracyPercent = 95; // 满压力天气预警准确率上限（百分比）
 	constexpr float kFirstFogWeatherDelayMin = 45.0f;    // 夜间泳池开局到首次独立雾势抽取的最短游戏秒
@@ -4705,7 +4706,13 @@ bool Board::SupportsWeatherPanelInterference() const
 
 bool Board::CanBeginWeatherPanelInterference() const
 {
-	return SupportsWeatherPanelInterference() && !IsWeatherPanelInterferenceActive();
+	return SupportsWeatherPanelInterference()
+		&& mWeatherPanelInterferenceTimer < kMaximumWeatherPanelInterferenceDuration;
+}
+
+float Board::GetMaximumWeatherPanelInterferenceDuration() const
+{
+	return kMaximumWeatherPanelInterferenceDuration;
 }
 
 int Board::DisruptWeatherForecastPanel()
@@ -4725,13 +4732,15 @@ int Board::DisruptWeatherForecastPanel()
 }
 
 /**
- * 提交一个有界整栏黑障；bit3 区分“成功开启窗口但当帧尚无公开预报”的有效提交。
+ * 向当前剩余时长追加一个有界整栏黑障；bit3 区分“成功补时但当帧尚无公开预报”的有效提交。
  */
 int Board::BeginWeatherPanelInterference(float duration)
 {
 	if (!CanBeginWeatherPanelInterference() || !std::isfinite(duration)
 		|| duration <= 0.0f) return 0;
-	mWeatherPanelInterferenceTimer = duration;
+	mWeatherPanelInterferenceTimer = std::min(
+		kMaximumWeatherPanelInterferenceDuration,
+		mWeatherPanelInterferenceTimer + duration);
 	const int disruptedMask = DisruptWeatherForecastPanel();
 	if (mPresentation) {
 		mPresentation->CancelHeavyRainWarning();
