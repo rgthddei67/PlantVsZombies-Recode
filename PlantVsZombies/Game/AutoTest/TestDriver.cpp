@@ -3330,6 +3330,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			ResourceKeys::Textures::IMAGE_COBCANNON_TARGET, false) != nullptr },
 		{ "targetShadowLoaded", ResourceManager::GetInstance().GetTexture(
 			ResourceKeys::Textures::IMAGE_COBCANNON_TARGET_SHADOW, false) != nullptr },
+		{ "plantShadowLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_PLANTSHADOW, false) != nullptr },
 		{ "popcornLoaded",
 			ResourceManager::GetInstance().GetTexture(
 				ResourceKeys::Particles::PARTICLE_COBCANNON_POPCORN_PART_0, false) != nullptr
@@ -6448,6 +6450,10 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			plantState["coffeeBeanWaitMs"] = coffeeBean->GetWaitTimeRemainingMs();
 		}
 		if (auto* cannon = dynamic_cast<CobCannon*>(p)) {
+			const std::shared_ptr<Animator> animator = cannon->GetAnimatorInternal();
+			const SDL_Color cobTrackColor = animator
+				? animator->GetTrackColor("CobCannon_cob")
+				: SDL_Color{ 255, 255, 255, 255 };
 			plantState["cobPhase"] = CobCannonPhaseName(cannon->GetPhase());
 			plantState["cobArmingTimeMs"] = static_cast<int>(std::lround(
 				cannon->GetArmingTimeRemaining() * 1000.0f));
@@ -6457,6 +6463,12 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				cannon->GetPendingTarget().x));
 			plantState["cobTargetYInt"] = static_cast<int>(std::lround(
 				cannon->GetPendingTarget().y));
+			plantState["cobTrackColorR"] = static_cast<int>(cobTrackColor.r);
+			plantState["cobTrackColorG"] = static_cast<int>(cobTrackColor.g);
+			plantState["cobTrackColorB"] = static_cast<int>(cobTrackColor.b);
+			plantState["cobTrackColorA"] = static_cast<int>(cobTrackColor.a);
+			plantState["cobTrackColorEqualRGB"] = cobTrackColor.r == cobTrackColor.g
+				&& cobTrackColor.g == cobTrackColor.b;
 		}
 		// 同一实体可占多个格；逐 footprint 查询公共 Board getter，能同时验证所有别名
 		// 都返回同一 Plant*，又保持 plants 实体数组只导出一次。
@@ -6973,6 +6985,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		}
 		if (bullet->HasAnimatedPresentation()) ++animatedBulletCount;
 		if (bullet->IsLobbedMotion()) ++lobbedBulletCount;
+		const ShadowComponent* bulletShadow = bullet->GetShadow();
 		out["bullets"].push_back({
 			{ "id", id },
 			{ "type", static_cast<int>(bullet->mBulletType) },
@@ -7010,6 +7023,17 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "poolType", BulletTypeName(bullet->GetPoolType()) },
 			{ "colliderEnabled", bullet->GetColliderComponent()
 				&& bullet->GetColliderComponent()->mEnabled },
+			{ "shadowEnabled", bulletShadow && bulletShadow->IsEnabled() },
+			{ "shadowVisible", bulletShadow && bulletShadow->IsVisible() },
+			{ "shadowLastDrawReady", bulletShadow && bulletShadow->IsLastDrawReady() },
+			{ "shadowScaleXOn1000", bulletShadow ? static_cast<int>(std::lround(
+				bulletShadow->GetScale().x * 1000.0f)) : 0 },
+			{ "shadowScaleYOn1000", bulletShadow ? static_cast<int>(std::lround(
+				bulletShadow->GetScale().y * 1000.0f)) : 0 },
+			{ "shadowOffsetXOn1000", bulletShadow ? static_cast<int>(std::lround(
+				bulletShadow->GetOffset().x * 1000.0f)) : 0 },
+			{ "shadowOffsetYOn1000", bulletShadow ? static_cast<int>(std::lround(
+				bulletShadow->GetOffset().y * 1000.0f)) : 0 },
 			{ "lobbedMotion", bullet->IsLobbedMotion() },
 			{ "targetsIceWall", bullet->TargetsIceWall() },
 			{ "lobElapsedMs", static_cast<int>(std::lround(
@@ -7034,6 +7058,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				bullet->GetCobTarget().x)) },
 			{ "cobTargetYInt", static_cast<int>(std::lround(
 				bullet->GetCobTarget().y)) },
+			{ "cobShadowScaleOn1000", static_cast<int>(std::lround(
+				bullet->GetCobCannonShadowScaleForTesting() * 1000.0f)) },
 		});
 	}
 	out["bulletCount"] = static_cast<int>(out["bullets"].size());

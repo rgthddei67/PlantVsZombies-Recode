@@ -266,6 +266,13 @@ public:
 	void SetTrackVisible(const std::string& trackName, bool visible);
 
 	/**
+	 * 设置指定轨道纹理的乘色；纯白恢复原图，默认与 -NoInstance 路径语义一致。
+	 * @param trackName 轨道名。
+	 * @param color RGBA 乘色，通道范围 0～255。
+	 */
+	void SetTrackColor(const std::string& trackName, const SDL_Color& color);
+
+	/**
 	 * @brief 让指定轨道独立决定是否高亮，不再继承 Animator 整体高亮开关。
 	 * @param trackName 轨道名
 	 * @param enable true=该轨道高亮，false=该轨道不高亮
@@ -529,6 +536,8 @@ public:
 	 * @return true=可见
 	 */
 	bool GetTrackVisible(const std::string& trackName) const;
+	/** 返回指定轨道的当前乘色；轨道不存在时返回纯白。 */
+	SDL_Color GetTrackColor(const std::string& trackName) const;
 	/** 返回父轨道与 follower 自身均启用时的最终可见状态。 */
 	bool GetTrackFollowerVisible(const std::string& trackName) const;
 

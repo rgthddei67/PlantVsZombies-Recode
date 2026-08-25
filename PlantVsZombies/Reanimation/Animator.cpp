@@ -488,9 +488,13 @@ void Animator::DrawInternalInstanced(Graphics* g, float baseX, float baseY, floa
 			rec.texSlot = bindTex->BindingId();
 
 			// 本体 → overlay → glow 的相对顺序是视觉契约，子 Animator 必须排在三者之后。
-			const float baseAlpha = std::clamp(transform.a * mAlpha, 0.0f, 1.0f);
+			const SDL_Color trackColor = extra
+				? extra->mColor : SDL_Color{ 255, 255, 255, 255 };
+			const float baseAlpha = std::clamp(transform.a * mAlpha
+				* (static_cast<float>(trackColor.a) / 255.0f), 0.0f, 1.0f);
 			const uint8_t alpha8 = static_cast<uint8_t>(baseAlpha * 255.0f);
-			rec.colorRGBA8 = PackRGBA8(255, 255, 255, alpha8);
+			rec.colorRGBA8 = PackRGBA8(
+				trackColor.r, trackColor.g, trackColor.b, alpha8);
 			g->AppendReanimInstance(rec, baseBlend);
 
 			if (mEnableExtraOverlayDraw) {
@@ -543,8 +547,11 @@ void Animator::DrawInternalInstanced(Graphics* g, float baseX, float baseY, floa
 			rec.u1 = followerImage->aU1;
 			rec.v1 = followerImage->aV1;
 			rec.texSlot = bindTex->BindingId();
-			const float alpha = std::clamp(transform.a * mAlpha, 0.0f, 1.0f);
-			rec.colorRGBA8 = PackRGBA8(255, 255, 255,
+			const SDL_Color trackColor = extra
+				? extra->mColor : SDL_Color{ 255, 255, 255, 255 };
+			const float alpha = std::clamp(transform.a * mAlpha
+				* (static_cast<float>(trackColor.a) / 255.0f), 0.0f, 1.0f);
+			rec.colorRGBA8 = PackRGBA8(trackColor.r, trackColor.g, trackColor.b,
 				static_cast<uint8_t>(alpha * 255.0f));
 			if (sparse->mFollowerDrawAfterAllTracks) {
 				if (!hasDeferredFollowerInstance) {
@@ -669,11 +676,15 @@ void Animator::DrawInternal(Graphics* g, float baseX, float baseY, float Scale) 
 			RecordRenderQuad(
 				mat[0][0], mat[0][1], mat[1][0], mat[1][1], mat[3][0], mat[3][1]);
 
-			float combinedAlpha = transform.a * mAlpha;
+			const SDL_Color trackColor = extra
+				? extra->mColor : SDL_Color{ 255, 255, 255, 255 };
+			float combinedAlpha = transform.a * mAlpha
+				* (static_cast<float>(trackColor.a) / 255.0f);
 			float baseAlpha = std::clamp(combinedAlpha, 0.0f, 1.0f);
 
 			// 模仿者直接替换本体采样颜色，避免在半透明边缘重复叠绘产生白边。
-			glm::vec4 baseColor(255.0f, 255.0f, 255.0f, baseAlpha * 255.0f);
+			glm::vec4 baseColor(trackColor.r, trackColor.g, trackColor.b,
+				baseAlpha * 255.0f);
 			g->DrawTextureMatrix(image, mat, 0.0f, 0.0f, baseColor, baseBlend);
 
 			// 覆盖层效果（Alpha 混合，颜色需乘以基础透明度）。
@@ -720,8 +731,12 @@ void Animator::DrawInternal(Graphics* g, float baseX, float baseY, float Scale) 
 			ApplyRenderScale(mat);
 			RecordRenderQuad(
 				mat[0][0], mat[0][1], mat[1][0], mat[1][1], mat[3][0], mat[3][1]);
-			const float alpha = std::clamp(transform.a * mAlpha, 0.0f, 1.0f);
-			const glm::vec4 color(255.0f, 255.0f, 255.0f, alpha * 255.0f);
+			const SDL_Color trackColor = extra
+				? extra->mColor : SDL_Color{ 255, 255, 255, 255 };
+			const float alpha = std::clamp(transform.a * mAlpha
+				* (static_cast<float>(trackColor.a) / 255.0f), 0.0f, 1.0f);
+			const glm::vec4 color(trackColor.r, trackColor.g, trackColor.b,
+				alpha * 255.0f);
 			if (sparse->mFollowerDrawAfterAllTracks) {
 				const DeferredFollowerDraw draw{ followerImage, mat, color };
 				if (!hasDeferredFollowerDraw) {
@@ -866,6 +881,12 @@ void Animator::EnableOverlayEffect(bool enable) {
 void Animator::SetTrackVisible(const std::string& trackName, bool visible) {
 	for (auto& extra : GetTrackExtrasByName(trackName)) {
 		extra->mVisible = visible;
+	}
+}
+
+void Animator::SetTrackColor(const std::string& trackName, const SDL_Color& color) {
+	for (auto& extra : GetTrackExtrasByName(trackName)) {
+		extra->mColor = color;
 	}
 }
 
@@ -1277,6 +1298,14 @@ std::vector<TrackExtraInfo*> Animator::GetTrackExtrasByName(const std::string& t
 		}
 	}
 	return result;
+}
+
+SDL_Color Animator::GetTrackColor(const std::string& trackName) const {
+	const int index = GetFirstTrackIndexByName(trackName);
+	if (index >= 0 && index < static_cast<int>(mExtraInfos.size())) {
+		return mExtraInfos[index].mColor;
+	}
+	return SDL_Color{ 255, 255, 255, 255 };
 }
 
 std::vector<int> Animator::GetTrackIndicesByName(const std::string& trackName) const {

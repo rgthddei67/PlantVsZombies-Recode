@@ -40,6 +40,8 @@ private:
 	void BeginCharge();
 	/** 第 78 帧创建唯一玉米棒并播放发射声。 */
 	void LaunchCob();
+	/** 按当前阶段同步炮弹轨道乘色；只有 READY 使用原版三角波闪烁。 */
+	void UpdateCobTrackColor();
 
 	Phase mPhase = Phase::ARMING;
 	float mArmingTime = 0.0f;

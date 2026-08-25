@@ -39,6 +39,7 @@ struct TrackExtraInfo {
 	bool mVisible = true;
 	bool mHasGlowOverride = false;   // 是否由本轨道独立决定高亮，不再继承 Animator 整体开关
 	bool mGlowOverrideEnabled = false; // 独立高亮的当前开关；仅在 mHasGlowOverride 时生效
+	SDL_Color mColor = { 255, 255, 255, 255 }; // 轨道纹理乘色；默认纯白，不改变原图
 	float mOffsetX = 0.0f;          // 杞ㄩ亾鑷韩缁樺埗鍋忕Щ X
 	float mOffsetY = 0.0f;          // 杞ㄩ亾鑷韩缁樺埗鍋忕Щ Y
 	const Texture* mImage = nullptr;  // 鎵嬪姩瑕嗙洊鍥剧墖璁剧疆

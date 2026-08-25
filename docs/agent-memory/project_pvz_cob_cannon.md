@@ -4,7 +4,7 @@ description: 6-6玉米加农炮双格footprint、指定落点炮弹、存档、�
 metadata:
   node_type: memory
   type: project
-  updated_at: 2026-08-22
+  updated_at: 2026-08-25
 ---
 
 # 经典玉米加农炮与双格植物占用
@@ -22,6 +22,9 @@ metadata:
   normal ID 改成任意多指针容器；普通玩家种植仍保持双格完全排他。
 - `ARMING/CHARGING/READY/FIRING` 阶段、等待时间、已冻结落点和发射边沿都入档。射击轨第 78 帧生成
   `BULLET_COBBIG`；蹦极不能把加农炮选作目标。
+- READY 阶段只让 `CobCannon_cob` 轨道按原版 0.75 秒等通道三角波在 RGB 55～255 间闪烁；离开 READY
+  立即恢复纯白。周期由 Board 已保存的 60Hz 帧计数派生，不新增存档状态，默认 instance、`-NoInstance`
+  与 OpenGL 3.3 共用同一轨道乘色语义。
 
 ## 炮弹、命中与表现
 
@@ -29,6 +32,9 @@ metadata:
   `(37.2,-145.9)`；第 78 帧从该点发射，避免以整株包围盒猜偏移。
 - 炮弹飞行 2.0 秒，先竖直升空、在屏外横移、再竖直落到点击时冻结的像素坐标；飞行状态与炮弹一同入档。
   `CobCannon_cob` 以 0.9 倍绘制，90 度旋转时交换目标宽高以保留原图长宽比。
+- 开火后不再于冻结落点绘制 `IMAGE_COBCANNON_TARGET_SHADOW`；该资源只属于玩家瞄准光标。在途玉米棒复用
+  Bullet 的 `IMAGE_PLANTSHADOW`，横向保持原版 3 倍，并以 `200/(clamp(高度,0,200)+200)` 从高空
+  约 0.5 倍连续长回落地 1 倍。瞄准光标、飞行阴影与落地焦痕三层互不替代。
 - 落地以实际点击点为圆心，半径 115px，只遍历目标逻辑行及上下相邻行；圆与僵尸碰撞框最近点相交即造成
   1800 灰烬伤害。魅惑和地下目标不受影响；玉米炮使用独立爆炸资格，气球僵尸在飞行/爆裂/落地阶段均可受击，
   不能复用地面危害资格把空中气球过滤掉。爆点生成焦痕和爆米花粒子。
@@ -50,3 +56,7 @@ metadata:
   1.45 秒落地等待已修为 2.05 秒而不改玩法。当前桌面可见 `clang-release` 运行 exit 0、111 条命令通过。
 - 2026-08-22 玉米炮爆炸改查 `CanBeAffectedByCobCannonExplosion()`，默认仍沿用地面危害，气球品种单独放行。
   可见 `smoke_cob_cannon_core` exit 0，爆区气球被移除、三只巨人和魅惑普通僵尸的既有结果保持，最终敌人数为 4。
+- 2026-08-25 补齐 READY 炮弹单轨闪烁和原版飞行阴影：删除开火后的固定目标黑影，改用普通
+  `IMAGE_PLANTSHADOW` 随垂降从约 0.5 倍长回 1 倍，落地 `CobCannonBlastMark` 保留。`clang-release`
+  编译、LTO 与 Win7 378 项导入审计通过；可见同一 144 命令专项在 Vulkan instance、Vulkan
+  `-NoInstance` 和强制 OpenGL 3.3 均 exit 0，状态、日志及高空/垂降/落地截图通过。

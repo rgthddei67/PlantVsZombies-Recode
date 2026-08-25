@@ -6,6 +6,7 @@
 #include "../../ResourceKeys.h"
 
 #include <algorithm>
+#include <cstdlib>
 
 namespace {
 	constexpr int kLaunchFrame = 78;                    // 主人给出的 AddFrameEvent 全局发射帧，直接使用
@@ -20,6 +21,22 @@ namespace {
 	const Vector kLaunchOffset(37.2f, -145.9f);         // CobCannon_cob 第 77 帧最终仿射四边形中心，相对本体 Animator 基点，单位：px
 	constexpr float kShoopVolume = 0.45f;               // 开始机械装填的音效音量
 	constexpr float kLaunchVolume = 0.55f;              // 第 78 帧发射音效音量
+	constexpr int kReadyFlashCycleFrames = 45;           // 原版 75 个 100Hz 计数换算到当前 60Hz，周期 0.75 秒
+	constexpr int kReadyFlashMinimum = 55;               // 原版 GetFlashingColor 的最暗 RGB 通道值
+	const SDL_Color kWhiteTrackColor{ 255, 255, 255, 255 }; // 非 READY 状态的炮弹轨道乘色
+	const char* kCobTrackName = "CobCannon_cob";         // 待发玉米棒所在的独立 reanim 轨道
+
+	/** 复刻原版 GetFlashingColor 的等通道三角波，并以当前 60Hz Board 帧计数驱动。 */
+	SDL_Color GetReadyFlashColor(int boardFrame)
+	{
+		const int phase = boardFrame % kReadyFlashCycleFrames;
+		const int halfCycle = kReadyFlashCycleFrames / 2;
+		const int shade = std::clamp(kReadyFlashMinimum
+			+ std::abs(halfCycle - phase)
+			* (255 - kReadyFlashMinimum) / halfCycle, 0, 255);
+		return SDL_Color{ static_cast<Uint8>(shade), static_cast<Uint8>(shade),
+			static_cast<Uint8>(shade), 255 };
+	}
 }
 
 void CobCannon::SetupPlant()
@@ -41,12 +58,14 @@ void CobCannon::SetupPlant()
 		mPhase = Phase::READY;
 		mArmingTime = 0.0f;
 		PlayTrack("anim_idle", 1.0f);
+		UpdateCobTrackColor();
 		return;
 	}
 	mPhase = Phase::ARMING;
 	mArmingTime = kInitialArmingSeconds;
 	mShotLaunched = false;
 	PlayTrack("anim_unarmed_idle", 1.0f);
+	UpdateCobTrackColor();
 }
 
 void CobCannon::PlantUpdate()
@@ -56,17 +75,18 @@ void CobCannon::PlantUpdate()
 	if (mPhase == Phase::ARMING) {
 		mArmingTime = std::max(0.0f, mArmingTime - GetWeatherActionDeltaTime());
 		if (mArmingTime <= 0.0f) BeginCharge();
+		UpdateCobTrackColor();
 		return;
 	}
 	if (mPhase == Phase::CHARGING && track == "anim_idle") {
 		mPhase = Phase::READY;
-		return;
 	}
 	if (mPhase == Phase::FIRING && track == "anim_unarmed_idle") {
 		mPhase = Phase::ARMING;
 		mArmingTime = kReloadArmingSeconds;
 		mPendingTargetRow = -1;
 	}
+	UpdateCobTrackColor();
 }
 
 void CobCannon::BeginCharge()
@@ -76,6 +96,7 @@ void CobCannon::BeginCharge()
 		* GetWeatherActionSpeedMultiplier();
 	PlayTrackOnce("anim_charge", "anim_idle", speed,
 		kTrackBlendSeconds, speed, kTrackBlendSeconds);
+	UpdateCobTrackColor();
 	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_SHOOP, kShoopVolume);
 }
 
@@ -87,6 +108,7 @@ bool CobCannon::FireAt(const Vector& target, int targetRow)
 	mPendingTargetRow = targetRow;
 	mShotLaunched = false;
 	mPhase = Phase::FIRING;
+	UpdateCobTrackColor();
 	const float speed = (kShootingFramesPerSecond / kReanimationFramesPerSecond)
 		* GetWeatherActionSpeedMultiplier();
 	if (PlayTrackOnce("anim_shooting", "anim_unarmed_idle", speed,
@@ -96,7 +118,16 @@ bool CobCannon::FireAt(const Vector& target, int targetRow)
 	// 资源轨道异常时保留可点击的就绪态，不能吞掉本次完整充能。
 	mPhase = Phase::READY;
 	mPendingTargetRow = -1;
+	UpdateCobTrackColor();
 	return false;
+}
+
+void CobCannon::UpdateCobTrackColor()
+{
+	if (!mAnimator) return;
+	const SDL_Color color = mPhase == Phase::READY && mBoard && !mIsPreview
+		? GetReadyFlashColor(mBoard->mBoardFrame) : kWhiteTrackColor;
+	mAnimator->SetTrackColor(kCobTrackName, color);
 }
 
 void CobCannon::LaunchCob()
@@ -155,4 +186,5 @@ void CobCannon::LoadExtraData(const nlohmann::json& j)
 		mShotLaunched = false;
 		PlayTrack("anim_unarmed_idle", 1.0f);
 	}
+	UpdateCobTrackColor();
 }

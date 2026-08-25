@@ -72,6 +72,8 @@ namespace {
 	constexpr float kLobLandingGrace = 0.08f;           // 到达预测点后留给碰撞系统的命中宽限，单位：秒
 	constexpr float kLobShadowHeightScale = 200.0f;     // 经典投掷物阴影随高度缩小公式的高度尺度，单位：px
 	constexpr float kMelonShadowOffsetX = 6.0f;         // 西瓜弹丸地面阴影相对通用投掷物的右移量，单位：px
+	constexpr float kCobShadowWidthMultiplier = 3.0f;   // 原版 Cobbig 把普通弹丸阴影横向拉宽到三倍
+	constexpr float kCobShadowSourceOffsetX = 57.0f;    // 原版阴影左边相对 Cobbig 未旋转贴图左边的 X 偏移，单位：px
 	constexpr float kCobRiseEndProgress = 0.42f;        // 玉米棒升到画面上方所占总飞行进度
 	constexpr float kCobTransferEndProgress = 0.58f;    // 画面外横移到目标上方所占总飞行进度
 	constexpr float kCobSkyY = -120.0f;                 // 升空与垂降衔接高度，单位：世界 px
@@ -294,6 +296,7 @@ void Bullet::Reset(Board* board, int row,
 	mAnimatorAdvancedInParallel = false;
 	ConfigurePresentation();
 	ConfigureCollisionTarget();
+	if (auto* shadow = GetShadow()) shadow->SetEnabled(true);
 
 	// Transform 也是对象池状态；位置、缩放和旋转必须一起恢复中性值。
 	if (GetTransform()) GetTransform()->Reset(position);
@@ -421,16 +424,6 @@ void Bullet::Draw(Graphics* g)
 		float drawWidth = static_cast<float>(mTexture->width) * mScale;
 		float drawHeight = static_cast<float>(mTexture->height) * mScale;
 		if (IsCobCannonMotion()) {
-			if (mTrajectory.elapsed / std::max(0.01f, mTrajectory.duration)
-				>= kCobTransferEndProgress) {
-				if (const Texture* targetShadow = ResourceManager::GetInstance().GetTexture(
-					ResourceKeys::Textures::IMAGE_COBCANNON_TARGET_SHADOW, false)) {
-					const float width = static_cast<float>(targetShadow->width);
-					const float height = static_cast<float>(targetShadow->height);
-					g->DrawTexture(targetShadow, mTrajectory.target.x - width * 0.5f,
-						mTrajectory.target.y - height * 0.5f, width, height);
-				}
-			}
 			// DrawTexture 的非方形旋转会先按目标框缩放；90 度炮弹须交换目标宽高，
 			// 才能保持炮膛内 CobCannon_cob 的原始长宽比而不是横向拉伸。
 			drawWidth = static_cast<float>(mTexture->height) * mScale;
@@ -479,7 +472,11 @@ void Bullet::UpdateShadowLayout(const Vector& position)
 			kLobShadowHeightScale / (height + kLobShadowHeightScale),
 			0.45f, 1.0f);
 	}
-	const float shadowWidth = kPeaShadowWidth * typeScale;
+	else if (IsCobCannonMotion()) {
+		typeScale = GetCobCannonShadowScale();
+	}
+	const float shadowWidth = kPeaShadowWidth * typeScale
+		* (IsCobCannonMotion() ? kCobShadowWidthMultiplier : 1.0f);
 	const float shadowHeight = kPeaShadowHeight * typeScale;
 
 	const Texture* shadowTexture = ResourceManager::GetInstance().GetTexture(
@@ -492,7 +489,10 @@ void Bullet::UpdateShadowLayout(const Vector& position)
 
 	// 主人校对：Y 与同一行豌豆射手的默认阴影中心一致，即格子中心 + 28。
 	// X 偏移沿用 C#：Pea +3，Snowpea -1，Fireball/Spike 为 0；西瓜按主人可见校对右移 6px。
-	const float shadowLeftOffset = IsMelonBullet(mBulletType)
+	const float shadowLeftOffset = IsCobCannonMotion()
+		? kCobShadowSourceOffsetX
+			- (mTexture ? static_cast<float>(mTexture->width) * 0.5f : 0.0f)
+		: IsMelonBullet(mBulletType)
 		? kMelonShadowOffsetX
 		: mBulletType == BulletType::BULLET_SNOWPEA
 			? -1.0f
@@ -952,7 +952,8 @@ void Bullet::ConfigureCobCannonMotion(
 	mTrajectory.targetsIceWall = false;
 	mRotationDegrees = -90.0f;
 	if (mCollider) mCollider->mEnabled = false;
-	if (auto* shadow = GetShadow()) shadow->SetEnabled(false);
+	if (auto* shadow = GetShadow()) shadow->SetEnabled(true);
+	UpdateShadowLayout(mTrajectory.start);
 }
 
 void Bullet::RestoreCobCannonMotion(const Vector& start, const Vector& target,
@@ -1002,6 +1003,23 @@ bool Bullet::UpdateCobCannonMotion(float deltaTime)
 	}
 	Die();
 	return false;
+}
+
+float Bullet::GetCobCannonShadowScale() const
+{
+	if (!IsCobCannonMotion() || mTrajectory.duration <= 0.0f) return 1.0f;
+	const float progress = std::clamp(
+		mTrajectory.elapsed / mTrajectory.duration, 0.0f, 1.0f);
+	float normalizedHeight = 1.0f;
+	if (progress <= kCobRiseEndProgress) {
+		normalizedHeight = progress / kCobRiseEndProgress;
+	}
+	else if (progress > kCobTransferEndProgress) {
+		normalizedHeight = 1.0f - (progress - kCobTransferEndProgress)
+			/ (1.0f - kCobTransferEndProgress);
+	}
+	// 原版将高度截在 200px，再按 200/(高度+200) 缩放；归一化后即 1/(1+h)。
+	return 1.0f / (1.0f + std::clamp(normalizedHeight, 0.0f, 1.0f));
 }
 
 void Bullet::RestoreLobbedMotion(const Vector& start, const Vector& target,

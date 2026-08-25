@@ -117,6 +117,8 @@ protected:
 	class IceWall* GetTargetedIceWall() const;
 	/** 推进玉米棒升空/换位/垂降三段轨迹；爆炸并回收时返回 false。 */
 	bool UpdateCobCannonMotion(float deltaTime);
+	/** 按原版高度公式返回玉米棒飞行阴影的纵向尺寸倍率。 */
+	float GetCobCannonShadowScale() const;
 
 public:
 	Bullet(Board* board, BulletType bulletType, int row, const Vector& colliderRadius,
@@ -244,6 +246,10 @@ public:
 	}
 	int GetCobTargetRow() const {
 		return IsCobCannonMotion() ? mTrajectory.targetRow : -1;
+	}
+	/** AutoTest 投影玉米棒阴影从高空 0.5 倍逐渐长回落地 1 倍的连续状态。 */
+	float GetCobCannonShadowScaleForTesting() const {
+		return GetCobCannonShadowScale();
 	}
 
 	int GetSortingKey() const override { return this->mRow; }
