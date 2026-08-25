@@ -38,8 +38,8 @@
 <track>
 <name>dish</name>
 <t><x>22</x><y>-39</y><kx>-7</kx><ky>-7</ky><sx>0.54</sx><sy>0.54</sy><a>1</a><i>IMAGE_REANIM_ZOMBIE_WEATHER_JAMMER_DISH</i></t>
-<t><kx>-4</kx><ky>-4</ky></t><t><kx>0</kx><ky>0</ky></t><t><kx>4</kx><ky>4</ky></t><t><kx>7</kx><ky>7</ky></t><t><kx>4</kx><ky>4</ky></t><t><kx>0</kx><ky>0</ky></t><t><kx>-4</kx><ky>-4</ky></t><t><kx>-7</kx><ky>-7</ky></t><t><kx>-4</kx><ky>-4</ky></t><t><kx>0</kx><ky>0</ky></t><t><kx>4</kx><ky>4</ky></t>
-<t><kx>-16</kx><ky>-16</ky></t><t><kx>-8</kx><ky>-8</ky></t><t><kx>0</kx><ky>0</ky></t><t><kx>8</kx><ky>8</ky></t><t><kx>16</kx><ky>16</ky></t><t><kx>8</kx><ky>8</ky></t><t><kx>0</kx><ky>0</ky></t><t><kx>-8</kx><ky>-8</ky></t><t><kx>-16</kx><ky>-16</ky></t><t><kx>0</kx><ky>0</ky></t><t><kx>16</kx><ky>16</ky></t><t><kx>0</kx><ky>0</ky></t>
+<t><kx>-6</kx><ky>-6</ky></t><t><kx>-4</kx><ky>-4</ky></t><t><kx>0</kx><ky>0</ky></t><t><kx>4</kx><ky>4</ky></t><t><kx>6</kx><ky>6</ky></t><t><kx>7</kx><ky>7</ky></t><t><kx>6</kx><ky>6</ky></t><t><kx>4</kx><ky>4</ky></t><t><kx>0</kx><ky>0</ky></t><t><kx>-4</kx><ky>-4</ky></t><t><kx>-6</kx><ky>-6</ky></t>
+<t><kx>-16</kx><ky>-16</ky></t><t><kx>-14</kx><ky>-14</ky></t><t><kx>-8</kx><ky>-8</ky></t><t><kx>0</kx><ky>0</ky></t><t><kx>8</kx><ky>8</ky></t><t><kx>14</kx><ky>14</ky></t><t><kx>16</kx><ky>16</ky></t><t><kx>14</kx><ky>14</ky></t><t><kx>8</kx><ky>8</ky></t><t><kx>0</kx><ky>0</ky></t><t><kx>-8</kx><ky>-8</ky></t><t><kx>-14</kx><ky>-14</ky></t>
 <t><kx>-18</kx><ky>-18</ky></t><t><a>0.55</a></t><t><a>1</a></t><t><a>0.55</a></t><t><a>1</a></t><t><a>0.55</a></t><t><a>1</a></t><t><a>0.55</a></t><t><a>1</a></t><t><a>0.55</a></t><t><a>1</a></t><t><a>0.55</a></t>
 <t><kx>38</kx><ky>38</ky><a>0.7</a></t><t></t><t></t><t></t><t></t><t></t><t></t><t></t><t></t><t></t><t></t><t></t>
 </track>

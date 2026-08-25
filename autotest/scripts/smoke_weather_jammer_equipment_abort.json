@@ -28,7 +28,7 @@
     { "op": "assert_state", "path": "plants.0.magnetPhase", "equals": "SUCKING" },
     { "op": "assert_state", "path": "plants.0.magnetItemTextureKey", "equals": "IMAGE_ZOMBIE_BUCKET1" },
     { "op": "assert_state", "path": "zombiesByType.ZOMBIE_WEATHER_JAMMER.helmHealth", "equals": 0 },
-    { "op": "assert_state", "path": "zombiesByType.ZOMBIE_WEATHER_JAMMER.jammerPhase", "equals": "READY" },
+    { "op": "assert_state", "path": "zombiesByType.ZOMBIE_WEATHER_JAMMER.jammerPhase", "equals": "CHANNELING" },
     { "op": "assert_state", "path": "zombiesByType.ZOMBIE_WEATHER_JAMMER.jammerPackAnimatorReady", "equals": true },
 
     { "op": "goto_level", "level": 60, "resetTestState": true },

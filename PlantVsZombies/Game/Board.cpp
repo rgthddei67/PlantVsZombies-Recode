@@ -1517,6 +1517,7 @@ void Board::InitializeWeather()
 	mWeatherTransitionTimer = 0.0f;
 	mWeatherForecastReady = false;
 	mWeatherForecastDisrupted = false;
+	mWeatherPanelInterferenceTimer = 0.0f;
 	ClearPendingHeavyRainWarning();
 	mRainVisualActive = false;
 	mRainVisualEffectName.clear();
@@ -1782,7 +1783,9 @@ void Board::BeginFogWeather(FogWeatherIntensity intensity, float duration)
 	mFogWeatherIntensity = intensity;
 	mFogWeatherTimer = std::max(duration, 0.1f);
 	ClearFogWeatherForecast();
-	if (changed && mPresentation) mPresentation->ShowCurrentWeatherNotice();
+	if (changed && mPresentation && !IsWeatherPanelInterferenceActive()) {
+		mPresentation->ShowCurrentWeatherNotice();
+	}
 }
 
 /** 结束增强雾势并回到原版默认雾，随后重新安排下一次独立雾势抽取。 */
@@ -1792,7 +1795,9 @@ void Board::EndFogWeather(float defaultDuration)
 	mFogWeatherIntensity = FogWeatherIntensity::DEFAULT;
 	mFogWeatherTimer = std::max(defaultDuration, 0.1f);
 	ClearFogWeatherForecast();
-	if (changed && mPresentation) mPresentation->ShowCurrentWeatherNotice();
+	if (changed && mPresentation && !IsWeatherPanelInterferenceActive()) {
+		mPresentation->ShowCurrentWeatherNotice();
+	}
 }
 
 /** 随天气导演缩短后期低压默认雾段，但始终保留可预期的短暂恢复窗口。 */
@@ -2165,6 +2170,7 @@ void Board::MaybeShowHeavyRainPrompt()
 {
 	if (mHeavyRainPromptShown || !mWeatherForecastReady
 		|| mWeatherForecastDisrupted
+		|| IsWeatherPanelInterferenceActive()
 		|| mForecastRainIntensity != RainIntensity::HEAVY
 		|| mWeatherTimer > kHeavyRainPromptLeadTime || !mPresentation) return;
 	if (!mPendingHeavyTyphoonPrepared) PreparePendingHeavyTyphoon();
@@ -2203,7 +2209,7 @@ void Board::ConsumeWeatherForecast()
 			: (mPendingHeavyTyphoonPrepared
 				? mPendingHeavyTyphoonStrength : TyphoonStrength::NONE))
 		: TyphoonStrength::NONE;
-	if (!mWeatherForecastDisrupted
+	if (!mWeatherForecastDisrupted && !IsWeatherPanelInterferenceActive()
 		&& (forecast != next || forecastTyphoon != actualTyphoon) && mPresentation) {
 		mPresentation->ShowWeatherForecastFailure(
 			forecast, next, forecastTyphoon, actualTyphoon);
@@ -2581,7 +2587,9 @@ void Board::WeakenTyphoon()
 	if (next == TyphoonStrength::NONE) {
 		StopTyphoon();
 		RestartRainVisualForWindChange();
-		if (mPresentation) mPresentation->ShowCurrentWeatherNotice();
+		if (mPresentation && !IsWeatherPanelInterferenceActive()) {
+			mPresentation->ShowCurrentWeatherNotice();
+		}
 		return;
 	}
 	mTyphoonStrength = next;
@@ -2591,7 +2599,9 @@ void Board::WeakenTyphoon()
 		? RandomTyphoonGustInterval(next) : 0.0f;
 	mWindParticleTimer = 0.0f;
 	RefreshZombieWeatherSpeeds();
-	if (mPresentation) mPresentation->ShowCurrentWeatherNotice();
+	if (mPresentation && !IsWeatherPanelInterferenceActive()) {
+		mPresentation->ShowCurrentWeatherNotice();
+	}
 }
 
 /**
@@ -3209,7 +3219,9 @@ void Board::BeginRain(RainIntensity intensity, float duration, bool canIntensify
 	// 同档续期也新建发射器，让旧雨丝自然收尾并与新雨段无缝衔接。
 	EmitRainEffect(duration);
 	StartRainAudio();
-	if (mPresentation) mPresentation->ShowCurrentWeatherNotice();
+	if (mPresentation && !IsWeatherPanelInterferenceActive()) {
+		mPresentation->ShowCurrentWeatherNotice();
+	}
 }
 
 /**
@@ -3275,7 +3287,9 @@ void Board::EndRain()
 	RefreshZombieWeatherSpeeds();
 	if (mWeatherTransitionTimer > 0.0f) StartRainAudio();
 	else StopRainAudio();
-	if (mPresentation) mPresentation->ShowCurrentWeatherNotice();
+	if (mPresentation && !IsWeatherPanelInterferenceActive()) {
+		mPresentation->ShowCurrentWeatherNotice();
+	}
 }
 
 void Board::TriggerLightning()
@@ -4306,7 +4320,9 @@ void Board::SetRainForTesting(RainIntensity intensity, float duration, bool canI
 		mRainCanIntensify = false;
 		mRainCanHold = false;
 		FinishWeatherTransitionImmediately();
-		if (mPresentation) mPresentation->ShowCurrentWeatherNotice();
+		if (mPresentation && !IsWeatherPanelInterferenceActive()) {
+			mPresentation->ShowCurrentWeatherNotice();
+		}
 		return;
 	}
 	BeginRain(intensity, std::max(duration, 0.1f), canIntensify, true, false);
@@ -4682,6 +4698,16 @@ bool Board::HasDisruptibleWeatherForecast() const
 	return HasWeatherForecast() || HasColdWaveForecast() || HasFogWeatherForecast();
 }
 
+bool Board::SupportsWeatherPanelInterference() const
+{
+	return SupportsWeather() || SupportsWinterTemperature() || SupportsFogWeather();
+}
+
+bool Board::CanBeginWeatherPanelInterference() const
+{
+	return SupportsWeatherPanelInterference() && !IsWeatherPanelInterferenceActive();
+}
+
 int Board::DisruptWeatherForecastPanel()
 {
 	int disruptedMask = 0;
@@ -4696,6 +4722,33 @@ int Board::DisruptWeatherForecastPanel()
 		disruptedMask |= 4;
 	}
 	return disruptedMask;
+}
+
+/**
+ * 提交一个有界整栏黑障；bit3 区分“成功开启窗口但当帧尚无公开预报”的有效提交。
+ */
+int Board::BeginWeatherPanelInterference(float duration)
+{
+	if (!CanBeginWeatherPanelInterference() || !std::isfinite(duration)
+		|| duration <= 0.0f) return 0;
+	mWeatherPanelInterferenceTimer = duration;
+	const int disruptedMask = DisruptWeatherForecastPanel();
+	if (mPresentation) {
+		mPresentation->CancelHeavyRainWarning();
+		mPresentation->CancelWeatherInformationNotices();
+	}
+	return disruptedMask | 8;
+}
+
+/**
+ * 黑障期间每帧在雨雪、寒潮和雾势都完成推进后截获新广播，再按游戏时间递减窗口。
+ */
+void Board::UpdateWeatherPanelInterference(float deltaTime)
+{
+	if (!IsWeatherPanelInterferenceActive()) return;
+	DisruptWeatherForecastPanel();
+	mWeatherPanelInterferenceTimer = std::max(
+		0.0f, mWeatherPanelInterferenceTimer - std::max(0.0f, deltaTime));
 }
 
 bool Board::IsColdWaveActive() const
@@ -7880,6 +7933,7 @@ void Board::Update()
 	UpdateWeather(DeltaTime::GetDeltaTime());
 	// 夜间泳池迷雾与雨势正交，但同样使用游戏时间并消费更新后的台风强度和实时风向。
 	UpdateFog(DeltaTime::GetDeltaTime());
+	UpdateWeatherPanelInterference(DeltaTime::GetDeltaTime());
 	UpdateIceTrails(DeltaTime::GetDeltaTime());
 	CleanupExpiredObjects();
 	mUpdateZombieMetricsTimer += DeltaTime::GetDeltaTime();

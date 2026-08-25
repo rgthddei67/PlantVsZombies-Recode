@@ -169,6 +169,8 @@ public:
 	void ShowHeavyRainWarning(TyphoonStrength strength, int variant) override;
 	/** 只撤下大雨/暴雪预警，不影响大波、突击令和低燃料等并存提示。 */
 	void CancelHeavyRainWarning() override;
+	/** 撤下天气实况牌和预报失败卡；其他 UI 与温度计保持独立。 */
+	void CancelWeatherInformationNotices() override;
 	const std::vector<PromptAnimation>& GetPromptsForTesting() const { return mPrompts; }
 
 	// 全屏白闪（寒冰菇全场冻结的瞬间反馈）：alpha 从峰值线性衰减到 0

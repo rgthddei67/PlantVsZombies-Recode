@@ -46,14 +46,15 @@
 新锁定等级只是公开预报，不会被同档 `BeginRain` 消费；实际等级必须读揭晓时仍在生效的 `mTyphoonStrength`。
 因此即使雨势同为大雨，“预报强台风、实际超强台风”也必须报错，失败卡片显示两边的完整文案；这四个雨势/台风值和余时一起经 `WeatherPresentationState` 入档。
 
-整栏天气预报干扰只改变玩家可见性：`Board` 为雨雪/待生效台风警报、寒潮和雾势分别保存
-disrupted 状态，原公开值、锁定实况、pending 台风和揭晓计时都继续推进。唯一提交入口在同一帧收集
-仍公开的栏目并返回 bitmask；零项时调用者不消费能力，已经干扰的栏目也不重复提交。雨雪和雾势在
-各自预报揭晓或下一次准备时清除 disrupted；寒潮沿用 `DisruptColdWaveForecast()` 通知全部依赖植物
-撤销尚未提交的准备。UI 保留当前实况行，把各受影响预报行统一改成故障文案；被干扰的公开大雨
-不再显示分级警报或揭晓失败，提交时已经显示的大雨/暴雪专用中央预警也立即撤下，但其他并存提示
-不得受影响；正式切档仍消费原锁定实际结果。三个 disrupted 结果及能力提交状态
-必须快照往返，旧档以 false 为单位元。
+有时限整栏天气干扰只改变玩家可见性：`Board` 保存按游戏时间推进的活动窗口，并为雨雪/待生效
+台风警报、寒潮和雾势分别保存 disrupted 代际；原公开值、锁定实况、pending 台风和揭晓计时都继续
+推进。提交入口即使当帧没有公开预报也能成功开启窗口，并返回可区分窗口提交与各维度截获的 bitmask；
+活动窗口内每帧截获后来公开的预报。同类来源不叠加或刷新窗口。雨雪和雾势在各自预报揭晓或清理时
+清除 disrupted；寒潮沿用 `DisruptColdWaveForecast()` 通知全部依赖植物撤销尚未提交的准备。UI 在
+窗口期间压缩为只显示统一故障文案，栏内当前雨雪、台风、寒潮、雾势与其他实况都隐藏；独立场地仪表
+可保留。被干扰的公开大雨不再显示分级警报或揭晓失败，提交时已经显示的大雨/暴雪专用中央预警、
+当前天气牌和失败卡也立即撤下，但其他并存提示不得受影响；正式切档仍消费原锁定实际结果。窗口、
+三个 disrupted 结果及能力提交状态必须快照往返；旧档缺窗口时长按 0，缺 disrupted 按 false。
 
 ## 并行环境维度与降水表现
 
@@ -239,7 +240,7 @@ Board 雾势、再恢复植物，所以 `RestoreFogState()` 只清空旧缓存�
 | 权重、持续时间、倍率 | `Board.cpp` 匿名命名空间 `k*Rain*` | 调参常量同行中文注释 |
 | 随机下一天气 | `Board::RollNextWeather` / `RainTransitionForRoll` | 与合法预报候选保持同构 |
 | 合法公开预报 | `BuildPlausibleForecasts` | 错误预报也必须真实可达 |
-| 整栏预报干扰 | `HasDisruptibleWeatherForecast` / `DisruptWeatherForecastPanel` | 只隐藏公开值；返回实际提交 mask，不改锁定实况 |
+| 整栏预报干扰 | `BeginWeatherPanelInterference` / `UpdateWeatherPanelInterference` / `DisruptWeatherForecastPanel` | Board 持时限窗口并截获期间新广播；只改可见性，不改锁定实况 |
 | 正式切档 | `BeginRain` / `EndRain` / `BeginWeatherTransition` | 目标枚举先变，倍率再插值 |
 | 实体主动改天 | `TriggerRoofMarshalWeather` 或同类 Board 窄入口 | 实体只发请求；入口规定只升不降、同档续期与台风策略 |
 | 天气逐帧推进 | `Board::UpdateWeather` | 全局场景状态，不属于波次更新 |

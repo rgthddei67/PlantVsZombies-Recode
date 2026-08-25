@@ -11,12 +11,13 @@
 namespace {
 	constexpr float kChannelDuration = 4.0f;              // 停步至全栏目原子提交的游戏秒数
 	constexpr float kRebootDuration = 5.0f;               // 外部打断后允许边走边啃的设备重启时长，单位游戏秒
+	constexpr float kPanelInterferenceDuration = 30.0f;   // 成功提交后整个气象栏目持续黑障的游戏秒数
 	constexpr float kPackAttachOffsetX = 27.0f;            // 背包相对身体稳定锚点的后侧偏移，单位局部 px
 	constexpr float kPackAttachOffsetY = 3.0f;             // 背包相对身体稳定锚点的垂直偏移，单位局部 px
-	constexpr float kTerminalAttachOffsetX = -18.0f;       // 手持终端对齐画面前侧手掌的局部 X，单位 px
-	constexpr float kTerminalAttachOffsetY = 8.0f;         // 手持终端对齐画面前侧手掌的局部 Y，单位 px
+	constexpr float kTerminalAttachOffsetX = -22.0f;       // 终端相对外前臂稳定锚点、与低垂手掌形成重叠的局部 X，单位 px
+	constexpr float kTerminalAttachOffsetY = 27.0f;        // 终端相对外前臂稳定锚点、与低垂手掌形成重叠的局部 Y，单位 px
 	constexpr const char* kPackAttachTrack = "Zombie_body"; // 身体之后、外臂之前绘制，形成背负层级
-	constexpr const char* kTerminalAttachTrack = "Zombie_outerarm_hand"; // 终端跟随外侧手掌并在掉臂时消失
+	constexpr const char* kTerminalAttachTrack = "Zombie_outerarm_lower"; // 用稳定前臂位置限制上下摆幅，并让终端覆盖握持连接处
 }
 
 void WeatherJammerZombie::SetupZombie()
@@ -65,8 +66,8 @@ void WeatherJammerZombie::ZombieUpdate(float scaledTime)
 		SpendDevice();
 		return;
 	}
-	if (!mBoard || !mBoard->HasDisruptibleWeatherForecast()) {
-		// 预报在施法期间自然揭晓时不消耗能力，也不触发重启惩罚。
+	if (!mBoard || !mBoard->CanBeginWeatherPanelInterference()) {
+		// 另一轮黑障抢先提交时不浪费设备；等待窗口结束后重新尝试。
 		CancelChannelForRetry(false);
 		return;
 	}
@@ -91,7 +92,7 @@ bool WeatherJammerZombie::CanBeginChannel() const
 		&& !mIsPreview && IsActive() && !mIsDying
 		&& !IsMindControlled() && HasHead() && HasArm()
 		&& mJammerPhase == JammerPhase::READY
-		&& mBoard->HasDisruptibleWeatherForecast();
+		&& mBoard->CanBeginWeatherPanelInterference();
 }
 
 bool WeatherJammerZombie::HasTerminalAbort() const
@@ -140,7 +141,8 @@ void WeatherJammerZombie::CommitInterference()
 		SpendDevice();
 		return;
 	}
-	const int disrupted = mBoard->DisruptWeatherForecastPanel();
+	const int disrupted = mBoard->BeginWeatherPanelInterference(
+		kPanelInterferenceDuration);
 	if (disrupted == 0) {
 		CancelChannelForRetry(false);
 		return;
@@ -214,7 +216,7 @@ void WeatherJammerZombie::LoadExtraData(const nlohmann::json& j)
 	mRebootRemaining = std::clamp(
 		j.value("jammerRebootRemaining", 0.0f), 0.0f, kRebootDuration);
 	mCommittedDisruptionMask = std::clamp(
-		j.value("jammerCommittedDisruptionMask", 0), 0, 7);
+		j.value("jammerCommittedDisruptionMask", 0), 0, 15);
 	if (mJammerPhase != JammerPhase::SPENT
 		&& (!HasHead() || !HasArm() || IsMindControlled() || mIsDying
 			|| mCommittedDisruptionMask != 0

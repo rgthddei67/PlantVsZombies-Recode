@@ -30,7 +30,7 @@
 <track>
 <name>terminal</name>
 <t><x>-3</x><y>-2</y><sx>0.62</sx><sy>0.62</sy><a>1</a><i>IMAGE_REANIM_ZOMBIE_WEATHER_JAMMER_TERMINAL_READY</i></t><t></t><t></t><t></t><t></t><t></t><t></t><t></t><t></t><t></t><t></t><t></t>
-<t><i>IMAGE_REANIM_ZOMBIE_WEATHER_JAMMER_TERMINAL_CHANNEL</i><sx>0.66</sx><sy>0.66</sy></t><t><sx>0.62</sx><sy>0.62</sy></t><t><sx>0.66</sx><sy>0.66</sy></t><t><sx>0.62</sx><sy>0.62</sy></t><t><sx>0.66</sx><sy>0.66</sy></t><t><sx>0.62</sx><sy>0.62</sy></t><t><sx>0.66</sx><sy>0.66</sy></t><t><sx>0.62</sx><sy>0.62</sy></t><t><sx>0.66</sx><sy>0.66</sy></t><t><sx>0.62</sx><sy>0.62</sy></t><t><sx>0.66</sx><sy>0.66</sy></t><t><sx>0.62</sx><sy>0.62</sy></t>
+<t><i>IMAGE_REANIM_ZOMBIE_WEATHER_JAMMER_TERMINAL_CHANNEL</i></t><t></t><t></t><t></t><t></t><t></t><t></t><t></t><t></t><t></t><t></t><t></t>
 <t><i>IMAGE_REANIM_ZOMBIE_WEATHER_JAMMER_TERMINAL_REBOOT</i><a>0.58</a></t><t><a>1</a></t><t><a>0.58</a></t><t><a>1</a></t><t><a>0.58</a></t><t><a>1</a></t><t><a>0.58</a></t><t><a>1</a></t><t><a>0.58</a></t><t><a>1</a></t><t><a>0.58</a></t><t><a>1</a></t>
 <t><i>IMAGE_REANIM_ZOMBIE_WEATHER_JAMMER_TERMINAL_SPENT</i><a>0.75</a></t><t></t><t></t><t></t><t></t><t></t><t></t><t></t><t></t><t></t><t></t><t></t>
 </track>

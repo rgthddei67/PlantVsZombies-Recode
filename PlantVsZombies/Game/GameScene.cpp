@@ -314,6 +314,9 @@ namespace {
 	/** 只从公开预报及其已锁定警报等级构建玩家可见文案，隐藏的真实天气不得参与。 */
 	std::string WeatherForecastPanelText(const Board* board) {
 		if (!board) return u8"天气预报：暂无";
+		if (board->IsWeatherPanelInterferenceActive()) {
+			return u8"气象信号受干扰";
+		}
 		if (board->IsStormyNightForecastActive() || board->IsStormyNightActive()) {
 			return u8"天气预报：暴风雨";
 		}
@@ -339,6 +342,7 @@ namespace {
 
 	/** 寒潮预报与实况只读取 Board 已锁定计划，不复用允许误报的雨势预报。 */
 	std::string ColdWavePanelText(const Board* board) {
+		if (board && board->IsWeatherPanelInterferenceActive()) return {};
 		if (board && board->IsColdWaveForecastDisruptionVisible()) {
 			return u8"寒潮预报：气象信号受干扰";
 		}
@@ -374,6 +378,7 @@ namespace {
 	/** 雾势预报保持独立栏目；干扰只遮蔽公开值，不读取或改写已经锁定的真实雾势。 */
 	std::string FogForecastPanelText(const Board* board) {
 		if (!board) return {};
+		if (board->IsWeatherPanelInterferenceActive()) return {};
 		if (board->IsFogWeatherForecastDisrupted()) {
 			return u8"雾势预报：气象信号受干扰";
 		}
@@ -476,6 +481,7 @@ namespace {
 	/** 按独立雾势、屋顶累计条与台风实况计算面板高度，避免内容落出底板。 */
 	float WeatherPanelHeight(const Board* board) {
 		if (!board) return kWeatherPanelHeight;
+		if (board->IsWeatherPanelInterferenceActive()) return kWeatherPanelHeight;
 		float height = kWeatherPanelHeight;
 		const bool stormyNight = board->IsStormyNightForecastActive()
 			|| board->IsStormyNightActive();
@@ -1137,6 +1143,9 @@ void GameScene::UpdateWeatherUi(float deltaTime)
 		mWeatherForecastFailureTimer = std::max(0.0f,
 			mWeatherForecastFailureTimer - deltaTime);
 	}
+	if (mBoard && mBoard->IsWeatherPanelInterferenceActive()) {
+		CancelWeatherInformationNotices();
+	}
 }
 
 /** 在天气栏之外常驻绘制冬日花园温度计，并明确标出三条玩法阈值。 */
@@ -1235,7 +1244,9 @@ void GameScene::DrawWeatherPanel(Graphics* g) const
 	const float panelHeight = WeatherPanelHeight(mBoard.get());
 	const bool stormyNightForecast = mBoard->IsStormyNightForecastActive()
 		|| mBoard->IsStormyNightActive();
-	const glm::vec4 accentColor = stormyNightForecast
+	const glm::vec4 accentColor = mBoard->IsWeatherPanelInterferenceActive()
+		? glm::vec4(255.0f, 181.0f, 88.0f, alpha)
+		: stormyNightForecast
 		? StormyNightTextColor(alpha)
 		: RainIntensityTextColor(mBoard->GetRainIntensity(), alpha);
 
@@ -1249,6 +1260,17 @@ void GameScene::DrawWeatherPanel(Graphics* g) const
 		glm::vec4(111.0f, 151.0f, 196.0f, 180.0f * eased));
 	g->FillRect(x, kWeatherPanelY, 5.0f, panelHeight,
 		accentColor);
+	if (mBoard->IsWeatherPanelInterferenceActive()) {
+		const float textX = x + 18.0f;
+		const glm::vec4 shadow(0.0f, 0.0f, 0.0f, 185.0f * eased);
+		const std::string line = u8"气象信号受干扰";
+		g->DrawText(line, ResourceKeys::Fonts::FONT_FZCQ, kWeatherCurrentFontSize,
+			shadow, textX + 1.0f, kWeatherPanelY + 26.0f);
+		g->DrawText(line, ResourceKeys::Fonts::FONT_FZCQ, kWeatherCurrentFontSize,
+			glm::vec4(255.0f, 181.0f, 88.0f, alpha),
+			textX, kWeatherPanelY + 25.0f);
+		return;
+	}
 
 	std::string currentLine = mBoard->IsStormyNightActive()
 		? std::string(u8"当前天气：暴风雨")
@@ -1437,7 +1459,8 @@ void GameScene::DrawWeatherPanel(Graphics* g) const
 /** 在天气面板下方绘制错误揭晓提示；它只提示结果，不抢输入也不暂停游戏。 */
 void GameScene::DrawWeatherForecastFailure(Graphics* g) const
 {
-	if (!g || mWeatherForecastFailureTimer <= 0.0f) return;
+	if (!g || mWeatherForecastFailureTimer <= 0.0f
+		|| (mBoard && mBoard->IsWeatherPanelInterferenceActive())) return;
 	const float failureY = mBoard
 		? kWeatherPanelY + WeatherPanelHeight(mBoard.get()) + 6.0f
 		: kForecastFailureY;
@@ -3171,6 +3194,7 @@ void GameScene::ShowWeatherForecastFailure(
 	RainIntensity forecast, RainIntensity actual,
 	TyphoonStrength forecastTyphoon, TyphoonStrength actualTyphoon)
 {
+	if (mBoard && mBoard->IsWeatherPanelInterferenceActive()) return;
 	RestoreWeatherForecastFailure(kForecastFailureDuration,
 		forecast, actual, forecastTyphoon, actualTyphoon);
 }
@@ -3196,6 +3220,7 @@ void GameScene::RestoreWeatherForecastFailure(float remaining,
 
 void GameScene::ShowCurrentWeatherNotice()
 {
+	if (mBoard && mBoard->IsWeatherPanelInterferenceActive()) return;
 	mCurrentWeatherNoticeTimer = kCurrentWeatherNoticeDuration;
 }
 
@@ -3220,6 +3245,10 @@ WeatherPresentationState GameScene::CaptureWeatherPresentationState() const
 void GameScene::RestoreWeatherPresentationState(
 	const WeatherPresentationState& state)
 {
+	if (mBoard && mBoard->IsWeatherPanelInterferenceActive()) {
+		CancelWeatherInformationNotices();
+		return;
+	}
 	RestoreCurrentWeatherNotice(state.currentWeatherNoticeTimer);
 	RestoreWeatherForecastFailure(state.forecastFailureTimer,
 		state.failedForecast, state.actualForecast,
@@ -3485,4 +3514,12 @@ void GameScene::CancelHeavyRainWarning()
 		[](const PromptAnimation& prompt) {
 			return prompt.purpose == PromptPurpose::HEAVY_RAIN_WARNING;
 		}), mPrompts.end());
+}
+
+void GameScene::CancelWeatherInformationNotices()
+{
+	mCurrentWeatherNoticeTimer = 0.0f;
+	RestoreWeatherForecastFailure(0.0f,
+		RainIntensity::CLEAR, RainIntensity::CLEAR,
+		TyphoonStrength::NONE, TyphoonStrength::NONE);
 }

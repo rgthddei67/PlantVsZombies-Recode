@@ -57,6 +57,30 @@ function Test-ReanimationTrackLengths {
     }
 }
 
+function Test-WeatherJammerMotionContracts {
+    param([string]$PackPath, [string]$TerminalPath)
+
+    # 循环首尾必须相邻，避免播放头回绕时雷达瞬间跳回最左端。
+    [xml]$packXml = "<root>$(Get-Content -Raw -LiteralPath $PackPath)</root>"
+    $dishFrames = @(($packXml.root.track | Where-Object { $_.name -eq "dish" }).t)
+    foreach ($start in @(0, 12)) {
+        $first = [double]$dishFrames[$start].kx
+        $last = [double]$dishFrames[$start + 11].kx
+        if ([Math]::Abs($first - $last) -gt 2.0) {
+            throw "雷达循环首尾不连续: $PackPath ($first -> $last)"
+        }
+    }
+
+    # 手持终端只随稳定前臂轻动；施法片段不得再用缩放脉冲制造脱手错觉。
+    [xml]$terminalXml = "<root>$(Get-Content -Raw -LiteralPath $TerminalPath)</root>"
+    $terminalFrames = @(($terminalXml.root.track | Where-Object { $_.name -eq "terminal" }).t)
+    foreach ($index in 12..23) {
+        if ($null -ne $terminalFrames[$index].sx -or $null -ne $terminalFrames[$index].sy) {
+            throw "手持终端施法片段含缩放脉冲: $TerminalPath (frame $index)"
+        }
+    }
+}
+
 function New-ScaledCutout {
     param(
         [string]$Path,
@@ -168,6 +192,9 @@ finally { $terminal.Dispose() }
 
 Test-ReanimationTrackLengths -Path (Join-Path $reanimRoot "WeatherJammerPack.reanim")
 Test-ReanimationTrackLengths -Path (Join-Path $reanimRoot "WeatherJammerTerminal.reanim")
+Test-WeatherJammerMotionContracts `
+    -PackPath (Join-Path $reanimRoot "WeatherJammerPack.reanim") `
+    -TerminalPath (Join-Path $reanimRoot "WeatherJammerTerminal.reanim")
 
 Get-ChildItem -LiteralPath $imageRoot -Filter "Zombie_weather_jammer_*.png" |
     Sort-Object Name | Get-FileHash -Algorithm SHA256 |
