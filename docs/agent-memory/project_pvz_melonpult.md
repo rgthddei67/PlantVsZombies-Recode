@@ -4,7 +4,7 @@ description: 经典西瓜投手、三行溅射、护盾穿透、卡图与双绘�
 metadata:
   node_type: memory
   type: project
-  updated_at: 2026-08-14
+  updated_at: 2026-08-25
 ---
 
 # 经典西瓜投手（Melon-pult）
@@ -47,3 +47,10 @@ metadata:
 
 Winter Melon 已按本弹丸的跨行集合、解析轨迹、对象池与 splash 护盾语义实现；
 其 100/33 伤害、10 秒群体减速和独立冰瓜视觉资源见 `project_pvz_winter_melon.md`。
+
+## 2026-08-25 冰墙优先级
+
+西瓜家族在同行有冰墙时即使无僵尸也起手，并在发射帧优先锁定墙体；普通西瓜对墙结算 120
+直击并播放 `MelonSplash`/impact 反馈，但不向墙后或相邻行僵尸派发 40 溅射。显式锁墙标志使
+在途弹跳过僵尸并随快照往返；墙消失时按原落点落空。当前西瓜父专项与共享锁墙专项均在
+`clang-release` 可见路径通过。

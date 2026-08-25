@@ -43,6 +43,7 @@ private:
 			int targetRow;
 		};
 		TrajectoryKind kind = TrajectoryKind::LINEAR;
+		bool targetsIceWall = false; // 抛射起手时是否已锁定冰墙；在途存档后继续忽略墙后僵尸
 
 		TrajectoryState() : apexHeight(0.0f) {}
 	};
@@ -108,10 +109,12 @@ protected:
 	bool UpdateLobbedMotion(float deltaTime);
 	/** 抛射物到达无目标落点后的粒子与回收入口。 */
 	void HitLobbedGround();
+	/** 播放当前投射物命中地面或冰墙时的品种专属音画反馈。 */
+	void PlayLobbedImpactFeedback();
 	/** 平射移动后优先结算同行冰墙；返回 true 表示本弹已被墙消费。 */
 	bool HitIceWallIfNeeded(float fromX, float toX);
-	/** 盐晶轨迹是否锁定当前同行冰墙，用于跳过墙后僵尸的末段触发器。 */
-	bool IsSaltTargetingIceWall() const;
+	/** 返回仍位于锁定落点附近的同行冰墙；原墙消失时返回 nullptr。 */
+	class IceWall* GetTargetedIceWall() const;
 	/** 推进玉米棒升空/换位/垂降三段轨迹；爆炸并回收时返回 false。 */
 	bool UpdateCobCannonMotion(float deltaTime);
 
@@ -194,14 +197,19 @@ public:
 	float GetTerrainShadowYForTesting() const { return GetTerrainShadowY(GetPosition()); }
 	/**
 	 * 把当前弹心作为起点，按固定飞行时间和拱高配置解析抛物线。
-	 * 目标预测由发射植物负责，本层只保证轨迹精确经过起点和落点。
+	 * 目标预测由发射植物负责；锁定冰墙时，末段碰撞会跳过墙后僵尸。
 	 */
 	void ConfigureLobbedMotion(
-		const Vector& target, float durationSeconds, float apexHeight);
+		const Vector& target, float durationSeconds, float apexHeight,
+		bool targetsIceWall = false);
 	/** 按存档恢复在途解析抛物线，并重建速度、位置与末段碰撞门禁。 */
 	void RestoreLobbedMotion(const Vector& start, const Vector& target,
-		float elapsedSeconds, float durationSeconds, float apexHeight);
+		float elapsedSeconds, float durationSeconds, float apexHeight,
+		bool targetsIceWall = false);
 	bool IsLobbedMotion() const { return mTrajectory.kind == TrajectoryKind::LOBBED; }
+	bool TargetsIceWall() const {
+		return IsLobbedMotion() && mTrajectory.targetsIceWall;
+	}
 	Vector GetLobStart() const {
 		return IsLobbedMotion() ? mTrajectory.start : Vector::zero();
 	}

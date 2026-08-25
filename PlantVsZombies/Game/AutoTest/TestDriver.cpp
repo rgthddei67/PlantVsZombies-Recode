@@ -1592,7 +1592,8 @@ bool TestDriver::ExecuteCurrent() {
 			if (cmd.contains("lobTargetX") && cmd.contains("lobTargetY")) {
 				bullet->ConfigureLobbedMotion(
 					Vector(cmd["lobTargetX"].get<float>(), cmd["lobTargetY"].get<float>()),
-					cmd.value("lobDuration", 1.2f), cmd.value("lobApexHeight", 210.0f));
+					cmd.value("lobDuration", 1.2f), cmd.value("lobApexHeight", 210.0f),
+					cmd.value("targetsIceWall", false));
 			}
 		}
 		return true;
@@ -7010,6 +7011,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "colliderEnabled", bullet->GetColliderComponent()
 				&& bullet->GetColliderComponent()->mEnabled },
 			{ "lobbedMotion", bullet->IsLobbedMotion() },
+			{ "targetsIceWall", bullet->TargetsIceWall() },
 			{ "lobElapsedMs", static_cast<int>(std::lround(
 				bullet->GetLobElapsed() * 1000.0f)) },
 			{ "lobDurationMs", static_cast<int>(std::lround(

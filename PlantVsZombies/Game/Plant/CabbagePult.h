@@ -3,7 +3,7 @@
 #include "Plant.h"
 
 /**
- * 经典卷心菜投手：按当前行目标的预计落点发射解析抛物线卷心菜。
+ * 经典卷心菜投手：优先攻击同行冰墙，否则按僵尸预计落点投掷卷心菜。
  */
 class CabbagePult final : public Plant
 {

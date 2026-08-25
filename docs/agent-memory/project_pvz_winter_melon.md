@@ -4,7 +4,7 @@ description: 6-5 冰瓜紫卡升级、100/33 三行伤害、10秒群体减速与
 metadata:
   node_type: memory
   type: project
-  updated_at: 2026-08-14
+  updated_at: 2026-08-25
 ---
 
 # 6-5 冰瓜（Winter Melon）
@@ -56,3 +56,9 @@ metadata:
 紫卡升级同帧内旧基础株虽已失活，仍可能短暂留在实体表。按格布置射击周期的 AutoTest 夹具必须
 过滤 `IsActive()`，状态断言优先使用 `normalPlantsByCell/topPlantsByCell`。互斥粒子计数需为基础和
 派生效果预置显式零键，否则“基础效果为 0”会因 JSON 路径不存在而无法断言。
+
+## 2026-08-25 冰墙优先级
+
+冰瓜继承西瓜家族的同行冰墙优先锁定：对墙结算 100 直击并播放独立冰屑反馈，不向墙后或
+相邻行僵尸派发 33 溅射与 10 秒减速。当前冰瓜父专项和共享锁墙专项均在 `clang-release`
+可见路径通过。

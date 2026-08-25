@@ -5,7 +5,7 @@
 enum class BulletType;
 
 /**
- * 经典西瓜投手：预判同行目标落点，投出会溅射相邻行的西瓜。
+ * 经典西瓜投手：优先攻击同行冰墙，否则预判僵尸落点并溅射相邻行。
  */
 class MelonPult : public Plant
 {

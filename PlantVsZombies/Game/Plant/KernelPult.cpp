@@ -3,6 +3,7 @@
 
 #include "../Board.h"
 #include "../Bullet/Bullet.h"
+#include "../IceWall.h"
 #include "../Zombie/Zombie.h"
 #include "../ShadowComponent.h"
 
@@ -64,7 +65,8 @@ void KernelPult::PlantUpdate()
 	mShootTimer = 0.0f;
 	mShootInterval = GameRandom::Range(
 		kRepeatShootIntervalMin, kRepeatShootIntervalMax);
-	if (!FindTarget() || !mAnimator) return;
+	if ((!mBoard || (!mBoard->GetIceWallInRow(mRow) && !FindTarget()))
+		|| !mAnimator) return;
 
 	BeginShot();
 	const float shootSpeed =
@@ -133,7 +135,12 @@ void KernelPult::FireProjectile()
 		static_cast<float>(SCENE_WIDTH + 20),
 		mBoard->GetRowCenterYAtX(mRow, static_cast<float>(SCENE_WIDTH))
 			+ kFallbackLandingOffsetY);
-	if (Zombie* target = FindTarget()) {
+	bool targetsIceWall = false;
+	if (IceWall* wall = mBoard->GetIceWallInRow(mRow)) {
+		landingPosition = wall->GetProjectileAimPosition();
+		targetsIceWall = true;
+	}
+	else if (Zombie* target = FindTarget()) {
 		if (const ColliderComponent* collider = target->GetColliderComponent()) {
 			const SDL_FRect bounds = collider->GetBoundingBox();
 			const float currentTargetX = bounds.x + bounds.w * 0.5f;
@@ -156,7 +163,7 @@ void KernelPult::FireProjectile()
 	if (projectile) {
 		projectile->SetBulletDamage(fireButter ? kButterDamage : kKernelDamage);
 		projectile->ConfigureLobbedMotion(
-			landingPosition, kFlightDuration, kArcApexHeight);
+			landingPosition, kFlightDuration, kArcApexHeight, targetsIceWall);
 	}
 
 	// C# 在发射节点立即恢复手持玉米粒；即使对象池创建失败也不能把黄油留在植株上。

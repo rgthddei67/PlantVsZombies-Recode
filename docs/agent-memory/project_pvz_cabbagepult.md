@@ -4,6 +4,7 @@ description: 经典卷心菜投手的解析抛物线预判、末段碰撞、对�
 metadata:
   node_type: memory
   type: project
+  updated_at: 2026-08-25
 ---
 
 # 经典卷心菜投手（Cabbage-pult）
@@ -54,3 +55,10 @@ metadata:
   速度，`Zombie::GetCurrentHorizontalMoveSpeed` 改用平均 `_ground` 位移并与实际
   黄色冰道风力放大顺序对齐。专项跨五个双速步态相位断言 1.2 秒相对提前量稳定在
   80～100px，并断言卷心菜命中后本体由 1150 降至 1110；窗口、日志、状态和截图齐全。
+
+## 2026-08-25 冰墙优先级
+
+同行存在冰墙时，即使没有僵尸也进入射击周期；发射帧重新取墙体投射物瞄准点并保存显式
+`targetsIceWall` 弹道标志。锁定弹跳过墙后僵尸，落点复核墙体后只结算 40 直击；墙已消失则
+在原落点落空，不临时改投。该标志随在途快照往返并由对象池清空，未显式锁墙的测试抛射保持
+原越墙行为。新共享专项及当前 `smoke_cabbagepult.json` 均在 `clang-release` 可见路径通过。

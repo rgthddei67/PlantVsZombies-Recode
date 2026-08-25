@@ -3,7 +3,7 @@
 #include "Plant.h"
 
 /**
- * 经典玉米投手：按 3:1 概率投掷玉米粒或可定身僵尸的黄油。
+ * 经典玉米投手：优先攻击同行冰墙，否则按 3:1 概率投掷玉米粒或黄油。
  */
 class KernelPult final : public Plant
 {

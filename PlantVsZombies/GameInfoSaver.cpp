@@ -579,6 +579,7 @@ bool GameInfoSaver::SerializeLevelDataToPath(Board* board, CardSlotManager* mana
 			b["lobElapsed"] = bullet->GetLobElapsed();
 			b["lobDuration"] = bullet->GetLobDuration();
 			b["lobApexHeight"] = bullet->GetLobApexHeight();
+			b["lobTargetsIceWall"] = bullet->TargetsIceWall();
 		}
 		b["cobCannonMotion"] = bullet->IsCobCannonMotion();
 		if (bullet->IsCobCannonMotion()) {
@@ -1339,7 +1340,8 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 					Vector(b.value("lobTargetX", x), b.value("lobTargetY", y)),
 					b.value("lobElapsed", 0.0f),
 					b.value("lobDuration", 1.2f),
-					b.value("lobApexHeight", 0.0f));
+					b.value("lobApexHeight", 0.0f),
+					b.value("lobTargetsIceWall", false));
 			}
 			if (b.value("cobCannonMotion", false)) {
 				bullet->RestoreCobCannonMotion(

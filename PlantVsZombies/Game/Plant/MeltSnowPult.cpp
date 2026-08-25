@@ -68,7 +68,7 @@ void MeltSnowPult::PlantUpdate()
 	mShootTimer = 0.0f;
 	mShootInterval = GameRandom::Range(
 		kRepeatShootIntervalMin, kRepeatShootIntervalMax);
-	if ((!FindTarget() && !FindSaltWallTarget()) || !mAnimator) return;
+	if ((!FindIceWallTarget() && !FindTarget()) || !mAnimator) return;
 
 	BeginShot();
 	const float shootSpeed =
@@ -118,9 +118,9 @@ Zombie* MeltSnowPult::FindTarget() const
 	return closest;
 }
 
-IceWall* MeltSnowPult::FindSaltWallTarget() const
+IceWall* MeltSnowPult::FindIceWallTarget() const
 {
-	return mBoard && mSaltAmmo > 0 ? mBoard->GetIceWallInRow(mRow) : nullptr;
+	return mBoard ? mBoard->GetIceWallInRow(mRow) : nullptr;
 }
 
 void MeltSnowPult::BeginShot()
@@ -158,8 +158,10 @@ void MeltSnowPult::FireProjectile()
 		static_cast<float>(SCENE_WIDTH + 20),
 		mBoard->GetRowCenterYAtX(mRow, static_cast<float>(SCENE_WIDTH))
 			+ kFallbackLandingOffsetY);
-	if (IceWall* wall = fireSalt ? mBoard->GetIceWallInRow(mRow) : nullptr) {
+	bool targetsIceWall = false;
+	if (IceWall* wall = FindIceWallTarget()) {
 		landingPosition = wall->GetProjectileAimPosition();
+		targetsIceWall = true;
 	}
 	else if (Zombie* target = FindTarget()) {
 		if (const ColliderComponent* collider = target->GetColliderComponent()) {
@@ -185,7 +187,7 @@ void MeltSnowPult::FireProjectile()
 	if (projectile) {
 		projectile->SetBulletDamage(kProjectileDamage);
 		projectile->ConfigureLobbedMotion(
-			landingPosition, kFlightDuration, kArcApexHeight);
+			landingPosition, kFlightDuration, kArcApexHeight, targetsIceWall);
 	}
 
 	// 发射节点立即恢复“下一发”手持表现；对象池失败也不能留下已消费的盐晶。

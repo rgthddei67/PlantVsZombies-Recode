@@ -3,6 +3,7 @@
 
 #include "../Board.h"
 #include "../Bullet/Bullet.h"
+#include "../IceWall.h"
 #include "../Zombie/Zombie.h"
 #include "../ShadowComponent.h"
 
@@ -58,7 +59,8 @@ void CabbagePult::PlantUpdate()
 	mShootTimer = 0.0f;
 	mShootInterval = GameRandom::Range(
 		kRepeatShootIntervalMin, kRepeatShootIntervalMax);
-	if (!FindTarget() || !mAnimator) return;
+	if ((!mBoard || (!mBoard->GetIceWallInRow(mRow) && !FindTarget()))
+		|| !mAnimator) return;
 
 	const float shootSpeed =
 		(kShootFramesPerSecond / kReanimFramesPerSecond) * attackSpeed;
@@ -104,7 +106,12 @@ void CabbagePult::FireCabbage()
 		static_cast<float>(SCENE_WIDTH + 20),
 		mBoard->GetRowCenterYAtX(mRow, static_cast<float>(SCENE_WIDTH))
 			+ kFallbackLandingOffsetY);
-	if (Zombie* target = FindTarget()) {
+	bool targetsIceWall = false;
+	if (IceWall* wall = mBoard->GetIceWallInRow(mRow)) {
+		landingPosition = wall->GetProjectileAimPosition();
+		targetsIceWall = true;
+	}
+	else if (Zombie* target = FindTarget()) {
 		if (const ColliderComponent* collider = target->GetColliderComponent()) {
 			const SDL_FRect bounds = collider->GetBoundingBox();
 			const float currentTargetX = bounds.x + bounds.w * 0.5f;
@@ -127,7 +134,7 @@ void CabbagePult::FireCabbage()
 	if (!cabbage) return;
 	cabbage->SetBulletDamage(kCabbageDamage);
 	cabbage->ConfigureLobbedMotion(
-		landingPosition, kFlightDuration, kArcApexHeight);
+		landingPosition, kFlightDuration, kArcApexHeight, targetsIceWall);
 }
 
 void CabbagePult::SaveExtraData(nlohmann::json& j) const

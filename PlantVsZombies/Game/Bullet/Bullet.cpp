@@ -921,10 +921,12 @@ void Bullet::ConfigurePresentation()
 }
 
 void Bullet::ConfigureLobbedMotion(
-	const Vector& target, float durationSeconds, float apexHeight)
+	const Vector& target, float durationSeconds, float apexHeight,
+	bool targetsIceWall)
 {
 	if (!GetTransform()) return;
 	mTrajectory.kind = TrajectoryKind::LOBBED;
+	mTrajectory.targetsIceWall = targetsIceWall;
 	mTrajectory.start = GetTransform()->GetPosition();
 	mTrajectory.target = target;
 	mTrajectory.elapsed = 0.0f;
@@ -947,6 +949,7 @@ void Bullet::ConfigureCobCannonMotion(
 	mTrajectory.elapsed = 0.0f;
 	mTrajectory.duration = std::max(0.1f, durationSeconds);
 	mTrajectory.targetRow = targetRow;
+	mTrajectory.targetsIceWall = false;
 	mRotationDegrees = -90.0f;
 	if (mCollider) mCollider->mEnabled = false;
 	if (auto* shadow = GetShadow()) shadow->SetEnabled(false);
@@ -1002,9 +1005,11 @@ bool Bullet::UpdateCobCannonMotion(float deltaTime)
 }
 
 void Bullet::RestoreLobbedMotion(const Vector& start, const Vector& target,
-	float elapsedSeconds, float durationSeconds, float apexHeight)
+	float elapsedSeconds, float durationSeconds, float apexHeight,
+	bool targetsIceWall)
 {
 	mTrajectory.kind = TrajectoryKind::LOBBED;
+	mTrajectory.targetsIceWall = targetsIceWall;
 	mTrajectory.start = start;
 	mTrajectory.target = target;
 	mTrajectory.duration = std::max(0.01f, durationSeconds);
@@ -1075,19 +1080,21 @@ void Bullet::HitLobbedGround()
 {
 	if (mHasHit) return;
 	mHasHit = true;
-	if (mBulletType == BulletType::BULLET_SALT_CRYSTAL && IsSaltTargetingIceWall()) {
-		if (IceWall* wall = mBoard->GetIceWallInRow(mRow)) {
-			wall->TakeProjectileDamage(GetWindAdjustedDamage(), false);
-			if (wall->IsActive()) {
-				wall->ApplyWinterCorrosion(GetWinterCorrosionDamage());
-			}
-			if (g_particleSystem) {
-				g_particleSystem->EmitEffect("SaltCrystalHit", GetPosition());
-			}
-			Die();
-			return;
+	if (IceWall* wall = GetTargetedIceWall()) {
+		wall->TakeProjectileDamage(GetWindAdjustedDamage(), false);
+		if (mBulletType == BulletType::BULLET_SALT_CRYSTAL && wall->IsActive()) {
+			wall->ApplyWinterCorrosion(GetWinterCorrosionDamage());
 		}
+		PlayLobbedImpactFeedback();
+		Die();
+		return;
 	}
+	PlayLobbedImpactFeedback();
+	Die();
+}
+
+void Bullet::PlayLobbedImpactFeedback()
+{
 	if (mBulletType == BulletType::BULLET_KERNEL) {
 		PlayKernelImpactSound();
 	}
@@ -1124,7 +1131,6 @@ void Bullet::HitLobbedGround()
 	else if (g_particleSystem) {
 		g_particleSystem->EmitEffect("CabbageSplat", GetPosition());
 	}
-	Die();
 }
 
 bool Bullet::HitIceWallIfNeeded(float fromX, float toX)
@@ -1143,15 +1149,14 @@ bool Bullet::HitIceWallIfNeeded(float fromX, float toX)
 	return true;
 }
 
-bool Bullet::IsSaltTargetingIceWall() const
+IceWall* Bullet::GetTargetedIceWall() const
 {
-	if (!mBoard || mBulletType != BulletType::BULLET_SALT_CRYSTAL
-		|| !IsLobbedMotion()) return false;
+	if (!mBoard || !TargetsIceWall()) return nullptr;
 	IceWall* wall = mBoard->GetIceWallInRow(mRow);
-	if (!wall) return false;
+	if (!wall) return nullptr;
 	// 墙在 1.2 秒飞行中会缓慢左移；半墙宽外再留移动余量，仍不会误接远处僵尸落点。
 	return std::fabs(mTrajectory.target.x - wall->GetCenterX())
-		<= IceWall::kBlockHalfWidth + 24.0f;
+		<= IceWall::kBlockHalfWidth + 24.0f ? wall : nullptr;
 }
 
 void Bullet::ConfigureCollisionTarget()
@@ -1226,7 +1231,7 @@ void Bullet::HandlePlantContact(ColliderComponent* other)
 void Bullet::HandleZombieContact(ColliderComponent* other)
 {
 	if (!IsActive() || !other) return;
-	if (IsSaltTargetingIceWall()) return;
+	if (TargetsIceWall()) return;
 	auto* otherGameObject = other->GetGameObject();
 	if (!otherGameObject || otherGameObject->GetObjectType() != ObjectType::OBJECT_ZOMBIE) {
 		return;
