@@ -291,6 +291,44 @@ namespace {
 			"迁移不得覆盖预发布档的地裂传播前沿");
 	}
 
+	void TestVersionFourLevelUpgradeAddsWeatherJammerState() {
+		nlohmann::json document = {
+			{ "schemaVersion", 4 },
+			{ "currentWave", 3 },
+			{ "weatherForecastReady", true },
+			{ "fogWeatherForecastReady", true }
+		};
+		std::string error;
+
+		Expect(SaveSchema::UpgradeLevelDocument(document, error),
+			"v4 关卡档应升级到气象干扰持久化结构");
+		Expect(document["schemaVersion"] == SaveSchema::kCurrentLevelVersion,
+			"v4 关卡档应写入当前版本");
+		Expect(document["weatherForecastDisrupted"] == false,
+			"旧档雨雪预报默认未受干扰");
+		Expect(document["fogWeatherForecastDisrupted"] == false,
+			"旧档雾势预报默认未受干扰");
+		Expect(document["weatherJammersSpawnedThisWave"] == 0,
+			"旧档没有气象干扰僵尸波次名额时应补零");
+		Expect(document["currentWave"] == 3
+			&& document["weatherForecastReady"] == true
+			&& document["fogWeatherForecastReady"] == true,
+			"气象干扰迁移不得改写既有预报与波次状态");
+
+		nlohmann::json prereleaseDocument = {
+			{ "schemaVersion", 4 },
+			{ "weatherForecastDisrupted", true },
+			{ "fogWeatherForecastDisrupted", true },
+			{ "weatherJammersSpawnedThisWave", 1 }
+		};
+		Expect(SaveSchema::UpgradeLevelDocument(prereleaseDocument, error),
+			"已含气象干扰字段的 v4 预发布档应升级成功");
+		Expect(prereleaseDocument["weatherForecastDisrupted"] == true
+			&& prereleaseDocument["fogWeatherForecastDisrupted"] == true
+			&& prereleaseDocument["weatherJammersSpawnedThisWave"] == 1,
+			"迁移不得覆盖预发布档已经提交的干扰与波次名额");
+	}
+
 	void TestFutureVersionIsRejectedTransactionally() {
 		nlohmann::json document = {
 			{ "schemaVersion", SaveSchema::kCurrentLevelVersion + 1 },
@@ -345,6 +383,7 @@ int main() {
 	TestVersionOneLevelUpgradeDefersFogInitializationToBoard();
 	TestVersionTwoLevelUpgradePreservesFogStrength();
 	TestVersionThreeLevelUpgradeAddsIceCrackDrillState();
+	TestVersionFourLevelUpgradeAddsWeatherJammerState();
 	TestFutureVersionIsRejectedTransactionally();
 	TestInvalidRootAndVersionAreRejected();
 

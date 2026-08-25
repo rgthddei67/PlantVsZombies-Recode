@@ -242,10 +242,13 @@ namespace {
 	constexpr int kBobsledTeamMaxPerWave = 1;             // 一次候选四人同乘；正式波次最多接纳一队
 	constexpr int kIceWallEngineerMaxPerWave = 1;         // 每个正式波次最多成功生成一只冰墙工程师
 	constexpr int kIceCrackDrillMaxPerWave = 1;           // 每个正式波次最多成功生成一只冰裂钻机
+	constexpr int kWeatherJammerMaxPerWave = 1;           // 每个正式波次最多成功生成一只气象干扰僵尸
 	constexpr int kHijackerTutorialLevel = 49;             // 内部 49 即 6-4，使用第七波固定单体教学
 	constexpr int kHijackerTutorialWave = 7;               // 6-4 首次登场的固定教学波
 	constexpr int kHealerTutorialLevel = 51;               // 内部 51 即 6-6，使用第三波额外保底
 	constexpr int kHealerTutorialWave = 3;                 // 6-6 首次登场的额外保底波次
+	constexpr int kWeatherJammerTutorialLevel = 60;        // 内部 60 即 7-6，使用第三波额外保底
+	constexpr int kWeatherJammerTutorialWave = 3;          // 7-6 首次登场的额外保底波次
 	constexpr int kEliteScaredyShroomPlantLimit = 4;      // 每个关卡累计最多种植的精英胆小菇数量
 	constexpr int kPumpkinProtectionCellRadius = 1;       // 南瓜头范围爆炸保护的逻辑格半径；1 表示自身九宫格
 	constexpr int kPumpkinAreaDamageMultiplier = 5;       // 特殊僵尸范围伤害被南瓜头拦截时的默认基础伤害倍率
@@ -1425,6 +1428,7 @@ void Board::EnforceStormyNightWeather()
 	mForecastRainIntensity = RainIntensity::CLEAR;
 	mActualForecastRainIntensity = RainIntensity::CLEAR;
 	mWeatherForecastReady = false;
+	mWeatherForecastDisrupted = false;
 	mLightningTimer = 0.0f;
 	ClearPendingHeavyRainWarning();
 
@@ -1512,6 +1516,7 @@ void Board::InitializeWeather()
 	mRainCanHold = false;
 	mWeatherTransitionTimer = 0.0f;
 	mWeatherForecastReady = false;
+	mWeatherForecastDisrupted = false;
 	ClearPendingHeavyRainWarning();
 	mRainVisualActive = false;
 	mRainVisualEffectName.clear();
@@ -1729,6 +1734,7 @@ void Board::InitializeFogWeather()
 void Board::ClearFogWeatherForecast()
 {
 	mFogWeatherForecastReady = false;
+	mFogWeatherForecastDisrupted = false;
 	mForecastFogWeatherIntensity = FogWeatherIntensity::DEFAULT;
 	mActualForecastFogWeatherIntensity = FogWeatherIntensity::DEFAULT;
 }
@@ -1759,6 +1765,7 @@ FogWeatherIntensity Board::RollNextFogWeather(int forcedRoll)
 void Board::PrepareFogWeatherForecast(int fogRoll)
 {
 	if (mFogWeatherForecastReady || !SupportsFogWeather()) return;
+	mFogWeatherForecastDisrupted = false;
 	mActualForecastFogWeatherIntensity = RollNextFogWeather(fogRoll);
 	mForecastFogWeatherIntensity = mActualForecastFogWeatherIntensity;
 	mFogWeatherForecastReady = true;
@@ -1911,6 +1918,7 @@ void Board::RestoreFogState(bool initialized, FogWeatherIntensity intensity,
 		? intensity : FogWeatherIntensity::DEFAULT;
 	mFogWeatherTimer = mFogWeatherInitialized ? std::max(0.0f, timer) : 0.0f;
 	mFogWeatherForecastReady = mFogWeatherInitialized && forecastReady;
+	mFogWeatherForecastDisrupted = false;
 	mForecastFogWeatherIntensity = mFogWeatherForecastReady
 		? forecast : FogWeatherIntensity::DEFAULT;
 	mActualForecastFogWeatherIntensity = mFogWeatherForecastReady
@@ -2053,6 +2061,7 @@ RainIntensity Board::RollNextWeather(int forcedRoll)
 void Board::PrepareWeatherForecast(int weatherRoll)
 {
 	if (mWeatherForecastReady) return;
+	mWeatherForecastDisrupted = false;
 	ClearPendingHeavyRainWarning();
 	mActualForecastRainIntensity = RollNextWeather(weatherRoll);
 	mForecastRainIntensity = mActualForecastRainIntensity;
@@ -2155,6 +2164,7 @@ void Board::ClearPendingHeavyRainWarning()
 void Board::MaybeShowHeavyRainPrompt()
 {
 	if (mHeavyRainPromptShown || !mWeatherForecastReady
+		|| mWeatherForecastDisrupted
 		|| mForecastRainIntensity != RainIntensity::HEAVY
 		|| mWeatherTimer > kHeavyRainPromptLeadTime || !mPresentation) return;
 	if (!mPendingHeavyTyphoonPrepared) PreparePendingHeavyTyphoon();
@@ -2193,11 +2203,13 @@ void Board::ConsumeWeatherForecast()
 			: (mPendingHeavyTyphoonPrepared
 				? mPendingHeavyTyphoonStrength : TyphoonStrength::NONE))
 		: TyphoonStrength::NONE;
-	if ((forecast != next || forecastTyphoon != actualTyphoon) && mPresentation) {
+	if (!mWeatherForecastDisrupted
+		&& (forecast != next || forecastTyphoon != actualTyphoon) && mPresentation) {
 		mPresentation->ShowWeatherForecastFailure(
 			forecast, next, forecastTyphoon, actualTyphoon);
 	}
 	mWeatherForecastReady = false;
+	mWeatherForecastDisrupted = false;
 	mForecastRainIntensity = RainIntensity::CLEAR;
 	mActualForecastRainIntensity = RainIntensity::CLEAR;
 
@@ -2478,6 +2490,13 @@ void Board::RestoreIceCrackDrillWaveSpawnCount(int count)
 		count, 0, kIceCrackDrillMaxPerWave);
 }
 
+/** 夹紧并恢复当前波已经正式生成的气象干扰僵尸数量。 */
+void Board::RestoreWeatherJammerWaveSpawnCount(int count)
+{
+	mWeatherJammersSpawnedThisWave = std::clamp(
+		count, 0, kWeatherJammerMaxPerWave);
+}
+
 /** 清空全部台风派生状态；中雨、小雨、晴天和旧档默认都以此为单位元。 */
 void Board::StopTyphoon()
 {
@@ -2696,6 +2715,12 @@ ZombieType Board::ResolveWaveZombieType(ZombieType selected, int mutationRoll)
 			return ZombieType::NUM_ZOMBIE_TYPES;
 		}
 		++mIceCrackDrillsSpawnedThisWave;
+	}
+	if (selected == ZombieType::ZOMBIE_WEATHER_JAMMER) {
+		if (mWeatherJammersSpawnedThisWave >= kWeatherJammerMaxPerWave) {
+			return ZombieType::NUM_ZOMBIE_TYPES;
+		}
+		++mWeatherJammersSpawnedThisWave;
 	}
 	return ResolveRainMutationType(selected, mutationRoll);
 }
@@ -3173,6 +3198,7 @@ void Board::BeginRain(RainIntensity intensity, float duration, bool canIntensify
 	mRainCanIntensify = canIntensify && intensity == RainIntensity::LIGHT;
 	mRainCanHold = canHold && intensity != RainIntensity::LIGHT;
 	mWeatherForecastReady = false;
+	mWeatherForecastDisrupted = false;
 	mRainSplashTimer = RandomRainSplashDelay(intensity);
 	mLightningTimer = (intensity == RainIntensity::HEAVY
 		&& !IsWinterPrecipitationSnow())
@@ -3243,6 +3269,7 @@ void Board::EndRain()
 	mRainCanIntensify = false;
 	mRainCanHold = false;
 	mWeatherForecastReady = false;
+	mWeatherForecastDisrupted = false;
 	mRainVisualActive = false;
 	mRainVisualEffectName.clear();
 	RefreshZombieWeatherSpeeds();
@@ -4264,6 +4291,7 @@ void Board::SetRainForTesting(RainIntensity intensity, float duration, bool canI
 	mForecastRainIntensity = RainIntensity::CLEAR;
 	mActualForecastRainIntensity = RainIntensity::CLEAR;
 	mWeatherForecastReady = false;
+	mWeatherForecastDisrupted = false;
 	mRainVisualActive = false;
 	mRainVisualEffectName.clear();
 	mHeavyPhasesWithoutTyphoon = 0;
@@ -4308,6 +4336,7 @@ bool Board::SetFogWeatherForecastForTesting(FogWeatherIntensity forecast,
 	mForecastFogWeatherIntensity = forecast;
 	mActualForecastFogWeatherIntensity = actual;
 	mFogWeatherForecastReady = true;
+	mFogWeatherForecastDisrupted = false;
 	mFogWeatherTimer = std::max(revealIn, 0.1f);
 	return true;
 }
@@ -4329,6 +4358,7 @@ bool Board::SetWeatherForecastForTesting(RainIntensity forecast, RainIntensity a
 	mForecastRainIntensity = forecast;
 	mActualForecastRainIntensity = actual;
 	mWeatherForecastReady = true;
+	mWeatherForecastDisrupted = false;
 	mWeatherTimer = std::max(revealIn, 0.1f);
 	PreparePendingHeavyTyphoon();
 	return true;
@@ -4625,6 +4655,14 @@ bool Board::HasColdWaveForecast() const
 		&& mColdWaveTimer > 0.0f && mColdWaveTimer <= kColdWaveForecastLeadTime;
 }
 
+bool Board::IsColdWaveForecastDisruptionVisible() const
+{
+	return SupportsWinterTemperature() && mWinterTemperatureInitialized
+		&& mColdWaveForecastDisrupted
+		&& mColdWavePhase == ColdWavePhase::CALM
+		&& mColdWaveTimer > 0.0f && mColdWaveTimer <= kColdWaveForecastLeadTime;
+}
+
 /** 让一次已公开预报在本轮内失效，并按稳定植物 ID 原子清除所有依赖准备。 */
 bool Board::DisruptColdWaveForecast()
 {
@@ -4637,6 +4675,27 @@ bool Board::DisruptColdWaveForecast()
 		if (plant && plant->IsActive()) plant->OnColdWaveForecastDisrupted();
 	}
 	return true;
+}
+
+bool Board::HasDisruptibleWeatherForecast() const
+{
+	return HasWeatherForecast() || HasColdWaveForecast() || HasFogWeatherForecast();
+}
+
+int Board::DisruptWeatherForecastPanel()
+{
+	int disruptedMask = 0;
+	if (HasWeatherForecast()) {
+		if (mPresentation) mPresentation->CancelHeavyRainWarning();
+		mWeatherForecastDisrupted = true;
+		disruptedMask |= 1;
+	}
+	if (DisruptColdWaveForecast()) disruptedMask |= 2;
+	if (HasFogWeatherForecast()) {
+		mFogWeatherForecastDisrupted = true;
+		disruptedMask |= 4;
+	}
+	return disruptedMask;
 }
 
 bool Board::IsColdWaveActive() const
@@ -7271,6 +7330,7 @@ void Board::SummonNextWave()
 	mBobsledTeamsSpawnedThisWave = 0;
 	mIceWallEngineersSpawnedThisWave = 0;
 	mIceCrackDrillsSpawnedThisWave = 0;
+	mWeatherJammersSpawnedThisWave = 0;
 	mMistFuelAssignedThisWave = 0;
 	if (mCurrentWave == 1)
 	{
@@ -7612,6 +7672,20 @@ inline void Board::TrySummonZombie()
 			}
 		}
 	}
+	// 7-6 第三波额外保底一只气象干扰僵尸；不消耗预算，但仍消费本波唯一名额。
+	if (!mIsSurvival && mLevel == kWeatherJammerTutorialLevel
+		&& mCurrentWave == kWeatherJammerTutorialWave) {
+		const ZombieType actualType = ResolveWaveZombieType(
+			ZombieType::ZOMBIE_WEATHER_JAMMER);
+		if (actualType != ZombieType::NUM_ZOMBIE_TYPES) {
+			const int row = SelectSpawnRow(actualType);
+			if (row >= 0) {
+				if (Zombie* zombie = CreateResolvedWaveZombie(actualType, row, x)) {
+					AssignMistFuelReward(zombie);
+				}
+			}
+		}
+	}
 
 	int remainingPoints = CalculateWaveZombiePoints();
 	int zombiesSpawned = 0;
@@ -7927,6 +8001,7 @@ void Board::OnSurvivalRoundClear()
 	mBobsledTeamsSpawnedThisWave = 0;
 	mIceWallEngineersSpawnedThisWave = 0;
 	mIceCrackDrillsSpawnedThisWave = 0;
+	mWeatherJammersSpawnedThisWave = 0;
 	RefreshZombieWeatherSpeeds();
 
 	// 重算难度（解锁更强僵尸）+ 刷新关卡名

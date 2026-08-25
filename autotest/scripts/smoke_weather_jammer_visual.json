@@ -1,0 +1,14 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 60 },
+    { "op": "choose_cards", "cards": ["PLANT_PEASHOOTER"], "timeout": 20 },
+    { "op": "wait_state", "state": "GAME", "timeout": 20 },
+    { "op": "set_spawn_paused", "value": true },
+    { "op": "set_weather_forecast", "forecast": "MEDIUM", "actual": "LIGHT", "revealIn": 18.0 },
+    { "op": "spawn_zombie", "type": "ZOMBIE_WEATHER_JAMMER", "row": 2, "x": 900.0, "stationary": true },
+    { "op": "wait_seconds", "value": 0.3 },
+    { "op": "assert_state", "path": "zombiesByType.ZOMBIE_WEATHER_JAMMER.jammerPhase", "equals": "CHANNELING" },
+    { "op": "screenshot", "name": "weather_jammer_channel.png" },
+    { "op": "quit" }
+  ]
+}

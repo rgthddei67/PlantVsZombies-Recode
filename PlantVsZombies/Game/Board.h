@@ -240,6 +240,7 @@ private:
 	bool mRainCanIntensify = false;     // 仅初始小雨可增强；首次切档后永久转入衰减链
 	bool mRainCanHold = false;          // 新雨首段为中/大雨时允许一次同档续期，避免无限维持
 	bool mWeatherForecastReady = false; // true 表示公开预报与真实下一天气均已锁定、等待揭晓
+	bool mWeatherForecastDisrupted = false; // 当前雨雪及待生效台风预警已被隐藏；真实锁定结果仍保留
 	bool mStormyNightInitialized = false; // 4-9 第 23 波暴风雨夜是否已经正式初始化，防读档重置阵风额度
 	int mStormyNightFlashPattern = 0;   // 原版 4-10 三种闪光节奏（1～3）；0 表示尚未启用
 	float mStormyNightFlashTimer = 0.0f; // 当前闪光节奏剩余游戏秒；黑屏等待也包含在此计时内
@@ -284,6 +285,7 @@ private:
 	float mFogAnimationTime = 0.0f;     // 雾纹理轻微呼吸的游戏秒计时；纯视觉，不入存档
 	bool mFogWeatherInitialized = false; // 旧档缺雾势字段时由 StartGame 首次初始化
 	bool mFogWeatherForecastReady = false; // 已锁定公开/真实下一雾势，等待独立雾势倒计时揭晓
+	bool mFogWeatherForecastDisrupted = false; // 当前雾势预报已被隐藏；真实下一雾势仍按原计时揭晓
 	std::vector<float> mFogCellAlpha;   // 逐格平滑后的最终 alpha；行数为泳池六行再加一条底部收边
 	int mActivePlanternID = NULL_PLANT_ID; // 当前唯一可用路灯花 ID；由实体创建/死亡派生，不单独入存档
 	float mMistFuelDropAccumulator = 0.0f; // 正式波次雾火随机的保底累计值；影响未来抽取，进入存档
@@ -335,6 +337,7 @@ private:
 	int mBobsledTeamsSpawnedThisWave = 0; // 当前波正式生成的雪橇车队数量；跟随者不重复计数
 	int mIceWallEngineersSpawnedThisWave = 0; // 当前波正式生成的冰墙工程师数量；所有正式波次统一至多一只
 	int mIceCrackDrillsSpawnedThisWave = 0; // 当前波正式生成的冰裂钻机数量；所有正式波次统一至多一只
+	int mWeatherJammersSpawnedThisWave = 0; // 当前波正式生成的气象干扰僵尸数量；所有正式波次统一至多一只
 	int mEliteScaredyShroomsPlanted = 0; // 本关累计种下的精英胆小菇数量；死亡或铲除不返还次数
 	int mLastTyphoonMovedPlants = 0;    // 最近一次阵风移动的植物数，仅供观测和测试
 	int mLastTyphoonLostPlants = 0;     // 最近一次阵风吹出棋盘或吹入弹坑的植物数，仅供观测和测试
@@ -479,6 +482,7 @@ private:
 	void RestoreBobsledTeamWaveSpawnCount(int count);
 	void RestoreIceWallEngineerWaveSpawnCount(int count);
 	void RestoreIceCrackDrillWaveSpawnCount(int count);
+	void RestoreWeatherJammerWaveSpawnCount(int count);
 	/** 成功处决后立即封锁本波后续候选，并预留后续完整波次的刷新冷却。 */
 	void BeginHijackerSpawnCooldown();
 	/** 新波开始时把一份未来冷却转为覆盖整个当前波的封锁。 */
@@ -651,6 +655,8 @@ public:
 	/** 寒潮进入降温前的固定准确预报；它不参与雨势预报的误报与失败判定。 */
 	bool HasColdWaveForecast() const;
 	bool IsColdWaveForecastDisrupted() const { return mColdWaveForecastDisrupted; }
+	/** 当前寒潮阶段仍处于预报窗口但栏目已经被干扰，供 UI 显示统一故障文案。 */
+	bool IsColdWaveForecastDisruptionVisible() const;
 	/** 使当前已公开寒潮预报失效，并通知依赖预报的植物清除准备状态。 */
 	bool DisruptColdWaveForecast();
 	bool IsColdWaveActive() const;
@@ -677,7 +683,12 @@ public:
 	bool IsWeatherInitialized() const { return mWeatherInitialized; }
 	bool CanRainIntensify() const { return mRainCanIntensify; }
 	bool CanRainHold() const { return mRainCanHold; }
-	bool HasWeatherForecast() const { return mWeatherForecastReady; }
+	bool HasWeatherForecast() const {
+		return mWeatherForecastReady && !mWeatherForecastDisrupted;
+	}
+	bool IsWeatherForecastDisrupted() const {
+		return mWeatherForecastReady && mWeatherForecastDisrupted;
+	}
 	RainIntensity GetForecastRainIntensity() const { return mForecastRainIntensity; }
 	RainIntensity GetActualForecastRainIntensity() const { return mActualForecastRainIntensity; }
 	FogWeatherIntensity GetFogWeatherIntensity() const { return mFogWeatherIntensity; }
@@ -692,7 +703,16 @@ public:
 	float GetFogVisualOffsetX() const { return mFogVisualOffsetX; }
 	float GetFogAnimationTime() const { return mFogAnimationTime; }
 	bool IsFogWeatherInitialized() const { return mFogWeatherInitialized; }
-	bool HasFogWeatherForecast() const { return mFogWeatherForecastReady; }
+	bool HasFogWeatherForecast() const {
+		return mFogWeatherForecastReady && !mFogWeatherForecastDisrupted;
+	}
+	bool IsFogWeatherForecastDisrupted() const {
+		return mFogWeatherForecastReady && mFogWeatherForecastDisrupted;
+	}
+	/** 是否至少存在一项仍公开、可由气象干扰僵尸提交的独立预报。 */
+	bool HasDisruptibleWeatherForecast() const;
+	/** 原子隐藏提交瞬间全部公开预报；返回 bit0 雨雪、bit1 寒潮、bit2 雾势。 */
+	int DisruptWeatherForecastPanel();
 	bool IsDenseFogWeather() const {
 		return mFogWeatherIntensity == FogWeatherIntensity::DENSE;
 	}
@@ -822,6 +842,9 @@ public:
 	}
 	int GetIceCrackDrillsSpawnedThisWave() const {
 		return mIceCrackDrillsSpawnedThisWave;
+	}
+	int GetWeatherJammersSpawnedThisWave() const {
+		return mWeatherJammersSpawnedThisWave;
 	}
 	int GetLastTyphoonMovedPlants() const { return mLastTyphoonMovedPlants; }
 	int GetLastTyphoonLostPlants() const { return mLastTyphoonLostPlants; }

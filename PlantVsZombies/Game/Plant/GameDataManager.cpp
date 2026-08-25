@@ -111,6 +111,7 @@
 #include "../Zombie/BobsledTeamZombie.h"
 #include "../Zombie/IceWallEngineerZombie.h"
 #include "../Zombie/IceCrackDrillZombie.h"
+#include "../Zombie/WeatherJammerZombie.h"
 
 namespace {
 	template<typename T>
@@ -680,6 +681,12 @@ void GameDataManager::InitializeHardcodedData() {
 		AnimationType::ANIM_ICE_CRACK_DRILL_ZOMBIE,
 		ResourceKeys::Reanimations::REANIM_CONE_ZOMBIE,
 		&MakeZombie<IceCrackDrillZombie>);
+
+	// 气象设备是非磁性的独立附着层；铁桶本体完整复用标准铁桶防具契约。
+	RegisterZombie(ZombieType::ZOMBIE_WEATHER_JAMMER, "ZOMBIE_WEATHER_JAMMER",
+		AnimationType::ANIM_BUCKET_ZOMBIE,
+		ResourceKeys::Reanimations::REANIM_BUCKET_ZOMBIE,
+		&MakeZombie<WeatherJammerZombie>);
 
 	// ==================== 非植物/僵尸动画映射 ====================
 	mAnimToString[AnimationType::ANIM_SUN] = ResourceKeys::Reanimations::REANIM_SUN;

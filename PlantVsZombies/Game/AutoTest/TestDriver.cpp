@@ -71,6 +71,7 @@
 #include "../Zombie/BobsledTeamZombie.h"
 #include "../Zombie/IceWallEngineerZombie.h"
 #include "../Zombie/IceCrackDrillZombie.h"
+#include "../Zombie/WeatherJammerZombie.h"
 #include "../Zombie/EliteDancerZombie.h"
 #include "../Zombie/Polevaulter.h"
 #include "../Zombie/DolphinRiderZombie.h"
@@ -386,7 +387,7 @@ namespace {
 		ZT(ZOMBIE_SQUASH_HEAD), ZT(ZOMBIE_TALLNUT_HEAD), ZT(ZOMBIE_REDEYE_GARGANTUAR), ZT(ZOMBIE_ROOF_MARSHAL),
 		ZT(ZOMBIE_INSULATOR), ZT(ZOMBIE_HIJACKER), ZT(ZOMBIE_HEALER),
 		ZT(ZOMBIE_GROUNDING), ZT(ZOMBIE_BOBSLED_TEAM), ZT(ZOMBIE_ICE_WALL_ENGINEER),
-		ZT(ZOMBIE_ICE_CRACK_DRILL),
+		ZT(ZOMBIE_ICE_CRACK_DRILL), ZT(ZOMBIE_WEATHER_JAMMER),
 	};
 #undef ZT
 #define PK(n) { #n, PerkType::n }
@@ -3309,6 +3310,53 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		ResourceKeys::Sounds::SOUND_DIRT_RISE);
 	out["iceCrackDrillRigDropSoundRequestCount"] = AudioSystem::GetSoundPlayRequestCount(
 		ResourceKeys::Sounds::SOUND_ARM_HEAD_DROP);
+	out["weatherJammerResources"] = {
+		{ "packReanimationLoaded", ResourceManager::GetInstance().HasReanimation(
+			ResourceKeys::Reanimations::REANIM_WEATHER_JAMMER_PACK) },
+		{ "terminalReanimationLoaded", ResourceManager::GetInstance().HasReanimation(
+			ResourceKeys::Reanimations::REANIM_WEATHER_JAMMER_TERMINAL) },
+		{ "packTexturesLoaded",
+			ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_REANIM_ZOMBIE_WEATHER_JAMMER_PACK_READY,
+				false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_REANIM_ZOMBIE_WEATHER_JAMMER_PACK_CHANNEL,
+				false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_REANIM_ZOMBIE_WEATHER_JAMMER_PACK_REBOOT,
+				false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_REANIM_ZOMBIE_WEATHER_JAMMER_PACK_SPENT,
+				false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_REANIM_ZOMBIE_WEATHER_JAMMER_DISH,
+				false) != nullptr },
+		{ "terminalTexturesLoaded",
+			ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_REANIM_ZOMBIE_WEATHER_JAMMER_TERMINAL_READY,
+				false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_REANIM_ZOMBIE_WEATHER_JAMMER_TERMINAL_CHANNEL,
+				false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_REANIM_ZOMBIE_WEATHER_JAMMER_TERMINAL_REBOOT,
+				false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_REANIM_ZOMBIE_WEATHER_JAMMER_TERMINAL_SPENT,
+				false) != nullptr },
+	};
+	const Vector weatherJammerOffset = GameDataManager::GetInstance().GetZombieOffset(
+		ZombieType::ZOMBIE_WEATHER_JAMMER);
+	out["weatherJammerGameData"] = {
+		{ "weight", GameDataManager::GetInstance().GetZombieWeight(
+			ZombieType::ZOMBIE_WEATHER_JAMMER) },
+		{ "appearWave", GameDataManager::GetInstance().GetZombieAppearWave(
+			ZombieType::ZOMBIE_WEATHER_JAMMER) },
+		{ "survivalRound", GameDataManager::GetInstance().GetZombieSurvivalRound(
+			ZombieType::ZOMBIE_WEATHER_JAMMER) },
+		{ "offsetXInt", static_cast<int>(std::lround(weatherJammerOffset.x)) },
+		{ "offsetYInt", static_cast<int>(std::lround(weatherJammerOffset.y)) },
+	};
 	out["lightningRodPotResources"] = {
 		{ "reanimationLoaded", ResourceManager::GetInstance().HasReanimation(
 			ResourceKeys::Reanimations::REANIM_LIGHTNINGRODPOT) },
@@ -4484,6 +4532,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "offsetXInt", static_cast<int>(std::lround(board->GetFogVisualOffsetX())) },
 			{ "remaining", board->GetFogWeatherTimer() },
 			{ "forecastReady", board->HasFogWeatherForecast() },
+			{ "forecastDisrupted", board->IsFogWeatherForecastDisrupted() },
 			{ "forecastIntensity", FogWeatherIntensityName(
 				board->GetForecastFogWeatherIntensity()) },
 			{ "lockedActualIntensity", FogWeatherIntensityName(
@@ -4591,6 +4640,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "canIntensify", board->CanRainIntensify() },
 			{ "canHold", board->CanRainHold() },
 			{ "forecastReady", board->HasWeatherForecast() },
+			{ "forecastDisrupted", board->IsWeatherForecastDisrupted() },
+			{ "disruptibleForecast", board->HasDisruptibleWeatherForecast() },
 			{ "forecastIntensity", RainIntensityName(board->GetForecastRainIntensity()) },
 			{ "lockedActualIntensity", RainIntensityName(board->GetActualForecastRainIntensity()) },
 			{ "forecastPlausible", board->IsWeatherForecastPlausible() },
@@ -4637,6 +4688,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				board->GetIceWallEngineersSpawnedThisWave() },
 			{ "iceCrackDrillsSpawnedThisWave",
 				board->GetIceCrackDrillsSpawnedThisWave() },
+			{ "weatherJammersSpawnedThisWave",
+				board->GetWeatherJammersSpawnedThisWave() },
 			{ "typhoonDecayRemaining", board->GetTyphoonStrengthTimer() },
 			{ "windDirection", WindDirectionName(board->GetWindDirection()) },
 			{ "windDirectionRemaining", board->GetWindDirectionTimer() },
@@ -4697,6 +4750,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "initialized", board->IsWinterTemperatureInitialized() },
 			{ "coldWaveForecastActive", board->HasColdWaveForecast() },
 			{ "coldWaveForecastDisrupted", board->IsColdWaveForecastDisrupted() },
+			{ "coldWaveDisruptionVisible",
+				board->IsColdWaveForecastDisruptionVisible() },
 			{ "coldWaveActive", board->IsColdWaveActive() },
 			{ "coldWaveDisplayText", gs->GetColdWavePanelText() },
 			{ "thermometerVisible", board->mBoardState == BoardState::GAME
@@ -4804,6 +4859,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	for (const PromptAnimation& prompt : gs->GetPromptsForTesting()) {
 		out["prompts"]["entries"].push_back({
 			{ "kind", prompt.contentType == PromptContentType::IMAGE ? "IMAGE" : "TEXT" },
+			{ "isHeavyRainWarning",
+				prompt.purpose == PromptPurpose::HEAVY_RAIN_WARNING },
 			{ "content", prompt.content },
 			{ "fontSize", prompt.fontSize },
 			{ "colorR", static_cast<int>(std::lround(prompt.textColor.r)) },
@@ -4828,6 +4885,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	bool spawnListHasBobsledTeam = false;
 	bool spawnListHasIceWallEngineer = false;
 	bool spawnListHasIceCrackDrill = false;
+	bool spawnListHasWeatherJammer = false;
 	for (ZombieType t : board->GetSpawnZombieList()) {
 		out["spawnList"].push_back(ZombieTypeName(t));
 		spawnListHasBobsledTeam = spawnListHasBobsledTeam
@@ -4836,11 +4894,14 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			|| t == ZombieType::ZOMBIE_ICE_WALL_ENGINEER;
 		spawnListHasIceCrackDrill = spawnListHasIceCrackDrill
 			|| t == ZombieType::ZOMBIE_ICE_CRACK_DRILL;
+		spawnListHasWeatherJammer = spawnListHasWeatherJammer
+			|| t == ZombieType::ZOMBIE_WEATHER_JAMMER;
 	}
 	out["spawnTypeCount"] = static_cast<int>(board->GetSpawnZombieList().size());
 	out["spawnListHasBobsledTeam"] = spawnListHasBobsledTeam;
 	out["spawnListHasIceWallEngineer"] = spawnListHasIceWallEngineer;
 	out["spawnListHasIceCrackDrill"] = spawnListHasIceCrackDrill;
+	out["spawnListHasWeatherJammer"] = spawnListHasWeatherJammer;
 
 	int charredZombieCount = 0;
 	int zamboniCharredCount = 0;
@@ -5948,6 +6009,33 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			zombieState["drillRigVisible"] = drill->IsDrillRigVisible();
 			zombieState["interruptibleSpecialRemainingMs"] = static_cast<int>(std::lround(
 				drill->GetInterruptibleSpecialActionRemaining() * 1000.0f));
+		}
+		if (auto* jammer = dynamic_cast<WeatherJammerZombie*>(z)) {
+			const char* phase = "READY";
+			switch (jammer->GetJammerPhase()) {
+			case WeatherJammerZombie::JammerPhase::READY:
+				break;
+			case WeatherJammerZombie::JammerPhase::CHANNELING:
+				phase = "CHANNELING";
+				break;
+			case WeatherJammerZombie::JammerPhase::REBOOTING:
+				phase = "REBOOTING";
+				break;
+			case WeatherJammerZombie::JammerPhase::SPENT:
+				phase = "SPENT";
+				break;
+			}
+			zombieState["jammerPhase"] = phase;
+			zombieState["jammerChannelRemainingMs"] = static_cast<int>(std::lround(
+				jammer->GetChannelRemaining() * 1000.0f));
+			zombieState["jammerRebootRemainingMs"] = static_cast<int>(std::lround(
+				jammer->GetRebootRemaining() * 1000.0f));
+			zombieState["jammerCommittedDisruptionMask"] =
+				jammer->GetCommittedDisruptionMask();
+			zombieState["jammerPackAnimatorReady"] = jammer->HasPackAnimator();
+			zombieState["jammerTerminalAnimatorReady"] = jammer->HasTerminalAnimator();
+			zombieState["interruptibleSpecialRemainingMs"] = static_cast<int>(std::lround(
+				jammer->GetInterruptibleSpecialActionRemaining() * 1000.0f));
 		}
 		// 专项脚本中的异品种靶子可按语义类型稳定取证；同品种多只时仍使用 zombies 全量数组。
 		out["zombiesByType"][ZombieTypeName(z->mZombieType)] = zombieState;

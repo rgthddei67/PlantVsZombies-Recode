@@ -2507,6 +2507,22 @@ void Zombie::StopEatingInvalidPlantTarget(float blendTime)
 	ResumeWalkAfterEat(blendTime);
 }
 
+bool Zombie::CancelEatingForSpecialAction()
+{
+	if (!mIsEating) return false;
+	if (mEatPlantID != NULL_PLANT_ID && mBoard) {
+		if (Plant* plant = mBoard->mEntityRegistry.GetPlant(mEatPlantID);
+			plant && plant->mEaterCount > 0) {
+			--plant->mEaterCount;
+		}
+	}
+	mIsEating = false;
+	mEatPlantID = NULL_PLANT_ID;
+	mEatZombieID = NULL_ZOMBIE_ID;
+	OnStopEating();
+	return true;
+}
+
 void Zombie::StopEat(ColliderComponent* other)
 {
 	if (mIsPreview || mIsDying)	return;

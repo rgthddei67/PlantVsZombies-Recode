@@ -30,6 +30,8 @@ public:
 	virtual ~BoardPresentation() = default;
 
 	virtual void ShowHeavyRainWarning(TyphoonStrength strength, int variant) = 0;
+	/** 气象干扰提交时立即撤下仍在屏幕中央显示的大雨或暴雪预警。 */
+	virtual void CancelHeavyRainWarning() = 0;
 	virtual void ShowWeatherForecastFailure(
 		RainIntensity forecast, RainIntensity actual,
 		TyphoonStrength forecastTyphoon, TyphoonStrength actualTyphoon) = 0;

@@ -31,6 +31,11 @@ enum class PromptContentType {
 	TEXT
 };
 
+enum class PromptPurpose {
+	GENERIC,
+	HEAVY_RAIN_WARNING
+};
+
 // 开场动画阶段
 enum class IntroStage {
 	BACKGROUND_MOVE,   // 背景移动
@@ -55,6 +60,7 @@ struct PromptAnimation {
 	float holdDuration = 3.0f;    // 停留阶段时长
 	float fadeDuration = 1.0f;    // 消失阶段时长
 	bool useUnscaledTime = false; // true 时高倍速不压缩时长；暂停时冻结并保留当前画面
+	PromptPurpose purpose = PromptPurpose::GENERIC; // 仅用于精确撤下已失效的专用提示
 };
 
 // 首领血条完全由当前 Board 实体派生，不复制玩法生命状态；布局字段供 AutoTest 锁定屏幕位置。
@@ -153,13 +159,16 @@ public:
 		float appearDur = 0.3f,
 		float holdDur = 3.8f,
 		float fadeDur = 0.6f,
-		bool useUnscaledTime = false);
+		bool useUnscaledTime = false,
+		PromptPurpose purpose = PromptPurpose::GENERIC);
 	/** 显示“第 N 行全军突击”短警报；持续红旗负责表达后续强化状态。 */
 	void ShowRoofMarshalAssaultWarning(int row, float duration) override;
 	/** 显示路灯花低燃料的大号红色中央警报。 */
 	void ShowPlanternLowFuelWarning() override;
 	/** 根据已锁定的台风等级与同级文案编号显示大雨来临警报。 */
 	void ShowHeavyRainWarning(TyphoonStrength strength, int variant) override;
+	/** 只撤下大雨/暴雪预警，不影响大波、突击令和低燃料等并存提示。 */
+	void CancelHeavyRainWarning() override;
 	const std::vector<PromptAnimation>& GetPromptsForTesting() const { return mPrompts; }
 
 	// 全屏白闪（寒冰菇全场冻结的瞬间反馈）：alpha 从峰值线性衰减到 0

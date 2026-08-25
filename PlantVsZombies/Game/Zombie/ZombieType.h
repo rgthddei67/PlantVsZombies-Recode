@@ -76,6 +76,7 @@ enum class ZombieType {
 	ZOMBIE_BOBSLED_TEAM,	// 雪橇车队：四人共乘冻土雪橇，碰撞后跨行散开
 	ZOMBIE_ICE_WALL_ENGINEER, // 冰墙工程师：在霜线施工全场唯一的移动弹道冰墙
 	ZOMBIE_ICE_CRACK_DRILL, // 冰裂钻机：冻土蓄力后提交同行持续地裂
+	ZOMBIE_WEATHER_JAMMER, // 气象干扰僵尸：铁桶本体停步干扰当前全部公开天气预报
 
 	// ↓ 哨兵：置于全部已实现僵尸之后，使 [0,NUM_ZOMBIE_TYPES) 只覆盖已实现类型，
 	//   生存模式随机抽取据此绝不会抽到下方未实现僵尸。

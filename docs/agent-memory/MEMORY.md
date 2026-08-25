@@ -16,6 +16,7 @@
 - [第七大关雪橇车队僵尸](project_pvz_bobsled_team_zombie.md) — 2026-08-25 `ZOMBIE_BOBSLED_TEAM` 一次正式候选生成四名真实成员；乘车/落地按队长 X 回收，拆队始终直接纳入队长，避免出生区误清队及预览销毁后计数残留；选卡与图鉴详情均为四人共乘完整雪橇，最终波零实体旧档可直接恢复奖杯；雪锚收束、存档与双绘制路径专项闭环
 - [第七大关冰墙工程师](project_pvz_ice_wall_engineer.md) — 2026-08-25 `ZOMBIE_ICE_WALL_ENGINEER` 完全进场即部署 600 生命未完成墙，4 秒硬化至 1800 后以 14px/s 推进；自动卷心菜、玉米/黄油、西瓜/冰瓜、融雪团/盐晶均优先锁墙且伤害/状态不穿透，锁定意图入档；手动玉米炮与未锁定测试抛射仍越墙；回暖融化、火焰双倍、盐晶 20＋200及施工/波次合同不变
 - [第七大关冰裂钻机](project_pvz_ice_crack_drill_zombie.md) — 2026-08-25 `ZOMBIE_ICE_CRACK_DRILL` 650 本体＋900 钻机层，在冻土蓄力3.5秒后提交180px/s同行地裂；Board 统一快照 overlay/pumpkin/normal/under 四层并各造成500，雪锚果从后续格起让伤害减半；50%独立钻机由右手握持且只微颤，破甲直接解附并销毁以免受击白光残影；安全帽朝脸侧；7-4首发、7-5/7-8/7-9复习、每波限一，蓄力/地裂/波次均入档
+- [第七大关气象干扰僵尸](project_pvz_weather_jammer_zombie.md) — 2026-08-25 `ZOMBIE_WEATHER_JAMMER` 为270本体＋1100可磁吸铁桶，公开预报出现即抢占啃食并原地施法4秒，原子隐藏雨雪/待生效台风警报、寒潮和雾势但保留锁定实况；无栏目不消费，外部中断重启5秒，死亡/断肢/魅惑永久消费；2600权重、第五波/生存13轮、每波限一、7-6第三波保底，独立背包/终端、schema v5和双路径可见专项闭环
 - [第七大关伏霜雷](project_pvz_frost_mine.md) — 2026-08-25 `PLANT_FROSTMINE` 为7-4奖励、50阳光/30秒/300生命；准确预报预测本格冻结时校准，真实冻结后永久武装；干扰仅清未提交校准；首个稳定ID地面目标触发1000冰制层腐蚀＋600常规伤害并中断未提交动作；三态完整独立立绘、粒子、存档和双路径专项闭环
 - [第六大关绝缘僵尸](project_pvz_insulator_zombie.md) — 2026-08-13 300本体+单层1200陶瓷胸甲；干燥轻弹/尖刺减半、1.5格同阵营放电承接后15秒2.2倍过载与100啃咬，湿润植物伤甲1.5倍且湿坡放电固定碎甲360无溢出；磁力菇整甲吸取自身扣150；胸甲为Zombie_body末尾前景follower，6-2首次、正式每波限2，专项与父回归可见闭环
 - [第六大关劫持者僵尸](project_pvz_hijacker_zombie.md) — 2026-08-23 初始1000本体/首次锁定当前与最大生命各+1000/50啃咬/成本2000/每波限2；75%择最高当前可计生命锁定，处决线文字与面板高度只在有效锁定期间出现；满电7秒预警/最后1秒终局动作，释放以实时处决线同帧快照且生存封顶1200；成功释放后封锁本波余下候选并完整跳过后续2波，取消不冷却、第三波恢复且跨存档/生存换轮保留；6-4第7波教学、6-5组合、生存15轮
@@ -35,7 +36,7 @@
 - [经典花盆与屋顶承载层](project_pvz_flowerpot.md) — 2026-08-14 `PLANT_FLOWERPOT` 25阳光/7.5秒/300生命/1秒无啃食；under+normal+南瓜分层、屋顶门禁、5-1/5-2/后续5/4/3列初始布局、覆盖暂停、5px视觉抬升、通用ShadowComponent 46px可见阴影、双向台风整组与存档；MC 中与睡莲压缩进独立64格支撑层，不占128株详细植物容量
 - [上次选卡持久化与一键动画恢复](project_pvz_last_selected_cards.md) — 2026-08-23 普通卡继续保存稳定枚举名；模仿者以 `PLANT_IMITATER:PLANT_TARGET` 保存代理身份与目标，恢复时重新验证目标资格并复用飞入动画
 - [疯狂戴夫关卡闲聊与隐性机制提示](project_pvz_crazy_dave_tutorial_dialog.md) — 2026-08-24 2-1、4-1、4-2、4-9、5-1、6-1、6-9、7-1 以原版风格闲聊含蓄提示天气、雾、燃料、屋顶、雷荷与寒潮；全新进关前模态播放，完成/跳过一次记录，玩家 schema v5、原版 JPG 灰度 alpha 遮罩、原版 12 段短/长/超长/疯狂语音及切页停声、Vulkan 实例/NoInstance/OpenGL 3.3 可见专项闭环；1-1、3-1不出现
-- [架构边界、存档版本与技能审计门禁](project_pvz_architecture_boundaries.md) — 2026-08-24 `BoardPresentation` 取代 `Board::mGameScene`，Board 保持天气/波次/生存玩法唯一权威；`SceneManager` 明确单活动场景；玩家 schema v2 补发毒囊射手、v3 加高级暂停、v4 加稳定枚举名上次选卡、v5 加戴夫闲聊已读关卡；迁移保持事务式并有纯测试；每次任务提交前审计相关 skills
+- [架构边界、存档版本与技能审计门禁](project_pvz_architecture_boundaries.md) — 2026-08-25 `BoardPresentation` 取代 `Board::mGameScene`，Board 保持天气/波次/生存玩法唯一权威；`SceneManager` 明确单活动场景；玩家 schema v2-v5 与关卡 schema v5（气象干扰公开标记、每波计数）迁移保持事务式并有纯测试；每次任务提交前审计相关 skills
 - [OpenGL 3.3 Core 兼容后端](project_pvz_opengl33_backend.md) — 2026-08-11 同一 EXE 的 `auto/vulkan/opengl` 双后端选择与完整回退；GL 走 GLSL 330、CPU 顶点/Reanimation 展开、单 sampler 动态 VBO/IBO Batch，禁用并行 Draw 但保留并行 Update；Pool、clip、文字、粒子、截图、全屏/VSync、no-AVX2 与 Win7 导入门禁闭环，Win7 真机仍待验证
 - [空格轻量暂停、可选高级暂停与粒子冻结](project_pvz_space_pause_ui.md) — 2026-08-23 暂停仍保留 UI 零 dt 逻辑步，但 ParticleEmitter 完整冻结上一游戏帧，Shake 不重抽、Friction 不衰减；空格只显示上方中央“游戏暂停”，高级暂停默认关闭且只在主菜单控制台设置，暂停倍速仅待选，泳池相位同样冻结
 - [经典咖啡豆、蘑菇睡眠 Z 与唤醒](project_pvz_coffeebean.md) — 2026-08-11 白天沉睡植物以独立 `Z.reanim` 按原版6～8fps随机相位循环，位置适配当前视觉锚点且醒来/压扁/失活即移除；`PLANT_INSTANT_COFFEE` 仍以短时 overlay 等待1秒后碎裂并启动1秒唤醒，资源、存档、台风与默认/NoInstance可见专项闭环

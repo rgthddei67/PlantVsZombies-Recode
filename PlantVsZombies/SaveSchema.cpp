@@ -147,10 +147,23 @@ namespace {
 				upgraded["schemaVersion"] = version;
 				break;
 			case 4:
-				if (kind == DocumentKind::Player
-					&& !upgraded.contains("crazyDaveTutorialsSeen")) {
-					// 玩家 v5 新增按冒险关卡号保存的戴夫闲聊已读集合；旧档从未读开始。
-					upgraded["crazyDaveTutorialsSeen"] = nlohmann::json::array();
+				if (kind == DocumentKind::Player) {
+					if (!upgraded.contains("crazyDaveTutorialsSeen")) {
+						// 玩家 v5 新增按冒险关卡号保存的戴夫闲聊已读集合；旧档从未读开始。
+						upgraded["crazyDaveTutorialsSeen"] = nlohmann::json::array();
+					}
+				}
+				else {
+					// 关卡 v5 保存整栏天气干扰结果与气象干扰僵尸每波名额；旧档均从单位元恢复。
+					if (!upgraded.contains("weatherForecastDisrupted")) {
+						upgraded["weatherForecastDisrupted"] = false;
+					}
+					if (!upgraded.contains("fogWeatherForecastDisrupted")) {
+						upgraded["fogWeatherForecastDisrupted"] = false;
+					}
+					if (!upgraded.contains("weatherJammersSpawnedThisWave")) {
+						upgraded["weatherJammersSpawnedThisWave"] = 0;
+					}
 				}
 				version = 5;
 				upgraded["schemaVersion"] = version;

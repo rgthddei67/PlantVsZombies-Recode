@@ -341,6 +341,7 @@ bool GameInfoSaver::SerializeLevelDataToPath(Board* board, CardSlotManager* mana
 	j["rainCanIntensify"] = board->mRainCanIntensify;
 	j["rainCanHold"] = board->mRainCanHold;
 	j["weatherForecastReady"] = board->mWeatherForecastReady;
+	j["weatherForecastDisrupted"] = board->mWeatherForecastDisrupted;
 	j["winterTemperatureInitialized"] = board->mWinterTemperatureInitialized;
 	j["coldWavePhase"] = static_cast<int>(board->mColdWavePhase);
 	j["coldWaveStrength"] = static_cast<int>(board->mColdWaveStrength);
@@ -379,6 +380,7 @@ bool GameInfoSaver::SerializeLevelDataToPath(Board* board, CardSlotManager* mana
 		static_cast<int>(board->mActualForecastFogWeatherIntensity);
 	j["fogWeatherTimer"] = board->mFogWeatherTimer;
 	j["fogWeatherForecastReady"] = board->mFogWeatherForecastReady;
+	j["fogWeatherForecastDisrupted"] = board->mFogWeatherForecastDisrupted;
 	j["fogDispersal"] = board->mFogDispersal;
 	j["fogVisualOffsetX"] = board->mFogVisualOffsetX;
 	j["pendingHeavyTyphoonPrepared"] = board->mPendingHeavyTyphoonPrepared;
@@ -426,6 +428,7 @@ bool GameInfoSaver::SerializeLevelDataToPath(Board* board, CardSlotManager* mana
 	j["bobsledTeamsSpawnedThisWave"] = board->mBobsledTeamsSpawnedThisWave;
 	j["iceWallEngineersSpawnedThisWave"] = board->mIceWallEngineersSpawnedThisWave;
 	j["iceCrackDrillsSpawnedThisWave"] = board->mIceCrackDrillsSpawnedThisWave;
+	j["weatherJammersSpawnedThisWave"] = board->mWeatherJammersSpawnedThisWave;
 	j["mistFuelDropAccumulator"] = board->mMistFuelDropAccumulator;
 	WeatherPresentationState weatherPresentation;
 	if (auto* presentation = board->GetPresentation()) {
@@ -872,6 +875,8 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 		? static_cast<RainIntensity>(forecastRainValue) : RainIntensity::CLEAR;
 	board->mActualForecastRainIntensity = board->mWeatherForecastReady
 		? static_cast<RainIntensity>(actualForecastRainValue) : RainIntensity::CLEAR;
+	board->mWeatherForecastDisrupted = board->mWeatherForecastReady
+		&& j.value("weatherForecastDisrupted", false);
 	const int coldWavePhaseValue = j.value("coldWavePhase",
 		static_cast<int>(ColdWavePhase::CALM));
 	const bool validColdWavePhase = coldWavePhaseValue >= static_cast<int>(ColdWavePhase::CALM)
@@ -1040,6 +1045,8 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 				: FogWeatherIntensity::DEFAULT,
 			j.value("fogWeatherTimer", 0.0f), fogForecastReady,
 			j.value("fogDispersal", 0.0f), j.value("fogVisualOffsetX", 0.0f));
+		board->mFogWeatherForecastDisrupted = fogForecastReady
+			&& j.value("fogWeatherForecastDisrupted", false);
 	}
 	const int pendingTyphoonValue = j.value("pendingHeavyTyphoonStrength",
 		static_cast<int>(TyphoonStrength::NONE));
@@ -1137,6 +1144,8 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 		j.value("iceWallEngineersSpawnedThisWave", 0));
 	board->RestoreIceCrackDrillWaveSpawnCount(
 		j.value("iceCrackDrillsSpawnedThisWave", 0));
+	board->RestoreWeatherJammerWaveSpawnCount(
+		j.value("weatherJammersSpawnedThisWave", 0));
 	board->mRainVisualActive = false;   // 粒子不入存档，StartGame 按剩余时间重建
 	board->mMaxWave = j.value("maxWave", 10);
 	board->mZombieCountDown = j.value("zombieCountDown", 20.0f);

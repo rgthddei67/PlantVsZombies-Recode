@@ -568,6 +568,8 @@
     <Reanimation name="RoofMarshalZombie">./resources/reanim/RoofMarshal.reanim</Reanimation>
     <Reanimation name="RoofMarshalAssaultFlag">./resources/reanim/RoofMarshalAssaultFlag.reanim</Reanimation>
     <Reanimation name="IceCrackDrillRig">./resources/reanim/IceCrackDrillRig.reanim</Reanimation>
+    <Reanimation name="WeatherJammerPack">./resources/reanim/WeatherJammerPack.reanim</Reanimation>
+    <Reanimation name="WeatherJammerTerminal">./resources/reanim/WeatherJammerTerminal.reanim</Reanimation>
     <Reanimation name="ConeZombie">./resources/reanim/ConeZombie.reanim</Reanimation>
     <Reanimation name="GroundingZombie">./resources/reanim/GroundingZombie.reanim</Reanimation>
     <Reanimation name="ZombieBobsled">./resources/reanim/Zombie_bobsled.reanim</Reanimation>

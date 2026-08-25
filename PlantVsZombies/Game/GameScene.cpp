@@ -216,7 +216,7 @@ namespace {
 		DEVZ(ZOMBIE_SQUASH_HEAD), DEVZ(ZOMBIE_TALLNUT_HEAD), DEVZ(ZOMBIE_REDEYE_GARGANTUAR), DEVZ(ZOMBIE_ROOF_MARSHAL),
 		DEVZ(ZOMBIE_INSULATOR), DEVZ(ZOMBIE_HIJACKER), DEVZ(ZOMBIE_HEALER),
 		DEVZ(ZOMBIE_GROUNDING), DEVZ(ZOMBIE_BOBSLED_TEAM), DEVZ(ZOMBIE_ICE_WALL_ENGINEER),
-		DEVZ(ZOMBIE_ICE_CRACK_DRILL),
+		DEVZ(ZOMBIE_ICE_CRACK_DRILL), DEVZ(ZOMBIE_WEATHER_JAMMER),
 	};
 #undef DEVZ
 
@@ -317,6 +317,9 @@ namespace {
 		if (board->IsStormyNightForecastActive() || board->IsStormyNightActive()) {
 			return u8"天气预报：暴风雨";
 		}
+		if (board->IsWeatherForecastDisrupted()) {
+			return u8"天气预报：气象信号受干扰";
+		}
 		if (!board->HasWeatherForecast()) return u8"天气预报：暂无";
 
 		const int seconds = std::max(0,
@@ -336,6 +339,9 @@ namespace {
 
 	/** 寒潮预报与实况只读取 Board 已锁定计划，不复用允许误报的雨势预报。 */
 	std::string ColdWavePanelText(const Board* board) {
+		if (board && board->IsColdWaveForecastDisruptionVisible()) {
+			return u8"寒潮预报：气象信号受干扰";
+		}
 		if (!board || (!board->HasColdWaveForecast() && !board->IsColdWaveActive())) {
 			return {};
 		}
@@ -363,6 +369,23 @@ namespace {
 			break;
 		}
 		return {};
+	}
+
+	/** 雾势预报保持独立栏目；干扰只遮蔽公开值，不读取或改写已经锁定的真实雾势。 */
+	std::string FogForecastPanelText(const Board* board) {
+		if (!board) return {};
+		if (board->IsFogWeatherForecastDisrupted()) {
+			return u8"雾势预报：气象信号受干扰";
+		}
+		if (!board->HasFogWeatherForecast()) return {};
+		const int seconds = std::max(0,
+			static_cast<int>(std::ceil(board->GetFogWeatherTimer())));
+		std::string line = std::string(u8"雾势预报（") + std::to_string(seconds)
+			+ u8"秒）：" + FogWeatherDisplayName(board->GetForecastFogWeatherIntensity());
+		if (board->GetForecastFogWeatherIntensity() == board->GetFogWeatherIntensity()) {
+			line += u8"（持续）";
+		}
+		return line;
 	}
 
 	/** 处决线只属于当前仍有效的劫持者锁定，不为未锁定状态预留文字行。 */
@@ -456,7 +479,7 @@ namespace {
 		float height = kWeatherPanelHeight;
 		const bool stormyNight = board->IsStormyNightForecastActive()
 			|| board->IsStormyNightActive();
-		if (!stormyNight && board->HasFogWeatherForecast()) {
+		if (!stormyNight && !FogForecastPanelText(board).empty()) {
 			height += kWeatherPanelDetailLineHeight;
 		}
 		if (!ColdWavePanelText(board).empty()) {
@@ -1246,6 +1269,9 @@ void GameScene::DrawWeatherPanel(Graphics* g) const
 	if (stormyNightForecast) {
 		forecastColor = StormyNightTextColor(alpha);
 	}
+	else if (mBoard->IsWeatherForecastDisrupted()) {
+		forecastColor = glm::vec4(255.0f, 181.0f, 88.0f, alpha);
+	}
 	else if (mBoard->HasWeatherForecast()) {
 		forecastColor = RainIntensityTextColor(mBoard->GetForecastRainIntensity(), alpha);
 	}
@@ -1267,9 +1293,11 @@ void GameScene::DrawWeatherPanel(Graphics* g) const
 	float detailLineY = kWeatherPanelY + 69.0f;
 	const std::string coldWaveLine = ColdWavePanelText(mBoard.get());
 	if (!coldWaveLine.empty()) {
-		const glm::vec4 coldWaveColor = mBoard->GetColdWavePhase() == ColdWavePhase::THAWING
-			? glm::vec4(247.0f, 193.0f, 112.0f, alpha)
-			: glm::vec4(143.0f, 220.0f, 255.0f, alpha);
+		const glm::vec4 coldWaveColor = mBoard->IsColdWaveForecastDisruptionVisible()
+			? glm::vec4(255.0f, 181.0f, 88.0f, alpha)
+			: (mBoard->GetColdWavePhase() == ColdWavePhase::THAWING
+				? glm::vec4(247.0f, 193.0f, 112.0f, alpha)
+				: glm::vec4(143.0f, 220.0f, 255.0f, alpha));
 		g->DrawText(coldWaveLine, ResourceKeys::Fonts::FONT_FZCQ, kWeatherWindFontSize,
 			shadow, textX + 1.0f, detailLineY + 1.0f);
 		g->DrawText(coldWaveLine, ResourceKeys::Fonts::FONT_FZCQ, kWeatherWindFontSize,
@@ -1277,16 +1305,14 @@ void GameScene::DrawWeatherPanel(Graphics* g) const
 		detailLineY += kWeatherPanelDetailLineHeight;
 	}
 
-	if (!stormyNightForecast && mBoard->HasFogWeatherForecast()) {
-		const int fogSeconds = std::max(0,
-			static_cast<int>(std::ceil(mBoard->GetFogWeatherTimer())));
-		std::string fogLine = std::string(u8"雾势预报（") + std::to_string(fogSeconds)
-			+ u8"秒）：" + FogWeatherDisplayName(mBoard->GetForecastFogWeatherIntensity());
-		if (mBoard->GetForecastFogWeatherIntensity() == mBoard->GetFogWeatherIntensity()) {
-			fogLine += u8"（持续）";
-		}
+	const std::string fogLine = stormyNightForecast
+		? std::string() : FogForecastPanelText(mBoard.get());
+	if (!fogLine.empty()) {
 		glm::vec4 fogColor(151.0f, 181.0f, 199.0f, alpha);
-		if (mBoard->GetForecastFogWeatherIntensity() == FogWeatherIntensity::SMALL) {
+		if (mBoard->IsFogWeatherForecastDisrupted()) {
+			fogColor = glm::vec4(255.0f, 181.0f, 88.0f, alpha);
+		}
+		else if (mBoard->GetForecastFogWeatherIntensity() == FogWeatherIntensity::SMALL) {
 			fogColor = glm::vec4(172.0f, 197.0f, 213.0f, alpha);
 		}
 		else if (mBoard->GetForecastFogWeatherIntensity() == FogWeatherIntensity::NORMAL) {
@@ -3334,7 +3360,7 @@ void GameScene::ShowPrompt(const std::string& textureKey,
 
 void GameScene::ShowTextPrompt(const std::string& text, const glm::vec4& color,
 	int fontSize, float appearDur, float holdDur, float fadeDur,
-	bool useUnscaledTime)
+	bool useUnscaledTime, PromptPurpose purpose)
 {
 	if (text.empty()) return;
 	PromptAnimation prompt;
@@ -3350,6 +3376,7 @@ void GameScene::ShowTextPrompt(const std::string& text, const glm::vec4& color,
 	prompt.holdDuration = std::max(holdDur, 0.01f);
 	prompt.fadeDuration = std::max(fadeDur, 0.01f);
 	prompt.useUnscaledTime = useUnscaledTime;
+	prompt.purpose = purpose;
 	mPrompts.push_back(std::move(prompt));
 }
 
@@ -3395,7 +3422,8 @@ void GameScene::ShowHeavyRainWarning(TyphoonStrength strength, int variant)
 		ShowTextPrompt(text, color, kHeavyRainPromptFontSize,
 			kHeavyRainPromptAppearDuration,
 			kHeavyRainPromptHoldDuration,
-			kHeavyRainPromptFadeDuration);
+			kHeavyRainPromptFadeDuration, false,
+			PromptPurpose::HEAVY_RAIN_WARNING);
 		return;
 	}
 	switch (strength) {
@@ -3447,5 +3475,14 @@ void GameScene::ShowHeavyRainWarning(TyphoonStrength strength, int variant)
 	ShowTextPrompt(text, color, kHeavyRainPromptFontSize,
 		kHeavyRainPromptAppearDuration,
 		kHeavyRainPromptHoldDuration,
-		kHeavyRainPromptFadeDuration);
+		kHeavyRainPromptFadeDuration, false,
+		PromptPurpose::HEAVY_RAIN_WARNING);
+}
+
+void GameScene::CancelHeavyRainWarning()
+{
+	mPrompts.erase(std::remove_if(mPrompts.begin(), mPrompts.end(),
+		[](const PromptAnimation& prompt) {
+			return prompt.purpose == PromptPurpose::HEAVY_RAIN_WARNING;
+		}), mPrompts.end());
 }

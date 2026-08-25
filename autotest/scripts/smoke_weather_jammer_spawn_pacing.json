@@ -1,0 +1,28 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 60 },
+    { "op": "assert_state", "path": "spawnList", "equals": ["ZOMBIE_NORMAL", "ZOMBIE_TRAFFIC_CONE", "ZOMBIE_NEWSPAPER", "ZOMBIE_DOOR", "ZOMBIE_JACK_IN_THE_BOX", "ZOMBIE_WEATHER_JAMMER"] },
+    { "op": "assert_state", "path": "weatherJammerGameData.weight", "equals": 2600 },
+    { "op": "assert_state", "path": "weatherJammerGameData.appearWave", "equals": 5 },
+    { "op": "assert_state", "path": "weatherJammerGameData.survivalRound", "equals": 13 },
+    { "op": "choose_cards", "cards": ["PLANT_PEASHOOTER"], "timeout": 20 },
+    { "op": "wait_state", "state": "GAME", "timeout": 20 },
+    { "op": "set_spawn_paused", "value": true },
+    { "op": "summon_next_wave", "count": 3 },
+    { "op": "assert_state", "path": "wave", "equals": 3 },
+    { "op": "assert_state", "path": "weather.weatherJammersSpawnedThisWave", "equals": 1 },
+    { "op": "save_level_snapshot", "name": "weather_jammer_wave_cap" },
+    { "op": "reload_level_snapshot", "name": "weather_jammer_wave_cap" },
+    { "op": "assert_state", "path": "weather.weatherJammersSpawnedThisWave", "equals": 1 },
+    { "op": "spawn_wave_zombie", "type": "ZOMBIE_WEATHER_JAMMER", "row": 2, "mutationRoll": 100 },
+    { "op": "assert_state", "path": "weather.weatherJammersSpawnedThisWave", "equals": 1 },
+    { "op": "goto_level", "level": 61 },
+    { "op": "assert_state", "path": "spawnListHasWeatherJammer", "equals": false },
+    { "op": "goto_level", "level": 62 },
+    { "op": "assert_state", "path": "spawnListHasWeatherJammer", "equals": true },
+    { "op": "goto_level", "level": 63 },
+    { "op": "assert_state", "path": "spawnListHasWeatherJammer", "equals": true },
+    { "op": "dump_state", "name": "state.json" },
+    { "op": "quit" }
+  ]
+}

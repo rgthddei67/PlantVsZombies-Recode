@@ -629,6 +629,8 @@ protected:
 	bool IsCurrentPlantEatingTargetValid();
 	/** 目标失效时原子清理目标 ID、eaterCount 与啃食视觉，并恢复当前品种的稳态行走。 */
 	void StopEatingInvalidPlantTarget(float blendTime);
+	/** 特殊动作抢占啃食时原子清理双方状态；调用者负责立即选择新的动作动画。 */
+	bool CancelEatingForSpecialAction();
 	/** 创建两份水草抓取动画，并分别隐藏前层或后层，以便包裹僵尸本体。 */
 	void CreateTangleKelpGrabAnimators(float savedFrame = 22.0f);
 	/** 停止当前啃食并平衡目标计数；抗拖沉目标在抓取开始时调用，普通目标在拖沉节点调用。 */

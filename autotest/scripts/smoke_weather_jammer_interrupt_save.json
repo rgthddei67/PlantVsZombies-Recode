@@ -1,0 +1,28 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 60 },
+    { "op": "choose_cards", "cards": ["PLANT_PEASHOOTER"], "timeout": 20 },
+    { "op": "wait_state", "state": "GAME", "timeout": 20 },
+    { "op": "set_spawn_paused", "value": true },
+    { "op": "set_weather_forecast", "forecast": "MEDIUM", "actual": "LIGHT", "revealIn": 18.0 },
+    { "op": "spawn_zombie", "type": "ZOMBIE_WEATHER_JAMMER", "row": 2, "x": 900.0, "stationary": true },
+    { "op": "wait_seconds", "value": 0.3 },
+    { "op": "screenshot", "name": "weather_jammer_channel.png" },
+    { "op": "interrupt_zombie_special_action", "type": "ZOMBIE_WEATHER_JAMMER", "row": 2, "expectedChanged": true },
+    { "op": "assert_state", "path": "zombiesByType.ZOMBIE_WEATHER_JAMMER.jammerPhase", "equals": "REBOOTING" },
+    { "op": "save_level_snapshot", "name": "jammer_reboot" },
+    { "op": "reload_level_snapshot", "name": "jammer_reboot" },
+    { "op": "assert_state", "path": "zombiesByType.ZOMBIE_WEATHER_JAMMER.jammerPhase", "equals": "REBOOTING" },
+    { "op": "assert_state", "path": "weather.forecastDisrupted", "equals": false },
+    { "op": "wait_seconds", "value": 5.2 },
+    { "op": "assert_state", "path": "zombiesByType.ZOMBIE_WEATHER_JAMMER.jammerPhase", "equals": "CHANNELING" },
+    { "op": "apply_zombie_control", "row": 2, "effect": "SLOW", "duration": 3.0 },
+    { "op": "wait_seconds", "value": 1.0 },
+    { "op": "assert_state", "path": "zombiesByType.ZOMBIE_WEATHER_JAMMER.jammerChannelRemainingMs", "atLeast": 3300 },
+    { "op": "apply_zombie_control", "row": 2, "effect": "PARALYSIS", "duration": 2.0 },
+    { "op": "wait_seconds", "value": 1.0 },
+    { "op": "assert_state", "path": "zombiesByType.ZOMBIE_WEATHER_JAMMER.jammerChannelRemainingMs", "atLeast": 3250 },
+    { "op": "dump_state", "name": "state.json" },
+    { "op": "quit" }
+  ]
+}
