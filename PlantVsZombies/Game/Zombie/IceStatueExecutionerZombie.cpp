@@ -11,8 +11,8 @@
 #include <limits>
 
 namespace {
-	constexpr int kExecutionerBodyHealth = 300;            // 处刑者本体生命；与 2600 黑帽合计 2900
-	constexpr int kExecutionerHelmetHealth = 2600;         // 黑色橄榄球头盔生命
+	constexpr int kExecutionerBodyHealth = 300;            // 处刑者本体生命；与 2700 黑帽合计 3000
+	constexpr int kExecutionerHelmetHealth = 2700;         // 黑色橄榄球头盔生命
 	constexpr int kStrikeDamage = 40;                      // 每次已提交锤击的普通僵尸伤害
 	constexpr int kRequiredExecutionProgress = 3;          // 达到此进度时立即处决目标
 	constexpr float kResourceFps = 12.0f;                  // Zombie_ladder.reanim 基础帧率
