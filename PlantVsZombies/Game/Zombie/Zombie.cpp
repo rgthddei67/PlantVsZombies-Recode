@@ -2036,6 +2036,14 @@ bool Zombie::IsButterSplatFollowerVisible() const
 		&& mAnimator->GetTrackFollowerVisible(trackName, kButterSplatFollowerSlot);
 }
 
+bool Zombie::DoesButterSplatFollowerInheritOverlayEffect() const
+{
+	const char* trackName = GetButterSplatTrackName();
+	return mButterSplatFollowerConfigured && mAnimator && trackName
+		&& mAnimator->GetTrackFollowerInheritsOverlayEffect(
+			trackName, kButterSplatFollowerSlot);
+}
+
 /**
  * 把所有可识别头部轨道的僵尸统一切到 reanim 内分层黄油；缺轨品种保留旧后绘兜底。
  */
@@ -2054,7 +2062,8 @@ void Zombie::ConfigureButterSplatFollower()
 	const float followerScale = kButterSplatScale * GetButterSplatScaleMultiplier();
 	mAnimator->SetTrackFollowerImage(trackName, kButterSplatFollowerSlot, texture,
 		0.0f, kButterSplatOffsetY, followerScale, followerScale,
-		ShouldDrawButterSplatAfterAllTracks());
+		ShouldDrawButterSplatAfterAllTracks(),
+		/*inheritOverlayEffect=*/false);
 	mButterSplatFollowerConfigured = true;
 	SetButterSplatFollowerVisible(mButterTimer > 0.0f && mHasHead && !mIsPreview);
 }

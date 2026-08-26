@@ -6,7 +6,7 @@ class Plant;
 
 /**
  * 冰像处刑者：在冻土上封存一株高价值植物，以三次可延缓但不可回滚的锤击完成处决。
- * 红色橄榄球头盔是 anim_head1 的跟随贴图，耐久与掉落状态独立；扶梯轨本身始终隐藏。
+ * 黑色橄榄球头盔是 anim_head1 的跟随贴图，耐久与掉落状态独立；扶梯轨本身始终隐藏。
  */
 class IceStatueExecutionerZombie final : public Zombie {
 public:
@@ -23,6 +23,8 @@ public:
 	void HeadDrop() override;
 	void ArmDrop() override;
 	void HelmDrop() override;
+	/** 头盔存在时以本体+防具总耐久决定灰烬直消，否则让爆炸走正常扣血链。 */
+	void TakePlantAshDamage(int damage) override;
 	bool HasMagneticItem() const override;
 	bool ExtractMagneticItem(MagneticItem& item) override;
 	float GetInterruptibleSpecialActionRemaining() const override;
@@ -37,6 +39,7 @@ public:
 	bool HasUsedExecution() const { return mExecutionUsed; }
 	ArmorBrokenState GetHelmetStage() const { return mHelmetStage; }
 	bool HasHelmetFollower() const;
+	bool DoesHelmetFollowerInheritOverlayEffect() const;
 	bool OwnsIceSealFor(int plantID) const;
 	/** 全实体恢复后校验植物侧拥有者、冻土和终止态，不重放音画。 */
 	void FinalizeIceSealLoad();

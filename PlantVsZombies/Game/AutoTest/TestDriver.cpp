@@ -3410,13 +3410,13 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			ResourceKeys::Textures::IMAGE_ZOMBIE_ICE_EXECUTIONER_MAUL, false) != nullptr },
 		{ "iceShellTextureLoaded", ResourceManager::GetInstance().GetTexture(
 			ResourceKeys::Textures::IMAGE_ICE_STATUE_SHELL, false) != nullptr },
-		{ "footballHelmetTexturesLoaded",
+		{ "executionHelmetTexturesLoaded",
 			ResourceManager::GetInstance().GetTexture(
-				ResourceKeys::Textures::IMAGE_ZOMBIE_FOOTBALL_HELMET, false) != nullptr
+				ResourceKeys::Textures::IMAGE_ZOMBIE_ICE_EXECUTIONER_HELMET, false) != nullptr
 			&& ResourceManager::GetInstance().GetTexture(
-				ResourceKeys::Textures::IMAGE_ZOMBIE_FOOTBALL_HELMET2, false) != nullptr
+				ResourceKeys::Textures::IMAGE_ZOMBIE_ICE_EXECUTIONER_HELMET2, false) != nullptr
 			&& ResourceManager::GetInstance().GetTexture(
-				ResourceKeys::Textures::IMAGE_ZOMBIE_FOOTBALL_HELMET3, false) != nullptr },
+				ResourceKeys::Textures::IMAGE_ZOMBIE_ICE_EXECUTIONER_HELMET3, false) != nullptr },
 	};
 	const Vector iceExecutionerOffset = GameDataManager::GetInstance().GetZombieOffset(
 		ZombieType::ZOMBIE_ICE_STATUE_EXECUTIONER);
@@ -5449,6 +5449,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "butterSplatAfterAllTracks", z->ShouldDrawButterSplatAfterAllTracks() },
 			{ "butterSplatFollowerConfigured", z->IsButterSplatFollowerConfigured() },
 			{ "butterSplatFollowerVisible", z->IsButterSplatFollowerVisible() },
+			{ "butterSplatFollowerInheritsOverlay",
+				z->DoesButterSplatFollowerInheritOverlayEffect() },
 			{ "toxic", z->GetToxinLayerCount() > 0 },
 			{ "toxinStacks", z->GetToxinLayerCount() },
 			{ "toxinMaxRemainingMs", static_cast<int>(std::lround(
@@ -6162,6 +6164,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				executioner->GetHelmetStage());
 			zombieState["executionHelmetFollowerVisible"] =
 				executioner->HasHelmetFollower();
+			zombieState["executionHelmetFollowerInheritsOverlay"] =
+				executioner->DoesHelmetFollowerInheritOverlayEffect();
 			const float remaining = executioner->GetInterruptibleSpecialActionRemaining();
 			zombieState["interruptibleSpecialRemainingMs"] = remaining < 0.0f
 				? -1 : (remaining >= 100000.0f ? std::numeric_limits<int>::max()

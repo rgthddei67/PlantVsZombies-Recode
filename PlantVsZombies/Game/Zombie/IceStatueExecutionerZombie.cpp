@@ -11,8 +11,8 @@
 #include <limits>
 
 namespace {
-	constexpr int kExecutionerBodyHealth = 1000;           // 处刑者本体生命；与 1400 红帽合计 2400
-	constexpr int kExecutionerHelmetHealth = 1400;         // 原版红色橄榄球头盔生命
+	constexpr int kExecutionerBodyHealth = 300;            // 处刑者本体生命；与 2600 黑帽合计 2900
+	constexpr int kExecutionerHelmetHealth = 2600;         // 黑色橄榄球头盔生命
 	constexpr int kStrikeDamage = 40;                      // 每次已提交锤击的普通僵尸伤害
 	constexpr int kRequiredExecutionProgress = 3;          // 达到此进度时立即处决目标
 	constexpr float kResourceFps = 12.0f;                  // Zombie_ladder.reanim 基础帧率
@@ -287,12 +287,29 @@ const std::string& IceStatueExecutionerZombie::GetHelmetTextureKey() const
 {
 	using namespace ResourceKeys::Textures;
 	if (mHelmetStage == ArmorBrokenState::A_LITTLE_BROKEN) {
-		return IMAGE_ZOMBIE_FOOTBALL_HELMET2;
+		return IMAGE_ZOMBIE_ICE_EXECUTIONER_HELMET2;
 	}
 	if (mHelmetStage == ArmorBrokenState::REALLY_BROKEN) {
-		return IMAGE_ZOMBIE_FOOTBALL_HELMET3;
+		return IMAGE_ZOMBIE_ICE_EXECUTIONER_HELMET3;
 	}
-	return IMAGE_ZOMBIE_FOOTBALL_HELMET;
+	return IMAGE_ZOMBIE_ICE_EXECUTIONER_HELMET;
+}
+
+void IceStatueExecutionerZombie::TakePlantAshDamage(int damage)
+{
+	if (damage <= 0 || !mBoard) return;
+
+	// 黑盔是处刑者的主要耐久层；灰烬阈值必须先统计它，不得因低本体血量绕甲直消。
+	const int scaledDamage =
+		mBoard->GetPerkManager().ScaleTotalDamageToZombie(damage);
+	const int64_t remainingDurability = static_cast<int64_t>(mBodyHealth)
+		+ (mHelmType == HelmType::HELMTYPE_FOOTBALL
+			? std::max(0, mHelmHealth) : 0);
+	if (CanBeCharred() && remainingDurability <= scaledDamage) {
+		Charred();
+		return;
+	}
+	TakeDamage(damage, DamageSource::PLANT_ASH);
 }
 
 bool IceStatueExecutionerZombie::HasMagneticItem() const
@@ -389,6 +406,13 @@ bool IceStatueExecutionerZombie::HasHelmetFollower() const
 {
 	return mHelmetFollowerConfigured && mAnimator
 		&& mAnimator->GetTrackFollowerVisible("anim_head1", kHelmetFollowerSlot);
+}
+
+bool IceStatueExecutionerZombie::DoesHelmetFollowerInheritOverlayEffect() const
+{
+	return mHelmetFollowerConfigured && mAnimator
+		&& mAnimator->GetTrackFollowerInheritsOverlayEffect(
+			"anim_head1", kHelmetFollowerSlot);
 }
 
 void IceStatueExecutionerZombie::ApplyExecutionerTextures() const
