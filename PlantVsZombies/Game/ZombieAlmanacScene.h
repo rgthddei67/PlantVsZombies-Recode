@@ -15,6 +15,8 @@ class Zombie;
 class ZombieAlmanacScene : public Scene {
 private:
 	std::shared_ptr<Button> mBackMenuButton;
+	std::shared_ptr<Button> mPreviousPageButton;
+	std::shared_ptr<Button> mNextPageButton;
 	std::vector<std::weak_ptr<Zombie>> mGridZombies;
 	std::vector<Vector> mGridPositions;
 	std::vector<ZombieType> mDisplayedZombieTypes;
@@ -22,6 +24,7 @@ private:
 	std::vector<std::weak_ptr<Zombie>> mPreviewZombieMembers;
 
 	ZombieType mCurrentZombieType = ZombieType::NUM_ZOMBIE_TYPES;
+	int mCurrentPage = 0;
 	std::unordered_map<std::string, std::string> mInfoMap;
 	std::string mCurrentZombieName;
 	float mZombieNameX = 0.0f;
@@ -31,8 +34,18 @@ private:
 
 	/** 合并已通关 spawnlist 与永久实际遭遇记录，按首次推导顺序返回可见僵尸。 */
 	std::vector<ZombieType> LoadEncounteredZombieTypes() const;
-	/** 为已遭遇类型创建可点击的图鉴网格和裁剪预览。 */
+	/** 为已遭遇类型创建当前页的可点击图鉴网格和裁剪预览。 */
 	void CreateAllZombieEntries();
+	/** 销毁当前页的纯 UI 网格实体，避免翻页后遗留碰撞和绘制。 */
+	void DestroyGridZombieEntries();
+	/** 按当前页索引重建左侧网格；右侧详情预览保持不变。 */
+	void CreateCurrentPageZombieEntries();
+	/** 同步上一页和下一页按钮的可见性与朝向。 */
+	void RefreshPageButtonState();
+	/** 前往上一页，并重建新的网格实体。 */
+	void GoToPreviousPage();
+	/** 前往下一页，并重建新的网格实体。 */
+	void GoToNextPage();
 	void OnZombieClicked(ZombieType type);
 	/** 创建详情窗预览；编队类型会同时创建全部纯展示成员。 */
 	void CreatePreviewZombie(ZombieType type);
@@ -53,6 +66,16 @@ public:
 	const std::vector<ZombieType>& GetDisplayedZombieTypes() const {
 		return mDisplayedZombieTypes;
 	}
+	/** 返回当前图鉴页的 0-based 索引。 */
+	int GetCurrentPage() const { return mCurrentPage; }
+	/** 返回由当前已解锁条目数派生的总页数。 */
+	int GetPageCount() const;
+	/** 返回当前页实际显示的条目类型，顺序与左侧网格一致。 */
+	std::vector<ZombieType> GetCurrentPageZombieTypes() const;
+	/** 返回上一页按钮，供 AutoTest 以真实输入路径解析其中心。 */
+	std::shared_ptr<Button> GetPreviousPageButton() const { return mPreviousPageButton; }
+	/** 返回下一页按钮，供 AutoTest 以真实输入路径解析其中心。 */
+	std::shared_ptr<Button> GetNextPageButton() const { return mNextPageButton; }
 
 	/** 返回右侧详情当前选中的僵尸；空图鉴返回 NUM_ZOMBIE_TYPES。 */
 	ZombieType GetCurrentZombieType() const { return mCurrentZombieType; }

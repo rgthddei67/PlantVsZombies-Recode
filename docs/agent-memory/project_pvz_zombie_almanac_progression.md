@@ -18,3 +18,5 @@ metadata:
 AutoTest 的 `dump_state` / `assert_state` 现支持 `ZombieAlmanacScene`，字段为 `scene`、`adventureLevel`、`encounteredEliteDancer`、`zombieAlmanacEntries`、`zombieAlmanacEntryCount`、`zombieAlmanacSelected`。`smoke_zombie_almanac_progression.json` 可见验证第 3/4 关边界；`smoke_dancer_almanac.json` 回归舞王与伴舞详情；`smoke_elite_dancer_almanac_unlock.json` 断言直造不解锁、正式天气变异创建成功后解锁，并从游戏暂停菜单进入图鉴目验精英条目。AutoTest 会短路真实 PlayerInfo 磁盘读写，因此永久字段的磁盘契约以保存/加载源码审查覆盖。
 
 2026-07-27 本次改动经 `clang-playtest` 与 `clang-release` 零警告构建；新解锁专项、精英舞王变异回归和第 3/4 关图鉴进度回归均在当前桌面可见运行并 exit 0，新图鉴截图已目验。
+
+2026-08-26：左侧僵尸图鉴网格固定为 8 列×5 行、每页 40 项，防止第六行压到“返回索引”。分页按既有首次遭遇顺序切片，只重建当前页的纯 UI 僵尸与点击体，右侧已选详情不因翻页重置。复用 `Zen_NextGarden` 做两个固定槽位：上一页中心 X=600、下一页中心 X=680；当前两页时只显示可用方向，未来第三页时两键可同时出现而不重合。`smoke_zombie_almanac_pagination.json` 以 7-9 后 41 项锁定 40+1、双向真实点击、末项冰像处刑者详情、资源、按钮位置与默认/`-NoInstance` 截图；`smoke_zombie_almanac_progression.json` 额外锁定单页时两个按钮都隐藏。2026-08-26 `clang-release` 构建与 378 项 Win7 导入审计通过，上述三次可见运行均 exit 0、`status=passed`。

@@ -19,6 +19,15 @@ constexpr int   ZOMBIE_WINDOW_SIZE = 76;
 constexpr int   ZOMBIE_MAX_PER_ROW = 8;
 constexpr int   ZOMBIE_H_SPACING = 4;
 constexpr int   ZOMBIE_V_SPACING = 4;
+constexpr int   ZOMBIE_MAX_ROWS_PER_PAGE = 5; // 左侧网格的可见行数，避开底部“返回索引”按钮
+constexpr int   ZOMBIE_ENTRIES_PER_PAGE =
+	ZOMBIE_MAX_PER_ROW * ZOMBIE_MAX_ROWS_PER_PAGE; // 单页可容纳的僵尸条目数
+constexpr float ZOMBIE_PREVIOUS_PAGE_BUTTON_X = 570.0f; // 上一页箭头左上角 X，与下一页槽位分开以容纳未来第三页
+constexpr float ZOMBIE_NEXT_PAGE_BUTTON_X = 650.0f; // 下一页箭头左上角 X，位于网格与详情卡之间的底部留白
+constexpr float ZOMBIE_PAGE_BUTTON_Y = 535.0f; // 两个翻页箭头的左上角 Y，避开第五行图鉴窗与返回索引按钮
+constexpr float ZOMBIE_PAGE_BUTTON_SIZE = 60.0f; // 复用 Zen_NextGarden 原图边长，单位：UI px
+constexpr float ZOMBIE_PAGE_FORWARD_ROTATION = 0.0f; // 首页前进箭头朝向，单位：度
+constexpr float ZOMBIE_PAGE_BACK_ROTATION = 180.0f; // 上一页箭头朝向，单位：度
 
 constexpr float PREVIEW_ZOMBIE_X = 900.0f;
 constexpr float PREVIEW_ZOMBIE_Y = 280.0f;
@@ -56,6 +65,35 @@ void ZombieAlmanacScene::BuildDrawCommands()
 	mBackMenuButton->SetClickCallBack([this](bool) {
 		this->mReadyToSwitchAlmanacScene = true;
 		});
+
+	mPreviousPageButton = mUIManager.CreateButton(
+		Vector(ZOMBIE_PREVIOUS_PAGE_BUTTON_X, ZOMBIE_PAGE_BUTTON_Y),
+		Vector(ZOMBIE_PAGE_BUTTON_SIZE, ZOMBIE_PAGE_BUTTON_SIZE));
+	mPreviousPageButton->SetAsCheckbox(false);
+	mPreviousPageButton->SetImageKeys(ResourceKeys::Textures::IMAGE_ZEN_NEXTGARDEN,
+		ResourceKeys::Textures::IMAGE_ZEN_NEXTGARDEN,
+		ResourceKeys::Textures::IMAGE_ZEN_NEXTGARDEN);
+	mPreviousPageButton->SetImageRotationDegrees(ZOMBIE_PAGE_BACK_ROTATION);
+	mPreviousPageButton->SetEnabled(false);
+	mPreviousPageButton->SetSkipDraw(true);
+	mPreviousPageButton->SetClickCallBack([this](bool) {
+		GoToPreviousPage();
+		});
+
+	mNextPageButton = mUIManager.CreateButton(
+		Vector(ZOMBIE_NEXT_PAGE_BUTTON_X, ZOMBIE_PAGE_BUTTON_Y),
+		Vector(ZOMBIE_PAGE_BUTTON_SIZE, ZOMBIE_PAGE_BUTTON_SIZE));
+	mNextPageButton->SetAsCheckbox(false);
+	mNextPageButton->SetImageKeys(ResourceKeys::Textures::IMAGE_ZEN_NEXTGARDEN,
+		ResourceKeys::Textures::IMAGE_ZEN_NEXTGARDEN,
+		ResourceKeys::Textures::IMAGE_ZEN_NEXTGARDEN);
+	mNextPageButton->SetImageRotationDegrees(ZOMBIE_PAGE_FORWARD_ROTATION);
+	mNextPageButton->SetEnabled(false);
+	mNextPageButton->SetSkipDraw(true);
+	mNextPageButton->SetClickCallBack([this](bool) {
+		GoToNextPage();
+		});
+	RefreshPageButtonState();
 
 	RegisterDrawCommand("ZombieWindowBack",
 		[this](Graphics* g) {
@@ -171,11 +209,50 @@ std::vector<ZombieType> ZombieAlmanacScene::LoadEncounteredZombieTypes() const
 void ZombieAlmanacScene::CreateAllZombieEntries()
 {
 	mDisplayedZombieTypes = LoadEncounteredZombieTypes();
+	mCurrentPage = 0;
+	CreateCurrentPageZombieEntries();
+	RefreshPageButtonState();
+}
 
-	int entryCount = 0;
-	for (const auto& zombieType : mDisplayedZombieTypes) {
-		int row = entryCount / ZOMBIE_MAX_PER_ROW;
-		int col = entryCount % ZOMBIE_MAX_PER_ROW;
+int ZombieAlmanacScene::GetPageCount() const
+{
+	return std::max(1, static_cast<int>((mDisplayedZombieTypes.size()
+		+ ZOMBIE_ENTRIES_PER_PAGE - 1) / ZOMBIE_ENTRIES_PER_PAGE));
+}
+
+std::vector<ZombieType> ZombieAlmanacScene::GetCurrentPageZombieTypes() const
+{
+	const std::size_t first = static_cast<std::size_t>(mCurrentPage)
+		* ZOMBIE_ENTRIES_PER_PAGE;
+	const std::size_t last = std::min(first + ZOMBIE_ENTRIES_PER_PAGE,
+		mDisplayedZombieTypes.size());
+	if (first >= last) return {};
+	return std::vector<ZombieType>(mDisplayedZombieTypes.begin() + first,
+		mDisplayedZombieTypes.begin() + last);
+}
+
+void ZombieAlmanacScene::DestroyGridZombieEntries()
+{
+	for (const auto& weakZombie : mGridZombies) {
+		if (auto zombie = weakZombie.lock()) {
+			// 按钮点击发生在本帧 GOM 更新前；先失活可防止旧页在同帧参与点击或绘制。
+			zombie->SetActive(false);
+			GameObjectManager::GetInstance().DestroyGameObject(zombie);
+		}
+	}
+	mGridZombies.clear();
+	mGridPositions.clear();
+}
+
+void ZombieAlmanacScene::CreateCurrentPageZombieEntries()
+{
+	DestroyGridZombieEntries();
+
+	const auto pageTypes = GetCurrentPageZombieTypes();
+	for (std::size_t entryIndex = 0; entryIndex < pageTypes.size(); ++entryIndex) {
+		const ZombieType zombieType = pageTypes[entryIndex];
+		const int row = static_cast<int>(entryIndex) / ZOMBIE_MAX_PER_ROW;
+		const int col = static_cast<int>(entryIndex) % ZOMBIE_MAX_PER_ROW;
 
 		float frameX = ZOMBIE_GRID_INIT_X + col * (ZOMBIE_WINDOW_SIZE + ZOMBIE_H_SPACING);
 		float frameY = ZOMBIE_GRID_INIT_Y + row * (ZOMBIE_WINDOW_SIZE + ZOMBIE_V_SPACING);
@@ -188,7 +265,6 @@ void ZombieAlmanacScene::CreateAllZombieEntries()
 		auto zombie = GameAPP::GetInstance().InstantiateZombieFree(
 			zombieType, nullptr, zombieX, zombieY);
 		if (!zombie) {
-			entryCount++;
 			continue;
 		}
 
@@ -217,8 +293,43 @@ void ZombieAlmanacScene::CreateAllZombieEntries()
 			static_cast<int>(frameY) + CLIP_INSET,
 			ZOMBIE_WINDOW_SIZE - 2 * CLIP_INSET,
 			ZOMBIE_WINDOW_SIZE - 2 * CLIP_INSET);
-		entryCount++;
 	}
+}
+
+void ZombieAlmanacScene::RefreshPageButtonState()
+{
+	const int pageCount = GetPageCount();
+	if (mCurrentPage >= pageCount) mCurrentPage = pageCount - 1;
+	if (mCurrentPage < 0) mCurrentPage = 0;
+
+	if (mPreviousPageButton) {
+		const bool hasPreviousPage = mCurrentPage > 0;
+		mPreviousPageButton->SetEnabled(hasPreviousPage);
+		mPreviousPageButton->SetSkipDraw(!hasPreviousPage);
+		mPreviousPageButton->SetImageRotationDegrees(ZOMBIE_PAGE_BACK_ROTATION);
+	}
+	if (mNextPageButton) {
+		const bool hasNextPage = mCurrentPage + 1 < pageCount;
+		mNextPageButton->SetEnabled(hasNextPage);
+		mNextPageButton->SetSkipDraw(!hasNextPage);
+		mNextPageButton->SetImageRotationDegrees(ZOMBIE_PAGE_FORWARD_ROTATION);
+	}
+}
+
+void ZombieAlmanacScene::GoToPreviousPage()
+{
+	if (mCurrentPage <= 0) return;
+	--mCurrentPage;
+	CreateCurrentPageZombieEntries();
+	RefreshPageButtonState();
+}
+
+void ZombieAlmanacScene::GoToNextPage()
+{
+	if (mCurrentPage + 1 >= GetPageCount()) return;
+	++mCurrentPage;
+	CreateCurrentPageZombieEntries();
+	RefreshPageButtonState();
 }
 
 void ZombieAlmanacScene::OnZombieClicked(ZombieType type)
@@ -294,10 +405,13 @@ void ZombieAlmanacScene::OnExit()
 	mPreviewZombie.reset();
 	mPreviewZombieMembers.clear();
 	mBackMenuButton.reset();
+	mPreviousPageButton.reset();
+	mNextPageButton.reset();
 	mInfoMap.clear();
 	mCurrentZombieName.clear();
 	mDescriptionLines.clear();
 	mCurrentZombieType = ZombieType::NUM_ZOMBIE_TYPES;
+	mCurrentPage = 0;
 	Scene::OnExit();
 }
 

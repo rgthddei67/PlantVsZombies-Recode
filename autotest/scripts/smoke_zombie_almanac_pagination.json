@@ -1,0 +1,51 @@
+{
+  "commands": [
+    { "op": "set_adventure_level", "level": 64 },
+    { "op": "goto_zombie_almanac" },
+    { "op": "wait_frames", "value": 30 },
+
+    { "op": "assert_state", "path": "scene", "equals": "ZombieAlmanacScene" },
+    { "op": "assert_state", "path": "adventureLevel", "equals": 64 },
+    { "op": "assert_state", "path": "zombieAlmanacEntryCount", "equals": 41 },
+    { "op": "assert_state", "path": "zombieAlmanacEntries.40", "equals": "ZOMBIE_ICE_STATUE_EXECUTIONER" },
+    { "op": "assert_state", "path": "zombieAlmanacPageIndex", "equals": 0 },
+    { "op": "assert_state", "path": "zombieAlmanacPageNumber", "equals": 1 },
+    { "op": "assert_state", "path": "zombieAlmanacPageCount", "equals": 2 },
+    { "op": "assert_state", "path": "zombieAlmanacVisibleEntryCount", "equals": 40 },
+    { "op": "assert_state", "path": "zombieAlmanacVisibleEntries.39", "equals": "ZOMBIE_WEATHER_JAMMER" },
+    { "op": "assert_state", "path": "zombieAlmanacPreviousPageButton.visible", "equals": false },
+    { "op": "assert_state", "path": "zombieAlmanacNextPageButton.enabled", "equals": true },
+    { "op": "assert_state", "path": "zombieAlmanacNextPageButton.visible", "equals": true },
+    { "op": "assert_state", "path": "zombieAlmanacNextPageButton.textureLoaded", "equals": true },
+    { "op": "assert_state", "path": "zombieAlmanacNextPageButton.rotationDegrees", "equals": 0 },
+    { "op": "assert_state", "path": "zombieAlmanacPreviousPageButton.centerXInt", "equals": 600 },
+    { "op": "assert_state", "path": "zombieAlmanacNextPageButton.centerXInt", "equals": 680 },
+    { "op": "screenshot", "name": "01_full_first_page.png" },
+
+    { "op": "click", "target": "zombie_almanac_next_page" },
+    { "op": "wait_frames", "value": 4 },
+    { "op": "assert_state", "path": "zombieAlmanacPageIndex", "equals": 1 },
+    { "op": "assert_state", "path": "zombieAlmanacPageNumber", "equals": 2 },
+    { "op": "assert_state", "path": "zombieAlmanacVisibleEntryCount", "equals": 1 },
+    { "op": "assert_state", "path": "zombieAlmanacVisibleEntries.0", "equals": "ZOMBIE_ICE_STATUE_EXECUTIONER" },
+    { "op": "assert_state", "path": "zombieAlmanacPreviousPageButton.enabled", "equals": true },
+    { "op": "assert_state", "path": "zombieAlmanacPreviousPageButton.visible", "equals": true },
+    { "op": "assert_state", "path": "zombieAlmanacPreviousPageButton.rotationDegrees", "equals": 180 },
+    { "op": "assert_state", "path": "zombieAlmanacNextPageButton.visible", "equals": false },
+    { "op": "assert_state", "path": "zombieAlmanacPreviousPageButton.centerXInt", "equals": 600 },
+    { "op": "assert_state", "path": "zombieAlmanacNextPageButton.centerXInt", "equals": 680 },
+    { "op": "screenshot", "name": "02_second_page.png" },
+
+    { "op": "click", "x": 108, "y": 158 },
+    { "op": "wait_frames", "value": 4 },
+    { "op": "assert_state", "path": "zombieAlmanacSelected", "equals": "ZOMBIE_ICE_STATUE_EXECUTIONER" },
+    { "op": "assert_state", "path": "zombieAlmanacPreview.type", "equals": "ZOMBIE_ICE_STATUE_EXECUTIONER" },
+    { "op": "screenshot", "name": "03_second_page_detail.png" },
+
+    { "op": "click", "target": "zombie_almanac_previous_page" },
+    { "op": "wait_frames", "value": 4 },
+    { "op": "assert_state", "path": "zombieAlmanacPageIndex", "equals": 0 },
+    { "op": "assert_state", "path": "zombieAlmanacVisibleEntryCount", "equals": 40 },
+    { "op": "quit" }
+  ]
+}

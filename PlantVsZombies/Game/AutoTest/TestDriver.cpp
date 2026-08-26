@@ -2950,6 +2950,30 @@ bool TestDriver::ExecuteCurrent() {
 			x = center.x;
 			y = center.y;
 		}
+		else if (target == "zombie_almanac_previous_page") {
+			auto* almanac = dynamic_cast<ZombieAlmanacScene*>(
+				SceneManager::GetInstance().GetCurrentScene());
+			auto button = almanac ? almanac->GetPreviousPageButton() : nullptr;
+			if (!button || !button->IsEnabled() || button->IsSkipDraw()) {
+				Fail("click target=zombie_almanac_previous_page: 僵尸图鉴上一页按钮不存在或不可用");
+				return false;
+			}
+			const Vector center = button->GetCenter();
+			x = center.x;
+			y = center.y;
+		}
+		else if (target == "zombie_almanac_next_page") {
+			auto* almanac = dynamic_cast<ZombieAlmanacScene*>(
+				SceneManager::GetInstance().GetCurrentScene());
+			auto button = almanac ? almanac->GetNextPageButton() : nullptr;
+			if (!button || !button->IsEnabled() || button->IsSkipDraw()) {
+				Fail("click target=zombie_almanac_next_page: 僵尸图鉴下一页按钮不存在或不可用");
+				return false;
+			}
+			const Vector center = button->GetCenter();
+			x = center.x;
+			y = center.y;
+		}
 		else if (target == "choose_card") {
 			GameScene* gs = CurrentGameScene();
 			ChooseCardUI* ui = gs ? gs->GetChooseCardUI() : nullptr;
@@ -3840,6 +3864,41 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		}
 		out["zombieAlmanacEntryCount"] =
 			static_cast<int>(almanac->GetDisplayedZombieTypes().size());
+		out["zombieAlmanacPageIndex"] = almanac->GetCurrentPage();
+		out["zombieAlmanacPageNumber"] = almanac->GetCurrentPage() + 1;
+		out["zombieAlmanacPageCount"] = almanac->GetPageCount();
+		out["zombieAlmanacVisibleEntries"] = nlohmann::json::array();
+		for (ZombieType type : almanac->GetCurrentPageZombieTypes()) {
+			out["zombieAlmanacVisibleEntries"].push_back(ZombieTypeName(type));
+		}
+		out["zombieAlmanacVisibleEntryCount"] = static_cast<int>(
+			out["zombieAlmanacVisibleEntries"].size());
+		if (auto button = almanac->GetPreviousPageButton()) {
+			const Vector buttonCenter = button->GetCenter();
+			out["zombieAlmanacPreviousPageButton"] = {
+				{ "enabled", button->IsEnabled() },
+				{ "visible", !button->IsSkipDraw() },
+				{ "textureLoaded", ResourceManager::GetInstance().GetTexture(
+					ResourceKeys::Textures::IMAGE_ZEN_NEXTGARDEN, false) != nullptr },
+				{ "rotationDegrees", static_cast<int>(std::lround(
+					button->GetImageRotationDegrees())) },
+				{ "centerXInt", static_cast<int>(std::lround(buttonCenter.x)) },
+				{ "centerYInt", static_cast<int>(std::lround(buttonCenter.y)) },
+			};
+		}
+		if (auto button = almanac->GetNextPageButton()) {
+			const Vector buttonCenter = button->GetCenter();
+			out["zombieAlmanacNextPageButton"] = {
+				{ "enabled", button->IsEnabled() },
+				{ "visible", !button->IsSkipDraw() },
+				{ "textureLoaded", ResourceManager::GetInstance().GetTexture(
+					ResourceKeys::Textures::IMAGE_ZEN_NEXTGARDEN, false) != nullptr },
+				{ "rotationDegrees", static_cast<int>(std::lround(
+					button->GetImageRotationDegrees())) },
+				{ "centerXInt", static_cast<int>(std::lround(buttonCenter.x)) },
+				{ "centerYInt", static_cast<int>(std::lround(buttonCenter.y)) },
+			};
+		}
 		const ZombieType selected = almanac->GetCurrentZombieType();
 		out["zombieAlmanacSelected"] =
 			selected == ZombieType::NUM_ZOMBIE_TYPES
