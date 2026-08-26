@@ -231,6 +231,15 @@ std::vector<ZombieType> ZombieAlmanacScene::GetCurrentPageZombieTypes() const
 		mDisplayedZombieTypes.begin() + last);
 }
 
+Zombie* ZombieAlmanacScene::GetGridZombiePreview(ZombieType type) const
+{
+	for (const auto& weakZombie : mGridZombies) {
+		const auto zombie = weakZombie.lock();
+		if (zombie && zombie->mZombieType == type) return zombie.get();
+	}
+	return nullptr;
+}
+
 void ZombieAlmanacScene::DestroyGridZombieEntries()
 {
 	for (const auto& weakZombie : mGridZombies) {

@@ -35,6 +35,13 @@ void WeatherJammerZombie::SetupZombie()
 
 void WeatherJammerZombie::Update()
 {
+	if (mIsPreview) {
+		// 图鉴/选卡预览没有 Board；不能把该展示环境误判为设备失效，
+		// 否则 SpendDevice 会恢复实战走路轨道，覆盖 SetupZombie 选定的 anim_idle。
+		BucketZombie::Update();
+		return;
+	}
+
 	if (mJammerPhase == JammerPhase::REBOOTING) {
 		mRebootRemaining = std::max(
 			0.0f, mRebootRemaining - DeltaTime::GetDeltaTime());

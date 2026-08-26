@@ -3873,6 +3873,20 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		}
 		out["zombieAlmanacVisibleEntryCount"] = static_cast<int>(
 			out["zombieAlmanacVisibleEntries"].size());
+		out["zombieAlmanacGridPreviews"] = nlohmann::json::array();
+		for (ZombieType type : almanac->GetCurrentPageZombieTypes()) {
+			nlohmann::json gridState = {
+				{ "type", ZombieTypeName(type) },
+				{ "instanceReady", false },
+			};
+			if (Zombie* gridPreview = almanac->GetGridZombiePreview(type)) {
+				const auto gridAnim = gridPreview->GetAnimatorInternal();
+				gridState["instanceReady"] = true;
+				gridState["track"] = gridPreview->GetCurrentTrackName();
+				gridState["animPlaying"] = gridAnim && gridAnim->IsPlaying();
+			}
+			out["zombieAlmanacGridPreviews"].push_back(std::move(gridState));
+		}
 		if (auto button = almanac->GetPreviousPageButton()) {
 			const Vector buttonCenter = button->GetCenter();
 			out["zombieAlmanacPreviousPageButton"] = {
@@ -3904,6 +3918,11 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			selected == ZombieType::NUM_ZOMBIE_TYPES
 			? nlohmann::json(nullptr)
 			: nlohmann::json(ZombieTypeName(selected));
+		out["zombieAlmanacInfo"] = {
+			{ "name", almanac->GetCurrentZombieName() },
+			{ "descriptionLineCount", static_cast<int>(
+				almanac->GetDescriptionLineCount()) },
+		};
 		out["zombieAlmanacPreview"] = nullptr;
 		if (Zombie* preview = almanac->GetPreviewZombie()) {
 			const auto anim = preview->GetAnimatorInternal();
@@ -3911,6 +3930,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				{ "type", ZombieTypeName(preview->mZombieType) },
 				{ "track", preview->GetCurrentTrackName() },
 				{ "animPlaying", anim && anim->IsPlaying() },
+				{ "isPreview", preview->IsPreview() },
 			};
 			if (auto* pogo = dynamic_cast<PogoZombie*>(preview)) {
 				previewState["pogoPreviewBounceActive"] = pogo->IsPreviewBounceActive();

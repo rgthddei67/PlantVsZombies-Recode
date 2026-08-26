@@ -77,3 +77,12 @@ channel 不再做缩放脉冲；雷达 ready/channel 往复序列的首尾角差
 的同日主动黑障修订还曾通过雾势/台风、装备/断肢、外部中断、硬控、原天气预报与默认/
 `-NoInstance` 视觉专项；本次只改 Board 余时合成和同类起手门禁，未重跑这些未受影响用例。既有
 视觉资源、投放、数值和每波上限没有改动。
+
+## 2026-08-26 图鉴预览修复
+
+`InstantiateZombieFree` 的气象干扰僵尸是 `mIsPreview=true` 且 `mBoard=nullptr` 的正常展示对象。
+`WeatherJammerZombie::Update()` 必须在实战的 `HasTerminalAbort()` / `SpendDevice()` 收口之前只推进
+`BucketZombie::Update()` 并返回：否则无 Board 会被误判为设备失效，`SpendDevice()` 又会调用
+`PlayWalkAnimation()`，把预览初始化的 `anim_idle` 改成 `anim_walk2`，并重新启动本应暂停的图鉴网格。
+`smoke_zombie_almanac_winter_preview.json` 现同时断言工程师条目、天气干扰僵尸网格的暂停
+`anim_idle` 和详情的 `anim_idle`；当前 `clang-release` 默认 Vulkan 与 `-NoInstance` 可见运行均通过。

@@ -72,6 +72,8 @@ public:
 	int GetPageCount() const;
 	/** 返回当前页实际显示的条目类型，顺序与左侧网格一致。 */
 	std::vector<ZombieType> GetCurrentPageZombieTypes() const;
+	/** 返回当前页指定类型的网格预览实例；未显示或创建失败时返回 nullptr。 */
+	Zombie* GetGridZombiePreview(ZombieType type) const;
 	/** 返回上一页按钮，供 AutoTest 以真实输入路径解析其中心。 */
 	std::shared_ptr<Button> GetPreviousPageButton() const { return mPreviousPageButton; }
 	/** 返回下一页按钮，供 AutoTest 以真实输入路径解析其中心。 */
@@ -79,6 +81,10 @@ public:
 
 	/** 返回右侧详情当前选中的僵尸；空图鉴返回 NUM_ZOMBIE_TYPES。 */
 	ZombieType GetCurrentZombieType() const { return mCurrentZombieType; }
+	/** 返回右侧详情已解析的标题；仅供图鉴状态取证。 */
+	const std::string& GetCurrentZombieName() const { return mCurrentZombieName; }
+	/** 返回右侧详情已排版的说明行数；缺失 info 文本时为零。 */
+	std::size_t GetDescriptionLineCount() const { return mDescriptionLines.size(); }
 	/** 返回右侧详情预览实例；仅供只读状态取证。 */
 	Zombie* GetPreviewZombie() const {
 		const auto zombie = mPreviewZombie.lock();

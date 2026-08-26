@@ -1,0 +1,31 @@
+{
+  "commands": [
+    { "op": "set_adventure_level", "level": 61 },
+    { "op": "goto_zombie_almanac" },
+    { "op": "wait_frames", "value": 30 },
+    { "op": "assert_state", "path": "scene", "equals": "ZombieAlmanacScene" },
+    { "op": "assert_state", "path": "zombieAlmanacEntryCount", "equals": 40 },
+    { "op": "assert_state", "path": "zombieAlmanacEntries.37", "equals": "ZOMBIE_ICE_WALL_ENGINEER" },
+    { "op": "assert_state", "path": "zombieAlmanacEntries.39", "equals": "ZOMBIE_WEATHER_JAMMER" },
+    { "op": "dump_state", "name": "winter_entries.json" },
+    { "op": "screenshot", "name": "winter_entries.png" },
+    { "op": "click", "x": 508, "y": 478 },
+    { "op": "wait_frames", "value": 5 },
+    { "op": "assert_state", "path": "zombieAlmanacSelected", "equals": "ZOMBIE_ICE_WALL_ENGINEER" },
+    { "op": "assert_state", "path": "zombieAlmanacInfo.name", "equals": "冰墙工程师僵尸" },
+    { "op": "assert_state", "path": "zombieAlmanacInfo.descriptionLineCount", "atLeast": 1 },
+    { "op": "dump_state", "name": "ice_wall_engineer_info.json" },
+    { "op": "screenshot", "name": "ice_wall_engineer_info.png" },
+    { "op": "click", "x": 668, "y": 478 },
+    { "op": "wait_frames", "value": 5 },
+    { "op": "assert_state", "path": "zombieAlmanacSelected", "equals": "ZOMBIE_WEATHER_JAMMER" },
+    { "op": "assert_state", "path": "zombieAlmanacGridPreviews.39.track", "equals": "anim_idle" },
+    { "op": "assert_state", "path": "zombieAlmanacGridPreviews.39.animPlaying", "equals": false },
+    { "op": "assert_state", "path": "zombieAlmanacPreview.type", "equals": "ZOMBIE_WEATHER_JAMMER" },
+    { "op": "assert_state", "path": "zombieAlmanacPreview.isPreview", "equals": true },
+    { "op": "assert_state", "path": "zombieAlmanacPreview.track", "equals": "anim_idle" },
+    { "op": "dump_state", "name": "weather_jammer_preview.json" },
+    { "op": "screenshot", "name": "weather_jammer_preview.png" },
+    { "op": "quit" }
+  ]
+}

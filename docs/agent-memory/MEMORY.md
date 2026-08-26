@@ -2,6 +2,8 @@
 
 > Codex routing: required always-on rules live in `../../AGENTS.md`; detailed build, AutoTest, architecture, resource, and implementation guidance lives in `../agent-guide/PROJECT_GUIDE.md`. The entries below are historical subsystem context and should be read only when relevant.
 
+- [冬日花园僵尸图鉴资料与预览](project_pvz_zombie_almanac_progression.md) — 2026-08-26 冰墙工程师的图鉴缺失源于 `info.txt` 标题/说明键未登记，而非 spawnlist 解锁；天气干扰僵尸的预览无 Board 必须保持 `anim_idle`，不能误触设备失败收口改成 `anim_walk2`。默认与 `-NoInstance` 图鉴专项均通过
+
 - [大嘴花拒吞伤害契约](project_pvz_chomper_rejected_bite.md) — 2026-08-15 `TakePlantInstantKill()` 只报告是否确实吞下；拒吞默认由大嘴花经正式 `PLANT` 伤害链造成20，巨人/红眼/屋脊督军使用默认值；既有特殊值为加固铁门10、镀金冰车50，持杆跳跳因高度咬不到为0且掉杆后恢复普通吞食
 - [经典巨人、红眼巨人与小鬼](project_pvz_gargantuar_zombie.md) — 2026-08-26 普通/红眼巨人按3000/6000本体生命的2/3与1/3派生可逆伤势；红眼以4500权重只投放7-8/7-9，冒险每波最多3只且计数入档、无尽不受限；劫持者处决保留头臂；第93帧逐层派发锤击，第131帧按有符号半场距离唯一投出112px高度、1.3倍距离的小鬼；内嵌/独立 `Zombie_imp_body1` 渲染锚点接续消除脱手瞬移，`anim_thrown` 一次播放并停末帧消除空中回弹；随机武器、0.5～0.7动画倍率与动作/飞行存档合同保持
 - [全僵尸黄油头贴跟随与绘制层级](project_pvz_zombie_butter_overlay.md) — 2026-08-26 基类虚语义轨道默认 `anim_head1`，异形/车辆只覆写专属头轨；命名 vector follower 默认继承宿主状态 overlay，黄油 `butter_splat` 显式退出并可与冰像处刑者黑盔同轨共存；普通品种延迟到最高层、巨人保持父轨后提交，生命周期/存档及双路径可见专项闭环
