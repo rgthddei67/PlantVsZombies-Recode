@@ -4,14 +4,14 @@ description: 2026-08-15 5-9 屋脊督军完整首领；15000 生命、拒绝大�
 metadata:
   node_type: memory
   type: project
-  updated_at: 2026-08-15
+  updated_at: 2026-08-26
 ---
 
 # 5-9 屋脊督军首领
 
 2026-08-09 主人确认 5-9 BOSS 采用“僵尸博士麾下得力干将”的指挥型首领方向，并指定角色动画
 复用普通僵尸。当前已完成素材、生存层、15 波正式出场、指挥召唤、阶段移动与天气命令；不实现
-指挥车或第六大关内容，僵尸博士仍留作未来 6-9。
+指挥车。早期“僵尸博士留作未来 6-9”只保留为历史设想；当前第六大关以 6-9 无 BOSS 槽完成定案。
 
 `ZOMBIE_ROOF_MARSHAL` 与 `RoofMarshalZombie` 的独立随机权重保持为 0、`appearWave=15`；
 `AdventureProgression::BossSlot::ROOF_MARSHAL` 只在内部关卡 45 的正式第 15 波由

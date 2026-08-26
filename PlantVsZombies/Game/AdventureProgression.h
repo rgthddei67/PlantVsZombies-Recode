@@ -83,7 +83,7 @@ namespace AdventureProgression
 		NO_PLANT_REWARD,
 		PlantType::PLANT_GROUNDINGSHROOM,
 
-		// 6-1 ... 6-9（黑夜屋顶；植物奖励与专属编排后续逐关补充）
+		// 6-1 ... 6-9（黑夜屋顶；6-1/6-9按定案无植物奖励）
 		NO_PLANT_REWARD,
 		PlantType::PLANT_GLOOMSHROOM,
 		PlantType::PLANT_TWINSUNFLOWER,
