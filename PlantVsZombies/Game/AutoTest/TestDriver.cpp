@@ -55,6 +55,7 @@
 #include "../Plant/MeltSnowPult.h"
 #include "../Plant/FrostMine.h"
 #include "../Plant/AlarmBellFlower.h"
+#include "../Plant/FurnaceCoreFlower.h"
 #include "../Plant/KernelPult.h"
 #include "../Plant/MelonPult.h"
 #include "../Plant/GloomShroom.h"
@@ -363,6 +364,7 @@ namespace {
 		PT(PLANT_MELTSNOWPULT),
 		PT(PLANT_FROSTMINE),
 		PT(PLANT_ALARMBELLFLOWER),
+		PT(PLANT_FURNACECOREFLOWER),
 	};
 #undef PT
 #define BT(n) { #n, BulletType::n }
@@ -1744,6 +1746,24 @@ bool TestDriver::ExecuteCurrent() {
 		Fail("set_melt_snow_pult_salt_state: 未找到目标融雪投手");
 		return false;
 	}
+	if (op == "set_furnace_core_state") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) {
+			Fail("set_furnace_core_state: 不在 GameScene 或 Board 为空");
+			return false;
+		}
+		const int row = cmd.value("row", -1);
+		const int col = cmd.value("col", -1);
+		auto* furnace = dynamic_cast<FurnaceCoreFlower*>(
+			gs->GetBoard()->GetNormalPlantAt(row, col));
+		if (!furnace) {
+			Fail("set_furnace_core_state: 目标格没有炉芯花");
+			return false;
+		}
+		furnace->SetCoreStateForTesting(cmd.value("cores", 0),
+			cmd.value("progress", 0.0f));
+		return true;
+	}
 	if (op == "set_gloomshroom_shoot_cycle") {
 		GameScene* gs = CurrentGameScene();
 		if (!gs || !gs->GetBoard()) {
@@ -1987,6 +2007,41 @@ bool TestDriver::ExecuteCurrent() {
 			return true;
 		}
 		Fail("set_ice_executioner_state: 未找到目标冰像处刑者");
+		return false;
+	}
+	if (op == "attempt_ice_execution") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) {
+			Fail("attempt_ice_execution: 不在 GameScene 或 Board 为空");
+			return false;
+		}
+		Board* board = gs->GetBoard();
+		const int row = cmd.value("row", -1);
+		const int index = cmd.value("index", 0);
+		const int targetRow = cmd.value("targetRow", row);
+		const int targetCol = cmd.value("targetCol", -1);
+		Plant* target = board->GetNormalPlantAt(targetRow, targetCol);
+		if (!target) target = board->GetPumpkinAt(targetRow, targetCol);
+		if (!target) {
+			Fail("attempt_ice_execution: 目标格没有普通植物或南瓜");
+			return false;
+		}
+		int seen = 0;
+		std::vector<int> zombieIDs = board->mEntityRegistry.GetAllZombieIDs();
+		std::sort(zombieIDs.begin(), zombieIDs.end());
+		for (const int id : zombieIDs) {
+			auto* executioner = dynamic_cast<IceStatueExecutionerZombie*>(
+				board->mEntityRegistry.GetZombie(id));
+			if (!executioner || !executioner->IsActive()) continue;
+			if (row >= 0 && executioner->mRow != row) continue;
+			if (seen++ != index) continue;
+			if (!executioner->AttemptExecutionForTesting(target)) {
+				Fail("attempt_ice_execution: 正式造冰尝试未被处理");
+				return false;
+			}
+			return true;
+		}
+		Fail("attempt_ice_execution: 未找到 READY 冰像处刑者");
 		return false;
 	}
 	if (op == "interrupt_zombie_special_action"
@@ -4074,6 +4129,18 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				ResourceKeys::Textures::IMAGE_REANIM_ALARMBELLFLOWER_BASE, false) != nullptr },
 		{ "particleTextureLoaded", ResourceManager::GetInstance().GetTexture(
 			ResourceKeys::Particles::PARTICLE_ALARMBELLROWPULSE, false) != nullptr },
+	};
+	out["furnaceCoreFlowerResources"] = {
+		{ "reanimationLoaded", ResourceManager::GetInstance().HasReanimation(
+			ResourceKeys::Reanimations::REANIM_FURNACECOREFLOWER) },
+		{ "cardTextureLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_FURNACECOREFLOWER, false) != nullptr },
+		{ "coreTextureLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_REANIM_FURNACECOREFLOWER_CORE, false)
+				!= nullptr },
+		{ "flameTextureLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_REANIM_TORCHWOOD_FIRE1A, false)
+				!= nullptr },
 	};
 	out["isBossLevel"] = AdventureProgression::IsBossLevel(board->mLevel);
 	out["bossSlot"] = BossSlotName(AdventureProgression::GetBossSlot(board->mLevel));
@@ -6325,6 +6392,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["scaredyShroomsByCell"] = nlohmann::json::object();
 	out["meltSnowPultsByCell"] = nlohmann::json::object();
 	out["frostMinesByCell"] = nlohmann::json::object();
+	out["alarmBellFlowersByCell"] = nlohmann::json::object();
+	out["furnaceCoreFlowersByCell"] = nlohmann::json::object();
 	int repeatingShootingHeadCount = 0;
 	for (int id : board->mEntityRegistry.GetAllPlantIDs()) {
 		Plant* p = board->mEntityRegistry.GetPlant(id);
@@ -6618,6 +6687,22 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			const std::string cellKey =
 				std::to_string(p->mRow) + "_" + std::to_string(p->mColumn);
 			out["alarmBellFlowersByCell"][cellKey] = plantState;
+		}
+		if (auto* furnace = dynamic_cast<FurnaceCoreFlower*>(p)) {
+			plantState["furnaceStoredCores"] = furnace->GetStoredCoreCount();
+			plantState["furnaceChargeProgressMs"] = static_cast<int>(std::lround(
+				furnace->GetChargeProgress() * 1000.0f));
+			plantState["furnaceCharging"] = furnace->IsCharging();
+			const std::shared_ptr<Animator> animator = furnace->GetAnimatorInternal();
+			plantState["furnaceLeftCoreVisible"] = animator
+				&& animator->GetTrackFollowerVisible(
+					"anim_idle", "furnace_core_left");
+			plantState["furnaceRightCoreVisible"] = animator
+				&& animator->GetTrackFollowerVisible(
+					"anim_idle", "furnace_core_right");
+			const std::string cellKey =
+				std::to_string(p->mRow) + "_" + std::to_string(p->mColumn);
+			out["furnaceCoreFlowersByCell"][cellKey] = plantState;
 		}
 		if (auto* imitater = dynamic_cast<Imitater*>(p)) {
 			plantState["imitaterTarget"] = PlantTypeName(

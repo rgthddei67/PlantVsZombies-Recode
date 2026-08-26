@@ -4904,7 +4904,7 @@ Plant* Board::SelectIceStatueExecutionTarget() const
 	return best;
 }
 
-bool Board::TryPreventIceExecutionProgress(Plant& target) const
+bool Board::TryPreventIceExecutionSeal(Plant& target) const
 {
 	std::vector<int> plantIDs = mEntityRegistry.GetAllPlantIDs();
 	std::sort(plantIDs.begin(), plantIDs.end());
@@ -4917,7 +4917,7 @@ bool Board::TryPreventIceExecutionProgress(Plant& target) const
 			|| std::abs(provider->mColumn - target.mColumn) > 1) {
 			continue;
 		}
-		if (provider->TryPreventIceExecutionProgressFor(&target)) return true;
+		if (provider->TryPreventIceExecutionSealFor(&target)) return true;
 	}
 	return false;
 }

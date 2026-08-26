@@ -18,7 +18,7 @@ metadata:
 2026-07-18 收敛到 `Game/AdventureProgression.h`：
 
 - `LEVELS_PER_AREA=9`，显示与背景分段共用 `GetAreaNumber` / `GetLevelNumberInArea`；
-- `PLANT_REWARD_BY_LEVEL` 显式列出 1..63，每项为具体 `PlantType` 或 `NO_PLANT_REWARD`；5-9 现解锁接地菇，供 6-1 起使用；第六大关的 6-1 无奖励、6-2 解锁忧郁菇、6-3 解锁双子向日葵、6-4 解锁避雷花盆、6-5 解锁冰瓜、6-6 解锁玉米加农炮、6-7 解锁磁暴菇、6-8 解锁模仿者，6-9 暂为 `NO_PLANT_REWARD`；第七大关规划为 7-1 雪锚果、7-2 融雪投手、7-4 伏霜雷、7-6 警铃草、7-7 炉芯花，其余关无植物奖励，当前已接入前四株；
+- `PLANT_REWARD_BY_LEVEL` 显式列出 1..63，每项为具体 `PlantType` 或 `NO_PLANT_REWARD`；5-9 现解锁接地菇，供 6-1 起使用；第六大关的 6-1 无奖励、6-2 解锁忧郁菇、6-3 解锁双子向日葵、6-4 解锁避雷花盆、6-5 解锁冰瓜、6-6 解锁玉米加农炮、6-7 解锁磁暴菇、6-8 解锁模仿者，6-9 暂为 `NO_PLANT_REWARD`；第七大关已接入 7-1 雪锚果、7-2 融雪投手、7-4 伏霜雷、7-6 警铃草、7-7 炉芯花，其余关无植物奖励；
 - 奖励按关显式配置，不再假设“每大关第 8 小关都为空”：当前 1-8、4-8、5-8 无植物，2-8 解锁精英胆小菇，3-8 解锁毒囊射手；各大关第 9 小关仍解锁下一场景首株植物；
 - `Trophy::AdvanceAdventureProgress` 无论有无植物都推进进度，仅在奖励不是 `NO_PLANT_REWARD` 时去重加入 `mHaveCards`；
 - 禁止再通过插入/挪动 `PlantType` 调奖励顺序：`PlayerInfo.json.havecards` 和关卡存档都按整数保存枚举，改值会破坏旧档。

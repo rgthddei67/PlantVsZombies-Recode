@@ -5,7 +5,7 @@
 class Plant;
 
 /**
- * 冰像处刑者：在冻土上封存一株高价值植物，以三次可延缓但不可回滚的锤击完成处决。
+ * 冰像处刑者：在冻土上封存一株高价值植物，以三次可中断但不可回滚的锤击完成处决。
  * 黑色橄榄球头盔是 anim_head1 的跟随贴图，耐久与掉落状态独立；扶梯轨本身始终隐藏。
  */
 class IceStatueExecutionerZombie final : public Zombie {
@@ -45,6 +45,8 @@ public:
 	void FinalizeIceSealLoad();
 	/** AutoTest 专用：在保持双向关系的前提下进入指定锤击状态。 */
 	bool SetExecutionStateForTesting(Plant* target, int progress);
+	/** AutoTest 专用：从正式入口尝试造冰，保留炉芯花拒绝语义。 */
+	bool AttemptExecutionForTesting(Plant* target);
 
 protected:
 	void SetupZombie() override;

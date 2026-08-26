@@ -57,6 +57,7 @@
 #include "MeltSnowPult.h"
 #include "FrostMine.h"
 #include "AlarmBellFlower.h"
+#include "FurnaceCoreFlower.h"
 #include "KernelPult.h"
 #include "CobCannon.h"
 #include "CoffeeBean.h"
@@ -398,6 +399,12 @@ void GameDataManager::InitializeHardcodedData() {
 		AnimationType::ANIM_ALARMBELLFLOWER,
 		ResourceKeys::Reanimations::REANIM_ALARMBELLFLOWER,
 		&MakePlant<AlarmBellFlower>);
+
+	RegisterPlant(PlantType::PLANT_FURNACECOREFLOWER, "PLANT_FURNACECOREFLOWER",
+		ResourceKeys::Textures::IMAGE_FURNACECOREFLOWER,
+		AnimationType::ANIM_FURNACECOREFLOWER,
+		ResourceKeys::Reanimations::REANIM_FURNACECOREFLOWER,
+		&MakePlant<FurnaceCoreFlower>);
 
 	RegisterPlant(PlantType::PLANT_KERNELPULT, "PLANT_KERNELPULT",
 		ResourceKeys::Textures::IMAGE_CORNPULT,

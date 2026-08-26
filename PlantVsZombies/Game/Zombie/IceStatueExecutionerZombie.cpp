@@ -141,10 +141,18 @@ bool IceStatueExecutionerZombie::CanOwnExecution() const
 
 bool IceStatueExecutionerZombie::BeginExecution(Plant& target)
 {
-	if (mExecutionPhase != ExecutionPhase::READY || !CanOwnExecution()
-		|| !target.BeginIceSeal(mZombieID)) {
+	if (mExecutionPhase != ExecutionPhase::READY || !CanOwnExecution()) {
 		return false;
 	}
+	// 炉芯花在封存关系提交前响应；成功后目标从未进入冰封，处刑者的一次性能力直接耗尽。
+	if (mBoard->TryPreventIceExecutionSeal(target)) {
+		mExecutionUsed = true;
+		mExecutionPhase = ExecutionPhase::SPENT;
+		mExecutionTargetPlantID = NULL_PLANT_ID;
+		mExecutionProgress = 0;
+		return true;
+	}
+	if (!target.BeginIceSeal(mZombieID)) return false;
 	if (mIsEating && mEatPlantID != NULL_PLANT_ID) {
 		StopEatingInvalidPlantTarget(0.0f);
 	}
@@ -178,9 +186,7 @@ void IceStatueExecutionerZombie::CommitStrike()
 		PlayWalkAnimation(0.1f);
 		return;
 	}
-	if (!mBoard->TryPreventIceExecutionProgress(*target)) {
-		++mExecutionProgress;
-	}
+	++mExecutionProgress;
 	if (mExecutionProgress >= kRequiredExecutionProgress) {
 		target->ResolveIceExecution(mZombieID);
 		mExecutionUsed = true;
@@ -524,4 +530,10 @@ bool IceStatueExecutionerZombie::SetExecutionStateForTesting(
 	mExecutionUsed = false;
 	BeginStrike(0.0f);
 	return true;
+}
+
+bool IceStatueExecutionerZombie::AttemptExecutionForTesting(Plant* target)
+{
+	if (!target || mExecutionPhase != ExecutionPhase::READY) return false;
+	return BeginExecution(*target);
 }

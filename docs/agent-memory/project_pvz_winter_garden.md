@@ -11,7 +11,7 @@ metadata:
 
 ## 关卡与地图
 
-冒险 55～63 显示为 7-1～7-9，统一使用 `Background::WINTER_GARDEN`、5 行 × 9 列平地和白天音乐。`AdventureProgression::LAST_ADVENTURE_LEVEL` 为 63；寒潮植物奖励现规划为 7-1 雪锚果、7-2 融雪投手、7-4 伏霜雷、7-6 警铃草、7-7 炉芯花，其余关卡不发植物。当前已接入前四株与五种重点僵尸，只剩炉芯花按 `project_pvz_winter_area_content_plan.md` 继续实现。
+冒险 55～63 显示为 7-1～7-9，统一使用 `Background::WINTER_GARDEN`、5 行 × 9 列平地和白天音乐。`AdventureProgression::LAST_ADVENTURE_LEVEL` 为 63；寒潮植物奖励已接入 7-1 雪锚果、7-2 融雪投手、7-4 伏霜雷、7-6 警铃草、7-7 炉芯花，其余关卡不发植物。五株寒潮植物与五种重点僵尸现均已实现，组合契约见 `project_pvz_winter_area_content_plan.md`。
 
 雪锚果的锚定资格直接读取 `Board::IsCellFrozen`，不保存温度或重复保存冻土范围；实体只保存一生一次的消费结果。其普通/锚定材质切换与冻融线同源，因此寒潮存档先恢复 Board 后即可静默重建正确外观。完整能力、未来雪橇/地裂所有权边界和专项证据见 `project_pvz_winter_area_content_plan.md`。
 

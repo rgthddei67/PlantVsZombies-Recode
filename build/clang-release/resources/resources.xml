@@ -230,11 +230,14 @@
 	<Image>./resources/image/reanim/REANIM_FROSTMINE_CALIBRATED.png</Image>
 	<Image>./resources/image/reanim/REANIM_FROSTMINE_ARMED.png</Image>
 	<Image>./resources/image/PlantImage/AlarmBellFlower.png</Image>
+	<Image>./resources/image/PlantImage/FurnaceCoreFlower.png</Image>
 	<Image>./resources/image/reanim/REANIM_ALARMBELLFLOWER_HEAD_READY.png</Image>
 	<Image>./resources/image/reanim/REANIM_ALARMBELLFLOWER_HEAD_RINGING.png</Image>
 	<Image>./resources/image/reanim/REANIM_ALARMBELLFLOWER_HEAD_FADING.png</Image>
 	<Image>./resources/image/reanim/REANIM_ALARMBELLFLOWER_CLAPPER.png</Image>
 	<Image>./resources/image/reanim/REANIM_ALARMBELLFLOWER_BASE.png</Image>
+	<Image>./resources/image/reanim/REANIM_FURNACECOREFLOWER_CORE.png</Image>
+	<Image>./resources/image/reanim/Torchwood_fire1a.png</Image>
     <Image>./resources/image/reanim/SnowAnchorNut_body.png</Image>
     <Image>./resources/image/reanim/SnowAnchorNut_cracked1.png</Image>
     <Image>./resources/image/reanim/SnowAnchorNut_cracked2.png</Image>
@@ -564,6 +567,7 @@
 	<Reanimation name="MeltSnowPult">./resources/reanim/MeltSnowPult.reanim</Reanimation>
 	<Reanimation name="FrostMine">./resources/reanim/FrostMine.reanim</Reanimation>
 	<Reanimation name="AlarmBellFlower">./resources/reanim/AlarmBellFlower.reanim</Reanimation>
+	<Reanimation name="FurnaceCoreFlower">./resources/reanim/SunFlower.reanim</Reanimation>
     <Reanimation name="Cornpult">./resources/reanim/Cornpult.reanim</Reanimation>
     <Reanimation name="Coffeebean">./resources/reanim/Coffeebean.reanim</Reanimation>
     <Reanimation name="Garlic">./resources/reanim/Garlic.reanim</Reanimation>

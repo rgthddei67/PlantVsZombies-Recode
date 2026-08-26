@@ -673,8 +673,8 @@ public:
 	bool IsCellFrozen(int row, int col) const;
 	/** 从实际冻土的正式植物中按战略价值、再按稳定 ID 选择唯一冰像处决目标。 */
 	Plant* SelectIceStatueExecutionTarget() const;
-	/** 按稳定植物 ID 请求目标 3x3 内的第一个保护者消费一次处决进度保护。 */
-	bool TryPreventIceExecutionProgress(Plant& target) const;
+	/** 按稳定植物 ID 请求 3x3 内提供者阻止目标建立一次冰像封存。 */
+	bool TryPreventIceExecutionSeal(Plant& target) const;
 	/** 当前准确预报的最低温是否会覆盖该格；预报干扰后立即返回 false。 */
 	bool IsCellInColdWaveForecast(int row, int col) const;
 	/** 当前低温会把同一雨势的视觉改为雪；雨势强度和玩法倍率保持原值。 */

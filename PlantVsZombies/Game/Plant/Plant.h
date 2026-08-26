@@ -153,10 +153,10 @@ public:
 	/** 本轮寒潮预报被敌方干扰时，清除依赖预报保留的准备状态。 */
 	virtual void OnColdWaveForecastDisrupted() {}
 	/**
-	 * 请求本植物消费自身资源，保护 target 不增加一次冰像处决进度。
-	 * 默认无能力；未来炉芯花只需覆写此入口，不得识别处刑者类型。
+	 * 请求本植物消费自身资源，阻止 target 建立一次冰像封存关系。
+	 * 默认无能力；炉芯花只响应目标与自身状态，不得识别处刑者类型。
 	 */
-	virtual bool TryPreventIceExecutionProgressFor(Plant*) { return false; }
+	virtual bool TryPreventIceExecutionSealFor(Plant*) { return false; }
 	virtual void SaveExtraData(nlohmann::json& j) const {}
 	virtual void LoadExtraData(const nlohmann::json& j) {}
 	/** 立即退出更新、碰撞与绘制，并登记到下一帧安全销毁。 */

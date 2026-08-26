@@ -101,7 +101,7 @@ namespace AdventureProgression
 		PlantType::PLANT_FROSTMINE,
 		NO_PLANT_REWARD,
 		PlantType::PLANT_ALARMBELLFLOWER,
-		NO_PLANT_REWARD,
+		PlantType::PLANT_FURNACECOREFLOWER,
 		NO_PLANT_REWARD,
 		NO_PLANT_REWARD,
 	};
@@ -192,6 +192,7 @@ namespace AdventureProgression
 	static_assert(GetPlantReward(57) == NO_PLANT_REWARD);
 	static_assert(GetPlantReward(58) == PlantType::PLANT_FROSTMINE);
 	static_assert(GetPlantReward(60) == PlantType::PLANT_ALARMBELLFLOWER);
+	static_assert(GetPlantReward(61) == PlantType::PLANT_FURNACECOREFLOWER);
 	static_assert(GetAreaNumber(63) == 7 && GetLevelNumberInArea(63) == 9);
 	static_assert(GetPlantReward(63) == NO_PLANT_REWARD);
 }

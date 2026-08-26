@@ -119,6 +119,7 @@ enum class AnimationType
 	ANIM_ICE_CRACK_DRILL_ZOMBIE, // 冰裂钻机复用路障骨骼并挂载独立钻机 reanim
 	ANIM_FROSTMINE, // 伏霜雷独立三态完整立绘时间线；追加在末尾避免旧动画枚举值错位
 	ANIM_ALARMBELLFLOWER, // 警铃草复用 Blover 弯折时间轴并替换分件；追加在末尾避免旧动画枚举值错位
+	ANIM_FURNACECOREFLOWER, // 炉芯花复用 SunFlower 时间轴并替换炉芯分件；追加在末尾避免旧动画枚举值错位
 };
 
 #endif
