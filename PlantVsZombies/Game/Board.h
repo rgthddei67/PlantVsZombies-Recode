@@ -339,7 +339,7 @@ private:
 	int mGroundingZombiesSpawnedThisWave = 0; // 当前波正式生成的接地僵尸数量；所有正式波次统一至多两只并进入存档
 	int mBobsledTeamsSpawnedThisWave = 0; // 当前波正式生成的雪橇车队数量；跟随者不重复计数
 	int mIceWallEngineersSpawnedThisWave = 0; // 当前波正式生成的冰墙工程师数量；所有正式波次统一至多一只
-	int mIceCrackDrillsSpawnedThisWave = 0; // 当前波正式生成的冰裂钻机数量；所有正式波次统一至多一只
+	int mIceCrackDrillsSpawnedThisWave = 0; // 当前波正式生成的冰裂钻机数量；所有正式波次统一至多三只
 	int mWeatherJammersSpawnedThisWave = 0; // 当前波正式生成的气象干扰僵尸数量；所有正式波次统一至多一只
 	int mIceStatueExecutionersSpawnedThisWave = 0; // 当前波正式生成的冰像处刑者数量；所有正式波次统一至多一只
 	int mEliteScaredyShroomsPlanted = 0; // 本关累计种下的精英胆小菇数量；死亡或铲除不返还次数

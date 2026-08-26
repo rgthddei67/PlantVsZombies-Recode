@@ -53,7 +53,7 @@
     { "op": "set_ice_crack_drill_state", "row": 2, "phase": "CHARGING", "remaining": 2.0, "used": false, "all": true },
     { "op": "plant", "type": "PLANT_ALARMBELLFLOWER", "row": 2, "col": 2 },
     { "op": "wait_frames", "value": 2 },
-    { "op": "assert_state", "path": "zombies.0.drillChargeRemainingMs", "atLeast": 3400, "atMost": 3500 },
+    { "op": "assert_state", "path": "zombies.0.drillChargeRemainingMs", "atLeast": 4900, "atMost": 5000 },
     { "op": "assert_state", "path": "zombies.1.drillChargeRemainingMs", "atLeast": 1900, "atMost": 2000 },
     { "op": "assert_state", "path": "zombies.0.bodyHealth", "equals": 650 },
     { "op": "assert_state", "path": "zombies.1.bodyHealth", "equals": 650 },

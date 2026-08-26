@@ -4,7 +4,7 @@
 
 namespace {
 	constexpr int kSnowAnchorNutHealth = 3000; // 雪锚果基础生命值；低于普通坚果，价值集中在一次锚定
-	constexpr float kGroundCrackDownstreamMultiplier = 0.5f; // 拦住地裂后左侧植物承受的伤害倍率
+	constexpr float kGroundCrackDownstreamMultiplier = 1.0f / 3.0f; // 拦住地裂后左侧植物承受的伤害倍率
 }
 
 void SnowAnchorNut::SetupPlant()
