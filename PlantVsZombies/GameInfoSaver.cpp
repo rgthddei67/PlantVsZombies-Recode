@@ -344,6 +344,7 @@ bool GameInfoSaver::SerializeLevelDataToPath(Board* board, CardSlotManager* mana
 	j["weatherForecastDisrupted"] = board->mWeatherForecastDisrupted;
 	j["weatherPanelInterferenceTimer"] = board->mWeatherPanelInterferenceTimer;
 	j["winterTemperatureInitialized"] = board->mWinterTemperatureInitialized;
+	j["openingColdWavePlanInitialized"] = board->mOpeningColdWavePlanInitialized;
 	j["coldWavePhase"] = static_cast<int>(board->mColdWavePhase);
 	j["coldWaveStrength"] = static_cast<int>(board->mColdWaveStrength);
 	j["coldWaveTimer"] = board->mColdWaveTimer;
@@ -899,6 +900,9 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 	board->mWinterTemperatureInitialized = board->SupportsWinterTemperature()
 		&& validColdWavePhase && validColdWaveStrength
 		&& j.value("winterTemperatureInitialized", false);
+	// v7 以前的关卡档把开幕寒潮视为尚未消费；恢复后的 StartGame 会从 12 秒倒计时重新排入。
+	board->mOpeningColdWavePlanInitialized = board->SupportsWinterTemperature()
+		&& j.value("openingColdWavePlanInitialized", false);
 	board->mColdWavePhase = board->mWinterTemperatureInitialized
 		? static_cast<ColdWavePhase>(coldWavePhaseValue) : ColdWavePhase::CALM;
 	board->mColdWaveStrength = board->mWinterTemperatureInitialized

@@ -55,6 +55,11 @@
 `redeyeGargantuarsSpawnedThisWave: 0`，预发布档已有值不覆盖；读取时按 `[0,3]` 夹紧，生存/无尽
 明确重置为 0，以保证其不消费冒险上限。
 
+2026-08-26 关卡 schema 升至 v7，新增 `openingColdWavePlanInitialized`。v6 及更早关卡档缺字段时补
+`false`，表示 7-8/7-9 仍有一次开幕强寒潮可消费；预发布档已有值不覆盖。恢复后
+`Board::InitializeWinterTemperature()` 若发现该两关仍未消费，即把温度状态重建为 +6°C 的 12 秒
+预报倒计时，再锁定 15 秒降温、50 秒极寒与 30 秒回暖，因此旧档不会只是保存一个永远不生效的标志。
+
 ## 所有权约束
 
 - `GameScene` 独占 `Board`；`BoardPresentation*` 仅为非拥有回调端口。

@@ -135,6 +135,13 @@ namespace AdventureProgression
 		}
 	}
 
+	/** 7-8 与 7-9 各有一轮开战后才开始计时的固定强寒潮。 */
+	constexpr bool HasOpeningColdWaveScript(int level)
+	{
+		return level == AREA_SEVEN_FINAL_LEVEL - 1
+			|| level == AREA_SEVEN_FINAL_LEVEL;
+	}
+
 	/** 查询当前已登记的 BOSS 槽位。 */
 	constexpr BossSlot GetBossSlot(int level)
 	{
@@ -195,4 +202,7 @@ namespace AdventureProgression
 	static_assert(GetPlantReward(61) == PlantType::PLANT_FURNACECOREFLOWER);
 	static_assert(GetAreaNumber(63) == 7 && GetLevelNumberInArea(63) == 9);
 	static_assert(GetPlantReward(63) == NO_PLANT_REWARD);
+	static_assert(HasOpeningColdWaveScript(AREA_SEVEN_FINAL_LEVEL - 1));
+	static_assert(HasOpeningColdWaveScript(AREA_SEVEN_FINAL_LEVEL));
+	static_assert(!HasOpeningColdWaveScript(AREA_SEVEN_FINAL_LEVEL - 2));
 }

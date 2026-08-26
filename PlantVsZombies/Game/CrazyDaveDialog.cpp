@@ -42,7 +42,7 @@ namespace {
 	};
 
 	// 信息刻意藏在戴夫的闲聊里：说明大关规则，不提前点名具体僵尸或解法。
-	const std::array<Conversation, 8> kConversations = {{
+	const std::array<Conversation, 10> kConversations = {{
 		{ 10, {
 			{ u8"欢迎来到夜班！夜班没有加班费，只有天气预报。", "anim_smalltalk" },
 			{ u8"从这儿开始，天说变就变——下雨时，院子两边都会跟着换个节奏。", "anim_mediumtalk" },
@@ -83,6 +83,16 @@ namespace {
 			{ u8"寒潮会把花园一格一格冻起来，温度计比我的牙齿更早打颤。", "anim_mediumtalk" },
 			{ u8"雨到了这里可能会变成雪，风倒是冻得不想来。", "anim_blahblah" },
 			{ u8"别等地都冻硬了才想起准备——冰从来不排队。哇卜！", "anim_crazy" },
+		} },
+		{ 62, {
+			{ u8"今天凉飕飕的，我的冰箱都说自己不够专业。", "anim_smalltalk" },
+			{ u8"一开局不久会有一阵强寒潮，先把能种的地想清楚！", "anim_mediumtalk" },
+			{ u8"等它回暖，后面的天气又会照老规矩抽。哇卜！", "anim_crazy" },
+		} },
+		{ 63, {
+			{ u8"今天的冷风比昨天更有礼貌——它先敲门，再把门冻上。", "anim_smalltalk" },
+			{ u8"一开局不久还是会来一阵强寒潮；最后一关可别把准备拖到结冰后。", "anim_mediumtalk" },
+			{ u8"等它缓过气，天气又会继续随机胡闹。我的最爱。哇卜！", "anim_crazy" },
 		} },
 	}};
 

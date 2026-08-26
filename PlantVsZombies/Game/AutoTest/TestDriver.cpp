@@ -4994,6 +4994,10 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		out["weather"]["winter"] = {
 			{ "supported", board->SupportsWinterTemperature() },
 			{ "initialized", board->IsWinterTemperatureInitialized() },
+			{ "openingColdWaveScript",
+				AdventureProgression::HasOpeningColdWaveScript(board->mLevel) },
+			{ "openingColdWavePlanInitialized",
+				board->IsOpeningColdWavePlanInitialized() },
 			{ "coldWaveForecastActive", board->HasColdWaveForecast() },
 			{ "coldWaveForecastDisrupted", board->IsColdWaveForecastDisrupted() },
 			{ "coldWaveDisruptionVisible",

@@ -120,6 +120,12 @@ namespace {
 	constexpr float kColdWaveCalmDurationMin = 35.0f;    // 两次寒潮之间温暖间隔的最短游戏秒数
 	constexpr float kColdWaveCalmDurationMax = 60.0f;    // 两次寒潮之间温暖间隔的最长游戏秒数
 	constexpr float kColdWaveForecastLeadTime = 20.0f;   // 寒潮降温前开始显示准确预报的游戏秒数
+	constexpr float kOpeningColdWaveDelay = 12.0f;       // 7-8/7-9 开战后到固定强寒潮开始降温的游戏秒数
+	constexpr float kOpeningColdWaveCoolingDuration = 15.0f; // 7-8/7-9 固定强寒潮的降温时长（游戏秒）
+	constexpr float kOpeningColdWaveHoldDuration = 50.0f; // 7-8/7-9 固定强寒潮在 -12°C 的维持时长（游戏秒）
+	constexpr float kOpeningColdWaveThawDuration = 30.0f; // 7-8/7-9 固定强寒潮的回暖时长（游戏秒）
+	constexpr int kOpeningColdWaveFirstFrostVariant = 1; // 7-8 开幕寒潮固定使用的霜线轮廓
+	constexpr int kOpeningColdWaveFinalFrostVariant = 2; // 7-9 开幕寒潮固定使用的霜线轮廓
 	constexpr int kColdWaveWeakWeight = 35;              // 弱寒潮抽取权重（百分比）
 	constexpr int kColdWaveNormalWeight = 45;            // 普通寒潮抽取权重（百分比）
 	constexpr float kWeakColdWaveTargetC = -5.0f;        // 弱寒潮最低温基准（摄氏度）
@@ -1559,6 +1565,7 @@ void Board::InitializeWinterTemperature()
 {
 	if (!SupportsWinterTemperature()) {
 		mWinterTemperatureInitialized = false;
+		mOpeningColdWavePlanInitialized = false;
 		mColdWavePhase = ColdWavePhase::CALM;
 		mColdWaveTimer = 0.0f;
 		mAmbientTemperatureC = kWinterWarmTemperatureC;
@@ -1571,14 +1578,39 @@ void Board::InitializeWinterTemperature()
 		mWinterFrostVariant = 0;
 		return;
 	}
-	if (mWinterTemperatureInitialized) return;
+	const bool shouldStartOpeningColdWave =
+		AdventureProgression::HasOpeningColdWaveScript(mLevel)
+		&& !mOpeningColdWavePlanInitialized;
+	if (mWinterTemperatureInitialized && !shouldStartOpeningColdWave) return;
 	mWinterTemperatureInitialized = true;
 	mColdWavePhase = ColdWavePhase::CALM;
 	mColdWaveForecastDisrupted = false;
+	mAmbientTemperatureC = kWinterWarmTemperatureC;
+	if (shouldStartOpeningColdWave) {
+		// 选卡与戴夫闲聊尚未进入 GAME，不会调用这里；旧档恢复也从本次 StartGame 开始计时。
+		InitializeOpeningColdWavePlan();
+		mOpeningColdWavePlanInitialized = true;
+		mColdWaveTimer = kOpeningColdWaveDelay;
+		return;
+	}
 	mColdWaveTimer = GameRandom::Range(
 		kColdWaveCalmDurationMin, kColdWaveCalmDurationMax);
-	mAmbientTemperatureC = kWinterWarmTemperatureC;
 	RollNextColdWave();
+}
+
+/**
+ * 锁定 7-8/7-9 的开幕强寒潮。它不消耗随机数，确保开局预报、读档与可见霜线始终一致。
+ */
+void Board::InitializeOpeningColdWavePlan()
+{
+	mColdWaveForecastDisrupted = false;
+	mColdWaveStrength = ColdWaveStrength::STRONG;
+	mColdWaveTargetTemperatureC = kWinterColdTemperatureC;
+	mColdWaveCoolingDuration = kOpeningColdWaveCoolingDuration;
+	mColdWaveHoldDuration = kOpeningColdWaveHoldDuration;
+	mColdWaveThawDuration = kOpeningColdWaveThawDuration;
+	mWinterFrostVariant = mLevel == AdventureProgression::AREA_SEVEN_FINAL_LEVEL
+		? kOpeningColdWaveFinalFrostVariant : kOpeningColdWaveFirstFrostVariant;
 }
 
 /**

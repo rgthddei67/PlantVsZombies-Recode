@@ -356,6 +356,33 @@ namespace {
 			"迁移不得覆盖预发布档已经消费的红眼名额");
 	}
 
+	void TestVersionSixLevelUpgradeDefaultsOpeningColdWaveUnconsumed() {
+		nlohmann::json document = {
+			{ "schemaVersion", 6 },
+			{ "currentWave", 20 },
+			{ "zombies", nlohmann::json::array() }
+		};
+		std::string error;
+
+		Expect(SaveSchema::UpgradeLevelDocument(document, error),
+			"v6 关卡档应升级到开幕寒潮标志结构");
+		Expect(document["schemaVersion"] == SaveSchema::kCurrentLevelVersion,
+			"v6 关卡档应写入当前版本");
+		Expect(document["openingColdWavePlanInitialized"] == false,
+			"旧关卡档应保留一次尚未消费的 7-8/7-9 开幕寒潮");
+		Expect(document["currentWave"] == 20 && document["zombies"].empty(),
+			"开幕寒潮迁移不得改写既有关卡状态");
+
+		nlohmann::json prereleaseDocument = {
+			{ "schemaVersion", 6 },
+			{ "openingColdWavePlanInitialized", true }
+		};
+		Expect(SaveSchema::UpgradeLevelDocument(prereleaseDocument, error),
+			"已含开幕寒潮标志的 v6 预发布档应升级成功");
+		Expect(prereleaseDocument["openingColdWavePlanInitialized"] == true,
+			"迁移不得覆盖预发布档已经消费的开幕寒潮");
+	}
+
 	void TestFutureVersionIsRejectedTransactionally() {
 		nlohmann::json document = {
 			{ "schemaVersion", SaveSchema::kCurrentLevelVersion + 1 },
@@ -412,6 +439,7 @@ int main() {
 	TestVersionThreeLevelUpgradeAddsIceCrackDrillState();
 	TestVersionFourLevelUpgradeAddsWeatherJammerState();
 	TestVersionFiveLevelUpgradeAddsRedeyeWaveCapState();
+	TestVersionSixLevelUpgradeDefaultsOpeningColdWaveUnconsumed();
 	TestFutureVersionIsRejectedTransactionally();
 	TestInvalidRootAndVersionAreRejected();
 

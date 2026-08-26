@@ -246,6 +246,7 @@ private:
 	int mStormyNightFlashPattern = 0;   // 原版 4-10 三种闪光节奏（1～3）；0 表示尚未启用
 	float mStormyNightFlashTimer = 0.0f; // 当前闪光节奏剩余游戏秒；黑屏等待也包含在此计时内
 	bool mWinterTemperatureInitialized = false; // 冬日花园寒潮状态是否已初始化；旧档由 StartGame 补齐
+	bool mOpeningColdWavePlanInitialized = false; // 7-8/7-9 开幕寒潮是否已锁定，读档后不得重复注入
 	ColdWavePhase mColdWavePhase = ColdWavePhase::CALM; // 当前寒潮阶段，与雨势完全正交
 	float mColdWaveTimer = 0.0f;        // 当前寒潮阶段剩余游戏秒
 	float mAmbientTemperatureC = 6.0f;  // 当前环境温度，单位摄氏度；只由寒潮状态机写入
@@ -379,6 +380,8 @@ private:
 	void UpdateWeatherPanelInterference(float deltaTime);
 	/** 初始化并推进冬日花园独立寒潮；雨势和台风不得改写温度。 */
 	void InitializeWinterTemperature();
+    /** 锁定 7-8/7-9 的固定开幕强寒潮；新开实战或旧档恢复尚未消费时调用。 */
+    void InitializeOpeningColdWavePlan();
 	/** 一次性抽取并锁定下一场寒潮的强度、最低温、阶段时长与冻融线外观。 */
 	void RollNextColdWave();
 	void UpdateWinterTemperature(float deltaTime);
@@ -644,6 +647,7 @@ public:
 	/** 冬日花园独立温度与冻融线查询；非冬日地图始终返回温暖、中性结果。 */
 	bool SupportsWinterTemperature() const { return mBackGround == Background::WINTER_GARDEN; }
 	bool IsWinterTemperatureInitialized() const { return mWinterTemperatureInitialized; }
+	bool IsOpeningColdWavePlanInitialized() const { return mOpeningColdWavePlanInitialized; }
 	ColdWavePhase GetColdWavePhase() const { return mColdWavePhase; }
 	ColdWaveStrength GetColdWaveStrength() const { return mColdWaveStrength; }
 	float GetColdWaveTimer() const { return mColdWaveTimer; }
