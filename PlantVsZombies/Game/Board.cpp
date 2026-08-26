@@ -237,6 +237,7 @@ namespace {
 	constexpr int kElitePogoMaxPerWave = 1;               // 每波最多正式生成的精英跳跳数量；超额候选直接跳过
 	constexpr int kEliteLadderMaxPerWave = 1;             // 每波最多正式生成的精英扶梯数量；超额候选直接跳过
 	constexpr int kEliteCatapultMaxPerWave = 1;           // 每波最多正式生成的导流投篮车数量；超额候选直接跳过
+	constexpr int kRedeyeGargantuarMaxPerAdventureWave = 3; // 冒险每波最多正式生成的红眼巨人数量；无尽不启用此上限
 	constexpr int kInsulatorMaxPerWave = 2;               // 每个正式波次最多成功生成的绝缘僵尸数量
 	constexpr int kHijackerMaxPerWave = 2;                // 每个正式波次最多成功生成的劫持者数量
 	constexpr int kHijackerSpawnCooldownWaves = 2;        // 成功处决后封锁的后续完整正式波次数
@@ -2438,6 +2439,13 @@ void Board::RestoreEliteCatapultWaveSpawnCount(int count)
 		count, 0, kEliteCatapultMaxPerWave);
 }
 
+/** 恢复冒险红眼的波次名额；无尽不消费也不保留该上限计数。 */
+void Board::RestoreRedeyeGargantuarWaveSpawnCount(int count)
+{
+	mRedeyeGargantuarsSpawnedThisWave = mIsSurvival ? 0 : std::clamp(
+		count, 0, kRedeyeGargantuarMaxPerAdventureWave);
+}
+
 /** 夹紧并恢复当前波已经正式生成的绝缘僵尸数量。 */
 void Board::RestoreInsulatorWaveSpawnCount(int count)
 {
@@ -2697,6 +2705,13 @@ ZombieType Board::ResolveWaveZombieType(ZombieType selected, int mutationRoll)
 			return ZombieType::NUM_ZOMBIE_TYPES;
 		}
 		++mEliteCatapultsSpawnedThisWave;
+	}
+	// 红眼只在冒险波次限额；无尽刻意不读写此计数，保留其原有的无限压力曲线。
+	if (!mIsSurvival && selected == ZombieType::ZOMBIE_REDEYE_GARGANTUAR) {
+		if (mRedeyeGargantuarsSpawnedThisWave >= kRedeyeGargantuarMaxPerAdventureWave) {
+			return ZombieType::NUM_ZOMBIE_TYPES;
+		}
+		++mRedeyeGargantuarsSpawnedThisWave;
 	}
 	if (selected == ZombieType::ZOMBIE_INSULATOR) {
 		if (mInsulatorsSpawnedThisWave >= kInsulatorMaxPerWave) {
@@ -7498,6 +7513,7 @@ void Board::SummonNextWave()
 	mElitePogosSpawnedThisWave = 0;
 	mEliteLaddersSpawnedThisWave = 0;
 	mEliteCatapultsSpawnedThisWave = 0;
+	mRedeyeGargantuarsSpawnedThisWave = 0;
 	mInsulatorsSpawnedThisWave = 0;
 	mHijackersSpawnedThisWave = 0;
 	mGroundingZombiesSpawnedThisWave = 0;
@@ -8185,6 +8201,7 @@ void Board::OnSurvivalRoundClear()
 	mElitePogosSpawnedThisWave = 0;
 	mEliteLaddersSpawnedThisWave = 0;
 	mEliteCatapultsSpawnedThisWave = 0;
+	mRedeyeGargantuarsSpawnedThisWave = 0;
 	mInsulatorsSpawnedThisWave = 0;
 	mHijackersSpawnedThisWave = 0;
 	mGroundingZombiesSpawnedThisWave = 0;

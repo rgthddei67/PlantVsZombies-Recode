@@ -168,6 +168,15 @@ namespace {
 				version = 5;
 				upgraded["schemaVersion"] = version;
 				break;
+			case 5:
+				if (kind == DocumentKind::Level
+					&& !upgraded.contains("redeyeGargantuarsSpawnedThisWave")) {
+					// 关卡 v6 增加冒险红眼每波上限计数；旧档从尚未消费的单位元恢复。
+					upgraded["redeyeGargantuarsSpawnedThisWave"] = 0;
+				}
+				version = 6;
+				upgraded["schemaVersion"] = version;
+				break;
 			default:
 				error = std::string(documentName) + "存档缺少迁移路径";
 				return false;

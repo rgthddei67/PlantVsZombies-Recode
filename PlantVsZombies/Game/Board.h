@@ -330,6 +330,7 @@ private:
 	int mElitePogosSpawnedThisWave = 0; // 当前波正式生成的精英跳跳数量；每波至多一只并进入存档
 	int mEliteLaddersSpawnedThisWave = 0; // 当前波正式生成的精英扶梯数量；每波至多一只并进入存档
 	int mEliteCatapultsSpawnedThisWave = 0; // 当前波正式生成的导流投篮车数量；每波至多一只并进入存档
+	int mRedeyeGargantuarsSpawnedThisWave = 0; // 当前冒险波正式生成的红眼巨人数量；每波至多三只并进入存档，无尽不消费
 	int mInsulatorsSpawnedThisWave = 0; // 当前波正式生成的绝缘僵尸数量；所有正式波次统一至多两只并进入存档
 	int mHijackersSpawnedThisWave = 0; // 当前波正式生成的劫持者数量；所有正式波次统一至多两只并进入存档
 	int mHijackerSpawnCooldownWavesRemaining = 0; // 当前波之后仍需封锁劫持者刷新的完整正式波次数
@@ -478,6 +479,7 @@ private:
 	void RestoreElitePogoWaveSpawnCount(int count);
 	void RestoreEliteLadderWaveSpawnCount(int count);
 	void RestoreEliteCatapultWaveSpawnCount(int count);
+	void RestoreRedeyeGargantuarWaveSpawnCount(int count);
 	void RestoreInsulatorWaveSpawnCount(int count);
 	void RestoreHijackerWaveSpawnCount(int count);
 	void RestoreHijackerSpawnCooldown(int wavesRemaining, bool blockedThisWave);
@@ -846,6 +848,9 @@ public:
 	int GetElitePogosSpawnedThisWave() const { return mElitePogosSpawnedThisWave; }
 	int GetEliteLaddersSpawnedThisWave() const { return mEliteLaddersSpawnedThisWave; }
 	int GetEliteCatapultsSpawnedThisWave() const { return mEliteCatapultsSpawnedThisWave; }
+	int GetRedeyeGargantuarsSpawnedThisWave() const {
+		return mRedeyeGargantuarsSpawnedThisWave;
+	}
 	int GetInsulatorsSpawnedThisWave() const { return mInsulatorsSpawnedThisWave; }
 	int GetHijackersSpawnedThisWave() const { return mHijackersSpawnedThisWave; }
 	int GetHijackerSpawnCooldownWavesRemaining() const {

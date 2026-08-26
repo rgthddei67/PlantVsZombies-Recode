@@ -14,7 +14,7 @@
 
     { "op": "goto_level", "level": 58, "resetTestState": true },
     { "op": "wait_state", "state": "CHOOSE_CARD", "timeout": 10 },
-    { "op": "assert_state", "path": "spawnListHasIceWallEngineer", "equals": true },
+    { "op": "assert_state", "path": "spawnListHasIceWallEngineer", "equals": false },
 
     { "op": "goto_level", "level": 59, "resetTestState": true },
     { "op": "wait_state", "state": "CHOOSE_CARD", "timeout": 10 },

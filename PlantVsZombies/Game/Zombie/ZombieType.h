@@ -67,7 +67,7 @@ enum class ZombieType {
 	ZOMBIE_ELITE_CATAPULT,	// 导流投篮车：锁定自身所在径流行，并仅强化自身顺坡漂移
 	ZOMBIE_GARGANTUAR,		// 经典巨人：砸扁植物并在半血时投出一只小鬼
 	ZOMBIE_IMP,			// 经典小鬼：仅由巨人投出，不进入随机出怪权重池
-	ZOMBIE_REDEYE_GARGANTUAR,	// 红眼巨人：复用经典巨人全部行为，6000 生命且不进入出怪池
+	ZOMBIE_REDEYE_GARGANTUAR,	// 红眼巨人：复用经典巨人全部行为，6000 生命；第七大关压轴投放，冒险每波限三只
 	ZOMBIE_ROOF_MARSHAL,	// 5-9 屋脊督军视觉样机：普通僵尸骨架、独立军官材质，不进入随机出怪池
 	ZOMBIE_INSULATOR,		// 绝缘僵尸：第六大关陶瓷胸甲与黑夜屋顶放电交互
 	ZOMBIE_HIJACKER,		// 劫持者僵尸：75% 雷荷锁定后以当前生命生成全场处决线

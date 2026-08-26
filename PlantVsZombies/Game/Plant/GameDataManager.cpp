@@ -643,7 +643,7 @@ void GameDataManager::InitializeHardcodedData() {
 		AnimationType::ANIM_IMP_ZOMBIE,
 		ResourceKeys::Reanimations::REANIM_IMP_ZOMBIE,
 		&MakeZombie<ImpZombie>);
-	// 红眼巨人复用经典巨人时间线；权重为零，只允许开发者面板或测试直造。
+	// 红眼巨人复用经典巨人时间线；7-8/7-9 由数据表投放，冒险波次上限由 Board 统一执行。
 	RegisterZombie(ZombieType::ZOMBIE_REDEYE_GARGANTUAR, "ZOMBIE_REDEYE_GARGANTUAR",
 		AnimationType::ANIM_GARGANTUAR_ZOMBIE,
 		ResourceKeys::Reanimations::REANIM_GARGANTUAR_ZOMBIE,

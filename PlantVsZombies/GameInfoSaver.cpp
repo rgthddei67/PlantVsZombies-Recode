@@ -420,6 +420,7 @@ bool GameInfoSaver::SerializeLevelDataToPath(Board* board, CardSlotManager* mana
 	j["elitePogosSpawnedThisWave"] = board->mElitePogosSpawnedThisWave;
 	j["eliteLaddersSpawnedThisWave"] = board->mEliteLaddersSpawnedThisWave;
 	j["eliteCatapultsSpawnedThisWave"] = board->mEliteCatapultsSpawnedThisWave;
+	j["redeyeGargantuarsSpawnedThisWave"] = board->mRedeyeGargantuarsSpawnedThisWave;
 	j["insulatorsSpawnedThisWave"] = board->mInsulatorsSpawnedThisWave;
 	j["hijackersSpawnedThisWave"] = board->mHijackersSpawnedThisWave;
 	j["hijackerSpawnCooldownWavesRemaining"] =
@@ -1138,6 +1139,8 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 		j.value("eliteLaddersSpawnedThisWave", 0));
 	board->RestoreEliteCatapultWaveSpawnCount(
 		j.value("eliteCatapultsSpawnedThisWave", 0));
+	board->RestoreRedeyeGargantuarWaveSpawnCount(
+		j.value("redeyeGargantuarsSpawnedThisWave", 0));
 	board->RestoreInsulatorWaveSpawnCount(
 		j.value("insulatorsSpawnedThisWave", 0));
 	board->RestoreHijackerWaveSpawnCount(

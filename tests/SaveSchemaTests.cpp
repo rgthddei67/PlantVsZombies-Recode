@@ -329,6 +329,33 @@ namespace {
 			"迁移不得覆盖预发布档已经提交的干扰与波次名额");
 	}
 
+	void TestVersionFiveLevelUpgradeAddsRedeyeWaveCapState() {
+		nlohmann::json document = {
+			{ "schemaVersion", 5 },
+			{ "currentWave", 20 },
+			{ "zombies", nlohmann::json::array() }
+		};
+		std::string error;
+
+		Expect(SaveSchema::UpgradeLevelDocument(document, error),
+			"v5 关卡档应升级到红眼波次上限结构");
+		Expect(document["schemaVersion"] == SaveSchema::kCurrentLevelVersion,
+			"v5 关卡档应写入当前版本");
+		Expect(document["redeyeGargantuarsSpawnedThisWave"] == 0,
+			"旧档没有红眼波次计数时应补零");
+		Expect(document["currentWave"] == 20 && document["zombies"].empty(),
+			"红眼波次计数迁移不得改写既有关卡状态");
+
+		nlohmann::json prereleaseDocument = {
+			{ "schemaVersion", 5 },
+			{ "redeyeGargantuarsSpawnedThisWave", 3 }
+		};
+		Expect(SaveSchema::UpgradeLevelDocument(prereleaseDocument, error),
+			"已含红眼波次计数的 v5 预发布档应升级成功");
+		Expect(prereleaseDocument["redeyeGargantuarsSpawnedThisWave"] == 3,
+			"迁移不得覆盖预发布档已经消费的红眼名额");
+	}
+
 	void TestFutureVersionIsRejectedTransactionally() {
 		nlohmann::json document = {
 			{ "schemaVersion", SaveSchema::kCurrentLevelVersion + 1 },
@@ -384,6 +411,7 @@ int main() {
 	TestVersionTwoLevelUpgradePreservesFogStrength();
 	TestVersionThreeLevelUpgradeAddsIceCrackDrillState();
 	TestVersionFourLevelUpgradeAddsWeatherJammerState();
+	TestVersionFiveLevelUpgradeAddsRedeyeWaveCapState();
 	TestFutureVersionIsRejectedTransactionally();
 	TestInvalidRootAndVersionAreRejected();
 

@@ -4838,6 +4838,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "elitePogosSpawnedThisWave", board->GetElitePogosSpawnedThisWave() },
 			{ "eliteLaddersSpawnedThisWave", board->GetEliteLaddersSpawnedThisWave() },
 			{ "eliteCatapultsSpawnedThisWave", board->GetEliteCatapultsSpawnedThisWave() },
+			{ "redeyeGargantuarsSpawnedThisWave",
+				board->GetRedeyeGargantuarsSpawnedThisWave() },
 			{ "insulatorsSpawnedThisWave", board->GetInsulatorsSpawnedThisWave() },
 			{ "hijackersSpawnedThisWave", board->GetHijackersSpawnedThisWave() },
 			{ "hijackerSpawnCooldownWavesRemaining",
