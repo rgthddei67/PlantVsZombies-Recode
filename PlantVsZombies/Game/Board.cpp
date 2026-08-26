@@ -241,11 +241,11 @@ namespace {
 	constexpr int kHijackerMaxPerWave = 2;                // 每个正式波次最多成功生成的劫持者数量
 	constexpr int kHijackerSpawnCooldownWaves = 2;        // 成功处决后封锁的后续完整正式波次数
 	constexpr int kGroundingZombieMaxPerWave = 2;         // 每个正式波次最多成功生成的接地僵尸数量
-	constexpr int kBobsledTeamMaxPerWave = 1;             // 一次候选四人同乘；正式波次最多接纳一队
+	constexpr int kBobsledTeamMaxPerWave = 3;             // 一次候选四人同乘；正式波次最多接纳一队
 	constexpr int kIceWallEngineerMaxPerWave = 1;         // 每个正式波次最多成功生成一只冰墙工程师
-	constexpr int kIceCrackDrillMaxPerWave = 1;           // 每个正式波次最多成功生成一只冰裂钻机
-	constexpr int kWeatherJammerMaxPerWave = 1;           // 每个正式波次最多成功生成一只气象干扰僵尸
-	constexpr int kIceStatueExecutionerMaxPerWave = 1;   // 每个正式波次最多成功生成一只冰像处刑者
+	constexpr int kIceCrackDrillMaxPerWave = 3;           // 每个正式波次最多成功生成一只冰裂钻机
+	constexpr int kWeatherJammerMaxPerWave = 2;           // 每个正式波次最多成功生成一只气象干扰僵尸
+	constexpr int kIceStatueExecutionerMaxPerWave = 5;   // 每个正式波次最多成功生成一只冰像处刑者
 	constexpr int kHijackerTutorialLevel = 49;             // 内部 49 即 6-4，使用第七波固定单体教学
 	constexpr int kHijackerTutorialWave = 7;               // 6-4 首次登场的固定教学波
 	constexpr int kHealerTutorialLevel = 51;               // 内部 51 即 6-6，使用第三波额外保底
