@@ -438,12 +438,16 @@ void Animator::DrawInternalInstanced(Graphics* g, float baseX, float baseY, floa
 		const Texture* image = shouldDrawSelf
 			? (extra->mImage ? extra->mImage : transform.image)
 			: nullptr;
-		const Texture* followerImage = extra && extra->mVisible && sparse
-			&& sparse->mFollowerVisible && transform.f != -1
-			? sparse->mFollowerImage : nullptr;
+		const bool canDrawFollowers = extra && extra->mVisible && sparse
+			&& transform.f != -1;
+		const bool hasVisibleFollower = canDrawFollowers && std::any_of(
+			sparse->mFollowers.begin(), sparse->mFollowers.end(),
+			[](const TrackFollowerState& follower) {
+				return follower.mVisible && follower.mImage;
+			});
 
 		// 无本体、跟随贴图和附件的轨道不需要仿射数据；保住隐藏轨道的实例快路径。
-		if (!image && !followerImage
+		if (!image && !hasVisibleFollower
 			&& (!sparse || sparse->mAttachedReanims.empty())) continue;
 
 		// GATE A 曾测得重复双轴三角计算约占 6 ms CPU sum；相等角度现在只算一组。
@@ -517,53 +521,57 @@ void Animator::DrawInternalInstanced(Graphics* g, float baseX, float baseY, floa
 			}
 		}
 
-		if (followerImage) {
-			const float followerX = tx + tA * sparse->mFollowerOffsetX
-				+ tC * sparse->mFollowerOffsetY;
-			const float followerY = ty + tB * sparse->mFollowerOffsetX
-				+ tD * sparse->mFollowerOffsetY;
-			const float w = static_cast<float>(followerImage->width);
-			const float h = static_cast<float>(followerImage->height);
+		if (hasVisibleFollower) {
+			for (const TrackFollowerState& follower : sparse->mFollowers) {
+				const Texture* followerImage = follower.mVisible ? follower.mImage : nullptr;
+				if (!followerImage) continue;
+				const float followerX = tx + tA * follower.mOffsetX
+					+ tC * follower.mOffsetY;
+				const float followerY = ty + tB * follower.mOffsetX
+					+ tD * follower.mOffsetY;
+				const float w = static_cast<float>(followerImage->width);
+				const float h = static_cast<float>(followerImage->height);
 
-			InstanceRecord rec;
-			rec.tA = tA * w * Scale * sparse->mFollowerScaleX;
-			rec.tB = tB * w * Scale * sparse->mFollowerScaleX;
-			rec.tC = tC * h * Scale * sparse->mFollowerScaleY;
-			rec.tD = tD * h * Scale * sparse->mFollowerScaleY;
-			rec.tx = baseX + followerX * Scale;
-			rec.ty = baseY + followerY * Scale;
-			if (mFlipX) {
-				rec.tA = -rec.tA;
-				rec.tC = -rec.tC;
-				rec.tx = baseX + (2.0f * mFlipPivotX - followerX) * Scale;
-			}
-			ApplyRenderScale(rec);
-			RecordRenderQuad(rec.tA, rec.tB, rec.tC, rec.tD, rec.tx, rec.ty);
+				InstanceRecord rec;
+				rec.tA = tA * w * Scale * follower.mScaleX;
+				rec.tB = tB * w * Scale * follower.mScaleX;
+				rec.tC = tC * h * Scale * follower.mScaleY;
+				rec.tD = tD * h * Scale * follower.mScaleY;
+				rec.tx = baseX + followerX * Scale;
+				rec.ty = baseY + followerY * Scale;
+				if (mFlipX) {
+					rec.tA = -rec.tA;
+					rec.tC = -rec.tC;
+					rec.tx = baseX + (2.0f * mFlipPivotX - followerX) * Scale;
+				}
+				ApplyRenderScale(rec);
+				RecordRenderQuad(rec.tA, rec.tB, rec.tC, rec.tD, rec.tx, rec.ty);
 
-			const Texture* bindTex = followerImage->atlasPage
-				? followerImage->atlasPage : followerImage;
-			rec.u0 = followerImage->aU0;
-			rec.v0 = followerImage->aV0;
-			rec.u1 = followerImage->aU1;
-			rec.v1 = followerImage->aV1;
-			rec.texSlot = bindTex->BindingId();
-			const SDL_Color trackColor = extra
-				? extra->mColor : SDL_Color{ 255, 255, 255, 255 };
-			const float alpha = std::clamp(transform.a * mAlpha
-				* (static_cast<float>(trackColor.a) / 255.0f), 0.0f, 1.0f);
-			rec.colorRGBA8 = PackRGBA8(trackColor.r, trackColor.g, trackColor.b,
-				static_cast<uint8_t>(alpha * 255.0f));
-			if (sparse->mFollowerDrawAfterAllTracks) {
-				if (!hasDeferredFollowerInstance) {
-					firstDeferredFollowerInstance = rec;
-					hasDeferredFollowerInstance = true;
+				const Texture* bindTex = followerImage->atlasPage
+					? followerImage->atlasPage : followerImage;
+				rec.u0 = followerImage->aU0;
+				rec.v0 = followerImage->aV0;
+				rec.u1 = followerImage->aU1;
+				rec.v1 = followerImage->aV1;
+				rec.texSlot = bindTex->BindingId();
+				const SDL_Color trackColor = extra
+					? extra->mColor : SDL_Color{ 255, 255, 255, 255 };
+				const float alpha = std::clamp(transform.a * mAlpha
+					* (static_cast<float>(trackColor.a) / 255.0f), 0.0f, 1.0f);
+				rec.colorRGBA8 = PackRGBA8(trackColor.r, trackColor.g, trackColor.b,
+					static_cast<uint8_t>(alpha * 255.0f));
+				if (follower.mDrawAfterAllTracks) {
+					if (!hasDeferredFollowerInstance) {
+						firstDeferredFollowerInstance = rec;
+						hasDeferredFollowerInstance = true;
+					}
+					else {
+						deferredFollowerOverflow.push_back(rec);
+					}
 				}
 				else {
-					deferredFollowerOverflow.push_back(rec);
+					g->AppendReanimInstance(rec, baseBlend);
 				}
-			}
-			else {
-				g->AppendReanimInstance(rec, baseBlend);
 			}
 		}
 
@@ -647,9 +655,13 @@ void Animator::DrawInternal(Graphics* g, float baseX, float baseY, float Scale) 
 			image = extra->mImage ? extra->mImage : transform.image;
 			shouldDrawSelf = (image != nullptr);
 		}
-		const Texture* followerImage = extra && extra->mVisible && sparse
-			&& sparse->mFollowerVisible && transform.f != -1
-			? sparse->mFollowerImage : nullptr;
+		const bool canDrawFollowers = extra && extra->mVisible && sparse
+			&& transform.f != -1;
+		const bool hasVisibleFollower = canDrawFollowers && std::any_of(
+			sparse->mFollowers.begin(), sparse->mFollowers.end(),
+			[](const TrackFollowerState& follower) {
+				return follower.mVisible && follower.mImage;
+			});
 		const float tx = transform.x + (extra ? extra->mOffsetX : 0.0f);
 		const float ty = transform.y + (extra ? extra->mOffsetY : 0.0f);
 
@@ -709,47 +721,51 @@ void Animator::DrawInternal(Graphics* g, float baseX, float baseY, float Scale) 
 			}
 		}
 
-		if (followerImage) {
-			const float followerX = tx + tA * sparse->mFollowerOffsetX
-				+ tC * sparse->mFollowerOffsetY;
-			const float followerY = ty + tB * sparse->mFollowerOffsetX
-				+ tD * sparse->mFollowerOffsetY;
-			const float w = static_cast<float>(followerImage->width);
-			const float h = static_cast<float>(followerImage->height);
-			glm::mat4 mat(
-				tA * w * Scale * sparse->mFollowerScaleX,
-				tB * w * Scale * sparse->mFollowerScaleX, 0.0f, 0.0f,
-				tC * h * Scale * sparse->mFollowerScaleY,
-				tD * h * Scale * sparse->mFollowerScaleY, 0.0f, 0.0f,
-				0.0f, 0.0f, 1.0f, 0.0f,
-				baseX + followerX * Scale, baseY + followerY * Scale, 0.0f, 1.0f);
-			if (mFlipX) {
-				mat[0][0] = -mat[0][0];
-				mat[1][0] = -mat[1][0];
-				mat[3][0] = baseX + (2.0f * mFlipPivotX - followerX) * Scale;
-			}
-			ApplyRenderScale(mat);
-			RecordRenderQuad(
-				mat[0][0], mat[0][1], mat[1][0], mat[1][1], mat[3][0], mat[3][1]);
-			const SDL_Color trackColor = extra
-				? extra->mColor : SDL_Color{ 255, 255, 255, 255 };
-			const float alpha = std::clamp(transform.a * mAlpha
-				* (static_cast<float>(trackColor.a) / 255.0f), 0.0f, 1.0f);
-			const glm::vec4 color(trackColor.r, trackColor.g, trackColor.b,
-				alpha * 255.0f);
-			if (sparse->mFollowerDrawAfterAllTracks) {
-				const DeferredFollowerDraw draw{ followerImage, mat, color };
-				if (!hasDeferredFollowerDraw) {
-					firstDeferredFollowerDraw = draw;
-					hasDeferredFollowerDraw = true;
+		if (hasVisibleFollower) {
+			for (const TrackFollowerState& follower : sparse->mFollowers) {
+				const Texture* followerImage = follower.mVisible ? follower.mImage : nullptr;
+				if (!followerImage) continue;
+				const float followerX = tx + tA * follower.mOffsetX
+					+ tC * follower.mOffsetY;
+				const float followerY = ty + tB * follower.mOffsetX
+					+ tD * follower.mOffsetY;
+				const float w = static_cast<float>(followerImage->width);
+				const float h = static_cast<float>(followerImage->height);
+				glm::mat4 mat(
+					tA * w * Scale * follower.mScaleX,
+					tB * w * Scale * follower.mScaleX, 0.0f, 0.0f,
+					tC * h * Scale * follower.mScaleY,
+					tD * h * Scale * follower.mScaleY, 0.0f, 0.0f,
+					0.0f, 0.0f, 1.0f, 0.0f,
+					baseX + followerX * Scale, baseY + followerY * Scale, 0.0f, 1.0f);
+				if (mFlipX) {
+					mat[0][0] = -mat[0][0];
+					mat[1][0] = -mat[1][0];
+					mat[3][0] = baseX + (2.0f * mFlipPivotX - followerX) * Scale;
+				}
+				ApplyRenderScale(mat);
+				RecordRenderQuad(
+					mat[0][0], mat[0][1], mat[1][0], mat[1][1], mat[3][0], mat[3][1]);
+				const SDL_Color trackColor = extra
+					? extra->mColor : SDL_Color{ 255, 255, 255, 255 };
+				const float alpha = std::clamp(transform.a * mAlpha
+					* (static_cast<float>(trackColor.a) / 255.0f), 0.0f, 1.0f);
+				const glm::vec4 color(trackColor.r, trackColor.g, trackColor.b,
+					alpha * 255.0f);
+				if (follower.mDrawAfterAllTracks) {
+					const DeferredFollowerDraw draw{ followerImage, mat, color };
+					if (!hasDeferredFollowerDraw) {
+						firstDeferredFollowerDraw = draw;
+						hasDeferredFollowerDraw = true;
+					}
+					else {
+						deferredFollowerOverflow.push_back(draw);
+					}
 				}
 				else {
-					deferredFollowerOverflow.push_back(draw);
+					g->DrawTextureMatrix(followerImage, mat, 0.0f, 0.0f,
+						color, baseBlend);
 				}
-			}
-			else {
-				g->DrawTextureMatrix(followerImage, mat, 0.0f, 0.0f,
-					color, baseBlend);
 			}
 		}
 
@@ -910,19 +926,32 @@ void Animator::SetTrackOffset(const std::string& trackName, float x, float y) {
 	}
 }
 
-void Animator::SetTrackFollowerImage(const std::string& trackName, const Texture* image,
+void Animator::SetTrackFollowerImage(const std::string& trackName,
+	const std::string& followerName, const Texture* image,
 	float offsetX, float offsetY, float scaleX, float scaleY, bool drawAfterAllTracks) {
 	for (const int trackIndex : GetTrackIndicesByName(trackName)) {
 		SparseTrackState* existing = FindSparseTrackState(trackIndex);
 		if (!image && !existing) continue;
 		SparseTrackState& sparse = existing ? *existing : GetOrCreateSparseTrackState(trackIndex);
-		sparse.mFollowerImage = image;
-		sparse.mFollowerOffsetX = offsetX;
-		sparse.mFollowerOffsetY = offsetY;
-		sparse.mFollowerScaleX = scaleX;
-		sparse.mFollowerScaleY = scaleY;
-		sparse.mFollowerDrawAfterAllTracks = drawAfterAllTracks;
-		if (!image) sparse.mFollowerVisible = false;
+		auto follower = std::find_if(sparse.mFollowers.begin(), sparse.mFollowers.end(),
+			[&followerName](const TrackFollowerState& state) {
+				return state.mName == followerName;
+			});
+		if (!image) {
+			if (follower != sparse.mFollowers.end()) sparse.mFollowers.erase(follower);
+			continue;
+		}
+		if (follower == sparse.mFollowers.end()) {
+			sparse.mFollowers.push_back({});
+			follower = std::prev(sparse.mFollowers.end());
+			follower->mName = followerName;
+		}
+		follower->mImage = image;
+		follower->mOffsetX = offsetX;
+		follower->mOffsetY = offsetY;
+		follower->mScaleX = scaleX;
+		follower->mScaleY = scaleY;
+		follower->mDrawAfterAllTracks = drawAfterAllTracks;
 	}
 }
 
@@ -938,10 +967,18 @@ void Animator::EnableWashedOutEffect(bool enable, bool lighter) {
 	}
 }
 
-void Animator::SetTrackFollowerVisible(const std::string& trackName, bool visible) {
+void Animator::SetTrackFollowerVisible(const std::string& trackName,
+	const std::string& followerName, bool visible) {
 	for (const int trackIndex : GetTrackIndicesByName(trackName)) {
 		SparseTrackState* sparse = FindSparseTrackState(trackIndex);
-		if (sparse) sparse->mFollowerVisible = visible && sparse->mFollowerImage;
+		if (!sparse) continue;
+		auto follower = std::find_if(sparse->mFollowers.begin(), sparse->mFollowers.end(),
+			[&followerName](const TrackFollowerState& state) {
+				return state.mName == followerName;
+			});
+		if (follower != sparse->mFollowers.end()) {
+			follower->mVisible = visible && follower->mImage;
+		}
 	}
 }
 
@@ -1233,12 +1270,20 @@ bool Animator::GetTrackVisible(const std::string& trackName) const {
 	return false;
 }
 
-bool Animator::GetTrackFollowerVisible(const std::string& trackName) const {
+bool Animator::GetTrackFollowerVisible(const std::string& trackName,
+	const std::string& followerName) const {
 	const int index = GetFirstTrackIndexByName(trackName);
 	if (index >= 0 && index < static_cast<int>(mExtraInfos.size())) {
 		const TrackExtraInfo& extra = mExtraInfos[index];
 		const SparseTrackState* sparse = FindSparseTrackState(index);
-		return extra.mVisible && sparse && sparse->mFollowerVisible && sparse->mFollowerImage;
+		if (!extra.mVisible || !sparse) return false;
+		const auto follower = std::find_if(
+			sparse->mFollowers.begin(), sparse->mFollowers.end(),
+			[&followerName](const TrackFollowerState& state) {
+				return state.mName == followerName;
+			});
+		return follower != sparse->mFollowers.end()
+			&& follower->mVisible && follower->mImage;
 	}
 	return false;
 }

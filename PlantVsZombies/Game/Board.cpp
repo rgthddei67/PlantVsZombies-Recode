@@ -26,6 +26,7 @@
 #include "./Zombie/HealerZombie.h"
 #include "./Zombie/HijackerZombie.h"
 #include "./Zombie/InsulatorZombie.h"
+#include "./Zombie/IceStatueExecutionerZombie.h"
 #include "./Zombie/MagneticItem.h"
 #include "MistFuel.h"
 
@@ -244,12 +245,15 @@ namespace {
 	constexpr int kIceWallEngineerMaxPerWave = 1;         // 每个正式波次最多成功生成一只冰墙工程师
 	constexpr int kIceCrackDrillMaxPerWave = 1;           // 每个正式波次最多成功生成一只冰裂钻机
 	constexpr int kWeatherJammerMaxPerWave = 1;           // 每个正式波次最多成功生成一只气象干扰僵尸
+	constexpr int kIceStatueExecutionerMaxPerWave = 1;   // 每个正式波次最多成功生成一只冰像处刑者
 	constexpr int kHijackerTutorialLevel = 49;             // 内部 49 即 6-4，使用第七波固定单体教学
 	constexpr int kHijackerTutorialWave = 7;               // 6-4 首次登场的固定教学波
 	constexpr int kHealerTutorialLevel = 51;               // 内部 51 即 6-6，使用第三波额外保底
 	constexpr int kHealerTutorialWave = 3;                 // 6-6 首次登场的额外保底波次
 	constexpr int kWeatherJammerTutorialLevel = 60;        // 内部 60 即 7-6，使用第三波额外保底
 	constexpr int kWeatherJammerTutorialWave = 3;          // 7-6 首次登场的额外保底波次
+	constexpr int kIceExecutionerTutorialLevel = 61;       // 7-7 首次教学冰像处刑者的冒险关卡
+	constexpr int kIceExecutionerTutorialWave = 3;         // 7-7 第三波额外保底一只处刑者
 	constexpr int kEliteScaredyShroomPlantLimit = 4;      // 每个关卡累计最多种植的精英胆小菇数量
 	constexpr int kPumpkinProtectionCellRadius = 1;       // 南瓜头范围爆炸保护的逻辑格半径；1 表示自身九宫格
 	constexpr int kPumpkinAreaDamageMultiplier = 5;       // 特殊僵尸范围伤害被南瓜头拦截时的默认基础伤害倍率
@@ -2504,6 +2508,13 @@ void Board::RestoreWeatherJammerWaveSpawnCount(int count)
 		count, 0, kWeatherJammerMaxPerWave);
 }
 
+/** 夹紧并恢复当前波已经正式生成的冰像处刑者数量。 */
+void Board::RestoreIceStatueExecutionerWaveSpawnCount(int count)
+{
+	mIceStatueExecutionersSpawnedThisWave = std::clamp(
+		count, 0, kIceStatueExecutionerMaxPerWave);
+}
+
 /** 清空全部台风派生状态；中雨、小雨、晴天和旧档默认都以此为单位元。 */
 void Board::StopTyphoon()
 {
@@ -2732,6 +2743,13 @@ ZombieType Board::ResolveWaveZombieType(ZombieType selected, int mutationRoll)
 			return ZombieType::NUM_ZOMBIE_TYPES;
 		}
 		++mWeatherJammersSpawnedThisWave;
+	}
+	if (selected == ZombieType::ZOMBIE_ICE_STATUE_EXECUTIONER) {
+		if (mIceStatueExecutionersSpawnedThisWave
+			>= kIceStatueExecutionerMaxPerWave) {
+			return ZombieType::NUM_ZOMBIE_TYPES;
+		}
+		++mIceStatueExecutionersSpawnedThisWave;
 	}
 	return ResolveRainMutationType(selected, mutationRoll);
 }
@@ -2966,6 +2984,14 @@ void Board::TriggerTyphoonPlantMove(TyphoonStrength strength, WindDirection dire
 					overlay = nullptr;
 				}
 				if (!under && !normal && !pumpkin && !overlay) continue;
+				// 冰像封存期间整个植物组合都与外部玩法隔离；台风不得先改 Cell 再让
+				// Plant::MoveToGridCell 拒绝，从而制造逻辑格与实体坐标分裂。
+				if ((under && under->IsIceSealed())
+					|| (normal && normal->IsIceSealed())
+					|| (pumpkin && pumpkin->IsIceSealed())
+					|| (overlay && overlay->IsIceSealed())) {
+					continue;
+				}
 
 				if (normal && IsMultiCellPlantType(normal->mPlantType)) {
 					// 次级占格只是一株实体的别名；整株只在逻辑锚点处原子结算一次。
@@ -4237,6 +4263,32 @@ void Board::FinalizeNightRoofHijackerLoad()
 		true, warning && mNightRoofHijackerFinalizing, warning);
 }
 
+void Board::FinalizeIceStatueExecutionerLoad()
+{
+	std::vector<int> zombieIDs = mEntityRegistry.GetAllZombieIDs();
+	std::sort(zombieIDs.begin(), zombieIDs.end());
+	for (const int zombieID : zombieIDs) {
+		if (auto* executioner = dynamic_cast<IceStatueExecutionerZombie*>(
+			mEntityRegistry.GetZombie(zombieID))) {
+			executioner->FinalizeIceSealLoad();
+		}
+	}
+
+	std::vector<int> plantIDs = mEntityRegistry.GetAllPlantIDs();
+	std::sort(plantIDs.begin(), plantIDs.end());
+	for (const int plantID : plantIDs) {
+		Plant* plant = mEntityRegistry.GetPlant(plantID);
+		if (!plant || !plant->IsIceSealed()) continue;
+		const int ownerID = plant->GetIceSealOwnerZombieID();
+		auto* executioner = dynamic_cast<IceStatueExecutionerZombie*>(
+			mEntityRegistry.GetZombie(ownerID));
+		if (!executioner || !executioner->OwnsIceSealFor(plantID)
+			|| !IsCellFrozen(plant->mRow, plant->mColumn)) {
+			plant->ReleaseIceSeal(ownerID);
+		}
+	}
+}
+
 void Board::UpdateWeather(float deltaTime)
 {
 	if (!mWeatherInitialized || deltaTime <= 0.0f) return;
@@ -4808,6 +4860,66 @@ bool Board::IsCellFrozen(int row, int col) const
 {
 	return row >= 0 && row < mRows && col >= 0 && col < mColumns
 		&& GetFrozenColumnCount() > 0 && col >= GetFirstFrozenColumn();
+}
+
+Plant* Board::SelectIceStatueExecutionTarget() const
+{
+	if (!SupportsWinterTemperature()) return nullptr;
+	const auto& gameData = GameDataManager::GetInstance();
+	const int backlineColumnCount = (mColumns + 1) / 2;
+	std::vector<int> plantIDs = mEntityRegistry.GetAllPlantIDs();
+	std::sort(plantIDs.begin(), plantIDs.end());
+	Plant* best = nullptr;
+	float bestValue = -1.0f;
+	for (const int plantID : plantIDs) {
+		Plant* plant = mEntityRegistry.GetPlant(plantID);
+		if (!plant || !plant->IsActive() || plant->IsPreview()
+			|| plant->IsSquished() || plant->IsBungeeTargeted()
+			|| plant->IsIceSealed() || plant->mPlantHealth <= 0
+			|| !IsCellFrozen(plant->mRow, plant->mColumn)) {
+			continue;
+		}
+		const Cell* cell = mCells[plant->mRow][plant->mColumn];
+		if (!cell || (cell->GetNormalPlantID() != plantID
+			&& cell->GetPumpkinPlantID() != plantID)) {
+			continue;
+		}
+		const PlantSimulationProfile& profile =
+			gameData.GetPlantSimulationProfile(plant->mPlantType);
+		if (!profile.persistent || profile.supportOnly) continue;
+		float value = static_cast<float>(
+			gameData.GetPlantSunCost(plant->mPlantType));
+		if (profile.sunPerSecond > 0.0f) {
+			value += kMonteCarloSunProducerFutureValue;
+		}
+		if (plant->mColumn < backlineColumnCount) {
+			value *= kMonteCarloBacklineMultiplier;
+		}
+		// ID 已升序；相同价值不替换，稳定保留较小 ID。
+		if (!best || value > bestValue) {
+			best = plant;
+			bestValue = value;
+		}
+	}
+	return best;
+}
+
+bool Board::TryPreventIceExecutionProgress(Plant& target) const
+{
+	std::vector<int> plantIDs = mEntityRegistry.GetAllPlantIDs();
+	std::sort(plantIDs.begin(), plantIDs.end());
+	for (const int plantID : plantIDs) {
+		Plant* provider = mEntityRegistry.GetPlant(plantID);
+		if (!provider || !provider->IsActive() || provider->IsSquished()
+			|| provider->IsBungeeTargeted() || provider->IsIceSealed()
+			|| provider->IsShutdown()
+			|| std::abs(provider->mRow - target.mRow) > 1
+			|| std::abs(provider->mColumn - target.mColumn) > 1) {
+			continue;
+		}
+		if (provider->TryPreventIceExecutionProgressFor(&target)) return true;
+	}
+	return false;
 }
 
 bool Board::IsCellInColdWaveForecast(int row, int col) const
@@ -7293,7 +7405,7 @@ void Board::UpdateLevel()
 			for (int id : mEntityRegistry.GetAllPlantIDs())
 			{
 				Plant* p = mEntityRegistry.GetPlant(id);
-				if (!p || p->IsPreview()) continue;
+				if (!p || p->IsPreview() || p->IsIceSealed()) continue;
 				int cap = mPerkManager.GetPlantRegenHpCap(p->mPlantMaxHealth);
 				if (p->mPlantHealth < cap)
 				{
@@ -7393,6 +7505,7 @@ void Board::SummonNextWave()
 	mIceWallEngineersSpawnedThisWave = 0;
 	mIceCrackDrillsSpawnedThisWave = 0;
 	mWeatherJammersSpawnedThisWave = 0;
+	mIceStatueExecutionersSpawnedThisWave = 0;
 	mMistFuelAssignedThisWave = 0;
 	if (mCurrentWave == 1)
 	{
@@ -7748,6 +7861,20 @@ inline void Board::TrySummonZombie()
 			}
 		}
 	}
+	// 7-7 第三波额外保底一只冰像处刑者；不消耗预算，但仍消费本波唯一名额。
+	if (!mIsSurvival && mLevel == kIceExecutionerTutorialLevel
+		&& mCurrentWave == kIceExecutionerTutorialWave) {
+		const ZombieType actualType = ResolveWaveZombieType(
+			ZombieType::ZOMBIE_ICE_STATUE_EXECUTIONER);
+		if (actualType != ZombieType::NUM_ZOMBIE_TYPES) {
+			const int row = SelectSpawnRow(actualType);
+			if (row >= 0) {
+				if (Zombie* zombie = CreateResolvedWaveZombie(actualType, row, x)) {
+					AssignMistFuelReward(zombie);
+				}
+			}
+		}
+	}
 
 	int remainingPoints = CalculateWaveZombiePoints();
 	int zombiesSpawned = 0;
@@ -8065,6 +8192,7 @@ void Board::OnSurvivalRoundClear()
 	mIceWallEngineersSpawnedThisWave = 0;
 	mIceCrackDrillsSpawnedThisWave = 0;
 	mWeatherJammersSpawnedThisWave = 0;
+	mIceStatueExecutionersSpawnedThisWave = 0;
 	RefreshZombieWeatherSpeeds();
 
 	// 重算难度（解锁更强僵尸）+ 刷新关卡名

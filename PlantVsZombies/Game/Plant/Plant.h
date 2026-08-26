@@ -74,6 +74,7 @@ protected:
 	PlantBungeeState mBungeeState = PlantBungeeState::NONE;
 	int mBungeeOwnerZombieID = NULL_ZOMBIE_ID;
 	Vector mBungeeVisualOffset;
+	int mIceSealOwnerZombieID = NULL_ZOMBIE_ID; // 冰像封存的唯一来源；进度仍由来源僵尸拥有
 
 public:
 	static constexpr float kFlowerPotVisualLiftY = -5.0f; // 上层植物相对花盆抬升量，单位：px
@@ -100,10 +101,11 @@ public:
 	virtual void TakeDamage(int damage, DamageSource source);
 	/** 当前是否能被僵尸选为啃食目标；睡莲用它实现种下后的短暂无咬保护。 */
 	virtual bool CanBeEaten() const {
-		return !mIsSquished && mBungeeState == PlantBungeeState::NONE;
+		return !mIsSquished && mBungeeState == PlantBungeeState::NONE
+			&& !IsIceSealed();
 	}
 	/** 是否能被蹦极僵尸选中并抱走；跨格重型植物可覆写为 false。 */
-	virtual bool CanBeTargetedByBungee() const { return true; }
+	virtual bool CanBeTargetedByBungee() const { return !IsIceSealed(); }
 	/** 僵尸正式啃食命中时的植物侧反馈入口；默认植物不产生专属碎屑。 */
 	virtual void OnZombieBite(const Vector&) {}
 	/** 是否能在当前跳跃类别的判定节点阻拦僵尸；高坚果等阻拦植物覆写此接口。 */
@@ -150,6 +152,11 @@ public:
 		int damage, DamageSource source) { TakeDamage(damage, source); }
 	/** 本轮寒潮预报被敌方干扰时，清除依赖预报保留的准备状态。 */
 	virtual void OnColdWaveForecastDisrupted() {}
+	/**
+	 * 请求本植物消费自身资源，保护 target 不增加一次冰像处决进度。
+	 * 默认无能力；未来炉芯花只需覆写此入口，不得识别处刑者类型。
+	 */
+	virtual bool TryPreventIceExecutionProgressFor(Plant*) { return false; }
 	virtual void SaveExtraData(nlohmann::json& j) const {}
 	virtual void LoadExtraData(const nlohmann::json& j) {}
 	/** 立即退出更新、碰撞与绘制，并登记到下一帧安全销毁。 */
@@ -206,6 +213,18 @@ public:
 	bool IsBungeeTargeted() const {
 		return mBungeeState != PlantBungeeState::NONE;
 	}
+	/** 建立来源绑定的冰像封存；已有其他来源时拒绝抢占。 */
+	bool BeginIceSeal(int ownerZombieID);
+	/** 仅允许关系拥有者释放冰像；读取损坏档时可由 Board 传入保存的拥有者。 */
+	bool ReleaseIceSeal(int ownerZombieID);
+	/** 仅关系拥有者可结算一锤普通伤害；其他伤害入口在封存期间全部无效。 */
+	bool TakeIceExecutionDamage(int ownerZombieID, int damage);
+	/** 仅关系拥有者可完成处决；成功后实体按通用死亡链移除。 */
+	bool ResolveIceExecution(int ownerZombieID);
+	bool IsIceSealed() const { return mIceSealOwnerZombieID != NULL_ZOMBIE_ID; }
+	int GetIceSealOwnerZombieID() const { return mIceSealOwnerZombieID; }
+	/** 存档恢复专用：先重建权威状态，待所有僵尸加载后再由 Board 终检双向关系。 */
+	void RestoreIceSeal(int ownerZombieID);
 
 	// 获取睡觉状态
 	bool GetSleepState() const { return this->mIsSleeping; }
@@ -272,6 +291,8 @@ protected:
 	void SyncSleepIndicator();
 	/** 在植物本体之后绘制 Z，保留原版 renderOrder+2 的前景语义。 */
 	void DrawSleepIndicator(Graphics* g);
+	/** 在植物本体前景绘制无碰撞的半透明冰像外壳。 */
+	void DrawIceSeal(Graphics* g);
 	/** 统一施加压扁态的暂停、碰撞、影子、占格和透明度表现。 */
 	void ApplySquishedPresentation();
 	/** 仅在格子仍指向自身 ID 时释放所属占格层，避免误清后来种下的植物。 */

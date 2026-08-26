@@ -30,6 +30,8 @@ namespace {
 	constexpr float kArmorFollowerOffsetX = -12.0f;     // 胸甲相对 Zombie_body 向行进方向前移，避免看成背包
 	constexpr float kArmorFollowerOffsetY = 0.0f;       // 胸甲相对身体轨道的垂直偏移
 	constexpr float kArmorFollowerScale = 1.1f;         // 抵消身体轨道约 0.8 倍缩放后的胸甲视觉尺寸
+	constexpr const char* kArmorFollowerSlot =
+		"insulator_armor";                               // 身体轨道上的独立绝缘胸甲 follower 槽
 
 	const char* ArmorImageKey(ArmorBrokenState stage)
 	{
@@ -82,11 +84,11 @@ void InsulatorZombie::ConfigureArmorFollower()
 		ResourceKeys::Textures::IMAGE_ZOMBIE_INSULATOR_ARMOR1, false);
 	if (!texture) return;
 	// 胸甲必须盖在躯干和内外手臂之上；延迟 follower 同时保留身体轨道的完整仿射变换。
-	mAnimator->SetTrackFollowerImage("Zombie_body", texture,
+	mAnimator->SetTrackFollowerImage("Zombie_body", kArmorFollowerSlot, texture,
 		kArmorFollowerOffsetX, kArmorFollowerOffsetY,
 		kArmorFollowerScale, kArmorFollowerScale,
 		/*drawAfterAllTracks=*/true);
-	mAnimator->SetTrackFollowerVisible("Zombie_body", true);
+	mAnimator->SetTrackFollowerVisible("Zombie_body", kArmorFollowerSlot, true);
 	mArmorFollowerConfigured = true;
 }
 
@@ -259,7 +261,9 @@ void InsulatorZombie::RefreshArmorPresentation()
 {
 	if (mHelmType != HelmType::HELMTYPE_INSULATOR || mHelmHealth <= 0) {
 		mArmorStage = ArmorBrokenState::NONE;
-		if (mAnimator) mAnimator->SetTrackFollowerVisible("Zombie_body", false);
+		if (mAnimator) {
+			mAnimator->SetTrackFollowerVisible("Zombie_body", kArmorFollowerSlot, false);
+		}
 		return;
 	}
 	mArmorStage = mHelmHealth > kFirstCrackThreshold
@@ -269,12 +273,13 @@ void InsulatorZombie::RefreshArmorPresentation()
 			: ArmorBrokenState::REALLY_BROKEN);
 	if (!mArmorFollowerConfigured) ConfigureArmorFollower();
 	if (!mArmorFollowerConfigured) return;
-	mAnimator->SetTrackFollowerImage("Zombie_body",
+	mAnimator->SetTrackFollowerImage("Zombie_body", kArmorFollowerSlot,
 		ResourceManager::GetInstance().GetTexture(ArmorImageKey(mArmorStage), false),
 		kArmorFollowerOffsetX, kArmorFollowerOffsetY,
 		kArmorFollowerScale, kArmorFollowerScale,
 		/*drawAfterAllTracks=*/true);
-	mAnimator->SetTrackFollowerVisible("Zombie_body", !mIsDead && !mIsDying);
+	mAnimator->SetTrackFollowerVisible("Zombie_body", kArmorFollowerSlot,
+		!mIsDead && !mIsDying);
 }
 
 void InsulatorZombie::HelmDrop()
@@ -284,14 +289,18 @@ void InsulatorZombie::HelmDrop()
 	mArmorStage = ArmorBrokenState::NONE;
 	mOverloadTimer = 0.0f;
 	mWetArmorDamageRemainder = 0.0f;
-	if (mAnimator) mAnimator->SetTrackFollowerVisible("Zombie_body", false);
+	if (mAnimator) {
+		mAnimator->SetTrackFollowerVisible("Zombie_body", kArmorFollowerSlot, false);
+	}
 	UpdateAnimSpeed();
 	AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_CERAMIC, 0.35f);
 }
 
 void InsulatorZombie::Die()
 {
-	if (mAnimator) mAnimator->SetTrackFollowerVisible("Zombie_body", false);
+	if (mAnimator) {
+		mAnimator->SetTrackFollowerVisible("Zombie_body", kArmorFollowerSlot, false);
+	}
 	Zombie::Die();
 }
 
@@ -317,7 +326,9 @@ bool InsulatorZombie::ExtractMagneticItem(MagneticItem& item)
 	mArmorStage = ArmorBrokenState::NONE;
 	mOverloadTimer = 0.0f;
 	mWetArmorDamageRemainder = 0.0f;
-	if (mAnimator) mAnimator->SetTrackFollowerVisible("Zombie_body", false);
+	if (mAnimator) {
+		mAnimator->SetTrackFollowerVisible("Zombie_body", kArmorFollowerSlot, false);
+	}
 	UpdateAnimSpeed();
 	return true;
 }
@@ -328,21 +339,21 @@ void InsulatorZombie::ZombieItemUpdate() const
 	if (!mArmorFollowerConfigured || !mAnimator) return;
 	if (mHelmType != HelmType::HELMTYPE_INSULATOR || mHelmHealth <= 0
 		|| mArmorStage == ArmorBrokenState::NONE || mIsDead || mIsDying) {
-		mAnimator->SetTrackFollowerVisible("Zombie_body", false);
+		mAnimator->SetTrackFollowerVisible("Zombie_body", kArmorFollowerSlot, false);
 		return;
 	}
-	mAnimator->SetTrackFollowerImage("Zombie_body",
+	mAnimator->SetTrackFollowerImage("Zombie_body", kArmorFollowerSlot,
 		ResourceManager::GetInstance().GetTexture(ArmorImageKey(mArmorStage), false),
 		kArmorFollowerOffsetX, kArmorFollowerOffsetY,
 		kArmorFollowerScale, kArmorFollowerScale,
 		/*drawAfterAllTracks=*/true);
-	mAnimator->SetTrackFollowerVisible("Zombie_body", true);
+	mAnimator->SetTrackFollowerVisible("Zombie_body", kArmorFollowerSlot, true);
 }
 
 bool InsulatorZombie::IsArmorVisible() const
 {
 	return mArmorFollowerConfigured && mAnimator
-		&& mAnimator->GetTrackFollowerVisible("Zombie_body")
+		&& mAnimator->GetTrackFollowerVisible("Zombie_body", kArmorFollowerSlot)
 		&& mHelmType == HelmType::HELMTYPE_INSULATOR && mHelmHealth > 0;
 }
 

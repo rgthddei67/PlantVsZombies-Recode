@@ -6,6 +6,8 @@
     <Image>./resources/image/AwardGlow.png</Image>
     <Image>./resources/image/trophy_hi_res.png</Image>
     <Image>./resources/image/icetrap.png</Image>
+    <Image>./resources/image/reanim/Ice_statue_shell.png</Image>
+    <Image>./resources/image/reanim/Zombie_ice_executioner_maul.png</Image>
 
     <Image Column="5" Row="4">./resources/image/Tombstones.jpg</Image>
     <Image Column="5" Row="4">./resources/image/Tombstone_mounds.png</Image>

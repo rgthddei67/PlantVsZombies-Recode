@@ -339,6 +339,7 @@ private:
 	int mIceWallEngineersSpawnedThisWave = 0; // 当前波正式生成的冰墙工程师数量；所有正式波次统一至多一只
 	int mIceCrackDrillsSpawnedThisWave = 0; // 当前波正式生成的冰裂钻机数量；所有正式波次统一至多一只
 	int mWeatherJammersSpawnedThisWave = 0; // 当前波正式生成的气象干扰僵尸数量；所有正式波次统一至多一只
+	int mIceStatueExecutionersSpawnedThisWave = 0; // 当前波正式生成的冰像处刑者数量；所有正式波次统一至多一只
 	int mEliteScaredyShroomsPlanted = 0; // 本关累计种下的精英胆小菇数量；死亡或铲除不返还次数
 	int mLastTyphoonMovedPlants = 0;    // 最近一次阵风移动的植物数，仅供观测和测试
 	int mLastTyphoonLostPlants = 0;     // 最近一次阵风吹出棋盘或吹入弹坑的植物数，仅供观测和测试
@@ -485,6 +486,7 @@ private:
 	void RestoreIceWallEngineerWaveSpawnCount(int count);
 	void RestoreIceCrackDrillWaveSpawnCount(int count);
 	void RestoreWeatherJammerWaveSpawnCount(int count);
+	void RestoreIceStatueExecutionerWaveSpawnCount(int count);
 	/** 成功处决后立即封锁本波后续候选，并预留后续完整波次的刷新冷却。 */
 	void BeginHijackerSpawnCooldown();
 	/** 新波开始时把一份未来冷却转为覆盖整个当前波的封锁。 */
@@ -669,6 +671,10 @@ public:
 	float GetWinterFrostVisualColumnCount() const;
 	int GetFirstFrozenColumn() const;
 	bool IsCellFrozen(int row, int col) const;
+	/** 从实际冻土的正式植物中按战略价值、再按稳定 ID 选择唯一冰像处决目标。 */
+	Plant* SelectIceStatueExecutionTarget() const;
+	/** 按稳定植物 ID 请求目标 3x3 内的第一个保护者消费一次处决进度保护。 */
+	bool TryPreventIceExecutionProgress(Plant& target) const;
 	/** 当前准确预报的最低温是否会覆盖该格；预报干扰后立即返回 false。 */
 	bool IsCellInColdWaveForecast(int row, int col) const;
 	/** 当前低温会把同一雨势的视觉改为雪；雨势强度和玩法倍率保持原值。 */
@@ -863,6 +869,9 @@ public:
 	int GetWeatherJammersSpawnedThisWave() const {
 		return mWeatherJammersSpawnedThisWave;
 	}
+	int GetIceStatueExecutionersSpawnedThisWave() const {
+		return mIceStatueExecutionersSpawnedThisWave;
+	}
 	int GetLastTyphoonMovedPlants() const { return mLastTyphoonMovedPlants; }
 	int GetLastTyphoonLostPlants() const { return mLastTyphoonLostPlants; }
 	int GetLastTyphoonBlockedPlantSteps() const { return mLastTyphoonBlockedPlantSteps; }
@@ -1012,6 +1021,8 @@ public:
 	void CancelNightRoofHijacker(int zombieID);
 	/** 实体读档全部完成后校验交叉引用并恢复声音、预警和最终动画。 */
 	void FinalizeNightRoofHijackerLoad();
+	/** 全部植物和僵尸读档后双向校验冰像封存关系并清除孤儿状态。 */
+	void FinalizeIceStatueExecutionerLoad();
 	/** 返回指定僵尸是否站在任一活动植物声明的接地范围内。 */
 	bool IsNightRoofChargeProtectionSuppressed(const Zombie* zombie) const;
 	/** 返回本次基础放电的 0～1 进度；非放电阶段为 0。 */

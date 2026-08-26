@@ -29,6 +29,8 @@ namespace {
 	constexpr float kGearFollowerOffsetX = 34.0f;         // 急救包/标志相对身体轨道的局部水平偏移
 	constexpr float kGearFollowerOffsetY = -24.0f;        // 急救包/标志相对身体轨道的局部垂直偏移
 	constexpr float kGearFollowerScale = 0.82f;           // 抵消身体轨道缩放后的急救装备尺寸
+	constexpr const char* kGearFollowerSlot =
+		"healer_treatment_gear";                           // 身体轨道上的独立治疗装备 follower 槽
 	constexpr float kCastStartVolume = 0.22f;             // 急救包机械扣合声量
 	constexpr float kAreaResolveVolume = 0.18f;           // 群疗结算提示声量
 	constexpr float kFocusedResolveVolume = 0.30f;        // 单疗结算提示声量
@@ -82,11 +84,11 @@ void HealerZombie::ConfigureTreatmentPresentation()
 	}
 	const Texture* gear = resources.GetTexture(TreatmentGearTextureKey(), false);
 	if (!gear) return;
-	mAnimator->SetTrackFollowerImage("Zombie_body", gear,
+	mAnimator->SetTrackFollowerImage("Zombie_body", kGearFollowerSlot, gear,
 		kGearFollowerOffsetX, kGearFollowerOffsetY,
 		kGearFollowerScale, kGearFollowerScale,
 		/*drawAfterAllTracks=*/true);
-	mAnimator->SetTrackFollowerVisible("Zombie_body", true);
+	mAnimator->SetTrackFollowerVisible("Zombie_body", kGearFollowerSlot, true);
 	mGearFollowerConfigured = true;
 }
 
@@ -107,18 +109,19 @@ const std::string& HealerZombie::TreatmentGearTextureKey() const
 void HealerZombie::ApplyTreatmentPresentation() const
 {
 	if (!mAnimator || !mGearFollowerConfigured) return;
-	mAnimator->SetTrackFollowerImage("Zombie_body",
+	mAnimator->SetTrackFollowerImage("Zombie_body", kGearFollowerSlot,
 		ResourceManager::GetInstance().GetTexture(TreatmentGearTextureKey(), false),
 		kGearFollowerOffsetX, kGearFollowerOffsetY,
 		kGearFollowerScale, kGearFollowerScale,
 		/*drawAfterAllTracks=*/true);
-	mAnimator->SetTrackFollowerVisible("Zombie_body", !mIsDead && !mIsDying);
+	mAnimator->SetTrackFollowerVisible("Zombie_body", kGearFollowerSlot,
+		!mIsDead && !mIsDying);
 }
 
 bool HealerZombie::IsTreatmentGearVisible() const
 {
 	return mGearFollowerConfigured && mAnimator
-		&& mAnimator->GetTrackFollowerVisible("Zombie_body");
+		&& mAnimator->GetTrackFollowerVisible("Zombie_body", kGearFollowerSlot);
 }
 
 Vector HealerZombie::TreatmentCenter(const Zombie& zombie)
@@ -619,7 +622,9 @@ void HealerZombie::ArmDrop()
 void HealerZombie::Die()
 {
 	CancelTreatment(true, false);
-	if (mAnimator) mAnimator->SetTrackFollowerVisible("Zombie_body", false);
+	if (mAnimator) {
+		mAnimator->SetTrackFollowerVisible("Zombie_body", kGearFollowerSlot, false);
+	}
 	Zombie::Die();
 }
 

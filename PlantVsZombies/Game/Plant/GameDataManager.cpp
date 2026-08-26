@@ -113,6 +113,7 @@
 #include "../Zombie/IceWallEngineerZombie.h"
 #include "../Zombie/IceCrackDrillZombie.h"
 #include "../Zombie/WeatherJammerZombie.h"
+#include "../Zombie/IceStatueExecutionerZombie.h"
 
 namespace {
 	template<typename T>
@@ -694,6 +695,13 @@ void GameDataManager::InitializeHardcodedData() {
 		AnimationType::ANIM_BUCKET_ZOMBIE,
 		ResourceKeys::Reanimations::REANIM_BUCKET_ZOMBIE,
 		&MakeZombie<WeatherJammerZombie>);
+
+	// 处刑者复用扶梯全时间线：隐藏梯子、替换冰锤，并让原版红帽作为 anim_head1 命名 follower。
+	RegisterZombie(ZombieType::ZOMBIE_ICE_STATUE_EXECUTIONER,
+		"ZOMBIE_ICE_STATUE_EXECUTIONER",
+		AnimationType::ANIM_LADDER_ZOMBIE,
+		ResourceKeys::Reanimations::REANIM_LADDER_ZOMBIE,
+		&MakeZombie<IceStatueExecutionerZombie>);
 
 	// ==================== 非植物/僵尸动画映射 ====================
 	mAnimToString[AnimationType::ANIM_SUN] = ResourceKeys::Reanimations::REANIM_SUN;

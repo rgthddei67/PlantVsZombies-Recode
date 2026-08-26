@@ -34,7 +34,7 @@ description: Use when adding or tuning ANY particle effect (粒子特效) in PvZ
 
 - 先确定特效应锚定当前对象的稳定视觉原点、Board 网格点还是当前场景边界，再把 C# 点位换算成相对该锚点的局部差值。
 - `EmitEffect` 的传入世界坐标优先由 `Transform + mVisualOffset`、植物视觉基点、`GetCellCenterPosition` 或 `SCENE_WIDTH/HEIGHT` 派生；受伤抖动等临时绘制偏移默认不进入粒子物理位置。若 XML 的 `EmitterOffsetX/Y` 已按实体视觉原点写入完整偏移，代码只能传逻辑 `Transform`（再加能力自身的动态高度），禁止又叠 `mVisualOffset`；先把“代码世界锚点”和“XML 局部偏移”写成一条加法式，避免同一视觉偏移计算两次。
-- 头、手臂等动画部件掉落优先使用该部件轨道的世界坐标（如 `GetTrackWorldPosition`）作为发射点，并把 XML 的 `EmitterOffsetX/Y` 归零或只保留粒子自身微调；禁止用整身视觉原点再猜一组固定偏移。轨道锚点应在隐藏/换材质前读取，AutoTest 用粒子 `worldBounds` 与最近实体 collider 的相对中心和相交关系验收。
+- 头、手臂等动画部件掉落优先使用该部件轨道的世界坐标（如 `GetTrackWorldPosition`）作为发射点，并把 XML 的 `EmitterOffsetX/Y` 归零或只保留粒子自身微调；禁止用整身视觉原点再猜一组固定偏移。轨道世界坐标通常是贴图变换原点而非视觉中心：若掉落图原先以 follower 绘制，先用“父轨原点 + follower 局部偏移 + 运行缩放后的贴图中心”求发射中心，再交给零偏移粒子。穿戴比例与离体粒子比例分别校准，不能把较大的装备 follower 缩放原样复制给掉落粒子。轨道锚点应在隐藏/换材质前读取，AutoTest 用粒子 `worldBounds` 与最近实体 collider 的相对中心和相交关系验收。
 - 碰撞提示若与同一次伤害结算绑定，先从目标 collider 捕获中心或接触点，再调用可能消费状态或致死的响应/伤害入口；在碰撞提交边沿用该快照发射，禁止伤害后再解引用目标求位置。AutoTest 要验证 `nearestPlant` 时使用能存活到取证帧的靶子；致死专项改断言发射原点与 Board 格位，避免目标已失活后最近实体投影为空。
 - 池沿、地形边界等状态切换特效必须复用决定切换的同一几何：通用僵尸入水用前后探针中点作 X、水面裁剪底线作 Y，禁止另抄一组 C# 800×600 点位。若原版表现同时含短 `AnimatedObject` reanim 与 ParticleSystem XML（`PoolSplash` 实证），两层保持独立资源与生命周期；AutoTest 分别断言 `animatedObjectTagCounts` 和 `particleEffectNameCounts`，不能只证明其中一层。
 - XML 的 `EmitterOffsetX/Y` 仍有“双倍生效”陷阱，但“除以 2”只能用于**完成坐标系换算后的局部偏移**，不能把 800×600 原值直接减半搬入。

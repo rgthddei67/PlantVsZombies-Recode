@@ -73,16 +73,22 @@ private:
 	PlayState mPlayingState = PlayState::PLAY_NONE;  ///< 播放状态
 	std::vector<TrackExtraInfo> mExtraInfos;   ///< 每个轨道都会使用的热状态（可见性、自定义纹理与偏移）
 
+	/** 同一父轨道上的命名 follower；vector 顺序同时定义同层贴图的稳定提交顺序。 */
+	struct TrackFollowerState {
+		std::string mName;
+		bool mVisible = false;
+		bool mDrawAfterAllTracks = false;
+		float mOffsetX = 0.0f;
+		float mOffsetY = 0.0f;
+		float mScaleX = 1.0f;
+		float mScaleY = 1.0f;
+		const Texture* mImage = nullptr;
+	};
+
 	/** 只有 follower 或子 Animator 的轨道才分配冷状态，按轨道索引排序。 */
 	struct SparseTrackState {
 		int mTrackIndex = -1;
-		bool mFollowerVisible = false;
-		bool mFollowerDrawAfterAllTracks = false;
-		float mFollowerOffsetX = 0.0f;
-		float mFollowerOffsetY = 0.0f;
-		float mFollowerScaleX = 1.0f;
-		float mFollowerScaleY = 1.0f;
-		const Texture* mFollowerImage = nullptr;
+		std::vector<TrackFollowerState> mFollowers;
 		std::vector<std::weak_ptr<Animator>> mAttachedReanims;
 	};
 	std::vector<SparseTrackState> mSparseTrackStates;
@@ -245,18 +251,21 @@ public:
 	/**
 	 * 配置跟随指定轨道完整插值仿射变换的附属贴图。
 	 * @param trackName 父轨道名。
-	 * @param image 附属纹理；nullptr 表示移除。
+	 * @param followerName 同一父轨道内的稳定槽位名。
+	 * @param image 附属纹理；nullptr 表示只移除该命名槽。
 	 * @param offsetX 相对父轨道原点的局部 X 偏移，单位：动画像素。
 	 * @param offsetY 相对父轨道原点的局部 Y 偏移，单位：动画像素。
 	 * @param scaleX 相对父轨道的横向缩放倍率。
 	 * @param scaleY 相对父轨道的纵向缩放倍率。
 	 * @param drawAfterAllTracks true=延迟到本 Animator 全部轨道及附件之后提交；false=紧随父轨道。
 	 */
-	void SetTrackFollowerImage(const std::string& trackName, const Texture* image,
+	void SetTrackFollowerImage(const std::string& trackName,
+		const std::string& followerName, const Texture* image,
 		float offsetX, float offsetY, float scaleX = 1.0f, float scaleY = 1.0f,
 		bool drawAfterAllTracks = false);
-	/** 控制指定轨道附属贴图的显隐，不影响父轨道本身。 */
-	void SetTrackFollowerVisible(const std::string& trackName, bool visible);
+	/** 控制指定轨道的一个命名 follower，不影响同轨道其他槽。 */
+	void SetTrackFollowerVisible(const std::string& trackName,
+		const std::string& followerName, bool visible);
 
 	/**
 	 * @brief 设置轨道可见性
@@ -538,8 +547,9 @@ public:
 	bool GetTrackVisible(const std::string& trackName) const;
 	/** 返回指定轨道的当前乘色；轨道不存在时返回纯白。 */
 	SDL_Color GetTrackColor(const std::string& trackName) const;
-	/** 返回父轨道与 follower 自身均启用时的最终可见状态。 */
-	bool GetTrackFollowerVisible(const std::string& trackName) const;
+	/** 返回指定命名 follower 与父轨道合并后的最终可见状态。 */
+	bool GetTrackFollowerVisible(const std::string& trackName,
+		const std::string& followerName) const;
 
 	/**
 	 * @brief 获取指定轨道合并整体开关与轨道覆盖后的实际高亮状态。

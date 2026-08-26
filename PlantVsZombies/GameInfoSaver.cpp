@@ -430,6 +430,8 @@ bool GameInfoSaver::SerializeLevelDataToPath(Board* board, CardSlotManager* mana
 	j["iceWallEngineersSpawnedThisWave"] = board->mIceWallEngineersSpawnedThisWave;
 	j["iceCrackDrillsSpawnedThisWave"] = board->mIceCrackDrillsSpawnedThisWave;
 	j["weatherJammersSpawnedThisWave"] = board->mWeatherJammersSpawnedThisWave;
+	j["iceStatueExecutionersSpawnedThisWave"] =
+		board->mIceStatueExecutionersSpawnedThisWave;
 	j["mistFuelDropAccumulator"] = board->mMistFuelDropAccumulator;
 	WeatherPresentationState weatherPresentation;
 	if (auto* presentation = board->GetPresentation()) {
@@ -474,6 +476,7 @@ bool GameInfoSaver::SerializeLevelDataToPath(Board* board, CardSlotManager* mana
 		p["isSleeping"] = plant->GetSleepState();
 		p["wakeUpTimer"] = plant->GetWakeUpTimeRemaining();
 		p["shutdownTimer"] = plant->GetShutdownTimeRemaining();
+		p["iceSealOwnerZombieID"] = plant->GetIceSealOwnerZombieID();
 		if (plant->IsImitated()) p["imitated"] = true;
 		p["isSquished"] = plant->IsSquished();
 		if (plant->IsSquished()) {
@@ -1152,6 +1155,8 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 		j.value("iceCrackDrillsSpawnedThisWave", 0));
 	board->RestoreWeatherJammerWaveSpawnCount(
 		j.value("weatherJammersSpawnedThisWave", 0));
+	board->RestoreIceStatueExecutionerWaveSpawnCount(
+		j.value("iceStatueExecutionersSpawnedThisWave", 0));
 	board->mRainVisualActive = false;   // 粒子不入存档，StartGame 按剩余时间重建
 	board->mMaxWave = j.value("maxWave", 10);
 	board->mZombieCountDown = j.value("zombieCountDown", 20.0f);
@@ -1201,6 +1206,8 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 			plant->RestoreSleepState(isSleeping, p.value("wakeUpTimer", 0.0f));
 			// 通用停机是实体快照状态；读档只恢复剩余时间，不重新结算来源技能。
 			plant->RestoreShutdown(p.value("shutdownTimer", 0.0f));
+			plant->RestoreIceSeal(
+				p.value("iceSealOwnerZombieID", NULL_ZOMBIE_ID));
 			RestoreAnimState(p, plant);
 			if (p.contains("extraData")) {
 				plant->LoadExtraData(p["extraData"]);
@@ -1310,6 +1317,7 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 	}
 	// Board 的锁定 ID 要等全部僵尸按稳定 ID 恢复后才能校验，避免加载顺序触发重新随机。
 	board->FinalizeNightRoofHijackerLoad();
+	board->FinalizeIceStatueExecutionerLoad();
 
 	// 恢复子弹
 	for (auto& b : j.value("bullets", nlohmann::json::array())) {

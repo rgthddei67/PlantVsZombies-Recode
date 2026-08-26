@@ -43,6 +43,8 @@ namespace {
 	constexpr float kMaximumParalysisDuration = 600.0f;    // 通用麻痹单次/读档允许的最大剩余秒数，防损坏档永久停格
 	constexpr float kButterSplatOffsetY = -6.0f;           // C# DrawButter 相对头部轨道的贴图纵向偏移，单位：像素
 	constexpr float kButterSplatScale = 1.0f;              // 对齐原版头顶覆盖比例，同时保留面部与上身轮廓
+	constexpr const char* kButterSplatFollowerSlot =
+		"butter_splat";                                    // 头部轨道上的通用黄油命名 follower 槽
 	const Vector kButterFallbackHeadOffset(0.0f, -40.0f);   // 缺少 anim_head1 时相对逻辑位置的保底头部锚点
 	constexpr float kRoofMarshalFlagOffsetX = 18.0f;       // 突击令红旗左上角移到头部右后侧，避免遮住脸，单位：局部像素
 	constexpr float kRoofMarshalFlagOffsetY = -5.0f;       // 最上排也不会被顶部 UI 大面积裁掉的纵向偏移，单位：局部像素
@@ -2031,7 +2033,7 @@ bool Zombie::IsButterSplatFollowerVisible() const
 {
 	const char* trackName = GetButterSplatTrackName();
 	return mButterSplatFollowerConfigured && mAnimator && trackName
-		&& mAnimator->GetTrackFollowerVisible(trackName);
+		&& mAnimator->GetTrackFollowerVisible(trackName, kButterSplatFollowerSlot);
 }
 
 /**
@@ -2050,7 +2052,7 @@ void Zombie::ConfigureButterSplatFollower()
 	if (!texture) return;
 
 	const float followerScale = kButterSplatScale * GetButterSplatScaleMultiplier();
-	mAnimator->SetTrackFollowerImage(trackName, texture,
+	mAnimator->SetTrackFollowerImage(trackName, kButterSplatFollowerSlot, texture,
 		0.0f, kButterSplatOffsetY, followerScale, followerScale,
 		ShouldDrawButterSplatAfterAllTracks());
 	mButterSplatFollowerConfigured = true;
@@ -2062,7 +2064,7 @@ void Zombie::SetButterSplatFollowerVisible(bool visible) const
 	if (!mButterSplatFollowerConfigured || !mAnimator) return;
 	const char* trackName = GetButterSplatTrackName();
 	if (trackName) {
-		mAnimator->SetTrackFollowerVisible(trackName,
+		mAnimator->SetTrackFollowerVisible(trackName, kButterSplatFollowerSlot,
 			visible && mHasHead && !mIsPreview);
 	}
 }

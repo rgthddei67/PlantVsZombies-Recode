@@ -30,6 +30,9 @@ namespace {
 	constexpr float kSleepIndicatorMinFps = 6.0f;          // 原版每个 Z 标识的随机最低播放帧率，单位：fps
 	constexpr float kSleepIndicatorMaxFps = 8.0f;          // 原版每个 Z 标识的随机最高播放帧率，单位：fps
 	constexpr float kSleepIndicatorMaxStartTime = 0.9f;    // 原版随机起始归一化时间上界，避免同屏完全同步
+	constexpr float kIceSealDrawWidth = 112.0f;            // 冰像壳画面宽度，单位：px
+	constexpr float kIceSealDrawHeight = 120.0f;           // 冰像壳画面高度，单位：px
+	constexpr float kIceSealBottomOffsetY = 43.0f;         // 冰像壳底部相对植物公共锚点的偏移，单位：px
 
 	/**
 	 * 把 C# 以 80x80 左上角为基准的睡眠标识特例换算成本项目公共视觉锚点偏移。
@@ -134,7 +137,7 @@ void Plant::UpdateParallel(std::vector<DeferredEvent>& outBuf)
 }
 
 void Plant::TakeDamage(int damage, DamageSource source) {
-	if (mIsPreview || mIsSquished || IsBungeeTargeted()) return;
+	if (mIsPreview || mIsSquished || IsBungeeTargeted() || IsIceSealed()) return;
 	// 僵尸增伤只放大僵尸来源；植物韧性则对所有实际承伤生效。两者均在 0 层返回单位元。
 	int scaledDamage = damage;
 	if (mBoard) {
@@ -153,7 +156,7 @@ void Plant::TakeDamage(int damage, DamageSource source) {
 void Plant::Die() {
 	// GameObjectManager 在下一次 Update 才真正移除对象；先失活可避免本帧绘制已被
 	// StopAnimation 重置到轨道起点的姿态，也让重复死亡调用保持幂等。
-	if (!IsActive()) return;
+	if (!IsActive() || IsIceSealed()) return;
 	mShutdownTimer = 0.0f;
 	// C# 只有飞行的咖啡豆死亡不影响地面扶梯；其余植物死亡都会拆掉完整占格上的梯子。
 	const PlantType placementType = GetPlacementType();
@@ -184,6 +187,10 @@ bool Plant::CanAcquireZombie(const Zombie* zombie) const
 
 void Plant::Update()
 {
+	// 回暖是真实冻土权威边沿；不依赖来源僵尸更新顺序，当帧先解除再恢复植物动作。
+	if (IsIceSealed() && mBoard && !mBoard->IsCellFrozen(mRow, mColumn)) {
+		ReleaseIceSeal(mIceSealOwnerZombieID);
+	}
 	const bool actionPaused = IsActionPaused();
 	// 串行回退路径也直接跳过 Animator 推进；不要 Pause/Play，否则一次性轨道会被公共结束检查误判。
 	if (actionPaused) mAdvancedInParallel = true;
@@ -240,7 +247,7 @@ bool Plant::IsShutdown() const
 
 bool Plant::IsActionPaused() const
 {
-	return IsShutdown();
+	return IsShutdown() || IsIceSealed();
 }
 
 Vector Plant::GetVisualPosition() const {
@@ -286,7 +293,7 @@ void Plant::ResolveGargantuarSmash()
 
 void Plant::Squish()
 {
-	if (mIsPreview || mIsSquished) return;
+	if (mIsPreview || mIsSquished || IsIceSealed()) return;
 	if (mBoard && GetPlacementType() != PlantType::PLANT_INSTANT_COFFEE) {
 		mBoard->RemoveLadderAt(mRow, mColumn);
 	}
@@ -525,7 +532,7 @@ void Plant::SetPosition(const Vector& position)
 
 void Plant::MoveToGridCell(int row, int column, float visualDuration)
 {
-	if (IsBungeeTargeted()) return;
+	if (IsBungeeTargeted() || IsIceSealed()) return;
 	// 逻辑格和碰撞箱必须在同一帧落到目标格；旧画面位置只作为瞬态绘制偏移保留。
 	const Vector currentVisualBase = GetPosition() + mGridMoveVisualOffset;
 	const Vector target = mBoard
@@ -584,6 +591,7 @@ void Plant::Draw(Graphics* g)
 
 	AnimatedObject::Draw(g);	// 先画本体动画
 	DrawSleepIndicator(g);
+	DrawIceSeal(g);
 	// 劫持者目标提示只做当前格的常数次槽位查询；不为描边另起任何全场逐帧遍历。
 	if (g && !mIsPreview && mBoard
 		&& mBoard->IsPlantThreatenedByNightRoofHijacker(this) && mCollider) {
@@ -612,7 +620,7 @@ void Plant::Draw(Graphics* g)
 
 bool Plant::BeginBungeeGrab(int zombieID)
 {
-	if (mIsPreview || mIsSquished || zombieID == NULL_ZOMBIE_ID
+	if (mIsPreview || mIsSquished || IsIceSealed() || zombieID == NULL_ZOMBIE_ID
 		|| (IsBungeeTargeted() && mBungeeOwnerZombieID != zombieID)) {
 		return false;
 	}
@@ -622,6 +630,77 @@ bool Plant::BeginBungeeGrab(int zombieID)
 	if (mCollider) mCollider->mEnabled = false;
 	if (auto* shadow = GetShadow()) shadow->SetVisible(false);
 	return true;
+}
+
+bool Plant::BeginIceSeal(int ownerZombieID)
+{
+	if (ownerZombieID == NULL_ZOMBIE_ID || mIsPreview || mIsSquished
+		|| IsBungeeTargeted() || !IsActive()
+		|| (IsIceSealed() && mIceSealOwnerZombieID != ownerZombieID)) {
+		return false;
+	}
+	mIceSealOwnerZombieID = ownerZombieID;
+	if (mCollider) mCollider->mEnabled = false;
+	return true;
+}
+
+bool Plant::ReleaseIceSeal(int ownerZombieID)
+{
+	if (!IsIceSealed() || mIceSealOwnerZombieID != ownerZombieID) return false;
+	mIceSealOwnerZombieID = NULL_ZOMBIE_ID;
+	if (mCollider && IsActive() && !mIsSquished && !IsBungeeTargeted()) {
+		mCollider->mEnabled = true;
+	}
+	return true;
+}
+
+bool Plant::TakeIceExecutionDamage(int ownerZombieID, int damage)
+{
+	if (!IsActive() || damage <= 0 || mIceSealOwnerZombieID != ownerZombieID) {
+		return false;
+	}
+	// 通用承伤链会拒绝冰封实体；在同一调用栈暂时释放关系，使本击仍享受正式词条缩放。
+	mIceSealOwnerZombieID = NULL_ZOMBIE_ID;
+	TakeDamage(damage, DamageSource::ZOMBIE);
+	if (IsActive()) {
+		mIceSealOwnerZombieID = ownerZombieID;
+		if (mCollider) mCollider->mEnabled = false;
+	}
+	return true;
+}
+
+bool Plant::ResolveIceExecution(int ownerZombieID)
+{
+	if (!IsActive() || mIceSealOwnerZombieID != ownerZombieID) return false;
+	mIceSealOwnerZombieID = NULL_ZOMBIE_ID;
+	Die();
+	return !IsActive();
+}
+
+void Plant::RestoreIceSeal(int ownerZombieID)
+{
+	mIceSealOwnerZombieID = ownerZombieID >= 0
+		? ownerZombieID : NULL_ZOMBIE_ID;
+	if (mCollider && IsIceSealed()) mCollider->mEnabled = false;
+}
+
+void Plant::DrawIceSeal(Graphics* g)
+{
+	if (!g || mIsPreview || mIsSquished || !IsIceSealed()) return;
+	const Texture* shell = ResourceManager::GetInstance().GetTexture(
+		ResourceKeys::Textures::IMAGE_ICE_STATUE_SHELL, false);
+	if (!shell) return;
+	const Vector anchor = GetVisualAnchorPosition();
+	const float drawX = anchor.x - kIceSealDrawWidth * 0.5f;
+	const float drawY = anchor.y + kIceSealBottomOffsetY - kIceSealDrawHeight;
+	if (g->IsInstancePathEnabled()) {
+		g->DrawTextureInstanced(shell, drawX, drawY,
+			kIceSealDrawWidth, kIceSealDrawHeight);
+	}
+	else {
+		g->DrawTexture(shell, drawX, drawY,
+			kIceSealDrawWidth, kIceSealDrawHeight);
+	}
 }
 
 bool Plant::BeginBungeeLift(int zombieID)

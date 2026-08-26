@@ -403,6 +403,8 @@ namespace ResourceKeys
 		RKEY(IMAGE_ICESHROOM);
 		RKEY(IMAGE_ICEFUMESHROOM);
 		RKEY(IMAGE_ICETRAP);		// 冻结僵尸脚底冰晶（image 根目录 icetrap.png）
+		RKEY(IMAGE_ICE_STATUE_SHELL); // 冰封植物前景壳；无碰撞、只由 Plant 权威状态绘制
+		RKEY(IMAGE_ZOMBIE_ICE_EXECUTIONER_MAUL); // 冰像处刑者替换扶梯锤轨的独立武器
 		RKEY(IMAGE_ICE);			// 冰车铺设的可平铺冰道
 		RKEY(IMAGE_ICE_CAP);		// 冰道左端盖
 		RKEY(IMAGE_CRATER_PART_0);		// 毁灭菇弹坑（crater.png 1行2列分份：0=白天）

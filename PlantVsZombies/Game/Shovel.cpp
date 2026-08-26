@@ -94,7 +94,7 @@ void Shovel::Update()
 	}
 
 	if (input.IsMouseButtonPressed(SDL_BUTTON_LEFT)) {
-		if (mPlant) {
+		if (mPlant && !mPlant->IsIceSealed()) {
 			mPlant->Die();
 			mPlant = nullptr;
 			AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_DELETEPLANT, 0.3f);
@@ -121,10 +121,11 @@ void Shovel::CheckPlant()
 				else {
 					mPlant = pumpkin ? pumpkin : (normal ? normal : under);
 				}
-				if (mPlant) {
+				if (mPlant && !mPlant->IsIceSealed()) {
 					mPlant->SetGlowingTimer(0.1f);
 					return;
 				}
+				mPlant = nullptr;
 			}
 		}
 	}

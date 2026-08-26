@@ -31,6 +31,8 @@ constexpr const char *kUpperStemTrack =
     "Blover_stem1"; // 原版上段茎把铃身挂到下段茎的末端
 constexpr const char *kHeadTrack =
     "Blover_head"; // 原版头部位移/缩放轨承载铃铛头
+constexpr const char *kClapperFollowerSlot =
+    "alarm_bell_clapper"; // 铃舌在头轨上的独立命名 follower 槽
 
 /** 返回区间内平滑启停的 0～1 权重，用于整株退出淡出。 */
 float SmoothStep(float start, float end, float value) {
@@ -173,9 +175,11 @@ void AlarmBellFlower::ConfigureRig() {
   // 铃舌与铃身共用父轨完整仿射变换，摆到极限时也不会脱离铃口。
   mAnimator->SetTrackFollowerImage(
       kHeadTrack,
+      kClapperFollowerSlot,
       resources.GetTexture(
           ResourceKeys::Textures::IMAGE_REANIM_ALARMBELLFLOWER_CLAPPER),
       0.0f, 0.0f, 1.0f, 1.0f, false);
+  mAnimator->SetTrackFollowerVisible(kHeadTrack, kClapperFollowerSlot, true);
   // 两张 120px 分件图共用中心轴；常量抵消 Blover 各轨道首帧的原版绝对位置。
   mAnimator->SetTrackOffset(kBaseTrack, -29.4f, -58.3f);
   mAnimator->SetTrackOffset(kHeadTrack, -13.9f, -8.3f);

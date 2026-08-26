@@ -73,6 +73,7 @@
 #include "../Zombie/IceWallEngineerZombie.h"
 #include "../Zombie/IceCrackDrillZombie.h"
 #include "../Zombie/WeatherJammerZombie.h"
+#include "../Zombie/IceStatueExecutionerZombie.h"
 #include "../Zombie/EliteDancerZombie.h"
 #include "../Zombie/Polevaulter.h"
 #include "../Zombie/DolphinRiderZombie.h"
@@ -390,6 +391,7 @@ namespace {
 		ZT(ZOMBIE_INSULATOR), ZT(ZOMBIE_HIJACKER), ZT(ZOMBIE_HEALER),
 		ZT(ZOMBIE_GROUNDING), ZT(ZOMBIE_BOBSLED_TEAM), ZT(ZOMBIE_ICE_WALL_ENGINEER),
 		ZT(ZOMBIE_ICE_CRACK_DRILL), ZT(ZOMBIE_WEATHER_JAMMER),
+		ZT(ZOMBIE_ICE_STATUE_EXECUTIONER),
 	};
 #undef ZT
 #define PK(n) { #n, PerkType::n }
@@ -1947,6 +1949,46 @@ bool TestDriver::ExecuteCurrent() {
 		Fail("set_ice_crack_drill_state: 未找到目标冰裂钻机");
 		return false;
 	}
+	if (op == "set_ice_executioner_state") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) {
+			Fail("set_ice_executioner_state: 不在 GameScene 或 Board 为空");
+			return false;
+		}
+		Board* board = gs->GetBoard();
+		const int row = cmd.value("row", -1);
+		const int index = cmd.value("index", 0);
+		const int targetRow = cmd.value("targetRow", row);
+		const int targetCol = cmd.value("targetCol", -1);
+		if (targetRow < 0 || targetCol < 0) {
+			Fail("set_ice_executioner_state: 必须提供 targetRow/targetCol");
+			return false;
+		}
+		Plant* target = board->GetNormalPlantAt(targetRow, targetCol);
+		if (!target) target = board->GetPumpkinAt(targetRow, targetCol);
+		if (!target) {
+			Fail("set_ice_executioner_state: 目标格没有普通植物或南瓜");
+			return false;
+		}
+		int seen = 0;
+		std::vector<int> zombieIDs = board->mEntityRegistry.GetAllZombieIDs();
+		std::sort(zombieIDs.begin(), zombieIDs.end());
+		for (const int id : zombieIDs) {
+			auto* executioner = dynamic_cast<IceStatueExecutionerZombie*>(
+				board->mEntityRegistry.GetZombie(id));
+			if (!executioner || !executioner->IsActive()) continue;
+			if (row >= 0 && executioner->mRow != row) continue;
+			if (seen++ != index) continue;
+			if (!executioner->SetExecutionStateForTesting(
+				target, cmd.value("progress", 0))) {
+				Fail("set_ice_executioner_state: 无法建立冰封关系");
+				return false;
+			}
+			return true;
+		}
+		Fail("set_ice_executioner_state: 未找到目标冰像处刑者");
+		return false;
+	}
 	if (op == "interrupt_zombie_special_action"
 		|| op == "apply_winter_corrosion_to_zombie") {
 		GameScene* gs = CurrentGameScene();
@@ -3363,6 +3405,31 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		{ "offsetXInt", static_cast<int>(std::lround(weatherJammerOffset.x)) },
 		{ "offsetYInt", static_cast<int>(std::lround(weatherJammerOffset.y)) },
 	};
+	out["iceStatueExecutionerResources"] = {
+		{ "maulTextureLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_ZOMBIE_ICE_EXECUTIONER_MAUL, false) != nullptr },
+		{ "iceShellTextureLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_ICE_STATUE_SHELL, false) != nullptr },
+		{ "footballHelmetTexturesLoaded",
+			ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_ZOMBIE_FOOTBALL_HELMET, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_ZOMBIE_FOOTBALL_HELMET2, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_ZOMBIE_FOOTBALL_HELMET3, false) != nullptr },
+	};
+	const Vector iceExecutionerOffset = GameDataManager::GetInstance().GetZombieOffset(
+		ZombieType::ZOMBIE_ICE_STATUE_EXECUTIONER);
+	out["iceStatueExecutionerGameData"] = {
+		{ "weight", GameDataManager::GetInstance().GetZombieWeight(
+			ZombieType::ZOMBIE_ICE_STATUE_EXECUTIONER) },
+		{ "appearWave", GameDataManager::GetInstance().GetZombieAppearWave(
+			ZombieType::ZOMBIE_ICE_STATUE_EXECUTIONER) },
+		{ "survivalRound", GameDataManager::GetInstance().GetZombieSurvivalRound(
+			ZombieType::ZOMBIE_ICE_STATUE_EXECUTIONER) },
+		{ "offsetXInt", static_cast<int>(std::lround(iceExecutionerOffset.x)) },
+		{ "offsetYInt", static_cast<int>(std::lround(iceExecutionerOffset.y)) },
+	};
 	out["lightningRodPotResources"] = {
 		{ "reanimationLoaded", ResourceManager::GetInstance().HasReanimation(
 			ResourceKeys::Reanimations::REANIM_LIGHTNINGRODPOT) },
@@ -4719,6 +4786,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				board->GetIceCrackDrillsSpawnedThisWave() },
 			{ "weatherJammersSpawnedThisWave",
 				board->GetWeatherJammersSpawnedThisWave() },
+			{ "iceStatueExecutionersSpawnedThisWave",
+				board->GetIceStatueExecutionersSpawnedThisWave() },
 			{ "typhoonDecayRemaining", board->GetTyphoonStrengthTimer() },
 			{ "windDirection", WindDirectionName(board->GetWindDirection()) },
 			{ "windDirectionRemaining", board->GetWindDirectionTimer() },
@@ -4915,6 +4984,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	bool spawnListHasIceWallEngineer = false;
 	bool spawnListHasIceCrackDrill = false;
 	bool spawnListHasWeatherJammer = false;
+	bool spawnListHasIceStatueExecutioner = false;
 	for (ZombieType t : board->GetSpawnZombieList()) {
 		out["spawnList"].push_back(ZombieTypeName(t));
 		spawnListHasBobsledTeam = spawnListHasBobsledTeam
@@ -4925,12 +4995,15 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			|| t == ZombieType::ZOMBIE_ICE_CRACK_DRILL;
 		spawnListHasWeatherJammer = spawnListHasWeatherJammer
 			|| t == ZombieType::ZOMBIE_WEATHER_JAMMER;
+		spawnListHasIceStatueExecutioner = spawnListHasIceStatueExecutioner
+			|| t == ZombieType::ZOMBIE_ICE_STATUE_EXECUTIONER;
 	}
 	out["spawnTypeCount"] = static_cast<int>(board->GetSpawnZombieList().size());
 	out["spawnListHasBobsledTeam"] = spawnListHasBobsledTeam;
 	out["spawnListHasIceWallEngineer"] = spawnListHasIceWallEngineer;
 	out["spawnListHasIceCrackDrill"] = spawnListHasIceCrackDrill;
 	out["spawnListHasWeatherJammer"] = spawnListHasWeatherJammer;
+	out["spawnListHasIceStatueExecutioner"] = spawnListHasIceStatueExecutioner;
 
 	int charredZombieCount = 0;
 	int zamboniCharredCount = 0;
@@ -6068,6 +6141,32 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			zombieState["interruptibleSpecialRemainingMs"] = static_cast<int>(std::lround(
 				jammer->GetInterruptibleSpecialActionRemaining() * 1000.0f));
 		}
+		if (auto* executioner = dynamic_cast<IceStatueExecutionerZombie*>(z)) {
+			const char* phase = "READY";
+			switch (executioner->GetExecutionPhase()) {
+			case IceStatueExecutionerZombie::ExecutionPhase::READY:
+				break;
+			case IceStatueExecutionerZombie::ExecutionPhase::EXECUTING:
+				phase = "EXECUTING";
+				break;
+			case IceStatueExecutionerZombie::ExecutionPhase::SPENT:
+				phase = "SPENT";
+				break;
+			}
+			zombieState["executionPhase"] = phase;
+			zombieState["executionTargetPlantID"] =
+				executioner->GetExecutionTargetPlantID();
+			zombieState["executionProgress"] = executioner->GetExecutionProgress();
+			zombieState["executionUsed"] = executioner->HasUsedExecution();
+			zombieState["executionHelmetStage"] = static_cast<int>(
+				executioner->GetHelmetStage());
+			zombieState["executionHelmetFollowerVisible"] =
+				executioner->HasHelmetFollower();
+			const float remaining = executioner->GetInterruptibleSpecialActionRemaining();
+			zombieState["interruptibleSpecialRemainingMs"] = remaining < 0.0f
+				? -1 : (remaining >= 100000.0f ? std::numeric_limits<int>::max()
+					: static_cast<int>(std::lround(remaining * 1000.0f)));
+		}
 		// 专项脚本中的异品种靶子可按语义类型稳定取证；同品种多只时仍使用 zombies 全量数组。
 		out["zombiesByType"][ZombieTypeName(z->mZombieType)] = zombieState;
 		out["zombies"].push_back(std::move(zombieState));
@@ -6286,6 +6385,10 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "shutdown", p->IsShutdown() },
 			{ "shutdownTimerMs", static_cast<int>(std::lround(
 				p->GetShutdownTimeRemaining() * 1000.0f)) },
+			{ "iceSealed", p->IsIceSealed() },
+			{ "iceSealOwnerZombieID", p->GetIceSealOwnerZombieID() },
+			{ "colliderEnabled", p->GetColliderComponent()
+				&& p->GetColliderComponent()->mEnabled },
 			{ "bungeeState", PlantBungeeStateName(p->GetBungeeState()) },
 			{ "bungeeOwnerZombieID", p->GetBungeeOwnerZombieID() },
 			{ "canBeTargetedByBungee", p->CanBeTargetedByBungee() },
@@ -6666,6 +6769,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["particleEffectNameCounts"]["ZombieEliteDiggerArmOff"] = 0;
 	out["particleEffectNameCounts"]["ZombieEliteDiggerHeadLight"] = 0;
 	out["particleEffectNameCounts"]["ZombiePinkFootballOff"] = 0;
+	out["particleEffectNameCounts"]["ZombieFootballOff"] = 0;
+	out["particleEffectNameCounts"]["ZombieIceExecutionerHelmetOff"] = 0;
 	out["particleEffectNameCounts"]["ZombieElitePogo"] = 0;
 	out["particleEffectNameCounts"]["ZombieEliteLadder"] = 0;
 	out["particleEffectNameCounts"]["ZombieLadder"] = 0;
