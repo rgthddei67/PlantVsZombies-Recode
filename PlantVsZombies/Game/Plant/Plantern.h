@@ -41,6 +41,8 @@ public:
 	float GetFuel() const { return mFuel; }
 	float GetFuelRatio() const { return mFuel / FUEL_CAPACITY; }
 	float GetPendingFuel() const { return mPendingFuel; }
+	/** 返回当前波次实际采用的并发雾火接收上限（含生存词条倍率）。 */
+	float GetWaveIntakeLimit() const;
 	/** 返回当前挡位在当前波次的每游戏秒燃料消耗。 */
 	float GetCurrentBurnRate() const;
 	PlanternGear GetGear() const { return mGear; }

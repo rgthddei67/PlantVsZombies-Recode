@@ -1,6 +1,6 @@
 ---
 name: project_pvz_perk_system
-description: 生存模式统一 SurvivalPerkManager；2026-07-18 共10词条(6植物增益+4僵尸诅咒)，每轮有2次独立随机正负配对机会且每次可选择或放弃；查看面板、字符串key存档和AutoTest均已接入
+description: 生存模式统一 SurvivalPerkManager；2026-08-27 共18词条(10植物增益+8僵尸诅咒)，支持地图条件与固定概率稀有面板；每轮2次随机正负配对、查看面板、字符串key存档和AutoTest均已接入
 metadata:
   node_type: memory
   type: project
@@ -70,3 +70,10 @@ metadata:
 **2026-07-19 词条页退出后重复选卡修复**：轮清时 `Board::OnSurvivalRoundClear()` 已把状态切成 `CHOOSE_CARD`，但旧实现直到两次词条选择结束后的 `BeginSurvivalCardSelect()` 才快照冷却并清空上一轮卡槽。因此玩家在词条页点 X 时，`GameScene::OnExit()` 会合法保存 `CHOOSE_CARD`，`GameInfoSaver` 又无条件序列化仍在 `CardSlotManager` 的上一轮卡牌；重进跳过临时词条 UI 后，读档先恢复旧卡，新的选卡再追加，形成两套卡牌。修复三层契约：① `BeginSurvivalPerkSelect()` 提前捕获冷却快照，卡槽仍按原时机在 `BeginSurvivalCardSelect()` 清空；② `SaveLevelData` 仅在 `GAME` 序列化已提交卡组，`CHOOSE_CARD` 固定写空数组；③ `LoadLevelData` 遇到生存 `CHOOSE_CARD` 时不恢复历史 `cards`，但在显式 `survivalCardCooldowns` 为空时迁移旧卡中的冷却进度，使已经落盘的问题档也能直接恢复且不丢冷却。`cmake --preset clang-release` 与 `cmake --build --preset clang-release` 已通过。主人要求本次不运行 AutoTest，由主人手动验收。
 
 **2026-07-20 阵营增伤按伤害来源结算**：主人指出把僵尸增伤留在 `Zombie::EatTarget` 会漏掉未来非啃食攻击，同时把植物增伤无条件放在 `Zombie::TakeDamage` 又会误放大僵尸互啃、环境和测试直伤。新增必填 `DamageSource { PLANT, ZOMBIE, OTHER }`，`Plant::TakeDamage` 只对 `ZOMBIE` 来源应用 `ScaleZombieDamage`，`Zombie::TakeDamage` 只对 `PLANT` 来源应用 `ScalePlantDamage`；植物韧性和僵尸免伤仍作用于所有来源。所有生产调用点均显式分类，API 不设默认来源，让未来漏标在编译期失败。AutoTest 新增 `damage_plant`，并给两种 damage 命令增加 `source`；`smoke_perks_damage_sources.json` 精确闭合验证 3900/3750 与 170/134，真实啃食 `smoke_perks_zombiedmg` 追加核桃 2875 HP 断言。Release 完整重编通过；来源隔离、zombiedmg、balance、既有 perks 四条可见 AutoTest 均退出 0 且日志 `script finished OK`。
+
+**2026-08-27 机制词条扩展（18 项）**：`PerkInfo` 新增彼此独立的 `PerkRarity` 与 `PerkCondition`；`PerkOfferContext` 从当前地图注入路灯花机制准入。普通池仍做随机正负笛卡尔配对；每块三选面板只掷一次固定 1.5% 稀有判定，命中时最多出现一个稀有植物词条，目录扩张不会抬高总概率；普通植物全满但稀有仍可用时强制稀有，避免空面板。UI 与查看页用 `[稀有]`、`[迷雾]` 标签，但正式流程不显示概率。
+
+- 植物侧：`PLANT_MIST_REFINING`（迷雾专属，两层内每层使雾火单份价值与本波并发接收上限 +50%，仓储容量仍 100）；`PLANT_CORROSIVE_TOXIN`（稀有，毒层 DPS 取 `max(5, 最大可计生命×0.1%)`，不吃全局植物增伤但仍过僵尸免伤）；`PLANT_UNYIELDING_ROOTS`（稀有，每株每个生存轮首次 `Plant::TakeDamage` 致命伤留 1 HP 并免普通伤害 3 秒，碾压/铲除/蹦极/处决/自我退场不触发）；`PLANT_DAMAGE_ECHO`（Board 共享第 10 次实际植物伤害命中使该击翻倍，免费免伤不计且灰烬排除）。
+- 僵尸侧：`ZOMBIE_FOG_BREAKOUT`（迷雾专属，一生首次由浓雾转可见时清慢/冻/黄油/麻痹并免控 3 秒）；`ZOMBIE_DEATH_RELAY`（敌对死亡给同排最靠房屋且仍活动的友方前锋 1 次免费受击）；`ZOMBIE_DEVOUR_REPAIR`（亲口吃死植物时修满仍存在的本体/头盔/盾，不复活装备）；`ZOMBIE_ARMOR_BREAK_RUSH`（一生首次标准头盔或盾被打碎时解控免控 5 秒、动作/移动 +60%，魅惑取消收益）。
+- 状态与存档：不屈根系的每株已消费/免伤计时、三种僵尸一生状态/加速计时、Board 十击计数均持久化；根系在 `OnSurvivalRoundClear` 按轮重置，十击计数进入新棋盘清零后由读档覆盖。毒层仍复用原有二十层计时存档。
+- 验证：`clang-release` 构建及 Win7 378 项 import 审计通过；`smoke_survival_perk_expansion`、`smoke_survival_perk_fog_and_toxin` 在默认与 `-NoInstance` 均通过，后者成对锁定路灯花 0 层 10/45 与 2 层 20/90、红眼巨人二十层毒 2 秒基础约 200 与腐蚀约 240。既有 `smoke_toxic_peashooter`、`smoke_perk_select` 通过，三项 CTest 全绿。`smoke_plantern_fuel_curve` 与本次相关的基础燃料曲线、预算、上限、燃烧断言均通过，但后续进入关卡 31 时旧断言 `maxWave=30` 与当前 20 不符而退出 1；本次未改该无关波数口径。

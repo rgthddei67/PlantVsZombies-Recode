@@ -176,7 +176,7 @@
 - [注册式工厂 ✅#1](project_pvz_factory_registry.md) — 2026-05-31消除两Instantiate switch→GameDataManager数据驱动(函数指针factory字段);函数指针非std::function/集中注册;指引在InitializeHardcodedData顶部
 - [僵尸按行与稀有品种索引 ✅](project_pvz_zombie_row_index.md) — 2026-08-12 EntityRegistry加ForEachZombieInRow替GetAllZombieIDs全表扫；通用桶惰性每帧重建承接任意换行，同帧新增会置脏；黄色冰道与屋脊督军血条使用品种专用弱索引，逐帧稀有类型查询不得扫描全体；foot-gun=取全集或全表按类型过滤
 - [vcpkg缓存删除代价](feedback_vcpkg_cache_deletion.md) — vcpkg-master整目录不能删(toolchainFile指向);"可再生"≠"删了免费"(重装全量联网);清缓存前确认不reconfigure
-- [生存词条系统](project_pvz_perk_system.md) — 2026-07-20 共10词条(6植4僵)：阵营增伤由必填 `DamageSource` 在双方 `TakeDamage` 按来源结算，承伤词条仍覆盖所有来源；每轮2次独立选择，共享3次整批刷新；词条页退出存档避免重进叠卡
+- [生存词条系统](project_pvz_perk_system.md) — 2026-08-27 共18词条(10植8僵)：新增地图条件、固定1.5%稀有面板预算及8个机制词条；迷雾精炼/突围、百分比毒液、每轮致命伤保命、十击回响、死亡接力、吞噬修复、破甲狂潮均接入正式状态与存档链
 - [资产/worktree/AutoTest坑](reference_pvz_assets_worktree_autotest_gotchas.md) — ①clang-release持有单份resources/font，debug/noavx2用Junction；新worktree只需补一次权威原版资产 ②AutoTest wait字段名是"value"非frames ③状态切换后settle>30帧 ④蘑菇夜测goto 10-18 ⑤产阳光验证看dump sun字段
 - [Animator三层速度模型 ✅push](project_pvz_animator_clip_speed.md) — 2026-06-07(e74bc76)EffectiveSpeed=(clip!=0?clip:base)*extra;clip绝对覆盖(非乘数)/0回落base;删mOriginalSpeed两步舞;存档animClipSpeed
 - [跨平台phase-1审查 ✅push](project_pvz_xplat_phase1_review.md) — 2026-06-25 FF合master(b3ff1da);load_file×2收编走FileManager;**目录枚举×2留phase-3(SDL/AAssetManager无列举API)**

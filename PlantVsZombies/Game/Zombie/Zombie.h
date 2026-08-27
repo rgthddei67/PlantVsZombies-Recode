@@ -84,6 +84,11 @@ protected:
 	bool mIsPreview = false;
 	float mMistFuelReward = 0.0f; // 正式波次出生时预分配的雾火；召唤物、预览与直造默认 0
 	bool mMistFuelRewardClaimed = false; // 死亡结算防重入；随实体存档避免读档重复领取
+	bool mFogBreakoutObserved = false; // 是否已建立首次雾区状态，避免出生首帧误触发
+	bool mWasObscuredByFog = false; // 上一帧是否处于浓雾索敌阈值内
+	bool mFogBreakoutTriggered = false; // 一生一次的雾幕突围是否已消费
+	bool mArmorBreakRushSpent = false; // 一生一次的破甲狂潮是否已消费
+	float mArmorBreakRushTimer = 0.0f; // 破甲狂潮行动加速剩余游戏秒
 
 	int mGoldenIceEffectStacks = 0;	// 当前黄色冰道速度场层数；由仍存活的铺路者与持久冰道实时派生，不入存档
 
@@ -314,6 +319,8 @@ public:
 	bool HasArm() const { return this->mHasArm; }
 	/** 返回处决机制统一使用的当前生命：本体、一类防具与二类护盾；飞行额外生命不计。 */
 	int GetCountableExecutionHealth() const;
+	/** 返回本体、头盔与护盾的最大可计生命总和，饱和到 int 上限。 */
+	int GetCountableMaxHealth() const;
 	/** 以本品种正常死亡表现结算劫持者处决；无死亡轨道的品种沿用自身立即死亡入口。 */
 	virtual void TakeHijackerExecution();
 	LadderClimbPhase GetLadderClimbPhase() const { return mLadderClimbPhase; }
@@ -424,6 +431,9 @@ public:
 	int GetToxinLayerCount() const;
 	float GetToxinMaxRemaining() const;
 	float GetToxinDamageRemainder() const;
+	bool HasTriggeredFogBreakout() const { return mFogBreakoutTriggered; }
+	bool HasSpentArmorBreakRush() const { return mArmorBreakRushSpent; }
+	float GetArmorBreakRushTimeRemaining() const { return mArmorBreakRushTimer; }
 	bool IsGoldenIceSpeedActive() const { return mGoldenIceEffectStacks > 0; }
 	int GetGoldenIceEffectStacks() const { return mGoldenIceEffectStacks; }
 	/** 同时清除减速与冻结，并恢复当前天气/能力组合后的动画速度。 */
@@ -538,6 +548,12 @@ protected:
 	void ClearFrozen();
 	/** 按未减速的游戏时间推进毒层，并沿普通投射物伤害链结算。 */
 	void UpdateToxin(float deltaTime);
+	/** 推进迷雾突围与破甲狂潮的生存词条实体状态。 */
+	void UpdateSurvivalPerkStates(float deltaTime);
+	/** 首次破坏任一防具层时原子触发解控、免控和行动加速。 */
+	void TriggerArmorBreakRush();
+	/** 亲口吃掉植物后修复仍存在的生命层，不复活已掉落装备。 */
+	void RepairExistingHealthLayers();
 	/** 统一应用魅惑、寒冷和中毒共享的 Animator overlay 优先级。 */
 	void UpdateStatusOverlay();
 

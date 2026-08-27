@@ -402,7 +402,10 @@ namespace {
 		PK(PLANT_DAMAGE_UP), PK(ZOMBIE_HEALTH_UP), PK(ZOMBIE_DAMAGE_RESIST),
 		PK(ZOMBIE_DAMAGE_UP), PK(ZOMBIE_INVULN_HITS), PK(PLANT_REGEN),
 		PK(PLANT_ATTACK_SPEED), PK(PLANT_DAMAGE_REDUCTION), PK(PLANT_SUN_BONUS),
-		PK(PLANT_CARD_RECHARGE),
+		PK(PLANT_CARD_RECHARGE), PK(PLANT_MIST_REFINING),
+		PK(PLANT_CORROSIVE_TOXIN), PK(PLANT_UNYIELDING_ROOTS),
+		PK(PLANT_DAMAGE_ECHO), PK(ZOMBIE_FOG_BREAKOUT), PK(ZOMBIE_DEATH_RELAY),
+		PK(ZOMBIE_DEVOUR_REPAIR), PK(ZOMBIE_ARMOR_BREAK_RUSH),
 	};
 #undef PK
 	const std::unordered_map<std::string, BoardState> kBoardStateNames = {
@@ -1765,6 +1768,30 @@ bool TestDriver::ExecuteCurrent() {
 			cmd.value("progress", 0.0f));
 		return true;
 	}
+	if (op == "reserve_plantern_fuel") {
+		GameScene* gs = CurrentGameScene();
+		const float amount = cmd.value("value", 0.0f);
+		Plantern* plantern = gs && gs->GetBoard()
+			? gs->GetBoard()->GetActivePlantern() : nullptr;
+		if (!plantern || !std::isfinite(amount) || amount <= 0.0f) {
+			Fail("reserve_plantern_fuel: value 必须为正，且场上必须有路灯花");
+			return false;
+		}
+		plantern->ReserveFuel(amount);
+		return true;
+	}
+	if (op == "deliver_plantern_fuel") {
+		GameScene* gs = CurrentGameScene();
+		const float amount = cmd.value("value", 0.0f);
+		Plantern* plantern = gs && gs->GetBoard()
+			? gs->GetBoard()->GetActivePlantern() : nullptr;
+		if (!plantern || !std::isfinite(amount) || amount <= 0.0f) {
+			Fail("deliver_plantern_fuel: value 必须为正，且场上必须有路灯花");
+			return false;
+		}
+		plantern->DeliverReservedFuel(amount);
+		return true;
+	}
 	if (op == "set_gloomshroom_shoot_cycle") {
 		GameScene* gs = CurrentGameScene();
 		if (!gs || !gs->GetBoard()) {
@@ -2632,6 +2659,42 @@ bool TestDriver::ExecuteCurrent() {
 		if (!gs || !gs->GetBoard()) { Fail("survival_perk_open: 不在 GameScene 或 Board 为空"); return false; }
 		if (!gs->GetBoard()->mIsSurvival) { Fail("survival_perk_open: 非生存关"); return false; }
 		gs->BeginSurvivalPerkSelect();
+		return true;
+	}
+	if (op == "apply_toxin_stacks") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) {
+			Fail("apply_toxin_stacks: 不在 GameScene 或 Board 为空");
+			return false;
+		}
+		const int row = cmd.value("row", -1);
+		const int index = cmd.value("index", 0);
+		const int count = cmd.value("count", 1);
+		if (count < 1 || count > 20) {
+			Fail("apply_toxin_stacks: count 必须在 1～20");
+			return false;
+		}
+		int seen = 0;
+		std::vector<int> zombieIDs = gs->GetBoard()->mEntityRegistry.GetAllZombieIDs();
+		std::sort(zombieIDs.begin(), zombieIDs.end());
+		for (int id : zombieIDs) {
+			Zombie* zombie = gs->GetBoard()->mEntityRegistry.GetZombie(id);
+			if (!zombie || !zombie->IsActive()) continue;
+			if (row >= 0 && zombie->mRow != row) continue;
+			if (seen++ != index) continue;
+			for (int stack = 0; stack < count; ++stack) zombie->ApplyToxinStack();
+			return true;
+		}
+		Fail("apply_toxin_stacks: 未找到目标僵尸");
+		return false;
+	}
+	if (op == "set_next_survival_perk_rare") {
+		GameScene* gs = CurrentGameScene();
+		if (!gs || !gs->GetBoard()) {
+			Fail("set_next_survival_perk_rare: 不在 GameScene 或 Board 为空");
+			return false;
+		}
+		gs->SetNextPerkRareRollOverrideForTesting(cmd.value("enabled", true) ? 1 : 0);
 		return true;
 	}
 	if (op == "survival_perk_pick") {
@@ -4918,7 +4981,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				board->GetMistFuelScarcityFactor() * 100.0f)) },
 			{ "rewardAmount", board->GetMistFuelRewardAmount() },
 			{ "waveBudget", board->GetMistFuelWaveBudget() },
-			{ "intakeLimit", board->GetMistFuelWaveBudget() },
+			{ "intakeLimit", plantern ? static_cast<int>(std::lround(
+				plantern->GetWaveIntakeLimit())) : board->GetMistFuelWaveBudget() },
 			{ "baseCarrierChancePct", static_cast<int>(std::lround(
 				board->GetMistFuelBaseCarrierChance() * 100.0f)) },
 			{ "heavyCarrierBonusPct", static_cast<int>(std::lround(
@@ -5623,6 +5687,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "canBeKilledByMower", z->CanBeKilledByMower() },
 			{ "resistsTangleKelpDrowning", z->ResistsTangleKelpDrowning() },
 			{ "countableExecutionHealth", z->GetCountableExecutionHealth() },
+			{ "countableMaxHealth", z->GetCountableMaxHealth() },
 			{ "hijackerDoomed", board->IsZombieThreatenedByNightRoofHijacker(z) },
 			{ "groundHazardEligible", z->CanBeAffectedByGroundHazards() },
 			{ "canBeParalyzed", z->CanBeParalyzed() },
@@ -5647,6 +5712,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "fireResistant", z->IsFireResistant() },
 			{ "mindControlled", z->IsMindControlled() },
 			{ "mistFuelReward", static_cast<int>(std::lround(z->GetMistFuelReward())) },
+			{ "fogObscured", board->IsZombieObscuredByFog(z) },
 			{ "inPool", z->IsInPool() },
 			{ "isEating", z->IsEating() },
 			{ "isDying", z->IsDying() },
@@ -5723,6 +5789,10 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "goldenIceSpeedActive", z->IsGoldenIceSpeedActive() },
 			{ "goldenIceEffectStacks", z->GetGoldenIceEffectStacks() },
 			{ "freeHitsRemaining", z->mFreeHitsRemaining },
+			{ "fogBreakoutTriggered", z->HasTriggeredFogBreakout() },
+			{ "armorBreakRushSpent", z->HasSpentArmorBreakRush() },
+			{ "armorBreakRushTimerMs", static_cast<int>(std::lround(
+				z->GetArmorBreakRushTimeRemaining() * 1000.0f)) },
 			{ "bodyHitFlashing", z->IsBodyHitFlashing() },
 			{ "shieldHitFlashing", z->IsShieldHitFlashing() },
 			{ "bodyTrackGlowing", bodyTrackGlowing },
@@ -6590,6 +6660,9 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "renderOrder", p->GetRenderOrder() },
 			{ "renderLayer", static_cast<int>(p->GetLayer()) },
 			{ "health", p->mPlantHealth }, { "maxHealth", p->mPlantMaxHealth },
+			{ "unyieldingRootsSpent", p->HasSpentUnyieldingRoots() },
+			{ "unyieldingRootsTimerMs", static_cast<int>(std::lround(
+				p->GetUnyieldingRootsTimeRemaining() * 1000.0f)) },
 			{ "eaterCount", p->mEaterCount },
 			{ "canBeEaten", p->CanBeEaten() },
 			{ "sleeping", p->GetSleepState() },
@@ -7627,6 +7700,14 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		stacks["PLANT_DAMAGE_REDUCTION"] = pm.GetStacks(PerkType::PLANT_DAMAGE_REDUCTION);
 		stacks["PLANT_SUN_BONUS"]        = pm.GetStacks(PerkType::PLANT_SUN_BONUS);
 		stacks["PLANT_CARD_RECHARGE"]    = pm.GetStacks(PerkType::PLANT_CARD_RECHARGE);
+		stacks["PLANT_MIST_REFINING"]    = pm.GetStacks(PerkType::PLANT_MIST_REFINING);
+		stacks["PLANT_CORROSIVE_TOXIN"]  = pm.GetStacks(PerkType::PLANT_CORROSIVE_TOXIN);
+		stacks["PLANT_UNYIELDING_ROOTS"] = pm.GetStacks(PerkType::PLANT_UNYIELDING_ROOTS);
+		stacks["PLANT_DAMAGE_ECHO"]      = pm.GetStacks(PerkType::PLANT_DAMAGE_ECHO);
+		stacks["ZOMBIE_FOG_BREAKOUT"]    = pm.GetStacks(PerkType::ZOMBIE_FOG_BREAKOUT);
+		stacks["ZOMBIE_DEATH_RELAY"]     = pm.GetStacks(PerkType::ZOMBIE_DEATH_RELAY);
+		stacks["ZOMBIE_DEVOUR_REPAIR"]   = pm.GetStacks(PerkType::ZOMBIE_DEVOUR_REPAIR);
+		stacks["ZOMBIE_ARMOR_BREAK_RUSH"] = pm.GetStacks(PerkType::ZOMBIE_ARMOR_BREAK_RUSH);
 		nlohmann::json perks;
 		perks["stacks"]              = stacks;
 		perks["zombieHealthMult"]    = pm.GetZombieHealthMultiplier();
@@ -7646,6 +7727,19 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		double rechargeMult = pm.GetPlantCardRechargeMultiplier();
 		perks["plantCardRechargeMult"] = rechargeMult;
 		perks["cardRechargeOn1000"] = static_cast<int>(1000.0 / rechargeMult + 0.5);
+		perks["mistFuelMultiplierPct"] = static_cast<int>(std::lround(
+			pm.GetMistFuelMultiplier() * 100.0));
+		perks["plantDamageEchoHitCounter"] = board->GetPlantDamageEchoHitCounter();
+		PerkOfferContext eligibilityContext;
+		eligibilityContext.supportsPlanternMechanics = board->SupportsPlanternMechanics();
+		const auto eligiblePlants = pm.AvailablePerks(
+			PerkCategory::PLANT_BUFF, eligibilityContext, PerkRarity::COMMON);
+		const auto eligibleZombies = pm.AvailablePerks(
+			PerkCategory::ZOMBIE_CURSE, eligibilityContext, PerkRarity::COMMON);
+		perks["mistRefiningEligible"] = std::find(eligiblePlants.begin(), eligiblePlants.end(),
+			PerkType::PLANT_MIST_REFINING) != eligiblePlants.end();
+		perks["fogBreakoutEligible"] = std::find(eligibleZombies.begin(), eligibleZombies.end(),
+			PerkType::ZOMBIE_FOG_BREAKOUT) != eligibleZombies.end();
 		out["perks"] = perks;
 	}
 
@@ -7660,13 +7754,27 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		psel["refreshesRemaining"] = gs->GetPerkRefreshesRemaining();
 		psel["maxRefreshes"] = GameScene::SURVIVAL_PERK_REFRESHES_PER_ROUND;
 		nlohmann::json offers = nlohmann::json::array();
+		int rarePlantOfferCount = 0;
+		int conditionalOfferCount = 0;
 		for (const PerkPairing& pr : gs->GetCurrentPerkOffer()) {
+			const PerkInfo& plantInfo = SurvivalPerkManager::GetInfo(pr.plant);
+			const PerkInfo& zombieInfo = SurvivalPerkManager::GetInfo(pr.zombie);
+			if (plantInfo.rarity == PerkRarity::RARE) ++rarePlantOfferCount;
+			if (plantInfo.condition != PerkCondition::NONE
+				|| zombieInfo.condition != PerkCondition::NONE) ++conditionalOfferCount;
 			offers.push_back({
-				{ "plant",  SurvivalPerkManager::GetInfo(pr.plant).key },
-				{ "zombie", SurvivalPerkManager::GetInfo(pr.zombie).key },
+				{ "plant", plantInfo.key },
+				{ "zombie", zombieInfo.key },
+				{ "plantRare", plantInfo.rarity == PerkRarity::RARE },
+				{ "plantCondition", plantInfo.condition == PerkCondition::PLANTERN_MECHANICS
+					? "PLANTERN_MECHANICS" : "NONE" },
+				{ "zombieCondition", zombieInfo.condition == PerkCondition::PLANTERN_MECHANICS
+					? "PLANTERN_MECHANICS" : "NONE" },
 			});
 		}
 		psel["offers"] = offers;
+		psel["rarePlantOfferCount"] = rarePlantOfferCount;
+		psel["conditionalOfferCount"] = conditionalOfferCount;
 		out["perkSelect"] = psel;
 	}
 

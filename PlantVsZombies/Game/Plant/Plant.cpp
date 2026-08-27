@@ -138,6 +138,7 @@ void Plant::UpdateParallel(std::vector<DeferredEvent>& outBuf)
 
 void Plant::TakeDamage(int damage, DamageSource source) {
 	if (mIsPreview || mIsSquished || IsBungeeTargeted() || IsIceSealed()) return;
+	if (damage <= 0 || mUnyieldingRootsTimer > 0.0f) return;
 	// 僵尸增伤只放大僵尸来源；植物韧性则对所有实际承伤生效。两者均在 0 层返回单位元。
 	int scaledDamage = damage;
 	if (mBoard) {
@@ -145,6 +146,16 @@ void Plant::TakeDamage(int damage, DamageSource source) {
 			scaledDamage = mBoard->GetPerkManager().ScaleZombieDamage(scaledDamage);
 		}
 		scaledDamage = mBoard->GetPerkManager().ScaleDamageToPlant(scaledDamage);
+	}
+	if (mBoard && !mUnyieldingRootsSpent
+		&& mBoard->GetPerkManager().HasUnyieldingRoots()
+		&& scaledDamage >= mPlantHealth && mPlantHealth > 0) {
+		mPlantHealth = 1;
+		mUnyieldingRootsSpent = true;
+		mUnyieldingRootsTimer = SurvivalPerkManager::GetInfo(
+			PerkType::PLANT_UNYIELDING_ROOTS).perStack;
+		SetGlowingTimer(0.1f);
+		return;
 	}
 	mPlantHealth -= scaledDamage;
 	SetGlowingTimer(0.1f);
@@ -180,6 +191,19 @@ void Plant::Die() {
 	GameObjectManager::GetInstance().DestroyGameObject(this);
 }
 
+void Plant::ResetUnyieldingRootsForRound()
+{
+	mUnyieldingRootsSpent = false;
+	mUnyieldingRootsTimer = 0.0f;
+}
+
+void Plant::RestoreUnyieldingRootsState(bool spent, float remainingSeconds)
+{
+	mUnyieldingRootsSpent = spent;
+	mUnyieldingRootsTimer = std::isfinite(remainingSeconds)
+		? std::clamp(remainingSeconds, 0.0f, 30.0f) : 0.0f;
+}
+
 bool Plant::CanAcquireZombie(const Zombie* zombie) const
 {
 	return zombie && zombie->CanBeTargetedByProjectile(false);
@@ -187,6 +211,10 @@ bool Plant::CanAcquireZombie(const Zombie* zombie) const
 
 void Plant::Update()
 {
+	if (!mIsPreview && mUnyieldingRootsTimer > 0.0f) {
+		mUnyieldingRootsTimer = std::max(
+			0.0f, mUnyieldingRootsTimer - DeltaTime::GetDeltaTime());
+	}
 	// 回暖是真实冻土权威边沿；不依赖来源僵尸更新顺序，当帧先解除再恢复植物动作。
 	if (IsIceSealed() && mBoard && !mBoard->IsCellFrozen(mRow, mColumn)) {
 		ReleaseIceSeal(mIceSealOwnerZombieID);

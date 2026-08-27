@@ -931,6 +931,7 @@ Board::Board(BoardPresentation* presentation, Background background, int level)
 	mLevel = level;
 	mBackGround = background;
 	mIsSurvival = IsSurvivalEndlessLevel(level);
+	mPlantDamageEchoHitCounter = 0; // 每次进入新棋盘都清掉旧局的十连击进度，读档随后按存档覆盖。
 
 	if (mLevel >= 1)
 	{
@@ -5093,6 +5094,16 @@ float Board::GetFogCellAlpha(int row, int col) const
 		? mFogCellAlpha[index] : 0.0f;
 }
 
+bool Board::IsZombieObscuredByFog(const Zombie* zombie) const
+{
+	if (!zombie || !SupportsPlanternMechanics() || mColumns <= 0) return false;
+	const int column = std::clamp(static_cast<int>(
+		(zombie->GetPosition().x - CELL_INITALIZE_POS_X) / CELL_COLLIDER_SIZE_X),
+		0, mColumns - 1);
+	const int row = std::clamp(zombie->mRow, 0, mRows - 1);
+	return GetFogCellAlpha(row, column) > kFogTargetingAlphaThreshold;
+}
+
 Plantern* Board::GetActivePlantern() const
 {
 	Plant* plant = mEntityRegistry.GetPlant(mActivePlanternID);
@@ -5241,7 +5252,8 @@ void Board::CollectMistFuelFromZombie(Zombie* zombie)
 {
 	if (!zombie || !SupportsPlanternMechanics()
 		|| zombie->IsMindControlled()) return;
-	const float reward = zombie->ClaimMistFuelReward();
+	const float reward = zombie->ClaimMistFuelReward()
+		* static_cast<float>(mPerkManager.GetMistFuelMultiplier());
 	if (reward <= 0.0f) return;
 
 	Plantern* plantern = GetActivePlantern();
@@ -5253,6 +5265,26 @@ void Board::CollectMistFuelFromZombie(Zombie* zombie)
 		LAYER_EFFECTS, this,
 		zombie->GetVisualPosition() + Vector(0.0f, -24.0f),
 		plantern->mPlantID, accepted);
+}
+
+void Board::RelayZombieDeathWard(const Zombie* source)
+{
+	if (!source || !mPerkManager.HasZombieDeathRelay()
+		|| source->IsMindControlled()) return;
+	Zombie* recipient = nullptr;
+	for (int zombieID : mEntityRegistry.GetAllZombieIDs()) {
+		Zombie* candidate = mEntityRegistry.GetZombie(zombieID);
+		if (!candidate || candidate == source || !candidate->IsActive()
+			|| candidate->IsDying() || candidate->IsMindControlled()
+			|| candidate->mRow != source->mRow) continue;
+		if (!recipient || candidate->GetPosition().x < recipient->GetPosition().x
+			|| (candidate->GetPosition().x == recipient->GetPosition().x
+				&& candidate->mZombieID < recipient->mZombieID)) {
+			recipient = candidate;
+		}
+	}
+	if (recipient) recipient->mFreeHitsRemaining = std::max(
+		recipient->mFreeHitsRemaining, 1);
 }
 
 bool Board::SetPlanternFuelForTesting(float fuel)
@@ -8205,6 +8237,12 @@ void Board::GameOver()
 void Board::OnSurvivalRoundClear()
 {
 	if (!mIsSurvival) return;
+	for (int plantID : mEntityRegistry.GetAllPlantIDs()) {
+		if (Plant* plant = mEntityRegistry.GetPlant(plantID);
+			plant && plant->IsActive() && !plant->IsSquished()) {
+			plant->ResetUnyieldingRootsForRound();
+		}
+	}
 
 	// 推进轮次并重置本轮波次状态（轮次单列在 mSurvivalRound）
 	mSurvivalRound++;
@@ -8330,6 +8368,19 @@ void Board::UpdateSurvivalLevelName()
 	const std::string label = definition ? definition->label : u8"未知无尽";
 	mLevelName = std::string(u8"生存模式：") + label + u8" 第"
 		+ std::to_string(mSurvivalRound) + u8"轮";
+}
+
+bool Board::ConsumePlantDamageEchoHit()
+{
+	if (!mPerkManager.HasPlantDamageEcho()) {
+		mPlantDamageEchoHitCounter = 0;
+		return false;
+	}
+	constexpr int kDamageEchoHitInterval = 10; // 每十次实际植物伤害命中触发一次同目标回响
+	++mPlantDamageEchoHitCounter;
+	if (mPlantDamageEchoHitCounter < kDamageEchoHitInterval) return false;
+	mPlantDamageEchoHitCounter = 0;
+	return true;
 }
 
 void Board::LoadSpawnListFromJson()

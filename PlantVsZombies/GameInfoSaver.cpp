@@ -299,6 +299,7 @@ bool GameInfoSaver::SerializeLevelDataToPath(Board* board, CardSlotManager* mana
 		nlohmann::json perks;                    // 不直接写 j["perks"]：operator[] 会先物化成 null
 		board->GetPerkManager().Save(perks);     // 零词条时 Save 不写任何键 → perks 仍为 null
 		if (!perks.is_null()) j["perks"] = perks;   // 仅有词条时才落盘；否则省略，等同旧档天然兼容
+		j["plantDamageEchoHitCounter"] = board->GetPlantDamageEchoHitCounter();
 
 		// 冻结本轮已 roll 出的随机出怪池：持久化实际 mSpawnZombieList，读档直接还原而非
 		// 重 roll（见 Load 端）。否则退出重进/读档会重跑 BuildSurvivalSpawnList 刷新随机子集，
@@ -478,6 +479,8 @@ bool GameInfoSaver::SerializeLevelDataToPath(Board* board, CardSlotManager* mana
 		p["isSleeping"] = plant->GetSleepState();
 		p["wakeUpTimer"] = plant->GetWakeUpTimeRemaining();
 		p["shutdownTimer"] = plant->GetShutdownTimeRemaining();
+		p["unyieldingRootsSpent"] = plant->HasSpentUnyieldingRoots();
+		p["unyieldingRootsTimer"] = plant->GetUnyieldingRootsTimeRemaining();
 		p["iceSealOwnerZombieID"] = plant->GetIceSealOwnerZombieID();
 		if (plant->IsImitated()) p["imitated"] = true;
 		p["isSquished"] = plant->IsSquished();
@@ -767,6 +770,8 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 	board->mSurvivalRound = j.value("survivalRound", 1);
 	if (board->mIsSurvival) {
 		if (j.contains("perks")) board->GetPerkManager().Load(j["perks"]);   // 旧档无 perks 字段→天然兼容
+		board->mPlantDamageEchoHitCounter = std::clamp(
+			j.value("plantDamageEchoHitCounter", 0), 0, 9);
 
 		// 还原冻结的出怪池（防刷怪）：存档若带 spawnList 字段则直接还原（校验+去重，镜像
 		// Board::LoadSpawnListFromJson 的健壮性，挡住手改/损坏档的越界 ZombieType）；旧档无此
@@ -1213,6 +1218,9 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 			plant->RestoreSleepState(isSleeping, p.value("wakeUpTimer", 0.0f));
 			// 通用停机是实体快照状态；读档只恢复剩余时间，不重新结算来源技能。
 			plant->RestoreShutdown(p.value("shutdownTimer", 0.0f));
+			plant->RestoreUnyieldingRootsState(
+				p.value("unyieldingRootsSpent", false),
+				p.value("unyieldingRootsTimer", 0.0f));
 			plant->RestoreIceSeal(
 				p.value("iceSealOwnerZombieID", NULL_ZOMBIE_ID));
 			RestoreAnimState(p, plant);

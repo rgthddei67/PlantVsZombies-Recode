@@ -144,6 +144,10 @@ public:
 	int GetPerkPicksCompleted() const { return mSurvivalPerkPicksCompleted; }
 	int GetPerkRefreshesRemaining() const { return mSurvivalPerkRefreshesRemaining; }
 	const std::vector<PerkPairing>& GetCurrentPerkOffer() const { return mCurrentPerkOffer; }
+	/** AutoTest 下一次重抽专用：-1 恢复正式概率，0/1 分别强制普通/稀有面板。 */
+	void SetNextPerkRareRollOverrideForTesting(int value) {
+		mNextPerkRareRollOverride = value < 0 ? -1 : (value > 0 ? 1 : 0);
+	}
 
 	/** 注册玩家阳光 HUD；数字按纸条内框自动选字号并保持水平、垂直居中。 */
 	void ShowSunCount();
@@ -295,6 +299,7 @@ private:
 	int                           mSurvivalPerkStepsCompleted = 0; // 本轮已消耗的选择机会数（选择或放弃均 +1）
 	int                           mSurvivalPerkPicksCompleted = 0; // 本轮已成功选择的正负配对数（0~2）
 	int                           mSurvivalPerkRefreshesRemaining = 0; // 两次选择共享；每轮开始重置为 3
+	int                           mNextPerkRareRollOverride = -1; // 仅消费一次的 AutoTest 稀有面板覆盖
 	std::weak_ptr<Button>         mPerkViewButton;          // 生存模式右上角「词条」按钮（仅生存关创建）
 	std::weak_ptr<GameMessageBox> mPerkViewBox;             // 词条查看面板
 	bool                          mPerkViewActive = false;  // 面板打开中（守卫暂停叠态）

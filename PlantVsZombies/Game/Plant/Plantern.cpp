@@ -111,8 +111,7 @@ float Plantern::ReserveFuel(float amount)
 	const float storageAvailable = std::max(
 		0.0f, FUEL_CAPACITY - mFuel - mPendingFuel);
 	// 允许一次爆发兑现本波完整预算，但不能把数波未领取奖励同时灌入灯芯。
-	const float intakeLimit = mBoard
-		? static_cast<float>(mBoard->GetMistFuelWaveBudget()) : FUEL_CAPACITY;
+	const float intakeLimit = GetWaveIntakeLimit();
 	const float intakeAvailable = std::max(0.0f, intakeLimit - mPendingFuel);
 	const float accepted = std::min({ amount, storageAvailable, intakeAvailable });
 	mPendingFuel += accepted;
@@ -120,6 +119,14 @@ float Plantern::ReserveFuel(float amount)
 		mFuelFullHintTimer = kFuelFullHintSeconds;
 	}
 	return accepted;
+}
+
+float Plantern::GetWaveIntakeLimit() const
+{
+	return mBoard
+		? static_cast<float>(mBoard->GetMistFuelWaveBudget()
+			* mBoard->GetPerkManager().GetMistFuelMultiplier())
+		: FUEL_CAPACITY;
 }
 
 void Plantern::DeliverReservedFuel(float amount)

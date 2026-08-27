@@ -32,9 +32,18 @@ public:
     float  GetPlantRegenInterval() const;           // 固定 5.0 秒（恒定；调用方以 GetPlantRegenPerPulse()>0 判定是否生效）
     int    GetPlantRegenPerPulse() const;           // 65 * stacks（无层→0）
     int    GetPlantRegenHpCap(int maxHealth) const; // 5 层起→maxHealth*3，否则 maxHealth
+    double GetMistFuelMultiplier() const;            // 1 + 0.5 * stacks
+    bool   HasCorrosiveToxin() const;
+    bool   HasUnyieldingRoots() const;
+    bool   HasPlantDamageEcho() const;
+    bool   HasFogBreakout() const;
+    bool   HasZombieDeathRelay() const;
+    bool   HasZombieDevourRepair() const;
+    bool   HasZombieArmorBreakRush() const;
 
     static const PerkInfo& GetInfo(PerkType type); // 静态元数据表（UI 用）
-    std::vector<PerkType> AvailablePerks(PerkCategory cat) const;  // 该类别下 stacks < maxStacks 的词条
+    std::vector<PerkType> AvailablePerks(PerkCategory cat,
+        const PerkOfferContext& context, PerkRarity rarity) const;
 
     void Save(nlohmann::json& j) const;            // 仅写 stacks>0 的项，按 key 字符串
     void Load(const nlohmann::json& j);            // 缺 key→0；越界→夹回 [0,maxStacks]
@@ -45,4 +54,5 @@ private:
 
 // 随机生成至多 count 个互不相同的 {植物增益, 僵尸增难} 配对，用 GameRandom（-Seed 可复现）。
 // 任一侧无可用词条 → 返回空；可用配对总数 < count → 返回全部。
-std::vector<PerkPairing> RollPerkPairings(const SurvivalPerkManager& mgr, int count);
+std::vector<PerkPairing> RollPerkPairings(const SurvivalPerkManager& mgr, int count,
+    const PerkOfferContext& context = {});

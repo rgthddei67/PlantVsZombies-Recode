@@ -229,6 +229,7 @@ public:
 	bool mIsSurvival = false;     // 是否为生存模式（无尽）
 	int  mSurvivalRound = 1;      // 当前第几面旗（轮次，从 1 起）
 	SurvivalPerkManager mPerkManager;   // 生存模式词条（非生存关恒空）
+	int mPlantDamageEchoHitCounter = 0; // 火力回响：本局累计到下一次回响的实际植物命中数
 
 	Vector mSpawnZombiePos1 = Vector(1180, 85);			// 左上角坐标
 	Vector mSpawnZombiePos2 = Vector(1500, 581);		// 右下角坐标
@@ -793,6 +794,8 @@ public:
 	int GetFogDrawRowCount() const { return SupportsStageFog() ? mRows + 1 : 0; }
 	/** 返回指定雾格平滑后的 alpha（0～255）。 */
 	float GetFogCellAlpha(int row, int col) const;
+	/** 返回目标当前位置是否仍处在索敌阈值以上的浓雾中。 */
+	bool IsZombieObscuredByFog(const Zombie* zombie) const;
 	/** 4-2 起启用路灯花燃料、照明、产光加速与雾中远程索敌限制。 */
 	bool SupportsPlanternMechanics() const;
 	/** 返回当前未压扁的唯一路灯花；ID 失效时返回空。 */
@@ -824,6 +827,8 @@ public:
 	void TogglePlanternGearMenu();
 	/** 僵尸死亡的唯一雾火结算入口；无路灯花或满仓时直接丢弃。 */
 	void CollectMistFuelFromZombie(Zombie* zombie);
+	/** 生存亡者接力：把一次免伤交给同排更靠近房屋的敌对前锋。 */
+	void RelayZombieDeathWard(const Zombie* source);
 	bool SetPlanternFuelForTesting(float fuel);
 	bool AwardPlanternFuelForTesting(float amount);
 	/** 返回稳定的 0～7 贴图变体；不消费玩法随机数。 */
@@ -1349,6 +1354,9 @@ public:
 	// 新波次僵尸生成时(CreateZombie)对其 body/头盔/护盾血量整体乘此系数；读档(CreateZombieWithID)不乘，避免二次叠加。
 	SurvivalPerkManager&       GetPerkManager()       { return mPerkManager; }
 	const SurvivalPerkManager& GetPerkManager() const { return mPerkManager; }
+	/** 记录一次实际植物伤害命中；返回 true 表示该次应额外回响同额伤害。 */
+	bool ConsumePlantDamageEchoHit();
+	int GetPlantDamageEchoHitCounter() const { return mPlantDamageEchoHitCounter; }
 
 	double GetZombieHpMultiplier() const {
 		double multiplier = 1.0;

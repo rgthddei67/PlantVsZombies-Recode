@@ -13,9 +13,9 @@ description: Use when adding or tuning any 生存模式词条 (survival perk) in
 
 生存词条本身没有可机械照搬的 C# 架构。若某个词条复用原版伤害、承伤、冷却、产阳光或实体状态，只把 C# 当作该基础机制的玩家可感知行为证据；先核对本项目的唯一结算钟点、`DamageSource`、对象生命周期、存档和既有聚合倍率，再在 manager getter 与当前钟点接入。未获主人批准不得改变基础机制的原版结果，也不得为了贴近 C# 在词条层复制一套植物、僵尸或 Board 状态。
 
-## 当前词条目录（2026-07-20）
+## 当前词条目录（2026-08-27）
 
-| 枚举 | 类别 | 当前效果 | 上限 | 主要钟点 |
+| 枚举 | 类别/准入 | 当前效果 | 上限 | 主要钟点 |
 |---|---|---:|---:|---|
 | `PLANT_DAMAGE_UP` | 植物 | 伤害 +12%/层 | 9999（不限层） | `Zombie::TakeDamage` 仅对 `DamageSource::PLANT` 缩放；爆炸 Charred 阈值用相同聚合值预测 |
 | `ZOMBIE_HEALTH_UP` | 僵尸 | 血量 +12%/层 | 9999（不限层） | `Board::GetZombieHpMultiplier` / `CreateZombie` 出生路径 |
@@ -23,10 +23,18 @@ description: Use when adding or tuning any 生存模式词条 (survival perk) in
 | `ZOMBIE_DAMAGE_UP` | 僵尸 | 对植物伤害 +5%/层 | 9999（不限层） | `Plant::TakeDamage` 仅对 `DamageSource::ZOMBIE` 缩放；攻击方传原始伤害 |
 | `ZOMBIE_INVULN_HITS` | 僵尸 | 出生后前 4 次受击免伤/层 | 2 | `Zombie::TakeDamage` 消耗；`Board::CreateZombie` 初始化；僵尸存档持久化 |
 | `PLANT_REGEN` | 植物 | 每 5 秒回复 65 HP/层 | 8；第 5 层起允许到 3 倍最大生命 | `Board::UpdateLevel` 全局脉冲 |
-| `PLANT_ATTACK_SPEED` | 植物 | 开火速度 +15%/层 | 8 | `Shooter`、`Repeater`、`PuffShroom`、`FumeShroom`、`ScaredyShroom` 的射击间隔与动画速度 |
+| `PLANT_ATTACK_SPEED` | 植物 | 开火速度 +15%/层 | 8 | 各射手的射击间隔与动画速度 |
 | `PLANT_DAMAGE_REDUCTION` | 植物 | 承伤 -3%/层 | 15，最低承伤 55% | `Plant::TakeDamage` |
 | `PLANT_SUN_BONUS` | 植物 | 收集阳光 +15%/层 | 10 | `Board::AddSun`；不缩放 `set_sun`、开局值和消费 |
-| `PLANT_CARD_RECHARGE` | 植物 | 卡片冷却速度 +12%/层 | 10 | `Card::UpdateCooldown`，经 `CardSlotManager::GetBoard()` 取 manager |
+| `PLANT_CARD_RECHARGE` | 植物 | 卡片冷却速度 +12%/层 | 10 | `Card::UpdateCooldown` |
+| `PLANT_MIST_REFINING` | 植物/迷雾 | 雾火价值与本波并发接收上限 +50%/层 | 2 | `Board::CollectMistFuelFromZombie`、`Plantern::ReserveFuel`；仓储容量仍为 100 |
+| `PLANT_CORROSIVE_TOXIN` | 植物/稀有 | 每层毒素每秒造成目标最大可计生命 0.1%，且不低于原 5 DPS | 1 | `Zombie::UpdateToxin`；百分比基数不吃全局植物增伤，仍过僵尸免伤 |
+| `PLANT_UNYIELDING_ROOTS` | 植物/稀有 | 每株每轮首次致命普通伤害留 1 HP，免伤 3 秒 | 1 | `Plant::TakeDamage`、`Board::OnSurvivalRoundClear`；非伤害移除不触发 |
+| `PLANT_DAMAGE_ECHO` | 植物 | 每第 10 次实际植物伤害命中使该击翻倍 | 1 | `Zombie::TakeDamage`、Board 共享计数；免费免伤不计、`PLANT_ASH` 排除 |
+| `ZOMBIE_FOG_BREAKOUT` | 僵尸/迷雾 | 一生首次从浓雾走到可见区时解控并免控 3 秒 | 1 | `Zombie::UpdateSurvivalPerkStates` + `Board::IsZombieObscuredByFog` |
+| `ZOMBIE_DEATH_RELAY` | 僵尸 | 死亡时给同排最靠近房屋的友方前锋 1 次受击免伤 | 1 | `Zombie::Die` → `Board::RelayZombieDeathWard` |
+| `ZOMBIE_DEVOUR_REPAIR` | 僵尸 | 亲口吃掉植物时修满仍存在的本体、头盔与盾 | 1 | `Zombie::EatTarget`；不复活已丢失装备 |
+| `ZOMBIE_ARMOR_BREAK_RUSH` | 僵尸 | 一生首次标准头盔/盾破碎时解控免控 5 秒并加速 60% | 1 | `Zombie::TakeDamage`、能力/动画速度聚合；魅惑取消增益 |
 
 数值以 `SurvivalPerkManager.cpp` 的 `kPerks[]` 和聚合 getter 为准；表格若与源码不同，先更新本技能再继续。
 
@@ -37,13 +45,15 @@ description: Use when adding or tuning any 生存模式词条 (survival perk) in
 | A. 无状态倍率/数值 | 仅 manager 层数 | 增伤、承伤、血量、阳光、冷却 | 在唯一计算钟点读取聚合 getter；0 层返回单位元 |
 | B. per-entity 状态 | 每个实体字段 | 僵尸出生前 N 次免伤 | 实体字段 + 出生初始化 + 消耗顺序 + Save/Load |
 | C. Board 全局脉冲 | `Board` 计时器 | 全场植物回血 | `Board::UpdateLevel` 定时触发；无词条时跳过实体遍历 |
+| D. Board 共享计数 | `Board` 字段 | 每 N 次全阵营命中触发 | 只在实际结算边沿计数；新局重置，生存档持久化 |
+| E. 地图条件/稀有抽取 | 元数据 + `PerkOfferContext` | 迷雾词条、强力稀有词条 | 条件与稀有度分开表达；概率按整块面板控制，不按候选数量膨胀 |
 
 优先选 A。只有“每个实体各自计数”才选 B；全场同频发生的周期效果才选 C。
 
 ## 通用实现步骤
 
 1. 在 `Game/Perk/PerkType.h` 的 `COUNT` 前加入枚举项，并确定 `PerkCategory::PLANT_BUFF` 或 `ZOMBIE_CURSE`。
-2. 在 `SurvivalPerkManager.cpp::kPerks[]` 的对应位置加入 `{key, nameZh, descZh, perStack, maxStacks, category}`。顺序必须与枚举一致，`static_assert` 会检查数量。
+2. 在 `SurvivalPerkManager.cpp::kPerks[]` 的对应位置加入 `{key, nameZh, descZh, perStack, maxStacks, category, rarity, condition}`。顺序必须与枚举一致，`static_assert` 会检查数量。地图准入与稀有度是两个正交字段，不要用稀有度冒充地图条件。
 3. 给 manager 增加聚合 getter/缩放函数。倍率使用 `RoundScale`；精确整数计数直接做整数乘法，不写伪四舍五入的 `static_cast<int>(x + 0.5f)`。
 4. 把效果接到覆盖面最完整的唯一钟点。接入前用 `rg` 核实所有实际路径，尤其是新植物、新僵尸或旁路伤害。伤害调用必须显式传 `DamageSource`，不可增加默认来源来绕过编译器审计。
 5. 在 `TestDriver.cpp` 的 `kPerkNames` 加 `PK(NEW_TYPE)`，并在 `dump_state.perks` 暴露层数和可精确断言的聚合结果。
@@ -77,7 +87,7 @@ description: Use when adding or tuning any 生存模式词条 (survival perk) in
 
 ## 每轮最多两次的成对选择契约
 
-一项候选始终是 `PerkPairing { plant, zombie }`，选择一次会同时给植物增益和僵尸诅咒各加 1 层。配对不是固定绑定：`RollPerkPairings` 构造当前可用植物与僵尸词条的笛卡尔积，用 `GameRandom::Shuffle` 洗牌后截取 3 项，所以 `-Seed` 可复现。
+一项候选始终是 `PerkPairing { plant, zombie }`，选择一次会同时给植物增益和僵尸诅咒各加 1 层。配对不是固定绑定：`RollPerkPairings` 先按 `PerkOfferContext` 过滤地图条件，再构造普通植物与普通僵尸词条的笛卡尔积。每块三选面板独立进行一次固定 1.5% 的稀有判定，命中时最多用一个稀有植物候选替换普通植物候选；不能对每个稀有词条逐个掷骰，否则目录扩充会偷偷抬高总概率。测试可用一次性 override 强制普通/稀有，正式 UI 不展示概率。普通植物池全部满层但稀有池仍可用时强制从稀有池出候选，不能生成空面板。
 
 `Board::OnSurvivalRoundClear()` 只经非拥有的
 `BoardPresentation::BeginSurvivalPerkSelect()` 发起展示请求；`GameScene` 实现下面的 UI 流程。
@@ -109,6 +119,8 @@ description: Use when adding or tuning any 生存模式词条 (survival perk) in
 - `survivalCardCooldowns` 经 `BoardPresentation` 捕获/恢复 UI 瞬态；最终词条层数仍由 `Board` 持有的 manager 保存。禁止为存档重新依赖具体 `GameScene`。
 - 新字段能用稳定 key 或中性默认值表示旧档时保持兼容；结构或语义变化无法只靠默认值表达时，提升 `SaveSchema::kCurrentLevelVersion`，增加连续迁移和 `SaveSchemaTests`。
 - 原型 A/C 通常不增加独立存档；原型 B 必须持久化实体状态。
+- Board 共享进度只在生存档保存，并在进入新棋盘时清零；读档再以存档覆盖。每轮一次的实体消耗状态要明确在 `OnSurvivalRoundClear` 重置，不能误做成每波或每局。
+- 百分比持续伤害若设计为不吃全局植物增伤，应从目标最大可计生命生成基础伤害，并用非 `PLANT` 来源进入正式僵尸免伤链；同时用无词条/有词条同靶对照锁定基础毒伤未漂移。
 
 ## AutoTest 验证
 
@@ -119,8 +131,11 @@ description: Use when adding or tuning any 生存模式词条 (survival perk) in
 - `survival_perk_open`：打开轮间选择。
 - `survival_perk_pick {"index":0}`：选择候选；`index:-1` 只放弃当前一次机会。
 - `survival_perk_refresh`：消耗本轮共享的一次刷新额度，重抽当前全部候选。
+- `set_next_survival_perk_rare {"enabled":true|false}`：只覆盖下一次面板稀有判定，随后自动恢复正式随机。
+- `apply_toxin_stacks {"row":N,"count":N}`：不经过子弹直伤，直接建立毒层，适合比较基础/百分比毒伤。
+- `reserve_plantern_fuel {"value":N}`：直接走 `Plantern::ReserveFuel`，用于锁定实际并发接收上限；不要只断言重复计算出来的投影。若不创建飞行雾火，断言后用 `deliver_plantern_fuel` 清掉测试预留。
 - `dump_state.perks`：词条层数与聚合数值。
-- `dump_state.perkSelect`：`active`、`offerCount`、`currentPick`、`completedSteps`、`completedPicks`、`maxPicks`、`refreshesRemaining`、`maxRefreshes`、`offers`。steps 是已结算机会数，picks 是实际获得数；刷新不改变二者。
+- `dump_state.perkSelect`：除既有流程字段外，候选暴露 `plantRare/plantCondition/zombieCondition`，聚合暴露稀有植物候选数与条件候选数。steps 是已结算机会数，picks 是实际获得数；刷新不改变二者。
 
 选择 UI 至少覆盖：
 
@@ -130,6 +145,8 @@ description: Use when adding or tuning any 生存模式词条 (survival perk) in
 4. `smoke_perk_view.json`：查看面板仍能显示和分页。
 
 数值或伤害钟点改动至少跑对应专项脚本、`smoke_perks_damage_sources.json`、`smoke_perks_balance.json` 和 `smoke_perks.json`。UI 改动要检查截图，不能只看退出码；同时检查对应 `run.log` 含 `script finished OK`。
+
+地图条件、基础机制强化或稀有质变还必须做成对对照：同一地图、同一实体和同一时长先验证 0 层保持旧值，再开启词条只断言预期差异。当前扩展专项为 `smoke_survival_perk_expansion.json` 与 `smoke_survival_perk_fog_and_toxin.json`；后者同时锁定路灯花无词条/两层燃料价值与接收上限、毒液无词条/腐蚀词条伤害、迷雾出界清控及存档。
 
 ## 构建与交付
 

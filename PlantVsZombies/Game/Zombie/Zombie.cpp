@@ -39,6 +39,14 @@ namespace {
 	constexpr float kToxinDamageInterval = 0.2f;           // 每层积满 1 点毒伤的游戏时间间隔，单位：秒
 	constexpr float kToxinDamageEpsilon = 0.0001f;         // 浮点取整容差，避免整点伤害因误差延迟一帧
 	constexpr std::size_t kMaxToxinLayers = 20;             // 单只僵尸同时承载的最大毒素层数
+	constexpr float kFogBreakoutImmunitySeconds = 3.0f;    // 雾幕突围清控后的四类控制免疫时长，单位：游戏秒
+	constexpr float kArmorBreakRushSeconds = 5.0f;         // 破甲狂潮的行动加速与四类控制免疫时长，单位：游戏秒
+	constexpr float kArmorBreakRushSpeedMultiplier = 1.60f;// 破甲狂潮对动画驱动移动和动作的统一倍率
+	constexpr ZombieControlMask kPerkControlMask =
+		ZombieControlBit(ZombieControlEffect::SLOW)
+		| ZombieControlBit(ZombieControlEffect::FROZEN)
+		| ZombieControlBit(ZombieControlEffect::BUTTER)
+		| ZombieControlBit(ZombieControlEffect::PARALYSIS);   // 两个生存词条共同覆盖的控制集合
 	constexpr float kButterDuration = 4.0f;                // C# mButteredCounter=400 厘秒的黄油定身时长
 	constexpr float kMaximumParalysisDuration = 600.0f;    // 通用麻痹单次/读档允许的最大剩余秒数，防损坏档永久停格
 	constexpr float kButterSplatOffsetY = -6.0f;           // C# DrawButter 相对头部轨道的贴图纵向偏移，单位：像素
@@ -290,6 +298,11 @@ void Zombie::SaveProtectedData(nlohmann::json& j) const {
 	j["tangleKelpGrabFrame"] = GetTangleKelpGrabFrame();
 	j["mistFuelReward"] = mMistFuelReward;
 	j["mistFuelRewardClaimed"] = mMistFuelRewardClaimed;
+	j["fogBreakoutObserved"] = mFogBreakoutObserved;
+	j["wasObscuredByFog"] = mWasObscuredByFog;
+	j["fogBreakoutTriggered"] = mFogBreakoutTriggered;
+	j["armorBreakRushSpent"] = mArmorBreakRushSpent;
+	j["armorBreakRushTimer"] = mArmorBreakRushTimer;
 	j["ladderClimbPhase"] = static_cast<int>(mLadderClimbPhase);
 	j["ladderAltitude"] = mLadderAltitude;
 	j["useLadderColumn"] = mUseLadderColumn;
@@ -309,6 +322,13 @@ void Zombie::LoadProtectedData(const nlohmann::json& j) {
 	mIsDying = j.value("isDying", false);
 	mInPool = j.value("inPool", false);
 	mSpeed = j.value("speed", 10.0f);
+	mFogBreakoutObserved = j.value("fogBreakoutObserved", false);
+	mWasObscuredByFog = j.value("wasObscuredByFog", false);
+	mFogBreakoutTriggered = j.value("fogBreakoutTriggered", false);
+	mArmorBreakRushSpent = j.value("armorBreakRushSpent", false);
+	const float armorBreakRushTimer = j.value("armorBreakRushTimer", 0.0f);
+	mArmorBreakRushTimer = std::isfinite(armorBreakRushTimer)
+		? std::clamp(armorBreakRushTimer, 0.0f, kArmorBreakRushSeconds) : 0.0f;
 	const float roofMarshalAssaultTimer = std::clamp(
 		j.value("roofMarshalAssaultTimer", 0.0f), 0.0f, 60.0f);
 	const float roofMarshalAssaultMoveMultiplier = std::clamp(
@@ -401,6 +421,8 @@ void Zombie::LoadProtectedData(const nlohmann::json& j) {
 		mFrozenTimer = 0.0f;
 		mButterTimer = 0.0f;
 		mToxinState.reset();
+		mFogBreakoutTriggered = true;
+		mArmorBreakRushTimer = 0.0f;
 		UpdateAnimSpeed();
 		ApplyCharmEffects();
 	}
@@ -564,6 +586,7 @@ void Zombie::Update()
 		// 毒素不受减速、冻结、啃食和水草早退影响，因此在所有行为状态分支之前结算。
 		UpdateToxin(deltaTime);
 		if (!IsActive()) return;
+		UpdateSurvivalPerkStates(deltaTime);
 
 		// 突击令按游戏时间衰减，不因啃食、冻结或品种行为早退而变成永久增益。
 		UpdateControlImmunity(deltaTime);
@@ -1300,6 +1323,14 @@ int Zombie::GetCountableExecutionHealth() const
 	return total >= INT_MAX ? INT_MAX : static_cast<int>(total);
 }
 
+int Zombie::GetCountableMaxHealth() const
+{
+	const int64_t total = static_cast<int64_t>(std::max(0, mBodyMaxHealth))
+		+ static_cast<int64_t>(std::max(0, mHelmMaxHealth))
+		+ static_cast<int64_t>(std::max(0, mShieldMaxHealth));
+	return total >= INT_MAX ? INT_MAX : static_cast<int>(total);
+}
+
 /** 强制清空可计生命后进入既有死亡轨；特殊品种没有死亡轨时退回自己的 Die。 */
 void Zombie::TakeHijackerExecution()
 {
@@ -1399,7 +1430,10 @@ void Zombie::ClearButter()
 
 float Zombie::GetAmplifiedAbilitySpeedMultiplier() const
 {
-	return AmplifySpeedMultiplierForGoldenIce(GetAbilityAnimSpeedMultiplier());
+	const float perkMultiplier = mArmorBreakRushTimer > 0.0f
+		? kArmorBreakRushSpeedMultiplier : 1.0f;
+	return AmplifySpeedMultiplierForGoldenIce(
+		GetAbilityAnimSpeedMultiplier() * perkMultiplier);
 }
 
 float Zombie::AmplifySpeedMultiplierForGoldenIce(float multiplier) const
@@ -1557,6 +1591,57 @@ void Zombie::RemoveColdEffects()
 	UpdateStatusOverlay();
 }
 
+void Zombie::UpdateSurvivalPerkStates(float deltaTime)
+{
+	if (!mBoard || mIsPreview || mIsDead || mIsDying || !IsActive()) return;
+	if (mArmorBreakRushTimer > 0.0f) {
+		const float previous = mArmorBreakRushTimer;
+		mArmorBreakRushTimer = std::max(0.0f, mArmorBreakRushTimer - deltaTime);
+		if (previous > 0.0f && mArmorBreakRushTimer <= 0.0f) UpdateAnimSpeed();
+	}
+	if (mIsMindControlled) {
+		mFogBreakoutTriggered = true;
+		return;
+	}
+	if (!mBoard->GetPerkManager().HasFogBreakout()
+		|| !mBoard->SupportsPlanternMechanics() || mFogBreakoutTriggered) return;
+	const bool obscured = mBoard->IsZombieObscuredByFog(this);
+	if (!mFogBreakoutObserved) {
+		mFogBreakoutObserved = true;
+		mWasObscuredByFog = obscured;
+		return;
+	}
+	if (mWasObscuredByFog && !obscured) {
+		mFogBreakoutTriggered = true;
+		GrantControlImmunity(kPerkControlMask, kFogBreakoutImmunitySeconds, true);
+	}
+	mWasObscuredByFog = obscured;
+}
+
+void Zombie::TriggerArmorBreakRush()
+{
+	if (!mBoard || mIsPreview || mIsDead || mIsDying || mBodyHealth <= 0 || mIsMindControlled
+		|| !IsActive() || mArmorBreakRushSpent
+		|| !mBoard->GetPerkManager().HasZombieArmorBreakRush()) return;
+	mArmorBreakRushSpent = true;
+	mArmorBreakRushTimer = kArmorBreakRushSeconds;
+	GrantControlImmunity(kPerkControlMask, kArmorBreakRushSeconds, true);
+	UpdateAnimSpeed();
+}
+
+void Zombie::RepairExistingHealthLayers()
+{
+	if (mBodyHealth > 0) mBodyHealth = mBodyMaxHealth;
+	if (mHelmType != HelmType::HELMTYPE_NONE && mHelmMaxHealth > 0) {
+		mHelmHealth = mHelmMaxHealth;
+		CheckHelmImage();
+	}
+	if (mShieldType != ShieldType::SHIELDTYPE_NONE && mShieldMaxHealth > 0) {
+		mShieldHealth = mShieldMaxHealth;
+		CheckShieldImage();
+	}
+}
+
 int Zombie::GetToxinLayerCount() const
 {
 	return mToxinState ? mToxinState->mActiveLayerCount : 0;
@@ -1624,17 +1709,31 @@ void Zombie::UpdateToxin(float deltaTime)
 		}
 	}
 
-	mToxinState->mDamageRemainder += activeLayerSeconds / kToxinDamageInterval;
+	const bool corrosive = mBoard && mBoard->GetPerkManager().HasCorrosiveToxin();
+	const float damagePerLayerSecond = corrosive
+		? std::max(1.0f / kToxinDamageInterval,
+			static_cast<float>(GetCountableMaxHealth())
+				* SurvivalPerkManager::GetInfo(
+					PerkType::PLANT_CORROSIVE_TOXIN).perStack)
+		: 1.0f / kToxinDamageInterval;
+	mToxinState->mDamageRemainder += activeLayerSeconds * damagePerLayerSecond;
 	const int damage = static_cast<int>(
 		std::floor(mToxinState->mDamageRemainder + kToxinDamageEpsilon));
 	if (damage > 0) {
 		mToxinState->mDamageRemainder = std::max(
 			0.0f, mToxinState->mDamageRemainder - damage);
 		// 速度 0 表示从正面命中当前防护层；毒伤永不以背击规则绕过门板。
-		// 每点分别走正式链，避免高倍速长帧把多次毒跳合并成一次免伤/词条结算。
-		for (int point = 0; point < damage; ++point) {
-			TakeProjectileDamage(1, DamageSource::PLANT, 0.0f);
-			if (!IsActive()) return;
+		if (corrosive) {
+			// 百分比毒伤一次结算本逻辑步，避免高生命目标按单点循环；OTHER 仍经过僵尸免伤，
+			// 但不会把已经按最大生命计算的基础量再乘全体植物增伤。
+			TakeProjectileDamage(damage, DamageSource::OTHER, 0.0f);
+		}
+		else {
+			// 普通毒液保留逐点链，免伤次数与旧版时序不变。
+			for (int point = 0; point < damage; ++point) {
+				TakeProjectileDamage(1, DamageSource::PLANT, 0.0f);
+				if (!IsActive()) return;
+			}
 		}
 	}
 	if (mToxinState->mActiveLayerCount == 0) {
@@ -1753,6 +1852,9 @@ void Zombie::StartMindControlled()
 		UpdateAnimSpeed();
 	}
 	ClearToxin();
+	mFogBreakoutTriggered = true;
+	mArmorBreakRushTimer = 0.0f;
+	UpdateAnimSpeed();
 
 	// 如果是最后一波的最后一个僵尸，魅惑后就不会再有僵尸了，直接死亡
 	if (mBoard && mBoard->mCurrentWave == mBoard->mMaxWave && mBoard->mZombieNumber == 1)
@@ -1905,6 +2007,8 @@ void Zombie::TakeDamage(
 	// 词条②：僵尸前 N 次免伤（生存专用）。出生时由词条层数设定 mFreeHitsRemaining。
 	// 提前 return：完全吸收且不触发受击白光，0 伤害不应闪。
 	if (mFreeHitsRemaining > 0) { --mFreeHitsRemaining; return; }
+	const ShieldType shieldTypeBeforeHit = mShieldType;
+	const HelmType helmTypeBeforeHit = mHelmType;
 
 	// 植物增伤只放大植物来源（普通/灰烬）；僵尸免伤则对所有实际承伤生效。两者均在 0 层返回单位元。
 	if (source == DamageSource::PLANT || source == DamageSource::PLANT_ASH) {
@@ -1913,6 +2017,10 @@ void Zombie::TakeDamage(
 	damage = mBoard->GetPerkManager().ScaleDamageToZombie(damage);
 	damage = AdjustIncomingDamage(damage, source, penetrateShield, bypassShield);
 	if (damage <= 0) return;
+	if (source == DamageSource::PLANT && !mIsMindControlled
+		&& mBoard->ConsumePlantDamageEchoHit()) {
+		damage = damage > INT_MAX / 2 ? INT_MAX : damage * 2;
+	}
 
 	int remainingDamage = TakeExtraProtectionDamage(damage, source);
 	// 原版飞行额外生命与头盔/本体共用 mJustGotShotCounter；只要确实吸收了伤害就闪本体层。
@@ -1951,6 +2059,12 @@ void Zombie::TakeDamage(
 		if (mBodyHealth < bodyHealthBeforeHit) {
 			SetGlowingTimer(kHitGlowDuration);
 		}
+	}
+	if ((shieldTypeBeforeHit != ShieldType::SHIELDTYPE_NONE
+			&& mShieldType == ShieldType::SHIELDTYPE_NONE)
+		|| (helmTypeBeforeHit != HelmType::HELMTYPE_NONE
+			&& mHelmType == HelmType::HELMTYPE_NONE)) {
+		TriggerArmorBreakRush();
 	}
 }
 
@@ -2007,6 +2121,7 @@ void Zombie::Die()
 	mButterTimer = 0.0f;
 	mParalysisTimer = 0.0f;
 	mControlImmunityTimers.fill(0.0f);
+	mArmorBreakRushTimer = 0.0f;
 	SetButterSplatFollowerVisible(false);
 	SetRoofMarshalAssaultFlagVisible(false);
 	mRoofMarshalAssaultState.reset();
@@ -2023,6 +2138,7 @@ void Zombie::Die()
 	mEatZombieID = NULL_ZOMBIE_ID;
 
 	if (mBoard) {
+		mBoard->RelayZombieDeathWard(this);
 		mBoard->CollectMistFuelFromZombie(this);
 		mBoard->mZombieNumber--;
 		CheckWin();
@@ -2352,8 +2468,13 @@ void Zombie::EatTarget()
 				}
 			}
 			// 原始攻击力交给植物受伤入口按来源统一结算；不写回 mAttackDamage，避免污染存档。
+			const bool plantWasAlive = plant->mPlantHealth > 0;
 			plant->OnZombieBite(GetPosition());
 			plant->TakeDamage(biteDamage, DamageSource::ZOMBIE);
+			if (plantWasAlive && plant->mPlantHealth <= 0
+				&& mBoard->GetPerkManager().HasZombieDevourRepair()) {
+				RepairExistingHealthLayers();
+			}
 			if (plant->mPlantHealth <= 0)
 			{
 				AudioSystem::PlaySound(ResourceKeys::Sounds::SOUND_ZOMBIE_FINISHEAT, 0.2f);

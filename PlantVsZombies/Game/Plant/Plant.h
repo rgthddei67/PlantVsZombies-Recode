@@ -75,6 +75,8 @@ protected:
 	int mBungeeOwnerZombieID = NULL_ZOMBIE_ID;
 	Vector mBungeeVisualOffset;
 	int mIceSealOwnerZombieID = NULL_ZOMBIE_ID; // 冰像封存的唯一来源；进度仍由来源僵尸拥有
+	bool mUnyieldingRootsSpent = false; // 生存词条：本株本轮的致命伤保护是否已消费
+	float mUnyieldingRootsTimer = 0.0f; // 生存词条：致命伤保护后的普通伤害免疫剩余秒数
 
 public:
 	static constexpr float kFlowerPotVisualLiftY = -5.0f; // 上层植物相对花盆抬升量，单位：px
@@ -99,6 +101,12 @@ public:
 	virtual void DrawStackBackground(Graphics*) {}
 	// 统一结算植物承伤；source 必填，使僵尸增伤只作用于僵尸来源。
 	virtual void TakeDamage(int damage, DamageSource source);
+	/** 新一轮开始时恢复本株一次不屈根系资格；新种植物默认也尚未消费。 */
+	void ResetUnyieldingRootsForRound();
+	bool HasSpentUnyieldingRoots() const { return mUnyieldingRootsSpent; }
+	float GetUnyieldingRootsTimeRemaining() const { return mUnyieldingRootsTimer; }
+	/** 从实体快照恢复不屈根系状态；旧档缺字段时回到中性状态。 */
+	void RestoreUnyieldingRootsState(bool spent, float remainingSeconds);
 	/** 当前是否能被僵尸选为啃食目标；睡莲用它实现种下后的短暂无咬保护。 */
 	virtual bool CanBeEaten() const {
 		return !mIsSquished && mBungeeState == PlantBungeeState::NONE

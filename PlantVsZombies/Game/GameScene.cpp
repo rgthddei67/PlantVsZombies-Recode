@@ -2455,7 +2455,12 @@ void GameScene::RenderSurvivalPerkSelectStep()
 {
 	if (!mBoard) return;
 
-	mCurrentPerkOffer = RollPerkPairings(mBoard->GetPerkManager(), 3);
+	PerkOfferContext offerContext;
+	offerContext.supportsPlanternMechanics = mBoard->SupportsPlanternMechanics();
+	offerContext.rarePanelRollOverride = mNextPerkRareRollOverride;
+	mNextPerkRareRollOverride = -1;
+	mCurrentPerkOffer = RollPerkPairings(
+		mBoard->GetPerkManager(), 3, offerContext);
 
 	auto& pm = mBoard->GetPerkManager();
 
@@ -2500,9 +2505,15 @@ void GameScene::RenderSurvivalPerkSelectStep()
 	for (const PerkPairing& pr : mCurrentPerkOffer) {
 		const PerkInfo& bp = SurvivalPerkManager::GetInfo(pr.plant);
 		const PerkInfo& cz = SurvivalPerkManager::GetInfo(pr.zombie);
+		auto tags = [](const PerkInfo& info) {
+			std::string result;
+			if (info.rarity == PerkRarity::RARE) result += u8"[稀有]";
+			if (info.condition == PerkCondition::PLANTERN_MECHANICS) result += u8"[迷雾]";
+			return result;
+		};
 		Row r;
-		r.plant  = std::string(u8"植物：") + bp.descZh + u8"（当前 " + std::to_string(pm.GetStacks(pr.plant)) + u8" 层）";
-		r.zombie = std::string(u8"僵尸：") + cz.descZh + u8"（当前 " + std::to_string(pm.GetStacks(pr.zombie)) + u8" 层）";
+		r.plant  = std::string(u8"植物：") + tags(bp) + bp.descZh + u8"（当前 " + std::to_string(pm.GetStacks(pr.plant)) + u8" 层）";
+		r.zombie = std::string(u8"僵尸：") + tags(cz) + cz.descZh + u8"（当前 " + std::to_string(pm.GetStacks(pr.zombie)) + u8" 层）";
 		float wp = measureW(r.plant, rowFont);
 		float wz = measureW(r.zombie, rowFont);
 		float w = (wp > wz) ? wp : wz;
@@ -2650,7 +2661,10 @@ void GameScene::RenderPerkViewPage()
 		++distinct;
 		total += n;
 		Line ln;
-		ln.text  = std::string(u8"· ") + info.descZh + u8"（已选 " + std::to_string(n) + u8" 次）";
+		std::string tags;
+		if (info.rarity == PerkRarity::RARE) tags += u8"[稀有]";
+		if (info.condition == PerkCondition::PLANTERN_MECHANICS) tags += u8"[迷雾]";
+		ln.text  = std::string(u8"· ") + tags + info.descZh + u8"（已选 " + std::to_string(n) + u8" 次）";
 		ln.color = (info.category == PerkCategory::PLANT_BUFF) ? green : red;
 		perkLines.push_back(ln);
 	}
