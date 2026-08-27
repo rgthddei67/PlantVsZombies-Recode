@@ -465,14 +465,22 @@ void Animator::DrawInternalInstanced(Graphics* g, float baseX, float baseY, floa
 	struct DeferredFollowerInstance {
 		InstanceRecord record;
 		uint8_t overlayAlpha = 0;
+		bool glowEnabled = false;
 	};
 	const auto submitFollower = [this, g, baseBlend](const DeferredFollowerInstance& draw) {
 		g->AppendReanimInstance(draw.record, baseBlend);
-		if (draw.overlayAlpha == 0) return;
-		InstanceRecord overlay = draw.record;
-		overlay.colorRGBA8 = PackRGBA8(mExtraOverlayColor.r,
-			mExtraOverlayColor.g, mExtraOverlayColor.b, draw.overlayAlpha);
-		g->AppendReanimInstance(overlay, BlendMode::Alpha);
+		if (draw.overlayAlpha > 0) {
+			InstanceRecord overlay = draw.record;
+			overlay.colorRGBA8 = PackRGBA8(mExtraOverlayColor.r,
+				mExtraOverlayColor.g, mExtraOverlayColor.b, draw.overlayAlpha);
+			g->AppendReanimInstance(overlay, BlendMode::Alpha);
+		}
+		if (draw.glowEnabled) {
+			InstanceRecord glow = draw.record;
+			glow.colorRGBA8 = PackRGBA8(mExtraAdditiveColor.r,
+				mExtraAdditiveColor.g, mExtraAdditiveColor.b, mExtraAdditiveColor.a);
+			g->AppendReanimInstance(glow, BlendMode::Add);
+		}
 	};
 	DeferredFollowerInstance firstDeferredFollowerInstance{};
 	bool hasDeferredFollowerInstance = false;
@@ -626,7 +634,11 @@ void Animator::DrawInternalInstanced(Graphics* g, float baseX, float baseY, floa
 				const uint8_t followerOverlayAlpha = follower.mInheritOverlayEffect
 					&& mEnableExtraOverlayDraw
 					? static_cast<uint8_t>(mExtraOverlayColor.a * alpha) : 0;
-				const DeferredFollowerInstance draw{ rec, followerOverlayAlpha };
+				const bool followerGlowEnabled = follower.mInheritGlowEffect
+					&& hasEnabledTrackGlow && IsGlowEffectEnabledForTrack(i);
+				const DeferredFollowerInstance draw{
+					rec, followerOverlayAlpha, followerGlowEnabled
+				};
 				if (follower.mDrawAfterAllTracks) {
 					if (!hasDeferredFollowerInstance) {
 						firstDeferredFollowerInstance = draw;
@@ -684,15 +696,23 @@ void Animator::DrawInternal(Graphics* g, float baseX, float baseY, float Scale) 
 		glm::mat4 transform;
 		glm::vec4 color;
 		float overlayAlpha = 0.0f;
+		bool glowEnabled = false;
 	};
 	const auto submitFollower = [this, g, baseBlend](const DeferredFollowerDraw& draw) {
 		g->DrawTextureMatrix(draw.image, draw.transform, 0.0f, 0.0f,
 			draw.color, baseBlend);
-		if (draw.overlayAlpha <= 0.0f) return;
-		const glm::vec4 overlayColor(mExtraOverlayColor.r,
-			mExtraOverlayColor.g, mExtraOverlayColor.b, draw.overlayAlpha);
-		g->DrawTextureMatrix(draw.image, draw.transform, 0.0f, 0.0f,
-			overlayColor, BlendMode::Alpha);
+		if (draw.overlayAlpha > 0.0f) {
+			const glm::vec4 overlayColor(mExtraOverlayColor.r,
+				mExtraOverlayColor.g, mExtraOverlayColor.b, draw.overlayAlpha);
+			g->DrawTextureMatrix(draw.image, draw.transform, 0.0f, 0.0f,
+				overlayColor, BlendMode::Alpha);
+		}
+		if (draw.glowEnabled) {
+			const glm::vec4 glowColor(mExtraAdditiveColor.r,
+				mExtraAdditiveColor.g, mExtraAdditiveColor.b, mExtraAdditiveColor.a);
+			g->DrawTextureMatrix(draw.image, draw.transform, 0.0f, 0.0f,
+				glowColor, BlendMode::Add);
+		}
 	};
 	DeferredFollowerDraw firstDeferredFollowerDraw{};
 	bool hasDeferredFollowerDraw = false;
@@ -833,8 +853,11 @@ void Animator::DrawInternal(Graphics* g, float baseX, float baseY, float Scale) 
 				const float followerOverlayAlpha = follower.mInheritOverlayEffect
 					&& mEnableExtraOverlayDraw
 					? mExtraOverlayColor.a * alpha : 0.0f;
+				const bool followerGlowEnabled = follower.mInheritGlowEffect
+					&& IsGlowEffectEnabledForTrack(i);
 				const DeferredFollowerDraw draw{
-					followerImage, mat, color, followerOverlayAlpha
+					followerImage, mat, color, followerOverlayAlpha,
+					followerGlowEnabled
 				};
 				if (follower.mDrawAfterAllTracks) {
 					if (!hasDeferredFollowerDraw) {
@@ -1008,7 +1031,7 @@ void Animator::SetTrackOffset(const std::string& trackName, float x, float y) {
 void Animator::SetTrackFollowerImage(const std::string& trackName,
 	const std::string& followerName, const Texture* image,
 	float offsetX, float offsetY, float scaleX, float scaleY,
-	bool drawAfterAllTracks, bool inheritOverlayEffect) {
+	bool drawAfterAllTracks, bool inheritOverlayEffect, bool inheritGlowEffect) {
 	for (const int trackIndex : GetTrackIndicesByName(trackName)) {
 		SparseTrackState* existing = FindSparseTrackState(trackIndex);
 		if (!image && !existing) continue;
@@ -1033,6 +1056,7 @@ void Animator::SetTrackFollowerImage(const std::string& trackName,
 		follower->mScaleY = scaleY;
 		follower->mDrawAfterAllTracks = drawAfterAllTracks;
 		follower->mInheritOverlayEffect = inheritOverlayEffect;
+		follower->mInheritGlowEffect = inheritGlowEffect;
 	}
 }
 
@@ -1381,6 +1405,21 @@ bool Animator::GetTrackFollowerInheritsOverlayEffect(const std::string& trackNam
 		});
 	return follower != sparse->mFollowers.end()
 		&& follower->mInheritOverlayEffect;
+}
+
+bool Animator::GetTrackFollowerGlowEffectEnabled(const std::string& trackName,
+	const std::string& followerName) const {
+	const int index = GetFirstTrackIndexByName(trackName);
+	const SparseTrackState* sparse = index >= 0 ? FindSparseTrackState(index) : nullptr;
+	if (!sparse || !IsGlowEffectEnabledForTrack(index)) return false;
+	const auto follower = std::find_if(
+		sparse->mFollowers.begin(), sparse->mFollowers.end(),
+		[&followerName](const TrackFollowerState& state) {
+			return state.mName == followerName;
+		});
+	return follower != sparse->mFollowers.end()
+		&& follower->mVisible && follower->mImage
+		&& follower->mInheritGlowEffect;
 }
 
 bool Animator::GetTrackGlowEffectEnabled(const std::string& trackName) const {

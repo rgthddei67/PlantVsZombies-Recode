@@ -262,6 +262,8 @@ public:
 	bool IsButterSplatFollowerVisible() const;
 	/** 黄油是状态贴图，不继承僵尸本体的减速/冻结覆盖色。 */
 	bool DoesButterSplatFollowerInheritOverlayEffect() const;
+	/** 黄油不属于承伤外观，不随父轨道提交 additive glow。 */
+	bool IsButterSplatFollowerGlowing() const;
 	/** 返回冻结冰晶底边中心的世界锚点；车辆可覆写到整车视觉中央。 */
 	virtual Vector GetIceTrapBottomAnchor() const;
 	/** 返回冻结冰晶相对普通尺寸的倍率；巨型身体可独立放大而不改变脚底线。 */

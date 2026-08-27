@@ -394,7 +394,9 @@ void IceStatueExecutionerZombie::ConfigureHelmetFollower()
 	mAnimator->SetTrackFollowerImage("anim_head1", kHelmetFollowerSlot, helmet,
 		kHelmetFollowerOffsetX, kHelmetFollowerOffsetY,
 		kHelmetFollowerScale, kHelmetFollowerScale,
-		/*drawAfterAllTracks=*/true);
+		/*drawAfterAllTracks=*/true,
+		/*inheritOverlayEffect=*/true,
+		/*inheritGlowEffect=*/true);
 	mAnimator->SetTrackFollowerVisible("anim_head1", kHelmetFollowerSlot, true);
 	mHelmetFollowerConfigured = true;
 }
@@ -414,7 +416,9 @@ void IceStatueExecutionerZombie::SyncHelmetPresentation() const
 		ResourceManager::GetInstance().GetTexture(GetHelmetTextureKey()),
 		kHelmetFollowerOffsetX, kHelmetFollowerOffsetY,
 		kHelmetFollowerScale, kHelmetFollowerScale,
-		/*drawAfterAllTracks=*/true);
+		/*drawAfterAllTracks=*/true,
+		/*inheritOverlayEffect=*/true,
+		/*inheritGlowEffect=*/true);
 	mAnimator->SetTrackFollowerVisible("anim_head1", kHelmetFollowerSlot, true);
 }
 
@@ -435,6 +439,13 @@ bool IceStatueExecutionerZombie::DoesHelmetFollowerInheritOverlayEffect() const
 {
 	return mHelmetFollowerConfigured && mAnimator
 		&& mAnimator->GetTrackFollowerInheritsOverlayEffect(
+			"anim_head1", kHelmetFollowerSlot);
+}
+
+bool IceStatueExecutionerZombie::IsHelmetFollowerGlowing() const
+{
+	return mHelmetFollowerConfigured && mAnimator
+		&& mAnimator->GetTrackFollowerGlowEffectEnabled(
 			"anim_head1", kHelmetFollowerSlot);
 }
 

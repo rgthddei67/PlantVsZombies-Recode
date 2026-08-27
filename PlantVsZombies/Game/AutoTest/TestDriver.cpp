@@ -5781,6 +5781,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "butterSplatFollowerVisible", z->IsButterSplatFollowerVisible() },
 			{ "butterSplatFollowerInheritsOverlay",
 				z->DoesButterSplatFollowerInheritOverlayEffect() },
+			{ "butterSplatFollowerGlowing", z->IsButterSplatFollowerGlowing() },
 			{ "toxic", z->GetToxinLayerCount() > 0 },
 			{ "toxinStacks", z->GetToxinLayerCount() },
 			{ "toxinMaxRemainingMs", static_cast<int>(std::lround(
@@ -6522,6 +6523,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				executioner->HasHelmetFollower();
 			zombieState["executionHelmetFollowerInheritsOverlay"] =
 				executioner->DoesHelmetFollowerInheritOverlayEffect();
+			zombieState["executionHelmetFollowerGlowing"] =
+				executioner->IsHelmetFollowerGlowing();
 			const float remaining = executioner->GetInterruptibleSpecialActionRemaining();
 			zombieState["interruptibleSpecialRemainingMs"] = remaining < 0.0f
 				? -1 : (remaining >= 100000.0f ? std::numeric_limits<int>::max()

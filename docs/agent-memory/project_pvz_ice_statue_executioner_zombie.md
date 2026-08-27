@@ -22,7 +22,7 @@ metadata:
 
 - 黑色橄榄球头盔没有独立时间轴，不使用子 Animator。它以稳定槽名 `ice_executioner_helmet` 跟随 `anim_head1`，穿戴缩放为原图 88%；三档损伤只更新该槽贴图，破帽只隐藏该槽。
 - `Animator::SparseTrackState` 的 follower 已改为命名 `std::vector`。同一轨道可按插入顺序共存多个静态 follower，调用方只能更新/移除自己的槽。黄油使用 `butter_splat`，因此 `Zombie::Start()` 在派生 `SetupZombie()` 后配置黄油不会再覆盖自然生成头盔；警铃草铃舌、急救员装备和绝缘甲也都迁移到独立稳定槽名。
-- 静态 follower 默认继承宿主 Animator 的状态 overlay；黑盔会随减速/冻结等效果一起变色。黄油配置显式传 `inheritOverlayEffect=false`，所以同挂 `anim_head1` 时仍保持黄色。实例与 `-NoInstance` 都按每个 follower 的 base 后紧跟 overlay 提交。
+- 静态 follower 默认继承宿主 Animator 的状态 overlay；黑盔另显式开启父轨 additive glow，因此会随减速/冻结等效果一起变色，并在头盔实际承伤时随父头轨闪白。黄油配置显式同时关闭 `inheritOverlayEffect` 与 `inheritGlowEffect`，所以同挂 `anim_head1` 时仍保持黄色且不随本体发光。实例与 CPU batch 都按每个 follower 的 base、overlay、glow 顺序紧邻提交。
 - 只有确实需要独立播放头、clip 或帧事件的附件才继续使用子 Animator。仓库旧 `AttachmentSystem` 没有玩法调用方，不是当前这两套表现路径的权威。
 - 破帽使用单粒子 `ZombieIceExecutionerHelmetOff`。发射中心由 `anim_head1` 轨道原点、头盔局部偏移和贴图运行缩放后的中心计算，XML 发射偏移归零；离体粒子比例独立为 70%，避免把较大的穿戴比例直接复制到掉落物。
 
@@ -33,4 +33,5 @@ metadata:
 - 植物保存冰封来源 ID；僵尸保存阶段、目标 ID、已提交进度和能力消费状态；Board 保存每波数量。加载后由 Board 终检双向关系、冻土与终止态，不合法组合原子释放，不复活目标或继承进度。
 - `smoke_ice_statue_executioner.json` 当前共 188 条命令，覆盖资源/数值/出怪、自然生成黑盔、同轨黄油共存和 overlay 分流、价值选择、全面隔离、三锤、警铃重置、破帽专属粒子、磁力菇摘盔但不中断处刑、灰烬总耐久阈值、回暖、死亡/断肢/魅惑、快照和每波五只上限。2026-08-26 在当前桌面可见的 `clang-release` 默认实例执行至 command 187、exit 0、`status=passed`；同次炉芯花专项在默认实例与 `-NoInstance` 两条路径均通过，并覆盖处刑者真实封存入口。
 - 2026-08-27 可见 `clang-release` 新专项 `smoke_ice_executioner_cob_monte_carlo.json` 47 条命令通过：只有最右一列冻土时，左锚点 7 列、右轮 8 列的玉米炮仍被 MC 选中并持续冰封；第六锤后进度 6、植物仍存活，快照往返保持关系，第七锤消失。原 `smoke_ice_statue_executioner.json` 同次复跑至 command 187、exit 0、`status=passed`；纯数值测试另锁定 16 秒窗口只提交六锤、玉米炮最优爆点和离膛炮弹不可回滚。
+- 2026-08-27 follower additive glow 修复后，`smoke_ice_statue_executioner.json` 为 196 条命令；默认 Vulkan、`-NoInstance` Vulkan 和强制 OpenGL 三次当前桌面可见运行均执行至 command 195、exit 0、`status=passed`。状态投影锁定黑盔受击 glow 开启、黄油 glow 关闭，同步截图确认减速覆盖下黑盔与父头轨一起闪白。
 - follower 父回归同次在两条路径各通过：`smoke_zombie_butter_layers` 173 条、`smoke_alarm_bell_flower` 120 条、`smoke_healer_area` 35 条、`smoke_insulator_visual` 30 条。全量链接的 Win7 导入审计通过 378 项。

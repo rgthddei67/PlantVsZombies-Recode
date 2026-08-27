@@ -51,6 +51,8 @@ public:
 	ArmorBrokenState GetHelmetStage() const { return mHelmetStage; }
 	bool HasHelmetFollower() const;
 	bool DoesHelmetFollowerInheritOverlayEffect() const;
+	/** 黑盔可见且父头轨正在提交 additive glow 时返回 true。 */
+	bool IsHelmetFollowerGlowing() const;
 	bool OwnsIceSealFor(int plantID) const;
 	/** 全实体恢复后校验植物侧拥有者、冻土和终止态，不重放音画。 */
 	void FinalizeIceSealLoad();

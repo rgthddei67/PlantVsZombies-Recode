@@ -79,6 +79,7 @@ private:
 		bool mVisible = false;
 		bool mDrawAfterAllTracks = false;
 		bool mInheritOverlayEffect = true;
+		bool mInheritGlowEffect = false;
 		float mOffsetX = 0.0f;
 		float mOffsetY = 0.0f;
 		float mScaleX = 1.0f;
@@ -260,11 +261,13 @@ public:
 	 * @param scaleY 相对父轨道的纵向缩放倍率。
 	 * @param drawAfterAllTracks true=延迟到本 Animator 全部轨道及附件之后提交；false=紧随父轨道。
 	 * @param inheritOverlayEffect true=继承 Animator 的减速/冻结等覆盖色；状态贴图应传 false。
+	 * @param inheritGlowEffect true=继承父轨道的 additive glow；不属于承伤外观的状态贴图应传 false。
 	 */
 	void SetTrackFollowerImage(const std::string& trackName,
 		const std::string& followerName, const Texture* image,
 		float offsetX, float offsetY, float scaleX, float scaleY,
-		bool drawAfterAllTracks, bool inheritOverlayEffect = true);
+		bool drawAfterAllTracks, bool inheritOverlayEffect = true,
+		bool inheritGlowEffect = false);
 	/** 控制指定轨道的一个命名 follower，不影响同轨道其他槽。 */
 	void SetTrackFollowerVisible(const std::string& trackName,
 		const std::string& followerName, bool visible);
@@ -554,6 +557,9 @@ public:
 		const std::string& followerName) const;
 	/** 返回指定命名 follower 是否继承 Animator 覆盖色。 */
 	bool GetTrackFollowerInheritsOverlayEffect(const std::string& trackName,
+		const std::string& followerName) const;
+	/** 返回指定命名 follower 当前是否会随父轨道提交 additive glow。 */
+	bool GetTrackFollowerGlowEffectEnabled(const std::string& trackName,
 		const std::string& followerName) const;
 
 	/**
