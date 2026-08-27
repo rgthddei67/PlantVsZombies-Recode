@@ -46,3 +46,5 @@ metadata:
 设计文档：`docs/superpowers/specs/2026-07-23-squash-design.md`。
 
 2026-08-15 `clang-release` 构建通过；可见 `smoke_gargantuar_special_plant_smash.json` 在第 93 帧命中后断言索敌倭瓜仍活动且未压扁、下层花盆已压扁，并继续通过 `PRELAUNCH/RISING/LANDED` 完成 1800 伤害；`smoke_squash.json` 54 条命令 exit 0 并恢复完整观察、上升、落地尘土与水路父回归，关键截图均已目验。
+
+2026-08-27 对齐 C# `NotOnGround()` 的占格语义：倭瓜进入 `RISING` 时立即释放显式 Cell 槽，空中与落地演出仍保留实体、动画和伤害状态，但原格可以马上种植。`Plant::OccupiesGridSlot()` 成为保存/恢复占格顺序的窄契约；快照先恢复非占格的在途倭瓜，再恢复后来种入同格的植物，避免加载时互相覆盖。默认 Vulkan 可见 `smoke_squash.json` 覆盖起跳前不可种、起跳后同格种向日葵，以及在途倭瓜和同格向日葵的快照往返；exit 0，状态与两张关键截图均核对通过。

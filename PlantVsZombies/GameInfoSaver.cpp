@@ -484,6 +484,7 @@ bool GameInfoSaver::SerializeLevelDataToPath(Board* board, CardSlotManager* mana
 		p["iceSealOwnerZombieID"] = plant->GetIceSealOwnerZombieID();
 		if (plant->IsImitated()) p["imitated"] = true;
 		p["isSquished"] = plant->IsSquished();
+		p["occupiesGridSlot"] = plant->OccupiesGridSlot();
 		if (plant->IsSquished()) {
 			const Vector squishVisual = plant->GetSquishVisualPosition();
 			p["squishTimer"] = plant->GetSquishTimeRemaining();
@@ -1185,8 +1186,8 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 	board->mEntityRegistry.SetNextCoinID(j.value("nextCoinID", 1));
 	board->mEntityRegistry.SetNextMowerID(j.value("nextMowerID", 1));
 
-	// 压扁残影与后来补种的植物可以同格共存。先恢复并释放残影占格，再恢复正常植物，
-	// 避免无序存档数组令残影的创建过程覆盖同格新植物 ID。
+	// 压扁残影、离地倭瓜与后来补种的植物可以同格共存。先恢复并释放非占格实体，
+	// 再恢复正常植物，避免无序存档数组令旧实体的创建过程覆盖同格新植物 ID。
 	const auto savedPlants = j.value("plants", nlohmann::json::array());
 	auto restorePlant = [&](const nlohmann::json& p) {
 		PlantType type = static_cast<PlantType>(p["type"].get<int>());
@@ -1242,9 +1243,11 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 			}
 		}
 	};
-	for (const bool squishedPass : { true, false }) {
+	for (const bool occupiesGridSlotPass : { false, true }) {
 		for (const auto& p : savedPlants) {
-			if (p.value("isSquished", false) == squishedPass) {
+			const bool occupiesGridSlot = p.value(
+				"occupiesGridSlot", !p.value("isSquished", false));
+			if (occupiesGridSlot == occupiesGridSlotPass) {
 				restorePlant(p);
 			}
 		}

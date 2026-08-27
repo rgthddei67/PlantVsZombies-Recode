@@ -91,10 +91,10 @@
 - [精英舞王僵尸](project_pvz_elite_dancer_zombie.md) — 2026-07-27 当前为黑夜大雨任意台风 50% 变异、每波最多 2 只；超额成功变异候选源头跳过，实体创建成功后写 PlayerInfo 永久遭遇供图鉴解锁；720 HP、基础1.25、每0.2秒补伴舞至36只，强/超强台风再乘1.45/1.75；变异与图鉴专项可见 AutoTest 通过
 - [绿色精英撑杆僵尸](project_pvz_elite_polevaulter_zombie.md) — 2026-08-27 普通/精英撑杆的起跳入口完整要求有头且非终止态，防止无头流血阶段新起跳后在落地附近消失；已提交跳跃后的致命伤由 `anim_death` 接管，迟到落地回调不覆盖死亡轨；精英仍为450 HP、动画能力层1.1、250px跳距、落地生成普通撑杆，60%节点按完整扫掠路径处理高坚果，正式波次每波最多2只且计数入档
 - [黑夜第二大关出怪节奏](project_pvz_night_spawnlist_pacing.md) — 2026-07-22 冒险 2-1～2-9 单主题节奏：2-6 普通橄榄球、2-7 舞王、2-8 普通铁门+加固铁门（玩家已取得毁灭菇）、2-9 八种重点机制综合并必含加固铁门；双 preset 统一，`smoke_night_spawnlists` 逐关断言并截图
-- [倭瓜](project_pvz_squash.md) — 2026-08-15 3-1 奖励植物：C# 0.8观察→0.3预备→0.5上升→0.1下砸；RISING/FALLING/LANDED 对齐 NotOnGround 不可啃，组合格只让仍有效上层遮挡花盆/睡莲；1800伤害、草地尘土与水路溅水保持；索敌后忽略巨人锤击而同格花盆仍独立压扁；clang-release及可见专项通过
+- [倭瓜](project_pvz_squash.md) — 2026-08-27 3-1 奖励植物：C# 0.8观察→0.3预备→0.5上升→0.1下砸；RISING 起立即释放 Cell，原格可重种且在途倭瓜+同格植物可快照往返；离地不可啃、1800伤害、落地粒子与巨人锤击语义保持；clang-release及可见专项通过
 - [双向射手](project_pvz_splitpea.md) — 2026-08-01 经典125阳光/7.5秒冷却/1.5秒轮询；前头95帧单发、后头57帧反向两连发且两侧独立索敌；双子 Animator 用 inverse(basePose) 对齐并完整入档；后豆溅射/特效随负速度镜像并可背击绕盾；4-4结算解锁，4-5以矿工+加固铁门立即教学背线与绕门
 - [精英胆小菇](project_pvz_elite_scaredyshroom.md) — 2026-07-23 冒险 2-8 紫色奖励植物：500生命、10伤起步，每5发间隔乘0.85、每10发伤害+1，最终15伤/0.2秒；受惊全清，白天每发只长0.6；每关累计最多种3株且损失不返还，高速吐弹用pending防重播吞弹
-- [土豆地雷出土触发与范围爆炸](project_pvz_potato_mine_trigger_blast.md) — 2026-07-20 修复埋地时已被啃导致出土后不爆：出土跃迁若 `mEaterCount>0` 主动补触发；爆炸按原版同排半径60圆×僵尸矩形一次结算全部非魅惑目标，不再只杀碰撞触发者；可见 `smoke_potatomine.json` 独立覆盖先啃后出土与已出土双目标范围爆炸
+- [土豆地雷出土触发与范围爆炸](project_pvz_potato_mine_trigger_blast.md) — 2026-08-27 武装态持续扫描已重叠/外壳重定向目标，四僵尸啃南瓜后不再吃掉地雷；爆炸后植物立即死亡并由 `PotatoMine` 复合粒子保留原版灰烬碎屑，原格可立刻重种；默认 Vulkan 可见专项覆盖资源、范围、外壳、占格与截图
 - [加固铁门僵尸](project_pvz_reinforced_door_zombie.md) — 2026-08-01 当前源码为270本体/1030门；持门正面植物普通伤害最多10、灰烬最多320、仙人掌正面尖刺帧伤1且免化灰/直杀，背击子弹绕门并取消持门上限；4-5加入双向射手即时反制教学，4-6继续综合复习；水草束缚、免魅惑与大喷截断契约保持
 - [Bullet 地面阴影与跨对象绘制顺序](project_pvz_bullet_shadow.md) — 2026-07-19 对齐 C#：Pea 单格21×9、Snowpea 1.3×、Puff无影；2026-08-22 改为宿主显式 Shadow 附件且对象池复用仍按row/position重算；阴影由 BulletPool 在 GOM 主体前统一提交，宿主固定绘制阶段不能跨越植物/Bullet对象层；主人校对 Y 与同排豌豆射手影子一致；可见默认/NoInstance `smoke_bullet_shadow.json` 验本体在上、影子在下
 - [单一 Bullet 与分型对象池](project_pvz_bullet_pool_architecture.md) — 2026-08-22 所有已接入弹型统一创建 `Bullet final`；池/GOM 共同强所有权、Bullet 内稳定运行时槽位取代指针哈希，稠密活跃表 O(1) 回收；GOM 并行阈值扣除休眠池弹丸，512→0→64 同口径压力下休眠/低活跃 dispatch 热点消失，clang-release 与可见 torchwood/projectile/melon 存档回归通过

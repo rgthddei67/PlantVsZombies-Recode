@@ -14,6 +14,8 @@ public:
 	void TakeDamage(int damage, DamageSource source) override;
 	/** 起跳离地、下砸及落地残留阶段不再成为啃食目标，对齐 C# NotOnGround。 */
 	bool CanBeEaten() const override;
+	/** C# 从 SquashRising 起退出原始格位，允许玩家立即在原格补种。 */
+	bool OccupiesGridSlot() const override;
 	/** 索敌后的倭瓜保留完整攻击动画并忽略巨人锤击；待机态仍可被压扁。 */
 	void ResolveGargantuarSmash() override;
 	/** 保存状态机计时、锁定目标与落点，使起跳途中存档不会重置攻击。 */

@@ -1,0 +1,86 @@
+<Emitter>
+  <Name>PotatoMine</Name>
+  <SpawnMinActive>1</SpawnMinActive>
+  <SpawnMaxLaunched>1</SpawnMaxLaunched>
+  <ParticleDuration>2.0</ParticleDuration>
+  <SystemDuration>2.05</SystemDuration>
+  <ParticleScale>.9</ParticleScale>
+  <ParticleAlpha>1,95 0</ParticleAlpha>
+  <Image>IMAGE_POTATOMINE_MASHED</Image>
+  <Field>
+    <FieldType>Position</FieldType>
+    <Y>20</Y>
+  </Field>
+</Emitter>
+<Emitter>
+  <Name>PotatoMineLowParts</Name>
+  <SpawnMinActive>10</SpawnMinActive>
+  <SpawnMaxLaunched>10</SpawnMaxLaunched>
+  <ParticleDuration>[1.2 1.8]</ParticleDuration>
+  <SystemDuration>1.9</SystemDuration>
+  <ParticleAlpha>1,85 0</ParticleAlpha>
+  <ParticleScale>[.7 1.0]</ParticleScale>
+  <EmitterType>Circle</EmitterType>
+  <EmitterRadius>[0 30]</EmitterRadius>
+  <LaunchSpeed>[70 120]</LaunchSpeed>
+  <ParticleGravity>100</ParticleGravity>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <ParticleSpinSpeed>[-180 180]</ParticleSpinSpeed>
+  <Image>PARTICLE_POTATOMINE_PARTICLES_PART_0,PARTICLE_POTATOMINE_PARTICLES_PART_1,PARTICLE_POTATOMINE_PARTICLES_PART_2,PARTICLE_POTATOMINE_PARTICLES_PART_3,PARTICLE_POTATOMINE_PARTICLES_PART_4,PARTICLE_POTATOMINE_PARTICLES_PART_5</Image>
+  <Field>
+    <FieldType>Friction</FieldType>
+    <X>.015</X>
+    <Y>.015</Y>
+  </Field>
+  <Field>
+    <FieldType>Position</FieldType>
+    <Y>20</Y>
+  </Field>
+</Emitter>
+<Emitter>
+  <Name>PotatoMineHighParts</Name>
+  <SpawnMinActive>30</SpawnMinActive>
+  <SpawnMaxLaunched>30</SpawnMaxLaunched>
+  <ParticleDuration>[.55 .8]</ParticleDuration>
+  <SystemDuration>.9</SystemDuration>
+  <ParticleAlpha>1,90 0</ParticleAlpha>
+  <ParticleScale>[.8 1.2]</ParticleScale>
+  <EmitterType>Circle</EmitterType>
+  <EmitterRadius>[0 35]</EmitterRadius>
+  <LaunchSpeed>[150 240]</LaunchSpeed>
+  <ParticleGravity>180</ParticleGravity>
+  <RandomLaunchSpin>1</RandomLaunchSpin>
+  <ParticleSpinSpeed>[-600 600]</ParticleSpinSpeed>
+  <Image>PARTICLE_POTATOMINE_PARTICLES_PART_0,PARTICLE_POTATOMINE_PARTICLES_PART_1,PARTICLE_POTATOMINE_PARTICLES_PART_2,PARTICLE_POTATOMINE_PARTICLES_PART_3,PARTICLE_POTATOMINE_PARTICLES_PART_4,PARTICLE_POTATOMINE_PARTICLES_PART_5</Image>
+</Emitter>
+<Emitter>
+  <Name>PotatoMineWord</Name>
+  <SpawnMinActive>1</SpawnMinActive>
+  <SpawnMaxLaunched>1</SpawnMaxLaunched>
+  <ParticleDuration>.7</ParticleDuration>
+  <SystemDuration>.75</SystemDuration>
+  <ParticleAlpha>1,90 0</ParticleAlpha>
+  <Image>PARTICLE_EXPLOSIONSPUDOW</Image>
+  <Field>
+    <FieldType>Position</FieldType>
+    <Y>-30</Y>
+  </Field>
+  <Field>
+    <FieldType>Shake</FieldType>
+    <X>2</X>
+    <Y>2</Y>
+  </Field>
+</Emitter>
+<Emitter>
+  <Name>PotatoMineFlash</Name>
+  <SpawnMinActive>1</SpawnMinActive>
+  <SpawnMaxLaunched>1</SpawnMaxLaunched>
+  <ParticleDuration>.4</ParticleDuration>
+  <SystemDuration>.45</SystemDuration>
+  <ParticleScale>10 15</ParticleScale>
+  <ParticleAlpha>.5 0</ParticleAlpha>
+  <ParticleRed>1</ParticleRed>
+  <ParticleGreen>1</ParticleGreen>
+  <ParticleBlue>.5</ParticleBlue>
+  <Image>PARTICLE_POTATOMINEFLASH</Image>
+</Emitter>

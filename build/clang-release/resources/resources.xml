@@ -314,6 +314,8 @@
     <Texture>./resources/particles/BlastMark.png</Texture>
     <Texture>./resources/particles/ExplosionCloud.png</Texture>
     <Texture>./resources/particles/ExplosionSpudow.png</Texture>
+	<Texture Column="6" Row="1">./resources/particles/PotatoMine_particles.png</Texture>
+	<Texture>./resources/particles/PotatoMineFlash.png</Texture>
     <Texture Column="8" Row="2">./resources/particles/DirtSmall.png</Texture>
     <Texture Column="3" Row="1">./resources/particles/ZamboniSmoke.png</Texture>
     <Texture Column="5" Row="1">./resources/particles/Zomboss_particles.png</Texture>

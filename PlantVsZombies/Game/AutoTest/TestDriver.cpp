@@ -4323,6 +4323,22 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			&& ResourceManager::GetInstance().GetTexture(
 				ResourceKeys::Particles::PARTICLE_SALT_CRYSTAL_PARTICLES_PART_0, false) != nullptr },
 	};
+	out["potatoMineResources"] = {
+		{ "reanimationLoaded", ResourceManager::GetInstance().HasReanimation(
+			ResourceKeys::Reanimations::REANIM_POTATOMINE) },
+		{ "cardTextureLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_POTATOMINE, false) != nullptr },
+		{ "mashedTextureLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_POTATOMINE_MASHED, false) != nullptr },
+		{ "particleTexturesLoaded", ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Particles::PARTICLE_POTATOMINE_PARTICLES_PART_0, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Particles::PARTICLE_POTATOMINE_PARTICLES_PART_5, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Particles::PARTICLE_POTATOMINEFLASH, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Particles::PARTICLE_EXPLOSIONSPUDOW, false) != nullptr },
+	};
 	out["frostMineResources"] = {
 		{ "reanimationLoaded", ResourceManager::GetInstance().HasReanimation(
 			ResourceKeys::Reanimations::REANIM_FROSTMINE) },
@@ -7185,6 +7201,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["particleEffectNameCounts"]["IceCrackDrillRift"] = 0;
 	out["particleEffectNameCounts"]["IceCrackDrillRigOff"] = 0;
 	out["particleEffectNameCounts"]["FrostMineBurst"] = 0;
+	out["particleEffectNameCounts"]["PotatoMine"] = 0;
 	out["particleEffectNameCounts"]["AlarmBellRowPulse"] = 0;
 	if (g_particleSystem) {
 		for (const auto& effect : g_particleSystem->GetEffectsForTesting()) {

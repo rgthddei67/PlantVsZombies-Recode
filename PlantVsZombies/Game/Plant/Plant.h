@@ -180,6 +180,8 @@ public:
 	 */
 	void Squish();
 	bool IsSquished() const { return mIsSquished; }
+	/** 当前实体是否仍拥有原始逻辑格；离地攻击体和压扁残影返回 false，供存档恢复排序。 */
+	virtual bool OccupiesGridSlot() const { return IsActive() && !mIsSquished; }
 	float GetSquishTimeRemaining() const { return mSquishTimer; }
 	float GetSquishRenderScaleY() const {
 		return mAnimator ? mAnimator->GetRenderScaleY() : 1.0f;

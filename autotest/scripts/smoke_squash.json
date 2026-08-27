@@ -55,6 +55,26 @@
     { "op": "assert_state", "path": "zombieCount", "equals": 0 },
     { "op": "screenshot", "name": "squash_pool_splash.png" },
     { "op": "dump_state", "name": "squash_pool_after_damage.json" },
+
+    { "op": "goto_level", "level": 1 },
+    { "op": "choose_cards", "cards": ["PLANT_SQUASH", "PLANT_SUNFLOWER"] },
+    { "op": "wait_state", "state": "GAME" },
+    { "op": "set_spawn_paused", "value": true },
+    { "op": "plant", "type": "PLANT_SQUASH", "row": 2, "col": 4 },
+    { "op": "spawn_zombie", "type": "ZOMBIE_NORMAL", "row": 2, "x": 680, "stationary": true },
+    { "op": "wait_seconds", "value": 0.9 },
+    { "op": "assert_can_plant", "type": "PLANT_SUNFLOWER", "row": 2, "col": 4, "expected": false },
+    { "op": "wait_seconds", "value": 0.3 },
+    { "op": "assert_can_plant", "type": "PLANT_SUNFLOWER", "row": 2, "col": 4, "expected": true },
+    { "op": "plant", "type": "PLANT_SUNFLOWER", "row": 2, "col": 4 },
+    { "op": "assert_state", "path": "normalPlantsByCell.2_4.type", "equals": "PLANT_SUNFLOWER" },
+    { "op": "assert_state", "path": "plantCount", "equals": 2 },
+    { "op": "screenshot", "name": "squash_rising_original_cell_replanted.png" },
+    { "op": "save_level_snapshot", "name": "squash_rising_replanted" },
+    { "op": "reload_level_snapshot", "name": "squash_rising_replanted" },
+    { "op": "assert_state", "path": "normalPlantsByCell.2_4.type", "equals": "PLANT_SUNFLOWER" },
+    { "op": "assert_state", "path": "plantCount", "equals": 2 },
+    { "op": "screenshot", "name": "squash_rising_replanted_reloaded.png" },
     { "op": "quit" }
   ]
 }

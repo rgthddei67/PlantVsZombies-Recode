@@ -113,6 +113,14 @@ bool Squash::CanBeEaten() const
 		&& mState != State::LANDED;
 }
 
+bool Squash::OccupiesGridSlot() const
+{
+	return Plant::OccupiesGridSlot()
+		&& mState != State::RISING
+		&& mState != State::FALLING
+		&& mState != State::LANDED;
+}
+
 void Squash::ResolveGargantuarSmash()
 {
 	// C# 的 Plant::Squish 只允许尚未索敌的 Notready 倭瓜进入压扁态。
@@ -223,6 +231,8 @@ void Squash::StartRising()
 	mState = State::RISING;
 	mStateTimer = kRiseDuration;
 	mDamageApplied = false;
+	// C# 以 NotOnGround 让起跳倭瓜退出种植判定；显式 Cell 槽必须在同一状态边沿释放。
+	ReleaseGridSlot();
 	if (mCollider) mCollider->mEnabled = false;
 	UpdateRisingPosition();
 }
@@ -315,6 +325,7 @@ void Squash::ApplySquashDamage()
 
 void Squash::RestoreStatePosition()
 {
+	if (!OccupiesGridSlot()) ReleaseGridSlot();
 	switch (mState) {
 	case State::RISING:
 		UpdateRisingPosition();
