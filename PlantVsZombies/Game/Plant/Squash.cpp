@@ -293,6 +293,11 @@ void Squash::ApplySquashDamage()
 				zombie->TakeDamage(kSquashDamage, DamageSource::PLANT_ASH, false);
 				return;
 			}
+			else if (zombie->mZombieType == ZombieType::ZOMBIE_ICE_STATUE_EXECUTIONER)
+			{
+				zombie->TakeDamage(kSquashDamage, DamageSource::PLANT_ASH, false);
+				return;
+			}
 
 			if (zombie->mBodyHealth <= kSquashDamage && 
 				zombie->mZombieType != ZombieType::ZOMBIE_GARGANTUAR && 
