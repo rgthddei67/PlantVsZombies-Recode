@@ -88,3 +88,17 @@ metadata:
 2026-08-05 修复长跳只复查起跳目标 ID 的盲区：父类保存起跳 X，在 60% 节点用完整 250px 跳距构造
 僵尸碰撞框扫掠区，沿房屋方向选择最先遇到的声明式阻拦植物；普通植物后方的高坚果会让精英落到其
 迎敌面、撤销额外 100px、召唤普通撑杆并对高坚果结算 500 伤害，不再直接越过。
+
+## 普通撑杆临界死亡修复（2026-08-27）
+
+普通撑杆的接触回调此前只检查 `RUNNING && !hasVaulted`，漏掉 C# 原版起跳前的 `mHasHead` 资格。
+本体降到 166 后已经掉头，但无头流血仍继续计时，旧实现还能在接触植物时进入 `anim_jump`，随后恰在
+落地附近死亡，外观上像“跳完突然消失”。现在碰撞入口与 `StartJump()` 都拒绝掉头、垂死、死亡或失活
+实体新提交跳跃；已合法起跳后才受到致命伤的实体不回滚动作，而由 `anim_death` 接管。`EndJump()` 也
+只接受仍处于 `JUMPING` 且未进入终止状态的回调，避免迟到的落地事件覆盖死亡轨。没有新增动画帧事件。
+
+`clang-release` 构建与 378 项 Win7 导入审计通过。当前桌面可见
+`smoke_polevaulter_death_boundary.json` 默认实例化与 `-NoInstance` 均 exit 0：接触前受 334 伤害后为
+`hasHead=false/RUNNING/hasVaulted=false`，健康起跳后受 465 致命伤则保持
+`isDying=true/anim_death` 并正常回收；`smoke_polevaulter_vault_walk.json` 父类回归仍为 150000 跳距并
+落入 `WALKING`。状态、日志与截图均已检查。

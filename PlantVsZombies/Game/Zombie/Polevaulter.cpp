@@ -55,7 +55,7 @@ void Polevaulter::SetupZombie()
 				// C# 在撑杆起跳之前检查该格扶梯；命中时保留撑杆并直接进入通用攀爬。
 				if (TryStartLadderClimb(plant)) return;
 
-				if (mVaultState == VaultState::RUNNING && !mHasVaulted) {
+				if (mVaultState == VaultState::RUNNING && !mHasVaulted && mHasHead) {
 					// 原版先起跳，再在 anim_jump 60% 处检查 Tallnut；接触回调只锁定目标并开播。
 					StartJump(plant);
 				}
@@ -116,6 +116,11 @@ void Polevaulter::ZombieItemUpdate() const
 
 void Polevaulter::StartJump(Plant* target)
 {
+	// 原版 PolevaulterPreVault 明确要求仍有头；掉头后的流血期不能再开一次必然撞上死亡的跳跃。
+	if (!target || mVaultState != VaultState::RUNNING || mHasVaulted || !mHasHead
+		|| mIsPreview || mIsDying || mIsDead || !IsActive()) {
+		return;
+	}
 	mVaultState = VaultState::JUMPING;
 	mLastVaultDistance = 0.0f;
 	mVaultExtraDistanceApplied = 0.0f;
@@ -145,6 +150,8 @@ void Polevaulter::StartJump(Plant* target)
 
 void Polevaulter::EndJump()
 {
+	// 死亡或其他终止边沿优先于落地回调，不能让迟到的帧事件重新切回走路轨道。
+	if (mVaultState != VaultState::JUMPING || mIsDying || mIsDead || !IsActive()) return;
 	mVaultState = VaultState::WALKING;
 	mHasVaulted = true;
 	mVaultBlockChecked = true;

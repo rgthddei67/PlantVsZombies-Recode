@@ -24,7 +24,6 @@ namespace {
 	constexpr float kThrowGravity = 500.0f;                  // 原版每厘秒 0.05px，折算 px/s^2
 	constexpr float kOriginalInitialAltitude = 88.0f;        // 计算旧落地时刻使用的原版脱手高度，单位 px
 	constexpr float kInitialAltitude = 112.0f;               // 小鬼脱手高度；按主人目验在原版 88px 基础上上抬 24px
-	constexpr float kThrowDistanceMultiplier = 1.3f;         // 小鬼相对旧轨迹的实际水平飞行距离倍率
 	constexpr float kLimbVolume = 0.25f;                     // 小鬼断肢断头音量
 	constexpr float kColliderWidth = 40.0f;                  // 小鬼碰撞框宽度，单位 px
 	constexpr float kColliderHeight = 70.0f;                 // 小鬼碰撞框高度，单位 px
@@ -82,10 +81,9 @@ void ImpZombie::ConfigureThrown(float throwDistance, bool movingRight,
 	const float originalFlightSeconds = (originalVerticalVelocity
 		+ std::sqrt(originalVerticalVelocity * originalVerticalVelocity
 			+ 2.0f * kThrowGravity * kOriginalInitialAltitude)) / kThrowGravity;
-	const float targetFlightSeconds = originalFlightSeconds * kThrowDistanceMultiplier;
-	// 水平速度不变，以目标落地时刻反算初速，使实际水平飞行距离稳定放大 1.3 倍。
-	mVerticalVelocity = (0.5f * kThrowGravity * targetFlightSeconds * targetFlightSeconds
-		- kInitialAltitude) / targetFlightSeconds;
+	// 只抬高视觉起点，不延长既有飞行时长；否则非屋顶会越过预定落区直达房屋侧首格。
+	mVerticalVelocity = (0.5f * kThrowGravity * originalFlightSeconds * originalFlightSeconds
+		- kInitialAltitude) / originalFlightSeconds;
 	// 原版是 PlayOnceAndHold；飞行长于剪辑时停在末帧，不能回绕首帧造成空中回弹。
 	PlayTrackOnce("anim_thrown", "", kThrownClipSpeed, 0.0f);
 	if (inheritedCooldown > 0.0f) SetCooldown(inheritedCooldown);

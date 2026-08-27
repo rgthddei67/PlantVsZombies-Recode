@@ -5528,6 +5528,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "x", pos.x }, { "y", pos.y },
 			{ "xInt", static_cast<int>(std::lround(pos.x)) },
 			{ "yInt", static_cast<int>(std::lround(pos.y)) },
+			{ "gridColumnOn1000", static_cast<int>(std::lround(
+				(pos.x - CELL_INITALIZE_POS_X) / CELL_COLLIDER_SIZE_X * 1000.0f)) },
 			{ "terrainYOffsetOn1000", static_cast<int>(std::lround(
 				(pos.y - terrainY) * 1000.0f)) },
 			{ "bodyHealth", z->mBodyHealth }, { "bodyMaxHealth", z->mBodyMaxHealth },
