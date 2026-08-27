@@ -122,7 +122,7 @@ void PotatoMine::KillZombiesInBlastRadius()
 
 		if (CircleIntersectsBounds(blastCenter, radiusSquared, collider->GetBoundingBox())) {
 			// 土豆雷仍对普通目标一击化灰；特殊目标可拒绝直杀并承受受限灰烬伤害。
-			zombie->TakePlantAshDamage(INT32_MAX);
+			zombie->TakePlantAshDamage(1800);
 		}
 		});
 }
