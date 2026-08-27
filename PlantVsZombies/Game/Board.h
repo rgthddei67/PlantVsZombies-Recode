@@ -424,8 +424,6 @@ private:
 	/** 一次性抽取并锁定下一场寒潮的强度、最低温、阶段时长与冻融线外观。 */
 	void RollNextColdWave();
 	void UpdateWinterTemperature(float deltaTime);
-	/** 冻土只阻止新落种；读档与已经存在的植物不受影响。 */
-	bool IsPlantFootprintFrozen(PlantType type, int row, int anchorColumn) const;
 	/** 推进昼夜屋顶雨水积累、锁行预警与短时冲刷状态机。 */
 	void UpdateRoofRunoff(float deltaTime);
 	/** 从存档恢复已经判定的积累值、阶段、锁定行、残留湿度与剩余时间，不重新抽取。 */
@@ -593,13 +591,18 @@ public:
 		int& targetRow, Vector& targetPosition,
 		MonteCarloTargetStats* stats = nullptr,
 		const std::vector<int>* removalPlantIDs = nullptr,
-		int* selectedRemovalPlantID = nullptr);
+		int* selectedRemovalPlantID = nullptr,
+		float removalStrikeInterval = 0.0f,
+		int removalStrikeDamage = 0,
+		const std::vector<int>* removalStrikeCounts = nullptr);
 	/**
 	 * @brief 用共享短视推演从给定植物 ID 中选择立即移除后对玩家损失最大的目标。
 	 */
 	bool PickMonteCarloPlantRemovalTarget(
 		const std::vector<int>& eligiblePlantIDs, int sourceZombieID,
-		int& targetPlantID, MonteCarloTargetStats* stats = nullptr);
+		int& targetPlantID, MonteCarloTargetStats* stats = nullptr,
+		float strikeInterval = 0.0f, int strikeDamage = 0,
+		const std::vector<int>* strikeCounts = nullptr);
 	/**
 	 * @brief 比较急救员当前全部群疗、单疗与一次延迟分支；魅惑侧不适用时返回 false。
 	 *
@@ -718,8 +721,12 @@ public:
 	float GetWinterFrostVisualColumnCount() const;
 	int GetFirstFrozenColumn() const;
 	bool IsCellFrozen(int row, int col) const;
-	/** 从实际冻土的正式植物中按战略价值、再按稳定 ID 选择唯一冰像处决目标。 */
-	Plant* SelectIceStatueExecutionTarget() const;
+	/** 任一占地格位于冻土即返回 true；多格植物不得只检查锚点。 */
+	bool IsPlantFootprintFrozen(PlantType type, int row, int anchorColumn) const;
+	/** 用共享短视推演选择处决目标；推演不可用时退回战略价值和稳定 ID。 */
+	Plant* SelectIceStatueExecutionTarget(
+		int sourceZombieID, float strikeInterval, int strikeDamage,
+		MonteCarloTargetStats* stats = nullptr);
 	/** 按稳定植物 ID 请求 3x3 内提供者阻止目标建立一次冰像封存。 */
 	bool TryPreventIceExecutionSeal(Plant& target) const;
 	/** 当前准确预报的最低温是否会覆盖该格；预报干扰后立即返回 false。 */

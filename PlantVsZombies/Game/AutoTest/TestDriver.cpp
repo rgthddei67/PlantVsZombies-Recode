@@ -4600,8 +4600,16 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 				std::lround(simulation.magneticSearchRadiusInCells * 1000.0f)) },
 			{ "simulationMagneticEatingSearchRadiusOn1000", static_cast<int>(
 				std::lround(simulation.magneticEatingSearchRadiusInCells * 1000.0f)) },
+			{ "simulationCobBlastCooldownMs", static_cast<int>(
+				std::lround(simulation.cobBlastCooldown * 1000.0f)) },
+			{ "simulationCobBlastDamage", static_cast<int>(
+				std::lround(simulation.cobBlastDamage)) },
+			{ "simulationCobBlastRadius", static_cast<int>(
+				std::lround(simulation.cobBlastRadius)) },
+			{ "simulationCobBlastRowRadius", simulation.cobBlastRowRadius },
 			{ "simulationDaytimeDormant", simulation.daytimeDormant },
 			{ "simulationPersistent", simulation.persistent },
+			{ "simulationFuturePlantable", simulation.futurePlantable },
 			{ "simulationSupportOnly", simulation.supportOnly },
 		};
 	}
@@ -6485,7 +6493,29 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			zombieState["executionTargetPlantID"] =
 				executioner->GetExecutionTargetPlantID();
 			zombieState["executionProgress"] = executioner->GetExecutionProgress();
+			zombieState["executionRequiredStrikes"] =
+				executioner->GetCurrentRequiredStrikeCount();
 			zombieState["executionUsed"] = executioner->HasUsedExecution();
+			const char* targetingMode = "NONE";
+			switch (executioner->GetTargetingMode()) {
+			case IceStatueExecutionerZombie::TargetingMode::NONE:
+				break;
+			case IceStatueExecutionerZombie::TargetingMode::MONTE_CARLO:
+				targetingMode = "MONTE_CARLO";
+				break;
+			case IceStatueExecutionerZombie::TargetingMode::STRATEGIC_FALLBACK:
+				targetingMode = "STRATEGIC_FALLBACK";
+				break;
+			}
+			zombieState["executionTargetingMode"] = targetingMode;
+			zombieState["executionMonteCarloRollouts"] =
+				executioner->GetTargetingRolloutCount();
+			zombieState["executionMonteCarloCandidates"] =
+				executioner->GetTargetingCandidateCount();
+			zombieState["executionMonteCarloZombies"] =
+				executioner->GetTargetingZombieCount();
+			zombieState["executionMonteCarloBestScoreOn100"] = static_cast<int>(
+				std::lround(executioner->GetTargetingBestScore() * 100.0f));
 			zombieState["executionHelmetStage"] = static_cast<int>(
 				executioner->GetHelmetStage());
 			zombieState["executionHelmetFollowerVisible"] =

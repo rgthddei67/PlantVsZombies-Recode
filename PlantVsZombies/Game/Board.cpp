@@ -49,6 +49,7 @@
 #include <cstdint>
 #include <chrono>
 #include <limits>
+#include <unordered_map>
 
 namespace {
 	/** 返回当前地形唯一的关卡音乐资源键，供预构建与正式播放共用。 */
@@ -4329,7 +4330,8 @@ void Board::FinalizeIceStatueExecutionerLoad()
 		auto* executioner = dynamic_cast<IceStatueExecutionerZombie*>(
 			mEntityRegistry.GetZombie(ownerID));
 		if (!executioner || !executioner->OwnsIceSealFor(plantID)
-			|| !IsCellFrozen(plant->mRow, plant->mColumn)) {
+			|| !IsPlantFootprintFrozen(
+				plant->mPlantType, plant->mRow, plant->mColumn)) {
 			plant->ReleaseIceSeal(ownerID);
 		}
 	}
@@ -4909,13 +4911,18 @@ bool Board::IsCellFrozen(int row, int col) const
 		&& GetFrozenColumnCount() > 0 && col >= GetFirstFrozenColumn();
 }
 
-Plant* Board::SelectIceStatueExecutionTarget() const
+Plant* Board::SelectIceStatueExecutionTarget(
+	int sourceZombieID, float strikeInterval, int strikeDamage,
+	MonteCarloTargetStats* stats)
 {
 	if (!SupportsWinterTemperature()) return nullptr;
+	if (stats) *stats = {};
 	const auto& gameData = GameDataManager::GetInstance();
 	const int backlineColumnCount = (mColumns + 1) / 2;
 	std::vector<int> plantIDs = mEntityRegistry.GetAllPlantIDs();
 	std::sort(plantIDs.begin(), plantIDs.end());
+	std::vector<int> eligiblePlantIDs;
+	std::vector<int> requiredStrikeCounts;
 	Plant* best = nullptr;
 	float bestValue = -1.0f;
 	for (const int plantID : plantIDs) {
@@ -4923,7 +4930,8 @@ Plant* Board::SelectIceStatueExecutionTarget() const
 		if (!plant || !plant->IsActive() || plant->IsPreview()
 			|| plant->IsSquished() || plant->IsBungeeTargeted()
 			|| plant->IsIceSealed() || plant->mPlantHealth <= 0
-			|| !IsCellFrozen(plant->mRow, plant->mColumn)) {
+			|| !IsPlantFootprintFrozen(
+				plant->mPlantType, plant->mRow, plant->mColumn)) {
 			continue;
 		}
 		const Cell* cell = mCells[plant->mRow][plant->mColumn];
@@ -4934,6 +4942,9 @@ Plant* Board::SelectIceStatueExecutionTarget() const
 		const PlantSimulationProfile& profile =
 			gameData.GetPlantSimulationProfile(plant->mPlantType);
 		if (!profile.persistent || profile.supportOnly) continue;
+		eligiblePlantIDs.push_back(plantID);
+		requiredStrikeCounts.push_back(
+			plant->GetIceExecutionRequiredStrikeCount());
 		float value = static_cast<float>(
 			gameData.GetPlantSunCost(plant->mPlantType));
 		if (profile.sunPerSecond > 0.0f) {
@@ -4946,6 +4957,17 @@ Plant* Board::SelectIceStatueExecutionTarget() const
 		if (!best || value > bestValue) {
 			best = plant;
 			bestValue = value;
+		}
+	}
+	if (GameAPP::GetInstance().mEnableMonteCarloAI
+		&& !eligiblePlantIDs.empty()) {
+		int selectedPlantID = NULL_PLANT_ID;
+		if (PickMonteCarloPlantRemovalTarget(
+			eligiblePlantIDs, sourceZombieID, selectedPlantID, stats,
+			strikeInterval, strikeDamage, &requiredStrikeCounts)) {
+			if (Plant* selected = mEntityRegistry.GetPlant(selectedPlantID)) {
+				return selected;
+			}
 		}
 	}
 	return best;
@@ -6122,6 +6144,44 @@ bool Board::BuildMonteCarloCombatSnapshot(
 		plantSnapshot.magneticEatingSearchRadius =
 			profile.magneticEatingSearchRadiusInCells * CELL_COLLIDER_SIZE_X;
 		plantSnapshot.magneticRowDistancePenalty = CELL_COLLIDER_SIZE_X;
+		plantSnapshot.cobBlastCooldown = sleeping
+			? 0.0f : profile.cobBlastCooldown;
+		plantSnapshot.cobBlastDamage = sleeping
+			? 0.0f : profile.cobBlastDamage;
+		plantSnapshot.cobBlastRadius = profile.cobBlastRadius;
+		plantSnapshot.cobBlastRowRadius = profile.cobBlastRowRadius;
+		if (!sleeping) {
+			if (const auto* cannon = dynamic_cast<const CobCannon*>(plant)) {
+				const float pendingDelay = cannon->GetPendingSimulationBlastDelay();
+				if (pendingDelay >= 0.0f) {
+					const Vector target = cannon->GetPendingTarget();
+					snapshot.pendingCobBlasts.push_back({
+						plant->mPlantID, cannon->GetPendingTargetRow(),
+						target.x, target.y, pendingDelay,
+						profile.cobBlastDamage, profile.cobBlastRadius,
+						profile.cobBlastRowRadius
+					});
+				}
+			}
+		}
+	}
+
+	// 已离膛玉米棒是独立提交效果；来源植物随后被移除也不能回滚这次固定落点。
+	const PlantSimulationProfile& cobProfile =
+		gameData.GetPlantSimulationProfile(PlantType::PLANT_COBCANNON);
+	std::vector<int> bulletIDs = mEntityRegistry.GetAllBulletIDs();
+	std::sort(bulletIDs.begin(), bulletIDs.end());
+	for (const int bulletID : bulletIDs) {
+		const Bullet* bullet = mEntityRegistry.GetBullet(bulletID);
+		if (!bullet || !bullet->IsActive() || !bullet->IsCobCannonMotion()) continue;
+		const Vector target = bullet->GetCobTarget();
+		snapshot.pendingCobBlasts.push_back({
+			-1, bullet->GetCobTargetRow(), target.x, target.y,
+			std::max(0.0f, bullet->GetCobDuration() - bullet->GetCobElapsed()),
+			static_cast<float>(std::max(0, bullet->GetBulletDamage())),
+			cobProfile.cobBlastRadius,
+			cobProfile.cobBlastRowRadius
+		});
 	}
 
 	std::vector<int> zombieIDs = mEntityRegistry.GetAllZombieIDs();
@@ -6224,7 +6284,8 @@ bool Board::BuildMonteCarloCombatSnapshot(
 			const PlantType type = card->GetPlantType();
 			const PlantSimulationProfile& profile =
 				gameData.GetPlantSimulationProfile(type);
-			if (!profile.persistent || profile.supportOnly) continue;
+			if (!profile.persistent || !profile.futurePlantable
+				|| profile.supportOnly) continue;
 			const bool dormant = profile.daytimeDormant
 				&& !GameAPP::GetInstance().GetBackgroundIsNight(mBackGround);
 
@@ -6281,6 +6342,12 @@ bool Board::BuildMonteCarloCombatSnapshot(
 			cardSnapshot.magneticEatingSearchRadius =
 				profile.magneticEatingSearchRadiusInCells * CELL_COLLIDER_SIZE_X;
 			cardSnapshot.magneticRowDistancePenalty = CELL_COLLIDER_SIZE_X;
+			cardSnapshot.cobBlastCooldown = dormant
+				? 0.0f : profile.cobBlastCooldown;
+			cardSnapshot.cobBlastDamage = dormant
+				? 0.0f : profile.cobBlastDamage;
+			cardSnapshot.cobBlastRadius = profile.cobBlastRadius;
+			cardSnapshot.cobBlastRowRadius = profile.cobBlastRowRadius;
 		}
 	}
 	return true;
@@ -6326,7 +6393,9 @@ void Board::CreateCobCannonExplosion(const Vector& position, int targetRow, int 
 bool Board::PickMonteCarloPlantBlastTarget(
 	int minRow, int maxRow, int damage, float radius, int sourceZombieID,
 	int& targetRow, Vector& targetPosition, MonteCarloTargetStats* stats,
-	const std::vector<int>* removalPlantIDs, int* selectedRemovalPlantID)
+	const std::vector<int>* removalPlantIDs, int* selectedRemovalPlantID,
+	float removalStrikeInterval, int removalStrikeDamage,
+	const std::vector<int>* removalStrikeCounts)
 {
 	using namespace PlantDefenseMonteCarlo;
 	const bool removalMode = removalPlantIDs != nullptr;
@@ -6343,12 +6412,27 @@ bool Board::PickMonteCarloPlantBlastTarget(
 	const std::unordered_set<int> eligibleRemovalIDs = removalMode
 		? std::unordered_set<int>(removalPlantIDs->begin(), removalPlantIDs->end())
 		: std::unordered_set<int>();
+	std::unordered_map<int, int> strikeCountByPlantID;
+	if (removalMode && removalStrikeCounts
+		&& removalStrikeCounts->size() == removalPlantIDs->size()) {
+		for (std::size_t i = 0; i < removalPlantIDs->size(); ++i) {
+			strikeCountByPlantID.emplace(
+				(*removalPlantIDs)[i], (*removalStrikeCounts)[i]);
+		}
+	}
 	for (const PlantSnapshot& plant : snapshot.plants) {
 		if (removalMode && eligibleRemovalIDs.find(plant.id) != eligibleRemovalIDs.end()) {
 			const Vector center = GetCellCenterPosition(plant.row, plant.column);
 			snapshot.candidates.push_back({
 				plant.row, plant.column, center.x, center.y, plant.id
 			});
+			Candidate& candidate = snapshot.candidates.back();
+			const auto strikeCount = strikeCountByPlantID.find(plant.id);
+			if (strikeCount != strikeCountByPlantID.end()) {
+				candidate.targetStrikeInterval = removalStrikeInterval;
+				candidate.targetStrikeDamage = static_cast<float>(removalStrikeDamage);
+				candidate.targetStrikeCount = std::max(0, strikeCount->second);
+			}
 		}
 		else if (!removalMode && plant.row >= minRow && plant.row <= maxRow) {
 			candidateCells.emplace_back(plant.row, plant.column);
@@ -6432,14 +6516,17 @@ bool Board::PickMonteCarloPlantBlastTarget(
 
 bool Board::PickMonteCarloPlantRemovalTarget(
 	const std::vector<int>& eligiblePlantIDs, int sourceZombieID,
-	int& targetPlantID, MonteCarloTargetStats* stats)
+	int& targetPlantID, MonteCarloTargetStats* stats,
+	float strikeInterval, int strikeDamage,
+	const std::vector<int>* strikeCounts)
 {
 	int targetRow = -1;
 	Vector targetPosition;
 	targetPlantID = NULL_PLANT_ID;
 	return PickMonteCarloPlantBlastTarget(
 		0, std::max(0, mRows - 1), 0, 0.0f, sourceZombieID,
-		targetRow, targetPosition, stats, &eligiblePlantIDs, &targetPlantID);
+		targetRow, targetPosition, stats, &eligiblePlantIDs, &targetPlantID,
+		strikeInterval, strikeDamage, strikeCounts);
 }
 
 bool Board::TryClaimMonteCarloHealerDecisionSlot()

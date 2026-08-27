@@ -46,7 +46,7 @@
     "PLANT_ALARMBELLFLOWER": { "cost": 25,  "cooldown": 50.0, "offset": [-37.6, -44.0], "scale": 1.0, "simulation": { "baseHealth": 300, "persistent": false } },
     "PLANT_FURNACECOREFLOWER": { "cost": 175, "cooldown": 20.0, "offset": [-37.6, -44.0], "scale": 1.0, "simulation": { "baseHealth": 300 } },
     "PLANT_KERNELPULT":      { "cost": 100, "cooldown": 7.5,  "offset": [-37.6, -44.0], "scale": 1.0, "simulation": { "baseHealth": 300, "attackDps": 8.33, "butterApplicationsPerSecond": 0.0833, "butterDuration": 4.0 } },
-    "PLANT_COBCANNON":       { "cost": 500, "cooldown": 50.0, "offset": [-37.6, -44.0], "scale": 1.0, "simulation": { "baseHealth": 300, "persistent": false } },
+    "PLANT_COBCANNON":       { "cost": 500, "cooldown": 50.0, "offset": [-37.6, -44.0], "scale": 1.0, "simulation": { "baseHealth": 300, "cobBlastCooldown": 34.83, "cobBlastDamage": 1800, "cobBlastRadius": 115, "cobBlastRowRadius": 1, "futurePlantable": false } },
     "PLANT_INSTANT_COFFEE":  { "cost": 75,  "cooldown": 7.5,  "offset": [-25.6, -54.0], "scale": 0.8, "simulation": { "baseHealth": 300, "persistent": false } },
     "PLANT_GARLIC":          { "cost": 50,  "cooldown": 7.5,  "offset": [-37.6, -44.0], "scale": 1.0, "simulation": { "baseHealth": 400 } },
     "PLANT_UMBRELLA":        { "cost": 100, "cooldown": 7.5,  "offset": [-37.6, -44.0], "scale": 1.0, "simulation": { "baseHealth": 300 } },

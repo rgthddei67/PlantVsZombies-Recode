@@ -59,6 +59,10 @@ namespace {
 		float magneticSearchRadius = 0.0f;
 		float magneticEatingSearchRadius = 0.0f;
 		float magneticRowDistancePenalty = 0.0f;
+		float cobBlastCooldown = 0.0f;
+		float cobBlastDamage = 0.0f;
+		float cobBlastRadius = 0.0f;
+		int cobBlastRowRadius = 0;
 	};
 
 	struct SimSupport {
@@ -263,6 +267,14 @@ namespace {
 				0.0f, source.magneticEatingSearchRadius);
 			target.magneticRowDistancePenalty = std::max(
 				0.0f, source.magneticRowDistancePenalty);
+			target.cobBlastCooldown = std::max(
+				0.0f, source.cobBlastCooldown);
+			target.cobBlastDamage = std::max(
+				0.0f, source.cobBlastDamage);
+			target.cobBlastRadius = std::max(
+				0.0f, source.cobBlastRadius);
+			target.cobBlastRowRadius = std::max(
+				0, source.cobBlastRowRadius);
 		}
 
 		state.supportCount = std::min(
@@ -419,7 +431,14 @@ namespace {
 			for (int i = 0; i < state.plantCount; ++i) {
 				SimPlant& plant = state.plants[i];
 				if (IsAlive(plant) && plant.id == candidate.targetPlantId) {
-					plant.health = 0.0f;
+					if (candidate.targetStrikeCount > 0
+						&& candidate.targetStrikeInterval > 0.0f) {
+						// 冰封在选择瞬间就停止目标工作；生命与阻挡保留到后续锤击提交。
+						plant.shutdownRemaining = std::numeric_limits<float>::max();
+					}
+					else {
+						plant.health = 0.0f;
+					}
 					return;
 				}
 			}
@@ -630,6 +649,10 @@ namespace {
 		plant.magneticSearchRadius = card.magneticSearchRadius;
 		plant.magneticEatingSearchRadius = card.magneticEatingSearchRadius;
 		plant.magneticRowDistancePenalty = card.magneticRowDistancePenalty;
+		plant.cobBlastCooldown = card.cobBlastCooldown;
+		plant.cobBlastDamage = card.cobBlastDamage;
+		plant.cobBlastRadius = card.cobBlastRadius;
+		plant.cobBlastRowRadius = card.cobBlastRowRadius;
 		// 初始合法性由正式 CanPlantAt 快照决定；这里只阻止同一 rollout 再占用新种格。
 		state.reservedCells |= (1ULL << bestCell);
 		state.sun -= static_cast<float>(card.cost);
@@ -706,6 +729,140 @@ namespace {
 					}
 				}
 			}
+		}
+	}
+
+	/**
+	 * 玉米炮采用高操作玩家默认策略：枚举活僵尸中心，先最大化命中数，再最大化有效伤害。
+	 */
+	void UpdateCobBlasts(SimulationState& state, float deltaTime)
+	{
+		for (int plantIndex = 0; plantIndex < state.plantCount; ++plantIndex) {
+			SimPlant& plant = state.plants[plantIndex];
+			if (!IsAlive(plant) || plant.shutdownRemaining > 0.0f
+				|| plant.cobBlastCooldown <= 0.0f
+				|| plant.cobBlastDamage <= 0.0f
+				|| plant.cobBlastRadius <= 0.0f) {
+				continue;
+			}
+			plant.abilityCooldownRemaining = std::max(
+				0.0f, plant.abilityCooldownRemaining - deltaTime);
+			if (plant.abilityCooldownRemaining > 0.0f) continue;
+
+			int bestCenterIndex = -1;
+			int bestHitCount = 0;
+			float bestEffectiveDamage = -1.0f;
+			for (int centerIndex = 0;
+				centerIndex < state.zombieCount; ++centerIndex) {
+				const SimZombie& center = state.zombies[centerIndex];
+				if (!IsAlive(center) || !center.simulatedCombatant
+					|| center.mindControlled) continue;
+				int hitCount = 0;
+				float effectiveDamage = 0.0f;
+				for (int targetIndex = 0;
+					targetIndex < state.zombieCount; ++targetIndex) {
+					const SimZombie& target = state.zombies[targetIndex];
+					if (!IsAlive(target) || !target.simulatedCombatant
+						|| target.mindControlled
+						|| std::abs(target.row - center.row)
+							> plant.cobBlastRowRadius) continue;
+					const Bounds currentBounds{
+						target.x - target.bounds.width * 0.5f,
+						target.y - target.bounds.height * 0.5f,
+						target.bounds.width,
+						target.bounds.height
+					};
+					const Candidate blastCenter{
+						center.row, 0, center.x, center.y, -1
+					};
+					if (!CircleOverlapsBounds(
+						blastCenter, plant.cobBlastRadius, currentBounds)) continue;
+					++hitCount;
+					effectiveDamage += std::min(plant.cobBlastDamage,
+						target.bodyHealth + target.helmHealth + target.shieldHealth);
+				}
+				const bool stableTie = bestCenterIndex >= 0
+					&& hitCount == bestHitCount
+					&& std::abs(effectiveDamage - bestEffectiveDamage)
+						<= kScoreTieEpsilon
+					&& center.id < state.zombies[bestCenterIndex].id;
+				if (hitCount > bestHitCount
+					|| (hitCount == bestHitCount
+						&& effectiveDamage > bestEffectiveDamage + kScoreTieEpsilon)
+					|| stableTie) {
+					bestCenterIndex = centerIndex;
+					bestHitCount = hitCount;
+					bestEffectiveDamage = effectiveDamage;
+				}
+			}
+			if (bestCenterIndex < 0 || bestHitCount <= 0) continue;
+
+			const SimZombie& center = state.zombies[bestCenterIndex];
+			const Candidate blastCenter{ center.row, 0, center.x, center.y, -1 };
+			for (int targetIndex = 0;
+				targetIndex < state.zombieCount; ++targetIndex) {
+				SimZombie& target = state.zombies[targetIndex];
+				if (!IsAlive(target) || !target.simulatedCombatant
+					|| target.mindControlled
+					|| std::abs(target.row - center.row)
+						> plant.cobBlastRowRadius) continue;
+				const Bounds currentBounds{
+					target.x - target.bounds.width * 0.5f,
+					target.y - target.bounds.height * 0.5f,
+					target.bounds.width,
+					target.bounds.height
+				};
+				if (CircleOverlapsBounds(
+					blastCenter, plant.cobBlastRadius, currentBounds)) {
+					ApplyZombieDamage(target, plant.cobBlastDamage);
+				}
+			}
+			plant.abilityCooldownRemaining = plant.cobBlastCooldown;
+		}
+	}
+
+	/** 已离膛玉米棒保持玩家锁定落点；它不再依赖来源植物是否仍存活。 */
+	void ApplyPendingCobBlast(
+		SimulationState& state, const PendingCobBlast& blast)
+	{
+		if (blast.sourcePlantId >= 0) {
+			bool sourceCanCommit = false;
+			for (int plantIndex = 0; plantIndex < state.plantCount; ++plantIndex) {
+				const SimPlant& source = state.plants[plantIndex];
+				if (source.id != blast.sourcePlantId) continue;
+				sourceCanCommit = IsAlive(source) && source.shutdownRemaining <= 0.0f;
+				break;
+			}
+			if (!sourceCanCommit) return;
+		}
+		const Candidate center{ blast.targetRow, 0, blast.x, blast.y, -1 };
+		for (int zombieIndex = 0;
+			zombieIndex < state.zombieCount; ++zombieIndex) {
+			SimZombie& target = state.zombies[zombieIndex];
+			if (!IsAlive(target) || !target.simulatedCombatant
+				|| target.mindControlled
+				|| std::abs(target.row - blast.targetRow) > blast.rowRadius) continue;
+			const Bounds currentBounds{
+				target.x - target.bounds.width * 0.5f,
+				target.y - target.bounds.height * 0.5f,
+				target.bounds.width,
+				target.bounds.height
+			};
+			if (CircleOverlapsBounds(center, blast.radius, currentBounds)) {
+				ApplyZombieDamage(target, blast.damage);
+			}
+		}
+	}
+
+	void ResolvePendingCobBlasts(const Snapshot& snapshot,
+		SimulationState& state, float nextElapsed,
+		std::vector<unsigned char>& resolved)
+	{
+		for (std::size_t i = 0; i < snapshot.pendingCobBlasts.size(); ++i) {
+			if (resolved[i]
+				|| snapshot.pendingCobBlasts[i].resolveSeconds > nextElapsed) continue;
+			ApplyPendingCobBlast(state, snapshot.pendingCobBlasts[i]);
+			resolved[i] = 1;
 		}
 	}
 
@@ -1197,6 +1354,8 @@ namespace {
 		SimulationState state = initialState;
 
 		std::fill(pendingResolved.begin(), pendingResolved.end(), 0);
+		std::vector<unsigned char> cobResolved(
+			snapshot.pendingCobBlasts.size(), 0);
 		bool candidateResolved = candidate == nullptr;
 		bool hijackerResolved = treatmentConfig.hijackerExecutionSeconds < 0.0f;
 		std::minstd_rand random(seed ^ 0x9E3779B9u);
@@ -1212,6 +1371,7 @@ namespace {
 				config.horizonSeconds, elapsed + deltaTime);
 			const float remaining = std::max(
 				0.0f, config.horizonSeconds - elapsed);
+			ResolvePendingCobBlasts(snapshot, state, nextElapsed, cobResolved);
 			UpdatePlantShutdowns(state, deltaTime);
 			UpdatePlantProduction(state, deltaTime);
 			UpdateCardCooldowns(state, deltaTime);
@@ -1221,6 +1381,7 @@ namespace {
 					deltaTime, config.plantDecisionInterval);
 			}
 			UpdateMagneticPulses(state, deltaTime);
+			UpdateCobBlasts(state, deltaTime);
 			UpdatePlantAttacks(state, deltaTime, snapshot.rows, random);
 			UpdateZombies(state, config, deltaTime, elapsed, candidate,
 				&pendingTreatments, &treatmentConfig);
@@ -1272,6 +1433,9 @@ namespace {
 	{
 		SimulationState state = initialState;
 		if (candidate) ApplyCandidateImpact(state, *candidate, config);
+		int candidateStrikesApplied = 0;
+		std::vector<unsigned char> cobResolved(
+			snapshot.pendingCobBlasts.size(), 0);
 
 		std::minstd_rand random(seed ^ 0x9E3779B9u);
 		const float deltaTime = std::max(0.1f, config.stepSeconds);
@@ -1282,8 +1446,30 @@ namespace {
 
 		for (int step = 0; step < stepCount; ++step) {
 			const float elapsed = static_cast<float>(step) * deltaTime;
+			const float nextElapsed = std::min(
+				config.horizonSeconds, elapsed + deltaTime);
 			const float remaining = std::max(
 				0.0f, config.horizonSeconds - elapsed);
+			ResolvePendingCobBlasts(snapshot, state, nextElapsed, cobResolved);
+			while (candidate && candidate->targetStrikeCount > 0
+				&& candidate->targetStrikeInterval > 0.0f
+				&& candidateStrikesApplied < candidate->targetStrikeCount
+				&& static_cast<float>(candidateStrikesApplied + 1)
+					* candidate->targetStrikeInterval <= nextElapsed) {
+				++candidateStrikesApplied;
+				for (int plantIndex = 0;
+					plantIndex < state.plantCount; ++plantIndex) {
+					SimPlant& target = state.plants[plantIndex];
+					if (!IsAlive(target)
+						|| target.id != candidate->targetPlantId) continue;
+					target.health = std::max(0.0f,
+						target.health - candidate->targetStrikeDamage);
+					if (candidateStrikesApplied >= candidate->targetStrikeCount) {
+						target.health = 0.0f;
+					}
+					break;
+				}
+			}
 			UpdatePlantShutdowns(state, deltaTime);
 			UpdatePlantProduction(state, deltaTime);
 			UpdateCardCooldowns(state, deltaTime);
@@ -1293,6 +1479,7 @@ namespace {
 					deltaTime, config.plantDecisionInterval);
 			}
 			UpdateMagneticPulses(state, deltaTime);
+			UpdateCobBlasts(state, deltaTime);
 			UpdatePlantAttacks(state, deltaTime, snapshot.rows, random);
 			UpdateZombies(state, config, deltaTime);
 		}
@@ -1421,6 +1608,8 @@ namespace {
 		SimulationState state = initialState;
 		std::vector<unsigned char> controlResolved(
 			routeConfig.pendingControlEvents.size(), 0);
+		std::vector<unsigned char> cobResolved(
+			snapshot.pendingCobBlasts.size(), 0);
 		bool candidateResolved = candidate == nullptr;
 		bool hijackerResolved = routeConfig.hijackerExecutionSeconds < 0.0f;
 		std::minstd_rand random(seed ^ 0xC2B2AE35u);
@@ -1436,6 +1625,7 @@ namespace {
 				config.horizonSeconds, elapsed + deltaTime);
 			const float remaining = std::max(
 				0.0f, config.horizonSeconds - elapsed);
+			ResolvePendingCobBlasts(snapshot, state, nextElapsed, cobResolved);
 			UpdatePlantShutdowns(state, deltaTime);
 			UpdatePlantProduction(state, deltaTime);
 			UpdateCardCooldowns(state, deltaTime);
@@ -1467,6 +1657,7 @@ namespace {
 				candidateResolved = true;
 			}
 			UpdateMagneticPulses(state, deltaTime);
+			UpdateCobBlasts(state, deltaTime);
 			UpdatePlantAttacks(state, deltaTime, snapshot.rows, random);
 			UpdateZombies(state, config, deltaTime);
 		}

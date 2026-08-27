@@ -216,7 +216,8 @@ void Plant::Update()
 			0.0f, mUnyieldingRootsTimer - DeltaTime::GetDeltaTime());
 	}
 	// 回暖是真实冻土权威边沿；不依赖来源僵尸更新顺序，当帧先解除再恢复植物动作。
-	if (IsIceSealed() && mBoard && !mBoard->IsCellFrozen(mRow, mColumn)) {
+	if (IsIceSealed() && mBoard && !mBoard->IsPlantFootprintFrozen(
+		mPlantType, mRow, mColumn)) {
 		ReleaseIceSeal(mIceSealOwnerZombieID);
 	}
 	const bool actionPaused = IsActionPaused();

@@ -868,6 +868,10 @@ bool GameDataManager::LoadNumbersFromJson() {
 			readOptionalInt("magneticSearchRowRadius", out.magneticSearchRowRadius);
 			readOptionalFloat("magneticSearchRadiusInCells", out.magneticSearchRadiusInCells);
 			readOptionalFloat("magneticEatingSearchRadiusInCells", out.magneticEatingSearchRadiusInCells);
+			readOptionalFloat("cobBlastCooldown", out.cobBlastCooldown);
+			readOptionalFloat("cobBlastDamage", out.cobBlastDamage);
+			readOptionalFloat("cobBlastRadius", out.cobBlastRadius);
+			readOptionalInt("cobBlastRowRadius", out.cobBlastRowRadius);
 			if (simulation.contains("daytimeDormant")) {
 				if (!simulation["daytimeDormant"].is_boolean()) {
 					errors.push_back(who
@@ -884,6 +888,15 @@ bool GameDataManager::LoadNumbersFromJson() {
 				}
 				else {
 					out.persistent = simulation["persistent"].get<bool>();
+				}
+			}
+			if (simulation.contains("futurePlantable")) {
+				if (!simulation["futurePlantable"].is_boolean()) {
+					errors.push_back(who
+						+ ".simulation 的 \"futurePlantable\" 须为布尔值");
+				}
+				else {
+					out.futurePlantable = simulation["futurePlantable"].get<bool>();
 				}
 			}
 			if (simulation.contains("supportOnly")) {
@@ -908,7 +921,11 @@ bool GameDataManager::LoadNumbersFromJson() {
 				|| out.magneticPulseParalysisDuration < 0.0f
 				|| out.magneticSearchRowRadius < 0
 				|| out.magneticSearchRadiusInCells < 0.0f
-				|| out.magneticEatingSearchRadiusInCells < 0.0f) {
+				|| out.magneticEatingSearchRadiusInCells < 0.0f
+				|| out.cobBlastCooldown < 0.0f
+				|| out.cobBlastDamage < 0.0f
+				|| out.cobBlastRadius < 0.0f
+				|| out.cobBlastRowRadius < 0) {
 				errors.push_back(who + ".simulation 含越界负数或零生命");
 			}
 		};

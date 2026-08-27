@@ -14,7 +14,9 @@ namespace {
 	constexpr int kExecutionerBodyHealth = 300;            // 处刑者本体生命；与 2700 黑帽合计 3000
 	constexpr int kExecutionerHelmetHealth = 2700;         // 黑色橄榄球头盔生命
 	constexpr int kStrikeDamage = 40;                      // 每次已提交锤击的普通僵尸伤害
-	constexpr int kRequiredExecutionProgress = 3;          // 达到此进度时立即处决目标
+	constexpr int kDefaultRequiredExecutionProgress = 3;   // 普通植物达到此进度时立即处决
+	constexpr int kMaximumSerializedExecutionProgress = 255; // 防损坏读档上限；恢复后再按实际目标锤数钳制
+	constexpr float kStrikeIntervalSeconds = 2.5f;         // 每次处决锤击从起手到提交的游戏秒数
 	constexpr float kResourceFps = 12.0f;                  // Zombie_ladder.reanim 基础帧率
 	constexpr float kStrikeClipSpeed = 0.3667f;            // 11 帧放梯动作约播放 2.5 游戏秒
 	constexpr float kEatClipSpeed = 3.0f;                  // 复用扶梯僵尸普通啃食速度
@@ -60,6 +62,11 @@ void IceStatueExecutionerZombie::SetupZombie()
 	mExecutionTargetPlantID = NULL_PLANT_ID;
 	mExecutionProgress = 0;
 	mExecutionUsed = false;
+	mTargetingMode = TargetingMode::NONE;
+	mTargetingRolloutCount = 0;
+	mTargetingCandidateCount = 0;
+	mTargetingZombieCount = 0;
+	mTargetingBestScore = 0.0f;
 
 	RegisterFrameEvents();
 	ApplyExecutionerTextures();
@@ -81,7 +88,16 @@ void IceStatueExecutionerZombie::ZombieMove(float scaledDelta, Transform* transf
 	if (!transform || mExecutionPhase == ExecutionPhase::EXECUTING) return;
 	if (mExecutionPhase == ExecutionPhase::READY && IsFullyOnBattlefield()
 		&& CanOwnExecution() && mBoard) {
-		if (Plant* target = mBoard->SelectIceStatueExecutionTarget()) {
+		MonteCarloTargetStats stats;
+		if (Plant* target = mBoard->SelectIceStatueExecutionTarget(
+			mZombieID, kStrikeIntervalSeconds, kStrikeDamage, &stats)) {
+			mTargetingMode = stats.rolloutCount > 0
+				? TargetingMode::MONTE_CARLO
+				: TargetingMode::STRATEGIC_FALLBACK;
+			mTargetingRolloutCount = stats.rolloutCount;
+			mTargetingCandidateCount = stats.candidateCount;
+			mTargetingZombieCount = stats.sampledZombieCount;
+			mTargetingBestScore = stats.bestScore;
 			if (BeginExecution(*target)) return;
 		}
 	}
@@ -100,7 +116,8 @@ void IceStatueExecutionerZombie::ZombieUpdate(float)
 		AbortExecution(false, true);
 		return;
 	}
-	if (!mBoard || !mBoard->IsCellFrozen(target->mRow, target->mColumn)) {
+	if (!mBoard || !mBoard->IsPlantFootprintFrozen(
+		target->mPlantType, target->mRow, target->mColumn)) {
 		AbortExecution(false, true);
 		return;
 	}
@@ -187,7 +204,7 @@ void IceStatueExecutionerZombie::CommitStrike()
 		return;
 	}
 	++mExecutionProgress;
-	if (mExecutionProgress >= kRequiredExecutionProgress) {
+	if (mExecutionProgress >= target->GetIceExecutionRequiredStrikeCount()) {
 		target->ResolveIceExecution(mZombieID);
 		mExecutionUsed = true;
 		mExecutionPhase = ExecutionPhase::SPENT;
@@ -451,11 +468,21 @@ void IceStatueExecutionerZombie::FinalizeIceSealLoad()
 	Plant* target = ResolveExecutionTarget();
 	if (!CanOwnExecution() || !target
 		|| target->GetIceSealOwnerZombieID() != mZombieID
-		|| !mBoard->IsCellFrozen(target->mRow, target->mColumn)) {
+		|| !mBoard->IsPlantFootprintFrozen(
+			target->mPlantType, target->mRow, target->mColumn)) {
 		AbortExecution(!CanOwnExecution(), true);
 		return;
 	}
+	mExecutionProgress = std::clamp(mExecutionProgress, 0,
+		std::max(0, target->GetIceExecutionRequiredStrikeCount() - 1));
 	if (GetCurrentTrackName() != "anim_placeladder") BeginStrike(0.0f);
+}
+
+int IceStatueExecutionerZombie::GetCurrentRequiredStrikeCount() const
+{
+	const Plant* target = ResolveExecutionTarget();
+	return target ? target->GetIceExecutionRequiredStrikeCount()
+		: kDefaultRequiredExecutionProgress;
 }
 
 void IceStatueExecutionerZombie::SaveExtraData(nlohmann::json& j) const
@@ -475,7 +502,7 @@ void IceStatueExecutionerZombie::LoadExtraData(const nlohmann::json& j)
 	mExecutionPhase = static_cast<ExecutionPhase>(phase);
 	mExecutionTargetPlantID = j.value("executionTargetPlantID", NULL_PLANT_ID);
 	mExecutionProgress = std::clamp(j.value("executionProgress", 0),
-		0, kRequiredExecutionProgress - 1);
+		0, kMaximumSerializedExecutionProgress);
 	mExecutionUsed = j.value("executionUsed",
 		mExecutionPhase == ExecutionPhase::SPENT);
 	mWalkVelocity = std::clamp(j.value("walkVelocity", 0.30f), 0.23f, 0.37f);
@@ -526,7 +553,8 @@ bool IceStatueExecutionerZombie::SetExecutionStateForTesting(
 	if (!target->BeginIceSeal(mZombieID)) return false;
 	mExecutionPhase = ExecutionPhase::EXECUTING;
 	mExecutionTargetPlantID = target->mPlantID;
-	mExecutionProgress = std::clamp(progress, 0, kRequiredExecutionProgress - 1);
+	mExecutionProgress = std::clamp(progress, 0,
+		std::max(0, target->GetIceExecutionRequiredStrikeCount() - 1));
 	mExecutionUsed = false;
 	BeginStrike(0.0f);
 	return true;

@@ -267,6 +267,8 @@ public:
 	virtual bool SuppressesNightRoofChargeProtectionFor(const Zombie*) const { return false; }
 	/** 返回条件能力在轻量推演中的当前剩余冷却；无此类能力的植物保持零。 */
 	virtual float GetSimulationAbilityCooldownRemaining() const { return 0.0f; }
+	/** 返回冰像处刑者完成本植物处决所需的已提交锤击数；普通植物默认三锤。 */
+	virtual int GetIceExecutionRequiredStrikeCount() const { return 3; }
 	/** 完成一次冻结快照保护后的品种反噬入口；onWetSlope 取接地植物自身所在瓦面。 */
 	virtual void AbsorbGroundedNightRoofCharge(bool) {}
 	/** 存档恢复专用：钳制并还原剩余停机时间，不重放来源效果。 */

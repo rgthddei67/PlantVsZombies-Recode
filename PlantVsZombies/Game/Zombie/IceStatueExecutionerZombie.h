@@ -5,7 +5,7 @@
 class Plant;
 
 /**
- * 冰像处刑者：在冻土上封存一株高价值植物，以三次可中断但不可回滚的锤击完成处决。
+ * 冰像处刑者：在冻土上封存一株推演判定的关键植物，以植物专属次数的锤击完成处决。
  * 黑色橄榄球头盔是 anim_head1 的跟随贴图，耐久与掉落状态独立；扶梯轨本身始终隐藏。
  */
 class IceStatueExecutionerZombie final : public Zombie {
@@ -16,6 +16,11 @@ public:
 		READY,
 		EXECUTING,
 		SPENT,
+	};
+	enum class TargetingMode {
+		NONE,
+		MONTE_CARLO,
+		STRATEGIC_FALLBACK,
 	};
 
 	void StartEat(ColliderComponent* other) override;
@@ -37,6 +42,12 @@ public:
 	int GetExecutionTargetPlantID() const { return mExecutionTargetPlantID; }
 	int GetExecutionProgress() const { return mExecutionProgress; }
 	bool HasUsedExecution() const { return mExecutionUsed; }
+	TargetingMode GetTargetingMode() const { return mTargetingMode; }
+	int GetTargetingRolloutCount() const { return mTargetingRolloutCount; }
+	int GetTargetingCandidateCount() const { return mTargetingCandidateCount; }
+	int GetTargetingZombieCount() const { return mTargetingZombieCount; }
+	float GetTargetingBestScore() const { return mTargetingBestScore; }
+	int GetCurrentRequiredStrikeCount() const;
 	ArmorBrokenState GetHelmetStage() const { return mHelmetStage; }
 	bool HasHelmetFollower() const;
 	bool DoesHelmetFollowerInheritOverlayEffect() const;
@@ -77,6 +88,11 @@ private:
 	int mExecutionTargetPlantID = NULL_PLANT_ID;
 	int mExecutionProgress = 0;
 	bool mExecutionUsed = false;
+	TargetingMode mTargetingMode = TargetingMode::NONE;
+	int mTargetingRolloutCount = 0;
+	int mTargetingCandidateCount = 0;
+	int mTargetingZombieCount = 0;
+	float mTargetingBestScore = 0.0f;
 	float mWalkVelocity = 0.30f;
 	ArmorBrokenState mHelmetStage = ArmorBrokenState::NO_BROKEN;
 	mutable bool mHelmetFollowerConfigured = false;

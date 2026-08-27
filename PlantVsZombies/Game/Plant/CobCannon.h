@@ -25,6 +25,12 @@ public:
 	/** READY 状态冻结玩家落点并进入射击轨；其他阶段返回 false。 */
 	bool FireAt(const Vector& target, int targetRow);
 	bool CanBeTargetedByBungee() const override { return false; }
+	/** 双轮炮体需七次已提交锤击才会被冰像处刑者移除。 */
+	int GetIceExecutionRequiredStrikeCount() const override { return 7; }
+	/** 返回下一次由高操作玩家命中默认最佳爆区的预计剩余秒数。 */
+	float GetSimulationAbilityCooldownRemaining() const override;
+	/** 已进入射击轨但尚未离膛时，返回当前已提交炮击到爆炸的剩余秒数。 */
+	float GetPendingSimulationBlastDelay() const;
 	void Die() override;
 	void SaveExtraData(nlohmann::json& j) const override;
 	void LoadExtraData(const nlohmann::json& j) override;
@@ -42,6 +48,8 @@ private:
 	void LaunchCob();
 	/** 按当前阶段同步炮弹轨道乘色；只有 READY 使用原版三角波闪烁。 */
 	void UpdateCobTrackColor();
+	/** 按当前播放头估算指定全局帧尚需的游戏秒数；已越过时返回零。 */
+	float GetSecondsUntilFrame(int frame) const;
 
 	Phase mPhase = Phase::ARMING;
 	float mArmingTime = 0.0f;

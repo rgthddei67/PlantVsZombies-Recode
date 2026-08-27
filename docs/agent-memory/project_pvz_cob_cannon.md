@@ -1,10 +1,10 @@
 ---
 name: project-pvz-cob-cannon
-description: 6-6玉米加农炮双格footprint、指定落点炮弹、存档、天气与危险交互契约
+description: 6-6玉米加农炮双格footprint、指定落点炮弹、冰像七锤、蒙特卡洛模拟、存档与危险交互契约
 metadata:
   node_type: memory
   type: project
-  updated_at: 2026-08-25
+  updated_at: 2026-08-27
 ---
 
 # 经典玉米加农炮与双格植物占用
@@ -44,6 +44,8 @@ metadata:
 - 所有按格枚举的危险都必须按实体 ID 去重；任一半被铲、被啃或被炸都会移除整株。台风连同两格 normal、
   各自 under/pumpkin/overlay 和梯子原子搬移，不能留下半株或覆盖目标格。
 - 黑夜屋顶雷荷与劫持者按 footprint 判断保护；任一占格下的有效避雷花盆都保护整株，不能只比较左锚点列。
+- 冰像处刑者同样按完整 footprint 判断冻土：左右任一轮位于冻土即可选择、保持冰封和通过读档终检。玉米炮覆写处决锤数为 7；普通植物仍为 3。运行中回暖、来源持续校验和加载孤儿修复必须共用 `IsPlantFootprintFrozen`，不能退回左锚点。
+- 全局防线蒙特卡洛把场上玉米炮建模为高操作玩家能力：按当前阶段推导首次爆炸时间，之后约每 34.83 秒一发；每次枚举活僵尸中心，先最大化 115px、目标行 ±1 的命中数，再最大化有效伤害并用稳定 ID 决胜。未来卡槽不直接种玉米炮，因为双玉米投手升级的多步前置未建模。已经离膛的 `BULLET_COBBIG` 以固定玩家落点进入待结算事件，来源随后冰封或死亡也不回滚。
 - `clang-release` 编译、LTO 链接与 Win7 导入审计通过。可见 `smoke_cob_cannon_core.json` 默认与
   `-NoInstance` 各 100 命令通过；`smoke_cob_cannon_footprint_hazards.json` 162 命令通过；
   `smoke_cob_cannon_night_roof.json` 87 命令通过，覆盖双侧避雷花盆、无保护停机、存档与 6-6 奖励推进。
@@ -60,3 +62,6 @@ metadata:
   `IMAGE_PLANTSHADOW` 随垂降从约 0.5 倍长回 1 倍，落地 `CobCannonBlastMark` 保留。`clang-release`
   编译、LTO 与 Win7 378 项导入审计通过；可见同一 144 命令专项在 Vulkan instance、Vulkan
   `-NoInstance` 和强制 OpenGL 3.3 均 exit 0，状态、日志及高空/垂降/落地截图通过。
+- 2026-08-27 加入冰像七锤与全局蒙特卡洛能力画像；可见 `smoke_ice_executioner_cob_monte_carlo`
+  47 条命令通过单轮冻土、MC 模式/候选/rollout、六锤快照和第七锤消失。共享纯数值测试通过，
+  `clang-release` LTO 链接与 Win7 378 项导入审计通过。

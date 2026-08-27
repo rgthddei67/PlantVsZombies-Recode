@@ -343,6 +343,131 @@ namespace {
 			"an in-field magnetic plant must preserve its remaining cooldown in rollouts");
 	}
 
+	void TestSevenStrikeExecutionPreservesDelayedRemoval()
+	{
+		Snapshot snapshot = MakeTreatmentSnapshot();
+		PlantSnapshot cob = MakeRoutePlant(10, 2, 300.0f, 300.0f, 100.0f);
+		cob.canBeEaten = false;
+		snapshot.plants.push_back(cob);
+		Candidate candidate{ 2, 2, 300.0f, 300.0f, 10 };
+		candidate.targetStrikeInterval = 2.5f;
+		candidate.targetStrikeDamage = 40.0f;
+		candidate.targetStrikeCount = 7;
+		snapshot.candidates.push_back(candidate);
+
+		Config config;
+		config.rolloutCount = 1;
+		config.horizonSeconds = 16.0f;
+		config.stepSeconds = 0.25f;
+		config.plantDecisionInterval = 30.0f;
+		const Result result = ChooseTarget(snapshot, config, 0xA1B2C3D4u);
+		Require(result.score > 79.9f && result.score < 80.1f,
+			"seven 2.5-second strikes must leave 60 health at the 16-second horizon");
+	}
+
+	void TestCobBlastGuidesExecutionTarget()
+	{
+		Snapshot snapshot = MakeTreatmentSnapshot();
+		PlantSnapshot cob = MakeRoutePlant(10, 2, 300.0f, 300.0f, 500.0f);
+		cob.y = 300.0f;
+		cob.canBeEaten = false;
+		cob.abilityCooldownRemaining = 0.25f;
+		cob.cobBlastCooldown = 34.83f;
+		cob.cobBlastDamage = 1800.0f;
+		cob.cobBlastRadius = 115.0f;
+		cob.cobBlastRowRadius = 1;
+		snapshot.plants.push_back(cob);
+		PlantSnapshot decoy = MakeRoutePlant(11, 0, 300.0f, 300.0f, 100.0f);
+		decoy.canBeEaten = false;
+		snapshot.plants.push_back(decoy);
+		for (int id = 1; id <= 3; ++id) {
+			ZombieSnapshot zombie = MakeZombie(
+				id, 175.0f + static_cast<float>(id) * 8.0f,
+				300.0f, 800.0f, 800.0f);
+			zombie.moveSpeed = 35.0f;
+			zombie.row = 1 + id % 2;
+			zombie.bounds = { zombie.x - 25.0f, 250.0f, 50.0f, 100.0f };
+			snapshot.zombies.push_back(zombie);
+		}
+		Candidate removeCob{ 2, 2, 300.0f, 300.0f, 10 };
+		removeCob.targetStrikeInterval = 2.5f;
+		removeCob.targetStrikeDamage = 40.0f;
+		removeCob.targetStrikeCount = 7;
+		snapshot.candidates.push_back(removeCob);
+		Candidate removeDecoy{ 0, 2, 300.0f, 130.0f, 11 };
+		removeDecoy.targetStrikeInterval = 2.5f;
+		removeDecoy.targetStrikeDamage = 40.0f;
+		removeDecoy.targetStrikeCount = 3;
+		snapshot.candidates.push_back(removeDecoy);
+
+		Config config;
+		config.rolloutCount = 4;
+		config.horizonSeconds = 4.0f;
+		config.stepSeconds = 0.25f;
+		config.plantDecisionInterval = 10.0f;
+		const Result result = ChooseTarget(snapshot, config, 0xB1C2D3E4u);
+		Require(result.candidateIndex == 0,
+			"execution planning must value shutting down a ready max-hit cob blast");
+	}
+
+	void TestLaunchedCobBlastSurvivesSourceExecution()
+	{
+		Snapshot snapshot = MakeTreatmentSnapshot();
+		PlantSnapshot cob = MakeRoutePlant(10, 2, 300.0f, 300.0f, 100.0f);
+		cob.canBeEaten = false;
+		snapshot.plants.push_back(cob);
+		ZombieSnapshot zombie = MakeZombie(1, 125.0f, 300.0f, 800.0f, 800.0f);
+		zombie.moveSpeed = 40.0f;
+		zombie.bounds = { 100.0f, 250.0f, 50.0f, 100.0f };
+		snapshot.zombies.push_back(zombie);
+		snapshot.pendingCobBlasts.push_back({
+			-1, 2, 125.0f, 300.0f, 0.25f, 1800.0f, 115.0f, 1
+		});
+		Candidate executeCob{ 2, 2, 300.0f, 300.0f, 10 };
+		executeCob.targetStrikeInterval = 2.5f;
+		executeCob.targetStrikeDamage = 40.0f;
+		executeCob.targetStrikeCount = 7;
+		snapshot.candidates.push_back(executeCob);
+
+		Config config;
+		config.rolloutCount = 1;
+		config.horizonSeconds = 1.0f;
+		config.stepSeconds = 0.25f;
+		config.plantDecisionInterval = 10.0f;
+		const Result result = ChooseTarget(snapshot, config, 0xC1D2E3F4u);
+		Require(std::abs(result.score) < 0.001f,
+			"an already launched cob must resolve even when its source is ice-sealed");
+	}
+
+	void TestUnlaunchedCobBlastCancelsWithSourceExecution()
+	{
+		Snapshot snapshot = MakeTreatmentSnapshot();
+		PlantSnapshot cob = MakeRoutePlant(10, 2, 300.0f, 300.0f, 100.0f);
+		cob.canBeEaten = false;
+		snapshot.plants.push_back(cob);
+		ZombieSnapshot zombie = MakeZombie(1, 125.0f, 300.0f, 800.0f, 800.0f);
+		zombie.moveSpeed = 40.0f;
+		zombie.bounds = { 100.0f, 250.0f, 50.0f, 100.0f };
+		snapshot.zombies.push_back(zombie);
+		snapshot.pendingCobBlasts.push_back({
+			10, 2, 125.0f, 300.0f, 0.25f, 1800.0f, 115.0f, 1
+		});
+		Candidate executeCob{ 2, 2, 300.0f, 300.0f, 10 };
+		executeCob.targetStrikeInterval = 2.5f;
+		executeCob.targetStrikeDamage = 40.0f;
+		executeCob.targetStrikeCount = 7;
+		snapshot.candidates.push_back(executeCob);
+
+		Config config;
+		config.rolloutCount = 1;
+		config.horizonSeconds = 1.0f;
+		config.stepSeconds = 0.25f;
+		config.plantDecisionInterval = 10.0f;
+		const Result result = ChooseTarget(snapshot, config, 0xD1E2F3A4u);
+		Require(result.score > 1000.0f,
+			"an ice seal before launch must cancel the source-bound pending cob");
+	}
+
 	void TestGuidedRoutePreservesZombiePressure()
 	{
 		Snapshot snapshot = MakeTreatmentSnapshot();
@@ -441,6 +566,10 @@ int main()
 		TestNormalPlantBlocksBeforeCompressedSupport();
 		TestMagneticPulseRequiresConsumableTarget();
 		TestMagneticPulseUsesCurrentCooldown();
+		TestSevenStrikeExecutionPreservesDelayedRemoval();
+		TestCobBlastGuidesExecutionTarget();
+		TestLaunchedCobBlastSurvivesSourceExecution();
+		TestUnlaunchedCobBlastCancelsWithSourceExecution();
 		TestGuidedRoutePreservesZombiePressure();
 		TestOrdinaryRowCanBeatUnhelpfulGuide();
 		TestGuidedRouteValuesNearbyControlImmunityAura();

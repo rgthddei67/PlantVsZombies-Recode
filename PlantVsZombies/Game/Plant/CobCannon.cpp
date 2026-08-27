@@ -23,6 +23,9 @@ namespace {
 	constexpr float kLaunchVolume = 0.55f;              // 第 78 帧发射音效音量
 	constexpr int kReadyFlashCycleFrames = 45;           // 原版 75 个 100Hz 计数换算到当前 60Hz，周期 0.75 秒
 	constexpr int kReadyFlashMinimum = 55;               // 原版 GetFlashingColor 的最暗 RGB 通道值
+	constexpr float kChargeSeconds = 16.0f / 12.0f;      // anim_charge 19～34 共 16 帧，单位：游戏秒
+	constexpr float kReadyToLaunchSeconds = 24.0f / 12.0f; // anim_shooting 54～78 的离膛前摇，单位：游戏秒
+	constexpr float kPostLaunchShootingSeconds = 18.0f / 12.0f; // 离膛到 anim_unarmed_idle 的剩余演出，单位：游戏秒
 	const SDL_Color kWhiteTrackColor{ 255, 255, 255, 255 }; // 非 READY 状态的炮弹轨道乘色
 	const char* kCobTrackName = "CobCannon_cob";         // 待发玉米棒所在的独立 reanim 轨道
 
@@ -120,6 +123,62 @@ bool CobCannon::FireAt(const Vector& target, int targetRow)
 	mPendingTargetRow = -1;
 	UpdateCobTrackColor();
 	return false;
+}
+
+float CobCannon::GetSecondsUntilFrame(int frame) const
+{
+	if (!mAnimator) return 0.0f;
+	const float speed = mAnimator->EffectiveSpeed();
+	if (speed <= 0.0001f) return 0.0f;
+	return std::max(0.0f, static_cast<float>(frame) - mAnimator->GetCurrentFrame())
+		/ (kReanimationFramesPerSecond * speed);
+}
+
+float CobCannon::GetSimulationAbilityCooldownRemaining() const
+{
+	switch (mPhase) {
+	case Phase::ARMING:
+		return std::max(0.0f, mArmingTime) + kChargeSeconds
+			+ kReadyToLaunchSeconds + kCobFlightSeconds;
+	case Phase::CHARGING: {
+		if (!mAnimator) return kChargeSeconds
+			+ kReadyToLaunchSeconds + kCobFlightSeconds;
+		const auto [beginFrame, endFrame] = mAnimator->GetTrackRange("anim_charge");
+		const float speed = mAnimator->EffectiveSpeed();
+		const float remainingCharge = beginFrame >= 0 && endFrame > beginFrame
+			&& speed > 0.0001f
+			? std::max(0.0f, static_cast<float>(endFrame)
+				- mAnimator->GetCurrentFrame())
+				/ (kReanimationFramesPerSecond * speed)
+			: kChargeSeconds;
+		return remainingCharge + kReadyToLaunchSeconds + kCobFlightSeconds;
+	}
+	case Phase::READY:
+		return kReadyToLaunchSeconds + kCobFlightSeconds;
+	case Phase::FIRING: {
+		// 当前锁定炮击由 Board 单独采集；本体计时只推进演出结束后的下一轮装填。
+		float remainingShooting = kPostLaunchShootingSeconds;
+		if (mAnimator) {
+			const auto [beginFrame, endFrame] =
+				mAnimator->GetTrackRange("anim_shooting");
+			if (beginFrame >= 0 && endFrame > beginFrame) {
+				remainingShooting = GetSecondsUntilFrame(endFrame);
+			}
+		}
+		return remainingShooting
+			+ kReloadArmingSeconds
+			+ kChargeSeconds + kReadyToLaunchSeconds + kCobFlightSeconds;
+	}
+	}
+	return 0.0f;
+}
+
+float CobCannon::GetPendingSimulationBlastDelay() const
+{
+	if (mPhase != Phase::FIRING || mShotLaunched || mPendingTargetRow < 0) {
+		return -1.0f;
+	}
+	return GetSecondsUntilFrame(kLaunchFrame) + kCobFlightSeconds;
 }
 
 void CobCannon::UpdateCobTrackColor()

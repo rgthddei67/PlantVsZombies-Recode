@@ -42,8 +42,13 @@ struct PlantSimulationProfile {
 	int magneticSearchRowRadius = 0; // 磁吸目标搜索覆盖自身行上下各几行
 	float magneticSearchRadiusInCells = 0.0f; // 非啃食目标搜索半径，单位：格宽
 	float magneticEatingSearchRadiusInCells = 0.0f; // 啃食目标搜索半径，单位：格宽
+	float cobBlastCooldown = 0.0f;  // 高操作玩家连续两次默认最优炮击爆炸的等效间隔，单位：游戏秒
+	float cobBlastDamage = 0.0f;    // 玉米炮每次爆炸对命中僵尸的等效灰烬伤害
+	float cobBlastRadius = 0.0f;    // 玉米炮圆形爆区半径，单位：px
+	int cobBlastRowRadius = 0;      // 玉米炮爆区覆盖目标行上下各几行
 	bool daytimeDormant = false;       // true=白天新种后只作为阻挡体，不模拟主动能力
 	bool persistent = true;           // false=一次性/复杂能力牌，不参与未来种植推演
+	bool futurePlantable = true;      // false=场上能力仍参与推演，但未来种植需要模型未表达的多步前置
 	bool supportOnly = false;          // true=普通承载层压缩进每格支撑快照，也不作为未来种植候选
 };
 

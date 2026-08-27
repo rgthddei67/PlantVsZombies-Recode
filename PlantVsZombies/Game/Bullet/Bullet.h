@@ -152,7 +152,7 @@ public:
 	/** 返回当前弹型对目标冰制层请求的独立腐蚀值；普通弹丸为 0。 */
 	int GetWinterCorrosionDamage() const;
 
-	int GetBulletDamage() { return mDamage; }
+	int GetBulletDamage() const { return mDamage; }
 	void SetBulletDamage(int damage) { this->mDamage = damage; }
 	float GetVelocityX() { return mVelocityX; }
 	void SetVelocityX(float x);

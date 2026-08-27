@@ -51,6 +51,10 @@ struct PlantSnapshot {
 	float magneticSearchRadius = 0.0f;
 	float magneticEatingSearchRadius = 0.0f;
 	float magneticRowDistancePenalty = 0.0f;
+	float cobBlastCooldown = 0.0f;
+	float cobBlastDamage = 0.0f;
+	float cobBlastRadius = 0.0f;
+	int cobBlastRowRadius = 0;
 };
 
 /**
@@ -137,6 +141,10 @@ struct CardSnapshot {
 	float magneticSearchRadius = 0.0f;
 	float magneticEatingSearchRadius = 0.0f;
 	float magneticRowDistancePenalty = 0.0f;
+	float cobBlastCooldown = 0.0f;
+	float cobBlastDamage = 0.0f;
+	float cobBlastRadius = 0.0f;
+	int cobBlastRowRadius = 0;
 };
 
 struct CellSnapshot {
@@ -153,6 +161,20 @@ struct Candidate {
 	float x = 0.0f;
 	float y = 0.0f;
 	int targetPlantId = -1; // >=0 时候选动作只移除这株植物；-1 保持圆形范围伤害
+	float targetStrikeInterval = 0.0f; // 大于 0 时改为立即停机、随后按间隔锤击
+	float targetStrikeDamage = 0.0f; // 每次延迟锤击伤害
+	int targetStrikeCount = 0; // 最后一击无论剩余生命都提交处决
+};
+
+struct PendingCobBlast {
+	int sourcePlantId = -1; // 未离膛时绑定来源；-1 表示已离膛且不可回滚
+	int targetRow = 0;
+	float x = 0.0f;
+	float y = 0.0f;
+	float resolveSeconds = 0.0f;
+	float damage = 0.0f;
+	float radius = 0.0f;
+	int rowRadius = 0;
 };
 
 struct Snapshot {
@@ -166,6 +188,7 @@ struct Snapshot {
 	std::vector<CardSnapshot> cards;
 	std::vector<CellSnapshot> cells;
 	std::vector<Candidate> candidates;
+	std::vector<PendingCobBlast> pendingCobBlasts;
 };
 
 struct Config {
