@@ -773,19 +773,21 @@ bool GameInfoSaver::DeserializeLevelDataFromPath(Board* board, CardSlotManager* 
 		board->mPlantDamageEchoHitCounter = std::clamp(
 			j.value("plantDamageEchoHitCounter", 0), 0, 9);
 
-		// 还原冻结的出怪池（防刷怪）：存档若带 spawnList 字段则直接还原（校验+去重，镜像
-		// Board::LoadSpawnListFromJson 的健壮性，挡住手改/损坏档的越界 ZombieType）；旧档无此
+		// 还原冻结的出怪池（防刷怪）：存档若带 spawnList 字段则按当前无尽候选资格校验并去重，
+		// 同时挡住手改/损坏档的越界 ZombieType，也不让旧档恢复已明确禁入的候选；旧档无此
 		// 字段→回退到按轮次重建（旧行为，天然兼容），重建后下次存档即写入字段冻结。
 		if (j.contains("spawnList") && j["spawnList"].is_array() && !j["spawnList"].empty()) {
 			std::vector<ZombieType> list;
 			for (auto& v : j["spawnList"]) {
 				int val = v.get<int>();
 				if (val < 0 || val >= static_cast<int>(ZombieType::NUM_ZOMBIE_TYPES)) continue;
+				const ZombieType type = static_cast<ZombieType>(val);
+				if (!board->CanZombieTypeEnterSurvivalPool(type, board->mSurvivalRound)) continue;
 				bool dup = false;
 				for (ZombieType seen : list)
 					if (static_cast<int>(seen) == val) { dup = true; break; }
 				if (dup) continue;
-				list.push_back(static_cast<ZombieType>(val));
+				list.push_back(type);
 			}
 			if (!list.empty()) board->SetZombieSpawnList(list);                   // 还原冻结池
 			else board->BuildSurvivalSpawnList(board->mSurvivalRound);            // 全损坏→兜底重建

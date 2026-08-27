@@ -2,6 +2,8 @@
 
 > Codex routing: required always-on rules live in `../../AGENTS.md`; detailed build, AutoTest, architecture, resource, and implementation guidance lives in `../agent-guide/PROJECT_GUIDE.md`. The entries below are historical subsystem context and should be read only when relevant.
 
+- [AutoTest 套件与验证矩阵](project_pvz_autotest_suite.md) — 2026-08-27 验证按实际改动面分流：新植物、新僵尸、新粒子或纯出怪/逻辑本身只跑默认 `clang-release` 可见专项；只有改动渲染后端、后端兼容路径或跨后端提交实现时才加跑 `-NoInstance` 和强制 OpenGL
+
 - [冬日花园僵尸图鉴资料与预览](project_pvz_zombie_almanac_progression.md) — 2026-08-26 冰墙工程师的图鉴缺失源于 `info.txt` 标题/说明键未登记，而非 spawnlist 解锁；天气干扰僵尸的预览无 Board 必须保持 `anim_idle`，不能误触设备失败收口改成 `anim_walk2`。默认与 `-NoInstance` 图鉴专项均通过
 
 - [大嘴花拒吞伤害契约](project_pvz_chomper_rejected_bite.md) — 2026-08-15 `TakePlantInstantKill()` 只报告是否确实吞下；拒吞默认由大嘴花经正式 `PLANT` 伤害链造成20，巨人/红眼/屋脊督军使用默认值；既有特殊值为加固铁门10、镀金冰车50，持杆跳跳因高度咬不到为0且掉杆后恢复普通吞食
@@ -73,7 +75,7 @@
 - [僵尸图鉴随冒险进度解锁](project_pvz_zombie_almanac_progression.md) — 2026-08-26 图鉴累计 `mAdventureLevel - 1` 之前已通关关卡的 `spawnlists.json` 并按首次遭遇排序，当前关不提前泄露；舞王显式带出 `weight: 0` 伴舞；概率变异精英舞王只在正式实体创建成功后写 PlayerInfo 永久遭遇标记并额外解锁，直造/预览/读档不误记；左网格固定 8×5=40 项，以不重合的上一页/下一页箭头分页，保留右侧详情并覆盖默认/`-NoInstance` 可见回归
 - [经典地刺](project_pvz_caltrop.md) — 2026-08-03 `PLANT_SPIKEWEED` 由 `Caltrop` 实装：免普通啃食，第25帧结算30px窄攻击带20伤害；水路与屋顶均禁种；冰车虚事件触发扁胎、TirePop、碎屑/烟雾、wheelie与2.8秒延时爆炸
 - [冰车僵尸与冰道](project_pvz_zamboni_zombie.md) — 2026-08-09 普通冰车 1350 HP、右侧高速入场后减速、碾压植物、两段破损与二段烟雾；昼/夜屋顶五行已正式解禁，平台减速段在坡顶结束且冰道仍只画X=642以右水平平台，鎏金型保持未解禁；零合法行不再回退第一路；免疫寒冰、稳定视觉原点、低血量抖动、专属死亡/灰烬与地刺爆胎契约保持
-- [鎏金冰车僵尸与黄色冰道](project_pvz_gilded_zamboni.md) — 2026-07-28 `ZOMBIE_GILDED_ZAMBONI`：2200 HP、基础驱动0.72、同波最多1只；只碾压本行植物，本行及相邻陆路仍铺35秒黄色冰道，水路不铺；黄色覆盖普通冰道显示并禁种；每个活跃来源把能力/寒冰/雨势/台风的非中性倍率按加速×2、减速÷2逐层强化，重叠来源可互相和共同加速，蓄势基础为6/10/14秒×2/×4/×8、受伤归零且场地强化后仍封顶×8；地刺100、大嘴花50且均不触发普通秒杀；24关3-6与宝开式图鉴已接入；死亡使用独立鎏金车辆碎片与金色爆炸云；来源专用弱索引/强快照已消除每只僵尸的相邻行全量扫描，并保持死亡后持久黄冰回退
+- [鎏金冰车僵尸与黄色冰道](project_pvz_gilded_zamboni.md) — 2026-08-27 `ZOMBIE_GILDED_ZAMBONI` 明确不进入任何无尽候选卡池，旧档冻结池也按当前资格过滤；冒险出怪、直造、已存在实体读档和显式召唤不受影响，其他玩法契约保持
 - [三线射手](project_pvz_threepeater.md) — 2026-07-24 三头视觉帧29/73/111，但按 C# 集中计数器只在帧73同帧创建三弹；逐头补 `inverse(basePose)`；顶/底越界弹折回本行且360/290px/s差速；斜向初速按地图行高缩放（草地300、泳池255px/s），水路僵尸碰撞框脱离+25px美术下沉；本次按主人要求只编译、不跑AutoTest
 - [火爆辣椒](project_pvz_jalapeno.md) — 2026-07-26 使用主人裁剪的0..19帧本体，第19帧引爆；12段火焰从`CELL_INITALIZE_POS_X`横铺750px并在第12帧消失；整行非魅惑目标先解冻/解减速再走1800灰烬伤害，水路保持水中死亡且睡莲不受影响；冰车合入后会把同行冰道剩余寿命压到0.2秒；引爆中受巨人锤击立即复用正式IgniteRow；双Clang预设及可见专项AutoTest通过
 - [缠绕水草](project_pvz_tanglekelp.md) — 2026-07-24 仅空水格直种且占普通层，25阳光/30秒冷却；普通目标按 C# 99→51→21→0cs 抓取拖沉；持门加固铁门改为原地保持 `anim_grab` 5秒后获释且仅水草死亡，掉门后恢复普通规则；一对一锁定、抗性扩展点与存档迁移已接入，首版专项 AutoTest 74 条全绿，本次扩展按主人要求仅双 preset 编译
@@ -81,7 +83,7 @@
 - [Windows 中央存档目录与旧档安全迁移](project_pvz_save_location_migration.md) — 2026-07-21 Windows 正式存档改到 `FOLDERID_SavedGames/PlantsVsZombies/saves`；首次访问旧 `./saves` 时复制、逐字节校验、再删源文件，冲突不覆盖、失败逐文件回退；AutoTest/`-AutoTestLoadSave` 继续隔离在构建目录
 - [第三大关泳池基础系统](project_pvz_pool_basics.md) — 2026-08-03 当前范围 3-1～3-9：`WATER_POOL` 六行网格、原版 15×5 三层 GPU 动态水面、睡莲双层占格及上层植物本体/影子共享水面浮动视觉锚点、前4波仅陆路、`Zombie` 通用水线裁剪与 `Splash.reanim + PlantingPool` 进出水反馈、海豚派生节点、普通/路障/铁桶水路版本、水中爆炸无烧焦残影、PoolCleaner 与旧档边界；3-5普通冰车、3-6鎏金冰车、3-7普通海豚、3-8精英海豚、3-9为200初始阳光与10种敌人的30波分阶段综合；日间天降普通阳光14秒，泳池另每13秒生成15点小阳光；水路 Transform +30px美术下沉而碰撞仍回归逻辑行
 - [通用 shader ClipRect](project_pvz_shader_clip_rect.md) — 2026-08-27当前契约：BatchVertex保留逐顶点framebuffer裁剪，活动Clip的实例精灵/Animator/字形按原调用位置回退batch；Push/Pop仍不flush、不录worker状态命令或改动态scissor，无裁剪InstanceRecord因而收回48B
-- [冒险第二大关起雨势天气与独立迷雾](project_pvz_night_rain_weather.md) — 2026-08-23 大雨警报和预报台风后缀只跟公开预报走；揭晓按公开/实际“雨势 + 台风等级”完整比较，`HEAVY → HEAVY` 的实际等级取 Board 当前台风，失败 UI 与快照保存两侧等级；真实台风仍由真实下一天气消费，Board 仍是唯一天气权威，独立迷雾、4-9 暴风雨夜与昼夜屋顶雨景见主题
+- [冒险第二大关起雨势天气与独立迷雾](project_pvz_night_rain_weather.md) — 2026-08-27 七种无尽地形保留晴雨循环但统一禁用台风，`SupportsTyphoon()` 同时约束预抽、警报、启动、更新、旧档恢复、概率与测试入口；普通冒险台风、独立迷雾、4-9 暴风雨夜与昼夜屋顶雨景见主题
 - [路灯花与迷雾核心](project_pvz_plantern_fog_core.md) — 2026-08-22 唯一路灯花以25/100雾火维持四挡逐格照明/索敌与产光；本体交互改由CardSlotManager和Cell唯一解析，空手悬停显示手型并可开菜单，拿植物/铲子/炮击准星时不显示手型、不展开菜单且不截断同格南瓜头或under层避雷花盆放置；燃料曲线、6-9动态雾和存档合同保持
 - [雾夜第四大关4-1至4-9出怪节奏](project_pvz_fog_spawnlist_pacing.md) — 2026-08-03 4-8当前为普通/精英海豚、气球、跳跳三高度池；4-9为12类型暴风雨终局综合池并以普通/精英跳跳收尾；权威资源未改，4-7～4-9有序池与预览专项已同步并可见通过
 - [经典小丑僵尸](project_pvz_jack_in_the_box_zombie.md) — 2026-08-02 `ZOMBIE_JACK_IN_THE_BOX`：500 HP、0.66～0.68速度、随机开盒与共享循环声；第45帧啃食、第66帧爆炸、第89帧死亡，爆炸只伤敌对阵营僵尸（未魅惑侧直接清除爆区全部植物层），明确不受南瓜范围拦截影响；专属大范围爆炸、原版普通完整掉头、残肢和存档均有可见回归
@@ -138,7 +140,7 @@
 - [Gemini性能报告逐条裁决(整份不动)](project_pvz_gemini_perf_report_verdict.md) — 2026-06-30 读3文件未profiler;"GPU带宽瓶颈"被实测present0.14/replay0.03 CPU-bound证伪;pipeline切换❌/batch2×3⚠️/纹理压缩⚠️/multimap⚠️/Early-Z❌;教训=瓶颈归因靠profiler非读代码;再提纹理压缩/Early-Z/pipeline合并引此
 - [僵尸血量文字thrash→HUD字形图集 ✅完成](project_pvz_zombie_hp_text_thrash.md) — 2026-07-02主人真机验证尖峰消失(已push,feature已删);GlyphAtlas单行白字形+DrawGlyphRun逐字形quad;**关键bug=BeginParallelRecord预留固定4MB被字形×13撑爆→vbo翻倍2GB(b8ab956比例化max(8MB,remain/4))**;+字形基线double-count修(BuildGlyphAtlas按真实墨迹框裁紧致);坑=overflow warning在stdout非run.log
 - [host-visible缓冲grow-on-demand ✅已push](project_pvz_host_visible_buffer_grow_on_demand.md) — 2026-06-26(17c3a1d)修启动890MB:三持久映射逐帧缓冲×2帧=448MB常驻(纹理仅54MB);改grow启动56MB,891→476MB;坑=安全增长点唯一/先建后换防OOM;+code-review修4缺陷(按缓冲独立翻倍/EndFrame一步扩容/空闲回收/OOM sticky)
-- [生存刷怪轮次表+随机子集池](project_pvz_survival_spawn_round_table.md) — 2026-07-18 在原数据化轮次表上新增最终最多8种(含普通)+基础数量随机±1~2；排除weight<=0召唤单位避免占池位；固定Seed验第3/6/13/40轮为4/2/8/6种；**weight仍一物两用，抽中调制与点数成本严禁混用**
+- [生存刷怪轮次表+随机子集池](project_pvz_survival_spawn_round_table.md) — 2026-08-27 轮次、权重、背景、出生行与明确品种排除统一由候选资格查询收口；鎏金冰车是当前唯一额外禁入全部无尽卡池的非零权重类型，普通冰车与其他既有资格不变；最终最多8种和随机±1~2保持
 - [GameSelectScene 冒险分页选关+七地形无尽](project_pvz_gameselect_scene_night_endless.md) — 2026-08-27 冒险入口按 `AdventureProgression` 与当前进度自动生成，每页6×3、锁定关不创建、通关关左上画奖杯，并默认定位当前可挑战关所在页；无专属缩略图的场景统一裁正式背景。生存由集中定义表自动生成七种无尽，分别要求完成对应第1～7大关，未解锁入口不创建且永不标通关；各背景自动取得雾、径流、雷荷或冬季机制
 - [大喷菇攻击补全+护盾穿透 ✅已push](project_pvz_fumeshroom_attack.md) — 2026-06-24(e443375)FumeAttack第27帧对本行[0,380]锥形20伤害;**Zombie::TakeDamage加penetrateShield还原穿透二类护盾(铁门/报纸不穿头盔)**;仅FastPaper/FastBucket透传;Gloom升级可复用
 - [僵尸分层受击闪烁](project_pvz_zombie_damage_flash.md) — 2026-08-03 本体/头盔/飞行额外生命与二类护盾按实际扣血独立闪白；方向背击与弹丸主动绕盾统一由 `TakeProjectileDamage` 路由，目标可否决主动绕盾；Animator 轨道覆盖的实例化与 NoInstance 路径已有可见专项基线

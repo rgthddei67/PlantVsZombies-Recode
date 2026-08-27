@@ -34,7 +34,7 @@
 
 暂停时天气过渡和阶段计时冻结；倍速时按游戏时间等比推进。天气 UI 的滑入、5 秒当前天气牌和失败提示另用未缩放时间。
 
-无尽模式由 `Board.h` 的 `SURVIVAL_ENDLESS_DEFINITIONS` 集中登记关卡号、背景、显示名和解锁大关，当前包含白天、黑夜、泳池、黑夜泳池、白天屋顶、黑夜屋顶和雪原七种。`GameAPP::GetBackgroundID()`、生存选关入口、`mIsSurvival` 与通用雨势资格都消费这张表；选关页仅在 `AdventureProgression::HasCompletedArea(mAdventureLevel, requiredAdventureArea)` 成立时创建入口。新增地形不能再在多处追加平行 `level == ...` 或解锁判断。迷雾、径流、夜屋顶雷荷和冬日温度仍按实际 `Background` 自动取得资格，关卡号只区分无尽存档与显示名。
+无尽模式由 `Board.h` 的 `SURVIVAL_ENDLESS_DEFINITIONS` 集中登记关卡号、背景、显示名和解锁大关，当前包含白天、黑夜、泳池、黑夜泳池、白天屋顶、黑夜屋顶和雪原七种。`GameAPP::GetBackgroundID()`、生存选关入口、`mIsSurvival`、通用雨势资格和无尽台风禁用资格都消费这张表；选关页仅在 `AdventureProgression::HasCompletedArea(mAdventureLevel, requiredAdventureArea)` 成立时创建入口。全部无尽地形保留通用晴雨循环，但 `SupportsTyphoon()` 必须对它们统一返回 false，使自然预抽、警报、启动、更新、旧档恢复、概率投影和测试强制入口都不能留下活动或待生效台风；新增无尽地形自动继承此契约，不能再在多处追加平行 `level == ...` 或解锁判断。迷雾、径流、夜屋顶雷荷和冬日温度仍按实际 `Background` 自动取得资格，关卡号只区分无尽存档与显示名。
 
 提前 5 游戏秒的大雨分级文字警报只由玩家可见的公开预报驱动：公开预报为 `HEAVY` 就显示，
 否则即使真实下一天气为大雨也隐藏，弹窗有无不得成为判断预报真假的旁路。公开误报大雨时也须
@@ -82,8 +82,8 @@ const bool isRaining = rain != RainIntensity::CLEAR;
 不要用 overlay alpha 推断是否下雨：它是视觉插值，雨转晴的两秒内仍大于 0。
 
 主菜单控制台的 `openingTyphoonProtectionEnabled` 是玩家全局偏好，旧 `PlayerInfo` 缺字段时默认
-开启。开启后，冒险关和生存首轮的第 1～5 波仍允许自然雨势，但新大雨附加台风的实际概率为 0；
-进入第 6 波恢复原天气导演概率，生存第二轮起不再重复保护。关闭开关则从开局起完整使用原规则。
+开启。它只作用于本来允许台风的普通冒险关：第 1～5 波仍允许自然雨势，但新大雨附加台风的实际概率为 0；
+进入第 6 波恢复原天气导演概率。所有集中登记的无尽模式由 `SupportsTyphoon()` 恒定拒绝台风，因此不受该开关或生存轮次影响。关闭开关则只使普通冒险从开局起完整使用原规则。
 天气预警可能在阶段揭晓前锁定台风结果，因此“本次因开局保护锁定为无台风”由 Board pending
 标志进入关卡档；兑现时不增加 `heavyPhasesWithoutTyphoon`，避免第 6 波因保护期被伪计为连续落空。
 

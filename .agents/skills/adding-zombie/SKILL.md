@@ -14,7 +14,7 @@ description: Use when adding or tuning any PvZ zombie, or integrating zombies in
 - C# 参考实现用于确定玩家可感知的功能契约：状态机与触发顺序、时长和数值、目标规则、断肢/死亡结果、音效及资源表现；没有主人批准时不得自行改变这些行为。
 - C# 不是本项目的类图或字段模板。实现前逐项核对当前僵尸继承体系、Board/实体所有权、碰撞回调、Animator 与根运动、绘制层、资源轨道、魅惑/死亡生命周期和存读档，再复用现有最窄入口；禁止复制平行状态或绕过公共系统。
 - 玩法对象架构固定为继承式：新增僵尸继续选择 `Zombie` 或最窄既有派生基类，并用窄虚接口表达品种差异；不得为僵尸能力恢复通用 `Component` 基类/类型表、把品种状态拆成任意组件组合，或为形式统一复制基类生命周期。空间数据由宿主 `CreateTransform()` 创建并通过 `GetTransform()` 访问。Collider、Shadow 与 Clickable 是宿主显式独占的具名附件：分别通过 `CreateCollider()` / `GetCollider()` / `RemoveCollider()`、`CreateShadow()` / `GetShadow()` / `RemoveShadow()`、`CreateClickable()` / `GetClickable()` / `RemoveClickable()` 管理，禁止恢复 `AddComponent/GetComponent/RemoveComponent<T>` 或缓存可独立失效的附件裸指针。三个类的 `Component` 后缀只是过渡命名，不代表组件系统。`CreateClickable()` 保证 Collider 已就绪；`RemoveCollider()` 会同步注销 Clickable，运行时替换 Collider 则保持 Clickable 注册有效。
-- 架构、坐标或资源差异必须做适配，并用状态投影、音效计数、默认与 `-NoInstance` 可见截图证明功能等价。原版资源版本与当前 reanim 不一致时，以玩家结果忠实为目标，具体轨道方案按当前资产确认；需要改变行为时再询问主人。
+- 架构、坐标或资源差异必须做适配，并用状态投影、音效计数和默认可见截图证明功能等价。原版资源版本与当前 reanim 不一致时，以玩家结果忠实为目标，具体轨道方案按当前资产确认；需要改变行为时再询问主人。
 
 ## 视觉识别底线
 
@@ -37,7 +37,7 @@ description: Use when adding or tuning any PvZ zombie, or integrating zombies in
 - 用户目验若指出整只载具统一偏高/偏低，且碰撞框、攻击框、发射点、死亡特效都已从 `Transform + mVisualOffset` 派生，只调权威 gamedata 的整车 offset，禁止给每个消费者再补一份 Y。改后同时复查车轮地面线、投射物起点与独立残骸；只有其中单项仍偏时才调该项的局部常量。
 - 网格位置与画面偏移继续分离；屋顶出生、读档重建、出土裁剪及任意当前点地面线必须使用 `GetZombieCollisionY/GetZombieSpawnY(row, worldX)`。水平移动仍由品种的 `ZombieMove` 决定，基类在阵风后和 `ZombieMove` 后统一把 Transform Y 收敛到坡面，普通、飞行、地下品种不得各自维护 Y 公式。
 - 验证先执行同步 `screenshot`，再用 `animatedObjectsByTag.Zombie` 的 `renderProbeReady/worldBounds/visualToRenderCenterD*Int/nearestZombie` 验证本项目最终绘制几何相对自身 collider、同排植物或攻击目标的关系；每阶段只保留一个目标僵尸以稳定数组索引。
-- 修改出生 offset、受伤偏移、附件、翻转或整身变换时，默认实例化与 `-NoInstance` 各跑同一静止用例并比较整数 `worldBounds`；运动对象瞬时绝对 X/Y 只供诊断，不作稳定断言。
+- 修改出生 offset、受伤偏移、附件、翻转或整身变换时，在默认实例路径跑同一静止用例并比较整数 `worldBounds`；运动对象瞬时绝对 X/Y 只供诊断，不作稳定断言。
 - 战场主体按 `row N 植物 → row N 僵尸/扶梯 → row N+1 植物` 交错绘制；同排僵尸仍在植物之上，下一行植物遮挡上一行越界身体。大蒜改道、蹦极选格、首领换行等运行期 `mRow` 提交必须走基类行提交/排序键刷新入口，不能只改字段；小推车与子弹层保持原顺序。专项同时断言语义 `renderLayer` 未变、实际 `renderOrder` 行带正确，并以默认/`-NoInstance` 屋顶跨行截图验收。
 
 ## 第 0 步：勘察（动手前全部做完）
@@ -148,6 +148,7 @@ description: Use when adding or tuning any PvZ zombie, or integrating zombies in
 - **稀有的每实例状态优先冷热分离，但必须按真实总量验收**：先用目标工具链的 record layout 与代表性数量确认常驻字段确实显著，再把大数组、容器、回调或仅少数品种启用的附件移到首次生效才分配的侧车；高频资格查询需要的稳定 ID/小标志继续内联，不能为了缩 `sizeof` 让热路径多一次指针追逐。活跃元素用显式计数和紧凑前缀推进，未生效热路径必须 O(1) 早退。侧车不得变成任意组件系统，宿主仍独占状态与生命周期；Save/Load 保持原 JSON 字段与中性默认，只在读到有效状态时分配。到期、魅惑、死亡和孤儿恢复按各状态正式生命周期释放；若侧车持有计划复用的附件，可保留休眠分配，但必须隐藏/停用并计入真实总量。报告内存时同时列对象 `sizeof`、常见侧车、附件与分配开销，禁止只报缩小后的热对象或仅凭布局宣称 FPS 提升；专项至少覆盖未生效、满层刷新、到期或休眠、正式快照往返和倍速等价。
 - **可关闭的蒙特卡洛主动决策只放在动作边沿**：由 `Board` 一次采集实体、装备层、卡槽、已提交但未结算动作和确定的全局事件，纯数值模块用共同随机数比较全部合法候选与“不执行本次动作”基线，局部 RNG 禁止消费正式 `GameRandom`。详细实体数必须有共享硬上限；无上限范围效果把样本外对象折算成有界汇总量，不能改变正式结算数量。不同决策族可以共享实体硬上限，但 rollout 预算必须按各自时域、步数与候选规模使用独立可调常量；禁止为了调高短时域能力的精度而经同一个全局常量同步放大其他长时域推演。等待候选用有限延迟副本表达，累计等待和重试计时入档，达到上限后只比较立即动作；同收益严格偏好立即执行，等待必须靠真实未来收益胜出。总开关关闭、阵营模型不适用或推演失败时，原子回退该品种原有确定性/随机规则。性能验收不能只看60帧平均 FPS：用同步放开全部施法者的确定性压力夹具，并把快照与 rollout 分段计时，同时记录报告窗口调用次数和单次最大耗时；否则动作边沿尖峰会被 VSync 等待和窗口均值掩盖。多名施法者的同步峰值仍超预算时，在 `Board` 按稳定实体 ID 与固定逻辑步间隔发放推演名额，间隔至少覆盖一次渲染帧允许追赶的最大固定步数，未领取者保持动作就绪后续再试；禁止改按渲染帧发放而让逻辑时序随机器性能漂移。AutoTest 同时导出决策模式、动作、rollout/候选/样本计数，覆盖开关两路、等待读档、同步压力和共享上限；纯数值单测另锁定关键事件对收益的改变。
 - **天气条件变异**：同时使用 `adding-rain-weather`。`spawnlists.json` 与波次点数预算只放基础类型，正式生成路径在扣点前经唯一 resolver 决定实际变异类型；`CreateZombie`/`spawn_zombie` 保持直造确定性。每波上限只在推进新波时清零，不能被天气切换重置；已生成数必须入存档，`weight: 0` 的变异体不得独立进入随机池。
+- **无尽候选池的品种排除必须只收窄候选池资格**：把明确禁入类型放进 `BuildSurvivalSpawnList()` 和冻结池读档共用的统一资格查询，使选卡预览、正式波次与旧档恢复共用同一 `mSpawnZombieList`；不得把排除扩大到冒险 `spawnlists.json`、开发者直造、AutoTest `spawn_zombie`、已存在僵尸实体的读档恢复或其他显式召唤来源。专项导出“候选资格”和“本轮实际池中是否存在”两层状态，并用同类普通版本作允许对照，避免固定 Seed 恰好没抽中而假绿。
 - **普通基础类型的每波上限也走唯一正式 resolver**：把上限计数放 `Board::ResolveWaveZombieType` 等正式波次解析入口，超额返回失败哨兵且不消费候选预算；`CreateZombie`/`spawn_zombie` 保持直造确定性。计数只在 `SummonNextWave()` 与明确的新生存轮边界清零并进入存档，不能按教学关例外，除非规格明说。专项应在自然出怪表不含该类型的关卡直测解析器，避免换波后自然抽中同类干扰“已清零”的断言。
 - **成功能力后的跨波刷新冷却必须覆盖完整波次**：由 `Board` 同时保存“当前波是否封锁”和“未来仍需封锁的完整波数”；能力只有在正式结算边沿成功提交时才同时封锁本波余下候选并写入未来波数，提前击杀、取消或无效结算不得启动。`SummonNextWave()` 必须在本波任何候选解析前把一份未来冷却转为当前波封锁，再由唯一正式 resolver 返回失败哨兵且不扣预算；不能只保存一个在换波时递减的数字，否则最后一个冷却波生成完成后，同波稍后的正式候选会提前解封。两字段都入档，旧档用中性值；生存换轮默认不清零，明确教学保证才在 resolver 处窄豁免。`CreateZombie`、预览、直造测试和读档恢复保持确定性且不消费冷却。AutoTest 覆盖成功边沿、本波余下候选、后续每个完整波、最早恢复波、取消路径、快照往返与轮次边界。
 - **僵尸主动改变天气**：同时使用 `adding-rain-weather`。僵尸只保存并推进自身施法节奏、次数或生命跨段，实际雨势升档必须调用 Board 的语义窄入口；入口显式规定不支持地图/锁定天气 no-op、强天气是否允许降级、同档是否续期及是否附带台风。固定周期触发应在本次动作确实完成后记数，生命阈值触发要排除同次致死并只在跨边沿调用；Board 现有雨势/过渡/余时已经入档时禁止在实体复制。专项覆盖不支持地图、弱转强、已有更强天气、同档续期、后续受击/施法不刷新和双方快照往返。
@@ -178,6 +179,7 @@ description: Use when adding or tuning any PvZ zombie, or integrating zombies in
 ## 验证（缺一不可）
 
 1. 所有僵尸任务的编译、F5、范围最小 AutoTest 和最终相关回归都默认直接使用 `clang-release`，保持 0 warning；新 .cpp 未被编译时先执行 `cmake --preset clang-release` reconfigure。同一份当前源码已用该产物完成相关验证时，不再重复编译 Debug 或重跑同一轮 AutoTest。只有主人明确要求 Debug CRT/Debug 语义，或 Release 问题确实需要辅助诊断时，才显式切换 `clang-debug`。
+   验证矩阵按实际改动面分流：新僵尸、新附件、新粒子或普通资源本身只要求默认 `clang-release` 可见专项与相关资源/截图断言，不机械加跑 `-NoInstance` 或 OpenGL。只有实际改到渲染后端、后端兼容路径或跨后端提交实现时，才补默认 Vulkan + `-NoInstance` + 强制 OpenGL 回归。本条覆盖本 skill 前文各专项沿用的旧“默认双路径截图”表述：未改渲染后端时，那些专项只跑默认路径。
 2. **AutoTest 冒烟**：`autotest/scripts/smoke_<name>.json`。默认按 `PROJECT_GUIDE.md` 的“当前桌面可见启动”方案运行：从 `build/<preset>/` 工作目录，用提升权限的 `Start-Process -WindowStyle Normal -PassThru` 启动并等待退出；普通沙箱 shell 即使写了 `WindowStyle Normal` 也可能落在隔离会话，主人桌面完全看不到。首次直造前断言 `HasReanimation`，运行时帽子/残肢/粒子贴图用 `GetTexture(key,false)` 导出加载状态；Release WARN 不保证写进 `run.log`，manifest 也不能替代这些断言。状态断言用 `zombies.N.type/hasArm/armVisible/hasHead/track/mindControlled`；几何断言用 `animatedObjectsByTag.Zombie.N` 的最终世界包围盒及相对 collider 投影，禁止把 C# 绝对坐标写成期望值。**exit 0 ≠ 通过**：逐张 Read 同步截图（断肢前后、编队站位、出土中段——换色变体必须截取真正使用 `rise*` 合成图的中段；注意升起初期整体在地面线下被裁掉是正确的，截图要卡升起 60% 时点）。
 3. **死亡消失必须专门测**（末-1 帧陷阱专项）：豌豆打死→dump 确认该 type 消失+run.log 无 WATCHDOG。炸弹类走 Die() 直杀路径，**测不到**死亡帧事件。若品种有出生随机动画倍率，等待上限必须按倍率范围下限计算并在 WATCHDOG 前留裕量，禁止沿用平均速度或旧固定秒数导致慢实例假失败。
 4. 时序：`wait_seconds` 是游戏秒；关卡 20 秒起第一波普通僵尸会混入 dump。精确断言碰撞目标或僵尸数量的隔离专项应在进入 `GAME` 后立即 `set_spawn_paused=true`；只有测试自然波本身时才保留生成，不能把首波当固定对照数。

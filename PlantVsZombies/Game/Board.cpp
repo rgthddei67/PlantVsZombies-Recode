@@ -4732,9 +4732,12 @@ bool Board::SupportsStageFog() const
 		|| AdventureProgression::HasLevelSpecificFogMechanics(mLevel);
 }
 
+/** 仅普通天气关允许台风；全部集中登记的无尽模式只保留晴雨循环，雪原仍维持原禁用语义。 */
 bool Board::SupportsTyphoon() const
 {
-	return SupportsWeather() && mBackGround != Background::WINTER_GARDEN;
+	return SupportsWeather()
+		&& !IsSurvivalEndlessLevel(mLevel)
+		&& mBackGround != Background::WINTER_GARDEN;
 }
 
 /** 提供温度计与测试共用的归一化液柱高度，避免 UI 复制寒潮温区。 */
@@ -8301,36 +8304,19 @@ bool Board::SetSurvivalRoundForTesting(int round)
 	return true;
 }
 
+/** 按无尽轮次、地形和类型资格重建本轮可见僵尸卡池。 */
 void Board::BuildSurvivalSpawnList(int round)
 {
 	mSpawnZombieList.clear();
 	mSpawnZombieList.push_back(ZombieType::ZOMBIE_NORMAL);   // 普通：每轮必有，先固定放入
 
 	// 1) 收集本轮合格候选(排除普通)。旗数递减下调每种僵尸的"有效最早轮次"。
-	int flagsCompleted = round - 1;
-	int reduction = SurvivalCurveLerp(SURVIVAL_UNLOCK_REDUCE_START_FLAG,
-	                                  SURVIVAL_UNLOCK_REDUCE_END_FLAG,
-	                                  flagsCompleted, 0, SURVIVAL_UNLOCK_REDUCE_MAX);
 	std::vector<ZombieType> candidates;
 	for (int i = 0; i < static_cast<int>(ZombieType::NUM_ZOMBIE_TYPES); ++i)
 	{
-		ZombieType t = static_cast<ZombieType>(i);
+		const ZombieType t = static_cast<ZombieType>(i);
 		if (t == ZombieType::ZOMBIE_NORMAL) continue;
-		// 粉色橄榄球是黑夜专属变体；冒险关由 spawnlists.json 控制，这里按无尽背景隔离。
-		if (t == ZombieType::ZOMBIE_PINK_FOOTBALL
-			&& !GameAPP::GetInstance().GetBackgroundIsNight(mBackGround)) continue;
-		int base = GameDataManager::GetInstance().GetZombieSurvivalRound(t);
-		if (base < 1) continue;                              // 0 = 不进生存
-		if (GameDataManager::GetInstance().GetZombieWeight(t) <= 0) continue; // 伴舞等召唤单位不独立占池位
-		bool hasCompatibleRow = false;
-		for (int row = 0; row < mRows; ++row) {
-			if (!IsSpawnRowCompatible(t, row)) continue;
-			hasCompatibleRow = true;
-			break;
-		}
-		if (!hasCompatibleRow) continue; // 保留原版轮次值，但当前地形无合法行时不把类型抽进本局候选池
-		int eff = std::max(base - reduction, 1);
-		if (eff <= round) candidates.push_back(t);
+		if (CanZombieTypeEnterSurvivalPool(t, round)) candidates.push_back(t);
 	}
 
 	// 2) 第 1~2 轮：候选全放(确定性)→ 自然得到 {普通} / {普通,路障}
@@ -8360,6 +8346,36 @@ void Board::BuildSurvivalSpawnList(int round)
 		std::swap(candidates[k], candidates[j]);
 		mSpawnZombieList.push_back(candidates[k]);
 	}
+}
+
+/** 统一无尽僵尸卡池资格；直造、冒险出怪和其他召唤来源不受这里影响。 */
+bool Board::CanZombieTypeEnterSurvivalPool(ZombieType type, int round) const
+{
+	const int typeIndex = static_cast<int>(type);
+	if (!mIsSurvival || round < 1 || typeIndex < 0
+		|| typeIndex >= static_cast<int>(ZombieType::NUM_ZOMBIE_TYPES)) return false;
+	if (type == ZombieType::ZOMBIE_NORMAL) return true;
+	if (type == ZombieType::ZOMBIE_GILDED_ZAMBONI) return false;
+
+	// 粉色橄榄球是黑夜专属变体；冒险关仍只由 spawnlists.json 控制。
+	if (type == ZombieType::ZOMBIE_PINK_FOOTBALL
+		&& !GameAPP::GetInstance().GetBackgroundIsNight(mBackGround)) return false;
+	const auto& gameData = GameDataManager::GetInstance();
+	const int baseRound = gameData.GetZombieSurvivalRound(type);
+	if (baseRound < 1 || gameData.GetZombieWeight(type) <= 0) return false;
+
+	bool hasCompatibleRow = false;
+	for (int row = 0; row < mRows; ++row) {
+		if (!IsSpawnRowCompatible(type, row)) continue;
+		hasCompatibleRow = true;
+		break;
+	}
+	if (!hasCompatibleRow) return false;
+
+	const int flagsCompleted = round - 1;
+	const int reduction = SurvivalCurveLerp(SURVIVAL_UNLOCK_REDUCE_START_FLAG,
+		SURVIVAL_UNLOCK_REDUCE_END_FLAG, flagsCompleted, 0, SURVIVAL_UNLOCK_REDUCE_MAX);
+	return std::max(baseRound - reduction, 1) <= round;
 }
 
 void Board::UpdateSurvivalLevelName()

@@ -20,7 +20,7 @@ description: Use when adapting an existing PvZ reanim timeline to a new plant or
 - 附件选择稳定的语义父轨。只需与父件同缩放、旋转和位移的静态贴图使用命名 follower；只有需要独立播放头、clip 或帧事件时才使用子 Animator。不要挂到摆幅不相称的手、头或地面轨。
 - 当前 Animator 的 `SetTrackOffset` 是在轨道 transform 之后追加的未旋转平移，透明画布内的大额 padding 会在轨道缩放时放大轴心漂移。优先使用紧边界分件，或让附件偏移走父轨仿射变换；需要修改这个约定时先读 `Animator::Draw/DrawBuffered` 的两条路径。
 - 同一轨道可容纳多个命名 follower 槽，按插入顺序绘制。调用方必须使用稳定且唯一的槽名，只更新或移除自己的槽；不要用匿名覆盖，也不要为解决槽冲突把静态贴图升级成子 Animator。宿主若会在派生 `Setup` 之后继续配置 follower，专项要从完整出生入口验证同轨共存，而不能只直接调用派生配置函数。
-- 静态 follower 默认继承宿主 Animator 的 overlay 效果，装备会随减速、冻结等状态一起着色；黄油等必须保持原色的状态贴花在配置时显式传 `inheritOverlayEffect=false`。实例与 `-NoInstance` 两条路径都保持每个 follower 的 base 后紧跟 overlay，验收时把继承者与退出者放在同一对象上截图。
+- 静态 follower 默认继承宿主 Animator 的 overlay 效果，装备会随减速、冻结等状态一起着色；黄油等必须保持原色的状态贴花在配置时显式传 `inheritOverlayEffect=false`。所有渲染路径都应保持每个 follower 的 base 后紧跟 overlay，内容验收在默认路径把继承者与退出者放在同一对象上截图。
 - 换姿态贴图要对齐“手握点、颈根、茎秆插口、轮轴”等语义连接点，而不是对齐 Alpha 包围盒。倾斜或伸长的变体通常需要独立画布内偏移。
 - reanim 已经为原版换图编写的 X/Y/缩放补偿仍然生效。替换素材时先观察轨道关键帧，避免贴图内部再做一次相同补偿而产生二次跳动。
 
@@ -43,4 +43,4 @@ description: Use when adapting an existing PvZ reanim timeline to a new plant or
 1. 默认使用 `clang-release`，从 `build/clang-release/` 在主人当前桌面可见运行。
 2. 专项 AutoTest 先断言 reanim 与每张运行时换图纹理已加载，再用 `set_timescale` 慢放；在换图前、换图帧、连续缩放帧、循环接缝和最终淡出分别截图。
 3. 检查最终实机合成中的连接、握持、遮挡和轮廓，不以高分辨率母图或单张分件为验收。
-4. 默认实例路径与 `-NoInstance` 各跑相关用例；涉及层级或 follower 时，两条路径都要截图。运动对象不要断言不稳定的绝对 X/Y，优先用同状态相对投影和同步截图。
+4. 经典 reanim 适配本身只跑默认 `clang-release` 可见用例与同步截图，新角色、新分件或 follower 不机械加跑 `-NoInstance`/OpenGL。只有实际改到渲染后端、后端兼容路径或跨后端提交实现时，才补默认 Vulkan + `-NoInstance` + 强制 OpenGL 矩阵。运动对象不要断言不稳定的绝对 X/Y，优先用同状态相对投影和同步截图。

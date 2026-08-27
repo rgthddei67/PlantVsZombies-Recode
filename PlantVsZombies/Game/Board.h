@@ -644,6 +644,8 @@ public:
 	}
 
 	const std::vector<ZombieType>& GetSpawnZombieList() const { return mSpawnZombieList; }
+	/** 判断指定类型在当前无尽地形与轮次能否进入本轮僵尸候选池。 */
+	bool CanZombieTypeEnterSurvivalPool(ZombieType type, int round) const;
 
 	/** 当前雨势对僵尸 Animator extra 层的倍率。 */
 	float GetZombieRainSpeedMultiplier() const;

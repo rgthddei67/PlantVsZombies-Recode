@@ -1039,10 +1039,12 @@ bool TestDriver::ExecuteCurrent() {
 			Fail("set_typhoon: strength 必须是 NONE/TYPHOON/SEVERE/SUPER，direction 必须是 NONE/HOUSE/FRONT");
 			return false;
 		}
-		if (!gs->GetBoard()->SetTyphoonForTesting(strengthIt->second, directionIt->second,
+		const bool changed = gs->GetBoard()->SetTyphoonForTesting(strengthIt->second, directionIt->second,
 			cmd.value("gustIn", 30.0f), cmd.value("directionIn", 30.0f),
-			cmd.value("gustsRemaining", 1), cmd.value("decayIn", 30.0f))) {
-			Fail("set_typhoon: 只有大雨允许设置台风，且启用台风时必须提供 HOUSE/FRONT 风向");
+			cmd.value("gustsRemaining", 1), cmd.value("decayIn", 30.0f));
+		const bool expectedSuccess = cmd.value("expectedSuccess", true);
+		if (changed != expectedSuccess) {
+			Fail("set_typhoon: 实际结果与 expectedSuccess 不符；只有支持台风的大雨允许启用，且必须提供 HOUSE/FRONT 风向");
 			return false;
 		}
 		return true;
@@ -5059,6 +5061,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			{ "pressurePct", static_cast<int>(std::lround(weatherPressure * 100.0f)) },
 			{ "zombieSpeedPct", static_cast<int>(std::lround(zombieRain * 100.0f)) },
 			{ "typhoonStrength", TyphoonStrengthName(board->GetTyphoonStrength()) },
+			{ "typhoonSupported", board->SupportsTyphoon() },
 			{ "openingTyphoonProtectionActive", board->IsOpeningTyphoonProtectionActive() },
 			{ "typhoonChancePct", board->GetCurrentTyphoonChancePercent() },
 			{ "heavyPhasesWithoutTyphoon", board->GetHeavyPhasesWithoutTyphoon() },
@@ -5292,6 +5295,7 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	bool spawnListHasIceCrackDrill = false;
 	bool spawnListHasWeatherJammer = false;
 	bool spawnListHasIceStatueExecutioner = false;
+	bool spawnListHasGildedZamboni = false;
 	for (ZombieType t : board->GetSpawnZombieList()) {
 		out["spawnList"].push_back(ZombieTypeName(t));
 		spawnListHasBobsledTeam = spawnListHasBobsledTeam
@@ -5304,6 +5308,8 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			|| t == ZombieType::ZOMBIE_WEATHER_JAMMER;
 		spawnListHasIceStatueExecutioner = spawnListHasIceStatueExecutioner
 			|| t == ZombieType::ZOMBIE_ICE_STATUE_EXECUTIONER;
+		spawnListHasGildedZamboni = spawnListHasGildedZamboni
+			|| t == ZombieType::ZOMBIE_GILDED_ZAMBONI;
 	}
 	out["spawnTypeCount"] = static_cast<int>(board->GetSpawnZombieList().size());
 	out["spawnListHasBobsledTeam"] = spawnListHasBobsledTeam;
@@ -5311,6 +5317,11 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 	out["spawnListHasIceCrackDrill"] = spawnListHasIceCrackDrill;
 	out["spawnListHasWeatherJammer"] = spawnListHasWeatherJammer;
 	out["spawnListHasIceStatueExecutioner"] = spawnListHasIceStatueExecutioner;
+	out["spawnListHasGildedZamboni"] = spawnListHasGildedZamboni;
+	out["survivalPoolGildedZamboniEligible"] = board->CanZombieTypeEnterSurvivalPool(
+		ZombieType::ZOMBIE_GILDED_ZAMBONI, board->mSurvivalRound);
+	out["survivalPoolZamboniEligible"] = board->CanZombieTypeEnterSurvivalPool(
+		ZombieType::ZOMBIE_ZAMBONI, board->mSurvivalRound);
 
 	int charredZombieCount = 0;
 	int zamboniCharredCount = 0;

@@ -29,4 +29,6 @@ metadata:
 
 候选新增 `GetZombieWeight(t)>0` 过滤：`ZOMBIE_BACKUP_DANCER` 是舞王召唤单位且 weight=0，过去会占 Fisher-Yates 名额却永远无法被加权抽中，造成“池子计数有它、实际出怪没有它”的假多样性。普通仍必出，无放回抽样、旗数解锁递减、抽中权重调制、点数成本和预算均不动。
 
-AutoTest `dump_state.spawnTypeCount` + `smoke_survival_spawn_round.json` 固定 Seed42：round1/2 为1/2种，round3=4、round6=2、round13=8（上限）、round40=6（深轮负波动），每次 `spawnList[0]` 都是普通僵尸。构建与权限说明同 [project_pvz_perk_system](project_pvz_perk_system.md) 的 2026-07-18 段。
+2026-08-27 将轮次、权重、背景、合法出生行与明确品种排除收敛到 `CanZombieTypeEnterSurvivalPool()`。鎏金冰车是当前唯一额外禁入全部无尽候选池的非零权重类型；普通冰车及其他既有候选规则不变。排除影响 `BuildSurvivalSpawnList()` 与冻结 `spawnList` 的读档恢复，但不影响冒险出怪、直造、已存在实体的读档或其他显式召唤来源。
+
+AutoTest `dump_state.spawnTypeCount` + `smoke_survival_spawn_round.json` 固定 Seed42：round1/2 为1/2种，round3=4、round6=2、round13=5、round40=6（深轮负波动），每次 `spawnList[0]` 都是普通僵尸。round13 的确定性数量随无尽禁台风后不再消费台风 RNG 而更新，仍在设计的随机 ±1～2 范围内。2026-08-27 可见运行 27 条命令 exit 0、`status=passed`、`script finished OK`，同时断言鎏金冰车资格 false、普通冰车资格 true。构建与权限说明同 [project_pvz_perk_system](project_pvz_perk_system.md) 的 2026-07-18 段。

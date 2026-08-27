@@ -12,7 +12,7 @@ description: Use when adding ANY new plant (新增植物) to PvZ — 射手/生�
 - C# 参考实现是玩家可感知功能的证据：先提取状态、触发顺序、时长、数值、目标规则、音效和资源表现；未获主人批准时，这些行为必须与原版一致。
 - C# 不是本项目的架构模板。动手前逐项核对当前植物类型体系、Board/实体所有权、更新与 Animator 时序、占格/碰撞、绘制路径、资源键以及存读档入口，再接入现有最窄扩展点；禁止为了贴近 C# 类结构复制平行状态或旁路系统。
 - 玩法对象架构固定为继承式：新增植物继续选择 `Plant` / `Shooter` / `Shroom` 等最窄共同基类，并用窄虚接口表达品种差异；不得为植物能力恢复通用 `Component` 基类/类型表、把品种状态拆成任意组件组合，或为形式统一复制基类生命周期。空间数据由宿主 `CreateTransform()` 创建并通过 `GetTransform()` 访问。Collider、Shadow 与 Clickable 是宿主显式独占的具名附件：分别通过 `CreateCollider()` / `GetCollider()` / `RemoveCollider()`、`CreateShadow()` / `GetShadow()` / `RemoveShadow()`、`CreateClickable()` / `GetClickable()` / `RemoveClickable()` 管理，禁止恢复 `AddComponent/GetComponent/RemoveComponent<T>` 或缓存可独立失效的附件裸指针。三个类的 `Component` 后缀只是过渡命名，不代表组件系统。`CreateClickable()` 保证 Collider 已就绪；`RemoveCollider()` 会同步注销 Clickable，运行时替换 Collider 则保持 Clickable 注册有效。
-- 坐标和资源按下述当前项目契约换算。工程实现可以不同，但必须用 AutoTest 状态、音效请求、默认与 `-NoInstance` 截图证明功能等价；验证失败时先修适配，不能用“原版就是这样写的”合理化当前项目中的错误表现。
+- 坐标和资源按下述当前项目契约换算。工程实现可以不同，但必须用 AutoTest 状态、音效请求和默认可见截图证明功能等价；验证失败时先修适配，不能用“原版就是这样写的”合理化当前项目中的错误表现。
 
 ## 坐标换算铁律
 
@@ -23,8 +23,8 @@ description: Use when adding ANY new plant (新增植物) to PvZ — 射手/生�
 - 植物局部点位先换算到本项目以格子中心为 `GetPosition()` 的口径，再叠加当前 gamedata 视觉偏移；逻辑格位置与 `mVisualOffset` 永远分开。
 - 发射点、范围边界和附加 Animator 基点优先表达成“相对稳定视觉原点/父轨基准姿态”的差值，不把 C# 的世界坐标塞进局部偏移。
 - AutoTest 先执行同步 `screenshot`，再用 `animatedObjectsByTag.Plant` 的 `renderProbeReady/worldBounds/visualToRenderCenterD*Int/nearestPlant` 验证本项目最终绘制几何相对格子与植物 collider 的关系；每阶段只保留一株目标植物以稳定数组索引。
-- 修改 gamedata offset、附件、整株变换或 `SetRenderScale` 时，默认实例化与 `-NoInstance` 各跑同一静止用例并比较整数 `worldBounds`；截图负责肉眼基线，运动对象瞬时绝对 X/Y 只供诊断、不作稳定断言。
-- 战场主体按 `row N 植物 → row N 僵尸/扶梯 → row N+1 植物` 交错绘制；同排僵尸仍在植物之上，下一行植物遮挡上一行越界身体。植物运行期换行/搬格若改变 `mRow`，必须同步调用 `GameObjectManager` 的排序键刷新入口；小推车与子弹层不得顺带改动。专项同时断言语义 `renderLayer` 未变、实际 `renderOrder` 行带正确，并以默认/`-NoInstance` 屋顶跨行截图验收。
+- 修改 gamedata offset、附件、整株变换或 `SetRenderScale` 时，在默认实例路径跑同一静止用例并比较整数 `worldBounds`；截图负责肉眼基线，运动对象瞬时绝对 X/Y 只供诊断、不作稳定断言。
+- 战场主体按 `row N 植物 → row N 僵尸/扶梯 → row N+1 植物` 交错绘制；同排僵尸仍在植物之上，下一行植物遮挡上一行越界身体。植物运行期换行/搬格若改变 `mRow`，必须同步调用 `GameObjectManager` 的排序键刷新入口；小推车与子弹层不得顺带改动。专项同时断言语义 `renderLayer` 未变、实际 `renderOrder` 行带正确，并以默认屋顶跨行截图验收。
 
 ## 第 0 步：勘察（动手前全部做完）
 
@@ -178,6 +178,8 @@ description: Use when adding ANY new plant (新增植物) to PvZ — 射手/生�
 这类跨系统植物**不走"简短 spec 直实现"捷径**：回到完整 brainstorm（交互矩阵逐项问主人）→spec→必要时 writing-plans。
 
 ## 流程与模板
+
+验证矩阵按实际改动面分流：新植物、新 reanim、新附件、新粒子或普通资源本身只要求默认 `clang-release` 可见专项与相关资源/截图断言，不机械加跑 `-NoInstance` 或 OpenGL。只有实际改到渲染后端、后端兼容路径或跨后端提交实现时，才补默认 Vulkan + `-NoInstance` + 强制 OpenGL 回归。本条覆盖本 skill 前文各专项沿用的旧“默认双路径截图”表述：未改渲染后端时，那些专项只跑默认路径。
 
 纯植物侧的小套路：brainstorm 问清关键项→简短 spec 存 `docs/superpowers/specs/`→直接实现（不必单独 writing-plans）。模板：`2026-07-08-scaredyshroom-design.md`。完成并验证后由 Codex 提交，再按仓库风险、工作区状态和上游是否明确决定是否常规 push。
 

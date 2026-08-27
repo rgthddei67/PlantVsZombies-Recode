@@ -7,6 +7,10 @@ metadata:
   originSessionId: 69e31e04-74c3-4128-8db4-89c425da06e5
 ---
 
+## 2026-08-27 验证矩阵分流定案
+
+主人定案：新增或修改植物、僵尸、粒子、出怪池、数值、逻辑或普通资源时，默认只跑 `clang-release` 的当前桌面可见用例，并按实际影响覆盖状态、资源键、存档和同步截图。“是新内容”本身不是加跑 `-NoInstance` 或强制 OpenGL 的理由。只有实际改动渲染后端、后端兼容路径或跨后端提交实现时，才在默认 Vulkan 之外加跑 `-NoInstance` 与强制 OpenGL 兼容回归。该口径以当前 `PROJECT_GUIDE.md` 和相关 skill 为权威，本文下方的旧路径与历史双路径结论只作当时记录。
+
 AutoTest 套件（Claude 自动跑游戏/截图/验证视觉）**已完成**：2026-06-12 两会话做 Task 1-4，2026-06-13 会话完成 Task 5-7 + 最终审查。范围 `7af303c..41f8c5c` 共 16 commits，全在 master（未 push，push 由主人决定）。
 
 **Why:** 主人要求的自动化开发套件；从此 Claude 可独立完成「改代码→msbuild→`-AutoTest` 跑脚本→Read 截图/state.json 验证」闭环。
