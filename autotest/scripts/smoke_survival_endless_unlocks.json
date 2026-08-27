@@ -1,0 +1,42 @@
+{
+  "name": "smoke_survival_endless_unlocks",
+  "commands": [
+    { "op": "wait_frames", "value": 30 },
+    { "op": "set_adventure_level", "level": 9 },
+    { "op": "click", "x": 680, "y": 350 },
+    { "op": "wait_frames", "value": 30 },
+    { "op": "assert_state", "path": "gameSelectMode", "equals": "SURVIVAL" },
+    { "op": "assert_state", "path": "gameSelectAvailableLevels", "equals": [] },
+    { "op": "assert_state", "path": "gameSelectCreatedCardCount", "equals": 0 },
+    { "op": "assert_state", "path": "gameSelectSurvivalUnlockAreas", "equals": [1, 2, 3, 4, 5, 6, 7] },
+    { "op": "screenshot", "name": "01_area_one_not_finished.png" },
+
+    { "op": "click", "x": 87, "y": 573 },
+    { "op": "wait_frames", "value": 30 },
+    { "op": "set_adventure_level", "level": 10 },
+    { "op": "click", "x": 680, "y": 350 },
+    { "op": "wait_frames", "value": 30 },
+    { "op": "assert_state", "path": "gameSelectAvailableLevels", "equals": [1000] },
+    { "op": "assert_state", "path": "gameSelectCreatedCardCount", "equals": 1 },
+    { "op": "screenshot", "name": "02_area_one_finished.png" },
+
+    { "op": "click", "x": 87, "y": 573 },
+    { "op": "wait_frames", "value": 30 },
+    { "op": "set_adventure_level", "level": 58 },
+    { "op": "click", "x": 680, "y": 350 },
+    { "op": "wait_frames", "value": 30 },
+    { "op": "assert_state", "path": "gameSelectAvailableLevels", "equals": [1000, 1001, 1002, 1003, 1004, 1005] },
+    { "op": "assert_state", "path": "gameSelectCreatedCardCount", "equals": 6 },
+    { "op": "screenshot", "name": "03_current_7_4_hides_winter.png" },
+
+    { "op": "click", "x": 87, "y": 573 },
+    { "op": "wait_frames", "value": 30 },
+    { "op": "set_adventure_level", "level": 64 },
+    { "op": "click", "x": 680, "y": 350 },
+    { "op": "wait_frames", "value": 30 },
+    { "op": "assert_state", "path": "gameSelectAvailableLevels", "equals": [1000, 1001, 1002, 1003, 1004, 1005, 1006] },
+    { "op": "assert_state", "path": "gameSelectCreatedCardCount", "equals": 7 },
+    { "op": "screenshot", "name": "04_all_areas_finished.png" },
+    { "op": "quit" }
+  ]
+}

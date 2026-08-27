@@ -139,7 +139,7 @@
 - [僵尸血量文字thrash→HUD字形图集 ✅完成](project_pvz_zombie_hp_text_thrash.md) — 2026-07-02主人真机验证尖峰消失(已push,feature已删);GlyphAtlas单行白字形+DrawGlyphRun逐字形quad;**关键bug=BeginParallelRecord预留固定4MB被字形×13撑爆→vbo翻倍2GB(b8ab956比例化max(8MB,remain/4))**;+字形基线double-count修(BuildGlyphAtlas按真实墨迹框裁紧致);坑=overflow warning在stdout非run.log
 - [host-visible缓冲grow-on-demand ✅已push](project_pvz_host_visible_buffer_grow_on_demand.md) — 2026-06-26(17c3a1d)修启动890MB:三持久映射逐帧缓冲×2帧=448MB常驻(纹理仅54MB);改grow启动56MB,891→476MB;坑=安全增长点唯一/先建后换防OOM;+code-review修4缺陷(按缓冲独立翻倍/EndFrame一步扩容/空闲回收/OOM sticky)
 - [生存刷怪轮次表+随机子集池](project_pvz_survival_spawn_round_table.md) — 2026-07-18 在原数据化轮次表上新增最终最多8种(含普通)+基础数量随机±1~2；排除weight<=0召唤单位避免占池位；固定Seed验第3/6/13/40轮为4/2/8/6种；**weight仍一物两用，抽中调制与点数成本严禁混用**
-- [GameSelectScene 冒险分页选关+七地形无尽](project_pvz_gameselect_scene_night_endless.md) — 2026-08-27 冒险入口按 `AdventureProgression` 与当前进度自动生成，每页6×3、锁定关不创建、通关关左上画奖杯；无专属缩略图的场景统一裁正式背景。生存由集中定义表自动生成白天、黑夜、泳池、黑夜泳池、昼夜屋顶和雪原 7 种无尽，永不标通关；各背景自动取得雾、径流、雷荷或冬季机制
+- [GameSelectScene 冒险分页选关+七地形无尽](project_pvz_gameselect_scene_night_endless.md) — 2026-08-27 冒险入口按 `AdventureProgression` 与当前进度自动生成，每页6×3、锁定关不创建、通关关左上画奖杯，并默认定位当前可挑战关所在页；无专属缩略图的场景统一裁正式背景。生存由集中定义表自动生成七种无尽，分别要求完成对应第1～7大关，未解锁入口不创建且永不标通关；各背景自动取得雾、径流、雷荷或冬季机制
 - [大喷菇攻击补全+护盾穿透 ✅已push](project_pvz_fumeshroom_attack.md) — 2026-06-24(e443375)FumeAttack第27帧对本行[0,380]锥形20伤害;**Zombie::TakeDamage加penetrateShield还原穿透二类护盾(铁门/报纸不穿头盔)**;仅FastPaper/FastBucket透传;Gloom升级可复用
 - [僵尸分层受击闪烁](project_pvz_zombie_damage_flash.md) — 2026-08-03 本体/头盔/飞行额外生命与二类护盾按实际扣血独立闪白；方向背击与弹丸主动绕盾统一由 `TakeProjectileDamage` 路由，目标可否决主动绕盾；Animator 轨道覆盖的实例化与 NoInstance 路径已有可见专项基线
 - [小阳光/SunShroom/存档审查](project_pvz_smallsun_sunshroom_review.md) — 2026-06-23(53657f2..133a9f1)无严重bug;真实发现都是cleanup/注释/极小边界(SunShroom.h缺guard等)

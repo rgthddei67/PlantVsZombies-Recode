@@ -2,6 +2,7 @@
   "name": "gameselect_smoke",
   "commands": [
     { "op": "wait_frames", "value": 60 },
+    { "op": "set_adventure_level", "level": 64 },
     { "op": "click", "x": 680, "y": 350 },
     { "op": "wait_frames", "value": 60 },
     { "op": "assert_state", "path": "gameSelectMode", "equals": "SURVIVAL" },

@@ -3915,6 +3915,11 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		}
 		out["gameSelectTrophyTextureLoaded"] = ResourceManager::GetInstance().GetTexture(
 			ResourceKeys::Textures::IMAGE_MINIGAME_TROPHY, false) != nullptr;
+		out["gameSelectSurvivalUnlockAreas"] = nlohmann::json::array();
+		for (const auto& definition : SURVIVAL_ENDLESS_DEFINITIONS) {
+			out["gameSelectSurvivalUnlockAreas"].push_back(
+				definition.requiredAdventureArea);
+		}
 
 		auto exportPageButton = [](const std::shared_ptr<Button>& button) {
 			nlohmann::json state = nullptr;

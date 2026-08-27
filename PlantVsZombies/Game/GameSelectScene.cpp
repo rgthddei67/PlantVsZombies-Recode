@@ -243,7 +243,11 @@ void GameSelectScene::BuildAvailableLevels()
 
 	mAvailableLevels.reserve(SURVIVAL_ENDLESS_DEFINITIONS.size());
 	for (const auto& definition : SURVIVAL_ENDLESS_DEFINITIONS) {
-		mAvailableLevels.push_back(definition.level);
+		if (AdventureProgression::HasCompletedArea(
+			GameAPP::GetInstance().mAdventureLevel,
+			definition.requiredAdventureArea)) {
+			mAvailableLevels.push_back(definition.level);
+		}
 	}
 }
 
@@ -362,6 +366,11 @@ void GameSelectScene::OnEnter()
 	mPendingEnterLevel = -1;
 	mReadyToSwitchMainMenu = false;
 	BuildAvailableLevels();
+	if (mSelectMode == SelectMode::ADVENTURE && !mAvailableLevels.empty()) {
+		// 冒险入口默认展示当前可挑战关所在页；全部通关后自然停在最后一页。
+		mCurrentPage = static_cast<int>((mAvailableLevels.size() - 1)
+			/ SELECT_ENTRIES_PER_PAGE);
+	}
 	Scene::OnEnter();
 	AudioSystem::PlayMusic(ResourceKeys::Music::MUSIC_CHOOSEYOURSEEDS, -1);
 }

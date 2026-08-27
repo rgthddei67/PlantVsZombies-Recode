@@ -34,7 +34,7 @@
 
 暂停时天气过渡和阶段计时冻结；倍速时按游戏时间等比推进。天气 UI 的滑入、5 秒当前天气牌和失败提示另用未缩放时间。
 
-无尽模式由 `Board.h` 的 `SURVIVAL_ENDLESS_DEFINITIONS` 集中登记关卡号、背景和显示名，当前包含白天、黑夜、泳池、黑夜泳池、白天屋顶、黑夜屋顶和雪原七种。`GameAPP::GetBackgroundID()`、生存选关入口、`mIsSurvival` 与通用雨势资格都消费这张表；新增地形不能再在四处追加平行 `level == ...` 分支。迷雾、径流、夜屋顶雷荷和冬日温度仍按实际 `Background` 自动取得资格，关卡号只区分无尽存档与显示名。
+无尽模式由 `Board.h` 的 `SURVIVAL_ENDLESS_DEFINITIONS` 集中登记关卡号、背景、显示名和解锁大关，当前包含白天、黑夜、泳池、黑夜泳池、白天屋顶、黑夜屋顶和雪原七种。`GameAPP::GetBackgroundID()`、生存选关入口、`mIsSurvival` 与通用雨势资格都消费这张表；选关页仅在 `AdventureProgression::HasCompletedArea(mAdventureLevel, requiredAdventureArea)` 成立时创建入口。新增地形不能再在多处追加平行 `level == ...` 或解锁判断。迷雾、径流、夜屋顶雷荷和冬日温度仍按实际 `Background` 自动取得资格，关卡号只区分无尽存档与显示名。
 
 提前 5 游戏秒的大雨分级文字警报只由玩家可见的公开预报驱动：公开预报为 `HEAVY` 就显示，
 否则即使真实下一天气为大雨也隐藏，弹窗有无不得成为判断预报真假的旁路。公开误报大雨时也须

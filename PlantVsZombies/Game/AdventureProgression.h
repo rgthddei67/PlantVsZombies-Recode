@@ -118,6 +118,20 @@ namespace AdventureProgression
 		return level > 0 ? (level - 1) % LEVELS_PER_AREA + 1 : 0;
 	}
 
+	/** 返回指定大关的最终内部关卡号；无效大关返回 0。 */
+	constexpr int GetFinalLevelForArea(int area)
+	{
+		return area >= 1 && area <= ADVENTURE_AREA_COUNT
+			? area * LEVELS_PER_AREA : 0;
+	}
+
+	/** 当前进度严格越过大关最终关时，判定该大关已经全部通关。 */
+	constexpr bool HasCompletedArea(int adventureLevel, int area)
+	{
+		const int finalLevel = GetFinalLevelForArea(area);
+		return finalLevel > 0 && adventureLevel > finalLevel;
+	}
+
 	/** 判断关卡号是否属于当前七大关冒险流程。 */
 	constexpr bool IsAdventureLevel(int level)
 	{
@@ -183,6 +197,8 @@ namespace AdventureProgression
 	static_assert(GetPlantReward(53) == PlantType::PLANT_IMITATER);
 	static_assert(GetAreaNumber(18) == 2 && GetLevelNumberInArea(18) == 9);
 	static_assert(GetAreaNumber(19) == 3 && GetLevelNumberInArea(19) == 1);
+	static_assert(!HasCompletedArea(9, 1) && HasCompletedArea(10, 1));
+	static_assert(!HasCompletedArea(63, 7) && HasCompletedArea(64, 7));
 	static_assert(IsBossLevel(AREA_FIVE_BOSS_LEVEL));
 	static_assert(GetBossSlot(AREA_FIVE_BOSS_LEVEL) == BossSlot::ROOF_MARSHAL);
 	static_assert(GetBossSlot(44) == BossSlot::NONE);

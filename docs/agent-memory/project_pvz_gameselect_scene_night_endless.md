@@ -44,7 +44,8 @@ metadata:
   生命周期，但各自生成独立入口。
 - 冒险入口只生成内部关卡 `1..min(mAdventureLevel, AdventureProgression::LAST_ADVENTURE_LEVEL)`；
   页数按每页 6×3 自动计算，显示名统一走 `GetAreaNumber` / `GetLevelNumberInArea`，没有在 UI
-  写死 63 或七大关。进度 58（7-4）时总计只创建 58 个入口，末页为 55..58，不存在 59（7-5）。
+  写死 63 或七大关。初始页按实际生成入口的最后一项计算，因此进度 58（7-4）进入时直接打开
+  第 4 页、显示 55..58，不存在 59（7-5）；全部通关后自然定位最后一页。
 - 上一页箭头固定在左下 `(180,535)`、下一页固定在右下 `(1015,535)`，均为 60×60；返回菜单
   仍位于 `(7,560)` 的 162×26 范围，因此上一页与返回按钮不重叠。页按钮回调只登记 delta，
   `Update` 离开 `ButtonManager` 遍历后才销毁旧页并仅创建新页卡片。
@@ -54,16 +55,17 @@ metadata:
 - 冒险关仅当 `level < mAdventureLevel` 时在卡框左上按经典偏移绘制
   `IMAGE_MINIGAME_TROPHY`；当前待挑战关不标记，生存无尽模式永不标记。资源文件原已在
   `resources.xml` 注册，本次补齐强类型 `ResourceKeys` 键与 AutoTest 加载断言。
-- `smoke_adventure_game_select.json` 通过真实主菜单入口、三次翻页和当前页关卡点击，覆盖入口总数、
-  页边界、按钮位置/朝向、通关标记、四类页面截图及进入 7-4；`clang-release` 默认 Vulkan 与
-  `-NoInstance` 可见路径均为 61 条命令、exit 0、`status=passed`、`script finished OK`。连续点击
+- `smoke_adventure_game_select.json` 通过真实主菜单入口、初始第 4 页、三次向前和三次向后翻页、
+  当前页关卡点击，覆盖入口总数、页边界、按钮位置/朝向、通关标记、四类页面截图及进入 7-4；
+  `clang-release` 默认 Vulkan 与 `-NoInstance` 可见路径均为 71 条命令、exit 0、`status=passed`、
+  `script finished OK`。连续点击
   固定位置的翻页按钮前先把合成鼠标移出并等待两帧，避免渲染负载差异造成测试输入边沿偶发丢失。
   `gameselect_smoke.json` 回归确认生存关完成标记均为 false，并继续进入泳池无尽；
   三项 CTest 全部通过，最终 Release 编译零警告且 Win7 导入审计为 378 项。
 
 ## 2026-08-27 七种无尽地形
 
-- `Board.h` 用 `SURVIVAL_ENDLESS_DEFINITIONS` 集中登记无尽关卡号、背景和显示名；现有 1000～1002
+- `Board.h` 用 `SURVIVAL_ENDLESS_DEFINITIONS` 集中登记无尽关卡号、背景、显示名和解锁大关；现有 1000～1002
   之外新增 1003 黑夜泳池、1004 白天屋顶、1005 黑夜屋顶和 1006 雪原。`GameAPP` 背景映射、
   `Board::mIsSurvival`、关卡名与生存选关页均消费同一张表，后续加模式不再同步维护多份名单。
 - 四张新卡继续复用冒险选关的预览策略：没有专用缩略图时从对应正式背景固定位置裁剪。生存页当前
@@ -76,5 +78,16 @@ metadata:
   `spawnlists.json` 决定，不影响雪原白天冒险配置的粉色橄榄球。
 - `smoke_survival_endless_terrains.json` 从生存页真实点击 1003，再切换 1004～1006，锁定各关显示名、
   背景、行数、水路、天气、雾、径流、雷荷和冬季资格；`clang-release` 默认 Vulkan 与 `-NoInstance`
-  可见运行均执行 54 条命令、exit 0、`status=passed`、`script finished OK`，五张截图已目验。
+  可见运行均执行 55 条命令、exit 0、`status=passed`、`script finished OK`，五张截图已目验。
   更新后的 `gameselect_smoke` 与 `smoke_adventure_game_select` 同源回归也通过。
+
+## 2026-08-27 无尽解锁门槛
+
+- 每种无尽只在对应大关全部通关后创建：白天/黑夜/泳池/黑夜泳池/白天屋顶/黑夜屋顶/雪原
+  分别要求完成第 1～7 大关。统一判断为
+  `AdventureProgression::HasCompletedArea(mAdventureLevel, requiredAdventureArea)`，即进度必须严格
+  越过该大关第 9 关；停在 1-9 或 7-9 本身时仍不算打完，领取奖杯推进到下一关后才解锁。
+- `smoke_survival_endless_unlocks.json` 锁定四个边界：进度 9 无入口、进度 10 仅白天无尽、进度
+  58（7-4）显示前六种且不创建雪原、进度 64 显示全部七种。`clang-release` 默认 Vulkan 与
+  `-NoInstance` 可见路径均为 34 条命令、exit 0、`status=passed`、`script finished OK`；四张
+  截图目验与状态一致。更新后的 `gameselect_smoke` 为 26 条命令，地形专项为 55 条命令，均通过。
