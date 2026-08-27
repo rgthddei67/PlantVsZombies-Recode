@@ -3,8 +3,8 @@
 #include "../Board.h"
 
 namespace {
-	constexpr int kSnowAnchorNutHealth = 3000; // 雪锚果基础生命值；低于普通坚果，价值集中在一次锚定
-	constexpr float kGroundCrackDownstreamMultiplier = 1.0f / 3.0f; // 拦住地裂后左侧植物承受的伤害倍率
+	constexpr int kSnowAnchorNutHealth = 3000; // 雪锚果基础生命值；存活期间可持续承担冻土冲击
+	constexpr float kGroundCrackDownstreamMultiplier = 1.0f / 3.0f; // 拦住地裂后左侧植物承受的伤害倍率上限
 }
 
 void SnowAnchorNut::SetupPlant()
@@ -29,7 +29,7 @@ void SnowAnchorNut::PlantUpdate()
 
 bool SnowAnchorNut::IsWinterGroundAnchorReady() const
 {
-	return IsActive() && !IsSquished() && !mBraceSpent && mBoard
+	return IsActive() && !IsSquished() && mPlantHealth > 0 && mBoard
 		&& mBoard->IsCellFrozen(mRow, mColumn);
 }
 
@@ -38,33 +38,15 @@ WinterGroundImpactResponse SnowAnchorNut::ResolveWinterGroundImpact(
 {
 	if (!IsWinterGroundAnchorReady()) return {};
 
-	mBraceSpent = true;
-	mLastBraceReady = false;
-	RefreshBracePresentation();
-
 	WinterGroundImpactResponse response;
 	response.intercepted = true;
 	if (kind == WinterGroundImpactKind::COLLISION) {
 		response.containsScatter = true;
 	}
 	else {
-		response.downstreamDamageMultiplier = kGroundCrackDownstreamMultiplier;
+		response.downstreamDamageMultiplierCap = kGroundCrackDownstreamMultiplier;
 	}
 	return response;
-}
-
-void SnowAnchorNut::SaveExtraData(nlohmann::json& j) const
-{
-	WallNut::SaveExtraData(j);
-	j["winterBraceSpent"] = mBraceSpent;
-}
-
-void SnowAnchorNut::LoadExtraData(const nlohmann::json& j)
-{
-	mBraceSpent = j.value("winterBraceSpent", false);
-	mLastBraceReady = IsWinterGroundAnchorReady();
-	InvalidateDamageTexture();
-	WallNut::LoadExtraData(j);
 }
 
 const std::string& SnowAnchorNut::GetBodyTextureKey() const

@@ -64,7 +64,7 @@ enum class PlantType
 	PLANT_TOXICPEASHOOTER,	// 毒囊射手；继续追加在末尾以保持旧存档植物整数 ID
 	PLANT_GROUNDINGSHROOM,	// 接地菇；5-9 奖励，追加在末尾以保持旧存档植物整数 ID
 	PLANT_LIGHTNINGRODPOT,	// 避雷花盆；6-4 奖励，花盆承载层紫卡升级
-	PLANT_SNOWANCHORNUT,	// 雪锚果；7-1 奖励，在真实冻土中提供一次冬季冲击整形
+	PLANT_SNOWANCHORNUT,	// 雪锚果；7-1 奖励，存活且位于真实冻土时持续整形冬季冲击
 	PLANT_MELTSNOWPULT,	// 融雪投手；7-2 奖励，准确寒潮预报装填三发盐晶弹
 	PLANT_FROSTMINE,	// 伏霜雷；7-4 奖励，预报校准并在实际冻土中埋伏地面目标
 	PLANT_ALARMBELLFLOWER,	// 警铃草；7-6 奖励，中断本行最接近提交的一项特殊动作

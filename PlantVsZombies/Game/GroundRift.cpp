@@ -87,9 +87,10 @@ void GroundRift::ResolveColumn(int column)
 			WinterGroundImpactKind::GROUND_CRACK, damage, DamageSource::ZOMBIE);
 	// 雪锚等拦截只改变后续左侧格；当前格四层共享命中前的同一伤害倍率。
 	if (response.intercepted) {
-		mDownstreamDamageMultiplier = std::clamp(
-			mDownstreamDamageMultiplier * response.downstreamDamageMultiplier,
-			0.0f, 1.0f);
+		// 多个锚点只把地裂压到最强的单次减伤，不按数量指数叠乘。
+		mDownstreamDamageMultiplier = std::min(
+			mDownstreamDamageMultiplier,
+			std::clamp(response.downstreamDamageMultiplierCap, 0.0f, 1.0f));
 	}
 
 	if (g_particleSystem) {

@@ -1457,7 +1457,7 @@ bool TestDriver::ExecuteCurrent() {
 		const WinterGroundImpactResponse response =
 			plant->ResolveWinterGroundImpact(kind);
 		const int multiplierOn1000 = static_cast<int>(std::lround(
-			response.downstreamDamageMultiplier * 1000.0f));
+			response.downstreamDamageMultiplierCap * 1000.0f));
 		if (response.intercepted != cmd.value("expectedIntercepted", true)
 			|| response.containsScatter != cmd.value("expectedContainsScatter", false)
 			|| multiplierOn1000 != cmd.value("expectedDownstreamMultiplierOn1000", 1000)) {

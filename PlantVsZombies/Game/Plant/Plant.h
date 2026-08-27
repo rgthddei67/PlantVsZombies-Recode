@@ -42,7 +42,7 @@ enum class WinterGroundImpactKind {
 struct WinterGroundImpactResponse {
 	bool intercepted = false;
 	bool containsScatter = false;
-	float downstreamDamageMultiplier = 1.0f;
+	float downstreamDamageMultiplierCap = 1.0f;
 };
 
 class Plant : public AnimatedObject {
@@ -135,12 +135,12 @@ public:
 	 * showFeedback 在同一阵风首次撞击时为 true，供品种合并同帧音画而不合并逐格伤害。
 	 */
 	virtual void OnTyphoonPlantImpact(bool showFeedback) {}
-	/** 当前是否能消费一次冬季地面冲击；默认植物不具备锚定能力。 */
+	/** 当前是否能响应冬季地面冲击；默认植物不具备锚定能力。 */
 	virtual bool IsWinterGroundAnchorReady() const { return false; }
-	/** 是否已经消费本实体唯一的冬季锚定次数；无此能力的植物保持 false。 */
+	/** 是否已耗尽冬季锚定能力；可重复锚定或无此能力的植物保持 false。 */
 	virtual bool HasSpentWinterGroundAnchor() const { return false; }
 	/**
-	 * 原子消费一次冬季地面冲击并返回传播/散射语义。
+	 * 原子解析一次冬季地面冲击并返回传播/散射语义。
 	 * 调用方继续拥有自身伤害、动作提交、音画和乘员落点。
 	 */
 	virtual WinterGroundImpactResponse ResolveWinterGroundImpact(

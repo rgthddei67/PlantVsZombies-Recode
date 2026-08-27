@@ -309,7 +309,7 @@ void BobsledTeamZombie::StartEat(ColliderComponent* other)
 		plantBounds.y + plantBounds.h * 0.5f);
 	const float landingBaseX = plantBounds.x + plantBounds.w + kLandingFrontGap;
 
-	// 锚定消费必须先于重伤；即便伤害随后击杀植物，本次约束结果也不会回滚或改落点。
+	// 锚定响应必须先于重伤；即便伤害随后击杀植物，本次约束结果也不会回滚或改落点。
 	const WinterGroundImpactResponse response = plant->ResolveWinterGroundImpact(
 		WinterGroundImpactKind::COLLISION);
 	if (g_particleSystem) {

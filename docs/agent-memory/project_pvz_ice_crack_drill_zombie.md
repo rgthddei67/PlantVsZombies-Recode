@@ -27,7 +27,7 @@ metadata:
 
 蓄力提交后由 Board 创建独立 `GroundRift`，来源僵尸死亡、魅惑或回暖都不回滚。地裂以 180px/游戏秒向房屋传播，跨大步长仍按列从右到左各结算一次；Board 的 `ForEachActivePlantInCell` 统一按 `overlay/pumpkin/normal/under` 快照并重新解析活动实体，`ApplyWinterGroundImpactToCell` 在同一入口之上先选定拦截响应、再逐层伤害。咖啡豆、南瓜、普通植物和花盆/睡莲均各自承受当前倍率下的 110 点僵尸来源伤害，并发射裂缝粒子；咖啡豆只对 `GROUND_CRACK` 走正式承伤，其他普通地面伤害免疫不变。
 
-雪锚果以 `WinterGroundImpactKind::GROUND_CRACK` 原子响应：当前格全部植物层仍承受当前完整 110 伤害，结算完该格后才把后续倍率乘 1/3，左侧各层植物在逐格结算入口统一四舍五入后承受 37。`GameObjectManager` 强持有地裂，Board 只持弱引用；关卡快照保存行、连续前沿 X、下一待结算列和后续倍率，读档不重播提交音效或首段粒子。Save Schema v4 为旧关卡档补每波预算 0 与空地裂数组。
+雪锚果以 `WinterGroundImpactKind::GROUND_CRACK` 原子响应：存活且锚定期间每次都让当前格全部植物层承受当前完整伤害，结算完该格后才把后续倍率限制到最多 1/3，左侧各层植物在逐格结算入口统一四舍五入后承受 37。同一道地裂经过第二株雪锚果仍保持 1/3，不叠乘成 1/9。`GameObjectManager` 强持有地裂，Board 只持弱引用；关卡快照保存行、连续前沿 X、下一待结算列和后续倍率，读档不重播提交音效或首段粒子。Save Schema v4 为旧关卡档补每波预算 0 与空地裂数组。
 
 2026-08-25 整格伤害修正按主人要求不运行 AutoTest，只完成源码审计与 `clang-debug`/`clang-release` 编译；四层实际受击表现由主人实机验收。
 
@@ -38,6 +38,12 @@ metadata:
 `clang-release` 完整配置与全量 LTO 构建通过，主程序 Win7 导入审计通过 378 项；`SaveSchemaTests` 与 `SaveMigrationTests` 均通过。`smoke_ice_crack_drill.json` 扩至 134 条命令，在当前桌面可见的默认 Vulkan 和 `-NoInstance` 路径均执行至 `commandIndex=133`、exit 0、`status=passed`，实测自然蓄力剩余时长落在 4700～5000ms、普通格单层 `4000→3890`、雪锚所在格 `3000→2890`、后续格倍率投影 33% 且单层 `4000→3963`；波次断言同步当前每波限三合同。两路径各六张截图目验巡逻、蓄力、地裂、三档破损、钻机销毁无残影和图鉴 5 秒/110/三分之一文案。
 
 `smoke_snow_anchor_nut.json` 在默认 Vulkan 与 `-NoInstance` 可见路径均执行至 `commandIndex=81` 并通过，覆盖 1/3 响应投影、原子消费、破损/解冻、快照和 7-1 奖励；两路径各五张截图正常。`smoke_alarm_bell_flower.json` 两路径均执行至 `commandIndex=119` 并通过，分别断言完整重置后的 4900～5000ms 与另一候选的 1900～2000ms，确认最短剩余选择和只中断未提交动作仍成立；两路径各四张截图正常。
+
+## 2026-08-27 雪锚果持续承压调整
+
+根据玩家反馈，雪锚果撤销一生一次的 `braceSpent`：活动、生命大于 0 且脚下冻结时可反复响应雪橇碰撞与冻土地裂，致死当前冲击仍先取得响应；旧档中的 `winterBraceSpent` 不再读取，新快照也不再写入。地裂组合从连续乘法改为取当前倍率与响应倍率的较小值，确保多株雪锚果只维持 1/3，不叠成 1/9 或更低。
+
+本次 `clang-release` 全量 LTO 构建及 378 项 Win7 导入审计通过，`SaveSchemaTests`、`SaveMigrationTests` 均通过。`smoke_snow_anchor_nut.json`、`smoke_ice_crack_drill.json`、`smoke_bobsled_team.json` 在当前桌面默认 Vulkan 与 `-NoInstance` 六条可见路径全部 `exit 0`、`status=passed`、`script finished OK`，分别执行至 command 93、139、191。状态闭环确认雪锚果连续承受三次 1200 碰撞时前两次仍保持 ready、第三次当前撞击仍响应后死亡；同一道实际地裂经过两株冻结雪锚果时两株分别承受 110 与 37，后续坚果仍承受 37，倍率始终为 33%。两条绘制路径共 19×2 张同步截图逐张目验无异常。
 
 ## 2026-08-25 验证
 
