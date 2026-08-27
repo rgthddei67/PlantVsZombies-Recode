@@ -5,9 +5,8 @@
 layout(set = 1, binding = 1) uniform sampler2D textures[];
 
 layout(location = 0) in vec2      vUV;
-layout(location = 1) in vec4      vColor;
+layout(location = 1) flat in vec4 vColor;
 layout(location = 2) flat in uint vTex;
-layout(location = 3) flat in uvec2 vPackedClip;
 
 layout(location = 0) out vec4 outColor;
 
@@ -34,16 +33,6 @@ vec3 applyLumSat(vec3 rgb, float lumScale, float satScale) {
 }
 
 void main() {
-    if ((vPackedClip.x | ~vPackedClip.y) != 0u) {
-        uvec2 clipMin = uvec2(vPackedClip.x & 0xFFFFu, vPackedClip.x >> 16);
-        uvec2 clipMax = uvec2(vPackedClip.y & 0xFFFFu, vPackedClip.y >> 16);
-        vec2 frag = gl_FragCoord.xy;
-        if (any(lessThan(frag, vec2(clipMin))) ||
-            any(greaterThanEqual(frag, vec2(clipMax)))) {
-            discard;
-        }
-    }
-
     vec4 sampled = texture(textures[nonuniformEXT(vTex)], vUV);
     if (sampled.a <= 0.0) {
         outColor = vec4(0.0);

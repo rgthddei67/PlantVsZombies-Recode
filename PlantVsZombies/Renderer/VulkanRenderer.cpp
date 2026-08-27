@@ -79,6 +79,21 @@ namespace pvz {
 
 	bool VulkanRenderer::Initialize(VulkanContext* ctx) {
 		mCtx = ctx;
+		if (g_ProfileEnabled) {
+			VkPhysicalDeviceProperties properties{};
+			vkGetPhysicalDeviceProperties(ctx->PhysicalDevice(), &properties);
+			mTimestampPeriodNs = properties.limits.timestampPeriod;
+
+			uint32_t queueFamilyCount = 0;
+			vkGetPhysicalDeviceQueueFamilyProperties(
+				ctx->PhysicalDevice(), &queueFamilyCount, nullptr);
+			std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+			vkGetPhysicalDeviceQueueFamilyProperties(
+				ctx->PhysicalDevice(), &queueFamilyCount, queueFamilies.data());
+			if (ctx->GraphicsQueueFamily() < queueFamilies.size()) {
+				mTimestampValidBits = queueFamilies[ctx->GraphicsQueueFamily()].timestampValidBits;
+			}
+		}
 		return CreateFrameResources();
 	}
 
@@ -101,6 +116,22 @@ namespace pvz {
 
 			pf.imageAvailable = MakeSemaphore(dev);
 			pf.inFlight = MakeFenceSignaled(dev);
+
+			if (g_ProfileEnabled && mTimestampValidBits > 0) {
+				VkQueryPoolCreateInfo queryInfo{ VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO };
+				queryInfo.queryType = VK_QUERY_TYPE_TIMESTAMP;
+				queryInfo.queryCount = 2;
+				VK_CHECK(vkCreateQueryPool(dev, &queryInfo, nullptr, &pf.timestampPool));
+			}
+			if (g_ProfileEnabled && mCtx->UsesPipelineStatisticsQuery()) {
+				VkQueryPoolCreateInfo queryInfo{ VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO };
+				queryInfo.queryType = VK_QUERY_TYPE_PIPELINE_STATISTICS;
+				queryInfo.queryCount = 1;
+				queryInfo.pipelineStatistics =
+					VK_QUERY_PIPELINE_STATISTIC_VERTEX_SHADER_INVOCATIONS_BIT |
+					VK_QUERY_PIPELINE_STATISTIC_FRAGMENT_SHADER_INVOCATIONS_BIT;
+				VK_CHECK(vkCreateQueryPool(dev, &queryInfo, nullptr, &pf.pipelineStatsPool));
+			}
 		}
 
 		// 每张 swapchain image 一个 renderFinished 信号量
@@ -119,9 +150,56 @@ namespace pvz {
 		mRenderFinished.clear();
 
 		for (auto& pf : mFrames) {
+			if (pf.timestampPool) {
+				vkDestroyQueryPool(dev, pf.timestampPool, nullptr);
+				pf.timestampPool = VK_NULL_HANDLE;
+				pf.timestampPending = false;
+			}
+			if (pf.pipelineStatsPool) {
+				vkDestroyQueryPool(dev, pf.pipelineStatsPool, nullptr);
+				pf.pipelineStatsPool = VK_NULL_HANDLE;
+				pf.pipelineStatsPending = false;
+			}
 			if (pf.inFlight) { vkDestroyFence(dev, pf.inFlight, nullptr);       pf.inFlight = VK_NULL_HANDLE; }
 			if (pf.imageAvailable) { vkDestroySemaphore(dev, pf.imageAvailable, nullptr); pf.imageAvailable = VK_NULL_HANDLE; }
 			if (pf.cmdPool) { vkDestroyCommandPool(dev, pf.cmdPool, nullptr);  pf.cmdPool = VK_NULL_HANDLE; pf.cmdBuffer = VK_NULL_HANDLE; }
+		}
+	}
+
+	void VulkanRenderer::CollectGpuQueries(PerFrame& frame) {
+		if (frame.timestampPool && frame.timestampPending && mTimestampValidBits > 0) {
+			uint64_t ticks[2]{};
+			const VkResult result = vkGetQueryPoolResults(mCtx->Device(), frame.timestampPool,
+				0, 2, sizeof(ticks), ticks, sizeof(uint64_t), VK_QUERY_RESULT_64_BIT);
+			if (result == VK_SUCCESS) {
+				uint64_t deltaTicks = ticks[1] - ticks[0];
+				if (mTimestampValidBits < 64) {
+					const uint64_t mask = (uint64_t{ 1 } << mTimestampValidBits) - 1;
+					deltaTicks &= mask;
+				}
+				const double elapsedMs = static_cast<double>(deltaTicks)
+					* static_cast<double>(mTimestampPeriodNs) / 1'000'000.0;
+				Profiler::Get().Add("GPU.Frame_render", elapsedMs);
+			}
+			else if (result != VK_NOT_READY) {
+				LOG_WARN("VulkanRenderer") << "GPU timestamp query failed (VkResult="
+					<< static_cast<int>(result) << ")";
+			}
+			frame.timestampPending = false;
+		}
+
+		if (frame.pipelineStatsPool && frame.pipelineStatsPending) {
+			uint64_t invocations[2]{};
+			const VkResult result = vkGetQueryPoolResults(mCtx->Device(), frame.pipelineStatsPool,
+				0, 1, sizeof(invocations), invocations, sizeof(uint64_t), VK_QUERY_RESULT_64_BIT);
+			if (result == VK_SUCCESS) {
+				Profiler::Get().CountGpuPipelineStats(invocations[0], invocations[1]);
+			}
+			else if (result != VK_NOT_READY) {
+				LOG_WARN("VulkanRenderer") << "GPU pipeline statistics query failed (VkResult="
+					<< static_cast<int>(result) << ")";
+			}
+			frame.pipelineStatsPending = false;
 		}
 	}
 
@@ -166,6 +244,7 @@ namespace pvz {
 			PROFILE_SCOPE("C1a.BeginFrame_waitFence");
 			vkWaitForFences(dev, 1, &frame.inFlight, VK_TRUE, UINT64_MAX);
 		}
+		CollectGpuQueries(frame);
 
 		// 2) 拿下一张 swapchain image
 		VkResult acquireResult;
@@ -200,6 +279,15 @@ namespace pvz {
 			VkCommandBufferBeginInfo bi{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
 			bi.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 			VK_CHECK(vkBeginCommandBuffer(frame.cmdBuffer, &bi));
+			if (frame.timestampPool) {
+				vkCmdResetQueryPool(frame.cmdBuffer, frame.timestampPool, 0, 2);
+				vkCmdWriteTimestamp(frame.cmdBuffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+					frame.timestampPool, 0);
+			}
+			if (frame.pipelineStatsPool) {
+				vkCmdResetQueryPool(frame.cmdBuffer, frame.pipelineStatsPool, 0, 1);
+				vkCmdBeginQuery(frame.cmdBuffer, frame.pipelineStatsPool, 0, 0);
+			}
 
 			VkImage swapImage = mCtx->SwapchainImages()[mAcquiredImageIdx];
 			const VkImageSubresourceRange colorRange{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
@@ -269,6 +357,15 @@ namespace pvz {
 			mCtx->CmdEndRendering(frame.cmdBuffer);
 		else
 			vkCmdEndRenderPass(frame.cmdBuffer);
+		if (frame.timestampPool) {
+			vkCmdWriteTimestamp(frame.cmdBuffer, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+				frame.timestampPool, 1);
+			frame.timestampPending = true;
+		}
+		if (frame.pipelineStatsPool) {
+			vkCmdEndQuery(frame.cmdBuffer, frame.pipelineStatsPool, 0);
+			frame.pipelineStatsPending = true;
+		}
 
 		// AutoTest 截图：present 之后图像归显示引擎所有，回读必须发生在 present 之前。
 		VulkanBuffer captureBuf;   // 函数内 RAII：submit 后等 fence 再读，函数尾析构

@@ -4,6 +4,7 @@
 #include "../ResourceManager.h"
 #include "../Logger.h"
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -379,24 +380,62 @@ namespace {
 		float tD;
 	};
 
+	struct ReanimSinCos {
+		float sinValue;
+		float cosValue;
+	};
+
+	constexpr int kReanimTrigTableSize = 2048;  // 线性插值三角表采样数；16 KiB 常驻、最大误差约 1.2e-6
+	const std::array<ReanimSinCos, kReanimTrigTableSize + 1> kReanimTrigTable = [] {
+		std::array<ReanimSinCos, kReanimTrigTableSize + 1> table{};
+		constexpr float kTwoPi = 6.28318530717958647692f;
+		for (int i = 0; i <= kReanimTrigTableSize; ++i) {
+			const float radians = kTwoPi * static_cast<float>(i)
+				/ static_cast<float>(kReanimTrigTableSize);
+			table[i] = { sinf(radians), cosf(radians) };
+		}
+		return table;
+	}();
+
+	/** 查表并线性插值得到 sin(-degrees) / cos(-degrees)，避免每部件调用 CRT 三角函数。 */
+	inline ReanimSinCos LookupNegativeDegreeSinCos(float degrees) {
+		float wrapped = 360.0f - degrees;
+		if (wrapped >= 360.0f) wrapped -= 360.0f;
+		else if (wrapped < 0.0f) wrapped += 360.0f;
+		// reanim 通常只略越过 0/360；异常大角度走低频兜底，避免查表越界。
+		if (wrapped < 0.0f || wrapped >= 360.0f) {
+			wrapped = fmodf(wrapped, 360.0f);
+			if (wrapped < 0.0f) wrapped += 360.0f;
+		}
+		const float tablePosition = wrapped
+			* (static_cast<float>(kReanimTrigTableSize) / 360.0f);
+		const int index = static_cast<int>(tablePosition);
+		const float fraction = tablePosition - static_cast<float>(index);
+		const ReanimSinCos& a = kReanimTrigTable[index];
+		const ReanimSinCos& b = kReanimTrigTable[index + 1];
+		return {
+			a.sinValue + (b.sinValue - a.sinValue) * fraction,
+			a.cosValue + (b.cosValue - a.cosValue) * fraction,
+		};
+	}
+
 	/**
 	 * @brief 把 Reanim 的双轴角度与缩放转换成 2x2 仿射基。
 	 *
-	 * 普通旋转轨道会把同一角度同时写入 kx/ky；相等时复用同一组 sin/cos，
-	 * 保持结果与分别计算完全一致，同时避免热绘制路径重复调用三角函数。
+	 * 普通旋转轨道会把同一角度同时写入 kx/ky；相等时复用同一组查表结果。
+	 * 2048 点线性插值把理论位置误差压到远低于子像素，同时移除热路径 CRT 三角函数。
 	 */
 	inline ReanimBasis ComputeReanimBasis(const TrackFrameTransform& transform) {
-		constexpr float kDegreesToRadians = 3.14159265358979323846f / 180.0f;
-		const float angleX = -transform.kx * kDegreesToRadians;
-		const float cosX = cosf(angleX);
-		const float sinX = sinf(angleX);
+		const ReanimSinCos trigX = LookupNegativeDegreeSinCos(transform.kx);
+		const float cosX = trigX.cosValue;
+		const float sinX = trigX.sinValue;
 
 		float cosY = cosX;
 		float sinY = sinX;
 		if (transform.kx != transform.ky) {
-			const float angleY = -transform.ky * kDegreesToRadians;
-			cosY = cosf(angleY);
-			sinY = sinf(angleY);
+			const ReanimSinCos trigY = LookupNegativeDegreeSinCos(transform.ky);
+			cosY = trigY.cosValue;
+			sinY = trigY.sinValue;
 		}
 
 		return {
@@ -411,6 +450,18 @@ namespace {
 void Animator::DrawInternalInstanced(Graphics* g, float baseX, float baseY, float Scale) const {
 	const BlendMode baseBlend = !mEnableWashedOutEffect ? BlendMode::Alpha
 		: mUseLessWashedOutEffect ? BlendMode::LessWashedOut : BlendMode::WashedOut;
+	const bool hasEnabledTrackGlow = mEnableExtraAdditiveDraw
+		|| std::any_of(mExtraInfos.begin(), mExtraInfos.end(), [](const TrackExtraInfo& extra) {
+			return extra.mHasGlowOverride && extra.mGlowOverrideEnabled;
+		});
+	// 无附件、覆盖层和发光的常规 Animator 全程只用一种混合模式。worker 可一次
+	// 取得连续映射窗口，仍按轨道原顺序直写，避免每个部件重复进入 Graphics 状态机。
+	Graphics::ReanimInstanceWriteSpan directSpan;
+	const uint32_t trackCount = static_cast<uint32_t>(mReanim->GetTrackCount());
+	const bool directWrite = mSparseTrackStates.empty()
+		&& !mEnableExtraOverlayDraw && !hasEnabledTrackGlow
+		&& g->BeginReanimInstanceWrite(trackCount, baseBlend, directSpan);
+	uint32_t directCount = 0;
 	struct DeferredFollowerInstance {
 		InstanceRecord record;
 		uint8_t overlayAlpha = 0;
@@ -432,7 +483,7 @@ void Animator::DrawInternalInstanced(Graphics* g, float baseX, float baseY, floa
 	if (mReanimBlendCounter > 0.0f)
 		blendRatio = 1.0f - mReanimBlendCounter / mReanimBlendCounterMax;
 
-	for (int i = 0; i < static_cast<int>(mReanim->GetTrackCount()); ++i) {
+	for (int i = 0; i < static_cast<int>(trackCount); ++i) {
 		auto track = mReanim->GetTrack(i);
 		if (!track || !track->mAvailable || track->mFrames.empty()) continue;
 		while (sparseIndex < mSparseTrackStates.size()
@@ -476,7 +527,9 @@ void Animator::DrawInternalInstanced(Graphics* g, float baseX, float baseY, floa
 			const float w = static_cast<float>(image->width);
 			const float h = static_cast<float>(image->height);
 
-			InstanceRecord rec;
+			InstanceRecord localRec;
+			InstanceRecord& rec = directWrite
+				? directSpan.records[directCount++] : localRec;
 			// 把图像尺寸与全局缩放烘进 2x3 仿射列，保持与慢路径矩阵逐项等价。
 			rec.tA = tA * w * Scale;
 			rec.tB = tB * w * Scale;
@@ -497,10 +550,8 @@ void Animator::DrawInternalInstanced(Graphics* g, float baseX, float baseY, floa
 
 			// 图集子图只改 UV，实例仍绑定所属 atlas page 的 bindless 槽位。
 			const Texture* bindTex = image->atlasPage ? image->atlasPage : image;
-			rec.u0 = image->aU0;
-			rec.v0 = image->aV0;
-			rec.u1 = image->aU1;
-			rec.v1 = image->aV1;
+			rec.u0 = image->aU0; rec.v0 = image->aV0;
+			rec.u1 = image->aU1; rec.v1 = image->aV1;
 			rec.texSlot = bindTex->BindingId();
 
 			// 本体 → overlay → glow 的相对顺序是视觉契约，子 Animator 必须排在三者之后。
@@ -511,7 +562,9 @@ void Animator::DrawInternalInstanced(Graphics* g, float baseX, float baseY, floa
 			const uint8_t alpha8 = static_cast<uint8_t>(baseAlpha * 255.0f);
 			rec.colorRGBA8 = PackRGBA8(
 				trackColor.r, trackColor.g, trackColor.b, alpha8);
-			g->AppendReanimInstance(rec, baseBlend);
+			if (!directWrite) {
+				g->AppendReanimInstance(rec, baseBlend);
+			}
 
 			if (mEnableExtraOverlayDraw) {
 				InstanceRecord ov = rec;
@@ -523,7 +576,7 @@ void Animator::DrawInternalInstanced(Graphics* g, float baseX, float baseY, floa
 				g->AppendReanimInstance(ov, BlendMode::Alpha);
 			}
 
-			if (IsGlowEffectEnabledForTrack(i)) {
+			if (hasEnabledTrackGlow && IsGlowEffectEnabledForTrack(i)) {
 				InstanceRecord glow = rec;
 				glow.colorRGBA8 = PackRGBA8(mExtraAdditiveColor.r,
 					mExtraAdditiveColor.g,
@@ -561,10 +614,8 @@ void Animator::DrawInternalInstanced(Graphics* g, float baseX, float baseY, floa
 
 				const Texture* bindTex = followerImage->atlasPage
 					? followerImage->atlasPage : followerImage;
-				rec.u0 = followerImage->aU0;
-				rec.v0 = followerImage->aV0;
-				rec.u1 = followerImage->aU1;
-				rec.v1 = followerImage->aV1;
+				rec.u0 = followerImage->aU0; rec.v0 = followerImage->aV0;
+				rec.u1 = followerImage->aU1; rec.v1 = followerImage->aV1;
 				rec.texSlot = bindTex->BindingId();
 				const SDL_Color trackColor = extra
 					? extra->mColor : SDL_Color{ 255, 255, 255, 255 };
@@ -613,6 +664,7 @@ void Animator::DrawInternalInstanced(Graphics* g, float baseX, float baseY, floa
 	for (const DeferredFollowerInstance& draw : deferredFollowerOverflow) {
 		submitFollower(draw);
 	}
+	if (directWrite) g->EndReanimInstanceWrite(directSpan, directCount);
 }
 
 void Animator::DrawInternal(Graphics* g, float baseX, float baseY, float Scale) const {
@@ -622,7 +674,7 @@ void Animator::DrawInternal(Graphics* g, float baseX, float baseY, float Scale) 
 
 	// 生产路径统一递归实例化整棵 Animator 附件树；慢路径只由 -NoInstance 显式保留，
 	// 用作视觉 A/B 与故障兜底，不再因存在子 Animator 让整棵父级退化成逐顶点提交。
-	if (g->IsInstancePathEnabled()) {
+	if (g->IsInstancePathEnabled() && !g->IsClipActive()) {
 		DrawInternalInstanced(g, baseX, baseY, Scale);
 		return;
 	}

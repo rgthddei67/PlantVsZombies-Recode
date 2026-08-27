@@ -12,7 +12,8 @@ namespace {
 		LAYER_GAME_BULLET - LAYER_GAME_PLANT;
 	constexpr int kBattlefieldMaximumRows =
 		kBattlefieldOrderCapacity / kBattlefieldRowStride;
-	constexpr int kParallelDrawRecordSlotsPerWorker = 2;  // 每个物理 worker 的有序录制切片数；越高越均衡但调度/回放开销越大
+	constexpr int kParallelDrawTargetObjectsPerSlot = 420; // 每个有序录制切片期望覆盖的活跃对象数；控制负载均衡与回放开销
+	constexpr int kParallelDrawMaxSlotsPerWorker = 4;      // 每个物理 worker 最多领取的切片数；限制低核心机器的命令流碎片
 
 	// 植物与僵尸共用战场深度区间；同排植物在前、僵尸在后，下一排再整体覆盖上一排。
 	bool UsesBattlefieldRowDepth(RenderLayer layer, int key)
@@ -265,9 +266,15 @@ void GameObjectManager::DrawAll(Graphics* g) {
 	const int parallelCount = splitIdx;  // [0, splitIdx) 走并行；[splitIdx, total) overlay 串行
 	const int inactivePooledBullets = mBulletPool ? mBulletPool->GetInactiveCount() : 0;
 	const int parallelCandidateCount = std::max(0, parallelCount - inactivePooledBullets);
+	const int desiredRecordSlotCount = std::max(1,
+		(parallelCandidateCount + kParallelDrawTargetObjectsPerSlot - 1) /
+		kParallelDrawTargetObjectsPerSlot);
+	const int availableWorkers = mThreadPool ? mThreadPool->GetWorkerCount() : 1;
+	const int numWorkers = std::min({ availableWorkers, parallelCount, desiredRecordSlotCount });
 
-	// 休眠弹丸仍在线性表内但不会提交绘制；阈值只看真正可能产生命令的对象。
-	if (!g->IsParallelDrawEnabled() || parallelCandidateCount < kParallelDrawThreshold) {
+	// 休眠弹丸仍在线性表内但不会提交绘制；阈值只看真正可能产生命令的对象。对象规模
+	// 只够一个切片时也保留串行路径，避免普通关卡为了“并行”额外拆出命令流。
+	if (!g->IsParallelDrawEnabled() || parallelCandidateCount < kParallelDrawThreshold || numWorkers < 2) {
 		// 串行 fallback：主体 → 世界粒子/天气覆盖/Scene UI 贴图 → UI GameObject。
 		PROFILE_SCOPE("6.Draw_submit(serial-fallback)");
 		drawSerialRange(0, splitIdx);
@@ -276,13 +283,12 @@ void GameObjectManager::DrawAll(Graphics* g) {
 		return;
 	}
 
-	// 并行 record + replay（只覆盖 [0, parallelCount) 的游戏对象主体）。录制切片数量高于物理
-	// worker 数，worker 动态领取连续对象区间，减少复杂动画集中在某个固定区间造成的长尾；
-	// Replay 仍严格按 record slot 递增回放，所以全局 z-order 与原串行 Draw 等价。
-	int numWorkers = mThreadPool ? mThreadPool->GetWorkerCount() : 1;
-	if (numWorkers > parallelCount) numWorkers = parallelCount;
-	const int recordSlotCount = std::min(parallelCount,
-		numWorkers * kParallelDrawRecordSlotsPerWorker);
+	// 并行 record + replay（只覆盖 [0, parallelCount) 的游戏对象主体）。切片数同时由对象规模、
+	// 实际 worker 数与每 worker 上限决定；worker 动态领取连续对象区间，减少复杂动画集中在
+	// 某个固定区间造成的长尾。Replay 仍严格按 record slot 递增回放，所以全局 z-order 与
+	// 原串行 Draw 等价。
+	const int recordSlotCount = std::min({ parallelCount, desiredRecordSlotCount,
+		numWorkers * kParallelDrawMaxSlotsPerWorker });
 	const bool profileDrawWorkers = g_ProfileEnabled;
 	if (profileDrawWorkers) {
 		mDrawWorkerProfileSamples.resize(numWorkers);

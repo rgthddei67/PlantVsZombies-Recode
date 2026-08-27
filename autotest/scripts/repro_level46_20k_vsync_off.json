@@ -1,0 +1,14 @@
+{
+  "commands": [
+    { "op": "goto_level", "level": 46, "timeout": 180 },
+    { "op": "wait_state", "state": "GAME", "timeout": 180 },
+    { "op": "show_zombie_hp", "on": true },
+    { "op": "set_vsync", "value": false },
+    { "op": "wait_seconds", "value": 2.0, "timeout": 60 },
+    { "op": "screenshot", "name": "level46_20k_vsync_off_start.png", "timeout": 60 },
+    { "op": "wait_seconds", "value": 8.0, "timeout": 120 },
+    { "op": "dump_state", "name": "level46_20k_vsync_off_final.json" },
+    { "op": "screenshot", "name": "level46_20k_vsync_off_final.png", "timeout": 60 },
+    { "op": "quit" }
+  ]
+}

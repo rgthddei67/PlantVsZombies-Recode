@@ -61,10 +61,16 @@ namespace pvz {
 			VkCommandBuffer cmdBuffer = VK_NULL_HANDLE;
 			VkSemaphore     imageAvailable = VK_NULL_HANDLE;  // signaled by acquire
 			VkFence         inFlight = VK_NULL_HANDLE;  // CPU↔GPU
+			VkQueryPool     timestampPool = VK_NULL_HANDLE; // -Profile 下的本帧 GPU 渲染时间戳
+			bool            timestampPending = false;         // 该槽位上次提交是否有可读结果
+			VkQueryPool     pipelineStatsPool = VK_NULL_HANDLE; // -Profile 下的 shader 调用量
+			bool            pipelineStatsPending = false;
 		};
 
 		bool CreateFrameResources();
 		void DestroyFrameResources();
+		/** 在槽位 fence 完成后回收上次 GPU 诊断查询，不向渲染热路注入 CPU 等待。 */
+		void CollectGpuQueries(PerFrame& frame);
 
 		// 当前帧 acquire 到的 swapchain image 索引；仅在 BeginFrame..EndFrame 之间有效。
 		uint32_t mAcquiredImageIdx = UINT32_MAX;
@@ -74,6 +80,8 @@ namespace pvz {
 
 		std::array<PerFrame, FRAMES_IN_FLIGHT> mFrames;
 		std::vector<VkSemaphore> mRenderFinished;  // 每张 swapchain image 一个（用于 present 时等待）
+		float mTimestampPeriodNs = 0.0f;            // 设备 timestamp tick 的纳秒数
+		uint32_t mTimestampValidBits = 0;           // graphics queue family 的有效位数，0=不支持
 
 		uint32_t mFrameIdx = 0;
 		bool     mSwapchainNeedsRebuild = false;

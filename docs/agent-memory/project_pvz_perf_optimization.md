@@ -1,6 +1,6 @@
 ---
 name: pvz-perf-optimization
-description: "PvZ C++ perf log — LATEST(2026-08-23): 20000 visible zombies, exact same-angle trig reuse cuts reanim draw worker CPU about 5.6%; history covers atlas/parallel-update/GPU-instancing experiments & verdicts"
+description: "PvZ C++ perf log — LATEST(2026-08-27): 20000 visible zombies drove adaptive record slots, interpolated trig LUT, direct instance writes, 48B vertex-input triangle strips, GPU queries and tight full-health text; stable full-profile result about 137-138 FPS"
 metadata:
   node_type: memory
   type: project
@@ -543,3 +543,36 @@ status passed，三张对应截图逐通道最大差 1–2 且目视一致；最
 下一潜在大项是 `AppendReanimInstance` 的必要写流量：56B × 590071 约 33.0 MB（31.5 MiB）/帧。
 压成 48B 虽理论节省 14.3%，但会改变 shader/std430 ABI 和逐实例 clip 语义，也影响字形与附件；
 没有 cache-miss/GPU counter 和专项设计前不应以微优化方式直接修改。
+
+## 20000 可见僵尸：CPU/GPU 渲染链终局冲刺（2026-08-27）
+
+本轮用 `build/clang-release/saves/level46_data.json` 继续压测；真实关卡存档必须显式传
+`-AutoTestLoadSave`，否则 `goto_level 46` 只会新建空关。新增 `-FrameProfile` 只记录连续 60 帧墙钟，
+不启用 scope/counter；完整 `-Profile` 仅在设备支持时创建 Vulkan timestamp 与 pipeline-statistics
+query，查询结果等对应 frame-slot fence 完成后再回收，不注入额外 CPU 等待。小推车接触后对象数和
+粒子/事件负载都会突变，所有性能裁决只取 `activeObjects`、`recordInstances` 仍稳定的早期窗口。
+
+最终保留的通用路径：
+
+- 并行 Draw 不再固定 `workers*2` 切片；按约 420 个有效对象/slot 自适应，并限制每 worker 最多
+  4 个 slot。2 万档为 12 个物理 worker、48 个有序 record slot；普通关卡若不足两份工作量仍走
+  串行，Replay 始终按 slot 顺序，z-order 不变。
+- 常规无 sparse follower/附件、overlay、glow 的 Animator 一次取得连续 `InstanceRecord` 写入窗口；
+  同 worker 的重复 HUD 文本缓存 UTF-8 解码和 glyph 查找结果。`kx/ky` 改用 2048 点、线性插值的
+  16 KiB sin/cos 表，极端角度保留 `fmodf` 兜底；默认与 `-NoInstance` 共用同一仿射 helper。
+- `InstanceRecord` 从 56B 收回 48B；有活动 ClipRect 的 sprite/Animator/glyph 回退到仍携带裁剪框的
+  `BatchVertex`，因此不再让所有无裁剪实例承担逐条 clip 字段和 fragment `discard`。Vulkan instance
+  由 host-visible per-instance vertex input 读取，quad 改为 4 顶点 triangle strip；不再需要独立
+  instance SSBO descriptor set。关闭垂直同步时优先 `IMMEDIATE`，设备不支持才回退 `MAILBOX/FIFO`。
+- 满血本体行再叠加紧裁剪的 pinned 整行实例快路；受伤本体与所有防具仍走字形路径，详见
+  [project_pvz_glyph_run_worker_instancing](project_pvz_glyph_run_worker_instancing.md)。
+
+同一最终源码在完整 GPU 统计开启时，2 万对象稳定窗口为约 7.23～7.30ms（137～138FPS），GPU
+约 6.68～6.77ms；`recordInstances` 从血量整行优化前的 590071 降为 410071。曾出现单窗
+7.14ms/140.1FPS，但最终复跑没有稳定越过 140，不能据此声称稳定达标。设备本地 instance staging、
+更激进的 queue priority 和 32B 记录等候选均在同档低扰动测试中退化，已撤回；少 CPU 写入、少
+顶点或少 fragment 都只能当方向，最终仍以同存档端到端帧时裁决。
+
+最终 `clang-release` 构建、Win7 导入审计与 GLSL→SPIR-V 逐文件重编哈希一致性均通过；可见回归
+覆盖 HP 默认 Vulkan/`-NoInstance`/OpenGL，以及模仿者换图与白化、冰晶和 glow 交错、睡莲阴影层序
+的默认/`-NoInstance`。三种 HP 截图中本体/头盔文字基线、颜色与顺序一致。

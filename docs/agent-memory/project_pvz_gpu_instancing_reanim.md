@@ -1,6 +1,6 @@
 ---
 name: pvz-gpu-instancing-reanim
-description: PvZ 完成的下一档 perf 工作 — GPU instancing for reanim sprites。从 BatchVertex × 6 + SSBO mat4 路径切换到 InstanceRecord × 1 + gl_InstanceIndex 路径。实测 -1.39 ms wall / -14% frame time / 98.4→114 FPS @ 11000z；视觉 ✓；toggle 保留作 fallback
+description: PvZ reanim GPU instancing；2026-08-27 InstanceRecord 收回48B并改为per-instance vertex input、4顶点triangle strip，活动Clip回退batch；-NoInstance保留
 metadata:
   node_type: memory
   type: project
@@ -16,6 +16,8 @@ metadata:
 **How to apply:** 工作已完成且 merged 到 working tree。`m_useInstancePath` toggle + slow-path fallback **保留**作 future A/B re-test 与 safety net。**不要主动重新评估这个方向**——除非未来 reanim 资源结构改变（更多子动画 / 帧索引变非均匀 / 等）或 perf 需求显著上移（144 FPS+ / 20000+ 僵尸）。
 
 **2026-07-23 当前结构更新：** `InstanceRecord` 由原始 48 B 增至 56 B，新增打包的逐实例矩形 `clipMinXY/clipMaxXY`；`BatchVertex` 为 52 B，携带相同字段。所有 `PushClipRect/PopClipRect` 均无 flush，fragment shader 用 `gl_FragCoord` 裁剪，水路 `PushClipBottom` 只是全宽矩形别名。同场景 2 只水中僵尸从 `21 draw + 4 scissor` 降为 `19 draw + 0 scissor`；伴舞出土、图鉴窗和粒子区域 Clip 也不再切实例批次。无裁剪哨兵走片元快路径，默认实例与 `-NoInstance` 均由可见 AutoTest 验证。详见 [project_pvz_shader_clip_rect](project_pvz_shader_clip_rect.md)。
+
+**2026-08-27 当前结构更新（覆盖上一段的 InstanceRecord/descriptor 现状）：** `InstanceRecord` 已移除两个 clip 字段并收回 48 B；活动 Clip 的实例精灵、Animator 与字形自动回退仍携带裁剪框的 `BatchVertex`。实例缓冲改作 `VK_BUFFER_USAGE_VERTEX_BUFFER_BIT`，以 `VK_VERTEX_INPUT_RATE_INSTANCE` 读取 5 个 attribute；quad 用 4 顶点 triangle strip，不再由 vertex shader 通过 `gl_InstanceIndex` 从 SSBO 拉取 6 顶点，也不再创建独立 `instanceSetLayout/instancePool/instSet`。set 0 只保留 layout-compatible 占位，shader 实际仅绑定 set 1 的 bindless textures。默认/`-NoInstance` 层序专项与 GLSL→SPIR-V 哈希复核均通过；更完整性能结论见 [project_pvz_perf_optimization](project_pvz_perf_optimization.md)。下方 2026-05 架构表与 plan 修订保留为历史，不再代表当前 ABI。
 
 **2026-07-23 复合 Animator 收口：** 默认 `DrawInternalInstanced` 已按“父轨道本体→overlay→glow→该轨道附件”递归整棵附件树；不可见父轨道仍可作为附件锚点，隐藏且无附件的轨道继续在 trig 前早退。`hasChildren` 不再令射手身体等父 Animator 回退逐顶点路径，任意深度附件都写入同一实例流；CPU 仍负责动画插值与附件定位。矩阵慢路径只由 `-NoInstance` 显式启用，继续作为 A/B 与 safety net。`smoke_animator_recursive_instancing` 可见验证根/子同步 glow 与轨道状态，`smoke_plant_squish` 默认/`-NoInstance` 双跑验证递归缩放、渐隐及兜底；静止/压扁图两路径最大通道差 1，来自 RGBA8 量化。
 

@@ -9,6 +9,8 @@ metadata:
 
 **第二季续集（2026-07-07）**：字形图集治好光栅化 thrash 后，20000 全可见僵尸又暴露"defer 到串行 replay 逐行 FlushBatch"的 N×ε 瓶颈（19FPS），已由 [project_pvz_glyph_run_worker_instancing](project_pvz_glyph_run_worker_instancing.md) 根治（worker 录制期直接 instance 化）。
 
+**第三季补充（2026-08-27）**：满血本体共同文本现只在 `current==max` 时走裁透明边的 pinned 整行实例，动态血量和防具仍走字形图集；2 万档 instances `590071→410071`，稳定约 `134→137～138FPS`，未稳定达到 140。未裁整行与拆成两纹理的候选均已实测否决，完整数据与存档测试边界见 [project_pvz_glyph_run_worker_instancing](project_pvz_glyph_run_worker_instancing.md)。
+
 2026-06-28：生存黑夜无尽后期数百僵尸快速掉血 → 血量数字「整串→纹理」LRU(上限1024)被击穿 →
 串行 `7.Draw_replay` 光栅化尖峰(4.9→7.1ms)。**已实现 HUD 字形图集(方案A)修复**，在
 `feature/hud-glyph-atlas` 分支(**未 push**)，5 commit：plan(bbda8e7)/Task1 图集子系统+串行

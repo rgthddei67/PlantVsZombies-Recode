@@ -84,14 +84,14 @@ static_assert(sizeof(BatchVertex) == 52, "BatchVertex must be 52 bytes");
 /**
  * @brief Per-sprite instance record consumed by reanim_inst.vert.glsl.
  *
- *        Vertex shader expands gl_VertexIndex 0..5 to a unit-quad corner+UV,
+ *        Vertex shader expands gl_VertexIndex 0..3 to a unit-quad corner+UV,
  *        applies the 2x3 affine (columns (tA,tB) and (tC,tD); translation (tx,ty)),
  *        samples atlas UV range (u0,v0,u1,v1), multiplies vertex color.
  *
  *        CPU side (Task 5) must pre-multiply tA..tD by (sprite_width × Scale) and
  *        (sprite_height × Scale) so the shader's `corner` is a unit quad.
  *
- *        Stride 56 B under std430 scalar layout.
+ *        Stride 48 B；有 ClipRect 的调用回退到原 batch 路径，实例记录无需逐条携带裁剪框。
  */
 struct InstanceRecord {
 	float tA, tB, tC, tD;   // 16 B — pre-multiplied 2x2: cols (tA,tB) and (tC,tD)
@@ -100,10 +100,8 @@ struct InstanceRecord {
 	float u1, v1;           // 8 B  — atlas UV bottom-right
 	uint32_t texSlot;       // 4 B  — bindless texture index
 	uint32_t colorRGBA8;    // 4 B  — packed RGBA8 (r=lsb, a=msb), pre-tinted
-	uint32_t clipMinXY = DRAW_CLIP_MIN_DISABLED;  // 4 B — 帧缓冲 left/top，各占 16 bit
-	uint32_t clipMaxXY = DRAW_CLIP_MAX_DISABLED;  // 4 B — 帧缓冲 right/bottom，各占 16 bit
 };
-static_assert(sizeof(InstanceRecord) == 56, "InstanceRecord must be 56 bytes");
+static_assert(sizeof(InstanceRecord) == 48, "InstanceRecord must be 48 bytes");
 
 /**
  * @brief 文字缓存条目，持有当前 TextureBackend 创建的后端无关纹理句柄及其尺寸。
@@ -112,6 +110,8 @@ struct CachedText {
 	pvz::RenderTexture* texture = nullptr;
 	int width = 0;
 	int height = 0;
+	int offsetX = 0;  ///< 紧致裁剪后相对原 TTF surface 左上角的物理像素偏移
+	int offsetY = 0;
 	uint32_t BindingId() const { return texture ? texture->bindingId : 0; }
 	// 光栅化时的超采样倍数（= physSize / fontSize）。全屏 letterbox 放大下，文字按物理
 	// 像素光栅化以保持锐利；绘制时用它把 width/height 除回逻辑尺寸，保证屏幕布局不变。
@@ -419,8 +419,8 @@ public:
 	 * @brief 压入一个屏幕像素矩形作为当前裁剪区域；区域外的像素不会被绘制。
 	 *        坐标采用屏幕左上原点（与 DrawTexture 等接口一致），不被 Transform 栈或摄像机影响。
 	 *        嵌套调用时与父矩形取交集 —— 子裁剪不能"暴露"父裁剪遮住的内容。
-	 *        裁剪框随 BatchVertex / InstanceRecord 进入 shader，不刷新批处理，也不生成
-	 *        vkCmdSetScissor；可安全用于每个 GameObject 周围的细粒度裁剪。
+	 *        BatchVertex 携带裁剪框进入 shader；实例精灵在裁剪生效时自动回退到同一 batch
+	 *        路径，不生成 vkCmdSetScissor，可安全用于每个 GameObject 周围的细粒度裁剪。
 	 * @param x 矩形左上角 X（屏幕像素）
 	 * @param y 矩形左上角 Y（屏幕像素）
 	 * @param w 矩形宽度（屏幕像素）
@@ -448,7 +448,7 @@ public:
 	/**
 	 * @brief 当前是否有生效的裁剪矩形。
 	 */
-	bool IsClipActive() const { return !m_clipStack.empty(); }
+	bool IsClipActive() const;
 
 	/**
 	 * @brief 取得当前生效的裁剪矩形（栈顶，已经过嵌套交集）。
@@ -587,6 +587,24 @@ public:
 	 *        Main thread: appends to m_batchInstances, flushes on BlendMode change or chunk full.
 	 */
 	void AppendReanimInstance(const InstanceRecord& rec, BlendMode blendMode);
+
+	/**
+	 * @brief 工作线程中为同一混合模式的连续 Animator 实例取得直写窗口。
+	 * @details 只改变 CPU 写入方式；调用方仍须按原绘制顺序填充。存在 ClipRect 时返回 false，
+	 *          由调用方回退到保留逐像素裁剪语义的 batch 路径。
+	 */
+	struct ReanimInstanceWriteSpan {
+		InstanceRecord* records = nullptr;
+		WorkerRecord* owner = nullptr;
+		uint32_t reserved = 0;
+		BlendMode savedBlend = BlendMode::None;
+		bool switchedBlend = false;
+	};
+	bool BeginReanimInstanceWrite(uint32_t maxCount, BlendMode blendMode,
+		ReanimInstanceWriteSpan& outSpan);
+
+	/** @brief 提交 BeginReanimInstanceWrite 已按顺序填充的前 count 条记录。 */
+	void EndReanimInstanceWrite(ReanimInstanceWriteSpan& span, uint32_t count);
 
 	/**
  * @brief 绘制纹理的指定区域到目标矩形。
@@ -940,6 +958,7 @@ private:
 	std::unordered_map<std::string, CachedText> m_pinnedTextCache;  ///< 常驻文字纹理缓存（AcquireTextTexture 使用，不淘汰）
 	uint32_t m_textGeneration = 0;  ///< pinned 缓存代际号；ClearPinnedTextCache 递增，用于失效持有方的旧句柄
 	std::unordered_map<std::string, GlyphAtlas> m_glyphAtlases;  ///< HUD 字形图集，键 = "fontKey|fontSize"
+	uint32_t m_glyphAtlasGeneration = 0;  ///< 图集重建/清理代际，使 worker 的只读字形模板立即失效
 
 	// ==================== 多线程录制状态 ====================
 	std::vector<WorkerRecord>      m_workerRecords;       ///< 每个 worker slot 一份的录制缓冲
@@ -1040,7 +1059,7 @@ private:
 	 * @return 成功返回 true，并填充 out；失败返回 false。
 	 */
 	bool RenderTextToBackendTexture(const std::string& text, const std::string& fontKey,
-		int fontSize, const glm::vec4& color, CachedText& out);
+		int fontSize, const glm::vec4& color, CachedText& out, bool trimTransparent = false);
 
 	/**
 	 * @brief 取/建 (fontKey,fontSize) 的字形图集，并确保 needed 里的码点全部已烘入（当帧收敛）。

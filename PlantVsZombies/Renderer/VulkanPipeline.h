@@ -29,6 +29,7 @@ namespace pvz {
 			uint32_t                                 vertexBindingCount = 0;
 			const VkVertexInputAttributeDescription* vertexAttributes = nullptr;
 			uint32_t                                 vertexAttributeCount = 0;
+			VkPrimitiveTopology                     topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 			// 混合模式选项（同一时刻只生效一个）：
 			//   alphaBlend    — SRC_ALPHA / ONE_MINUS_SRC_ALPHA
 			//   additiveBlend — SRC_ALPHA / ONE

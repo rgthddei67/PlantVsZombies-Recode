@@ -96,7 +96,7 @@ namespace pvz {
 		}
 
 		VkPipelineInputAssemblyStateCreateInfo ia{ VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO };
-		ia.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+		ia.topology = desc.topology;
 
 		VkPipelineViewportStateCreateInfo vp{ VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO };
 		vp.viewportCount = 1;

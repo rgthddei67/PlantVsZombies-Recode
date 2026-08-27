@@ -10,6 +10,7 @@
 // ============================================================
 
 #include <chrono>
+#include <cstdint>
 #include <map>
 #include <string>
 #include <cstdio>
@@ -17,6 +18,8 @@
 // 全局开关：false 时 Profiler 的所有累加/打印入口立即返回（零开销）。
 // 唯一定义在 Profiler.cpp，避免头文件被多个翻译单元 include 时的 ODR 重定义。
 extern bool g_ProfileEnabled;
+// 仅测量连续帧的墙钟间隔；不启用 PROFILE_SCOPE 和计数器，用于低扰动验收 FPS。
+extern bool g_FrameProfileEnabled;
 
 class Profiler {
 public:
@@ -109,6 +112,14 @@ public:
 		mDrawCommandAccum += commands;
 	}
 
+	/** 记录 fence 已完成帧的 Vulkan 顶点/片元 shader 调用量。 */
+	void CountGpuPipelineStats(uint64_t vertexInvocations, uint64_t fragmentInvocations) {
+		if (!g_ProfileEnabled) return;
+		mGpuVertexInvocationAccum += vertexInvocations;
+		mGpuFragmentInvocationAccum += fragmentInvocations;
+		++mGpuPipelineStatsSamples;
+	}
+
 	// 诊断：碰撞 sweep-and-prune 每帧统计。iter=行内层扫描总迭代次数（O(k²) 退化项），
 	// reject=被层掩码 CanCollide 拒绝（纯浪费的迭代），check=真正做了 AABB 检测，
 	// hit=检出的碰撞对。由 CollisionSystem::Update 在并行派发结束后于主线程调用一次。
@@ -122,7 +133,7 @@ public:
 
 	// 每帧调用一次（主循环末尾）。每 kReportFrames 帧打印一次平均值。
 	void EndFrame() {
-		if (!g_ProfileEnabled) return;
+		if (!g_ProfileEnabled && !g_FrameProfileEnabled) return;
 		auto now = Clock::now();
 		if (mHasLastFrame) {
 			double frameMs = std::chrono::duration<double, std::milli>(now - mLastFrame).count();
@@ -140,6 +151,13 @@ public:
 
 		double inv = 1.0 / static_cast<double>(mFrames);
 		double avgFrame = mFrameAccum * inv;
+		if (!g_ProfileEnabled) {
+			std::printf("FRAME TIME ONLY: %7.3f ms (%.1f FPS) over %d frames\n",
+				avgFrame, avgFrame > 0.0 ? 1000.0 / avgFrame : 0.0, mFrames);
+			mFrameAccum = 0.0;
+			mFrames = 0;
+			return;
+		}
 		std::printf("\n==== FRAME PROFILE (avg over %d frames) ====\n", mFrames);
 		std::printf("  total / frame        : %7.2f ms  (%.1f FPS)\n",
 			avgFrame, avgFrame > 0.0 ? 1000.0 / avgFrame : 0.0);
@@ -180,6 +198,12 @@ public:
 		std::printf("  %-20s : %12.0f /frame\n", "recordMatrices", static_cast<double>(mDrawMatrixAccum) * inv);
 		std::printf("  %-20s : %12.0f /frame\n", "recordInstances", static_cast<double>(mDrawInstanceAccum) * inv);
 		std::printf("  %-20s : %12.0f /frame\n", "recordCommands", static_cast<double>(mDrawCommandAccum) * inv);
+		const double gpuStatsInv = mGpuPipelineStatsSamples > 0
+			? 1.0 / static_cast<double>(mGpuPipelineStatsSamples) : 0.0;
+		std::printf("  %-20s : %12.0f /sample\n", "gpuVertexInvocations",
+			static_cast<double>(mGpuVertexInvocationAccum) * gpuStatsInv);
+		std::printf("  %-20s : %12.0f /sample\n", "gpuFragmentInvocations",
+			static_cast<double>(mGpuFragmentInvocationAccum) * gpuStatsInv);
 		std::printf("============================================\n");
 
 		mAccum.clear();
@@ -209,6 +233,9 @@ public:
 		mDrawMatrixAccum = 0;
 		mDrawInstanceAccum = 0;
 		mDrawCommandAccum = 0;
+		mGpuVertexInvocationAccum = 0;
+		mGpuFragmentInvocationAccum = 0;
+		mGpuPipelineStatsSamples = 0;
 		mFrames = 0;
 	}
 
@@ -246,6 +273,9 @@ private:
 	size_t mDrawMatrixAccum = 0;      // 诊断：窗口内 worker 想写入的矩阵数
 	size_t mDrawInstanceAccum = 0;    // 诊断：窗口内 worker 想写入的实例数
 	size_t mDrawCommandAccum = 0;     // 诊断：窗口内 worker 录制的状态/延迟文字命令数
+	uint64_t mGpuVertexInvocationAccum = 0;   // 诊断：已回收 GPU 样本的 vertex shader 调用数
+	uint64_t mGpuFragmentInvocationAccum = 0; // 诊断：已回收 GPU 样本的 fragment shader 调用数
+	size_t mGpuPipelineStatsSamples = 0;      // 诊断：本报告窗口已回收的 GPU 帧数
 };
 
 // RAII 计时：作用域结束时把耗时累加到对应名字

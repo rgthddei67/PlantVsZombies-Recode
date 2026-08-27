@@ -548,6 +548,7 @@ void Zombie::Update()
 {
 	AnimatedObject::Update();
 	UpdateShieldHitGlow();
+	UpdateFullBodyHealthTextCache();
 	if (mTangleKelpState && mTangleKelpState->mGrabBack) {
 		mTangleKelpState->mGrabBack->Update();
 	}
@@ -777,6 +778,30 @@ void Zombie::Update()
 		SyncToRoofTerrain(transform);
 		ZombieUpdate(scaledDelta);
 	}
+}
+
+/**
+ * 只在主线程为满血本体血量行取得 pinned 紧致共享纹理。
+ * 受伤后的短命数值仍走字形图集，避免长局中每个历史血量都永久占用纹理。
+ */
+void Zombie::UpdateFullBodyHealthTextCache()
+{
+	if (mIsPreview || !GameAPP::GetInstance().mShowZombieHP
+		|| mBodyHealth != mBodyMaxHealth) {
+		return;
+	}
+
+	Graphics& graphics = GameAPP::GetInstance().GetGraphics();
+	if (mCachedFullBodyHealth == mBodyMaxHealth && mFullBodyHealthText.BindingId() != 0
+		&& !graphics.IsCachedTextStale(mFullBodyHealthText)) {
+		return;
+	}
+
+	mFullBodyHealthText = graphics.AcquireTextTexture(
+		u8"本体: " + std::to_string(mBodyHealth) + u8"/" + std::to_string(mBodyMaxHealth),
+		ResourceKeys::Fonts::FONT_FZJZ, 15,
+		glm::vec4(150.0f, 200.0f, 255.0f, 255.0f));
+	mCachedFullBodyHealth = mBodyMaxHealth;
 }
 
 void Zombie::FinalizeProtectedLoad()
@@ -2734,8 +2759,17 @@ void Zombie::Draw(Graphics* g)
 		y += lineHeight;
 		};
 
-	// 本体（始终显示）
-	drawLine(u8"本体: " + std::to_string(mBodyHealth) + u8"/" + std::to_string(mBodyMaxHealth));
+	// 满血大军共享紧致整行纹理，把十个字形压成一个实例。当帧血量已变或缓存失效时
+	// 立即回退到原逐字路径，不显示过期数值。
+	if (mBodyHealth == mBodyMaxHealth && mCachedFullBodyHealth == mBodyMaxHealth
+		&& mFullBodyHealthText.BindingId() != 0
+		&& !g->IsCachedTextStale(mFullBodyHealthText)) {
+		g->DrawCachedText(mFullBodyHealthText, pos.x, y);
+		y += lineHeight;
+	}
+	else {
+		drawLine(u8"本体: " + std::to_string(mBodyHealth) + u8"/" + std::to_string(mBodyMaxHealth));
+	}
 	// 一类防具（有 mHelmType 才显示）
 	if (mHelmType != HelmType::HELMTYPE_NONE)
 		drawLine(u8"一类: " + std::to_string(mHelmHealth) + u8"/" + std::to_string(mHelmMaxHealth));

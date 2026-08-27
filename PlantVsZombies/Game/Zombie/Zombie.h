@@ -132,6 +132,8 @@ private:
 	float mCheckGoldenIceTimer = 0.0f;	// 每秒检查一次黄色冰道速度场层数，避免每帧都查 EntityRegistry
 	float mShieldHitGlowTimer = 0.0f;	// 二类护盾独立受击白光剩余秒数；本体白光继续复用 AnimatedObject
 	ShieldType mShieldHitGlowType = ShieldType::SHIELDTYPE_NONE;	// 白光计时期间保留已掉落护盾的轨道类型
+	CachedText mFullBodyHealthText{};	// 仅缓存满血本体整行，避免动态血量把 pinned 纹理集合无界撑大
+	int mCachedFullBodyHealth = -1;
 
 	/** 返回二类护盾对应的独立高亮轨道；未知类型返回 nullptr。 */
 	const char* GetShieldGlowTrackName(ShieldType shieldType) const;
@@ -141,6 +143,8 @@ private:
 	void StartShieldHitGlow(ShieldType shieldType);
 	/** 推进二类护盾白光计时，并在到期时关闭对应轨道高亮。 */
 	void UpdateShieldHitGlow();
+	/** 在主线程为满血本体血量行取得紧致共享纹理；受伤行保留逐字快路径。 */
+	void UpdateFullBodyHealthTextCache();
 
 public:
 	Zombie(Board* board, ZombieType zombieType, float x, float y, int row,

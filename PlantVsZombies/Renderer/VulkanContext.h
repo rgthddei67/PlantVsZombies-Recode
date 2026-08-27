@@ -53,6 +53,8 @@ namespace pvz {
 
 		bool UsesDynamicRendering() const;
 		bool UsesSynchronization2() const;
+		/** 返回当前设备是否已启用 pipeline statistics query 诊断能力。 */
+		bool UsesPipelineStatisticsQuery() const { return mPipelineStatisticsQueryEnabled; }
 		const char* DynamicRenderingPathName() const;
 		const char* SynchronizationPathName() const;
 
@@ -135,6 +137,7 @@ namespace pvz {
 		uint32_t                   mApiVersion = 0;
 		FeaturePath                mDynamicRenderingPath = FeaturePath::Legacy;
 		FeaturePath                mSynchronizationPath = FeaturePath::Legacy;
+		bool                       mPipelineStatisticsQueryEnabled = false;
 
 		SDL_Window* mWindow = nullptr;  // Recreate 时复用
 

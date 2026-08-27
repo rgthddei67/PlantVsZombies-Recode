@@ -290,6 +290,7 @@ namespace pvz {
 			uint32_t apiVersion = 0;
 			FeaturePath dynamicRendering = FeaturePath::Legacy;
 			FeaturePath synchronization = FeaturePath::Legacy;
+			bool pipelineStatisticsQuery = false;
 		};
 
 		auto inspect = [this](VkPhysicalDevice dev, Candidate& out) -> bool {
@@ -395,6 +396,7 @@ namespace pvz {
 				? FeaturePath::Core13
 				: (hasSynchronization2Extension && synchronization.synchronization2
 					? FeaturePath::KhrExtension : FeaturePath::Legacy);
+			out.pipelineStatisticsQuery = f2.features.pipelineStatisticsQuery == VK_TRUE;
 			return true;
 		};
 
@@ -430,6 +432,7 @@ namespace pvz {
 		mApiVersion = selected.apiVersion;
 		mDynamicRenderingPath = selected.dynamicRendering;
 		mSynchronizationPath = selected.synchronization;
+		mPipelineStatisticsQueryEnabled = selected.pipelineStatisticsQuery;
 		LOG_INFO("VulkanContext") << "Selected GPU: " << selected.properties.deviceName
 			<< " (api " << VK_VERSION_MAJOR(mApiVersion)
 			<< "." << VK_VERSION_MINOR(mApiVersion)
@@ -487,6 +490,7 @@ namespace pvz {
 
 		VkPhysicalDeviceFeatures2 f2{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
 		f2.pNext = &f12;
+		f2.features.pipelineStatisticsQuery = mPipelineStatisticsQueryEnabled ? VK_TRUE : VK_FALSE;
 
 		std::vector<const char*> extensions{ VK_KHR_SWAPCHAIN_EXTENSION_NAME };
 		if (mDynamicRenderingPath == FeaturePath::KhrExtension)
@@ -559,7 +563,7 @@ namespace pvz {
 		uint32_t imageCount = caps.minImageCount + 1;
 		if (caps.maxImageCount > 0 && imageCount > caps.maxImageCount) imageCount = caps.maxImageCount;
 
-		// Present mode：vsync=true 必走 FIFO（spec 强制支持）；vsync=false 优先 MAILBOX、其次 IMMEDIATE，
+		// Present mode：vsync=true 必走 FIFO（spec 强制支持）；vsync=false 优先 IMMEDIATE、其次 MAILBOX，
 		// 都没有再回落 FIFO。
 		uint32_t pmCount = 0;
 		VK_CHECK(vkGetPhysicalDeviceSurfacePresentModesKHR(mPhysicalDevice, mSurface, &pmCount, nullptr));
@@ -571,8 +575,8 @@ namespace pvz {
 
 		VkPresentModeKHR chosenPresentMode = VK_PRESENT_MODE_FIFO_KHR;
 		if (!vsync) {
-			if (has(VK_PRESENT_MODE_MAILBOX_KHR))        chosenPresentMode = VK_PRESENT_MODE_MAILBOX_KHR;
-			else if (has(VK_PRESENT_MODE_IMMEDIATE_KHR)) chosenPresentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
+			if (has(VK_PRESENT_MODE_IMMEDIATE_KHR))      chosenPresentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
+			else if (has(VK_PRESENT_MODE_MAILBOX_KHR))   chosenPresentMode = VK_PRESENT_MODE_MAILBOX_KHR;
 		}
 
 		VkSwapchainCreateInfoKHR sci{ VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR };
