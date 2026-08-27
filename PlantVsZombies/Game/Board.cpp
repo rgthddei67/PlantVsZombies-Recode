@@ -930,9 +930,7 @@ Board::Board(BoardPresentation* presentation, Background background, int level)
 	mPresentation = presentation;
 	mLevel = level;
 	mBackGround = background;
-	mIsSurvival = (level == SURVIVAL_ENDLESS_LEVEL
-		|| level == SURVIVAL_ENDLESS_NIGHT_LEVEL
-		|| level == SURVIVAL_ENDLESS_POOL_LEVEL);
+	mIsSurvival = IsSurvivalEndlessLevel(level);
 
 	if (mLevel >= 1)
 	{
@@ -4679,10 +4677,8 @@ float Board::GetMowerTerrainY(int row, float worldX) const
 
 bool Board::SupportsWeather() const
 {
-	// 基础天气保留唯一的进度门槛：正式一大关不启用；三种无尽地图均独立启用。
-	if (mLevel == SURVIVAL_ENDLESS_LEVEL
-		|| mLevel == SURVIVAL_ENDLESS_NIGHT_LEVEL
-		|| mLevel == SURVIVAL_ENDLESS_POOL_LEVEL) return true;
+	// 基础天气保留唯一的进度门槛：正式一大关不启用；所有无尽地形均独立启用。
+	if (mIsSurvival) return true;
 	return AdventureProgression::IsAdventureLevel(mLevel)
 		&& AdventureProgression::GetAreaNumber(mLevel) >= 2;
 }
@@ -8282,9 +8278,9 @@ void Board::BuildSurvivalSpawnList(int round)
 	{
 		ZombieType t = static_cast<ZombieType>(i);
 		if (t == ZombieType::ZOMBIE_NORMAL) continue;
-		// 粉色橄榄球是黑夜专属变体；冒险关由 spawnlists.json 控制，这里只隔离两种无尽模式。
+		// 粉色橄榄球是黑夜专属变体；冒险关由 spawnlists.json 控制，这里按无尽背景隔离。
 		if (t == ZombieType::ZOMBIE_PINK_FOOTBALL
-			&& mLevel != SURVIVAL_ENDLESS_NIGHT_LEVEL) continue;
+			&& !GameAPP::GetInstance().GetBackgroundIsNight(mBackGround)) continue;
 		int base = GameDataManager::GetInstance().GetZombieSurvivalRound(t);
 		if (base < 1) continue;                              // 0 = 不进生存
 		if (GameDataManager::GetInstance().GetZombieWeight(t) <= 0) continue; // 伴舞等召唤单位不独立占池位
@@ -8330,18 +8326,10 @@ void Board::BuildSurvivalSpawnList(int round)
 
 void Board::UpdateSurvivalLevelName()
 {
-	if (mLevel == SURVIVAL_ENDLESS_LEVEL) {
-		mLevelName = u8"生存模式：白天无尽 第" + std::to_string(mSurvivalRound) + u8"轮";
-	}
-	else if (mLevel == SURVIVAL_ENDLESS_NIGHT_LEVEL) {
-		mLevelName = u8"生存模式：黑夜无尽 第" + std::to_string(mSurvivalRound) + u8"轮";
-	}
-	else if (mLevel == SURVIVAL_ENDLESS_POOL_LEVEL) {
-		mLevelName = u8"生存模式：泳池无尽 第" + std::to_string(mSurvivalRound) + u8"轮";
-	}
-	else {
-		mLevelName = u8"生存模式：未知无尽 第" + std::to_string(mSurvivalRound) + u8"轮";
-	}
+	const auto* definition = FindSurvivalEndlessDefinition(mLevel);
+	const std::string label = definition ? definition->label : u8"未知无尽";
+	mLevelName = std::string(u8"生存模式：") + label + u8" 第"
+		+ std::to_string(mSurvivalRound) + u8"轮";
 }
 
 void Board::LoadSpawnListFromJson()

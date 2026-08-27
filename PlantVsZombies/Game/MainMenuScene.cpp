@@ -48,9 +48,8 @@ void MainMenuScene::Update()
 		auto& SceneMgr = SceneManager::GetInstance();
 
 		gameApp.GetGraphics().SetCameraPosition(0, 0);
-
-		SceneMgr.SetGlobalData("EnterLevel", std::to_string(gameApp.mAdventureLevel));
-		SceneMgr.SwitchTo("GameScene");
+		SceneMgr.SetGlobalData("GameSelectMode", "adventure");
+		SceneMgr.SwitchTo("GameSelectScene");
 		return;
 	}
 	if (mReadyToSkipToSecondArea) {
@@ -70,7 +69,8 @@ void MainMenuScene::Update()
 		auto& gameApp = GameAPP::GetInstance();
 		auto& SceneMgr = SceneManager::GetInstance();
 		gameApp.GetGraphics().SetCameraPosition(0, 0);
-		// 不再直进无尽关，先进「选择关卡」界面，由玩家选择白天、黑夜或泳池无尽。
+		// 不再直进无尽关，先进「选择关卡」界面，由玩家选择具体无尽地形。
+		SceneMgr.SetGlobalData("GameSelectMode", "survival");
 		SceneMgr.SwitchTo("GameSelectScene");
 		return;
 	}

@@ -15,6 +15,7 @@
 #include "../GameObjectManager.h"
 #include "../AdventureProgression.h"
 #include "../AnimatedObject.h"
+#include "../GameSelectScene.h"
 #include "../ZombieAlmanacScene.h"
 #include "../ChooseCardUI.h"
 #include "../Board.h"
@@ -2974,6 +2975,44 @@ bool TestDriver::ExecuteCurrent() {
 			x = center.x;
 			y = center.y;
 		}
+		else if (target == "game_select_previous_page") {
+			auto* selectScene = dynamic_cast<GameSelectScene*>(
+				SceneManager::GetInstance().GetCurrentScene());
+			auto button = selectScene ? selectScene->GetPreviousPageButton() : nullptr;
+			if (!button || !button->IsEnabled() || button->IsSkipDraw()) {
+				Fail("click target=game_select_previous_page: 关卡选择上一页按钮不存在或不可用");
+				return false;
+			}
+			const Vector center = button->GetCenter();
+			x = center.x;
+			y = center.y;
+		}
+		else if (target == "game_select_next_page") {
+			auto* selectScene = dynamic_cast<GameSelectScene*>(
+				SceneManager::GetInstance().GetCurrentScene());
+			auto button = selectScene ? selectScene->GetNextPageButton() : nullptr;
+			if (!button || !button->IsEnabled() || button->IsSkipDraw()) {
+				Fail("click target=game_select_next_page: 关卡选择下一页按钮不存在或不可用");
+				return false;
+			}
+			const Vector center = button->GetCenter();
+			x = center.x;
+			y = center.y;
+		}
+		else if (target == "game_select_level") {
+			auto* selectScene = dynamic_cast<GameSelectScene*>(
+				SceneManager::GetInstance().GetCurrentScene());
+			const int level = cmd.value("level", -1);
+			auto button = selectScene ? selectScene->GetCardButton(level) : nullptr;
+			if (!button || !button->IsEnabled() || button->IsSkipDraw()) {
+				Fail("click target=game_select_level: 关卡未解锁、未创建或不在当前页: "
+					+ std::to_string(level));
+				return false;
+			}
+			const Vector center = button->GetCenter();
+			x = center.x;
+			y = center.y;
+		}
 		else if (target == "choose_card") {
 			GameScene* gs = CurrentGameScene();
 			ChooseCardUI* ui = gs ? gs->GetChooseCardUI() : nullptr;
@@ -3854,6 +3893,47 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 
 	// 主菜单没有 Board，但仍允许测试读取上方 GameAPP 级设置，覆盖真实按钮切换路径。
 	if (currentScene->name == "MainMenuScene") {
+		return true;
+	}
+
+	if (auto* selectScene = dynamic_cast<GameSelectScene*>(currentScene)) {
+		out["gameSelectMode"] = selectScene->GetSelectMode()
+			== GameSelectScene::SelectMode::ADVENTURE ? "ADVENTURE" : "SURVIVAL";
+		out["gameSelectAvailableLevels"] = selectScene->GetAvailableLevels();
+		out["gameSelectAvailableLevelCount"] = static_cast<int>(
+			selectScene->GetAvailableLevels().size());
+		out["gameSelectPageIndex"] = selectScene->GetCurrentPage();
+		out["gameSelectPageNumber"] = selectScene->GetCurrentPage() + 1;
+		out["gameSelectPageCount"] = selectScene->GetPageCount();
+		out["gameSelectVisibleLevels"] = selectScene->GetCurrentPageLevels();
+		out["gameSelectCreatedCardCount"] = static_cast<int>(
+			selectScene->GetCurrentPageLevels().size());
+		out["gameSelectVisibleCompleted"] = nlohmann::json::array();
+		for (int level : selectScene->GetCurrentPageLevels()) {
+			out["gameSelectVisibleCompleted"].push_back(
+				selectScene->IsAdventureLevelCompleted(level));
+		}
+		out["gameSelectTrophyTextureLoaded"] = ResourceManager::GetInstance().GetTexture(
+			ResourceKeys::Textures::IMAGE_MINIGAME_TROPHY, false) != nullptr;
+
+		auto exportPageButton = [](const std::shared_ptr<Button>& button) {
+			nlohmann::json state = nullptr;
+			if (!button) return state;
+			const Vector center = button->GetCenter();
+			state = {
+				{ "enabled", button->IsEnabled() },
+				{ "visible", !button->IsSkipDraw() },
+				{ "rotationDegrees", static_cast<int>(std::lround(
+					button->GetImageRotationDegrees())) },
+				{ "centerXInt", static_cast<int>(std::lround(center.x)) },
+				{ "centerYInt", static_cast<int>(std::lround(center.y)) },
+			};
+			return state;
+		};
+		out["gameSelectPreviousPageButton"] = exportPageButton(
+			selectScene->GetPreviousPageButton());
+		out["gameSelectNextPageButton"] = exportPageButton(
+			selectScene->GetNextPageButton());
 		return true;
 	}
 

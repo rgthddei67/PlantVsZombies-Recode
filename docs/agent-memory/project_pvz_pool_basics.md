@@ -26,6 +26,10 @@ metadata:
 `WATER_POOL` 的六行、水路、动态水面、睡莲、地形僵尸替换和日间泳池阳光经济，并通过独立
 关卡号隔离存档；无尽出怪池仍由正式生存轮次表构建，再按泳池地形过滤与选行。
 
+2026-08-27 新增 `SURVIVAL_ENDLESS_NIGHT_POOL_LEVEL=1003`“黑夜泳池无尽”，同样复用六行、
+水路、动态夜间水面和水路出怪过滤，并由 `NIGHT_WATER_POOL` 背景自然启用基础雾与独立雾势；
+它与 1002 使用不同关卡号，存档互不覆盖。
+
 ## 核心契约
 
 - `Background::WATER_POOL` 与其他背景共用 `mBackgroundY`，不再额外上移；日间/夜间泳池的六行网格首行顶部均为 Y=85。泳池使用 6 行、85px 行高，0-based 第 2/3 行是水路，列宽仍为 80px。网格派生位置必须通过 `Board::GetCellCenterPosition/GetCellHeight`。

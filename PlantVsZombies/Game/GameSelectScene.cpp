@@ -1,30 +1,104 @@
 #include "GameSelectScene.h"
-#include "SceneManager.h"
-#include "../GameApp.h"
+
+#include "AdventureProgression.h"
 #include "AudioSystem.h"
 #include "Board.h"
-#include "../Logger.h"
+#include "SceneManager.h"
+#include "../GameApp.h"
+
 #include <SDL2/SDL_ttf.h>
+
+#include <algorithm>
 #include <string>
 
 namespace {
-// 在以 (centerX,centerY) 为中心、最大宽度 maxWidth 的范围内绘制文字：
-// 用 TTF_SizeUTF8 真实测量像素宽高，自最大字号往下试，直到放得下，再按真实宽高
-// 水平+垂直居中。复刻 PlantAlmanacScene 的「TTF 测宽 + 字号自适应」思路。
+constexpr int SELECT_COLUMNS = 6; // 每页卡片列数
+constexpr int SELECT_ROWS = 3; // 每页卡片行数
+constexpr int SELECT_ENTRIES_PER_PAGE = SELECT_COLUMNS * SELECT_ROWS; // 每页最多关卡数
+constexpr float CARD_SCALE = 0.95f; // Challenge_Window 原图的显示倍率
+constexpr float CARD_WIDTH = 118.0f * CARD_SCALE; // 关卡卡片宽度，单位：逻辑像素
+constexpr float CARD_HEIGHT = 120.0f * CARD_SCALE; // 关卡卡片高度，单位：逻辑像素
+constexpr float CARD_START_X = 115.0f; // 第一列卡片左上角 X
+constexpr float CARD_START_Y = 125.0f; // 第一行卡片左上角 Y
+constexpr float CARD_PITCH_X = 150.0f; // 相邻卡片列间距，单位：逻辑像素
+constexpr float CARD_PITCH_Y = 140.0f; // 相邻卡片行间距，单位：逻辑像素
+constexpr float PREVIOUS_PAGE_BUTTON_X = 180.0f; // 左下翻页按钮 X，避开返回按钮的右边界 169
+constexpr float NEXT_PAGE_BUTTON_X = 1015.0f; // 右下翻页按钮 X
+constexpr float PAGE_BUTTON_Y = 535.0f; // 翻页按钮 Y，避开第三行卡片
+constexpr float PAGE_BUTTON_SIZE = 60.0f; // 复用 Zen_NextGarden 原图尺寸
+constexpr float PAGE_BACK_ROTATION = 180.0f; // 上一页箭头朝向，单位：度
+constexpr float PAGE_FORWARD_ROTATION = 0.0f; // 下一页箭头朝向，单位：度
+constexpr float FALLBACK_CROP_LEFT_RATIO = 0.56f; // 无缩略图时正式背景裁剪区的归一化左边界
+constexpr float FALLBACK_CROP_TOP_RATIO = 0.12f; // 无缩略图时正式背景裁剪区的归一化上边界
+constexpr float FALLBACK_CROP_WIDTH_RATIO = 0.19f; // 无缩略图时正式背景裁剪区的归一化宽度
+
+struct PreviewSource {
+	const std::string* textureKey = nullptr;
+	bool cropFromBackground = false;
+};
+
+Vector GetCardPosition(std::size_t pageIndex)
+{
+	const int row = static_cast<int>(pageIndex) / SELECT_COLUMNS;
+	const int column = static_cast<int>(pageIndex) % SELECT_COLUMNS;
+	return Vector(CARD_START_X + column * CARD_PITCH_X,
+		CARD_START_Y + row * CARD_PITCH_Y);
+}
+
+PreviewSource GetPreviewSource(int level)
+{
+	switch (GameAPP::GetInstance().GetBackgroundID(level)) {
+	case Background::GROUND_DAY:
+		return { &ResourceKeys::Textures::IMAGE_ALMANAC_GROUNDDAY, false };
+	case Background::GROUND_NIGHT:
+		return { &ResourceKeys::Textures::IMAGE_ALMANAC_GROUNDNIGHT, false };
+	case Background::WATER_POOL:
+		return { &ResourceKeys::Textures::IMAGE_ALMANAC_GROUNDPOOL, false };
+	case Background::NIGHT_WATER_POOL:
+		return { &ResourceKeys::Textures::IMAGE_BACKGROUND_NIGHTPOOL, true };
+	case Background::ROOF:
+		return { &ResourceKeys::Textures::IMAGE_BACKGROUND_ROOF, true };
+	case Background::NIGHT_ROOF:
+		return { &ResourceKeys::Textures::IMAGE_BACKGROUND_NIGHTROOF, true };
+	case Background::WINTER_GARDEN:
+		return { &ResourceKeys::Textures::IMAGE_BACKGROUND_WINTERGARDEN, true };
+	}
+	return { &ResourceKeys::Textures::IMAGE_BACKGROUND_DAY, true };
+}
+
+std::string GetLevelLabel(GameSelectScene::SelectMode mode, int level)
+{
+	if (mode == GameSelectScene::SelectMode::ADVENTURE) {
+		return std::to_string(AdventureProgression::GetAreaNumber(level)) + "-"
+			+ std::to_string(AdventureProgression::GetLevelNumberInArea(level));
+	}
+	if (const auto* definition = FindSurvivalEndlessDefinition(level)) {
+		return definition->label;
+	}
+	return std::to_string(level);
+}
+
+// 在指定中心和最大宽度内按真实字形尺寸缩小并居中文字。
 void DrawFittedCenteredText(GameAPP& app, const std::string& text,
 	float centerX, float centerY, float maxWidth, const glm::vec4& color,
 	const std::string& fontKey, int maxSize, int minSize)
 {
-	int fs = minSize, tw = 0, th = 0;
-	for (int s = maxSize; s >= minSize; --s) {
-		TTF_Font* font = ResourceManager::GetInstance().GetFont(fontKey, s);
-		int w = 0, h = 0;
-		if (font) TTF_SizeUTF8(font, text.c_str(), &w, &h);
-		fs = s; tw = w; th = h;
-		if (w <= maxWidth) break;   // 当前字号已能装下 → 采用
+	int fontSize = minSize;
+	int textWidth = 0;
+	int textHeight = 0;
+	for (int size = maxSize; size >= minSize; --size) {
+		TTF_Font* font = ResourceManager::GetInstance().GetFont(fontKey, size);
+		int width = 0;
+		int height = 0;
+		if (font) TTF_SizeUTF8(font, text.c_str(), &width, &height);
+		fontSize = size;
+		textWidth = width;
+		textHeight = height;
+		if (width <= maxWidth) break;
 	}
-	app.DrawText(text, Vector(centerX - tw * 0.5f, centerY - th * 0.5f),
-		color, fontKey, fs);
+	app.DrawText(text,
+		Vector(centerX - textWidth * 0.5f, centerY - textHeight * 0.5f),
+		color, fontKey, fontSize);
 }
 } // namespace
 
@@ -32,11 +106,10 @@ void GameSelectScene::BuildDrawCommands()
 {
 	Scene::BuildDrawCommands();
 
-	// 背景：Challenge_Background.png 为 1280x720，缩放铺满 1100x600 逻辑画面
+	// Challenge_Background 为 1280x720，铺满本项目 1100x600 的逻辑画面。
 	AddTexture(ResourceKeys::Textures::IMAGE_CHALLENGE_BACKGROUND,
 		0.0f, 0.0f, 1100.0f / 1280.0f, 600.0f / 720.0f, -1000, false);
 
-	// 左下角「返回菜单」按钮（位置/尺寸/样式照搬 AlmanacScene）
 	mBackMenuButton = mUIManager.CreateButton(Vector(7, 560), Vector(162, 26));
 	mBackMenuButton->SetAsCheckbox(false);
 	mBackMenuButton->SetImageKeys(
@@ -48,92 +121,220 @@ void GameSelectScene::BuildDrawCommands()
 	mBackMenuButton->SetTextColor(glm::vec4(52, 51, 93, 255));
 	mBackMenuButton->SetHoverTextColor(glm::vec4(52, 51, 93, 255));
 	mBackMenuButton->SetClickCallBack([this](bool) {
-		this->mReadyToSwitchMainMenu = true;
-		});
+		mReadyToSwitchMainMenu = true;
+	});
 
-	// ===== 关卡卡片：白天、黑夜、泳池三种无尽；其余暂注释 =====
-	const float kCardScale = 0.95f;           // Challenge_Window 原始 118x120
-	const float kPitchX = 150.0f;             // 列间距
-	const float kCol0X = 115.0f;              // 第一列左上角 x
-	const float kRow1Y = 150.0f;              // 第 1 行 y
-	// const float kRow2Y = 320.0f;           // 第 2 行 y（启用更多卡片时再用）
-	const float kCardW = 118.0f * kCardScale;
-	const float kCardH = 120.0f * kCardScale;
+	mPreviousPageButton = mUIManager.CreateButton(
+		Vector(PREVIOUS_PAGE_BUTTON_X, PAGE_BUTTON_Y),
+		Vector(PAGE_BUTTON_SIZE, PAGE_BUTTON_SIZE));
+	mPreviousPageButton->SetAsCheckbox(false);
+	mPreviousPageButton->SetImageKeys(ResourceKeys::Textures::IMAGE_ZEN_NEXTGARDEN,
+		ResourceKeys::Textures::IMAGE_ZEN_NEXTGARDEN,
+		ResourceKeys::Textures::IMAGE_ZEN_NEXTGARDEN);
+	mPreviousPageButton->SetImageRotationDegrees(PAGE_BACK_ROTATION);
+	mPreviousPageButton->SetClickCallBack([this](bool) {
+		mPendingPageDelta = -1;
+	});
 
-	// makeCard：点击置 mPendingEnterLevel(>=0)，由 Update 统一进 GameScene（不在回调内切场景）
-	// groundKey：垫在卡框图标开口下的地面预览图（白天/黑夜），最底层、被卡框挡住只露开口
-	auto makeCard = [this, kCardW, kCardH, kCardScale](float x, float y, int enterLevel,
-		const std::string& groundKey) {
-		// 底层地面图：填入卡框图标开口(native x[20..96] y[8..66] of 118x120)，
-		// drawOrder -900(在羊皮纸 -1000 之上、卡框 LAYER_UI 之下)，被卡框只露开口
-		if (const Texture* tex = ResourceManager::GetInstance().GetTexture(groundKey)) {
-			const float bleed = 2.0f;                  // 略外扩，边缘掖进卡框边框下
-			float ox = 20.0f * kCardScale - bleed;
-			float oy = 8.0f * kCardScale - bleed;
-			float ow = 77.0f * kCardScale + 2 * bleed;
-			float oh = 59.0f * kCardScale + 2 * bleed;
-			AddTexture(groundKey, x + ox, y + oy,
-				ow / tex->width, oh / tex->height, -900, false);
+	mNextPageButton = mUIManager.CreateButton(
+		Vector(NEXT_PAGE_BUTTON_X, PAGE_BUTTON_Y),
+		Vector(PAGE_BUTTON_SIZE, PAGE_BUTTON_SIZE));
+	mNextPageButton->SetAsCheckbox(false);
+	mNextPageButton->SetImageKeys(ResourceKeys::Textures::IMAGE_ZEN_NEXTGARDEN,
+		ResourceKeys::Textures::IMAGE_ZEN_NEXTGARDEN,
+		ResourceKeys::Textures::IMAGE_ZEN_NEXTGARDEN);
+	mNextPageButton->SetImageRotationDegrees(PAGE_FORWARD_ROTATION);
+	mNextPageButton->SetClickCallBack([this](bool) {
+		mPendingPageDelta = 1;
+	});
+
+	CreateCurrentPageCards();
+	RefreshPageButtonState();
+
+	// 地面预览必须随当前页变化，因此使用动态绘制命令而不是静态 Scene 纹理列表。
+	RegisterDrawCommand("DrawSelectGroundPreviews", [this](Graphics* graphics) {
+		for (std::size_t index = 0; index < mCurrentPageLevels.size(); ++index) {
+			const Vector cardPosition = GetCardPosition(index);
+			const PreviewSource preview = GetPreviewSource(mCurrentPageLevels[index]);
+			const Texture* texture = preview.textureKey
+				? ResourceManager::GetInstance().GetTexture(*preview.textureKey) : nullptr;
+			if (!texture) continue;
+
+			constexpr float bleed = 2.0f; // 预览略伸入卡框，避免透明开口边缘出现缝隙
+			const float offsetX = 20.0f * CARD_SCALE - bleed;
+			const float offsetY = 8.0f * CARD_SCALE - bleed;
+			const float width = 77.0f * CARD_SCALE + 2.0f * bleed;
+			const float height = 59.0f * CARD_SCALE + 2.0f * bleed;
+			const float previewX = cardPosition.x + offsetX;
+			const float previewY = cardPosition.y + offsetY;
+
+			if (!preview.cropFromBackground) {
+				graphics->DrawTexture(texture, previewX, previewY, width, height);
+				continue;
+			}
+
+			// 没有专用缩略图时，从对应正式背景的同一归一化区域裁出预览。
+			const float sourceX = texture->width * FALLBACK_CROP_LEFT_RATIO;
+			const float sourceY = texture->height * FALLBACK_CROP_TOP_RATIO;
+			const float sourceWidth = texture->width * FALLBACK_CROP_WIDTH_RATIO;
+			const float scale = width / sourceWidth;
+			graphics->PushClipRect(static_cast<int>(previewX), static_cast<int>(previewY),
+				static_cast<int>(width + 1.0f), static_cast<int>(height + 1.0f));
+			graphics->DrawTexture(texture,
+				previewX - sourceX * scale,
+				previewY - sourceY * scale,
+				texture->width * scale, texture->height * scale);
+			graphics->PopClipRect();
+		}
+	}, LAYER_UI - 1);
+
+	RegisterDrawCommand("DrawSelectTexts", [this](Graphics*) {
+		auto& gameApp = GameAPP::GetInstance();
+		const std::string title = mSelectMode == SelectMode::ADVENTURE
+			? u8"选择冒险关卡" : u8"选择生存关卡";
+		DrawFittedCenteredText(gameApp, title, 552.0f, 82.0f, 500.0f,
+			glm::vec4(0, 0, 0, 255), ResourceKeys::Fonts::FONT_FZJZ, 37, 24);
+		DrawFittedCenteredText(gameApp, title, 550.0f, 80.0f, 500.0f,
+			glm::vec4(219, 219, 219, 219), ResourceKeys::Fonts::FONT_FZJZ, 37, 24);
+
+		for (std::size_t index = 0; index < mCurrentPageLevels.size(); ++index) {
+			const Vector cardPosition = GetCardPosition(index);
+			if (IsAdventureLevelCompleted(mCurrentPageLevels[index])) {
+				if (const Texture* trophy = ResourceManager::GetInstance().GetTexture(
+					ResourceKeys::Textures::IMAGE_MINIGAME_TROPHY)) {
+					// 沿用经典 MiniGamesWidget 的左上角原生奖杯覆盖位置，并随卡框等比缩放。
+					gameApp.GetGraphics().DrawTexture(trophy,
+						cardPosition.x + 3.0f * CARD_SCALE,
+						cardPosition.y + 6.0f * CARD_SCALE,
+						trophy->width * CARD_SCALE, trophy->height * CARD_SCALE);
+				}
+			}
+			DrawFittedCenteredText(gameApp,
+				GetLevelLabel(mSelectMode, mCurrentPageLevels[index]),
+				cardPosition.x + CARD_WIDTH * 0.5f,
+				cardPosition.y + CARD_HEIGHT * 0.73f,
+				CARD_WIDTH * 0.82f, glm::vec4(46, 46, 84, 255),
+				ResourceKeys::Fonts::FONT_FZJZ, 16, 9);
 		}
 
-		auto card = mUIManager.CreateButton(Vector(x, y), Vector(kCardW, kCardH));
+		if (GetPageCount() > 1) {
+			const std::string pageText = std::to_string(mCurrentPage + 1) + " / "
+				+ std::to_string(GetPageCount());
+			DrawFittedCenteredText(gameApp, pageText, 550.0f, 573.0f, 160.0f,
+				glm::vec4(52, 51, 93, 255), ResourceKeys::Fonts::FONT_FZJZ, 18, 14);
+		}
+	}, LAYER_UI + 100);
+
+	SortDrawCommands();
+}
+
+void GameSelectScene::BuildAvailableLevels()
+{
+	mAvailableLevels.clear();
+	if (mSelectMode == SelectMode::ADVENTURE) {
+		const int unlockedLevel = std::clamp(GameAPP::GetInstance().mAdventureLevel,
+			1, AdventureProgression::LAST_ADVENTURE_LEVEL);
+		mAvailableLevels.reserve(static_cast<std::size_t>(unlockedLevel));
+		for (int level = 1; level <= unlockedLevel; ++level) {
+			mAvailableLevels.push_back(level);
+		}
+		return;
+	}
+
+	mAvailableLevels.reserve(SURVIVAL_ENDLESS_DEFINITIONS.size());
+	for (const auto& definition : SURVIVAL_ENDLESS_DEFINITIONS) {
+		mAvailableLevels.push_back(definition.level);
+	}
+}
+
+int GameSelectScene::GetPageCount() const
+{
+	return std::max(1, static_cast<int>((mAvailableLevels.size()
+		+ SELECT_ENTRIES_PER_PAGE - 1) / SELECT_ENTRIES_PER_PAGE));
+}
+
+bool GameSelectScene::IsAdventureLevelCompleted(int level) const
+{
+	return mSelectMode == SelectMode::ADVENTURE
+		&& AdventureProgression::IsAdventureLevel(level)
+		&& level < GameAPP::GetInstance().mAdventureLevel;
+}
+
+void GameSelectScene::CreateCurrentPageCards()
+{
+	for (const auto& card : mCards) {
+		mUIManager.RemoveButton(card);
+	}
+	mCards.clear();
+	mCurrentPageLevels.clear();
+
+	const std::size_t first = static_cast<std::size_t>(mCurrentPage)
+		* SELECT_ENTRIES_PER_PAGE;
+	const std::size_t last = std::min(first + SELECT_ENTRIES_PER_PAGE,
+		mAvailableLevels.size());
+	if (first >= last) return;
+	mCurrentPageLevels.assign(mAvailableLevels.begin() + first,
+		mAvailableLevels.begin() + last);
+
+	for (std::size_t index = 0; index < mCurrentPageLevels.size(); ++index) {
+		const int enterLevel = mCurrentPageLevels[index];
+		const Vector position = GetCardPosition(index);
+		auto card = mUIManager.CreateButton(position, Vector(CARD_WIDTH, CARD_HEIGHT));
 		card->SetAsCheckbox(false);
-		card->SetImageKeys(
-			ResourceKeys::Textures::IMAGE_CHALLENGE_WINDOW,
+		card->SetImageKeys(ResourceKeys::Textures::IMAGE_CHALLENGE_WINDOW,
 			ResourceKeys::Textures::IMAGE_CHALLENGE_WINDOW_HIGHLIGHT,
 			ResourceKeys::Textures::IMAGE_CHALLENGE_WINDOW_HIGHLIGHT,
 			ResourceKeys::Textures::IMAGE_CHALLENGE_WINDOW_HIGHLIGHT);
 		card->SetClickCallBack([this, enterLevel](bool) {
 			mPendingEnterLevel = enterLevel;
-			});
-		mCards.push_back(card);
-	};
+		});
+		mCards.push_back(std::move(card));
+	}
+}
 
-	makeCard(kCol0X + kPitchX * 0, kRow1Y, SURVIVAL_ENDLESS_LEVEL,
-		ResourceKeys::Textures::IMAGE_ALMANAC_GROUNDDAY);   // 卡1：白天无尽
-	makeCard(kCol0X + kPitchX * 1, kRow1Y, SURVIVAL_ENDLESS_NIGHT_LEVEL,
-		ResourceKeys::Textures::IMAGE_ALMANAC_GROUNDNIGHT); // 卡2：黑夜无尽
-	makeCard(kCol0X + kPitchX * 2, kRow1Y, SURVIVAL_ENDLESS_POOL_LEVEL,
-		ResourceKeys::Textures::IMAGE_ALMANAC_GROUNDPOOL);  // 卡3：泳池无尽
+void GameSelectScene::RefreshPageButtonState()
+{
+	const int pageCount = GetPageCount();
+	mCurrentPage = std::clamp(mCurrentPage, 0, pageCount - 1);
+	if (mPreviousPageButton) {
+		const bool visible = mCurrentPage > 0;
+		mPreviousPageButton->SetEnabled(visible);
+		mPreviousPageButton->SetSkipDraw(!visible);
+		mPreviousPageButton->SetImageRotationDegrees(PAGE_BACK_ROTATION);
+	}
+	if (mNextPageButton) {
+		const bool visible = mCurrentPage + 1 < pageCount;
+		mNextPageButton->SetEnabled(visible);
+		mNextPageButton->SetSkipDraw(!visible);
+		mNextPageButton->SetImageRotationDegrees(PAGE_FORWARD_ROTATION);
+	}
+}
 
-	// 多余的关卡方框（暂注释，后续接入更多模式时再启用；启用时同步上方 kLabels 与 kRow2Y）：
-	// makeCard(kCol0X + kPitchX * 3, kRow1Y, /* level */ -1);
-	// makeCard(kCol0X + kPitchX * 4, kRow1Y, /* level */ -1);
-	// makeCard(kCol0X + kPitchX * 5, kRow1Y, /* level */ -1);
-	// makeCard(kCol0X + kPitchX * 0, kRow2Y, /* level */ -1);
-	// makeCard(kCol0X + kPitchX * 1, kRow2Y, /* level */ -1);
-	// makeCard(kCol0X + kPitchX * 2, kRow2Y, /* level */ -1);
-
-	// ===== 顶部标题 + 9 个占位标签：TTF_SizeUTF8 真实测宽自适应居中（参考 PlantAlmanacScene） =====
-	RegisterDrawCommand("DrawSelectTexts",
-		[kCol0X, kPitchX, kRow1Y, kCardW, kCardH](Graphics* g) {
-			auto& gameApp = GameAPP::GetInstance();
-
-			// 绘制两行灰色阴影（偏下 2px）以增强可读性
-			DrawFittedCenteredText(gameApp, u8"选择关卡", 552.0f, 82.0f, 500.0f,
-				glm::vec4(0, 0, 0, 255), ResourceKeys::Fonts::FONT_FZJZ, 37, 24);
-			// 顶部标题：居中于木牌中心 (551, 88)，木牌内宽约 560，自适应字号 37→24
-			DrawFittedCenteredText(gameApp, u8"选择关卡", 550.0f, 80.0f, 500.0f,
-				glm::vec4(219, 219, 219, 219), ResourceKeys::Fonts::FONT_FZJZ, 37, 24);
-
-			// 卡片标签与 makeCard 顺序一致，居中于灰色标签条。
-			static const char* kLabels[3] = { u8"白天无尽", u8"黑夜无尽", u8"泳池无尽" };
-			auto drawLabel = [&](int index, float x, float y) {
-				float cx = x + kCardW * 0.5f;
-				float cy = y + kCardH * 0.73f;
-				DrawFittedCenteredText(gameApp, kLabels[index], cx, cy, kCardW * 0.82f,
-					glm::vec4(46, 46, 84, 255), ResourceKeys::Fonts::FONT_FZJZ, 16, 9);
-			};
-			for (int i = 0; i < 3; ++i) drawLabel(i, kCol0X + kPitchX * i, kRow1Y);
-		},
-		LAYER_UI + 100);
-
-	SortDrawCommands();
+std::shared_ptr<Button> GameSelectScene::GetCardButton(int level) const
+{
+	for (std::size_t index = 0; index < mCurrentPageLevels.size(); ++index) {
+		if (mCurrentPageLevels[index] == level && index < mCards.size()) {
+			return mCards[index];
+		}
+	}
+	return nullptr;
 }
 
 void GameSelectScene::Update()
 {
 	Scene::Update();
+
+	// 按钮回调只登记翻页请求；离开 ButtonManager 遍历后再安全替换当前页按钮。
+	if (mPendingPageDelta != 0) {
+		const int targetPage = std::clamp(mCurrentPage + mPendingPageDelta,
+			0, GetPageCount() - 1);
+		mPendingPageDelta = 0;
+		if (targetPage != mCurrentPage) {
+			mCurrentPage = targetPage;
+			CreateCurrentPageCards();
+			RefreshPageButtonState();
+		}
+	}
 
 	if (mReadyToSwitchMainMenu) {
 		mReadyToSwitchMainMenu = false;
@@ -141,19 +342,26 @@ void GameSelectScene::Update()
 		return;
 	}
 	if (mPendingEnterLevel >= 0) {
-		int enterLevel = mPendingEnterLevel;
+		const int enterLevel = mPendingEnterLevel;
 		mPendingEnterLevel = -1;
 		auto& gameApp = GameAPP::GetInstance();
-		auto& sceneMgr = SceneManager::GetInstance();
+		auto& sceneManager = SceneManager::GetInstance();
 		gameApp.GetGraphics().SetCameraPosition(0, 0);
-		sceneMgr.SetGlobalData("EnterLevel", std::to_string(enterLevel));
-		sceneMgr.SwitchTo("GameScene");
-		return;
+		sceneManager.SetGlobalData("EnterLevel", std::to_string(enterLevel));
+		sceneManager.SwitchTo("GameScene");
 	}
 }
 
 void GameSelectScene::OnEnter()
 {
+	const std::string mode = SceneManager::GetInstance().GetGlobalData(
+		"GameSelectMode", "survival");
+	mSelectMode = mode == "adventure" ? SelectMode::ADVENTURE : SelectMode::SURVIVAL;
+	mCurrentPage = 0;
+	mPendingPageDelta = 0;
+	mPendingEnterLevel = -1;
+	mReadyToSwitchMainMenu = false;
+	BuildAvailableLevels();
 	Scene::OnEnter();
 	AudioSystem::PlayMusic(ResourceKeys::Music::MUSIC_CHOOSEYOURSEEDS, -1);
 }
@@ -161,6 +369,10 @@ void GameSelectScene::OnEnter()
 void GameSelectScene::OnExit()
 {
 	mBackMenuButton.reset();
+	mPreviousPageButton.reset();
+	mNextPageButton.reset();
 	mCards.clear();
+	mAvailableLevels.clear();
+	mCurrentPageLevels.clear();
 	Scene::OnExit();
 }

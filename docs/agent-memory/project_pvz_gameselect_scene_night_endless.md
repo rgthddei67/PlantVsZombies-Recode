@@ -1,6 +1,6 @@
 ---
 name: project_pvz_gameselect_scene_night_endless
-description: GameSelectScene 挑战风格选择界面与白天、黑夜、泳池三种无尽入口
+description: GameSelectScene 挑战风格的冒险分页选关与七种地形无尽入口
 metadata:
   node_type: memory
   type: project
@@ -36,3 +36,44 @@ metadata:
   点击第三张卡并进入 1002，18 条命令全部通过、退出码 0；状态锁定
   `WATER_POOL`、6 行、`poolRows=[2,3]`、第 1 轮、天气支持与小雨生效，选择页和泳池截图
   均已人工检查。
+
+## 2026-08-27 冒险分页选关
+
+- 主菜单“冒险模式”不再直接进入 `mAdventureLevel`，而是给 `GameSelectScene` 写入
+  `GameSelectMode=adventure`；生存入口显式写入 `survival`，两种模式共享场景、卡框和延迟切场景
+  生命周期，但各自生成独立入口。
+- 冒险入口只生成内部关卡 `1..min(mAdventureLevel, AdventureProgression::LAST_ADVENTURE_LEVEL)`；
+  页数按每页 6×3 自动计算，显示名统一走 `GetAreaNumber` / `GetLevelNumberInArea`，没有在 UI
+  写死 63 或七大关。进度 58（7-4）时总计只创建 58 个入口，末页为 55..58，不存在 59（7-5）。
+- 上一页箭头固定在左下 `(180,535)`、下一页固定在右下 `(1015,535)`，均为 60×60；返回菜单
+  仍位于 `(7,560)` 的 162×26 范围，因此上一页与返回按钮不重叠。页按钮回调只登记 delta，
+  `Update` 离开 `ButtonManager` 遍历后才销毁旧页并仅创建新页卡片。
+- 卡片预览优先使用已有 `Almanac_GroundDay/Night/Pool`。没有专用缩略图的黑夜泳池、白天屋顶、
+  黑夜屋顶与冬日花园改从各自正式背景的同一归一化区域（left 0.56、top 0.12、width 0.19）
+  等比放大后裁进卡框开口，避免伪装成其他地形，也不维护重复缩略资源。
+- 冒险关仅当 `level < mAdventureLevel` 时在卡框左上按经典偏移绘制
+  `IMAGE_MINIGAME_TROPHY`；当前待挑战关不标记，生存无尽模式永不标记。资源文件原已在
+  `resources.xml` 注册，本次补齐强类型 `ResourceKeys` 键与 AutoTest 加载断言。
+- `smoke_adventure_game_select.json` 通过真实主菜单入口、三次翻页和当前页关卡点击，覆盖入口总数、
+  页边界、按钮位置/朝向、通关标记、四类页面截图及进入 7-4；`clang-release` 默认 Vulkan 与
+  `-NoInstance` 可见路径均为 55 条命令、exit 0、`status=passed`、`script finished OK`。
+  `gameselect_smoke.json` 回归确认生存关完成标记均为 false，并继续进入泳池无尽；
+  三项 CTest 全部通过，最终 Release 编译零警告且 Win7 导入审计为 378 项。
+
+## 2026-08-27 七种无尽地形
+
+- `Board.h` 用 `SURVIVAL_ENDLESS_DEFINITIONS` 集中登记无尽关卡号、背景和显示名；现有 1000～1002
+  之外新增 1003 黑夜泳池、1004 白天屋顶、1005 黑夜屋顶和 1006 雪原。`GameAPP` 背景映射、
+  `Board::mIsSurvival`、关卡名与生存选关页均消费同一张表，后续加模式不再同步维护多份名单。
+- 四张新卡继续复用冒险选关的预览策略：没有专用缩略图时从对应正式背景固定位置裁剪。生存页当前
+  7 张卡都不显示通关奖杯；不同内部关卡号让正式 `level1003`～`level1006` 存档天然相互隔离。
+- 场景能力仍按背景生效：1003 为六行夜泳池并启用基础雾/独立雾势；1004/1005 为五行屋顶并
+  启用坡面径流，1005 额外启用夜屋顶雷荷；1006 为五行冬日花园并启用寒潮温度、冻融线和降雪，
+  且继续禁用台风。通用雨势对所有集中登记的无尽模式启用。
+- 无尽随机出怪池的粉色橄榄球按 `GetBackgroundIsNight(mBackGround)` 过滤，因而三种夜景无尽可抽取，
+  白天屋顶与雪原无尽不会抽取；该筛选只存在于 `BuildSurvivalSpawnList()`，冒险关仍完全由
+  `spawnlists.json` 决定，不影响雪原白天冒险配置的粉色橄榄球。
+- `smoke_survival_endless_terrains.json` 从生存页真实点击 1003，再切换 1004～1006，锁定各关显示名、
+  背景、行数、水路、天气、雾、径流、雷荷和冬季资格；`clang-release` 默认 Vulkan 与 `-NoInstance`
+  可见运行均执行 54 条命令、exit 0、`status=passed`、`script finished OK`，五张截图已目验。
+  更新后的 `gameselect_smoke` 与 `smoke_adventure_game_select` 同源回归也通过。

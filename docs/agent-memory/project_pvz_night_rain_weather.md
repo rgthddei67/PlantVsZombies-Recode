@@ -1,6 +1,6 @@
 # 黑夜随机雨势天气
 
-> 2026-08-15 范围更新：通用雨势由 `Board::SupportsWeather()` 统一判定；冒险模式从 2-1（level 10）起均启用，一大关关闭；白天、黑夜和泳池生存 level 1000/1001/1002 均启用。独立迷雾默认仍由 `Background::NIGHT_WATER_POOL` 提供；明确复用完整迷雾的固定冒险关集中登记在 `AdventureProgression::HasLevelSpecificFogMechanics()`，当前仅 6-9 的 `NIGHT_ROOF`。下文大量“黑夜/四大关”描述是历史建设语境，当前以此段和源码为准。
+> 2026-08-27 范围更新：通用雨势由 `Board::SupportsWeather()` 统一判定；冒险模式从 2-1（level 10）起均启用，一大关关闭；`SURVIVAL_ENDLESS_DEFINITIONS` 集中登记的七种生存无尽地形（level 1000～1006）均启用。独立迷雾默认仍由 `Background::NIGHT_WATER_POOL` 提供，因此 1003 黑夜泳池无尽自然复用完整雾场；明确复用完整迷雾的固定冒险关集中登记在 `AdventureProgression::HasLevelSpecificFogMechanics()`，当前仅 6-9 的 `NIGHT_ROOF`。下文大量“黑夜/四大关”描述是历史建设语境，当前以此段和源码为准。
 
 ## 当前实现（2026-07-21）
 

@@ -718,14 +718,8 @@ void GameAPP::DrawText(const std::string& text, const Vector& position,
 Background GameAPP::GetBackgroundID(int level) const
 {
 	// 生存模式使用独立关卡号，不参与九关制冒险分段。
-	if (level == SURVIVAL_ENDLESS_LEVEL) {
-		return Background::GROUND_DAY;   // 白天无尽
-	}
-	else if (level == SURVIVAL_ENDLESS_NIGHT_LEVEL) {
-		return Background::GROUND_NIGHT; // 黑夜无尽
-	}
-	else if (level == SURVIVAL_ENDLESS_POOL_LEVEL) {
-		return Background::WATER_POOL;   // 泳池无尽
+	if (const auto* definition = FindSurvivalEndlessDefinition(level)) {
+		return definition->background;
 	}
 
 	const int area = AdventureProgression::GetAreaNumber(level);

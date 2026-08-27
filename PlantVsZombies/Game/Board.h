@@ -91,6 +91,46 @@ enum class Background {
 	WINTER_GARDEN
 };
 
+inline constexpr int SURVIVAL_ENDLESS_LEVEL = 1000; // 白天无尽专用 level 号
+inline constexpr int SURVIVAL_ENDLESS_NIGHT_LEVEL = 1001; // 黑夜无尽专用 level 号
+inline constexpr int SURVIVAL_ENDLESS_POOL_LEVEL = 1002; // 泳池无尽专用 level 号
+inline constexpr int SURVIVAL_ENDLESS_NIGHT_POOL_LEVEL = 1003; // 黑夜泳池无尽专用 level 号
+inline constexpr int SURVIVAL_ENDLESS_ROOF_LEVEL = 1004; // 白天屋顶无尽专用 level 号
+inline constexpr int SURVIVAL_ENDLESS_NIGHT_ROOF_LEVEL = 1005; // 黑夜屋顶无尽专用 level 号
+inline constexpr int SURVIVAL_ENDLESS_WINTER_LEVEL = 1006; // 雪原无尽专用 level 号
+
+struct SurvivalEndlessDefinition {
+	int level;
+	Background background;
+	const char* label;
+};
+
+// 无尽模式的关卡号、背景和显示名只有这一处真源，新增地形时选关与 Board 自动同步。
+inline constexpr std::array<SurvivalEndlessDefinition, 7> SURVIVAL_ENDLESS_DEFINITIONS{ {
+	{ SURVIVAL_ENDLESS_LEVEL, Background::GROUND_DAY, u8"白天无尽" },
+	{ SURVIVAL_ENDLESS_NIGHT_LEVEL, Background::GROUND_NIGHT, u8"黑夜无尽" },
+	{ SURVIVAL_ENDLESS_POOL_LEVEL, Background::WATER_POOL, u8"泳池无尽" },
+	{ SURVIVAL_ENDLESS_NIGHT_POOL_LEVEL, Background::NIGHT_WATER_POOL, u8"黑夜泳池无尽" },
+	{ SURVIVAL_ENDLESS_ROOF_LEVEL, Background::ROOF, u8"白天屋顶无尽" },
+	{ SURVIVAL_ENDLESS_NIGHT_ROOF_LEVEL, Background::NIGHT_ROOF, u8"黑夜屋顶无尽" },
+	{ SURVIVAL_ENDLESS_WINTER_LEVEL, Background::WINTER_GARDEN, u8"雪原无尽" },
+} };
+
+/** 查找无尽关卡定义；普通冒险关返回 nullptr。 */
+inline constexpr const SurvivalEndlessDefinition* FindSurvivalEndlessDefinition(int level)
+{
+	for (const auto& definition : SURVIVAL_ENDLESS_DEFINITIONS) {
+		if (definition.level == level) return &definition;
+	}
+	return nullptr;
+}
+
+/** 判断关卡号是否属于任一无尽模式。 */
+inline constexpr bool IsSurvivalEndlessLevel(int level)
+{
+	return FindSurvivalEndlessDefinition(level) != nullptr;
+}
+
 struct RowInfo {
 	int rowIndex = 0;
 	float weight = 1.0f;
@@ -108,9 +148,6 @@ namespace {
 	constexpr int MAX_ZOMBIES_PER_WAVE = 250;	// 一波最大僵尸数量
 
 	// ===== 生存模式设置 =====
-	constexpr int   SURVIVAL_ENDLESS_LEVEL = 1000;       // 白天无尽专用 level 号（> 50，避开冒险关推进逻辑）
-	constexpr int   SURVIVAL_ENDLESS_NIGHT_LEVEL = 1001; // 黑夜无尽专用 level 号（背景走 GROUND_NIGHT，逻辑同 1000）
-	constexpr int   SURVIVAL_ENDLESS_POOL_LEVEL = 1002;  // 泳池无尽专用 level 号（背景走 WATER_POOL，逻辑同 1000）
 	constexpr int   SURVIVAL_WAVES_PER_ROUND = 10;   // 每轮（每面旗）波数，10 与"第10波=一大波"逻辑对齐
 	constexpr float SURVIVAL_BUDGET_GROWTH = 0.55f;  // 每轮单波点数预算增长系数
 	constexpr float SURVIVAL_HP_GROWTH = 0.05f;  // 每轮僵尸全局血量倍率线性增长系数（可调）：mult = 1 + x*(轮次-1)
@@ -950,7 +987,7 @@ public:
 	float GetRowCenterYAtX(int row, float worldX) const;
 	/** 返回清扫车前缘探针在指定行的逻辑 Y；屋顶包含 RoofCleaner 资源原点校准。 */
 	float GetMowerTerrainY(int row, float worldX) const;
-	/** 正式冒险从第二大关启用天气；白天、黑夜与泳池三种生存模式始终启用。 */
+	/** 正式冒险从第二大关启用天气；所有无尽地形均独立启用。 */
 	bool SupportsWeather() const;
 	/** 昼夜屋顶场景共用坡面径流，不依赖关卡编号。 */
 	bool SupportsRoofRunoff() const;

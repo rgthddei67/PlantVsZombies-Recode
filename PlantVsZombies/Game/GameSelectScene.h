@@ -3,26 +3,56 @@
 #define _GAME_SELECT_SCENE_H
 
 #include "Scene.h"
-#include <vector>
+
 #include <memory>
+#include <vector>
 
-// 挑战模式风格的生存关卡选择界面：
-// 羊皮纸背景 + 顶部标题 + 无尽模式卡片网格 + 左下「返回菜单」按钮。
-// 卡片点击只登记待进入关卡，由 Update 在 UI 回调结束后统一切换到 GameScene。
+/** 挑战风格的关卡选择界面，可按入口展示冒险关卡或生存模式。 */
 class GameSelectScene : public Scene {
-private:
-	std::shared_ptr<Button> mBackMenuButton;
-	std::vector<std::shared_ptr<Button>> mCards;   // 当前启用的关卡卡片
-	bool mReadyToSwitchMainMenu = false;
-	int  mPendingEnterLevel = -1;                  // 待进入的关卡号(>=0 时 Update 进 GameScene)
-
 public:
+	enum class SelectMode {
+		SURVIVAL,
+		ADVENTURE,
+	};
+
 	void OnEnter() override;
 	void OnExit() override;
 	void Update() override;
 
+	SelectMode GetSelectMode() const { return mSelectMode; }
+	int GetCurrentPage() const { return mCurrentPage; }
+	int GetPageCount() const;
+	const std::vector<int>& GetAvailableLevels() const { return mAvailableLevels; }
+	const std::vector<int>& GetCurrentPageLevels() const { return mCurrentPageLevels; }
+	/** 当前冒险进度严格越过该关时返回 true；当前待挑战关不算通关。 */
+	bool IsAdventureLevelCompleted(int level) const;
+	std::shared_ptr<Button> GetPreviousPageButton() const { return mPreviousPageButton; }
+	std::shared_ptr<Button> GetNextPageButton() const { return mNextPageButton; }
+	/** 返回当前页指定关卡的按钮；锁定关卡和其他页关卡均返回空。 */
+	std::shared_ptr<Button> GetCardButton(int level) const;
+
 protected:
 	void BuildDrawCommands() override;
+
+private:
+	std::shared_ptr<Button> mBackMenuButton;
+	std::shared_ptr<Button> mPreviousPageButton;
+	std::shared_ptr<Button> mNextPageButton;
+	std::vector<std::shared_ptr<Button>> mCards;
+	std::vector<int> mAvailableLevels;
+	std::vector<int> mCurrentPageLevels;
+	SelectMode mSelectMode = SelectMode::SURVIVAL;
+	bool mReadyToSwitchMainMenu = false;
+	int mPendingEnterLevel = -1;
+	int mCurrentPage = 0;
+	int mPendingPageDelta = 0;
+
+	/** 按当前入口和玩家进度生成实际存在的关卡编号。 */
+	void BuildAvailableLevels();
+	/** 仅为当前页创建卡片，切页时销毁旧页卡片。 */
+	void CreateCurrentPageCards();
+	/** 同步翻页按钮的可见性、可点击状态和箭头朝向。 */
+	void RefreshPageButtonState();
 };
 
 #endif

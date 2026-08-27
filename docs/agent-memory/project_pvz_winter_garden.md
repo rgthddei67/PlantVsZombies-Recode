@@ -13,6 +13,10 @@ metadata:
 
 冒险 55～63 显示为 7-1～7-9，统一使用 `Background::WINTER_GARDEN`、5 行 × 9 列平地和白天音乐。`AdventureProgression::LAST_ADVENTURE_LEVEL` 为 63；寒潮植物奖励已接入 7-1 雪锚果、7-2 融雪投手、7-4 伏霜雷、7-6 警铃草、7-7 炉芯花，其余关卡不发植物。五株寒潮植物与五种重点僵尸现均已实现，组合契约见 `project_pvz_winter_area_content_plan.md`。
 
+2026-08-27 新增 `SURVIVAL_ENDLESS_WINTER_LEVEL=1006`“雪原无尽”。它与冒险第七大关共用
+`WINTER_GARDEN` 的五行背景、寒潮温度、冻融线、降雪、三辆小推车门禁和台风禁用，但不触发
+7-8/7-9 的固定开幕寒潮脚本；无尽轮次、词条、血量成长及存档仍由 `mIsSurvival` 统一管理。
+
 雪锚果的锚定资格直接读取 `Board::IsCellFrozen` 并结合活动态与生命，不保存温度、冻土范围或次数；只要仍存活，解冻后再冻结会恢复锚定。其普通/锚定材质切换与冻融线同源，因此寒潮存档先恢复 Board 后即可静默重建正确外观。完整能力、雪橇/地裂所有权边界和专项证据见 `project_pvz_winter_area_content_plan.md`。
 
 正式背景资源为 `resources/image/background_wintergarden.png`，以原版白天草坪构图和当前 1100×600 网格为基准改造：保留房屋、五行草坪和 80×100 逻辑格对齐，在屋顶、边缘灌木、石板与草坪外围铺积雪，并让右侧棕色裸地也被不规则积雪覆盖。资源键为 `IMAGE_BACKGROUND_WINTERGARDEN`，需经 `resources.xml` 注册和 AutoTest 加载断言闭环。
@@ -58,3 +62,7 @@ metadata:
 2026-08-24 三霜线视觉增量证据：内置 ImageGen 另生成两张 1536×1024 RGB 纯黑底霜枝，资源名为 `winter_frost_frontier_variant_1/2.png`；接入前像素检查确认两图右半区与四角最大通道值均不超过 1，随后通过 `resources.xml`、manifest、`ResourceKeys` 与 AutoTest `GetTexture(key,false)` 断言闭环。游戏以加色混合把霜枝叠在透明冻土主体左缘，并把稳定轮廓范围扩为 0～2、随寒潮计划入档；-1°C 三张同步截图目验变体 1 偏上/下分叉、变体 2 偏中段蛇形分叉，黑底不可见且覆盖宽度不变。`clang-release` 全量 LTO 与增量重链均完成，Win7 导入审计通过 378 项；最终 `smoke_winter_garden.json` 在默认 Vulkan 实例路径与 `-NoInstance` 当前桌面可见运行均执行 144 条命令到 command 143、`status=passed`、exit 0，8 张截图落盘。天气技能及 contracts 已审计，既有“事件锁定稳定视觉变体并入档、截图检查”的通用契约仍与源码一致，无需改动技能。
 
 2026-08-26 7-8/7-9 开幕寒潮证据：`clang-release` 编译成功，`SaveSchemaTests.exe` 通过，CTest 3/3 通过。新的 `smoke_winter_opening_cold_wave.json` 在默认 Vulkan 实例路径和 `-NoInstance` 当前桌面可见运行均执行 69 条命令到 command 68、exit 0、`status=passed`，两次均检查 7-8 的 12 秒准确预报、固定 15/50/30 秒计划、降温段快照往返、95 秒后恢复随机计划，以及 7-9 的固定轮廓 2。固定 Seed 下，恢复前断言 `weather.intensity=LIGHT`，证明雨势在开幕寒潮期间仍按独立时钟抽取；截图目验开局面板显示“强寒潮预报（12秒）：最低 -12°C”，温度计仍为 +6°C，回归截图可见小雨天气栏。
+
+2026-08-27 雪原无尽证据：`smoke_survival_endless_terrains.json` 在 `clang-release` 默认 Vulkan 和
+`-NoInstance` 可见路径均通过，断言 1006 映射 `WINTER_GARDEN`、五行、无水路、通用雨势与冬季
+温度资格开启，同时雾、屋顶径流和夜屋顶雷荷关闭；同步截图目验雪原背景与棋盘正常。
