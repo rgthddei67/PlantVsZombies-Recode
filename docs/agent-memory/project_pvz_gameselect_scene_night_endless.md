@@ -56,7 +56,8 @@ metadata:
   `resources.xml` 注册，本次补齐强类型 `ResourceKeys` 键与 AutoTest 加载断言。
 - `smoke_adventure_game_select.json` 通过真实主菜单入口、三次翻页和当前页关卡点击，覆盖入口总数、
   页边界、按钮位置/朝向、通关标记、四类页面截图及进入 7-4；`clang-release` 默认 Vulkan 与
-  `-NoInstance` 可见路径均为 55 条命令、exit 0、`status=passed`、`script finished OK`。
+  `-NoInstance` 可见路径均为 61 条命令、exit 0、`status=passed`、`script finished OK`。连续点击
+  固定位置的翻页按钮前先把合成鼠标移出并等待两帧，避免渲染负载差异造成测试输入边沿偶发丢失。
   `gameselect_smoke.json` 回归确认生存关完成标记均为 false，并继续进入泳池无尽；
   三项 CTest 全部通过，最终 Release 编译零警告且 Win7 导入审计为 378 项。
 
