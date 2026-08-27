@@ -30,9 +30,9 @@ private:
   class Zombie *FindInterruptTarget() const;
   /** 原子提交一次中断，并启动声音、行脉冲和响铃演出。 */
   void TriggerPulse();
-  /** 用固定叶座、原版双段茎、铃头和跟随铃舌组装三叶草时间轴。 */
+  /** 保留完整三叶草时间轴，并在稳定上段茎挂接小铃身份件。 */
   void ConfigureRig();
-  /** 按当前片段和余韵时间切换表情，并同步整株淡出。 */
+  /** 按余韵时间同步原版主体与小铃挂件的整体淡出。 */
   void RefreshPresentation();
 
   bool mPulseTriggered = false;

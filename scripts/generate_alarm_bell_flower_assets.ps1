@@ -23,6 +23,91 @@ using System.Runtime.InteropServices;
 
 public static class AlarmBellRaster
 {
+    private static double Clamp01(double value)
+    {
+        return Math.Max(0.0, Math.Min(1.0, value));
+    }
+
+    private static void RgbToHsv(Color color, out double hue,
+        out double saturation, out double value)
+    {
+        double r = color.R / 255.0;
+        double g = color.G / 255.0;
+        double b = color.B / 255.0;
+        double maximum = Math.Max(r, Math.Max(g, b));
+        double minimum = Math.Min(r, Math.Min(g, b));
+        double delta = maximum - minimum;
+        value = maximum;
+        saturation = maximum <= 0.0 ? 0.0 : delta / maximum;
+        if (delta <= 0.0) {
+            hue = 0.0;
+        }
+        else if (maximum == r) {
+            hue = 60.0 * (((g - b) / delta) % 6.0);
+        }
+        else if (maximum == g) {
+            hue = 60.0 * (((b - r) / delta) + 2.0);
+        }
+        else {
+            hue = 60.0 * (((r - g) / delta) + 4.0);
+        }
+        if (hue < 0.0) hue += 360.0;
+    }
+
+    private static Color HsvToColor(int alpha, double hue,
+        double saturation, double value)
+    {
+        hue = (hue % 360.0 + 360.0) % 360.0;
+        saturation = Clamp01(saturation);
+        value = Clamp01(value);
+        double chroma = value * saturation;
+        double x = chroma * (1.0 - Math.Abs((hue / 60.0) % 2.0 - 1.0));
+        double match = value - chroma;
+        double r = 0.0;
+        double g = 0.0;
+        double b = 0.0;
+        if (hue < 60.0) { r = chroma; g = x; }
+        else if (hue < 120.0) { r = x; g = chroma; }
+        else if (hue < 180.0) { g = chroma; b = x; }
+        else if (hue < 240.0) { g = x; b = chroma; }
+        else if (hue < 300.0) { r = x; b = chroma; }
+        else { r = chroma; b = x; }
+        return Color.FromArgb(alpha,
+            (int)Math.Round((r + match) * 255.0),
+            (int)Math.Round((g + match) * 255.0),
+            (int)Math.Round((b + match) * 255.0));
+    }
+
+    public static Bitmap RecolorGreenToWinterCyan(Bitmap source)
+    {
+        var result = new Bitmap(source.Width, source.Height,
+            PixelFormat.Format32bppArgb);
+        for (int y = 0; y < source.Height; ++y) {
+            for (int x = 0; x < source.Width; ++x) {
+                Color color = source.GetPixel(x, y);
+                if (color.A == 0) {
+                    result.SetPixel(x, y, color);
+                    continue;
+                }
+                double hue;
+                double saturation;
+                double value;
+                RgbToHsv(color, out hue, out saturation, out value);
+                // 只改原版三叶草的绿色材质；眼白、瞳孔、描边和暖色细节保持原样。
+                if (hue >= 65.0 && hue <= 175.0 && saturation >= 0.16
+                    && value >= 0.12) {
+                    double targetHue = 192.0 + (hue - 120.0) * 0.10;
+                    double targetSaturation = Math.Max(0.58, saturation * 0.92);
+                    double targetValue = Math.Min(1.0, value * 1.08);
+                    color = HsvToColor(color.A, targetHue,
+                        targetSaturation, targetValue);
+                }
+                result.SetPixel(x, y, color);
+            }
+        }
+        return result;
+    }
+
     private static bool IsConnectedBackground(byte b, byte g, byte r)
     {
         int minimum = Math.Min(r, Math.Min(g, b));
@@ -115,6 +200,7 @@ public static class AlarmBellRaster
 
 $sourcePath = Join-Path $RepositoryRoot 'docs/art/alarm-bell-flower/alarm-bell-flower-rig-parts-v1.png'
 $bloverReanimPath = Join-Path $RepositoryRoot 'build/clang-release/resources/reanim/Blover.reanim'
+$bloverCardPath = Join-Path $RepositoryRoot 'build/clang-release/resources/image/PlantImage/Blover.png'
 $resourceRoot = Join-Path $RepositoryRoot 'build/clang-release/resources'
 $reanimImageRoot = Join-Path $resourceRoot 'image/reanim'
 $cardRoot = Join-Path $resourceRoot 'image/PlantImage'
@@ -122,15 +208,28 @@ $particleRoot = Join-Path $resourceRoot 'particles'
 $reanimRoot = Join-Path $resourceRoot 'reanim'
 $expectedSourceHash = 'E3FC4BAF664C3817ABAD4EC7B1D03A8DF6B66F524BE4DC26A950110165EA5BE5'
 $expectedBloverReanimHash = 'A80928B199711A92D8B856EEE748060CEA79841CFE88D7D093F4F80DA04E8C37'
+$expectedBloverCardHash = 'B153C6E9D33F73A2A808C0CC88041F65EEDE5FA4596D5B603275F6485962CFF9'
+$bloverPartHashes = @{
+    'DIRT_BACK' = '34E8B344B4AB5133D1E8FCE862C45534A7C7C97DE86BC3551CD47DB04035B159'
+    'DIRT_FRONT' = 'F58458DA1F2B6B60BCAFED46A5045899E768D3C91F05FC7C0E9678F723217E89'
+    'STEM1' = '07E0DB604E761F04C4E9C30E54BA2ECC73E88B82FB40E4F5BED73DF293887F09'
+    'STEM2' = '63DC77EC9B6C378DE7C05138BB7C936A50D484A09D32B0F00DBD2DA6521476F1'
+    'PETAL' = '3FE020328888B35FEACA7F85A02765FF7563805241D671B6F1E015B10607AD24'
+    'HEAD' = '87AB938B8BA00944F94CA207A8A094728E3952C42E6B49F073E84725EFBF9DE9'
+    'HEAD2' = '01F039787503847975DC7E495F9314BEAAA27BC16ACD373E3A57D40D6E96E9F8'
+}
 $expectedOutputHashes = @{
-    'REANIM_ALARMBELLFLOWER_HEAD_READY.png' = '14AF58F1AD16AB2D59F6261CEB95FC864C45ADA8FB2EA1509DD4A17E821388EB'
-    'REANIM_ALARMBELLFLOWER_HEAD_RINGING.png' = '203CCB32AA8955C921372EC6A0D7B96A71F055A378666625A2ADA212974FF1E7'
-    'REANIM_ALARMBELLFLOWER_HEAD_FADING.png' = '1F7E5B86BFB4699877257D40FA75EBFD2A4230D91852F1CADB9D8B48E308B027'
-    'REANIM_ALARMBELLFLOWER_CLAPPER.png' = 'E5C442EA967F8F0336D44B2F7BE2B676A5400C2FDD91A719A9C6164FA529C524'
-    'REANIM_ALARMBELLFLOWER_BASE.png' = '95E53E83BEE015A207961542BC3E97399EE671D4CE90F455EC4629B3B095C70F'
-    'AlarmBellFlower.png' = 'D258DB6D8DD072D47AD215CE02D7902E355D80A42ED56E5B67F0DBE3F547762E'
+    'ALARMBELLFLOWER_DIRT_BACK.png' = 'DEB227178B76D872463FE999F3A9CE2FC186FBC251F9AC5284BCFBB8E49CD4F2'
+    'ALARMBELLFLOWER_DIRT_FRONT.png' = '86C1ABE19ADF3516518E0E0E51245FDCE3224A3DF54031A8DF2DA1821FC4F99A'
+    'ALARMBELLFLOWER_STEM1.png' = '22356C41365DD778D1D2A1A0E4BCEAC2BBCD5570AC3BA200DC352B9252A605B0'
+    'ALARMBELLFLOWER_STEM2.png' = 'D5BF588D41E7F1F37BC295957B1B1966E82D41F35AE3916C187BD50EABAFE486'
+    'ALARMBELLFLOWER_PETAL.png' = '155DBE32378DB026B7E95DC240DB4C85E5C0189270CC2FC198748F8807F25B68'
+    'ALARMBELLFLOWER_HEAD.png' = '65EE9E5ED00EBB9E2EFB443FAF7A0FEAF4C22D88B820E4FB7513EE6456756B78'
+    'ALARMBELLFLOWER_HEAD2.png' = '49619C43F9D1A1F8AD31257C179BEB7C428621E38EF7D644A2A899912AACB86A'
+    'REANIM_ALARMBELLFLOWER_CHARM.png' = '2418D3F63DD1C312A66E287D391C2547EAFAACD5EA5F04ACB356E3FDF5EE64DF'
+    'AlarmBellFlower.png' = 'C84C86A13F02A03053A3A665FB3295E5BFD0A229E5356B396A36A4F468FF820A'
     'AlarmBellRowPulse.png' = '08B8269711D5A9B422A802A0B3B7D17FDD0E8368D54B3C716894A80A11414254'
-    'AlarmBellFlower.reanim' = 'A80928B199711A92D8B856EEE748060CEA79841CFE88D7D093F4F80DA04E8C37'
+    'AlarmBellFlower.reanim' = 'F96EFB74C172259AD48C3580EAF1D887E76207477118EA0D49E0B6AAA596F380'
 }
 
 function New-ArgbBitmap([int]$Width, [int]$Height) {
@@ -160,10 +259,11 @@ function Save-Downsampled(
     }
 }
 
-function Save-RigPart(
+function Save-ScaledPart(
     [System.Drawing.Bitmap]$Atlas,
     [System.Drawing.Rectangle]$SearchBounds,
-    [System.Drawing.Rectangle]$DestinationBounds,
+    [int]$Width,
+    [int]$Height,
     [string]$DestinationPath
 ) {
     $sourceBounds = [AlarmBellRaster]::FindAlphaBounds($Atlas, $SearchBounds)
@@ -171,14 +271,14 @@ function Save-RigPart(
         throw "警铃草分件区没有前景像素：$SearchBounds。"
     }
 
-    $canvas = New-ArgbBitmap 120 120
+    $canvas = New-ArgbBitmap $Width $Height
     $graphics = [System.Drawing.Graphics]::FromImage($canvas)
     try {
         $graphics.CompositingMode = [System.Drawing.Drawing2D.CompositingMode]::SourceCopy
         $graphics.CompositingQuality = [System.Drawing.Drawing2D.CompositingQuality]::HighQuality
         $graphics.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
         $graphics.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
-        $graphics.DrawImage($Atlas, $DestinationBounds, $sourceBounds,
+        $graphics.DrawImage($Atlas, [System.Drawing.Rectangle]::new(0, 0, $Width, $Height), $sourceBounds,
             [System.Drawing.GraphicsUnit]::Pixel)
         $canvas.Save($DestinationPath, [System.Drawing.Imaging.ImageFormat]::Png)
     }
@@ -194,6 +294,15 @@ if ((Get-FileHash -Algorithm SHA256 -LiteralPath $sourcePath).Hash -ne $expected
 if ((Get-FileHash -Algorithm SHA256 -LiteralPath $bloverReanimPath).Hash -ne $expectedBloverReanimHash) {
     throw '三叶草 reanim 参考哈希不匹配，拒绝在未知时间轴上生成警铃草动画。'
 }
+if ((Get-FileHash -Algorithm SHA256 -LiteralPath $bloverCardPath).Hash -ne $expectedBloverCardHash) {
+    throw '三叶草卡图参考哈希不匹配，拒绝静默生成漂移资源。'
+}
+foreach ($part in $bloverPartHashes.GetEnumerator()) {
+    $sourcePartPath = Join-Path $reanimImageRoot ("Blover_{0}.png" -f $part.Key.ToLowerInvariant())
+    if ((Get-FileHash -Algorithm SHA256 -LiteralPath $sourcePartPath).Hash -ne $part.Value) {
+        throw "三叶草分件 $($part.Key) 哈希不匹配，拒绝静默生成漂移资源。"
+    }
+}
 
 $sourceAtlas = [System.Drawing.Bitmap]::new($sourcePath)
 try {
@@ -202,63 +311,52 @@ try {
     }
     $cleanAtlas = [AlarmBellRaster]::RemoveConnectedCheckerboard($sourceAtlas)
     try {
-        # 三种头图按铃身底部的茎秆插口对齐，而不是按不规则外轮廓对齐；右倾的
-        # 响铃/疲惫头比正面头左移 10px，令语义连接点保持在同一骨骼轴心。
-        Save-RigPart $cleanAtlas ([System.Drawing.Rectangle]::new(0, 0, 362, 866)) `
-            ([System.Drawing.Rectangle]::new(25, 3, 70, 61)) `
-            (Join-Path $reanimImageRoot 'REANIM_ALARMBELLFLOWER_HEAD_READY.png')
-        Save-RigPart $cleanAtlas ([System.Drawing.Rectangle]::new(362, 0, 308, 866)) `
-            ([System.Drawing.Rectangle]::new(15, 3, 70, 61)) `
-            (Join-Path $reanimImageRoot 'REANIM_ALARMBELLFLOWER_HEAD_RINGING.png')
-        Save-RigPart $cleanAtlas ([System.Drawing.Rectangle]::new(670, 0, 300, 866)) `
-            ([System.Drawing.Rectangle]::new(15, 3, 70, 61)) `
-            (Join-Path $reanimImageRoot 'REANIM_ALARMBELLFLOWER_HEAD_FADING.png')
-        Save-RigPart $cleanAtlas ([System.Drawing.Rectangle]::new(970, 0, 120, 866)) `
-            ([System.Drawing.Rectangle]::new(52, 48, 16, 38)) `
-            (Join-Path $reanimImageRoot 'REANIM_ALARMBELLFLOWER_CLAPPER.png')
-        $basePath = Join-Path $reanimImageRoot 'REANIM_ALARMBELLFLOWER_BASE.png'
-        Save-RigPart $cleanAtlas ([System.Drawing.Rectangle]::new(1090, 0, 355, 866)) `
-            ([System.Drawing.Rectangle]::new(20, 48, 80, 65)) $basePath
-        # 地面轨只保留叶座；上方茎段交回 Blover_stem2/stem1 原版骨骼，避免头部摆动时断颈。
-        $fullBase = [System.Drawing.Bitmap]::new($basePath)
-        $leafBase = New-ArgbBitmap 120 120
-        $leafGraphics = [System.Drawing.Graphics]::FromImage($leafBase)
-        try {
-            $leafGraphics.CompositingMode = [System.Drawing.Drawing2D.CompositingMode]::SourceCopy
-            $leafGraphics.DrawImage($fullBase, [System.Drawing.Rectangle]::new(0, 66, 120, 54),
-                [System.Drawing.Rectangle]::new(0, 66, 120, 54),
-                [System.Drawing.GraphicsUnit]::Pixel)
-        }
-        finally {
-            $leafGraphics.Dispose()
-            $fullBase.Dispose()
-        }
-        try {
-            $leafBase.Save($basePath, [System.Drawing.Imaging.ImageFormat]::Png)
-        }
-        finally {
-            $leafBase.Dispose()
+        # 大幅生成图不再替换原版头部；只裁成一个低分辨率小铃挂件。
+        $charmPath = Join-Path $reanimImageRoot 'REANIM_ALARMBELLFLOWER_CHARM.png'
+        Save-ScaledPart $cleanAtlas ([System.Drawing.Rectangle]::new(0, 0, 362, 866)) `
+            24 24 $charmPath
+
+        # 保留三叶草全部原版分件轮廓，只把绿色材质确定性转成冬日青蓝。
+        foreach ($part in $bloverPartHashes.Keys) {
+            $sourcePartPath = Join-Path $reanimImageRoot ("Blover_{0}.png" -f $part.ToLowerInvariant())
+            $destinationPartPath = Join-Path $reanimImageRoot ("ALARMBELLFLOWER_{0}.png" -f $part)
+            $sourcePart = [System.Drawing.Bitmap]::new($sourcePartPath)
+            try {
+                $recoloredPart = [AlarmBellRaster]::RecolorGreenToWinterCyan($sourcePart)
+                try {
+                    $recoloredPart.Save($destinationPartPath,
+                        [System.Drawing.Imaging.ImageFormat]::Png)
+                }
+                finally {
+                    $recoloredPart.Dispose()
+                }
+            }
+            finally {
+                $sourcePart.Dispose()
+            }
         }
 
-        # 卡图仍是 120px，角色保持主人确认的 0.8 构图（108→86px），但改用分件图集的完整参考态。
-        $referenceBounds = [AlarmBellRaster]::FindAlphaBounds($cleanAtlas,
-            [System.Drawing.Rectangle]::new(1445, 0, 372, 866))
-        if ($referenceBounds.IsEmpty) {
-            throw '警铃草完整参考态没有前景像素。'
-        }
-        $card = New-ArgbBitmap 120 120
-        $cardGraphics = [System.Drawing.Graphics]::FromImage($card)
+        # 卡图与场上对象共享同一原版三叶草轮廓、青蓝配色和小铃身份件。
+        $bloverCard = [System.Drawing.Bitmap]::new($bloverCardPath)
         try {
-            $cardGraphics.CompositingMode = [System.Drawing.Drawing2D.CompositingMode]::SourceCopy
+            $card = [AlarmBellRaster]::RecolorGreenToWinterCyan($bloverCard)
+        }
+        finally {
+            $bloverCard.Dispose()
+        }
+        $cardGraphics = [System.Drawing.Graphics]::FromImage($card)
+        $charm = [System.Drawing.Bitmap]::new($charmPath)
+        try {
+            $cardGraphics.CompositingMode = [System.Drawing.Drawing2D.CompositingMode]::SourceOver
             $cardGraphics.CompositingQuality = [System.Drawing.Drawing2D.CompositingQuality]::HighQuality
             $cardGraphics.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
             $cardGraphics.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
-            $cardGraphics.DrawImage($cleanAtlas, [System.Drawing.Rectangle]::new(17, 17, 86, 86),
-                $referenceBounds, [System.Drawing.GraphicsUnit]::Pixel)
+            $cardGraphics.DrawImage($charm, [System.Drawing.Rectangle]::new(62, 72, 22, 22))
             $card.Save((Join-Path $cardRoot 'AlarmBellFlower.png'),
                 [System.Drawing.Imaging.ImageFormat]::Png)
         }
         finally {
+            $charm.Dispose()
             $cardGraphics.Dispose()
             $card.Dispose()
         }
@@ -347,16 +445,24 @@ finally {
     $largePulse.Dispose()
 }
 
-# 直接复用原版三叶草的 idle/blow/loop 时间轴；原版双段茎负责连接，地面轨与头轨换成警铃草分件。
-Copy-Item -LiteralPath $bloverReanimPath `
-    -Destination (Join-Path $reanimRoot 'AlarmBellFlower.reanim') -Force
+# 逐字保留原版三叶草的 idle/blow/loop 时间轴，只把图片键换成独立派生配色。
+$alarmBellReanim = Get-Content -Raw -LiteralPath $bloverReanimPath
+foreach ($part in $bloverPartHashes.Keys) {
+    $alarmBellReanim = $alarmBellReanim.Replace(
+        "IMAGE_REANIM_BLOVER_$part", "IMAGE_REANIM_ALARMBELLFLOWER_$part")
+}
+Set-Content -LiteralPath (Join-Path $reanimRoot 'AlarmBellFlower.reanim') `
+    -Value $alarmBellReanim -NoNewline -Encoding utf8NoBOM
 
 $outputs = @(
-    (Join-Path $reanimImageRoot 'REANIM_ALARMBELLFLOWER_HEAD_READY.png'),
-    (Join-Path $reanimImageRoot 'REANIM_ALARMBELLFLOWER_HEAD_RINGING.png'),
-    (Join-Path $reanimImageRoot 'REANIM_ALARMBELLFLOWER_HEAD_FADING.png'),
-    (Join-Path $reanimImageRoot 'REANIM_ALARMBELLFLOWER_CLAPPER.png'),
-    (Join-Path $reanimImageRoot 'REANIM_ALARMBELLFLOWER_BASE.png'),
+    (Join-Path $reanimImageRoot 'ALARMBELLFLOWER_DIRT_BACK.png'),
+    (Join-Path $reanimImageRoot 'ALARMBELLFLOWER_DIRT_FRONT.png'),
+    (Join-Path $reanimImageRoot 'ALARMBELLFLOWER_STEM1.png'),
+    (Join-Path $reanimImageRoot 'ALARMBELLFLOWER_STEM2.png'),
+    (Join-Path $reanimImageRoot 'ALARMBELLFLOWER_PETAL.png'),
+    (Join-Path $reanimImageRoot 'ALARMBELLFLOWER_HEAD.png'),
+    (Join-Path $reanimImageRoot 'ALARMBELLFLOWER_HEAD2.png'),
+    (Join-Path $reanimImageRoot 'REANIM_ALARMBELLFLOWER_CHARM.png'),
     (Join-Path $cardRoot 'AlarmBellFlower.png'),
     (Join-Path $particleRoot 'AlarmBellRowPulse.png'),
     (Join-Path $reanimRoot 'AlarmBellFlower.reanim')

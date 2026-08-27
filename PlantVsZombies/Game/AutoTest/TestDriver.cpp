@@ -4197,15 +4197,21 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 		{ "cardTextureLoaded", ResourceManager::GetInstance().GetTexture(
 			ResourceKeys::Textures::IMAGE_ALARMBELLFLOWER, false) != nullptr },
 		{ "rigTexturesLoaded", ResourceManager::GetInstance().GetTexture(
-			ResourceKeys::Textures::IMAGE_REANIM_ALARMBELLFLOWER_HEAD_READY, false) != nullptr
+			ResourceKeys::Textures::IMAGE_REANIM_ALARMBELLFLOWER_DIRT_BACK, false) != nullptr
 			&& ResourceManager::GetInstance().GetTexture(
-				ResourceKeys::Textures::IMAGE_REANIM_ALARMBELLFLOWER_HEAD_RINGING, false) != nullptr
+				ResourceKeys::Textures::IMAGE_REANIM_ALARMBELLFLOWER_DIRT_FRONT, false) != nullptr
 			&& ResourceManager::GetInstance().GetTexture(
-				ResourceKeys::Textures::IMAGE_REANIM_ALARMBELLFLOWER_HEAD_FADING, false) != nullptr
+				ResourceKeys::Textures::IMAGE_REANIM_ALARMBELLFLOWER_STEM1, false) != nullptr
 			&& ResourceManager::GetInstance().GetTexture(
-				ResourceKeys::Textures::IMAGE_REANIM_ALARMBELLFLOWER_CLAPPER, false) != nullptr
+				ResourceKeys::Textures::IMAGE_REANIM_ALARMBELLFLOWER_STEM2, false) != nullptr
 			&& ResourceManager::GetInstance().GetTexture(
-				ResourceKeys::Textures::IMAGE_REANIM_ALARMBELLFLOWER_BASE, false) != nullptr },
+				ResourceKeys::Textures::IMAGE_REANIM_ALARMBELLFLOWER_PETAL, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_REANIM_ALARMBELLFLOWER_HEAD, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_REANIM_ALARMBELLFLOWER_HEAD2, false) != nullptr
+			&& ResourceManager::GetInstance().GetTexture(
+				ResourceKeys::Textures::IMAGE_REANIM_ALARMBELLFLOWER_CHARM, false) != nullptr },
 		{ "particleTextureLoaded", ResourceManager::GetInstance().GetTexture(
 			ResourceKeys::Particles::PARTICLE_ALARMBELLROWPULSE, false) != nullptr },
 	};
@@ -6769,6 +6775,9 @@ bool TestDriver::BuildStateJson(const std::string& opName, nlohmann::json& out)
 			plantState["alarmBellPulseSucceeded"] = alarmBell->DidInterruptAction();
 			plantState["alarmBellAfterglowRemainingMs"] = static_cast<int>(std::lround(
 				alarmBell->GetAfterglowRemaining() * 1000.0f));
+			const std::shared_ptr<Animator> animator = alarmBell->GetAnimatorInternal();
+			plantState["alarmBellCharmVisible"] = animator
+				&& animator->GetTrackFollowerVisible("Blover_stem1", "alarm_bell_charm");
 			const std::string cellKey =
 				std::to_string(p->mRow) + "_" + std::to_string(p->mColumn);
 			out["alarmBellFlowersByCell"][cellKey] = plantState;

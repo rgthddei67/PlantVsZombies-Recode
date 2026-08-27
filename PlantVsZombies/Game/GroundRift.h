@@ -10,7 +10,7 @@ class Board;
  */
 class GroundRift final : public GameObject {
 public:
-	static constexpr int kPlantDamage = 110; // 每个新格首次被地裂扫过时的基础植物伤害
+	static constexpr int kPlantDamage = 177; // 每个新格首次被地裂扫过时的基础植物伤害
 	static constexpr float kTravelSpeed = 180.0f; // 地裂前沿向房屋移动速度，单位 px/游戏秒
 
 	GroundRift(Board* board, int row, float frontX,

@@ -13,7 +13,7 @@
 namespace {
 	constexpr int kDrillBodyHealth = 650;              // 钻机碎裂后的步行本体生命
 	constexpr int kDrillRigHealth = 900;               // 可由盐晶腐蚀的独立冰制钻机层耐久
-	constexpr float kChargeDuration = 5.0f;            // 冻土停步至地裂原子提交的游戏秒数
+	constexpr float kChargeDuration = 3.5f;            // 冻土停步至地裂原子提交的游戏秒数
 	constexpr float kChargeParticleInterval = 0.18f;   // 蓄力时钻头碎冰反馈间隔，单位游戏秒
 	constexpr float kRigIdleClipSpeed = 0.45f;         // 巡航钻齿相对 reanim 基准的慢转倍率
 	constexpr float kRigChargeClipSpeed = 2.2f;        // 蓄力钻齿相对 reanim 基准的高速倍率

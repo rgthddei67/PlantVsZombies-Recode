@@ -9,7 +9,6 @@
 #include "../Zombie/Zombie.h"
 
 #include <algorithm>
-#include <cmath>
 #include <limits>
 
 namespace {
@@ -17,22 +16,16 @@ constexpr float kAfterglowDuration = 1.0f; // 脉冲提交后实体保留的演�
 constexpr float kRingClipSpeed = 2.0f; // 原版 Blover anim_blow 的警铃草播放倍率
 constexpr float kFinalFadeOutDuration =
     0.22f; // 消失前切疲惫表情并整体淡出的秒数
-constexpr float kRingingHeadFrame =
-    43.0f; // Blover HEAD→HEAD2 的原版表情切换全局帧
 constexpr float kRemainingTieEpsilon =
     0.0001f;                               // 余时视为并列的浮点容差，单位秒
 constexpr float kBellSoundVolume = 0.34f;  // 电子提示音音量，提供清晰动作边沿
 constexpr float kMetalSoundVolume = 0.22f; // 金属撞击叠音量，强化实体铃铛质感
-constexpr const char *kBaseTrack =
-    "Blover_dirt_back"; // 原版地面轨承载茎叶底座的轻微受力
-constexpr const char *kLowerStemTrack =
-    "Blover_stem2"; // 原版下段茎连接固定叶座与摆动上身
-constexpr const char *kUpperStemTrack =
-    "Blover_stem1"; // 原版上段茎把铃身挂到下段茎的末端
-constexpr const char *kHeadTrack =
-    "Blover_head"; // 原版头部位移/缩放轨承载铃铛头
-constexpr const char *kClapperFollowerSlot =
-    "alarm_bell_clapper"; // 铃舌在头轨上的独立命名 follower 槽
+constexpr const char *kCharmTrack =
+    "Blover_stem1"; // 小铃挂在稳定上段茎，保留三叶草头和叶片的完整原版动作
+constexpr const char *kCharmFollowerSlot =
+    "alarm_bell_charm"; // AI 铃铛只作为低分辨率身份挂件，不替换主体分件
+constexpr float kCharmOffsetX = 11.0f; // 小铃相对上段茎右侧的局部 X 偏移，单位 px
+constexpr float kCharmOffsetY = 8.0f;  // 小铃垂挂在原版头部下缘，单位 px
 
 /** 返回区间内平滑启停的 0～1 权重，用于整株退出淡出。 */
 float SmoothStep(float start, float end, float value) {
@@ -40,11 +33,6 @@ float SmoothStep(float start, float end, float value) {
   return t * t * (3.0f - 2.0f * t);
 }
 
-SDL_Color OpacityColor(float opacity) {
-  const auto alpha =
-      static_cast<Uint8>(std::lround(std::clamp(opacity, 0.0f, 1.0f) * 255.0f));
-  return SDL_Color{255, 255, 255, alpha};
-}
 } // namespace
 
 void AlarmBellFlower::SetupPlant() {
@@ -154,61 +142,22 @@ void AlarmBellFlower::TriggerPulse() {
 void AlarmBellFlower::ConfigureRig() {
   if (!mAnimator)
     return;
-  static constexpr const char *kHiddenTracks[] = {
-      "Blover_dirt_front",
-      "Blover_petals",
-      "Blover_petals2",
-      "Blover_petals3",
-  };
-  for (const char *track : kHiddenTracks)
-    mAnimator->SetTrackVisible(track, false);
-
-  auto &resources = ResourceManager::GetInstance();
-  mAnimator->SetTrackImage(
-      kBaseTrack,
-      resources.GetTexture(
-          ResourceKeys::Textures::IMAGE_REANIM_ALARMBELLFLOWER_BASE));
-  mAnimator->SetTrackImage(
-      kHeadTrack,
-      resources.GetTexture(
-          ResourceKeys::Textures::IMAGE_REANIM_ALARMBELLFLOWER_HEAD_READY));
-  // 铃舌与铃身共用父轨完整仿射变换，摆到极限时也不会脱离铃口。
+  // 主体完全由派生换色的 Blover.reanim 负责；小铃只跟随稳定上段茎。
   mAnimator->SetTrackFollowerImage(
-      kHeadTrack,
-      kClapperFollowerSlot,
-      resources.GetTexture(
-          ResourceKeys::Textures::IMAGE_REANIM_ALARMBELLFLOWER_CLAPPER),
-      0.0f, 0.0f, 1.0f, 1.0f, false);
-  mAnimator->SetTrackFollowerVisible(kHeadTrack, kClapperFollowerSlot, true);
-  // 两张 120px 分件图共用中心轴；常量抵消 Blover 各轨道首帧的原版绝对位置。
-  mAnimator->SetTrackOffset(kBaseTrack, -29.4f, -58.3f);
-  mAnimator->SetTrackOffset(kHeadTrack, -13.9f, -8.3f);
+      kCharmTrack, kCharmFollowerSlot,
+      ResourceManager::GetInstance().GetTexture(
+          ResourceKeys::Textures::IMAGE_REANIM_ALARMBELLFLOWER_CHARM),
+      kCharmOffsetX, kCharmOffsetY, 1.0f, 1.0f, false, true);
+  mAnimator->SetTrackFollowerVisible(kCharmTrack, kCharmFollowerSlot, true);
 }
 
 void AlarmBellFlower::RefreshPresentation() {
   if (!mAnimator)
     return;
-  const Texture *head = ResourceManager::GetInstance().GetTexture(
-      ResourceKeys::Textures::IMAGE_REANIM_ALARMBELLFLOWER_HEAD_READY);
-  if (mPulseTriggered) {
-    if (mAfterglowRemaining <= kFinalFadeOutDuration) {
-      head = ResourceManager::GetInstance().GetTexture(
-          ResourceKeys::Textures::IMAGE_REANIM_ALARMBELLFLOWER_HEAD_FADING);
-    } else if (mAnimator->GetCurrentTrackName() == "anim_loop" ||
-               mAnimator->GetCurrentFrame() >= kRingingHeadFrame) {
-      head = ResourceManager::GetInstance().GetTexture(
-          ResourceKeys::Textures::IMAGE_REANIM_ALARMBELLFLOWER_HEAD_RINGING);
-    }
-  }
-  mAnimator->SetTrackImage(kHeadTrack, head);
-
   const float opacity =
       mPulseTriggered
           ? SmoothStep(0.0f, kFinalFadeOutDuration, mAfterglowRemaining)
           : 1.0f;
-  const SDL_Color color = OpacityColor(opacity);
-  mAnimator->SetTrackColor(kBaseTrack, color);
-  mAnimator->SetTrackColor(kLowerStemTrack, color);
-  mAnimator->SetTrackColor(kUpperStemTrack, color);
-  mAnimator->SetTrackColor(kHeadTrack, color);
+  // 整体 Alpha 同时覆盖原版主体与命名 follower，两条渲染路径保持一致。
+  SetAlpha(opacity);
 }

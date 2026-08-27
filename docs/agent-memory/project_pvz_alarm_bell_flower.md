@@ -4,7 +4,7 @@ description: 第七大关警铃草、同行未提交动作中断、三叶草骨�
 metadata:
   node_type: memory
   type: project
-  updated_at: 2026-08-25
+  updated_at: 2026-08-27
 ---
 
 # 警铃草与未提交动作中断
@@ -31,18 +31,18 @@ metadata:
 `pulseTriggered/pulseSucceeded/afterglowRemaining`。读档恢复表现但不得再次中断、播声或发粒子，
 余时为零的损坏快照只等待下一逻辑步回收。
 
-场上动画直接复用原版 `Blover.reanim` 的 12 FPS 时间轴：待机 0～32、弯折 33～51、
-余韵循环 52～61，`anim_blow` 与返回段均以 2.0 倍播放。`Blover_dirt_back` 只换成固定叶座，
-`Blover_stem2/stem1` 保留为连续双段茎，铃头替换 `Blover_head`，铃舌作为头轨 follower 共用
-完整仿射变换。三种铃头按底部茎秆插口而非 Alpha 包围盒校准；右倾响铃/疲惫头在 120px
-画布内比正面头左移 10px，避免换图放大阶段接到铃身左后侧。最后 0.22 秒整株淡出。
+场上动画完整复用原版 `Blover.reanim` 的 12 FPS 时间轴和全部头、茎、叶片、地面分件：
+待机 0～32、弯折 33～51、余韵循环 52～61，`anim_blow` 与返回段均以 2.0 倍播放。
+七类原版分件只做确定性的冬季青蓝换色，不再用大型 AI 铃头替换核心头身；现有 AI 铃图只裁成
+24×24 小挂件，以命名 follower 稳定挂在 `Blover_stem1`，随父轨完整仿射运动并继承整株淡出。
+最后 0.22 秒整株淡出。
 
 ## 资源闭环
 
-非写实 PvZ 手绘母图为 `docs/art/alarm-bell-flower/alarm-bell-flower-rig-parts-v1.png`；
-`scripts/generate_alarm_bell_flower_assets.ps1` 锁定母图、Blover 时间轴和全部输出 SHA-256，
-确定性去除连通棋盘背景并生成三张铃头、铃舌、叶座、卡图和整行脉冲。卡图的完整角色内容
-按主人确认的 0.8 比例（120px 画布内 86px）居中，场上骨架尺寸保持不变。
+`scripts/generate_alarm_bell_flower_assets.ps1` 同时锁定原版 Blover 时间轴、卡图、七类分件、
+既有警铃母图和全部输出 SHA-256。脚本只对绿色像素做青蓝 HSV 派生，保留眼睛、描边和暖色细节；
+卡图由原版三叶草同步换色并叠加同一小铃，场上与卡图共享身份。旧的大铃头、铃舌和叶座运行图
+已删除，不再参与资源注册或运行时换图。
 
 资源必须同时闭合 `resources.xml` 的 GameImages/ParticleTextures/Reanimation、`ResourceKeys`、
 manifest，以及 AutoTest 的 `HasReanimation` 和每张运行时 `GetTexture(key,false)` 断言。
@@ -52,9 +52,16 @@ manifest，以及 AutoTest 的 `HasReanimation` 和每张运行时 `GetTexture(k
 
 核心专项是 `smoke_alarm_bell_flower.json`，覆盖数值、资源、同行选择、稳定 ID、异排、
 无伤害、气象干扰重启、钻机重置、施工墙撤销、演出中快照与 7-6 奖励。
-`visual_alarm_bell_flower_transition.json` 以 0.35 倍速分别截取换头前、换头帧、两个连续
-放大帧、余韵和淡出，专门防止静态图硬切、茎头脱节与语义轴心偏移。最终证据须使用
+`visual_alarm_bell_flower_transition.json` 以 0.35 倍速分别截取原版弯折、表情换图、两个连续
+旋转放大帧、余韵和淡出，专门检查完整三叶草动作、小铃跟随和循环连续性。最终证据须使用
 `clang-release` 在默认实例路径与 `-NoInstance` 当前桌面可见运行。
+
+2026-08-27 玩家反馈视觉重制证据：资源生成器复跑且新旧输入与全部输出哈希闭合；`clang-release`
+全量 LTO 构建通过，主程序 Win7 导入审计通过 378 项，CTest 三项为 3/3。`smoke_alarm_bell_flower.json` 扩至
+121 条命令，默认 Vulkan 与 `-NoInstance` 均执行至 command 120、exit 0、`status=passed`、
+`script finished OK`，新增断言确认七类换色分件、小铃资源及运行期 follower 可见。
+`visual_alarm_bell_flower_transition.json` 两路径均执行 30 条命令至 command 29 并通过；八帧慢放
+逐张目验原版三叶草弯折、表情切换、旋转放大、青蓝轮廓、小铃跟随与淡出连续，两条绘制路径一致。
 
 2026-08-25 最终证据：资源生成器复跑并锁定全部哈希；`clang-release` 完整重编 156 个目标后
 链接成功，主程序 Win7 导入审计通过 378 项，CTest 的 save-migration、save-schema 与
